@@ -640,6 +640,142 @@ importers:
         specifier: 0.8.0
         version: 0.8.0
 
+  examples/module-federation-v1: {}
+
+  examples/module-federation-v1.5: {}
+
+  examples/module-federation-v1.5/app:
+    dependencies:
+      date-fns:
+        specifier: ^3.0.6
+        version: 3.0.6
+      react:
+        specifier: 18.0.0
+        version: 18.0.0
+      react-dom:
+        specifier: 18.0.0
+        version: 18.0.0(react@18.0.0)
+    devDependencies:
+      '@rspack/cli':
+        specifier: workspace:*
+        version: link:../../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../../packages/rspack
+      html-webpack-plugin:
+        specifier: ^5.5.0
+        version: 5.5.0
+
+  examples/module-federation-v1.5/lib1:
+    dependencies:
+      date-fns:
+        specifier: ^3.0.6
+        version: 3.0.6
+      react:
+        specifier: 18.0.0
+        version: 18.0.0
+      react-dom:
+        specifier: 18.0.0
+        version: 18.0.0(react@18.0.0)
+    devDependencies:
+      '@rspack/cli':
+        specifier: workspace:*
+        version: link:../../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../../packages/rspack
+      html-webpack-plugin:
+        specifier: ^5.5.0
+        version: 5.5.0
+
+  examples/module-federation-v1.5/lib2:
+    dependencies:
+      date-fns:
+        specifier: ^3.0.6
+        version: 3.0.6
+      lodash:
+        specifier: ^4.17.21
+        version: 4.17.21
+      react:
+        specifier: 18.0.0
+        version: 18.0.0
+      react-dom:
+        specifier: 18.0.0
+        version: 18.0.0(react@18.0.0)
+    devDependencies:
+      '@rspack/cli':
+        specifier: workspace:*
+        version: link:../../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../../packages/rspack
+
+  examples/module-federation-v1/app:
+    dependencies:
+      date-fns:
+        specifier: ^3.0.6
+        version: 3.0.6
+      react:
+        specifier: 18.0.0
+        version: 18.0.0
+      react-dom:
+        specifier: 18.0.0
+        version: 18.0.0(react@18.0.0)
+    devDependencies:
+      '@rspack/cli':
+        specifier: workspace:*
+        version: link:../../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../../packages/rspack
+      html-webpack-plugin:
+        specifier: ^5.5.0
+        version: 5.5.0
+
+  examples/module-federation-v1/lib1:
+    dependencies:
+      date-fns:
+        specifier: ^3.0.6
+        version: 3.0.6
+      react:
+        specifier: 18.0.0
+        version: 18.0.0
+      react-dom:
+        specifier: 18.0.0
+        version: 18.0.0(react@18.0.0)
+    devDependencies:
+      '@rspack/cli':
+        specifier: workspace:*
+        version: link:../../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../../packages/rspack
+      html-webpack-plugin:
+        specifier: ^5.5.0
+        version: 5.5.0
+
+  examples/module-federation-v1/lib2:
+    dependencies:
+      date-fns:
+        specifier: ^3.0.6
+        version: 3.0.6
+      lodash:
+        specifier: ^4.17.21
+        version: 4.17.21
+      react:
+        specifier: 18.0.0
+        version: 18.0.0
+      react-dom:
+        specifier: 18.0.0
+        version: 18.0.0(react@18.0.0)
+    devDependencies:
+      '@rspack/cli':
+        specifier: workspace:*
+        version: link:../../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../../packages/rspack
+
   examples/monaco-editor-js:
     dependencies:
       '@rspack/cli':
@@ -765,6 +901,8 @@ importers:
       '@rspack/core':
         specifier: workspace:*
         version: link:../../packages/rspack
+
+  examples/plugin-compat/dist: {}
 
   examples/polyfill:
     dependencies:
@@ -16760,6 +16898,10 @@ packages:
     engines: {node: '>= 12'}
     dev: false
 
+  /date-fns@3.0.6:
+    resolution: {integrity: sha512-W+G99rycpKMMF2/YD064b2lE7jJGUe+EjOES7Q8BIGY8sbNdbgcs9XFTZwvzc9Jx1f3k7LB7gZaZa7f8Agzljg==}
+    dev: false
+
   /dayjs@1.11.7:
     resolution: {integrity: sha512-+Yw9U6YO5TQohxLcIkrXBeY73WP3ejHWVvx8XCk3gxvQDCTEmS48ZrSZCKciI7Bhl/uCMyxYtE9UqRILmFphkQ==}
 
@@ -19490,7 +19632,7 @@ packages:
       he: 1.2.0
       param-case: 3.0.4
       relateurl: 0.2.7
-      terser: 5.16.1
+      terser: 5.17.1
     dev: true
 
   /html-minifier-terser@7.0.0:

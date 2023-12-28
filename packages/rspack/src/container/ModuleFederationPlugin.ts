@@ -158,5 +158,6 @@ function getDefaultEntryRuntime(
 		)}`,
 		compiler.webpack.Template.getFunctionContent(require("./default.runtime"))
 	].join("\n");
-	return `data:text/javascript,${content}`;
+	// use "application/node" to use moduleType "javascript/auto"
+	return `data:application/node,${content}`;
 }
