@@ -43,7 +43,7 @@ use swc_ecma_minifier::{
   option::{MinifyOptions, TopLevelOptions},
 };
 
-use crate::{ExtractComments, JsMinifyOptions, SwcJsMinimizerRspackPluginOptions};
+use crate::{JsMinifyOptions, NormalizedExtractComments, SwcJsMinimizerRspackPluginOptions};
 
 pub fn match_object(obj: &SwcJsMinimizerRspackPluginOptions, str: &str) -> Result<bool> {
   if let Some(condition) = &obj.test {
@@ -103,7 +103,7 @@ pub fn minify(
   input: String,
   filename: &str,
   all_extract_comments: &Mutex<HashMap<String, ExtractedCommentsInfo>>,
-  extract_comments: &Option<ExtractComments<'_>>,
+  extract_comments: &Option<NormalizedExtractComments>,
 ) -> std::result::Result<TransformOutput, BatchErrors> {
   let cm: Arc<SourceMap> = Default::default();
   GLOBALS.set(
