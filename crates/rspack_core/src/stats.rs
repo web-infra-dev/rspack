@@ -282,7 +282,7 @@ impl Stats<'_> {
     let mut diagnostic_displayer = DiagnosticDisplayer::new(self.compilation.options.stats.colors);
     self
       .compilation
-      .get_errors()
+      .get_errors_sorted()
       .map(|d| {
         let module_identifier = d.module_identifier();
         let (module_name, module_id) = module_identifier
@@ -314,7 +314,7 @@ impl Stats<'_> {
     let mut diagnostic_displayer = DiagnosticDisplayer::new(self.compilation.options.stats.colors);
     self
       .compilation
-      .get_warnings()
+      .get_warnings_sorted()
       .map(|d| {
         let module_identifier = d.module_identifier();
         let (module_name, module_id) = module_identifier
