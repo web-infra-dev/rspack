@@ -731,7 +731,7 @@ impl ExportInfoId {
     if self_export_info.target.is_empty() {
       return None;
     }
-    if already_visited.contains(&self) {
+    if already_visited.contains(self) {
       return Some(ResolvedExportInfoTargetWithCircular::Circular);
     }
     already_visited.insert(*self);
@@ -1323,13 +1323,9 @@ impl ExportInfo {
         if already_visited.contains(&export_info_id) {
           return Some(ResolvedExportInfoTargetWithCircular::Circular);
         }
-        let mut export_info = mg.get_export_info_by_id(&export_info_id).clone();
-        // dbg!(&export_info);
+        let export_info = mg.get_export_info_by_id(&export_info_id).clone();
 
-        let export_info_id = export_info.id;
-        let new_target = export_info
-          .id
-          ._get_target(mg, resolve_filter.clone(), already_visited);
+        let new_target = export_info_id._get_target(mg, resolve_filter.clone(), already_visited);
 
         match new_target {
           Some(ResolvedExportInfoTargetWithCircular::Circular) => {

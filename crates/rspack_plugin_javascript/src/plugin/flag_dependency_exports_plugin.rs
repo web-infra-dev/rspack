@@ -241,7 +241,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
         };
       let export_info_id = exports_info.get_export_info(&name, self.mg);
 
-      let mut export_info_mut = export_info_id.get_export_info_mut(self.mg);
+      let export_info_mut = export_info_id.get_export_info_mut(self.mg);
       if let Some(ref mut provided) = export_info_mut.provided
         && matches!(
           provided,
