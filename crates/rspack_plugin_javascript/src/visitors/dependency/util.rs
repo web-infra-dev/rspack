@@ -177,11 +177,13 @@ pub fn is_import_meta_context_call(node: &CallExpr) -> bool {
     .unwrap_or_default()
 }
 
-// Notice: Include `import.meta` itself
-pub fn is_member_expr_starts_with_import_meta(mut expr: &Expr) -> bool {
+pub fn is_member_expr_starts_with<F>(mut expr: &Expr, checker: F) -> bool
+where
+  F: Fn(&Expr) -> bool,
+{
   loop {
     match expr {
-      _ if expr_matcher::is_import_meta(expr) => return true,
+      _ if checker(expr) => return true,
       Expr::Member(MemberExpr { obj, .. }) => expr = obj.as_ref(),
       _ => return false,
     }
@@ -251,7 +253,10 @@ fn test() {
     })),
     prop: MemberProp::Ident(Ident::new("accept".into(), DUMMY_SP)),
   });
-  assert!(is_member_expr_starts_with_import_meta(&import_meta_expr));
+  assert!(is_member_expr_starts_with(
+    &import_meta_expr,
+    |expr: &Expr| expr_matcher::is_import_meta(expr)
+  ));
   assert!(is_member_expr_starts_with_import_meta_webpack_hot(
     &import_meta_expr
   ));
