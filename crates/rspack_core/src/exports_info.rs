@@ -1419,14 +1419,6 @@ impl ExportInfo {
     false
   }
 
-  // pub fn create_nested_exports_info(&mut self, mg: &mut ModuleGraph) -> ExportsInfoId {
-  //   if self.exports_info_owned {
-  //     return self
-  //       .exports_info
-  //       .expect("should have exports_info when exports_info is true");
-  //   }
-  // }
-
   pub fn has_used_name(&self) -> bool {
     self.used_name.is_some()
   }
