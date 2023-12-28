@@ -209,7 +209,14 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     };
     diagnostics.append(&mut warning_diagnostics);
 
-    let analyze_result = if compiler_options.builtins.tree_shaking.enable() {
+    let analyze_result = if compiler_options.builtins.tree_shaking.enable()
+      || (compiler_options.optimization.provided_exports
+        && compiler_options
+          .output
+          .library
+          .as_ref()
+          .is_some_and(|l| l.library_type.eq("module")))
+    {
       let mut all_dependencies = dependencies.clone();
       for mut block in blocks.clone() {
         all_dependencies.extend(block.take_dependencies());

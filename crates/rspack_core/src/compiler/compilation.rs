@@ -837,7 +837,15 @@ impl Compilation {
                 }
               }
 
-              if self.options.builtins.tree_shaking.enable() {
+              if self.options.builtins.tree_shaking.enable()
+                || (self.options.optimization.provided_exports
+                  && self
+                    .options
+                    .output
+                    .library
+                    .as_ref()
+                    .is_some_and(|l| l.library_type.eq("module")))
+              {
                 self
                   .optimize_analyze_result_map
                   .insert(module.identifier(), build_result.analyze_result);
