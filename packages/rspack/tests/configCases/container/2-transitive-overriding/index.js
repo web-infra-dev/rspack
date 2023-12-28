@@ -1,5 +1,4 @@
 it("should allow transitive overrides (container-no-shared/a)", () => {
-	debugger;
 	return import("container-no-shared/a").then(({ value }) => {
 		expect(value).toBe("new shared");
 	});
@@ -28,6 +27,7 @@ it("should have good module ids", async () => {
 		"./b.js",
 		"./modules-from-remote.js",
 		"./modules.js",
+		"./shared.js",
 		"webpack/container/entry/container-no-shared",
 		"webpack/container/reference/container-with-shared",
 		"webpack/container/remote/container-with-shared/b",
