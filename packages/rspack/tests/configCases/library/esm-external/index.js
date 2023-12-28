@@ -10,7 +10,7 @@ export const add = (a, b) => {
 	return a + b;
 };
 
-it("should run", function () {});
+it("should run", function () { });
 
 it("should export module library", function () {
 	const __filename = url.fileURLToPath(import.meta.url);
