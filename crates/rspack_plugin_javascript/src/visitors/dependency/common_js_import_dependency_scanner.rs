@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use rspack_core::{context_reg_exp, ContextOptions, DependencyCategory};
+use rspack_core::{context_reg_exp, ContextOptions, DependencyCategory, DependencyLocation};
 use rspack_core::{BoxDependency, ConstDependency, ContextMode, ContextNameSpaceObject};
 use rspack_core::{DependencyTemplate, SpanExt};
 use swc_core::common::{Spanned, SyntaxContext};
@@ -45,6 +45,7 @@ pub struct CommonJsImportDependencyScanner<'a> {
   pub(crate) in_if: bool,
   pub(crate) is_strict: bool,
   pub(crate) plugin_drive: Rc<JavaScriptParserPluginDrive>,
+  pub(crate) removed: &'a mut Vec<DependencyLocation>,
 }
 
 #[derive(Debug)]
@@ -79,6 +80,7 @@ impl<'a> CommonJsImportDependencyScanner<'a> {
     dependencies: &'a mut Vec<BoxDependency>,
     presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
     unresolved_ctxt: SyntaxContext,
+    removed: &'a mut Vec<DependencyLocation>,
   ) -> Self {
     let plugins: Vec<BoxJavascriptParserPlugin> = vec![
       Box::new(CommonJsImportsParserPlugin),
@@ -93,6 +95,7 @@ impl<'a> CommonJsImportDependencyScanner<'a> {
       in_if: false,
       is_strict: false,
       plugin_drive: Rc::new(plugin_drive),
+      removed,
     }
   }
 

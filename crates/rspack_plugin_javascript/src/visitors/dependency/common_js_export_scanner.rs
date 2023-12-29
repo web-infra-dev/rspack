@@ -1,6 +1,7 @@
 use rspack_core::{
   extract_member_expression_chain, BoxDependency, BuildMeta, BuildMetaDefaultObject,
-  BuildMetaExportsType, DependencyTemplate, ModuleType, RuntimeGlobals, SpanExt,
+  BuildMetaExportsType, DependencyLocation, DependencyTemplate, ModuleType, RuntimeGlobals,
+  SpanExt,
 };
 use swc_core::{
   atoms::Atom,
@@ -36,6 +37,7 @@ pub struct CommonJsExportDependencyScanner<'a> {
   stmt_level: u32,
   last_stmt_is_expr_stmt: bool,
   is_top_level: bool,
+  removed: &'a mut Vec<DependencyLocation>,
 }
 
 impl<'a> CommonJsExportDependencyScanner<'a> {
@@ -46,6 +48,7 @@ impl<'a> CommonJsExportDependencyScanner<'a> {
     build_meta: &'a mut BuildMeta,
     module_type: ModuleType,
     parser_exports_state: &'a mut Option<bool>,
+    removed: &'a mut Vec<DependencyLocation>,
   ) -> Self {
     Self {
       dependencies,
@@ -59,6 +62,7 @@ impl<'a> CommonJsExportDependencyScanner<'a> {
       stmt_level: 0,
       last_stmt_is_expr_stmt: false,
       is_top_level: true,
+      removed,
     }
   }
 }
@@ -73,6 +77,15 @@ impl Visit for CommonJsExportDependencyScanner<'_> {
   }
 
   fn visit_stmt(&mut self, stmt: &Stmt) {
+    let span = stmt.span();
+    if self
+      .removed
+      .iter()
+      .any(|r| r.start() <= span.real_lo() && span.real_hi() <= r.end())
+    {
+      return;
+    }
+
     self.stmt_level += 1;
     let old_last_stmt_is_expr_stmt = self.last_stmt_is_expr_stmt;
     if stmt.is_expr() {

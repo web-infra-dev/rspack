@@ -1,11 +1,13 @@
 use rspack_core::{
-  CompilerOptions, ConstDependency, DependencyTemplate, NodeOption, ResourceData, RuntimeGlobals,
-  SpanExt,
+  CompilerOptions, ConstDependency, DependencyLocation, DependencyTemplate, NodeOption,
+  ResourceData, RuntimeGlobals, SpanExt,
 };
 use sugar_path::SugarPath;
 use swc_core::common::SyntaxContext;
 use swc_core::ecma::ast::Ident;
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
+
+use crate::{get_removed, no_visit_removed};
 
 const DIR_NAME: &str = "__dirname";
 const FILE_NAME: &str = "__filename";
@@ -17,15 +19,19 @@ pub struct NodeStuffScanner<'a> {
   pub compiler_options: &'a CompilerOptions,
   pub node_option: &'a NodeOption,
   pub resource_data: &'a ResourceData,
+  pub removed: &'a mut Vec<DependencyLocation>,
 }
 
 impl<'a> NodeStuffScanner<'a> {
+  get_removed!();
+
   pub fn new(
     presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
     unresolved_ctxt: SyntaxContext,
     compiler_options: &'a CompilerOptions,
     node_option: &'a NodeOption,
     resource_data: &'a ResourceData,
+    removed: &'a mut Vec<DependencyLocation>,
   ) -> Self {
     Self {
       presentational_dependencies,
@@ -33,12 +39,14 @@ impl<'a> NodeStuffScanner<'a> {
       compiler_options,
       node_option,
       resource_data,
+      removed,
     }
   }
 }
 
 impl Visit for NodeStuffScanner<'_> {
   noop_visit_type!();
+  no_visit_removed!();
 
   fn visit_ident(&mut self, ident: &Ident) {
     if ident.span.ctxt == self.unresolved_ctxt {

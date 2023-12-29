@@ -1,4 +1,6 @@
-use rspack_core::{extract_member_expression_chain, ConstDependency, DependencyTemplate, SpanExt};
+use rspack_core::{
+  extract_member_expression_chain, ConstDependency, DependencyLocation, DependencyTemplate, SpanExt,
+};
 use swc_core::{
   common::SyntaxContext,
   ecma::{
@@ -7,28 +9,34 @@ use swc_core::{
   },
 };
 
-use crate::dependency::ExportInfoApiDependency;
+use crate::{dependency::ExportInfoApiDependency, get_removed, no_visit_removed};
 
 pub struct ExportInfoApiScanner<'a> {
   pub presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
   unresolved_ctxt: SyntaxContext,
+  pub removed: &'a mut Vec<DependencyLocation>,
 }
 
 //__webpack_exports_info__.a.used
 impl<'a> ExportInfoApiScanner<'a> {
+  get_removed!();
+
   pub fn new(
     presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
     unresolved_ctxt: SyntaxContext,
+    removed: &'a mut Vec<DependencyLocation>,
   ) -> Self {
     Self {
       presentational_dependencies,
       unresolved_ctxt,
+      removed,
     }
   }
 }
 
 impl Visit for ExportInfoApiScanner<'_> {
   noop_visit_type!();
+  no_visit_removed!();
 
   fn visit_member_expr(&mut self, member_expr: &MemberExpr) {
     let expression_info = extract_member_expression_chain(member_expr);

@@ -1,6 +1,6 @@
 use rspack_core::{
   tree_shaking::symbol::DEFAULT_JS_WORD, BoxDependency, BoxDependencyTemplate, BuildInfo,
-  ConstDependency, SpanExt,
+  ConstDependency, DependencyLocation, SpanExt,
 };
 use rustc_hash::FxHashMap as HashMap;
 use swc_core::{
@@ -17,10 +17,13 @@ use swc_core::{
 use swc_node_comments::SwcComments;
 
 use super::{harmony_import_dependency_scanner::ImportMap, ExtraSpanInfo};
-use crate::dependency::{
-  AnonymousFunctionRangeInfo, HarmonyExportExpressionDependency, HarmonyExportHeaderDependency,
-  HarmonyExportImportedSpecifierDependency, HarmonyExportSpecifierDependency, Specifier,
-  DEFAULT_EXPORT,
+use crate::{
+  dependency::{
+    AnonymousFunctionRangeInfo, HarmonyExportExpressionDependency, HarmonyExportHeaderDependency,
+    HarmonyExportImportedSpecifierDependency, HarmonyExportSpecifierDependency, Specifier,
+    DEFAULT_EXPORT,
+  },
+  get_removed, no_visit_removed,
 };
 
 pub struct HarmonyExportDependencyScanner<'a, 'b> {
@@ -30,9 +33,12 @@ pub struct HarmonyExportDependencyScanner<'a, 'b> {
   pub build_info: &'a mut BuildInfo,
   pub rewrite_usage_span: &'a mut HashMap<Span, ExtraSpanInfo>,
   pub comments: Option<&'b SwcComments>,
+  pub removed: &'a mut Vec<DependencyLocation>,
 }
 
 impl<'a, 'b> HarmonyExportDependencyScanner<'a, 'b> {
+  get_removed!();
+
   pub fn new(
     dependencies: &'a mut Vec<BoxDependency>,
     presentational_dependencies: &'a mut Vec<BoxDependencyTemplate>,
@@ -40,6 +46,7 @@ impl<'a, 'b> HarmonyExportDependencyScanner<'a, 'b> {
     build_info: &'a mut BuildInfo,
     rewrite_usage_span: &'a mut HashMap<Span, ExtraSpanInfo>,
     comments: Option<&'b SwcComments>,
+    removed: &'a mut Vec<DependencyLocation>,
   ) -> Self {
     Self {
       dependencies,
@@ -48,12 +55,14 @@ impl<'a, 'b> HarmonyExportDependencyScanner<'a, 'b> {
       build_info,
       rewrite_usage_span,
       comments,
+      removed,
     }
   }
 }
 
 impl<'a, 'b> Visit for HarmonyExportDependencyScanner<'a, 'b> {
   noop_visit_type!();
+  no_visit_removed!();
 
   fn visit_program(&mut self, program: &'_ Program) {
     program.visit_children_with(self);

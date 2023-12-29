@@ -82,25 +82,9 @@ pub fn scan_dependencies(
   let unresolved_ctxt = SyntaxContext::empty().apply_mark(unresolved_mark);
   let comments = program.comments.clone();
   let mut parser_exports_state = None;
+  let mut removed = vec![];
 
   let mut rewrite_usage_span = HashMap::default();
-  program.visit_with(&mut ApiScanner::new(
-    unresolved_ctxt,
-    resource_data,
-    &mut dependencies,
-    &mut presentational_dependencies,
-    compiler_options.output.module,
-    build_info,
-  ));
-
-  program.visit_with(&mut CompatibilityScanner::new(
-    &mut presentational_dependencies,
-    unresolved_ctxt,
-  ));
-  program.visit_with(&mut ExportInfoApiScanner::new(
-    &mut presentational_dependencies,
-    unresolved_ctxt,
-  ));
 
   // TODO it should enable at js/auto or js/dynamic, but builtins provider will inject require at esm
   // https://github.com/web-infra-dev/rspack/issues/3544
@@ -108,11 +92,36 @@ pub fn scan_dependencies(
     &mut dependencies,
     &mut presentational_dependencies,
     unresolved_ctxt,
+    &mut removed,
   ));
+
+  program.visit_with(&mut ApiScanner::new(
+    unresolved_ctxt,
+    resource_data,
+    &mut dependencies,
+    &mut presentational_dependencies,
+    compiler_options.output.module,
+    build_info,
+    &mut removed,
+  ));
+
+  program.visit_with(&mut CompatibilityScanner::new(
+    &mut presentational_dependencies,
+    unresolved_ctxt,
+    &mut removed,
+  ));
+
+  program.visit_with(&mut ExportInfoApiScanner::new(
+    &mut presentational_dependencies,
+    unresolved_ctxt,
+    &mut removed,
+  ));
+
   if module_type.is_js_auto() || module_type.is_js_dynamic() {
     program.visit_with(&mut CommonJsScanner::new(
       &mut presentational_dependencies,
       unresolved_ctxt,
+      &mut removed,
     ));
 
     program.visit_with(&mut CommonJsExportDependencyScanner::new(
@@ -122,6 +131,7 @@ pub fn scan_dependencies(
       build_meta,
       *module_type,
       &mut parser_exports_state,
+      &mut removed,
     ));
     if let Some(node_option) = &compiler_options.node {
       program.visit_with(&mut NodeStuffScanner::new(
@@ -130,6 +140,7 @@ pub fn scan_dependencies(
         compiler_options,
         node_option,
         resource_data,
+        &mut removed,
       ));
     }
   }
@@ -145,6 +156,7 @@ pub fn scan_dependencies(
       compiler_options.experiments.top_level_await,
       &mut presentational_dependencies,
       &mut errors,
+      &mut removed,
     ));
     program.visit_with(&mut HarmonyImportDependencyScanner::new(
       &mut dependencies,
@@ -152,6 +164,7 @@ pub fn scan_dependencies(
       &mut import_map,
       build_info,
       &mut rewrite_usage_span,
+      &mut removed,
     ));
     let comments = program.comments.as_ref();
     program.visit_with(&mut HarmonyExportDependencyScanner::new(
@@ -161,11 +174,13 @@ pub fn scan_dependencies(
       build_info,
       &mut rewrite_usage_span,
       comments,
+      &mut removed,
     ));
 
     if build_meta.esm {
       program.visit_with(&mut HarmonyTopLevelThis {
         presentational_dependencies: &mut presentational_dependencies,
+        removed: &mut removed,
       })
     }
 
@@ -178,6 +193,7 @@ pub fn scan_dependencies(
       &module_identifier,
       &compiler_options.output,
       worker_syntax_list,
+      &mut removed,
     );
     program.visit_with(&mut worker_scanner);
     blocks.append(&mut worker_scanner.blocks);
@@ -198,6 +214,7 @@ pub fn scan_dependencies(
         &mut dependencies,
         worker_syntax_list,
         matches!(parse_url, JavascriptParserUrl::Relative),
+        &mut removed,
       ));
     }
     program.visit_with(&mut ImportMetaScanner::new(
@@ -205,6 +222,7 @@ pub fn scan_dependencies(
       resource_data,
       compiler_options,
       &mut warning_diagnostics,
+      &mut removed,
     ));
   }
 
@@ -221,6 +239,7 @@ pub fn scan_dependencies(
       .and_then(|p| p.get(module_type))
       .and_then(|p| p.get_javascript(module_type)),
     &mut warning_diagnostics,
+    &mut removed,
   ));
 
   if compiler_options.dev_server.hot {
@@ -228,6 +247,7 @@ pub fn scan_dependencies(
       &mut dependencies,
       &mut presentational_dependencies,
       build_meta,
+      &mut removed,
     ));
   }
 

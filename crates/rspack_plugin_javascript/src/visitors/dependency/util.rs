@@ -292,3 +292,32 @@ pub fn is_unresolved_require(expr: &Expr, unresolved_ctxt: SyntaxContext) -> boo
   assert!(ident.sym.eq("require"));
   ident.span.ctxt == unresolved_ctxt
 }
+
+#[macro_export]
+macro_rules! get_removed {
+  () => {
+    fn get_removed(&self) -> &Vec<DependencyLocation> {
+      self.removed
+    }
+  };
+}
+
+#[macro_export]
+macro_rules! no_visit_removed {
+  () => {
+    fn visit_stmt(&mut self, stmt: &swc_core::ecma::ast::Stmt) {
+      use rspack_core::SpanExt;
+      use swc_core::common::Spanned;
+      use swc_core::ecma::visit::VisitWith;
+      let span = stmt.span();
+      if self
+        .get_removed()
+        .iter()
+        .any(|r| r.start() <= span.real_lo() && span.real_hi() <= r.end())
+      {
+        return;
+      }
+      stmt.visit_children_with(self);
+    }
+  };
+}

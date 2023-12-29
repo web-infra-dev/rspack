@@ -21,6 +21,7 @@ use super::{is_import_meta_context_call, parse_order_string};
 use crate::dependency::{ImportContextDependency, ImportDependency};
 use crate::dependency::{ImportEagerDependency, ImportMetaContextDependency};
 use crate::utils::{get_bool_by_obj_prop, get_literal_str_by_obj_prop, get_regex_by_obj_prop};
+use crate::{get_removed, no_visit_removed};
 
 pub struct ImportScanner<'a> {
   module_identifier: ModuleIdentifier,
@@ -30,6 +31,7 @@ pub struct ImportScanner<'a> {
   pub build_meta: &'a BuildMeta,
   pub options: Option<&'a JavascriptParserOptions>,
   pub warning_diagnostics: &'a mut Vec<Box<dyn Diagnostic + Send + Sync>>,
+  pub removed: &'a mut Vec<DependencyLocation>,
 }
 
 fn create_import_meta_context_dependency(node: &CallExpr) -> Option<ImportMetaContextDependency> {
@@ -139,6 +141,9 @@ static WEBPACK_MAGIC_COMMENT_REGEXP: Lazy<regex::Regex> = Lazy::new(|| {
 });
 
 impl<'a> ImportScanner<'a> {
+  get_removed!();
+
+  #[allow(clippy::too_many_arguments)]
   pub fn new(
     module_identifier: ModuleIdentifier,
     dependencies: &'a mut Vec<BoxDependency>,
@@ -147,6 +152,7 @@ impl<'a> ImportScanner<'a> {
     build_meta: &'a BuildMeta,
     options: Option<&'a JavascriptParserOptions>,
     warning_diagnostics: &'a mut Vec<Box<dyn Diagnostic + Send + Sync>>,
+    removed: &'a mut Vec<DependencyLocation>,
   ) -> Self {
     Self {
       module_identifier,
@@ -156,6 +162,7 @@ impl<'a> ImportScanner<'a> {
       build_meta,
       options,
       warning_diagnostics,
+      removed,
     }
   }
 
@@ -230,6 +237,7 @@ impl<'a> ImportScanner<'a> {
 
 impl Visit for ImportScanner<'_> {
   noop_visit_type!();
+  no_visit_removed!();
 
   fn visit_call_expr(&mut self, node: &CallExpr) {
     if !node.args.is_empty()
