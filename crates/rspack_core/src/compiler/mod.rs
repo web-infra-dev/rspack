@@ -37,7 +37,7 @@ where
 {
   pub options: Arc<CompilerOptions>,
   pub output_filesystem: T,
-  pub input_filesystem: Box<dyn AsyncReadableFileSystem + Send + Sync>,
+  pub input_filesystem: Arc<dyn AsyncReadableFileSystem + Send + Sync>,
   pub compilation: Compilation,
   pub plugin_driver: SharedPluginDriver,
   pub resolver_factory: Arc<ResolverFactory>,
@@ -57,7 +57,7 @@ where
     options: CompilerOptions,
     plugins: Vec<BoxPlugin>,
     output_filesystem: T,
-    input_filesystem: Option<Box<dyn AsyncReadableFileSystem + Send + Sync>>,
+    input_filesystem: Option<Arc<dyn AsyncReadableFileSystem + Send + Sync>>,
   ) -> Self {
     #[cfg(debug_assertions)]
     {
@@ -65,11 +65,19 @@ where
         debug_info.with_context(options.context.to_string());
       }
     }
+    let ifs = input_filesystem
+      .clone()
+      .unwrap_or(Arc::new(AsyncNativeFileSystem));
     let new_resolver = options.experiments.rspack_future.new_resolver;
-    let resolver_factory = Arc::new(ResolverFactory::new(new_resolver, options.resolve.clone()));
+    let resolver_factory = Arc::new(ResolverFactory::new(
+      new_resolver,
+      options.resolve.clone(),
+      input_filesystem.clone(),
+    ));
     let loader_resolver_factory = Arc::new(ResolverFactory::new(
       new_resolver,
       options.resolve_loader.clone(),
+      input_filesystem.clone(),
     ));
     let (plugin_driver, options) = PluginDriver::new(options, plugins, resolver_factory.clone());
     let cache = Arc::new(Cache::new(options.clone()));
@@ -87,7 +95,7 @@ where
         cache.clone(),
       ),
       output_filesystem,
-      input_filesystem: input_filesystem.unwrap_or(Box::new(AsyncNativeFileSystem)),
+      input_filesystem: ifs.clone(),
       plugin_driver,
       resolver_factory,
       loader_resolver_factory,

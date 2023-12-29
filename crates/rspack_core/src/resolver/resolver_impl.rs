@@ -7,9 +7,11 @@ use std::{
 use rspack_error::{
   error, miette::miette, DiagnosticError, Error, ErrorExt, Severity, TraceableError,
 };
+use rspack_fs::AsyncReadableFileSystem;
 use rspack_loader_runner::DescriptionData;
 
 use super::{ResolveResult, Resource};
+use crate::resolver::filesystem::ResolverFileSystem;
 use crate::{DependencyCategory, Resolve, ResolveArgs, ResolveOptionsWithDependencyType};
 
 /// Proxy to [nodejs_resolver::Error] or [oxc_resolver::ResolveError]
@@ -82,13 +84,17 @@ impl<'a> ResolveInnerOptions<'a> {
 #[derive(Debug)]
 pub enum Resolver {
   NodejsResolver(nodejs_resolver::Resolver, Arc<nodejs_resolver::Cache>),
-  OxcResolver(oxc_resolver::Resolver),
+  OxcResolver(oxc_resolver::ResolverGeneric<ResolverFileSystem>),
 }
 
 impl Resolver {
-  pub fn new(new_resolver: bool, options: Resolve) -> Self {
+  pub fn new(
+    new_resolver: bool,
+    options: Resolve,
+    fs: Option<Arc<dyn AsyncReadableFileSystem + Send + Sync>>,
+  ) -> Self {
     if new_resolver {
-      Self::new_oxc_resolver(options)
+      Self::new_oxc_resolver(options, fs)
     } else {
       Self::new_nodejs_resolver(options)
     }
@@ -102,9 +108,18 @@ impl Resolver {
     Self::NodejsResolver(resolver, cache)
   }
 
-  fn new_oxc_resolver(options: Resolve) -> Self {
+  fn new_oxc_resolver(
+    options: Resolve,
+    fs: Option<Arc<dyn AsyncReadableFileSystem + Send + Sync>>,
+  ) -> Self {
     let options = to_oxc_resolver_options(options, false, DependencyCategory::Unknown);
-    let resolver = oxc_resolver::Resolver::new(options);
+    let resolver = match fs {
+      Some(fs) => {
+        oxc_resolver::ResolverGeneric::new_with_file_system(ResolverFileSystem::new(fs), options)
+      }
+      None => oxc_resolver::ResolverGeneric::new(options),
+    };
+
     Self::OxcResolver(resolver)
   }
 

@@ -10,7 +10,7 @@
 
 import { Compiler, RspackOptions, Stats } from ".";
 import ResolverFactory from "./ResolverFactory";
-import { WatchFileSystem } from "./util/fs";
+import { InputFileSystem, WatchFileSystem } from "./util/fs";
 import { Watching } from "./Watching";
 import {
 	AsyncSeriesHook,
@@ -181,7 +181,7 @@ export class MultiCompiler {
 	/**
 	 * @param {InputFileSystem} value the new input file system
 	 */
-	set inputFileSystem(value) {
+	set inputFileSystem(value: InputFileSystem) {
 		for (const compiler of this.compilers) {
 			compiler.inputFileSystem = value;
 		}

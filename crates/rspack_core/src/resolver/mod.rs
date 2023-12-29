@@ -1,4 +1,5 @@
 mod factory;
+mod filesystem;
 mod resolver_impl;
 
 use std::{fmt, path::PathBuf};

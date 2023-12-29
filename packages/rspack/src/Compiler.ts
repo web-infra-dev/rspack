@@ -65,7 +65,7 @@ class Compiler {
 	watching?: Watching;
 	outputPath!: string;
 	name?: string;
-	inputFileSystem: InputFileSystem;
+	inputFileSystem?: InputFileSystem;
 	outputFileSystem: typeof import("fs");
 	ruleSet: RuleSetCompiler;
 	// @ts-expect-error

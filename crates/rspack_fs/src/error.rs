@@ -23,6 +23,14 @@ impl From<std::io::Error> for Error {
   }
 }
 
+impl From<Error> for std::io::Error {
+  fn from(value: Error) -> Self {
+    match value {
+      Error::Io(err) => err,
+    }
+  }
+}
+
 #[cfg(feature = "rspack-error")]
 impl From<Error> for rspack_error::Error {
   fn from(value: Error) -> Self {

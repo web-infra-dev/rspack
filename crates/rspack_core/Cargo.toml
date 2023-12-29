@@ -13,6 +13,7 @@ async-trait = { workspace = true }
 bitflags = { workspace = true }
 dashmap = { workspace = true }
 derivative = { workspace = true }
+dunce = "1.0.4"
 dyn-clone = "1.0.11"
 either = "1"
 futures = { workspace = true }

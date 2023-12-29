@@ -1,6 +1,7 @@
 use std::{hash::BuildHasherDefault, sync::Arc};
 
 use dashmap::DashMap;
+use rspack_fs::AsyncReadableFileSystem;
 use rustc_hash::FxHasher;
 
 use super::resolver_impl::Resolver;
@@ -25,7 +26,7 @@ pub struct ResolverFactory {
 
 impl Default for ResolverFactory {
   fn default() -> Self {
-    Self::new(false, Resolve::default())
+    Self::new(false, Resolve::default(), None)
   }
 }
 
@@ -34,10 +35,14 @@ impl ResolverFactory {
     self.resolver.clear_cache();
   }
 
-  pub fn new(new_resolver: bool, options: Resolve) -> Self {
+  pub fn new(
+    new_resolver: bool,
+    options: Resolve,
+    fs: Option<Arc<dyn AsyncReadableFileSystem + Send + Sync>>,
+  ) -> Self {
     Self {
       base_options: options.clone(),
-      resolver: Resolver::new(new_resolver, options),
+      resolver: Resolver::new(new_resolver, options, fs),
       resolvers: Default::default(),
     }
   }

@@ -45,12 +45,12 @@ export default class NodeEnvironmentPlugin {
 		compiler.outputFileSystem = fs;
 		compiler.intermediateFileSystem = fs;
 		compiler.watchFileSystem = new NodeWatchFileSystem(
-			compiler.inputFileSystem
+			compiler.inputFileSystem!
 		);
 		compiler.hooks.beforeRun.tap("NodeEnvironmentPlugin", compiler => {
 			if (compiler.inputFileSystem === inputFileSystem) {
 				(compiler as any).fsStartTime = Date.now();
-				inputFileSystem.purge?.();
+				inputFileSystem?.purge?.();
 			}
 		});
 	}
