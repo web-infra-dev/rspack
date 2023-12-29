@@ -5,8 +5,9 @@
   "main": "index.js",
   "private": true,
   "scripts": {
-    "dev": "rspack serve ",
-    "build": "cross-env NODE_ENV=production rspack build"
+    "dev": "rspack serve",
+    "build": "cross-env NODE_ENV=production rspack build",
+    "start": "serve ./dist -p 8081"
   },
   "keywords": [],
   "author": "",
@@ -20,6 +21,7 @@
     "@rspack/cli": "workspace:*",
     "@rspack/core": "workspace:*",
     "@rspack/plugin-react-refresh": "workspace:*",
-    "html-webpack-plugin": "^5.5.0"
+    "html-webpack-plugin": "^5.5.0",
+    "serve": "14.1.2"
   }
 }
