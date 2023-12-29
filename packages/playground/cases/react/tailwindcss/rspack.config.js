@@ -1,16 +1,10 @@
 const path = require("path");
+const rspack = require("@rspack/core");
 
 module.exports = {
 	context: __dirname,
 	entry: {
 		main: "./src/main.jsx"
-	},
-	builtins: {
-		html: [
-			{
-				template: "./src/index.html"
-			}
-		]
 	},
 	module: {
 		rules: [
@@ -38,5 +32,6 @@ module.exports = {
 		rspackFuture: {
 			disableTransformByDefault: false
 		}
-	}
+	},
+	plugins: [new rspack.HtmlRspackPlugin({ template: "./src/index.html" })]
 };

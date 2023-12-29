@@ -143,14 +143,6 @@ export const rspackFixtures = (
 							if (!config.builtins) {
 								config.builtins = {};
 							}
-							config.builtins.define = Object.assign(
-								{
-									"process.env.NODE_ENV": JSON.stringify(
-										config.mode || "development"
-									)
-								},
-								config.builtins.define
-							);
 
 							return handleRspackConfig(config);
 						});
