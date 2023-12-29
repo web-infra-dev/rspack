@@ -662,6 +662,9 @@ importers:
       '@rspack/core':
         specifier: workspace:*
         version: link:../../../packages/rspack
+      '@rspack/plugin-react-refresh':
+        specifier: workspace:*
+        version: link:../../../packages/rspack-plugin-react-refresh
       html-webpack-plugin:
         specifier: ^5.5.0
         version: 5.5.0
@@ -684,6 +687,9 @@ importers:
       '@rspack/core':
         specifier: workspace:*
         version: link:../../../packages/rspack
+      '@rspack/plugin-react-refresh':
+        specifier: workspace:*
+        version: link:../../../packages/rspack-plugin-react-refresh
       html-webpack-plugin:
         specifier: ^5.5.0
         version: 5.5.0
@@ -709,6 +715,9 @@ importers:
       '@rspack/core':
         specifier: workspace:*
         version: link:../../../packages/rspack
+      '@rspack/plugin-react-refresh':
+        specifier: workspace:*
+        version: link:../../../packages/rspack-plugin-react-refresh
 
   examples/module-federation-v1/app:
     dependencies:
@@ -728,6 +737,9 @@ importers:
       '@rspack/core':
         specifier: workspace:*
         version: link:../../../packages/rspack
+      '@rspack/plugin-react-refresh':
+        specifier: workspace:*
+        version: link:../../../packages/rspack-plugin-react-refresh
       html-webpack-plugin:
         specifier: ^5.5.0
         version: 5.5.0
@@ -750,6 +762,9 @@ importers:
       '@rspack/core':
         specifier: workspace:*
         version: link:../../../packages/rspack
+      '@rspack/plugin-react-refresh':
+        specifier: workspace:*
+        version: link:../../../packages/rspack-plugin-react-refresh
       html-webpack-plugin:
         specifier: ^5.5.0
         version: 5.5.0
@@ -775,6 +790,9 @@ importers:
       '@rspack/core':
         specifier: workspace:*
         version: link:../../../packages/rspack
+      '@rspack/plugin-react-refresh':
+        specifier: workspace:*
+        version: link:../../../packages/rspack-plugin-react-refresh
 
   examples/monaco-editor-js:
     dependencies:
@@ -901,6 +919,8 @@ importers:
       '@rspack/core':
         specifier: workspace:*
         version: link:../../packages/rspack
+
+  examples/plugin-compat/dist: {}
 
   examples/polyfill:
     dependencies:

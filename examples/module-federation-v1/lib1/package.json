@@ -19,6 +19,7 @@
   "devDependencies": {
     "@rspack/cli": "workspace:*",
     "@rspack/core": "workspace:*",
+    "@rspack/plugin-react-refresh": "workspace:*",
     "html-webpack-plugin": "^5.5.0"
   }
 }

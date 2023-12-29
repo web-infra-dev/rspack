@@ -19,6 +19,7 @@
   },
   "devDependencies": {
     "@rspack/cli": "workspace:*",
-    "@rspack/core": "workspace:*"
+    "@rspack/core": "workspace:*",
+    "@rspack/plugin-react-refresh": "workspace:*"
   }
 }
