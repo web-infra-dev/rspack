@@ -3,7 +3,8 @@ use napi_derive::napi;
 use rspack_error::{miette::IntoDiagnostic, Result};
 use rspack_napi_shared::{JsRegExp, JsRegExpExt};
 use rspack_plugin_swc_js_minimizer::{
-  SwcJsMinimizerRspackPluginOptions, SwcJsMinimizerRule, SwcJsMinimizerRules,
+  ExtractComments, OptionWrapper, SwcJsMinimizerRspackPluginOptions, SwcJsMinimizerRule,
+  SwcJsMinimizerRules,
 };
 use serde::Deserialize;
 use swc_config::config_types::BoolOrDataConfig;
@@ -15,8 +16,15 @@ struct RawSwcJsMinimizerRulesWrapper(RawSwcJsMinimizerRules);
 
 #[derive(Debug)]
 #[napi(object)]
+pub struct RawExtractComments {
+  pub banner: Option<Either<String, bool>>,
+  pub condition: Option<String>,
+}
+
+#[derive(Debug)]
+#[napi(object)]
 pub struct RawSwcJsMinimizerRspackPluginOptions {
-  pub extract_comments: Option<String>,
+  pub extract_comments: Option<RawExtractComments>,
   pub compress: Either<bool, String>,
   pub mangle: Either<bool, String>,
   pub format: String,
@@ -38,16 +46,36 @@ fn try_deserialize_into<'de, T: 'de + Deserialize<'de>>(
   })
 }
 
+fn into_condition(c: Option<RawSwcJsMinimizerRules>) -> Option<SwcJsMinimizerRules> {
+  c.map(|test| RawSwcJsMinimizerRulesWrapper(test).into())
+}
+
+fn into_extract_comments(c: Option<RawExtractComments>) -> Option<ExtractComments> {
+  let c = c?;
+  let condition = c.condition?;
+  let banner = match c.banner {
+    Some(banner) => match banner {
+      Either::A(s) => OptionWrapper::Custom(s),
+      Either::B(b) => {
+        if b {
+          OptionWrapper::Default
+        } else {
+          OptionWrapper::Disabled
+        }
+      }
+    },
+    None => OptionWrapper::Default,
+  };
+
+  Some(ExtractComments { condition, banner })
+}
+
 impl TryFrom<RawSwcJsMinimizerRspackPluginOptions> for SwcJsMinimizerRspackPluginOptions {
   type Error = rspack_error::Error;
 
   fn try_from(value: RawSwcJsMinimizerRspackPluginOptions) -> Result<Self> {
-    fn into_condition(c: Option<RawSwcJsMinimizerRules>) -> Option<SwcJsMinimizerRules> {
-      c.map(|test| RawSwcJsMinimizerRulesWrapper(test).into())
-    }
-
     Ok(Self {
-      extract_comments: value.extract_comments,
+      extract_comments: into_extract_comments(value.extract_comments),
       compress: try_deserialize_into(&value.compress)?,
       mangle: try_deserialize_into(&value.mangle)?,
       format: serde_json::from_str(&value.format).into_diagnostic()?,

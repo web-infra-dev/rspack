@@ -798,6 +798,11 @@ export interface RawExternalsPresets {
   electronRenderer: boolean
 }
 
+export interface RawExtractComments {
+  banner?: string | boolean
+  condition?: string
+}
+
 export interface RawFallbackCacheGroupOptions {
   chunks?: RegExp | 'async' | 'initial' | 'all'
   minSize?: number
@@ -1207,7 +1212,7 @@ export interface RawStyleConfig {
 }
 
 export interface RawSwcJsMinimizerRspackPluginOptions {
-  extractComments?: string
+  extractComments?: RawExtractComments
   compress: boolean | string
   mangle: boolean | string
   format: string
