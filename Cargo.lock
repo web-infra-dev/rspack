@@ -2815,6 +2815,7 @@ dependencies = [
  "rspack_binding_values",
  "rspack_core",
  "rspack_error",
+ "rspack_fs",
  "rspack_fs_node",
  "rspack_identifier",
  "rspack_napi_shared",

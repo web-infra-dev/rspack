@@ -6,6 +6,7 @@ use super::{
   sync::{ReadableFileSystem, WritableFileSystem},
   Error, Result,
 };
+use crate::metadata::FSMetadata;
 
 pub struct NativeFileSystem;
 
@@ -31,7 +32,7 @@ impl ReadableFileSystem for NativeFileSystem {
 
 cfg_async! {
   use futures::future::BoxFuture;
-use std::fmt::Debug;
+  use std::fmt::Debug;
 
   use crate::{AsyncReadableFileSystem, AsyncWritableFileSystem};
   pub struct AsyncNativeFileSystem;
@@ -83,6 +84,16 @@ use std::fmt::Debug;
     fn read(&self, file: &dyn AsRef<Path>) -> BoxFuture<'_, Result<Vec<u8>>> {
       let file = file.as_ref().to_string_lossy().to_string();
       let fut = async move { tokio::fs::read(file).await.map_err(Error::from) };
+      Box::pin(fut)
+    }
+    fn metadata(&self, file: &dyn AsRef<Path>) -> BoxFuture<'_, Result<FSMetadata>> {
+      let file = file.as_ref().to_string_lossy().to_string();
+      let fut = async move { tokio::fs::metadata(file).await.map(FSMetadata::from).map_err(Error::from) };
+      Box::pin(fut)
+    }
+    fn symlink_metadata(&self, file: &dyn AsRef<Path>) -> BoxFuture<'_, Result<FSMetadata>> {
+      let file = file.as_ref().to_string_lossy().to_string();
+      let fut = async move { tokio::fs::symlink_metadata(file).await.map(FSMetadata::from).map_err(Error::from) };
       Box::pin(fut)
     }
   }

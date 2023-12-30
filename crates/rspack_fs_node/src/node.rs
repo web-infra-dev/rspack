@@ -2,6 +2,8 @@ use napi::{Env, JsFunction, NapiRaw, Ref};
 use napi_derive::napi;
 use rspack_fs::cfg_async;
 
+use crate::metadata::NodeFSMetadata;
+
 pub(crate) struct JsFunctionRef {
   env: Env,
   reference: Ref<()>,
@@ -116,8 +118,8 @@ cfg_async! {
   impl_js_value_tuple_to_vec!(A, B);
   impl_js_value_tuple_to_vec!(A, B, C);
 
-  pub(crate) trait TryIntoThreadsafeFunctionRef {
-    fn try_into_tsfn_ref(self, env: &Env) -> napi::Result<ThreadsafeFunctionRef>;
+  pub(crate) trait TryIntoThreadsafeFunctionRef<T> {
+    fn try_into_tsfn_ref(self, env: &Env) -> napi::Result<T>;
   }
 
   pub(crate) trait TryIntoThreadsafeFunction<T, R> {
@@ -146,7 +148,7 @@ cfg_async! {
     }
   }
 
-  impl TryIntoThreadsafeFunctionRef for ThreadsafeNodeFS {
+  impl TryIntoThreadsafeFunctionRef<ThreadsafeFunctionRef> for ThreadsafeNodeFS {
     fn try_into_tsfn_ref(self, env: &Env) -> napi::Result<ThreadsafeFunctionRef> {
       Ok(ThreadsafeFunctionRef {
         write_file: self.write_file.try_into_tsfn(env)?,
@@ -164,5 +166,30 @@ cfg_async! {
     pub(crate) mkdir: ThreadsafeFunction<String, ()>,
     pub(crate) mkdirp: ThreadsafeFunction<String, Either<String, ()>>,
     pub(crate) remove_dir_all: ThreadsafeFunction<String, Either<String, ()>>,
+  }
+
+  #[napi(object, js_name = "ThreadsafeNodeInputFS")]
+  pub struct ThreadsafeNodeInputFS {
+    #[napi(ts_type = "(file: string) => PromiseLike<Buffer>")]
+    pub read_file: JsFunction,
+    #[napi(ts_type = "(file: string) => PromiseLike<NodeFSMetadata>")]
+    pub stat: JsFunction,
+    #[napi(ts_type = "(file: string) => PromiseLike<NodeFSMetadata>")]
+    pub lstat: JsFunction,
+  }
+
+  impl TryIntoThreadsafeFunctionRef<ThreadsafeNodeInputFSRef> for ThreadsafeNodeInputFS {
+    fn try_into_tsfn_ref(self, env: &Env) -> napi::Result<ThreadsafeNodeInputFSRef> {
+      Ok(ThreadsafeNodeInputFSRef {
+        read_file: self.read_file.try_into_tsfn(env)?,
+        stat: self.stat.try_into_tsfn(env)?,
+        lstat: self.lstat.try_into_tsfn(env)?,
+      })
+    }
+  }
+  pub(crate) struct ThreadsafeNodeInputFSRef {
+    pub(crate) read_file: ThreadsafeFunction<String, Vec<u8>>,
+    pub(crate) stat: ThreadsafeFunction<String, NodeFSMetadata>,
+    pub(crate) lstat: ThreadsafeFunction<String, NodeFSMetadata>,
   }
 }

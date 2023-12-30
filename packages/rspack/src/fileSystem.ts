@@ -1,7 +1,8 @@
 import util from "util";
 import { join } from "path";
 import { memoizeFn } from "./util/memoize";
-import { InputFileSystem } from "./util/fs";
+import { InputFileSystem, IStats } from "./util/fs";
+import { NodeFSMetadata, ThreadsafeNodeInputFS } from "@rspack/binding";
 
 export interface ThreadsafeWritableNodeFS {
 	writeFile: (...args: any[]) => any;
@@ -11,21 +12,36 @@ export interface ThreadsafeWritableNodeFS {
 	removeDirAll: (...args: any[]) => any;
 }
 
-export interface ThreadsafeReadableNodeFS {
-	read(path: string): PromiseLike<Buffer>;
+function statToFSMetadata(
+	stat: Pick<IStats, "isFile" | "isDirectory" | "isSymbolicLink"> | undefined
+): NodeFSMetadata {
+	return {
+		isFile: stat?.isFile() ?? false,
+		isDir: stat?.isDirectory() ?? false,
+		isSymlink: stat?.isSymbolicLink() ?? false
+	};
 }
 
-export function createThreadsafeReadableNodeFS(
-	inputFileSystem: Pick<InputFileSystem, "readFile">
-): ThreadsafeReadableNodeFS {
+export function createThreadSafeReadableNodeFS(
+	inputFileSystem: Pick<InputFileSystem, "readFile" | "stat" | "lstat">
+): ThreadsafeNodeInputFS {
 	const asyncFS = {
 		readFile: memoizeFn(() =>
 			util.promisify(inputFileSystem.readFile.bind(inputFileSystem))
+		),
+		stat: memoizeFn(() =>
+			util.promisify(inputFileSystem.stat.bind(inputFileSystem))
+		),
+		lstat: memoizeFn(() =>
+			util.promisify(inputFileSystem.lstat.bind(inputFileSystem))
 		)
 	};
+
 	return {
-		read: (path: string) =>
-			asyncFS.readFile(path).then(a => Buffer.from(a || ""))
+		readFile: (path: string) =>
+			asyncFS.readFile(path).then(b => Buffer.from(b || "")),
+		stat: (path: string) => asyncFS.stat(path).then(statToFSMetadata),
+		lstat: (path: string) => asyncFS.stat(path).then(statToFSMetadata)
 	};
 }
 

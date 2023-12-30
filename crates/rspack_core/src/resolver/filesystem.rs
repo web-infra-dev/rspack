@@ -1,9 +1,8 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use std::{fs, io};
 
 use oxc_resolver::{FileMetadata, FileSystem};
-use rspack_fs::{AsyncNativeFileSystem, AsyncReadableFileSystem};
+use rspack_fs::{AsyncNativeFileSystem, AsyncReadableFileSystem, FSMetadata};
 
 pub struct ResolverFileSystem {
   fs: Arc<dyn AsyncReadableFileSystem + Send + Sync>,
@@ -29,15 +28,25 @@ impl FileSystem for ResolverFileSystem {
     }
   }
 
-  fn metadata(&self, path: &Path) -> io::Result<FileMetadata> {
-    fs::metadata(path).map(FileMetadata::from)
+  fn metadata(&self, path: &Path) -> std::io::Result<FileMetadata> {
+    let path = <Path as AsRef<Path>>::as_ref(path);
+    futures::executor::block_on(self.fs.metadata(&path))
+      .map(convert_metadata)
+      .map_err(|e| e.into())
   }
 
-  fn symlink_metadata(&self, path: &Path) -> io::Result<FileMetadata> {
-    fs::symlink_metadata(path).map(FileMetadata::from)
+  fn symlink_metadata(&self, path: &Path) -> std::io::Result<FileMetadata> {
+    let path = <Path as AsRef<Path>>::as_ref(path);
+    futures::executor::block_on(self.fs.symlink_metadata(&path))
+      .map(convert_metadata)
+      .map_err(|e| e.into())
   }
 
   fn canonicalize(&self, path: &Path) -> std::io::Result<PathBuf> {
     dunce::canonicalize(path)
   }
+}
+
+fn convert_metadata(a: FSMetadata) -> FileMetadata {
+  FileMetadata::new(a.is_file, a.is_dir, a.is_symlink)
 }

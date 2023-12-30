@@ -1,3 +1,4 @@
+use std::default::Default;
 use std::{
   fmt,
   path::{Path, PathBuf},
@@ -117,7 +118,10 @@ impl Resolver {
       Some(fs) => {
         oxc_resolver::ResolverGeneric::new_with_file_system(ResolverFileSystem::new(fs), options)
       }
-      None => oxc_resolver::ResolverGeneric::new(options),
+      None => {
+        // TODO move to oxc_resolver's builtin FileSystemOs
+        oxc_resolver::ResolverGeneric::new_with_file_system(ResolverFileSystem::default(), options)
+      }
     };
 
     Self::OxcResolver(resolver)

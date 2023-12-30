@@ -3,6 +3,7 @@ use std::path::Path;
 
 use futures::future::BoxFuture;
 
+use crate::metadata::FSMetadata;
 use crate::Result;
 
 pub trait AsyncWritableFileSystem {
@@ -37,6 +38,9 @@ pub trait AsyncReadableFileSystem: Debug {
   ///
   /// Error: This function will return an error if path does not already exist.
   fn read(&self, file: &dyn AsRef<Path>) -> BoxFuture<'_, Result<Vec<u8>>>;
+
+  fn metadata(&self, file: &dyn AsRef<Path>) -> BoxFuture<'_, Result<FSMetadata>>;
+  fn symlink_metadata(&self, file: &dyn AsRef<Path>) -> BoxFuture<'_, Result<FSMetadata>>;
 }
 
 /// Async readable and writable file system representation.

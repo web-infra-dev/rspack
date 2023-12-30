@@ -21,7 +21,7 @@ static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
 
 async fn bench(cur_dir: &PathBuf) {
   let (options, plugins) = apply_from_fixture(cur_dir);
-  let mut compiler = Compiler::new(options, plugins, AsyncNativeFileSystem);
+  let mut compiler = Compiler::new(options, plugins, AsyncNativeFileSystem, None);
 
   compiler
     .build()

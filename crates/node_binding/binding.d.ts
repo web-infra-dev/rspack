@@ -60,7 +60,7 @@ export class JsStats {
 }
 
 export class Rspack {
-  constructor(options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, jsHooks: JsHooks | undefined | null, outputFilesystem: ThreadsafeNodeFS, jsLoaderRunner: (...args: any[]) => any)
+  constructor(options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, jsHooks: JsHooks | undefined | null, outputFilesystem: ThreadsafeNodeFS, jsLoaderRunner: (...args: any[]) => any, inputFilesystem?: ThreadsafeNodeInputFS | undefined | null)
   unsafe_set_disabled_hooks(hooks: Array<string>): void
   /**
    * Build with the given option passed to the constructor
@@ -547,6 +547,12 @@ export interface NodeFS {
   removeFile: (...args: any[]) => any
   mkdir: (...args: any[]) => any
   mkdirp: (...args: any[]) => any
+}
+
+export interface NodeFSMetadata {
+  isFile: boolean
+  isDir: boolean
+  isSymlink: boolean
 }
 
 export interface PathData {
@@ -1253,5 +1259,11 @@ export interface ThreadsafeNodeFS {
   mkdir: (...args: any[]) => any
   mkdirp: (...args: any[]) => any
   removeDirAll: (...args: any[]) => any
+}
+
+export interface ThreadsafeNodeInputFS {
+  readFile: (file: string) => PromiseLike<Buffer>
+  stat: (file: string) => PromiseLike<NodeFSMetadata>
+  lstat: (file: string) => PromiseLike<NodeFSMetadata>
 }
 

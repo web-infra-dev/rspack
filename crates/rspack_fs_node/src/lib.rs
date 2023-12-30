@@ -4,16 +4,19 @@ use rspack_fs::cfg_async;
 
 cfg_async! {
   mod r#async;
-  pub use r#async::AsyncNodeWritableFileSystem;
+  pub use r#async::{AsyncNodeWritableFileSystem, AsyncNodeReadableFileSystem};
 }
 mod sync;
 pub use sync::NodeWritableFileSystem;
 
+mod metadata;
 mod node;
+
+pub use metadata::NodeFSMetadata;
 pub use node::NodeFS;
 
 cfg_async! {
-  pub use node::ThreadsafeNodeFS;
+  pub use node::{ThreadsafeNodeFS, ThreadsafeNodeInputFS};
 }
 
 #[cfg(node)]

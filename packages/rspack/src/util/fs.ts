@@ -1,7 +1,6 @@
 import { WatchOptions } from "../config";
-import type * as FsModule from "node:fs";
+import { StatsBase } from "node:fs";
 import { Buffer } from "buffer";
-import { Stats, StatsBase, StatsFsBase } from "node:fs";
 
 export interface Watcher {
 	close(): void; // closes the watcher and all underlying file watchers
@@ -83,7 +82,7 @@ export interface InputFileSystem {
 		path: string,
 		callback: (error?: IOException, stats?: IStats) => void
 	) => void;
-	lstat?: (
+	lstat: (
 		path: string,
 		callback: (error?: IOException, stats?: IStats) => void
 	) => void;

@@ -8,7 +8,10 @@ pub mod sync;
 pub use sync::{FileSystem, ReadableFileSystem, WritableFileSystem};
 
 mod error;
+mod metadata;
+
 pub use error::{Error, Result};
+pub use metadata::FSMetadata;
 
 cfg_native! {
   mod native;

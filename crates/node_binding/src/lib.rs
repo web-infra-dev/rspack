@@ -7,7 +7,7 @@ extern crate napi_derive;
 use std::collections::HashSet;
 use std::pin::Pin;
 use std::sync::atomic::{AtomicU32, Ordering};
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 use napi::bindgen_prelude::*;
 use once_cell::sync::Lazy;
@@ -15,8 +15,9 @@ use rspack_binding_options::BuiltinPlugin;
 use rspack_binding_values::SingleThreadedHashMap;
 use rspack_core::PluginExt;
 use rspack_error::Diagnostic;
-use rspack_fs::AsyncNativeFileSystem;
-use rspack_fs_node::{AsyncNodeWritableFileSystem, ThreadsafeNodeFS};
+use rspack_fs_node::{
+  AsyncNodeReadableFileSystem, AsyncNodeWritableFileSystem, ThreadsafeNodeFS, ThreadsafeNodeInputFS,
+};
 
 mod hook;
 mod loader;
@@ -30,6 +31,7 @@ use loader::run_builtin_loader;
 use plugins::*;
 use rspack_binding_options::*;
 use rspack_binding_values::*;
+use rspack_fs::AsyncReadableFileSystem;
 use rspack_napi_shared::set_napi_env;
 use rspack_tracing::chrome::FlushGuard;
 
@@ -69,6 +71,7 @@ impl Rspack {
     js_hooks: Option<JsHooks>,
     output_filesystem: ThreadsafeNodeFS,
     js_loader_runner: JsFunction,
+    input_filesystem: Option<ThreadsafeNodeInputFS>,
   ) -> Result<Self> {
     Self::prepare_environment(&env);
     tracing::info!("raw_options: {:#?}", &options);
@@ -97,7 +100,10 @@ impl Rspack {
       plugins,
       AsyncNodeWritableFileSystem::new(env, output_filesystem)
         .map_err(|e| Error::from_reason(format!("Failed to create writable filesystem: {e}",)))?,
-      None,
+      input_filesystem.map(|a| {
+        Arc::new(AsyncNodeReadableFileSystem::new(env, a))
+          as Arc<dyn AsyncReadableFileSystem + Send + Sync>
+      }),
     );
 
     let id = NEXT_COMPILER_ID.fetch_add(1, Ordering::SeqCst);

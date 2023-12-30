@@ -65,9 +65,6 @@ where
         debug_info.with_context(options.context.to_string());
       }
     }
-    let ifs = input_filesystem
-      .clone()
-      .unwrap_or(Arc::new(AsyncNativeFileSystem));
     let new_resolver = options.experiments.rspack_future.new_resolver;
     let resolver_factory = Arc::new(ResolverFactory::new(
       new_resolver,
@@ -95,7 +92,9 @@ where
         cache.clone(),
       ),
       output_filesystem,
-      input_filesystem: ifs.clone(),
+      input_filesystem: input_filesystem
+        .clone()
+        .unwrap_or(Arc::new(AsyncNativeFileSystem)),
       plugin_driver,
       resolver_factory,
       loader_resolver_factory,

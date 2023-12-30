@@ -27,7 +27,10 @@ import ResolverFactory from "./ResolverFactory";
 import { getRawOptions } from "./config";
 import { LoaderContext, LoaderResult } from "./config/adapterRuleUse";
 import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
-import { createThreadsafeNodeFSFromRaw } from "./fileSystem";
+import {
+	createThreadsafeNodeFSFromRaw,
+	createThreadSafeReadableNodeFS
+} from "./fileSystem";
 import Cache from "./lib/Cache";
 import CacheFacade from "./lib/CacheFacade";
 import { runLoaders } from "./loader-runner";
@@ -65,9 +68,9 @@ class Compiler {
 	watching?: Watching;
 	outputPath!: string;
 	name?: string;
-	inputFileSystem?: InputFileSystem;
 	outputFileSystem: typeof import("fs");
 	ruleSet: RuleSetCompiler;
+	#inputFileSystem: InputFileSystem | null = null;
 	// @ts-expect-error
 	watchFileSystem: WatchFileSystem;
 	intermediateFileSystem: any;
@@ -180,6 +183,14 @@ class Compiler {
 		this.modifiedFiles = undefined;
 		this.removedFiles = undefined;
 		this.#disabledHooks = [];
+	}
+
+	set inputFileSystem(ifs: InputFileSystem | null) {
+		this.#inputFileSystem = ifs;
+	}
+
+	get inputFileSystem(): InputFileSystem | null {
+		return this.#inputFileSystem;
 	}
 
 	/**
@@ -347,7 +358,9 @@ class Compiler {
 				executeModule: this.#executeModule.bind(this)
 			},
 			createThreadsafeNodeFSFromRaw(this.outputFileSystem),
-			runLoaders.bind(undefined, this)
+			runLoaders.bind(undefined, this),
+			this.inputFileSystem &&
+				createThreadSafeReadableNodeFS(this.inputFileSystem)
 		);
 
 		callback(null, this.#_instance);
