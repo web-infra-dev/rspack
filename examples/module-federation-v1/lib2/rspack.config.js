@@ -1,4 +1,5 @@
 const path = require("path")
+const ReactRefreshPlugin = require("@rspack/plugin-react-refresh")
 const rspack = require("@rspack/core")
 
 const isProduction = process.env.NODE_ENV === "production"
@@ -8,6 +9,10 @@ module.exports = {
   mode: isProduction ? "production" : "development",
   entry: {},
   context: __dirname,
+  output: {
+    // set uniqueName explicitly to make react-refresh works
+    uniqueName: "lib2"
+  },
   module: {
     rules: [
       {
@@ -24,6 +29,7 @@ module.exports = {
 							transform: {
 								react: {
 									runtime: "automatic",
+                  refresh: !isProduction,
 								}
 							}
 						}
@@ -57,9 +63,14 @@ module.exports = {
           }
         }
       ]
-    })
+    }),
+    !isProduction && new ReactRefreshPlugin(),
   ],
   devServer: {
     port: 8082,
+    // add CORS header for HMR chunk (xxx.hot-update.json and xxx.hot-update.js)
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+    }
   }
 }

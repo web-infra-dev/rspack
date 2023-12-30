@@ -662,9 +662,15 @@ importers:
       '@rspack/core':
         specifier: workspace:*
         version: link:../../../packages/rspack
+      '@rspack/plugin-react-refresh':
+        specifier: workspace:*
+        version: link:../../../packages/rspack-plugin-react-refresh
       html-webpack-plugin:
         specifier: ^5.5.0
         version: 5.5.0
+      serve:
+        specifier: 14.1.2
+        version: 14.1.2
 
   examples/module-federation-v1.5/lib1:
     dependencies:
@@ -684,9 +690,15 @@ importers:
       '@rspack/core':
         specifier: workspace:*
         version: link:../../../packages/rspack
+      '@rspack/plugin-react-refresh':
+        specifier: workspace:*
+        version: link:../../../packages/rspack-plugin-react-refresh
       html-webpack-plugin:
         specifier: ^5.5.0
         version: 5.5.0
+      serve:
+        specifier: 14.1.2
+        version: 14.1.2
 
   examples/module-federation-v1.5/lib2:
     dependencies:
@@ -709,6 +721,12 @@ importers:
       '@rspack/core':
         specifier: workspace:*
         version: link:../../../packages/rspack
+      '@rspack/plugin-react-refresh':
+        specifier: workspace:*
+        version: link:../../../packages/rspack-plugin-react-refresh
+      serve:
+        specifier: 14.1.2
+        version: 14.1.2
 
   examples/module-federation-v1/app:
     dependencies:
@@ -728,9 +746,15 @@ importers:
       '@rspack/core':
         specifier: workspace:*
         version: link:../../../packages/rspack
+      '@rspack/plugin-react-refresh':
+        specifier: workspace:*
+        version: link:../../../packages/rspack-plugin-react-refresh
       html-webpack-plugin:
         specifier: ^5.5.0
         version: 5.5.0
+      serve:
+        specifier: 14.1.2
+        version: 14.1.2
 
   examples/module-federation-v1/lib1:
     dependencies:
@@ -750,9 +774,15 @@ importers:
       '@rspack/core':
         specifier: workspace:*
         version: link:../../../packages/rspack
+      '@rspack/plugin-react-refresh':
+        specifier: workspace:*
+        version: link:../../../packages/rspack-plugin-react-refresh
       html-webpack-plugin:
         specifier: ^5.5.0
         version: 5.5.0
+      serve:
+        specifier: 14.1.2
+        version: 14.1.2
 
   examples/module-federation-v1/lib2:
     dependencies:
@@ -775,6 +805,12 @@ importers:
       '@rspack/core':
         specifier: workspace:*
         version: link:../../../packages/rspack
+      '@rspack/plugin-react-refresh':
+        specifier: workspace:*
+        version: link:../../../packages/rspack-plugin-react-refresh
+      serve:
+        specifier: 14.1.2
+        version: 14.1.2
 
   examples/monaco-editor-js:
     dependencies:
@@ -901,6 +937,8 @@ importers:
       '@rspack/core':
         specifier: workspace:*
         version: link:../../packages/rspack
+
+  examples/plugin-compat/dist: {}
 
   examples/polyfill:
     dependencies:
@@ -15112,7 +15150,7 @@ packages:
     dependencies:
       ansi-align: 3.0.1
       camelcase: 7.0.1
-      chalk: 5.2.0
+      chalk: 5.3.0
       cli-boxes: 3.0.0
       string-width: 5.1.2
       type-fest: 2.19.0
@@ -15622,11 +15660,6 @@ packages:
 
   /chalk@5.0.1:
     resolution: {integrity: sha512-Fo07WOYGqMfCWHOzSXOt2CxDbC6skS/jO9ynEcmpANMoPrD+W1r1K6Vx7iNm+AQmETU1Xr2t+n8nzkV9t6xh3w==}
-    engines: {node: ^12.17.0 || ^14.13 || >=16.0.0}
-    dev: true
-
-  /chalk@5.2.0:
-    resolution: {integrity: sha512-ree3Gqw/nazQAPuJJEy+avdl7QfZMcUvmHIKgEZkGL+xOBzRvup5Hxo6LHuMceSxOabuJLJm5Yp/92R9eMmMvA==}
     engines: {node: ^12.17.0 || ^14.13 || >=16.0.0}
     dev: true
 

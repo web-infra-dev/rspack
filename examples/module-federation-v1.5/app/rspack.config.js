@@ -1,5 +1,6 @@
 const path = require("path")
 const HtmlWebpackPlugin = require("html-webpack-plugin")
+const ReactRefreshPlugin = require("@rspack/plugin-react-refresh")
 const rspack = require("@rspack/core")
 
 const isProduction = process.env.NODE_ENV === "production"
@@ -9,6 +10,10 @@ module.exports = {
   mode: isProduction ? "production" : "development",
   entry: "./src/index.js",
   context: __dirname,
+  output: {
+    // set uniqueName explicitly to make react-refresh works
+    uniqueName: "app"
+  },
   module: {
     rules: [
       {
@@ -25,6 +30,7 @@ module.exports = {
 							transform: {
 								react: {
 									runtime: "automatic",
+                  refresh: !isProduction,
 								}
 							}
 						}
@@ -59,7 +65,8 @@ module.exports = {
       runtimePlugins: [
         "./src/runtimePlugins/logger.js",
       ],
-    })
+    }),
+    !isProduction && new ReactRefreshPlugin(),
   ],
   devServer: {
     port: 8080,
