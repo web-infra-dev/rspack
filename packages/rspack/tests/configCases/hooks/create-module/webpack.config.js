@@ -8,10 +8,12 @@ module.exports = {
 			apply(compiler) {
 				compiler.hooks.normalModuleFactory.tap("mock-plugin", nmf => {
 					nmf.hooks.createModule.tap("mock-plugin", createData => {
-						fs.writeFileSync(
-							path.resolve(__dirname, "./dist/createData.json"),
-							JSON.stringify(createData, null, 2)
-						);
+						if (createData.matchResource.includes("a.js")) {
+							fs.writeFileSync(
+								path.resolve(__dirname, "./dist/createData.json"),
+								JSON.stringify(createData, null, 2)
+							);
+						}
 					});
 				});
 			}

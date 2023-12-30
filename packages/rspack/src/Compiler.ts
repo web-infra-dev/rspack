@@ -48,6 +48,7 @@ import { RuntimeGlobals } from "./RuntimeGlobals";
 import { tryRunOrWebpackError } from "./lib/HookWebpackError";
 import { CodeGenerationResult } from "./Module";
 import { canInherentFromParent } from "./builtin-plugin/base";
+import { CreateModuleData } from "@rspack/binding";
 
 class Compiler {
 	#_instance?: binding.Rspack;
@@ -758,10 +759,12 @@ class Compiler {
 	}
 
 	async #normalModuleFactoryCreateModule(createData: binding.CreateModuleData) {
-		await this.compilation.normalModuleFactory?.hooks.createModule.promise(
-			{ ...createData, settings: {} },
-			{}
-		);
+		const data = Object.assign({}, createData, {
+			settings: {},
+			matchResource: createData.resourceResolveData.resource
+		});
+		const nmfHooks = this.compilation.normalModuleFactory?.hooks;
+		await nmfHooks?.createModule.promise(data, {});
 	}
 
 	async #normalModuleFactoryResolveForScheme(

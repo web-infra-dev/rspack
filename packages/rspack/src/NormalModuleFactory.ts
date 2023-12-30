@@ -24,7 +24,10 @@ type ResolveData = {
 	// dependencies: ModuleDependency[];
 };
 
-type CreateModuleData = binding.CreateModuleData & { settings: {} };
+type CreateModuleData = binding.CreateModuleData & {
+	settings: {};
+	matchResource: string;
+};
 
 export class NormalModuleFactory {
 	hooks: {
