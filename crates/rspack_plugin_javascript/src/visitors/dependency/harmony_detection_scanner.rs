@@ -25,6 +25,7 @@ pub struct HarmonyDetectionScanner<'a> {
 impl<'a> HarmonyDetectionScanner<'a> {
   get_removed!();
 
+  #[allow(clippy::too_many_arguments)]
   pub fn new(
     module_identifier: &'a ModuleIdentifier,
     build_info: &'a mut BuildInfo,
