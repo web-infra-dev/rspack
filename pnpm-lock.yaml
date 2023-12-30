@@ -640,6 +640,178 @@ importers:
         specifier: 0.8.0
         version: 0.8.0
 
+  examples/module-federation-v1: {}
+
+  examples/module-federation-v1.5: {}
+
+  examples/module-federation-v1.5/app:
+    dependencies:
+      date-fns:
+        specifier: ^3.0.6
+        version: 3.0.6
+      react:
+        specifier: 18.0.0
+        version: 18.0.0
+      react-dom:
+        specifier: 18.0.0
+        version: 18.0.0(react@18.0.0)
+    devDependencies:
+      '@rspack/cli':
+        specifier: workspace:*
+        version: link:../../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../../packages/rspack
+      '@rspack/plugin-react-refresh':
+        specifier: workspace:*
+        version: link:../../../packages/rspack-plugin-react-refresh
+      html-webpack-plugin:
+        specifier: ^5.5.0
+        version: 5.5.0
+      serve:
+        specifier: 14.1.2
+        version: 14.1.2
+
+  examples/module-federation-v1.5/lib1:
+    dependencies:
+      date-fns:
+        specifier: ^3.0.6
+        version: 3.0.6
+      react:
+        specifier: 18.0.0
+        version: 18.0.0
+      react-dom:
+        specifier: 18.0.0
+        version: 18.0.0(react@18.0.0)
+    devDependencies:
+      '@rspack/cli':
+        specifier: workspace:*
+        version: link:../../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../../packages/rspack
+      '@rspack/plugin-react-refresh':
+        specifier: workspace:*
+        version: link:../../../packages/rspack-plugin-react-refresh
+      html-webpack-plugin:
+        specifier: ^5.5.0
+        version: 5.5.0
+      serve:
+        specifier: 14.1.2
+        version: 14.1.2
+
+  examples/module-federation-v1.5/lib2:
+    dependencies:
+      date-fns:
+        specifier: ^3.0.6
+        version: 3.0.6
+      lodash:
+        specifier: ^4.17.21
+        version: 4.17.21
+      react:
+        specifier: 18.0.0
+        version: 18.0.0
+      react-dom:
+        specifier: 18.0.0
+        version: 18.0.0(react@18.0.0)
+    devDependencies:
+      '@rspack/cli':
+        specifier: workspace:*
+        version: link:../../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../../packages/rspack
+      '@rspack/plugin-react-refresh':
+        specifier: workspace:*
+        version: link:../../../packages/rspack-plugin-react-refresh
+      serve:
+        specifier: 14.1.2
+        version: 14.1.2
+
+  examples/module-federation-v1/app:
+    dependencies:
+      date-fns:
+        specifier: ^3.0.6
+        version: 3.0.6
+      react:
+        specifier: 18.0.0
+        version: 18.0.0
+      react-dom:
+        specifier: 18.0.0
+        version: 18.0.0(react@18.0.0)
+    devDependencies:
+      '@rspack/cli':
+        specifier: workspace:*
+        version: link:../../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../../packages/rspack
+      '@rspack/plugin-react-refresh':
+        specifier: workspace:*
+        version: link:../../../packages/rspack-plugin-react-refresh
+      html-webpack-plugin:
+        specifier: ^5.5.0
+        version: 5.5.0
+      serve:
+        specifier: 14.1.2
+        version: 14.1.2
+
+  examples/module-federation-v1/lib1:
+    dependencies:
+      date-fns:
+        specifier: ^3.0.6
+        version: 3.0.6
+      react:
+        specifier: 18.0.0
+        version: 18.0.0
+      react-dom:
+        specifier: 18.0.0
+        version: 18.0.0(react@18.0.0)
+    devDependencies:
+      '@rspack/cli':
+        specifier: workspace:*
+        version: link:../../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../../packages/rspack
+      '@rspack/plugin-react-refresh':
+        specifier: workspace:*
+        version: link:../../../packages/rspack-plugin-react-refresh
+      html-webpack-plugin:
+        specifier: ^5.5.0
+        version: 5.5.0
+      serve:
+        specifier: 14.1.2
+        version: 14.1.2
+
+  examples/module-federation-v1/lib2:
+    dependencies:
+      date-fns:
+        specifier: ^3.0.6
+        version: 3.0.6
+      lodash:
+        specifier: ^4.17.21
+        version: 4.17.21
+      react:
+        specifier: 18.0.0
+        version: 18.0.0
+      react-dom:
+        specifier: 18.0.0
+        version: 18.0.0(react@18.0.0)
+    devDependencies:
+      '@rspack/cli':
+        specifier: workspace:*
+        version: link:../../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../../packages/rspack
+      '@rspack/plugin-react-refresh':
+        specifier: workspace:*
+        version: link:../../../packages/rspack-plugin-react-refresh
+      serve:
+        specifier: 14.1.2
+        version: 14.1.2
+
   examples/monaco-editor-js:
     dependencies:
       '@rspack/cli':
@@ -15262,7 +15434,7 @@ packages:
     dependencies:
       ansi-align: 3.0.1
       camelcase: 7.0.1
-      chalk: 5.2.0
+      chalk: 5.3.0
       cli-boxes: 3.0.0
       string-width: 5.1.2
       type-fest: 2.19.0
@@ -15776,11 +15948,6 @@ packages:
 
   /chalk@5.0.1:
     resolution: {integrity: sha512-Fo07WOYGqMfCWHOzSXOt2CxDbC6skS/jO9ynEcmpANMoPrD+W1r1K6Vx7iNm+AQmETU1Xr2t+n8nzkV9t6xh3w==}
-    engines: {node: ^12.17.0 || ^14.13 || >=16.0.0}
-    dev: true
-
-  /chalk@5.2.0:
-    resolution: {integrity: sha512-ree3Gqw/nazQAPuJJEy+avdl7QfZMcUvmHIKgEZkGL+xOBzRvup5Hxo6LHuMceSxOabuJLJm5Yp/92R9eMmMvA==}
     engines: {node: ^12.17.0 || ^14.13 || >=16.0.0}
     dev: true
 
@@ -17057,6 +17224,10 @@ packages:
   /data-uri-to-buffer@4.0.1:
     resolution: {integrity: sha512-0R9ikRb668HB7QDxT1vkpuUBtqc53YyAwMwGeUFKRojY/NWKvdZ+9UYtRfGmhqNbRkTSVpMbmyhXipFFv2cb/A==}
     engines: {node: '>= 12'}
+    dev: false
+
+  /date-fns@3.0.6:
+    resolution: {integrity: sha512-W+G99rycpKMMF2/YD064b2lE7jJGUe+EjOES7Q8BIGY8sbNdbgcs9XFTZwvzc9Jx1f3k7LB7gZaZa7f8Agzljg==}
     dev: false
 
   /dayjs@1.11.7:
@@ -19830,7 +20001,7 @@ packages:
       he: 1.2.0
       param-case: 3.0.4
       relateurl: 0.2.7
-      terser: 5.16.1
+      terser: 5.17.1
 
   /html-minifier-terser@7.0.0:
     resolution: {integrity: sha512-Adqk0b/pWKIQiGvEAuzPKpBKNHiwblr3QSGS7TTr6v+xXKV9AI2k4vWW+6Oytt6Z5SeBnfvYypKOnz8r75pz3Q==}

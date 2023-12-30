@@ -278,8 +278,11 @@ pub fn module_namespace_promise(
         )
       } else {
         runtime_requirements.insert(RuntimeGlobals::REQUIRE);
-        appending =
-          format!(".then(__webpack_require__.bind(__webpack_require__, {module_id_expr}))");
+        appending = format!(
+          ".then({}.bind({}, {module_id_expr}))",
+          RuntimeGlobals::REQUIRE,
+          RuntimeGlobals::REQUIRE
+        );
       }
     }
     _ => {
@@ -309,8 +312,11 @@ pub fn module_namespace_promise(
           )
         } else {
           runtime_requirements.insert(RuntimeGlobals::REQUIRE);
-          appending =
-            format!(".then(__webpack_require__.bind(__webpack_require__, {module_id_expr}))");
+          appending = format!(
+            ".then({}.bind({}, {module_id_expr}))",
+            RuntimeGlobals::REQUIRE,
+            RuntimeGlobals::REQUIRE
+          );
         }
         appending.push_str(
           format!(
@@ -328,9 +334,11 @@ pub fn module_namespace_promise(
           );
           appending = format!(".then(function() {{\n {header} return {expr};\n}})");
         } else {
+          runtime_requirements.insert(RuntimeGlobals::REQUIRE);
           appending = format!(
-            ".then({}.bind(__webpack_require__, {module_id_expr}, {fake_type}))",
-            RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT
+            ".then({}.bind({}, {module_id_expr}, {fake_type}))",
+            RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
+            RuntimeGlobals::REQUIRE
           );
         }
       }

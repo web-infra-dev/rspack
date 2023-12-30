@@ -11,7 +11,7 @@ __webpack_require__.r(__webpack_exports__);
 expect(_module__WEBPACK_IMPORTED_MODULE_0__.ok).toBe(true);
 expect(_module__WEBPACK_IMPORTED_MODULE_0__.ok2).toBe(true);
 }),
-"./index.js": (function (__unused_webpack_module, exports, __webpack_require__) {
+"./index.js": (function (__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
 it("should not threat globals as pure", ()=>{
     __webpack_require__(/*! ./import-module */"./import-module.js");
 });

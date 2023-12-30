@@ -6,6 +6,9 @@ module.exports = {
 		chunkIds: "named",
 		moduleIds: "named"
 	},
+	output: {
+		uniqueName: "0-transitive-overriding"
+	},
 	plugins: [
 		new ModuleFederationPlugin({
 			name: "container-with-shared",

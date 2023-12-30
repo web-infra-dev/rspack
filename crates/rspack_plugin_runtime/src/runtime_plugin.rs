@@ -57,6 +57,7 @@ static GLOBALS_ON_REQUIRE: Lazy<Vec<RuntimeGlobals>> = Lazy::new(|| {
     RuntimeGlobals::LOAD_SCRIPT,
     RuntimeGlobals::SYSTEM_CONTEXT,
     RuntimeGlobals::ON_CHUNKS_LOADED,
+    RuntimeGlobals::LOAD_CHUNK_WITH_BLOCK,
   ]
 });
 
@@ -64,6 +65,14 @@ static MODULE_DEPENDENCIES: Lazy<Vec<(RuntimeGlobals, Vec<RuntimeGlobals>)>> = L
   vec![
     (RuntimeGlobals::MODULE_LOADED, vec![RuntimeGlobals::MODULE]),
     (RuntimeGlobals::MODULE_ID, vec![RuntimeGlobals::MODULE]),
+    (
+      RuntimeGlobals::HARMONY_MODULE_DECORATOR,
+      vec![RuntimeGlobals::MODULE, RuntimeGlobals::REQUIRE_SCOPE],
+    ),
+    (
+      RuntimeGlobals::NODE_MODULE_DECORATOR,
+      vec![RuntimeGlobals::MODULE, RuntimeGlobals::REQUIRE_SCOPE],
+    ),
   ]
 });
 

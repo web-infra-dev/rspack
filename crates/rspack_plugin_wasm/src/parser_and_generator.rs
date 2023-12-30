@@ -141,6 +141,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
         let runtime_requirements = &mut generate_context.runtime_requirements;
         runtime_requirements.insert(RuntimeGlobals::MODULE);
         runtime_requirements.insert(RuntimeGlobals::MODULE_ID);
+        runtime_requirements.insert(RuntimeGlobals::EXPORTS);
         runtime_requirements.insert(RuntimeGlobals::INSTANTIATE_WASM);
 
         let mut dep_modules = IndexMap::<ModuleIdentifier, (String, &str)>::new();

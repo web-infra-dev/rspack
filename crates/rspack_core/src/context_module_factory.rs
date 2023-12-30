@@ -68,7 +68,7 @@ impl ContextModuleFactory {
     let factory_meta = Default::default();
     let mut file_dependencies = Default::default();
     let mut missing_dependencies = Default::default();
-    let context_dependencies = Default::default();
+    // let context_dependencies = Default::default();
     let specifier = dependency.request();
     let resolve_args = ResolveArgs {
       context: data.context.clone(),
@@ -123,11 +123,12 @@ impl ContextModuleFactory {
       }
     };
 
+    data.add_file_dependencies(file_dependencies);
+    data.add_missing_dependencies(missing_dependencies);
+    // data.add_context_dependencies(context_dependencies);
+
     Ok(ModuleFactoryResult {
       module: Some(module),
-      file_dependencies,
-      missing_dependencies,
-      context_dependencies,
       factory_meta,
       from_cache,
     })

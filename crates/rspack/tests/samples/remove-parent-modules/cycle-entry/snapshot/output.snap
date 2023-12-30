@@ -12,7 +12,7 @@ __webpack_require__.el("./index.js@0:17").then(__webpack_require__.bind(__webpac
 
 console.log('index1');
 }),
-"./shared.js": (function (__unused_webpack_module, exports, __webpack_require__) {
+"./shared.js": (function () {
 console.log('shared');
 }),
 
@@ -35,7 +35,7 @@ __webpack_require__.el("./index2.js@0:17").then(__webpack_require__.bind(__webpa
 
 console.log('index2');
 }),
-"./shared.js": (function (__unused_webpack_module, exports, __webpack_require__) {
+"./shared.js": (function () {
 console.log('shared');
 }),
 

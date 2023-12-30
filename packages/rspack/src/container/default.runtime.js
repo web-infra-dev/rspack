@@ -1,5 +1,5 @@
 // @ts-nocheck
-var __module_federation_runtime__,
+var __module_federation_implementation__,
 	__module_federation_runtime_plugins__,
 	__module_federation_remote_infos__;
 module.exports = function () {
@@ -46,7 +46,7 @@ module.exports = function () {
 		early(
 			__webpack_require__,
 			"federation",
-			() => __module_federation_runtime__
+			() => __module_federation_implementation__
 		);
 
 		early(
@@ -164,10 +164,10 @@ module.exports = function () {
 		override(
 			__webpack_require__,
 			"S",
-			() => __module_federation_runtime__.bundlerRuntime.S
+			__module_federation_implementation__.bundlerRuntime.S
 		);
 		override(__webpack_require__.f, "remotes", (chunkId, promises) =>
-			__module_federation_runtime__.bundlerRuntime.remotes({
+			__module_federation_implementation__.bundlerRuntime.remotes({
 				chunkId,
 				promises,
 				chunkMapping: remotesLoadingChunkMapping,
@@ -181,7 +181,7 @@ module.exports = function () {
 			})
 		);
 		override(__webpack_require__.f, "consumes", (chunkId, promises) =>
-			__module_federation_runtime__.bundlerRuntime.consumes({
+			__module_federation_implementation__.bundlerRuntime.consumes({
 				chunkId,
 				promises,
 				chunkMapping: consumesLoadingChunkMapping,
@@ -192,7 +192,7 @@ module.exports = function () {
 			})
 		);
 		override(__webpack_require__, "I", (name, initScope) =>
-			__module_federation_runtime__.bundlerRuntime.I({
+			__module_federation_implementation__.bundlerRuntime.I({
 				shareScopeName: name,
 				initScope,
 				initPromises: initializeSharingInitPromises,
@@ -201,7 +201,7 @@ module.exports = function () {
 			})
 		);
 		override(__webpack_require__, "initContainer", (shareScope, initScope) =>
-			__module_federation_runtime__.bundlerRuntime.initContainerEntry({
+			__module_federation_implementation__.bundlerRuntime.initContainerEntry({
 				shareScope,
 				initScope,
 				shareScopeKey: containerShareScope,

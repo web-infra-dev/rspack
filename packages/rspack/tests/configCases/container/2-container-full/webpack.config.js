@@ -5,6 +5,12 @@ module.exports = {
 	output: {
 		uniqueName: "2-container-full"
 	},
+	experiments: {
+		rspackFuture: {
+			newTreeshaking: true,
+			disableApplyEntryLazily: true
+		}
+	},
 	plugins: [
 		new ModuleFederationPlugin({
 			name: "main",
@@ -15,7 +21,7 @@ module.exports = {
 					"var undefined",
 					"var (() => { throw new Error(); })()",
 					"var { then: (a, b) => b(new Error()) }",
-					"./dist/main.js"
+					"./main.js"
 				]
 			},
 			exposes: ["./Self"],

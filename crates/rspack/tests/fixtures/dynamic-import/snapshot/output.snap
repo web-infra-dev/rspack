@@ -31,7 +31,7 @@ __webpack_require__.d(__webpack_exports__, {
 
 ```js title=main.js
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./child Lazy  recursive ^\\.\\/.*\\.js$": (function (module, exports, __webpack_require__) {
+"./child Lazy  recursive ^\\.\\/.*\\.js$": (function (module, __unused_webpack_exports, __webpack_require__) {
 var blockMap = {"./a.js": "./child Lazy  recursive ^\\.\\/.*\\.js$@./a.js","./b.js": "./child Lazy  recursive ^\\.\\/.*\\.js$@./b.js",};
 var map = {"./a.js": "./child/a.js","./b.js": "./child/b.js",};
 
@@ -55,7 +55,7 @@ var map = {"./a.js": "./child/a.js","./b.js": "./child/b.js",};
       webpackAsyncContext.id = "./child Lazy  recursive ^\\.\\/.*\\.js$";
       module.exports = webpackAsyncContext;
       }),
-"./index.js": (function (__unused_webpack_module, exports, __webpack_require__) {
+"./index.js": (function (__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
 const request = 'a';
 __webpack_require__.el("./index.js@21:43").then(__webpack_require__.bind(__webpack_require__, /*! ./child/a.js */"./child/a.js")).then(({ a })=>console.log("Literal", a));
 __webpack_require__.el("./index.js@86:108").then(__webpack_require__.bind(__webpack_require__, /*! ./child/b.js */"./child/b.js")).then(({ b })=>console.log("Template Literal", b));

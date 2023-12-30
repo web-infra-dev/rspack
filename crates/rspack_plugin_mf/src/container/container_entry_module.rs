@@ -152,6 +152,9 @@ impl Module for ContainerEntryModule {
       .insert(RuntimeGlobals::EXPORTS);
     code_generation_result
       .runtime_requirements
+      .insert(RuntimeGlobals::REQUIRE);
+    code_generation_result
+      .runtime_requirements
       .insert(RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE);
     let mut module_map = vec![];
     for block_id in self.get_blocks() {

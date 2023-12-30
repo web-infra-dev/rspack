@@ -351,11 +351,53 @@ impl Compilation {
       .filter(|d| matches!(d.severity(), Severity::Error))
   }
 
+  /// Get sorted errors based on the factors as follows in order:
+  /// - module identifier
+  /// - error offset
+  /// Rspack assumes for each offset, there is only one error.
+  /// However, when it comes to the case that there are multiple errors with the same offset,
+  /// the order of these errors will not be guaranteed.
+  pub fn get_errors_sorted(&self) -> impl Iterator<Item = &Diagnostic> {
+    let get_offset = |d: &dyn rspack_error::miette::Diagnostic| {
+      d.labels()
+        .and_then(|mut l| l.next())
+        .map(|l| l.offset())
+        .unwrap_or_default()
+    };
+    self.get_errors().sorted_by(
+      |a, b| match a.module_identifier().cmp(&b.module_identifier()) {
+        std::cmp::Ordering::Equal => get_offset(a.as_ref()).cmp(&get_offset(b.as_ref())),
+        other => other,
+      },
+    )
+  }
+
   pub fn get_warnings(&self) -> impl Iterator<Item = &Diagnostic> {
     self
       .diagnostics
       .iter()
       .filter(|d| matches!(d.severity(), Severity::Warn))
+  }
+
+  /// Get sorted warnings based on the factors as follows in order:
+  /// - module identifier
+  /// - error offset
+  /// Rspack assumes for each offset, there is only one error.
+  /// However, when it comes to the case that there are multiple errors with the same offset,
+  /// the order of these errors will not be guaranteed.
+  pub fn get_warnings_sorted(&self) -> impl Iterator<Item = &Diagnostic> {
+    let get_offset = |d: &dyn rspack_error::miette::Diagnostic| {
+      d.labels()
+        .and_then(|mut l| l.next())
+        .map(|l| l.offset())
+        .unwrap_or_default()
+    };
+    self.get_warnings().sorted_by(
+      |a, b| match a.module_identifier().cmp(&b.module_identifier()) {
+        std::cmp::Ordering::Equal => get_offset(a.as_ref()).cmp(&get_offset(b.as_ref())),
+        other => other,
+      },
+    )
   }
 
   pub fn get_logging(&self) -> &CompilationLogging {
@@ -671,27 +713,31 @@ impl Compilation {
           match item {
             Ok(TaskResult::Factorize(box task_result)) => {
               let FactorizeTaskResult {
-                is_entry,
                 original_module_identifier,
                 factory_result,
-                diagnostics,
                 dependencies,
+                is_entry,
                 current_profile,
                 exports_info_related,
+                file_dependencies,
+                context_dependencies,
+                missing_dependencies,
+                diagnostics,
               } = task_result;
-
               if !diagnostics.is_empty() {
                 make_failed_dependencies.insert((dependencies[0], original_module_identifier));
               }
 
-              // TODO: should use `dep.optional` to test whether these diagnostics should be warnings or errors.
-              // https://github.com/webpack/webpack/blob/6be4065ade1e252c1d8dcba4af0f43e32af1bdc1/lib/Compilation.js#L1796
               self.push_batch_diagnostic(
                 diagnostics
                   .into_iter()
                   .map(|d| d.with_module_identifier(original_module_identifier))
                   .collect(),
               );
+
+              self.file_dependencies.extend(file_dependencies);
+              self.context_dependencies.extend(context_dependencies);
+              self.missing_dependencies.extend(missing_dependencies);
 
               if let Some(factory_result) = factory_result {
                 if let Some(counter) = &mut factorize_cache_counter {
@@ -701,16 +747,6 @@ impl Compilation {
                     counter.miss();
                   }
                 }
-
-                self
-                  .file_dependencies
-                  .extend(factory_result.file_dependencies);
-                self
-                  .context_dependencies
-                  .extend(factory_result.context_dependencies);
-                self
-                  .missing_dependencies
-                  .extend(factory_result.missing_dependencies);
 
                 if let Some(module) = factory_result.module {
                   let module_identifier = module.identifier();

@@ -13,16 +13,11 @@ afterEach(done => {
 	done();
 });
 
-const expectWarning = regexp => {
+const expectWarning = (regexp, index) => {
 	if (!regexp) {
 		expect(warnings).toEqual([]);
 	} else {
-		expect(warnings).toEqual(
-			expect.objectContaining({
-				0: expect.stringMatching(regexp),
-				length: 1
-			})
-		);
+		expect(warnings[index]).toMatch(regexp);
 	}
 	warnings.length = 0;
 };
@@ -30,7 +25,8 @@ const expectWarning = regexp => {
 it("should load the component from container", () => {
 	return import("./App").then(({ default: App }) => {
 		expectWarning(
-			/Unsatisfied version 8 from 2-container-full of shared singleton module react \(required \^2\)/
+			/Version 8 from 2-container-full of shared singleton module react does not satisfy the requirement of 2-container-full which needs \^2/,
+			1
 		);
 		const rendered = App();
 		expect(rendered).toBe(
