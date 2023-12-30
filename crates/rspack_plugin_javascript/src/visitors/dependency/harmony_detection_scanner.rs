@@ -8,7 +8,7 @@ use swc_core::ecma::ast::{ArrowExpr, AwaitExpr, Constructor, Function, ModuleIte
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
 use crate::dependency::HarmonyCompatibilityDependency;
-use crate::{get_removed, no_visit_removed};
+use crate::no_visit_removed;
 
 // Port from https://github.com/webpack/webpack/blob/main/lib/dependencies/HarmonyDetectionParserPlugin.js
 pub struct HarmonyDetectionScanner<'a> {
@@ -23,8 +23,6 @@ pub struct HarmonyDetectionScanner<'a> {
 }
 
 impl<'a> HarmonyDetectionScanner<'a> {
-  get_removed!();
-
   #[allow(clippy::too_many_arguments)]
   pub fn new(
     module_identifier: &'a ModuleIdentifier,

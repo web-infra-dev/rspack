@@ -7,15 +7,11 @@ use swc_core::ecma::{
   visit::{noop_visit_type, Visit, VisitWith},
 };
 
-use crate::{get_removed, no_visit_removed};
+use crate::no_visit_removed;
 
 pub struct HarmonyTopLevelThis<'a> {
   pub presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
   pub removed: &'a mut Vec<DependencyLocation>,
-}
-
-impl HarmonyTopLevelThis<'_> {
-  get_removed!();
 }
 
 impl Visit for HarmonyTopLevelThis<'_> {

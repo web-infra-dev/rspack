@@ -4,7 +4,7 @@ use swc_core::ecma::{
   visit::{noop_visit_type, Visit, VisitWith},
 };
 
-use crate::{dependency::URLDependency, get_removed, no_visit_removed};
+use crate::{dependency::URLDependency, no_visit_removed};
 
 pub struct UrlScanner<'a> {
   pub dependencies: &'a mut Vec<BoxDependency>,
@@ -15,8 +15,6 @@ pub struct UrlScanner<'a> {
 
 // new URL("./foo.png", import.meta.url);
 impl<'a> UrlScanner<'a> {
-  get_removed!();
-
   pub fn new(
     dependencies: &'a mut Vec<BoxDependency>,
     worker_syntax_list: &'a rspack_core::needs_refactor::WorkerSyntaxList,

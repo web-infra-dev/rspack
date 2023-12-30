@@ -9,7 +9,7 @@ use swc_core::{
   },
 };
 
-use crate::{dependency::ExportInfoApiDependency, get_removed, no_visit_removed};
+use crate::{dependency::ExportInfoApiDependency, no_visit_removed};
 
 pub struct ExportInfoApiScanner<'a> {
   pub presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
@@ -19,8 +19,6 @@ pub struct ExportInfoApiScanner<'a> {
 
 //__webpack_exports_info__.a.used
 impl<'a> ExportInfoApiScanner<'a> {
-  get_removed!();
-
   pub fn new(
     presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
     unresolved_ctxt: SyntaxContext,

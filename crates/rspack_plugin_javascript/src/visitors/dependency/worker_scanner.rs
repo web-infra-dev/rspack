@@ -11,8 +11,8 @@ use swc_core::ecma::ast::{Expr, ExprOrSpread, NewExpr};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
 use crate::dependency::WorkerDependency;
+use crate::no_visit_removed;
 use crate::utils::get_literal_str_by_obj_prop;
-use crate::{get_removed, no_visit_removed};
 
 // TODO: should created by WorkerPlugin
 pub struct WorkerScanner<'a> {
@@ -28,8 +28,6 @@ pub struct WorkerScanner<'a> {
 
 // new Worker(new URL("./foo.worker.js", import.meta.url));
 impl<'a> WorkerScanner<'a> {
-  get_removed!();
-
   pub fn new(
     module_identifier: &'a ModuleIdentifier,
     output_options: &'a OutputOptions,

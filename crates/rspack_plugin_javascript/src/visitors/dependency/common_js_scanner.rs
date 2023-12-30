@@ -6,7 +6,7 @@ use swc_core::ecma::ast::{Expr, Ident};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
 use super::expr_matcher;
-use crate::{get_removed, no_visit_removed};
+use crate::no_visit_removed;
 
 pub struct CommonJsScanner<'a> {
   unresolved_ctxt: SyntaxContext,
@@ -16,8 +16,6 @@ pub struct CommonJsScanner<'a> {
 }
 
 impl<'a> CommonJsScanner<'a> {
-  get_removed!();
-
   pub fn new(
     presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
     unresolved_ctxt: SyntaxContext,

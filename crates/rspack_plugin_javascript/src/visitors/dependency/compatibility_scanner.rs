@@ -4,7 +4,7 @@ use swc_core::common::SyntaxContext;
 use swc_core::ecma::ast::{FnDecl, Ident, Program};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
-use crate::{get_removed, no_visit_removed};
+use crate::no_visit_removed;
 
 pub struct CompatibilityScanner<'a> {
   unresolved_ctxt: SyntaxContext,
@@ -15,8 +15,6 @@ pub struct CompatibilityScanner<'a> {
 }
 
 impl<'a> CompatibilityScanner<'a> {
-  get_removed!();
-
   pub fn new(
     presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
     unresolved_ctxt: SyntaxContext,
@@ -63,10 +61,6 @@ pub struct ReplaceNestWebpackRequireVisitor<'a> {
   name_map: &'a FxHashMap<SyntaxContext, u8>,
   presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
   removed: &'a mut Vec<DependencyLocation>,
-}
-
-impl ReplaceNestWebpackRequireVisitor<'_> {
-  get_removed!();
 }
 
 impl Visit for ReplaceNestWebpackRequireVisitor<'_> {

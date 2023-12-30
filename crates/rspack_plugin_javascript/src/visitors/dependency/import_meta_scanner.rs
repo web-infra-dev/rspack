@@ -11,7 +11,7 @@ use url::Url;
 use super::{
   expr_matcher, is_member_expr_starts_with, is_member_expr_starts_with_import_meta_webpack_hot,
 };
-use crate::{get_removed, no_visit_removed};
+use crate::no_visit_removed;
 
 // Port from https://github.com/webpack/webpack/blob/main/lib/dependencies/ImportMetaPlugin.js
 // TODO:
@@ -28,8 +28,6 @@ pub struct ImportMetaScanner<'a> {
 }
 
 impl<'a> ImportMetaScanner<'a> {
-  get_removed!();
-
   pub fn new(
     presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
     resource_data: &'a ResourceData,

@@ -294,15 +294,6 @@ pub fn is_unresolved_require(expr: &Expr, unresolved_ctxt: SyntaxContext) -> boo
 }
 
 #[macro_export]
-macro_rules! get_removed {
-  () => {
-    fn get_removed(&self) -> &Vec<DependencyLocation> {
-      self.removed
-    }
-  };
-}
-
-#[macro_export]
 macro_rules! no_visit_removed {
   () => {
     fn visit_stmt(&mut self, stmt: &swc_core::ecma::ast::Stmt) {
@@ -311,7 +302,7 @@ macro_rules! no_visit_removed {
       use swc_core::ecma::visit::VisitWith;
       let span = stmt.span();
       if self
-        .get_removed()
+        .removed
         .iter()
         .any(|r| r.start() <= span.real_lo() && span.real_hi() <= r.end())
       {

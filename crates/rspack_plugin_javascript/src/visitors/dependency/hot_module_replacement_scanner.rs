@@ -16,7 +16,7 @@ use crate::{
     HarmonyAcceptDependency, ImportMetaHotAcceptDependency, ImportMetaHotDeclineDependency,
     ModuleArgumentDependency, ModuleHotAcceptDependency, ModuleHotDeclineDependency,
   },
-  get_removed, no_visit_removed,
+  no_visit_removed,
   visitors::{is_import_meta_hot_accept_call, is_import_meta_hot_decline_call},
 };
 
@@ -30,8 +30,6 @@ pub struct HotModuleReplacementScanner<'a> {
 type CreateDependency = fn(u32, u32, JsWord, Option<ErrorSpan>) -> BoxDependency;
 
 impl<'a> HotModuleReplacementScanner<'a> {
-  get_removed!();
-
   pub fn new(
     dependencies: &'a mut Vec<BoxDependency>,
     presentational_dependencies: &'a mut Vec<BoxDependencyTemplate>,

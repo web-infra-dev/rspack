@@ -20,8 +20,8 @@ use super::context_helper::scanner_context_module;
 use super::{is_import_meta_context_call, parse_order_string};
 use crate::dependency::{ImportContextDependency, ImportDependency};
 use crate::dependency::{ImportEagerDependency, ImportMetaContextDependency};
+use crate::no_visit_removed;
 use crate::utils::{get_bool_by_obj_prop, get_literal_str_by_obj_prop, get_regex_by_obj_prop};
-use crate::{get_removed, no_visit_removed};
 
 pub struct ImportScanner<'a> {
   module_identifier: ModuleIdentifier,
@@ -141,8 +141,6 @@ static WEBPACK_MAGIC_COMMENT_REGEXP: Lazy<regex::Regex> = Lazy::new(|| {
 });
 
 impl<'a> ImportScanner<'a> {
-  get_removed!();
-
   #[allow(clippy::too_many_arguments)]
   pub fn new(
     module_identifier: ModuleIdentifier,

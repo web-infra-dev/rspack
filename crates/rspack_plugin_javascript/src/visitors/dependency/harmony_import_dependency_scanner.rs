@@ -18,7 +18,7 @@ use crate::dependency::{
   HarmonyExportImportedSpecifierDependency, HarmonyImportSideEffectDependency,
   HarmonyImportSpecifierDependency, Specifier,
 };
-use crate::{get_removed, no_visit_removed};
+use crate::no_visit_removed;
 
 #[derive(Debug)]
 pub struct ImporterReferenceInfo {
@@ -79,8 +79,6 @@ pub struct HarmonyImportDependencyScanner<'a> {
 }
 
 impl<'a> HarmonyImportDependencyScanner<'a> {
-  get_removed!();
-
   pub fn new(
     dependencies: &'a mut Vec<BoxDependency>,
     presentational_dependencies: &'a mut Vec<BoxDependencyTemplate>,

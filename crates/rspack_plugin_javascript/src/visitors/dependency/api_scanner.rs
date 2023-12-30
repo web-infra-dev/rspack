@@ -16,7 +16,7 @@ use swc_core::{
 use super::expr_matcher;
 use crate::{
   dependency::{ModuleArgumentDependency, WebpackIsIncludedDependency},
-  get_removed, no_visit_removed,
+  no_visit_removed,
 };
 
 pub const WEBPACK_HASH: &str = "__webpack_hash__";
@@ -47,8 +47,6 @@ pub struct ApiScanner<'a> {
 }
 
 impl<'a> ApiScanner<'a> {
-  get_removed!();
-
   pub fn new(
     unresolved_ctxt: SyntaxContext,
     resource_data: &'a ResourceData,

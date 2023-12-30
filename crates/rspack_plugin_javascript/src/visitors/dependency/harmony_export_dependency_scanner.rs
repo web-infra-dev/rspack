@@ -23,7 +23,7 @@ use crate::{
     HarmonyExportImportedSpecifierDependency, HarmonyExportSpecifierDependency, Specifier,
     DEFAULT_EXPORT,
   },
-  get_removed, no_visit_removed,
+  no_visit_removed,
 };
 
 pub struct HarmonyExportDependencyScanner<'a, 'b> {
@@ -37,8 +37,6 @@ pub struct HarmonyExportDependencyScanner<'a, 'b> {
 }
 
 impl<'a, 'b> HarmonyExportDependencyScanner<'a, 'b> {
-  get_removed!();
-
   pub fn new(
     dependencies: &'a mut Vec<BoxDependency>,
     presentational_dependencies: &'a mut Vec<BoxDependencyTemplate>,

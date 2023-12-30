@@ -7,7 +7,7 @@ use swc_core::common::SyntaxContext;
 use swc_core::ecma::ast::Ident;
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
-use crate::{get_removed, no_visit_removed};
+use crate::no_visit_removed;
 
 const DIR_NAME: &str = "__dirname";
 const FILE_NAME: &str = "__filename";
@@ -23,8 +23,6 @@ pub struct NodeStuffScanner<'a> {
 }
 
 impl<'a> NodeStuffScanner<'a> {
-  get_removed!();
-
   pub fn new(
     presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
     unresolved_ctxt: SyntaxContext,
