@@ -16,7 +16,7 @@ use swc_core::{
 use super::expr_matcher;
 use crate::{
   dependency::{ModuleArgumentDependency, WebpackIsIncludedDependency},
-  no_visit_removed,
+  no_visit_ignored_stmt,
 };
 
 pub const WEBPACK_HASH: &str = "__webpack_hash__";
@@ -43,7 +43,7 @@ pub struct ApiScanner<'a> {
   pub resource_data: &'a ResourceData,
   pub presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
   pub dependencies: &'a mut Vec<Box<dyn Dependency>>,
-  pub removed: &'a mut Vec<DependencyLocation>,
+  pub ignored: &'a mut Vec<DependencyLocation>,
 }
 
 impl<'a> ApiScanner<'a> {
@@ -54,7 +54,7 @@ impl<'a> ApiScanner<'a> {
     presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
     module: bool,
     build_info: &'a mut BuildInfo,
-    removed: &'a mut Vec<DependencyLocation>,
+    ignored: &'a mut Vec<DependencyLocation>,
   ) -> Self {
     Self {
       unresolved_ctxt,
@@ -64,14 +64,14 @@ impl<'a> ApiScanner<'a> {
       resource_data,
       presentational_dependencies,
       dependencies,
-      removed,
+      ignored,
     }
   }
 }
 
 impl Visit for ApiScanner<'_> {
   noop_visit_type!();
-  no_visit_removed!();
+  no_visit_ignored_stmt!();
 
   fn visit_var_declarator(&mut self, var_declarator: &VarDeclarator) {
     match &var_declarator.name {

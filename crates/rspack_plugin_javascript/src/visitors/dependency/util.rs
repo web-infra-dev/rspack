@@ -294,7 +294,7 @@ pub fn is_unresolved_require(expr: &Expr, unresolved_ctxt: SyntaxContext) -> boo
 }
 
 #[macro_export]
-macro_rules! no_visit_removed {
+macro_rules! no_visit_ignored_stmt {
   () => {
     fn visit_stmt(&mut self, stmt: &swc_core::ecma::ast::Stmt) {
       use rspack_core::SpanExt;
@@ -302,7 +302,7 @@ macro_rules! no_visit_removed {
       use swc_core::ecma::visit::VisitWith;
       let span = stmt.span();
       if self
-        .removed
+        .ignored
         .iter()
         .any(|r| r.start() <= span.real_lo() && span.real_hi() <= r.end())
       {

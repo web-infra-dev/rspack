@@ -7,7 +7,7 @@ use swc_core::common::SyntaxContext;
 use swc_core::ecma::ast::Ident;
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
-use crate::no_visit_removed;
+use crate::no_visit_ignored_stmt;
 
 const DIR_NAME: &str = "__dirname";
 const FILE_NAME: &str = "__filename";
@@ -19,7 +19,7 @@ pub struct NodeStuffScanner<'a> {
   pub compiler_options: &'a CompilerOptions,
   pub node_option: &'a NodeOption,
   pub resource_data: &'a ResourceData,
-  pub removed: &'a mut Vec<DependencyLocation>,
+  pub ignored: &'a mut Vec<DependencyLocation>,
 }
 
 impl<'a> NodeStuffScanner<'a> {
@@ -29,7 +29,7 @@ impl<'a> NodeStuffScanner<'a> {
     compiler_options: &'a CompilerOptions,
     node_option: &'a NodeOption,
     resource_data: &'a ResourceData,
-    removed: &'a mut Vec<DependencyLocation>,
+    ignored: &'a mut Vec<DependencyLocation>,
   ) -> Self {
     Self {
       presentational_dependencies,
@@ -37,14 +37,14 @@ impl<'a> NodeStuffScanner<'a> {
       compiler_options,
       node_option,
       resource_data,
-      removed,
+      ignored,
     }
   }
 }
 
 impl Visit for NodeStuffScanner<'_> {
   noop_visit_type!();
-  no_visit_removed!();
+  no_visit_ignored_stmt!();
 
   fn visit_ident(&mut self, ident: &Ident) {
     if ident.span.ctxt == self.unresolved_ctxt {

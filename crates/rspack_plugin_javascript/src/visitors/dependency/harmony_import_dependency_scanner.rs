@@ -18,7 +18,7 @@ use crate::dependency::{
   HarmonyExportImportedSpecifierDependency, HarmonyImportSideEffectDependency,
   HarmonyImportSpecifierDependency, Specifier,
 };
-use crate::no_visit_removed;
+use crate::no_visit_ignored_stmt;
 
 #[derive(Debug)]
 pub struct ImporterReferenceInfo {
@@ -75,7 +75,7 @@ pub struct HarmonyImportDependencyScanner<'a> {
   pub build_info: &'a mut BuildInfo,
   pub rewrite_usage_span: &'a mut HashMap<Span, ExtraSpanInfo>,
   pub last_harmony_import_order: i32,
-  pub removed: &'a mut Vec<DependencyLocation>,
+  pub ignored: &'a mut Vec<DependencyLocation>,
 }
 
 impl<'a> HarmonyImportDependencyScanner<'a> {
@@ -85,7 +85,7 @@ impl<'a> HarmonyImportDependencyScanner<'a> {
     import_map: &'a mut ImportMap,
     build_info: &'a mut BuildInfo,
     rewrite_usage_span: &'a mut HashMap<Span, ExtraSpanInfo>,
-    removed: &'a mut Vec<DependencyLocation>,
+    ignored: &'a mut Vec<DependencyLocation>,
   ) -> Self {
     Self {
       dependencies,
@@ -95,14 +95,14 @@ impl<'a> HarmonyImportDependencyScanner<'a> {
       build_info,
       rewrite_usage_span,
       last_harmony_import_order: 0,
-      removed,
+      ignored,
     }
   }
 }
 
 impl Visit for HarmonyImportDependencyScanner<'_> {
   noop_visit_type!();
-  no_visit_removed!();
+  no_visit_ignored_stmt!();
 
   fn visit_program(&mut self, program: &Program) {
     // collect import map info
@@ -613,14 +613,14 @@ mod test {
     let mut deps = vec![];
     let mut presentation_deps = vec![];
     let mut rewrite_usage_span = Default::default();
-    let mut removed = vec![];
+    let mut ignored = vec![];
     let mut scanner = HarmonyImportDependencyScanner::new(
       &mut deps,
       &mut presentation_deps,
       &mut import_map,
       &mut build_info,
       &mut rewrite_usage_span,
-      &mut removed,
+      &mut ignored,
     );
 
     program.visit_with(&mut scanner);

@@ -20,7 +20,7 @@ use super::context_helper::scanner_context_module;
 use super::{is_import_meta_context_call, parse_order_string};
 use crate::dependency::{ImportContextDependency, ImportDependency};
 use crate::dependency::{ImportEagerDependency, ImportMetaContextDependency};
-use crate::no_visit_removed;
+use crate::no_visit_ignored_stmt;
 use crate::utils::{get_bool_by_obj_prop, get_literal_str_by_obj_prop, get_regex_by_obj_prop};
 
 pub struct ImportScanner<'a> {
@@ -31,7 +31,7 @@ pub struct ImportScanner<'a> {
   pub build_meta: &'a BuildMeta,
   pub options: Option<&'a JavascriptParserOptions>,
   pub warning_diagnostics: &'a mut Vec<Box<dyn Diagnostic + Send + Sync>>,
-  pub removed: &'a mut Vec<DependencyLocation>,
+  pub ignored: &'a mut Vec<DependencyLocation>,
 }
 
 fn create_import_meta_context_dependency(node: &CallExpr) -> Option<ImportMetaContextDependency> {
@@ -150,7 +150,7 @@ impl<'a> ImportScanner<'a> {
     build_meta: &'a BuildMeta,
     options: Option<&'a JavascriptParserOptions>,
     warning_diagnostics: &'a mut Vec<Box<dyn Diagnostic + Send + Sync>>,
-    removed: &'a mut Vec<DependencyLocation>,
+    ignored: &'a mut Vec<DependencyLocation>,
   ) -> Self {
     Self {
       module_identifier,
@@ -160,7 +160,7 @@ impl<'a> ImportScanner<'a> {
       build_meta,
       options,
       warning_diagnostics,
-      removed,
+      ignored,
     }
   }
 
@@ -235,7 +235,7 @@ impl<'a> ImportScanner<'a> {
 
 impl Visit for ImportScanner<'_> {
   noop_visit_type!();
-  no_visit_removed!();
+  no_visit_ignored_stmt!();
 
   fn visit_call_expr(&mut self, node: &CallExpr) {
     if !node.args.is_empty()

@@ -176,7 +176,7 @@ pub fn statement_if(
       )
     };
 
-    scanner.removed.push(DependencyLocation::new(
+    scanner.ignored.push(DependencyLocation::new(
       branch_to_remove.span().real_lo(),
       branch_to_remove.span().real_hi(),
     ));

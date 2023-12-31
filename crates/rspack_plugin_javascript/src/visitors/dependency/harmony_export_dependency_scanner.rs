@@ -23,7 +23,7 @@ use crate::{
     HarmonyExportImportedSpecifierDependency, HarmonyExportSpecifierDependency, Specifier,
     DEFAULT_EXPORT,
   },
-  no_visit_removed,
+  no_visit_ignored_stmt,
 };
 
 pub struct HarmonyExportDependencyScanner<'a, 'b> {
@@ -33,7 +33,7 @@ pub struct HarmonyExportDependencyScanner<'a, 'b> {
   pub build_info: &'a mut BuildInfo,
   pub rewrite_usage_span: &'a mut HashMap<Span, ExtraSpanInfo>,
   pub comments: Option<&'b SwcComments>,
-  pub removed: &'a mut Vec<DependencyLocation>,
+  pub ignored: &'a mut Vec<DependencyLocation>,
 }
 
 impl<'a, 'b> HarmonyExportDependencyScanner<'a, 'b> {
@@ -44,7 +44,7 @@ impl<'a, 'b> HarmonyExportDependencyScanner<'a, 'b> {
     build_info: &'a mut BuildInfo,
     rewrite_usage_span: &'a mut HashMap<Span, ExtraSpanInfo>,
     comments: Option<&'b SwcComments>,
-    removed: &'a mut Vec<DependencyLocation>,
+    ignored: &'a mut Vec<DependencyLocation>,
   ) -> Self {
     Self {
       dependencies,
@@ -53,14 +53,14 @@ impl<'a, 'b> HarmonyExportDependencyScanner<'a, 'b> {
       build_info,
       rewrite_usage_span,
       comments,
-      removed,
+      ignored,
     }
   }
 }
 
 impl<'a, 'b> Visit for HarmonyExportDependencyScanner<'a, 'b> {
   noop_visit_type!();
-  no_visit_removed!();
+  no_visit_ignored_stmt!();
 
   fn visit_program(&mut self, program: &'_ Program) {
     program.visit_children_with(self);

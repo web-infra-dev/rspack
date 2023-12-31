@@ -11,7 +11,7 @@ use swc_core::ecma::ast::{Expr, ExprOrSpread, NewExpr};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
 use crate::dependency::WorkerDependency;
-use crate::no_visit_removed;
+use crate::no_visit_ignored_stmt;
 use crate::utils::get_literal_str_by_obj_prop;
 
 // TODO: should created by WorkerPlugin
@@ -23,7 +23,7 @@ pub struct WorkerScanner<'a> {
   module_identifier: &'a ModuleIdentifier,
   output_options: &'a OutputOptions,
   syntax_list: &'a rspack_core::needs_refactor::WorkerSyntaxList,
-  pub removed: &'a mut Vec<DependencyLocation>,
+  pub ignored: &'a mut Vec<DependencyLocation>,
 }
 
 // new Worker(new URL("./foo.worker.js", import.meta.url));
@@ -32,7 +32,7 @@ impl<'a> WorkerScanner<'a> {
     module_identifier: &'a ModuleIdentifier,
     output_options: &'a OutputOptions,
     syntax_list: &'a rspack_core::needs_refactor::WorkerSyntaxList,
-    removed: &'a mut Vec<DependencyLocation>,
+    ignored: &'a mut Vec<DependencyLocation>,
   ) -> Self {
     Self {
       presentational_dependencies: Vec::new(),
@@ -42,7 +42,7 @@ impl<'a> WorkerScanner<'a> {
       module_identifier,
       output_options,
       syntax_list,
-      removed,
+      ignored,
     }
   }
 
@@ -144,7 +144,7 @@ impl<'a> WorkerScanner<'a> {
 
 impl Visit for WorkerScanner<'_> {
   noop_visit_type!();
-  no_visit_removed!();
+  no_visit_ignored_stmt!();
 
   fn visit_new_expr(&mut self, new_expr: &NewExpr) {
     if let Some((parsed_path, parsed_options)) = self.parse_new_worker(new_expr) {

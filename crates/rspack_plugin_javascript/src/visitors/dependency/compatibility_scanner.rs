@@ -4,35 +4,35 @@ use swc_core::common::SyntaxContext;
 use swc_core::ecma::ast::{FnDecl, Ident, Program};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
-use crate::no_visit_removed;
+use crate::no_visit_ignored_stmt;
 
 pub struct CompatibilityScanner<'a> {
   unresolved_ctxt: SyntaxContext,
   presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
   count: u8, // flag __webpack_require__ count
   name_map: FxHashMap<SyntaxContext, u8>,
-  removed: &'a mut Vec<DependencyLocation>,
+  ignored: &'a mut Vec<DependencyLocation>,
 }
 
 impl<'a> CompatibilityScanner<'a> {
   pub fn new(
     presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
     unresolved_ctxt: SyntaxContext,
-    removed: &'a mut Vec<DependencyLocation>,
+    ignored: &'a mut Vec<DependencyLocation>,
   ) -> Self {
     Self {
       presentational_dependencies,
       unresolved_ctxt,
       count: 0,
       name_map: Default::default(),
-      removed,
+      ignored,
     }
   }
 }
 
 impl Visit for CompatibilityScanner<'_> {
   noop_visit_type!();
-  no_visit_removed!();
+  no_visit_ignored_stmt!();
 
   fn visit_program(&mut self, program: &Program) {
     program.visit_children_with(self);
@@ -41,7 +41,7 @@ impl Visit for CompatibilityScanner<'_> {
       unresolved_ctxt: self.unresolved_ctxt,
       name_map: &self.name_map,
       presentational_dependencies: self.presentational_dependencies,
-      removed: self.removed,
+      ignored: self.ignored,
     });
   }
 
@@ -60,12 +60,12 @@ pub struct ReplaceNestWebpackRequireVisitor<'a> {
   unresolved_ctxt: SyntaxContext,
   name_map: &'a FxHashMap<SyntaxContext, u8>,
   presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
-  removed: &'a mut Vec<DependencyLocation>,
+  ignored: &'a mut Vec<DependencyLocation>,
 }
 
 impl Visit for ReplaceNestWebpackRequireVisitor<'_> {
   noop_visit_type!();
-  no_visit_removed!();
+  no_visit_ignored_stmt!();
 
   fn visit_ident(&mut self, ident: &Ident) {
     if &ident.sym == "__webpack_require__" && ident.span.ctxt != self.unresolved_ctxt {

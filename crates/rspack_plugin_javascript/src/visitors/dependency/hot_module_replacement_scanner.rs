@@ -16,7 +16,7 @@ use crate::{
     HarmonyAcceptDependency, ImportMetaHotAcceptDependency, ImportMetaHotDeclineDependency,
     ModuleArgumentDependency, ModuleHotAcceptDependency, ModuleHotDeclineDependency,
   },
-  no_visit_removed,
+  no_visit_ignored_stmt,
   visitors::{is_import_meta_hot_accept_call, is_import_meta_hot_decline_call},
 };
 
@@ -24,7 +24,7 @@ pub struct HotModuleReplacementScanner<'a> {
   pub dependencies: &'a mut Vec<BoxDependency>,
   pub presentational_dependencies: &'a mut Vec<BoxDependencyTemplate>,
   pub build_meta: &'a BuildMeta,
-  pub removed: &'a mut Vec<DependencyLocation>,
+  pub ignored: &'a mut Vec<DependencyLocation>,
 }
 
 type CreateDependency = fn(u32, u32, JsWord, Option<ErrorSpan>) -> BoxDependency;
@@ -34,13 +34,13 @@ impl<'a> HotModuleReplacementScanner<'a> {
     dependencies: &'a mut Vec<BoxDependency>,
     presentational_dependencies: &'a mut Vec<BoxDependencyTemplate>,
     build_meta: &'a BuildMeta,
-    removed: &'a mut Vec<DependencyLocation>,
+    ignored: &'a mut Vec<DependencyLocation>,
   ) -> Self {
     Self {
       dependencies,
       presentational_dependencies,
       build_meta,
-      removed,
+      ignored,
     }
   }
 
@@ -109,7 +109,7 @@ impl<'a> HotModuleReplacementScanner<'a> {
 
 impl<'a> Visit for HotModuleReplacementScanner<'a> {
   noop_visit_type!();
-  no_visit_removed!();
+  no_visit_ignored_stmt!();
 
   fn visit_expr(&mut self, expr: &Expr) {
     if expr_matcher::is_module_hot(expr) || expr_matcher::is_import_meta_webpack_hot(expr) {

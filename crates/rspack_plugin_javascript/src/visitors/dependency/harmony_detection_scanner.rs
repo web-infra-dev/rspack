@@ -8,7 +8,7 @@ use swc_core::ecma::ast::{ArrowExpr, AwaitExpr, Constructor, Function, ModuleIte
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
 use crate::dependency::HarmonyCompatibilityDependency;
-use crate::no_visit_removed;
+use crate::no_visit_ignored_stmt;
 
 // Port from https://github.com/webpack/webpack/blob/main/lib/dependencies/HarmonyDetectionParserPlugin.js
 pub struct HarmonyDetectionScanner<'a> {
@@ -19,7 +19,7 @@ pub struct HarmonyDetectionScanner<'a> {
   top_level_await: bool,
   code_generable_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
   errors: &'a mut Vec<Box<dyn Diagnostic + Send + Sync>>,
-  removed: &'a mut Vec<DependencyLocation>,
+  ignored: &'a mut Vec<DependencyLocation>,
 }
 
 impl<'a> HarmonyDetectionScanner<'a> {
@@ -32,7 +32,7 @@ impl<'a> HarmonyDetectionScanner<'a> {
     top_level_await: bool,
     code_generable_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
     errors: &'a mut Vec<Box<dyn Diagnostic + Send + Sync>>,
-    removed: &'a mut Vec<DependencyLocation>,
+    ignored: &'a mut Vec<DependencyLocation>,
   ) -> Self {
     Self {
       module_identifier,
@@ -42,14 +42,14 @@ impl<'a> HarmonyDetectionScanner<'a> {
       top_level_await,
       code_generable_dependencies,
       errors,
-      removed,
+      ignored,
     }
   }
 }
 
 impl Visit for HarmonyDetectionScanner<'_> {
   noop_visit_type!();
-  no_visit_removed!();
+  no_visit_ignored_stmt!();
 
   fn visit_program(&mut self, program: &'_ Program) {
     let strict_harmony_module = matches!(self.module_type, ModuleType::JsEsm | ModuleType::JsxEsm);

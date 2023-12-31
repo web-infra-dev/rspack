@@ -4,13 +4,13 @@ use swc_core::ecma::{
   visit::{noop_visit_type, Visit, VisitWith},
 };
 
-use crate::{dependency::URLDependency, no_visit_removed};
+use crate::{dependency::URLDependency, no_visit_ignored_stmt};
 
 pub struct UrlScanner<'a> {
   pub dependencies: &'a mut Vec<BoxDependency>,
   worker_syntax_list: &'a rspack_core::needs_refactor::WorkerSyntaxList,
   relative: bool,
-  removed: &'a mut Vec<DependencyLocation>,
+  ignored: &'a mut Vec<DependencyLocation>,
 }
 
 // new URL("./foo.png", import.meta.url);
@@ -19,20 +19,20 @@ impl<'a> UrlScanner<'a> {
     dependencies: &'a mut Vec<BoxDependency>,
     worker_syntax_list: &'a rspack_core::needs_refactor::WorkerSyntaxList,
     relative: bool,
-    removed: &'a mut Vec<DependencyLocation>,
+    ignored: &'a mut Vec<DependencyLocation>,
   ) -> Self {
     Self {
       dependencies,
       worker_syntax_list,
       relative,
-      removed,
+      ignored,
     }
   }
 }
 
 impl Visit for UrlScanner<'_> {
   noop_visit_type!();
-  no_visit_removed!();
+  no_visit_ignored_stmt!();
 
   fn visit_new_expr(&mut self, new_expr: &NewExpr) {
     // TODO: https://github.com/web-infra-dev/rspack/discussions/3619

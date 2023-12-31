@@ -66,7 +66,7 @@ fn handle_template_string_compare(
 fn handle_strict_equality_comparison(
   eql: bool,
   expr: &BinExpr,
-  scanner: &CommonJsImportDependencyScanner<'_>,
+  scanner: &mut CommonJsImportDependencyScanner<'_>,
 ) -> Option<BasicEvaluatedExpression> {
   assert!(expr.op == BinaryOp::EqEqEq || expr.op == BinaryOp::NotEqEq);
   let left = scanner.evaluate_expression(&expr.left);
@@ -93,7 +93,7 @@ fn handle_strict_equality_comparison(
 fn handle_abstract_equality_comparison(
   eql: bool,
   expr: &BinExpr,
-  scanner: &CommonJsImportDependencyScanner<'_>,
+  scanner: &mut CommonJsImportDependencyScanner<'_>,
 ) -> Option<BasicEvaluatedExpression> {
   let left = scanner.evaluate_expression(&expr.left);
   let right = scanner.evaluate_expression(&expr.right);
@@ -118,7 +118,7 @@ fn handle_abstract_equality_comparison(
 }
 
 pub fn eval_binary_expression(
-  scanner: &CommonJsImportDependencyScanner<'_>,
+  scanner: &mut CommonJsImportDependencyScanner<'_>,
   expr: &BinExpr,
 ) -> Option<BasicEvaluatedExpression> {
   match expr.op {
