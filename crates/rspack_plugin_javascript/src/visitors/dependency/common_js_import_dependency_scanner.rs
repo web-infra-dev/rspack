@@ -150,7 +150,7 @@ impl<'a> CommonJsImportDependencyScanner<'a> {
       return None;
     };
 
-    let in_try = self.in_try.clone();
+    let in_try = self.in_try;
 
     let process_require_item = |p: &BasicEvaluatedExpression| {
       p.is_string().then(|| {
@@ -229,7 +229,7 @@ impl<'a> Visit for CommonJsImportDependencyScanner<'a> {
       return;
     };
 
-    let deps = self.require_handler(&call_expr);
+    let deps = self.require_handler(call_expr);
 
     if let Some((commonjs_require_deps, require_helper_deps)) = deps {
       for dep in commonjs_require_deps {
