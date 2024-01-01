@@ -139,10 +139,10 @@ impl<'a> CommonJsImportDependencyScanner<'a> {
       return None;
     }
 
-    let callee_expr = call_expr.callee.as_expr();
-    if !callee_expr.is_some_and(|expr| is_require(expr))
-      && !callee_expr.is_some_and(|expr| is_module_require(expr))
-    {
+    let is_require_expr = call_expr.callee.as_expr().is_some_and(|expr| {
+      (is_require(expr) && expr.span().ctxt == self.unresolved_ctxt) || is_module_require(expr)
+    });
+    if !is_require_expr {
       return None;
     }
 
