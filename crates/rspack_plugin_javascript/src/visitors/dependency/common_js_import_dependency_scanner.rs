@@ -9,6 +9,7 @@ use swc_core::ecma::ast::{Lit, TryStmt, UnaryExpr, UnaryOp};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
 use super::context_helper::scanner_context_module;
+use super::expr_matcher::{is_module_require, is_require};
 use super::{expr_matcher, is_unresolved_member_object_ident, is_unresolved_require};
 use crate::dependency::{CommonJsRequireContextDependency, RequireHeaderDependency};
 use crate::dependency::{CommonJsRequireDependency, RequireResolveDependency};
@@ -137,12 +138,14 @@ impl<'a> CommonJsImportDependencyScanner<'a> {
     if call_expr.args.len() != 1 {
       return None;
     }
-    let Some(ident) = call_expr.callee.as_expr().and_then(|expr| expr.as_ident()) else {
-      return None;
-    };
-    if !("require".eq(&ident.sym) && ident.span.ctxt == self.unresolved_ctxt) {
+
+    let callee_expr = call_expr.callee.as_expr();
+    if !callee_expr.is_some_and(|expr| is_require(expr))
+      && !callee_expr.is_some_and(|expr| is_module_require(expr))
+    {
       return None;
     }
+
     let Some(argument_expr) = call_expr.args.first().map(|arg| &arg.expr) else {
       return None;
     };
