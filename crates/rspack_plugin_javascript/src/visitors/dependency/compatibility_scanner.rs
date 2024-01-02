@@ -1,7 +1,7 @@
 use rspack_core::{ConstDependency, DependencyLocation, DependencyTemplate, SpanExt};
 use rustc_hash::FxHashMap;
 use swc_core::common::SyntaxContext;
-use swc_core::ecma::ast::{FnDecl, Ident, Program};
+use swc_core::ecma::ast::{Expr, FnDecl, Ident, Program, UnaryExpr, UnaryOp};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
 use crate::no_visit_ignored_stmt;
@@ -80,5 +80,16 @@ impl Visit for ReplaceNestWebpackRequireVisitor<'_> {
           )));
       }
     }
+  }
+
+  fn visit_unary_expr(&mut self, unary_expr: &UnaryExpr) {
+    if matches!(unary_expr.op, UnaryOp::TypeOf) {
+      if let box Expr::Ident(ident) = &unary_expr.arg {
+        if ident.sym == "__webpack_require__" {
+          return;
+        }
+      }
+    }
+    unary_expr.visit_children_with(self);
   }
 }
