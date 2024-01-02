@@ -109,6 +109,14 @@ impl BasicEvaluatedExpression {
   //   matches!(self.ty, Ty::Identifier)
   // }
 
+  pub fn is_null(&self) -> bool {
+    matches!(self.ty, Ty::Null)
+  }
+
+  pub fn is_undefined(&self) -> bool {
+    matches!(self.ty, Ty::Undefined)
+  }
+
   pub fn is_conditional(&self) -> bool {
     matches!(self.ty, Ty::Conditional)
   }
@@ -147,6 +155,10 @@ impl BasicEvaluatedExpression {
     )
   }
 
+  pub fn is_nullish(&self) -> Option<bool> {
+    self.nullish
+  }
+
   pub fn as_string(&self) -> Option<std::string::String> {
     if self.is_bool() {
       Some(self.bool().to_string())
@@ -164,6 +176,21 @@ impl BasicEvaluatedExpression {
       Some(false)
     } else {
       self.boolean
+    }
+  }
+
+  pub fn as_nullish(&self) -> Option<bool> {
+    let nullish = self.is_nullish();
+    if nullish == Some(true) || self.is_null() || self.is_undefined() {
+      Some(true)
+    } else if nullish == Some(false)
+      || self.is_bool()
+      || self.is_string()
+      || self.is_template_string()
+    {
+      Some(false)
+    } else {
+      None
     }
   }
 
