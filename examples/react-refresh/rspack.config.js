@@ -1,18 +1,13 @@
-const rspack = require("@rspack/core")
-const ReactRefreshPlugin = require("@rspack/plugin-react-refresh")
+const rspack = require("@rspack/core");
+const ReactRefreshPlugin = require("@rspack/plugin-react-refresh");
 
-const isProduction = process.env.NODE_ENV === "production"
+const isProduction = process.env.NODE_ENV === "production";
 
 /** @type {import('@rspack/cli').Configuration} */
 const config = {
-	experiments: {
-		rspackFuture: {
-			disableTransformByDefault: true,
-		}
-	},
 	mode: isProduction ? "production" : "development",
 	entry: { main: "./src/index.tsx" },
-	devtool: 'source-map',
+	devtool: "source-map",
 	module: {
 		rules: [
 			{
@@ -30,7 +25,7 @@ const config = {
 								react: {
 									runtime: "automatic",
 									development: !isProduction,
-									refresh: !isProduction,
+									refresh: !isProduction
 								}
 							}
 						}
@@ -40,12 +35,12 @@ const config = {
 		]
 	},
 	optimization: {
-		minimize: false, // Disabling minification because it takes too long on CI
+		minimize: false // Disabling minification because it takes too long on CI
 	},
 	plugins: [
 		new rspack.HtmlRspackPlugin({ template: "./index.html" }),
 		new rspack.DefinePlugin({ "process.env.NODE_ENV": "'development'" }),
-		!isProduction && new ReactRefreshPlugin(),
+		!isProduction && new ReactRefreshPlugin()
 	].filter(Boolean)
 };
 

@@ -15,7 +15,6 @@ pub struct RawIncrementalRebuild {
 #[napi(object)]
 pub struct RawRspackFuture {
   pub new_treeshaking: bool,
-  pub disable_transform_by_default: bool,
 }
 
 #[derive(Deserialize, Debug, Default)]
@@ -32,7 +31,6 @@ impl From<RawRspackFuture> for RspackFuture {
   fn from(value: RawRspackFuture) -> Self {
     Self {
       new_treeshaking: value.new_treeshaking,
-      disable_transform_by_default: value.disable_transform_by_default,
     }
   }
 }

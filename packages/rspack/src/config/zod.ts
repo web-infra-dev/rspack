@@ -1040,7 +1040,6 @@ export type IncrementalRebuildOptions = z.infer<
 
 const rspackFutureOptions = z.strictObject({
 	newTreeshaking: z.boolean().optional(),
-	disableTransformByDefault: z.boolean().optional(),
 	disableApplyEntryLazily: z.boolean().optional()
 });
 export type RspackFutureOptions = z.infer<typeof rspackFutureOptions>;

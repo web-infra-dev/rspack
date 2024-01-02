@@ -181,46 +181,6 @@ export class RspackDevServer extends WebpackDevServer {
 					"ansi-html-community": path.resolve(__dirname, "./ansiHTML"),
 					...compiler.options.resolve.alias
 				};
-
-				if (
-					// @ts-expect-error
-					!compiler.options.experiments.rspackFuture.disableTransformByDefault
-				) {
-					compiler.options.builtins.react ??= {};
-					// enable react.development by default
-					compiler.options.builtins.react.development ??= true;
-					// enable react.refresh by default
-					compiler.options.builtins.react.refresh ??= true;
-					if (compiler.options.builtins.react.refresh) {
-						const ReactRefreshPlugin = require("@rspack/plugin-react-refresh");
-						const runtimePaths = ReactRefreshPlugin.deprecated_runtimePaths;
-						new compiler.webpack.EntryPlugin(
-							compiler.context,
-							runtimePaths[0],
-							{
-								name: undefined
-							}
-						).apply(compiler);
-						new compiler.webpack.ProvidePlugin({
-							$ReactRefreshRuntime$: runtimePaths[1]
-						}).apply(compiler);
-						compiler.options.module.rules.unshift({
-							include: runtimePaths,
-							type: "js"
-						});
-					}
-				}
-			} else if (compiler.options.builtins.react?.refresh) {
-				if (mode === "production") {
-					this.logger.warn(
-						"React Refresh runtime should not be included in the production bundle.\n" +
-							"Make sure to disable React Refresh for production by setting `builtins.react.refresh` to `false` in the configuration."
-					);
-				} else {
-					this.logger.warn(
-						"The `builtins.react.refresh` needs `builtins.react.development` and `devServer.hot` enabled"
-					);
-				}
 			}
 		});
 

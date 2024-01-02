@@ -2,15 +2,6 @@
 module.exports = {
 	context: __dirname,
 	mode: "development",
-	module: {
-		// add this to test react refresh runtime shouldn't inject runtime,see #3984
-		rules: [
-			{
-				test: /\.js$/,
-				type: "jsx"
-			}
-		]
-	},
 	entry: [
 		"@rspack/plugin-react-refresh/react-refresh-entry",
 		"./src/index.jsx"
@@ -23,10 +14,34 @@ module.exports = {
 	infrastructureLogging: {
 		debug: false
 	},
-	experiments: {
-		rspackFuture: {
-			disableTransformByDefault: false
-		}
+	module: {
+		rules: [
+			{
+				test: /\.(j|t)sx?$/,
+				loader: "builtin:swc-loader",
+				exclude: [/[\\/]node_modules[\\/]/],
+				options: {
+					sourceMap: false,
+					jsc: {
+						parser: {
+							syntax: "typescript",
+							tsx: true
+						},
+						transform: {
+							react: {
+								runtime: "automatic",
+								development: true,
+								refresh: true
+							}
+						},
+						externalHelpers: true
+					},
+					env: {
+						targets: "Chrome >= 48"
+					}
+				}
+			}
+		]
 	},
 	builtins: {
 		provide: {

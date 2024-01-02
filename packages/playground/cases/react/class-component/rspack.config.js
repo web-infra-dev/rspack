@@ -14,6 +14,52 @@ module.exports = {
 	infrastructureLogging: {
 		debug: false
 	},
+	module: {
+		rules: [
+			{
+				test: /\.(j|t)s$/,
+				exclude: [/[\\/]node_modules[\\/]/],
+				loader: "builtin:swc-loader",
+				options: {
+					sourceMap: false,
+					jsc: {
+						parser: {
+							syntax: "typescript"
+						},
+						externalHelpers: true
+					},
+					env: {
+						targets: "Chrome >= 48"
+					}
+				}
+			},
+			{
+				test: /\.(j|t)sx$/,
+				loader: "builtin:swc-loader",
+				exclude: [/[\\/]node_modules[\\/]/],
+				options: {
+					sourceMap: false,
+					jsc: {
+						parser: {
+							syntax: "typescript",
+							tsx: true
+						},
+						transform: {
+							react: {
+								runtime: "automatic",
+								development: true,
+								refresh: true
+							}
+						},
+						externalHelpers: true
+					},
+					env: {
+						targets: "Chrome >= 48"
+					}
+				}
+			}
+		]
+	},
 	builtins: {
 		provide: {
 			$ReactRefreshRuntime$: [require.resolve("./react-refresh.js")]
@@ -23,11 +69,6 @@ module.exports = {
 				template: "./src/index.html"
 			}
 		]
-	},
-	experiments: {
-		rspackFuture: {
-			disableTransformByDefault: false
-		}
 	},
 	watchOptions: {
 		poll: 1000

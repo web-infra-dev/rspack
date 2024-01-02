@@ -347,15 +347,6 @@ function tryMatch(payload: string, condition: RuleSetCondition): boolean {
 	return false;
 }
 
-const deprecatedRuleType = (type?: string) => {
-	type ??= "javascript/auto";
-	if (/ts|typescript|tsx|typescriptx|jsx|javascriptx/.test(type)) {
-		deprecatedWarn(
-			`'Rule.type: ${type}' has been deprecated, please migrate to builtin:swc-loader with type 'javascript/auto'`
-		);
-	}
-};
-
 const getRawModuleRule = (
 	rule: RuleSetRule,
 	path: string,
@@ -479,9 +470,6 @@ const getRawModuleRule = (
 
 			return true;
 		});
-	}
-	if (options.experiments.rspackFuture.disableTransformByDefault) {
-		deprecatedRuleType(rule.type);
 	}
 	return rawModuleRule;
 };
@@ -762,10 +750,8 @@ function getRawRspackFutureOptions(
 	future: RspackFutureOptions
 ): RawRspackFuture {
 	assert(!isNil(future.newTreeshaking));
-	assert(!isNil(future.disableTransformByDefault));
 	return {
-		newTreeshaking: future.newTreeshaking,
-		disableTransformByDefault: future.disableTransformByDefault
+		newTreeshaking: future.newTreeshaking
 	};
 }
 

@@ -1,0 +1,7 @@
+PublicPath: (none)
+asset main.js 654 bytes [emitted] (name: main)
+Entrypoint main 654 bytes = main.js
+
+ERROR in × Failed to resolve ./ in project root
+
+Rspack compiled with 1 error (7b83f020d7fca5c78879)

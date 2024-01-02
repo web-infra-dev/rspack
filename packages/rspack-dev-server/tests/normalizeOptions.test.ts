@@ -68,12 +68,7 @@ describe("normalize options snapshot", () => {
 		const entries1 = await getAdditionEntries(
 			{},
 			{
-				entry: ["something"],
-				experiments: {
-					rspackFuture: {
-						disableTransformByDefault: true
-					}
-				}
+				entry: ["something"]
 			}
 		);
 		expect(entries1["undefined"]).not.toContain(reactRefreshEntry);
@@ -81,12 +76,7 @@ describe("normalize options snapshot", () => {
 			{},
 			{
 				entry: ["something"],
-				plugins: [new ReactRefreshPlugin()],
-				experiments: {
-					rspackFuture: {
-						disableTransformByDefault: true
-					}
-				}
+				plugins: [new ReactRefreshPlugin()]
 			}
 		);
 		expect(entries2["undefined"]).toContain(reactRefreshEntry);
@@ -95,12 +85,7 @@ describe("normalize options snapshot", () => {
 	it("react.development and react.refresh should be true by default when hot enabled", async () => {
 		const compiler = rspack({
 			entry: ENTRY,
-			stats: "none",
-			experiments: {
-				rspackFuture: {
-					disableTransformByDefault: false
-				}
-			}
+			stats: "none"
 		});
 		const server = new RspackDevServer(
 			{

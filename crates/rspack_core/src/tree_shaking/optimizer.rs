@@ -1567,14 +1567,7 @@ fn is_js_like_uri(uri: &str) -> bool {
   match resolve_module_type_by_uri(uri) {
     Some(module_type) => matches!(
       module_type,
-      crate::ModuleType::Js
-        | crate::ModuleType::JsDynamic
-        | crate::ModuleType::JsEsm
-        | crate::ModuleType::Jsx
-        | crate::ModuleType::JsxDynamic
-        | crate::ModuleType::JsxEsm
-        | crate::ModuleType::Tsx
-        | crate::ModuleType::Ts
+      crate::ModuleType::Js | crate::ModuleType::JsDynamic | crate::ModuleType::JsEsm
     ),
     None => false,
   }

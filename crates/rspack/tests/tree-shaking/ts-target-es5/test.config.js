@@ -1,17 +1,8 @@
-const path = require("path");
-
 module.exports = {
-	context: __dirname,
-	entry: {
-		main: "./src/main.jsx"
-	},
-	builtins: {
-		html: [
-			{
-				template: "./src/index.html"
-			}
-		]
-	},
+  "target": [
+    "web",
+    "es5"
+  ],
 	module: {
 		rules: [
 			{
@@ -45,8 +36,6 @@ module.exports = {
 						transform: {
 							react: {
 								runtime: "automatic",
-								development: true,
-								refresh: true
 							}
 						},
 						externalHelpers: true
@@ -56,24 +45,15 @@ module.exports = {
 					}
 				}
 			},
-			{
-				test: /\.css$/,
-				use: [
-					{
-						loader: "postcss-loader",
-						options: {
-							postcssOptions: {
-								plugins: {
-									tailwindcss: {
-										config: path.join(__dirname, "./tailwind.config.js")
-									}
-								}
-							}
-						}
-					}
-				],
-				type: "css"
-			}
 		]
-	}
-};
+	},
+  "optimization": {
+    "sideEffects": "true"
+  },
+  "builtins": {
+    "treeShaking": "true",
+    "define": {
+      "process.env.NODE_ENV": "'development'"
+    }
+  }
+}
