@@ -14,6 +14,7 @@ use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use rayon::prelude::*;
 use rspack_error::{error, Diagnostic, Result, Severity, TWithDiagnosticArray};
+use rspack_fs::AsyncReadableFileSystem;
 use rspack_futures::FuturesResults;
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_identifier::{Identifiable, IdentifierMap, IdentifierSet};
@@ -109,6 +110,8 @@ pub struct Compilation {
   pub build_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
   pub side_effects_free_modules: IdentifierSet,
   pub module_item_map: IdentifierMap<Vec<ModuleItem>>,
+
+  pub input_filesystem: Arc<dyn AsyncReadableFileSystem + Send + Sync>,
 }
 
 impl Compilation {
@@ -121,12 +124,15 @@ impl Compilation {
     loader_resolver_factory: Arc<ResolverFactory>,
     records: Option<CompilationRecords>,
     cache: Arc<Cache>,
+    input_filesystem: Arc<dyn AsyncReadableFileSystem + Send + Sync>,
   ) -> Self {
     Self {
       hot_index: 0,
       records,
       options,
       module_graph,
+      input_filesystem,
+
       dependency_factories: Default::default(),
       make_failed_dependencies: HashSet::default(),
       make_failed_module: HashSet::default(),

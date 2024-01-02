@@ -1,11 +1,9 @@
 use std::{
   collections::hash_map::DefaultHasher,
-  fs,
   hash::{Hash, Hasher},
   path::{Path, PathBuf},
 };
 
-use anyhow::Context;
 use async_trait::async_trait;
 use dojang::dojang::Dojang;
 use rayon::prelude::*;
@@ -14,7 +12,6 @@ use rspack_core::{
   rspack_sources::{RawSource, SourceExt},
   CompilationAsset, Filename, PathData, Plugin,
 };
-use rspack_error::AnyhowError;
 use serde::Deserialize;
 use swc_html::visit::VisitMutWith;
 
@@ -75,13 +72,17 @@ impl Plugin for HtmlRspackPlugin {
         AsRef::<Path>::as_ref(&compilation.options.context).join(template.as_str()),
       );
 
-      let content = fs::read_to_string(&resolved_template)
-        .context(format!(
+      let content = compilation
+        .input_filesystem
+        .read(&resolved_template)
+        .await
+        .expect(&format!(
           "failed to read `{}` from `{}`",
           resolved_template.display(),
           &compilation.options.context
-        ))
-        .map_err(AnyhowError::from)?;
+        ));
+
+      let content = String::from_utf8(content).expect("failed to decode template");
 
       let url = resolved_template.to_string_lossy().to_string();
       compilation.file_dependencies.insert(resolved_template);
@@ -204,13 +205,16 @@ impl Plugin for HtmlRspackPlugin {
       let favicon_file_path = PathBuf::from(config.get_relative_path(compilation, favicon));
 
       let resolved_favicon = AsRef::<Path>::as_ref(&compilation.options.context).join(url.path());
-      let content = fs::read(resolved_favicon)
-        .context(format!(
+      let content = compilation
+        .input_filesystem
+        .read(&resolved_favicon)
+        .await
+        .expect(&format!(
           "failed to read `{}` from `{}`",
           url.path(),
           &compilation.options.context
-        ))
-        .map_err(AnyhowError::from)?;
+        ));
+
       compilation.emit_asset(
         favicon_file_path.to_string_lossy().to_string(),
         CompilationAsset::from(RawSource::from(content).boxed()),

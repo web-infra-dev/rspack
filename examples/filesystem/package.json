@@ -1,0 +1,15 @@
+{
+  "name": "example-filesystem",
+  "version": "1.0.0",
+  "description": "",
+  "main": "build.js",
+  "private": true,
+  "scripts": {
+    "build": "node build.js"
+  },
+  "devDependencies": {
+    "@rspack/cli": "workspace:*",
+    "@rspack/core": "workspace:*",
+    "memfs": "^4.6.0"
+  }
+}

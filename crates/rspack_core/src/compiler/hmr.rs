@@ -72,6 +72,7 @@ where
         self.loader_resolver_factory.clone(),
         Some(records),
         self.cache.clone(),
+        self.input_filesystem.clone(),
       );
 
       if let Some(state) = self.options.get_incremental_rebuild_make_state() {

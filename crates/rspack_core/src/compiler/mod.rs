@@ -90,6 +90,9 @@ where
         loader_resolver_factory.clone(),
         None,
         cache.clone(),
+        input_filesystem
+          .clone()
+          .unwrap_or(Arc::new(AsyncNativeFileSystem)),
       ),
       output_filesystem,
       input_filesystem: input_filesystem
@@ -125,6 +128,7 @@ where
         self.loader_resolver_factory.clone(),
         None,
         self.cache.clone(),
+        self.input_filesystem.clone(),
       ),
     );
 
