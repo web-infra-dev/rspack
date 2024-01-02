@@ -2,7 +2,7 @@
 source: crates/rspack_error/tests/fixtures.rs
 expression: multi_json_syntax_error
 ---
-  × Json parsing error
+  × Json parsing error: Unexpected character }
    ╭─[1:1]
  1 │ {
  2 │   "a"
@@ -10,7 +10,7 @@ expression: multi_json_syntax_error
    · ┬
    · ╰── Unexpected character }
    ╰────
-  × Json parsing error
+  × Json parsing error: Unexpected end of JSON
    ╭────
  1 │ "测试utf8\"
    ·           ▲

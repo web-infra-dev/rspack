@@ -5,11 +5,11 @@ expression: jsx_syntax_error
 ModuleParseError
 
   × Module parse failed:
-  ╰─▶   × JSX parsing error
+  ╰─▶   × JSX parsing error: Unexpected eof
          ╭────
        1 │ let a = <test>/test>;
-         ·                    ▲
-         ·                    ╰── Unexpected token. Did you mean `{'>'}` or `&gt;`?
+         · ▲
+         · ╰── Unexpected eof
          ╰────
       
   help: 
@@ -17,11 +17,11 @@ ModuleParseError
 ModuleParseError
 
   × Module parse failed:
-  ╰─▶   × JSX parsing error
+  ╰─▶   × JSX parsing error: Unexpected token. Did you mean `{'>'}` or `&gt;`?
          ╭────
        1 │ let a = <test>/test>;
-         · ▲
-         · ╰── Unexpected eof
+         ·                    ▲
+         ·                    ╰── Unexpected token. Did you mean `{'>'}` or `&gt;`?
          ╰────
       
   help: 

@@ -34,7 +34,7 @@ describe("Stats", () => {
 		    entry ./fixtures/a
 		./fixtures/a.js [585] {main}
 		  entry ./fixtures/a
-
+		  
 		Rspack compiled successfully (a62f45ec3d75aa689fa1)"
 	`);
 	});
@@ -60,8 +60,8 @@ describe("Stats", () => {
 			stats?.toString({ timings: false, version: false }).replace(/\\/g, "/")
 		).toMatchInlineSnapshot(`
 		"PublicPath: auto
-		asset main.js 832 bytes [emitted] (name: main)
-		Entrypoint main 832 bytes = main.js
+		asset main.js 823 bytes [emitted] (name: main)
+		Entrypoint main 823 bytes = main.js
 		./fixtures/a.js
 		./fixtures/b.js
 		./fixtures/c.js
@@ -78,8 +78,8 @@ describe("Stats", () => {
 		         · ───┬───
 		         ·    ╰── Return statement is not allowed here
 		         ╰────
-
-		  help:
+		      
+		  help: 
 		        You may need an appropriate loader to handle this file type.
 
 		Rspack compiled with 1 error (c5da8897b8969432ed0a)"

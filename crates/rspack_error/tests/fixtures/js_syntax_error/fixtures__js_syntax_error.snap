@@ -5,7 +5,7 @@ expression: js_syntax_error
 ModuleParseError
 
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error
+  ╰─▶   × JavaScript parsing error: Expected a semicolon
          ╭─[1:1]
        1 │ const CONST = 9000 % 2;
        2 │ const  D {
@@ -20,7 +20,7 @@ ModuleParseError
 ModuleParseError
 
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error
+  ╰─▶   × JavaScript parsing error: Expression expected
          ╭─[4:1]
        4 │     d = 10
        5 │     g = CONST

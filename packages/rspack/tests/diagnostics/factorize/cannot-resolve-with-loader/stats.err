@@ -1,6 +1,6 @@
 PublicPath: (none)
-asset main.js 998 bytes [emitted] (name: main)
-Entrypoint main 998 bytes = main.js
+asset main.js 1020 bytes [emitted] (name: main)
+Entrypoint main 1020 bytes = main.js
 ./index.js
 
 ERROR in ./index.js   × Resolve error: Can't resolve './a' in '<PROJECT_ROOT>/tests/diagnostics/factorize/cannot-resolve-with-loader'

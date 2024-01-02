@@ -1,6 +1,6 @@
 PublicPath: (none)
-asset main.js 1.24 KiB [emitted] (name: main)
-Entrypoint main 1.24 KiB = main.js
+asset main.js 1.19 KiB [emitted] (name: main)
+Entrypoint main 1.19 KiB = main.js
 ./index.js
 
 ERROR in ./index.js ModuleParseError
