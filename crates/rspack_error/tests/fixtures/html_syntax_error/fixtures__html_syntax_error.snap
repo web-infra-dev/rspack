@@ -5,8 +5,7 @@ expression: html_syntax_error
   × HTML parsing error: Start tag seen without seeing a doctype first, expected "<!DOCTYPE html>"
    ╭─[1:1]
  1 │ <head>
-   · ───┬──
-   ·    ╰── Start tag seen without seeing a doctype first, expected "<!DOCTYPE html>"
+   · ──────
  2 │   </something>
    ╰────
   × HTML parsing error: Stray end tag "something"
@@ -14,6 +13,5 @@ expression: html_syntax_error
  1 │ <head>
  2 │   </something>
    ·   ▲
-   ·   ╰── Stray end tag "something"
    ╰────
 

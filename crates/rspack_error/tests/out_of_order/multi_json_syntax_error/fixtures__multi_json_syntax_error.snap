@@ -7,13 +7,11 @@ expression: multi_json_syntax_error
  1 │ {
  2 │   "a"
  3 │ }
-   · ┬
-   · ╰── Unexpected character }
+   · ─
    ╰────
   × Json parsing error: Unexpected end of JSON
    ╭────
  1 │ "测试utf8\"
    ·           ▲
-   ·           ╰── Unexpected end of JSON
    ╰────
 

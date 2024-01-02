@@ -10,8 +10,7 @@ ModuleParseError
        3 │     // Comma is required, but parser can recover because of the newline.
        4 │     d = 10
        5 │     g = CONST
-         ·     ┬
-         ·     ╰── Expected ',', got 'g'
+         ·     ─
        6 │ }
          ╰────
       

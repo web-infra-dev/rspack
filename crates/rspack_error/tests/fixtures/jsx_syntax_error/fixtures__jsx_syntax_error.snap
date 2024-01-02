@@ -9,7 +9,6 @@ ModuleParseError
          ╭────
        1 │ let a = <test>/test>;
          · ▲
-         · ╰── Unexpected eof
          ╰────
       
   help: 
@@ -21,7 +20,6 @@ ModuleParseError
          ╭────
        1 │ let a = <test>/test>;
          ·                    ▲
-         ·                    ╰── Unexpected token. Did you mean `{'>'}` or `&gt;`?
          ╰────
       
   help: 

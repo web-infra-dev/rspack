@@ -9,8 +9,7 @@ ModuleParseError
          ╭─[1:1]
        1 │ const CONST = 9000 % 2;
        2 │ const  D {
-         ·          ┬
-         ·          ╰── Expected a semicolon
+         ·          ─
        3 │     // Comma is required, but parser can recover because of the newline.
        4 │     d = 10
          ╰────
@@ -24,8 +23,7 @@ ModuleParseError
          ╭─[1:1]
        1 │ const CONST = 9000 % 2;
        2 │ const  D {
-         ·          ┬
-         ·          ╰── Expected a semicolon
+         ·          ─
        3 │     // Comma is required, but parser can recover because of the newline.
        4 │     d = 10
          ╰────
@@ -39,8 +37,7 @@ ModuleParseError
          ╭─[1:1]
        1 │ const CONST = 9000 % 2;
        2 │ const  D {
-         ·          ┬
-         ·          ╰── Expected a semicolon
+         ·          ─
        3 │     // Comma is required, but parser can recover because of the newline.
        4 │     d = 10
          ╰────
@@ -54,8 +51,7 @@ ModuleParseError
          ╭─[1:1]
        1 │ const CONST = 9000 % 2;
        2 │ const  D {
-         ·          ┬
-         ·          ╰── Expected a semicolon
+         ·          ─
        3 │     // Comma is required, but parser can recover because of the newline.
        4 │     d = 10
          ╰────
@@ -69,8 +65,7 @@ ModuleParseError
          ╭─[1:1]
        1 │ const CONST = 9000 % 2;
        2 │ const  D {
-         ·          ┬
-         ·          ╰── Expected a semicolon
+         ·          ─
        3 │     // Comma is required, but parser can recover because of the newline.
        4 │     d = 10
          ╰────
@@ -84,8 +79,7 @@ ModuleParseError
          ╭─[1:1]
        1 │ const CONST = 9000 % 2;
        2 │ const  D {
-         ·          ┬
-         ·          ╰── Expected a semicolon
+         ·          ─
        3 │     // Comma is required, but parser can recover because of the newline.
        4 │     d = 10
          ╰────
@@ -99,8 +93,7 @@ ModuleParseError
          ╭─[1:1]
        1 │ const CONST = 9000 % 2;
        2 │ const  D {
-         ·          ┬
-         ·          ╰── Expected a semicolon
+         ·          ─
        3 │     // Comma is required, but parser can recover because of the newline.
        4 │     d = 10
          ╰────
@@ -116,7 +109,6 @@ ModuleParseError
        5 │     g = CONST
        6 │ }
          · ▲
-         · ╰── Expression expected
          ╰────
       
   help: 
@@ -130,7 +122,6 @@ ModuleParseError
        5 │     g = CONST
        6 │ }
          · ▲
-         · ╰── Expression expected
          ╰────
       
   help: 
@@ -144,7 +135,6 @@ ModuleParseError
        5 │     g = CONST
        6 │ }
          · ▲
-         · ╰── Expression expected
          ╰────
       
   help: 
@@ -158,7 +148,6 @@ ModuleParseError
        5 │     g = CONST
        6 │ }
          · ▲
-         · ╰── Expression expected
          ╰────
       
   help: 
@@ -172,7 +161,6 @@ ModuleParseError
        5 │     g = CONST
        6 │ }
          · ▲
-         · ╰── Expression expected
          ╰────
       
   help: 
@@ -186,7 +174,6 @@ ModuleParseError
        5 │     g = CONST
        6 │ }
          · ▲
-         · ╰── Expression expected
          ╰────
       
   help: 
@@ -200,7 +187,6 @@ ModuleParseError
        5 │     g = CONST
        6 │ }
          · ▲
-         · ╰── Expression expected
          ╰────
       
   help: 

@@ -8,8 +8,7 @@ ModuleParseError
   ╰─▶   × TSX parsing error: Unexpected token `test`. Expected jsx identifier
          ╭────
        1 │ let c = <test>/test>;
-         ·          ──┬─
-         ·            ╰── Unexpected token `test`. Expected jsx identifier
+         ·          ────
          ╰────
       
   help: 
