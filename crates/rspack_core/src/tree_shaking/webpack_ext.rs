@@ -1,6 +1,6 @@
 //! All webpack compatible related code goes here.
 
-use swc_core::ecma::atoms::JsWord;
+use swc_core::ecma::atoms::Atom;
 
 use super::visitor::OptimizeAnalyzeResult;
 
@@ -10,7 +10,7 @@ pub trait ExportInfoExt {
 
 #[derive(Debug)]
 pub struct ExportInfo {
-  pub name: JsWord,
+  pub name: Atom,
 }
 
 impl ExportInfoExt for OptimizeAnalyzeResult {

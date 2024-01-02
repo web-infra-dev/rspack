@@ -11,7 +11,7 @@ use rspack_identifier::{Identifiable, Identifier};
 use rspack_sources::Source;
 use rspack_util::ext::{AsAny, DynEq, DynHash};
 use rustc_hash::FxHashSet as HashSet;
-use swc_core::ecma::atoms::JsWord;
+use swc_core::ecma::atoms::Atom;
 
 use crate::tree_shaking::visitor::OptimizeAnalyzeResult;
 use crate::{
@@ -45,7 +45,7 @@ pub struct BuildInfo {
   pub missing_dependencies: HashSet<PathBuf>,
   pub build_dependencies: HashSet<PathBuf>,
   pub asset_filenames: HashSet<String>,
-  pub harmony_named_exports: HashSet<JsWord>,
+  pub harmony_named_exports: HashSet<Atom>,
   pub all_star_exports: Vec<DependencyId>,
   pub need_create_require: bool,
   pub json_data: Option<JsonValue>,

@@ -16,7 +16,7 @@ use rspack_fs::AsyncWritableFileSystem;
 use rspack_futures::FuturesResults;
 use rspack_identifier::{IdentifierMap, IdentifierSet};
 use rustc_hash::FxHashMap as HashMap;
-use swc_core::ecma::atoms::JsWord;
+use swc_core::ecma::atoms::Atom;
 use tracing::instrument;
 
 use crate::cache::Cache;
@@ -184,8 +184,7 @@ where
         self.compilation.push_batch_diagnostic(diagnostics);
       }
       self.compilation.used_symbol_ref = analyze_result.used_symbol_ref;
-      let mut exports_info_map: IdentifierMap<HashMap<JsWord, ExportInfo>> =
-        IdentifierMap::default();
+      let mut exports_info_map: IdentifierMap<HashMap<Atom, ExportInfo>> = IdentifierMap::default();
       self.compilation.used_symbol_ref.iter().for_each(|item| {
         let (importer, name) = match item {
           SymbolRef::Declaration(d) => (d.src(), d.exported()),

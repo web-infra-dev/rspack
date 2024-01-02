@@ -9,7 +9,7 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_identifier::IdentifierMap;
-use rspack_util::swc::join_atom;
+use rspack_util::swc::join_atom();
 use rustc_hash::FxHashMap as HashMap;
 
 #[derive(Debug)]

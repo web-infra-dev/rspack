@@ -5,7 +5,7 @@ use rspack_core::{
   BoxDependencyTemplate, BuildInfo, ConstDependency, DependencyType, SpanExt,
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
-use swc_core::atoms::JsWord;
+use swc_core::atoms::Atom;
 use swc_core::common::Span;
 use swc_core::ecma::ast::{AssignExpr, AssignOp, CallExpr, MemberExpr, NewExpr, OptChainExpr};
 use swc_core::ecma::ast::{ExportAll, ExportSpecifier, Expr, Id, TaggedTpl};
@@ -22,19 +22,14 @@ use crate::no_visit_ignored_stmt;
 
 #[derive(Debug)]
 pub struct ImporterReferenceInfo {
-  pub request: JsWord,
+  pub request: Atom,
   pub specifier: Specifier,
-  pub names: Option<JsWord>,
+  pub names: Option<Atom>,
   pub source_order: i32,
 }
 
 impl ImporterReferenceInfo {
-  pub fn new(
-    request: JsWord,
-    specifier: Specifier,
-    names: Option<JsWord>,
-    source_order: i32,
-  ) -> Self {
+  pub fn new(request: Atom, specifier: Specifier, names: Option<Atom>, source_order: i32) -> Self {
     Self {
       request,
       specifier,
@@ -65,7 +60,7 @@ impl ImporterInfo {
   }
 }
 
-pub type Imports = IndexMap<(JsWord, DependencyType, i32), ImporterInfo>;
+pub type Imports = IndexMap<(Atom, DependencyType, i32), ImporterInfo>;
 
 pub struct HarmonyImportDependencyScanner<'a> {
   pub dependencies: &'a mut Vec<BoxDependency>,
@@ -359,7 +354,7 @@ pub struct HarmonyImportRefDependencyScanner<'a> {
   pub enter_new_expr: bool,
   pub import_map: &'a ImportMap,
   pub dependencies: &'a mut Vec<BoxDependency>,
-  pub properties_in_destructuring: HashMap<JsWord, HashSet<JsWord>>,
+  pub properties_in_destructuring: HashMap<Atom, HashSet<Atom>>,
   pub rewrite_usage_span: &'a mut HashMap<Span, ExtraSpanInfo>,
 }
 

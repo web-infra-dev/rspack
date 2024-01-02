@@ -19,7 +19,7 @@ use rspack_core::{ModuleInitFragments, RuntimeGlobals};
 use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rustc_hash::FxHashSet;
 use sugar_path::SugarPath;
-use swc_core::{css::parser::parser::ParserConfig, ecma::atoms::JsWord};
+use swc_core::{css::parser::parser::ParserConfig, ecma::atoms::Atom};
 
 use crate::{
   dependency::CssComposeDependency,
@@ -125,7 +125,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
           &compiler_options.output,
         ),
       );
-      let mut exports: IndexMap<JsWord, _> = result.renamed.into_iter().collect();
+      let mut exports: IndexMap<Atom, _> = result.renamed.into_iter().collect();
       exports.sort_keys();
 
       self.exports = Some(IndexMap::from_iter(

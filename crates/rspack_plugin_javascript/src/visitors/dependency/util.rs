@@ -3,13 +3,13 @@ use swc_core::{
   common::SyntaxContext,
   ecma::{
     ast::{CallExpr, Expr, MemberExpr, ObjectPat, ObjectPatProp, PropName},
-    atoms::JsWord,
+    atoms::Atom,
   },
 };
 
 pub fn collect_destructuring_assignment_properties(
   object_pat: &ObjectPat,
-) -> Option<HashSet<JsWord>> {
+) -> Option<HashSet<Atom>> {
   let mut properties = HashSet::default();
 
   for property in &object_pat.props {

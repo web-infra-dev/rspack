@@ -3,7 +3,7 @@ use std::collections::VecDeque;
 
 use swc_core::common::{Span, SyntaxContext};
 use swc_core::ecma::ast::*;
-use swc_core::ecma::atoms::JsWord;
+use swc_core::ecma::atoms::Atom;
 
 pub enum MaybeExpr<'e> {
   Expr(Cow<'e, Expr>),
@@ -49,11 +49,11 @@ impl From<OptChainExpr> for MaybeExpr<'_> {
 
 #[derive(Debug)]
 pub struct ExpressionInfoCallExpression {
-  root_members: VecDeque<(JsWord, SyntaxContext)>,
+  root_members: VecDeque<(Atom, SyntaxContext)>,
 }
 
 impl ExpressionInfoCallExpression {
-  pub fn root_members(&self) -> &VecDeque<(JsWord, SyntaxContext)> {
+  pub fn root_members(&self) -> &VecDeque<(Atom, SyntaxContext)> {
     &self.root_members
   }
 }
@@ -67,7 +67,7 @@ pub enum ExpressionInfoKind {
 #[derive(Debug)]
 pub struct ExpressionInfo {
   kind: ExpressionInfoKind,
-  members: VecDeque<(JsWord, SyntaxContext)>,
+  members: VecDeque<(Atom, SyntaxContext)>,
   members_optionals: VecDeque<bool>,
   members_spans: VecDeque<Span>,
 }
@@ -77,7 +77,7 @@ impl ExpressionInfo {
     &self.kind
   }
 
-  pub fn members(&self) -> VecDeque<Cow<(JsWord, SyntaxContext)>> {
+  pub fn members(&self) -> VecDeque<Cow<(Atom, SyntaxContext)>> {
     self.members.iter().map(Cow::Borrowed).collect()
   }
 
@@ -89,7 +89,7 @@ impl ExpressionInfo {
     &self.members_spans
   }
 
-  pub fn non_optional_part(&self) -> VecDeque<Cow<(JsWord, SyntaxContext)>> {
+  pub fn non_optional_part(&self) -> VecDeque<Cow<(Atom, SyntaxContext)>> {
     let index = self
       .members_optionals
       .iter()
@@ -111,7 +111,7 @@ pub fn extract_member_expression_chain<'e, T: Into<MaybeExpr<'e>>>(
 ) -> ExpressionInfo {
   fn walk_opt_chain(
     expr: &OptChainExpr,
-    members: &mut VecDeque<(JsWord, SyntaxContext)>,
+    members: &mut VecDeque<(Atom, SyntaxContext)>,
     members_optionals: &mut VecDeque<bool>,
     members_spans: &mut VecDeque<Span>,
     kind: &mut ExpressionInfoKind,
@@ -157,11 +157,11 @@ pub fn extract_member_expression_chain<'e, T: Into<MaybeExpr<'e>>>(
         &mut ExpressionInfoKind::Expression,
       ),
       Callee::Super(ref s) => {
-        members.push_front((JsWord::from("super"), s.span.ctxt));
+        members.push_front((Atom::from("super"), s.span.ctxt));
         members_spans.push_front(s.span);
       }
       Callee::Import(ref i) => {
-        members.push_front((JsWord::from("import"), i.span.ctxt));
+        members.push_front((Atom::from("import"), i.span.ctxt));
         members_spans.push_front(i.span);
       }
     }
@@ -172,7 +172,7 @@ pub fn extract_member_expression_chain<'e, T: Into<MaybeExpr<'e>>>(
 
   fn walk_call_expr(
     call_expr: &CallExpr,
-    _members: &mut VecDeque<(JsWord, SyntaxContext)>,
+    _members: &mut VecDeque<(Atom, SyntaxContext)>,
     _members_optionals: &mut VecDeque<bool>,
     _members_spans: &mut VecDeque<Span>,
     kind: &mut ExpressionInfoKind,
@@ -183,7 +183,7 @@ pub fn extract_member_expression_chain<'e, T: Into<MaybeExpr<'e>>>(
   fn walk_member_expr(
     expr: &MemberExpr,
     in_opt: bool,
-    members: &mut VecDeque<(JsWord, SyntaxContext)>,
+    members: &mut VecDeque<(Atom, SyntaxContext)>,
     members_optionals: &mut VecDeque<bool>,
     members_spans: &mut VecDeque<Span>,
     kind: &mut ExpressionInfoKind,
@@ -216,7 +216,7 @@ pub fn extract_member_expression_chain<'e, T: Into<MaybeExpr<'e>>>(
 
   fn walk_expr(
     expr: &Expr,
-    members: &mut VecDeque<(JsWord, SyntaxContext)>,
+    members: &mut VecDeque<(Atom, SyntaxContext)>,
     members_optionals: &mut VecDeque<bool>,
     members_spans: &mut VecDeque<Span>,
     kind: &mut ExpressionInfoKind,
@@ -232,7 +232,7 @@ pub fn extract_member_expression_chain<'e, T: Into<MaybeExpr<'e>>>(
         walk_member_expr(expr, false, members, members_optionals, members_spans, kind)
       }
       Expr::This(ref this_expr) => {
-        members.push_front((JsWord::from("this"), this_expr.span.ctxt));
+        members.push_front((Atom::from("this"), this_expr.span.ctxt));
         members_spans.push_front(this_expr.span);
       }
       Expr::Ident(ref ident) => {
@@ -244,7 +244,7 @@ pub fn extract_member_expression_chain<'e, T: Into<MaybeExpr<'e>>>(
   }
 
   let mut kind: ExpressionInfoKind = ExpressionInfoKind::Expression;
-  let mut members: VecDeque<(JsWord, SyntaxContext)> = VecDeque::new();
+  let mut members: VecDeque<(Atom, SyntaxContext)> = VecDeque::new();
   let mut members_optionals: VecDeque<bool> = VecDeque::new();
   let mut members_spans: VecDeque<Span> = VecDeque::new();
 
