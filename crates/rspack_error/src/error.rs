@@ -83,11 +83,10 @@ impl Diagnostic for TraceableError {
 
   fn labels(&self) -> Option<Box<dyn Iterator<Item = LabeledSpan> + '_>> {
     use miette::macro_helpers::{OptionalWrapper, ToOption};
-    let Self { message, .. } = self;
     std::option::Option::Some(Box::new(
       vec![OptionalWrapper::<SourceSpan>::new()
         .to_option(&self.label)
-        .map(|label| miette::LabeledSpan::new_with_span(Some(message.to_string()), *label))]
+        .map(|label| miette::LabeledSpan::new_with_span(None, *label))]
       .into_iter()
       .filter(Option::is_some)
       .flatten(),

@@ -7,8 +7,7 @@ runtime modules 1 module
 ERROR in ./index.js   × Resolve error: Can't resolve './a' in '<PROJECT_ROOT>/tests/diagnostics/factorize/cannot-resolve'
    ╭────
  1 │ import "./a";
-   ·        ──┬──
-   ·          ╰── Can't resolve './a' in '<PROJECT_ROOT>/tests/diagnostics/factorize/cannot-resolve'
+   ·        ─────
    ╰────
 
 Rspack compiled with 1 error (926fdc49d447ea4b2c78)

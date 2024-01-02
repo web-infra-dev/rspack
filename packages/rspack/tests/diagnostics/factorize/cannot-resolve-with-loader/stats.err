@@ -7,8 +7,7 @@ ERROR in ./index.js   × Resolve error: Can't resolve './a' in '<PROJECT_ROOT>/t
    ╭─[1:1]
  1 │ // THIS SHOULD BE INCLUDED IN THE DIAGNOSTIC
  2 │ require("./a");
-   · ───────┬──────
-   ·        ╰── Can't resolve './a' in '<PROJECT_ROOT>/tests/diagnostics/factorize/cannot-resolve-with-loader'
+   · ──────────────
    ╰────
 
 Rspack compiled with 1 error (53075591d40709993afc)

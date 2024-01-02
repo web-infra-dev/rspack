@@ -60,8 +60,8 @@ describe("Stats", () => {
 			stats?.toString({ timings: false, version: false }).replace(/\\/g, "/")
 		).toMatchInlineSnapshot(`
 		"PublicPath: auto
-		asset main.js 823 bytes [emitted] (name: main)
-		Entrypoint main 823 bytes = main.js
+		asset main.js 758 bytes [emitted] (name: main)
+		Entrypoint main 758 bytes = main.js
 		./fixtures/a.js
 		./fixtures/b.js
 		./fixtures/c.js
@@ -75,14 +75,13 @@ describe("Stats", () => {
 		       4 │
 		       5 │ // Test CJS top-level return
 		       6 │ return;
-		         · ───┬───
-		         ·    ╰── Return statement is not allowed here
+		         · ───────
 		         ╰────
 		      
 		  help: 
 		        You may need an appropriate loader to handle this file type.
 
-		Rspack compiled with 1 error (c5da8897b8969432ed0a)"
+		Rspack compiled with 1 error (276dbbbbbfe2a12323dd)"
 	`);
 	});
 

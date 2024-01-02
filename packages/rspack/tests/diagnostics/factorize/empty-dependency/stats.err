@@ -7,8 +7,7 @@ runtime modules 1 module
 ERROR in ./index.js   × Empty dependency: Expected a non-empty request
    ╭─[1:1]
  1 │ require("");
-   · ─────┬─────
-   ·      ╰── Expected a non-empty request
+   · ───────────
  2 │ import "";
    ╰────
 
@@ -16,8 +15,7 @@ ERROR in ./index.js   × Empty dependency: Expected a non-empty request
    ╭─[1:1]
  1 │ require("");
  2 │ import "";
-   ·        ─┬
-   ·         ╰── Expected a non-empty request
+   ·        ──
    ╰────
 
 Rspack compiled with 2 errors (ac26d7e3f097f5d29576)
