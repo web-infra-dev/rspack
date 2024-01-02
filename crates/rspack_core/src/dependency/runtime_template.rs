@@ -252,6 +252,13 @@ pub fn module_namespace_promise(
     module,
     ..
   } = code_generatable_context;
+  if compilation
+    .module_graph
+    .module_identifier_by_dependency_id(dep_id)
+    .is_none()
+  {
+    return missing_module_promise(request);
+  };
 
   let promise = block_promise(block, runtime_requirements, compilation);
   let exports_type = get_exports_type(&compilation.module_graph, dep_id, &module.identifier());
@@ -398,6 +405,13 @@ fn missing_module(request: &str) -> String {
 
 fn missing_module_statement(request: &str) -> String {
   format!("{};\n", missing_module(request))
+}
+
+fn missing_module_promise(request: &str) -> String {
+  format!(
+    "Promise.resolve().then({})",
+    throw_missing_module_error_function(request)
+  )
 }
 
 fn throw_missing_module_error_function(request: &str) -> String {
