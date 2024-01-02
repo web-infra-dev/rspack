@@ -1,17 +1,13 @@
-use once_cell::sync::Lazy;
-use regex::Captures;
 use rspack_core::{
   clean_regexp_in_context_module, context_reg_exp, AsyncDependenciesBlock, DependencyLocation,
   DynamicImportMode, ErrorSpan, GroupOptions, JavascriptParserOptions, ModuleIdentifier,
 };
 use rspack_core::{BoxDependency, BuildMeta, ChunkGroupOptions, ContextMode};
 use rspack_core::{ContextNameSpaceObject, ContextOptions, DependencyCategory, SpanExt};
-use rspack_error::miette::{diagnostic, Diagnostic, Severity};
-use rspack_error::DiagnosticExt;
+use rspack_error::miette::Diagnostic;
 use rspack_regex::{regexp_as_str, RspackRegex};
-use rustc_hash::FxHashMap as HashMap;
-use swc_core::common::comments::{CommentKind, Comments};
-use swc_core::common::{Span, Spanned};
+use swc_core::common::comments::Comments;
+use swc_core::common::Spanned;
 use swc_core::ecma::ast::{CallExpr, Callee, Expr, Lit};
 use swc_core::ecma::atoms::JsWord;
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
@@ -21,6 +17,7 @@ use super::{is_import_meta_context_call, parse_order_string};
 use crate::dependency::{ImportContextDependency, ImportDependency};
 use crate::dependency::{ImportEagerDependency, ImportMetaContextDependency};
 use crate::utils::{get_bool_by_obj_prop, get_literal_str_by_obj_prop, get_regex_by_obj_prop};
+use crate::webpack_comment::try_extract_webpack_magic_comment;
 
 pub struct ImportScanner<'a> {
   module_identifier: ModuleIdentifier,
@@ -109,35 +106,6 @@ fn create_import_meta_context_dependency(node: &CallExpr) -> Option<ImportMetaCo
   ))
 }
 
-fn add_magic_comment_warning(
-  comment_name: &str,
-  comment_type: &str,
-  captures: &Captures,
-  warning_diagnostics: &mut Vec<Box<dyn Diagnostic + Send + Sync>>,
-) {
-  warning_diagnostics.push(
-    diagnostic!(
-      severity = Severity::Warning,
-      "`{comment_name}` expected {comment_type}, but received: {}.",
-      captures.get(2).map_or("", |m| m.as_str())
-    )
-    .boxed(),
-  )
-}
-
-// Using vm.runInNewContext in webpack
-// _0 for name
-// _1 for "xxx"
-// _2 for 'xxx'
-// _3 for `xxx`
-// _4 for number
-// _5 for true/false
-// TODO: regexp/array
-static WEBPACK_MAGIC_COMMENT_REGEXP: Lazy<regex::Regex> = Lazy::new(|| {
-  regex::Regex::new(r#"(?P<_0>webpack[a-zA-Z\d_-]+)\s*:\s*("(?P<_1>(\./)?([\w0-9_\-\[\]\(\)]+/)*?[\w0-9_\-\[\]\(\)]+)"|'(?P<_2>(\./)?([\w0-9_\-\[\]\(\)]+/)*?[\w0-9_\-\[\]\(\)]+)'|`(?P<_3>(\./)?([\w0-9_\-\[\]\(\)]+/)*?[\w0-9_\-\[\]\(\)]+)`|(?P<_4>[\d.-]+)|(?P<_5>true|false))"#)
-    .expect("invalid regex")
-});
-
 impl<'a> ImportScanner<'a> {
   pub fn new(
     module_identifier: ModuleIdentifier,
@@ -157,74 +125,6 @@ impl<'a> ImportScanner<'a> {
       options,
       warning_diagnostics,
     }
-  }
-
-  fn try_extract_webpack_magic_comments(
-    &mut self,
-    first_arg_span_of_import_call: &Span,
-  ) -> HashMap<String, String> {
-    let mut result = HashMap::default();
-    self
-      .comments
-      .with_leading(first_arg_span_of_import_call.lo, |comments| {
-        for comment in comments
-          .iter()
-          .rev()
-          .filter(|c| matches!(c.kind, CommentKind::Block))
-        {
-          for captures in WEBPACK_MAGIC_COMMENT_REGEXP.captures_iter(&comment.text) {
-            if let Some(item_name_match) = captures.name("_0") {
-              let item_name = item_name_match.as_str();
-              match item_name {
-                "webpackChunkName" => {
-                  if let Some(item_value_match) = captures
-                    .name("_1")
-                    .or(captures.name("_2"))
-                    .or(captures.name("_3"))
-                  {
-                    result.insert(item_name.to_string(), item_value_match.as_str().to_string());
-                  } else {
-                    add_magic_comment_warning(
-                      item_name,
-                      "a string",
-                      &captures,
-                      self.warning_diagnostics,
-                    );
-                  }
-                }
-                "webpackPrefetch" => {
-                  if let Some(item_value_match) = captures.name("_4").or(captures.name("_5")) {
-                    result.insert(item_name.to_string(), item_value_match.as_str().to_string());
-                  } else {
-                    add_magic_comment_warning(
-                      item_name,
-                      "true or a number",
-                      &captures,
-                      self.warning_diagnostics,
-                    );
-                  }
-                }
-                "webpackPreload" => {
-                  if let Some(item_value_match) = captures.name("_4").or(captures.name("_5")) {
-                    result.insert(item_name.to_string(), item_value_match.as_str().to_string());
-                  } else {
-                    add_magic_comment_warning(
-                      item_name,
-                      "true or a number",
-                      &captures,
-                      self.warning_diagnostics,
-                    );
-                  }
-                }
-                _ => {
-                  // TODO: other magic comment
-                }
-              }
-            }
-          }
-        }
-      });
-    result
   }
 }
 
@@ -281,15 +181,25 @@ impl Visit for ImportScanner<'_> {
           self.dependencies.push(Box::new(dep));
           return;
         }
-        let magic_comment_options = self.try_extract_webpack_magic_comments(&imported.span);
+        let magic_comment_options = try_extract_webpack_magic_comment(
+          &self.comments,
+          imported.span,
+          self.warning_diagnostics,
+        );
+        if magic_comment_options
+          .get_webpack_ignore()
+          .unwrap_or_default()
+        {
+          return;
+        }
         let chunk_name = magic_comment_options
-          .get("webpackChunkName")
+          .get_webpack_chunk_name()
           .map(|x| x.to_owned());
         let chunk_prefetch = magic_comment_options
-          .get("webpackPrefetch")
+          .get_webpack_prefetch()
           .and_then(|x| parse_order_string(x.as_str()));
         let chunk_preload = magic_comment_options
-          .get("webpackPreload")
+          .get_webpack_preload()
           .and_then(|x| parse_order_string(x.as_str()));
         let span = ErrorSpan::from(node.span);
         let dep = Box::new(ImportDependency::new(
@@ -314,15 +224,16 @@ impl Visit for ImportScanner<'_> {
         self.blocks.push(block);
       }
       Expr::Tpl(tpl) if tpl.quasis.len() == 1 => {
-        let magic_comment_options = self.try_extract_webpack_magic_comments(&tpl.span);
+        let magic_comment_options =
+          try_extract_webpack_magic_comment(&self.comments, tpl.span, self.warning_diagnostics);
         let chunk_name = magic_comment_options
-          .get("webpackChunkName")
+          .get_webpack_chunk_name()
           .map(|x| x.to_owned());
         let chunk_prefetch = magic_comment_options
-          .get("webpackPrefetch")
+          .get_webpack_prefetch()
           .and_then(|x| parse_order_string(x.as_str()));
         let chunk_preload = magic_comment_options
-          .get("webpackPreload")
+          .get_webpack_preload()
           .and_then(|x| parse_order_string(x.as_str()));
         let request = JsWord::from(
           tpl
@@ -357,9 +268,13 @@ impl Visit for ImportScanner<'_> {
         let Some((context, reg)) = scanner_context_module(dyn_imported.expr.as_ref()) else {
           return;
         };
-        let magic_comment_options = self.try_extract_webpack_magic_comments(&dyn_imported.span());
+        let magic_comment_options = try_extract_webpack_magic_comment(
+          &self.comments,
+          dyn_imported.span(),
+          self.warning_diagnostics,
+        );
         let chunk_name = magic_comment_options
-          .get("webpackChunkName")
+          .get_webpack_chunk_name()
           .map(|x| x.to_owned());
         self
           .dependencies
