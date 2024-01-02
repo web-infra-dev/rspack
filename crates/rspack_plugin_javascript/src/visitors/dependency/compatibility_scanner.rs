@@ -4,7 +4,7 @@ use swc_core::common::SyntaxContext;
 use swc_core::ecma::ast::{FnDecl, Ident, Program};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
-use crate::no_visit_ignored_stmt;
+use crate::{no_visit_ignored_expr, no_visit_ignored_stmt};
 
 pub struct CompatibilityScanner<'a> {
   unresolved_ctxt: SyntaxContext,
@@ -33,6 +33,7 @@ impl<'a> CompatibilityScanner<'a> {
 impl Visit for CompatibilityScanner<'_> {
   noop_visit_type!();
   no_visit_ignored_stmt!();
+  no_visit_ignored_expr!();
 
   fn visit_program(&mut self, program: &Program) {
     program.visit_children_with(self);
@@ -66,6 +67,7 @@ pub struct ReplaceNestWebpackRequireVisitor<'a> {
 impl Visit for ReplaceNestWebpackRequireVisitor<'_> {
   noop_visit_type!();
   no_visit_ignored_stmt!();
+  no_visit_ignored_expr!();
 
   fn visit_ident(&mut self, ident: &Ident) {
     if &ident.sym == "__webpack_require__" && ident.span.ctxt != self.unresolved_ctxt {

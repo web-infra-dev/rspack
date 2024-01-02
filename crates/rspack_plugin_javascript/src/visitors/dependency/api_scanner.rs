@@ -6,7 +6,7 @@ use swc_core::{
   common::{Spanned, SyntaxContext},
   ecma::{
     ast::{
-      AssignExpr, AssignOp, CallExpr, Callee, Expr, Ident, Lit, Pat, PatOrExpr, UnaryExpr, UnaryOp,
+      AssignExpr, AssignOp, CallExpr, Callee, Expr, Ident, Lit, Pat, PatOrExpr, UnaryExpr,
       VarDeclarator,
     },
     visit::{noop_visit_type, Visit, VisitWith},
@@ -17,6 +17,8 @@ use super::expr_matcher;
 use crate::{
   dependency::{ModuleArgumentDependency, WebpackIsIncludedDependency},
   no_visit_ignored_stmt,
+  parser_plugin::JavascriptParserPlugin,
+  utils::eval::{self, BasicEvaluatedExpression},
 };
 
 pub const WEBPACK_HASH: &str = "__webpack_hash__";
@@ -34,6 +36,55 @@ pub const WEBPACK_NONCE: &str = "__webpack_nonce__";
 pub const WEBPACK_CHUNK_NAME: &str = "__webpack_chunkname__";
 pub const WEBPACK_RUNTIME_ID: &str = "__webpack_runtime_id__";
 pub const WEBPACK_IS_INCLUDE: &str = "__webpack_is_included__";
+pub const WEBPACK_REQUIRE: &str = "__webpack_require__";
+
+pub fn get_typeof_evaluate_of_api(sym: &str) -> Option<&str> {
+  match sym {
+    WEBPACK_REQUIRE => Some("function"),
+    WEBPACK_HASH => Some("string"),
+    WEBPACK_PUBLIC_PATH => Some("string"),
+    WEBPACK_MODULES => Some("object"),
+    WEBPACK_MODULE => Some("object"),
+    WEBPACK_RESOURCE_QUERY => Some("string"),
+    WEBPACK_CHUNK_LOAD => Some("function"),
+    WEBPACK_BASE_URI => Some("string"),
+    NON_WEBPACK_REQUIRE => None,
+    SYSTEM_CONTEXT => Some("object"),
+    WEBPACK_SHARE_SCOPES => Some("object"),
+    WEBPACK_INIT_SHARING => Some("function"),
+    WEBPACK_NONCE => Some("string"),
+    WEBPACK_CHUNK_NAME => Some("string"),
+    WEBPACK_RUNTIME_ID => None,
+    WEBPACK_IS_INCLUDE => Some("function"),
+    _ => None,
+  }
+}
+
+pub fn get_typeof_const_of_api(sym: &str) -> Option<&str> {
+  match sym {
+    WEBPACK_IS_INCLUDE => Some("function"),
+    _ => None,
+  }
+}
+
+pub struct ApiParserPlugin;
+
+impl JavascriptParserPlugin for ApiParserPlugin {
+  fn evaluate_typeof(
+    &self,
+    expression: &swc_core::ecma::ast::Ident,
+    start: u32,
+    end: u32,
+    unresolved_mark: swc_core::common::SyntaxContext,
+  ) -> Option<BasicEvaluatedExpression> {
+    if expression.span.ctxt == unresolved_mark {
+      get_typeof_evaluate_of_api(expression.sym.as_ref() as &str)
+        .map(|res| eval::evaluate_to_string(res.to_string(), start, end))
+    } else {
+      None
+    }
+  }
+}
 
 pub struct ApiScanner<'a> {
   pub unresolved_ctxt: SyntaxContext,
@@ -104,6 +155,16 @@ impl Visit for ApiScanner<'_> {
       return;
     }
     match ident.sym.as_ref() as &str {
+      WEBPACK_REQUIRE => {
+        self
+          .presentational_dependencies
+          .push(Box::new(ConstDependency::new(
+            ident.span.real_lo(),
+            ident.span.real_hi(),
+            RuntimeGlobals::REQUIRE.name().into(),
+            Some(RuntimeGlobals::REQUIRE),
+          )));
+      }
       WEBPACK_HASH => {
         self
           .presentational_dependencies
@@ -257,6 +318,15 @@ impl Visit for ApiScanner<'_> {
   }
 
   fn visit_expr(&mut self, expr: &Expr) {
+    let span = expr.span();
+    if self
+      .ignored
+      .iter()
+      .any(|r| r.start() <= span.real_lo() && span.real_hi() <= r.end())
+    {
+      return;
+    }
+
     if expr_matcher::is_require_cache(expr) {
       self
         .presentational_dependencies
@@ -318,20 +388,17 @@ impl Visit for ApiScanner<'_> {
     }
     call_expr.visit_children_with(self);
   }
-
   fn visit_unary_expr(&mut self, unary_expr: &UnaryExpr) {
-    if matches!(unary_expr.op, UnaryOp::TypeOf) {
-      if let box Expr::Ident(ident) = &unary_expr.arg {
-        if ident.sym.as_ref() as &str == WEBPACK_IS_INCLUDE {
-          self
-            .presentational_dependencies
-            .push(Box::new(ConstDependency::new(
-              unary_expr.span.real_lo(),
-              unary_expr.span.real_hi(),
-              "\"function\"".into(),
-              None,
-            )));
-        }
+    if let box Expr::Ident(ident) = &unary_expr.arg {
+      if let Some(res) = get_typeof_const_of_api(ident.sym.as_ref() as &str) {
+        self
+          .presentational_dependencies
+          .push(Box::new(ConstDependency::new(
+            unary_expr.span().real_lo(),
+            unary_expr.span().real_hi(),
+            format!("'{res}'").into(),
+            None,
+          )));
       }
     }
     unary_expr.visit_children_with(self);
