@@ -4,8 +4,11 @@ import { Compiler, rspack } from "../src";
 import { Stats } from "../src/Stats";
 const path = require("path");
 import { createFsFromVolume, Volume } from "memfs";
+import serializer from "jest-serializer-path";
 const captureStdio = require("./helpers/captureStdio");
 const deprecationTracking = require("./helpers/deprecationTracking");
+
+expect.addSnapshotSerializer(serializer);
 
 describe("Compiler", () => {
 	function compile(entry: string, options, callback) {
@@ -331,7 +334,7 @@ describe("Compiler", () => {
 			});
 		} catch (err) {
 			expect(err.toString()).toMatchInlineSnapshot(`
-			"Error:   × Resolve error: Can't resolve './missing-file' in '/Users/bytedance/Projects/rspack/packages/rspack/tests'
+			"Error:   × Resolve error: Can't resolve './missing-file' in '<PROJECT_ROOT>/tests'
 			"
 		`);
 		}
