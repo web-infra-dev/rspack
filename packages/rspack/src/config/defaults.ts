@@ -186,7 +186,7 @@ const applyExperimentsDefaults = (
 	if (typeof experiments.rspackFuture === "object") {
 		D(experiments.rspackFuture, "newTreeshaking", false);
 		D(experiments.rspackFuture, "disableTransformByDefault", true);
-		D(experiments.rspackFuture, "disableApplyEntryLazily", false);
+		D(experiments.rspackFuture, "disableApplyEntryLazily", true);
 	}
 };
 
