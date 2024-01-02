@@ -1,18 +1,18 @@
 use rspack_core::{DependencyTemplate, TemplateContext, TemplateReplaceSource, UsageState};
-use swc_core::ecma::atoms::JsWord;
+use swc_core::ecma::atoms::Atom;
 
 #[derive(Debug, Clone)]
 pub struct ExportInfoApiDependency {
   start: u32,
   end: u32,
   // id: DependencyId,
-  export_name: Vec<JsWord>,
-  property: JsWord,
+  export_name: Vec<Atom>,
+  property: Atom,
   // TODO: runtime_requirements
 }
 
 impl ExportInfoApiDependency {
-  pub fn new(start: u32, end: u32, export_name: Vec<JsWord>, property: JsWord) -> Self {
+  pub fn new(start: u32, end: u32, export_name: Vec<Atom>, property: Atom) -> Self {
     Self {
       start,
       end,

@@ -13,7 +13,7 @@ use swc_core::{
       Ident, ImportDecl, ImportDefaultSpecifier, ImportNamedSpecifier, ImportSpecifier, Module,
       ModuleDecl, ModuleExportName, ModuleItem, Str,
     },
-    atoms::JsWord,
+    atoms::Atom,
     visit::{as_folder, Fold, VisitMut, VisitWith},
   },
 };
@@ -399,7 +399,7 @@ impl<'a> VisitMut for ImportPlugin<'a> {
                 BytePos::DUMMY,
                 SyntaxContext::from_u32(js_source.mark),
               ),
-              sym: JsWord::from(js_source.as_name.unwrap_or(js_source.default_spec).as_str()),
+              sym: Atom::from(js_source.as_name.unwrap_or(js_source.default_spec).as_str()),
               optional: false,
             },
           })]
@@ -409,7 +409,7 @@ impl<'a> VisitMut for ImportPlugin<'a> {
             imported: if js_source.as_name.is_some() {
               Some(ModuleExportName::Ident(Ident {
                 span: DUMMY_SP,
-                sym: JsWord::from(js_source.default_spec.as_str()),
+                sym: Atom::from(js_source.default_spec.as_str()),
                 optional: false,
               }))
             } else {
@@ -421,7 +421,7 @@ impl<'a> VisitMut for ImportPlugin<'a> {
                 BytePos::DUMMY,
                 SyntaxContext::from_u32(js_source.mark),
               ),
-              sym: JsWord::from(js_source.as_name.unwrap_or(js_source.default_spec).as_str()),
+              sym: Atom::from(js_source.as_name.unwrap_or(js_source.default_spec).as_str()),
               optional: false,
             },
             is_type_only: false,
@@ -429,7 +429,7 @@ impl<'a> VisitMut for ImportPlugin<'a> {
         },
         src: Box::new(Str {
           span: DUMMY_SP,
-          value: JsWord::from(js_source_ref),
+          value: Atom::from(js_source_ref),
           raw: None,
         }),
         type_only: false,
@@ -444,7 +444,7 @@ impl<'a> VisitMut for ImportPlugin<'a> {
         specifiers: vec![],
         src: Box::new(Str {
           span: DUMMY_SP,
-          value: JsWord::from(css_source),
+          value: Atom::from(css_source),
           raw: None,
         }),
         type_only: false,

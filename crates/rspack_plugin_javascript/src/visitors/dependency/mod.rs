@@ -26,7 +26,7 @@ use rspack_error::miette::Diagnostic;
 use rustc_hash::FxHashMap as HashMap;
 use swc_core::common::Span;
 use swc_core::common::{comments::Comments, Mark, SyntaxContext};
-use swc_core::ecma::atoms::JsWord;
+use swc_core::ecma::atoms::Atom;
 pub use util::*;
 
 use self::harmony_import_dependency_scanner::ImportMap;
@@ -60,7 +60,7 @@ pub enum ExtraSpanInfo {
   ReWriteUsedByExports,
   // (symbol, usage)
   // (local, exported) refer https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/javascript/JavascriptParser.js#L2347-L2352
-  AddVariableUsage(Vec<(JsWord, JsWord)>),
+  AddVariableUsage(Vec<(Atom, Atom)>),
 }
 
 #[allow(clippy::too_many_arguments)]

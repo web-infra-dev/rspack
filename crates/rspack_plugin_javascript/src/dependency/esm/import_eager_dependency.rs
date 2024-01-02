@@ -4,25 +4,25 @@ use rspack_core::{
   ModuleDependency, ModuleGraph, ReferencedExport, RuntimeSpec, TemplateContext,
   TemplateReplaceSource,
 };
-use swc_core::ecma::atoms::JsWord;
+use swc_core::ecma::atoms::Atom;
 
 #[derive(Debug, Clone)]
 pub struct ImportEagerDependency {
   start: u32,
   end: u32,
   id: DependencyId,
-  request: JsWord,
+  request: Atom,
   span: Option<ErrorSpan>,
-  referenced_exports: Option<Vec<JsWord>>,
+  referenced_exports: Option<Vec<Atom>>,
 }
 
 impl ImportEagerDependency {
   pub fn new(
     start: u32,
     end: u32,
-    request: JsWord,
+    request: Atom,
     span: Option<ErrorSpan>,
-    referenced_exports: Option<Vec<JsWord>>,
+    referenced_exports: Option<Vec<Atom>>,
   ) -> Self {
     Self {
       start,
@@ -84,7 +84,7 @@ impl ModuleDependency for ImportEagerDependency {
 }
 
 impl ImportDependencyTrait for ImportEagerDependency {
-  fn referenced_exports(&self) -> Option<&Vec<JsWord>> {
+  fn referenced_exports(&self) -> Option<&Vec<Atom>> {
     self.referenced_exports.as_ref()
   }
 }

@@ -10,7 +10,7 @@ use rspack_error::Result;
 use rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
 use rspack_util::ext::{DynHash, IntoAny};
 use rustc_hash::FxHasher;
-use swc_core::ecma::atoms::JsWord;
+use swc_core::ecma::atoms::Atom;
 
 use crate::{property_name, ExportsArgument, GenerateContext, RuntimeGlobals};
 
@@ -263,11 +263,11 @@ impl<C> InitFragment<C> for NormalInitFragment {
 pub struct HarmonyExportInitFragment {
   exports_argument: ExportsArgument,
   // TODO: should be a map
-  export_map: Vec<(JsWord, JsWord)>,
+  export_map: Vec<(Atom, Atom)>,
 }
 
 impl HarmonyExportInitFragment {
-  pub fn new(exports_argument: ExportsArgument, export_map: Vec<(JsWord, JsWord)>) -> Self {
+  pub fn new(exports_argument: ExportsArgument, export_map: Vec<(Atom, Atom)>) -> Self {
     Self {
       exports_argument,
       export_map,

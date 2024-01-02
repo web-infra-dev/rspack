@@ -10,7 +10,7 @@ use rspack_util::ext::DynHash;
 use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
 use serde::Serialize;
-use swc_core::ecma::atoms::JsWord;
+use swc_core::ecma::atoms::Atom;
 
 use crate::property_access;
 use crate::Nullable;
@@ -112,7 +112,7 @@ impl ExportsInfoId {
     &self,
     mg: &mut ModuleGraph,
     can_mangle: bool,
-    exclude_exports: Option<Vec<JsWord>>,
+    exclude_exports: Option<Vec<Atom>>,
     target_key: Option<DependencyId>,
     target_module: Option<ModuleGraphConnection>,
     priority: Option<u8>,
@@ -206,11 +206,7 @@ impl ExportsInfoId {
 
   /// # Panic
   /// this function would panic if name doesn't exists in current exportsInfo
-  pub fn get_read_only_export_info<'a>(
-    &self,
-    name: &JsWord,
-    mg: &'a ModuleGraph,
-  ) -> &'a ExportInfo {
+  pub fn get_read_only_export_info<'a>(&self, name: &Atom, mg: &'a ModuleGraph) -> &'a ExportInfo {
     let exports_info = mg.get_exports_info_by_id(self);
     let redirect_id = exports_info.redirect_to;
     let other_exports_info_id = exports_info.other_exports_info;
@@ -225,7 +221,7 @@ impl ExportsInfoId {
     mg.get_export_info_by_id(&other_exports_info_id)
   }
 
-  pub fn get_export_info(&self, name: &JsWord, mg: &mut ModuleGraph) -> ExportInfoId {
+  pub fn get_export_info(&self, name: &Atom, mg: &mut ModuleGraph) -> ExportInfoId {
     let exports_info = mg.get_exports_info_by_id(self);
     let redirect_id = exports_info.redirect_to;
     let other_exports_info_id = exports_info.other_exports_info;
@@ -254,7 +250,7 @@ impl ExportsInfoId {
 
   pub fn get_nested_exports_info(
     &self,
-    name: Option<Vec<JsWord>>,
+    name: Option<Vec<Atom>>,
     mg: &ModuleGraph,
   ) -> Option<ExportsInfoId> {
     if let Some(name) = name
@@ -446,7 +442,7 @@ impl ExportsInfoId {
 
 #[derive(Debug)]
 pub struct ExportsInfo {
-  pub exports: BTreeMap<JsWord, ExportInfoId>,
+  pub exports: BTreeMap<Atom, ExportInfoId>,
   pub other_exports_info: ExportInfoId,
   pub _side_effects_only_info: ExportInfoId,
   pub _exports_are_ordered: bool,
@@ -485,7 +481,7 @@ impl ExportsHash for ExportsInfo {
 pub enum ProvidedExports {
   Null,
   True,
-  Vec(Vec<JsWord>),
+  Vec(Vec<Atom>),
 }
 impl ExportsInfo {
   pub fn new(other_exports_info: ExportInfoId, _side_effects_only_info: ExportInfoId) -> Self {
@@ -558,7 +554,7 @@ impl ExportsInfo {
   }
 
   /// only used for old version tree shaking
-  pub fn old_get_used_exports(&self) -> HashSet<JsWord> {
+  pub fn old_get_used_exports(&self) -> HashSet<Atom> {
     self.exports.keys().cloned().collect::<HashSet<_>>()
   }
 
@@ -682,8 +678,8 @@ impl ExportsInfo {
 
 #[derive(Debug, Clone)]
 pub enum UsedName {
-  Str(JsWord),
-  Vec(Vec<JsWord>),
+  Str(Atom),
+  Vec(Vec<Atom>),
 }
 
 pub fn string_of_used_name(used: Option<&UsedName>) -> String {
@@ -699,7 +695,7 @@ pub fn string_of_used_name(used: Option<&UsedName>) -> String {
 #[derive(Debug, Clone, Hash)]
 pub struct ExportInfoTargetValue {
   connection: Option<ModuleGraphConnection>,
-  exports: Option<Vec<JsWord>>,
+  exports: Option<Vec<Atom>>,
   priority: u8,
 }
 
@@ -1041,7 +1037,7 @@ impl ExportInfoId {
     changed
   }
 
-  pub fn set_used_name(&self, mg: &mut ModuleGraph, name: JsWord) {
+  pub fn set_used_name(&self, mg: &mut ModuleGraph, name: Atom) {
     mg.get_export_info_mut_by_id(self).set_used_name(name)
   }
 }
@@ -1069,11 +1065,11 @@ impl From<u32> for ExportInfoId {
 #[allow(unused)]
 pub struct ExportInfo {
   // the name could be `null` you could refer https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad4153d/lib/ExportsInfo.js#L78
-  pub name: Option<JsWord>,
+  pub name: Option<Atom>,
   module_identifier: Option<ModuleIdentifier>,
   pub usage_state: UsageState,
   /// this is mangled name, https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/ExportsInfo.js#L1181-L1188
-  used_name: Option<JsWord>,
+  used_name: Option<Atom>,
   pub target: HashMap<Option<DependencyId>, ExportInfoTargetValue>,
   max_target: HashMap<Option<DependencyId>, ExportInfoTargetValue>,
   pub provided: Option<ExportInfoProvided>,
@@ -1128,14 +1124,14 @@ pub enum ExportInfoProvided {
 #[derive(Clone, Debug)]
 pub struct ResolvedExportInfoTarget {
   pub module: ModuleIdentifier,
-  pub export: Option<Vec<JsWord>>,
+  pub export: Option<Vec<Atom>>,
   connection: ModuleGraphConnection,
 }
 
 #[derive(Debug, Clone)]
 struct UnResolvedExportInfoTarget {
   connection: Option<ModuleGraphConnection>,
-  export: Option<Vec<JsWord>>,
+  export: Option<Vec<Atom>>,
 }
 
 #[derive(Debug)]
@@ -1153,11 +1149,7 @@ pub type UsageFilterFnTy<T> = Box<dyn Fn(&T) -> bool>;
 
 impl ExportInfo {
   // TODO: remove usage_state after new tree shaking is landing
-  pub fn new(
-    name: Option<JsWord>,
-    usage_state: UsageState,
-    init_from: Option<&ExportInfo>,
-  ) -> Self {
+  pub fn new(name: Option<Atom>, usage_state: UsageState, init_from: Option<&ExportInfo>) -> Self {
     let used_name = init_from.and_then(|init_from| init_from.used_name.clone());
     let global_used = init_from.and_then(|init_from| init_from.global_used);
     let used_in_runtime = init_from.and_then(|init_from| init_from.used_in_runtime.clone());
@@ -1279,13 +1271,9 @@ impl ExportInfo {
     }
   }
 
-  /// Webpack returns `false | string`, we use `Option<JsWord>` to avoid declare a redundant enum
+  /// Webpack returns `false | string`, we use `Option<Atom>` to avoid declare a redundant enum
   /// type
-  pub fn get_used_name(
-    &self,
-    fallback_name: &JsWord,
-    runtime: Option<&RuntimeSpec>,
-  ) -> Option<JsWord> {
+  pub fn get_used_name(&self, fallback_name: &Atom, runtime: Option<&RuntimeSpec>) -> Option<Atom> {
     if self.has_use_in_runtime_info {
       if let Some(usage) = self.global_used {
         if matches!(usage, UsageState::Unused) {
@@ -1446,7 +1434,7 @@ impl ExportInfo {
     &mut self,
     key: Option<DependencyId>,
     connection: Option<ModuleGraphConnection>,
-    export_name: Option<&Nullable<Vec<JsWord>>>,
+    export_name: Option<&Nullable<Vec<Atom>>>,
     priority: Option<u8>,
   ) -> bool {
     let export_name = match export_name {
@@ -1503,7 +1491,7 @@ impl ExportInfo {
     self.used_name.is_some()
   }
 
-  pub fn set_used_name(&mut self, name: JsWord) {
+  pub fn set_used_name(&mut self, name: Atom) {
     self.used_name = Some(name);
   }
 }
@@ -1528,7 +1516,7 @@ pub enum RuntimeUsageStateType {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum UsedByExports {
-  Set(HashSet<JsWord>),
+  Set(HashSet<Atom>),
   Bool(bool),
 }
 
@@ -1571,7 +1559,7 @@ pub fn get_dependency_used_by_exports_condition(
 /// refer https://github.com/webpack/webpack/blob/d15c73469fd71cf98734685225250148b68ddc79/lib/FlagDependencyUsagePlugin.js#L64
 #[derive(Clone, Debug)]
 pub enum ExtendedReferencedExport {
-  Array(Vec<JsWord>),
+  Array(Vec<Atom>),
   Export(ReferencedExport),
 }
 
@@ -1591,8 +1579,8 @@ pub fn create_exports_object_referenced() -> Vec<ExtendedReferencedExport> {
   vec![ExtendedReferencedExport::Array(vec![])]
 }
 
-impl From<Vec<JsWord>> for ExtendedReferencedExport {
-  fn from(value: Vec<JsWord>) -> Self {
+impl From<Vec<Atom>> for ExtendedReferencedExport {
+  fn from(value: Vec<Atom>) -> Self {
     ExtendedReferencedExport::Array(value)
   }
 }
@@ -1604,12 +1592,12 @@ impl From<ReferencedExport> for ExtendedReferencedExport {
 
 #[derive(Clone, Debug)]
 pub struct ReferencedExport {
-  pub name: Vec<JsWord>,
+  pub name: Vec<Atom>,
   pub can_mangle: bool,
 }
 
 impl ReferencedExport {
-  pub fn new(_name: Vec<JsWord>, _can_mangle: bool) -> Self {
+  pub fn new(_name: Vec<Atom>, _can_mangle: bool) -> Self {
     Self {
       name: _name,
       can_mangle: _can_mangle,
@@ -1629,8 +1617,8 @@ impl Default for ReferencedExport {
 pub fn process_export_info(
   module_graph: &ModuleGraph,
   runtime: Option<&RuntimeSpec>,
-  referenced_export: &mut Vec<Vec<JsWord>>,
-  prefix: Vec<JsWord>,
+  referenced_export: &mut Vec<Vec<Atom>>,
+  prefix: Vec<Atom>,
   export_info: Option<ExportInfoId>,
   default_points_to_self: bool,
   already_visited: &mut HashSet<ExportInfoId>,

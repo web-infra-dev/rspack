@@ -1,10 +1,10 @@
-use swc_core::ecma::atoms::JsWord;
+use swc_core::ecma::atoms::Atom;
 
 use crate::{ExtendedReferencedExport, ModuleDependency};
 use crate::{ModuleGraph, ReferencedExport, RuntimeSpec};
 
 pub trait ImportDependencyTrait: ModuleDependency {
-  fn referenced_exports(&self) -> Option<&Vec<JsWord>>;
+  fn referenced_exports(&self) -> Option<&Vec<Atom>>;
 
   fn get_referenced_exports(
     &self,

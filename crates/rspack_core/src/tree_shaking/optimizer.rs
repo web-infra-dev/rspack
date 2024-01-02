@@ -16,7 +16,7 @@ use rspack_error::{
 };
 use rspack_identifier::{Identifier, IdentifierLinkedSet, IdentifierMap, IdentifierSet};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
-use swc_core::{common::SyntaxContext, ecma::atoms::JsWord};
+use swc_core::{common::SyntaxContext, ecma::atoms::Atom};
 
 use super::{
   symbol::{
@@ -65,7 +65,7 @@ struct ModuleEliminator {
   module_identifier: ModuleIdentifier,
 }
 
-type SymbolRefWithMemberChain = (SymbolRef, Vec<JsWord>);
+type SymbolRefWithMemberChain = (SymbolRef, Vec<Atom>);
 
 impl ModuleEliminator {
   fn could_be_skipped(&self) -> bool {
@@ -1440,7 +1440,7 @@ fn get_inherit_export_ref_graph(
                 Some((k.clone(), v.clone()))
               }
             })
-            .collect::<HashMap<JsWord, SymbolRef>>()
+            .collect::<HashMap<Atom, SymbolRef>>()
         }) {
         inherit_export_map
       } else {

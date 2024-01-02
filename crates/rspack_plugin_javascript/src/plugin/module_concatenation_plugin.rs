@@ -343,10 +343,10 @@ impl Plugin for ModuleConcatenationPlugin {
     logger.time_end(start);
 
     let start = logger.time("create concatenated modules");
-    let mut used_modules = HashSet::default();
-    for config in concat_configurations {
-      let root_module = config.root_module;
-    }
+    // let mut used_modules = HashSet::default();
+    // for config in concat_configurations {
+    //   let root_module = config.root_module;
+    // }
     Ok(())
   }
 }
