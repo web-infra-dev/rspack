@@ -1,0 +1,32 @@
+---
+source: crates/rspack_testing/src/run_fixture.rs
+---
+```js title=main.js
+(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
+"./b.js?x": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  a: function() { return a; }
+});
+ const a = 3;
+}),
+"./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+Object(function webpackMissingModule() { var e = new Error("Cannot find module './b.jsx'"); e.code = 'MODULE_NOT_FOUND'; throw e; }());
+/* harmony import */var _b_js_x__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./b.js?x */"./b.js?x");
+
+
+_b_js_x__WEBPACK_IMPORTED_MODULE_1__.a;
+Object(function webpackMissingModule() { var e = new Error("Cannot find module './b.jsx'"); e.code = 'MODULE_NOT_FOUND'; throw e; }());
+console.log("hello, world");
+}),
+
+},function(__webpack_require__) {
+var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
+var __webpack_exports__ = (__webpack_exec__("./index.js"));
+
+}
+]);
+```

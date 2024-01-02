@@ -58,8 +58,7 @@ export const config = {
 	getNormalizedRspackOptions,
 	applyRspackOptionsDefaults,
 	getNormalizedWebpackOptions: getNormalizedRspackOptions,
-	applyWebpackOptionsDefaults: applyRspackOptionsDefaults,
-	__internal__getRawOptions: getRawOptions
+	applyWebpackOptionsDefaults: applyRspackOptionsDefaults
 };
 
 export type * from "./config";
