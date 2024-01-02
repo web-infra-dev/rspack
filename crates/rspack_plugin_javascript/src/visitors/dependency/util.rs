@@ -313,3 +313,23 @@ macro_rules! no_visit_ignored_stmt {
     }
   };
 }
+
+#[macro_export]
+macro_rules! no_visit_ignored_expr {
+  () => {
+    fn visit_expr(&mut self, expr: &swc_core::ecma::ast::Expr) {
+      use rspack_core::SpanExt;
+      use swc_core::common::Spanned;
+      use swc_core::ecma::visit::VisitWith;
+      let span = expr.span();
+      if self
+        .ignored
+        .iter()
+        .any(|r| r.start() <= span.real_lo() && span.real_hi() <= r.end())
+      {
+        return;
+      }
+      expr.visit_children_with(self);
+    }
+  };
+}

@@ -8,7 +8,8 @@ use swc_core::ecma::ast::{BinExpr, BlockStmt, CallExpr, Callee, Expr, IfStmt};
 use swc_core::ecma::ast::{Lit, TryStmt, UnaryExpr, UnaryOp};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
-use super::api_scanner::{get_typeof_evaluate_of_api, ApiParserPlugin};
+use super::api_scanner::ApiParserPlugin;
+use super::common_js_export_scanner::CommonJsExportParserPlugin;
 use super::context_helper::scanner_context_module;
 use super::expr_matcher::{is_module_require, is_require};
 use super::{expr_matcher, is_unresolved_member_object_ident, is_unresolved_require};
@@ -88,6 +89,7 @@ impl<'a> CommonJsImportDependencyScanner<'a> {
       Box::new(CommonJsImportsParserPlugin),
       Box::new(RequireContextDependencyParserPlugin),
       Box::new(ApiParserPlugin),
+      Box::new(CommonJsExportParserPlugin),
     ];
     let plugin_drive = JavaScriptParserPluginDrive::new(plugins);
     Self {
@@ -309,20 +311,6 @@ impl<'a> Visit for CommonJsImportDependencyScanner<'a> {
             "'function'".into(),
             None,
           )));
-      }
-
-      // TODO: should move to scanner
-      if let box Expr::Ident(ident) = &unary_expr.arg {
-        if let Some(res) = get_typeof_evaluate_of_api(ident.sym.as_ref() as &str) {
-          self
-            .presentational_dependencies
-            .push(Box::new(ConstDependency::new(
-              unary_expr.span().real_lo(),
-              unary_expr.span().real_hi(),
-              format!("'{res}'").into(),
-              None,
-            )));
-        }
       }
     }
     unary_expr.visit_children_with(self);
