@@ -53,9 +53,13 @@ impl ModuleDependency for CommonJsSelfReferenceDependency {
     _runtime: Option<&rspack_core::RuntimeSpec>,
   ) -> Vec<rspack_core::ExtendedReferencedExport> {
     if self.is_call {
-      vec![ExtendedReferencedExport::Array(
-        self.names[0..self.names.len() - 1].to_vec(),
-      )]
+      if self.names.is_empty() {
+        vec![ExtendedReferencedExport::Array(vec![])]
+      } else {
+        vec![ExtendedReferencedExport::Array(
+          self.names[0..self.names.len() - 1].to_vec(),
+        )]
+      }
     } else {
       vec![ExtendedReferencedExport::Array(self.names.clone())]
     }
