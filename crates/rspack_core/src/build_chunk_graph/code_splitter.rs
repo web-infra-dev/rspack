@@ -509,22 +509,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           module,
         }));
     }
-    let blocks = match &item.block {
-      DependenciesBlockIdentifier::Module(m) => self
-        .compilation
-        .module_graph
-        .module_by_identifier(m)
-        .expect("should have module")
-        .get_blocks()
-        .to_vec(),
-      DependenciesBlockIdentifier::AsyncDependenciesBlock(a) => self
-        .compilation
-        .module_graph
-        .block_by_id(a)
-        .expect("should have block")
-        .get_blocks()
-        .to_vec(),
-    };
+    let blocks = item.block.get_blocks(self.compilation);
     for block in blocks {
       self.iterator_block(block, item.chunk_group, item.chunk);
     }
@@ -765,16 +750,23 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       .block_modules_runtime_map
       .get(&runtime.cloned().into())
       .and_then(|map| map.get(&module))
-      .expect("block_modules_map.get(module) must not empty after extract_block_modules")
+      .unwrap_or_else(|| {
+        panic!("block_modules_map.get({module:?}) must not empty after extract_block_modules")
+      })
       .clone()
   }
 
   fn extract_block_modules(&mut self, module: ModuleIdentifier, runtime: Option<&RuntimeSpec>) {
-    self
+    let map = self
       .block_modules_runtime_map
       .entry(runtime.cloned().into())
-      .or_default()
-      .insert(module.into(), Vec::new());
+      .or_default();
+    let block = module.into();
+    map.insert(block, Vec::new());
+    for b in block.get_blocks(self.compilation) {
+      map.insert(b.into(), Vec::new());
+    }
+
     let dependencies: Vec<&BoxDependency> = if self.compilation.options.is_new_tree_shaking() {
       let mgm = self
         .compilation
@@ -836,10 +828,10 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       };
       let modules = self
         .block_modules_runtime_map
-        .entry(runtime.cloned().into())
-        .or_default()
-        .entry(block_id)
-        .or_default();
+        .get_mut(&runtime.cloned().into())
+        .expect("should have runtime in block_modules_runtime_map")
+        .get_mut(&block_id)
+        .expect("should have modules in block_modules_runtime_map");
       modules.push(
         *self
           .compilation
@@ -976,6 +968,23 @@ impl DependenciesBlockIdentifier {
     match self {
       DependenciesBlockIdentifier::Module(m) => Some(m),
       DependenciesBlockIdentifier::AsyncDependenciesBlock(ident) => Some(&ident.from),
+    }
+  }
+
+  pub fn get_blocks(&self, compilation: &Compilation) -> Vec<AsyncDependenciesBlockIdentifier> {
+    match self {
+      DependenciesBlockIdentifier::Module(m) => compilation
+        .module_graph
+        .module_by_identifier(m)
+        .expect("should have module")
+        .get_blocks()
+        .to_vec(),
+      DependenciesBlockIdentifier::AsyncDependenciesBlock(a) => compilation
+        .module_graph
+        .block_by_id(a)
+        .expect("should have block")
+        .get_blocks()
+        .to_vec(),
     }
   }
 }
