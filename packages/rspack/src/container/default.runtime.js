@@ -167,6 +167,12 @@ module.exports = function () {
 			"S",
 			__module_federation_implementation__.bundlerRuntime.S
 		);
+		if (__module_federation_implementation__.attachShareScopeMap) {
+			__module_federation_implementation__.attachShareScopeMap(
+				__webpack_require__
+			);
+		}
+
 		override(__webpack_require__.f, "remotes", (chunkId, promises) =>
 			__module_federation_implementation__.bundlerRuntime.remotes({
 				chunkId,
@@ -223,23 +229,22 @@ module.exports = function () {
 			return getScope;
 		});
 
-		__webpack_require__.federation.instance =
-			__webpack_require__.federation.runtime.init(
-				__webpack_require__.federation.initOptions
+		__module_federation_implementation__.instance =
+			__module_federation_implementation__.runtime.init(
+				__module_federation_implementation__.initOptions
 			);
 
-		if (__webpack_require__.federation.attachShareScopeMap) {
-			__webpack_require__.federation.attachShareScopeMap(__webpack_require__);
-		}
 		if (__webpack_require__.consumesLoadingData?.initialConsumes) {
-			__webpack_require__.federation.bundlerRuntime.installInitialConsumes({
-				webpackRequire: __webpack_require__,
-				installedModules: consumesLoadinginstalledModules,
-				initialConsumes:
-					__webpack_require__.consumesLoadingData.initialConsumes,
-				moduleToHandlerMapping:
-					__webpack_require__.federation.consumesLoadingModuleToHandlerMapping
-			});
+			__module_federation_implementation__.bundlerRuntime.installInitialConsumes(
+				{
+					webpackRequire: __webpack_require__,
+					installedModules: consumesLoadinginstalledModules,
+					initialConsumes:
+						__webpack_require__.consumesLoadingData.initialConsumes,
+					moduleToHandlerMapping:
+						__module_federation_implementation__.consumesLoadingModuleToHandlerMapping
+				}
+			);
 		}
 	}
 };
