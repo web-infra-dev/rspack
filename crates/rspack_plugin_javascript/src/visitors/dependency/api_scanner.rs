@@ -1,6 +1,6 @@
 use rspack_core::{
-  BuildInfo, ConstDependency, Dependency, DependencyTemplate, ResourceData, RuntimeGlobals,
-  RuntimeRequirementsDependency, SpanExt,
+  BuildInfo, ConstDependency, Dependency, DependencyLocation, DependencyTemplate, ResourceData,
+  RuntimeGlobals, RuntimeRequirementsDependency, SpanExt,
 };
 use swc_core::{
   common::{Spanned, SyntaxContext},
@@ -14,7 +14,10 @@ use swc_core::{
 };
 
 use super::expr_matcher;
-use crate::dependency::{ModuleArgumentDependency, WebpackIsIncludedDependency};
+use crate::{
+  dependency::{ModuleArgumentDependency, WebpackIsIncludedDependency},
+  no_visit_ignored_stmt,
+};
 
 pub const WEBPACK_HASH: &str = "__webpack_hash__";
 pub const WEBPACK_PUBLIC_PATH: &str = "__webpack_public_path__";
@@ -40,6 +43,7 @@ pub struct ApiScanner<'a> {
   pub resource_data: &'a ResourceData,
   pub presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
   pub dependencies: &'a mut Vec<Box<dyn Dependency>>,
+  pub ignored: &'a mut Vec<DependencyLocation>,
 }
 
 impl<'a> ApiScanner<'a> {
@@ -50,6 +54,7 @@ impl<'a> ApiScanner<'a> {
     presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
     module: bool,
     build_info: &'a mut BuildInfo,
+    ignored: &'a mut Vec<DependencyLocation>,
   ) -> Self {
     Self {
       unresolved_ctxt,
@@ -59,12 +64,14 @@ impl<'a> ApiScanner<'a> {
       resource_data,
       presentational_dependencies,
       dependencies,
+      ignored,
     }
   }
 }
 
 impl Visit for ApiScanner<'_> {
   noop_visit_type!();
+  no_visit_ignored_stmt!();
 
   fn visit_var_declarator(&mut self, var_declarator: &VarDeclarator) {
     match &var_declarator.name {

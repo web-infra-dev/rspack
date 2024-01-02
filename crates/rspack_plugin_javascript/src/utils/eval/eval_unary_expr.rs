@@ -6,7 +6,7 @@ use crate::parser_plugin::JavascriptParserPlugin;
 use crate::visitors::common_js_import_dependency_scanner::CommonJsImportDependencyScanner;
 
 fn eval_typeof(
-  scanner: &CommonJsImportDependencyScanner,
+  scanner: &mut CommonJsImportDependencyScanner,
   expr: &UnaryExpr,
 ) -> Option<BasicEvaluatedExpression> {
   assert!(expr.op == UnaryOp::TypeOf);
@@ -27,7 +27,7 @@ fn eval_typeof(
 }
 
 pub fn eval_unary_expression(
-  scanner: &CommonJsImportDependencyScanner,
+  scanner: &mut CommonJsImportDependencyScanner,
   expr: &UnaryExpr,
 ) -> Option<BasicEvaluatedExpression> {
   match expr.op {

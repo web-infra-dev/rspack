@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use rspack_core::{context_reg_exp, ContextOptions, DependencyCategory};
+use rspack_core::{context_reg_exp, ContextOptions, DependencyCategory, DependencyLocation};
 use rspack_core::{BoxDependency, ConstDependency, ContextMode, ContextNameSpaceObject};
 use rspack_core::{DependencyTemplate, SpanExt};
 use swc_core::common::{Spanned, SyntaxContext};
@@ -46,6 +46,7 @@ pub struct CommonJsImportDependencyScanner<'a> {
   pub(crate) in_if: bool,
   pub(crate) is_strict: bool,
   pub(crate) plugin_drive: Rc<JavaScriptParserPluginDrive>,
+  pub(crate) ignored: &'a mut Vec<DependencyLocation>,
 }
 
 #[derive(Debug)]
@@ -80,6 +81,7 @@ impl<'a> CommonJsImportDependencyScanner<'a> {
     dependencies: &'a mut Vec<BoxDependency>,
     presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
     unresolved_ctxt: SyntaxContext,
+    ignored: &'a mut Vec<DependencyLocation>,
   ) -> Self {
     let plugins: Vec<BoxJavascriptParserPlugin> = vec![
       Box::new(CommonJsImportsParserPlugin),
@@ -94,6 +96,7 @@ impl<'a> CommonJsImportDependencyScanner<'a> {
       in_if: false,
       is_strict: false,
       plugin_drive: Rc::new(plugin_drive),
+      ignored,
     }
   }
 
@@ -132,8 +135,8 @@ impl<'a> CommonJsImportDependencyScanner<'a> {
   }
 
   fn require_handler(
-    &'a self,
-    call_expr: &'a CallExpr,
+    &mut self,
+    call_expr: &CallExpr,
   ) -> Option<(Vec<CommonJsRequireDependency>, Vec<RequireHeaderDependency>)> {
     if call_expr.args.len() != 1 {
       return None;
@@ -150,6 +153,8 @@ impl<'a> CommonJsImportDependencyScanner<'a> {
       return None;
     };
 
+    let in_try = self.in_try;
+
     let process_require_item = |p: &BasicEvaluatedExpression| {
       p.is_string().then(|| {
         let dep = CommonJsRequireDependency::new(
@@ -157,7 +162,7 @@ impl<'a> CommonJsImportDependencyScanner<'a> {
           Some(call_expr.span.into()),
           p.range().0,
           p.range().1,
-          self.in_try,
+          in_try,
         );
         dep
       })
@@ -203,7 +208,7 @@ impl<'a> CommonJsImportDependencyScanner<'a> {
   }
 }
 
-impl Visit for CommonJsImportDependencyScanner<'_> {
+impl<'a> Visit for CommonJsImportDependencyScanner<'a> {
   noop_visit_type!();
 
   fn visit_try_stmt(&mut self, node: &TryStmt) {
@@ -351,16 +356,24 @@ impl Visit for CommonJsImportDependencyScanner<'_> {
 }
 
 impl CommonJsImportDependencyScanner<'_> {
-  pub fn evaluate_expression(&self, expr: &Expr) -> BasicEvaluatedExpression {
+  pub fn evaluate_expression(&mut self, expr: &Expr) -> BasicEvaluatedExpression {
     match self.evaluating(expr) {
-      Some(evaluated) => evaluated,
+      Some(evaluated) => {
+        if evaluated.is_compile_time_value() {
+          self.ignored.push(DependencyLocation::new(
+            expr.span().real_lo(),
+            expr.span().real_hi(),
+          ));
+        }
+        evaluated
+      }
       None => BasicEvaluatedExpression::with_range(expr.span().real_lo(), expr.span_hi().0),
     }
   }
 
   // same as `JavascriptParser._initializeEvaluating` in webpack
   // FIXME: should mv it to plugin(for example `parse.hooks.evaluate for`)
-  fn evaluating(&self, expr: &Expr) -> Option<BasicEvaluatedExpression> {
+  fn evaluating(&mut self, expr: &Expr) -> Option<BasicEvaluatedExpression> {
     match expr {
       Expr::Tpl(tpl) => eval::eval_tpl_expression(self, tpl),
       Expr::Lit(lit) => eval::eval_lit_expr(lit),

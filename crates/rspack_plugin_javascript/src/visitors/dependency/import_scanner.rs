@@ -16,6 +16,7 @@ use super::context_helper::scanner_context_module;
 use super::{is_import_meta_context_call, parse_order_string};
 use crate::dependency::{ImportContextDependency, ImportDependency};
 use crate::dependency::{ImportEagerDependency, ImportMetaContextDependency};
+use crate::no_visit_ignored_stmt;
 use crate::utils::{get_bool_by_obj_prop, get_literal_str_by_obj_prop, get_regex_by_obj_prop};
 use crate::webpack_comment::try_extract_webpack_magic_comment;
 
@@ -27,6 +28,7 @@ pub struct ImportScanner<'a> {
   pub build_meta: &'a BuildMeta,
   pub options: Option<&'a JavascriptParserOptions>,
   pub warning_diagnostics: &'a mut Vec<Box<dyn Diagnostic + Send + Sync>>,
+  pub ignored: &'a mut Vec<DependencyLocation>,
 }
 
 fn create_import_meta_context_dependency(node: &CallExpr) -> Option<ImportMetaContextDependency> {
@@ -107,6 +109,7 @@ fn create_import_meta_context_dependency(node: &CallExpr) -> Option<ImportMetaCo
 }
 
 impl<'a> ImportScanner<'a> {
+  #[allow(clippy::too_many_arguments)]
   pub fn new(
     module_identifier: ModuleIdentifier,
     dependencies: &'a mut Vec<BoxDependency>,
@@ -115,6 +118,7 @@ impl<'a> ImportScanner<'a> {
     build_meta: &'a BuildMeta,
     options: Option<&'a JavascriptParserOptions>,
     warning_diagnostics: &'a mut Vec<Box<dyn Diagnostic + Send + Sync>>,
+    ignored: &'a mut Vec<DependencyLocation>,
   ) -> Self {
     Self {
       module_identifier,
@@ -124,12 +128,14 @@ impl<'a> ImportScanner<'a> {
       build_meta,
       options,
       warning_diagnostics,
+      ignored,
     }
   }
 }
 
 impl Visit for ImportScanner<'_> {
   noop_visit_type!();
+  no_visit_ignored_stmt!();
 
   fn visit_call_expr(&mut self, node: &CallExpr) {
     if !node.args.is_empty()
