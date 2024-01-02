@@ -1,7 +1,8 @@
 // @ts-nocheck
 var __module_federation_implementation__,
 	__module_federation_runtime_plugins__,
-	__module_federation_remote_infos__;
+	__module_federation_remote_infos__,
+	__module_federation_container_name__;
 module.exports = function () {
 	if (
 		__webpack_require__.initializeSharingData ||
@@ -80,7 +81,7 @@ module.exports = function () {
 		early(
 			__webpack_require__.federation.initOptions,
 			"name",
-			() => __webpack_require__.initializeSharingData?.uniqueName
+			() => __module_federation_container_name__
 		);
 		early(__webpack_require__.federation.initOptions, "shared", () => {
 			const shared = {};
@@ -227,6 +228,9 @@ module.exports = function () {
 				__webpack_require__.federation.initOptions
 			);
 
+		if (__webpack_require__.federation.attachShareScopeMap) {
+			__webpack_require__.federation.attachShareScopeMap(__webpack_require__);
+		}
 		if (__webpack_require__.consumesLoadingData?.initialConsumes) {
 			__webpack_require__.federation.bundlerRuntime.installInitialConsumes({
 				webpackRequire: __webpack_require__,

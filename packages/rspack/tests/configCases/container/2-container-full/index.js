@@ -25,7 +25,7 @@ const expectWarning = (regexp, index) => {
 it("should load the component from container", () => {
 	return import("./App").then(({ default: App }) => {
 		expectWarning(
-			/Version 8 from 2-container-full of shared singleton module react does not satisfy the requirement of 2-container-full which needs \^2/,
+			/Version 8 from main of shared singleton module react does not satisfy the requirement of main which needs \^2/,
 			1
 		);
 		const rendered = App();
