@@ -1,4 +1,4 @@
-use rspack_error::{internal_error_bail, Result};
+use rspack_error::{error_bail, Result};
 
 #[derive(Debug)]
 pub struct UrlAndGlobal<'a> {
@@ -16,5 +16,5 @@ pub fn extract_url_and_global(value: &str) -> Result<UrlAndGlobal> {
       global: &value[0..index],
     });
   }
-  internal_error_bail!("Invalid request \"{}\"", value)
+  error_bail!("Invalid request \"{}\"", value)
 }

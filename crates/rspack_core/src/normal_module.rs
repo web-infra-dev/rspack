@@ -11,7 +11,7 @@ use std::{
 use bitflags::bitflags;
 use dashmap::DashMap;
 use derivative::Derivative;
-use rspack_error::{internal_error, Diagnosable, Diagnostic, Result, Severity};
+use rspack_error::{error, Diagnosable, Diagnostic, Result, Severity};
 use rspack_hash::RspackHash;
 use rspack_identifier::Identifiable;
 use rspack_loader_runner::{run_loaders, Content, ResourceData};
@@ -477,7 +477,7 @@ impl Module for NormalModule {
       );
       Ok(code_generation_result)
     } else {
-      Err(internal_error!(
+      Err(error!(
         "Failed to generate code because ast or source is not set for module {}",
         self.request
       ))

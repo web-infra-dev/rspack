@@ -5,7 +5,7 @@ use rspack_core::{
   property_access, to_identifier, ChunkUkey, Compilation, JsChunkHashArgs, LibraryOptions, Plugin,
   PluginContext, PluginJsChunkHashHookOutput, PluginRenderStartupHookOutput, RenderStartupArgs,
 };
-use rspack_error::{internal_error_bail, Result};
+use rspack_error::{error_bail, Result};
 
 use crate::utils::{get_options_for_chunk, COMMON_LIBRARY_NAME_MESSAGE};
 
@@ -15,7 +15,7 @@ pub struct ModuleLibraryPlugin;
 impl ModuleLibraryPlugin {
   fn parse_options(&self, library: &LibraryOptions) -> Result<()> {
     if library.name.is_some() {
-      internal_error_bail!("Library name must be unset. {COMMON_LIBRARY_NAME_MESSAGE}")
+      error_bail!("Library name must be unset. {COMMON_LIBRARY_NAME_MESSAGE}")
     }
     Ok(())
   }

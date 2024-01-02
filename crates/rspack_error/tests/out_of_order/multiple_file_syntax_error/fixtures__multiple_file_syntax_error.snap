@@ -5,12 +5,11 @@ expression: multiple_file_syntax_error
 ModuleParseError
 
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error
+  ╰─▶   × JavaScript parsing error: Expected a semicolon
          ╭─[1:1]
        1 │ const CONST = 9000 % 2;
        2 │ const  D {
-         ·          ┬
-         ·          ╰── Expected a semicolon
+         ·          ─
        3 │     // Comma is required, but parser can recover because of the newline.
        4 │     d = 10
          ╰────
@@ -20,12 +19,11 @@ ModuleParseError
 ModuleParseError
 
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error
+  ╰─▶   × JavaScript parsing error: Expected a semicolon
          ╭─[1:1]
        1 │ const CONST = 9000 % 2;
        2 │ const  D {
-         ·          ┬
-         ·          ╰── Expected a semicolon
+         ·          ─
        3 │     // Comma is required, but parser can recover because of the newline.
        4 │     d = 10
          ╰────
@@ -35,12 +33,11 @@ ModuleParseError
 ModuleParseError
 
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error
+  ╰─▶   × JavaScript parsing error: Expected a semicolon
          ╭─[1:1]
        1 │ const CONST = 9000 % 2;
        2 │ const  D {
-         ·          ┬
-         ·          ╰── Expected a semicolon
+         ·          ─
        3 │     // Comma is required, but parser can recover because of the newline.
        4 │     d = 10
          ╰────
@@ -50,12 +47,11 @@ ModuleParseError
 ModuleParseError
 
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error
+  ╰─▶   × JavaScript parsing error: Expected a semicolon
          ╭─[1:1]
        1 │ const CONST = 9000 % 2;
        2 │ const  D {
-         ·          ┬
-         ·          ╰── Expected a semicolon
+         ·          ─
        3 │     // Comma is required, but parser can recover because of the newline.
        4 │     d = 10
          ╰────
@@ -65,12 +61,11 @@ ModuleParseError
 ModuleParseError
 
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error
+  ╰─▶   × JavaScript parsing error: Expected a semicolon
          ╭─[1:1]
        1 │ const CONST = 9000 % 2;
        2 │ const  D {
-         ·          ┬
-         ·          ╰── Expected a semicolon
+         ·          ─
        3 │     // Comma is required, but parser can recover because of the newline.
        4 │     d = 10
          ╰────
@@ -80,12 +75,11 @@ ModuleParseError
 ModuleParseError
 
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error
+  ╰─▶   × JavaScript parsing error: Expected a semicolon
          ╭─[1:1]
        1 │ const CONST = 9000 % 2;
        2 │ const  D {
-         ·          ┬
-         ·          ╰── Expected a semicolon
+         ·          ─
        3 │     // Comma is required, but parser can recover because of the newline.
        4 │     d = 10
          ╰────
@@ -95,12 +89,11 @@ ModuleParseError
 ModuleParseError
 
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error
+  ╰─▶   × JavaScript parsing error: Expected a semicolon
          ╭─[1:1]
        1 │ const CONST = 9000 % 2;
        2 │ const  D {
-         ·          ┬
-         ·          ╰── Expected a semicolon
+         ·          ─
        3 │     // Comma is required, but parser can recover because of the newline.
        4 │     d = 10
          ╰────
@@ -110,13 +103,12 @@ ModuleParseError
 ModuleParseError
 
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error
+  ╰─▶   × JavaScript parsing error: Expression expected
          ╭─[4:1]
        4 │     d = 10
        5 │     g = CONST
        6 │ }
          · ▲
-         · ╰── Expression expected
          ╰────
       
   help: 
@@ -124,13 +116,12 @@ ModuleParseError
 ModuleParseError
 
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error
+  ╰─▶   × JavaScript parsing error: Expression expected
          ╭─[4:1]
        4 │     d = 10
        5 │     g = CONST
        6 │ }
          · ▲
-         · ╰── Expression expected
          ╰────
       
   help: 
@@ -138,13 +129,12 @@ ModuleParseError
 ModuleParseError
 
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error
+  ╰─▶   × JavaScript parsing error: Expression expected
          ╭─[4:1]
        4 │     d = 10
        5 │     g = CONST
        6 │ }
          · ▲
-         · ╰── Expression expected
          ╰────
       
   help: 
@@ -152,13 +142,12 @@ ModuleParseError
 ModuleParseError
 
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error
+  ╰─▶   × JavaScript parsing error: Expression expected
          ╭─[4:1]
        4 │     d = 10
        5 │     g = CONST
        6 │ }
          · ▲
-         · ╰── Expression expected
          ╰────
       
   help: 
@@ -166,13 +155,12 @@ ModuleParseError
 ModuleParseError
 
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error
+  ╰─▶   × JavaScript parsing error: Expression expected
          ╭─[4:1]
        4 │     d = 10
        5 │     g = CONST
        6 │ }
          · ▲
-         · ╰── Expression expected
          ╰────
       
   help: 
@@ -180,13 +168,12 @@ ModuleParseError
 ModuleParseError
 
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error
+  ╰─▶   × JavaScript parsing error: Expression expected
          ╭─[4:1]
        4 │     d = 10
        5 │     g = CONST
        6 │ }
          · ▲
-         · ╰── Expression expected
          ╰────
       
   help: 
@@ -194,13 +181,12 @@ ModuleParseError
 ModuleParseError
 
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error
+  ╰─▶   × JavaScript parsing error: Expression expected
          ╭─[4:1]
        4 │     d = 10
        5 │     g = CONST
        6 │ }
          · ▲
-         · ╰── Expression expected
          ╰────
       
   help: 

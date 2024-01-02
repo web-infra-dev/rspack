@@ -13,7 +13,7 @@ use rspack_core::{
   PluginThisCompilationHookOutput, ResolveOptionsWithDependencyType, ResolveResult, Resolver,
   RuntimeGlobals, ThisCompilationArgs,
 };
-use rspack_error::{internal_error, Diagnostic};
+use rspack_error::{error, Diagnostic};
 use rustc_hash::FxHashMap;
 
 use super::{
@@ -76,8 +76,7 @@ fn resolve_matched_configs(
       let Ok(ResolveResult::Resource(resource)) =
         resolver.resolve(compilation.options.context.as_ref(), request)
       else {
-        compilation
-          .push_diagnostic(internal_error!("Can't resolve shared module {request}").into());
+        compilation.push_diagnostic(error!("Can't resolve shared module {request}").into());
         continue;
       };
       resolved.insert(resource.path.to_string_lossy().into_owned(), config.clone());

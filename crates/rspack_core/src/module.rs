@@ -301,7 +301,7 @@ macro_rules! impl_module_downcast_helpers {
 
         pub fn [<try_as_ $ident>](&self) -> Result<& $ty> {
           self.[<as_ $ident>]().ok_or_else(|| {
-            ::rspack_error::internal_error!(
+            ::rspack_error::error!(
               "Failed to cast module to a {}",
               stringify!($ty)
             )
@@ -310,7 +310,7 @@ macro_rules! impl_module_downcast_helpers {
 
         pub fn [<try_as_ $ident _mut>](&mut self) -> Result<&mut $ty> {
           self.[<as_ $ident _mut>]().ok_or_else(|| {
-            ::rspack_error::internal_error!(
+            ::rspack_error::error!(
               "Failed to cast module to a {}",
               stringify!($ty)
             )

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use itertools::Itertools;
-use rspack_error::{internal_error, Error, Result};
+use rspack_error::{error, Error, Result};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use super::remove_parent_modules::RemoveParentModulesContext;
@@ -207,7 +207,7 @@ impl<'me> CodeSplitter<'me> {
         let ukey = compilation
           .entrypoints
           .get(name)
-          .ok_or_else(|| internal_error!("no entrypoints found"))?;
+          .ok_or_else(|| error!("no entrypoints found"))?;
 
         let entry_point = compilation.chunk_group_by_ukey.expect_get_mut(ukey);
 
@@ -216,7 +216,7 @@ impl<'me> CodeSplitter<'me> {
             if !runtime_chunks.contains(ukey) {
               // TODO: add dependOn error message once we implement dependeOn
               // Did you mean to use 'dependOn: {}' instead to allow using entrypoint '{name}' within the runtime of entrypoint '{runtime}'? For this '{runtime}' must always be loaded when '{name}' is used.
-              runtime_error = Some(internal_error!(
+              runtime_error = Some(error!(
 "Entrypoint '{name}' has a 'runtime' option which points to another entrypoint named '{runtime}'.
 It's not valid to use other entrypoints as runtime chunk.
 Or do you want to use the entrypoints '{name}' and '{runtime}' independently on the same page with a shared runtime? In this case give them both the same value for the 'runtime' option. It must be a name not already used by an entrypoint."

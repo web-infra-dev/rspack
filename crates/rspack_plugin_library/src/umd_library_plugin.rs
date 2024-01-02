@@ -8,7 +8,7 @@ use rspack_core::{
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, PluginJsChunkHashHookOutput,
   PluginRenderHookOutput, RenderArgs, RuntimeGlobals, SourceType,
 };
-use rspack_error::{internal_error, Result};
+use rspack_error::{error, Result};
 
 use crate::utils::{external_arguments, externals_dep_array, get_options_for_chunk};
 
@@ -277,11 +277,11 @@ fn externals_require_array(typ: &str, externals: &[&ExternalModule]) -> Result<S
           ExternalRequest::Single(r) => r,
           ExternalRequest::Map(map) => map
             .get(typ)
-            .ok_or_else(|| internal_error!("Missing external configuration for type: {typ}"))?,
+            .ok_or_else(|| error!("Missing external configuration for type: {typ}"))?,
         };
         // TODO: check if external module is optional
         let primary =
-          serde_json::to_string(request.primary()).map_err(|e| internal_error!(e.to_string()))?;
+          serde_json::to_string(request.primary()).map_err(|e| error!(e.to_string()))?;
         let expr = if let Some(rest) = request.rest() {
           format!("require({}){}", primary, &accessor_to_object_access(rest))
         } else {
@@ -305,7 +305,7 @@ fn external_root_array(modules: &[&ExternalModule]) -> Result<String> {
           ExternalRequest::Map(map) => map
             .get(typ)
             .map(|r| r.primary())
-            .ok_or_else(|| internal_error!("Missing external configuration for type: {typ}"))?,
+            .ok_or_else(|| error!("Missing external configuration for type: {typ}"))?,
         };
         Ok(format!("root{}", accessor_to_object_access([request])))
       })

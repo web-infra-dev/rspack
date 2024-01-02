@@ -5,7 +5,7 @@ use std::{
 };
 
 use rspack_error::{
-  internal_error, DiagnosticError, Error, ErrorExt, InternalError, Severity, TraceableError,
+  error, miette::miette, DiagnosticError, Error, ErrorExt, Severity, TraceableError,
 };
 use rspack_loader_runner::DescriptionData;
 
@@ -367,13 +367,13 @@ fn map_nodejs_resolver_error(error: nodejs_resolver::Error, args: &ResolveArgs<'
   match error {
     nodejs_resolver::Error::Io(error) => DiagnosticError::from(error.boxed()).into(),
     nodejs_resolver::Error::UnexpectedJson((json_path, error)) => {
-      internal_error!("{error:?} in {json_path:?}")
+      error!("{error:?} in {json_path:?}")
     }
     nodejs_resolver::Error::UnexpectedValue(error) => {
-      internal_error!(error)
+      error!(error)
     }
     nodejs_resolver::Error::CantFindTsConfig(path) => {
-      internal_error!("{} is not a tsconfig", path.display())
+      error!("{} is not a tsconfig", path.display())
     }
     _ => {
       let is_recursion = matches!(error, nodejs_resolver::Error::Overflow);
@@ -389,56 +389,56 @@ fn map_oxc_resolver_error(error: oxc_resolver::ResolveError, args: &ResolveArgs<
         "Export should be relative path and start with \"./\", but got {}",
         specifier
       );
-      internal_error!(message)
+      error!(message)
     }
     oxc_resolver::ResolveError::IOError(error) => DiagnosticError::from(error.boxed()).into(),
     oxc_resolver::ResolveError::Builtin(error) => {
-      internal_error!("Builtin module: {}", error)
+      error!("Builtin module: {}", error)
     }
     oxc_resolver::ResolveError::Ignored(path) => {
-      internal_error!("Path is ignored: {}", path.display())
+      error!("Path is ignored: {}", path.display())
     }
     oxc_resolver::ResolveError::TsconfigNotFound(path) => {
-      internal_error!("{} is not a tsconfig", path.display())
+      error!("{} is not a tsconfig", path.display())
     }
     oxc_resolver::ResolveError::ExtensionAlias => {
-      internal_error!("All of the aliased extension are not found")
+      error!("All of the aliased extension are not found")
     }
     oxc_resolver::ResolveError::Specifier(_) => {
-      internal_error!("The provided patn specifier cannot be parsed")
+      error!("The provided patn specifier cannot be parsed")
     }
     oxc_resolver::ResolveError::JSON(json) => {
-      internal_error!("{:?}", json)
+      error!("{:?}", json)
     }
     oxc_resolver::ResolveError::Restriction(path) => {
-      internal_error!(
+      error!(
         "Restriction by `ResolveOptions::restrictions`: {}",
         path.display()
       )
     }
     oxc_resolver::ResolveError::InvalidModuleSpecifier(error) => {
-      internal_error!("Invalid module specifier: {}", error)
+      error!("Invalid module specifier: {}", error)
     }
     oxc_resolver::ResolveError::PackagePathNotExported(error) => {
-      internal_error!("Package subpath '{}' is not defined by \"exports\"", error)
+      error!("Package subpath '{}' is not defined by \"exports\"", error)
     }
     oxc_resolver::ResolveError::InvalidPackageConfig(path) => {
-      internal_error!("Invalid package config in: {}", path.display())
+      error!("Invalid package config in: {}", path.display())
     }
     oxc_resolver::ResolveError::InvalidPackageConfigDefault(path) => {
-      internal_error!("Default condition should be last one: {}", path.display())
+      error!("Default condition should be last one: {}", path.display())
     }
     oxc_resolver::ResolveError::InvalidPackageConfigDirectory(path) => {
-      internal_error!(
+      error!(
         "Expecting folder to folder mapping. \"{}\" should end with \"/\"",
         path.display()
       )
     }
     oxc_resolver::ResolveError::PackageImportNotDefined(error) => {
-      internal_error!("Package import not defined: {}", error)
+      error!("Package import not defined: {}", error)
     }
     oxc_resolver::ResolveError::Unimplemented(error) => {
-      internal_error!("{} is unimplemented", error)
+      error!("{} is unimplemented", error)
     }
     oxc_resolver::ResolveError::Recursion => map_resolver_error(true, args),
     oxc_resolver::ResolveError::NotFound(_) => map_resolver_error(false, args),
@@ -446,45 +446,34 @@ fn map_oxc_resolver_error(error: oxc_resolver::ResolveError, args: &ResolveArgs<
 }
 
 fn map_resolver_error(is_recursion: bool, args: &ResolveArgs<'_>) -> Error {
-  let importer = args.importer.map(|i| i.as_str());
-  if let Some(importer) = &importer {
-    let span = args.span.unwrap_or_default();
-    // Use relative path in runtime for stable hashing
-    let internal_message = if is_recursion {
-      format!(
-        "Can't resolve {:?} in {} , maybe it had cycle alias",
-        args.specifier, importer
-      )
-    } else {
-      format!("Failed to resolve {} in {}", args.specifier, importer)
-    };
-    TraceableError::from_real_file_path(
-      Path::new(
-        importer
-          .split_once('|')
-          .map(|(_, path)| path)
-          .unwrap_or(importer),
-      ),
-      span.start as usize,
-      span.end as usize,
-      "Resolve error".to_string(),
-      internal_message.clone(),
-    )
-    .map(|e| {
-      if args.optional {
-        e.with_severity(Severity::Warn).into()
-      } else {
-        e.into()
-      }
-    })
-    .unwrap_or_else(|_| {
-      if args.optional {
-        InternalError::new(internal_message, Severity::Warn).into()
-      } else {
-        internal_error!(internal_message)
-      }
-    })
-  } else {
-    internal_error!("Failed to resolve {} in project root", args.specifier)
+  let request = &args.specifier;
+  let context = &args.context;
+
+  let importer = args.importer;
+  if importer.is_none() {
+    return miette!("Resolve error: Can't resolve '{request}' in '{context}'");
   }
+
+  let span = args.span.unwrap_or_default();
+  let message = format!("Can't resolve '{request}' in '{context}'");
+  TraceableError::from_empty_file(
+    span.start as usize,
+    span.end as usize,
+    "Resolve error".to_string(),
+    message,
+  )
+  .with_help(if is_recursion {
+    Some("maybe it had cyclic aliases")
+  } else {
+    None
+  })
+  .with_severity(
+    // See: https://github.com/webpack/webpack/blob/6be4065ade1e252c1d8dcba4af0f43e32af1bdc1/lib/Compilation.js#L1796
+    if args.optional {
+      Severity::Warn
+    } else {
+      Severity::Error
+    },
+  )
+  .into()
 }

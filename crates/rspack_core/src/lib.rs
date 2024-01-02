@@ -145,8 +145,8 @@ impl TryFrom<&str> for SourceType {
       "unknown" => Ok(Self::Unknown),
 
       _ => {
-        use rspack_error::internal_error;
-        Err(internal_error!("invalid source type: {value}"))
+        use rspack_error::error;
+        Err(error!("invalid source type: {value}"))
       }
     }
   }

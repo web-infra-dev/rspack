@@ -16,7 +16,7 @@ use std::sync::Arc;
 use napi::bindgen_prelude::{FromNapiValue, Promise, ToNapiValue};
 use napi::{check_status, sys, Env, JsUnknown, NapiRaw, Result, Status};
 use napi::{JsError, JsFunction, NapiValue};
-use rspack_error::{internal_error, InternalError};
+use rspack_error::{error, InternalError};
 
 use super::{NapiErrorExt, NapiResultExt};
 
