@@ -509,7 +509,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           module,
         }));
     }
-    let blocks = item.block.get_blocks(&self.compilation);
+    let blocks = item.block.get_blocks(self.compilation);
     for block in blocks {
       self.iterator_block(block, item.chunk_group, item.chunk);
     }
@@ -763,7 +763,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       .or_default();
     let block = module.into();
     map.insert(block, Vec::new());
-    for b in block.get_blocks(&self.compilation) {
+    for b in block.get_blocks(self.compilation) {
       map.insert(b.into(), Vec::new());
     }
 
