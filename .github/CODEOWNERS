@@ -50,7 +50,6 @@ pnpm-lock.yaml
 
 # Loaders
 
-/crates/rspack_loader_sass @web-infra-dev/rspack-dx
 /crates/rspack_loader_swc @web-infra-dev/rspack-dx
 
 # Plugins

@@ -4,21 +4,12 @@ use rspack_core::{
   BoxLoader, CompilerOptions, NormalModule, Plugin, Resolver, BUILTIN_LOADER_PREFIX,
 };
 use rspack_error::{internal_error, Result};
-use rspack_loader_sass::SASS_LOADER_IDENTIFIER;
 use rspack_loader_swc::SWC_LOADER_IDENTIFIER;
 
 #[derive(Debug)]
 pub struct BuiltinLoaderResolver;
 
 fn get_builtin_loader(builtin: &str, options: Option<&str>) -> BoxLoader {
-  if builtin.starts_with(SASS_LOADER_IDENTIFIER) {
-    return Arc::new(rspack_loader_sass::SassLoader::new(
-      serde_json::from_str(options.unwrap_or("{}")).unwrap_or_else(|e| {
-        panic!("Could not parse builtin:sass-loader options: {options:?}, error: {e:?}")
-      }),
-    ));
-  }
-
   if builtin.starts_with(SWC_LOADER_IDENTIFIER) {
     return Arc::new(
       rspack_loader_swc::SwcLoader::new(
