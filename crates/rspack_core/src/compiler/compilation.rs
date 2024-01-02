@@ -158,7 +158,6 @@ impl Compilation {
 
       code_generation_results: Default::default(),
       code_generated_modules: Default::default(),
-
       cache,
       code_splitting_cache: Default::default(),
       hash: None,
@@ -2076,4 +2075,99 @@ impl AssetInfo {
 #[derive(Debug, Default, Clone)]
 pub struct AssetInfoRelated {
   pub source_map: Option<String>,
+}
+
+pub fn assign_depths(
+  assign_map: &mut HashMap<ModuleIdentifier, usize>,
+  mg: &ModuleGraph,
+  modules: Vec<&ModuleIdentifier>,
+) {
+  // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/Compilation.js#L3720
+  enum NumOrId {
+    Num(usize),
+    ModuleId(ModuleIdentifier),
+  }
+  let mut q = VecDeque::new();
+  for item in modules {
+    q.push_back(NumOrId::ModuleId(*item));
+  }
+  q.push_back(NumOrId::Num(1));
+  let mut depth = 0usize;
+  let mut i = 0;
+  while let Some(item) = q.pop_front() {
+    i += 1;
+    match item {
+      NumOrId::Num(n) => {
+        depth = n;
+        if q.len() == i {
+          return;
+        }
+        q.push_back(NumOrId::Num(depth + 1));
+      }
+      NumOrId::ModuleId(id) => {
+        assign_map.insert(id, depth);
+        let m = mg.module_by_identifier(&id).expect("should have module");
+        for con in mg.get_outgoing_connections(m) {
+          q.push_back(NumOrId::ModuleId(con.module_identifier));
+        }
+      }
+    }
+  }
+}
+
+pub fn assign_depth(
+  assign_map: &mut HashMap<ModuleIdentifier, usize>,
+  mg: &ModuleGraph,
+  module_id: ModuleIdentifier,
+) {
+  // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/Compilation.js#L3720
+  let mut q = VecDeque::new();
+  q.push_back(module_id);
+  let mut depth;
+  assign_map.insert(module_id, 0);
+  let mut process_module =
+    |mg: &ModuleGraph, m: ModuleIdentifier, depth: usize, q: &mut VecDeque<ModuleIdentifier>| {
+      if !can_set_if_lower(mg, m, depth) {
+        return;
+      }
+      assign_map.insert(m, depth);
+      q.push_back(m);
+    };
+  while let Some(item) = q.pop_front() {
+    depth = mg.get_depth(&item).expect("should have depth") + 1;
+
+    let m = mg.module_by_identifier(&item).expect("should have module");
+    for con in mg.get_outgoing_connections(m) {
+      process_module(mg, con.module_identifier, depth, &mut q);
+    }
+  }
+}
+
+// pub fn set_depth_if_lower(&mut self, module_id: ModuleIdentifier, depth: usize) -> bool {
+//   let mgm = self
+//     .module_graph_module_by_identifier_mut(&module_id)
+//     .expect("should have module graph module");
+//   if let Some(ref mut cur_depth) = mgm.depth {
+//     if *cur_depth > depth {
+//       *cur_depth = depth;
+//       return true;
+//     }
+//   } else {
+//     mgm.depth = Some(depth);
+//     return true;
+//   }
+//   false
+// }
+pub fn can_set_if_lower(mg: &ModuleGraph, module_id: ModuleIdentifier, depth: usize) -> bool {
+  let mgm = mg
+    .module_graph_module_by_identifier(&module_id)
+    .expect("should have module graph module");
+  if let Some(ref cur_depth) = mgm.depth {
+    if *cur_depth > depth {
+      return true;
+    }
+  } else {
+    return true;
+  }
+  false
 }

@@ -31,6 +31,7 @@ pub struct ModuleGraphModule {
   pub exports: ExportsInfoId,
   pub profile: Option<Box<ModuleProfile>>,
   pub is_async: bool,
+  pub depth: Option<usize>,
 }
 
 impl ModuleGraphModule {
@@ -56,6 +57,7 @@ impl ModuleGraphModule {
       exports: exports_info_id,
       profile: None,
       is_async: false,
+      depth: None,
     }
   }
 

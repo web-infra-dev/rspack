@@ -3,9 +3,9 @@ use std::os::unix::prelude::OpenOptionsExt;
 use std::sync::Arc;
 
 use rspack_core::{
-  BoxDependency, Compilation, ExportInfoProvided, ExtendedReferencedExport, Logger,
-  ModuleIdentifier, OptimizeChunksArgs, Plugin, ProvidedExports, RuntimeSpec,
-  WrappedModuleIdentifier,
+  filter_runtime, merge_runtime, BoxDependency, Compilation, ExportInfoProvided,
+  ExtendedReferencedExport, Logger, ModuleGraph, ModuleIdentifier, OptimizeChunksArgs, Plugin,
+  ProvidedExports, RuntimeCondition, RuntimeSpec, WrappedModuleIdentifier,
 };
 use rspack_error::Result;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
@@ -23,16 +23,26 @@ enum Warning {
   Id(ModuleIdentifier),
   Problem(Arc<dyn Fn(String) -> String>),
 }
-struct ConcatConfiguration<'a> {
-  root_module: ModuleIdentifier,
-  runtime: &'a RuntimeSpec,
+
+impl std::fmt::Debug for Warning {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    match self {
+      Self::Id(arg0) => f.debug_tuple("Id").field(arg0).finish(),
+      Self::Problem(arg0) => f.write_str("Fn(String) -> String"),
+    }
+  }
+}
+#[derive(Debug, Clone)]
+struct ConcatConfiguration {
+  pub root_module: ModuleIdentifier,
+  runtime: Option<RuntimeSpec>,
   modules: HashSet<ModuleIdentifier>,
   warnings: HashMap<ModuleIdentifier, Warning>,
 }
 
 #[allow(unused)]
-impl<'a> ConcatConfiguration<'a> {
-  fn new(root_module: ModuleIdentifier, runtime: &'a RuntimeSpec) -> Self {
+impl ConcatConfiguration {
+  fn new(root_module: ModuleIdentifier, runtime: Option<RuntimeSpec>) -> Self {
     let mut modules = HashSet::default();
     modules.insert(root_module);
 
@@ -91,12 +101,11 @@ impl<'a> ConcatConfiguration<'a> {
 struct ModuleConcatenationPlugin;
 
 impl ModuleConcatenationPlugin {
-  fn get_imports(
-    compilation: &Compilation,
+  pub fn get_imports(
+    mg: &ModuleGraph,
     mi: WrappedModuleIdentifier,
-    runtime: RuntimeSpec,
+    runtime: Option<&RuntimeSpec>,
   ) -> HashSet<ModuleIdentifier> {
-    let mg = &compilation.module_graph;
     let mut set = HashSet::default();
     let module = mg.module_by_identifier(&mi).expect("should have module");
     for d in module.get_dependencies() {
@@ -108,7 +117,7 @@ impl ModuleConcatenationPlugin {
       let Some(con) = mg.connection_by_dependency(d) else {
         continue;
       };
-      if !con.is_target_active(mg, Some(&runtime)) {
+      if !con.is_target_active(mg, runtime) {
         continue;
       }
       // SAFETY: because it is extends harmony dep, we can ensure the dep has been
@@ -124,6 +133,10 @@ impl ModuleConcatenationPlugin {
       }
     }
     set
+  }
+
+  pub fn try_to_add() -> Option<Warning> {
+    todo!()
   }
 }
 
@@ -220,13 +233,148 @@ impl Plugin for ModuleConcatenationPlugin {
     ));
 
     let start = logger.time("sort relevant modules");
-    // relevant_modules.sort_by(|a, b| {
-    //
-    //
-    //     });
+    relevant_modules.sort_by(|a, b| {
+      let ad = mg.get_depth(a);
+      let bd = mg.get_depth(b);
+      ad.cmp(&bd)
+    });
     logger.time_end(start);
+    let mut statistics = Statistics::default();
+    let mut stats_candidates = 0;
+    let mut stats_size_sum = 0;
+    let mut stats_empty_configurations = 0;
+
+    let start = logger.time("find modules to concatenate");
+    let mut concat_configurations: Vec<ConcatConfiguration> = Vec::new();
+    let mut used_as_inner: HashSet<ModuleIdentifier> = HashSet::default();
+
+    for current_root in relevant_modules.iter() {
+      if used_as_inner.contains(current_root) {
+        continue;
+      }
+      let mut chunk_runtime = HashSet::default();
+      for r in chunk_graph
+        .get_module_runtimes(*current_root, &compilation.chunk_by_ukey)
+        .into_values()
+      {
+        chunk_runtime = merge_runtime(&chunk_runtime, &r);
+      }
+      let exports_info_id = mg.get_exports_info(current_root).id;
+      let filtered_runtime = filter_runtime(Some(&chunk_runtime), |r| {
+        exports_info_id.is_module_used(mg, r)
+      });
+      let active_runtime = match filtered_runtime {
+        RuntimeCondition::Boolean(true) => Some(chunk_runtime),
+        RuntimeCondition::Boolean(false) => None,
+        RuntimeCondition::Spec(spec) => Some(spec),
+      };
+
+      let mut current_configuration =
+        ConcatConfiguration::new(*current_root, active_runtime.clone());
+
+      let mut failure_cache = HashMap::default();
+      let mut candidates = HashSet::default();
+
+      let imports = Self::get_imports(mg, (*current_root).into(), active_runtime.as_ref());
+      for import in imports {
+        candidates.insert(import);
+      }
+
+      let mut imports_to_extends = vec![];
+      for imp in candidates.iter() {
+        let import_candidates = HashSet::default();
+        if let Some(problem) = Self::try_to_add() {
+          failure_cache.insert(*imp, problem.clone());
+          current_configuration.add_warning(*imp, problem);
+        } else {
+          import_candidates.iter().for_each(|c: &ModuleIdentifier| {
+            imports_to_extends.push(*c);
+          });
+        }
+      }
+      candidates.extend(imports_to_extends);
+      stats_candidates += candidates.len();
+      if !current_configuration.is_empty() {
+        let modules = current_configuration.get_modules();
+        stats_size_sum += modules.len();
+        let root_module = current_configuration.root_module;
+
+        modules.iter().for_each(|module| {
+          if *module != root_module {
+            used_as_inner.insert(*module);
+          }
+        });
+        concat_configurations.push(current_configuration);
+      } else {
+        stats_empty_configurations += 1;
+        // TODO: bailout
+      }
+    }
+    logger.time_end(start);
+    logger.debug(format!(
+      "{} successful concat configurations (avg size: {}), {} bailed out completely",
+      concat_configurations.len(),
+      stats_size_sum / concat_configurations.len(),
+      stats_empty_configurations
+    ));
+
+    logger.debug(format!(
+        "{} candidates were considered for adding ({} cached failure, {} already in config, {} invalid module, {} incorrect chunks, {} incorrect dependency, {} incorrect chunks of importer, {} incorrect module dependency, {} incorrect runtime condition, {} importer failed, {} added)",
+        stats_candidates,
+        statistics.cached,
+        statistics.already_in_config,
+        statistics.invalid_module,
+        statistics.incorrect_chunks,
+        statistics.incorrect_dependency,
+        statistics.incorrect_chunks_of_importer,
+        statistics.incorrect_module_dependency,
+        statistics.incorrect_runtime_condition,
+        statistics.importer_failed,
+        statistics.added
+    ));
+
+    // Copy from  https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ModuleConcatenationPlugin.js#L368-L371
+    // HACK: Sort configurations by length and start with the longest one
+    // to get the biggest groups possible. Used modules are marked with usedModules
+    // TODO: Allow reusing existing configuration while trying to add dependencies.
+    // This would improve performance. O(n^2) -> O(n)
+    let start = logger.time("sort concat configurations");
+    concat_configurations.sort_by(|a, b| b.modules.len().cmp(&a.modules.len()));
+    logger.time_end(start);
+
+    let start = logger.time("create concatenated modules");
+    let mut used_modules = HashSet::default();
+    for config in concat_configurations {
+      let root_module = config.root_module;
+    }
     Ok(())
   }
+}
+
+#[derive(Debug, Default)]
+struct Statistics {
+  cached: u32,
+  already_in_config: u32,
+  invalid_module: u32,
+  incorrect_chunks: u32,
+  incorrect_dependency: u32,
+  incorrect_module_dependency: u32,
+  incorrect_chunks_of_importer: u32,
+  incorrect_runtime_condition: u32,
+  importer_failed: u32,
+  added: u32,
+}
+
+fn main() {
+  // Example usage of the Statistics struct
+  let mut stats = Statistics::default();
+
+  // Modify fields as needed
+  stats.cached = 10;
+  stats.added = 5;
+
+  // Print the struct for demonstration
+  println!("{:?}", stats);
 }
 
 fn extends_harmony_dep(dep: &BoxDependency) -> bool {

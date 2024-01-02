@@ -100,6 +100,36 @@ impl ModuleGraph {
     }
   }
 
+  pub fn get_depth(&self, module_id: &ModuleIdentifier) -> Option<usize> {
+    let mgm = self
+      .module_graph_module_by_identifier(module_id)
+      .expect("should have module graph module");
+    mgm.depth
+  }
+
+  pub fn set_depth(&mut self, module_id: ModuleIdentifier, depth: usize) {
+    let mgm = self
+      .module_graph_module_by_identifier_mut(&module_id)
+      .expect("should have module graph module");
+    mgm.depth = Some(depth);
+  }
+
+  pub fn set_depth_if_lower(&mut self, module_id: ModuleIdentifier, depth: usize) -> bool {
+    let mgm = self
+      .module_graph_module_by_identifier_mut(&module_id)
+      .expect("should have module graph module");
+    if let Some(ref mut cur_depth) = mgm.depth {
+      if *cur_depth > depth {
+        *cur_depth = depth;
+        return true;
+      }
+    } else {
+      mgm.depth = Some(depth);
+      return true;
+    }
+    false
+  }
+
   pub fn add_module(&mut self, module: BoxModule) {
     if let Entry::Vacant(val) = self.module_identifier_to_module.entry(module.identifier()) {
       val.insert(module);

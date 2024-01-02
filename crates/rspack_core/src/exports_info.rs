@@ -55,6 +55,21 @@ impl ExportsInfoId {
     mg.get_exports_info_mut_by_id(self)
   }
 
+  pub fn is_module_used(&self, mg: &ModuleGraph, runtime: Option<&RuntimeSpec>) -> bool {
+    if self.is_used(runtime, mg) {
+      return true;
+    }
+
+    let exports_info = self.get_exports_info(mg);
+    if !matches!(
+      exports_info._side_effects_only_info.get_used(mg, runtime),
+      UsageState::Unused
+    ) {
+      return true;
+    }
+    false
+  }
+
   /// # Panic
   /// it will panic if you provide a export info that does not exists in the module graph  
   pub fn set_has_provide_info(&self, mg: &mut ModuleGraph) {
