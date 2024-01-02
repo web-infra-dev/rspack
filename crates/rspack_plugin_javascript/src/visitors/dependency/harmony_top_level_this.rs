@@ -1,4 +1,4 @@
-use rspack_core::{ConstDependency, DependencyTemplate, SpanExt};
+use rspack_core::{ConstDependency, DependencyLocation, DependencyTemplate, SpanExt};
 use swc_core::ecma::{
   ast::{
     ClassMember, ClassMethod, ClassProp, Expr, Function, GetterProp, MethodProp, Prop, PropName,
@@ -7,12 +7,16 @@ use swc_core::ecma::{
   visit::{noop_visit_type, Visit, VisitWith},
 };
 
+use crate::no_visit_ignored_stmt;
+
 pub struct HarmonyTopLevelThis<'a> {
   pub presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
+  pub ignored: &'a mut Vec<DependencyLocation>,
 }
 
 impl Visit for HarmonyTopLevelThis<'_> {
   noop_visit_type!();
+  no_visit_ignored_stmt!();
 
   fn visit_function(&mut self, _: &Function) {}
 

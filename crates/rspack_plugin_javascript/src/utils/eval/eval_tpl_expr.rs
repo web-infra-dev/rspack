@@ -12,7 +12,7 @@ pub enum TemplateStringKind {
 }
 
 fn get_simplified_template_result(
-  scanner: &CommonJsImportDependencyScanner<'_>,
+  scanner: &mut CommonJsImportDependencyScanner<'_>,
   node: &Tpl,
 ) -> (Vec<BasicEvaluatedExpression>, Vec<BasicEvaluatedExpression>) {
   let mut quasis: Vec<BasicEvaluatedExpression> = vec![];
@@ -55,7 +55,7 @@ fn get_simplified_template_result(
 }
 
 pub fn eval_tpl_expression(
-  scanner: &CommonJsImportDependencyScanner<'_>,
+  scanner: &mut CommonJsImportDependencyScanner<'_>,
   tpl: &Tpl,
 ) -> Option<BasicEvaluatedExpression> {
   let (quasis, mut parts) = get_simplified_template_result(scanner, tpl);
