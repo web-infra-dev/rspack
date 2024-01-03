@@ -7,7 +7,8 @@ module.exports = {
 				__dirname,
 				"./mock.js"
 			)
-		}
+		},
+		extensions: ["...", ".ts", ".tsx", ".jsx"]
 	},
 	module: {
 		rules: [
