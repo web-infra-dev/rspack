@@ -810,7 +810,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
         "hotModuleReplacement": false,
       },
       "name": "bundle.js",
-      "size": 9108,
+      "size": 756,
       "type": "asset",
     },
   ],
@@ -874,10 +874,10 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 9108,
+          "size": 756,
         },
       ],
-      "assetsSize": 9108,
+      "assetsSize": 756,
       "chunks": [
         "909",
       ],
@@ -887,7 +887,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "5f9f75789352d7c6b706",
+  "hash": "bbfda8021cacb96e2125",
   "logging": {},
   "modules": [
     {
@@ -918,130 +918,16 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
 ",
       "type": "module",
     },
-    {
-      "assets": [],
-      "chunks": [
-        "909",
-      ],
-      "id": "",
-      "identifier": "webpack/runtime/get_full_hash",
-      "issuer": undefined,
-      "issuerId": undefined,
-      "issuerName": undefined,
-      "issuerPath": [],
-      "moduleType": "runtime",
-      "name": "webpack/runtime/get_full_hash",
-      "nameForCondition": undefined,
-      "reasons": [],
-      "size": 160,
-      "source": undefined,
-      "type": "module",
-    },
-    {
-      "assets": [],
-      "chunks": [
-        "909",
-      ],
-      "id": "",
-      "identifier": "webpack/runtime/has_own_property",
-      "issuer": undefined,
-      "issuerId": undefined,
-      "issuerName": undefined,
-      "issuerPath": [],
-      "moduleType": "runtime",
-      "name": "webpack/runtime/has_own_property",
-      "nameForCondition": undefined,
-      "reasons": [],
-      "size": 160,
-      "source": undefined,
-      "type": "module",
-    },
-    {
-      "assets": [],
-      "chunks": [
-        "909",
-      ],
-      "id": "",
-      "identifier": "webpack/runtime/require_chunk_loading",
-      "issuer": undefined,
-      "issuerId": undefined,
-      "issuerName": undefined,
-      "issuerPath": [],
-      "moduleType": "runtime",
-      "name": "webpack/runtime/require_chunk_loading",
-      "nameForCondition": undefined,
-      "reasons": [],
-      "size": 160,
-      "source": undefined,
-      "type": "module",
-    },
-    {
-      "assets": [],
-      "chunks": [
-        "909",
-      ],
-      "id": "",
-      "identifier": "webpack/runtime/hot_module_replacement",
-      "issuer": undefined,
-      "issuerId": undefined,
-      "issuerName": undefined,
-      "issuerPath": [],
-      "moduleType": "runtime",
-      "name": "webpack/runtime/hot_module_replacement",
-      "nameForCondition": undefined,
-      "reasons": [],
-      "size": 160,
-      "source": undefined,
-      "type": "module",
-    },
-    {
-      "assets": [],
-      "chunks": [
-        "909",
-      ],
-      "id": "",
-      "identifier": "webpack/runtime/get_chunk_update_filename",
-      "issuer": undefined,
-      "issuerId": undefined,
-      "issuerName": undefined,
-      "issuerPath": [],
-      "moduleType": "runtime",
-      "name": "webpack/runtime/get_chunk_update_filename",
-      "nameForCondition": undefined,
-      "reasons": [],
-      "size": 160,
-      "source": undefined,
-      "type": "module",
-    },
-    {
-      "assets": [],
-      "chunks": [
-        "909",
-      ],
-      "id": "",
-      "identifier": "webpack/runtime/get_main_filename/update manifest",
-      "issuer": undefined,
-      "issuerId": undefined,
-      "issuerName": undefined,
-      "issuerPath": [],
-      "moduleType": "runtime",
-      "name": "webpack/runtime/get_main_filename/update manifest",
-      "nameForCondition": undefined,
-      "reasons": [],
-      "size": 160,
-      "source": undefined,
-      "type": "module",
-    },
   ],
   "namedChunkGroups": {
     "main": {
       "assets": [
         {
           "name": "bundle.js",
-          "size": 9108,
+          "size": 756,
         },
       ],
-      "assetsSize": 9108,
+      "assetsSize": 756,
       "chunks": [
         "909",
       ],
@@ -1057,21 +943,15 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
 
 exports[`StatsTestCases should print correct stats for hot+production 2`] = `
 "PublicPath: (none)
-asset bundle.js 8.89 KiB {909} [emitted] (name: main)
-Entrypoint main 8.89 KiB = bundle.js
+asset bundle.js 756 bytes {909} [emitted] (name: main)
+Entrypoint main 756 bytes = bundle.js
 chunk {909} bundle.js (main) [entry]
   ./index.js [10] {909}
     entry ./index.js
 ./index.js [10] {909}
   entry ./index.js
-webpack/runtime/get_full_hash {909}
-webpack/runtime/has_own_property {909}
-webpack/runtime/require_chunk_loading {909}
-webpack/runtime/hot_module_replacement {909}
-webpack/runtime/get_chunk_update_filename {909}
-webpack/runtime/get_main_filename/update manifest {909}
   
-Rspack compiled successfully (5f9f75789352d7c6b706)"
+Rspack compiled successfully (bbfda8021cacb96e2125)"
 `;
 
 exports[`StatsTestCases should print correct stats for identifier-let-strict-mode 1`] = `

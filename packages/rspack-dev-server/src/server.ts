@@ -160,9 +160,21 @@ export class RspackDevServer extends WebpackDevServer {
 							"Make sure to disable HMR for production by setting `devServer.hot` to `false` in the configuration."
 					);
 				}
-				// enable hot by default
-				compiler.options.devServer ??= {};
-				compiler.options.devServer.hot = true;
+
+				const HMRPluginExists = compiler.options.plugins.find(
+					p => p?.constructor === compiler.webpack.HotModuleReplacementPlugin
+				);
+
+				if (HMRPluginExists) {
+					this.logger.warn(
+						`"hot: true" automatically applies HMR plugin, you don't have to add it manually to your webpack configuration.`
+					);
+				} else {
+					// Apply the HMR plugin
+					const plugin = new compiler.webpack.HotModuleReplacementPlugin();
+
+					plugin.apply(compiler);
+				}
 
 				// Apply modified version of `ansi-html-community`
 				compiler.options.resolve.alias = {
