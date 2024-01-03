@@ -17,11 +17,6 @@ pub fn eval_lit_expr(expr: &Lit) -> Option<BasicEvaluatedExpression> {
       res.set_regexp(regexp.exp.to_string(), regexp.flags.to_string());
       Some(res)
     }
-    Lit::Null(null) => {
-      let mut res = BasicEvaluatedExpression::with_range(null.span.real_lo(), null.span.hi().0);
-      res.set_null();
-      Some(res)
-    }
     // TODO:
     _ => None,
   }
