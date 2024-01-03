@@ -1127,9 +1127,7 @@ export type WatchOptions = z.infer<typeof watchOptions>;
 //#endregion
 
 //#region DevServer
-export interface DevServer extends webpackDevServer.Configuration {
-	hot?: boolean;
-}
+export interface DevServer extends webpackDevServer.Configuration {}
 const devServer = z.custom<DevServer>();
 //#endregion
 

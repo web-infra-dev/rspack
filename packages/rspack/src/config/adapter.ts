@@ -100,9 +100,6 @@ export const getRawOptions = (
 		devtool,
 		optimization: getRawOptimization(options.optimization),
 		stats: getRawStats(options.stats),
-		devServer: {
-			hot: options.devServer?.hot ?? false
-		},
 		snapshot: getRawSnapshotOptions(options.snapshot),
 		cache: {
 			type: options.cache ? "memory" : "disable",
