@@ -1625,17 +1625,17 @@ impl<'a> ModuleRefAnalyze<'a> {
               ModuleExportName::Str(_) => unreachable!(),
             };
 
-            let exported_Atom = named.exported.as_ref().map(|exported| match exported {
+            let exported_atom = named.exported.as_ref().map(|exported| match exported {
               ModuleExportName::Ident(ident) => ident.sym.clone(),
               ModuleExportName::Str(str) => str.value.clone(),
             });
 
-            let export_name = exported_Atom.clone().unwrap_or_else(|| id.atom.clone());
+            let export_name = exported_atom.clone().unwrap_or_else(|| id.atom.clone());
             let symbol_ref = SymbolRef::Declaration(Symbol::new(
               self.module_identifier,
               id,
               SymbolType::Temp,
-              exported_Atom,
+              exported_atom,
             ));
 
             self.add_export(export_name, symbol_ref);

@@ -1,5 +1,7 @@
 use std::collections::hash_map::Entry;
 
+use once_cell::sync::Lazy;
+use regex::Regex;
 use rspack_core::ModuleIdentifier;
 use rustc_hash::FxHashMap as HashMap;
 use swc_core::atoms::Atom;
@@ -14,23 +16,37 @@ struct ExternalModuleInfo {
 struct ConcatenatedModuleInfo {
   index: usize,
   module: ModuleIdentifier,
-  export_map: HashMap<String, String>,
-  raw_export_map: HashMap<String, String>,
-  namespace_export_symbol: Option<String>,
+  export_map: HashMap<Atom, String>,
+  raw_export_map: HashMap<Atom, String>,
+  namespace_export_symbol: Option<Atom>,
 }
-
-// Assuming Module is a type that needs to be defined
-type Module = (); // Placeholder, replace with the actual definition
 
 enum ModuleInfo {
   External(ExternalModuleInfo),
   Concatenated(ConcatenatedModuleInfo),
 }
 
+impl ModuleInfo {
+  fn index(&self) -> usize {
+    match self {
+      ModuleInfo::External(e) => e.index,
+      ModuleInfo::Concatenated(c) => c.index,
+    }
+  }
+}
+const DEFAULT_EXPORT: &'static str = "__WEBPACK_DEFAULT_EXPORT__";
+const NAMESPACE_OBJECT_EXPORT: &'static str = "__WEBPACK_NAMESPACE_OBJECT__";
+const MODULE_REFERENCE_REGEXP: Lazy<Regex> = once_cell::sync::Lazy::new(|| {
+  Regex::new(
+    r"^__WEBPACK_MODULE_REFERENCE__(\d+)_([\da-f]+|ns)(_call)?(_directImport)?(?:_asiSafe(\d))?__$",
+  )
+  .unwrap()
+});
+
 struct ModuleReferenceOptions {
   ids: Option<Vec<String>>,
-  call: bool,
-  direct_import: bool,
+  call: Option<bool>,
+  direct_import: Option<bool>,
   asi_safe: Option<bool>,
 }
 
@@ -54,9 +70,9 @@ impl ConcatenationScope {
     self.modules_map.contains_key(module)
   }
 
-  fn register_export(&mut self, export_name: Atom, symbol: Atom) {
+  fn register_export(&mut self, export_name: Atom, symbol: String) {
     match self.current_module.export_map.entry(export_name) {
-      Entry::Occupied(occ) => {
+      Entry::Occupied(mut occ) => {
         occ.insert(symbol);
       }
       Entry::Vacant(vac) => {
@@ -65,9 +81,9 @@ impl ConcatenationScope {
     }
   }
 
-  fn register_raw_export(&mut self, export_name: Atom, expression: Atom) {
+  fn register_raw_export(&mut self, export_name: Atom, symbol: String) {
     match self.current_module.export_map.entry(export_name) {
-      Entry::Occupied(occ) => {
+      Entry::Occupied(mut occ) => {
         occ.insert(symbol);
       }
       Entry::Vacant(vac) => {
@@ -82,25 +98,27 @@ impl ConcatenationScope {
       .get_mut(&self.current_module.module)
       .unwrap()
     {
-      concatenated_module.namespace_export_symbol = Some(symbol.to_string());
+      concatenated_module.namespace_export_symbol = Some(symbol.into());
     }
   }
 
   fn create_module_reference(
     &self,
-    module: &'a Module,
+    module: &ModuleIdentifier,
     options: &ModuleReferenceOptions,
   ) -> String {
-    let info = match self.modules_map.get(module).unwrap() {
-      ModuleInfo::External(external_info) => external_info,
-      ModuleInfo::Concatenated(concatenated_info) => concatenated_info,
-    };
+    let info = self
+      .modules_map
+      .get(module)
+      .expect("should have module info");
 
-    let call_flag = if options.call { "_call" } else { "" };
-    let direct_import_flag = if options.direct_import {
-      "_directImport"
-    } else {
-      ""
+    let call_flag = match options.call {
+      Some(true) => "_call",
+      _ => "",
+    };
+    let direct_import_flag = match options.direct_import {
+      Some(true) => "_directImport",
+      _ => "",
     };
     let asi_safe_flag = match options.asi_safe {
       Some(true) => "_asiSafe1",
@@ -109,45 +127,38 @@ impl ConcatenationScope {
     };
 
     let export_data = if let Some(ids) = &options.ids {
-      hex::encode(ids.join(",").as_bytes())
+      hex::encode(serde_json::to_string(ids).expect("should serialize to json string"))
     } else {
       "ns".to_string()
     };
 
     format!(
-      "__WEBPACK_MODULE_REFERENCE__{}{}{}{}__._",
-      info.index, export_data, call_flag, direct_import_flag, asi_safe_flag
+      "__WEBPACK_MODULE_REFERENCE__{}_{}{}{}{}__._",
+      info.index(),
+      export_data,
+      call_flag,
+      direct_import_flag,
+      asi_safe_flag
     )
   }
 
   fn is_module_reference(name: &str) -> bool {
-    lazy_static! {
-        static ref MODULE_REFERENCE_REGEXP: Regex =
-            Regex::new(r"^__WEBPACK_MODULE_REFERENCE__(\d+)_([\da-f]+|ns)(_call)?(_directImport)?(?:_asiSafe(\d))?__$").unwrap();
-    }
     MODULE_REFERENCE_REGEXP.is_match(name)
   }
 
   fn match_module_reference(name: &str) -> Option<ModuleReferenceOptions> {
-    lazy_static! {
-        static ref MODULE_REFERENCE_REGEXP: Regex =
-            Regex::new(r"^__WEBPACK_MODULE_REFERENCE__(\d+)_([\da-f]+|ns)(_call)?(_directImport)?(?:_asiSafe(\d))?__$").unwrap();
-    }
     if let Some(captures) = MODULE_REFERENCE_REGEXP.captures(name) {
       let index: usize = captures[1].parse().unwrap();
       let ids: Option<Vec<String>> = if &captures[2] == "ns" {
-        None
+        Some(vec![])
       } else {
         Some(
-          hex::decode(&captures[2])
-            .unwrap()
-            .split(',')
-            .map(String::from)
-            .collect(),
+          serde_json::from_slice(&hex::decode(&captures[2]).expect("should decode hex"))
+            .expect("should have deserialize"),
         )
       };
-      let call = captures.get(3).is_some();
-      let direct_import = captures.get(4).is_some();
+      let call = Some(captures.get(3).is_some());
+      let direct_import = Some(captures.get(4).is_some());
       let asi_safe = captures.get(5).map(|s| s.as_str() == "1");
       Some(ModuleReferenceOptions {
         ids,
