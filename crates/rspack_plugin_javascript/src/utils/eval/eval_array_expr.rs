@@ -5,7 +5,7 @@ use super::BasicEvaluatedExpression;
 use crate::visitors::common_js_import_dependency_scanner::CommonJsImportDependencyScanner;
 
 pub fn eval_array_expression(
-  scanner: &CommonJsImportDependencyScanner<'_>,
+  scanner: &mut CommonJsImportDependencyScanner<'_>,
   expr: &ArrayLit,
 ) -> Option<BasicEvaluatedExpression> {
   let mut items = vec![];

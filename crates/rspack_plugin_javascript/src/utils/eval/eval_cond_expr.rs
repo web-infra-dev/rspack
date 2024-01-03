@@ -4,7 +4,7 @@ use super::BasicEvaluatedExpression;
 use crate::visitors::common_js_import_dependency_scanner::CommonJsImportDependencyScanner;
 
 pub fn eval_cond_expression(
-  scanner: &CommonJsImportDependencyScanner,
+  scanner: &mut CommonJsImportDependencyScanner,
   cond: &CondExpr,
 ) -> Option<BasicEvaluatedExpression> {
   let condition = scanner.evaluate_expression(&cond.test);

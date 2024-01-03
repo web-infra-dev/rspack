@@ -2,7 +2,7 @@ use std::{path::Path, sync::Arc};
 
 use once_cell::sync::Lazy;
 use regex::Regex;
-use rspack_error::{internal_error, Result};
+use rspack_error::{error, Result};
 use rspack_loader_runner::{get_scheme, Loader, Scheme};
 use sugar_path::{AsPath, SugarPath};
 use swc_core::common::Span;
@@ -267,7 +267,7 @@ impl NormalModuleFactory {
 
         request_without_match_resource = raw_elements
           .pop()
-          .ok_or_else(|| internal_error!("Invalid request: {request_without_match_resource}"))?;
+          .ok_or_else(|| error!("Invalid request: {request_without_match_resource}"))?;
 
         inline_loaders.extend(raw_elements.into_iter().map(|r| ModuleRuleUseLoader {
           loader: r.to_owned(),
@@ -286,7 +286,7 @@ impl NormalModuleFactory {
         specifier: request_without_match_resource,
         dependency_type: dependency.dependency_type(),
         dependency_category: dependency.category(),
-        span: dependency.span(),
+        span: dependency.source_span(),
         // take the options is safe here, because it
         // is not used in after_resolve hooks
         resolve_options: data.resolve_options.take(),
@@ -557,7 +557,7 @@ impl NormalModuleFactory {
             loader_options,
           )
           .await?
-          .ok_or_else(|| internal_error!("Unable to resolve loader {}", loader_request))
+          .ok_or_else(|| error!("Unable to resolve loader {}", loader_request))
       }
 
       all_loaders
@@ -604,7 +604,7 @@ impl NormalModuleFactory {
           _ => (),
         }
 
-        internal_error!(e)
+        error!(e)
       })?();
 
     let mut create_data = NormalModuleCreateData {
@@ -771,14 +771,14 @@ impl NormalModuleFactory {
       return Ok(result);
     }
 
-    Err(internal_error!(
+    Err(error!(
       "Failed to factorize module, neither hook nor factorize method returns"
     ))
   }
 }
 
 /// Using `u32` instead of `usize` to reduce memory usage,
-/// `u32` is 4 bytes on 64bit machine, comare to `usize` which is 8 bytes.
+/// `u32` is 4 bytes on 64bit machine, comparing to `usize` which is 8 bytes.
 /// Rspan aka `Rspack span`, just avoiding conflict with span in other crate
 /// ## Warning
 /// RSpan is zero based, `Span` of `swc` is 1 based. see https://swc-css.netlify.app/?code=eJzLzC3ILypRSFRIK8rPVVAvSS0u0csqVgcAZaoIKg

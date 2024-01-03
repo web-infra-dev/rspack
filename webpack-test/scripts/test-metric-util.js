@@ -60,7 +60,8 @@ function renderAllTestsToMarkdown(jsonObj) {
 	const testResults = jsonObj["testResults"];
 	return testResults
 		.flatMap(testSuite => testSuite.assertionResults)
-		.map((test, index) => `- ${renderTestToMarkdown(test.fullName)}`)
+		// use `1 ` to break GitHub markdown list rendering
+		.map((test, index) => `${index + 1} ${renderTestToMarkdown(test.fullName)}`)
 		.join('\n')
 }
 

@@ -2,7 +2,7 @@ use std::borrow::Cow;
 use std::hash::Hash;
 use std::iter;
 
-use rspack_error::{impl_empty_diagnosable_trait, internal_error, Result};
+use rspack_error::{error, impl_empty_diagnosable_trait, Result};
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
 use rustc_hash::FxHashMap as HashMap;
@@ -160,9 +160,8 @@ module.exports = new Promise(function(resolve, reject) {{
 "#,
       global = url_and_global.global,
       global_str =
-        serde_json::to_string(url_and_global.global).map_err(|e| internal_error!(e.to_string()))?,
-      url_str =
-        serde_json::to_string(url_and_global.url).map_err(|e| internal_error!(e.to_string()))?,
+        serde_json::to_string(url_and_global.global).map_err(|e| error!(e.to_string()))?,
+      url_str = serde_json::to_string(url_and_global.url).map_err(|e| error!(e.to_string()))?,
       load_script = RuntimeGlobals::LOAD_SCRIPT.name()
     ))
   }
@@ -389,7 +388,7 @@ impl Module for ExternalModule {
           SourceType::JavaScript,
           RawSource::from(format!(
             "module.exports = {};",
-            serde_json::to_string(request.primary()).map_err(|e| internal_error!(e.to_string()))?
+            serde_json::to_string(request.primary()).map_err(|e| error!(e.to_string()))?
           ))
           .boxed(),
         );
@@ -402,7 +401,7 @@ impl Module for ExternalModule {
           SourceType::Css,
           RawSource::from(format!(
             "@import url({});",
-            serde_json::to_string(request.primary()).map_err(|e| internal_error!(e.to_string()))?
+            serde_json::to_string(request.primary()).map_err(|e| error!(e.to_string()))?
           ))
           .boxed(),
         );

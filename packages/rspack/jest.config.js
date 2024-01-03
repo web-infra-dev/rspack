@@ -1,3 +1,5 @@
+const path = require("path");
+
 /** @type {import('ts-jest/dist/types').JestConfigWithTsJest} */
 const config = {
 	testEnvironment: "../../scripts/test/patch-node-env.cjs",
@@ -18,6 +20,10 @@ const config = {
 		"ts-jest": {
 			tsconfig: "<rootDir>/tests/tsconfig.json"
 		}
+	},
+	moduleNameMapper: {
+		// Fixed jest-serialize-path not working when non-ascii code contains.
+		slash: path.join(__dirname, "../../scripts/test/slash.cjs")
 	}
 };
 

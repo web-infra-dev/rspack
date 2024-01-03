@@ -7,7 +7,7 @@ use rspack_core::{
   rspack_sources::{RawSource, SourceExt},
   ModuleType,
 };
-use rspack_error::{internal_error, BatchErrors, DiagnosticKind, Result, TraceableError};
+use rspack_error::{error, BatchErrors, DiagnosticKind, Result, TraceableError};
 use rspack_plugin_javascript::{ast::parse_js, utils::DedupEcmaErrors};
 use rspack_plugin_javascript::{
   ast::{print, SourceMapConfig},
@@ -359,7 +359,7 @@ impl Emitter for RspackErrorEmitter {
     } else {
       self
         .tx
-        .send(internal_error!(db.message()))
+        .send(error!(db.message()))
         .expect("Sender should drop after emit called");
     }
   }

@@ -89,8 +89,9 @@ pub mod __private {
   pub use core::result::Result::Err;
 
   pub use miette::miette;
+  pub use miette::Severity;
 
-  pub use crate::diagnostic::Severity;
+  pub use crate::diagnostic::Severity as RspackSeverity;
+  pub use crate::error;
   pub use crate::error::InternalError;
-  pub use crate::internal_error;
 }

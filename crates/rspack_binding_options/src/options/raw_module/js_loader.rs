@@ -15,7 +15,7 @@ use {
   napi::NapiRaw,
   rspack_binding_macros::call_js_function_with_napi_objects,
   rspack_core::{Loader, LoaderContext, LoaderRunnerContext},
-  rspack_error::internal_error,
+  rspack_error::error,
   rspack_identifier::{Identifiable, Identifier},
   rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},
   rspack_napi_shared::NapiResultExt,
@@ -206,7 +206,7 @@ fn sync_loader_context(
     .as_ref()
     .map(|s| rspack_core::rspack_sources::SourceMap::from_slice(s))
     .transpose()
-    .map_err(|e| internal_error!(e.to_string()))?;
+    .map_err(|e| error!(e.to_string()))?;
   loader_context.additional_data = loader_result.additional_data_external.clone();
   if let Some(data) = loader_result.additional_data {
     loader_context
@@ -280,7 +280,7 @@ impl TryFrom<&mut rspack_core::LoaderContext<'_, rspack_core::LoaderRunnerContex
         .clone()
         .map(|v| v.to_json())
         .transpose()
-        .map_err(|e| internal_error!(e.to_string()))?
+        .map_err(|e| error!(e.to_string()))?
         .map(|v| v.into_bytes().into()),
       resource: cx.resource.to_owned(),
       resource_path: cx.resource_path.to_string_lossy().to_string(),

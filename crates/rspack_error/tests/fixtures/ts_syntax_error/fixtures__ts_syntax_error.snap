@@ -5,13 +5,12 @@ expression: ts_syntax_error
 ModuleParseError
 
   × Module parse failed:
-  ╰─▶   × Typescript parsing error
+  ╰─▶   × Typescript parsing error: Expected ',', got 'g'
          ╭─[3:1]
        3 │     // Comma is required, but parser can recover because of the newline.
        4 │     d = 10
        5 │     g = CONST
-         ·     ┬
-         ·     ╰── Expected ',', got 'g'
+         ·     ─
        6 │ }
          ╰────
       

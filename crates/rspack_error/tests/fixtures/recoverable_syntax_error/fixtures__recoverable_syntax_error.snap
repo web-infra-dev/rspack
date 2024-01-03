@@ -5,11 +5,10 @@ expression: recoverable_syntax_error
 ModuleParseError
 
   × Module parse failed:
-  ╰─▶   × TSX parsing error
+  ╰─▶   × TSX parsing error: Expected a semicolon
          ╭────
        1 │ let c = <test>() => {}</test>;
-         ·                        ┬
-         ·                        ╰── Expression expected
+         ·                       ─
          ╰────
       
   help: 
@@ -17,11 +16,10 @@ ModuleParseError
 ModuleParseError
 
   × Module parse failed:
-  ╰─▶   × TSX parsing error
+  ╰─▶   × TSX parsing error: Expression expected
          ╭────
        1 │ let c = <test>() => {}</test>;
-         ·                       ┬
-         ·                       ╰── Expected a semicolon
+         ·                        ─
          ╰────
       
   help: 

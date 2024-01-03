@@ -6,8 +6,8 @@
 // ];
 // Rspack emits similar errors:
 module.exports = [
-	[/maybe it had cycle alias/],
-	[/maybe it had cycle alias/],
-	[/maybe it had cycle alias/],
-	[/maybe it had cycle alias/]
+	[/maybe it had cyclic alias/],
+	[/maybe it had cyclic alias/],
+	[/maybe it had cyclic alias/],
+	[/maybe it had cyclic alias/]
 ];

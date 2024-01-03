@@ -5,11 +5,10 @@ expression: tsx_syntax_error
 ModuleParseError
 
   × Module parse failed:
-  ╰─▶   × TSX parsing error
+  ╰─▶   × TSX parsing error: Unexpected token `test`. Expected jsx identifier
          ╭────
        1 │ let c = <test>/test>;
-         ·          ──┬─
-         ·            ╰── Unexpected token `test`. Expected jsx identifier
+         ·          ────
          ╰────
       
   help: 

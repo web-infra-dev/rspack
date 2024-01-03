@@ -66,7 +66,7 @@ fn handle_template_string_compare(
 fn handle_strict_equality_comparison(
   eql: bool,
   expr: &BinExpr,
-  scanner: &CommonJsImportDependencyScanner<'_>,
+  scanner: &mut CommonJsImportDependencyScanner<'_>,
 ) -> Option<BasicEvaluatedExpression> {
   assert!(expr.op == BinaryOp::EqEqEq || expr.op == BinaryOp::NotEqEq);
   let left = scanner.evaluate_expression(&expr.left);
@@ -93,7 +93,7 @@ fn handle_strict_equality_comparison(
 fn handle_abstract_equality_comparison(
   eql: bool,
   expr: &BinExpr,
-  scanner: &CommonJsImportDependencyScanner<'_>,
+  scanner: &mut CommonJsImportDependencyScanner<'_>,
 ) -> Option<BasicEvaluatedExpression> {
   let left = scanner.evaluate_expression(&expr.left);
   let right = scanner.evaluate_expression(&expr.right);
@@ -117,8 +117,89 @@ fn handle_abstract_equality_comparison(
   }
 }
 
+fn handle_logical_or(
+  expr: &BinExpr,
+  scanner: &mut CommonJsImportDependencyScanner<'_>,
+) -> Option<BasicEvaluatedExpression> {
+  let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.hi().0);
+  let left = scanner.evaluate_expression(&expr.left);
+
+  match left.as_bool() {
+    Some(true) => {
+      // true || unknown = true
+      res.set_bool(true);
+      res.set_side_effects(left.could_have_side_effects());
+      Some(res)
+    }
+    Some(false) => {
+      let right = scanner.evaluate_expression(&expr.right);
+      // false || unknown = unknown
+      right.as_bool().map(|b| {
+        // false || right = right
+        res.set_bool(b);
+        res.set_side_effects(left.could_have_side_effects() || right.could_have_side_effects());
+        res
+      })
+    }
+    None => {
+      let right = scanner.evaluate_expression(&expr.right);
+      match right.as_bool() {
+        // unknown || true = true
+        Some(true) => {
+          res.set_bool(true);
+          res.set_side_effects(left.could_have_side_effects() || right.could_have_side_effects());
+          Some(res)
+        }
+        // unknown || false/unknown = unknown
+        _ => None,
+      }
+    }
+  }
+}
+
+fn handle_logical_and(
+  expr: &BinExpr,
+  scanner: &mut CommonJsImportDependencyScanner<'_>,
+) -> Option<BasicEvaluatedExpression> {
+  let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.hi().0);
+
+  let left = scanner.evaluate_expression(&expr.left);
+
+  match left.as_bool() {
+    Some(true) => {
+      let right = scanner.evaluate_expression(&expr.right);
+      // true && unknown = unknown
+      right.as_bool().map(|b| {
+        // true && right = right
+        res.set_bool(b);
+        res.set_side_effects(left.could_have_side_effects() || right.could_have_side_effects());
+        res
+      })
+    }
+    Some(false) => {
+      // false && any = false
+      res.set_bool(false);
+      res.set_side_effects(left.could_have_side_effects());
+      Some(res)
+    }
+    None => {
+      let right = scanner.evaluate_expression(&expr.right);
+      match right.as_bool() {
+        // unknown && false = false
+        Some(false) => {
+          res.set_bool(false);
+          res.set_side_effects(left.could_have_side_effects() || right.could_have_side_effects());
+          Some(res)
+        }
+        // unknown && true/unknown = unknown
+        _ => None,
+      }
+    }
+  }
+}
+
 pub fn eval_binary_expression(
-  scanner: &CommonJsImportDependencyScanner<'_>,
+  scanner: &mut CommonJsImportDependencyScanner<'_>,
   expr: &BinExpr,
 ) -> Option<BasicEvaluatedExpression> {
   match expr.op {
@@ -126,6 +207,8 @@ pub fn eval_binary_expression(
     BinaryOp::NotEq => handle_abstract_equality_comparison(false, expr, scanner),
     BinaryOp::EqEqEq => handle_strict_equality_comparison(true, expr, scanner),
     BinaryOp::NotEqEq => handle_strict_equality_comparison(false, expr, scanner),
+    BinaryOp::LogicalAnd => handle_logical_and(expr, scanner),
+    BinaryOp::LogicalOr => handle_logical_or(expr, scanner),
     _ => None,
   }
 }

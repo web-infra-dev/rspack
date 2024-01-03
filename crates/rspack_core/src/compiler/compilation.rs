@@ -15,7 +15,7 @@ use itertools::Itertools;
 use rayon::prelude::{
   IntoParallelIterator, IntoParallelRefIterator, ParallelBridge, ParallelIterator,
 };
-use rspack_error::{internal_error, Diagnostic, Result, Severity, TWithDiagnosticArray};
+use rspack_error::{error, Diagnostic, Result, Severity, TWithDiagnosticArray};
 use rspack_futures::FuturesResults;
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_identifier::{Identifiable, IdentifierMap, IdentifierSet};
@@ -250,7 +250,7 @@ impl Compilation {
         info,
       }) => updater(source, info)?,
       _ => {
-        return Err(internal_error!(
+        return Err(error!(
           "Called Compilation.updateAsset for not existing filename {filename}"
         ))
       }
@@ -279,7 +279,7 @@ impl Compilation {
           is_source_equal
         );
         self.push_diagnostic(
-          internal_error!(
+          error!(
             "Conflict: Multiple assets emit different content to the same filename {}{}",
             filename,
             // TODO: source file name

@@ -50,12 +50,34 @@ pub fn expression_logic_operator(
         )));
     }
     Some(keep_right)
+  } else if expr.op == BinaryOp::NullishCoalescing {
+    let param = scanner.evaluate_expression(&expr.left);
+    if let Some(keep_right) = param.as_nullish() {
+      if param.could_have_side_effects() && keep_right {
+        scanner
+          .presentational_dependencies
+          .push(Box::new(ConstDependency::new(
+            param.range().0,
+            param.range().1 - 1,
+            " null".into(),
+            None,
+          )));
+      } else {
+        scanner
+          .presentational_dependencies
+          .push(Box::new(ConstDependency::new(
+            expr.right.span().real_lo(),
+            expr.right.span().hi().0 - 1,
+            "0".into(),
+            None,
+          )));
+        scanner.walk_expression(&expr.left);
+      }
+      Some(keep_right)
+    } else {
+      None
+    }
   } else {
     None
   }
-  // else if expr.op == BinaryOp::NullishCoalescing {
-  //   // TODO: support `??`
-  //   expr.visit_children_with(scanner);
-  //   None
-  // }
 }

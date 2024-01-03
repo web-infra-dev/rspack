@@ -4,7 +4,7 @@ use rspack_core::{
   ChunkInitFragments, ChunkUkey, Compilation, ModuleGraphModule, RenderModuleContentArgs,
   RuntimeGlobals, SourceType,
 };
-use rspack_error::{internal_error, Result};
+use rspack_error::{error, Result};
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::utils::is_diff_mode;
@@ -127,7 +127,7 @@ fn render_module(
     args.push(RuntimeGlobals::REQUIRE.to_string());
   }
   let mut sources = ConcatSource::new([
-    RawSource::from(serde_json::to_string(module_id).map_err(|e| internal_error!(e.to_string()))?),
+    RawSource::from(serde_json::to_string(module_id).map_err(|e| error!(e.to_string()))?),
     RawSource::from(": "),
   ]);
   if is_diff_mode() {

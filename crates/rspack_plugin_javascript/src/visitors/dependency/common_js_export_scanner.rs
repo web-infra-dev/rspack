@@ -1,6 +1,7 @@
 use rspack_core::{
   extract_member_expression_chain, BoxDependency, BuildMeta, BuildMetaDefaultObject,
-  BuildMetaExportsType, DependencyTemplate, ModuleType, RuntimeGlobals, SpanExt,
+  BuildMetaExportsType, DependencyLocation, DependencyTemplate, ModuleType, RuntimeGlobals,
+  SpanExt,
 };
 use swc_core::{
   atoms::Atom,
@@ -21,8 +22,37 @@ use crate::{
     CommonJsExportRequireDependency, CommonJsExportsDependency, CommonJsSelfReferenceDependency,
     ExportsBase, ModuleDecoratorDependency,
   },
+  parser_plugin::JavascriptParserPlugin,
+  utils::eval::{self, BasicEvaluatedExpression},
   ClassExt,
 };
+
+pub fn get_typeof_evaluate_of_export(sym: &str) -> Option<&str> {
+  match sym {
+    "module" => Some("object"),
+    "exports" => Some("object"),
+    _ => None,
+  }
+}
+
+pub struct CommonJsExportParserPlugin;
+
+impl JavascriptParserPlugin for CommonJsExportParserPlugin {
+  fn evaluate_typeof(
+    &self,
+    expression: &swc_core::ecma::ast::Ident,
+    start: u32,
+    end: u32,
+    unresolved_mark: swc_core::common::SyntaxContext,
+  ) -> Option<BasicEvaluatedExpression> {
+    if expression.span.ctxt == unresolved_mark {
+      get_typeof_evaluate_of_export(expression.sym.as_ref() as &str)
+        .map(|res| eval::evaluate_to_string(res.to_string(), start, end))
+    } else {
+      None
+    }
+  }
+}
 
 pub struct CommonJsExportDependencyScanner<'a> {
   dependencies: &'a mut Vec<BoxDependency>,
@@ -36,6 +66,7 @@ pub struct CommonJsExportDependencyScanner<'a> {
   stmt_level: u32,
   last_stmt_is_expr_stmt: bool,
   is_top_level: bool,
+  ignored: &'a mut Vec<DependencyLocation>,
 }
 
 impl<'a> CommonJsExportDependencyScanner<'a> {
@@ -46,6 +77,7 @@ impl<'a> CommonJsExportDependencyScanner<'a> {
     build_meta: &'a mut BuildMeta,
     module_type: ModuleType,
     parser_exports_state: &'a mut Option<bool>,
+    ignored: &'a mut Vec<DependencyLocation>,
   ) -> Self {
     Self {
       dependencies,
@@ -59,6 +91,7 @@ impl<'a> CommonJsExportDependencyScanner<'a> {
       stmt_level: 0,
       last_stmt_is_expr_stmt: false,
       is_top_level: true,
+      ignored,
     }
   }
 }
@@ -73,6 +106,15 @@ impl Visit for CommonJsExportDependencyScanner<'_> {
   }
 
   fn visit_stmt(&mut self, stmt: &Stmt) {
+    let span = stmt.span();
+    if self
+      .ignored
+      .iter()
+      .any(|r| r.start() <= span.real_lo() && span.real_hi() <= r.end())
+    {
+      return;
+    }
+
     self.stmt_level += 1;
     let old_last_stmt_is_expr_stmt = self.last_stmt_is_expr_stmt;
     if stmt.is_expr() {
@@ -100,6 +142,15 @@ impl Visit for CommonJsExportDependencyScanner<'_> {
   }
 
   fn visit_expr(&mut self, expr: &Expr) {
+    let span = expr.span();
+    if self
+      .ignored
+      .iter()
+      .any(|r| r.start() <= span.real_lo() && span.real_hi() <= r.end())
+    {
+      return;
+    }
+
     if expr_matcher::is_module_id(expr)
       || expr_matcher::is_module_loaded(expr)
       || expr_matcher::is_module_hot(expr)

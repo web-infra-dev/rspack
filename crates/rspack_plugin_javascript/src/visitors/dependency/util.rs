@@ -293,3 +293,43 @@ pub fn is_unresolved_require(expr: &Expr, unresolved_ctxt: SyntaxContext) -> boo
   assert!(ident.sym.eq("require"));
   ident.span.ctxt == unresolved_ctxt
 }
+
+#[macro_export]
+macro_rules! no_visit_ignored_stmt {
+  () => {
+    fn visit_stmt(&mut self, stmt: &swc_core::ecma::ast::Stmt) {
+      use rspack_core::SpanExt;
+      use swc_core::common::Spanned;
+      use swc_core::ecma::visit::VisitWith;
+      let span = stmt.span();
+      if self
+        .ignored
+        .iter()
+        .any(|r| r.start() <= span.real_lo() && span.real_hi() <= r.end())
+      {
+        return;
+      }
+      stmt.visit_children_with(self);
+    }
+  };
+}
+
+#[macro_export]
+macro_rules! no_visit_ignored_expr {
+  () => {
+    fn visit_expr(&mut self, expr: &swc_core::ecma::ast::Expr) {
+      use rspack_core::SpanExt;
+      use swc_core::common::Spanned;
+      use swc_core::ecma::visit::VisitWith;
+      let span = expr.span();
+      if self
+        .ignored
+        .iter()
+        .any(|r| r.start() <= span.real_lo() && span.real_hi() <= r.end())
+      {
+        return;
+      }
+      expr.visit_children_with(self);
+    }
+  };
+}

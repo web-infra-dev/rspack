@@ -2,7 +2,7 @@ use std::{path::PathBuf, str::FromStr};
 
 use napi_derive::napi;
 use rspack_core::{Builtins, DecoratorOptions, PluginExt, PresetEnv};
-use rspack_error::internal_error;
+use rspack_error::error;
 use rspack_plugin_css::{
   plugin::{CssConfig, LocalIdentName, LocalsConvention, ModulesConfig},
   CssPlugin,
@@ -257,7 +257,7 @@ impl RawBuiltins {
         .emotion
         .map(|i| serde_json::from_str(&i))
         .transpose()
-        .map_err(|e| internal_error!(e.to_string()))?,
+        .map_err(|e| error!(e.to_string()))?,
       plugin_import: self
         .plugin_import
         .map(|plugin_imports| plugin_imports.into_iter().map(Into::into).collect()),

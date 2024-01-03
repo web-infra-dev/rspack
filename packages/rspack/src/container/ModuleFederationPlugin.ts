@@ -15,11 +15,13 @@ export class ModuleFederationPlugin {
 
 	apply(compiler: Compiler) {
 		const { webpack } = compiler;
-		new webpack.EntryPlugin(
-			compiler.context,
-			getDefaultEntryRuntime(this._options, compiler),
-			{ name: undefined }
-		).apply(compiler);
+		compiler.hooks.afterPlugins.tap(ModuleFederationPlugin.name, () => {
+			new webpack.EntryPlugin(
+				compiler.context,
+				getDefaultEntryRuntime(this._options, compiler),
+				{ name: undefined }
+			).apply(compiler);
+		});
 		new webpack.container.ModuleFederationPluginV1({
 			...this._options,
 			enhanced: true
@@ -153,8 +155,8 @@ function getDefaultEntryRuntime(
 			", "
 		)}]`,
 		`const __module_federation_remote_infos__ = ${JSON.stringify(remoteInfos)}`,
-		`const __module_federation_unique_name__ = ${JSON.stringify(
-			compiler.options.output.uniqueName
+		`const __module_federation_container_name__ = ${JSON.stringify(
+			options.name ?? compiler.options.output.uniqueName
 		)}`,
 		compiler.webpack.Template.getFunctionContent(require("./default.runtime"))
 	].join("\n");

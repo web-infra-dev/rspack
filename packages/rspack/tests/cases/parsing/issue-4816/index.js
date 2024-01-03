@@ -149,6 +149,19 @@ it("should try to evaluate new RegExp()", function () {
 	);
 });
 
+// function a() { }
+
+it("should evaluate nullish coalescing", function () {
+	expect("" ?? require("fail")).toBe("");
+	// expect(String.raw`aaaa` ?? require("fail")).toBe("aaaa");
+	// expect(a`aaaa` ?? "expected").toBe("expected");
+	// expect(null ?? "expected").toBe("expected");
+	// expect(("" ?? require("fail")) && true).toBe("");
+	// let x = 0;
+	// expect(((x = 1), null) ?? true).toBe(true);
+	// expect(x).toBe(1);
+});
+
 // NEXT:
 // it("should evaluate __dirname and __resourceQuery with replace and substr", function () {
 // 	const result = require("./resourceQuery/index?" + __dirname);
