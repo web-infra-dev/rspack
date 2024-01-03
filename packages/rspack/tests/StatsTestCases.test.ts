@@ -7,11 +7,6 @@ import { isValidTestCaseDir } from "./utils";
 
 expect.addSnapshotSerializer(serializer);
 
-const project_dir_reg = new RegExp(
-	path.join(__dirname, "..").replace(/\\/g, "\\\\"),
-	"g"
-);
-
 const base = path.resolve(__dirname, "statsCases");
 const tests = fs.readdirSync(base).filter(testName => {
 	return (
@@ -85,44 +80,8 @@ describe("StatsTestCases", () => {
 				expect(statsJson.errors.length === 0);
 			}
 
-			function serializePath(s?: string): string {
-				if (!s) return "";
-				return s.replace(project_dir_reg, "<PROJECT_ROOT>").replace(/\\/g, "/");
-			}
-
-			statsJson.errors?.forEach(error => {
-				error.message = serializePath(error.message);
-				error.formatted = serializePath(error.formatted);
-				if (error.moduleIdentifier) {
-					error.moduleIdentifier = serializePath(error.moduleIdentifier);
-				}
-			});
-			statsJson.warnings?.forEach(error => {
-				error.message = serializePath(error.message);
-				error.formatted = serializePath(error.formatted);
-				if (error.moduleIdentifier) {
-					error.moduleIdentifier = serializePath(error.moduleIdentifier);
-				}
-			});
-			statsJson.children?.forEach(child => {
-				child.errors?.forEach(error => {
-					error.message = serializePath(error.message);
-					error.formatted = serializePath(error.formatted);
-					if (error.moduleIdentifier) {
-						error.moduleIdentifier = serializePath(error.moduleIdentifier);
-					}
-				});
-				child.warnings?.forEach(error => {
-					error.message = serializePath(error.message);
-					error.formatted = serializePath(error.formatted);
-					if (error.moduleIdentifier) {
-						error.moduleIdentifier = serializePath(error.moduleIdentifier);
-					}
-				});
-			});
 			expect(statsJson).toMatchSnapshot();
 			let statsString = stats.toString(statsOptions);
-			statsString = serializePath(statsString);
 			expect(statsString).toMatchSnapshot();
 		});
 	});
