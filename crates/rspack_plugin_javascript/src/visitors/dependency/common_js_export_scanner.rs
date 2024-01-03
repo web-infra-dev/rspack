@@ -606,7 +606,7 @@ impl<'a> CommonJsExportDependencyScanner<'a> {
         .members()
         .iter()
         .skip(if is_module_exports_start { 2 } else { 1 })
-        .map(|n| n.0.clone())
+        .map(|n| n.0.to_owned())
         .collect::<Vec<_>>();
       match expr.obj {
         box Expr::Call(_) => Some(members),

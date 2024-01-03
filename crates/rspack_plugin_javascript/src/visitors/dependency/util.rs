@@ -1,9 +1,14 @@
+use std::collections::VecDeque;
+
+use rspack_core::{
+  extract_member_expression_chain, DependencyLocation, ExpressionInfoKind, SpanExt,
+};
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::{
-  common::SyntaxContext,
+  common::{Spanned, SyntaxContext},
   ecma::{
-    ast::{CallExpr, Expr, MemberExpr, ObjectPat, ObjectPatProp, PropName},
-    atoms::JsWord,
+    ast::{CallExpr, Expr, ExprOrSpread, Ident, MemberExpr, ObjectPat, ObjectPatProp, PropName},
+    atoms::{Atom, JsWord},
   },
 };
 
@@ -332,4 +337,112 @@ macro_rules! no_visit_ignored_expr {
       expr.visit_children_with(self);
     }
   };
+}
+
+pub static EXTRACT_REQUIRE_ROOT: &str = "__fake__";
+
+pub fn extract_require_call_info(
+  expr: &Expr,
+) -> Option<(VecDeque<Atom>, ExprOrSpread, DependencyLocation)> {
+  let mut fake_expr = expr.clone();
+  fn create_fake_expr(expr: &mut Expr) -> (Expr, Option<ExprOrSpread>, DependencyLocation, bool) {
+    let loc = DependencyLocation::new(expr.span().real_lo(), expr.span().real_hi());
+    match expr {
+      Expr::Call(call_expr) => {
+        if let Some(callee) = call_expr.callee.as_mut_expr() {
+          // require().a => fake.a
+          if expr_matcher::is_require(callee) || expr_matcher::is_module_require(callee) {
+            (
+              Expr::Ident(Ident::from((
+                Atom::from(EXTRACT_REQUIRE_ROOT),
+                SyntaxContext::empty(),
+              ))),
+              call_expr.args.first().cloned(),
+              loc,
+              false,
+            )
+          } else {
+            // a().b => a
+            let callee_expr = create_fake_expr(callee);
+            (callee_expr.0, callee_expr.1, callee_expr.2, true)
+          }
+        } else {
+          (expr.to_owned(), None, loc, false)
+        }
+      }
+      Expr::Member(obj_expr) => {
+        let (new_obj, first_arg, new_obj_loc, has_result) = create_fake_expr(&mut obj_expr.obj);
+        if has_result {
+          (new_obj, first_arg, new_obj_loc, true)
+        } else {
+          obj_expr.obj = Box::new(new_obj);
+          (expr.to_owned(), first_arg, loc, false)
+        }
+      }
+      _ => (expr.to_owned(), None, loc, false),
+    }
+  }
+
+  let (fake_expr, first_arg, loc, _) = create_fake_expr(&mut fake_expr);
+  let member_info = extract_member_expression_chain(fake_expr);
+  let mut members = match member_info.kind() {
+    ExpressionInfoKind::CallExpression(info) => info
+      .root_members()
+      .iter()
+      .map(|n| n.0.to_owned())
+      .collect::<VecDeque<_>>(),
+    ExpressionInfoKind::Expression => member_info
+      .members()
+      .iter()
+      .map(|n| n.0.to_owned())
+      .collect::<VecDeque<_>>(),
+  };
+  if let (Some(first_member), Some(first_arg)) = (members.pop_front(), first_arg)
+    && first_member == EXTRACT_REQUIRE_ROOT
+  {
+    Some((members, first_arg, loc))
+  } else {
+    None
+  }
+}
+
+pub fn is_require_call_start(expr: &Expr) -> bool {
+  match expr {
+    Expr::Call(CallExpr { callee, .. }) => {
+      return callee
+        .as_expr()
+        .map(|callee| {
+          if expr_matcher::is_require(callee) || expr_matcher::is_module_require(callee) {
+            true
+          } else {
+            is_require_call_start(callee)
+          }
+        })
+        .unwrap_or(false);
+    }
+    Expr::Member(MemberExpr { obj, .. }) => is_require_call_start(obj),
+    _ => false,
+  }
+}
+
+#[test]
+fn test_is_require_call_start() {
+  macro_rules! test {
+    ($tt:tt,$literal:literal) => {{
+      let info = is_require_call_start(&swc_core::quote!($tt as Expr));
+      assert_eq!(info, $literal)
+    }};
+  }
+  test!("require().a.b", true);
+  test!("require().a.b().c", true);
+  test!("require()()", true);
+  test!("require.a().b", false);
+  test!("require.a.b", false);
+  test!("a.require.b", false);
+  test!("module.require().a.b", true);
+  test!("module.require().a.b().c", true);
+  test!("module.require()()", true);
+  test!("module.require.a().b", false);
+  test!("module.require.a.b", false);
+  test!("a.module.require.b", false);
 }

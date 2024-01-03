@@ -1,10 +1,11 @@
 use std::rc::Rc;
 
+use itertools::Itertools;
 use rspack_core::{context_reg_exp, ContextOptions, DependencyCategory, DependencyLocation};
 use rspack_core::{BoxDependency, ConstDependency, ContextMode, ContextNameSpaceObject};
 use rspack_core::{DependencyTemplate, SpanExt};
 use swc_core::common::{Spanned, SyntaxContext};
-use swc_core::ecma::ast::{BinExpr, BlockStmt, CallExpr, Callee, Expr, IfStmt};
+use swc_core::ecma::ast::{BinExpr, BlockStmt, CallExpr, Callee, Expr, IfStmt, MemberExpr};
 use swc_core::ecma::ast::{Lit, TryStmt, UnaryExpr, UnaryOp};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
@@ -12,8 +13,13 @@ use super::api_scanner::ApiParserPlugin;
 use super::common_js_export_scanner::CommonJsExportParserPlugin;
 use super::context_helper::scanner_context_module;
 use super::expr_matcher::{is_module_require, is_require};
-use super::{expr_matcher, is_unresolved_member_object_ident, is_unresolved_require};
-use crate::dependency::{CommonJsRequireContextDependency, RequireHeaderDependency};
+use super::{
+  expr_matcher, extract_require_call_info, is_require_call_start,
+  is_unresolved_member_object_ident, is_unresolved_require,
+};
+use crate::dependency::{
+  CommonJsFullRequireDependency, CommonJsRequireContextDependency, RequireHeaderDependency,
+};
 use crate::dependency::{CommonJsRequireDependency, RequireResolveDependency};
 use crate::parser_plugin::{
   BoxJavascriptParserPlugin, JavaScriptParserPluginDrive, JavascriptParserPlugin,
@@ -138,6 +144,36 @@ impl<'a> CommonJsImportDependencyScanner<'a> {
     }
   }
 
+  fn chain_handler(
+    &mut self,
+    mem_expr: &MemberExpr,
+    is_call: bool,
+  ) -> Option<CommonJsFullRequireDependency> {
+    let expr = Expr::Member(mem_expr.to_owned());
+    let is_require_member_chain =
+      is_require_call_start(&expr) && !is_require(&expr) && !is_module_require(&expr);
+    if !is_require_member_chain {
+      return None;
+    }
+
+    let Some((members, first_arg, loc)) = extract_require_call_info(&expr) else {
+      return None;
+    };
+
+    let param = self.evaluate_expression(&first_arg.expr);
+    if param.is_string() {
+      Some(CommonJsFullRequireDependency::new(
+        param.string().to_string(),
+        members.iter().map(|i| i.to_owned()).collect_vec(),
+        loc,
+        Some(mem_expr.span.into()),
+        is_call,
+      ))
+    } else {
+      None
+    }
+  }
+
   fn require_handler(
     &mut self,
     call_expr: &CallExpr,
@@ -221,6 +257,14 @@ impl<'a> Visit for CommonJsImportDependencyScanner<'a> {
     self.in_try = false;
   }
 
+  fn visit_member_expr(&mut self, mem_expr: &MemberExpr) {
+    if let Some(dep) = self.chain_handler(mem_expr, false) {
+      self.dependencies.push(Box::new(dep));
+      return;
+    }
+    mem_expr.visit_children_with(self);
+  }
+
   fn visit_call_expr(&mut self, call_expr: &CallExpr) {
     let Callee::Expr(expr) = &call_expr.callee else {
       call_expr.visit_children_with(self);
@@ -235,6 +279,16 @@ impl<'a> Visit for CommonJsImportDependencyScanner<'a> {
     {
       return;
     };
+
+    if let Some(dep) = call_expr
+      .callee
+      .as_expr()
+      .and_then(|expr| expr.as_member())
+      .and_then(|mem| self.chain_handler(mem, true))
+    {
+      self.dependencies.push(Box::new(dep));
+      return;
+    }
 
     let deps = self.require_handler(call_expr);
 

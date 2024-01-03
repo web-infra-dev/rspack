@@ -22,12 +22,10 @@ impl CommonJsFullRequireDependency {
   pub fn new(
     request: String,
     names: Vec<Atom>,
-    start: u32,
-    end: u32,
+    range: DependencyLocation,
     span: Option<ErrorSpan>,
     is_call: bool,
   ) -> Self {
-    let range = DependencyLocation::new(start, end);
     Self {
       id: DependencyId::new(),
       request,
@@ -79,19 +77,18 @@ impl ModuleDependency for CommonJsFullRequireDependency {
     module_graph: &rspack_core::ModuleGraph,
     _runtime: Option<&rspack_core::RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
-    if self.is_call {
-      if module_graph
+    if self.is_call
+      && module_graph
         .module_graph_module_by_dependency_id(&self.id)
         .map(|mgm| mgm.get_exports_type(false))
         .is_some_and(|t| matches!(t, ExportsType::Namespace))
-      {
-        if self.names.is_empty() {
-          return vec![ExtendedReferencedExport::Array(vec![])];
-        } else {
-          return vec![ExtendedReferencedExport::Array(
-            self.names[0..self.names.len() - 1].to_vec(),
-          )];
-        }
+    {
+      if self.names.is_empty() {
+        return vec![ExtendedReferencedExport::Array(vec![])];
+      } else {
+        return vec![ExtendedReferencedExport::Array(
+          self.names[0..self.names.len() - 1].to_vec(),
+        )];
       }
     }
     vec![ExtendedReferencedExport::Array(self.names.clone())]
@@ -131,7 +128,7 @@ impl DependencyTemplate for CommonJsFullRequireDependency {
         );
 
       if let Some(used) = used {
-        let comment = to_normal_comment(&property_access(self.names.clone().into_iter(), 0));
+        let comment = to_normal_comment(&property_access(self.names.clone(), 0));
         require_expr = format!(
           "{}{}{}",
           require_expr,
@@ -147,12 +144,7 @@ impl DependencyTemplate for CommonJsFullRequireDependency {
       }
     }
 
-    source.replace(
-      self.range.start(),
-      self.range.end() - 1,
-      &require_expr,
-      None,
-    );
+    source.replace(self.range.start(), self.range.end(), &require_expr, None);
   }
 }
 
