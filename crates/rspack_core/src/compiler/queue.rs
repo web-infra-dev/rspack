@@ -222,6 +222,26 @@ impl AddTask {
     if let Some(current_profile) = &self.current_profile {
       current_profile.mark_integration_start();
     }
+
+    if self.module.as_self_module().is_some() {
+      let issuer = self
+        .module_graph_module
+        .get_issuer()
+        .identifier()
+        .expect("self module should have issuer");
+
+      set_resolved_module(
+        &mut compilation.module_graph,
+        self.original_module_identifier,
+        self.dependencies,
+        *issuer,
+      )?;
+
+      return Ok(TaskResult::Add(Box::new(AddTaskResult::ModuleReused {
+        module: self.module,
+      })));
+    }
+
     let module_identifier = self.module.identifier();
 
     if compilation

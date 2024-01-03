@@ -1339,6 +1339,13 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
               "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/b.js",
               "reasons": [
                 {
+                  "moduleId": "996",
+                  "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/b.js",
+                  "moduleName": "./b.js",
+                  "type": "cjs self exports reference",
+                  "userRequest": "self",
+                },
+                {
                   "moduleId": "10",
                   "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/index.js",
                   "moduleName": "./index.js",
@@ -1419,6 +1426,13 @@ import("./e");
                   "type": "dynamic import",
                   "userRequest": "./d",
                 },
+                {
+                  "moduleId": "767",
+                  "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/d.js",
+                  "moduleName": "./d.js",
+                  "type": "cjs self exports reference",
+                  "userRequest": "self",
+                },
               ],
               "size": 22,
               "source": "module.exports = "d";
@@ -1457,6 +1471,13 @@ import("./e");
                   "moduleName": "./c.js",
                   "type": "dynamic import",
                   "userRequest": "./e",
+                },
+                {
+                  "moduleId": "390",
+                  "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/e.js",
+                  "moduleName": "./e.js",
+                  "type": "cjs self exports reference",
+                  "userRequest": "self",
                 },
               ],
               "size": 22,
@@ -1525,7 +1546,7 @@ import(/* webpackChunkName: "c" */ "./c");
       "errors": [],
       "errorsCount": 0,
       "filteredModules": undefined,
-      "hash": "6e5966ea5b430a83dcf2",
+      "hash": "b772b5c0aeb451ab4831",
       "logging": {},
       "modules": [
         {
@@ -1549,6 +1570,13 @@ import(/* webpackChunkName: "c" */ "./c");
           "name": "./b.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/b.js",
           "reasons": [
+            {
+              "moduleId": "996",
+              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/b.js",
+              "moduleName": "./b.js",
+              "type": "cjs self exports reference",
+              "userRequest": "self",
+            },
             {
               "moduleId": "10",
               "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/index.js",
@@ -1630,6 +1658,13 @@ import("./e");
               "type": "dynamic import",
               "userRequest": "./d",
             },
+            {
+              "moduleId": "767",
+              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/d.js",
+              "moduleName": "./d.js",
+              "type": "cjs self exports reference",
+              "userRequest": "self",
+            },
           ],
           "size": 22,
           "source": "module.exports = "d";
@@ -1668,6 +1703,13 @@ import("./e");
               "moduleName": "./c.js",
               "type": "dynamic import",
               "userRequest": "./e",
+            },
+            {
+              "moduleId": "390",
+              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/e.js",
+              "moduleName": "./e.js",
+              "type": "cjs self exports reference",
+              "userRequest": "self",
             },
           ],
           "size": 22,
@@ -1980,6 +2022,13 @@ import("./e");
                   "type": "dynamic import",
                   "userRequest": "./d",
                 },
+                {
+                  "moduleId": "767",
+                  "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/d.js",
+                  "moduleName": "./d.js",
+                  "type": "cjs self exports reference",
+                  "userRequest": "self",
+                },
               ],
               "size": 22,
               "source": "module.exports = "d";
@@ -2018,6 +2067,13 @@ import("./e");
                   "moduleName": "./c.js",
                   "type": "dynamic import",
                   "userRequest": "./e",
+                },
+                {
+                  "moduleId": "390",
+                  "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/e.js",
+                  "moduleName": "./e.js",
+                  "type": "cjs self exports reference",
+                  "userRequest": "self",
                 },
               ],
               "size": 22,
@@ -2070,6 +2126,13 @@ import("./e");
               "name": "./b.js",
               "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/b.js",
               "reasons": [
+                {
+                  "moduleId": "996",
+                  "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/b.js",
+                  "moduleName": "./b.js",
+                  "type": "cjs self exports reference",
+                  "userRequest": "self",
+                },
                 {
                   "moduleId": "10",
                   "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/index.js",
@@ -2142,7 +2205,7 @@ import(/* webpackChunkName: "c" */ "./c");
       "errors": [],
       "errorsCount": 0,
       "filteredModules": undefined,
-      "hash": "5eb6e2cc950e8704fa55",
+      "hash": "42ff0683448bc8e002e8",
       "logging": {},
       "modules": [
         {
@@ -2166,6 +2229,13 @@ import(/* webpackChunkName: "c" */ "./c");
           "name": "./b.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/b.js",
           "reasons": [
+            {
+              "moduleId": "996",
+              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/b.js",
+              "moduleName": "./b.js",
+              "type": "cjs self exports reference",
+              "userRequest": "self",
+            },
             {
               "moduleId": "10",
               "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/index.js",
@@ -2247,6 +2317,13 @@ import("./e");
               "type": "dynamic import",
               "userRequest": "./d",
             },
+            {
+              "moduleId": "767",
+              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/d.js",
+              "moduleName": "./d.js",
+              "type": "cjs self exports reference",
+              "userRequest": "self",
+            },
           ],
           "size": 22,
           "source": "module.exports = "d";
@@ -2285,6 +2362,13 @@ import("./e");
               "moduleName": "./c.js",
               "type": "dynamic import",
               "userRequest": "./e",
+            },
+            {
+              "moduleId": "390",
+              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/e.js",
+              "moduleName": "./e.js",
+              "type": "cjs self exports reference",
+              "userRequest": "self",
             },
           ],
           "size": 22,
@@ -2670,6 +2754,13 @@ import("./e");
                   "type": "dynamic import",
                   "userRequest": "./d",
                 },
+                {
+                  "moduleId": "767",
+                  "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/d.js",
+                  "moduleName": "./d.js",
+                  "type": "cjs self exports reference",
+                  "userRequest": "self",
+                },
               ],
               "size": 22,
               "source": "module.exports = "d";
@@ -2708,6 +2799,13 @@ import("./e");
                   "moduleName": "./c.js",
                   "type": "dynamic import",
                   "userRequest": "./e",
+                },
+                {
+                  "moduleId": "390",
+                  "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/e.js",
+                  "moduleName": "./e.js",
+                  "type": "cjs self exports reference",
+                  "userRequest": "self",
                 },
               ],
               "size": 22,
@@ -2757,6 +2855,13 @@ import("./e");
               "name": "./b.js",
               "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/b.js",
               "reasons": [
+                {
+                  "moduleId": "996",
+                  "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/b.js",
+                  "moduleName": "./b.js",
+                  "type": "cjs self exports reference",
+                  "userRequest": "self",
+                },
                 {
                   "moduleId": "10",
                   "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/index.js",
@@ -2829,7 +2934,7 @@ import(/* webpackChunkName: "c" */ "./c");
       "errors": [],
       "errorsCount": 0,
       "filteredModules": undefined,
-      "hash": "6f4b77678c9322ad7332",
+      "hash": "e3392fc465fdb8290be3",
       "logging": {},
       "modules": [
         {
@@ -2853,6 +2958,13 @@ import(/* webpackChunkName: "c" */ "./c");
           "name": "./b.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/b.js",
           "reasons": [
+            {
+              "moduleId": "996",
+              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/b.js",
+              "moduleName": "./b.js",
+              "type": "cjs self exports reference",
+              "userRequest": "self",
+            },
             {
               "moduleId": "10",
               "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/index.js",
@@ -2934,6 +3046,13 @@ import("./e");
               "type": "dynamic import",
               "userRequest": "./d",
             },
+            {
+              "moduleId": "767",
+              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/d.js",
+              "moduleName": "./d.js",
+              "type": "cjs self exports reference",
+              "userRequest": "self",
+            },
           ],
           "size": 22,
           "source": "module.exports = "d";
@@ -2972,6 +3091,13 @@ import("./e");
               "moduleName": "./c.js",
               "type": "dynamic import",
               "userRequest": "./e",
+            },
+            {
+              "moduleId": "390",
+              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/e.js",
+              "moduleName": "./e.js",
+              "type": "cjs self exports reference",
+              "userRequest": "self",
             },
           ],
           "size": 22,
@@ -3372,6 +3498,13 @@ import("./e");
                   "type": "dynamic import",
                   "userRequest": "./d",
                 },
+                {
+                  "moduleId": "767",
+                  "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/d.js",
+                  "moduleName": "./d.js",
+                  "type": "cjs self exports reference",
+                  "userRequest": "self",
+                },
               ],
               "size": 22,
               "source": "module.exports = "d";
@@ -3430,6 +3563,13 @@ import("./e");
                   "type": "dynamic import",
                   "userRequest": "./e",
                 },
+                {
+                  "moduleId": "390",
+                  "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/e.js",
+                  "moduleName": "./e.js",
+                  "type": "cjs self exports reference",
+                  "userRequest": "self",
+                },
               ],
               "size": 22,
               "source": "module.exports = "e";
@@ -3478,6 +3618,13 @@ import("./e");
               "name": "./b.js",
               "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/b.js",
               "reasons": [
+                {
+                  "moduleId": "996",
+                  "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/b.js",
+                  "moduleName": "./b.js",
+                  "type": "cjs self exports reference",
+                  "userRequest": "self",
+                },
                 {
                   "moduleId": "10",
                   "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/index.js",
@@ -3550,7 +3697,7 @@ import(/* webpackChunkName: "c" */ "./c");
       "errors": [],
       "errorsCount": 0,
       "filteredModules": undefined,
-      "hash": "129bf5e45fb1496ecac4",
+      "hash": "2fd5ef6e4843e4c8333b",
       "logging": {},
       "modules": [
         {
@@ -3574,6 +3721,13 @@ import(/* webpackChunkName: "c" */ "./c");
           "name": "./b.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/b.js",
           "reasons": [
+            {
+              "moduleId": "996",
+              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/b.js",
+              "moduleName": "./b.js",
+              "type": "cjs self exports reference",
+              "userRequest": "self",
+            },
             {
               "moduleId": "10",
               "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/index.js",
@@ -3655,6 +3809,13 @@ import("./e");
               "type": "dynamic import",
               "userRequest": "./d",
             },
+            {
+              "moduleId": "767",
+              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/d.js",
+              "moduleName": "./d.js",
+              "type": "cjs self exports reference",
+              "userRequest": "self",
+            },
           ],
           "size": 22,
           "source": "module.exports = "d";
@@ -3693,6 +3854,13 @@ import("./e");
               "moduleName": "./c.js",
               "type": "dynamic import",
               "userRequest": "./e",
+            },
+            {
+              "moduleId": "390",
+              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/e.js",
+              "moduleName": "./e.js",
+              "type": "cjs self exports reference",
+              "userRequest": "self",
             },
           ],
           "size": 22,
@@ -3921,7 +4089,7 @@ import(/* webpackChunkName: "c" */ "./c");
   ],
   "errors": [],
   "errorsCount": 0,
-  "hash": "6e5966ea5b430a83dcf25eb6e2cc950e8704fa556f4b77678c9322ad7332129bf5e45fb1496ecac4",
+  "hash": "b772b5c0aeb451ab483142ff0683448bc8e002e8e3392fc465fdb8290be32fd5ef6e4843e4c8333b",
   "warnings": [],
   "warningsCount": 0,
 }
@@ -3935,23 +4103,29 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   Chunk Group c 1.46 KiB = bundle1.js
   chunk {main} bundle1.js (main) <{main}> >{main}< [entry]
     ./b.js [996] {main}
+      cjs self exports reference self [996]
       cjs require ./b [10]
     ./c.js [460] {main}
       dynamic import ./c [10]
     ./d.js [767] {main}
       dynamic import ./d [460]
+      cjs self exports reference self [767]
     ./e.js [390] {main}
       dynamic import ./e [460]
+      cjs self exports reference self [390]
     ./index.js [10] {main}
       entry ./index
   ./b.js [996] {main}
+    cjs self exports reference self [996]
     cjs require ./b [10]
   ./c.js [460] {main}
     dynamic import ./c [10]
   ./d.js [767] {main}
     dynamic import ./d [460]
+    cjs self exports reference self [767]
   ./e.js [390] {main}
     dynamic import ./e [460]
+    cjs self exports reference self [390]
   ./index.js [10] {main}
     entry ./index
   webpack/runtime/ensure_chunk {main}
@@ -3961,7 +4135,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   webpack/runtime/define_property_getters {main}
   webpack/runtime/create_fake_namespace_object {main}
     
-  1 chunks compiled successfully (6e5966ea5b430a83dcf2)
+  1 chunks compiled successfully (b772b5c0aeb451ab4831)
 
 2 chunks:
   PublicPath: (none)
@@ -3974,21 +4148,27 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
       dynamic import ./c [10]
     ./d.js [767] {c}
       dynamic import ./d [460]
+      cjs self exports reference self [767]
     ./e.js [390] {c}
       dynamic import ./e [460]
+      cjs self exports reference self [390]
   chunk {main} bundle2.js (main) >{c}< [entry]
     ./b.js [996] {main}
+      cjs self exports reference self [996]
       cjs require ./b [10]
     ./index.js [10] {main}
       entry ./index
   ./b.js [996] {main}
+    cjs self exports reference self [996]
     cjs require ./b [10]
   ./c.js [460] {c}
     dynamic import ./c [10]
   ./d.js [767] {c}
     dynamic import ./d [460]
+    cjs self exports reference self [767]
   ./e.js [390] {c}
     dynamic import ./e [460]
+    cjs self exports reference self [390]
   ./index.js [10] {main}
     entry ./index
   webpack/runtime/ensure_chunk {main}
@@ -4000,7 +4180,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   webpack/runtime/create_fake_namespace_object {main}
   webpack/runtime/get_chunk_filename/javascript {main}
     
-  2 chunks compiled successfully (5eb6e2cc950e8704fa55)
+  2 chunks compiled successfully (42ff0683448bc8e002e8)
 
 3 chunks:
   PublicPath: (none)
@@ -4015,21 +4195,27 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   chunk {d_js-e_js} d_js-e_js.bundle3.js <{c}>
     ./d.js [767] {d_js-e_js}
       dynamic import ./d [460]
+      cjs self exports reference self [767]
     ./e.js [390] {d_js-e_js}
       dynamic import ./e [460]
+      cjs self exports reference self [390]
   chunk {main} bundle3.js (main) >{c}< [entry]
     ./b.js [996] {main}
+      cjs self exports reference self [996]
       cjs require ./b [10]
     ./index.js [10] {main}
       entry ./index
   ./b.js [996] {main}
+    cjs self exports reference self [996]
     cjs require ./b [10]
   ./c.js [460] {c}
     dynamic import ./c [10]
   ./d.js [767] {d_js-e_js}
     dynamic import ./d [460]
+    cjs self exports reference self [767]
   ./e.js [390] {d_js-e_js}
     dynamic import ./e [460]
+    cjs self exports reference self [390]
   ./index.js [10] {main}
     entry ./index
   webpack/runtime/ensure_chunk {main}
@@ -4041,7 +4227,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   webpack/runtime/create_fake_namespace_object {main}
   webpack/runtime/get_chunk_filename/javascript {main}
     
-  3 chunks compiled successfully (6f4b77678c9322ad7332)
+  3 chunks compiled successfully (e3392fc465fdb8290be3)
 
 4 chunks:
   PublicPath: (none)
@@ -4057,22 +4243,28 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   chunk {d_js} d_js.bundle4.js <{c}>
     ./d.js [767] {d_js}
       dynamic import ./d [460]
+      cjs self exports reference self [767]
   chunk {e_js} e_js.bundle4.js <{c}>
     ./e.js [390] {e_js}
       dynamic import ./e [460]
+      cjs self exports reference self [390]
   chunk {main} bundle4.js (main) >{c}< [entry]
     ./b.js [996] {main}
+      cjs self exports reference self [996]
       cjs require ./b [10]
     ./index.js [10] {main}
       entry ./index
   ./b.js [996] {main}
+    cjs self exports reference self [996]
     cjs require ./b [10]
   ./c.js [460] {c}
     dynamic import ./c [10]
   ./d.js [767] {d_js}
     dynamic import ./d [460]
+    cjs self exports reference self [767]
   ./e.js [390] {e_js}
     dynamic import ./e [460]
+    cjs self exports reference self [390]
   ./index.js [10] {main}
     entry ./index
   webpack/runtime/ensure_chunk {main}
@@ -4084,7 +4276,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   webpack/runtime/create_fake_namespace_object {main}
   webpack/runtime/get_chunk_filename/javascript {main}
     
-  4 chunks compiled successfully (129bf5e45fb1496ecac4)"
+  4 chunks compiled successfully (2fd5ef6e4843e4c8333b)"
 `;
 
 exports[`StatsTestCases should print correct stats for loader-builtin-swc-plugin-warn 1`] = `
@@ -4998,6 +5190,12 @@ exports[`StatsTestCases should print correct stats for reasons 1`] = `
       "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/reasons/a.js",
       "reasons": [
         {
+          "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/reasons/a.js",
+          "moduleName": "./a.js",
+          "type": "cjs self exports reference",
+          "userRequest": "self",
+        },
+        {
           "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/reasons/index.js",
           "moduleName": "./index.js",
           "type": "cjs require",
@@ -5032,6 +5230,7 @@ exports[`StatsTestCases should print correct stats for reasons 1`] = `
 
 exports[`StatsTestCases should print correct stats for reasons 2`] = `
 "./a.js
+  cjs self exports reference self
   cjs require ./a
 ./index.js
   entry ./index"
