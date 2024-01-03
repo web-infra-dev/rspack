@@ -340,7 +340,8 @@ class Compiler {
 				chunkAsset: this.#chunkAsset.bind(this),
 				beforeResolve: this.#beforeResolve.bind(this),
 				afterResolve: this.#afterResolve.bind(this),
-				contextModuleBeforeResolve: this.#contextModuleBeforeResolve.bind(this),
+				contextModuleFactoryBeforeResolve:
+					this.#contextModuleFactoryBeforeResolve.bind(this),
 				succeedModule: this.#succeedModule.bind(this),
 				stillValidModule: this.#stillValidModule.bind(this),
 				buildModule: this.#buildModule.bind(this),
@@ -655,15 +656,25 @@ class Compiler {
 			succeedModule: this.compilation.hooks.succeedModule,
 			stillValidModule: this.compilation.hooks.stillValidModule,
 			buildModule: this.compilation.hooks.buildModule,
-			thisCompilation: undefined,
+			thisCompilation: this.hooks.thisCompilation,
 			optimizeChunkModules: this.compilation.hooks.optimizeChunkModules,
-			contextModuleBeforeResolve: undefined,
-			normalModuleFactoryCreateModule: undefined,
-			normalModuleFactoryResolveForScheme: undefined,
+			contextModuleFactoryBeforeResolve:
+				this.compilation.contextModuleFactory?.hooks.beforeResolve,
+			normalModuleFactoryCreateModule:
+				this.compilation.normalModuleFactory?.hooks.createModule,
+			normalModuleFactoryResolveForScheme:
+				this.compilation.normalModuleFactory?.hooks.resolveForScheme,
 			executeModule: undefined
 		};
 		for (const [name, hook] of Object.entries(hookMap)) {
-			if (typeof hook !== "undefined" && hook.taps.length === 0) {
+			if (
+				typeof hook !== "undefined" &&
+				(hook.taps
+					? hook.taps.length === 0
+					: hook._map
+					? /* hook map */ hook._map.size === 0
+					: false)
+			) {
 				disabledHooks.push(name);
 			}
 		}
@@ -748,7 +759,9 @@ class Compiler {
 		return res;
 	}
 
-	async #contextModuleBeforeResolve(resourceData: binding.BeforeResolveData) {
+	async #contextModuleFactoryBeforeResolve(
+		resourceData: binding.BeforeResolveData
+	) {
 		let res =
 			await this.compilation.contextModuleFactory?.hooks.beforeResolve.promise(
 				resourceData
@@ -765,6 +778,7 @@ class Compiler {
 		});
 		const nmfHooks = this.compilation.normalModuleFactory?.hooks;
 		await nmfHooks?.createModule.promise(data, {});
+		this.#updateDisabledHooks();
 	}
 
 	async #normalModuleFactoryResolveForScheme(
@@ -774,6 +788,7 @@ class Compiler {
 			await this.compilation.normalModuleFactory?.hooks.resolveForScheme
 				.for(input.scheme)
 				.promise(input.resourceData);
+		this.#updateDisabledHooks();
 		return {
 			resourceData: input.resourceData,
 			stop: stop === true
