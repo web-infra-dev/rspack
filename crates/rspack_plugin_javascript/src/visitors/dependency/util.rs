@@ -338,8 +338,6 @@ macro_rules! no_visit_ignored_expr {
   };
 }
 
-pub static EXTRACT_REQUIRE_ROOT: &str = "__fake__";
-
 pub fn extract_require_call_info(
   expr: &Expr,
 ) -> Option<(Vec<Atom>, ExprOrSpread, DependencyLocation)> {
