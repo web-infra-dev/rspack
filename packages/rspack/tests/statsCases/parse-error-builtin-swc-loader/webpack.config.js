@@ -1,5 +1,8 @@
 module.exports = {
 	stats: "errors-warnings",
+	resolve: {
+		extensions: ["...", ".ts",".tsx", ".jsx"]
+	},
 	module: {
 		rules: [
 			{
