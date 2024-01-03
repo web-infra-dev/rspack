@@ -56,9 +56,8 @@ describe("Stats", () => {
 			context: __dirname,
 			entry: "./fixtures/abc"
 		});
-		expect(
-			stats?.toString({ timings: false, version: false }).replace(/\\/g, "/")
-		).toMatchInlineSnapshot(`
+		expect(stats?.toString({ timings: false, version: false }))
+			.toMatchInlineSnapshot(`
 		"PublicPath: auto
 		asset main.js 758 bytes [emitted] (name: main)
 		Entrypoint main 758 bytes = main.js
@@ -135,7 +134,6 @@ describe("Stats", () => {
 		expect(
 			stats
 				?.toString({ all: false, logging: "verbose" })
-				.replace(/\\/g, "/")
 				.replace(/\d+ ms/g, "X ms")
 		).toMatchInlineSnapshot(`
 		"LOG from rspack.Compilation
@@ -208,10 +206,7 @@ describe("Stats", () => {
 			profile: true
 		});
 		expect(
-			stats
-				?.toString({ all: false, modules: true })
-				.replace(/\\/g, "/")
-				.replace(/\d+ ms/g, "X ms")
+			stats?.toString({ all: false, modules: true }).replace(/\d+ ms/g, "X ms")
 		).toMatchInlineSnapshot(`
 		"./fixtures/a.js
 		  X ms (resolving: X ms, integration: X ms, building: X ms)
@@ -351,7 +346,7 @@ describe("Stats", () => {
 			ids: true
 		};
 		expect(stats?.toJson(options)).toMatchSnapshot();
-		expect(stats?.toString(options).replace(/\\/g, "/")).toMatchInlineSnapshot(`
+		expect(stats?.toString(options)).toMatchInlineSnapshot(`
 		"asset main.js 211 bytes {main} [emitted] (name: main)
 		chunk {main} main.js (main) [entry]
 		./fixtures/a.js [585] {main}"
