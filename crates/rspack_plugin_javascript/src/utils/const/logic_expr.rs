@@ -53,7 +53,7 @@ pub fn expression_logic_operator(
   } else if expr.op == BinaryOp::NullishCoalescing {
     let param = scanner.evaluate_expression(&expr.left);
     if let Some(keep_right) = param.as_nullish() {
-      if param.could_have_side_effects() && keep_right {
+      if !param.could_have_side_effects() && keep_right {
         scanner
           .presentational_dependencies
           .push(Box::new(ConstDependency::new(
