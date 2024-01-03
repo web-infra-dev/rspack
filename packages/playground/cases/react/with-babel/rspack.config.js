@@ -13,7 +13,6 @@ module.exports = {
 					{
 						loader: "builtin:swc-loader",
 						options: {
-							sourceMap: false,
 							jsc: {
 								parser: {
 									syntax: "typescript",
@@ -27,9 +26,6 @@ module.exports = {
 									}
 								},
 								externalHelpers: true
-							},
-							env: {
-								targets: "Chrome >= 48"
 							}
 						}
 					},

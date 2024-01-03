@@ -1,11 +1,41 @@
+const rspack = require("@rspack/core");
+const ReactRefreshPlugin = require("@rspack/plugin-react-refresh");
+
 /** @type { import('@rspack/core').RspackOptions } */
 module.exports = {
 	context: __dirname,
 	mode: "development",
-	entry: [
-		"@rspack/plugin-react-refresh/react-refresh-entry",
-		"./src/index.jsx"
+	module: {
+		rules: [
+			{
+				test: /\.jsx$/,
+				use: {
+					loader: "builtin:swc-loader",
+					options: {
+						jsc: {
+							parser: {
+								syntax: "ecmascript",
+								jsx: true
+							},
+							transform: {
+								react: {
+									runtime: "automatic",
+									development: true,
+									refresh: true
+								}
+							}
+						}
+					}
+				}
+			}
+		]
+	},
+	devtool: false,
+	plugins: [
+		new rspack.HtmlRspackPlugin({ template: "./src/index.html" }),
+		new ReactRefreshPlugin()
 	],
+	entry: "./src/index.jsx",
 	devServer: {
 		hot: true
 	},
@@ -13,45 +43,6 @@ module.exports = {
 	stats: "none",
 	infrastructureLogging: {
 		debug: false
-	},
-	module: {
-		rules: [
-			{
-				test: /\.(j|t)sx?$/,
-				loader: "builtin:swc-loader",
-				exclude: [/[\\/]node_modules[\\/]/],
-				options: {
-					sourceMap: false,
-					jsc: {
-						parser: {
-							syntax: "typescript",
-							tsx: true
-						},
-						transform: {
-							react: {
-								runtime: "automatic",
-								development: true,
-								refresh: true
-							}
-						},
-						externalHelpers: true
-					},
-					env: {
-						targets: "Chrome >= 48"
-					}
-				}
-			}
-		]
-	},
-	builtins: {
-		provide: {
-			$ReactRefreshRuntime$: [require.resolve("./react-refresh.js")]
-		},
-		html: [
-			{
-				template: "./src/index.html"
-			}
-		]
 	},
 	watchOptions: {
 		poll: 1000
