@@ -29,7 +29,7 @@ const res = await fetch(LARK_WEBHOOK_URL, {
 					tag: "markdown",
 					content: DESCRIPTION
 				},
-				{
+				URL && {
 					tag: "action",
 					actions: [
 						{
@@ -43,7 +43,7 @@ const res = await fetch(LARK_WEBHOOK_URL, {
 						}
 					]
 				}
-			]
+			].filter(Boolean)
 		}
 	})
 });
