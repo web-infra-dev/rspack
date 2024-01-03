@@ -734,14 +734,8 @@ const applyOptimizationDefaults = (
 	D(optimization, "realContentHash", production);
 	D(optimization, "minimize", production);
 	A(optimization, "minimizer", () => [
-		{
-			apply(compiler) {
-				if (!compiler.options.builtins.minifyOptions) {
-					new SwcJsMinimizerRspackPlugin().apply(compiler);
-					new SwcCssMinimizerRspackPlugin().apply(compiler);
-				}
-			}
-		}
+		new SwcJsMinimizerRspackPlugin(),
+		new SwcCssMinimizerRspackPlugin()
 	]);
 	F(optimization, "nodeEnv", () => {
 		if (production) return "production";

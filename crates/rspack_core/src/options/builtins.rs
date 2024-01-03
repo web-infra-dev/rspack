@@ -2,7 +2,6 @@ use std::fmt::Debug;
 
 use rspack_error::Result;
 pub use rspack_swc_visitors::{Define, Provide};
-use rspack_swc_visitors::{EmotionOptions, ImportOptions, ReactOptions, RelayOptions};
 
 use crate::{ApplyContext, CompilerOptions, Plugin, PluginContext};
 
@@ -121,22 +120,8 @@ pub struct Builtins {
   pub define: Define,
   // TODO: refactor to string-replacement based
   pub provide: Provide,
-  // TODO: migrate to builtin:swc-loader
-  pub preset_env: Option<PresetEnv>,
   // TODO: refactoring
   pub tree_shaking: TreeShaking,
-  // TODO: migrate to builtin:swc-loader
-  pub react: ReactOptions,
-  // TODO: migrate to builtin:swc-loader
-  pub decorator: Option<DecoratorOptions>,
-  // TODO: remove this when drop support for builtin options (0.6.0)
-  pub no_emit_assets: bool,
-  // TODO: migrate to builtin:swc-loader
-  pub emotion: Option<EmotionOptions>,
-  // TODO: migrate to builtin:swc-loader
-  pub plugin_import: Option<Vec<ImportOptions>>,
-  // TODO: migrate to builtin:swc-loader
-  pub relay: Option<RelayOptions>,
 }
 
 #[derive(Debug, Clone, Default)]

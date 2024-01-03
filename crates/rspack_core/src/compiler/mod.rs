@@ -285,11 +285,9 @@ where
       return self.compilation.done(self.plugin_driver.clone()).await;
     }
 
-    if !self.compilation.options.builtins.no_emit_assets {
-      let start = logger.time("emitAssets");
-      self.emit_assets().await?;
-      logger.time_end(start);
-    }
+    let start = logger.time("emitAssets");
+    self.emit_assets().await?;
+    logger.time_end(start);
 
     let start = logger.time("done hook");
     self.compilation.done(self.plugin_driver.clone()).await?;

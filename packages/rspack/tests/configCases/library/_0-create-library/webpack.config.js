@@ -1,3 +1,4 @@
+const { rspack } = require("@rspack/core");
 const path = require("path");
 /** @type {function(any, any): import("@rspack/core").Configuration[]} */
 module.exports = (env, { testPath }) => [
@@ -190,12 +191,12 @@ module.exports = (env, { testPath }) => [
 				external: "./non-external"
 			}
 		},
-		builtins: {
-			banner: {
+		plugins: [
+			new rspack.BannerPlugin({
 				raw: true,
 				banner: "module.exports = () => globalName;\n"
-			}
-		}
+			})
+		]
 	},
 	{
 		output: {
@@ -209,12 +210,12 @@ module.exports = (env, { testPath }) => [
 				external: "./non-external"
 			}
 		},
-		builtins: {
-			banner: {
+		plugins: [
+			new rspack.BannerPlugin({
 				raw: true,
 				banner: "module.exports = () => globalName;\n"
-			}
-		}
+			})
+		]
 	},
 	{
 		entry: "./nested.js",

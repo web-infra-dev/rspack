@@ -1,5 +1,6 @@
 // Ideally we pass in patterns and confirm the resulting assets
 import fs from "fs";
+import { rspack } from "@rspack/core";
 
 import removeIllegalCharacterForWindows from "./removeIllegalCharacterForWindows";
 
@@ -66,12 +67,14 @@ function run(opts) {
 		const compiler =
 			opts.compiler ||
 			getCompiler({
-				builtins: {
-					copy: resolveCopy({
-						patterns: opts.patterns,
-						options: opts.options
-					})
-				}
+				plugins: [
+					new rspack.CopyRspackPlugin(
+						resolveCopy({
+							patterns: opts.patterns,
+							options: opts.options
+						})
+					)
+				]
 			});
 
 		// Execute the functions in series
@@ -156,11 +159,12 @@ const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 async function runChange(opts) {
 	const compiler = getCompiler();
 
-	compiler.options.builtins ??= {};
-	compiler.options.builtins.copy = resolveCopy({
-		patterns: opts.patterns,
-		options: opts.options
-	});
+	new rspack.CopyRspackPlugin(
+		resolveCopy({
+			patterns: opts.patterns,
+			options: opts.options
+		})
+	).apply(compiler);
 
 	// Create two test files
 	fs.writeFileSync(opts.newFileLoc1, "file1contents");

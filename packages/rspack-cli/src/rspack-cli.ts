@@ -136,8 +136,8 @@ export class RspackCLI {
 			}
 			// to set output.path
 			item.output = item.output || {};
-			if (options['output-path']) {
-				item.output.path = path.resolve(process.cwd(), options['output-path']);
+			if (options["output-path"]) {
+				item.output.path = path.resolve(process.cwd(), options["output-path"]);
 			}
 			if (options.analyze) {
 				const { BundleAnalyzerPlugin } = await import(
@@ -178,24 +178,9 @@ export class RspackCLI {
 				let installed = (item.plugins ||= []).find(
 					item => item instanceof rspackCore.ProgressPlugin
 				);
-				let o: rspackCore.ProgressPluginArgument | undefined;
-				if (
-					!installed &&
-					(o =
-						item.builtins.progress && typeof item.builtins.progress === "object"
-							? item.builtins.progress
-							: item.builtins.progress === true
-								? {}
-								: undefined)
-				) {
-					(item.plugins ||= []).push(new rspackCore.ProgressPlugin(o));
+				if (!installed) {
+					(item.plugins ??= []).push(new rspackCore.ProgressPlugin());
 				}
-				delete item.builtins.progress;
-			}
-
-			// no emit assets when run dev server, it will use node_binding api get file content
-			if (typeof item.builtins.noEmitAssets === "undefined") {
-				item.builtins.noEmitAssets = false; // @FIXME memory fs currently cause problems for outputFileSystem, so we disable it temporarily
 			}
 
 			// Tells webpack to set process.env.NODE_ENV to a given string value.
@@ -209,11 +194,9 @@ export class RspackCLI {
 				(item.plugins ||= []).push(
 					new rspackCore.DefinePlugin({
 						// User defined `process.env.NODE_ENV` always has highest priority than default define
-						"process.env.NODE_ENV": JSON.stringify(item.mode),
-						...item.builtins.define
+						"process.env.NODE_ENV": JSON.stringify(item.mode)
 					})
 				);
-				delete item.builtins.define;
 			}
 
 			if (typeof item.stats === "undefined") {

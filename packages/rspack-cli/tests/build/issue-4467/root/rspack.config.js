@@ -1,12 +1,13 @@
+const { rspack } = require("@rspack/core");
 const path = require("path");
 
 const config = {
 	entry: path.resolve(__dirname, "./index.js"),
-	builtins: {
-		banner: {
+	plugins: [
+		new rspack.BannerPlugin({
 			banner: ""
-		}
-	}
+		})
+	]
 };
 
 module.exports = config;

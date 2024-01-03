@@ -249,10 +249,6 @@ export class RspackOptionsApply {
 			new MergeDuplicateChunksPlugin().apply(compiler);
 		}
 
-		if (options.builtins.devFriendlySplitChunks) {
-			options.optimization.splitChunks = undefined;
-		}
-
 		if (options.experiments.rspackFuture?.newTreeshaking) {
 			if (options.optimization.sideEffects) {
 				new SideEffectsFlagPlugin(/* options.optimization.sideEffects === true */).apply(

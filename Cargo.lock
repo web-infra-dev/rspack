@@ -2397,7 +2397,6 @@ dependencies = [
  "rspack_plugin_banner",
  "rspack_plugin_copy",
  "rspack_plugin_css",
- "rspack_plugin_dev_friendly_split_chunks",
  "rspack_plugin_devtool",
  "rspack_plugin_ensure_chunk_conditions",
  "rspack_plugin_entry",
@@ -2460,7 +2459,6 @@ dependencies = [
  "rspack_plugin_banner",
  "rspack_plugin_copy",
  "rspack_plugin_css",
- "rspack_plugin_dev_friendly_split_chunks",
  "rspack_plugin_devtool",
  "rspack_plugin_ensure_chunk_conditions",
  "rspack_plugin_entry",
@@ -2821,17 +2819,6 @@ dependencies = [
  "swc_core",
  "tracing",
  "urlencoding",
-]
-
-[[package]]
-name = "rspack_plugin_dev_friendly_split_chunks"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "dashmap",
- "rayon",
- "rspack_core",
- "rspack_identifier",
 ]
 
 [[package]]
@@ -3248,7 +3235,6 @@ dependencies = [
  "rspack_loader_swc",
  "rspack_plugin_asset",
  "rspack_plugin_css",
- "rspack_plugin_dev_friendly_split_chunks",
  "rspack_plugin_devtool",
  "rspack_plugin_entry",
  "rspack_plugin_externals",
