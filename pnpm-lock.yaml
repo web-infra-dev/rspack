@@ -916,8 +916,6 @@ importers:
         specifier: workspace:*
         version: link:../../packages/rspack
 
-  examples/plugin-compat/dist: {}
-
   examples/polyfill:
     dependencies:
       core-js:

@@ -6,6 +6,9 @@ const config = {
 	},
 	target: "node",
 	externalsType: "commonjs",
+	resolve: {
+		extensions: ["...", ".ts", ".tsx", ".jsx"]
+	},
 	module: {
 		rules: [
 			{
@@ -130,7 +133,7 @@ const config = {
 		]
 	},
 	optimization: {
-		minimize: false, // Disabling minification because it takes too long on CI
-	},
+		minimize: false // Disabling minification because it takes too long on CI
+	}
 };
 module.exports = config;

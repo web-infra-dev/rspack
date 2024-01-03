@@ -88,7 +88,8 @@ const config = {
 			// Alias to the unminified version mitigates this problem.
 			// See also <https://github.com/search?q=repo%3Aswc-project%2Fswc+parser+stack+overflow&type=issues>
 			mockjs: require.resolve("./patches/mock.js")
-		}
+		},
+		extensions: ["...", ".ts", ".tsx", ".jsx"]
 	},
 	output: {
 		publicPath: "/",

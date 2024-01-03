@@ -4,6 +4,9 @@ const config = {
 	entry: {
 		main: "./index.jsx"
 	},
+	resolve: {
+		extensions: ["...", ".ts", ".tsx", ".jsx"]
+	},
 	module: {
 		rules: [
 			{

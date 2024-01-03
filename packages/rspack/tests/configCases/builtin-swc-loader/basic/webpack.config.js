@@ -1,4 +1,7 @@
 module.exports = {
+	resolve: {
+		extensions: ["...", ".ts"]
+	},
 	module: {
 		rules: [
 			{

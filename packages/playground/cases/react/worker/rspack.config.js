@@ -6,6 +6,9 @@ module.exports = {
 	context: __dirname,
 	mode: "development",
 	entry: "./src/index.jsx",
+	resolve: {
+		extensions: ["...", ".ts", ".tsx", ".jsx"]
+	},
 	module: {
 		rules: [
 			{

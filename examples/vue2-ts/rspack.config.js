@@ -18,7 +18,7 @@ const config = {
 		})
 	],
 	resolve: {
-		extensions: [".vue", "..."]
+		extensions: [".vue", ".ts", "..."]
 	},
 	module: {
 		rules: [

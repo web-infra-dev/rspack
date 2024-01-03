@@ -262,15 +262,16 @@ export const describeCases = config => {
 									assert(jsonStats.warnings!.length > 0);
 								} else {
 									if (jsonStats.errors!.length > 0) {
-										console.log(
-											`case: ${category.name} ${testName}\nerrors:\n`,
-											`${jsonStats.errors!.map(x => x.message).join("\n")}`
+										return done(
+											new Error(
+												`case: ${
+													category.name
+												} ${testName}\nerrors:\n${jsonStats
+													.errors!.map(x => x.message)
+													.join("\n")}`
+											)
 										);
 									}
-									assert(
-										jsonStats.errors!.length === 0,
-										`${JSON.stringify(jsonStats.errors, null, 2)}`
-									);
 								}
 								// if (
 								//     checkArrayExpectation(

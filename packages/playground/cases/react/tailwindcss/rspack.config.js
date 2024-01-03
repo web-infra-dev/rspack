@@ -11,6 +11,9 @@ module.exports = {
 		new rspack.HtmlRspackPlugin({ template: "./src/index.html" }),
 		new ReactRefreshPlugin()
 	],
+	resolve: {
+		extensions: ["...", ".ts", ".tsx", ".jsx"]
+	},
 	module: {
 		rules: [
 			{

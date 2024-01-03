@@ -81,7 +81,8 @@ const config = {
 			// See also <https://github.com/search?q=repo%3Aswc-project%2Fswc+parser+stack+overflow&type=issues>
 			mockjs: require.resolve("./patches/mock.js"),
 			"@swc/helpers": require.resolve("@swc/helpers")
-		}
+		},
+		extensions: ["...", ".ts", ".tsx", ".jsx"]
 	},
 	output: {
 		publicPath: "/",

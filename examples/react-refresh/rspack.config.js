@@ -8,6 +8,9 @@ const config = {
 	mode: isProduction ? "production" : "development",
 	entry: { main: "./src/index.tsx" },
 	devtool: "source-map",
+	resolve: {
+		extensions: ["...", ".ts", ".tsx", ".jsx"]
+	},
 	module: {
 		rules: [
 			{

@@ -3,7 +3,8 @@ module.exports = {
 	resolve: {
 		alias: {
 			"@xstyled/styled-components": "styled-components"
-		}
+		},
+		extensions: ["...", ".ts", ".tsx", ".jsx"]
 	},
 	module: {
 		rules: [
