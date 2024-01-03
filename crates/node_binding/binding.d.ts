@@ -739,10 +739,6 @@ export interface RawDecoratorOptions {
   emitMetadata: boolean
 }
 
-export interface RawDevServer {
-  hot: boolean
-}
-
 export interface RawEntryOptions {
   name?: string
   runtime?: string
@@ -998,7 +994,6 @@ export interface RawOptions {
   devtool: string
   optimization: RawOptimizationOptions
   stats: RawStatsOptions
-  devServer: RawDevServer
   snapshot: RawSnapshotOptions
   cache: RawCacheOptions
   experiments: RawExperiments

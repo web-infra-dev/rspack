@@ -778,7 +778,7 @@ impl NormalModuleFactory {
 }
 
 /// Using `u32` instead of `usize` to reduce memory usage,
-/// `u32` is 4 bytes on 64bit machine, comare to `usize` which is 8 bytes.
+/// `u32` is 4 bytes on 64bit machine, compare to `usize` which is 8 bytes.
 /// Rspan aka `Rspack span`, just avoiding conflict with span in other crate
 /// ## Warning
 /// RSpan is zero based, `Span` of `swc` is 1 based. see https://swc-css.netlify.app/?code=eJzLzC3ILypRSFRIK8rPVVAvSS0u0csqVgcAZaoIKg

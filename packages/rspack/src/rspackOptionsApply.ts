@@ -86,11 +86,6 @@ export function applyEntryOptions(
 				options.entry
 			);
 		}
-
-		if (options.devServer?.hot) {
-			// break in 0.5
-			new compiler.webpack.HotModuleReplacementPlugin().apply(compiler);
-		}
 	}
 }
 
@@ -344,9 +339,6 @@ export class RspackOptionsApply {
 
 		new WarnCaseSensitiveModulesPlugin().apply(compiler);
 
-		if (options.devServer?.hot) {
-			options.output.strictModuleErrorHandling = true;
-		}
 		new ResolveSwcPlugin().apply(compiler);
 		new WorkerPlugin(
 			options.output.workerChunkLoading!,

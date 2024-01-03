@@ -27,9 +27,9 @@ use crate::{
   add_connection_states, contextify, get_context, AsyncDependenciesBlockIdentifier, BoxLoader,
   BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation,
   CompilerOptions, ConnectionState, Context, DependenciesBlock, DependencyId, DependencyTemplate,
-  GenerateContext, GeneratorOptions, LibIdentOptions, LoaderRunnerPluginProcessResource, Module,
-  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType, ParseContext, ParseResult,
-  ParserAndGenerator, ParserOptions, Resolve, RuntimeSpec, SourceType,
+  GenerateContext, GeneratorOptions, LibIdentOptions, Module, ModuleDependency, ModuleGraph,
+  ModuleIdentifier, ModuleType, ParseContext, ParseResult, ParserAndGenerator, ParserOptions,
+  Resolve, RspackLoaderRunnerPlugin, RuntimeSpec, SourceType,
 };
 
 bitflags! {
@@ -340,9 +340,10 @@ impl Module for NormalModule {
     let loader_result = run_loaders(
       &self.loaders,
       &self.resource_data,
-      &[Box::new(LoaderRunnerPluginProcessResource {
+      &[&RspackLoaderRunnerPlugin {
         plugin_driver: build_context.plugin_driver.clone(),
-      })],
+        normal_module: self,
+      }],
       build_context.compiler_context,
     )
     .await;

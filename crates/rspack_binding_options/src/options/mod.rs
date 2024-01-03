@@ -1,13 +1,12 @@
 use napi_derive::napi;
 use rspack_core::{
-  CompilerOptions, Context, DevServerOptions, Devtool, Experiments, IncrementalRebuild,
-  IncrementalRebuildMakeState, ModuleOptions, Optimization, OutputOptions, Target, TreeShaking,
+  CompilerOptions, Context, Devtool, Experiments, IncrementalRebuild, IncrementalRebuildMakeState,
+  ModuleOptions, Optimization, OutputOptions, Target, TreeShaking,
 };
 use serde::Deserialize;
 
 mod raw_builtins;
 mod raw_cache;
-mod raw_dev_server;
 mod raw_devtool;
 mod raw_entry;
 mod raw_experiments;
@@ -24,7 +23,6 @@ mod raw_stats;
 
 pub use raw_builtins::*;
 pub use raw_cache::*;
-pub use raw_dev_server::*;
 pub use raw_devtool::*;
 pub use raw_entry::*;
 pub use raw_experiments::*;
@@ -59,7 +57,6 @@ pub struct RawOptions {
   pub devtool: String,
   pub optimization: RawOptimizationOptions,
   pub stats: RawStatsOptions,
-  pub dev_server: RawDevServer,
   pub snapshot: RawSnapshotOptions,
   pub cache: RawCacheOptions,
   pub experiments: RawExperiments,
@@ -103,7 +100,6 @@ impl RawOptions {
     let stats = self.stats.into();
     let snapshot = self.snapshot.into();
     let node = self.node.map(|n| n.into());
-    let dev_server: DevServerOptions = self.dev_server.into();
 
     let mut builtins = self.builtins.apply(plugins)?;
     if experiments.rspack_future.new_treeshaking {
@@ -125,7 +121,7 @@ impl RawOptions {
       snapshot,
       optimization,
       node,
-      dev_server,
+      dev_server: Default::default(),
       profile: self.profile,
       bail: self.bail,
       builtins,

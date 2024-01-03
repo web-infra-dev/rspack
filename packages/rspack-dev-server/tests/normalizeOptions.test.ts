@@ -114,14 +114,17 @@ describe("normalize options snapshot", () => {
 		await server.stop();
 	});
 
-	it("hot should be true by default", async () => {
+	it("should apply HMR plugin by default", async () => {
 		const compiler = rspack({
 			entry: ENTRY,
 			stats: "none"
 		});
 		const server = new RspackDevServer({}, compiler);
 		await server.start();
-		expect(compiler.options.devServer?.hot).toBe(true);
+		const hmrPlugins = compiler.builtinPlugins.filter(
+			p => p.name === "HotModuleReplacementPlugin"
+		);
+		expect(hmrPlugins.length).toBe(1);
 		expect(server.options.hot).toBe(true);
 		await server.stop();
 	});
