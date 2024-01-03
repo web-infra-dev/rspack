@@ -206,6 +206,10 @@ impl Dependency for HarmonyImportSpecifierDependency {
   fn id(&self) -> &DependencyId {
     &self.id
   }
+
+  fn source_order(&self) -> Option<i32> {
+    Some(self.source_order)
+  }
   fn span(&self) -> Option<rspack_core::ErrorSpan> {
     Some(rspack_core::ErrorSpan {
       start: self.start,

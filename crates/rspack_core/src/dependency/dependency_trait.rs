@@ -57,6 +57,10 @@ pub trait Dependency:
     None
   }
 
+  fn source_order(&self) -> Option<i32> {
+    None
+  }
+
   /// `Span` used for Dependency search in `on_usage` in `InnerGraph`
   fn span_for_on_usage_search(&self) -> Option<ErrorSpan> {
     self.span()

@@ -2,6 +2,7 @@ use std::cmp::Ordering;
 use std::os::unix::prelude::OpenOptionsExt;
 use std::sync::Arc;
 
+use rspack_core::concatenated_module::is_harmony_dep_like;
 use rspack_core::{
   filter_runtime, merge_runtime, BoxDependency, Compilation, ExportInfoProvided,
   ExtendedReferencedExport, Logger, ModuleGraph, ModuleIdentifier, OptimizeChunksArgs, Plugin,
@@ -110,7 +111,7 @@ impl ModuleConcatenationPlugin {
     let module = mg.module_by_identifier(&mi).expect("should have module");
     for d in module.get_dependencies() {
       let dep = d.get_dependency(mg);
-      let is_harmony_import_like = extends_harmony_dep(dep);
+      let is_harmony_import_like = is_harmony_dep_like(dep);
       if !is_harmony_import_like {
         continue;
       }
@@ -375,10 +376,4 @@ fn main() {
 
   // Print the struct for demonstration
   println!("{:?}", stats);
-}
-
-fn extends_harmony_dep(dep: &BoxDependency) -> bool {
-  dep.is::<HarmonyExportImportedSpecifierDependency>()
-    || dep.is::<HarmonyImportSideEffectDependency>()
-    || dep.is::<HarmonyImportSpecifierDependency>()
 }

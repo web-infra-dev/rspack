@@ -254,6 +254,10 @@ impl Dependency for HarmonyImportSideEffectDependency {
     self.span
   }
 
+  fn source_order(&self) -> Option<i32> {
+    Some(self.source_order)
+  }
+
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::Esm
   }

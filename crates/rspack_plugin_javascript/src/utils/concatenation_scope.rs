@@ -6,34 +6,6 @@ use rspack_core::ModuleIdentifier;
 use rustc_hash::FxHashMap as HashMap;
 use swc_core::atoms::Atom;
 
-#[derive(Debug)]
-struct ExternalModuleInfo {
-  index: usize,
-  module: ModuleIdentifier,
-}
-
-#[derive(Debug)]
-struct ConcatenatedModuleInfo {
-  index: usize,
-  module: ModuleIdentifier,
-  export_map: HashMap<Atom, String>,
-  raw_export_map: HashMap<Atom, String>,
-  namespace_export_symbol: Option<Atom>,
-}
-
-enum ModuleInfo {
-  External(ExternalModuleInfo),
-  Concatenated(ConcatenatedModuleInfo),
-}
-
-impl ModuleInfo {
-  fn index(&self) -> usize {
-    match self {
-      ModuleInfo::External(e) => e.index,
-      ModuleInfo::Concatenated(c) => c.index,
-    }
-  }
-}
 const DEFAULT_EXPORT: &'static str = "__WEBPACK_DEFAULT_EXPORT__";
 const NAMESPACE_OBJECT_EXPORT: &'static str = "__WEBPACK_NAMESPACE_OBJECT__";
 const MODULE_REFERENCE_REGEXP: Lazy<Regex> = once_cell::sync::Lazy::new(|| {
