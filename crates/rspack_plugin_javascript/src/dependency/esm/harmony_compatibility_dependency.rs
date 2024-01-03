@@ -21,9 +21,9 @@ impl DependencyTemplate for HarmonyCompatibilityDependency {
       module,
       ..
     } = code_generatable_context;
-    let mgm = compilation
+    let module = compilation
       .module_graph
-      .module_graph_module_by_identifier(&module.identifier())
+      .module_by_identifier(&module.identifier())
       .expect("should have mgm");
     // TODO __esModule is used
     runtime_requirements.insert(RuntimeGlobals::MAKE_NAMESPACE_OBJECT);
@@ -32,7 +32,7 @@ impl DependencyTemplate for HarmonyCompatibilityDependency {
       format!(
         "{}({});\n",
         RuntimeGlobals::MAKE_NAMESPACE_OBJECT,
-        mgm.get_exports_argument()
+        module.get_exports_argument()
       ),
       InitFragmentStage::StageHarmonyExports,
       0,
@@ -52,14 +52,14 @@ impl DependencyTemplate for HarmonyCompatibilityDependency {
           RuntimeGlobals::ASYNC_MODULE,
           compilation
             .module_graph
-            .module_graph_module_by_identifier(&module.identifier())
+            .module_by_identifier(&module.identifier())
             .expect("should have mgm")
             .get_module_argument()
         ),
         InitFragmentStage::StageAsyncBoundary,
         0,
         InitFragmentKey::unique(),
-        Some(format!("\n__webpack_async_result__();\n}} catch(e) {{ __webpack_async_result__(e); }} }}{});", if matches!(mgm.build_meta.as_ref().map(|meta| meta.has_top_level_await), Some(true)) { ", 1" } else { "" })),
+        Some(format!("\n__webpack_async_result__();\n}} catch(e) {{ __webpack_async_result__(e); }} }}{});", if matches!(module.build_meta().as_ref().map(|meta| meta.has_top_level_await), Some(true)) { ", 1" } else { "" })),
       )));
     }
   }

@@ -1259,8 +1259,8 @@ impl Compilation {
 
   #[instrument(name = "compilation::create_module_assets", skip_all)]
   async fn create_module_assets(&mut self, _plugin_driver: SharedPluginDriver) {
-    for (module_identifier, mgm) in self.module_graph.module_graph_modules() {
-      if let Some(ref build_info) = mgm.build_info {
+    for (module_identifier, module) in self.module_graph.modules() {
+      if let Some(ref build_info) = module.build_info() {
         for asset in build_info.asset_filenames.iter() {
           for chunk in self
             .chunk_graph

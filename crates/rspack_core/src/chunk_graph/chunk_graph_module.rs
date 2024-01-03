@@ -190,8 +190,8 @@ impl ChunkGraph {
         .get_exports_info(&module.identifier())
         .export_info_hash(&mut hasher, module_graph);
 
-      if let Some(mgm) = module_graph.module_graph_module_by_identifier(&module.identifier()) {
-        let export_type = mgm.get_exports_type(strict);
+      if let Some(module) = module_graph.module_by_identifier(&module.identifier()) {
+        let export_type = module.get_exports_type(strict);
         export_type.dyn_hash(&mut hasher);
       }
 
@@ -206,7 +206,7 @@ impl ChunkGraph {
     process_module_graph_module(module, module_graph, false).dyn_hash(&mut hasher);
 
     let strict: bool = module_graph
-      .module_graph_module_by_identifier(&module.identifier())
+      .module_by_identifier(&module.identifier())
       .unwrap_or_else(|| {
         panic!(
           "Module({}) should be added before using",

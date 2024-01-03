@@ -207,7 +207,7 @@ impl Plugin for JsPlugin {
       &compilation.module_graph,
     );
     // SAFETY: module identifier is unique
-    ordered_modules.sort_unstable_by_key(|m| m.module_identifier.as_str());
+    ordered_modules.sort_unstable_by_key(|m| m.identifier().as_str());
 
     ordered_modules
       .iter()
@@ -215,8 +215,8 @@ impl Plugin for JsPlugin {
         (
           compilation
             .code_generation_results
-            .get_hash(&mgm.module_identifier, Some(&chunk.runtime)),
-          compilation.chunk_graph.get_module_id(mgm.module_identifier),
+            .get_hash(&mgm.identifier(), Some(&chunk.runtime)),
+          compilation.chunk_graph.get_module_id(mgm.identifier()),
         )
       })
       .for_each(|(current, id)| {

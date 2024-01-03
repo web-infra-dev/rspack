@@ -456,8 +456,8 @@ impl Stats<'_> {
     chunks.sort_unstable();
 
     let assets = module_assets.then(|| {
-      let mut assets: Vec<_> = mgm
-        .build_info
+      let mut assets: Vec<_> = module
+        .build_info()
         .as_ref()
         .map(|info| info.asset_filenames.iter().map(|i| i.to_string()).collect())
         .unwrap_or_default();

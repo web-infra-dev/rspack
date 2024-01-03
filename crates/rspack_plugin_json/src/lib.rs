@@ -138,12 +138,12 @@ impl ParserAndGenerator for JsonParserAndGenerator {
         generate_context
           .runtime_requirements
           .insert(RuntimeGlobals::MODULE);
-        let mgm = compilation
+        let module = compilation
           .module_graph
-          .module_graph_module_by_identifier(&module.identifier())
+          .module_by_identifier(&module.identifier())
           .expect("should have module identifier");
-        let json_data = mgm
-          .build_info
+        let json_data = module
+          .build_info()
           .as_ref()
           .and_then(|info| info.json_data.as_ref())
           .expect("should have json data");

@@ -608,24 +608,22 @@ impl ModuleGraph {
       vec![]
     }
   }
-
   pub fn set_module_build_info_and_meta(
     &mut self,
     module_identifier: &ModuleIdentifier,
     build_info: BuildInfo,
     build_meta: BuildMeta,
   ) {
-    if let Some(mgm) = self.module_graph_module_by_identifier_mut(module_identifier) {
-      mgm.build_info = Some(build_info);
-      mgm.build_meta = Some(build_meta);
+    if let Some(module) = self.module_by_identifier_mut(module_identifier) {
+      module.set_module_build_info_and_meta(build_info, build_meta);
     }
   }
 
   #[inline]
   pub fn get_module_hash(&self, module_identifier: &ModuleIdentifier) -> Option<&RspackHashDigest> {
     self
-      .module_graph_module_by_identifier(module_identifier)
-      .and_then(|mgm| mgm.build_info.as_ref().and_then(|i| i.hash.as_ref()))
+      .module_by_identifier(module_identifier)
+      .and_then(|mgm| mgm.build_info().as_ref().and_then(|i| i.hash.as_ref()))
   }
 
   pub fn has_dependencies(
@@ -634,8 +632,8 @@ impl ModuleGraph {
     files: &HashSet<PathBuf>,
   ) -> bool {
     if let Some(build_info) = self
-      .module_graph_module_by_identifier(module_identifier)
-      .and_then(|mgm| mgm.build_info.as_ref())
+      .module_by_identifier(module_identifier)
+      .and_then(|module| module.build_info())
     {
       for item in files {
         if build_info.file_dependencies.contains(item)
@@ -776,10 +774,10 @@ mod test {
   use rspack_sources::Source;
 
   use crate::{
-    AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildResult,
-    CodeGenerationResult, Compilation, Context, DependenciesBlock, Dependency, DependencyId,
-    ExportInfo, ExportsInfo, Module, ModuleDependency, ModuleGraph, ModuleGraphModule,
-    ModuleIdentifier, ModuleType, RuntimeSpec, SourceType, UsageState,
+    AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta,
+    BuildResult, CodeGenerationResult, Compilation, Context, DependenciesBlock, Dependency,
+    DependencyId, ExportInfo, ExportsInfo, Module, ModuleDependency, ModuleGraph,
+    ModuleGraphModule, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType, UsageState,
   };
 
   // Define a detailed node type for `ModuleGraphModule`s
@@ -845,6 +843,22 @@ mod test {
           _compilation: &Compilation,
           _runtime: Option<&RuntimeSpec>,
         ) -> Result<CodeGenerationResult> {
+          unreachable!()
+        }
+
+        fn build_meta(&self) -> Option<&BuildMeta> {
+          unreachable!()
+        }
+
+        fn build_info(&self) -> Option<&BuildInfo> {
+          unreachable!()
+        }
+
+        fn set_module_build_info_and_meta(
+          &mut self,
+          _build_info: BuildInfo,
+          _build_meta: BuildMeta,
+        ) {
           unreachable!()
         }
       }

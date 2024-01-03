@@ -65,10 +65,9 @@ impl HarmonyExportImportedSpecifierDependency {
   pub fn active_exports<'a>(&self, module_graph: &'a ModuleGraph) -> &'a HashSet<JsWord> {
     let build_info = module_graph
       .parent_module_by_dependency_id(&self.id)
-      .and_then(|ident| module_graph.module_graph_module_by_identifier(&ident))
+      .and_then(|ident| module_graph.module_by_identifier(&ident))
       .expect("should have mgm")
-      .build_info
-      .as_ref()
+      .build_info()
       .expect("should have build info");
     &build_info.harmony_named_exports
   }
@@ -76,10 +75,9 @@ impl HarmonyExportImportedSpecifierDependency {
   pub fn all_star_exports<'a>(&self, module_graph: &'a ModuleGraph) -> &'a Vec<DependencyId> {
     let build_info = module_graph
       .parent_module_by_dependency_id(&self.id)
-      .and_then(|ident| module_graph.module_graph_module_by_identifier(&ident))
+      .and_then(|ident| module_graph.module_by_identifier(&ident))
       .expect("should have mgm")
-      .build_info
-      .as_ref()
+      .build_info()
       .expect("should have build info");
     &build_info.all_star_exports
   }
@@ -675,11 +673,11 @@ impl HarmonyExportImportedSpecifierDependency {
         runtime_requirements.insert(RuntimeGlobals::EXPORTS);
         runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
 
-        let mgm = compilation
+        let module = compilation
           .module_graph
-          .module_graph_module_by_identifier(&module.identifier())
+          .module_by_identifier(&module.identifier())
           .expect("should have module graph module");
-        let exports_name = mgm.get_exports_argument();
+        let exports_name = module.get_exports_argument();
         let is_async = compilation
           .module_graph
           .is_async(&module.identifier())
@@ -729,11 +727,11 @@ impl HarmonyExportImportedSpecifierDependency {
       key.into(),
       format!("/* {} */ {}", comment, return_value).into(),
     ));
-    let mgm = compilation
+    let module = compilation
       .module_graph
-      .module_graph_module_by_identifier(&module.identifier())
+      .module_by_identifier(&module.identifier())
       .expect("should have module graph module");
-    HarmonyExportInitFragment::new(mgm.get_exports_argument(), export_map)
+    HarmonyExportInitFragment::new(module.get_exports_argument(), export_map)
   }
 
   fn get_reexport_fake_namespace_object_fragments(
@@ -750,9 +748,9 @@ impl HarmonyExportImportedSpecifierDependency {
       ..
     } = ctxt;
 
-    let mgm = compilation
+    let module = compilation
       .module_graph
-      .module_graph_module_by_identifier(&module.identifier())
+      .module_by_identifier(&module.identifier())
       .expect("should have module graph module");
     runtime_requirements.insert(RuntimeGlobals::EXPORTS);
     runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
@@ -777,7 +775,7 @@ impl HarmonyExportImportedSpecifierDependency {
         None,
       )
       .boxed(),
-      HarmonyExportInitFragment::new(mgm.get_exports_argument(), export_map).boxed(),
+      HarmonyExportInitFragment::new(module.get_exports_argument(), export_map).boxed(),
     ];
     ctxt.init_fragments.extend_from_slice(&frags);
   }
@@ -810,11 +808,11 @@ impl HarmonyExportImportedSpecifierDependency {
       ..
     } = ctxt;
     let return_value = Self::get_return_value(name.to_string(), value_key);
-    let mgm = compilation
+    let module = compilation
       .module_graph
-      .module_graph_module_by_identifier(&module.identifier())
+      .module_by_identifier(&module.identifier())
       .expect("should have mgm");
-    let exports_name = mgm.get_exports_argument();
+    let exports_name = module.get_exports_argument();
     runtime_requirements.insert(RuntimeGlobals::EXPORTS);
     runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
     runtime_requirements.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
@@ -849,9 +847,9 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
     let module = &code_generatable_context.module;
     let runtime = code_generatable_context.runtime;
 
-    let mgm = compilation
+    let module = compilation
       .module_graph
-      .module_graph_module_by_identifier(&module.identifier())
+      .module_by_identifier(&module.identifier())
       .expect("should have module graph module");
 
     let import_var = get_import_var(&compilation.module_graph, self.id);
@@ -958,7 +956,7 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
       code_generatable_context
         .init_fragments
         .push(Box::new(HarmonyExportInitFragment::new(
-          mgm.get_exports_argument(),
+          module.get_exports_argument(),
           exports,
         )));
     }
