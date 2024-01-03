@@ -328,10 +328,15 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       .module_graph
       .module_graph_module_by_identifier(&module_id)
       .expect("should have mgm");
+    let module = self
+      .compilation
+      .module_graph
+      .module_by_identifier(&module_id)
+      .expect("should have module");
     let mgm_exports_info_id = mgm.exports;
     if !used_exports.is_empty() {
-      let need_insert = match mgm.build_meta {
-        Some(ref build_meta) => matches!(build_meta.exports_type, BuildMetaExportsType::Unset),
+      let need_insert = match module.build_meta() {
+        Some(build_meta) => matches!(build_meta.exports_type, BuildMetaExportsType::Unset),
         None => true,
       };
       if need_insert {

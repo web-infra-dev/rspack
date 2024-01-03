@@ -78,9 +78,9 @@ impl DependencyTemplate for HarmonyExportSpecifierDependency {
       ..
     } = code_generatable_context;
 
-    let mgm = compilation
+    let module = compilation
       .module_graph
-      .module_graph_module_by_identifier(&module.identifier())
+      .module_by_identifier(&module.identifier())
       .expect("should have module graph module");
 
     let used_name = if compilation.options.is_new_tree_shaking() {
@@ -113,7 +113,7 @@ impl DependencyTemplate for HarmonyExportSpecifierDependency {
     };
     if let Some(used_name) = used_name {
       init_fragments.push(Box::new(HarmonyExportInitFragment::new(
-        mgm.get_exports_argument(),
+        module.get_exports_argument(),
         vec![(used_name, self.value.clone())],
       )));
     }

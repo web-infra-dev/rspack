@@ -30,7 +30,7 @@ impl DependencyTemplate for ModuleArgumentDependency {
 
     let module_argument = compilation
       .module_graph
-      .module_graph_module_by_identifier(&module.identifier())
+      .module_by_identifier(&module.identifier())
       .expect("should have mgm")
       .get_module_argument();
 

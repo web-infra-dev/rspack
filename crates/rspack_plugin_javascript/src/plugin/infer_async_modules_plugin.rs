@@ -21,16 +21,16 @@ impl Plugin for InferAsyncModulesPlugin {
 
     let mut modules: Vec<Identifier> = compilation
       .module_graph
-      .module_graph_modules()
+      .modules()
       .values()
       .filter(|m| {
-        if let Some(meta) = &m.build_meta {
+        if let Some(meta) = &m.build_meta() {
           meta.has_top_level_await
         } else {
           false
         }
       })
-      .map(|m| m.module_identifier)
+      .map(|m| m.identifier())
       .collect();
 
     modules.retain(|m| queue.insert(*m));

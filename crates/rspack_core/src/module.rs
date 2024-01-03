@@ -179,6 +179,86 @@ pub trait Module:
     })
   }
 
+  fn build_info(&self) -> Option<&BuildInfo>;
+
+  fn build_meta(&self) -> Option<&BuildMeta>;
+
+  fn set_module_build_info_and_meta(&mut self, build_info: BuildInfo, build_meta: BuildMeta);
+
+  fn get_exports_argument(&self) -> ExportsArgument {
+    self
+      .build_meta()
+      .as_ref()
+      .map(|m| m.exports_argument)
+      .unwrap_or_default()
+  }
+
+  fn get_module_argument(&self) -> ModuleArgument {
+    self
+      .build_meta()
+      .as_ref()
+      .map(|m| m.module_argument)
+      .unwrap_or_default()
+  }
+
+  fn get_exports_type(&self, strict: bool) -> ExportsType {
+    if let Some((export_type, default_object)) = self
+      .build_meta()
+      .as_ref()
+      .map(|m| (&m.exports_type, &m.default_object))
+    {
+      match export_type {
+        BuildMetaExportsType::Flagged => {
+          if strict {
+            ExportsType::DefaultWithNamed
+          } else {
+            ExportsType::Namespace
+          }
+        }
+        BuildMetaExportsType::Namespace => ExportsType::Namespace,
+        BuildMetaExportsType::Default => match default_object {
+          BuildMetaDefaultObject::Redirect => ExportsType::DefaultWithNamed,
+          BuildMetaDefaultObject::RedirectWarn => {
+            if strict {
+              ExportsType::DefaultOnly
+            } else {
+              ExportsType::DefaultWithNamed
+            }
+          }
+          BuildMetaDefaultObject::False => ExportsType::DefaultOnly,
+        },
+        BuildMetaExportsType::Dynamic => {
+          if strict {
+            ExportsType::DefaultWithNamed
+          } else {
+            // TODO check target
+            ExportsType::Dynamic
+          }
+        }
+        // algin to undefined
+        BuildMetaExportsType::Unset => {
+          if strict {
+            ExportsType::DefaultWithNamed
+          } else {
+            ExportsType::Dynamic
+          }
+        }
+      }
+    } else if strict {
+      ExportsType::DefaultWithNamed
+    } else {
+      ExportsType::Dynamic
+    }
+  }
+
+  fn get_strict_harmony_module(&self) -> bool {
+    self
+      .build_meta()
+      .as_ref()
+      .map(|m| m.strict_harmony_module)
+      .unwrap_or(false)
+  }
+
   /// The actual code generation of the module, which will be called by the `Compilation`.
   /// The code generation result should not be cached as it is implemented elsewhere to
   /// provide a universal cache mechanism (time to invalidate cache, etc.)
@@ -285,6 +365,28 @@ impl dyn Module + '_ {
   pub fn downcast_mut<T: Module + Any>(&mut self) -> Option<&mut T> {
     self.as_any_mut().downcast_mut::<T>()
   }
+}
+
+#[macro_export]
+macro_rules! impl_build_info_meta {
+  () => {
+    fn build_info(&self) -> Option<&$crate::BuildInfo> {
+      self.build_info.as_ref()
+    }
+
+    fn build_meta(&self) -> Option<&$crate::BuildMeta> {
+      self.build_meta.as_ref()
+    }
+
+    fn set_module_build_info_and_meta(
+      &mut self,
+      build_info: $crate::BuildInfo,
+      build_meta: $crate::BuildMeta,
+    ) {
+      self.build_info = Some(build_info);
+      self.build_meta = Some(build_meta);
+    }
+  };
 }
 
 macro_rules! impl_module_downcast_helpers {
@@ -434,6 +536,22 @@ mod test {
           _compilation: &Compilation,
           _runtime: Option<&RuntimeSpec>,
         ) -> Result<CodeGenerationResult> {
+          unreachable!()
+        }
+
+        fn build_info(&self) -> Option<&crate::BuildInfo> {
+          unreachable!()
+        }
+
+        fn build_meta(&self) -> Option<&crate::BuildMeta> {
+          unreachable!()
+        }
+
+        fn set_module_build_info_and_meta(
+          &mut self,
+          _build_info: crate::BuildInfo,
+          _build_meta: crate::BuildMeta,
+        ) {
           unreachable!()
         }
       }

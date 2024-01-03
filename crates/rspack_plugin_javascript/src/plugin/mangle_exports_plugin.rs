@@ -56,15 +56,18 @@ impl Plugin for MangleExportsPlugin {
       .cloned()
       .collect::<Vec<_>>();
     for identifier in module_id_list {
-      let Some(module) = mg.module_graph_module_by_identifier(&identifier) else {
+      let (Some(mgm), Some(module)) = (
+        mg.module_graph_module_by_identifier(&identifier),
+        mg.module_by_identifier(&identifier),
+      ) else {
         continue;
       };
       let is_namespace = module
-        .build_meta
+        .build_meta()
         .as_ref()
         .map(|meta| matches!(meta.exports_type, BuildMetaExportsType::Namespace))
         .unwrap_or_default();
-      let exports_info_id = module.exports;
+      let exports_info_id = mgm.exports;
       mangle_exports_info(mg, self.deterministic, exports_info_id, is_namespace);
     }
     Ok(None)
