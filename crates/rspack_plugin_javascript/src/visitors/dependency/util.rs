@@ -1,5 +1,4 @@
-use std::collections::VecDeque;
-
+use itertools::Itertools;
 use rspack_core::{
   extract_member_expression_chain, DependencyLocation, ExpressionInfoKind, SpanExt,
 };
@@ -7,7 +6,7 @@ use rustc_hash::FxHashSet as HashSet;
 use swc_core::{
   common::{Spanned, SyntaxContext},
   ecma::{
-    ast::{CallExpr, Expr, ExprOrSpread, Ident, MemberExpr, ObjectPat, ObjectPatProp, PropName},
+    ast::{CallExpr, Expr, ExprOrSpread, MemberExpr, ObjectPat, ObjectPatProp, PropName},
     atoms::{Atom, JsWord},
   },
 };
@@ -343,64 +342,41 @@ pub static EXTRACT_REQUIRE_ROOT: &str = "__fake__";
 
 pub fn extract_require_call_info(
   expr: &Expr,
-) -> Option<(VecDeque<Atom>, ExprOrSpread, DependencyLocation)> {
-  let mut fake_expr = expr.clone();
-  fn create_fake_expr(expr: &mut Expr) -> (Expr, Option<ExprOrSpread>, DependencyLocation, bool) {
-    let loc = DependencyLocation::new(expr.span().real_lo(), expr.span().real_hi());
-    match expr {
-      Expr::Call(call_expr) => {
-        if let Some(callee) = call_expr.callee.as_mut_expr() {
-          // require().a => fake.a
-          if expr_matcher::is_require(callee) || expr_matcher::is_module_require(callee) {
-            (
-              Expr::Ident(Ident::from((
-                Atom::from(EXTRACT_REQUIRE_ROOT),
-                SyntaxContext::empty(),
-              ))),
-              call_expr.args.first().cloned(),
-              loc,
-              false,
-            )
-          } else {
-            // a().b => a
-            let callee_expr = create_fake_expr(callee);
-            (callee_expr.0, callee_expr.1, callee_expr.2, true)
-          }
-        } else {
-          (expr.to_owned(), None, loc, false)
-        }
-      }
-      Expr::Member(obj_expr) => {
-        let (new_obj, first_arg, new_obj_loc, has_result) = create_fake_expr(&mut obj_expr.obj);
-        if has_result {
-          (new_obj, first_arg, new_obj_loc, true)
-        } else {
-          obj_expr.obj = Box::new(new_obj);
-          (expr.to_owned(), first_arg, loc, false)
-        }
-      }
-      _ => (expr.to_owned(), None, loc, false),
-    }
-  }
-
-  let (fake_expr, first_arg, loc, _) = create_fake_expr(&mut fake_expr);
-  let member_info = extract_member_expression_chain(fake_expr);
-  let mut members = match member_info.kind() {
+) -> Option<(Vec<Atom>, ExprOrSpread, DependencyLocation)> {
+  let member_info = extract_member_expression_chain(expr);
+  let root_members = match member_info.kind() {
     ExpressionInfoKind::CallExpression(info) => info
       .root_members()
       .iter()
       .map(|n| n.0.to_owned())
-      .collect::<VecDeque<_>>(),
-    ExpressionInfoKind::Expression => member_info
-      .members()
-      .iter()
-      .map(|n| n.0.to_owned())
-      .collect::<VecDeque<_>>(),
+      .collect_vec(),
+    ExpressionInfoKind::Expression => vec![],
   };
-  if let (Some(first_member), Some(first_arg)) = (members.pop_front(), first_arg)
-    && first_member == EXTRACT_REQUIRE_ROOT
+  let args = match member_info.kind() {
+    ExpressionInfoKind::CallExpression(info) => {
+      info.args().iter().map(|i| i.to_owned()).collect_vec()
+    }
+    ExpressionInfoKind::Expression => vec![],
+  };
+
+  let members = member_info
+    .members()
+    .iter()
+    .map(|n| n.0.to_owned())
+    .collect_vec();
+
+  let Some(fist_arg) = args.first() else {
+    return None;
+  };
+
+  let loc = DependencyLocation::new(expr.span().real_lo(), expr.span().real_hi());
+
+  if (root_members.len() == 1 && root_members.first().is_some_and(|f| f == "require"))
+    || (root_members.len() == 2
+      && root_members.first().is_some_and(|f| f == "module")
+      && root_members.get(1).is_some_and(|f| f == "require"))
   {
-    Some((members, first_arg, loc))
+    Some((members, fist_arg.to_owned(), loc))
   } else {
     None
   }
