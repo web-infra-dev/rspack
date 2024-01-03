@@ -407,7 +407,7 @@ pub(crate) mod test {
 
   impl Identifiable for Builtin {
     fn identifier(&self) -> Identifier {
-      "builtin:sass-loader".into()
+      "builtin:test-loader".into()
     }
   }
 

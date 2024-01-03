@@ -369,12 +369,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "14c189c53d098945499cdfa7ecc63567cf3886b3332b312a5b4585d8d3a6a610"
 
 [[package]]
-name = "bytes"
-version = "1.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "89b2fd2a0dcf38d7971e2194b6b6eebab45ae01067456a7fd93d5547a61b70be"
-
-[[package]]
 name = "cargo-rst"
 version = "0.1.0"
 dependencies = [
@@ -2092,29 +2086,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "prost"
-version = "0.11.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0b82eaa1d779e9a4bc1c3217db8ffbeabaae1dca241bf70183242128d48681cd"
-dependencies = [
- "bytes",
- "prost-derive",
-]
-
-[[package]]
-name = "prost-derive"
-version = "0.11.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e5d2d8d10f3c6ded6da8b05b5fb3b8a5082514344d56c9f871412d29b4e075b4"
-dependencies = [
- "anyhow",
- "itertools",
- "proc-macro2",
- "quote",
- "syn 1.0.109",
-]
-
-[[package]]
 name = "psm"
 version = "0.1.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2420,7 +2391,6 @@ dependencies = [
  "rspack_ids",
  "rspack_loader_react_refresh",
  "rspack_loader_runner",
- "rspack_loader_sass",
  "rspack_loader_swc",
  "rspack_napi_shared",
  "rspack_plugin_asset",
@@ -2485,7 +2455,6 @@ dependencies = [
  "rspack_ids",
  "rspack_loader_react_refresh",
  "rspack_loader_runner",
- "rspack_loader_sass",
  "rspack_loader_swc",
  "rspack_napi_shared",
  "rspack_plugin_asset",
@@ -2703,25 +2672,6 @@ dependencies = [
  "rustc-hash",
  "serde_json",
  "similar-asserts",
- "tokio",
-]
-
-[[package]]
-name = "rspack_loader_sass"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "indexmap 1.9.3",
- "itertools",
- "once_cell",
- "regex",
- "rspack_core",
- "rspack_error",
- "rspack_loader_runner",
- "rspack_testing",
- "sass-embedded",
- "serde",
- "str_indices",
  "tokio",
 ]
 
@@ -3310,7 +3260,6 @@ dependencies = [
  "rspack_fs",
  "rspack_ids",
  "rspack_loader_runner",
- "rspack_loader_sass",
  "rspack_loader_swc",
  "rspack_plugin_asset",
  "rspack_plugin_css",
@@ -3417,25 +3366,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "93fc1dc3aaa9bfed95e02e6eadabb4baf7e3078b0bd1b4d7b6b0b68378900502"
 dependencies = [
  "winapi-util",
-]
-
-[[package]]
-name = "sass-embedded"
-version = "0.7.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "043fea16ac00f7132b50dce6094873fee0d328bd43c0f552faeb33d989d97b77"
-dependencies = [
- "atty",
- "crossbeam-channel",
- "dashmap",
- "parking_lot 0.12.1",
- "prost",
- "regex",
- "rustc-hash",
- "serde",
- "serde_json",
- "url",
- "urlencoding",
 ]
 
 [[package]]
@@ -5472,7 +5402,6 @@ dependencies = [
  "form_urlencoded",
  "idna",
  "percent-encoding",
- "serde",
 ]
 
 [[package]]
