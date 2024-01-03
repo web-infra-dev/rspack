@@ -31,7 +31,7 @@ enum Ty {
   TypeArray,
   ConstArray,
   BigInt,
-  Identifier,
+  // Identifier,
   // TypeWrapped,
   TemplateString,
 }
@@ -61,7 +61,6 @@ pub struct BasicEvaluatedExpression {
   items: Option<Vec<BasicEvaluatedExpression>>,
   quasis: Option<Vec<BasicEvaluatedExpression>>,
   parts: Option<Vec<BasicEvaluatedExpression>>,
-  identifier: Option<String>,
   // array: Option<Array>
   template_string_kind: Option<TemplateStringKind>,
 
@@ -93,7 +92,6 @@ impl BasicEvaluatedExpression {
       string: None,
       items: None,
       regexp: None,
-      identifier: None,
     }
   }
 
@@ -105,6 +103,10 @@ impl BasicEvaluatedExpression {
 
   // pub fn is_unknown(&self) -> bool {
   //   matches!(self.ty, Ty::Unknown)
+  // }
+
+  // pub fn is_identifier(&self) -> bool {
+  //   matches!(self.ty, Ty::Identifier)
   // }
 
   pub fn is_null(&self) -> bool {
@@ -137,10 +139,6 @@ impl BasicEvaluatedExpression {
 
   pub fn is_regexp(&self) -> bool {
     matches!(self.ty, Ty::RegExp)
-  }
-
-  pub fn is_identifier(&self) -> bool {
-    matches!(self.ty, Ty::Identifier)
   }
 
   pub fn is_compile_time_value(&self) -> bool {
@@ -267,11 +265,6 @@ impl BasicEvaluatedExpression {
     self.side_effects = true
   }
 
-  pub fn set_null(&mut self) {
-    self.ty = Ty::Null;
-    self.side_effects = false
-  }
-
   pub fn set_range(&mut self, start: u32, end: u32) {
     self.range = Some(DependencyLocation::new(start, end))
   }
@@ -318,10 +311,6 @@ impl BasicEvaluatedExpression {
       .parts
       .as_ref()
       .expect("make sure template string exist")
-  }
-
-  pub fn identifier(&self) -> &str {
-    self.identifier.as_ref().expect("ensure identifier exist")
   }
 
   pub fn range(&self) -> (u32, u32) {
