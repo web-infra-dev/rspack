@@ -287,6 +287,7 @@ impl<'a> Visit for CommonJsImportDependencyScanner<'a> {
       .and_then(|mem| self.chain_handler(mem, true))
     {
       self.dependencies.push(Box::new(dep));
+      call_expr.args.visit_children_with(self);
       return;
     }
 
