@@ -179,7 +179,7 @@ pub struct LoaderContext<'c, C> {
   // Only used for cross-crate accessing.
   // This field should not be accessed in builtin loaders.
   #[derivative(Debug = "ignore")]
-  pub __plugins: &'c [Box<dyn LoaderRunnerPlugin>],
+  pub __plugins: &'c [&'c dyn LoaderRunnerPlugin<Context = C>],
   // Only used for cross-crate accessing.
   // This field should not be accessed in builtin loaders.
   pub __resource_data: &'c ResourceData,
@@ -266,7 +266,7 @@ async fn process_resource<C: Send>(loader_context: &mut LoaderContext<'_, C>) ->
 async fn create_loader_context<'c, C: 'c>(
   __loader_items: &'c [LoaderItem<C>],
   resource_data: &'c ResourceData,
-  plugins: &'c [Box<dyn LoaderRunnerPlugin>],
+  plugins: &'c [&dyn LoaderRunnerPlugin<Context = C>],
   context: C,
 ) -> Result<LoaderContext<'c, C>> {
   let mut file_dependencies: HashSet<PathBuf> = Default::default();
@@ -274,7 +274,7 @@ async fn create_loader_context<'c, C: 'c>(
     file_dependencies.insert(resource_data.resource_path.clone());
   }
 
-  let loader_context = LoaderContext {
+  let mut loader_context = LoaderContext {
     cacheable: true,
     file_dependencies,
     context_dependencies: Default::default(),
@@ -295,6 +295,10 @@ async fn create_loader_context<'c, C: 'c>(
     __resource_data: resource_data,
     __diagnostics: vec![],
   };
+
+  for plugin in plugins {
+    plugin.loader_context(&mut loader_context)?;
+  }
 
   Ok(loader_context)
 }
@@ -402,7 +406,7 @@ impl<C> TryFrom<LoaderContext<'_, C>> for TWithDiagnosticArray<LoaderResult> {
 pub async fn run_loaders<C: Send>(
   loaders: &[Arc<dyn Loader<C>>],
   resource_data: &ResourceData,
-  plugins: &[Box<dyn LoaderRunnerPlugin>],
+  plugins: &[&dyn LoaderRunnerPlugin<Context = C>],
   context: C,
 ) -> Result<TWithDiagnosticArray<LoaderResult>> {
   let loaders = loaders
@@ -436,13 +440,22 @@ mod test {
     runner::Scheme,
     DisplayWithSuffix,
   };
+  fn noop(_: &mut LoaderContext<()>) -> Result<()> {
+    Ok(())
+  }
 
   struct TestContentPlugin;
 
   #[async_trait::async_trait]
   impl LoaderRunnerPlugin for TestContentPlugin {
+    type Context = ();
+
     fn name(&self) -> &'static str {
       "test-content"
+    }
+
+    fn loader_context(&self, _context: &mut LoaderContext<Self::Context>) -> Result<()> {
+      Ok(())
     }
 
     async fn process_resource(&self, _resource_data: &ResourceData) -> Result<Option<Content>> {
@@ -505,7 +518,7 @@ mod test {
       encoded_content: None,
     };
 
-    run_loaders(&[c1, p1, c2, c3], &rs, &[Box::new(TestContentPlugin)], ())
+    run_loaders(&[c1, p1, c2, c3], &rs, &[&TestContentPlugin], ())
       .await
       .unwrap();
 
@@ -678,7 +691,7 @@ mod test {
       encoded_content: None,
     };
 
-    run_loaders::<()>(&[p1, p2, c1, c2], &rs, &[Box::new(TestContentPlugin)], ())
+    run_loaders(&[p1, p2, c1, c2], &rs, &[&TestContentPlugin], ())
       .await
       .unwrap();
     IDENTS.with(|i| assert_eq!(*i.borrow(), &["pitch1", "pitch2", "normal2", "normal1"]));
@@ -688,7 +701,7 @@ mod test {
     let p2 = Arc::new(PitchNormal) as Arc<dyn Loader<()>>;
     let p3 = Arc::new(PitchNormal2) as Arc<dyn Loader<()>>;
 
-    run_loaders::<()>(&[p1, p2, p3], &rs, &[Box::new(TestContentPlugin)], ())
+    run_loaders(&[p1, p2, p3], &rs, &[&TestContentPlugin], ())
       .await
       .unwrap();
     IDENTS.with(|i| {
@@ -756,7 +769,7 @@ mod test {
     run_loaders(
       &[Arc::new(Normal) as Arc<dyn Loader>, Arc::new(Normal2)],
       &rs,
-      &[Box::new(TestContentPlugin)],
+      &[&TestContentPlugin],
       (),
     )
     .await
