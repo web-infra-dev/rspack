@@ -68,12 +68,7 @@ describe("normalize options snapshot", () => {
 		const entries1 = await getAdditionEntries(
 			{},
 			{
-				entry: ["something"],
-				experiments: {
-					rspackFuture: {
-						disableTransformByDefault: true
-					}
-				}
+				entry: ["something"]
 			}
 		);
 		expect(entries1["undefined"]).not.toContain(reactRefreshEntry);
@@ -81,37 +76,10 @@ describe("normalize options snapshot", () => {
 			{},
 			{
 				entry: ["something"],
-				plugins: [new ReactRefreshPlugin()],
-				experiments: {
-					rspackFuture: {
-						disableTransformByDefault: true
-					}
-				}
+				plugins: [new ReactRefreshPlugin()]
 			}
 		);
 		expect(entries2["undefined"]).toContain(reactRefreshEntry);
-	});
-
-	it("react.development and react.refresh should be true by default when hot enabled", async () => {
-		const compiler = rspack({
-			entry: ENTRY,
-			stats: "none",
-			experiments: {
-				rspackFuture: {
-					disableTransformByDefault: false
-				}
-			}
-		});
-		const server = new RspackDevServer(
-			{
-				hot: true
-			},
-			compiler
-		);
-		await server.start();
-		expect(compiler.options.builtins.react?.refresh).toBe(true);
-		expect(compiler.options.builtins.react?.development).toBe(true);
-		await server.stop();
 	});
 
 	it("should apply HMR plugin by default", async () => {

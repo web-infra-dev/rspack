@@ -1138,7 +1138,6 @@ export interface RawResolveTsconfigOptions {
 
 export interface RawRspackFuture {
   newTreeshaking: boolean
-  disableTransformByDefault: boolean
 }
 
 export interface RawRuleSetCondition {

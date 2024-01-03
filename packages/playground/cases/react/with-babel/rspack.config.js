@@ -9,13 +9,34 @@ module.exports = {
 		rules: [
 			{
 				test: /\.jsx$/,
-				use: {
-					loader: "babel-loader",
-					options: {
-						presets: [["@babel/preset-react", { runtime: "automatic" }]],
-						plugins: [require.resolve("react-refresh/babel")]
+				use: [
+					{
+						loader: "builtin:swc-loader",
+						options: {
+							jsc: {
+								parser: {
+									syntax: "typescript",
+									tsx: true
+								},
+								transform: {
+									react: {
+										runtime: "automatic",
+										development: true,
+										refresh: true
+									}
+								},
+								externalHelpers: true
+							}
+						}
+					},
+					{
+						loader: "babel-loader",
+						options: {
+							presets: [["@babel/preset-react", { runtime: "automatic" }]],
+							plugins: [require.resolve("react-refresh/babel")]
+						}
 					}
-				}
+				]
 			}
 		]
 	},
@@ -23,11 +44,6 @@ module.exports = {
 		new rspack.HtmlRspackPlugin({ template: "./src/index.html" }),
 		new ReactRefreshPlugin()
 	],
-	experiments: {
-		rspackFuture: {
-			disableTransformByDefault: false
-		}
-	},
 	entry: "./src/index.jsx",
 	devServer: {
 		hot: true

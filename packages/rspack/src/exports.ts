@@ -51,13 +51,15 @@ export { sources };
 
 import {
 	getNormalizedRspackOptions,
-	applyRspackOptionsDefaults
+	applyRspackOptionsDefaults,
+	getRawOptions
 } from "./config";
 export const config = {
 	getNormalizedRspackOptions,
 	applyRspackOptionsDefaults,
 	getNormalizedWebpackOptions: getNormalizedRspackOptions,
-	applyWebpackOptionsDefaults: applyRspackOptionsDefaults
+	applyWebpackOptionsDefaults: applyRspackOptionsDefaults,
+	__internal__getRawOptions: getRawOptions
 };
 
 export type * from "./config";

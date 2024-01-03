@@ -90,8 +90,6 @@ export const applyRspackOptionsDefaults = (
 	applyModuleDefaults(options.module, {
 		// syncWebAssembly: options.experiments.syncWebAssembly,
 		asyncWebAssembly: options.experiments.asyncWebAssembly!,
-		disableTransformByDefault:
-			options.experiments.rspackFuture!.disableTransformByDefault!,
 		css: options.experiments.css!
 	});
 
@@ -185,7 +183,6 @@ const applyExperimentsDefaults = (
 	D(experiments, "rspackFuture", {});
 	if (typeof experiments.rspackFuture === "object") {
 		D(experiments.rspackFuture, "newTreeshaking", false);
-		D(experiments.rspackFuture, "disableTransformByDefault", true);
 		D(experiments.rspackFuture, "disableApplyEntryLazily", true);
 	}
 };
@@ -216,12 +213,10 @@ const applyModuleDefaults = (
 	module: ModuleOptions,
 	{
 		asyncWebAssembly,
-		css,
-		disableTransformByDefault
+		css
 	}: {
 		asyncWebAssembly: boolean;
 		css: boolean;
-		disableTransformByDefault: boolean;
 	}
 ) => {
 	assertNotNill(module.parser);
@@ -294,24 +289,6 @@ const applyModuleDefaults = (
 				...esm
 			}
 		];
-
-		// TODO: remove in 0.5.0
-		if (!disableTransformByDefault) {
-			rules.push(
-				{
-					test: /\.jsx$/i,
-					type: "jsx"
-				},
-				{
-					test: /\.ts$/i,
-					type: "ts"
-				},
-				{
-					test: /\.tsx$/i,
-					type: "tsx"
-				}
-			);
-		}
 
 		if (asyncWebAssembly) {
 			const wasm = {

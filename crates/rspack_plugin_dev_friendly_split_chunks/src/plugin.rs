@@ -252,11 +252,6 @@ impl<T: Module + ?Sized> EstimatedSize for T {
   fn estimated_size(&self, source_type: &rspack_core::SourceType) -> f64 {
     use rspack_core::ModuleType;
     let coefficient: f64 = match self.module_type() {
-      // 5.0 is a number in practice
-      rspack_core::ModuleType::Jsx
-      | ModuleType::JsxDynamic
-      | ModuleType::JsxEsm
-      | ModuleType::Tsx => 7.5,
       ModuleType::Js | ModuleType::JsDynamic => 1.5,
       _ => 1.0,
     };

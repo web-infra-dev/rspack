@@ -326,11 +326,8 @@ impl TestConfig {
     let mut rules = vec![
       rule!("\\.json$", "json"),
       rule!("\\.mjs$", "js/esm"),
-      rule!("\\.cjs$", "js/auto"), // TODO: change to js/dynamic
+      rule!("\\.cjs$", "js/dynamic"),
       rule!("\\.js$", "js/auto"),
-      rule!("\\.jsx$", "jsx"),
-      rule!("\\.ts$", "ts"),
-      rule!("\\.tsx$", "tsx"),
       rule!("\\.css$", "css"),
       rule!("\\.wasm$", "webassembly/async"),
     ];

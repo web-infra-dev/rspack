@@ -23,6 +23,5 @@ export class RspackDiffConfigPlugin implements RspackPluginInstance {
 
 		options.experiments ??= {};
 		options.experiments.rspackFuture ??= {};
-		options.experiments.rspackFuture.disableTransformByDefault = true;
 	}
 }

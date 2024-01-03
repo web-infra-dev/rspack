@@ -1,5 +1,5 @@
 
-it("should not be able to parse and transform typescript modules if `disableTransformByDefault` is enabled", () => {
+it("should not be able to parse and transform typescript modules", () => {
 	let error = null;
 	try {
 		require("./ts")
@@ -10,7 +10,7 @@ it("should not be able to parse and transform typescript modules if `disableTran
 	expect(error.message).toContain("Expression expected")
 });
 
-it("should not be able to parse and transform tsx modules if `disableTransformByDefault` is enabled", () => {
+it("should not be able to parse and transform tsx modules", () => {
 	let error = null;
 	try {
 		require("./tsx")
@@ -21,7 +21,7 @@ it("should not be able to parse and transform tsx modules if `disableTransformBy
 	expect(error.message).toContain("Expected '(', got '<'")
 });
 
-it("should not be able to parse and transform jsx modules if `disableTransformByDefault` is enabled", () => {
+it("should not be able to parse and transform jsx modules", () => {
 	let error = null;
 	try {
 		require("./jsx")

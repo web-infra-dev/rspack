@@ -26,9 +26,14 @@ const config = require("{config_path}");
 config.context ??= "{test_dir}";
 config.output ??= {{}};
 config.output.path ??= "{test_dir}/dist";
-const normalized = rspack.getNormalizedRspackOptions(config);
-rspack.applyRspackOptionsDefaults(normalized);
-const raw = rspack.getRawOptions(normalized);
+const normalized = rspack.config.getNormalizedRspackOptions(config);
+rspack.config.applyRspackOptionsDefaults(normalized);
+let fakeCompiler = {{
+  ruleSet: {{
+    references: new Map()
+  }}
+}};
+const raw = rspack.config.__internal__getRawOptions(normalized, fakeCompiler);
 JSON.stringify(raw, null, 2)
 "#
   )
