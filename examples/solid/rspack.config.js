@@ -5,6 +5,9 @@ const config = {
 	entry: {
 		main: "./src/index.jsx"
 	},
+	resolve: {
+		extensions: ["...", ".ts", ".tsx", ".jsx"]
+	},
 	module: {
 		rules: [
 			{
@@ -34,7 +37,7 @@ const config = {
 		]
 	},
 	optimization: {
-		minimize: false, // Disabling minification because it takes too long on CI
+		minimize: false // Disabling minification because it takes too long on CI
 	},
 	plugins: [
 		new rspack.HtmlRspackPlugin({
