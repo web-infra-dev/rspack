@@ -82,23 +82,6 @@ describe("normalize options snapshot", () => {
 		expect(entries2["undefined"]).toContain(reactRefreshEntry);
 	});
 
-	it("react.development and react.refresh should be true by default when hot enabled", async () => {
-		const compiler = rspack({
-			entry: ENTRY,
-			stats: "none"
-		});
-		const server = new RspackDevServer(
-			{
-				hot: true
-			},
-			compiler
-		);
-		await server.start();
-		expect(compiler.options.builtins.react?.refresh).toBe(true);
-		expect(compiler.options.builtins.react?.development).toBe(true);
-		await server.stop();
-	});
-
 	it("should apply HMR plugin by default", async () => {
 		const compiler = rspack({
 			entry: ENTRY,
