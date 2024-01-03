@@ -1262,7 +1262,7 @@ export interface ThreadsafeNodeFS {
 }
 
 export interface ThreadsafeNodeInputFS {
-  readFile: (file: string) => PromiseLike<Buffer>
+  readFile: (file: string) => PromiseLike<Buffer | Uint8Array>
   stat: (file: string) => PromiseLike<NodeFSMetadata>
   lstat: (file: string) => PromiseLike<NodeFSMetadata>
 }

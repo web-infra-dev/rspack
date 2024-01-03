@@ -1,3 +1,4 @@
+use napi::bindgen_prelude::Buffer;
 use napi::{Env, JsFunction, NapiRaw, Ref};
 use napi_derive::napi;
 use rspack_fs::cfg_async;
@@ -170,7 +171,7 @@ cfg_async! {
 
   #[napi(object, js_name = "ThreadsafeNodeInputFS")]
   pub struct ThreadsafeNodeInputFS {
-    #[napi(ts_type = "(file: string) => PromiseLike<Buffer>")]
+    #[napi(ts_type = "(file: string) => PromiseLike<Buffer | Uint8Array>")]
     pub read_file: JsFunction,
     #[napi(ts_type = "(file: string) => PromiseLike<NodeFSMetadata>")]
     pub stat: JsFunction,
@@ -188,7 +189,7 @@ cfg_async! {
     }
   }
   pub(crate) struct ThreadsafeNodeInputFSRef {
-    pub(crate) read_file: ThreadsafeFunction<String, Vec<u8>>,
+    pub(crate) read_file: ThreadsafeFunction<String, Buffer>,
     pub(crate) stat: ThreadsafeFunction<String, NodeFSMetadata>,
     pub(crate) lstat: ThreadsafeFunction<String, NodeFSMetadata>,
   }

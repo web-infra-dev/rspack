@@ -172,6 +172,7 @@ impl AsyncReadableFileSystem for AsyncNodeReadableFileSystem {
         .expect("failed to call tsfn")
         .await
         .expect("failed to poll")
+        .map(Vec::from)
         .map_err(|e| {
           rspack_fs::Error::Io(std::io::Error::new(
             std::io::ErrorKind::Other,
