@@ -33,7 +33,12 @@ import {
 	toObject,
 	stringifyLoaderObject
 } from "../util";
-import { absolutify, contextify, makePathsRelative } from "../util/identifier";
+import {
+	absolutify,
+	contextify,
+	makePathsRelative,
+	parseResourceWithoutFragment
+} from "../util/identifier";
 import { memoize } from "../util/memoize";
 import { createHash } from "../util/createHash";
 import loadLoader = require("./loadLoader");
@@ -167,7 +172,7 @@ export async function runLoaders(
 	const assetFilenames = rawContext.assetFilenames.slice();
 
 	const loaders = rawContext.currentLoader.split("$").map(loader => {
-		const splittedRequest = parsePathQueryFragment(loader);
+		const splittedRequest = parseResourceWithoutFragment(loader);
 		const obj: any = {};
 		obj.loader = obj.path = splittedRequest.path;
 		obj.query = splittedRequest.query;

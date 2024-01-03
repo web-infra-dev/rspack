@@ -1,4 +1,5 @@
 import { AsyncSeriesBailHook, HookMap } from "tapable";
+import type * as binding from "@rspack/binding";
 
 type ResourceData = {
 	resource: string;
@@ -11,15 +12,21 @@ type ResourceData = {
 // resource_query: (!info.query.is_empty()).then_some(info.query),
 // resource_fragment: (!info.fragment.is_empty()).then_some(info.fragment),
 type ResourceDataWithData = ResourceData & { data?: Record<string, any> };
+// type CreateData = Partial<NormalModuleCreateData & {settings: ModuleSettings}>;
 type ResolveData = {
 	context?: string;
 	request: string;
 	fileDependencies: string[];
 	missingDependencies: string[];
 	contextDependencies: string[];
-
+	// createData: CreateData;
 	// assertions: Record<string, any> | undefined;
 	// dependencies: ModuleDependency[];
+};
+
+type CreateModuleData = binding.CreateModuleData & {
+	settings: {};
+	matchResource: string;
 };
 
 export class NormalModuleFactory {
@@ -30,6 +37,7 @@ export class NormalModuleFactory {
 		>;
 		beforeResolve: AsyncSeriesBailHook<[ResolveData], boolean | void>;
 		afterResolve: AsyncSeriesBailHook<[ResolveData], boolean | void>;
+		createModule: AsyncSeriesBailHook<[CreateModuleData, {}], void>;
 	};
 	constructor() {
 		this.hooks = {
@@ -48,9 +56,9 @@ export class NormalModuleFactory {
 			// /** @type {AsyncSeriesBailHook<[ResolveData], false | void>} */
 			beforeResolve: new AsyncSeriesBailHook(["resolveData"]),
 			// /** @type {AsyncSeriesBailHook<[ResolveData], false | void>} */
-			afterResolve: new AsyncSeriesBailHook(["resolveData"])
+			afterResolve: new AsyncSeriesBailHook(["resolveData"]),
 			// /** @type {AsyncSeriesBailHook<[ResolveData["createData"], ResolveData], Module | void>} */
-			// createModule: new AsyncSeriesBailHook(["createData", "resolveData"]),
+			createModule: new AsyncSeriesBailHook(["createData", "resolveData"])
 			// /** @type {SyncWaterfallHook<[Module, ResolveData["createData"], ResolveData], Module>} */
 			// module: new SyncWaterfallHook(["module", "createData", "resolveData"]),
 			// createParser: new HookMap(() => new SyncBailHook(["parserOptions"])),

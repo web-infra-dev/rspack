@@ -1,0 +1,49 @@
+{
+  "name": "example-vanilla-extract",
+  "description": "Example React project using vanilla-extract and Sprinkles, compiling with webpack",
+  "keywords": [
+    "vanilla-extract",
+    "sprinkles",
+    "css-in-js",
+    "css-in-ts",
+    "css",
+    "webpack",
+    "react"
+  ],
+  "version": "0.0.25",
+  "main": "src/index.ts",
+  "author": "SEEK",
+  "scripts": {
+    "webpack:start": "webpack serve",
+    "webpack:build": "webpack",
+    "start": "rspack serve",
+    "build": "rspack"
+  },
+  "private": true,
+  "dependencies": {
+    "@babel/preset-env": "7.20.2",
+    "@babel/preset-react": "^7.22.15",
+    "@babel/preset-typescript": "^7.22.5",
+    "@vanilla-extract/css": "1.14.0",
+    "@vanilla-extract/sprinkles": "^1.6.1",
+    "@vanilla-extract/webpack-plugin": "^2.3.0",
+    "babel-loader": "^9.1.2",
+    "css-loader": "^5.2.4",
+    "html-webpack-plugin": "^5.5.1",
+    "mini-css-extract-plugin": "^2.6.1",
+    "polished": "^4.1.2",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
+    "tailwindcss": "3.3.1",
+    "@rspack/core": "workspace:*",
+    "@rspack/cli": "workspace:*",
+    "webpack": "5.76.0",
+    "webpack-cli": "4.10.0",
+    "webpack-dev-server": "4.13.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.0.25",
+    "@types/react-dom": "^18.0.8",
+    "@types/tailwindcss": "^3"
+  }
+}

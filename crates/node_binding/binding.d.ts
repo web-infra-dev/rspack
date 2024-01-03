@@ -197,6 +197,13 @@ export const enum BuiltinPluginName {
 
 export function cleanupGlobalTrace(): void
 
+export interface CreateModuleData {
+  dependencyType: string
+  resolveDataRequest: string
+  resourceResolveData: JsResourceData
+  context: string
+}
+
 export interface FactoryMeta {
   sideEffectFree?: boolean
 }
@@ -335,6 +342,7 @@ export interface JsHooks {
   beforeResolve: (...args: any[]) => any
   afterResolve: (...args: any[]) => any
   contextModuleBeforeResolve: (...args: any[]) => any
+  normalModuleFactoryCreateModule: (...args: any[]) => any
   normalModuleFactoryResolveForScheme: (...args: any[]) => any
   chunkAsset: (...args: any[]) => any
   succeedModule: (...args: any[]) => any
