@@ -80,9 +80,11 @@ pub(crate) mod expr_matcher {
   // - Matching would ignore Span and SyntaxContext
   define_expr_matchers!({
     is_require: "require",
+    is_require_main: "require.main",
     is_require_context: "require.context",
     is_require_resolve: "require.resolve",
     is_require_resolve_weak: "require.resolveWeak",
+    is_require_cache: "require.cache",
     is_module_hot_accept: "module.hot.accept",
     is_module_hot_decline: "module.hot.decline",
     is_module_hot: "module.hot",
@@ -90,7 +92,6 @@ pub(crate) mod expr_matcher {
     is_module_loaded: "module.loaded",
     is_module_exports: "module.exports",
     is_module_require: "module.require",
-    is_require_cache: "require.cache",
     is_webpack_module_id: "__webpack_module__.id",
     is_import_meta_webpack_hot: "import.meta.webpackHot",
     is_import_meta_webpack_hot_accept: "import.meta.webpackHot.accept",
