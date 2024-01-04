@@ -96,7 +96,6 @@ pub enum BuiltinPluginName {
   WebWorkerTemplatePlugin,
   MergeDuplicateChunksPlugin,
   SplitChunksPlugin,
-  OldSplitChunksPlugin,
   ShareRuntimePlugin,
   ContainerPlugin,
   ContainerReferencePlugin,
@@ -234,11 +233,6 @@ impl BuiltinPlugin {
       }
       BuiltinPluginName::SplitChunksPlugin => {
         use rspack_plugin_split_chunks_new::SplitChunksPlugin;
-        let options = downcast_into::<RawSplitChunksOptions>(self.options)?.into();
-        plugins.push(SplitChunksPlugin::new(options).boxed());
-      }
-      BuiltinPluginName::OldSplitChunksPlugin => {
-        use rspack_plugin_split_chunks::SplitChunksPlugin;
         let options = downcast_into::<RawSplitChunksOptions>(self.options)?.into();
         plugins.push(SplitChunksPlugin::new(options).boxed());
       }
