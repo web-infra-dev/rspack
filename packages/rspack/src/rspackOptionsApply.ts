@@ -15,7 +15,6 @@ import {
 } from ".";
 import fs from "graceful-fs";
 
-import { ResolveSwcPlugin } from "./web/ResolveSwcPlugin";
 import { DefaultStatsFactoryPlugin } from "./stats/DefaultStatsFactoryPlugin";
 import { DefaultStatsPrinterPlugin } from "./stats/DefaultStatsPrinterPlugin";
 import { cleverMerge } from "./util/cleverMerge";
@@ -327,7 +326,6 @@ export class RspackOptionsApply {
 
 		new WarnCaseSensitiveModulesPlugin().apply(compiler);
 
-		new ResolveSwcPlugin().apply(compiler);
 		new WorkerPlugin(
 			options.output.workerChunkLoading!,
 			options.output.workerWasmLoading!,

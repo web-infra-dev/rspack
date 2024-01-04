@@ -232,6 +232,9 @@ importers:
       postcss-loader:
         specifier: 7.0.2
         version: 7.0.2(webpack@5.89.0)
+      react-refresh:
+        specifier: ^0.14.0
+        version: 0.14.0
       serve:
         specifier: 14.1.2
         version: 14.1.2
@@ -262,6 +265,9 @@ importers:
       '@loadable/component':
         specifier: ^5.15.2
         version: 5.15.2(react@17.0.2)
+      '@swc/helpers':
+        specifier: 0.5.1
+        version: 0.5.1
       '@turf/turf':
         specifier: ^6.5.0
         version: 6.5.0
@@ -356,6 +362,9 @@ importers:
       postcss-loader:
         specifier: 7.0.2
         version: 7.0.2
+      react-refresh:
+        specifier: ^0.14.0
+        version: 0.14.0
       serve:
         specifier: 14.1.2
         version: 14.1.2
@@ -405,6 +414,10 @@ importers:
       react-refresh:
         specifier: 0.14.0
         version: 0.14.0
+    devDependencies:
+      '@swc/helpers':
+        specifier: 0.5.1
+        version: 0.5.1
 
   examples/bundle-splitting:
     devDependencies:
@@ -426,6 +439,9 @@ importers:
 
   examples/cra:
     dependencies:
+      '@swc/helpers':
+        specifier: 0.5.1
+        version: 0.5.1
       react:
         specifier: ^18.2.0
         version: 18.2.0
@@ -442,12 +458,18 @@ importers:
       '@rspack/plugin-react-refresh':
         specifier: workspace:*
         version: link:../../packages/rspack-plugin-react-refresh
+      react-refresh:
+        specifier: ^0.14.0
+        version: 0.14.0
       web-vitals:
         specifier: ^2.1.4
         version: 2.1.4
 
   examples/cra-ts:
     dependencies:
+      '@swc/helpers':
+        specifier: 0.5.1
+        version: 0.5.1
       react:
         specifier: ^18.2.0
         version: 18.2.0
@@ -464,6 +486,9 @@ importers:
       '@rspack/plugin-react-refresh':
         specifier: workspace:*
         version: link:../../packages/rspack-plugin-react-refresh
+      react-refresh:
+        specifier: ^0.14.0
+        version: 0.14.0
       web-vitals:
         specifier: ^2.1.4
         version: 2.1.4
@@ -744,6 +769,9 @@ importers:
       html-webpack-plugin:
         specifier: ^5.5.0
         version: 5.5.0
+      react-refresh:
+        specifier: ^0.14.0
+        version: 0.14.0
       serve:
         specifier: 14.1.2
         version: 14.1.2
@@ -772,6 +800,9 @@ importers:
       html-webpack-plugin:
         specifier: ^5.5.0
         version: 5.5.0
+      react-refresh:
+        specifier: ^0.14.0
+        version: 0.14.0
       serve:
         specifier: 14.1.2
         version: 14.1.2
@@ -800,6 +831,9 @@ importers:
       '@rspack/plugin-react-refresh':
         specifier: workspace:*
         version: link:../../../packages/rspack-plugin-react-refresh
+      react-refresh:
+        specifier: ^0.14.0
+        version: 0.14.0
       serve:
         specifier: 14.1.2
         version: 14.1.2
@@ -828,6 +862,9 @@ importers:
       html-webpack-plugin:
         specifier: ^5.5.0
         version: 5.5.0
+      react-refresh:
+        specifier: ^0.14.0
+        version: 0.14.0
       serve:
         specifier: 14.1.2
         version: 14.1.2
@@ -856,6 +893,9 @@ importers:
       html-webpack-plugin:
         specifier: ^5.5.0
         version: 5.5.0
+      react-refresh:
+        specifier: ^0.14.0
+        version: 0.14.0
       serve:
         specifier: 14.1.2
         version: 14.1.2
@@ -884,6 +924,9 @@ importers:
       '@rspack/plugin-react-refresh':
         specifier: workspace:*
         version: link:../../../packages/rspack-plugin-react-refresh
+      react-refresh:
+        specifier: ^0.14.0
+        version: 0.14.0
       serve:
         specifier: 14.1.2
         version: 14.1.2
@@ -1071,6 +1114,9 @@ importers:
       '@rspack/cli':
         specifier: workspace:*
         version: link:../../packages/rspack-cli
+      '@swc/helpers':
+        specifier: 0.5.1
+        version: 0.5.1
       react:
         specifier: 18.2.0
         version: 18.2.0
@@ -1090,6 +1136,9 @@ importers:
       '@rspack/cli':
         specifier: workspace:*
         version: link:../../packages/rspack-cli
+      '@swc/helpers':
+        specifier: 0.5.1
+        version: 0.5.1
       react:
         specifier: 15.7.0
         version: 15.7.0
@@ -1181,6 +1230,9 @@ importers:
 
   examples/react-storybook:
     dependencies:
+      '@swc/helpers':
+        specifier: 0.5.1
+        version: 0.5.1
       react:
         specifier: ^17.0.2
         version: 17.0.2
@@ -1221,6 +1273,9 @@ importers:
       prop-types:
         specifier: ^15.8.1
         version: 15.8.1
+      react-refresh:
+        specifier: ^0.14.0
+        version: 0.14.0
       storybook:
         specifier: ^7.0.0
         version: 7.0.15
@@ -1233,6 +1288,9 @@ importers:
       '@rspack/cli':
         specifier: workspace:*
         version: link:../../packages/rspack-cli
+      '@swc/helpers':
+        specifier: 0.5.1
+        version: 0.5.1
       less-loader:
         specifier: 11.1.0
         version: 11.1.0
@@ -1249,12 +1307,18 @@ importers:
       '@rspack/core':
         specifier: workspace:*
         version: link:../../packages/rspack
+      react-refresh:
+        specifier: ^0.14.0
+        version: 0.14.0
 
   examples/react-with-sass:
     dependencies:
       '@rspack/cli':
         specifier: workspace:*
         version: link:../../packages/rspack-cli
+      '@swc/helpers':
+        specifier: 0.5.1
+        version: 0.5.1
       react:
         specifier: 17.0.0
         version: 17.0.0
@@ -1268,6 +1332,9 @@ importers:
       '@rspack/core':
         specifier: workspace:*
         version: link:../../packages/rspack
+      react-refresh:
+        specifier: ^0.14.0
+        version: 0.14.0
 
   examples/solid:
     dependencies:
@@ -1305,6 +1372,9 @@ importers:
 
   examples/styled-components:
     dependencies:
+      '@swc/helpers':
+        specifier: 0.5.1
+        version: 0.5.1
       '@types/styled-components':
         specifier: 5.1.26
         version: 5.1.26
@@ -1324,6 +1394,9 @@ importers:
       '@rspack/core':
         specifier: workspace:*
         version: link:../../packages/rspack
+      react-refresh:
+        specifier: ^0.14.0
+        version: 0.14.0
 
   examples/svelte:
     devDependencies:
@@ -1368,6 +1441,10 @@ importers:
         version: 4.6.1
 
   examples/svgr:
+    dependencies:
+      '@swc/helpers':
+        specifier: 0.5.1
+        version: 0.5.1
     devDependencies:
       '@rspack/cli':
         specifier: workspace:*
@@ -1681,19 +1758,22 @@ importers:
     devDependencies:
       '@rspack/cli':
         specifier: 0.4.0
-        version: 0.4.0(@rspack/core@0.4.0)
+        version: 0.4.0(@rspack/core@0.4.0)(react-refresh@0.14.0)
       '@rspack/core':
         specifier: 0.4.0
         version: 0.4.0
       '@rspack/plugin-react-refresh':
         specifier: 0.4.0
-        version: 0.4.0
+        version: 0.4.0(react-refresh@0.14.0)
       '@types/react':
         specifier: ^18.0.25
         version: 18.2.0
       '@types/react-dom':
         specifier: ^18.0.8
         version: 18.2.1
+      react-refresh:
+        specifier: ^0.14.0
+        version: 0.14.0
 
   packages/create-rspack/template-react-ts:
     dependencies:
@@ -1706,19 +1786,22 @@ importers:
     devDependencies:
       '@rspack/cli':
         specifier: 0.4.0
-        version: 0.4.0(@rspack/core@0.4.0)
+        version: 0.4.0(@rspack/core@0.4.0)(react-refresh@0.14.0)
       '@rspack/core':
         specifier: 0.4.0
         version: 0.4.0
       '@rspack/plugin-react-refresh':
         specifier: 0.4.0
-        version: 0.4.0
+        version: 0.4.0(react-refresh@0.14.0)
       '@types/react':
         specifier: 18.2.0
         version: 18.2.0
       '@types/react-dom':
         specifier: 18.2.1
         version: 18.2.1
+      react-refresh:
+        specifier: ^0.14.0
+        version: 0.14.0
       typescript:
         specifier: ^5.0.4
         version: 5.1.6
@@ -1771,6 +1854,9 @@ importers:
       '@rspack/plugin-react-refresh':
         specifier: workspace:*
         version: link:../rspack-plugin-react-refresh
+      '@swc/helpers':
+        specifier: 0.5.1
+        version: 0.5.1
       '@types/fs-extra':
         specifier: 11.0.1
         version: 11.0.1
@@ -1792,6 +1878,9 @@ importers:
       react-dom:
         specifier: ^18.2.0
         version: 18.2.0(react@18.2.0)
+      react-refresh:
+        specifier: ^0.14.0
+        version: 0.14.0
       tailwindcss:
         specifier: ^3.3.0
         version: 3.3.1(postcss@8.4.21)
@@ -1816,15 +1905,9 @@ importers:
       '@rspack/binding':
         specifier: workspace:*
         version: link:../../crates/node_binding
-      '@swc/helpers':
-        specifier: 0.5.1
-        version: 0.5.1
       browserslist:
         specifier: ^4.21.3
         version: 4.21.4
-      compare-versions:
-        specifier: 6.0.0-rc.1
-        version: 6.0.0-rc.1
       enhanced-resolve:
         specifier: 5.12.0
         version: 5.12.0
@@ -1837,9 +1920,6 @@ importers:
       neo-async:
         specifier: 2.6.2
         version: 2.6.2
-      react-refresh:
-        specifier: 0.14.0
-        version: 0.14.0
       tapable:
         specifier: 2.2.1
         version: 2.2.1
@@ -1873,7 +1953,7 @@ importers:
         version: link:../rspack-test-tools
       '@swc/core':
         specifier: ^1.3.96
-        version: 1.3.99(@swc/helpers@0.5.1)
+        version: 1.3.99
       '@swc/jest':
         specifier: ^0.2.29
         version: 0.2.29(@swc/core@1.3.99)
@@ -9308,43 +9388,6 @@ packages:
       fsevents: 2.3.2
     dev: true
 
-  /@pmmmwh/react-refresh-webpack-plugin@0.5.10:
-    resolution: {integrity: sha512-j0Ya0hCFZPd4x40qLzbhGsh9TMtdb+CJQiso+WxLOPNasohq9cc5SNUcwsZaRH6++Xh91Xkm/xHCkuIiIu0LUA==}
-    engines: {node: '>= 10.13'}
-    peerDependencies:
-      '@types/webpack': 4.x || 5.x
-      react-refresh: '>=0.10.0 <1.0.0'
-      sockjs-client: ^1.4.0
-      type-fest: '>=0.17.0 <4.0.0'
-      webpack: '>=4.43.0 <6.0.0'
-      webpack-dev-server: 3.x || 4.x
-      webpack-hot-middleware: 2.x
-      webpack-plugin-serve: 0.x || 1.x
-    peerDependenciesMeta:
-      '@types/webpack':
-        optional: true
-      sockjs-client:
-        optional: true
-      type-fest:
-        optional: true
-      webpack-dev-server:
-        optional: true
-      webpack-hot-middleware:
-        optional: true
-      webpack-plugin-serve:
-        optional: true
-    dependencies:
-      ansi-html-community: 0.0.8
-      common-path-prefix: 3.0.0
-      core-js-pure: 3.26.1
-      error-stack-parser: 2.1.4
-      find-up: 5.0.0
-      html-entities: 2.3.3
-      loader-utils: 2.0.4
-      schema-utils: 3.3.0
-      source-map: 0.7.4
-    dev: true
-
   /@pmmmwh/react-refresh-webpack-plugin@0.5.10(react-refresh@0.11.0):
     resolution: {integrity: sha512-j0Ya0hCFZPd4x40qLzbhGsh9TMtdb+CJQiso+WxLOPNasohq9cc5SNUcwsZaRH6++Xh91Xkm/xHCkuIiIu0LUA==}
     engines: {node: '>= 10.13'}
@@ -9419,6 +9462,46 @@ packages:
       react-refresh: 0.14.0
       schema-utils: 3.3.0
       source-map: 0.7.4
+    dev: true
+
+  /@pmmmwh/react-refresh-webpack-plugin@0.5.10(react-refresh@0.14.0)(webpack-dev-server@4.13.1)(webpack@5.76.0):
+    resolution: {integrity: sha512-j0Ya0hCFZPd4x40qLzbhGsh9TMtdb+CJQiso+WxLOPNasohq9cc5SNUcwsZaRH6++Xh91Xkm/xHCkuIiIu0LUA==}
+    engines: {node: '>= 10.13'}
+    peerDependencies:
+      '@types/webpack': 4.x || 5.x
+      react-refresh: '>=0.10.0 <1.0.0'
+      sockjs-client: ^1.4.0
+      type-fest: '>=0.17.0 <4.0.0'
+      webpack: '>=4.43.0 <6.0.0'
+      webpack-dev-server: 3.x || 4.x
+      webpack-hot-middleware: 2.x
+      webpack-plugin-serve: 0.x || 1.x
+    peerDependenciesMeta:
+      '@types/webpack':
+        optional: true
+      sockjs-client:
+        optional: true
+      type-fest:
+        optional: true
+      webpack-dev-server:
+        optional: true
+      webpack-hot-middleware:
+        optional: true
+      webpack-plugin-serve:
+        optional: true
+    dependencies:
+      ansi-html-community: 0.0.8
+      common-path-prefix: 3.0.0
+      core-js-pure: 3.26.1
+      error-stack-parser: 2.1.4
+      find-up: 5.0.0
+      html-entities: 2.3.3
+      loader-utils: 2.0.4
+      react-refresh: 0.14.0
+      schema-utils: 3.3.0
+      source-map: 0.7.4
+      webpack: 5.76.0
+      webpack-dev-server: 4.13.1(webpack@5.76.0)
     dev: true
 
   /@pmmmwh/react-refresh-webpack-plugin@0.5.10(react-refresh@0.14.0)(webpack-hot-middleware@2.25.3):
@@ -10089,6 +10172,40 @@ packages:
       - webpack-plugin-serve
     dev: true
 
+  /@rspack/cli@0.4.0(@rspack/core@0.4.0)(react-refresh@0.14.0):
+    resolution: {integrity: sha512-bP/DSyUA+qLVVx99cmyXlrCwyID9jmbMfsMwDrn0BmY3IoBFFquhw9/5K1QBBpwlWnjGtntqeZPyAmweZ2loKw==}
+    hasBin: true
+    peerDependencies:
+      '@rspack/core': '>=0.4.0'
+    dependencies:
+      '@discoveryjs/json-ext': 0.5.7
+      '@rspack/core': 0.4.0
+      '@rspack/dev-server': 0.4.0(@rspack/core@0.4.0)(react-refresh@0.14.0)
+      colorette: 2.0.19
+      exit-hook: 3.2.0
+      interpret: 3.1.1
+      rechoir: 0.8.0
+      semver: 6.3.1
+      webpack-bundle-analyzer: 4.6.1
+      yargs: 17.6.2
+    transitivePeerDependencies:
+      - '@swc/core'
+      - '@types/express'
+      - '@types/webpack'
+      - bufferutil
+      - debug
+      - esbuild
+      - react-refresh
+      - sockjs-client
+      - supports-color
+      - type-fest
+      - uglify-js
+      - utf-8-validate
+      - webpack-cli
+      - webpack-hot-middleware
+      - webpack-plugin-serve
+    dev: true
+
   /@rspack/core@0.1.12:
     resolution: {integrity: sha512-FoQP24Zp5YEsqS9FemsMuQ4XIj3oxUNjM4qHKwAmhPLx7J9D2TO0DCTcJQMiwfJ2pxWjjFaJRBpdE2iMEG+FZg==}
     dependencies:
@@ -10273,6 +10390,40 @@ packages:
       - webpack-plugin-serve
     dev: true
 
+  /@rspack/dev-server@0.4.0(@rspack/core@0.4.0)(react-refresh@0.14.0):
+    resolution: {integrity: sha512-qi70BKcGspjlNpufF+AOf5MHbEGnumMtVTtWzdw8I4xDWr2AguesrOEgACHMJx/EZks9vtbSqepf4anYglvsng==}
+    peerDependencies:
+      '@rspack/core': '*'
+    dependencies:
+      '@rspack/core': 0.4.0
+      '@rspack/plugin-react-refresh': 0.4.0(react-refresh@0.14.0)(webpack-dev-server@4.13.1)(webpack@5.76.0)
+      chokidar: 3.5.3
+      connect-history-api-fallback: 2.0.0
+      express: 4.18.1
+      http-proxy-middleware: 2.0.6
+      mime-types: 2.1.35
+      webpack: 5.76.0
+      webpack-dev-middleware: 6.0.2(webpack@5.76.0)
+      webpack-dev-server: 4.13.1(webpack@5.76.0)
+      ws: 8.8.1
+    transitivePeerDependencies:
+      - '@swc/core'
+      - '@types/express'
+      - '@types/webpack'
+      - bufferutil
+      - debug
+      - esbuild
+      - react-refresh
+      - sockjs-client
+      - supports-color
+      - type-fest
+      - uglify-js
+      - utf-8-validate
+      - webpack-cli
+      - webpack-hot-middleware
+      - webpack-plugin-serve
+    dev: true
+
   /@rspack/plugin-html@0.1.12(@rspack/core@0.1.12):
     resolution: {integrity: sha512-psXGN6DPnerEzazbeANfyc+E/ehhv1ouu6IdJtJaqfQf1kzQcJMs19lBNlfq6TxoVD6oS8BGigoYH7XrlQZRmQ==}
     peerDependencies:
@@ -10289,7 +10440,7 @@ packages:
       tapable: 2.2.1
     dev: true
 
-  /@rspack/plugin-react-refresh@0.4.0:
+  /@rspack/plugin-react-refresh@0.4.0(react-refresh@0.14.0):
     resolution: {integrity: sha512-yo2FXVj6P2HrBGIxBqqRJQzAdG6CrL0WFE+kQk/Uz+7Ct09nPvl7zRdHE1BUXHnSXIjrMJj4fRmd7hXsmtTHXQ==}
     peerDependencies:
       react-refresh: '>=0.10.0 <1.0.0'
@@ -10297,7 +10448,28 @@ packages:
       react-refresh:
         optional: true
     dependencies:
-      '@pmmmwh/react-refresh-webpack-plugin': 0.5.10
+      '@pmmmwh/react-refresh-webpack-plugin': 0.5.10(react-refresh@0.14.0)
+      react-refresh: 0.14.0
+    transitivePeerDependencies:
+      - '@types/webpack'
+      - sockjs-client
+      - type-fest
+      - webpack
+      - webpack-dev-server
+      - webpack-hot-middleware
+      - webpack-plugin-serve
+    dev: true
+
+  /@rspack/plugin-react-refresh@0.4.0(react-refresh@0.14.0)(webpack-dev-server@4.13.1)(webpack@5.76.0):
+    resolution: {integrity: sha512-yo2FXVj6P2HrBGIxBqqRJQzAdG6CrL0WFE+kQk/Uz+7Ct09nPvl7zRdHE1BUXHnSXIjrMJj4fRmd7hXsmtTHXQ==}
+    peerDependencies:
+      react-refresh: '>=0.10.0 <1.0.0'
+    peerDependenciesMeta:
+      react-refresh:
+        optional: true
+    dependencies:
+      '@pmmmwh/react-refresh-webpack-plugin': 0.5.10(react-refresh@0.14.0)(webpack-dev-server@4.13.1)(webpack@5.76.0)
+      react-refresh: 0.14.0
     transitivePeerDependencies:
       - '@types/webpack'
       - sockjs-client
@@ -11933,7 +12105,7 @@ packages:
       '@swc/core-win32-x64-msvc': 1.3.23
     dev: true
 
-  /@swc/core@1.3.99(@swc/helpers@0.5.1):
+  /@swc/core@1.3.99:
     resolution: {integrity: sha512-8O996RfuPC4ieb4zbYMfbyCU9k4gSOpyCNnr7qBQ+o7IEmh8JCV6B8wwu+fT/Om/6Lp34KJe1IpJ/24axKS6TQ==}
     engines: {node: '>=10'}
     requiresBuild: true
@@ -11944,7 +12116,6 @@ packages:
         optional: true
     dependencies:
       '@swc/counter': 0.1.2
-      '@swc/helpers': 0.5.1
       '@swc/types': 0.1.5
     optionalDependencies:
       '@swc/core-darwin-arm64': 1.3.99
@@ -11980,7 +12151,7 @@ packages:
       '@swc/core': '*'
     dependencies:
       '@jest/create-cache-key-function': 27.5.1
-      '@swc/core': 1.3.99(@swc/helpers@0.5.1)
+      '@swc/core': 1.3.99
       jsonc-parser: 3.2.0
     dev: true
 
@@ -16391,6 +16562,7 @@ packages:
 
   /compare-versions@6.0.0-rc.1:
     resolution: {integrity: sha512-cFhkjbGY1jLFWIV7KegECbfuyYPxSGvgGkdkfM+ibboQDoPwg2FRHm5BSNTOApiauRBzJIQH7qvOJs2sW5ueKQ==}
+    dev: true
 
   /compressible@2.0.18:
     resolution: {integrity: sha512-AF3r7P5dWxL8MxyITRMlORQNaOA2IkAFaTr4k7BUumjPtRpGDTZpl0Pb1XCO6JeDCBdp126Cgs9sMxqSjgYyRg==}
@@ -19260,7 +19432,7 @@ packages:
     resolution: {integrity: sha512-MGIE4HOvQCeUCzmlHs0vXpih4ysz4wg9qiSAu6cd42lVwPbTM1TjV7RusoyQqMmk/95gdQZX72u+YW+c3eEpFQ==}
     engines: {node: '>=14.14'}
     dependencies:
-      graceful-fs: 4.2.10
+      graceful-fs: 4.2.11
       jsonfile: 6.1.0
       universalify: 2.0.0
 
@@ -23270,6 +23442,7 @@ packages:
 
   /ms@2.1.3:
     resolution: {integrity: sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==}
+    requiresBuild: true
 
   /multer@1.4.4-lts.1:
     resolution: {integrity: sha512-WeSGziVj6+Z2/MwQo3GvqzgR+9Uc+qt8SwHKh3gvNPiISKfsMfG4SvCOFYlxxgkXt7yIV2i1yczehm0EOKIxIg==}
@@ -28061,7 +28234,7 @@ packages:
         optional: true
     dependencies:
       '@jridgewell/trace-mapping': 0.3.17
-      '@swc/core': 1.3.99(@swc/helpers@0.5.1)
+      '@swc/core': 1.3.99
       jest-worker: 27.5.1
       schema-utils: 3.3.0
       serialize-javascript: 6.0.1
@@ -28435,7 +28608,7 @@ packages:
         optional: true
     dependencies:
       '@cspotcode/source-map-support': 0.8.1
-      '@swc/core': 1.3.99(@swc/helpers@0.5.1)
+      '@swc/core': 1.3.99
       '@tsconfig/node10': 1.0.9
       '@tsconfig/node12': 1.0.11
       '@tsconfig/node14': 1.0.3
@@ -29969,7 +30142,7 @@ packages:
       eslint-scope: 5.1.1
       events: 3.3.0
       glob-to-regexp: 0.4.1
-      graceful-fs: 4.2.11
+      graceful-fs: 4.2.10
       json-parse-even-better-errors: 2.3.1
       loader-runner: 4.3.0
       mime-types: 2.1.35
