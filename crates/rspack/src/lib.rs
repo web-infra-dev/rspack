@@ -11,3 +11,8 @@ pub fn rspack<T: AsyncWritableFileSystem + Send + Sync>(
 ) -> Compiler<T> {
   Compiler::new(options, plugins, output_filesystem)
 }
+
+#[test]
+fn test() {
+  assert!(1 == 1);
+}
