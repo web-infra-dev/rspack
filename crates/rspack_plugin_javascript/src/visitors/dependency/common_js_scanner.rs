@@ -1,7 +1,8 @@
 use rspack_core::{
-  DependencyLocation, DependencyTemplate, RuntimeGlobals, RuntimeRequirementsDependency,
+  ConstDependency, DependencyLocation, DependencyTemplate, RuntimeGlobals,
+  RuntimeRequirementsDependency, SpanExt,
 };
-use swc_core::common::SyntaxContext;
+use swc_core::common::{Spanned, SyntaxContext};
 use swc_core::ecma::ast::{Expr, Ident};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
@@ -61,6 +62,24 @@ impl Visit for CommonJsScanner<'_> {
         .presentational_dependencies
         .push(Box::new(RuntimeRequirementsDependency::new(
           RuntimeGlobals::MODULE_LOADED,
+        )));
+    }
+    if expr_matcher::is_require_main(expr) {
+      let mut runtime_requirements = RuntimeGlobals::default();
+      runtime_requirements.insert(RuntimeGlobals::MODULE_CACHE);
+      runtime_requirements.insert(RuntimeGlobals::ENTRY_MODULE_ID);
+      self
+        .presentational_dependencies
+        .push(Box::new(ConstDependency::new(
+          expr.span().real_lo(),
+          expr.span().real_hi(),
+          format!(
+            "{}[{}]",
+            RuntimeGlobals::MODULE_CACHE,
+            RuntimeGlobals::ENTRY_MODULE_ID
+          )
+          .into(),
+          Some(runtime_requirements),
         )));
     }
     expr.visit_children_with(self);
