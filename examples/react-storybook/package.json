@@ -9,11 +9,13 @@
     "storybook": "storybook dev -p 6006"
   },
   "dependencies": {
+    "@swc/helpers": "0.5.1",
     "react": "^17.0.2",
     "react-dom": "^17.0.2"
   },
   "devDependencies": {
     "@rspack/cli": "workspace:*",
+    "@rspack/core": "workspace:*",
     "@storybook/addon-essentials": "^7.0.0",
     "@storybook/addon-interactions": "^7.0.0",
     "@storybook/addon-links": "^7.0.0",
@@ -23,8 +25,8 @@
     "@types/react": "^18.0.25",
     "@types/react-dom": "^18.0.8",
     "prop-types": "^15.8.1",
+    "react-refresh": "^0.14.0",
     "storybook": "^7.0.0",
-    "storybook-react-rspack": "7.0.0-rc.18",
-    "@rspack/core": "workspace:*"
+    "storybook-react-rspack": "7.0.0-rc.18"
   }
 }

@@ -22,6 +22,7 @@
     "@rspack/cli": "workspace:*",
     "@rspack/core": "workspace:*",
     "@rspack/plugin-react-refresh": "workspace:*",
+    "react-refresh": "^0.14.0",
     "serve": "14.1.2"
   }
 }

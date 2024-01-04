@@ -13,6 +13,7 @@
   "license": "MIT",
   "dependencies": {
     "@rspack/cli": "workspace:*",
+    "@swc/helpers": "0.5.1",
     "react": "15.7.0",
     "react-dom": "15.7.0",
     "react-refresh": "0.14.0"
