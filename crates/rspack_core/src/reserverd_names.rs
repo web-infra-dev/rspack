@@ -1,4 +1,4 @@
-pub const RESERVED_NAMES: [&'static str; 186] = [
+pub const RESERVED_NAMES: [&'static str; 188] = [
   "__WEBPACK_DEFAULT_EXPORT__",
   "__WEBPACK_NAMESPACE_OBJECT__",
   "abstract",

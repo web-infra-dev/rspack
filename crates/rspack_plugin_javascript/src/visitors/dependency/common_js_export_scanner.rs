@@ -16,43 +16,17 @@ use swc_core::{
   },
 };
 
-use super::{expr_matcher, is_require_call_expr};
+use super::{
+  expr_matcher::{self},
+  is_require_call_expr,
+};
 use crate::{
   dependency::{
     CommonJsExportRequireDependency, CommonJsExportsDependency, CommonJsSelfReferenceDependency,
     ExportsBase, ModuleDecoratorDependency,
   },
-  parser_plugin::JavascriptParserPlugin,
-  utils::eval::{self, BasicEvaluatedExpression},
   ClassExt,
 };
-
-pub fn get_typeof_evaluate_of_export(sym: &str) -> Option<&str> {
-  match sym {
-    "module" => Some("object"),
-    "exports" => Some("object"),
-    _ => None,
-  }
-}
-
-pub struct CommonJsExportParserPlugin;
-
-impl JavascriptParserPlugin for CommonJsExportParserPlugin {
-  fn evaluate_typeof(
-    &self,
-    expression: &swc_core::ecma::ast::Ident,
-    start: u32,
-    end: u32,
-    unresolved_mark: swc_core::common::SyntaxContext,
-  ) -> Option<BasicEvaluatedExpression> {
-    if expression.span.ctxt == unresolved_mark {
-      get_typeof_evaluate_of_export(expression.sym.as_ref() as &str)
-        .map(|res| eval::evaluate_to_string(res.to_string(), start, end))
-    } else {
-      None
-    }
-  }
-}
 
 pub struct CommonJsExportDependencyScanner<'a> {
   dependencies: &'a mut Vec<BoxDependency>,
@@ -156,7 +130,6 @@ impl Visit for CommonJsExportDependencyScanner<'_> {
       || expr_matcher::is_module_hot(expr)
       || expr_matcher::is_module_hot_accept(expr)
       || expr_matcher::is_module_hot_decline(expr)
-      || (!self.is_harmony && expr_matcher::is_module_exports(expr))
     {
       return;
     }
@@ -174,11 +147,11 @@ impl Visit for CommonJsExportDependencyScanner<'_> {
         .push(Box::new(CommonJsSelfReferenceDependency::new(
           (expr.span().real_lo(), expr.span().real_hi()),
           if self.is_exports_expr(expr) {
-            ExportsBase::DefinePropertyExports
+            ExportsBase::Exports
           } else if expr_matcher::is_module_exports(expr) {
-            ExportsBase::DefinePropertyModuleExports
+            ExportsBase::ModuleExports
           } else if self.is_this_expr(expr) {
-            ExportsBase::DefinePropertyThis
+            ExportsBase::This
           } else {
             unreachable!()
           },
@@ -594,9 +567,9 @@ impl<'a> CommonJsExportDependencyScanner<'a> {
   fn get_member_expression_info(
     &self,
     expr: &Expr,
-    is_module_exports: Option<bool>,
+    is_module_exports_start: Option<bool>,
   ) -> Option<Vec<Atom>> {
-    let is_module_exports_start = match is_module_exports {
+    let is_module_exports_start = match is_module_exports_start {
       Some(v) => v,
       None => self.is_module_exports_member_expr_start(expr),
     };
@@ -606,13 +579,14 @@ impl<'a> CommonJsExportDependencyScanner<'a> {
         .members()
         .iter()
         .skip(if is_module_exports_start { 2 } else { 1 })
-        .map(|n| n.0.clone())
+        .map(|n| n.0.to_owned())
         .collect::<Vec<_>>();
       match expr.obj {
         box Expr::Call(_) => Some(members),
         box Expr::Ident(_) => Some(members),
         box Expr::MetaProp(_) => Some(members),
         box Expr::This(_) => Some(members),
+        _ if expr_matcher::is_module_exports(&expr.obj) => Some(members),
         _ => None,
       }
     })

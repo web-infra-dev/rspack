@@ -9,13 +9,13 @@ use rustc_hash::FxHashMap as HashMap;
 use serde::Serialize;
 
 use crate::{
-  extract_url_and_global, property_access,
+  extract_url_and_global, impl_build_info_meta, property_access,
   rspack_sources::{BoxSource, RawSource, Source, SourceExt},
-  to_identifier, AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildMetaExportsType,
-  BuildResult, ChunkInitFragments, ChunkUkey, CodeGenerationDataUrl, CodeGenerationResult,
-  Compilation, Context, DependenciesBlock, DependencyId, ExternalType, InitFragmentExt,
-  InitFragmentKey, InitFragmentStage, LibIdentOptions, Module, ModuleType, NormalInitFragment,
-  RuntimeGlobals, RuntimeSpec, SourceType,
+  to_identifier, AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildMeta,
+  BuildMetaExportsType, BuildResult, ChunkInitFragments, ChunkUkey, CodeGenerationDataUrl,
+  CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId, ExternalType,
+  InitFragmentExt, InitFragmentKey, InitFragmentStage, LibIdentOptions, Module, ModuleType,
+  NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
 static EXTERNAL_MODULE_JS_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
@@ -88,6 +88,8 @@ pub struct ExternalModule {
   external_type: ExternalType,
   /// Request intended by user (without loaders from config)
   user_request: String,
+  build_info: Option<BuildInfo>,
+  build_meta: Option<BuildMeta>,
 }
 
 impl ExternalModule {
@@ -99,6 +101,8 @@ impl ExternalModule {
       request,
       external_type,
       user_request,
+      build_info: None,
+      build_meta: None,
     }
   }
 
@@ -303,6 +307,8 @@ impl DependenciesBlock for ExternalModule {
 
 #[async_trait::async_trait]
 impl Module for ExternalModule {
+  impl_build_info_meta!();
+
   fn module_type(&self) -> &ModuleType {
     &ModuleType::Js
   }

@@ -248,19 +248,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bench"
-version = "0.1.0"
-dependencies = [
- "mimalloc-rust",
- "rspack_core",
- "rspack_fs",
- "rspack_testing",
- "rspack_tracing",
- "tikv-jemallocator",
- "tokio",
-]
-
-[[package]]
 name = "better_scoped_tls"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"

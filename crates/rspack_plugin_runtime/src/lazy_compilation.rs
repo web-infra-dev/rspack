@@ -3,9 +3,10 @@ use std::hash::Hash;
 
 use async_trait::async_trait;
 use rspack_core::{
+  impl_build_info_meta,
   rspack_sources::{RawSource, Source, SourceExt},
-  AsyncDependenciesBlockIdentifier, Compilation, DependenciesBlock, DependencyId, Module,
-  ModuleType, NormalModuleCreateData, Plugin, PluginContext,
+  AsyncDependenciesBlockIdentifier, BuildInfo, BuildMeta, Compilation, DependenciesBlock,
+  DependencyId, Module, ModuleType, NormalModuleCreateData, Plugin, PluginContext,
   PluginNormalModuleFactoryCreateModuleHookOutput, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 use rspack_core::{CodeGenerationResult, Context, ModuleIdentifier};
@@ -17,6 +18,8 @@ pub struct LazyCompilationProxyModule {
   dependencies: Vec<DependencyId>,
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   pub module_identifier: ModuleIdentifier,
+  build_info: Option<BuildInfo>,
+  build_meta: Option<BuildMeta>,
 }
 
 impl DependenciesBlock for LazyCompilationProxyModule {
@@ -38,6 +41,8 @@ impl DependenciesBlock for LazyCompilationProxyModule {
 }
 
 impl Module for LazyCompilationProxyModule {
+  impl_build_info_meta!();
+
   fn module_type(&self) -> &ModuleType {
     &ModuleType::Js
   }

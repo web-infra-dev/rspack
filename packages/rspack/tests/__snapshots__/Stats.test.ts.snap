@@ -56,6 +56,7 @@ exports[`Stats should have ids when ids is true 1`] = `
       "moduleType": "javascript/auto",
       "name": "./fixtures/a.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
+      "orphan": false,
       "size": 59,
       "type": "module",
     },
@@ -114,6 +115,7 @@ exports[`Stats should have stats 1`] = `
           "moduleType": "javascript/auto",
           "name": "./fixtures/a.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
+          "orphan": false,
           "reasons": [
             {
               "moduleId": undefined,
@@ -121,6 +123,13 @@ exports[`Stats should have stats 1`] = `
               "moduleName": undefined,
               "type": "entry",
               "userRequest": "./fixtures/a",
+            },
+            {
+              "moduleId": "585",
+              "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/a.js",
+              "moduleName": "./fixtures/a.js",
+              "type": "cjs self exports reference",
+              "userRequest": "self",
             },
           ],
           "size": 59,
@@ -158,7 +167,7 @@ exports[`Stats should have stats 1`] = `
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "a62f45ec3d75aa689fa1",
+  "hash": "38f6d710192d3067d1eb",
   "logging": {},
   "modules": [
     {
@@ -175,6 +184,7 @@ exports[`Stats should have stats 1`] = `
       "moduleType": "javascript/auto",
       "name": "./fixtures/a.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
+      "orphan": false,
       "reasons": [
         {
           "moduleId": undefined,
@@ -182,6 +192,13 @@ exports[`Stats should have stats 1`] = `
           "moduleName": undefined,
           "type": "entry",
           "userRequest": "./fixtures/a",
+        },
+        {
+          "moduleId": "585",
+          "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/a.js",
+          "moduleName": "./fixtures/a.js",
+          "type": "cjs self exports reference",
+          "userRequest": "self",
         },
       ],
       "size": 59,
@@ -276,7 +293,15 @@ exports[`Stats should output stats with query 1`] = `
           "moduleType": "javascript/auto",
           "name": "./fixtures/a.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
+          "orphan": false,
           "reasons": [
+            {
+              "moduleId": "585",
+              "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/a.js",
+              "moduleName": "./fixtures/a.js",
+              "type": "cjs self exports reference",
+              "userRequest": "self",
+            },
             {
               "moduleId": "432",
               "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/c.js?c=3",
@@ -312,7 +337,15 @@ exports[`Stats should output stats with query 1`] = `
           "moduleType": "javascript/auto",
           "name": "./fixtures/a.js?a=1",
           "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
+          "orphan": false,
           "reasons": [
+            {
+              "moduleId": "958",
+              "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/a.js?a=1",
+              "moduleName": "./fixtures/a.js?a=1",
+              "type": "cjs self exports reference",
+              "userRequest": "self",
+            },
             {
               "moduleId": "919",
               "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
@@ -348,6 +381,7 @@ exports[`Stats should output stats with query 1`] = `
           "moduleType": "javascript/auto",
           "name": "./fixtures/c.js?c=3",
           "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/c.js",
+          "orphan": false,
           "reasons": [
             {
               "moduleId": "919",
@@ -355,6 +389,13 @@ exports[`Stats should output stats with query 1`] = `
               "moduleName": "./fixtures/abc-query.js",
               "type": "cjs require",
               "userRequest": "./c?c=3",
+            },
+            {
+              "moduleId": "432",
+              "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/c.js?c=3",
+              "moduleName": "./fixtures/c.js?c=3",
+              "type": "cjs self exports reference",
+              "userRequest": "self",
             },
           ],
           "size": 79,
@@ -379,6 +420,7 @@ exports[`Stats should output stats with query 1`] = `
           "moduleType": "javascript/auto",
           "name": "./fixtures/abc-query.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
+          "orphan": false,
           "reasons": [
             {
               "moduleId": undefined,
@@ -423,7 +465,7 @@ exports.c = require("./c?c=3");
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "17fb2a59facde9aafd96",
+  "hash": "4ebdfab63166ea07e8e6",
   "logging": {},
   "modules": [
     {
@@ -451,7 +493,15 @@ exports.c = require("./c?c=3");
       "moduleType": "javascript/auto",
       "name": "./fixtures/a.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
+      "orphan": false,
       "reasons": [
+        {
+          "moduleId": "585",
+          "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/a.js",
+          "moduleName": "./fixtures/a.js",
+          "type": "cjs self exports reference",
+          "userRequest": "self",
+        },
         {
           "moduleId": "432",
           "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/c.js?c=3",
@@ -487,7 +537,15 @@ exports.c = require("./c?c=3");
       "moduleType": "javascript/auto",
       "name": "./fixtures/a.js?a=1",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
+      "orphan": false,
       "reasons": [
+        {
+          "moduleId": "958",
+          "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/a.js?a=1",
+          "moduleName": "./fixtures/a.js?a=1",
+          "type": "cjs self exports reference",
+          "userRequest": "self",
+        },
         {
           "moduleId": "919",
           "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
@@ -523,6 +581,7 @@ exports.c = require("./c?c=3");
       "moduleType": "javascript/auto",
       "name": "./fixtures/c.js?c=3",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/c.js",
+      "orphan": false,
       "reasons": [
         {
           "moduleId": "919",
@@ -530,6 +589,13 @@ exports.c = require("./c?c=3");
           "moduleName": "./fixtures/abc-query.js",
           "type": "cjs require",
           "userRequest": "./c?c=3",
+        },
+        {
+          "moduleId": "432",
+          "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/c.js?c=3",
+          "moduleName": "./fixtures/c.js?c=3",
+          "type": "cjs self exports reference",
+          "userRequest": "self",
         },
       ],
       "size": 79,
@@ -554,6 +620,7 @@ exports.c = require("./c?c=3");
       "moduleType": "javascript/auto",
       "name": "./fixtures/abc-query.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
+      "orphan": false,
       "reasons": [
         {
           "moduleId": undefined,

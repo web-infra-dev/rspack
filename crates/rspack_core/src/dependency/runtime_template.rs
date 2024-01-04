@@ -141,11 +141,11 @@ pub fn get_exports_type(
     .module_identifier_by_dependency_id(id)
     .expect("should have module");
   let strict = module_graph
-    .module_graph_module_by_identifier(parent_module)
+    .module_by_identifier(parent_module)
     .expect("should have mgm")
     .get_strict_harmony_module();
   module_graph
-    .module_graph_module_by_identifier(module)
+    .module_by_identifier(module)
     .expect("should have mgm")
     .get_exports_type(strict)
 }
@@ -159,7 +159,7 @@ pub fn get_exports_type_with_strict(
     .module_identifier_by_dependency_id(id)
     .expect("should have module");
   module_graph
-    .module_graph_module_by_identifier(module)
+    .module_by_identifier(module)
     .expect("should have mgm")
     .get_exports_type(strict)
 }

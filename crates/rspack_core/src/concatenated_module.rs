@@ -221,6 +221,11 @@ impl Module for ConcatenatedModule {
     // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L688
     &ModuleType::JsEsm
   }
+
+  fn build_info() {
+    todo!()
+  }
+
   fn source_types(&self) -> &[SourceType] {
     &[SourceType::JavaScript]
   }

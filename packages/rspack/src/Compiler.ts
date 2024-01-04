@@ -48,6 +48,7 @@ import { RuntimeGlobals } from "./RuntimeGlobals";
 import { tryRunOrWebpackError } from "./lib/HookWebpackError";
 import { CodeGenerationResult } from "./Module";
 import { canInherentFromParent } from "./builtin-plugin/base";
+import { CreateModuleData } from "@rspack/binding";
 
 class Compiler {
 	#_instance?: binding.Rspack;
@@ -332,6 +333,8 @@ class Compiler {
 				optimizeTree: this.#optimizeTree.bind(this),
 				optimizeChunkModules: this.#optimizeChunkModules.bind(this),
 				finishModules: this.#finishModules.bind(this),
+				normalModuleFactoryCreateModule:
+					this.#normalModuleFactoryCreateModule.bind(this),
 				normalModuleFactoryResolveForScheme:
 					this.#normalModuleFactoryResolveForScheme.bind(this),
 				chunkAsset: this.#chunkAsset.bind(this),
@@ -655,6 +658,7 @@ class Compiler {
 			thisCompilation: undefined,
 			optimizeChunkModules: this.compilation.hooks.optimizeChunkModules,
 			contextModuleBeforeResolve: undefined,
+			normalModuleFactoryCreateModule: undefined,
 			normalModuleFactoryResolveForScheme: undefined,
 			executeModule: undefined
 		};
@@ -752,6 +756,15 @@ class Compiler {
 
 		this.#updateDisabledHooks();
 		return res;
+	}
+
+	async #normalModuleFactoryCreateModule(createData: binding.CreateModuleData) {
+		const data = Object.assign({}, createData, {
+			settings: {},
+			matchResource: createData.resourceResolveData.resource
+		});
+		const nmfHooks = this.compilation.normalModuleFactory?.hooks;
+		await nmfHooks?.createModule.promise(data, {});
 	}
 
 	async #normalModuleFactoryResolveForScheme(

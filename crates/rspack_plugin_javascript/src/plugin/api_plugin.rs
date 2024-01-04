@@ -12,7 +12,7 @@ impl Plugin for APIPlugin {
     _ctx: PluginContext,
     mut args: RenderModuleContentArgs<'a>,
   ) -> PluginRenderModuleContentOutput<'a> {
-    if let Some(build_info) = &args.module_graph_module.build_info
+    if let Some(build_info) = &args.module.build_info()
       && build_info.need_create_require
     {
       args.chunk_init_fragments.push(

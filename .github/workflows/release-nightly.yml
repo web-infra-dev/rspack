@@ -118,28 +118,23 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ github.repository_owner == 'web-infra-dev' && contains(needs.*.result, 'failure') }}
     steps:
-      - uses: actions/github-script@v6
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
         with:
-          github-token: ${{ secrets.RSPACK_BOT_ACCESS_TOKEN }}
-          script: |
-            const res = await fetch(
-              '${{secrets.DISCORD_WEBHOOK_URL}}',
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                  username: "nightly release",
-                  avatar_url:
-                    "https://raw.githubusercontent.com/web-infra-dev/rspack-website/main/docs/public/logo.png",
-                  embeds: [
-                    {
-                      title: "nightly release failed",
-                      description: "See job:\n* ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-                    }
-                  ]
-                })
-              }
-            );
-            console.log("res:", await res.text());
+          node-version: 18
+      - shell: bash
+        run: ./scripts/alert/lark.js
+        with:
+          TITLE: Nightly release failed
+          DESCRIPTION: |
+            commitID: [${{github.sha}}](${{github.server_url}}/${{github.repository}}/commit/${{github.sha}})
+          URL: ${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}}
+          LARK_WEBHOOK_URL: ${{secrets.LARK_WEBHOOK_URL}}
+      - shell: bash
+        run: ./scripts/alert/discord.js
+        with:
+          TITLE: Nightly release failed
+          DESCRIPTION: |
+            commitID: [${{github.sha}}](${{github.server_url}}/${{github.repository}}/commit/${{github.sha}})
+          URL: ${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}}
+          DISCORD_WEBHOOK_URL: ${{secrets.DISCORD_WEBHOOK_URL}}

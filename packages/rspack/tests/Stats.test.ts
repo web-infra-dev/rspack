@@ -32,10 +32,12 @@ describe("Stats", () => {
 		chunk {main} main.js (main) [entry]
 		  ./fixtures/a.js [585] {main}
 		    entry ./fixtures/a
+		    cjs self exports reference self [585]
 		./fixtures/a.js [585] {main}
 		  entry ./fixtures/a
+		  cjs self exports reference self [585]
 		  
-		Rspack compiled successfully (a62f45ec3d75aa689fa1)"
+		Rspack compiled successfully (38f6d710192d3067d1eb)"
 	`);
 	});
 
@@ -56,9 +58,8 @@ describe("Stats", () => {
 			context: __dirname,
 			entry: "./fixtures/abc"
 		});
-		expect(
-			stats?.toString({ timings: false, version: false }).replace(/\\/g, "/")
-		).toMatchInlineSnapshot(`
+		expect(stats?.toString({ timings: false, version: false }))
+			.toMatchInlineSnapshot(`
 		"PublicPath: auto
 		asset main.js 758 bytes [emitted] (name: main)
 		Entrypoint main 758 bytes = main.js
@@ -81,7 +82,7 @@ describe("Stats", () => {
 		  help: 
 		        You may need an appropriate loader to handle this file type.
 
-		Rspack compiled with 1 error (276dbbbbbfe2a12323dd)"
+		Rspack compiled with 1 error (acb0ddfd7b068556fa5f)"
 	`);
 	});
 
@@ -135,7 +136,6 @@ describe("Stats", () => {
 		expect(
 			stats
 				?.toString({ all: false, logging: "verbose" })
-				.replace(/\\/g, "/")
 				.replace(/\d+ ms/g, "X ms")
 		).toMatchInlineSnapshot(`
 		"LOG from rspack.Compilation
@@ -208,10 +208,7 @@ describe("Stats", () => {
 			profile: true
 		});
 		expect(
-			stats
-				?.toString({ all: false, modules: true })
-				.replace(/\\/g, "/")
-				.replace(/\d+ ms/g, "X ms")
+			stats?.toString({ all: false, modules: true }).replace(/\d+ ms/g, "X ms")
 		).toMatchInlineSnapshot(`
 		"./fixtures/a.js
 		  X ms (resolving: X ms, integration: X ms, building: X ms)
@@ -258,7 +255,7 @@ describe("Stats", () => {
 			);
 		});
 		expect(stats).toContain("module build cache: 100.0% (4/4)");
-		expect(stats).toContain("module factorize cache: 100.0% (5/5)");
+		expect(stats).toContain("module factorize cache: 100.0% (7/7)");
 		expect(stats).toContain("module code generation cache: 100.0% (4/4)");
 	});
 
@@ -351,7 +348,7 @@ describe("Stats", () => {
 			ids: true
 		};
 		expect(stats?.toJson(options)).toMatchSnapshot();
-		expect(stats?.toString(options).replace(/\\/g, "/")).toMatchInlineSnapshot(`
+		expect(stats?.toString(options)).toMatchInlineSnapshot(`
 		"asset main.js 211 bytes {main} [emitted] (name: main)
 		chunk {main} main.js (main) [entry]
 		./fixtures/a.js [585] {main}"

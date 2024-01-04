@@ -1,8 +1,8 @@
 use rayon::prelude::*;
 use rspack_core::rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
 use rspack_core::{
-  ChunkInitFragments, ChunkUkey, Compilation, ModuleGraphModule, RenderModuleContentArgs,
-  RuntimeGlobals, SourceType,
+  BoxModule, ChunkInitFragments, ChunkUkey, Compilation, RenderModuleContentArgs, RuntimeGlobals,
+  SourceType,
 };
 use rspack_error::{error, Result};
 use rustc_hash::FxHashSet as HashSet;
@@ -27,16 +27,16 @@ pub fn render_chunk_modules(
 
   let mut module_code_array = ordered_modules
     .par_iter()
-    .filter(|mgm| include_module_ids.contains(&mgm.module_identifier))
-    .filter_map(|mgm| {
+    .filter(|module| include_module_ids.contains(&module.identifier()))
+    .filter_map(|module| {
       let code_gen_result = compilation
         .code_generation_results
-        .get(&mgm.module_identifier, Some(&chunk.runtime));
+        .get(&module.identifier(), Some(&chunk.runtime));
       if let Some(origin_source) = code_gen_result.get(&SourceType::JavaScript) {
         let render_module_result = plugin_driver
           .render_module_content(RenderModuleContentArgs {
             compilation,
-            module_graph_module: mgm,
+            module,
             module_source: origin_source.clone(),
             chunk_init_fragments: ChunkInitFragments::default(),
           })
@@ -44,15 +44,19 @@ pub fn render_chunk_modules(
 
         let runtime_requirements = compilation
           .chunk_graph
-          .get_module_runtime_requirements(mgm.module_identifier, &chunk.runtime);
+          .get_module_runtime_requirements(module.identifier(), &chunk.runtime);
 
         Some((
-          mgm.module_identifier,
+          module.identifier(),
           render_module(
             render_module_result.module_source,
-            mgm,
+            module,
             runtime_requirements,
-            mgm.id(&compilation.chunk_graph),
+            compilation
+              .chunk_graph
+              .get_module_id(module.identifier())
+              .as_ref()
+              .expect("should have module id"),
           ),
           &code_gen_result.chunk_init_fragments,
           render_module_result.chunk_init_fragments,
@@ -96,7 +100,7 @@ pub fn render_chunk_modules(
 
 fn render_module(
   source: BoxSource,
-  mgm: &ModuleGraphModule,
+  module: &BoxModule,
   runtime_requirements: Option<&RuntimeGlobals>,
   module_id: &str,
 ) -> Result<BoxSource> {
@@ -108,15 +112,16 @@ fn render_module(
 
   let mut args = Vec::new();
   if need_module || need_exports || need_require {
-    let module_argument = mgm.get_module_argument();
+    let module_argument = module.get_module_argument();
     args.push(if need_module {
       module_argument.to_string()
     } else {
       format!("__unused_webpack_{module_argument}")
     });
   }
+
   if need_exports || need_require {
-    let exports_argument = mgm.get_exports_argument();
+    let exports_argument = module.get_exports_argument();
     args.push(if need_exports {
       exports_argument.to_string()
     } else {
@@ -137,7 +142,7 @@ fn render_module(
     "(function ({}) {{\n",
     args.join(", ")
   )));
-  if let Some(build_info) = &mgm.build_info
+  if let Some(build_info) = &module.build_info()
     && build_info.strict
   {
     sources.add(RawSource::from("\"use strict\";\n"));

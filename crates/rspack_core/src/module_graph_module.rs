@@ -3,8 +3,7 @@ use rustc_hash::FxHashSet as HashSet;
 
 use crate::ExportsInfoId;
 use crate::{
-  module_graph::ConnectionId, BuildInfo, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType,
-  ChunkGraph, DependencyId, ExportsArgument, ExportsType, FactoryMeta, ModuleArgument, ModuleGraph,
+  module_graph::ConnectionId, ChunkGraph, DependencyId, FactoryMeta, ModuleGraph,
   ModuleGraphConnection, ModuleIdentifier, ModuleIssuer, ModuleProfile, ModuleSyntax, ModuleType,
 };
 
@@ -26,8 +25,6 @@ pub struct ModuleGraphModule {
   pub post_order_index: Option<u32>,
   pub module_syntax: ModuleSyntax,
   pub factory_meta: Option<FactoryMeta>,
-  pub build_info: Option<BuildInfo>,
-  pub build_meta: Option<BuildMeta>,
   pub exports: ExportsInfoId,
   pub profile: Option<Box<ModuleProfile>>,
   pub is_async: bool,
@@ -52,8 +49,6 @@ impl ModuleGraphModule {
       post_order_index: None,
       module_syntax: ModuleSyntax::empty(),
       factory_meta: None,
-      build_info: None,
-      build_meta: None,
       exports: exports_info_id,
       profile: None,
       is_async: false,
@@ -135,79 +130,5 @@ impl ModuleGraphModule {
 
   pub fn get_issuer(&self) -> &ModuleIssuer {
     &self.issuer
-  }
-
-  pub fn get_exports_argument(&self) -> ExportsArgument {
-    self
-      .build_meta
-      .as_ref()
-      .map(|m| m.exports_argument)
-      .unwrap_or_default()
-  }
-
-  pub fn get_module_argument(&self) -> ModuleArgument {
-    self
-      .build_meta
-      .as_ref()
-      .map(|m| m.module_argument)
-      .unwrap_or_default()
-  }
-
-  pub fn get_exports_type(&self, strict: bool) -> ExportsType {
-    if let Some((export_type, default_object)) = self
-      .build_meta
-      .as_ref()
-      .map(|m| (&m.exports_type, &m.default_object))
-    {
-      match export_type {
-        BuildMetaExportsType::Flagged => {
-          if strict {
-            ExportsType::DefaultWithNamed
-          } else {
-            ExportsType::Namespace
-          }
-        }
-        BuildMetaExportsType::Namespace => ExportsType::Namespace,
-        BuildMetaExportsType::Default => match default_object {
-          BuildMetaDefaultObject::Redirect => ExportsType::DefaultWithNamed,
-          BuildMetaDefaultObject::RedirectWarn => {
-            if strict {
-              ExportsType::DefaultOnly
-            } else {
-              ExportsType::DefaultWithNamed
-            }
-          }
-          BuildMetaDefaultObject::False => ExportsType::DefaultOnly,
-        },
-        BuildMetaExportsType::Dynamic => {
-          if strict {
-            ExportsType::DefaultWithNamed
-          } else {
-            // TODO check target
-            ExportsType::Dynamic
-          }
-        }
-        // algin to undefined
-        BuildMetaExportsType::Unset => {
-          if strict {
-            ExportsType::DefaultWithNamed
-          } else {
-            ExportsType::Dynamic
-          }
-        }
-      }
-    } else if strict {
-      ExportsType::DefaultWithNamed
-    } else {
-      ExportsType::Dynamic
-    }
-  }
-
-  pub fn get_strict_harmony_module(&self) -> bool {
-    self
-      .build_meta
-      .as_ref()
-      .map(|m| m.strict_harmony_module)
-      .unwrap_or(false)
   }
 }

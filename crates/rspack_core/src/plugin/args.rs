@@ -9,9 +9,9 @@ use rspack_sources::BoxSource;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  Chunk, ChunkInitFragments, ChunkUkey, Compilation, Context, ContextModuleFactory,
-  DependencyCategory, DependencyType, ErrorSpan, FactoryMeta, ModuleDependency, ModuleGraphModule,
-  ModuleIdentifier, NormalModuleFactory, Resolve, RuntimeGlobals, SharedPluginDriver, Stats,
+  BoxModule, Chunk, ChunkInitFragments, ChunkUkey, Compilation, Context, ContextModuleFactory,
+  DependencyCategory, DependencyType, ErrorSpan, FactoryMeta, ModuleDependency, ModuleIdentifier,
+  NormalModuleFactory, Resolve, RuntimeGlobals, SharedPluginDriver, Stats,
 };
 
 #[derive(Debug)]
@@ -191,7 +191,7 @@ pub struct RenderModuleContentArgs<'a> {
   pub module_source: BoxSource,
   pub chunk_init_fragments: ChunkInitFragments,
   pub compilation: &'a Compilation,
-  pub module_graph_module: &'a ModuleGraphModule,
+  pub module: &'a BoxModule,
 }
 
 #[derive(Debug)]

@@ -9,7 +9,7 @@ use crate::dependencies_block::AsyncDependenciesToInitialChunkError;
 use crate::{
   assign_depth, assign_depths, get_entry_runtime, AsyncDependenciesBlockIdentifier, BoxDependency,
   ChunkGroup, ChunkGroupInfo, ChunkGroupKind, ChunkGroupOptions, ChunkGroupUkey, ChunkLoading,
-  ChunkUkey, Compilation, DependenciesBlock, Dependency, GroupOptions, Logger,
+  ChunkUkey, Compilation, ConnectionState, DependenciesBlock, Dependency, GroupOptions, Logger,
   ModuleGraphConnection, ModuleIdentifier, RuntimeSpec,
 };
 
@@ -36,8 +36,10 @@ pub(super) struct CodeSplitter<'me> {
   block_chunk_groups: HashMap<AsyncDependenciesBlockIdentifier, ChunkGroupUkey>,
   named_chunk_groups: HashMap<String, ChunkGroupUkey>,
   named_async_entrypoints: HashMap<String, ChunkGroupUkey>,
-  block_modules_runtime_map:
-    HashMap<OptionalRuntimeSpec, HashMap<DependenciesBlockIdentifier, Vec<ModuleIdentifier>>>,
+  block_modules_runtime_map: HashMap<
+    OptionalRuntimeSpec,
+    HashMap<DependenciesBlockIdentifier, Vec<(ModuleIdentifier, ConnectionState)>>,
+  >,
   pub(super) remove_parent_modules_context: RemoveParentModulesContext,
 }
 
@@ -484,14 +486,22 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
     let runtime = chunk_group.info.runtime.clone();
     let modules = self.get_block_modules(item.block.into(), Some(&runtime));
-    for module in modules {
-      self.queue.push(QueueAction::AddAndEnterEntryModule(
-        AddAndEnterEntryModule {
+    for (module, active_state) in modules {
+      if active_state.is_true() {
+        self.queue.push(QueueAction::AddAndEnterEntryModule(
+          AddAndEnterEntryModule {
+            chunk: item.chunk,
+            chunk_group: item.chunk_group,
+            module,
+          },
+        ));
+      } else {
+        self.queue.push(QueueAction::ProcessBlock(ProcessBlock {
           chunk: item.chunk,
           chunk_group: item.chunk_group,
-          module,
-        },
-      ));
+          block: module.into(),
+        }));
+      }
     }
     let blocks = self
       .compilation
@@ -513,7 +523,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       .expect_get(&item.chunk_group);
     let runtime = item_chunk_group.info.runtime.clone();
     let modules = self.get_block_modules(item.block, Some(&runtime));
-    for module in modules.into_iter().rev() {
+    for (module, active_state) in modules.into_iter().rev() {
       if self
         .compilation
         .chunk_graph
@@ -521,14 +531,23 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       {
         continue;
       }
-      // webpack use queueBuffer to rev
-      self
-        .queue
-        .push(QueueAction::AddAndEnterModule(AddAndEnterModule {
+
+      if active_state.is_true() {
+        // webpack use queueBuffer to rev
+        self
+          .queue
+          .push(QueueAction::AddAndEnterModule(AddAndEnterModule {
+            chunk: item.chunk,
+            chunk_group: item.chunk_group,
+            module,
+          }));
+      } else {
+        self.queue.push(QueueAction::ProcessBlock(ProcessBlock {
           chunk: item.chunk,
           chunk_group: item.chunk_group,
-          module,
+          block: module.into(),
         }));
+      }
     }
     let blocks = item.block.get_blocks(self.compilation);
     for block in blocks {
@@ -752,7 +771,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     &mut self,
     module: DependenciesBlockIdentifier,
     runtime: Option<&RuntimeSpec>,
-  ) -> Vec<ModuleIdentifier> {
+  ) -> Vec<(ModuleIdentifier, ConnectionState)> {
     if let Some(modules) = self
       .block_modules_runtime_map
       .get(&runtime.cloned().into())
@@ -788,43 +807,56 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       map.insert(b.into(), Vec::new());
     }
 
-    let dependencies: Vec<&BoxDependency> = if self.compilation.options.is_new_tree_shaking() {
-      let mgm = self
-        .compilation
-        .module_graph
-        .module_graph_module_by_identifier(&module)
-        .unwrap_or_else(|| panic!("no module found: {:?}", &module));
-      let mut filtered_dep: Vec<&Box<dyn Dependency>> = mgm
-        .outgoing_connections_unordered(&self.compilation.module_graph)
-        .expect("should have outgoing connections")
-        .filter_map(|con: &ModuleGraphConnection| {
-          let active_state = con.get_active_state(&self.compilation.module_graph, runtime);
-          match active_state {
-            crate::ConnectionState::Bool(false) => None,
-            _ => Some(con.dependency_id),
-          }
-        })
-        .filter_map(|dep_id| self.compilation.module_graph.dependency_by_id(&dep_id))
-        .collect();
-      // keep the dependency original order if it does not have span, or sort the dependency by
-      // the error span
-      filtered_dep.sort_by(|a, b| match (a.span(), b.span()) {
-        (Some(a), Some(b)) => a.cmp(&b),
-        _ => std::cmp::Ordering::Equal,
-      });
-      filtered_dep
-    } else {
-      self
-        .compilation
-        .module_graph
-        .get_module_all_dependencies(&module)
-        .expect("should have module")
-        .iter()
-        .filter_map(|dep_id| self.compilation.module_graph.dependency_by_id(dep_id))
-        .collect()
-    };
+    let dependencies: Vec<(&BoxDependency, ConnectionState)> =
+      if self.compilation.options.is_new_tree_shaking() {
+        let mgm = self
+          .compilation
+          .module_graph
+          .module_graph_module_by_identifier(&module)
+          .unwrap_or_else(|| panic!("no module found: {:?}", &module));
+        let mut filtered_dep: Vec<(&Box<dyn Dependency>, ConnectionState)> = mgm
+          .outgoing_connections_unordered(&self.compilation.module_graph)
+          .expect("should have outgoing connections")
+          .filter_map(|con: &ModuleGraphConnection| {
+            let active_state = con.get_active_state(&self.compilation.module_graph, runtime);
+            match active_state {
+              crate::ConnectionState::Bool(false) => None,
+              _ => Some((con.dependency_id, active_state)),
+            }
+          })
+          .filter_map(|(dep_id, active_state)| {
+            self
+              .compilation
+              .module_graph
+              .dependency_by_id(&dep_id)
+              .map(|id| (id, active_state))
+          })
+          .collect();
+        // keep the dependency original order if it does not have span, or sort the dependency by
+        // the error span
+        filtered_dep.sort_by(|(a, _), (b, _)| match (a.span(), b.span()) {
+          (Some(a), Some(b)) => a.cmp(&b),
+          _ => std::cmp::Ordering::Equal,
+        });
+        filtered_dep
+      } else {
+        self
+          .compilation
+          .module_graph
+          .get_module_all_dependencies(&module)
+          .expect("should have module")
+          .iter()
+          .filter_map(|dep_id| {
+            self
+              .compilation
+              .module_graph
+              .dependency_by_id(dep_id)
+              .map(|id| (id, ConnectionState::Bool(true)))
+          })
+          .collect()
+      };
 
-    for dep in dependencies {
+    for (dep, active_state) in dependencies {
       if dep.as_module_dependency().is_none() && dep.as_context_dependency().is_none() {
         continue;
       }
@@ -853,13 +885,14 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         .expect("should have runtime in block_modules_runtime_map")
         .get_mut(&block_id)
         .expect("should have modules in block_modules_runtime_map");
-      modules.push(
+      modules.push((
         *self
           .compilation
           .module_graph
           .module_identifier_by_dependency_id(dep_id)
           .expect("should have module_identifier"),
-      );
+        active_state,
+      ));
     }
   }
 

@@ -22,10 +22,8 @@ test("tailwindcss should work when modify js file", async ({
 	fileAction.updateFile("src/App.jsx", content => {
 		return content.replace("text-2xl", "text-3xl");
 	});
-	await rspack.waitingForHmr(async () => {
-		const classNames = await page.getAttribute("#app", "class");
-		return classNames?.includes("text-3xl") || false;
-	});
+
+	await expect(page.locator("#app")).toHaveClass(/text-3xl/);
 
 	appFontSize = await getAppFontSize();
 	expect(appFontSize).toBe("30px");

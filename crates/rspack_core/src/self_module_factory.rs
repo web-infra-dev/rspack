@@ -12,8 +12,6 @@ impl ModuleFactory for SelfModuleFactory {
     let issuer = data
       .issuer_identifier
       .expect("self module must have issuer");
-    Ok(ModuleFactoryResult::new_with_module(Box::new(
-      SelfModule::new(issuer),
-    )))
+    Ok(ModuleFactoryResult::new_with_module(Box::new(SelfModule::new(issuer))).from_cache(true))
   }
 }

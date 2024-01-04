@@ -50,11 +50,15 @@ impl From<OptChainExpr> for MaybeExpr<'_> {
 #[derive(Debug)]
 pub struct ExpressionInfoCallExpression {
   root_members: VecDeque<(Atom, SyntaxContext)>,
+  args: Vec<ExprOrSpread>,
 }
 
 impl ExpressionInfoCallExpression {
   pub fn root_members(&self) -> &VecDeque<(Atom, SyntaxContext)> {
     &self.root_members
+  }
+  pub fn args(&self) -> &Vec<ExprOrSpread> {
+    &self.args
   }
 }
 
@@ -139,12 +143,13 @@ pub fn extract_member_expression_chain<'e, T: Into<MaybeExpr<'e>>>(
         );
         *kind = ExpressionInfoKind::CallExpression(Box::new(ExpressionInfoCallExpression {
           root_members: members,
+          args: expr.args.to_owned(),
         }));
       }
     }
   }
 
-  fn walk_callee(callee: &Callee, kind: &mut ExpressionInfoKind) {
+  fn walk_callee(callee: &Callee, args: &Vec<ExprOrSpread>, kind: &mut ExpressionInfoKind) {
     let mut members = VecDeque::new();
     let mut members_optionals = VecDeque::new();
     let mut members_spans = VecDeque::new();
@@ -167,6 +172,7 @@ pub fn extract_member_expression_chain<'e, T: Into<MaybeExpr<'e>>>(
     }
     *kind = ExpressionInfoKind::CallExpression(Box::new(ExpressionInfoCallExpression {
       root_members: members,
+      args: args.to_owned(),
     }))
   }
 
@@ -177,7 +183,7 @@ pub fn extract_member_expression_chain<'e, T: Into<MaybeExpr<'e>>>(
     _members_spans: &mut VecDeque<Span>,
     kind: &mut ExpressionInfoKind,
   ) {
-    walk_callee(&call_expr.callee, kind)
+    walk_callee(&call_expr.callee, &call_expr.args, kind)
   }
 
   fn walk_member_expr(

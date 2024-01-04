@@ -36,7 +36,12 @@ impl<'a> FlagDependencyExportsProxy<'a> {
       std::mem::take(&mut self.mg.module_identifier_to_module_graph_module);
     for mgm in module_graph_modules.values() {
       let exports_id = mgm.exports;
-      let is_module_without_exports = if let Some(ref build_meta) = mgm.build_meta {
+
+      let module = self
+        .mg
+        .module_by_identifier(&mgm.module_identifier)
+        .expect("should have module");
+      let is_module_without_exports = if let Some(build_meta) = module.build_meta() {
         build_meta.exports_type == BuildMetaExportsType::Unset
       } else {
         true
@@ -52,8 +57,8 @@ impl<'a> FlagDependencyExportsProxy<'a> {
         }
       }
 
-      if !mgm
-        .build_info
+      if !module
+        .build_info()
         .as_ref()
         .map(|item| item.hash.is_some())
         .unwrap_or_default()
