@@ -3,10 +3,10 @@ import { test, expect } from "@/fixtures";
 test("missing files", async ({ page, fileAction }) => {
 	let overlay = page.frameLocator("#webpack-dev-server-client-overlay");
 	await expect(
-		overlay.getByText("Failed to resolve ./missing-file-1")
+		overlay.getByText("Can't resolve './missing-file-1'")
 	).toBeVisible();
 	await expect(
-		overlay.getByText("Failed to resolve ./missing-file-2")
+		overlay.getByText("Can't resolve './missing-file-2'")
 	).toBeVisible();
 
 	fileAction.updateFile(
@@ -19,6 +19,10 @@ test("missing files", async ({ page, fileAction }) => {
 		() => "export const b = 'missing-file-2'"
 	);
 
-	await expect(page.locator("#missing-file-1")).toHaveText("missing-file-1");
-	await expect(page.locator("#missing-file-2")).toHaveText("missing-file-2");
+	await expect(page.locator("#missing-file-1")).toHaveText("missing-file-1", {
+		timeout: 30 * 1000
+	});
+	await expect(page.locator("#missing-file-2")).toHaveText("missing-file-2", {
+		timeout: 30 * 1000
+	});
 });

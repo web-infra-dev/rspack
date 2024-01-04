@@ -219,12 +219,21 @@ impl Resolver {
       Self::OxcResolver(resolver) => {
         let mut context = Default::default();
         let result = resolver.resolve_with_context(path, request, &mut context);
-
-        // resolve_context
-        //   .file_dependencies
-        //   .extend(context.file_dependencies);
-        // resolve_context.missing_dependencies.extend();
-
+        println!(
+          "file: {:?}\nmissing:{:?}\nintersection:{:?}",
+          &context.file_dependencies,
+          &context.missing_dependencies,
+          context
+            .file_dependencies
+            .intersection(&context.missing_dependencies)
+            .collect::<HashSet<_>>()
+        );
+        resolve_context
+          .file_dependencies
+          .extend(context.file_dependencies);
+        resolve_context
+          .missing_dependencies
+          .extend(context.missing_dependencies);
         match result {
           Ok(r) => Ok(ResolveResult::Resource(Resource {
             path: r.path().to_path_buf(),
@@ -232,7 +241,7 @@ impl Resolver {
             fragment: r.fragment().map(ToString::to_string),
             description_data: r
               .package_json()
-              .map(|d| DescriptionData::new(d.directory().to_path_buf(), Arc::clone(&d.raw_json))),
+              .map(|d| DescriptionData::new(d.directory().to_path_buf(), Arc::clone(d.raw_json()))),
           })),
           Err(oxc_resolver::ResolveError::Ignored(_)) => Ok(ResolveResult::Ignored),
           Err(error) => Err(ResolveInnerError::OxcResolver(error)),

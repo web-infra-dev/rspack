@@ -75,14 +75,10 @@ pub async fn resolve(
     .resolve_with_context(base_dir, args.specifier, &mut context)
     .map_err(|error| error.into_resolve_error(&args));
 
-  let ResolveArgs {
-    file_dependencies,
-    missing_dependencies,
-    ..
-  } = args;
-
-  file_dependencies.extend(context.file_dependencies);
-  missing_dependencies.extend(context.missing_dependencies);
+  args.file_dependencies.extend(context.file_dependencies);
+  args
+    .missing_dependencies
+    .extend(context.missing_dependencies);
 
   result
 }
