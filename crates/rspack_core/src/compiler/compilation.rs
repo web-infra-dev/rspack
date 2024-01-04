@@ -757,15 +757,15 @@ impl Compilation {
                   mgm.factory_meta = Some(factory_result.factory_meta);
 
                   self.module_graph.exports_info_map.insert(
-                    exports_info_related.exports_info.id,
+                    *exports_info_related.exports_info.id as usize,
                     exports_info_related.exports_info,
                   );
                   self.module_graph.export_info_map.insert(
-                    exports_info_related.side_effects_info.id,
+                    *exports_info_related.side_effects_info.id as usize,
                     exports_info_related.side_effects_info,
                   );
                   self.module_graph.export_info_map.insert(
-                    exports_info_related.other_exports_info.id,
+                    *exports_info_related.other_exports_info.id as usize,
                     exports_info_related.other_exports_info,
                   );
 

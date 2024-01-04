@@ -152,8 +152,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
         let export_info = self
           .mg
           .export_info_map
-          .get_mut(&from_exports_info_id)
-          .expect("should have export info");
+          .get_mut(*from_exports_info_id as usize);
         export_info.unset_target(&dep_id);
       }
     }
@@ -314,11 +313,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
         }
       }
 
-      let export_info = self
-        .mg
-        .export_info_map
-        .get_mut(&export_info_id)
-        .expect("should have export info");
+      let export_info = self.mg.export_info_map.get_mut(*export_info_id as usize);
       if export_info.exports_info_owned {
         let changed = export_info
           .exports_info
