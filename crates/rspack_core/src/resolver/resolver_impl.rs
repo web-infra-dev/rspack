@@ -8,9 +8,18 @@ use rspack_error::{
   error, miette::miette, DiagnosticError, Error, ErrorExt, Severity, TraceableError,
 };
 use rspack_loader_runner::DescriptionData;
+use rustc_hash::FxHashSet as HashSet;
 
 use super::{ResolveResult, Resource};
 use crate::{DependencyCategory, Resolve, ResolveArgs, ResolveOptionsWithDependencyType};
+
+#[derive(Debug, Default, Clone)]
+pub struct ResolveContext {
+  /// Files that was found on file system
+  pub file_dependencies: HashSet<PathBuf>,
+  /// Dependencies that was not found on file system
+  pub missing_dependencies: HashSet<PathBuf>,
+}
 
 /// Proxy to [nodejs_resolver::Error] or [oxc_resolver::ResolveError]
 #[derive(Debug)]
@@ -145,13 +154,6 @@ impl Resolver {
     }
   }
 
-  /// Return `dependencies` from `enhanced-resolve`
-  ///
-  /// Implementation is currently blank.
-  pub fn dependencies(&self) -> (Vec<PathBuf>, Vec<PathBuf>) {
-    (vec![], vec![])
-  }
-
   /// Return the options from the resolver
   pub fn options(&self) -> ResolveInnerOptions<'_> {
     match self {
@@ -189,6 +191,53 @@ impl Resolver {
         Err(oxc_resolver::ResolveError::Ignored(_)) => Ok(ResolveResult::Ignored),
         Err(error) => Err(ResolveInnerError::OxcResolver(error)),
       },
+    }
+  }
+
+  /// Resolve a specifier to a given path.
+  pub fn resolve_with_context(
+    &self,
+    path: &Path,
+    request: &str,
+    resolve_context: &mut ResolveContext,
+  ) -> Result<ResolveResult, ResolveInnerError> {
+    match self {
+      Self::NodejsResolver(resolver, _) => resolver
+        .resolve(path, request)
+        .map(|result| match result {
+          nodejs_resolver::ResolveResult::Resource(r) => ResolveResult::Resource(Resource {
+            path: r.path,
+            query: r.query,
+            fragment: r.fragment,
+            description_data: r.description.map(|d| {
+              DescriptionData::new(d.dir().as_ref().to_path_buf(), Arc::clone(d.data().raw()))
+            }),
+          }),
+          nodejs_resolver::ResolveResult::Ignored => ResolveResult::Ignored,
+        })
+        .map_err(ResolveInnerError::NodejsResolver),
+      Self::OxcResolver(resolver) => {
+        let mut context = Default::default();
+        let result = resolver.resolve_with_context(path, request, &mut context);
+
+        // resolve_context
+        //   .file_dependencies
+        //   .extend(context.file_dependencies);
+        // resolve_context.missing_dependencies.extend();
+
+        match result {
+          Ok(r) => Ok(ResolveResult::Resource(Resource {
+            path: r.path().to_path_buf(),
+            query: r.query().map(ToString::to_string),
+            fragment: r.fragment().map(ToString::to_string),
+            description_data: r
+              .package_json()
+              .map(|d| DescriptionData::new(d.directory().to_path_buf(), Arc::clone(&d.raw_json))),
+          })),
+          Err(oxc_resolver::ResolveError::Ignored(_)) => Ok(ResolveResult::Ignored),
+          Err(error) => Err(ResolveInnerError::OxcResolver(error)),
+        }
+      }
     }
   }
 }
