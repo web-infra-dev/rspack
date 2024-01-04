@@ -1341,7 +1341,10 @@ impl Compilation {
       .await
   }
 
-  #[instrument(name = "compilation:chunk_asset", skip_all)]
+  #[instrument(
+    name = "compilation:chunk_asset",
+    skip(self, plugin_driver, chunk_ukey)
+  )]
   async fn chunk_asset(
     &mut self,
     chunk_ukey: ChunkUkey,
