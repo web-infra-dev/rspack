@@ -36,7 +36,6 @@ import {
 	DefinePlugin,
 	MergeDuplicateChunksPlugin,
 	SplitChunksPlugin,
-	OldSplitChunksPlugin,
 	ChunkPrefetchPreloadPlugin,
 	NamedModuleIdsPlugin,
 	DeterministicModuleIdsPlugin,
@@ -274,14 +273,7 @@ export class RspackOptionsApply {
 				options.optimization.mangleExports !== "size"
 			).apply(compiler);
 		}
-		if (
-			options.optimization.splitChunks &&
-			options.experiments.newSplitChunks === false
-		) {
-			new OldSplitChunksPlugin(options.optimization.splitChunks).apply(
-				compiler
-			);
-		} else if (options.optimization.splitChunks) {
+		if (options.optimization.splitChunks) {
 			new SplitChunksPlugin(options.optimization.splitChunks).apply(compiler);
 		}
 		// TODO: inconsistent: the plugin need to be placed after SplitChunksPlugin
