@@ -18,6 +18,7 @@ either = "1"
 futures = { workspace = true }
 glob-match = "0.2.1"
 hashlink = { workspace = true }
+hex = "0.4.3"
 indexmap = { workspace = true }
 itertools = { workspace = true }
 json = { workspace = true }

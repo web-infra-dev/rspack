@@ -2,10 +2,11 @@ use std::collections::hash_map::Entry;
 
 use once_cell::sync::Lazy;
 use regex::Regex;
-use rspack_core::concatenated_module::{ConcatenatedModuleInfo, ModuleInfo};
-use rspack_core::ModuleIdentifier;
 use rustc_hash::FxHashMap as HashMap;
 use swc_core::atoms::Atom;
+
+use crate::concatenated_module::{ConcatenatedModuleInfo, ModuleInfo};
+use crate::ModuleIdentifier;
 
 pub const DEFAULT_EXPORT: &'static str = "__WEBPACK_DEFAULT_EXPORT__";
 pub const NAMESPACE_OBJECT_EXPORT: &'static str = "__WEBPACK_NAMESPACE_OBJECT__";

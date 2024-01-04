@@ -9,6 +9,7 @@ use crate::{
 };
 
 mod comment;
+mod concatenation_scope;
 mod extract_url_and_global;
 mod fast_actions;
 mod find_graph_roots;
@@ -24,7 +25,6 @@ mod source;
 mod template;
 mod to_path;
 mod visitor;
-
 pub use self::comment::*;
 pub use self::extract_url_and_global::*;
 pub use self::fast_actions::*;

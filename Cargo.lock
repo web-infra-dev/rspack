@@ -2577,6 +2577,7 @@ dependencies = [
  "futures",
  "glob-match",
  "hashlink",
+ "hex",
  "indexmap 1.9.3",
  "itertools",
  "json",
