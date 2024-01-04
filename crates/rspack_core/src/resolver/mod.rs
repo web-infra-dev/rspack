@@ -8,6 +8,7 @@ use rspack_loader_runner::DescriptionData;
 
 pub use self::factory::{ResolveOptionsWithDependencyType, ResolverFactory};
 pub use self::resolver_impl::{ResolveInnerOptions, Resolver};
+use crate::diagnostics::WithHelp;
 use crate::{ResolveArgs, SharedPluginDriver};
 
 /// A successful path resolution or an ignored path.
@@ -80,5 +81,5 @@ pub async fn resolve(
     .missing_dependencies
     .extend(context.missing_dependencies);
 
-  result
+  result.map_err(|err| Error::new_boxed(err))
 }
