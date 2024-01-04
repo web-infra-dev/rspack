@@ -73,7 +73,6 @@ import type {
 	RuleSetRules,
 	ParserOptionsByModuleType,
 	GeneratorOptionsByModuleType,
-	IncrementalRebuildOptions,
 	RspackFutureOptions,
 	HotUpdateGlobal,
 	ScriptType,
@@ -303,11 +302,7 @@ export const getNormalizedRspackOptions = (
 		}),
 		plugins: nestedArray(config.plugins, p => [...p]),
 		experiments: nestedConfig(config.experiments, experiments => ({
-			...experiments,
-			incrementalRebuild: optionalNestedConfig(
-				experiments.incrementalRebuild,
-				options => (options === true ? {} : options)
-			)
+			...experiments
 		})),
 		watch: config.watch,
 		watchOptions: cloneObject(config.watchOptions),
@@ -495,7 +490,6 @@ export interface ModuleOptionsNormalized {
 
 export interface ExperimentsNormalized {
 	lazyCompilation?: boolean;
-	incrementalRebuild?: false | IncrementalRebuildOptions;
 	asyncWebAssembly?: boolean;
 	outputModule?: boolean;
 	newSplitChunks?: boolean;

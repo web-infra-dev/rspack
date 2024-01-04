@@ -11,7 +11,6 @@ import type {
 	RawAssetGeneratorDataUrl,
 	RawAssetInlineGeneratorOptions,
 	RawAssetResourceGeneratorOptions,
-	RawIncrementalRebuild,
 	RawModuleRuleUses,
 	RawFuncUseCtx,
 	RawRspackFuture,
@@ -51,7 +50,6 @@ import {
 	AssetParserOptions,
 	ParserOptionsByModuleType,
 	GeneratorOptionsByModuleType,
-	IncrementalRebuildOptions,
 	RspackFutureOptions,
 	JavascriptParserOptions,
 	LibraryName,
@@ -749,17 +747,12 @@ function getRawSnapshotOptions(
 function getRawExperiments(
 	experiments: ExperimentsNormalized
 ): RawOptions["experiments"] {
-	const { incrementalRebuild, newSplitChunks, topLevelAwait, rspackFuture } =
-		experiments;
+	const { newSplitChunks, topLevelAwait, rspackFuture } = experiments;
 	assert(
-		!isNil(incrementalRebuild) &&
-			!isNil(newSplitChunks) &&
-			!isNil(topLevelAwait) &&
-			!isNil(rspackFuture)
+		!isNil(newSplitChunks) && !isNil(topLevelAwait) && !isNil(rspackFuture)
 	);
 
 	return {
-		incrementalRebuild: getRawIncrementalRebuild(incrementalRebuild),
 		newSplitChunks,
 		topLevelAwait,
 		rspackFuture: getRawRspackFutureOptions(rspackFuture)
@@ -776,23 +769,6 @@ function getRawRspackFutureOptions(
 		newResolver: future.newResolver,
 		newTreeshaking: future.newTreeshaking,
 		disableTransformByDefault: future.disableTransformByDefault
-	};
-}
-
-function getRawIncrementalRebuild(
-	inc: false | IncrementalRebuildOptions
-): RawIncrementalRebuild {
-	if (inc === false) {
-		return {
-			make: false,
-			emitAsset: false
-		};
-	}
-	const { make, emitAsset } = inc;
-	assert(!isNil(make) && !isNil(emitAsset));
-	return {
-		make,
-		emitAsset
 	};
 }
 

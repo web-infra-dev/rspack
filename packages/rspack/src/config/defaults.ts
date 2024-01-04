@@ -168,20 +168,6 @@ const applyExperimentsDefaults = (
 	D(experiments, "css", true); // we not align with webpack about the default value for better DX
 	D(experiments, "topLevelAwait", true);
 
-	D(experiments, "incrementalRebuild", {});
-	if (typeof experiments.incrementalRebuild === "object") {
-		D(experiments.incrementalRebuild, "make", true);
-		D(experiments.incrementalRebuild, "emitAsset", true);
-	}
-	if (
-		cache === false &&
-		experiments.incrementalRebuild &&
-		experiments.incrementalRebuild.make
-	) {
-		experiments.incrementalRebuild.make = false;
-		// TODO: use logger to warn user enable cache for incrementalRebuild.make
-	}
-
 	D(experiments, "rspackFuture", {});
 	if (typeof experiments.rspackFuture === "object") {
 		D(experiments.rspackFuture, "newResolver", true);

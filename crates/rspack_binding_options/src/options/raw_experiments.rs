@@ -5,14 +5,6 @@ use serde::Deserialize;
 #[derive(Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
-pub struct RawIncrementalRebuild {
-  pub make: bool,
-  pub emit_asset: bool,
-}
-
-#[derive(Deserialize, Debug, Default)]
-#[serde(rename_all = "camelCase")]
-#[napi(object)]
 pub struct RawRspackFuture {
   pub new_resolver: bool,
   pub new_treeshaking: bool,
@@ -23,7 +15,6 @@ pub struct RawRspackFuture {
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawExperiments {
-  pub incremental_rebuild: RawIncrementalRebuild,
   pub new_split_chunks: bool,
   pub top_level_await: bool,
   pub rspack_future: RawRspackFuture,
