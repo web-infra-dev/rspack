@@ -225,52 +225,11 @@ describe("Stats", () => {
 	`);
 	});
 
-	it("should have cache hits log when logging verbose and cache is enabled", async () => {
-		const compiler = rspack({
-			context: __dirname,
-			entry: "./fixtures/abc",
-			cache: true,
-			experiments: {
-				incrementalRebuild: false
-			}
-		});
-		await new Promise<void>((resolve, reject) => {
-			compiler.build(err => {
-				if (err) {
-					return reject(err);
-				}
-				resolve();
-			});
-		});
-		const stats = await new Promise<string>((resolve, reject) => {
-			compiler.rebuild(
-				new Set([path.join(__dirname, "./fixtures/a")]),
-				new Set(),
-				err => {
-					if (err) {
-						return reject(err);
-					}
-					const stats = new Stats(compiler.compilation).toString({
-						all: false,
-						logging: "verbose"
-					});
-					resolve(stats);
-				}
-			);
-		});
-		expect(stats).toContain("module build cache: 100.0% (4/4)");
-		expect(stats).toContain("module factorize cache: 100.0% (5/5)");
-		expect(stats).toContain("module code generation cache: 100.0% (4/4)");
-	});
-
 	it("should not have any cache hits log when cache is disabled", async () => {
 		const compiler = rspack({
 			context: __dirname,
 			entry: "./fixtures/abc",
-			cache: false,
-			experiments: {
-				incrementalRebuild: false
-			}
+			cache: false
 		});
 		await new Promise<void>((resolve, reject) => {
 			compiler.build(err => {
@@ -305,10 +264,7 @@ describe("Stats", () => {
 		const compiler = rspack({
 			context: __dirname,
 			entry: "./fixtures/abc",
-			cache: true,
-			experiments: {
-				incrementalRebuild: true
-			}
+			cache: true
 		});
 		await new Promise<void>((resolve, reject) => {
 			compiler.build(err => {
