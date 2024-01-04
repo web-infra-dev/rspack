@@ -24,6 +24,8 @@ pub enum DependencyType {
   DynamicImportEager,
   // cjs require
   CjsRequire,
+  // cjs full require
+  CjsFullRequire,
   // cjs exports
   CjsExports,
   // cjs export require
@@ -99,6 +101,7 @@ impl DependencyType {
       DependencyType::EsmImportSpecifier => Cow::Borrowed("esm import specifier"),
       DependencyType::DynamicImport => Cow::Borrowed("dynamic import"),
       DependencyType::CjsRequire => Cow::Borrowed("cjs require"),
+      DependencyType::CjsFullRequire => Cow::Borrowed("cjs full require"),
       DependencyType::CjsExports => Cow::Borrowed("cjs exports"),
       DependencyType::CjsExportRequire => Cow::Borrowed("cjs export require"),
       DependencyType::CjsSelfReference => Cow::Borrowed("cjs self exports reference"),
