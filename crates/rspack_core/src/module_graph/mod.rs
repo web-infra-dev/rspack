@@ -9,7 +9,7 @@ use rspack_identifier::{Identifiable, IdentifierMap};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::ecma::atoms::JsWord;
 mod vec_map;
-use crate::{debug_all_exports_info, AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier};
+use crate::{AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier};
 mod connection;
 pub use connection::*;
 
@@ -893,10 +893,11 @@ mod test {
     mg.add_module_graph_module(mgm);
     mg.add_module(m);
     mg.export_info_map
-      .insert(other_exports_info.id, other_exports_info);
+      .insert(*other_exports_info.id as usize, other_exports_info);
     mg.export_info_map
-      .insert(side_effects_only_info.id, side_effects_only_info);
-    mg.exports_info_map.insert(exports_info.id, exports_info);
+      .insert(*side_effects_only_info.id as usize, side_effects_only_info);
+    mg.exports_info_map
+      .insert(*exports_info.id as usize, exports_info);
   }
 
   fn link_modules_with_dependency(

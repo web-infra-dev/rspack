@@ -1,3 +1,4 @@
+use std::hash::BuildHasherDefault;
 use std::{collections::HashMap, sync::Arc};
 
 use indexmap::IndexSet;
@@ -12,7 +13,7 @@ use rspack_core::{
   NormalInitFragment, RuntimeGlobals, RuntimeSpec, Template, TemplateContext,
   TemplateReplaceSource, UsageState, UsedName,
 };
-use rustc_hash::FxHashSet as HashSet;
+use rustc_hash::{FxHashSet as HashSet, FxHasher};
 use swc_core::ecma::atoms::JsWord;
 
 use super::{create_resource_identifier_for_esm_dependency, harmony_import_dependency_apply};
@@ -1284,8 +1285,7 @@ impl From<Option<UsedName>> for ValueKey {
 
 impl AsContextDependency for HarmonyExportImportedSpecifierDependency {}
 
-#[allow(unused)]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum ExportModeType {
   Missing,
   Unused,
@@ -1353,8 +1353,8 @@ fn determine_export_assignments(
   }
 
   // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/dependencies/HarmonyExportImportedSpecifierDependency.js#L109
-  // js `Set` keep the insertion order, use `LinkedHashSet` to align there behavior
-  let mut names: IndexSet<JsWord> = IndexSet::new();
+  // js `Set` keep the insertion order, use `IndexSet` to align there behavior
+  let mut names: IndexSet<JsWord, BuildHasherDefault<FxHasher>> = IndexSet::default();
   let mut dependency_indices = vec![];
 
   for dependency in dependencies.iter() {
