@@ -4,6 +4,7 @@ use std::borrow::Cow;
 use json::{
   number::Number,
   object::Object,
+  stringify,
   Error::{
     ExceededDepthLimit, FailedUtf8Parsing, UnexpectedCharacter, UnexpectedEndOfJson, WrongType,
   },
@@ -169,7 +170,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
           _ => json_data.clone(),
         };
         let is_js_object = final_json.is_object() || final_json.is_array();
-        let final_json_string = final_json.to_string();
+        let final_json_string = stringify(final_json);
         let json_str = utils::escape_json(&final_json_string);
         let json_expr = if is_js_object && json_str.len() > 20 {
           Cow::Owned(format!(
