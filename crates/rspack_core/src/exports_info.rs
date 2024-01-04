@@ -1,6 +1,7 @@
 use std::collections::hash_map::DefaultHasher;
 use std::collections::hash_map::Entry;
 use std::hash::Hasher;
+use std::ops::Deref;
 use std::sync::atomic::AtomicU32;
 use std::sync::atomic::Ordering::Relaxed;
 use std::sync::Arc;
@@ -29,9 +30,17 @@ pub static EXPORTS_INFO_ID: AtomicU32 = AtomicU32::new(0);
 
 impl ExportsHash for ExportsInfoId {
   fn export_info_hash(&self, hasher: &mut dyn Hasher, module_graph: &ModuleGraph) {
-    if let Some(exports_info) = module_graph.exports_info_map.get(self) {
+    if let Some(exports_info) = module_graph.exports_info_map.try_get(**self as usize) {
       exports_info.export_info_hash(hasher, module_graph);
     }
+  }
+}
+
+impl Deref for ExportsInfoId {
+  type Target = u32;
+
+  fn deref(&self) -> &Self::Target {
+    &self.0
   }
 }
 
@@ -114,10 +123,7 @@ impl ExportsInfoId {
     let other_exports_info = exports_info.other_exports_info;
     let exports_id_list = exports_info.exports.values().cloned().collect::<Vec<_>>();
     for export_info_id in exports_id_list {
-      let export_info = mg
-        .export_info_map
-        .get_mut(&export_info_id)
-        .expect("should have export info");
+      let export_info = mg.export_info_map.get_mut(*export_info_id as usize);
 
       if !can_mangle && export_info.can_mangle_provide != Some(false) {
         export_info.can_mangle_provide = Some(false);
@@ -164,10 +170,7 @@ impl ExportsInfoId {
         changed = true;
       }
     } else {
-      let other_exports_info = mg
-        .export_info_map
-        .get_mut(&other_exports_info)
-        .expect("should have export info");
+      let other_exports_info = mg.export_info_map.get_mut(*other_exports_info as usize);
       if !matches!(
         other_exports_info.provided,
         Some(ExportInfoProvided::True | ExportInfoProvided::Null)
@@ -228,7 +231,7 @@ impl ExportsInfoId {
       Some(other_export_info),
     );
     let new_info_id = new_info.id;
-    mg.export_info_map.insert(new_info_id, new_info);
+    mg.export_info_map.insert(*new_info_id as usize, new_info);
 
     let exports_info = mg.get_exports_info_mut_by_id(self);
     exports_info._exports_are_ordered = false;
@@ -525,10 +528,7 @@ impl ExportsInfo {
       }
       UsedName::Vec(value) => {
         if value.is_empty() {
-          let other_export_info = module_graph
-            .export_info_map
-            .get(&self.other_exports_info)
-            .expect("should have export info");
+          let other_export_info = module_graph.get_export_info_by_id(&self.other_exports_info);
           return other_export_info.get_used(runtime);
         }
         let info = self.id.get_read_only_export_info(&value[0], module_graph);
@@ -573,15 +573,12 @@ impl ExportsInfo {
 
   pub fn set_has_provide_info(&mut self, mg: &mut ModuleGraph) {
     for export_info_id in self.exports.values() {
-      let e = mg
-        .export_info_map
-        .get_mut(export_info_id)
-        .expect("should have export info");
-      if e.provided.is_none() {
-        e.provided = Some(ExportInfoProvided::False);
+      let export_info = mg.export_info_map.get_mut(**export_info_id as usize);
+      if export_info.provided.is_none() {
+        export_info.provided = Some(ExportInfoProvided::False);
       }
-      if e.can_mangle_provide.is_none() {
-        e.can_mangle_provide = Some(true);
+      if export_info.can_mangle_provide.is_none() {
+        export_info.can_mangle_provide = Some(true);
       }
     }
     if let Some(ref mut redirect_to) = self.redirect_to {
@@ -589,8 +586,7 @@ impl ExportsInfo {
     } else {
       let other_export_info = mg
         .export_info_map
-        .get_mut(&self.other_exports_info)
-        .expect("should have export info");
+        .get_mut(*self.other_exports_info as usize);
       if other_export_info.provided.is_none() {
         other_export_info.provided = Some(ExportInfoProvided::False);
       }
@@ -631,7 +627,7 @@ pub static EXPORT_INFO_ID: AtomicU32 = AtomicU32::new(0);
 
 impl ExportsHash for ExportInfoId {
   fn export_info_hash(&self, hasher: &mut dyn Hasher, module_graph: &ModuleGraph) {
-    if let Some(export_info) = module_graph.export_info_map.get(self) {
+    if let Some(export_info) = module_graph.export_info_map.try_get(**self as usize) {
       export_info.export_info_hash(hasher, module_graph);
     }
   }
@@ -679,11 +675,11 @@ impl ExportInfoId {
     export_info_mut.exports_info = Some(new_exports_info_id);
 
     mg.exports_info_map
-      .insert(new_exports_info_id, new_exports_info);
+      .insert(*new_exports_info_id as usize, new_exports_info);
     mg.export_info_map
-      .insert(other_exports_info.id, other_exports_info);
+      .insert(*other_exports_info.id as usize, other_exports_info);
     mg.export_info_map
-      .insert(side_effects_only_info.id, side_effects_only_info);
+      .insert(*side_effects_only_info.id as usize, side_effects_only_info);
 
     new_exports_info_id.set_has_provide_info(mg);
     if let Some(exports_info) = old_exports_info {
@@ -1554,10 +1550,7 @@ pub fn process_export_info(
   already_visited: &mut HashSet<ExportInfoId>,
 ) {
   if let Some(export_info_id) = export_info {
-    let export_info = module_graph
-      .export_info_map
-      .get(&export_info_id)
-      .expect("should have export info");
+    let export_info = module_graph.get_export_info_by_id(&export_info_id);
     let used = export_info.get_used(runtime);
     if used == UsageState::Unused {
       return;
@@ -1575,13 +1568,10 @@ pub fn process_export_info(
     }
     if let Some(exports_info) = module_graph
       .exports_info_map
-      .get(&export_info.exports_info.expect("should have exports info"))
+      .try_get(*export_info.exports_info.expect("should have exports info") as usize)
     {
       for export_info_id in exports_info.get_ordered_exports() {
-        let export_info = module_graph
-          .export_info_map
-          .get(export_info_id)
-          .expect("should have export_info");
+        let export_info = module_graph.get_export_info_by_id(export_info_id);
         process_export_info(
           module_graph,
           runtime,
