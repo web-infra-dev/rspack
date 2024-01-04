@@ -757,6 +757,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 				module.issuerPath,
 				context
 			);
+			object.orphan = module.orphan;
 			const profile = module.profile;
 			if (profile) {
 				object.profile = factory.create(`${type}.profile`, profile, context);

@@ -511,6 +511,7 @@ export interface JsStatsModule {
   assets?: Array<string>
   source?: string | Buffer
   profile?: JsStatsModuleProfile
+  orphan: boolean
 }
 
 export interface JsStatsModuleIssuer {
