@@ -1,15 +1,12 @@
 it("should evaluate api typeof", function () {
 	expect(require("./typeof")).toEqual({
 		require: "function",
-		module: "object",
 		__webpack_is_included__: "function"
 	});
 });
 
 it("should not parse filtered stuff", function () {
 	if (typeof require !== "function") require("fail");
-	if (typeof module !== "object") require("fail");
-	if (typeof exports !== "object") require("fail");
 	if (typeof __webpack_hash__ !== "string") require("fail");
 	if (typeof __webpack_public_path__ !== "string") require("fail");
 	if (typeof __webpack_modules__ !== "object") require("fail");

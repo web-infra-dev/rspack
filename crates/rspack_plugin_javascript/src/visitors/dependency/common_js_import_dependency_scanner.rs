@@ -10,7 +10,6 @@ use swc_core::ecma::ast::{Lit, TryStmt, UnaryExpr, UnaryOp};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
 use super::api_scanner::ApiParserPlugin;
-use super::common_js_export_scanner::CommonJsExportParserPlugin;
 use super::context_helper::scanner_context_module;
 use super::expr_matcher::{is_module_require, is_require};
 use super::{
@@ -95,7 +94,6 @@ impl<'a> CommonJsImportDependencyScanner<'a> {
       Box::new(CommonJsImportsParserPlugin),
       Box::new(RequireContextDependencyParserPlugin),
       Box::new(ApiParserPlugin),
-      Box::new(CommonJsExportParserPlugin),
     ];
     let plugin_drive = JavaScriptParserPluginDrive::new(plugins);
     Self {
