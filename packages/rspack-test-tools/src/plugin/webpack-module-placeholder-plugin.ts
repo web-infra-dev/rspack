@@ -6,6 +6,7 @@ const {
 	PrefixSource
 } = require("webpack-sources");
 const path = require("path");
+const which = require("which-module");
 
 function createRenderRuntimeModulesFn(Template) {
 	return function renderRuntimeModules(runtimeModules, renderContext) {
@@ -56,16 +57,13 @@ function createRenderRuntimeModulesFn(Template) {
 const caches = new WeakMap();
 
 export class WebpackModulePlaceholderPlugin {
-	constructor(private webpackPath: string) {
-		const Template = require(path.join(
-			path.dirname(this.webpackPath),
-			"Template.js"
-		));
-		Template.renderRuntimeModules = createRenderRuntimeModulesFn(Template);
-	}
+	constructor() {}
 	apply(compiler) {
+		const webpackLibPath = which(compiler.constructor).path;
+		const Template = require(path.join(webpackLibPath, "Template.js"));
+		Template.renderRuntimeModules = createRenderRuntimeModulesFn(Template);
 		const JavascriptModulesPlugin = require(path.join(
-			path.dirname(this.webpackPath),
+			webpackLibPath,
 			"javascript/JavascriptModulesPlugin.js"
 		));
 		compiler.hooks.compilation.tap("RuntimeDiffPlugin", compilation => {

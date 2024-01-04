@@ -47,7 +47,8 @@
     "glob": "^10.3.10",
     "jest-diff": "^29.7.0",
     "webpack": "5.89.0",
-    "webpack-sources": "3.2.3"
+    "webpack-sources": "3.2.3",
+    "which-module": "2.0.1"
   },
   "devDependencies": {
     "@arco-design/web-react": "^2.56.1",

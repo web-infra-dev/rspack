@@ -139,10 +139,8 @@ export class DiffProcessor implements ITestProcessor {
 					chunkFilename: "[name].chunk.js"
 				},
 				plugins: [
-					type === ECompilerType.Webpack &&
-						new WebpackDiffConfigPlugin(this.options.webpackPath),
-					type === ECompilerType.Rspack &&
-						new RspackDiffConfigPlugin(this.options.rspackPath)
+					type === ECompilerType.Webpack && new WebpackDiffConfigPlugin(),
+					type === ECompilerType.Rspack && new RspackDiffConfigPlugin()
 				].filter(Boolean)
 			} as TCompilerOptions<T>,
 			{

@@ -2249,6 +2249,9 @@ importers:
       webpack-sources:
         specifier: 3.2.3
         version: 3.2.3
+      which-module:
+        specifier: 2.0.1
+        version: 2.0.1
     devDependencies:
       '@arco-design/web-react':
         specifier: ^2.56.1
@@ -30256,6 +30259,10 @@ packages:
       is-weakmap: 2.0.1
       is-weakset: 2.0.2
     dev: true
+
+  /which-module@2.0.1:
+    resolution: {integrity: sha512-iBdZ57RDvnOR9AGBhML2vFZf7h8vmBjhoaZqODJBFWHVtKkDmKuHai3cx5PgVMrX5YDNp27AofYbAwctSS+vhQ==}
+    dev: false
 
   /which-typed-array@1.1.8:
     resolution: {integrity: sha512-Jn4e5PItbcAHyLoRDwvPj1ypu27DJbtdYXUa5zsinrUx77Uvfb0cXwwnGMTn7cjUfhhqgVQnVJCwF+7cgU7tpw==}
