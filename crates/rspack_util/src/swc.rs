@@ -8,7 +8,7 @@ pub fn normalize_custom_filename(source: &str) -> &str {
   }
 }
 
-pub fn join_Atom(arr: &[Atom], separator: &str) -> String {
+pub fn join_atom(arr: &[Atom], separator: &str) -> String {
   let mut ret = String::new();
   if let Some(item) = arr.first() {
     ret.push_str(item);

@@ -9,7 +9,7 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_identifier::IdentifierMap;
-use rspack_util::swc::join_Atom;
+use rspack_util::swc::join_atom;
 use rustc_hash::FxHashMap as HashMap;
 
 #[derive(Debug)]
@@ -234,10 +234,10 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
               for item in ref_items.iter() {
                 match item {
                   ExtendedReferencedExport::Array(arr) => {
-                    exports_map.insert(join_Atom(arr, "\n"), item.clone());
+                    exports_map.insert(join_atom(arr, "\n"), item.clone());
                   }
                   ExtendedReferencedExport::Export(export) => {
-                    exports_map.insert(join_Atom(&export.name, "\n"), item.clone());
+                    exports_map.insert(join_atom(&export.name, "\n"), item.clone());
                   }
                 }
               }
@@ -248,11 +248,11 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
           for mut item in referenced_exports.into_iter() {
             match item {
               ExtendedReferencedExport::Array(ref arr) => {
-                let key = join_Atom(arr, "\n");
+                let key = join_atom(arr, "\n");
                 exports_map.entry(key).or_insert(item);
               }
               ExtendedReferencedExport::Export(ref mut export) => {
-                let key = join_Atom(&export.name, "\n");
+                let key = join_atom(&export.name, "\n");
                 match exports_map.entry(key) {
                   Entry::Occupied(mut occ) => {
                     let old_item = occ.get();

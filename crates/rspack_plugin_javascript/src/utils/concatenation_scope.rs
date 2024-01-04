@@ -23,6 +23,7 @@ struct ModuleReferenceOptions {
   asi_safe: Option<bool>,
 }
 
+#[allow(unused)]
 struct ConcatenationScope {
   current_module: ConcatenatedModuleInfo,
   modules_map: HashMap<ModuleIdentifier, ModuleInfo>,

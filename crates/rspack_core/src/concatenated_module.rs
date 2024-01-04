@@ -161,10 +161,12 @@ impl ConcatenatedModule {
   pub fn new(
     id: ModuleIdentifier,
     root_module_ctxt: RootModuleContext,
-    modules: Vec<ConcatenatedInnerModule>,
+    mut modules: Vec<ConcatenatedInnerModule>,
     runtime: Option<RuntimeSpec>,
     factory_meta: Option<FactoryMeta>,
   ) -> Self {
+    // make the hash consistant
+    modules.sort_by(|a, b| a.id.cmp(&b.id));
     Self {
       id,
       root_module_ctxt,
@@ -654,8 +656,8 @@ impl ConcatenatedModule {
         match (a.range_start, b.range_start) {
           (None, None) => std::cmp::Ordering::Equal,
           (None, Some(_)) => std::cmp::Ordering::Greater,
-          (Some(_), None) => 1 + 2.0,
-          (Some(_), Some(_)) => todo!(),
+          (Some(_), None) => std::cmp::Ordering::Less,
+          (Some(a), Some(b)) => a.cmp(&b),
         }
       }
     });
