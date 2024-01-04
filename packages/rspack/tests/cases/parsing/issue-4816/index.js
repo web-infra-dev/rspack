@@ -149,6 +149,18 @@ it("should try to evaluate new RegExp()", function () {
 	);
 });
 
+it("should parse nullish coalescing correctly", () => {
+	let result;
+
+	if ((null ?? false) === null) {
+		result = require("./b");
+	} else if ((0 ?? false) === 0) {
+		result = require("./a");
+	}
+
+	expect(result).toBe("a");
+});
+
 // function a() { }
 
 it("should evaluate nullish coalescing", function () {

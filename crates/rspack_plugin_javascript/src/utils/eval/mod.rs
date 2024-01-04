@@ -28,7 +28,7 @@ enum Ty {
   Boolean,
   RegExp,
   Conditional,
-  TypeArray,
+  Array,
   ConstArray,
   BigInt,
   // Identifier,
@@ -130,7 +130,7 @@ impl BasicEvaluatedExpression {
   }
 
   pub fn is_array(&self) -> bool {
-    matches!(self.ty, Ty::TypeArray)
+    matches!(self.ty, Ty::Array)
   }
 
   pub fn is_template_string(&self) -> bool {
@@ -157,6 +157,20 @@ impl BasicEvaluatedExpression {
 
   pub fn is_nullish(&self) -> Option<bool> {
     self.nullish
+  }
+
+  pub fn is_primitive_type(&self) -> Option<bool> {
+    match self.ty {
+      Ty::Undefined
+      | Ty::Null
+      | Ty::String
+      | Ty::Number
+      | Ty::Boolean
+      | Ty::BigInt
+      | Ty::TemplateString => Some(true),
+      Ty::RegExp | Ty::Array | Ty::ConstArray => Some(false),
+      _ => None,
+    }
   }
 
   pub fn as_string(&self) -> Option<std::string::String> {
@@ -241,7 +255,7 @@ impl BasicEvaluatedExpression {
   }
 
   pub fn set_items(&mut self, items: Vec<BasicEvaluatedExpression>) {
-    self.ty = Ty::TypeArray;
+    self.ty = Ty::Array;
     self.side_effects = items.iter().any(|item| item.could_have_side_effects());
     self.items = Some(items);
   }
