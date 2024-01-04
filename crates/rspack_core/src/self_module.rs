@@ -2,7 +2,7 @@ use std::borrow::Cow;
 use std::hash::Hash;
 
 use async_trait::async_trait;
-use rspack_error::{impl_empty_diagnosable_trait, Result};
+use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
 use rspack_sources::Source;
@@ -65,6 +65,10 @@ impl DependenciesBlock for SelfModule {
 impl Module for SelfModule {
   impl_build_info_meta!();
 
+  fn get_diagnostics(&self) -> Vec<Diagnostic> {
+    vec![]
+  }
+
   fn size(&self, _source_type: &SourceType) -> f64 {
     self.identifier.len() as f64
   }
@@ -93,7 +97,11 @@ impl Module for SelfModule {
     None
   }
 
-  async fn build(&mut self, build_context: BuildContext<'_>) -> Result<BuildResult> {
+  async fn build(
+    &mut self,
+    build_context: BuildContext<'_>,
+    _: Option<&Compilation>,
+  ) -> Result<BuildResult> {
     let mut hasher = RspackHash::from(&build_context.compiler_options.output);
     self.update_hash(&mut hasher);
 

@@ -54,7 +54,9 @@ impl Module for LazyCompilationProxyModule {
   fn original_source(&self) -> Option<&dyn Source> {
     None
   }
-
+  fn get_diagnostics(&self) -> Vec<rspack_error::Diagnostic> {
+    vec![]
+  }
   fn readable_identifier(&self, context: &Context) -> Cow<str> {
     Cow::Owned(context.shorten(&self.identifier()))
   }

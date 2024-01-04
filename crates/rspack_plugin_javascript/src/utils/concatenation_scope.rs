@@ -7,8 +7,9 @@ use rspack_core::ModuleIdentifier;
 use rustc_hash::FxHashMap as HashMap;
 use swc_core::atoms::Atom;
 
-const DEFAULT_EXPORT: &'static str = "__WEBPACK_DEFAULT_EXPORT__";
-const NAMESPACE_OBJECT_EXPORT: &'static str = "__WEBPACK_NAMESPACE_OBJECT__";
+pub const DEFAULT_EXPORT: &'static str = "__WEBPACK_DEFAULT_EXPORT__";
+pub const NAMESPACE_OBJECT_EXPORT: &'static str = "__WEBPACK_NAMESPACE_OBJECT__";
+
 const MODULE_REFERENCE_REGEXP: Lazy<Regex> = once_cell::sync::Lazy::new(|| {
   Regex::new(
     r"^__WEBPACK_MODULE_REFERENCE__(\d+)_([\da-f]+|ns)(_call)?(_directImport)?(?:_asiSafe(\d))?__$",
@@ -29,6 +30,7 @@ struct ConcatenationScope {
   modules_map: HashMap<ModuleIdentifier, ModuleInfo>,
 }
 
+#[allow(unused)]
 impl ConcatenationScope {
   fn new(
     modules_map: HashMap<ModuleIdentifier, ModuleInfo>,

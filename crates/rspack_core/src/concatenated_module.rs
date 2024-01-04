@@ -52,6 +52,7 @@ pub struct RootModuleContext {
   presentational_dependencies: Option<Vec<Box<dyn DependencyTemplate>>>,
   context: Option<Box<Context>>,
   side_effect_connection_state: ConnectionState,
+  build_meta: Option<BuildMeta>,
 }
 
 #[derive(Debug, Clone)]
@@ -155,6 +156,7 @@ pub struct ConcatenatedModule {
 
   diagnostics: Mutex<Vec<Diagnostic>>,
   cached_hash: OnceCell<u64>,
+  build_info: Option<BuildInfo>,
 }
 
 impl ConcatenatedModule {
@@ -178,6 +180,7 @@ impl ConcatenatedModule {
       cached_source_sizes: DashMap::default(),
       diagnostics: Mutex::new(vec![]),
       cached_hash: OnceCell::default(),
+      build_info: None,
     }
   }
 
@@ -222,8 +225,21 @@ impl Module for ConcatenatedModule {
     &ModuleType::JsEsm
   }
 
-  fn build_info() {
-    todo!()
+  fn get_diagnostics(&self) -> Vec<Diagnostic> {
+    let guard = self.diagnostics.lock().expect("should have diagnostics");
+    guard.clone()
+  }
+
+  fn build_info(&self) -> Option<&BuildInfo> {
+    self.build_info.as_ref()
+  }
+
+  fn build_meta(&self) -> Option<&BuildMeta> {
+    self.root_module_ctxt.build_meta.as_ref()
+  }
+
+  fn set_module_build_info_and_meta(&mut self, build_info: BuildInfo, _: BuildMeta) {
+    self.build_info = Some(build_info);
   }
 
   fn source_types(&self) -> &[SourceType] {
@@ -252,106 +268,81 @@ impl Module for ConcatenatedModule {
     }
   }
 
-  async fn build(&mut self, build_context: BuildContext<'_>) -> Result<BuildResult> {
-    todo!()
-    // self.clear_diagnostics();
-    //
-    // let mut build_info = BuildInfo::default();
-    // let mut build_meta = BuildMeta::default();
-    //
-    // build_context.plugin_driver.before_loaders(self).await?;
-    //
-    // let loader_result = run_loaders(
-    //   &self.loaders,
-    //   &self.resource_data,
-    //   &[Box::new(LoaderRunnerPluginProcessResource {
-    //     plugin_driver: build_context.plugin_driver.clone(),
-    //   })],
-    //   build_context.compiler_context,
-    // )
-    // .await;
-    // let (loader_result, ds) = match loader_result {
-    //   Ok(r) => r.split_into_parts(),
-    //   Err(e) => {
-    //     let d = Diagnostic::from(e);
-    //     self.source = NormalModuleSource::BuiltFailed(d.clone());
-    //     self.add_diagnostic(d);
-    //     let mut hasher = RspackHash::from(&build_context.compiler_options.output);
-    //     self.update_hash(&mut hasher);
-    //     build_meta.hash(&mut hasher);
-    //     build_info.hash = Some(hasher.digest(&build_context.compiler_options.output.hash_digest));
-    //     return Ok(BuildResult {
-    //       build_info,
-    //       build_meta: Default::default(),
-    //       dependencies: Vec::new(),
-    //       blocks: Vec::new(),
-    //       analyze_result: Default::default(),
-    //     });
-    //   }
-    // };
-    // self.add_diagnostics(ds);
-    //
-    // let content = if self.module_type().is_binary() {
-    //   Content::Buffer(loader_result.content.into_bytes())
-    // } else {
-    //   Content::String(loader_result.content.into_string_lossy())
-    // };
-    // let original_source = self.create_source(content, loader_result.source_map)?;
-    // let mut code_generation_dependencies: Vec<Box<dyn ModuleDependency>> = Vec::new();
-    //
-    // let (
-    //   ParseResult {
-    //     source,
-    //     dependencies,
-    //     blocks,
-    //     presentational_dependencies,
-    //     analyze_result,
-    //   },
-    //   ds,
-    // ) = self
-    //   .parser_and_generator
-    //   .parse(ParseContext {
-    //     source: original_source.clone(),
-    //     module_identifier: self.identifier(),
-    //     module_parser_options: self.parser_options.as_ref(),
-    //     module_type: &self.module_type,
-    //     module_user_request: &self.user_request,
-    //     loaders: &self.loaders,
-    //     resource_data: &self.resource_data,
-    //     compiler_options: build_context.compiler_options,
-    //     additional_data: loader_result.additional_data,
-    //     code_generation_dependencies: &mut code_generation_dependencies,
-    //     build_info: &mut build_info,
-    //     build_meta: &mut build_meta,
-    //   })?
-    //   .split_into_parts();
-    // self.add_diagnostics(ds);
-    // // Only side effects used in code_generate can stay here
-    // // Other side effects should be set outside use_cache
-    // self.original_source = Some(source.clone());
-    // self.source = NormalModuleSource::new_built(source, self.clone_diagnostics());
-    // self.code_generation_dependencies = Some(code_generation_dependencies);
-    // self.presentational_dependencies = Some(presentational_dependencies);
-    //
-    // let mut hasher = RspackHash::from(&build_context.compiler_options.output);
-    // self.update_hash(&mut hasher);
-    // build_meta.hash(&mut hasher);
-    //
-    // build_info.hash = Some(hasher.digest(&build_context.compiler_options.output.hash_digest));
-    // build_info.cacheable = loader_result.cacheable;
-    // build_info.file_dependencies = loader_result.file_dependencies;
-    // build_info.context_dependencies = loader_result.context_dependencies;
-    // build_info.missing_dependencies = loader_result.missing_dependencies;
-    // build_info.build_dependencies = loader_result.build_dependencies;
-    // build_info.asset_filenames = loader_result.asset_filenames;
-    //
-    // Ok(BuildResult {
-    //   build_info,
-    //   build_meta,
-    //   dependencies,
-    //   blocks,
-    //   analyze_result,
-    // })
+  /// the compilation is asserted to be `Some(Compilation)`, https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ModuleConcatenationPlugin.js#L394-L418
+  async fn build(
+    &mut self,
+    build_context: BuildContext<'_>,
+    compilation: Option<&Compilation>,
+  ) -> Result<BuildResult> {
+    let compilation = compilation.expect("should pass compilation");
+    // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L774-L784
+    // Some fields does not exists in rspack
+    let mut build_info = BuildInfo {
+      cacheable: true,
+      hash: None,
+      strict: true,
+      file_dependencies: Default::default(),
+      context_dependencies: Default::default(),
+      missing_dependencies: Default::default(),
+      build_dependencies: Default::default(),
+      asset_filenames: Default::default(),
+      harmony_named_exports: Default::default(),
+      all_star_exports: Default::default(),
+      need_create_require: Default::default(),
+      json_data: Default::default(),
+    };
+    self.clear_diagnostics();
+
+    let mut hasher = RspackHash::from(&build_context.compiler_options.output);
+    self.update_hash(&mut hasher);
+    self.build_meta().hash(&mut hasher);
+
+    build_info.hash = Some(hasher.digest(&build_context.compiler_options.output.hash_digest));
+
+    for m in self.modules.iter() {
+      let module = compilation
+        .module_graph
+        .module_by_identifier(&m.id)
+        .expect("should have module");
+      let cur_build_info = module.build_info().expect("should have module info");
+
+      // populate cacheable
+      if !cur_build_info.cacheable {
+        build_info.cacheable = false;
+      }
+
+      // populate dependencies
+      for dep_id in module.get_dependencies() {
+        let dep = dep_id.get_dependency(&compilation.module_graph);
+        let module_id_of_dep = compilation
+          .module_graph
+          .module_identifier_by_dependency_id(dep_id)
+          .expect("should have module");
+        if !is_harmony_dep_like(dep)
+          || self
+            .modules
+            .iter()
+            .find(|item| &item.id == module_id_of_dep)
+            .is_none()
+        {
+          self.dependencies.push(*dep_id);
+        }
+      }
+
+      // populate blocks
+      for b in module.get_blocks() {
+        self.blocks.push(b.clone());
+      }
+      let mut diagnostics_guard = self.diagnostics.lock().expect("should have diagnostics");
+      // populate diagnostic
+      for d in module.get_diagnostics() {
+        diagnostics_guard.push(d.clone());
+      }
+      // release guard ASAP
+      drop(diagnostics_guard);
+    }
+    // return a dummy result is enough, since we don't build the ConcatenatedModule in make phase
+    Ok(BuildResult::default())
   }
 
   fn code_generation(

@@ -10,7 +10,7 @@ use std::{
 use itertools::Itertools;
 use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
-use rspack_error::{impl_empty_diagnosable_trait, miette::IntoDiagnostic, Result};
+use rspack_error::{impl_empty_diagnosable_trait, miette::IntoDiagnostic, Diagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
 use rspack_regex::RspackRegex;
@@ -572,7 +572,9 @@ impl Module for ContextModule {
   fn source_types(&self) -> &[SourceType] {
     &[SourceType::JavaScript]
   }
-
+  fn get_diagnostics(&self) -> Vec<Diagnostic> {
+    vec![]
+  }
   fn original_source(&self) -> Option<&dyn rspack_sources::Source> {
     None
   }
@@ -595,7 +597,11 @@ impl Module for ContextModule {
     Some(Cow::Owned(id))
   }
 
-  async fn build(&mut self, build_context: BuildContext<'_>) -> Result<BuildResult> {
+  async fn build(
+    &mut self,
+    build_context: BuildContext<'_>,
+    _: Option<&Compilation>,
+  ) -> Result<BuildResult> {
     self.resolve_dependencies(build_context)
   }
 

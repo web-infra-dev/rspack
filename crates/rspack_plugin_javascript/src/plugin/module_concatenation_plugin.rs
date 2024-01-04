@@ -165,19 +165,14 @@ impl Plugin for ModuleConcatenationPlugin {
     for module_id in module_id_list {
       let mut can_be_root = true;
       let mut can_be_inner = true;
-      let mgm = module_id.module_graph_module(mg);
+      let m = module_id.module(mg);
       // If the result is `None`, that means we have some differences with webpack,
       // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ModuleConcatenationPlugin.js#L168-L171
       if mg.is_async(&*module_id).expect("should have async result") {
         // TODO: bailout
         continue;
       }
-      if !mgm
-        .build_info
-        .as_ref()
-        .expect("should have module graph module")
-        .strict
-      {
+      if !m.build_info().expect("should have build info").strict {
         // TODO: bailout
         continue;
       }

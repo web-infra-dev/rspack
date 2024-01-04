@@ -877,7 +877,7 @@ mod test {
           unreachable!()
         }
 
-        async fn build(&mut self, _build_context: BuildContext<'_>) -> Result<BuildResult> {
+        async fn build(&mut self, _build_context: BuildContext<'_>, _compilation: Option<build_context: BuildContext<'_>Compilation>) -> Result<BuildResult> {
           unreachable!()
         }
 

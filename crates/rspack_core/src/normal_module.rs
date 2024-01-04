@@ -315,6 +315,11 @@ impl Module for NormalModule {
     &self.module_type
   }
 
+  fn get_diagnostics(&self) -> Vec<Diagnostic> {
+    let guard = self.diagnostics.lock().expect("should have diagnostics");
+    guard.clone()
+  }
+
   fn source_types(&self) -> &[SourceType] {
     self.parser_and_generator.source_types()
   }
@@ -337,7 +342,11 @@ impl Module for NormalModule {
     }
   }
 
-  async fn build(&mut self, build_context: BuildContext<'_>) -> Result<BuildResult> {
+  async fn build(
+    &mut self,
+    build_context: BuildContext<'_>,
+    _compilation: Option<&Compilation>,
+  ) -> Result<BuildResult> {
     self.clear_diagnostics();
 
     let mut build_info = BuildInfo::default();

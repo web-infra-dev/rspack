@@ -43,6 +43,7 @@ impl<T: RuntimeModule + 'static> RuntimeModuleExt for T {
 #[macro_export]
 macro_rules! impl_runtime_module {
   ($ident:ident) => {
+    use rspack_error::Diagnostic;
     impl rspack_identifier::Identifiable for $ident {
       fn identifier(&self) -> rspack_identifier::Identifier {
         self.name()
@@ -91,6 +92,10 @@ macro_rules! impl_runtime_module {
       fn size(&self, _source_type: &$crate::SourceType) -> f64 {
         // TODO
         160.0
+      }
+
+      fn get_diagnostics(&self) -> Vec<Diagnostic> {
+        vec![]
       }
 
       fn readable_identifier(&self, _context: &$crate::Context) -> std::borrow::Cow<str> {
