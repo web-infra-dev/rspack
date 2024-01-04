@@ -3,7 +3,7 @@ use std::{
   collections::hash_map::{DefaultHasher, Entry},
   fmt::Debug,
   hash::{BuildHasherDefault, Hash, Hasher},
-  sync::Mutex,
+  sync::{Arc, Mutex},
 };
 
 use dashmap::DashMap;
@@ -18,11 +18,12 @@ use swc_core::ecma::atoms::Atom;
 
 use crate::{
   filter_runtime, merge_runtime_condition, merge_runtime_condition_non_false,
-  subtract_runtime_condition, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext,
-  BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation, ConnectionId,
-  ConnectionState, Context, DependenciesBlock, DependencyId, DependencyTemplate, FactoryMeta,
-  LibIdentOptions, Module, ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleIdentifier,
-  ModuleType, ParserAndGenerator, Resolve, RuntimeCondition, RuntimeSpec, SourceType,
+  reserverd_names::RESERVED_NAMES, subtract_runtime_condition, AsyncDependenciesBlockIdentifier,
+  BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult, CodeGenerationResult,
+  Compilation, ConcatenationScope, ConnectionId, ConnectionState, Context, DependenciesBlock,
+  DependencyId, DependencyTemplate, FactoryMeta, LibIdentOptions, Module, ModuleDependency,
+  ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ModuleType, ParserAndGenerator, Resolve,
+  RuntimeCondition, RuntimeSpec, SourceType, Template, DEFAULT_EXPORT, NAMESPACE_OBJECT_EXPORT,
 };
 
 #[derive(Debug)]
@@ -46,7 +47,7 @@ pub struct ConcatenatedInnerModule {
   original_source: Option<BoxSource>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ExternalModuleInfo {
   index: usize,
   module: ModuleIdentifier,
@@ -89,7 +90,7 @@ pub struct ConcatenatedModuleImportInfo {
   range_start: Option<u32>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ConcatenatedModuleInfo {
   pub index: usize,
   pub module: ModuleIdentifier,
@@ -103,7 +104,7 @@ pub struct ConnectionWithRuntimeCondition {
   pub runtime_condition: RuntimeCondition,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ModuleInfo {
   External(ExternalModuleInfo),
   Concatenated(ConcatenatedModuleInfo),
@@ -327,10 +328,43 @@ impl Module for ConcatenatedModule {
 
   fn code_generation(
     &self,
-    _compilation: &Compilation,
+    compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
+    _: Option<&mut ConcatenationScope>,
   ) -> Result<CodeGenerationResult> {
-    let _generation_runtime = runtime.cloned().expect("should have runtime");
+    let generation_runtime = runtime.cloned().expect("should have runtime");
+    let merged_runtime = if let Some(ref runtime) = self.runtime {
+      generation_runtime
+        .intersection(runtime)
+        .cloned()
+        .collect::<HashSet<Arc<str>>>()
+    } else {
+      generation_runtime
+    };
+
+    let (modules_with_info, mut module_to_info_map) =
+      self.get_modules_with_info(&compilation.module_graph, runtime);
+
+    // Set with modules that need a generated namespace object
+    let mut needed_namespace_objects: HashSet<ConcatenatedModuleInfo> = HashSet::default();
+
+    // Generate source code and analyze scopes
+    // Prepare a ReplaceSource for the final source
+    //
+    let arc_map = Arc::new(module_to_info_map);
+    for (id, info) in arc_map.iter() {
+      let updated_info = self.analyze_module(
+        compilation,
+        Arc::clone(&arc_map),
+        info.clone(),
+        Some(&merged_runtime),
+      )?;
+    }
+
+    let all_used_name = HashSet::from_iter(RESERVED_NAMES.iter().map(|item| Atom::from(*item)));
+
+    // TODO: top_level declaration, do we need this?
+
     todo!()
     // if let NormalModuleSource::BuiltSucceed(source) = &self.source {
     //   let mut code_generation_result = CodeGenerationResult::default();
@@ -477,8 +511,8 @@ impl ConcatenatedModule {
 
   fn get_modules_with_info(
     &self,
-    _module_graph: ModuleGraph,
-    _runtime: RuntimeSpec,
+    _module_graph: &ModuleGraph,
+    _runtime: Option<&RuntimeSpec>,
   ) -> (
     Vec<ModuleInfoOrReference>,
     HashMap<ModuleIdentifier, ModuleInfo>,
@@ -659,6 +693,74 @@ impl ConcatenatedModule {
     }
 
     references_map.into_values().collect()
+  }
+
+  /// Using `ModuleIdentifier` instead of `ModuleInfo` to work around rustc borrow checker
+  fn analyze_module(
+    &self,
+    compilation: &Compilation,
+    module_info_map: Arc<HashMap<ModuleIdentifier, ModuleInfo>>,
+    info: ModuleInfo,
+    runtime: Option<&RuntimeSpec>,
+  ) -> Result<ModuleInfo> {
+    if let ModuleInfo::Concatenated(info) = info {
+      let module_id = info.module;
+      let mut concatenation_scope = ConcatenationScope::new(module_info_map, info);
+      let module = compilation
+        .module_graph
+        .module_by_identifier(&module_id)
+        .expect("should have module");
+      module.code_generation(compilation, runtime, Some(&mut concatenation_scope));
+    }
+    todo!()
+  }
+
+  fn find_new_name(
+    old_name: &str,
+    used_names1: &HashSet<String>,
+    used_names2: Option<&HashSet<String>>,
+    extra_info: String,
+  ) -> String {
+    let mut name = old_name.to_string();
+
+    if name == DEFAULT_EXPORT {
+      name = String::new();
+    }
+    if name == NAMESPACE_OBJECT_EXPORT {
+      name = "namespaceObject".to_string();
+    }
+
+    // Remove uncool stuff
+    let extra_info = extra_info
+      .replace(
+        |c: char| c == '.' || c == '/' || c == '+' || c.is_ascii_whitespace(),
+        "",
+      )
+      .to_string();
+
+    let mut splitted_info: Vec<&str> = extra_info.split('/').collect();
+    while let Some(info_part) = splitted_info.pop() {
+      name = format!("{}_{}", info_part, name);
+      let name_ident = Template::to_identifier(&name);
+      if !used_names1.contains(&name_ident)
+        && (used_names2.is_none() || !used_names2.unwrap().contains(&name_ident))
+      {
+        return name_ident;
+      }
+    }
+
+    let mut i = 0;
+    let mut name_with_number = Template::to_identifier(&format!("{}_{}", name, i));
+    while used_names1.contains(&name_with_number)
+      || used_names2
+        .map(|map| map.contains(&name_with_number))
+        .unwrap_or_default()
+    {
+      i += 1;
+      name_with_number = Template::to_identifier(&format!("{}_{}", name, i));
+    }
+
+    name_with_number
   }
 }
 

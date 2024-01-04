@@ -22,10 +22,10 @@ use crate::{
   contextify, get_exports_type_with_strict, impl_build_info_meta, stringify_map, to_path,
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo,
   BuildMeta, BuildResult, ChunkGraph, ChunkGroupOptions, CodeGenerationResult, Compilation,
-  ContextElementDependency, DependenciesBlock, DependencyCategory, DependencyId, ExportsType,
-  FakeNamespaceObjectMode, GroupOptions, LibIdentOptions, Module, ModuleType, Resolve,
-  ResolveInnerOptions, ResolveOptionsWithDependencyType, ResolverFactory, RuntimeGlobals,
-  RuntimeSpec, SourceType,
+  ConcatenationScope, ContextElementDependency, DependenciesBlock, DependencyCategory,
+  DependencyId, ExportsType, FakeNamespaceObjectMode, GroupOptions, LibIdentOptions, Module,
+  ModuleType, Resolve, ResolveInnerOptions, ResolveOptionsWithDependencyType, ResolverFactory,
+  RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
 #[derive(Debug, Clone)]
@@ -609,6 +609,7 @@ impl Module for ContextModule {
     &self,
     compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
+    _: Option<&mut ConcatenationScope>,
   ) -> Result<CodeGenerationResult> {
     let mut code_generation_result = CodeGenerationResult::default();
     code_generation_result

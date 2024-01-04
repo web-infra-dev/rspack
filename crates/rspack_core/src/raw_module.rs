@@ -6,12 +6,12 @@ use rspack_hash::RspackHash;
 use rspack_identifier::Identifiable;
 use rspack_sources::{BoxSource, RawSource, Source, SourceExt};
 
-use crate::Compilation;
 use crate::{
   dependencies_block::AsyncDependenciesBlockIdentifier, impl_build_info_meta, BuildContext,
   BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Context, DependenciesBlock,
   DependencyId, Module, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
 };
+use crate::{Compilation, ConcatenationScope};
 
 #[derive(Debug)]
 pub struct RawModule {
@@ -122,6 +122,7 @@ impl Module for RawModule {
     &self,
     compilation: &crate::Compilation,
     _runtime: Option<&RuntimeSpec>,
+    _: Option<&mut ConcatenationScope>,
   ) -> Result<CodeGenerationResult> {
     let mut cgr = CodeGenerationResult::default();
     cgr.runtime_requirements.insert(self.runtime_requirements);

@@ -9,8 +9,9 @@ use rspack_sources::Source;
 
 use crate::{
   impl_build_info_meta, AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildMeta,
-  BuildResult, ChunkUkey, CodeGenerationResult, Compilation, Context, DependenciesBlock,
-  DependencyId, LibIdentOptions, Module, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
+  BuildResult, ChunkUkey, CodeGenerationResult, Compilation, ConcatenationScope, Context,
+  DependenciesBlock, DependencyId, LibIdentOptions, Module, ModuleIdentifier, ModuleType,
+  RuntimeSpec, SourceType,
 };
 
 #[derive(Debug)]
@@ -125,6 +126,7 @@ impl Module for SelfModule {
     &self,
     _compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
+    _: Option<&mut ConcatenationScope>,
   ) -> Result<CodeGenerationResult> {
     Ok(CodeGenerationResult::default())
   }

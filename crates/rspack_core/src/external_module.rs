@@ -13,9 +13,9 @@ use crate::{
   rspack_sources::{BoxSource, RawSource, Source, SourceExt},
   to_identifier, AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildMeta,
   BuildMetaExportsType, BuildResult, ChunkInitFragments, ChunkUkey, CodeGenerationDataUrl,
-  CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId, ExternalType,
-  InitFragmentExt, InitFragmentKey, InitFragmentStage, LibIdentOptions, Module, ModuleType,
-  NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType,
+  CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId,
+  ExternalType, InitFragmentExt, InitFragmentKey, InitFragmentStage, LibIdentOptions, Module,
+  ModuleType, NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
 static EXTERNAL_MODULE_JS_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
@@ -393,6 +393,7 @@ impl Module for ExternalModule {
     &self,
     compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
+    _: Option<&mut ConcatenationScope>,
   ) -> Result<CodeGenerationResult> {
     let mut cgr = CodeGenerationResult::default();
     let (request, external_type) = self.get_request_and_external_type();

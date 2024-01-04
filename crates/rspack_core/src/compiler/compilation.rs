@@ -1184,7 +1184,7 @@ impl Compilation {
               let mut codegen_list = vec![];
               for runtime in runtimes.into_values().take(take_length) {
                 codegen_list.push((
-                  module.code_generation(compilation, Some(&runtime))?,
+                  module.code_generation(compilation, Some(&runtime), None)?,
                   runtime,
                 ));
               }

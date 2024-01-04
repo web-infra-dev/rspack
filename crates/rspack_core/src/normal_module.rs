@@ -26,11 +26,11 @@ use serde_json::json;
 use crate::{
   add_connection_states, contextify, get_context, impl_build_info_meta,
   AsyncDependenciesBlockIdentifier, BoxLoader, BoxModule, BuildContext, BuildInfo, BuildMeta,
-  BuildResult, CodeGenerationResult, Compilation, CompilerOptions, ConnectionState, Context,
-  DependenciesBlock, DependencyId, DependencyTemplate, GenerateContext, GeneratorOptions,
-  LibIdentOptions, LoaderRunnerPluginProcessResource, Module, ModuleDependency, ModuleGraph,
-  ModuleIdentifier, ModuleType, ParseContext, ParseResult, ParserAndGenerator, ParserOptions,
-  Resolve, RuntimeSpec, SourceType,
+  BuildResult, CodeGenerationResult, Compilation, CompilerOptions, ConcatenationScope,
+  ConnectionState, Context, DependenciesBlock, DependencyId, DependencyTemplate, GenerateContext,
+  GeneratorOptions, LibIdentOptions, LoaderRunnerPluginProcessResource, Module, ModuleDependency,
+  ModuleGraph, ModuleIdentifier, ModuleType, ParseContext, ParseResult, ParserAndGenerator,
+  ParserOptions, Resolve, RuntimeSpec, SourceType,
 };
 
 bitflags! {
@@ -451,6 +451,7 @@ impl Module for NormalModule {
     &self,
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
+    concatenation_scope: Option<&mut ConcatenationScope>,
   ) -> Result<CodeGenerationResult> {
     if let NormalModuleSource::BuiltSucceed(source) = &self.source {
       let mut code_generation_result = CodeGenerationResult::default();
@@ -465,6 +466,7 @@ impl Module for NormalModule {
             data: &mut code_generation_result.data,
             requested_source_type: *source_type,
             runtime,
+            concatenation_scope: &concatenation_scope,
           },
         )?;
         code_generation_result.add(*source_type, CachedSource::new(generation_result).boxed());

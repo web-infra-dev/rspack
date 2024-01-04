@@ -243,6 +243,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
           runtime_requirements: generate_context.runtime_requirements,
           runtime: generate_context.runtime,
           init_fragments: &mut init_fragments,
+          concatenation_scope: &None,
         };
 
         module.get_dependencies().iter().for_each(|id| {

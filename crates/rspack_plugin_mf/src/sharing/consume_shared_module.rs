@@ -1,6 +1,7 @@
 use std::{borrow::Cow, hash::Hash};
 
 use async_trait::async_trait;
+use rspack_core::ConcatenationScope;
 use rspack_core::{
   async_module_factory, impl_build_info_meta, rspack_sources::Source, sync_module_factory,
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo,
@@ -176,6 +177,7 @@ impl Module for ConsumeSharedModule {
     &self,
     compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
+    _: Option<&mut ConcatenationScope>,
   ) -> Result<CodeGenerationResult> {
     let mut code_generation_result = CodeGenerationResult::default();
     code_generation_result

@@ -43,6 +43,7 @@ impl<T: RuntimeModule + 'static> RuntimeModuleExt for T {
 #[macro_export]
 macro_rules! impl_runtime_module {
   ($ident:ident) => {
+    use rspack_core::ConcatenationScope;
     use rspack_error::Diagnostic;
     impl rspack_identifier::Identifiable for $ident {
       fn identifier(&self) -> rspack_identifier::Identifier {
@@ -125,6 +126,7 @@ macro_rules! impl_runtime_module {
         &self,
         compilation: &$crate::Compilation,
         _runtime: Option<&$crate::RuntimeSpec>,
+        _: Option<&mut ConcatenationScope>,
       ) -> rspack_error::Result<$crate::CodeGenerationResult> {
         let mut result = $crate::CodeGenerationResult::default();
         result.add($crate::SourceType::JavaScript, self.generate(compilation));

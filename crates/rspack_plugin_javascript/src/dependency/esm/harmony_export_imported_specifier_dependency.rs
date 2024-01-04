@@ -898,6 +898,14 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
         &self.id,
         runtime,
       );
+      if let Some(ref mut scope) = &code_generatable_context.concatenation_scope {
+        if matches!(mode.ty, ExportModeType::ReexportUndefined) {
+          scope.register_raw_export(
+            mode.name.clone().expect("should have name"),
+            String::from("/* reexport non-default export from non-harmony */ undefined"),
+          );
+        }
+      }
       // dbg!(&mode, self.request());
       if !matches!(mode.ty, ExportModeType::Unused | ExportModeType::EmptyStar) {
         harmony_import_dependency_apply(self, self.source_order, code_generatable_context, &[]);

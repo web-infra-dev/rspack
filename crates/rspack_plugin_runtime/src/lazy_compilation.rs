@@ -5,9 +5,10 @@ use async_trait::async_trait;
 use rspack_core::{
   impl_build_info_meta,
   rspack_sources::{RawSource, Source, SourceExt},
-  AsyncDependenciesBlockIdentifier, BuildInfo, BuildMeta, Compilation, DependenciesBlock,
-  DependencyId, Module, ModuleType, NormalModuleCreateData, Plugin, PluginContext,
-  PluginNormalModuleFactoryCreateModuleHookOutput, RuntimeGlobals, RuntimeSpec, SourceType,
+  AsyncDependenciesBlockIdentifier, BuildInfo, BuildMeta, Compilation, ConcatenationScope,
+  DependenciesBlock, DependencyId, Module, ModuleType, NormalModuleCreateData, Plugin,
+  PluginContext, PluginNormalModuleFactoryCreateModuleHookOutput, RuntimeGlobals, RuntimeSpec,
+  SourceType,
 };
 use rspack_core::{CodeGenerationResult, Context, ModuleIdentifier};
 use rspack_error::{impl_empty_diagnosable_trait, Result};
@@ -69,6 +70,7 @@ impl Module for LazyCompilationProxyModule {
     &self,
     compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
+    _: Option<&mut ConcatenationScope>,
   ) -> Result<CodeGenerationResult> {
     let mut cgr = CodeGenerationResult::default();
     cgr.runtime_requirements.insert(RuntimeGlobals::LOAD_SCRIPT);

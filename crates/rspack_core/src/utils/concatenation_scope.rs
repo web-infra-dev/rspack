@@ -1,4 +1,5 @@
 use std::collections::hash_map::Entry;
+use std::sync::Arc;
 
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -26,28 +27,33 @@ struct ModuleReferenceOptions {
 }
 
 #[allow(unused)]
-struct ConcatenationScope {
+#[derive(Debug)]
+pub struct ConcatenationScope {
   current_module: ConcatenatedModuleInfo,
-  modules_map: HashMap<ModuleIdentifier, ModuleInfo>,
+  modules_map: Arc<HashMap<ModuleIdentifier, ModuleInfo>>,
+  /// Noticed that, this field is rspack only, because defer mutable operation could work around
+  /// rustc borrow checker and avoid clone overhead
+  pub concated_module_namespace_export_symbol: Option<Atom>,
 }
 
 #[allow(unused)]
 impl ConcatenationScope {
-  fn new(
-    modules_map: HashMap<ModuleIdentifier, ModuleInfo>,
+  pub fn new(
+    modules_map: Arc<HashMap<ModuleIdentifier, ModuleInfo>>,
     current_module: ConcatenatedModuleInfo,
   ) -> Self {
     ConcatenationScope {
       current_module,
       modules_map,
+      concated_module_namespace_export_symbol: None,
     }
   }
 
-  fn is_module_in_scope(&self, module: &ModuleIdentifier) -> bool {
+  pub fn is_module_in_scope(&self, module: &ModuleIdentifier) -> bool {
     self.modules_map.contains_key(module)
   }
 
-  fn register_export(&mut self, export_name: Atom, symbol: String) {
+  pub fn register_export(&mut self, export_name: Atom, symbol: String) {
     match self.current_module.export_map.entry(export_name) {
       Entry::Occupied(mut occ) => {
         occ.insert(symbol);
@@ -58,8 +64,8 @@ impl ConcatenationScope {
     }
   }
 
-  fn register_raw_export(&mut self, export_name: Atom, symbol: String) {
-    match self.current_module.export_map.entry(export_name) {
+  pub fn register_raw_export(&mut self, export_name: Atom, symbol: String) {
+    match self.current_module.raw_export_map.entry(export_name) {
       Entry::Occupied(mut occ) => {
         occ.insert(symbol);
       }
@@ -69,17 +75,15 @@ impl ConcatenationScope {
     }
   }
 
-  fn register_namespace_export(&mut self, symbol: &str) {
-    if let ModuleInfo::Concatenated(concatenated_module) = &mut self
-      .modules_map
-      .get_mut(&self.current_module.module)
-      .unwrap()
+  pub fn register_namespace_export(&mut self, symbol: &str) {
+    if let Some(ModuleInfo::Concatenated(concatenated_module)) =
+      &mut self.modules_map.get(&self.current_module.module)
     {
-      concatenated_module.namespace_export_symbol = Some(symbol.into());
+      self.concated_module_namespace_export_symbol = Some(symbol.into());
     }
   }
 
-  fn create_module_reference(
+  pub fn create_module_reference(
     &self,
     module: &ModuleIdentifier,
     options: &ModuleReferenceOptions,
@@ -119,11 +123,11 @@ impl ConcatenationScope {
     )
   }
 
-  fn is_module_reference(name: &str) -> bool {
+  pub fn is_module_reference(name: &str) -> bool {
     MODULE_REFERENCE_REGEXP.is_match(name)
   }
 
-  fn match_module_reference(name: &str) -> Option<ModuleReferenceOptions> {
+  pub fn match_module_reference(name: &str) -> Option<ModuleReferenceOptions> {
     if let Some(captures) = MODULE_REFERENCE_REGEXP.captures(name) {
       let index: usize = captures[1].parse().unwrap();
       let ids: Option<Vec<String>> = if &captures[2] == "ns" {

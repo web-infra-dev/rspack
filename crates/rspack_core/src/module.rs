@@ -17,10 +17,10 @@ use swc_core::ecma::atoms::Atom;
 use crate::tree_shaking::visitor::OptimizeAnalyzeResult;
 use crate::{
   AsyncDependenciesBlock, BoxDependency, ChunkGraph, ChunkUkey, CodeGenerationResult, Compilation,
-  CompilerContext, CompilerOptions, ConnectionState, Context, ContextModule, DependenciesBlock,
-  DependencyId, DependencyTemplate, ExternalModule, ModuleDependency, ModuleGraph,
-  ModuleGraphModule, ModuleType, NormalModule, RawModule, Resolve, RuntimeSpec, SelfModule,
-  SharedPluginDriver, SourceType,
+  CompilerContext, CompilerOptions, ConcatenationScope, ConnectionState, Context, ContextModule,
+  DependenciesBlock, DependencyId, DependencyTemplate, ExternalModule, ModuleDependency,
+  ModuleGraph, ModuleGraphModule, ModuleType, NormalModule, RawModule, Resolve, RuntimeSpec,
+  SelfModule, SharedPluginDriver, SourceType,
 };
 
 pub struct BuildContext<'a> {
@@ -319,6 +319,7 @@ pub trait Module:
     &self,
     _compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
+    _concatenation_scope: Option<&mut ConcatenationScope>,
   ) -> Result<CodeGenerationResult>;
 
   /// Name matched against bundle-splitting conditions.
