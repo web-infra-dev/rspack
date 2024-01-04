@@ -1,9 +1,13 @@
+use itertools::Itertools;
+use rspack_core::{
+  extract_member_expression_chain, DependencyLocation, ExpressionInfoKind, SpanExt,
+};
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::{
-  common::SyntaxContext,
+  common::{Spanned, SyntaxContext},
   ecma::{
-    ast::{CallExpr, Expr, MemberExpr, ObjectPat, ObjectPatProp, PropName},
-    atoms::JsWord,
+    ast::{CallExpr, Expr, ExprOrSpread, MemberExpr, ObjectPat, ObjectPatProp, PropName},
+    atoms::{Atom, JsWord},
   },
 };
 
@@ -333,4 +337,87 @@ macro_rules! no_visit_ignored_expr {
       expr.visit_children_with(self);
     }
   };
+}
+
+pub fn extract_require_call_info(
+  expr: &Expr,
+) -> Option<(Vec<Atom>, ExprOrSpread, DependencyLocation)> {
+  let member_info = extract_member_expression_chain(expr);
+  let root_members = match member_info.kind() {
+    ExpressionInfoKind::CallExpression(info) => info
+      .root_members()
+      .iter()
+      .map(|n| n.0.to_owned())
+      .collect_vec(),
+    ExpressionInfoKind::Expression => vec![],
+  };
+  let args = match member_info.kind() {
+    ExpressionInfoKind::CallExpression(info) => {
+      info.args().iter().map(|i| i.to_owned()).collect_vec()
+    }
+    ExpressionInfoKind::Expression => vec![],
+  };
+
+  let members = member_info
+    .members()
+    .iter()
+    .map(|n| n.0.to_owned())
+    .collect_vec();
+
+  let Some(fist_arg) = args.first() else {
+    return None;
+  };
+
+  let loc = DependencyLocation::new(expr.span().real_lo(), expr.span().real_hi());
+
+  if (root_members.len() == 1 && root_members.first().is_some_and(|f| f == "require"))
+    || (root_members.len() == 2
+      && root_members.first().is_some_and(|f| f == "module")
+      && root_members.get(1).is_some_and(|f| f == "require"))
+  {
+    Some((members, fist_arg.to_owned(), loc))
+  } else {
+    None
+  }
+}
+
+pub fn is_require_call_start(expr: &Expr) -> bool {
+  match expr {
+    Expr::Call(CallExpr { callee, .. }) => {
+      return callee
+        .as_expr()
+        .map(|callee| {
+          if expr_matcher::is_require(callee) || expr_matcher::is_module_require(callee) {
+            true
+          } else {
+            is_require_call_start(callee)
+          }
+        })
+        .unwrap_or(false);
+    }
+    Expr::Member(MemberExpr { obj, .. }) => is_require_call_start(obj),
+    _ => false,
+  }
+}
+
+#[test]
+fn test_is_require_call_start() {
+  macro_rules! test {
+    ($tt:tt,$literal:literal) => {{
+      let info = is_require_call_start(&swc_core::quote!($tt as Expr));
+      assert_eq!(info, $literal)
+    }};
+  }
+  test!("require().a.b", true);
+  test!("require().a.b().c", true);
+  test!("require()()", true);
+  test!("require.a().b", false);
+  test!("require.a.b", false);
+  test!("a.require.b", false);
+  test!("module.require().a.b", true);
+  test!("module.require().a.b().c", true);
+  test!("module.require()()", true);
+  test!("module.require.a().b", false);
+  test!("module.require.a.b", false);
+  test!("a.module.require.b", false);
 }

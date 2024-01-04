@@ -18,7 +18,7 @@ use crate::{
   AsyncDependenciesBlock, BoxDependency, ChunkUkey, CodeGenerationResult, Compilation,
   CompilerContext, CompilerOptions, ConnectionState, Context, ContextModule, DependenciesBlock,
   DependencyId, DependencyTemplate, ExternalModule, ModuleDependency, ModuleGraph, ModuleType,
-  NormalModule, RawModule, Resolve, RuntimeSpec, SharedPluginDriver, SourceType,
+  NormalModule, RawModule, Resolve, RuntimeSpec, SelfModule, SharedPluginDriver, SourceType,
 };
 
 pub struct BuildContext<'a> {
@@ -325,6 +325,7 @@ impl_module_downcast_helpers!(NormalModule, normal_module);
 impl_module_downcast_helpers!(RawModule, raw_module);
 impl_module_downcast_helpers!(ContextModule, context_module);
 impl_module_downcast_helpers!(ExternalModule, external_module);
+impl_module_downcast_helpers!(SelfModule, self_module);
 
 pub struct LibIdentOptions<'me> {
   pub context: &'me str,
