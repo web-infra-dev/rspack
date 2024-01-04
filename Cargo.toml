@@ -75,8 +75,8 @@ panic         = "abort"
 
 [profile.release]
 codegen-units = 1
-debug         = true
+debug         = false
 lto           = false   # disabled by now, because it will significantly increase our compile time.
 opt-level     = 3
 panic         = "abort"
-# strip         = true
+strip         = true
