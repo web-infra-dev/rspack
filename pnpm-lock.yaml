@@ -644,6 +644,9 @@ importers:
       html-webpack-plugin:
         specifier: ^5.5.0
         version: 5.5.0
+      react-refresh:
+        specifier: ^0.14.0
+        version: 0.14.0
       serve:
         specifier: 14.1.2
         version: 14.1.2
@@ -669,6 +672,9 @@ importers:
       html-webpack-plugin:
         specifier: ^5.5.0
         version: 5.5.0
+      react-refresh:
+        specifier: ^0.14.0
+        version: 0.14.0
       serve:
         specifier: 14.1.2
         version: 14.1.2
@@ -1010,8 +1016,6 @@ importers:
       '@rspack/core':
         specifier: workspace:*
         version: link:../../packages/rspack
-
-  examples/plugin-compat/dist: {}
 
   examples/polyfill:
     dependencies:

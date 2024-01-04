@@ -22,6 +22,7 @@
     "@rspack/core": "workspace:*",
     "@rspack/plugin-react-refresh": "workspace:*",
     "html-webpack-plugin": "^5.5.0",
+    "react-refresh": "^0.14.0",
     "serve": "14.1.2"
   }
 }
