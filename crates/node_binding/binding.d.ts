@@ -743,7 +743,6 @@ export interface RawEntryPluginOptions {
 }
 
 export interface RawExperiments {
-  incrementalRebuild: RawIncrementalRebuild
   newSplitChunks: boolean
   topLevelAwait: boolean
   rspackFuture: RawRspackFuture
@@ -834,11 +833,6 @@ export interface RawHtmlRspackPluginOptions {
 export interface RawHttpExternalsRspackPluginOptions {
   css: boolean
   webAsync: boolean
-}
-
-export interface RawIncrementalRebuild {
-  make: boolean
-  emitAsset: boolean
 }
 
 export interface RawInfo {

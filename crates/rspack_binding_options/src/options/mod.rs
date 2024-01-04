@@ -82,12 +82,8 @@ impl RawOptions {
     let cache = self.cache.into();
     let experiments = Experiments {
       incremental_rebuild: IncrementalRebuild {
-        make: self
-          .experiments
-          .incremental_rebuild
-          .make
-          .then(IncrementalRebuildMakeState::default),
-        emit_asset: self.experiments.incremental_rebuild.emit_asset,
+        make: Some(IncrementalRebuildMakeState::default()),
+        emit_asset: true,
       },
       new_split_chunks: self.experiments.new_split_chunks,
       top_level_await: self.experiments.top_level_await,
