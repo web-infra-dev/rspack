@@ -4,7 +4,6 @@
 use std::{hash::BuildHasherDefault, sync::Arc};
 
 use dashmap::{DashMap, DashSet};
-use rayon::prelude::ParallelBridge;
 use rayon::prelude::*;
 use rspack_identifier::{IdentifierHasher, IdentifierSet};
 use rustc_hash::{FxHashMap, FxHashSet};
