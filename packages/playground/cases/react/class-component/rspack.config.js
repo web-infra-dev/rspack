@@ -1,4 +1,5 @@
-/** @type { import('@rspack/core').RspackOptions } */
+const rspack = require("@rspack/core");
+
 module.exports = {
 	context: __dirname,
 	mode: "development",
@@ -14,16 +15,6 @@ module.exports = {
 	infrastructureLogging: {
 		debug: false
 	},
-	builtins: {
-		provide: {
-			$ReactRefreshRuntime$: [require.resolve("./react-refresh.js")]
-		},
-		html: [
-			{
-				template: "./src/index.html"
-			}
-		]
-	},
 	experiments: {
 		rspackFuture: {
 			disableTransformByDefault: false
@@ -31,5 +22,11 @@ module.exports = {
 	},
 	watchOptions: {
 		poll: 1000
-	}
+	},
+	plugins: [
+		new rspack.HtmlRspackPlugin({ template: "./src/index.html" }),
+		new rspack.ProvidePlugin({
+			$ReactRefreshRuntime$: [require.resolve("./react-refresh.js")]
+		})
+	]
 };

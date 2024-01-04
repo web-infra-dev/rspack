@@ -1,3 +1,5 @@
+const rspack = require("@rspack/core");
+
 module.exports = {
 	context: __dirname,
 	mode: "development",
@@ -12,14 +14,8 @@ module.exports = {
 	infrastructureLogging: {
 		debug: false
 	},
-	builtins: {
-		html: [
-			{
-				template: "./src/index.html"
-			}
-		]
-	},
 	watchOptions: {
 		poll: 1000
-	}
+	},
+	plugins: [new rspack.HtmlRspackPlugin({ template: "./src/index.html" })]
 };

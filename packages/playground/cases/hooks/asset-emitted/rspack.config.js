@@ -1,18 +1,9 @@
+const rspack = require("@rspack/core");
+
 module.exports = {
 	entry: {
 		main: "./src/index.js"
 	},
-	builtins: {
-		html: [
-			{
-				template: "./src/index.html"
-			}
-		]
-	},
 	output: { clean: true },
-	experiments: {
-		incrementalRebuild: {
-			emitAsset: true
-		}
-	}
+	plugins: [new rspack.HtmlRspackPlugin({ template: "./src/index.html" })]
 };
