@@ -8,6 +8,7 @@ use anymap::CloneAny;
 use derivative::Derivative;
 use once_cell::sync::OnceCell;
 use rspack_error::{error, Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_fs::{AsyncNativeFileSystem, AsyncReadableFileSystem};
 use rspack_sources::SourceMap;
 use rustc_hash::FxHashSet as HashSet;
 
@@ -168,6 +169,8 @@ pub struct LoaderContext<'c, C> {
 
   pub asset_filenames: HashSet<String>,
 
+  pub filesystem: Option<Arc<dyn AsyncReadableFileSystem + Send + Sync>>,
+
   // Only used for cross-crate accessing.
   // This field should not be accessed in builtin loaders.
   pub __loader_index: usize,
@@ -231,7 +234,11 @@ async fn process_resource<C: Send>(loader_context: &mut LoaderContext<'_, C>) ->
   }
 
   if loader_context.content.is_none() {
-    let result = tokio::fs::read(&loader_context.__resource_data.resource_path)
+    let result = loader_context
+      .filesystem
+      .clone()
+      .unwrap_or(Arc::new(AsyncNativeFileSystem))
+      .read(&loader_context.__resource_data.resource_path)
       .await
       .map_err(|e| {
         let r = loader_context
@@ -266,6 +273,7 @@ async fn create_loader_context<'c, C: 'c>(
   resource_data: &'c ResourceData,
   plugins: &'c [Box<dyn LoaderRunnerPlugin>],
   context: C,
+  filesystem: Option<Arc<dyn AsyncReadableFileSystem + Send + Sync>>,
 ) -> Result<LoaderContext<'c, C>> {
   let mut file_dependencies: HashSet<PathBuf> = Default::default();
   if resource_data.resource_path.is_absolute() {
@@ -287,6 +295,7 @@ async fn create_loader_context<'c, C: 'c>(
     context,
     source_map: None,
     additional_data: Default::default(),
+    filesystem,
     __loader_index: 0,
     __loader_items: LoaderItemList(__loader_items),
     __plugins: plugins,
@@ -402,6 +411,7 @@ pub async fn run_loaders<C: Send>(
   resource_data: &ResourceData,
   plugins: &[Box<dyn LoaderRunnerPlugin>],
   context: C,
+  filesystem: Option<Arc<dyn AsyncReadableFileSystem + Send + Sync>>,
 ) -> Result<TWithDiagnosticArray<LoaderResult>> {
   let loaders = loaders
     .iter()
@@ -409,7 +419,7 @@ pub async fn run_loaders<C: Send>(
     .collect::<Vec<LoaderItem<C>>>();
 
   let mut loader_context =
-    create_loader_context(&loaders[..], resource_data, plugins, context).await?;
+    create_loader_context(&loaders[..], resource_data, plugins, context, filesystem).await?;
 
   assert!(loader_context.content.is_none());
   iterate_pitching_loaders(&mut loader_context).await?;
@@ -503,9 +513,15 @@ mod test {
       encoded_content: None,
     };
 
-    run_loaders(&[c1, p1, c2, c3], &rs, &[Box::new(TestContentPlugin)], ())
-      .await
-      .unwrap();
+    run_loaders(
+      &[c1, p1, c2, c3],
+      &rs,
+      &[Box::new(TestContentPlugin)],
+      (),
+      None,
+    )
+    .await
+    .unwrap();
 
     IDENTS.with(|i| {
       let i = i.borrow();
@@ -676,9 +692,15 @@ mod test {
       encoded_content: None,
     };
 
-    run_loaders::<()>(&[p1, p2, c1, c2], &rs, &[Box::new(TestContentPlugin)], ())
-      .await
-      .unwrap();
+    run_loaders::<()>(
+      &[p1, p2, c1, c2],
+      &rs,
+      &[Box::new(TestContentPlugin)],
+      (),
+      None,
+    )
+    .await
+    .unwrap();
     IDENTS.with(|i| assert_eq!(*i.borrow(), &["pitch1", "pitch2", "normal2", "normal1"]));
     IDENTS.with(|i| i.borrow_mut().clear());
 
@@ -686,7 +708,7 @@ mod test {
     let p2 = Arc::new(PitchNormal) as Arc<dyn Loader<()>>;
     let p3 = Arc::new(PitchNormal2) as Arc<dyn Loader<()>>;
 
-    run_loaders::<()>(&[p1, p2, p3], &rs, &[Box::new(TestContentPlugin)], ())
+    run_loaders::<()>(&[p1, p2, p3], &rs, &[Box::new(TestContentPlugin)], (), None)
       .await
       .unwrap();
     IDENTS.with(|i| {
@@ -756,6 +778,7 @@ mod test {
       &rs,
       &[Box::new(TestContentPlugin)],
       (),
+      None,
     )
     .await
     .unwrap();

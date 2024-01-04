@@ -12,6 +12,7 @@ use bitflags::bitflags;
 use dashmap::DashMap;
 use derivative::Derivative;
 use rspack_error::{error, Diagnosable, Diagnostic, Result, Severity};
+use rspack_fs::{AsyncNativeFileSystem, AsyncReadableFileSystem};
 use rspack_hash::RspackHash;
 use rspack_identifier::Identifiable;
 use rspack_loader_runner::{run_loaders, Content, ResourceData};
@@ -127,6 +128,8 @@ pub struct NormalModule {
 
   build_info: Option<BuildInfo>,
   build_meta: Option<BuildMeta>,
+
+  filesystem: Arc<dyn AsyncReadableFileSystem + Send + Sync>,
 }
 
 #[derive(Debug, Clone)]
@@ -175,6 +178,7 @@ impl NormalModule {
     loaders: Vec<BoxLoader>,
     options: Arc<CompilerOptions>,
     contains_inline_loader: bool,
+    filesystem: Option<Arc<dyn AsyncReadableFileSystem + Send + Sync>>,
   ) -> Self {
     let module_type = module_type.into();
     let id = Self::create_id(&module_type, &request);
@@ -206,6 +210,7 @@ impl NormalModule {
       presentational_dependencies: None,
       build_info: None,
       build_meta: None,
+      filesystem: filesystem.unwrap_or(Arc::new(AsyncNativeFileSystem)),
     }
   }
 
@@ -352,6 +357,7 @@ impl Module for NormalModule {
         plugin_driver: build_context.plugin_driver.clone(),
       })],
       build_context.compiler_context,
+      Some(self.filesystem.clone()),
     )
     .await;
     let (loader_result, ds) = match loader_result {

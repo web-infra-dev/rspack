@@ -5,7 +5,7 @@ const config = require("./rspack.config");
 const fs = createFsFromVolume(
 	Volume.fromJSON({
 		"/app/main.js": 'console.log("from mem-fs")',
-		"/app1/index.html": "It works!"
+		"/app1/index.html": "<!DOCTYPE html><title>It works!</title>It works!"
 	})
 );
 const compiler = rspack({

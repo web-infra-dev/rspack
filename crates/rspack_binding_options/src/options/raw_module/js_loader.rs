@@ -382,6 +382,7 @@ pub async fn run_builtin_loader(
         .map(|m| PathBuf::from_str(m).expect("Should convert to path")),
     ),
     asset_filenames: HashSet::from_iter(loader_context.asset_filenames.into_iter()),
+    filesystem: None,
     // Initialize with no diagnostic
     __diagnostics: vec![],
     __resource_data: &ResourceData::new(Default::default(), Default::default()),

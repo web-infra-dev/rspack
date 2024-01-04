@@ -3,6 +3,7 @@ use std::{path::Path, sync::Arc};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_error::{error, Result};
+use rspack_fs::{AsyncNativeFileSystem, AsyncReadableFileSystem};
 use rspack_loader_runner::{get_scheme, Loader, Scheme};
 use sugar_path::{AsPath, SugarPath};
 use swc_core::common::Span;
@@ -27,6 +28,7 @@ pub struct NormalModuleFactory {
   loader_resolver_factory: Arc<ResolverFactory>,
   plugin_driver: SharedPluginDriver,
   cache: Arc<Cache>,
+  filesystem: Option<Arc<dyn AsyncReadableFileSystem + Send + Sync>>,
 }
 
 #[async_trait::async_trait]
@@ -57,12 +59,14 @@ impl NormalModuleFactory {
     loader_resolver_factory: Arc<ResolverFactory>,
     plugin_driver: SharedPluginDriver,
     cache: Arc<Cache>,
+    filesystem: Option<Arc<dyn AsyncReadableFileSystem + Send + Sync>>,
   ) -> Self {
     Self {
       options,
       loader_resolver_factory,
       plugin_driver,
       cache,
+      filesystem,
     }
   }
 
@@ -635,6 +639,7 @@ impl NormalModuleFactory {
         loaders,
         self.options.clone(),
         contains_inline,
+        self.filesystem.clone(),
       );
       Box::new(normal_module)
     };

@@ -426,6 +426,7 @@ where
         self.loader_resolver_factory.clone(),
         self.plugin_driver.clone(),
         self.cache.clone(),
+        Some(self.input_filesystem.clone()),
       )),
       context_module_factory: Arc::new(ContextModuleFactory::new(
         self.plugin_driver.clone(),
