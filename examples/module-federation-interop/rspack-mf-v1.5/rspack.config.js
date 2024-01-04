@@ -4,15 +4,16 @@ const ReactRefreshPlugin = require("@rspack/plugin-react-refresh")
 const rspack = require("@rspack/core")
 
 const isProduction = process.env.NODE_ENV === "production"
+const containerName = "Rspack_MF_v1_5"
 
 /** @type {import('@rspack/core').Configuration} */
 module.exports = {
   mode: isProduction ? "production" : "development",
   entry: "./src/index.js",
   context: __dirname,
+  devtool: false,
   output: {
-    // set uniqueName explicitly to make react-refresh works
-    uniqueName: "lib1"
+    uniqueName: containerName,
   },
   module: {
     rules: [
@@ -40,34 +41,30 @@ module.exports = {
     ]
   },
   plugins: [
-    new HtmlWebpackPlugin({
-      // exclude container entry from html, to use the correct HMR handler
-      excludeChunks: ['mfeBBB']
-    }),
+    new HtmlWebpackPlugin({ excludeChunks: [containerName] }),
     new rspack.container.ModuleFederationPlugin({
-      // A unique name
-      name: "mfeBBB",
-      // List of exposed modules
+      name: containerName,
+      remotes: {
+        "Rspack_MF_v1": "Rspack_MF_v1@http://localhost:8080/Rspack_MF_v1.js",
+        "Webpack_MF": "Webpack_MF@http://localhost:8082/Webpack_MF.js"
+      },
       exposes: {
         "./Component": "./src/Component",
       },
-
-      // list of shared modules
-      shared: [
-        // date-fns is shared with the other remote, app doesn't know about that
-        "date-fns",
-        {
-          react: {
-            singleton: true // must be specified in each config
-          }
+      shared: {
+        react: {
+          singleton: true
         }
-      ]
+      },
+      // list of runtime plugin modules (feature of MF1.5)
+      runtimePlugins: [
+        "./src/runtimePlugins/logger.js",
+      ],
     }),
     !isProduction && new ReactRefreshPlugin(),
   ],
   devServer: {
     port: 8081,
-    // add CORS header for HMR chunk (xxx.hot-update.json and xxx.hot-update.js)
     headers: {
       'Access-Control-Allow-Origin': '*',
     }
