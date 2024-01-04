@@ -22,37 +22,8 @@ use crate::{
     CommonJsExportRequireDependency, CommonJsExportsDependency, CommonJsSelfReferenceDependency,
     ExportsBase, ModuleDecoratorDependency,
   },
-  parser_plugin::JavascriptParserPlugin,
-  utils::eval::{self, BasicEvaluatedExpression},
   ClassExt,
 };
-
-pub fn get_typeof_evaluate_of_export(sym: &str) -> Option<&str> {
-  match sym {
-    "module" => Some("object"),
-    "exports" => Some("object"),
-    _ => None,
-  }
-}
-
-pub struct CommonJsExportParserPlugin;
-
-impl JavascriptParserPlugin for CommonJsExportParserPlugin {
-  fn evaluate_typeof(
-    &self,
-    expression: &swc_core::ecma::ast::Ident,
-    start: u32,
-    end: u32,
-    unresolved_mark: swc_core::common::SyntaxContext,
-  ) -> Option<BasicEvaluatedExpression> {
-    if expression.span.ctxt == unresolved_mark {
-      get_typeof_evaluate_of_export(expression.sym.as_ref() as &str)
-        .map(|res| eval::evaluate_to_string(res.to_string(), start, end))
-    } else {
-      None
-    }
-  }
-}
 
 pub struct CommonJsExportDependencyScanner<'a> {
   dependencies: &'a mut Vec<BoxDependency>,
