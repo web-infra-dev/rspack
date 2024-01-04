@@ -1029,6 +1029,7 @@ const optimization = z.strictObject({
 export type Optimization = z.infer<typeof optimization>;
 //#endregion
 
+//#region Experiments
 const rspackFutureOptions = z.strictObject({
 	newTreeshaking: z.boolean().optional(),
 	disableApplyEntryLazily: z.boolean().optional()
