@@ -609,15 +609,7 @@ export interface RawBannerPluginOptions {
 
 export interface RawBuiltins {
   css?: RawCssPluginConfig
-  presetEnv?: RawPresetEnv
   treeShaking: string
-  react: RawReactOptions
-  decorator?: RawDecoratorOptions
-  noEmitAssets: boolean
-  emotion?: string
-  devFriendlySplitChunks: boolean
-  pluginImport?: Array<RawPluginImportConfig>
-  relay?: RawRelayConfig
 }
 
 export interface RawCacheGroupOptions {
@@ -731,11 +723,6 @@ export interface RawCssModulesConfig {
 
 export interface RawCssPluginConfig {
   modules: RawCssModulesConfig
-}
-
-export interface RawDecoratorOptions {
-  legacy: boolean
-  emitMetadata: boolean
 }
 
 export interface RawEntryOptions {
@@ -1058,12 +1045,6 @@ export interface RawPluginImportConfig {
   transformToDefaultImport?: boolean
   ignoreEsComponent?: Array<string>
   ignoreStyleComponent?: Array<string>
-}
-
-export interface RawPresetEnv {
-  targets: Array<string>
-  mode?: 'usage' | 'entry'
-  coreJs?: string
 }
 
 export interface RawProgressPluginOptions {

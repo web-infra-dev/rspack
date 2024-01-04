@@ -4,6 +4,7 @@ const ReactRefreshPlugin = require("@rspack/plugin-react-refresh");
 
 module.exports = {
 	context: __dirname,
+	mode: "development",
 	entry: {
 		main: "./src/main.jsx"
 	},

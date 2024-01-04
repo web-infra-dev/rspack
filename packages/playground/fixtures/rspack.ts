@@ -6,7 +6,7 @@ import WebpackDevServer from "webpack-dev-server";
 import type { PathInfoFixtures } from "./pathInfo";
 import { sleep } from "@/utils/sleep";
 
-class Rspack {
+class RspackTestFixture {
 	projectDir: string;
 	compiler: Compiler;
 	devServer: RspackDevServer | WebpackDevServer;
@@ -75,7 +75,7 @@ export type RspackOptions = {
 };
 
 export type RspackFixtures = {
-	rspack: Rspack;
+	rspack: RspackTestFixture;
 };
 
 type RspackWorkerFixtures = {
@@ -83,7 +83,7 @@ type RspackWorkerFixtures = {
 		testFile: string,
 		tempProjectDir: string,
 		handleRspackConfig: (config: Configuration) => Configuration
-	) => Promise<Rspack>;
+	) => Promise<RspackTestFixture>;
 };
 
 export const rspackFixtures = (
@@ -100,15 +100,15 @@ export const rspackFixtures = (
 				{ page, pathInfo, _startRspackServer, defaultRspackConfig },
 				use
 			) => {
-				const rspack = await _startRspackServer(
+				const rspackTest = await _startRspackServer(
 					pathInfo.testFile,
 					pathInfo.tempProjectDir,
 					defaultRspackConfig.handleConfig
 				);
-				const port = rspack.devServer.options.port;
-				await rspack.waitingForBuild();
+				const port = rspackTest.devServer.options.port;
+				await rspackTest.waitingForBuild();
 				await page.goto(`http://localhost:${port}`);
-				await use(rspack);
+				await use(rspackTest);
 			},
 			{
 				auto: true
@@ -118,16 +118,18 @@ export const rspackFixtures = (
 		_startRspackServer: [
 			async ({}, use, { workerIndex }) => {
 				let currentTestFile = "";
-				let rspack: Rspack | null = null as any;
+				let rspackTest: RspackTestFixture | null = null as any;
 				await use(async function (testFile, projectDir, handleRspackConfig) {
-					if (rspack && currentTestFile !== testFile) {
-						await rspack.devServer.stop();
-						rspack = null;
+					if (rspackTest && currentTestFile !== testFile) {
+						await rspackTest.devServer.stop();
+						rspackTest = null;
 						currentTestFile = testFile;
 					}
-					if (!rspack) {
+					if (!rspackTest) {
 						const port = 8000 + workerIndex;
-						rspack = new Rspack(projectDir, wds, function (config) {
+						rspackTest = new RspackTestFixture(projectDir, wds, function (
+							config
+						) {
 							// rewrite port
 							if (!config.devServer) {
 								config.devServer = {};
@@ -140,28 +142,24 @@ export const rspackFixtures = (
 							}
 
 							// set default define
-							if (!config.builtins) {
-								config.builtins = {};
-							}
-							config.builtins.define = Object.assign(
-								{
+							(config.plugins ??= []).push(
+								new rspack.DefinePlugin({
 									"process.env.NODE_ENV": JSON.stringify(
 										config.mode || "development"
 									)
-								},
-								config.builtins.define
+								})
 							);
 
 							return handleRspackConfig(config);
 						});
-						await rspack.devServer.start();
+						await rspackTest.devServer.start();
 					}
 
-					return rspack;
+					return rspackTest;
 				});
 
-				if (rspack?.projectDir) {
-					await rspack.devServer.stop();
+				if (rspackTest?.projectDir) {
+					await rspackTest.devServer.stop();
 				}
 			},
 			{

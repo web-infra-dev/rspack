@@ -839,6 +839,9 @@ importers:
       '@rspack/cli':
         specifier: workspace:*
         version: link:../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
       monaco-editor:
         specifier: ^0.39.0
         version: 0.39.0

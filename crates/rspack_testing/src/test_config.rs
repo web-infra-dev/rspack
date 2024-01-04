@@ -186,8 +186,6 @@ pub struct Builtins {
   #[serde(default)]
   pub css: Css,
   #[serde(default)]
-  pub dev_friendly_split_chunks: bool,
-  #[serde(default)]
   pub code_generation: Option<CodeGeneration>,
 }
 
@@ -423,8 +421,6 @@ impl TestConfig {
         define: self.builtins.define,
         provide: self.builtins.provide,
         tree_shaking: self.builtins.tree_shaking.into(),
-        preset_env: self.builtins.preset_env.map(Into::into),
-        ..Default::default()
       },
       module: c::ModuleOptions {
         rules,
@@ -474,10 +470,6 @@ impl TestConfig {
       }
     }
     plugins.push(rspack_plugin_merge_duplicate_chunks::MergeDuplicateChunksPlugin.boxed());
-    if self.builtins.dev_friendly_split_chunks {
-      plugins
-        .push(rspack_plugin_dev_friendly_split_chunks::DevFriendlySplitChunksPlugin::new().boxed());
-    }
 
     for html in self.builtins.html {
       plugins.push(rspack_plugin_html::HtmlRspackPlugin::new(html).boxed());

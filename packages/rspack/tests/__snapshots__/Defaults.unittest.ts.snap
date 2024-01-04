@@ -183,8 +183,24 @@ exports[`snapshots should have the correct base config 1`] = `
     "mergeDuplicateChunks": true,
     "minimize": false,
     "minimizer": [
-      {
-        "apply": [Function],
+      SwcJsMinimizerRspackPlugin {
+        "_options": {
+          "compress": "{\\"passes\\":1,\\"pure_funcs\\":[],\\"drop_console\\":false}",
+          "exclude": undefined,
+          "extractComments": undefined,
+          "format": "{\\"comments\\":false,\\"asciiOnly\\":false}",
+          "include": undefined,
+          "mangle": "{\\"keep_classnames\\":false,\\"keep_fnames\\":false}",
+          "module": undefined,
+          "test": undefined,
+        },
+        "affectedHooks": "compilation",
+        "name": "SwcJsMinimizerRspackPlugin",
+      },
+      SwcCssMinimizerRspackPlugin {
+        "_options": undefined,
+        "affectedHooks": undefined,
+        "name": "SwcCssMinimizerRspackPlugin",
       },
     ],
     "moduleIds": "named",

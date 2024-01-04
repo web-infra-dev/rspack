@@ -30,38 +30,6 @@ describe("normalize options snapshot", () => {
 		).toMatchSnapshot();
 	});
 
-	it("react-refresh client added when react/refresh enabled", async () => {
-		expect(
-			await getAdditionEntries(
-				{},
-				{
-					entry: ["something"],
-					builtins: {
-						react: {
-							refresh: true
-						}
-					}
-				}
-			)
-		).toMatchSnapshot();
-	});
-
-	it("shouldn't have reactRefreshEntry.js when react.refresh is false", async () => {
-		expect(
-			await getAdditionEntries(
-				{},
-				{
-					entry: ["something"],
-					builtins: {
-						react: {
-							refresh: false
-						}
-					}
-				}
-			)
-		).toMatchSnapshot();
-	});
-
 	it("shouldn't have reactRefreshEntry.js by default when rspackFuture.disableReactRefreshByDefault is enabled", async () => {
 		const reactRefreshEntry =
 			"<prefix>/rspack-plugin-react-refresh/client/reactRefreshEntry.js";

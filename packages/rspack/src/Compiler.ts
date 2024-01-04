@@ -345,10 +345,7 @@ class Compiler {
 				...outputOptions
 			},
 			// TODO: check why we need to have builtins otherwise this.#instance will fail to initialize Rspack
-			builtins: {
-				...this.options.builtins,
-				html: undefined
-			}
+			builtins: this.options.builtins
 		};
 		applyRspackOptionsDefaults(options);
 		const childCompiler = new Compiler(this.context, options);

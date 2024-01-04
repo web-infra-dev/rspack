@@ -38,48 +38,7 @@ export class RspackDevServer extends WebpackDevServer {
 	webSocketServer: WebpackDevServer.WebSocketServerImplementation | undefined;
 
 	constructor(options: DevServer, compiler: Compiler | MultiCompiler) {
-		super(
-			{
-				...options,
-				setupMiddlewares: (middlewares, devServer) => {
-					const webpackDevMiddlewareIndex = middlewares.findIndex(
-						mid => mid.name === "webpack-dev-middleware"
-					);
-					const compilers =
-						compiler instanceof MultiCompiler ? compiler.compilers : [compiler];
-					if (compilers[0].options.builtins.noEmitAssets) {
-						if (Array.isArray(this.options.static)) {
-							const memoryAssetsMiddlewares = this.options.static.flatMap(
-								staticOptions => {
-									return staticOptions.publicPath.flatMap(publicPath => {
-										return compilers.map(compiler => {
-											return {
-												name: "rspack-memory-assets",
-												path: publicPath,
-												middleware: getRspackMemoryAssets(
-													compiler,
-													// @ts-expect-error
-													this.middleware
-												)
-											};
-										});
-									});
-								}
-							);
-							middlewares.splice(
-								webpackDevMiddlewareIndex,
-								0,
-								...memoryAssetsMiddlewares
-							);
-						}
-					}
-
-					options.setupMiddlewares?.call(this, middlewares, devServer);
-					return middlewares;
-				}
-			},
-			compiler as any
-		);
+		super(options, compiler as any);
 	}
 
 	getClientTransport(): string {
@@ -265,22 +224,6 @@ export class RspackDevServer extends WebpackDevServer {
 			this.compiler instanceof MultiCompiler
 				? this.compiler.compilers
 				: [this.compiler];
-
-		// if (Array.isArray(this.options.static)) {
-		// 	this.options.static.forEach(staticOptions => {
-		// 		staticOptions.publicPath.forEach(publicPath => {
-		// 			compilers.forEach(compiler => {
-		// 				if (compiler.options.builtins.noEmitAssets) {
-		// 					middlewares.push({
-		// 						name: "rspack-memory-assets",
-		// 						path: publicPath,
-		// 						middleware: getRspackMemoryAssets(compiler, this.middleware)
-		// 					});
-		// 				}
-		// 			});
-		// 		});
-		// 	});
-		// }
 
 		compilers.forEach(compiler => {
 			if (compiler.options.experiments.lazyCompilation) {

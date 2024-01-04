@@ -1,3 +1,5 @@
+const { rspack } = require("@rspack/core");
+
 module.exports = {
 	entry: {
 		a: "./a",
@@ -5,13 +7,13 @@ module.exports = {
 		b: "./b",
 		main: "./index"
 	},
-	builtins: {
-		minifyOptions: {
-			test: [/a\d?\.js/],
-			exclude: [/a\.js/]
-		}
-	},
 	optimization: {
-		minimize: true
+		minimize: true,
+		minimizer: [
+			new rspack.SwcJsMinimizerRspackPlugin({
+				test: [/a\d?\.js/],
+				exclude: [/a\.js/]
+			})
+		]
 	}
 };

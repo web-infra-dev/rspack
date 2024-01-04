@@ -1,12 +1,11 @@
 const path = require("path");
+const { rspack } = require("@rspack/core");
 
 module.exports = {
-	builtins: {
-		html: [
-			{
-				publicPath: "/",
-				favicon: path.resolve(__dirname, "favicon.ico")
-			}
-		]
-	}
+	plugins: [
+		new rspack.HtmlRspackPlugin({
+			publicPath: "/",
+			favicon: path.resolve(__dirname, "favicon.ico")
+		})
+	]
 };
