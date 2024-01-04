@@ -920,11 +920,9 @@ impl Compilation {
                 original_module_identifier: module.identifier(),
                 resolve_options: module.get_resolve_options(),
               });
-              self.module_graph.set_module_build_info_and_meta(
-                &module.identifier(),
-                build_result.build_info,
-                build_result.build_meta,
-              );
+
+              module
+                .set_module_build_info_and_meta(build_result.build_info, build_result.build_meta);
               self.module_graph.add_module(module);
             }
             Ok(TaskResult::ProcessDependencies(task_result)) => {
@@ -1257,8 +1255,8 @@ impl Compilation {
 
   #[instrument(name = "compilation::create_module_assets", skip_all)]
   async fn create_module_assets(&mut self, _plugin_driver: SharedPluginDriver) {
-    for (module_identifier, mgm) in self.module_graph.module_graph_modules() {
-      if let Some(ref build_info) = mgm.build_info {
+    for (module_identifier, module) in self.module_graph.modules() {
+      if let Some(build_info) = module.build_info() {
         for asset in build_info.asset_filenames.iter() {
           for chunk in self
             .chunk_graph

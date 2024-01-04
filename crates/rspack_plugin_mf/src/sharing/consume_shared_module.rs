@@ -2,10 +2,11 @@ use std::{borrow::Cow, hash::Hash};
 
 use async_trait::async_trait;
 use rspack_core::{
-  async_module_factory, rspack_sources::Source, sync_module_factory, AsyncDependenciesBlock,
-  AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildResult,
-  CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId, LibIdentOptions,
-  Module, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
+  async_module_factory, impl_build_info_meta, rspack_sources::Source, sync_module_factory,
+  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo,
+  BuildMeta, BuildResult, CodeGenerationResult, Compilation, Context, DependenciesBlock,
+  DependencyId, LibIdentOptions, Module, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec,
+  SourceType,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_hash::RspackHash;
@@ -26,6 +27,8 @@ pub struct ConsumeSharedModule {
   readable_identifier: String,
   context: Context,
   options: ConsumeOptions,
+  build_info: Option<BuildInfo>,
+  build_meta: Option<BuildMeta>,
 }
 
 impl ConsumeSharedModule {
@@ -68,6 +71,8 @@ impl ConsumeSharedModule {
       readable_identifier: identifier,
       context,
       options,
+      build_info: None,
+      build_meta: None,
     }
   }
 }
@@ -98,6 +103,8 @@ impl DependenciesBlock for ConsumeSharedModule {
 
 #[async_trait]
 impl Module for ConsumeSharedModule {
+  impl_build_info_meta!();
+
   fn size(&self, _source_type: &SourceType) -> f64 {
     42.0
   }

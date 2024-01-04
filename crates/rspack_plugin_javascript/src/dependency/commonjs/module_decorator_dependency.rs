@@ -33,11 +33,11 @@ impl DependencyTemplate for ModuleDecoratorDependency {
     runtime_requirements.insert(RuntimeGlobals::MODULE);
     runtime_requirements.insert(self.decorator);
 
-    let mgm = compilation
+    let module = compilation
       .module_graph
-      .module_graph_module_by_identifier(&module.identifier())
+      .module_by_identifier(&module.identifier())
       .expect("should have mgm");
-    let module_argument = mgm.get_module_argument();
+    let module_argument = module.get_module_argument();
 
     let module_id = compilation
       .chunk_graph

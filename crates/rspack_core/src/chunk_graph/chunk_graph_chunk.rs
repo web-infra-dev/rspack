@@ -7,8 +7,7 @@ use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
   find_graph_roots, merge_runtime, BoxModule, Chunk, ChunkByUkey, ChunkGroup, ChunkGroupByUkey,
-  ChunkGroupUkey, ChunkUkey, Module, ModuleGraph, ModuleGraphModule, ModuleIdentifier,
-  RuntimeGlobals, SourceType,
+  ChunkGroupUkey, ChunkUkey, Module, ModuleGraph, ModuleIdentifier, RuntimeGlobals, SourceType,
 };
 use crate::{ChunkGraph, Compilation};
 
@@ -201,18 +200,13 @@ impl ChunkGraph {
     chunk: &ChunkUkey,
     source_type: SourceType,
     module_graph: &'module ModuleGraph,
-  ) -> Vec<&'module ModuleGraphModule> {
+  ) -> Vec<&'module BoxModule> {
     let chunk_graph_chunk = self.get_chunk_graph_chunk(chunk);
     let modules = chunk_graph_chunk
       .modules
       .iter()
-      .filter_map(|uri| module_graph.module_graph_module_by_identifier(uri))
-      .filter(|mgm| {
-        module_graph
-          .module_by_identifier(&mgm.module_identifier)
-          .map(|module| module.source_types().contains(&source_type))
-          .unwrap_or_default()
-      })
+      .filter_map(|uri| module_graph.module_by_identifier(uri))
+      .filter(|module| module.source_types().contains(&source_type))
       .collect::<Vec<_>>();
     modules
   }

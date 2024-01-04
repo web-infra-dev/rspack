@@ -8,9 +8,9 @@ use rspack_identifier::{Identifiable, Identifier};
 use rspack_sources::Source;
 
 use crate::{
-  AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildResult, ChunkUkey,
-  CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId, LibIdentOptions,
-  Module, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
+  impl_build_info_meta, AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildMeta,
+  BuildResult, ChunkUkey, CodeGenerationResult, Compilation, Context, DependenciesBlock,
+  DependencyId, LibIdentOptions, Module, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
 };
 
 #[derive(Debug)]
@@ -19,6 +19,8 @@ pub struct SelfModule {
   readable_identifier: String,
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   dependencies: Vec<DependencyId>,
+  build_info: Option<BuildInfo>,
+  build_meta: Option<BuildMeta>,
 }
 
 impl SelfModule {
@@ -29,6 +31,8 @@ impl SelfModule {
       readable_identifier: identifier,
       blocks: Default::default(),
       dependencies: Default::default(),
+      build_info: None,
+      build_meta: None,
     }
   }
 }
@@ -59,6 +63,8 @@ impl DependenciesBlock for SelfModule {
 
 #[async_trait]
 impl Module for SelfModule {
+  impl_build_info_meta!();
+
   fn size(&self, _source_type: &SourceType) -> f64 {
     self.identifier.len() as f64
   }
