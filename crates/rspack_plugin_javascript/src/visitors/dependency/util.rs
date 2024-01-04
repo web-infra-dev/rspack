@@ -1,7 +1,8 @@
 use itertools::Itertools;
 use rspack_core::{
-  extract_member_expression_chain, DependencyLocation, ExpressionInfoKind, SpanExt,
+  extract_member_expression_chain, ConstDependency, DependencyLocation, ExpressionInfoKind, SpanExt,
 };
+use rspack_error::miette::{MietteDiagnostic, Severity};
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::{
   common::{Spanned, SyntaxContext},
@@ -104,6 +105,14 @@ pub(crate) mod expr_matcher {
     is_import_meta_url: "import.meta.url",
     is_import_meta: "import.meta",
     is_object_define_property: "Object.defineProperty",
+    // unsupported require property
+    is_require_extensions: "require.extensions",
+    is_require_ensure: "require.ensure",
+    is_require_config: "require.config",
+    is_require_version: "require.vesrion",
+    is_require_amd: "require.amd",
+    is_require_include: "require.include",
+    is_require_onerror: "require.onError",
   });
 }
 
@@ -420,4 +429,22 @@ fn test_is_require_call_start() {
   test!("module.require.a().b", false);
   test!("module.require.a.b", false);
   test!("a.module.require.b", false);
+}
+
+pub fn expression_not_supported(
+  name: &str,
+  expr: &Expr,
+) -> (Box<MietteDiagnostic>, Box<ConstDependency>) {
+  (
+    Box::new(
+      MietteDiagnostic::new(format!("{name} is not supported by Rspack."))
+        .with_severity(Severity::Warning),
+    ),
+    Box::new(ConstDependency::new(
+      expr.span().real_lo(),
+      expr.span().real_hi(),
+      "(void 0)".into(),
+      None,
+    )),
+  )
 }

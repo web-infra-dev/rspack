@@ -2,6 +2,7 @@ use rspack_core::{
   BuildInfo, ConstDependency, Dependency, DependencyLocation, DependencyTemplate, ResourceData,
   RuntimeGlobals, RuntimeRequirementsDependency, SpanExt,
 };
+use rspack_error::miette::Diagnostic;
 use swc_core::{
   common::{Spanned, SyntaxContext},
   ecma::{
@@ -94,10 +95,12 @@ pub struct ApiScanner<'a> {
   pub resource_data: &'a ResourceData,
   pub presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
   pub dependencies: &'a mut Vec<Box<dyn Dependency>>,
+  pub warning_diagnostics: &'a mut Vec<Box<dyn Diagnostic + Send + Sync>>,
   pub ignored: &'a mut Vec<DependencyLocation>,
 }
 
 impl<'a> ApiScanner<'a> {
+  #[allow(clippy::too_many_arguments)]
   pub fn new(
     unresolved_ctxt: SyntaxContext,
     resource_data: &'a ResourceData,
@@ -105,6 +108,7 @@ impl<'a> ApiScanner<'a> {
     presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
     module: bool,
     build_info: &'a mut BuildInfo,
+    warning_diagnostics: &'a mut Vec<Box<dyn Diagnostic + Send + Sync>>,
     ignored: &'a mut Vec<DependencyLocation>,
   ) -> Self {
     Self {
@@ -115,6 +119,7 @@ impl<'a> ApiScanner<'a> {
       resource_data,
       presentational_dependencies,
       dependencies,
+      warning_diagnostics,
       ignored,
     }
   }
@@ -327,6 +332,26 @@ impl Visit for ApiScanner<'_> {
       return;
     }
 
+    #[macro_export]
+    macro_rules! not_supported_expr {
+      ($check: ident, $name: literal) => {
+        if expr_matcher::$check(expr) {
+          let (warning, dep) = super::expression_not_supported($name, expr);
+          self.warning_diagnostics.push(warning);
+          self.presentational_dependencies.push(dep);
+          return;
+        }
+      };
+    }
+
+    not_supported_expr!(is_require_extensions, "require.extensions");
+    not_supported_expr!(is_require_ensure, "require.ensure");
+    not_supported_expr!(is_require_config, "require.config");
+    not_supported_expr!(is_require_version, "require.vesrion");
+    not_supported_expr!(is_require_amd, "require.amd");
+    not_supported_expr!(is_require_include, "require.include");
+    not_supported_expr!(is_require_onerror, "require.onError");
+
     if expr_matcher::is_require_cache(expr) {
       self
         .presentational_dependencies
@@ -355,6 +380,25 @@ impl Visit for ApiScanner<'_> {
   }
 
   fn visit_call_expr(&mut self, call_expr: &CallExpr) {
+    #[macro_export]
+    macro_rules! not_supported_call {
+      ($check: ident, $name: literal) => {
+        if let Callee::Expr(box Expr::Member(expr)) = &call_expr.callee
+          && expr_matcher::$check(&Expr::Member(expr.to_owned()))
+        {
+          let (warning, dep) =
+            super::expression_not_supported($name, &Expr::Call(call_expr.to_owned()));
+          self.warning_diagnostics.push(warning);
+          self.presentational_dependencies.push(dep);
+          return;
+        }
+      };
+    }
+
+    not_supported_call!(is_require_ensure, "require.ensure()");
+    not_supported_call!(is_require_include, "require.include()");
+    not_supported_call!(is_require_onerror, "require.onError()");
+
     if let Callee::Expr(box Expr::Ident(ident)) = &call_expr.callee
       && ident.sym == WEBPACK_IS_INCLUDE
     {
