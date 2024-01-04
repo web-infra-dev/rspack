@@ -21,22 +21,16 @@ module.exports = {
         test: /\.js$/,
         include: path.resolve(__dirname, "src"),
         use: {
-          loader: "swc-loader",
-          options: {
-            jsc: {
-							parser: {
-								syntax: "ecmascript",
-								jsx: true
-							},
-							transform: {
-								react: {
-									runtime: "automatic",
-                  refresh: !isProduction,
-								}
-							}
-						}
-          }
-        }
+					loader: "babel-loader",
+					options: {
+						presets: [
+							["@babel/preset-react", { runtime: "automatic" }],
+						],
+						plugins: [
+							!isProduction && require.resolve("react-refresh/babel")
+						].filter(Boolean)
+					}
+				}
       }
     ]
   },
