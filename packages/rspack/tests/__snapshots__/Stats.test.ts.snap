@@ -56,6 +56,7 @@ exports[`Stats should have ids when ids is true 1`] = `
       "moduleType": "javascript/auto",
       "name": "./fixtures/a.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
+      "orphan": false,
       "size": 59,
       "type": "module",
     },
@@ -114,6 +115,7 @@ exports[`Stats should have stats 1`] = `
           "moduleType": "javascript/auto",
           "name": "./fixtures/a.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
+          "orphan": false,
           "reasons": [
             {
               "moduleId": undefined,
@@ -182,6 +184,7 @@ exports[`Stats should have stats 1`] = `
       "moduleType": "javascript/auto",
       "name": "./fixtures/a.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
+      "orphan": false,
       "reasons": [
         {
           "moduleId": undefined,
@@ -290,6 +293,7 @@ exports[`Stats should output stats with query 1`] = `
           "moduleType": "javascript/auto",
           "name": "./fixtures/a.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
+          "orphan": false,
           "reasons": [
             {
               "moduleId": "585",
@@ -333,6 +337,7 @@ exports[`Stats should output stats with query 1`] = `
           "moduleType": "javascript/auto",
           "name": "./fixtures/a.js?a=1",
           "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
+          "orphan": false,
           "reasons": [
             {
               "moduleId": "958",
@@ -376,6 +381,7 @@ exports[`Stats should output stats with query 1`] = `
           "moduleType": "javascript/auto",
           "name": "./fixtures/c.js?c=3",
           "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/c.js",
+          "orphan": false,
           "reasons": [
             {
               "moduleId": "919",
@@ -414,6 +420,7 @@ exports[`Stats should output stats with query 1`] = `
           "moduleType": "javascript/auto",
           "name": "./fixtures/abc-query.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
+          "orphan": false,
           "reasons": [
             {
               "moduleId": undefined,
@@ -486,6 +493,7 @@ exports.c = require("./c?c=3");
       "moduleType": "javascript/auto",
       "name": "./fixtures/a.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
+      "orphan": false,
       "reasons": [
         {
           "moduleId": "585",
@@ -529,6 +537,7 @@ exports.c = require("./c?c=3");
       "moduleType": "javascript/auto",
       "name": "./fixtures/a.js?a=1",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
+      "orphan": false,
       "reasons": [
         {
           "moduleId": "958",
@@ -572,6 +581,7 @@ exports.c = require("./c?c=3");
       "moduleType": "javascript/auto",
       "name": "./fixtures/c.js?c=3",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/c.js",
+      "orphan": false,
       "reasons": [
         {
           "moduleId": "919",
@@ -610,6 +620,7 @@ exports.c = require("./c?c=3");
       "moduleType": "javascript/auto",
       "name": "./fixtures/abc-query.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
+      "orphan": false,
       "reasons": [
         {
           "moduleId": undefined,

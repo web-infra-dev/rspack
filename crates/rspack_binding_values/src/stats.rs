@@ -235,6 +235,7 @@ pub struct JsStatsModule {
   pub assets: Option<Vec<String>>,
   pub source: Option<Either<String, Buffer>>,
   pub profile: Option<JsStatsModuleProfile>,
+  pub orphan: bool,
 }
 
 impl TryFrom<rspack_core::StatsModule<'_>> for JsStatsModule {
@@ -274,6 +275,7 @@ impl TryFrom<rspack_core::StatsModule<'_>> for JsStatsModule {
       assets: stats.assets,
       source,
       profile: stats.profile.map(|p| p.into()),
+      orphan: stats.orphan,
     })
   }
 }
