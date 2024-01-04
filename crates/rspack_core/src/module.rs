@@ -147,26 +147,26 @@ impl WrappedModuleIdentifier {
   /// # Panic
   /// It would panic if the corresponding module is not exists in module_graph
   pub fn module<'a>(&self, mg: &'a ModuleGraph) -> &'a BoxModule {
-    mg.module_by_identifier(&*self).expect("should have module")
+    mg.module_by_identifier(self).expect("should have module")
   }
   /// # Panic
   /// It would panic if the corresponding module is not exists in module_graph
   pub fn module_mut<'a>(&self, mg: &'a mut ModuleGraph) -> &'a mut BoxModule {
-    mg.module_by_identifier_mut(&*self)
+    mg.module_by_identifier_mut(self)
       .expect("should have module")
   }
 
   /// # Panic
   /// It would panic if the corresponding moduleGraphModule is not exists in module_graph
   pub fn module_graph_module<'a>(&self, mg: &'a ModuleGraph) -> &'a ModuleGraphModule {
-    mg.module_graph_module_by_identifier(&*self)
+    mg.module_graph_module_by_identifier(self)
       .expect("should have module graph module")
   }
 
   /// # Panic
   /// It would panic if the corresponding moduleGraphModule is not exists in module_graph
   pub fn module_graph_module_mut<'a>(&self, mg: &'a mut ModuleGraph) -> &'a mut ModuleGraphModule {
-    mg.module_graph_module_by_identifier_mut(&*self)
+    mg.module_graph_module_by_identifier_mut(self)
       .expect("should have module graph module")
   }
 }
@@ -210,7 +210,7 @@ pub trait Module:
   async fn build(
     &mut self,
     build_context: BuildContext<'_>,
-    compilation: Option<&Compilation>,
+    _compilation: Option<&Compilation>,
   ) -> Result<BuildResult> {
     let mut hasher = RspackHash::from(&build_context.compiler_options.output);
     self.update_hash(&mut hasher);
@@ -349,7 +349,11 @@ pub trait Module:
     None
   }
 
-  fn get_concatenation_bailout_reason(&self, mg: &ModuleGraph, cg: &ChunkGraph) -> Option<String> {
+  fn get_concatenation_bailout_reason(
+    &self,
+    _mg: &ModuleGraph,
+    _cg: &ChunkGraph,
+  ) -> Option<String> {
     Some(format!(
       "Module Concatenation is not implemented for {}",
       self.module_type()

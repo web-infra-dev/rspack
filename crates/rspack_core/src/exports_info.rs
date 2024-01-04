@@ -496,7 +496,7 @@ impl ExportsInfo {
   }
 
   pub fn get_provided_exports(&self, mg: &ModuleGraph) -> ProvidedExports {
-    if let Some(redirect_to) = self.redirect_to {
+    if let Some(_redirect_to) = self.redirect_to {
       match self.other_exports_info.get_export_info(mg).provided {
         Some(ExportInfoProvided::Null) => {
           return ProvidedExports::True;
@@ -1218,7 +1218,7 @@ impl ExportInfo {
   }
 
   pub fn is_reexport(&self) -> bool {
-    !self.terminal_binding && self.target_is_set && self.target.len() > 0
+    !self.terminal_binding && self.target_is_set && !self.target.is_empty()
   }
   pub fn can_mangle(&self) -> Option<bool> {
     match self.can_mangle_provide {

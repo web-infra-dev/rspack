@@ -3,42 +3,26 @@ use std::{
   collections::hash_map::{DefaultHasher, Entry},
   fmt::Debug,
   hash::{BuildHasherDefault, Hash, Hasher},
-  iter,
-  os::unix::fs::OpenOptionsExt,
-  sync::{
-    atomic::{AtomicUsize, Ordering},
-    Arc, Mutex,
-  },
+  sync::Mutex,
 };
 
-use bitflags::bitflags;
 use dashmap::DashMap;
-use derivative::Derivative;
-use itertools::cloned;
 use once_cell::sync::OnceCell;
-use oxc_resolver::ResolveOptions;
-use rspack_error::{error, Diagnosable, Diagnostic, Result, Severity};
+use rspack_error::{Diagnosable, Diagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_identifier::Identifiable;
-use rspack_loader_runner::{run_loaders, Content, ResourceData};
-use rspack_sources::{
-  BoxSource, CachedSource, OriginalSource, RawSource, Source, SourceExt, SourceMap,
-  SourceMapSource, WithoutOriginalOptions,
-};
+use rspack_sources::{BoxSource, Source};
 use rustc_hash::FxHasher;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
-use serde_json::json;
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
-  add_connection_states, contextify, filter_runtime, get_context, merge_runtime_condition,
-  merge_runtime_condition_non_false, subtract_runtime_condition, AsyncDependenciesBlockIdentifier,
-  BoxDependency, BoxLoader, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult,
-  CodeGenerationResult, Compilation, CompilerOptions, ConnectionId, ConnectionState, Context,
-  DependenciesBlock, DependencyId, DependencyTemplate, FactoryMeta, GenerateContext,
-  GeneratorOptions, LibIdentOptions, LoaderRunnerPluginProcessResource, Module, ModuleDependency,
-  ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ModuleType, ParseContext, ParseResult,
-  ParserAndGenerator, ParserOptions, Resolve, RuntimeCondition, RuntimeSpec, SourceType,
+  filter_runtime, merge_runtime_condition, merge_runtime_condition_non_false,
+  subtract_runtime_condition, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext,
+  BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation, ConnectionId,
+  ConnectionState, Context, DependenciesBlock, DependencyId, DependencyTemplate, FactoryMeta,
+  LibIdentOptions, Module, ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleIdentifier,
+  ModuleType, ParserAndGenerator, Resolve, RuntimeCondition, RuntimeSpec, SourceType,
 };
 
 #[derive(Debug)]
@@ -250,7 +234,7 @@ impl Module for ConcatenatedModule {
     None
   }
 
-  fn readable_identifier(&self, context: &Context) -> Cow<str> {
+  fn readable_identifier(&self, _context: &Context) -> Cow<str> {
     Cow::Owned(format!(
       "{} + {} modules",
       self.root_module_ctxt.readable_identifier,
@@ -319,11 +303,7 @@ impl Module for ConcatenatedModule {
           .module_identifier_by_dependency_id(dep_id)
           .expect("should have module");
         if !is_harmony_dep_like(dep)
-          || self
-            .modules
-            .iter()
-            .find(|item| &item.id == module_id_of_dep)
-            .is_none()
+          || !self.modules.iter().any(|item| &item.id == module_id_of_dep)
         {
           self.dependencies.push(*dep_id);
         }
@@ -331,7 +311,7 @@ impl Module for ConcatenatedModule {
 
       // populate blocks
       for b in module.get_blocks() {
-        self.blocks.push(b.clone());
+        self.blocks.push(*b);
       }
       let mut diagnostics_guard = self.diagnostics.lock().expect("should have diagnostics");
       // populate diagnostic
@@ -347,10 +327,10 @@ impl Module for ConcatenatedModule {
 
   fn code_generation(
     &self,
-    compilation: &Compilation,
+    _compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
   ) -> Result<CodeGenerationResult> {
-    let generation_runtime = runtime.cloned().expect("should have runtime");
+    let _generation_runtime = runtime.cloned().expect("should have runtime");
     todo!()
     // if let NormalModuleSource::BuiltSucceed(source) = &self.source {
     //   let mut code_generation_result = CodeGenerationResult::default();
@@ -405,12 +385,8 @@ impl Module for ConcatenatedModule {
     self.root_module_ctxt.name_for_condition.clone()
   }
 
-  fn lib_ident(&self, options: LibIdentOptions) -> Option<Cow<str>> {
-    self
-      .root_module_ctxt
-      .lib_indent
-      .clone()
-      .map(|item| Cow::Owned(item))
+  fn lib_ident(&self, _options: LibIdentOptions) -> Option<Cow<str>> {
+    self.root_module_ctxt.lib_indent.clone().map(Cow::Owned)
   }
 
   fn get_resolve_options(&self) -> Option<Box<Resolve>> {
@@ -447,8 +423,8 @@ impl Module for ConcatenatedModule {
   // Port from https://github.com/webpack/webpack/blob/main/lib/ConcatenatedModule.js#L1120
   fn get_side_effects_connection_state(
     &self,
-    module_graph: &ModuleGraph,
-    module_chain: &mut HashSet<ModuleIdentifier>,
+    _module_graph: &ModuleGraph,
+    _module_chain: &mut HashSet<ModuleIdentifier>,
   ) -> ConnectionState {
     self.root_module_ctxt.side_effect_connection_state
   }
@@ -501,8 +477,8 @@ impl ConcatenatedModule {
 
   fn get_modules_with_info(
     &self,
-    module_graph: ModuleGraph,
-    runtime: RuntimeSpec,
+    _module_graph: ModuleGraph,
+    _runtime: RuntimeSpec,
   ) -> (
     Vec<ModuleInfoOrReference>,
     HashMap<ModuleIdentifier, ModuleInfo>,
@@ -512,10 +488,10 @@ impl ConcatenatedModule {
 
   fn create_concatenation_list(
     &self,
-    root_module: ModuleIdentifier,
-    module_set: HashSet<ModuleIdentifier>,
-    runtime: RuntimeSpec,
-    mg: &ModuleGraph,
+    _root_module: ModuleIdentifier,
+    _module_set: HashSet<ModuleIdentifier>,
+    _runtime: RuntimeSpec,
+    _mg: &ModuleGraph,
   ) -> Vec<ConcatenationEntry> {
     todo!()
   }
@@ -527,7 +503,7 @@ impl ConcatenatedModule {
     runtime: Option<&RuntimeSpec>,
     mg: &ModuleGraph,
     con: ModuleGraphConnection,
-    mut runtime_condition: RuntimeCondition,
+    runtime_condition: RuntimeCondition,
     exists_entry: &mut HashMap<ModuleIdentifier, RuntimeCondition>,
     list: &mut Vec<ConcatenationEntry>,
   ) {
@@ -535,7 +511,7 @@ impl ConcatenatedModule {
     let exist_entry = match exists_entry.get(&module) {
       Some(condition) if matches!(condition, RuntimeCondition::Boolean(true)) => return,
       None => None,
-      Some(condtition) => Some(runtime_condition.clone()),
+      Some(_condtition) => Some(runtime_condition.clone()),
     };
     if module_set.contains(&module) {
       exists_entry.insert(module, RuntimeCondition::Boolean(true));
@@ -589,7 +565,7 @@ impl ConcatenatedModule {
       list.push(ConcatenationEntry {
         ty: ConcatenationEntryType::External,
         runtime_condition,
-        connection_or_module_id: ConnectionOrModuleIdent::Connection(con_id.clone()),
+        connection_or_module_id: ConnectionOrModuleIdent::Connection(*con_id),
       })
     }
   }
@@ -598,7 +574,7 @@ impl ConcatenatedModule {
     &self,
     module_id: &ModuleIdentifier,
     root_module_id: &ModuleIdentifier,
-    module_set: &mut HashSet<ModuleIdentifier>,
+    _module_set: &mut HashSet<ModuleIdentifier>,
     runtime: Option<&RuntimeSpec>,
     mg: &ModuleGraph,
   ) -> Vec<ConnectionWithRuntimeCondition> {
@@ -615,21 +591,21 @@ impl ConcatenatedModule {
         .module_by_identifier(&self.id)
         .expect("should have module");
       for c in mg.get_outgoing_connections(self_module) {
-        connections.push(c.clone());
+        connections.push(*c);
       }
     }
 
     let mut references = connections
       .into_iter()
       .filter_map(|connection| {
-        let dep = connection.dependency_id.get_dependency(&mg);
+        let dep = connection.dependency_id.get_dependency(mg);
         if !is_harmony_dep_like(dep) {
           return None;
         }
 
         // TODO: we don't have resolved_original_module
         if !(connection.original_module_identifier == Some(*module_id)
-          && connection.is_target_active(&mg, self.runtime.as_ref()))
+          && connection.is_target_active(mg, self.runtime.as_ref()))
         {
           return None;
         }
@@ -661,7 +637,7 @@ impl ConcatenatedModule {
     let mut references_map = HashMap::default();
     for reference in references {
       let runtime_condition =
-        filter_runtime(runtime, |r| reference.connection.is_target_active(&mg, r));
+        filter_runtime(runtime, |r| reference.connection.is_target_active(mg, r));
       if matches!(runtime_condition, RuntimeCondition::Boolean(false)) {
         continue;
       }
