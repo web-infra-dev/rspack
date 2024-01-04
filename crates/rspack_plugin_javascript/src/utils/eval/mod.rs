@@ -162,6 +162,8 @@ impl BasicEvaluatedExpression {
   pub fn as_string(&self) -> Option<std::string::String> {
     if self.is_bool() {
       Some(self.bool().to_string())
+    } else if self.is_null() {
+      Some("null".to_string())
     } else if self.is_string() {
       Some(self.string().to_string())
     } else {
@@ -231,6 +233,11 @@ impl BasicEvaluatedExpression {
 
   pub fn set_side_effects(&mut self, side_effects: bool) {
     self.side_effects = side_effects
+  }
+
+  pub fn set_null(&mut self) {
+    self.ty = Ty::Null;
+    self.side_effects = false
   }
 
   pub fn set_items(&mut self, items: Vec<BasicEvaluatedExpression>) {
