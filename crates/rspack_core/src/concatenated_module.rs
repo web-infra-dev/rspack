@@ -4,6 +4,7 @@ use std::{
   fmt::Debug,
   hash::{BuildHasherDefault, Hash, Hasher},
   iter,
+  os::unix::fs::OpenOptionsExt,
   sync::{
     atomic::{AtomicUsize, Ordering},
     Arc, Mutex,
@@ -27,6 +28,7 @@ use rspack_sources::{
 use rustc_hash::FxHasher;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde_json::json;
+use swc_core::ecma::atoms::Atom;
 
 use crate::{
   add_connection_states, contextify, filter_runtime, get_context, merge_runtime_condition,
@@ -80,7 +82,7 @@ impl ConnectionOrModuleIdent {
       ConnectionOrModuleIdent::Module(m) => *m,
       ConnectionOrModuleIdent::Connection(c) => {
         let con = mg
-          .connection_by_connection_id(connection_id)
+          .connection_by_connection_id(c)
           .expect("should have connection");
         con.module_identifier
       }
@@ -99,16 +101,16 @@ pub struct ConcatenationEntry {
 pub struct ConcatenatedModuleImportInfo {
   connection: ModuleGraphConnection,
   source_order: i32,
-  range_start: u32,
+  range_start: Option<u32>,
 }
 
 #[derive(Debug)]
 pub struct ConcatenatedModuleInfo {
-  index: usize,
-  module: ModuleIdentifier,
-  export_map: HashMap<Atom, String>,
-  raw_export_map: HashMap<Atom, String>,
-  namespace_export_symbol: Option<Atom>,
+  pub index: usize,
+  pub module: ModuleIdentifier,
+  pub export_map: HashMap<Atom, String>,
+  pub raw_export_map: HashMap<Atom, String>,
+  pub namespace_export_symbol: Option<Atom>,
 }
 
 pub struct ConnectionWithRuntimeCondition {
@@ -130,7 +132,7 @@ pub enum ModuleInfoOrReference {
 }
 
 impl ModuleInfo {
-  fn index(&self) -> usize {
+  pub fn index(&self) -> usize {
     match self {
       ModuleInfo::External(e) => e.index,
       ModuleInfo::Concatenated(c) => c.index,
@@ -351,11 +353,6 @@ impl Module for ConcatenatedModule {
     runtime: Option<&RuntimeSpec>,
   ) -> Result<CodeGenerationResult> {
     let generation_runtime = runtime.cloned().expect("should have runtime");
-    let runtime = self
-      .runtime
-      .intersection(&generation_runtime)
-      .cloned()
-      .collect::<HashSet<Arc<str>>>();
     todo!()
     // if let NormalModuleSource::BuiltSucceed(source) = &self.source {
     //   let mut code_generation_result = CodeGenerationResult::default();
@@ -529,7 +526,7 @@ impl ConcatenatedModule {
     &self,
     root_module: ModuleIdentifier,
     module_set: &mut HashSet<ModuleIdentifier>,
-    runtime: RuntimeSpec,
+    runtime: Option<&RuntimeSpec>,
     mg: &ModuleGraph,
     con: ModuleGraphConnection,
     mut runtime_condition: RuntimeCondition,
@@ -571,13 +568,13 @@ impl ConcatenatedModule {
     } else {
       if let Some(cond) = exist_entry {
         let reduced_runtime_condition =
-          subtract_runtime_condition(&runtime_condition, &cond, Some(&runtime));
+          subtract_runtime_condition(&runtime_condition, &cond, runtime);
         if matches!(reduced_runtime_condition, RuntimeCondition::Boolean(false)) {
           return;
         }
         exists_entry.insert(con.module_identifier, reduced_runtime_condition);
       } else {
-        exists_entry.insert(con.module_identifier, runtime_condition);
+        exists_entry.insert(con.module_identifier, runtime_condition.clone());
       }
       if let Some(last) = list.last_mut() {
         if matches!(last.ty, ConcatenationEntryType::External)
@@ -601,24 +598,30 @@ impl ConcatenatedModule {
 
   fn get_concatenated_imports(
     &self,
-    module: &ModuleIdentifier,
-    root_module: &ModuleIdentifier,
-    module_set: HashSet<ModuleIdentifier>,
-    runtime: RuntimeSpec,
-    mg: ModuleGraph,
+    module_id: &ModuleIdentifier,
+    root_module_id: &ModuleIdentifier,
+    module_set: &mut HashSet<ModuleIdentifier>,
+    runtime: Option<&RuntimeSpec>,
+    mg: &ModuleGraph,
   ) -> Vec<ConnectionWithRuntimeCondition> {
+    let box_module = mg
+      .module_by_identifier(module_id)
+      .expect("should have module");
     let mut connections = mg
-      .get_outgoing_connections(module)
+      .get_outgoing_connections(box_module)
       .into_iter()
       .cloned()
       .collect::<Vec<_>>();
-    if module == &root_module {
-      for c in mg.get_outgoing_connections(self.id) {
+    if module_id == root_module_id {
+      let self_module = mg
+        .module_by_identifier(&self.id)
+        .expect("should have module");
+      for c in mg.get_outgoing_connections(self_module) {
         connections.push(c.clone());
       }
     }
 
-    let mut references: Vec<ImportInfo> = connections
+    let mut references = connections
       .into_iter()
       .filter_map(|connection| {
         let dep = connection.dependency_id.get_dependency(&mg);
@@ -627,7 +630,7 @@ impl ConcatenatedModule {
         }
 
         // TODO: we don't have resolved_original_module
-        if !(connection.original_module_identifier == Some(module)
+        if !(connection.original_module_identifier == Some(*module_id)
           && connection.is_target_active(&mg, self.runtime.as_ref()))
         {
           return None;
@@ -639,40 +642,38 @@ impl ConcatenatedModule {
           source_order: dep
             .source_order()
             .expect("source order should not be empty"),
-          range_start: dep.span().expect("should have span").start,
+          range_start: dep.span().map(|span| span.start),
         })
       })
-      .collect();
+      .collect::<Vec<_>>();
 
     references.sort_by(|a, b| {
       if a.source_order != b.source_order {
         a.source_order.cmp(&b.source_order)
       } else {
-        a.range_start.cmp(&b.range_start)
+        match (a.range_start, b.range_start) {
+          (None, None) => std::cmp::Ordering::Equal,
+          (None, Some(_)) => std::cmp::Ordering::Greater,
+          (Some(_), None) => 1 + 2.0,
+          (Some(_), Some(_)) => todo!(),
+        }
       }
     });
 
-    let mut references_map: std::collections::HashMap<
-      ModuleIdentifier,
-      ConnectionWithRuntimeCondition,
-    > = HashMap::default();
+    let mut references_map = HashMap::default();
     for reference in references {
-      let runtime_condition = filter_runtime(Some(&runtime), |r| {
-        reference.connection.is_target_active(&mg, r)
-      });
+      let runtime_condition =
+        filter_runtime(runtime, |r| reference.connection.is_target_active(&mg, r));
       if matches!(runtime_condition, RuntimeCondition::Boolean(false)) {
         continue;
       }
       let module = reference.connection.module_identifier;
       match references_map.entry(module) {
-        Entry::Occupied(occ) => {
-          let cur = occ.get();
-          let merged_condition = merge_runtime_condition_non_false(
-            &cur.runtime_condition,
-            &runtime_condition,
-            Some(&runtime),
-          );
-          occ.insert(merged_condition);
+        Entry::Occupied(mut occ) => {
+          let cur: &ConnectionWithRuntimeCondition = occ.get();
+          let merged_condition =
+            merge_runtime_condition_non_false(&cur.runtime_condition, &runtime_condition, runtime);
+          occ.get_mut().runtime_condition = merged_condition;
         }
         Entry::Vacant(vac) => {
           vac.insert(ConnectionWithRuntimeCondition {

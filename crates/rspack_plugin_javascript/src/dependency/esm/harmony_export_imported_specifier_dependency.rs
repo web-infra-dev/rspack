@@ -26,8 +26,6 @@ pub struct HarmonyExportImportedSpecifierDependency {
   pub id: DependencyId,
   pub source_order: i32,
   pub request: Atom,
-  pub start: u32,
-  pub end: u32,
   pub ids: Vec<(Atom, Option<Atom>)>,
   /// used for get_mode, legacy issue
   pub mode_ids: Vec<(Atom, Option<Atom>)>,
@@ -49,8 +47,6 @@ impl HarmonyExportImportedSpecifierDependency {
     name: Option<Atom>,
     export_all: bool,
     other_star_exports: Option<Vec<DependencyId>>,
-    start: u32,
-    end: u32,
   ) -> Self {
     let resource_identifier = create_resource_identifier_for_esm_dependency(&request);
     Self {
@@ -63,8 +59,6 @@ impl HarmonyExportImportedSpecifierDependency {
       resource_identifier,
       export_all,
       other_star_exports,
-      start,
-      end,
     }
   }
 
@@ -1163,12 +1157,6 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
     Some(&self.resource_identifier)
   }
 
-  fn span(&self) -> Option<ErrorSpan> {
-    Some(ErrorSpan {
-      start: self.start,
-      end: self.end,
-    })
-  }
   fn source_order(&self) -> Option<i32> {
     Some(self.source_order)
   }

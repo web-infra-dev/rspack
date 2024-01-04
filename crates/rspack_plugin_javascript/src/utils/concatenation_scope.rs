@@ -2,6 +2,7 @@ use std::collections::hash_map::Entry;
 
 use once_cell::sync::Lazy;
 use regex::Regex;
+use rspack_core::concatenated_module::{ConcatenatedModuleInfo, ModuleInfo};
 use rspack_core::ModuleIdentifier;
 use rustc_hash::FxHashMap as HashMap;
 use swc_core::atoms::Atom;

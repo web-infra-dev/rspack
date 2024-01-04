@@ -125,7 +125,7 @@ pub fn subtract_runtime_condition(
 ) -> RuntimeCondition {
   let merged = match (a, b) {
     (_, RuntimeCondition::Boolean(true)) => return RuntimeCondition::Boolean(false),
-    (_, RuntimeCondition::Boolean(false)) => return a,
+    (_, RuntimeCondition::Boolean(false)) => return a.clone(),
     (RuntimeCondition::Boolean(false), _) => return RuntimeCondition::Boolean(false),
     (RuntimeCondition::Spec(a), RuntimeCondition::Spec(b)) => {
       let mut set = HashSet::default();
@@ -137,10 +137,10 @@ pub fn subtract_runtime_condition(
       set
     }
     (RuntimeCondition::Boolean(true), RuntimeCondition::Spec(b)) => {
-      let a = runtime.unwrap_or_default();
+      let a = runtime.cloned().unwrap_or_default();
       let mut set = HashSet::default();
       for item in a {
-        if !b.contains(item) {
+        if !b.contains(&item) {
           set.insert(item.clone());
         }
       }
