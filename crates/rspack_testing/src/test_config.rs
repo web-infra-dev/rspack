@@ -421,7 +421,6 @@ impl TestConfig {
         define: self.builtins.define,
         provide: self.builtins.provide,
         tree_shaking: self.builtins.tree_shaking.into(),
-        ..Default::default()
       },
       module: c::ModuleOptions {
         rules,
