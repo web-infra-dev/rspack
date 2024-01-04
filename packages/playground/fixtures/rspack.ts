@@ -4,7 +4,6 @@ import { Compiler, Configuration, rspack } from "@rspack/core";
 import { RspackDevServer } from "@rspack/dev-server";
 import WebpackDevServer from "webpack-dev-server";
 import type { PathInfoFixtures } from "./pathInfo";
-import { sleep } from "@/utils/sleep";
 
 class Rspack {
 	projectDir: string;
@@ -46,25 +45,6 @@ class Rspack {
 		return new Promise<void>(resolve => {
 			this.onDone.push(resolve);
 		});
-	}
-
-	// TODO add some plugin to watch hmr complete
-	waitingForHmr(poll: () => Promise<boolean>) {
-		return this.waitUntil(poll);
-	}
-
-	async waitUntil(poll: () => Promise<boolean>) {
-		const maxTries = 100;
-		for (let tries = 0; tries < maxTries; tries++) {
-			const isSuccess = await poll();
-			if (isSuccess) {
-				return;
-			}
-			if (tries === maxTries - 1) {
-				throw new Error("out of max retry time");
-			}
-			await sleep(200);
-		}
 	}
 }
 
