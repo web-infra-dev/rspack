@@ -79,8 +79,9 @@ impl ModuleDependency for CommonJsFullRequireDependency {
   ) -> Vec<ExtendedReferencedExport> {
     if self.is_call
       && module_graph
-        .module_graph_module_by_dependency_id(&self.id)
-        .map(|mgm| mgm.get_exports_type(false))
+        .module_identifier_by_dependency_id(&self.id)
+        .and_then(|identifier| module_graph.module_by_identifier(identifier))
+        .map(|module| module.get_exports_type(false))
         .is_some_and(|t| !matches!(t, ExportsType::Namespace))
     {
       if self.names.is_empty() {
