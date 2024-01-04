@@ -661,31 +661,43 @@ describe("snapshots", () => {
 		-     "workerWasmLoading": "fetch",
 		+     "workerWasmLoading": "async-node",
 		@@ ... @@
-		-     "browserField": true,
-		+     "browserField": false,
+		-     "aliasFields": Array [
+		-       "browser",
+		-     ],
+		+     "aliasFields": Array [],
 		@@ ... @@
-		-         "browserField": true,
-		+         "browserField": false,
+		-         "aliasFields": Array [
+		-           "browser",
+		-         ],
+		+         "aliasFields": Array [],
 		@@ ... @@
 		-           "browser",
 		@@ ... @@
-		-         "browserField": true,
-		+         "browserField": false,
+		-         "aliasFields": Array [
+		-           "browser",
+		-         ],
+		+         "aliasFields": Array [],
 		@@ ... @@
 		-           "browser",
 		@@ ... @@
-		-         "browserField": true,
-		+         "browserField": false,
+		-         "aliasFields": Array [
+		-           "browser",
+		-         ],
+		+         "aliasFields": Array [],
 		@@ ... @@
 		-           "browser",
 		@@ ... @@
-		-         "browserField": true,
-		+         "browserField": false,
+		-         "aliasFields": Array [
+		-           "browser",
+		-         ],
+		+         "aliasFields": Array [],
 		@@ ... @@
 		-           "browser",
 		@@ ... @@
-		-         "browserField": true,
-		+         "browserField": false,
+		-         "aliasFields": Array [
+		-           "browser",
+		-         ],
+		+         "aliasFields": Array [],
 		@@ ... @@
 		-           "browser",
 		@@ ... @@
@@ -763,31 +775,43 @@ describe("snapshots", () => {
 		-     "workerWasmLoading": "fetch",
 		+     "workerWasmLoading": "async-node",
 		@@ ... @@
-		-     "browserField": true,
-		+     "browserField": false,
+		-     "aliasFields": Array [
+		-       "browser",
+		-     ],
+		+     "aliasFields": Array [],
 		@@ ... @@
-		-         "browserField": true,
-		+         "browserField": false,
+		-         "aliasFields": Array [
+		-           "browser",
+		-         ],
+		+         "aliasFields": Array [],
 		@@ ... @@
 		-           "browser",
 		@@ ... @@
-		-         "browserField": true,
-		+         "browserField": false,
+		-         "aliasFields": Array [
+		-           "browser",
+		-         ],
+		+         "aliasFields": Array [],
 		@@ ... @@
 		-           "browser",
 		@@ ... @@
-		-         "browserField": true,
-		+         "browserField": false,
+		-         "aliasFields": Array [
+		-           "browser",
+		-         ],
+		+         "aliasFields": Array [],
 		@@ ... @@
 		-           "browser",
 		@@ ... @@
-		-         "browserField": true,
-		+         "browserField": false,
+		-         "aliasFields": Array [
+		-           "browser",
+		-         ],
+		+         "aliasFields": Array [],
 		@@ ... @@
 		-           "browser",
 		@@ ... @@
-		-         "browserField": true,
-		+         "browserField": false,
+		-         "aliasFields": Array [
+		-           "browser",
+		-         ],
+		+         "aliasFields": Array [],
 		@@ ... @@
 		-           "browser",
 		@@ ... @@
@@ -848,31 +872,43 @@ describe("snapshots", () => {
 		-     "workerWasmLoading": "fetch",
 		+     "workerWasmLoading": "async-node",
 		@@ ... @@
-		-     "browserField": true,
-		+     "browserField": false,
+		-     "aliasFields": Array [
+		-       "browser",
+		-     ],
+		+     "aliasFields": Array [],
 		@@ ... @@
-		-         "browserField": true,
-		+         "browserField": false,
+		-         "aliasFields": Array [
+		-           "browser",
+		-         ],
+		+         "aliasFields": Array [],
 		@@ ... @@
 		-           "browser",
 		@@ ... @@
-		-         "browserField": true,
-		+         "browserField": false,
+		-         "aliasFields": Array [
+		-           "browser",
+		-         ],
+		+         "aliasFields": Array [],
 		@@ ... @@
 		-           "browser",
 		@@ ... @@
-		-         "browserField": true,
-		+         "browserField": false,
+		-         "aliasFields": Array [
+		-           "browser",
+		-         ],
+		+         "aliasFields": Array [],
 		@@ ... @@
 		-           "browser",
 		@@ ... @@
-		-         "browserField": true,
-		+         "browserField": false,
+		-         "aliasFields": Array [
+		-           "browser",
+		-         ],
+		+         "aliasFields": Array [],
 		@@ ... @@
 		-           "browser",
 		@@ ... @@
-		-         "browserField": true,
-		+         "browserField": false,
+		-         "aliasFields": Array [
+		-           "browser",
+		-         ],
+		+         "aliasFields": Array [],
 		@@ ... @@
 		-           "browser",
 		@@ ... @@

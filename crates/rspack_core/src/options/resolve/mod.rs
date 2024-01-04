@@ -12,16 +12,19 @@ pub type Alias = oxc_resolver::Alias;
 
 pub(super) type Extensions = Vec<String>;
 pub(super) type PreferRelative = bool;
+pub(super) type PreferAbsolute = bool;
 pub(super) type Symlink = bool;
 pub(super) type MainFiles = Vec<String>;
 pub(super) type MainFields = Vec<String>;
-pub(super) type BrowserField = bool;
+pub(super) type AliasFields = Vec<Vec<String>>;
 pub(super) type ConditionNames = Vec<String>;
 pub(super) type Fallback = Alias;
 pub(super) type FullySpecified = bool;
 pub(super) type ExportsField = Vec<Vec<String>>;
 pub(super) type ExtensionAlias = Vec<(String, Vec<String>)>;
 pub(super) type Modules = Vec<String>;
+pub(super) type Roots = Vec<String>;
+pub(super) type Restrictions = Vec<String>;
 
 #[derive(Debug, Clone, Default, Hash, PartialEq, Eq)]
 pub struct Resolve {
@@ -33,6 +36,8 @@ pub struct Resolve {
   /// Prefer to resolve request as relative request and
   /// fallback to resolving as modules.
   pub prefer_relative: Option<PreferRelative>,
+  /// Prefer absolute paths to `resolve.roots` when resolving.
+  pub prefer_absolute: Option<PreferAbsolute>,
   /// Whether to resolve the real path when the result
   /// is a symlink.
   pub symlinks: Option<Symlink>,
@@ -40,9 +45,6 @@ pub struct Resolve {
   pub main_files: Option<MainFiles>,
   /// Main fields in Description.
   pub main_fields: Option<MainFields>,
-  /// Whether read and parse `"browser"` filed
-  /// in package.json.
-  pub browser_field: Option<BrowserField>,
   /// Condition names for exports filed. Note that its
   /// type is a `HashSet`, because the priority is
   /// related to the order in which the export field
@@ -66,6 +68,13 @@ pub struct Resolve {
   /// A list map ext to another.
   /// Default is `[]`
   pub extension_alias: Option<ExtensionAlias>,
+  /// Specify a field, such as browser, to be parsed according to [this specification](https://github.com/defunctzombie/package-browser-field-spec).
+  pub alias_fields: Option<AliasFields>,
+  /// A list of directories where requests of server-relative URLs (starting with '/') are resolved
+  pub roots: Option<Roots>,
+  /// A list of resolve restrictions to restrict the paths that a request can be resolved on.
+  pub restrictions: Option<Roots>,
+  /// Configure resolve options by the type of module request.
   pub by_dependency: Option<ByDependency>,
 }
 

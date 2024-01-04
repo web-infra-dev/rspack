@@ -209,6 +209,7 @@ fn to_oxc_resolver_options(
     })
     .collect();
   let prefer_relative = options.prefer_relative.unwrap_or(false);
+  let prefer_absolute = options.prefer_absolute.unwrap_or(false);
   let symlinks = options.symlinks.unwrap_or(true);
   let main_files = options
     .main_files
@@ -216,14 +217,6 @@ fn to_oxc_resolver_options(
   let main_fields = options
     .main_fields
     .unwrap_or_else(|| vec![String::from("module"), String::from("main")]);
-  let alias_fields = (if options.browser_field.unwrap_or(true) {
-    vec!["browser".to_string()]
-  } else {
-    vec![]
-  })
-  .into_iter()
-  .map(|x| vec![x])
-  .collect();
   let condition_names = options
     .condition_names
     .unwrap_or_else(|| vec!["module".to_string(), "import".to_string()]);
@@ -250,6 +243,21 @@ fn to_oxc_resolver_options(
     .exports_field
     .unwrap_or_else(|| vec![vec!["exports".to_string()]]);
   let extension_alias = options.extension_alias.unwrap_or_default();
+  let alias_fields = options
+    .alias_fields
+    .unwrap_or_else(|| vec![vec![String::from("browser")]]);
+  let restrictions = options
+    .restrictions
+    .unwrap_or_default()
+    .into_iter()
+    .map(|s| oxc_resolver::Restriction::Path(PathBuf::from(s)))
+    .collect();
+  let roots = options
+    .roots
+    .unwrap_or_default()
+    .into_iter()
+    .map(PathBuf::from)
+    .collect();
   oxc_resolver::ResolveOptions {
     fallback,
     modules,
@@ -257,6 +265,7 @@ fn to_oxc_resolver_options(
     enforce_extension,
     alias,
     prefer_relative,
+    prefer_absolute,
     symlinks,
     alias_fields,
     description_files,
@@ -268,10 +277,8 @@ fn to_oxc_resolver_options(
     fully_specified,
     exports_fields,
     extension_alias,
-    // not supported by rspack yet
-    prefer_absolute: false,
-    restrictions: vec![],
-    roots: vec![],
+    restrictions,
+    roots,
     builtin_modules: false,
   }
 }

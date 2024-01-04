@@ -24,10 +24,10 @@ pub struct RawResolveTsconfigOptions {
 #[napi(object)]
 pub struct RawResolveOptions {
   pub prefer_relative: Option<bool>,
+  pub prefer_absolute: Option<bool>,
   pub extensions: Option<Vec<String>>,
   pub main_files: Option<Vec<String>>,
   pub main_fields: Option<Vec<String>>,
-  pub browser_field: Option<bool>,
   pub condition_names: Option<Vec<String>>,
   #[serde(serialize_with = "ordered_map")]
   #[napi(ts_type = "Record<string, Array<string | false>>")]
@@ -44,6 +44,9 @@ pub struct RawResolveOptions {
   #[serde(serialize_with = "ordered_map")]
   #[napi(ts_type = "Record<string, Array<string>>")]
   pub extension_alias: Option<HashMap<String, Vec<String>>>,
+  pub alias_fields: Option<Vec<String>>,
+  pub restrictions: Option<Vec<String>>,
+  pub roots: Option<Vec<String>>,
 }
 
 fn normalize_alias(alias: Option<RawAliasOption>) -> rspack_error::Result<Option<Alias>> {
@@ -80,8 +83,8 @@ impl TryFrom<RawResolveOptions> for Resolve {
 
   fn try_from(value: RawResolveOptions) -> Result<Self, Self::Error> {
     let prefer_relative = value.prefer_relative;
+    let prefer_absolute = value.prefer_absolute;
     let extensions = value.extensions;
-    let browser_field = value.browser_field;
     let main_files = value.main_files;
     let main_fields = value.main_fields;
     let condition_names = value.condition_names;
@@ -106,11 +109,16 @@ impl TryFrom<RawResolveOptions> for Resolve {
       .exports_fields
       .map(|v| v.into_iter().map(|s| vec![s]).collect());
     let extension_alias = value.extension_alias.map(|v| v.into_iter().collect());
+    let alias_fields = value
+      .alias_fields
+      .map(|v| v.into_iter().map(|s| vec![s]).collect());
+    let restrictions = value.restrictions;
+    let roots = value.roots;
     Ok(Resolve {
       modules,
       prefer_relative,
+      prefer_absolute,
       extensions,
-      browser_field,
       main_fields,
       main_files,
       condition_names,
@@ -122,6 +130,9 @@ impl TryFrom<RawResolveOptions> for Resolve {
       fully_specified,
       exports_field,
       extension_alias,
+      alias_fields,
+      restrictions,
+      roots,
     })
   }
 }

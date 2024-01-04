@@ -2,8 +2,9 @@ use hashlink::LinkedHashMap;
 
 use super::value_type::{GetValueType, ValueType};
 use super::{
-  Alias, BrowserField, ConditionNames, ExportsField, ExtensionAlias, Extensions, Fallback,
-  FullySpecified, MainFields, MainFiles, Modules, PreferRelative, Symlink, TsconfigOptions,
+  Alias, AliasFields, ConditionNames, ExportsField, ExtensionAlias, Extensions, Fallback,
+  FullySpecified, MainFields, MainFiles, Modules, PreferAbsolute, PreferRelative, Restrictions,
+  Roots, Symlink, TsconfigOptions,
 };
 use super::{ByDependency, DependencyCategoryStr, Resolve};
 
@@ -21,16 +22,19 @@ fn is_empty(resolve: &Resolve) -> bool {
   is_none!(extensions)
     && is_none!(alias)
     && is_none!(prefer_relative)
+    && is_none!(prefer_absolute)
     && is_none!(symlinks)
     && is_none!(main_files)
     && is_none!(main_fields)
-    && is_none!(browser_field)
     && is_none!(condition_names)
     && is_none!(modules)
     && is_none!(fallback)
     && is_none!(fully_specified)
     && is_none!(exports_field)
     && is_none!(extension_alias)
+    && is_none!(alias_fields)
+    && is_none!(restrictions)
+    && is_none!(roots)
     && is_none!(tsconfig)
     && is_none!(by_dependency)
 }
@@ -46,10 +50,10 @@ struct ResolveWithEntry {
   extensions: Entry<Extensions>,
   alias: Entry<Alias>,
   prefer_relative: Entry<PreferRelative>,
+  prefer_absolute: Entry<PreferAbsolute>,
   symlinks: Entry<Symlink>,
   main_files: Entry<MainFiles>,
   main_fields: Entry<MainFields>,
-  browser_field: Entry<BrowserField>,
   condition_names: Entry<ConditionNames>,
   modules: Entry<Modules>,
   fallback: Entry<Fallback>,
@@ -57,6 +61,9 @@ struct ResolveWithEntry {
   fully_specified: Entry<FullySpecified>,
   exports_field: Entry<ExportsField>,
   extension_alias: Entry<ExtensionAlias>,
+  alias_fields: Entry<AliasFields>,
+  restrictions: Entry<Restrictions>,
+  roots: Entry<Roots>,
 }
 
 fn parse_resolve(resolve: Resolve) -> ResolveWithEntry {
@@ -72,10 +79,10 @@ fn parse_resolve(resolve: Resolve) -> ResolveWithEntry {
     extensions: entry!(extensions),
     alias: entry!(alias),
     prefer_relative: entry!(prefer_relative),
+    prefer_absolute: entry!(prefer_absolute),
     symlinks: entry!(symlinks),
     main_files: entry!(main_files),
     main_fields: entry!(main_fields),
-    browser_field: entry!(browser_field),
     condition_names: entry!(condition_names),
     modules: entry!(modules),
     fallback: entry!(fallback),
@@ -83,6 +90,9 @@ fn parse_resolve(resolve: Resolve) -> ResolveWithEntry {
     fully_specified: entry!(fully_specified),
     exports_field: entry!(exports_field),
     extension_alias: entry!(extension_alias),
+    alias_fields: entry!(alias_fields),
+    restrictions: entry!(restrictions),
+    roots: entry!(roots),
   };
   let Some(by_dependency) = resolve.by_dependency else {
     return res;
@@ -114,16 +124,19 @@ fn parse_resolve(resolve: Resolve) -> ResolveWithEntry {
   update_by_value!(extensions);
   update_by_value!(alias);
   update_by_value!(prefer_relative);
+  update_by_value!(prefer_absolute);
   update_by_value!(symlinks);
   update_by_value!(main_files);
   update_by_value!(main_fields);
-  update_by_value!(browser_field);
   update_by_value!(condition_names);
   update_by_value!(modules);
   update_by_value!(fallback);
   update_by_value!(fully_specified);
   update_by_value!(exports_field);
   update_by_value!(extension_alias);
+  update_by_value!(alias_fields);
+  update_by_value!(restrictions);
+  update_by_value!(roots);
   update_by_value!(tsconfig);
 
   res
@@ -248,6 +261,12 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
       |_| true,
       |_, b| b
     ),
+    prefer_absolute: merge!(
+      prefer_absolute,
+      second.prefer_absolute.base.get_value_type(),
+      |_| true,
+      |_, b| b
+    ),
     symlinks: merge!(
       symlinks,
       second.symlinks.base.get_value_type(),
@@ -265,12 +284,6 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
       second.main_fields.base.get_value_type(),
       need_merge_base,
       |a, b| normalize_string_array(a, b)
-    ),
-    browser_field: merge!(
-      browser_field,
-      second.browser_field.base.get_value_type(),
-      |_| true,
-      |_, b| b
     ),
     condition_names: merge!(
       condition_names,
@@ -297,6 +310,9 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
     extension_alias: merge!(extension_alias, ValueType::Other, |_| false, |a, b| {
       extend_extension_alias(a, b)
     }),
+    alias_fields: merge!(alias_fields, ValueType::Other, |_| false, |_, b| b),
+    restrictions: merge!(restrictions, ValueType::Other, |_| false, |_, b| b),
+    roots: merge!(roots, ValueType::Other, |_| false, |_, b| b),
   };
 
   let mut by_dependency: LinkedHashMap<DependencyCategoryStr, Resolve> = LinkedHashMap::new();
@@ -316,10 +332,10 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
   setup_by_values!(extensions);
   setup_by_values!(alias);
   setup_by_values!(prefer_relative);
+  setup_by_values!(prefer_absolute);
   setup_by_values!(symlinks);
   setup_by_values!(main_files);
   setup_by_values!(main_fields);
-  setup_by_values!(browser_field);
   setup_by_values!(condition_names);
   setup_by_values!(tsconfig);
   setup_by_values!(modules);
@@ -327,6 +343,9 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
   setup_by_values!(fully_specified);
   setup_by_values!(exports_field);
   setup_by_values!(extension_alias);
+  setup_by_values!(alias_fields);
+  setup_by_values!(restrictions);
+  setup_by_values!(roots);
 
   macro_rules! to_resolve {
     ($ident: ident) => {
@@ -343,10 +362,10 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
   to_resolve!(extensions);
   to_resolve!(alias);
   to_resolve!(prefer_relative);
+  to_resolve!(prefer_absolute);
   to_resolve!(symlinks);
   to_resolve!(main_files);
   to_resolve!(main_fields);
-  to_resolve!(browser_field);
   to_resolve!(condition_names);
   to_resolve!(tsconfig);
   to_resolve!(modules);
@@ -354,6 +373,9 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
   to_resolve!(fully_specified);
   to_resolve!(exports_field);
   to_resolve!(extension_alias);
+  to_resolve!(alias_fields);
+  to_resolve!(restrictions);
+  to_resolve!(roots);
 
   let by_dependency = if by_dependency.iter().all(|(_, by_value)| is_empty(by_value)) {
     None
@@ -366,10 +388,10 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
     extensions: result_entry.extensions.base,
     alias: result_entry.alias.base,
     prefer_relative: result_entry.prefer_relative.base,
+    prefer_absolute: result_entry.prefer_absolute.base,
     symlinks: result_entry.symlinks.base,
     main_files: result_entry.main_files.base,
     main_fields: result_entry.main_fields.base,
-    browser_field: result_entry.browser_field.base,
     condition_names: result_entry.condition_names.base,
     tsconfig: result_entry.tsconfig.base,
     modules: result_entry.modules.base,
@@ -377,6 +399,9 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
     fully_specified: result_entry.fully_specified.base,
     exports_field: result_entry.exports_field.base,
     extension_alias: result_entry.extension_alias.base,
+    alias_fields: result_entry.alias_fields.base,
+    restrictions: result_entry.restrictions.base,
+    roots: result_entry.roots.base,
   }
 }
 
@@ -546,7 +571,6 @@ mod test {
       symlinks: Some(false),
       main_files: string_list(&["d", "e", "f"]),
       main_fields: string_list(&["g", "h", "i"]),
-      browser_field: Some(true),
       condition_names: string_list(&["j", "k"]),
       ..Default::default()
     };
@@ -554,7 +578,6 @@ mod test {
       extensions: string_list(&["a1", "b1"]),
       alias: Some(vec![("c2".to_string(), vec![AliasMap::Ignore])]),
       prefer_relative: Some(true),
-      browser_field: Some(true),
       main_files: string_list(&["d1", "e", "..."]),
       main_fields: string_list(&["...", "h", "..."]),
       condition_names: string_list(&["f", "..."]),

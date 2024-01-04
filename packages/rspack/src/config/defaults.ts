@@ -796,15 +796,16 @@ const getResolveDefaults = ({
 	const tp = targetProperties;
 	const browserField =
 		tp && tp.web && (!tp.node || (tp.electron && tp.electronRenderer));
+	const aliasFields = browserField ? ["browser"] : [];
 
 	const cjsDeps = () => ({
-		browserField,
+		aliasFields,
 		mainFields: browserField ? ["browser", "module", "..."] : ["module", "..."],
 		conditionNames: ["require", "module", "..."],
 		extensions: [...jsExtensions]
 	});
 	const esmDeps = () => ({
-		browserField,
+		aliasFields,
 		mainFields: browserField ? ["browser", "module", "..."] : ["module", "..."],
 		conditionNames: ["import", "module", "..."],
 		extensions: [...jsExtensions]
@@ -815,7 +816,7 @@ const getResolveDefaults = ({
 		conditionNames: conditions,
 		mainFiles: ["index"],
 		extensions: [],
-		browserField,
+		aliasFields,
 		mainFields: ["main"].filter(Boolean),
 		exportsFields: ["exports"],
 		byDependency: {
