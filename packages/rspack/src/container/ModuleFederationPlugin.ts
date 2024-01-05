@@ -26,7 +26,7 @@ export class ModuleFederationPlugin {
 		compiler.hooks.afterPlugins.tap(ModuleFederationPlugin.name, () => {
 			new webpack.EntryPlugin(
 				compiler.context,
-				getDefaultEntryRuntime(this._options, compiler),
+				getDefaultEntryRuntime(paths, this._options, compiler),
 				{ name: undefined }
 			).apply(compiler);
 		});
@@ -156,6 +156,7 @@ function getPaths(options: ModuleFederationPluginOptions): RuntimePaths {
 }
 
 function getDefaultEntryRuntime(
+	paths: RuntimePaths,
 	options: ModuleFederationPluginOptions,
 	compiler: Compiler
 ) {
@@ -171,7 +172,9 @@ function getDefaultEntryRuntime(
 		runtimePluginVars.push(`${runtimePluginVar}()`);
 	}
 	const content = [
-		`import __module_federation_bundler_runtime__ from "@module-federation/runtime-tools/webpack-bundler-runtime"`,
+		`import __module_federation_bundler_runtime__ from ${JSON.stringify(
+			paths.bundlerRuntime
+		)}`,
 		...runtimePluginImports,
 		`const __module_federation_runtime_plugins__ = [${runtimePluginVars.join(
 			", "
