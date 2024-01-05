@@ -22,12 +22,8 @@ test("missing files should be able to recover if being added back", async ({
 		() => "export const b = 'missing-file-2'"
 	);
 
-	await expect(page.locator("#missing-file-1")).toHaveText("missing-file-1", {
-		timeout: 30 * 1000
-	});
-	await expect(page.locator("#missing-file-2")).toHaveText("missing-file-2", {
-		timeout: 30 * 1000
-	});
+	await expect(page.locator("#missing-file-1")).toHaveText("missing-file-1");
+	await expect(page.locator("#missing-file-2")).toHaveText("missing-file-2");
 
 	fileAction.deleteFile("src/missing-file-1.js");
 
@@ -40,7 +36,5 @@ test("missing files should be able to recover if being added back", async ({
 		() => "export const a = 'missing-file-1'"
 	);
 
-	await expect(page.locator("#missing-file-1")).toHaveText("missing-file-1", {
-		timeout: 30 * 1000
-	});
+	await expect(page.locator("#missing-file-1")).toHaveText("missing-file-1");
 });
