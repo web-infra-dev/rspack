@@ -1,7 +1,7 @@
 use std::{fmt::Debug, path::Path};
 
 use dashmap::DashMap;
-use rspack_error::Result;
+use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_hash::RspackHashDigest;
 use rspack_loader_runner::{Content, ResourceData};
 use rspack_sources::BoxSource;
@@ -32,7 +32,7 @@ pub type PluginNormalModuleFactoryBeforeResolveOutput = Result<Option<bool>>;
 pub type PluginNormalModuleFactoryAfterResolveOutput = Result<Option<bool>>;
 pub type PluginContentHashHookOutput = Result<Option<(SourceType, RspackHashDigest)>>;
 pub type PluginChunkHashHookOutput = Result<()>;
-pub type PluginRenderManifestHookOutput = Result<Vec<RenderManifestEntry>>;
+pub type PluginRenderManifestHookOutput = Result<TWithDiagnosticArray<Vec<RenderManifestEntry>>>;
 pub type PluginRenderChunkHookOutput = Result<Option<BoxSource>>;
 pub type PluginProcessAssetsOutput = Result<()>;
 pub type PluginOptimizeChunksOutput = Result<()>;
@@ -179,7 +179,7 @@ pub trait Plugin: Debug + Send + Sync {
     _ctx: PluginContext,
     _args: RenderManifestArgs<'_>,
   ) -> PluginRenderManifestHookOutput {
-    Ok(vec![])
+    Ok(vec![].with_empty_diagnostic())
   }
 
   // JavascriptModulesPlugin hook

@@ -11,7 +11,7 @@ use rspack_core::{
   PluginCompilationHookOutput, PluginContext, PluginRenderManifestHookOutput, RenderManifestEntry,
   RuntimeGlobals, SelfModuleFactory, SourceType,
 };
-use rspack_error::Result;
+use rspack_error::{IntoTWithDiagnosticArray, Result};
 use rspack_hash::RspackHash;
 
 use crate::parser_and_generator::JavaScriptParserAndGenerator;
@@ -261,7 +261,7 @@ impl Plugin for JsPlugin {
         &compilation.chunk_graph,
         &compilation.module_graph,
       ) {
-        return Ok(vec![]);
+        return Ok(vec![].with_empty_diagnostic());
       }
       self.render_chunk_impl(&args).await?
     };
@@ -284,13 +284,16 @@ impl Plugin for JsPlugin {
         .runtime(&chunk.runtime),
     );
     asset_info.set_javascript_module(compilation.options.output.module);
-    Ok(vec![RenderManifestEntry::new(
-      source,
-      output_path,
-      asset_info,
-      false,
-      false,
-    )])
+    Ok(
+      vec![RenderManifestEntry::new(
+        source,
+        output_path,
+        asset_info,
+        false,
+        false,
+      )]
+      .with_empty_diagnostic(),
+    )
   }
 
   fn additional_tree_runtime_requirements(

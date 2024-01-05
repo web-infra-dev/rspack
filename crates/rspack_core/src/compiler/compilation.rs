@@ -1278,28 +1278,39 @@ impl Compilation {
       .chunk_by_ukey
       .values()
       .map(|chunk| async {
-        let manifest = plugin_driver
+        let manifest_result = plugin_driver
           .render_manifest(RenderManifestArgs {
             chunk_ukey: chunk.ukey,
             compilation: self,
           })
           .await;
 
-        if let Ok(manifest) = &manifest {
+        if let Ok(manifest) = &manifest_result {
           tracing::debug!(
             "For Chunk({:?}), collected assets: {:?}",
             chunk.id,
-            manifest.iter().map(|m| m.filename()).collect::<Vec<_>>()
+            manifest
+              .inner
+              .iter()
+              .map(|m| m.filename())
+              .collect::<Vec<_>>()
           );
         };
-        (chunk.ukey, manifest)
+
+        (chunk.ukey, manifest_result)
       })
       .collect::<FuturesResults<_>>();
 
     let chunk_ukey_and_manifest = results.into_inner();
 
-    for (chunk_ukey, manifest) in chunk_ukey_and_manifest.into_iter() {
-      for file_manifest in manifest.expect("We should return this error rathen expect") {
+    for (chunk_ukey, manifest_result) in chunk_ukey_and_manifest.into_iter() {
+      let (manifests, diagnostics) = manifest_result
+        .expect("We should return this error rathen expect")
+        .split_into_parts();
+
+      self.push_batch_diagnostic(diagnostics);
+
+      for file_manifest in manifests {
         let filename = file_manifest.filename().to_string();
 
         let current_chunk = self.chunk_by_ukey.expect_get_mut(&chunk_ukey);

@@ -6,7 +6,7 @@ use rspack_core::{
   ParserAndGenerator, Plugin, PluginCompilationHookOutput, PluginContext,
   PluginRenderManifestHookOutput, RenderManifestArgs, RenderManifestEntry, SourceType,
 };
-use rspack_error::Result;
+use rspack_error::{IntoTWithDiagnosticArray, Result};
 
 use crate::{AsyncWasmParserAndGenerator, ModuleIdToFileName};
 
@@ -110,6 +110,6 @@ impl Plugin for AsyncWasmPlugin {
       .flatten()
       .collect::<Vec<RenderManifestEntry>>();
 
-    Ok(files)
+    Ok(files.with_empty_diagnostic())
   }
 }
