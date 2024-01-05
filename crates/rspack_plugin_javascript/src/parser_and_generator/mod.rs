@@ -334,7 +334,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         .get_blocks()
         .iter()
         .for_each(|block_id| self.source_block(compilation, block_id, &mut source, &mut context));
-
+      generate_context.concatenation_scope = context.concatenation_scope.take();
       render_init_fragments(source.boxed(), init_fragments, generate_context)
     } else {
       panic!(
