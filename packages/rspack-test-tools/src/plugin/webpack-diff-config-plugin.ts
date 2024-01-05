@@ -5,7 +5,7 @@ const PLUGIN_NAME = "WebpackDiffConfigPlugin";
 
 export class WebpackDiffConfigPlugin {
 	public name = PLUGIN_NAME;
-	constructor(private webpackPath: string) {}
+	constructor() {}
 	apply(compiler: Compiler) {
 		const { options } = compiler;
 		options.mode = "development";
@@ -34,6 +34,6 @@ export class WebpackDiffConfigPlugin {
 		options.output.environment.optionalChaining = false;
 		options.output.environment.templateLiteral = false;
 
-		new WebpackModulePlaceholderPlugin(this.webpackPath).apply(compiler);
+		new WebpackModulePlaceholderPlugin().apply(compiler);
 	}
 }

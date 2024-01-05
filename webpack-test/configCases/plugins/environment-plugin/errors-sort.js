@@ -13,9 +13,12 @@ module.exports = function (arr) {
 			return -1
 		}
 
-		// Sort errors with label, as `error.message` may contain different span locations,
+
+		// This sorts the error message by the message without detailed diagnostics.
+		// as `error.message` may contain different span locations,
 		// thus resulting the final message not stable.
-		let RE = /Failed to resolve (\w+)/;
-		return a.message.match(RE)[1].localeCompare(b.message.match(RE)[1])
+		let messageA = a.message.split(/\r?\n/)[0];
+		let messageB = b.message.split(/\r?\n/)[0];
+		return messageA.localeCompare(messageB)
 	});
 };

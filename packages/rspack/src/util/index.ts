@@ -1,6 +1,8 @@
-import type { JsAssetInfo, JsStatsError } from "@rspack/binding";
-import { AssetInfo } from "../Compilation";
 import terminalLink from "terminal-link";
+
+import type { JsAssetInfo, JsStatsError } from "@rspack/binding";
+
+import { AssetInfo } from "../Compilation";
 import { LoaderObject } from "../config/adapterRuleUse";
 
 export function mapValues(

@@ -1,7 +1,9 @@
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result};
 use rspack_sources::BoxSource;
+use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
   cache::Cache, BoxDependency, BuildContext, BuildResult, Compilation, CompilerContext,
@@ -55,13 +57,15 @@ pub struct FactorizeTaskResult {
   pub original_module_identifier: Option<ModuleIdentifier>,
   /// Result will be available if [crate::ModuleFactory::create] returns `Ok`.
   pub factory_result: Option<ModuleFactoryResult>,
-  /// Module graph module will be available if [crate::ModuleFactory::create] returns `Ok`.
-  pub module_graph_module: Option<Box<ModuleGraphModule>>,
   pub dependencies: Vec<DependencyId>,
-  pub diagnostics: Vec<Diagnostic>,
   pub is_entry: bool,
   pub current_profile: Option<Box<ModuleProfile>>,
   pub exports_info_related: ExportsInfoRelated,
+
+  pub file_dependencies: HashSet<PathBuf>,
+  pub context_dependencies: HashSet<PathBuf>,
+  pub missing_dependencies: HashSet<PathBuf>,
+  pub diagnostics: Vec<Diagnostic>,
 }
 
 impl FactorizeTaskResult {
@@ -70,13 +74,23 @@ impl FactorizeTaskResult {
     self
   }
 
-  fn with_module_graph_module(mut self, module_graph_module: Option<ModuleGraphModule>) -> Self {
-    self.module_graph_module = module_graph_module.map(Box::new);
+  fn with_diagnostics(mut self, diagnostics: Vec<Diagnostic>) -> Self {
+    self.diagnostics = diagnostics;
     self
   }
 
-  fn with_diagnostics(mut self, diagnostics: Vec<Diagnostic>) -> Self {
-    self.diagnostics = diagnostics;
+  fn with_file_dependencies(mut self, files: impl IntoIterator<Item = PathBuf>) -> Self {
+    self.file_dependencies = files.into_iter().collect();
+    self
+  }
+
+  fn with_context_dependencies(mut self, contexts: impl IntoIterator<Item = PathBuf>) -> Self {
+    self.context_dependencies = contexts.into_iter().collect();
+    self
+  }
+
+  fn with_missing_dependencies(mut self, missing: impl IntoIterator<Item = PathBuf>) -> Self {
+    self.missing_dependencies = missing.into_iter().collect();
     self
   }
 }
@@ -106,47 +120,50 @@ impl WorkerTask for FactorizeTask {
     );
     let exports_info = ExportsInfo::new(other_exports_info.id, side_effects_only_info.id);
     let factorize_task_result = FactorizeTaskResult {
-      is_entry: self.is_entry,
       original_module_identifier: self.original_module_identifier,
+      factory_result: None,
       dependencies: self.dependencies,
+      is_entry: self.is_entry,
       current_profile: self.current_profile,
       exports_info_related: ExportsInfoRelated {
         exports_info,
         other_exports_info,
         side_effects_info: side_effects_only_info,
       },
-      diagnostics: vec![],
-      module_graph_module: None,
-      factory_result: None,
+      file_dependencies: Default::default(),
+      context_dependencies: Default::default(),
+      missing_dependencies: Default::default(),
+      diagnostics: Default::default(),
     };
 
-    match self
-      .module_factory
-      .create(ModuleFactoryCreateData {
-        resolve_options: self.resolve_options,
-        context,
-        dependency,
-        issuer: self.issuer,
-        issuer_identifier: self.original_module_identifier,
-      })
-      .await
-    {
-      Ok((result, diagnostics)) => {
+    // Error and result are not mutually exclusive in webpack module factorization.
+    // Rspack puts results that need to be shared in both error and ok in [ModuleFactoryCreateData].
+    let mut create_data = ModuleFactoryCreateData {
+      resolve_options: self.resolve_options,
+      context,
+      dependency,
+      issuer: self.issuer,
+      issuer_identifier: self.original_module_identifier,
+
+      file_dependencies: Default::default(),
+      missing_dependencies: Default::default(),
+      context_dependencies: Default::default(),
+      diagnostics: Default::default(),
+    };
+
+    match self.module_factory.create(&mut create_data).await {
+      Ok(result) => {
         if let Some(current_profile) = &factorize_task_result.current_profile {
           current_profile.mark_factory_end();
         }
-
-        let mgm = ModuleGraphModule::new(
-          result.module.identifier(),
-          *result.module.module_type(),
-          factorize_task_result.exports_info_related.exports_info.id,
-        );
-
+        let diagnostics = create_data.diagnostics.drain(..).collect();
         Ok(TaskResult::Factorize(Box::new(
           factorize_task_result
             .with_factory_result(Some(result))
-            .with_module_graph_module(Some(mgm))
-            .with_diagnostics(diagnostics),
+            .with_diagnostics(diagnostics)
+            .with_file_dependencies(create_data.file_dependencies.drain())
+            .with_missing_dependencies(create_data.missing_dependencies.drain())
+            .with_context_dependencies(create_data.missing_dependencies.drain()),
         )))
       }
       Err(mut e) => {
@@ -162,9 +179,16 @@ impl WorkerTask for FactorizeTask {
         if self.options.bail {
           return Err(e);
         }
+        let mut diagnostics = Vec::with_capacity(create_data.diagnostics.len() + 1);
+        diagnostics.push(e.into());
+        diagnostics.append(&mut create_data.diagnostics);
         // Continue bundling if `options.bail` set to `false`.
         Ok(TaskResult::Factorize(Box::new(
-          factorize_task_result.with_diagnostics(vec![e.into()]),
+          factorize_task_result
+            .with_diagnostics(diagnostics)
+            .with_file_dependencies(create_data.file_dependencies.drain())
+            .with_missing_dependencies(create_data.missing_dependencies.drain())
+            .with_context_dependencies(create_data.missing_dependencies.drain()),
         )))
       }
     }
@@ -198,6 +222,26 @@ impl AddTask {
     if let Some(current_profile) = &self.current_profile {
       current_profile.mark_integration_start();
     }
+
+    if self.module.as_self_module().is_some() {
+      let issuer = self
+        .module_graph_module
+        .get_issuer()
+        .identifier()
+        .expect("self module should have issuer");
+
+      set_resolved_module(
+        &mut compilation.module_graph,
+        self.original_module_identifier,
+        self.dependencies,
+        *issuer,
+      )?;
+
+      return Ok(TaskResult::Add(Box::new(AddTaskResult::ModuleReused {
+        module: self.module,
+      })));
+    }
+
     let module_identifier = self.module.identifier();
 
     if compilation

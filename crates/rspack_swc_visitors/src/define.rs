@@ -2,15 +2,12 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use swc_core::common::collections::AHashMap;
+use swc_core::common::FileName;
 use swc_core::ecma::ast::EsVersion;
-use swc_core::ecma::parser::EsConfig;
+use swc_core::ecma::parser::{parse_file_as_expr, EsConfig, Syntax};
 use swc_core::ecma::transforms::optimization::inline_globals2;
 use swc_core::ecma::utils::NodeIgnoringSpan;
 use swc_core::ecma::visit::Fold;
-use swc_core::{
-  common::FileName,
-  ecma::parser::{parse_file_as_expr, Syntax},
-};
 
 pub type Define = HashMap<String, String>;
 pub type RawDefine = Define;

@@ -282,7 +282,7 @@ impl Stats<'_> {
     let mut diagnostic_displayer = DiagnosticDisplayer::new(self.compilation.options.stats.colors);
     self
       .compilation
-      .get_errors()
+      .get_errors_sorted()
       .map(|d| {
         let module_identifier = d.module_identifier();
         let (module_name, module_id) = module_identifier
@@ -314,7 +314,7 @@ impl Stats<'_> {
     let mut diagnostic_displayer = DiagnosticDisplayer::new(self.compilation.options.stats.colors);
     self
       .compilation
-      .get_warnings()
+      .get_warnings_sorted()
       .map(|d| {
         let module_identifier = d.module_identifier();
         let (module_name, module_id) = module_identifier
@@ -456,8 +456,8 @@ impl Stats<'_> {
     chunks.sort_unstable();
 
     let assets = module_assets.then(|| {
-      let mut assets: Vec<_> = mgm
-        .build_info
+      let mut assets: Vec<_> = module
+        .build_info()
         .as_ref()
         .map(|info| info.asset_filenames.iter().map(|i| i.to_string()).collect())
         .unwrap_or_default();
@@ -505,6 +505,11 @@ impl Stats<'_> {
       modules,
       source: source.then(|| module.original_source()).flatten(),
       profile,
+      orphan: self
+        .compilation
+        .chunk_graph
+        .get_number_of_module_chunks(identifier)
+        == 0,
     })
   }
 
@@ -543,6 +548,11 @@ impl Stats<'_> {
       modules: None,
       source: None,
       profile: None,
+      orphan: self
+        .compilation
+        .chunk_graph
+        .get_number_of_module_chunks(*identifier)
+        == 0,
     })
   }
   fn get_chunk_relations(&self, chunk: &Chunk) -> (Vec<String>, Vec<String>, Vec<String>) {
@@ -668,6 +678,7 @@ pub struct StatsModule<'a> {
   pub modules: Option<Vec<StatsModule<'a>>>,
   pub source: Option<&'a dyn Source>,
   pub profile: Option<StatsModuleProfile>,
+  pub orphan: bool,
 }
 
 #[derive(Debug)]

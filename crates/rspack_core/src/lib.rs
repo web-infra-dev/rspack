@@ -23,8 +23,6 @@ pub use external_module::*;
 mod logger;
 pub use logger::*;
 pub mod cache;
-mod missing_module;
-pub use missing_module::*;
 mod normal_module;
 mod raw_module;
 pub use raw_module::*;
@@ -51,6 +49,10 @@ mod normal_module_factory;
 pub use normal_module_factory::*;
 mod ignore_error_module_factory;
 pub use ignore_error_module_factory::*;
+mod self_module_factory;
+pub use self_module_factory::*;
+mod self_module;
+pub use self_module::*;
 mod compiler;
 pub use compiler::*;
 mod options;
@@ -143,8 +145,8 @@ impl TryFrom<&str> for SourceType {
       "unknown" => Ok(Self::Unknown),
 
       _ => {
-        use rspack_error::internal_error;
-        Err(internal_error!("invalid source type: {value}"))
+        use rspack_error::error;
+        Err(error!("invalid source type: {value}"))
       }
     }
   }
@@ -175,6 +177,7 @@ pub enum ModuleType {
   Fallback,
   ProvideShared,
   ConsumeShared,
+  SelfReference,
   Custom(Ustr),
 }
 
@@ -264,6 +267,7 @@ impl ModuleType {
       ModuleType::Fallback => "fallback-module",
       ModuleType::ProvideShared => "provide-module",
       ModuleType::ConsumeShared => "consume-shared-module",
+      ModuleType::SelfReference => "self-reference-module",
 
       ModuleType::Custom(custom) => custom,
     }

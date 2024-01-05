@@ -141,11 +141,11 @@ pub fn get_exports_type(
     .module_identifier_by_dependency_id(id)
     .expect("should have module");
   let strict = module_graph
-    .module_graph_module_by_identifier(parent_module)
+    .module_by_identifier(parent_module)
     .expect("should have mgm")
     .get_strict_harmony_module();
   module_graph
-    .module_graph_module_by_identifier(module)
+    .module_by_identifier(module)
     .expect("should have mgm")
     .get_exports_type(strict)
 }
@@ -159,7 +159,7 @@ pub fn get_exports_type_with_strict(
     .module_identifier_by_dependency_id(id)
     .expect("should have module");
   module_graph
-    .module_graph_module_by_identifier(module)
+    .module_by_identifier(module)
     .expect("should have mgm")
     .get_exports_type(strict)
 }
@@ -252,6 +252,13 @@ pub fn module_namespace_promise(
     module,
     ..
   } = code_generatable_context;
+  if compilation
+    .module_graph
+    .module_identifier_by_dependency_id(dep_id)
+    .is_none()
+  {
+    return missing_module_promise(request);
+  };
 
   let promise = block_promise(block, runtime_requirements, compilation);
   let exports_type = get_exports_type(&compilation.module_graph, dep_id, &module.identifier());
@@ -278,8 +285,11 @@ pub fn module_namespace_promise(
         )
       } else {
         runtime_requirements.insert(RuntimeGlobals::REQUIRE);
-        appending =
-          format!(".then(__webpack_require__.bind(__webpack_require__, {module_id_expr}))");
+        appending = format!(
+          ".then({}.bind({}, {module_id_expr}))",
+          RuntimeGlobals::REQUIRE,
+          RuntimeGlobals::REQUIRE
+        );
       }
     }
     _ => {
@@ -309,8 +319,11 @@ pub fn module_namespace_promise(
           )
         } else {
           runtime_requirements.insert(RuntimeGlobals::REQUIRE);
-          appending =
-            format!(".then(__webpack_require__.bind(__webpack_require__, {module_id_expr}))");
+          appending = format!(
+            ".then({}.bind({}, {module_id_expr}))",
+            RuntimeGlobals::REQUIRE,
+            RuntimeGlobals::REQUIRE
+          );
         }
         appending.push_str(
           format!(
@@ -328,9 +341,11 @@ pub fn module_namespace_promise(
           );
           appending = format!(".then(function() {{\n {header} return {expr};\n}})");
         } else {
+          runtime_requirements.insert(RuntimeGlobals::REQUIRE);
           appending = format!(
-            ".then({}.bind(__webpack_require__, {module_id_expr}, {fake_type}))",
-            RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT
+            ".then({}.bind({}, {module_id_expr}, {fake_type}))",
+            RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
+            RuntimeGlobals::REQUIRE
           );
         }
       }
@@ -390,6 +405,13 @@ fn missing_module(request: &str) -> String {
 
 fn missing_module_statement(request: &str) -> String {
   format!("{};\n", missing_module(request))
+}
+
+fn missing_module_promise(request: &str) -> String {
+  format!(
+    "Promise.resolve().then({})",
+    throw_missing_module_error_function(request)
+  )
 }
 
 fn throw_missing_module_error_function(request: &str) -> String {

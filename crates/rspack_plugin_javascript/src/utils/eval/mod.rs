@@ -28,7 +28,7 @@ enum Ty {
   Boolean,
   RegExp,
   Conditional,
-  TypeArray,
+  Array,
   ConstArray,
   BigInt,
   // Identifier,
@@ -109,6 +109,14 @@ impl BasicEvaluatedExpression {
   //   matches!(self.ty, Ty::Identifier)
   // }
 
+  pub fn is_null(&self) -> bool {
+    matches!(self.ty, Ty::Null)
+  }
+
+  pub fn is_undefined(&self) -> bool {
+    matches!(self.ty, Ty::Undefined)
+  }
+
   pub fn is_conditional(&self) -> bool {
     matches!(self.ty, Ty::Conditional)
   }
@@ -122,7 +130,7 @@ impl BasicEvaluatedExpression {
   }
 
   pub fn is_array(&self) -> bool {
-    matches!(self.ty, Ty::TypeArray)
+    matches!(self.ty, Ty::Array)
   }
 
   pub fn is_template_string(&self) -> bool {
@@ -147,9 +155,29 @@ impl BasicEvaluatedExpression {
     )
   }
 
+  pub fn is_nullish(&self) -> Option<bool> {
+    self.nullish
+  }
+
+  pub fn is_primitive_type(&self) -> Option<bool> {
+    match self.ty {
+      Ty::Undefined
+      | Ty::Null
+      | Ty::String
+      | Ty::Number
+      | Ty::Boolean
+      | Ty::BigInt
+      | Ty::TemplateString => Some(true),
+      Ty::RegExp | Ty::Array | Ty::ConstArray => Some(false),
+      _ => None,
+    }
+  }
+
   pub fn as_string(&self) -> Option<std::string::String> {
     if self.is_bool() {
       Some(self.bool().to_string())
+    } else if self.is_null() {
+      Some("null".to_string())
     } else if self.is_string() {
       Some(self.string().to_string())
     } else {
@@ -164,6 +192,21 @@ impl BasicEvaluatedExpression {
       Some(false)
     } else {
       self.boolean
+    }
+  }
+
+  pub fn as_nullish(&self) -> Option<bool> {
+    let nullish = self.is_nullish();
+    if nullish == Some(true) || self.is_null() || self.is_undefined() {
+      Some(true)
+    } else if nullish == Some(false)
+      || self.is_bool()
+      || self.is_string()
+      || self.is_template_string()
+    {
+      Some(false)
+    } else {
+      None
     }
   }
 
@@ -206,8 +249,13 @@ impl BasicEvaluatedExpression {
     self.side_effects = side_effects
   }
 
+  pub fn set_null(&mut self) {
+    self.ty = Ty::Null;
+    self.side_effects = false
+  }
+
   pub fn set_items(&mut self, items: Vec<BasicEvaluatedExpression>) {
-    self.ty = Ty::TypeArray;
+    self.ty = Ty::Array;
     self.side_effects = items.iter().any(|item| item.could_have_side_effects());
     self.items = Some(items);
   }

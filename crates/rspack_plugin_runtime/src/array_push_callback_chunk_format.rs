@@ -7,7 +7,7 @@ use rspack_core::{
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, PluginJsChunkHashHookOutput,
   PluginRenderChunkHookOutput, RenderChunkArgs, RenderStartupArgs, RuntimeGlobals,
 };
-use rspack_error::internal_error;
+use rspack_error::error;
 use rspack_plugin_javascript::runtime::{render_chunk_runtime_modules, render_runtime_modules};
 
 use super::{generate_entry_startup, update_hash_for_entry_startup};
@@ -97,7 +97,7 @@ impl Plugin for ArrayPushCallbackChunkFormatPlugin {
       source.add(RawSource::Source(format!(
         "{}[{}]('{}', ",
         global_object,
-        serde_json::to_string(hot_update_global).map_err(|e| internal_error!(e.to_string()))?,
+        serde_json::to_string(hot_update_global).map_err(|e| error!(e.to_string()))?,
         chunk.expect_id()
       )));
       source.add(args.module_source.clone());

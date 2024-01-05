@@ -71,6 +71,8 @@ export {
 	cleanupGlobalTrace as experimental_cleanupGlobalTrace
 } from "@rspack/binding";
 
+export { default as EntryOptionPlugin } from "./lib/EntryOptionPlugin";
+
 ///// Internal Plugins /////
 export { BannerPlugin } from "./builtin-plugin";
 export type { BannerPluginArgument } from "./builtin-plugin";

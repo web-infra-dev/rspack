@@ -5,7 +5,7 @@ const PLUGIN_NAME = "RspackDiffConfigPlugin";
 export class RspackDiffConfigPlugin implements RspackPluginInstance {
 	name = PLUGIN_NAME;
 
-	constructor(private rspackPath: string) {
+	constructor() {
 		process.env["RSPACK_DIFF"] = "true"; // enable rspack diff
 	}
 

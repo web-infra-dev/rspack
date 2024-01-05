@@ -1,6 +1,6 @@
 use rspack_core::{
-  BuildInfo, BuildMeta, BuildMetaExportsType, DependencyTemplate, ExportsArgument, ModuleArgument,
-  ModuleIdentifier, ModuleType,
+  BuildInfo, BuildMeta, BuildMetaExportsType, DependencyLocation, DependencyTemplate,
+  ExportsArgument, ModuleArgument, ModuleIdentifier, ModuleType,
 };
 use rspack_error::miette::{diagnostic, Diagnostic};
 use rspack_error::DiagnosticExt;
@@ -8,6 +8,7 @@ use swc_core::ecma::ast::{ArrowExpr, AwaitExpr, Constructor, Function, ModuleIte
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
 use crate::dependency::HarmonyCompatibilityDependency;
+use crate::no_visit_ignored_stmt;
 
 // Port from https://github.com/webpack/webpack/blob/main/lib/dependencies/HarmonyDetectionParserPlugin.js
 pub struct HarmonyDetectionScanner<'a> {
@@ -18,9 +19,11 @@ pub struct HarmonyDetectionScanner<'a> {
   top_level_await: bool,
   code_generable_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
   errors: &'a mut Vec<Box<dyn Diagnostic + Send + Sync>>,
+  ignored: &'a mut Vec<DependencyLocation>,
 }
 
 impl<'a> HarmonyDetectionScanner<'a> {
+  #[allow(clippy::too_many_arguments)]
   pub fn new(
     module_identifier: &'a ModuleIdentifier,
     build_info: &'a mut BuildInfo,
@@ -29,6 +32,7 @@ impl<'a> HarmonyDetectionScanner<'a> {
     top_level_await: bool,
     code_generable_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
     errors: &'a mut Vec<Box<dyn Diagnostic + Send + Sync>>,
+    ignored: &'a mut Vec<DependencyLocation>,
   ) -> Self {
     Self {
       module_identifier,
@@ -38,12 +42,14 @@ impl<'a> HarmonyDetectionScanner<'a> {
       top_level_await,
       code_generable_dependencies,
       errors,
+      ignored,
     }
   }
 }
 
 impl Visit for HarmonyDetectionScanner<'_> {
   noop_visit_type!();
+  no_visit_ignored_stmt!();
 
   fn visit_program(&mut self, program: &'_ Program) {
     let strict_harmony_module = matches!(self.module_type, ModuleType::JsEsm | ModuleType::JsxEsm);

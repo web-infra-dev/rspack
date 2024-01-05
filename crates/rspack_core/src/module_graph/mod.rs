@@ -8,11 +8,12 @@ use rspack_hash::RspackHashDigest;
 use rspack_identifier::{Identifiable, IdentifierMap};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::ecma::atoms::JsWord;
-
-use crate::{debug_all_exports_info, AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier};
+mod vec_map;
+use crate::{AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier};
 mod connection;
 pub use connection::*;
 
+use self::vec_map::VecMap;
 use crate::{
   BoxDependency, BoxModule, BuildDependency, BuildInfo, BuildMeta, DependencyCondition,
   DependencyId, ExportInfo, ExportInfoId, ExportsInfo, ExportsInfoId, ModuleGraphModule,
@@ -60,8 +61,9 @@ pub struct ModuleGraph {
   connections_map: HashMap<ModuleGraphConnection, ConnectionId>,
 
   pub import_var_map: DashMap<ModuleIdentifier, ImportVarMap>,
-  pub exports_info_map: HashMap<ExportsInfoId, ExportsInfo>,
-  pub export_info_map: HashMap<ExportInfoId, ExportInfo>,
+  pub exports_info_hash: DashMap<ExportsInfoId, u64>,
+  pub exports_info_map: vec_map::VecMap<ExportsInfo>,
+  pub export_info_map: VecMap<ExportInfo>,
   connection_to_condition: HashMap<ModuleGraphConnection, DependencyCondition>,
   pub dep_meta_map: HashMap<DependencyId, DependencyExtraMeta>,
 }
@@ -614,17 +616,16 @@ impl ModuleGraph {
     build_info: BuildInfo,
     build_meta: BuildMeta,
   ) {
-    if let Some(mgm) = self.module_graph_module_by_identifier_mut(module_identifier) {
-      mgm.build_info = Some(build_info);
-      mgm.build_meta = Some(build_meta);
+    if let Some(module) = self.module_by_identifier_mut(module_identifier) {
+      module.set_module_build_info_and_meta(build_info, build_meta);
     }
   }
 
   #[inline]
   pub fn get_module_hash(&self, module_identifier: &ModuleIdentifier) -> Option<&RspackHashDigest> {
     self
-      .module_graph_module_by_identifier(module_identifier)
-      .and_then(|mgm| mgm.build_info.as_ref().and_then(|i| i.hash.as_ref()))
+      .module_by_identifier(module_identifier)
+      .and_then(|mgm| mgm.build_info().as_ref().and_then(|i| i.hash.as_ref()))
   }
 
   pub fn has_dependencies(
@@ -633,8 +634,8 @@ impl ModuleGraph {
     files: &HashSet<PathBuf>,
   ) -> bool {
     if let Some(build_info) = self
-      .module_graph_module_by_identifier(module_identifier)
-      .and_then(|mgm| mgm.build_info.as_ref())
+      .module_by_identifier(module_identifier)
+      .and_then(|module| module.build_info())
     {
       for item in files {
         if build_info.file_dependencies.contains(item)
@@ -716,52 +717,28 @@ impl ModuleGraph {
     let mgm = self
       .module_graph_module_by_identifier(module_identifier)
       .expect("should have mgm");
-    let exports_info = self
-      .exports_info_map
-      .get(&mgm.exports)
-      .expect("should have export info");
+    let exports_info = self.exports_info_map.get(*mgm.exports as usize);
     exports_info
   }
 
-  // pub fn get_exports_info_mut(&mut self, module_identifier: &ModuleIdentifier) -> &mut ExportsInfo {
-  //   let mgm = self
-  //     .module_graph_module_by_identifier_mut(module_identifier)
-  //     .expect("should have mgm");
-  //   &mut mgm.exports
-  // }
-
   pub fn get_exports_info_by_id(&self, id: &ExportsInfoId) -> &ExportsInfo {
-    let exports_info = self.exports_info_map.get(id).unwrap_or_else(|| {
-      debug_all_exports_info!(self);
-      panic!(
-        "should have exports_info {:#?}, {:?}",
-        self.exports_info_map, id
-      );
-    });
+    let exports_info = self.exports_info_map.get((**id) as usize);
     exports_info
   }
 
   pub fn get_exports_info_mut_by_id(&mut self, id: &ExportsInfoId) -> &mut ExportsInfo {
-    let exports_info = self
-      .exports_info_map
-      .get_mut(id)
-      .expect("should have exports_info");
+    let exports_info = self.exports_info_map.get_mut((**id) as usize);
     exports_info
   }
 
   pub fn get_export_info_by_id(&self, id: &ExportInfoId) -> &ExportInfo {
-    let export_info = self
-      .export_info_map
-      .get(id)
-      .expect("should have export info");
+    let export_info = self.export_info_map.get(**id as usize);
     export_info
   }
 
   pub fn get_export_info_mut_by_id(&mut self, id: &ExportInfoId) -> &mut ExportInfo {
-    let exports_info = self
-      .export_info_map
-      .get_mut(id)
-      .expect("should have export info");
+    let exports_info = self.export_info_map.get_mut(**id as usize);
+
     exports_info
   }
 }
@@ -775,10 +752,10 @@ mod test {
   use rspack_sources::Source;
 
   use crate::{
-    AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildResult,
-    CodeGenerationResult, Compilation, Context, DependenciesBlock, Dependency, DependencyId,
-    ExportInfo, ExportsInfo, Module, ModuleDependency, ModuleGraph, ModuleGraphModule,
-    ModuleIdentifier, ModuleType, RuntimeSpec, SourceType, UsageState,
+    AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta,
+    BuildResult, CodeGenerationResult, Compilation, Context, DependenciesBlock, Dependency,
+    DependencyId, ExportInfo, ExportsInfo, Module, ModuleDependency, ModuleGraph,
+    ModuleGraphModule, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType, UsageState,
   };
 
   // Define a detailed node type for `ModuleGraphModule`s
@@ -846,6 +823,22 @@ mod test {
         ) -> Result<CodeGenerationResult> {
           unreachable!()
         }
+
+        fn build_meta(&self) -> Option<&BuildMeta> {
+          unreachable!()
+        }
+
+        fn build_info(&self) -> Option<&BuildInfo> {
+          unreachable!()
+        }
+
+        fn set_module_build_info_and_meta(
+          &mut self,
+          _build_info: BuildInfo,
+          _build_meta: BuildMeta,
+        ) {
+          unreachable!()
+        }
       }
     };
   }
@@ -900,10 +893,11 @@ mod test {
     mg.add_module_graph_module(mgm);
     mg.add_module(m);
     mg.export_info_map
-      .insert(other_exports_info.id, other_exports_info);
+      .insert(*other_exports_info.id as usize, other_exports_info);
     mg.export_info_map
-      .insert(side_effects_only_info.id, side_effects_only_info);
-    mg.exports_info_map.insert(exports_info.id, exports_info);
+      .insert(*side_effects_only_info.id as usize, side_effects_only_info);
+    mg.exports_info_map
+      .insert(*exports_info.id as usize, exports_info);
   }
 
   fn link_modules_with_dependency(

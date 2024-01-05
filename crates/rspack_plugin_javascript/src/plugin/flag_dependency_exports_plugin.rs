@@ -36,7 +36,12 @@ impl<'a> FlagDependencyExportsProxy<'a> {
       std::mem::take(&mut self.mg.module_identifier_to_module_graph_module);
     for mgm in module_graph_modules.values() {
       let exports_id = mgm.exports;
-      let is_module_without_exports = if let Some(ref build_meta) = mgm.build_meta {
+
+      let module = self
+        .mg
+        .module_by_identifier(&mgm.module_identifier)
+        .expect("should have module");
+      let is_module_without_exports = if let Some(build_meta) = module.build_meta() {
         build_meta.exports_type == BuildMetaExportsType::Unset
       } else {
         true
@@ -52,8 +57,8 @@ impl<'a> FlagDependencyExportsProxy<'a> {
         }
       }
 
-      if !mgm
-        .build_info
+      if !module
+        .build_info()
         .as_ref()
         .map(|item| item.hash.is_some())
         .unwrap_or_default()
@@ -147,8 +152,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
         let export_info = self
           .mg
           .export_info_map
-          .get_mut(&from_exports_info_id)
-          .expect("should have export info");
+          .get_mut(*from_exports_info_id as usize);
         export_info.unset_target(&dep_id);
       }
     }
@@ -241,14 +245,8 @@ impl<'a> FlagDependencyExportsProxy<'a> {
         };
       let export_info_id = exports_info.get_export_info(&name, self.mg);
 
-      let mut export_info = self
-        .mg
-        .export_info_map
-        .get_mut(&export_info_id)
-        .expect("should have export info")
-        .clone();
-      // dbg!(&export_info);
-      if let Some(ref mut provided) = export_info.provided
+      let export_info_mut = export_info_id.get_export_info_mut(self.mg);
+      if let Some(ref mut provided) = export_info_mut.provided
         && matches!(
           provided,
           ExportInfoProvided::False | ExportInfoProvided::Null
@@ -258,18 +256,18 @@ impl<'a> FlagDependencyExportsProxy<'a> {
         self.changed = true;
       }
 
-      if Some(false) != export_info.can_mangle_provide && can_mangle == Some(false) {
-        export_info.can_mangle_provide = Some(false);
+      if Some(false) != export_info_mut.can_mangle_provide && can_mangle == Some(false) {
+        export_info_mut.can_mangle_provide = Some(false);
         self.changed = true;
       }
 
-      if terminal_binding && !export_info.terminal_binding {
-        export_info.terminal_binding = true;
+      if terminal_binding && !export_info_mut.terminal_binding {
+        export_info_mut.terminal_binding = true;
         self.changed = true;
       }
 
       if let Some(exports) = exports {
-        let nested_exports_info = export_info.create_nested_exports_info(self.mg);
+        let nested_exports_info = export_info_id.create_nested_exports_info(self.mg);
         self.merge_exports(
           nested_exports_info,
           exports,
@@ -278,9 +276,12 @@ impl<'a> FlagDependencyExportsProxy<'a> {
         );
       }
 
+      // shadowing the previous `export_info_mut` to reduce the mut borrow life time,
+      // cause `create_nested_exports_info` needs `&mut ModuleGraph`
+      let export_info_mut = export_info_id.get_export_info_mut(self.mg);
       if let Some(from) = from {
         let changed = if hidden {
-          export_info.unset_target(&dep_id)
+          export_info_mut.unset_target(&dep_id)
         } else {
           let fallback = rspack_core::Nullable::Value(vec![name.clone()]);
           let export_name = if let Some(from) = from_export {
@@ -288,20 +289,13 @@ impl<'a> FlagDependencyExportsProxy<'a> {
           } else {
             Some(&fallback)
           };
-          export_info.set_target(Some(dep_id), Some(from), export_name, priority)
+          export_info_mut.set_target(Some(dep_id), Some(from), export_name, priority)
         };
         self.changed |= changed;
       }
 
       // Recalculate target exportsInfo
-      let target = export_info.get_target(self.mg, None);
-      // dbg!(&target);
-      let export_info_old = self
-        .mg
-        .export_info_map
-        .get_mut(&export_info_id)
-        .expect("should have export info");
-      _ = std::mem::replace(export_info_old, export_info);
+      let target = export_info_id.get_target(self.mg, None);
 
       let mut target_exports_info: Option<ExportsInfoId> = None;
       if let Some(target) = target {
@@ -319,11 +313,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
         }
       }
 
-      let export_info = self
-        .mg
-        .export_info_map
-        .get_mut(&export_info_id)
-        .expect("should have export info");
+      let export_info = self.mg.export_info_map.get_mut(*export_info_id as usize);
       if export_info.exports_info_owned {
         let changed = export_info
           .exports_info

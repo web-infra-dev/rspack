@@ -11,7 +11,7 @@ use std::{
 use bitflags::bitflags;
 use dashmap::DashMap;
 use derivative::Derivative;
-use rspack_error::{internal_error, Diagnosable, Diagnostic, Result, Severity};
+use rspack_error::{error, Diagnosable, Diagnostic, Result, Severity};
 use rspack_hash::RspackHash;
 use rspack_identifier::Identifiable;
 use rspack_loader_runner::{run_loaders, Content, ResourceData};
@@ -24,12 +24,13 @@ use rustc_hash::FxHasher;
 use serde_json::json;
 
 use crate::{
-  add_connection_states, contextify, get_context, AsyncDependenciesBlockIdentifier, BoxLoader,
-  BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation,
-  CompilerOptions, ConnectionState, Context, DependenciesBlock, DependencyId, DependencyTemplate,
-  GenerateContext, GeneratorOptions, LibIdentOptions, LoaderRunnerPluginProcessResource, Module,
-  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType, ParseContext, ParseResult,
-  ParserAndGenerator, ParserOptions, Resolve, RuntimeSpec, SourceType,
+  add_connection_states, contextify, get_context, impl_build_info_meta,
+  AsyncDependenciesBlockIdentifier, BoxLoader, BoxModule, BuildContext, BuildInfo, BuildMeta,
+  BuildResult, CodeGenerationResult, Compilation, CompilerOptions, ConnectionState, Context,
+  DependenciesBlock, DependencyId, DependencyTemplate, GenerateContext, GeneratorOptions,
+  LibIdentOptions, LoaderRunnerPluginProcessResource, Module, ModuleDependency, ModuleGraph,
+  ModuleIdentifier, ModuleType, ParseContext, ParseResult, ParserAndGenerator, ParserOptions,
+  Resolve, RuntimeSpec, SourceType,
 };
 
 bitflags! {
@@ -114,6 +115,7 @@ pub struct NormalModule {
   /// Generator options derived from [Rule.generator]
   generator_options: Option<GeneratorOptions>,
 
+  #[derivative(Debug = "ignore")]
   options: Arc<CompilerOptions>,
   #[allow(unused)]
   debug_id: usize,
@@ -122,6 +124,9 @@ pub struct NormalModule {
 
   code_generation_dependencies: Option<Vec<Box<dyn ModuleDependency>>>,
   presentational_dependencies: Option<Vec<Box<dyn DependencyTemplate>>>,
+
+  build_info: Option<BuildInfo>,
+  build_meta: Option<BuildMeta>,
 }
 
 #[derive(Debug, Clone)]
@@ -199,6 +204,8 @@ impl NormalModule {
       diagnostics: Mutex::new(Default::default()),
       code_generation_dependencies: None,
       presentational_dependencies: None,
+      build_info: None,
+      build_meta: None,
     }
   }
 
@@ -302,6 +309,8 @@ impl DependenciesBlock for NormalModule {
 
 #[async_trait::async_trait]
 impl Module for NormalModule {
+  impl_build_info_meta!();
+
   fn module_type(&self) -> &ModuleType {
     &self.module_type
   }
@@ -478,7 +487,7 @@ impl Module for NormalModule {
       );
       Ok(code_generation_result)
     } else {
-      Err(internal_error!(
+      Err(error!(
         "Failed to generate code because ast or source is not set for module {}",
         self.request
       ))
@@ -539,7 +548,7 @@ impl Module for NormalModule {
       if let Some(side_effect_free) = mgm.factory_meta.as_ref().and_then(|m| m.side_effect_free) {
         return ConnectionState::Bool(!side_effect_free);
       }
-      if let Some(side_effect_free) = mgm.build_meta.as_ref().and_then(|m| m.side_effect_free)
+      if let Some(side_effect_free) = self.build_meta().as_ref().and_then(|m| m.side_effect_free)
         && side_effect_free
       {
         // use module chain instead of is_evaluating_side_effects to mut module graph

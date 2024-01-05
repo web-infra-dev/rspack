@@ -7,7 +7,7 @@ use rspack_core::{
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, PluginJsChunkHashHookOutput,
   PluginRenderHookOutput, RenderArgs, RuntimeGlobals, SourceType,
 };
-use rspack_error::{internal_error_bail, Result};
+use rspack_error::{error_bail, Result};
 
 use crate::utils::{
   external_arguments, externals_dep_array, get_options_for_chunk, COMMON_LIBRARY_NAME_MESSAGE,
@@ -36,7 +36,7 @@ impl AmdLibraryPlugin {
   fn parse_options<'a>(&self, library: &'a LibraryOptions) -> Result<AmdLibraryPluginParsed<'a>> {
     if self.require_as_wrapper {
       if library.name.is_some() {
-        internal_error_bail!("AMD library name must be unset. {COMMON_LIBRARY_NAME_MESSAGE}")
+        error_bail!("AMD library name must be unset. {COMMON_LIBRARY_NAME_MESSAGE}")
       }
     } else if let Some(name) = &library.name
       && !matches!(
@@ -44,7 +44,7 @@ impl AmdLibraryPlugin {
         LibraryName::NonUmdObject(LibraryNonUmdObject::String(_))
       )
     {
-      internal_error_bail!(
+      error_bail!(
         "AMD library name must be a simple string or unset. {COMMON_LIBRARY_NAME_MESSAGE}"
       )
     }

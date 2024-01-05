@@ -217,9 +217,10 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
   let is_new_tree_shaking = compilation.options.is_new_tree_shaking();
   if module_dependency.is_export_all() == Some(true) && !is_new_tree_shaking {
     runtime_requirements.insert(RuntimeGlobals::EXPORT_STAR);
+    runtime_requirements.insert(RuntimeGlobals::REQUIRE);
     let exports_argument = compilation
       .module_graph
-      .module_graph_module_by_identifier(&module.identifier())
+      .module_by_identifier(&module.identifier())
       .expect("should have mgm")
       .get_exports_argument();
     init_fragments.push(Box::new(NormalInitFragment::new(

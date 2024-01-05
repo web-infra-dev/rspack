@@ -21,11 +21,9 @@ const next = w => {
 };
 
 it("should support hot module replacement in WebWorkers", async () => {
-	debugger
 	const a = new Worker(new URL("workerA.js", import.meta.url));
 	const b = new Worker(new URL("workerB.js", import.meta.url));
 	for (let i = 0; i < 7; i++) {
-		debugger
 		await update();
 		await next(a);
 		await next(b);

@@ -1,7 +1,5 @@
 use rspack_core::ErrorSpan;
-use rspack_error::{
-  internal_error, DiagnosticKind, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
-};
+use rspack_error::{error, DiagnosticKind, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use swc_core::common::{sync::Lrc, FileName, FilePathMapping, SourceFile, SourceMap, GLOBALS};
 use swc_html::{
   ast::Document,
@@ -57,7 +55,7 @@ impl<'a> HtmlCompiler<'a> {
     let wr = BasicHtmlWriter::new(&mut output, None, writer_config);
     let mut gen = CodeGenerator::new(wr, codegen_config);
 
-    gen.emit(ast).map_err(|e| internal_error!(e.to_string()))?;
+    gen.emit(ast).map_err(|e| error!(e.to_string()))?;
     Ok(output)
   }
 }

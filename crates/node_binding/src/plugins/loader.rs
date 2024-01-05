@@ -4,7 +4,7 @@ use rspack_binding_options::{get_builtin_loader, JsLoaderAdapter, JsLoaderRunner
 use rspack_core::{
   BoxLoader, CompilerOptions, NormalModule, Plugin, ResolveResult, Resolver, BUILTIN_LOADER_PREFIX,
 };
-use rspack_error::{internal_error, Result};
+use rspack_error::{error, Result};
 
 pub struct JsLoaderResolver {
   pub js_loader_runner: JsLoaderRunner,
@@ -72,7 +72,7 @@ impl Plugin for JsLoaderResolver {
       .map_err(|err| {
         let loader_request = prev.display();
         let context = context.display();
-        internal_error!("Failed to resolve loader: {loader_request} in {context} {err:?}")
+        error!("Failed to resolve loader: {loader_request} in {context} {err:?}")
       })?;
 
     match resolve_result {
@@ -86,9 +86,7 @@ impl Plugin for JsLoaderResolver {
       }
       ResolveResult::Ignored => {
         let loader_request = prev.display();
-        Err(internal_error!(
-          "Failed to resolve loader: {loader_request}"
-        ))
+        Err(error!("Failed to resolve loader: {loader_request}"))
       }
     }
   }

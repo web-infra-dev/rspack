@@ -1,0 +1,15 @@
+{
+  "name": "example-module-federation-v1.5",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter \"example-module-federation-v1.5-*\" dev",
+    "build": "pnpm --filter \"example-module-federation-v1.5-*\" build",
+    "start": "pnpm --filter \"example-module-federation-v1.5-*\" start"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT"
+}

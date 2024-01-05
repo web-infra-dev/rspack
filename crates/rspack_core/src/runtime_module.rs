@@ -101,6 +101,21 @@ macro_rules! impl_runtime_module {
         None
       }
 
+      fn build_info(&self) -> Option<&$crate::BuildInfo> {
+        None
+      }
+
+      fn build_meta(&self) -> Option<&$crate::BuildMeta> {
+        None
+      }
+
+      fn set_module_build_info_and_meta(
+        &mut self,
+        build_info: $crate::BuildInfo,
+        build_meta: $crate::BuildMeta,
+      ) {
+      }
+
       fn code_generation(
         &self,
         compilation: &$crate::Compilation,

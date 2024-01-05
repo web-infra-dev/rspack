@@ -2,15 +2,16 @@ use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+use rspack_error::Diagnostic;
 use rspack_hash::RspackHash;
 use rspack_loader_runner::ResourceData;
 use rspack_sources::BoxSource;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  Chunk, ChunkInitFragments, ChunkUkey, Compilation, Context, ContextModuleFactory,
-  DependencyCategory, DependencyType, ErrorSpan, FactoryMeta, ModuleDependency, ModuleGraphModule,
-  ModuleIdentifier, NormalModuleFactory, Resolve, RuntimeGlobals, SharedPluginDriver, Stats,
+  BoxModule, Chunk, ChunkInitFragments, ChunkUkey, Compilation, Context, ContextModuleFactory,
+  DependencyCategory, DependencyType, ErrorSpan, FactoryMeta, ModuleDependency, ModuleIdentifier,
+  NormalModuleFactory, Resolve, RuntimeGlobals, SharedPluginDriver, Stats,
 };
 
 #[derive(Debug)]
@@ -64,21 +65,21 @@ impl<'me> RenderManifestArgs<'me> {
   }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct FactorizeArgs<'me> {
   pub context: &'me Context,
   pub dependency: &'me dyn ModuleDependency,
   pub plugin_driver: &'me SharedPluginDriver,
-  pub normal_module_factory: &'me NormalModuleFactory,
+  pub diagnostics: &'me mut Vec<Diagnostic>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct NormalModuleCreateData<'a> {
   pub dependency_type: DependencyType,
   pub resolve_data_request: &'a str,
   pub resource_resolve_data: ResourceData,
   pub context: Context,
-  pub normal_module_factory: &'a NormalModuleFactory,
+  pub diagnostics: &'a mut Vec<Diagnostic>,
 }
 
 #[derive(Debug, Clone)]
@@ -86,7 +87,7 @@ pub struct NormalModuleBeforeResolveArgs {
   pub request: String,
   pub context: String,
 }
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct NormalModuleAfterResolveArgs<'a> {
   pub request: &'a str,
   pub context: &'a str,
@@ -94,6 +95,7 @@ pub struct NormalModuleAfterResolveArgs<'a> {
   pub context_dependencies: &'a HashSet<PathBuf>,
   pub missing_dependencies: &'a HashSet<PathBuf>,
   pub factory_meta: &'a FactoryMeta,
+  pub diagnostics: &'a mut Vec<Diagnostic>,
 }
 
 #[derive(Debug)]
@@ -189,7 +191,7 @@ pub struct RenderModuleContentArgs<'a> {
   pub module_source: BoxSource,
   pub chunk_init_fragments: ChunkInitFragments,
   pub compilation: &'a Compilation,
-  pub module_graph_module: &'a ModuleGraphModule,
+  pub module: &'a BoxModule,
 }
 
 #[derive(Debug)]

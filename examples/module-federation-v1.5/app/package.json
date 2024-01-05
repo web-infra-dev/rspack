@@ -1,0 +1,27 @@
+{
+  "name": "example-module-federation-v1.5-app",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "private": true,
+  "scripts": {
+    "dev": "rspack serve",
+    "build": "cross-env NODE_ENV=production rspack build",
+    "start": "serve ./dist -p 8080"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "date-fns": "^3.0.6",
+    "react": "18.0.0",
+    "react-dom": "18.0.0"
+  },
+  "devDependencies": {
+    "@rspack/cli": "workspace:*",
+    "@rspack/core": "workspace:*",
+    "@rspack/plugin-react-refresh": "workspace:*",
+    "html-webpack-plugin": "^5.5.0",
+    "serve": "14.1.2"
+  }
+}

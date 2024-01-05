@@ -1,6 +1,6 @@
 use std::{fmt::Debug, path::PathBuf};
 
-use rspack_error::{Diagnosable, Diagnostic, Result};
+use rspack_error::{Diagnostic, Result};
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{BoxDependency, BoxModule, Context, FactoryMeta, ModuleIdentifier, Resolve};
@@ -12,59 +12,59 @@ pub struct ModuleFactoryCreateData {
   pub dependency: BoxDependency,
   pub issuer: Option<Box<str>>,
   pub issuer_identifier: Option<ModuleIdentifier>,
-}
 
-#[derive(Debug)]
-pub struct ModuleFactoryResult {
-  pub module: BoxModule,
   pub file_dependencies: HashSet<PathBuf>,
   pub context_dependencies: HashSet<PathBuf>,
   pub missing_dependencies: HashSet<PathBuf>,
+  pub diagnostics: Vec<Diagnostic>,
+}
+
+impl ModuleFactoryCreateData {
+  pub fn add_file_dependency(&mut self, file: PathBuf) {
+    if file.is_absolute() {
+      self.file_dependencies.insert(file);
+    }
+  }
+
+  pub fn add_file_dependencies(&mut self, files: impl IntoIterator<Item = PathBuf>) {
+    self.file_dependencies.extend(files);
+  }
+
+  pub fn add_context_dependency(&mut self, context: PathBuf) {
+    self.context_dependencies.insert(context);
+  }
+
+  pub fn add_context_dependencies(&mut self, contexts: impl IntoIterator<Item = PathBuf>) {
+    self.context_dependencies.extend(contexts);
+  }
+
+  pub fn add_missing_dependency(&mut self, missing: PathBuf) {
+    self.missing_dependencies.insert(missing);
+  }
+
+  pub fn add_missing_dependencies(&mut self, missing: impl IntoIterator<Item = PathBuf>) {
+    self.missing_dependencies.extend(missing);
+  }
+}
+
+#[derive(Debug, Default)]
+pub struct ModuleFactoryResult {
+  pub module: Option<BoxModule>,
   pub factory_meta: FactoryMeta,
   pub from_cache: bool,
 }
 
 impl ModuleFactoryResult {
-  pub fn new(module: BoxModule) -> Self {
+  pub fn new_with_module(module: BoxModule) -> Self {
     Self {
-      module,
-      file_dependencies: Default::default(),
-      context_dependencies: Default::default(),
-      missing_dependencies: Default::default(),
+      module: Some(module),
       factory_meta: Default::default(),
       from_cache: false,
     }
   }
 
-  pub fn file_dependency(mut self, file: PathBuf) -> Self {
-    if file.is_absolute() {
-      self.file_dependencies.insert(file);
-    }
-    self
-  }
-
-  pub fn file_dependencies(mut self, files: impl IntoIterator<Item = PathBuf>) -> Self {
-    self.file_dependencies.extend(files);
-    self
-  }
-
-  pub fn context_dependency(mut self, context: PathBuf) -> Self {
-    self.context_dependencies.insert(context);
-    self
-  }
-
-  pub fn context_dependencies(mut self, contexts: impl IntoIterator<Item = PathBuf>) -> Self {
-    self.context_dependencies.extend(contexts);
-    self
-  }
-
-  pub fn missing_dependency(mut self, missing: PathBuf) -> Self {
-    self.missing_dependencies.insert(missing);
-    self
-  }
-
-  pub fn missing_dependencies(mut self, missing: impl IntoIterator<Item = PathBuf>) -> Self {
-    self.missing_dependencies.extend(missing);
+  pub fn module(mut self, module: Option<BoxModule>) -> Self {
+    self.module = module;
     self
   }
 
@@ -80,9 +80,6 @@ impl ModuleFactoryResult {
 }
 
 #[async_trait::async_trait]
-pub trait ModuleFactory: Debug + Sync + Send + Diagnosable {
-  async fn create(
-    &self,
-    data: ModuleFactoryCreateData,
-  ) -> Result<(ModuleFactoryResult, Vec<Diagnostic>)>;
+pub trait ModuleFactory: Debug + Sync + Send {
+  async fn create(&self, data: &mut ModuleFactoryCreateData) -> Result<ModuleFactoryResult>;
 }

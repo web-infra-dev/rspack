@@ -2,7 +2,7 @@ use std::{collections::HashMap, path::PathBuf};
 
 use napi_derive::napi;
 use rspack_core::{Alias, AliasMap, ByDependency, Resolve, TsconfigOptions, TsconfigReferences};
-use rspack_error::internal_error;
+use rspack_error::error;
 use serde::Deserialize;
 
 pub type AliasValue = serde_json::Value;
@@ -59,12 +59,12 @@ fn normalize_alias(alias: Option<RawAliasOption>) -> rspack_error::Result<Option
                 Ok(AliasMap::Target(s.to_string()))
               } else if let Some(b) = value.as_bool() {
                 if b {
-                  Err(internal_error!("Alias should not be true in {key}"))
+                  Err(error!("Alias should not be true in {key}"))
                 } else {
                   Ok(AliasMap::Ignored)
                 }
               } else {
-                Err(internal_error!("Alias should be false or string in {key}"))
+                Err(error!("Alias should be false or string in {key}"))
               }
             })
             .collect::<rspack_error::Result<_>>()

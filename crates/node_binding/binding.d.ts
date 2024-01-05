@@ -197,6 +197,13 @@ export const enum BuiltinPluginName {
 
 export function cleanupGlobalTrace(): void
 
+export interface CreateModuleData {
+  dependencyType: string
+  resolveDataRequest: string
+  resourceResolveData: JsResourceData
+  context: string
+}
+
 export interface FactoryMeta {
   sideEffectFree?: boolean
 }
@@ -334,7 +341,8 @@ export interface JsHooks {
   buildModule: (...args: any[]) => any
   beforeResolve: (...args: any[]) => any
   afterResolve: (...args: any[]) => any
-  contextModuleBeforeResolve: (...args: any[]) => any
+  contextModuleFactoryBeforeResolve: (...args: any[]) => any
+  normalModuleFactoryCreateModule: (...args: any[]) => any
   normalModuleFactoryResolveForScheme: (...args: any[]) => any
   chunkAsset: (...args: any[]) => any
   succeedModule: (...args: any[]) => any
@@ -503,6 +511,7 @@ export interface JsStatsModule {
   assets?: Array<string>
   source?: string | Buffer
   profile?: JsStatsModuleProfile
+  orphan: boolean
 }
 
 export interface JsStatsModuleIssuer {
@@ -796,6 +805,11 @@ export interface RawExternalsPresets {
   electronMain: boolean
   electronPreload: boolean
   electronRenderer: boolean
+}
+
+export interface RawExtractComments {
+  banner?: string | boolean
+  condition?: string
 }
 
 export interface RawFallbackCacheGroupOptions {
@@ -1227,7 +1241,7 @@ export interface RawStyleConfig {
 }
 
 export interface RawSwcJsMinimizerRspackPluginOptions {
-  extractComments?: string
+  extractComments?: RawExtractComments
   compress: boolean | string
   mangle: boolean | string
   format: string

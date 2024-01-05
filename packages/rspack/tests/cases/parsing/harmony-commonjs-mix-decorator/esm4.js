@@ -1,6 +1,6 @@
 import "./bbb";
 
-typeof module;
+Object.keys(module);
 
 it("should decorate esm and commonjs mix with harmony module decorator when access module", function () {
 	expect(function () {

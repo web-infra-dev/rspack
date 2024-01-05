@@ -51,13 +51,14 @@ impl GetChunkFilenameRuntimeModule {
     T: for<'me> Fn(&'me Chunk, &'me Compilation) -> Option<&'me Filename> + Sync + Send + 'static,
   >(
     content_type: &'static str,
+    name: &'static str,
     source_type: SourceType,
     global: String,
     all_chunks: F,
     filename_for_chunk: T,
   ) -> Self {
     Self {
-      id: Identifier::from(format!("webpack/runtime/get_chunk_filename/{content_type}")),
+      id: Identifier::from(format!("webpack/runtime/get {name} chunk filename")),
       chunk: None,
       content_type,
       source_type,

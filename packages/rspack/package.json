@@ -15,8 +15,7 @@
   "scripts": {
     "build": "tsc -b ./tsconfig.build.json",
     "dev": "tsc -w",
-    "test": "cross-env NO_COLOR=1 RSPACK_DEP_WARNINGS=false node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --runInBand --logHeapUsage --testPathIgnorePatterns \".diff.test.ts\"",
-    "test:diff": "cross-env RSPACK_DIFF=true NO_COLOR=1 RSPACK_DEP_WARNINGS=false node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --runInBand --logHeapUsage --testPathPattern \".diff.test.ts\""
+    "test": "cross-env NO_COLOR=1 RSPACK_DEP_WARNINGS=false node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --testPathIgnorePatterns \".diff.test.ts\" --runInBand --logHeapUsage"
   },
   "files": [
     "dist"
@@ -35,7 +34,6 @@
     "@rspack/core": "workspace:*",
     "@rspack/plugin-minify": "workspace:^",
     "@rspack/plugin-node-polyfill": "workspace:^",
-    "@rspack/test-tools": "workspace:^",
     "@swc/core": "^1.3.96",
     "@swc/jest": "^0.2.29",
     "@types/watchpack": "^2.4.0",
@@ -63,11 +61,10 @@
     "styled-components": "^6.0.8",
     "terser": "5.16.1",
     "ts-node": "10.9.1",
-    "wast-loader": "^1.11.4",
-    "webpack": "5.89.0"
+    "wast-loader": "^1.11.4"
   },
   "dependencies": {
-    "@module-federation/runtime-tools": "0.0.0-next-20231225095220",
+    "@module-federation/runtime-tools": "0.0.0-next-20240102063242",
     "@rspack/binding": "workspace:*",
     "@swc/helpers": "0.5.1",
     "browserslist": "^4.21.3",

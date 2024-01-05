@@ -247,7 +247,9 @@ export const describeCases = config => {
 							const deprecationTracker = deprecationTracking.start();
 							const onCompiled = (err, stats) => {
 								const deprecations = deprecationTracker();
-								if (err) return handleFatalError(err, done);
+								if (err) {
+									return handleFatalError(err, done);
+								}
 								const statOptions = {
 									preset: "verbose",
 									colors: false
@@ -645,7 +647,11 @@ export const describeCases = config => {
 									})
 									.catch(done);
 							};
-							rspack(optionsArr, onCompiled);
+							try {
+								rspack(optionsArr, onCompiled);
+							} catch (err) {
+								onCompiled(err, undefined);
+							}
 						} /* 30000 */);
 
 						const {

@@ -1,9 +1,7 @@
-use swc_core::ecma::ast::{CallExpr, Ident};
+use swc_core::ecma::ast::{CallExpr, Ident, UnaryExpr};
 
-use crate::{
-  utils::eval::BasicEvaluatedExpression,
-  visitors::common_js_import_dependency_scanner::CommonJsImportDependencyScanner,
-};
+use crate::utils::eval::BasicEvaluatedExpression;
+use crate::visitors::common_js_import_dependency_scanner::CommonJsImportDependencyScanner;
 
 pub trait JavascriptParserPlugin {
   fn evaluate_typeof(
@@ -20,6 +18,14 @@ pub trait JavascriptParserPlugin {
     &self,
     _parser: &mut CommonJsImportDependencyScanner<'_>,
     _expr: &CallExpr,
+  ) -> Option<bool> {
+    None
+  }
+
+  fn r#typeof(
+    &self,
+    _parser: &mut CommonJsImportDependencyScanner<'_>,
+    _expr: &UnaryExpr,
   ) -> Option<bool> {
     None
   }

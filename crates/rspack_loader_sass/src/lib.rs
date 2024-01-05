@@ -15,8 +15,7 @@ use rspack_core::{
   ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory,
 };
 use rspack_error::{
-  internal_error, Diagnostic, DiagnosticKind, Error, InternalError, Result, Severity,
-  TraceableError,
+  error, Diagnostic, DiagnosticKind, Error, InternalError, Result, Severity, TraceableError,
 };
 use rspack_loader_runner::{Identifiable, Identifier, Loader, LoaderContext};
 use sass_embedded::{
@@ -522,7 +521,7 @@ fn sass_exception_to_error(e: Box<Exception>) -> Error {
   {
     e.with_kind(DiagnosticKind::Scss).into()
   } else {
-    internal_error!(e.message().to_string())
+    error!(e.message().to_string())
   }
 }
 

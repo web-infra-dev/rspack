@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use rspack_core::rspack_sources::{self, SourceExt};
-use rspack_error::{internal_error, Result};
+use rspack_error::{error, Result};
 use swc_core::common::{input::SourceFileInput, source_map::SourceMapGenConfig, FileName};
 use swc_core::common::{Globals, GLOBALS};
 use swc_core::css::codegen::{
@@ -26,7 +26,7 @@ impl SwcCssCompiler {
     let lexer = Lexer::new(SourceFileInput::from(&*fm), None, config);
     let mut parser = Parser::new(lexer, config);
     let stylesheet = parser.parse_all();
-    stylesheet.map_err(|e| internal_error!("Css parsing failed {}", e.message()))
+    stylesheet.map_err(|e| error!("Css parsing failed {}", e.message()))
   }
 
   pub fn codegen(
@@ -52,7 +52,7 @@ impl SwcCssCompiler {
     );
 
     let mut gen = CodeGenerator::new(wr, CodegenConfig { minify });
-    gen.emit(ast).map_err(|e| internal_error!(e.to_string()))?;
+    gen.emit(ast).map_err(|e| error!(e.to_string()))?;
 
     if let Some(src_map_buf) = &mut src_map_buf {
       let map = self
@@ -61,7 +61,7 @@ impl SwcCssCompiler {
       let mut raw_map = Vec::new();
       map
         .to_writer(&mut raw_map)
-        .map_err(|e| internal_error!(e.to_string()))?;
+        .map_err(|e| error!(e.to_string()))?;
       Ok((output, Some(raw_map)))
     } else {
       Ok((output, None))

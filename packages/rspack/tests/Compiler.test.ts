@@ -4,8 +4,11 @@ import { Compiler, rspack } from "../src";
 import { Stats } from "../src/Stats";
 const path = require("path");
 import { createFsFromVolume, Volume } from "memfs";
+import serializer from "jest-serializer-path";
 const captureStdio = require("./helpers/captureStdio");
 const deprecationTracking = require("./helpers/deprecationTracking");
+
+expect.addSnapshotSerializer(serializer);
 
 describe("Compiler", () => {
 	function compile(entry: string, options, callback) {
@@ -302,8 +305,7 @@ describe("Compiler", () => {
 			done();
 		});
 	});
-	// TODO: support `bail`
-	it.skip("should bubble up errors when wrapped in a promise and bail is true", async () => {
+	it("should bubble up errors when wrapped in a promise and bail is true", async () => {
 		try {
 			const createCompiler = options => {
 				return new Promise((resolve, reject) => {
@@ -331,9 +333,10 @@ describe("Compiler", () => {
 				bail: true
 			});
 		} catch (err) {
-			expect(err.toString()).toMatchInlineSnapshot(
-				`"Error: InternalError("Failed to call process assets RecvError(())")"`
-			);
+			expect(err.toString()).toMatchInlineSnapshot(`
+			"Error:   × Resolve error: Can't resolve './missing-file' in '<PROJECT_ROOT>/tests'
+			"
+		`);
 		}
 	});
 	it("should bubble up errors when wrapped in a promise and bail is true (empty dependency)", async () => {
@@ -364,7 +367,17 @@ describe("Compiler", () => {
 				bail: true
 			});
 		} catch (err) {
-			expect(err.toString()).toMatchInlineSnapshot(`"Error: Empty dependency"`);
+			expect(err.toString()).toMatchInlineSnapshot(`
+			"Error:   × Empty dependency: Expected a non-empty request
+			   ╭─[1:1]
+			 1 │ module.exports = function b() {
+			 2 │     /* eslint-disable node/no-missing-require */ require("");
+			   ·                                                  ───────────
+			 3 │     return "This is an empty dependency";
+			 4 │ };
+			   ╰────
+			"
+		`);
 		}
 	});
 	it("should not emit compilation errors in async (watch)", async () => {
@@ -794,8 +807,7 @@ describe("Compiler", () => {
 			});
 		});
 	});
-	// TODO: Option `bail` is not supported.
-	it.skip("should call the failed-hook on error", done => {
+	it("should call the failed-hook on error", done => {
 		const failedSpy = jest.fn();
 		compiler = rspack({
 			bail: true,

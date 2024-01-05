@@ -6,14 +6,14 @@ use std::{
 
 use futures::{future::BoxFuture, FutureExt};
 
-use super::{internal_error, Result};
+use super::{error, Result};
 
 const GENERIC_FATAL_MESSAGE: &str =
   "This is not expected, please file an issue at https://github.com/web-infra-dev/rspack/issues.";
 
 fn raise(message: &str) -> crate::Error {
   let backtrace = std::backtrace::Backtrace::force_capture().to_string();
-  internal_error!(
+  error!(
     r#"{message}
 {GENERIC_FATAL_MESSAGE}
 {backtrace}

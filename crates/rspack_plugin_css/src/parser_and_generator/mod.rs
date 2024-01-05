@@ -270,7 +270,12 @@ impl ParserAndGenerator for CssParserAndGenerator {
       }
       SourceType::JavaScript => {
         let locals = if let Some(exports) = &self.exports {
-          css_modules_exports_to_string(exports, module, generate_context.compilation)?
+          css_modules_exports_to_string(
+            exports,
+            module,
+            generate_context.compilation,
+            generate_context.runtime_requirements,
+          )?
         } else if generate_context.compilation.options.dev_server.hot {
           "module.hot.accept();".to_string()
         } else {

@@ -12,9 +12,7 @@ impl Content {
   pub fn try_into_string(self) -> Result<String> {
     match self {
       Content::String(s) => Ok(s),
-      Content::Buffer(b) => {
-        String::from_utf8(b).map_err(|e| rspack_error::internal_error!(e.to_string()))
-      }
+      Content::Buffer(b) => String::from_utf8(b).map_err(|e| rspack_error::error!(e.to_string())),
     }
   }
 

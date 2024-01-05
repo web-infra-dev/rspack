@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use rayon::prelude::{IntoParallelRefMutIterator, ParallelIterator};
+use rayon::prelude::*;
 use rspack_core::{rspack_sources::MapOptions, Plugin};
 use rspack_error::Result;
 use rspack_plugin_css::swc_css_compiler::{SwcCssCompiler, SwcCssSourceMapGenConfig};

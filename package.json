@@ -9,7 +9,7 @@
     "x": "zx x.mjs",
     "dev": "pnpm --filter @rspack/cli run dev",
     "clean": "pnpm --filter @rspack/cli run clean",
-    "build:js": "pnpm --filter \"@rspack/*\" build",
+    "build:js": "pnpm --filter \"@rspack/core\" build && pnpm --filter \"@rspack/*\" --filter \"!@rspack/core\" build",
     "build:cli:debug": "npm run build:binding:debug && npm run build:js",
     "build:cli:release": "npm run build:binding:release && npm run build:js",
     "build:cli:release:all": "pnpm --filter @rspack/binding build:release:all && npm run build:js",
@@ -47,6 +47,7 @@
   "devDependencies": {
     "@rspack/cli": "workspace:*",
     "@taplo/cli": "^0.5.2",
+    "@types/is-ci": "^3.0.4",
     "@types/jest": "29.1.0",
     "@types/node": "^20.9.4",
     "@types/rimraf": "3.0.2",

@@ -22,7 +22,7 @@ __webpack_require__.r(__webpack_exports__);
 
 _app__WEBPACK_IMPORTED_MODULE_0__.a;
 }),
-"./side-effects.js": (function (__unused_webpack_module, exports, __webpack_require__) {
+"./side-effects.js": (function () {
 console.log("side effect");
 }),
 

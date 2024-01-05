@@ -4,7 +4,7 @@ assertion_line: 146
 ---
 ```js title=main.js
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./index.js": (function (__unused_webpack_module, exports, __webpack_require__) {
+"./index.js": (function () {
 class a {
 }
 function A() {

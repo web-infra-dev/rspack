@@ -15,24 +15,20 @@ pub struct ProvideSharedModuleFactory {
 
 #[async_trait]
 impl ModuleFactory for ProvideSharedModuleFactory {
-  async fn create(
-    &self,
-    data: ModuleFactoryCreateData,
-  ) -> Result<(ModuleFactoryResult, Vec<Diagnostic>)> {
+  async fn create(&self, data: &mut ModuleFactoryCreateData) -> Result<ModuleFactoryResult> {
     let dep = data
       .dependency
       .downcast_ref::<ProvideSharedDependency>()
       .expect("dependency of ProvideSharedModuleFactory should be ProvideSharedDependency");
-    Ok((
-      ModuleFactoryResult::new(Box::new(ProvideSharedModule::new(
+    Ok(ModuleFactoryResult::new_with_module(Box::new(
+      ProvideSharedModule::new(
         dep.share_scope.clone(),
         dep.name.clone(),
         dep.version.clone(),
         dep.request().to_owned(),
         dep.eager,
-      ))),
-      vec![],
-    ))
+      ),
+    )))
   }
 }
 

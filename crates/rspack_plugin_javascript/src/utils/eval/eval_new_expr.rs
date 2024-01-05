@@ -6,7 +6,7 @@ use crate::utils::eval;
 use crate::visitors::common_js_import_dependency_scanner::CommonJsImportDependencyScanner;
 
 pub fn eval_new_expression(
-  scanner: &CommonJsImportDependencyScanner<'_>,
+  scanner: &mut CommonJsImportDependencyScanner<'_>,
   expr: &NewExpr,
 ) -> Option<BasicEvaluatedExpression> {
   let Some(ident) = expr.callee.as_ident() else {

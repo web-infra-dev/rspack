@@ -1,41 +1,28 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
-use rspack_error::{Diagnosable, Diagnostic, Result};
+use rspack_error::Result;
 use tracing::instrument;
 
 use crate::{
-  cache::Cache, resolve, BoxModule, ContextModule, ContextModuleOptions, MissingModule, ModuleExt,
-  ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier,
-  NormalModuleBeforeResolveArgs, RawModule, ResolveArgs, ResolveError, ResolveResult,
-  SharedPluginDriver,
+  cache::Cache, resolve, BoxModule, ContextModule, ContextModuleOptions, ModuleExt, ModuleFactory,
+  ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, NormalModuleBeforeResolveArgs,
+  RawModule, ResolveArgs, ResolveResult, SharedPluginDriver,
 };
 
 #[derive(Debug)]
 pub struct ContextModuleFactory {
   plugin_driver: SharedPluginDriver,
   cache: Arc<Cache>,
-  diagnostics: Mutex<Vec<Diagnostic>>,
 }
 
 #[async_trait::async_trait]
 impl ModuleFactory for ContextModuleFactory {
   #[instrument(name = "context_module_factory:create", skip_all)]
-  async fn create(
-    &self,
-    mut data: ModuleFactoryCreateData,
-  ) -> Result<(ModuleFactoryResult, Vec<Diagnostic>)> {
-    let take_diagnostic = || {
-      self
-        .diagnostics
-        .lock()
-        .expect("should lock diagnostics")
-        .drain(..)
-        .collect::<Vec<_>>()
-    };
-    if let Ok(Some(before_resolve_result)) = self.before_resolve(&mut data).await {
-      return Ok((before_resolve_result, take_diagnostic()));
+  async fn create(&self, data: &mut ModuleFactoryCreateData) -> Result<ModuleFactoryResult> {
+    if let Ok(Some(before_resolve_result)) = self.before_resolve(data).await {
+      return Ok(before_resolve_result);
     }
-    Ok((self.resolve(data).await?, take_diagnostic()))
+    Ok(self.resolve(data).await?)
   }
 }
 
@@ -44,7 +31,6 @@ impl ContextModuleFactory {
     Self {
       plugin_driver,
       cache,
-      diagnostics: Default::default(),
     }
   }
 
@@ -65,25 +51,16 @@ impl ContextModuleFactory {
       .context_module_before_resolve(&mut before_resolve_args)
       .await
     {
-      let specifier = dependency.request();
-      let ident = format!("{}{specifier}", data.context);
-
-      let module_identifier = ModuleIdentifier::from(format!("missing|{ident}"));
-
-      let missing_module = MissingModule::new(
-        module_identifier,
-        format!("{ident} (missing)"),
-        format!("Failed to resolve {specifier}"),
-      )
-      .boxed();
-      return Ok(Some(ModuleFactoryResult::new(missing_module)));
+      // ignored
+      // See https://github.com/webpack/webpack/blob/6be4065ade1e252c1d8dcba4af0f43e32af1bdc1/lib/ContextModuleFactory.js#L115
+      return Ok(Some(ModuleFactoryResult::default()));
     }
     data.context = before_resolve_args.context.into();
     dependency.set_request(before_resolve_args.request);
     Ok(None)
   }
 
-  async fn resolve(&self, data: ModuleFactoryCreateData) -> Result<ModuleFactoryResult> {
+  async fn resolve(&self, data: &mut ModuleFactoryCreateData) -> Result<ModuleFactoryResult> {
     let dependency = data
       .dependency
       .as_context_dependency()
@@ -91,7 +68,7 @@ impl ContextModuleFactory {
     let factory_meta = Default::default();
     let mut file_dependencies = Default::default();
     let mut missing_dependencies = Default::default();
-    let context_dependencies = Default::default();
+    // let context_dependencies = Default::default();
     let specifier = dependency.request();
     let resolve_args = ResolveArgs {
       context: data.context.clone(),
@@ -124,7 +101,7 @@ impl ContextModuleFactory {
           resource: resource.path.to_string_lossy().to_string(),
           resource_query: resource.query,
           resource_fragment: resource.fragment,
-          resolve_options: data.resolve_options,
+          resolve_options: data.resolve_options.clone(),
           context_options: dependency.options().clone(),
         },
         plugin_driver.resolver_factory.clone(),
@@ -139,59 +116,21 @@ impl ContextModuleFactory {
           Default::default(),
         )
         .boxed();
-        return Ok(ModuleFactoryResult::new(raw_module));
+        return Ok(ModuleFactoryResult::new_with_module(raw_module));
       }
-      Err(ResolveError(runtime_error, internal_error)) => {
-        let ident = format!("{}{specifier}", data.context);
-        let module_identifier = ModuleIdentifier::from(format!("missing|{ident}"));
-
-        let missing_module = MissingModule::new(
-          module_identifier,
-          format!("{ident} (missing)"),
-          runtime_error,
-        )
-        .boxed();
-        self.add_diagnostic(internal_error.into());
-
-        return Ok(ModuleFactoryResult::new(missing_module));
+      Err(err) => {
+        return Err(err);
       }
     };
 
+    data.add_file_dependencies(file_dependencies);
+    data.add_missing_dependencies(missing_dependencies);
+    // data.add_context_dependencies(context_dependencies);
+
     Ok(ModuleFactoryResult {
-      module,
-      file_dependencies,
-      missing_dependencies,
-      context_dependencies,
+      module: Some(module),
       factory_meta,
       from_cache,
     })
-  }
-}
-
-impl Diagnosable for ContextModuleFactory {
-  fn add_diagnostic(&self, diagnostic: Diagnostic) {
-    self
-      .diagnostics
-      .lock()
-      .expect("should be able to lock diagnostics")
-      .push(diagnostic);
-  }
-
-  fn add_diagnostics(&self, mut diagnostics: Vec<Diagnostic>) {
-    self
-      .diagnostics
-      .lock()
-      .expect("should be able to lock diagnostics")
-      .append(&mut diagnostics);
-  }
-
-  fn clone_diagnostics(&self) -> Vec<Diagnostic> {
-    self
-      .diagnostics
-      .lock()
-      .expect("should be able to lock diagnostics")
-      .iter()
-      .cloned()
-      .collect()
   }
 }

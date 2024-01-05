@@ -2,20 +2,20 @@ use std::borrow::Cow;
 use std::hash::Hash;
 use std::iter;
 
-use rspack_error::{impl_empty_diagnosable_trait, internal_error, Result};
+use rspack_error::{error, impl_empty_diagnosable_trait, Result};
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
 use rustc_hash::FxHashMap as HashMap;
 use serde::Serialize;
 
 use crate::{
-  extract_url_and_global, property_access,
+  extract_url_and_global, impl_build_info_meta, property_access,
   rspack_sources::{BoxSource, RawSource, Source, SourceExt},
-  to_identifier, AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildMetaExportsType,
-  BuildResult, ChunkInitFragments, ChunkUkey, CodeGenerationDataUrl, CodeGenerationResult,
-  Compilation, Context, DependenciesBlock, DependencyId, ExternalType, InitFragmentExt,
-  InitFragmentKey, InitFragmentStage, LibIdentOptions, Module, ModuleType, NormalInitFragment,
-  RuntimeGlobals, RuntimeSpec, SourceType,
+  to_identifier, AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildMeta,
+  BuildMetaExportsType, BuildResult, ChunkInitFragments, ChunkUkey, CodeGenerationDataUrl,
+  CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId, ExternalType,
+  InitFragmentExt, InitFragmentKey, InitFragmentStage, LibIdentOptions, Module, ModuleType,
+  NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
 static EXTERNAL_MODULE_JS_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
@@ -88,6 +88,8 @@ pub struct ExternalModule {
   external_type: ExternalType,
   /// Request intended by user (without loaders from config)
   user_request: String,
+  build_info: Option<BuildInfo>,
+  build_meta: Option<BuildMeta>,
 }
 
 impl ExternalModule {
@@ -99,6 +101,8 @@ impl ExternalModule {
       request,
       external_type,
       user_request,
+      build_info: None,
+      build_meta: None,
     }
   }
 
@@ -160,9 +164,8 @@ module.exports = new Promise(function(resolve, reject) {{
 "#,
       global = url_and_global.global,
       global_str =
-        serde_json::to_string(url_and_global.global).map_err(|e| internal_error!(e.to_string()))?,
-      url_str =
-        serde_json::to_string(url_and_global.url).map_err(|e| internal_error!(e.to_string()))?,
+        serde_json::to_string(url_and_global.global).map_err(|e| error!(e.to_string()))?,
+      url_str = serde_json::to_string(url_and_global.url).map_err(|e| error!(e.to_string()))?,
       load_script = RuntimeGlobals::LOAD_SCRIPT.name()
     ))
   }
@@ -207,7 +210,7 @@ module.exports = new Promise(function(resolve, reject) {{
             .boxed(),
           );
           format!(
-            "__WEBPACK_EXTERNAL_createRequire(import.meta.url)('{}')",
+            "module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)('{}')",
             request.primary()
           )
         } else {
@@ -304,6 +307,8 @@ impl DependenciesBlock for ExternalModule {
 
 #[async_trait::async_trait]
 impl Module for ExternalModule {
+  impl_build_info_meta!();
+
   fn module_type(&self) -> &ModuleType {
     &ModuleType::Js
   }
@@ -389,7 +394,7 @@ impl Module for ExternalModule {
           SourceType::JavaScript,
           RawSource::from(format!(
             "module.exports = {};",
-            serde_json::to_string(request.primary()).map_err(|e| internal_error!(e.to_string()))?
+            serde_json::to_string(request.primary()).map_err(|e| error!(e.to_string()))?
           ))
           .boxed(),
         );
@@ -402,7 +407,7 @@ impl Module for ExternalModule {
           SourceType::Css,
           RawSource::from(format!(
             "@import url({});",
-            serde_json::to_string(request.primary()).map_err(|e| internal_error!(e.to_string()))?
+            serde_json::to_string(request.primary()).map_err(|e| error!(e.to_string()))?
           ))
           .boxed(),
         );

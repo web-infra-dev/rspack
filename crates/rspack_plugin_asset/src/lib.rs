@@ -17,7 +17,7 @@ use rspack_core::{
   PluginRenderManifestHookOutput, RenderManifestArgs, RenderManifestEntry, ResourceData,
   RuntimeGlobals, SourceType,
 };
-use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result};
+use rspack_error::{error, IntoTWithDiagnosticArray, Result};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_util::identifier::make_paths_relative;
 
@@ -128,7 +128,7 @@ impl AssetParserAndGenerator {
       .first_raw()
       .map(ToOwned::to_owned)
       .ok_or_else(|| {
-        internal_error!(
+        error!(
           "failed to guess mime type of {:?}",
           resource_data.resource_path
         )
@@ -167,7 +167,7 @@ impl AssetParserAndGenerator {
     if encoding == DEFAULT_ENCODING {
       return Ok(rspack_base64::encode_to_string(source.buffer()));
     }
-    Err(internal_error!("Unsupported encoding {encoding}"))
+    Err(error!("Unsupported encoding {encoding}"))
   }
 
   fn get_source_file_name(&self, module: &NormalModule, compilation: &Compilation) -> String {
@@ -344,7 +344,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
             .data
             .insert(CodeGenerationDataUrl::new(encoded_source.clone()));
 
-          serde_json::to_string(&encoded_source).map_err(|e| internal_error!(e.to_string()))?
+          serde_json::to_string(&encoded_source).map_err(|e| error!(e.to_string()))?
         } else if parsed_asset_config.is_resource() {
           // Use [Rule.generator.filename] if it is set, otherwise use [output.assetModuleFilename].
           let asset_filename_template = generate_context
@@ -372,7 +372,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
           {
             let public_path = public_path.render(compilation, &filename);
             serde_json::to_string(&format!("{public_path}{filename}"))
-              .map_err(|e| internal_error!(e.to_string()))?
+              .map_err(|e| error!(e.to_string()))?
           } else {
             generate_context
               .runtime_requirements
@@ -410,7 +410,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
       }
       SourceType::Asset => {
         if parsed_asset_config.is_source() || parsed_asset_config.is_inline() {
-          Err(internal_error!(
+          Err(error!(
             "Inline or Source asset does not have source type `asset`"
           ))
         } else {
@@ -562,6 +562,6 @@ impl Plugin for AssetPlugin {
       .flatten()
       .collect::<Vec<RenderManifestEntry>>();
 
-    Ok(assets)
+    Ok(assets.with_empty_diagnostic())
   }
 }

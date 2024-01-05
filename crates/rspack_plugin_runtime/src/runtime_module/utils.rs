@@ -132,7 +132,12 @@ pub fn stringify_chunks(chunks: &HashSet<String>, value: u8) -> String {
   format!(
     r#"{{{}}}"#,
     v.iter().fold(String::new(), |prev, cur| {
-      prev + format!(r#""{cur}": {value},"#).as_str()
+      prev
+        + format!(
+          r#"{}: {value},"#,
+          serde_json::to_string(cur).expect("chunk to_string failed")
+        )
+        .as_str()
     })
   )
 }

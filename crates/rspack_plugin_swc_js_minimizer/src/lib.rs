@@ -8,7 +8,6 @@ use std::path::Path;
 use std::sync::{mpsc, Mutex};
 
 use async_trait::async_trait;
-use minify::{match_object, minify};
 use once_cell::sync::OnceCell;
 use rayon::prelude::*;
 use regex::Regex;
@@ -24,13 +23,14 @@ use rspack_regex::RspackRegex;
 use rspack_util::try_any_sync;
 use swc_config::config_types::BoolOrDataConfig;
 use swc_core::base::config::JsMinifyFormatOptions;
-pub use swc_ecma_minifier::option::{
-  terser::{TerserCompressorOptions, TerserEcmaVersion},
-  MangleOptions,
-};
-#[derive(Debug, Clone, Default)]
+pub use swc_ecma_minifier::option::terser::{TerserCompressorOptions, TerserEcmaVersion};
+pub use swc_ecma_minifier::option::MangleOptions;
+
+use self::minify::{match_object, minify};
+
+#[derive(Debug, Default)]
 pub struct SwcJsMinimizerRspackPluginOptions {
-  pub extract_comments: Option<String>,
+  pub extract_comments: Option<ExtractComments>,
   pub compress: BoolOrDataConfig<TerserCompressorOptions>,
   pub mangle: BoolOrDataConfig<MangleOptions>,
   pub format: JsMinifyFormatOptions,
@@ -110,10 +110,31 @@ impl SwcJsMinimizerRules {
   }
 }
 
-struct ExtractComments<'a> {
+#[derive(Debug, Hash)]
+pub enum OptionWrapper<T: std::fmt::Debug + Hash> {
+  Default,
+  Disabled,
+  Custom(T),
+}
+
+#[derive(Debug)]
+pub struct ExtractComments {
+  pub condition: String,
+  pub banner: OptionWrapper<String>,
+}
+
+impl Hash for ExtractComments {
+  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    self.condition.as_str().hash(state);
+    self.banner.hash(state);
+  }
+}
+
+#[derive(Debug)]
+struct NormalizedExtractComments<'a> {
   filename: String,
   condition: &'a Regex,
-  banner: String,
+  banner: Option<String>,
 }
 
 #[derive(Debug)]
@@ -144,21 +165,15 @@ impl Plugin for SwcJsMinimizerRspackPlugin {
     let (tx, rx) = mpsc::channel::<Vec<Diagnostic>>();
     // collect all extracted comments info
     let all_extracted_comments = Mutex::new(HashMap::new());
-    let extract_comments_condition = minify_options.extract_comments.as_ref().map(|condition| {
-      let regexp = if condition.eq("true") {
-        // copied from terser-webpack-plugin
-        Regex::new(r"@preserve|@lic|@cc_on|^\**!")
-      } else {
-        Regex::new(&condition[1..condition.len() - 2])
-      };
-      regexp.expect("Invalid extractComments")
-    });
-    let options = compilation.options.clone();
-    let devtool = options
-      .devtool
-      .lock()
-      .expect("Failed to acquire lock on devtool");
-    let emit_source_map_columns = !devtool.cheap();
+    let extract_comments_condition = minify_options
+      .extract_comments
+      .as_ref()
+      .map(|extract_comment| extract_comment.condition.as_ref())
+      .map(|condition| {
+        Regex::new(condition)
+          .unwrap_or_else(|_| panic!("`{condition}` is invalid extractComments condition"))
+      });
+    let emit_source_map_columns = !compilation.options.devtool.cheap();
 
     compilation
       .assets_mut()
@@ -199,15 +214,21 @@ impl Plugin for SwcJsMinimizerRspackPlugin {
             emit_source_map_columns,
             module: is_module,
             ..Default::default()
-          };
-          let extract_comments_option = extract_comments_condition.as_ref().map(|condition| {
-            let comments_filename = filename.to_string() + ".LICENSE.txt";
-            let dir = Path::new(filename).parent().expect("should has parent");
-            let relative = Path::new(&comments_filename).strip_prefix(dir).expect("should has common prefix").to_string_lossy().to_string().replace('\\', "/");
-            let banner = format!("/*! For license information please see {relative} */");
-            ExtractComments {
+            };
+          let extract_comments_option = minify_options.extract_comments.as_ref().map(|extract_comments| {
+            let comments_filename = format!("{}.LICENSE.txt", filename);
+            let banner = match &extract_comments.banner {
+              OptionWrapper::Default => {
+                let dir = Path::new(filename).parent().expect("should has parent");
+                let relative = Path::new(&comments_filename).strip_prefix(dir).expect("should has common prefix").to_string_lossy().to_string().replace('\\', "/");
+                Some(format!("/*! For license information please see {relative} */"))
+              },
+              OptionWrapper::Disabled => None,
+              OptionWrapper::Custom(value) => Some(format!("/*! {value} */"))
+            };
+            NormalizedExtractComments {
               filename: comments_filename,
-              condition,
+              condition: extract_comments_condition.as_ref().expect("must exists"),
               banner
             }
           });
@@ -237,7 +258,7 @@ impl Plugin for SwcJsMinimizerRspackPlugin {
           } else {
             RawSource::from(output.code).boxed()
           };
-          let source = if let Some(banner) = extract_comments_option.map(|option| option.banner)
+          let source = if let Some(Some(banner)) = extract_comments_option.map(|option| option.banner)
             && all_extracted_comments
             .lock()
             .expect("all_extract_comments lock failed")

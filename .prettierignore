@@ -15,6 +15,7 @@ packages/rspack/tests/diagnostics/**/*
 packages/rspack/tests/js/**/*
 packages/rspack/tests/copyPlugin/build/**/*
 packages/rspack-test-tools/template/**/*
+packages/rspack-test-tools/tests/js/**/*
 
 benchcases/**/*
 crates/**/*
@@ -22,3 +23,5 @@ target/**/*
 
 webpack-test/**/*
 webpack-examples/**/*
+
+

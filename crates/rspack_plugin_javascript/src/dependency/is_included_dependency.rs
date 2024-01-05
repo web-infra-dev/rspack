@@ -2,18 +2,17 @@ use rspack_core::{
   AsContextDependency, Dependency, DependencyId, DependencyTemplate, DependencyType,
   ModuleDependency, TemplateContext, TemplateReplaceSource,
 };
-use swc_core::ecma::atoms::JsWord;
 
 #[derive(Debug, Clone)]
 pub struct WebpackIsIncludedDependency {
   pub start: u32,
   pub end: u32,
   pub id: DependencyId,
-  pub request: JsWord,
+  pub request: String,
 }
 
 impl WebpackIsIncludedDependency {
-  pub fn new(start: u32, end: u32, request: JsWord) -> Self {
+  pub fn new(start: u32, end: u32, request: String) -> Self {
     Self {
       start,
       end,

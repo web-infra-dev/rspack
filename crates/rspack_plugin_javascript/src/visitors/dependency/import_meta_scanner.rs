@@ -1,4 +1,6 @@
-use rspack_core::{CompilerOptions, ConstDependency, DependencyTemplate, ResourceData, SpanExt};
+use rspack_core::{
+  CompilerOptions, ConstDependency, DependencyLocation, DependencyTemplate, ResourceData, SpanExt,
+};
 use rspack_error::miette::{diagnostic, Diagnostic, Severity};
 use rspack_error::DiagnosticExt;
 use swc_core::common::Spanned;
@@ -7,9 +9,9 @@ use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 use url::Url;
 
 use super::{
-  expr_matcher, is_member_expr_starts_with_import_meta,
-  is_member_expr_starts_with_import_meta_webpack_hot,
+  expr_matcher, is_member_expr_starts_with, is_member_expr_starts_with_import_meta_webpack_hot,
 };
+use crate::no_visit_ignored_stmt;
 
 // Port from https://github.com/webpack/webpack/blob/main/lib/dependencies/ImportMetaPlugin.js
 // TODO:
@@ -22,6 +24,7 @@ pub struct ImportMetaScanner<'a> {
   pub compiler_options: &'a CompilerOptions,
   pub resource_data: &'a ResourceData,
   pub warning_diagnostics: &'a mut Vec<Box<dyn Diagnostic + Send + Sync>>,
+  pub ignored: &'a mut Vec<DependencyLocation>,
 }
 
 impl<'a> ImportMetaScanner<'a> {
@@ -30,18 +33,21 @@ impl<'a> ImportMetaScanner<'a> {
     resource_data: &'a ResourceData,
     compiler_options: &'a CompilerOptions,
     warning_diagnostics: &'a mut Vec<Box<dyn Diagnostic + Send + Sync>>,
+    ignored: &'a mut Vec<DependencyLocation>,
   ) -> Self {
     Self {
       presentational_dependencies,
       resource_data,
       compiler_options,
       warning_diagnostics,
+      ignored,
     }
   }
 }
 
 impl Visit for ImportMetaScanner<'_> {
   noop_visit_type!();
+  no_visit_ignored_stmt!();
 
   fn visit_unary_expr(&mut self, unary_expr: &UnaryExpr) {
     if let UnaryExpr {
@@ -68,15 +74,26 @@ impl Visit for ImportMetaScanner<'_> {
             "'string'".into(),
             None,
           )));
-      } else if is_member_expr_starts_with_import_meta(expr) {
-        self
-          .presentational_dependencies
-          .push(Box::new(ConstDependency::new(
-            unary_expr.span().real_lo(),
-            unary_expr.span().real_hi(),
-            "'undefined'".into(),
-            None,
-          )));
+      } else if is_member_expr_starts_with(expr, |expr: &Expr| expr_matcher::is_import_meta(expr)) {
+        if is_member_expr_starts_with(expr, |expr: &Expr| {
+          expr_matcher::is_import_meta_url(expr)
+            || expr_matcher::is_import_meta_webpack_context(expr)
+            || expr_matcher::is_import_meta_webpack_hot(expr)
+            || expr_matcher::is_import_meta_webpack_hot_accept(expr)
+            || expr_matcher::is_import_meta_webpack_hot_decline(expr)
+        }) {
+          unary_expr.visit_children_with(self);
+          return;
+        } else {
+          self
+            .presentational_dependencies
+            .push(Box::new(ConstDependency::new(
+              unary_expr.span().real_lo(),
+              unary_expr.span().real_hi(),
+              "'undefined'".into(),
+              None,
+            )));
+        }
       }
     } else {
       unary_expr.visit_children_with(self);
@@ -117,15 +134,26 @@ impl Visit for ImportMetaScanner<'_> {
         )));
     } else if expr_matcher::is_import_meta_webpack_context(expr) {
       // nothing
-    } else if is_member_expr_starts_with_import_meta(expr) {
-      self
-        .presentational_dependencies
-        .push(Box::new(ConstDependency::new(
-          expr.span().real_lo(),
-          expr.span().real_hi(),
-          "undefined".into(),
-          None,
-        )));
+    } else if is_member_expr_starts_with(expr, |expr: &Expr| expr_matcher::is_import_meta(expr)) {
+      if is_member_expr_starts_with(expr, |expr: &Expr| {
+        expr_matcher::is_import_meta_url(expr)
+          || expr_matcher::is_import_meta_webpack_context(expr)
+          || expr_matcher::is_import_meta_webpack_hot(expr)
+          || expr_matcher::is_import_meta_webpack_hot_accept(expr)
+          || expr_matcher::is_import_meta_webpack_hot_decline(expr)
+      }) {
+        expr.visit_children_with(self);
+        return;
+      } else {
+        self
+          .presentational_dependencies
+          .push(Box::new(ConstDependency::new(
+            expr.span().real_lo(),
+            expr.span().real_hi(),
+            "undefined".into(),
+            None,
+          )));
+      }
     } else {
       expr.visit_children_with(self);
     }

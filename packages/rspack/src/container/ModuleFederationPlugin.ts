@@ -15,11 +15,13 @@ export class ModuleFederationPlugin {
 
 	apply(compiler: Compiler) {
 		const { webpack } = compiler;
-		new webpack.EntryPlugin(
-			compiler.context,
-			getDefaultEntryRuntime(this._options, compiler),
-			{ name: undefined }
-		).apply(compiler);
+		compiler.hooks.afterPlugins.tap(ModuleFederationPlugin.name, () => {
+			new webpack.EntryPlugin(
+				compiler.context,
+				getDefaultEntryRuntime(this._options, compiler),
+				{ name: undefined }
+			).apply(compiler);
+		});
 		new webpack.container.ModuleFederationPluginV1({
 			...this._options,
 			enhanced: true
@@ -145,7 +147,7 @@ function getDefaultEntryRuntime(
 		runtimePluginVars.push(`${runtimePluginVar}()`);
 	}
 	const content = [
-		`import __module_federation_runtime__ from ${JSON.stringify(
+		`import __module_federation_implementation__ from ${JSON.stringify(
 			implementationPath
 		)}`,
 		...runtimePluginImports,
@@ -153,7 +155,11 @@ function getDefaultEntryRuntime(
 			", "
 		)}]`,
 		`const __module_federation_remote_infos__ = ${JSON.stringify(remoteInfos)}`,
+		`const __module_federation_container_name__ = ${JSON.stringify(
+			options.name ?? compiler.options.output.uniqueName
+		)}`,
 		compiler.webpack.Template.getFunctionContent(require("./default.runtime"))
 	].join("\n");
-	return `data:text/javascript,${content}`;
+	// use "application/node" to use moduleType "javascript/auto"
+	return `data:application/node,${content}`;
 }

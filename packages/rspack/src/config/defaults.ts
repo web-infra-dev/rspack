@@ -451,12 +451,6 @@ const applyOutputDefaults = (
 		}
 	});
 	F(output, "devtoolNamespace", () => output.uniqueName);
-
-	F(output, "chunkLoadingGlobal", () =>
-		Template.toIdentifier(
-			"webpackChunk" + Template.toIdentifier(output.uniqueName)
-		)
-	);
 	F(output, "module", () => !!outputModule);
 	D(output, "filename", output.module ? "[name].mjs" : "[name].js");
 	F(output, "iife", () => !output.module);
@@ -495,11 +489,12 @@ const applyOutputDefaults = (
 		`[id].[fullhash].hot-update.${output.module ? "mjs" : "js"}`
 	);
 	D(output, "hotUpdateMainFilename", "[runtime].[fullhash].hot-update.json");
-	F(output, "hotUpdateGlobal", () =>
-		Template.toIdentifier(
-			"webpackHotUpdate" + Template.toIdentifier(output.uniqueName)
-		)
+
+	const uniqueNameId = Template.toIdentifier(
+		/** @type {NonNullable<Output["uniqueName"]>} */ output.uniqueName
 	);
+	F(output, "hotUpdateGlobal", () => "webpackHotUpdate" + uniqueNameId);
+	F(output, "chunkLoadingGlobal", () => "webpackChunk" + uniqueNameId);
 	D(output, "assetModuleFilename", "[hash][ext][query]");
 	D(output, "webassemblyModuleFilename", "[hash].module.wasm");
 	F(output, "path", () => path.join(process.cwd(), "dist"));

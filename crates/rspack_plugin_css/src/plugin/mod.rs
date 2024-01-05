@@ -9,7 +9,7 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::Filename;
 use rspack_core::{Chunk, ChunkGraph, Compilation, Module, ModuleGraph, PathData, SourceType};
-use rspack_error::internal_error_bail;
+use rspack_error::error_bail;
 use rspack_identifier::IdentifierSet;
 
 static ESCAPE_LOCAL_IDENT_REGEX: Lazy<Regex> =
@@ -87,7 +87,7 @@ impl FromStr for LocalsConvention {
       "camelCaseOnly" => Self(LocalsConventionFlags::CAMELCASE),
       "dashes" => Self(LocalsConventionFlags::ASIS | LocalsConventionFlags::DASHES),
       "dashesOnly" => Self(LocalsConventionFlags::DASHES),
-      _ => internal_error_bail!("css modules exportsLocalsConvention error"),
+      _ => error_bail!("css modules exportsLocalsConvention error"),
     })
   }
 }

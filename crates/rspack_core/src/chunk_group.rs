@@ -1,5 +1,8 @@
+use std::fmt;
+
 use itertools::Itertools;
 use rspack_database::DatabaseItem;
+use rspack_error::{error, Result};
 use rspack_identifier::IdentifierMap;
 use rustc_hash::FxHashSet as HashSet;
 
@@ -314,6 +317,45 @@ pub struct EntryOptions {
   pub base_uri: Option<String>,
   pub filename: Option<Filename>,
   pub library: Option<LibraryOptions>,
+}
+
+impl EntryOptions {
+  pub fn merge(&mut self, other: EntryOptions) -> Result<()> {
+    macro_rules! merge_field {
+      ($field:ident) => {
+        if Self::should_merge_field(
+          self.$field.as_ref(),
+          other.$field.as_ref(),
+          stringify!($field),
+        )? {
+          self.$field = other.$field;
+        }
+      };
+    }
+    merge_field!(name);
+    merge_field!(runtime);
+    merge_field!(chunk_loading);
+    merge_field!(async_chunks);
+    merge_field!(public_path);
+    merge_field!(base_uri);
+    merge_field!(filename);
+    merge_field!(library);
+    Ok(())
+  }
+
+  fn should_merge_field<T: Eq + fmt::Debug>(
+    a: Option<&T>,
+    b: Option<&T>,
+    key: &str,
+  ) -> Result<bool> {
+    match (a, b) {
+      (Some(a), Some(b)) if a != b => {
+        Err(error!("Conflicting entry option {key} = ${a:?} vs ${b:?}"))
+      }
+      (None, Some(_)) => Ok(true),
+      _ => Ok(false),
+    }
+  }
 }
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq, PartialOrd, Ord)]

@@ -13,7 +13,7 @@ use rspack_core::{
   JavascriptParserUrl, ModuleOptions, ModuleRule, ModuleRuleEnforce, ModuleRuleUse,
   ModuleRuleUseLoader, ModuleType, ParserOptions, ParserOptionsByModuleType,
 };
-use rspack_error::{internal_error, miette::IntoDiagnostic};
+use rspack_error::{error, miette::IntoDiagnostic};
 use rspack_loader_react_refresh::REACT_REFRESH_LOADER_IDENTIFIER;
 use rspack_loader_sass::SASS_LOADER_IDENTIFIER;
 use rspack_loader_swc::SWC_LOADER_IDENTIFIER;
@@ -175,11 +175,11 @@ impl TryFrom<RawRuleSetCondition> for rspack_core::RuleSetCondition {
   fn try_from(x: RawRuleSetCondition) -> rspack_error::Result<Self> {
     let result = match x.r#type.as_str() {
       "string" => Self::String(x.string_matcher.ok_or_else(|| {
-        internal_error!("should have a string_matcher when RawRuleSetCondition.type is \"string\"")
+        error!("should have a string_matcher when RawRuleSetCondition.type is \"string\"")
       })?),
       "regexp" => {
         let reg_matcher = x.regexp_matcher.as_ref().ok_or_else(|| {
-          internal_error!(
+          error!(
             "should have a regexp_matcher when RawRuleSetCondition.type is \"regexp\""
           )
         })?;
@@ -189,12 +189,12 @@ impl TryFrom<RawRuleSetCondition> for rspack_core::RuleSetCondition {
       },
       "logical" => {
         let mut logical_matcher = x.logical_matcher.ok_or_else(|| {
-          internal_error!(
+          error!(
             "should have a logical_matcher when RawRuleSetCondition.type is \"logical\""
           )
         })?;
         let logical_matcher = logical_matcher.get_mut(0).ok_or_else(|| {
-          internal_error!(
+          error!(
             "TODO: use Box after https://github.com/napi-rs/napi-rs/issues/1500 landed"
           )
         })?;
@@ -206,7 +206,7 @@ impl TryFrom<RawRuleSetCondition> for rspack_core::RuleSetCondition {
       "array" => Self::Array(
         x.array_matcher
           .ok_or_else(|| {
-            internal_error!(
+            error!(
               "should have a array_matcher when RawRuleSetCondition.type is \"array\""
             )
           })?
@@ -216,7 +216,7 @@ impl TryFrom<RawRuleSetCondition> for rspack_core::RuleSetCondition {
       ),
       "function" => {
         let func_matcher = x.func_matcher.ok_or_else(|| {
-          internal_error!(
+          error!(
             "should have a func_matcher when RawRuleSetCondition.type is \"function\""
           )
         })?;
@@ -592,9 +592,7 @@ impl TryFrom<RawModuleRule> for ModuleRule {
       }
       "function" => {
         let func_use = raw.func_use.ok_or_else(|| {
-          internal_error!(
-            "should have a func_matcher when RawRuleSetCondition.type is \"function\""
-          )
+          error!("should have a func_matcher when RawRuleSetCondition.type is \"function\"")
         })?;
         let func_use: Result<ThreadsafeFunction<RawFuncUseCtx, Vec<RawModuleRuleUse>>> = try {
           let env = get_napi_env();
@@ -663,7 +661,7 @@ impl TryFrom<RawModuleRule> for ModuleRule {
       .map(|enforce| match &*enforce {
         "pre" => Ok(ModuleRuleEnforce::Pre),
         "post" => Ok(ModuleRuleEnforce::Post),
-        _ => Err(internal_error!(
+        _ => Err(error!(
           "Unsupported Rule.enforce type, supported: 'pre' | 'post' | undefined"
         )),
       })

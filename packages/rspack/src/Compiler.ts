@@ -48,6 +48,7 @@ import { RuntimeGlobals } from "./RuntimeGlobals";
 import { tryRunOrWebpackError } from "./lib/HookWebpackError";
 import { CodeGenerationResult } from "./Module";
 import { canInherentFromParent } from "./builtin-plugin/base";
+import { CreateModuleData } from "@rspack/binding";
 
 class Compiler {
 	#_instance?: binding.Rspack;
@@ -332,12 +333,15 @@ class Compiler {
 				optimizeTree: this.#optimizeTree.bind(this),
 				optimizeChunkModules: this.#optimizeChunkModules.bind(this),
 				finishModules: this.#finishModules.bind(this),
+				normalModuleFactoryCreateModule:
+					this.#normalModuleFactoryCreateModule.bind(this),
 				normalModuleFactoryResolveForScheme:
 					this.#normalModuleFactoryResolveForScheme.bind(this),
 				chunkAsset: this.#chunkAsset.bind(this),
 				beforeResolve: this.#beforeResolve.bind(this),
 				afterResolve: this.#afterResolve.bind(this),
-				contextModuleBeforeResolve: this.#contextModuleBeforeResolve.bind(this),
+				contextModuleFactoryBeforeResolve:
+					this.#contextModuleFactoryBeforeResolve.bind(this),
 				succeedModule: this.#succeedModule.bind(this),
 				stillValidModule: this.#stillValidModule.bind(this),
 				buildModule: this.#buildModule.bind(this),
@@ -652,14 +656,25 @@ class Compiler {
 			succeedModule: this.compilation.hooks.succeedModule,
 			stillValidModule: this.compilation.hooks.stillValidModule,
 			buildModule: this.compilation.hooks.buildModule,
-			thisCompilation: undefined,
+			thisCompilation: this.hooks.thisCompilation,
 			optimizeChunkModules: this.compilation.hooks.optimizeChunkModules,
-			contextModuleBeforeResolve: undefined,
-			normalModuleFactoryResolveForScheme: undefined,
+			contextModuleFactoryBeforeResolve:
+				this.compilation.contextModuleFactory?.hooks.beforeResolve,
+			normalModuleFactoryCreateModule:
+				this.compilation.normalModuleFactory?.hooks.createModule,
+			normalModuleFactoryResolveForScheme:
+				this.compilation.normalModuleFactory?.hooks.resolveForScheme,
 			executeModule: undefined
 		};
 		for (const [name, hook] of Object.entries(hookMap)) {
-			if (typeof hook !== "undefined" && hook.taps.length === 0) {
+			if (
+				typeof hook !== "undefined" &&
+				(hook.taps
+					? hook.taps.length === 0
+					: hook._map
+					? /* hook map */ hook._map.size === 0
+					: false)
+			) {
 				disabledHooks.push(name);
 			}
 		}
@@ -744,7 +759,9 @@ class Compiler {
 		return res;
 	}
 
-	async #contextModuleBeforeResolve(resourceData: binding.BeforeResolveData) {
+	async #contextModuleFactoryBeforeResolve(
+		resourceData: binding.BeforeResolveData
+	) {
 		let res =
 			await this.compilation.contextModuleFactory?.hooks.beforeResolve.promise(
 				resourceData
@@ -754,6 +771,16 @@ class Compiler {
 		return res;
 	}
 
+	async #normalModuleFactoryCreateModule(createData: binding.CreateModuleData) {
+		const data = Object.assign({}, createData, {
+			settings: {},
+			matchResource: createData.resourceResolveData.resource
+		});
+		const nmfHooks = this.compilation.normalModuleFactory?.hooks;
+		await nmfHooks?.createModule.promise(data, {});
+		this.#updateDisabledHooks();
+	}
+
 	async #normalModuleFactoryResolveForScheme(
 		input: binding.JsResolveForSchemeInput
 	): Promise<binding.JsResolveForSchemeResult> {
@@ -761,6 +788,7 @@ class Compiler {
 			await this.compilation.normalModuleFactory?.hooks.resolveForScheme
 				.for(input.scheme)
 				.promise(input.resourceData);
+		this.#updateDisabledHooks();
 		return {
 			resourceData: input.resourceData,
 			stop: stop === true
