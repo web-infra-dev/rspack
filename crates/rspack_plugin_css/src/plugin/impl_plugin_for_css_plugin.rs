@@ -78,8 +78,8 @@ impl CssPlugin {
   ) -> (ConcatSource, ConcatSource) {
     let mut start = ConcatSource::default();
     let mut end = ConcatSource::default();
-    let is_dev = compilation.options.mode.is_development();
-    if !is_dev {
+
+    if !compilation.options.mode.is_development() {
       return (start, end);
     }
 

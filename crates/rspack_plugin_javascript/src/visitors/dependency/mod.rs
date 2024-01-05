@@ -92,6 +92,7 @@ pub fn scan_dependencies(
     &mut dependencies,
     &mut presentational_dependencies,
     unresolved_ctxt,
+    module_type,
     &mut ignored,
   ));
 

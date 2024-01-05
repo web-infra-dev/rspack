@@ -53,8 +53,8 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
       let mut swc_options = self.options_with_additional.swc_options.clone();
       if swc_options.config.jsc.transform.as_ref().is_some() {
         let mut transform = TransformConfig::default();
-        let default_development = matches!(loader_context.context.options.mode, Mode::Development);
-        transform.react.development = Some(default_development);
+        transform.react.development =
+          Some(Mode::is_development(&loader_context.context.options.mode));
         swc_options
           .config
           .jsc

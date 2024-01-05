@@ -6,17 +6,14 @@ use rspack_error::miette::Diagnostic;
 use swc_core::{
   common::{Spanned, SyntaxContext},
   ecma::{
-    ast::{
-      AssignExpr, AssignOp, CallExpr, Callee, Expr, Ident, Lit, Pat, PatOrExpr, UnaryExpr,
-      VarDeclarator,
-    },
+    ast::{AssignExpr, AssignOp, CallExpr, Callee, Expr, Ident, Pat, PatOrExpr, VarDeclarator},
     visit::{noop_visit_type, Visit, VisitWith},
   },
 };
 
 use super::expr_matcher;
 use crate::{
-  dependency::{ModuleArgumentDependency, WebpackIsIncludedDependency},
+  dependency::ModuleArgumentDependency,
   no_visit_ignored_stmt,
   parser_plugin::JavascriptParserPlugin,
   utils::eval::{self, BasicEvaluatedExpression},
@@ -36,7 +33,6 @@ pub const WEBPACK_INIT_SHARING: &str = "__webpack_init_sharing__";
 pub const WEBPACK_NONCE: &str = "__webpack_nonce__";
 pub const WEBPACK_CHUNK_NAME: &str = "__webpack_chunkname__";
 pub const WEBPACK_RUNTIME_ID: &str = "__webpack_runtime_id__";
-pub const WEBPACK_IS_INCLUDE: &str = "__webpack_is_included__";
 pub const WEBPACK_REQUIRE: &str = "__webpack_require__";
 
 pub fn get_typeof_evaluate_of_api(sym: &str) -> Option<&str> {
@@ -56,14 +52,6 @@ pub fn get_typeof_evaluate_of_api(sym: &str) -> Option<&str> {
     WEBPACK_NONCE => Some("string"),
     WEBPACK_CHUNK_NAME => Some("string"),
     WEBPACK_RUNTIME_ID => None,
-    WEBPACK_IS_INCLUDE => Some("function"),
-    _ => None,
-  }
-}
-
-pub fn get_typeof_const_of_api(sym: &str) -> Option<&str> {
-  match sym {
-    WEBPACK_IS_INCLUDE => Some("function"),
     _ => None,
   }
 }
@@ -420,52 +408,6 @@ impl Visit for ApiScanner<'_> {
     not_supported_call!(is_require_main_require, "require.main.require()");
     not_supported_call!(is_module_parent_require, "module.parent.require()");
 
-    if let Callee::Expr(box Expr::Ident(ident)) = &call_expr.callee
-      && ident.sym == WEBPACK_IS_INCLUDE
-    {
-      if call_expr.args.len() != 1 {
-        return;
-      }
-      if let Some(arg) = call_expr.args.first() {
-        let request = if arg.spread.is_some() {
-          None
-        } else {
-          arg
-            .expr
-            .as_lit()
-            .and_then(|lit| match lit {
-              Lit::Str(str) => Some(str),
-              _ => None,
-            })
-            .map(|str| str.value.clone())
-        };
-
-        if let Some(request) = request {
-          self
-            .dependencies
-            .push(Box::new(WebpackIsIncludedDependency::new(
-              call_expr.span().real_lo(),
-              call_expr.span().real_hi(),
-              request,
-            )));
-        }
-      }
-    }
     call_expr.visit_children_with(self);
-  }
-  fn visit_unary_expr(&mut self, unary_expr: &UnaryExpr) {
-    if let box Expr::Ident(ident) = &unary_expr.arg {
-      if let Some(res) = get_typeof_const_of_api(ident.sym.as_ref() as &str) {
-        self
-          .presentational_dependencies
-          .push(Box::new(ConstDependency::new(
-            unary_expr.span().real_lo(),
-            unary_expr.span().real_hi(),
-            format!("'{res}'").into(),
-            None,
-          )));
-      }
-    }
-    unary_expr.visit_children_with(self);
   }
 }

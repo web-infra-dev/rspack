@@ -223,6 +223,23 @@ fn handle_logical_and(
   }
 }
 
+fn handle_add(
+  expr: &BinExpr,
+  scanner: &mut CommonJsImportDependencyScanner<'_>,
+) -> Option<BasicEvaluatedExpression> {
+  assert_eq!(expr.op, BinaryOp::Add);
+  let left = scanner.evaluate_expression(&expr.left);
+  let right = scanner.evaluate_expression(&expr.right);
+  let mut res = BasicEvaluatedExpression::new();
+  if left.is_string() && right.is_string() {
+    res.set_string(format!("{}{}", left.string(), right.string()));
+    return Some(res);
+    // TODO: right.is_number....
+  }
+  // TODO: left.is_number....
+  None
+}
+
 pub fn eval_binary_expression(
   scanner: &mut CommonJsImportDependencyScanner<'_>,
   expr: &BinExpr,
@@ -234,6 +251,7 @@ pub fn eval_binary_expression(
     BinaryOp::NotEqEq => handle_strict_equality_comparison(false, expr, scanner),
     BinaryOp::LogicalAnd => handle_logical_and(expr, scanner),
     BinaryOp::LogicalOr => handle_logical_or(expr, scanner),
+    BinaryOp::Add => handle_add(expr, scanner),
     _ => None,
   }
 }

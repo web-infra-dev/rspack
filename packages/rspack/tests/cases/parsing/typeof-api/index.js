@@ -19,6 +19,6 @@ it("should not parse filtered stuff", function () {
 	if (typeof __webpack_init_sharing__ !== "function") require("fail");
 	if (typeof __webpack_nonce__ !== "string") require("fail");
 	if (typeof __webpack_chunkname__ !== "string") require("fail");
-	if (typeof __webpack_is_included__ !== "function") require("fail");
+	// if (typeof __webpack_is_included__ !== "function") require("fail"); // Webpack also can't eval `typeof __webpack_is_included !== "function"`
 	if (typeof __webpack_require__ !== "function") require("fail");
 });
