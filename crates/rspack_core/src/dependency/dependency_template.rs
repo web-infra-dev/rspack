@@ -7,13 +7,13 @@ use crate::{
   Compilation, ConcatenationScope, Module, ModuleInitFragments, RuntimeGlobals, RuntimeSpec,
 };
 
-pub struct TemplateContext<'a, 'b> {
+pub struct TemplateContext<'a, 'b, 'c> {
   pub compilation: &'a Compilation,
   pub module: &'a dyn Module,
   pub runtime_requirements: &'a mut RuntimeGlobals,
   pub init_fragments: &'a mut ModuleInitFragments<'b>,
   pub runtime: Option<&'a RuntimeSpec>,
-  pub concatenation_scope: Option<ConcatenationScope>,
+  pub concatenation_scope: Option<&'c mut ConcatenationScope>,
 }
 
 pub type TemplateReplaceSource = ReplaceSource<BoxSource>;

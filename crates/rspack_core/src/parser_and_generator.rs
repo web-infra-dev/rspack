@@ -49,7 +49,7 @@ pub struct GenerateContext<'a> {
   pub data: &'a mut CodeGenerationData,
   pub requested_source_type: SourceType,
   pub runtime: Option<&'a RuntimeSpec>,
-  pub concatenation_scope: Option<ConcatenationScope>,
+  pub concatenation_scope: Option<&'a mut ConcatenationScope>,
 }
 
 pub trait ParserAndGenerator: Send + Sync + Debug {

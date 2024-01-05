@@ -126,7 +126,7 @@ impl Module for SelfModule {
     &self,
     _compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
-    _: Option<&mut ConcatenationScope>,
+    _: Option<ConcatenationScope>,
   ) -> Result<CodeGenerationResult> {
     Ok(CodeGenerationResult::default())
   }

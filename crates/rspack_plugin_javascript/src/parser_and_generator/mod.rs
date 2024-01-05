@@ -317,7 +317,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         runtime_requirements: generate_context.runtime_requirements,
         init_fragments: &mut init_fragments,
         runtime: generate_context.runtime,
-        concatenation_scope: generate_context.concatenation_scope.as_mut(),
+        concatenation_scope: generate_context.concatenation_scope.take(),
       };
 
       module.get_dependencies().iter().for_each(|dependency_id| {

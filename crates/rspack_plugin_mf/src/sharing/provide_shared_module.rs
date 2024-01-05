@@ -159,7 +159,7 @@ impl Module for ProvideSharedModule {
     &self,
     compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
-    _: Option<&mut ConcatenationScope>,
+    _: Option<ConcatenationScope>,
   ) -> Result<CodeGenerationResult> {
     let mut code_generation_result = CodeGenerationResult::default();
     code_generation_result

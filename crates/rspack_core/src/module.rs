@@ -319,7 +319,7 @@ pub trait Module:
     &self,
     _compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
-    _concatenation_scope: Option<&mut ConcatenationScope>,
+    _concatenation_scope: Option<ConcatenationScope>,
   ) -> Result<CodeGenerationResult>;
 
   /// Name matched against bundle-splitting conditions.

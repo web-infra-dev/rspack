@@ -70,7 +70,7 @@ impl Module for LazyCompilationProxyModule {
     &self,
     compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
-    _: Option<&mut ConcatenationScope>,
+    _: Option<ConcatenationScope>,
   ) -> Result<CodeGenerationResult> {
     let mut cgr = CodeGenerationResult::default();
     cgr.runtime_requirements.insert(RuntimeGlobals::LOAD_SCRIPT);

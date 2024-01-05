@@ -26,14 +26,10 @@ struct ModuleReferenceOptions {
   asi_safe: Option<bool>,
 }
 
-#[allow(unused)]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ConcatenationScope {
   current_module: ConcatenatedModuleInfo,
   modules_map: Arc<HashMap<ModuleIdentifier, ModuleInfo>>,
-  /// Noticed that, this field is rspack only, because defer mutable operation could work around
-  /// rustc borrow checker and avoid clone overhead
-  pub concated_module_namespace_export_symbol: Option<Atom>,
 }
 
 #[allow(unused)]
@@ -45,7 +41,6 @@ impl ConcatenationScope {
     ConcatenationScope {
       current_module,
       modules_map,
-      concated_module_namespace_export_symbol: None,
     }
   }
 
@@ -76,11 +71,7 @@ impl ConcatenationScope {
   }
 
   pub fn register_namespace_export(&mut self, symbol: &str) {
-    if let Some(ModuleInfo::Concatenated(concatenated_module)) =
-      &mut self.modules_map.get(&self.current_module.module)
-    {
-      self.concated_module_namespace_export_symbol = Some(symbol.into());
-    }
+    self.current_module.namespace_export_symbol = Some(symbol.into());
   }
 
   pub fn create_module_reference(

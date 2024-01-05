@@ -126,7 +126,7 @@ macro_rules! impl_runtime_module {
         &self,
         compilation: &$crate::Compilation,
         _runtime: Option<&$crate::RuntimeSpec>,
-        _: Option<&mut ConcatenationScope>,
+        _: Option<ConcatenationScope>,
       ) -> rspack_error::Result<$crate::CodeGenerationResult> {
         let mut result = $crate::CodeGenerationResult::default();
         result.add($crate::SourceType::JavaScript, self.generate(compilation));

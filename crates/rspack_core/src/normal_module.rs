@@ -451,7 +451,7 @@ impl Module for NormalModule {
     &self,
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
-    concatenation_scope: Option<&mut ConcatenationScope>,
+    mut concatenation_scope: Option<ConcatenationScope>,
   ) -> Result<CodeGenerationResult> {
     if let NormalModuleSource::BuiltSucceed(source) = &self.source {
       let mut code_generation_result = CodeGenerationResult::default();
@@ -466,7 +466,7 @@ impl Module for NormalModule {
             data: &mut code_generation_result.data,
             requested_source_type: *source_type,
             runtime,
-            concatenation_scope: &concatenation_scope,
+            concatenation_scope: concatenation_scope.as_mut(),
           },
         )?;
         code_generation_result.add(*source_type, CachedSource::new(generation_result).boxed());

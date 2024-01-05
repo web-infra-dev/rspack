@@ -166,7 +166,7 @@ impl Module for RemoteModule {
     &self,
     compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
-    _: Option<&mut ConcatenationScope>,
+    _: Option<ConcatenationScope>,
   ) -> Result<CodeGenerationResult> {
     let mut codegen = CodeGenerationResult::default();
     let module = compilation.module_graph.get_module(&self.dependencies[0]);

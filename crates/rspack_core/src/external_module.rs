@@ -393,7 +393,7 @@ impl Module for ExternalModule {
     &self,
     compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
-    _: Option<&mut ConcatenationScope>,
+    _: Option<ConcatenationScope>,
   ) -> Result<CodeGenerationResult> {
     let mut cgr = CodeGenerationResult::default();
     let (request, external_type) = self.get_request_and_external_type();

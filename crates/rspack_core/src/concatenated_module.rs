@@ -8,22 +8,35 @@ use std::{
 
 use dashmap::DashMap;
 use once_cell::sync::OnceCell;
-use rspack_error::{Diagnosable, Diagnostic, Result};
+use rspack_ast::javascript::Ast;
+use rspack_error::{
+  miette::{ErrReport, MietteError},
+  AnyhowError, Diagnosable, Diagnostic, DiagnosticKind, ErrorExt, Result,
+};
 use rspack_hash::RspackHash;
 use rspack_identifier::Identifiable;
 use rspack_sources::{BoxSource, Source};
 use rustc_hash::FxHasher;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
-use swc_core::ecma::atoms::Atom;
+use swc_core::{
+  common::{FileName, Spanned},
+  ecma::{
+    ast::{EsVersion, Program},
+    atoms::Atom,
+    parser::{parse_file_as_module, Syntax},
+  },
+};
+use swc_node_comments::SwcComments;
 
 use crate::{
   filter_runtime, merge_runtime_condition, merge_runtime_condition_non_false,
   reserverd_names::RESERVED_NAMES, subtract_runtime_condition, AsyncDependenciesBlockIdentifier,
   BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult, CodeGenerationResult,
   Compilation, ConcatenationScope, ConnectionId, ConnectionState, Context, DependenciesBlock,
-  DependencyId, DependencyTemplate, FactoryMeta, LibIdentOptions, Module, ModuleDependency,
-  ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ModuleType, ParserAndGenerator, Resolve,
-  RuntimeCondition, RuntimeSpec, SourceType, Template, DEFAULT_EXPORT, NAMESPACE_OBJECT_EXPORT,
+  DependencyId, DependencyTemplate, ErrorSpan, FactoryMeta, LibIdentOptions, Module,
+  ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ModuleType,
+  ParserAndGenerator, Resolve, RuntimeCondition, RuntimeSpec, SourceType, Template, DEFAULT_EXPORT,
+  NAMESPACE_OBJECT_EXPORT,
 };
 
 #[derive(Debug)]
@@ -330,7 +343,7 @@ impl Module for ConcatenatedModule {
     &self,
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
-    _: Option<&mut ConcatenationScope>,
+    _: Option<ConcatenationScope>,
   ) -> Result<CodeGenerationResult> {
     let generation_runtime = runtime.cloned().expect("should have runtime");
     let merged_runtime = if let Some(ref runtime) = self.runtime {
@@ -710,9 +723,53 @@ impl ConcatenatedModule {
         .module_graph
         .module_by_identifier(&module_id)
         .expect("should have module");
-      module.code_generation(compilation, runtime, Some(&mut concatenation_scope));
+      module.code_generation(compilation, runtime, Some(concatenation_scope));
+
+      // let cm: Arc<swc_core::common::SourceMap> = Default::default();
+      // let fm = cm.new_source_file(
+      //   FileName::Custom(format!(
+      //     "{}",
+      //     self.readable_identifier(&compilation.options.context),
+      //   )),
+      //   source_code,
+      // );
+      // let comments = SwcComments::default();
+      //
+      // let mut errors = vec![];
+      // let program = match parse_file_as_module(
+      //   &fm,
+      //   Syntax::default(),
+      //   EsVersion::EsNext,
+      //   Some(&comments),
+      //   &mut errors,
+      // ) {
+      //   Ok(res) => Program::Module(res),
+      //   Err(errs) => {
+      //     let span: ErrorSpan = errs.span().into();
+      //     self.diagnostics.lock().unwrap().push(
+      //       rspack_error::miette::Error::new(
+      //         rspack_error::TraceableError::from_source_file(
+      //           &fm,
+      //           span.start as usize,
+      //           span.end as usize,
+      //           format!("JavaScript parsing error"),
+      //           message,
+      //         )
+      //         .with_kind(DiagnosticKind::JavaScript)
+      //         .boxed(),
+      //       )
+      //       .into(),
+      //     );
+      //     return Ok(ModuleInfo::Concatenated(info));
+      //   }
+      // };
+      //
+      // let ast = Ast::new(program, cm, Some(comments));
+      //
+      todo!()
+    } else {
+      Ok(info)
     }
-    todo!()
   }
 
   fn find_new_name(

@@ -145,7 +145,7 @@ impl Module for FallbackModule {
     &self,
     compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
-    _: Option<&mut ConcatenationScope>,
+    _: Option<ConcatenationScope>,
   ) -> Result<CodeGenerationResult> {
     let mut codegen = CodeGenerationResult::default();
     codegen.runtime_requirements.insert(RuntimeGlobals::MODULE);

@@ -792,7 +792,7 @@ impl HarmonyExportImportedSpecifierDependency {
 
   fn get_conditional_reexport_statement(
     &self,
-    ctxt: &mut TemplateContext<'_, '_>,
+    ctxt: &mut TemplateContext<'_, '_, '_>,
     key: Atom,
     name: &String,
     first_value_key: Atom,
@@ -898,7 +898,7 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
         &self.id,
         runtime,
       );
-      if let Some(ref mut scope) = &code_generatable_context.concatenation_scope {
+      if let Some(ref mut scope) = code_generatable_context.concatenation_scope {
         if matches!(mode.ty, ExportModeType::ReexportUndefined) {
           scope.register_raw_export(
             mode.name.clone().expect("should have name"),
