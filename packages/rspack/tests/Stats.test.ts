@@ -66,7 +66,8 @@ describe("Stats", () => {
 		./fixtures/c.js
 		./fixtures/abc.js
 
-		ERROR in ./fixtures/b.js ModuleParseError
+		ERROR in ./fixtures/b.js
+		ModuleParseError
 
 		  × Module parse failed:
 		  ╰─▶   × JavaScript parsing error: Return statement is not allowed here

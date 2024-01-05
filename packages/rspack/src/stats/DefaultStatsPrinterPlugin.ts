@@ -607,9 +607,7 @@ const SIMPLE_PRINTERS: Record<
 	// "error.details": (details, { formatError }) => formatError(details),
 	// "error.stack": stack => stack,
 	// "error.moduleTrace": moduleTrace => undefined,
-	// "error.separator!": () => "\n",
-	// Error was already formatted on the native.
-	// error: error => error,
+	"error.separator!": () => "\n",
 
 	"loggingEntry(error).loggingEntry.message": (message, { red }) =>
 		mapLines(message, x => `<e> ${red(x)}`),

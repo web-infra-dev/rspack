@@ -1,4 +1,5 @@
-ERROR in ./a.js ModuleParseError
+ERROR in ./a.js
+ModuleParseError
 
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expression expected
@@ -12,7 +13,8 @@ ERROR in ./a.js ModuleParseError
   help: 
         You may need an appropriate loader to handle this file type.
 
-ERROR in ./a.js ModuleParseError
+ERROR in ./a.js
+ModuleParseError
 
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expected a semicolon
@@ -27,7 +29,8 @@ ERROR in ./a.js ModuleParseError
   help: 
         You may need an appropriate loader to handle this file type.
 
-ERROR in ./b.js ModuleParseError
+ERROR in ./b.js
+ModuleParseError
 
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expression expected
@@ -41,7 +44,8 @@ ERROR in ./b.js ModuleParseError
   help: 
         You may need an appropriate loader to handle this file type.
 
-ERROR in ./b.js ModuleParseError
+ERROR in ./b.js
+ModuleParseError
 
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expected a semicolon
@@ -56,7 +60,8 @@ ERROR in ./b.js ModuleParseError
   help: 
         You may need an appropriate loader to handle this file type.
 
-ERROR in ./c.js ModuleParseError
+ERROR in ./c.js
+ModuleParseError
 
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expression expected
@@ -70,7 +75,8 @@ ERROR in ./c.js ModuleParseError
   help: 
         You may need an appropriate loader to handle this file type.
 
-ERROR in ./c.js ModuleParseError
+ERROR in ./c.js
+ModuleParseError
 
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expected a semicolon
@@ -85,7 +91,8 @@ ERROR in ./c.js ModuleParseError
   help: 
         You may need an appropriate loader to handle this file type.
 
-ERROR in ./d.js ModuleParseError
+ERROR in ./d.js
+ModuleParseError
 
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expression expected
@@ -99,7 +106,8 @@ ERROR in ./d.js ModuleParseError
   help: 
         You may need an appropriate loader to handle this file type.
 
-ERROR in ./d.js ModuleParseError
+ERROR in ./d.js
+ModuleParseError
 
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expected a semicolon
@@ -114,7 +122,8 @@ ERROR in ./d.js ModuleParseError
   help: 
         You may need an appropriate loader to handle this file type.
 
-ERROR in ./e.js ModuleParseError
+ERROR in ./e.js
+ModuleParseError
 
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expression expected
@@ -128,7 +137,8 @@ ERROR in ./e.js ModuleParseError
   help: 
         You may need an appropriate loader to handle this file type.
 
-ERROR in ./e.js ModuleParseError
+ERROR in ./e.js
+ModuleParseError
 
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expected a semicolon
@@ -143,7 +153,8 @@ ERROR in ./e.js ModuleParseError
   help: 
         You may need an appropriate loader to handle this file type.
 
-ERROR in ./f.js ModuleParseError
+ERROR in ./f.js
+ModuleParseError
 
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expression expected
@@ -157,7 +168,8 @@ ERROR in ./f.js ModuleParseError
   help: 
         You may need an appropriate loader to handle this file type.
 
-ERROR in ./f.js ModuleParseError
+ERROR in ./f.js
+ModuleParseError
 
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expected a semicolon
@@ -172,7 +184,8 @@ ERROR in ./f.js ModuleParseError
   help: 
         You may need an appropriate loader to handle this file type.
 
-ERROR in ./g.js ModuleParseError
+ERROR in ./g.js
+ModuleParseError
 
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expression expected
@@ -186,7 +199,8 @@ ERROR in ./g.js ModuleParseError
   help: 
         You may need an appropriate loader to handle this file type.
 
-ERROR in ./g.js ModuleParseError
+ERROR in ./g.js
+ModuleParseError
 
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expected a semicolon

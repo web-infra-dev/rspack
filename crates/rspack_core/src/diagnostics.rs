@@ -141,34 +141,35 @@ impl From<Box<dyn Diagnostic + Send + Sync>> for WithHelp {
 
 impl miette::Diagnostic for WithHelp {
   fn code<'a>(&'a self) -> Option<Box<dyn Display + 'a>> {
-    (&*self.0).code()
+    (*self.0).code()
   }
 
   fn severity(&self) -> Option<miette::Severity> {
-    (&*self.0).severity()
+    (*self.0).severity()
   }
 
   fn help<'a>(&'a self) -> Option<Box<dyn Display + 'a>> {
+    // Use overwritten help message instead.
     self.1.as_ref().map(Box::new).map(|h| h as Box<dyn Display>)
   }
 
   fn url<'a>(&'a self) -> Option<Box<dyn Display + 'a>> {
-    (&*self.0).url()
+    (*self.0).url()
   }
 
   fn source_code(&self) -> Option<&dyn miette::SourceCode> {
-    (&*self.0).source_code()
+    (*self.0).source_code()
   }
 
   fn labels(&self) -> Option<Box<dyn Iterator<Item = miette::LabeledSpan> + '_>> {
-    (&*self.0).labels()
+    (*self.0).labels()
   }
 
   fn related<'a>(&'a self) -> Option<Box<dyn Iterator<Item = &'a dyn miette::Diagnostic> + 'a>> {
-    (&*self.0).related()
+    (*self.0).related()
   }
 
   fn diagnostic_source(&self) -> Option<&dyn Diagnostic> {
-    (&*self.0).diagnostic_source()
+    (*self.0).diagnostic_source()
   }
 }

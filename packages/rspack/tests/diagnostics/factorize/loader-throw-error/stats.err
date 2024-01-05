@@ -1,4 +1,5 @@
-ERROR in ./lib.js NapiError
+ERROR in ./lib.js
+NapiError
 
   × Napi Error: Error: Failed to load
   │     at Object.<anonymous>.module.exports (<PROJECT_ROOT>/tests/diagnostics/factorize/loader-throw-error/my-loader.js:2:9)

@@ -113,6 +113,21 @@ impl From<TsconfigReferences> for oxc_resolver::TsconfigReferences {
   }
 }
 
+macro_rules! impl_resolve_by_dependency {
+  ($ident:ident) => {
+    pub fn $ident(&self, cat: Option<&DependencyCategory>) -> Option<bool> {
+      cat
+        .and_then(|cat| {
+          self
+            .by_dependency
+            .as_ref()
+            .and_then(|by_dep| by_dep.get(cat).and_then(|d| d.$ident))
+        })
+        .or(self.$ident)
+    }
+  };
+}
+
 impl Resolve {
   pub fn merge_by_dependency(mut self, dependency_type: DependencyCategory) -> Self {
     let Some(mut by_dependency) = self.by_dependency.as_mut().map(std::mem::take) else {
@@ -130,6 +145,9 @@ impl Resolve {
   pub fn merge(self, value: Self) -> Self {
     clever_merge::merge_resolve(self, value)
   }
+
+  impl_resolve_by_dependency!(fully_specified);
+  impl_resolve_by_dependency!(prefer_relative);
 }
 
 type DependencyCategoryStr = Cow<'static, str>;

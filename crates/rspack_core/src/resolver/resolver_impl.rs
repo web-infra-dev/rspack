@@ -6,7 +6,7 @@ use std::{
 
 use rspack_error::{
   miette::{diagnostic, Diagnostic},
-  DiagnosticError, DiagnosticExt, Severity, TraceableError,
+  DiagnosticExt, Severity, TraceableError,
 };
 use rspack_loader_runner::DescriptionData;
 use rustc_hash::FxHashSet as HashSet;
@@ -277,12 +277,15 @@ fn to_oxc_resolver_options(
   }
 }
 
-fn map_oxc_resolver_error(error: oxc_resolver::ResolveError, args: &ResolveArgs<'_>) -> Error {
+fn map_oxc_resolver_error(
+  error: oxc_resolver::ResolveError,
+  args: &ResolveArgs<'_>,
+) -> Box<dyn Diagnostic + Send + Sync> {
   match error {
-    oxc_resolver::ResolveError::IOError(error) => DiagnosticError::from(error.boxed()).into(),
+    oxc_resolver::ResolveError::IOError(error) => diagnostic!("{}", error).boxed(),
     oxc_resolver::ResolveError::Recursion => map_resolver_error(true, args),
     oxc_resolver::ResolveError::NotFound(_) => map_resolver_error(false, args),
-    _ => error!("{}", error),
+    _ => diagnostic!("{}", error).boxed(),
   }
 }
 

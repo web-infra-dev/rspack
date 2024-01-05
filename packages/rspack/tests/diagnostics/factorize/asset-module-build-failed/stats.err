@@ -1,4 +1,5 @@
-ERROR in ./logo.svg NapiError
+ERROR in ./logo.svg
+NapiError
 
   × Napi Error: Error: Failed to load
   │     at Object.<anonymous>.module.exports (<PROJECT_ROOT>/tests/diagnostics/factorize/asset-module-build-failed/my-loader.js:2:8)
