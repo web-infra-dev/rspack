@@ -32,12 +32,10 @@ describe("Stats", () => {
 		chunk {main} main.js (main) [entry]
 		  ./fixtures/a.js [585] {main}
 		    entry ./fixtures/a
-		    cjs self exports reference self [585]
 		./fixtures/a.js [585] {main}
 		  entry ./fixtures/a
-		  cjs self exports reference self [585]
 		  
-		Rspack compiled successfully (38f6d710192d3067d1eb)"
+		Rspack compiled successfully (a62f45ec3d75aa689fa1)"
 	`);
 	});
 
@@ -82,7 +80,7 @@ describe("Stats", () => {
 		  help: 
 		        You may need an appropriate loader to handle this file type.
 
-		Rspack compiled with 1 error (acb0ddfd7b068556fa5f)"
+		Rspack compiled with 1 error (276dbbbbbfe2a12323dd)"
 	`);
 	});
 
@@ -255,7 +253,7 @@ describe("Stats", () => {
 			);
 		});
 		expect(stats).toContain("module build cache: 100.0% (4/4)");
-		expect(stats).toContain("module factorize cache: 100.0% (7/7)");
+		expect(stats).toContain("module factorize cache: 100.0% (5/5)");
 		expect(stats).toContain("module code generation cache: 100.0% (4/4)");
 	});
 

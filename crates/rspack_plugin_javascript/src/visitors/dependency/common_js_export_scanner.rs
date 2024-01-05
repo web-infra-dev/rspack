@@ -273,9 +273,6 @@ impl Visit for CommonJsExportDependencyScanner<'_> {
               // module.exports = {};
               // this = {};
               self.bailout();
-              if expr_matcher::is_module_exports(expr) {
-                assign_expr.left.visit_children_with(self);
-              }
             }
           } else {
             // exports.__esModule = true;
