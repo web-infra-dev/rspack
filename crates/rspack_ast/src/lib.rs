@@ -29,3 +29,16 @@ impl RspackAst {
     }
   }
 }
+
+// rspack_error::miette::Error::new(
+//   rspack_error::TraceableError::from_source_file(
+//     &fm,
+//     span.start as usize,
+//     span.end as usize,
+//     format!("JavaScript parsing error"),
+//     message,
+//   )
+//   .with_kind(DiagnosticKind::JavaScript)
+//   .boxed(),
+// )
+// .into(),

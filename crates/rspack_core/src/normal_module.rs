@@ -476,6 +476,7 @@ impl Module for NormalModule {
         &compilation.options.output.hash_digest,
         &compilation.options.output.hash_salt,
       );
+      code_generation_result.concatenation_scope = concatenation_scope;
       Ok(code_generation_result)
     } else if let NormalModuleSource::BuiltFailed(error_message) = &self.source {
       let mut code_generation_result = CodeGenerationResult::default();

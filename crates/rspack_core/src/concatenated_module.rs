@@ -29,7 +29,7 @@ use swc_core::{
 use swc_node_comments::SwcComments;
 
 use crate::{
-  filter_runtime, merge_runtime_condition, merge_runtime_condition_non_false,
+  concatenated_module, filter_runtime, merge_runtime_condition, merge_runtime_condition_non_false,
   reserverd_names::RESERVED_NAMES, subtract_runtime_condition, AsyncDependenciesBlockIdentifier,
   BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult, CodeGenerationResult,
   Compilation, ConcatenationScope, ConnectionId, ConnectionState, Context, DependenciesBlock,
@@ -723,9 +723,19 @@ impl ConcatenatedModule {
         .module_graph
         .module_by_identifier(&module_id)
         .expect("should have module");
-      let mut res = module.code_generation(compilation, runtime, Some(concatenation_scope))?;
-      let source = res
-        .inner
+      let mut codegen_res =
+        module.code_generation(compilation, runtime, Some(concatenation_scope))?;
+      let CodeGenerationResult {
+        mut inner,
+        data,
+        chunk_init_fragments,
+        runtime_requirements,
+        hash,
+        id,
+        concatenation_scope,
+      } = codegen_res;
+      let concatenation_scope = concatenation_scope.expect("should have concatenation_scope");
+      let source = inner
         .remove(&SourceType::JavaScript)
         .expect("should have javascript source");
       let source_code = source.source().to_string();
@@ -752,7 +762,16 @@ impl ConcatenatedModule {
         Err(err) => {
           let span: ErrorSpan = err.span().into();
           self.diagnostics.lock().unwrap().append(
-            &mut map_box_diagnostics_to_module_parse_diagnostics(vec![err]),
+            &mut map_box_diagnostics_to_module_parse_diagnostics(vec![
+              rspack_error::TraceableError::from_source_file(
+                &fm,
+                span.start as usize,
+                span.end as usize,
+                format!("JavaScript parsing error"),
+                err.kind().msg().to_string(),
+              )
+              .with_kind(DiagnosticKind::JavaScript),
+            ]),
           );
           return Ok(ModuleInfo::Concatenated(concatenation_scope.current_module));
         }
