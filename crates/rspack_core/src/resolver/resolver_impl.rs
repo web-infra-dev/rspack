@@ -219,15 +219,6 @@ impl Resolver {
       Self::OxcResolver(resolver) => {
         let mut context = Default::default();
         let result = resolver.resolve_with_context(path, request, &mut context);
-        println!(
-          "file: {:?}\nmissing:{:?}\nintersection:{:?}",
-          &context.file_dependencies,
-          &context.missing_dependencies,
-          context
-            .file_dependencies
-            .intersection(&context.missing_dependencies)
-            .collect::<HashSet<_>>()
-        );
         resolve_context
           .file_dependencies
           .extend(context.file_dependencies);
