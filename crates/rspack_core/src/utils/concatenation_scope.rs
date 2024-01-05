@@ -28,8 +28,8 @@ struct ModuleReferenceOptions {
 
 #[derive(Debug, Clone)]
 pub struct ConcatenationScope {
-  current_module: ConcatenatedModuleInfo,
-  modules_map: Arc<HashMap<ModuleIdentifier, ModuleInfo>>,
+  pub current_module: ConcatenatedModuleInfo,
+  pub modules_map: Arc<HashMap<ModuleIdentifier, ModuleInfo>>,
 }
 
 #[allow(unused)]

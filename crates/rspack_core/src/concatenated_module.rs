@@ -11,7 +11,7 @@ use once_cell::sync::OnceCell;
 use rspack_ast::javascript::Ast;
 use rspack_error::{
   miette::{ErrReport, MietteError},
-  AnyhowError, Diagnosable, Diagnostic, DiagnosticKind, ErrorExt, Result,
+  AnyhowError, Diagnosable, Diagnostic, DiagnosticKind, ErrorExt, Result, TraceableError,
 };
 use rspack_hash::RspackHash;
 use rspack_identifier::Identifiable;
@@ -723,46 +723,40 @@ impl ConcatenatedModule {
         .module_graph
         .module_by_identifier(&module_id)
         .expect("should have module");
-      module.code_generation(compilation, runtime, Some(concatenation_scope));
+      let mut res = module.code_generation(compilation, runtime, Some(concatenation_scope))?;
+      let source = res
+        .inner
+        .remove(&SourceType::JavaScript)
+        .expect("should have javascript source");
+      let source_code = source.source().to_string();
 
-      // let cm: Arc<swc_core::common::SourceMap> = Default::default();
-      // let fm = cm.new_source_file(
-      //   FileName::Custom(format!(
-      //     "{}",
-      //     self.readable_identifier(&compilation.options.context),
-      //   )),
-      //   source_code,
-      // );
-      // let comments = SwcComments::default();
+      let cm: Arc<swc_core::common::SourceMap> = Default::default();
+      let fm = cm.new_source_file(
+        FileName::Custom(format!(
+          "{}",
+          self.readable_identifier(&compilation.options.context),
+        )),
+        source_code,
+      );
+      let comments = SwcComments::default();
       //
-      // let mut errors = vec![];
-      // let program = match parse_file_as_module(
-      //   &fm,
-      //   Syntax::default(),
-      //   EsVersion::EsNext,
-      //   Some(&comments),
-      //   &mut errors,
-      // ) {
-      //   Ok(res) => Program::Module(res),
-      //   Err(errs) => {
-      //     let span: ErrorSpan = errs.span().into();
-      //     self.diagnostics.lock().unwrap().push(
-      //       rspack_error::miette::Error::new(
-      //         rspack_error::TraceableError::from_source_file(
-      //           &fm,
-      //           span.start as usize,
-      //           span.end as usize,
-      //           format!("JavaScript parsing error"),
-      //           message,
-      //         )
-      //         .with_kind(DiagnosticKind::JavaScript)
-      //         .boxed(),
-      //       )
-      //       .into(),
-      //     );
-      //     return Ok(ModuleInfo::Concatenated(info));
-      //   }
-      // };
+      let mut errors = vec![];
+      let program = match parse_file_as_module(
+        &fm,
+        Syntax::default(),
+        EsVersion::EsNext,
+        Some(&comments),
+        &mut errors,
+      ) {
+        Ok(res) => Program::Module(res),
+        Err(err) => {
+          let span: ErrorSpan = err.span().into();
+          self.diagnostics.lock().unwrap().append(
+            &mut map_box_diagnostics_to_module_parse_diagnostics(vec![err]),
+          );
+          return Ok(ModuleInfo::Concatenated(concatenation_scope.current_module));
+        }
+      };
       //
       // let ast = Ast::new(program, cm, Some(comments));
       //
@@ -853,4 +847,15 @@ pub fn is_harmony_dep_like(dep: &BoxDependency) -> bool {
     "HarmonyImportSpecifierDependency",
   ]
   .contains(&dep.dependency_debug_name())
+}
+
+/// Mark boxed errors as [crate::diagnostics::ModuleParseError],
+/// then, map it to diagnostics
+pub fn map_box_diagnostics_to_module_parse_diagnostics(
+  errors: Vec<TraceableError>,
+) -> Vec<rspack_error::Diagnostic> {
+  errors
+    .into_iter()
+    .map(|e| rspack_error::miette::Error::new(e).into())
+    .collect()
 }
