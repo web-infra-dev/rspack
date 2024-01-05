@@ -20,6 +20,7 @@ use crate::{
   no_visit_ignored_stmt,
   parser_plugin::JavascriptParserPlugin,
   utils::eval::{self, BasicEvaluatedExpression},
+  visitors::extract_member_root,
 };
 
 pub const WEBPACK_HASH: &str = "__webpack_hash__";
@@ -344,15 +345,26 @@ impl Visit for ApiScanner<'_> {
       };
     }
 
-    not_supported_expr!(is_require_extensions, "require.extensions");
-    not_supported_expr!(is_require_ensure, "require.ensure");
-    not_supported_expr!(is_require_config, "require.config");
-    not_supported_expr!(is_require_version, "require.vesrion");
-    not_supported_expr!(is_require_amd, "require.amd");
-    not_supported_expr!(is_require_include, "require.include");
-    not_supported_expr!(is_require_onerror, "require.onError");
-    not_supported_expr!(is_require_main_require, "require.main.require");
-    not_supported_expr!(is_module_parent_require, "module.parent.require");
+    let root = extract_member_root(expr);
+
+    if let Some(root) = root
+      && root.span.ctxt == self.unresolved_ctxt
+    {
+      if root.sym == "require" {
+        not_supported_expr!(is_require_extensions, "require.extensions");
+        not_supported_expr!(is_require_ensure, "require.ensure");
+        not_supported_expr!(is_require_config, "require.config");
+        not_supported_expr!(is_require_version, "require.vesrion");
+        not_supported_expr!(is_require_amd, "require.amd");
+        not_supported_expr!(is_require_include, "require.include");
+        not_supported_expr!(is_require_onerror, "require.onError");
+        not_supported_expr!(is_require_main_require, "require.main.require");
+      }
+
+      if root.sym == "module" {
+        not_supported_expr!(is_module_parent_require, "module.parent.require");
+      }
+    }
 
     if expr_matcher::is_require_cache(expr) {
       self
@@ -414,11 +426,26 @@ impl Visit for ApiScanner<'_> {
       };
     }
 
-    not_supported_call!(is_require_ensure, "require.ensure()");
-    not_supported_call!(is_require_include, "require.include()");
-    not_supported_call!(is_require_onerror, "require.onError()");
-    not_supported_call!(is_require_main_require, "require.main.require()");
-    not_supported_call!(is_module_parent_require, "module.parent.require()");
+    let root = call_expr
+      .callee
+      .as_expr()
+      .and_then(|expr| extract_member_root(expr));
+
+    if let Some(root) = root
+      && root.span.ctxt == self.unresolved_ctxt
+    {
+      if root.sym == "require" {
+        not_supported_call!(is_require_config, "require.config()");
+        not_supported_call!(is_require_ensure, "require.ensure()");
+        not_supported_call!(is_require_include, "require.include()");
+        not_supported_call!(is_require_onerror, "require.onError()");
+        not_supported_call!(is_require_main_require, "require.main.require()");
+      }
+
+      if root.sym == "module" {
+        not_supported_call!(is_module_parent_require, "module.parent.require()");
+      }
+    }
 
     if let Callee::Expr(box Expr::Ident(ident)) = &call_expr.callee
       && ident.sym == WEBPACK_IS_INCLUDE

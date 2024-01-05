@@ -7,7 +7,7 @@ use rustc_hash::FxHashSet as HashSet;
 use swc_core::{
   common::{Spanned, SyntaxContext},
   ecma::{
-    ast::{CallExpr, Expr, ExprOrSpread, MemberExpr, ObjectPat, ObjectPatProp, PropName},
+    ast::{CallExpr, Expr, ExprOrSpread, Ident, MemberExpr, ObjectPat, ObjectPatProp, PropName},
     atoms::{Atom, JsWord},
   },
 };
@@ -449,4 +449,14 @@ pub fn expression_not_supported(
       None,
     )),
   )
+}
+
+pub fn extract_member_root(mut expr: &Expr) -> Option<Ident> {
+  loop {
+    match expr {
+      Expr::Ident(id) => return Some(id.to_owned()),
+      Expr::Member(MemberExpr { obj, .. }) => expr = obj.as_ref(),
+      _ => return None,
+    }
+  }
 }
