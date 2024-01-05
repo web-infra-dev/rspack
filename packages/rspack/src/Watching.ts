@@ -329,10 +329,6 @@ export class Watching {
 			if (err) return handleError(err, cbs);
 			// @ts-expect-error
 			this.handler(null, stats);
-			console.log(
-				[...compilation.fileDependencies],
-				[...compilation.missingDependencies]
-			);
 
 			process.nextTick(() => {
 				if (!this.#closed) {

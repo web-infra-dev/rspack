@@ -96,7 +96,7 @@ describe("StatsTestCases", () => {
 
 			expect(statsJson).toMatchSnapshot();
 			let statsString = stats.toString(statsOptions);
-			expect(statsString.replace(/\n[ ]+│ /, "")).toMatchSnapshot();
+			expect(replace(statsString)).toMatchSnapshot();
 		});
 	});
 });
