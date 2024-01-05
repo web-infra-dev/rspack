@@ -102,6 +102,7 @@ pub fn scan_dependencies(
     &mut presentational_dependencies,
     compiler_options.output.module,
     build_info,
+    &mut warning_diagnostics,
     &mut ignored,
   ));
 
