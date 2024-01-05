@@ -207,13 +207,19 @@ module.exports = function () {
 				webpackRequire: __webpack_require__
 			})
 		);
-		override(__webpack_require__, "initContainer", (shareScope, initScope) =>
-			__module_federation_bundler_runtime__.bundlerRuntime.initContainerEntry({
-				shareScope,
-				initScope,
-				shareScopeKey: containerShareScope,
-				webpackRequire: __webpack_require__
-			})
+		override(
+			__webpack_require__,
+			"initContainer",
+			(shareScope, initScope, remoteEntryInitOptions) =>
+				__module_federation_bundler_runtime__.bundlerRuntime.initContainerEntry(
+					{
+						shareScope,
+						initScope,
+						remoteEntryInitOptions,
+						shareScopeKey: containerShareScope,
+						webpackRequire: __webpack_require__
+					}
+				)
 		);
 		override(__webpack_require__, "getContainer", (module, getScope) => {
 			var moduleMap = __webpack_require__.initializeExposesData.moduleMap;
