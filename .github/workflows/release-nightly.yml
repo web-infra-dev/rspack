@@ -124,7 +124,7 @@ jobs:
           node-version: 18
       - shell: bash
         run: ./scripts/alert/lark.js
-        with:
+        env:
           TITLE: Nightly release failed
           DESCRIPTION: |
             commitID: [${{github.sha}}](${{github.server_url}}/${{github.repository}}/commit/${{github.sha}})
@@ -132,7 +132,7 @@ jobs:
           LARK_WEBHOOK_URL: ${{secrets.LARK_WEBHOOK_URL}}
       - shell: bash
         run: ./scripts/alert/discord.js
-        with:
+        env:
           TITLE: Nightly release failed
           DESCRIPTION: |
             commitID: [${{github.sha}}](${{github.server_url}}/${{github.repository}}/commit/${{github.sha}})
