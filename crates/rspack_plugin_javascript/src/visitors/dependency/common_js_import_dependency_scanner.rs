@@ -1,7 +1,9 @@
 use std::rc::Rc;
 
 use itertools::Itertools;
-use rspack_core::{context_reg_exp, ContextOptions, DependencyCategory, DependencyLocation};
+use rspack_core::{
+  context_reg_exp, ContextOptions, DependencyCategory, DependencyLocation, ModuleType,
+};
 use rspack_core::{BoxDependency, ConstDependency, ContextMode, ContextNameSpaceObject};
 use rspack_core::{DependencyTemplate, SpanExt};
 use swc_core::common::{Spanned, SyntaxContext};
@@ -20,30 +22,9 @@ use crate::dependency::{
   CommonJsFullRequireDependency, CommonJsRequireContextDependency, RequireHeaderDependency,
 };
 use crate::dependency::{CommonJsRequireDependency, RequireResolveDependency};
-use crate::parser_plugin::{
-  BoxJavascriptParserPlugin, JavaScriptParserPluginDrive, JavascriptParserPlugin,
-  RequireContextDependencyParserPlugin,
-};
+use crate::parser_plugin::{self, JavaScriptParserPluginDrive, JavascriptParserPlugin};
 use crate::utils::eval::{self, BasicEvaluatedExpression};
 use crate::utils::{expression_logic_operator, statement_if};
-
-struct CommonJsImportsParserPlugin;
-
-impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
-  fn evaluate_typeof(
-    &self,
-    expression: &swc_core::ecma::ast::Ident,
-    start: u32,
-    end: u32,
-    unresolved_mark: swc_core::common::SyntaxContext,
-  ) -> Option<BasicEvaluatedExpression> {
-    if expression.sym.as_str() == "require" && expression.span.ctxt == unresolved_mark {
-      Some(eval::evaluate_to_string("function".to_string(), start, end))
-    } else {
-      None
-    }
-  }
-}
 
 pub struct CommonJsImportDependencyScanner<'a> {
   pub(crate) dependencies: &'a mut Vec<BoxDependency>,
@@ -88,13 +69,19 @@ impl<'a> CommonJsImportDependencyScanner<'a> {
     dependencies: &'a mut Vec<BoxDependency>,
     presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
     unresolved_ctxt: SyntaxContext,
+    module_type: &ModuleType,
     ignored: &'a mut Vec<DependencyLocation>,
   ) -> Self {
-    let plugins: Vec<BoxJavascriptParserPlugin> = vec![
-      Box::new(CommonJsImportsParserPlugin),
-      Box::new(RequireContextDependencyParserPlugin),
+    let mut plugins: Vec<parser_plugin::BoxJavascriptParserPlugin> = vec![
+      Box::new(parser_plugin::CommonJsImportsParserPlugin),
+      Box::new(parser_plugin::RequireContextDependencyParserPlugin),
       Box::new(ApiParserPlugin),
     ];
+
+    if module_type.is_js_auto() || module_type.is_js_dynamic() || module_type.is_js_esm() {
+      plugins.push(Box::new(parser_plugin::WebpackIsIncludedPlugin));
+    }
+
     let plugin_drive = JavaScriptParserPluginDrive::new(plugins);
     Self {
       dependencies,
@@ -346,6 +333,16 @@ impl<'a> Visit for CommonJsImportDependencyScanner<'a> {
   }
 
   fn visit_unary_expr(&mut self, unary_expr: &UnaryExpr) {
+    if unary_expr.op == UnaryOp::TypeOf
+      && self
+        .plugin_drive
+        .clone()
+        .r#typeof(self, unary_expr)
+        .unwrap_or_default()
+    {
+      return;
+    }
+
     if let UnaryExpr {
       op: UnaryOp::TypeOf,
       arg: box expr,

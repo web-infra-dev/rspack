@@ -42,4 +42,19 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     }
     None
   }
+
+  fn r#typeof(
+    &self,
+    parser: &mut CommonJsImportDependencyScanner<'_>,
+    expr: &swc_core::ecma::ast::UnaryExpr,
+  ) -> Option<bool> {
+    for plugin in &self.plugins {
+      let res = plugin.r#typeof(parser, expr);
+      // `SyncBailHook`
+      if res.is_some() {
+        return res;
+      }
+    }
+    None
+  }
 }
