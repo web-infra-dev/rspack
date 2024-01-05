@@ -105,7 +105,7 @@ pub(crate) mod expr_matcher {
     is_import_meta_url: "import.meta.url",
     is_import_meta: "import.meta",
     is_object_define_property: "Object.defineProperty",
-    // unsupported require property
+    // unsupported
     is_require_extensions: "require.extensions",
     is_require_ensure: "require.ensure",
     is_require_config: "require.config",
@@ -113,6 +113,8 @@ pub(crate) mod expr_matcher {
     is_require_amd: "require.amd",
     is_require_include: "require.include",
     is_require_onerror: "require.onError",
+    is_require_main_require: "require.main.require",
+    is_module_parent_require: "module.parent.require",
   });
 }
 

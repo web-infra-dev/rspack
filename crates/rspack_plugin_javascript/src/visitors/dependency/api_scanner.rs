@@ -351,6 +351,8 @@ impl Visit for ApiScanner<'_> {
     not_supported_expr!(is_require_amd, "require.amd");
     not_supported_expr!(is_require_include, "require.include");
     not_supported_expr!(is_require_onerror, "require.onError");
+    not_supported_expr!(is_require_main_require, "require.main.require");
+    not_supported_expr!(is_module_parent_require, "module.parent.require");
 
     if expr_matcher::is_require_cache(expr) {
       self
@@ -360,6 +362,23 @@ impl Visit for ApiScanner<'_> {
           expr.span().real_hi(),
           RuntimeGlobals::MODULE_CACHE.name().into(),
           Some(RuntimeGlobals::MODULE_CACHE),
+        )));
+    } else if expr_matcher::is_require_main(expr) {
+      let mut runtime_requirements = RuntimeGlobals::default();
+      runtime_requirements.insert(RuntimeGlobals::MODULE_CACHE);
+      runtime_requirements.insert(RuntimeGlobals::ENTRY_MODULE_ID);
+      self
+        .presentational_dependencies
+        .push(Box::new(ConstDependency::new(
+          expr.span().real_lo(),
+          expr.span().real_hi(),
+          format!(
+            "{}[{}]",
+            RuntimeGlobals::MODULE_CACHE,
+            RuntimeGlobals::ENTRY_MODULE_ID
+          )
+          .into(),
+          Some(runtime_requirements),
         )));
     } else if expr_matcher::is_webpack_module_id(expr) {
       self
@@ -398,6 +417,8 @@ impl Visit for ApiScanner<'_> {
     not_supported_call!(is_require_ensure, "require.ensure()");
     not_supported_call!(is_require_include, "require.include()");
     not_supported_call!(is_require_onerror, "require.onError()");
+    not_supported_call!(is_require_main_require, "require.main.require()");
+    not_supported_call!(is_module_parent_require, "module.parent.require()");
 
     if let Callee::Expr(box Expr::Ident(ident)) = &call_expr.callee
       && ident.sym == WEBPACK_IS_INCLUDE
