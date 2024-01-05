@@ -1,3 +1,4 @@
+import path from "node:path";
 import { ExternalsType, externalsType } from "../config";
 import { Compiler } from "../Compiler";
 import { type ModuleFederationPluginV1Options } from "./ModuleFederationPluginV1";
@@ -6,15 +7,22 @@ import { isValidate } from "../util/validate";
 
 export interface ModuleFederationPluginOptions
 	extends Omit<ModuleFederationPluginV1Options, "enhanced"> {
-	runtimePlugins?: string[];
+	runtimePlugins?: RuntimePlugins;
 	implementation?: string;
 }
+export type RuntimePlugins = string[];
 
 export class ModuleFederationPlugin {
 	constructor(private _options: ModuleFederationPluginOptions) {}
 
 	apply(compiler: Compiler) {
 		const { webpack } = compiler;
+		const paths = getPaths(this._options);
+		compiler.options.resolve.alias = {
+			"@module-federation/runtime-tools": paths.runtimeTools,
+			"@module-federation/runtime": paths.runtime,
+			...compiler.options.resolve.alias
+		};
 		compiler.hooks.afterPlugins.tap(ModuleFederationPlugin.name, () => {
 			new webpack.EntryPlugin(
 				compiler.context,
@@ -27,6 +35,12 @@ export class ModuleFederationPlugin {
 			enhanced: true
 		}).apply(compiler);
 	}
+}
+
+interface RuntimePaths {
+	runtimeTools: string;
+	bundlerRuntime: string;
+	runtime: string;
 }
 
 interface RemoteInfo {
@@ -123,18 +137,28 @@ function getRuntimePlugins(options: ModuleFederationPluginOptions) {
 	return options.runtimePlugins ?? [];
 }
 
-function getImplementation(options: ModuleFederationPluginOptions) {
-	return (
+function getPaths(options: ModuleFederationPluginOptions): RuntimePaths {
+	const runtimeToolsPath =
 		options.implementation ??
-		require.resolve("@module-federation/runtime-tools/webpack-bundler-runtime")
+		require.resolve("@module-federation/runtime-tools");
+	const bundlerRuntimePath = require.resolve(
+		"@module-federation/webpack-bundler-runtime",
+		{ paths: [runtimeToolsPath] }
 	);
+	const runtimePath = require.resolve("@module-federation/runtime", {
+		paths: [runtimeToolsPath]
+	});
+	return {
+		runtimeTools: runtimeToolsPath,
+		bundlerRuntime: bundlerRuntimePath,
+		runtime: runtimePath
+	};
 }
 
 function getDefaultEntryRuntime(
 	options: ModuleFederationPluginOptions,
 	compiler: Compiler
 ) {
-	const implementationPath = getImplementation(options);
 	const runtimePlugins = getRuntimePlugins(options);
 	const remoteInfos = getRemoteInfos(options);
 	const runtimePluginImports = [];
@@ -147,9 +171,7 @@ function getDefaultEntryRuntime(
 		runtimePluginVars.push(`${runtimePluginVar}()`);
 	}
 	const content = [
-		`import __module_federation_implementation__ from ${JSON.stringify(
-			implementationPath
-		)}`,
+		`import __module_federation_bundler_runtime__ from "@module-federation/runtime-tools/webpack-bundler-runtime"`,
 		...runtimePluginImports,
 		`const __module_federation_runtime_plugins__ = [${runtimePluginVars.join(
 			", "
