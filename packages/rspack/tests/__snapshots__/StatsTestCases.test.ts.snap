@@ -557,7 +557,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "ccf0aa4014db24570448",
+  "hash": "aa854b02c22baae28c0d",
   "logging": {},
   "modules": [
     {
@@ -750,13 +750,13 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
         "main",
       ],
       "id": "",
-      "identifier": "webpack/runtime/get_chunk_filename/javascript",
+      "identifier": "webpack/runtime/get javascript chunk filename",
       "issuer": undefined,
       "issuerId": undefined,
       "issuerName": undefined,
       "issuerPath": [],
       "moduleType": "runtime",
-      "name": "webpack/runtime/get_chunk_filename/javascript",
+      "name": "webpack/runtime/get javascript chunk filename",
       "nameForCondition": undefined,
       "orphan": false,
       "reasons": [],
@@ -808,9 +808,9 @@ webpack/runtime/load_chunk_with_block {main}
 webpack/runtime/make_namespace_object {main}
 webpack/runtime/require_chunk_loading {main}
 webpack/runtime/define_property_getters {main}
-webpack/runtime/get_chunk_filename/javascript {main}
+webpack/runtime/get javascript chunk filename {main}
   
-Rspack compiled successfully (ccf0aa4014db24570448)"
+Rspack compiled successfully (aa854b02c22baae28c0d)"
 `;
 
 exports[`StatsTestCases should print correct stats for hot+production 1`] = `
@@ -2193,7 +2193,7 @@ import(/* webpackChunkName: "c" */ "./c");
       "errors": [],
       "errorsCount": 0,
       "filteredModules": undefined,
-      "hash": "5eb6e2cc950e8704fa55",
+      "hash": "8db177edda1eeeae2f77",
       "logging": {},
       "modules": [
         {
@@ -2525,13 +2525,13 @@ import(/* webpackChunkName: "c" */ "./c");
             "main",
           ],
           "id": "",
-          "identifier": "webpack/runtime/get_chunk_filename/javascript",
+          "identifier": "webpack/runtime/get javascript chunk filename",
           "issuer": undefined,
           "issuerId": undefined,
           "issuerName": undefined,
           "issuerPath": [],
           "moduleType": "runtime",
-          "name": "webpack/runtime/get_chunk_filename/javascript",
+          "name": "webpack/runtime/get javascript chunk filename",
           "nameForCondition": undefined,
           "orphan": false,
           "reasons": [],
@@ -2898,7 +2898,7 @@ import(/* webpackChunkName: "c" */ "./c");
       "errors": [],
       "errorsCount": 0,
       "filteredModules": undefined,
-      "hash": "6f4b77678c9322ad7332",
+      "hash": "b6f02263cb1b374a3914",
       "logging": {},
       "modules": [
         {
@@ -3230,13 +3230,13 @@ import(/* webpackChunkName: "c" */ "./c");
             "main",
           ],
           "id": "",
-          "identifier": "webpack/runtime/get_chunk_filename/javascript",
+          "identifier": "webpack/runtime/get javascript chunk filename",
           "issuer": undefined,
           "issuerId": undefined,
           "issuerName": undefined,
           "issuerPath": [],
           "moduleType": "runtime",
-          "name": "webpack/runtime/get_chunk_filename/javascript",
+          "name": "webpack/runtime/get javascript chunk filename",
           "nameForCondition": undefined,
           "orphan": false,
           "reasons": [],
@@ -3637,7 +3637,7 @@ import(/* webpackChunkName: "c" */ "./c");
       "errors": [],
       "errorsCount": 0,
       "filteredModules": undefined,
-      "hash": "129bf5e45fb1496ecac4",
+      "hash": "3a497e803ce609a73666",
       "logging": {},
       "modules": [
         {
@@ -3969,13 +3969,13 @@ import(/* webpackChunkName: "c" */ "./c");
             "main",
           ],
           "id": "",
-          "identifier": "webpack/runtime/get_chunk_filename/javascript",
+          "identifier": "webpack/runtime/get javascript chunk filename",
           "issuer": undefined,
           "issuerId": undefined,
           "issuerName": undefined,
           "issuerPath": [],
           "moduleType": "runtime",
-          "name": "webpack/runtime/get_chunk_filename/javascript",
+          "name": "webpack/runtime/get javascript chunk filename",
           "nameForCondition": undefined,
           "orphan": false,
           "reasons": [],
@@ -4021,7 +4021,7 @@ import(/* webpackChunkName: "c" */ "./c");
   ],
   "errors": [],
   "errorsCount": 0,
-  "hash": "6e5966ea5b430a83dcf25eb6e2cc950e8704fa556f4b77678c9322ad7332129bf5e45fb1496ecac4",
+  "hash": "6e5966ea5b430a83dcf28db177edda1eeeae2f77b6f02263cb1b374a39143a497e803ce609a73666",
   "warnings": [],
   "warningsCount": 0,
 }
@@ -4098,9 +4098,9 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   webpack/runtime/require_chunk_loading {main}
   webpack/runtime/define_property_getters {main}
   webpack/runtime/create_fake_namespace_object {main}
-  webpack/runtime/get_chunk_filename/javascript {main}
+  webpack/runtime/get javascript chunk filename {main}
     
-  2 chunks compiled successfully (5eb6e2cc950e8704fa55)
+  2 chunks compiled successfully (8db177edda1eeeae2f77)
 
 3 chunks:
   PublicPath: (none)
@@ -4139,9 +4139,9 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   webpack/runtime/require_chunk_loading {main}
   webpack/runtime/define_property_getters {main}
   webpack/runtime/create_fake_namespace_object {main}
-  webpack/runtime/get_chunk_filename/javascript {main}
+  webpack/runtime/get javascript chunk filename {main}
     
-  3 chunks compiled successfully (6f4b77678c9322ad7332)
+  3 chunks compiled successfully (b6f02263cb1b374a3914)
 
 4 chunks:
   PublicPath: (none)
@@ -4182,9 +4182,9 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   webpack/runtime/require_chunk_loading {main}
   webpack/runtime/define_property_getters {main}
   webpack/runtime/create_fake_namespace_object {main}
-  webpack/runtime/get_chunk_filename/javascript {main}
+  webpack/runtime/get javascript chunk filename {main}
     
-  4 chunks compiled successfully (129bf5e45fb1496ecac4)"
+  4 chunks compiled successfully (3a497e803ce609a73666)"
 `;
 
 exports[`StatsTestCases should print correct stats for loader-builtin-swc-plugin-warn 1`] = `

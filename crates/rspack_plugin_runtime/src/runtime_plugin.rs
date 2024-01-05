@@ -332,6 +332,7 @@ impl Plugin for RuntimePlugin {
           chunk,
           GetChunkFilenameRuntimeModule::new(
             "javascript",
+            "javascript",
             SourceType::JavaScript,
             RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME.to_string(),
             |_| false,
@@ -348,6 +349,7 @@ impl Plugin for RuntimePlugin {
         RuntimeGlobals::GET_CHUNK_CSS_FILENAME => compilation.add_runtime_module(
           chunk,
           GetChunkFilenameRuntimeModule::new(
+            "css",
             "css",
             SourceType::Css,
             RuntimeGlobals::GET_CHUNK_CSS_FILENAME.to_string(),
