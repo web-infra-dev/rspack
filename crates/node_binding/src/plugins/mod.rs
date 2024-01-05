@@ -59,7 +59,7 @@ pub struct JsHooksAdapter {
   pub chunk_asset_tsfn: ThreadsafeFunction<JsChunkAssetArgs, ()>,
   pub before_resolve: ThreadsafeFunction<BeforeResolveData, (Option<bool>, BeforeResolveData)>,
   pub after_resolve: ThreadsafeFunction<AfterResolveData, Option<bool>>,
-  pub context_module_before_resolve: ThreadsafeFunction<BeforeResolveData, Option<bool>>,
+  pub context_module_factory_before_resolve: ThreadsafeFunction<BeforeResolveData, Option<bool>>,
   pub normal_module_factory_create_module: ThreadsafeFunction<CreateModuleData, ()>,
   pub normal_module_factory_resolve_for_scheme:
     ThreadsafeFunction<JsResolveForSchemeInput, JsResolveForSchemeResult>,
@@ -207,8 +207,11 @@ impl rspack_core::Plugin for JsHooksAdapter {
     _ctx: rspack_core::PluginContext,
     args: &mut NormalModuleBeforeResolveArgs,
   ) -> PluginNormalModuleFactoryBeforeResolveOutput {
+    if self.is_hook_disabled(&Hook::ContextModuleFactoryBeforeResolve) {
+      return Ok(None);
+    }
     self
-      .context_module_before_resolve
+      .context_module_factory_before_resolve
       .call(args.clone().into(), ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
@@ -220,6 +223,9 @@ impl rspack_core::Plugin for JsHooksAdapter {
     _ctx: rspack_core::PluginContext,
     args: &mut NormalModuleCreateData<'_>,
   ) -> PluginNormalModuleFactoryCreateModuleHookOutput {
+    if self.is_hook_disabled(&Hook::NormalModuleFactoryCreateModule) {
+      return Ok(None);
+    }
     self
       .normal_module_factory_create_module
       .call(args.into(), ThreadsafeFunctionCallMode::NonBlocking)
@@ -861,7 +867,7 @@ impl JsHooksAdapter {
       optimize_chunk_modules,
       before_resolve,
       after_resolve,
-      context_module_before_resolve,
+      context_module_factory_before_resolve,
       normal_module_factory_create_module,
       normal_module_factory_resolve_for_scheme,
       before_compile,
@@ -936,8 +942,8 @@ impl JsHooksAdapter {
       js_fn_into_threadsafe_fn!(build_module, env);
     let finish_modules_tsfn: ThreadsafeFunction<JsCompilation, ()> =
       js_fn_into_threadsafe_fn!(finish_modules, env);
-    let context_module_before_resolve: ThreadsafeFunction<BeforeResolveData, Option<bool>> =
-      js_fn_into_threadsafe_fn!(context_module_before_resolve, env);
+    let context_module_factory_before_resolve: ThreadsafeFunction<BeforeResolveData, Option<bool>> =
+      js_fn_into_threadsafe_fn!(context_module_factory_before_resolve, env);
     let before_resolve: ThreadsafeFunction<BeforeResolveData, (Option<bool>, BeforeResolveData)> =
       js_fn_into_threadsafe_fn!(before_resolve, env);
     let after_resolve: ThreadsafeFunction<AfterResolveData, Option<bool>> =
@@ -989,7 +995,7 @@ impl JsHooksAdapter {
       before_compile_tsfn,
       after_compile_tsfn,
       before_resolve,
-      context_module_before_resolve,
+      context_module_factory_before_resolve,
       normal_module_factory_create_module,
       normal_module_factory_resolve_for_scheme,
       finish_modules_tsfn,

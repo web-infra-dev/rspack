@@ -37,7 +37,7 @@ pub struct JsHooks {
   pub build_module: JsFunction,
   pub before_resolve: JsFunction,
   pub after_resolve: JsFunction,
-  pub context_module_before_resolve: JsFunction,
+  pub context_module_factory_before_resolve: JsFunction,
   pub normal_module_factory_create_module: JsFunction,
   pub normal_module_factory_resolve_for_scheme: JsFunction,
   pub chunk_asset: JsFunction,
