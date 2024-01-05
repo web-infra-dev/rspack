@@ -3,7 +3,7 @@ use std::{
   sync::{Arc, Mutex},
 };
 
-use rspack_error::{Diagnostic, Result};
+use rspack_error::{Diagnostic, Result, TWithDiagnosticArray};
 use rspack_loader_runner::ResourceData;
 use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
@@ -254,10 +254,15 @@ impl PluginDriver {
     args: RenderManifestArgs<'_>,
   ) -> PluginRenderManifestHookOutput {
     let mut assets = vec![];
+    let mut diagnostics = vec![];
+
     for plugin in &self.plugins {
       let res = plugin
         .render_manifest(PluginContext::new(), args.clone())
         .await?;
+
+      let (res, diags) = res.split_into_parts();
+
       tracing::trace!(
         "For Chunk({:?}), Plugin({}) generate files {:?}",
         args.chunk().id,
@@ -267,9 +272,11 @@ impl PluginDriver {
           .map(|manifest| manifest.filename())
           .collect::<Vec<_>>()
       );
+
       assets.extend(res);
+      diagnostics.extend(diags);
     }
-    Ok(assets)
+    Ok(TWithDiagnosticArray::new(assets, diagnostics))
   }
 
   pub async fn render_chunk(&self, args: RenderChunkArgs<'_>) -> PluginRenderChunkHookOutput {
