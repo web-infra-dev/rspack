@@ -15,15 +15,16 @@ use rspack_error::{
 };
 use rspack_hash::RspackHash;
 use rspack_identifier::Identifiable;
-use rspack_sources::{BoxSource, Source};
+use rspack_sources::{BoxSource, ReplaceSource, Source};
 use rustc_hash::FxHasher;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::{
-  common::{FileName, Spanned},
+  common::{FileName, Spanned, SyntaxContext},
   ecma::{
     ast::{EsVersion, Program},
     atoms::Atom,
     parser::{parse_file_as_module, Syntax},
+    transforms::base::resolver,
   },
 };
 use swc_node_comments::SwcComments;
@@ -31,12 +32,12 @@ use swc_node_comments::SwcComments;
 use crate::{
   concatenated_module, filter_runtime, merge_runtime_condition, merge_runtime_condition_non_false,
   reserverd_names::RESERVED_NAMES, subtract_runtime_condition, AsyncDependenciesBlockIdentifier,
-  BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult, CodeGenerationResult,
-  Compilation, ConcatenationScope, ConnectionId, ConnectionState, Context, DependenciesBlock,
-  DependencyId, DependencyTemplate, ErrorSpan, FactoryMeta, LibIdentOptions, Module,
-  ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ModuleType,
-  ParserAndGenerator, Resolve, RuntimeCondition, RuntimeSpec, SourceType, Template, DEFAULT_EXPORT,
-  NAMESPACE_OBJECT_EXPORT,
+  BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult, ChunkInitFragments,
+  CodeGenerationResult, Compilation, ConcatenationScope, ConnectionId, ConnectionState, Context,
+  DependenciesBlock, DependencyId, DependencyTemplate, ErrorSpan, FactoryMeta, LibIdentOptions,
+  Module, ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ModuleType,
+  ParserAndGenerator, Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType, Template,
+  DEFAULT_EXPORT, NAMESPACE_OBJECT_EXPORT,
 };
 
 #[derive(Debug)]
@@ -110,6 +111,13 @@ pub struct ConcatenatedModuleInfo {
   pub export_map: HashMap<Atom, String>,
   pub raw_export_map: HashMap<Atom, String>,
   pub namespace_export_symbol: Option<Atom>,
+  pub chunk_init_fragments: ChunkInitFragments,
+  pub module_ctxt: SyntaxContext,
+  pub global_ctxt: SyntaxContext,
+  pub runtime_requirements: RuntimeGlobals,
+  pub ast: Ast,
+  pub source: ReplaceSource<Arc<dyn Source>>,
+  pub internal_source: Arc<dyn Source>,
 }
 
 pub struct ConnectionWithRuntimeCondition {
@@ -364,14 +372,22 @@ impl Module for ConcatenatedModule {
     // Generate source code and analyze scopes
     // Prepare a ReplaceSource for the final source
     //
+    let mut updated_pairs = vec![];
     let arc_map = Arc::new(module_to_info_map);
     for (id, info) in arc_map.iter() {
-      let updated_info = self.analyze_module(
+      let updated_module_info = self.analyze_module(
         compilation,
         Arc::clone(&arc_map),
         info.clone(),
         Some(&merged_runtime),
       )?;
+      updated_pairs.push((*id, updated_module_info));
+    }
+    let mut module_to_info_map =
+      Arc::into_inner(arc_map).expect("reference count should only by one");
+
+    for (id, module_info) in updated_pairs {
+      module_to_info_map.insert(id, module_info);
     }
 
     let all_used_name = HashSet::from_iter(RESERVED_NAMES.iter().map(|item| Atom::from(*item)));
@@ -716,7 +732,7 @@ impl ConcatenatedModule {
     info: ModuleInfo,
     runtime: Option<&RuntimeSpec>,
   ) -> Result<ModuleInfo> {
-    if let ModuleInfo::Concatenated(info) = info {
+    if let ModuleInfo::Concatenated(mut info) = info {
       let module_id = info.module;
       let mut concatenation_scope = ConcatenationScope::new(module_info_map, info);
       let module = compilation
@@ -749,7 +765,7 @@ impl ConcatenatedModule {
         source_code,
       );
       let comments = SwcComments::default();
-      //
+      let mut module_info = concatenation_scope.current_module;
       let mut errors = vec![];
       let program = match parse_file_as_module(
         &fm,
@@ -773,13 +789,32 @@ impl ConcatenatedModule {
               .with_kind(DiagnosticKind::JavaScript),
             ]),
           );
-          return Ok(ModuleInfo::Concatenated(concatenation_scope.current_module));
+          return Ok(ModuleInfo::Concatenated(module_info));
         }
       };
-      //
-      // let ast = Ast::new(program, cm, Some(comments));
-      //
-      todo!()
+      let mut ast = Ast::new(program, cm, Some(comments));
+
+      let mut global_ctxt = SyntaxContext::empty();
+      let mut module_ctxt = SyntaxContext::empty();
+
+      ast.transform(|program, context| {
+        global_ctxt = global_ctxt.apply_mark(context.unresolved_mark);
+        module_ctxt = module_ctxt.apply_mark(context.top_level_mark);
+        program.visit_mut_with(&mut resolver(
+          context.unresolved_mark,
+          context.top_level_mark,
+          false,
+        ));
+      });
+
+      let result_source = ReplaceSource::new(source.clone());
+      module_info.module_ctxt = module_ctxt;
+      module_info.global_ctxt = global_ctxt;
+      module_info.ast = ast;
+      module_info.runtime_requirements = runtime_requirements;
+      module_info.internal_source = source;
+      module_info.source = result_source;
+      return Ok(ModuleInfo::Concatenated(module_info));
     } else {
       Ok(info)
     }
