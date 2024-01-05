@@ -80,9 +80,23 @@ describe("StatsTestCases", () => {
 				expect(statsJson.errors.length === 0);
 			}
 
+			// Remove the "|" padding from miette,
+			// used to ensure no line breaks with padding being returned,
+			// which breaks local and CI checks.
+			const replace = (s: string) => s.replace(/\n[ ]+│ /, "");
+
+			statsJson.errors?.forEach(e => {
+				e.message = replace(e.message);
+				e.formatted = replace(e.formatted);
+			});
+			statsJson.warnings?.forEach(e => {
+				e.message = replace(e.message);
+				e.formatted = replace(e.formatted);
+			});
+
 			expect(statsJson).toMatchSnapshot();
 			let statsString = stats.toString(statsOptions);
-			expect(statsString).toMatchSnapshot();
+			expect(statsString.replace(/\n[ ]+│ /, "")).toMatchSnapshot();
 		});
 	});
 });
