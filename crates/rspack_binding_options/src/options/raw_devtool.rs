@@ -1,14 +1,13 @@
 use std::sync::Arc;
 
-use derivative::Derivative;
 use napi::bindgen_prelude::Either3;
 use napi::{Either, Env, JsFunction};
 use napi_derive::napi;
-use rspack_core::{Rule, Rules};
 use rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
-use rspack_napi_shared::{get_napi_env, JsRegExp, JsRegExpExt, NapiResultExt};
+use rspack_napi_shared::{get_napi_env, NapiResultExt};
 use rspack_plugin_devtool::{
   Append, ModuleFilenameTemplate, ModuleFilenameTemplateFnCtx, SourceMapDevToolPluginOptions,
+  TestFn,
 };
 use serde::Deserialize;
 
@@ -30,7 +29,7 @@ fn normalize_raw_append(raw: RawAppend) -> Append {
           .into_rspack_result()
           .expect("into rspack result failed")
           .blocking_recv()
-          .unwrap_or_else(|err| panic!("Failed to call external function: {err}"))
+          .unwrap_or_else(|err| panic!("failed to call external function: {err}"))
           .expect("failed")
       }))
     }
@@ -93,78 +92,64 @@ fn normalize_raw_module_filename_template(
             .call(ctx.into(), ThreadsafeFunctionCallMode::NonBlocking)
             .into_rspack_result()?
             .await
-            .unwrap_or_else(|err| panic!("Failed to call external function: {err}"))
+            .unwrap_or_else(|err| panic!("failed to call external function: {err}"))
         })
       }))
     }
   }
 }
 
-type RawRule = Either<String, JsRegExp>;
-type RawSourceMapDevToolPluginRules = Either<RawRule, Vec<RawRule>>;
+type RawSourceMapDevToolPluginTest = JsFunction;
 
-fn normalize_raw_rule(raw: &RawRule) -> Rule {
-  match raw {
-    Either::A(s) => Rule::String(s.clone()),
-    Either::B(r) => Rule::Regexp(r.to_rspack_regex()),
-  }
+fn normalize_raw_test(raw: JsFunction) -> TestFn {
+  let fn_payload: napi::Result<ThreadsafeFunction<String, bool>> = try {
+    let env = get_napi_env();
+    rspack_binding_macros::js_fn_into_threadsafe_fn!(raw, &Env::from(env))
+  };
+  let fn_payload = fn_payload.expect("convert to threadsafe function failed");
+  Box::new(move |ctx| {
+    let fn_payload = fn_payload.clone();
+    Box::pin(async move {
+      fn_payload
+        .call(ctx.into(), ThreadsafeFunctionCallMode::NonBlocking)
+        .into_rspack_result()?
+        .await
+        .unwrap_or_else(|err| panic!("failed to call external function: {err}"))
+    })
+  })
 }
 
-fn normalize_raw_rules(raw: &RawSourceMapDevToolPluginRules) -> Rules {
-  match raw {
-    Either::A(raw_rule) => Rules::Single(normalize_raw_rule(raw_rule)),
-    Either::B(raw_rules) => {
-      let rules = raw_rules.iter().map(normalize_raw_rule).collect();
-      Rules::Array(rules)
-    }
-  }
-}
-
-#[derive(Derivative, Deserialize)]
-#[derivative(Debug)]
+#[derive(Deserialize)]
 #[napi(object)]
 pub struct RawSourceMapDevToolPluginOptions {
   #[serde(skip_deserializing)]
   #[napi(ts_type = "(false | null) | string | Function")]
-  #[derivative(Debug = "ignore")]
   pub append: Option<RawAppend>,
   pub columns: Option<bool>,
   #[serde(skip_deserializing)]
-  #[napi(ts_type = "string | RegExp | (string | RegExp)[]")]
-  #[derivative(Debug = "ignore")]
-  pub exclude: Option<RawSourceMapDevToolPluginRules>,
-  #[serde(skip_deserializing)]
   #[napi(ts_type = "string | Function")]
-  #[derivative(Debug = "ignore")]
   pub fallback_module_filename_template: Option<RawModuleFilenameTemplate>,
   pub file_context: Option<String>,
   #[serde(skip_deserializing)]
   #[napi(ts_type = "(false | null) | string")]
   pub filename: Option<RawFilename>,
-  #[serde(skip_deserializing)]
-  #[napi(ts_type = "string | RegExp | (string | RegExp)[]")]
-  #[derivative(Debug = "ignore")]
-  pub include: Option<RawSourceMapDevToolPluginRules>,
   pub module: Option<bool>,
   #[serde(skip_deserializing)]
   #[napi(ts_type = "string | Function")]
-  #[derivative(Debug = "ignore")]
   pub module_filename_template: Option<RawModuleFilenameTemplate>,
   pub namespace: Option<String>,
   pub no_sources: Option<bool>,
   pub public_path: Option<String>,
   pub source_root: Option<String>,
   #[serde(skip_deserializing)]
-  #[napi(ts_type = "string | RegExp | (string | RegExp)[]")]
-  #[derivative(Debug = "ignore")]
-  pub test: Option<RawSourceMapDevToolPluginRules>,
+  #[napi(ts_type = "(text: string) => boolean")]
+  pub test: Option<RawSourceMapDevToolPluginTest>,
 }
 
 impl From<RawSourceMapDevToolPluginOptions> for SourceMapDevToolPluginOptions {
   fn from(opts: RawSourceMapDevToolPluginOptions) -> Self {
     let append = opts.append.map(normalize_raw_append);
-    let exclude = opts.exclude.map(|raw| normalize_raw_rules(&raw));
-    let include = opts.include.map(|raw| normalize_raw_rules(&raw));
+    let test = opts.test.map(|raw| normalize_raw_test(raw));
     let filename = opts.filename.and_then(|raw| match raw {
       Either::A(_) => None,
       Either::B(s) => Some(s),
@@ -179,16 +164,13 @@ impl From<RawSourceMapDevToolPluginOptions> for SourceMapDevToolPluginOptions {
 
     let columns = opts.columns.unwrap_or(true);
     let no_sources = opts.no_sources.unwrap_or(false);
-    let test = opts.test.map(|raw| normalize_raw_rules(&raw));
 
     Self {
       append,
       columns,
-      exclude,
       fallback_module_filename_template,
       file_context: opts.file_context,
       filename,
-      include,
       namespace: opts.namespace,
       no_sources,
       public_path: opts.public_path,

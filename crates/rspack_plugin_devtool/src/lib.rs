@@ -19,8 +19,8 @@ use rspack_core::{
   ProcessAssetsArgs, RenderModuleContentArgs, SourceType,
 };
 use rspack_core::{
-  match_object, CompilationArgs, CompilationParams, Filename, Logger, MatchObject,
-  ModuleIdentifier, OutputOptions, PluginCompilationHookOutput, Rules,
+  CompilationArgs, CompilationParams, Filename, Logger, ModuleIdentifier, OutputOptions,
+  PluginCompilationHookOutput,
 };
 use rspack_error::miette::IntoDiagnostic;
 use rspack_error::{Error, Result};
@@ -80,6 +80,8 @@ pub enum Append {
   Disabled,
 }
 
+pub type TestFn = Box<dyn Fn(String) -> BoxFuture<'static, Result<bool>> + Sync + Send>;
+
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct SourceMapDevToolPluginOptions {
@@ -88,8 +90,6 @@ pub struct SourceMapDevToolPluginOptions {
   pub append: Option<Append>,
   // Indicates whether column mappings should be used (defaults to true).
   pub columns: bool,
-  // Exclude modules that match the given value from source map generation.
-  pub exclude: Option<Rules>,
   // Generator string or function to create identifiers of modules for the 'sources' array in the SourceMap used only if 'moduleFilenameTemplate' would result in a conflict.
   #[derivative(Debug = "ignore")]
   pub fallback_module_filename_template: Option<ModuleFilenameTemplate>,
@@ -97,8 +97,6 @@ pub struct SourceMapDevToolPluginOptions {
   pub file_context: Option<String>,
   // Defines the output filename of the SourceMap (will be inlined if no value is provided).
   pub filename: Option<String>,
-  // Include source maps for module paths that match the given value.
-  pub include: Option<Rules>,
   // Indicates whether SourceMaps from loaders should be used (defaults to true).
   pub module: bool,
   // Generator string or function to create identifiers of modules for the 'sources' array in the SourceMap.
@@ -112,8 +110,9 @@ pub struct SourceMapDevToolPluginOptions {
   pub public_path: Option<String>,
   // Provide a custom value for the 'sourceRoot' property in the SourceMap.
   pub source_root: Option<String>,
-  // Include source maps for modules based on their extension (defaults to .js and .css).
-  pub test: Option<Rules>,
+  // Include or exclude source maps for modules based on their extension (defaults to .js and .css).
+  #[derivative(Debug = "ignore")]
+  pub test: Option<TestFn>,
 }
 
 enum SourceMappingUrlComment {
@@ -136,7 +135,8 @@ pub struct SourceMapDevToolPlugin {
   no_sources: bool,
   public_path: Option<String>,
   module: bool,
-  match_object: MatchObject,
+  #[derivative(Debug = "ignore")]
+  test: Option<TestFn>,
 }
 
 struct Task<'a> {
@@ -173,12 +173,6 @@ impl SourceMapDevToolPlugin {
           "webpack://[namespace]/[resourcePath]".to_string(),
         ));
 
-    let match_object = MatchObject {
-      test: options.test,
-      include: options.include,
-      exclude: options.exclude,
-    };
-
     Self {
       filename: options.filename.map(Filename::from),
       source_mapping_url_comment,
@@ -189,7 +183,7 @@ impl SourceMapDevToolPlugin {
       no_sources: options.no_sources,
       public_path: options.public_path,
       module: options.module,
-      match_object,
+      test: options.test,
     }
   }
 }
@@ -246,9 +240,10 @@ impl Plugin for SourceMapDevToolPlugin {
 
     let mut assets: Vec<(&String, &Arc<dyn Source>)> = vec![];
     for (file, asset) in compilation.assets() {
-      let is_match = match_object(&self.match_object, file)
-        .await
-        .unwrap_or(false);
+      let is_match = match &self.test {
+        Some(test) => test(file.clone()).await?,
+        None => true,
+      };
       if is_match {
         if let Some(source) = asset.get_source() {
           assets.push((file, source));
@@ -390,14 +385,14 @@ impl Plugin for SourceMapDevToolPlugin {
     logger.time_end(start);
 
     let start = logger.time("emit source map assets");
-    for (filename, (code_buffer, map_buffer)) in maps {
+    for (filename, (code_buffer, source_map_buffer)) in maps {
       let mut asset = compilation
         .assets_mut()
         .remove(&filename)
         .expect("should have filename in compilation.assets");
       // convert to RawSource to reduce one time source map calculation when convert to JsCompatSource
       let raw_source = RawSource::from(code_buffer).boxed();
-      let Some(map_buffer) = map_buffer else {
+      let Some(source_map_buffer) = source_map_buffer else {
         asset.source = Some(raw_source);
         compilation.emit_asset(filename, asset);
         continue;
@@ -415,6 +410,7 @@ impl Plugin for SourceMapDevToolPlugin {
       } else {
         None
       };
+
       if let Some(source_map_filename_config) = &self.filename {
         let mut source_map_filename = filename.to_owned() + ".map";
         // TODO(ahabhgk): refactor remove the for loop
@@ -476,14 +472,14 @@ impl Plugin for SourceMapDevToolPlugin {
         compilation.emit_asset(
           source_map_filename,
           CompilationAsset::new(
-            Some(RawSource::from(map_buffer).boxed()),
+            Some(RawSource::from(source_map_buffer).boxed()),
             source_map_asset_info,
           ),
         );
       } else {
         let current_source_mapping_url_comment = current_source_mapping_url_comment
           .expect("SourceMapDevToolPlugin: append can't be false when no filename is provided.");
-        let base64 = rspack_base64::encode_to_string(&map_buffer);
+        let base64 = rspack_base64::encode_to_string(&source_map_buffer);
         asset.source = Some(
           ConcatSource::new([
             raw_source,

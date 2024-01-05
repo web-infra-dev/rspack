@@ -1184,18 +1184,16 @@ export interface RawSnapshotStrategy {
 export interface RawSourceMapDevToolPluginOptions {
   append?: (false | null) | string | Function
   columns?: boolean
-  exclude?: string | RegExp | (string | RegExp)[]
   fallbackModuleFilenameTemplate?: string | Function
   fileContext?: string
   filename?: (false | null) | string
-  include?: string | RegExp | (string | RegExp)[]
   module?: boolean
   moduleFilenameTemplate?: string | Function
   namespace?: string
   noSources?: boolean
   publicPath?: string
   sourceRoot?: string
-  test?: string | RegExp | (string | RegExp)[]
+  test?: (text: string) => boolean
 }
 
 export interface RawSplitChunksOptions {

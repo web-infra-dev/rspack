@@ -89,8 +89,6 @@ mod module_graph_module;
 pub use module_graph_module::*;
 pub mod resolver;
 pub use resolver::*;
-mod module_filename_helpers;
-pub use module_filename_helpers::*;
 pub mod tree_shaking;
 
 pub use rspack_loader_runner::{get_scheme, ResourceData, Scheme, BUILTIN_LOADER_PREFIX};
