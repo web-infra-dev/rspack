@@ -306,6 +306,7 @@ impl NormalModuleFactory {
         Ok(result) => result,
         Err(err) => (Err(err), false),
       };
+
       match resource_data {
         Ok(ResolveResult::Resource(resource)) => {
           let uri = resource.full_path().display().to_string();
@@ -334,6 +335,8 @@ impl NormalModuleFactory {
           ));
         }
         Err(err) => {
+          data.add_file_dependencies(file_dependencies);
+          data.add_missing_dependencies(missing_dependencies);
           // let mut file_dependencies = Default::default();
           // let mut missing_dependencies = Default::default();
           // let mut from_cache_result = from_cache;
