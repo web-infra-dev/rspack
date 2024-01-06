@@ -18,7 +18,8 @@ use crate::{
   AsyncDependenciesBlock, BoxDependency, ChunkUkey, CodeGenerationResult, Compilation,
   CompilerContext, CompilerOptions, ConnectionState, Context, ContextModule, DependenciesBlock,
   DependencyId, DependencyTemplate, ExternalModule, ModuleDependency, ModuleGraph, ModuleType,
-  NormalModule, RawModule, Resolve, RuntimeSpec, SelfModule, SharedPluginDriver, SourceType,
+  NoParseOptionsByModuleType, NormalModule, RawModule, Resolve, RuntimeSpec, SelfModule,
+  SharedPluginDriver, SourceType,
 };
 
 pub struct BuildContext<'a> {
@@ -49,6 +50,7 @@ pub struct BuildInfo {
   pub all_star_exports: Vec<DependencyId>,
   pub need_create_require: bool,
   pub json_data: Option<JsonValue>,
+  pub parsed: bool,
 }
 
 #[derive(Debug, Default, Clone, Hash, PartialEq, Eq)]
@@ -320,6 +322,17 @@ pub trait Module:
     _module_chain: &mut HashSet<ModuleIdentifier>,
   ) -> ConnectionState {
     ConnectionState::Bool(true)
+  }
+
+  // check if module should not be parsed
+  // returns "true" if the module should !not! be parsed
+  // returns "false" if the module !must! be parsed
+  async fn should_prevent_parsing(
+    &self,
+    rule: &NoParseOptionsByModuleType,
+    content: String,
+  ) -> Result<bool> {
+    rule.try_match(&content).await
   }
 }
 

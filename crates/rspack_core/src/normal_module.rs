@@ -30,7 +30,7 @@ use crate::{
   DependenciesBlock, DependencyId, DependencyTemplate, GenerateContext, GeneratorOptions,
   LibIdentOptions, LoaderRunnerPluginProcessResource, Module, ModuleDependency, ModuleGraph,
   ModuleIdentifier, ModuleType, ParseContext, ParseResult, ParserAndGenerator, ParserOptions,
-  Resolve, RuntimeSpec, SourceType,
+  Resolve, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
 bitflags! {
@@ -339,7 +339,6 @@ impl Module for NormalModule {
 
   async fn build(&mut self, build_context: BuildContext<'_>) -> Result<BuildResult> {
     self.clear_diagnostics();
-
     let mut build_info = BuildInfo::default();
     let mut build_meta = BuildMeta::default();
 
@@ -362,11 +361,15 @@ impl Module for NormalModule {
         self.add_diagnostic(d);
         let mut hasher = RspackHash::from(&build_context.compiler_options.output);
         self.update_hash(&mut hasher);
+
         build_meta.hash(&mut hasher);
         build_info.hash = Some(hasher.digest(&build_context.compiler_options.output.hash_digest));
+
+        self.build_info = Some(build_info.clone());
+        self.build_meta = Some(build_meta.clone());
         return Ok(BuildResult {
           build_info,
-          build_meta: Default::default(),
+          build_meta,
           dependencies: Vec::new(),
           blocks: Vec::new(),
           analyze_result: Default::default(),
@@ -382,6 +385,40 @@ impl Module for NormalModule {
     };
     let original_source = self.create_source(content, loader_result.source_map)?;
     let mut code_generation_dependencies: Vec<Box<dyn ModuleDependency>> = Vec::new();
+
+    // check if the module should be parsed,
+    // if not, we should return built result with original source
+    let no_parse_rule = &self.options.module.no_parse;
+    if let Some(rule) = no_parse_rule {
+      if rule.try_match(self.request()).await? {
+        let mut hasher = RspackHash::from(&build_context.compiler_options.output);
+        self.update_hash(&mut hasher);
+        build_meta.hash(&mut hasher);
+        self.original_source = Some(original_source.clone());
+        self.source = NormalModuleSource::new_built(original_source, self.clone_diagnostics());
+        self.code_generation_dependencies = Some(code_generation_dependencies);
+
+        build_info.parsed = false;
+        build_info.hash = Some(hasher.digest(&build_context.compiler_options.output.hash_digest));
+        build_info.cacheable = loader_result.cacheable;
+        build_info.file_dependencies = loader_result.file_dependencies;
+        build_info.context_dependencies = loader_result.context_dependencies;
+        build_info.missing_dependencies = loader_result.missing_dependencies;
+        build_info.build_dependencies = loader_result.build_dependencies;
+        build_info.asset_filenames = loader_result.asset_filenames;
+
+        self.build_info = Some(build_info.clone());
+        self.build_meta = Some(build_meta.clone());
+
+        return Ok(BuildResult {
+          build_info: build_info.clone(),
+          build_meta: build_meta.clone(),
+          dependencies: Vec::new(),
+          blocks: Vec::new(),
+          analyze_result: Default::default(),
+        });
+      }
+    };
 
     let (
       ParseResult {
@@ -429,6 +466,9 @@ impl Module for NormalModule {
     build_info.build_dependencies = loader_result.build_dependencies;
     build_info.asset_filenames = loader_result.asset_filenames;
 
+    self.build_info = Some(build_info.clone());
+    self.build_meta = Some(build_meta.clone());
+
     Ok(BuildResult {
       build_info,
       build_meta,
@@ -445,6 +485,20 @@ impl Module for NormalModule {
   ) -> Result<CodeGenerationResult> {
     if let NormalModuleSource::BuiltSucceed(source) = &self.source {
       let mut code_generation_result = CodeGenerationResult::default();
+
+      if let Some(build_info) = self.build_info.as_ref() {
+        if !build_info.parsed {
+          code_generation_result
+            .runtime_requirements
+            .insert(RuntimeGlobals::MODULE);
+          code_generation_result
+            .runtime_requirements
+            .insert(RuntimeGlobals::EXPORTS);
+          code_generation_result
+            .runtime_requirements
+            .insert(RuntimeGlobals::THIS_AS_EXPORTS);
+        }
+      }
       for source_type in self.source_types() {
         let generation_result = self.parser_and_generator.generate(
           source,

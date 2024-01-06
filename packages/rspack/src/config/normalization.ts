@@ -73,6 +73,7 @@ import type {
 	RuleSetRules,
 	ParserOptionsByModuleType,
 	GeneratorOptionsByModuleType,
+	NoParseOptionsByModuleType,
 	IncrementalRebuildOptions,
 	RspackFutureOptions,
 	HotUpdateGlobal,
@@ -239,7 +240,8 @@ export const getNormalizedRspackOptions = (
 				{}
 			),
 			defaultRules: optionalNestedArray(module.defaultRules, r => [...r]),
-			rules: nestedArray(module.rules, r => [...r])
+			rules: nestedArray(module.rules, r => [...r]),
+			noParse: module.noParse
 		})),
 		target: config.target,
 		externals: config.externals,
@@ -491,6 +493,7 @@ export interface ModuleOptionsNormalized {
 	rules: RuleSetRules;
 	parser: ParserOptionsByModuleType;
 	generator: GeneratorOptionsByModuleType;
+	noParse?: NoParseOptionsByModuleType;
 }
 
 export interface ExperimentsNormalized {

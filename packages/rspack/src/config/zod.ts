@@ -582,11 +582,25 @@ export type GeneratorOptionsByModuleType = z.infer<
 	typeof generatorOptionsByModuleType
 >;
 
+const noParseConditionType = z
+	.string()
+	.or(z.instanceof(RegExp))
+	.or(z.function().args(z.string()).returns(z.boolean()));
+
+const noParseOptionsByModuleType = noParseConditionType.or(
+	z.array(noParseConditionType)
+);
+
+export type NoParseOptionsByModuleType = z.infer<
+	typeof noParseOptionsByModuleType
+>;
+
 const moduleOptions = z.strictObject({
 	defaultRules: ruleSetRules.optional(),
 	rules: ruleSetRules.optional(),
 	parser: parserOptionsByModuleType.optional(),
-	generator: generatorOptionsByModuleType.optional()
+	generator: generatorOptionsByModuleType.optional(),
+	noParse: noParseOptionsByModuleType.optional()
 });
 export type ModuleOptions = z.infer<typeof moduleOptions>;
 //#endregion

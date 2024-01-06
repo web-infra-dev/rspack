@@ -925,6 +925,7 @@ export interface RawModuleOptions {
   rules: Array<RawModuleRule>
   parser?: Record<string, RawParserOptions>
   generator?: Record<string, RawGeneratorOptions>
+  noParse?: RawNoParseOptions
 }
 
 export interface RawModuleRule {
@@ -985,6 +986,14 @@ export interface RawNodeOption {
   dirname: string
   filename: string
   global: string
+}
+
+export interface RawNoParseOptions {
+  type: "string" | "regexp" | "array" | "function"
+  stringMatcher?: string
+  regexpMatcher?: RawRegexMatcher
+  arrayMatcher?: Array<RawNoParseOptions>
+  funcMatcher?: (value: string) => boolean
 }
 
 export interface RawOptimizationOptions {

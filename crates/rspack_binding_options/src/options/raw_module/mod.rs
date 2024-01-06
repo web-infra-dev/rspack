@@ -11,7 +11,8 @@ use rspack_core::{
   AssetResourceGeneratorOptions, BoxLoader, DescriptionData, DynamicImportMode, FuncUseCtx,
   GeneratorOptions, GeneratorOptionsByModuleType, JavascriptParserOptions, JavascriptParserOrder,
   JavascriptParserUrl, ModuleOptions, ModuleRule, ModuleRuleEnforce, ModuleRuleUse,
-  ModuleRuleUseLoader, ModuleType, ParserOptions, ParserOptionsByModuleType,
+  ModuleRuleUseLoader, ModuleType, NoParseOptionsByModuleType, ParserOptions,
+  ParserOptionsByModuleType,
 };
 use rspack_error::{error, miette::IntoDiagnostic};
 use rspack_loader_react_refresh::REACT_REFRESH_LOADER_IDENTIFIER;
@@ -539,6 +540,103 @@ impl From<RawAssetGeneratorDataUrlOptions> for AssetGeneratorDataUrlOptions {
   }
 }
 
+#[derive(Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+#[napi(object)]
+pub struct RawNoParseOptions {
+  #[napi(ts_type = r#""string" | "regexp" | "array" | "function""#)]
+  pub r#type: String,
+  pub string_matcher: Option<String>,
+  pub regexp_matcher: Option<RawRegexMatcher>,
+  pub array_matcher: Option<Vec<RawNoParseOptions>>,
+  #[serde(skip_deserializing)]
+  #[napi(ts_type = r#"(value: string) => boolean"#)]
+  pub func_matcher: Option<JsFunction>,
+}
+
+impl Debug for RawNoParseOptions {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("RawNoParseOptions")
+      .field("r#type", &self.r#type)
+      .field("string_matcher", &self.string_matcher)
+      .field("regexp_matcher", &self.regexp_matcher)
+      .field("array_matcher", &self.array_matcher)
+      .field("func_matcher", &"...")
+      .finish()
+  }
+}
+
+impl TryFrom<RawNoParseOptions> for NoParseOptionsByModuleType {
+  type Error = rspack_error::Error;
+
+  fn try_from(value: RawNoParseOptions) -> rspack_error::Result<Self> {
+    let result = match value.r#type.as_str() {
+        "string" => Self::String(value.string_matcher.ok_or_else(|| {
+          error!("should have a string_matcher when RawNoParseOptions.type is \"string\"")
+        })?),
+
+        "regexp"=>{
+          let reg_matcher = value.regexp_matcher.as_ref().ok_or_else(|| {
+            error!(
+              "should have a regexp_matcher when RawRuleSetCondition.type is \"regexp\""
+            )
+          })?;
+          let reg = rspack_regex::RspackRegex::with_flags(&reg_matcher.source, &reg_matcher.flags)?;
+          tracing::debug!(regex_matcher = ?value.regexp_matcher, algo_type = ?reg.algo);
+          Self::RegExp(reg)
+        }
+
+        "array" => Self::Array(
+          value.array_matcher
+            .ok_or_else(|| {
+              error!(
+                "should have a array_matcher when RawRuleSetCondition.type is \"array\""
+              )
+            })?
+            .into_iter()
+            .map(|i| i.try_into())
+            .collect::<rspack_error::Result<Vec<_>>>()?,
+        ),
+
+        "function" => {
+          let func_matcher = value.func_matcher.ok_or_else(|| {
+            error!(
+              "should have a func_matcher when RawRuleSetCondition.type is \"function\""
+            )
+          })?;
+
+          let env = get_napi_env();
+
+          let func_matcher: napi::Result<ThreadsafeFunction<String, bool>> = try {
+              rspack_binding_macros::js_fn_into_threadsafe_fn!(func_matcher, &Env::from(env))
+          };
+          let func_matcher = Arc::new(func_matcher.expect("convert to threadsafe function failed"));
+
+          Self::Fn(Box::new(move |data: &str| {
+            let func_matcher = func_matcher.clone();
+            let data = data.to_string();
+            Box::pin(async move {
+              func_matcher
+                .call(data, ThreadsafeFunctionCallMode::NonBlocking)
+                .into_rspack_result()?
+                .await
+                .unwrap_or_else(|err| {
+                  panic!("Failed to call RuleSetCondition func_matcher: {err}")
+                })
+            })
+          }))
+        }
+
+        _ => panic!(
+          "Failed to resolve the condition type {}. Expected type is `string`, `regexp`, `array`, `logical` or `function`.",
+          value.r#type
+        ),
+      };
+
+    Ok(result)
+  }
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
@@ -546,6 +644,7 @@ pub struct RawModuleOptions {
   pub rules: Vec<RawModuleRule>,
   pub parser: Option<HashMap<String, RawParserOptions>>,
   pub generator: Option<HashMap<String, RawGeneratorOptions>>,
+  pub no_parse: Option<RawNoParseOptions>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -727,6 +826,7 @@ impl TryFrom<RawModuleOptions> for ModuleOptions {
             .collect::<std::result::Result<GeneratorOptionsByModuleType, rspack_error::Error>>()
         })
         .transpose()?,
+      no_parse: value.no_parse.map(|x| x.try_into()).transpose()?,
     })
   }
 }

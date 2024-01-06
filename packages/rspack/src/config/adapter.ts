@@ -17,7 +17,8 @@ import type {
 	RawRspackFuture,
 	RawLibraryName,
 	RawLibraryOptions,
-	RawModuleRuleUse
+	RawModuleRuleUse,
+	RawNoParseOptions
 } from "@rspack/binding";
 import assert from "assert";
 import { Compiler } from "../Compiler";
@@ -56,7 +57,8 @@ import {
 	JavascriptParserOptions,
 	LibraryName,
 	EntryRuntime,
-	ChunkLoading
+	ChunkLoading,
+	NoParseOptionsByModuleType
 } from "./zod";
 import {
 	ExperimentsNormalized,
@@ -317,7 +319,8 @@ function getRawModule(
 	return {
 		rules,
 		parser: getRawParserOptionsByModuleType(module.parser),
-		generator: getRawGeneratorOptionsByModuleType(module.generator)
+		generator: getRawGeneratorOptionsByModuleType(module.generator),
+		noParse: module.noParse ? getRawNoParseOptions(module.noParse) : undefined
 	};
 }
 
@@ -696,6 +699,41 @@ function getRawAssetGeneratorDaraUrl(
 	}
 	throw new Error(
 		`unreachable: AssetGeneratorDataUrl type should be one of "options", but got ${dataUrl}`
+	);
+}
+
+function getRawNoParseOptions(
+	condition: NoParseOptionsByModuleType
+): RawNoParseOptions {
+	if (typeof condition === "string") {
+		return {
+			type: "string",
+			stringMatcher: condition
+		};
+	}
+	if (condition instanceof RegExp) {
+		return {
+			type: "regexp",
+			regexpMatcher: {
+				source: condition.source,
+				flags: condition.flags
+			}
+		};
+	}
+	if (typeof condition === "function") {
+		return {
+			type: "function",
+			funcMatcher: condition
+		};
+	}
+	if (Array.isArray(condition)) {
+		return {
+			type: "array",
+			arrayMatcher: condition.map(i => getRawNoParseOptions(i))
+		};
+	}
+	throw new Error(
+		"unreachable: condition should be one of string, RegExp, Array, Object"
 	);
 }
 

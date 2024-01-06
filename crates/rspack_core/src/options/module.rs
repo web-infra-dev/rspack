@@ -440,9 +440,42 @@ pub enum ModuleRuleEnforce {
   Pre,
 }
 
+type NoParseTestFn = Box<dyn Fn(&str) -> BoxFuture<'static, Result<bool>> + Sync + Send>;
+
+pub enum NoParseOptionsByModuleType {
+  String(String),
+  RegExp(rspack_regex::RspackRegex),
+  Array(Vec<NoParseOptionsByModuleType>),
+  Fn(NoParseTestFn),
+}
+
+impl Debug for NoParseOptionsByModuleType {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      Self::String(i) => i.fmt(f),
+      Self::RegExp(i) => i.fmt(f),
+      Self::Fn(_) => "Fn(...)".fmt(f),
+      Self::Array(i) => i.fmt(f),
+    }
+  }
+}
+
+impl NoParseOptionsByModuleType {
+  #[async_recursion]
+  pub async fn try_match(&self, data: &str) -> Result<bool> {
+    match self {
+      Self::String(s) => Ok(data.starts_with(s)),
+      Self::RegExp(r) => Ok(r.test(data)),
+      Self::Array(l) => try_any(l, |i| async { i.try_match(data).await }).await,
+      Self::Fn(f) => f(data).await,
+    }
+  }
+}
+
 #[derive(Debug, Default)]
 pub struct ModuleOptions {
   pub rules: Vec<ModuleRule>,
   pub parser: Option<ParserOptionsByModuleType>,
   pub generator: Option<GeneratorOptionsByModuleType>,
+  pub no_parse: Option<NoParseOptionsByModuleType>,
 }
