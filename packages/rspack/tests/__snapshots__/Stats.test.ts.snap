@@ -8,7 +8,7 @@ exports[`Stats should have ids when ids is true 1`] = `
         "main",
       ],
       "chunks": [
-        "909",
+        "main",
       ],
       "emitted": true,
       "info": {
@@ -32,7 +32,7 @@ exports[`Stats should have ids when ids is true 1`] = `
       "files": [
         "main.js",
       ],
-      "id": "909",
+      "id": "main",
       "initial": true,
       "names": [
         "main",
@@ -45,7 +45,7 @@ exports[`Stats should have ids when ids is true 1`] = `
   "modules": [
     {
       "chunks": [
-        "909",
+        "main",
       ],
       "id": "585",
       "identifier": "<PROJECT_ROOT>/tests/fixtures/a.js",
@@ -72,7 +72,7 @@ exports[`Stats should have stats 1`] = `
         "main",
       ],
       "chunks": [
-        "909",
+        "main",
       ],
       "emitted": true,
       "info": {
@@ -98,13 +98,13 @@ exports[`Stats should have stats 1`] = `
       "files": [
         "main.js",
       ],
-      "id": "909",
+      "id": "main",
       "initial": true,
       "modules": [
         {
           "assets": [],
           "chunks": [
-            "909",
+            "main",
           ],
           "id": "585",
           "identifier": "<PROJECT_ROOT>/tests/fixtures/a.js",
@@ -152,7 +152,7 @@ exports[`Stats should have stats 1`] = `
       ],
       "assetsSize": 211,
       "chunks": [
-        "909",
+        "main",
       ],
       "name": "main",
     },
@@ -160,13 +160,13 @@ exports[`Stats should have stats 1`] = `
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "57e46af248a1c1fe076f",
+  "hash": "a62f45ec3d75aa689fa1",
   "logging": {},
   "modules": [
     {
       "assets": [],
       "chunks": [
-        "909",
+        "main",
       ],
       "id": "585",
       "identifier": "<PROJECT_ROOT>/tests/fixtures/a.js",
@@ -205,7 +205,7 @@ exports[`Stats should have stats 1`] = `
       ],
       "assetsSize": 211,
       "chunks": [
-        "909",
+        "main",
       ],
       "name": "main",
     },
@@ -225,7 +225,7 @@ exports[`Stats should output stats with query 1`] = `
         "main",
       ],
       "chunks": [
-        "909",
+        "main",
       ],
       "emitted": true,
       "info": {
@@ -251,13 +251,13 @@ exports[`Stats should output stats with query 1`] = `
       "files": [
         "main.js",
       ],
-      "id": "909",
+      "id": "main",
       "initial": true,
       "modules": [
         {
           "assets": [],
           "chunks": [
-            "909",
+            "main",
           ],
           "id": "585",
           "identifier": "<PROJECT_ROOT>/tests/fixtures/a.js",
@@ -299,7 +299,7 @@ exports[`Stats should output stats with query 1`] = `
         {
           "assets": [],
           "chunks": [
-            "909",
+            "main",
           ],
           "id": "958",
           "identifier": "<PROJECT_ROOT>/tests/fixtures/a.js?a=1",
@@ -336,7 +336,7 @@ exports[`Stats should output stats with query 1`] = `
         {
           "assets": [],
           "chunks": [
-            "909",
+            "main",
           ],
           "id": "432",
           "identifier": "<PROJECT_ROOT>/tests/fixtures/c.js?c=3",
@@ -374,7 +374,7 @@ exports[`Stats should output stats with query 1`] = `
         {
           "assets": [],
           "chunks": [
-            "909",
+            "main",
           ],
           "id": "919",
           "identifier": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
@@ -422,7 +422,7 @@ exports.c = require("./c?c=3");
       ],
       "assetsSize": 386,
       "chunks": [
-        "909",
+        "main",
       ],
       "name": "main",
     },
@@ -430,13 +430,13 @@ exports.c = require("./c?c=3");
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "863c8adf2d7c24d82182",
+  "hash": "17fb2a59facde9aafd96",
   "logging": {},
   "modules": [
     {
       "assets": [],
       "chunks": [
-        "909",
+        "main",
       ],
       "id": "585",
       "identifier": "<PROJECT_ROOT>/tests/fixtures/a.js",
@@ -478,7 +478,7 @@ exports.c = require("./c?c=3");
     {
       "assets": [],
       "chunks": [
-        "909",
+        "main",
       ],
       "id": "958",
       "identifier": "<PROJECT_ROOT>/tests/fixtures/a.js?a=1",
@@ -515,7 +515,7 @@ exports.c = require("./c?c=3");
     {
       "assets": [],
       "chunks": [
-        "909",
+        "main",
       ],
       "id": "432",
       "identifier": "<PROJECT_ROOT>/tests/fixtures/c.js?c=3",
@@ -553,7 +553,7 @@ exports.c = require("./c?c=3");
     {
       "assets": [],
       "chunks": [
-        "909",
+        "main",
       ],
       "id": "919",
       "identifier": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
@@ -592,7 +592,7 @@ exports.c = require("./c?c=3");
       ],
       "assetsSize": 386,
       "chunks": [
-        "909",
+        "main",
       ],
       "name": "main",
     },
