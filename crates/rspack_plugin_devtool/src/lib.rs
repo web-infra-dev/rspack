@@ -32,18 +32,18 @@ use rustc_hash::FxHashMap as HashMap;
 use serde_json::json;
 
 static CSS_EXTENSION_DETECT_REGEXP: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\.css($|\?)").expect("Failed to compile CSS_EXTENSION_DETECT_REGEXP"));
+  Lazy::new(|| Regex::new(r"\.css($|\?)").expect("failed to compile CSS_EXTENSION_DETECT_REGEXP"));
 static URL_FORMATTING_REGEXP: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"^\n\/\/(.*)$").expect("Failed to compile URL_FORMATTING_REGEXP regex"));
+  Lazy::new(|| Regex::new(r"^\n\/\/(.*)$").expect("failed to compile URL_FORMATTING_REGEXP regex"));
 
 static REGEXP_ALL_LOADERS_RESOURCE: Lazy<Regex> = Lazy::new(|| {
-  Regex::new(r"\[all-?loaders\]\[resource\]").expect("Failed to compile SQUARE_BRACKET_TAG_REGEXP")
+  Regex::new(r"\[all-?loaders\]\[resource\]").expect("failed to compile SQUARE_BRACKET_TAG_REGEXP")
 });
 static SQUARE_BRACKET_TAG_REGEXP: Lazy<Regex> = Lazy::new(|| {
-  Regex::new(r"\[\\*([\w-]+)\\*\]").expect("Failed to compile SQUARE_BRACKET_TAG_REGEXP")
+  Regex::new(r"\[\\*([\w-]+)\\*\]").expect("failed to compile SQUARE_BRACKET_TAG_REGEXP")
 });
 static REGEXP_LOADERS_RESOURCE: Lazy<Regex> = Lazy::new(|| {
-  Regex::new(r"\[loaders\]\[resource\]").expect("Failed to compile SQUARE_BRACKET_TAG_REGEXP")
+  Regex::new(r"\[loaders\]\[resource\]").expect("failed to compile SQUARE_BRACKET_TAG_REGEXP")
 });
 
 pub struct ModuleFilenameTemplateFnCtx {
@@ -124,14 +124,14 @@ enum SourceMappingUrlComment {
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct SourceMapDevToolPlugin {
-  filename: Option<Filename>,
+  source_map_filename: Option<Filename>,
   #[derivative(Debug = "ignore")]
   source_mapping_url_comment: Option<SourceMappingUrlComment>,
-  #[derivative(Debug = "ignore")]
-  fallback_module_filename_template: ModuleFilenameTemplate,
   file_context: Option<String>,
   #[derivative(Debug = "ignore")]
   module_filename_template: ModuleFilenameTemplate,
+  #[derivative(Debug = "ignore")]
+  fallback_module_filename_template: ModuleFilenameTemplate,
   namespace: String,
   columns: bool,
   no_sources: bool,
@@ -176,7 +176,7 @@ impl SourceMapDevToolPlugin {
         ));
 
     Self {
-      filename: options.filename.map(Filename::from),
+      source_map_filename: options.filename.map(Filename::from),
       source_mapping_url_comment,
       fallback_module_filename_template,
       file_context: options.file_context,
@@ -208,9 +208,9 @@ impl Plugin for SourceMapDevToolPlugin {
       .options
       .devtool
       .lock()
-      .expect("Failed to acquire lock on devtool");
+      .expect("failed to acquire lock on devtool");
     devtool.add_source_map();
-    if self.filename.is_none() {
+    if self.source_map_filename.is_none() {
       devtool.add_inline();
     }
     if self.source_mapping_url_comment.is_none() {
@@ -310,7 +310,7 @@ impl Plugin for SourceMapDevToolPlugin {
     for module in all_modules {
       let mut source_name = module_to_source_name_mapping
         .get(&module)
-        .expect("Expected to find a source name for the module, but none was present.")
+        .expect("expected to find a source name for the module, but none was present.")
         .clone();
       let mut has_name = conflict_detection_set.contains(&source_name);
 
@@ -362,7 +362,7 @@ impl Plugin for SourceMapDevToolPlugin {
               .map(|module| {
                 module_to_source_name_mapping
                   .get(module)
-                  .expect("Expected to find a source name for the module, but none was present.")
+                  .expect("expected to find a source name for the module, but none was present.")
                   .clone()
               })
               .collect::<Vec<String>>();
@@ -416,7 +416,7 @@ impl Plugin for SourceMapDevToolPlugin {
         None
       };
 
-      if let Some(source_map_filename_config) = &self.filename {
+      if let Some(source_map_filename_config) = &self.source_map_filename {
         let mut source_map_filename = filename.to_owned() + ".map";
         // TODO(ahabhgk): refactor remove the for loop
         for chunk in compilation.chunk_by_ukey.values() {
@@ -562,7 +562,7 @@ impl SourceMapDevToolPlugin {
       ModuleOrSource::Module(module_identifier) => {
         let module = module_graph
           .module_by_identifier(module_identifier)
-          .expect("");
+          .expect("failed to find a module for the given identifier");
 
         let short_identifier = module.readable_identifier(context).to_string();
         let identifier = contextify(context, module_identifier);
@@ -692,11 +692,11 @@ impl SourceMapDevToolPlugin {
           .replace_all(&s, |caps: &Captures| {
             let full_match = caps
               .get(0)
-              .expect("The regex must match the whole tag, but it did not match anything.")
+              .expect("the SQUARE_BRACKET_TAG_REGEXP must match the whole tag, but it did not match anything.")
               .as_str();
             let content = caps
               .get(1)
-              .expect("The regex must match the whole tag, but it did not match anything.")
+              .expect("the SQUARE_BRACKET_TAG_REGEXP must match the whole tag, but it did not match anything.")
               .as_str();
 
             if content.len() + 2 == full_match.len() {
@@ -778,7 +778,7 @@ impl Plugin for EvalSourceMapDevToolPlugin {
       .options
       .devtool
       .lock()
-      .expect("Failed to acquire lock on devtool");
+      .expect("failed to acquire lock on devtool");
     devtool.add_source_map();
     devtool.add_eval();
     if !self.columns {
