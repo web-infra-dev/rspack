@@ -1,4 +1,4 @@
-use std::sync::Mutex;
+use std::sync::RwLock;
 use std::{
   collections::HashMap,
   convert::TryFrom,
@@ -436,7 +436,7 @@ impl TestConfig {
         rules,
         ..Default::default()
       },
-      devtool: Mutex::new(devtool.clone()),
+      devtool: RwLock::new(devtool.clone()),
       stats: Default::default(),
       snapshot: Default::default(),
       cache: c::CacheOptions::Disabled,

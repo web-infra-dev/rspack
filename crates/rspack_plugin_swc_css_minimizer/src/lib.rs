@@ -25,8 +25,8 @@ impl Plugin for SwcCssMinimizerRspackPlugin {
     let options = compilation.options.clone();
     let devtool = options
       .devtool
-      .lock()
-      .expect("Failed to acquire lock on devtool");
+      .read()
+      .expect("failed to acquire read lock on devtool");
     let gen_source_map_config = SwcCssSourceMapGenConfig {
       enable: devtool.source_map(),
       inline_sources_content: !devtool.no_sources(),

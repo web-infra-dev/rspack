@@ -207,8 +207,8 @@ impl Plugin for SourceMapDevToolPlugin {
       .compilation
       .options
       .devtool
-      .lock()
-      .expect("failed to acquire lock on devtool");
+      .write()
+      .expect("failed to acquire write lock on devtool");
     devtool.add_source_map();
     if self.source_map_filename.is_none() {
       devtool.add_inline();
@@ -777,8 +777,8 @@ impl Plugin for EvalSourceMapDevToolPlugin {
       .compilation
       .options
       .devtool
-      .lock()
-      .expect("failed to acquire lock on devtool");
+      .write()
+      .expect("failed to acquire write lock on devtool");
     devtool.add_source_map();
     devtool.add_eval();
     if !self.columns {

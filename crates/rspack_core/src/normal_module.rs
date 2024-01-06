@@ -626,8 +626,8 @@ impl NormalModule {
     let devtool = self
       .options
       .devtool
-      .lock()
-      .expect("Failed to acquire lock on devtool");
+      .read()
+      .expect("failed to acquire read lock on devtool");
     if devtool.enabled()
       && let Some(source_map) = source_map
     {

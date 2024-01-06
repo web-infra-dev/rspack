@@ -96,8 +96,8 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     } = parse_context;
     let devtool = compiler_options
       .devtool
-      .lock()
-      .expect("Failed to acquire lock on devtool");
+      .read()
+      .expect("failed to acquire read lock on devtool");
     let mut diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>> = vec![];
     let syntax = syntax_by_module_type(
       &resource_data.resource_path,

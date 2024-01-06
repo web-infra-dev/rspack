@@ -1,4 +1,4 @@
-use std::sync::Mutex;
+use std::sync::RwLock;
 
 use napi_derive::napi;
 use rspack_core::{
@@ -120,7 +120,7 @@ impl RawOptions {
       output,
       resolve,
       resolve_loader,
-      devtool: Mutex::new(devtool),
+      devtool: RwLock::new(devtool),
       experiments,
       stats,
       cache,

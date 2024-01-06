@@ -87,8 +87,8 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
       .context
       .options
       .devtool
-      .lock()
-      .expect("Failed to acquire lock on devtool");
+      .read()
+      .expect("failed to acquire read lock on devtool");
     let source = content.try_into_string()?;
     let c = SwcCompiler::new(resource_path.clone(), source.clone(), swc_options)
       .map_err(AnyhowError::from)?;

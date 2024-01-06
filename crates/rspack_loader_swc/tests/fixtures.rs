@@ -1,4 +1,4 @@
-use std::sync::Mutex;
+use std::sync::RwLock;
 use std::{
   env, fs,
   path::{Path, PathBuf},
@@ -36,7 +36,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
         bail: false,
         context: rspack_core::Context::default(),
         dev_server: rspack_core::DevServerOptions::default(),
-        devtool: Mutex::new(rspack_core::Devtool::from("source-map".to_string())),
+        devtool: RwLock::new(rspack_core::Devtool::from("source-map".to_string())),
         mode: rspack_core::Mode::None,
         output: rspack_core::OutputOptions {
           clean: false,

@@ -1,4 +1,4 @@
-use std::sync::Mutex;
+use std::sync::RwLock;
 
 use crate::{
   Builtins, CacheOptions, Context, DevServerOptions, Devtool, Experiments,
@@ -17,7 +17,7 @@ pub struct CompilerOptions {
   pub resolve: Resolve,
   pub resolve_loader: Resolve,
   pub module: ModuleOptions,
-  pub devtool: Mutex<Devtool>,
+  pub devtool: RwLock<Devtool>,
   pub stats: StatsOptions,
   pub snapshot: SnapshotOptions,
   pub cache: CacheOptions,

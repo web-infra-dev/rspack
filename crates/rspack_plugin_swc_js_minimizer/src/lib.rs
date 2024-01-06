@@ -166,8 +166,8 @@ impl Plugin for SwcJsMinimizerRspackPlugin {
       let devtool = compilation
         .options
         .devtool
-        .lock()
-        .expect("Failed to acquire lock on devtool");
+        .read()
+        .expect("failed to acquire read lock on devtool");
       !devtool.cheap()
     };
 
