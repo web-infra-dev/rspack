@@ -26,6 +26,7 @@ use rspack_error::miette::IntoDiagnostic;
 use rspack_error::{Error, Result};
 use rspack_hash::RspackHash;
 use rspack_util::identifier::make_paths_absolute;
+use rspack_util::path::relative;
 use rspack_util::swc::normalize_custom_filename;
 use rustc_hash::FxHashMap as HashMap;
 use serde_json::json;
@@ -128,6 +129,7 @@ pub struct SourceMapDevToolPlugin {
   source_mapping_url_comment: Option<SourceMappingUrlComment>,
   #[derivative(Debug = "ignore")]
   fallback_module_filename_template: ModuleFilenameTemplate,
+  file_context: Option<String>,
   #[derivative(Debug = "ignore")]
   module_filename_template: ModuleFilenameTemplate,
   namespace: String,
@@ -139,7 +141,7 @@ pub struct SourceMapDevToolPlugin {
   test: Option<TestFn>,
 }
 
-struct Task<'a> {
+struct SourceMapTask<'a> {
   file: &'a String,
   asset: &'a Arc<dyn Source>,
   source_map: Option<SourceMap>,
@@ -177,6 +179,7 @@ impl SourceMapDevToolPlugin {
       filename: options.filename.map(Filename::from),
       source_mapping_url_comment,
       fallback_module_filename_template,
+      file_context: options.file_context,
       module_filename_template,
       namespace: options.namespace.unwrap_or("".to_string()),
       columns: options.columns,
@@ -269,6 +272,7 @@ impl Plugin for SourceMapDevToolPlugin {
             ModuleOrSource::Source(source.clone())
           };
 
+          // try the fallback name first
           let source_name = self
             .create_filename(
               &module_or_source,
@@ -281,7 +285,7 @@ impl Plugin for SourceMapDevToolPlugin {
           modules.push(module_or_source);
         }
       }
-      let task = Task {
+      let task = SourceMapTask {
         file,
         asset,
         source_map,
@@ -302,6 +306,7 @@ impl Plugin for SourceMapDevToolPlugin {
       ModuleOrSource::Source(source) => source.len(),
     });
 
+    // find modules with conflicting source names
     for module in all_modules {
       let mut source_name = module_to_source_name_mapping
         .get(&module)
@@ -342,7 +347,7 @@ impl Plugin for SourceMapDevToolPlugin {
     let maps: HashMap<String, (Vec<u8>, Option<Vec<u8>>)> = tasks
       .into_iter()
       .map(|task| {
-        let Task {
+        let SourceMapTask {
           file,
           asset,
           source_map,
@@ -423,6 +428,12 @@ impl Plugin for SourceMapDevToolPlugin {
                 &SourceType::Css
               } else {
                 &SourceType::JavaScript
+              };
+              let filename = match &self.file_context {
+                Some(file_context) => relative(Path::new(file_context), Path::new(&filename))
+                  .to_string_lossy()
+                  .to_string(),
+                None => filename.clone(),
               };
               source_map_filename = compilation.get_asset_path(
                 source_map_filename_config,
