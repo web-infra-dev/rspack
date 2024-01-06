@@ -111,7 +111,7 @@ fn normalize_raw_test(raw: JsFunction) -> TestFn {
     let fn_payload = fn_payload.clone();
     Box::pin(async move {
       fn_payload
-        .call(ctx.into(), ThreadsafeFunctionCallMode::NonBlocking)
+        .call(ctx, ThreadsafeFunctionCallMode::NonBlocking)
         .into_rspack_result()?
         .await
         .unwrap_or_else(|err| panic!("failed to call external function: {err}"))
@@ -149,7 +149,7 @@ pub struct RawSourceMapDevToolPluginOptions {
 impl From<RawSourceMapDevToolPluginOptions> for SourceMapDevToolPluginOptions {
   fn from(opts: RawSourceMapDevToolPluginOptions) -> Self {
     let append = opts.append.map(normalize_raw_append);
-    let test = opts.test.map(|raw| normalize_raw_test(raw));
+    let test = opts.test.map(normalize_raw_test);
     let filename = opts.filename.and_then(|raw| match raw {
       Either::A(_) => None,
       Either::B(s) => Some(s),
