@@ -99,8 +99,6 @@ fn normalize_raw_module_filename_template(
   }
 }
 
-type RawSourceMapDevToolPluginTest = JsFunction;
-
 fn normalize_raw_test(raw: JsFunction) -> TestFn {
   let fn_payload: napi::Result<ThreadsafeFunction<String, bool>> = try {
     let env = get_napi_env();
@@ -143,7 +141,7 @@ pub struct RawSourceMapDevToolPluginOptions {
   pub source_root: Option<String>,
   #[serde(skip_deserializing)]
   #[napi(ts_type = "(text: string) => boolean")]
-  pub test: Option<RawSourceMapDevToolPluginTest>,
+  pub test: Option<JsFunction>,
 }
 
 impl From<RawSourceMapDevToolPluginOptions> for SourceMapDevToolPluginOptions {
