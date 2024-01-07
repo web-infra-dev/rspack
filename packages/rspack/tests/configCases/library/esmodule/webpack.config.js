@@ -1,5 +1,6 @@
 /** @type {import("../../../../").Configuration} */
 module.exports = {
+	mode: "development",
 	output: {
 		libraryTarget: "module",
 		iife: false,
@@ -7,10 +8,13 @@ module.exports = {
 		filename: "main.js"
 	},
 	experiments: {
-		outputModule: true
+		outputModule: true,
+		rspackFuture: {
+			newTreeshaking: false
+		}
 	},
 	target: "node",
 	optimization: {
-		minimize: true
+		minimize: false
 	}
 };
