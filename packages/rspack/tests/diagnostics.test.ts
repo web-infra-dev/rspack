@@ -58,7 +58,11 @@ describe("Diagnostics", function () {
 					assert(typeof stats !== "undefined");
 					assert(stats.hasErrors() || stats.hasWarnings());
 					let output = normalizePaths(
-						stats.toString({ timings: false, version: false })
+						stats.toString({
+							all: false,
+							errors: true,
+							warnings: true
+						})
 					);
 					const errorOutputPath = path.resolve(casePath, `./stats.err`);
 					const updateSnapshot =

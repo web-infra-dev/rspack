@@ -1,7 +1,0 @@
----
-source: crates/rspack_error/tests/fixtures.rs
-expression: export_star_error
----
-warning[internal]: Conflicting star exports for the name 'b' in ./foo.js and ./result.js
-
-

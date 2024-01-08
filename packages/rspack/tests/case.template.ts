@@ -1,7 +1,6 @@
 import path from "path";
 import fs from "fs";
 import vm from "vm";
-import util from "util";
 import { rspack, RspackOptions } from "../src";
 import assert from "assert";
 import createLazyTestEnv from "./helpers/createLazyTestEnv";
