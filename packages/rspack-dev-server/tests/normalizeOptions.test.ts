@@ -36,6 +36,7 @@ describe("normalize options snapshot", () => {
 		const entries1 = await getAdditionEntries(
 			{},
 			{
+				mode: "production",
 				entry: ["something"]
 			}
 		);
@@ -43,6 +44,7 @@ describe("normalize options snapshot", () => {
 		const entries2 = await getAdditionEntries(
 			{},
 			{
+				mode: "production",
 				entry: ["something"],
 				plugins: [new ReactRefreshPlugin({ forceEnable: true })]
 			}
@@ -51,11 +53,21 @@ describe("normalize options snapshot", () => {
 		const entries3 = await getAdditionEntries(
 			{},
 			{
+				mode: "development",
 				entry: ["something"],
 				plugins: [new ReactRefreshPlugin()]
 			}
 		);
-		expect(entries2["undefined"]).not.toContain(reactRefreshEntry);
+		expect(entries3["undefined"]).toContain(reactRefreshEntry);
+		const entries4 = await getAdditionEntries(
+			{},
+			{
+				mode: "production",
+				entry: ["something"],
+				plugins: [new ReactRefreshPlugin()]
+			}
+		);
+		expect(entries4["undefined"]).not.toContain(reactRefreshEntry);
 	});
 
 	it("should apply HMR plugin by default", async () => {
