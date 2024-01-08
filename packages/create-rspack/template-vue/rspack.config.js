@@ -7,6 +7,9 @@ const config = {
 	entry: {
 		main: "./src/main.js"
 	},
+	resolve: {
+		extensions: ["...", ".ts"]
+	},
 	plugins: [
 		new VueLoaderPlugin(),
 		new rspack.HtmlRspackPlugin({

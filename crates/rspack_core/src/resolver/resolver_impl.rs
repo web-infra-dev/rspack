@@ -157,12 +157,7 @@ fn to_oxc_resolver_options(
   let tsconfig = options.tsconfig.map(|c| c.into());
   let enforce_extension = oxc_resolver::EnforceExtension::Auto;
   let description_files = vec!["package.json".to_string()];
-  let extensions = options.extensions.unwrap_or_else(|| {
-    vec![".tsx", ".ts", ".jsx", ".js", ".mjs", ".json"]
-      .into_iter()
-      .map(|s| s.to_string())
-      .collect()
-  });
+  let extensions = options.extensions.expect("should have extensions");
   let alias = options
     .alias
     .unwrap_or_default()
