@@ -4,6 +4,7 @@ use std::{
   fmt::Debug,
   hash::{BuildHasherDefault, Hash, Hasher},
   sync::{Arc, Mutex},
+  task::Wake,
 };
 
 use dashmap::DashMap;
@@ -551,12 +552,39 @@ impl ConcatenatedModule {
 
   fn create_concatenation_list(
     &self,
-    _root_module: ModuleIdentifier,
-    _module_set: HashSet<ModuleIdentifier>,
-    _runtime: RuntimeSpec,
-    _mg: &ModuleGraph,
+    root_module: ModuleIdentifier,
+    mut module_set: HashSet<ModuleIdentifier>,
+    runtime: RuntimeSpec,
+    mg: &ModuleGraph,
   ) -> Vec<ConcatenationEntry> {
-    todo!()
+    let mut list = vec![];
+    let mut exists_entries = HashMap::default();
+    exists_entries.insert(root_module, RuntimeCondition::Boolean(true));
+
+    let imports = self.get_concatenated_imports(&root_module, &root_module, Some(&runtime), mg);
+    for i in imports {
+      self.enter_module(
+        root_module,
+        &mut module_set,
+        Some(&runtime),
+        mg,
+        i.connection,
+        i.runtime_condition,
+        &mut exists_entries,
+        &mut list,
+      );
+    }
+    // list.push({
+    // 			type: "concatenated",
+    // 			module: rootModule,
+    // 			runtimeCondition: true
+    // 		});
+    list.push(ConcatenationEntry {
+      ty: ConcatenationEntryType::Concatenated,
+      connection_or_module_id: ConnectionOrModuleIdent::Module(root_module),
+      runtime_condition: RuntimeCondition::Boolean(true),
+    });
+    list
   }
 
   fn enter_module(
@@ -584,7 +612,7 @@ impl ConcatenatedModule {
           module, self.root_module_ctxt.id,
         );
       }
-      let imports = self.get_concatenated_imports(&module, &root_module, module_set, runtime, mg);
+      let imports = self.get_concatenated_imports(&module, &root_module, runtime, mg);
       for import in imports {
         self.enter_module(
           root_module,
@@ -637,7 +665,6 @@ impl ConcatenatedModule {
     &self,
     module_id: &ModuleIdentifier,
     root_module_id: &ModuleIdentifier,
-    _module_set: &mut HashSet<ModuleIdentifier>,
     runtime: Option<&RuntimeSpec>,
     mg: &ModuleGraph,
   ) -> Vec<ConnectionWithRuntimeCondition> {
@@ -814,6 +841,7 @@ impl ConcatenatedModule {
       module_info.runtime_requirements = runtime_requirements;
       module_info.internal_source = source;
       module_info.source = result_source;
+      info.chunk_init_fragments = chunk_init_fragments;
       return Ok(ModuleInfo::Concatenated(module_info));
     } else {
       Ok(info)
