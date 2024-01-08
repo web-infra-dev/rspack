@@ -1,0 +1,14 @@
+ERROR in ./foo.js ModuleParseError
+
+  × Module parse failed:
+  ╰─▶   × JavaScript parsing error: Expression expected
+         ╭─[2:1]
+       2 │     cls.prototype.a = 1;
+       3 │ }
+       4 │ @clsDecorator
+         · ─
+       5 │ class A {}
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
