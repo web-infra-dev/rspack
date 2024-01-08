@@ -1,0 +1,14 @@
+ERROR in ./index.tsx   × 
+  │   x Expected a semicolon
+  │    ,-[<PROJECT_ROOT>/tests/diagnostics/builtins/recoverable_syntax_error/index.tsx:1:1]
+  │  1 | let c = <test>() => {}</test>;
+  │    :                       ^
+  │    `----
+  │ 
+  │   x Expression expected
+  │    ,-[<PROJECT_ROOT>/tests/diagnostics/builtins/recoverable_syntax_error/index.tsx:1:1]
+  │  1 | let c = <test>() => {}</test>;
+  │    :                        ^
+  │    `----
+  │ 
+  ╰─▶ Syntax Error

@@ -1,7 +1,1 @@
-PublicPath: (none)
-asset main.js 654 bytes [emitted] (name: main)
-Entrypoint main 654 bytes = main.js
-
 ERROR in × Resolve error: Can't resolve './' in '<PROJECT_ROOT>/tests/diagnostics/factorize/missing-entry'
-
-Rspack compiled with 1 error (7b83f020d7fca5c78879)
