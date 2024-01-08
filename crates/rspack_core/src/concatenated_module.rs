@@ -1,6 +1,7 @@
 use std::{
   borrow::Cow,
   collections::hash_map::{DefaultHasher, Entry},
+  env::current_exe,
   fmt::Debug,
   hash::{BuildHasherDefault, Hash, Hasher},
   sync::{Arc, Mutex},
@@ -8,6 +9,7 @@ use std::{
 };
 
 use dashmap::DashMap;
+use indexmap::{IndexMap, IndexSet};
 use once_cell::sync::OnceCell;
 use rspack_ast::javascript::Ast;
 use rspack_error::{
@@ -66,6 +68,7 @@ pub struct ConcatenatedInnerModule {
 pub struct ExternalModuleInfo {
   index: usize,
   module: ModuleIdentifier,
+  runtime_condition: RuntimeCondition,
 }
 
 pub enum ConcatenationEntryType {
@@ -105,25 +108,45 @@ pub struct ConcatenatedModuleImportInfo {
   range_start: Option<u32>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct ConcatenatedModuleInfo {
   pub index: usize,
   pub module: ModuleIdentifier,
-  pub export_map: HashMap<Atom, String>,
-  pub raw_export_map: HashMap<Atom, String>,
   pub namespace_export_symbol: Option<Atom>,
   pub chunk_init_fragments: ChunkInitFragments,
   pub module_ctxt: SyntaxContext,
   pub global_ctxt: SyntaxContext,
   pub runtime_requirements: RuntimeGlobals,
-  pub ast: Ast,
-  pub source: ReplaceSource<Arc<dyn Source>>,
-  pub internal_source: Arc<dyn Source>,
+  pub ast: Option<Ast>,
+  pub source: Option<ReplaceSource<Arc<dyn Source>>>,
+  pub internal_source: Option<Arc<dyn Source>>,
+  pub internal_names: HashMap<String, String>,
+  pub export_map: Option<HashMap<Atom, String>>,
+  pub raw_export_map: Option<HashMap<Atom, String>>,
+  pub namespace_object_name: Option<String>,
+  pub interop_namespace_object_used: bool,
+  pub interop_namespace_object_name: Option<String>,
+  pub interop_namespace_object2_used: bool,
+  pub interop_namespace_object2_name: Option<String>,
+  pub interop_default_access_used: bool,
+  pub interop_default_access_name: Option<String>,
 }
 
+// * @property {boolean} interopNamespaceObjectUsed
+// * @property {string} interopNamespaceObjectName
+// * @property {boolean} interopNamespaceObject2Used
+// * @property {string} interopNamespaceObject2Name
+// * @property {boolean} interopDefaultAccessUsed
+// * @property {string} interopDefaultAccessName
 pub struct ConnectionWithRuntimeCondition {
   pub connection: ModuleGraphConnection,
   pub runtime_condition: RuntimeCondition,
+  pub interop_namespace_object_used: bool,
+  pub interop_namespace_object_name: Option<String>,
+  pub interop_namespace_object2_used: bool,
+  pub interop_namespace_object2_name: Option<String>,
+  pub interop_default_access_used: bool,
+  pub interop_default_access_name: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -136,7 +159,11 @@ pub enum ModuleInfo {
 pub enum ModuleInfoOrReference {
   External(ExternalModuleInfo),
   Concatenated(ConcatenatedModuleInfo),
-  Reference(ModuleIdentifier),
+  Reference {
+    /// target in webpack https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/ConcatenatedModule.js#L1818
+    module_info_id: ModuleIdentifier,
+    runtime_condition: RuntimeCondition,
+  },
 }
 
 impl ModuleInfo {
@@ -539,34 +566,79 @@ impl ConcatenatedModule {
       .clear()
   }
 
+  // todo: replace self.modules with indexmap or linkedhashset
   fn get_modules_with_info(
     &self,
-    _module_graph: &ModuleGraph,
-    _runtime: Option<&RuntimeSpec>,
+    mg: &ModuleGraph,
+    runtime: Option<&RuntimeSpec>,
   ) -> (
     Vec<ModuleInfoOrReference>,
-    HashMap<ModuleIdentifier, ModuleInfo>,
+    IndexMap<ModuleIdentifier, ModuleInfo>,
   ) {
-    todo!()
+    let ordered_concatenation_list = self.create_concatenation_list(
+      self.root_module_ctxt.id,
+      IndexSet::from_iter(self.modules.iter().map(|item| item.id)),
+      runtime,
+      mg,
+    );
+    let mut list = vec![];
+    let mut map: IndexMap<rspack_identifier::Identifier, ModuleInfo> = IndexMap::default();
+    for (i, concatenation_entry) in ordered_concatenation_list.into_iter().enumerate() {
+      let module_id = concatenation_entry
+        .connection_or_module_id
+        .get_module_id(mg);
+      match map.entry(module_id) {
+        indexmap::map::Entry::Occupied(occ) => {
+          let info = occ.get();
+          list.push(ModuleInfoOrReference::Reference {
+            module_info_id: module_id,
+            runtime_condition: concatenation_entry.runtime_condition,
+          });
+        }
+        indexmap::map::Entry::Vacant(mut vac) => {
+          match concatenation_entry.ty {
+            ConcatenationEntryType::Concatenated => {
+              let info = ConcatenatedModuleInfo {
+                index: i,
+                module: module_id,
+                ..Default::default()
+              };
+              vac.insert(ModuleInfo::Concatenated(info.clone()));
+              list.push(ModuleInfoOrReference::Concatenated(info));
+            }
+            ConcatenationEntryType::External => {
+              let info = ExternalModuleInfo {
+                index: i,
+                module: module_id,
+                runtime_condition: concatenation_entry.runtime_condition,
+              };
+              vac.insert(ModuleInfo::External(info.clone()));
+              list.push(ModuleInfoOrReference::External(info));
+            }
+          };
+        }
+      }
+    }
+    (list, map)
   }
 
   fn create_concatenation_list(
     &self,
     root_module: ModuleIdentifier,
-    mut module_set: HashSet<ModuleIdentifier>,
-    runtime: RuntimeSpec,
+    mut module_set: IndexSet<ModuleIdentifier>,
+    runtime: Option<&RuntimeSpec>,
     mg: &ModuleGraph,
   ) -> Vec<ConcatenationEntry> {
     let mut list = vec![];
     let mut exists_entries = HashMap::default();
     exists_entries.insert(root_module, RuntimeCondition::Boolean(true));
 
-    let imports = self.get_concatenated_imports(&root_module, &root_module, Some(&runtime), mg);
+    let imports = self.get_concatenated_imports(&root_module, &root_module, runtime, mg);
     for i in imports {
       self.enter_module(
         root_module,
         &mut module_set,
-        Some(&runtime),
+        runtime,
         mg,
         i.connection,
         i.runtime_condition,
@@ -574,11 +646,6 @@ impl ConcatenatedModule {
         &mut list,
       );
     }
-    // list.push({
-    // 			type: "concatenated",
-    // 			module: rootModule,
-    // 			runtimeCondition: true
-    // 		});
     list.push(ConcatenationEntry {
       ty: ConcatenationEntryType::Concatenated,
       connection_or_module_id: ConnectionOrModuleIdent::Module(root_module),
@@ -590,7 +657,7 @@ impl ConcatenatedModule {
   fn enter_module(
     &self,
     root_module: ModuleIdentifier,
-    module_set: &mut HashSet<ModuleIdentifier>,
+    module_set: &mut IndexSet<ModuleIdentifier>,
     runtime: Option<&RuntimeSpec>,
     mg: &ModuleGraph,
     con: ModuleGraphConnection,
@@ -743,6 +810,12 @@ impl ConcatenatedModule {
           vac.insert(ConnectionWithRuntimeCondition {
             connection: reference.connection,
             runtime_condition,
+            interop_namespace_object_used: false,
+            interop_namespace_object_name: None,
+            interop_namespace_object2_used: false,
+            interop_namespace_object2_name: None,
+            interop_default_access_used: false,
+            interop_default_access_name: None,
           });
         }
       }
@@ -755,7 +828,7 @@ impl ConcatenatedModule {
   fn analyze_module(
     &self,
     compilation: &Compilation,
-    module_info_map: Arc<HashMap<ModuleIdentifier, ModuleInfo>>,
+    module_info_map: Arc<IndexMap<ModuleIdentifier, ModuleInfo>>,
     info: ModuleInfo,
     runtime: Option<&RuntimeSpec>,
   ) -> Result<ModuleInfo> {
@@ -837,11 +910,11 @@ impl ConcatenatedModule {
       let result_source = ReplaceSource::new(source.clone());
       module_info.module_ctxt = module_ctxt;
       module_info.global_ctxt = global_ctxt;
-      module_info.ast = ast;
+      module_info.ast = Some(ast);
       module_info.runtime_requirements = runtime_requirements;
-      module_info.internal_source = source;
-      module_info.source = result_source;
-      info.chunk_init_fragments = chunk_init_fragments;
+      module_info.internal_source = Some(source);
+      module_info.source = Some(result_source);
+      module_info.chunk_init_fragments = chunk_init_fragments;
       return Ok(ModuleInfo::Concatenated(module_info));
     } else {
       Ok(info)

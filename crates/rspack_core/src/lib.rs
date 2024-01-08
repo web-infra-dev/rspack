@@ -4,7 +4,7 @@
 #![feature(box_patterns)]
 #![feature(anonymous_lifetime_in_impl_trait)]
 #![feature(hash_raw_entry)]
-
+#![feature(option_get_or_insert_default)]
 use std::{fmt, sync::Arc};
 mod dependencies_block;
 pub mod diagnostics;

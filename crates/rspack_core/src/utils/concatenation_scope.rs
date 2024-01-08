@@ -1,6 +1,7 @@
 use std::collections::hash_map::Entry;
 use std::sync::Arc;
 
+use indexmap::IndexMap;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rustc_hash::FxHashMap as HashMap;
@@ -29,13 +30,13 @@ struct ModuleReferenceOptions {
 #[derive(Debug, Clone)]
 pub struct ConcatenationScope {
   pub current_module: ConcatenatedModuleInfo,
-  pub modules_map: Arc<HashMap<ModuleIdentifier, ModuleInfo>>,
+  pub modules_map: Arc<IndexMap<ModuleIdentifier, ModuleInfo>>,
 }
 
 #[allow(unused)]
 impl ConcatenationScope {
   pub fn new(
-    modules_map: Arc<HashMap<ModuleIdentifier, ModuleInfo>>,
+    modules_map: Arc<IndexMap<ModuleIdentifier, ModuleInfo>>,
     current_module: ConcatenatedModuleInfo,
   ) -> Self {
     ConcatenationScope {
@@ -49,7 +50,8 @@ impl ConcatenationScope {
   }
 
   pub fn register_export(&mut self, export_name: Atom, symbol: String) {
-    match self.current_module.export_map.entry(export_name) {
+    let export_map = self.current_module.export_map.get_or_insert_default();
+    match export_map.entry(export_name) {
       Entry::Occupied(mut occ) => {
         occ.insert(symbol);
       }
@@ -60,7 +62,8 @@ impl ConcatenationScope {
   }
 
   pub fn register_raw_export(&mut self, export_name: Atom, symbol: String) {
-    match self.current_module.raw_export_map.entry(export_name) {
+    let raw_export_map = self.current_module.raw_export_map.get_or_insert_default();
+    match raw_export_map.entry(export_name) {
       Entry::Occupied(mut occ) => {
         occ.insert(symbol);
       }
