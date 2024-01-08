@@ -30,12 +30,13 @@ describe("normalize options snapshot", () => {
 		).toMatchSnapshot();
 	});
 
-	it("shouldn't have reactRefreshEntry.js by default when rspackFuture.disableReactRefreshByDefault is enabled", async () => {
+	it("shouldn't have reactRefreshEntry.js by default when in production mode", async () => {
 		const reactRefreshEntry =
 			"<prefix>/rspack-plugin-react-refresh/client/reactRefreshEntry.js";
 		const entries1 = await getAdditionEntries(
 			{},
 			{
+				mode: "production",
 				entry: ["something"]
 			}
 		);
@@ -43,11 +44,30 @@ describe("normalize options snapshot", () => {
 		const entries2 = await getAdditionEntries(
 			{},
 			{
+				mode: "production",
+				entry: ["something"],
+				plugins: [new ReactRefreshPlugin({ forceEnable: true })]
+			}
+		);
+		expect(entries2["undefined"]).toContain(reactRefreshEntry);
+		const entries3 = await getAdditionEntries(
+			{},
+			{
+				mode: "development",
 				entry: ["something"],
 				plugins: [new ReactRefreshPlugin()]
 			}
 		);
-		expect(entries2["undefined"]).toContain(reactRefreshEntry);
+		expect(entries3["undefined"]).toContain(reactRefreshEntry);
+		const entries4 = await getAdditionEntries(
+			{},
+			{
+				mode: "production",
+				entry: ["something"],
+				plugins: [new ReactRefreshPlugin()]
+			}
+		);
+		expect(entries4["undefined"]).not.toContain(reactRefreshEntry);
 	});
 
 	it("should apply HMR plugin by default", async () => {

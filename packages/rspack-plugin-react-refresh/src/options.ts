@@ -2,6 +2,7 @@ export type PluginOptions = {
 	include?: string | RegExp | (string | RegExp)[] | null;
 	exclude?: string | RegExp | (string | RegExp)[] | null;
 	library?: string;
+	forceEnable?: boolean;
 };
 
 const d = <K extends keyof PluginOptions>(
@@ -22,5 +23,6 @@ export function normalizeOptions(options: PluginOptions) {
 	d(options, "exclude", /node_modules/i);
 	d(options, "include", /\.([cm]js|[jt]sx?|flow)$/i);
 	d(options, "library");
+	d(options, "forceEnable", false);
 	return options;
 }
