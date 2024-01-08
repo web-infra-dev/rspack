@@ -184,7 +184,7 @@ impl Resolver {
           fragment: r.fragment().map(ToString::to_string),
           description_data: r
             .package_json()
-            .map(|d| DescriptionData::new(d.directory().to_path_buf(), Arc::clone(&d.raw_json))),
+            .map(|d| DescriptionData::new(d.directory().to_path_buf(), Arc::clone(d.raw_json()))),
         })),
         Err(oxc_resolver::ResolveError::Ignored(_)) => Ok(ResolveResult::Ignored),
         Err(error) => Err(ResolveInnerError::OxcResolver(error)),
@@ -384,64 +384,10 @@ fn map_nodejs_resolver_error(error: nodejs_resolver::Error, args: &ResolveArgs<'
 
 fn map_oxc_resolver_error(error: oxc_resolver::ResolveError, args: &ResolveArgs<'_>) -> Error {
   match error {
-    oxc_resolver::ResolveError::InvalidPackageTarget(specifier) => {
-      let message = format!(
-        "Export should be relative path and start with \"./\", but got {}",
-        specifier
-      );
-      error!(message)
-    }
     oxc_resolver::ResolveError::IOError(error) => DiagnosticError::from(error.boxed()).into(),
-    oxc_resolver::ResolveError::Builtin(error) => {
-      error!("Builtin module: {}", error)
-    }
-    oxc_resolver::ResolveError::Ignored(path) => {
-      error!("Path is ignored: {}", path.display())
-    }
-    oxc_resolver::ResolveError::TsconfigNotFound(path) => {
-      error!("{} is not a tsconfig", path.display())
-    }
-    oxc_resolver::ResolveError::ExtensionAlias => {
-      error!("All of the aliased extension are not found")
-    }
-    oxc_resolver::ResolveError::Specifier(_) => {
-      error!("The provided patn specifier cannot be parsed")
-    }
-    oxc_resolver::ResolveError::JSON(json) => {
-      error!("{:?}", json)
-    }
-    oxc_resolver::ResolveError::Restriction(path) => {
-      error!(
-        "Restriction by `ResolveOptions::restrictions`: {}",
-        path.display()
-      )
-    }
-    oxc_resolver::ResolveError::InvalidModuleSpecifier(error) => {
-      error!("Invalid module specifier: {}", error)
-    }
-    oxc_resolver::ResolveError::PackagePathNotExported(error) => {
-      error!("Package subpath '{}' is not defined by \"exports\"", error)
-    }
-    oxc_resolver::ResolveError::InvalidPackageConfig(path) => {
-      error!("Invalid package config in: {}", path.display())
-    }
-    oxc_resolver::ResolveError::InvalidPackageConfigDefault(path) => {
-      error!("Default condition should be last one: {}", path.display())
-    }
-    oxc_resolver::ResolveError::InvalidPackageConfigDirectory(path) => {
-      error!(
-        "Expecting folder to folder mapping. \"{}\" should end with \"/\"",
-        path.display()
-      )
-    }
-    oxc_resolver::ResolveError::PackageImportNotDefined(error) => {
-      error!("Package import not defined: {}", error)
-    }
-    oxc_resolver::ResolveError::Unimplemented(error) => {
-      error!("{} is unimplemented", error)
-    }
     oxc_resolver::ResolveError::Recursion => map_resolver_error(true, args),
     oxc_resolver::ResolveError::NotFound(_) => map_resolver_error(false, args),
+    _ => error!("{}", error),
   }
 }
 

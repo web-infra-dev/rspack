@@ -5036,8 +5036,7 @@ exports[`StatsTestCases should print correct stats for parse-error-builtin-swc-l
 {
   "errors": [
     {
-      "formatted": "  × 
-  │   x Expected '{', got 'error'
+      "formatted": "  ×   x Expected '{', got 'error'
   │    ,-[<PROJECT_ROOT>/tests/statsCases/parse-error-builtin-swc-loader/index.ts:1:1]
   │  1 | export error;
   │    :        ^^^^^
@@ -5045,8 +5044,7 @@ exports[`StatsTestCases should print correct stats for parse-error-builtin-swc-l
   │ 
   ╰─▶ Syntax Error
 ",
-      "message": "  × 
-  │   x Expected '{', got 'error'
+      "message": "  ×   x Expected '{', got 'error'
   │    ,-[<PROJECT_ROOT>/tests/statsCases/parse-error-builtin-swc-loader/index.ts:1:1]
   │  1 | export error;
   │    :        ^^^^^
@@ -5067,8 +5065,7 @@ exports[`StatsTestCases should print correct stats for parse-error-builtin-swc-l
 `;
 
 exports[`StatsTestCases should print correct stats for parse-error-builtin-swc-loader 2`] = `
-"ERROR in ./index.ts   × 
-  │   x Expected '{', got 'error'
+"ERROR in ./index.ts   ×   x Expected '{', got 'error'
   │    ,-[<PROJECT_ROOT>/tests/statsCases/parse-error-builtin-swc-loader/index.ts:1:1]
   │  1 | export error;
   │    :        ^^^^^
@@ -5449,9 +5446,9 @@ console.log(a);
   },
   "errors": [
     {
-      "formatted": "  × Export should be relative path and start with "./", but got ../../index.js
+      "formatted": "  × Invalid "exports" target "../../index.js" defined for '.' in the package config <PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/node_modules/pkg-a/package.json
 ",
-      "message": "  × Export should be relative path and start with "./", but got ../../index.js
+      "message": "  × Invalid "exports" target "../../index.js" defined for '.' in the package config <PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/node_modules/pkg-a/package.json
 ",
       "moduleId": "10",
       "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
@@ -5548,7 +5545,7 @@ chunk {main} bundle.js (main) [entry]
 webpack/runtime/make_namespace_object {main}
   
 
-ERROR in ./index.js   × Export should be relative path and start with "./", but got ../../index.js
+ERROR in ./index.js   × Invalid "exports" target "../../index.js" defined for '.' in the package config <PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/node_modules/pkg-a/package.json
 
 Rspack compiled with 1 error (660067b0d769a99b766b)"
 `;
