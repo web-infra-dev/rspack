@@ -3,10 +3,11 @@ use std::hash::Hash;
 
 use async_trait::async_trait;
 use rspack_core::{
+  impl_build_info_meta,
   rspack_sources::{RawSource, Source, SourceExt},
-  AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildResult, ChunkUkey,
-  CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId, LibIdentOptions,
-  Module, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
+  AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
+  ChunkUkey, CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId,
+  LibIdentOptions, Module, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_hash::RspackHash;
@@ -23,6 +24,8 @@ pub struct FallbackModule {
   readable_identifier: String,
   lib_ident: String,
   requests: Vec<String>,
+  build_info: Option<BuildInfo>,
+  build_meta: Option<BuildMeta>,
 }
 
 impl FallbackModule {
@@ -42,6 +45,8 @@ impl FallbackModule {
       readable_identifier: identifier,
       lib_ident,
       requests,
+      build_info: None,
+      build_meta: None,
     }
   }
 }
@@ -72,6 +77,8 @@ impl DependenciesBlock for FallbackModule {
 
 #[async_trait]
 impl Module for FallbackModule {
+  impl_build_info_meta!();
+
   fn size(&self, _source_type: &SourceType) -> f64 {
     self.requests.len() as f64 * 5.0 + 42.0
   }
@@ -132,6 +139,7 @@ impl Module for FallbackModule {
   ) -> Result<CodeGenerationResult> {
     let mut codegen = CodeGenerationResult::default();
     codegen.runtime_requirements.insert(RuntimeGlobals::MODULE);
+    codegen.runtime_requirements.insert(RuntimeGlobals::REQUIRE);
     let ids: Vec<_> = self
       .get_dependencies()
       .iter()

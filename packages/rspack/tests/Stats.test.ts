@@ -27,8 +27,8 @@ describe("Stats", () => {
 		expect(stats?.toJson(statsOptions)).toMatchSnapshot();
 		expect(stats?.toString(statsOptions)).toMatchInlineSnapshot(`
 		"PublicPath: auto
-		asset main.js 215 bytes {main} [emitted] (name: main)
-		Entrypoint main 215 bytes = main.js
+		asset main.js 211 bytes {main} [emitted] (name: main)
+		Entrypoint main 211 bytes = main.js
 		chunk {main} main.js (main) [entry]
 		  ./fixtures/a.js [585] {main}
 		    entry ./fixtures/a
@@ -56,27 +56,31 @@ describe("Stats", () => {
 			context: __dirname,
 			entry: "./fixtures/abc"
 		});
-		expect(
-			stats?.toString({ timings: false, version: false }).replace(/\\/g, "/")
-		).toMatchInlineSnapshot(`
+		expect(stats?.toString({ timings: false, version: false }))
+			.toMatchInlineSnapshot(`
 		"PublicPath: auto
-		asset main.js 464 bytes [emitted] (name: main)
-		Entrypoint main 464 bytes = main.js
+		asset main.js 758 bytes [emitted] (name: main)
+		Entrypoint main 758 bytes = main.js
 		./fixtures/a.js
 		./fixtures/b.js
 		./fixtures/c.js
 		./fixtures/abc.js
 
-		  × Error[javascript]: JavaScript parsing error
-		   ╭─[tests/fixtures/b.js:5:1]
-		 5 │ // Test CJS top-level return
-		 6 │ return;
-		   · ───┬───
-		   ·    ╰── Return statement is not allowed here
-		   ╰────
+		ERROR in ./fixtures/b.js ModuleParseError
 
+		  × Module parse failed:
+		  ╰─▶   × JavaScript parsing error: Return statement is not allowed here
+		         ╭─[4:1]
+		       4 │
+		       5 │ // Test CJS top-level return
+		       6 │ return;
+		         · ───────
+		         ╰────
+		      
+		  help: 
+		        You may need an appropriate loader to handle this file type.
 
-		Rspack compiled with 1 error (d102369880762d1e05db)"
+		Rspack compiled with 1 error (276dbbbbbfe2a12323dd)"
 	`);
 	});
 
@@ -130,7 +134,6 @@ describe("Stats", () => {
 		expect(
 			stats
 				?.toString({ all: false, logging: "verbose" })
-				.replace(/\\/g, "/")
 				.replace(/\d+ ms/g, "X ms")
 		).toMatchInlineSnapshot(`
 		"LOG from rspack.Compilation
@@ -203,10 +206,7 @@ describe("Stats", () => {
 			profile: true
 		});
 		expect(
-			stats
-				?.toString({ all: false, modules: true })
-				.replace(/\\/g, "/")
-				.replace(/\d+ ms/g, "X ms")
+			stats?.toString({ all: false, modules: true }).replace(/\d+ ms/g, "X ms")
 		).toMatchInlineSnapshot(`
 		"./fixtures/a.js
 		  X ms (resolving: X ms, integration: X ms, building: X ms)
@@ -346,8 +346,8 @@ describe("Stats", () => {
 			ids: true
 		};
 		expect(stats?.toJson(options)).toMatchSnapshot();
-		expect(stats?.toString(options).replace(/\\/g, "/")).toMatchInlineSnapshot(`
-		"asset main.js 215 bytes {main} [emitted] (name: main)
+		expect(stats?.toString(options)).toMatchInlineSnapshot(`
+		"asset main.js 211 bytes {main} [emitted] (name: main)
 		chunk {main} main.js (main) [entry]
 		./fixtures/a.js [585] {main}"
 	`);

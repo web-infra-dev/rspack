@@ -23,6 +23,7 @@ pub struct CompilerOptions {
   pub node: Option<NodeOption>,
   pub optimization: Optimization,
   pub profile: bool,
+  pub bail: bool,
   pub builtins: Builtins,
 }
 

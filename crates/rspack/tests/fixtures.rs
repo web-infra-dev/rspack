@@ -16,6 +16,10 @@ fn rspack(fixture_path: PathBuf) {
   test_fixture(&fixture_path, Box::new(|_, _| {}), None);
 }
 
+fn is_used_exports_global(options: &CompilerOptions) -> bool {
+  matches!(options.optimization.used_exports, UsedExportsOption::Global)
+}
+
 #[fixture("tests/samples/**/test.config.json")]
 fn samples(fixture_path: PathBuf) {
   test_fixture(
@@ -26,7 +30,7 @@ fn samples(fixture_path: PathBuf) {
         options.optimization.provided_exports = true;
         options.optimization.used_exports = UsedExportsOption::Global;
         plugins.push(Box::<FlagDependencyExportsPlugin>::default());
-        plugins.push(Box::<FlagDependencyUsagePlugin>::default());
+        plugins.push(FlagDependencyUsagePlugin::new(is_used_exports_global(options)).boxed());
         if options.optimization.mangle_exports.is_enable() {
           plugins.push(
             MangleExportsPlugin::new(!matches!(
@@ -71,7 +75,7 @@ fn tree_shaking(fixture_path: PathBuf) {
           );
         }
         plugins.push(Box::<FlagDependencyExportsPlugin>::default());
-        plugins.push(Box::<FlagDependencyUsagePlugin>::default());
+        plugins.push(FlagDependencyUsagePlugin::new(is_used_exports_global(options)).boxed());
       },
     ),
     Some("new_treeshaking".to_string()),

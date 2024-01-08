@@ -166,6 +166,28 @@ export const enum BuiltinPluginName {
   ContainerReferencePlugin = 'ContainerReferencePlugin',
   ProvideSharedPlugin = 'ProvideSharedPlugin',
   ConsumeSharedPlugin = 'ConsumeSharedPlugin',
+  NamedModuleIdsPlugin = 'NamedModuleIdsPlugin',
+  DeterministicModuleIdsPlugin = 'DeterministicModuleIdsPlugin',
+  NamedChunkIdsPlugin = 'NamedChunkIdsPlugin',
+  DeterministicChunkIdsPlugin = 'DeterministicChunkIdsPlugin',
+  RealContentHashPlugin = 'RealContentHashPlugin',
+  RemoveEmptyChunksPlugin = 'RemoveEmptyChunksPlugin',
+  EnsureChunkConditionsPlugin = 'EnsureChunkConditionsPlugin',
+  WarnCaseSensitiveModulesPlugin = 'WarnCaseSensitiveModulesPlugin',
+  DataUriPlugin = 'DataUriPlugin',
+  FileUriPlugin = 'FileUriPlugin',
+  RuntimePlugin = 'RuntimePlugin',
+  JsonModulesPlugin = 'JsonModulesPlugin',
+  InferAsyncModulesPlugin = 'InferAsyncModulesPlugin',
+  JavascriptModulesPlugin = 'JavascriptModulesPlugin',
+  AsyncWebAssemblyModulesPlugin = 'AsyncWebAssemblyModulesPlugin',
+  AssetModulesPlugin = 'AssetModulesPlugin',
+  SourceMapDevToolPlugin = 'SourceMapDevToolPlugin',
+  EvalSourceMapDevToolPlugin = 'EvalSourceMapDevToolPlugin',
+  SideEffectsFlagPlugin = 'SideEffectsFlagPlugin',
+  FlagDependencyExportsPlugin = 'FlagDependencyExportsPlugin',
+  FlagDependencyUsagePlugin = 'FlagDependencyUsagePlugin',
+  MangleExportsPlugin = 'MangleExportsPlugin',
   HttpExternalsRspackPlugin = 'HttpExternalsRspackPlugin',
   CopyRspackPlugin = 'CopyRspackPlugin',
   HtmlRspackPlugin = 'HtmlRspackPlugin',
@@ -174,6 +196,13 @@ export const enum BuiltinPluginName {
 }
 
 export function cleanupGlobalTrace(): void
+
+export interface CreateModuleData {
+  dependencyType: string
+  resolveDataRequest: string
+  resourceResolveData: JsResourceData
+  context: string
+}
 
 export interface FactoryMeta {
   sideEffectFree?: boolean
@@ -302,6 +331,7 @@ export interface JsHooks {
   afterEmit: (...args: any[]) => any
   make: (...args: any[]) => any
   optimizeModules: (...args: any[]) => any
+  afterOptimizeModules: (...args: any[]) => any
   optimizeTree: (...args: any[]) => any
   optimizeChunkModules: (...args: any[]) => any
   beforeCompile: (...args: any[]) => any
@@ -311,7 +341,8 @@ export interface JsHooks {
   buildModule: (...args: any[]) => any
   beforeResolve: (...args: any[]) => any
   afterResolve: (...args: any[]) => any
-  contextModuleBeforeResolve: (...args: any[]) => any
+  contextModuleFactoryBeforeResolve: (...args: any[]) => any
+  normalModuleFactoryCreateModule: (...args: any[]) => any
   normalModuleFactoryResolveForScheme: (...args: any[]) => any
   chunkAsset: (...args: any[]) => any
   succeedModule: (...args: any[]) => any
@@ -441,6 +472,9 @@ export interface JsStatsChunkGroupAsset {
 export interface JsStatsError {
   message: string
   formatted: string
+  moduleIdentifier?: string
+  moduleName?: string
+  moduleId?: string
 }
 
 export interface JsStatsGetAssets {
@@ -477,6 +511,7 @@ export interface JsStatsModule {
   assets?: Array<string>
   source?: string | Buffer
   profile?: JsStatsModuleProfile
+  orphan: boolean
 }
 
 export interface JsStatsModuleIssuer {
@@ -502,6 +537,9 @@ export interface JsStatsModuleReason {
 export interface JsStatsWarning {
   message: string
   formatted: string
+  moduleIdentifier?: string
+  moduleName?: string
+  moduleId?: string
 }
 
 export interface NodeFS {
@@ -732,12 +770,9 @@ export interface RawEntryPluginOptions {
 }
 
 export interface RawExperiments {
-  lazyCompilation: boolean
   incrementalRebuild: RawIncrementalRebuild
-  asyncWebAssembly: boolean
   newSplitChunks: boolean
   topLevelAwait: boolean
-  css: boolean
   rspackFuture: RawRspackFuture
 }
 
@@ -770,6 +805,11 @@ export interface RawExternalsPresets {
   electronMain: boolean
   electronPreload: boolean
   electronRenderer: boolean
+}
+
+export interface RawExtractComments {
+  banner?: string | boolean
+  condition?: string
 }
 
 export interface RawFallbackCacheGroupOptions {
@@ -948,15 +988,11 @@ export interface RawNodeOption {
 }
 
 export interface RawOptimizationOptions {
-  moduleIds: string
-  chunkIds: string
   removeAvailableModules: boolean
-  removeEmptyChunks: boolean
   sideEffects: string
   usedExports: string
   providedExports: boolean
   innerGraph: boolean
-  realContentHash: boolean
   mangleExports: string
 }
 
@@ -977,6 +1013,7 @@ export interface RawOptions {
   experiments: RawExperiments
   node?: RawNodeOption
   profile: boolean
+  bail: boolean
   builtins: RawBuiltins
 }
 
@@ -1144,6 +1181,15 @@ export interface RawSnapshotStrategy {
   timestamp: boolean
 }
 
+export interface RawSourceMapDevToolPluginOptions {
+  filename?: string
+  append?: boolean
+  namespace: string
+  columns: boolean
+  noSources: boolean
+  publicPath?: string
+}
+
 export interface RawSplitChunksOptions {
   fallbackCacheGroup?: RawFallbackCacheGroupOptions
   name?: string | false | Function
@@ -1175,7 +1221,7 @@ export interface RawStyleConfig {
 }
 
 export interface RawSwcJsMinimizerRspackPluginOptions {
-  extractComments?: string
+  extractComments?: RawExtractComments
   compress: boolean | string
   mangle: boolean | string
   format: string

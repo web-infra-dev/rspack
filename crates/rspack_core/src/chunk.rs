@@ -8,7 +8,10 @@ use rspack_database::{DatabaseItem, Ukey};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 
-use crate::{compare_chunk_group, sort_group_by_index, ChunkGraph, ChunkGroup, ChunkGroupOrderKey};
+use crate::{
+  compare_chunk_group, get_chunk_group_from_ukey, sort_group_by_index, ChunkGraph, ChunkGroup,
+  ChunkGroupOrderKey,
+};
 use crate::{ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, SourceType};
 use crate::{Compilation, EntryOptions, Filename, ModuleGraph, RuntimeSpec};
 
@@ -88,7 +91,7 @@ impl Chunk {
     chunk_group_by_ukey: &'a ChunkGroupByUkey,
   ) -> Option<&'a EntryOptions> {
     for group_ukey in &self.groups {
-      if let Some(group) = chunk_group_by_ukey.get(group_ukey)
+      if let Some(group) = get_chunk_group_from_ukey(group_ukey, chunk_group_by_ukey)
         && let Some(entry_options) = group.kind.get_entry_options()
       {
         return Some(entry_options);
@@ -105,9 +108,7 @@ impl Chunk {
     self
       .get_sorted_groups_iter(chunk_group_by_ukey)
       .for_each(|group| {
-        let group = chunk_group_by_ukey
-          .get_mut(group)
-          .expect("Group should exist");
+        let group = chunk_group_by_ukey.expect_get_mut(group);
         group.insert_chunk(new_chunk.ukey, self.ukey);
         new_chunk.add_group(group.ukey);
       });
@@ -119,7 +120,7 @@ impl Chunk {
     self
       .groups
       .iter()
-      .filter_map(|ukey| chunk_group_by_ukey.get(ukey))
+      .filter_map(|ukey| get_chunk_group_from_ukey(ukey, chunk_group_by_ukey))
       .any(|group| group.is_initial())
   }
 
@@ -127,7 +128,7 @@ impl Chunk {
     self
       .groups
       .iter()
-      .filter_map(|ukey| chunk_group_by_ukey.get(ukey))
+      .filter_map(|ukey| get_chunk_group_from_ukey(ukey, chunk_group_by_ukey))
       .all(|group| group.is_initial())
   }
 
@@ -148,9 +149,7 @@ impl Chunk {
       chunk_group_by_ukey: &ChunkGroupByUkey,
       visit_chunk_groups: &mut HashSet<ChunkGroupUkey>,
     ) {
-      let group = chunk_group_by_ukey
-        .get(chunk_group_ukey)
-        .expect("Group should exist");
+      let group = chunk_group_by_ukey.expect_get(chunk_group_ukey);
 
       for chunk_ukey in group.chunks.iter() {
         chunks.insert(*chunk_ukey);
@@ -195,9 +194,7 @@ impl Chunk {
       chunk_group_by_ukey: &ChunkGroupByUkey,
       visit_chunk_groups: &mut HashSet<ChunkGroupUkey>,
     ) {
-      let group = chunk_group_by_ukey
-        .get(chunk_group_ukey)
-        .expect("Group should exist");
+      let group = chunk_group_by_ukey.expect_get(chunk_group_ukey);
 
       if group.is_initial() {
         for chunk_ukey in group.chunks.iter() {
@@ -243,9 +240,7 @@ impl Chunk {
       chunk_group_by_ukey: &ChunkGroupByUkey,
       visit_chunk_groups: &mut HashSet<ChunkGroupUkey>,
     ) {
-      let group = chunk_group_by_ukey
-        .get(chunk_group_ukey)
-        .expect("Group should exist");
+      let group = chunk_group_by_ukey.expect_get(chunk_group_ukey);
 
       for chunk_ukey in group.async_entrypoints_iterable() {
         async_entrypoints.insert(*chunk_ukey);
@@ -280,8 +275,12 @@ impl Chunk {
     self
       .groups
       .iter()
-      .filter_map(|ukey| chunk_group_by_ukey.get(ukey))
+      .filter_map(|ukey| get_chunk_group_from_ukey(ukey, chunk_group_by_ukey))
       .any(|group| group.kind.is_entrypoint() && group.get_runtime_chunk() == self.ukey)
+  }
+
+  pub fn has_async_chunks(&self, chunk_group_by_ukey: &ChunkGroupByUkey) -> bool {
+    !self.get_all_async_chunks(chunk_group_by_ukey).is_empty()
   }
 
   pub fn get_all_async_chunks(
@@ -314,13 +313,13 @@ impl Chunk {
       initial_queue: &mut IndexSet<ChunkGroupUkey, BuildHasherDefault<FxHasher>>,
       chunk_group_ukey: &ChunkGroupUkey,
     ) {
-      if let Some(chunk_group) = chunk_group_by_ukey.get(chunk_group_ukey) {
+      if let Some(chunk_group) = get_chunk_group_from_ukey(chunk_group_ukey, chunk_group_by_ukey) {
         for child_ukey in chunk_group
           .children
           .iter()
           .sorted_by(|a, b| sort_group_by_index(a, b, chunk_group_by_ukey))
         {
-          if let Some(chunk_group) = chunk_group_by_ukey.get(child_ukey) {
+          if let Some(chunk_group) = get_chunk_group_from_ukey(child_ukey, chunk_group_by_ukey) {
             if chunk_group.is_initial() && !initial_queue.contains(&chunk_group.ukey) {
               initial_queue.insert(chunk_group.ukey);
               add_to_queue(chunk_group_by_ukey, queue, initial_queue, &chunk_group.ukey);
@@ -348,7 +347,7 @@ impl Chunk {
       chunk_group_ukey: &ChunkGroupUkey,
       visit_chunk_groups: &mut HashSet<ChunkGroupUkey>,
     ) {
-      if let Some(chunk_group) = chunk_group_by_ukey.get(chunk_group_ukey) {
+      if let Some(chunk_group) = get_chunk_group_from_ukey(chunk_group_ukey, chunk_group_by_ukey) {
         for chunk_ukey in chunk_group.chunks.iter() {
           if !initial_chunks.contains(chunk_ukey) {
             chunks.insert(*chunk_ukey);
@@ -410,9 +409,7 @@ impl Chunk {
 
   pub fn disconnect_from_groups(&mut self, chunk_group_by_ukey: &mut ChunkGroupByUkey) {
     for group_ukey in self.groups.iter() {
-      let group = chunk_group_by_ukey
-        .get_mut(group_ukey)
-        .expect("Group should exist");
+      let group = chunk_group_by_ukey.expect_get_mut(group_ukey);
       group.remove_chunk(&self.ukey);
     }
     self.groups.clear();
@@ -438,7 +435,9 @@ impl Chunk {
       .get_chunk_entry_modules_with_chunk_group_iterable(&self.ukey)
     {
       compilation.chunk_graph.get_module_id(*module).hash(hasher);
-      if let Some(chunk_group) = compilation.chunk_group_by_ukey.get(chunk_group) {
+      if let Some(chunk_group) =
+        get_chunk_group_from_ukey(chunk_group, &compilation.chunk_group_by_ukey)
+      {
         chunk_group.id(compilation).hash(hasher);
       }
     }
@@ -457,9 +456,7 @@ impl Chunk {
     let mut list = vec![];
     let chunk_group_by_ukey = &compilation.chunk_group_by_ukey;
     for group_ukey in self.get_sorted_groups_iter(chunk_group_by_ukey) {
-      let group = chunk_group_by_ukey
-        .get(group_ukey)
-        .expect("chunk group do not exists");
+      let group = chunk_group_by_ukey.expect_get(group_ukey);
       if let Some(last_chunk) = group.chunks.last() {
         if is_self_last_chunk && !last_chunk.eq(&self.ukey) {
           continue;
@@ -471,9 +468,7 @@ impl Chunk {
         .iter()
         .sorted_by(|a, b| sort_group_by_index(a, b, chunk_group_by_ukey))
       {
-        let child_group = chunk_group_by_ukey
-          .get(child_group_ukey)
-          .expect("child group do not exists");
+        let child_group = chunk_group_by_ukey.expect_get(child_group_ukey);
         let order = child_group
           .kind
           .get_normal_options()
@@ -505,10 +500,7 @@ impl Chunk {
       BuildHasherDefault<FxHasher>,
     > = IndexMap::default();
     for (_, group_ukey, child_group_ukey) in list.iter() {
-      let child_group = chunk_group_by_ukey
-        .get(child_group_ukey)
-        .expect("chunk group do not exists");
-
+      let child_group = chunk_group_by_ukey.expect_get(child_group_ukey);
       result
         .entry(group_ukey.to_owned())
         .or_default()
@@ -519,9 +511,7 @@ impl Chunk {
       result
         .iter()
         .map(|(group_ukey, chunks)| {
-          let group = chunk_group_by_ukey
-            .get(group_ukey)
-            .expect("chunk group do not exists");
+          let group = chunk_group_by_ukey.expect_get(group_ukey);
           (
             group.chunks.clone(),
             chunks.iter().map(|x| x.to_owned()).collect_vec(),
@@ -547,10 +537,7 @@ impl Chunk {
       >,
       compilation: &Compilation,
     ) {
-      let chunk = compilation
-        .chunk_by_ukey
-        .get(chunk_ukey)
-        .expect("chunk do not exists");
+      let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
       let order_children = chunk.get_children_of_type_in_order(order, compilation, true);
       if let (Some(chunk_id), Some(order_children)) = (chunk.id.to_owned(), order_children) {
         let child_chunk_ids = order_children
@@ -559,8 +546,7 @@ impl Chunk {
             child_chunks.iter().filter_map(|chunk_ukey| {
               compilation
                 .chunk_by_ukey
-                .get(chunk_ukey)
-                .expect("chunk do not exists")
+                .expect_get(chunk_ukey)
                 .id
                 .to_owned()
             })
@@ -578,9 +564,7 @@ impl Chunk {
       for chunk_ukey in self
         .get_sorted_groups_iter(&compilation.chunk_group_by_ukey)
         .filter_map(|chunk_group_ukey| {
-          compilation
-            .chunk_group_by_ukey
-            .get(chunk_group_ukey)
+          get_chunk_group_from_ukey(chunk_group_ukey, &compilation.chunk_group_by_ukey)
             .map(|g| g.chunks.to_owned())
         })
         .flatten()

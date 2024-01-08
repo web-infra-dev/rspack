@@ -1,0 +1,101 @@
+use rspack_core::{clean_regexp_in_context_module, try_convert_str_to_context_mode};
+use rspack_core::{ContextMode, ContextOptions, DependencyCategory, SpanExt};
+use rspack_regex::{regexp_as_str, RspackRegex};
+use swc_core::ecma::ast::CallExpr;
+
+use super::JavascriptParserPlugin;
+use crate::dependency::RequireContextDependency;
+use crate::visitors::common_js_import_dependency_scanner::CommonJsImportDependencyScanner;
+use crate::visitors::expr_matcher::is_require_context;
+
+pub struct RequireContextDependencyParserPlugin;
+
+const DEFAULT_REGEXP_STR: &str = r"^\.\/.*$";
+
+impl JavascriptParserPlugin for RequireContextDependencyParserPlugin {
+  fn call(&self, parser: &mut CommonJsImportDependencyScanner, expr: &CallExpr) -> Option<bool> {
+    if expr
+      .callee
+      .as_expr()
+      .map_or(true, |expr| !is_require_context(expr))
+    {
+      return None;
+    }
+
+    let mode = if expr.args.len() == 4 {
+      let mode_expr = parser.evaluate_expression(&expr.args[3].expr);
+      if !mode_expr.is_string() {
+        // FIXME: return `None` in webpack
+        ContextMode::Sync
+      } else if let Some(mode_expr) = try_convert_str_to_context_mode(mode_expr.string()) {
+        mode_expr
+      } else {
+        ContextMode::Sync
+      }
+    } else {
+      ContextMode::Sync
+    };
+
+    let (reg_exp, reg_str) = if expr.args.len() >= 3 {
+      let reg_exp_expr = parser.evaluate_expression(&expr.args[2].expr);
+      if !reg_exp_expr.is_regexp() {
+        // FIXME: return `None` in webpack
+        let regexp = RspackRegex::new(DEFAULT_REGEXP_STR).expect("reg should success");
+        let raw = regexp_as_str(&regexp).to_string();
+        (regexp, raw)
+      } else {
+        let (expr, flags) = reg_exp_expr.regexp();
+        let regexp =
+          RspackRegex::with_flags(expr.as_str(), flags.as_str()).expect("reg should success");
+        let raw = regexp_as_str(&regexp).to_string();
+        (regexp, raw)
+      }
+    } else {
+      let regexp = RspackRegex::new(DEFAULT_REGEXP_STR).expect("reg should success");
+      let raw = regexp_as_str(&regexp).to_string();
+      (regexp, raw)
+    };
+
+    let recursive = if expr.args.len() >= 2 {
+      let recursive_expr = parser.evaluate_expression(&expr.args[1].expr);
+      if !recursive_expr.is_bool() {
+        // FIXME: return `None` in webpack
+        true
+      } else {
+        recursive_expr.bool()
+      }
+    } else {
+      true
+    };
+
+    if !expr.args.is_empty() {
+      let request_expr = parser.evaluate_expression(&expr.args[0].expr);
+      if !request_expr.is_string() {
+        return None;
+      }
+
+      parser
+        .dependencies
+        .push(Box::new(RequireContextDependency::new(
+          expr.span.real_lo(),
+          expr.span.real_hi(),
+          ContextOptions {
+            mode,
+            recursive,
+            reg_exp: clean_regexp_in_context_module(reg_exp),
+            reg_str,
+            include: None,
+            exclude: None,
+            category: DependencyCategory::CommonJS,
+            request: request_expr.string().to_string(),
+            namespace_object: rspack_core::ContextNameSpaceObject::Unset,
+            chunk_name: None,
+          },
+          Some(expr.span.into()),
+        )));
+      return Some(true);
+    }
+
+    None
+  }
+}

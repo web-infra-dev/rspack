@@ -1,6 +1,6 @@
 use rspack_core::{
   tree_shaking::symbol::DEFAULT_JS_WORD, BoxDependency, BoxDependencyTemplate, BuildInfo,
-  ConstDependency, SpanExt,
+  ConstDependency, DependencyLocation, SpanExt,
 };
 use rustc_hash::FxHashMap as HashMap;
 use swc_core::{
@@ -17,10 +17,13 @@ use swc_core::{
 use swc_node_comments::SwcComments;
 
 use super::{harmony_import_dependency_scanner::ImportMap, ExtraSpanInfo};
-use crate::dependency::{
-  AnonymousFunctionRangeInfo, HarmonyExportExpressionDependency, HarmonyExportHeaderDependency,
-  HarmonyExportImportedSpecifierDependency, HarmonyExportSpecifierDependency, Specifier,
-  DEFAULT_EXPORT,
+use crate::{
+  dependency::{
+    AnonymousFunctionRangeInfo, HarmonyExportExpressionDependency, HarmonyExportHeaderDependency,
+    HarmonyExportImportedSpecifierDependency, HarmonyExportSpecifierDependency, Specifier,
+    DEFAULT_EXPORT,
+  },
+  no_visit_ignored_stmt,
 };
 
 pub struct HarmonyExportDependencyScanner<'a, 'b> {
@@ -30,6 +33,7 @@ pub struct HarmonyExportDependencyScanner<'a, 'b> {
   pub build_info: &'a mut BuildInfo,
   pub rewrite_usage_span: &'a mut HashMap<Span, ExtraSpanInfo>,
   pub comments: Option<&'b SwcComments>,
+  pub ignored: &'a mut Vec<DependencyLocation>,
 }
 
 impl<'a, 'b> HarmonyExportDependencyScanner<'a, 'b> {
@@ -40,6 +44,7 @@ impl<'a, 'b> HarmonyExportDependencyScanner<'a, 'b> {
     build_info: &'a mut BuildInfo,
     rewrite_usage_span: &'a mut HashMap<Span, ExtraSpanInfo>,
     comments: Option<&'b SwcComments>,
+    ignored: &'a mut Vec<DependencyLocation>,
   ) -> Self {
     Self {
       dependencies,
@@ -48,12 +53,14 @@ impl<'a, 'b> HarmonyExportDependencyScanner<'a, 'b> {
       build_info,
       rewrite_usage_span,
       comments,
+      ignored,
     }
   }
 }
 
 impl<'a, 'b> Visit for HarmonyExportDependencyScanner<'a, 'b> {
   noop_visit_type!();
+  no_visit_ignored_stmt!();
 
   fn visit_program(&mut self, program: &'_ Program) {
     program.visit_children_with(self);

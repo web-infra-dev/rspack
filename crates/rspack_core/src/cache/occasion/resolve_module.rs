@@ -1,12 +1,13 @@
 use std::sync::Arc;
 
 use futures::Future;
+use rspack_error::Error;
 use rspack_identifier::Identifier;
 
 use crate::{
   cache::snapshot::{Snapshot, SnapshotManager},
   cache::storage,
-  ModuleIdentifier, ResolveArgs, ResolveError, ResolveResult,
+  ModuleIdentifier, ResolveArgs, ResolveResult,
 };
 
 type Storage = dyn storage::Storage<(Snapshot, ResolveResult)>;
@@ -29,10 +30,10 @@ impl ResolveModuleOccasion {
     &self,
     args: ResolveArgs<'a>,
     generator: G,
-  ) -> Result<(Result<ResolveResult, ResolveError>, bool), ResolveError>
+  ) -> Result<(Result<ResolveResult, Error>, bool), Error>
   where
     G: Fn(ResolveArgs<'a>) -> F,
-    F: Future<Output = Result<ResolveResult, ResolveError>>,
+    F: Future<Output = Result<ResolveResult, Error>>,
   {
     let storage = match &self.storage {
       Some(s) => s,
@@ -75,8 +76,7 @@ impl ResolveModuleOccasion {
     let snapshot = self
       .snapshot_manager
       .create_snapshot(&paths, |option| &option.resolve)
-      .await
-      .map_err(|err| ResolveError(err.to_string(), err))?;
+      .await?;
     storage.set(id, (snapshot, data.clone()));
     Ok((Ok(data), false))
   }

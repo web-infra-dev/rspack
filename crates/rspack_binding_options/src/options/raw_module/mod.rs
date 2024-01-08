@@ -3,8 +3,6 @@ mod js_loader;
 use std::{collections::HashMap, fmt::Debug, sync::Arc};
 
 use derivative::Derivative;
-pub use js_loader::JsLoaderAdapter;
-pub use js_loader::*;
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rspack_core::{
@@ -15,18 +13,17 @@ use rspack_core::{
   JavascriptParserUrl, ModuleOptions, ModuleRule, ModuleRuleEnforce, ModuleRuleUse,
   ModuleRuleUseLoader, ModuleType, ParserOptions, ParserOptionsByModuleType,
 };
-use rspack_error::{internal_error, miette::IntoDiagnostic};
+use rspack_error::{error, miette::IntoDiagnostic};
 use rspack_loader_react_refresh::REACT_REFRESH_LOADER_IDENTIFIER;
 use rspack_loader_sass::SASS_LOADER_IDENTIFIER;
 use rspack_loader_swc::SWC_LOADER_IDENTIFIER;
-use rspack_napi_shared::get_napi_env;
+use rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
+use rspack_napi_shared::{get_napi_env, NapiResultExt};
 use serde::Deserialize;
-use {
-  rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},
-  rspack_napi_shared::NapiResultExt,
-};
 
-use crate::{RawOptionsApply, RawResolveOptions};
+pub use self::js_loader::JsLoaderAdapter;
+pub use self::js_loader::*;
+use crate::RawResolveOptions;
 
 pub fn get_builtin_loader(builtin: &str, options: Option<&str>) -> BoxLoader {
   if builtin.starts_with(SASS_LOADER_IDENTIFIER) {
@@ -178,11 +175,11 @@ impl TryFrom<RawRuleSetCondition> for rspack_core::RuleSetCondition {
   fn try_from(x: RawRuleSetCondition) -> rspack_error::Result<Self> {
     let result = match x.r#type.as_str() {
       "string" => Self::String(x.string_matcher.ok_or_else(|| {
-        internal_error!("should have a string_matcher when RawRuleSetCondition.type is \"string\"")
+        error!("should have a string_matcher when RawRuleSetCondition.type is \"string\"")
       })?),
       "regexp" => {
         let reg_matcher = x.regexp_matcher.as_ref().ok_or_else(|| {
-          internal_error!(
+          error!(
             "should have a regexp_matcher when RawRuleSetCondition.type is \"regexp\""
           )
         })?;
@@ -192,12 +189,12 @@ impl TryFrom<RawRuleSetCondition> for rspack_core::RuleSetCondition {
       },
       "logical" => {
         let mut logical_matcher = x.logical_matcher.ok_or_else(|| {
-          internal_error!(
+          error!(
             "should have a logical_matcher when RawRuleSetCondition.type is \"logical\""
           )
         })?;
         let logical_matcher = logical_matcher.get_mut(0).ok_or_else(|| {
-          internal_error!(
+          error!(
             "TODO: use Box after https://github.com/napi-rs/napi-rs/issues/1500 landed"
           )
         })?;
@@ -209,7 +206,7 @@ impl TryFrom<RawRuleSetCondition> for rspack_core::RuleSetCondition {
       "array" => Self::Array(
         x.array_matcher
           .ok_or_else(|| {
-            internal_error!(
+            error!(
               "should have a array_matcher when RawRuleSetCondition.type is \"array\""
             )
           })?
@@ -219,7 +216,7 @@ impl TryFrom<RawRuleSetCondition> for rspack_core::RuleSetCondition {
       ),
       "function" => {
         let func_matcher = x.func_matcher.ok_or_else(|| {
-          internal_error!(
+          error!(
             "should have a func_matcher when RawRuleSetCondition.type is \"function\""
           )
         })?;
@@ -572,15 +569,12 @@ impl From<FuncUseCtx> for RawFuncUseCtx {
   }
 }
 
-impl RawOptionsApply for RawModuleRule {
-  type Options = ModuleRule;
+impl TryFrom<RawModuleRule> for ModuleRule {
+  type Error = rspack_error::Error;
 
-  fn apply(
-    self,
-    _plugins: &mut Vec<rspack_core::BoxPlugin>,
-  ) -> std::result::Result<Self::Options, rspack_error::Error> {
+  fn try_from(value: RawModuleRule) -> rspack_error::Result<Self> {
     // Even this part is using the plural version of loader, it's recommended to use singular version from js side to reduce overhead (This behavior maybe changed later for advanced usage).
-    let uses = self.r#use.map(|raw| match raw.r#type.as_str() {
+    let uses = value.r#use.map(|raw| match raw.r#type.as_str() {
       "array" => {
         let uses = raw
           .array_use
@@ -598,9 +592,7 @@ impl RawOptionsApply for RawModuleRule {
       }
       "function" => {
         let func_use = raw.func_use.ok_or_else(|| {
-          internal_error!(
-            "should have a func_matcher when RawRuleSetCondition.type is \"function\""
-          )
+          error!("should have a func_matcher when RawRuleSetCondition.type is \"function\"")
         })?;
         let func_use: Result<ThreadsafeFunction<RawFuncUseCtx, Vec<RawModuleRuleUse>>> = try {
           let env = get_napi_env();
@@ -632,29 +624,29 @@ impl RawOptionsApply for RawModuleRule {
       _ => Ok::<ModuleRuleUse, rspack_error::Error>(ModuleRuleUse::Array(vec![])),
     });
 
-    let module_type = self.r#type.map(|t| (&*t).try_into()).transpose()?;
+    let module_type = value.r#type.map(|t| (&*t).into());
 
-    let one_of = self
+    let one_of = value
       .one_of
       .map(|one_of| {
         one_of
           .into_iter()
-          .map(|raw| raw.apply(_plugins))
+          .map(|raw| raw.try_into())
           .collect::<rspack_error::Result<Vec<_>>>()
       })
       .transpose()?;
 
-    let rules = self
+    let rules = value
       .rules
       .map(|rule| {
         rule
           .into_iter()
-          .map(|raw| raw.apply(_plugins))
+          .map(|raw| raw.try_into())
           .collect::<rspack_error::Result<Vec<_>>>()
       })
       .transpose()?;
 
-    let description_data = self
+    let description_data = value
       .description_data
       .map(|data| {
         data
@@ -664,12 +656,12 @@ impl RawOptionsApply for RawModuleRule {
       })
       .transpose()?;
 
-    let enforce = self
+    let enforce = value
       .enforce
       .map(|enforce| match &*enforce {
         "pre" => Ok(ModuleRuleEnforce::Pre),
         "post" => Ok(ModuleRuleEnforce::Post),
-        _ => Err(internal_error!(
+        _ => Err(error!(
           "Unsupported Rule.enforce type, supported: 'pre' | 'post' | undefined"
         )),
       })
@@ -677,27 +669,30 @@ impl RawOptionsApply for RawModuleRule {
       .unwrap_or_default();
 
     Ok(ModuleRule {
-      rspack_resource: self.rspack_resource.map(|raw| raw.try_into()).transpose()?,
-      test: self.test.map(|raw| raw.try_into()).transpose()?,
-      include: self.include.map(|raw| raw.try_into()).transpose()?,
-      exclude: self.exclude.map(|raw| raw.try_into()).transpose()?,
-      resource_query: self.resource_query.map(|raw| raw.try_into()).transpose()?,
-      resource_fragment: self
+      rspack_resource: value
+        .rspack_resource
+        .map(|raw| raw.try_into())
+        .transpose()?,
+      test: value.test.map(|raw| raw.try_into()).transpose()?,
+      include: value.include.map(|raw| raw.try_into()).transpose()?,
+      exclude: value.exclude.map(|raw| raw.try_into()).transpose()?,
+      resource_query: value.resource_query.map(|raw| raw.try_into()).transpose()?,
+      resource_fragment: value
         .resource_fragment
         .map(|raw| raw.try_into())
         .transpose()?,
-      resource: self.resource.map(|raw| raw.try_into()).transpose()?,
+      resource: value.resource.map(|raw| raw.try_into()).transpose()?,
       description_data,
       r#use: uses.transpose()?.unwrap_or_default(),
       r#type: module_type,
-      parser: self.parser.map(|raw| raw.into()),
-      generator: self.generator.map(|raw| raw.into()),
-      resolve: self.resolve.map(|raw| raw.try_into()).transpose()?,
-      side_effects: self.side_effects,
-      issuer: self.issuer.map(|raw| raw.try_into()).transpose()?,
-      dependency: self.dependency.map(|raw| raw.try_into()).transpose()?,
-      scheme: self.scheme.map(|raw| raw.try_into()).transpose()?,
-      mimetype: self.mimetype.map(|raw| raw.try_into()).transpose()?,
+      parser: value.parser.map(|raw| raw.into()),
+      generator: value.generator.map(|raw| raw.into()),
+      resolve: value.resolve.map(|raw| raw.try_into()).transpose()?,
+      side_effects: value.side_effects,
+      issuer: value.issuer.map(|raw| raw.try_into()).transpose()?,
+      dependency: value.dependency.map(|raw| raw.try_into()).transpose()?,
+      scheme: value.scheme.map(|raw| raw.try_into()).transpose()?,
+      mimetype: value.mimetype.map(|raw| raw.try_into()).transpose()?,
       one_of,
       rules,
       enforce,
@@ -705,33 +700,30 @@ impl RawOptionsApply for RawModuleRule {
   }
 }
 
-impl RawOptionsApply for RawModuleOptions {
-  type Options = ModuleOptions;
+impl TryFrom<RawModuleOptions> for ModuleOptions {
+  type Error = rspack_error::Error;
 
-  fn apply(
-    self,
-    plugins: &mut Vec<rspack_core::BoxPlugin>,
-  ) -> std::result::Result<Self::Options, rspack_error::Error> {
-    let rules = self
+  fn try_from(value: RawModuleOptions) -> rspack_error::Result<Self> {
+    let rules = value
       .rules
       .into_iter()
-      .map(|rule| rule.apply(plugins))
+      .map(|rule| rule.try_into())
       .collect::<rspack_error::Result<Vec<ModuleRule>>>()?;
     Ok(ModuleOptions {
       rules,
-      parser: self
+      parser: value
         .parser
         .map(|x| {
           x.into_iter()
-            .map(|(k, v)| Ok((ModuleType::try_from(k.as_str())?, v.into())))
+            .map(|(k, v)| Ok((ModuleType::from(k.as_str()), v.into())))
             .collect::<std::result::Result<ParserOptionsByModuleType, rspack_error::Error>>()
         })
         .transpose()?,
-      generator: self
+      generator: value
         .generator
         .map(|x| {
           x.into_iter()
-            .map(|(k, v)| Ok((ModuleType::try_from(k.as_str())?, v.into())))
+            .map(|(k, v)| Ok((ModuleType::from(k.as_str()), v.into())))
             .collect::<std::result::Result<GeneratorOptionsByModuleType, rspack_error::Error>>()
         })
         .transpose()?,

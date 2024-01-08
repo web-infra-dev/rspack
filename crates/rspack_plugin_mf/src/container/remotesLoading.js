@@ -13,7 +13,7 @@ __webpack_require__.f.remotes = function (chunkId, promises) {
 				if (!error) error = new Error("Container missing");
 				if (typeof error.message === "string")
 					error.message +=
-						'\nwhile loading "' + data[1] + '" from ' + data[2];
+						'\nwhile loading "' + data.name + '" from ' + data.externalModuleId;
 				__webpack_require__.m[id] = function () {
 					throw error;
 				};
@@ -36,10 +36,10 @@ __webpack_require__.f.remotes = function (chunkId, promises) {
 				}
 			};
 			var onExternal = function (external, _, first) {
-				return external ? handleFunction(__webpack_require__.I, data[0], 0, external, onInitialized, first) : onError();
+				return external ? handleFunction(__webpack_require__.I, data.shareScope, 0, external, onInitialized, first) : onError();
 			};
 			var onInitialized = function (_, external, first) {
-				return handleFunction(external.get, data[1], getScope, 0, onFactory, first);
+				return handleFunction(external.get, data.name, getScope, 0, onFactory, first);
 			};
 			var onFactory = function (factory) {
 				data.p = 1;
@@ -47,7 +47,7 @@ __webpack_require__.f.remotes = function (chunkId, promises) {
 					module.exports = factory();
 				};
 			};
-			handleFunction(__webpack_require__, data[2], 0, 0, onExternal, 1);
+			handleFunction(__webpack_require__, data.externalModuleId, 0, 0, onExternal, 1);
 		});
 	}
 };

@@ -2,13 +2,13 @@ use std::{borrow::Cow, hash::Hash};
 
 use async_trait::async_trait;
 use rspack_core::{
-  block_promise, module_raw, returning_function,
+  block_promise, impl_build_info_meta, module_raw, returning_function,
   rspack_sources::{RawSource, Source, SourceExt},
   throw_missing_module_error_block, AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier,
-  BuildContext, BuildInfo, BuildMeta, BuildMetaExportsType, BuildResult, ChunkGroupOptions,
-  CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId, GroupOptions,
-  LibIdentOptions, Module, ModuleDependency, ModuleIdentifier, ModuleType, RuntimeGlobals,
-  RuntimeSpec, SourceType,
+  BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildMetaExportsType, BuildResult,
+  ChunkGroupOptions, CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId,
+  GroupOptions, LibIdentOptions, Module, ModuleDependency, ModuleIdentifier, ModuleType,
+  RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_hash::RspackHash;
@@ -28,6 +28,8 @@ pub struct ContainerEntryModule {
   lib_ident: String,
   exposes: Vec<(String, ExposeOptions)>,
   share_scope: String,
+  build_info: Option<BuildInfo>,
+  build_meta: Option<BuildMeta>,
 }
 
 impl ContainerEntryModule {
@@ -44,6 +46,8 @@ impl ContainerEntryModule {
       lib_ident,
       exposes,
       share_scope,
+      build_info: None,
+      build_meta: None,
     }
   }
 }
@@ -74,6 +78,8 @@ impl DependenciesBlock for ContainerEntryModule {
 
 #[async_trait]
 impl Module for ContainerEntryModule {
+  impl_build_info_meta!();
+
   fn size(&self, _source_type: &SourceType) -> f64 {
     42.0
   }
@@ -104,6 +110,7 @@ impl Module for ContainerEntryModule {
     let hash = hasher.digest(&build_context.compiler_options.output.hash_digest);
 
     let mut blocks = vec![];
+    let mut dependencies: Vec<BoxDependency> = vec![];
     for (name, options) in &self.exposes {
       let mut block = AsyncDependenciesBlock::new(self.identifier, name, None);
       block.set_group_options(GroupOptions::ChunkGroup(
@@ -115,6 +122,10 @@ impl Module for ContainerEntryModule {
       }
       blocks.push(block);
     }
+    dependencies.push(Box::new(StaticExportsDependency::new(
+      vec!["get".into(), "init".into()],
+      false,
+    )));
 
     Ok(BuildResult {
       build_info: BuildInfo {
@@ -126,7 +137,7 @@ impl Module for ContainerEntryModule {
         exports_type: BuildMetaExportsType::Namespace,
         ..Default::default()
       },
-      dependencies: vec![],
+      dependencies,
       blocks,
       ..Default::default()
     })
@@ -145,6 +156,9 @@ impl Module for ContainerEntryModule {
     code_generation_result
       .runtime_requirements
       .insert(RuntimeGlobals::EXPORTS);
+    code_generation_result
+      .runtime_requirements
+      .insert(RuntimeGlobals::REQUIRE);
     code_generation_result
       .runtime_requirements
       .insert(RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE);

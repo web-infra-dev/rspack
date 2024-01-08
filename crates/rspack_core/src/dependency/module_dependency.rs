@@ -2,8 +2,8 @@ use dyn_clone::clone_trait_object;
 
 use super::Dependency;
 use crate::{
-  create_exports_object_referenced, DependencyCondition, ExtendedReferencedExport, ModuleGraph,
-  RuntimeSpec,
+  create_exports_object_referenced, DependencyCondition, ErrorSpan, ExtendedReferencedExport,
+  ModuleGraph, RuntimeSpec,
 };
 
 pub trait ModuleDependency: Dependency {
@@ -11,6 +11,14 @@ pub trait ModuleDependency: Dependency {
 
   fn user_request(&self) -> &str {
     self.request()
+  }
+
+  /// Span for precise source location.
+  /// For example: the source node in an `ImportDeclaration`.
+  /// This is only intended used to display better diagnostics.
+  /// So it might not be precise as it is using [crate::Dependency::span] as the default value.
+  fn source_span(&self) -> Option<ErrorSpan> {
+    self.span()
   }
 
   // TODO: move to ModuleGraphConnection

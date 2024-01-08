@@ -12,9 +12,9 @@ use rspack_core::{
 };
 use rspack_core::{
   Compilation, CompilationArgs, CompilationParams, CompilerOptions, DependencyType,
-  LibIdentOptions, PluginCompilationHookOutput,
+  LibIdentOptions, PluginCompilationHookOutput, PublicPath,
 };
-use rspack_error::Result;
+use rspack_error::{IntoTWithDiagnosticArray, Result};
 use rspack_hash::RspackHash;
 
 use crate::parser_and_generator::CssParserAndGenerator;
@@ -78,8 +78,8 @@ impl CssPlugin {
   ) -> (ConcatSource, ConcatSource) {
     let mut start = ConcatSource::default();
     let mut end = ConcatSource::default();
-    let is_dev = compilation.options.mode.is_development();
-    if !is_dev {
+
+    if !compilation.options.mode.is_development() {
       return (start, end);
     }
 
@@ -165,10 +165,7 @@ impl Plugin for CssPlugin {
     args: &rspack_core::ContentHashArgs<'_>,
   ) -> rspack_core::PluginContentHashHookOutput {
     let compilation = &args.compilation;
-    let chunk = compilation
-      .chunk_by_ukey
-      .get(&args.chunk_ukey)
-      .expect("should have chunk");
+    let chunk = compilation.chunk_by_ukey.expect_get(&args.chunk_ukey);
     let ordered_modules = Self::get_ordered_chunk_css_modules(
       chunk,
       &compilation.chunk_graph,
@@ -208,7 +205,7 @@ impl Plugin for CssPlugin {
     let compilation = args.compilation;
     let chunk = args.chunk_ukey.as_ref(&compilation.chunk_by_ukey);
     if matches!(chunk.kind, ChunkKind::HotUpdate) {
-      return Ok(vec![]);
+      return Ok(vec![].with_empty_diagnostic());
     }
 
     let ordered_css_modules = Self::get_ordered_chunk_css_modules(
@@ -220,7 +217,7 @@ impl Plugin for CssPlugin {
 
     // Prevent generating css files for chunks which don't contain css modules.
     if ordered_css_modules.is_empty() {
-      return Ok(Default::default());
+      return Ok(vec![].with_empty_diagnostic());
     }
 
     let source = Self::render_chunk_to_source(compilation, chunk, &ordered_css_modules)?;
@@ -251,24 +248,22 @@ impl Plugin for CssPlugin {
     let source = if !auto_public_path_matches.is_empty() {
       let mut replace = ReplaceSource::new(source);
       for (start, end) in auto_public_path_matches {
-        let relative = args
-          .compilation
-          .options
-          .output
-          .public_path
-          .render(args.compilation, &output_path);
+        let relative = PublicPath::render_auto_public_path(args.compilation, &output_path);
         replace.replace(start as u32, end as u32, &relative, None);
       }
       replace.boxed()
     } else {
       source.boxed()
     };
-    Ok(vec![RenderManifestEntry::new(
-      source.boxed(),
-      output_path,
-      asset_info,
-      false,
-      false,
-    )])
+    Ok(
+      vec![RenderManifestEntry::new(
+        source.boxed(),
+        output_path,
+        asset_info,
+        false,
+        false,
+      )]
+      .with_empty_diagnostic(),
+    )
   }
 }

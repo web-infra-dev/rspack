@@ -38,10 +38,7 @@ impl RuntimeModule for AutoPublicPathRuntimeModule {
 
   fn generate(&self, compilation: &Compilation) -> BoxSource {
     let chunk = self.chunk.expect("The chunk should be attached");
-    let chunk = compilation
-      .chunk_by_ukey
-      .get(&chunk)
-      .expect("Chunk is not found, make sure you had attach chunkUkey successfully.");
+    let chunk = compilation.chunk_by_ukey.expect_get(&chunk);
     let filename = get_js_chunk_filename_template(
       chunk,
       &compilation.options.output,

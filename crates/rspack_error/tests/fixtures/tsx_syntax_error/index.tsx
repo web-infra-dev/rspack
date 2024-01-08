@@ -1,1 +1,0 @@
-let c = <test>/test>;

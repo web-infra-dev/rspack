@@ -232,11 +232,10 @@ where
               .compilation
               .module_graph
               .exports_info_map
-              .get_mut(&mgm.exports)
-              .expect("should have exports info");
+              .get_mut(*mgm.exports as usize);
             for (name, export_info) in exports_map {
               exports.exports.insert(name, export_info.id);
-              export_info_map.insert(export_info.id, export_info);
+              export_info_map.insert(*export_info.id as usize, export_info);
             }
           }
         }

@@ -1,6 +1,7 @@
+use std::hash::BuildHasherDefault;
 use std::{collections::HashMap, sync::Arc};
 
-use linked_hash_set::LinkedHashSet;
+use indexmap::IndexSet;
 use rspack_core::{
   create_exports_object_referenced, create_no_exports_referenced, export_from_import,
   get_exports_type, get_import_var, process_export_info, property_access, property_name,
@@ -12,7 +13,7 @@ use rspack_core::{
   NormalInitFragment, RuntimeGlobals, RuntimeSpec, Template, TemplateContext,
   TemplateReplaceSource, UsageState, UsedName,
 };
-use rustc_hash::FxHashSet as HashSet;
+use rustc_hash::{FxHashSet as HashSet, FxHasher};
 use swc_core::ecma::atoms::JsWord;
 
 use super::{create_resource_identifier_for_esm_dependency, harmony_import_dependency_apply};
@@ -65,10 +66,9 @@ impl HarmonyExportImportedSpecifierDependency {
   pub fn active_exports<'a>(&self, module_graph: &'a ModuleGraph) -> &'a HashSet<JsWord> {
     let build_info = module_graph
       .parent_module_by_dependency_id(&self.id)
-      .and_then(|ident| module_graph.module_graph_module_by_identifier(&ident))
+      .and_then(|ident| module_graph.module_by_identifier(&ident))
       .expect("should have mgm")
-      .build_info
-      .as_ref()
+      .build_info()
       .expect("should have build info");
     &build_info.harmony_named_exports
   }
@@ -76,10 +76,9 @@ impl HarmonyExportImportedSpecifierDependency {
   pub fn all_star_exports<'a>(&self, module_graph: &'a ModuleGraph) -> &'a Vec<DependencyId> {
     let build_info = module_graph
       .parent_module_by_dependency_id(&self.id)
-      .and_then(|ident| module_graph.module_graph_module_by_identifier(&ident))
+      .and_then(|ident| module_graph.module_by_identifier(&ident))
       .expect("should have mgm")
-      .build_info
-      .as_ref()
+      .build_info()
       .expect("should have build info");
     &build_info.all_star_exports
   }
@@ -675,11 +674,11 @@ impl HarmonyExportImportedSpecifierDependency {
         runtime_requirements.insert(RuntimeGlobals::EXPORTS);
         runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
 
-        let mgm = compilation
+        let module = compilation
           .module_graph
-          .module_graph_module_by_identifier(&module.identifier())
+          .module_by_identifier(&module.identifier())
           .expect("should have module graph module");
-        let exports_name = mgm.get_exports_argument();
+        let exports_name = module.get_exports_argument();
         let is_async = compilation
           .module_graph
           .is_async(&module.identifier())
@@ -729,11 +728,11 @@ impl HarmonyExportImportedSpecifierDependency {
       key.into(),
       format!("/* {} */ {}", comment, return_value).into(),
     ));
-    let mgm = compilation
+    let module = compilation
       .module_graph
-      .module_graph_module_by_identifier(&module.identifier())
+      .module_by_identifier(&module.identifier())
       .expect("should have module graph module");
-    HarmonyExportInitFragment::new(mgm.get_exports_argument(), export_map)
+    HarmonyExportInitFragment::new(module.get_exports_argument(), export_map)
   }
 
   fn get_reexport_fake_namespace_object_fragments(
@@ -750,9 +749,9 @@ impl HarmonyExportImportedSpecifierDependency {
       ..
     } = ctxt;
 
-    let mgm = compilation
+    let module = compilation
       .module_graph
-      .module_graph_module_by_identifier(&module.identifier())
+      .module_by_identifier(&module.identifier())
       .expect("should have module graph module");
     runtime_requirements.insert(RuntimeGlobals::EXPORTS);
     runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
@@ -777,7 +776,7 @@ impl HarmonyExportImportedSpecifierDependency {
         None,
       )
       .boxed(),
-      HarmonyExportInitFragment::new(mgm.get_exports_argument(), export_map).boxed(),
+      HarmonyExportInitFragment::new(module.get_exports_argument(), export_map).boxed(),
     ];
     ctxt.init_fragments.extend_from_slice(&frags);
   }
@@ -810,11 +809,11 @@ impl HarmonyExportImportedSpecifierDependency {
       ..
     } = ctxt;
     let return_value = Self::get_return_value(name.to_string(), value_key);
-    let mgm = compilation
+    let module = compilation
       .module_graph
-      .module_graph_module_by_identifier(&module.identifier())
+      .module_by_identifier(&module.identifier())
       .expect("should have mgm");
-    let exports_name = mgm.get_exports_argument();
+    let exports_name = module.get_exports_argument();
     runtime_requirements.insert(RuntimeGlobals::EXPORTS);
     runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
     runtime_requirements.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
@@ -849,9 +848,9 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
     let module = &code_generatable_context.module;
     let runtime = code_generatable_context.runtime;
 
-    let mgm = compilation
+    let module = compilation
       .module_graph
-      .module_graph_module_by_identifier(&module.identifier())
+      .module_by_identifier(&module.identifier())
       .expect("should have module graph module");
 
     let import_var = get_import_var(&compilation.module_graph, self.id);
@@ -929,6 +928,7 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
           JsWord::from(export_from_import(
             code_generatable_context,
             true,
+            &self.request,
             &import_var,
             id.1.clone().map(|i| vec![i]).unwrap_or_default(),
             &self.id,
@@ -942,6 +942,7 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
           JsWord::from(export_from_import(
             code_generatable_context,
             true,
+            &self.request,
             &import_var,
             id.1.clone().map(|i| vec![i]).unwrap_or_default(),
             &self.id,
@@ -956,7 +957,7 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
       code_generatable_context
         .init_fragments
         .push(Box::new(HarmonyExportInitFragment::new(
-          mgm.get_exports_argument(),
+          module.get_exports_argument(),
           exports,
         )));
     }
@@ -1284,8 +1285,7 @@ impl From<Option<UsedName>> for ValueKey {
 
 impl AsContextDependency for HarmonyExportImportedSpecifierDependency {}
 
-#[allow(unused)]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum ExportModeType {
   Missing,
   Unused,
@@ -1353,8 +1353,8 @@ fn determine_export_assignments(
   }
 
   // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/dependencies/HarmonyExportImportedSpecifierDependency.js#L109
-  // js `Set` keep the insertion order, use `LinkedHashSet` to align there behavior
-  let mut names: LinkedHashSet<JsWord> = LinkedHashSet::new();
+  // js `Set` keep the insertion order, use `IndexSet` to align there behavior
+  let mut names: IndexSet<JsWord, BuildHasherDefault<FxHasher>> = IndexSet::default();
   let mut dependency_indices = vec![];
 
   for dependency in dependencies.iter() {
@@ -1363,7 +1363,7 @@ fn determine_export_assignments(
       let exports_info = module_graph.get_exports_info(module_identifier);
       for export_info_id in exports_info.exports.values() {
         let export_info = module_graph.get_export_info_by_id(export_info_id);
-        //SAFETY: This is safe because a real export can't export empty string
+        // SAFETY: This is safe because a real export can't export empty string
         let export_info_name = export_info.name.clone().unwrap_or_default();
         if matches!(export_info.provided, Some(ExportInfoProvided::True))
           && &export_info_name != "default"

@@ -32,14 +32,7 @@ impl Plugin for MergeDuplicateChunksPlugin {
       .copied()
       .collect::<Vec<_>>();
 
-    chunk_ukeys.sort_by_key(|ukey| {
-      compilation
-        .chunk_by_ukey
-        .get(ukey)
-        .expect("should has ukey")
-        .name
-        .as_ref()
-    });
+    chunk_ukeys.sort_by_key(|ukey| compilation.chunk_by_ukey.expect_get(ukey).name.as_ref());
 
     for chunk_ukey in chunk_ukeys {
       if !compilation.chunk_by_ukey.contains(&chunk_ukey) {
@@ -85,14 +78,8 @@ impl Plugin for MergeDuplicateChunksPlugin {
         && !possible_duplicates.is_empty()
       {
         'outer: for other_chunk_ukey in possible_duplicates {
-          let chunk = compilation
-            .chunk_by_ukey
-            .get(&chunk_ukey)
-            .expect("should have chunk");
-          let other_chunk = compilation
-            .chunk_by_ukey
-            .get(&other_chunk_ukey)
-            .expect("should have chunk");
+          let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
+          let other_chunk = compilation.chunk_by_ukey.expect_get(&other_chunk_ukey);
           if other_chunk.has_runtime(&compilation.chunk_group_by_ukey)
             != chunk.has_runtime(&compilation.chunk_group_by_ukey)
           {

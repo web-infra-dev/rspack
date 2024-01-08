@@ -1,10 +1,10 @@
 use rayon::prelude::*;
 use rspack_core::rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
 use rspack_core::{
-  ChunkInitFragments, ChunkUkey, Compilation, ModuleGraphModule, RenderModuleContentArgs,
-  RuntimeGlobals, SourceType,
+  BoxModule, ChunkInitFragments, ChunkUkey, Compilation, RenderModuleContentArgs, RuntimeGlobals,
+  SourceType,
 };
-use rspack_error::{internal_error, Result};
+use rspack_error::{error, Result};
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::utils::is_diff_mode;
@@ -19,10 +19,7 @@ pub fn render_chunk_modules(
     SourceType::JavaScript,
     module_graph,
   );
-  let chunk = compilation
-    .chunk_by_ukey
-    .get(chunk_ukey)
-    .expect("chunk not found");
+  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
 
   let plugin_driver = &compilation.plugin_driver;
 
@@ -30,16 +27,16 @@ pub fn render_chunk_modules(
 
   let mut module_code_array = ordered_modules
     .par_iter()
-    .filter(|mgm| include_module_ids.contains(&mgm.module_identifier))
-    .filter_map(|mgm| {
+    .filter(|module| include_module_ids.contains(&module.identifier()))
+    .filter_map(|module| {
       let code_gen_result = compilation
         .code_generation_results
-        .get(&mgm.module_identifier, Some(&chunk.runtime));
+        .get(&module.identifier(), Some(&chunk.runtime));
       if let Some(origin_source) = code_gen_result.get(&SourceType::JavaScript) {
         let render_module_result = plugin_driver
           .render_module_content(RenderModuleContentArgs {
             compilation,
-            module_graph_module: mgm,
+            module,
             module_source: origin_source.clone(),
             chunk_init_fragments: ChunkInitFragments::default(),
           })
@@ -47,15 +44,19 @@ pub fn render_chunk_modules(
 
         let runtime_requirements = compilation
           .chunk_graph
-          .get_module_runtime_requirements(mgm.module_identifier, &chunk.runtime);
+          .get_module_runtime_requirements(module.identifier(), &chunk.runtime);
 
         Some((
-          mgm.module_identifier,
+          module.identifier(),
           render_module(
             render_module_result.module_source,
-            mgm,
+            module,
             runtime_requirements,
-            mgm.id(&compilation.chunk_graph),
+            compilation
+              .chunk_graph
+              .get_module_id(module.identifier())
+              .as_ref()
+              .expect("should have module id"),
           ),
           &code_gen_result.chunk_init_fragments,
           render_module_result.chunk_init_fragments,
@@ -99,30 +100,28 @@ pub fn render_chunk_modules(
 
 fn render_module(
   source: BoxSource,
-  mgm: &ModuleGraphModule,
+  module: &BoxModule,
   runtime_requirements: Option<&RuntimeGlobals>,
   module_id: &str,
 ) -> Result<BoxSource> {
   let need_module = runtime_requirements.is_some_and(|r| r.contains(RuntimeGlobals::MODULE));
-  // TODO: determine arguments by runtime requirements after aligning commonjs dependencies with webpack
-  // let need_exports = runtime_requirements.is_some_and(|r| r.contains(RuntimeGlobals::EXPORTS));
-  // let need_require = runtime_requirements.is_some_and(|r| {
-  //   r.contains(RuntimeGlobals::REQUIRE) || r.contains(RuntimeGlobals::REQUIRE_SCOPE)
-  // });
-  let need_exports = true;
-  let need_require = true;
+  let need_exports = runtime_requirements.is_some_and(|r| r.contains(RuntimeGlobals::EXPORTS));
+  let need_require = runtime_requirements.is_some_and(|r| {
+    r.contains(RuntimeGlobals::REQUIRE) || r.contains(RuntimeGlobals::REQUIRE_SCOPE)
+  });
 
   let mut args = Vec::new();
   if need_module || need_exports || need_require {
-    let module_argument = mgm.get_module_argument();
+    let module_argument = module.get_module_argument();
     args.push(if need_module {
       module_argument.to_string()
     } else {
       format!("__unused_webpack_{module_argument}")
     });
   }
+
   if need_exports || need_require {
-    let exports_argument = mgm.get_exports_argument();
+    let exports_argument = module.get_exports_argument();
     args.push(if need_exports {
       exports_argument.to_string()
     } else {
@@ -133,7 +132,7 @@ fn render_module(
     args.push(RuntimeGlobals::REQUIRE.to_string());
   }
   let mut sources = ConcatSource::new([
-    RawSource::from(serde_json::to_string(module_id).map_err(|e| internal_error!(e.to_string()))?),
+    RawSource::from(serde_json::to_string(module_id).map_err(|e| error!(e.to_string()))?),
     RawSource::from(": "),
   ]);
   if is_diff_mode() {
@@ -143,7 +142,7 @@ fn render_module(
     "(function ({}) {{\n",
     args.join(", ")
   )));
-  if let Some(build_info) = &mgm.build_info
+  if let Some(build_info) = &module.build_info()
     && build_info.strict
   {
     sources.add(RawSource::from("\"use strict\";\n"));
@@ -201,6 +200,9 @@ pub fn render_runtime_modules(
     .collect::<Vec<_>>();
   runtime_modules.sort_unstable_by_key(|(_, m)| m.stage());
   runtime_modules.iter().for_each(|((_, source), module)| {
+    if source.size() == 0 {
+      return;
+    }
     if is_diff_mode() {
       sources.add(RawSource::from(format!(
         "/* start::{} */\n",

@@ -7,9 +7,9 @@ use rspack_identifier::Identifiable;
 use rspack_sources::{BoxSource, RawSource, Source, SourceExt};
 
 use crate::{
-  dependencies_block::AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildResult,
-  CodeGenerationResult, Context, DependenciesBlock, DependencyId, Module, ModuleIdentifier,
-  ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
+  dependencies_block::AsyncDependenciesBlockIdentifier, impl_build_info_meta, BuildContext,
+  BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Context, DependenciesBlock,
+  DependencyId, Module, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
 #[derive(Debug)]
@@ -20,6 +20,8 @@ pub struct RawModule {
   identifier: ModuleIdentifier,
   readable_identifier: String,
   runtime_requirements: RuntimeGlobals,
+  build_info: Option<BuildInfo>,
+  build_meta: Option<BuildMeta>,
 }
 
 static RAW_MODULE_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
@@ -39,6 +41,8 @@ impl RawModule {
       identifier,
       readable_identifier,
       runtime_requirements,
+      build_info: None,
+      build_meta: None,
     }
   }
 }
@@ -69,6 +73,8 @@ impl DependenciesBlock for RawModule {
 
 #[async_trait::async_trait]
 impl Module for RawModule {
+  impl_build_info_meta!();
+
   fn module_type(&self) -> &ModuleType {
     &ModuleType::Js
   }

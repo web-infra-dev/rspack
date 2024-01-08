@@ -32,10 +32,7 @@ impl Plugin for ModuleChunkFormatPlugin {
     let compilation = &mut args.compilation;
     let chunk_ukey = args.chunk;
     let runtime_requirements = &mut args.runtime_requirements;
-    let chunk = compilation
-      .chunk_by_ukey
-      .get(chunk_ukey)
-      .unwrap_or_else(|| panic!("chunk not found"));
+    let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
 
     if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
       return Ok(());
@@ -139,9 +136,8 @@ impl Plugin for ModuleChunkFormatPlugin {
           .expect("should have module id");
         let runtime_chunk = compilation
           .chunk_group_by_ukey
-          .get(entry)
-          .map(|e| e.get_runtime_chunk())
-          .expect("should have runtime chunk");
+          .expect_get(entry)
+          .get_runtime_chunk();
         let chunks = get_all_chunks(
           entry,
           &runtime_chunk,
@@ -155,10 +151,7 @@ impl Plugin for ModuleChunkFormatPlugin {
           }
           loaded_chunks.insert(*chunk_ukey);
           let index = loaded_chunks.len();
-          let chunk = compilation
-            .chunk_by_ukey
-            .get(chunk_ukey)
-            .expect("chunk should exist in chunk_by_ukey");
+          let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
           let other_chunk_output_name = get_chunk_output_name(chunk, compilation);
           startup_source.push(format!(
             "import * as __webpack_chunk_${index}__ from '{}';",

@@ -13,6 +13,9 @@ use super::{JsCompilation, ToJsCompatSource};
 pub struct JsStatsError {
   pub message: String,
   pub formatted: String,
+  pub module_identifier: Option<String>,
+  pub module_name: Option<String>,
+  pub module_id: Option<String>,
 }
 
 impl From<rspack_core::StatsError> for JsStatsError {
@@ -20,6 +23,9 @@ impl From<rspack_core::StatsError> for JsStatsError {
     Self {
       message: stats.message,
       formatted: stats.formatted,
+      module_identifier: stats.module_identifier,
+      module_name: stats.module_name,
+      module_id: stats.module_id,
     }
   }
 }
@@ -28,6 +34,9 @@ impl From<rspack_core::StatsError> for JsStatsError {
 pub struct JsStatsWarning {
   pub message: String,
   pub formatted: String,
+  pub module_identifier: Option<String>,
+  pub module_name: Option<String>,
+  pub module_id: Option<String>,
 }
 
 impl From<rspack_core::StatsWarning> for JsStatsWarning {
@@ -35,6 +44,9 @@ impl From<rspack_core::StatsWarning> for JsStatsWarning {
     Self {
       message: stats.message,
       formatted: stats.formatted,
+      module_identifier: stats.module_identifier,
+      module_name: stats.module_name,
+      module_id: stats.module_id,
     }
   }
 }
@@ -223,6 +235,7 @@ pub struct JsStatsModule {
   pub assets: Option<Vec<String>>,
   pub source: Option<Either<String, Buffer>>,
   pub profile: Option<JsStatsModuleProfile>,
+  pub orphan: bool,
 }
 
 impl TryFrom<rspack_core::StatsModule<'_>> for JsStatsModule {
@@ -262,6 +275,7 @@ impl TryFrom<rspack_core::StatsModule<'_>> for JsStatsModule {
       assets: stats.assets,
       source,
       profile: stats.profile.map(|p| p.into()),
+      orphan: stats.orphan,
     })
   }
 }

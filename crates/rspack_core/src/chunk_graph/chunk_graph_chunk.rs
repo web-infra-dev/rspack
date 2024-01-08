@@ -7,8 +7,7 @@ use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
   find_graph_roots, merge_runtime, BoxModule, Chunk, ChunkByUkey, ChunkGroup, ChunkGroupByUkey,
-  ChunkGroupUkey, ChunkUkey, Module, ModuleGraph, ModuleGraphModule, ModuleIdentifier,
-  RuntimeGlobals, SourceType,
+  ChunkGroupUkey, ChunkUkey, Module, ModuleGraph, ModuleIdentifier, RuntimeGlobals, SourceType,
 };
 use crate::{ChunkGraph, Compilation};
 
@@ -201,18 +200,13 @@ impl ChunkGraph {
     chunk: &ChunkUkey,
     source_type: SourceType,
     module_graph: &'module ModuleGraph,
-  ) -> Vec<&'module ModuleGraphModule> {
+  ) -> Vec<&'module BoxModule> {
     let chunk_graph_chunk = self.get_chunk_graph_chunk(chunk);
     let modules = chunk_graph_chunk
       .modules
       .iter()
-      .filter_map(|uri| module_graph.module_graph_module_by_identifier(uri))
-      .filter(|mgm| {
-        module_graph
-          .module_by_identifier(&mgm.module_identifier)
-          .map(|module| module.source_types().contains(&source_type))
-          .unwrap_or_default()
-      })
+      .filter_map(|uri| module_graph.module_by_identifier(uri))
+      .filter(|module| module.source_types().contains(&source_type))
       .collect::<Vec<_>>();
     modules
   }
@@ -301,18 +295,12 @@ impl ChunkGraph {
   ) -> HashMap<String, bool> {
     let mut map = HashMap::default();
 
-    let chunk = compilation
-      .chunk_by_ukey
-      .get(chunk_ukey)
-      .expect("Chunk should exist");
+    let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
     for c in chunk
       .get_all_referenced_chunks(&compilation.chunk_group_by_ukey)
       .iter()
     {
-      let chunk = compilation
-        .chunk_by_ukey
-        .get(c)
-        .expect("Chunk should exist");
+      let chunk = compilation.chunk_by_ukey.expect_get(c);
       map.insert(chunk.expect_id().to_string(), filter(c, compilation));
     }
 
@@ -384,9 +372,7 @@ impl ChunkGraph {
   ) -> bool {
     let cgc = self.get_chunk_graph_chunk(chunk_ukey);
     for (_, chunk_group_ukey) in cgc.entry_modules.iter() {
-      let chunk_group = chunk_group_by_ukey
-        .get(chunk_group_ukey)
-        .expect("should have chunk group");
+      let chunk_group = chunk_group_by_ukey.expect_get(chunk_group_ukey);
       for c in chunk_group.chunks.iter() {
         if c != chunk_ukey {
           return true;
@@ -402,21 +388,17 @@ impl ChunkGraph {
     chunk_by_ukey: &ChunkByUkey,
     chunk_group_by_ukey: &ChunkGroupByUkey,
   ) -> impl Iterator<Item = ChunkUkey> {
-    let chunk = chunk_by_ukey.get(chunk_ukey).expect("should have chunk");
+    let chunk = chunk_by_ukey.expect_get(chunk_ukey);
     let mut set = IndexSet::new();
     for chunk_group_ukey in chunk.get_sorted_groups_iter(chunk_group_by_ukey) {
-      let chunk_group = chunk_group_by_ukey
-        .get(chunk_group_ukey)
-        .expect("should have chunk group");
+      let chunk_group = chunk_group_by_ukey.expect_get(chunk_group_ukey);
       if chunk_group.kind.is_entrypoint() {
         let entry_point_chunk = chunk_group.get_entry_point_chunk();
         let cgc = self.get_chunk_graph_chunk(&entry_point_chunk);
         for (_, chunk_group_ukey) in cgc.entry_modules.iter() {
-          let chunk_group = chunk_group_by_ukey
-            .get(chunk_group_ukey)
-            .expect("should have chunk group");
+          let chunk_group = chunk_group_by_ukey.expect_get(chunk_group_ukey);
           for c in chunk_group.chunks.iter() {
-            let chunk = chunk_by_ukey.get(c).expect("should have chunk");
+            let chunk = chunk_by_ukey.expect_get(c);
             if c != chunk_ukey && c != &entry_point_chunk && !chunk.has_runtime(chunk_group_by_ukey)
             {
               set.insert(*c);
@@ -447,8 +429,8 @@ impl ChunkGraph {
     chunk_by_ukey: &ChunkByUkey,
     chunk_group_by_ukey: &ChunkGroupByUkey,
   ) -> bool {
-    let chunk_a = chunk_by_ukey.get(chunk_a_ukey).expect("should have chunk");
-    let chunk_b = chunk_by_ukey.get(chunk_b_ukey).expect("should have chunk");
+    let chunk_a = chunk_by_ukey.expect_get(chunk_a_ukey);
+    let chunk_b = chunk_by_ukey.expect_get(chunk_b_ukey);
     if chunk_a.prevent_integration || chunk_b.prevent_integration {
       return false;
     }
@@ -510,7 +492,7 @@ impl ChunkGraph {
     let modules_size = get_modules_size(&modules);
     let chunk_overhead = options.chunk_overhead.unwrap_or(10000f64);
     let entry_chunk_multiplicator = options.entry_chunk_multiplicator.unwrap_or(10f64);
-    let chunk = chunk_by_ukey.get(chunk_ukey).expect("chunk not found");
+    let chunk = chunk_by_ukey.expect_get(chunk_ukey);
     chunk_overhead
       + modules_size
         * (if chunk.can_be_initial(chunk_group_by_ukey) {
@@ -546,8 +528,8 @@ impl ChunkGraph {
     let chunk_overhead = options.chunk_overhead.unwrap_or(10000f64);
     let entry_chunk_multiplicator = options.entry_chunk_multiplicator.unwrap_or(10f64);
 
-    let chunk_a = chunk_by_ukey.get(chunk_a_ukey).expect("chunk not found");
-    let chunk_b = chunk_by_ukey.get(chunk_b_ukey).expect("chunk not found");
+    let chunk_a = chunk_by_ukey.expect_get(chunk_a_ukey);
+    let chunk_b = chunk_by_ukey.expect_get(chunk_b_ukey);
 
     chunk_overhead
       + modules_size

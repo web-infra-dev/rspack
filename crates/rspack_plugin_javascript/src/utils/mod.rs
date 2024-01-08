@@ -6,7 +6,7 @@ pub mod mangle_exports;
 use std::path::Path;
 
 use rspack_core::{ErrorSpan, ModuleType};
-use rspack_error::{DiagnosticKind, Error};
+use rspack_error::{DiagnosticKind, TraceableError};
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::common::{SourceFile, Span, Spanned};
 use swc_core::ecma::parser::Syntax;
@@ -55,7 +55,7 @@ pub fn syntax_by_module_type(
 ) -> Syntax {
   let js_syntax = Syntax::Es(EsConfig {
     jsx: should_transform_by_default && matches!(module_type, ModuleType::Jsx),
-    export_default_from: true,
+    export_default_from: false,
     decorators_before_export: true,
     // If `disableTransformByDefault` is on, then we treat everything passed in as a web standard stuff,
     // which means everything that is not a web standard would results in a parsing error.
@@ -130,7 +130,7 @@ pub fn ecma_parse_error_deduped_to_rspack_error(
   EcmaError(message, span): EcmaError,
   fm: &SourceFile,
   module_type: &ModuleType,
-) -> Error {
+) -> TraceableError {
   let (file_type, diagnostic_kind) = match module_type {
     ModuleType::Js | ModuleType::JsDynamic | ModuleType::JsEsm => {
       ("JavaScript", DiagnosticKind::JavaScript)
@@ -141,15 +141,14 @@ pub fn ecma_parse_error_deduped_to_rspack_error(
     _ => unreachable!(),
   };
   let span: ErrorSpan = span.into();
-  let traceable_error = rspack_error::TraceableError::from_source_file(
+  rspack_error::TraceableError::from_source_file(
     fm,
     span.start as usize,
     span.end as usize,
     format!("{file_type} parsing error"),
     message,
   )
-  .with_kind(diagnostic_kind);
-  traceable_error.into()
+  .with_kind(diagnostic_kind)
 }
 
 pub fn is_diff_mode() -> bool {

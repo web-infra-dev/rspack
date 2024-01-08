@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use std::sync::Mutex;
 use std::{fmt, path::Path, sync::Arc};
 
@@ -12,7 +13,7 @@ use rspack_core::{
   PluginThisCompilationHookOutput, ResolveOptionsWithDependencyType, ResolveResult, Resolver,
   RuntimeGlobals, ThisCompilationArgs,
 };
-use rspack_error::internal_error;
+use rspack_error::{error, Diagnostic};
 use rustc_hash::FxHashMap;
 
 use super::{
@@ -75,8 +76,7 @@ fn resolve_matched_configs(
       let Ok(ResolveResult::Resource(resource)) =
         resolver.resolve(compilation.options.context.as_ref(), request)
       else {
-        compilation
-          .push_diagnostic(internal_error!("Can't resolve shared module {request}").into());
+        compilation.push_diagnostic(error!("Can't resolve shared module {request}").into());
         continue;
       };
       resolved.insert(resource.path.to_string_lossy().into_owned(), config.clone());
@@ -96,14 +96,14 @@ fn resolve_matched_configs(
   }
 }
 
-async fn get_description_file(mut dir: &Path) -> Option<serde_json::Value> {
+async fn get_description_file(mut dir: &Path) -> Option<(PathBuf, serde_json::Value)> {
   let description_filename = "package.json";
   loop {
     let description_file = dir.join(description_filename);
-    if let Ok(data) = tokio::fs::read(description_file).await
+    if let Ok(data) = tokio::fs::read(&description_file).await
       && let Ok(data) = serde_json::from_slice::<serde_json::Value>(&data)
     {
-      return Some(data);
+      return Some((description_file, data));
     }
     if let Some(parent) = dir.parent() {
       dir = parent;
@@ -200,11 +200,63 @@ impl ConsumeSharedPlugin {
     lock.clone().expect("init_matched_consumes first")
   }
 
+  async fn get_required_version(
+    &self,
+    context: &Context,
+    request: &str,
+    config: Arc<ConsumeOptions>,
+    mut add_diagnostic: impl FnMut(Diagnostic),
+  ) -> Option<ConsumeVersion> {
+    let mut required_version_warning = |details: &str| {
+      add_diagnostic(Diagnostic::warn(self.name().into(), format!("No required version specified and unable to automatically determine one. {details} file: shared module {request}")))
+    };
+    if let Some(version) = config.required_version.as_ref() {
+      Some(version.clone())
+    } else {
+      let package_name = if let Some(name) = &config.package_name {
+        Some(name.as_str())
+      } else if ABSOLUTE_REQUEST.is_match(request) {
+        return None;
+      } else if let Some(caps) = PACKAGE_NAME.captures(request)
+        && let Some(mat) = caps.get(0)
+      {
+        Some(mat.as_str())
+      } else {
+        required_version_warning("Unable to extract the package name from request.");
+        return None;
+      };
+      if let Some(package_name) = package_name
+        && let Some((description_path, data)) = get_description_file(context.as_ref()).await
+      {
+        if let Some(name) = data.get("name").and_then(|n| n.as_str())
+          && name == package_name
+        {
+          // Package self-referencing
+          return None;
+        }
+        get_required_version_from_description_file(data, package_name).or_else(|| {
+          required_version_warning(&format!(
+            "Unable to find required version for \"{package_name}\" in description file ({}). It need to be in dependencies, devDependencies or peerDependencies.",
+            description_path.display(),
+          ));
+          None
+        })
+      } else {
+        required_version_warning(&format!(
+          "Unable to find description file in {}",
+          context.as_str()
+        ));
+        None
+      }
+    }
+  }
+
   async fn create_consume_shared_module(
     &self,
     context: &Context,
     request: &str,
     config: Arc<ConsumeOptions>,
+    mut add_diagnostic: impl FnMut(Diagnostic),
   ) -> ConsumeSharedModule {
     let direct_fallback = matches!(&config.import, Some(i) if RELATIVE_REQUEST.is_match(i) | ABSOLUTE_REQUEST.is_match(i));
     let import_resolved = config
@@ -222,35 +274,21 @@ impl ConsumeSharedPlugin {
             .as_ref(),
             import,
           )
+          .map_err(|_e| {
+            add_diagnostic(Diagnostic::error(
+              "ModuleNotFoundError".into(),
+              format!("resolving fallback for shared module {request}"),
+            ))
+          })
           .ok()
       })
       .and_then(|i| match i {
         ResolveResult::Resource(r) => Some(r.path.to_string_lossy().into_owned()),
         ResolveResult::Ignored => None,
       });
-    let required_version = if let Some(version) = config.required_version.as_ref() {
-      Some(version.clone())
-    } else {
-      let package_name = if let Some(name) = &config.package_name {
-        Some(name.as_str())
-      } else if ABSOLUTE_REQUEST.is_match(request) {
-        None
-      } else if let Some(caps) = PACKAGE_NAME.captures(request)
-        && let Some(mat) = caps.get(0)
-      {
-        Some(mat.as_str())
-      } else {
-        None
-      };
-      if let Some(package_name) = package_name
-        && let Some(data) = get_description_file(context.as_ref()).await
-      {
-        // TODO: emit warning
-        get_required_version_from_description_file(data, package_name)
-      } else {
-        None
-      }
-    };
+    let required_version = self
+      .get_required_version(context, request, config.clone(), add_diagnostic)
+      .await;
     ConsumeSharedModule::new(
       context.clone(),
       ConsumeOptions {
@@ -295,7 +333,7 @@ impl Plugin for ConsumeSharedPlugin {
   async fn factorize(
     &self,
     _ctx: PluginContext,
-    args: FactorizeArgs<'_>,
+    args: &mut FactorizeArgs<'_>,
   ) -> PluginFactorizeHookOutput {
     let dep = args.dependency;
     if matches!(
@@ -308,9 +346,11 @@ impl Plugin for ConsumeSharedPlugin {
     let consumes = self.get_matched_consumes();
     if let Some(matched) = consumes.unresolved.get(request) {
       let module = self
-        .create_consume_shared_module(args.context, request, matched.clone())
+        .create_consume_shared_module(args.context, request, matched.clone(), |d| {
+          args.diagnostics.push(d)
+        })
         .await;
-      return Ok(Some(ModuleFactoryResult::new(module.boxed())));
+      return Ok(Some(ModuleFactoryResult::new_with_module(module.boxed())));
     }
     for (prefix, options) in &consumes.prefixed {
       if request.starts_with(prefix) {
@@ -330,9 +370,10 @@ impl Plugin for ConsumeSharedPlugin {
               singleton: options.singleton,
               eager: options.eager,
             }),
+            |d| args.diagnostics.push(d),
           )
           .await;
-        return Ok(Some(ModuleFactoryResult::new(module.boxed())));
+        return Ok(Some(ModuleFactoryResult::new_with_module(module.boxed())));
       }
     }
     Ok(None)
@@ -341,7 +382,7 @@ impl Plugin for ConsumeSharedPlugin {
   async fn normal_module_factory_create_module(
     &self,
     _ctx: PluginContext,
-    args: &NormalModuleCreateData,
+    args: &mut NormalModuleCreateData<'_>,
   ) -> PluginNormalModuleFactoryCreateModuleHookOutput {
     if matches!(
       args.dependency_type,
@@ -353,7 +394,9 @@ impl Plugin for ConsumeSharedPlugin {
     let consumes = self.get_matched_consumes();
     if let Some(options) = consumes.resolved.get(resource) {
       let module = self
-        .create_consume_shared_module(&args.context, resource, options.clone())
+        .create_consume_shared_module(&args.context, resource, options.clone(), |d| {
+          args.diagnostics.push(d)
+        })
         .await;
       return Ok(Some(module.boxed()));
     }

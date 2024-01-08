@@ -463,10 +463,7 @@ pub fn assign_ascending_chunk_ids(chunks: &[ChunkUkey], compilation: &mut Compil
   let mut next_id = 0;
   if !used_ids.is_empty() {
     for chunk in chunks {
-      let chunk = compilation
-        .chunk_by_ukey
-        .get_mut(chunk)
-        .expect("Chunk not found");
+      let chunk = compilation.chunk_by_ukey.expect_get_mut(chunk);
       if chunk.id.is_none() {
         while used_ids.contains(&next_id.to_string()) {
           next_id += 1;
@@ -478,10 +475,7 @@ pub fn assign_ascending_chunk_ids(chunks: &[ChunkUkey], compilation: &mut Compil
     }
   } else {
     for chunk in chunks {
-      let chunk = compilation
-        .chunk_by_ukey
-        .get_mut(chunk)
-        .expect("Chunk not found");
+      let chunk = compilation.chunk_by_ukey.expect_get_mut(chunk);
       if chunk.id.is_none() {
         chunk.id = Some(next_id.to_string());
         chunk.ids = vec![next_id.to_string()];

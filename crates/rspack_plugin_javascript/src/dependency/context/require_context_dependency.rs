@@ -79,7 +79,11 @@ impl DependencyTemplate for RequireContextDependency {
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
-    let TemplateContext { compilation, .. } = code_generatable_context;
+    let TemplateContext {
+      compilation,
+      runtime_requirements,
+      ..
+    } = code_generatable_context;
 
     let module_id = compilation
       .module_graph
@@ -89,6 +93,7 @@ impl DependencyTemplate for RequireContextDependency {
 
     let module_id_str = module_id_expr(&self.options.request, module_id);
 
+    runtime_requirements.insert(RuntimeGlobals::REQUIRE);
     source.replace(
       self.start,
       self.end,

@@ -15,7 +15,7 @@ module.exports = {
 	output: {
 		globalObject: "self",
 		filename: "[name].bundle.js",
-		path: path.resolve(__dirname, "dist/viewer")
+		path: path.resolve(__dirname, "template")
 	},
 	module: {
 		rules: [

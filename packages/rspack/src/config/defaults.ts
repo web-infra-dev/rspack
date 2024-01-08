@@ -76,6 +76,7 @@ export const applyRspackOptionsDefaults = (
 	F(options, "devtool", () => false as const);
 	D(options, "watch", false);
 	D(options, "profile", false);
+	D(options, "bail", false);
 
 	const futureDefaults = options.experiments.futureDefaults ?? false;
 	F(options, "cache", () => development);
@@ -186,6 +187,7 @@ const applyExperimentsDefaults = (
 		D(experiments.rspackFuture, "newResolver", true);
 		D(experiments.rspackFuture, "newTreeshaking", false);
 		D(experiments.rspackFuture, "disableTransformByDefault", true);
+		D(experiments.rspackFuture, "disableApplyEntryLazily", false);
 	}
 };
 
@@ -447,12 +449,7 @@ const applyOutputDefaults = (
 			return "";
 		}
 	});
-
-	F(output, "chunkLoadingGlobal", () =>
-		Template.toIdentifier(
-			"webpackChunk" + Template.toIdentifier(output.uniqueName)
-		)
-	);
+	F(output, "devtoolNamespace", () => output.uniqueName);
 	F(output, "module", () => !!outputModule);
 	D(output, "filename", output.module ? "[name].mjs" : "[name].js");
 	F(output, "iife", () => !output.module);
@@ -491,11 +488,12 @@ const applyOutputDefaults = (
 		`[id].[fullhash].hot-update.${output.module ? "mjs" : "js"}`
 	);
 	D(output, "hotUpdateMainFilename", "[runtime].[fullhash].hot-update.json");
-	F(output, "hotUpdateGlobal", () =>
-		Template.toIdentifier(
-			"webpackHotUpdate" + Template.toIdentifier(output.uniqueName)
-		)
+
+	const uniqueNameId = Template.toIdentifier(
+		/** @type {NonNullable<Output["uniqueName"]>} */ output.uniqueName
 	);
+	F(output, "hotUpdateGlobal", () => "webpackHotUpdate" + uniqueNameId);
+	F(output, "chunkLoadingGlobal", () => "webpackChunk" + uniqueNameId);
 	D(output, "assetModuleFilename", "[hash][ext][query]");
 	D(output, "webassemblyModuleFilename", "[hash].module.wasm");
 	F(output, "path", () => path.join(process.cwd(), "dist"));

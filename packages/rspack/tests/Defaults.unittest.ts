@@ -392,6 +392,9 @@ describe("snapshots", () => {
 		-     "chunkLoadingGlobal": "webpackChunk_rspack_core",
 		+     "chunkLoadingGlobal": "webpackChunkmyLib_awesome",
 		@@ ... @@
+		-     "devtoolNamespace": "@rspack/core",
+		+     "devtoolNamespace": "myLib.awesome",
+		@@ ... @@
 		-     "enabledLibraryTypes": Array [],
 		+     "enabledLibraryTypes": Array [
 		+       "var",
@@ -432,6 +435,9 @@ describe("snapshots", () => {
 			@@ ... @@
 			-     "chunkLoadingGlobal": "webpackChunk_rspack_core",
 			+     "chunkLoadingGlobal": "webpackChunkmyLib",
+			@@ ... @@
+			-     "devtoolNamespace": "@rspack/core",
+			+     "devtoolNamespace": "myLib",
 			@@ ... @@
 			-     "enabledLibraryTypes": Array [],
 			+     "enabledLibraryTypes": Array [
@@ -476,6 +482,9 @@ describe("snapshots", () => {
 			@@ ... @@
 			-     "chunkLoadingGlobal": "webpackChunk_rspack_core",
 			+     "chunkLoadingGlobal": "webpackChunkmyLib_lib",
+			@@ ... @@
+			-     "devtoolNamespace": "@rspack/core",
+			+     "devtoolNamespace": "myLib.lib",
 			@@ ... @@
 			-     "enabledLibraryTypes": Array [],
 			+     "enabledLibraryTypes": Array [
@@ -524,6 +533,9 @@ describe("snapshots", () => {
 			-     "chunkLoadingGlobal": "webpackChunk_rspack_core",
 			+     "chunkLoadingGlobal": "webpackChunkmyLib",
 			@@ ... @@
+			-     "devtoolNamespace": "@rspack/core",
+			+     "devtoolNamespace": "myLib",
+			@@ ... @@
 			-     "enabledLibraryTypes": Array [],
 			+     "enabledLibraryTypes": Array [
 			+       "var",
@@ -571,6 +583,9 @@ describe("snapshots", () => {
 			@@ ... @@
 			-     "chunkLoadingGlobal": "webpackChunk_rspack_core",
 			+     "chunkLoadingGlobal": "webpackChunk_name_my_name_Lib_name_",
+			@@ ... @@
+			-     "devtoolNamespace": "@rspack/core",
+			+     "devtoolNamespace": "[name].my[name]Lib.[name]",
 			@@ ... @@
 			-     "enabledLibraryTypes": Array [],
 			+     "enabledLibraryTypes": Array [
@@ -1014,6 +1029,9 @@ describe("snapshots", () => {
 			-     "chunkLoadingGlobal": "webpackChunk_rspack_core",
 			+     "chunkLoadingGlobal": "webpackChunk_Hello_World_",
 			@@ ... @@
+			-     "devtoolNamespace": "@rspack/core",
+			+     "devtoolNamespace": "@@@Hello World!",
+			@@ ... @@
 			-     "hotUpdateGlobal": "webpackHotUpdate_rspack_core",
 			+     "hotUpdateGlobal": "webpackHotUpdate_Hello_World_",
 			@@ ... @@
@@ -1080,6 +1098,9 @@ describe("snapshots", () => {
 			-     "chunkLoadingGlobal": "webpackChunk_rspack_core",
 			+     "chunkLoadingGlobal": "webpackChunkbrowserslist_test",
 			@@ ... @@
+			-     "devtoolNamespace": "@rspack/core",
+			+     "devtoolNamespace": "browserslist-test",
+			@@ ... @@
 			-     "hotUpdateGlobal": "webpackHotUpdate_rspack_core",
 			+     "hotUpdateGlobal": "webpackHotUpdatebrowserslist_test",
 			@@ ... @@
@@ -1113,6 +1134,9 @@ describe("snapshots", () => {
 			@@ ... @@
 			-     "chunkLoadingGlobal": "webpackChunk_rspack_core",
 			+     "chunkLoadingGlobal": "webpackChunk",
+			@@ ... @@
+			-     "devtoolNamespace": "@rspack/core",
+			+     "devtoolNamespace": "",
 			@@ ... @@
 			-     "hotUpdateGlobal": "webpackHotUpdate_rspack_core",
 			+     "hotUpdateGlobal": "webpackHotUpdate",

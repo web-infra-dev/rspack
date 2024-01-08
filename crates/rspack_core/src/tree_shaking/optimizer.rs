@@ -486,19 +486,29 @@ impl<'a> CodeSizeOptimizer<'a> {
           {
             Some(module_identifier) => module_identifier,
             None => {
-              match self
+              let module = self
                 .compilation
                 .module_graph
-                .module_by_identifier(&module_identifier)
+                .module_by_identifier(&module_identifier);
+
+              if module
+                .and_then(|module| module.as_context_module())
+                .is_some()
+              {
+                // If the referenced module of context dependency is not found, then it might be failed to factorize in the first place. So let's skip it.
+                continue;
+              }
+              match module
                 .and_then(|module| module.as_normal_module())
                 .map(|normal_module| normal_module.source())
               {
-                Some(NormalModuleSource::BuiltFailed(_)) => {
-                  // We know that the build output can't run, so it is alright to generate a wrong tree-shaking result.
-                  continue;
+                Some(NormalModuleSource::Unbuild) => {
+                  panic!("Failed to build module {module_identifier}");
                 }
                 Some(_) => {
-                  panic!("Failed to ast of {dependency_id:?}")
+                  // If module is failed to build, we know that the build output can't run, so it is alright to generate a wrong tree-shaking result.
+                  // Also, if the referenced module of the dependency is not found, then it might failed to factorize in the first place. So let's skip it.
+                  continue;
                 }
                 None => {
                   panic!("Failed to get normal module of {module_identifier}");
@@ -636,16 +646,26 @@ impl<'a> CodeSizeOptimizer<'a> {
         continue;
       }
       let Some(&module_ident) = module_graph.module_identifier_by_dependency_id(dep) else {
-        let ast_or_source = module_graph
-          .module_by_identifier(&cur)
+        let module = module_graph.module_by_identifier(&cur);
+
+        if module
+          .and_then(|module| module.as_context_module())
+          .is_some()
+        {
+          // If the referenced module of context dependency is not found, then it might be failed to factorize in the first place. So let's skip it.
+          continue;
+        }
+        let ast_or_source = module
           .and_then(|module| module.as_normal_module())
           .map(|normal_module| normal_module.source())
           .unwrap_or_else(|| panic!("Failed to get normal module of {}", cur));
-        if matches!(ast_or_source, NormalModuleSource::BuiltFailed(_)) {
-          // We know that the build output can't run, so it is alright to generate a wrong tree-shaking result.
-          continue;
+
+        if matches!(ast_or_source, NormalModuleSource::Unbuild) {
+          panic!("Failed to build module {cur}");
         } else {
-          panic!("Failed to resolve {dep:?}")
+          // If module is failed to build, we know that the build output can't run, so it is alright to generate a wrong tree-shaking result.
+          // Also, if the referenced module of the dependency is not found, then it might failed to factorize in the first place. So let's skip it.
+          continue;
         }
       };
       module_ident_list.push(module_ident);

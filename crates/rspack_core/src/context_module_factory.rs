@@ -1,13 +1,12 @@
 use std::sync::Arc;
 
-use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::Result;
 use tracing::instrument;
 
 use crate::{
-  cache::Cache, resolve, BoxModule, ContextModule, ContextModuleOptions, MissingModule, ModuleExt,
-  ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier,
-  NormalModuleBeforeResolveArgs, RawModule, ResolveArgs, ResolveError, ResolveResult,
-  SharedPluginDriver,
+  cache::Cache, resolve, BoxModule, ContextModule, ContextModuleOptions, ModuleExt, ModuleFactory,
+  ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, NormalModuleBeforeResolveArgs,
+  RawModule, ResolveArgs, ResolveResult, SharedPluginDriver,
 };
 
 #[derive(Debug)]
@@ -19,11 +18,8 @@ pub struct ContextModuleFactory {
 #[async_trait::async_trait]
 impl ModuleFactory for ContextModuleFactory {
   #[instrument(name = "context_module_factory:create", skip_all)]
-  async fn create(
-    &self,
-    mut data: ModuleFactoryCreateData,
-  ) -> Result<TWithDiagnosticArray<ModuleFactoryResult>> {
-    if let Ok(Some(before_resolve_result)) = self.before_resolve(&mut data).await {
+  async fn create(&self, data: &mut ModuleFactoryCreateData) -> Result<ModuleFactoryResult> {
+    if let Ok(Some(before_resolve_result)) = self.before_resolve(data).await {
       return Ok(before_resolve_result);
     }
     Ok(self.resolve(data).await?)
@@ -41,7 +37,7 @@ impl ContextModuleFactory {
   async fn before_resolve(
     &self,
     data: &mut ModuleFactoryCreateData,
-  ) -> Result<Option<TWithDiagnosticArray<ModuleFactoryResult>>> {
+  ) -> Result<Option<ModuleFactoryResult>> {
     let dependency = data
       .dependency
       .as_context_dependency_mut()
@@ -55,30 +51,16 @@ impl ContextModuleFactory {
       .context_module_before_resolve(&mut before_resolve_args)
       .await
     {
-      let specifier = dependency.request();
-      let ident = format!("{}{specifier}", data.context);
-
-      let module_identifier = ModuleIdentifier::from(format!("missing|{ident}"));
-
-      let missing_module = MissingModule::new(
-        module_identifier,
-        format!("{ident} (missing)"),
-        format!("Failed to resolve {specifier}"),
-      )
-      .boxed();
-      return Ok(Some(
-        ModuleFactoryResult::new(missing_module).with_empty_diagnostic(),
-      ));
+      // ignored
+      // See https://github.com/webpack/webpack/blob/6be4065ade1e252c1d8dcba4af0f43e32af1bdc1/lib/ContextModuleFactory.js#L115
+      return Ok(Some(ModuleFactoryResult::default()));
     }
     data.context = before_resolve_args.context.into();
     dependency.set_request(before_resolve_args.request);
     Ok(None)
   }
 
-  async fn resolve(
-    &self,
-    data: ModuleFactoryCreateData,
-  ) -> Result<TWithDiagnosticArray<ModuleFactoryResult>> {
+  async fn resolve(&self, data: &mut ModuleFactoryCreateData) -> Result<ModuleFactoryResult> {
     let dependency = data
       .dependency
       .as_context_dependency()
@@ -86,7 +68,7 @@ impl ContextModuleFactory {
     let factory_meta = Default::default();
     let mut file_dependencies = Default::default();
     let mut missing_dependencies = Default::default();
-    let context_dependencies = Default::default();
+    // let context_dependencies = Default::default();
     let specifier = dependency.request();
     let resolve_args = ResolveArgs {
       context: data.context.clone(),
@@ -119,7 +101,7 @@ impl ContextModuleFactory {
           resource: resource.path.to_string_lossy().to_string(),
           resource_query: resource.query,
           resource_fragment: resource.fragment,
-          resolve_options: data.resolve_options,
+          resolve_options: data.resolve_options.clone(),
           context_options: dependency.options().clone(),
         },
         plugin_driver.resolver_factory.clone(),
@@ -134,35 +116,21 @@ impl ContextModuleFactory {
           Default::default(),
         )
         .boxed();
-        return Ok(ModuleFactoryResult::new(raw_module).with_empty_diagnostic());
+        return Ok(ModuleFactoryResult::new_with_module(raw_module));
       }
-      Err(ResolveError(runtime_error, internal_error)) => {
-        let ident = format!("{}{specifier}", data.context);
-        let module_identifier = ModuleIdentifier::from(format!("missing|{ident}"));
-
-        let missing_module = MissingModule::new(
-          module_identifier,
-          format!("{ident} (missing)"),
-          runtime_error,
-        )
-        .boxed();
-
-        return Ok(
-          ModuleFactoryResult::new(missing_module).with_diagnostic(vec![internal_error.into()]),
-        );
+      Err(err) => {
+        return Err(err);
       }
     };
 
-    Ok(
-      ModuleFactoryResult {
-        module,
-        file_dependencies,
-        missing_dependencies,
-        context_dependencies,
-        factory_meta,
-        from_cache,
-      }
-      .with_empty_diagnostic(),
-    )
+    data.add_file_dependencies(file_dependencies);
+    data.add_missing_dependencies(missing_dependencies);
+    // data.add_context_dependencies(context_dependencies);
+
+    Ok(ModuleFactoryResult {
+      module: Some(module),
+      factory_meta,
+      from_cache,
+    })
   }
 }

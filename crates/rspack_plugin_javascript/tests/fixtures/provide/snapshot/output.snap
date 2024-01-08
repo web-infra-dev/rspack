@@ -3,7 +3,7 @@ source: crates/rspack_testing/src/run_fixture.rs
 ---
 ```js title=main.js
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./index.js": (function (__unused_webpack_module, exports, __webpack_require__) {
+"./index.js": (function (__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
 // var process = {};
 var process = __webpack_require__(/*! ./process.js */"./process.js");
 var name = __webpack_require__(/*! ./name.js */"./name.js");
@@ -30,7 +30,7 @@ const lib = {
 };
 var __WEBPACK_DEFAULT_EXPORT__ = lib;
 }),
-"./process.js": (function (module, exports, __webpack_require__) {
+"./process.js": (function (module) {
 // shim for using process in browser
 var process = module.exports = {};
 // cached from whatever global is present so that test runners that stub it

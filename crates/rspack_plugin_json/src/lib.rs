@@ -4,6 +4,7 @@ use std::borrow::Cow;
 use json::{
   number::Number,
   object::Object,
+  stringify,
   Error::{
     ExceededDepthLimit, FailedUtf8Parsing, UnexpectedCharacter, UnexpectedEndOfJson, WrongType,
   },
@@ -16,8 +17,7 @@ use rspack_core::{
   UsageState,
 };
 use rspack_error::{
-  internal_error, DiagnosticKind, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
-  TraceableError,
+  error, DiagnosticKind, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray, TraceableError,
 };
 
 use crate::json_exports_dependency::JsonExportsDependency;
@@ -43,7 +43,6 @@ impl ParserAndGenerator for JsonParserAndGenerator {
   ) -> Result<TWithDiagnosticArray<rspack_core::ParseResult>> {
     let rspack_core::ParseContext {
       source: box_source,
-      resource_data,
       build_info,
       build_meta,
       ..
@@ -71,7 +70,6 @@ impl ParserAndGenerator for JsonParserAndGenerator {
             start_offset
           };
           TraceableError::from_file(
-            resource_data.resource_path.to_string_lossy().to_string(),
             source.into_owned(),
             // one character offset
             start_offset,
@@ -83,13 +81,12 @@ impl ParserAndGenerator for JsonParserAndGenerator {
           .into()
         }
         ExceededDepthLimit | WrongType(_) | FailedUtf8Parsing => {
-          internal_error!(format!("{e}"))
+          error!(format!("{e}"))
         }
         UnexpectedEndOfJson => {
           // End offset of json file
           let offset = source.len() - 1;
           TraceableError::from_file(
-            resource_data.resource_path.to_string_lossy().to_string(),
             source.into_owned(),
             offset,
             offset,
@@ -142,12 +139,12 @@ impl ParserAndGenerator for JsonParserAndGenerator {
         generate_context
           .runtime_requirements
           .insert(RuntimeGlobals::MODULE);
-        let mgm = compilation
+        let module = compilation
           .module_graph
-          .module_graph_module_by_identifier(&module.identifier())
+          .module_by_identifier(&module.identifier())
           .expect("should have module identifier");
-        let json_data = mgm
-          .build_info
+        let json_data = module
+          .build_info()
           .as_ref()
           .and_then(|info| info.json_data.as_ref())
           .expect("should have json data");
@@ -173,7 +170,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
           _ => json_data.clone(),
         };
         let is_js_object = final_json.is_object() || final_json.is_array();
-        let final_json_string = final_json.to_string();
+        let final_json_string = stringify(final_json);
         let json_str = utils::escape_json(&final_json_string);
         let json_expr = if is_js_object && json_str.len() > 20 {
           Cow::Owned(format!(

@@ -37,15 +37,74 @@ import {
 	MergeDuplicateChunksPlugin,
 	SplitChunksPlugin,
 	OldSplitChunksPlugin,
-	ChunkPrefetchPreloadPlugin
+	ChunkPrefetchPreloadPlugin,
+	NamedModuleIdsPlugin,
+	DeterministicModuleIdsPlugin,
+	NamedChunkIdsPlugin,
+	DeterministicChunkIdsPlugin,
+	RealContentHashPlugin,
+	RemoveEmptyChunksPlugin,
+	EnsureChunkConditionsPlugin,
+	WarnCaseSensitiveModulesPlugin,
+	DataUriPlugin,
+	FileUriPlugin,
+	JavascriptModulesPlugin,
+	JsonModulesPlugin,
+	AsyncWebAssemblyModulesPlugin,
+	RuntimePlugin,
+	InferAsyncModulesPlugin,
+	WorkerPlugin,
+	EvalSourceMapDevToolPlugin,
+	SourceMapDevToolPlugin,
+	AssetModulesPlugin,
+	MangleExportsPlugin,
+	FlagDependencyExportsPlugin,
+	FlagDependencyUsagePlugin,
+	SideEffectsFlagPlugin
 } from "./builtin-plugin";
-import { WorkerPlugin } from "./builtin-plugin/WorkerPlugin";
+import { deprecatedWarn, termlink } from "./util";
 
-export function optionsApply_compat(
+export function applyEntryOptions(
 	compiler: Compiler,
 	options: RspackOptionsNormalized
 ) {
+	if (!options.experiments.rspackFuture!.disableApplyEntryLazily) {
+		deprecatedWarn(
+			`You are depending on ${termlink(
+				"apply entry lazily",
+				"https://rspack.dev/config/experiments.html#experimentsrspackfuturedisableapplyentrylazily"
+			)}, this behavior has been deprecated, you can setup 'experiments.rspackFuture.disableApplyEntryLazily = true' to disable this behavior, and this will be enabled by default in v0.5`
+		);
+	}
 	if (compiler.parentCompilation === undefined) {
+		if (options.experiments.rspackFuture!.disableApplyEntryLazily) {
+			new EntryOptionPlugin().apply(compiler);
+		} else {
+			EntryOptionPlugin.applyEntryOption(
+				compiler,
+				compiler.context,
+				options.entry
+			);
+		}
+
+		if (options.devServer?.hot) {
+			// break in 0.5
+			new compiler.webpack.HotModuleReplacementPlugin().apply(compiler);
+		}
+	}
+}
+
+export class RspackOptionsApply {
+	constructor() {}
+	process(options: RspackOptionsNormalized, compiler: Compiler) {
+		assert(
+			options.output.path,
+			"options.output.path should have value after `applyRspackOptionsDefaults`"
+		);
+		compiler.outputPath = options.output.path;
+		compiler.name = options.name;
+		compiler.outputFileSystem = fs;
+
 		if (options.externals) {
 			assert(
 				options.externalsType,
@@ -137,30 +196,6 @@ export function optionsApply_compat(
 			}
 		}
 
-		// TODO: change to new EntryOptionPlugin().apply(compiler);
-		EntryOptionPlugin.applyEntryOption(
-			compiler,
-			compiler.context,
-			options.entry
-		);
-
-		if (options.devServer?.hot) {
-			new compiler.webpack.HotModuleReplacementPlugin().apply(compiler);
-		}
-	}
-}
-
-export class RspackOptionsApply {
-	constructor() {}
-	process(options: RspackOptionsNormalized, compiler: Compiler) {
-		assert(
-			options.output.path,
-			"options.output.path should have value after `applyRspackOptionsDefaults`"
-		);
-		compiler.outputPath = options.output.path;
-		compiler.name = options.name;
-		compiler.outputFileSystem = fs;
-
 		const runtimeChunk = options.optimization
 			.runtimeChunk as OptimizationRuntimeChunkNormalized;
 		if (runtimeChunk) {
@@ -170,13 +205,132 @@ export class RspackOptionsApply {
 				}
 			});
 		}
-		// new EntryOptionPlugin().apply(compiler);
+
+		if (options.devtool) {
+			if (options.devtool.includes("source-map")) {
+				const hidden = options.devtool.includes("hidden");
+				const inline = options.devtool.includes("inline");
+				const evalWrapped = options.devtool.includes("eval");
+				const cheap = options.devtool.includes("cheap");
+				// TODO: const moduleMaps = options.devtool.includes("module");
+				const noSources = options.devtool.includes("nosources");
+				const Plugin = evalWrapped
+					? EvalSourceMapDevToolPlugin
+					: SourceMapDevToolPlugin;
+				new Plugin({
+					filename: inline ? null : options.output.sourceMapFilename,
+					append: hidden ? false : undefined,
+					columns: cheap ? false : true,
+					noSources: noSources,
+					namespace: options.output.devtoolNamespace
+				}).apply(compiler);
+			}
+		}
+
+		new JavascriptModulesPlugin().apply(compiler);
+		new JsonModulesPlugin().apply(compiler);
+		new AssetModulesPlugin().apply(compiler);
+		if (options.experiments.asyncWebAssembly) {
+			new AsyncWebAssemblyModulesPlugin().apply(compiler);
+		}
+
+		if (options.experiments.rspackFuture!.disableApplyEntryLazily) {
+			applyEntryOptions(compiler, options);
+		}
 		assert(
 			options.context,
 			"options.context should have value after `applyRspackOptionsDefaults`"
 		);
 		compiler.hooks.entryOption.call(options.context, options.entry);
 
+		new RuntimePlugin().apply(compiler);
+
+		new InferAsyncModulesPlugin().apply(compiler);
+
+		new DataUriPlugin().apply(compiler);
+		new FileUriPlugin().apply(compiler);
+
+		new EnsureChunkConditionsPlugin().apply(compiler);
+		if (options.optimization.mergeDuplicateChunks) {
+			new MergeDuplicateChunksPlugin().apply(compiler);
+		}
+
+		if (options.builtins.devFriendlySplitChunks) {
+			options.optimization.splitChunks = undefined;
+		}
+
+		if (options.experiments.rspackFuture?.newTreeshaking) {
+			if (options.optimization.sideEffects) {
+				new SideEffectsFlagPlugin(/* options.optimization.sideEffects === true */).apply(
+					compiler
+				);
+			}
+			if (options.optimization.providedExports) {
+				new FlagDependencyExportsPlugin().apply(compiler);
+			}
+			if (options.optimization.usedExports) {
+				new FlagDependencyUsagePlugin(
+					options.optimization.usedExports === "global"
+				).apply(compiler);
+			}
+		}
+		if (options.optimization.mangleExports) {
+			new MangleExportsPlugin(
+				options.optimization.mangleExports !== "size"
+			).apply(compiler);
+		}
+		if (
+			options.optimization.splitChunks &&
+			options.experiments.newSplitChunks === false
+		) {
+			new OldSplitChunksPlugin(options.optimization.splitChunks).apply(
+				compiler
+			);
+		} else if (options.optimization.splitChunks) {
+			new SplitChunksPlugin(options.optimization.splitChunks).apply(compiler);
+		}
+		// TODO: inconsistent: the plugin need to be placed after SplitChunksPlugin
+		if (options.optimization.removeEmptyChunks) {
+			new RemoveEmptyChunksPlugin().apply(compiler);
+		}
+		if (options.optimization.realContentHash) {
+			new RealContentHashPlugin().apply(compiler);
+		}
+		const moduleIds = options.optimization.moduleIds;
+		if (moduleIds) {
+			switch (moduleIds) {
+				case "named": {
+					new NamedModuleIdsPlugin().apply(compiler);
+					break;
+				}
+				case "deterministic": {
+					new DeterministicModuleIdsPlugin().apply(compiler);
+					break;
+				}
+				default:
+					throw new Error(`moduleIds: ${moduleIds} is not implemented`);
+			}
+		}
+		const chunkIds = options.optimization.chunkIds;
+		if (chunkIds) {
+			switch (chunkIds) {
+				case "named": {
+					new NamedChunkIdsPlugin().apply(compiler);
+					break;
+				}
+				case "deterministic": {
+					new DeterministicChunkIdsPlugin().apply(compiler);
+					break;
+				}
+				default:
+					throw new Error(`chunkIds: ${chunkIds} is not implemented`);
+			}
+		}
+		if (options.optimization.nodeEnv) {
+			new DefinePlugin({
+				"process.env.NODE_ENV": JSON.stringify(options.optimization.nodeEnv)
+			}).apply(compiler);
+		}
 		const { minimize, minimizer } = options.optimization;
 		if (minimize && minimizer) {
 			for (const item of minimizer) {
@@ -188,30 +342,8 @@ export class RspackOptionsApply {
 			}
 		}
 
-		if (options.optimization.mergeDuplicateChunks) {
-			new MergeDuplicateChunksPlugin().apply(compiler);
-		}
+		new WarnCaseSensitiveModulesPlugin().apply(compiler);
 
-		if (options.builtins.devFriendlySplitChunks) {
-			options.optimization.splitChunks = undefined;
-		}
-
-		if (
-			options.optimization.splitChunks &&
-			options.experiments.newSplitChunks === false
-		) {
-			new OldSplitChunksPlugin(options.optimization.splitChunks).apply(
-				compiler
-			);
-		} else if (options.optimization.splitChunks) {
-			new SplitChunksPlugin(options.optimization.splitChunks).apply(compiler);
-		}
-
-		if (options.optimization.nodeEnv) {
-			new DefinePlugin({
-				"process.env.NODE_ENV": JSON.stringify(options.optimization.nodeEnv)
-			}).apply(compiler);
-		}
 		if (options.devServer?.hot) {
 			options.output.strictModuleErrorHandling = true;
 		}

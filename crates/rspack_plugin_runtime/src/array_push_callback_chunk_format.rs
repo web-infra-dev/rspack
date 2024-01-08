@@ -7,7 +7,7 @@ use rspack_core::{
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, PluginJsChunkHashHookOutput,
   PluginRenderChunkHookOutput, RenderChunkArgs, RenderStartupArgs, RuntimeGlobals,
 };
-use rspack_error::internal_error;
+use rspack_error::error;
 use rspack_plugin_javascript::runtime::{render_chunk_runtime_modules, render_runtime_modules};
 
 use super::{generate_entry_startup, update_hash_for_entry_startup};
@@ -29,10 +29,7 @@ impl Plugin for ArrayPushCallbackChunkFormatPlugin {
     let compilation = &mut args.compilation;
     let chunk_ukey = args.chunk;
     let runtime_requirements = &mut args.runtime_requirements;
-    let chunk = compilation
-      .chunk_by_ukey
-      .get(chunk_ukey)
-      .ok_or_else(|| internal_error!("chunk not found"))?;
+    let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
 
     if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
       return Ok(());
@@ -100,7 +97,7 @@ impl Plugin for ArrayPushCallbackChunkFormatPlugin {
       source.add(RawSource::Source(format!(
         "{}[{}]('{}', ",
         global_object,
-        serde_json::to_string(hot_update_global).map_err(|e| internal_error!(e.to_string()))?,
+        serde_json::to_string(hot_update_global).map_err(|e| error!(e.to_string()))?,
         chunk.expect_id()
       )));
       source.add(args.module_source.clone());

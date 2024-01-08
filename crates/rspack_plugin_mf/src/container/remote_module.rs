@@ -3,8 +3,9 @@ use std::hash::Hash;
 
 use async_trait::async_trait;
 use rspack_core::{
+  impl_build_info_meta,
   rspack_sources::{RawSource, Source, SourceExt},
-  AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildResult,
+  AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
   CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId, LibIdentOptions,
   Module, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
 };
@@ -31,6 +32,9 @@ pub struct RemoteModule {
   external_requests: Vec<String>,
   pub internal_request: String,
   pub share_scope: String,
+  pub remote_key: String,
+  build_info: Option<BuildInfo>,
+  build_meta: Option<BuildMeta>,
 }
 
 impl RemoteModule {
@@ -39,6 +43,7 @@ impl RemoteModule {
     external_requests: Vec<String>,
     internal_request: String,
     share_scope: String,
+    remote_key: String,
   ) -> Self {
     let readable_identifier = format!("remote {}", &request);
     let lib_ident = format!("webpack/container/remote/{}", &request);
@@ -57,6 +62,9 @@ impl RemoteModule {
       external_requests,
       internal_request,
       share_scope,
+      remote_key,
+      build_info: None,
+      build_meta: None,
     }
   }
 }
@@ -87,6 +95,8 @@ impl DependenciesBlock for RemoteModule {
 
 #[async_trait]
 impl Module for RemoteModule {
+  impl_build_info_meta!();
+
   fn size(&self, _source_type: &SourceType) -> f64 {
     6.0
   }

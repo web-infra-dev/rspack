@@ -23,12 +23,9 @@ pub struct RawRspackFuture {
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawExperiments {
-  pub lazy_compilation: bool,
   pub incremental_rebuild: RawIncrementalRebuild,
-  pub async_web_assembly: bool,
   pub new_split_chunks: bool,
   pub top_level_await: bool,
-  pub css: bool,
   pub rspack_future: RawRspackFuture,
 }
 

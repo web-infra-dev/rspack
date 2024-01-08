@@ -3,6 +3,7 @@ use std::hash::Hash;
 use async_trait::async_trait;
 use once_cell::sync::Lazy;
 use rspack_core::{
+  get_css_chunk_filename_template, get_js_chunk_filename_template,
   AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, ChunkLoading,
   JsChunkHashArgs, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput,
   PluginAdditionalModuleRequirementsOutput, PluginContext, PluginJsChunkHashHookOutput,
@@ -11,8 +12,8 @@ use rspack_core::{
 };
 
 use crate::runtime_module::{
-  is_enabled_for_chunk, AsyncRuntimeModule, AutoPublicPathRuntimeModule, BaseUriRuntimeModule,
-  ChunkNameRuntimeModule, ChunkPrefetchPreloadFunctionRuntimeModule,
+  chunk_has_css, is_enabled_for_chunk, AsyncRuntimeModule, AutoPublicPathRuntimeModule,
+  BaseUriRuntimeModule, ChunkNameRuntimeModule, ChunkPrefetchPreloadFunctionRuntimeModule,
   CompatGetDefaultExportRuntimeModule, CreateFakeNamespaceObjectRuntimeModule,
   CreateScriptUrlRuntimeModule, DefinePropertyGettersRuntimeModule, EnsureChunkRuntimeModule,
   GetChunkFilenameRuntimeModule, GetChunkUpdateFilenameRuntimeModule, GetFullHashRuntimeModule,
@@ -56,6 +57,7 @@ static GLOBALS_ON_REQUIRE: Lazy<Vec<RuntimeGlobals>> = Lazy::new(|| {
     RuntimeGlobals::LOAD_SCRIPT,
     RuntimeGlobals::SYSTEM_CONTEXT,
     RuntimeGlobals::ON_CHUNKS_LOADED,
+    RuntimeGlobals::LOAD_CHUNK_WITH_BLOCK,
   ]
 });
 
@@ -63,6 +65,14 @@ static MODULE_DEPENDENCIES: Lazy<Vec<(RuntimeGlobals, Vec<RuntimeGlobals>)>> = L
   vec![
     (RuntimeGlobals::MODULE_LOADED, vec![RuntimeGlobals::MODULE]),
     (RuntimeGlobals::MODULE_ID, vec![RuntimeGlobals::MODULE]),
+    (
+      RuntimeGlobals::HARMONY_MODULE_DECORATOR,
+      vec![RuntimeGlobals::MODULE, RuntimeGlobals::REQUIRE_SCOPE],
+    ),
+    (
+      RuntimeGlobals::NODE_MODULE_DECORATOR,
+      vec![RuntimeGlobals::MODULE, RuntimeGlobals::REQUIRE_SCOPE],
+    ),
   ]
 });
 
@@ -133,7 +143,7 @@ pub struct RuntimePlugin;
 #[async_trait]
 impl Plugin for RuntimePlugin {
   fn name(&self) -> &'static str {
-    "RuntimePlugin"
+    "rspack.RuntimePlugin"
   }
 
   fn additional_tree_runtime_requirements(
@@ -236,16 +246,13 @@ impl Plugin for RuntimePlugin {
       &TREE_DEPENDENCIES,
     );
 
-    let public_path = {
-      let chunk = compilation
-        .chunk_by_ukey
-        .get(chunk)
-        .expect("should have chunk");
-      chunk
-        .get_entry_options(&compilation.chunk_group_by_ukey)
-        .and_then(|options| options.public_path.clone())
-        .unwrap_or(compilation.options.output.public_path.clone())
-    };
+    let public_path = compilation
+      .chunk_by_ukey
+      .expect_get(chunk)
+      .get_entry_options(&compilation.chunk_group_by_ukey)
+      .and_then(|options| options.public_path.clone())
+      .unwrap_or_else(|| compilation.options.output.public_path.clone());
+
     // TODO check output.scriptType
     if matches!(public_path, PublicPath::Auto)
       && runtime_requirements.contains(RuntimeGlobals::PUBLIC_PATH)
@@ -277,11 +284,21 @@ impl Plugin for RuntimePlugin {
       runtime_requirements_mut.insert(RuntimeGlobals::PRELOAD_CHUNK_HANDLERS);
     }
 
+    if runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK) {
+      let c = compilation.chunk_by_ukey.expect_get(chunk);
+      let has_async_chunks = c.has_async_chunks(&compilation.chunk_group_by_ukey);
+      if has_async_chunks {
+        runtime_requirements_mut.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
+      }
+      compilation.add_runtime_module(chunk, EnsureChunkRuntimeModule::default().boxed());
+    }
+
+    if runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES) {
+      runtime_requirements_mut.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
+    }
+
     let library_type = {
-      let chunk = compilation
-        .chunk_by_ukey
-        .get(chunk)
-        .expect("should have chunk");
+      let chunk = compilation.chunk_by_ukey.expect_get(chunk);
       chunk
         .get_entry_options(&compilation.chunk_group_by_ukey)
         .and_then(|options| options.library.as_ref())
@@ -299,9 +316,6 @@ impl Plugin for RuntimePlugin {
         {
           compilation.add_runtime_module(chunk, BaseUriRuntimeModule::default().boxed());
         }
-        RuntimeGlobals::ENSURE_CHUNK => {
-          compilation.add_runtime_module(chunk, EnsureChunkRuntimeModule::new(true).boxed());
-        }
         RuntimeGlobals::PUBLIC_PATH => {
           match &public_path {
             // TODO string publicPath support [hash] placeholder
@@ -318,9 +332,17 @@ impl Plugin for RuntimePlugin {
           chunk,
           GetChunkFilenameRuntimeModule::new(
             "javascript",
+            "javascript",
             SourceType::JavaScript,
-            RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME,
-            false,
+            RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME.to_string(),
+            |_| false,
+            |chunk, compilation| {
+              Some(get_js_chunk_filename_template(
+                chunk,
+                &compilation.options.output,
+                &compilation.chunk_group_by_ukey,
+              ))
+            },
           )
           .boxed(),
         ),
@@ -328,9 +350,21 @@ impl Plugin for RuntimePlugin {
           chunk,
           GetChunkFilenameRuntimeModule::new(
             "css",
+            "css",
             SourceType::Css,
-            RuntimeGlobals::GET_CHUNK_CSS_FILENAME,
-            runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS),
+            RuntimeGlobals::GET_CHUNK_CSS_FILENAME.to_string(),
+            |runtime_requirements| {
+              runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
+            },
+            |chunk, compilation| {
+              chunk_has_css(&chunk.ukey, compilation).then(|| {
+                get_css_chunk_filename_template(
+                  chunk,
+                  &compilation.options.output,
+                  &compilation.chunk_group_by_ukey,
+                )
+              })
+            },
           )
           .boxed(),
         ),
@@ -356,7 +390,11 @@ impl Plugin for RuntimePlugin {
         ),
         RuntimeGlobals::LOAD_SCRIPT => compilation.add_runtime_module(
           chunk,
-          LoadScriptRuntimeModule::new(compilation.options.output.trusted_types.is_some()).boxed(),
+          LoadScriptRuntimeModule::new(
+            compilation.options.output.unique_name.clone(),
+            compilation.options.output.trusted_types.is_some(),
+          )
+          .boxed(),
         ),
         RuntimeGlobals::HAS_OWN_PROPERTY => {
           compilation.add_runtime_module(chunk, HasOwnPropertyRuntimeModule::default().boxed())

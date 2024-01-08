@@ -31,11 +31,7 @@ impl RuntimeModule for ChunkNameRuntimeModule {
 
   fn generate(&self, compilation: &Compilation) -> BoxSource {
     if let Some(chunk_ukey) = self.chunk {
-      let chunk = compilation
-        .chunk_by_ukey
-        .get(&chunk_ukey)
-        .expect("Chunk not found");
-
+      let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
       RawSource::from(format!(
         "{} = {};",
         RuntimeGlobals::CHUNK_NAME,

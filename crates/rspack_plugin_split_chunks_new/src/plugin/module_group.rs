@@ -97,27 +97,15 @@ impl SplitChunksPlugin {
     compilation.module_graph.modules().values().par_bridge().for_each(|module| {
       let module = &**module;
 
-      let belong_to_chunks = {
-        let span = tracing::span!(
-          tracing::Level::TRACE,
-          "prepare_module_group_map:belong_to_chunks",
-        );
-        let _ = span.enter();
-        compilation
+      let belong_to_chunks = compilation
           .chunk_graph
-          .get_module_chunks(module.identifier())
-      };
+          .get_module_chunks(module.identifier());
 
       let chunks_key = Self::get_key(belong_to_chunks.iter());
       let module_group_map = &module_group_map;
 
       let mut temp = vec![];
 
-      let cache_groups_span = tracing::span!(
-        tracing::Level::TRACE,
-        "prepare_module_group_map:cache_groups",
-      );
-      let cache_groups_span_enter = cache_groups_span.enter();
       for idx in 0..self.cache_groups.len() {
         let cache_group = &self.cache_groups[idx];
         // Filter by `splitChunks.cacheGroups.{cacheGroup}.test`
@@ -148,7 +136,6 @@ impl SplitChunksPlugin {
 
         temp.push((idx, is_match));
       }
-      drop(cache_groups_span_enter);
 
       temp.sort_by(|a, b| a.0.cmp(&b.0));
 
@@ -159,23 +146,7 @@ impl SplitChunksPlugin {
         .filter(|(index, _)| temp[*index].1);
 
       for (cache_group_index, (idx, cache_group)) in filtered.enumerate() {
-        let cache_group_span = tracing::span!(
-          tracing::Level::TRACE,
-          "prepare_module_group_map:cache_group",
-        );
-        let _cache_group_span_enter = cache_group_span.enter();
-
-        let combs_span = tracing::span!(tracing::Level::TRACE, "prepare_module_group_map:combs",);
-        let _combs_span_enter = combs_span.enter();
-
-        let combs = {
-          let span = tracing::span!(
-            tracing::Level::TRACE,
-            "prepare_module_group_map:combs:get_combination",
-          );
-          let _ = span.enter();
-          get_combination(chunks_key)
-        };
+        let combs = get_combination(chunks_key);
 
         for chunk_combination in combs {
           // Filter by `splitChunks.cacheGroups.{cacheGroup}.minChunks`
@@ -190,23 +161,14 @@ impl SplitChunksPlugin {
             continue;
           }
 
-          let selected_chunks = {
-            let span = tracing::span!(
-              tracing::Level::TRACE,
-              "merge_matched_item_into_module_group_map:selected_chunks",
-            );
-            let _ = span.enter();
-            chunk_combination
+          let selected_chunks = chunk_combination
               .iter()
               .map(|c| {
-                chunk_db
-                  .get(c)
-                  .expect("This should never happen, please file an issue")
+                chunk_db.expect_get(c)
               })
               // Filter by `splitChunks.cacheGroups.{cacheGroup}.chunks`
               .filter(|c| (cache_group.chunk_filter)(c, chunk_group_db))
-              .collect::<Box<[_]>>()
-          };
+              .collect::<Box<[_]>>();
 
           // Filter by `splitChunks.cacheGroups.{cacheGroup}.minChunks`
           if selected_chunks.len() < cache_group.min_chunks as usize {
@@ -235,7 +197,6 @@ impl SplitChunksPlugin {
             module_group_map,
           );
 
-          #[tracing::instrument(skip_all)]
           fn merge_matched_item_into_module_group_map(
             matched_item: MatchedItem<'_>,
             module_group_map: &DashMap<String, ModuleGroup>,

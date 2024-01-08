@@ -4,9 +4,9 @@ use swc_core::ecma::ast::ArrayLit;
 use super::BasicEvaluatedExpression;
 use crate::visitors::common_js_import_dependency_scanner::CommonJsImportDependencyScanner;
 
-pub fn eval_array_expression<'a>(
-  scanner: &'a CommonJsImportDependencyScanner<'a>,
-  expr: &'a ArrayLit,
+pub fn eval_array_expression(
+  scanner: &mut CommonJsImportDependencyScanner<'_>,
+  expr: &ArrayLit,
 ) -> Option<BasicEvaluatedExpression> {
   let mut items = vec![];
 

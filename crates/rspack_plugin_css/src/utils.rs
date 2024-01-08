@@ -5,7 +5,7 @@ use indexmap::IndexMap;
 use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
 use rspack_core::{Compilation, OutputOptions, PathData, RuntimeGlobals};
-use rspack_error::{internal_error, Result};
+use rspack_error::{error, Result};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash};
 use swc_core::css::modules::CssClassName;
 use swc_core::ecma::atoms::JsWord;
@@ -115,7 +115,9 @@ pub fn css_modules_exports_to_string(
   exports: &IndexMap<Vec<String>, Vec<(String, Option<String>)>>,
   module: &dyn rspack_core::Module,
   compilation: &Compilation,
+  runtime_requirements: &mut RuntimeGlobals,
 ) -> Result<String> {
+  runtime_requirements.insert(RuntimeGlobals::MODULE);
   let mut code = String::from("module.exports = {\n");
   for (key, elements) in exports {
     let content = elements
@@ -147,13 +149,14 @@ pub fn css_modules_exports_to_string(
             .expect("should have css from module");
 
           let from = serde_json::to_string(from.id(&compilation.chunk_graph)).expect("TODO:");
+          runtime_requirements.insert(RuntimeGlobals::REQUIRE);
           format!("{}({from})[{name}]", RuntimeGlobals::REQUIRE)
         }
       })
       .collect::<Vec<_>>()
       .join(" + \" \" + ");
     for item in key {
-      writeln!(code, "  {}: {},", item, content).map_err(|e| internal_error!(e.to_string()))?;
+      writeln!(code, "  {}: {},", item, content).map_err(|e| error!(e.to_string()))?;
     }
   }
   code += "};\n";

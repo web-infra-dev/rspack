@@ -48,8 +48,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
   fn generate(&self, compilation: &Compilation) -> BoxSource {
     let chunk = compilation
       .chunk_by_ukey
-      .get(&self.chunk.expect("The chunk should be attached"))
-      .expect("should have chunk");
+      .expect_get(&self.chunk.expect("The chunk should be attached"));
 
     let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk.ukey);
     let with_base_uri = runtime_requirements.contains(RuntimeGlobals::BASE_URI);

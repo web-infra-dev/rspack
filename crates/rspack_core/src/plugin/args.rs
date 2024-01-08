@@ -2,15 +2,16 @@ use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+use rspack_error::Diagnostic;
 use rspack_hash::RspackHash;
 use rspack_loader_runner::ResourceData;
 use rspack_sources::BoxSource;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  Chunk, ChunkInitFragments, ChunkUkey, Compilation, Context, ContextModuleFactory,
-  DependencyCategory, DependencyType, ErrorSpan, FactoryMeta, ModuleDependency, ModuleGraphModule,
-  ModuleIdentifier, NormalModuleFactory, Resolve, RuntimeGlobals, SharedPluginDriver, Stats,
+  BoxModule, Chunk, ChunkInitFragments, ChunkUkey, Compilation, Context, ContextModuleFactory,
+  DependencyCategory, DependencyType, ErrorSpan, FactoryMeta, ModuleDependency, ModuleIdentifier,
+  NormalModuleFactory, Resolve, RuntimeGlobals, SharedPluginDriver, Stats,
 };
 
 #[derive(Debug)]
@@ -35,11 +36,7 @@ pub struct ContentHashArgs<'c> {
 
 impl<'me> ContentHashArgs<'me> {
   pub fn chunk(&self) -> &Chunk {
-    self
-      .compilation
-      .chunk_by_ukey
-      .get(&self.chunk_ukey)
-      .expect("chunk should exist in chunk_by_ukey")
+    self.compilation.chunk_by_ukey.expect_get(&self.chunk_ukey)
   }
 }
 
@@ -52,11 +49,7 @@ pub struct ChunkHashArgs<'c> {
 
 impl<'me> ChunkHashArgs<'me> {
   pub fn chunk(&self) -> &Chunk {
-    self
-      .compilation
-      .chunk_by_ukey
-      .get(&self.chunk_ukey)
-      .expect("chunk should exist in chunk_by_ukey")
+    self.compilation.chunk_by_ukey.expect_get(&self.chunk_ukey)
   }
 }
 
@@ -68,27 +61,25 @@ pub struct RenderManifestArgs<'me> {
 
 impl<'me> RenderManifestArgs<'me> {
   pub fn chunk(&self) -> &Chunk {
-    self
-      .compilation
-      .chunk_by_ukey
-      .get(&self.chunk_ukey)
-      .expect("chunk should exist in chunk_by_ukey")
+    self.compilation.chunk_by_ukey.expect_get(&self.chunk_ukey)
   }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct FactorizeArgs<'me> {
   pub context: &'me Context,
   pub dependency: &'me dyn ModuleDependency,
   pub plugin_driver: &'me SharedPluginDriver,
+  pub diagnostics: &'me mut Vec<Diagnostic>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct NormalModuleCreateData<'a> {
   pub dependency_type: DependencyType,
   pub resolve_data_request: &'a str,
   pub resource_resolve_data: ResourceData,
   pub context: Context,
+  pub diagnostics: &'a mut Vec<Diagnostic>,
 }
 
 #[derive(Debug, Clone)]
@@ -96,7 +87,7 @@ pub struct NormalModuleBeforeResolveArgs {
   pub request: String,
   pub context: String,
 }
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct NormalModuleAfterResolveArgs<'a> {
   pub request: &'a str,
   pub context: &'a str,
@@ -104,6 +95,7 @@ pub struct NormalModuleAfterResolveArgs<'a> {
   pub context_dependencies: &'a HashSet<PathBuf>,
   pub missing_dependencies: &'a HashSet<PathBuf>,
   pub factory_meta: &'a FactoryMeta,
+  pub diagnostics: &'a mut Vec<Diagnostic>,
 }
 
 #[derive(Debug)]
@@ -171,11 +163,7 @@ pub struct AdditionalModuleRequirementsArgs<'a> {
 
 impl<'me> AdditionalChunkRuntimeRequirementsArgs<'me> {
   pub fn chunk(&self) -> &Chunk {
-    self
-      .compilation
-      .chunk_by_ukey
-      .get(self.chunk)
-      .expect("chunk should exist in chunk_by_ukey")
+    self.compilation.chunk_by_ukey.expect_get(self.chunk)
   }
 }
 
@@ -194,11 +182,7 @@ pub struct ChunkAssetArgs<'a> {
 
 impl<'me> RenderChunkArgs<'me> {
   pub fn chunk(&self) -> &Chunk {
-    self
-      .compilation
-      .chunk_by_ukey
-      .get(self.chunk_ukey)
-      .expect("chunk should exist in chunk_by_ukey")
+    self.compilation.chunk_by_ukey.expect_get(self.chunk_ukey)
   }
 }
 
@@ -207,7 +191,7 @@ pub struct RenderModuleContentArgs<'a> {
   pub module_source: BoxSource,
   pub chunk_init_fragments: ChunkInitFragments,
   pub compilation: &'a Compilation,
-  pub module_graph_module: &'a ModuleGraphModule,
+  pub module: &'a BoxModule,
 }
 
 #[derive(Debug)]
@@ -221,11 +205,7 @@ pub struct RenderStartupArgs<'a> {
 
 impl<'me> RenderStartupArgs<'me> {
   pub fn chunk(&self) -> &Chunk {
-    self
-      .compilation
-      .chunk_by_ukey
-      .get(self.chunk)
-      .expect("chunk should exist in chunk_by_ukey")
+    self.compilation.chunk_by_ukey.expect_get(self.chunk)
   }
 }
 
@@ -238,11 +218,7 @@ pub struct RenderArgs<'a> {
 
 impl<'me> RenderArgs<'me> {
   pub fn chunk(&self) -> &Chunk {
-    self
-      .compilation
-      .chunk_by_ukey
-      .get(self.chunk)
-      .expect("chunk should exist in chunk_by_ukey")
+    self.compilation.chunk_by_ukey.expect_get(self.chunk)
   }
 }
 
@@ -254,11 +230,7 @@ pub struct JsChunkHashArgs<'a> {
 
 impl<'me> JsChunkHashArgs<'me> {
   pub fn chunk(&self) -> &Chunk {
-    self
-      .compilation
-      .chunk_by_ukey
-      .get(self.chunk_ukey)
-      .expect("chunk should exist in chunk_by_ukey")
+    self.compilation.chunk_by_ukey.expect_get(self.chunk_ukey)
   }
 }
 

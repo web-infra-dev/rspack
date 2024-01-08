@@ -18,7 +18,7 @@ pub use thiserror;
 
 pub type Error = miette::Error;
 
-pub type Result<T> = std::result::Result<T, miette::Error>;
+pub type Result<T, E = miette::Error> = std::result::Result<T, E>;
 
 /// A helper struct for change logic from
 /// return something to something with diagnostics array
@@ -89,8 +89,9 @@ pub mod __private {
   pub use core::result::Result::Err;
 
   pub use miette::miette;
+  pub use miette::Severity;
 
-  pub use crate::diagnostic::Severity;
+  pub use crate::diagnostic::Severity as RspackSeverity;
+  pub use crate::error;
   pub use crate::error::InternalError;
-  pub use crate::internal_error;
 }

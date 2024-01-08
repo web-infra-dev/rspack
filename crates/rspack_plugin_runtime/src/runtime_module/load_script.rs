@@ -8,13 +8,15 @@ use rspack_identifier::Identifier;
 #[derive(Debug, Eq)]
 pub struct LoadScriptRuntimeModule {
   id: Identifier,
+  unique_name: String,
   with_create_script_url: bool,
 }
 
 impl LoadScriptRuntimeModule {
-  pub fn new(with_create_script_url: bool) -> Self {
+  pub fn new(unique_name: String, with_create_script_url: bool) -> Self {
     Self {
       id: Identifier::from("webpack/runtime/load_script"),
+      unique_name,
       with_create_script_url,
     }
   }
@@ -51,6 +53,15 @@ impl RuntimeModule for LoadScriptRuntimeModule {
       )
     };
 
+    let unique_prefix = if self.unique_name.is_empty() {
+      None
+    } else {
+      Some(format!(
+        r#"var dataWebpackPrefix = "{}:";"#,
+        self.unique_name
+      ))
+    };
+
     RawSource::from(
       include_str!("runtime/load_script.js")
         .replace(
@@ -58,7 +69,25 @@ impl RuntimeModule for LoadScriptRuntimeModule {
           &cross_origin_loading,
         )
         .replace("$URL$", &url)
-        .replace("$SCRIPT_TYPE$", &script_type),
+        .replace("$SCRIPT_TYPE$", &script_type)
+        .replace(
+          "$UNIQUE_GET_ATTRIBUTE$",
+          match unique_prefix {
+            Some(_) => r#"s.getAttribute("src") == url || s.getAttribute("data-webpack") == dataWebpackPrefix + key"#,
+            None => r#"s.getAttribute("src") == url"#,
+          },
+        )
+        .replace(
+          "$UNIQUE_SET_ATTRIBUTE$",
+          match unique_prefix {
+            Some(_) => r#"script.setAttribute("data-webpack", dataWebpackPrefix + key);"#,
+            None => "",
+          },
+        )
+        .replace(
+          "$UNIQUE_PREFIX$",
+          unique_prefix.unwrap_or_default().as_str(),
+        ),
     )
     .boxed()
   }

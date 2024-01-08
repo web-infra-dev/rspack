@@ -1,4 +1,5 @@
 use rspack_ast::RspackAst;
+use rspack_core::diagnostics::map_box_diagnostics_to_module_parse_diagnostics;
 use rspack_core::rspack_sources::{
   BoxSource, MapOptions, OriginalSource, RawSource, ReplaceSource, Source, SourceExt, SourceMap,
   SourceMapSource, SourceMapSourceOptions,
@@ -11,7 +12,8 @@ use rspack_core::{
   DependencyId, GenerateContext, Module, ParseContext, ParseResult, ParserAndGenerator, SourceType,
   TemplateContext, TemplateReplaceSource,
 };
-use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::miette::Diagnostic;
+use rspack_error::{DiagnosticExt, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use swc_core::common::SyntaxContext;
 
 use crate::ast::CodegenOptions;
@@ -20,6 +22,7 @@ use crate::utils::syntax_by_module_type;
 use crate::visitors::ScanDependenciesResult;
 use crate::visitors::{run_before_pass, scan_dependencies, swc_visitor::resolver};
 use crate::{SideEffectsFlagPluginVisitor, SyntaxContextInfo};
+
 #[derive(Debug)]
 pub struct JavaScriptParserAndGenerator;
 
@@ -87,10 +90,11 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       build_info,
       build_meta,
       module_identifier,
+      loaders,
       mut additional_data,
       ..
     } = parse_context;
-    let mut diagnostics: Vec<Diagnostic> = vec![];
+    let mut diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>> = vec![];
     let syntax = syntax_by_module_type(
       &resource_data.resource_path,
       module_type,
@@ -102,7 +106,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     let original_map = source.map(&MapOptions::new(!compiler_options.devtool.cheap()));
     let source = source.source();
 
-    let gen_terminate_res = |diagnostics: Vec<Diagnostic>| {
+    let gen_terminate_res = |diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>>| {
       Ok(
         ParseResult {
           source: create_source(
@@ -115,7 +119,10 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
           presentational_dependencies: vec![],
           analyze_result: Default::default(),
         }
-        .with_diagnostic(diagnostics),
+        .with_diagnostic(map_box_diagnostics_to_module_parse_diagnostics(
+          diagnostics,
+          loaders,
+        )),
       )
     };
 
@@ -131,7 +138,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         ) {
           Ok(ast) => ast,
           Err(e) => {
-            diagnostics.append(&mut e.into());
+            diagnostics.append(&mut e.into_iter().map(|e| e.boxed()).collect());
             return gen_terminate_res(diagnostics);
           }
         }
@@ -162,7 +169,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     ) {
       Ok(ast) => ast,
       Err(e) => {
-        diagnostics.append(&mut e.into());
+        diagnostics.append(&mut e.into_iter().map(|e| e.boxed()).collect());
         return gen_terminate_res(diagnostics);
       }
     };
@@ -195,8 +202,8 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       )
     }) {
       Ok(result) => result,
-      Err(e) => {
-        diagnostics.append(&mut e.into());
+      Err(mut e) => {
+        diagnostics.append(&mut e);
         return gen_terminate_res(diagnostics);
       }
     };
@@ -283,7 +290,10 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         presentational_dependencies,
         analyze_result,
       }
-      .with_diagnostic(diagnostics),
+      .with_diagnostic(map_box_diagnostics_to_module_parse_diagnostics(
+        diagnostics,
+        loaders,
+      )),
     )
   }
 

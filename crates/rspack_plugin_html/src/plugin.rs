@@ -8,7 +8,7 @@ use std::{
 use anyhow::Context;
 use async_trait::async_trait;
 use dojang::dojang::Dojang;
-use rayon::prelude::{IntoParallelRefMutIterator, ParallelIterator};
+use rayon::prelude::*;
 use rspack_core::{
   parse_to_url,
   rspack_sources::{RawSource, SourceExt},

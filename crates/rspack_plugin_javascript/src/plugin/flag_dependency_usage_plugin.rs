@@ -5,7 +5,7 @@ use rspack_core::{
   is_exports_object_referenced, is_no_exports_referenced, merge_runtime,
   AsyncDependenciesBlockIdentifier, BuildMetaExportsType, Compilation, ConnectionState,
   DependenciesBlock, DependencyId, ExportsInfoId, ExtendedReferencedExport, GroupOptions,
-  ModuleIdentifier, Plugin, ReferencedExport, RuntimeSpec, UsageState, UsedExportsOption,
+  ModuleIdentifier, Plugin, ReferencedExport, RuntimeSpec, UsageState,
 };
 use rspack_error::Result;
 use rspack_identifier::IdentifierMap;
@@ -328,10 +328,15 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       .module_graph
       .module_graph_module_by_identifier(&module_id)
       .expect("should have mgm");
+    let module = self
+      .compilation
+      .module_graph
+      .module_by_identifier(&module_id)
+      .expect("should have module");
     let mgm_exports_info_id = mgm.exports;
     if !used_exports.is_empty() {
-      let need_insert = match mgm.build_meta {
-        Some(ref build_meta) => matches!(build_meta.exports_type, BuildMetaExportsType::Unset),
+      let need_insert = match module.build_meta() {
+        Some(build_meta) => matches!(build_meta.exports_type, BuildMetaExportsType::Unset),
         None => true,
       };
       if need_insert {
@@ -445,15 +450,21 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
   }
 }
 
-#[derive(Debug, Default)]
-pub struct FlagDependencyUsagePlugin;
+#[derive(Debug)]
+pub struct FlagDependencyUsagePlugin {
+  global: bool,
+}
+
+impl FlagDependencyUsagePlugin {
+  pub fn new(global: bool) -> Self {
+    Self { global }
+  }
+}
 
 #[async_trait::async_trait]
 impl Plugin for FlagDependencyUsagePlugin {
   async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<()>> {
-    assert!(compilation.options.optimization.used_exports != UsedExportsOption::False);
-    let global = compilation.options.optimization.used_exports == UsedExportsOption::Global;
-    let mut proxy = FlagDependencyUsagePluginProxy::new(global, compilation);
+    let mut proxy = FlagDependencyUsagePluginProxy::new(self.global, compilation);
     proxy.apply();
     Ok(None)
   }

@@ -1,7 +1,7 @@
 use std::{fmt::Debug, path::Path};
 
 use dashmap::DashMap;
-use rspack_error::Result;
+use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_hash::RspackHashDigest;
 use rspack_loader_runner::{Content, ResourceData};
 use rspack_sources::BoxSource;
@@ -32,7 +32,7 @@ pub type PluginNormalModuleFactoryBeforeResolveOutput = Result<Option<bool>>;
 pub type PluginNormalModuleFactoryAfterResolveOutput = Result<Option<bool>>;
 pub type PluginContentHashHookOutput = Result<Option<(SourceType, RspackHashDigest)>>;
 pub type PluginChunkHashHookOutput = Result<()>;
-pub type PluginRenderManifestHookOutput = Result<Vec<RenderManifestEntry>>;
+pub type PluginRenderManifestHookOutput = Result<TWithDiagnosticArray<Vec<RenderManifestEntry>>>;
 pub type PluginRenderChunkHookOutput = Result<Option<BoxSource>>;
 pub type PluginProcessAssetsOutput = Result<()>;
 pub type PluginOptimizeChunksOutput = Result<()>;
@@ -104,7 +104,7 @@ pub trait Plugin: Debug + Send + Sync {
   async fn factorize(
     &self,
     _ctx: PluginContext,
-    _args: FactorizeArgs<'_>,
+    _args: &mut FactorizeArgs<'_>,
   ) -> PluginFactorizeHookOutput {
     Ok(None)
   }
@@ -120,7 +120,7 @@ pub trait Plugin: Debug + Send + Sync {
   async fn after_resolve(
     &self,
     _ctx: PluginContext,
-    _args: &NormalModuleAfterResolveArgs,
+    _args: &mut NormalModuleAfterResolveArgs<'_>,
   ) -> PluginNormalModuleFactoryAfterResolveOutput {
     Ok(None)
   }
@@ -136,7 +136,7 @@ pub trait Plugin: Debug + Send + Sync {
   async fn normal_module_factory_create_module(
     &self,
     _ctx: PluginContext,
-    _args: &NormalModuleCreateData,
+    _args: &mut NormalModuleCreateData<'_>,
   ) -> PluginNormalModuleFactoryCreateModuleHookOutput {
     Ok(None)
   }
@@ -145,7 +145,7 @@ pub trait Plugin: Debug + Send + Sync {
     &self,
     _ctx: PluginContext,
     module: BoxModule,
-    _args: &NormalModuleCreateData,
+    _args: &mut NormalModuleCreateData<'_>,
   ) -> PluginNormalModuleFactoryModuleHookOutput {
     Ok(module)
   }
@@ -179,7 +179,7 @@ pub trait Plugin: Debug + Send + Sync {
     _ctx: PluginContext,
     _args: RenderManifestArgs<'_>,
   ) -> PluginRenderManifestHookOutput {
-    Ok(vec![])
+    Ok(vec![].with_empty_diagnostic())
   }
 
   // JavascriptModulesPlugin hook
@@ -401,6 +401,10 @@ pub trait Plugin: Debug + Send + Sync {
   }
 
   async fn optimize_modules(&self, _compilation: &mut Compilation) -> Result<()> {
+    Ok(())
+  }
+
+  async fn after_optimize_modules(&self, _compilation: &mut Compilation) -> Result<()> {
     Ok(())
   }
 

@@ -95,7 +95,7 @@ export type LibraryCustomUmdCommentObject = z.infer<
 >;
 
 const amdContainer = z.string();
-export type AmdComtainer = z.infer<typeof amdContainer>;
+export type AmdContainer = z.infer<typeof amdContainer>;
 
 const auxiliaryComment = z.string().or(libraryCustomUmdCommentObject);
 export type AuxiliaryComment = z.infer<typeof auxiliaryComment>;
@@ -276,7 +276,7 @@ export type HashDigest = z.infer<typeof hashDigest>;
 const hashDigestLength = z.number();
 export type HashDigestLength = z.infer<typeof hashDigestLength>;
 
-const hashFunction = z.string();
+const hashFunction = z.enum(["md4", "xxhash64"]);
 export type HashFunction = z.infer<typeof hashFunction>;
 
 const hashSalt = z.string();
@@ -284,6 +284,9 @@ export type HashSalt = z.infer<typeof hashSalt>;
 
 const sourceMapFilename = z.string();
 export type SourceMapFilename = z.infer<typeof sourceMapFilename>;
+
+const devtoolNamespace = z.string();
+export type DevtoolNamespace = z.infer<typeof devtoolNamespace>;
 
 const output = z.strictObject({
 	path: path.optional(),
@@ -329,7 +332,8 @@ const output = z.strictObject({
 	workerChunkLoading: chunkLoading.optional(),
 	workerWasmLoading: wasmLoading.optional(),
 	workerPublicPath: workerPublicPath.optional(),
-	scriptType: scriptType.optional()
+	scriptType: scriptType.optional(),
+	devtoolNamespace: devtoolNamespace.optional()
 });
 export type Output = z.infer<typeof output>;
 //#endregion
@@ -407,14 +411,14 @@ const ruleSetConditions: z.ZodType<RuleSetConditions> = z.lazy(() =>
 export type RuleSetLogicalConditions = {
 	and?: RuleSetConditions;
 	or?: RuleSetConditions;
-	not?: RuleSetConditions;
+	not?: RuleSetCondition;
 };
 
 const ruleSetLogicalConditions: z.ZodType<RuleSetLogicalConditions> =
 	z.strictObject({
 		and: ruleSetConditions.optional(),
 		or: ruleSetConditions.optional(),
-		not: ruleSetConditions.optional()
+		not: ruleSetCondition.optional()
 	});
 
 const ruleSetLoader = z.string();
@@ -1052,7 +1056,8 @@ const rspackFutureOptions = z.strictObject({
 			return true;
 		}),
 	newTreeshaking: z.boolean().optional(),
-	disableTransformByDefault: z.boolean().optional()
+	disableTransformByDefault: z.boolean().optional(),
+	disableApplyEntryLazily: z.boolean().optional()
 });
 export type RspackFutureOptions = z.infer<typeof rspackFutureOptions>;
 
@@ -1146,6 +1151,11 @@ const profile = z.boolean();
 export type Profile = z.infer<typeof profile>;
 //#endregion
 
+//#region Bail
+const bail = z.boolean();
+export type Bail = z.infer<typeof bail>;
+//#endregion
+
 //#region Builtins (deprecated)
 const builtins = z.custom<oldBuiltins.Builtins>();
 export type Builtins = z.infer<typeof builtins>;
@@ -1179,7 +1189,8 @@ export const rspackOptions = z.strictObject({
 	devServer: devServer.optional(),
 	builtins: builtins.optional(),
 	module: moduleOptions.optional(),
-	profile: profile.optional()
+	profile: profile.optional(),
+	bail: bail.optional()
 });
 export type RspackOptions = z.infer<typeof rspackOptions>;
 export type Configuration = RspackOptions;

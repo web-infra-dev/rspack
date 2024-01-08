@@ -18,11 +18,7 @@ test("delete file should work", async ({
 	expect(bodyResponse).toContain("this is mod2");
 	// mock file delete action
 	fileAction.deleteFile("src/mod1.js");
-	await rspack.waitingForHmr(async () => {
-		// ensure page status changed
-		const statusText = await page.textContent("#root");
-		return statusText === "__HMR_UPDATED__";
-	});
+	await expect(page.locator("#root")).toHaveText("__HMR_UPDATED__");
 	// asset new script content
 	const responseAfterDelete = await request.get(
 		`http://localhost:${rspack.devServer.options.port}/main.js`

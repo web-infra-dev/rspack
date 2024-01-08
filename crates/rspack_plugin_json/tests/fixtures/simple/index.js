@@ -1,3 +1,3 @@
 import json from './json.json'
-
-console.log(json)
+import str from './string.json'
+console.log(json,str)

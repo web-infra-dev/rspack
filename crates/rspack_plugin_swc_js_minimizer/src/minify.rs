@@ -7,7 +7,7 @@ use rspack_core::{
   rspack_sources::{RawSource, SourceExt},
   ModuleType,
 };
-use rspack_error::{internal_error, BatchErrors, DiagnosticKind, Result, TraceableError};
+use rspack_error::{error, BatchErrors, DiagnosticKind, Result, TraceableError};
 use rspack_plugin_javascript::{ast::parse_js, utils::DedupEcmaErrors};
 use rspack_plugin_javascript::{
   ast::{print, SourceMapConfig},
@@ -43,7 +43,7 @@ use swc_ecma_minifier::{
   option::{MinifyOptions, TopLevelOptions},
 };
 
-use crate::{ExtractComments, JsMinifyOptions, SwcJsMinimizerRspackPluginOptions};
+use crate::{JsMinifyOptions, NormalizedExtractComments, SwcJsMinimizerRspackPluginOptions};
 
 pub fn match_object(obj: &SwcJsMinimizerRspackPluginOptions, str: &str) -> Result<bool> {
   if let Some(condition) = &obj.test {
@@ -103,7 +103,7 @@ pub fn minify(
   input: String,
   filename: &str,
   all_extract_comments: &Mutex<HashMap<String, ExtractedCommentsInfo>>,
-  extract_comments: &Option<ExtractComments<'_>>,
+  extract_comments: &Option<NormalizedExtractComments>,
 ) -> std::result::Result<TransformOutput, BatchErrors> {
   let cm: Arc<SourceMap> = Default::default();
   GLOBALS.set(
@@ -182,7 +182,13 @@ pub fn minify(
               errs
                 .dedup_ecma_errors()
                 .into_iter()
-                .map(|err| ecma_parse_error_deduped_to_rspack_error(err, &fm, &ModuleType::Js))
+                .map(|err| {
+                  rspack_error::miette::Error::new(ecma_parse_error_deduped_to_rspack_error(
+                    err,
+                    &fm,
+                    &ModuleType::Js,
+                  ))
+                })
                 .collect::<Vec<_>>(),
             )
           })?;
@@ -353,7 +359,7 @@ impl Emitter for RspackErrorEmitter {
     } else {
       self
         .tx
-        .send(internal_error!(db.message()))
+        .send(error!(db.message()))
         .expect("Sender should drop after emit called");
     }
   }

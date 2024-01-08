@@ -15,8 +15,7 @@ use rspack_core::{
   ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory,
 };
 use rspack_error::{
-  internal_error, Diagnostic, DiagnosticKind, Error, InternalError, Result, Severity,
-  TraceableError,
+  error, Diagnostic, DiagnosticKind, Error, InternalError, Result, Severity, TraceableError,
 };
 use rspack_loader_runner::{Identifiable, Identifier, Loader, LoaderContext};
 use sass_embedded::{
@@ -519,7 +518,7 @@ fn sass_exception_to_error(e: Box<Exception>) -> Error {
   {
     e.with_kind(DiagnosticKind::Scss).into()
   } else {
-    internal_error!(e.message().to_string())
+    error!(e.message().to_string())
   }
 }
 
@@ -557,21 +556,10 @@ fn make_traceable_error(title: &str, message: &str, span: &SourceSpan) -> Option
         .to_string_lossy()
         .to_string()
     })
-    .and_then(|path| {
-      std::fs::read_to_string(&path)
-        .ok()
-        .map(|source| (path, source))
-    })
-    .map(|(path, source)| {
+    .and_then(|path| std::fs::read_to_string(path).ok())
+    .map(|source| {
       let start = utf16::to_byte_idx(&source, span.start.offset);
       let end = utf16::to_byte_idx(&source, span.end.offset);
-      TraceableError::from_file(
-        path,
-        source,
-        start,
-        end,
-        title.to_string(),
-        message.to_string(),
-      )
+      TraceableError::from_file(source, start, end, title.to_string(), message.to_string())
     })
 }

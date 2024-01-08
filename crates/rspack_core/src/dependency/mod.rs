@@ -13,6 +13,7 @@ mod module_dependency;
 mod runtime_requirements_dependency;
 mod runtime_template;
 mod span;
+mod static_exports_dependency;
 
 use std::sync::Arc;
 
@@ -30,6 +31,7 @@ pub use module_dependency::*;
 pub use runtime_requirements_dependency::RuntimeRequirementsDependency;
 pub use runtime_template::*;
 pub use span::SpanExt;
+pub use static_exports_dependency::StaticExportsDependency;
 use swc_core::ecma::atoms::JsWord;
 
 use crate::{

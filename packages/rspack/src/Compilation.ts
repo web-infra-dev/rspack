@@ -105,20 +105,21 @@ export class Compilation {
 		childCompiler: tapable.SyncHook<[Compiler, string, number]>;
 		log: tapable.SyncBailHook<[string, LogEntry], true>;
 		additionalAssets: any;
-		optimizeModules: tapable.SyncBailHook<Iterable<JsModule>, undefined>;
+		optimizeModules: tapable.SyncBailHook<Iterable<JsModule>, void>;
+		afterOptimizeModules: tapable.SyncHook<Iterable<JsModule>, void>;
 		optimizeTree: tapable.AsyncSeriesBailHook<
 			[Iterable<Chunk>, Iterable<JsModule>],
-			undefined
+			void
 		>;
 		optimizeChunkModules: tapable.AsyncSeriesBailHook<
 			[Iterable<Chunk>, Iterable<JsModule>],
-			undefined
+			void
 		>;
-		finishModules: tapable.AsyncSeriesHook<[Iterable<JsModule>], undefined>;
-		chunkAsset: tapable.SyncHook<[JsChunk, string], undefined>;
+		finishModules: tapable.AsyncSeriesHook<[Iterable<JsModule>], void>;
+		chunkAsset: tapable.SyncHook<[JsChunk, string], void>;
 		processWarnings: tapable.SyncWaterfallHook<[Error[]]>;
-		succeedModule: tapable.SyncHook<[JsModule], undefined>;
-		stillValidModule: tapable.SyncHook<[JsModule], undefined>;
+		succeedModule: tapable.SyncHook<[JsModule], void>;
+		stillValidModule: tapable.SyncHook<[JsModule], void>;
 		statsFactory: tapable.SyncHook<[StatsFactory, StatsOptions], void>;
 		statsPrinter: tapable.SyncHook<[StatsPrinter, StatsOptions], void>;
 		buildModule: tapable.SyncHook<[NormalizedJsModule]>;
@@ -169,6 +170,7 @@ export class Compilation {
 			]),
 			log: new tapable.SyncBailHook(["origin", "logEntry"]),
 			optimizeModules: new tapable.SyncBailHook(["modules"]),
+			afterOptimizeModules: new tapable.SyncBailHook(["modules"]),
 			optimizeTree: new tapable.AsyncSeriesBailHook(["chunks", "modules"]),
 			optimizeChunkModules: new tapable.AsyncSeriesBailHook([
 				"chunks",

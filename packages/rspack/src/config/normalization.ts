@@ -36,6 +36,7 @@ import type {
 	WatchOptions,
 	DevServer,
 	Profile,
+	Bail,
 	Builtins,
 	EntryRuntime,
 	ChunkLoading,
@@ -74,7 +75,9 @@ import type {
 	GeneratorOptionsByModuleType,
 	IncrementalRebuildOptions,
 	RspackFutureOptions,
-	HotUpdateGlobal
+	HotUpdateGlobal,
+	ScriptType,
+	DevtoolNamespace
 } from "./zod";
 
 export const getNormalizedRspackOptions = (
@@ -214,7 +217,8 @@ export const getNormalizedRspackOptions = (
 				workerChunkLoading: output.workerChunkLoading,
 				workerWasmLoading: output.workerWasmLoading,
 				workerPublicPath: output.workerPublicPath,
-				scriptType: output.scriptType
+				scriptType: output.scriptType,
+				devtoolNamespace: output.devtoolNamespace
 			};
 		}),
 		resolve: nestedConfig(config.resolve, resolve => ({
@@ -309,6 +313,7 @@ export const getNormalizedRspackOptions = (
 		watchOptions: cloneObject(config.watchOptions),
 		devServer: config.devServer,
 		profile: config.profile,
+		bail: config.bail,
 		builtins: nestedConfig(config.builtins, builtins => ({
 			...builtins
 		}))
@@ -477,7 +482,8 @@ export interface OutputNormalized {
 	workerChunkLoading?: ChunkLoading;
 	workerWasmLoading?: WasmLoading;
 	workerPublicPath?: WorkerPublicPath;
-	scriptType?: "module" | "text/javascript" | false;
+	scriptType?: ScriptType;
+	devtoolNamespace?: DevtoolNamespace;
 }
 
 export interface ModuleOptionsNormalized {
@@ -538,5 +544,6 @@ export interface RspackOptionsNormalized {
 	devServer?: DevServer;
 	ignoreWarnings?: IgnoreWarningsNormalized;
 	profile?: Profile;
+	bail?: Bail;
 	builtins: Builtins;
 }

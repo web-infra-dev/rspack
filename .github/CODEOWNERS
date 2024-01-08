@@ -29,7 +29,6 @@ pnpm-lock.yaml
 
 # Crates in alphabetical order
 
-/crates/bench @IWANABETHATGUY
 /crates/cargo-rst @IWANABETHATGUY
 /crates/loader_runner @h-a-n-a
 /crates/node_binding @h-a-n-a

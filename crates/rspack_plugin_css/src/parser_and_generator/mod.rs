@@ -7,6 +7,7 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use rkyv::{from_bytes, to_bytes, AlignedVec};
 use rspack_core::{
+  diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
   rspack_sources::{
     BoxSource, MapOptions, RawSource, ReplaceSource, Source, SourceExt, SourceMap, SourceMapSource,
     SourceMapSourceOptions,
@@ -77,6 +78,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
       build_info,
       build_meta,
       code_generation_dependencies,
+      loaders,
       ..
     } = parse_context;
 
@@ -103,10 +105,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
     let mut diagnostic_vec = vec![];
 
     if is_enable_css_modules {
-      let TWithDiagnosticArray {
-        inner: mut stylesheet,
-        diagnostic,
-      } = swc_compiler.parse_file(
+      let mut stylesheet = swc_compiler.parse_file(
         &resource_path.to_string_lossy(),
         source_code,
         ParserConfig {
@@ -151,18 +150,13 @@ impl ParserAndGenerator for CssParserAndGenerator {
       )?;
       source_code = code;
       source_map = map;
-      diagnostic_vec.extend(diagnostic)
     }
 
-    let TWithDiagnosticArray {
-      inner: new_stylesheet_ast,
-      diagnostic: new_diagnostic,
-    } = SwcCssCompiler::default().parse_file(
+    let new_stylesheet_ast = SwcCssCompiler::default().parse_file(
       &parse_context.resource_data.resource_path.to_string_lossy(),
       source_code.clone(),
       Default::default(),
     )?;
-    diagnostic_vec.extend(new_diagnostic);
 
     let mut dependencies = analyze_dependencies(
       &new_stylesheet_ast,
@@ -224,7 +218,10 @@ impl ParserAndGenerator for CssParserAndGenerator {
         source: new_source,
         analyze_result: Default::default(),
       }
-      .with_diagnostic(diagnostic_vec),
+      .with_diagnostic(map_box_diagnostics_to_module_parse_diagnostics(
+        diagnostic_vec,
+        loaders,
+      )),
     )
   }
 
@@ -269,7 +266,12 @@ impl ParserAndGenerator for CssParserAndGenerator {
       }
       SourceType::JavaScript => {
         let locals = if let Some(exports) = &self.exports {
-          css_modules_exports_to_string(exports, module, generate_context.compilation)?
+          css_modules_exports_to_string(
+            exports,
+            module,
+            generate_context.compilation,
+            generate_context.runtime_requirements,
+          )?
         } else if generate_context.compilation.options.dev_server.hot {
           "module.hot.accept();".to_string()
         } else {

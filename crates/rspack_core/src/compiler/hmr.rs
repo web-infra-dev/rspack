@@ -8,7 +8,9 @@ use rspack_identifier::IdentifierMap;
 use rustc_hash::FxHashSet as HashSet;
 
 use super::MakeParam;
-use crate::{fast_set, ChunkKind, Compilation, Compiler, ModuleGraph, RuntimeSpec};
+use crate::{
+  fast_set, get_chunk_from_ukey, ChunkKind, Compilation, Compiler, ModuleGraph, RuntimeSpec,
+};
 
 impl<T> Compiler<T>
 where
@@ -28,10 +30,7 @@ where
 
     let mut all_old_runtime: RuntimeSpec = Default::default();
     for entry_ukey in old.compilation.get_chunk_graph_entries() {
-      if let Some(runtime) = old
-        .compilation
-        .chunk_by_ukey
-        .get(&entry_ukey)
+      if let Some(runtime) = get_chunk_from_ukey(&entry_ukey, &old.compilation.chunk_by_ukey)
         .map(|entry_chunk| entry_chunk.runtime.clone())
       {
         all_old_runtime.extend(runtime);

@@ -34,7 +34,29 @@ export enum BuiltinPluginName {
 	ContainerPlugin = "ContainerPlugin",
 	ContainerReferencePlugin = "ContainerReferencePlugin",
 	ProvideSharedPlugin = "ProvideSharedPlugin",
-	ConsumeSharedPlugin = "ConsumeSharedPlugin"
+	ConsumeSharedPlugin = "ConsumeSharedPlugin",
+	NamedModuleIdsPlugin = "NamedModuleIdsPlugin",
+	DeterministicModuleIdsPlugin = "DeterministicModuleIdsPlugin",
+	NamedChunkIdsPlugin = "NamedChunkIdsPlugin",
+	DeterministicChunkIdsPlugin = "DeterministicChunkIdsPlugin",
+	RealContentHashPlugin = "RealContentHashPlugin",
+	RemoveEmptyChunksPlugin = "RemoveEmptyChunksPlugin",
+	EnsureChunkConditionsPlugin = "EnsureChunkConditionsPlugin",
+	WarnCaseSensitiveModulesPlugin = "WarnCaseSensitiveModulesPlugin",
+	DataUriPlugin = "DataUriPlugin",
+	FileUriPlugin = "FileUriPlugin",
+	RuntimePlugin = "RuntimePlugin",
+	JsonModulesPlugin = "JsonModulesPlugin",
+	InferAsyncModulesPlugin = "InferAsyncModulesPlugin",
+	JavascriptModulesPlugin = "JavascriptModulesPlugin",
+	AsyncWebAssemblyModulesPlugin = "AsyncWebAssemblyModulesPlugin",
+	AssetModulesPlugin = "AssetModulesPlugin",
+	SourceMapDevToolPlugin = "SourceMapDevToolPlugin",
+	EvalSourceMapDevToolPlugin = "EvalSourceMapDevToolPlugin",
+	SideEffectsFlagPlugin = "SideEffectsFlagPlugin",
+	FlagDependencyExportsPlugin = "FlagDependencyExportsPlugin",
+	FlagDependencyUsagePlugin = "FlagDependencyUsagePlugin",
+	MangleExportsPlugin = "MangleExportsPlugin"
 }
 
 type AffectedHooks = keyof Compiler["hooks"];

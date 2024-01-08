@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use itertools::Itertools;
-use rspack_error::{internal_error, Error, Result};
+use rspack_error::{error, Error, Result};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use super::remove_parent_modules::RemoveParentModulesContext;
@@ -9,8 +9,8 @@ use crate::dependencies_block::AsyncDependenciesToInitialChunkError;
 use crate::{
   get_entry_runtime, AsyncDependenciesBlockIdentifier, BoxDependency, ChunkGroup, ChunkGroupInfo,
   ChunkGroupKind, ChunkGroupOptions, ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation,
-  DependenciesBlock, Dependency, GroupOptions, Logger, ModuleGraphConnection, ModuleIdentifier,
-  RuntimeSpec,
+  ConnectionState, DependenciesBlock, Dependency, GroupOptions, Logger, ModuleGraphConnection,
+  ModuleIdentifier, RuntimeSpec,
 };
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
@@ -36,8 +36,10 @@ pub(super) struct CodeSplitter<'me> {
   block_chunk_groups: HashMap<AsyncDependenciesBlockIdentifier, ChunkGroupUkey>,
   named_chunk_groups: HashMap<String, ChunkGroupUkey>,
   named_async_entrypoints: HashMap<String, ChunkGroupUkey>,
-  block_modules_runtime_map:
-    HashMap<OptionalRuntimeSpec, HashMap<DependenciesBlockIdentifier, Vec<ModuleIdentifier>>>,
+  block_modules_runtime_map: HashMap<
+    OptionalRuntimeSpec,
+    HashMap<DependenciesBlockIdentifier, Vec<(ModuleIdentifier, ConnectionState)>>,
+  >,
   pub(super) remove_parent_modules_context: RemoveParentModulesContext,
 }
 
@@ -146,11 +148,7 @@ impl<'me> CodeSplitter<'me> {
       let entrypoint = {
         let ukey = entrypoint.ukey;
         compilation.chunk_group_by_ukey.add(entrypoint);
-
-        compilation
-          .chunk_group_by_ukey
-          .get(&ukey)
-          .ok_or_else(|| internal_error!("no chunk group found"))?
+        compilation.chunk_group_by_ukey.expect_get(&ukey)
       };
 
       for module_identifier in module_identifiers {
@@ -211,19 +209,16 @@ impl<'me> CodeSplitter<'me> {
         let ukey = compilation
           .entrypoints
           .get(name)
-          .ok_or_else(|| internal_error!("no entrypoints found"))?;
+          .ok_or_else(|| error!("no entrypoints found"))?;
 
-        let entry_point = compilation
-          .chunk_group_by_ukey
-          .get_mut(ukey)
-          .ok_or_else(|| internal_error!("no chunk group found"))?;
+        let entry_point = compilation.chunk_group_by_ukey.expect_get_mut(ukey);
 
         let chunk = match compilation.named_chunks.get(runtime) {
           Some(ukey) => {
             if !runtime_chunks.contains(ukey) {
               // TODO: add dependOn error message once we implement dependeOn
               // Did you mean to use 'dependOn: {}' instead to allow using entrypoint '{name}' within the runtime of entrypoint '{runtime}'? For this '{runtime}' must always be loaded when '{name}' is used.
-              runtime_error = Some(internal_error!(
+              runtime_error = Some(error!(
 "Entrypoint '{name}' has a 'runtime' option which points to another entrypoint named '{runtime}'.
 It's not valid to use other entrypoints as runtime chunk.
 Or do you want to use the entrypoints '{name}' and '{runtime}' independently on the same page with a shared runtime? In this case give them both the same value for the 'runtime' option. It must be a name not already used by an entrypoint."
@@ -232,10 +227,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
               entry_point.set_runtime_chunk(entry_chunk);
               continue;
             }
-            compilation
-              .chunk_by_ukey
-              .get_mut(ukey)
-              .ok_or_else(|| internal_error!("no chunk found"))?
+            compilation.chunk_by_ukey.expect_get_mut(ukey)
           }
           None => {
             let chunk_ukey = Compilation::add_named_chunk(
@@ -275,8 +267,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       let chunk_group = self
         .compilation
         .chunk_group_by_ukey
-        .get_mut(&chunk_group)
-        .ok_or_else(|| internal_error!("no chunk group found"))?;
+        .expect_get_mut(&chunk_group);
 
       self.next_chunk_group_index += 1;
       chunk_group.index = Some(self.next_chunk_group_index);
@@ -398,8 +389,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     let chunk_group = self
       .compilation
       .chunk_group_by_ukey
-      .get_mut(&item.chunk_group)
-      .expect("chunk group not found");
+      .expect_get_mut(&item.chunk_group);
 
     if chunk_group
       .module_pre_order_indices
@@ -441,8 +431,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     let chunk_group = self
       .compilation
       .chunk_group_by_ukey
-      .get_mut(&item.chunk_group)
-      .expect("chunk group not found");
+      .expect_get_mut(&item.chunk_group);
 
     if chunk_group
       .module_post_order_indices
@@ -476,14 +465,22 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
     let runtime = chunk_group.info.runtime.clone();
     let modules = self.get_block_modules(item.block.into(), Some(&runtime));
-    for module in modules {
-      self.queue.push(QueueAction::AddAndEnterEntryModule(
-        AddAndEnterEntryModule {
+    for (module, active_state) in modules {
+      if active_state.is_true() {
+        self.queue.push(QueueAction::AddAndEnterEntryModule(
+          AddAndEnterEntryModule {
+            chunk: item.chunk,
+            chunk_group: item.chunk_group,
+            module,
+          },
+        ));
+      } else {
+        self.queue.push(QueueAction::ProcessBlock(ProcessBlock {
           chunk: item.chunk,
           chunk_group: item.chunk_group,
-          module,
-        },
-      ));
+          block: module.into(),
+        }));
+      }
     }
     let blocks = self
       .compilation
@@ -505,7 +502,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       .expect_get(&item.chunk_group);
     let runtime = item_chunk_group.info.runtime.clone();
     let modules = self.get_block_modules(item.block, Some(&runtime));
-    for module in modules.into_iter().rev() {
+    for (module, active_state) in modules.into_iter().rev() {
       if self
         .compilation
         .chunk_graph
@@ -513,31 +510,25 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       {
         continue;
       }
-      // webpack use queueBuffer to rev
-      self
-        .queue
-        .push(QueueAction::AddAndEnterModule(AddAndEnterModule {
+
+      if active_state.is_true() {
+        // webpack use queueBuffer to rev
+        self
+          .queue
+          .push(QueueAction::AddAndEnterModule(AddAndEnterModule {
+            chunk: item.chunk,
+            chunk_group: item.chunk_group,
+            module,
+          }));
+      } else {
+        self.queue.push(QueueAction::ProcessBlock(ProcessBlock {
           chunk: item.chunk,
           chunk_group: item.chunk_group,
-          module,
+          block: module.into(),
         }));
+      }
     }
-    let blocks = match &item.block {
-      DependenciesBlockIdentifier::Module(m) => self
-        .compilation
-        .module_graph
-        .module_by_identifier(m)
-        .expect("should have module")
-        .get_blocks()
-        .to_vec(),
-      DependenciesBlockIdentifier::AsyncDependenciesBlock(a) => self
-        .compilation
-        .module_graph
-        .block_by_id(a)
-        .expect("should have block")
-        .get_blocks()
-        .to_vec(),
-    };
+    let blocks = item.block.get_blocks(self.compilation);
     for block in blocks {
       self.iterator_block(block, item.chunk_group, item.chunk);
     }
@@ -759,7 +750,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     &mut self,
     module: DependenciesBlockIdentifier,
     runtime: Option<&RuntimeSpec>,
-  ) -> Vec<ModuleIdentifier> {
+  ) -> Vec<(ModuleIdentifier, ConnectionState)> {
     if let Some(modules) = self
       .block_modules_runtime_map
       .get(&runtime.cloned().into())
@@ -778,53 +769,73 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       .block_modules_runtime_map
       .get(&runtime.cloned().into())
       .and_then(|map| map.get(&module))
-      .expect("block_modules_map.get(module) must not empty after extract_block_modules")
+      .unwrap_or_else(|| {
+        panic!("block_modules_map.get({module:?}) must not empty after extract_block_modules")
+      })
       .clone()
   }
 
   fn extract_block_modules(&mut self, module: ModuleIdentifier, runtime: Option<&RuntimeSpec>) {
-    self
+    let map = self
       .block_modules_runtime_map
       .entry(runtime.cloned().into())
-      .or_default()
-      .insert(module.into(), Vec::new());
-    let dependencies: Vec<&BoxDependency> = if self.compilation.options.is_new_tree_shaking() {
-      let mgm = self
-        .compilation
-        .module_graph
-        .module_graph_module_by_identifier(&module)
-        .unwrap_or_else(|| panic!("no module found: {:?}", &module));
-      let mut filtered_dep: Vec<&Box<dyn Dependency>> = mgm
-        .outgoing_connections_unordered(&self.compilation.module_graph)
-        .expect("should have outgoing connections")
-        .filter_map(|con: &ModuleGraphConnection| {
-          let active_state = con.get_active_state(&self.compilation.module_graph, runtime);
-          match active_state {
-            crate::ConnectionState::Bool(false) => None,
-            _ => Some(con.dependency_id),
-          }
-        })
-        .filter_map(|dep_id| self.compilation.module_graph.dependency_by_id(&dep_id))
-        .collect();
-      // keep the dependency original order if it does not have span, or sort the dependency by
-      // the error span
-      filtered_dep.sort_by(|a, b| match (a.span(), b.span()) {
-        (Some(a), Some(b)) => a.cmp(&b),
-        _ => std::cmp::Ordering::Equal,
-      });
-      filtered_dep
-    } else {
-      self
-        .compilation
-        .module_graph
-        .get_module_all_dependencies(&module)
-        .expect("should have module")
-        .iter()
-        .filter_map(|dep_id| self.compilation.module_graph.dependency_by_id(dep_id))
-        .collect()
-    };
+      .or_default();
+    let block = module.into();
+    map.insert(block, Vec::new());
+    for b in block.get_blocks(self.compilation) {
+      map.insert(b.into(), Vec::new());
+    }
 
-    for dep in dependencies {
+    let dependencies: Vec<(&BoxDependency, ConnectionState)> =
+      if self.compilation.options.is_new_tree_shaking() {
+        let mgm = self
+          .compilation
+          .module_graph
+          .module_graph_module_by_identifier(&module)
+          .unwrap_or_else(|| panic!("no module found: {:?}", &module));
+        let mut filtered_dep: Vec<(&Box<dyn Dependency>, ConnectionState)> = mgm
+          .outgoing_connections_unordered(&self.compilation.module_graph)
+          .expect("should have outgoing connections")
+          .filter_map(|con: &ModuleGraphConnection| {
+            let active_state = con.get_active_state(&self.compilation.module_graph, runtime);
+            match active_state {
+              crate::ConnectionState::Bool(false) => None,
+              _ => Some((con.dependency_id, active_state)),
+            }
+          })
+          .filter_map(|(dep_id, active_state)| {
+            self
+              .compilation
+              .module_graph
+              .dependency_by_id(&dep_id)
+              .map(|id| (id, active_state))
+          })
+          .collect();
+        // keep the dependency original order if it does not have span, or sort the dependency by
+        // the error span
+        filtered_dep.sort_by(|(a, _), (b, _)| match (a.span(), b.span()) {
+          (Some(a), Some(b)) => a.cmp(&b),
+          _ => std::cmp::Ordering::Equal,
+        });
+        filtered_dep
+      } else {
+        self
+          .compilation
+          .module_graph
+          .get_module_all_dependencies(&module)
+          .expect("should have module")
+          .iter()
+          .filter_map(|dep_id| {
+            self
+              .compilation
+              .module_graph
+              .dependency_by_id(dep_id)
+              .map(|id| (id, ConnectionState::Bool(true)))
+          })
+          .collect()
+      };
+
+    for (dep, active_state) in dependencies {
       if dep.as_module_dependency().is_none() && dep.as_context_dependency().is_none() {
         continue;
       }
@@ -832,6 +843,16 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         continue;
       }
       let dep_id = dep.id();
+      // Dependency created but no module is available.
+      // This could happen when module factorization is failed, but `options.bail` set to `false`
+      if self
+        .compilation
+        .module_graph
+        .module_identifier_by_dependency_id(dep_id)
+        .is_none()
+      {
+        continue;
+      }
       let block_id = if let Some(block) = self.compilation.module_graph.get_parent_block(dep_id) {
         (*block).into()
       } else {
@@ -839,17 +860,18 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       };
       let modules = self
         .block_modules_runtime_map
-        .entry(runtime.cloned().into())
-        .or_default()
-        .entry(block_id)
-        .or_default();
-      modules.push(
+        .get_mut(&runtime.cloned().into())
+        .expect("should have runtime in block_modules_runtime_map")
+        .get_mut(&block_id)
+        .expect("should have modules in block_modules_runtime_map");
+      modules.push((
         *self
           .compilation
           .module_graph
           .module_identifier_by_dependency_id(dep_id)
           .expect("should have module_identifier"),
-      );
+        active_state,
+      ));
     }
   }
 
@@ -979,6 +1001,23 @@ impl DependenciesBlockIdentifier {
     match self {
       DependenciesBlockIdentifier::Module(m) => Some(m),
       DependenciesBlockIdentifier::AsyncDependenciesBlock(ident) => Some(&ident.from),
+    }
+  }
+
+  pub fn get_blocks(&self, compilation: &Compilation) -> Vec<AsyncDependenciesBlockIdentifier> {
+    match self {
+      DependenciesBlockIdentifier::Module(m) => compilation
+        .module_graph
+        .module_by_identifier(m)
+        .expect("should have module")
+        .get_blocks()
+        .to_vec(),
+      DependenciesBlockIdentifier::AsyncDependenciesBlock(a) => compilation
+        .module_graph
+        .block_by_id(a)
+        .expect("should have block")
+        .get_blocks()
+        .to_vec(),
     }
   }
 }

@@ -7,9 +7,9 @@ export const ExternalsPlugin = create(
 	(type: string, externals: Externals): RawExternalsPluginOptions => {
 		return {
 			type,
-			externals: (Array.isArray(externals) ? externals : [externals]).map(
-				getRawExternalItem
-			)
+			externals: (Array.isArray(externals) ? externals : [externals])
+				.filter(Boolean)
+				.map(getRawExternalItem)
 		};
 	}
 );
@@ -19,7 +19,7 @@ type RecordValue<T> = T extends Record<any, infer R> ? R : never;
 type RawExternalItem = ArrayType<RawExternalsPluginOptions["externals"]>;
 type RawExternalItemValue = RecordValue<RawExternalItem>;
 
-function getRawExternalItem(item: ExternalItem): RawExternalItem {
+function getRawExternalItem(item: ExternalItem | undefined): RawExternalItem {
 	if (typeof item === "string" || item instanceof RegExp) {
 		return item;
 	}
@@ -47,9 +47,12 @@ function getRawExternalItem(item: ExternalItem): RawExternalItem {
 			});
 		};
 	}
-	return Object.fromEntries(
-		Object.entries(item).map(([k, v]) => [k, getRawExternalItemValue(v)])
-	);
+	if (typeof item === "object") {
+		return Object.fromEntries(
+			Object.entries(item).map(([k, v]) => [k, getRawExternalItemValue(v)])
+		);
+	}
+	throw new TypeError(`Unexpected type of external item: ${typeof item}`);
 }
 
 function getRawExternalItemValueFormFnResult(result?: ExternalItemValue) {

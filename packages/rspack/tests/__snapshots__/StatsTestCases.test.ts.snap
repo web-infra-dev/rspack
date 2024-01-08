@@ -77,6 +77,7 @@ exports[`StatsTestCases should print correct stats for auxiliary-files-test 1`] 
           "moduleType": "asset/resource",
           "name": "./raw.png",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/raw.png",
+          "orphan": false,
           "reasons": [
             {
               "moduleId": "10",
@@ -115,6 +116,7 @@ exports[`StatsTestCases should print correct stats for auxiliary-files-test 1`] 
           "moduleType": "javascript/auto",
           "name": "./index.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/index.js",
+          "orphan": false,
           "reasons": [
             {
               "moduleId": undefined,
@@ -150,6 +152,7 @@ import rawModule from './raw.png';
           "moduleType": "javascript/auto",
           "name": "./stringModule.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/stringModule.js",
+          "orphan": false,
           "reasons": [
             {
               "moduleId": "10",
@@ -191,7 +194,7 @@ import rawModule from './raw.png';
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "f06897c860985a12c8cc",
+  "hash": "d6dd2961487dd1281bc4",
   "logging": {},
   "modules": [
     {
@@ -214,6 +217,7 @@ import rawModule from './raw.png';
       "moduleType": "asset/resource",
       "name": "./raw.png",
       "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/raw.png",
+      "orphan": false,
       "reasons": [
         {
           "moduleId": "10",
@@ -252,6 +256,7 @@ import rawModule from './raw.png';
       "moduleType": "javascript/auto",
       "name": "./index.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/index.js",
+      "orphan": false,
       "reasons": [
         {
           "moduleId": undefined,
@@ -287,6 +292,7 @@ import rawModule from './raw.png';
       "moduleType": "javascript/auto",
       "name": "./stringModule.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/stringModule.js",
+      "orphan": false,
       "reasons": [
         {
           "moduleId": "10",
@@ -314,6 +320,7 @@ import rawModule from './raw.png';
       "moduleType": "runtime",
       "name": "webpack/runtime/public_path",
       "nameForCondition": undefined,
+      "orphan": false,
       "reasons": [],
       "size": 160,
       "source": undefined,
@@ -333,6 +340,7 @@ import rawModule from './raw.png';
       "moduleType": "runtime",
       "name": "webpack/runtime/make_namespace_object",
       "nameForCondition": undefined,
+      "orphan": false,
       "reasons": [],
       "size": 160,
       "source": undefined,
@@ -382,7 +390,7 @@ chunk {main} bundle.js (main) [entry]
 webpack/runtime/public_path {main}
 webpack/runtime/make_namespace_object {main}
   
-Rspack compiled successfully (f06897c860985a12c8cc)"
+Rspack compiled successfully (d6dd2961487dd1281bc4)"
 `;
 
 exports[`StatsTestCases should print correct stats for filename 1`] = `
@@ -456,6 +464,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
           "moduleType": "javascript/auto",
           "name": "./dynamic.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/filename/dynamic.js",
+          "orphan": false,
           "reasons": [
             {
               "moduleId": "10",
@@ -505,6 +514,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
           "moduleType": "javascript/auto",
           "name": "./index.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/filename/index.js",
+          "orphan": false,
           "reasons": [
             {
               "moduleId": undefined,
@@ -547,7 +557,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "75d5cd091894cbf9461b",
+  "hash": "aa854b02c22baae28c0d",
   "logging": {},
   "modules": [
     {
@@ -564,6 +574,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       "moduleType": "javascript/auto",
       "name": "./index.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/filename/index.js",
+      "orphan": false,
       "reasons": [
         {
           "moduleId": undefined,
@@ -598,6 +609,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       "moduleType": "javascript/auto",
       "name": "./dynamic.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/filename/dynamic.js",
+      "orphan": false,
       "reasons": [
         {
           "moduleId": "10",
@@ -626,6 +638,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       "moduleType": "runtime",
       "name": "webpack/runtime/ensure_chunk",
       "nameForCondition": undefined,
+      "orphan": false,
       "reasons": [],
       "size": 160,
       "source": undefined,
@@ -645,6 +658,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       "moduleType": "runtime",
       "name": "webpack/runtime/has_own_property",
       "nameForCondition": undefined,
+      "orphan": false,
       "reasons": [],
       "size": 160,
       "source": undefined,
@@ -664,6 +678,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       "moduleType": "runtime",
       "name": "webpack/runtime/load_chunk_with_block",
       "nameForCondition": undefined,
+      "orphan": false,
       "reasons": [],
       "size": 160,
       "source": undefined,
@@ -683,6 +698,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       "moduleType": "runtime",
       "name": "webpack/runtime/make_namespace_object",
       "nameForCondition": undefined,
+      "orphan": false,
       "reasons": [],
       "size": 160,
       "source": undefined,
@@ -702,6 +718,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       "moduleType": "runtime",
       "name": "webpack/runtime/require_chunk_loading",
       "nameForCondition": undefined,
+      "orphan": false,
       "reasons": [],
       "size": 160,
       "source": undefined,
@@ -721,6 +738,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       "moduleType": "runtime",
       "name": "webpack/runtime/define_property_getters",
       "nameForCondition": undefined,
+      "orphan": false,
       "reasons": [],
       "size": 160,
       "source": undefined,
@@ -732,14 +750,15 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
         "main",
       ],
       "id": "",
-      "identifier": "webpack/runtime/get_chunk_filename/javascript",
+      "identifier": "webpack/runtime/get javascript chunk filename",
       "issuer": undefined,
       "issuerId": undefined,
       "issuerName": undefined,
       "issuerPath": [],
       "moduleType": "runtime",
-      "name": "webpack/runtime/get_chunk_filename/javascript",
+      "name": "webpack/runtime/get javascript chunk filename",
       "nameForCondition": undefined,
+      "orphan": false,
       "reasons": [],
       "size": 160,
       "source": undefined,
@@ -789,9 +808,9 @@ webpack/runtime/load_chunk_with_block {main}
 webpack/runtime/make_namespace_object {main}
 webpack/runtime/require_chunk_loading {main}
 webpack/runtime/define_property_getters {main}
-webpack/runtime/get_chunk_filename/javascript {main}
+webpack/runtime/get javascript chunk filename {main}
   
-Rspack compiled successfully (75d5cd091894cbf9461b)"
+Rspack compiled successfully (aa854b02c22baae28c0d)"
 `;
 
 exports[`StatsTestCases should print correct stats for hot+production 1`] = `
@@ -810,7 +829,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
         "hotModuleReplacement": false,
       },
       "name": "bundle.js",
-      "size": 9106,
+      "size": 9109,
       "type": "asset",
     },
   ],
@@ -845,6 +864,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
           "moduleType": "javascript/auto",
           "name": "./index.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/hot+production/index.js",
+          "orphan": false,
           "reasons": [
             {
               "moduleId": undefined,
@@ -874,10 +894,10 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 9106,
+          "size": 9109,
         },
       ],
-      "assetsSize": 9106,
+      "assetsSize": 9109,
       "chunks": [
         "main",
       ],
@@ -887,7 +907,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "a0e8b8e7a12183967b4c",
+  "hash": "6eed24d98a02965a7721",
   "logging": {},
   "modules": [
     {
@@ -904,6 +924,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
       "moduleType": "javascript/auto",
       "name": "./index.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/hot+production/index.js",
+      "orphan": false,
       "reasons": [
         {
           "moduleId": undefined,
@@ -932,6 +953,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
       "moduleType": "runtime",
       "name": "webpack/runtime/get_full_hash",
       "nameForCondition": undefined,
+      "orphan": false,
       "reasons": [],
       "size": 160,
       "source": undefined,
@@ -951,6 +973,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
       "moduleType": "runtime",
       "name": "webpack/runtime/has_own_property",
       "nameForCondition": undefined,
+      "orphan": false,
       "reasons": [],
       "size": 160,
       "source": undefined,
@@ -970,6 +993,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
       "moduleType": "runtime",
       "name": "webpack/runtime/require_chunk_loading",
       "nameForCondition": undefined,
+      "orphan": false,
       "reasons": [],
       "size": 160,
       "source": undefined,
@@ -989,6 +1013,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
       "moduleType": "runtime",
       "name": "webpack/runtime/hot_module_replacement",
       "nameForCondition": undefined,
+      "orphan": false,
       "reasons": [],
       "size": 160,
       "source": undefined,
@@ -1008,6 +1033,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
       "moduleType": "runtime",
       "name": "webpack/runtime/get_chunk_update_filename",
       "nameForCondition": undefined,
+      "orphan": false,
       "reasons": [],
       "size": 160,
       "source": undefined,
@@ -1027,6 +1053,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
       "moduleType": "runtime",
       "name": "webpack/runtime/get_main_filename/update manifest",
       "nameForCondition": undefined,
+      "orphan": false,
       "reasons": [],
       "size": 160,
       "source": undefined,
@@ -1038,10 +1065,10 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 9106,
+          "size": 9109,
         },
       ],
-      "assetsSize": 9106,
+      "assetsSize": 9109,
       "chunks": [
         "main",
       ],
@@ -1057,8 +1084,8 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
 
 exports[`StatsTestCases should print correct stats for hot+production 2`] = `
 "PublicPath: (none)
-asset bundle.js 8.89 KiB {main} [emitted] (name: main)
-Entrypoint main 8.89 KiB = bundle.js
+asset bundle.js 8.9 KiB {main} [emitted] (name: main)
+Entrypoint main 8.9 KiB = bundle.js
 chunk {main} bundle.js (main) [entry]
   ./index.js [10] {main}
     entry ./index.js
@@ -1071,33 +1098,69 @@ webpack/runtime/hot_module_replacement {main}
 webpack/runtime/get_chunk_update_filename {main}
 webpack/runtime/get_main_filename/update manifest {main}
   
-Rspack compiled successfully (a0e8b8e7a12183967b4c)"
+Rspack compiled successfully (6eed24d98a02965a7721)"
 `;
 
 exports[`StatsTestCases should print correct stats for identifier-let-strict-mode 1`] = `
 {
   "errors": [
     {
-      "formatted": "  × Error[javascript]: JavaScript parsing error
-   ╭─[tests/statsCases/identifier-let-strict-mode/index.js:1:1]
- 1 │ let let = let;
-   ·           ─┬─
-   ·            ╰── \`let\` cannot be used as an identifier in strict mode
-   ╰────
+      "formatted": "ModuleParseError
+
+  × Module parse failed:
+  ╰─▶   × JavaScript parsing error: \`let\` cannot be used as an identifier in strict mode
+         ╭────
+       1 │ let let = let;
+         ·           ───
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
 ",
-      "message": "Error[javascript]: JavaScript parsing error
-\`let\` cannot be used as an identifier in strict mode",
+      "message": "ModuleParseError
+
+  × Module parse failed:
+  ╰─▶   × JavaScript parsing error: \`let\` cannot be used as an identifier in strict mode
+         ╭────
+       1 │ let let = let;
+         ·           ───
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
+",
+      "moduleId": "21",
+      "moduleIdentifier": "javascript/esm|<PROJECT_ROOT>/tests/statsCases/identifier-let-strict-mode/index.js",
+      "moduleName": "./index.js",
     },
     {
-      "formatted": "  × Error[javascript]: JavaScript parsing error
-   ╭─[tests/statsCases/identifier-let-strict-mode/index.js:1:1]
- 1 │ let let = let;
-   ·     ─┬─
-   ·      ╰── \`let\` cannot be used as an identifier in strict mode
-   ╰────
+      "formatted": "ModuleParseError
+
+  × Module parse failed:
+  ╰─▶   × JavaScript parsing error: \`let\` cannot be used as an identifier in strict mode
+         ╭────
+       1 │ let let = let;
+         ·     ───
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
 ",
-      "message": "Error[javascript]: JavaScript parsing error
-\`let\` cannot be used as an identifier in strict mode",
+      "message": "ModuleParseError
+
+  × Module parse failed:
+  ╰─▶   × JavaScript parsing error: \`let\` cannot be used as an identifier in strict mode
+         ╭────
+       1 │ let let = let;
+         ·     ───
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
+",
+      "moduleId": "21",
+      "moduleIdentifier": "javascript/esm|<PROJECT_ROOT>/tests/statsCases/identifier-let-strict-mode/index.js",
+      "moduleName": "./index.js",
     },
   ],
   "errorsCount": 2,
@@ -1108,21 +1171,29 @@ exports[`StatsTestCases should print correct stats for identifier-let-strict-mod
 `;
 
 exports[`StatsTestCases should print correct stats for identifier-let-strict-mode 2`] = `
-"  × Error[javascript]: JavaScript parsing error
-   ╭─[tests/statsCases/identifier-let-strict-mode/index.js:1:1]
- 1 │ let let = let;
-   ·           ─┬─
-   ·            ╰── \`let\` cannot be used as an identifier in strict mode
-   ╰────
+"ERROR in ./index.js ModuleParseError
 
+  × Module parse failed:
+  ╰─▶   × JavaScript parsing error: \`let\` cannot be used as an identifier in strict mode
+         ╭────
+       1 │ let let = let;
+         ·           ───
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
 
-  × Error[javascript]: JavaScript parsing error
-   ╭─[tests/statsCases/identifier-let-strict-mode/index.js:1:1]
- 1 │ let let = let;
-   ·     ─┬─
-   ·      ╰── \`let\` cannot be used as an identifier in strict mode
-   ╰────
+ERROR in ./index.js ModuleParseError
 
+  × Module parse failed:
+  ╰─▶   × JavaScript parsing error: \`let\` cannot be used as an identifier in strict mode
+         ╭────
+       1 │ let let = let;
+         ·     ───
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
 
 Rspack compiled with 2 errors"
 `;
@@ -1146,51 +1217,33 @@ exports[`StatsTestCases should print correct stats for ignore-plugin 1`] = `
       "moduleType": "javascript/auto",
       "name": "./index.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/index.js",
+      "orphan": false,
       "size": 115,
       "type": "module",
     },
     {
       "identifier": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals/en.js",
-      "issuer": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^//.///.*$|")), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
-      "issuerName": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^//.///.*$|")), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
+      "issuer": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^//.///.*$")), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
+      "issuerName": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^//.///.*$")), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
       "issuerPath": [
         {
           "identifier": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/index.js",
           "name": "./index.js",
         },
         {
-          "identifier": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^//.///.*$|")), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
-          "name": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^//.///.*$|")), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
+          "identifier": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^//.///.*$")), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
+          "name": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^//.///.*$")), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
         },
       ],
       "moduleType": "javascript/auto",
       "name": "./locals/en.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals/en.js",
+      "orphan": false,
       "size": 33,
       "type": "module",
     },
     {
-      "identifier": "missing|<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals/./zh",
-      "issuer": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^//.///.*$|")), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
-      "issuerName": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^//.///.*$|")), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
-      "issuerPath": [
-        {
-          "identifier": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/index.js",
-          "name": "./index.js",
-        },
-        {
-          "identifier": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^//.///.*$|")), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
-          "name": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^//.///.*$|")), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
-        },
-      ],
-      "moduleType": "javascript/auto",
-      "name": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals/./zh (missing)",
-      "nameForCondition": undefined,
-      "size": 160,
-      "type": "module",
-    },
-    {
-      "identifier": "missing|<PROJECT_ROOT>/tests/statsCases/ignore-plugin/./globalIndex.js",
+      "identifier": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^//.///.*$")), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
       "issuer": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/index.js",
       "issuerName": "./index.js",
       "issuerPath": [
@@ -1200,24 +1253,9 @@ exports[`StatsTestCases should print correct stats for ignore-plugin 1`] = `
         },
       ],
       "moduleType": "javascript/auto",
-      "name": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/./globalIndex.js (missing)",
+      "name": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^//.///.*$")), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
       "nameForCondition": undefined,
-      "size": 160,
-      "type": "module",
-    },
-    {
-      "identifier": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^//.///.*$|")), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
-      "issuer": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/index.js",
-      "issuerName": "./index.js",
-      "issuerPath": [
-        {
-          "identifier": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/index.js",
-          "name": "./index.js",
-        },
-      ],
-      "moduleType": "javascript/auto",
-      "name": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^//.///.*$|")), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
-      "nameForCondition": undefined,
+      "orphan": false,
       "size": 160,
       "type": "module",
     },
@@ -1229,9 +1267,7 @@ exports[`StatsTestCases should print correct stats for ignore-plugin 2`] = `
 "runtime modules 1 module
 ./index.js
 ./locals/en.js
-<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals/./zh (missing)
-<PROJECT_ROOT>/tests/statsCases/ignore-plugin/./globalIndex.js (missing)
-<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^//.///.*$|")), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }"
+<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^//.///.*$")), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }"
 `;
 
 exports[`StatsTestCases should print correct stats for ignore-warning 1`] = `
@@ -1288,7 +1324,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
             "hotModuleReplacement": false,
           },
           "name": "bundle1.js",
-          "size": 1572,
+          "size": 1493,
           "type": "asset",
         },
       ],
@@ -1331,6 +1367,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
               "moduleType": "javascript/auto",
               "name": "./b.js",
               "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/b.js",
+              "orphan": false,
               "reasons": [
                 {
                   "moduleId": "10",
@@ -1365,6 +1402,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
               "moduleType": "javascript/auto",
               "name": "./c.js",
               "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/c.js",
+              "orphan": false,
               "reasons": [
                 {
                   "moduleId": "10",
@@ -1405,6 +1443,7 @@ import("./e");
               "moduleType": "javascript/auto",
               "name": "./d.js",
               "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/d.js",
+              "orphan": false,
               "reasons": [
                 {
                   "moduleId": "460",
@@ -1444,6 +1483,7 @@ import("./e");
               "moduleType": "javascript/auto",
               "name": "./e.js",
               "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/e.js",
+              "orphan": false,
               "reasons": [
                 {
                   "moduleId": "460",
@@ -1472,6 +1512,7 @@ import("./e");
               "moduleType": "javascript/auto",
               "name": "./index.js",
               "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/index.js",
+              "orphan": false,
               "reasons": [
                 {
                   "moduleId": undefined,
@@ -1506,10 +1547,10 @@ import(/* webpackChunkName: "c" */ "./c");
           "assets": [
             {
               "name": "bundle1.js",
-              "size": 1572,
+              "size": 1493,
             },
           ],
-          "assetsSize": 1572,
+          "assetsSize": 1493,
           "chunks": [
             "main",
           ],
@@ -1519,7 +1560,7 @@ import(/* webpackChunkName: "c" */ "./c");
       "errors": [],
       "errorsCount": 0,
       "filteredModules": undefined,
-      "hash": "9b462b58c92217733435",
+      "hash": "6e5966ea5b430a83dcf2",
       "logging": {},
       "modules": [
         {
@@ -1542,6 +1583,7 @@ import(/* webpackChunkName: "c" */ "./c");
           "moduleType": "javascript/auto",
           "name": "./b.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/b.js",
+          "orphan": false,
           "reasons": [
             {
               "moduleId": "10",
@@ -1576,6 +1618,7 @@ import(/* webpackChunkName: "c" */ "./c");
           "moduleType": "javascript/auto",
           "name": "./c.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/c.js",
+          "orphan": false,
           "reasons": [
             {
               "moduleId": "10",
@@ -1616,6 +1659,7 @@ import("./e");
           "moduleType": "javascript/auto",
           "name": "./d.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/d.js",
+          "orphan": false,
           "reasons": [
             {
               "moduleId": "460",
@@ -1655,6 +1699,7 @@ import("./e");
           "moduleType": "javascript/auto",
           "name": "./e.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/e.js",
+          "orphan": false,
           "reasons": [
             {
               "moduleId": "460",
@@ -1683,6 +1728,7 @@ import("./e");
           "moduleType": "javascript/auto",
           "name": "./index.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/index.js",
+          "orphan": false,
           "reasons": [
             {
               "moduleId": undefined,
@@ -1714,6 +1760,7 @@ import(/* webpackChunkName: "c" */ "./c");
           "moduleType": "runtime",
           "name": "webpack/runtime/ensure_chunk",
           "nameForCondition": undefined,
+          "orphan": false,
           "reasons": [],
           "size": 160,
           "source": undefined,
@@ -1733,6 +1780,7 @@ import(/* webpackChunkName: "c" */ "./c");
           "moduleType": "runtime",
           "name": "webpack/runtime/has_own_property",
           "nameForCondition": undefined,
+          "orphan": false,
           "reasons": [],
           "size": 160,
           "source": undefined,
@@ -1752,6 +1800,7 @@ import(/* webpackChunkName: "c" */ "./c");
           "moduleType": "runtime",
           "name": "webpack/runtime/load_chunk_with_block",
           "nameForCondition": undefined,
+          "orphan": false,
           "reasons": [],
           "size": 160,
           "source": undefined,
@@ -1771,6 +1820,7 @@ import(/* webpackChunkName: "c" */ "./c");
           "moduleType": "runtime",
           "name": "webpack/runtime/make_namespace_object",
           "nameForCondition": undefined,
+          "orphan": false,
           "reasons": [],
           "size": 160,
           "source": undefined,
@@ -1790,6 +1840,7 @@ import(/* webpackChunkName: "c" */ "./c");
           "moduleType": "runtime",
           "name": "webpack/runtime/define_property_getters",
           "nameForCondition": undefined,
+          "orphan": false,
           "reasons": [],
           "size": 160,
           "source": undefined,
@@ -1809,6 +1860,7 @@ import(/* webpackChunkName: "c" */ "./c");
           "moduleType": "runtime",
           "name": "webpack/runtime/create_fake_namespace_object",
           "nameForCondition": undefined,
+          "orphan": false,
           "reasons": [],
           "size": 160,
           "source": undefined,
@@ -1821,10 +1873,10 @@ import(/* webpackChunkName: "c" */ "./c");
           "assets": [
             {
               "name": "bundle1.js",
-              "size": 1572,
+              "size": 1493,
             },
           ],
-          "assetsSize": 1572,
+          "assetsSize": 1493,
           "chunks": [
             "main",
           ],
@@ -1834,10 +1886,10 @@ import(/* webpackChunkName: "c" */ "./c");
           "assets": [
             {
               "name": "bundle1.js",
-              "size": 1572,
+              "size": 1493,
             },
           ],
-          "assetsSize": 1572,
+          "assetsSize": 1493,
           "chunks": [
             "main",
           ],
@@ -1864,7 +1916,7 @@ import(/* webpackChunkName: "c" */ "./c");
             "hotModuleReplacement": false,
           },
           "name": "bundle2.js",
-          "size": 1639,
+          "size": 1635,
           "type": "asset",
         },
         {
@@ -1880,7 +1932,7 @@ import(/* webpackChunkName: "c" */ "./c");
             "hotModuleReplacement": false,
           },
           "name": "c.bundle2.js",
-          "size": 216,
+          "size": 208,
           "type": "asset",
         },
       ],
@@ -1926,6 +1978,7 @@ import(/* webpackChunkName: "c" */ "./c");
               "moduleType": "javascript/auto",
               "name": "./c.js",
               "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/c.js",
+              "orphan": false,
               "reasons": [
                 {
                   "moduleId": "10",
@@ -1966,6 +2019,7 @@ import("./e");
               "moduleType": "javascript/auto",
               "name": "./d.js",
               "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/d.js",
+              "orphan": false,
               "reasons": [
                 {
                   "moduleId": "460",
@@ -2005,6 +2059,7 @@ import("./e");
               "moduleType": "javascript/auto",
               "name": "./e.js",
               "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/e.js",
+              "orphan": false,
               "reasons": [
                 {
                   "moduleId": "460",
@@ -2063,6 +2118,7 @@ import("./e");
               "moduleType": "javascript/auto",
               "name": "./b.js",
               "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/b.js",
+              "orphan": false,
               "reasons": [
                 {
                   "moduleId": "10",
@@ -2091,6 +2147,7 @@ import("./e");
               "moduleType": "javascript/auto",
               "name": "./index.js",
               "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/index.js",
+              "orphan": false,
               "reasons": [
                 {
                   "moduleId": undefined,
@@ -2123,10 +2180,10 @@ import(/* webpackChunkName: "c" */ "./c");
           "assets": [
             {
               "name": "bundle2.js",
-              "size": 1639,
+              "size": 1635,
             },
           ],
-          "assetsSize": 1639,
+          "assetsSize": 1635,
           "chunks": [
             "main",
           ],
@@ -2136,7 +2193,7 @@ import(/* webpackChunkName: "c" */ "./c");
       "errors": [],
       "errorsCount": 0,
       "filteredModules": undefined,
-      "hash": "74258fb7200eb872b532",
+      "hash": "8db177edda1eeeae2f77",
       "logging": {},
       "modules": [
         {
@@ -2159,6 +2216,7 @@ import(/* webpackChunkName: "c" */ "./c");
           "moduleType": "javascript/auto",
           "name": "./b.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/b.js",
+          "orphan": false,
           "reasons": [
             {
               "moduleId": "10",
@@ -2193,6 +2251,7 @@ import(/* webpackChunkName: "c" */ "./c");
           "moduleType": "javascript/auto",
           "name": "./c.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/c.js",
+          "orphan": false,
           "reasons": [
             {
               "moduleId": "10",
@@ -2233,6 +2292,7 @@ import("./e");
           "moduleType": "javascript/auto",
           "name": "./d.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/d.js",
+          "orphan": false,
           "reasons": [
             {
               "moduleId": "460",
@@ -2272,6 +2332,7 @@ import("./e");
           "moduleType": "javascript/auto",
           "name": "./e.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/e.js",
+          "orphan": false,
           "reasons": [
             {
               "moduleId": "460",
@@ -2300,6 +2361,7 @@ import("./e");
           "moduleType": "javascript/auto",
           "name": "./index.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/index.js",
+          "orphan": false,
           "reasons": [
             {
               "moduleId": undefined,
@@ -2331,6 +2393,7 @@ import(/* webpackChunkName: "c" */ "./c");
           "moduleType": "runtime",
           "name": "webpack/runtime/ensure_chunk",
           "nameForCondition": undefined,
+          "orphan": false,
           "reasons": [],
           "size": 160,
           "source": undefined,
@@ -2350,6 +2413,7 @@ import(/* webpackChunkName: "c" */ "./c");
           "moduleType": "runtime",
           "name": "webpack/runtime/has_own_property",
           "nameForCondition": undefined,
+          "orphan": false,
           "reasons": [],
           "size": 160,
           "source": undefined,
@@ -2369,6 +2433,7 @@ import(/* webpackChunkName: "c" */ "./c");
           "moduleType": "runtime",
           "name": "webpack/runtime/load_chunk_with_block",
           "nameForCondition": undefined,
+          "orphan": false,
           "reasons": [],
           "size": 160,
           "source": undefined,
@@ -2388,6 +2453,7 @@ import(/* webpackChunkName: "c" */ "./c");
           "moduleType": "runtime",
           "name": "webpack/runtime/make_namespace_object",
           "nameForCondition": undefined,
+          "orphan": false,
           "reasons": [],
           "size": 160,
           "source": undefined,
@@ -2407,6 +2473,7 @@ import(/* webpackChunkName: "c" */ "./c");
           "moduleType": "runtime",
           "name": "webpack/runtime/require_chunk_loading",
           "nameForCondition": undefined,
+          "orphan": false,
           "reasons": [],
           "size": 160,
           "source": undefined,
@@ -2426,6 +2493,7 @@ import(/* webpackChunkName: "c" */ "./c");
           "moduleType": "runtime",
           "name": "webpack/runtime/define_property_getters",
           "nameForCondition": undefined,
+          "orphan": false,
           "reasons": [],
           "size": 160,
           "source": undefined,
@@ -2445,6 +2513,7 @@ import(/* webpackChunkName: "c" */ "./c");
           "moduleType": "runtime",
           "name": "webpack/runtime/create_fake_namespace_object",
           "nameForCondition": undefined,
+          "orphan": false,
           "reasons": [],
           "size": 160,
           "source": undefined,
@@ -2456,14 +2525,15 @@ import(/* webpackChunkName: "c" */ "./c");
             "main",
           ],
           "id": "",
-          "identifier": "webpack/runtime/get_chunk_filename/javascript",
+          "identifier": "webpack/runtime/get javascript chunk filename",
           "issuer": undefined,
           "issuerId": undefined,
           "issuerName": undefined,
           "issuerPath": [],
           "moduleType": "runtime",
-          "name": "webpack/runtime/get_chunk_filename/javascript",
+          "name": "webpack/runtime/get javascript chunk filename",
           "nameForCondition": undefined,
+          "orphan": false,
           "reasons": [],
           "size": 160,
           "source": undefined,
@@ -2476,10 +2546,10 @@ import(/* webpackChunkName: "c" */ "./c");
           "assets": [
             {
               "name": "c.bundle2.js",
-              "size": 216,
+              "size": 208,
             },
           ],
-          "assetsSize": 216,
+          "assetsSize": 208,
           "chunks": [
             "c",
           ],
@@ -2489,10 +2559,10 @@ import(/* webpackChunkName: "c" */ "./c");
           "assets": [
             {
               "name": "bundle2.js",
-              "size": 1639,
+              "size": 1635,
             },
           ],
-          "assetsSize": 1639,
+          "assetsSize": 1635,
           "chunks": [
             "main",
           ],
@@ -2519,7 +2589,7 @@ import(/* webpackChunkName: "c" */ "./c");
             "hotModuleReplacement": false,
           },
           "name": "bundle3.js",
-          "size": 1655,
+          "size": 1651,
           "type": "asset",
         },
         {
@@ -2549,7 +2619,7 @@ import(/* webpackChunkName: "c" */ "./c");
             "hotModuleReplacement": false,
           },
           "name": "d_js-e_js.bundle3.js",
-          "size": 114,
+          "size": 106,
           "type": "asset",
         },
       ],
@@ -2595,6 +2665,7 @@ import(/* webpackChunkName: "c" */ "./c");
               "moduleType": "javascript/auto",
               "name": "./c.js",
               "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/c.js",
+              "orphan": false,
               "reasons": [
                 {
                   "moduleId": "10",
@@ -2656,6 +2727,7 @@ import("./e");
               "moduleType": "javascript/auto",
               "name": "./d.js",
               "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/d.js",
+              "orphan": false,
               "reasons": [
                 {
                   "moduleId": "460",
@@ -2695,6 +2767,7 @@ import("./e");
               "moduleType": "javascript/auto",
               "name": "./e.js",
               "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/e.js",
+              "orphan": false,
               "reasons": [
                 {
                   "moduleId": "460",
@@ -2750,6 +2823,7 @@ import("./e");
               "moduleType": "javascript/auto",
               "name": "./b.js",
               "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/b.js",
+              "orphan": false,
               "reasons": [
                 {
                   "moduleId": "10",
@@ -2778,6 +2852,7 @@ import("./e");
               "moduleType": "javascript/auto",
               "name": "./index.js",
               "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/index.js",
+              "orphan": false,
               "reasons": [
                 {
                   "moduleId": undefined,
@@ -2810,10 +2885,10 @@ import(/* webpackChunkName: "c" */ "./c");
           "assets": [
             {
               "name": "bundle3.js",
-              "size": 1655,
+              "size": 1651,
             },
           ],
-          "assetsSize": 1655,
+          "assetsSize": 1651,
           "chunks": [
             "main",
           ],
@@ -2823,7 +2898,7 @@ import(/* webpackChunkName: "c" */ "./c");
       "errors": [],
       "errorsCount": 0,
       "filteredModules": undefined,
-      "hash": "40e397925381bbea6df7",
+      "hash": "b6f02263cb1b374a3914",
       "logging": {},
       "modules": [
         {
@@ -2846,6 +2921,7 @@ import(/* webpackChunkName: "c" */ "./c");
           "moduleType": "javascript/auto",
           "name": "./b.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/b.js",
+          "orphan": false,
           "reasons": [
             {
               "moduleId": "10",
@@ -2880,6 +2956,7 @@ import(/* webpackChunkName: "c" */ "./c");
           "moduleType": "javascript/auto",
           "name": "./c.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/c.js",
+          "orphan": false,
           "reasons": [
             {
               "moduleId": "10",
@@ -2920,6 +2997,7 @@ import("./e");
           "moduleType": "javascript/auto",
           "name": "./d.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/d.js",
+          "orphan": false,
           "reasons": [
             {
               "moduleId": "460",
@@ -2959,6 +3037,7 @@ import("./e");
           "moduleType": "javascript/auto",
           "name": "./e.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/e.js",
+          "orphan": false,
           "reasons": [
             {
               "moduleId": "460",
@@ -2987,6 +3066,7 @@ import("./e");
           "moduleType": "javascript/auto",
           "name": "./index.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/index.js",
+          "orphan": false,
           "reasons": [
             {
               "moduleId": undefined,
@@ -3018,6 +3098,7 @@ import(/* webpackChunkName: "c" */ "./c");
           "moduleType": "runtime",
           "name": "webpack/runtime/ensure_chunk",
           "nameForCondition": undefined,
+          "orphan": false,
           "reasons": [],
           "size": 160,
           "source": undefined,
@@ -3037,6 +3118,7 @@ import(/* webpackChunkName: "c" */ "./c");
           "moduleType": "runtime",
           "name": "webpack/runtime/has_own_property",
           "nameForCondition": undefined,
+          "orphan": false,
           "reasons": [],
           "size": 160,
           "source": undefined,
@@ -3056,6 +3138,7 @@ import(/* webpackChunkName: "c" */ "./c");
           "moduleType": "runtime",
           "name": "webpack/runtime/load_chunk_with_block",
           "nameForCondition": undefined,
+          "orphan": false,
           "reasons": [],
           "size": 160,
           "source": undefined,
@@ -3075,6 +3158,7 @@ import(/* webpackChunkName: "c" */ "./c");
           "moduleType": "runtime",
           "name": "webpack/runtime/make_namespace_object",
           "nameForCondition": undefined,
+          "orphan": false,
           "reasons": [],
           "size": 160,
           "source": undefined,
@@ -3094,6 +3178,7 @@ import(/* webpackChunkName: "c" */ "./c");
           "moduleType": "runtime",
           "name": "webpack/runtime/require_chunk_loading",
           "nameForCondition": undefined,
+          "orphan": false,
           "reasons": [],
           "size": 160,
           "source": undefined,
@@ -3113,6 +3198,7 @@ import(/* webpackChunkName: "c" */ "./c");
           "moduleType": "runtime",
           "name": "webpack/runtime/define_property_getters",
           "nameForCondition": undefined,
+          "orphan": false,
           "reasons": [],
           "size": 160,
           "source": undefined,
@@ -3132,6 +3218,7 @@ import(/* webpackChunkName: "c" */ "./c");
           "moduleType": "runtime",
           "name": "webpack/runtime/create_fake_namespace_object",
           "nameForCondition": undefined,
+          "orphan": false,
           "reasons": [],
           "size": 160,
           "source": undefined,
@@ -3143,14 +3230,15 @@ import(/* webpackChunkName: "c" */ "./c");
             "main",
           ],
           "id": "",
-          "identifier": "webpack/runtime/get_chunk_filename/javascript",
+          "identifier": "webpack/runtime/get javascript chunk filename",
           "issuer": undefined,
           "issuerId": undefined,
           "issuerName": undefined,
           "issuerPath": [],
           "moduleType": "runtime",
-          "name": "webpack/runtime/get_chunk_filename/javascript",
+          "name": "webpack/runtime/get javascript chunk filename",
           "nameForCondition": undefined,
+          "orphan": false,
           "reasons": [],
           "size": 160,
           "source": undefined,
@@ -3176,10 +3264,10 @@ import(/* webpackChunkName: "c" */ "./c");
           "assets": [
             {
               "name": "bundle3.js",
-              "size": 1655,
+              "size": 1651,
             },
           ],
-          "assetsSize": 1655,
+          "assetsSize": 1651,
           "chunks": [
             "main",
           ],
@@ -3206,7 +3294,7 @@ import(/* webpackChunkName: "c" */ "./c");
             "hotModuleReplacement": false,
           },
           "name": "bundle4.js",
-          "size": 1645,
+          "size": 1641,
           "type": "asset",
         },
         {
@@ -3236,7 +3324,7 @@ import(/* webpackChunkName: "c" */ "./c");
             "hotModuleReplacement": false,
           },
           "name": "d_js.bundle4.js",
-          "size": 74,
+          "size": 70,
           "type": "asset",
         },
         {
@@ -3250,7 +3338,7 @@ import(/* webpackChunkName: "c" */ "./c");
             "hotModuleReplacement": false,
           },
           "name": "e_js.bundle4.js",
-          "size": 74,
+          "size": 70,
           "type": "asset",
         },
       ],
@@ -3297,6 +3385,7 @@ import(/* webpackChunkName: "c" */ "./c");
               "moduleType": "javascript/auto",
               "name": "./c.js",
               "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/c.js",
+              "orphan": false,
               "reasons": [
                 {
                   "moduleId": "10",
@@ -3358,6 +3447,7 @@ import("./e");
               "moduleType": "javascript/auto",
               "name": "./d.js",
               "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/d.js",
+              "orphan": false,
               "reasons": [
                 {
                   "moduleId": "460",
@@ -3416,6 +3506,7 @@ import("./e");
               "moduleType": "javascript/auto",
               "name": "./e.js",
               "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/e.js",
+              "orphan": false,
               "reasons": [
                 {
                   "moduleId": "460",
@@ -3471,6 +3562,7 @@ import("./e");
               "moduleType": "javascript/auto",
               "name": "./b.js",
               "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/b.js",
+              "orphan": false,
               "reasons": [
                 {
                   "moduleId": "10",
@@ -3499,6 +3591,7 @@ import("./e");
               "moduleType": "javascript/auto",
               "name": "./index.js",
               "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/index.js",
+              "orphan": false,
               "reasons": [
                 {
                   "moduleId": undefined,
@@ -3531,10 +3624,10 @@ import(/* webpackChunkName: "c" */ "./c");
           "assets": [
             {
               "name": "bundle4.js",
-              "size": 1645,
+              "size": 1641,
             },
           ],
-          "assetsSize": 1645,
+          "assetsSize": 1641,
           "chunks": [
             "main",
           ],
@@ -3544,7 +3637,7 @@ import(/* webpackChunkName: "c" */ "./c");
       "errors": [],
       "errorsCount": 0,
       "filteredModules": undefined,
-      "hash": "a73ba7d385f4e46d1904",
+      "hash": "3a497e803ce609a73666",
       "logging": {},
       "modules": [
         {
@@ -3567,6 +3660,7 @@ import(/* webpackChunkName: "c" */ "./c");
           "moduleType": "javascript/auto",
           "name": "./b.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/b.js",
+          "orphan": false,
           "reasons": [
             {
               "moduleId": "10",
@@ -3601,6 +3695,7 @@ import(/* webpackChunkName: "c" */ "./c");
           "moduleType": "javascript/auto",
           "name": "./c.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/c.js",
+          "orphan": false,
           "reasons": [
             {
               "moduleId": "10",
@@ -3641,6 +3736,7 @@ import("./e");
           "moduleType": "javascript/auto",
           "name": "./d.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/d.js",
+          "orphan": false,
           "reasons": [
             {
               "moduleId": "460",
@@ -3680,6 +3776,7 @@ import("./e");
           "moduleType": "javascript/auto",
           "name": "./e.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/e.js",
+          "orphan": false,
           "reasons": [
             {
               "moduleId": "460",
@@ -3708,6 +3805,7 @@ import("./e");
           "moduleType": "javascript/auto",
           "name": "./index.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/index.js",
+          "orphan": false,
           "reasons": [
             {
               "moduleId": undefined,
@@ -3739,6 +3837,7 @@ import(/* webpackChunkName: "c" */ "./c");
           "moduleType": "runtime",
           "name": "webpack/runtime/ensure_chunk",
           "nameForCondition": undefined,
+          "orphan": false,
           "reasons": [],
           "size": 160,
           "source": undefined,
@@ -3758,6 +3857,7 @@ import(/* webpackChunkName: "c" */ "./c");
           "moduleType": "runtime",
           "name": "webpack/runtime/has_own_property",
           "nameForCondition": undefined,
+          "orphan": false,
           "reasons": [],
           "size": 160,
           "source": undefined,
@@ -3777,6 +3877,7 @@ import(/* webpackChunkName: "c" */ "./c");
           "moduleType": "runtime",
           "name": "webpack/runtime/load_chunk_with_block",
           "nameForCondition": undefined,
+          "orphan": false,
           "reasons": [],
           "size": 160,
           "source": undefined,
@@ -3796,6 +3897,7 @@ import(/* webpackChunkName: "c" */ "./c");
           "moduleType": "runtime",
           "name": "webpack/runtime/make_namespace_object",
           "nameForCondition": undefined,
+          "orphan": false,
           "reasons": [],
           "size": 160,
           "source": undefined,
@@ -3815,6 +3917,7 @@ import(/* webpackChunkName: "c" */ "./c");
           "moduleType": "runtime",
           "name": "webpack/runtime/require_chunk_loading",
           "nameForCondition": undefined,
+          "orphan": false,
           "reasons": [],
           "size": 160,
           "source": undefined,
@@ -3834,6 +3937,7 @@ import(/* webpackChunkName: "c" */ "./c");
           "moduleType": "runtime",
           "name": "webpack/runtime/define_property_getters",
           "nameForCondition": undefined,
+          "orphan": false,
           "reasons": [],
           "size": 160,
           "source": undefined,
@@ -3853,6 +3957,7 @@ import(/* webpackChunkName: "c" */ "./c");
           "moduleType": "runtime",
           "name": "webpack/runtime/create_fake_namespace_object",
           "nameForCondition": undefined,
+          "orphan": false,
           "reasons": [],
           "size": 160,
           "source": undefined,
@@ -3864,14 +3969,15 @@ import(/* webpackChunkName: "c" */ "./c");
             "main",
           ],
           "id": "",
-          "identifier": "webpack/runtime/get_chunk_filename/javascript",
+          "identifier": "webpack/runtime/get javascript chunk filename",
           "issuer": undefined,
           "issuerId": undefined,
           "issuerName": undefined,
           "issuerPath": [],
           "moduleType": "runtime",
-          "name": "webpack/runtime/get_chunk_filename/javascript",
+          "name": "webpack/runtime/get javascript chunk filename",
           "nameForCondition": undefined,
+          "orphan": false,
           "reasons": [],
           "size": 160,
           "source": undefined,
@@ -3897,10 +4003,10 @@ import(/* webpackChunkName: "c" */ "./c");
           "assets": [
             {
               "name": "bundle4.js",
-              "size": 1645,
+              "size": 1641,
             },
           ],
-          "assetsSize": 1645,
+          "assetsSize": 1641,
           "chunks": [
             "main",
           ],
@@ -3915,7 +4021,7 @@ import(/* webpackChunkName: "c" */ "./c");
   ],
   "errors": [],
   "errorsCount": 0,
-  "hash": "9b462b58c9221773343574258fb7200eb872b53240e397925381bbea6df7a73ba7d385f4e46d1904",
+  "hash": "6e5966ea5b430a83dcf28db177edda1eeeae2f77b6f02263cb1b374a39143a497e803ce609a73666",
   "warnings": [],
   "warningsCount": 0,
 }
@@ -3924,9 +4030,9 @@ import(/* webpackChunkName: "c" */ "./c");
 exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 2`] = `
 "1 chunks:
   PublicPath: (none)
-  asset bundle1.js 1.54 KiB {main} [emitted] (name: main)
-  Entrypoint main 1.54 KiB = bundle1.js
-  Chunk Group c 1.54 KiB = bundle1.js
+  asset bundle1.js 1.46 KiB {main} [emitted] (name: main)
+  Entrypoint main 1.46 KiB = bundle1.js
+  Chunk Group c 1.46 KiB = bundle1.js
   chunk {main} bundle1.js (main) <{main}> >{main}< [entry]
     ./b.js [996] {main}
       cjs require ./b [10]
@@ -3955,14 +4061,14 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   webpack/runtime/define_property_getters {main}
   webpack/runtime/create_fake_namespace_object {main}
     
-  1 chunks compiled successfully (9b462b58c92217733435)
+  1 chunks compiled successfully (6e5966ea5b430a83dcf2)
 
 2 chunks:
   PublicPath: (none)
   asset bundle2.js 1.6 KiB {main} [emitted] (name: main)
-  asset c.bundle2.js 216 bytes {c} [emitted] (name: c)
+  asset c.bundle2.js 208 bytes {c} [emitted] (name: c)
   Entrypoint main 1.6 KiB = bundle2.js
-  Chunk Group c 216 bytes = c.bundle2.js
+  Chunk Group c 208 bytes = c.bundle2.js
   chunk {c} c.bundle2.js (c) <{c}> <{main}> >{c}<
     ./c.js [460] {c}
       dynamic import ./c [10]
@@ -3992,16 +4098,16 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   webpack/runtime/require_chunk_loading {main}
   webpack/runtime/define_property_getters {main}
   webpack/runtime/create_fake_namespace_object {main}
-  webpack/runtime/get_chunk_filename/javascript {main}
+  webpack/runtime/get javascript chunk filename {main}
     
-  2 chunks compiled successfully (74258fb7200eb872b532)
+  2 chunks compiled successfully (8db177edda1eeeae2f77)
 
 3 chunks:
   PublicPath: (none)
-  asset bundle3.js 1.62 KiB {main} [emitted] (name: main)
+  asset bundle3.js 1.61 KiB {main} [emitted] (name: main)
   asset c.bundle3.js 146 bytes {c} [emitted] (name: c)
-  asset d_js-e_js.bundle3.js 114 bytes {d_js-e_js} [emitted]
-  Entrypoint main 1.62 KiB = bundle3.js
+  asset d_js-e_js.bundle3.js 106 bytes {d_js-e_js} [emitted]
+  Entrypoint main 1.61 KiB = bundle3.js
   Chunk Group c 146 bytes = c.bundle3.js
   chunk {c} c.bundle3.js (c) <{main}> >{d_js-e_js}<
     ./c.js [460] {c}
@@ -4033,17 +4139,17 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   webpack/runtime/require_chunk_loading {main}
   webpack/runtime/define_property_getters {main}
   webpack/runtime/create_fake_namespace_object {main}
-  webpack/runtime/get_chunk_filename/javascript {main}
+  webpack/runtime/get javascript chunk filename {main}
     
-  3 chunks compiled successfully (40e397925381bbea6df7)
+  3 chunks compiled successfully (b6f02263cb1b374a3914)
 
 4 chunks:
   PublicPath: (none)
-  asset bundle4.js 1.61 KiB {main} [emitted] (name: main)
+  asset bundle4.js 1.6 KiB {main} [emitted] (name: main)
   asset c.bundle4.js 146 bytes {c} [emitted] (name: c)
-  asset d_js.bundle4.js 74 bytes {d_js} [emitted]
-  asset e_js.bundle4.js 74 bytes {e_js} [emitted]
-  Entrypoint main 1.61 KiB = bundle4.js
+  asset d_js.bundle4.js 70 bytes {d_js} [emitted]
+  asset e_js.bundle4.js 70 bytes {e_js} [emitted]
+  Entrypoint main 1.6 KiB = bundle4.js
   Chunk Group c 146 bytes = c.bundle4.js
   chunk {c} c.bundle4.js (c) <{main}> >{d_js}< >{e_js}<
     ./c.js [460] {c}
@@ -4076,9 +4182,9 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   webpack/runtime/require_chunk_loading {main}
   webpack/runtime/define_property_getters {main}
   webpack/runtime/create_fake_namespace_object {main}
-  webpack/runtime/get_chunk_filename/javascript {main}
+  webpack/runtime/get javascript chunk filename {main}
     
-  4 chunks compiled successfully (a73ba7d385f4e46d1904)"
+  4 chunks compiled successfully (3a497e803ce609a73666)"
 `;
 
 exports[`StatsTestCases should print correct stats for loader-builtin-swc-plugin-warn 1`] = `
@@ -4092,8 +4198,13 @@ exports[`StatsTestCases should print correct stats for loader-builtin-swc-plugin
 
   ⚠ Experimental plugins are not currently supported.
 ",
-      "message": "Experimental plugins are not currently supported.
+      "message": "builtin:swc-loader
+
+  ⚠ Experimental plugins are not currently supported.
 ",
+      "moduleId": "498",
+      "moduleIdentifier": "builtin:swc-loader??ruleSet[1].rules[0].use[0]!<PROJECT_ROOT>/tests/statsCases/loader-builtin-swc-plugin-warn/index.js",
+      "moduleName": "./index.js",
     },
   ],
   "warningsCount": 1,
@@ -4101,10 +4212,9 @@ exports[`StatsTestCases should print correct stats for loader-builtin-swc-plugin
 `;
 
 exports[`StatsTestCases should print correct stats for loader-builtin-swc-plugin-warn 2`] = `
-"builtin:swc-loader
+"WARNING in ./index.js builtin:swc-loader
 
   ⚠ Experimental plugins are not currently supported.
-
 
 Rspack compiled with 1 warning"
 `;
@@ -4160,16 +4270,22 @@ exports[`StatsTestCases should print correct stats for minify-error-recovery 1`]
 {
   "errors": [
     {
-      "formatted": "  × Error[javascript]: JavaScript parsing error
-   ╭─[bundle.js:1:1]
+      "formatted": "  × JavaScript parsing error: Expected a semicolon
+   ╭─[1:1]
  1 │ const a {}
-   ·         ┬
-   ·         ╰── Expected a semicolon
+   ·         ─
  2 │ (function() {
+ 3 │ var __webpack_modules__ = {
    ╰────
 ",
-      "message": "Error[javascript]: JavaScript parsing error
-Expected a semicolon",
+      "message": "  × JavaScript parsing error: Expected a semicolon
+   ╭─[1:1]
+ 1 │ const a {}
+   ·         ─
+ 2 │ (function() {
+ 3 │ var __webpack_modules__ = {
+   ╰────
+",
     },
   ],
   "errorsCount": 1,
@@ -4180,14 +4296,13 @@ Expected a semicolon",
 `;
 
 exports[`StatsTestCases should print correct stats for minify-error-recovery 2`] = `
-"  × Error[javascript]: JavaScript parsing error
-   ╭─[bundle.js:1:1]
+"ERROR in × JavaScript parsing error: Expected a semicolon
+   ╭─[1:1]
  1 │ const a {}
-   ·         ┬
-   ·         ╰── Expected a semicolon
+   ·         ─
  2 │ (function() {
+ 3 │ var __webpack_modules__ = {
    ╰────
-
 
 Rspack compiled with 1 error"
 `;
@@ -4249,15 +4364,21 @@ exports[`StatsTestCases should print correct stats for normal-errors 1`] = `
 {
   "errors": [
     {
-      "formatted": "  × Error[internal]: Resolve error
-   ╭─[tests/statsCases/normal-errors/index.js:1:1]
+      "formatted": "  × Resolve error: Can't resolve 'not-exist' in '<PROJECT_ROOT>/tests/statsCases/normal-errors'
+   ╭────
  1 │ import "not-exist";
-   · ─────────┬─────────
-   ·          ╰── Failed to resolve not-exist in <PROJECT_ROOT>/tests/statsCases/normal-errors/index.js
+   ·        ───────────
    ╰────
 ",
-      "message": "Error[internal]: Resolve error
-Failed to resolve not-exist in <PROJECT_ROOT>/tests/statsCases/normal-errors/index.js",
+      "message": "  × Resolve error: Can't resolve 'not-exist' in '<PROJECT_ROOT>/tests/statsCases/normal-errors'
+   ╭────
+ 1 │ import "not-exist";
+   ·        ───────────
+   ╰────
+",
+      "moduleId": "10",
+      "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/normal-errors/index.js",
+      "moduleName": "./index.js",
     },
   ],
   "errorsCount": 1,
@@ -4268,13 +4389,11 @@ Failed to resolve not-exist in <PROJECT_ROOT>/tests/statsCases/normal-errors/ind
 `;
 
 exports[`StatsTestCases should print correct stats for normal-errors 2`] = `
-"  × Error[internal]: Resolve error
-   ╭─[tests/statsCases/normal-errors/index.js:1:1]
+"ERROR in ./index.js   × Resolve error: Can't resolve 'not-exist' in '<PROJECT_ROOT>/tests/statsCases/normal-errors'
+   ╭────
  1 │ import "not-exist";
-   · ─────────┬─────────
-   ·          ╰── Failed to resolve not-exist in <PROJECT_ROOT>/tests/statsCases/normal-errors/index.js
+   ·        ───────────
    ╰────
-
 
 Rspack compiled with 1 error"
 `;
@@ -4340,14 +4459,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "assets": [
         {
           "name": "e1~runtime.js",
-          "size": 2427,
+          "size": 3100,
         },
         {
           "name": "e1.js",
-          "size": 414,
+          "size": 384,
         },
       ],
-      "assetsSize": 2841,
+      "assetsSize": 3484,
       "chunks": [
         "e1~runtime",
         "e1",
@@ -4358,14 +4477,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "assets": [
         {
           "name": "e2~runtime.js",
-          "size": 2427,
+          "size": 3100,
         },
         {
           "name": "e2.js",
-          "size": 414,
+          "size": 384,
         },
       ],
-      "assetsSize": 2841,
+      "assetsSize": 3484,
       "chunks": [
         "e2~runtime",
         "e2",
@@ -4379,14 +4498,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "assets": [
         {
           "name": "e1~runtime.js",
-          "size": 2427,
+          "size": 3100,
         },
         {
           "name": "e1.js",
-          "size": 414,
+          "size": 384,
         },
       ],
-      "assetsSize": 2841,
+      "assetsSize": 3484,
       "chunks": [
         "e1~runtime",
         "e1",
@@ -4397,14 +4516,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "assets": [
         {
           "name": "e2~runtime.js",
-          "size": 2427,
+          "size": 3100,
         },
         {
           "name": "e2.js",
-          "size": 414,
+          "size": 384,
         },
       ],
-      "assetsSize": 2841,
+      "assetsSize": 3484,
       "chunks": [
         "e2~runtime",
         "e2",
@@ -4416,8 +4535,8 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
 `;
 
 exports[`StatsTestCases should print correct stats for optimization-runtime-chunk 2`] = `
-"Entrypoint e1 2.77 KiB = e1~runtime.js 2.37 KiB e1.js 414 bytes
-Entrypoint e2 2.77 KiB = e2~runtime.js 2.37 KiB e2.js 414 bytes
+"Entrypoint e1 3.4 KiB = e1~runtime.js 3.03 KiB e1.js 384 bytes
+Entrypoint e2 3.4 KiB = e2~runtime.js 3.03 KiB e2.js 384 bytes
 chunk e1.js (e1) [entry]
 chunk e1~runtime.js (e1~runtime) [initial]
 chunk e2.js (e2) [entry]
@@ -4485,14 +4604,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "assets": [
         {
           "name": "runtime~e1.js",
-          "size": 2427,
+          "size": 3100,
         },
         {
           "name": "e1.js",
-          "size": 408,
+          "size": 378,
         },
       ],
-      "assetsSize": 2835,
+      "assetsSize": 3478,
       "chunks": [
         "runtime~e1",
         "e1",
@@ -4503,14 +4622,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "assets": [
         {
           "name": "runtime~e2.js",
-          "size": 2427,
+          "size": 3100,
         },
         {
           "name": "e2.js",
-          "size": 408,
+          "size": 378,
         },
       ],
-      "assetsSize": 2835,
+      "assetsSize": 3478,
       "chunks": [
         "runtime~e2",
         "e2",
@@ -4524,14 +4643,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "assets": [
         {
           "name": "runtime~e1.js",
-          "size": 2427,
+          "size": 3100,
         },
         {
           "name": "e1.js",
-          "size": 408,
+          "size": 378,
         },
       ],
-      "assetsSize": 2835,
+      "assetsSize": 3478,
       "chunks": [
         "runtime~e1",
         "e1",
@@ -4542,14 +4661,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "assets": [
         {
           "name": "runtime~e2.js",
-          "size": 2427,
+          "size": 3100,
         },
         {
           "name": "e2.js",
-          "size": 408,
+          "size": 378,
         },
       ],
-      "assetsSize": 2835,
+      "assetsSize": 3478,
       "chunks": [
         "runtime~e2",
         "e2",
@@ -4561,8 +4680,8 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
 `;
 
 exports[`StatsTestCases should print correct stats for optimization-runtime-chunk-multiple 2`] = `
-"Entrypoint e1 2.77 KiB = runtime~e1.js 2.37 KiB e1.js 408 bytes
-Entrypoint e2 2.77 KiB = runtime~e2.js 2.37 KiB e2.js 408 bytes
+"Entrypoint e1 3.4 KiB = runtime~e1.js 3.03 KiB e1.js 378 bytes
+Entrypoint e2 3.4 KiB = runtime~e2.js 3.03 KiB e2.js 378 bytes
 chunk e1.js (e1) [entry]
 chunk e2.js (e2) [entry]
 chunk runtime~e1.js (runtime~e1) [initial]
@@ -4617,14 +4736,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "assets": [
         {
           "name": "runtime.js",
-          "size": 2424,
+          "size": 3102,
         },
         {
           "name": "e1.js",
-          "size": 411,
+          "size": 381,
         },
       ],
-      "assetsSize": 2835,
+      "assetsSize": 3483,
       "chunks": [
         "runtime",
         "e1",
@@ -4635,14 +4754,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "assets": [
         {
           "name": "runtime.js",
-          "size": 2424,
+          "size": 3102,
         },
         {
           "name": "e2.js",
-          "size": 411,
+          "size": 381,
         },
       ],
-      "assetsSize": 2835,
+      "assetsSize": 3483,
       "chunks": [
         "runtime",
         "e2",
@@ -4656,14 +4775,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "assets": [
         {
           "name": "runtime.js",
-          "size": 2424,
+          "size": 3102,
         },
         {
           "name": "e1.js",
-          "size": 411,
+          "size": 381,
         },
       ],
-      "assetsSize": 2835,
+      "assetsSize": 3483,
       "chunks": [
         "runtime",
         "e1",
@@ -4674,14 +4793,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "assets": [
         {
           "name": "runtime.js",
-          "size": 2424,
+          "size": 3102,
         },
         {
           "name": "e2.js",
-          "size": 411,
+          "size": 381,
         },
       ],
-      "assetsSize": 2835,
+      "assetsSize": 3483,
       "chunks": [
         "runtime",
         "e2",
@@ -4693,8 +4812,8 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
 `;
 
 exports[`StatsTestCases should print correct stats for optimization-runtime-chunk-single 2`] = `
-"Entrypoint e1 2.77 KiB = runtime.js 2.37 KiB e1.js 411 bytes
-Entrypoint e2 2.77 KiB = runtime.js 2.37 KiB e2.js 411 bytes
+"Entrypoint e1 3.4 KiB = runtime.js 3.03 KiB e1.js 381 bytes
+Entrypoint e2 3.4 KiB = runtime.js 3.03 KiB e2.js 381 bytes
 chunk e1.js (e1) [entry]
 chunk e2.js (e2) [entry]
 chunk runtime.js (runtime) [initial]"
@@ -4761,14 +4880,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "assets": [
         {
           "name": "runtime~e1.js",
-          "size": 2427,
+          "size": 3100,
         },
         {
           "name": "e1.js",
-          "size": 408,
+          "size": 378,
         },
       ],
-      "assetsSize": 2835,
+      "assetsSize": 3478,
       "chunks": [
         "runtime~e1",
         "e1",
@@ -4779,14 +4898,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "assets": [
         {
           "name": "runtime~e2.js",
-          "size": 2427,
+          "size": 3100,
         },
         {
           "name": "e2.js",
-          "size": 408,
+          "size": 378,
         },
       ],
-      "assetsSize": 2835,
+      "assetsSize": 3478,
       "chunks": [
         "runtime~e2",
         "e2",
@@ -4800,14 +4919,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "assets": [
         {
           "name": "runtime~e1.js",
-          "size": 2427,
+          "size": 3100,
         },
         {
           "name": "e1.js",
-          "size": 408,
+          "size": 378,
         },
       ],
-      "assetsSize": 2835,
+      "assetsSize": 3478,
       "chunks": [
         "runtime~e1",
         "e1",
@@ -4818,14 +4937,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "assets": [
         {
           "name": "runtime~e2.js",
-          "size": 2427,
+          "size": 3100,
         },
         {
           "name": "e2.js",
-          "size": 408,
+          "size": 378,
         },
       ],
-      "assetsSize": 2835,
+      "assetsSize": 3478,
       "chunks": [
         "runtime~e2",
         "e2",
@@ -4837,8 +4956,8 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
 `;
 
 exports[`StatsTestCases should print correct stats for optimization-runtime-chunk-true 2`] = `
-"Entrypoint e1 2.77 KiB = runtime~e1.js 2.37 KiB e1.js 408 bytes
-Entrypoint e2 2.77 KiB = runtime~e2.js 2.37 KiB e2.js 408 bytes
+"Entrypoint e1 3.4 KiB = runtime~e1.js 3.03 KiB e1.js 378 bytes
+Entrypoint e2 3.4 KiB = runtime~e2.js 3.03 KiB e2.js 378 bytes
 chunk e1.js (e1) [entry]
 chunk e2.js (e2) [entry]
 chunk runtime~e1.js (runtime~e1) [initial]
@@ -4849,17 +4968,41 @@ exports[`StatsTestCases should print correct stats for parse-error 1`] = `
 {
   "errors": [
     {
-      "formatted": "  × Error[javascript]: JavaScript parsing error
-   ╭─[tests/statsCases/parse-error/b.js:5:1]
- 5 │ a
- 6 │ parser )
-   ·        ┬
-   ·        ╰── Expected ';', '}' or <eof>
- 7 │ error
-   ╰────
+      "formatted": "ModuleParseError
+
+  × Module parse failed:
+  ╰─▶   × JavaScript parsing error: Expected ';', '}' or <eof>
+         ╭─[4:1]
+       4 │ includes
+       5 │ a
+       6 │ parser )
+         ·        ─
+       7 │ error
+       8 │ in
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
 ",
-      "message": "Error[javascript]: JavaScript parsing error
-Expected ';', '}' or <eof>",
+      "message": "ModuleParseError
+
+  × Module parse failed:
+  ╰─▶   × JavaScript parsing error: Expected ';', '}' or <eof>
+         ╭─[4:1]
+       4 │ includes
+       5 │ a
+       6 │ parser )
+         ·        ─
+       7 │ error
+       8 │ in
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
+",
+      "moduleId": "996",
+      "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/parse-error/b.js",
+      "moduleName": "./b.js",
     },
   ],
   "errorsCount": 1,
@@ -4870,15 +5013,21 @@ Expected ';', '}' or <eof>",
 `;
 
 exports[`StatsTestCases should print correct stats for parse-error 2`] = `
-"  × Error[javascript]: JavaScript parsing error
-   ╭─[tests/statsCases/parse-error/b.js:5:1]
- 5 │ a
- 6 │ parser )
-   ·        ┬
-   ·        ╰── Expected ';', '}' or <eof>
- 7 │ error
-   ╰────
+"ERROR in ./b.js ModuleParseError
 
+  × Module parse failed:
+  ╰─▶   × JavaScript parsing error: Expected ';', '}' or <eof>
+         ╭─[4:1]
+       4 │ includes
+       5 │ a
+       6 │ parser )
+         ·        ─
+       7 │ error
+       8 │ in
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
 
 Rspack compiled with 1 error"
 `;
@@ -4887,8 +5036,7 @@ exports[`StatsTestCases should print correct stats for parse-error-builtin-swc-l
 {
   "errors": [
     {
-      "formatted": "  × 
-  │   x Expected '{', got 'error'
+      "formatted": "  ×   x Expected '{', got 'error'
   │    ,-[<PROJECT_ROOT>/tests/statsCases/parse-error-builtin-swc-loader/index.ts:1:1]
   │  1 | export error;
   │    :        ^^^^^
@@ -4896,14 +5044,17 @@ exports[`StatsTestCases should print correct stats for parse-error-builtin-swc-l
   │ 
   ╰─▶ Syntax Error
 ",
-      "message": "
-  x Expected '{', got 'error'
-   ,-[<PROJECT_ROOT>/tests/statsCases/parse-error-builtin-swc-loader/index.ts:1:1]
- 1 | export error;
-   :        ^^^^^
-   \`----
-
+      "message": "  ×   x Expected '{', got 'error'
+  │    ,-[<PROJECT_ROOT>/tests/statsCases/parse-error-builtin-swc-loader/index.ts:1:1]
+  │  1 | export error;
+  │    :        ^^^^^
+  │    \`----
+  │ 
+  ╰─▶ Syntax Error
 ",
+      "moduleId": "620",
+      "moduleIdentifier": "builtin:swc-loader??ruleSet[1].rules[0].use[0]!<PROJECT_ROOT>/tests/statsCases/parse-error-builtin-swc-loader/index.ts",
+      "moduleName": "./index.ts",
     },
   ],
   "errorsCount": 1,
@@ -4914,15 +5065,13 @@ exports[`StatsTestCases should print correct stats for parse-error-builtin-swc-l
 `;
 
 exports[`StatsTestCases should print correct stats for parse-error-builtin-swc-loader 2`] = `
-"  × 
-  │   x Expected '{', got 'error'
+"ERROR in ./index.ts   ×   x Expected '{', got 'error'
   │    ,-[<PROJECT_ROOT>/tests/statsCases/parse-error-builtin-swc-loader/index.ts:1:1]
   │  1 | export error;
   │    :        ^^^^^
   │    \`----
   │ 
   ╰─▶ Syntax Error
-
 
 Rspack compiled with 1 error"
 `;
@@ -4944,6 +5093,7 @@ exports[`StatsTestCases should print correct stats for reasons 1`] = `
       "moduleType": "javascript/auto",
       "name": "./a.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/reasons/a.js",
+      "orphan": false,
       "reasons": [
         {
           "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/reasons/index.js",
@@ -4963,6 +5113,7 @@ exports[`StatsTestCases should print correct stats for reasons 1`] = `
       "moduleType": "javascript/auto",
       "name": "./index.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/reasons/index.js",
+      "orphan": false,
       "reasons": [
         {
           "moduleIdentifier": undefined,
@@ -5001,7 +5152,7 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
         "hotModuleReplacement": false,
       },
       "name": "bundle.js",
-      "size": 784,
+      "size": 586,
       "type": "asset",
     },
   ],
@@ -5036,6 +5187,7 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
           "moduleType": "javascript/auto",
           "name": "./index.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
+          "orphan": false,
           "reasons": [
             {
               "moduleId": undefined,
@@ -5051,53 +5203,13 @@ console.log(a);
 ",
           "type": "module",
         },
-        {
-          "assets": [],
-          "chunks": [
-            "main",
-          ],
-          "id": "751",
-          "identifier": "missing|<PROJECT_ROOT>/tests/statsCases/resolve-overflow/cycle-alias/a",
-          "issuer": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
-          "issuerId": "10",
-          "issuerName": "./index.js",
-          "issuerPath": [
-            {
-              "id": "10",
-              "identifier": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
-              "name": "./index.js",
-            },
-          ],
-          "moduleType": "javascript/auto",
-          "name": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/cycle-alias/a (missing)",
-          "nameForCondition": undefined,
-          "reasons": [
-            {
-              "moduleId": "10",
-              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
-              "moduleName": "./index.js",
-              "type": "esm import",
-              "userRequest": "cycle-alias/a",
-            },
-            {
-              "moduleId": "10",
-              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
-              "moduleName": "./index.js",
-              "type": "esm import specifier",
-              "userRequest": "cycle-alias/a",
-            },
-          ],
-          "size": 160,
-          "source": undefined,
-          "type": "module",
-        },
       ],
       "names": [
         "main",
       ],
       "parents": [],
       "siblings": [],
-      "size": 211,
+      "size": 51,
       "type": "chunk",
     },
   ],
@@ -5106,10 +5218,10 @@ console.log(a);
       "assets": [
         {
           "name": "bundle.js",
-          "size": 784,
+          "size": 586,
         },
       ],
-      "assetsSize": 784,
+      "assetsSize": 586,
       "chunks": [
         "main",
       ],
@@ -5118,21 +5230,30 @@ console.log(a);
   },
   "errors": [
     {
-      "formatted": "  × Error[internal]: Resolve error
-   ╭─[tests/statsCases/resolve-overflow/index.js:1:1]
+      "formatted": "  × Resolve error: Can't resolve 'cycle-alias/a' in '<PROJECT_ROOT>/tests/statsCases/resolve-overflow'
+   ╭─[1:1]
  1 │ import { a } from "cycle-alias/a";
-   · ─────────────────┬────────────────
-   ·                  ╰── Can't resolve "cycle-alias/a" in <PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js , maybe it had cycle alias
+   ·                   ───────────────
  2 │ console.log(a);
    ╰────
+  help: maybe it had cyclic aliases
 ",
-      "message": "Error[internal]: Resolve error
-Can't resolve "cycle-alias/a" in <PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js , maybe it had cycle alias",
+      "message": "  × Resolve error: Can't resolve 'cycle-alias/a' in '<PROJECT_ROOT>/tests/statsCases/resolve-overflow'
+   ╭─[1:1]
+ 1 │ import { a } from "cycle-alias/a";
+   ·                   ───────────────
+ 2 │ console.log(a);
+   ╰────
+  help: maybe it had cyclic aliases
+",
+      "moduleId": "10",
+      "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
+      "moduleName": "./index.js",
     },
   ],
   "errorsCount": 1,
   "filteredModules": undefined,
-  "hash": "52b8b881d7951db09212",
+  "hash": "9b0142d5848973ce25b9",
   "logging": {},
   "modules": [
     {
@@ -5149,6 +5270,7 @@ Can't resolve "cycle-alias/a" in <PROJECT_ROOT>/tests/statsCases/resolve-overflo
       "moduleType": "javascript/auto",
       "name": "./index.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
+      "orphan": false,
       "reasons": [
         {
           "moduleId": undefined,
@@ -5170,25 +5292,6 @@ console.log(a);
         "main",
       ],
       "id": "",
-      "identifier": "webpack/runtime/has_own_property",
-      "issuer": undefined,
-      "issuerId": undefined,
-      "issuerName": undefined,
-      "issuerPath": [],
-      "moduleType": "runtime",
-      "name": "webpack/runtime/has_own_property",
-      "nameForCondition": undefined,
-      "reasons": [],
-      "size": 160,
-      "source": undefined,
-      "type": "module",
-    },
-    {
-      "assets": [],
-      "chunks": [
-        "main",
-      ],
-      "id": "",
       "identifier": "webpack/runtime/make_namespace_object",
       "issuer": undefined,
       "issuerId": undefined,
@@ -5197,85 +5300,8 @@ console.log(a);
       "moduleType": "runtime",
       "name": "webpack/runtime/make_namespace_object",
       "nameForCondition": undefined,
+      "orphan": false,
       "reasons": [],
-      "size": 160,
-      "source": undefined,
-      "type": "module",
-    },
-    {
-      "assets": [],
-      "chunks": [
-        "main",
-      ],
-      "id": "",
-      "identifier": "webpack/runtime/define_property_getters",
-      "issuer": undefined,
-      "issuerId": undefined,
-      "issuerName": undefined,
-      "issuerPath": [],
-      "moduleType": "runtime",
-      "name": "webpack/runtime/define_property_getters",
-      "nameForCondition": undefined,
-      "reasons": [],
-      "size": 160,
-      "source": undefined,
-      "type": "module",
-    },
-    {
-      "assets": [],
-      "chunks": [
-        "main",
-      ],
-      "id": "",
-      "identifier": "webpack/runtime/compat_get_default_export",
-      "issuer": undefined,
-      "issuerId": undefined,
-      "issuerName": undefined,
-      "issuerPath": [],
-      "moduleType": "runtime",
-      "name": "webpack/runtime/compat_get_default_export",
-      "nameForCondition": undefined,
-      "reasons": [],
-      "size": 160,
-      "source": undefined,
-      "type": "module",
-    },
-    {
-      "assets": [],
-      "chunks": [
-        "main",
-      ],
-      "id": "751",
-      "identifier": "missing|<PROJECT_ROOT>/tests/statsCases/resolve-overflow/cycle-alias/a",
-      "issuer": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
-      "issuerId": "10",
-      "issuerName": "./index.js",
-      "issuerPath": [
-        {
-          "id": "10",
-          "identifier": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
-          "name": "./index.js",
-        },
-      ],
-      "moduleType": "javascript/auto",
-      "name": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/cycle-alias/a (missing)",
-      "nameForCondition": undefined,
-      "reasons": [
-        {
-          "moduleId": "10",
-          "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
-          "moduleName": "./index.js",
-          "type": "esm import",
-          "userRequest": "cycle-alias/a",
-        },
-        {
-          "moduleId": "10",
-          "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
-          "moduleName": "./index.js",
-          "type": "esm import specifier",
-          "userRequest": "cycle-alias/a",
-        },
-      ],
       "size": 160,
       "source": undefined,
       "type": "module",
@@ -5286,10 +5312,10 @@ console.log(a);
       "assets": [
         {
           "name": "bundle.js",
-          "size": 784,
+          "size": 586,
         },
       ],
-      "assetsSize": 784,
+      "assetsSize": 586,
       "chunks": [
         "main",
       ],
@@ -5305,35 +5331,25 @@ console.log(a);
 
 exports[`StatsTestCases should print correct stats for resolve-overflow 2`] = `
 "PublicPath: auto
-asset bundle.js 784 bytes {main} [emitted] (name: main)
-Entrypoint main 784 bytes = bundle.js
+asset bundle.js 586 bytes {main} [emitted] (name: main)
+Entrypoint main 586 bytes = bundle.js
 chunk {main} bundle.js (main) [entry]
   ./index.js [10] {main}
     entry ./index
-  <PROJECT_ROOT>/tests/statsCases/resolve-overflow/cycle-alias/a (missing) [751] {main}
-    esm import cycle-alias/a [10]
-    esm import specifier cycle-alias/a [10]
 ./index.js [10] {main}
   entry ./index
-webpack/runtime/has_own_property {main}
 webpack/runtime/make_namespace_object {main}
-webpack/runtime/define_property_getters {main}
-webpack/runtime/compat_get_default_export {main}
-<PROJECT_ROOT>/tests/statsCases/resolve-overflow/cycle-alias/a (missing) [751] {main}
-  esm import cycle-alias/a [10]
-  esm import specifier cycle-alias/a [10]
   
 
-  × Error[internal]: Resolve error
-   ╭─[tests/statsCases/resolve-overflow/index.js:1:1]
+ERROR in ./index.js   × Resolve error: Can't resolve 'cycle-alias/a' in '<PROJECT_ROOT>/tests/statsCases/resolve-overflow'
+   ╭─[1:1]
  1 │ import { a } from "cycle-alias/a";
-   · ─────────────────┬────────────────
-   ·                  ╰── Can't resolve "cycle-alias/a" in <PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js , maybe it had cycle alias
+   ·                   ───────────────
  2 │ console.log(a);
    ╰────
+  help: maybe it had cyclic aliases
 
-
-Rspack compiled with 1 error (52b8b881d7951db09212)"
+Rspack compiled with 1 error (9b0142d5848973ce25b9)"
 `;
 
 exports[`StatsTestCases should print correct stats for resolve-unexpected-exports-in-pkg 1`] = `
@@ -5352,7 +5368,7 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
         "hotModuleReplacement": false,
       },
       "name": "bundle.js",
-      "size": 802,
+      "size": 570,
       "type": "asset",
     },
   ],
@@ -5387,6 +5403,7 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
           "moduleType": "javascript/auto",
           "name": "./index.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
+          "orphan": false,
           "reasons": [
             {
               "moduleId": undefined,
@@ -5402,53 +5419,13 @@ console.log(a);
 ",
           "type": "module",
         },
-        {
-          "assets": [],
-          "chunks": [
-            "main",
-          ],
-          "id": "546",
-          "identifier": "missing|<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/pkg-a",
-          "issuer": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
-          "issuerId": "10",
-          "issuerName": "./index.js",
-          "issuerPath": [
-            {
-              "id": "10",
-              "identifier": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
-              "name": "./index.js",
-            },
-          ],
-          "moduleType": "javascript/auto",
-          "name": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/pkg-a (missing)",
-          "nameForCondition": undefined,
-          "reasons": [
-            {
-              "moduleId": "10",
-              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
-              "moduleName": "./index.js",
-              "type": "esm import",
-              "userRequest": "pkg-a",
-            },
-            {
-              "moduleId": "10",
-              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
-              "moduleName": "./index.js",
-              "type": "esm import specifier",
-              "userRequest": "pkg-a",
-            },
-          ],
-          "size": 160,
-          "source": undefined,
-          "type": "module",
-        },
       ],
       "names": [
         "main",
       ],
       "parents": [],
       "siblings": [],
-      "size": 199,
+      "size": 39,
       "type": "chunk",
     },
   ],
@@ -5457,10 +5434,10 @@ console.log(a);
       "assets": [
         {
           "name": "bundle.js",
-          "size": 802,
+          "size": 570,
         },
       ],
-      "assetsSize": 802,
+      "assetsSize": 570,
       "chunks": [
         "main",
       ],
@@ -5469,15 +5446,18 @@ console.log(a);
   },
   "errors": [
     {
-      "formatted": "  × Export should be relative path and start with "./", but got ../../index.js
+      "formatted": "  × Invalid "exports" target "../../index.js" defined for '.' in the package config <PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/node_modules/pkg-a/package.json
 ",
-      "message": "Export should be relative path and start with "./", but got ../../index.js
+      "message": "  × Invalid "exports" target "../../index.js" defined for '.' in the package config <PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/node_modules/pkg-a/package.json
 ",
+      "moduleId": "10",
+      "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
+      "moduleName": "./index.js",
     },
   ],
   "errorsCount": 1,
   "filteredModules": undefined,
-  "hash": "2b490d57b0f2f7155006",
+  "hash": "660067b0d769a99b766b",
   "logging": {},
   "modules": [
     {
@@ -5494,6 +5474,7 @@ console.log(a);
       "moduleType": "javascript/auto",
       "name": "./index.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
+      "orphan": false,
       "reasons": [
         {
           "moduleId": undefined,
@@ -5515,25 +5496,6 @@ console.log(a);
         "main",
       ],
       "id": "",
-      "identifier": "webpack/runtime/has_own_property",
-      "issuer": undefined,
-      "issuerId": undefined,
-      "issuerName": undefined,
-      "issuerPath": [],
-      "moduleType": "runtime",
-      "name": "webpack/runtime/has_own_property",
-      "nameForCondition": undefined,
-      "reasons": [],
-      "size": 160,
-      "source": undefined,
-      "type": "module",
-    },
-    {
-      "assets": [],
-      "chunks": [
-        "main",
-      ],
-      "id": "",
       "identifier": "webpack/runtime/make_namespace_object",
       "issuer": undefined,
       "issuerId": undefined,
@@ -5542,85 +5504,8 @@ console.log(a);
       "moduleType": "runtime",
       "name": "webpack/runtime/make_namespace_object",
       "nameForCondition": undefined,
+      "orphan": false,
       "reasons": [],
-      "size": 160,
-      "source": undefined,
-      "type": "module",
-    },
-    {
-      "assets": [],
-      "chunks": [
-        "main",
-      ],
-      "id": "",
-      "identifier": "webpack/runtime/define_property_getters",
-      "issuer": undefined,
-      "issuerId": undefined,
-      "issuerName": undefined,
-      "issuerPath": [],
-      "moduleType": "runtime",
-      "name": "webpack/runtime/define_property_getters",
-      "nameForCondition": undefined,
-      "reasons": [],
-      "size": 160,
-      "source": undefined,
-      "type": "module",
-    },
-    {
-      "assets": [],
-      "chunks": [
-        "main",
-      ],
-      "id": "",
-      "identifier": "webpack/runtime/compat_get_default_export",
-      "issuer": undefined,
-      "issuerId": undefined,
-      "issuerName": undefined,
-      "issuerPath": [],
-      "moduleType": "runtime",
-      "name": "webpack/runtime/compat_get_default_export",
-      "nameForCondition": undefined,
-      "reasons": [],
-      "size": 160,
-      "source": undefined,
-      "type": "module",
-    },
-    {
-      "assets": [],
-      "chunks": [
-        "main",
-      ],
-      "id": "546",
-      "identifier": "missing|<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/pkg-a",
-      "issuer": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
-      "issuerId": "10",
-      "issuerName": "./index.js",
-      "issuerPath": [
-        {
-          "id": "10",
-          "identifier": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
-          "name": "./index.js",
-        },
-      ],
-      "moduleType": "javascript/auto",
-      "name": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/pkg-a (missing)",
-      "nameForCondition": undefined,
-      "reasons": [
-        {
-          "moduleId": "10",
-          "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
-          "moduleName": "./index.js",
-          "type": "esm import",
-          "userRequest": "pkg-a",
-        },
-        {
-          "moduleId": "10",
-          "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
-          "moduleName": "./index.js",
-          "type": "esm import specifier",
-          "userRequest": "pkg-a",
-        },
-      ],
       "size": 160,
       "source": undefined,
       "type": "module",
@@ -5631,10 +5516,10 @@ console.log(a);
       "assets": [
         {
           "name": "bundle.js",
-          "size": 802,
+          "size": 570,
         },
       ],
-      "assetsSize": 802,
+      "assetsSize": 570,
       "chunks": [
         "main",
       ],
@@ -5650,29 +5535,19 @@ console.log(a);
 
 exports[`StatsTestCases should print correct stats for resolve-unexpected-exports-in-pkg 2`] = `
 "PublicPath: (none)
-asset bundle.js 802 bytes {main} [emitted] (name: main)
-Entrypoint main 802 bytes = bundle.js
+asset bundle.js 570 bytes {main} [emitted] (name: main)
+Entrypoint main 570 bytes = bundle.js
 chunk {main} bundle.js (main) [entry]
   ./index.js [10] {main}
     entry ./index
-  <PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/pkg-a (missing) [546] {main}
-    esm import pkg-a [10]
-    esm import specifier pkg-a [10]
 ./index.js [10] {main}
   entry ./index
-webpack/runtime/has_own_property {main}
 webpack/runtime/make_namespace_object {main}
-webpack/runtime/define_property_getters {main}
-webpack/runtime/compat_get_default_export {main}
-<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/pkg-a (missing) [546] {main}
-  esm import pkg-a [10]
-  esm import specifier pkg-a [10]
   
 
-  × Export should be relative path and start with "./", but got ../../index.js
+ERROR in ./index.js   × Invalid "exports" target "../../index.js" defined for '.' in the package config <PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/node_modules/pkg-a/package.json
 
-
-Rspack compiled with 1 error (2b490d57b0f2f7155006)"
+Rspack compiled with 1 error (660067b0d769a99b766b)"
 `;
 
 exports[`StatsTestCases should print correct stats for runtime-modules 1`] = `
@@ -5687,6 +5562,7 @@ exports[`StatsTestCases should print correct stats for runtime-modules 1`] = `
       "moduleType": "javascript/auto",
       "name": "./index.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/runtime-modules/index.js",
+      "orphan": false,
       "size": 20,
       "type": "module",
     },
@@ -5698,6 +5574,7 @@ exports[`StatsTestCases should print correct stats for runtime-modules 1`] = `
       "moduleType": "runtime",
       "name": "webpack/runtime/has_own_property",
       "nameForCondition": undefined,
+      "orphan": false,
       "size": 160,
       "type": "module",
     },
@@ -5709,6 +5586,7 @@ exports[`StatsTestCases should print correct stats for runtime-modules 1`] = `
       "moduleType": "runtime",
       "name": "webpack/runtime/make_namespace_object",
       "nameForCondition": undefined,
+      "orphan": false,
       "size": 160,
       "type": "module",
     },
@@ -5720,6 +5598,7 @@ exports[`StatsTestCases should print correct stats for runtime-modules 1`] = `
       "moduleType": "runtime",
       "name": "webpack/runtime/define_property_getters",
       "nameForCondition": undefined,
+      "orphan": false,
       "size": 160,
       "type": "module",
     },
@@ -5785,6 +5664,7 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
           "moduleType": "javascript/auto",
           "name": "./index.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/simple/index.js",
+          "orphan": false,
           "reasons": [
             {
               "moduleId": undefined,
@@ -5827,7 +5707,7 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "aaa1fae93a3f1eb93934",
+  "hash": "6792d81f6cf29aa1172a",
   "logging": {},
   "modules": [
     {
@@ -5844,6 +5724,7 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
       "moduleType": "javascript/auto",
       "name": "./index.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/simple/index.js",
+      "orphan": false,
       "reasons": [
         {
           "moduleId": undefined,
@@ -5872,6 +5753,7 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
       "moduleType": "runtime",
       "name": "webpack/runtime/has_own_property",
       "nameForCondition": undefined,
+      "orphan": false,
       "reasons": [],
       "size": 160,
       "source": undefined,
@@ -5891,6 +5773,7 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
       "moduleType": "runtime",
       "name": "webpack/runtime/make_namespace_object",
       "nameForCondition": undefined,
+      "orphan": false,
       "reasons": [],
       "size": 160,
       "source": undefined,
@@ -5910,6 +5793,7 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
       "moduleType": "runtime",
       "name": "webpack/runtime/define_property_getters",
       "nameForCondition": undefined,
+      "orphan": false,
       "reasons": [],
       "size": 160,
       "source": undefined,
@@ -5951,7 +5835,7 @@ webpack/runtime/has_own_property {main}
 webpack/runtime/make_namespace_object {main}
 webpack/runtime/define_property_getters {main}
   
-Rspack compiled successfully (aaa1fae93a3f1eb93934)"
+Rspack compiled successfully (6792d81f6cf29aa1172a)"
 `;
 
 exports[`StatsTestCases should print correct stats for simple-module-source 1`] = `
@@ -5970,7 +5854,7 @@ exports[`StatsTestCases should print correct stats for simple-module-source 1`] 
         "hotModuleReplacement": false,
       },
       "name": "bundle.js",
-      "size": 690,
+      "size": 685,
       "type": "asset",
     },
   ],
@@ -6011,6 +5895,7 @@ exports[`StatsTestCases should print correct stats for simple-module-source 1`] 
           "moduleType": "javascript/auto",
           "name": "./raw.png",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/raw.png",
+          "orphan": false,
           "reasons": [
             {
               "moduleId": "10",
@@ -6039,6 +5924,7 @@ exports[`StatsTestCases should print correct stats for simple-module-source 1`] 
           "moduleType": "javascript/auto",
           "name": "./index.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/index.js",
+          "orphan": false,
           "reasons": [
             {
               "moduleId": undefined,
@@ -6074,6 +5960,7 @@ import rawModule from './raw.png';
           "moduleType": "javascript/auto",
           "name": "./stringModule.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/stringModule.js",
+          "orphan": false,
           "reasons": [
             {
               "moduleId": "10",
@@ -6102,10 +5989,10 @@ import rawModule from './raw.png';
       "assets": [
         {
           "name": "bundle.js",
-          "size": 690,
+          "size": 685,
         },
       ],
-      "assetsSize": 690,
+      "assetsSize": 685,
       "chunks": [
         "main",
       ],
@@ -6115,7 +6002,7 @@ import rawModule from './raw.png';
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "d52b18cfdbeb114e0ec4",
+  "hash": "6fa2c05c8bebcd46512b",
   "logging": {},
   "modules": [
     {
@@ -6138,6 +6025,7 @@ import rawModule from './raw.png';
       "moduleType": "javascript/auto",
       "name": "./raw.png",
       "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/raw.png",
+      "orphan": false,
       "reasons": [
         {
           "moduleId": "10",
@@ -6166,6 +6054,7 @@ import rawModule from './raw.png';
       "moduleType": "javascript/auto",
       "name": "./index.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/index.js",
+      "orphan": false,
       "reasons": [
         {
           "moduleId": undefined,
@@ -6201,6 +6090,7 @@ import rawModule from './raw.png';
       "moduleType": "javascript/auto",
       "name": "./stringModule.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/stringModule.js",
+      "orphan": false,
       "reasons": [
         {
           "moduleId": "10",
@@ -6228,6 +6118,7 @@ import rawModule from './raw.png';
       "moduleType": "runtime",
       "name": "webpack/runtime/has_own_property",
       "nameForCondition": undefined,
+      "orphan": false,
       "reasons": [],
       "size": 160,
       "source": undefined,
@@ -6247,6 +6138,7 @@ import rawModule from './raw.png';
       "moduleType": "runtime",
       "name": "webpack/runtime/make_namespace_object",
       "nameForCondition": undefined,
+      "orphan": false,
       "reasons": [],
       "size": 160,
       "source": undefined,
@@ -6266,6 +6158,7 @@ import rawModule from './raw.png';
       "moduleType": "runtime",
       "name": "webpack/runtime/define_property_getters",
       "nameForCondition": undefined,
+      "orphan": false,
       "reasons": [],
       "size": 160,
       "source": undefined,
@@ -6285,6 +6178,7 @@ import rawModule from './raw.png';
       "moduleType": "runtime",
       "name": "webpack/runtime/compat_get_default_export",
       "nameForCondition": undefined,
+      "orphan": false,
       "reasons": [],
       "size": 160,
       "source": undefined,
@@ -6296,10 +6190,10 @@ import rawModule from './raw.png';
       "assets": [
         {
           "name": "bundle.js",
-          "size": 690,
+          "size": 685,
         },
       ],
-      "assetsSize": 690,
+      "assetsSize": 685,
       "chunks": [
         "main",
       ],
@@ -6315,13 +6209,13 @@ import rawModule from './raw.png';
 
 exports[`StatsTestCases should print correct stats for simple-module-source 2`] = `
 "PublicPath: (none)
-asset bundle.js 690 bytes [emitted] (name: main)
-Entrypoint main 690 bytes = bundle.js
+asset bundle.js 685 bytes [emitted] (name: main)
+Entrypoint main 685 bytes = bundle.js
 runtime modules 4 modules
 ./raw.png
 ./index.js
 ./stringModule.js
-Rspack compiled successfully (d52b18cfdbeb114e0ec4)"
+Rspack compiled successfully (6fa2c05c8bebcd46512b)"
 `;
 
 exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
@@ -6376,6 +6270,7 @@ exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
           "moduleType": "javascript/auto",
           "name": "./index.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/stats-hooks/index.js",
+          "orphan": false,
           "reasons": [
             {
               "moduleId": undefined,
@@ -6416,7 +6311,7 @@ exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "aaa1fae93a3f1eb93934",
+  "hash": "6792d81f6cf29aa1172a",
   "logging": {},
   "modules": [
     {
@@ -6433,6 +6328,7 @@ exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
       "moduleType": "javascript/auto",
       "name": "./index.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/stats-hooks/index.js",
+      "orphan": false,
       "reasons": [
         {
           "moduleId": undefined,
@@ -6459,6 +6355,7 @@ exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
       "moduleType": "runtime",
       "name": "webpack/runtime/has_own_property",
       "nameForCondition": undefined,
+      "orphan": false,
       "reasons": [],
       "size": 160,
       "type": "module",
@@ -6477,6 +6374,7 @@ exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
       "moduleType": "runtime",
       "name": "webpack/runtime/make_namespace_object",
       "nameForCondition": undefined,
+      "orphan": false,
       "reasons": [],
       "size": 160,
       "type": "module",
@@ -6495,6 +6393,7 @@ exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
       "moduleType": "runtime",
       "name": "webpack/runtime/define_property_getters",
       "nameForCondition": undefined,
+      "orphan": false,
       "reasons": [],
       "size": 160,
       "type": "module",
@@ -6528,7 +6427,7 @@ asset bundle.js 589 bytes [emitted111] (name: main) [testA: aaaaaa]
 Entrypoint main 589 bytes = bundle.js
 runtime modules 3 modules
 ./index.js
-Rspack compiled successfully (aaa1fae93a3f1eb93934)"
+Rspack compiled successfully (6792d81f6cf29aa1172a)"
 `;
 
 exports[`StatsTestCases should print correct stats for try-require--module 1`] = `
@@ -6538,17 +6437,25 @@ exports[`StatsTestCases should print correct stats for try-require--module 1`] =
   "logging": {},
   "warnings": [
     {
-      "formatted": "  ⚠ Warning[internal]: Resolve error
-   ╭─[tests/statsCases/try-require--module/index.js:1:1]
- 1 │     try {
- 2 │ ╭─▶     require('./missing-module')
- 3 │ ├─▶ } catch (e) {
-   · ╰──── Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require--module/index.js
- 4 │     
+      "formatted": "  ⚠ Resolve error: Can't resolve './missing-module' in '<PROJECT_ROOT>/tests/statsCases/try-require--module'
+   ╭─[1:1]
+ 1 │ try {
+ 2 │     require('./missing-module');
+   ·     ───────────────────────────
+ 3 │ } catch (e) {}
    ╰────
 ",
-      "message": "Warning[internal]: Resolve error
-Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require--module/index.js",
+      "message": "  ⚠ Resolve error: Can't resolve './missing-module' in '<PROJECT_ROOT>/tests/statsCases/try-require--module'
+   ╭─[1:1]
+ 1 │ try {
+ 2 │     require('./missing-module');
+   ·     ───────────────────────────
+ 3 │ } catch (e) {}
+   ╰────
+",
+      "moduleId": "10",
+      "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/try-require--module/index.js",
+      "moduleName": "./index.js",
     },
   ],
   "warningsCount": 1,
@@ -6556,15 +6463,13 @@ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-requir
 `;
 
 exports[`StatsTestCases should print correct stats for try-require--module 2`] = `
-"  ⚠ Warning[internal]: Resolve error
-   ╭─[tests/statsCases/try-require--module/index.js:1:1]
- 1 │     try {
- 2 │ ╭─▶     require('./missing-module')
- 3 │ ├─▶ } catch (e) {
-   · ╰──── Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require--module/index.js
- 4 │     
+"WARNING in ./index.js   ⚠ Resolve error: Can't resolve './missing-module' in '<PROJECT_ROOT>/tests/statsCases/try-require--module'
+   ╭─[1:1]
+ 1 │ try {
+ 2 │     require('./missing-module');
+   ·     ───────────────────────────
+ 3 │ } catch (e) {}
    ╰────
-
 
 Rspack compiled with 1 warning"
 `;
@@ -6576,17 +6481,25 @@ exports[`StatsTestCases should print correct stats for try-require-resolve-modul
   "logging": {},
   "warnings": [
     {
-      "formatted": "  ⚠ Warning[internal]: Resolve error
-   ╭─[tests/statsCases/try-require-resolve-module/index.js:1:1]
- 1 │     try {
- 2 │ ╭─▶     require.resolve('./missing-module')
- 3 │ ├─▶ } catch (e) {
-   · ╰──── Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require-resolve-module/index.js
- 4 │     
+      "formatted": "  ⚠ Resolve error: Can't resolve './missing-module' in '<PROJECT_ROOT>/tests/statsCases/try-require-resolve-module'
+   ╭─[1:1]
+ 1 │ try {
+ 2 │     require.resolve('./missing-module');
+   ·     ───────────────────────────────────
+ 3 │ } catch (e) {}
    ╰────
 ",
-      "message": "Warning[internal]: Resolve error
-Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require-resolve-module/index.js",
+      "message": "  ⚠ Resolve error: Can't resolve './missing-module' in '<PROJECT_ROOT>/tests/statsCases/try-require-resolve-module'
+   ╭─[1:1]
+ 1 │ try {
+ 2 │     require.resolve('./missing-module');
+   ·     ───────────────────────────────────
+ 3 │ } catch (e) {}
+   ╰────
+",
+      "moduleId": "10",
+      "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/try-require-resolve-module/index.js",
+      "moduleName": "./index.js",
     },
   ],
   "warningsCount": 1,
@@ -6594,15 +6507,13 @@ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-requir
 `;
 
 exports[`StatsTestCases should print correct stats for try-require-resolve-module 2`] = `
-"  ⚠ Warning[internal]: Resolve error
-   ╭─[tests/statsCases/try-require-resolve-module/index.js:1:1]
- 1 │     try {
- 2 │ ╭─▶     require.resolve('./missing-module')
- 3 │ ├─▶ } catch (e) {
-   · ╰──── Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require-resolve-module/index.js
- 4 │     
+"WARNING in ./index.js   ⚠ Resolve error: Can't resolve './missing-module' in '<PROJECT_ROOT>/tests/statsCases/try-require-resolve-module'
+   ╭─[1:1]
+ 1 │ try {
+ 2 │     require.resolve('./missing-module');
+   ·     ───────────────────────────────────
+ 3 │ } catch (e) {}
    ╰────
-
 
 Rspack compiled with 1 warning"
 `;
@@ -6614,17 +6525,25 @@ exports[`StatsTestCases should print correct stats for try-require-resolve-weak-
   "logging": {},
   "warnings": [
     {
-      "formatted": "  ⚠ Warning[internal]: Resolve error
-   ╭─[tests/statsCases/try-require-resolve-weak-module/index.js:1:1]
- 1 │     try {
- 2 │ ╭─▶     require.resolveWeak('./missing-module')
- 3 │ ├─▶ } catch (e) {
-   · ╰──── Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require-resolve-weak-module/index.js
- 4 │     
+      "formatted": "  ⚠ Resolve error: Can't resolve './missing-module' in '<PROJECT_ROOT>/tests/statsCases/try-require-resolve-weak-module'
+   ╭─[1:1]
+ 1 │ try {
+ 2 │     require.resolveWeak('./missing-module');
+   ·     ───────────────────────────────────────
+ 3 │ } catch (e) {}
    ╰────
 ",
-      "message": "Warning[internal]: Resolve error
-Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require-resolve-weak-module/index.js",
+      "message": "  ⚠ Resolve error: Can't resolve './missing-module' in '<PROJECT_ROOT>/tests/statsCases/try-require-resolve-weak-module'
+   ╭─[1:1]
+ 1 │ try {
+ 2 │     require.resolveWeak('./missing-module');
+   ·     ───────────────────────────────────────
+ 3 │ } catch (e) {}
+   ╰────
+",
+      "moduleId": "10",
+      "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/try-require-resolve-weak-module/index.js",
+      "moduleName": "./index.js",
     },
   ],
   "warningsCount": 1,
@@ -6632,15 +6551,13 @@ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-requir
 `;
 
 exports[`StatsTestCases should print correct stats for try-require-resolve-weak-module 2`] = `
-"  ⚠ Warning[internal]: Resolve error
-   ╭─[tests/statsCases/try-require-resolve-weak-module/index.js:1:1]
- 1 │     try {
- 2 │ ╭─▶     require.resolveWeak('./missing-module')
- 3 │ ├─▶ } catch (e) {
-   · ╰──── Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require-resolve-weak-module/index.js
- 4 │     
+"WARNING in ./index.js   ⚠ Resolve error: Can't resolve './missing-module' in '<PROJECT_ROOT>/tests/statsCases/try-require-resolve-weak-module'
+   ╭─[1:1]
+ 1 │ try {
+ 2 │     require.resolveWeak('./missing-module');
+   ·     ───────────────────────────────────────
+ 3 │ } catch (e) {}
    ╰────
-
 
 Rspack compiled with 1 warning"
 `;
