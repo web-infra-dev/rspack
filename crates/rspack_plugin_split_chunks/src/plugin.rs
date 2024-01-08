@@ -21,6 +21,10 @@ pub fn create_cache_group(
     let mut cloned = group_source.min_size.clone();
     if !group_source.enforce.unwrap_or_default() {
       cloned.extend(group_source.enforce_size_threshold.clone());
+    } else {
+      cloned.values_mut().for_each(|v| {
+        *v = 0f64;
+      });
     }
     cloned
   };
