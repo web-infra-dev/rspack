@@ -16,6 +16,7 @@ pub struct CommonJsFullRequireDependency {
   range: DependencyLocation,
   span: Option<ErrorSpan>,
   is_call: bool,
+  optional: bool,
 }
 
 impl CommonJsFullRequireDependency {
@@ -25,6 +26,7 @@ impl CommonJsFullRequireDependency {
     range: DependencyLocation,
     span: Option<ErrorSpan>,
     is_call: bool,
+    optional: bool,
   ) -> Self {
     Self {
       id: DependencyId::new(),
@@ -33,6 +35,7 @@ impl CommonJsFullRequireDependency {
       range,
       span,
       is_call,
+      optional,
     }
   }
 }
@@ -70,6 +73,10 @@ impl ModuleDependency for CommonJsFullRequireDependency {
 
   fn set_request(&mut self, request: String) {
     self.request = request;
+  }
+
+  fn get_optional(&self) -> bool {
+    self.optional
   }
 
   fn get_referenced_exports(
