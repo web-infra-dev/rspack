@@ -129,3 +129,27 @@ export function normalizeEnv(argv: yargs.Arguments) {
 	const envObj = ((argv.env as string[]) ?? []).reduce(parseValue, {});
 	argv.env = envObj;
 }
+
+/**
+ * set builtin env from cli - like `WEBPACK_BUNDLE=true`. also for `RSPACK_` prefixed.
+ * @param env the `argv.env` object
+ * @param envNameSuffix the added env will be `WEBPACK_${envNameSuffix}` and `RSPACK_${envNameSuffix}`
+ * @param value
+ */
+export function setBuiltinEnvArg(
+	env: Record<string, any>,
+	envNameSuffix: string,
+	value: any
+) {
+	const envNames = [
+		// TODO: breaking change, we could bring it in 0.5
+		// `WEBPACK_${envNameSuffix}`,
+		`RSPACK_${envNameSuffix}`
+	];
+	for (const envName of envNames) {
+		if (envName in env) {
+			continue;
+		}
+		env[envName] = value;
+	}
+}

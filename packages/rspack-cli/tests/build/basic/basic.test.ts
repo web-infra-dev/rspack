@@ -1,4 +1,4 @@
-import { readFile, run } from "../../utils/test-utils";
+import { readFile, run, runWatch } from "../../utils/test-utils";
 import { resolve } from "path";
 
 describe("build command", () => {
@@ -26,6 +26,26 @@ describe("build command", () => {
 		expect(exitCode).toBe(0);
 		expect(stderr).toBeFalsy();
 		expect(stdout).toBeTruthy();
+	});
+	it("should pass env.RSPACK_BUILD and env.RSPACK_BUNDLE for function configuration on build mode", async () => {
+		const { stdout } = await run(__dirname, ["--config", "./entry.env.js"]);
+		expect(stdout).toContain("RSPACK_BUILD=true");
+		expect(stdout).toContain("RSPACK_BUNDLE=true");
+		expect(stdout).not.toContain("RSPACK_WATCH=true");
+	});
+
+	it("should pass env.RSPACK_WATCH for function configuration on watch mode", async () => {
+		const { stdout } = await runWatch(
+			__dirname,
+			["--watch", "--config", "./entry.env.js"],
+			{
+				// `Rspack compiled successfully` or `Rspack compiled with 1 error`
+				killString: /rspack compiled/i
+			}
+		);
+		expect(stdout).not.toContain("RSPACK_BUILD=true");
+		expect(stdout).not.toContain("RSPACK_BUNDLE=true");
+		expect(stdout).toContain("RSPACK_WATCH=true");
 	});
 	it("should work with configuration return promise", async () => {
 		const { exitCode, stderr, stdout } = await run(__dirname, [

@@ -1,7 +1,7 @@
 import type { RspackCLI } from "../rspack-cli";
 import { RspackDevServer } from "@rspack/dev-server";
 import { RspackCommand } from "../types";
-import { commonOptions } from "../utils/options";
+import { commonOptions, setBuiltinEnvArg } from "../utils/options";
 import { Compiler, DevServer } from "@rspack/core";
 
 export class ServeCommand implements RspackCommand {
@@ -11,6 +11,8 @@ export class ServeCommand implements RspackCommand {
 			"run the rspack dev server.",
 			commonOptions,
 			async options => {
+				// @ts-expect-error
+				setBuiltinEnvArg(options.env, "SERVE", true);
 				const rspackOptions = {
 					...options,
 					argv: {

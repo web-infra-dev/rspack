@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import type { RspackCLI } from "../rspack-cli";
 import { RspackCommand } from "../types";
-import { commonOptions } from "../utils/options";
+import { commonOptions, setBuiltinEnvArg } from "../utils/options";
 import { MultiStats, Stats } from "@rspack/core";
 
 export class BuildCommand implements RspackCommand {
@@ -21,6 +21,15 @@ export class BuildCommand implements RspackCommand {
 					}
 				}),
 			async options => {
+				if (options.watch) {
+					// @ts-expect-error
+					setBuiltinEnvArg(options.env, "WATCH", true);
+				} else {
+					// @ts-expect-error
+					setBuiltinEnvArg(options.env, "BUNDLE", true);
+					// @ts-expect-error
+					setBuiltinEnvArg(options.env, "BUILD", true);
+				}
 				const logger = cli.getLogger();
 				let createJsonStringifyStream: typeof import("@discoveryjs/json-ext").stringifyStream;
 				if (options.json) {
