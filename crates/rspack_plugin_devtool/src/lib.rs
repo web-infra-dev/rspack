@@ -238,11 +238,9 @@ impl Plugin for SourceMapDevToolPlugin {
     let context = &compilation.options.context;
     let output_options = &compilation.options.output;
 
-    let mut tasks = vec![];
-    let mut module_to_source_name_mapping = HashMap::<ModuleOrSource, String>::default();
-
-    let mut assets: Vec<(&String, &Arc<dyn Source>)> = vec![];
-    for (file, asset) in compilation.assets() {
+    let compilation_assets = compilation.assets();
+    let mut assets: Vec<(&String, &Arc<dyn Source>)> = Vec::with_capacity(compilation_assets.len());
+    for (file, asset) in compilation_assets {
       let is_match = match &self.test {
         Some(test) => test(file.clone()).await?,
         None => true,
@@ -254,15 +252,19 @@ impl Plugin for SourceMapDevToolPlugin {
       }
     }
 
+    let mut tasks = Vec::with_capacity(assets.len());
+    let mut module_to_source_name_mapping = HashMap::<ModuleOrSource, String>::default();
+
     for (file, asset) in assets {
       let source_map = asset.map(&MapOptions::new(self.columns));
 
-      let mut modules = vec![];
-      if let Some(source_map) = &source_map {
-        for source in source_map.sources() {
+      let modules = if let Some(source_map) = &source_map {
+        let sources = source_map.sources();
+        let mut modules = Vec::with_capacity(sources.len());
+
+        for source in sources {
           let module_or_source = if let Some(stripped) = source.strip_prefix("webpack://") {
             let source = make_paths_absolute(context.as_str(), stripped);
-            // TODO: is true way to use source to find module?
             let identifier = ModuleIdentifier::from(source.clone());
             match compilation.module_graph.module_by_identifier(&identifier) {
               Some(module) => ModuleOrSource::Module(module.identifier()),
@@ -284,7 +286,10 @@ impl Plugin for SourceMapDevToolPlugin {
           module_to_source_name_mapping.insert(module_or_source.clone(), source_name);
           modules.push(module_or_source);
         }
-      }
+        modules
+      } else {
+        vec![]
+      };
       let task = SourceMapTask {
         file,
         asset,
