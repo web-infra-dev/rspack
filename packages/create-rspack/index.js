@@ -5,6 +5,7 @@ const fs = require("fs");
 const path = require("path");
 const prompts = require("prompts");
 const { formatTargetDir } = require("./utils");
+const { version } = require("./package.json");
 
 yargs(hideBin(process.argv))
 	.command("$0", "init rspack project", async argv => {
@@ -73,6 +74,9 @@ function copyFolder(src, dst) {
 
 	fs.mkdirSync(dst, { recursive: true });
 	for (const file of fs.readdirSync(src)) {
+		if (file === "node_modules") {
+			continue;
+		}
 		const srcFile = path.resolve(src, file);
 		const dstFile = renameFiles[file]
 			? path.resolve(dst, renameFiles[file])
@@ -81,7 +85,27 @@ function copyFolder(src, dst) {
 		if (stat.isDirectory()) {
 			copyFolder(srcFile, dstFile);
 		} else {
-			fs.copyFileSync(srcFile, dstFile);
+			// use create-rspack version as @rspack/xxx version in template
+			if (file === "package.json") {
+				const pkg = require(srcFile);
+				if (pkg.dependencies) {
+					for (const key of Object.keys(pkg.dependencies)) {
+						if (key.startsWith("@rspack/")) {
+							pkg.dependencies[key] = version;
+						}
+					}
+				}
+				if (pkg.devDependencies) {
+					for (const key of Object.keys(pkg.devDependencies)) {
+						if (key.startsWith("@rspack/")) {
+							pkg.devDependencies[key] = version;
+						}
+					}
+				}
+				fs.writeFileSync(dstFile, JSON.stringify(pkg, null, 2), "utf-8");
+			} else {
+				fs.copyFileSync(srcFile, dstFile);
+			}
 		}
 	}
 }
