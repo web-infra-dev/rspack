@@ -9,6 +9,7 @@ const d = <K extends keyof PluginOptions>(
 	property: K,
 	defaultValue?: PluginOptions[K]
 ) => {
+	// TODO: should we also add default for null?
 	if (
 		typeof object[property] === "undefined" &&
 		typeof defaultValue !== "undefined"

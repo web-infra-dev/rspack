@@ -42,11 +42,9 @@ class ReactRefreshRspackPlugin {
 		}).apply(compiler);
 
 		compiler.options.module.rules.unshift({
-			// @ts-expect-error
-			include: this.options.include,
-			// @ts-expect-error
+			include: this.options.include!,
 			exclude: {
-				or: [this.options.exclude, [...runtimePaths]].filter(Boolean)
+				or: [this.options.exclude!, [...runtimePaths]].filter(Boolean)
 			},
 			use: "builtin:react-refresh-loader"
 		});
