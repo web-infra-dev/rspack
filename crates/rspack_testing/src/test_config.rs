@@ -416,7 +416,10 @@ impl TestConfig {
         ),
         ..Default::default()
       },
-      resolve_loader: c::Resolve::default(),
+      resolve_loader: c::Resolve {
+        extensions: Some(vec![".js".to_string()]),
+        ..Default::default()
+      },
       builtins: c::Builtins {
         define: self.builtins.define,
         provide: self.builtins.provide,
