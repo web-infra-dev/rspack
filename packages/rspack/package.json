@@ -39,7 +39,6 @@
     "@swc/core": "^1.3.96",
     "@swc/jest": "^0.2.29",
     "@types/watchpack": "^2.4.0",
-    "@types/webpack-dev-server": "^4.7.2",
     "@types/webpack-sources": "3.2.0",
     "@types/ws": "8.5.3",
     "babel-loader": "^9.1.0",
@@ -67,6 +66,7 @@
     "webpack": "5.89.0"
   },
   "dependencies": {
+    "@types/webpack-dev-server": "^4.7.2",
     "@module-federation/runtime-tools": "0.0.0-next-20240102063242",
     "@rspack/binding": "workspace:*",
     "browserslist": "^4.21.3",
