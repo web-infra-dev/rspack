@@ -12,7 +12,8 @@ import rimraf from "rimraf";
 const DEFAULT_CASE_CONFIG: Partial<IDiffProcessorOptions> = {
 	webpackPath: require.resolve("webpack"),
 	rspackPath: require.resolve("@rspack/core"),
-	files: ["bundle.js"]
+	files: ["bundle.js"],
+	bootstrap: true
 };
 
 type TFileCompareResult = {

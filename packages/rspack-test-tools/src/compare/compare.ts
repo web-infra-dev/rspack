@@ -16,6 +16,7 @@ export interface ICompareOptions {
 	runtimeModules?: TCompareModules;
 	format: IFormatCodeOptions;
 	renameModule?: (name: string) => string;
+	bootstrap?: boolean;
 }
 
 export function compareFile(
@@ -56,8 +57,12 @@ export function compareFile(
 	// result.lines = compareContentResult.lines;
 	result.type = ECompareResultType.Different;
 
-	const sourceModules = parseModules(sourceContent);
-	const distModules = parseModules(distContent);
+	const sourceModules = parseModules(sourceContent, {
+		bootstrap: compareOptions.bootstrap
+	});
+	const distModules = parseModules(distContent, {
+		bootstrap: compareOptions.bootstrap
+	});
 
 	for (let type of ["modules", "runtimeModules"]) {
 		const t = type as "modules" | "runtimeModules";
