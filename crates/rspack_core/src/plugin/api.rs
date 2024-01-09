@@ -392,6 +392,14 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
+  async fn after_process_assets(
+    &self,
+    _ctx: PluginContext,
+    _args: ProcessAssetsArgs<'_>,
+  ) -> PluginProcessAssetsOutput {
+    Ok(())
+  }
+
   async fn optimize_chunks(
     &self,
     _ctx: PluginContext,

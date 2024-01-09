@@ -43,6 +43,7 @@ pub struct JsHooksAdapter {
   pub process_assets_stage_optimize_transfer_tsfn: ThreadsafeFunction<(), ()>,
   pub process_assets_stage_analyse_tsfn: ThreadsafeFunction<(), ()>,
   pub process_assets_stage_report_tsfn: ThreadsafeFunction<(), ()>,
+  pub after_process_assets_tsfn: ThreadsafeFunction<(), ()>,
   pub emit_tsfn: ThreadsafeFunction<(), ()>,
   pub asset_emitted_tsfn: ThreadsafeFunction<JsAssetEmittedArgs, ()>,
   pub should_emit_tsfn: ThreadsafeFunction<JsCompilation, Option<bool>>,
@@ -538,6 +539,22 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .unwrap_or_else(|err| panic!("Failed to call process assets stage report: {err}"))
   }
 
+  async fn after_process_assets(
+    &self,
+    _ctx: rspack_core::PluginContext,
+    _args: rspack_core::ProcessAssetsArgs<'_>,
+  ) -> rspack_core::PluginProcessAssetsHookOutput {
+    if self.is_hook_disabled(&Hook::AfterProcessAssets) {
+      return Ok(());
+    }
+    self
+      .after_process_assets_tsfn
+      .call((), ThreadsafeFunctionCallMode::NonBlocking)
+      .into_rspack_result()?
+      .await
+      .unwrap_or_else(|err| panic!("Failed to call process assets stage report: {err}"))
+  }
+
   async fn optimize_modules(
     &self,
     compilation: &mut rspack_core::Compilation,
@@ -855,6 +872,7 @@ impl JsHooksAdapter {
       process_assets_stage_optimize_transfer,
       process_assets_stage_analyse,
       process_assets_stage_report,
+      after_process_assets,
       this_compilation,
       compilation,
       should_emit,
@@ -913,6 +931,8 @@ impl JsHooksAdapter {
       js_fn_into_threadsafe_fn!(process_assets_stage_optimize_hash, env);
     let process_assets_stage_report_tsfn: ThreadsafeFunction<(), ()> =
       js_fn_into_threadsafe_fn!(process_assets_stage_report, env);
+    let after_process_assets_tsfn: ThreadsafeFunction<(), ()> =
+      js_fn_into_threadsafe_fn!(after_process_assets, env);
     let emit_tsfn: ThreadsafeFunction<(), ()> = js_fn_into_threadsafe_fn!(emit, env);
     let should_emit_tsfn: ThreadsafeFunction<JsCompilation, Option<bool>> =
       js_fn_into_threadsafe_fn!(should_emit, env);
@@ -982,6 +1002,7 @@ impl JsHooksAdapter {
       process_assets_stage_optimize_transfer_tsfn,
       process_assets_stage_analyse_tsfn,
       process_assets_stage_report_tsfn,
+      after_process_assets_tsfn,
       compilation_tsfn,
       this_compilation_tsfn,
       should_emit_tsfn,

@@ -323,6 +323,7 @@ export interface JsHooks {
   processAssetsStageOptimizeTransfer: (...args: any[]) => any
   processAssetsStageAnalyse: (...args: any[]) => any
   processAssetsStageReport: (...args: any[]) => any
+  afterProcessAssets: (...args: any[]) => any
   compilation: (...args: any[]) => any
   thisCompilation: (...args: any[]) => any
   emit: (...args: any[]) => any

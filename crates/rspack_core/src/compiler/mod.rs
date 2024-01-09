@@ -5,12 +5,9 @@ mod queue;
 
 use std::collections::hash_map::Entry;
 use std::ops::Deref;
-use std::{path::Path, sync::Arc};
+use std::path::Path;
+use std::sync::Arc;
 
-pub use compilation::*;
-pub use hmr::{collect_changed_modules, CompilationRecords};
-pub use make::MakeParam;
-pub use queue::*;
 use rspack_error::Result;
 use rspack_fs::AsyncWritableFileSystem;
 use rspack_futures::FuturesResults;
@@ -19,6 +16,10 @@ use rustc_hash::FxHashMap as HashMap;
 use swc_core::ecma::atoms::JsWord;
 use tracing::instrument;
 
+pub use self::compilation::*;
+pub use self::hmr::{collect_changed_modules, CompilationRecords};
+pub use self::make::MakeParam;
+pub use self::queue::*;
 use crate::cache::Cache;
 use crate::tree_shaking::symbol::{IndirectType, StarSymbolKind, DEFAULT_JS_WORD};
 use crate::tree_shaking::visitor::SymbolRef;

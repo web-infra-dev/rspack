@@ -510,6 +510,21 @@ impl PluginDriver {
     Ok(())
   }
 
+  #[instrument(name = "plugin:after_process_assets", skip_all)]
+  pub async fn after_process_assets(&self, args: ProcessAssetsArgs<'_>) -> Result<()> {
+    for plugin in &self.plugins {
+      plugin
+        .after_process_assets(
+          PluginContext::new(),
+          ProcessAssetsArgs {
+            compilation: args.compilation,
+          },
+        )
+        .await?
+    }
+    Ok(())
+  }
+
   #[instrument(name = "plugin:make", skip_all)]
   pub async fn make(
     &self,
