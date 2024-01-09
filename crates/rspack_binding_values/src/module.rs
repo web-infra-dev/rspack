@@ -5,6 +5,7 @@ use rspack_core::Module;
 use super::{JsCompatSource, ToJsCompatSource};
 use crate::JsCodegenerationResults;
 
+#[derive(Default)]
 #[napi(object)]
 pub struct JsModule {
   pub context: Option<String>,
@@ -71,7 +72,14 @@ impl ToJsModule for dyn Module + '_ {
           name_for_condition: name_for_condition(),
         })
       })
-      .map_err(|_| napi::Error::from_reason("Failed to convert module to JsModule"))
+      .or_else(|_| {
+        Ok(JsModule {
+          context: context(),
+          module_identifier: module_identifier(),
+          name_for_condition: name_for_condition(),
+          ..Default::default()
+        })
+      })
   }
 }
 
