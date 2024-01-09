@@ -938,6 +938,12 @@ importers:
         specifier: workspace:*
         version: link:../../packages/rspack
 
+  examples/plugin-compat/dist: {}
+
+  examples/plugin-compat/dist/rspack: {}
+
+  examples/plugin-compat/dist/webpack: {}
+
   examples/polyfill:
     dependencies:
       core-js:
@@ -2252,7 +2258,7 @@ importers:
         version: 2.56.1(@types/react@18.2.0)(react-dom@18.0.0)(react@18.0.0)
       '@monaco-editor/react':
         specifier: ^4.6.0
-        version: 4.6.0(monaco-editor@0.34.1)(react-dom@18.0.0)(react@18.0.0)
+        version: 4.6.0(monaco-editor@0.45.0)(react-dom@18.0.0)(react@18.0.0)
       '@rspack/cli':
         specifier: workspace:*
         version: link:../rspack-cli
@@ -2281,8 +2287,11 @@ importers:
         specifier: ^0.1.15
         version: 0.1.15
       monaco-editor:
-        specifier: ^0.34.1
-        version: 0.34.1
+        specifier: 0.45.0
+        version: 0.45.0
+      monaco-editor-webpack-plugin:
+        specifier: 7.1.0
+        version: 7.1.0(monaco-editor@0.45.0)(webpack@5.89.0)
       normalize.css:
         specifier: ^8.0.0
         version: 8.0.1
@@ -8686,24 +8695,24 @@ packages:
       '@module-federation/sdk': 0.0.0-next-20240102063242
     dev: false
 
-  /@monaco-editor/loader@1.4.0(monaco-editor@0.34.1):
+  /@monaco-editor/loader@1.4.0(monaco-editor@0.45.0):
     resolution: {integrity: sha512-00ioBig0x642hytVspPl7DbQyaSWRaolYie/UFNjoTdvoKPzo6xrXLhTk9ixgIKcLH5b5vDOjVNiGyY+uDCUlg==}
     peerDependencies:
       monaco-editor: '>= 0.21.0 < 1'
     dependencies:
-      monaco-editor: 0.34.1
+      monaco-editor: 0.45.0
       state-local: 1.0.7
     dev: true
 
-  /@monaco-editor/react@4.6.0(monaco-editor@0.34.1)(react-dom@18.0.0)(react@18.0.0):
+  /@monaco-editor/react@4.6.0(monaco-editor@0.45.0)(react-dom@18.0.0)(react@18.0.0):
     resolution: {integrity: sha512-RFkU9/i7cN2bsq/iTkurMWOEErmYcY6JiQI3Jn+WeR/FGISH8JbHERjpS9oRuSOPvDMJI0Z8nJeKkbOs9sBYQw==}
     peerDependencies:
       monaco-editor: '>= 0.25.0 < 1'
       react: ^16.8.0 || ^17.0.0 || ^18.0.0
       react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0
     dependencies:
-      '@monaco-editor/loader': 1.4.0(monaco-editor@0.34.1)
-      monaco-editor: 0.34.1
+      '@monaco-editor/loader': 1.4.0(monaco-editor@0.45.0)
+      monaco-editor: 0.45.0
       react: 18.0.0
       react-dom: 18.0.0(react@18.0.0)
     dev: true
@@ -23164,13 +23173,24 @@ packages:
       monaco-editor: 0.39.0
     dev: false
 
-  /monaco-editor@0.34.1:
-    resolution: {integrity: sha512-FKc80TyiMaruhJKKPz5SpJPIjL+dflGvz4CpuThaPMc94AyN7SeC9HQ8hrvaxX7EyHdJcUY5i4D0gNyJj1vSZQ==}
+  /monaco-editor-webpack-plugin@7.1.0(monaco-editor@0.45.0)(webpack@5.89.0):
+    resolution: {integrity: sha512-ZjnGINHN963JQkFqjjcBtn1XBtUATDZBMgNQhDQwd78w2ukRhFXAPNgWuacaQiDZsUr4h1rWv5Mv6eriKuOSzA==}
+    peerDependencies:
+      monaco-editor: '>= 0.31.0'
+      webpack: ^4.5.0 || 5.x
+    dependencies:
+      loader-utils: 2.0.4
+      monaco-editor: 0.45.0
+      webpack: 5.89.0
     dev: true
 
   /monaco-editor@0.39.0:
     resolution: {integrity: sha512-zhbZ2Nx93tLR8aJmL2zI1mhJpsl87HMebNBM6R8z4pLfs8pj604pIVIVwyF1TivcfNtIPpMXL+nb3DsBmE/x6Q==}
     dev: false
+
+  /monaco-editor@0.45.0:
+    resolution: {integrity: sha512-mjv1G1ZzfEE3k9HZN0dQ2olMdwIfaeAAjFiwNprLfYNRSz7ctv9XuCT7gPtBGrMUeV1/iZzYKj17Khu1hxoHOA==}
+    dev: true
 
   /move-concurrently@1.0.1:
     resolution: {integrity: sha512-hdrFxZOycD/g6A6SoI2bB5NA/5NEqD0569+S47WZhPvm46sD50ZHdYaFmnua5lndde9rCHGjmfK7Z8BuCt/PcQ==}

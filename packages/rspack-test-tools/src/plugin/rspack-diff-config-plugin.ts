@@ -1,11 +1,19 @@
-import { Compiler, RspackPluginInstance } from "@rspack/core";
+import {
+	Compiler,
+	RspackOptionsNormalized,
+	RspackPluginInstance
+} from "@rspack/core";
 
 const PLUGIN_NAME = "RspackDiffConfigPlugin";
 
 export class RspackDiffConfigPlugin implements RspackPluginInstance {
 	name = PLUGIN_NAME;
 
-	constructor() {
+	constructor(
+		private modifier?: (
+			options: RspackOptionsNormalized
+		) => RspackOptionsNormalized
+	) {
 		process.env["RSPACK_DIFF"] = "true"; // enable rspack diff
 	}
 
@@ -24,5 +32,9 @@ export class RspackDiffConfigPlugin implements RspackPluginInstance {
 		options.experiments ??= {};
 		options.experiments.rspackFuture ??= {};
 		options.experiments.rspackFuture.disableTransformByDefault = true;
+
+		if (typeof this.modifier === "function") {
+			this.modifier(compiler.options);
+		}
 	}
 }

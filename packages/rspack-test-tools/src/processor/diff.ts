@@ -23,6 +23,8 @@ export interface IDiffProcessorOptions extends IFormatCodeOptions {
 	files?: string[];
 	modules?: TCompareModules;
 	runtimeModules?: TCompareModules;
+	bootstrap?: boolean;
+	detail?: boolean;
 	onCompareFile?: (file: string, result: TFileCompareResult) => void;
 	onCompareModules?: (file: string, results: TModuleCompareResult[]) => void;
 	onCompareRuntimeModules?: (
@@ -81,7 +83,9 @@ export class DiffProcessor implements ITestProcessor {
 				modules: this.options.modules,
 				runtimeModules: this.options.runtimeModules,
 				format: this.createFormatOptions(),
-				renameModule: replaceRuntimeModuleName
+				renameModule: replaceRuntimeModuleName,
+				bootstrap: this.options.bootstrap,
+				detail: this.options.detail
 			});
 			if (typeof this.options.onCompareFile === "function") {
 				this.options.onCompareFile(file, result);
