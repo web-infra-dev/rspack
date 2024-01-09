@@ -163,7 +163,7 @@ impl WorkerTask for FactorizeTask {
             .with_diagnostics(diagnostics)
             .with_file_dependencies(create_data.file_dependencies.drain())
             .with_missing_dependencies(create_data.missing_dependencies.drain())
-            .with_context_dependencies(create_data.missing_dependencies.drain()),
+            .with_context_dependencies(create_data.context_dependencies.drain()),
         )))
       }
       Err(mut e) => {
@@ -188,7 +188,7 @@ impl WorkerTask for FactorizeTask {
             .with_diagnostics(diagnostics)
             .with_file_dependencies(create_data.file_dependencies.drain())
             .with_missing_dependencies(create_data.missing_dependencies.drain())
-            .with_context_dependencies(create_data.missing_dependencies.drain()),
+            .with_context_dependencies(create_data.context_dependencies.drain()),
         )))
       }
     }

@@ -57,11 +57,9 @@ impl Resource {
 
 /// Main entry point for module resolution.
 pub async fn resolve(
-  args: ResolveArgs<'_>,
+  mut args: ResolveArgs<'_>,
   plugin_driver: &SharedPluginDriver,
 ) -> Result<ResolveResult, Error> {
-  let mut args = args;
-
   let dep = ResolveOptionsWithDependencyType {
     resolve_options: args.resolve_options.take(),
     resolve_to_context: args.resolve_to_context,
@@ -71,14 +69,16 @@ pub async fn resolve(
   let base_dir = args.context.clone();
   let base_dir = base_dir.as_ref();
 
+  let mut context = Default::default();
   let resolver = plugin_driver.resolver_factory.get(dep);
   let result = resolver
-    .resolve(base_dir, args.specifier)
+    .resolve_with_context(base_dir, args.specifier, &mut context)
     .map_err(|error| error.into_resolve_error(&args));
 
-  let (file_dependencies, missing_dependencies) = resolver.dependencies();
-  args.file_dependencies.extend(file_dependencies);
-  args.missing_dependencies.extend(missing_dependencies);
+  args.file_dependencies.extend(context.file_dependencies);
+  args
+    .missing_dependencies
+    .extend(context.missing_dependencies);
 
   result
 }
