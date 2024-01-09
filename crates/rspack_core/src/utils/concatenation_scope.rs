@@ -21,9 +21,9 @@ const MODULE_REFERENCE_REGEXP: Lazy<Regex> = once_cell::sync::Lazy::new(|| {
 });
 
 pub struct ModuleReferenceOptions {
-  pub ids: Option<Vec<String>>,
-  pub call: Option<bool>,
-  pub direct_import: Option<bool>,
+  pub ids: Vec<String>,
+  pub call: bool,
+  pub direct_import: bool,
   pub asi_safe: Option<bool>,
   pub index: usize,
 }
@@ -89,11 +89,11 @@ impl ConcatenationScope {
       .expect("should have module info");
 
     let call_flag = match options.call {
-      Some(true) => "_call",
+      true => "_call",
       _ => "",
     };
     let direct_import_flag = match options.direct_import {
-      Some(true) => "_directImport",
+      true => "_directImport",
       _ => "",
     };
     let asi_safe_flag = match options.asi_safe {
@@ -102,8 +102,8 @@ impl ConcatenationScope {
       None => "",
     };
 
-    let export_data = if let Some(ids) = &options.ids {
-      hex::encode(serde_json::to_string(ids).expect("should serialize to json string"))
+    let export_data = if options.ids.len() > 0 {
+      hex::encode(serde_json::to_string(&options.ids).expect("should serialize to json string"))
     } else {
       "ns".to_string()
     };
@@ -125,16 +125,14 @@ impl ConcatenationScope {
   pub fn match_module_reference(name: &str) -> Option<ModuleReferenceOptions> {
     if let Some(captures) = MODULE_REFERENCE_REGEXP.captures(name) {
       let index: usize = captures[1].parse().expect("");
-      let ids: Option<Vec<String>> = if &captures[2] == "ns" {
-        Some(vec![])
+      let ids: Vec<String> = if &captures[2] == "ns" {
+        vec![]
       } else {
-        Some(
-          serde_json::from_slice(&hex::decode(&captures[2]).expect("should decode hex"))
-            .expect("should have deserialize"),
-        )
+        serde_json::from_slice(&hex::decode(&captures[2]).expect("should decode hex"))
+          .expect("should have deserialize")
       };
-      let call = Some(captures.get(3).is_some());
-      let direct_import = Some(captures.get(4).is_some());
+      let call = captures.get(3).is_some();
+      let direct_import = captures.get(4).is_some();
       let asi_safe = captures.get(5).map(|s| s.as_str() == "1");
       Some(ModuleReferenceOptions {
         ids,

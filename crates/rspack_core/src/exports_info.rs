@@ -204,8 +204,6 @@ impl ExportsInfoId {
     changed
   }
 
-  /// # Panic
-  /// this function would panic if name doesn't exists in current exportsInfo
   pub fn get_read_only_export_info<'a>(&self, name: &Atom, mg: &'a ModuleGraph) -> &'a ExportInfo {
     let exports_info = mg.get_exports_info_by_id(self);
     let redirect_id = exports_info.redirect_to;
