@@ -34,11 +34,12 @@ use swc_node_comments::SwcComments;
 
 use crate::{
   concatenated_module, filter_runtime, merge_runtime_condition, merge_runtime_condition_non_false,
-  reserverd_names::RESERVED_NAMES, subtract_runtime_condition, AsyncDependenciesBlockIdentifier,
-  BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult, ChunkInitFragments,
-  CodeGenerationResult, Compilation, ConcatenationScope, ConnectionId, ConnectionState, Context,
-  DependenciesBlock, DependencyId, DependencyTemplate, ErrorSpan, FactoryMeta, LibIdentOptions,
-  Module, ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ModuleType,
+  module_factory, reserverd_names::RESERVED_NAMES, subtract_runtime_condition,
+  AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
+  ChunkInitFragments, CodeGenerationResult, Compilation, ConcatenatedModuleIdent,
+  ConcatenationScope, ConnectionId, ConnectionState, Context, DependenciesBlock, DependencyId,
+  DependencyTemplate, ErrorSpan, FactoryMeta, IdentCollector, LibIdentOptions, Module,
+  ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ModuleType,
   ParserAndGenerator, Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType, Template,
   DEFAULT_EXPORT, NAMESPACE_OBJECT_EXPORT,
 };
@@ -93,6 +94,7 @@ impl ConnectionOrModuleIdent {
     }
   }
 }
+
 pub struct ConcatenationEntry {
   ty: ConcatenationEntryType,
   /// I do want to align with webpack, but https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L1018-L1027
@@ -130,6 +132,9 @@ pub struct ConcatenatedModuleInfo {
   pub interop_namespace_object2_name: Option<String>,
   pub interop_default_access_used: bool,
   pub interop_default_access_name: Option<String>,
+  pub module_scope_ident: Vec<ConcatenatedModuleIdent>,
+  pub global_scope_ident: Vec<ConcatenatedModuleIdent>,
+  pub idents: Vec<ConcatenatedModuleIdent>,
 }
 
 // * @property {boolean} interopNamespaceObjectUsed
@@ -153,6 +158,16 @@ pub struct ConnectionWithRuntimeCondition {
 pub enum ModuleInfo {
   External(ExternalModuleInfo),
   Concatenated(ConcatenatedModuleInfo),
+}
+
+impl ModuleInfo {
+  pub fn as_concatenated_mut(&mut self) -> Option<&mut ConcatenatedModuleInfo> {
+    if let Self::Concatenated(ref mut v) = self {
+      Some(v)
+    } else {
+      None
+    }
+  }
 }
 
 #[derive(Debug)]
@@ -419,6 +434,31 @@ impl Module for ConcatenatedModule {
     }
 
     let all_used_name = HashSet::from_iter(RESERVED_NAMES.iter().map(|item| Atom::from(*item)));
+
+    for module in modules_with_info.iter() {
+      let ModuleInfoOrReference::Concatenated(m) = module else {
+        continue;
+      };
+      let mut info = module_to_info_map
+        .get_mut(&m.module)
+        .and_then(|info| info.as_concatenated_mut())
+        .expect("should have concatenate info");
+      if let Some(ref ast) = info.ast {
+        let mut collector = IdentCollector::default();
+        ast.visit(|program, ctxt| {
+          program.visit_with(&mut collector);
+        });
+        for ident in collector.ids {
+          if ident.id.span.ctxt == info.module_ctxt {
+            info.module_scope_ident.push(ident.clone());
+          }
+          if ident.id.span.ctxt == info.global_ctxt {
+            info.global_scope_ident.push(ident.clone());
+          }
+          info.idents.push(ident);
+        }
+      }
+    }
 
     // TODO: top_level declaration, do we need this?
 

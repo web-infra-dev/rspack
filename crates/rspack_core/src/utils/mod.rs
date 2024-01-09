@@ -9,6 +9,7 @@ use crate::{
 };
 
 mod comment;
+mod concatenated_module_visitor;
 mod concatenation_scope;
 mod extract_url_and_global;
 mod fast_actions;
@@ -25,6 +26,7 @@ mod source;
 mod template;
 mod to_path;
 mod visitor;
+pub use concatenated_module_visitor::*;
 pub use concatenation_scope::*;
 
 pub use self::comment::*;
