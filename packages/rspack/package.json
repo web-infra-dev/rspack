@@ -67,7 +67,7 @@
     "webpack": "5.89.0"
   },
   "dependencies": {
-    "@module-federation/runtime-tools": "0.0.0-next-20240102063242",
+    "@module-federation/runtime-tools": "0.0.8",
     "@rspack/binding": "workspace:*",
     "browserslist": "^4.21.3",
     "enhanced-resolve": "5.12.0",
