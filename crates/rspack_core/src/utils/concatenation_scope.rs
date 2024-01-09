@@ -20,11 +20,12 @@ const MODULE_REFERENCE_REGEXP: Lazy<Regex> = once_cell::sync::Lazy::new(|| {
   .unwrap()
 });
 
-struct ModuleReferenceOptions {
-  ids: Option<Vec<String>>,
-  call: Option<bool>,
-  direct_import: Option<bool>,
-  asi_safe: Option<bool>,
+pub struct ModuleReferenceOptions {
+  pub ids: Option<Vec<String>>,
+  pub call: Option<bool>,
+  pub direct_import: Option<bool>,
+  pub asi_safe: Option<bool>,
+  pub index: usize,
 }
 
 #[derive(Debug, Clone)]
@@ -123,7 +124,7 @@ impl ConcatenationScope {
 
   pub fn match_module_reference(name: &str) -> Option<ModuleReferenceOptions> {
     if let Some(captures) = MODULE_REFERENCE_REGEXP.captures(name) {
-      let index: usize = captures[1].parse().unwrap();
+      let index: usize = captures[1].parse().expect("");
       let ids: Option<Vec<String>> = if &captures[2] == "ns" {
         Some(vec![])
       } else {
@@ -140,6 +141,7 @@ impl ConcatenationScope {
         call,
         direct_import,
         asi_safe,
+        index,
       })
     } else {
       None

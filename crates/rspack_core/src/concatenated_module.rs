@@ -449,18 +449,27 @@ impl Module for ConcatenatedModule {
           program.visit_with(&mut collector);
         });
         for ident in collector.ids {
+          let mut is_global_ident = false;
           if ident.id.span.ctxt == info.module_ctxt {
             info.module_scope_ident.push(ident.clone());
           }
           if ident.id.span.ctxt == info.global_ctxt {
             info.global_scope_ident.push(ident.clone());
+
+            is_global_ident = true;
+          }
+
+          if is_global_ident && ConcatenationScope::is_module_reference(&ident.id.sym) {
+            let Some(matched) = ConcatenationScope::match_module_reference(&ident.id.sym) else {
+              continue;
+            };
+            let related_info = &modules_with_info[matched.index];
+          } else {
           }
           info.idents.push(ident);
         }
       }
     }
-
-    // TODO: top_level declaration, do we need this?
 
     todo!()
     // if let NormalModuleSource::BuiltSucceed(source) = &self.source {
@@ -511,6 +520,282 @@ impl Module for ConcatenatedModule {
     //   ))
     // }
   }
+
+  // fn get_final_binding(
+  //   module_graph: &ModuleGraph,
+  //   info: &ModuleInfo,
+  //   mut export_name: Vec<String>,
+  //   module_to_info_map: &HashMap<Rc<Module>, ModuleInfo>,
+  //   runtime: &RuntimeSpec,
+  //   request_shortener: &RequestShortener,
+  //   runtime_template: &RuntimeTemplate,
+  //   needed_namespace_objects: &mut HashSet<ConcatenatedModuleInfo>,
+  //   as_call: bool,
+  //   strict_harmony_module: bool,
+  //   asi_safe: Option<bool>,
+  //   already_visited: &mut HashSet<ExportInfo>,
+  // ) -> Binding {
+  //   let exports_type = info
+  //     .module
+  //     .get_exports_type(module_graph, strict_harmony_module);
+  //
+  //   if export_name.is_empty() {
+  //     match exports_type {
+  //       "default-only" => {
+  //         info.interop_namespace_object2_used = true;
+  //         return Binding {
+  //           info: info.clone(),
+  //           raw_name: info.interop_namespace_object2_name.clone(),
+  //           ids: export_name.clone(),
+  //           export_name,
+  //         };
+  //       }
+  //       "default-with-named" => {
+  //         info.interop_namespace_object_used = true;
+  //         return Binding {
+  //           info: info.clone(),
+  //           raw_name: info.interop_namespace_object_name.clone(),
+  //           ids: export_name.clone(),
+  //           export_name,
+  //         };
+  //       }
+  //       "namespace" | "dynamic" => {}
+  //       _ => panic!("Unexpected exportsType {}", exports_type),
+  //     }
+  //   } else {
+  //     match exports_type {
+  //       "namespace" => {}
+  //       "default-with-named" => match export_name.remove(0).as_str() {
+  //         "default" => {}
+  //         "__esModule" => {
+  //           return Binding {
+  //             info: info.clone(),
+  //             raw_name: "/* __esModule */true".to_string(),
+  //             ids: export_name.clone(),
+  //             export_name,
+  //           };
+  //         }
+  //         _ => {}
+  //       },
+  //       "default-only" => {
+  //         if export_name[0] == "__esModule" {
+  //           return Binding {
+  //             info: info.clone(),
+  //             raw_name: "/* __esModule */true".to_string(),
+  //             ids: export_name.clone(),
+  //             export_name,
+  //           };
+  //         }
+  //
+  //         let export_id = export_name.remove(0);
+  //         if export_id != "default" {
+  //           return Binding {
+  //             info: info.clone(),
+  //             raw_name: "/* non-default import from default-exporting module */undefined"
+  //               .to_string(),
+  //             ids: export_name.clone(),
+  //             export_name,
+  //           };
+  //         }
+  //       }
+  //       "dynamic" => match export_name.remove(0).as_str() {
+  //         "default" => {
+  //           info.interop_default_access_used = true;
+  //           let default_export = if as_call {
+  //             format!("{}()", info.interop_default_access_name)
+  //           } else if let Some(true) = asi_safe {
+  //             format!("({}())", info.interop_default_access_name)
+  //           } else if let Some(false) = asi_safe {
+  //             format!(";({}())", info.interop_default_access_name)
+  //           } else {
+  //             format!("{}.a", info.interop_default_access_name)
+  //           };
+  //
+  //           return Binding {
+  //             info: info.clone(),
+  //             raw_name: default_export,
+  //             ids: export_name.clone(),
+  //             export_name,
+  //           };
+  //         }
+  //         "__esModule" => {
+  //           return Binding {
+  //             info: info.clone(),
+  //             raw_name: "/* __esModule */true".to_string(),
+  //             ids: export_name.clone(),
+  //             export_name,
+  //           };
+  //         }
+  //         _ => {}
+  //       },
+  //       _ => panic!("Unexpected exportsType {}", exports_type),
+  //     }
+  //   }
+  //
+  //   if export_name.is_empty() {
+  //     match info._type.as_str() {
+  //       "concatenated" => {
+  //         needed_namespace_objects.insert(info.clone());
+  //         return Binding {
+  //           info: info.clone(),
+  //           raw_name: info.namespace_object_name.clone(),
+  //           ids: export_name.clone(),
+  //           export_name,
+  //         };
+  //       }
+  //       "external" => {
+  //         return Binding {
+  //           info: info.clone(),
+  //           raw_name: info.name.clone(),
+  //           ids: export_name.clone(),
+  //           export_name,
+  //         };
+  //       }
+  //       _ => {}
+  //     }
+  //   }
+  //
+  //   let exports_info = module_graph.get_exports_info(info.module);
+  //   let export_info = exports_info.get_export_info(&export_name[0]);
+  //
+  //   if already_visited.contains(export_info) {
+  //     return Binding {
+  //       info: info.clone(),
+  //       raw_name: "/* circular reexport */ Object(function x() { x() }())".to_string(),
+  //       ids: Vec::new(),
+  //       export_name,
+  //     };
+  //   }
+  //
+  //   already_visited.insert(export_info.clone());
+  //
+  //   match info._type.as_str() {
+  //     "concatenated" => {
+  //       let export_id = export_name.remove(0);
+  //
+  //       if !export_info.provided {
+  //         needed_namespace_objects.insert(info.clone());
+  //         return Binding {
+  //           info: info.clone(),
+  //           raw_name: info.namespace_object_name.clone(),
+  //           ids: export_name.clone(),
+  //           export_name,
+  //         };
+  //       }
+  //
+  //       if let Some(direct_export) = info.export_map.get(&export_id) {
+  //         if let Some(used_name) = exports_info.get_used_name(&export_name, runtime) {
+  //           if used_name.is_empty() {
+  //             return Binding {
+  //               info: info.clone(),
+  //               raw_name: "/* unused export */ undefined".to_string(),
+  //               ids: export_name.clone(),
+  //               export_name,
+  //             };
+  //           }
+  //
+  //           return Binding {
+  //             info: info.clone(),
+  //             raw_name: direct_export.clone(),
+  //             ids: used_name[1..].to_vec(),
+  //             export_name,
+  //           };
+  //         }
+  //       }
+  //
+  //       if let Some(raw_export) = info.raw_export_map.get(&export_id) {
+  //         return Binding {
+  //           info: info.clone(),
+  //           raw_name: raw_export.clone(),
+  //           ids: export_name.clone(),
+  //           export_name,
+  //         };
+  //       }
+  //
+  //       if let Some(reexport) = export_info.find_target(module_graph, |module| {
+  //         module_to_info_map.contains_key(module)
+  //       }) {
+  //         if reexport.is_false() {
+  //           panic!(
+  //             "Target module of reexport is not part of the concatenation (export '{}')",
+  //             export_id
+  //           );
+  //         }
+  //
+  //         if let Some(ref_info) = module_to_info_map.get(&reexport.module) {
+  //           return get_final_binding(
+  //             module_graph,
+  //             ref_info,
+  //             if let Some(reexport_export) = reexport.export {
+  //               [&reexport_export[..], &export_name[1..]].concat()
+  //             } else {
+  //               export_name[1..].to_vec()
+  //             },
+  //             module_to_info_map,
+  //             runtime,
+  //             request_shortener,
+  //             runtime_template,
+  //             needed_namespace_objects,
+  //             as_call,
+  //             info.module.build_meta.strict_harmony_module,
+  //             asi_safe,
+  //             already_visited,
+  //           );
+  //         }
+  //       }
+  //
+  //       if let Some(namespace_export_symbol) = info.namespace_export_symbol.as_ref() {
+  //         if let Some(used_name) = exports_info.get_used_name(&export_name, runtime) {
+  //           return Binding {
+  //             info: info.clone(),
+  //             raw_name: info.namespace_object_name.clone(),
+  //             ids: used_name.clone(),
+  //             export_name,
+  //           };
+  //         }
+  //       }
+  //
+  //       panic!(
+  //         "Cannot get final name for export '{}'",
+  //         export_name.join(".")
+  //       );
+  //     }
+  //     "external" => {
+  //       if let Some(used_name) = exports_info.get_used_name(&export_name, runtime) {
+  //         if used_name.is_empty() {
+  //           return Binding {
+  //             info: info.clone(),
+  //             raw_name: "/* unused export */ undefined".to_string(),
+  //             ids: export_name[1..].to_vec(),
+  //             export_name,
+  //           };
+  //         }
+  //
+  //         let comment = if used_name == export_name {
+  //           String::new()
+  //         } else {
+  //           format!(" /* {} */", export_name.join("."))
+  //         };
+  //
+  //         return Binding {
+  //           info: info.clone(),
+  //           raw_name: format!("{}{}", info.name, comment),
+  //           ids: used_name[1..].to_vec(),
+  //           export_name,
+  //         };
+  //       }
+  //     }
+  //     _ => {}
+  //   }
+  //
+  //   // Dummy return value, replace with the actual return value
+  //   Binding {
+  //     info: info.clone(),
+  //     raw_name: String::new(),
+  //     ids: Vec::new(),
+  //     export_name: Vec::new(),
+  //   }
+  // }
 
   fn name_for_condition(&self) -> Option<Box<str>> {
     self.root_module_ctxt.name_for_condition.clone()
