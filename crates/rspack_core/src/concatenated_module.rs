@@ -1223,7 +1223,6 @@ impl ConcatenatedModule {
           }
           _ => {}
         },
-        _ => panic!("Unexpected exportsType {:?}", exports_type),
       }
     }
 
