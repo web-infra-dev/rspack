@@ -680,6 +680,15 @@ pub enum UsedName {
   Vec(Vec<Atom>),
 }
 
+impl UsedName {
+  pub fn to_used_name_vec(self) -> Vec<Atom> {
+    match self {
+      UsedName::Str(atom) => vec![atom],
+      UsedName::Vec(vec) => vec,
+    }
+  }
+}
+
 pub fn string_of_used_name(used: Option<&UsedName>) -> String {
   match used {
     Some(UsedName::Str(str)) => str.to_string(),
@@ -1037,6 +1046,14 @@ impl ExportInfoId {
 
   pub fn set_used_name(&self, mg: &mut ModuleGraph, name: Atom) {
     mg.get_export_info_mut_by_id(self).set_used_name(name)
+  }
+
+  pub(crate) fn find_target(
+    &self,
+    mg: &ModuleGraph,
+    module: impl Fn(&rspack_identifier::Identifier) -> bool,
+  ) -> Option<ResolvedExportInfoTarget> {
+    todo!()
   }
 }
 impl Default for ExportInfoId {

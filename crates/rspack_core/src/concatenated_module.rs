@@ -41,8 +41,9 @@ use crate::{
   ConcatenationScope, ConnectionId, ConnectionState, Context, DependenciesBlock, DependencyId,
   DependencyTemplate, ErrorSpan, ExportInfoId, ExportsType, FactoryMeta, IdentCollector,
   LibIdentOptions, Module, ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleIdentifier,
-  ModuleType, ParserAndGenerator, Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec,
-  SourceType, Template, DEFAULT_EXPORT, NAMESPACE_OBJECT_EXPORT,
+  ModuleType, ParserAndGenerator, ProvidedExports, Resolve, RuntimeCondition, RuntimeGlobals,
+  RuntimeSpec, SourceType, Template, UsedByExports, UsedName, DEFAULT_EXPORT,
+  NAMESPACE_OBJECT_EXPORT,
 };
 
 #[derive(Debug)]
@@ -59,14 +60,28 @@ pub struct RootModuleContext {
   build_meta: Option<BuildMeta>,
 }
 
-#[derive(Debug)]
-pub struct Binding {
-  ty: BindingType,
+#[derive(Debug, Clone)]
+pub struct RawBinding {
   info_id: ModuleIdentifier,
   raw_name: Atom,
   comment: Option<String>,
   ids: Vec<Atom>,
   export_name: Vec<Atom>,
+}
+
+#[derive(Debug, Clone)]
+pub struct SymbolBinding {
+  info_id: ModuleIdentifier,
+  name: Atom,
+  comment: Option<String>,
+  ids: Vec<Atom>,
+  export_name: Vec<Atom>,
+}
+
+#[derive(Debug, Clone)]
+pub enum Binding {
+  Raw(RawBinding),
+  Symbol(SymbolBinding),
 }
 
 #[derive(Debug)]
@@ -1075,10 +1090,8 @@ impl ConcatenatedModule {
     mg: &ModuleGraph,
     info_id: &ModuleIdentifier,
     mut export_name: Vec<Atom>,
-    module_to_info_map: &HashMap<ModuleIdentifier, ModuleInfo>,
+    module_to_info_map: &mut HashMap<ModuleIdentifier, ModuleInfo>,
     runtime: &RuntimeSpec,
-    request_shortener: &RequestShortener,
-    runtime_template: &RuntimeTemplate,
     needed_namespace_objects: &mut HashSet<ModuleIdentifier>,
     as_call: bool,
     strict_harmony_module: bool,
@@ -1096,80 +1109,85 @@ impl ConcatenatedModule {
     if export_name.is_empty() {
       match exports_type {
         ExportsType::DefaultOnly => {
+          // shadowing the previous immutable ref to avoid violating rustc borrow rules
+          let info = module_to_info_map
+            .get_mut(info_id)
+            .expect("should have module info");
           info.set_interop_namespace_object2_used(true);
           let raw_name = info.get_interop_namespace_object2_name();
-          return Binding {
-            ty: BindingType::Raw,
+          return Binding::Raw(RawBinding {
             info_id: info.id(),
             raw_name: raw_name.cloned().expect("should have raw name"),
             ids: export_name.clone(),
             export_name,
             comment: None,
-          };
+          });
         }
         ExportsType::DefaultWithNamed => {
+          // shadowing the previous immutable ref to avoid violating rustc borrow rules
+          let info = module_to_info_map
+            .get_mut(info_id)
+            .expect("should have module info");
           info.set_interop_namespace_object_used(true);
           let raw_name = info
             .get_interop_namespace_object_name()
             .expect("should have interop_namespace_object_name");
-          return Binding {
+          return Binding::Raw(RawBinding {
             info_id: info.id(),
             raw_name: raw_name.clone(),
             ids: export_name.clone(),
             export_name,
-            ty: BindingType::Raw,
             comment: None,
-          };
+          });
         }
         _ => {}
       }
     } else {
       match exports_type {
         ExportsType::Namespace => {}
-        ExportsType::DefaultWithNamed => {
-          match export_name.first().cloned().map(|atom| atom.as_str()) {
-            Some("default") => {
-              export_name = export_name[1..].to_vec();
-            }
-            Some("__esModule") => {
-              return Binding {
-                info_id: info.id(),
-                raw_name: "/* __esModule */true".into(),
-                ids: export_name[1..].to_vec(),
-                export_name,
-                ty: BindingType::Raw,
-                comment: None,
-              };
-            }
-            _ => {}
+        ExportsType::DefaultWithNamed => match export_name.first().map(|atom| atom.as_str()) {
+          Some("default") => {
+            export_name = export_name[1..].to_vec();
           }
-        }
-        ExportsType::DefaultOnly => {
-          if export_name.first().map(|item| item.as_str()) == Some("__esModule") {
-            return Binding {
+          Some("__esModule") => {
+            return Binding::Raw(RawBinding {
               info_id: info.id(),
               raw_name: "/* __esModule */true".into(),
               ids: export_name[1..].to_vec(),
               export_name,
-              ty: BindingType::Raw,
               comment: None,
-            };
+            });
+          }
+          _ => {}
+        },
+        ExportsType::DefaultOnly => {
+          if export_name.first().map(|item| item.as_str()) == Some("__esModule") {
+            return Binding::Raw(RawBinding {
+              info_id: info.id(),
+              raw_name: "/* __esModule */true".into(),
+              ids: export_name[1..].to_vec(),
+              export_name,
+              comment: None,
+            });
           }
 
           let first_export_id = export_name.remove(0);
           if first_export_id != "default" {
-            return Binding {
+            return Binding::Raw(RawBinding {
               raw_name: "/* non-default import from default-exporting module */undefined".into(),
               ids: export_name.clone(),
               export_name,
-              ty: BindingType::Raw,
               info_id: info.id(),
               comment: None,
-            };
+            });
           }
         }
         ExportsType::Dynamic => match export_name.first().map(|atom| atom.as_str()) {
           Some("default") => {
+            // shadowing the previous immutable ref to avoid violating rustc borrow rules
+            let info = module_to_info_map
+              .get_mut(info_id)
+              .expect("should have module info");
             info.set_interop_default_access_used(true);
             export_name = export_name[1..].to_vec();
             // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/ConcatenatedModule.js#L335-L341
@@ -1186,24 +1204,22 @@ impl ConcatenatedModule {
               format!("{}.a", default_access_name)
             };
 
-            return Binding {
+            return Binding::Raw(RawBinding {
               raw_name: default_export.into(),
               ids: export_name.clone(),
               export_name,
-              ty: BindingType::Raw,
               info_id: info.id(),
               comment: None,
-            };
+            });
           }
           Some("__esModule") => {
-            return Binding {
+            return Binding::Raw(RawBinding {
               raw_name: "/* __esModule */true".into(),
               ids: export_name[1..].to_vec(),
               export_name,
-              ty: BindingType::Raw,
               info_id: info.id(),
               comment: None,
-            };
+            });
           }
           _ => {}
         },
@@ -1215,7 +1231,7 @@ impl ConcatenatedModule {
       match info {
         ModuleInfo::Concatenated(info) => {
           needed_namespace_objects.insert(info.module);
-          return Binding {
+          return Binding::Raw(RawBinding {
             raw_name: info
               .namespace_object_name
               .clone()
@@ -1223,20 +1239,18 @@ impl ConcatenatedModule {
               .into(),
             ids: export_name.clone(),
             export_name,
-            ty: BindingType::Raw,
             info_id: info.module,
             comment: None,
-          };
+          });
         }
         ModuleInfo::External(info) => {
-          return Binding {
-            raw_name: info.name.expect("should have raw name"),
+          return Binding::Raw(RawBinding {
+            raw_name: info.name.clone().expect("should have raw name"),
             ids: export_name.clone(),
             export_name,
-            ty: BindingType::Raw,
             info_id: info.module,
             comment: None,
-          };
+          });
         }
         _ => {}
       }
@@ -1251,14 +1265,13 @@ impl ConcatenatedModule {
       .id;
 
     if already_visited.contains(&export_info_id) {
-      return Binding {
+      return Binding::Raw(RawBinding {
         raw_name: "/* circular reexport */ Object(function x() { x() }())".into(),
         ids: Vec::new(),
         export_name,
-        ty: BindingType::Raw,
         info_id: info.id(),
         comment: None,
-      };
+      });
     }
 
     already_visited.insert(export_info_id);
@@ -1266,89 +1279,97 @@ impl ConcatenatedModule {
 
     match info {
       ModuleInfo::Concatenated(info) => {
-        let export_id = export_name.remove(0);
-
-        if !export_info_id.provided {
+        let export_id = export_name.first().cloned();
+        let export_info = export_info_id.get_export_info(mg);
+        if matches!(export_info.provided, Some(crate::ExportInfoProvided::False)) {
           needed_namespace_objects.insert(info.module);
-          return Binding {
+          return Binding::Raw(RawBinding {
             raw_name: info
               .namespace_object_name
               .clone()
-              .expect("should have namespace_object_name"),
+              .expect("should have namespace_object_name")
+              .into(),
             ids: export_name.clone(),
             export_name,
-            ty: BindingType::Raw,
             info_id: info.module,
             comment: None,
-          };
+          });
         }
 
-        if let Some(direct_export) = info.export_map.get(&export_id) {
-          if let Some(used_name) = exports_info.get_used_name(&export_name, runtime) {
-            if used_name.is_empty() {
-              return Binding {
-                raw_name: "/* unused export */ undefined".to_string().into(),
-                ids: export_name.clone(),
-                export_name,
-                ty: BindingType::Raw,
-                info_id: todo!(),
-                comment: todo!(),
-              };
-            }
+        if let Some(ref export_id) = export_id
+          && let Some(direct_export) = info.export_map.as_ref().and_then(|map| map.get(&export_id))
+        {
+          if let Some(used_name) =
+            exports_info
+              .id
+              .get_used_name(mg, Some(runtime), UsedName::Vec(export_name.clone()))
+          {
+            // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L402-L404
+            let used_name = used_name.to_used_name_vec();
 
-            return Binding {
-              info_id: info.id(),
-              raw_name: direct_export.clone(),
+            return Binding::Symbol(SymbolBinding {
+              info_id: info.module,
+              name: direct_export.as_str().into(),
               ids: used_name[1..].to_vec(),
               export_name,
-              ty: BindingType::Raw,
               comment: None,
-            };
+            });
+          } else {
+            return Binding::Raw(RawBinding {
+              raw_name: "/* unused export */ undefined".to_string().into(),
+              ids: export_name[1..].to_vec(),
+              export_name,
+              info_id: info.module,
+              comment: None,
+            });
           }
         }
 
-        if let Some(raw_export) = info
-          .raw_export_map
-          .as_ref()
-          .expect("should have raw export map")
-          .get(&export_id)
+        if let Some(export_id) = export_id
+          && let Some(raw_export) = info
+            .raw_export_map
+            .as_ref()
+            .and_then(|map| map.get(&export_id))
         {
-          return Binding {
+          return Binding::Raw(RawBinding {
             info_id: info.module,
-            raw_name: raw_export.clone().into(),
+            raw_name: raw_export.as_str().into(),
             ids: export_name.clone(),
             export_name,
-            ty: BindingType::Raw,
             comment: None,
-          };
+          });
         }
 
         if let Some(reexport) =
           export_info_id.find_target(mg, |module| module_to_info_map.contains_key(module))
         {
-          if reexport.is_false() {
-            panic!(
-              "Target module of reexport is not part of the concatenation (export '{}')",
-              export_id
-            );
-          }
+          // TODO:
+          // if reexport.is_false() {
+          //   panic!(
+          //     "Target module of reexport is not part of the concatenation (export '{}')",
+          //     export_id
+          //   );
+          // }
 
           if let Some(ref_info) = module_to_info_map.get(&reexport.module) {
+            // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L457
+            let build_meta = mg
+              .module_by_identifier(&ref_info.id())
+              .and_then(|m| m.build_meta())
+              .expect("should have module meta");
             return Self::get_final_binding(
               mg,
-              ref_info,
+              &ref_info.id(),
               if let Some(reexport_export) = reexport.export {
-                [&reexport_export[..], &export_name[1..]].concat()
+                [reexport_export.clone(), export_name[1..].to_vec()].concat()
               } else {
                 export_name[1..].to_vec()
               },
               module_to_info_map,
               runtime,
-              request_shortener,
-              runtime_template,
               needed_namespace_objects,
               as_call,
-              info.module.build_meta.strict_harmony_module,
+              build_meta.strict_harmony_module,
               asi_safe,
               already_visited,
             );
@@ -1356,20 +1377,24 @@ impl ConcatenatedModule {
         }
 
         if let Some(namespace_export_symbol) = info.namespace_export_symbol.as_ref() {
-          if let Some(used_name) = exports_info.id.get_used_name(mg, &export_name, runtime) {
-            return Binding {
-              info_id: info.module,
-              raw_name: info
-                .namespace_object_name
-                .expect("should have raw name")
-                .clone()
-                .into(),
-              ids: used_name.clone(),
-              export_name,
-              ty: BindingType::Raw,
-              comment: None,
-            };
-          }
+          // That's how webpack write https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L463-L471
+          let used_name = exports_info
+            .id
+            .get_used_name(mg, Some(runtime), UsedName::Vec(export_name.clone()))
+            .expect("should have export name");
+          let used_name = used_name.to_used_name_vec();
+          return Binding::Raw(RawBinding {
+            info_id: info.module,
+            raw_name: info
+              .namespace_object_name
+              .as_ref()
+              .expect("should have raw name")
+              .as_str()
+              .into(),
+            ids: used_name,
+            export_name,
+            comment: None,
+          });
         }
 
         panic!(
@@ -1378,54 +1403,42 @@ impl ConcatenatedModule {
         );
       }
       ModuleInfo::External(info) => {
-        if let Some(used_name) = exports_info
-          .id
-          .get_used_name(mg, Some(runtime), &export_name)
+        if let Some(used_name) =
+          exports_info
+            .id
+            .get_used_name(mg, Some(runtime), UsedName::Vec(export_name.clone()))
         {
-          let used_name = match used_name {
-            crate::UsedName::Str(str) => vec![str],
-            crate::UsedName::Vec(vec) => vec,
-          };
-          if used_name.is_empty() {
-            return Binding {
-              raw_name: "/* unused export */ undefined".to_string().into(),
-              ids: export_name[1..].to_vec(),
-              export_name,
-              ty: BindingType::Raw,
-              info_id: info.module,
-              comment: None,
-            };
-          }
-
+          let used_name = used_name.to_used_name_vec();
           let comment = if used_name == export_name {
-            String::new()
+            "".to_string()
           } else {
-            format!(" /* {} */", join_atom(&export_name, "."))
+            Template::to_normal_comment(&format!("{}", join_atom(&export_name, ",")))
           };
-
-          return Binding {
-            raw_name: format!("{}{}", info.name.expect("should have name"), comment).into(),
-            ids: used_name[1..].to_vec(),
+          return Binding::Raw(RawBinding {
+            raw_name: format!(
+              "{}{}",
+              info.name.as_ref().expect("should have name"),
+              comment
+            )
+            .into(),
+            ids: used_name,
             export_name,
-            ty: BindingType::Raw,
             info_id: info.module,
             comment: None,
-          };
+          });
+        } else {
+          return Binding::Raw(RawBinding {
+            raw_name: "/* unused export */ undefined".to_string().into(),
+            ids: export_name[1..].to_vec(),
+            export_name,
+            info_id: info.module,
+            comment: None,
+          });
         }
       }
-      _ => {}
-    }
-
-    // Dummy return value, replace with the actual return value
-    Binding {
-      raw_name: String::new().into(),
-      ids: Vec::new(),
-      export_name: Vec::new(),
-      ty: BindingType::Raw,
-      info_id: info.id(),
-      comment: None,
     }
   }
+
   fn find_new_name(
     old_name: &str,
     used_names1: &HashSet<String>,
@@ -1441,7 +1454,7 @@ impl ConcatenatedModule {
       name = "namespaceObject".to_string();
     }
 
-    // Remove uncool stuff
+    // Remove uncool stuff TODO: unclear
     let extra_info = extra_info
       .replace(
         |c: char| c == '.' || c == '/' || c == '+' || c.is_ascii_whitespace(),

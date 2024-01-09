@@ -19,6 +19,13 @@ impl Template {
     format!("/*! {} */", COMMENT_END_REGEX.replace(str, "* /"))
   }
 
+  pub fn to_normal_comment(str: &str) -> String {
+    if str.is_empty() {
+      return String::new();
+    }
+    format!("/* {} */", COMMENT_END_REGEX.replace(str, "* /"))
+  }
+
   #[inline]
   pub fn to_identifier(v: &str) -> String {
     let id = IDENTIFIER_NAME_REPLACE_REGEX.replace_all(v, "_$1");
