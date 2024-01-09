@@ -1354,6 +1354,13 @@ impl Compilation {
       .await
   }
 
+  #[instrument(name = "compilation:after_process_asssets", skip_all)]
+  async fn after_process_assets(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
+    plugin_driver
+      .after_process_assets(ProcessAssetsArgs { compilation: self })
+      .await
+  }
+
   #[instrument(
     name = "compilation:chunk_asset",
     skip(self, plugin_driver, chunk_ukey)
@@ -1490,7 +1497,11 @@ impl Compilation {
     logger.time_end(start);
 
     let start = logger.time("process assets");
-    self.process_assets(plugin_driver).await?;
+    self.process_assets(plugin_driver.clone()).await?;
+    logger.time_end(start);
+
+    let start = logger.time("after process assets");
+    self.after_process_assets(plugin_driver).await?;
     logger.time_end(start);
 
     Ok(())

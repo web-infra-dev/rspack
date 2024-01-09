@@ -319,6 +319,7 @@ class Compiler {
 					this,
 					Compilation.PROCESS_ASSETS_STAGE_REPORT
 				),
+				afterProcessAssets: this.#afterProcessAssets.bind(this),
 				// `Compilation` should be created with hook `thisCompilation`, and here is the reason:
 				// We know that the hook `thisCompilation` will not be called from a child compiler(it doesn't matter whether the child compiler is created on the Rust or the Node side).
 				// See webpack's API: https://webpack.js.org/api/compiler-hooks/#thiscompilation
@@ -645,6 +646,7 @@ class Compiler {
 				this.compilation.__internal_getProcessAssetsHookByStage(
 					Compilation.PROCESS_ASSETS_STAGE_REPORT
 				),
+			afterProcessAssets: this.compilation.hooks.afterProcessAssets,
 			compilation: this.hooks.compilation,
 			optimizeTree: this.compilation.hooks.optimizeTree,
 			finishModules: this.compilation.hooks.finishModules,
@@ -717,6 +719,13 @@ class Compiler {
 		await this.compilation
 			.__internal_getProcessAssetsHookByStage(stage)
 			.promise(this.compilation.assets);
+		this.#updateDisabledHooks();
+	}
+
+	async #afterProcessAssets() {
+		await this.compilation.hooks.afterProcessAssets.promise(
+			this.compilation.assets
+		);
 		this.#updateDisabledHooks();
 	}
 

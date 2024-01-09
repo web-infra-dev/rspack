@@ -102,6 +102,7 @@ export class Compilation {
 
 	hooks: {
 		processAssets: ReturnType<typeof createFakeProcessAssetsHook>;
+		afterProcessAssets: tapable.SyncHook<Assets>;
 		childCompiler: tapable.SyncHook<[Compiler, string, number]>;
 		log: tapable.SyncBailHook<[string, LogEntry], true>;
 		additionalAssets: any;
@@ -155,6 +156,7 @@ export class Compilation {
 		const processAssetsHooks = createFakeProcessAssetsHook(this);
 		this.hooks = {
 			processAssets: processAssetsHooks,
+			afterProcessAssets: new tapable.SyncHook(["assets"]),
 			// TODO: webpack 6 deprecate, keep it just for compatibility
 			/** @deprecated */
 			additionalAssets: createProcessAssetsHook(
