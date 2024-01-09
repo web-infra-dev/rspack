@@ -13,7 +13,8 @@ const DEFAULT_CASE_CONFIG: Partial<IDiffProcessorOptions> = {
 	webpackPath: require.resolve("webpack"),
 	rspackPath: require.resolve("@rspack/core"),
 	files: ["bundle.js"],
-	bootstrap: true
+	bootstrap: true,
+	detail: true
 };
 
 type TFileCompareResult = {
