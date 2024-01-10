@@ -1,14 +1,17 @@
 use std::hash::Hash;
+use std::sync::Arc;
 
 use async_trait::async_trait;
 use rspack_core::rspack_sources::BoxSource;
 use rspack_core::{
-  get_js_chunk_filename_template, AdditionalChunkRuntimeRequirementsArgs, ChunkHashArgs, ChunkKind,
-  CompilerOptions, ModuleType, ParserAndGenerator, PathData, Plugin,
-  PluginAdditionalChunkRuntimeRequirementsOutput, PluginChunkHashHookOutput, PluginContext,
-  PluginRenderManifestHookOutput, RenderManifestEntry, RuntimeGlobals, SourceType,
+  get_js_chunk_filename_template, AdditionalChunkRuntimeRequirementsArgs, ChunkGraph,
+  ChunkHashArgs, ChunkKind, ChunkUkey, CompilationArgs, CompilationParams, CompilerOptions,
+  DependencyType, ErrorSpan, IgnoreErrorModuleFactory, ModuleGraph, ModuleType, ParserAndGenerator,
+  PathData, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput, PluginChunkHashHookOutput,
+  PluginCompilationHookOutput, PluginContext, PluginRenderManifestHookOutput, RenderManifestEntry,
+  RuntimeGlobals, SelfModuleFactory, SourceType,
 };
-use rspack_error::Result;
+use rspack_error::{IntoTWithDiagnosticArray, Result};
 use rspack_hash::RspackHash;
 
 use crate::parser_and_generator::JavaScriptParserAndGenerator;
@@ -65,6 +68,102 @@ impl Plugin for JsPlugin {
     Ok(())
   }
 
+  async fn compilation(
+    &self,
+    args: CompilationArgs<'_>,
+    params: &CompilationParams,
+  ) -> PluginCompilationHookOutput {
+    // HarmonyModulesPlugin
+    args.compilation.set_dependency_factory(
+      DependencyType::EsmImport(ErrorSpan::default()),
+      params.normal_module_factory.clone(),
+    );
+    args.compilation.set_dependency_factory(
+      DependencyType::EsmImportSpecifier,
+      params.normal_module_factory.clone(),
+    );
+    args.compilation.set_dependency_factory(
+      DependencyType::EsmExport(ErrorSpan::default()),
+      params.normal_module_factory.clone(),
+    );
+    args.compilation.set_dependency_factory(
+      DependencyType::EsmExportImportedSpecifier,
+      params.normal_module_factory.clone(),
+    );
+    args.compilation.set_dependency_factory(
+      DependencyType::EsmExportSpecifier,
+      params.normal_module_factory.clone(),
+    );
+    // CommonJsPlugin
+    args.compilation.set_dependency_factory(
+      DependencyType::CjsRequire,
+      params.normal_module_factory.clone(),
+    );
+    args.compilation.set_dependency_factory(
+      DependencyType::CjsExports,
+      params.normal_module_factory.clone(),
+    );
+    args.compilation.set_dependency_factory(
+      DependencyType::CjsExportRequire,
+      params.normal_module_factory.clone(),
+    );
+    args.compilation.set_dependency_factory(
+      DependencyType::CommonJSRequireContext,
+      params.context_module_factory.clone(),
+    );
+    args.compilation.set_dependency_factory(
+      DependencyType::RequireResolve,
+      params.normal_module_factory.clone(),
+    );
+    // RequireContextPlugin
+    args.compilation.set_dependency_factory(
+      DependencyType::RequireContext,
+      params.context_module_factory.clone(),
+    );
+    args.compilation.set_dependency_factory(
+      DependencyType::ContextElement,
+      params.normal_module_factory.clone(),
+    );
+    // ImportMetaContextPlugin
+    args.compilation.set_dependency_factory(
+      DependencyType::ImportMetaContext,
+      params.context_module_factory.clone(),
+    );
+    args.compilation.set_dependency_factory(
+      DependencyType::ContextElement,
+      params.normal_module_factory.clone(),
+    );
+    // ImportPlugin
+    args.compilation.set_dependency_factory(
+      DependencyType::DynamicImport,
+      params.normal_module_factory.clone(),
+    );
+    args.compilation.set_dependency_factory(
+      DependencyType::DynamicImportEager,
+      params.normal_module_factory.clone(),
+    );
+    args.compilation.set_dependency_factory(
+      DependencyType::ImportContext,
+      params.context_module_factory.clone(),
+    );
+    // URLPlugin
+    args
+      .compilation
+      .set_dependency_factory(DependencyType::NewUrl, params.normal_module_factory.clone());
+
+    args.compilation.set_dependency_factory(
+      DependencyType::WebpackIsIncluded,
+      Arc::new(IgnoreErrorModuleFactory {
+        normal_module_factory: params.normal_module_factory.clone(),
+      }),
+    );
+    args.compilation.set_dependency_factory(
+      DependencyType::CjsSelfReference,
+      Arc::new(SelfModuleFactory {}),
+    );
+    Ok(())
+  }
+
   async fn chunk_hash(
     &self,
     _ctx: PluginContext,
@@ -108,7 +207,7 @@ impl Plugin for JsPlugin {
       &compilation.module_graph,
     );
     // SAFETY: module identifier is unique
-    ordered_modules.sort_unstable_by_key(|m| m.module_identifier.as_str());
+    ordered_modules.sort_unstable_by_key(|m| m.identifier().as_str());
 
     ordered_modules
       .iter()
@@ -116,8 +215,8 @@ impl Plugin for JsPlugin {
         (
           compilation
             .code_generation_results
-            .get_hash(&mgm.module_identifier, Some(&chunk.runtime)),
-          compilation.chunk_graph.get_module_id(mgm.module_identifier),
+            .get_hash(&mgm.identifier(), Some(&chunk.runtime)),
+          compilation.chunk_graph.get_module_id(mgm.identifier()),
         )
       })
       .for_each(|(current, id)| {
@@ -157,6 +256,13 @@ impl Plugin for JsPlugin {
     } else if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
       self.render_main(&args).await?
     } else {
+      if !chunk_has_js(
+        &args.chunk_ukey,
+        &compilation.chunk_graph,
+        &compilation.module_graph,
+      ) {
+        return Ok(vec![].with_empty_diagnostic());
+      }
       self.render_chunk_impl(&args).await?
     };
 
@@ -178,13 +284,16 @@ impl Plugin for JsPlugin {
         .runtime(&chunk.runtime),
     );
     asset_info.set_javascript_module(compilation.options.output.module);
-    Ok(vec![RenderManifestEntry::new(
-      source,
-      output_path,
-      asset_info,
-      false,
-      false,
-    )])
+    Ok(
+      vec![RenderManifestEntry::new(
+        source,
+        output_path,
+        asset_info,
+        false,
+        false,
+      )]
+      .with_empty_diagnostic(),
+    )
   }
 
   fn additional_tree_runtime_requirements(
@@ -210,4 +319,15 @@ impl Plugin for JsPlugin {
 pub struct ExtractedCommentsInfo {
   pub source: BoxSource,
   pub comments_file_name: String,
+}
+
+fn chunk_has_js(chunk: &ChunkUkey, chunk_graph: &ChunkGraph, module_graph: &ModuleGraph) -> bool {
+  if chunk_graph.get_number_of_entry_modules(chunk) > 0 {
+    true
+  } else {
+    chunk_graph
+      .get_chunk_modules_iterable_by_source_type(chunk, SourceType::JavaScript, module_graph)
+      .next()
+      .is_some()
+  }
 }

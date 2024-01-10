@@ -1,14 +1,14 @@
 // install a JSONP callback for chunk loading
 var webpackJsonpCallback = function (parentChunkLoadingFunction, data) {
-	var chunkIds = data[0],
-	moreModules = data[1],
-	runtime = data[2];
+	var chunkIds = data[0];
+	var moreModules = data[1];
+	var runtime = data[2];
 	// add "moreModules" to the modules object,
 	// then flag all "chunkIds" as loaded and fire callback
 	var moduleId,
 		chunkId,
 		i = 0;
-	if (chunkIds.some(function(id) { return installedChunks[id] !== 0 })) {
+	if (chunkIds.some(function (id) { return installedChunks[id] !== 0 })) {
 		for (moduleId in moreModules) {
 			if (__webpack_require__.o(moreModules, moduleId)) {
 				__webpack_require__.m[moduleId] = moreModules[moduleId];
@@ -27,7 +27,7 @@ var webpackJsonpCallback = function (parentChunkLoadingFunction, data) {
 		}
 		installedChunks[chunkId] = 0;
 	}
-	$withOnChunkLoad$
+	$WITH_ON_CHUNK_LOAD$
 };
 
 var chunkLoadingGlobal = $CHUNK_LOADING_GLOBAL_EXPR$ = $CHUNK_LOADING_GLOBAL_EXPR$ || [];

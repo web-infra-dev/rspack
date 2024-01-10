@@ -1,37 +1,23 @@
 const path = require("path");
-const webpack = require("webpack");
-const ReactRefreshPlugin = require("@pmmmwh/react-refresh-webpack-plugin");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
-
-const prod = process.env.NODE_ENV === "production";
 
 /** @type {import('webpack').Configuration} */
 const config = {
-	mode: 'development',
+	mode: 'production',
 	context: __dirname,
 	entry: "./src/index.tsx",
 	target: ["web", "es5"],
-	devServer: {
-		port: 5555,
-		webSocketServer: "sockjs",
-		historyApiFallback: true
-	},
 	module: {
 		rules: [
 			{
 				test: /\.less$/,
-				use: ["style-loader", "css-loader", "less-loader"],
-				exclude: /\.module\.less$/
+				use: "less-loader",
+				type: "css"
 			},
 			{
 				test: /\.module\.less$/,
-				use: ["style-loader", {
-					loader: "css-loader",
-					options: {
-						modules: true,
-						importLoaders: 1,
-					},
-				}, "less-loader"],
+				use: "less-loader",
+				type: "css/module"
 			},
 			{
 				test: /\.svg$/,
@@ -68,8 +54,8 @@ const config = {
 						transform: {
 							react: {
 								runtime: "automatic",
-								development: !prod,
-								refresh: !prod
+								development: false,
+								refresh: false
 							}
 						},
 						externalHelpers: true
@@ -92,7 +78,7 @@ const config = {
 			// expression, which causes stack overflow for swc parser in debug mode.
 			// Alias to the unminified version mitigates this problem.
 			// See also <https://github.com/search?q=repo%3Aswc-project%2Fswc+parser+stack+overflow&type=issues>
-			mockjs: require.resolve("./patches/mock.js")
+			mockjs: require.resolve("./patches/mock.js"),
 		},
 		extensions: [".js", ".jsx", ".ts", ".tsx", ".css", ".less"]
 	},
@@ -104,6 +90,7 @@ const config = {
 	optimization: {
 		minimize: false, // Disabling minification because it takes too long on CI
 		realContentHash: true,
+		usedExports: false,
 		splitChunks: {
 			cacheGroups: {
 				someVendor: {
@@ -113,14 +100,17 @@ const config = {
 			}
 		}
 	},
+	experiments: {
+		css: {
+			exportsOnly: true
+		}
+	},
 	plugins: [
 		new HtmlWebpackPlugin({
 			title: "Arco Pro App",
 			template: path.join(__dirname, "index.html"),
 			favicon: path.join(__dirname, "public", "favicon.ico")
 		}),
-		new ReactRefreshPlugin(),
-		new webpack.ProgressPlugin()
 	],
 	infrastructureLogging: {
 		debug: false

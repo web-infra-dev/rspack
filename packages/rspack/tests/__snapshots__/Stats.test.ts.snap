@@ -16,7 +16,7 @@ exports[`Stats should have ids when ids is true 1`] = `
         "hotModuleReplacement": false,
       },
       "name": "main.js",
-      "size": 215,
+      "size": 211,
       "type": "asset",
     },
   ],
@@ -47,7 +47,7 @@ exports[`Stats should have ids when ids is true 1`] = `
       "chunks": [
         "main",
       ],
-      "id": "876",
+      "id": "585",
       "identifier": "<PROJECT_ROOT>/tests/fixtures/a.js",
       "issuer": undefined,
       "issuerId": undefined,
@@ -56,6 +56,7 @@ exports[`Stats should have ids when ids is true 1`] = `
       "moduleType": "javascript/auto",
       "name": "./fixtures/a.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
+      "orphan": false,
       "size": 59,
       "type": "module",
     },
@@ -79,7 +80,7 @@ exports[`Stats should have stats 1`] = `
         "hotModuleReplacement": false,
       },
       "name": "main.js",
-      "size": 215,
+      "size": 211,
       "type": "asset",
     },
   ],
@@ -88,6 +89,7 @@ exports[`Stats should have stats 1`] = `
       "main.js",
     ],
   },
+  "children": [],
   "chunks": [
     {
       "auxiliaryFiles": [],
@@ -104,7 +106,7 @@ exports[`Stats should have stats 1`] = `
           "chunks": [
             "main",
           ],
-          "id": "876",
+          "id": "585",
           "identifier": "<PROJECT_ROOT>/tests/fixtures/a.js",
           "issuer": undefined,
           "issuerId": undefined,
@@ -113,6 +115,7 @@ exports[`Stats should have stats 1`] = `
           "moduleType": "javascript/auto",
           "name": "./fixtures/a.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
+          "orphan": false,
           "reasons": [
             {
               "moduleId": undefined,
@@ -144,10 +147,10 @@ exports[`Stats should have stats 1`] = `
       "assets": [
         {
           "name": "main.js",
-          "size": 215,
+          "size": 211,
         },
       ],
-      "assetsSize": 215,
+      "assetsSize": 211,
       "chunks": [
         "main",
       ],
@@ -157,7 +160,7 @@ exports[`Stats should have stats 1`] = `
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "62928f626241ca4814a5",
+  "hash": "a62f45ec3d75aa689fa1",
   "logging": {},
   "modules": [
     {
@@ -165,7 +168,7 @@ exports[`Stats should have stats 1`] = `
       "chunks": [
         "main",
       ],
-      "id": "876",
+      "id": "585",
       "identifier": "<PROJECT_ROOT>/tests/fixtures/a.js",
       "issuer": undefined,
       "issuerId": undefined,
@@ -174,6 +177,7 @@ exports[`Stats should have stats 1`] = `
       "moduleType": "javascript/auto",
       "name": "./fixtures/a.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
+      "orphan": false,
       "reasons": [
         {
           "moduleId": undefined,
@@ -196,10 +200,10 @@ exports[`Stats should have stats 1`] = `
       "assets": [
         {
           "name": "main.js",
-          "size": 215,
+          "size": 211,
         },
       ],
-      "assetsSize": 215,
+      "assetsSize": 211,
       "chunks": [
         "main",
       ],
@@ -229,7 +233,7 @@ exports[`Stats should output stats with query 1`] = `
         "hotModuleReplacement": false,
       },
       "name": "main.js",
-      "size": 394,
+      "size": 386,
       "type": "asset",
     },
   ],
@@ -238,6 +242,7 @@ exports[`Stats should output stats with query 1`] = `
       "main.js",
     ],
   },
+  "children": [],
   "chunks": [
     {
       "auxiliaryFiles": [],
@@ -254,19 +259,19 @@ exports[`Stats should output stats with query 1`] = `
           "chunks": [
             "main",
           ],
-          "id": "876",
+          "id": "585",
           "identifier": "<PROJECT_ROOT>/tests/fixtures/a.js",
           "issuer": "<PROJECT_ROOT>/tests/fixtures/c.js?c=3",
-          "issuerId": "970",
+          "issuerId": "432",
           "issuerName": "./fixtures/c.js?c=3",
           "issuerPath": [
             {
-              "id": "661",
+              "id": "919",
               "identifier": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
               "name": "./fixtures/abc-query.js",
             },
             {
-              "id": "970",
+              "id": "432",
               "identifier": "<PROJECT_ROOT>/tests/fixtures/c.js?c=3",
               "name": "./fixtures/c.js?c=3",
             },
@@ -274,9 +279,10 @@ exports[`Stats should output stats with query 1`] = `
           "moduleType": "javascript/auto",
           "name": "./fixtures/a.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
+          "orphan": false,
           "reasons": [
             {
-              "moduleId": "970",
+              "moduleId": "432",
               "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/c.js?c=3",
               "moduleName": "./fixtures/c.js?c=3",
               "type": "cjs require",
@@ -295,14 +301,14 @@ exports[`Stats should output stats with query 1`] = `
           "chunks": [
             "main",
           ],
-          "id": "304",
+          "id": "958",
           "identifier": "<PROJECT_ROOT>/tests/fixtures/a.js?a=1",
           "issuer": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
-          "issuerId": "661",
+          "issuerId": "919",
           "issuerName": "./fixtures/abc-query.js",
           "issuerPath": [
             {
-              "id": "661",
+              "id": "919",
               "identifier": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
               "name": "./fixtures/abc-query.js",
             },
@@ -310,9 +316,10 @@ exports[`Stats should output stats with query 1`] = `
           "moduleType": "javascript/auto",
           "name": "./fixtures/a.js?a=1",
           "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
+          "orphan": false,
           "reasons": [
             {
-              "moduleId": "661",
+              "moduleId": "919",
               "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
               "moduleName": "./fixtures/abc-query.js",
               "type": "cjs require",
@@ -331,14 +338,14 @@ exports[`Stats should output stats with query 1`] = `
           "chunks": [
             "main",
           ],
-          "id": "970",
+          "id": "432",
           "identifier": "<PROJECT_ROOT>/tests/fixtures/c.js?c=3",
           "issuer": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
-          "issuerId": "661",
+          "issuerId": "919",
           "issuerName": "./fixtures/abc-query.js",
           "issuerPath": [
             {
-              "id": "661",
+              "id": "919",
               "identifier": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
               "name": "./fixtures/abc-query.js",
             },
@@ -346,9 +353,10 @@ exports[`Stats should output stats with query 1`] = `
           "moduleType": "javascript/auto",
           "name": "./fixtures/c.js?c=3",
           "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/c.js",
+          "orphan": false,
           "reasons": [
             {
-              "moduleId": "661",
+              "moduleId": "919",
               "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
               "moduleName": "./fixtures/abc-query.js",
               "type": "cjs require",
@@ -368,7 +376,7 @@ exports[`Stats should output stats with query 1`] = `
           "chunks": [
             "main",
           ],
-          "id": "661",
+          "id": "919",
           "identifier": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
           "issuer": undefined,
           "issuerId": undefined,
@@ -377,6 +385,7 @@ exports[`Stats should output stats with query 1`] = `
           "moduleType": "javascript/auto",
           "name": "./fixtures/abc-query.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
+          "orphan": false,
           "reasons": [
             {
               "moduleId": undefined,
@@ -408,10 +417,10 @@ exports.c = require("./c?c=3");
       "assets": [
         {
           "name": "main.js",
-          "size": 394,
+          "size": 386,
         },
       ],
-      "assetsSize": 394,
+      "assetsSize": 386,
       "chunks": [
         "main",
       ],
@@ -421,7 +430,7 @@ exports.c = require("./c?c=3");
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "376d5471ba0e66400f21",
+  "hash": "17fb2a59facde9aafd96",
   "logging": {},
   "modules": [
     {
@@ -429,19 +438,19 @@ exports.c = require("./c?c=3");
       "chunks": [
         "main",
       ],
-      "id": "876",
+      "id": "585",
       "identifier": "<PROJECT_ROOT>/tests/fixtures/a.js",
       "issuer": "<PROJECT_ROOT>/tests/fixtures/c.js?c=3",
-      "issuerId": "970",
+      "issuerId": "432",
       "issuerName": "./fixtures/c.js?c=3",
       "issuerPath": [
         {
-          "id": "661",
+          "id": "919",
           "identifier": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
           "name": "./fixtures/abc-query.js",
         },
         {
-          "id": "970",
+          "id": "432",
           "identifier": "<PROJECT_ROOT>/tests/fixtures/c.js?c=3",
           "name": "./fixtures/c.js?c=3",
         },
@@ -449,9 +458,10 @@ exports.c = require("./c?c=3");
       "moduleType": "javascript/auto",
       "name": "./fixtures/a.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
+      "orphan": false,
       "reasons": [
         {
-          "moduleId": "970",
+          "moduleId": "432",
           "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/c.js?c=3",
           "moduleName": "./fixtures/c.js?c=3",
           "type": "cjs require",
@@ -470,14 +480,14 @@ exports.c = require("./c?c=3");
       "chunks": [
         "main",
       ],
-      "id": "304",
+      "id": "958",
       "identifier": "<PROJECT_ROOT>/tests/fixtures/a.js?a=1",
       "issuer": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
-      "issuerId": "661",
+      "issuerId": "919",
       "issuerName": "./fixtures/abc-query.js",
       "issuerPath": [
         {
-          "id": "661",
+          "id": "919",
           "identifier": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
           "name": "./fixtures/abc-query.js",
         },
@@ -485,9 +495,10 @@ exports.c = require("./c?c=3");
       "moduleType": "javascript/auto",
       "name": "./fixtures/a.js?a=1",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
+      "orphan": false,
       "reasons": [
         {
-          "moduleId": "661",
+          "moduleId": "919",
           "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
           "moduleName": "./fixtures/abc-query.js",
           "type": "cjs require",
@@ -506,14 +517,14 @@ exports.c = require("./c?c=3");
       "chunks": [
         "main",
       ],
-      "id": "970",
+      "id": "432",
       "identifier": "<PROJECT_ROOT>/tests/fixtures/c.js?c=3",
       "issuer": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
-      "issuerId": "661",
+      "issuerId": "919",
       "issuerName": "./fixtures/abc-query.js",
       "issuerPath": [
         {
-          "id": "661",
+          "id": "919",
           "identifier": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
           "name": "./fixtures/abc-query.js",
         },
@@ -521,9 +532,10 @@ exports.c = require("./c?c=3");
       "moduleType": "javascript/auto",
       "name": "./fixtures/c.js?c=3",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/c.js",
+      "orphan": false,
       "reasons": [
         {
-          "moduleId": "661",
+          "moduleId": "919",
           "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
           "moduleName": "./fixtures/abc-query.js",
           "type": "cjs require",
@@ -543,7 +555,7 @@ exports.c = require("./c?c=3");
       "chunks": [
         "main",
       ],
-      "id": "661",
+      "id": "919",
       "identifier": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
       "issuer": undefined,
       "issuerId": undefined,
@@ -552,6 +564,7 @@ exports.c = require("./c?c=3");
       "moduleType": "javascript/auto",
       "name": "./fixtures/abc-query.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
+      "orphan": false,
       "reasons": [
         {
           "moduleId": undefined,
@@ -574,10 +587,10 @@ exports.c = require("./c?c=3");
       "assets": [
         {
           "name": "main.js",
-          "size": 394,
+          "size": 386,
         },
       ],
-      "assetsSize": 394,
+      "assetsSize": 386,
       "chunks": [
         "main",
       ],

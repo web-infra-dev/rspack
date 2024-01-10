@@ -1,6 +1,5 @@
 use std::hash::Hash;
 
-use anyhow::anyhow;
 use async_trait::async_trait;
 use rspack_core::rspack_sources::{ConcatSource, RawSource, SourceExt};
 use rspack_core::{
@@ -8,7 +7,6 @@ use rspack_core::{
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, PluginJsChunkHashHookOutput,
   PluginRenderChunkHookOutput, RenderChunkArgs, RenderStartupArgs, RuntimeGlobals,
 };
-use rspack_error::internal_error;
 use rspack_plugin_javascript::runtime::render_chunk_runtime_modules;
 use rustc_hash::FxHashSet as HashSet;
 
@@ -34,10 +32,7 @@ impl Plugin for ModuleChunkFormatPlugin {
     let compilation = &mut args.compilation;
     let chunk_ukey = args.chunk;
     let runtime_requirements = &mut args.runtime_requirements;
-    let chunk = compilation
-      .chunk_by_ukey
-      .get(chunk_ukey)
-      .ok_or_else(|| anyhow!("chunk not found"))?;
+    let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
 
     if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
       return Ok(());
@@ -92,9 +87,7 @@ impl Plugin for ModuleChunkFormatPlugin {
     let chunk = args.chunk();
     let base_chunk_output_name = get_chunk_output_name(chunk, compilation);
     if matches!(chunk.kind, ChunkKind::HotUpdate) {
-      return Err(internal_error!(
-        "HMR is not implemented for module chunk format yet"
-      ));
+      unreachable!("HMR is not implemented for module chunk format yet");
     }
 
     let mut sources = ConcatSource::default();
@@ -143,9 +136,8 @@ impl Plugin for ModuleChunkFormatPlugin {
           .expect("should have module id");
         let runtime_chunk = compilation
           .chunk_group_by_ukey
-          .get(entry)
-          .map(|e| e.get_runtime_chunk())
-          .expect("should have runtime chunk");
+          .expect_get(entry)
+          .get_runtime_chunk();
         let chunks = get_all_chunks(
           entry,
           &runtime_chunk,
@@ -159,10 +151,7 @@ impl Plugin for ModuleChunkFormatPlugin {
           }
           loaded_chunks.insert(*chunk_ukey);
           let index = loaded_chunks.len();
-          let chunk = compilation
-            .chunk_by_ukey
-            .get(chunk_ukey)
-            .expect("chunk should exist in chunk_by_ukey");
+          let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
           let other_chunk_output_name = get_chunk_output_name(chunk, compilation);
           startup_source.push(format!(
             "import * as __webpack_chunk_${index}__ from '{}';",

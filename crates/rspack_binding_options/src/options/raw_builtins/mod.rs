@@ -12,39 +12,54 @@ use napi::{
   JsUnknown,
 };
 use napi_derive::napi;
-use rspack_core::{
-  mf::{
-    consume_shared_plugin::ConsumeSharedPlugin, container_plugin::ContainerPlugin,
-    container_reference_plugin::ContainerReferencePlugin,
-    module_federation_runtime_plugin::ModuleFederationRuntimePlugin,
-    provide_shared_plugin::ProvideSharedPlugin,
-  },
-  BoxPlugin, Define, DefinePlugin, PluginExt, Provide, ProvidePlugin,
-};
+use rspack_core::{BoxPlugin, Define, DefinePlugin, PluginExt, Provide, ProvidePlugin};
 use rspack_error::Result;
+use rspack_ids::{
+  DeterministicChunkIdsPlugin, DeterministicModuleIdsPlugin, NamedChunkIdsPlugin,
+  NamedModuleIdsPlugin,
+};
 use rspack_napi_shared::NapiResultExt;
+use rspack_plugin_asset::AssetPlugin;
 use rspack_plugin_banner::BannerPlugin;
 use rspack_plugin_copy::{CopyRspackPlugin, CopyRspackPluginOptions};
+use rspack_plugin_devtool::{EvalSourceMapDevToolPlugin, SourceMapDevToolPlugin};
+use rspack_plugin_ensure_chunk_conditions::EnsureChunkConditionsPlugin;
 use rspack_plugin_entry::EntryPlugin;
 use rspack_plugin_externals::{
   electron_target_plugin, http_externals_rspack_plugin, node_target_plugin, ExternalsPlugin,
 };
 use rspack_plugin_hmr::HotModuleReplacementPlugin;
 use rspack_plugin_html::HtmlRspackPlugin;
+use rspack_plugin_javascript::{
+  FlagDependencyExportsPlugin, FlagDependencyUsagePlugin, InferAsyncModulesPlugin, JsPlugin,
+  MangleExportsPlugin, SideEffectsFlagPlugin,
+};
+use rspack_plugin_json::JsonPlugin;
 use rspack_plugin_library::enable_library_plugin;
 use rspack_plugin_limit_chunk_count::LimitChunkCountPlugin;
 use rspack_plugin_merge_duplicate_chunks::MergeDuplicateChunksPlugin;
-use rspack_plugin_progress::ProgressPlugin;
-use rspack_plugin_runtime::{
-  enable_chunk_loading_plugin, ArrayPushCallbackChunkFormatPlugin, CommonJsChunkFormatPlugin,
-  ModuleChunkFormatPlugin,
+use rspack_plugin_mf::{
+  ConsumeSharedPlugin, ContainerPlugin, ContainerReferencePlugin, ProvideSharedPlugin,
+  ShareRuntimePlugin,
 };
+use rspack_plugin_progress::ProgressPlugin;
+use rspack_plugin_real_content_hash::RealContentHashPlugin;
+use rspack_plugin_remove_empty_chunks::RemoveEmptyChunksPlugin;
+use rspack_plugin_runtime::{
+  enable_chunk_loading_plugin, ArrayPushCallbackChunkFormatPlugin, ChunkPrefetchPreloadPlugin,
+  CommonJsChunkFormatPlugin, ModuleChunkFormatPlugin, RuntimePlugin,
+};
+use rspack_plugin_schemes::{DataUriPlugin, FileUriPlugin};
 use rspack_plugin_swc_css_minimizer::SwcCssMinimizerRspackPlugin;
 use rspack_plugin_swc_js_minimizer::SwcJsMinimizerRspackPlugin;
-use rspack_plugin_wasm::enable_wasm_loading_plugin;
+use rspack_plugin_warn_sensitive_module::WarnCaseSensitiveModulesPlugin;
+use rspack_plugin_wasm::{enable_wasm_loading_plugin, AsyncWasmPlugin};
 use rspack_plugin_web_worker_template::web_worker_template_plugin;
+use rspack_plugin_worker::WorkerPlugin;
 
-use self::raw_mf::{RawConsumeOptions, RawContainerReferencePluginOptions, RawProvideOptions};
+use self::raw_mf::{
+  RawConsumeSharedPluginOptions, RawContainerReferencePluginOptions, RawProvideOptions,
+};
 pub use self::{
   raw_banner::RawBannerPluginOptions, raw_copy::RawCopyRspackPluginOptions,
   raw_html::RawHtmlRspackPluginOptions, raw_limit_chunk_count::RawLimitChunkCountPluginOptions,
@@ -53,7 +68,7 @@ pub use self::{
 };
 use crate::{
   RawEntryPluginOptions, RawExternalItemWrapper, RawExternalsPluginOptions,
-  RawHttpExternalsRspackPluginOptions, RawOptionsApply, RawSplitChunksOptions,
+  RawHttpExternalsRspackPluginOptions, RawSourceMapDevToolPluginOptions, RawSplitChunksOptions,
 };
 
 #[napi(string_enum)]
@@ -71,20 +86,44 @@ pub enum BuiltinPluginName {
   EnableChunkLoadingPlugin,
   EnableLibraryPlugin,
   EnableWasmLoadingPlugin,
+  ChunkPrefetchPreloadPlugin,
   CommonJsChunkFormatPlugin,
   ArrayPushCallbackChunkFormatPlugin,
   ModuleChunkFormatPlugin,
   HotModuleReplacementPlugin,
   LimitChunkCountPlugin,
+  WorkerPlugin,
   WebWorkerTemplatePlugin,
   MergeDuplicateChunksPlugin,
   SplitChunksPlugin,
   OldSplitChunksPlugin,
+  ShareRuntimePlugin,
   ContainerPlugin,
   ContainerReferencePlugin,
-  ModuleFederationRuntimePlugin,
   ProvideSharedPlugin,
   ConsumeSharedPlugin,
+  NamedModuleIdsPlugin,
+  DeterministicModuleIdsPlugin,
+  NamedChunkIdsPlugin,
+  DeterministicChunkIdsPlugin,
+  RealContentHashPlugin,
+  RemoveEmptyChunksPlugin,
+  EnsureChunkConditionsPlugin,
+  WarnCaseSensitiveModulesPlugin,
+  DataUriPlugin,
+  FileUriPlugin,
+  RuntimePlugin,
+  JsonModulesPlugin,
+  InferAsyncModulesPlugin,
+  JavascriptModulesPlugin,
+  AsyncWebAssemblyModulesPlugin,
+  AssetModulesPlugin,
+  SourceMapDevToolPlugin,
+  EvalSourceMapDevToolPlugin,
+  SideEffectsFlagPlugin,
+  FlagDependencyExportsPlugin,
+  FlagDependencyUsagePlugin,
+  MangleExportsPlugin,
 
   // rspack specific plugins
   HttpExternalsRspackPlugin,
@@ -98,15 +137,11 @@ pub enum BuiltinPluginName {
 pub struct BuiltinPlugin {
   pub name: BuiltinPluginName,
   pub options: JsUnknown,
+  pub can_inherent_from_parent: Option<bool>,
 }
 
-impl RawOptionsApply for BuiltinPlugin {
-  type Options = ();
-
-  fn apply(
-    self,
-    plugins: &mut Vec<BoxPlugin>,
-  ) -> std::result::Result<Self::Options, rspack_error::Error> {
+impl BuiltinPlugin {
+  pub fn append_to(self, plugins: &mut Vec<BoxPlugin>) -> rspack_error::Result<()> {
     match self.name {
       // webpack also have these plugins
       BuiltinPluginName::DefinePlugin => {
@@ -166,6 +201,9 @@ impl RawOptionsApply for BuiltinPlugin {
           wasm_loading_type.as_str().into(),
         ));
       }
+      BuiltinPluginName::ChunkPrefetchPreloadPlugin => {
+        plugins.push(ChunkPrefetchPreloadPlugin.boxed());
+      }
       BuiltinPluginName::CommonJsChunkFormatPlugin => {
         plugins.push(CommonJsChunkFormatPlugin.boxed());
       }
@@ -185,6 +223,9 @@ impl RawOptionsApply for BuiltinPlugin {
         .boxed();
         plugins.push(plugin);
       }
+      BuiltinPluginName::WorkerPlugin => {
+        plugins.push(WorkerPlugin.boxed());
+      }
       BuiltinPluginName::WebWorkerTemplatePlugin => {
         web_worker_template_plugin(plugins);
       }
@@ -201,6 +242,9 @@ impl RawOptionsApply for BuiltinPlugin {
         let options = downcast_into::<RawSplitChunksOptions>(self.options)?.into();
         plugins.push(SplitChunksPlugin::new(options).boxed());
       }
+      BuiltinPluginName::ShareRuntimePlugin => {
+        plugins.push(ShareRuntimePlugin::new(downcast_into::<bool>(self.options)?).boxed())
+      }
       BuiltinPluginName::ContainerPlugin => {
         plugins.push(
           ContainerPlugin::new(downcast_into::<RawContainerPluginOptions>(self.options)?.into())
@@ -215,9 +259,6 @@ impl RawOptionsApply for BuiltinPlugin {
           .boxed(),
         );
       }
-      BuiltinPluginName::ModuleFederationRuntimePlugin => {
-        plugins.push(ModuleFederationRuntimePlugin::default().boxed())
-      }
       BuiltinPluginName::ProvideSharedPlugin => {
         let mut provides: Vec<_> = downcast_into::<Vec<RawProvideOptions>>(self.options)?
           .into_iter()
@@ -226,12 +267,65 @@ impl RawOptionsApply for BuiltinPlugin {
         provides.sort_unstable_by_key(|(k, _)| k.to_string());
         plugins.push(ProvideSharedPlugin::new(provides).boxed())
       }
-      BuiltinPluginName::ConsumeSharedPlugin => {
-        let consumes: Vec<_> = downcast_into::<Vec<RawConsumeOptions>>(self.options)?
-          .into_iter()
-          .map(Into::into)
-          .collect();
-        plugins.push(ConsumeSharedPlugin::new(consumes).boxed())
+      BuiltinPluginName::ConsumeSharedPlugin => plugins.push(
+        ConsumeSharedPlugin::new(
+          downcast_into::<RawConsumeSharedPluginOptions>(self.options)?.into(),
+        )
+        .boxed(),
+      ),
+      BuiltinPluginName::NamedModuleIdsPlugin => {
+        plugins.push(NamedModuleIdsPlugin::default().boxed())
+      }
+      BuiltinPluginName::DeterministicModuleIdsPlugin => {
+        plugins.push(DeterministicModuleIdsPlugin::default().boxed())
+      }
+      BuiltinPluginName::NamedChunkIdsPlugin => {
+        plugins.push(NamedChunkIdsPlugin::new(None, None).boxed())
+      }
+      BuiltinPluginName::DeterministicChunkIdsPlugin => {
+        plugins.push(DeterministicChunkIdsPlugin::default().boxed())
+      }
+      BuiltinPluginName::RealContentHashPlugin => plugins.push(RealContentHashPlugin.boxed()),
+      BuiltinPluginName::RemoveEmptyChunksPlugin => plugins.push(RemoveEmptyChunksPlugin.boxed()),
+      BuiltinPluginName::EnsureChunkConditionsPlugin => {
+        plugins.push(EnsureChunkConditionsPlugin.boxed())
+      }
+      BuiltinPluginName::WarnCaseSensitiveModulesPlugin => {
+        plugins.push(WarnCaseSensitiveModulesPlugin.boxed())
+      }
+      BuiltinPluginName::DataUriPlugin => plugins.push(DataUriPlugin.boxed()),
+      BuiltinPluginName::FileUriPlugin => plugins.push(FileUriPlugin.boxed()),
+      BuiltinPluginName::RuntimePlugin => plugins.push(RuntimePlugin.boxed()),
+      BuiltinPluginName::JsonModulesPlugin => plugins.push(JsonPlugin.boxed()),
+      BuiltinPluginName::InferAsyncModulesPlugin => plugins.push(InferAsyncModulesPlugin.boxed()),
+      BuiltinPluginName::JavascriptModulesPlugin => plugins.push(JsPlugin::new().boxed()),
+      BuiltinPluginName::AsyncWebAssemblyModulesPlugin => {
+        plugins.push(AsyncWasmPlugin::new().boxed())
+      }
+      BuiltinPluginName::AssetModulesPlugin => plugins.push(AssetPlugin.boxed()),
+      BuiltinPluginName::SourceMapDevToolPlugin => plugins.push(
+        SourceMapDevToolPlugin::new(
+          downcast_into::<RawSourceMapDevToolPluginOptions>(self.options)?.into(),
+        )
+        .boxed(),
+      ),
+      BuiltinPluginName::EvalSourceMapDevToolPlugin => plugins.push(
+        EvalSourceMapDevToolPlugin::new(
+          downcast_into::<RawSourceMapDevToolPluginOptions>(self.options)?.into(),
+        )
+        .boxed(),
+      ),
+      BuiltinPluginName::SideEffectsFlagPlugin => {
+        plugins.push(SideEffectsFlagPlugin::default().boxed())
+      }
+      BuiltinPluginName::FlagDependencyExportsPlugin => {
+        plugins.push(FlagDependencyExportsPlugin::default().boxed())
+      }
+      BuiltinPluginName::FlagDependencyUsagePlugin => {
+        plugins.push(FlagDependencyUsagePlugin::new(downcast_into::<bool>(self.options)?).boxed())
+      }
+      BuiltinPluginName::MangleExportsPlugin => {
+        plugins.push(MangleExportsPlugin::new(downcast_into::<bool>(self.options)?).boxed())
       }
 
       // rspack specific plugins

@@ -14,8 +14,8 @@ use once_cell::sync::Lazy;
 use rspack_binding_options::BuiltinPlugin;
 use rspack_binding_values::SingleThreadedHashMap;
 use rspack_core::PluginExt;
+use rspack_error::Diagnostic;
 use rspack_fs_node::{AsyncNodeWritableFileSystem, ThreadsafeNodeFS};
-use rspack_napi_shared::NAPI_ENV;
 
 mod hook;
 mod loader;
@@ -29,6 +29,7 @@ use loader::run_builtin_loader;
 use plugins::*;
 use rspack_binding_options::*;
 use rspack_binding_values::*;
+use rspack_napi_shared::set_napi_env;
 use rspack_tracing::chrome::FlushGuard;
 
 #[cfg(not(target_os = "linux"))]
@@ -73,12 +74,12 @@ impl Rspack {
 
     let disabled_hooks: DisabledHooks = Default::default();
     let mut plugins = Vec::new();
-    for bp in builtin_plugins {
-      bp.apply(&mut plugins)
-        .map_err(|e| Error::from_reason(format!("{e}")))?;
-    }
     if let Some(js_hooks) = js_hooks {
       plugins.push(JsHooksAdapter::from_js_hooks(env, js_hooks, disabled_hooks.clone())?.boxed());
+    }
+    for bp in builtin_plugins {
+      bp.append_to(&mut plugins)
+        .map_err(|e| Error::from_reason(format!("{e}")))?;
     }
 
     let js_loader_runner: JsLoaderRunner = JsLoaderRunner::try_from(js_loader_runner)?;
@@ -129,10 +130,12 @@ impl Rspack {
         unsafe { std::mem::transmute::<&'_ mut _, &'static mut _>(compiler) };
 
       callbackify(env, f, async move {
-        compiler
-          .build()
-          .await
-          .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))?;
+        compiler.build().await.map_err(|e| {
+          Error::new(
+            napi::Status::GenericFailure,
+            print_error_diagnostic(e, compiler.options.stats.colors),
+          )
+        })?;
         tracing::info!("build ok");
         Ok(())
       })
@@ -170,7 +173,12 @@ impl Rspack {
             HashSet::from_iter(removed_files.into_iter()),
           )
           .await
-          .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e:?}")))?;
+          .map_err(|e| {
+            Error::new(
+              napi::Status::GenericFailure,
+              print_error_diagnostic(e, compiler.options.stats.colors),
+            )
+          })?;
         tracing::info!("rebuild ok");
         Ok(())
       })
@@ -223,7 +231,7 @@ impl ObjectFinalize for Rspack {
 
 impl Rspack {
   fn prepare_environment(env: &Env) {
-    NAPI_ENV.with(|napi_env| *napi_env.borrow_mut() = Some(env.raw()));
+    set_napi_env(env.raw());
   }
 }
 
@@ -237,6 +245,12 @@ enum TraceState {
 #[ctor]
 fn init() {
   panic::install_panic_handler();
+}
+
+fn print_error_diagnostic(e: rspack_error::Error, colored: bool) -> String {
+  Diagnostic::from(e)
+    .render_report(colored)
+    .expect("should print diagnostics")
 }
 
 static GLOBAL_TRACE_STATE: Mutex<TraceState> = Mutex::new(TraceState::Off);

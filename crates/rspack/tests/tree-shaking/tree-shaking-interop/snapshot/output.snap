@@ -27,9 +27,9 @@ __webpack_require__.el("./a.js@0:15").then(__webpack_require__.bind(__webpack_re
     console.log(mod);
 });
  const a = "a";
-__webpack_exports__.test = 30;
+exports.test = 30;
 }),
-"./foo.js": (function (module, exports, __webpack_require__) {
+"./foo.js": (function (module, __unused_webpack_exports, __webpack_require__) {
 {
     const res = __webpack_require__(/*! ./a */"./a.js");
     module.exports = res;

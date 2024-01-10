@@ -8,8 +8,8 @@ use rspack_identifier::Identifier;
 use crate::{
   cache::snapshot::{Snapshot, SnapshotManager},
   cache::storage,
-  BoxModule, BuildExtraDataType, BuildResult, DependencyTemplate, ModuleDependency,
-  NormalModuleSource,
+  BoxModule, BuildExtraDataType, BuildInfo, BuildMeta, BuildResult, DependencyTemplate, Module,
+  ModuleDependency, NormalModuleSource,
 };
 
 #[derive(Debug, Clone)]
@@ -17,6 +17,8 @@ pub struct NormalModuleStorageData {
   source: NormalModuleSource,
   code_generation_dependencies: Option<Vec<Box<dyn ModuleDependency>>>,
   presentational_dependencies: Option<Vec<Box<dyn DependencyTemplate>>>,
+  build_info: Option<BuildInfo>,
+  build_meta: Option<BuildMeta>,
 }
 
 type NormalModuleStorageExtraData = HashMap<BuildExtraDataType, AlignedVec>;
@@ -89,6 +91,11 @@ impl BuildModuleOccasion {
               *module.source_mut() = module_data.source;
               *module.code_generation_dependencies_mut() = module_data.code_generation_dependencies;
               *module.presentational_dependencies_mut() = module_data.presentational_dependencies;
+              if let (Some(build_info), Some(build_meta)) =
+                (module_data.build_info, module_data.build_meta)
+              {
+                module.set_module_build_info_and_meta(build_info, build_meta);
+              }
             }
             if let Some(extra_data) = extra_data {
               module.parser_and_generator_mut().resume(&extra_data);
@@ -104,6 +111,7 @@ impl BuildModuleOccasion {
 
     // run generator and save to cache
     let (mut data, module) = generator(module).await?;
+    // let (data, diagnostics) = data.split_into_parts();
 
     if need_cache {
       let module = module
@@ -167,6 +175,8 @@ impl BuildModuleOccasion {
               source: module.source().clone(),
               code_generation_dependencies: module.code_generation_dependencies().clone(),
               presentational_dependencies: module.presentational_dependencies().clone(),
+              build_info: module.build_info().cloned(),
+              build_meta: module.build_meta().cloned(),
             }),
             Some(extra_data),
           ),

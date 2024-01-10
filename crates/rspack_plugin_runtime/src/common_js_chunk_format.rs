@@ -1,6 +1,5 @@
 use std::hash::Hash;
 
-use anyhow::anyhow;
 use async_trait::async_trait;
 use rspack_core::rspack_sources::{ConcatSource, RawSource, SourceExt};
 use rspack_core::{
@@ -32,10 +31,7 @@ impl Plugin for CommonJsChunkFormatPlugin {
     let compilation = &mut args.compilation;
     let chunk_ukey = args.chunk;
     let runtime_requirements = &mut args.runtime_requirements;
-    let chunk = compilation
-      .chunk_by_ukey
-      .get(chunk_ukey)
-      .ok_or_else(|| anyhow!("chunk not found"))?;
+    let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
 
     if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
       return Ok(());

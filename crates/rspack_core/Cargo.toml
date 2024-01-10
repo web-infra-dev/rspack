@@ -20,10 +20,11 @@ glob-match = "0.2.1"
 hashlink = { workspace = true }
 indexmap = { workspace = true }
 itertools = { workspace = true }
+json = { workspace = true }
 mime_guess = { workspace = true }
 nodejs-resolver = { version = "0.1.1" }
 once_cell = { workspace = true }
-oxc_resolver = { version = "0.5.5" }
+oxc_resolver = "1.2.0"
 paste = { workspace = true }
 petgraph = { version = "0.6.3", features = ["serde-1"] }
 rayon = { workspace = true }
@@ -79,3 +80,6 @@ tokio = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test
 tracing = { workspace = true }
 url = { workspace = true }
 ustr = { workspace = true }
+
+[dev-dependencies]
+pretty_assertions = { version = "1.4.0" }

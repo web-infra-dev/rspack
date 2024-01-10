@@ -164,6 +164,7 @@ const describeCases = config => {
 										"main"
 									],
 									aliasFields: ["browser"],
+									browserField: true,
 									extensions: [".webpack.js", ".web.js", ".js", ".json"]
 								},
 								resolveLoader: {
@@ -198,7 +199,7 @@ const describeCases = config => {
 										}
 									]
 								},
-								plugins: (config.plugins || []).concat(function () {
+								plugins: (config.plugins || []).concat(testConfig.plugins || []).concat(function () {
 									this.hooks.compilation.tap("TestCasesTest", compilation => {
 										[
 											// TODO: the follwing hooks are not supported yet, so comment it out

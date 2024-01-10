@@ -1,6 +1,7 @@
 #![feature(try_blocks)]
 mod asset;
 mod chunk;
+mod chunk_graph;
 mod chunk_group;
 mod codegen_result;
 mod compilation;
@@ -14,6 +15,7 @@ mod utils;
 
 pub use asset::*;
 pub use chunk::*;
+pub use chunk_graph::*;
 pub use chunk_group::*;
 pub use codegen_result::*;
 pub use compilation::*;

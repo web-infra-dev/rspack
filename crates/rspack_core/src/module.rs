@@ -4,7 +4,8 @@ use std::path::PathBuf;
 use std::{any::Any, borrow::Cow, fmt::Debug};
 
 use async_trait::async_trait;
-use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use json::JsonValue;
+use rspack_error::{Diagnosable, Result};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_identifier::{Identifiable, Identifier};
 use rspack_sources::Source;
@@ -17,7 +18,7 @@ use crate::{
   AsyncDependenciesBlock, BoxDependency, ChunkUkey, CodeGenerationResult, Compilation,
   CompilerContext, CompilerOptions, ConnectionState, Context, ContextModule, DependenciesBlock,
   DependencyId, DependencyTemplate, ExternalModule, ModuleDependency, ModuleGraph, ModuleType,
-  NormalModule, RawModule, Resolve, RuntimeSpec, SharedPluginDriver, SourceType,
+  NormalModule, RawModule, Resolve, RuntimeSpec, SelfModule, SharedPluginDriver, SourceType,
 };
 
 pub struct BuildContext<'a> {
@@ -47,6 +48,7 @@ pub struct BuildInfo {
   pub harmony_named_exports: HashSet<JsWord>,
   pub all_star_exports: Vec<DependencyId>,
   pub need_create_require: bool,
+  pub json_data: Option<JsonValue>,
 }
 
 #[derive(Debug, Default, Clone, Hash, PartialEq, Eq)]
@@ -139,7 +141,7 @@ pub type ModuleIdentifier = Identifier;
 
 #[async_trait]
 pub trait Module:
-  Debug + Send + Sync + AsAny + DynHash + DynEq + Identifiable + DependenciesBlock
+  Debug + Send + Sync + AsAny + DynHash + DynEq + Identifiable + DependenciesBlock + Diagnosable
 {
   /// Defines what kind of module this is.
   fn module_type(&self) -> &ModuleType;
@@ -159,10 +161,7 @@ pub trait Module:
 
   /// The actual build of the module, which will be called by the `Compilation`.
   /// Build can also returns the dependencies of the module, which will be used by the `Compilation` to build the dependency graph.
-  async fn build(
-    &mut self,
-    build_context: BuildContext<'_>,
-  ) -> Result<TWithDiagnosticArray<BuildResult>> {
+  async fn build(&mut self, build_context: BuildContext<'_>) -> Result<BuildResult> {
     let mut hasher = RspackHash::from(&build_context.compiler_options.output);
     self.update_hash(&mut hasher);
 
@@ -171,16 +170,93 @@ pub trait Module:
       ..Default::default()
     };
 
-    Ok(
-      BuildResult {
-        build_info,
-        build_meta: Default::default(),
-        dependencies: Vec::new(),
-        blocks: Vec::new(),
-        analyze_result: Default::default(),
+    Ok(BuildResult {
+      build_info,
+      build_meta: Default::default(),
+      dependencies: Vec::new(),
+      blocks: Vec::new(),
+      analyze_result: Default::default(),
+    })
+  }
+
+  fn build_info(&self) -> Option<&BuildInfo>;
+
+  fn build_meta(&self) -> Option<&BuildMeta>;
+
+  fn set_module_build_info_and_meta(&mut self, build_info: BuildInfo, build_meta: BuildMeta);
+
+  fn get_exports_argument(&self) -> ExportsArgument {
+    self
+      .build_meta()
+      .as_ref()
+      .map(|m| m.exports_argument)
+      .unwrap_or_default()
+  }
+
+  fn get_module_argument(&self) -> ModuleArgument {
+    self
+      .build_meta()
+      .as_ref()
+      .map(|m| m.module_argument)
+      .unwrap_or_default()
+  }
+
+  fn get_exports_type(&self, strict: bool) -> ExportsType {
+    if let Some((export_type, default_object)) = self
+      .build_meta()
+      .as_ref()
+      .map(|m| (&m.exports_type, &m.default_object))
+    {
+      match export_type {
+        BuildMetaExportsType::Flagged => {
+          if strict {
+            ExportsType::DefaultWithNamed
+          } else {
+            ExportsType::Namespace
+          }
+        }
+        BuildMetaExportsType::Namespace => ExportsType::Namespace,
+        BuildMetaExportsType::Default => match default_object {
+          BuildMetaDefaultObject::Redirect => ExportsType::DefaultWithNamed,
+          BuildMetaDefaultObject::RedirectWarn => {
+            if strict {
+              ExportsType::DefaultOnly
+            } else {
+              ExportsType::DefaultWithNamed
+            }
+          }
+          BuildMetaDefaultObject::False => ExportsType::DefaultOnly,
+        },
+        BuildMetaExportsType::Dynamic => {
+          if strict {
+            ExportsType::DefaultWithNamed
+          } else {
+            // TODO check target
+            ExportsType::Dynamic
+          }
+        }
+        // algin to undefined
+        BuildMetaExportsType::Unset => {
+          if strict {
+            ExportsType::DefaultWithNamed
+          } else {
+            ExportsType::Dynamic
+          }
+        }
       }
-      .with_empty_diagnostic(),
-    )
+    } else if strict {
+      ExportsType::DefaultWithNamed
+    } else {
+      ExportsType::Dynamic
+    }
+  }
+
+  fn get_strict_harmony_module(&self) -> bool {
+    self
+      .build_meta()
+      .as_ref()
+      .map(|m| m.strict_harmony_module)
+      .unwrap_or(false)
   }
 
   /// The actual code generation of the module, which will be called by the `Compilation`.
@@ -234,12 +310,8 @@ pub trait Module:
     None
   }
 
-  fn has_chunk_condition(&self) -> bool {
-    false
-  }
-
-  fn chunk_condition(&self, _chunk_key: &ChunkUkey, _compilation: &Compilation) -> bool {
-    true
+  fn chunk_condition(&self, _chunk_key: &ChunkUkey, _compilation: &Compilation) -> Option<bool> {
+    None
   }
 
   fn get_side_effects_connection_state(
@@ -295,6 +367,28 @@ impl dyn Module + '_ {
   }
 }
 
+#[macro_export]
+macro_rules! impl_build_info_meta {
+  () => {
+    fn build_info(&self) -> Option<&$crate::BuildInfo> {
+      self.build_info.as_ref()
+    }
+
+    fn build_meta(&self) -> Option<&$crate::BuildMeta> {
+      self.build_meta.as_ref()
+    }
+
+    fn set_module_build_info_and_meta(
+      &mut self,
+      build_info: $crate::BuildInfo,
+      build_meta: $crate::BuildMeta,
+    ) {
+      self.build_info = Some(build_info);
+      self.build_meta = Some(build_meta);
+    }
+  };
+}
+
 macro_rules! impl_module_downcast_helpers {
   ($ty:ty, $ident:ident) => {
     impl dyn Module + '_ {
@@ -309,7 +403,7 @@ macro_rules! impl_module_downcast_helpers {
 
         pub fn [<try_as_ $ident>](&self) -> Result<& $ty> {
           self.[<as_ $ident>]().ok_or_else(|| {
-            ::rspack_error::internal_error!(
+            ::rspack_error::error!(
               "Failed to cast module to a {}",
               stringify!($ty)
             )
@@ -318,7 +412,7 @@ macro_rules! impl_module_downcast_helpers {
 
         pub fn [<try_as_ $ident _mut>](&mut self) -> Result<&mut $ty> {
           self.[<as_ $ident _mut>]().ok_or_else(|| {
-            ::rspack_error::internal_error!(
+            ::rspack_error::error!(
               "Failed to cast module to a {}",
               stringify!($ty)
             )
@@ -333,6 +427,7 @@ impl_module_downcast_helpers!(NormalModule, normal_module);
 impl_module_downcast_helpers!(RawModule, raw_module);
 impl_module_downcast_helpers!(ContextModule, context_module);
 impl_module_downcast_helpers!(ExternalModule, external_module);
+impl_module_downcast_helpers!(SelfModule, self_module);
 
 pub struct LibIdentOptions<'me> {
   pub context: &'me str,
@@ -343,7 +438,7 @@ mod test {
   use std::borrow::Cow;
   use std::hash::Hash;
 
-  use rspack_error::{Result, TWithDiagnosticArray};
+  use rspack_error::{Diagnosable, Result};
   use rspack_identifier::{Identifiable, Identifier};
   use rspack_sources::Source;
 
@@ -391,6 +486,8 @@ mod test {
         }
       }
 
+      impl Diagnosable for $ident {}
+
       impl DependenciesBlock for $ident {
         fn add_block_id(&mut self, _: AsyncDependenciesBlockIdentifier) {
           unreachable!()
@@ -431,10 +528,7 @@ mod test {
           (stringify!($ident).to_owned() + self.0).into()
         }
 
-        async fn build(
-          &mut self,
-          _build_context: BuildContext<'_>,
-        ) -> Result<TWithDiagnosticArray<BuildResult>> {
+        async fn build(&mut self, _build_context: BuildContext<'_>) -> Result<BuildResult> {
           unreachable!()
         }
 
@@ -443,6 +537,22 @@ mod test {
           _compilation: &Compilation,
           _runtime: Option<&RuntimeSpec>,
         ) -> Result<CodeGenerationResult> {
+          unreachable!()
+        }
+
+        fn build_info(&self) -> Option<&crate::BuildInfo> {
+          unreachable!()
+        }
+
+        fn build_meta(&self) -> Option<&crate::BuildMeta> {
+          unreachable!()
+        }
+
+        fn set_module_build_info_and_meta(
+          &mut self,
+          _build_info: crate::BuildInfo,
+          _build_meta: crate::BuildMeta,
+        ) {
           unreachable!()
         }
       }

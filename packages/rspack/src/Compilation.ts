@@ -102,23 +102,25 @@ export class Compilation {
 
 	hooks: {
 		processAssets: ReturnType<typeof createFakeProcessAssetsHook>;
+		afterProcessAssets: tapable.SyncHook<Assets>;
 		childCompiler: tapable.SyncHook<[Compiler, string, number]>;
 		log: tapable.SyncBailHook<[string, LogEntry], true>;
 		additionalAssets: any;
-		optimizeModules: tapable.SyncBailHook<Iterable<JsModule>, undefined>;
+		optimizeModules: tapable.SyncBailHook<Iterable<JsModule>, void>;
+		afterOptimizeModules: tapable.SyncHook<Iterable<JsModule>, void>;
 		optimizeTree: tapable.AsyncSeriesBailHook<
 			[Iterable<Chunk>, Iterable<JsModule>],
-			undefined
+			void
 		>;
 		optimizeChunkModules: tapable.AsyncSeriesBailHook<
 			[Iterable<Chunk>, Iterable<JsModule>],
-			undefined
+			void
 		>;
-		finishModules: tapable.AsyncSeriesHook<[Iterable<JsModule>], undefined>;
-		chunkAsset: tapable.SyncHook<[JsChunk, string], undefined>;
+		finishModules: tapable.AsyncSeriesHook<[Iterable<JsModule>], void>;
+		chunkAsset: tapable.SyncHook<[JsChunk, string], void>;
 		processWarnings: tapable.SyncWaterfallHook<[Error[]]>;
-		succeedModule: tapable.SyncHook<[JsModule], undefined>;
-		stillValidModule: tapable.SyncHook<[JsModule], undefined>;
+		succeedModule: tapable.SyncHook<[JsModule], void>;
+		stillValidModule: tapable.SyncHook<[JsModule], void>;
 		statsFactory: tapable.SyncHook<[StatsFactory, StatsOptions], void>;
 		statsPrinter: tapable.SyncHook<[StatsPrinter, StatsOptions], void>;
 		buildModule: tapable.SyncHook<[NormalizedJsModule]>;
@@ -154,6 +156,7 @@ export class Compilation {
 		const processAssetsHooks = createFakeProcessAssetsHook(this);
 		this.hooks = {
 			processAssets: processAssetsHooks,
+			afterProcessAssets: new tapable.SyncHook(["assets"]),
 			// TODO: webpack 6 deprecate, keep it just for compatibility
 			/** @deprecated */
 			additionalAssets: createProcessAssetsHook(
@@ -169,6 +172,7 @@ export class Compilation {
 			]),
 			log: new tapable.SyncBailHook(["origin", "logEntry"]),
 			optimizeModules: new tapable.SyncBailHook(["modules"]),
+			afterOptimizeModules: new tapable.SyncBailHook(["modules"]),
 			optimizeTree: new tapable.AsyncSeriesBailHook(["chunks", "modules"]),
 			optimizeChunkModules: new tapable.AsyncSeriesBailHook([
 				"chunks",
@@ -347,11 +351,13 @@ export class Compilation {
 		options.loggingDebug = []
 			.concat(optionsOrFallback(options.loggingDebug, []))
 			.map(normalizeFilter);
-
 		options.modulesSpace =
 			options.modulesSpace || (context.forToString ? 15 : Infinity);
-
 		options.ids = optionOrLocalFallback(options.ids, !context.forToString);
+		options.children = optionOrLocalFallback(
+			options.children,
+			!context.forToString
+		);
 
 		return options;
 	}
@@ -498,7 +504,7 @@ export class Compilation {
 					if (isJsStatsError(error)) {
 						this.#inner.pushDiagnostic(
 							"error",
-							error.title,
+							"Error",
 							concatErrorMsgAndStack(error)
 						);
 					} else if (typeof error === "string") {
@@ -542,7 +548,7 @@ export class Compilation {
 					const warn = warns[i];
 					this.#inner.pushDiagnostic(
 						"warning",
-						isJsStatsError(warn) ? warn.title : warn.name,
+						isJsStatsError(warn) ? "Warning" : warn.name,
 						concatErrorMsgAndStack(warn)
 					);
 				}

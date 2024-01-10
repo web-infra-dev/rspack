@@ -16,7 +16,7 @@ pub struct NamedChunkIdsPlugin {
 impl NamedChunkIdsPlugin {
   pub fn new(delimiter: Option<String>, context: Option<String>) -> Self {
     Self {
-      delimiter: delimiter.unwrap_or_else(|| "~".to_string()),
+      delimiter: delimiter.unwrap_or_else(|| "-".to_string()),
       context,
     }
   }
@@ -67,10 +67,7 @@ impl Plugin for NamedChunkIdsPlugin {
       .collect::<Vec<_>>();
 
     chunk_id_to_name.into_iter().for_each(|(chunk_ukey, name)| {
-      let chunk = compilation
-        .chunk_by_ukey
-        .get_mut(&chunk_ukey)
-        .expect("Chunk should exist");
+      let chunk = compilation.chunk_by_ukey.expect_get_mut(&chunk_ukey);
       chunk.id = Some(name.clone());
       chunk.ids = vec![name];
     });

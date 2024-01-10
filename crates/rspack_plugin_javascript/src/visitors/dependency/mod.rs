@@ -1,6 +1,6 @@
 mod api_scanner;
 mod common_js_export_scanner;
-mod common_js_import_dependency_scanner;
+pub(crate) mod common_js_import_dependency_scanner;
 mod common_js_scanner;
 mod compatibility_scanner;
 mod context_helper;
@@ -13,7 +13,6 @@ mod hot_module_replacement_scanner;
 mod import_meta_scanner;
 mod import_scanner;
 mod node_stuff_scanner;
-mod require_context_scanner;
 mod url_scanner;
 mod util;
 mod worker_scanner;
@@ -21,9 +20,9 @@ mod worker_scanner;
 use rspack_ast::javascript::Program;
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
-  CompilerOptions, ModuleIdentifier, ModuleType, ResourceData,
+  CompilerOptions, JavascriptParserUrl, ModuleIdentifier, ModuleType, ResourceData,
 };
-use rspack_error::{Diagnostic, Result};
+use rspack_error::miette::Diagnostic;
 use rustc_hash::FxHashMap as HashMap;
 use swc_core::common::Span;
 use swc_core::common::{comments::Comments, Mark, SyntaxContext};
@@ -42,8 +41,7 @@ use self::{
   harmony_top_level_this::HarmonyTopLevelThis,
   hot_module_replacement_scanner::HotModuleReplacementScanner,
   import_meta_scanner::ImportMetaScanner, import_scanner::ImportScanner,
-  node_stuff_scanner::NodeStuffScanner, require_context_scanner::RequireContextScanner,
-  url_scanner::UrlScanner, worker_scanner::WorkerScanner,
+  node_stuff_scanner::NodeStuffScanner, url_scanner::UrlScanner, worker_scanner::WorkerScanner,
 };
 
 pub struct ScanDependenciesResult {
@@ -53,7 +51,7 @@ pub struct ScanDependenciesResult {
   // TODO: rename this name
   pub rewrite_usage_span: HashMap<Span, ExtraSpanInfo>,
   pub import_map: ImportMap,
-  pub warning_diagnostics: Vec<Diagnostic>,
+  pub warning_diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -75,8 +73,8 @@ pub fn scan_dependencies(
   build_info: &mut BuildInfo,
   build_meta: &mut BuildMeta,
   module_identifier: ModuleIdentifier,
-) -> Result<ScanDependenciesResult> {
-  let mut warning_diagnostics: Vec<Diagnostic> = vec![];
+) -> Result<ScanDependenciesResult, Vec<Box<dyn Diagnostic + Send + Sync>>> {
+  let mut warning_diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>> = vec![];
   let mut errors = vec![];
   let mut dependencies = vec![];
   let mut blocks = vec![];
@@ -84,24 +82,9 @@ pub fn scan_dependencies(
   let unresolved_ctxt = SyntaxContext::empty().apply_mark(unresolved_mark);
   let comments = program.comments.clone();
   let mut parser_exports_state = None;
+  let mut ignored = vec![];
 
   let mut rewrite_usage_span = HashMap::default();
-  program.visit_with(&mut ApiScanner::new(
-    unresolved_ctxt,
-    resource_data,
-    &mut presentational_dependencies,
-    compiler_options.output.module,
-    build_info,
-  ));
-
-  program.visit_with(&mut CompatibilityScanner::new(
-    &mut presentational_dependencies,
-    unresolved_ctxt,
-  ));
-  program.visit_with(&mut ExportInfoApiScanner::new(
-    &mut presentational_dependencies,
-    unresolved_ctxt,
-  ));
 
   // TODO it should enable at js/auto or js/dynamic, but builtins provider will inject require at esm
   // https://github.com/web-infra-dev/rspack/issues/3544
@@ -109,13 +92,40 @@ pub fn scan_dependencies(
     &mut dependencies,
     &mut presentational_dependencies,
     unresolved_ctxt,
+    module_type,
+    &mut ignored,
   ));
+
+  program.visit_with(&mut ApiScanner::new(
+    unresolved_ctxt,
+    resource_data,
+    &mut dependencies,
+    &mut presentational_dependencies,
+    compiler_options.output.module,
+    build_info,
+    &mut warning_diagnostics,
+    &mut ignored,
+  ));
+
+  program.visit_with(&mut CompatibilityScanner::new(
+    &mut presentational_dependencies,
+    unresolved_ctxt,
+    &mut ignored,
+  ));
+
+  program.visit_with(&mut ExportInfoApiScanner::new(
+    &mut presentational_dependencies,
+    unresolved_ctxt,
+    &mut ignored,
+  ));
+
   if module_type.is_js_auto() || module_type.is_js_dynamic() {
     program.visit_with(&mut CommonJsScanner::new(
       &mut presentational_dependencies,
       unresolved_ctxt,
+      &mut ignored,
     ));
-    program.visit_with(&mut RequireContextScanner::new(&mut dependencies));
+
     program.visit_with(&mut CommonJsExportDependencyScanner::new(
       &mut dependencies,
       &mut presentational_dependencies,
@@ -123,6 +133,7 @@ pub fn scan_dependencies(
       build_meta,
       *module_type,
       &mut parser_exports_state,
+      &mut ignored,
     ));
     if let Some(node_option) = &compiler_options.node {
       program.visit_with(&mut NodeStuffScanner::new(
@@ -131,6 +142,7 @@ pub fn scan_dependencies(
         compiler_options,
         node_option,
         resource_data,
+        &mut ignored,
       ));
     }
   }
@@ -146,6 +158,7 @@ pub fn scan_dependencies(
       compiler_options.experiments.top_level_await,
       &mut presentational_dependencies,
       &mut errors,
+      &mut ignored,
     ));
     program.visit_with(&mut HarmonyImportDependencyScanner::new(
       &mut dependencies,
@@ -153,6 +166,7 @@ pub fn scan_dependencies(
       &mut import_map,
       build_info,
       &mut rewrite_usage_span,
+      &mut ignored,
     ));
     let comments = program.comments.as_ref();
     program.visit_with(&mut HarmonyExportDependencyScanner::new(
@@ -162,11 +176,13 @@ pub fn scan_dependencies(
       build_info,
       &mut rewrite_usage_span,
       comments,
+      &mut ignored,
     ));
 
     if build_meta.esm {
       program.visit_with(&mut HarmonyTopLevelThis {
         presentational_dependencies: &mut presentational_dependencies,
+        ignored: &mut ignored,
       })
     }
 
@@ -179,17 +195,36 @@ pub fn scan_dependencies(
       &module_identifier,
       &compiler_options.output,
       worker_syntax_list,
+      &mut ignored,
     );
     program.visit_with(&mut worker_scanner);
     blocks.append(&mut worker_scanner.blocks);
     dependencies.append(&mut worker_scanner.dependencies);
     presentational_dependencies.append(&mut worker_scanner.presentational_dependencies);
-    program.visit_with(&mut UrlScanner::new(&mut dependencies, worker_syntax_list));
+
+    let parse_url = &compiler_options
+      .module
+      .parser
+      .as_ref()
+      .and_then(|p| p.get(module_type))
+      .and_then(|p| p.get_javascript(module_type))
+      .map(|p| p.url)
+      .unwrap_or(JavascriptParserUrl::Enable);
+
+    if !matches!(parse_url, JavascriptParserUrl::Disable) {
+      program.visit_with(&mut UrlScanner::new(
+        &mut dependencies,
+        worker_syntax_list,
+        matches!(parse_url, JavascriptParserUrl::Relative),
+        &mut ignored,
+      ));
+    }
     program.visit_with(&mut ImportMetaScanner::new(
       &mut presentational_dependencies,
       resource_data,
       compiler_options,
       &mut warning_diagnostics,
+      &mut ignored,
     ));
   }
 
@@ -205,6 +240,8 @@ pub fn scan_dependencies(
       .as_ref()
       .and_then(|p| p.get(module_type))
       .and_then(|p| p.get_javascript(module_type)),
+    &mut warning_diagnostics,
+    &mut ignored,
   ));
 
   if compiler_options.dev_server.hot {
@@ -212,6 +249,7 @@ pub fn scan_dependencies(
       &mut dependencies,
       &mut presentational_dependencies,
       build_meta,
+      &mut ignored,
     ));
   }
 
@@ -225,6 +263,6 @@ pub fn scan_dependencies(
       warning_diagnostics,
     })
   } else {
-    Err(rspack_error::Error::BatchErrors(errors))
+    Err(errors)
   }
 }

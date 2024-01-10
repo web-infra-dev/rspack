@@ -1,9 +1,12 @@
+use std::fmt;
+
 use itertools::Itertools;
 use rspack_database::DatabaseItem;
+use rspack_error::{error, Result};
 use rspack_identifier::IdentifierMap;
 use rustc_hash::FxHashSet as HashSet;
 
-use crate::{Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey};
+use crate::{get_chunk_from_ukey, Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey};
 use crate::{ChunkLoading, ChunkUkey, Compilation, Filename};
 use crate::{LibraryOptions, ModuleIdentifier, PublicPath, RuntimeSpec};
 
@@ -71,8 +74,7 @@ impl ChunkGroup {
       .iter()
       .flat_map(|chunk_ukey| {
         chunk_by_ukey
-          .get(chunk_ukey)
-          .unwrap_or_else(|| panic!("Chunk({chunk_ukey:?}) not found in ChunkGroup: {self:?}"))
+          .expect_get(chunk_ukey)
           .files
           .iter()
           .map(|file| file.to_string())
@@ -151,9 +153,7 @@ impl ChunkGroup {
         continue;
       }
       ancestors.insert(chunk_group_ukey);
-      let chunk_group = chunk_group_by_ukey
-        .get(&chunk_group_ukey)
-        .expect("should have chunk group");
+      let chunk_group = chunk_group_by_ukey.expect_get(&chunk_group_ukey);
       for parent in &chunk_group.parents {
         queue.push(*parent);
       }
@@ -240,10 +240,7 @@ impl ChunkGroup {
       .chunks
       .iter()
       .filter_map(|chunk| {
-        compilation
-          .chunk_by_ukey
-          .get(chunk)
-          .and_then(|chunk| chunk.id.as_ref())
+        get_chunk_from_ukey(chunk, &compilation.chunk_by_ukey).and_then(|item| item.id.as_ref())
       })
       .join("+")
   }
@@ -254,7 +251,7 @@ impl ChunkGroup {
   ) -> Vec<&'a ChunkGroup> {
     self
       .parents_iterable()
-      .map(|ukey| chunk_group_by_ukey.get(ukey).expect("parent must exists"))
+      .map(|ukey| chunk_group_by_ukey.expect_get(ukey))
       .collect_vec()
   }
 
@@ -293,6 +290,13 @@ impl ChunkGroupKind {
     }
   }
 
+  pub fn get_normal_options(&self) -> Option<&ChunkGroupOptions> {
+    match self {
+      ChunkGroupKind::Entrypoint { .. } => None,
+      ChunkGroupKind::Normal { options, .. } => Some(options),
+    }
+  }
+
   pub fn name(&self) -> Option<&str> {
     match self {
       ChunkGroupKind::Entrypoint { options, .. } => options.name.as_deref(),
@@ -303,7 +307,7 @@ impl ChunkGroupKind {
 
 pub type EntryRuntime = String;
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct EntryOptions {
   pub name: Option<String>,
   pub runtime: Option<EntryRuntime>,
@@ -315,19 +319,77 @@ pub struct EntryOptions {
   pub library: Option<LibraryOptions>,
 }
 
-#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
+impl EntryOptions {
+  pub fn merge(&mut self, other: EntryOptions) -> Result<()> {
+    macro_rules! merge_field {
+      ($field:ident) => {
+        if Self::should_merge_field(
+          self.$field.as_ref(),
+          other.$field.as_ref(),
+          stringify!($field),
+        )? {
+          self.$field = other.$field;
+        }
+      };
+    }
+    merge_field!(name);
+    merge_field!(runtime);
+    merge_field!(chunk_loading);
+    merge_field!(async_chunks);
+    merge_field!(public_path);
+    merge_field!(base_uri);
+    merge_field!(filename);
+    merge_field!(library);
+    Ok(())
+  }
+
+  fn should_merge_field<T: Eq + fmt::Debug>(
+    a: Option<&T>,
+    b: Option<&T>,
+    key: &str,
+  ) -> Result<bool> {
+    match (a, b) {
+      (Some(a), Some(b)) if a != b => {
+        Err(error!("Conflicting entry option {key} = ${a:?} vs ${b:?}"))
+      }
+      (None, Some(_)) => Ok(true),
+      _ => Ok(false),
+    }
+  }
+}
+
+#[derive(Debug, Hash, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub enum ChunkGroupOrderKey {
+  Preload,
+  Prefetch,
+}
+
+#[derive(Debug, Default, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct ChunkGroupOptions {
   pub name: Option<String>,
+  pub preload_order: Option<u32>,
+  pub prefetch_order: Option<u32>,
 }
 
 impl ChunkGroupOptions {
+  pub fn new(
+    name: Option<String>,
+    preload_order: Option<u32>,
+    prefetch_order: Option<u32>,
+  ) -> Self {
+    Self {
+      name,
+      preload_order,
+      prefetch_order,
+    }
+  }
   pub fn name_optional(mut self, name: Option<String>) -> Self {
     self.name = name;
     self
   }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum GroupOptions {
   Entrypoint(Box<EntryOptions>),
   ChunkGroup(ChunkGroupOptions),
@@ -345,6 +407,13 @@ impl GroupOptions {
     match self {
       GroupOptions::Entrypoint(e) => Some(e),
       GroupOptions::ChunkGroup(_) => None,
+    }
+  }
+
+  pub fn normal_options(&self) -> Option<&ChunkGroupOptions> {
+    match self {
+      GroupOptions::Entrypoint(_) => None,
+      GroupOptions::ChunkGroup(e) => Some(e),
     }
   }
 }

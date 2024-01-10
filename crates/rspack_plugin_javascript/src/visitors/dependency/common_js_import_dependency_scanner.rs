@@ -1,23 +1,67 @@
-use rspack_core::{context_reg_exp, ContextOptions, DependencyCategory};
+use std::rc::Rc;
+
+use itertools::Itertools;
+use rspack_core::{
+  context_reg_exp, ContextOptions, DependencyCategory, DependencyLocation, ModuleType,
+};
 use rspack_core::{BoxDependency, ConstDependency, ContextMode, ContextNameSpaceObject};
 use rspack_core::{DependencyTemplate, SpanExt};
 use swc_core::common::{Spanned, SyntaxContext};
-use swc_core::ecma::ast::{BinExpr, CallExpr, Callee, Expr, IfStmt};
+use swc_core::ecma::ast::{BinExpr, BlockStmt, CallExpr, Callee, Expr, IfStmt, MemberExpr};
 use swc_core::ecma::ast::{Lit, TryStmt, UnaryExpr, UnaryOp};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
+use super::api_scanner::ApiParserPlugin;
 use super::context_helper::scanner_context_module;
-use super::{expr_matcher, is_unresolved_member_object_ident, is_unresolved_require};
-use crate::dependency::{CommonJsRequireContextDependency, RequireHeaderDependency};
+use super::expr_matcher::{is_module_require, is_require};
+use super::{
+  expr_matcher, extract_require_call_info, is_require_call_start,
+  is_unresolved_member_object_ident, is_unresolved_require,
+};
+use crate::dependency::{
+  CommonJsFullRequireDependency, CommonJsRequireContextDependency, RequireHeaderDependency,
+};
 use crate::dependency::{CommonJsRequireDependency, RequireResolveDependency};
-use crate::utils::{evaluate_expression, BasicEvaluatedExpression};
+use crate::parser_plugin::{self, JavaScriptParserPluginDrive, JavascriptParserPlugin};
+use crate::utils::eval::{self, BasicEvaluatedExpression};
+use crate::utils::{expression_logic_operator, statement_if};
 
 pub struct CommonJsImportDependencyScanner<'a> {
-  dependencies: &'a mut Vec<BoxDependency>,
-  presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
-  unresolved_ctxt: SyntaxContext,
-  in_try: bool,
-  in_if: bool,
+  pub(crate) dependencies: &'a mut Vec<BoxDependency>,
+  pub(crate) presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
+  pub(crate) unresolved_ctxt: SyntaxContext,
+  pub(crate) in_try: bool,
+  pub(crate) in_if: bool,
+  pub(crate) is_strict: bool,
+  pub(crate) plugin_drive: Rc<JavaScriptParserPluginDrive>,
+  pub(crate) ignored: &'a mut Vec<DependencyLocation>,
+}
+
+#[derive(Debug)]
+enum Mode {
+  Strict,
+  Nothing,
+}
+
+fn detect_mode(stmt: &BlockStmt) -> Mode {
+  let Some(Lit::Str(str)) = stmt
+    .stmts
+    .first()
+    .and_then(|stmt| stmt.as_expr())
+    .and_then(|expr_stmt| expr_stmt.expr.as_lit())
+  else {
+    return Mode::Nothing;
+  };
+
+  if str.value.as_str() == "use strict" {
+    Mode::Strict
+  } else {
+    Mode::Nothing
+  }
+}
+
+fn is_strict(stmt: &BlockStmt) -> bool {
+  matches!(detect_mode(stmt), Mode::Strict)
 }
 
 impl<'a> CommonJsImportDependencyScanner<'a> {
@@ -25,13 +69,29 @@ impl<'a> CommonJsImportDependencyScanner<'a> {
     dependencies: &'a mut Vec<BoxDependency>,
     presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
     unresolved_ctxt: SyntaxContext,
+    module_type: &ModuleType,
+    ignored: &'a mut Vec<DependencyLocation>,
   ) -> Self {
+    let mut plugins: Vec<parser_plugin::BoxJavascriptParserPlugin> = vec![
+      Box::new(parser_plugin::CommonJsImportsParserPlugin),
+      Box::new(parser_plugin::RequireContextDependencyParserPlugin),
+      Box::new(ApiParserPlugin),
+    ];
+
+    if module_type.is_js_auto() || module_type.is_js_dynamic() || module_type.is_js_esm() {
+      plugins.push(Box::new(parser_plugin::WebpackIsIncludedPlugin));
+    }
+
+    let plugin_drive = JavaScriptParserPluginDrive::new(plugins);
     Self {
       dependencies,
       presentational_dependencies,
       unresolved_ctxt,
       in_try: false,
       in_if: false,
+      is_strict: false,
+      plugin_drive: Rc::new(plugin_drive),
+      ignored,
     }
   }
 
@@ -69,63 +129,112 @@ impl<'a> CommonJsImportDependencyScanner<'a> {
     }
   }
 
-  fn require_handler(&mut self, call_expr: &CallExpr) {
-    if call_expr.args.len() != 1 {
-      return;
+  fn chain_handler(
+    &mut self,
+    mem_expr: &MemberExpr,
+    is_call: bool,
+  ) -> Option<CommonJsFullRequireDependency> {
+    let expr = Expr::Member(mem_expr.to_owned());
+    let is_require_member_chain =
+      is_require_call_start(&expr) && !is_require(&expr) && !is_module_require(&expr);
+    if !is_require_member_chain {
+      return None;
     }
-    let Some(ident) = call_expr.callee.as_expr().and_then(|expr| expr.as_ident()) else {
-      return;
-    };
-    if !("require".eq(&ident.sym) && ident.span.ctxt == self.unresolved_ctxt) {
-      return;
-    }
-    let Some(argument_expr) = call_expr.args.first().map(|arg| &arg.expr) else {
-      return;
+
+    let Some((members, first_arg, loc)) = extract_require_call_info(&expr) else {
+      return None;
     };
 
-    let mut process_require_item = |p: &BasicEvaluatedExpression| {
+    let param = self.evaluate_expression(&first_arg.expr);
+    if param.is_string() {
+      Some(CommonJsFullRequireDependency::new(
+        param.string().to_string(),
+        members.iter().map(|i| i.to_owned()).collect_vec(),
+        loc,
+        Some(mem_expr.span.into()),
+        is_call,
+        self.in_try,
+      ))
+    } else {
+      None
+    }
+  }
+
+  fn require_handler(
+    &mut self,
+    call_expr: &CallExpr,
+  ) -> Option<(Vec<CommonJsRequireDependency>, Vec<RequireHeaderDependency>)> {
+    if call_expr.args.len() != 1 {
+      return None;
+    }
+
+    let is_require_expr = call_expr.callee.as_expr().is_some_and(|expr| {
+      (is_require(expr) && expr.span().ctxt == self.unresolved_ctxt) || is_module_require(expr)
+    });
+    if !is_require_expr {
+      return None;
+    }
+
+    let Some(argument_expr) = call_expr.args.first().map(|arg| &arg.expr) else {
+      return None;
+    };
+
+    let in_try = self.in_try;
+
+    let process_require_item = |p: &BasicEvaluatedExpression| {
       p.is_string().then(|| {
         let dep = CommonJsRequireDependency::new(
           p.string().to_string(),
           Some(call_expr.span.into()),
           p.range().0,
           p.range().1,
-          self.in_try,
+          in_try,
         );
-        self.dependencies.push(Box::new(dep));
-        Some(())
+        dep
       })
     };
-    let param = evaluate_expression(argument_expr);
+    let param = self.evaluate_expression(argument_expr);
+    let mut commonjs_require_deps = vec![];
+    let mut require_header_deps = vec![];
     if param.is_conditional() {
       let mut is_expression = false;
       for p in param.options() {
-        if process_require_item(p).is_none() {
+        if let Some(dep) = process_require_item(p) {
+          commonjs_require_deps.push(dep)
+        } else {
           is_expression = true;
         }
       }
       if !is_expression {
-        self
-          .presentational_dependencies
-          .push(Box::new(RequireHeaderDependency::new(
-            call_expr.callee.span().real_lo(),
-            call_expr.callee.span().hi().0,
-          )));
+        require_header_deps.push(RequireHeaderDependency::new(
+          call_expr.callee.span().real_lo(),
+          call_expr.callee.span().hi().0,
+        ));
       }
     }
 
-    if process_require_item(&param).is_some() {
-      self
-        .presentational_dependencies
-        .push(Box::new(RequireHeaderDependency::new(
-          call_expr.callee.span().real_lo(),
-          call_expr.callee.span_hi().0,
-        )));
+    if let Some(dep) = process_require_item(&param) {
+      commonjs_require_deps.push(dep);
+      require_header_deps.push(RequireHeaderDependency::new(
+        call_expr.callee.span().real_lo(),
+        call_expr.callee.span_hi().0,
+      ));
     }
+
+    Some((commonjs_require_deps, require_header_deps))
+  }
+
+  pub fn walk_left_right_expression(&mut self, expr: &BinExpr) {
+    self.walk_expression(&expr.left);
+    self.walk_expression(&expr.right);
+  }
+
+  pub fn walk_expression(&mut self, expr: &Expr) {
+    expr.visit_children_with(self);
   }
 }
 
-impl Visit for CommonJsImportDependencyScanner<'_> {
+impl<'a> Visit for CommonJsImportDependencyScanner<'a> {
   noop_visit_type!();
 
   fn visit_try_stmt(&mut self, node: &TryStmt) {
@@ -134,13 +243,50 @@ impl Visit for CommonJsImportDependencyScanner<'_> {
     self.in_try = false;
   }
 
+  fn visit_member_expr(&mut self, mem_expr: &MemberExpr) {
+    if let Some(dep) = self.chain_handler(mem_expr, false) {
+      self.dependencies.push(Box::new(dep));
+      return;
+    }
+    mem_expr.visit_children_with(self);
+  }
+
   fn visit_call_expr(&mut self, call_expr: &CallExpr) {
     let Callee::Expr(expr) = &call_expr.callee else {
       call_expr.visit_children_with(self);
       return;
     };
 
-    self.require_handler(call_expr);
+    if self
+      .plugin_drive
+      .clone()
+      .call(self, call_expr)
+      .unwrap_or_default()
+    {
+      return;
+    };
+
+    if let Some(dep) = call_expr
+      .callee
+      .as_expr()
+      .and_then(|expr| expr.as_member())
+      .and_then(|mem| self.chain_handler(mem, true))
+    {
+      self.dependencies.push(Box::new(dep));
+      call_expr.args.visit_children_with(self);
+      return;
+    }
+
+    let deps = self.require_handler(call_expr);
+
+    if let Some((commonjs_require_deps, require_helper_deps)) = deps {
+      for dep in commonjs_require_deps {
+        self.dependencies.push(Box::new(dep))
+      }
+      for dep in require_helper_deps {
+        self.presentational_dependencies.push(Box::new(dep))
+      }
+    }
 
     if let Expr::Ident(ident) = &**expr
       && "require".eq(&ident.sym)
@@ -188,6 +334,16 @@ impl Visit for CommonJsImportDependencyScanner<'_> {
   }
 
   fn visit_unary_expr(&mut self, unary_expr: &UnaryExpr) {
+    if unary_expr.op == UnaryOp::TypeOf
+      && self
+        .plugin_drive
+        .clone()
+        .r#typeof(self, unary_expr)
+        .unwrap_or_default()
+    {
+      return;
+    }
+
     if let UnaryExpr {
       op: UnaryOp::TypeOf,
       arg: box expr,
@@ -213,8 +369,21 @@ impl Visit for CommonJsImportDependencyScanner<'_> {
 
   fn visit_if_stmt(&mut self, if_stmt: &IfStmt) {
     self.replace_require_resolve(&if_stmt.test, "true");
+
     self.in_if = true;
-    if_stmt.visit_children_with(self);
+    if let Some(result) = statement_if(self, if_stmt) {
+      if result {
+        if_stmt.cons.visit_children_with(self);
+      } else if let Some(alt) = &if_stmt.alt {
+        alt.visit_children_with(self)
+      }
+    } else {
+      self.walk_expression(&if_stmt.test);
+      if_stmt.cons.visit_children_with(self);
+      if let Some(alt) = &if_stmt.alt {
+        alt.visit_children_with(self)
+      }
+    }
     self.in_if = false;
   }
 
@@ -222,6 +391,53 @@ impl Visit for CommonJsImportDependencyScanner<'_> {
     let value = if self.in_if { "true" } else { "undefined" };
     self.replace_require_resolve(&bin_expr.left, value);
     self.replace_require_resolve(&bin_expr.right, value);
-    bin_expr.visit_children_with(self);
+
+    if let Some(keep_right) = expression_logic_operator(self, bin_expr) {
+      if keep_right {
+        self.walk_expression(&bin_expr.right);
+      }
+    } else {
+      self.walk_left_right_expression(bin_expr);
+    }
+  }
+
+  fn visit_block_stmt(&mut self, n: &BlockStmt) {
+    let old_in_strict = self.is_strict;
+
+    self.is_strict = is_strict(n);
+    n.visit_children_with(self);
+    self.is_strict = old_in_strict;
+  }
+}
+
+impl CommonJsImportDependencyScanner<'_> {
+  pub fn evaluate_expression(&mut self, expr: &Expr) -> BasicEvaluatedExpression {
+    match self.evaluating(expr) {
+      Some(evaluated) => {
+        if evaluated.is_compile_time_value() {
+          self.ignored.push(DependencyLocation::new(
+            expr.span().real_lo(),
+            expr.span().real_hi(),
+          ));
+        }
+        evaluated
+      }
+      None => BasicEvaluatedExpression::with_range(expr.span().real_lo(), expr.span_hi().0),
+    }
+  }
+
+  // same as `JavascriptParser._initializeEvaluating` in webpack
+  // FIXME: should mv it to plugin(for example `parse.hooks.evaluate for`)
+  fn evaluating(&mut self, expr: &Expr) -> Option<BasicEvaluatedExpression> {
+    match expr {
+      Expr::Tpl(tpl) => eval::eval_tpl_expression(self, tpl),
+      Expr::Lit(lit) => eval::eval_lit_expr(lit),
+      Expr::Cond(cond) => eval::eval_cond_expression(self, cond),
+      Expr::Unary(unary) => eval::eval_unary_expression(self, unary),
+      Expr::Bin(binary) => eval::eval_binary_expression(self, binary),
+      Expr::Array(array) => eval::eval_array_expression(self, array),
+      Expr::New(new) => eval::eval_new_expression(self, new),
+      _ => None,
+    }
   }
 }

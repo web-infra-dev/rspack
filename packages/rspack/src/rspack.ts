@@ -60,26 +60,17 @@ function createCompiler(userOptions: RspackOptions): Compiler {
 		infrastructureLogging: options.infrastructureLogging
 	}).apply(compiler);
 
-	const logger = compiler.getInfrastructureLogger("config");
-	logger.debug(
-		"RawOptions:",
-		util.inspect(userOptions, { colors: true, depth: null })
-	);
-
 	if (Array.isArray(options.plugins)) {
 		for (const plugin of options.plugins) {
 			if (typeof plugin === "function") {
 				(plugin as RspackPluginFunction).call(compiler, compiler);
-			} else {
+			} else if (plugin) {
 				plugin.apply(compiler);
 			}
 		}
 	}
 	applyRspackOptionsDefaults(compiler.options);
-	logger.debug(
-		"NormalizedOptions:",
-		util.inspect(compiler.options, { colors: true, depth: null })
-	);
+
 	compiler.hooks.environment.call();
 	compiler.hooks.afterEnvironment.call();
 	new RspackOptionsApply().process(compiler.options, compiler);

@@ -1,7 +1,9 @@
 use std::collections::{HashMap, HashSet};
 
-use rspack_core::{Logger, OptimizeChunksArgs, Plugin, PluginContext, PluginOptimizeChunksOutput};
-use rspack_error::Error;
+use rspack_core::{
+  get_chunk_from_ukey, get_chunk_group_from_ukey, Logger, OptimizeChunksArgs, Plugin,
+  PluginContext, PluginOptimizeChunksOutput,
+};
 
 #[derive(Debug)]
 pub struct EnsureChunkConditionsPlugin;
@@ -27,18 +29,18 @@ impl Plugin for EnsureChunkConditionsPlugin {
       .modules()
       .iter()
       .for_each(|(module_id, module)| {
-        if module.has_chunk_condition() {
-          let source_chunks = compilation
-            .chunk_graph
-            .get_module_chunks(module.identifier())
-            .iter()
-            .flat_map(|chunk| {
-              if !module.chunk_condition(chunk, compilation) {
-                return Some(chunk.to_owned());
-              }
-              None
-            })
-            .collect::<Vec<_>>();
+        let source_chunks = compilation
+          .chunk_graph
+          .get_module_chunks(module.identifier())
+          .iter()
+          .flat_map(|chunk| {
+            if matches!(module.chunk_condition(chunk, compilation), Some(false)) {
+              return Some(chunk.to_owned());
+            }
+            None
+          })
+          .collect::<Vec<_>>();
+        if !source_chunks.is_empty() {
           source_module_chunks.insert(module_id, source_chunks);
         }
       });
@@ -48,7 +50,7 @@ impl Plugin for EnsureChunkConditionsPlugin {
     for (module_id, chunk_keys) in &source_module_chunks {
       let mut target_chunks = HashSet::new();
       for chunk_key in chunk_keys {
-        if let Some(chunk) = compilation.chunk_by_ukey.get(chunk_key) {
+        if let Some(chunk) = get_chunk_from_ukey(chunk_key, &compilation.chunk_by_ukey) {
           let mut chunk_group_keys = chunk.groups.iter().collect::<Vec<_>>();
           let mut visited_chunk_group_keys = HashSet::new();
           'out: while let Some(chunk_group_key) = chunk_group_keys.pop() {
@@ -56,20 +58,25 @@ impl Plugin for EnsureChunkConditionsPlugin {
               continue;
             }
             visited_chunk_group_keys.insert(chunk_group_key);
-            if let Some(chunk_group) = compilation.chunk_group_by_ukey.get(chunk_group_key) {
+            if let Some(chunk_group) =
+              get_chunk_group_from_ukey(chunk_group_key, &compilation.chunk_group_by_ukey)
+            {
               for chunk in &chunk_group.chunks {
                 if let Some(module) = compilation.module_graph.module_by_identifier(module_id) {
-                  if module.chunk_condition(chunk, compilation) {
+                  if matches!(module.chunk_condition(chunk, compilation), Some(true)) {
                     target_chunks.insert(chunk);
                     continue 'out;
                   }
                 }
               }
               if chunk_group.is_initial() {
-                return Err(Error::InternalError(rspack_error::InternalError {
-                  error_message: format!("Cannot fulfil chunk condition of {}", module_id),
-                  severity: Default::default(),
-                }));
+                return Err(
+                  rspack_error::InternalError::new(
+                    format!("Cannot fulfil chunk condition of {}", module_id),
+                    Default::default(),
+                  )
+                  .into(),
+                );
               }
               let parent_chunks = chunk_group.parents_iterable();
 

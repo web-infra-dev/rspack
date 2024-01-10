@@ -169,6 +169,7 @@ webpack-dist
 packages/rspack/tests/js
 packages/rspack/tests/fixtures/temp-*
 packages/playground/temp
+packages/rspack-test-tools/tests/js
 
 # Ignore local integrate debug file
 packages/rspack/tests/*.debug.[tj]s

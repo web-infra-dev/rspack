@@ -1,10 +1,10 @@
+use std::sync::Arc;
+
 use napi::Either;
 use napi_derive::napi;
-use rspack_core::mf::{
-  consume_shared_plugin::{ConsumeOptions, ConsumeVersion},
-  container_plugin::{ContainerPluginOptions, ExposeOptions},
-  container_reference_plugin::{ContainerReferencePluginOptions, RemoteOptions},
-  provide_shared_plugin::{ProvideOptions, ProvideVersion},
+use rspack_plugin_mf::{
+  ConsumeOptions, ConsumeSharedPluginOptions, ConsumeVersion, ContainerPluginOptions,
+  ContainerReferencePluginOptions, ExposeOptions, ProvideOptions, ProvideVersion, RemoteOptions,
 };
 
 use crate::RawLibraryOptions;
@@ -18,6 +18,7 @@ pub struct RawContainerPluginOptions {
   pub runtime: Option<String>,
   pub filename: Option<String>,
   pub exposes: Vec<RawExposeOptions>,
+  pub enhanced: bool,
 }
 
 impl From<RawContainerPluginOptions> for ContainerPluginOptions {
@@ -29,6 +30,7 @@ impl From<RawContainerPluginOptions> for ContainerPluginOptions {
       runtime: value.runtime,
       filename: value.filename.map(|f| f.into()),
       exposes: value.exposes.into_iter().map(|e| e.into()).collect(),
+      enhanced: value.enhanced,
     }
   }
 }
@@ -59,6 +61,7 @@ pub struct RawContainerReferencePluginOptions {
   pub remote_type: String,
   pub remotes: Vec<RawRemoteOptions>,
   pub share_scope: Option<String>,
+  pub enhanced: bool,
 }
 
 impl From<RawContainerReferencePluginOptions> for ContainerReferencePluginOptions {
@@ -67,6 +70,7 @@ impl From<RawContainerReferencePluginOptions> for ContainerReferencePluginOption
       remote_type: value.remote_type,
       remotes: value.remotes.into_iter().map(|e| e.into()).collect(),
       share_scope: value.share_scope,
+      enhanced: value.enhanced,
     }
   }
 }
@@ -113,6 +117,27 @@ impl From<RawProvideOptions> for (String, ProvideOptions) {
         eager: value.eager,
       },
     )
+  }
+}
+
+#[derive(Debug)]
+#[napi(object)]
+pub struct RawConsumeSharedPluginOptions {
+  pub consumes: Vec<RawConsumeOptions>,
+  pub enhanced: bool,
+}
+
+impl From<RawConsumeSharedPluginOptions> for ConsumeSharedPluginOptions {
+  fn from(value: RawConsumeSharedPluginOptions) -> Self {
+    Self {
+      consumes: value
+        .consumes
+        .into_iter()
+        .map(|c| c.into())
+        .map(|(k, v)| (k, Arc::new(v)))
+        .collect(),
+      enhanced: value.enhanced,
+    }
   }
 }
 

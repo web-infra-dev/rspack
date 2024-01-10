@@ -1,21 +1,23 @@
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  Compilation, RuntimeModule,
+  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule,
 };
 use rspack_identifier::Identifier;
 
-#[derive(Debug, Default, Eq)]
+use crate::get_chunk_runtime_requirements;
+
+#[derive(Debug, Eq)]
 pub struct EnsureChunkRuntimeModule {
   id: Identifier,
-  has_ensure_chunk_handlers: bool,
+  chunk: Option<ChunkUkey>,
 }
 
-impl EnsureChunkRuntimeModule {
-  pub fn new(has_ensure_chunk_handlers: bool) -> Self {
+impl Default for EnsureChunkRuntimeModule {
+  fn default() -> Self {
     Self {
       id: Identifier::from("webpack/runtime/ensure_chunk"),
-      has_ensure_chunk_handlers,
+      chunk: None,
     }
   }
 }
@@ -25,12 +27,20 @@ impl RuntimeModule for EnsureChunkRuntimeModule {
     self.id
   }
 
-  fn generate(&self, _compilation: &Compilation) -> BoxSource {
-    RawSource::from(match self.has_ensure_chunk_handlers {
-      true => include_str!("runtime/ensure_chunk.js"),
-      false => include_str!("runtime/ensure_chunk_with_inline.js"),
-    })
+  fn generate(&self, compilation: &Compilation) -> BoxSource {
+    let chunk_ukey = self.chunk.expect("should have chunk");
+    let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk_ukey);
+    RawSource::from(
+      match runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS) {
+        true => include_str!("runtime/ensure_chunk.js"),
+        false => include_str!("runtime/ensure_chunk_with_inline.js"),
+      },
+    )
     .boxed()
+  }
+
+  fn attach(&mut self, chunk: ChunkUkey) {
+    self.chunk = Some(chunk);
   }
 }
 

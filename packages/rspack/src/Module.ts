@@ -15,6 +15,14 @@ export class Module {
 		this.#inner = module;
 	}
 
+	get context(): string | undefined {
+		return this.#inner.context;
+	}
+
+	get resource(): string | undefined {
+		return this.#inner.resource;
+	}
+
 	identifier(): string {
 		return this.#inner.moduleIdentifier;
 	}

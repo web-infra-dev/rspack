@@ -7,7 +7,7 @@ import {
 import fs from "fs-extra";
 import path from "path";
 
-const VIEWER_DIR = path.join(__dirname, "../viewer");
+const VIEWER_DIR = path.join(__dirname, "../../template");
 const DIFF_STATS_PLACEHOLDER = "$$RSPACK_DIFF_STATS_PLACEHOLDER$$";
 const DEFAULT_IGNORE = /node_modules/;
 
@@ -58,16 +58,21 @@ export class DiffHtmlReporter implements ITestReporter<TModuleCompareResult[]> {
 						root: id,
 						data: items
 					};
-					const content = template.replace(
-						DIFF_STATS_PLACEHOLDER,
-						JSON.stringify(data)
-					);
 					const casename = path.basename(id);
 					const extname = path.extname(viewerFile);
 					const filename = path.basename(viewerFile, extname);
+					const content = template.replace(
+						`<script id="${DIFF_STATS_PLACEHOLDER}"></script>`,
+						`<script src="${filename}_${casename}.js"></script>`
+					);
 					fs.writeFileSync(
 						path.join(this.options.dist, `${filename}_${casename}${extname}`),
 						content,
+						"utf-8"
+					);
+					fs.writeFileSync(
+						path.join(this.options.dist, `${filename}_${casename}.js`),
+						`window.$$diff_detail$$ = ${JSON.stringify(data)}`,
 						"utf-8"
 					);
 				}

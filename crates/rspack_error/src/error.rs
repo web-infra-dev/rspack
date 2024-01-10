@@ -1,93 +1,171 @@
-use std::{fmt, io, path::Path};
+use std::{fmt::Display, path::Path};
 
-use rspack_util::swc::normalize_custom_filename;
+use miette::{
+  Diagnostic, IntoDiagnostic, LabeledSpan, MietteDiagnostic, Severity, SourceCode, SourceSpan,
+};
 use swc_core::common::SourceFile;
+use thiserror::Error;
 
-use crate::{internal_error, Severity};
+use crate::RspackSeverity;
 
-#[derive(Debug, Default)]
-pub struct InternalError {
-  pub error_message: String,
-  pub severity: Severity,
-}
+#[derive(Debug, Error)]
+#[error(transparent)]
+pub struct InternalError(#[from] Box<dyn Diagnostic + Send + Sync + 'static>);
 
 impl InternalError {
-  pub fn new(error_message: String, severity: Severity) -> Self {
-    Self {
-      error_message,
-      severity,
-    }
-  }
-
-  pub fn with_severity(mut self, severity: Severity) -> Self {
-    self.severity = severity;
-    self
+  pub fn new(message: String, severity: RspackSeverity) -> Self {
+    Self(Box::new(
+      MietteDiagnostic::new(message).with_severity(severity.into()),
+    ))
   }
 }
 
-impl fmt::Display for InternalError {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    writeln!(f, "{}[internal]: {}", self.severity, self.error_message)
+/// Convenience [`Diagnostic`] that can be used as an "anonymous" wrapper for
+/// Errors. This is intended to be paired with [`IntoDiagnostic`].
+#[derive(Debug, Error)]
+#[error(transparent)]
+pub struct DiagnosticError(Box<dyn std::error::Error + Send + Sync + 'static>);
+impl Diagnostic for DiagnosticError {}
+
+impl From<Box<dyn std::error::Error + Send + Sync + 'static>> for DiagnosticError {
+  fn from(value: Box<dyn std::error::Error + Send + Sync + 'static>) -> Self {
+    Self(value)
   }
 }
 
-#[derive(Debug)]
+/// Handle [anyhow::Error]
+/// Please try NOT to use this as much as possible.
+#[derive(Debug, Error, Diagnostic)]
+#[error(transparent)]
+pub struct AnyhowError(#[from] anyhow::Error);
+
 /// ## Warning
 /// For a [TraceableError], the path is required.
 /// Because if the source code is missing when you construct a [TraceableError], we could read it from file system later
 /// when convert it into [crate::Diagnostic], but the reverse will not working.
+#[derive(Debug, Clone, Error)]
+#[error("{title}: {message}")]
 pub struct TraceableError {
-  /// path of a file (real file or virtual file)
-  pub file_path: String,
-  /// source content of a file (real file or virtual file)
-  pub file_src: String,
-  pub start: usize,
-  pub end: usize,
-  pub error_message: String,
-  pub title: String,
-  pub kind: DiagnosticKind,
-  pub severity: Severity,
+  title: String,
+  kind: DiagnosticKind,
+  message: String,
+  severity: Severity,
+  src: String,
+  label: SourceSpan,
+  help: Option<String>,
+  url: Option<String>,
+}
+
+impl Diagnostic for TraceableError {
+  fn severity(&self) -> Option<Severity> {
+    Some(self.severity)
+  }
+
+  fn help(&self) -> Option<Box<dyn Display + '_>> {
+    self
+      .help
+      .as_ref()
+      .map(Box::new)
+      .map(|c| c as Box<dyn Display>)
+  }
+
+  fn url(&self) -> Option<Box<dyn Display + '_>> {
+    self
+      .url
+      .as_ref()
+      .map(Box::new)
+      .map(|c| c as Box<dyn Display>)
+  }
+
+  fn source_code(&self) -> Option<&dyn SourceCode> {
+    Some(&self.src)
+  }
+
+  fn labels(&self) -> Option<Box<dyn Iterator<Item = LabeledSpan> + '_>> {
+    use miette::macro_helpers::{OptionalWrapper, ToOption};
+    std::option::Option::Some(Box::new(
+      vec![OptionalWrapper::<SourceSpan>::new()
+        .to_option(&self.label)
+        .map(|label| miette::LabeledSpan::new_with_span(None, *label))]
+      .into_iter()
+      .filter(Option::is_some)
+      .flatten(),
+    ))
+  }
 }
 
 impl TraceableError {
+  pub fn with_severity(mut self, severity: impl Into<Severity>) -> Self {
+    self.severity = severity.into();
+    self
+  }
+
+  pub fn with_kind(mut self, kind: DiagnosticKind) -> Self {
+    self.kind = kind;
+    self
+  }
+
+  pub fn with_help(mut self, help: Option<impl Into<String>>) -> Self {
+    self.help = help.map(|h| h.into());
+    self
+  }
+
+  pub fn with_url(mut self, url: Option<impl Into<String>>) -> Self {
+    self.url = url.map(|u| u.into());
+    self
+  }
+
   pub fn from_source_file(
     source_file: &SourceFile,
     start: usize,
     end: usize,
     title: String,
-    error_message: String,
+    message: String,
   ) -> Self {
-    let file_path = normalize_custom_filename(&source_file.name.to_string()).to_string();
     let file_src = source_file.src.to_string();
+    let start = if start >= file_src.len() { 0 } else { start };
+    let end = if end >= file_src.len() { 0 } else { end };
     Self {
-      file_path,
-      file_src,
-      start,
-      end,
-      error_message,
       title,
-      kind: DiagnosticKind::Internal,
-      severity: Severity::Error,
+      kind: Default::default(),
+      message,
+      severity: Default::default(),
+      src: file_src,
+      label: SourceSpan::new(start.into(), end.saturating_sub(start).into()),
+      help: None,
+      url: None,
     }
   }
 
   pub fn from_file(
-    file_path: String,
     file_src: String,
     start: usize,
     end: usize,
     title: String,
-    error_message: String,
+    message: String,
   ) -> Self {
     Self {
-      file_path,
-      file_src,
-      start,
-      end,
-      error_message,
       title,
-      kind: DiagnosticKind::Internal,
-      severity: Severity::Error,
+      kind: Default::default(),
+      message,
+      severity: Default::default(),
+      src: file_src,
+      label: SourceSpan::new(start.into(), end.saturating_sub(start).into()),
+      help: None,
+      url: None,
+    }
+  }
+
+  pub fn from_empty_file(start: usize, end: usize, title: String, message: String) -> Self {
+    Self {
+      title,
+      kind: Default::default(),
+      message,
+      severity: Default::default(),
+      src: "".to_string(),
+      label: SourceSpan::new(start.into(), end.saturating_sub(start).into()),
+      help: None,
+      url: None,
     }
   }
 
@@ -96,138 +174,87 @@ impl TraceableError {
     start: usize,
     end: usize,
     title: String,
-    error_message: String,
-  ) -> Result<Self, Error> {
-    let file_src = std::fs::read_to_string(path)?;
-    Ok(Self::from_file(
-      path.to_string_lossy().into_owned(),
-      file_src,
-      start,
-      end,
-      title,
-      error_message,
-    ))
-  }
-
-  pub fn with_kind(mut self, kind: DiagnosticKind) -> Self {
-    self.kind = kind;
-    self
-  }
-
-  pub fn with_severity(mut self, severity: Severity) -> Self {
-    self.severity = severity;
-    self
+    message: String,
+  ) -> Result<Self, miette::Error> {
+    let file_src = std::fs::read_to_string(path).into_diagnostic()?;
+    let start = if start >= file_src.len() { 0 } else { start };
+    let end = if end >= file_src.len() { 0 } else { end };
+    Ok(Self::from_file(file_src, start, end, title, message))
   }
 }
 
-impl fmt::Display for TraceableError {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    writeln!(f, "{}[{}]: {}", self.severity, self.kind, self.title)?;
-    writeln!(f, "{}", self.error_message)?;
-    writeln!(f, "in {}", self.file_path)
+/// Multiple errors to represent different kinds of errors.
+/// NEVER implement this with [miette::Diagnostic],
+/// because it makes code hard to maintain.
+#[derive(Debug, Default)]
+pub struct BatchErrors(pub Vec<miette::Error>);
+
+impl BatchErrors {
+  pub fn into_inner(self) -> Vec<miette::Error> {
+    self.0
   }
 }
 
-#[derive(Debug)]
-pub enum Error {
-  InternalError(InternalError),
-  TraceableError(TraceableError),
-  Io {
-    source: io::Error,
-  },
-  Anyhow {
-    source: anyhow::Error,
-  },
-  BatchErrors(Vec<Error>),
-  // for some reason, We could not just use `napi:Error` here
-  Napi {
-    status: String,
-    reason: String,
-    backtrace: String,
-  },
+impl From<BatchErrors> for Vec<crate::Diagnostic> {
+  fn from(value: BatchErrors) -> Self {
+    value.0.into_iter().map(crate::Diagnostic::from).collect()
+  }
 }
 
-impl std::error::Error for Error {
-  fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-    match self {
-      Error::Io { source, .. } => Some(source as &(dyn std::error::Error + 'static)),
-      Error::Anyhow { source, .. } => Some(source.as_ref()),
-      _ => None,
+impl From<miette::Error> for BatchErrors {
+  fn from(value: miette::Error) -> Self {
+    Self(vec![value])
+  }
+}
+
+impl From<Vec<miette::Error>> for BatchErrors {
+  fn from(value: Vec<miette::Error>) -> Self {
+    Self(value)
+  }
+}
+
+#[macro_export]
+macro_rules! impl_diagnostic_transparent {
+  ($ty:ty) => {
+    impl miette::Diagnostic for $ty {
+      fn code<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
+        (&*self.0).code()
+      }
+
+      fn severity(&self) -> Option<miette::Severity> {
+        (&*self.0).severity()
+      }
+
+      fn help<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
+        (&*self.0).help()
+      }
+
+      fn url<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
+        (&*self.0).url()
+      }
+
+      fn source_code(&self) -> Option<&dyn miette::SourceCode> {
+        (&*self.0).source_code()
+      }
+
+      fn labels(&self) -> Option<Box<dyn Iterator<Item = miette::LabeledSpan> + '_>> {
+        (&*self.0).labels()
+      }
+
+      fn related<'a>(
+        &'a self,
+      ) -> Option<Box<dyn Iterator<Item = &'a dyn miette::Diagnostic> + 'a>> {
+        (&*self.0).related()
+      }
+
+      fn diagnostic_source(&self) -> Option<&dyn Diagnostic> {
+        (&*self.0).diagnostic_source()
+      }
     }
-  }
+  };
 }
 
-impl fmt::Display for Error {
-  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    match self {
-      Error::InternalError(e) => write!(f, "{e}"),
-      Error::TraceableError(v) => write!(f, "{v}"),
-      Error::Io { source } => write!(f, "{source}"),
-      Error::Anyhow { source } => write!(f, "{source}"),
-      Error::BatchErrors(errs) => write!(
-        f,
-        "{}",
-        errs
-          .iter()
-          .map(|e| e.to_string())
-          .collect::<Vec<String>>()
-          .join("\n")
-      ),
-      Error::Napi {
-        status,
-        reason,
-        backtrace,
-      } => write!(f, "napi error: {status} - {reason}\n{backtrace}"),
-    }
-  }
-}
-
-impl From<serde_json::Error> for Error {
-  fn from(value: serde_json::Error) -> Self {
-    Error::InternalError(InternalError::new(value.to_string(), Severity::Error))
-  }
-}
-
-impl From<io::Error> for Error {
-  fn from(source: io::Error) -> Self {
-    Error::Io { source }
-  }
-}
-
-impl From<anyhow::Error> for Error {
-  fn from(source: anyhow::Error) -> Self {
-    Error::Anyhow { source }
-  }
-}
-
-impl From<rspack_sources::Error> for Error {
-  fn from(value: rspack_sources::Error) -> Self {
-    internal_error!(value.to_string())
-  }
-}
-
-impl Error {
-  pub fn kind(&self) -> DiagnosticKind {
-    match self {
-      Error::InternalError(_) => DiagnosticKind::Internal,
-      Error::TraceableError(TraceableError { kind, .. }) => *kind,
-      Error::Io { .. } => DiagnosticKind::Io,
-      Error::Anyhow { .. } => DiagnosticKind::Internal,
-      Error::BatchErrors(_) => DiagnosticKind::Internal,
-      Error::Napi { .. } => DiagnosticKind::Internal,
-    }
-  }
-  pub fn severity(&self) -> Severity {
-    match self {
-      Error::InternalError(_) => Severity::Error,
-      Error::TraceableError(TraceableError { severity, .. }) => *severity,
-      Error::Io { .. } => Severity::Error,
-      Error::Anyhow { .. } => Severity::Error,
-      Error::BatchErrors(_) => Severity::Error,
-      Error::Napi { .. } => Severity::Error,
-    }
-  }
-}
+impl_diagnostic_transparent!(InternalError);
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub enum DiagnosticKind {
@@ -261,4 +288,10 @@ impl std::fmt::Display for DiagnosticKind {
       DiagnosticKind::Html => write!(f, "html"),
     }
   }
+}
+
+fn _assert() {
+  fn _assert_send_sync<T: Send + Sync>() {}
+  _assert_send_sync::<InternalError>();
+  _assert_send_sync::<DiagnosticError>();
 }

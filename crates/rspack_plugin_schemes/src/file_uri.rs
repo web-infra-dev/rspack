@@ -1,7 +1,7 @@
 use rspack_core::{
   Plugin, PluginContext, PluginNormalModuleFactoryResolveForSchemeOutput, ResourceData,
 };
-use rspack_error::internal_error;
+use rspack_error::error;
 use url::Url;
 
 #[derive(Debug)]
@@ -9,16 +9,20 @@ pub struct FileUriPlugin;
 
 #[async_trait::async_trait]
 impl Plugin for FileUriPlugin {
+  fn name(&self) -> &'static str {
+    "rspack.FileUriPlugin"
+  }
+
   async fn normal_module_factory_resolve_for_scheme(
     &self,
     _ctx: PluginContext,
     resource_data: ResourceData,
   ) -> PluginNormalModuleFactoryResolveForSchemeOutput {
     if resource_data.get_scheme().is_file() {
-      let url = Url::parse(&resource_data.resource).map_err(|e| internal_error!(e.to_string()))?;
+      let url = Url::parse(&resource_data.resource).map_err(|e| error!(e.to_string()))?;
       let path = url
         .to_file_path()
-        .map_err(|_| internal_error!("Failed to get file path of {url}"))?;
+        .map_err(|_| error!("Failed to get file path of {url}"))?;
       let query = url.query().map(|q| format!("?{q}"));
       let fragment = url.fragment().map(|f| format!("#{f}"));
       return Ok((

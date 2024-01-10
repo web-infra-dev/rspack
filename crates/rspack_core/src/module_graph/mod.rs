@@ -3,16 +3,17 @@ use std::collections::hash_map::Entry;
 use std::path::PathBuf;
 
 use dashmap::DashMap;
-use rspack_error::{internal_error, Result};
+use rspack_error::Result;
 use rspack_hash::RspackHashDigest;
 use rspack_identifier::{Identifiable, IdentifierMap};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::ecma::atoms::JsWord;
-
-use crate::{AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, IS_NEW_TREESHAKING};
+mod vec_map;
+use crate::{AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier};
 mod connection;
 pub use connection::*;
 
+use self::vec_map::VecMap;
 use crate::{
   BoxDependency, BoxModule, BuildDependency, BuildInfo, BuildMeta, DependencyCondition,
   DependencyId, ExportInfo, ExportInfoId, ExportsInfo, ExportsInfoId, ModuleGraphModule,
@@ -20,7 +21,7 @@ use crate::{
 };
 
 // TODO Here request can be used JsWord
-pub type ImportVarMap = HashMap<String /* request */, String /* import_var */>;
+pub type ImportVarMap = HashMap<Option<String> /* request */, String /* import_var */>;
 
 #[derive(Debug, Default)]
 pub struct DependencyParents {
@@ -30,6 +31,9 @@ pub struct DependencyParents {
 
 #[derive(Debug, Default)]
 pub struct ModuleGraph {
+  // TODO: removed when new treeshaking is stable
+  is_new_treeshaking: bool,
+
   pub dependency_id_to_module_identifier: HashMap<DependencyId, ModuleIdentifier>,
 
   /// Module identifier to its module
@@ -57,8 +61,9 @@ pub struct ModuleGraph {
   connections_map: HashMap<ModuleGraphConnection, ConnectionId>,
 
   pub import_var_map: DashMap<ModuleIdentifier, ImportVarMap>,
-  pub exports_info_map: HashMap<ExportsInfoId, ExportsInfo>,
-  pub export_info_map: HashMap<ExportInfoId, ExportInfo>,
+  pub exports_info_hash: DashMap<ExportsInfoId, u64>,
+  pub exports_info_map: vec_map::VecMap<ExportsInfo>,
+  pub export_info_map: VecMap<ExportInfo>,
   connection_to_condition: HashMap<ModuleGraphConnection, DependencyCondition>,
   pub dep_meta_map: HashMap<DependencyId, DependencyExtraMeta>,
 }
@@ -70,6 +75,12 @@ pub struct DependencyExtraMeta {
 }
 
 impl ModuleGraph {
+  // TODO: removed when new treeshaking is stable
+  pub fn with_treeshaking(mut self, new_treeshaking: bool) -> Self {
+    self.is_new_treeshaking = new_treeshaking;
+    self
+  }
+
   /// Return an unordered iterator of modules
   pub fn modules(&self) -> &IdentifierMap<BoxModule> {
     &self.module_identifier_to_module
@@ -175,7 +186,7 @@ impl ModuleGraph {
     let dependency = dependency_id.get_dependency(self);
     let is_module_dependency =
       dependency.as_module_dependency().is_some() || dependency.as_context_dependency().is_some();
-    let condition = if IS_NEW_TREESHAKING.load(std::sync::atomic::Ordering::Relaxed) {
+    let condition = if self.is_new_treeshaking {
       dependency
         .as_module_dependency()
         .and_then(|dep| dep.get_condition())
@@ -227,11 +238,11 @@ impl ModuleGraph {
     {
       let mgm = self
         .module_graph_module_by_identifier_mut(&module_identifier)
-        .ok_or_else(|| {
-          internal_error!(
+        .unwrap_or_else(|| {
+          panic!(
             "Failed to set resolved module: Module linked to module identifier {module_identifier} cannot be found"
           )
-        })?;
+        });
 
       mgm.add_incoming_connection(connection_id);
     }
@@ -374,6 +385,22 @@ impl ModuleGraph {
           .filter_map(|id| self.module_identifier_by_dependency_id(id))
           .collect()
       })
+  }
+
+  pub(crate) fn get_module_dependencies_modules_and_blocks(
+    &self,
+    module_identifier: &ModuleIdentifier,
+  ) -> (Vec<&ModuleIdentifier>, &[AsyncDependenciesBlockIdentifier]) {
+    let Some(m) = self.module_by_identifier(module_identifier) else {
+      unreachable!("cannot find the module correspanding to {module_identifier}");
+    };
+    let modules = m
+      .get_dependencies()
+      .iter()
+      .filter_map(|id| self.module_identifier_by_dependency_id(id))
+      .collect();
+    let blocks = m.get_blocks();
+    (modules, blocks)
   }
 
   pub fn dependency_by_connection_id(
@@ -589,17 +616,16 @@ impl ModuleGraph {
     build_info: BuildInfo,
     build_meta: BuildMeta,
   ) {
-    if let Some(mgm) = self.module_graph_module_by_identifier_mut(module_identifier) {
-      mgm.build_info = Some(build_info);
-      mgm.build_meta = Some(build_meta);
+    if let Some(module) = self.module_by_identifier_mut(module_identifier) {
+      module.set_module_build_info_and_meta(build_info, build_meta);
     }
   }
 
   #[inline]
   pub fn get_module_hash(&self, module_identifier: &ModuleIdentifier) -> Option<&RspackHashDigest> {
     self
-      .module_graph_module_by_identifier(module_identifier)
-      .and_then(|mgm| mgm.build_info.as_ref().and_then(|i| i.hash.as_ref()))
+      .module_by_identifier(module_identifier)
+      .and_then(|mgm| mgm.build_info().as_ref().and_then(|i| i.hash.as_ref()))
   }
 
   pub fn has_dependencies(
@@ -608,8 +634,8 @@ impl ModuleGraph {
     files: &HashSet<PathBuf>,
   ) -> bool {
     if let Some(build_info) = self
-      .module_graph_module_by_identifier(module_identifier)
-      .and_then(|mgm| mgm.build_info.as_ref())
+      .module_by_identifier(module_identifier)
+      .and_then(|module| module.build_info())
     {
       for item in files {
         if build_info.file_dependencies.contains(item)
@@ -691,49 +717,28 @@ impl ModuleGraph {
     let mgm = self
       .module_graph_module_by_identifier(module_identifier)
       .expect("should have mgm");
-    let exports_info = self
-      .exports_info_map
-      .get(&mgm.exports)
-      .expect("should have export info");
+    let exports_info = self.exports_info_map.get(*mgm.exports as usize);
     exports_info
   }
 
-  // pub fn get_exports_info_mut(&mut self, module_identifier: &ModuleIdentifier) -> &mut ExportsInfo {
-  //   let mgm = self
-  //     .module_graph_module_by_identifier_mut(module_identifier)
-  //     .expect("should have mgm");
-  //   &mut mgm.exports
-  // }
-
   pub fn get_exports_info_by_id(&self, id: &ExportsInfoId) -> &ExportsInfo {
-    let exports_info = self
-      .exports_info_map
-      .get(id)
-      .expect("should have exports_info");
+    let exports_info = self.exports_info_map.get((**id) as usize);
     exports_info
   }
 
   pub fn get_exports_info_mut_by_id(&mut self, id: &ExportsInfoId) -> &mut ExportsInfo {
-    let exports_info = self
-      .exports_info_map
-      .get_mut(id)
-      .expect("should have exports_info");
+    let exports_info = self.exports_info_map.get_mut((**id) as usize);
     exports_info
   }
 
   pub fn get_export_info_by_id(&self, id: &ExportInfoId) -> &ExportInfo {
-    let export_info = self
-      .export_info_map
-      .get(id)
-      .expect("should have export info");
+    let export_info = self.export_info_map.get(**id as usize);
     export_info
   }
 
   pub fn get_export_info_mut_by_id(&mut self, id: &ExportInfoId) -> &mut ExportInfo {
-    let exports_info = self
-      .export_info_map
-      .get_mut(id)
-      .expect("should have export info");
+    let exports_info = self.export_info_map.get_mut(**id as usize);
+
     exports_info
   }
 }
@@ -742,15 +747,15 @@ impl ModuleGraph {
 mod test {
   use std::borrow::Cow;
 
-  use rspack_error::{Result, TWithDiagnosticArray};
+  use rspack_error::{Diagnosable, Result};
   use rspack_identifier::Identifiable;
   use rspack_sources::Source;
 
   use crate::{
-    AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildResult,
-    CodeGenerationResult, Compilation, Context, DependenciesBlock, Dependency, DependencyId,
-    ExportInfo, ExportsInfo, Module, ModuleDependency, ModuleGraph, ModuleGraphModule,
-    ModuleIdentifier, ModuleType, RuntimeSpec, SourceType, UsageState,
+    AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta,
+    BuildResult, CodeGenerationResult, Compilation, Context, DependenciesBlock, Dependency,
+    DependencyId, ExportInfo, ExportsInfo, Module, ModuleDependency, ModuleGraph,
+    ModuleGraphModule, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType, UsageState,
   };
 
   // Define a detailed node type for `ModuleGraphModule`s
@@ -764,6 +769,8 @@ mod test {
           (stringify!($ident).to_owned() + "__" + self.0).into()
         }
       }
+
+      impl Diagnosable for $ident {}
 
       impl DependenciesBlock for $ident {
         fn add_block_id(&mut self, _: AsyncDependenciesBlockIdentifier) {
@@ -805,10 +812,7 @@ mod test {
           unreachable!()
         }
 
-        async fn build(
-          &mut self,
-          _build_context: BuildContext<'_>,
-        ) -> Result<TWithDiagnosticArray<BuildResult>> {
+        async fn build(&mut self, _build_context: BuildContext<'_>) -> Result<BuildResult> {
           unreachable!()
         }
 
@@ -817,6 +821,22 @@ mod test {
           _compilation: &Compilation,
           _runtime: Option<&RuntimeSpec>,
         ) -> Result<CodeGenerationResult> {
+          unreachable!()
+        }
+
+        fn build_meta(&self) -> Option<&BuildMeta> {
+          unreachable!()
+        }
+
+        fn build_info(&self) -> Option<&BuildInfo> {
+          unreachable!()
+        }
+
+        fn set_module_build_info_and_meta(
+          &mut self,
+          _build_info: BuildInfo,
+          _build_meta: BuildMeta,
+        ) {
           unreachable!()
         }
       }
@@ -873,10 +893,11 @@ mod test {
     mg.add_module_graph_module(mgm);
     mg.add_module(m);
     mg.export_info_map
-      .insert(other_exports_info.id, other_exports_info);
+      .insert(*other_exports_info.id as usize, other_exports_info);
     mg.export_info_map
-      .insert(side_effects_only_info.id, side_effects_only_info);
-    mg.exports_info_map.insert(exports_info.id, exports_info);
+      .insert(*side_effects_only_info.id as usize, side_effects_only_info);
+    mg.exports_info_map
+      .insert(*exports_info.id as usize, exports_info);
   }
 
   fn link_modules_with_dependency(

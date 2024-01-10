@@ -27,14 +27,15 @@ describe("Stats", () => {
 		expect(stats?.toJson(statsOptions)).toMatchSnapshot();
 		expect(stats?.toString(statsOptions)).toMatchInlineSnapshot(`
 		"PublicPath: auto
-		asset main.js 215 bytes {main} [emitted] (name: main)
-		Entrypoint main 215 bytes = main.js
+		asset main.js 211 bytes {main} [emitted] (name: main)
+		Entrypoint main 211 bytes = main.js
 		chunk {main} main.js (main) [entry]
-		  ./fixtures/a.js [876] {main}
+		  ./fixtures/a.js [585] {main}
 		    entry ./fixtures/a
-		./fixtures/a.js [876] {main}
+		./fixtures/a.js [585] {main}
 		  entry ./fixtures/a
-		Rspack compiled successfully (62928f626241ca4814a5)"
+		  
+		Rspack compiled successfully (a62f45ec3d75aa689fa1)"
 	`);
 	});
 
@@ -55,31 +56,31 @@ describe("Stats", () => {
 			context: __dirname,
 			entry: "./fixtures/abc"
 		});
-		expect(
-			stats?.toString({ timings: false, version: false }).replace(/\\/g, "/")
-		).toMatchInlineSnapshot(`
+		expect(stats?.toString({ timings: false, version: false }))
+			.toMatchInlineSnapshot(`
 		"PublicPath: auto
-		asset main.js 419 bytes [emitted] (name: main)
-		Entrypoint main 419 bytes = main.js
+		asset main.js 758 bytes [emitted] (name: main)
+		Entrypoint main 758 bytes = main.js
 		./fixtures/a.js
 		./fixtures/b.js
 		./fixtures/c.js
 		./fixtures/abc.js
 
-		error[javascript]: JavaScript parsing error
-		  ┌─ tests/fixtures/b.js:6:1
-		  │
-		2 │     return "This is b";
-		3 │ };
-		4 │ 
-		5 │ // Test CJS top-level return
-		6 │ return;
-		  │ ^^^^^^^ Return statement is not allowed here
-		7 │ 
+		ERROR in ./fixtures/b.js ModuleParseError
 
+		  × Module parse failed:
+		  ╰─▶   × JavaScript parsing error: Return statement is not allowed here
+		         ╭─[4:1]
+		       4 │
+		       5 │ // Test CJS top-level return
+		       6 │ return;
+		         · ───────
+		         ╰────
+		      
+		  help: 
+		        You may need an appropriate loader to handle this file type.
 
-
-		Rspack compiled with 1 error (b5e049b7786f599663d7)"
+		Rspack compiled with 1 error (276dbbbbbfe2a12323dd)"
 	`);
 	});
 
@@ -133,7 +134,6 @@ describe("Stats", () => {
 		expect(
 			stats
 				?.toString({ all: false, logging: "verbose" })
-				.replace(/\\/g, "/")
 				.replace(/\d+ ms/g, "X ms")
 		).toMatchInlineSnapshot(`
 		"LOG from rspack.Compilation
@@ -149,6 +149,7 @@ describe("Stats", () => {
 		<t> optimize: X ms
 		<t> module ids: X ms
 		<t> chunk ids: X ms
+		<t> optimize code generation: X ms
 		<t> code generation: X ms
 		<t> runtime requirements.modules: X ms
 		<t> runtime requirements.chunks: X ms
@@ -158,8 +159,10 @@ describe("Stats", () => {
 		<t> hashing: hash runtime chunks: X ms
 		<t> hashing: process full hash chunks: X ms
 		<t> hashing: X ms
+		<t> create module assets: X ms
 		<t> create chunk assets: X ms
 		<t> process assets: X ms
+		<t> after process assets: X ms
 
 		LOG from rspack.Compiler
 		<t> make: X ms
@@ -204,10 +207,7 @@ describe("Stats", () => {
 			profile: true
 		});
 		expect(
-			stats
-				?.toString({ all: false, modules: true })
-				.replace(/\\/g, "/")
-				.replace(/\d+ ms/g, "X ms")
+			stats?.toString({ all: false, modules: true }).replace(/\d+ ms/g, "X ms")
 		).toMatchInlineSnapshot(`
 		"./fixtures/a.js
 		  X ms (resolving: X ms, integration: X ms, building: X ms)
@@ -347,10 +347,10 @@ describe("Stats", () => {
 			ids: true
 		};
 		expect(stats?.toJson(options)).toMatchSnapshot();
-		expect(stats?.toString(options).replace(/\\/g, "/")).toMatchInlineSnapshot(`
-		"asset main.js 215 bytes {main} [emitted] (name: main)
+		expect(stats?.toString(options)).toMatchInlineSnapshot(`
+		"asset main.js 211 bytes {main} [emitted] (name: main)
 		chunk {main} main.js (main) [entry]
-		./fixtures/a.js [876] {main}"
+		./fixtures/a.js [585] {main}"
 	`);
 	});
 
@@ -382,6 +382,58 @@ describe("Stats", () => {
 		    ],
 		    "name": "main",
 		  },
+		}
+	`);
+	});
+
+	it("should have children when using childCompiler", async () => {
+		let statsJson;
+
+		class TestPlugin {
+			apply(compiler: Compiler) {
+				compiler.hooks.thisCompilation.tap(TestPlugin.name, compilation => {
+					compilation.hooks.processAssets.tapAsync(
+						TestPlugin.name,
+						async (assets, callback) => {
+							const child = compiler.createChildCompiler(
+								compilation,
+								"TestChild",
+								1,
+								compilation.outputOptions,
+								[
+									new compiler.webpack.EntryPlugin(
+										compiler.context,
+										"./fixtures/abc",
+										{ name: "TestChild" }
+									)
+								]
+							);
+							child.runAsChild(err => callback(err));
+						}
+					);
+				});
+				compiler.hooks.done.tap("test plugin", stats => {
+					statsJson = stats.toJson({
+						all: false,
+						children: true
+					});
+				});
+			}
+		}
+		await compile({
+			context: __dirname,
+			entry: "./fixtures/a",
+			plugins: [new TestPlugin()]
+		});
+
+		expect(statsJson).toMatchInlineSnapshot(`
+		{
+		  "children": [
+		    {
+		      "children": [],
+		      "name": "TestChild",
+		    },
+		  ],
 		}
 	`);
 	});

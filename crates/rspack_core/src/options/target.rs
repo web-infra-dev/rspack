@@ -1,4 +1,4 @@
-use anyhow::anyhow;
+use rspack_error::{error, Result};
 pub use swc_core::ecma::ast::EsVersion;
 
 // TODO(swc-loader): Target still coupled with javascript downgrade, it should only affect runtime
@@ -24,7 +24,7 @@ pub struct Target {
 }
 
 impl Target {
-  pub fn new(args: &Vec<String>) -> anyhow::Result<Target> {
+  pub fn new(args: &Vec<String>) -> Result<Target> {
     let mut es_version = TargetEsVersion::None;
 
     for item in args {
@@ -32,7 +32,7 @@ impl Target {
       if item.starts_with("es") || item == "browserslist" {
         // es version
         if !es_version.is_none() {
-          return Err(anyhow!("Target es version conflict"));
+          return Err(error!("Target es version conflict"));
         }
         let version = match item {
           "browserslist" => TargetEsVersion::BrowsersList,
@@ -47,7 +47,7 @@ impl Target {
           "es2021" => TargetEsVersion::Esx(EsVersion::Es2021),
           "es2022" => TargetEsVersion::Esx(EsVersion::Es2022),
           _ => {
-            return Err(anyhow!("Unknown target es version {}", item));
+            return Err(error!("Unknown target es version {}", item));
           }
         };
         es_version = version;

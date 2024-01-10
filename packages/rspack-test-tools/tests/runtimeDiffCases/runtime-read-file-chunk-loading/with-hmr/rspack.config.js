@@ -1,0 +1,19 @@
+const { HotModuleReplacementPlugin } = require("@rspack/core");
+
+module.exports = {
+	entry: {
+		main: "./src/a.js"
+	},
+	output: {
+		filename: "[name].js",
+		chunkLoading: "async-node",
+		enabledChunkLoadingTypes: ["async-node"]
+	},
+	optimization: {
+		runtimeChunk: {
+			name: "bundle"
+		}
+	},
+	target: "node",
+	plugins: [new HotModuleReplacementPlugin()]
+};

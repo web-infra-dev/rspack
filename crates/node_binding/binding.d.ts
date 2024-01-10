@@ -96,13 +96,23 @@ export class Rspack {
   unsafe_drop(): void
 }
 
+export function __chunk_graph_inner_get_chunk_entry_dependent_chunks_iterable(jsChunkUkey: number, compilation: JsCompilation): Array<JsChunk>
+
+export function __chunk_graph_inner_get_chunk_entry_modules(jsChunkUkey: number, compilation: JsCompilation): Array<JsModule>
+
+export function __chunk_graph_inner_get_chunk_modules(jsChunkUkey: number, compilation: JsCompilation): Array<JsModule>
+
+export function __chunk_graph_inner_get_chunk_modules_iterable_by_source_type(jsChunkUkey: number, sourceType: string, compilation: JsCompilation): Array<JsModule>
+
 export function __chunk_group_inner_get_chunk_group(ukey: number, compilation: JsCompilation): JsChunkGroup
 
 export function __chunk_inner_can_be_initial(jsChunkUkey: number, compilation: JsCompilation): boolean
 
-export function __chunk_inner_get_chunk_entry_modules(jsChunkUkey: number, compilation: JsCompilation): Array<JsModule>
+export function __chunk_inner_get_all_async_chunks(jsChunkUkey: number, compilation: JsCompilation): Array<JsChunk>
 
-export function __chunk_inner_get_chunk_modules(jsChunkUkey: number, compilation: JsCompilation): Array<JsModule>
+export function __chunk_inner_get_all_initial_chunks(jsChunkUkey: number, compilation: JsCompilation): Array<JsChunk>
+
+export function __chunk_inner_get_all_referenced_chunks(jsChunkUkey: number, compilation: JsCompilation): Array<JsChunk>
 
 export function __chunk_inner_has_runtime(jsChunkUkey: number, compilation: JsCompilation): boolean
 
@@ -125,6 +135,7 @@ export interface BeforeResolveData {
 export interface BuiltinPlugin {
   name: BuiltinPluginName
   options: unknown
+  canInherentFromParent?: boolean
 }
 
 export const enum BuiltinPluginName {
@@ -139,20 +150,44 @@ export const enum BuiltinPluginName {
   EnableChunkLoadingPlugin = 'EnableChunkLoadingPlugin',
   EnableLibraryPlugin = 'EnableLibraryPlugin',
   EnableWasmLoadingPlugin = 'EnableWasmLoadingPlugin',
+  ChunkPrefetchPreloadPlugin = 'ChunkPrefetchPreloadPlugin',
   CommonJsChunkFormatPlugin = 'CommonJsChunkFormatPlugin',
   ArrayPushCallbackChunkFormatPlugin = 'ArrayPushCallbackChunkFormatPlugin',
   ModuleChunkFormatPlugin = 'ModuleChunkFormatPlugin',
   HotModuleReplacementPlugin = 'HotModuleReplacementPlugin',
   LimitChunkCountPlugin = 'LimitChunkCountPlugin',
+  WorkerPlugin = 'WorkerPlugin',
   WebWorkerTemplatePlugin = 'WebWorkerTemplatePlugin',
   MergeDuplicateChunksPlugin = 'MergeDuplicateChunksPlugin',
   SplitChunksPlugin = 'SplitChunksPlugin',
   OldSplitChunksPlugin = 'OldSplitChunksPlugin',
+  ShareRuntimePlugin = 'ShareRuntimePlugin',
   ContainerPlugin = 'ContainerPlugin',
   ContainerReferencePlugin = 'ContainerReferencePlugin',
-  ModuleFederationRuntimePlugin = 'ModuleFederationRuntimePlugin',
   ProvideSharedPlugin = 'ProvideSharedPlugin',
   ConsumeSharedPlugin = 'ConsumeSharedPlugin',
+  NamedModuleIdsPlugin = 'NamedModuleIdsPlugin',
+  DeterministicModuleIdsPlugin = 'DeterministicModuleIdsPlugin',
+  NamedChunkIdsPlugin = 'NamedChunkIdsPlugin',
+  DeterministicChunkIdsPlugin = 'DeterministicChunkIdsPlugin',
+  RealContentHashPlugin = 'RealContentHashPlugin',
+  RemoveEmptyChunksPlugin = 'RemoveEmptyChunksPlugin',
+  EnsureChunkConditionsPlugin = 'EnsureChunkConditionsPlugin',
+  WarnCaseSensitiveModulesPlugin = 'WarnCaseSensitiveModulesPlugin',
+  DataUriPlugin = 'DataUriPlugin',
+  FileUriPlugin = 'FileUriPlugin',
+  RuntimePlugin = 'RuntimePlugin',
+  JsonModulesPlugin = 'JsonModulesPlugin',
+  InferAsyncModulesPlugin = 'InferAsyncModulesPlugin',
+  JavascriptModulesPlugin = 'JavascriptModulesPlugin',
+  AsyncWebAssemblyModulesPlugin = 'AsyncWebAssemblyModulesPlugin',
+  AssetModulesPlugin = 'AssetModulesPlugin',
+  SourceMapDevToolPlugin = 'SourceMapDevToolPlugin',
+  EvalSourceMapDevToolPlugin = 'EvalSourceMapDevToolPlugin',
+  SideEffectsFlagPlugin = 'SideEffectsFlagPlugin',
+  FlagDependencyExportsPlugin = 'FlagDependencyExportsPlugin',
+  FlagDependencyUsagePlugin = 'FlagDependencyUsagePlugin',
+  MangleExportsPlugin = 'MangleExportsPlugin',
   HttpExternalsRspackPlugin = 'HttpExternalsRspackPlugin',
   CopyRspackPlugin = 'CopyRspackPlugin',
   HtmlRspackPlugin = 'HtmlRspackPlugin',
@@ -161,6 +196,13 @@ export const enum BuiltinPluginName {
 }
 
 export function cleanupGlobalTrace(): void
+
+export interface CreateModuleData {
+  dependencyType: string
+  resolveDataRequest: string
+  resourceResolveData: JsResourceData
+  context: string
+}
 
 export interface FactoryMeta {
   sideEffectFree?: boolean
@@ -281,6 +323,7 @@ export interface JsHooks {
   processAssetsStageOptimizeTransfer: (...args: any[]) => any
   processAssetsStageAnalyse: (...args: any[]) => any
   processAssetsStageReport: (...args: any[]) => any
+  afterProcessAssets: (...args: any[]) => any
   compilation: (...args: any[]) => any
   thisCompilation: (...args: any[]) => any
   emit: (...args: any[]) => any
@@ -289,6 +332,7 @@ export interface JsHooks {
   afterEmit: (...args: any[]) => any
   make: (...args: any[]) => any
   optimizeModules: (...args: any[]) => any
+  afterOptimizeModules: (...args: any[]) => any
   optimizeTree: (...args: any[]) => any
   optimizeChunkModules: (...args: any[]) => any
   beforeCompile: (...args: any[]) => any
@@ -298,7 +342,8 @@ export interface JsHooks {
   buildModule: (...args: any[]) => any
   beforeResolve: (...args: any[]) => any
   afterResolve: (...args: any[]) => any
-  contextModuleBeforeResolve: (...args: any[]) => any
+  contextModuleFactoryBeforeResolve: (...args: any[]) => any
+  normalModuleFactoryCreateModule: (...args: any[]) => any
   normalModuleFactoryResolveForScheme: (...args: any[]) => any
   chunkAsset: (...args: any[]) => any
   succeedModule: (...args: any[]) => any
@@ -349,6 +394,7 @@ export interface JsLoaderContext {
 }
 
 export interface JsModule {
+  context?: string
   originalSource?: JsCompatSource
   resource?: string
   moduleIdentifier: string
@@ -427,7 +473,9 @@ export interface JsStatsChunkGroupAsset {
 export interface JsStatsError {
   message: string
   formatted: string
-  title: string
+  moduleIdentifier?: string
+  moduleName?: string
+  moduleId?: string
 }
 
 export interface JsStatsGetAssets {
@@ -464,6 +512,7 @@ export interface JsStatsModule {
   assets?: Array<string>
   source?: string | Buffer
   profile?: JsStatsModuleProfile
+  orphan: boolean
 }
 
 export interface JsStatsModuleIssuer {
@@ -489,6 +538,9 @@ export interface JsStatsModuleReason {
 export interface JsStatsWarning {
   message: string
   formatted: string
+  moduleIdentifier?: string
+  moduleName?: string
+  moduleId?: string
 }
 
 export interface NodeFS {
@@ -583,10 +635,12 @@ export interface RawCacheGroupOptions {
   key: string
   priority?: number
   test?: RegExp | string | Function
+  filename?: string
   idHint?: string
   /** What kind of chunks should be selected. */
   chunks?: RegExp | 'async' | 'initial' | 'all'
   type?: RegExp | string
+  automaticNameDelimiter?: string
   minChunks?: number
   minSize?: number
   maxSize?: number
@@ -630,6 +684,11 @@ export interface RawConsumeOptions {
   eager: boolean
 }
 
+export interface RawConsumeSharedPluginOptions {
+  consumes: Array<RawConsumeOptions>
+  enhanced: boolean
+}
+
 export interface RawContainerPluginOptions {
   name: string
   shareScope: string
@@ -637,12 +696,14 @@ export interface RawContainerPluginOptions {
   runtime?: string
   filename?: string
   exposes: Array<RawExposeOptions>
+  enhanced: boolean
 }
 
 export interface RawContainerReferencePluginOptions {
   remoteType: string
   remotes: Array<RawRemoteOptions>
   shareScope?: string
+  enhanced: boolean
 }
 
 export interface RawCopyGlobOptions {
@@ -710,12 +771,9 @@ export interface RawEntryPluginOptions {
 }
 
 export interface RawExperiments {
-  lazyCompilation: boolean
   incrementalRebuild: RawIncrementalRebuild
-  asyncWebAssembly: boolean
   newSplitChunks: boolean
   topLevelAwait: boolean
-  css: boolean
   rspackFuture: RawRspackFuture
 }
 
@@ -750,12 +808,18 @@ export interface RawExternalsPresets {
   electronRenderer: boolean
 }
 
+export interface RawExtractComments {
+  banner?: string | boolean
+  condition?: string
+}
+
 export interface RawFallbackCacheGroupOptions {
   chunks?: RegExp | 'async' | 'initial' | 'all'
   minSize?: number
   maxSize?: number
   maxAsyncSize?: number
   maxInitialSize?: number
+  automaticNameDelimiter?: string
 }
 
 export interface RawFuncUseCtx {
@@ -818,6 +882,9 @@ export interface RawInfo {
 
 export interface RawJavascriptParserOptions {
   dynamicImportMode: string
+  dynamicImportPreload: string
+  dynamicImportPrefetch: string
+  url: string
 }
 
 export interface RawLibraryAuxiliaryComment {
@@ -922,16 +989,12 @@ export interface RawNodeOption {
 }
 
 export interface RawOptimizationOptions {
-  splitChunks?: RawSplitChunksOptions
-  moduleIds: string
-  chunkIds: string
   removeAvailableModules: boolean
-  removeEmptyChunks: boolean
   sideEffects: string
   usedExports: string
   providedExports: boolean
   innerGraph: boolean
-  realContentHash: boolean
+  mangleExports: string
 }
 
 export interface RawOptions {
@@ -951,6 +1014,7 @@ export interface RawOptions {
   experiments: RawExperiments
   node?: RawNodeOption
   profile: boolean
+  bail: boolean
   builtins: RawBuiltins
 }
 
@@ -991,6 +1055,7 @@ export interface RawOutputOptions {
   workerChunkLoading: string
   workerWasmLoading: string
   workerPublicPath: string
+  scriptType: "module" | "text/javascript" | "false"
 }
 
 export interface RawParserOptions {
@@ -1117,15 +1182,26 @@ export interface RawSnapshotStrategy {
   timestamp: boolean
 }
 
+export interface RawSourceMapDevToolPluginOptions {
+  filename?: string
+  append?: boolean
+  namespace: string
+  columns: boolean
+  noSources: boolean
+  publicPath?: string
+}
+
 export interface RawSplitChunksOptions {
   fallbackCacheGroup?: RawFallbackCacheGroupOptions
   name?: string | false | Function
   cacheGroups?: Array<RawCacheGroupOptions>
   /** What kind of chunks should be selected. */
-  chunks?: RegExp | 'async' | 'initial' | 'all'
+  chunks?: RegExp | 'async' | 'initial' | 'all' | Function
+  automaticNameDelimiter?: string
   maxAsyncRequests?: number
   maxInitialRequests?: number
   minChunks?: number
+  hidePathInfo?: boolean
   minSize?: number
   enforceSizeThreshold?: number
   minRemainingSize?: number
@@ -1146,7 +1222,7 @@ export interface RawStyleConfig {
 }
 
 export interface RawSwcJsMinimizerRspackPluginOptions {
-  extractComments?: string
+  extractComments?: RawExtractComments
   compress: boolean | string
   mangle: boolean | string
   format: string

@@ -14,7 +14,7 @@ class Plugin {
 		});
 	}
 }
-/** @type {import('webpack').Configuration} */
+/** @type {import('@rspack/cli').Configuration} */
 module.exports = {
 	module: {
 		rules: [
@@ -36,6 +36,9 @@ module.exports = {
 	},
 	plugins: [new Plugin()],
 	experiments: {
-		css: true
+		css: true,
+		rspackFuture: {
+			newTreeshaking: true
+		}
 	}
 };

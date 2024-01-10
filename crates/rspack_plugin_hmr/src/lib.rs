@@ -7,10 +7,11 @@ use hot_module_replacement::HotModuleReplacementRuntimeModule;
 use rspack_core::{
   collect_changed_modules,
   rspack_sources::{RawSource, SourceExt},
-  AdditionalChunkRuntimeRequirementsArgs, AssetInfo, Chunk, ChunkKind, CompilationAsset,
-  CompilationRecords, ModuleIdentifier, PathData, Plugin,
-  PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, PluginProcessAssetsOutput,
-  ProcessAssetsArgs, RenderManifestArgs, RuntimeGlobals, RuntimeModuleExt, RuntimeSpec, SourceType,
+  AdditionalChunkRuntimeRequirementsArgs, AssetInfo, Chunk, ChunkKind, CompilationArgs,
+  CompilationAsset, CompilationParams, CompilationRecords, DependencyType, ModuleIdentifier,
+  PathData, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput, PluginCompilationHookOutput,
+  PluginContext, PluginProcessAssetsOutput, ProcessAssetsArgs, RenderManifestArgs, RuntimeGlobals,
+  RuntimeModuleExt, RuntimeSpec, SourceType,
 };
 use rspack_hash::RspackHash;
 use rspack_identifier::IdentifierSet;
@@ -23,6 +24,30 @@ pub struct HotModuleReplacementPlugin;
 impl Plugin for HotModuleReplacementPlugin {
   fn name(&self) -> &'static str {
     "rspack.HotModuleReplacementPlugin"
+  }
+
+  async fn compilation(
+    &self,
+    args: CompilationArgs<'_>,
+    params: &CompilationParams,
+  ) -> PluginCompilationHookOutput {
+    args.compilation.set_dependency_factory(
+      DependencyType::ImportMetaHotAccept,
+      params.normal_module_factory.clone(),
+    );
+    args.compilation.set_dependency_factory(
+      DependencyType::ImportMetaHotDecline,
+      params.normal_module_factory.clone(),
+    );
+    args.compilation.set_dependency_factory(
+      DependencyType::ModuleHotAccept,
+      params.normal_module_factory.clone(),
+    );
+    args.compilation.set_dependency_factory(
+      DependencyType::ModuleHotDecline,
+      params.normal_module_factory.clone(),
+    );
+    Ok(())
   }
 
   fn additional_tree_runtime_requirements(
@@ -225,7 +250,7 @@ impl Plugin for HotModuleReplacementPlugin {
             .connect_chunk_and_runtime_module(ukey, runtime_module);
         }
 
-        let render_manifest = compilation
+        let render_manifest_result = compilation
           .plugin_driver
           .render_manifest(RenderManifestArgs {
             compilation,
@@ -234,14 +259,14 @@ impl Plugin for HotModuleReplacementPlugin {
           .await
           .expect("render_manifest failed in rebuild");
 
+        let (render_manifest, diagnostics) = render_manifest_result.split_into_parts();
+        compilation.push_batch_diagnostic(diagnostics);
+
         for entry in render_manifest {
           let filename = if entry.has_filename() {
             entry.filename().to_string()
           } else {
-            let chunk = compilation
-              .chunk_by_ukey
-              .get(&ukey)
-              .expect("should have update chunk");
+            let chunk = compilation.chunk_by_ukey.expect_get(&ukey);
             compilation.get_path(
               &compilation.options.output.hot_update_chunk_filename,
               PathData::default().chunk(chunk).hash_optional(

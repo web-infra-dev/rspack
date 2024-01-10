@@ -3,7 +3,7 @@
 
 use std::sync::Arc;
 
-use rspack_core::{Module, ModuleGraph, SourceType};
+use rspack_core::{Module, ModuleGraph, SourceType, DEFAULT_DELIMITER};
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
@@ -21,6 +21,10 @@ pub fn create_cache_group(
     let mut cloned = group_source.min_size.clone();
     if !group_source.enforce.unwrap_or_default() {
       cloned.extend(group_source.enforce_size_threshold.clone());
+    } else {
+      cloned.values_mut().for_each(|v| {
+        *v = 0f64;
+      });
     }
     cloned
   };
@@ -164,7 +168,7 @@ pub fn create_cache_group_source(
     automatic_name_delimiter: options
       .automatic_name_delimiter
       .clone()
-      .unwrap_or_else(|| "~".to_string()),
+      .unwrap_or_else(|| DEFAULT_DELIMITER.to_string()),
     reuse_existing_chunk: options.reuse_existing_chunk,
     // used_exports: options.used_exports,
   }

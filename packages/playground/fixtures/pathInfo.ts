@@ -12,10 +12,6 @@ export type PathInfoFixtures = {
 	pathInfo: PathInfo;
 };
 
-type PathInfoWorkerFixtures = {
-	_calcPathInfo: (testFile: string) => Promise<PathInfo>;
-};
-
 const tempDir = path.resolve(__dirname, "../temp");
 async function calcPathInfo(
 	testFile: string,
@@ -42,36 +38,10 @@ async function calcPathInfo(
 	};
 }
 
-export const pathInfoFixtures: Fixtures<
-	PathInfoFixtures,
-	PathInfoWorkerFixtures
-> = {
-	pathInfo: async function ({ _calcPathInfo }, use, { file }) {
-		const pathInfo = await _calcPathInfo(file);
+export const pathInfoFixtures: Fixtures<PathInfoFixtures> = {
+	pathInfo: async function ({}, use, { file, workerIndex }) {
+		let pathInfo: PathInfo = await calcPathInfo(file, String(workerIndex));
 		await use(pathInfo);
-	},
-
-	_calcPathInfo: [
-		async function ({}, use, { workerIndex }) {
-			let pathInfo: PathInfo = {
-				testFile: "",
-				testProjectDir: "",
-				tempProjectDir: ""
-			};
-			await use(async function (testFile: string) {
-				if (testFile !== pathInfo.testFile) {
-					pathInfo = await calcPathInfo(testFile, String(workerIndex));
-				}
-
-				return pathInfo;
-			});
-
-			if (pathInfo.tempProjectDir) {
-				await fs.remove(pathInfo.tempProjectDir);
-			}
-		},
-		{
-			scope: "worker"
-		}
-	]
+		await fs.remove(pathInfo.tempProjectDir);
+	}
 };

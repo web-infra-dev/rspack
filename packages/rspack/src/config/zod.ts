@@ -5,6 +5,7 @@ import type * as oldBuiltins from "../builtin-plugin";
 import type * as webpackDevServer from "webpack-dev-server";
 import { deprecatedWarn, termlink } from "../util";
 import { Module } from "../Module";
+import { Chunk } from "../Chunk";
 
 //#region Name
 const name = z.string();
@@ -24,6 +25,18 @@ export type Context = z.infer<typeof context>;
 //#region Mode
 const mode = z.enum(["development", "production", "none"]);
 export type Mode = z.infer<typeof mode>;
+//#endregion
+
+//#region Falsy
+const falsy = z.union([
+	z.literal(false),
+	z.literal(0),
+	z.literal(""),
+	z.null(),
+	z.undefined()
+]);
+
+export type Falsy = z.infer<typeof falsy>;
 //#endregion
 
 //#region Entry
@@ -55,6 +68,9 @@ export type WasmLoadingType = z.infer<typeof wasmLoadingType>;
 const wasmLoading = z.literal(false).or(wasmLoadingType);
 export type WasmLoading = z.infer<typeof wasmLoading>;
 
+const scriptType = z.enum(["text/javascript", "module"]).or(z.literal(false));
+export type ScriptType = z.infer<typeof scriptType>;
+
 const libraryCustomUmdObject = z.strictObject({
 	amd: z.string().optional(),
 	commonjs: z.string().optional(),
@@ -79,7 +95,7 @@ export type LibraryCustomUmdCommentObject = z.infer<
 >;
 
 const amdContainer = z.string();
-export type AmdComtainer = z.infer<typeof amdContainer>;
+export type AmdContainer = z.infer<typeof amdContainer>;
 
 const auxiliaryComment = z.string().or(libraryCustomUmdCommentObject);
 export type AuxiliaryComment = z.infer<typeof auxiliaryComment>;
@@ -260,7 +276,7 @@ export type HashDigest = z.infer<typeof hashDigest>;
 const hashDigestLength = z.number();
 export type HashDigestLength = z.infer<typeof hashDigestLength>;
 
-const hashFunction = z.string();
+const hashFunction = z.enum(["md4", "xxhash64"]);
 export type HashFunction = z.infer<typeof hashFunction>;
 
 const hashSalt = z.string();
@@ -268,6 +284,9 @@ export type HashSalt = z.infer<typeof hashSalt>;
 
 const sourceMapFilename = z.string();
 export type SourceMapFilename = z.infer<typeof sourceMapFilename>;
+
+const devtoolNamespace = z.string();
+export type DevtoolNamespace = z.infer<typeof devtoolNamespace>;
 
 const output = z.strictObject({
 	path: path.optional(),
@@ -312,7 +331,9 @@ const output = z.strictObject({
 	asyncChunks: asyncChunks.optional(),
 	workerChunkLoading: chunkLoading.optional(),
 	workerWasmLoading: wasmLoading.optional(),
-	workerPublicPath: workerPublicPath.optional()
+	workerPublicPath: workerPublicPath.optional(),
+	scriptType: scriptType.optional(),
+	devtoolNamespace: devtoolNamespace.optional()
 });
 export type Output = z.infer<typeof output>;
 //#endregion
@@ -347,6 +368,7 @@ const baseResolveOptions = z.strictObject({
 	mainFiles: z.array(z.string()).optional(),
 	modules: z.array(z.string()).optional(),
 	preferRelative: z.boolean().optional(),
+	symlinks: z.boolean().optional(),
 	tsConfigPath: z.string().optional(),
 	tsConfig: resolveTsconfig.optional(),
 	fullySpecified: z.boolean().optional(),
@@ -389,14 +411,14 @@ const ruleSetConditions: z.ZodType<RuleSetConditions> = z.lazy(() =>
 export type RuleSetLogicalConditions = {
 	and?: RuleSetConditions;
 	or?: RuleSetConditions;
-	not?: RuleSetConditions;
+	not?: RuleSetCondition;
 };
 
 const ruleSetLogicalConditions: z.ZodType<RuleSetLogicalConditions> =
 	z.strictObject({
 		and: ruleSetConditions.optional(),
 		or: ruleSetConditions.optional(),
-		not: ruleSetConditions.optional()
+		not: ruleSetCondition.optional()
 	});
 
 const ruleSetLoader = z.string();
@@ -455,7 +477,7 @@ const ruleSetRule: z.ZodType<RuleSetRule> = baseRuleSetRule.extend({
 	rules: z.lazy(() => ruleSetRule.array()).optional()
 });
 
-const ruleSetRules = z.array(z.literal("...").or(ruleSetRule));
+const ruleSetRules = z.array(z.literal("...").or(ruleSetRule).or(falsy));
 export type RuleSetRules = z.infer<typeof ruleSetRules>;
 
 const assetParserDataUrlOptions = z.strictObject({
@@ -475,9 +497,15 @@ export type AssetParserOptions = z.infer<typeof assetParserOptions>;
 
 //TODO: "weak", "lazy-once"
 const dynamicImportMode = z.enum(["eager", "lazy"]);
+const dynamicImportPreload = z.union([z.boolean(), z.number()]);
+const dynamicImportPrefetch = z.union([z.boolean(), z.number()]);
+const javascriptParserUrl = z.union([z.literal("relative"), z.boolean()]);
 
 const javascriptParserOptions = z.strictObject({
-	dynamicImportMode: dynamicImportMode.optional()
+	dynamicImportMode: dynamicImportMode.optional(),
+	dynamicImportPreload: dynamicImportPreload.optional(),
+	dynamicImportPrefetch: dynamicImportPrefetch.optional(),
+	url: javascriptParserUrl.optional()
 });
 export type JavascriptParserOptions = z.infer<typeof javascriptParserOptions>;
 
@@ -864,7 +892,8 @@ const statsOptions = z.strictObject({
 		.optional(),
 	loggingDebug: z.boolean().or(filterTypes).optional(),
 	loggingTrace: z.boolean().optional(),
-	runtimeModules: z.boolean().optional()
+	runtimeModules: z.boolean().optional(),
+	children: z.boolean().optional()
 });
 export type StatsOptions = z.infer<typeof statsOptions>;
 
@@ -884,7 +913,8 @@ export type RspackPluginFunction = (this: Compiler, compiler: Compiler) => void;
 
 const plugin = z.union([
 	z.custom<RspackPluginInstance>(),
-	z.custom<RspackPluginFunction>()
+	z.custom<RspackPluginFunction>(),
+	falsy
 ]);
 const plugins = plugin.array();
 export type Plugins = z.infer<typeof plugins>;
@@ -920,7 +950,8 @@ const optimizationSplitChunksName = z
 	.or(optimizationSplitChunksNameFunction);
 const optimizationSplitChunksChunks = z
 	.enum(["initial", "async", "all"])
-	.or(z.instanceof(RegExp));
+	.or(z.instanceof(RegExp))
+	.or(z.function().args(z.instanceof(Chunk)).returns(z.boolean()));
 const optimizationSplitChunksSizes = z.number();
 const sharedOptimizationSplitChunksCacheGroup = {
 	chunks: optimizationSplitChunksChunks.optional(),
@@ -929,7 +960,8 @@ const sharedOptimizationSplitChunksCacheGroup = {
 	minSize: optimizationSplitChunksSizes.optional(),
 	maxSize: optimizationSplitChunksSizes.optional(),
 	maxAsyncSize: optimizationSplitChunksSizes.optional(),
-	maxInitialSize: optimizationSplitChunksSizes.optional()
+	maxInitialSize: optimizationSplitChunksSizes.optional(),
+	automaticNameDelimiter: z.string().optional()
 };
 const optimizationSplitChunksCacheGroup = z.strictObject({
 	test: z
@@ -943,6 +975,7 @@ const optimizationSplitChunksCacheGroup = z.strictObject({
 		.optional(),
 	priority: z.number().optional(),
 	enforce: z.boolean().optional(),
+	filename: z.string().optional(),
 	reuseExistingChunk: z.boolean().optional(),
 	type: z.string().or(z.instanceof(RegExp)).optional(),
 	idHint: z.string().optional(),
@@ -964,9 +997,11 @@ const optimizationSplitChunksOptions = z.strictObject({
 			minSize: z.number().optional(),
 			maxSize: z.number().optional(),
 			maxAsyncSize: z.number().optional(),
-			maxInitialSize: z.number().optional()
+			maxInitialSize: z.number().optional(),
+			automaticNameDelimiter: z.string().optional()
 		})
 		.optional(),
+	hidePathInfo: z.boolean().optional(),
 	...sharedOptimizationSplitChunksCacheGroup
 });
 export type OptimizationSplitChunksOptions = z.infer<
@@ -979,7 +1014,7 @@ const optimization = z.strictObject({
 	minimize: z.boolean().optional(),
 	minimizer: z.literal("...").or(plugin).array().optional(),
 	mergeDuplicateChunks: z.boolean().optional(),
-	splitChunks: optimizationSplitChunksOptions.optional(),
+	splitChunks: z.literal(false).or(optimizationSplitChunksOptions).optional(),
 	runtimeChunk: optimizationRuntimeChunk.optional(),
 	removeAvailableModules: z.boolean().optional(),
 	removeEmptyChunks: z.boolean().optional(),
@@ -988,6 +1023,7 @@ const optimization = z.strictObject({
 	providedExports: z.boolean().optional(),
 	innerGraph: z.boolean().optional(),
 	usedExports: z.enum(["global"]).or(z.boolean()).optional(),
+	mangleExports: z.enum(["size", "deterministic"]).or(z.boolean()).optional(),
 	nodeEnv: z.union([z.string(), z.literal(false)]).optional()
 });
 export type Optimization = z.infer<typeof optimization>;
@@ -1020,7 +1056,8 @@ const rspackFutureOptions = z.strictObject({
 			return true;
 		}),
 	newTreeshaking: z.boolean().optional(),
-	disableTransformByDefault: z.boolean().optional()
+	disableTransformByDefault: z.boolean().optional(),
+	disableApplyEntryLazily: z.boolean().optional()
 });
 export type RspackFutureOptions = z.infer<typeof rspackFutureOptions>;
 
@@ -1114,6 +1151,11 @@ const profile = z.boolean();
 export type Profile = z.infer<typeof profile>;
 //#endregion
 
+//#region Bail
+const bail = z.boolean();
+export type Bail = z.infer<typeof bail>;
+//#endregion
+
 //#region Builtins (deprecated)
 const builtins = z.custom<oldBuiltins.Builtins>();
 export type Builtins = z.infer<typeof builtins>;
@@ -1147,7 +1189,8 @@ export const rspackOptions = z.strictObject({
 	devServer: devServer.optional(),
 	builtins: builtins.optional(),
 	module: moduleOptions.optional(),
-	profile: profile.optional()
+	profile: profile.optional(),
+	bail: bail.optional()
 });
 export type RspackOptions = z.infer<typeof rspackOptions>;
 export type Configuration = RspackOptions;

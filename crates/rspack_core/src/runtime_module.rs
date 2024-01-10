@@ -42,7 +42,7 @@ impl<T: RuntimeModule + 'static> RuntimeModuleExt for T {
 
 #[macro_export]
 macro_rules! impl_runtime_module {
-  ($ident: ident) => {
+  ($ident:ident) => {
     impl rspack_identifier::Identifiable for $ident {
       fn identifier(&self) -> rspack_identifier::Identifier {
         self.name()
@@ -101,6 +101,21 @@ macro_rules! impl_runtime_module {
         None
       }
 
+      fn build_info(&self) -> Option<&$crate::BuildInfo> {
+        None
+      }
+
+      fn build_meta(&self) -> Option<&$crate::BuildMeta> {
+        None
+      }
+
+      fn set_module_build_info_and_meta(
+        &mut self,
+        build_info: $crate::BuildInfo,
+        build_meta: $crate::BuildMeta,
+      ) {
+      }
+
       fn code_generation(
         &self,
         compilation: &$crate::Compilation,
@@ -116,5 +131,7 @@ macro_rules! impl_runtime_module {
         Ok(result)
       }
     }
+
+    impl rspack_error::Diagnosable for $ident {}
   };
 }

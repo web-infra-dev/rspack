@@ -29,7 +29,6 @@ pnpm-lock.yaml
 
 # Crates in alphabetical order
 
-/crates/bench @IWANABETHATGUY
 /crates/cargo-rst @IWANABETHATGUY
 /crates/loader_runner @h-a-n-a
 /crates/node_binding @h-a-n-a
@@ -87,7 +86,6 @@ pnpm-lock.yaml
 /packages/postcss-loader @web-infra-dev/rspack-ux
 /packages/rspack @web-infra-dev/rspack-dx
 /packages/rspack-cli @web-infra-dev/rspack-dx
-/packages/rspack-dev-client @web-infra-dev/rspack-dx
 /packages/rspack-dev-middleware @web-infra-dev/rspack-dx
 /packages/rspack-dev-server @web-infra-dev/rspack-dx
 /packages/rspack-plugin-html @web-infra-dev/rspack-dx

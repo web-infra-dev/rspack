@@ -38,10 +38,7 @@ impl RuntimeModule for AutoPublicPathRuntimeModule {
 
   fn generate(&self, compilation: &Compilation) -> BoxSource {
     let chunk = self.chunk.expect("The chunk should be attached");
-    let chunk = compilation
-      .chunk_by_ukey
-      .get(&chunk)
-      .expect("Chunk is not found, make sure you had attach chunkUkey successfully.");
+    let chunk = compilation.chunk_by_ukey.expect_get(&chunk);
     let filename = get_js_chunk_filename_template(
       chunk,
       &compilation.options.output,
@@ -76,9 +73,16 @@ fn auto_public_path_template(filename: &str, output: &OutputOptions) -> String {
     )
   };
   let global = RuntimeGlobals::GLOBAL.name();
-  format!(
-    r#"
-    var scriptUrl;
+
+  // TODO: replace import.meta with importMetaName
+  let script_url_template = if output.script_type.eq("module") {
+    r#"var scriptUrl;
+    if (typeof import.meta.url === "string") scriptUrl = import.meta.url
+    "#
+    .to_string()
+  } else {
+    format!(
+      r#"var scriptUrl;
     if ({global}.importScripts) scriptUrl = {global}.location + "";
     var document = {global}.document;
     if (!scriptUrl && document) {{
@@ -91,6 +95,12 @@ fn auto_public_path_template(filename: &str, output: &OutputOptions) -> String {
               }}
         }}
       }}
+    "#
+    )
+  };
+  format!(
+    r#"
+    {script_url_template}
     // When supporting browsers where an automatic publicPath is not supported you must specify an output.publicPath manually via configuration",
     // or pass an empty string ("") and set the __webpack_public_path__ variable from your code to use your own logic.',
     if (!scriptUrl) throw new Error("Automatic publicPath is not supported in this browser");

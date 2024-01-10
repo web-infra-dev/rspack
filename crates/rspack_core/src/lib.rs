@@ -5,15 +5,16 @@
 #![feature(anonymous_lifetime_in_impl_trait)]
 #![feature(hash_raw_entry)]
 
-use std::sync::atomic::AtomicBool;
 use std::{fmt, sync::Arc};
 mod dependencies_block;
-pub mod mf;
+pub mod diagnostics;
 pub use dependencies_block::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, DependenciesBlock, DependencyLocation,
 };
 mod fake_namespace_object;
+mod template;
 pub use fake_namespace_object::*;
+pub use template::Template;
 mod module_profile;
 pub use module_profile::*;
 use rspack_database::Database;
@@ -22,8 +23,6 @@ pub use external_module::*;
 mod logger;
 pub use logger::*;
 pub mod cache;
-mod missing_module;
-pub use missing_module::*;
 mod normal_module;
 mod raw_module;
 pub use raw_module::*;
@@ -48,6 +47,12 @@ mod module_factory;
 pub use module_factory::*;
 mod normal_module_factory;
 pub use normal_module_factory::*;
+mod ignore_error_module_factory;
+pub use ignore_error_module_factory::*;
+mod self_module_factory;
+pub use self_module_factory::*;
+mod self_module;
+pub use self_module::*;
 mod compiler;
 pub use compiler::*;
 mod options;
@@ -59,6 +64,7 @@ pub use chunk::*;
 mod dependency;
 pub use dependency::*;
 mod utils;
+use ustr::Ustr;
 pub use utils::*;
 mod chunk_graph;
 pub use chunk_graph::*;
@@ -90,12 +96,16 @@ pub mod tree_shaking;
 pub use rspack_loader_runner::{get_scheme, ResourceData, Scheme, BUILTIN_LOADER_PREFIX};
 pub use rspack_sources;
 
+#[cfg(debug_assertions)]
+pub mod debug_info;
+
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SourceType {
   JavaScript,
   Css,
   Wasm,
   Asset,
+  Expose,
   Remote,
   ShareInit,
   ConsumeShared,
@@ -110,10 +120,34 @@ impl std::fmt::Display for SourceType {
       SourceType::Css => write!(f, "css"),
       SourceType::Wasm => write!(f, "wasm"),
       SourceType::Asset => write!(f, "asset"),
+      SourceType::Expose => write!(f, "expose"),
       SourceType::Remote => write!(f, "remote"),
       SourceType::ShareInit => write!(f, "share-init"),
       SourceType::ConsumeShared => write!(f, "consume-shared"),
       SourceType::Unknown => write!(f, "unknown"),
+    }
+  }
+}
+
+impl TryFrom<&str> for SourceType {
+  type Error = rspack_error::Error;
+
+  fn try_from(value: &str) -> Result<Self, Self::Error> {
+    match value {
+      "javascript" => Ok(Self::JavaScript),
+      "css" => Ok(Self::Css),
+      "wasm" => Ok(Self::Wasm),
+      "asset" => Ok(Self::Asset),
+      "expose" => Ok(Self::Expose),
+      "remote" => Ok(Self::Remote),
+      "share-init" => Ok(Self::ShareInit),
+      "consume-shared" => Ok(Self::ConsumeShared),
+      "unknown" => Ok(Self::Unknown),
+
+      _ => {
+        use rspack_error::error;
+        Err(error!("invalid source type: {value}"))
+      }
     }
   }
 }
@@ -140,8 +174,11 @@ pub enum ModuleType {
   Asset,
   Runtime,
   Remote,
+  Fallback,
   ProvideShared,
   ConsumeShared,
+  SelfReference,
+  Custom(Ustr),
 }
 
 impl ModuleType {
@@ -227,8 +264,12 @@ impl ModuleType {
       ModuleType::AssetInline => "asset/inline",
       ModuleType::Runtime => "runtime",
       ModuleType::Remote => "remote-module",
+      ModuleType::Fallback => "fallback-module",
       ModuleType::ProvideShared => "provide-module",
       ModuleType::ConsumeShared => "consume-shared-module",
+      ModuleType::SelfReference => "self-reference-module",
+
+      ModuleType::Custom(custom) => custom,
     }
   }
 }
@@ -239,44 +280,39 @@ impl fmt::Display for ModuleType {
   }
 }
 
-impl TryFrom<&str> for ModuleType {
-  type Error = rspack_error::Error;
-
-  fn try_from(value: &str) -> Result<Self, Self::Error> {
+impl From<&str> for ModuleType {
+  fn from(value: &str) -> Self {
     match value {
-      "mjs" => Ok(Self::JsEsm),
-      "cjs" => Ok(Self::JsDynamic),
-      "js" | "javascript" | "js/auto" | "javascript/auto" => Ok(Self::Js),
-      "js/dynamic" | "javascript/dynamic" => Ok(Self::JsDynamic),
-      "js/esm" | "javascript/esm" => Ok(Self::JsEsm),
+      "mjs" => Self::JsEsm,
+      "cjs" => Self::JsDynamic,
+      "js" | "javascript" | "js/auto" | "javascript/auto" => Self::Js,
+      "js/dynamic" | "javascript/dynamic" => Self::JsDynamic,
+      "js/esm" | "javascript/esm" => Self::JsEsm,
 
       // TODO: remove in 0.5.0
-      "jsx" | "javascriptx" | "jsx/auto" | "javascriptx/auto" => Ok(Self::Jsx),
-      "jsx/dynamic" | "javascriptx/dynamic" => Ok(Self::JsxDynamic),
-      "jsx/esm" | "javascriptx/esm" => Ok(Self::JsxEsm),
+      "jsx" | "javascriptx" | "jsx/auto" | "javascriptx/auto" => Self::Jsx,
+      "jsx/dynamic" | "javascriptx/dynamic" => Self::JsxDynamic,
+      "jsx/esm" | "javascriptx/esm" => Self::JsxEsm,
 
       // TODO: remove in 0.5.0
-      "ts" | "typescript" => Ok(Self::Ts),
-      "tsx" | "typescriptx" => Ok(Self::Tsx),
+      "ts" | "typescript" => Self::Ts,
+      "tsx" | "typescriptx" => Self::Tsx,
 
-      "css" => Ok(Self::Css),
-      "css/module" => Ok(Self::CssModule),
-      "css/auto" => Ok(Self::CssAuto),
+      "css" => Self::Css,
+      "css/module" => Self::CssModule,
+      "css/auto" => Self::CssAuto,
 
-      "json" => Ok(Self::Json),
+      "json" => Self::Json,
 
-      "webassembly/sync" => Ok(Self::WasmSync),
-      "webassembly/async" => Ok(Self::WasmAsync),
+      "webassembly/sync" => Self::WasmSync,
+      "webassembly/async" => Self::WasmAsync,
 
-      "asset" => Ok(Self::Asset),
-      "asset/resource" => Ok(Self::AssetResource),
-      "asset/source" => Ok(Self::AssetSource),
-      "asset/inline" => Ok(Self::AssetInline),
+      "asset" => Self::Asset,
+      "asset/resource" => Self::AssetResource,
+      "asset/source" => Self::AssetSource,
+      "asset/inline" => Self::AssetInline,
 
-      _ => {
-        use rspack_error::internal_error;
-        Err(internal_error!("invalid module type: {value}"))
-      }
+      custom => Self::Custom(custom.into()),
     }
   }
 }
@@ -285,4 +321,35 @@ pub type ChunkByUkey = Database<Chunk>;
 pub type ChunkGroupByUkey = Database<ChunkGroup>;
 pub(crate) type SharedPluginDriver = Arc<PluginDriver>;
 
-pub static IS_NEW_TREESHAKING: AtomicBool = AtomicBool::new(false);
+pub fn get_chunk_group_from_ukey<'a>(
+  ukey: &ChunkGroupUkey,
+  chunk_group_by_ukey: &'a ChunkGroupByUkey,
+) -> Option<&'a ChunkGroup> {
+  if chunk_group_by_ukey.contains(ukey) {
+    Some(chunk_group_by_ukey.expect_get(ukey))
+  } else {
+    None
+  }
+}
+
+pub fn get_chunk_from_ukey<'a>(
+  ukey: &ChunkUkey,
+  chunk_by_ukey: &'a ChunkByUkey,
+) -> Option<&'a Chunk> {
+  if chunk_by_ukey.contains(ukey) {
+    Some(chunk_by_ukey.expect_get(ukey))
+  } else {
+    None
+  }
+}
+
+pub fn get_mut_chunk_from_ukey<'a>(
+  ukey: &ChunkUkey,
+  chunk_by_ukey: &'a mut ChunkByUkey,
+) -> Option<&'a mut Chunk> {
+  if chunk_by_ukey.contains(ukey) {
+    Some(chunk_by_ukey.expect_get_mut(ukey))
+  } else {
+    None
+  }
+}

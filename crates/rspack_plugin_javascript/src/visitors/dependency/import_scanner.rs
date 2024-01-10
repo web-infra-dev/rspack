@@ -1,22 +1,24 @@
-use once_cell::sync::Lazy;
 use rspack_core::{
   clean_regexp_in_context_module, context_reg_exp, AsyncDependenciesBlock, DependencyLocation,
   DynamicImportMode, ErrorSpan, GroupOptions, JavascriptParserOptions, ModuleIdentifier,
 };
 use rspack_core::{BoxDependency, BuildMeta, ChunkGroupOptions, ContextMode};
 use rspack_core::{ContextNameSpaceObject, ContextOptions, DependencyCategory, SpanExt};
+use rspack_error::miette::Diagnostic;
 use rspack_regex::{regexp_as_str, RspackRegex};
-use swc_core::common::comments::{CommentKind, Comments};
-use swc_core::common::{Span, Spanned};
+use swc_core::common::comments::Comments;
+use swc_core::common::Spanned;
 use swc_core::ecma::ast::{CallExpr, Callee, Expr, Lit};
 use swc_core::ecma::atoms::JsWord;
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
 use super::context_helper::scanner_context_module;
-use super::is_import_meta_context_call;
+use super::{is_import_meta_context_call, parse_order_string};
 use crate::dependency::{ImportContextDependency, ImportDependency};
 use crate::dependency::{ImportEagerDependency, ImportMetaContextDependency};
+use crate::no_visit_ignored_stmt;
 use crate::utils::{get_bool_by_obj_prop, get_literal_str_by_obj_prop, get_regex_by_obj_prop};
+use crate::webpack_comment::try_extract_webpack_magic_comment;
 
 pub struct ImportScanner<'a> {
   module_identifier: ModuleIdentifier,
@@ -25,6 +27,8 @@ pub struct ImportScanner<'a> {
   pub comments: Option<&'a dyn Comments>,
   pub build_meta: &'a BuildMeta,
   pub options: Option<&'a JavascriptParserOptions>,
+  pub warning_diagnostics: &'a mut Vec<Box<dyn Diagnostic + Send + Sync>>,
+  pub ignored: &'a mut Vec<DependencyLocation>,
 }
 
 fn create_import_meta_context_dependency(node: &CallExpr) -> Option<ImportMetaContextDependency> {
@@ -105,6 +109,7 @@ fn create_import_meta_context_dependency(node: &CallExpr) -> Option<ImportMetaCo
 }
 
 impl<'a> ImportScanner<'a> {
+  #[allow(clippy::too_many_arguments)]
   pub fn new(
     module_identifier: ModuleIdentifier,
     dependencies: &'a mut Vec<BoxDependency>,
@@ -112,6 +117,8 @@ impl<'a> ImportScanner<'a> {
     comments: Option<&'a dyn Comments>,
     build_meta: &'a BuildMeta,
     options: Option<&'a JavascriptParserOptions>,
+    warning_diagnostics: &'a mut Vec<Box<dyn Diagnostic + Send + Sync>>,
+    ignored: &'a mut Vec<DependencyLocation>,
   ) -> Self {
     Self {
       module_identifier,
@@ -120,42 +127,15 @@ impl<'a> ImportScanner<'a> {
       comments,
       build_meta,
       options,
+      warning_diagnostics,
+      ignored,
     }
-  }
-
-  fn try_extract_webpack_chunk_name(&self, first_arg_span_of_import_call: &Span) -> Option<String> {
-    static WEBPACK_CHUNK_NAME_CAPTURE_RE: Lazy<regex::Regex> = Lazy::new(|| {
-      regex::Regex::new(r#"webpackChunkName\s*:\s*("(?P<_1>(\./)?([\w0-9_\-\[\]\(\)]+/)*?[\w0-9_\-\[\]\(\)]+)"|'(?P<_2>(\./)?([\w0-9_\-\[\]\(\)]+/)*?[\w0-9_\-\[\]\(\)]+)'|`(?P<_3>(\./)?([\w0-9_\-\[\]\(\)]+/)*?[\w0-9_\-\[\]\(\)]+)`)"#)
-        .expect("invalid regex")
-    });
-    self
-      .comments
-      .with_leading(first_arg_span_of_import_call.lo, |comments| {
-        let ret = comments
-          .iter()
-          .rev()
-          .filter(|c| matches!(c.kind, CommentKind::Block))
-          .find_map(|comment| {
-            WEBPACK_CHUNK_NAME_CAPTURE_RE
-              .captures(&comment.text)
-              .and_then(|captures| {
-                if let Some(cap) = captures.name("_1") {
-                  Some(cap)
-                } else if let Some(cap) = captures.name("_2") {
-                  Some(cap)
-                } else {
-                  captures.name("_3")
-                }
-              })
-              .map(|mat| mat.as_str().to_string())
-          });
-        ret
-      })
   }
 }
 
 impl Visit for ImportScanner<'_> {
   noop_visit_type!();
+  no_visit_ignored_stmt!();
 
   fn visit_call_expr(&mut self, node: &CallExpr) {
     if !node.args.is_empty()
@@ -183,6 +163,16 @@ impl Visit for ImportScanner<'_> {
       .map(|o| o.dynamic_import_mode)
       .unwrap_or_default();
 
+    let dynamic_import_preload = self
+      .options
+      .map(|o| o.dynamic_import_preload)
+      .and_then(|o| o.get_order());
+
+    let dynamic_import_prefetch = self
+      .options
+      .map(|o| o.dynamic_import_prefetch)
+      .and_then(|o| o.get_order());
+
     match dyn_imported.expr.as_ref() {
       Expr::Lit(Lit::Str(imported)) => {
         if matches!(mode, DynamicImportMode::Eager) {
@@ -197,7 +187,26 @@ impl Visit for ImportScanner<'_> {
           self.dependencies.push(Box::new(dep));
           return;
         }
-        let chunk_name = self.try_extract_webpack_chunk_name(&imported.span);
+        let magic_comment_options = try_extract_webpack_magic_comment(
+          &self.comments,
+          imported.span,
+          self.warning_diagnostics,
+        );
+        if magic_comment_options
+          .get_webpack_ignore()
+          .unwrap_or_default()
+        {
+          return;
+        }
+        let chunk_name = magic_comment_options
+          .get_webpack_chunk_name()
+          .map(|x| x.to_owned());
+        let chunk_prefetch = magic_comment_options
+          .get_webpack_prefetch()
+          .and_then(|x| parse_order_string(x.as_str()));
+        let chunk_preload = magic_comment_options
+          .get_webpack_preload()
+          .and_then(|x| parse_order_string(x.as_str()));
         let span = ErrorSpan::from(node.span);
         let dep = Box::new(ImportDependency::new(
           node.span.real_lo(),
@@ -212,14 +221,26 @@ impl Visit for ImportScanner<'_> {
           format!("{}:{}", span.start, span.end),
           Some(DependencyLocation::new(span.start, span.end)),
         );
-        block.set_group_options(GroupOptions::ChunkGroup(
-          ChunkGroupOptions::default().name_optional(chunk_name),
-        ));
+        block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions::new(
+          chunk_name,
+          chunk_preload.or(dynamic_import_preload),
+          chunk_prefetch.or(dynamic_import_prefetch),
+        )));
         block.add_dependency(dep);
         self.blocks.push(block);
       }
       Expr::Tpl(tpl) if tpl.quasis.len() == 1 => {
-        let chunk_name = self.try_extract_webpack_chunk_name(&tpl.span);
+        let magic_comment_options =
+          try_extract_webpack_magic_comment(&self.comments, tpl.span, self.warning_diagnostics);
+        let chunk_name = magic_comment_options
+          .get_webpack_chunk_name()
+          .map(|x| x.to_owned());
+        let chunk_prefetch = magic_comment_options
+          .get_webpack_prefetch()
+          .and_then(|x| parse_order_string(x.as_str()));
+        let chunk_preload = magic_comment_options
+          .get_webpack_preload()
+          .and_then(|x| parse_order_string(x.as_str()));
         let request = JsWord::from(
           tpl
             .quasis
@@ -241,9 +262,11 @@ impl Visit for ImportScanner<'_> {
           format!("{}:{}", span.start, span.end),
           Some(DependencyLocation::new(span.start, span.end)),
         );
-        block.set_group_options(GroupOptions::ChunkGroup(
-          ChunkGroupOptions::default().name_optional(chunk_name),
-        ));
+        block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions::new(
+          chunk_name,
+          chunk_preload.or(dynamic_import_preload),
+          chunk_prefetch.or(dynamic_import_prefetch),
+        )));
         block.add_dependency(dep);
         self.blocks.push(block);
       }
@@ -251,7 +274,14 @@ impl Visit for ImportScanner<'_> {
         let Some((context, reg)) = scanner_context_module(dyn_imported.expr.as_ref()) else {
           return;
         };
-        let chunk_name = self.try_extract_webpack_chunk_name(&dyn_imported.span());
+        let magic_comment_options = try_extract_webpack_magic_comment(
+          &self.comments,
+          dyn_imported.span(),
+          self.warning_diagnostics,
+        );
+        let chunk_name = magic_comment_options
+          .get_webpack_chunk_name()
+          .map(|x| x.to_owned());
         self
           .dependencies
           .push(Box::new(ImportContextDependency::new(

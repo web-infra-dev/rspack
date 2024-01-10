@@ -2,10 +2,11 @@ use std::fmt::Debug;
 
 use rayon::prelude::*;
 use rspack_core::{
-  ApplyContext, CompilerOptions, ModuleType, ParserAndGenerator, Plugin, PluginContext,
+  ApplyContext, CompilationArgs, CompilationParams, CompilerOptions, DependencyType, ModuleType,
+  ParserAndGenerator, Plugin, PluginCompilationHookOutput, PluginContext,
   PluginRenderManifestHookOutput, RenderManifestArgs, RenderManifestEntry, SourceType,
 };
-use rspack_error::Result;
+use rspack_error::{IntoTWithDiagnosticArray, Result};
 
 use crate::{AsyncWasmParserAndGenerator, ModuleIdToFileName};
 
@@ -27,7 +28,23 @@ impl AsyncWasmPlugin {
 #[async_trait::async_trait]
 impl Plugin for AsyncWasmPlugin {
   fn name(&self) -> &'static str {
-    "AsyncWebAssemblyModulesPlugin"
+    "rspack.AsyncWebAssemblyModulesPlugin"
+  }
+
+  async fn compilation(
+    &self,
+    args: CompilationArgs<'_>,
+    params: &CompilationParams,
+  ) -> PluginCompilationHookOutput {
+    args.compilation.set_dependency_factory(
+      DependencyType::WasmImport,
+      params.normal_module_factory.clone(),
+    );
+    args.compilation.set_dependency_factory(
+      DependencyType::WasmExportImported,
+      params.normal_module_factory.clone(),
+    );
+    Ok(())
   }
 
   fn apply(
@@ -75,7 +92,7 @@ impl Plugin for AsyncWasmPlugin {
       .map(|m| {
         let code_gen_result = compilation
           .code_generation_results
-          .get(&m.identifier(), Some(&chunk.runtime))?;
+          .get(&m.identifier(), Some(&chunk.runtime));
 
         let result = code_gen_result.get(&SourceType::Wasm).map(|source| {
           let (output_path, asset_info) = self
@@ -93,6 +110,6 @@ impl Plugin for AsyncWasmPlugin {
       .flatten()
       .collect::<Vec<RenderManifestEntry>>();
 
-    Ok(files)
+    Ok(files.with_empty_diagnostic())
   }
 }

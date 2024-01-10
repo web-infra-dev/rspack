@@ -52,6 +52,7 @@ pub struct OutputOptions {
   pub worker_chunk_loading: ChunkLoading,
   pub worker_wasm_loading: WasmLoading,
   pub worker_public_path: String,
+  pub script_type: String,
 }
 
 impl From<&OutputOptions> for RspackHash {
@@ -65,7 +66,7 @@ pub struct TrustedTypes {
   pub policy_name: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ChunkLoading {
   Enable(ChunkLoadingType),
   Disable,
@@ -80,7 +81,7 @@ impl From<&str> for ChunkLoading {
   }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ChunkLoadingType {
   Jsonp,
   ImportScripts,
@@ -146,7 +147,7 @@ impl std::fmt::Display for CrossOriginLoading {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
       CrossOriginLoading::Disable => write!(f, "false"),
-      CrossOriginLoading::Enable(value) => write!(f, "'{}'", value),
+      CrossOriginLoading::Enable(value) => write!(f, "\"{}\"", value),
     }
   }
 }
@@ -251,7 +252,7 @@ impl<'a> PathData<'a> {
   }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Filename {
   template: String,
 }
@@ -417,7 +418,7 @@ fn hash_len(hash: &str, caps: &Captures) -> usize {
     .min(hash_len)
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum PublicPath {
   // TODO: should be RawPublicPath(Filename)
   String(String),
@@ -426,20 +427,10 @@ pub enum PublicPath {
 
 impl PublicPath {
   pub fn render(&self, compilation: &Compilation, filename: &str) -> String {
-    let public_path = match self {
-      Self::String(s) => s.clone(),
-      Self::Auto => match Path::new(filename).parent() {
-        None => "".to_string(),
-        Some(dirname) => compilation
-          .options
-          .output
-          .path
-          .relative(compilation.options.output.path.join(dirname).absolutize())
-          .to_string_lossy()
-          .to_string(),
-      },
-    };
-    Self::ensure_ends_with_slash(public_path)
+    match self {
+      Self::String(s) => Self::ensure_ends_with_slash(s.to_string()),
+      Self::Auto => Self::render_auto_public_path(compilation, filename),
+    }
   }
 
   pub fn ensure_ends_with_slash(public_path: String) -> String {
@@ -448,6 +439,20 @@ impl PublicPath {
     } else {
       public_path
     }
+  }
+
+  pub fn render_auto_public_path(compilation: &Compilation, filename: &str) -> String {
+    let public_path = match Path::new(filename).parent() {
+      None => "".to_string(),
+      Some(dirname) => compilation
+        .options
+        .output
+        .path
+        .relative(compilation.options.output.path.join(dirname).absolutize())
+        .to_string_lossy()
+        .to_string(),
+    };
+    Self::ensure_ends_with_slash(public_path)
   }
 }
 
@@ -514,7 +519,7 @@ pub fn get_js_chunk_filename_template<'filename>(
   }
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct LibraryOptions {
   pub name: Option<LibraryName>,
   pub export: Option<LibraryExport>,
@@ -529,7 +534,7 @@ pub type LibraryType = String;
 
 pub type LibraryExport = Vec<String>;
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct LibraryAuxiliaryComment {
   pub root: Option<String>,
   pub commonjs: Option<String>,
@@ -537,19 +542,19 @@ pub struct LibraryAuxiliaryComment {
   pub amd: Option<String>,
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum LibraryName {
   NonUmdObject(LibraryNonUmdObject),
   UmdObject(LibraryCustomUmdObject),
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum LibraryNonUmdObject {
   Array(Vec<String>),
   String(String),
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct LibraryCustomUmdObject {
   pub amd: Option<String>,
   pub commonjs: Option<String>,

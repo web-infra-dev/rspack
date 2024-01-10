@@ -7,7 +7,7 @@ use rspack_core::{
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, PluginJsChunkHashHookOutput,
   PluginRenderHookOutput, RenderArgs, RuntimeGlobals,
 };
-use rspack_error::{internal_error, internal_error_bail, Result};
+use rspack_error::{error, error_bail, Result};
 
 use crate::utils::{external_module_names, get_options_for_chunk, COMMON_LIBRARY_NAME_MESSAGE};
 
@@ -30,7 +30,7 @@ impl SystemLibraryPlugin {
         LibraryName::NonUmdObject(LibraryNonUmdObject::String(_))
       )
     {
-      internal_error_bail!(
+      error_bail!(
         "System.js library name must be a simple string or unset. {COMMON_LIBRARY_NAME_MESSAGE}"
       )
     }
@@ -83,7 +83,7 @@ impl Plugin for SystemLibraryPlugin {
       .name
       .map(serde_json::to_string)
       .transpose()
-      .map_err(|e| internal_error!(e.to_string()))?
+      .map_err(|e| error!(e.to_string()))?
       .map(|s| format!("{s}, "))
       .unwrap_or_else(|| "".to_string());
 
@@ -107,7 +107,7 @@ impl Plugin for SystemLibraryPlugin {
       })
       .collect::<Vec<_>>();
     let external_deps_array =
-      serde_json::to_string(&external_deps_array).map_err(|e| internal_error!(e.to_string()))?;
+      serde_json::to_string(&external_deps_array).map_err(|e| error!(e.to_string()))?;
     let external_arguments = external_module_names(&modules, compilation);
 
     // The name of the variable provided by System for exporting

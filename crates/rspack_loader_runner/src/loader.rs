@@ -315,7 +315,7 @@ fn convert_to_loader_item_inner(ident: &str) -> LoaderItemDataInner {
 pub(crate) mod test {
   use std::sync::Arc;
 
-  use rspack_error::{internal_error, Result};
+  use rspack_error::{error, Result};
   use rspack_identifier::{Identifiable, Identifier};
 
   use super::{
@@ -327,14 +327,14 @@ pub(crate) mod test {
     fn try_as_normal(&self) -> Result<&LoaderItemDataInner> {
       match self {
         LoaderItemData::Normal(i) => Ok(i),
-        _ => Err(internal_error!("Failed to cast to normal loader")),
+        _ => Err(error!("Failed to cast to normal loader")),
       }
     }
 
     fn try_as_composed(&self) -> Result<&[LoaderItemDataInner]> {
       match self {
         LoaderItemData::Composed(i) => Ok(i),
-        _ => Err(internal_error!("Failed to cast to composed loader")),
+        _ => Err(error!("Failed to cast to composed loader")),
       }
     }
   }

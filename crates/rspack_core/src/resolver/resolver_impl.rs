@@ -4,14 +4,22 @@ use std::{
   sync::Arc,
 };
 
-use rspack_error::{internal_error, Error, InternalError, Severity, TraceableError};
-use rspack_loader_runner::DescriptionData;
-use sugar_path::SugarPath;
-
-use super::{ResolveError, ResolveResult, Resource};
-use crate::{
-  DependencyCategory, Resolve, ResolveArgs, ResolveOptionsWithDependencyType, SharedPluginDriver,
+use rspack_error::{
+  error, miette::miette, DiagnosticError, Error, ErrorExt, Severity, TraceableError,
 };
+use rspack_loader_runner::DescriptionData;
+use rustc_hash::FxHashSet as HashSet;
+
+use super::{ResolveResult, Resource};
+use crate::{DependencyCategory, Resolve, ResolveArgs, ResolveOptionsWithDependencyType};
+
+#[derive(Debug, Default, Clone)]
+pub struct ResolveContext {
+  /// Files that was found on file system
+  pub file_dependencies: HashSet<PathBuf>,
+  /// Dependencies that was not found on file system
+  pub missing_dependencies: HashSet<PathBuf>,
+}
 
 /// Proxy to [nodejs_resolver::Error] or [oxc_resolver::ResolveError]
 #[derive(Debug)]
@@ -146,13 +154,6 @@ impl Resolver {
     }
   }
 
-  /// Return `dependencies` from `enhanced-resolve`
-  ///
-  /// Implementation is currently blank.
-  pub fn dependencies(&self) -> (Vec<PathBuf>, Vec<PathBuf>) {
-    (vec![], vec![])
-  }
-
   /// Return the options from the resolver
   pub fn options(&self) -> ResolveInnerOptions<'_> {
     match self {
@@ -185,24 +186,67 @@ impl Resolver {
           fragment: r.fragment().map(ToString::to_string),
           description_data: r
             .package_json()
-            .map(|d| DescriptionData::new(d.directory().to_path_buf(), Arc::clone(&d.raw_json))),
+            .map(|d| DescriptionData::new(d.directory().to_path_buf(), Arc::clone(d.raw_json()))),
         })),
         Err(oxc_resolver::ResolveError::Ignored(_)) => Ok(ResolveResult::Ignored),
         Err(error) => Err(ResolveInnerError::OxcResolver(error)),
       },
     }
   }
+
+  /// Resolve a specifier to a given path.
+  pub fn resolve_with_context(
+    &self,
+    path: &Path,
+    request: &str,
+    resolve_context: &mut ResolveContext,
+  ) -> Result<ResolveResult, ResolveInnerError> {
+    match self {
+      Self::NodejsResolver(resolver, _) => resolver
+        .resolve(path, request)
+        .map(|result| match result {
+          nodejs_resolver::ResolveResult::Resource(r) => ResolveResult::Resource(Resource {
+            path: r.path,
+            query: r.query,
+            fragment: r.fragment,
+            description_data: r.description.map(|d| {
+              DescriptionData::new(d.dir().as_ref().to_path_buf(), Arc::clone(d.data().raw()))
+            }),
+          }),
+          nodejs_resolver::ResolveResult::Ignored => ResolveResult::Ignored,
+        })
+        .map_err(ResolveInnerError::NodejsResolver),
+      Self::OxcResolver(resolver) => {
+        let mut context = Default::default();
+        let result = resolver.resolve_with_context(path, request, &mut context);
+        resolve_context
+          .file_dependencies
+          .extend(context.file_dependencies);
+        resolve_context
+          .missing_dependencies
+          .extend(context.missing_dependencies);
+        match result {
+          Ok(r) => Ok(ResolveResult::Resource(Resource {
+            path: r.path().to_path_buf(),
+            query: r.query().map(ToString::to_string),
+            fragment: r.fragment().map(ToString::to_string),
+            description_data: r
+              .package_json()
+              .map(|d| DescriptionData::new(d.directory().to_path_buf(), Arc::clone(d.raw_json()))),
+          })),
+          Err(oxc_resolver::ResolveError::Ignored(_)) => Ok(ResolveResult::Ignored),
+          Err(error) => Err(ResolveInnerError::OxcResolver(error)),
+        }
+      }
+    }
+  }
 }
 
 impl ResolveInnerError {
-  pub fn into_resolve_error(
-    self,
-    args: &ResolveArgs<'_>,
-    plugin_driver: &SharedPluginDriver,
-  ) -> ResolveError {
+  pub fn into_resolve_error(self, args: &ResolveArgs<'_>) -> Error {
     match self {
-      Self::NodejsResolver(error) => map_nodejs_resolver_error(error, args, plugin_driver),
-      Self::OxcResolver(error) => map_oxc_resolver_error(error, args, plugin_driver),
+      Self::NodejsResolver(error) => map_nodejs_resolver_error(error, args),
+      Self::OxcResolver(error) => map_oxc_resolver_error(error, args),
     }
   }
 }
@@ -368,204 +412,63 @@ fn to_oxc_resolver_options(
   }
 }
 
-fn map_nodejs_resolver_error(
-  error: nodejs_resolver::Error,
-  args: &ResolveArgs<'_>,
-  plugin_driver: &SharedPluginDriver,
-) -> ResolveError {
+fn map_nodejs_resolver_error(error: nodejs_resolver::Error, args: &ResolveArgs<'_>) -> Error {
   match error {
-    nodejs_resolver::Error::Io(error) => {
-      ResolveError(error.to_string(), Error::Io { source: error })
+    nodejs_resolver::Error::Io(error) => DiagnosticError::from(error.boxed()).into(),
+    nodejs_resolver::Error::UnexpectedJson((json_path, error)) => {
+      error!("{error:?} in {json_path:?}")
     }
-    nodejs_resolver::Error::UnexpectedJson((json_path, error)) => ResolveError(
-      format!(
-        "{error:?} in {}",
-        json_path.relative(&plugin_driver.options.context).display()
-      ),
-      Error::Anyhow {
-        source: anyhow::Error::msg(format!("{error:?} in {json_path:?}")),
-      },
-    ),
-    nodejs_resolver::Error::UnexpectedValue(error) => ResolveError(
-      error.clone(),
-      Error::Anyhow {
-        source: anyhow::Error::msg(error),
-      },
-    ),
-    nodejs_resolver::Error::CantFindTsConfig(path) => ResolveError(
-      format!("{} is not a tsconfig", path.display()),
-      internal_error!("{} is not a tsconfig", path.display()),
-    ),
+    nodejs_resolver::Error::UnexpectedValue(error) => {
+      error!(error)
+    }
+    nodejs_resolver::Error::CantFindTsConfig(path) => {
+      error!("{} is not a tsconfig", path.display())
+    }
     _ => {
       let is_recursion = matches!(error, nodejs_resolver::Error::Overflow);
-      map_resolver_error(is_recursion, args, plugin_driver)
+      map_resolver_error(is_recursion, args)
     }
   }
 }
 
-fn map_oxc_resolver_error(
-  error: oxc_resolver::ResolveError,
-  args: &ResolveArgs<'_>,
-  plugin_driver: &SharedPluginDriver,
-) -> ResolveError {
+fn map_oxc_resolver_error(error: oxc_resolver::ResolveError, args: &ResolveArgs<'_>) -> Error {
   match error {
-    oxc_resolver::ResolveError::InvalidPackageTarget(specifier) => {
-      let message = format!(
-        "Export should be relative path and start with \"./\", but got {}",
-        specifier
-      );
-      ResolveError(
-        message.clone(),
-        Error::Anyhow {
-          source: anyhow::Error::msg(message),
-        },
-      )
-    }
-    oxc_resolver::ResolveError::IOError(error) => ResolveError(
-      "IOError".to_string(),
-      Error::Io {
-        source: error.into(),
-      },
-    ),
-    oxc_resolver::ResolveError::Builtin(error) => ResolveError(
-      format!("Builtin module: {}", error),
-      internal_error!("Builtin module: {}", error),
-    ),
-    oxc_resolver::ResolveError::Ignored(path) => ResolveError(
-      format!("Path is ignored: {}", path.display()),
-      internal_error!("Path is ignored: {}", path.display()),
-    ),
-    oxc_resolver::ResolveError::TsconfigNotFound(path) => ResolveError(
-      format!("{} is not a tsconfig", path.display()),
-      internal_error!("{} is not a tsconfig", path.display()),
-    ),
-    oxc_resolver::ResolveError::ExtensionAlias => ResolveError(
-      "All of the aliased extension are not found".to_string(),
-      internal_error!("All of the aliased extension are not found"),
-    ),
-    oxc_resolver::ResolveError::Specifier(_) => ResolveError(
-      "The provided patn specifier cannot be parsed".to_string(),
-      internal_error!("The provided patn specifier cannot be parsed"),
-    ),
-    oxc_resolver::ResolveError::JSON(json) => {
-      ResolveError(format!("{:?}", json), internal_error!("{:?}", json))
-    }
-    oxc_resolver::ResolveError::Restriction(path) => ResolveError(
-      format!(
-        "Restriction by `ResolveOptions::restrictions`: {}",
-        path.display()
-      ),
-      internal_error!(
-        "Restriction by `ResolveOptions::restrictions`: {}",
-        path.display()
-      ),
-    ),
-    oxc_resolver::ResolveError::InvalidModuleSpecifier(error) => ResolveError(
-      format!("Invalid module specifier: {}", error),
-      internal_error!("Invalid module specifier: {}", error),
-    ),
-    oxc_resolver::ResolveError::PackagePathNotExported(error) => ResolveError(
-      format!("Package subpath '{}' is not defined by \"exports\"", error),
-      internal_error!("Package subpath '{}' is not defined by \"exports\"", error),
-    ),
-    oxc_resolver::ResolveError::InvalidPackageConfig(path) => ResolveError(
-      format!("Invalid package config in: {}", path.display()),
-      internal_error!("Invalid package config in: {}", path.display()),
-    ),
-    oxc_resolver::ResolveError::InvalidPackageConfigDefault(path) => ResolveError(
-      format!("Default condition should be last one: {}", path.display()),
-      internal_error!("Default condition should be last one: {}", path.display()),
-    ),
-    oxc_resolver::ResolveError::InvalidPackageConfigDirectory(path) => ResolveError(
-      format!(
-        "Expecting folder to folder mapping. \"{}\" should end with \"/\"",
-        path.display()
-      ),
-      internal_error!(
-        "Expecting folder to folder mapping. \"{}\" should end with \"/\"",
-        path.display()
-      ),
-    ),
-    oxc_resolver::ResolveError::PackageImportNotDefined(error) => ResolveError(
-      format!("Package import not defined: {}", error),
-      internal_error!("Package import not defined: {}", error),
-    ),
-    oxc_resolver::ResolveError::Unimplemented(error) => ResolveError(
-      format!("{} is unimplemented", error),
-      internal_error!("{} is unimplemented", error),
-    ),
-    oxc_resolver::ResolveError::Recursion => map_resolver_error(true, args, plugin_driver),
-    oxc_resolver::ResolveError::NotFound(_) => map_resolver_error(false, args, plugin_driver),
+    oxc_resolver::ResolveError::IOError(error) => DiagnosticError::from(error.boxed()).into(),
+    oxc_resolver::ResolveError::Recursion => map_resolver_error(true, args),
+    oxc_resolver::ResolveError::NotFound(_) => map_resolver_error(false, args),
+    _ => error!("{}", error),
   }
 }
 
-fn map_resolver_error(
-  is_recursion: bool,
-  args: &ResolveArgs<'_>,
-  plugin_driver: &SharedPluginDriver,
-) -> ResolveError {
-  let base_dir: &Path = args.context.as_ref();
-  let importer = args.importer.map(|i| i.as_str());
-  if let Some(importer) = &importer {
-    let span = args.span.unwrap_or_default();
-    // Use relative path in runtime for stable hashing
-    let (runtime_message, internal_message) = if is_recursion {
-      (
-        format!(
-          "Can't resolve {:?} in {} , maybe it had cycle alias",
-          args.specifier,
-          Path::new(importer)
-            .relative(&plugin_driver.options.context)
-            .display()
-        ),
-        format!(
-          "Can't resolve {:?} in {} , maybe it had cycle alias",
-          args.specifier, importer
-        ),
-      )
-    } else {
-      (
-        format!(
-          "Failed to resolve {} in {}",
-          args.specifier,
-          base_dir.display()
-        ),
-        format!("Failed to resolve {} in {}", args.specifier, importer),
-      )
-    };
-    ResolveError(
-      runtime_message,
-      TraceableError::from_real_file_path(
-        Path::new(
-          importer
-            .split_once('|')
-            .map(|(_, path)| path)
-            .unwrap_or(importer),
-        ),
-        span.start as usize,
-        span.end as usize,
-        "Resolve error".to_string(),
-        internal_message.clone(),
-      )
-      .map(|e| {
-        if args.optional {
-          Error::TraceableError(e.with_severity(Severity::Warn))
-        } else {
-          Error::TraceableError(e)
-        }
-      })
-      .unwrap_or_else(|_| {
-        if args.optional {
-          Error::InternalError(InternalError::new(internal_message, Severity::Warn))
-        } else {
-          internal_error!(internal_message)
-        }
-      }),
-    )
-  } else {
-    ResolveError(
-      format!("Failed to resolve {} in project root", args.specifier),
-      internal_error!("Failed to resolve {} in project root", args.specifier),
-    )
+fn map_resolver_error(is_recursion: bool, args: &ResolveArgs<'_>) -> Error {
+  let request = &args.specifier;
+  let context = &args.context;
+
+  let importer = args.importer;
+  if importer.is_none() {
+    return miette!("Resolve error: Can't resolve '{request}' in '{context}'");
   }
+
+  let span = args.span.unwrap_or_default();
+  let message = format!("Can't resolve '{request}' in '{context}'");
+  TraceableError::from_empty_file(
+    span.start as usize,
+    span.end as usize,
+    "Resolve error".to_string(),
+    message,
+  )
+  .with_help(if is_recursion {
+    Some("maybe it had cyclic aliases")
+  } else {
+    None
+  })
+  .with_severity(
+    // See: https://github.com/webpack/webpack/blob/6be4065ade1e252c1d8dcba4af0f43e32af1bdc1/lib/Compilation.js#L1796
+    if args.optional {
+      Severity::Warn
+    } else {
+      Severity::Error
+    },
+  )
+  .into()
 }

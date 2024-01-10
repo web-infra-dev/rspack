@@ -25,3 +25,7 @@ export function ensureRspackConfigNotExist(testCaseDir: string) {
 		throw Error(`rspack config file should not exist in ${testCaseDir}`);
 	}
 }
+
+export function isValidTestCaseDir(testCaseDir: string) {
+	return !testCaseDir.startsWith("_") && !testCaseDir.startsWith(".");
+}

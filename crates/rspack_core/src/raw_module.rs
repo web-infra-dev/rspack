@@ -1,15 +1,15 @@
 use std::borrow::Cow;
 use std::hash::Hash;
 
-use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_hash::RspackHash;
 use rspack_identifier::Identifiable;
 use rspack_sources::{BoxSource, RawSource, Source, SourceExt};
 
 use crate::{
-  dependencies_block::AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildResult,
-  CodeGenerationResult, Context, DependenciesBlock, DependencyId, Module, ModuleIdentifier,
-  ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
+  dependencies_block::AsyncDependenciesBlockIdentifier, impl_build_info_meta, BuildContext,
+  BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Context, DependenciesBlock,
+  DependencyId, Module, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
 #[derive(Debug)]
@@ -20,6 +20,8 @@ pub struct RawModule {
   identifier: ModuleIdentifier,
   readable_identifier: String,
   runtime_requirements: RuntimeGlobals,
+  build_info: Option<BuildInfo>,
+  build_meta: Option<BuildMeta>,
 }
 
 static RAW_MODULE_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
@@ -39,6 +41,8 @@ impl RawModule {
       identifier,
       readable_identifier,
       runtime_requirements,
+      build_info: None,
+      build_meta: None,
     }
   }
 }
@@ -69,6 +73,8 @@ impl DependenciesBlock for RawModule {
 
 #[async_trait::async_trait]
 impl Module for RawModule {
+  impl_build_info_meta!();
+
   fn module_type(&self) -> &ModuleType {
     &ModuleType::Js
   }
@@ -89,24 +95,18 @@ impl Module for RawModule {
     f64::max(1.0, self.source.size() as f64)
   }
 
-  async fn build(
-    &mut self,
-    build_context: BuildContext<'_>,
-  ) -> Result<TWithDiagnosticArray<BuildResult>> {
+  async fn build(&mut self, build_context: BuildContext<'_>) -> Result<BuildResult> {
     let mut hasher = RspackHash::from(&build_context.compiler_options.output);
     self.update_hash(&mut hasher);
-    Ok(
-      BuildResult {
-        build_info: BuildInfo {
-          hash: Some(hasher.digest(&build_context.compiler_options.output.hash_digest)),
-          cacheable: true,
-          ..Default::default()
-        },
-        dependencies: vec![],
+    Ok(BuildResult {
+      build_info: BuildInfo {
+        hash: Some(hasher.digest(&build_context.compiler_options.output.hash_digest)),
+        cacheable: true,
         ..Default::default()
-      }
-      .with_empty_diagnostic(),
-    )
+      },
+      dependencies: vec![],
+      ..Default::default()
+    })
   }
 
   fn code_generation(
@@ -125,6 +125,8 @@ impl Module for RawModule {
     Ok(cgr)
   }
 }
+
+impl_empty_diagnosable_trait!(RawModule);
 
 impl Hash for RawModule {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {

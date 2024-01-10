@@ -488,10 +488,15 @@ describe("MultiCompiler", function () {
 
 		compiler.watch({}, err => {
 			if (err) {
-				done(err);
-			} else {
-				done();
+				compiler.close(() => {
+					done(err);
+				});
+				return;
 			}
+			compiler.close(err => {
+				if (err) return done(err);
+				done();
+			});
 		});
 	}, 20000);
 

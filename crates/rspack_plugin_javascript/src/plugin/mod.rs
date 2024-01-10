@@ -4,11 +4,13 @@ mod flag_dependency_usage_plugin;
 pub mod impl_plugin_for_js_plugin;
 pub mod infer_async_modules_plugin;
 pub mod inner_graph_plugin;
+mod mangle_exports_plugin;
 mod side_effects_flag_plugin;
 use std::hash::Hash;
 
 pub use flag_dependency_exports_plugin::*;
 pub use flag_dependency_usage_plugin::*;
+pub use mangle_exports_plugin::*;
 use rspack_core::rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
 use rspack_core::{
   render_init_fragments, ChunkRenderContext, ChunkUkey, Compilation, JsChunkHashArgs,
@@ -134,10 +136,7 @@ impl JsPlugin {
     let runtime_requirements = compilation
       .chunk_graph
       .get_chunk_runtime_requirements(chunk_ukey);
-    let chunk = compilation
-      .chunk_by_ukey
-      .get(chunk_ukey)
-      .expect("chunk should exist in chunk_by_ukey");
+    let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
     let module_factories = runtime_requirements.contains(RuntimeGlobals::MODULE_FACTORIES);
     // let require_function = runtime_requirements.contains(RuntimeGlobals::REQUIRE);
     let intercept_module_execution =
@@ -188,20 +187,17 @@ impl JsPlugin {
           .chunk_graph
           .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey);
         for (i, (module, entry)) in entries.iter().enumerate() {
-          let chunk_group = compilation
-            .chunk_group_by_ukey
-            .get(entry)
-            .expect("should have chunk group");
+          let chunk_group = compilation.chunk_group_by_ukey.expect_get(entry);
           let chunk_ids = chunk_group
             .chunks
             .iter()
             .filter(|c| *c != chunk_ukey)
             .map(|chunk_ukey| {
-              let chunk = compilation
+              compilation
                 .chunk_by_ukey
-                .get(chunk_ukey)
-                .expect("Chunk not found");
-              chunk.expect_id().to_string()
+                .expect_get(chunk_ukey)
+                .expect_id()
+                .to_string()
             })
             .collect::<Vec<_>>();
           let module_id = compilation

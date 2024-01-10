@@ -1,23 +1,23 @@
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  Compilation, RuntimeGlobals, RuntimeModule,
+  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule,
 };
 use rspack_identifier::Identifier;
+
+use crate::get_chunk_runtime_requirements;
 
 #[derive(Debug, Eq)]
 pub struct GetTrustedTypesPolicyRuntimeModule {
   id: Identifier,
-  create_script: bool,
-  create_script_url: bool,
+  chunk: Option<ChunkUkey>,
 }
 
-impl GetTrustedTypesPolicyRuntimeModule {
-  pub fn new(runtime_requirements: &RuntimeGlobals) -> Self {
+impl Default for GetTrustedTypesPolicyRuntimeModule {
+  fn default() -> Self {
     Self {
       id: Identifier::from("webpack/runtime/get_trusted_types_policy"),
-      create_script: runtime_requirements.contains(RuntimeGlobals::CREATE_SCRIPT),
-      create_script_url: runtime_requirements.contains(RuntimeGlobals::CREATE_SCRIPT_URL),
+      chunk: None,
     }
   }
 }
@@ -34,13 +34,17 @@ impl RuntimeModule for GetTrustedTypesPolicyRuntimeModule {
       .trusted_types
       .as_ref()
       .expect("should have trusted_types");
+    let runtime_requirements =
+      get_chunk_runtime_requirements(compilation, &self.chunk.expect("should have chunk"));
+    let create_script = runtime_requirements.contains(RuntimeGlobals::CREATE_SCRIPT);
+    let create_script_url = runtime_requirements.contains(RuntimeGlobals::CREATE_SCRIPT_URL);
 
     let mut result = include_str!("runtime/get_trusted_types_policy.js").replace(
       "$policyName$",
       &trusted_types.policy_name.clone().unwrap_or_default(),
     );
     let mut policy_content: Vec<String> = Vec::new();
-    if self.create_script {
+    if create_script {
       policy_content.push(
         r#"
         createScript: function (script) {
@@ -50,7 +54,7 @@ impl RuntimeModule for GetTrustedTypesPolicyRuntimeModule {
         .to_string(),
       );
     }
-    if self.create_script_url {
+    if create_script_url {
       policy_content.push(
         r#"
         createScriptURL: function (url) {
@@ -62,6 +66,10 @@ impl RuntimeModule for GetTrustedTypesPolicyRuntimeModule {
     }
     result = result.replace("$policyContent$", policy_content.join(",\n").as_ref());
     RawSource::from(result).boxed()
+  }
+
+  fn attach(&mut self, chunk: ChunkUkey) {
+    self.chunk = Some(chunk);
   }
 }
 

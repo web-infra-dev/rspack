@@ -108,7 +108,8 @@ const describeCases = config => {
 								}
 								if (!options.experiments.rspackFuture) {
 									options.experiments.rspackFuture = {
-										newTreeshaking: false
+										newTreeshaking: true,
+										disableApplyEntryLazily: true,
 									}
 								}
 								// if (options.optimization.minimizer === undefined) {

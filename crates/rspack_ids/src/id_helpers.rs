@@ -113,11 +113,6 @@ pub fn get_hash(s: impl Hash, length: usize) -> String {
   hash_str
 }
 
-// TODO: we should remove this function to crate rspack_util
-pub fn compare_modules_by_identifier(a: &BoxModule, b: &BoxModule) -> std::cmp::Ordering {
-  compare_ids(&a.identifier(), &b.identifier())
-}
-
 // pub fn assign_names<T: Copy>(
 //   items: Vec<T>,
 //   get_short_name: impl Fn(T) -> String,
@@ -355,8 +350,10 @@ pub fn get_short_chunk_name(
   id_name_hints.sort_unstable();
 
   id_name_hints.extend(short_module_names);
-
-  let chunk_name = id_name_hints.join(delimiter);
+  let chunk_name = id_name_hints
+    .iter()
+    .filter(|id| !id.is_empty())
+    .join(delimiter);
 
   shorten_long_string(chunk_name, delimiter)
 }
@@ -466,10 +463,7 @@ pub fn assign_ascending_chunk_ids(chunks: &[ChunkUkey], compilation: &mut Compil
   let mut next_id = 0;
   if !used_ids.is_empty() {
     for chunk in chunks {
-      let chunk = compilation
-        .chunk_by_ukey
-        .get_mut(chunk)
-        .expect("Chunk not found");
+      let chunk = compilation.chunk_by_ukey.expect_get_mut(chunk);
       if chunk.id.is_none() {
         while used_ids.contains(&next_id.to_string()) {
           next_id += 1;
@@ -481,10 +475,7 @@ pub fn assign_ascending_chunk_ids(chunks: &[ChunkUkey], compilation: &mut Compil
     }
   } else {
     for chunk in chunks {
-      let chunk = compilation
-        .chunk_by_ukey
-        .get_mut(chunk)
-        .expect("Chunk not found");
+      let chunk = compilation.chunk_by_ukey.expect_get_mut(chunk);
       if chunk.id.is_none() {
         chunk.id = Some(next_id.to_string());
         chunk.ids = vec![next_id.to_string()];

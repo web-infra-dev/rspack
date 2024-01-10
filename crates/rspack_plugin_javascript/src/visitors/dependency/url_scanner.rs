@@ -1,14 +1,16 @@
-use rspack_core::BoxDependency;
+use rspack_core::{BoxDependency, DependencyLocation, SpanExt};
 use swc_core::ecma::{
   ast::NewExpr,
   visit::{noop_visit_type, Visit, VisitWith},
 };
 
-use crate::dependency::URLDependency;
+use crate::{dependency::URLDependency, no_visit_ignored_stmt};
 
 pub struct UrlScanner<'a> {
   pub dependencies: &'a mut Vec<BoxDependency>,
   worker_syntax_list: &'a rspack_core::needs_refactor::WorkerSyntaxList,
+  relative: bool,
+  ignored: &'a mut Vec<DependencyLocation>,
 }
 
 // new URL("./foo.png", import.meta.url);
@@ -16,16 +18,21 @@ impl<'a> UrlScanner<'a> {
   pub fn new(
     dependencies: &'a mut Vec<BoxDependency>,
     worker_syntax_list: &'a rspack_core::needs_refactor::WorkerSyntaxList,
+    relative: bool,
+    ignored: &'a mut Vec<DependencyLocation>,
   ) -> Self {
     Self {
       dependencies,
       worker_syntax_list,
+      relative,
+      ignored,
     }
   }
 }
 
 impl Visit for UrlScanner<'_> {
   noop_visit_type!();
+  no_visit_ignored_stmt!();
 
   fn visit_new_expr(&mut self, new_expr: &NewExpr) {
     // TODO: https://github.com/web-infra-dev/rspack/discussions/3619
@@ -41,8 +48,11 @@ impl Visit for UrlScanner<'_> {
       self.dependencies.push(Box::new(URLDependency::new(
         start,
         end,
+        new_expr.span.real_lo(),
+        new_expr.span.real_hi(),
         request.into(),
         Some(new_expr.span.into()),
+        self.relative,
       )));
     } else {
       new_expr.visit_children_with(self);

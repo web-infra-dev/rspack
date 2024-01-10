@@ -1,5 +1,6 @@
 const rspack = require("@rspack/core");
 const path = require("path");
+const MonacoWebpackPlugin = require("monaco-editor-webpack-plugin");
 
 const prod = process.env.NODE_ENV === "production";
 
@@ -15,7 +16,7 @@ module.exports = {
 	output: {
 		globalObject: "self",
 		filename: "[name].bundle.js",
-		path: path.resolve(__dirname, "dist/viewer")
+		path: path.resolve(__dirname, "template")
 	},
 	module: {
 		rules: [
@@ -70,7 +71,10 @@ module.exports = {
 	plugins: [
 		new rspack.HtmlRspackPlugin({
 			template: "./viewer/templates/diff.html",
-			filename: '[name].html'
+			filename: "[name].html"
+		}),
+		new MonacoWebpackPlugin({
+			languages: ["javascript"]
 		})
 	]
 };

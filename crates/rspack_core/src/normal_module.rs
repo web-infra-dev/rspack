@@ -4,16 +4,14 @@ use std::{
   hash::{BuildHasherDefault, Hash},
   sync::{
     atomic::{AtomicUsize, Ordering},
-    Arc,
+    Arc, Mutex,
   },
 };
 
 use bitflags::bitflags;
 use dashmap::DashMap;
 use derivative::Derivative;
-use rspack_error::{
-  internal_error, Diagnostic, IntoTWithDiagnosticArray, Result, Severity, TWithDiagnosticArray,
-};
+use rspack_error::{error, Diagnosable, Diagnostic, Result, Severity};
 use rspack_hash::RspackHash;
 use rspack_identifier::Identifiable;
 use rspack_loader_runner::{run_loaders, Content, ResourceData};
@@ -26,12 +24,13 @@ use rustc_hash::FxHasher;
 use serde_json::json;
 
 use crate::{
-  add_connection_states, contextify, get_context, AsyncDependenciesBlockIdentifier, BoxLoader,
-  BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation,
-  CompilerOptions, ConnectionState, Context, DependenciesBlock, DependencyId, DependencyTemplate,
-  GenerateContext, GeneratorOptions, LibIdentOptions, LoaderRunnerPluginProcessResource, Module,
-  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType, ParseContext, ParseResult,
-  ParserAndGenerator, ParserOptions, Resolve, RuntimeSpec, SourceType,
+  add_connection_states, contextify, get_context, impl_build_info_meta,
+  AsyncDependenciesBlockIdentifier, BoxLoader, BoxModule, BuildContext, BuildInfo, BuildMeta,
+  BuildResult, CodeGenerationResult, Compilation, CompilerOptions, ConnectionState, Context,
+  DependenciesBlock, DependencyId, DependencyTemplate, GenerateContext, GeneratorOptions,
+  LibIdentOptions, LoaderRunnerPluginProcessResource, Module, ModuleDependency, ModuleGraph,
+  ModuleIdentifier, ModuleType, ParseContext, ParseResult, ParserAndGenerator, ParserOptions,
+  Resolve, RuntimeSpec, SourceType,
 };
 
 bitflags! {
@@ -116,33 +115,34 @@ pub struct NormalModule {
   /// Generator options derived from [Rule.generator]
   generator_options: Option<GeneratorOptions>,
 
+  #[derivative(Debug = "ignore")]
   options: Arc<CompilerOptions>,
   #[allow(unused)]
   debug_id: usize,
   cached_source_sizes: DashMap<SourceType, f64, BuildHasherDefault<FxHasher>>,
+  diagnostics: Mutex<Vec<Diagnostic>>,
 
   code_generation_dependencies: Option<Vec<Box<dyn ModuleDependency>>>,
   presentational_dependencies: Option<Vec<Box<dyn DependencyTemplate>>>,
+
+  build_info: Option<BuildInfo>,
+  build_meta: Option<BuildMeta>,
 }
 
 #[derive(Debug, Clone)]
 pub enum NormalModuleSource {
   Unbuild,
   BuiltSucceed(BoxSource),
-  BuiltFailed(String),
+  BuiltFailed(Diagnostic),
 }
 
 impl NormalModuleSource {
-  pub fn new_built(source: BoxSource, diagnostics: &[Diagnostic]) -> Self {
-    if diagnostics.iter().any(|d| d.severity == Severity::Error) {
-      NormalModuleSource::BuiltFailed(
-        diagnostics
-          .iter()
-          .filter(|d| d.severity == Severity::Error)
-          .map(|d| d.message.clone())
-          .collect::<Vec<String>>()
-          .join("\n"),
-      )
+  pub fn new_built(source: BoxSource, mut diagnostics: Vec<Diagnostic>) -> Self {
+    diagnostics.retain(|d| d.severity() == Severity::Error);
+    // Use the first error as diagnostic
+    // See: https://github.com/webpack/webpack/blob/6be4065ade1e252c1d8dcba4af0f43e32af1bdc1/lib/NormalModule.js#L878
+    if let Some(d) = diagnostics.into_iter().next() {
+      NormalModuleSource::BuiltFailed(d)
     } else {
       NormalModuleSource::BuiltSucceed(source)
     }
@@ -201,8 +201,11 @@ impl NormalModule {
 
       options,
       cached_source_sizes: DashMap::default(),
+      diagnostics: Mutex::new(Default::default()),
       code_generation_dependencies: None,
       presentational_dependencies: None,
+      build_info: None,
+      build_meta: None,
     }
   }
 
@@ -306,6 +309,8 @@ impl DependenciesBlock for NormalModule {
 
 #[async_trait::async_trait]
 impl Module for NormalModule {
+  impl_build_info_meta!();
+
   fn module_type(&self) -> &ModuleType {
     &self.module_type
   }
@@ -332,13 +337,11 @@ impl Module for NormalModule {
     }
   }
 
-  async fn build(
-    &mut self,
-    build_context: BuildContext<'_>,
-  ) -> Result<TWithDiagnosticArray<BuildResult>> {
+  async fn build(&mut self, build_context: BuildContext<'_>) -> Result<BuildResult> {
+    self.clear_diagnostics();
+
     let mut build_info = BuildInfo::default();
     let mut build_meta = BuildMeta::default();
-    let mut diagnostics = Vec::new();
 
     build_context.plugin_driver.before_loaders(self).await?;
 
@@ -354,24 +357,23 @@ impl Module for NormalModule {
     let (loader_result, ds) = match loader_result {
       Ok(r) => r.split_into_parts(),
       Err(e) => {
-        self.source = NormalModuleSource::BuiltFailed(e.to_string());
+        let d = Diagnostic::from(e);
+        self.source = NormalModuleSource::BuiltFailed(d.clone());
+        self.add_diagnostic(d);
         let mut hasher = RspackHash::from(&build_context.compiler_options.output);
         self.update_hash(&mut hasher);
         build_meta.hash(&mut hasher);
         build_info.hash = Some(hasher.digest(&build_context.compiler_options.output.hash_digest));
-        return Ok(
-          BuildResult {
-            build_info,
-            build_meta: Default::default(),
-            dependencies: Vec::new(),
-            blocks: Vec::new(),
-            analyze_result: Default::default(),
-          }
-          .with_diagnostic(e.into()),
-        );
+        return Ok(BuildResult {
+          build_info,
+          build_meta: Default::default(),
+          dependencies: Vec::new(),
+          blocks: Vec::new(),
+          analyze_result: Default::default(),
+        });
       }
     };
-    diagnostics.extend(ds);
+    self.add_diagnostics(ds);
 
     let content = if self.module_type().is_binary() {
       Content::Buffer(loader_result.content.into_bytes())
@@ -398,6 +400,7 @@ impl Module for NormalModule {
         module_parser_options: self.parser_options.as_ref(),
         module_type: &self.module_type,
         module_user_request: &self.user_request,
+        loaders: &self.loaders,
         resource_data: &self.resource_data,
         compiler_options: build_context.compiler_options,
         additional_data: loader_result.additional_data,
@@ -406,11 +409,11 @@ impl Module for NormalModule {
         build_meta: &mut build_meta,
       })?
       .split_into_parts();
-    diagnostics.extend(ds);
+    self.add_diagnostics(ds);
     // Only side effects used in code_generate can stay here
     // Other side effects should be set outside use_cache
     self.original_source = Some(source.clone());
-    self.source = NormalModuleSource::new_built(source, &diagnostics);
+    self.source = NormalModuleSource::new_built(source, self.clone_diagnostics());
     self.code_generation_dependencies = Some(code_generation_dependencies);
     self.presentational_dependencies = Some(presentational_dependencies);
 
@@ -426,16 +429,13 @@ impl Module for NormalModule {
     build_info.build_dependencies = loader_result.build_dependencies;
     build_info.asset_filenames = loader_result.asset_filenames;
 
-    Ok(
-      BuildResult {
-        build_info,
-        build_meta,
-        dependencies,
-        blocks,
-        analyze_result,
-      }
-      .with_diagnostic(diagnostics),
-    )
+    Ok(BuildResult {
+      build_info,
+      build_meta,
+      dependencies,
+      blocks,
+      analyze_result,
+    })
   }
 
   fn code_generation(
@@ -472,9 +472,10 @@ impl Module for NormalModule {
       // If the module build failed and the module is able to emit JavaScript source,
       // we should emit an error message to the runtime, otherwise we do nothing.
       if self.source_types().contains(&SourceType::JavaScript) {
+        let error = error_message.render_report(compilation.options.stats.colors)?;
         code_generation_result.add(
           SourceType::JavaScript,
-          RawSource::from(format!("throw new Error({});\n", json!(error_message))).boxed(),
+          RawSource::from(format!("throw new Error({});\n", json!(error))).boxed(),
         );
       }
       code_generation_result.set_hash(
@@ -484,7 +485,7 @@ impl Module for NormalModule {
       );
       Ok(code_generation_result)
     } else {
-      Err(internal_error!(
+      Err(error!(
         "Failed to generate code because ast or source is not set for module {}",
         self.request
       ))
@@ -545,7 +546,7 @@ impl Module for NormalModule {
       if let Some(side_effect_free) = mgm.factory_meta.as_ref().and_then(|m| m.side_effect_free) {
         return ConnectionState::Bool(!side_effect_free);
       }
-      if let Some(side_effect_free) = mgm.build_meta.as_ref().and_then(|m| m.side_effect_free)
+      if let Some(side_effect_free) = self.build_meta().as_ref().and_then(|m| m.side_effect_free)
         && side_effect_free
       {
         // use module chain instead of is_evaluating_side_effects to mut module graph
@@ -572,6 +573,34 @@ impl Module for NormalModule {
       }
     }
     ConnectionState::Bool(true)
+  }
+}
+
+impl Diagnosable for NormalModule {
+  fn add_diagnostic(&self, diagnostic: Diagnostic) {
+    self
+      .diagnostics
+      .lock()
+      .expect("should be able to lock diagnostics")
+      .push(diagnostic);
+  }
+
+  fn add_diagnostics(&self, mut diagnostics: Vec<Diagnostic>) {
+    self
+      .diagnostics
+      .lock()
+      .expect("should be able to lock diagnostics")
+      .append(&mut diagnostics);
+  }
+
+  fn clone_diagnostics(&self) -> Vec<Diagnostic> {
+    self
+      .diagnostics
+      .lock()
+      .expect("should be able to lock diagnostics")
+      .iter()
+      .cloned()
+      .collect()
   }
 }
 
@@ -607,6 +636,14 @@ impl NormalModule {
       return Ok(OriginalSource::new(content, self.request()).boxed());
     }
     Ok(RawSource::from(content.into_string_lossy()).boxed())
+  }
+
+  fn clear_diagnostics(&mut self) {
+    self
+      .diagnostics
+      .lock()
+      .expect("should be able to lock diagnostics")
+      .clear()
   }
 }
 

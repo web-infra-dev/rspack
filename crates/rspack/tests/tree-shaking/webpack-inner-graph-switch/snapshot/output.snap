@@ -28,9 +28,9 @@ __webpack_require__.d(__webpack_exports__, {
     });
 }
 }),
-"./index.js": (function (__unused_webpack_module, exports, __webpack_require__) {
+"./index.js": (function (__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
 it("should generate correct code when pure expressions are in dead branches", ()=>{
-    __webpack_require__(/*! ./import-module */"./import-module.js").test();
+    __webpack_require__(/*! ./import-module */"./import-module.js")/* .test */.test();
     return Promise.all([
         __webpack_require__.el("./index.js@156:179").then(__webpack_require__.bind(__webpack_require__, /*! ./some-module */"./some-module.js")),
         __webpack_require__.el("./index.js@189:206").then(__webpack_require__.bind(__webpack_require__, /*! ./chunk */"./chunk.js"))
@@ -83,8 +83,8 @@ var __WEBPACK_DEFAULT_EXPORT__ = doSomething;
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   Block: function() { return Block; },
-  Inline: function() { return Inline; },
-  Document: function() { return Document; }
+  Document: function() { return Document; },
+  Inline: function() { return Inline; }
 });
 class Block {
     static doSomething() {}

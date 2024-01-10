@@ -8,7 +8,6 @@ import {
 	TModuleCompareResult
 } from "../type";
 import path from "path";
-import { createModulePlaceholderPlugin } from "../webpack/module-placeholder-plugin";
 import {
 	IFormatCodeOptions,
 	compareFile,
@@ -16,6 +15,7 @@ import {
 } from "../compare";
 import { readConfigFile, runBuild } from "../helper";
 import deepmerge from "deepmerge";
+import { RspackDiffConfigPlugin, WebpackDiffConfigPlugin } from "../plugin";
 
 export interface IDiffProcessorOptions extends IFormatCodeOptions {
 	webpackPath: string;
@@ -23,6 +23,8 @@ export interface IDiffProcessorOptions extends IFormatCodeOptions {
 	files?: string[];
 	modules?: TCompareModules;
 	runtimeModules?: TCompareModules;
+	bootstrap?: boolean;
+	detail?: boolean;
 	onCompareFile?: (file: string, result: TFileCompareResult) => void;
 	onCompareModules?: (file: string, results: TModuleCompareResult[]) => void;
 	onCompareRuntimeModules?: (
@@ -81,7 +83,9 @@ export class DiffProcessor implements ITestProcessor {
 				modules: this.options.modules,
 				runtimeModules: this.options.runtimeModules,
 				format: this.createFormatOptions(),
-				renameModule: replaceRuntimeModuleName
+				renameModule: replaceRuntimeModuleName,
+				bootstrap: this.options.bootstrap,
+				detail: this.options.detail
 			});
 			if (typeof this.options.onCompareFile === "function") {
 				this.options.onCompareFile(file, result);
@@ -128,63 +132,25 @@ export class DiffProcessor implements ITestProcessor {
 		src: string,
 		dist: string
 	) {
-		let result = deepmerge<TCompilerOptions<T>>(options, {
-			entry: path.join(src, "./src/index.js"),
-			context: src,
-			output: {
-				filename: "bundle.js",
-				chunkFilename: "[name].chunk.js"
-			},
-			mode: "development",
-			devtool: false,
-			optimization: {
-				chunkIds: "named",
-				moduleIds: "named"
-			}
-		});
-		if (type === ECompilerType.Webpack) {
-			result = deepmerge<TCompilerOptions<ECompilerType.Webpack>>(
-				result as TCompilerOptions<ECompilerType.Webpack>,
-				{
-					output: {
-						pathinfo: false,
-						environment: {
-							arrowFunction: false,
-							bigIntLiteral: false,
-							const: false,
-							destructuring: false,
-							dynamicImport: false,
-							dynamicImportInWorker: false,
-							forOf: false,
-							globalThis: false,
-							module: false,
-							optionalChaining: false,
-							templateLiteral: false
-						},
-						path: dist
-					},
-					plugins: [createModulePlaceholderPlugin(this.options.webpackPath)]
+		let result = deepmerge<TCompilerOptions<T>>(
+			options,
+			{
+				entry: path.join(src, "./src/index.js"),
+				context: src,
+				output: {
+					path: dist,
+					filename: "bundle.js",
+					chunkFilename: "[name].chunk.js"
 				},
-				{
-					arrayMerge: (a, b) => [...a, ...b]
-				}
-			) as TCompilerOptions<T>;
-		}
-		if (type === ECompilerType.Rspack) {
-			result = deepmerge<TCompilerOptions<ECompilerType.Rspack>>(
-				result as TCompilerOptions<ECompilerType.Rspack>,
-				{
-					output: {
-						path: dist
-					},
-					experiments: {
-						rspackFuture: {
-							disableTransformByDefault: true
-						}
-					}
-				}
-			) as TCompilerOptions<T>;
-		}
+				plugins: [
+					type === ECompilerType.Webpack && new WebpackDiffConfigPlugin(),
+					type === ECompilerType.Rspack && new RspackDiffConfigPlugin()
+				].filter(Boolean)
+			} as TCompilerOptions<T>,
+			{
+				arrayMerge: (a, b) => [...a, ...b]
+			}
+		);
 		return result;
 	}
 
@@ -193,6 +159,10 @@ export class DiffProcessor implements ITestProcessor {
 			ignoreModuleArguments: this.options.ignoreModuleArguments,
 			ignoreModuleId: this.options.ignoreModuleId,
 			ignorePropertyQuotationMark: this.options.ignorePropertyQuotationMark,
+			ignoreBlockOnlyStatement: this.options.ignoreBlockOnlyStatement,
+			ignoreSwcHelpersPath: this.options.ignoreSwcHelpersPath,
+			ignoreObjectPropertySequence: this.options.ignoreObjectPropertySequence,
+			ignoreCssFilePath: this.options.ignoreCssFilePath,
 			replacements: this.options.replacements || {}
 		};
 		for (let hash of this.hashes) {

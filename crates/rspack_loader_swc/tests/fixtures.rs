@@ -32,6 +32,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
     &[],
     CompilerContext {
       options: std::sync::Arc::new(CompilerOptions {
+        bail: false,
         context: rspack_core::Context::default(),
         dev_server: rspack_core::DevServerOptions::default(),
         devtool: rspack_core::Devtool::from("source-map".to_string()),
@@ -73,6 +74,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
           ),
           worker_wasm_loading: rspack_core::WasmLoading::Disable,
           worker_public_path: String::new(),
+          script_type: String::from("false"),
         },
         target: rspack_core::Target::new(&vec![String::from("web")]).expect("TODO:"),
         resolve: rspack_core::Resolve::default(),
@@ -86,16 +88,16 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
         node: Default::default(),
         optimization: rspack_core::Optimization {
           remove_available_modules: false,
-          remove_empty_chunks: true,
           side_effects: SideEffectOption::False,
           provided_exports: Default::default(),
           used_exports: Default::default(),
           inner_graph: Default::default(),
+          mangle_exports: Default::default(),
         },
         profile: false,
       }),
       resolver_factory: Default::default(),
-      module: None,
+      module: "".into(),
       module_context: None,
     },
   )

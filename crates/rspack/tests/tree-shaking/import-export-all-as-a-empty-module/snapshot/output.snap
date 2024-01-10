@@ -20,9 +20,9 @@ __webpack_require__.d(__webpack_exports__, {
     answer: _answer__WEBPACK_IMPORTED_MODULE_0__.something
 };
 }),
-"./answer.js": (function (__unused_webpack_module, exports, __webpack_require__) {
+"./answer.js": (function () {
 }),
-"./app.js": (function (__unused_webpack_module, exports, __webpack_require__) {
+"./app.js": (function () {
 }),
 "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";

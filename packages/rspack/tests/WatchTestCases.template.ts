@@ -9,11 +9,12 @@ import prepareOptions from "./helpers/prepareOptions";
 import deprecationTracking from "./helpers/deprecationTracking";
 import FakeDocument from "./helpers/FakeDocument";
 import { rspack, RspackOptions } from "../src";
+import { isValidTestCaseDir } from "./utils";
 
 function copyDiff(src: string, dest: string, initial: boolean) {
 	if (!fs.existsSync(dest)) fs.mkdirSync(dest);
 	const files = fs.readdirSync(src);
-	files.forEach(filename => {
+	files.filter(isValidTestCaseDir).forEach(filename => {
 		const srcFile = path.join(src, filename);
 		const destFile = path.join(dest, filename);
 		const directory = fs.statSync(srcFile).isDirectory();

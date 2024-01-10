@@ -3,6 +3,8 @@
   <img alt="Rspack Banner" src="https://lf3-static.bytednsdoc.com/obj/eden-cn/rjhwzy/ljhwZthlaukjlkulzlp/rspack-banner-1610.png">
 </picture>
 
+# ⚠️ DEPRECATED: use html-webpack-plugin instead
+
 # @rspack/plugin-html
 
 HTML plugin for rspack, Modified from [jantimon/html-webpack-plugin](https://github.com/jantimon/html-webpack-plugin).

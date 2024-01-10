@@ -196,3 +196,37 @@ jobs:
 
       - name: Run test
         run: cargo test --workspace -- --nocapture
+
+  run_benchmark:
+    runs-on: ubuntu-latest
+    if: github.ref_name == 'main'
+    steps:
+      - name: Run Benchmark
+        uses: convictional/trigger-workflow-and-wait@v1.6.1
+        with:
+          owner: ${{ github.repository_owner }}
+          repo: 'rspack-ecosystem-benchmark'
+          workflow_file_name: 'bench_rspack_commit.yml'
+          github_token: ${{ secrets.RSPACK_BOT_ACCESS_TOKEN }}
+          ref: 'main'
+          client_payload: '{"commit_sha":"${{ github.sha }}"}'
+
+
+  failure_notification:
+    name: Failure Notification
+    needs: [test-linux, test-windows, test-mac, rust_check, rust_test, run_benchmark]
+    if: ${{ failure() && !cancelled() && github.ref_name == 'main' && github.repository_owner == 'web-infra-dev' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      - shell: bash
+        run: ./scripts/alert/lark.js
+        env:
+          TITLE: CI failed on main branch
+          DESCRIPTION: |
+            commitID: [${{github.sha}}](${{github.server_url}}/${{github.repository}}/commit/${{github.sha}})
+          URL: ${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}}
+          LARK_WEBHOOK_URL: ${{secrets.LARK_WEBHOOK_URL}}

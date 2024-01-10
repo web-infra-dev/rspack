@@ -5,7 +5,7 @@
  __webpack_require__.r(__webpack_exports__);
  __webpack_require__.d(__webpack_exports__, {
 -  aaa: function() { return _app__WEBPACK_IMPORTED_MODULE_1__; },
-+  aaa: function() { return _app__WEBPACK_IMPORTED_MODULE_0__; },
++  aaa: function() { return /* reexport module object */ _app__WEBPACK_IMPORTED_MODULE_0__; },
    routes: function() { return routes; }
  });
 -/* harmony import */var _answer__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./answer */"./answer.js");
@@ -23,4 +23,4 @@
 +    answer: _answer__WEBPACK_IMPORTED_MODULE_1__.something
  };
  }),
- "./answer.js": (function (__unused_webpack_module, exports, __webpack_require__) {
+ "./answer.js": (function () {

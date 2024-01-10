@@ -1,7 +1,9 @@
 import {
 	__chunk_group_inner_get_chunk_group,
 	__chunk_inner_can_be_initial,
-	__chunk_inner_get_chunk_modules,
+	__chunk_inner_get_all_async_chunks,
+	__chunk_inner_get_all_initial_chunks,
+	__chunk_inner_get_all_referenced_chunks,
 	__chunk_inner_has_runtime,
 	__chunk_inner_is_only_initial,
 	type JsChunk,
@@ -72,7 +74,7 @@ export class Chunk {
 		);
 	}
 
-	get groupsIterable(): Set<ChunkGroup> {
+	get groupsIterable(): Iterable<ChunkGroup> {
 		const chunk_groups = this.#inner.__inner_groups.map(ukey => {
 			const cg = __chunk_group_inner_get_chunk_group(
 				ukey as number,
@@ -82,6 +84,33 @@ export class Chunk {
 		});
 		chunk_groups.sort(compareChunkGroupsByIndex);
 		return new Set(chunk_groups);
+	}
+
+	getAllAsyncChunks(): Iterable<Chunk> {
+		return new Set(
+			__chunk_inner_get_all_async_chunks(
+				this.#inner.__inner_ukey,
+				this.#inner_compilation
+			).map(c => Chunk.__from_binding(c, this.#inner_compilation))
+		);
+	}
+
+	getAllInitialChunks(): Iterable<Chunk> {
+		return new Set(
+			__chunk_inner_get_all_initial_chunks(
+				this.#inner.__inner_ukey,
+				this.#inner_compilation
+			).map(c => Chunk.__from_binding(c, this.#inner_compilation))
+		);
+	}
+
+	getAllReferencedChunks(): Iterable<Chunk> {
+		return new Set(
+			__chunk_inner_get_all_referenced_chunks(
+				this.#inner.__inner_ukey,
+				this.#inner_compilation
+			).map(c => Chunk.__from_binding(c, this.#inner_compilation))
+		);
 	}
 
 	__internal_inner_ukey() {

@@ -33,6 +33,7 @@ export interface RspackBuildCLIOptions extends RspackCLIOptions {
 	analyze?: boolean;
 	env?: Record<string, any>;
 	nodeEnv?: string;
+	"output-path"?: string;
 }
 
 export interface RspackPreviewCLIOptions extends RspackCLIOptions {

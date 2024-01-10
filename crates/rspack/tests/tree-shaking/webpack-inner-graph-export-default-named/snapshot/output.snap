@@ -52,8 +52,8 @@ class def {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  x: function() { return x; },
-  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
+  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; },
+  x: function() { return x; }
 });
  const x = "x";
 var __WEBPACK_DEFAULT_EXPORT__ = true;
@@ -71,8 +71,8 @@ var __WEBPACK_DEFAULT_EXPORT__ = false;
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  x: function() { return x; },
-  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
+  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; },
+  x: function() { return x; }
 });
  const x = "x";
 var __WEBPACK_DEFAULT_EXPORT__ = true;
@@ -81,8 +81,8 @@ var __WEBPACK_DEFAULT_EXPORT__ = true;
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  x: function() { return x; },
-  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
+  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; },
+  x: function() { return x; }
 });
  const x = "x";
 var __WEBPACK_DEFAULT_EXPORT__ = true;
@@ -100,8 +100,8 @@ var __WEBPACK_DEFAULT_EXPORT__ = false;
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  x: function() { return x; },
-  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
+  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; },
+  x: function() { return x; }
 });
  const x = "x";
 var __WEBPACK_DEFAULT_EXPORT__ = true;

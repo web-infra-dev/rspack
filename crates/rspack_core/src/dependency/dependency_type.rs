@@ -24,8 +24,14 @@ pub enum DependencyType {
   DynamicImportEager,
   // cjs require
   CjsRequire,
+  // cjs full require
+  CjsFullRequire,
   // cjs exports
   CjsExports,
+  // cjs export require
+  CjsExportRequire,
+  // cjs self reference
+  CjsSelfReference,
   // new URL("./foo", import.meta.url)
   NewUrl,
   // new Worker()
@@ -68,12 +74,18 @@ pub enum DependencyType {
   ContainerEntry,
   /// remote to external,
   RemoteToExternal,
+  /// fallback
+  RemoteToFallback,
+  /// fallback item
+  RemoteToFallbackItem,
   /// provide shared module
   ProvideSharedModule,
   /// provide module for shared
   ProvideModuleForShared,
   /// consume shared fallback
   ConsumeSharedFallback,
+  /// Webpack is included
+  WebpackIsIncluded,
   Custom(Box<str>), // TODO it will increase large layout size
 }
 
@@ -89,7 +101,10 @@ impl DependencyType {
       DependencyType::EsmImportSpecifier => Cow::Borrowed("esm import specifier"),
       DependencyType::DynamicImport => Cow::Borrowed("dynamic import"),
       DependencyType::CjsRequire => Cow::Borrowed("cjs require"),
+      DependencyType::CjsFullRequire => Cow::Borrowed("cjs full require"),
       DependencyType::CjsExports => Cow::Borrowed("cjs exports"),
+      DependencyType::CjsExportRequire => Cow::Borrowed("cjs export require"),
+      DependencyType::CjsSelfReference => Cow::Borrowed("cjs self exports reference"),
       DependencyType::NewUrl => Cow::Borrowed("new URL()"),
       DependencyType::NewWorker => Cow::Borrowed("new Worker()"),
       DependencyType::ImportMetaHotAccept => Cow::Borrowed("import.meta.webpackHot.accept"),
@@ -116,9 +131,12 @@ impl DependencyType {
       DependencyType::ContainerExposed => Cow::Borrowed("container exposed"),
       DependencyType::ContainerEntry => Cow::Borrowed("container entry"),
       DependencyType::RemoteToExternal => Cow::Borrowed("remote to external"),
+      DependencyType::RemoteToFallback => Cow::Borrowed("fallback"),
+      DependencyType::RemoteToFallbackItem => Cow::Borrowed("fallback item"),
       DependencyType::ProvideSharedModule => Cow::Borrowed("provide shared module"),
       DependencyType::ProvideModuleForShared => Cow::Borrowed("provide module for shared"),
       DependencyType::ConsumeSharedFallback => Cow::Borrowed("consume shared fallback"),
+      DependencyType::WebpackIsIncluded => Cow::Borrowed("__webpack_is_included__"),
     }
   }
 }

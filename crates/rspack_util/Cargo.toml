@@ -12,3 +12,5 @@ concat-string = { workspace = true }
 once_cell     = { workspace = true }
 regex         = { workspace = true }
 sugar_path    = { workspace = true }
+
+swc_core = { workspace = true, features = ["ecma_ast"] }

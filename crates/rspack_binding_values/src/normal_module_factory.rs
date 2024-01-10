@@ -1,5 +1,7 @@
 use napi_derive::napi;
-use rspack_core::{NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs, ResourceData};
+use rspack_core::{
+  NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs, NormalModuleCreateData, ResourceData,
+};
 
 #[napi(object)]
 pub struct JsResolveForSchemeInput {
@@ -27,6 +29,14 @@ pub struct AfterResolveData {
   pub context_dependencies: Vec<String>,
   pub missing_dependencies: Vec<String>,
   pub factory_meta: FactoryMeta,
+}
+
+#[napi(object)]
+pub struct CreateModuleData {
+  pub dependency_type: String,
+  pub resolve_data_request: String,
+  pub resource_resolve_data: JsResourceData,
+  pub context: String,
 }
 
 #[napi(object)]
@@ -66,6 +76,17 @@ impl From<ResourceData> for JsResolveForSchemeInput {
   }
 }
 
+impl From<&mut NormalModuleCreateData<'_>> for CreateModuleData {
+  fn from(value: &mut NormalModuleCreateData) -> Self {
+    Self {
+      context: value.context.to_string(),
+      dependency_type: value.dependency_type.to_string(),
+      resolve_data_request: value.resolve_data_request.into(),
+      resource_resolve_data: value.resource_resolve_data.clone().into(),
+    }
+  }
+}
+
 impl From<NormalModuleBeforeResolveArgs> for BeforeResolveData {
   fn from(value: NormalModuleBeforeResolveArgs) -> Self {
     Self {
@@ -75,8 +96,8 @@ impl From<NormalModuleBeforeResolveArgs> for BeforeResolveData {
   }
 }
 
-impl From<NormalModuleAfterResolveArgs<'_>> for AfterResolveData {
-  fn from(value: NormalModuleAfterResolveArgs) -> Self {
+impl From<&NormalModuleAfterResolveArgs<'_>> for AfterResolveData {
+  fn from(value: &NormalModuleAfterResolveArgs) -> Self {
     Self {
       context: value.context.to_owned(),
       request: value.request.to_string(),

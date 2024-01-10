@@ -14,6 +14,7 @@ export enum BuiltinPluginName {
 	EnableChunkLoadingPlugin = "EnableChunkLoadingPlugin",
 	EnableLibraryPlugin = "EnableLibraryPlugin",
 	EnableWasmLoadingPlugin = "EnableWasmLoadingPlugin",
+	ChunkPrefetchPreloadPlugin = "ChunkPrefetchPreloadPlugin",
 	CommonJsChunkFormatPlugin = "CommonJsChunkFormatPlugin",
 	ArrayPushCallbackChunkFormatPlugin = "ArrayPushCallbackChunkFormatPlugin",
 	ModuleChunkFormatPlugin = "ModuleChunkFormatPlugin",
@@ -24,46 +25,104 @@ export enum BuiltinPluginName {
 	SwcJsMinimizerRspackPlugin = "SwcJsMinimizerRspackPlugin",
 	SwcCssMinimizerRspackPlugin = "SwcCssMinimizerRspackPlugin",
 	LimitChunkCountPlugin = "LimitChunkCountPlugin",
+	WorkerPlugin = "WorkerPlugin",
 	WebWorkerTemplatePlugin = "WebWorkerTemplatePlugin",
 	MergeDuplicateChunksPlugin = "MergeDuplicateChunksPlugin",
 	SplitChunksPlugin = "SplitChunksPlugin",
 	OldSplitChunksPlugin = "OldSplitChunksPlugin",
+	ShareRuntimePlugin = "ShareRuntimePlugin",
 	ContainerPlugin = "ContainerPlugin",
 	ContainerReferencePlugin = "ContainerReferencePlugin",
-	ModuleFederationRuntimePlugin = "ModuleFederationRuntimePlugin",
 	ProvideSharedPlugin = "ProvideSharedPlugin",
-	ConsumeSharedPlugin = "ConsumeSharedPlugin"
+	ConsumeSharedPlugin = "ConsumeSharedPlugin",
+	NamedModuleIdsPlugin = "NamedModuleIdsPlugin",
+	DeterministicModuleIdsPlugin = "DeterministicModuleIdsPlugin",
+	NamedChunkIdsPlugin = "NamedChunkIdsPlugin",
+	DeterministicChunkIdsPlugin = "DeterministicChunkIdsPlugin",
+	RealContentHashPlugin = "RealContentHashPlugin",
+	RemoveEmptyChunksPlugin = "RemoveEmptyChunksPlugin",
+	EnsureChunkConditionsPlugin = "EnsureChunkConditionsPlugin",
+	WarnCaseSensitiveModulesPlugin = "WarnCaseSensitiveModulesPlugin",
+	DataUriPlugin = "DataUriPlugin",
+	FileUriPlugin = "FileUriPlugin",
+	RuntimePlugin = "RuntimePlugin",
+	JsonModulesPlugin = "JsonModulesPlugin",
+	InferAsyncModulesPlugin = "InferAsyncModulesPlugin",
+	JavascriptModulesPlugin = "JavascriptModulesPlugin",
+	AsyncWebAssemblyModulesPlugin = "AsyncWebAssemblyModulesPlugin",
+	AssetModulesPlugin = "AssetModulesPlugin",
+	SourceMapDevToolPlugin = "SourceMapDevToolPlugin",
+	EvalSourceMapDevToolPlugin = "EvalSourceMapDevToolPlugin",
+	SideEffectsFlagPlugin = "SideEffectsFlagPlugin",
+	FlagDependencyExportsPlugin = "FlagDependencyExportsPlugin",
+	FlagDependencyUsagePlugin = "FlagDependencyUsagePlugin",
+	MangleExportsPlugin = "MangleExportsPlugin"
+}
+
+type AffectedHooks = keyof Compiler["hooks"];
+
+export const HOOKS_CAN_NOT_INHERENT_FROM_PARENT = [
+	"make",
+	"compile",
+	"emit",
+	"afterEmit",
+	"invalid",
+	"done",
+	"thisCompilation"
+];
+
+export function canInherentFromParent(affectedHooks?: AffectedHooks): boolean {
+	if (typeof affectedHooks === "undefined") {
+		// this arm should be removed
+		return false;
+	} else {
+		return !HOOKS_CAN_NOT_INHERENT_FROM_PARENT.includes(affectedHooks);
+	}
 }
 
 export abstract class RspackBuiltinPlugin implements RspackPluginInstance {
 	abstract raw(compiler: Compiler): binding.BuiltinPlugin | null;
 	abstract name: BuiltinPluginName;
+
+	affectedHooks?: AffectedHooks;
 	apply(compiler: Compiler) {
 		let raw = this.raw(compiler);
-		if (raw) compiler.__internal__registerBuiltinPlugin(raw);
+		if (raw) {
+			raw.canInherentFromParent = canInherentFromParent(this.affectedHooks);
+			compiler.__internal__registerBuiltinPlugin(raw);
+		}
 	}
+}
+
+export function createBuiltinPlugin<R>(
+	name: BuiltinPluginName,
+	options: R
+): binding.BuiltinPlugin {
+	return {
+		name: name as any,
+		options: options ?? false // undefined or null will cause napi error, so false for fallback
+	};
 }
 
 export function create<T extends any[], R>(
 	name: BuiltinPluginName,
-	resolve: (...args: T) => R
+	resolve: (...args: T) => R,
+	// `affectedHooks` is used to inform `createChildCompile` about which builtin plugin can be reversed.
+	// However, this has a drawback as it doesn't represent the actual condition but merely serves as an indicator.
+	affectedHooks?: AffectedHooks
 ) {
 	class Plugin extends RspackBuiltinPlugin {
 		name = name;
 		_options: R;
+		affectedHooks = affectedHooks;
 
 		constructor(...args: T) {
 			super();
-			this._options =
-				resolve(...args) ??
-				(false as R) /* undefined or null will cause napi error, so false for fallback */;
+			this._options = resolve(...args);
 		}
 
 		raw(): binding.BuiltinPlugin {
-			return {
-				name: name as any,
-				options: this._options
-			};
+			return createBuiltinPlugin(name, this._options);
 		}
 	}
 

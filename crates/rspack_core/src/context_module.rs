@@ -10,7 +10,7 @@ use std::{
 use itertools::Itertools;
 use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
-use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::{impl_empty_diagnosable_trait, miette::IntoDiagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
 use rspack_regex::RspackRegex;
@@ -19,10 +19,10 @@ use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  contextify, get_exports_type_with_strict, stringify_map, to_path, AsyncDependenciesBlock,
-  AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
-  ChunkGraph, ChunkGroupOptions, CodeGenerationResult, Compilation, ContextElementDependency,
-  DependenciesBlock, DependencyCategory, DependencyId, DependencyType, ExportsType,
+  contextify, get_exports_type_with_strict, impl_build_info_meta, stringify_map, to_path,
+  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo,
+  BuildMeta, BuildResult, ChunkGraph, ChunkGroupOptions, CodeGenerationResult, Compilation,
+  ContextElementDependency, DependenciesBlock, DependencyCategory, DependencyId, ExportsType,
   FakeNamespaceObjectMode, GroupOptions, LibIdentOptions, Module, ModuleType, Resolve,
   ResolveInnerOptions, ResolveOptionsWithDependencyType, ResolverFactory, RuntimeGlobals,
   RuntimeSpec, SourceType,
@@ -65,16 +65,24 @@ impl ContextMode {
 
 impl From<&str> for ContextMode {
   fn from(value: &str) -> Self {
-    match value {
-      "sync" => ContextMode::Sync,
-      "eager" => ContextMode::Eager,
-      "weak" => ContextMode::Weak,
-      "lazy" => ContextMode::Lazy,
-      "lazy-once" => ContextMode::LazyOnce,
-      "async-weak" => ContextMode::AsyncWeak,
+    match try_convert_str_to_context_mode(value) {
+      Some(m) => m,
       // TODO should give warning
       _ => panic!("unknown context mode"),
     }
+  }
+}
+
+pub fn try_convert_str_to_context_mode(s: &str) -> Option<ContextMode> {
+  match s {
+    "sync" => Some(ContextMode::Sync),
+    "eager" => Some(ContextMode::Eager),
+    "weak" => Some(ContextMode::Weak),
+    "lazy" => Some(ContextMode::Lazy),
+    "lazy-once" => Some(ContextMode::LazyOnce),
+    "async-weak" => Some(ContextMode::AsyncWeak),
+    // TODO should give warning
+    _ => None,
   }
 }
 
@@ -183,6 +191,8 @@ pub struct ContextModule {
   identifier: Identifier,
   options: ContextModuleOptions,
   resolve_factory: Arc<ResolverFactory>,
+  build_info: Option<BuildInfo>,
+  build_meta: Option<BuildMeta>,
 }
 
 impl PartialEq for ContextModule {
@@ -201,6 +211,8 @@ impl ContextModule {
       identifier: create_identifier(&options),
       options,
       resolve_factory,
+      build_info: None,
+      build_meta: None,
     }
   }
 
@@ -358,18 +370,18 @@ impl ContextModule {
   }
 
   #[inline]
-  fn get_source_string(&self, compilation: &Compilation) -> Result<BoxSource> {
+  fn get_source_string(&self, compilation: &Compilation) -> BoxSource {
     match self.options.context_options.mode {
-      ContextMode::Lazy => Ok(self.get_lazy_source(compilation)),
+      ContextMode::Lazy => self.get_lazy_source(compilation),
       ContextMode::LazyOnce => {
         let block = self
           .get_blocks()
           .first()
-          .ok_or_else(|| internal_error!("LazyOnce ContextModule should have first block"))?;
+          .expect("LazyOnce ContextModule should have first block");
         let block = compilation
           .module_graph
           .block_by_id(block)
-          .ok_or_else(|| internal_error!("should have block"))?;
+          .expect("should have block");
         self.generate_source(block.get_dependencies(), compilation)
       }
       _ => self.generate_source(self.get_dependencies(), compilation),
@@ -428,11 +440,7 @@ impl ContextModule {
     source.boxed()
   }
 
-  fn generate_source(
-    &self,
-    dependencies: &[DependencyId],
-    compilation: &Compilation,
-  ) -> Result<BoxSource> {
+  fn generate_source(&self, dependencies: &[DependencyId], compilation: &Compilation) -> BoxSource {
     let map = self.get_user_request_map(dependencies, compilation);
     let fake_map = self.get_fake_map(dependencies, compilation);
     let mode = &self.options.context_options.mode;
@@ -520,7 +528,7 @@ impl ContextModule {
     source.add(RawSource::from(format!(
       "webpackContext.id = '{}';\n",
       serde_json::to_string(self.id(&compilation.chunk_graph))
-        .map_err(|e| internal_error!(e.to_string()))?
+        .unwrap_or_else(|e| panic!("{}", e.to_string()))
     )));
     source.add(RawSource::from(
       r#"
@@ -531,7 +539,7 @@ impl ContextModule {
       module.exports = webpackContext;
       "#,
     ));
-    Ok(source.boxed())
+    source.boxed()
   }
 }
 
@@ -555,6 +563,8 @@ impl DependenciesBlock for ContextModule {
 
 #[async_trait::async_trait]
 impl Module for ContextModule {
+  impl_build_info_meta!();
+
   fn module_type(&self) -> &ModuleType {
     &ModuleType::Js
   }
@@ -585,10 +595,7 @@ impl Module for ContextModule {
     Some(Cow::Owned(id))
   }
 
-  async fn build(
-    &mut self,
-    build_context: BuildContext<'_>,
-  ) -> Result<TWithDiagnosticArray<BuildResult>> {
+  async fn build(&mut self, build_context: BuildContext<'_>) -> Result<BuildResult> {
     self.resolve_dependencies(build_context)
   }
 
@@ -638,7 +645,7 @@ impl Module for ContextModule {
       let block = compilation
         .module_graph
         .block_by_id(block)
-        .ok_or_else(|| internal_error!("should have block in ContextModule code_generation"))?;
+        .expect("should have block in ContextModule code_generation");
       all_deps.extend(block.get_dependencies());
     }
     let fake_map = self.get_fake_map(all_deps.iter(), compilation);
@@ -647,7 +654,7 @@ impl Module for ContextModule {
         .runtime_requirements
         .insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
     }
-    code_generation_result.add(SourceType::JavaScript, self.get_source_string(compilation)?);
+    code_generation_result.add(SourceType::JavaScript, self.get_source_string(compilation));
     code_generation_result.set_hash(
       &compilation.options.output.hash_function,
       &compilation.options.output.hash_digest,
@@ -656,6 +663,8 @@ impl Module for ContextModule {
     Ok(code_generation_result)
   }
 }
+
+impl_empty_diagnosable_trait!(ContextModule);
 
 impl Identifiable for ContextModule {
   fn identifier(&self) -> Identifier {
@@ -688,8 +697,8 @@ impl ContextModule {
     if !dir.is_dir() {
       return Ok(());
     }
-    for entry in fs::read_dir(dir)? {
-      let path = entry?.path();
+    for entry in fs::read_dir(dir).into_diagnostic()? {
+      let path = entry.into_diagnostic()?.path();
       if path.is_dir() {
         if options.context_options.recursive {
           Self::visit_dirs(ctx, &path, dependencies, options, resolve_options)?;
@@ -749,16 +758,12 @@ impl ContextModule {
     Ok(())
   }
 
-  fn resolve_dependencies(
-    &self,
-    build_context: BuildContext<'_>,
-  ) -> Result<TWithDiagnosticArray<BuildResult>> {
+  fn resolve_dependencies(&self, build_context: BuildContext<'_>) -> Result<BuildResult> {
     tracing::trace!("resolving context module path {}", self.options.resource);
 
     let resolver = &self.resolve_factory.get(ResolveOptionsWithDependencyType {
       resolve_options: self.options.resolve_options.clone(),
       resolve_to_context: false,
-      dependency_type: DependencyType::ContextElement,
       dependency_category: self.options.context_options.category,
     });
 
@@ -784,7 +789,9 @@ impl ContextModule {
     {
       let name = self.options.context_options.chunk_name.clone();
       let mut block = AsyncDependenciesBlock::new(self.identifier, "", None);
-      block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions { name }));
+      block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions::new(
+        name, None, None,
+      )));
       for context_element_dependency in context_element_dependencies {
         block.add_dependency(Box::new(context_element_dependency));
       }
@@ -816,7 +823,9 @@ impl ContextModule {
           &context_element_dependency.user_request,
           None,
         );
-        block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions { name }));
+        block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions::new(
+          name, None, None,
+        )));
         block.add_dependency(Box::new(context_element_dependency));
         blocks.push(block);
       }
@@ -839,16 +848,13 @@ impl ContextModule {
       ..Default::default()
     };
 
-    Ok(
-      BuildResult {
-        build_info,
-        build_meta: BuildMeta::default(),
-        dependencies,
-        blocks,
-        analyze_result: Default::default(),
-      }
-      .with_diagnostic(vec![]),
-    )
+    Ok(BuildResult {
+      build_info,
+      build_meta: BuildMeta::default(),
+      dependencies,
+      blocks,
+      analyze_result: Default::default(),
+    })
   }
 }
 

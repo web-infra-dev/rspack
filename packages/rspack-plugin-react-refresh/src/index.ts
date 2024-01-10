@@ -42,17 +42,15 @@ class ReactRefreshRspackPlugin {
 		}).apply(compiler);
 
 		compiler.options.module.rules.unshift({
-			// @ts-expect-error
-			include: this.options.include,
-			// @ts-expect-error
+			include: this.options.include!,
 			exclude: {
-				or: [this.options.exclude, [...runtimePaths]].filter(Boolean)
+				or: [this.options.exclude!, [...runtimePaths]].filter(Boolean)
 			},
 			use: "builtin:react-refresh-loader"
 		});
 
 		const definedModules = {
-			// For Mutiple Instance Mode
+			// For Multiple Instance Mode
 			__react_refresh_library__: JSON.stringify(
 				compiler.webpack.Template.toIdentifier(
 					this.options.library ||

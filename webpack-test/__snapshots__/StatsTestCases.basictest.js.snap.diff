@@ -2543,6 +2543,7 @@
 -     100% code generated (7 generated, 0 from cache)
 - <t> record hash: X ms
 - <t> module assets: X ms
+- <t> create module assets: X ms
 - <t> create chunk assets: X ms
 - <t> process assets: X ms
 -

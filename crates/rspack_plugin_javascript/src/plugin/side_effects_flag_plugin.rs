@@ -284,6 +284,54 @@ pub fn is_pure_expression<'a>(
   }
 }
 
+pub fn is_pure_class_member<'a>(
+  member: &'a ClassMember,
+  unresolved_ctxt: SyntaxContext,
+  comments: Option<&'a SwcComments>,
+) -> bool {
+  let is_key_pure = match member.class_key() {
+    Some(PropName::Ident(_ident)) => true,
+    Some(PropName::Str(_)) => true,
+    Some(PropName::Num(_)) => true,
+    Some(PropName::Computed(computed)) => {
+      is_pure_expression(&computed.expr, unresolved_ctxt, comments)
+    }
+    Some(PropName::BigInt(_)) => true,
+    None => true,
+  };
+  if !is_key_pure {
+    return false;
+  }
+  let is_static = member.is_static();
+  let is_value_pure = match member {
+    ClassMember::Constructor(_) => true,
+    ClassMember::Method(_) => true,
+    ClassMember::PrivateMethod(_) => true,
+    ClassMember::ClassProp(prop) => {
+      if let Some(ref value) = prop.value {
+        is_pure_expression(value, unresolved_ctxt, comments)
+      } else {
+        true
+      }
+    }
+    ClassMember::PrivateProp(ref prop) => {
+      if let Some(ref value) = prop.value {
+        is_pure_expression(value, unresolved_ctxt, comments)
+      } else {
+        true
+      }
+    }
+    ClassMember::TsIndexSignature(_) => unreachable!(),
+    ClassMember::Empty(_) => true,
+    ClassMember::StaticBlock(_) => false,
+    ClassMember::AutoAccessor(_) => false,
+  };
+  if is_static && !is_value_pure {
+    return false;
+  }
+  true
+}
+
 pub fn is_pure_decl(
   stmt: &Decl,
   unresolved_ctxt: SyntaxContext,

@@ -136,4 +136,5 @@ pub struct FallbackCacheGroup {
   pub min_size: SplitChunkSizes,
   pub max_async_size: SplitChunkSizes,
   pub max_initial_size: SplitChunkSizes,
+  pub automatic_name_delimiter: String,
 }

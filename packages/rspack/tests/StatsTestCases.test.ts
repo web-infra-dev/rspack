@@ -3,18 +3,14 @@ import fs from "fs";
 import util from "util";
 import { rspack, RspackOptions } from "../src";
 import serializer from "jest-serializer-path";
+import { isValidTestCaseDir } from "./utils";
 
 expect.addSnapshotSerializer(serializer);
-
-const project_dir_reg = new RegExp(
-	path.join(__dirname, "..").replace(/\\/g, "\\\\"),
-	"g"
-);
 
 const base = path.resolve(__dirname, "statsCases");
 const tests = fs.readdirSync(base).filter(testName => {
 	return (
-		!testName.startsWith(".") &&
+		isValidTestCaseDir(testName) &&
 		(fs.existsSync(path.resolve(base, testName, "index.js")) ||
 			fs.existsSync(path.resolve(base, testName, "webpack.config.js")))
 	);
@@ -83,34 +79,24 @@ describe("StatsTestCases", () => {
 			} else if (statsJson.errors) {
 				expect(statsJson.errors.length === 0);
 			}
-			statsJson.errors?.forEach(error => {
-				error.formatted = error.formatted
-					?.replace(project_dir_reg, "<PROJECT_ROOT>")
-					?.replace(/\\/g, "/");
+
+			// Remove the "|" padding from miette,
+			// used to ensure no line breaks with padding being returned,
+			// which breaks local and CI checks.
+			const replace = (s: string) => s.replace(/\n[ ]+│ /, "");
+
+			statsJson.errors?.forEach(e => {
+				e.message = replace(e.message);
+				e.formatted = replace(e.formatted);
 			});
-			statsJson.warnings?.forEach(error => {
-				error.formatted = error.formatted
-					?.replace(project_dir_reg, "<PROJECT_ROOT>")
-					?.replace(/\\/g, "/");
+			statsJson.warnings?.forEach(e => {
+				e.message = replace(e.message);
+				e.formatted = replace(e.formatted);
 			});
-			statsJson.children?.forEach(child => {
-				child.errors?.forEach(error => {
-					error.formatted = error.formatted
-						?.replace(project_dir_reg, "<PROJECT_ROOT>")
-						?.replace(/\\/g, "/");
-				});
-				child.warnings?.forEach(error => {
-					error.formatted = error.formatted
-						?.replace(project_dir_reg, "<PROJECT_ROOT>")
-						?.replace(/\\/g, "/");
-				});
-			});
+
 			expect(statsJson).toMatchSnapshot();
 			let statsString = stats.toString(statsOptions);
-			statsString = statsString
-				.replace(project_dir_reg, "<PROJECT_ROOT>")
-				.replace(/\\/g, "/");
-			expect(statsString).toMatchSnapshot();
+			expect(replace(statsString)).toMatchSnapshot();
 		});
 	});
 });

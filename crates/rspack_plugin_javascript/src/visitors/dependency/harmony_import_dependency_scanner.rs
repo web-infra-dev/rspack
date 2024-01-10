@@ -1,4 +1,5 @@
 use indexmap::IndexMap;
+use rspack_core::DependencyLocation;
 use rspack_core::{
   extract_member_expression_chain, tree_shaking::symbol::DEFAULT_JS_WORD, BoxDependency,
   BoxDependencyTemplate, BuildInfo, ConstDependency, DependencyType, SpanExt,
@@ -17,6 +18,7 @@ use crate::dependency::{
   HarmonyExportImportedSpecifierDependency, HarmonyImportSideEffectDependency,
   HarmonyImportSpecifierDependency, Specifier,
 };
+use crate::no_visit_ignored_stmt;
 
 #[derive(Debug)]
 pub struct ImporterReferenceInfo {
@@ -47,14 +49,16 @@ pub type ImportMap = HashMap<Id, ImporterReferenceInfo>;
 #[derive(Debug)]
 pub struct ImporterInfo {
   pub span: Span,
+  pub source_span: Span,
   pub specifiers: Vec<Specifier>,
   pub exports_all: bool,
 }
 
 impl ImporterInfo {
-  pub fn new(span: Span, specifiers: Vec<Specifier>, exports_all: bool) -> Self {
+  pub fn new(span: Span, source_span: Span, specifiers: Vec<Specifier>, exports_all: bool) -> Self {
     Self {
       span,
+      source_span,
       specifiers,
       exports_all,
     }
@@ -70,7 +74,8 @@ pub struct HarmonyImportDependencyScanner<'a> {
   pub imports: Imports,
   pub build_info: &'a mut BuildInfo,
   pub rewrite_usage_span: &'a mut HashMap<Span, ExtraSpanInfo>,
-  last_harmony_import_order: i32,
+  pub last_harmony_import_order: i32,
+  pub ignored: &'a mut Vec<DependencyLocation>,
 }
 
 impl<'a> HarmonyImportDependencyScanner<'a> {
@@ -80,6 +85,7 @@ impl<'a> HarmonyImportDependencyScanner<'a> {
     import_map: &'a mut ImportMap,
     build_info: &'a mut BuildInfo,
     rewrite_usage_span: &'a mut HashMap<Span, ExtraSpanInfo>,
+    ignored: &'a mut Vec<DependencyLocation>,
   ) -> Self {
     Self {
       dependencies,
@@ -89,12 +95,14 @@ impl<'a> HarmonyImportDependencyScanner<'a> {
       build_info,
       rewrite_usage_span,
       last_harmony_import_order: 0,
+      ignored,
     }
   }
 }
 
 impl Visit for HarmonyImportDependencyScanner<'_> {
   noop_visit_type!();
+  no_visit_ignored_stmt!();
 
   fn visit_program(&mut self, program: &Program) {
     // collect import map info
@@ -168,6 +176,7 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
         request.clone(),
         source_order,
         Some(importer_info.span.into()),
+        Some(importer_info.source_span.into()),
         importer_info.specifiers,
         dependency_type,
         importer_info.exports_all,
@@ -248,9 +257,10 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
     if let Some(importer_info) = self.imports.get_mut(&key) {
       importer_info.specifiers.extend(specifiers);
     } else {
-      self
-        .imports
-        .insert(key, ImporterInfo::new(import_decl.span, specifiers, false));
+      self.imports.insert(
+        key,
+        ImporterInfo::new(import_decl.span, import_decl.src.span, specifiers, false),
+      );
     }
     self
       .presentational_dependencies
@@ -300,9 +310,10 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
       if let Some(importer_info) = self.imports.get_mut(&key) {
         importer_info.specifiers.extend(specifiers);
       } else {
-        self
-          .imports
-          .insert(key, ImporterInfo::new(named_export.span, specifiers, false));
+        self.imports.insert(
+          key,
+          ImporterInfo::new(named_export.span, src.span, specifiers, false),
+        );
       }
       self
         .presentational_dependencies
@@ -326,9 +337,10 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
     if let Some(importer_info) = self.imports.get_mut(&key) {
       importer_info.exports_all = true;
     } else {
-      self
-        .imports
-        .insert(key, ImporterInfo::new(export_all.span, vec![], true));
+      self.imports.insert(
+        key,
+        ImporterInfo::new(export_all.span, export_all.src.span, vec![], true),
+      );
     }
 
     self
@@ -510,7 +522,6 @@ impl Visit for HarmonyImportRefDependencyScanner<'_> {
             .map(|item| item.0.clone())
             .collect::<Vec<_>>(),
         );
-        // dbg!(&ids);
         self
           .rewrite_usage_span
           .insert(member_expr.span, ExtraSpanInfo::ReWriteUsedByExports);
@@ -596,17 +607,20 @@ mod test {
       harmony_named_exports: Default::default(),
       all_star_exports: Default::default(),
       need_create_require: false,
+      json_data: None,
     };
     let mut import_map = Default::default();
     let mut deps = vec![];
     let mut presentation_deps = vec![];
     let mut rewrite_usage_span = Default::default();
+    let mut ignored = vec![];
     let mut scanner = HarmonyImportDependencyScanner::new(
       &mut deps,
       &mut presentation_deps,
       &mut import_map,
       &mut build_info,
       &mut rewrite_usage_span,
+      &mut ignored,
     );
 
     program.visit_with(&mut scanner);

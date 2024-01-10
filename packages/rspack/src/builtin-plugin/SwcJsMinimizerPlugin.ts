@@ -1,8 +1,22 @@
-import { RawSwcJsMinimizerRspackPluginOptions } from "@rspack/binding";
+import {
+	RawExtractComments,
+	RawSwcJsMinimizerRspackPluginOptions
+} from "@rspack/binding";
 import { BuiltinPluginName, create } from "./base";
 
 type MinifyCondition = string | RegExp;
 type MinifyConditions = MinifyCondition | MinifyCondition[];
+
+type ExtractCommentsCondition = boolean | RegExp;
+type ExtractCommentsBanner = string | boolean;
+// type ExtractFilename = string;
+type ExtractCommentsObject = {
+	condition?: ExtractCommentsCondition | undefined;
+	banner?: ExtractCommentsBanner | undefined;
+	// filename?: ExtractFilename | undefined
+};
+type ExtractCommentsOptions = ExtractCommentsCondition | ExtractCommentsObject;
+
 export type SwcJsMinimizerRspackPluginOptions = {
 	/**
 	 * @deprecated Deprecated, move to `compress.passes`
@@ -32,7 +46,7 @@ export type SwcJsMinimizerRspackPluginOptions = {
 	 * @deprecated Deprecated, move to `format.ascii_only`
 	 */
 	asciiOnly?: boolean;
-	extractComments?: boolean | RegExp;
+	extractComments?: ExtractCommentsOptions | undefined;
 	compress?: TerserCompressOptions | boolean;
 	mangle?: TerserMangleOptions | boolean;
 	format?: JsFormatOptions & ToSnakeCaseProperties<JsFormatOptions>;
@@ -313,15 +327,62 @@ function getRawFormatOptions(options?: SwcJsMinimizerRspackPluginOptions) {
 	return JSON.stringify(_inner());
 }
 
+function isObject(value: any): value is Object {
+	const type = typeof value;
+
+	return value != null && (type === "object" || type === "function");
+}
+
+function getRawExtractCommentsOptions(
+	extractComments?: ExtractCommentsOptions
+): RawExtractComments | undefined {
+	const conditionStr = (condition?: ExtractCommentsCondition): string => {
+		if (typeof condition === "undefined" || condition === true) {
+			// copied from terser-webpack-plugin
+			return "@preserve|@lic|@cc_on|^\\**!";
+		} else if (condition === false) {
+			throw Error("unreachable");
+		} else {
+			// FIXME: flags
+			return condition.source;
+		}
+	};
+	if (typeof extractComments === "boolean") {
+		if (!extractComments) {
+			return undefined;
+		} else {
+			const res = {
+				condition: conditionStr(extractComments)
+			};
+			return res;
+		}
+	} else if (extractComments instanceof RegExp) {
+		const res = {
+			condition: extractComments.source
+		};
+		return res;
+	} else if (isObject(extractComments)) {
+		if (extractComments.condition === false) {
+			return undefined;
+		} else {
+			const res = {
+				condition: conditionStr(extractComments.condition),
+				banner: extractComments.banner
+			};
+			return res;
+		}
+	} else {
+		return undefined;
+	}
+}
+
 export const SwcJsMinimizerRspackPlugin = create(
 	BuiltinPluginName.SwcJsMinimizerRspackPlugin,
 	(
 		options?: SwcJsMinimizerRspackPluginOptions
 	): RawSwcJsMinimizerRspackPluginOptions => {
 		return {
-			extractComments: options?.extractComments
-				? String(options.extractComments)
-				: undefined,
+			extractComments: getRawExtractCommentsOptions(options?.extractComments),
 			compress: getRawCompressOptions(options),
 			mangle: getRawMangleOptions(options),
 			format: getRawFormatOptions(options),
@@ -330,5 +391,6 @@ export const SwcJsMinimizerRspackPlugin = create(
 			include: options?.include,
 			exclude: options?.exclude
 		};
-	}
+	},
+	"compilation"
 );

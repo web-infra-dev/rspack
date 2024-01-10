@@ -21,13 +21,7 @@ impl JsChunkGroup {
       chunks: cg
         .chunks
         .iter()
-        .map(|k| {
-          JsChunk::from(
-            compilation.chunk_by_ukey.get(k).unwrap_or_else(|| {
-              panic!("Could not find Chunk({k:?}) belong to ChunkGroup: {cg:?}",)
-            }),
-          )
-        })
+        .map(|k| JsChunk::from(compilation.chunk_by_ukey.expect_get(k)))
         .collect(),
       index: cg.index,
       inner_parents: cg
@@ -42,10 +36,7 @@ impl JsChunkGroup {
 
 fn chunk_group(ukey: u32, compilation: &Compilation) -> &ChunkGroup {
   let ukey = ChunkGroupUkey::from(ukey as usize);
-  compilation
-    .chunk_group_by_ukey
-    .get(&ukey)
-    .expect("chunk group should exists")
+  compilation.chunk_group_by_ukey.expect_get(&ukey)
 }
 
 #[napi(js_name = "__chunk_group_inner_get_chunk_group")]

@@ -1,18 +1,14 @@
 use either::Either;
 use itertools::Itertools;
-use rspack_error::{
-  emitter::{
-    DiagnosticDisplay, DiagnosticDisplayer, StdioDiagnosticDisplay, StringDiagnosticDisplay,
-  },
-  Result,
-};
+use rspack_error::emitter::{DiagnosticDisplay, DiagnosticDisplayer};
+use rspack_error::emitter::{StdioDiagnosticDisplay, StringDiagnosticDisplay};
+use rspack_error::Result;
 use rspack_sources::Source;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
-use crate::{
-  BoxModule, BoxRuntimeModule, Chunk, ChunkGroupUkey, Compilation, LogType, ModuleIdentifier,
-  ModuleType, SourceType,
-};
+use crate::{get_chunk_from_ukey, get_chunk_group_from_ukey};
+use crate::{BoxModule, BoxRuntimeModule, Chunk};
+use crate::{ChunkGroupUkey, Compilation, LogType, ModuleIdentifier, ModuleType, SourceType};
 
 #[derive(Debug, Clone)]
 pub struct Stats<'compilation> {
@@ -231,29 +227,15 @@ impl Stats<'_> {
   }
 
   fn get_chunk_group(&self, name: &str, ukey: &ChunkGroupUkey) -> StatsChunkGroup {
-    let cg = self
-      .compilation
-      .chunk_group_by_ukey
-      .get(ukey)
-      .expect("compilation.chunk_group_by_ukey should have ukey from entrypoint");
+    let cg = self.compilation.chunk_group_by_ukey.expect_get(ukey);
     let chunks: Vec<Option<String>> = cg
       .chunks
       .iter()
-      .map(|c| {
-        self
-          .compilation
-          .chunk_by_ukey
-          .get(c)
-          .expect("compilation.chunk_by_ukey should have ukey from chunk_group")
-      })
+      .map(|c| self.compilation.chunk_by_ukey.expect_get(c))
       .map(|c| c.id.clone())
       .collect();
     let assets = cg.chunks.iter().fold(Vec::new(), |mut acc, c| {
-      let chunk = self
-        .compilation
-        .chunk_by_ukey
-        .get(c)
-        .expect("compilation.chunk_by_ukey should have ukey from chunk_group");
+      let chunk = self.compilation.chunk_by_ukey.expect_get(c);
       for file in &chunk.files {
         acc.push(StatsChunkGroupAsset {
           name: file.clone(),
@@ -300,11 +282,30 @@ impl Stats<'_> {
     let mut diagnostic_displayer = DiagnosticDisplayer::new(self.compilation.options.stats.colors);
     self
       .compilation
-      .get_errors()
-      .map(|d| StatsError {
-        title: d.title.clone(),
-        message: d.message.clone(),
-        formatted: diagnostic_displayer.emit_diagnostic(d).expect("TODO:"),
+      .get_errors_sorted()
+      .map(|d| {
+        let module_identifier = d.module_identifier();
+        let (module_name, module_id) = module_identifier
+          .and_then(|identifier| {
+            let module = self
+              .compilation
+              .module_graph
+              .module_by_identifier(&identifier)?;
+            Some(get_stats_module_name_and_id(module, self.compilation))
+          })
+          .unzip();
+
+        StatsError {
+          message: diagnostic_displayer
+            .emit_diagnostic(d)
+            .expect("should print diagnostics"),
+          formatted: diagnostic_displayer
+            .emit_diagnostic(d)
+            .expect("should print diagnostics"),
+          module_identifier: module_identifier.map(|i| i.to_string()),
+          module_name,
+          module_id: module_id.flatten(),
+        }
       })
       .collect()
   }
@@ -313,10 +314,30 @@ impl Stats<'_> {
     let mut diagnostic_displayer = DiagnosticDisplayer::new(self.compilation.options.stats.colors);
     self
       .compilation
-      .get_warnings()
-      .map(|d| StatsWarning {
-        message: d.message.clone(),
-        formatted: diagnostic_displayer.emit_diagnostic(d).expect("TODO:"),
+      .get_warnings_sorted()
+      .map(|d| {
+        let module_identifier = d.module_identifier();
+        let (module_name, module_id) = module_identifier
+          .and_then(|identifier| {
+            let module = self
+              .compilation
+              .module_graph
+              .module_by_identifier(&identifier)?;
+            Some(get_stats_module_name_and_id(module, self.compilation))
+          })
+          .unzip();
+
+        StatsWarning {
+          message: diagnostic_displayer
+            .emit_diagnostic(d)
+            .expect("should print diagnostics"),
+          formatted: diagnostic_displayer
+            .emit_diagnostic(d)
+            .expect("should print diagnostics"),
+          module_identifier: module_identifier.map(|i| i.to_string()),
+          module_name,
+          module_id: module_id.flatten(),
+        }
       })
       .collect()
   }
@@ -430,21 +451,13 @@ impl Stats<'_> {
       .get_chunk_graph_module(mgm.module_identifier)
       .chunks
       .iter()
-      .map(|k| {
-        self
-          .compilation
-          .chunk_by_ukey
-          .get(k)
-          .unwrap_or_else(|| panic!("Could not find chunk by ukey: {k:?}"))
-          .id
-          .clone()
-      })
+      .map(|k| self.compilation.chunk_by_ukey.expect_get(k).id.clone())
       .collect();
     chunks.sort_unstable();
 
     let assets = module_assets.then(|| {
-      let mut assets: Vec<_> = mgm
-        .build_info
+      let mut assets: Vec<_> = module
+        .build_info()
         .as_ref()
         .map(|info| info.asset_filenames.iter().map(|i| i.to_string()).collect())
         .unwrap_or_default();
@@ -492,6 +505,11 @@ impl Stats<'_> {
       modules,
       source: source.then(|| module.original_source()).flatten(),
       profile,
+      orphan: self
+        .compilation
+        .chunk_graph
+        .get_number_of_module_chunks(identifier)
+        == 0,
     })
   }
 
@@ -508,15 +526,7 @@ impl Stats<'_> {
       .get_chunk_graph_module(*identifier)
       .chunks
       .iter()
-      .map(|k| {
-        self
-          .compilation
-          .chunk_by_ukey
-          .get(k)
-          .unwrap_or_else(|| panic!("Could not find chunk by ukey: {k:?}"))
-          .id
-          .clone()
-      })
+      .map(|k| self.compilation.chunk_by_ukey.expect_get(k).id.clone())
       .collect();
     chunks.sort_unstable();
 
@@ -538,6 +548,11 @@ impl Stats<'_> {
       modules: None,
       source: None,
       profile: None,
+      orphan: self
+        .compilation
+        .chunk_graph
+        .get_number_of_module_chunks(*identifier)
+        == 0,
     })
   }
   fn get_chunk_relations(&self, chunk: &Chunk) -> (Vec<String>, Vec<String>, Vec<String>) {
@@ -545,11 +560,11 @@ impl Stats<'_> {
     let mut children = HashSet::default();
     let mut siblings = HashSet::default();
     for cg in &chunk.groups {
-      if let Some(cg) = self.compilation.chunk_group_by_ukey.get(cg) {
+      if let Some(cg) = get_chunk_group_from_ukey(cg, &self.compilation.chunk_group_by_ukey) {
         for p in &cg.parents {
-          if let Some(pg) = self.compilation.chunk_group_by_ukey.get(p) {
+          if let Some(pg) = get_chunk_group_from_ukey(p, &self.compilation.chunk_group_by_ukey) {
             for c in &pg.chunks {
-              if let Some(c) = self.compilation.chunk_by_ukey.get(c)
+              if let Some(c) = get_chunk_from_ukey(c, &self.compilation.chunk_by_ukey)
                 && let Some(id) = &c.id
               {
                 parents.insert(id.to_string());
@@ -558,11 +573,11 @@ impl Stats<'_> {
           }
         }
       }
-      if let Some(cg) = self.compilation.chunk_group_by_ukey.get(cg) {
+      if let Some(cg) = get_chunk_group_from_ukey(cg, &self.compilation.chunk_group_by_ukey) {
         for p in &cg.children {
-          if let Some(pg) = self.compilation.chunk_group_by_ukey.get(p) {
+          if let Some(pg) = get_chunk_group_from_ukey(p, &self.compilation.chunk_group_by_ukey) {
             for c in &pg.chunks {
-              if let Some(c) = self.compilation.chunk_by_ukey.get(c)
+              if let Some(c) = get_chunk_from_ukey(c, &self.compilation.chunk_by_ukey)
                 && let Some(id) = &c.id
               {
                 children.insert(id.to_string());
@@ -571,9 +586,9 @@ impl Stats<'_> {
           }
         }
       }
-      if let Some(cg) = self.compilation.chunk_group_by_ukey.get(cg) {
+      if let Some(cg) = get_chunk_group_from_ukey(cg, &self.compilation.chunk_group_by_ukey) {
         for c in &cg.chunks {
-          if let Some(c) = self.compilation.chunk_by_ukey.get(c)
+          if let Some(c) = get_chunk_from_ukey(c, &self.compilation.chunk_by_ukey)
             && c.id != chunk.id
             && let Some(id) = &c.id
           {
@@ -606,13 +621,18 @@ fn get_stats_module_name_and_id(
 pub struct StatsError {
   pub message: String,
   pub formatted: String,
-  pub title: String,
+  pub module_identifier: Option<String>,
+  pub module_name: Option<String>,
+  pub module_id: Option<String>,
 }
 
 #[derive(Debug)]
 pub struct StatsWarning {
   pub message: String,
   pub formatted: String,
+  pub module_identifier: Option<String>,
+  pub module_name: Option<String>,
+  pub module_id: Option<String>,
 }
 
 #[derive(Debug)]
@@ -658,6 +678,7 @@ pub struct StatsModule<'a> {
   pub modules: Option<Vec<StatsModule<'a>>>,
   pub source: Option<&'a dyn Source>,
   pub profile: Option<StatsModuleProfile>,
+  pub orphan: bool,
 }
 
 #[derive(Debug)]

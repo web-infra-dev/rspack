@@ -1,17 +1,19 @@
-mod basic_evaluated_expression;
+mod r#const;
+pub mod eval;
 mod get_prop_from_obj;
+pub mod mangle_exports;
 
 use std::path::Path;
 
 use rspack_core::{ErrorSpan, ModuleType};
-use rspack_error::{DiagnosticKind, Error};
-use swc_core::common::{SourceFile, Spanned};
-use swc_core::ecma::atoms::JsWord;
+use rspack_error::{DiagnosticKind, TraceableError};
+use rustc_hash::FxHashSet as HashSet;
+use swc_core::common::{SourceFile, Span, Spanned};
 use swc_core::ecma::parser::Syntax;
 use swc_core::ecma::parser::{EsConfig, TsConfig};
 
-pub use self::basic_evaluated_expression::{evaluate_expression, BasicEvaluatedExpression};
 pub use self::get_prop_from_obj::*;
+pub use self::r#const::*;
 
 fn syntax_by_ext(
   filename: &Path,
@@ -53,7 +55,7 @@ pub fn syntax_by_module_type(
 ) -> Syntax {
   let js_syntax = Syntax::Es(EsConfig {
     jsx: should_transform_by_default && matches!(module_type, ModuleType::Jsx),
-    export_default_from: true,
+    export_default_from: false,
     decorators_before_export: true,
     // If `disableTransformByDefault` is on, then we treat everything passed in as a web standard stuff,
     // which means everything that is not a web standard would results in a parsing error.
@@ -87,11 +89,48 @@ pub fn syntax_by_module_type(
   js_syntax
 }
 
-pub fn ecma_parse_error_to_rspack_error(
-  error: swc_core::ecma::parser::error::Error,
+#[derive(PartialEq, Eq, Hash)]
+pub struct EcmaError(String, Span);
+pub struct EcmaErrorsDeduped(Vec<EcmaError>);
+
+impl IntoIterator for EcmaErrorsDeduped {
+  type Item = EcmaError;
+  type IntoIter = std::vec::IntoIter<Self::Item>;
+  fn into_iter(self) -> Self::IntoIter {
+    self.0.into_iter()
+  }
+}
+
+impl From<Vec<swc_core::ecma::parser::error::Error>> for EcmaErrorsDeduped {
+  fn from(value: Vec<swc_core::ecma::parser::error::Error>) -> Self {
+    Self(
+      value
+        .into_iter()
+        .map(|v| EcmaError(v.kind().msg().to_string(), v.span()))
+        .collect::<HashSet<_>>()
+        .into_iter()
+        .collect::<Vec<_>>(),
+    )
+  }
+}
+
+/// Dedup ecma errors against [swc_core::ecma::parser::error::Error]
+/// Returns a wrapper of an iterator that contains deduped errors.
+impl DedupEcmaErrors for Vec<swc_core::ecma::parser::error::Error> {
+  fn dedup_ecma_errors(self) -> EcmaErrorsDeduped {
+    EcmaErrorsDeduped::from(self)
+  }
+}
+
+pub trait DedupEcmaErrors {
+  fn dedup_ecma_errors(self) -> EcmaErrorsDeduped;
+}
+
+pub fn ecma_parse_error_deduped_to_rspack_error(
+  EcmaError(message, span): EcmaError,
   fm: &SourceFile,
   module_type: &ModuleType,
-) -> Error {
+) -> TraceableError {
   let (file_type, diagnostic_kind) = match module_type {
     ModuleType::Js | ModuleType::JsDynamic | ModuleType::JsEsm => {
       ("JavaScript", DiagnosticKind::JavaScript)
@@ -101,29 +140,15 @@ pub fn ecma_parse_error_to_rspack_error(
     ModuleType::Ts => ("Typescript", DiagnosticKind::Typescript),
     _ => unreachable!(),
   };
-  let message = error.kind().msg().to_string();
-  let span: ErrorSpan = error.span().into();
-  let traceable_error = rspack_error::TraceableError::from_source_file(
+  let span: ErrorSpan = span.into();
+  rspack_error::TraceableError::from_source_file(
     fm,
     span.start as usize,
     span.end as usize,
     format!("{file_type} parsing error"),
     message,
   )
-  .with_kind(diagnostic_kind);
-  Error::TraceableError(traceable_error)
-}
-
-pub fn join_jsword(arr: &[JsWord], separator: &str) -> String {
-  let mut ret = String::new();
-  if let Some(item) = arr.first() {
-    ret.push_str(item);
-  }
-  for item in arr.iter().skip(1) {
-    ret.push_str(separator);
-    ret.push_str(item);
-  }
-  ret
+  .with_kind(diagnostic_kind)
 }
 
 pub fn is_diff_mode() -> bool {

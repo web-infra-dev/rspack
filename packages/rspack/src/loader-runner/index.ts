@@ -33,10 +33,16 @@ import {
 	toObject,
 	stringifyLoaderObject
 } from "../util";
-import { absolutify, contextify, makePathsRelative } from "../util/identifier";
+import {
+	absolutify,
+	contextify,
+	makePathsRelative,
+	parseResourceWithoutFragment
+} from "../util/identifier";
 import { memoize } from "../util/memoize";
 import { createHash } from "../util/createHash";
 import loadLoader = require("./loadLoader");
+const querystring = require("node:querystring");
 
 const PATH_QUERY_FRAGMENT_REGEXP =
 	/^((?:\0.|[^?#\0])*)(\?(?:\0.|[^#\0])*)?(#.*)?$/;
@@ -166,7 +172,7 @@ export async function runLoaders(
 	const assetFilenames = rawContext.assetFilenames.slice();
 
 	const loaders = rawContext.currentLoader.split("$").map(loader => {
-		const splittedRequest = parsePathQueryFragment(loader);
+		const splittedRequest = parseResourceWithoutFragment(loader);
 		const obj: any = {};
 		obj.loader = obj.path = splittedRequest.path;
 		obj.query = splittedRequest.query;
@@ -523,7 +529,6 @@ export async function runLoaders(
 					throw new Error(`Cannot parse string options: ${e.message}`);
 				}
 			} else {
-				const querystring = require("fast-querystring");
 				options = querystring.parse(options);
 			}
 		}

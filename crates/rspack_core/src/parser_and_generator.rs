@@ -1,24 +1,28 @@
 use std::{collections::HashMap, fmt::Debug};
 
+use derivative::Derivative;
 use rkyv::AlignedVec;
 use rspack_error::{Result, TWithDiagnosticArray};
 use rspack_loader_runner::{AdditionalData, ResourceData};
 use rspack_sources::BoxSource;
 
 use crate::{
-  tree_shaking::visitor::OptimizeAnalyzeResult, AsyncDependenciesBlock, BoxDependency,
+  tree_shaking::visitor::OptimizeAnalyzeResult, AsyncDependenciesBlock, BoxDependency, BoxLoader,
   BuildExtraDataType, BuildInfo, BuildMeta, CodeGenerationData, Compilation, CompilerOptions,
   DependencyTemplate, GeneratorOptions, Module, ModuleDependency, ModuleIdentifier, ModuleType,
   ParserOptions, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
-#[derive(Debug)]
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub struct ParseContext<'a> {
   pub source: BoxSource,
   pub module_identifier: ModuleIdentifier,
   pub module_type: &'a ModuleType,
   pub module_user_request: &'a str,
   pub module_parser_options: Option<&'a ParserOptions>,
+  #[derivative(Debug = "ignore")]
+  pub loaders: &'a [BoxLoader],
   pub resource_data: &'a ResourceData,
   pub compiler_options: &'a CompilerOptions,
   pub additional_data: AdditionalData,

@@ -1,16 +1,57 @@
+use indexmap::{IndexMap, IndexSet};
+use itertools::Itertools;
+use once_cell::sync::Lazy;
+use regex::{Captures, Regex};
 use rspack_core::{
-  get_js_chunk_filename_template, Chunk, ChunkLoading, ChunkUkey, Compilation, PathData, SourceType,
+  get_chunk_from_ukey, get_js_chunk_filename_template, stringify_map, Chunk, ChunkKind,
+  ChunkLoading, ChunkUkey, Compilation, PathData, SourceType,
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
-pub fn render_condition_map(map: &HashMap<String, bool>) -> String {
+pub enum BooleanMatcher {
+  Condition(bool),
+  Matcher(String),
+}
+
+impl std::fmt::Display for BooleanMatcher {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    match self {
+      Self::Condition(c) => write!(f, "{}", c),
+      Self::Matcher(m) => write!(f, "{}", m),
+    }
+  }
+}
+
+static QUOTE_META_REG: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"[-\[\]\\/{}()*+?.^$|]").expect("regexp init failed"));
+
+fn quote_meta(str: &str) -> String {
+  QUOTE_META_REG
+    .replace_all(str, |caps: &Captures| format!("\\{}", &caps[0]))
+    .to_string()
+}
+
+fn render_condition_items_to_regex(items: Vec<&String>) -> String {
+  // TODO: align regex optimization with webpack
+  let conditional = items.iter().map(|i| quote_meta(i)).collect_vec();
+  if conditional.len() == 1 {
+    conditional
+      .first()
+      .expect("Should have one conditional")
+      .to_string()
+  } else {
+    format!(r#"({})"#, conditional.join("|"))
+  }
+}
+
+pub fn render_condition_map(map: &HashMap<String, bool>, value: &str) -> BooleanMatcher {
   let mut positive_items = map
     .iter()
     .filter(|(_, v)| **v)
     .map(|(k, _)| k)
     .collect::<Vec<_>>();
   if positive_items.is_empty() {
-    return false.to_string();
+    return BooleanMatcher::Condition(false);
   }
   let negative_items = map
     .iter()
@@ -18,18 +59,44 @@ pub fn render_condition_map(map: &HashMap<String, bool>) -> String {
     .map(|(k, _)| k)
     .collect::<Vec<_>>();
   if negative_items.is_empty() {
-    return true.to_string();
+    return BooleanMatcher::Condition(true);
   }
 
   positive_items.sort_unstable();
-  format!(
-    "[{}].indexOf(chunkId) > - 1",
-    positive_items
-      .iter()
-      .map(|s| format!("'{s}'"))
-      .collect::<Vec<_>>()
-      .join(",")
-  )
+
+  if positive_items.len() == 1 {
+    if let Some(first_item) = positive_items.first() {
+      return BooleanMatcher::Matcher(format!(
+        "{} == {}",
+        serde_json::to_string(first_item).expect("Invalid json to_string"),
+        value
+      ));
+    }
+  }
+
+  if negative_items.len() == 1 {
+    if let Some(first_item) = negative_items.first() {
+      return BooleanMatcher::Matcher(format!(
+        "{} != {}",
+        serde_json::to_string(first_item).expect("Invalid json to_string"),
+        value
+      ));
+    }
+  }
+
+  if positive_items.len() <= negative_items.len() {
+    BooleanMatcher::Matcher(format!(
+      r#"/^{}$/.test({})"#,
+      render_condition_items_to_regex(positive_items),
+      value
+    ))
+  } else {
+    BooleanMatcher::Matcher(format!(
+      r#"!/^{}$/.test({})"#,
+      render_condition_items_to_regex(negative_items),
+      value
+    ))
+  }
 }
 
 pub fn get_initial_chunk_ids(
@@ -38,17 +105,14 @@ pub fn get_initial_chunk_ids(
   filter_fn: impl Fn(&ChunkUkey, &Compilation) -> bool,
 ) -> HashSet<String> {
   match chunk {
-    Some(chunk_ukey) => match compilation.chunk_by_ukey.get(&chunk_ukey) {
+    Some(chunk_ukey) => match get_chunk_from_ukey(&chunk_ukey, &compilation.chunk_by_ukey) {
       Some(chunk) => {
         let mut js_chunks = chunk
           .get_all_initial_chunks(&compilation.chunk_group_by_ukey)
           .iter()
           .filter(|key| !(chunk_ukey.eq(key) || filter_fn(key, compilation)))
           .map(|chunk_ukey| {
-            let chunk = compilation
-              .chunk_by_ukey
-              .get(chunk_ukey)
-              .expect("Chunk not found");
+            let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
             chunk.expect_id().to_string()
           })
           .collect::<HashSet<_>>();
@@ -68,7 +132,12 @@ pub fn stringify_chunks(chunks: &HashSet<String>, value: u8) -> String {
   format!(
     r#"{{{}}}"#,
     v.iter().fold(String::new(), |prev, cur| {
-      prev + format!(r#""{cur}": {value},"#).as_str()
+      prev
+        + format!(
+          r#"{}: {value},"#,
+          serde_json::to_string(cur).expect("chunk to_string failed")
+        )
+        .as_str()
     })
   )
 }
@@ -164,13 +233,114 @@ pub fn is_enabled_for_chunk(
   expected: &ChunkLoading,
   compilation: &Compilation,
 ) -> bool {
-  let chunk_loading = compilation
-    .chunk_by_ukey
-    .get(chunk_ukey)
+  let chunk_loading = get_chunk_from_ukey(chunk_ukey, &compilation.chunk_by_ukey)
     .and_then(|chunk| chunk.get_entry_options(&compilation.chunk_group_by_ukey))
     .and_then(|options| options.chunk_loading.as_ref())
     .unwrap_or(&compilation.options.output.chunk_loading);
   chunk_loading == expected
+}
+
+pub fn unquoted_stringify(chunk: &Chunk, str: &String) -> String {
+  if let Some(chunk_id) = &chunk.id {
+    if str.len() >= 5 && str == chunk_id {
+      return "\" + chunkId + \"".to_string();
+    }
+  }
+  let result = serde_json::to_string(&str).expect("invalid json to_string");
+  result[1..result.len() - 1].to_string()
+}
+
+pub fn stringify_dynamic_chunk_map<F>(
+  f: F,
+  chunks: &IndexSet<&ChunkUkey>,
+  chunk_map: &IndexMap<&ChunkUkey, &Chunk>,
+) -> String
+where
+  F: Fn(&Chunk) -> Option<String>,
+{
+  let mut result = HashMap::default();
+  let mut use_id = false;
+  let mut last_key = None;
+  let mut entries = 0;
+
+  for chunk_ukey in chunks.iter() {
+    if let Some(chunk) = chunk_map.get(chunk_ukey) {
+      if let Some(chunk_id) = &chunk.id {
+        if let Some(value) = f(chunk) {
+          if value == *chunk_id {
+            use_id = true;
+          } else {
+            result.insert(
+              chunk_id.clone(),
+              serde_json::to_string(&value).expect("invalid json to_string"),
+            );
+            last_key = Some(chunk_id.clone());
+            entries += 1;
+          }
+        }
+      }
+    }
+  }
+
+  let content = if entries == 0 {
+    "chunkId".to_string()
+  } else if entries == 1 {
+    if let Some(last_key) = last_key {
+      if use_id {
+        format!(
+          "(chunkId === {} ? {} : chunkId)",
+          serde_json::to_string(&last_key).expect("invalid json to_string"),
+          result.get(&last_key).expect("cannot find last key value")
+        )
+      } else {
+        result
+          .get(&last_key)
+          .expect("cannot find last key value")
+          .clone()
+      }
+    } else {
+      unreachable!();
+    }
+  } else if use_id {
+    format!("({}[chunkId] || chunkId)", stringify_map(&result))
+  } else {
+    format!("{}[chunkId]", stringify_map(&result))
+  };
+  format!("\" + {content} + \"")
+}
+
+pub fn stringify_static_chunk_map(filename: &String, chunk_ids: &Vec<&String>) -> String {
+  let condition = if chunk_ids.len() == 1 {
+    format!(
+      "chunkId === {}",
+      serde_json::to_string(&chunk_ids.first()).expect("invalid json to_string")
+    )
+  } else {
+    let content = chunk_ids
+      .iter()
+      .sorted_unstable()
+      .map(|chunk_id| {
+        format!(
+          "{}:1",
+          serde_json::to_string(chunk_id).expect("invalid json to_string")
+        )
+      })
+      .join(",");
+    format!("{{ {} }}[chunkId]", content)
+  };
+  format!("if ({}) return {};", condition, filename)
+}
+
+pub fn create_fake_chunk(
+  id: Option<String>,
+  name: Option<String>,
+  rendered_hash: Option<String>,
+) -> Chunk {
+  let mut fake_chunk = Chunk::new(None, ChunkKind::Normal);
+  fake_chunk.name = name;
+  fake_chunk.rendered_hash = rendered_hash.map(|h| h.into());
+  fake_chunk.id = id;
+  fake_chunk
 }
 
 #[test]

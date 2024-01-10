@@ -1,67 +1,12 @@
 mod chunk_combination;
 
-use std::{
-  cmp::Ordering,
-  collections::{HashMap, HashSet},
-};
+use std::collections::{HashMap, HashSet};
 
 use chunk_combination::{ChunkCombination, ChunkCombinationBucket, ChunkCombinationUkey};
 use rspack_core::{
-  BoxModule, ChunkGraph, ChunkSizeOptions, ChunkUkey, ModuleGraph, OptimizeChunksArgs, Plugin,
-  PluginContext, PluginOptimizeChunksOutput,
+  compare_chunks_with_graph, get_chunk_from_ukey, get_chunk_group_from_ukey, ChunkSizeOptions,
+  ChunkUkey, OptimizeChunksArgs, Plugin, PluginContext, PluginOptimizeChunksOutput,
 };
-use rspack_util::comparators::compare_ids;
-
-// TODO: we should remove this function to crate rspack_util
-fn compare_modules_by_identifier(a: &BoxModule, b: &BoxModule) -> std::cmp::Ordering {
-  compare_ids(&a.identifier(), &b.identifier())
-}
-
-fn compare_module_iterables(modules_a: &[&BoxModule], modules_b: &[&BoxModule]) -> Ordering {
-  let mut a_iter = modules_a.iter();
-  let mut b_iter = modules_b.iter();
-  loop {
-    match (a_iter.next(), b_iter.next()) {
-      (None, None) => return Ordering::Equal,
-      (None, Some(_)) => return Ordering::Greater,
-      (Some(_), None) => return Ordering::Less,
-      (Some(a_item), Some(b_item)) => {
-        let res = compare_modules_by_identifier(a_item, b_item);
-        if res != Ordering::Equal {
-          return res;
-        }
-      }
-    }
-  }
-}
-
-fn compare_chunks_with_graph(
-  chunk_graph: &ChunkGraph,
-  module_graph: &ModuleGraph,
-  chunk_a_ukey: &ChunkUkey,
-  chunk_b_ukey: &ChunkUkey,
-) -> Ordering {
-  let cgc_a = chunk_graph.get_chunk_graph_chunk(chunk_a_ukey);
-  let cgc_b = chunk_graph.get_chunk_graph_chunk(chunk_b_ukey);
-  if cgc_a.modules.len() > cgc_b.modules.len() {
-    return Ordering::Less;
-  }
-  if cgc_a.modules.len() < cgc_b.modules.len() {
-    return Ordering::Greater;
-  }
-
-  let modules_a: Vec<&BoxModule> = cgc_a
-    .modules
-    .iter()
-    .filter_map(|module_id| module_graph.module_by_identifier(module_id))
-    .collect();
-  let modules_b: Vec<&BoxModule> = cgc_b
-    .modules
-    .iter()
-    .filter_map(|module_id| module_graph.module_by_identifier(module_id))
-    .collect();
-  compare_module_iterables(&modules_a, &modules_b)
-}
 
 fn add_to_set_map(
   map: &mut HashMap<ChunkUkey, HashSet<ChunkCombinationUkey>>,
@@ -212,9 +157,7 @@ impl Plugin for LimitChunkCountPlugin {
     let mut modified_chunks: HashSet<ChunkUkey> = HashSet::new();
 
     while let Some(combination_ukey) = combinations.pop_first() {
-      let combination = combinations
-        .get_mut(&combination_ukey)
-        .expect("chunk combination not found");
+      let combination = combinations.get_mut(&combination_ukey);
       combination.deleted = true;
       let a = combination.a;
       let b = combination.b;
@@ -223,16 +166,15 @@ impl Plugin for LimitChunkCountPlugin {
       // skip over pair when
       // one of the already merged chunks is a parent of one of the chunks
       if !modified_chunks.is_empty() {
-        let a_chunk = chunk_by_ukey.get(&a).expect("chunk not found");
-        let b_chunk = chunk_by_ukey.get(&b).expect("chunk not found");
+        let a_chunk = chunk_by_ukey.expect_get(&a);
+        let b_chunk = chunk_by_ukey.expect_get(&b);
         let mut queue = a_chunk.groups.iter().copied().collect::<HashSet<_>>();
         for group_ukey in b_chunk.groups.iter() {
           queue.insert(*group_ukey);
         }
         for group_ukey in queue.clone() {
           for modified_chunk_ukey in modified_chunks.clone() {
-            let m_chunk = chunk_by_ukey.get(&modified_chunk_ukey);
-            if let Some(m_chunk) = m_chunk {
+            if let Some(m_chunk) = get_chunk_from_ukey(&modified_chunk_ukey, &chunk_by_ukey) {
               if modified_chunk_ukey != a
                 && modified_chunk_ukey != b
                 && m_chunk.is_in_group(&group_ukey)
@@ -247,8 +189,7 @@ impl Plugin for LimitChunkCountPlugin {
               }
             }
           }
-          let group = chunk_group_by_ukey.get(&group_ukey);
-          if let Some(group) = group {
+          if let Some(group) = get_chunk_group_from_ukey(&group_ukey, &chunk_group_by_ukey) {
             for parent in group.parents_iterable() {
               queue.insert(*parent);
             }
@@ -280,9 +221,7 @@ impl Plugin for LimitChunkCountPlugin {
         let a_combinations = combinations_by_chunk.get_mut(&a);
         if let Some(a_combinations) = a_combinations {
           for ukey in a_combinations.clone() {
-            let combination = combinations
-              .get_mut(&ukey)
-              .expect("chunk combination not found");
+            let combination = combinations.get_mut(&ukey);
             if combination.deleted {
               continue;
             }
@@ -295,9 +234,7 @@ impl Plugin for LimitChunkCountPlugin {
         let b_combinations = combinations_by_chunk.get(&b);
         if let Some(b_combinations) = b_combinations {
           for ukey in b_combinations {
-            let combination = combinations
-              .get_mut(ukey)
-              .expect("chunk combination not found");
+            let combination = combinations.get_mut(ukey);
             if combination.deleted {
               continue;
             }

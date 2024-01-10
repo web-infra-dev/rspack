@@ -8,9 +8,9 @@ use rspack_util::ext::DynHash;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  AsyncDependenciesBlockIdentifier, BoxModule, ChunkByUkey, ChunkGroup, ChunkGroupByUkey,
-  ChunkGroupUkey, ChunkUkey, ExportsHash, ModuleIdentifier, RuntimeGlobals, RuntimeSpec,
-  RuntimeSpecMap, RuntimeSpecSet,
+  get_chunk_group_from_ukey, AsyncDependenciesBlockIdentifier, BoxModule, ChunkByUkey, ChunkGroup,
+  ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, ExportsHash, ModuleIdentifier, RuntimeGlobals,
+  RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet,
 };
 use crate::{ChunkGraph, ModuleGraph};
 
@@ -130,7 +130,7 @@ impl ChunkGraph {
     let cgm = self.get_chunk_graph_module(module_identifier);
     let mut runtimes = RuntimeSpecSet::default();
     for chunk_ukey in cgm.chunks.iter() {
-      let chunk = chunk_by_ukey.get(chunk_ukey).expect("Chunk should exist");
+      let chunk = chunk_by_ukey.expect_get(chunk_ukey);
       runtimes.set(chunk.runtime.clone());
     }
     runtimes
@@ -154,7 +154,7 @@ impl ChunkGraph {
     self
       .block_to_chunk_group_ukey
       .get(block)
-      .and_then(|ukey| chunk_group_by_ukey.get(ukey))
+      .and_then(|ukey| get_chunk_group_from_ukey(ukey, chunk_group_by_ukey))
   }
 
   pub fn connect_block_and_chunk_group(
@@ -190,8 +190,8 @@ impl ChunkGraph {
         .get_exports_info(&module.identifier())
         .export_info_hash(&mut hasher, module_graph);
 
-      if let Some(mgm) = module_graph.module_graph_module_by_identifier(&module.identifier()) {
-        let export_type = mgm.get_exports_type(strict);
+      if let Some(module) = module_graph.module_by_identifier(&module.identifier()) {
+        let export_type = module.get_exports_type(strict);
         export_type.dyn_hash(&mut hasher);
       }
 
@@ -206,7 +206,7 @@ impl ChunkGraph {
     process_module_graph_module(module, module_graph, false).dyn_hash(&mut hasher);
 
     let strict: bool = module_graph
-      .module_graph_module_by_identifier(&module.identifier())
+      .module_by_identifier(&module.identifier())
       .unwrap_or_else(|| {
         panic!(
           "Module({}) should be added before using",

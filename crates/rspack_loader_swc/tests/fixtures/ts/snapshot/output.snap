@@ -3,7 +3,7 @@ source: crates/rspack_testing/src/run_fixture.rs
 ---
 ```js title=main.js
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./index.tsx": (function (__unused_webpack_module, exports, __webpack_require__) {
+"./index.tsx": (function () {
 class a {
 }
 function A() {
@@ -20,5 +20,5 @@ var __webpack_exports__ = (__webpack_exec__("./index.tsx"));
 
 }
 ]);
-//# sourceMappingURL=main.js.map
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoibWFpbi5qcyIsInNvdXJjZXMiOlsiLi9pbmRleC50c3giXSwic291cmNlc0NvbnRlbnQiOlsiY2xhc3MgYSB7fVxuXG5mdW5jdGlvbiBBKCl7XG5cdHJldHVybiA8ZGl2PjEyMzwvZGl2PlxufVxuXG5pbnRlcmZhY2UgQSB7XG5cdGE6IG51bWJlclxufVxuY29uc3QgYjogQSA9IHthOjEyM31cbiJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiOztBQUFBLE1BQU07QUFBRztBQUVULFNBQVM7SUFDUixxQkFBTyxvQkFBQyxhQUFJO0FBQ2I7QUFLQSxNQUFNLElBQU87SUFBQyxHQUFFO0FBQUcifQ==
 ```

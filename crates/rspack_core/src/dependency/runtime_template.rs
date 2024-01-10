@@ -1,15 +1,20 @@
+use std::borrow::Cow;
+
+use serde_json::json;
 use swc_core::ecma::atoms::JsWord;
 
 use crate::{
-  get_import_var, property_access, to_comment, AsyncDependenciesBlockIdentifier, Compilation,
-  DependenciesBlock, DependencyId, ExportsType, FakeNamespaceObjectMode, InitFragmentExt,
-  InitFragmentKey, InitFragmentStage, ModuleGraph, ModuleIdentifier, NormalInitFragment,
-  RuntimeGlobals, TemplateContext,
+  get_import_var, property_access, to_comment, to_normal_comment, AsyncDependenciesBlockIdentifier,
+  Compilation, DependenciesBlock, DependencyId, ExportsType, FakeNamespaceObjectMode,
+  InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleGraph, ModuleIdentifier,
+  NormalInitFragment, RuntimeGlobals, TemplateContext,
 };
 
+#[allow(clippy::too_many_arguments)]
 pub fn export_from_import(
   code_generatable_context: &mut TemplateContext,
   default_interop: bool,
+  request: &str,
   import_var: &str,
   mut export_name: Vec<JsWord>,
   id: &DependencyId,
@@ -21,8 +26,17 @@ pub fn export_from_import(
     compilation,
     init_fragments,
     module,
+    runtime,
     ..
   } = code_generatable_context;
+  let Some(module_identifier) = compilation
+    .module_graph
+    .module_identifier_by_dependency_id(id)
+    .copied()
+  else {
+    return missing_module(request);
+  };
+  let is_new_treeshaking = compilation.options.is_new_tree_shaking();
 
   let exports_type = get_exports_type(&compilation.module_graph, id, &module.identifier());
 
@@ -79,12 +93,39 @@ pub fn export_from_import(
   }
 
   if !export_name.is_empty() {
-    // TODO check used
-    let property = property_access(&export_name, 0);
-    if is_call && !call_context {
-      format!("(0, {import_var}{property})")
+    let used_name = if is_new_treeshaking {
+      let exports_info_id = compilation
+        .module_graph
+        .get_exports_info(&module_identifier)
+        .id;
+      let used = exports_info_id.get_used_name(
+        &compilation.module_graph,
+        *runtime,
+        crate::UsedName::Vec(export_name.clone()),
+      );
+      if let Some(used) = used {
+        let used = match used {
+          crate::UsedName::Str(str) => vec![str],
+          crate::UsedName::Vec(strs) => strs,
+        };
+        Cow::Owned(used)
+      } else {
+        // TODO: add some unused comments, part of runtime alignments
+        return "".to_string();
+      }
     } else {
-      format!("{import_var}{property}")
+      Cow::Borrowed(&export_name)
+    };
+    let comment = if *used_name != export_name {
+      to_normal_comment(&property_access(&export_name, 0))
+    } else {
+      "".to_string()
+    };
+    let property = property_access(&*used_name, 0);
+    if is_call && !call_context {
+      format!("(0, {import_var}{comment}{property})")
+    } else {
+      format!("{import_var}{comment}{property}")
     }
   } else {
     import_var.to_string()
@@ -100,11 +141,11 @@ pub fn get_exports_type(
     .module_identifier_by_dependency_id(id)
     .expect("should have module");
   let strict = module_graph
-    .module_graph_module_by_identifier(parent_module)
+    .module_by_identifier(parent_module)
     .expect("should have mgm")
     .get_strict_harmony_module();
   module_graph
-    .module_graph_module_by_identifier(module)
+    .module_by_identifier(module)
     .expect("should have mgm")
     .get_exports_type(strict)
 }
@@ -118,7 +159,7 @@ pub fn get_exports_type_with_strict(
     .module_identifier_by_dependency_id(id)
     .expect("should have module");
   module_graph
-    .module_graph_module_by_identifier(module)
+    .module_by_identifier(module)
     .expect("should have mgm")
     .get_exports_type(strict)
 }
@@ -146,7 +187,7 @@ pub fn module_id(
   } else if weak {
     "null /* weak dependency, without id */".to_string()
   } else {
-    miss_module(request)
+    missing_module(request)
   }
 }
 
@@ -162,6 +203,13 @@ pub fn import_statement(
     module,
     ..
   } = code_generatable_context;
+  if compilation
+    .module_graph
+    .module_identifier_by_dependency_id(id)
+    .is_none()
+  {
+    return (missing_module_statement(request), "".to_string());
+  };
 
   let module_id_expr = module_id(compilation, id, request, false);
 
@@ -204,6 +252,13 @@ pub fn module_namespace_promise(
     module,
     ..
   } = code_generatable_context;
+  if compilation
+    .module_graph
+    .module_identifier_by_dependency_id(dep_id)
+    .is_none()
+  {
+    return missing_module_promise(request);
+  };
 
   let promise = block_promise(block, runtime_requirements, compilation);
   let exports_type = get_exports_type(&compilation.module_graph, dep_id, &module.identifier());
@@ -230,8 +285,11 @@ pub fn module_namespace_promise(
         )
       } else {
         runtime_requirements.insert(RuntimeGlobals::REQUIRE);
-        appending =
-          format!(".then(__webpack_require__.bind(__webpack_require__, {module_id_expr}))");
+        appending = format!(
+          ".then({}.bind({}, {module_id_expr}))",
+          RuntimeGlobals::REQUIRE,
+          RuntimeGlobals::REQUIRE
+        );
       }
     }
     _ => {
@@ -261,8 +319,11 @@ pub fn module_namespace_promise(
           )
         } else {
           runtime_requirements.insert(RuntimeGlobals::REQUIRE);
-          appending =
-            format!(".then(__webpack_require__.bind(__webpack_require__, {module_id_expr}))");
+          appending = format!(
+            ".then({}.bind({}, {module_id_expr}))",
+            RuntimeGlobals::REQUIRE,
+            RuntimeGlobals::REQUIRE
+          );
         }
         appending.push_str(
           format!(
@@ -280,9 +341,11 @@ pub fn module_namespace_promise(
           );
           appending = format!(".then(function() {{\n {header} return {expr};\n}})");
         } else {
+          runtime_requirements.insert(RuntimeGlobals::REQUIRE);
           appending = format!(
-            ".then({}.bind(__webpack_require__, {module_id_expr}, {fake_type}))",
-            RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT
+            ".then({}.bind({}, {module_id_expr}, {fake_type}))",
+            RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
+            RuntimeGlobals::REQUIRE
           );
         }
       }
@@ -332,12 +395,23 @@ pub fn module_raw(
   } else if weak {
     weak_error(request)
   } else {
-    miss_module(request)
+    missing_module(request)
   }
 }
 
-fn miss_module(request: &str) -> String {
+fn missing_module(request: &str) -> String {
   format!("Object({}())", throw_missing_module_error_function(request))
+}
+
+fn missing_module_statement(request: &str) -> String {
+  format!("{};\n", missing_module(request))
+}
+
+fn missing_module_promise(request: &str) -> String {
+  format!(
+    "Promise.resolve().then({})",
+    throw_missing_module_error_function(request)
+  )
 }
 
 fn throw_missing_module_error_function(request: &str) -> String {
@@ -348,8 +422,10 @@ fn throw_missing_module_error_function(request: &str) -> String {
 }
 
 pub fn throw_missing_module_error_block(request: &str) -> String {
+  let e = format!("Cannot find module '{}'", request);
   format!(
-    "var e = new Error('Cannot find module '{request}''); e.code = 'MODULE_NOT_FOUND'; throw e;"
+    "var e = new Error({}); e.code = 'MODULE_NOT_FOUND'; throw e;",
+    json!(e)
   )
 }
 

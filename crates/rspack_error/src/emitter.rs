@@ -1,15 +1,11 @@
 use std::io::Write;
-use std::path::Path;
 
 use anyhow::Context;
-use codespan_reporting::diagnostic::{Diagnostic, Label, Severity};
-use codespan_reporting::files::SimpleFiles;
-use codespan_reporting::term::termcolor::{ColorChoice, StandardStream};
-use codespan_reporting::term::{self, Config};
-use sugar_path::SugarPath;
+use miette::IntoDiagnostic;
 use termcolor::{Buffer, ColorSpec, StandardStreamLock, WriteColor};
+use termcolor::{ColorChoice, StandardStream};
 
-use crate::Diagnostic as RspackDiagnostic;
+use crate::Diagnostic;
 
 pub trait FlushDiagnostic {
   fn flush_diagnostic(&mut self) {}
@@ -28,9 +24,9 @@ pub trait DiagnosticDisplay {
   type Output;
   fn emit_batch_diagnostic(
     &mut self,
-    diagnostics: impl Iterator<Item = &RspackDiagnostic>,
+    diagnostics: impl Iterator<Item = &Diagnostic>,
   ) -> Self::Output;
-  fn emit_diagnostic(&mut self, diagnostic: &RspackDiagnostic) -> Self::Output;
+  fn emit_diagnostic(&mut self, diagnostic: &Diagnostic) -> Self::Output;
 }
 
 #[derive(Default)]
@@ -41,19 +37,17 @@ impl DiagnosticDisplay for StdioDiagnosticDisplay {
 
   fn emit_batch_diagnostic(
     &mut self,
-    diagnostics: impl Iterator<Item = &RspackDiagnostic>,
+    diagnostics: impl Iterator<Item = &Diagnostic>,
   ) -> Self::Output {
     let writer = StandardStream::stderr(ColorChoice::Always);
     let mut lock_writer = writer.lock();
     emit_batch_diagnostic(diagnostics, &mut lock_writer)
   }
 
-  fn emit_diagnostic(&mut self, diagnostic: &RspackDiagnostic) -> Self::Output {
+  fn emit_diagnostic(&mut self, diagnostic: &Diagnostic) -> Self::Output {
     let writer = StandardStream::stderr(ColorChoice::Always);
     let mut lock_writer = writer.lock();
-    let mut files = SimpleFiles::new();
-    let pwd = std::env::current_dir()?;
-    emit_diagnostic(diagnostic, &mut lock_writer, &pwd, &mut files)
+    emit_diagnostic(diagnostic, &mut lock_writer)
   }
 }
 
@@ -102,7 +96,7 @@ impl DiagnosticDisplay for StringDiagnosticDisplay {
 
   fn emit_batch_diagnostic(
     &mut self,
-    diagnostics: impl Iterator<Item = &RspackDiagnostic>,
+    diagnostics: impl Iterator<Item = &Diagnostic>,
   ) -> Self::Output {
     emit_batch_diagnostic(diagnostics, self)?;
     if self.sorted {
@@ -111,17 +105,14 @@ impl DiagnosticDisplay for StringDiagnosticDisplay {
     Ok(self.diagnostic_vector.drain(..).collect())
   }
 
-  fn emit_diagnostic(&mut self, diagnostic: &RspackDiagnostic) -> Self::Output {
-    let mut files = SimpleFiles::new();
-    let pwd = std::env::current_dir()?;
-    emit_diagnostic(diagnostic, self, &pwd, &mut files)?;
+  fn emit_diagnostic(&mut self, diagnostic: &Diagnostic) -> Self::Output {
+    emit_diagnostic(diagnostic, self)?;
     self.flush_diagnostic();
-    Ok(
-      self
-        .diagnostic_vector
-        .pop()
-        .context("diagnostic_vector should not empty after flush_diagnostic")?,
-    )
+    self
+      .diagnostic_vector
+      .pop()
+      .context("diagnostic_vector should not empty after flush_diagnostic")
+      .map_err(|e| miette::miette!(e.to_string()))
   }
 }
 
@@ -133,35 +124,28 @@ impl DiagnosticDisplay for ColoredStringDiagnosticDisplay {
 
   fn emit_batch_diagnostic(
     &mut self,
-    diagnostics: impl Iterator<Item = &RspackDiagnostic>,
+    diagnostics: impl Iterator<Item = &Diagnostic>,
   ) -> Self::Output {
-    let mut files = SimpleFiles::new();
-    let pwd = std::env::current_dir()?;
     let mut buf = Buffer::ansi();
     for d in diagnostics {
-      emit_diagnostic(d, &mut buf, &pwd, &mut files)?;
+      emit_diagnostic(d, &mut buf)?;
     }
     Ok(String::from_utf8_lossy(buf.as_slice()).to_string())
   }
 
-  fn emit_diagnostic(&mut self, diagnostic: &RspackDiagnostic) -> Self::Output {
-    let mut files = SimpleFiles::new();
-    let pwd = std::env::current_dir()?;
+  fn emit_diagnostic(&mut self, diagnostic: &Diagnostic) -> Self::Output {
     let mut buf = Buffer::ansi();
-    emit_diagnostic(diagnostic, &mut buf, &pwd, &mut files)?;
+    emit_diagnostic(diagnostic, &mut buf)?;
     Ok(String::from_utf8_lossy(buf.as_slice()).to_string())
   }
 }
 
 fn emit_batch_diagnostic<T: Write + WriteColor + FlushDiagnostic>(
-  diagnostics: impl Iterator<Item = &RspackDiagnostic>,
+  diagnostics: impl Iterator<Item = &Diagnostic>,
   writer: &mut T,
 ) -> crate::Result<()> {
-  let mut files = SimpleFiles::new();
-  let pwd = std::env::current_dir()?;
-
   for diagnostic in diagnostics {
-    emit_diagnostic(diagnostic, writer, &pwd, &mut files)?;
+    emit_diagnostic(diagnostic, writer)?;
     // `codespan_reporting` will not write the diagnostic message in a whole,
     // we need to insert some helper flag for sorting
     writer.flush_diagnostic();
@@ -170,53 +154,14 @@ fn emit_batch_diagnostic<T: Write + WriteColor + FlushDiagnostic>(
 }
 
 fn emit_diagnostic<T: Write + WriteColor>(
-  diagnostic: &RspackDiagnostic,
+  diagnostic: &Diagnostic,
   writer: &mut T,
-  pwd: impl AsRef<Path>,
-  files: &mut SimpleFiles<String, String>,
 ) -> crate::Result<()> {
-  let (labels, message) = match &diagnostic.source_info {
-    Some(info) => {
-      let file_path = Path::new(&info.path);
-      let relative_path = file_path.relative(&pwd);
-      let relative_path = relative_path.as_os_str().to_string_lossy().to_string();
-      let file_id = files.add(relative_path, info.source.clone());
-      (
-        vec![Label::primary(file_id, diagnostic.start..diagnostic.end)
-          .with_message(&diagnostic.message)],
-        diagnostic.title.clone(),
-      )
-    }
-    None => (vec![], diagnostic.message.clone()),
-  };
-
-  let diagnostic = Diagnostic::new(diagnostic.severity.into())
-    .with_message(message)
-    // Because we don't have error code now, and I don't think we have
-    // enough energy to matain error code either in the future, so I use
-    // this field to represent diagnostic kind, looks pretty neat.
-    .with_code(diagnostic.kind.to_string())
-    .with_notes(diagnostic.notes.clone())
-    .with_labels(labels);
-
-  let config = Config {
-    before_label_lines: 4,
-    after_label_lines: 4,
-    ..Config::default()
-  };
-
-  term::emit(writer, &config, files, &diagnostic).expect("TODO:");
+  let buf = diagnostic.render_report(writer.supports_color())?;
+  writer.write_all(buf.as_bytes()).into_diagnostic()?;
   // reset to original color after emitting a diagnostic, this avoids interference stdio of other procedure.
-  writer.reset().map_err(|e| e.into())
-}
-
-impl From<crate::Severity> for Severity {
-  fn from(severity: crate::Severity) -> Self {
-    match severity {
-      crate::Severity::Error => Self::Error,
-      crate::Severity::Warn => Self::Warning,
-    }
-  }
+  writer.reset().into_diagnostic()?;
+  Ok(())
 }
 
 #[derive(Debug, Clone)]
@@ -240,7 +185,7 @@ impl DiagnosticDisplay for DiagnosticDisplayer {
 
   fn emit_batch_diagnostic(
     &mut self,
-    diagnostics: impl Iterator<Item = &RspackDiagnostic>,
+    diagnostics: impl Iterator<Item = &Diagnostic>,
   ) -> Self::Output {
     match self {
       Self::Colored(d) => d.emit_batch_diagnostic(diagnostics),
@@ -248,7 +193,7 @@ impl DiagnosticDisplay for DiagnosticDisplayer {
     }
   }
 
-  fn emit_diagnostic(&mut self, diagnostic: &RspackDiagnostic) -> Self::Output {
+  fn emit_diagnostic(&mut self, diagnostic: &Diagnostic) -> Self::Output {
     match self {
       Self::Colored(d) => d.emit_diagnostic(diagnostic),
       Self::Plain(d) => d.emit_diagnostic(diagnostic),
