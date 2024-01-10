@@ -9,6 +9,9 @@ module.exports = {
 	entry: {
 		main: "./src/main.jsx"
 	},
+	resolve: {
+		extensions: ["...", ".ts", ".tsx", ".jsx"]
+	},
 	module: {
 		rules: [
 			{

@@ -1,9 +1,11 @@
+const { rspack } = require("@rspack/core");
+
 module.exports = {
 	entry: {
 		main: ["./index.js"]
 	},
-	builtins: {
-		define: {
+	plugins: [
+		new rspack.DefinePlugin({
 			TRUE: true,
 			FALSE: false,
 			TRUE_STRING: "true",
@@ -45,6 +47,6 @@ module.exports = {
 			"M1.M2.M3": "{}",
 			SHOULD_CONVERTED: "205",
 			CONVERTED_TO_MEMBER: "A1.A2.A3"
-		}
-	}
+		})
+	]
 };

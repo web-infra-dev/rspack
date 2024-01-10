@@ -13,10 +13,13 @@
   "license": "ISC",
   "devDependencies": {
     "@rspack/cli": "workspace:*",
+    "@rspack/core": "workspace:*",
+    "@svgr/webpack": "6.5.1",
     "react": "15",
     "react-dom": "15",
-    "url-loader": "4.1.1",
-    "@svgr/webpack": "6.5.1",
-    "@rspack/core": "workspace:*"
+    "url-loader": "4.1.1"
+  },
+  "dependencies": {
+    "@swc/helpers": "0.5.1"
   }
 }

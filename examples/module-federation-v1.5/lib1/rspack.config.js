@@ -40,7 +40,10 @@ module.exports = {
     ]
   },
   plugins: [
-    new HtmlWebpackPlugin(),
+    new HtmlWebpackPlugin({
+      // exclude container entry from html, to use the correct HMR handler
+      excludeChunks: ['mfeBBB']
+    }),
     new rspack.container.ModuleFederationPlugin({
       // A unique name
       name: "mfeBBB",

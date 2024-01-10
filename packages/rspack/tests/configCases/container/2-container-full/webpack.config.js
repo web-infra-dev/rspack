@@ -7,8 +7,7 @@ module.exports = {
 	},
 	experiments: {
 		rspackFuture: {
-			newTreeshaking: true,
-			disableApplyEntryLazily: true
+			newTreeshaking: true
 		}
 	},
 	plugins: [

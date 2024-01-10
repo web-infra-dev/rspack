@@ -18,9 +18,4 @@ module.exports = {
       },
 		]
 	},
-	experiments: {
-		rspackFuture: {
-			disableTransformByDefault: false
-		}
-	}
 };

@@ -56,12 +56,12 @@ fn normalize_alias(alias: Option<RawAliasOption>) -> rspack_error::Result<Option
             .into_iter()
             .map(|value| {
               if let Some(s) = value.as_str() {
-                Ok(AliasMap::Target(s.to_string()))
+                Ok(AliasMap::Path(s.to_string()))
               } else if let Some(b) = value.as_bool() {
                 if b {
                   Err(error!("Alias should not be true in {key}"))
                 } else {
-                  Ok(AliasMap::Ignored)
+                  Ok(AliasMap::Ignore)
                 }
               } else {
                 Err(error!("Alias should be false or string in {key}"))

@@ -15,7 +15,6 @@ import {
 } from ".";
 import fs from "graceful-fs";
 
-import { ResolveSwcPlugin } from "./web/ResolveSwcPlugin";
 import { DefaultStatsFactoryPlugin } from "./stats/DefaultStatsFactoryPlugin";
 import { DefaultStatsPrinterPlugin } from "./stats/DefaultStatsPrinterPlugin";
 import { cleverMerge } from "./util/cleverMerge";
@@ -36,7 +35,6 @@ import {
 	DefinePlugin,
 	MergeDuplicateChunksPlugin,
 	SplitChunksPlugin,
-	OldSplitChunksPlugin,
 	ChunkPrefetchPreloadPlugin,
 	NamedModuleIdsPlugin,
 	DeterministicModuleIdsPlugin,
@@ -85,11 +83,6 @@ export function applyEntryOptions(
 				compiler.context,
 				options.entry
 			);
-		}
-
-		if (options.devServer?.hot) {
-			// break in 0.5
-			new compiler.webpack.HotModuleReplacementPlugin().apply(compiler);
 		}
 	}
 }
@@ -255,10 +248,6 @@ export class RspackOptionsApply {
 			new MergeDuplicateChunksPlugin().apply(compiler);
 		}
 
-		if (options.builtins.devFriendlySplitChunks) {
-			options.optimization.splitChunks = undefined;
-		}
-
 		if (options.experiments.rspackFuture?.newTreeshaking) {
 			if (options.optimization.sideEffects) {
 				new SideEffectsFlagPlugin(/* options.optimization.sideEffects === true */).apply(
@@ -279,14 +268,7 @@ export class RspackOptionsApply {
 				options.optimization.mangleExports !== "size"
 			).apply(compiler);
 		}
-		if (
-			options.optimization.splitChunks &&
-			options.experiments.newSplitChunks === false
-		) {
-			new OldSplitChunksPlugin(options.optimization.splitChunks).apply(
-				compiler
-			);
-		} else if (options.optimization.splitChunks) {
+		if (options.optimization.splitChunks) {
 			new SplitChunksPlugin(options.optimization.splitChunks).apply(compiler);
 		}
 		// TODO: inconsistent: the plugin need to be placed after SplitChunksPlugin
@@ -344,10 +326,6 @@ export class RspackOptionsApply {
 
 		new WarnCaseSensitiveModulesPlugin().apply(compiler);
 
-		if (options.devServer?.hot) {
-			options.output.strictModuleErrorHandling = true;
-		}
-		new ResolveSwcPlugin().apply(compiler);
 		new WorkerPlugin(
 			options.output.workerChunkLoading!,
 			options.output.workerWasmLoading!,

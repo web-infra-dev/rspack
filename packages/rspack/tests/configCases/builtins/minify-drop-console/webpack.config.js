@@ -1,10 +1,12 @@
+const { rspack } = require("@rspack/core");
+
 module.exports = {
-	builtins: {
-		minifyOptions: {
-			dropConsole: true
-		}
-	},
 	optimization: {
-		minimize: true
+		minimize: true,
+		minimizer: [
+			new rspack.SwcJsMinimizerRspackPlugin({
+				dropConsole: true
+			})
+		]
 	}
 };

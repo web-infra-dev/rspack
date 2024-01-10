@@ -1,20 +1,44 @@
+const rspack = require("@rspack/core");
+const ReactRefreshPlugin = require("@rspack/plugin-react-refresh");
+
 /** @type { import('@rspack/core').RspackOptions } */
 module.exports = {
 	context: __dirname,
 	mode: "development",
+	resolve: {
+		extensions: ["...", ".ts", ".tsx", ".jsx"]
+	},
 	module: {
-		// add this to test react refresh runtime shouldn't inject runtime,see #3984
 		rules: [
 			{
-				test: /\.js$/,
-				type: "jsx"
+				test: /\.jsx$/,
+				use: {
+					loader: "builtin:swc-loader",
+					options: {
+						jsc: {
+							parser: {
+								syntax: "ecmascript",
+								jsx: true
+							},
+							transform: {
+								react: {
+									runtime: "automatic",
+									development: true,
+									refresh: true
+								}
+							}
+						}
+					}
+				}
 			}
 		]
 	},
-	entry: [
-		"@rspack/plugin-react-refresh/react-refresh-entry",
-		"./src/index.jsx"
+	devtool: false,
+	plugins: [
+		new rspack.HtmlRspackPlugin({ template: "./src/index.html" }),
+		new ReactRefreshPlugin()
 	],
+	entry: "./src/index.jsx",
 	devServer: {
 		hot: true
 	},
@@ -22,21 +46,6 @@ module.exports = {
 	stats: "none",
 	infrastructureLogging: {
 		debug: false
-	},
-	experiments: {
-		rspackFuture: {
-			disableTransformByDefault: false
-		}
-	},
-	builtins: {
-		provide: {
-			$ReactRefreshRuntime$: [require.resolve("./react-refresh.js")]
-		},
-		html: [
-			{
-				template: "./src/index.html"
-			}
-		]
 	},
 	watchOptions: {
 		poll: 1000

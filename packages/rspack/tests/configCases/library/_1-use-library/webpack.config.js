@@ -1,3 +1,4 @@
+const { rspack } = require("@rspack/core");
 var path = require("path");
 /** @type {function(any, any): import("@rspack/core").Configuration[]} */
 module.exports = (env, { testPath }) => [
@@ -7,11 +8,11 @@ module.exports = (env, { testPath }) => [
 				library: path.resolve(testPath, "../../0-create-library/dist/esm.js")
 			}
 		},
-		builtins: {
-			define: {
+		plugins: [
+			new rspack.DefinePlugin({
 				NAME: JSON.stringify("esm")
-			}
-		}
+			})
+		]
 	},
 	{
 		resolve: {
@@ -22,11 +23,11 @@ module.exports = (env, { testPath }) => [
 				)
 			}
 		},
-		builtins: {
-			define: {
+		plugins: [
+			new rspack.DefinePlugin({
 				NAME: JSON.stringify("esm-runtimeChunk")
-			}
-		}
+			})
+		]
 	},
 	{
 		resolve: {
@@ -37,11 +38,11 @@ module.exports = (env, { testPath }) => [
 				)
 			}
 		},
-		builtins: {
-			define: {
+		plugins: [
+			new rspack.DefinePlugin({
 				NAME: JSON.stringify("commonjs")
-			}
-		}
+			})
+		]
 	},
 	{
 		resolve: {
@@ -52,11 +53,11 @@ module.exports = (env, { testPath }) => [
 				)
 			}
 		},
-		builtins: {
-			define: {
+		plugins: [
+			new rspack.DefinePlugin({
 				NAME: JSON.stringify("commonjs-iife")
-			}
-		}
+			})
+		]
 	},
 	// {
 	// 	resolve: {
@@ -122,11 +123,11 @@ module.exports = (env, { testPath }) => [
 				library: path.resolve(testPath, "../../0-create-library/dist/umd.js")
 			}
 		},
-		builtins: {
-			define: {
+		plugins: [
+			new rspack.DefinePlugin({
 				NAME: JSON.stringify("umd")
-			}
-		}
+			})
+		]
 	},
 	{
 		entry: "./this-test.js",
@@ -135,11 +136,11 @@ module.exports = (env, { testPath }) => [
 				library: path.resolve(testPath, "../../0-create-library/dist/this.js")
 			}
 		},
-		builtins: {
-			define: {
+		plugins: [
+			new rspack.DefinePlugin({
 				NAME: JSON.stringify("this")
-			}
-		}
+			})
+		]
 	},
 	{
 		entry: "./this-test.js",
@@ -151,11 +152,11 @@ module.exports = (env, { testPath }) => [
 				)
 			}
 		},
-		builtins: {
-			define: {
+		plugins: [
+			new rspack.DefinePlugin({
 				NAME: JSON.stringify("this-iife")
-			}
-		}
+			})
+		]
 	},
 	{
 		entry: "./var-test.js",
@@ -164,11 +165,11 @@ module.exports = (env, { testPath }) => [
 				library: path.resolve(testPath, "../../0-create-library/dist/var.js")
 			}
 		},
-		builtins: {
-			define: {
+		plugins: [
+			new rspack.DefinePlugin({
 				NAME: JSON.stringify("var")
-			}
-		}
+			})
+		]
 	},
 	{
 		entry: "./var-test.js",
@@ -180,11 +181,11 @@ module.exports = (env, { testPath }) => [
 				)
 			}
 		},
-		builtins: {
-			define: {
+		plugins: [
+			new rspack.DefinePlugin({
 				NAME: JSON.stringify("var-iife")
-			}
-		}
+			})
+		]
 	},
 	{
 		resolve: {
@@ -195,11 +196,11 @@ module.exports = (env, { testPath }) => [
 				)
 			}
 		},
-		builtins: {
-			define: {
+		plugins: [
+			new rspack.DefinePlugin({
 				NAME: JSON.stringify("commonjs-nested")
-			}
-		}
+			})
+		]
 	},
 	{
 		resolve: {
@@ -210,11 +211,11 @@ module.exports = (env, { testPath }) => [
 				)
 			}
 		},
-		builtins: {
-			define: {
+		plugins: [
+			new rspack.DefinePlugin({
 				NAME: JSON.stringify("commonjs-nested-iife")
-			}
-		}
+			})
+		]
 	},
 	{
 		resolve: {
@@ -226,12 +227,12 @@ module.exports = (env, { testPath }) => [
 				external: path.resolve(__dirname, "node_modules/external.js")
 			}
 		},
-		builtins: {
-			define: {
+		plugins: [
+			new rspack.DefinePlugin({
 				NAME: JSON.stringify("commonjs2 with external"),
 				TEST_EXTERNAL: true
-			}
-		}
+			})
+		]
 	},
 	{
 		resolve: {
@@ -243,12 +244,12 @@ module.exports = (env, { testPath }) => [
 				external: path.resolve(__dirname, "node_modules/external.js")
 			}
 		},
-		builtins: {
-			define: {
+		plugins: [
+			new rspack.DefinePlugin({
 				NAME: JSON.stringify("commonjs2-iife with external"),
 				TEST_EXTERNAL: true
-			}
-		}
+			})
+		]
 	},
 	{
 		resolve: {
@@ -260,12 +261,12 @@ module.exports = (env, { testPath }) => [
 				external: path.resolve(__dirname, "node_modules/external.js")
 			}
 		},
-		builtins: {
-			define: {
+		plugins: [
+			new rspack.DefinePlugin({
 				NAME: JSON.stringify("commonjs2 with external and eval devtool"),
 				TEST_EXTERNAL: true
-			}
-		}
+			})
+		]
 	},
 	{
 		resolve: {
@@ -277,14 +278,14 @@ module.exports = (env, { testPath }) => [
 				external: path.resolve(__dirname, "node_modules/external.js")
 			}
 		},
-		builtins: {
-			define: {
+		plugins: [
+			new rspack.DefinePlugin({
 				NAME: JSON.stringify(
 					"commonjs2 with external and eval-source-map devtool"
 				),
 				TEST_EXTERNAL: true
-			}
-		}
+			})
+		]
 	},
 	{
 		resolve: {
@@ -296,12 +297,12 @@ module.exports = (env, { testPath }) => [
 				external: path.resolve(__dirname, "node_modules/external.js")
 			}
 		},
-		builtins: {
-			define: {
+		plugins: [
+			new rspack.DefinePlugin({
 				NAME: JSON.stringify("commonjs-static with external"),
 				TEST_EXTERNAL: true
-			}
-		}
+			})
+		]
 	},
 	// __nested_webpack_require_
 	// {
@@ -349,11 +350,11 @@ module.exports = (env, { testPath }) => [
 		output: {
 			library: { type: "commonjs-module" }
 		},
-		builtins: {
-			define: {
+		plugins: [
+			new rspack.DefinePlugin({
 				NAME: JSON.stringify("commonjs2-runtimeChunk")
-			}
-		}
+			})
+		]
 	},
 	{
 		externals: {
@@ -367,11 +368,11 @@ module.exports = (env, { testPath }) => [
 		output: {
 			library: { type: "commonjs-module" }
 		},
-		builtins: {
-			define: {
+		plugins: [
+			new rspack.DefinePlugin({
 				NAME: JSON.stringify("commonjs2-iife-runtimeChunk")
-			}
-		}
+			})
+		]
 	},
 	// CI crash
 	// {
@@ -411,11 +412,11 @@ module.exports = (env, { testPath }) => [
 				library: path.resolve(testPath, "../../0-create-library/dist/entryA.js")
 			}
 		},
-		builtins: {
-			define: {
+		plugins: [
+			new rspack.DefinePlugin({
 				NAME: JSON.stringify("entryA")
-			}
-		}
+			})
+		]
 	}
 	// {
 	// 	resolve: {

@@ -83,16 +83,12 @@ export const rspackFixtures = (
 					}
 
 					// set default define
-					if (!config.builtins) {
-						config.builtins = {};
-					}
-					config.builtins.define = Object.assign(
-						{
+					(config.plugins ??= []).push(
+						new rspack.compiler.webpack.DefinePlugin({
 							"process.env.NODE_ENV": JSON.stringify(
 								config.mode || "development"
 							)
-						},
-						config.builtins.define
+						})
 					);
 
 					return defaultRspackConfig.handleConfig(config);

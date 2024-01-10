@@ -542,7 +542,7 @@ mod test {
   fn test_merge_resolver_options_0() {
     let base = Resolve {
       extensions: string_list(&["a", "b"]),
-      alias: Some(vec![("c".to_string(), vec![AliasMap::Ignored])]),
+      alias: Some(vec![("c".to_string(), vec![AliasMap::Ignore])]),
       symlinks: Some(false),
       main_files: string_list(&["d", "e", "f"]),
       main_fields: string_list(&["g", "h", "i"]),
@@ -552,7 +552,7 @@ mod test {
     };
     let another = Resolve {
       extensions: string_list(&["a1", "b1"]),
-      alias: Some(vec![("c2".to_string(), vec![AliasMap::Ignored])]),
+      alias: Some(vec![("c2".to_string(), vec![AliasMap::Ignore])]),
       prefer_relative: Some(true),
       browser_field: Some(true),
       main_files: string_list(&["d1", "e", "..."]),
@@ -575,8 +575,8 @@ mod test {
     assert_eq!(
       options.alias.expect("should be Ok"),
       vec![
-        ("c2".to_string(), vec![AliasMap::Ignored]),
-        ("c".to_string(), vec![AliasMap::Ignored])
+        ("c2".to_string(), vec![AliasMap::Ignore]),
+        ("c".to_string(), vec![AliasMap::Ignore])
       ]
     );
     assert_eq!(options.condition_names.expect("should be Ok").len(), 3);
@@ -632,7 +632,7 @@ mod test {
     let second = Resolve {
       extensions: string_list(&["2"]),
       modules: string_list(&["2", "...", "3"]),
-      alias: Some(vec![("2".to_string(), vec![AliasMap::Ignored])]),
+      alias: Some(vec![("2".to_string(), vec![AliasMap::Ignore])]),
       ..Default::default()
     };
     pretty_assertions::assert_eq!(
@@ -640,7 +640,7 @@ mod test {
       Resolve {
         extensions: string_list(&["2"]),
         modules: string_list(&["2", "1", "3"]),
-        alias: Some(vec![("2".to_string(), vec![AliasMap::Ignored])]),
+        alias: Some(vec![("2".to_string(), vec![AliasMap::Ignore])]),
         ..Default::default()
       }
     )

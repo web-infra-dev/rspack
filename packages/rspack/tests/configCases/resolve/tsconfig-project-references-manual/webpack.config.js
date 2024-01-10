@@ -13,10 +13,5 @@ module.exports = {
 				path.resolve(__dirname, "./project_c/tsconfig.json")
 			]
 		}
-	},
-	experiments: {
-		rspackFuture: {
-			newResolver: true
-		}
 	}
 };

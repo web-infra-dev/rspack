@@ -1,8 +1,3 @@
 module.exports = {
-	target: ["node", "es5"],
-	builtins: {
-		presetEnv: {
-			targets: ["> 0.01%"]
-		}
-	}
+	target: ["node", "es5"]
 };

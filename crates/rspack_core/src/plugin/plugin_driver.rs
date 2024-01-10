@@ -4,7 +4,7 @@ use std::{
 };
 
 use rspack_error::{Diagnostic, Result, TWithDiagnosticArray};
-use rspack_loader_runner::ResourceData;
+use rspack_loader_runner::{LoaderContext, ResourceData};
 use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
 
@@ -13,16 +13,16 @@ use crate::{
   AssetEmittedArgs, BoxLoader, BoxModule, BoxedParserAndGeneratorBuilder, Chunk, ChunkAssetArgs,
   ChunkContentHash, ChunkHashArgs, CodeGenerationResults, Compilation, CompilationArgs,
   CompilationParams, CompilerOptions, Content, ContentHashArgs, DoneArgs, FactorizeArgs,
-  JsChunkHashArgs, MakeParam, Module, ModuleIdentifier, ModuleType, NormalModule,
-  NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs, NormalModuleCreateData,
-  OptimizeChunksArgs, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput,
-  PluginAdditionalModuleRequirementsOutput, PluginBuildEndHookOutput, PluginChunkHashHookOutput,
-  PluginCompilationHookOutput, PluginContext, PluginFactorizeHookOutput,
-  PluginJsChunkHashHookOutput, PluginMakeHookOutput, PluginNormalModuleFactoryAfterResolveOutput,
-  PluginNormalModuleFactoryBeforeResolveOutput, PluginNormalModuleFactoryCreateModuleHookOutput,
-  PluginNormalModuleFactoryModuleHookOutput, PluginProcessAssetsOutput,
-  PluginRenderChunkHookOutput, PluginRenderHookOutput, PluginRenderManifestHookOutput,
-  PluginRenderModuleContentOutput, PluginRenderStartupHookOutput,
+  JsChunkHashArgs, LoaderRunnerContext, MakeParam, Module, ModuleIdentifier, ModuleType,
+  NormalModule, NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs,
+  NormalModuleCreateData, OptimizeChunksArgs, Plugin,
+  PluginAdditionalChunkRuntimeRequirementsOutput, PluginAdditionalModuleRequirementsOutput,
+  PluginBuildEndHookOutput, PluginChunkHashHookOutput, PluginCompilationHookOutput, PluginContext,
+  PluginFactorizeHookOutput, PluginJsChunkHashHookOutput, PluginMakeHookOutput,
+  PluginNormalModuleFactoryAfterResolveOutput, PluginNormalModuleFactoryBeforeResolveOutput,
+  PluginNormalModuleFactoryCreateModuleHookOutput, PluginNormalModuleFactoryModuleHookOutput,
+  PluginProcessAssetsOutput, PluginRenderChunkHookOutput, PluginRenderHookOutput,
+  PluginRenderManifestHookOutput, PluginRenderModuleContentOutput, PluginRenderStartupHookOutput,
   PluginRuntimeRequirementsInTreeOutput, PluginThisCompilationHookOutput, ProcessAssetsArgs,
   RenderArgs, RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs,
   Resolver, ResolverFactory, RuntimeRequirementsInTreeArgs, Stats, ThisCompilationArgs,
@@ -370,6 +370,18 @@ impl PluginDriver {
         .await?;
     }
     Ok(module)
+  }
+
+  pub fn normal_module_loader(
+    &self,
+    loader_context: &mut LoaderContext<'_, LoaderRunnerContext>,
+    module: &NormalModule,
+  ) -> Result<()> {
+    for plugin in &self.plugins {
+      tracing::trace!("running normal_module_factory_module:{}", plugin.name());
+      plugin.normal_module_loader(PluginContext::new(), loader_context, module)?;
+    }
+    Ok(())
   }
 
   pub async fn before_resolve(

@@ -1,5 +1,6 @@
 const path = require('path');
 const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
+const rspack = require("@rspack/core")
 
 module.exports = {
 	entry: {
@@ -18,10 +19,8 @@ module.exports = {
 			}
 		]
 	},
-	builtins: {
-		html: [{ template: './index.html' }]
-	},
 	plugins: [
+		new rspack.HtmlRspackPlugin({ template: './index.html' }),
 		new MonacoWebpackPlugin({
 			languages: ['typescript', 'javascript', 'css']
 		})

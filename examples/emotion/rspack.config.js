@@ -5,7 +5,10 @@ const config = {
 		main: "./src/index.jsx"
 	},
 	optimization: {
-		minimize: false, // Disabling minification because it takes too long on CI
+		minimize: false // Disabling minification because it takes too long on CI
+	},
+	resolve: {
+		extensions: ["...", ".ts", ".tsx", ".jsx"]
 	},
 	plugins: [
 		new rspack.HtmlRspackPlugin({

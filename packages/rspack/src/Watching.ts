@@ -270,9 +270,7 @@ export class Watching {
 			if (err) return this._done(err, null);
 
 			const canRebuild =
-				this.compiler.options.devServer &&
-				!this.#initial &&
-				(modifiedFiles?.size || deleteFiles?.size);
+				!this.#initial && (modifiedFiles?.size || deleteFiles?.size);
 
 			const onBuild = (err: Error | null) => {
 				if (err) return this._done(err, null);

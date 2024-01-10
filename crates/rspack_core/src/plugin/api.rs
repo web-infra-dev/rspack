@@ -3,18 +3,19 @@ use std::{fmt::Debug, path::Path};
 use dashmap::DashMap;
 use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_hash::RspackHashDigest;
-use rspack_loader_runner::{Content, ResourceData};
+use rspack_loader_runner::{Content, LoaderContext, ResourceData};
 use rspack_sources::BoxSource;
 
 use crate::{
   AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, AssetEmittedArgs,
   AssetInfo, BoxLoader, BoxModule, ChunkAssetArgs, ChunkHashArgs, CodeGenerationResults,
   Compilation, CompilationArgs, CompilationParams, CompilerOptions, ContentHashArgs, DoneArgs,
-  FactorizeArgs, JsChunkHashArgs, MakeParam, Module, ModuleFactoryResult, ModuleIdentifier,
-  ModuleType, NormalModule, NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs,
-  NormalModuleCreateData, OptimizeChunksArgs, ParserAndGenerator, PluginContext, ProcessAssetsArgs,
-  RenderArgs, RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs,
-  Resolver, RuntimeRequirementsInTreeArgs, SourceType, ThisCompilationArgs,
+  FactorizeArgs, JsChunkHashArgs, LoaderRunnerContext, MakeParam, Module, ModuleFactoryResult,
+  ModuleIdentifier, ModuleType, NormalModule, NormalModuleAfterResolveArgs,
+  NormalModuleBeforeResolveArgs, NormalModuleCreateData, OptimizeChunksArgs, ParserAndGenerator,
+  PluginContext, ProcessAssetsArgs, RenderArgs, RenderChunkArgs, RenderManifestArgs,
+  RenderModuleContentArgs, RenderStartupArgs, Resolver, RuntimeRequirementsInTreeArgs, SourceType,
+  ThisCompilationArgs,
 };
 
 // use anyhow::{Context, Result};
@@ -156,6 +157,15 @@ pub trait Plugin: Debug + Send + Sync {
     args: ResourceData,
   ) -> PluginNormalModuleFactoryResolveForSchemeOutput {
     Ok((args, false))
+  }
+
+  fn normal_module_loader(
+    &self,
+    _ctx: PluginContext,
+    _loader_context: &mut LoaderContext<LoaderRunnerContext>,
+    _module: &NormalModule,
+  ) -> Result<()> {
+    Ok(())
   }
 
   async fn content_hash(

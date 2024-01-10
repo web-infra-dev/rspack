@@ -1,0 +1,15 @@
+{
+  "name": "example-module-federation-interop",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter \"example-module-federation-interop-*\" dev",
+    "build": "pnpm --filter \"example-module-federation-interop-*\" build",
+    "start": "pnpm --filter \"example-module-federation-interop-*\" start"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT"
+}
