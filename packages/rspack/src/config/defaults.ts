@@ -740,11 +740,11 @@ const applyOptimizationDefaults = (
 	D(optimization, "removeAvailableModules", true);
 	D(optimization, "removeEmptyChunks", true);
 	D(optimization, "mergeDuplicateChunks", true);
-	F(optimization, "moduleIds", (): "named" | "deterministic" => {
+	F(optimization, "moduleIds", (): "named" | "deterministic" | "natural" => {
 		if (production) return "deterministic";
-		return "named";
+		return "named"; 
 	});
-	F(optimization, "chunkIds", (): "named" | "deterministic" => "named");
+	F(optimization,"chunkIds",(): "named" | "deterministic" | "natural" => "named");
 	F(optimization, "sideEffects", () => (production ? true : "flag"));
 	D(optimization, "mangleExports", production);
 	D(optimization, "providedExports", true);

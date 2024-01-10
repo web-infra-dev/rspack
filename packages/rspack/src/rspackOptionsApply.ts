@@ -40,8 +40,10 @@ import {
 	ChunkPrefetchPreloadPlugin,
 	NamedModuleIdsPlugin,
 	DeterministicModuleIdsPlugin,
+	NaturalModuleIdsPlugin,
 	NamedChunkIdsPlugin,
 	DeterministicChunkIdsPlugin,
+	NaturalChunkIdsPlugin,
 	RealContentHashPlugin,
 	RemoveEmptyChunksPlugin,
 	EnsureChunkConditionsPlugin,
@@ -307,6 +309,10 @@ export class RspackOptionsApply {
 					new DeterministicModuleIdsPlugin().apply(compiler);
 					break;
 				}
+				case "natural": {
+					new NaturalModuleIdsPlugin().apply(compiler);
+					break;
+				}
 				default:
 					throw new Error(`moduleIds: ${moduleIds} is not implemented`);
 			}
@@ -320,6 +326,10 @@ export class RspackOptionsApply {
 				}
 				case "deterministic": {
 					new DeterministicChunkIdsPlugin().apply(compiler);
+					break;
+				}
+				case "natural": {
+					new NaturalChunkIdsPlugin().apply(compiler);
 					break;
 				}
 				default:

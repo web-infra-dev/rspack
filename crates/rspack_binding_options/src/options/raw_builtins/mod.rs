@@ -16,7 +16,7 @@ use rspack_core::{BoxPlugin, Define, DefinePlugin, PluginExt, Provide, ProvidePl
 use rspack_error::Result;
 use rspack_ids::{
   DeterministicChunkIdsPlugin, DeterministicModuleIdsPlugin, NamedChunkIdsPlugin,
-  NamedModuleIdsPlugin,
+  NamedModuleIdsPlugin, NaturalChunkIdsPlugin, NaturalModuleIdsPlugin,
 };
 use rspack_napi_shared::NapiResultExt;
 use rspack_plugin_asset::AssetPlugin;
@@ -104,7 +104,9 @@ pub enum BuiltinPluginName {
   ConsumeSharedPlugin,
   NamedModuleIdsPlugin,
   DeterministicModuleIdsPlugin,
+  NaturalModuleIdsPlugin,
   NamedChunkIdsPlugin,
+  NaturalChunkIdsPlugin,
   DeterministicChunkIdsPlugin,
   RealContentHashPlugin,
   RemoveEmptyChunksPlugin,
@@ -279,11 +281,17 @@ impl BuiltinPlugin {
       BuiltinPluginName::DeterministicModuleIdsPlugin => {
         plugins.push(DeterministicModuleIdsPlugin::default().boxed())
       }
+      BuiltinPluginName::NaturalModuleIdsPlugin => {
+        plugins.push(NaturalModuleIdsPlugin::default().boxed())
+      }
       BuiltinPluginName::NamedChunkIdsPlugin => {
         plugins.push(NamedChunkIdsPlugin::new(None, None).boxed())
       }
       BuiltinPluginName::DeterministicChunkIdsPlugin => {
         plugins.push(DeterministicChunkIdsPlugin::default().boxed())
+      }
+      BuiltinPluginName::NaturalChunkIdsPlugin => {
+        plugins.push(NaturalChunkIdsPlugin::new().boxed())
       }
       BuiltinPluginName::RealContentHashPlugin => plugins.push(RealContentHashPlugin.boxed()),
       BuiltinPluginName::RemoveEmptyChunksPlugin => plugins.push(RemoveEmptyChunksPlugin.boxed()),
