@@ -49,7 +49,6 @@ pnpm-lock.yaml
 
 # Loaders
 
-/crates/rspack_loader_sass @web-infra-dev/rspack-dx
 /crates/rspack_loader_swc @web-infra-dev/rspack-dx
 
 # Plugins
@@ -58,7 +57,6 @@ pnpm-lock.yaml
 /crates/rspack_plugin_banner @web-infra-dev/rspack-dx
 /crates/rspack_plugin_copy @web-infra-dev/rspack-dx
 /crates/rspack_plugin_css @web-infra-dev/rspack-ux
-/crates/rspack_plugin_dev_friendly_split_chunks @web-infra-dev/rspack-ux
 /crates/rspack_plugin_devtool @web-infra-dev/rspack-dx
 /crates/rspack_plugin_entry @web-infra-dev/rspack-dx
 /crates/rspack_plugin_externals @web-infra-dev/rspack-dx

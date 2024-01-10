@@ -68,74 +68,77 @@ function testHtmlPlugin(
 		prevDone(...args);
 	};
 
-	rspack({ ...webpackConfig, builtins: { minify: false } }, (err, stats) => {
-		expect(err).toBeFalsy();
-		const statsJson = stats.toJson({ all: true });
-		// console.log(statsJson.chunks);
-		// console.log(statsJson.modules);
-		const compilationErrors = statsJson.errors.map(e => e.message).join("\n");
-		if (expectErrors) {
-			expect(compilationErrors).not.toBe("");
-		} else {
-			expect(compilationErrors).toBe("");
-		}
-		const compilationWarnings = statsJson.warnings
-			.map(e => e.message)
-			.join("\n");
-		if (expectWarnings) {
-			expect(compilationWarnings).not.toBe("");
-		} else {
-			expect(compilationWarnings).toBe("");
-		}
-		if (outputFile instanceof RegExp) {
-			const fileNames = statsJson.assets.map(a => a.name);
-			const matches = statsJson.assets
-				.map(a => a.name)
-				.filter(item => outputFile.test(item));
-			expect(matches[0] || fileNames).not.toEqual(fileNames);
-			outputFile = matches[0];
-		}
-		expect(outputFile.indexOf("[hash]") === -1).toBe(true);
-		const outputFileExists = fs.existsSync(path.join(OUTPUT_DIR, outputFile));
-		expect(outputFileExists).toBe(true);
-		if (!outputFileExists) {
-			return done();
-		}
-		const htmlContent = fs
-			.readFileSync(path.join(OUTPUT_DIR, outputFile))
-			.toString();
-		let chunksInfo;
-		for (let i = 0; i < expectedResults.length; i++) {
-			const expectedResult = expectedResults[i];
-			try {
-				if (expectedResult instanceof RegExp) {
-					expect(htmlContent).toMatch(expectedResult);
-				} else if (typeof expectedResult === "object") {
-					if (expectedResult.type === "chunkhash") {
-						if (!chunksInfo) {
-							chunksInfo = getChunksInfoFromStats(stats);
+	rspack(
+		{ ...webpackConfig, optimization: { minimize: false } },
+		(err, stats) => {
+			expect(err).toBeFalsy();
+			const statsJson = stats.toJson({ all: true });
+			// console.log(statsJson.chunks);
+			// console.log(statsJson.modules);
+			const compilationErrors = statsJson.errors.map(e => e.message).join("\n");
+			if (expectErrors) {
+				expect(compilationErrors).not.toBe("");
+			} else {
+				expect(compilationErrors).toBe("");
+			}
+			const compilationWarnings = statsJson.warnings
+				.map(e => e.message)
+				.join("\n");
+			if (expectWarnings) {
+				expect(compilationWarnings).not.toBe("");
+			} else {
+				expect(compilationWarnings).toBe("");
+			}
+			if (outputFile instanceof RegExp) {
+				const fileNames = statsJson.assets.map(a => a.name);
+				const matches = statsJson.assets
+					.map(a => a.name)
+					.filter(item => outputFile.test(item));
+				expect(matches[0] || fileNames).not.toEqual(fileNames);
+				outputFile = matches[0];
+			}
+			expect(outputFile.indexOf("[hash]") === -1).toBe(true);
+			const outputFileExists = fs.existsSync(path.join(OUTPUT_DIR, outputFile));
+			expect(outputFileExists).toBe(true);
+			if (!outputFileExists) {
+				return done();
+			}
+			const htmlContent = fs
+				.readFileSync(path.join(OUTPUT_DIR, outputFile))
+				.toString();
+			let chunksInfo;
+			for (let i = 0; i < expectedResults.length; i++) {
+				const expectedResult = expectedResults[i];
+				try {
+					if (expectedResult instanceof RegExp) {
+						expect(htmlContent).toMatch(expectedResult);
+					} else if (typeof expectedResult === "object") {
+						if (expectedResult.type === "chunkhash") {
+							if (!chunksInfo) {
+								chunksInfo = getChunksInfoFromStats(stats);
+							}
+							// TODO: stats.hash
+							// const chunkhash = chunksInfo[expectedResult.chunkName].hash;
+							expect(htmlContent).toContain(
+								// expectedResult.containStr.replace("%chunkhash%", chunkhash)
+								expectedResult
+							);
 						}
-						// TODO: stats.hash
-						// const chunkhash = chunksInfo[expectedResult.chunkName].hash;
+					} else {
 						expect(htmlContent).toContain(
-							// expectedResult.containStr.replace("%chunkhash%", chunkhash)
+							// TODO: stats.hash
+							// expectedResult.replace("%hash%", stats.hash)
 							expectedResult
 						);
 					}
-				} else {
-					expect(htmlContent).toContain(
-						// TODO: stats.hash
-						// expectedResult.replace("%hash%", stats.hash)
-						expectedResult
-					);
+				} catch (e) {
+					done(e);
+					return;
 				}
-			} catch (e) {
-				done(e);
-				return;
 			}
+			done();
 		}
-		done();
-	});
+	);
 }
 
 function getChunksInfoFromStats(stats) {

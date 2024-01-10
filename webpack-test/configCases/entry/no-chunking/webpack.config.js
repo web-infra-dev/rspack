@@ -19,7 +19,7 @@ module.exports = {
 	output: {
 		filename: "[name].js"
 	},
-	target: "web",
+	target: "async-node",
 	externals: {
 		fs: "commonjs fs"
 	},

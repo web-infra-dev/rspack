@@ -69,10 +69,6 @@
             "type": "string"
           }
         },
-        "devFriendlySplitChunks": {
-          "default": false,
-          "type": "boolean"
-        },
         "html": {
           "type": "array",
           "items": {

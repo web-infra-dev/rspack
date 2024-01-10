@@ -7,6 +7,9 @@ const config = {
 	entry: {
 		main: ["webpack/hot/poll?100", "./src/main.ts"]
 	},
+	resolve: {
+		extensions: ["...", ".ts", ".tsx", ".jsx"]
+	},
 	module: {
 		rules: [
 			{

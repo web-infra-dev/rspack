@@ -186,8 +186,6 @@ pub struct Builtins {
   #[serde(default)]
   pub css: Css,
   #[serde(default)]
-  pub dev_friendly_split_chunks: bool,
-  #[serde(default)]
   pub code_generation: Option<CodeGeneration>,
 }
 
@@ -326,11 +324,8 @@ impl TestConfig {
     let mut rules = vec![
       rule!("\\.json$", "json"),
       rule!("\\.mjs$", "js/esm"),
-      rule!("\\.cjs$", "js/auto"), // TODO: change to js/dynamic
+      rule!("\\.cjs$", "js/dynamic"),
       rule!("\\.js$", "js/auto"),
-      rule!("\\.jsx$", "jsx"),
-      rule!("\\.ts$", "ts"),
-      rule!("\\.tsx$", "tsx"),
       rule!("\\.css$", "css"),
       rule!("\\.wasm$", "webassembly/async"),
     ];
@@ -421,13 +416,14 @@ impl TestConfig {
         ),
         ..Default::default()
       },
-      resolve_loader: c::Resolve::default(),
+      resolve_loader: c::Resolve {
+        extensions: Some(vec![".js".to_string()]),
+        ..Default::default()
+      },
       builtins: c::Builtins {
         define: self.builtins.define,
         provide: self.builtins.provide,
         tree_shaking: self.builtins.tree_shaking.into(),
-        preset_env: self.builtins.preset_env.map(Into::into),
-        ..Default::default()
       },
       module: c::ModuleOptions {
         rules,
@@ -477,10 +473,6 @@ impl TestConfig {
       }
     }
     plugins.push(rspack_plugin_merge_duplicate_chunks::MergeDuplicateChunksPlugin.boxed());
-    if self.builtins.dev_friendly_split_chunks {
-      plugins
-        .push(rspack_plugin_dev_friendly_split_chunks::DevFriendlySplitChunksPlugin::new().boxed());
-    }
 
     for html in self.builtins.html {
       plugins.push(rspack_plugin_html::HtmlRspackPlugin::new(html).boxed());

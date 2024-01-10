@@ -4,7 +4,7 @@ const { default: HtmlPlugin } = require("@rspack/plugin-html");
 
 /** @type {import('@rspack/cli').Configuration} */
 const config = {
-	mode: 'production',
+	mode: "production",
 	context: __dirname,
 	entry: "./src/index.tsx",
 	target: ["web", "es5"],
@@ -80,8 +80,9 @@ const config = {
 			// Alias to the unminified version mitigates this problem.
 			// See also <https://github.com/search?q=repo%3Aswc-project%2Fswc+parser+stack+overflow&type=issues>
 			mockjs: require.resolve("./patches/mock.js"),
-			"@swc/helpers": require.resolve('@swc/helpers'),
-		}
+			"@swc/helpers": require.resolve("@swc/helpers")
+		},
+		extensions: ["...", ".ts", ".tsx", ".jsx"]
 	},
 	output: {
 		publicPath: "/",
@@ -106,24 +107,21 @@ const config = {
 			title: "Arco Pro App",
 			template: path.join(__dirname, "index.html"),
 			favicon: path.join(__dirname, "public", "favicon.ico")
-		}),
+		})
 	],
 	infrastructureLogging: {
 		debug: false
 	},
 	experiments: {
-		css: true,
-		rspackFuture: {
-			disableTransformByDefault: true
-		}
+		css: true
 	},
 	builtins: {
 		css: {
 			modules: {
 				exportsOnly: true,
-				localIdentName: "example-arco-design-pro---[path][name][ext]-[local]",
-			},
-		},
-	},
+				localIdentName: "example-arco-design-pro---[path][name][ext]-[local]"
+			}
+		}
+	}
 };
 module.exports = config;

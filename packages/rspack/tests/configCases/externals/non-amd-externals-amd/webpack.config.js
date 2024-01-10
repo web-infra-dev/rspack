@@ -1,4 +1,4 @@
-const webpack = require("../../../../");
+const webpack = require("@rspack/core");
 /** @type {import("../../../../").Configuration} */
 module.exports = {
 	output: {
@@ -16,11 +16,11 @@ module.exports = {
 	externalsPresets: {
 		node: true
 	},
-	builtins: {
-		banner: {
+	plugins: [
+		new webpack.BannerPlugin({
 			raw: true,
 			banner:
 				"function define(deps, fn) { fn(...deps.map(dep => require(dep))); }\n"
-		}
-	}
+		})
+	]
 };

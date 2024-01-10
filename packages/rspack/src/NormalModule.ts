@@ -1,8 +1,18 @@
 import { AsyncSeriesBailHook, HookMap, SyncHook } from "tapable";
 import util from "util";
-import { Compilation, LoaderContext } from ".";
+import { Compilation } from "./Compilation";
+import { LoaderContext } from "./config";
 
-const compilationHooksMap = new WeakMap();
+const compilationHooksMap = new WeakMap<
+	Compilation,
+	{
+		loader: SyncHook<[LoaderContext]>;
+		readResourceForScheme: any;
+		readResource: HookMap<
+			AsyncSeriesBailHook<[LoaderContext], string | Buffer>
+		>;
+	}
+>();
 
 const createFakeHook = <T extends Record<string, any>>(
 	fakeHook: T,
@@ -64,15 +74,13 @@ export class NormalModule {
 		let hooks = compilationHooksMap.get(compilation);
 		if (hooks === undefined) {
 			hooks = {
-				// TODO: figure out why tsc complain about this
-				// @ts-ignore
-				loader: new SyncHook(["loaderContext", "module"]),
+				loader: new SyncHook(["loaderContext"]),
 				// beforeLoaders: new SyncHook(["loaders", "module", "loaderContext"]),
 				// beforeParse: new SyncHook(["module"]),
 				// beforeSnapshot: new SyncHook(["module"]),
 				// TODO webpack 6 deprecate
 				readResourceForScheme: new HookMap(scheme => {
-					const hook = hooks.readResource.for(scheme);
+					const hook = hooks!.readResource.for(scheme);
 					return createFakeHook({
 						tap: (options: string, fn: any) =>
 							hook.tap(options, (loaderContext: LoaderContext) =>

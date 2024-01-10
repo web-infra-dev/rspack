@@ -90,8 +90,6 @@ export const applyRspackOptionsDefaults = (
 	applyModuleDefaults(options.module, {
 		// syncWebAssembly: options.experiments.syncWebAssembly,
 		asyncWebAssembly: options.experiments.asyncWebAssembly!,
-		disableTransformByDefault:
-			options.experiments.rspackFuture!.disableTransformByDefault!,
 		css: options.experiments.css!
 	});
 
@@ -168,26 +166,10 @@ const applyExperimentsDefaults = (
 	D(experiments, "css", true); // we not align with webpack about the default value for better DX
 	D(experiments, "topLevelAwait", true);
 
-	D(experiments, "incrementalRebuild", {});
-	if (typeof experiments.incrementalRebuild === "object") {
-		D(experiments.incrementalRebuild, "make", true);
-		D(experiments.incrementalRebuild, "emitAsset", true);
-	}
-	if (
-		cache === false &&
-		experiments.incrementalRebuild &&
-		experiments.incrementalRebuild.make
-	) {
-		experiments.incrementalRebuild.make = false;
-		// TODO: use logger to warn user enable cache for incrementalRebuild.make
-	}
-
 	D(experiments, "rspackFuture", {});
 	if (typeof experiments.rspackFuture === "object") {
-		D(experiments.rspackFuture, "newResolver", true);
 		D(experiments.rspackFuture, "newTreeshaking", false);
-		D(experiments.rspackFuture, "disableTransformByDefault", true);
-		D(experiments.rspackFuture, "disableApplyEntryLazily", false);
+		D(experiments.rspackFuture, "disableApplyEntryLazily", true);
 	}
 };
 
@@ -217,12 +199,10 @@ const applyModuleDefaults = (
 	module: ModuleOptions,
 	{
 		asyncWebAssembly,
-		css,
-		disableTransformByDefault
+		css
 	}: {
 		asyncWebAssembly: boolean;
 		css: boolean;
-		disableTransformByDefault: boolean;
 	}
 ) => {
 	assertNotNill(module.parser);
@@ -295,24 +275,6 @@ const applyModuleDefaults = (
 				...esm
 			}
 		];
-
-		// TODO: remove in 0.5.0
-		if (!disableTransformByDefault) {
-			rules.push(
-				{
-					test: /\.jsx$/i,
-					type: "jsx"
-				},
-				{
-					test: /\.ts$/i,
-					type: "ts"
-				},
-				{
-					test: /\.tsx$/i,
-					type: "tsx"
-				}
-			);
-		}
 
 		if (asyncWebAssembly) {
 			const wasm = {
@@ -744,7 +706,11 @@ const applyOptimizationDefaults = (
 		if (production) return "deterministic";
 		return "named";
 	});
-	F(optimization, "chunkIds", (): "named" | "deterministic" => "named");
+	F(optimization, "chunkIds", (): "named" | "deterministic" => {
+		if (production) return "deterministic";
+		if (development) return "named";
+		return "named"; // we have not implemented 'natural' so use 'named' now
+	});
 	F(optimization, "sideEffects", () => (production ? true : "flag"));
 	D(optimization, "mangleExports", production);
 	D(optimization, "providedExports", true);
@@ -754,14 +720,8 @@ const applyOptimizationDefaults = (
 	D(optimization, "realContentHash", production);
 	D(optimization, "minimize", production);
 	A(optimization, "minimizer", () => [
-		{
-			apply(compiler) {
-				if (!compiler.options.builtins.minifyOptions) {
-					new SwcJsMinimizerRspackPlugin().apply(compiler);
-					new SwcCssMinimizerRspackPlugin().apply(compiler);
-				}
-			}
-		}
+		new SwcJsMinimizerRspackPlugin(),
+		new SwcCssMinimizerRspackPlugin()
 	]);
 	F(optimization, "nodeEnv", () => {
 		if (production) return "production";
@@ -831,7 +791,7 @@ const getResolveDefaults = ({
 		if (targetProperties.electron) conditions.push("electron");
 		if (targetProperties.nwjs) conditions.push("nwjs");
 	}
-	const jsExtensions = [".js", ".json", ".wasm", ".tsx", ".ts", ".jsx"];
+	const jsExtensions = [".js", ".json", ".wasm"];
 
 	const tp = targetProperties;
 	const browserField =

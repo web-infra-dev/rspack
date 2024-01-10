@@ -596,18 +596,10 @@ impl NormalModuleFactory {
       .registered_parser_and_generator_builder
       .get(&resolved_module_type)
       .ok_or_else(|| {
-        let mut e = format!("Unexpected `ModuleType` found: {resolved_module_type}. ");
-
-        match resolved_module_type {
-          ModuleType::Css => e.push_str(
-            "Setting `'css'` as the `Rule.type` is only possible with `experiments.css` set to `true`",
-          ),
-          ModuleType::Ts | ModuleType::Tsx |
-          ModuleType::Jsx | ModuleType::JsxDynamic | ModuleType::JsxEsm => e.push_str("`Rule.type` that are not supported by webpack is deprecated. See: https://github.com/web-infra-dev/rspack/discussions/4070"),
-          _ => (),
-        }
-
-        error!(e)
+        error!(
+          "No parser registered for '{}'",
+          resolved_module_type.as_str()
+        )
       })?();
 
     let mut create_data = NormalModuleCreateData {

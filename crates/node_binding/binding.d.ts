@@ -160,7 +160,6 @@ export const enum BuiltinPluginName {
   WebWorkerTemplatePlugin = 'WebWorkerTemplatePlugin',
   MergeDuplicateChunksPlugin = 'MergeDuplicateChunksPlugin',
   SplitChunksPlugin = 'SplitChunksPlugin',
-  OldSplitChunksPlugin = 'OldSplitChunksPlugin',
   ShareRuntimePlugin = 'ShareRuntimePlugin',
   ContainerPlugin = 'ContainerPlugin',
   ContainerReferencePlugin = 'ContainerReferencePlugin',
@@ -620,15 +619,7 @@ export interface RawBannerPluginOptions {
 
 export interface RawBuiltins {
   css?: RawCssPluginConfig
-  presetEnv?: RawPresetEnv
   treeShaking: string
-  react: RawReactOptions
-  decorator?: RawDecoratorOptions
-  noEmitAssets: boolean
-  emotion?: string
-  devFriendlySplitChunks: boolean
-  pluginImport?: Array<RawPluginImportConfig>
-  relay?: RawRelayConfig
 }
 
 export interface RawCacheGroupOptions {
@@ -744,15 +735,6 @@ export interface RawCssPluginConfig {
   modules: RawCssModulesConfig
 }
 
-export interface RawDecoratorOptions {
-  legacy: boolean
-  emitMetadata: boolean
-}
-
-export interface RawDevServer {
-  hot: boolean
-}
-
 export interface RawEntryOptions {
   name?: string
   runtime?: string
@@ -771,7 +753,6 @@ export interface RawEntryPluginOptions {
 }
 
 export interface RawExperiments {
-  incrementalRebuild: RawIncrementalRebuild
   newSplitChunks: boolean
   topLevelAwait: boolean
   rspackFuture: RawRspackFuture
@@ -862,11 +843,6 @@ export interface RawHtmlRspackPluginOptions {
 export interface RawHttpExternalsRspackPluginOptions {
   css: boolean
   webAsync: boolean
-}
-
-export interface RawIncrementalRebuild {
-  make: boolean
-  emitAsset: boolean
 }
 
 export interface RawInfo {
@@ -1008,7 +984,6 @@ export interface RawOptions {
   devtool: string
   optimization: RawOptimizationOptions
   stats: RawStatsOptions
-  devServer: RawDevServer
   snapshot: RawSnapshotOptions
   cache: RawCacheOptions
   experiments: RawExperiments
@@ -1074,12 +1049,6 @@ export interface RawPluginImportConfig {
   transformToDefaultImport?: boolean
   ignoreEsComponent?: Array<string>
   ignoreStyleComponent?: Array<string>
-}
-
-export interface RawPresetEnv {
-  targets: Array<string>
-  mode?: 'usage' | 'entry'
-  coreJs?: string
 }
 
 export interface RawProgressPluginOptions {
@@ -1152,9 +1121,7 @@ export interface RawResolveTsconfigOptions {
 }
 
 export interface RawRspackFuture {
-  newResolver: boolean
   newTreeshaking: boolean
-  disableTransformByDefault: boolean
 }
 
 export interface RawRuleSetCondition {

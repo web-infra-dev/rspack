@@ -9,14 +9,16 @@
     "build": "rspack build"
   },
   "dependencies": {
-    "styled-components": "5.3.6",
+    "@swc/helpers": "0.5.1",
     "@types/styled-components": "5.1.26",
     "react": "17",
-    "react-dom": "17"
+    "react-dom": "17",
+    "styled-components": "5.3.6"
   },
   "devDependencies": {
     "@rspack/cli": "workspace:*",
-    "@rspack/core": "workspace:*"
+    "@rspack/core": "workspace:*",
+    "react-refresh": "^0.14.0"
   },
   "sideEffects": false,
   "keywords": [],

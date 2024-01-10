@@ -7,9 +7,9 @@ use hashlink::LinkedHashMap;
 
 use crate::DependencyCategory;
 
-pub type AliasMap = nodejs_resolver::AliasMap;
+pub type AliasMap = oxc_resolver::AliasValue;
+pub type Alias = oxc_resolver::Alias;
 
-pub type Alias = Vec<(String, Vec<AliasMap>)>;
 pub(super) type Extensions = Vec<String>;
 pub(super) type PreferRelative = bool;
 pub(super) type Symlink = bool;

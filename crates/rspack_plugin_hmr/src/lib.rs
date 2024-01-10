@@ -7,12 +7,14 @@ use hot_module_replacement::HotModuleReplacementRuntimeModule;
 use rspack_core::{
   collect_changed_modules,
   rspack_sources::{RawSource, SourceExt},
-  AdditionalChunkRuntimeRequirementsArgs, AssetInfo, Chunk, ChunkKind, CompilationArgs,
-  CompilationAsset, CompilationParams, CompilationRecords, DependencyType, ModuleIdentifier,
-  PathData, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput, PluginCompilationHookOutput,
-  PluginContext, PluginProcessAssetsOutput, ProcessAssetsArgs, RenderManifestArgs, RuntimeGlobals,
+  AdditionalChunkRuntimeRequirementsArgs, ApplyContext, AssetInfo, Chunk, ChunkKind,
+  CompilationArgs, CompilationAsset, CompilationParams, CompilationRecords, CompilerOptions,
+  DependencyType, ModuleIdentifier, PathData, Plugin,
+  PluginAdditionalChunkRuntimeRequirementsOutput, PluginCompilationHookOutput, PluginContext,
+  PluginProcessAssetsOutput, ProcessAssetsArgs, RenderManifestArgs, RuntimeGlobals,
   RuntimeModuleExt, RuntimeSpec, SourceType,
 };
+use rspack_error::Result;
 use rspack_hash::RspackHash;
 use rspack_identifier::IdentifierSet;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
@@ -24,6 +26,15 @@ pub struct HotModuleReplacementPlugin;
 impl Plugin for HotModuleReplacementPlugin {
   fn name(&self) -> &'static str {
     "rspack.HotModuleReplacementPlugin"
+  }
+
+  fn apply(
+    &self,
+    _ctx: PluginContext<&mut ApplyContext>,
+    options: &mut CompilerOptions,
+  ) -> Result<()> {
+    options.dev_server.hot = true;
+    Ok(())
   }
 
   async fn compilation(

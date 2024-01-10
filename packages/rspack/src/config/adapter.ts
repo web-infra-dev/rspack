@@ -11,7 +11,6 @@ import type {
 	RawAssetGeneratorDataUrl,
 	RawAssetInlineGeneratorOptions,
 	RawAssetResourceGeneratorOptions,
-	RawIncrementalRebuild,
 	RawModuleRuleUses,
 	RawFuncUseCtx,
 	RawRspackFuture,
@@ -51,7 +50,6 @@ import {
 	AssetParserOptions,
 	ParserOptionsByModuleType,
 	GeneratorOptionsByModuleType,
-	IncrementalRebuildOptions,
 	RspackFutureOptions,
 	JavascriptParserOptions,
 	LibraryName,
@@ -69,12 +67,7 @@ export type { LoaderContext, LoaderDefinition, LoaderDefinitionFunction };
 
 export const getRawOptions = (
 	options: RspackOptionsNormalized,
-	compiler: Compiler,
-	processResource: (
-		loaderContext: LoaderContext,
-		resourcePath: string,
-		callback: any
-	) => void
+	compiler: Compiler
 ): RawOptions => {
 	assert(
 		!isNil(options.context) && !isNil(options.devtool) && !isNil(options.cache),
@@ -100,9 +93,6 @@ export const getRawOptions = (
 		devtool,
 		optimization: getRawOptimization(options.optimization),
 		stats: getRawStats(options.stats),
-		devServer: {
-			hot: options.devServer?.hot ?? false
-		},
 		snapshot: getRawSnapshotOptions(options.snapshot),
 		cache: {
 			type: options.cache ? "memory" : "disable",
@@ -355,15 +345,6 @@ function tryMatch(payload: string, condition: RuleSetCondition): boolean {
 	return false;
 }
 
-const deprecatedRuleType = (type?: string) => {
-	type ??= "javascript/auto";
-	if (/ts|typescript|tsx|typescriptx|jsx|javascriptx/.test(type)) {
-		deprecatedWarn(
-			`'Rule.type: ${type}' has been deprecated, please migrate to builtin:swc-loader with type 'javascript/auto'`
-		);
-	}
-};
-
 const getRawModuleRule = (
 	rule: RuleSetRule,
 	path: string,
@@ -487,9 +468,6 @@ const getRawModuleRule = (
 
 			return true;
 		});
-	}
-	if (options.experiments.rspackFuture.disableTransformByDefault) {
-		deprecatedRuleType(rule.type);
 	}
 	return rawModuleRule;
 };
@@ -749,17 +727,12 @@ function getRawSnapshotOptions(
 function getRawExperiments(
 	experiments: ExperimentsNormalized
 ): RawOptions["experiments"] {
-	const { incrementalRebuild, newSplitChunks, topLevelAwait, rspackFuture } =
-		experiments;
+	const { newSplitChunks, topLevelAwait, rspackFuture } = experiments;
 	assert(
-		!isNil(incrementalRebuild) &&
-			!isNil(newSplitChunks) &&
-			!isNil(topLevelAwait) &&
-			!isNil(rspackFuture)
+		!isNil(newSplitChunks) && !isNil(topLevelAwait) && !isNil(rspackFuture)
 	);
 
 	return {
-		incrementalRebuild: getRawIncrementalRebuild(incrementalRebuild),
 		newSplitChunks,
 		topLevelAwait,
 		rspackFuture: getRawRspackFutureOptions(rspackFuture)
@@ -769,30 +742,9 @@ function getRawExperiments(
 function getRawRspackFutureOptions(
 	future: RspackFutureOptions
 ): RawRspackFuture {
-	assert(!isNil(future.newResolver));
 	assert(!isNil(future.newTreeshaking));
-	assert(!isNil(future.disableTransformByDefault));
 	return {
-		newResolver: future.newResolver,
-		newTreeshaking: future.newTreeshaking,
-		disableTransformByDefault: future.disableTransformByDefault
-	};
-}
-
-function getRawIncrementalRebuild(
-	inc: false | IncrementalRebuildOptions
-): RawIncrementalRebuild {
-	if (inc === false) {
-		return {
-			make: false,
-			emitAsset: false
-		};
-	}
-	const { make, emitAsset } = inc;
-	assert(!isNil(make) && !isNil(emitAsset));
-	return {
-		make,
-		emitAsset
+		newTreeshaking: future.newTreeshaking
 	};
 }
 

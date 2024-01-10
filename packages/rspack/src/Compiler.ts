@@ -209,25 +209,6 @@ class Compiler {
 			return callback(null, this.#_instance);
 		}
 
-		const processResource = (
-			loaderContext: LoaderContext,
-			resourcePath: string,
-			callback: any
-		) => {
-			const resource = loaderContext.resource;
-			const scheme = getScheme(resource);
-			this.compilation
-				.currentNormalModuleHooks()
-				.readResource.for(scheme)
-				.callAsync(loaderContext, (err: any, result: LoaderResult) => {
-					if (err) return callback(err);
-					if (typeof result !== "string" && !result) {
-						return callback(new Error(`Unhandled ${scheme} resource`));
-					}
-					return callback(null, result);
-				});
-		};
-
 		const options = this.options;
 		// TODO: remove this in v0.6
 		if (!options.experiments.rspackFuture!.disableApplyEntryLazily) {
@@ -239,7 +220,7 @@ class Compiler {
 			options,
 			this
 		) as any;
-		const rawOptions = getRawOptions(options, this, processResource);
+		const rawOptions = getRawOptions(options, this);
 
 		const instanceBinding: typeof binding = require("@rspack/binding");
 
@@ -369,10 +350,7 @@ class Compiler {
 				...outputOptions
 			},
 			// TODO: check why we need to have builtins otherwise this.#instance will fail to initialize Rspack
-			builtins: {
-				...this.options.builtins,
-				html: undefined
-			}
+			builtins: this.options.builtins
 		};
 		applyRspackOptionsDefaults(options);
 		const childCompiler = new Compiler(this.context, options);

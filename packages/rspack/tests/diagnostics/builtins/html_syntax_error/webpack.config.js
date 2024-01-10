@@ -1,9 +1,7 @@
+const { rspack } = require("@rspack/core");
+
 module.exports = {
-	builtins: {
-		html: [
-			{
-				template: "index.html"
-			}
-		]
-	}
+	plugins: [
+		new rspack.HtmlRspackPlugin({ template: "index.html" })
+	],
 }

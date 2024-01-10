@@ -19,6 +19,7 @@
     "react-refresh": "0.14.0"
   },
   "devDependencies": {
-    "@rspack/core": "workspace:*"
+    "@rspack/core": "workspace:*",
+    "@swc/helpers": "0.5.1"
   }
 }

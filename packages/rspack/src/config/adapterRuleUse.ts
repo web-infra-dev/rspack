@@ -229,17 +229,6 @@ type GetLoaderOptions = (
 	options: ComposeJsUseOptions
 ) => RuleSetLoaderWithOptions["options"];
 
-const getSassLoaderOptions: GetLoaderOptions = o => {
-	(o ??= {} as any).__exePath = require.resolve(
-		`sass-embedded-${process.platform}-${
-			process.arch
-		}/dart-sass-embedded/dart-sass-embedded${
-			process.platform === "win32" ? ".bat" : ""
-		}`
-	);
-	return o;
-};
-
 const getSwcLoaderOptions: GetLoaderOptions = (o, options) => {
 	if (o && typeof o === "object" && o.rspackExperiments) {
 		let expr = o.rspackExperiments;
@@ -266,16 +255,6 @@ function getBuiltinLoaderOptions(
 	o: RuleSetLoaderWithOptions["options"],
 	options: ComposeJsUseOptions
 ): RuleSetLoaderWithOptions["options"] {
-	if (identifier.startsWith(`${BUILTIN_LOADER_PREFIX}sass-loader`)) {
-		deprecatedWarn(
-			`'builtin:sass-loader' has been deprecated, please migrate to ${termlink(
-				"sass-loader",
-				"https://github.com/webpack-contrib/sass-loader"
-			)}`
-		);
-		return getSassLoaderOptions(o, options);
-	}
-
 	if (identifier.startsWith(`${BUILTIN_LOADER_PREFIX}swc-loader`)) {
 		return getSwcLoaderOptions(o, options);
 	}

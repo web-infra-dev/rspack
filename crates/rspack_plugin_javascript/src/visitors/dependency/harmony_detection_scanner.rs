@@ -52,7 +52,7 @@ impl Visit for HarmonyDetectionScanner<'_> {
   no_visit_ignored_stmt!();
 
   fn visit_program(&mut self, program: &'_ Program) {
-    let strict_harmony_module = matches!(self.module_type, ModuleType::JsEsm | ModuleType::JsxEsm);
+    let strict_harmony_module = matches!(self.module_type, ModuleType::JsEsm);
 
     let is_harmony = matches!(program, Program::Module(module) if module.body.iter().any(|s| matches!(s, ModuleItem::ModuleDecl(_))));
 

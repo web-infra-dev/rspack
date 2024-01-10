@@ -31,7 +31,6 @@ export class RspackDiffConfigPlugin implements RspackPluginInstance {
 
 		options.experiments ??= {};
 		options.experiments.rspackFuture ??= {};
-		options.experiments.rspackFuture.disableTransformByDefault = true;
 
 		if (typeof this.modifier === "function") {
 			this.modifier(compiler.options);
