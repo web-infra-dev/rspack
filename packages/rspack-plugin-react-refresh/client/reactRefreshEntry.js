@@ -49,12 +49,12 @@ if (process.env.NODE_ENV !== "production") {
 		if (!safeThis[$RefreshInjected$]) {
 			RefreshRuntime.injectIntoGlobalHook(safeThis);
 
-			// Empty implementation to avoid "ReferenceError: variable is not defined" in module which didn't pass builtin:react-refresh-loader
-			safeThis.$RefreshSig$ = () => type => type;
-			safeThis.$RefreshReg$ = () => {};
-
 			// Mark the runtime as injected to prevent double-injection
 			safeThis[$RefreshInjected$] = true;
 		}
+
+		// Empty implementation to avoid "ReferenceError: variable is not defined" in module which didn't pass builtin:react-refresh-loader
+		safeThis.$RefreshSig$ = safeThis.$RefreshSig$ || (() => type => type);
+		safeThis.$RefreshReg$ = safeThis.$RefreshReg$ || (() => {});
 	}
 }
