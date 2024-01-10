@@ -1,7 +1,8 @@
-import { AaBb } from "./src/foo";
-import { CcDd } from "./src/bar";
-
-it("should resolve right", () => {
-	expect(AaBb).toBe("Foo");
-	expect(CcDd).toBe("Bar");
-});
+import "./custom-name-tpl";
+import "./ignore-es-component";
+import "./ignore-style-component";
+import "./no-default";
+import "./style-css";
+import "./style-library";
+import "./style-tpl";
+import "./style-true";
