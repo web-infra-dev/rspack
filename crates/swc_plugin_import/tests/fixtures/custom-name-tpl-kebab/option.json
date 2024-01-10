@@ -3,7 +3,7 @@
     "pluginImport": [
       {
         "libraryName": "foo",
-        "customName": "foo/__custom_es__/{{kebabCase member }}"
+        "customName": "foo/__custom_es__/{{ kebabCase member }}"
       }
     ]
   }

@@ -4952,6 +4952,7 @@ dependencies = [
 name = "swc_plugin_import"
 version = "0.1.5"
 dependencies = [
+ "Inflector",
  "handlebars",
  "rustc-hash",
  "serde",
