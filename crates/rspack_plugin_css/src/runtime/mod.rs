@@ -4,13 +4,11 @@ use rspack_core::{
   ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
 };
 use rspack_identifier::Identifier;
-use rustc_hash::FxHashSet as HashSet;
-
-use super::{utils::chunk_has_css, BooleanMatcher};
-use crate::{
-  get_chunk_runtime_requirements,
-  runtime_module::{render_condition_map, stringify_chunks},
+use rspack_plugin_runtime::{
+  chunk_has_css, get_chunk_runtime_requirements, render_condition_map, stringify_chunks,
+  BooleanMatcher,
 };
+use rustc_hash::FxHashSet as HashSet;
 
 #[derive(Debug, Eq)]
 pub struct CssLoadingRuntimeModule {
@@ -83,12 +81,10 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         &stringify_chunks(&initial_chunk_ids_without_css, 0)
       )));
 
-      source.add(RawSource::from(
-        include_str!("runtime/css_loading.js").replace(
-          "__CROSS_ORIGIN_LOADING_PLACEHOLDER__",
-          &compilation.options.output.cross_origin_loading.to_string(),
-        ),
-      ));
+      source.add(RawSource::from(include_str!("./css_loading.js").replace(
+        "__CROSS_ORIGIN_LOADING_PLACEHOLDER__",
+        &compilation.options.output.cross_origin_loading.to_string(),
+      )));
 
       if with_loading {
         let chunk_loading_global_expr = format!(
@@ -97,16 +93,14 @@ impl RuntimeModule for CssLoadingRuntimeModule {
           &compilation.options.output.chunk_loading_global
         );
         source.add(RawSource::from(
-          include_str!("runtime/css_loading_with_loading.js")
+          include_str!("./css_loading_with_loading.js")
             .replace("$CHUNK_LOADING_GLOBAL_EXPR$", &chunk_loading_global_expr)
             .replace("CSS_MATCHER", &css_matcher.to_string()),
         ));
       }
 
       if with_hmr {
-        source.add(RawSource::from(include_str!(
-          "runtime/css_loading_with_hmr.js"
-        )));
+        source.add(RawSource::from(include_str!("./css_loading_with_hmr.js")));
       }
 
       source.boxed()
