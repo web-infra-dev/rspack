@@ -11,6 +11,7 @@ use std::{
 use dashmap::DashMap;
 use indexmap::{IndexMap, IndexSet};
 use once_cell::sync::OnceCell;
+use petgraph::algo::all_simple_paths;
 use rspack_ast::javascript::Ast;
 use rspack_error::{
   miette::{ErrReport, MietteError},
@@ -545,7 +546,7 @@ impl Module for ConcatenatedModule {
       module_to_info_map.insert(id, module_info);
     }
 
-    let all_used_name = HashSet::from_iter(RESERVED_NAMES.iter().map(|item| Atom::from(*item)));
+    let mut all_used_name = HashSet::from_iter(RESERVED_NAMES.iter().map(|item| Atom::from(*item)));
 
     for module in modules_with_info.iter() {
       let ModuleInfoOrReference::Concatenated(m) = module else {
@@ -570,18 +571,12 @@ impl Module for ConcatenatedModule {
 
             is_global_ident = true;
           }
-
-          if is_global_ident && ConcatenationScope::is_module_reference(&ident.id.sym) {
-            let Some(matched) = ConcatenationScope::match_module_reference(&ident.id.sym) else {
-              continue;
-            };
-            let related_info = &modules_with_info[matched.index];
-          } else {
-          }
+          all_used_name.insert(ident.id.sym.clone());
           info.idents.push(ident);
         }
       }
     }
+    for (id, info) in module_to_info_map.iter() {}
 
     todo!()
     // if let NormalModuleSource::BuiltSucceed(source) = &self.source {

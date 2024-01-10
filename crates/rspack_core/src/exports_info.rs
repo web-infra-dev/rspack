@@ -1364,6 +1364,8 @@ impl ExportInfo {
         map.insert(*k, v.clone());
       }
     }
+    self.max_target_is_set = true;
+    self.max_target = map;
     &self.max_target
   }
 
