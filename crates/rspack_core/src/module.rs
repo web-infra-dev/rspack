@@ -53,7 +53,7 @@ pub struct BuildInfo {
   pub json_data: Option<JsonValue>,
 }
 
-#[derive(Debug, Default, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum BuildMetaExportsType {
   #[default]
   Unset,
@@ -71,7 +71,7 @@ pub enum ExportsType {
   Dynamic,
 }
 
-#[derive(Debug, Default, Clone, Hash)]
+#[derive(Debug, Default, Clone, Copy, Hash)]
 pub enum BuildMetaDefaultObject {
   #[default]
   False,

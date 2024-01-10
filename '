@@ -284,13 +284,6 @@ impl ModuleInfo {
       ModuleInfo::Concatenated(c) => c.interop_default_access_used = v,
     }
   }
-
-  pub fn set_interop_default_access_name(&mut self, v: Option<Atom>) {
-    match self {
-      ModuleInfo::External(e) => e.interop_default_access_name = v,
-      ModuleInfo::Concatenated(c) => c.interop_default_access_name = v,
-    }
-  }
 }
 
 #[derive(Debug)]
@@ -557,7 +550,8 @@ impl Module for ConcatenatedModule {
       module_to_info_map.insert(id, module_info);
     }
 
-    let mut all_used_names = HashSet::from_iter(RESERVED_NAMES.iter().map(|item| item.to_string()));
+    let mut all_used_names =
+      HashSet::from_iter(RESERVED_NAMES.iter().map(|item| Atom::from(*item)));
 
     for module in modules_with_info.iter() {
       let ModuleInfoOrReference::Concatenated(m) = module else {
@@ -581,20 +575,20 @@ impl Module for ConcatenatedModule {
             info.global_scope_ident.push(ident.clone());
 
             is_global_ident = true;
-            all_used_names.insert(ident.id.sym.to_string());
+            all_used_names.insert(ident.id.sym.clone());
           }
           info.idents.push(ident);
         }
         let mut binding_to_ref = HashMap::default();
         for list in info.idents.group_by(|a, b| a.id.sym == b.id.sym) {
           let atom = list[0].id.sym.clone();
-          binding_to_ref.insert(atom, list.to_vec());
+          binding_to_ref.insert(atom, list.clone());
         }
         info.binding_to_ref = binding_to_ref;
       }
     }
 
-    for info in module_to_info_map.values_mut() {
+    for info in module_to_info_map.values() {
       // Get used names in the scope
 
       let module = compilation
@@ -603,43 +597,44 @@ impl Module for ConcatenatedModule {
         .expect("should have module identifier");
       let readable_identifier = module.readable_identifier(&context).to_string();
       let exports_type: Option<BuildMetaExportsType> =
-        module.build_meta().map(|item| item.exports_type);
+        module.build_meta().map(|item| *item.exports_type);
       let default_object: Option<BuildMetaDefaultObject> =
-        module.build_meta().map(|item| item.default_object);
+        module.build_meta().map(|item| *item.default_object);
       match info {
         // Handle concatenated type
         ModuleInfo::Concatenated(info) => {
           // Iterate over variables in moduleScope
-          for variable in info.module_scope_ident.iter() {
+          for variable in info.module_scope_ident {
             let name = &variable.id.sym;
 
             // Check if the name is already used
-            if all_used_names.contains(name.as_str()) {
+            if all_used_names.contains(sym) {
               // Find a new name and update references
               let new_name = Self::find_new_name(name, &all_used_names, None, &readable_identifier);
               all_used_names.insert(new_name.clone());
               info.internal_names.insert(name.clone(), new_name.clone());
 
               // Update source
-              let source = info.source.as_mut().expect("should have source");
+              let source = &info.source.expect("should have source");
 
-              if let Some(all_idents) = info.binding_to_ref.get(&name) {
-                for identifier in all_idents {
-                  let span = identifier.id.span();
-                  let low = span.real_lo();
-                  let high = span.real_hi();
-                  if identifier.shorthand {
-                    source.insert(low, &format!(": {}", new_name), None);
-                    continue;
-                  }
+              let all_idents = info.binding_to_ref.get(&name).unwrap_or_default();
 
-                  source.replace(low, high, &new_name, None);
+              for identifier in all_idents {
+                let span = identifier.id.span();
+                let low = span.real_lo();
+                let high = span.real_hi();
+                if identifier.shorthand {
+                  source.insert(low, format!(": {}", new_name), None);
+                  continue;
                 }
+
+                source.replace(low, high, &new_name, None);
               }
             } else {
               // Handle the case when the name is not already used
-              all_used_names.insert(name.to_string());
-              info.internal_names.insert(name.clone(), name.to_string());
+              all_used_names.insert(name.clone());
+              info.internal_names.insert(name, name.to_string());
+              top_level_declarations.insert(name.to_string());
             }
           }
 
@@ -648,11 +643,11 @@ impl Module for ConcatenatedModule {
             if let Some(ref namespace_export_symbol) = info.namespace_export_symbol {
               info.internal_names.get(namespace_export_symbol).cloned()
             } else {
-              Some(Self::find_new_name(
+              Some(find_new_name(
                 "namespaceObject",
                 &all_used_names,
                 None,
-                &readable_identifier,
+                readable_identifier,
               ))
             };
 
@@ -678,26 +673,6 @@ impl Module for ConcatenatedModule {
         );
         all_used_names.insert(external_name_interop.as_str().into());
         info.set_interop_namespace_object_name(Some(external_name_interop.as_str().into()));
-      }
-
-      if exports_type == Some(BuildMetaExportsType::Default)
-        && !matches!(default_object, Some(BuildMetaDefaultObject::Redirect))
-      {
-        let external_name_interop = Self::find_new_name(
-          "namespaceObject2",
-          &all_used_names,
-          None,
-          &readable_identifier,
-        );
-        all_used_names.insert(external_name_interop.as_str().into());
-        info.set_interop_namespace_object2_name(Some(external_name_interop.as_str().into()));
-      }
-
-      if exports_type == Some(BuildMetaExportsType::Dynamic) || exports_type.is_none() {
-        let external_name_interop =
-          Self::find_new_name("default", &all_used_names, None, &readable_identifier);
-        all_used_names.insert(external_name_interop.clone());
-        info.set_interop_default_access_name(Some(external_name_interop.as_str().into()));
       }
     }
 
