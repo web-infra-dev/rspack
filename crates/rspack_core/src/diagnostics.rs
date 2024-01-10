@@ -35,6 +35,12 @@ impl_diagnostic_transparent!(EmptyDependency);
 
 ///////////////////// Module /////////////////////
 
+#[derive(Debug, Error)]
+#[error(transparent)]
+pub struct ModuleBuildError(Box<dyn Diagnostic + Send + Sync>);
+
+impl_diagnostic_transparent!(ModuleBuildError);
+
 /// Represent any errors or warnings during module parse
 /// This does NOT aligned with webpack as webpack does not have parse warning.
 /// However, rspack may create warning during parsing stage, taking CSS as an example.
