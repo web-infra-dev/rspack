@@ -16,11 +16,12 @@ export const commonOptions = (yargs: yargs.Argv) => {
 			type: "string",
 			describe: "output path dir"
 		},
-		mode: { type: "string", describe: "mode" },
+		mode: { type: "string", describe: "mode", alias: "m" },
 		watch: {
 			type: "boolean",
 			default: false,
-			describe: "watch"
+			describe: "watch",
+			alias: "w"
 		},
 		env: {
 			type: "array",
@@ -40,6 +41,12 @@ export const commonOptions = (yargs: yargs.Argv) => {
 			type: "array",
 			string: true,
 			describe: "Name of the configuration to use."
+		},
+		help: {
+			alias: "h"
+		},
+		version: {
+			alias: "v"
 		}
 	});
 };
