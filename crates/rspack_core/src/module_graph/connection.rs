@@ -29,8 +29,8 @@ pub struct ModuleGraphConnection {
 
   /// The referencing dependency id
   pub dependency_id: DependencyId,
-  active: bool,
-  conditional: bool,
+  pub active: bool,
+  pub conditional: bool,
 }
 
 impl Hash for ModuleGraphConnection {

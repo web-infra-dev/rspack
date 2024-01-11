@@ -351,8 +351,8 @@ impl Plugin for ModuleConcatenationPlugin {
       if used_modules.contains(&root_module_id) {
         continue;
       }
-      let modules = config.get_modules();
-      for m in modules {
+      let modules_set = config.get_modules();
+      for m in modules_set {
         used_modules.insert(*m);
       }
       let box_module = compilation
@@ -382,8 +382,7 @@ impl Plugin for ModuleConcatenationPlugin {
           .get_side_effects_connection_state(&compilation.module_graph, &mut HashSet::default()),
         build_meta: box_module.build_meta().cloned(),
       };
-      let modules = config
-        .modules
+      let modules = modules_set
         .iter()
         .map(|id| {
           let module = compilation
@@ -439,6 +438,18 @@ impl Plugin for ModuleConcatenationPlugin {
         .module_graph
         .clone_module_attributes(&root_module_id, &new_module.id());
       // integrate
+      for m in modules_set {
+        if m == &root_module_id {
+          continue;
+        }
+        compilation
+          .module_graph
+          .copy_outgoing_module_connections(m, &new_module.id(), |c, mg| {
+            let dep = c.dependency_id.get_dependency(mg);
+            c.original_module_identifier.as_ref() == Some(m)
+              && !(is_harmony_dep_like(dep) && modules_set.contains(&c.module_identifier))
+          });
+      }
     }
     Ok(())
   }

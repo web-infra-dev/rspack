@@ -128,6 +128,109 @@ impl ModuleGraph {
     new_mgm.is_async = assing_tuple.4;
   }
 
+  pub fn copy_outgoing_module_connections<F>(
+    &mut self,
+    old_module: &ModuleIdentifier,
+    new_module: &ModuleIdentifier,
+    filter_connection: F,
+  ) where
+    F: Fn(&ModuleGraphConnection, &ModuleGraph) -> bool,
+  {
+    if old_module == new_module {
+      return;
+    }
+
+    let old_mgm = self
+      .module_graph_module_by_identifier(old_module)
+      .expect("should have mgm");
+    let old_connections = old_mgm
+      .outgoing_connections_unordered(self)
+      .map(|cons| cons.copied().collect::<Vec<_>>());
+    let new_mgm = self
+      .module_graph_module_by_identifier_mut(new_module)
+      .expect("should have mgm");
+    let mut new_connections = std::mem::take(&mut new_mgm.outgoing_connections);
+
+    // Outgoing connections
+    if let Ok(old_connections) = old_connections {
+      for connection in old_connections.into_iter() {
+        if filter_connection(&connection, &*self) {
+          let mut new_connection_id = self.clone_module_graph_connection(
+            &connection,
+            Some(*new_module),
+            connection.module_identifier,
+          );
+          new_connections.insert(new_connection_id);
+        }
+      }
+    }
+
+    // shadowing the mutable ref to avoid violating rustc borrow rules
+    let new_mgm = self
+      .module_graph_module_by_identifier_mut(new_module)
+      .expect("should have mgm");
+    new_mgm.outgoing_connections == new_connections;
+  }
+
+  pub fn clone_module_graph_connection(
+    &mut self,
+    old_con: &ModuleGraphConnection,
+    original_module_identifier: Option<ModuleIdentifier>,
+    module_identifier: ModuleIdentifier,
+  ) -> ConnectionId {
+    // let old_con_id = self.connection_id_by_dependency_id(&old_con.dependency_id);
+    let new_connection = ModuleGraphConnection::new(
+      original_module_identifier,
+      old_con.dependency_id,
+      module_identifier,
+      old_con.active,
+      old_con.conditional,
+    );
+
+    let new_connection_id = {
+      let new_connection_id = ConnectionId::from(self.connections.len());
+      self.connections.push(Some(new_connection));
+      self
+        .connections_map
+        .insert(new_connection, new_connection_id);
+      new_connection_id
+    };
+
+    // clone condition
+    if let Some(condition) = self.connection_to_condition.get(old_con) {
+      self
+        .connection_to_condition
+        .insert(new_connection, condition.clone());
+    }
+
+    self
+      .dependency_id_to_connection_id
+      .insert(new_connection.dependency_id, new_connection_id);
+
+    self
+      .connection_id_to_dependency_id
+      .insert(new_connection_id, new_connection.dependency_id);
+
+    {
+      let mgm = self
+        .module_graph_module_by_identifier_mut(&module_identifier)
+        .unwrap_or_else(|| {
+          panic!(
+            "Failed to set resolved module: Module linked to module identifier {module_identifier} cannot be found"
+          )
+        });
+
+      mgm.add_incoming_connection(new_connection_id);
+    }
+
+    if let Some(identifier) = original_module_identifier
+      && let Some(original_mgm) = self.module_graph_module_by_identifier_mut(&identifier)
+    {
+      original_mgm.add_outgoing_connection(new_connection_id);
+    };
+    new_connection_id
+  }
+
   pub fn get_depth(&self, module_id: &ModuleIdentifier) -> Option<usize> {
     let mgm = self
       .module_graph_module_by_identifier(module_id)
