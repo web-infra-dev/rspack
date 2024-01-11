@@ -191,7 +191,8 @@ export const enum BuiltinPluginName {
   CopyRspackPlugin = 'CopyRspackPlugin',
   HtmlRspackPlugin = 'HtmlRspackPlugin',
   SwcJsMinimizerRspackPlugin = 'SwcJsMinimizerRspackPlugin',
-  SwcCssMinimizerRspackPlugin = 'SwcCssMinimizerRspackPlugin'
+  SwcCssMinimizerRspackPlugin = 'SwcCssMinimizerRspackPlugin',
+  BundlerInfoPlugin = 'BundlerInfoPlugin'
 }
 
 export function cleanupGlobalTrace(): void
@@ -620,6 +621,11 @@ export interface RawBannerPluginOptions {
 export interface RawBuiltins {
   css?: RawCssPluginConfig
   treeShaking: string
+}
+
+export interface RawBundlerInfoPluginOptions {
+  version: string
+  mode: string | string[]
 }
 
 export interface RawCacheGroupOptions {
