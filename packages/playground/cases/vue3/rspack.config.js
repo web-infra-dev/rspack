@@ -44,7 +44,6 @@ module.exports = {
 			}
 		]
 	},
-	cache: false,
 	stats: "errors-warnings",
 	infrastructureLogging: {
 		debug: false

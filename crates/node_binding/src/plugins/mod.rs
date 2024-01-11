@@ -148,7 +148,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
     &self,
     _ctx: rspack_core::PluginContext,
     _compilation: &mut rspack_core::Compilation,
-    _param: &mut rspack_core::MakeParam,
+    _params: &mut Vec<rspack_core::MakeParam>,
   ) -> rspack_core::PluginMakeHookOutput {
     if self.is_hook_disabled(&Hook::Make) {
       return Ok(());

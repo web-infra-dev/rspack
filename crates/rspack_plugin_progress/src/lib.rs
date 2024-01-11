@@ -154,7 +154,7 @@ impl Plugin for ProgressPlugin {
     &self,
     _ctx: PluginContext,
     _compilation: &mut Compilation,
-    _param: &mut MakeParam,
+    _params: &mut Vec<MakeParam>,
   ) -> PluginMakeHookOutput {
     if !self.options.profile {
       self.progress_bar.reset();

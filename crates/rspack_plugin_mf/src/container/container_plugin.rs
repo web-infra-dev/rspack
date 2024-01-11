@@ -69,7 +69,7 @@ impl Plugin for ContainerPlugin {
     &self,
     _ctx: PluginContext,
     compilation: &mut Compilation,
-    param: &mut MakeParam,
+    params: &mut Vec<MakeParam>,
   ) -> PluginMakeHookOutput {
     let dep = ContainerEntryDependency::new(
       self.options.name.clone(),
@@ -87,7 +87,8 @@ impl Plugin for ContainerPlugin {
         ..Default::default()
       },
     )?;
-    param.add_force_build_dependency(dependency_id, None);
+
+    params.push(MakeParam::new_force_build_dep_param(dependency_id, None));
     Ok(())
   }
 
