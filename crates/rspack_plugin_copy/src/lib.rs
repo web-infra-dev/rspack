@@ -418,8 +418,9 @@ impl CopyRspackPlugin {
           .collect();
 
         if need_add_context_to_dependency
-          && let Some(common_dir) =
-            get_closest_common_parent_dir(&entries.iter().map(|it| it.as_path()).collect())
+          && let Some(common_dir) = get_closest_common_parent_dir(
+            &entries.iter().map(|it| it.as_path()).collect::<Vec<_>>(),
+          )
         {
           context_dependencies.insert(common_dir);
         }
@@ -602,7 +603,7 @@ impl Plugin for CopyRspackPlugin {
   }
 }
 
-fn get_closest_common_parent_dir(paths: &Vec<&Path>) -> Option<PathBuf> {
+fn get_closest_common_parent_dir(paths: &[&Path]) -> Option<PathBuf> {
   // If there are no matching files, return `None`.
   if paths.is_empty() {
     return None;
