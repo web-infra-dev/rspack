@@ -449,7 +449,26 @@ impl Plugin for ModuleConcatenationPlugin {
             c.original_module_identifier.as_ref() == Some(m)
               && !(is_harmony_dep_like(dep) && modules_set.contains(&c.module_identifier))
           });
+        // TODO: optimize asset module https://github.com/webpack/webpack/pull/15515/files
+        for chunk_ukey in compilation
+          .chunk_graph
+          .get_module_chunks(root_module_id)
+          .clone()
+        {
+          compilation
+            .chunk_graph
+            .disconnect_chunk_and_module(&chunk_ukey, *m);
+        }
       }
+      compilation
+        .module_graph
+        .module_identifier_to_module
+        .remove(&root_module_id);
+      // compilation.chunk_graph.clear
+
+      compilation
+        .chunk_graph
+        .replace_module(&root_module_id, &new_module.id());
     }
     Ok(())
   }
