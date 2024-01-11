@@ -1,5 +1,5 @@
 module.exports =  {
-    "forceExit": true,
+    "forceExit": false,
     "setupFiles": [
       "<rootDir>/setupEnv.js"
     ],
