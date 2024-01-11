@@ -111,7 +111,7 @@ where
     );
 
     self
-      .compile(MakeParam::ForceBuildDeps(Default::default()))
+      .compile(vec![MakeParam::ForceBuildDeps(Default::default())])
       .await?;
     self.cache.begin_idle();
     self.compile_done().await?;
@@ -119,7 +119,7 @@ where
   }
 
   #[instrument(name = "compile", skip_all)]
-  async fn compile(&mut self, params: MakeParam) -> Result<()> {
+  async fn compile(&mut self, params: Vec<MakeParam>) -> Result<()> {
     let compilation_params = self.new_compilation_params();
     self
       .plugin_driver

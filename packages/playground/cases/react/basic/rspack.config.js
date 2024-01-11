@@ -42,7 +42,6 @@ module.exports = {
 	devServer: {
 		hot: true
 	},
-	cache: false,
 	stats: "none",
 	infrastructureLogging: {
 		debug: false

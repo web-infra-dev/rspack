@@ -40,7 +40,7 @@ impl Plugin for EntryPlugin {
     &self,
     _ctx: PluginContext,
     compilation: &mut Compilation,
-    param: &mut MakeParam,
+    params: &mut Vec<MakeParam>,
   ) -> PluginMakeHookOutput {
     if let Some(state) = compilation.options.get_incremental_rebuild_make_state()
       && !state.is_first()
@@ -53,7 +53,8 @@ impl Plugin for EntryPlugin {
     ));
     let dependency_id = *dependency.id();
     compilation.add_entry(dependency, self.options.clone())?;
-    param.add_force_build_dependency(dependency_id, None);
+
+    params.push(MakeParam::new_force_build_dep_param(dependency_id, None));
     Ok(())
   }
 }

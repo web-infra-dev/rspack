@@ -432,13 +432,13 @@ impl Compilation {
   }
 
   #[instrument(name = "compilation:make", skip_all)]
-  pub async fn make(&mut self, mut param: MakeParam) -> Result<()> {
+  pub async fn make(&mut self, mut params: Vec<MakeParam>) -> Result<()> {
     let logger = self.get_logger("rspack.Compilation");
     let start = logger.time("make hook");
     if let Some(e) = self
       .plugin_driver
       .clone()
-      .make(self, &mut param)
+      .make(self, &mut params)
       .await
       .err()
     {
@@ -450,9 +450,9 @@ impl Compilation {
     let make_failed_dependencies =
       MakeParam::ForceBuildDeps(std::mem::take(&mut self.make_failed_dependencies));
 
-    self
-      .update_module_graph(vec![param, make_failed_module, make_failed_dependencies])
-      .await
+    params.push(make_failed_module);
+    params.push(make_failed_dependencies);
+    self.update_module_graph(params).await
   }
 
   pub async fn rebuild_module(
@@ -534,7 +534,7 @@ impl Compilation {
     let mut build_queue = BuildQueue::new();
     let mut process_dependencies_queue = ProcessDependenciesQueue::new();
     let mut make_failed_dependencies: HashSet<BuildDependency> = HashSet::default();
-    let mut make_failed_module = HashSet::default();
+    let mut make_failed_module: HashSet<ModuleIdentifier> = HashSet::default();
     let mut errored = None;
 
     deps_builder
@@ -723,7 +723,11 @@ impl Compilation {
                 diagnostics,
               } = task_result;
               if !diagnostics.is_empty() {
-                make_failed_dependencies.insert((dependencies[0], original_module_identifier));
+                if let Some(id) = original_module_identifier {
+                  make_failed_module.insert(id);
+                } else {
+                  make_failed_dependencies.insert((dependencies[0], None));
+                }
               }
 
               self.push_batch_diagnostic(

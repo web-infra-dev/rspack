@@ -27,6 +27,25 @@ impl RebuildDepsBuilder {
             }
           }))
         }
+        MakeParam::DeletedFiles(files) => {
+          builder.extend_force_build_modules(module_graph.modules().values().flat_map(|module| {
+            let mut res: Vec<ModuleIdentifier> = vec![];
+
+            // check has dependencies modified
+            if module_graph.has_dependencies(&module.identifier(), &files) {
+              // module id
+              res.push(module.identifier());
+              // parent module id
+              res.extend(
+                module_graph
+                  .get_incoming_connections(module)
+                  .iter()
+                  .filter_map(|connect| connect.original_module_identifier),
+              )
+            }
+            res
+          }))
+        }
         MakeParam::ForceBuildDeps(deps) => {
           builder.extend_force_build_deps(module_graph, deps);
         }

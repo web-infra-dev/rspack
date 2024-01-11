@@ -80,7 +80,7 @@ pub trait Plugin: Debug + Send + Sync {
     &self,
     _ctx: PluginContext,
     _compilation: &mut Compilation,
-    _param: &mut MakeParam,
+    _params: &mut Vec<MakeParam>,
   ) -> PluginMakeHookOutput {
     Ok(())
   }

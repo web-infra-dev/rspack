@@ -541,11 +541,11 @@ impl PluginDriver {
   pub async fn make(
     &self,
     compilation: &mut Compilation,
-    param: &mut MakeParam,
+    params: &mut Vec<MakeParam>,
   ) -> PluginMakeHookOutput {
     for plugin in &self.plugins {
       plugin
-        .make(PluginContext::new(), compilation, param)
+        .make(PluginContext::new(), compilation, params)
         .await?;
     }
     Ok(())
