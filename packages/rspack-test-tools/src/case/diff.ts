@@ -125,7 +125,9 @@ function createDiffProcessor(config: IDiffProcessorOptions) {
 		ignoreObjectPropertySequence: config.ignoreObjectPropertySequence ?? true,
 		ignoreCssFilePath: config.ignoreCssFilePath ?? true,
 		onCompareModules: createCompareResultHandler("modules"),
-		onCompareRuntimeModules: createCompareResultHandler("runtimeModules")
+		onCompareRuntimeModules: createCompareResultHandler("runtimeModules"),
+		bootstrap: config.bootstrap ?? true,
+		detail: config.detail ?? true
 	});
 
 	return [processor, fileCompareMap] as [
