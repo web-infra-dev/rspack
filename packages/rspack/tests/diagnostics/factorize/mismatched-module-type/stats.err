@@ -1,4 +1,5 @@
-ERROR in ./app.js ModuleParseError
+ERROR in ./app.js
+ModuleParseError
 
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Unterminated regexp literal
@@ -12,7 +13,8 @@ ERROR in ./app.js ModuleParseError
   help: 
         You may need an appropriate loader to handle this file type.
 
-ERROR in ./app.js ModuleParseError
+ERROR in ./app.js
+ModuleParseError
 
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expression expected
@@ -26,7 +28,8 @@ ERROR in ./app.js ModuleParseError
   help: 
         You may need an appropriate loader to handle this file type.
 
-ERROR in ./app.js ModuleParseError
+ERROR in ./app.js
+ModuleParseError
 
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expression expected
@@ -40,7 +43,8 @@ ERROR in ./app.js ModuleParseError
   help: 
         You may need an appropriate loader to handle this file type.
 
-ERROR in ./app.jsx ModuleParseError
+ERROR in ./app.jsx
+ModuleParseError
 
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Unterminated regexp literal
@@ -54,7 +58,8 @@ ERROR in ./app.jsx ModuleParseError
   help: 
         You may need an appropriate loader to handle this file type.
 
-ERROR in ./app.jsx ModuleParseError
+ERROR in ./app.jsx
+ModuleParseError
 
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expression expected
@@ -68,7 +73,8 @@ ERROR in ./app.jsx ModuleParseError
   help: 
         You may need an appropriate loader to handle this file type.
 
-ERROR in ./app.jsx ModuleParseError
+ERROR in ./app.jsx
+ModuleParseError
 
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expression expected
@@ -82,7 +88,8 @@ ERROR in ./app.jsx ModuleParseError
   help: 
         You may need an appropriate loader to handle this file type.
 
-ERROR in ./app.ts ModuleParseError
+ERROR in ./app.ts
+ModuleParseError
 
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expected ',', got ':'
@@ -97,4 +104,5 @@ ERROR in ./app.ts ModuleParseError
   help: 
         You may need an appropriate loader to handle this file type.
 
-ERROR in ./index.js   × No parser registered for 'ts'
+ERROR in ./index.js
+  × No parser registered for 'ts'

@@ -101,6 +101,7 @@ pub struct NormalModuleAfterResolveArgs<'a> {
 #[derive(Debug)]
 pub struct ResolveArgs<'a> {
   pub importer: Option<&'a ModuleIdentifier>,
+  pub issuer: Option<&'a str>,
   pub context: Context,
   pub specifier: &'a str,
   pub dependency_type: &'a DependencyType,

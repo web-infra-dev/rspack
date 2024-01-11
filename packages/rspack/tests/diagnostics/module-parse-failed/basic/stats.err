@@ -1,4 +1,5 @@
-ERROR in ./index.js ModuleParseError
+ERROR in ./index.js
+ModuleParseError
 
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expected ',', got ':'

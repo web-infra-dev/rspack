@@ -114,3 +114,62 @@ pub fn map_box_diagnostics_to_module_parse_diagnostics(
     .map(|e| rspack_error::miette::Error::new(ModuleParseError::new(e, loaders)).into())
     .collect()
 }
+
+///////////////////// Diagnostic helpers /////////////////////
+
+/// Wrap diagnostic with additional help message.
+#[derive(Debug, Error)]
+#[error("{0}")]
+pub struct WithHelp(Box<dyn Diagnostic + Send + Sync>, Option<String>);
+
+impl WithHelp {
+  pub fn with_help(mut self, help: impl Into<String>) -> Self {
+    let mut help = help.into();
+    if let Some(prev) = self.0.help().map(|h| h.to_string()) {
+      help = format!("{prev}\n{help}");
+    }
+    self.1 = Some(help);
+    self
+  }
+}
+
+impl From<Box<dyn Diagnostic + Send + Sync>> for WithHelp {
+  fn from(value: Box<dyn Diagnostic + Send + Sync>) -> Self {
+    Self(value, None)
+  }
+}
+
+impl miette::Diagnostic for WithHelp {
+  fn code<'a>(&'a self) -> Option<Box<dyn Display + 'a>> {
+    (*self.0).code()
+  }
+
+  fn severity(&self) -> Option<miette::Severity> {
+    (*self.0).severity()
+  }
+
+  fn help<'a>(&'a self) -> Option<Box<dyn Display + 'a>> {
+    // Use overwritten help message instead.
+    self.1.as_ref().map(Box::new).map(|h| h as Box<dyn Display>)
+  }
+
+  fn url<'a>(&'a self) -> Option<Box<dyn Display + 'a>> {
+    (*self.0).url()
+  }
+
+  fn source_code(&self) -> Option<&dyn miette::SourceCode> {
+    (*self.0).source_code()
+  }
+
+  fn labels(&self) -> Option<Box<dyn Iterator<Item = miette::LabeledSpan> + '_>> {
+    (*self.0).labels()
+  }
+
+  fn related<'a>(&'a self) -> Option<Box<dyn Iterator<Item = &'a dyn miette::Diagnostic> + 'a>> {
+    (*self.0).related()
+  }
+
+  fn diagnostic_source(&self) -> Option<&dyn Diagnostic> {
+    (*self.0).diagnostic_source()
+  }
+}

@@ -1,4 +1,5 @@
-WARNING in ./index.css ModuleParseWarning
+WARNING in ./index.css
+ModuleParseWarning
 
   ⚠ Module parse warning:
   ╰─▶   ⚠ css: Deprecated '~'

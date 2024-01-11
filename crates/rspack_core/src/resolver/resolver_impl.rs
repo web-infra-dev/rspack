@@ -5,7 +5,8 @@ use std::{
 };
 
 use rspack_error::{
-  error, miette::miette, DiagnosticError, Error, ErrorExt, Severity, TraceableError,
+  miette::{diagnostic, Diagnostic},
+  DiagnosticExt, Severity, TraceableError,
 };
 use rspack_loader_runner::DescriptionData;
 use rustc_hash::FxHashSet as HashSet;
@@ -176,7 +177,7 @@ impl Resolver {
 }
 
 impl ResolveInnerError {
-  pub fn into_resolve_error(self, args: &ResolveArgs<'_>) -> Error {
+  pub fn into_resolve_error(self, args: &ResolveArgs<'_>) -> Box<dyn Diagnostic + Send + Sync> {
     match self {
       Self::OxcResolver(error) => map_oxc_resolver_error(error, args),
     }
@@ -283,22 +284,28 @@ fn to_oxc_resolver_options(
   }
 }
 
-fn map_oxc_resolver_error(error: oxc_resolver::ResolveError, args: &ResolveArgs<'_>) -> Error {
+fn map_oxc_resolver_error(
+  error: oxc_resolver::ResolveError,
+  args: &ResolveArgs<'_>,
+) -> Box<dyn Diagnostic + Send + Sync> {
   match error {
-    oxc_resolver::ResolveError::IOError(error) => DiagnosticError::from(error.boxed()).into(),
+    oxc_resolver::ResolveError::IOError(error) => diagnostic!("{}", error).boxed(),
     oxc_resolver::ResolveError::Recursion => map_resolver_error(true, args),
     oxc_resolver::ResolveError::NotFound(_) => map_resolver_error(false, args),
-    _ => error!("{}", error),
+    _ => diagnostic!("{}", error).boxed(),
   }
 }
 
-fn map_resolver_error(is_recursion: bool, args: &ResolveArgs<'_>) -> Error {
+fn map_resolver_error(
+  is_recursion: bool,
+  args: &ResolveArgs<'_>,
+) -> Box<dyn Diagnostic + Send + Sync> {
   let request = &args.specifier;
   let context = &args.context;
 
   let importer = args.importer;
   if importer.is_none() {
-    return miette!("Resolve error: Can't resolve '{request}' in '{context}'");
+    return diagnostic!("Resolve error: Can't resolve '{request}' in '{context}'").boxed();
   }
 
   let span = args.span.unwrap_or_default();
@@ -322,5 +329,5 @@ fn map_resolver_error(is_recursion: bool, args: &ResolveArgs<'_>) -> Error {
       Severity::Error
     },
   )
-  .into()
+  .boxed()
 }

@@ -1,4 +1,5 @@
-ERROR in ./jsx.jsx ModuleParseError
+ERROR in ./jsx.jsx
+ModuleParseError
 
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expression expected
@@ -10,7 +11,8 @@ ERROR in ./jsx.jsx ModuleParseError
   help: 
         You may need an appropriate loader to handle this file type.
 
-ERROR in ./jsx.jsx ModuleParseError
+ERROR in ./jsx.jsx
+ModuleParseError
 
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expression expected
@@ -22,7 +24,8 @@ ERROR in ./jsx.jsx ModuleParseError
   help: 
         You may need an appropriate loader to handle this file type.
 
-ERROR in ./ts.ts ModuleParseError
+ERROR in ./ts.ts
+ModuleParseError
 
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expression expected
@@ -34,7 +37,8 @@ ERROR in ./ts.ts ModuleParseError
   help: 
         You may need an appropriate loader to handle this file type.
 
-ERROR in ./ts.ts ModuleParseError
+ERROR in ./ts.ts
+ModuleParseError
 
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: An arrow function is not allowed here
@@ -46,7 +50,8 @@ ERROR in ./ts.ts ModuleParseError
   help: 
         You may need an appropriate loader to handle this file type.
 
-ERROR in ./tsx.tsx ModuleParseError
+ERROR in ./tsx.tsx
+ModuleParseError
 
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expected '(', got '<'
