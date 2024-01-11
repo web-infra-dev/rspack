@@ -17,7 +17,7 @@ use rspack_error::{
   miette::{ErrReport, MietteError},
   AnyhowError, Diagnosable, Diagnostic, DiagnosticKind, ErrorExt, Result, TraceableError,
 };
-use rspack_hash::RspackHash;
+use rspack_hash::{HashDigest, HashFunction, RspackHash};
 use rspack_identifier::Identifiable;
 use rspack_sources::{BoxSource, CachedSource, ConcatSource, ReplaceSource, Source, SourceExt};
 use rspack_util::swc::join_atom;
@@ -49,16 +49,16 @@ use crate::{
 
 #[derive(Debug)]
 pub struct RootModuleContext {
-  id: ModuleIdentifier,
-  readable_identifier: String,
-  name_for_condition: Option<Box<str>>,
-  lib_indent: Option<String>,
-  resolve_options: Option<Box<Resolve>>,
-  code_generation_dependencies: Option<Vec<Box<dyn ModuleDependency>>>,
-  presentational_dependencies: Option<Vec<Box<dyn DependencyTemplate>>>,
-  context: Option<Box<Context>>,
-  side_effect_connection_state: ConnectionState,
-  build_meta: Option<BuildMeta>,
+  pub id: ModuleIdentifier,
+  pub readable_identifier: String,
+  pub name_for_condition: Option<Box<str>>,
+  pub lib_indent: Option<String>,
+  pub resolve_options: Option<Box<Resolve>>,
+  pub code_generation_dependencies: Option<Vec<Box<dyn ModuleDependency>>>,
+  pub presentational_dependencies: Option<Vec<Box<dyn DependencyTemplate>>>,
+  pub context: Option<Context>,
+  pub side_effect_connection_state: ConnectionState,
+  pub build_meta: Option<BuildMeta>,
 }
 
 #[derive(Debug, Clone)]
@@ -97,6 +97,7 @@ pub struct ConcatenatedInnerModule {
   id: ModuleIdentifier,
   size: f64,
   original_source: Option<BoxSource>,
+  shorten_id: String,
 }
 
 pub enum ConcatenationEntryType {
@@ -324,10 +325,10 @@ impl ModuleInfo {
 #[derive(Debug)]
 pub struct ConcatenatedModule {
   id: ModuleIdentifier,
+  /// Used to implementing [Module] trait for [ConcatenatedModule]
   root_module_ctxt: RootModuleContext,
   modules: Vec<ConcatenatedInnerModule>,
   runtime: Option<RuntimeSpec>,
-  factory_meta: Option<FactoryMeta>,
 
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   dependencies: Vec<DependencyId>,
@@ -345,7 +346,6 @@ impl ConcatenatedModule {
     root_module_ctxt: RootModuleContext,
     mut modules: Vec<ConcatenatedInnerModule>,
     runtime: Option<RuntimeSpec>,
-    factory_meta: Option<FactoryMeta>,
   ) -> Self {
     // make the hash consistant
     modules.sort_by(|a, b| a.id.cmp(&b.id));
@@ -354,7 +354,6 @@ impl ConcatenatedModule {
       root_module_ctxt,
       modules,
       runtime,
-      factory_meta,
       dependencies: vec![],
       blocks: vec![],
       cached_source_sizes: DashMap::default(),
@@ -362,6 +361,39 @@ impl ConcatenatedModule {
       cached_hash: OnceCell::default(),
       build_info: None,
     }
+  }
+
+  // TODO: caching https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L663-L664
+  pub fn create(
+    root_module_ctxt: RootModuleContext,
+    modules: Vec<ConcatenatedInnerModule>,
+    hash_function: Option<HashFunction>,
+    runtime: Option<RuntimeSpec>,
+  ) -> Self {
+    let id = Self::create_identifier(&root_module_ctxt, &modules, hash_function);
+    Self::new(id.as_str().into(), root_module_ctxt, modules, runtime)
+  }
+
+  fn create_identifier(
+    root_module_ctxt: &RootModuleContext,
+    modules: &Vec<ConcatenatedInnerModule>,
+    hash_function: Option<HashFunction>,
+  ) -> String {
+    let mut identifiers = vec![];
+    for m in modules {
+      identifiers.push(m.shorten_id.clone());
+    }
+    identifiers.sort();
+    let mut hash = RspackHash::new(&hash_function.unwrap_or(HashFunction::MD4));
+    if let Some(id) = identifiers.first() {
+      hash.write(id.as_bytes());
+    }
+    for id in identifiers.iter().skip(1) {
+      hash.write(b" ");
+      hash.write(id.as_bytes());
+    }
+    let res = hash.digest(&HashDigest::Hex);
+    format!("{}|{}", root_module_ctxt.id, res.encoded())
   }
 
   pub fn id(&self) -> ModuleIdentifier {
@@ -840,50 +872,6 @@ impl Module for ConcatenatedModule {
     code_generation_result.chunk_init_fragments = vec![];
     code_generation_result.runtime_requirements = RuntimeGlobals::default();
     Ok(code_generation_result)
-    //   for source_type in self.source_types() {
-    //     let generation_result = self.parser_and_generator.generate(
-    //       source,
-    //       self,
-    //       &mut GenerateContext {
-    //         compilation,
-    //         module_generator_options: self.generator_options.as_ref(),
-    //         runtime_requirements: &mut code_generation_result.runtime_requirements,
-    //         data: &mut code_generation_result.data,
-    //         requested_source_type: *source_type,
-    //         runtime,
-    //       },
-    //     )?;
-    //   }
-    //   code_generation_result.set_hash(
-    //     &compilation.options.output.hash_function,
-    //     &compilation.options.output.hash_digest,
-    //     &compilation.options.output.hash_salt,
-    //   );
-    //   Ok(code_generation_result)
-    // } else if let NormalModuleSource::BuiltFailed(error_message) = &self.source {
-    //   let mut code_generation_result = CodeGenerationResult::default();
-    //
-    //   // If the module build failed and the module is able to emit JavaScript source,
-    //   // we should emit an error message to the runtime, otherwise we do nothing.
-    //   if self.source_types().contains(&SourceType::JavaScript) {
-    //     let error = error_message.render_report(compilation.options.stats.colors)?;
-    //     code_generation_result.add(
-    //       SourceType::JavaScript,
-    //       RawSource::from(format!("throw new Error({});\n", json!(error))).boxed(),
-    //     );
-    //   }
-    //   code_generation_result.set_hash(
-    //     &compilation.options.output.hash_function,
-    //     &compilation.options.output.hash_digest,
-    //     &compilation.options.output.hash_salt,
-    //   );
-    //   Ok(code_generation_result)
-    // } else {
-    //   Err(error!(
-    //     "Failed to generate code because ast or source is not set for module {}",
-    //     self.request
-    //   ))
-    // }
   }
 
   fn name_for_condition(&self) -> Option<Box<str>> {
@@ -922,7 +910,7 @@ impl Module for ConcatenatedModule {
   }
 
   fn get_context(&self) -> Option<Box<Context>> {
-    self.root_module_ctxt.context.clone()
+    self.root_module_ctxt.context.clone().map(Box::new)
   }
 
   // Port from https://github.com/webpack/webpack/blob/main/lib/ConcatenatedModule.js#L1120

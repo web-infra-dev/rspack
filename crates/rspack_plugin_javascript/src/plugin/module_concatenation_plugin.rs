@@ -2,11 +2,12 @@ use std::cmp::Ordering;
 use std::os::unix::prelude::OpenOptionsExt;
 use std::sync::Arc;
 
-use rspack_core::concatenated_module::is_harmony_dep_like;
+use rspack_core::concatenated_module::{is_harmony_dep_like, RootModuleContext};
 use rspack_core::{
   filter_runtime, merge_runtime, BoxDependency, Compilation, ExportInfoProvided,
-  ExtendedReferencedExport, Logger, ModuleGraph, ModuleIdentifier, OptimizeChunksArgs, Plugin,
-  ProvidedExports, RuntimeCondition, RuntimeSpec, WrappedModuleIdentifier,
+  ExtendedReferencedExport, LibIdentOptions, Logger, ModuleGraph, ModuleIdentifier,
+  OptimizeChunksArgs, Plugin, ProvidedExports, RuntimeCondition, RuntimeSpec,
+  WrappedModuleIdentifier,
 };
 use rspack_error::Result;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
@@ -339,10 +340,44 @@ impl Plugin for ModuleConcatenationPlugin {
     logger.time_end(start);
 
     let start = logger.time("create concatenated modules");
-    // let mut used_modules = HashSet::default();
-    // for config in concat_configurations {
-    //   let root_module = config.root_module;
-    // }
+    let mut used_modules = HashSet::default();
+    for config in concat_configurations {
+      let root_module_id = config.root_module;
+      if used_modules.contains(&root_module_id) {
+        continue;
+      }
+      let modules = config.get_modules();
+      for m in modules {
+        used_modules.insert(*m);
+      }
+      let box_module = compilation
+        .module_graph
+        .module_by_identifier(&root_module_id)
+        .expect("should have module");
+      let root_module_ctxt = RootModuleContext {
+        id: root_module_id,
+        readable_identifier: box_module
+          .readable_identifier(&compilation.options.context)
+          .to_string(),
+        name_for_condition: box_module.name_for_condition().clone(),
+        lib_indent: box_module
+          .lib_ident(LibIdentOptions {
+            context: compilation.options.context.as_str(),
+          })
+          .map(|id| id.to_string()),
+        resolve_options: box_module.get_resolve_options().clone(),
+        code_generation_dependencies: box_module
+          .get_code_generation_dependencies()
+          .map(|deps| deps.into_iter().cloned().collect::<Vec<_>>()),
+        presentational_dependencies: box_module
+          .get_presentational_dependencies()
+          .map(|deps| deps.into_iter().cloned().collect::<Vec<_>>()),
+        context: Some(compilation.options.context.clone()),
+        side_effect_connection_state: box_module
+          .get_side_effects_connection_state(&compilation.module_graph, &mut HashSet::default()),
+        build_meta: box_module.build_meta().cloned(),
+      };
+    }
     Ok(())
   }
 }
