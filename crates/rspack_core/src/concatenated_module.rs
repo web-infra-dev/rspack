@@ -19,7 +19,7 @@ use rspack_error::{
 };
 use rspack_hash::RspackHash;
 use rspack_identifier::Identifiable;
-use rspack_sources::{BoxSource, ReplaceSource, Source};
+use rspack_sources::{BoxSource, CachedSource, ConcatSource, ReplaceSource, Source, SourceExt};
 use rspack_util::swc::join_atom;
 use rustc_hash::FxHasher;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
@@ -787,9 +787,59 @@ impl Module for ConcatenatedModule {
         source.replace(low, high, &final_name, None);
       }
     }
-    todo!()
-    // if let NormalModuleSource::BuiltSucceed(source) = &self.source {
-    //   let mut code_generation_result = CodeGenerationResult::default();
+
+    // let mut exports_map: HashMap<String, String> = HashMap::new();
+    // let mut unused_exports: HashSet<String> = HashSet::new();
+    //
+    // let root_info = module_to_info_map.get(&self.root_module).unwrap();
+    // let strict_harmony_module = root_info.module.build_meta.strict_harmony_module;
+    // let exports_info = module_graph.get_exports_info(&root_info.module);
+    //
+    // for export_info in exports_info.ordered_exports.iter() {
+    //   let name = export_info.name.clone();
+    //   if !export_info.provided {
+    //     continue;
+    //   }
+    //   let used = export_info.get_used_name(None, &runtime);
+    //   if used.is_none() {
+    //     unused_exports.insert(name);
+    //     continue;
+    //   }
+    //   exports_map.insert(used.unwrap(), {
+    //     let final_name = get_final_name(
+    //       &module_graph,
+    //       &root_info,
+    //       &[name.clone()],
+    //       &module_to_info_map,
+    //       &runtime,
+    //       request_shortener,
+    //       &runtime_template,
+    //       &needed_namespace_objects,
+    //       false,
+    //       false,
+    //       strict_harmony_module,
+    //       true,
+    //     );
+    //     format!(
+    //       "/* {} */ {}",
+    //       if export_info.is_reexport() {
+    //         "reexport"
+    //       } else {
+    //         "binding"
+    //       },
+    //       final_name
+    //     )
+    //   });
+    // }
+    let mut code_generation_result = CodeGenerationResult::default();
+    let mut generation_result = ConcatSource::default();
+    code_generation_result.add(
+      SourceType::JavaScript,
+      CachedSource::new(generation_result).boxed(),
+    );
+    code_generation_result.chunk_init_fragments = vec![];
+    code_generation_result.runtime_requirements = RuntimeGlobals::default();
+    Ok(code_generation_result)
     //   for source_type in self.source_types() {
     //     let generation_result = self.parser_and_generator.generate(
     //       source,
@@ -803,7 +853,6 @@ impl Module for ConcatenatedModule {
     //         runtime,
     //       },
     //     )?;
-    //     code_generation_result.add(*source_type, CachedSource::new(generation_result).boxed());
     //   }
     //   code_generation_result.set_hash(
     //     &compilation.options.output.hash_function,
