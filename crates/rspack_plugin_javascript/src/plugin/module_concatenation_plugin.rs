@@ -1,15 +1,20 @@
 use std::cmp::Ordering;
+use std::collections::hash_map::DefaultHasher;
+use std::hash::Hasher;
 use std::os::unix::prelude::OpenOptionsExt;
 use std::sync::Arc;
 
-use rspack_core::concatenated_module::{is_harmony_dep_like, RootModuleContext};
+use rspack_core::concatenated_module::{
+  is_harmony_dep_like, ConcatenatedInnerModule, ConcatenatedModule, RootModuleContext,
+};
 use rspack_core::{
-  filter_runtime, merge_runtime, BoxDependency, Compilation, ExportInfoProvided,
-  ExtendedReferencedExport, LibIdentOptions, Logger, ModuleGraph, ModuleIdentifier,
+  filter_runtime, merge_runtime, BoxDependency, Compilation, CompilerContext, ExportInfoProvided,
+  ExtendedReferencedExport, LibIdentOptions, Logger, Module, ModuleGraph, ModuleIdentifier,
   OptimizeChunksArgs, Plugin, ProvidedExports, RuntimeCondition, RuntimeSpec,
   WrappedModuleIdentifier,
 };
 use rspack_error::Result;
+use rspack_util::ext::DynHash;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::dependency::{
@@ -23,7 +28,7 @@ fn format_bailout_reason(msg: &str) -> String {
 #[derive(Clone)]
 enum Warning {
   Id(ModuleIdentifier),
-  Problem(Arc<dyn Fn(String) -> String>),
+  Problem(Arc<dyn Fn(String) -> String + Send + Sync + 'static>),
 }
 
 impl std::fmt::Debug for Warning {
@@ -377,6 +382,50 @@ impl Plugin for ModuleConcatenationPlugin {
           .get_side_effects_connection_state(&compilation.module_graph, &mut HashSet::default()),
         build_meta: box_module.build_meta().cloned(),
       };
+      let modules = config
+        .modules
+        .iter()
+        .map(|id| {
+          let module = compilation
+            .module_graph
+            .module_by_identifier(id)
+            .expect("should have module");
+          ConcatenatedInnerModule {
+            id: *id,
+            size: module.size(&rspack_core::SourceType::JavaScript),
+            original_source_hash: module.original_source().map(|source| {
+              let mut hasher = DefaultHasher::default();
+              source.dyn_hash(&mut hasher);
+              hasher.finish()
+            }),
+            shorten_id: module
+              .readable_identifier(&compilation.options.context)
+              .to_string(),
+          }
+        })
+        .collect::<Vec<_>>();
+      let mut new_module = ConcatenatedModule::create(
+        root_module_ctxt,
+        modules,
+        Some(rspack_hash::HashFunction::MD4),
+        config.runtime.clone(),
+      );
+      let build_result = new_module
+        .build(
+          rspack_core::BuildContext {
+            compiler_context: CompilerContext {
+              options: compilation.options.clone(),
+              resolver_factory: compilation.resolver_factory.clone(),
+              module: new_module.id(),
+              module_context: None,
+            },
+            plugin_driver: compilation.plugin_driver.clone(),
+            compiler_options: &compilation.options,
+          },
+          Some(&compilation),
+        )
+        .await?;
+      // integrate
     }
     Ok(())
   }

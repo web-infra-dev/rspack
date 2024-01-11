@@ -94,10 +94,10 @@ pub enum BindingType {
 
 #[derive(Debug, Clone)]
 pub struct ConcatenatedInnerModule {
-  id: ModuleIdentifier,
-  size: f64,
-  original_source: Option<BoxSource>,
-  shorten_id: String,
+  pub id: ModuleIdentifier,
+  pub size: f64,
+  pub original_source_hash: Option<u64>,
+  pub shorten_id: String,
 }
 
 pub enum ConcatenationEntryType {
@@ -1825,8 +1825,8 @@ impl Hash for ConcatenatedModule {
     "__rspack_internal__ConcatenatedModule".hash(&mut temp_state);
     // the module has been sorted, so the has should be consistant
     for module in self.modules.iter() {
-      if let Some(ref original_source) = module.original_source {
-        original_source.hash(&mut temp_state);
+      if let Some(ref original_source_hash) = module.original_source_hash {
+        temp_state.write_u64(*original_source_hash);
       }
     }
     let res = temp_state.finish();
