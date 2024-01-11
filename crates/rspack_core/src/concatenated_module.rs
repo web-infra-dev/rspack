@@ -36,7 +36,7 @@ use swc_node_comments::SwcComments;
 
 use crate::{
   concatenated_module, filter_runtime, merge_runtime_condition, merge_runtime_condition_non_false,
-  module_factory, reserverd_names::RESERVED_NAMES, subtract_runtime_condition,
+  module_factory, property_access, reserverd_names::RESERVED_NAMES, subtract_runtime_condition,
   AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta,
   BuildMetaDefaultObject, BuildMetaExportsType, BuildResult, ChunkInitFragments,
   CodeGenerationResult, Compilation, ConcatenatedModuleIdent, ConcatenationScope, ConnectionId,
@@ -72,6 +72,7 @@ pub struct RawBinding {
 
 #[derive(Debug, Clone)]
 pub struct SymbolBinding {
+  /// Should corresponding to a ConcatenatedModuleInfo, ref https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L93-L100
   info_id: ModuleIdentifier,
   name: Atom,
   comment: Option<String>,
@@ -198,6 +199,13 @@ impl ModuleInfo {
     }
   }
 
+  pub fn try_as_concatenated(&self) -> Option<&ConcatenatedModuleInfo> {
+    if let Self::Concatenated(ref v) = self {
+      Some(v)
+    } else {
+      None
+    }
+  }
   /// # Panic
   /// This method would panic if the conversion is failed.
   pub fn as_concatenated_mut(&mut self) -> &mut ConcatenatedModuleInfo {
@@ -534,7 +542,7 @@ impl Module for ConcatenatedModule {
       self.get_modules_with_info(&compilation.module_graph, runtime);
 
     // Set with modules that need a generated namespace object
-    let mut needed_namespace_objects: HashSet<ConcatenatedModuleInfo> = HashSet::default();
+    let mut needed_namespace_objects: HashSet<ModuleIdentifier> = HashSet::default();
 
     // Generate source code and analyze scopes
     // Prepare a ReplaceSource for the final source
@@ -550,8 +558,7 @@ impl Module for ConcatenatedModule {
       )?;
       updated_pairs.push((*id, updated_module_info));
     }
-    let mut module_to_info_map =
-      Arc::into_inner(arc_map).expect("reference count should only by one");
+    let mut module_to_info_map = Arc::into_inner(arc_map).expect("reference count should be one");
 
     for (id, module_info) in updated_pairs {
       module_to_info_map.insert(id, module_info);
@@ -701,6 +708,85 @@ impl Module for ConcatenatedModule {
       }
     }
 
+    let mut info_map: IndexMap<ModuleIdentifier, _> = IndexMap::default();
+    // Find and replace references to modules
+    // Splitting read and write to avoid violating rustc borrow rules
+    for info in module_to_info_map.values() {
+      if let ModuleInfo::Concatenated(info) = info {
+        let module = compilation
+          .module_graph
+          .module_by_identifier(&info.module)
+          .expect("should have module");
+        let build_meta = module.build_meta().expect("should have build meta");
+        let mut refs = vec![];
+        for reference in info.global_scope_ident.iter() {
+          let name = &reference.id.sym;
+          let match_result = ConcatenationScope::match_module_reference(name.as_str());
+          if let Some(match_info) = match_result {
+            let referenced_info = &modules_with_info[match_info.index];
+            let referenced_info_id = match referenced_info {
+              ModuleInfoOrReference::External(info) => info.module,
+              ModuleInfoOrReference::Concatenated(info) => info.module,
+              ModuleInfoOrReference::Reference { .. } => {
+                panic!("Module reference can't point to a reference");
+              }
+            };
+            refs.push((
+              reference.clone(),
+              referenced_info_id,
+              match_info
+                .ids
+                .into_iter()
+                .map(|item| Atom::from(item.as_str()))
+                .collect::<Vec<_>>(),
+              match_info.call,
+              !match_info.direct_import,
+              build_meta.strict_harmony_module,
+              match_info.asi_safe,
+            ));
+          }
+        }
+        info_map.insert(info.module, refs);
+      }
+    }
+
+    for (info_id, info_params_list) in info_map {
+      for (
+        reference_ident,
+        referenced_info_id,
+        export_name,
+        call,
+        call_context,
+        strict_harmony_module,
+        asi_safe,
+      ) in info_params_list
+      {
+        let final_name = Self::get_final_name(
+          &compilation.module_graph,
+          &referenced_info_id,
+          export_name,
+          &mut module_to_info_map,
+          runtime,
+          &mut needed_namespace_objects,
+          call,
+          call_context,
+          strict_harmony_module,
+          asi_safe,
+          &context,
+        );
+        // We assume this should be concatenated module info because previous loop
+        let info = module_to_info_map
+          .get_mut(&info_id)
+          .and_then(|info| info.try_as_concatenated_mut())
+          .expect("should have concatenate module info");
+        let span = reference_ident.id.span();
+        let low = span.real_lo();
+        let high = span.real_hi();
+        let source = info.source.as_mut().expect("should have source");
+        // range is extended by 2 chars to cover the appended "._"
+        source.replace(low, high, &final_name, None);
+      }
+    }
     todo!()
     // if let NormalModuleSource::BuiltSucceed(source) = &self.source {
     //   let mut code_generation_result = CodeGenerationResult::default();
@@ -1204,12 +1290,97 @@ impl ConcatenatedModule {
     }
   }
 
+  fn get_final_name(
+    module_graph: &ModuleGraph,
+    info: &ModuleIdentifier,
+    export_name: Vec<Atom>,
+    module_to_info_map: &mut IndexMap<ModuleIdentifier, ModuleInfo>,
+    runtime: Option<&RuntimeSpec>,
+    needed_namespace_objects: &mut HashSet<ModuleIdentifier>,
+    as_call: bool,
+    call_context: bool,
+    strict_harmony_module: bool,
+    asi_safe: Option<bool>,
+    context: &Context,
+  ) -> String {
+    let binding = Self::get_final_binding(
+      module_graph,
+      info,
+      export_name,
+      module_to_info_map,
+      runtime,
+      needed_namespace_objects,
+      as_call,
+      strict_harmony_module,
+      asi_safe,
+      &mut HashSet::default(),
+    );
+    let (ids, comment) = match binding {
+      Binding::Raw(ref b) => (&b.ids, b.comment.as_ref()),
+      Binding::Symbol(ref b) => (&b.ids, b.comment.as_ref()),
+    };
+
+    let (reference, is_property_access) = match binding {
+      Binding::Raw(ref b) => {
+        let reference = format!(
+          "{}{}{}",
+          b.raw_name,
+          comment.cloned().unwrap_or_default(),
+          property_access(ids, 0)
+        );
+        let is_property_access = ids.len() > 0;
+        (reference, is_property_access)
+      }
+      Binding::Symbol(ref binding) => {
+        let export_id = &binding.name;
+        let info = module_to_info_map
+          .get(&binding.info_id)
+          .and_then(|info| info.try_as_concatenated())
+          .expect("should have concatenate module info");
+        let module = module_graph
+          .module_by_identifier(&info.module)
+          .expect("should have module");
+        let name = info.internal_names.get(export_id).unwrap_or_else(|| {
+          panic!(
+            "The export \"{}\" in \"{}\" has no internal name (existing names: {})",
+            export_id,
+            module.readable_identifier(context),
+            info
+              .internal_names
+              .iter()
+              .map(|(name, symbol)| format!("{}: {}", name, symbol))
+              .collect::<Vec<String>>()
+              .join(", ")
+          )
+        });
+        let reference = format!(
+          "{}{}{}",
+          binding.name,
+          comment.cloned().unwrap_or_default(),
+          property_access(ids, 0)
+        );
+        let is_property_access = ids.len() > 1;
+        (reference, is_property_access)
+      }
+    };
+    if is_property_access && as_call && !call_context {
+      return if asi_safe.unwrap_or_default() {
+        format!("(0,{})", reference)
+      } else if let Some(asi_safe) = asi_safe {
+        format!(";(0,{})", reference)
+      } else {
+        format!("/*#__PURE__*/Object({})", reference)
+      };
+    }
+    reference
+  }
+
   fn get_final_binding(
     mg: &ModuleGraph,
     info_id: &ModuleIdentifier,
     mut export_name: Vec<Atom>,
-    module_to_info_map: &mut HashMap<ModuleIdentifier, ModuleInfo>,
-    runtime: &RuntimeSpec,
+    module_to_info_map: &mut IndexMap<ModuleIdentifier, ModuleInfo>,
+    runtime: Option<&RuntimeSpec>,
     needed_namespace_objects: &mut HashSet<ModuleIdentifier>,
     as_call: bool,
     strict_harmony_module: bool,
@@ -1419,7 +1590,7 @@ impl ConcatenatedModule {
           if let Some(used_name) =
             exports_info
               .id
-              .get_used_name(mg, Some(runtime), UsedName::Vec(export_name.clone()))
+              .get_used_name(mg, (runtime), UsedName::Vec(export_name.clone()))
           {
             // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L402-L404
             let used_name = used_name.to_used_name_vec();
@@ -1497,7 +1668,7 @@ impl ConcatenatedModule {
           // That's how webpack write https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L463-L471
           let used_name = exports_info
             .id
-            .get_used_name(mg, Some(runtime), UsedName::Vec(export_name.clone()))
+            .get_used_name(mg, (runtime), UsedName::Vec(export_name.clone()))
             .expect("should have export name");
           let used_name = used_name.to_used_name_vec();
           return Binding::Raw(RawBinding {
@@ -1523,7 +1694,7 @@ impl ConcatenatedModule {
         if let Some(used_name) =
           exports_info
             .id
-            .get_used_name(mg, Some(runtime), UsedName::Vec(export_name.clone()))
+            .get_used_name(mg, (runtime), UsedName::Vec(export_name.clone()))
         {
           let used_name = used_name.to_used_name_vec();
           let comment = if used_name == export_name {
