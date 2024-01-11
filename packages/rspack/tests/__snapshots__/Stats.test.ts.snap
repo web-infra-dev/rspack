@@ -16,7 +16,7 @@ exports[`Stats should have ids when ids is true 1`] = `
         "hotModuleReplacement": false,
       },
       "name": "main.js",
-      "size": 211,
+      "size": 212,
       "type": "asset",
     },
   ],
@@ -80,7 +80,7 @@ exports[`Stats should have stats 1`] = `
         "hotModuleReplacement": false,
       },
       "name": "main.js",
-      "size": 211,
+      "size": 212,
       "type": "asset",
     },
   ],
@@ -147,10 +147,10 @@ exports[`Stats should have stats 1`] = `
       "assets": [
         {
           "name": "main.js",
-          "size": 211,
+          "size": 212,
         },
       ],
-      "assetsSize": 211,
+      "assetsSize": 212,
       "chunks": [
         "909",
       ],
@@ -200,10 +200,10 @@ exports[`Stats should have stats 1`] = `
       "assets": [
         {
           "name": "main.js",
-          "size": 211,
+          "size": 212,
         },
       ],
-      "assetsSize": 211,
+      "assetsSize": 212,
       "chunks": [
         "909",
       ],
@@ -233,7 +233,7 @@ exports[`Stats should output stats with query 1`] = `
         "hotModuleReplacement": false,
       },
       "name": "main.js",
-      "size": 386,
+      "size": 387,
       "type": "asset",
     },
   ],
@@ -417,10 +417,10 @@ exports.c = require("./c?c=3");
       "assets": [
         {
           "name": "main.js",
-          "size": 386,
+          "size": 387,
         },
       ],
-      "assetsSize": 386,
+      "assetsSize": 387,
       "chunks": [
         "909",
       ],
@@ -587,10 +587,10 @@ exports.c = require("./c?c=3");
       "assets": [
         {
           "name": "main.js",
-          "size": 386,
+          "size": 387,
         },
       ],
-      "assetsSize": 386,
+      "assetsSize": 387,
       "chunks": [
         "909",
       ],
