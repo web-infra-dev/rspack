@@ -360,7 +360,17 @@ const baseResolveOptions = z.strictObject({
 	 * This is `aliasField: ["browser"]` in webpack, because no one
 	 * uses aliasField other than "browser". ---@bvanjoi
 	 */
-	browserField: z.boolean().optional(),
+	browserField: z
+		.boolean()
+		.optional()
+		.refine(val => {
+			if (val !== undefined) {
+				deprecatedWarn(
+					`'resolve.browserField' has been deprecated, and will be removed in 0.6.0. Please use 'resolve.aliasField' instead.`
+				);
+			}
+			return true;
+		}),
 	conditionNames: z.array(z.string()).optional(),
 	extensions: z.array(z.string()).optional(),
 	fallback: resolveAlias.optional(),
@@ -368,12 +378,16 @@ const baseResolveOptions = z.strictObject({
 	mainFiles: z.array(z.string()).optional(),
 	modules: z.array(z.string()).optional(),
 	preferRelative: z.boolean().optional(),
+	preferAbsolute: z.boolean().optional(),
 	symlinks: z.boolean().optional(),
 	tsConfigPath: z.string().optional(),
 	tsConfig: resolveTsconfig.optional(),
 	fullySpecified: z.boolean().optional(),
 	exportsFields: z.array(z.string()).optional(),
-	extensionAlias: z.record(z.string().or(z.array(z.string()))).optional()
+	extensionAlias: z.record(z.string().or(z.array(z.string()))).optional(),
+	aliasFields: z.array(z.string()).optional(),
+	restrictions: z.array(z.string()).optional(),
+	roots: z.array(z.string()).optional()
 });
 
 export type ResolveOptions = z.infer<typeof baseResolveOptions> & {

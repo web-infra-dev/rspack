@@ -1098,10 +1098,10 @@ export interface RawRemoteOptions {
 
 export interface RawResolveOptions {
   preferRelative?: boolean
+  preferAbsolute?: boolean
   extensions?: Array<string>
   mainFiles?: Array<string>
   mainFields?: Array<string>
-  browserField?: boolean
   conditionNames?: Array<string>
   alias?: Record<string, Array<string | false>>
   fallback?: Record<string, Array<string | false>>
@@ -1112,6 +1112,9 @@ export interface RawResolveOptions {
   fullySpecified?: boolean
   exportsFields?: Array<string>
   extensionAlias?: Record<string, Array<string>>
+  aliasFields?: Array<string>
+  restrictions?: Array<string>
+  roots?: Array<string>
 }
 
 export interface RawResolveTsconfigOptions {
