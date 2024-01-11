@@ -9,8 +9,8 @@ use rspack_core::concatenated_module::{
 };
 use rspack_core::{
   filter_runtime, merge_runtime, BoxDependency, Compilation, CompilerContext, ExportInfoProvided,
-  ExtendedReferencedExport, LibIdentOptions, Logger, Module, ModuleGraph, ModuleIdentifier,
-  OptimizeChunksArgs, Plugin, ProvidedExports, RuntimeCondition, RuntimeSpec,
+  ExtendedReferencedExport, LibIdentOptions, Logger, Module, ModuleGraph, ModuleGraphModule,
+  ModuleIdentifier, OptimizeChunksArgs, Plugin, ProvidedExports, RuntimeCondition, RuntimeSpec,
   WrappedModuleIdentifier,
 };
 use rspack_error::Result;
@@ -425,6 +425,19 @@ impl Plugin for ModuleConcatenationPlugin {
           Some(&compilation),
         )
         .await?;
+      let root_mgm_epxorts = compilation
+        .module_graph
+        .module_graph_module_by_identifier(&root_module_id)
+        .expect("should have mgm")
+        .exports;
+      let module_graph_module =
+        ModuleGraphModule::new(new_module.id(), *new_module.module_type(), root_mgm_epxorts);
+      compilation
+        .module_graph
+        .add_module_graph_module(module_graph_module);
+      compilation
+        .module_graph
+        .clone_module_attributes(&root_module_id, &new_module.id());
       // integrate
     }
     Ok(())

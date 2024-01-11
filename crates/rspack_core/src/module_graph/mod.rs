@@ -100,6 +100,34 @@ impl ModuleGraph {
     }
   }
 
+  /// Make sure both source and target module are exists in module graph
+  pub fn clone_module_attributes(
+    &mut self,
+    source_module: &ModuleIdentifier,
+    target_module: &ModuleIdentifier,
+  ) {
+    let old_mgm = self
+      .module_graph_module_by_identifier(source_module)
+      .expect("should have mgm");
+
+    // Using this tuple to avoid violating rustc borrow rules
+    let assing_tuple = (
+      old_mgm.post_order_index,
+      old_mgm.pre_order_index,
+      old_mgm.depth,
+      old_mgm.exports,
+      old_mgm.is_async,
+    );
+    let new_mgm = self
+      .module_graph_module_by_identifier_mut(target_module)
+      .expect("should have mgm");
+    new_mgm.post_order_index = assing_tuple.0;
+    new_mgm.pre_order_index = assing_tuple.1;
+    new_mgm.depth = assing_tuple.2;
+    new_mgm.exports = assing_tuple.3;
+    new_mgm.is_async = assing_tuple.4;
+  }
+
   pub fn get_depth(&self, module_id: &ModuleIdentifier) -> Option<usize> {
     let mgm = self
       .module_graph_module_by_identifier(module_id)
