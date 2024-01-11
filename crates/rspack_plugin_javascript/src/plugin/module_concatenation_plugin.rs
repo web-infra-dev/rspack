@@ -487,15 +487,3 @@ struct Statistics {
   importer_failed: u32,
   added: u32,
 }
-
-fn main() {
-  // Example usage of the Statistics struct
-  let mut stats = Statistics::default();
-
-  // Modify fields as needed
-  stats.cached = 10;
-  stats.added = 5;
-
-  // Print the struct for demonstration
-  println!("{:?}", stats);
-}
