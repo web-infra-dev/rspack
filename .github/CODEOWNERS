@@ -19,10 +19,6 @@ pnpm-lock.yaml
 /benchcases @IWANABETHATGUY
 /scripts @jerrykingxyz
 
-# Examples
-
-/examples @web-infra-dev/rspack-dx @web-infra-dev/rspack-ux
-
 # Webpack Tests
 
 /webpack-test @web-infra-dev/rspack-dx @web-infra-dev/rspack-ux
