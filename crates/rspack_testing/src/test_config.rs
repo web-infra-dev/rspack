@@ -329,22 +329,16 @@ impl TestConfig {
       rule!("\\.css$", "css"),
       rule!("\\.wasm$", "webassembly/async"),
     ];
-    rules.extend(self.module.rules.into_iter().map(|rule| {
-      c::ModuleRule {
-        test: rule.test.map(|test| match test {
-          ModuleRuleTest::Regexp { matcher } => {
-            c::RuleSetCondition::Regexp(RspackRegex::new(&matcher).expect("should be valid regex"))
-          }
-        }),
-        r#use: c::ModuleRuleUse::Array(
-          rule.r#use.into_iter().map(|i| i.into()).collect::<Vec<_>>(),
-        ),
-        side_effects: rule.side_effect,
-        r#type: rule
-          .r#type
-          .map(|i| ModuleType::try_from(i.as_str()).expect("should give a right module_type")),
-        ..Default::default()
-      }
+    rules.extend(self.module.rules.into_iter().map(|rule| c::ModuleRule {
+      test: rule.test.map(|test| match test {
+        ModuleRuleTest::Regexp { matcher } => {
+          c::RuleSetCondition::Regexp(RspackRegex::new(&matcher).expect("should be valid regex"))
+        }
+      }),
+      r#use: c::ModuleRuleUse::Array(rule.r#use.into_iter().map(|i| i.into()).collect::<Vec<_>>()),
+      side_effects: rule.side_effect,
+      r#type: rule.r#type.map(|i| ModuleType::from(i.as_str())),
+      ..Default::default()
     }));
 
     assert!(context.is_absolute());

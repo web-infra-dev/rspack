@@ -309,7 +309,7 @@ where
   format!("\" + {content} + \"")
 }
 
-pub fn stringify_static_chunk_map(filename: &String, chunk_ids: &Vec<&String>) -> String {
+pub fn stringify_static_chunk_map(filename: &String, chunk_ids: &[&String]) -> String {
   let condition = if chunk_ids.len() == 1 {
     format!(
       "chunkId === {}",
