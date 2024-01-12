@@ -31,7 +31,7 @@ use crate::{
   DependenciesBlock, DependencyId, DependencyTemplate, GenerateContext, GeneratorOptions,
   LibIdentOptions, Module, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType,
   ParseContext, ParseResult, ParserAndGenerator, ParserOptions, Resolve, RspackLoaderRunnerPlugin,
-  RuntimeSpec, SourceMapOption, SourceType,
+  RuntimeSpec, SourceMapConfig, SourceMapOption, SourceType,
 };
 
 bitflags! {
@@ -622,7 +622,8 @@ impl NormalModule {
     if content.is_buffer() {
       return Ok(RawSource::Buffer(content.into_bytes()).boxed());
     }
-    if self.options.devtool.enabled()
+    let source_map_option = self.get_source_map_option();
+    if !matches!(source_map_option, SourceMapOption::None)
       && let Some(source_map) = source_map
     {
       let content = content.into_string_lossy();
@@ -635,7 +636,7 @@ impl NormalModule {
         .boxed(),
       );
     }
-    if self.options.devtool.source_map()
+    if matches!(source_map_option, SourceMapOption::SourceMap)
       && let Content::String(content) = content
     {
       return Ok(OriginalSource::new(content, self.request()).boxed());
