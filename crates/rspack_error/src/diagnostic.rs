@@ -49,6 +49,12 @@ impl fmt::Display for RspackSeverity {
 #[derive(Debug, Clone)]
 pub struct Diagnostic(Arc<miette::Error>, DiagnosticMeta);
 
+impl From<Box<dyn miette::Diagnostic + Send + Sync>> for Diagnostic {
+  fn from(value: Box<dyn miette::Diagnostic + Send + Sync>) -> Self {
+    Diagnostic::from(miette::Error::new_boxed(value))
+  }
+}
+
 impl From<miette::Error> for Diagnostic {
   fn from(value: miette::Error) -> Self {
     Self(value.into(), DiagnosticMeta::default())

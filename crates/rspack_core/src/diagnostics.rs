@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use itertools::Itertools;
 use rspack_error::{
-  impl_diagnostic_transparent, impl_error_transparent,
+  impl_diagnostic_transparent,
   miette::{self, Diagnostic},
   thiserror::{self, Error},
   DiagnosticExt, Error, TraceableError,
@@ -37,8 +37,44 @@ impl_diagnostic_transparent!(EmptyDependency);
 #[derive(Debug)]
 pub struct ModuleBuildError(pub Error);
 
-impl_error_transparent!(ModuleBuildError);
-impl_diagnostic_transparent!(code = "ModuleBuildError", ModuleBuildError);
+impl std::error::Error for ModuleBuildError {
+  fn source(&self) -> ::core::option::Option<&(dyn std::error::Error + 'static)> {
+    Some(<Error as AsRef<dyn std::error::Error>>::as_ref(&self.0))
+  }
+}
+
+impl std::fmt::Display for ModuleBuildError {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    write!(f, "Module build failed:")
+  }
+}
+
+impl miette::Diagnostic for ModuleBuildError {
+  fn code<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
+    Some(Box::new("ModuleBuildError"))
+  }
+  fn severity(&self) -> Option<miette::Severity> {
+    self.0.severity()
+  }
+  fn help<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
+    self.0.help()
+  }
+  fn url<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
+    self.0.url()
+  }
+  fn source_code(&self) -> Option<&dyn miette::SourceCode> {
+    self.0.source_code()
+  }
+  fn labels(&self) -> Option<Box<dyn Iterator<Item = miette::LabeledSpan> + '_>> {
+    self.0.labels()
+  }
+  fn related<'a>(&'a self) -> Option<Box<dyn Iterator<Item = &'a dyn miette::Diagnostic> + 'a>> {
+    self.0.related()
+  }
+  fn diagnostic_source(&self) -> Option<&dyn Diagnostic> {
+    Some(self.0.as_ref())
+  }
+}
 
 /// Represent any errors or warnings during module parse
 /// This does NOT aligned with webpack as webpack does not have parse warning.

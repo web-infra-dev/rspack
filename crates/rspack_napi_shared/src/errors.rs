@@ -7,7 +7,7 @@ use rspack_error::{
 };
 
 #[derive(Debug, Error, Diagnostic)]
-#[diagnostic(code(NapiError))]
+#[diagnostic()]
 #[error("{0}\n{1}")]
 struct NodeError(String, String);
 

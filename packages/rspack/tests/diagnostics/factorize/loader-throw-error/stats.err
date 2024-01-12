@@ -1,15 +1,18 @@
 ERROR in ./lib.js
 ModuleBuildError
 
-  × Error: Failed to load
-  │     at Object.<anonymous>.module.exports (<PROJECT_ROOT>/tests/diagnostics/factorize/loader-throw-error/my-loader.js:2:9)
-  │     at apply (<PROJECT_ROOT>/src/loader-runner/index.ts:667:14)
-  │     at runSyncOrAsync (<PROJECT_ROOT>/src/loader-runner/index.ts:668:3)
-  │     at runSyncOrAsync (<PROJECT_ROOT>/src/loader-runner/index.ts:790:3)
-  │     at callback (<PROJECT_ROOT>/src/loader-runner/loadLoader.js:152:2)
-  │     at handleResult (<PROJECT_ROOT>/src/loader-runner/loadLoader.js:122:10)
-  │     at loadLoader (<PROJECT_ROOT>/src/loader-runner/index.ts:776:2)
-  │     at iterateNormalLoaders (<PROJECT_ROOT>/src/loader-runner/index.ts:581:4)
-  │     at new Promise (<anonymous>)
-  │     at runLoaders (<PROJECT_ROOT>/src/loader-runner/index.ts:556:9)
-  │
+  × Module build failed:
+  ╰─▶   × Error: Failed to load
+        │     at Object.<anonymous>.module.exports (<PROJECT_ROOT>/tests/diagnostics/factorize/loader-throw-error/my-loader.js:2:9)
+        │     at apply (<PROJECT_ROOT>/src/loader-runner/index.ts:667:14)
+        │     at runSyncOrAsync (<PROJECT_ROOT>/src/loader-runner/index.ts:668:3)
+        │     at runSyncOrAsync (<PROJECT_ROOT>/src/loader-runner/index.ts:790:3)
+        │     at callback (<PROJECT_ROOT>/src/loader-runner/loadLoader.js:152:2)
+        │     at handleResult (<PROJECT_ROOT>/src/loader-runner/loadLoader.js:122:10)
+        │     at loadLoader (<PROJECT_ROOT>/src/loader-runner/index.ts:776:2)
+        │     at iterateNormalLoaders (<PROJECT_ROOT>/src/loader-runner/index.ts:581:4)
+        │     at new Promise (<anonymous>)
+        │     at runLoaders (<PROJECT_ROOT>/src/loader-runner/index.ts:556:9)
+        │
+      
+  help: File was processed with this loader: '<PROJECT_ROOT>/tests/diagnostics/factorize/loader-throw-error/my-loader.js'
