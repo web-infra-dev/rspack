@@ -1,6 +1,7 @@
 use std::fmt::Display;
 
 use itertools::Itertools;
+use once_cell::sync::OnceCell;
 use rspack_error::{
   impl_diagnostic_transparent,
   miette::{self, Diagnostic},
@@ -119,57 +120,76 @@ pub fn map_box_diagnostics_to_module_parse_diagnostics(
 
 /// Wrap diagnostic with additional help message.
 #[derive(Debug, Error)]
-#[error("{0}")]
-pub struct WithHelp(Box<dyn Diagnostic + Send + Sync>, Option<String>);
+#[error("{err}")]
+pub struct WithHelp {
+  err: Box<dyn Diagnostic + Send + Sync>,
+  help: Option<String>,
+  wrap_help: OnceCell<Option<String>>,
+}
 
 impl WithHelp {
   pub fn with_help(mut self, help: impl Into<String>) -> Self {
-    let mut help = help.into();
-    if let Some(prev) = self.0.help().map(|h| h.to_string()) {
-      help = format!("{prev}\n{help}");
-    }
-    self.1 = Some(help);
+    self.help = Some(help.into());
     self
   }
 }
 
 impl From<Box<dyn Diagnostic + Send + Sync>> for WithHelp {
   fn from(value: Box<dyn Diagnostic + Send + Sync>) -> Self {
-    Self(value, None)
+    Self {
+      err: value,
+      help: None,
+      wrap_help: OnceCell::new(),
+    }
   }
 }
 
 impl miette::Diagnostic for WithHelp {
   fn code<'a>(&'a self) -> Option<Box<dyn Display + 'a>> {
-    (*self.0).code()
+    self.err.code()
   }
 
   fn severity(&self) -> Option<miette::Severity> {
-    (*self.0).severity()
+    self.err.severity()
   }
 
   fn help<'a>(&'a self) -> Option<Box<dyn Display + 'a>> {
+    let help = self.wrap_help.get_or_init(|| {
+      let prev = self.err.help().map(|h| h.to_string());
+      let help = self.help.as_ref().map(|h| h.to_string());
+      if let Some(prev) = prev {
+        if let Some(help) = help {
+          Some(format!("{prev}\n{help}"))
+        } else {
+          Some(prev)
+        }
+      } else if help.is_some() {
+        help
+      } else {
+        None
+      }
+    });
     // Use overwritten help message instead.
-    self.1.as_ref().map(Box::new).map(|h| h as Box<dyn Display>)
+    help.as_ref().map(Box::new).map(|h| h as Box<dyn Display>)
   }
 
   fn url<'a>(&'a self) -> Option<Box<dyn Display + 'a>> {
-    (*self.0).url()
+    self.err.url()
   }
 
   fn source_code(&self) -> Option<&dyn miette::SourceCode> {
-    (*self.0).source_code()
+    self.err.source_code()
   }
 
   fn labels(&self) -> Option<Box<dyn Iterator<Item = miette::LabeledSpan> + '_>> {
-    (*self.0).labels()
+    self.err.labels()
   }
 
   fn related<'a>(&'a self) -> Option<Box<dyn Iterator<Item = &'a dyn miette::Diagnostic> + 'a>> {
-    (*self.0).related()
+    self.err.related()
   }
 
   fn diagnostic_source(&self) -> Option<&dyn Diagnostic> {
-    (*self.0).diagnostic_source()
+    self.err.diagnostic_source()
   }
 }
