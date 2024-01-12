@@ -1,10 +1,11 @@
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  Compilation, RuntimeModule,
+  Compilation, RuntimeModule, SourceMapOption,
 };
 use rspack_identifier::Identifier;
 
+#[impl_runtime_module]
 #[derive(Debug, Eq)]
 pub struct GetFullHashRuntimeModule {
   id: Identifier,
@@ -14,6 +15,7 @@ impl Default for GetFullHashRuntimeModule {
   fn default() -> Self {
     Self {
       id: Identifier::from("webpack/runtime/get_full_hash"),
+      source_map_option: SourceMapOption::None,
     }
   }
 }
@@ -35,5 +37,3 @@ impl RuntimeModule for GetFullHashRuntimeModule {
     false
   }
 }
-
-impl_runtime_module!(GetFullHashRuntimeModule);

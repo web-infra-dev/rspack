@@ -1,10 +1,11 @@
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  Compilation, RuntimeModule,
+  Compilation, RuntimeModule, SourceMapOption,
 };
 use rspack_identifier::Identifier;
 
+#[impl_runtime_module]
 #[derive(Debug, Eq)]
 pub struct AsyncRuntimeModule {
   id: Identifier,
@@ -13,6 +14,7 @@ impl Default for AsyncRuntimeModule {
   fn default() -> Self {
     AsyncRuntimeModule {
       id: Identifier::from("webpack/runtime/async_module"),
+      source_map_option: SourceMapOption::None,
     }
   }
 }
@@ -26,4 +28,3 @@ impl RuntimeModule for AsyncRuntimeModule {
     self.id
   }
 }
-impl_runtime_module!(AsyncRuntimeModule);

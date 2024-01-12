@@ -3,11 +3,11 @@ use std::hash::Hash;
 
 use async_trait::async_trait;
 use rspack_core::{
-  impl_build_info_meta,
+  impl_build_info_meta, impl_source_map_config,
   rspack_sources::{RawSource, Source, SourceExt},
   AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
   CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId, LibIdentOptions,
-  Module, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
+  Module, ModuleIdentifier, ModuleType, RuntimeSpec, SourceMapOption, SourceType,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_hash::RspackHash;
@@ -21,6 +21,7 @@ use crate::{
   sharing::share_runtime_module::DataInitInfo, CodeGenerationDataShareInit, ShareInitData,
 };
 
+#[impl_source_map_config]
 #[derive(Debug)]
 pub struct RemoteModule {
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
@@ -65,6 +66,7 @@ impl RemoteModule {
       remote_key,
       build_info: None,
       build_meta: None,
+      source_map_option: SourceMapOption::None,
     }
   }
 }

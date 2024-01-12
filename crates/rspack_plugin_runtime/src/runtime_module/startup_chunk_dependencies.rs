@@ -4,10 +4,11 @@ use itertools::Itertools;
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule,
+  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, SourceMapOption,
 };
 use rspack_identifier::Identifier;
 
+#[impl_runtime_module]
 #[derive(Debug, Eq)]
 pub struct StartupChunkDependenciesRuntimeModule {
   id: Identifier,
@@ -21,6 +22,7 @@ impl StartupChunkDependenciesRuntimeModule {
       id: Identifier::from("webpack/runtime/startup_chunk_dependencies"),
       async_chunk_loading,
       chunk: None,
+      source_map_option: SourceMapOption::None,
     }
   }
 }
@@ -96,5 +98,3 @@ impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
     self.chunk = Some(chunk);
   }
 }
-
-impl_runtime_module!(StartupChunkDependenciesRuntimeModule);

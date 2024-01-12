@@ -1,10 +1,11 @@
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  Compilation, RuntimeModule,
+  Compilation, RuntimeModule, SourceMapOption,
 };
 use rspack_identifier::Identifier;
 
+#[impl_runtime_module]
 #[derive(Debug, Eq)]
 pub struct HarmonyModuleDecoratorRuntimeModule {
   id: Identifier,
@@ -14,6 +15,7 @@ impl Default for HarmonyModuleDecoratorRuntimeModule {
   fn default() -> Self {
     Self {
       id: Identifier::from("webpack/runtime/harmony_module_decorator"),
+      source_map_option: SourceMapOption::None,
     }
   }
 }
@@ -27,5 +29,3 @@ impl RuntimeModule for HarmonyModuleDecoratorRuntimeModule {
     RawSource::from(include_str!("runtime/harmony_module_decorator.js")).boxed()
   }
 }
-
-impl_runtime_module!(HarmonyModuleDecoratorRuntimeModule);

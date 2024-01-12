@@ -2,7 +2,7 @@ use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
   Chunk, ChunkUkey, Compilation, ModuleIdentifier, RuntimeGlobals, RuntimeModule,
-  RuntimeModuleStage, SourceType,
+  RuntimeModuleStage, SourceMapOption, SourceType,
 };
 use rspack_identifier::Identifier;
 use rustc_hash::FxHashMap;
@@ -10,6 +10,7 @@ use rustc_hash::FxHashMap;
 use super::consume_shared_plugin::ConsumeVersion;
 use crate::utils::json_stringify;
 
+#[impl_runtime_module]
 #[derive(Debug, Eq)]
 pub struct ConsumeSharedRuntimeModule {
   id: Identifier,
@@ -23,6 +24,7 @@ impl ConsumeSharedRuntimeModule {
       id: Identifier::from("webpack/runtime/consumes_loading"),
       chunk: None,
       enhanced,
+      source_map_option: SourceMapOption::None,
     }
   }
 }
@@ -148,8 +150,6 @@ __webpack_require__.consumesLoadingData = {{ chunkMapping: {chunk_mapping}, modu
     self.chunk = Some(chunk);
   }
 }
-
-impl_runtime_module!(ConsumeSharedRuntimeModule);
 
 #[derive(Debug, Clone)]
 pub struct CodeGenerationDataConsumeShared {

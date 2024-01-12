@@ -1,7 +1,7 @@
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
-  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
+  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage, SourceMapOption,
 };
 use rspack_identifier::Identifier;
 use rspack_plugin_runtime::{
@@ -10,6 +10,7 @@ use rspack_plugin_runtime::{
 };
 use rustc_hash::FxHashSet as HashSet;
 
+#[impl_runtime_module]
 #[derive(Debug, Eq)]
 pub struct CssLoadingRuntimeModule {
   id: Identifier,
@@ -21,6 +22,7 @@ impl Default for CssLoadingRuntimeModule {
     Self {
       id: Identifier::from("webpack/runtime/css_loading"),
       chunk: None,
+      source_map_option: SourceMapOption::None,
     }
   }
 }
@@ -117,5 +119,3 @@ impl RuntimeModule for CssLoadingRuntimeModule {
     RuntimeModuleStage::Attach
   }
 }
-
-impl_runtime_module!(CssLoadingRuntimeModule);

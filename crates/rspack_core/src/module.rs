@@ -139,9 +139,31 @@ pub struct FactoryMeta {
 
 pub type ModuleIdentifier = Identifier;
 
+#[derive(Debug, PartialEq, Eq, Default)]
+pub enum SourceMapOption {
+  #[default]
+  None,
+  SourceMap,
+  SimpleSourceMap,
+}
+
+pub trait SourceMapConfig {
+  fn get_source_map_option(&self) -> &SourceMapOption;
+  fn set_source_map_option(&mut self, source_map: SourceMapOption);
+}
+
 #[async_trait]
 pub trait Module:
-  Debug + Send + Sync + AsAny + DynHash + DynEq + Identifiable + DependenciesBlock + Diagnosable
+  Debug
+  + Send
+  + Sync
+  + AsAny
+  + DynHash
+  + DynEq
+  + Identifiable
+  + DependenciesBlock
+  + Diagnosable
+  + SourceMapConfig
 {
   /// Defines what kind of module this is.
   fn module_type(&self) -> &ModuleType;
@@ -445,7 +467,8 @@ mod test {
   use super::Module;
   use crate::{
     AsyncDependenciesBlockIdentifier, BuildContext, BuildResult, CodeGenerationResult, Compilation,
-    Context, DependenciesBlock, DependencyId, ModuleExt, ModuleType, RuntimeSpec, SourceType,
+    Context, DependenciesBlock, DependencyId, ModuleExt, ModuleType, RuntimeSpec, SourceMapConfig,
+    SourceMapOption, SourceType,
   };
 
   #[derive(Debug, Eq)]
@@ -553,6 +576,15 @@ mod test {
           _build_info: crate::BuildInfo,
           _build_meta: crate::BuildMeta,
         ) {
+          unreachable!()
+        }
+      }
+
+      impl SourceMapConfig for $ident {
+        fn get_source_map_option(&self) -> &SourceMapOption {
+          unreachable!()
+        }
+        fn set_source_map_option(&mut self, source_map: SourceMapOption) {
           unreachable!()
         }
       }

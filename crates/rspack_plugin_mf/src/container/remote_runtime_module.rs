@@ -1,7 +1,8 @@
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  ChunkUkey, Compilation, DependenciesBlock, RuntimeModule, RuntimeModuleStage, SourceType,
+  ChunkUkey, Compilation, DependenciesBlock, RuntimeModule, RuntimeModuleStage, SourceMapOption,
+  SourceType,
 };
 use rspack_identifier::{Identifiable, Identifier};
 use rustc_hash::FxHashMap;
@@ -10,6 +11,7 @@ use serde::Serialize;
 use super::remote_module::RemoteModule;
 use crate::utils::json_stringify;
 
+#[impl_runtime_module]
 #[derive(Debug, Eq)]
 pub struct RemoteRuntimeModule {
   id: Identifier,
@@ -23,6 +25,7 @@ impl RemoteRuntimeModule {
       id: Identifier::from("webpack/runtime/remotes_loading"),
       chunk: None,
       enhanced,
+      source_map_option: SourceMapOption::None,
     }
   }
 }
@@ -114,8 +117,6 @@ __webpack_require__.remotesLoadingData = {{ chunkMapping: {chunk_mapping}, modul
     self.chunk = Some(chunk);
   }
 }
-
-impl_runtime_module!(RemoteRuntimeModule);
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]

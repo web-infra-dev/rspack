@@ -2,13 +2,13 @@ use std::{borrow::Cow, hash::Hash};
 
 use async_trait::async_trait;
 use rspack_core::{
-  block_promise, impl_build_info_meta, module_raw, returning_function,
+  block_promise, impl_build_info_meta, impl_source_map_config, module_raw, returning_function,
   rspack_sources::{RawSource, Source, SourceExt},
   throw_missing_module_error_block, AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier,
   BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildMetaExportsType, BuildResult,
   ChunkGroupOptions, CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId,
   GroupOptions, LibIdentOptions, Module, ModuleDependency, ModuleIdentifier, ModuleType,
-  RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency,
+  RuntimeGlobals, RuntimeSpec, SourceMapOption, SourceType, StaticExportsDependency,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_hash::RspackHash;
@@ -20,6 +20,7 @@ use super::{
 };
 use crate::utils::json_stringify;
 
+#[impl_source_map_config]
 #[derive(Debug)]
 pub struct ContainerEntryModule {
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
@@ -48,6 +49,7 @@ impl ContainerEntryModule {
       share_scope,
       build_info: None,
       build_meta: None,
+      source_map_option: SourceMapOption::None,
     }
   }
 }

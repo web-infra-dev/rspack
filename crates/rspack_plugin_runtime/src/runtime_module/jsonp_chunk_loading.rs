@@ -2,7 +2,7 @@ use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
   Chunk, ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule,
-  RuntimeModuleStage,
+  RuntimeModuleStage, SourceMapOption,
 };
 use rspack_identifier::Identifier;
 
@@ -14,6 +14,7 @@ use crate::{
   },
 };
 
+#[impl_runtime_module]
 #[derive(Debug, Eq)]
 pub struct JsonpChunkLoadingRuntimeModule {
   id: Identifier,
@@ -25,6 +26,7 @@ impl Default for JsonpChunkLoadingRuntimeModule {
     Self {
       id: Identifier::from("webpack/runtime/jsonp_chunk_loading"),
       chunk: None,
+      source_map_option: SourceMapOption::None,
     }
   }
 }
@@ -232,5 +234,3 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     RuntimeModuleStage::Attach
   }
 }
-
-impl_runtime_module!(JsonpChunkLoadingRuntimeModule);

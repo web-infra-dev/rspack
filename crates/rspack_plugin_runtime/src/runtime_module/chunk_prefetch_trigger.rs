@@ -4,11 +4,12 @@ use indexmap::IndexMap;
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  Compilation, RuntimeModule, RuntimeModuleStage,
+  Compilation, RuntimeModule, RuntimeModuleStage, SourceMapOption,
 };
 use rspack_identifier::Identifier;
 use rustc_hash::FxHasher;
 
+#[impl_runtime_module]
 #[derive(Debug, Eq)]
 pub struct ChunkPrefetchTriggerRuntimeModule {
   id: Identifier,
@@ -20,6 +21,7 @@ impl ChunkPrefetchTriggerRuntimeModule {
     Self {
       id: Identifier::from("webpack/runtime/chunk_prefetch_trigger"),
       chunk_map,
+      source_map_option: SourceMapOption::None,
     }
   }
 }
@@ -41,5 +43,3 @@ impl RuntimeModule for ChunkPrefetchTriggerRuntimeModule {
     RuntimeModuleStage::Trigger
   }
 }
-
-impl_runtime_module!(ChunkPrefetchTriggerRuntimeModule);
