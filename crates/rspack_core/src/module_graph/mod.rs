@@ -10,7 +10,8 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
-  debug_all_exports_info, AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, ProvidedExports,
+  debug_all_exports_info, self_module, AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier,
+  ProvidedExports,
 };
 mod connection;
 pub use connection::*;
@@ -126,6 +127,95 @@ impl ModuleGraph {
     new_mgm.depth = assing_tuple.2;
     new_mgm.exports = assing_tuple.3;
     new_mgm.is_async = assing_tuple.4;
+  }
+
+  pub fn move_module_connections<F>(
+    &mut self,
+    old_module: &ModuleIdentifier,
+    new_module: &ModuleIdentifier,
+    filter_connection: F,
+  ) where
+    F: Fn(&ModuleGraphConnection, &ModuleGraph) -> bool,
+  {
+    if old_module == new_module {
+      return;
+    }
+
+    let old_mgm = self
+      .module_graph_module_by_identifier(old_module)
+      .expect("should have mgm");
+
+    // Outgoing connections
+    // avoid violating rustc borrow rules
+    let mut add_outgoing_connection = vec![];
+    let mut delete_outgoing_connection = vec![];
+    for connection_id in old_mgm.outgoing_connections.clone().into_iter() {
+      let connection = self
+        .connection_by_connection_id(&connection_id)
+        .cloned()
+        .expect("should have connection");
+      if filter_connection(&connection, &*self) {
+        let new_connection_id = self.clone_module_graph_connection(
+          &connection,
+          Some(*new_module),
+          connection.module_identifier,
+        );
+        add_outgoing_connection.push(new_connection_id);
+        delete_outgoing_connection.push(connection_id);
+      }
+    }
+
+    let new_mgm = self
+      .module_graph_module_by_identifier_mut(new_module)
+      .expect("should have mgm");
+    for c in add_outgoing_connection {
+      new_mgm.outgoing_connections.insert(c);
+    }
+
+    let old_mgm = self
+      .module_graph_module_by_identifier_mut(old_module)
+      .expect("should have mgm");
+    for c in delete_outgoing_connection {
+      old_mgm.outgoing_connections.remove(&c);
+    }
+
+    let old_mgm = self
+      .module_graph_module_by_identifier(old_module)
+      .expect("should have mgm");
+
+    // Outgoing connections
+    // avoid violating rustc borrow rules
+    let mut add_incomming_connection = vec![];
+    let mut delete_incomming_connection = vec![];
+    for connection_id in old_mgm.incoming_connections.clone().into_iter() {
+      let connection = self
+        .connection_by_connection_id(&connection_id)
+        .cloned()
+        .expect("should have connection");
+      if filter_connection(&connection, &*self) {
+        let new_connection_id = self.clone_module_graph_connection(
+          &connection,
+          connection.original_module_identifier,
+          *new_module,
+        );
+        add_incomming_connection.push(new_connection_id);
+        delete_incomming_connection.push(connection_id);
+      }
+    }
+
+    let new_mgm = self
+      .module_graph_module_by_identifier_mut(new_module)
+      .expect("should have mgm");
+    for c in add_incomming_connection {
+      new_mgm.incoming_connections.insert(c);
+    }
+
+    let old_mgm = self
+      .module_graph_module_by_identifier_mut(old_module)
+      .expect("should have mgm");
+    for c in delete_incomming_connection {
+      old_mgm.incoming_connections.remove(&c);
+    }
   }
 
   pub fn copy_outgoing_module_connections<F>(

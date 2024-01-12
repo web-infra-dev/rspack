@@ -9,9 +9,9 @@ use rspack_core::concatenated_module::{
 };
 use rspack_core::{
   filter_runtime, merge_runtime, BoxDependency, Compilation, CompilerContext, ExportInfoProvided,
-  ExtendedReferencedExport, LibIdentOptions, Logger, Module, ModuleGraph, ModuleGraphModule,
-  ModuleIdentifier, OptimizeChunksArgs, Plugin, ProvidedExports, RuntimeCondition, RuntimeSpec,
-  WrappedModuleIdentifier,
+  ExtendedReferencedExport, LibIdentOptions, Logger, Module, ModuleExt, ModuleGraph,
+  ModuleGraphModule, ModuleIdentifier, OptimizeChunksArgs, Plugin, ProvidedExports,
+  RuntimeCondition, RuntimeSpec, WrappedModuleIdentifier,
 };
 use rspack_error::Result;
 use rspack_util::ext::DynHash;
@@ -21,6 +21,7 @@ use crate::dependency::{
   HarmonyExportImportedSpecifierDependency, HarmonyImportSideEffectDependency,
   HarmonyImportSpecifierDependency,
 };
+use crate::inner_graph_plugin;
 fn format_bailout_reason(msg: &str) -> String {
   format!("ModuleConcatenation bailout: {}", msg)
 }
@@ -469,6 +470,22 @@ impl Plugin for ModuleConcatenationPlugin {
       compilation
         .chunk_graph
         .replace_module(&root_module_id, &new_module.id());
+      compilation.module_graph.move_module_connections(
+        &root_module_id,
+        &new_module.id(),
+        |c, mg| {
+          let other_module = if c.module_identifier == root_module_id {
+            c.original_module_identifier
+              .expect("should have original_module_identifier")
+          } else {
+            c.module_identifier
+          };
+          let dep = c.dependency_id.get_dependency(mg);
+          let inner_connection = is_harmony_dep_like(dep) && modules_set.contains(&other_module);
+          !inner_connection
+        },
+      );
+      compilation.module_graph.add_module(new_module.boxed());
     }
     Ok(())
   }
