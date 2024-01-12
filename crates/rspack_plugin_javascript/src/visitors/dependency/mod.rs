@@ -13,6 +13,7 @@ mod hot_module_replacement_scanner;
 mod import_meta_scanner;
 mod import_scanner;
 mod node_stuff_scanner;
+mod parser;
 mod url_scanner;
 mod util;
 mod worker_scanner;
@@ -27,9 +28,10 @@ use rustc_hash::FxHashMap as HashMap;
 use swc_core::common::Span;
 use swc_core::common::{comments::Comments, Mark, SyntaxContext};
 use swc_core::ecma::atoms::JsWord;
-pub use util::*;
 
 use self::harmony_import_dependency_scanner::ImportMap;
+use self::parser::JavascriptParser;
+pub use self::util::*;
 use self::{
   api_scanner::ApiScanner, common_js_export_scanner::CommonJsExportDependencyScanner,
   common_js_import_dependency_scanner::CommonJsImportDependencyScanner,
@@ -85,6 +87,9 @@ pub fn scan_dependencies(
   let mut ignored = vec![];
 
   let mut rewrite_usage_span = HashMap::default();
+
+  let mut parser = JavascriptParser::new(&mut dependencies, &mut presentational_dependencies);
+  parser.visit(program.get_inner_program());
 
   // TODO it should enable at js/auto or js/dynamic, but builtins provider will inject require at esm
   // https://github.com/web-infra-dev/rspack/issues/3544
