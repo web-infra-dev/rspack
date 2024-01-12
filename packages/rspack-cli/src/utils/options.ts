@@ -1,54 +1,50 @@
 import yargs from "yargs";
 export const commonOptions = (yargs: yargs.Argv) => {
-	return yargs.options({
-		config: {
-			g: true,
-			type: "string",
-			describe: "config file",
-			alias: "c"
-		},
-		entry: {
-			type: "array",
-			string: true,
-			describe: "entry file"
-		},
-		"output-path": {
-			type: "string",
-			describe: "output path dir"
-		},
-		mode: { type: "string", describe: "mode", alias: "m" },
-		watch: {
-			type: "boolean",
-			default: false,
-			describe: "watch",
-			alias: "w"
-		},
-		env: {
-			type: "array",
-			string: true,
-			describe: "env passed to config function"
-		},
-		"node-env": {
-			string: true,
-			describe: "sets process.env.NODE_ENV to be specified value"
-		},
-		devtool: {
-			type: "boolean",
-			default: false,
-			describe: "devtool"
-		},
-		configName: {
-			type: "array",
-			string: true,
-			describe: "Name of the configuration to use."
-		},
-		help: {
-			alias: "h"
-		},
-		version: {
-			alias: "v"
-		}
-	});
+	return yargs
+		.options({
+			config: {
+				g: true,
+				type: "string",
+				describe: "config file",
+				alias: "c"
+			},
+			entry: {
+				type: "array",
+				string: true,
+				describe: "entry file"
+			},
+			"output-path": {
+				type: "string",
+				describe: "output path dir"
+			},
+			mode: { type: "string", describe: "mode", alias: "m" },
+			watch: {
+				type: "boolean",
+				default: false,
+				describe: "watch",
+				alias: "w"
+			},
+			env: {
+				type: "array",
+				string: true,
+				describe: "env passed to config function"
+			},
+			"node-env": {
+				string: true,
+				describe: "sets process.env.NODE_ENV to be specified value"
+			},
+			devtool: {
+				type: "boolean",
+				default: false,
+				describe: "devtool"
+			},
+			configName: {
+				type: "array",
+				string: true,
+				describe: "Name of the configuration to use."
+			}
+		})
+		.alias({ v: "version", h: "help" });
 };
 
 export const previewOptions = (yargs: yargs.Argv) => {
