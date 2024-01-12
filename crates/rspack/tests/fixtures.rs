@@ -6,7 +6,7 @@ use rspack_core::{
 };
 use rspack_plugin_javascript::{
   FlagDependencyExportsPlugin, FlagDependencyUsagePlugin, MangleExportsPlugin,
-  SideEffectsFlagPlugin,
+  ModuleConcatenationPlugin, SideEffectsFlagPlugin,
 };
 use rspack_testing::test_fixture;
 use testing_macros::fixture;
@@ -39,6 +39,9 @@ fn samples(fixture_path: PathBuf) {
             ))
             .boxed(),
           );
+        }
+        if options.optimization.concatenate_modules {
+          plugins.push(Box::new(ModuleConcatenationPlugin));
         }
       },
     ),

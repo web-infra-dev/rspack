@@ -106,7 +106,7 @@ impl ConcatConfiguration {
 }
 
 #[derive(Debug)]
-struct ModuleConcatenationPlugin;
+pub struct ModuleConcatenationPlugin;
 
 impl ModuleConcatenationPlugin {
   pub fn get_imports(
@@ -193,8 +193,7 @@ impl Plugin for ModuleConcatenationPlugin {
         .iter()
         .filter(|id| {
           let export_info = id.get_export_info_mut(mg).clone();
-          // export_info.is_reexport() && export_info.get_target(mg, None).is_none()
-          todo!()
+          export_info.is_reexport() && export_info.id.get_target(mg, None).is_none()
         })
         .copied()
         .collect::<Vec<_>>();

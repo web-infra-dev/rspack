@@ -1,0 +1,11 @@
+{
+	"optimization": {
+    "mangleExports": "deterministic",
+    "concatenateModules": true
+	},
+	"builtins": {
+		"define": {
+			"process.env.NODE_ENV": "'development'"
+		}
+	}
+}

@@ -76,6 +76,9 @@ fn true_by_default() -> bool {
   true
 }
 
+fn false_by_default() -> bool {
+  false
+}
 /// The configuration is used to configure the test in Rust.
 /// The structure should be closed to the webpack configuration.
 #[derive(Debug, JsonSchema, Deserialize)]
@@ -131,6 +134,8 @@ pub struct Optimization {
   pub mangle_exports: String,
   #[serde(default = "default_optimization_false_string_lit")]
   pub used_exports: String,
+  #[serde(default = "false_by_default")]
+  pub concatenate_modules: bool,
 }
 
 #[derive(Debug, JsonSchema, Deserialize)]
@@ -451,6 +456,7 @@ impl TestConfig {
         inner_graph: self.optimization.inner_graph,
         used_exports: c::UsedExportsOption::from(self.optimization.used_exports.as_str()),
         mangle_exports: c::MangleExportsOption::from(self.optimization.mangle_exports.as_str()),
+        concatenate_modules: self.optimization.concatenate_modules,
       },
       profile: false,
     };

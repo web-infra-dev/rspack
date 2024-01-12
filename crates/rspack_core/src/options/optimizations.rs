@@ -127,6 +127,7 @@ pub struct Optimization {
   pub used_exports: UsedExportsOption,
   pub inner_graph: bool,
   pub mangle_exports: MangleExportsOption,
+  pub concatenate_modules: bool,
 }
 
 pub static DEFAULT_DELIMITER: &str = "~";

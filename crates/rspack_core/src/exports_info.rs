@@ -1235,6 +1235,7 @@ impl ExportInfo {
   pub fn is_reexport(&self) -> bool {
     !self.terminal_binding && self.target_is_set && !self.target.is_empty()
   }
+
   pub fn can_mangle(&self) -> Option<bool> {
     match self.can_mangle_provide {
       Some(true) => self.can_mangle_use,
