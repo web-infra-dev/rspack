@@ -11,7 +11,7 @@ use std::{
 use bitflags::bitflags;
 use dashmap::DashMap;
 use derivative::Derivative;
-use rspack_error::{error, Diagnosable, Diagnostic, Result, Severity};
+use rspack_error::{error, Diagnosable, Diagnostic, Error, Result, Severity};
 use rspack_hash::RspackHash;
 use rspack_identifier::Identifiable;
 use rspack_loader_runner::{run_loaders, Content, ResourceData};
@@ -24,13 +24,13 @@ use rustc_hash::FxHasher;
 use serde_json::json;
 
 use crate::{
-  add_connection_states, contextify, get_context, impl_build_info_meta,
-  AsyncDependenciesBlockIdentifier, BoxLoader, BoxModule, BuildContext, BuildInfo, BuildMeta,
-  BuildResult, CodeGenerationResult, Compilation, CompilerOptions, ConnectionState, Context,
-  DependenciesBlock, DependencyId, DependencyTemplate, GenerateContext, GeneratorOptions,
-  LibIdentOptions, Module, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType,
-  ParseContext, ParseResult, ParserAndGenerator, ParserOptions, Resolve, RspackLoaderRunnerPlugin,
-  RuntimeSpec, SourceType,
+  add_connection_states, contextify, diagnostics::ModuleBuildError, get_context,
+  impl_build_info_meta, AsyncDependenciesBlockIdentifier, BoxLoader, BoxModule, BuildContext,
+  BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation, CompilerOptions,
+  ConnectionState, Context, DependenciesBlock, DependencyId, DependencyTemplate, GenerateContext,
+  GeneratorOptions, LibIdentOptions, Module, ModuleDependency, ModuleGraph, ModuleIdentifier,
+  ModuleType, ParseContext, ParseResult, ParserAndGenerator, ParserOptions, Resolve,
+  RspackLoaderRunnerPlugin, RuntimeSpec, SourceType,
 };
 
 bitflags! {
@@ -358,6 +358,7 @@ impl Module for NormalModule {
     let (loader_result, ds) = match loader_result {
       Ok(r) => r.split_into_parts(),
       Err(e) => {
+        let e: Error = ModuleBuildError(e).into();
         let d = Diagnostic::from(e);
         self.source = NormalModuleSource::BuiltFailed(d.clone());
         self.add_diagnostic(d);

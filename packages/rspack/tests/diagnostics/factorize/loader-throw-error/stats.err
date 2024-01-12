@@ -1,7 +1,7 @@
 ERROR in ./lib.js
-NapiError
+ModuleBuildError
 
-  × Napi Error: Error: Failed to load
+  × Error: Failed to load
   │     at Object.<anonymous>.module.exports (<PROJECT_ROOT>/tests/diagnostics/factorize/loader-throw-error/my-loader.js:2:9)
   │     at apply (<PROJECT_ROOT>/src/loader-runner/index.ts:667:14)
   │     at runSyncOrAsync (<PROJECT_ROOT>/src/loader-runner/index.ts:668:3)

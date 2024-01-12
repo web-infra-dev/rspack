@@ -5041,7 +5041,9 @@ exports[`StatsTestCases should print correct stats for parse-error-builtin-swc-l
 {
   "errors": [
     {
-      "formatted": "  ×   x Expected '{', got 'error'
+      "formatted": "ModuleBuildError
+
+  ×   x Expected '{', got 'error'
   │    ,-[<PROJECT_ROOT>/tests/statsCases/parse-error-builtin-swc-loader/index.ts:1:1]
   │  1 | export error;
   │    :        ^^^^^
@@ -5049,7 +5051,9 @@ exports[`StatsTestCases should print correct stats for parse-error-builtin-swc-l
   │ 
   ╰─▶ Syntax Error
 ",
-      "message": "  ×   x Expected '{', got 'error'
+      "message": "ModuleBuildError
+
+  ×   x Expected '{', got 'error'
   │    ,-[<PROJECT_ROOT>/tests/statsCases/parse-error-builtin-swc-loader/index.ts:1:1]
   │  1 | export error;
   │    :        ^^^^^
@@ -5071,6 +5075,8 @@ exports[`StatsTestCases should print correct stats for parse-error-builtin-swc-l
 
 exports[`StatsTestCases should print correct stats for parse-error-builtin-swc-loader 2`] = `
 "ERROR in ./index.ts
+ModuleBuildError
+
   ×   x Expected '{', got 'error'
   │    ,-[<PROJECT_ROOT>/tests/statsCases/parse-error-builtin-swc-loader/index.ts:1:1]
   │  1 | export error;

@@ -215,46 +215,102 @@ impl From<Vec<miette::Error>> for BatchErrors {
 
 #[macro_export]
 macro_rules! impl_diagnostic_transparent {
-  ($ty:ty) => {
+  (code = $value:expr, $ty:ty) => {
     impl miette::Diagnostic for $ty {
       fn code<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
-        (&*self.0).code()
+        Some(Box::new($value))
       }
 
       fn severity(&self) -> Option<miette::Severity> {
-        (&*self.0).severity()
+        self.0.severity()
       }
 
       fn help<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
-        (&*self.0).help()
+        self.0.help()
       }
 
       fn url<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
-        (&*self.0).url()
+        self.0.url()
       }
 
       fn source_code(&self) -> Option<&dyn miette::SourceCode> {
-        (&*self.0).source_code()
+        self.0.source_code()
       }
 
       fn labels(&self) -> Option<Box<dyn Iterator<Item = miette::LabeledSpan> + '_>> {
-        (&*self.0).labels()
+        self.0.labels()
       }
 
       fn related<'a>(
         &'a self,
       ) -> Option<Box<dyn Iterator<Item = &'a dyn miette::Diagnostic> + 'a>> {
-        (&*self.0).related()
+        self.0.related()
       }
 
       fn diagnostic_source(&self) -> Option<&dyn Diagnostic> {
-        (&*self.0).diagnostic_source()
+        self.0.diagnostic_source()
+      }
+    }
+  };
+  ($ty:ty) => {
+    impl miette::Diagnostic for $ty {
+      fn code<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
+        self.0.code()
+      }
+
+      fn severity(&self) -> Option<miette::Severity> {
+        self.0.severity()
+      }
+
+      fn help<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
+        self.0.help()
+      }
+
+      fn url<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
+        self.0.url()
+      }
+
+      fn source_code(&self) -> Option<&dyn miette::SourceCode> {
+        self.0.source_code()
+      }
+
+      fn labels(&self) -> Option<Box<dyn Iterator<Item = miette::LabeledSpan> + '_>> {
+        self.0.labels()
+      }
+
+      fn related<'a>(
+        &'a self,
+      ) -> Option<Box<dyn Iterator<Item = &'a dyn miette::Diagnostic> + 'a>> {
+        self.0.related()
+      }
+
+      fn diagnostic_source(&self) -> Option<&dyn Diagnostic> {
+        self.0.diagnostic_source()
       }
     }
   };
 }
 
 impl_diagnostic_transparent!(InternalError);
+
+#[macro_export]
+macro_rules! impl_error_transparent {
+  ($ty:ty) => {
+    impl std::error::Error for ModuleBuildError {
+      fn source(&self) -> ::core::option::Option<&(dyn std::error::Error + 'static)> {
+        std::error::Error::source(<Error as AsRef<dyn std::error::Error>>::as_ref(&self.0))
+      }
+    }
+
+    #[allow(unused_qualifications)]
+    impl ::core::fmt::Display for ModuleBuildError {
+      #[allow(clippy::used_underscore_binding)]
+      fn fmt(&self, __formatter: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        ::core::fmt::Display::fmt(&self.0, __formatter)
+      }
+    }
+  };
+}
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub enum DiagnosticKind {
