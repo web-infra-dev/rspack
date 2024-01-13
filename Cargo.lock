@@ -2924,6 +2924,7 @@ dependencies = [
  "rayon",
  "regex",
  "rspack_ast",
+ "rspack_common",
  "rspack_core",
  "rspack_error",
  "rspack_hash",

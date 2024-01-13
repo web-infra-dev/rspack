@@ -1,4 +1,5 @@
 use rspack_ast::RspackAst;
+use rspack_common::SourceMapKind;
 use rspack_core::diagnostics::map_box_diagnostics_to_module_parse_diagnostics;
 use rspack_core::rspack_sources::{
   BoxSource, MapOptions, OriginalSource, RawSource, ReplaceSource, Source, SourceExt, SourceMap,
@@ -85,6 +86,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     let ParseContext {
       source,
       module_type,
+      module_source_map_kind,
       resource_data,
       compiler_options,
       build_info,
@@ -103,9 +105,9 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       allow_super_outside_method: true,
       ..Default::default()
     });
-    let use_source_map = compiler_options.devtool.enabled();
-    let use_simple_source_map = compiler_options.devtool.source_map();
-    let original_map = source.map(&MapOptions::new(!compiler_options.devtool.cheap()));
+    let use_source_map = matches!(module_source_map_kind, SourceMapKind::SourceMap);
+    let use_simple_source_map = matches!(module_source_map_kind, SourceMapKind::SimpleSourceMap);
+    let original_map = source.map(&MapOptions::new(use_simple_source_map));
     let source = source.source();
 
     let gen_terminate_res = |diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>>| {
@@ -152,7 +154,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       &ast,
       additional_data
         .remove::<CodegenOptions>()
-        .unwrap_or_else(|| CodegenOptions::new(&compiler_options.devtool, Some(true))),
+        .unwrap_or_else(|| CodegenOptions::new(&module_source_map_kind, Some(true))),
     )?;
 
     ast = match crate::ast::parse(

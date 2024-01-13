@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use rspack_ast::javascript::Ast;
-use rspack_core::Devtool;
+use rspack_common::SourceMapKind;
 use rspack_error::{miette::IntoDiagnostic, Result};
 use swc_core::base::config::JsMinifyFormatOptions;
 use swc_core::{
@@ -33,12 +33,12 @@ pub struct CodegenOptions {
 }
 
 impl CodegenOptions {
-  pub fn new(devtool: &Devtool, keep_comments: Option<bool>) -> Self {
+  pub fn new(source_map_kind: &SourceMapKind, keep_comments: Option<bool>) -> Self {
     Self {
       source_map_config: SourceMapConfig {
-        enable: devtool.source_map(),
+        enable: !matches!(source_map_kind, SourceMapKind::None),
         inline_sources_content: true,
-        emit_columns: !devtool.cheap(),
+        emit_columns: matches!(source_map_kind, SourceMapKind::SimpleSourceMap),
         names: Default::default(),
       },
       keep_comments,
