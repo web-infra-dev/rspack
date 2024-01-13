@@ -4,7 +4,7 @@ use std::{
   hash::{BuildHasherDefault, Hash},
   sync::{
     atomic::{AtomicUsize, Ordering},
-    Arc, Mutex,
+    Mutex,
   },
 };
 
@@ -27,11 +27,11 @@ use serde_json::json;
 use crate::{
   add_connection_states, contextify, get_context, impl_build_info_meta,
   AsyncDependenciesBlockIdentifier, BoxLoader, BoxModule, BuildContext, BuildInfo, BuildMeta,
-  BuildResult, CodeGenerationResult, Compilation, CompilerOptions, ConnectionState, Context,
-  DependenciesBlock, DependencyId, DependencyTemplate, GenerateContext, GeneratorOptions,
-  LibIdentOptions, Module, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType,
-  ParseContext, ParseResult, ParserAndGenerator, ParserOptions, Resolve, RspackLoaderRunnerPlugin,
-  RuntimeSpec, SourceMapConfig, SourceMapOption, SourceType,
+  BuildResult, CodeGenerationResult, Compilation, ConnectionState, Context, DependenciesBlock,
+  DependencyId, DependencyTemplate, GenerateContext, GeneratorOptions, LibIdentOptions, Module,
+  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType, ParseContext, ParseResult,
+  ParserAndGenerator, ParserOptions, Resolve, RspackLoaderRunnerPlugin, RuntimeSpec,
+  SourceMapGenConfig, SourceMapKind, SourceType,
 };
 
 bitflags! {
@@ -117,8 +117,6 @@ pub struct NormalModule {
   /// Generator options derived from [Rule.generator]
   generator_options: Option<GeneratorOptions>,
 
-  #[derivative(Debug = "ignore")]
-  options: Arc<CompilerOptions>,
   #[allow(unused)]
   debug_id: usize,
   cached_source_sizes: DashMap<SourceType, f64, BuildHasherDefault<FxHasher>>,
@@ -175,7 +173,6 @@ impl NormalModule {
     resource_data: ResourceData,
     resolve_options: Option<Box<Resolve>>,
     loaders: Vec<BoxLoader>,
-    options: Arc<CompilerOptions>,
     contains_inline_loader: bool,
   ) -> Self {
     let module_type = module_type.into();
@@ -201,7 +198,6 @@ impl NormalModule {
       source: NormalModuleSource::Unbuild,
       debug_id: DEBUG_ID.fetch_add(1, Ordering::Relaxed),
 
-      options,
       cached_source_sizes: DashMap::default(),
       diagnostics: Mutex::new(Default::default()),
       code_generation_dependencies: None,
@@ -209,7 +205,7 @@ impl NormalModule {
       build_info: None,
       build_meta: None,
 
-      source_map_option: SourceMapOption::None,
+      source_map_option: SourceMapKind::None,
     }
   }
 
@@ -622,8 +618,8 @@ impl NormalModule {
     if content.is_buffer() {
       return Ok(RawSource::Buffer(content.into_bytes()).boxed());
     }
-    let source_map_option = self.get_source_map_option();
-    if !matches!(source_map_option, SourceMapOption::None)
+    let source_map_option = self.get_source_map_kind();
+    if !matches!(source_map_option, SourceMapKind::None)
       && let Some(source_map) = source_map
     {
       let content = content.into_string_lossy();
@@ -636,7 +632,7 @@ impl NormalModule {
         .boxed(),
       );
     }
-    if matches!(source_map_option, SourceMapOption::SourceMap)
+    if matches!(source_map_option, SourceMapKind::SourceMap)
       && let Content::String(content) = content
     {
       return Ok(OriginalSource::new(content, self.request()).boxed());

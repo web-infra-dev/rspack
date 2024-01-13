@@ -1,7 +1,7 @@
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  ChunkUkey, Compilation, DependenciesBlock, RuntimeModule, RuntimeModuleStage, SourceMapOption,
+  ChunkUkey, Compilation, DependenciesBlock, RuntimeModule, RuntimeModuleStage, SourceMapKind,
   SourceType,
 };
 use rspack_identifier::{Identifiable, Identifier};
@@ -25,7 +25,7 @@ impl RemoteRuntimeModule {
       id: Identifier::from("webpack/runtime/remotes_loading"),
       chunk: None,
       enhanced,
-      source_map_option: SourceMapOption::None,
+      source_map_option: SourceMapKind::None,
     }
   }
 }

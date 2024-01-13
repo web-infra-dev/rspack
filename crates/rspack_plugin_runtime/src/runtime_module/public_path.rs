@@ -1,7 +1,7 @@
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  Compilation, RuntimeModule, SourceMapOption,
+  Compilation, RuntimeModule, SourceMapKind,
 };
 use rspack_identifier::Identifier;
 
@@ -17,7 +17,7 @@ impl PublicPathRuntimeModule {
     Self {
       id: Identifier::from("webpack/runtime/public_path"),
       public_path,
-      source_map_option: SourceMapOption::None,
+      source_map_option: SourceMapKind::None,
     }
   }
 }

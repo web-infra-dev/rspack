@@ -7,7 +7,7 @@ use rspack_core::{
   rspack_sources::{RawSource, Source, SourceExt},
   AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
   CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId, LibIdentOptions,
-  Module, ModuleIdentifier, ModuleType, RuntimeSpec, SourceMapOption, SourceType,
+  Module, ModuleIdentifier, ModuleType, RuntimeSpec, SourceMapKind, SourceType,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_hash::RspackHash;
@@ -66,7 +66,7 @@ impl RemoteModule {
       remote_key,
       build_info: None,
       build_meta: None,
-      source_map_option: SourceMapOption::None,
+      source_map_option: SourceMapKind::None,
     }
   }
 }

@@ -1,7 +1,7 @@
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  Compilation, RuntimeGlobals, RuntimeModule, SourceMapOption,
+  Compilation, RuntimeGlobals, RuntimeModule, SourceMapKind,
 };
 use rspack_identifier::Identifier;
 
@@ -17,7 +17,7 @@ impl NormalRuntimeModule {
     Self {
       identifier: Identifier::from(identifier.name()),
       sources,
-      source_map_option: SourceMapOption::None,
+      source_map_option: SourceMapKind::None,
     }
   }
 }

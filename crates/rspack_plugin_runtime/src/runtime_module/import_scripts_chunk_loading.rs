@@ -1,8 +1,7 @@
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
-  Chunk, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
-  SourceMapOption,
+  Chunk, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage, SourceMapKind,
 };
 use rspack_identifier::Identifier;
 
@@ -29,7 +28,7 @@ impl ImportScriptsChunkLoadingRuntimeModule {
       id: Identifier::from("webpack/runtime/import_scripts_chunk_loading"),
       chunk: None,
       with_create_script_url,
-      source_map_option: SourceMapOption::None,
+      source_map_option: SourceMapKind::None,
     }
   }
 

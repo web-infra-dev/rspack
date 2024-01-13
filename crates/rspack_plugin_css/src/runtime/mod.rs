@@ -1,7 +1,7 @@
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
-  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage, SourceMapOption,
+  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage, SourceMapKind,
 };
 use rspack_identifier::Identifier;
 use rspack_plugin_runtime::{
@@ -22,7 +22,7 @@ impl Default for CssLoadingRuntimeModule {
     Self {
       id: Identifier::from("webpack/runtime/css_loading"),
       chunk: None,
-      source_map_option: SourceMapOption::None,
+      source_map_option: SourceMapKind::None,
     }
   }
 }

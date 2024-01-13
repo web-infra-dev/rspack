@@ -10,7 +10,7 @@ use rspack_sources::{BoxSource, RawSource, Source, SourceExt};
 use crate::{
   dependencies_block::AsyncDependenciesBlockIdentifier, impl_build_info_meta, BuildContext,
   BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Context, DependenciesBlock,
-  DependencyId, Module, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceMapOption,
+  DependencyId, Module, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceMapKind,
   SourceType,
 };
 
@@ -46,7 +46,7 @@ impl RawModule {
       runtime_requirements,
       build_info: None,
       build_meta: None,
-      source_map_option: SourceMapOption::None,
+      source_map_option: SourceMapKind::None,
     }
   }
 }

@@ -3,7 +3,7 @@ use rayon::prelude::*;
 use rspack_core::{impl_runtime_module, ChunkUkey, Compilation, RuntimeModule};
 use rspack_core::{
   rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
-  SourceMapOption,
+  SourceMapKind,
 };
 use rspack_identifier::Identifier;
 use rspack_plugin_javascript::runtime::stringify_array;
@@ -22,7 +22,7 @@ impl Default for LoadChunkWithBlockRuntimeModule {
     Self {
       id: Identifier::from("webpack/runtime/load_chunk_with_block"),
       chunk: None,
-      source_map_option: SourceMapOption::None,
+      source_map_option: SourceMapKind::None,
     }
   }
 }

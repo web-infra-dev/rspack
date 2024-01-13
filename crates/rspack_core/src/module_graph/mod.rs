@@ -755,8 +755,8 @@ mod test {
     AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta,
     BuildResult, CodeGenerationResult, Compilation, Context, DependenciesBlock, Dependency,
     DependencyId, ExportInfo, ExportsInfo, Module, ModuleDependency, ModuleGraph,
-    ModuleGraphModule, ModuleIdentifier, ModuleType, RuntimeSpec, SourceMapConfig, SourceMapOption,
-    SourceType, UsageState,
+    ModuleGraphModule, ModuleIdentifier, ModuleType, RuntimeSpec, SourceMapGenConfig,
+    SourceMapKind, SourceType, UsageState,
   };
 
   // Define a detailed node type for `ModuleGraphModule`s
@@ -842,11 +842,11 @@ mod test {
         }
       }
 
-      impl SourceMapConfig for $ident {
-        fn get_source_map_option(&self) -> &SourceMapOption {
+      impl SourceMapGenConfig for $ident {
+        fn get_source_map_kind(&self) -> &SourceMapKind {
           unreachable!()
         }
-        fn set_source_map_option(&mut self, source_map: SourceMapOption) {
+        fn set_source_map_kind(&mut self, source_map: SourceMapKind) {
           unreachable!()
         }
       }

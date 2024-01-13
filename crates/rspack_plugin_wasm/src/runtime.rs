@@ -1,7 +1,7 @@
 use rspack_core::rspack_sources::{BoxSource, RawSource, SourceExt};
 use rspack_core::{
   get_filename_without_hash_length, impl_runtime_module, ChunkUkey, Compilation, PathData,
-  RuntimeModule, RuntimeModuleStage, SourceMapOption,
+  RuntimeModule, RuntimeModuleStage, SourceMapKind,
 };
 use rspack_identifier::Identifier;
 
@@ -25,7 +25,7 @@ impl AsyncWasmLoadingRuntimeModule {
       id: Identifier::from("webpack/runtime/async_wasm_loading"),
       supports_streaming,
       chunk,
-      source_map_option: SourceMapOption::None,
+      source_map_option: SourceMapKind::None,
     }
   }
 }

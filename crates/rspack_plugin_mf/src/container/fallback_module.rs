@@ -8,7 +8,7 @@ use rspack_core::{
   AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
   ChunkUkey, CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId,
   LibIdentOptions, Module, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec,
-  SourceMapOption, SourceType,
+  SourceMapKind, SourceType,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_hash::RspackHash;
@@ -49,7 +49,7 @@ impl FallbackModule {
       requests,
       build_info: None,
       build_meta: None,
-      source_map_option: SourceMapOption::None,
+      source_map_option: SourceMapKind::None,
     }
   }
 }

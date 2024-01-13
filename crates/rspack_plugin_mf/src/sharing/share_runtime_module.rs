@@ -3,7 +3,7 @@ use itertools::Itertools;
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, SourceMapOption, SourceType,
+  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, SourceMapKind, SourceType,
 };
 use rspack_identifier::Identifier;
 use rustc_hash::FxHashMap;
@@ -25,7 +25,7 @@ impl ShareRuntimeModule {
       id: Identifier::from("webpack/runtime/sharing"),
       chunk: None,
       enhanced,
-      source_map_option: SourceMapOption::None,
+      source_map_option: SourceMapKind::None,
     }
   }
 }

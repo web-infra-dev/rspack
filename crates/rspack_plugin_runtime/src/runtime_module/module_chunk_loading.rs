@@ -1,8 +1,7 @@
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
-  Chunk, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
-  SourceMapOption,
+  Chunk, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage, SourceMapKind,
 };
 use rspack_identifier::Identifier;
 
@@ -28,7 +27,7 @@ impl Default for ModuleChunkLoadingRuntimeModule {
     Self {
       id: Identifier::from("webpack/runtime/module_chunk_loading"),
       chunk: None,
-      source_map_option: SourceMapOption::None,
+      source_map_option: SourceMapKind::None,
     }
   }
 }

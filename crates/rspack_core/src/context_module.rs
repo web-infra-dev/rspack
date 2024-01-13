@@ -26,7 +26,7 @@ use crate::{
   ContextElementDependency, DependenciesBlock, DependencyCategory, DependencyId, ExportsType,
   FakeNamespaceObjectMode, GroupOptions, LibIdentOptions, Module, ModuleType, Resolve,
   ResolveInnerOptions, ResolveOptionsWithDependencyType, ResolverFactory, RuntimeGlobals,
-  RuntimeSpec, SourceMapOption, SourceType,
+  RuntimeSpec, SourceMapKind, SourceType,
 };
 
 #[derive(Debug, Clone)]
@@ -215,7 +215,7 @@ impl ContextModule {
       resolve_factory,
       build_info: None,
       build_meta: None,
-      source_map_option: SourceMapOption::None,
+      source_map_option: SourceMapKind::None,
     }
   }
 

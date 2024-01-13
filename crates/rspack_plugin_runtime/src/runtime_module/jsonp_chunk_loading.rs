@@ -2,7 +2,7 @@ use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
   Chunk, ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule,
-  RuntimeModuleStage, SourceMapOption,
+  RuntimeModuleStage, SourceMapKind,
 };
 use rspack_identifier::Identifier;
 
@@ -26,7 +26,7 @@ impl Default for JsonpChunkLoadingRuntimeModule {
     Self {
       id: Identifier::from("webpack/runtime/jsonp_chunk_loading"),
       chunk: None,
-      source_map_option: SourceMapOption::None,
+      source_map_option: SourceMapKind::None,
     }
   }
 }

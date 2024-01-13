@@ -1,7 +1,7 @@
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  Compilation, RuntimeModule, SourceMapOption,
+  Compilation, RuntimeModule, SourceMapKind,
 };
 use rspack_identifier::Identifier;
 
@@ -15,7 +15,7 @@ impl Default for CompatGetDefaultExportRuntimeModule {
   fn default() -> Self {
     Self {
       id: Identifier::from("webpack/runtime/compat_get_default_export"),
-      source_map_option: SourceMapOption::None,
+      source_map_option: SourceMapKind::None,
     }
   }
 }

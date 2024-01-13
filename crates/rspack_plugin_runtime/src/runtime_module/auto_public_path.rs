@@ -2,7 +2,7 @@ use rspack_core::{
   get_js_chunk_filename_template, impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
   ChunkUkey, Compilation, OutputOptions, PathData, RuntimeGlobals, RuntimeModule,
-  RuntimeModuleStage, SourceMapOption, SourceType,
+  RuntimeModuleStage, SourceMapKind, SourceType,
 };
 use rspack_identifier::Identifier;
 
@@ -20,7 +20,7 @@ impl Default for AutoPublicPathRuntimeModule {
     Self {
       id: Identifier::from("webpack/runtime/auto_public_path"),
       chunk: None,
-      source_map_option: SourceMapOption::None,
+      source_map_option: SourceMapKind::None,
     }
   }
 }

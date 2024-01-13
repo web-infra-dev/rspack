@@ -1,7 +1,7 @@
 use rspack_core::{
   basic_function, impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage, SourceMapOption,
+  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage, SourceMapKind,
   SourceType,
 };
 use rspack_identifier::Identifier;
@@ -22,7 +22,7 @@ impl ExposeRuntimeModule {
       id: Identifier::from("webpack/runtime/initialize_exposes"),
       chunk: None,
       enhanced,
-      source_map_option: SourceMapOption::None,
+      source_map_option: SourceMapKind::None,
     }
   }
 }

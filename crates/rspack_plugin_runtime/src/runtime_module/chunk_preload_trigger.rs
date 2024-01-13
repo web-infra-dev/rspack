@@ -4,7 +4,7 @@ use indexmap::IndexMap;
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  Compilation, RuntimeModule, RuntimeModuleStage, SourceMapOption,
+  Compilation, RuntimeModule, RuntimeModuleStage, SourceMapKind,
 };
 use rspack_identifier::Identifier;
 use rustc_hash::FxHasher;
@@ -21,7 +21,7 @@ impl ChunkPreloadTriggerRuntimeModule {
     Self {
       id: Identifier::from("webpack/runtime/chunk_preload_trigger"),
       chunk_map,
-      source_map_option: SourceMapOption::None,
+      source_map_option: SourceMapKind::None,
     }
   }
 }

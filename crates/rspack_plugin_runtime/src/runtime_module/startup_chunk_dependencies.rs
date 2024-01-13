@@ -4,7 +4,7 @@ use itertools::Itertools;
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, SourceMapOption,
+  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, SourceMapKind,
 };
 use rspack_identifier::Identifier;
 
@@ -22,7 +22,7 @@ impl StartupChunkDependenciesRuntimeModule {
       id: Identifier::from("webpack/runtime/startup_chunk_dependencies"),
       async_chunk_loading,
       chunk: None,
-      source_map_option: SourceMapOption::None,
+      source_map_option: SourceMapKind::None,
     }
   }
 }

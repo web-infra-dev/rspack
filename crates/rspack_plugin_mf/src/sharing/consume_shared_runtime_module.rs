@@ -2,7 +2,7 @@ use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
   Chunk, ChunkUkey, Compilation, ModuleIdentifier, RuntimeGlobals, RuntimeModule,
-  RuntimeModuleStage, SourceMapOption, SourceType,
+  RuntimeModuleStage, SourceMapKind, SourceType,
 };
 use rspack_identifier::Identifier;
 use rustc_hash::FxHashMap;
@@ -24,7 +24,7 @@ impl ConsumeSharedRuntimeModule {
       id: Identifier::from("webpack/runtime/consumes_loading"),
       chunk: None,
       enhanced,
-      source_map_option: SourceMapOption::None,
+      source_map_option: SourceMapKind::None,
     }
   }
 }

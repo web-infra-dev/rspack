@@ -1,7 +1,7 @@
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, SourceMapOption,
+  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, SourceMapKind,
 };
 use rspack_identifier::Identifier;
 
@@ -19,7 +19,7 @@ impl Default for GetTrustedTypesPolicyRuntimeModule {
     Self {
       id: Identifier::from("webpack/runtime/get_trusted_types_policy"),
       chunk: None,
-      source_map_option: SourceMapOption::None,
+      source_map_option: SourceMapKind::None,
     }
   }
 }

@@ -1,7 +1,7 @@
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule, SourceMapOption,
+  Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule, SourceMapKind,
 };
 use rspack_identifier::Identifier;
 
@@ -19,7 +19,7 @@ impl LoadScriptRuntimeModule {
       id: Identifier::from("webpack/runtime/load_script"),
       unique_name,
       with_create_script_url,
-      source_map_option: SourceMapOption::None,
+      source_map_option: SourceMapKind::None,
     }
   }
 }

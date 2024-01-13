@@ -11,8 +11,8 @@ use rspack_sources::Source;
 use crate::{
   impl_build_info_meta, AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildMeta,
   BuildResult, ChunkUkey, CodeGenerationResult, Compilation, Context, DependenciesBlock,
-  DependencyId, LibIdentOptions, Module, ModuleIdentifier, ModuleType, RuntimeSpec,
-  SourceMapOption, SourceType,
+  DependencyId, LibIdentOptions, Module, ModuleIdentifier, ModuleType, RuntimeSpec, SourceMapKind,
+  SourceType,
 };
 
 #[impl_source_map_config_internal]
@@ -36,7 +36,7 @@ impl SelfModule {
       dependencies: Default::default(),
       build_info: None,
       build_meta: None,
-      source_map_option: SourceMapOption::None,
+      source_map_option: SourceMapKind::None,
     }
   }
 }

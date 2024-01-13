@@ -16,7 +16,7 @@ use crate::{
   BuildMetaExportsType, BuildResult, ChunkInitFragments, ChunkUkey, CodeGenerationDataUrl,
   CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId, ExternalType,
   InitFragmentExt, InitFragmentKey, InitFragmentStage, LibIdentOptions, Module, ModuleType,
-  NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceMapOption, SourceType,
+  NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceMapKind, SourceType,
 };
 
 static EXTERNAL_MODULE_JS_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
@@ -105,7 +105,7 @@ impl ExternalModule {
       user_request,
       build_info: None,
       build_meta: None,
-      source_map_option: SourceMapOption::None,
+      source_map_option: SourceMapKind::None,
     }
   }
 

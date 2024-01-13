@@ -5,8 +5,8 @@ use itertools::Itertools;
 use rspack_core::{
   get_chunk_from_ukey, get_filename_without_hash_length, impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  Chunk, ChunkUkey, Compilation, Filename, PathData, RuntimeGlobals, RuntimeModule,
-  SourceMapOption, SourceType,
+  Chunk, ChunkUkey, Compilation, Filename, PathData, RuntimeGlobals, RuntimeModule, SourceMapKind,
+  SourceType,
 };
 use rspack_identifier::Identifier;
 
@@ -67,7 +67,7 @@ impl GetChunkFilenameRuntimeModule {
       global,
       all_chunks: Box::new(all_chunks),
       filename_for_chunk: Box::new(filename_for_chunk),
-      source_map_option: SourceMapOption::None,
+      source_map_option: SourceMapKind::None,
     }
   }
 }

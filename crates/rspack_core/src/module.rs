@@ -140,16 +140,16 @@ pub struct FactoryMeta {
 pub type ModuleIdentifier = Identifier;
 
 #[derive(Debug, PartialEq, Eq, Default)]
-pub enum SourceMapOption {
+pub enum SourceMapKind {
   #[default]
   None,
   SourceMap,
   SimpleSourceMap,
 }
 
-pub trait SourceMapConfig {
-  fn get_source_map_option(&self) -> &SourceMapOption;
-  fn set_source_map_option(&mut self, source_map: SourceMapOption);
+pub trait SourceMapGenConfig {
+  fn get_source_map_kind(&self) -> &SourceMapKind;
+  fn set_source_map_kind(&mut self, source_map: SourceMapKind);
 }
 
 #[async_trait]
@@ -163,7 +163,7 @@ pub trait Module:
   + Identifiable
   + DependenciesBlock
   + Diagnosable
-  + SourceMapConfig
+  + SourceMapGenConfig
 {
   /// Defines what kind of module this is.
   fn module_type(&self) -> &ModuleType;
@@ -467,8 +467,8 @@ mod test {
   use super::Module;
   use crate::{
     AsyncDependenciesBlockIdentifier, BuildContext, BuildResult, CodeGenerationResult, Compilation,
-    Context, DependenciesBlock, DependencyId, ModuleExt, ModuleType, RuntimeSpec, SourceMapConfig,
-    SourceMapOption, SourceType,
+    Context, DependenciesBlock, DependencyId, ModuleExt, ModuleType, RuntimeSpec,
+    SourceMapGenConfig, SourceMapKind, SourceType,
   };
 
   #[derive(Debug, Eq)]
@@ -580,11 +580,11 @@ mod test {
         }
       }
 
-      impl SourceMapConfig for $ident {
-        fn get_source_map_option(&self) -> &SourceMapOption {
+      impl SourceMapGenConfig for $ident {
+        fn get_source_map_kind(&self) -> &SourceMapKind {
           unreachable!()
         }
-        fn set_source_map_option(&mut self, source_map: SourceMapOption) {
+        fn set_source_map_kind(&mut self, source_map: SourceMapKind) {
           unreachable!()
         }
       }

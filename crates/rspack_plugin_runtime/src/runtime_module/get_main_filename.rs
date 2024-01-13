@@ -1,7 +1,7 @@
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  ChunkUkey, Compilation, PathData, RuntimeGlobals, RuntimeModule, SourceMapOption,
+  ChunkUkey, Compilation, PathData, RuntimeGlobals, RuntimeModule, SourceMapKind,
 };
 use rspack_identifier::Identifier;
 
@@ -21,7 +21,7 @@ impl GetMainFilenameRuntimeModule {
       id: Identifier::from(format!("webpack/runtime/get_main_filename/{content_type}")),
       global,
       filename,
-      source_map_option: SourceMapOption::None,
+      source_map_option: SourceMapKind::None,
     }
   }
 }

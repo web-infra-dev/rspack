@@ -2,7 +2,7 @@ use itertools::Itertools;
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage, SourceMapOption,
+  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage, SourceMapKind,
 };
 use rspack_identifier::Identifier;
 
@@ -20,7 +20,7 @@ impl ChunkPrefetchStartupRuntimeModule {
       id: Identifier::from("webpack/runtime/chunk_prefetch_startup"),
       startup_chunks,
       chunk: None,
-      source_map_option: SourceMapOption::None,
+      source_map_option: SourceMapKind::None,
     }
   }
 }

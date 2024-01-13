@@ -8,7 +8,7 @@ use rspack_core::{
   BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildMetaExportsType, BuildResult,
   ChunkGroupOptions, CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId,
   GroupOptions, LibIdentOptions, Module, ModuleDependency, ModuleIdentifier, ModuleType,
-  RuntimeGlobals, RuntimeSpec, SourceMapOption, SourceType, StaticExportsDependency,
+  RuntimeGlobals, RuntimeSpec, SourceMapKind, SourceType, StaticExportsDependency,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_hash::RspackHash;
@@ -49,7 +49,7 @@ impl ContainerEntryModule {
       share_scope,
       build_info: None,
       build_meta: None,
-      source_map_option: SourceMapOption::None,
+      source_map_option: SourceMapKind::None,
     }
   }
 }
