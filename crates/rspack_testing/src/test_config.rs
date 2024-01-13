@@ -423,7 +423,7 @@ impl TestConfig {
         rules,
         ..Default::default()
       },
-      devtool: c::Devtool::from(self.devtool),
+      devtool: self.devtool,
       stats: Default::default(),
       snapshot: Default::default(),
       cache: c::CacheOptions::Disabled,
@@ -497,15 +497,19 @@ impl TestConfig {
     // plugins.push(rspack_plugin_externals::ExternalPlugin::default().boxed());
     plugins.push(rspack_plugin_javascript::JsPlugin::new().boxed());
 
-    if options.devtool.source_map() {
+    if options.devtool.contains("source-map") {
+      let hidden = options.devtool.contains("hidden");
+      let cheap = options.devtool.contains("cheap");
+      let no_sources = options.devtool.contains("nosources");
+
       plugins.push(
         rspack_plugin_devtool::SourceMapDevToolPlugin::new(
           rspack_plugin_devtool::SourceMapDevToolPluginOptions {
             filename: None,
-            append: Some(!options.devtool.hidden()),
+            append: Some(!hidden),
             namespace: options.output.unique_name.clone(),
-            columns: !options.devtool.cheap(),
-            no_sources: options.devtool.no_sources(),
+            columns: !cheap,
+            no_sources: no_sources,
             public_path: None,
           },
         )

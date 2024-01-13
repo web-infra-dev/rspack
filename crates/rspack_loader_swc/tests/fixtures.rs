@@ -5,6 +5,7 @@ use std::{
   sync::Arc,
 };
 
+use rspack_common::SourceMapKind;
 use rspack_core::{
   run_loaders, CompilerContext, CompilerOptions, Loader, LoaderRunnerContext, ResourceData,
   SideEffectOption,
@@ -35,7 +36,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
         bail: false,
         context: rspack_core::Context::default(),
         dev_server: rspack_core::DevServerOptions::default(),
-        devtool: rspack_core::Devtool::from("source-map".to_string()),
+        devtool: "inline-source-map".to_string(),
         mode: rspack_core::Mode::None,
         output: rspack_core::OutputOptions {
           clean: false,
@@ -99,6 +100,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
       resolver_factory: Default::default(),
       module: "".into(),
       module_context: None,
+      module_source_map_kind: SourceMapKind::SourceMap,
     },
   )
   .await

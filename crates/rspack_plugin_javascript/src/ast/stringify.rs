@@ -38,7 +38,7 @@ impl CodegenOptions {
       source_map_config: SourceMapConfig {
         enable: !matches!(source_map_kind, SourceMapKind::None),
         inline_sources_content: true,
-        emit_columns: matches!(source_map_kind, SourceMapKind::SimpleSourceMap),
+        emit_columns: matches!(source_map_kind, SourceMapKind::SourceMap),
         names: Default::default(),
       },
       keep_comments,

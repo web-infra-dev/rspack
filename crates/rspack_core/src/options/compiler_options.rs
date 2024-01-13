@@ -1,7 +1,7 @@
 use crate::{
-  Builtins, CacheOptions, Context, DevServerOptions, Devtool, Experiments,
-  IncrementalRebuildMakeState, Mode, ModuleOptions, NodeOption, Optimization, OutputOptions,
-  Resolve, SnapshotOptions, StatsOptions, Target,
+  Builtins, CacheOptions, Context, DevServerOptions, Experiments, IncrementalRebuildMakeState,
+  Mode, ModuleOptions, NodeOption, Optimization, OutputOptions, Resolve, SnapshotOptions,
+  StatsOptions, Target,
 };
 
 #[derive(Debug)]
@@ -15,7 +15,7 @@ pub struct CompilerOptions {
   pub resolve: Resolve,
   pub resolve_loader: Resolve,
   pub module: ModuleOptions,
-  pub devtool: Devtool,
+  pub devtool: String,
   pub stats: StatsOptions,
   pub snapshot: SnapshotOptions,
   pub cache: CacheOptions,
