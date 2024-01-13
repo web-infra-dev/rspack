@@ -173,7 +173,6 @@ impl Plugin for SwcJsMinimizerRspackPlugin {
         Regex::new(condition)
           .unwrap_or_else(|_| panic!("`{condition}` is invalid extractComments condition"))
       });
-    let emit_source_map_columns = !compilation.options.devtool.cheap();
 
     compilation
       .assets_mut()
@@ -211,7 +210,6 @@ impl Plugin for SwcJsMinimizerRspackPlugin {
             format: minify_options.format.clone(),
             source_map: BoolOrDataConfig::from_bool(input_source_map.is_some()),
             inline_sources_content: true, /* Using true so original_source can be None in SourceMapSource */
-            emit_source_map_columns,
             module: is_module,
             ..Default::default()
             };
@@ -328,7 +326,6 @@ pub struct JsMinifyOptions {
   pub source_map: BoolOrDataConfig<TerserSourceMapKind>,
   pub output_path: Option<String>,
   pub inline_sources_content: bool,
-  pub emit_source_map_columns: bool,
 }
 
 #[derive(Debug, Clone, Default)]
