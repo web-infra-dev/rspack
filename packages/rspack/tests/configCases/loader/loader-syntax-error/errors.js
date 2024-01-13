@@ -1,1 +1,1 @@
-module.exports = [/NapiError/];
+module.exports = [/'const' declarations must be initialized/];

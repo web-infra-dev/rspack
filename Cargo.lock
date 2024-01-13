@@ -2501,6 +2501,7 @@ dependencies = [
  "anyhow",
  "futures",
  "miette 5.10.0",
+ "once_cell",
  "rspack_identifier",
  "swc_core",
  "termcolor",
