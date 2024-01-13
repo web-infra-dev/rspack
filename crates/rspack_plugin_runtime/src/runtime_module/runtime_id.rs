@@ -1,4 +1,5 @@
 use itertools::Itertools;
+use rspack_common::SourceMapKind;
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
@@ -6,6 +7,7 @@ use rspack_core::{
 };
 use rspack_identifier::Identifier;
 
+#[impl_runtime_module]
 #[derive(Debug, Eq)]
 pub struct RuntimeIdRuntimeModule {
   id: Identifier,
@@ -17,6 +19,7 @@ impl Default for RuntimeIdRuntimeModule {
     Self {
       id: Identifier::from("webpack/runtime/runtime_id"),
       chunk: None,
+      source_map_kind: SourceMapKind::None,
     }
   }
 }
@@ -60,5 +63,3 @@ impl RuntimeModule for RuntimeIdRuntimeModule {
     }
   }
 }
-
-impl_runtime_module!(RuntimeIdRuntimeModule);

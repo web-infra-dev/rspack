@@ -5,7 +5,6 @@ mod raw_split_chunk_name;
 use std::sync::Arc;
 
 use derivative::Derivative;
-use napi::bindgen_prelude::Either3;
 use napi::{Either, JsString};
 use napi_derive::napi;
 use raw_split_chunk_name::normalize_raw_chunk_name;
@@ -53,69 +52,6 @@ pub struct RawSplitChunksOptions {
   pub max_size: Option<f64>,
   pub max_async_size: Option<f64>,
   pub max_initial_size: Option<f64>,
-}
-
-impl From<RawSplitChunksOptions> for rspack_plugin_split_chunks::SplitChunksOptions {
-  fn from(value: RawSplitChunksOptions) -> Self {
-    use rspack_plugin_split_chunks::{CacheGroupOptions, ChunkType, SplitChunksOptions, TestFn};
-
-    let mut defaults = SplitChunksOptions {
-      max_async_requests: value.max_async_requests,
-      max_initial_requests: value.max_initial_requests,
-      min_chunks: value.min_chunks,
-      min_size: value.min_size,
-      enforce_size_threshold: value.enforce_size_threshold,
-      min_remaining_size: value.min_remaining_size,
-      automatic_name_delimiter: Some(DEFAULT_DELIMITER.to_string()),
-      chunks: value.chunks.map(|chunks| {
-        let Either3::B(chunks) = chunks else {
-          panic!("expected string")
-        };
-        let chunks = chunks.into_string();
-        match chunks.as_str() {
-          "initial" => ChunkType::Initial,
-          "async" => ChunkType::Async,
-          "all" => ChunkType::All,
-          _ => panic!("Invalid chunk type: {chunks}"),
-        }
-      }),
-      ..Default::default()
-    };
-
-    defaults
-      .cache_groups
-      .extend(value.cache_groups.unwrap_or_default().into_iter().map(|v| {
-        (
-          v.key,
-          CacheGroupOptions {
-            // FIXME: since old split chunk will not used so I use `None` here
-            automatic_name_delimiter: Some(DEFAULT_DELIMITER.to_string()),
-            name: None,
-            priority: v.priority,
-            reuse_existing_chunk: Some(false),
-            test: v.test.map(|_| {
-              let f: TestFn = Arc::new(move |_| false);
-              f // FIXME: since old split chunk will not used so I use `|| -> false` here
-            }),
-            chunks: v.chunks.map(|chunks| {
-              let Either3::B(chunks) = chunks else {
-                panic!("expected string")
-              };
-              let chunks = chunks.into_string();
-              match chunks.as_str() {
-                "initial" => ChunkType::Initial,
-                "async" => ChunkType::Async,
-                "all" => ChunkType::All,
-                _ => panic!("Invalid chunk type: {chunks}"),
-              }
-            }),
-            min_chunks: v.min_chunks,
-            ..Default::default()
-          },
-        )
-      }));
-    defaults
-  }
 }
 
 #[derive(Derivative, Deserialize)]

@@ -1,3 +1,4 @@
+use rspack_common::SourceMapKind;
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
@@ -5,6 +6,7 @@ use rspack_core::{
 };
 use rspack_identifier::Identifier;
 
+#[impl_runtime_module]
 #[derive(Debug, Eq)]
 pub struct CreateFakeNamespaceObjectRuntimeModule {
   id: Identifier,
@@ -14,6 +16,7 @@ impl Default for CreateFakeNamespaceObjectRuntimeModule {
   fn default() -> Self {
     Self {
       id: Identifier::from("webpack/runtime/create_fake_namespace_object"),
+      source_map_kind: SourceMapKind::None,
     }
   }
 }
@@ -27,5 +30,3 @@ impl RuntimeModule for CreateFakeNamespaceObjectRuntimeModule {
     RawSource::from(include_str!("runtime/create_fake_namespace_object.js")).boxed()
   }
 }
-
-impl_runtime_module!(CreateFakeNamespaceObjectRuntimeModule);

@@ -1,12 +1,11 @@
+const rspack = require("@rspack/core")
+
 module.exports = {
 	entry: {
 		main: "./index.js"
 	},
-	devServer: {
-		hot: true
-	},
-	builtins: {
-
-	},
+	plugins: [
+		new rspack.HotModuleReplacementPlugin(),
+	],
 	mode: "production"
 };

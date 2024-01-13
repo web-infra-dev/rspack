@@ -356,34 +356,33 @@ bitflags! {
 }
 
 pub fn is_valid_reg_exp_flags(flags: &str) -> bool {
-  let chars = flags.chars().collect::<Vec<_>>();
-  if chars.is_empty() {
+  if flags.is_empty() {
     true
-  } else if chars.len() > 4 {
+  } else if flags.len() > 4 {
     false
   } else {
     let mut remaining = RegExpFlag::empty();
-    for c in chars {
-      match c {
-        'g' => {
+    for c in flags.as_bytes() {
+      match *c {
+        b'g' => {
           if remaining.contains(RegExpFlag::FLAG_G) {
             return false;
           }
           remaining.insert(RegExpFlag::FLAG_G);
         }
-        'i' => {
+        b'i' => {
           if remaining.contains(RegExpFlag::FLAG_I) {
             return false;
           }
           remaining.insert(RegExpFlag::FLAG_I);
         }
-        'm' => {
+        b'm' => {
           if remaining.contains(RegExpFlag::FLAG_M) {
             return false;
           }
           remaining.insert(RegExpFlag::FLAG_M);
         }
-        'y' => {
+        b'y' => {
           if remaining.contains(RegExpFlag::FLAG_Y) {
             return false;
           }

@@ -1,6 +1,5 @@
 "use strict";
-import { Configuration, Output, rspack } from "../src";
-import assert from "assert";
+import { Configuration, StatsValue, rspack } from "../src";
 import {
 	ensureRspackConfigNotExist,
 	ensureWebpackConfigExist,
@@ -10,7 +9,7 @@ import {
 const path = require("path");
 const fs = require("graceful-fs");
 const vm = require("vm");
-const { URL, pathToFileURL, fileURLToPath, parse } = require("url");
+const { URL, pathToFileURL, fileURLToPath } = require("url");
 const rimraf = require("rimraf");
 const checkArrayExpectation = require("./checkArrayExpectation");
 const createLazyTestEnv = require("./helpers/createLazyTestEnv");
@@ -234,13 +233,9 @@ export const describeCases = config => {
 							setTimeout(done, 200);
 							return;
 						};
-						it(`${testName} should compile`, _done => {
+						it(`${testName} should compile`, done => {
 							// console.info("running:", testName);
 							// console.time(testName);
-							const done = (...args: any[]) => {
-								// console.timeEnd(testName);
-								return _done(...args);
-							};
 							rimraf.sync(outputDirectory);
 							fs.mkdirSync(outputDirectory, { recursive: true });
 							infraStructureLog.length = 0;
@@ -250,63 +245,46 @@ export const describeCases = config => {
 								if (err) {
 									return handleFatalError(err, done);
 								}
-								const statOptions = {
+								const statOptions: StatsValue = {
 									preset: "verbose",
 									colors: false
 								};
 								fs.mkdirSync(outputDirectory, { recursive: true });
 								// fs.writeFileSync(
-								//     path.join(outputDirectory, "stats.txt"),
-								//     stats.toString(statOptions),
-								//     "utf-8"
+								// 	path.join(outputDirectory, "stats.txt"),
+								// 	stats.toString(statOptions),
+								// 	"utf-8"
 								// );
 								const jsonStats = stats.toJson({
 									errorDetails: true
 								});
 								// fs.writeFileSync(
-								//     path.join(outputDirectory, "stats.json"),
-								//     JSON.stringify(jsonStats, null, 2),
-								//     "utf-8"
+								// 	path.join(outputDirectory, "stats.json"),
+								// 	JSON.stringify(jsonStats, null, 2),
+								// 	"utf-8"
 								// );
-								// error case not expect error
-								if (category.name === "errors") {
-									assert(jsonStats.errors!.length > 0);
-								} else if (category.name === "warnings") {
-									assert(jsonStats.warnings!.length > 0);
-								} else {
-									if (jsonStats.errors!.length > 0) {
-										console.log(
-											`case: ${category.name} ${testName}\nerrors:\n`,
-											`${jsonStats.errors!.map(x => x.message).join("\n")}`
-										);
-									}
-									assert(
-										jsonStats.errors!.length === 0,
-										`${JSON.stringify(jsonStats.errors, null, 2)}`
-									);
+								if (
+									checkArrayExpectation(
+										testDirectory,
+										jsonStats,
+										"error",
+										"Error",
+										done
+									)
+								) {
+									return;
 								}
-								// if (
-								//     checkArrayExpectation(
-								//         testDirectory,
-								//         jsonStats,
-								//         "error",
-								//         "Error",
-								//         done
-								//     )
-								// ) {
-								//     return;
-								// }
-								// if (
-								//     checkArrayExpectation(
-								//         testDirectory,
-								//         jsonStats,
-								//         "warning",
-								//         "Warning",
-								//         done
-								//     )
-								// ) {
-								//     return;
-								// }
+								if (
+									checkArrayExpectation(
+										testDirectory,
+										jsonStats,
+										"warning",
+										"Warning",
+										done
+									)
+								) {
+									return;
+								}
 								const infrastructureLogging = stderr.toString();
 								if (infrastructureLogging) {
 									return done(

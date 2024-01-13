@@ -13,6 +13,7 @@ export interface IDiffComparatorOptions {
 	runtimeModules?: TCompareModules;
 	reporters: ITestReporter<unknown>[];
 	formatOptions?: IFormatCodeOptions;
+	bootstrap?: boolean;
 }
 
 export class DiffComparator {
@@ -39,7 +40,8 @@ export class DiffComparator {
 							},
 							this.options.formatOptions || {}
 						),
-						renameModule: replaceRuntimeModuleName
+						renameModule: replaceRuntimeModuleName,
+						bootstrap: this.options.bootstrap
 					}
 				);
 				for (let reporter of this.options.reporters) {
@@ -49,6 +51,7 @@ export class DiffComparator {
 					reporter.increment(file, result.modules["runtimeModules"] || []);
 				}
 			} catch (e) {
+				console.error(e);
 				for (let reporter of this.options.reporters) {
 					reporter.failure(file);
 				}

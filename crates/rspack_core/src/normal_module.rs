@@ -4,13 +4,15 @@ use std::{
   hash::{BuildHasherDefault, Hash},
   sync::{
     atomic::{AtomicUsize, Ordering},
-    Arc, Mutex,
+    Mutex,
   },
 };
 
 use bitflags::bitflags;
 use dashmap::DashMap;
 use derivative::Derivative;
+use rspack_common::SourceMapKind;
+use rspack_core_macros::impl_source_map_config_internal;
 use rspack_error::{error, Diagnosable, Diagnostic, Result, Severity};
 use rspack_hash::RspackHash;
 use rspack_identifier::Identifiable;
@@ -26,11 +28,11 @@ use serde_json::json;
 use crate::{
   add_connection_states, contextify, get_context, impl_build_info_meta,
   AsyncDependenciesBlockIdentifier, BoxLoader, BoxModule, BuildContext, BuildInfo, BuildMeta,
-  BuildResult, CodeGenerationResult, Compilation, CompilerOptions, ConnectionState, Context,
-  DependenciesBlock, DependencyId, DependencyTemplate, GenerateContext, GeneratorOptions,
-  LibIdentOptions, LoaderRunnerPluginProcessResource, Module, ModuleDependency, ModuleGraph,
-  ModuleIdentifier, ModuleType, ParseContext, ParseResult, ParserAndGenerator, ParserOptions,
-  Resolve, RuntimeSpec, SourceType,
+  BuildResult, CodeGenerationResult, Compilation, ConnectionState, Context, DependenciesBlock,
+  DependencyId, DependencyTemplate, GenerateContext, GeneratorOptions, LibIdentOptions, Module,
+  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType, ParseContext, ParseResult,
+  ParserAndGenerator, ParserOptions, Resolve, RspackLoaderRunnerPlugin, RuntimeSpec,
+  SourceMapGenConfig, SourceType,
 };
 
 bitflags! {
@@ -74,6 +76,7 @@ impl ModuleIssuer {
   }
 }
 
+#[impl_source_map_config_internal]
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct NormalModule {
@@ -115,8 +118,6 @@ pub struct NormalModule {
   /// Generator options derived from [Rule.generator]
   generator_options: Option<GeneratorOptions>,
 
-  #[derivative(Debug = "ignore")]
-  options: Arc<CompilerOptions>,
   #[allow(unused)]
   debug_id: usize,
   cached_source_sizes: DashMap<SourceType, f64, BuildHasherDefault<FxHasher>>,
@@ -173,7 +174,6 @@ impl NormalModule {
     resource_data: ResourceData,
     resolve_options: Option<Box<Resolve>>,
     loaders: Vec<BoxLoader>,
-    options: Arc<CompilerOptions>,
     contains_inline_loader: bool,
   ) -> Self {
     let module_type = module_type.into();
@@ -199,13 +199,14 @@ impl NormalModule {
       source: NormalModuleSource::Unbuild,
       debug_id: DEBUG_ID.fetch_add(1, Ordering::Relaxed),
 
-      options,
       cached_source_sizes: DashMap::default(),
       diagnostics: Mutex::new(Default::default()),
       code_generation_dependencies: None,
       presentational_dependencies: None,
       build_info: None,
       build_meta: None,
+
+      source_map_kind: SourceMapKind::None,
     }
   }
 
@@ -348,9 +349,10 @@ impl Module for NormalModule {
     let loader_result = run_loaders(
       &self.loaders,
       &self.resource_data,
-      &[Box::new(LoaderRunnerPluginProcessResource {
+      &[&RspackLoaderRunnerPlugin {
         plugin_driver: build_context.plugin_driver.clone(),
-      })],
+        normal_module: self,
+      }],
       build_context.compiler_context,
     )
     .await;
@@ -402,6 +404,7 @@ impl Module for NormalModule {
         module_parser_options: self.parser_options.as_ref(),
         module_type: &self.module_type,
         module_user_request: &self.user_request,
+        module_source_map_kind: &self.source_map_kind,
         loaders: &self.loaders,
         resource_data: &self.resource_data,
         compiler_options: build_context.compiler_options,
@@ -623,12 +626,8 @@ impl NormalModule {
     if content.is_buffer() {
       return Ok(RawSource::Buffer(content.into_bytes()).boxed());
     }
-    let devtool = self
-      .options
-      .devtool
-      .read()
-      .expect("failed to acquire read lock on devtool");
-    if devtool.enabled()
+    let source_map_kind = self.get_source_map_kind();
+    if !matches!(source_map_kind, SourceMapKind::None)
       && let Some(source_map) = source_map
     {
       let content = content.into_string_lossy();
@@ -641,7 +640,7 @@ impl NormalModule {
         .boxed(),
       );
     }
-    if devtool.source_map()
+    if matches!(source_map_kind, SourceMapKind::SourceMap)
       && let Content::String(content) = content
     {
       return Ok(OriginalSource::new(content, self.request()).boxed());

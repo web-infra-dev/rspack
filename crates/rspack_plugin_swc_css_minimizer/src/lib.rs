@@ -22,17 +22,6 @@ impl Plugin for SwcCssMinimizerRspackPlugin {
   ) -> rspack_core::PluginProcessAssetsOutput {
     let compilation = args.compilation;
 
-    let options = compilation.options.clone();
-    let devtool = options
-      .devtool
-      .read()
-      .expect("failed to acquire read lock on devtool");
-    let gen_source_map_config = SwcCssSourceMapGenConfig {
-      enable: devtool.source_map(),
-      inline_sources_content: !devtool.no_sources(),
-      emit_columns: !devtool.cheap(),
-    };
-
     compilation
       .assets_mut()
       .par_iter_mut()
@@ -45,11 +34,16 @@ impl Plugin for SwcCssMinimizerRspackPlugin {
         if let Some(original_source) = original.get_source() {
           let input = original_source.source().to_string();
           let input_source_map = original_source.map(&MapOptions::default());
+          let enable_source_map = input_source_map.is_some();
           let minimized_source = SwcCssCompiler::default().minify(
             filename,
             input,
             input_source_map,
-            gen_source_map_config.clone(),
+            SwcCssSourceMapGenConfig {
+              enable: enable_source_map,
+              inline_sources_content: false,
+              emit_columns: true,
+            },
           )?;
           original.set_source(Some(minimized_source));
         }

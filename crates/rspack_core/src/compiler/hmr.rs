@@ -56,12 +56,16 @@ where
     {
       let mut modified_files = HashSet::default();
       modified_files.extend(changed_files.iter().map(PathBuf::from));
-      modified_files.extend(removed_files.iter().map(PathBuf::from));
+      let mut deleted_files = HashSet::default();
+      deleted_files.extend(removed_files.iter().map(PathBuf::from));
+
+      let mut all_files = modified_files.clone();
+      all_files.extend(deleted_files.clone());
 
       self.cache.end_idle();
       self
         .cache
-        .set_modified_files(modified_files.iter().cloned().collect::<Vec<_>>());
+        .set_modified_files(all_files.into_iter().collect());
       self.plugin_driver.resolver_factory.clear_cache();
 
       let mut new_compilation = Compilation::new(
@@ -121,9 +125,12 @@ where
       self.compilation.lazy_visit_modules = changed_files.clone();
 
       let setup_make_params = if is_incremental_rebuild_make {
-        MakeParam::ModifiedFiles(modified_files)
+        vec![
+          MakeParam::ModifiedFiles(modified_files),
+          MakeParam::DeletedFiles(deleted_files),
+        ]
       } else {
-        MakeParam::ForceBuildDeps(Default::default())
+        vec![MakeParam::ForceBuildDeps(Default::default())]
       };
       self.compile(setup_make_params).await?;
       self.cache.begin_idle();

@@ -6,6 +6,7 @@ use indexmap::IndexMap;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rkyv::{from_bytes, to_bytes, AlignedVec};
+use rspack_common::SourceMapKind;
 use rspack_core::{
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
   rspack_sources::{
@@ -73,6 +74,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
       source,
       module_type,
       module_user_request,
+      module_source_map_kind,
       resource_data,
       compiler_options,
       build_info,
@@ -147,9 +149,9 @@ impl ParserAndGenerator for CssParserAndGenerator {
       let (code, map) = swc_compiler.codegen(
         &stylesheet,
         SwcCssSourceMapGenConfig {
-          enable: devtool.source_map(),
-          inline_sources_content: !devtool.no_sources(),
-          emit_columns: !devtool.cheap(),
+          enable: !matches!(module_source_map_kind, SourceMapKind::None),
+          inline_sources_content: false,
+          emit_columns: matches!(module_source_map_kind, SourceMapKind::SourceMap),
         },
       )?;
       source_code = code;
@@ -193,7 +195,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
       dependencies
     };
 
-    let new_source = if devtool.source_map() {
+    let new_source = if matches!(module_source_map_kind, SourceMapKind::SourceMap) {
       if let Some(source_map) = source_map {
         SourceMapSource::new(SourceMapSourceOptions {
           value: source_code,

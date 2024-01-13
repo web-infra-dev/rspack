@@ -1,34 +1,15 @@
 use std::{path::PathBuf, str::FromStr};
 
 use napi_derive::napi;
-use rspack_core::{Builtins, DecoratorOptions, PluginExt, PresetEnv};
-use rspack_error::error;
+use rspack_core::{Builtins, PluginExt};
 use rspack_plugin_css::{
   plugin::{CssConfig, LocalIdentName, LocalsConvention, ModulesConfig},
   CssPlugin,
 };
-use rspack_plugin_dev_friendly_split_chunks::DevFriendlySplitChunksPlugin;
 use rspack_swc_visitors::{
   CustomTransform, ImportOptions, ReactOptions, RelayLanguageConfig, RelayOptions, StyleConfig,
 };
 use serde::{Deserialize, Serialize};
-
-#[derive(Deserialize, Debug, Serialize, Default, Clone)]
-#[serde(rename_all = "camelCase")]
-#[napi(object)]
-pub struct RawDecoratorOptions {
-  pub legacy: bool,
-  pub emit_metadata: bool,
-}
-
-impl From<RawDecoratorOptions> for DecoratorOptions {
-  fn from(value: RawDecoratorOptions) -> Self {
-    Self {
-      legacy: value.legacy,
-      emit_metadata: value.emit_metadata,
-    }
-  }
-}
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -94,30 +75,6 @@ impl From<RawPluginImportConfig> for ImportOptions {
       transform_to_default_import,
       ignore_es_component,
       ignore_style_component,
-    }
-  }
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-#[napi(object)]
-pub struct RawPresetEnv {
-  pub targets: Vec<String>,
-  #[napi(ts_type = "'usage' | 'entry'")]
-  pub mode: Option<String>,
-  pub core_js: Option<String>,
-}
-
-impl From<RawPresetEnv> for PresetEnv {
-  fn from(raw_preset_env: RawPresetEnv) -> Self {
-    Self {
-      targets: raw_preset_env.targets,
-      mode: raw_preset_env.mode.and_then(|mode| match mode.as_str() {
-        "usage" => Some(swc_core::ecma::preset_env::Mode::Usage),
-        "entry" => Some(swc_core::ecma::preset_env::Mode::Entry),
-        _ => None,
-      }),
-      core_js: raw_preset_env.core_js,
     }
   }
 }
@@ -222,15 +179,7 @@ impl TryFrom<RawCssModulesConfig> for ModulesConfig {
 #[napi(object)]
 pub struct RawBuiltins {
   pub css: Option<RawCssPluginConfig>,
-  pub preset_env: Option<RawPresetEnv>,
   pub tree_shaking: String,
-  pub react: RawReactOptions,
-  pub decorator: Option<RawDecoratorOptions>,
-  pub no_emit_assets: bool,
-  pub emotion: Option<String>,
-  pub dev_friendly_split_chunks: bool,
-  pub plugin_import: Option<Vec<RawPluginImportConfig>>,
-  pub relay: Option<RawRelayConfig>,
 }
 
 impl RawBuiltins {
@@ -241,27 +190,11 @@ impl RawBuiltins {
       };
       plugins.push(CssPlugin::new(options).boxed());
     }
-    if self.dev_friendly_split_chunks {
-      plugins.push(DevFriendlySplitChunksPlugin::new().boxed());
-    }
 
     Ok(Builtins {
       define: Default::default(),
       provide: Default::default(),
-      preset_env: self.preset_env.map(Into::into),
       tree_shaking: self.tree_shaking.into(),
-      react: self.react.into(),
-      decorator: self.decorator.map(|i| i.into()),
-      no_emit_assets: self.no_emit_assets,
-      emotion: self
-        .emotion
-        .map(|i| serde_json::from_str(&i))
-        .transpose()
-        .map_err(|e| error!(e.to_string()))?,
-      plugin_import: self
-        .plugin_import
-        .map(|plugin_imports| plugin_imports.into_iter().map(Into::into).collect()),
-      relay: self.relay.map(Into::into),
     })
   }
 }

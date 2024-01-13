@@ -73,7 +73,6 @@ import type {
 	RuleSetRules,
 	ParserOptionsByModuleType,
 	GeneratorOptionsByModuleType,
-	IncrementalRebuildOptions,
 	RspackFutureOptions,
 	HotUpdateGlobal,
 	ScriptType,
@@ -120,29 +119,6 @@ export const getNormalizedRspackOptions = (
 							name: libraryAsName
 					  } as LibraryOptions)
 					: undefined;
-			// DEPRECATE: remove this in after version
-			{
-				const ext = "[ext]";
-				const filenames = [
-					"filename",
-					"chunkFilename",
-					"cssFilename",
-					"cssChunkFilename"
-				] as const;
-				const checkFilename = (prop: (typeof filenames)[number]) => {
-					const oldFilename = output[prop];
-					if (typeof oldFilename === "string" && oldFilename.endsWith(ext)) {
-						const newFilename =
-							oldFilename.slice(0, -ext.length) +
-							(prop.includes("css") ? ".css" : ".js");
-						deprecatedWarn(
-							`Deprecated: output.${prop} ends with [ext] is now deprecated, please use ${newFilename} instead.`
-						);
-						output[prop] = newFilename;
-					}
-				};
-				filenames.forEach(checkFilename);
-			}
 			return {
 				path: output.path,
 				publicPath: output.publicPath,
@@ -308,11 +284,7 @@ export const getNormalizedRspackOptions = (
 		}),
 		plugins: nestedArray(config.plugins, p => [...p]),
 		experiments: nestedConfig(config.experiments, experiments => ({
-			...experiments,
-			incrementalRebuild: optionalNestedConfig(
-				experiments.incrementalRebuild,
-				options => (options === true ? {} : options)
-			)
+			...experiments
 		})),
 		watch: config.watch,
 		watchOptions: cloneObject(config.watchOptions),
@@ -502,7 +474,6 @@ export interface ModuleOptionsNormalized {
 
 export interface ExperimentsNormalized {
 	lazyCompilation?: boolean;
-	incrementalRebuild?: false | IncrementalRebuildOptions;
 	asyncWebAssembly?: boolean;
 	outputModule?: boolean;
 	newSplitChunks?: boolean;

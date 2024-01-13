@@ -1,3 +1,4 @@
+use rspack_common::SourceMapKind;
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
@@ -14,6 +15,7 @@ use crate::{
   runtime_module::utils::{get_initial_chunk_ids, render_condition_map, stringify_chunks},
 };
 
+#[impl_runtime_module]
 #[derive(Debug, Eq)]
 pub struct ReadFileChunkLoadingRuntimeModule {
   id: Identifier,
@@ -25,6 +27,7 @@ impl Default for ReadFileChunkLoadingRuntimeModule {
     Self {
       id: Identifier::from("webpack/runtime/readfile_chunk_loading"),
       chunk: None,
+      source_map_kind: SourceMapKind::None,
     }
   }
 }
@@ -185,4 +188,3 @@ impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
     RuntimeModuleStage::Attach
   }
 }
-impl_runtime_module!(ReadFileChunkLoadingRuntimeModule);

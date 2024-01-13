@@ -1,5 +1,6 @@
 use itertools::Itertools;
 use rayon::prelude::*;
+use rspack_common::SourceMapKind;
 use rspack_core::rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
 use rspack_core::{impl_runtime_module, ChunkUkey, Compilation, RuntimeModule};
 use rspack_identifier::Identifier;
@@ -7,6 +8,7 @@ use rspack_plugin_javascript::runtime::stringify_array;
 use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
 
+#[impl_runtime_module]
 #[derive(Debug, Eq)]
 pub struct LoadChunkWithBlockRuntimeModule {
   id: Identifier,
@@ -18,6 +20,7 @@ impl Default for LoadChunkWithBlockRuntimeModule {
     Self {
       id: Identifier::from("webpack/runtime/load_chunk_with_block"),
       chunk: None,
+      source_map_kind: SourceMapKind::None,
     }
   }
 }
@@ -91,8 +94,6 @@ __webpack_require__.el = function(module) {
     self.chunk = Some(chunk);
   }
 }
-
-impl_runtime_module!(LoadChunkWithBlockRuntimeModule);
 
 fn stringify_map(map: &HashMap<String, Vec<String>>) -> String {
   format!(

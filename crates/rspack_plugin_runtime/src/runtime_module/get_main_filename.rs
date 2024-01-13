@@ -1,3 +1,4 @@
+use rspack_common::SourceMapKind;
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
@@ -5,6 +6,7 @@ use rspack_core::{
 };
 use rspack_identifier::Identifier;
 
+#[impl_runtime_module]
 #[derive(Debug, Eq)]
 pub struct GetMainFilenameRuntimeModule {
   chunk: Option<ChunkUkey>,
@@ -20,6 +22,7 @@ impl GetMainFilenameRuntimeModule {
       id: Identifier::from(format!("webpack/runtime/get_main_filename/{content_type}")),
       global,
       filename,
+      source_map_kind: SourceMapKind::None,
     }
   }
 }
@@ -56,5 +59,3 @@ impl RuntimeModule for GetMainFilenameRuntimeModule {
     self.chunk = Some(chunk);
   }
 }
-
-impl_runtime_module!(GetMainFilenameRuntimeModule);

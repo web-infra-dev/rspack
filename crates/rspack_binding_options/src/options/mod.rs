@@ -2,14 +2,13 @@ use std::sync::RwLock;
 
 use napi_derive::napi;
 use rspack_core::{
-  CompilerOptions, Context, DevServerOptions, Devtool, Experiments, IncrementalRebuild,
-  IncrementalRebuildMakeState, ModuleOptions, Optimization, OutputOptions, Target, TreeShaking,
+  CompilerOptions, Context, Experiments, IncrementalRebuild, IncrementalRebuildMakeState,
+  ModuleOptions, Optimization, OutputOptions, Target, TreeShaking,
 };
 use serde::Deserialize;
 
 mod raw_builtins;
 mod raw_cache;
-mod raw_dev_server;
 mod raw_devtool;
 mod raw_entry;
 mod raw_experiments;
@@ -26,7 +25,6 @@ mod raw_stats;
 
 pub use raw_builtins::*;
 pub use raw_cache::*;
-pub use raw_dev_server::*;
 pub use raw_devtool::*;
 pub use raw_entry::*;
 pub use raw_experiments::*;
@@ -61,7 +59,6 @@ pub struct RawOptions {
   pub devtool: String,
   pub optimization: RawOptimizationOptions,
   pub stats: RawStatsOptions,
-  pub dev_server: RawDevServer,
   pub snapshot: RawSnapshotOptions,
   pub cache: RawCacheOptions,
   pub experiments: RawExperiments,
@@ -80,19 +77,14 @@ impl RawOptions {
     let output: OutputOptions = self.output.try_into()?;
     let resolve = self.resolve.try_into()?;
     let resolve_loader = self.resolve_loader.try_into()?;
-    let devtool = Devtool::default();
     let mode = self.mode.unwrap_or_default().into();
     let module: ModuleOptions = self.module.try_into()?;
     let target = Target::new(&self.target)?;
     let cache = self.cache.into();
     let experiments = Experiments {
       incremental_rebuild: IncrementalRebuild {
-        make: self
-          .experiments
-          .incremental_rebuild
-          .make
-          .then(IncrementalRebuildMakeState::default),
-        emit_asset: self.experiments.incremental_rebuild.emit_asset,
+        make: Some(IncrementalRebuildMakeState::default()),
+        emit_asset: true,
       },
       new_split_chunks: self.experiments.new_split_chunks,
       top_level_await: self.experiments.top_level_await,
@@ -105,7 +97,6 @@ impl RawOptions {
     let stats = self.stats.into();
     let snapshot = self.snapshot.into();
     let node = self.node.map(|n| n.into());
-    let dev_server: DevServerOptions = self.dev_server.into();
 
     let mut builtins = self.builtins.apply(plugins)?;
     if experiments.rspack_future.new_treeshaking {
@@ -120,14 +111,14 @@ impl RawOptions {
       output,
       resolve,
       resolve_loader,
-      devtool: RwLock::new(devtool),
+      devtool: self.devtool,
       experiments,
       stats,
       cache,
       snapshot,
       optimization,
       node,
-      dev_server,
+      dev_server: Default::default(),
       profile: self.profile,
       bail: self.bail,
       builtins,

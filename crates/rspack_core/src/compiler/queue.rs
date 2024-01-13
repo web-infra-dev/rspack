@@ -163,7 +163,7 @@ impl WorkerTask for FactorizeTask {
             .with_diagnostics(diagnostics)
             .with_file_dependencies(create_data.file_dependencies.drain())
             .with_missing_dependencies(create_data.missing_dependencies.drain())
-            .with_context_dependencies(create_data.missing_dependencies.drain()),
+            .with_context_dependencies(create_data.context_dependencies.drain()),
         )))
       }
       Err(mut e) => {
@@ -188,7 +188,7 @@ impl WorkerTask for FactorizeTask {
             .with_diagnostics(diagnostics)
             .with_file_dependencies(create_data.file_dependencies.drain())
             .with_missing_dependencies(create_data.missing_dependencies.drain())
-            .with_context_dependencies(create_data.missing_dependencies.drain()),
+            .with_context_dependencies(create_data.context_dependencies.drain()),
         )))
       }
     }
@@ -349,6 +349,7 @@ impl WorkerTask for BuildTask {
               resolver_factory: resolver_factory.clone(),
               module: module.identifier(),
               module_context: module.as_normal_module().and_then(|m| m.get_context()),
+              module_source_map_kind: module.get_source_map_kind().clone(),
             },
             plugin_driver: plugin_driver.clone(),
             compiler_options: &compiler_options,

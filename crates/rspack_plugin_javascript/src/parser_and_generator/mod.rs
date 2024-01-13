@@ -1,4 +1,5 @@
 use rspack_ast::RspackAst;
+use rspack_common::SourceMapKind;
 use rspack_core::diagnostics::map_box_diagnostics_to_module_parse_diagnostics;
 use rspack_core::rspack_sources::{
   BoxSource, MapOptions, OriginalSource, RawSource, ReplaceSource, Source, SourceExt, SourceMap,
@@ -15,10 +16,10 @@ use rspack_core::{
 use rspack_error::miette::Diagnostic;
 use rspack_error::{DiagnosticExt, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use swc_core::common::SyntaxContext;
+use swc_core::ecma::parser::{EsConfig, Syntax};
 
 use crate::ast::CodegenOptions;
 use crate::inner_graph_plugin::InnerGraphPlugin;
-use crate::utils::syntax_by_module_type;
 use crate::visitors::ScanDependenciesResult;
 use crate::visitors::{run_before_pass, scan_dependencies, swc_visitor::resolver};
 use crate::{SideEffectsFlagPluginVisitor, SyntaxContextInfo};
@@ -85,6 +86,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     let ParseContext {
       source,
       module_type,
+      module_source_map_kind,
       resource_data,
       compiler_options,
       build_info,
@@ -99,15 +101,17 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       .read()
       .expect("failed to acquire read lock on devtool");
     let mut diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>> = vec![];
-    let syntax = syntax_by_module_type(
-      &resource_data.resource_path,
-      module_type,
-      compiler_options.builtins.decorator.is_some(),
-      compiler_options.should_transform_by_default(),
-    );
-    let use_source_map = devtool.enabled();
-    let use_simple_source_map = devtool.source_map();
-    let original_map = source.map(&MapOptions::new(!devtool.cheap()));
+    let syntax = Syntax::Es(EsConfig {
+      jsx: false,
+      export_default_from: false,
+      decorators: false,
+      fn_bind: true,
+      allow_super_outside_method: true,
+      ..Default::default()
+    });
+    let use_source_map = matches!(module_source_map_kind, SourceMapKind::SourceMap);
+    let use_simple_source_map = matches!(module_source_map_kind, SourceMapKind::SimpleSourceMap);
+    let original_map = source.map(&MapOptions::new(use_simple_source_map));
     let source = source.source();
 
     let gen_terminate_res = |diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>>| {
@@ -148,21 +152,13 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         }
       };
 
-    run_before_pass(
-      resource_data,
-      &mut ast,
-      compiler_options,
-      syntax,
-      build_info,
-      module_type,
-      &source,
-    )?;
+    run_before_pass(&mut ast, compiler_options)?;
 
     let output: crate::TransformOutput = crate::ast::stringify(
       &ast,
       additional_data
         .remove::<CodegenOptions>()
-        .unwrap_or_else(|| CodegenOptions::new(&devtool, Some(true))),
+        .unwrap_or_else(|| CodegenOptions::new(&module_source_map_kind, Some(true))),
     )?;
 
     ast = match crate::ast::parse(
@@ -182,7 +178,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       program.visit_mut_with(&mut resolver(
         context.unresolved_mark,
         context.top_level_mark,
-        compiler_options.should_transform_by_default() && syntax.typescript(),
+        false,
       ));
     });
 

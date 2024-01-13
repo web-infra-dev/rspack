@@ -1,6 +1,7 @@
 use std::iter;
 
 use itertools::Itertools;
+use rspack_common::SourceMapKind;
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
@@ -8,6 +9,7 @@ use rspack_core::{
 };
 use rspack_identifier::Identifier;
 
+#[impl_runtime_module]
 #[derive(Debug, Eq)]
 pub struct StartupChunkDependenciesRuntimeModule {
   id: Identifier,
@@ -21,6 +23,7 @@ impl StartupChunkDependenciesRuntimeModule {
       id: Identifier::from("webpack/runtime/startup_chunk_dependencies"),
       async_chunk_loading,
       chunk: None,
+      source_map_kind: SourceMapKind::None,
     }
   }
 }
@@ -96,5 +99,3 @@ impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
     self.chunk = Some(chunk);
   }
 }
-
-impl_runtime_module!(StartupChunkDependenciesRuntimeModule);

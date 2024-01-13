@@ -1,3 +1,4 @@
+use rspack_common::SourceMapKind;
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
@@ -5,6 +6,7 @@ use rspack_core::{
 };
 use rspack_identifier::Identifier;
 
+#[impl_runtime_module]
 #[derive(Debug, Eq)]
 pub struct LoadScriptRuntimeModule {
   id: Identifier,
@@ -18,6 +20,7 @@ impl LoadScriptRuntimeModule {
       id: Identifier::from("webpack/runtime/load_script"),
       unique_name,
       with_create_script_url,
+      source_map_kind: SourceMapKind::None,
     }
   }
 }
@@ -92,5 +95,3 @@ impl RuntimeModule for LoadScriptRuntimeModule {
     .boxed()
   }
 }
-
-impl_runtime_module!(LoadScriptRuntimeModule);

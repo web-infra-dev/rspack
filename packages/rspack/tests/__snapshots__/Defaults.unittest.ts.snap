@@ -19,16 +19,10 @@ exports[`snapshots should have the correct base config 1`] = `
   "experiments": {
     "asyncWebAssembly": false,
     "css": true,
-    "incrementalRebuild": {
-      "emitAsset": true,
-      "make": false,
-    },
     "lazyCompilation": false,
     "newSplitChunks": true,
     "rspackFuture": {
-      "disableApplyEntryLazily": false,
-      "disableTransformByDefault": true,
-      "newResolver": true,
+      "disableApplyEntryLazily": true,
       "newTreeshaking": false,
     },
     "topLevelAwait": true,
@@ -185,8 +179,24 @@ exports[`snapshots should have the correct base config 1`] = `
     "mergeDuplicateChunks": true,
     "minimize": false,
     "minimizer": [
-      {
-        "apply": [Function],
+      SwcJsMinimizerRspackPlugin {
+        "_options": {
+          "compress": "{\\"passes\\":1,\\"pure_funcs\\":[],\\"drop_console\\":false}",
+          "exclude": undefined,
+          "extractComments": undefined,
+          "format": "{\\"comments\\":false,\\"asciiOnly\\":false}",
+          "include": undefined,
+          "mangle": "{\\"keep_classnames\\":false,\\"keep_fnames\\":false}",
+          "module": undefined,
+          "test": undefined,
+        },
+        "affectedHooks": "compilation",
+        "name": "SwcJsMinimizerRspackPlugin",
+      },
+      SwcCssMinimizerRspackPlugin {
+        "_options": undefined,
+        "affectedHooks": undefined,
+        "name": "SwcCssMinimizerRspackPlugin",
       },
     ],
     "moduleIds": "named",
@@ -273,10 +283,14 @@ exports[`snapshots should have the correct base config 1`] = `
   "plugins": [],
   "profile": false,
   "resolve": {
-    "browserField": true,
+    "aliasFields": [
+      "browser",
+    ],
     "byDependency": {
       "commonjs": {
-        "browserField": true,
+        "aliasFields": [
+          "browser",
+        ],
         "conditionNames": [
           "require",
           "module",
@@ -286,9 +300,6 @@ exports[`snapshots should have the correct base config 1`] = `
           ".js",
           ".json",
           ".wasm",
-          ".tsx",
-          ".ts",
-          ".jsx",
         ],
         "mainFields": [
           "browser",
@@ -297,7 +308,9 @@ exports[`snapshots should have the correct base config 1`] = `
         ],
       },
       "esm": {
-        "browserField": true,
+        "aliasFields": [
+          "browser",
+        ],
         "conditionNames": [
           "import",
           "module",
@@ -307,9 +320,6 @@ exports[`snapshots should have the correct base config 1`] = `
           ".js",
           ".json",
           ".wasm",
-          ".tsx",
-          ".ts",
-          ".jsx",
         ],
         "mainFields": [
           "browser",
@@ -318,7 +328,9 @@ exports[`snapshots should have the correct base config 1`] = `
         ],
       },
       "unknown": {
-        "browserField": true,
+        "aliasFields": [
+          "browser",
+        ],
         "conditionNames": [
           "require",
           "module",
@@ -328,9 +340,6 @@ exports[`snapshots should have the correct base config 1`] = `
           ".js",
           ".json",
           ".wasm",
-          ".tsx",
-          ".ts",
-          ".jsx",
         ],
         "mainFields": [
           "browser",
@@ -342,7 +351,9 @@ exports[`snapshots should have the correct base config 1`] = `
         "preferRelative": true,
       },
       "wasm": {
-        "browserField": true,
+        "aliasFields": [
+          "browser",
+        ],
         "conditionNames": [
           "import",
           "module",
@@ -352,9 +363,6 @@ exports[`snapshots should have the correct base config 1`] = `
           ".js",
           ".json",
           ".wasm",
-          ".tsx",
-          ".ts",
-          ".jsx",
         ],
         "mainFields": [
           "browser",
@@ -363,7 +371,9 @@ exports[`snapshots should have the correct base config 1`] = `
         ],
       },
       "worker": {
-        "browserField": true,
+        "aliasFields": [
+          "browser",
+        ],
         "conditionNames": [
           "import",
           "module",
@@ -373,9 +383,6 @@ exports[`snapshots should have the correct base config 1`] = `
           ".js",
           ".json",
           ".wasm",
-          ".tsx",
-          ".ts",
-          ".jsx",
         ],
         "mainFields": [
           "browser",

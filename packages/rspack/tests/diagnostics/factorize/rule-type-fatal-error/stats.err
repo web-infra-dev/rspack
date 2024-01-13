@@ -1,0 +1,66 @@
+ERROR in ./jsx.jsx
+ModuleParseError
+
+  × Module parse failed:
+  ╰─▶   × JavaScript parsing error: Expression expected
+         ╭────
+       1 │ <div></div>
+         ·      ─
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
+
+ERROR in ./jsx.jsx
+ModuleParseError
+
+  × Module parse failed:
+  ╰─▶   × JavaScript parsing error: Expression expected
+         ╭────
+       1 │ <div></div>
+         · ─
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
+
+ERROR in ./ts.ts
+ModuleParseError
+
+  × Module parse failed:
+  ╰─▶   × JavaScript parsing error: Expression expected
+         ╭────
+       1 │ const foo = <T>() => {};
+         ·             ─
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
+
+ERROR in ./ts.ts
+ModuleParseError
+
+  × Module parse failed:
+  ╰─▶   × JavaScript parsing error: An arrow function is not allowed here
+         ╭────
+       1 │ const foo = <T>() => {};
+         ·                ──
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
+
+ERROR in ./tsx.tsx
+ModuleParseError
+
+  × Module parse failed:
+  ╰─▶   × JavaScript parsing error: Expected '(', got '<'
+         ╭─[1:1]
+       1 │ function Foo<T>() {
+         ·             ─
+       2 │   return <div></div>
+       3 │ }
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.

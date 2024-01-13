@@ -5,12 +5,9 @@ mod queue;
 
 use std::collections::hash_map::Entry;
 use std::ops::Deref;
-use std::{path::Path, sync::Arc};
+use std::path::Path;
+use std::sync::Arc;
 
-pub use compilation::*;
-pub use hmr::{collect_changed_modules, CompilationRecords};
-pub use make::MakeParam;
-pub use queue::*;
 use rspack_error::Result;
 use rspack_fs::AsyncWritableFileSystem;
 use rspack_futures::FuturesResults;
@@ -19,6 +16,10 @@ use rustc_hash::FxHashMap as HashMap;
 use swc_core::ecma::atoms::JsWord;
 use tracing::instrument;
 
+pub use self::compilation::*;
+pub use self::hmr::{collect_changed_modules, CompilationRecords};
+pub use self::make::MakeParam;
+pub use self::queue::*;
 use crate::cache::Cache;
 use crate::tree_shaking::symbol::{IndirectType, StarSymbolKind, DEFAULT_JS_WORD};
 use crate::tree_shaking::visitor::SymbolRef;
@@ -58,12 +59,8 @@ where
         debug_info.with_context(options.context.to_string());
       }
     }
-    let new_resolver = options.experiments.rspack_future.new_resolver;
-    let resolver_factory = Arc::new(ResolverFactory::new(new_resolver, options.resolve.clone()));
-    let loader_resolver_factory = Arc::new(ResolverFactory::new(
-      new_resolver,
-      options.resolve_loader.clone(),
-    ));
+    let resolver_factory = Arc::new(ResolverFactory::new(options.resolve.clone()));
+    let loader_resolver_factory = Arc::new(ResolverFactory::new(options.resolve_loader.clone()));
     let (plugin_driver, options) = PluginDriver::new(options, plugins, resolver_factory.clone());
     let cache = Arc::new(Cache::new(options.clone()));
     let is_new_treeshaking = options.is_new_tree_shaking();
@@ -114,7 +111,7 @@ where
     );
 
     self
-      .compile(MakeParam::ForceBuildDeps(Default::default()))
+      .compile(vec![MakeParam::ForceBuildDeps(Default::default())])
       .await?;
     self.cache.begin_idle();
     self.compile_done().await?;
@@ -122,7 +119,7 @@ where
   }
 
   #[instrument(name = "compile", skip_all)]
-  async fn compile(&mut self, params: MakeParam) -> Result<()> {
+  async fn compile(&mut self, params: Vec<MakeParam>) -> Result<()> {
     let compilation_params = self.new_compilation_params();
     self
       .plugin_driver
@@ -288,11 +285,9 @@ where
       return self.compilation.done(self.plugin_driver.clone()).await;
     }
 
-    if !self.compilation.options.builtins.no_emit_assets {
-      let start = logger.time("emitAssets");
-      self.emit_assets().await?;
-      logger.time_end(start);
-    }
+    let start = logger.time("emitAssets");
+    self.emit_assets().await?;
+    logger.time_end(start);
 
     let start = logger.time("done hook");
     self.compilation.done(self.plugin_driver.clone()).await?;

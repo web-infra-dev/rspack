@@ -1,6 +1,8 @@
 use std::borrow::Cow;
 use std::hash::Hash;
 
+use rspack_common::SourceMapKind;
+use rspack_core_macros::impl_source_map_config_internal;
 use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_hash::RspackHash;
 use rspack_identifier::Identifiable;
@@ -12,6 +14,7 @@ use crate::{
   DependencyId, Module, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
+#[impl_source_map_config_internal]
 #[derive(Debug)]
 pub struct RawModule {
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
@@ -43,6 +46,7 @@ impl RawModule {
       runtime_requirements,
       build_info: None,
       build_meta: None,
+      source_map_kind: SourceMapKind::None,
     }
   }
 }

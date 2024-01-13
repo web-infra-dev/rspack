@@ -327,7 +327,7 @@ fn accessor_to_object_access<S: AsRef<str>>(accessor: impl IntoIterator<Item = S
     .join("")
 }
 
-fn accessor_access(base: Option<&str>, accessor: &Vec<String>) -> String {
+fn accessor_access(base: Option<&str>, accessor: &[String]) -> String {
   accessor
     .iter()
     .enumerate()

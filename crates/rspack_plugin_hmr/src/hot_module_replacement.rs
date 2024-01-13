@@ -1,3 +1,4 @@
+use rspack_common::SourceMapKind;
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
@@ -5,6 +6,7 @@ use rspack_core::{
 };
 use rspack_identifier::Identifier;
 
+#[impl_runtime_module]
 #[derive(Debug, Eq)]
 pub struct HotModuleReplacementRuntimeModule {
   id: Identifier,
@@ -14,6 +16,7 @@ impl Default for HotModuleReplacementRuntimeModule {
   fn default() -> Self {
     Self {
       id: Identifier::from("webpack/runtime/hot_module_replacement"),
+      source_map_kind: SourceMapKind::None,
     }
   }
 }
@@ -27,5 +30,3 @@ impl RuntimeModule for HotModuleReplacementRuntimeModule {
     RawSource::from(include_str!("runtime/hot_module_replacement.js")).boxed()
   }
 }
-
-impl_runtime_module!(HotModuleReplacementRuntimeModule);

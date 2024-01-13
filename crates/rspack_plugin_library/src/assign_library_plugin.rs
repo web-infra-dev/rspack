@@ -318,7 +318,7 @@ impl Plugin for AssignLibraryPlugin {
   }
 }
 
-fn access_with_init(accessor: &Vec<String>, existing_length: usize, init_last: bool) -> String {
+fn access_with_init(accessor: &[String], existing_length: usize, init_last: bool) -> String {
   let base = accessor[0].clone();
   if accessor.len() == 1 && !init_last {
     return base;

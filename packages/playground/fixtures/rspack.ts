@@ -82,19 +82,6 @@ export const rspackFixtures = (
 						config.context = tempProjectDir;
 					}
 
-					// set default define
-					if (!config.builtins) {
-						config.builtins = {};
-					}
-					config.builtins.define = Object.assign(
-						{
-							"process.env.NODE_ENV": JSON.stringify(
-								config.mode || "development"
-							)
-						},
-						config.builtins.define
-					);
-
 					return defaultRspackConfig.handleConfig(config);
 				});
 				await rspack.devServer.start();

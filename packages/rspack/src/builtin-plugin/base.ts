@@ -29,7 +29,6 @@ export enum BuiltinPluginName {
 	WebWorkerTemplatePlugin = "WebWorkerTemplatePlugin",
 	MergeDuplicateChunksPlugin = "MergeDuplicateChunksPlugin",
 	SplitChunksPlugin = "SplitChunksPlugin",
-	OldSplitChunksPlugin = "OldSplitChunksPlugin",
 	ShareRuntimePlugin = "ShareRuntimePlugin",
 	ContainerPlugin = "ContainerPlugin",
 	ContainerReferencePlugin = "ContainerReferencePlugin",

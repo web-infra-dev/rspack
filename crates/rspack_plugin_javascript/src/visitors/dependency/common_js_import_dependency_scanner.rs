@@ -153,6 +153,7 @@ impl<'a> CommonJsImportDependencyScanner<'a> {
         loc,
         Some(mem_expr.span.into()),
         is_call,
+        self.in_try,
       ))
     } else {
       None

@@ -1,3 +1,4 @@
+use rspack_common::SourceMapKind;
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
@@ -14,6 +15,7 @@ use crate::{
   },
 };
 
+#[impl_runtime_module]
 #[derive(Debug, Default, Eq)]
 pub struct ImportScriptsChunkLoadingRuntimeModule {
   id: Identifier,
@@ -27,6 +29,7 @@ impl ImportScriptsChunkLoadingRuntimeModule {
       id: Identifier::from("webpack/runtime/import_scripts_chunk_loading"),
       chunk: None,
       with_create_script_url,
+      source_map_kind: SourceMapKind::None,
     }
   }
 
@@ -191,5 +194,3 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
     RuntimeModuleStage::Attach
   }
 }
-
-impl_runtime_module!(ImportScriptsChunkLoadingRuntimeModule);

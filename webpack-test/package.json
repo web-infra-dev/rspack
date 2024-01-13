@@ -5,9 +5,9 @@
   "license": "MIT",
   "main": "./dist/index.d.ts",
   "scripts": {
-    "test": "cross-env NODE_OPTIONS=\"--experimental-vm-modules --max-old-space-size=4096  --trace-deprecation\" jest  --logHeapUsage --bail --forceExit",
-    "test:metric": "cross-env NODE_OPTIONS=\"--experimental-vm-modules --max-old-space-size=4096  --trace-deprecation\" jest --logHeapUsage --bail --forceExit --json | node scripts/test-metric.js",
-    "test:metric:json": "cross-env NODE_OPTIONS=\"--experimental-vm-modules --max-old-space-size=4096  --trace-deprecation\" jest --logHeapUsage --bail --json --forceExit"
+    "test": "cross-env NODE_OPTIONS=\"--experimental-vm-modules --max-old-space-size=4096 --trace-deprecation\" jest",
+    "test:metric": "cross-env NODE_OPTIONS=\"--experimental-vm-modules --max-old-space-size=4096 --trace-deprecation\" jest --json | node scripts/test-metric.js",
+    "test:metric:json": "cross-env NODE_OPTIONS=\"--experimental-vm-modules --max-old-space-size=4096 --trace-deprecation\" jest --logHeapUsage --json"
   },
   "files": [
     "dist"
@@ -41,6 +41,7 @@
     "postcss-loader": "^7.0.2",
     "postcss-pxtorem": "^6.0.0",
     "pug-loader": "^2.4.0",
+    "raw-loader": "^4.0.2",
     "react-relay": "^14.1.0",
     "rimraf": "3.0.2",
     "sass": "^1.56.2",

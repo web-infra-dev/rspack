@@ -1,3 +1,4 @@
+use rspack_common::SourceMapKind;
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
@@ -5,6 +6,7 @@ use rspack_core::{
 };
 use rspack_identifier::Identifier;
 
+#[impl_runtime_module]
 #[derive(Debug, Eq)]
 pub struct PublicPathRuntimeModule {
   id: Identifier,
@@ -16,6 +18,7 @@ impl PublicPathRuntimeModule {
     Self {
       id: Identifier::from("webpack/runtime/public_path"),
       public_path,
+      source_map_kind: SourceMapKind::None,
     }
   }
 }
@@ -33,5 +36,3 @@ impl RuntimeModule for PublicPathRuntimeModule {
     .boxed()
   }
 }
-
-impl_runtime_module!(PublicPathRuntimeModule);

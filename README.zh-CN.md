@@ -51,6 +51,7 @@
 | --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
 | [Rspack 文档](https://rspack.dev)                                                       | Rspack 官方文档                                                              |
 | [Rspack 文档仓库](https://github.com/web-infra-dev/rspack-website)                      | Rspack 官方文档的代码仓库                                                    |
+| [Rspack examples repo](https://github.com/rspack-contrib/rspack-examples)               | Rspack 配置示例                                                              |
 | [rspack-sources](https://github.com/web-infra-dev/rspack-sources)                       | Rust 版本的 [webpack-sources](https://www.npmjs.com/package/webpack-sources) |
 | [rspack-migration-showcase](https://github.com/web-infra-dev/rspack-migration-showcase) | 迁移到 Rspack 的示例项目                                                     |
 

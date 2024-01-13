@@ -15,10 +15,12 @@ once_cell = { workspace = true }
 rayon = { workspace = true }
 regex = { workspace = true }
 rkyv = { workspace = true, features = ["indexmap", "validation"] }
+rspack_common = { path = "../rspack_common" }
 rspack_core = { path = "../rspack_core" }
 rspack_error = { path = "../rspack_error" }
 rspack_hash = { path = "../rspack_hash" }
 rspack_identifier = { path = "../rspack_identifier" }
+rspack_plugin_runtime = { path = "../rspack_plugin_runtime" }
 rustc-hash = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }

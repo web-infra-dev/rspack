@@ -102,24 +102,25 @@ export class Compilation {
 
 	hooks: {
 		processAssets: ReturnType<typeof createFakeProcessAssetsHook>;
+		afterProcessAssets: tapable.SyncHook<Assets>;
 		childCompiler: tapable.SyncHook<[Compiler, string, number]>;
 		log: tapable.SyncBailHook<[string, LogEntry], true>;
 		additionalAssets: any;
-		optimizeModules: tapable.SyncBailHook<Iterable<JsModule>, undefined>;
-		afterOptimizeModules: tapable.SyncHook<Iterable<JsModule>, undefined>;
+		optimizeModules: tapable.SyncBailHook<Iterable<JsModule>, void>;
+		afterOptimizeModules: tapable.SyncHook<Iterable<JsModule>, void>;
 		optimizeTree: tapable.AsyncSeriesBailHook<
 			[Iterable<Chunk>, Iterable<JsModule>],
-			undefined
+			void
 		>;
 		optimizeChunkModules: tapable.AsyncSeriesBailHook<
 			[Iterable<Chunk>, Iterable<JsModule>],
-			undefined
+			void
 		>;
-		finishModules: tapable.AsyncSeriesHook<[Iterable<JsModule>], undefined>;
-		chunkAsset: tapable.SyncHook<[JsChunk, string], undefined>;
+		finishModules: tapable.AsyncSeriesHook<[Iterable<JsModule>], void>;
+		chunkAsset: tapable.SyncHook<[JsChunk, string], void>;
 		processWarnings: tapable.SyncWaterfallHook<[Error[]]>;
-		succeedModule: tapable.SyncHook<[JsModule], undefined>;
-		stillValidModule: tapable.SyncHook<[JsModule], undefined>;
+		succeedModule: tapable.SyncHook<[JsModule], void>;
+		stillValidModule: tapable.SyncHook<[JsModule], void>;
 		statsFactory: tapable.SyncHook<[StatsFactory, StatsOptions], void>;
 		statsPrinter: tapable.SyncHook<[StatsPrinter, StatsOptions], void>;
 		buildModule: tapable.SyncHook<[NormalizedJsModule]>;
@@ -155,6 +156,7 @@ export class Compilation {
 		const processAssetsHooks = createFakeProcessAssetsHook(this);
 		this.hooks = {
 			processAssets: processAssetsHooks,
+			afterProcessAssets: new tapable.SyncHook(["assets"]),
 			// TODO: webpack 6 deprecate, keep it just for compatibility
 			/** @deprecated */
 			additionalAssets: createProcessAssetsHook(

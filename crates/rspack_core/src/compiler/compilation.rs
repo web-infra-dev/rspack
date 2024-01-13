@@ -432,13 +432,13 @@ impl Compilation {
   }
 
   #[instrument(name = "compilation:make", skip_all)]
-  pub async fn make(&mut self, mut param: MakeParam) -> Result<()> {
+  pub async fn make(&mut self, mut params: Vec<MakeParam>) -> Result<()> {
     let logger = self.get_logger("rspack.Compilation");
     let start = logger.time("make hook");
     if let Some(e) = self
       .plugin_driver
       .clone()
-      .make(self, &mut param)
+      .make(self, &mut params)
       .await
       .err()
     {
@@ -450,9 +450,9 @@ impl Compilation {
     let make_failed_dependencies =
       MakeParam::ForceBuildDeps(std::mem::take(&mut self.make_failed_dependencies));
 
-    self
-      .update_module_graph(vec![param, make_failed_module, make_failed_dependencies])
-      .await
+    params.push(make_failed_module);
+    params.push(make_failed_dependencies);
+    self.update_module_graph(params).await
   }
 
   pub async fn rebuild_module(
@@ -534,7 +534,7 @@ impl Compilation {
     let mut build_queue = BuildQueue::new();
     let mut process_dependencies_queue = ProcessDependenciesQueue::new();
     let mut make_failed_dependencies: HashSet<BuildDependency> = HashSet::default();
-    let mut make_failed_module = HashSet::default();
+    let mut make_failed_module: HashSet<ModuleIdentifier> = HashSet::default();
     let mut errored = None;
 
     deps_builder
@@ -723,7 +723,11 @@ impl Compilation {
                 diagnostics,
               } = task_result;
               if !diagnostics.is_empty() {
-                make_failed_dependencies.insert((dependencies[0], original_module_identifier));
+                if let Some(id) = original_module_identifier {
+                  make_failed_module.insert(id);
+                } else {
+                  make_failed_dependencies.insert((dependencies[0], None));
+                }
               }
 
               self.push_batch_diagnostic(
@@ -1048,7 +1052,13 @@ impl Compilation {
         })
     };
 
-    // dbg!(&self.module_graph.module_identifier_to_module_graph_module);
+    // Avoid to introduce too much overhead,
+    // until we find a better way to align with webpack hmr behavior
+    if self.options.is_new_tree_shaking() {
+      let start = logger.time("finish compilation");
+      self.finish(self.plugin_driver.clone()).await?;
+      logger.time_end(start);
+    }
 
     // add context module and context element module to bailout_module_identifiers
     if self.options.builtins.tree_shaking.enable() {
@@ -1348,6 +1358,13 @@ impl Compilation {
       .await
   }
 
+  #[instrument(name = "compilation:after_process_asssets", skip_all)]
+  async fn after_process_assets(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
+    plugin_driver
+      .after_process_assets(ProcessAssetsArgs { compilation: self })
+      .await
+  }
+
   #[instrument(
     name = "compilation:chunk_asset",
     skip(self, plugin_driver, chunk_ukey)
@@ -1484,7 +1501,11 @@ impl Compilation {
     logger.time_end(start);
 
     let start = logger.time("process assets");
-    self.process_assets(plugin_driver).await?;
+    self.process_assets(plugin_driver.clone()).await?;
+    logger.time_end(start);
+
+    let start = logger.time("after process assets");
+    self.after_process_assets(plugin_driver).await?;
     logger.time_end(start);
 
     Ok(())

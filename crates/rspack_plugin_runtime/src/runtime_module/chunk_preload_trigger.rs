@@ -1,6 +1,7 @@
 use std::hash::BuildHasherDefault;
 
 use indexmap::IndexMap;
+use rspack_common::SourceMapKind;
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
@@ -9,6 +10,7 @@ use rspack_core::{
 use rspack_identifier::Identifier;
 use rustc_hash::FxHasher;
 
+#[impl_runtime_module]
 #[derive(Debug, Eq)]
 pub struct ChunkPreloadTriggerRuntimeModule {
   id: Identifier,
@@ -20,6 +22,7 @@ impl ChunkPreloadTriggerRuntimeModule {
     Self {
       id: Identifier::from("webpack/runtime/chunk_preload_trigger"),
       chunk_map,
+      source_map_kind: SourceMapKind::None,
     }
   }
 }
@@ -41,5 +44,3 @@ impl RuntimeModule for ChunkPreloadTriggerRuntimeModule {
     RuntimeModuleStage::Trigger
   }
 }
-
-impl_runtime_module!(ChunkPreloadTriggerRuntimeModule);

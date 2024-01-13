@@ -23,6 +23,7 @@ preset_env_base = { workspace = true }
 rayon = { workspace = true }
 regex = { workspace = true }
 rspack_ast = { path = "../rspack_ast" }
+rspack_common = { path = "../rspack_common" }
 rspack_core = { path = "../rspack_core" }
 rspack_error = { path = "../rspack_error" }
 rspack_hash = { path = "../rspack_hash" }

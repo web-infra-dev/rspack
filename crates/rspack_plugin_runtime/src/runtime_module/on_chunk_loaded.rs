@@ -1,3 +1,4 @@
+use rspack_common::SourceMapKind;
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
@@ -5,6 +6,7 @@ use rspack_core::{
 };
 use rspack_identifier::Identifier;
 
+#[impl_runtime_module]
 #[derive(Debug, Eq)]
 pub struct OnChunkLoadedRuntimeModule {
   id: Identifier,
@@ -14,6 +16,7 @@ impl Default for OnChunkLoadedRuntimeModule {
   fn default() -> Self {
     Self {
       id: Identifier::from("webpack/runtime/on_chunk_loaded"),
+      source_map_kind: SourceMapKind::None,
     }
   }
 }
@@ -27,5 +30,3 @@ impl RuntimeModule for OnChunkLoadedRuntimeModule {
     RawSource::from(include_str!("runtime/on_chunk_loaded.js")).boxed()
   }
 }
-
-impl_runtime_module!(OnChunkLoadedRuntimeModule);

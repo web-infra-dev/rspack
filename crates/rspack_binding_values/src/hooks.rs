@@ -19,6 +19,7 @@ pub struct JsHooks {
   pub process_assets_stage_optimize_transfer: JsFunction,
   pub process_assets_stage_analyse: JsFunction,
   pub process_assets_stage_report: JsFunction,
+  pub after_process_assets: JsFunction,
   pub compilation: JsFunction,
   pub this_compilation: JsFunction,
   pub emit: JsFunction,

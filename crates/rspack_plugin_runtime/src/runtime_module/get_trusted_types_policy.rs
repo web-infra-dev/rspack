@@ -1,3 +1,4 @@
+use rspack_common::SourceMapKind;
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
@@ -7,6 +8,7 @@ use rspack_identifier::Identifier;
 
 use crate::get_chunk_runtime_requirements;
 
+#[impl_runtime_module]
 #[derive(Debug, Eq)]
 pub struct GetTrustedTypesPolicyRuntimeModule {
   id: Identifier,
@@ -18,6 +20,7 @@ impl Default for GetTrustedTypesPolicyRuntimeModule {
     Self {
       id: Identifier::from("webpack/runtime/get_trusted_types_policy"),
       chunk: None,
+      source_map_kind: SourceMapKind::None,
     }
   }
 }
@@ -72,5 +75,3 @@ impl RuntimeModule for GetTrustedTypesPolicyRuntimeModule {
     self.chunk = Some(chunk);
   }
 }
-
-impl_runtime_module!(GetTrustedTypesPolicyRuntimeModule);

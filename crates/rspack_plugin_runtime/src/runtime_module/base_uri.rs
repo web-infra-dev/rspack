@@ -1,3 +1,4 @@
+use rspack_common::SourceMapKind;
 use rspack_core::{
   get_chunk_from_ukey, impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
@@ -5,6 +6,7 @@ use rspack_core::{
 };
 use rspack_identifier::Identifier;
 
+#[impl_runtime_module]
 #[derive(Debug, Eq)]
 pub struct BaseUriRuntimeModule {
   id: Identifier,
@@ -15,6 +17,7 @@ impl Default for BaseUriRuntimeModule {
     BaseUriRuntimeModule {
       id: Identifier::from("webpack/runtime/base_uri"),
       chunk: None,
+      source_map_kind: SourceMapKind::None,
     }
   }
 }
@@ -39,4 +42,3 @@ impl RuntimeModule for BaseUriRuntimeModule {
     self.chunk = Some(chunk);
   }
 }
-impl_runtime_module!(BaseUriRuntimeModule);

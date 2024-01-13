@@ -1,13 +1,13 @@
+const { rspack } = require("@rspack/core");
+
 module.exports = {
-	builtins: {
-		html: [
-			{
-				templateContent:
-					"<!DOCTYPE html><html><body><div><%= env %></div></body></html>",
-				templateParameters: {
-					env: "production"
-				}
+	plugins: [
+		new rspack.HtmlRspackPlugin({
+			templateContent:
+				"<!DOCTYPE html><html><body><div><%= env %></div></body></html>",
+			templateParameters: {
+				env: "production"
 			}
-		]
-	}
+		})
+	]
 };

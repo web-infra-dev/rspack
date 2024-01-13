@@ -1,3 +1,4 @@
+use rspack_common::SourceMapKind;
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
@@ -5,6 +6,7 @@ use rspack_core::{
 };
 use rspack_identifier::Identifier;
 
+#[impl_runtime_module]
 #[derive(Debug, Default, Eq)]
 pub struct ExportWebpackRequireRuntimeModule {
   id: Identifier,
@@ -14,6 +16,7 @@ impl ExportWebpackRequireRuntimeModule {
   pub fn new() -> Self {
     Self {
       id: Identifier::from("webpack/runtime/export_webpack_runtime"),
+      source_map_kind: SourceMapKind::None,
     }
   }
 }
@@ -31,5 +34,3 @@ impl RuntimeModule for ExportWebpackRequireRuntimeModule {
     true
   }
 }
-
-impl_runtime_module!(ExportWebpackRequireRuntimeModule);

@@ -1,6 +1,6 @@
 {
   "name": "monorepo",
-  "version": "0.4.5",
+  "version": "0.5.0",
   "license": "MIT",
   "description": "A Fast Rust-based web bundler",
   "private": true,
@@ -28,11 +28,10 @@
     "build:binding:debug": "pnpm --filter @rspack/binding run build:debug",
     "build:binding:release": "pnpm --filter @rspack/binding run build:release",
     "prepare": "is-ci || husky install",
-    "test:example": "pnpm --filter \"example-*\" build",
     "test:diff": "pnpm --filter \"@rspack/*\" test:diff",
     "test:unit": "pnpm --filter \"@rspack/*\" test",
     "test:e2e": "pnpm --filter \"@rspack-e2e/*\" test",
-    "test:ci": "cross-env NODE_OPTIONS=--max_old_space_size=8192 pnpm run build:js --force && pnpm run test:example && pnpm run test:unit && pnpm test:webpack",
+    "test:ci": "cross-env NODE_OPTIONS=--max_old_space_size=8192 pnpm run build:js --force && pnpm run test:unit && pnpm test:webpack",
     "test:webpack": "pnpm --filter \"webpack-test\" test:metric"
   },
   "homepage": "https://rspack.dev",
@@ -67,15 +66,6 @@
     "webpack": "5.89.0",
     "webpack-cli": "4.10.0",
     "why-is-node-running": "2.2.1"
-  },
-  "optionalDependencies": {
-    "sass-embedded-darwin-arm64": "1.58.3",
-    "sass-embedded-darwin-x64": "1.58.3",
-    "sass-embedded-linux-arm64": "1.58.3",
-    "sass-embedded-linux-ia32": "1.58.3",
-    "sass-embedded-linux-x64": "1.58.3",
-    "sass-embedded-win32-ia32": "1.58.3",
-    "sass-embedded-win32-x64": "1.58.3"
   },
   "packageManager": "pnpm@8.10.5"
 }

@@ -747,6 +747,7 @@ impl ModuleGraph {
 mod test {
   use std::borrow::Cow;
 
+  use rspack_common::SourceMapKind;
   use rspack_error::{Diagnosable, Result};
   use rspack_identifier::Identifiable;
   use rspack_sources::Source;
@@ -755,7 +756,8 @@ mod test {
     AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta,
     BuildResult, CodeGenerationResult, Compilation, Context, DependenciesBlock, Dependency,
     DependencyId, ExportInfo, ExportsInfo, Module, ModuleDependency, ModuleGraph,
-    ModuleGraphModule, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType, UsageState,
+    ModuleGraphModule, ModuleIdentifier, ModuleType, RuntimeSpec, SourceMapGenConfig, SourceType,
+    UsageState,
   };
 
   // Define a detailed node type for `ModuleGraphModule`s
@@ -837,6 +839,15 @@ mod test {
           _build_info: BuildInfo,
           _build_meta: BuildMeta,
         ) {
+          unreachable!()
+        }
+      }
+
+      impl SourceMapGenConfig for $ident {
+        fn get_source_map_kind(&self) -> &SourceMapKind {
+          unreachable!()
+        }
+        fn set_source_map_kind(&mut self, _source_map: SourceMapKind) {
           unreachable!()
         }
       }

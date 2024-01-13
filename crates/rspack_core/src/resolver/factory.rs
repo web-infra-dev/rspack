@@ -25,7 +25,7 @@ pub struct ResolverFactory {
 
 impl Default for ResolverFactory {
   fn default() -> Self {
-    Self::new(false, Resolve::default())
+    Self::new(Resolve::default())
   }
 }
 
@@ -34,10 +34,10 @@ impl ResolverFactory {
     self.resolver.clear_cache();
   }
 
-  pub fn new(new_resolver: bool, options: Resolve) -> Self {
+  pub fn new(options: Resolve) -> Self {
     Self {
       base_options: options.clone(),
-      resolver: Resolver::new(new_resolver, options),
+      resolver: Resolver::new(options),
       resolvers: Default::default(),
     }
   }

@@ -31,7 +31,6 @@ program
 		await $`cargo test`;
 		await $`pnpm install`;
 		await $`pnpm run build:cli:release`;
-		await $`pnpm run test:example`;
 		await $`pnpm run test:unit`;
 		console.log(chalk.green("All passed."));
 	});
@@ -116,14 +115,6 @@ testCommand
 		await $`cargo test`;
 	});
 
-// x test example
-testCommand
-	.command("example")
-	.description("build examples")
-	.action(async function () {
-		await $`pnpm --filter "example-*" build`;
-	});
-
 // x test unit
 testCommand
 	.command("unit")
@@ -138,7 +129,6 @@ testCommand
 	.command("ci")
 	.description("run tests for ci")
 	.action(async function () {
-		await $`./x test example`;
 		await $`./x test unit`;
 	});
 // x test webpack

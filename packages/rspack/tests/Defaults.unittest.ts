@@ -108,8 +108,10 @@ describe("snapshots", () => {
 		-   "mode": "none",
 		+   "mode": undefined,
 		@@ ... @@
+		-     "chunkIds": "named",
 		-     "innerGraph": false,
 		-     "mangleExports": false,
+		+     "chunkIds": "deterministic",
 		+     "innerGraph": true,
 		+     "mangleExports": true,
 		@@ ... @@
@@ -156,8 +158,10 @@ describe("snapshots", () => {
 		-   "mode": "none",
 		+   "mode": "production",
 		@@ ... @@
+		-     "chunkIds": "named",
 		-     "innerGraph": false,
 		-     "mangleExports": false,
+		+     "chunkIds": "deterministic",
 		+     "innerGraph": true,
 		+     "mangleExports": true,
 		@@ ... @@
@@ -203,9 +207,6 @@ describe("snapshots", () => {
 		@@ ... @@
 		-   "cache": false,
 		+   "cache": true,
-		@@ ... @@
-		-       "make": false,
-		+       "make": true,
 		@@ ... @@
 		-   "mode": "none",
 		+   "mode": "development",
@@ -660,31 +661,43 @@ describe("snapshots", () => {
 		-     "workerWasmLoading": "fetch",
 		+     "workerWasmLoading": "async-node",
 		@@ ... @@
-		-     "browserField": true,
-		+     "browserField": false,
+		-     "aliasFields": Array [
+		-       "browser",
+		-     ],
+		+     "aliasFields": Array [],
 		@@ ... @@
-		-         "browserField": true,
-		+         "browserField": false,
+		-         "aliasFields": Array [
+		-           "browser",
+		-         ],
+		+         "aliasFields": Array [],
 		@@ ... @@
 		-           "browser",
 		@@ ... @@
-		-         "browserField": true,
-		+         "browserField": false,
+		-         "aliasFields": Array [
+		-           "browser",
+		-         ],
+		+         "aliasFields": Array [],
 		@@ ... @@
 		-           "browser",
 		@@ ... @@
-		-         "browserField": true,
-		+         "browserField": false,
+		-         "aliasFields": Array [
+		-           "browser",
+		-         ],
+		+         "aliasFields": Array [],
 		@@ ... @@
 		-           "browser",
 		@@ ... @@
-		-         "browserField": true,
-		+         "browserField": false,
+		-         "aliasFields": Array [
+		-           "browser",
+		-         ],
+		+         "aliasFields": Array [],
 		@@ ... @@
 		-           "browser",
 		@@ ... @@
-		-         "browserField": true,
-		+         "browserField": false,
+		-         "aliasFields": Array [
+		-           "browser",
+		-         ],
+		+         "aliasFields": Array [],
 		@@ ... @@
 		-           "browser",
 		@@ ... @@
@@ -762,31 +775,43 @@ describe("snapshots", () => {
 		-     "workerWasmLoading": "fetch",
 		+     "workerWasmLoading": "async-node",
 		@@ ... @@
-		-     "browserField": true,
-		+     "browserField": false,
+		-     "aliasFields": Array [
+		-       "browser",
+		-     ],
+		+     "aliasFields": Array [],
 		@@ ... @@
-		-         "browserField": true,
-		+         "browserField": false,
+		-         "aliasFields": Array [
+		-           "browser",
+		-         ],
+		+         "aliasFields": Array [],
 		@@ ... @@
 		-           "browser",
 		@@ ... @@
-		-         "browserField": true,
-		+         "browserField": false,
+		-         "aliasFields": Array [
+		-           "browser",
+		-         ],
+		+         "aliasFields": Array [],
 		@@ ... @@
 		-           "browser",
 		@@ ... @@
-		-         "browserField": true,
-		+         "browserField": false,
+		-         "aliasFields": Array [
+		-           "browser",
+		-         ],
+		+         "aliasFields": Array [],
 		@@ ... @@
 		-           "browser",
 		@@ ... @@
-		-         "browserField": true,
-		+         "browserField": false,
+		-         "aliasFields": Array [
+		-           "browser",
+		-         ],
+		+         "aliasFields": Array [],
 		@@ ... @@
 		-           "browser",
 		@@ ... @@
-		-         "browserField": true,
-		+         "browserField": false,
+		-         "aliasFields": Array [
+		-           "browser",
+		-         ],
+		+         "aliasFields": Array [],
 		@@ ... @@
 		-           "browser",
 		@@ ... @@
@@ -847,31 +872,43 @@ describe("snapshots", () => {
 		-     "workerWasmLoading": "fetch",
 		+     "workerWasmLoading": "async-node",
 		@@ ... @@
-		-     "browserField": true,
-		+     "browserField": false,
+		-     "aliasFields": Array [
+		-       "browser",
+		-     ],
+		+     "aliasFields": Array [],
 		@@ ... @@
-		-         "browserField": true,
-		+         "browserField": false,
+		-         "aliasFields": Array [
+		-           "browser",
+		-         ],
+		+         "aliasFields": Array [],
 		@@ ... @@
 		-           "browser",
 		@@ ... @@
-		-         "browserField": true,
-		+         "browserField": false,
+		-         "aliasFields": Array [
+		-           "browser",
+		-         ],
+		+         "aliasFields": Array [],
 		@@ ... @@
 		-           "browser",
 		@@ ... @@
-		-         "browserField": true,
-		+         "browserField": false,
+		-         "aliasFields": Array [
+		-           "browser",
+		-         ],
+		+         "aliasFields": Array [],
 		@@ ... @@
 		-           "browser",
 		@@ ... @@
-		-         "browserField": true,
-		+         "browserField": false,
+		-         "aliasFields": Array [
+		-           "browser",
+		-         ],
+		+         "aliasFields": Array [],
 		@@ ... @@
 		-           "browser",
 		@@ ... @@
-		-         "browserField": true,
-		+         "browserField": false,
+		-         "aliasFields": Array [
+		-           "browser",
+		-         ],
+		+         "aliasFields": Array [],
 		@@ ... @@
 		-           "browser",
 		@@ ... @@
@@ -936,9 +973,6 @@ describe("snapshots", () => {
 		@@ ... @@
 		-   "cache": false,
 		+   "cache": true,
-		@@ ... @@
-		-       "make": false,
-		+       "make": true,
 	`)
 	);
 	test("cache filesystem", { cache: { type: "filesystem" } }, e =>
@@ -951,9 +985,6 @@ describe("snapshots", () => {
 		+   "cache": Object {
 		+     "type": "filesystem",
 		+   },
-		@@ ... @@
-		-       "make": false,
-		+       "make": true,
 	`)
 	);
 	test(
@@ -969,9 +1000,6 @@ describe("snapshots", () => {
 			+   "cache": Object {
 			+     "type": "filesystem",
 			+   },
-			@@ ... @@
-			-       "make": false,
-			+       "make": true,
 			@@ ... @@
 			-   "mode": "none",
 			+   "mode": "development",
@@ -1128,9 +1156,6 @@ describe("snapshots", () => {
 			+     "type": "filesystem",
 			+   },
 			+   "context": "<cwd>/tests/fixtures",
-			@@ ... @@
-			-       "make": false,
-			+       "make": true,
 			@@ ... @@
 			-     "chunkLoadingGlobal": "webpackChunk_rspack_core",
 			+     "chunkLoadingGlobal": "webpackChunk",

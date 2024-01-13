@@ -1,3 +1,4 @@
+use rspack_common::SourceMapKind;
 use rspack_core::{
   get_js_chunk_filename_template, impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
@@ -8,6 +9,7 @@ use rspack_identifier::Identifier;
 
 use super::utils::get_undo_path;
 
+#[impl_runtime_module]
 #[derive(Debug, Eq)]
 pub struct AutoPublicPathRuntimeModule {
   id: Identifier,
@@ -19,6 +21,7 @@ impl Default for AutoPublicPathRuntimeModule {
     Self {
       id: Identifier::from("webpack/runtime/auto_public_path"),
       chunk: None,
+      source_map_kind: SourceMapKind::None,
     }
   }
 }
@@ -109,5 +112,3 @@ fn auto_public_path_template(filename: &str, output: &OutputOptions) -> String {
     "#
   )
 }
-
-impl_runtime_module!(AutoPublicPathRuntimeModule);

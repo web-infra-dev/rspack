@@ -1,3 +1,4 @@
+use rspack_common::SourceMapKind;
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
@@ -5,6 +6,7 @@ use rspack_core::{
 };
 use rspack_identifier::Identifier;
 
+#[impl_runtime_module]
 #[derive(Debug, Eq)]
 pub struct SystemContextRuntimeModule {
   id: Identifier,
@@ -14,6 +16,7 @@ impl Default for SystemContextRuntimeModule {
   fn default() -> Self {
     Self {
       id: Identifier::from("webpack/runtime/start_entry_point"),
+      source_map_kind: SourceMapKind::None,
     }
   }
 }
@@ -31,5 +34,3 @@ impl RuntimeModule for SystemContextRuntimeModule {
     .boxed()
   }
 }
-
-impl_runtime_module!(SystemContextRuntimeModule);

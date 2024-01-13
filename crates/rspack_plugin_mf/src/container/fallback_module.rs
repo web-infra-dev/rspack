@@ -2,8 +2,9 @@ use std::borrow::Cow;
 use std::hash::Hash;
 
 use async_trait::async_trait;
+use rspack_common::SourceMapKind;
 use rspack_core::{
-  impl_build_info_meta,
+  impl_build_info_meta, impl_source_map_config,
   rspack_sources::{RawSource, Source, SourceExt},
   AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
   ChunkUkey, CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId,
@@ -16,6 +17,7 @@ use rspack_identifier::{Identifiable, Identifier};
 use super::fallback_item_dependency::FallbackItemDependency;
 use crate::utils::json_stringify;
 
+#[impl_source_map_config]
 #[derive(Debug)]
 pub struct FallbackModule {
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
@@ -47,6 +49,7 @@ impl FallbackModule {
       requests,
       build_info: None,
       build_meta: None,
+      source_map_kind: SourceMapKind::None,
     }
   }
 }

@@ -1,7 +1,7 @@
 import path from "path";
 import fs from "fs";
 
-import { rspack } from "../../src";
+import { rspack } from "@rspack/core";
 
 import { run, runEmit, runChange } from "./helpers/run";
 
@@ -380,31 +380,31 @@ describe("CopyPlugin", () => {
 				{
 					mode: "development",
 					context: path.resolve(__dirname, "./fixtures"),
-					builtins: {
-						copy: {
+					plugins: [
+						new rspack.CopyRspackPlugin({
 							patterns: [
 								{
 									from: path.resolve(__dirname, "./fixtures/directory")
 								}
 							]
-						}
-					},
+						})
+					],
 					entry: path.resolve(__dirname, "./helpers/enter.js"),
 					output: {
 						path: path.resolve(__dirname, "./outputs/multi-compiler/dist/a")
 					}
 				},
 				{
-					builtins: {
-						copy: {
+					plugins: [
+						new rspack.CopyRspackPlugin({
 							patterns: [
 								{
 									context: path.resolve(__dirname, "./fixtures"),
 									from: path.resolve(__dirname, "./fixtures/directory")
 								}
 							]
-						}
-					},
+						})
+					],
 					mode: "development",
 					entry: path.resolve(__dirname, "./helpers/enter.js"),
 					output: {
@@ -686,15 +686,15 @@ describe("CopyPlugin", () => {
 				cache: {
 					type: "memory"
 				},
-				builtins: {
-					copy: {
+				plugins: [
+					new rspack.CopyRspackPlugin({
 						patterns: [
 							{
 								from: path.resolve(__dirname, "./fixtures/directory")
 							}
 						]
-					}
-				}
+					})
+				]
 			});
 
 			const { stats } = await compile(compiler);
@@ -730,15 +730,15 @@ describe("CopyPlugin", () => {
 					type: "filesystem",
 					cacheDirectory
 				},
-				builtins: {
-					copy: {
+				plugins: [
+					new rspack.CopyRspackPlugin({
 						patterns: [
 							{
 								from: path.resolve(__dirname, "./fixtures/directory")
 							}
 						]
-					}
-				}
+					})
+				]
 			});
 
 			const { stats } = await compile(compiler);
@@ -789,15 +789,15 @@ describe("CopyPlugin", () => {
 						type: "filesystem",
 						cacheDirectory: cacheDirectoryA
 					},
-					builtins: {
-						copy: {
+					plugins: [
+						new rspack.CopyRspackPlugin({
 							patterns: [
 								{
 									from: path.resolve(__dirname, "./fixtures/directory")
 								}
 							]
-						}
-					}
+						})
+					]
 				},
 				{
 					mode: "development",
@@ -809,16 +809,16 @@ describe("CopyPlugin", () => {
 						type: "filesystem",
 						cacheDirectory: cacheDirectoryB
 					},
-					builtins: {
-						copy: {
+					plugins: [
+						new rspack.CopyRspackPlugin({
 							patterns: [
 								{
 									context: path.resolve(__dirname, "./fixtures"),
 									from: path.resolve(__dirname, "./fixtures/directory")
 								}
 							]
-						}
-					}
+						})
+					]
 				}
 			]);
 
@@ -861,8 +861,8 @@ describe("CopyPlugin", () => {
 			const compiler = getCompiler({
 				mode: "production",
 				entry: path.resolve(__dirname, "./helpers/enter-with-asset-modules.js"),
-				builtins: {
-					copy: {
+				plugins: [
+					new rspack.CopyRspackPlugin({
 						patterns: [
 							{
 								from: path.resolve(__dirname, "./fixtures/js"),
@@ -871,8 +871,8 @@ describe("CopyPlugin", () => {
 								}
 							}
 						]
-					}
-				}
+					})
+				]
 			});
 
 			const { stats } = await compile(compiler);
@@ -884,8 +884,8 @@ describe("CopyPlugin", () => {
 			const compiler = getCompiler({
 				mode: "production",
 				entry: path.resolve(__dirname, "./helpers/enter-with-asset-modules.js"),
-				builtins: {
-					copy: {
+				plugins: [
+					new rspack.CopyRspackPlugin({
 						patterns: [
 							{
 								from: path.resolve(__dirname, "./fixtures/js"),
@@ -894,8 +894,8 @@ describe("CopyPlugin", () => {
 								}
 							}
 						]
-					}
-				}
+					})
+				]
 			});
 
 			const { stats } = await compile(compiler);

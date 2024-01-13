@@ -1,5 +1,6 @@
 use hashlink::{LinkedHashMap, LinkedHashSet};
 use itertools::Itertools;
+use rspack_common::SourceMapKind;
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
@@ -11,6 +12,7 @@ use rustc_hash::FxHashMap;
 use super::provide_shared_plugin::ProvideVersion;
 use crate::utils::json_stringify;
 
+#[impl_runtime_module]
 #[derive(Debug, Eq)]
 pub struct ShareRuntimeModule {
   id: Identifier,
@@ -24,6 +26,7 @@ impl ShareRuntimeModule {
       id: Identifier::from("webpack/runtime/sharing"),
       chunk: None,
       enhanced,
+      source_map_kind: SourceMapKind::None,
     }
   }
 }
@@ -120,8 +123,6 @@ __webpack_require__.initializeSharingData = {{ scopeToSharingDataMapping: {{ {sc
     self.chunk = Some(chunk);
   }
 }
-
-impl_runtime_module!(ShareRuntimeModule);
 
 #[derive(Debug, Clone)]
 pub struct CodeGenerationDataShareInit {

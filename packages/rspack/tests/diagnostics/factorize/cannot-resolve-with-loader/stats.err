@@ -1,13 +1,7 @@
-PublicPath: (none)
-asset main.js 1020 bytes [emitted] (name: main)
-Entrypoint main 1020 bytes = main.js
-./index.js
-
-ERROR in ./index.js   × Resolve error: Can't resolve './a' in '<PROJECT_ROOT>/tests/diagnostics/factorize/cannot-resolve-with-loader'
+ERROR in ./index.js
+  × Resolve error: Can't resolve './a' in '<PROJECT_ROOT>/tests/diagnostics/factorize/cannot-resolve-with-loader'
    ╭─[1:1]
  1 │ // THIS SHOULD BE INCLUDED IN THE DIAGNOSTIC
  2 │ require("./a");
    · ──────────────
    ╰────
-
-Rspack compiled with 1 error (53075591d40709993afc)

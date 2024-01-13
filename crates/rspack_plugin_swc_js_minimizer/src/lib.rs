@@ -219,7 +219,6 @@ impl Plugin for SwcJsMinimizerRspackPlugin {
             format: minify_options.format.clone(),
             source_map: BoolOrDataConfig::from_bool(input_source_map.is_some()),
             inline_sources_content: true, /* Using true so original_source can be None in SourceMapSource */
-            emit_source_map_columns,
             module: is_module,
             ..Default::default()
             };
@@ -333,14 +332,13 @@ pub struct JsMinifyOptions {
   pub module: bool,
   pub safari10: bool,
   pub toplevel: bool,
-  pub source_map: BoolOrDataConfig<TerserSourceMapOption>,
+  pub source_map: BoolOrDataConfig<TerserSourceMapKind>,
   pub output_path: Option<String>,
   pub inline_sources_content: bool,
-  pub emit_source_map_columns: bool,
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct TerserSourceMapOption {
+pub struct TerserSourceMapKind {
   pub filename: Option<String>,
   pub url: Option<String>,
   pub root: Option<String>,
