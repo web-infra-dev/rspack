@@ -195,24 +195,6 @@ impl Plugin for SourceMapDevToolPlugin {
     "rspack.SourceMapDevToolPlugin"
   }
 
-  async fn build_module(&self, module: &mut dyn Module) -> Result<()> {
-    if self.module {
-      module.set_source_map_kind(SourceMapKind::SourceMap);
-    } else {
-      module.set_source_map_kind(SourceMapKind::SimpleSourceMap);
-    }
-    Ok(())
-  }
-
-  fn runtime_module(&self, module: &mut dyn Module) -> Result<()> {
-    if self.module {
-      module.set_source_map_kind(SourceMapKind::SourceMap);
-    } else {
-      module.set_source_map_kind(SourceMapKind::SimpleSourceMap);
-    }
-    Ok(())
-  }
-
   async fn process_assets_stage_dev_tooling(
     &self,
     _ctx: PluginContext,
@@ -757,30 +739,6 @@ impl Plugin for EvalSourceMapDevToolPlugin {
     "rspack.EvalSourceMapDevToolPlugin"
   }
 
-  // TODO
-  // async fn compilation(
-  //   &self,
-  //   _args: CompilationArgs<'_>,
-  //   _params: &CompilationParams,
-  // ) -> PluginCompilationHookOutput {
-  //   // TODO: Temporarily use `devtool` to pass source map configuration information
-  //   let mut devtool = _args
-  //     .compilation
-  //     .options
-  //     .devtool
-  //     .write()
-  //     .expect("failed to acquire write lock on devtool");
-  //   devtool.add_source_map();
-  //   devtool.add_eval();
-  //   if !self.columns {
-  //     devtool.add_cheap();
-  //   }
-  //   if self.no_sources {
-  //     devtool.add_no_sources();
-  //   }
-  //   Ok(())
-  // }
-
   fn render_module_content<'a>(
     &'a self,
     _ctx: PluginContext,
@@ -805,6 +763,48 @@ impl Plugin for EvalSourceMapDevToolPlugin {
     args: &mut JsChunkHashArgs,
   ) -> PluginJsChunkHashHookOutput {
     self.name().hash(&mut args.hasher);
+    Ok(())
+  }
+}
+
+pub struct SourceMapDevToolModuleOptionsPluginOptions {
+  pub module: bool,
+}
+
+#[derive(Debug)]
+pub struct SourceMapDevToolModuleOptionsPlugin {
+  module: bool,
+}
+
+impl SourceMapDevToolModuleOptionsPlugin {
+  pub fn new(options: SourceMapDevToolModuleOptionsPluginOptions) -> Self {
+    Self {
+      module: options.module,
+    }
+  }
+}
+
+#[async_trait::async_trait]
+impl Plugin for SourceMapDevToolModuleOptionsPlugin {
+  fn name(&self) -> &'static str {
+    "SourceMapDevToolModuleOptionsPlugin"
+  }
+
+  async fn build_module(&self, module: &mut dyn Module) -> Result<()> {
+    if self.module {
+      module.set_source_map_kind(SourceMapKind::SourceMap);
+    } else {
+      module.set_source_map_kind(SourceMapKind::SimpleSourceMap);
+    }
+    Ok(())
+  }
+
+  fn runtime_module(&self, module: &mut dyn Module) -> Result<()> {
+    if self.module {
+      module.set_source_map_kind(SourceMapKind::SourceMap);
+    } else {
+      module.set_source_map_kind(SourceMapKind::SimpleSourceMap);
+    }
     Ok(())
   }
 }

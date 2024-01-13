@@ -6,7 +6,9 @@ use std::{
 };
 
 use rspack_core::{BoxPlugin, CompilerOptions, ModuleType, PluginExt};
-use rspack_plugin_devtool::Append;
+use rspack_plugin_devtool::{
+  Append, SourceMapDevToolModuleOptionsPlugin, SourceMapDevToolModuleOptionsPluginOptions,
+};
 use rspack_plugin_html::config::HtmlRspackPluginOptions;
 use rspack_regex::RspackRegex;
 use schemars::JsonSchema;
@@ -503,6 +505,22 @@ impl TestConfig {
       let cheap = options.devtool.contains("cheap");
       let module_maps = options.devtool.contains("module");
       let no_sources = options.devtool.contains("nosources");
+      let module = if module_maps {
+        true
+      } else {
+        if cheap {
+          false
+        } else {
+          true
+        }
+      };
+
+      plugins.push(
+        SourceMapDevToolModuleOptionsPlugin::new(SourceMapDevToolModuleOptionsPluginOptions {
+          module,
+        })
+        .boxed(),
+      );
 
       plugins.push(
         rspack_plugin_devtool::SourceMapDevToolPlugin::new(
