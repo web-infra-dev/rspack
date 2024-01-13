@@ -1,28 +1,30 @@
 use napi::Either;
 use napi_derive::napi;
-use rspack_plugin_runtime::BundlerInfoMode;
+use rspack_plugin_runtime::BundlerInfoForceMode;
 use rustc_hash::FxHashSet;
 
-type RawBundlerInfoMode = Either<String, Vec<String>>;
+type RawBundlerInfoMode = Either<bool, Vec<String>>;
 pub struct RawBundlerInfoModeWrapper(pub RawBundlerInfoMode);
 
 #[derive(Debug, Clone)]
 #[napi(object)]
 pub struct RawBundlerInfoPluginOptions {
   pub version: String,
-  #[napi(ts_type = "string | string[]")]
-  pub mode: RawBundlerInfoMode,
+  #[napi(ts_type = "boolean | string[]")]
+  pub force: RawBundlerInfoMode,
 }
 
-impl From<RawBundlerInfoModeWrapper> for BundlerInfoMode {
+impl From<RawBundlerInfoModeWrapper> for BundlerInfoForceMode {
   fn from(x: RawBundlerInfoModeWrapper) -> Self {
     match x.0 {
-      Either::A(v) => match v.as_str() {
-        "all" => BundlerInfoMode::All,
-        "auto" => BundlerInfoMode::Auto,
-        _ => BundlerInfoMode::Auto,
-      },
-      Either::B(v) => BundlerInfoMode::Partial(v.into_iter().collect::<FxHashSet<String>>()),
+      Either::A(v) => {
+        if v {
+          BundlerInfoForceMode::All
+        } else {
+          BundlerInfoForceMode::Auto
+        }
+      }
+      Either::B(v) => BundlerInfoForceMode::Partial(v.into_iter().collect::<FxHashSet<String>>()),
     }
   }
 }

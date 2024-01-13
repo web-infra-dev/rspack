@@ -177,7 +177,7 @@ const applyExperimentsDefaults = (
 				"version",
 				require("../../package.json").version
 			);
-			D(experiments.rspackFuture.bundlerInfo, "mode", "auto");
+			D(experiments.rspackFuture.bundlerInfo, "force", false);
 		}
 	}
 };

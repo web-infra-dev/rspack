@@ -7,7 +7,7 @@ use rustc_hash::FxHashSet;
 use crate::runtime_module::RspackVersionRuntimeModule;
 
 #[derive(Debug)]
-pub enum BundlerInfoMode {
+pub enum BundlerInfoForceMode {
   Auto,
   All,
   Partial(FxHashSet<String>),
@@ -16,12 +16,12 @@ pub enum BundlerInfoMode {
 #[derive(Debug)]
 pub struct BundlerInfoPlugin {
   version: String,
-  mode: BundlerInfoMode,
+  force: BundlerInfoForceMode,
 }
 
 impl BundlerInfoPlugin {
-  pub fn new(mode: BundlerInfoMode, version: String) -> Self {
-    Self { version, mode }
+  pub fn new(force: BundlerInfoForceMode, version: String) -> Self {
+    Self { version, force }
   }
 }
 
@@ -35,10 +35,10 @@ impl Plugin for BundlerInfoPlugin {
     _ctx: PluginContext,
     args: &mut RuntimeRequirementsInTreeArgs,
   ) -> PluginRuntimeRequirementsInTreeOutput {
-    if match &self.mode {
-      BundlerInfoMode::All => true,
-      BundlerInfoMode::Partial(s) => s.get("version").is_some(),
-      BundlerInfoMode::Auto => args
+    if match &self.force {
+      BundlerInfoForceMode::All => true,
+      BundlerInfoForceMode::Partial(s) => s.get("version").is_some(),
+      BundlerInfoForceMode::Auto => args
         .runtime_requirements
         .contains(RuntimeGlobals::RSPACK_VERSION),
     } {

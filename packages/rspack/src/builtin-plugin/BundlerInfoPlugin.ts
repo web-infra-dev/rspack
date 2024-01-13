@@ -3,7 +3,7 @@ import { BuiltinPluginName, create } from "./base";
 
 export type BundleInfoOptions = {
 	version?: string;
-	mode?: "auto" | "all" | string[];
+	force?: boolean | string[];
 };
 
 export const BundlerInfoPlugin = create(
@@ -11,7 +11,7 @@ export const BundlerInfoPlugin = create(
 	(options: BundleInfoOptions): RawBundlerInfoPluginOptions => {
 		return {
 			version: options.version || "unknown",
-			mode: options.mode || "auto"
+			force: options.force ?? false
 		};
 	}
 );

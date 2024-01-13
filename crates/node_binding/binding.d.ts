@@ -625,7 +625,7 @@ export interface RawBuiltins {
 
 export interface RawBundlerInfoPluginOptions {
   version: string
-  mode: string | string[]
+  force: boolean | string[]
 }
 
 export interface RawCacheGroupOptions {

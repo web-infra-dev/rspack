@@ -1050,8 +1050,8 @@ const rspackFutureOptions = z.strictObject({
 	bundlerInfo: z
 		.strictObject({
 			version: z.string().optional(),
-			mode: z
-				.enum(["auto", "all"])
+			force: z
+				.boolean()
 				.or(z.array(z.enum(["version"])))
 				.optional()
 		})

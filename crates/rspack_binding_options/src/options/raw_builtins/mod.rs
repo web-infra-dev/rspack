@@ -359,7 +359,7 @@ impl BuiltinPlugin {
         let plugin_options = downcast_into::<RawBundlerInfoPluginOptions>(self.options)?;
         plugins.push(
           BundlerInfoPlugin::new(
-            RawBundlerInfoModeWrapper(plugin_options.mode).into(),
+            RawBundlerInfoModeWrapper(plugin_options.force).into(),
             plugin_options.version,
           )
           .boxed(),
