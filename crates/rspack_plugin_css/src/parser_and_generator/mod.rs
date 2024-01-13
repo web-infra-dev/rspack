@@ -84,11 +84,6 @@ impl ParserAndGenerator for CssParserAndGenerator {
       ..
     } = parse_context;
 
-    let devtool = compiler_options
-      .devtool
-      .read()
-      .expect("failed to acquire read lock on devtool");
-
     build_info.strict = true;
     build_meta.exports_type = BuildMetaExportsType::Default;
 

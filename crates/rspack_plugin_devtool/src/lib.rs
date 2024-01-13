@@ -11,6 +11,7 @@ use futures::future::BoxFuture;
 use once_cell::sync::Lazy;
 use pathdiff::diff_paths;
 use regex::{Captures, Regex};
+use rspack_common::SourceMapKind;
 use rspack_core::{
   contextify,
   rspack_sources::{BoxSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap},
@@ -18,16 +19,13 @@ use rspack_core::{
   PluginJsChunkHashHookOutput, PluginProcessAssetsOutput, PluginRenderModuleContentOutput,
   ProcessAssetsArgs, RenderModuleContentArgs, SourceType,
 };
-use rspack_core::{
-  CompilationArgs, CompilationParams, Filename, Logger, ModuleIdentifier, OutputOptions,
-  PluginCompilationHookOutput,
-};
+use rspack_core::{Filename, Logger, Module, ModuleIdentifier, OutputOptions};
 use rspack_error::miette::IntoDiagnostic;
 use rspack_error::{Error, Result};
 use rspack_hash::RspackHash;
-use rspack_util::identifier::make_paths_absolute;
-use rspack_util::path::relative;
-use rspack_util::swc::normalize_custom_filename;
+use rspack_util::{
+  identifier::make_paths_absolute, path::relative, swc::normalize_custom_filename,
+};
 use rustc_hash::FxHashMap as HashMap;
 use serde_json::json;
 
@@ -197,33 +195,11 @@ impl Plugin for SourceMapDevToolPlugin {
     "rspack.SourceMapDevToolPlugin"
   }
 
-  async fn compilation(
-    &self,
-    _args: CompilationArgs<'_>,
-    _params: &CompilationParams,
-  ) -> PluginCompilationHookOutput {
-    // TODO: Temporarily use `devtool` to pass source map configuration information
-    let mut devtool = _args
-      .compilation
-      .options
-      .devtool
-      .write()
-      .expect("failed to acquire write lock on devtool");
-    devtool.add_source_map();
-    if self.source_map_filename.is_none() {
-      devtool.add_inline();
-    }
-    if self.source_mapping_url_comment.is_none() {
-      devtool.add_hidden();
-    }
-    if !self.columns {
-      devtool.add_cheap();
-    }
-    if self.no_sources {
-      devtool.add_no_sources();
-    }
+  async fn build_module(&self, module: &mut dyn Module) -> Result<()> {
     if self.module {
-      devtool.add_module();
+      module.set_source_map_kind(SourceMapKind::SourceMap);
+    } else {
+      module.set_source_map_kind(SourceMapKind::SimpleSourceMap);
     }
     Ok(())
   }
@@ -772,28 +748,29 @@ impl Plugin for EvalSourceMapDevToolPlugin {
     "rspack.EvalSourceMapDevToolPlugin"
   }
 
-  async fn compilation(
-    &self,
-    _args: CompilationArgs<'_>,
-    _params: &CompilationParams,
-  ) -> PluginCompilationHookOutput {
-    // TODO: Temporarily use `devtool` to pass source map configuration information
-    let mut devtool = _args
-      .compilation
-      .options
-      .devtool
-      .write()
-      .expect("failed to acquire write lock on devtool");
-    devtool.add_source_map();
-    devtool.add_eval();
-    if !self.columns {
-      devtool.add_cheap();
-    }
-    if self.no_sources {
-      devtool.add_no_sources();
-    }
-    Ok(())
-  }
+  // TODO
+  // async fn compilation(
+  //   &self,
+  //   _args: CompilationArgs<'_>,
+  //   _params: &CompilationParams,
+  // ) -> PluginCompilationHookOutput {
+  //   // TODO: Temporarily use `devtool` to pass source map configuration information
+  //   let mut devtool = _args
+  //     .compilation
+  //     .options
+  //     .devtool
+  //     .write()
+  //     .expect("failed to acquire write lock on devtool");
+  //   devtool.add_source_map();
+  //   devtool.add_eval();
+  //   if !self.columns {
+  //     devtool.add_cheap();
+  //   }
+  //   if self.no_sources {
+  //     devtool.add_no_sources();
+  //   }
+  //   Ok(())
+  // }
 
   fn render_module_content<'a>(
     &'a self,

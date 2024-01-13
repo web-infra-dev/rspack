@@ -1,5 +1,3 @@
-use std::sync::RwLock;
-
 use napi_derive::napi;
 use rspack_core::{
   CompilerOptions, Context, Experiments, IncrementalRebuild, IncrementalRebuildMakeState,

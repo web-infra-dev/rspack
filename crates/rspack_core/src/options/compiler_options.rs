@@ -1,5 +1,3 @@
-use std::sync::RwLock;
-
 use crate::{
   Builtins, CacheOptions, Context, DevServerOptions, Experiments, IncrementalRebuildMakeState,
   Mode, ModuleOptions, NodeOption, Optimization, OutputOptions, Resolve, SnapshotOptions,

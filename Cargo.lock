@@ -2834,6 +2834,7 @@ dependencies = [
  "pathdiff",
  "regex",
  "rspack_base64",
+ "rspack_common",
  "rspack_core",
  "rspack_error",
  "rspack_hash",

@@ -96,10 +96,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       mut additional_data,
       ..
     } = parse_context;
-    let devtool = compiler_options
-      .devtool
-      .read()
-      .expect("failed to acquire read lock on devtool");
     let mut diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>> = vec![];
     let syntax = Syntax::Es(EsConfig {
       jsx: false,

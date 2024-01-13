@@ -162,15 +162,6 @@ impl Plugin for SwcJsMinimizerRspackPlugin {
     let compilation = args.compilation;
     let minify_options = &self.options;
 
-    let emit_source_map_columns = {
-      let devtool = compilation
-        .options
-        .devtool
-        .read()
-        .expect("failed to acquire read lock on devtool");
-      !devtool.cheap()
-    };
-
     let (tx, rx) = mpsc::channel::<Vec<Diagnostic>>();
     // collect all extracted comments info
     let all_extracted_comments = Mutex::new(HashMap::new());

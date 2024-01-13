@@ -1,4 +1,3 @@
-use std::sync::RwLock;
 use std::{
   collections::HashMap,
   convert::TryFrom,
@@ -347,7 +346,6 @@ impl TestConfig {
 
     let root = c::Context::new(context.to_string_lossy().to_string());
 
-    let devtool = c::Devtool::from(self.devtool);
     let options = CompilerOptions {
       bail: false,
       context: root.clone(),
@@ -509,8 +507,8 @@ impl TestConfig {
         rspack_plugin_devtool::SourceMapDevToolPlugin::new(
           rspack_plugin_devtool::SourceMapDevToolPluginOptions {
             filename: None,
-            append: Some(!hidden),
-            namespace: options.output.unique_name.clone(),
+            append: if hidden { Some(Append::Disabled) } else { None },
+            namespace: Some(options.output.unique_name.clone()),
             columns: !cheap,
             no_sources: no_sources,
             public_path: None,
