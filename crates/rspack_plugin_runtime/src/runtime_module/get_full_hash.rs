@@ -16,7 +16,7 @@ impl Default for GetFullHashRuntimeModule {
   fn default() -> Self {
     Self {
       id: Identifier::from("webpack/runtime/get_full_hash"),
-      source_map_option: SourceMapKind::None,
+      source_map_kind: SourceMapKind::None,
     }
   }
 }

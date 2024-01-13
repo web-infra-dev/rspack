@@ -22,7 +22,7 @@ impl ExposeRuntimeModule {
       id: Identifier::from("webpack/runtime/initialize_exposes"),
       chunk: None,
       enhanced,
-      source_map_option: SourceMapKind::None,
+      source_map_kind: SourceMapKind::None,
     }
   }
 }

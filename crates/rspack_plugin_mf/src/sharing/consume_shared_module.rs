@@ -75,7 +75,7 @@ impl ConsumeSharedModule {
       options,
       build_info: None,
       build_meta: None,
-      source_map_option: SourceMapKind::None,
+      source_map_kind: SourceMapKind::None,
     }
   }
 }

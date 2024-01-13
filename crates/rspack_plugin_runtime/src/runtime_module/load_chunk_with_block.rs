@@ -20,7 +20,7 @@ impl Default for LoadChunkWithBlockRuntimeModule {
     Self {
       id: Identifier::from("webpack/runtime/load_chunk_with_block"),
       chunk: None,
-      source_map_option: SourceMapKind::None,
+      source_map_kind: SourceMapKind::None,
     }
   }
 }

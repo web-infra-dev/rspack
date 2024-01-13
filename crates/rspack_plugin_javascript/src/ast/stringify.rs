@@ -52,7 +52,7 @@ pub fn stringify(ast: &Ast, options: CodegenOptions) -> Result<TransformOutput> 
   ast.visit(|program, context| {
     let keep_comments = options.keep_comments;
     let target = options.target.unwrap_or(EsVersion::latest());
-    let source_map_options = options.source_map_config;
+    let source_map_kinds = options.source_map_config;
     let minify = options.minify.unwrap_or_default();
     let format_opt = JsMinifyFormatOptions {
       inline_script: options.inline_script.unwrap_or(true),
@@ -63,7 +63,7 @@ pub fn stringify(ast: &Ast, options: CodegenOptions) -> Result<TransformOutput> 
       program.get_inner_program(),
       context.source_map.clone(),
       target,
-      source_map_options,
+      source_map_kinds,
       minify,
       keep_comments
         .unwrap_or_default()

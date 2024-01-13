@@ -2,6 +2,7 @@ use std::{collections::HashMap, fmt::Debug};
 
 use derivative::Derivative;
 use rkyv::AlignedVec;
+use rspack_common::SourceMapKind;
 use rspack_error::{Result, TWithDiagnosticArray};
 use rspack_loader_runner::{AdditionalData, ResourceData};
 use rspack_sources::BoxSource;
@@ -21,6 +22,7 @@ pub struct ParseContext<'a> {
   pub module_type: &'a ModuleType,
   pub module_user_request: &'a str,
   pub module_parser_options: Option<&'a ParserOptions>,
+  pub module_source_map_kind: &'a SourceMapKind,
   #[derivative(Debug = "ignore")]
   pub loaders: &'a [BoxLoader],
   pub resource_data: &'a ResourceData,
