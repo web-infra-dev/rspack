@@ -92,6 +92,17 @@ impl ModuleGraph {
     &self.module_identifier_to_module_graph_module
   }
 
+  pub fn get_incoming_connections_by_origin_module(
+    &self,
+    module: &ModuleIdentifier,
+  ) -> HashMap<Option<ModuleIdentifier>, Vec<ModuleGraphConnection>> {
+    let connections = &self
+      .module_graph_module_by_identifier(module)
+      .expect("should have mgm")
+      .incoming_connections;
+    get_connections_by_origin_module(&connections, self)
+  }
+
   pub fn add_module_graph_module(&mut self, module_graph_module: ModuleGraphModule) {
     if let Entry::Vacant(val) = self
       .module_identifier_to_module_graph_module
@@ -1276,4 +1287,27 @@ mod test {
     assert!(mgm_b.outgoing_connections.is_empty());
     assert!(mgm_c.incoming_connections.is_empty());
   }
+}
+
+fn get_connections_by_origin_module(
+  set: &HashSet<ConnectionId>,
+  mg: &ModuleGraph,
+) -> HashMap<Option<ModuleIdentifier>, Vec<ModuleGraphConnection>> {
+  let mut map: HashMap<Option<ModuleIdentifier>, Vec<ModuleGraphConnection>> = HashMap::default();
+
+  for connection_id in set.iter() {
+    let con = mg
+      .connection_by_connection_id(connection_id)
+      .expect("should have connection");
+    match map.entry(con.original_module_identifier) {
+      Entry::Occupied(mut occ) => {
+        occ.get_mut().push(*con);
+      }
+      Entry::Vacant(vac) => {
+        vac.insert(vec![*con]);
+      }
+    }
+  }
+
+  map
 }
