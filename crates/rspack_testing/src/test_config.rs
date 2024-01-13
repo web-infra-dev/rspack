@@ -501,6 +501,7 @@ impl TestConfig {
     if options.devtool.contains("source-map") {
       let hidden = options.devtool.contains("hidden");
       let cheap = options.devtool.contains("cheap");
+      let module_maps = options.devtool.contains("module");
       let no_sources = options.devtool.contains("nosources");
 
       plugins.push(
@@ -512,7 +513,15 @@ impl TestConfig {
             columns: !cheap,
             no_sources: no_sources,
             public_path: None,
-            module: false,
+            module: if module_maps {
+              true
+            } else {
+              if cheap {
+                false
+              } else {
+                true
+              }
+            },
             module_filename_template: None,
             fallback_module_filename_template: None,
             file_context: None,

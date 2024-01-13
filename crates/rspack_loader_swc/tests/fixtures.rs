@@ -1,4 +1,3 @@
-use std::sync::RwLock;
 use std::{
   env, fs,
   path::{Path, PathBuf},

@@ -204,6 +204,15 @@ impl Plugin for SourceMapDevToolPlugin {
     Ok(())
   }
 
+  fn runtime_module(&self, module: &mut dyn Module) -> Result<()> {
+    if self.module {
+      module.set_source_map_kind(SourceMapKind::SourceMap);
+    } else {
+      module.set_source_map_kind(SourceMapKind::SimpleSourceMap);
+    }
+    Ok(())
+  }
+
   async fn process_assets_stage_dev_tooling(
     &self,
     _ctx: PluginContext,

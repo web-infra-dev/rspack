@@ -1888,6 +1888,12 @@ impl Compilation {
     self
       .chunk_graph
       .connect_chunk_and_runtime_module(*chunk_ukey, runtime_module_identifier);
+
+    self
+      .plugin_driver
+      .runtime_module(module.as_mut())
+      .expect("Run runtime_module hook failed");
+
     self
       .runtime_modules
       .insert(runtime_module_identifier, module);
