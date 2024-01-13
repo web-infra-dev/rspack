@@ -846,7 +846,7 @@ mod test {
         fn get_source_map_kind(&self) -> &SourceMapKind {
           unreachable!()
         }
-        fn set_source_map_kind(&mut self, source_map: SourceMapKind) {
+        fn set_source_map_kind(&mut self, _source_map: SourceMapKind) {
           unreachable!()
         }
       }
