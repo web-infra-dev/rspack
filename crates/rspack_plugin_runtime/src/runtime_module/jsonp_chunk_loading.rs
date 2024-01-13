@@ -1,8 +1,9 @@
+use rspack_common::SourceMapKind;
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
   Chunk, ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule,
-  RuntimeModuleStage, SourceMapKind,
+  RuntimeModuleStage,
 };
 use rspack_identifier::Identifier;
 

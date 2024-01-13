@@ -2,6 +2,7 @@ use std::borrow::Cow;
 use std::hash::Hash;
 use std::iter;
 
+use rspack_common::SourceMapKind;
 use rspack_core_macros::impl_source_map_config_internal;
 use rspack_error::{error, impl_empty_diagnosable_trait, Result};
 use rspack_hash::RspackHash;
@@ -16,7 +17,7 @@ use crate::{
   BuildMetaExportsType, BuildResult, ChunkInitFragments, ChunkUkey, CodeGenerationDataUrl,
   CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId, ExternalType,
   InitFragmentExt, InitFragmentKey, InitFragmentStage, LibIdentOptions, Module, ModuleType,
-  NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceMapKind, SourceType,
+  NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
 static EXTERNAL_MODULE_JS_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];

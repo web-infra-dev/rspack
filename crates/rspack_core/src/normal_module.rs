@@ -11,6 +11,7 @@ use std::{
 use bitflags::bitflags;
 use dashmap::DashMap;
 use derivative::Derivative;
+use rspack_common::SourceMapKind;
 use rspack_core_macros::impl_source_map_config_internal;
 use rspack_error::{error, Diagnosable, Diagnostic, Result, Severity};
 use rspack_hash::RspackHash;
@@ -31,7 +32,7 @@ use crate::{
   DependencyId, DependencyTemplate, GenerateContext, GeneratorOptions, LibIdentOptions, Module,
   ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType, ParseContext, ParseResult,
   ParserAndGenerator, ParserOptions, Resolve, RspackLoaderRunnerPlugin, RuntimeSpec,
-  SourceMapGenConfig, SourceMapKind, SourceType,
+  SourceMapGenConfig, SourceType,
 };
 
 bitflags! {

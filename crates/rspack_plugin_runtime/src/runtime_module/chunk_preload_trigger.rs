@@ -1,10 +1,11 @@
 use std::hash::BuildHasherDefault;
 
 use indexmap::IndexMap;
+use rspack_common::SourceMapKind;
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  Compilation, RuntimeModule, RuntimeModuleStage, SourceMapKind,
+  Compilation, RuntimeModule, RuntimeModuleStage,
 };
 use rspack_identifier::Identifier;
 use rustc_hash::FxHasher;

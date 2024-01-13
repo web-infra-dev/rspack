@@ -1,7 +1,8 @@
+use rspack_common::SourceMapKind;
 use rspack_core::rspack_sources::{BoxSource, RawSource, SourceExt};
 use rspack_core::{
   get_filename_without_hash_length, impl_runtime_module, ChunkUkey, Compilation, PathData,
-  RuntimeModule, RuntimeModuleStage, SourceMapKind,
+  RuntimeModule, RuntimeModuleStage,
 };
 use rspack_identifier::Identifier;
 

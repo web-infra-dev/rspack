@@ -1,12 +1,13 @@
 use std::{borrow::Cow, hash::Hash};
 
 use async_trait::async_trait;
+use rspack_common::SourceMapKind;
 use rspack_core::{
   async_module_factory, impl_build_info_meta, impl_source_map_config, rspack_sources::Source,
   sync_module_factory, AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency,
   BuildContext, BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation, Context,
   DependenciesBlock, DependencyId, LibIdentOptions, Module, ModuleIdentifier, ModuleType,
-  RuntimeGlobals, RuntimeSpec, SourceMapKind, SourceType,
+  RuntimeGlobals, RuntimeSpec, SourceType,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_hash::RspackHash;

@@ -1,7 +1,8 @@
+use rspack_common::SourceMapKind;
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  Compilation, RuntimeGlobals, RuntimeModule, SourceMapKind,
+  Compilation, RuntimeGlobals, RuntimeModule,
 };
 use rspack_identifier::Identifier;
 

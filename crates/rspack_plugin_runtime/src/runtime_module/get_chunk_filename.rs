@@ -2,11 +2,11 @@ use std::{cmp::Ordering, fmt};
 
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
+use rspack_common::SourceMapKind;
 use rspack_core::{
   get_chunk_from_ukey, get_filename_without_hash_length, impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  Chunk, ChunkUkey, Compilation, Filename, PathData, RuntimeGlobals, RuntimeModule, SourceMapKind,
-  SourceType,
+  Chunk, ChunkUkey, Compilation, Filename, PathData, RuntimeGlobals, RuntimeModule, SourceType,
 };
 use rspack_identifier::Identifier;
 

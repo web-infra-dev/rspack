@@ -2477,6 +2477,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_common"
+version = "0.1.0"
+
+[[package]]
 name = "rspack_core"
 version = "0.1.0"
 dependencies = [
@@ -2505,6 +2509,7 @@ dependencies = [
  "regex",
  "rkyv",
  "rspack_ast",
+ "rspack_common",
  "rspack_core_macros",
  "rspack_database",
  "rspack_error",
@@ -2652,6 +2657,7 @@ dependencies = [
  "derivative",
  "once_cell",
  "regex",
+ "rspack_common",
  "rspack_error",
  "rspack_identifier",
  "rspack_sources",
@@ -2673,6 +2679,7 @@ dependencies = [
  "jsonc-parser 0.22.1",
  "once_cell",
  "rspack_ast",
+ "rspack_common",
  "rspack_core",
  "rspack_error",
  "rspack_loader_runner",
@@ -2797,6 +2804,7 @@ dependencies = [
  "rayon",
  "regex",
  "rkyv",
+ "rspack_common",
  "rspack_core",
  "rspack_error",
  "rspack_hash",
@@ -2864,6 +2872,7 @@ name = "rspack_plugin_hmr"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "rspack_common",
  "rspack_core",
  "rspack_error",
  "rspack_hash",
@@ -2990,6 +2999,7 @@ dependencies = [
  "itertools",
  "once_cell",
  "regex",
+ "rspack_common",
  "rspack_core",
  "rspack_error",
  "rspack_hash",
@@ -3045,6 +3055,7 @@ dependencies = [
  "once_cell",
  "rayon",
  "regex",
+ "rspack_common",
  "rspack_core",
  "rspack_error",
  "rspack_hash",
@@ -3138,6 +3149,7 @@ dependencies = [
  "dashmap",
  "indexmap 1.9.3",
  "rayon",
+ "rspack_common",
  "rspack_core",
  "rspack_error",
  "rspack_identifier",

@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 use std::hash::Hash;
 
+use rspack_common::SourceMapKind;
 use rspack_core_macros::impl_source_map_config_internal;
 use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_hash::RspackHash;
@@ -10,8 +11,7 @@ use rspack_sources::{BoxSource, RawSource, Source, SourceExt};
 use crate::{
   dependencies_block::AsyncDependenciesBlockIdentifier, impl_build_info_meta, BuildContext,
   BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Context, DependenciesBlock,
-  DependencyId, Module, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceMapKind,
-  SourceType,
+  DependencyId, Module, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
 #[impl_source_map_config_internal]

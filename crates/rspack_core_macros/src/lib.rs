@@ -12,7 +12,7 @@ pub fn impl_source_map_config_internal(
   if let syn::Fields::Named(ref mut fields) = input.fields {
     fields.named.push(
       syn::Field::parse_named
-        .parse2(quote! { pub source_map_option: crate::module::SourceMapKind })
+        .parse2(quote! { pub source_map_option: ::rspack_common::SourceMapKind })
         .unwrap(),
     );
   }
@@ -21,11 +21,11 @@ pub fn impl_source_map_config_internal(
     #input
 
     impl crate::module::SourceMapGenConfig for #name {
-      fn get_source_map_kind(&self) -> &crate::module::SourceMapKind {
+      fn get_source_map_kind(&self) -> &::rspack_common::SourceMapKind {
         &self.source_map_option
       }
 
-      fn set_source_map_kind(&mut self, source_map_option: crate::module::SourceMapKind) {
+      fn set_source_map_kind(&mut self, source_map_option: ::rspack_common::SourceMapKind) {
         self.source_map_option = source_map_option;
       }
     }
@@ -44,7 +44,7 @@ pub fn impl_source_map_config(
   if let syn::Fields::Named(ref mut fields) = input.fields {
     fields.named.push(
       syn::Field::parse_named
-        .parse2(quote! { pub source_map_option: ::rspack_core::module::SourceMapKind })
+        .parse2(quote! { pub source_map_option: ::rspack_common::SourceMapKind })
         .unwrap(),
     );
   }
@@ -53,11 +53,11 @@ pub fn impl_source_map_config(
     #input
 
     impl ::rspack_core::module::SourceMapGenConfig for #name {
-      fn get_source_map_kind(&self) -> &::rspack_core::module::SourceMapKind {
+      fn get_source_map_kind(&self) -> &::rspack_common::SourceMapKind {
         &self.source_map_option
       }
 
-      fn set_source_map_kind(&mut self, source_map_option: ::rspack_core::module::SourceMapKind) {
+      fn set_source_map_kind(&mut self, source_map_option: ::rspack_common::SourceMapKind) {
         self.source_map_option = source_map_option;
       }
     }
@@ -76,7 +76,7 @@ pub fn impl_runtime_module(
   if let syn::Fields::Named(ref mut fields) = input.fields {
     fields.named.push(
       syn::Field::parse_named
-        .parse2(quote! { pub source_map_option: ::rspack_core::module::SourceMapKind })
+        .parse2(quote! { pub source_map_option: ::rspack_common::SourceMapKind })
         .unwrap(),
     );
   }
@@ -176,11 +176,11 @@ pub fn impl_runtime_module(
     impl rspack_error::Diagnosable for #name {}
 
     impl ::rspack_core::module::SourceMapGenConfig for #name {
-      fn get_source_map_kind(&self) -> &::rspack_core::module::SourceMapKind {
+      fn get_source_map_kind(&self) -> &::rspack_common::SourceMapKind {
         &self.source_map_option
       }
 
-      fn set_source_map_kind(&mut self, source_map_option: ::rspack_core::module::SourceMapKind) {
+      fn set_source_map_kind(&mut self, source_map_option: ::rspack_common::SourceMapKind) {
         self.source_map_option = source_map_option;
       }
     }

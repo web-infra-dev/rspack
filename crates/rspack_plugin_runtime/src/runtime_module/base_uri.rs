@@ -1,7 +1,8 @@
+use rspack_common::SourceMapKind;
 use rspack_core::{
   get_chunk_from_ukey, impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, SourceMapKind,
+  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule,
 };
 use rspack_identifier::Identifier;
 

@@ -15,6 +15,7 @@ itertools                = { workspace = true }
 once_cell                = { workspace = true }
 rayon                    = { workspace = true }
 regex                    = { workspace = true }
+rspack_common            = { path = "../rspack_common" }
 rspack_core              = { path = "../rspack_core" }
 rspack_error             = { path = "../rspack_error" }
 rspack_hash              = { path = "../rspack_hash" }

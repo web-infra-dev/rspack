@@ -15,6 +15,7 @@ either = "1"
 jsonc-parser = { version = "0.22.1", features = ["serde"] }
 once_cell = { workspace = true }
 rspack_ast = { path = "../rspack_ast" }
+rspack_common = { path = "../rspack_common" }
 rspack_core = { path = "../rspack_core" }
 rspack_error = { path = "../rspack_error" }
 rspack_loader_runner = { path = "../rspack_loader_runner" }

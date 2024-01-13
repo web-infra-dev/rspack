@@ -1,8 +1,9 @@
+use rspack_common::SourceMapKind;
 use rspack_core::{
   get_js_chunk_filename_template, impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
   ChunkUkey, Compilation, OutputOptions, PathData, RuntimeGlobals, RuntimeModule,
-  RuntimeModuleStage, SourceMapKind, SourceType,
+  RuntimeModuleStage, SourceType,
 };
 use rspack_identifier::Identifier;
 

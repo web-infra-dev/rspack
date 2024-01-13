@@ -12,6 +12,7 @@ async-trait       = { workspace = true }
 dashmap           = { workspace = true }
 indexmap          = { workspace = true }
 rayon             = { workspace = true }
+rspack_common     = { path = "../rspack_common" }
 rspack_core       = { path = "../rspack_core" }
 rspack_error      = { path = "../rspack_error" }
 rspack_identifier = { path = "../rspack_identifier" }

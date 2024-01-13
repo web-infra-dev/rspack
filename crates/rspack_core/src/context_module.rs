@@ -10,6 +10,7 @@ use std::{
 use itertools::Itertools;
 use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
+use rspack_common::SourceMapKind;
 use rspack_core_macros::impl_source_map_config_internal;
 use rspack_error::{impl_empty_diagnosable_trait, miette::IntoDiagnostic, Result};
 use rspack_hash::RspackHash;
@@ -26,7 +27,7 @@ use crate::{
   ContextElementDependency, DependenciesBlock, DependencyCategory, DependencyId, ExportsType,
   FakeNamespaceObjectMode, GroupOptions, LibIdentOptions, Module, ModuleType, Resolve,
   ResolveInnerOptions, ResolveOptionsWithDependencyType, ResolverFactory, RuntimeGlobals,
-  RuntimeSpec, SourceMapKind, SourceType,
+  RuntimeSpec, SourceType,
 };
 
 #[derive(Debug, Clone)]
