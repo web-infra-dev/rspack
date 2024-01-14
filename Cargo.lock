@@ -2328,11 +2328,9 @@ name = "rspack_ast"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "rspack_error",
  "swc_core",
  "swc_error_reporters",
  "swc_node_comments",
- "tokio",
 ]
 
 [[package]]
@@ -2363,7 +2361,6 @@ version = "0.1.0"
 name = "rspack_binding_options"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "async-trait",
  "better_scoped_tls",
  "derivative",
@@ -2423,13 +2420,8 @@ dependencies = [
 name = "rspack_binding_values"
 version = "0.1.0"
 dependencies = [
- "anyhow",
- "async-trait",
- "better_scoped_tls",
  "dashmap",
- "derivative",
  "futures",
- "glob",
  "napi",
  "napi-derive",
  "napi-sys",
@@ -2437,43 +2429,8 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_identifier",
- "rspack_ids",
- "rspack_loader_react_refresh",
- "rspack_loader_runner",
- "rspack_loader_swc",
  "rspack_napi_shared",
- "rspack_plugin_asset",
- "rspack_plugin_banner",
- "rspack_plugin_copy",
- "rspack_plugin_css",
- "rspack_plugin_devtool",
- "rspack_plugin_ensure_chunk_conditions",
- "rspack_plugin_entry",
- "rspack_plugin_externals",
- "rspack_plugin_hmr",
- "rspack_plugin_html",
- "rspack_plugin_javascript",
- "rspack_plugin_json",
- "rspack_plugin_library",
- "rspack_plugin_progress",
- "rspack_plugin_real_content_hash",
- "rspack_plugin_remove_empty_chunks",
- "rspack_plugin_runtime",
- "rspack_plugin_schemes",
- "rspack_plugin_split_chunks_new",
- "rspack_plugin_swc_css_minimizer",
- "rspack_plugin_swc_js_minimizer",
- "rspack_plugin_wasm",
- "rspack_plugin_worker",
- "rspack_regex",
- "rspack_swc_visitors",
- "rspack_util",
  "rustc-hash",
- "serde",
- "serde_json",
- "swc_core",
- "tokio",
- "tracing",
 ]
 
 [[package]]
@@ -2484,7 +2441,6 @@ version = "0.1.0"
 name = "rspack_core"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "anymap",
  "async-recursion",
  "async-trait",
@@ -2525,13 +2481,9 @@ dependencies = [
  "rustc-hash",
  "serde",
  "serde_json",
- "string_cache",
  "sugar_path",
  "swc_core",
- "swc_emotion",
- "swc_error_reporters",
  "swc_node_comments",
- "swc_plugin_import",
  "tokio",
  "tracing",
  "url",
@@ -2564,11 +2516,8 @@ dependencies = [
  "anyhow",
  "futures",
  "miette 5.10.0",
+ "once_cell",
  "rspack_identifier",
- "rspack_sources",
- "rspack_util",
- "serde_json",
- "sugar_path",
  "swc_core",
  "termcolor",
  "thiserror",
@@ -2690,8 +2639,6 @@ dependencies = [
  "serde_json",
  "swc_config",
  "swc_core",
- "swc_emotion",
- "swc_plugin_import",
  "tokio",
  "xxhash-rust",
 ]
@@ -2712,13 +2659,10 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "color-backtrace",
- "dashmap",
- "futures",
  "mimalloc-rust",
  "napi",
  "napi-build",
  "napi-derive",
- "napi-sys",
  "once_cell",
  "rspack_binding_macros",
  "rspack_binding_options",
@@ -2726,10 +2670,8 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_fs_node",
- "rspack_identifier",
  "rspack_napi_shared",
  "rspack_tracing",
- "rustc-hash",
  "testing_macros",
  "tikv-jemallocator",
  "tracing",
@@ -2787,14 +2729,12 @@ dependencies = [
  "sugar_path",
  "testing_macros",
  "tokio",
- "tracing",
 ]
 
 [[package]]
 name = "rspack_plugin_css"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "async-trait",
  "bitflags 1.3.2",
  "heck",
@@ -2813,7 +2753,6 @@ dependencies = [
  "rspack_plugin_runtime",
  "rspack_testing",
  "rustc-hash",
- "serde",
  "serde_json",
  "sugar_path",
  "swc_core",
@@ -2869,7 +2808,6 @@ dependencies = [
  "once_cell",
  "regex",
  "rspack_core",
- "rspack_error",
  "rspack_regex",
 ]
 
@@ -2916,8 +2854,6 @@ dependencies = [
 name = "rspack_plugin_javascript"
 version = "0.1.0"
 dependencies = [
- "anyhow",
- "async-recursion",
  "async-trait",
  "bitflags 1.3.2",
  "either",
@@ -2942,14 +2878,10 @@ dependencies = [
  "rspack_util",
  "rustc-hash",
  "serde_json",
- "sourcemap",
  "sugar_path",
  "swc_core",
- "swc_emotion",
  "swc_node_comments",
- "swc_plugin_import",
  "url",
- "xxhash-rust",
 ]
 
 [[package]]
@@ -2983,7 +2915,6 @@ dependencies = [
  "async-trait",
  "rspack_core",
  "rspack_database",
- "rspack_util",
 ]
 
 [[package]]
@@ -2992,8 +2923,6 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "rspack_core",
- "rspack_database",
- "rspack_util",
  "rustc-hash",
 ]
 
@@ -3055,7 +2984,6 @@ dependencies = [
 name = "rspack_plugin_runtime"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "async-trait",
  "indexmap 1.9.3",
  "itertools",
@@ -3090,12 +3018,9 @@ dependencies = [
 name = "rspack_plugin_split_chunks_new"
 version = "0.1.0"
 dependencies = [
- "async-scoped",
  "async-trait",
  "dashmap",
  "derivative",
- "futures",
- "futures-util",
  "once_cell",
  "rayon",
  "regex",
@@ -3123,7 +3048,6 @@ dependencies = [
 name = "rspack_plugin_swc_js_minimizer"
 version = "0.1.0"
 dependencies = [
- "async-recursion",
  "async-trait",
  "once_cell",
  "rayon",
@@ -3143,7 +3067,6 @@ dependencies = [
 name = "rspack_plugin_warn_sensitive_module"
 version = "0.1.0"
 dependencies = [
- "dashmap",
  "rspack_core",
  "rspack_error",
 ]
@@ -3170,7 +3093,6 @@ dependencies = [
 name = "rspack_plugin_web_worker_template"
 version = "0.1.0"
 dependencies = [
- "async-trait",
  "rspack_core",
  "rspack_plugin_runtime",
 ]
@@ -3181,8 +3103,6 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "rspack_core",
- "rspack_plugin_runtime",
- "rspack_plugin_wasm",
 ]
 
 [[package]]
@@ -3241,7 +3161,6 @@ dependencies = [
  "rspack_error",
  "rspack_fs",
  "rspack_ids",
- "rspack_loader_runner",
  "rspack_loader_swc",
  "rspack_plugin_asset",
  "rspack_plugin_css",
@@ -3252,7 +3171,6 @@ dependencies = [
  "rspack_plugin_html",
  "rspack_plugin_javascript",
  "rspack_plugin_json",
- "rspack_plugin_library",
  "rspack_plugin_merge_duplicate_chunks",
  "rspack_plugin_remove_empty_chunks",
  "rspack_plugin_runtime",

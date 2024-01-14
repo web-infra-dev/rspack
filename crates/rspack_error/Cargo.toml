@@ -11,11 +11,8 @@ version    = "0.1.0"
 anyhow            = { workspace = true, features = ["backtrace"] }
 futures           = { workspace = true }
 miette            = { version = "5", features = ["fancy"] }
+once_cell         = { workspace = true }
 rspack_identifier = { path = "../rspack_identifier" }
-rspack_sources    = { workspace = true }
-rspack_util       = { path = "../rspack_util" }
-serde_json        = { workspace = true }
-sugar_path        = { workspace = true }
 swc_core          = { workspace = true, features = ["common"] }
 termcolor         = "1"
 thiserror         = "1"

@@ -32,8 +32,6 @@ swc_core = { workspace = true, features = [
   #  "plugin_transform_host_native_filesystem_cache",
   #  "plugin_transform_host_native",
 ] }
-swc_emotion = { workspace = true }
-swc_plugin_import = { path = "../swc_plugin_import" }
 xxhash-rust = { workspace = true, features = ["xxh32"] }
 
 [dev-dependencies]

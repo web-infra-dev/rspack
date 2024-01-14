@@ -315,6 +315,9 @@ async fn iterate_normal_loaders<C: Send>(loader_context: &mut LoaderContext<'_, 
 
   let loader = current_loader_item.loader.clone();
   current_loader_item.set_normal_executed();
+  for p in loader_context.__plugins {
+    p.before_each(loader_context)?;
+  }
   loader.run(loader_context).await?;
 
   iterate_normal_loaders(loader_context).await
@@ -337,6 +340,9 @@ async fn iterate_pitching_loaders<C: Send>(
 
   let loader = current_loader_item.loader.clone();
   current_loader_item.set_pitch_executed();
+  for p in loader_context.__plugins {
+    p.before_each(loader_context)?;
+  }
   loader.pitch(loader_context).await?;
 
   let current_loader_item = loader_context.current_loader();
@@ -453,6 +459,10 @@ mod test {
     }
 
     fn loader_context(&self, _context: &mut LoaderContext<Self::Context>) -> Result<()> {
+      Ok(())
+    }
+
+    fn before_each(&self, _context: &mut LoaderContext<Self::Context>) -> Result<()> {
       Ok(())
     }
 

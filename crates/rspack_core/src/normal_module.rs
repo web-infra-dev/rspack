@@ -13,7 +13,7 @@ use dashmap::DashMap;
 use derivative::Derivative;
 use rspack_common::SourceMapKind;
 use rspack_core_macros::impl_source_map_config_internal;
-use rspack_error::{error, Diagnosable, Diagnostic, Result, Severity};
+use rspack_error::{error, Diagnosable, Diagnostic, DiagnosticExt, MietteExt, Result, Severity};
 use rspack_hash::RspackHash;
 use rspack_identifier::Identifiable;
 use rspack_loader_runner::{run_loaders, Content, ResourceData};
@@ -26,13 +26,13 @@ use rustc_hash::FxHasher;
 use serde_json::json;
 
 use crate::{
-  add_connection_states, contextify, get_context, impl_build_info_meta,
-  AsyncDependenciesBlockIdentifier, BoxLoader, BoxModule, BuildContext, BuildInfo, BuildMeta,
-  BuildResult, CodeGenerationResult, Compilation, ConnectionState, Context, DependenciesBlock,
-  DependencyId, DependencyTemplate, GenerateContext, GeneratorOptions, LibIdentOptions, Module,
-  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType, ParseContext, ParseResult,
-  ParserAndGenerator, ParserOptions, Resolve, RspackLoaderRunnerPlugin, RuntimeSpec,
-  SourceMapGenConfig, SourceType,
+  add_connection_states, contextify, diagnostics::ModuleBuildError, get_context,
+  impl_build_info_meta, AsyncDependenciesBlockIdentifier, BoxLoader, BoxModule, BuildContext,
+  BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation, ConnectionState, Context,
+  DependenciesBlock, DependencyId, DependencyTemplate, GenerateContext, GeneratorOptions,
+  LibIdentOptions, Module, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType,
+  ParseContext, ParseResult, ParserAndGenerator, ParserOptions, Resolve, RspackLoaderRunnerPlugin,
+  RuntimeSpec, SourceMapGenConfig, SourceType,
 };
 
 bitflags! {
@@ -346,19 +346,32 @@ impl Module for NormalModule {
 
     build_context.plugin_driver.before_loaders(self).await?;
 
+    let plugin = RspackLoaderRunnerPlugin {
+      plugin_driver: build_context.plugin_driver.clone(),
+      normal_module: self,
+      current_loader: Default::default(),
+    };
+
     let loader_result = run_loaders(
       &self.loaders,
       &self.resource_data,
-      &[&RspackLoaderRunnerPlugin {
-        plugin_driver: build_context.plugin_driver.clone(),
-        normal_module: self,
-      }],
+      &[&plugin],
       build_context.compiler_context,
     )
     .await;
     let (loader_result, ds) = match loader_result {
       Ok(r) => r.split_into_parts(),
       Err(e) => {
+        let mut e = ModuleBuildError(e).boxed();
+        {
+          let mut current = plugin
+            .current_loader
+            .lock()
+            .expect("should be able to lock");
+          if let Some(current) = current.take() {
+            e = e.with_help(format!("File was processed with this loader: '{current}'"));
+          }
+        };
         let d = Diagnostic::from(e);
         self.source = NormalModuleSource::BuiltFailed(d.clone());
         self.add_diagnostic(d);

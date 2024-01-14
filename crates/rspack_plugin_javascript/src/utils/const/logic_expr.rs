@@ -7,6 +7,13 @@ use crate::visitors::common_js_import_dependency_scanner::CommonJsImportDependen
 
 type KeepRight = bool;
 
+pub fn is_logic_op(op: BinaryOp) -> bool {
+  matches!(
+    op,
+    BinaryOp::LogicalAnd | BinaryOp::LogicalOr | BinaryOp::NullishCoalescing
+  )
+}
+
 /// Return:
 /// - `None` means should walk left and right;
 /// - `Some(true)` means should walk right;

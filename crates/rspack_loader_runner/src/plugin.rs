@@ -12,5 +12,7 @@ pub trait LoaderRunnerPlugin: Send + Sync {
 
   fn loader_context(&self, _context: &mut LoaderContext<Self::Context>) -> Result<()>;
 
+  fn before_each(&self, _context: &mut LoaderContext<Self::Context>) -> Result<()>;
+
   async fn process_resource(&self, resource_data: &ResourceData) -> Result<Option<Content>>;
 }

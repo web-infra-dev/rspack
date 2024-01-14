@@ -5,13 +5,12 @@ use std::{fmt, path::PathBuf};
 
 use once_cell::sync::Lazy;
 use regex::Regex;
-use rspack_error::{DiagnosticExt, Error};
+use rspack_error::{Error, MietteExt};
 use rspack_loader_runner::DescriptionData;
 use sugar_path::{AsPath, SugarPath};
 
 pub use self::factory::{ResolveOptionsWithDependencyType, ResolverFactory};
 pub use self::resolver_impl::{ResolveInnerOptions, Resolver};
-use crate::diagnostics::WithHelp;
 use crate::{ResolveArgs, SharedPluginDriver};
 
 static RELATIVE_PATH_REGEX: Lazy<Regex> =
@@ -195,7 +194,7 @@ pub async fn resolve(
   if result.is_err()
     && let Some(hint) = resolve_for_error_hints(args, plugin_driver)
   {
-    result = result.map_err(|err| WithHelp::from(err).with_help(hint).boxed())
+    result = result.map_err(|err| err.with_help(hint))
   };
 
   result.map_err(Error::new_boxed)

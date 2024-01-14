@@ -25,4 +25,3 @@ rspack_hash    = { path = "../rspack_hash" }
 rustc-hash     = { workspace = true }
 sugar_path     = { workspace = true }
 tokio          = { workspace = true, features = ["fs"] }
-tracing        = { workspace = true }

@@ -6,7 +6,6 @@ repository = "https://github.com/web-infra-dev/rspack"
 version    = "0.1.0"
 
 [dependencies]
-anyhow = { workspace = true }
 async-trait = { workspace = true }
 bitflags = { workspace = true }
 heck = "0.4.1"
@@ -22,7 +21,6 @@ rspack_hash = { path = "../rspack_hash" }
 rspack_identifier = { path = "../rspack_identifier" }
 rspack_plugin_runtime = { path = "../rspack_plugin_runtime" }
 rustc-hash = { workspace = true }
-serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 sugar_path = { workspace = true }
 swc_core = { workspace = true, features = [

@@ -1,9 +1,9 @@
 mod dependency;
+mod scope_info;
 
 pub use dependency::*;
 use swc_core::common::comments::Comments;
 use swc_core::ecma::visit::Fold;
-mod clear_mark;
 
 pub mod swc_visitor;
 use rspack_ast::javascript::Ast;
