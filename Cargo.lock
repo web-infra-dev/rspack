@@ -2606,7 +2606,6 @@ dependencies = [
  "derivative",
  "once_cell",
  "regex",
- "rspack_common",
  "rspack_error",
  "rspack_identifier",
  "rspack_sources",
