@@ -5,7 +5,7 @@ use std::{any::Any, borrow::Cow, fmt::Debug};
 
 use async_trait::async_trait;
 use json::JsonValue;
-use rspack_common::SourceMapKind;
+use rspack_common::SourceMapGenConfig;
 use rspack_error::{Diagnosable, Result};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_identifier::{Identifiable, Identifier};
@@ -139,11 +139,6 @@ pub struct FactoryMeta {
 }
 
 pub type ModuleIdentifier = Identifier;
-
-pub trait SourceMapGenConfig {
-  fn get_source_map_kind(&self) -> &SourceMapKind;
-  fn set_source_map_kind(&mut self, source_map: SourceMapKind);
-}
 
 #[async_trait]
 pub trait Module:
@@ -453,7 +448,7 @@ mod test {
   use std::borrow::Cow;
   use std::hash::Hash;
 
-  use rspack_common::SourceMapKind;
+  use rspack_common::{SourceMapGenConfig, SourceMapKind};
   use rspack_error::{Diagnosable, Result};
   use rspack_identifier::{Identifiable, Identifier};
   use rspack_sources::Source;
@@ -461,8 +456,7 @@ mod test {
   use super::Module;
   use crate::{
     AsyncDependenciesBlockIdentifier, BuildContext, BuildResult, CodeGenerationResult, Compilation,
-    Context, DependenciesBlock, DependencyId, ModuleExt, ModuleType, RuntimeSpec,
-    SourceMapGenConfig, SourceType,
+    Context, DependenciesBlock, DependencyId, ModuleExt, ModuleType, RuntimeSpec, SourceType,
   };
 
   #[derive(Debug, Eq)]

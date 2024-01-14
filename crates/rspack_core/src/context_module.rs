@@ -11,7 +11,7 @@ use itertools::Itertools;
 use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
 use rspack_common::SourceMapKind;
-use rspack_core_macros::impl_source_map_config_internal;
+use rspack_core_macros::impl_source_map_config;
 use rspack_error::{impl_empty_diagnosable_trait, miette::IntoDiagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
@@ -186,7 +186,7 @@ pub enum FakeMapValue {
   Map(HashMap<String, FakeNamespaceObjectMode>),
 }
 
-#[impl_source_map_config_internal]
+#[impl_source_map_config]
 #[derive(Debug)]
 pub struct ContextModule {
   dependencies: Vec<DependencyId>,

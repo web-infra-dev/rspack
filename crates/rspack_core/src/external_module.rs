@@ -3,7 +3,7 @@ use std::hash::Hash;
 use std::iter;
 
 use rspack_common::SourceMapKind;
-use rspack_core_macros::impl_source_map_config_internal;
+use rspack_core_macros::impl_source_map_config;
 use rspack_error::{error, impl_empty_diagnosable_trait, Result};
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
@@ -81,7 +81,7 @@ fn get_source_for_default_case(_optional: bool, request: &ExternalRequestValue) 
   format!("{variable_name}{object_lookup}")
 }
 
-#[impl_source_map_config_internal]
+#[impl_source_map_config]
 #[derive(Debug)]
 pub struct ExternalModule {
   dependencies: Vec<DependencyId>,

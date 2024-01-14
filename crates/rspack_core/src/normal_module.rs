@@ -11,8 +11,8 @@ use std::{
 use bitflags::bitflags;
 use dashmap::DashMap;
 use derivative::Derivative;
-use rspack_common::SourceMapKind;
-use rspack_core_macros::impl_source_map_config_internal;
+use rspack_common::{SourceMapGenConfig, SourceMapKind};
+use rspack_core_macros::impl_source_map_config;
 use rspack_error::{error, Diagnosable, Diagnostic, DiagnosticExt, MietteExt, Result, Severity};
 use rspack_hash::RspackHash;
 use rspack_identifier::Identifiable;
@@ -32,7 +32,7 @@ use crate::{
   DependenciesBlock, DependencyId, DependencyTemplate, GenerateContext, GeneratorOptions,
   LibIdentOptions, Module, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType,
   ParseContext, ParseResult, ParserAndGenerator, ParserOptions, Resolve, RspackLoaderRunnerPlugin,
-  RuntimeSpec, SourceMapGenConfig, SourceType,
+  RuntimeSpec, SourceType,
 };
 
 bitflags! {
@@ -76,7 +76,7 @@ impl ModuleIssuer {
   }
 }
 
-#[impl_source_map_config_internal]
+#[impl_source_map_config]
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct NormalModule {

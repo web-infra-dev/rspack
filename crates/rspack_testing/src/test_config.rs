@@ -505,15 +505,7 @@ impl TestConfig {
       let cheap = options.devtool.contains("cheap");
       let module_maps = options.devtool.contains("module");
       let no_sources = options.devtool.contains("nosources");
-      let module = if module_maps {
-        true
-      } else {
-        if cheap {
-          false
-        } else {
-          true
-        }
-      };
+      let module = if module_maps { true } else { !cheap };
 
       plugins.push(
         SourceMapDevToolModuleOptionsPlugin::new(SourceMapDevToolModuleOptionsPluginOptions {
@@ -529,17 +521,9 @@ impl TestConfig {
             append: if hidden { Some(Append::Disabled) } else { None },
             namespace: Some(options.output.unique_name.clone()),
             columns: !cheap,
-            no_sources: no_sources,
+            no_sources,
             public_path: None,
-            module: if module_maps {
-              true
-            } else {
-              if cheap {
-                false
-              } else {
-                true
-              }
-            },
+            module: if module_maps { true } else { !cheap },
             module_filename_template: None,
             fallback_module_filename_template: None,
             file_context: None,

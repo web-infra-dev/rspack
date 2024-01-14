@@ -747,7 +747,7 @@ impl ModuleGraph {
 mod test {
   use std::borrow::Cow;
 
-  use rspack_common::SourceMapKind;
+  use rspack_common::{SourceMapGenConfig, SourceMapKind};
   use rspack_error::{Diagnosable, Result};
   use rspack_identifier::Identifiable;
   use rspack_sources::Source;
@@ -756,8 +756,7 @@ mod test {
     AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta,
     BuildResult, CodeGenerationResult, Compilation, Context, DependenciesBlock, Dependency,
     DependencyId, ExportInfo, ExportsInfo, Module, ModuleDependency, ModuleGraph,
-    ModuleGraphModule, ModuleIdentifier, ModuleType, RuntimeSpec, SourceMapGenConfig, SourceType,
-    UsageState,
+    ModuleGraphModule, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType, UsageState,
   };
 
   // Define a detailed node type for `ModuleGraphModule`s

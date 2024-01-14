@@ -155,7 +155,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       &ast,
       additional_data
         .remove::<CodegenOptions>()
-        .unwrap_or_else(|| CodegenOptions::new(&module_source_map_kind, Some(true))),
+        .unwrap_or_else(|| CodegenOptions::new(module_source_map_kind, Some(true))),
     )?;
 
     ast = match crate::ast::parse(
