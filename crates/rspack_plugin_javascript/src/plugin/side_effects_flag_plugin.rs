@@ -279,7 +279,7 @@ pub fn is_pure_expression<'a>(
     Expr::Call(call) => is_pure_call_expr(call, unresolved_ctxt, comments),
     _ => !expr.may_have_side_effects(&ExprCtx {
       unresolved_ctxt,
-      is_unresolved_ref_safe: false,
+      is_unresolved_ref_safe: true,
     }),
   }
 }
