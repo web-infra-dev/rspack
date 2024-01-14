@@ -465,16 +465,11 @@ impl<'a> Visit for CommonJsImportDependencyScanner<'a> {
   }
 
   fn visit_program(&mut self, program: &Program) {
-    match program {
-      Program::Module(m) => {
-        self.is_strict = true;
-        m.visit_children_with(self);
-      }
-      Program::Script(s) => {
-        self.is_strict = is_strict(&s.body);
-        s.visit_children_with(self);
-      }
+    self.is_strict = match program {
+      Program::Module(_) => true,
+      Program::Script(s) => is_strict(&s.body),
     };
+    program.visit_children_with(self);
   }
 
   fn visit_block_stmt(&mut self, n: &BlockStmt) {
@@ -495,6 +490,7 @@ impl<'a> Visit for CommonJsImportDependencyScanner<'a> {
         self.check_var_decl_pat(&ele.name)
       }
     }
+    var_decl.visit_children_with(self);
   }
 }
 
