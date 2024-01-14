@@ -395,9 +395,7 @@ impl Module for NormalModule {
     } else {
       Content::String(loader_result.content.into_string_lossy())
     };
-    let original_source = self
-      .create_source(content, loader_result.source_map)
-      .await?;
+    let original_source = self.create_source(content, loader_result.source_map)?;
     let mut code_generation_dependencies: Vec<Box<dyn ModuleDependency>> = Vec::new();
 
     let (
@@ -631,11 +629,7 @@ impl PartialEq for NormalModule {
 impl Eq for NormalModule {}
 
 impl NormalModule {
-  async fn create_source(
-    &self,
-    content: Content,
-    source_map: Option<SourceMap>,
-  ) -> Result<BoxSource> {
+  fn create_source(&self, content: Content, source_map: Option<SourceMap>) -> Result<BoxSource> {
     if content.is_buffer() {
       return Ok(RawSource::Buffer(content.into_bytes()).boxed());
     }
