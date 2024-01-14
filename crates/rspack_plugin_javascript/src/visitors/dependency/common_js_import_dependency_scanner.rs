@@ -6,8 +6,13 @@ use rspack_core::{
 };
 use rspack_core::{BoxDependency, ConstDependency, ContextMode, ContextNameSpaceObject};
 use rspack_core::{DependencyTemplate, SpanExt};
+use rspack_error::miette::{diagnostic, Diagnostic};
+use rspack_error::DiagnosticExt;
 use swc_core::common::{Spanned, SyntaxContext};
-use swc_core::ecma::ast::{BinExpr, BlockStmt, CallExpr, Callee, Expr, IfStmt, MemberExpr};
+use swc_core::ecma::ast::{
+  BinExpr, BlockStmt, CallExpr, Callee, Expr, Ident, IfStmt, MemberExpr, ObjectPatProp, Pat,
+  Program, Stmt, VarDecl, VarDeclKind,
+};
 use swc_core::ecma::ast::{Lit, TryStmt, UnaryExpr, UnaryOp};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
@@ -15,7 +20,7 @@ use super::api_scanner::ApiParserPlugin;
 use super::context_helper::scanner_context_module;
 use super::expr_matcher::{is_module_require, is_require};
 use super::{
-  expr_matcher, extract_require_call_info, is_require_call_start,
+  expr_matcher, extract_require_call_info, is_require_call_start, is_reserved_word_in_strict,
   is_unresolved_member_object_ident, is_unresolved_require,
 };
 use crate::dependency::{
@@ -35,6 +40,7 @@ pub struct CommonJsImportDependencyScanner<'a> {
   pub(crate) is_strict: bool,
   pub(crate) plugin_drive: Rc<JavaScriptParserPluginDrive>,
   pub(crate) ignored: &'a mut Vec<DependencyLocation>,
+  pub(crate) errors: &'a mut Vec<Box<dyn Diagnostic + Send + Sync>>,
 }
 
 #[derive(Debug)]
@@ -43,9 +49,8 @@ enum Mode {
   Nothing,
 }
 
-fn detect_mode(stmt: &BlockStmt) -> Mode {
-  let Some(Lit::Str(str)) = stmt
-    .stmts
+fn detect_mode(stmts: &[Stmt]) -> Mode {
+  let Some(Lit::Str(str)) = stmts
     .first()
     .and_then(|stmt| stmt.as_expr())
     .and_then(|expr_stmt| expr_stmt.expr.as_lit())
@@ -60,8 +65,8 @@ fn detect_mode(stmt: &BlockStmt) -> Mode {
   }
 }
 
-fn is_strict(stmt: &BlockStmt) -> bool {
-  matches!(detect_mode(stmt), Mode::Strict)
+fn is_strict(stmts: &[Stmt]) -> bool {
+  matches!(detect_mode(stmts), Mode::Strict)
 }
 
 impl<'a> CommonJsImportDependencyScanner<'a> {
@@ -71,6 +76,7 @@ impl<'a> CommonJsImportDependencyScanner<'a> {
     unresolved_ctxt: SyntaxContext,
     module_type: &ModuleType,
     ignored: &'a mut Vec<DependencyLocation>,
+    errors: &'a mut Vec<Box<dyn Diagnostic + Send + Sync>>,
   ) -> Self {
     let mut plugins: Vec<parser_plugin::BoxJavascriptParserPlugin> = vec![
       Box::new(parser_plugin::CommonJsImportsParserPlugin),
@@ -92,6 +98,7 @@ impl<'a> CommonJsImportDependencyScanner<'a> {
       is_strict: false,
       plugin_drive: Rc::new(plugin_drive),
       ignored,
+      errors,
     }
   }
 
@@ -231,6 +238,62 @@ impl<'a> CommonJsImportDependencyScanner<'a> {
 
   pub fn walk_expression(&mut self, expr: &Expr) {
     expr.visit_children_with(self);
+  }
+
+  pub fn check_ident(&mut self, ident: &Ident) {
+    if is_reserved_word_in_strict(ident.sym.as_str()) {
+      if self.is_strict {
+        self.errors.push(
+          diagnostic!(
+            "SyntaxError: The keyword '{}' is reserved in strict mode",
+            ident.sym
+          )
+          .boxed(),
+        );
+      } else {
+        self.errors.push(
+          diagnostic!(
+            "SyntaxError: {} is disallowed as a lexically bound name",
+            ident.sym
+          )
+          .boxed(),
+        );
+      }
+    }
+  }
+  pub fn check_var_decl_pat(&mut self, pat: &Pat) {
+    match pat {
+      Pat::Ident(ident) => {
+        self.check_ident(ident);
+      }
+      Pat::Array(bindings) => {
+        for binding in bindings.elems.iter().flatten() {
+          self.check_var_decl_pat(binding);
+        }
+      }
+      Pat::Object(obj) => {
+        for prop in &obj.props {
+          match prop {
+            ObjectPatProp::KeyValue(pair) => {
+              self.check_var_decl_pat(&pair.value);
+            }
+            ObjectPatProp::Assign(assign) => {
+              self.check_ident(&assign.key);
+            }
+            ObjectPatProp::Rest(rest) => {
+              self.check_var_decl_pat(&rest.arg);
+            }
+          }
+        }
+      }
+      Pat::Assign(assign) => {
+        self.check_var_decl_pat(&assign.left);
+      }
+      Pat::Rest(rest) => {
+        self.check_var_decl_pat(&rest.arg);
+      }
+      _ => unreachable!(),
+    }
   }
 }
 
@@ -401,12 +464,37 @@ impl<'a> Visit for CommonJsImportDependencyScanner<'a> {
     }
   }
 
+  fn visit_program(&mut self, program: &Program) {
+    match program {
+      Program::Module(m) => {
+        self.is_strict = true;
+        m.visit_children_with(self);
+      }
+      Program::Script(s) => {
+        self.is_strict = is_strict(&s.body);
+        s.visit_children_with(self);
+      }
+    };
+  }
+
   fn visit_block_stmt(&mut self, n: &BlockStmt) {
     let old_in_strict = self.is_strict;
 
-    self.is_strict = is_strict(n);
+    self.is_strict = is_strict(&n.stmts);
     n.visit_children_with(self);
     self.is_strict = old_in_strict;
+  }
+
+  // TODO: remove this when swc align reserve words with acorn
+  fn visit_var_decl(&mut self, var_decl: &VarDecl) {
+    if match var_decl.kind {
+      VarDeclKind::Var => self.is_strict,
+      _ => true,
+    } {
+      for ele in var_decl.decls.iter() {
+        self.check_var_decl_pat(&ele.name)
+      }
+    }
   }
 }
 

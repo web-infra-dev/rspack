@@ -99,6 +99,7 @@ pub fn scan_dependencies(
     unresolved_ctxt,
     module_type,
     &mut ignored,
+    &mut errors,
   ));
 
   program.visit_with(&mut ApiScanner::new(
