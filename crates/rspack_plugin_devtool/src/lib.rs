@@ -7,7 +7,7 @@ use std::{hash::Hash, path::Path};
 
 use dashmap::DashMap;
 use derivative::Derivative;
-use futures::future::BoxFuture;
+use futures::{future::BoxFuture, StreamExt};
 use once_cell::sync::Lazy;
 use pathdiff::diff_paths;
 use regex::{Captures, Regex};
@@ -20,8 +20,7 @@ use rspack_core::{
   ProcessAssetsArgs, RenderModuleContentArgs, SourceType,
 };
 use rspack_core::{Filename, Logger, Module, ModuleIdentifier, OutputOptions};
-use rspack_error::miette::IntoDiagnostic;
-use rspack_error::{Error, Result};
+use rspack_error::{miette::IntoDiagnostic, Error, Result};
 use rspack_hash::RspackHash;
 use rspack_util::{
   identifier::make_paths_absolute, path::relative, swc::normalize_custom_filename,
@@ -79,7 +78,7 @@ pub enum Append {
   Disabled,
 }
 
-pub type TestFn = Box<dyn Fn(String) -> BoxFuture<'static, Result<bool>> + Sync + Send>;
+pub type TestFn = Arc<dyn Fn(String) -> BoxFuture<'static, Result<bool>> + Sync + Send>;
 
 #[derive(Derivative)]
 #[derivative(Debug)]
@@ -206,18 +205,24 @@ impl Plugin for SourceMapDevToolPlugin {
     let output_options = &compilation.options.output;
 
     let compilation_assets = compilation.assets();
-    let mut assets: Vec<(&String, &Arc<dyn Source>)> = Vec::with_capacity(compilation_assets.len());
-    for (file, asset) in compilation_assets {
-      let is_match = match &self.test {
-        Some(test) => test(file.clone()).await?,
-        None => true,
-      };
-      if is_match {
-        if let Some(source) = asset.get_source() {
-          assets.push((file, source));
+    let assets = futures::stream::iter(compilation_assets.iter())
+      .filter_map(|(file, asset)| {
+        let test = self.test.clone();
+        async move {
+          let is_match = match &test {
+            Some(test) => test(file.clone()).await.ok()?,
+            None => true,
+          };
+
+          if is_match {
+            asset.get_source().map(|source| (file, source))
+          } else {
+            None
+          }
         }
-      }
-    }
+      })
+      .collect::<Vec<(&String, &Arc<dyn Source>)>>()
+      .await;
 
     let mut tasks = Vec::with_capacity(assets.len());
     let mut module_to_source_name_mapping = HashMap::<ModuleOrSource, String>::default();

@@ -105,7 +105,7 @@ fn normalize_raw_test(raw: JsFunction) -> TestFn {
     rspack_binding_macros::js_fn_into_threadsafe_fn!(raw, &Env::from(env))
   };
   let fn_payload = fn_payload.expect("convert to threadsafe function failed");
-  Box::new(move |ctx| {
+  Arc::new(move |ctx| {
     let fn_payload = fn_payload.clone();
     Box::pin(async move {
       fn_payload
