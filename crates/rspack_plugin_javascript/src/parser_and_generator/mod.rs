@@ -106,8 +106,8 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       ..Default::default()
     });
 
-    let enable_source_map = !matches!(module_source_map_kind, SourceMapKind::None);
     let use_source_map = matches!(module_source_map_kind, SourceMapKind::SourceMap);
+    let enable_source_map = !matches!(module_source_map_kind, SourceMapKind::None);
     let original_map = source.map(&MapOptions::new(use_source_map));
     let source = source.source();
 
@@ -117,7 +117,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
           source: create_source(
             source.to_string(),
             resource_data.resource_path.to_string_lossy().to_string(),
-            use_source_map,
+            enable_source_map,
           ),
           dependencies: vec![],
           blocks: vec![],
@@ -258,12 +258,12 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         value: output.code,
         name: resource_data.resource_path.to_string_lossy().to_string(),
         source_map: SourceMap::from_json(&map).expect("should be able to generate source-map"),
-        inner_source_map: enable_source_map.then_some(original_map).flatten(),
+        inner_source_map: use_source_map.then_some(original_map).flatten(),
         remove_original_source: true,
         ..Default::default()
       })
       .boxed()
-    } else if use_source_map {
+    } else if enable_source_map {
       OriginalSource::new(output.code, resource_data.resource_path.to_string_lossy()).boxed()
     } else {
       RawSource::from(output.code).boxed()

@@ -190,7 +190,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
       dependencies
     };
 
-    let new_source = if matches!(module_source_map_kind, SourceMapKind::SourceMap) {
+    let new_source = if !matches!(module_source_map_kind, SourceMapKind::None) {
       if let Some(source_map) = source_map {
         SourceMapSource::new(SourceMapSourceOptions {
           value: source_code,

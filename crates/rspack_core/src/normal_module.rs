@@ -640,7 +640,7 @@ impl NormalModule {
         .boxed(),
       );
     }
-    if matches!(source_map_kind, SourceMapKind::SourceMap)
+    if !matches!(source_map_kind, SourceMapKind::None)
       && let Content::String(content) = content
     {
       return Ok(OriginalSource::new(content, self.request()).boxed());
