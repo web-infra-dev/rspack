@@ -20,8 +20,9 @@ const MODULE_REFERENCE_REGEXP: Lazy<Regex> = once_cell::sync::Lazy::new(|| {
   .unwrap()
 });
 
+#[derive(Default, Debug)]
 pub struct ModuleReferenceOptions {
-  pub ids: Vec<String>,
+  pub ids: Vec<Atom>,
   pub call: bool,
   pub direct_import: bool,
   pub asi_safe: Option<bool>,
@@ -125,7 +126,7 @@ impl ConcatenationScope {
   pub fn match_module_reference(name: &str) -> Option<ModuleReferenceOptions> {
     if let Some(captures) = MODULE_REFERENCE_REGEXP.captures(name) {
       let index: usize = captures[1].parse().expect("");
-      let ids: Vec<String> = if &captures[2] == "ns" {
+      let ids: Vec<Atom> = if &captures[2] == "ns" {
         vec![]
       } else {
         serde_json::from_slice(&hex::decode(&captures[2]).expect("should decode hex"))

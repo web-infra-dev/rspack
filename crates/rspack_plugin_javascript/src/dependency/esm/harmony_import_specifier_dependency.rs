@@ -1,4 +1,3 @@
-use rspack_core::get_import_var;
 use rspack_core::{
   create_exports_object_referenced, export_from_import, get_dependency_used_by_exports_condition,
   get_exports_type, tree_shaking::symbol::DEFAULT_JS_WORD, AsContextDependency, Compilation,
@@ -7,6 +6,7 @@ use rspack_core::{
   ModuleGraph, ModuleGraphModule, ModuleIdentifier, ReferencedExport, RuntimeSpec, TemplateContext,
   TemplateReplaceSource, UsedByExports,
 };
+use rspack_core::{get_import_var, ModuleReferenceOptions};
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::{common::Span, ecma::atoms::Atom};
 
@@ -134,6 +134,7 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
     let TemplateContext {
       compilation,
       runtime,
+      concatenation_scope,
       ..
     } = code_generatable_context;
 
@@ -175,25 +176,55 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
       .module_identifier_by_dependency_id(&self.id);
     let import_var = get_import_var(&compilation.module_graph, self.id);
 
-    // TODO: scope hoist
-    if is_new_treeshaking {
-      harmony_import_dependency_apply(
-        self,
-        self.source_order,
+    let export_expr = if let Some(scope) = concatenation_scope
+      && let Some(con) = compilation.module_graph.connection_by_dependency(&self.id)
+      && scope.is_module_in_scope(&con.module_identifier)
+    {
+      if ids.is_empty() {
+        scope.create_module_reference(
+          &con.module_identifier,
+          &ModuleReferenceOptions {
+            // TODO: should add asi safe
+            asi_safe: Some(false),
+            ..Default::default()
+          },
+        )
+      } else if self.namespace_object_as_context && ids.len() == 1 {
+        todo!()
+      } else {
+        scope.create_module_reference(
+          &con.module_identifier,
+          &ModuleReferenceOptions {
+            // TODO: should add asi safe
+            asi_safe: Some(true),
+            ids,
+            call: self.call,
+            direct_import: self.direct_import,
+            ..Default::default()
+          },
+        )
+      }
+    } else {
+      if is_new_treeshaking {
+        harmony_import_dependency_apply(
+          self,
+          self.source_order,
+          code_generatable_context,
+          &[self.specifier.clone()],
+        );
+      }
+      export_from_import(
         code_generatable_context,
-        &[self.specifier.clone()],
-      );
-    }
-    let export_expr = export_from_import(
-      code_generatable_context,
-      true,
-      &self.request,
-      &import_var,
-      ids,
-      &self.id,
-      self.call,
-      !self.direct_import,
-    );
+        true,
+        &self.request,
+        &import_var,
+        ids,
+        &self.id,
+        self.call,
+        !self.direct_import,
+      )
+    };
+
     if self.shorthand {
       source.insert(self.end, format!(": {export_expr}").as_str(), None);
     } else {

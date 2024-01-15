@@ -821,6 +821,16 @@ impl Module for ConcatenatedModule {
         source.replace(low, high, &final_name, None);
       }
     }
+    for (id, info) in module_to_info_map.iter() {
+      match info {
+        ModuleInfo::External(_) => {}
+        ModuleInfo::Concatenated(info) => {
+          let res = info.source.as_ref().expect("should ");
+          println!("{id}");
+          println!("{}\n", res.source());
+        }
+      }
+    }
 
     // let mut exports_map: HashMap<String, String> = HashMap::new();
     // let mut unused_exports: HashSet<String> = HashSet::new();

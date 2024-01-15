@@ -1,9 +1,0 @@
----
-source: crates/rspack_testing/src/run_fixture.rs
-assertion_line: 146
----
-```js title=main.js
-(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-
-}]);
-```
