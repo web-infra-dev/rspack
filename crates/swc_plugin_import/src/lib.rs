@@ -77,6 +77,9 @@ const CUSTOM_JS: &str = "CUSTOM_JS_NAME";
 const CUSTOM_STYLE: &str = "CUSTOM_STYLE";
 const CUSTOM_STYLE_NAME: &str = "CUSTOM_STYLE_NAME";
 
+/// Panic:
+///
+/// Panics in sometimes if [swc_core::common::errors::HANDLER] is not provided.
 pub fn plugin_import(config: &Vec<PluginImportConfig>) -> impl Fold + '_ {
   let mut renderer = handlebars::Handlebars::new();
 
@@ -253,7 +256,7 @@ impl<'a> ImportPlugin<'a> {
             format!("{}{}", &config.library_name, CUSTOM_JS).as_str(),
             &render_context(name.clone()),
           )
-          .map(|s| Some(s)),
+          .map(Some),
       }
     } else {
       Ok(Some(format!(
