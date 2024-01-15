@@ -142,7 +142,7 @@ export function setBuiltinEnvArg(
 	value: any
 ) {
 	const envNames = [
-		// TODO: breaking change, we could bring it in 0.5
+		// TODO: breaking change
 		// `WEBPACK_${envNameSuffix}`,
 		`RSPACK_${envNameSuffix}`
 	];
@@ -152,4 +152,19 @@ export function setBuiltinEnvArg(
 		}
 		env[envName] = value;
 	}
+}
+
+/**
+ * infer `argv.env` as an object for it was transformed from array to object after `normalizeEnv` middleware
+ * @returns the reference of `argv.env` object
+ */
+export function ensureEnvObject<T extends Record<string, unknown>>(
+	options: yargs.Arguments
+): T {
+	if (Array.isArray(options.env)) {
+		// for cases that cli haven't haven `normalizeEnv` middleware applied
+		normalizeEnv(options);
+	}
+	options.env = options.env || {};
+	return options.env as T;
 }
