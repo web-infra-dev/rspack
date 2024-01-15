@@ -144,11 +144,12 @@ impl ModuleConcatenationPlugin {
   }
 
   fn try_to_add(
+    &mut self,
     compilation: &Compilation,
     config: &mut ConcatConfiguration,
     module_id: &ModuleIdentifier,
     runtime: Option<&RuntimeSpec>,
-    active_runtime: Option<&RuntimeSpec>,
+    active_runtime: &RuntimeSpec,
     possible_modules: &HashSet<ModuleIdentifier>,
     candidates: &mut HashSet<ModuleIdentifier>,
     failure_cache: &mut HashMap<ModuleIdentifier, Warning>,
@@ -159,7 +160,6 @@ impl ModuleConcatenationPlugin {
       module_graph,
       chunk_graph,
       options,
-      chunk_by_ukey,
       ..
     } = compilation;
     if let Some(cache_entry) = failure_cache.get(module_id) {
@@ -172,16 +172,14 @@ impl ModuleConcatenationPlugin {
       return None;
     }
 
-    let module = module_graph
-      .module_by_identifier(module_id)
-      .expect("should have module");
-    let module_readable_string = module.readable_identifier(&options.context).to_string();
-
     if !possible_modules.contains(module_id) {
       statistics.invalid_module += 1;
-      let problem = Warning::Id(*module_id);
-      failure_cache.insert(*module_id, problem.clone());
-      return Some(problem);
+      let module = module_graph
+        .module_by_identifier(module_id)
+        .expect("should have module");
+      let readable_identifier = module.readable_identifier(&options.context);
+      failure_cache.insert(*module_id, Some(readable_identifier.to_string()));
+      return Some(readable_identifier.to_string());
     }
 
     let missing_chunks: Vec<_> = chunk_graph
@@ -192,28 +190,25 @@ impl ModuleConcatenationPlugin {
       .collect();
 
     if !missing_chunks.is_empty() {
-      let problem_string = {
-        let missing_chunks_list = missing_chunks
+      let problem = |request_shortener: &str| {
+        let missing_chunks_list: Vec<_> = missing_chunks
           .iter()
-          .map(|&chunk| {
-            let chunk = chunk_by_ukey.expect_get(&chunk);
-            chunk.name.clone().unwrap_or("unnamed chunk(s)".to_owned())
-          })
-          .collect::<Vec<_>>();
-        let chunks = chunk_graph
-          .get_module_chunks(*module_id)
-          .iter()
-          .map(|&chunk| {
-            let chunk = chunk_by_ukey.expect_get(&chunk);
-            chunk.name.clone().unwrap_or("unnamed chunk(s)".to_owned())
-          })
-          .collect::<Vec<_>>();
-        format!("Module {} is not in the same chunk(s) (expected in chunk(s) {}, module is in chunk(s) {})",module_readable_string,missing_chunks_list.join(", "),chunks.join(", "))
+          .map(|&chunk| chunk.name.unwrap_or_else(|| "unnamed chunk(s)".to_string()))
+          .collect();
+        let chunks: Vec<_> = chunk_graph
+          .get_module_chunks_iterable(module_id)
+          .map(|&chunk| chunk.name.unwrap_or_else(|| "unnamed chunk(s)".to_string()))
+          .collect();
+        format!(
+                    "Module {} is not in the same chunk(s) (expected in chunk(s) {}, module is in chunk(s) {})",
+                    module_id.readable_identifier(request_shortener),
+                    missing_chunks_list.join(", "),
+                    chunks.join(", ")
+                )
       };
 
       statistics.incorrect_chunks += 1;
-      let problem = Warning::Problem(problem_string);
-      failure_cache.insert(*module_id, problem.clone());
+      failure_cache.insert(*module_id, Some(problem));
       return Some(problem);
     }
 
@@ -477,17 +472,19 @@ impl Plugin for ModuleConcatenationPlugin {
       .copied()
       .map(WrappedModuleIdentifier::from)
       .collect::<Vec<_>>();
+    let mg = &compilation.module_graph;
+    let Compilation {
+      module_graph: mg,
+      chunk_graph,
+      ..
+    } = compilation;
     for module_id in module_id_list {
       let mut can_be_root = true;
       let mut can_be_inner = true;
-      let m = module_id.module(&compilation.module_graph);
+      let m = module_id.module(mg);
       // If the result is `None`, that means we have some differences with webpack,
       // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ModuleConcatenationPlugin.js#L168-L171
-      if compilation
-        .module_graph
-        .is_async(&*module_id)
-        .expect("should have async result")
-      {
+      if mg.is_async(&*module_id).expect("should have async result") {
         // TODO: bailout
         continue;
       }
@@ -495,27 +492,17 @@ impl Plugin for ModuleConcatenationPlugin {
         // TODO: bailout
         continue;
       }
-      if compilation
-        .chunk_graph
-        .get_number_of_module_chunks(*module_id)
-        == 0
-      {
+      if chunk_graph.get_number_of_module_chunks(*module_id) == 0 {
         // TODO: bailout
         continue;
       }
-      let exports_info = compilation.module_graph.get_exports_info(&*module_id);
-      let relevnat_epxorts = exports_info.get_relevant_exports(None, &compilation.module_graph);
+      let exports_info = mg.get_exports_info(&*module_id);
+      let relevnat_epxorts = exports_info.get_relevant_exports(None, mg);
       let unknown_exports = relevnat_epxorts
         .iter()
         .filter(|id| {
-          let export_info = id
-            .get_export_info_mut(&mut compilation.module_graph)
-            .clone();
-          export_info.is_reexport()
-            && export_info
-              .id
-              .get_target(&mut compilation.module_graph, None)
-              .is_none()
+          let export_info = id.get_export_info_mut(mg).clone();
+          export_info.is_reexport() && export_info.id.get_target(mg, None).is_none()
         })
         .copied()
         .collect::<Vec<_>>();
@@ -526,7 +513,7 @@ impl Plugin for ModuleConcatenationPlugin {
       let unknown_provided_exports = relevnat_epxorts
         .iter()
         .filter(|id| {
-          let export_info = id.get_export_info(&compilation.module_graph);
+          let export_info = id.get_export_info(mg);
           !matches!(export_info.provided, Some(ExportInfoProvided::True))
         })
         .copied()
@@ -537,7 +524,7 @@ impl Plugin for ModuleConcatenationPlugin {
         can_be_root = false;
       }
 
-      if compilation.chunk_graph.is_entry_module(&*module_id) {
+      if chunk_graph.is_entry_module(&*module_id) {
         // TODO: bailout
         can_be_inner = false;
       }
@@ -558,8 +545,8 @@ impl Plugin for ModuleConcatenationPlugin {
 
     let start = logger.time("sort relevant modules");
     relevant_modules.sort_by(|a, b| {
-      let ad = compilation.module_graph.get_depth(a);
-      let bd = compilation.module_graph.get_depth(b);
+      let ad = mg.get_depth(a);
+      let bd = mg.get_depth(b);
       ad.cmp(&bd)
     });
     logger.time_end(start);
@@ -577,19 +564,18 @@ impl Plugin for ModuleConcatenationPlugin {
         continue;
       }
       let mut chunk_runtime = HashSet::default();
-      for r in compilation
-        .chunk_graph
+      for r in chunk_graph
         .get_module_runtimes(*current_root, &compilation.chunk_by_ukey)
         .into_values()
       {
         chunk_runtime = merge_runtime(&chunk_runtime, &r);
       }
-      let exports_info_id = compilation.module_graph.get_exports_info(current_root).id;
+      let exports_info_id = mg.get_exports_info(current_root).id;
       let filtered_runtime = filter_runtime(Some(&chunk_runtime), |r| {
-        exports_info_id.is_module_used(&compilation.module_graph, r)
+        exports_info_id.is_module_used(mg, r)
       });
       let active_runtime = match filtered_runtime {
-        RuntimeCondition::Boolean(true) => Some(chunk_runtime.clone()),
+        RuntimeCondition::Boolean(true) => Some(chunk_runtime),
         RuntimeCondition::Boolean(false) => None,
         RuntimeCondition::Spec(spec) => Some(spec),
       };
@@ -600,29 +586,23 @@ impl Plugin for ModuleConcatenationPlugin {
       let mut failure_cache = HashMap::default();
       let mut candidates = HashSet::default();
 
-      let imports = Self::get_imports(
-        &compilation.module_graph,
-        (*current_root).into(),
-        active_runtime.as_ref(),
-      );
+      let imports = Self::get_imports(mg, (*current_root).into(), active_runtime.as_ref());
       for import in imports {
         candidates.insert(import);
       }
 
       let mut imports_to_extends = vec![];
       for imp in candidates.iter() {
-        let mut import_candidates = HashSet::default();
-        match Self::try_to_add(
+        let import_candidates = HashSet::default();
+        match self.try_to_add(
           &compilation,
           &mut current_configuration,
           imp,
           Some(&chunk_runtime),
-          active_runtime.as_ref(),
+          &active_runtime,
           &possible_inners,
-          &mut import_candidates,
-          &mut failure_cache,
-          true,
-          &mut statistics,
+          &mut candidates,
+                    &mut failure_cache,
         ) {
           Some(problem) => {
             failure_cache.insert(*imp, problem.clone());
