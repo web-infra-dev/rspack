@@ -36,7 +36,6 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
         bail: false,
         context: rspack_core::Context::default(),
         dev_server: rspack_core::DevServerOptions::default(),
-        devtool: "inline-source-map".to_string(),
         mode: rspack_core::Mode::None,
         output: rspack_core::OutputOptions {
           clean: false,

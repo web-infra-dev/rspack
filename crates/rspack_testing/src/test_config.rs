@@ -426,7 +426,6 @@ impl TestConfig {
         rules,
         ..Default::default()
       },
-      devtool: self.devtool,
       stats: Default::default(),
       snapshot: Default::default(),
       cache: c::CacheOptions::Disabled,
@@ -500,11 +499,11 @@ impl TestConfig {
     // plugins.push(rspack_plugin_externals::ExternalPlugin::default().boxed());
     plugins.push(rspack_plugin_javascript::JsPlugin::new().boxed());
 
-    if options.devtool.contains("source-map") {
-      let hidden = options.devtool.contains("hidden");
-      let cheap = options.devtool.contains("cheap");
-      let module_maps = options.devtool.contains("module");
-      let no_sources = options.devtool.contains("nosources");
+    if self.devtool.contains("source-map") {
+      let hidden = self.devtool.contains("hidden");
+      let cheap = self.devtool.contains("cheap");
+      let module_maps = self.devtool.contains("module");
+      let no_sources = self.devtool.contains("nosources");
       let module = if module_maps { true } else { !cheap };
 
       plugins.push(

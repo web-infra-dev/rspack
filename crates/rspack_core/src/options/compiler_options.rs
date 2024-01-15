@@ -15,7 +15,6 @@ pub struct CompilerOptions {
   pub resolve: Resolve,
   pub resolve_loader: Resolve,
   pub module: ModuleOptions,
-  pub devtool: String,
   pub stats: StatsOptions,
   pub snapshot: SnapshotOptions,
   pub cache: CacheOptions,

@@ -109,7 +109,6 @@ impl RawOptions {
       output,
       resolve,
       resolve_loader,
-      devtool: self.devtool,
       experiments,
       stats,
       cache,
