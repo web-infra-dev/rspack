@@ -634,7 +634,7 @@ impl NormalModule {
       return Ok(RawSource::Buffer(content.into_bytes()).boxed());
     }
     let source_map_kind = self.get_source_map_kind();
-    if !matches!(source_map_kind, SourceMapKind::None)
+    if matches!(source_map_kind, SourceMapKind::SourceMap)
       && let Some(source_map) = source_map
     {
       let content = content.into_string_lossy();
