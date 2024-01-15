@@ -175,7 +175,7 @@ impl ModuleConcatenationPlugin {
     let module = module_graph
       .module_by_identifier(module_id)
       .expect("should have module");
-    let module_readable_identifier = module.readable_identifier(&options.context).to_string();
+    let module_readable_string = module.readable_identifier(&options.context).to_string();
 
     if !possible_modules.contains(module_id) {
       statistics.invalid_module += 1;
@@ -208,7 +208,7 @@ impl ModuleConcatenationPlugin {
             chunk.name.clone().unwrap_or("unnamed chunk(s)".to_owned())
           })
           .collect::<Vec<_>>();
-        format!("Module {} is not in the same chunk(s) (expected in chunk(s) {}, module is in chunk(s) {})",module_readable_identifier,missing_chunks_list.join(", "),chunks.join(", "))
+        format!("Module {} is not in the same chunk(s) (expected in chunk(s) {}, module is in chunk(s) {})",module_readable_string,missing_chunks_list.join(", "),chunks.join(", "))
       };
 
       statistics.incorrect_chunks += 1;
@@ -240,7 +240,7 @@ impl ModuleConcatenationPlugin {
           // explanations.sort();
           format!(
             "Module {} is referenced",
-            module_readable_identifier,
+            module_readable_string,
             // if !explanations.is_empty() {
             //   format!("by: {}", explanations.join(", "))
             // } else {
@@ -306,93 +306,76 @@ impl ModuleConcatenationPlugin {
     //
     if !other_chunk_modules.is_empty() {
       let problem = {
-        let mut names: Vec<_> = other_chunk_modules
+        let names: Vec<_> = other_chunk_modules
           .iter()
-          .map(|&mid| {
+          .map(|&m| {
             let m = compilation
               .module_graph
-              .module_by_identifier(&mid)
+              .module_by_identifier(&m)
               .expect("should have module");
-            m.readable_identifier(&compilation.options.context)
-              .to_string()
           })
           .collect();
-        names.sort();
         format!(
           "Module {} is referenced from different chunks by these modules: {}",
-          module_readable_identifier,
+          module_id.readable_identifier(request_shortener),
           names.join(", ")
         )
       };
 
       statistics.incorrect_chunks_of_importer += 1;
-      let problem = Warning::Problem(problem);
-      failure_cache.insert(*module_id, problem.clone());
+      failure_cache.insert(module_id.clone(), Some(problem));
       return Some(problem);
     }
     //
-    let mut non_harmony_connections = HashMap::default();
-    for (origin_module, connections) in incoming_connections_from_modules {
-      let selected: Vec<_> = connections
-        .iter()
-        .filter(|&connection| {
-          if let Some(dep) = compilation
-            .module_graph
-            .dependency_by_id(&connection.dependency_id)
-          {
-            !is_harmony_dep_like(dep)
-          } else {
-            false
-          }
-        })
-        .cloned()
-        .collect();
-
-      if !selected.is_empty() {
-        non_harmony_connections.insert(origin_module, connections);
-      }
-    }
-
-    if !non_harmony_connections.is_empty() {
-      let problem = {
-        let names: Vec<_> = non_harmony_connections
-          .iter()
-          .map(|(origin_module, connections)| {
-            let module = compilation
-              .module_graph
-              .get_module(origin_module)
-              .expect("should have module");
-            let readable_identifier = module.readable_identifier(&compilation.options.context);
-            let names = connections
-              .iter()
-              .filter_map(|item| {
-                let dep = compilation
-                  .module_graph
-                  .dependency_by_id(&item.dependency_id)?;
-                Some(dep.dependency_type().to_string())
-              })
-              .collect::<Vec<_>>();
-            names.sort();
-            format!(
-              "{} (referenced with {})",
-              readable_identifier,
-              names.join(",")
-            )
-          })
-          .collect();
-
-        format!(
-          "Module {} is referenced from these modules with unsupported syntax: {}",
-          module_id.readable_identifier(request_shortener),
-          names.join(", ")
-        )
-      };
-      let problem = Warning::Problem(problem);
-
-      statistics.incorrect_module_dependency += 1;
-      failure_cache.insert(module_id.clone(), problem.clone());
-      return Some(problem);
-    }
+    // let mut non_harmony_connections = HashMap::new();
+    // for (origin_module, connections) in incoming_connections_from_modules {
+    //   let selected: Vec<_> = connections
+    //     .iter()
+    //     .filter(|&connection| {
+    //       // connection.dependency.is_none()
+    //       //     || !(connection.dependency.unwrap() instanceof HarmonyImportDependency)
+    //     })
+    //     .cloned()
+    //     .collect();
+    //
+    //   if !selected.is_empty() {
+    //     non_harmony_connections.insert(origin_module, connections);
+    //   }
+    // }
+    //
+    // if !non_harmony_connections.is_empty() {
+    //   let problem = |request_shortener: &str| {
+    //     let names: Vec<_> = non_harmony_connections
+    //       .iter()
+    //       .map(|(origin_module, connections)| {
+    //         format!(
+    //           "{} (referenced with {})",
+    //           origin_module.readable_identifier(request_shortener),
+    //           connections
+    //             .iter()
+    //             .flat_map(|&c| c.dependency.as_ref())
+    //             .map(|d| d.type_name())
+    //             .filter(|t| t.is_some())
+    //             .map(|t| t.unwrap())
+    //             .collect::<HashSet<_>>()
+    //             .into_iter()
+    //             .collect::<Vec<_>>()
+    //             .join(", ")
+    //         )
+    //       })
+    //       .collect();
+    //
+    //     format!(
+    //       "Module {} is referenced from these modules with unsupported syntax: {}",
+    //       module_id.readable_identifier(request_shortener),
+    //       names.join(", ")
+    //     )
+    //   };
+    //
+    //   statistics.incorrect_module_dependency += 1;
+    //   failure_cache.insert(module_id.clone(), Some(problem));
+    //   return Some(problem);
+    // }
     //
     // if runtime.is_some() && runtime.unwrap().is_string() {
     //   let mut other_runtime_connections = Vec::new();
