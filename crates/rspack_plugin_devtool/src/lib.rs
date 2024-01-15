@@ -215,21 +215,21 @@ impl Plugin for SourceMapDevToolPlugin {
           };
 
           if is_match {
-            asset.get_source().map(|source| (file, source))
+            asset
+              .get_source()
+              .map(|source| (file, source, source.map(&MapOptions::new(self.columns))))
           } else {
             None
           }
         }
       })
-      .collect::<Vec<(&String, &Arc<dyn Source>)>>()
+      .collect::<Vec<(&String, &Arc<dyn Source>, Option<SourceMap>)>>()
       .await;
 
     let mut tasks = Vec::with_capacity(assets.len());
     let mut module_to_source_name_mapping = HashMap::<ModuleOrSource, String>::default();
 
-    for (file, asset) in assets {
-      let source_map = asset.map(&MapOptions::new(self.columns));
-
+    for (file, asset, source_map) in assets {
       let modules = if let Some(source_map) = &source_map {
         let sources = source_map.sources();
         let mut modules = Vec::with_capacity(sources.len());
