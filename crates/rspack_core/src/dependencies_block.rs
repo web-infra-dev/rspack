@@ -100,16 +100,6 @@ impl AsyncDependenciesBlock {
     self.id
   }
 
-  pub fn block_promise_key(&self, compilation: &Compilation) -> String {
-    let module_id = compilation
-      .chunk_graph
-      .get_module_id(self.id.from)
-      .as_ref()
-      .expect("should have module_id");
-    let key = format!("{}@{}", module_id, self.id.modifier);
-    serde_json::to_string(&key).expect("AsyncDependenciesBlock.id should be able to json to_string")
-  }
-
   pub fn set_group_options(&mut self, group_options: GroupOptions) {
     self.group_options = Some(group_options)
   }

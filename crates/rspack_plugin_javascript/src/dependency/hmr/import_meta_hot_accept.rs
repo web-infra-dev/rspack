@@ -59,6 +59,10 @@ impl ModuleDependency for ImportMetaHotAcceptDependency {
   fn set_request(&mut self, request: String) {
     self.request = request.into();
   }
+
+  fn weak(&self) -> bool {
+    true
+  }
 }
 
 impl DependencyTemplate for ImportMetaHotAcceptDependency {

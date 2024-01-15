@@ -19,13 +19,13 @@ use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  contextify, get_exports_type_with_strict, impl_build_info_meta, stringify_map, to_path,
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo,
-  BuildMeta, BuildResult, ChunkGraph, ChunkGroupOptions, CodeGenerationResult, Compilation,
-  ContextElementDependency, DependenciesBlock, DependencyCategory, DependencyId, ExportsType,
-  FakeNamespaceObjectMode, GroupOptions, LibIdentOptions, Module, ModuleType, Resolve,
-  ResolveInnerOptions, ResolveOptionsWithDependencyType, ResolverFactory, RuntimeGlobals,
-  RuntimeSpec, SourceType,
+  block_promise, contextify, get_exports_type_with_strict, impl_build_info_meta,
+  returning_function, stringify_map, to_path, AsyncDependenciesBlock,
+  AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
+  ChunkGraph, ChunkGroupOptions, CodeGenerationResult, Compilation, ContextElementDependency,
+  DependenciesBlock, DependencyCategory, DependencyId, ExportsType, FakeNamespaceObjectMode,
+  GroupOptions, LibIdentOptions, Module, ModuleType, Resolve, ResolveInnerOptions,
+  ResolveOptionsWithDependencyType, ResolverFactory, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
 #[derive(Debug, Clone)]
@@ -347,10 +347,11 @@ impl ContextModule {
     map
   }
 
-  fn get_block_promise_key_map(
+  fn get_block_promise_map(
     &self,
     blocks: impl IntoIterator<Item = &AsyncDependenciesBlock>,
     compilation: &Compilation,
+    runtime_requirements: &mut RuntimeGlobals,
   ) -> HashMap<String, String> {
     let blocks = blocks
       .into_iter()
@@ -362,17 +363,24 @@ impl ContextModule {
         .dependency_by_id(dep_id)
         .and_then(|d| d.as_module_dependency())
       {
-        let key = block.block_promise_key(compilation);
-        map.insert(dependency.user_request().to_string(), key);
+        let getter = returning_function(
+          &block_promise(Some(&block.identifier()), runtime_requirements, compilation),
+          "",
+        );
+        map.insert(dependency.user_request().to_string(), getter);
       }
     }
     map
   }
 
   #[inline]
-  fn get_source_string(&self, compilation: &Compilation) -> BoxSource {
+  fn get_source_string(
+    &self,
+    compilation: &Compilation,
+    runtime_requirements: &mut RuntimeGlobals,
+  ) -> BoxSource {
     match self.options.context_options.mode {
-      ContextMode::Lazy => self.get_lazy_source(compilation),
+      ContextMode::Lazy => self.get_lazy_source(compilation, runtime_requirements),
       ContextMode::LazyOnce => {
         let block = self
           .get_blocks()
@@ -388,12 +396,16 @@ impl ContextModule {
     }
   }
 
-  fn get_lazy_source(&self, compilation: &Compilation) -> BoxSource {
+  fn get_lazy_source(
+    &self,
+    compilation: &Compilation,
+    runtime_requirements: &mut RuntimeGlobals,
+  ) -> BoxSource {
     let blocks = self
       .get_blocks()
       .iter()
       .filter_map(|b| compilation.module_graph.block_by_id(b));
-    let block_map = self.get_block_promise_key_map(blocks.clone(), compilation);
+    let block_map = self.get_block_promise_map(blocks.clone(), compilation, runtime_requirements);
     let dependencies = blocks.filter_map(|b| b.get_dependencies().first());
     let fake_map = self.get_fake_map(dependencies.clone(), compilation);
     let map = self.get_user_request_map(dependencies, compilation);
@@ -423,9 +435,9 @@ impl ContextModule {
             throw e;
           }});
         }}
-        var blockId = blockMap[req];
+        var blockGetter = blockMap[req];
         var id = map[req];
-        return __webpack_require__.el(blockId).then(function() {{
+        return blockGetter().then(function() {{
           {return_module_object}
         }});
       }}
@@ -634,9 +646,6 @@ impl Module for ContextModule {
         code_generation_result
           .runtime_requirements
           .insert(RuntimeGlobals::ENSURE_CHUNK);
-        code_generation_result
-          .runtime_requirements
-          .insert(RuntimeGlobals::LOAD_CHUNK_WITH_BLOCK);
       }
       _ => {}
     }
@@ -654,7 +663,11 @@ impl Module for ContextModule {
         .runtime_requirements
         .insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
     }
-    code_generation_result.add(SourceType::JavaScript, self.get_source_string(compilation));
+    let source = self.get_source_string(
+      compilation,
+      &mut code_generation_result.runtime_requirements,
+    );
+    code_generation_result.add(SourceType::JavaScript, source);
     code_generation_result.set_hash(
       &compilation.options.output.hash_function,
       &compilation.options.output.hash_digest,
