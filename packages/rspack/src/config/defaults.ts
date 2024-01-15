@@ -125,6 +125,7 @@ export const applyRspackOptionsDefaults = (
 
 	options.resolve = cleverMerge(
 		getResolveDefaults({
+			context: options.context!,
 			targetProperties,
 			mode: options.mode
 		}),
@@ -783,10 +784,14 @@ const getResolveLoaderDefaults = () => {
 	return resolveOptions;
 };
 
+// The values are aligned with webpack
+// https://github.com/webpack/webpack/blob/1f459251133166d3ae8bb863f227d3e343496c0b/lib/config/defaults.js#L1420
 const getResolveDefaults = ({
+	context,
 	targetProperties,
 	mode
 }: {
+	context: string;
 	targetProperties: any;
 	mode?: Mode;
 }) => {
@@ -826,9 +831,10 @@ const getResolveDefaults = ({
 		conditionNames: conditions,
 		mainFiles: ["index"],
 		extensions: [],
-		aliasFields,
-		mainFields: ["main"].filter(Boolean),
+		aliasFields: [],
 		exportsFields: ["exports"],
+		roots: [context],
+		mainFields: ["main"],
 		byDependency: {
 			wasm: esmDeps(),
 			esm: esmDeps(),
