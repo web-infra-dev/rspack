@@ -1,4 +1,5 @@
 use std::rc::Rc;
+use std::sync::Arc;
 
 use itertools::Itertools;
 use rspack_core::{
@@ -6,9 +7,8 @@ use rspack_core::{
 };
 use rspack_core::{BoxDependency, ConstDependency, ContextMode, ContextNameSpaceObject};
 use rspack_core::{DependencyTemplate, SpanExt};
-use rspack_error::miette::{diagnostic, Diagnostic};
-use rspack_error::DiagnosticExt;
-use swc_core::common::{Spanned, SyntaxContext};
+use rspack_error::miette::Diagnostic;
+use swc_core::common::{SourceFile, Spanned, SyntaxContext};
 use swc_core::ecma::ast::{
   BinExpr, BlockStmt, CallExpr, Callee, Expr, Ident, IfStmt, MemberExpr, ObjectPatProp, Pat,
   Program, Stmt, VarDecl, VarDeclKind,
@@ -20,8 +20,8 @@ use super::api_scanner::ApiParserPlugin;
 use super::context_helper::scanner_context_module;
 use super::expr_matcher::{is_module_require, is_require};
 use super::{
-  expr_matcher, extract_require_call_info, is_require_call_start, is_reserved_word_in_strict,
-  is_unresolved_member_object_ident, is_unresolved_require,
+  create_traceable_error, expr_matcher, extract_require_call_info, is_require_call_start,
+  is_reserved_word_in_strict, is_unresolved_member_object_ident, is_unresolved_require,
 };
 use crate::dependency::{
   CommonJsFullRequireDependency, CommonJsRequireContextDependency, RequireHeaderDependency,
@@ -32,6 +32,7 @@ use crate::utils::eval::{self, BasicEvaluatedExpression};
 use crate::utils::{expression_logic_operator, statement_if};
 
 pub struct CommonJsImportDependencyScanner<'a> {
+  pub(crate) source_file: Arc<SourceFile>,
   pub(crate) dependencies: &'a mut Vec<BoxDependency>,
   pub(crate) presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
   pub(crate) unresolved_ctxt: SyntaxContext,
@@ -71,6 +72,7 @@ fn is_strict(stmts: &[Stmt]) -> bool {
 
 impl<'a> CommonJsImportDependencyScanner<'a> {
   pub fn new(
+    source_file: Arc<SourceFile>,
     dependencies: &'a mut Vec<BoxDependency>,
     presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
     unresolved_ctxt: SyntaxContext,
@@ -90,6 +92,7 @@ impl<'a> CommonJsImportDependencyScanner<'a> {
 
     let plugin_drive = JavaScriptParserPluginDrive::new(plugins);
     Self {
+      source_file,
       dependencies,
       presentational_dependencies,
       unresolved_ctxt,
@@ -243,21 +246,19 @@ impl<'a> CommonJsImportDependencyScanner<'a> {
   pub fn check_ident(&mut self, ident: &Ident) {
     if is_reserved_word_in_strict(ident.sym.as_str()) {
       if self.is_strict {
-        self.errors.push(
-          diagnostic!(
-            "SyntaxError: The keyword '{}' is reserved in strict mode",
-            ident.sym
-          )
-          .boxed(),
-        );
+        self.errors.push(Box::new(create_traceable_error(
+          "SyntaxError".into(),
+          format!("The keyword '{}' is reserved in strict mode", ident.sym),
+          &self.source_file,
+          ident.span().into(),
+        )));
       } else {
-        self.errors.push(
-          diagnostic!(
-            "SyntaxError: {} is disallowed as a lexically bound name",
-            ident.sym
-          )
-          .boxed(),
-        );
+        self.errors.push(Box::new(create_traceable_error(
+          "SyntaxError".into(),
+          format!("{} is disallowed as a lexically bound name", ident.sym),
+          &self.source_file,
+          ident.span().into(),
+        )));
       }
     }
   }

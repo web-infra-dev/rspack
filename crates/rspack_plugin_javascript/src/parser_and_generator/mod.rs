@@ -144,6 +144,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
             return gen_terminate_res(diagnostics);
           }
         }
+        .0
       };
 
     run_before_pass(&mut ast, compiler_options)?;
@@ -155,18 +156,20 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         .unwrap_or_else(|| CodegenOptions::new(&compiler_options.devtool, Some(true))),
     )?;
 
-    ast = match crate::ast::parse(
+    let parse_result = match crate::ast::parse(
       output.code.clone(),
       syntax,
       &resource_data.resource_path.to_string_lossy(),
       module_type,
     ) {
-      Ok(ast) => ast,
+      Ok(parse_result) => parse_result,
       Err(e) => {
         diagnostics.append(&mut e.into_iter().map(|e| e.boxed()).collect());
         return gen_terminate_res(diagnostics);
       }
     };
+
+    ast = parse_result.0;
 
     ast.transform(|program, context| {
       program.visit_mut_with(&mut resolver(
@@ -185,6 +188,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       mut warning_diagnostics,
     } = match ast.visit(|program, context| {
       scan_dependencies(
+        parse_result.1,
         program,
         context.unresolved_mark,
         resource_data,
