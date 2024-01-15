@@ -1,3 +1,3 @@
-import { answer } from "./answer";
+import { answer } from "./lib";
 answer
 

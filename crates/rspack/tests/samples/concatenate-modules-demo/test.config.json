@@ -1,6 +1,7 @@
 {
 	"optimization": {
-    "concatenateModules": true
+    "concatenateModules": true,
+		"sideEffects": "true"
 	},
 	"builtins": {
 		"define": {

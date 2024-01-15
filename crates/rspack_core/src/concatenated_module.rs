@@ -821,16 +821,16 @@ impl Module for ConcatenatedModule {
         source.replace(low, high, &final_name, None);
       }
     }
-    for (id, info) in module_to_info_map.iter() {
-      match info {
-        ModuleInfo::External(_) => {}
-        ModuleInfo::Concatenated(info) => {
-          let res = info.source.as_ref().expect("should ");
-          println!("{id}");
-          println!("{}\n", res.source());
-        }
-      }
-    }
+    // for (id, info) in module_to_info_map.iter() {
+    //   match info {
+    //     ModuleInfo::External(_) => {}
+    //     ModuleInfo::Concatenated(info) => {
+    //       let res = info.source.as_ref().expect("should ");
+    //       println!("{id}");
+    //       println!("{}\n", res.source());
+    //     }
+    //   }
+    // }
 
     // let mut exports_map: HashMap<String, String> = HashMap::new();
     // let mut unused_exports: HashSet<String> = HashSet::new();
@@ -1270,6 +1270,7 @@ impl ConcatenatedModule {
         .remove(&SourceType::JavaScript)
         .expect("should have javascript source");
       let source_code = source.source().to_string();
+      println!("{}", source_code);
 
       let cm: Arc<swc_core::common::SourceMap> = Default::default();
       let fm = cm.new_source_file(
@@ -1678,7 +1679,6 @@ impl ConcatenatedModule {
           mg,
           Arc::new(|module: &ModuleIdentifier| module_to_info_map.contains_key(module)),
         );
-        dbg!(&reexport);
         match reexport {
           crate::FindTargetRetEnum::Undefined => {}
           crate::FindTargetRetEnum::False => {
