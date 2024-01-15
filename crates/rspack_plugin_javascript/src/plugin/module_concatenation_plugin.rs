@@ -8,9 +8,9 @@ use rspack_core::concatenated_module::{
   is_harmony_dep_like, ConcatenatedInnerModule, ConcatenatedModule, RootModuleContext,
 };
 use rspack_core::{
-  filter_runtime, merge_runtime, BoxDependency, Compilation, CompilerContext, ExportInfoProvided,
-  ExtendedReferencedExport, LibIdentOptions, Logger, Module, ModuleExt, ModuleGraph,
-  ModuleGraphModule, ModuleIdentifier, OptimizeChunksArgs, Plugin, ProvidedExports,
+  filter_runtime, merge_runtime, runtime_to_string, BoxDependency, Compilation, CompilerContext,
+  ExportInfoProvided, ExtendedReferencedExport, LibIdentOptions, Logger, Module, ModuleExt,
+  ModuleGraph, ModuleGraphModule, ModuleIdentifier, OptimizeChunksArgs, Plugin, ProvidedExports,
   RuntimeCondition, RuntimeSpec, WrappedModuleIdentifier,
 };
 use rspack_error::Result;
@@ -256,15 +256,15 @@ impl ModuleConcatenationPlugin {
     }
     //
     let mut incoming_connections_from_modules = HashMap::default();
-    for (origin_module, connections) in incoming_connections {
+    for (origin_module, connections) in incoming_connections.iter() {
       if let Some(origin_module) = origin_module {
-        if chunk_graph.get_number_of_module_chunks(origin_module) == 0 {
+        if chunk_graph.get_number_of_module_chunks(*origin_module) == 0 {
           continue; // Ignore connection from orphan modules
         }
 
         let mut origin_runtime = RuntimeSpec::default();
         for r in chunk_graph
-          .get_module_runtimes(origin_module, chunk_by_ukey)
+          .get_module_runtimes(*origin_module, chunk_by_ukey)
           .values()
         {
           origin_runtime = merge_runtime(&origin_runtime, &r);
@@ -291,7 +291,7 @@ impl ModuleConcatenationPlugin {
       }
     }
     //
-    let incoming_modules: Vec<_> = incoming_connections_from_modules.keys().cloned().collect();
+    let mut incoming_modules: Vec<_> = incoming_connections_from_modules.keys().cloned().collect();
 
     let other_chunk_modules: Vec<_> = incoming_modules
       .iter()
@@ -332,7 +332,7 @@ impl ModuleConcatenationPlugin {
     }
     //
     let mut non_harmony_connections = HashMap::default();
-    for (origin_module, connections) in incoming_connections_from_modules {
+    for (origin_module, connections) in incoming_connections_from_modules.iter() {
       let selected: Vec<_> = connections
         .iter()
         .filter(|&connection| {
@@ -360,10 +360,10 @@ impl ModuleConcatenationPlugin {
           .map(|(origin_module, connections)| {
             let module = compilation
               .module_graph
-              .get_module(origin_module)
+              .module_by_identifier(origin_module)
               .expect("should have module");
             let readable_identifier = module.readable_identifier(&compilation.options.context);
-            let names = connections
+            let mut names = connections
               .iter()
               .filter_map(|item| {
                 let dep = compilation
@@ -383,7 +383,7 @@ impl ModuleConcatenationPlugin {
 
         format!(
           "Module {} is referenced from these modules with unsupported syntax: {}",
-          module_id.readable_identifier(request_shortener),
+          module_readable_identifier,
           names.join(", ")
         )
       };
@@ -393,101 +393,110 @@ impl ModuleConcatenationPlugin {
       failure_cache.insert(module_id.clone(), problem.clone());
       return Some(problem);
     }
+
+    if let Some(runtime) = runtime
+      && runtime.len() > 1
+    {
+      let mut other_runtime_connections = Vec::new();
+      'outer: for (origin_module, connections) in incoming_connections_from_modules {
+        let mut current_runtime_condition = RuntimeCondition::Boolean(false);
+        for connection in connections {
+          let runtime_condition = filter_runtime(Some(runtime), |runtime| {
+            connection.is_target_active(&compilation.module_graph, runtime)
+          });
+
+          if runtime_condition == RuntimeCondition::Boolean(false) {
+            continue;
+          }
+
+          if runtime_condition == RuntimeCondition::Boolean(true) {
+            continue 'outer;
+          }
+
+          // here two runtime_condition must be `RuntimeCondition::Spec`
+          if current_runtime_condition != RuntimeCondition::Boolean(false) {
+            current_runtime_condition = RuntimeCondition::Spec(merge_runtime(
+              current_runtime_condition.as_spec().expect("should be spec"),
+              runtime_condition.as_spec().expect("should be spec"),
+            ));
+          } else {
+            current_runtime_condition = runtime_condition;
+          }
+        }
+
+        if current_runtime_condition != RuntimeCondition::Boolean(false) {
+          other_runtime_connections.push((origin_module, current_runtime_condition));
+        }
+      }
+
+      if !other_runtime_connections.is_empty() {
+        let problem = {
+          format!(
+            "Module {} is runtime-dependent referenced by these modules: {}",
+            module_readable_identifier,
+            other_runtime_connections
+              .iter()
+              .map(|(origin_module, runtime_condition)| {
+                let module = compilation
+                  .module_graph
+                  .module_by_identifier(origin_module)
+                  .expect("should have module");
+                let readable_identifier = module.readable_identifier(&compilation.options.context);
+                format!(
+                  "{} (expected runtime {}, module is only referenced in {})",
+                  readable_identifier,
+                  runtime_to_string(runtime),
+                  runtime_to_string(runtime_condition.as_spec().expect("should be spec"))
+                )
+              })
+              .collect::<Vec<_>>()
+              .join(", ")
+          )
+        };
+
+        let problem = Warning::Problem(problem);
+        statistics.incorrect_runtime_condition += 1;
+        failure_cache.insert(module_id.clone(), problem.clone());
+        return Some(problem);
+      }
+    }
     //
-    // if runtime.is_some() && runtime.unwrap().is_string() {
-    //   let mut other_runtime_connections = Vec::new();
-    //   'outer: for (origin_module, connections) in incoming_connections_from_modules {
-    //     let mut current_runtime_condition = false;
-    //     for connection in connections {
-    //       let runtime_condition =
-    //         filter_runtime(runtime, |runtime| connection.is_target_active(runtime));
+    let backup = if avoid_mutate_on_failure {
+      Some(config.snapshot())
+    } else {
+      None
+    };
     //
-    //       if runtime_condition == false {
-    //         continue;
-    //       }
+    config.add(*module_id);
     //
-    //       if runtime_condition == true {
-    //         continue 'outer;
-    //       }
+    incoming_modules.sort();
     //
-    //       if current_runtime_condition != false {
-    //         current_runtime_condition = merge_runtime(current_runtime_condition, runtime_condition);
-    //       } else {
-    //         current_runtime_condition = runtime_condition;
-    //       }
-    //     }
-    //
-    //     if current_runtime_condition != false {
-    //       other_runtime_connections.push((origin_module, current_runtime_condition));
-    //     }
-    //   }
-    //
-    //   if !other_runtime_connections.is_empty() {
-    //     let problem = |request_shortener: &str| {
-    //       format!(
-    //         "Module {} is runtime-dependent referenced by these modules: {}",
-    //         module_id.readable_identifier(request_shortener),
-    //         other_runtime_connections
-    //           .iter()
-    //           .map(|(origin_module, runtime_condition)| {
-    //             format!(
-    //               "{} (expected runtime {}, module is only referenced in {})",
-    //               origin_module.readable_identifier(request_shortener),
-    //               runtime_to_string(runtime.unwrap()),
-    //               runtime_to_string(runtime_condition)
-    //             )
-    //           })
-    //           .collect::<Vec<_>>()
-    //           .join(", ")
-    //       )
-    //     };
-    //
-    //     statistics.incorrect_runtime_condition += 1;
-    //     failure_cache.insert(module_id.clone(), Some(problem));
-    //     return Some(problem);
-    //   }
-    // }
-    //
-    // let backup = if avoid_mutate_on_failure {
-    //   Some(config.snapshot())
-    // } else {
-    //   None
-    // };
-    //
-    // config.add(module_id);
-    //
-    // incoming_modules.sort_by(|a, b| compare_modules_by_identifier(a, b));
-    //
-    // for origin_module in &incoming_modules {
-    //   if let Some(problem) = self._try_to_add(
-    //     compilation,
-    //     config,
-    //     origin_module,
-    //     runtime,
-    //     active_runtime,
-    //     possible_modules,
-    //     candidates,
-    //     failure_cache,
-    //     chunk_graph,
-    //     false,
-    //     statistics,
-    //   ) {
-    //     if let Some(backup) = &backup {
-    //       config.rollback(backup.clone());
-    //     }
-    //     statistics.importer_failed += 1;
-    //     failure_cache.insert(module_id.clone(), Some(problem));
-    //     return Some(problem);
-    //   }
-    // }
-    //
-    // for imp in &self._get_imports(compilation, module_id, runtime) {
-    //   candidates.insert(imp.clone());
-    // }
-    //
-    // statistics.added += 1;
-    // None
-    todo!()
+    for origin_module in &incoming_modules {
+      if let Some(problem) = Self::try_to_add(
+        compilation,
+        config,
+        module_id,
+        runtime,
+        active_runtime,
+        possible_modules,
+        candidates,
+        failure_cache,
+        avoid_mutate_on_failure,
+        statistics,
+      ) {
+        if let Some(backup) = &backup {
+          config.rollback(backup.clone());
+        }
+        statistics.importer_failed += 1;
+        failure_cache.insert(module_id.clone(), problem.clone());
+        return Some(problem);
+      }
+    }
+    for imp in Self::get_imports(&compilation.module_graph, (*module_id).into(), runtime) {
+      candidates.insert(imp);
+    }
+    statistics.added += 1;
+    None
   }
 }
 

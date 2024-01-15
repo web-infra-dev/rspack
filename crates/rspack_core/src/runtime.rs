@@ -28,10 +28,20 @@ pub fn is_runtime_equal(a: &RuntimeSpec, b: &RuntimeSpec) -> bool {
   a.into_iter().zip(b).all(|(a, b)| a == b)
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RuntimeCondition {
   Boolean(bool),
   Spec(RuntimeSpec),
+}
+
+impl RuntimeCondition {
+  pub fn as_spec(&self) -> Option<&RuntimeSpec> {
+    if let Self::Spec(v) = self {
+      Some(v)
+    } else {
+      None
+    }
+  }
 }
 
 pub fn merge_runtime(a: &RuntimeSpec, b: &RuntimeSpec) -> RuntimeSpec {
@@ -43,6 +53,12 @@ pub fn merge_runtime(a: &RuntimeSpec, b: &RuntimeSpec) -> RuntimeSpec {
     set.insert(r.clone());
   }
   set
+}
+
+pub fn runtime_to_string(runtime: &RuntimeSpec) -> String {
+  let mut arr = runtime.iter().map(|item| item.as_ref()).collect::<Vec<_>>();
+  arr.sort();
+  arr.join(",")
 }
 
 pub fn filter_runtime(

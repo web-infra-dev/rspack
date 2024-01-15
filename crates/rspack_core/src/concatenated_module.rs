@@ -528,10 +528,12 @@ impl Module for ConcatenatedModule {
         let dep = dep_id.get_dependency(&compilation.module_graph);
         let module_id_of_dep = compilation
           .module_graph
-          .module_identifier_by_dependency_id(dep_id)
-          .expect("should have module");
+          .module_identifier_by_dependency_id(dep_id);
         if !is_harmony_dep_like(dep)
-          || !self.modules.iter().any(|item| &item.id == module_id_of_dep)
+          || !self
+            .modules
+            .iter()
+            .any(|item| Some(&item.id) == module_id_of_dep)
         {
           self.dependencies.push(*dep_id);
         }
