@@ -2076,40 +2076,23 @@ pub struct AssetInfoRelated {
   pub source_map: Option<String>,
 }
 
+/// level order, the impl is different from webpack, since the length of queue in `for of loop` is
+/// will not change
 pub fn assign_depths(
   assign_map: &mut HashMap<ModuleIdentifier, usize>,
   mg: &ModuleGraph,
   modules: Vec<&ModuleIdentifier>,
 ) {
   // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/Compilation.js#L3720
-  enum NumOrId {
-    Num(usize),
-    ModuleId(ModuleIdentifier),
-  }
   let mut q = VecDeque::new();
-  for item in modules {
-    q.push_back(NumOrId::ModuleId(*item));
+  for (i, item) in modules.iter().enumerate() {
+    q.push_back((**item, i));
   }
-  q.push_back(NumOrId::Num(1));
-  let mut depth = 0usize;
-  let mut i = 0;
-  while let Some(item) = q.pop_front() {
-    i += 1;
-    match item {
-      NumOrId::Num(n) => {
-        depth = n;
-        if q.len() == i {
-          return;
-        }
-        q.push_back(NumOrId::Num(depth + 1));
-      }
-      NumOrId::ModuleId(id) => {
-        assign_map.insert(id, depth);
-        let m = mg.module_by_identifier(&id).expect("should have module");
-        for con in mg.get_outgoing_connections(m) {
-          q.push_back(NumOrId::ModuleId(con.module_identifier));
-        }
-      }
+  while let Some((id, depth)) = q.pop_front() {
+    assign_map.insert(id, depth);
+    let m = mg.module_by_identifier(&id).expect("should have module");
+    for con in mg.get_outgoing_connections(m) {
+      q.push_back((con.module_identifier, depth + 1));
     }
   }
 }

@@ -1146,11 +1146,8 @@ impl ConcatenatedModule {
     runtime: Option<&RuntimeSpec>,
     mg: &ModuleGraph,
   ) -> Vec<ConnectionWithRuntimeCondition> {
-    let box_module = mg
-      .module_by_identifier(module_id)
-      .expect("should have module");
     let mut connections = mg
-      .get_outgoing_connections(box_module)
+      .get_outgoing_connections_by_identifier(module_id)
       .into_iter()
       .cloned()
       .collect::<Vec<_>>();
@@ -1246,7 +1243,7 @@ impl ConcatenatedModule {
       let module = compilation
         .module_graph
         .module_by_identifier(&module_id)
-        .expect("should have module");
+        .unwrap_or_else(|| panic!("should have module {}", module_id));
       let mut codegen_res =
         module.code_generation(compilation, runtime, Some(concatenation_scope))?;
       let CodeGenerationResult {

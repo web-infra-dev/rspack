@@ -1,6 +1,5 @@
 {
 	"optimization": {
-    "mangleExports": "deterministic",
     "concatenateModules": true
 	},
 	"builtins": {

@@ -1,5 +1,6 @@
 use std::cmp::Ordering;
 use std::collections::hash_map::DefaultHasher;
+use std::collections::VecDeque;
 use std::hash::Hasher;
 use std::os::unix::prelude::OpenOptionsExt;
 use std::sync::Arc;
@@ -600,6 +601,7 @@ impl Plugin for ModuleConcatenationPlugin {
       let bd = compilation.module_graph.get_depth(b);
       ad.cmp(&bd)
     });
+
     logger.time_end(start);
     let mut statistics = Statistics::default();
     let mut stats_candidates = 0;
@@ -611,6 +613,7 @@ impl Plugin for ModuleConcatenationPlugin {
     let mut used_as_inner: HashSet<ModuleIdentifier> = HashSet::default();
 
     for current_root in relevant_modules.iter() {
+      dbg!(&current_root);
       if used_as_inner.contains(current_root) {
         continue;
       }
@@ -636,7 +639,8 @@ impl Plugin for ModuleConcatenationPlugin {
         ConcatConfiguration::new(*current_root, active_runtime.clone());
 
       let mut failure_cache = HashMap::default();
-      let mut candidates = HashSet::default();
+      let mut candidates_visited = HashSet::default();
+      let mut candidates = VecDeque::new();
 
       let imports = Self::get_imports(
         &compilation.module_graph,
@@ -644,16 +648,20 @@ impl Plugin for ModuleConcatenationPlugin {
         active_runtime.as_ref(),
       );
       for import in imports {
-        candidates.insert(import);
+        candidates.push_back(import);
       }
 
-      let mut imports_to_extends = vec![];
-      for imp in candidates.iter() {
+      while let Some(imp) = candidates.pop_front() {
+        if candidates_visited.contains(&imp) {
+          continue;
+        } else {
+          candidates_visited.insert(imp);
+        }
         let mut import_candidates = HashSet::default();
         match Self::try_to_add(
           &compilation,
           &mut current_configuration,
-          imp,
+          &imp,
           Some(&chunk_runtime),
           active_runtime.as_ref(),
           &possible_inners,
@@ -663,17 +671,16 @@ impl Plugin for ModuleConcatenationPlugin {
           &mut statistics,
         ) {
           Some(problem) => {
-            failure_cache.insert(*imp, problem.clone());
-            current_configuration.add_warning(*imp, problem);
+            failure_cache.insert(imp, problem.clone());
+            current_configuration.add_warning(imp, problem);
           }
           _ => {
             import_candidates.iter().for_each(|c: &ModuleIdentifier| {
-              imports_to_extends.push(*c);
+              candidates.push_back(*c);
             });
           }
         }
       }
-      candidates.extend(imports_to_extends);
       stats_candidates += candidates.len();
       if !current_configuration.is_empty() {
         let modules = current_configuration.get_modules();
@@ -725,6 +732,8 @@ impl Plugin for ModuleConcatenationPlugin {
 
     let start = logger.time("create concatenated modules");
     let mut used_modules = HashSet::default();
+
+    dbg!(&concat_configurations);
     for config in concat_configurations {
       let root_module_id = config.root_module;
       if used_modules.contains(&root_module_id) {
@@ -763,12 +772,15 @@ impl Plugin for ModuleConcatenationPlugin {
       };
       let modules = modules_set
         .iter()
-        .map(|id| {
+        .filter_map(|id| {
+          if &root_module_id == id {
+            return None;
+          }
           let module = compilation
             .module_graph
             .module_by_identifier(id)
-            .expect("should have module");
-          ConcatenatedInnerModule {
+            .unwrap_or_else(|| panic!("should have module {}", id));
+          let inner_module = ConcatenatedInnerModule {
             id: *id,
             size: module.size(&rspack_core::SourceType::JavaScript),
             original_source_hash: module.original_source().map(|source| {
@@ -779,7 +791,8 @@ impl Plugin for ModuleConcatenationPlugin {
             shorten_id: module
               .readable_identifier(&compilation.options.context)
               .to_string(),
-          }
+          };
+          Some(inner_module)
         })
         .collect::<Vec<_>>();
       let mut new_module = ConcatenatedModule::create(
@@ -839,10 +852,10 @@ impl Plugin for ModuleConcatenationPlugin {
             .disconnect_chunk_and_module(&chunk_ukey, *m);
         }
       }
-      compilation
-        .module_graph
-        .module_identifier_to_module
-        .remove(&root_module_id);
+      // compilation
+      //   .module_graph
+      //   .module_identifier_to_module
+      //   .remove(&root_module_id);
       // compilation.chunk_graph.clear
 
       compilation
@@ -854,12 +867,16 @@ impl Plugin for ModuleConcatenationPlugin {
         |c, mg| {
           let other_module = if c.module_identifier == root_module_id {
             c.original_module_identifier
-              .expect("should have original_module_identifier")
           } else {
-            c.module_identifier
+            Some(c.module_identifier)
           };
           let dep = c.dependency_id.get_dependency(mg);
-          let inner_connection = is_harmony_dep_like(dep) && modules_set.contains(&other_module);
+          let inner_connection = is_harmony_dep_like(dep)
+            && if let Some(other_module) = other_module {
+              modules_set.contains(&other_module)
+            } else {
+              false
+            };
           !inner_connection
         },
       );

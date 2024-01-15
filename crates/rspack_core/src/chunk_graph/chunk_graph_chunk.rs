@@ -7,8 +7,9 @@ use rspack_identifier::{IdentifierLinkedMap, IdentifierSet};
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
-  find_graph_roots, merge_runtime, BoxModule, Chunk, ChunkByUkey, ChunkGroup, ChunkGroupByUkey,
-  ChunkGroupUkey, ChunkUkey, Module, ModuleGraph, ModuleIdentifier, RuntimeGlobals, SourceType,
+  find_graph_roots, merge_runtime, BoxModule, Chunk, ChunkByUkey, ChunkGraphModule, ChunkGroup,
+  ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Module, ModuleGraph, ModuleIdentifier,
+  RuntimeGlobals, SourceType,
 };
 use crate::{ChunkGraph, Compilation};
 
@@ -67,8 +68,18 @@ impl ChunkGraph {
   }
 
   pub fn replace_module(&mut self, old_module: &ModuleIdentifier, new_module: &ModuleIdentifier) {
-    let old_cgm = self.get_chunk_graph_module(*old_module);
+    if self
+      .chunk_graph_module_by_module_identifier
+      .get(new_module)
+      .is_none()
+    {
+      let new_chunk_graph_module = ChunkGraphModule::new();
+      self
+        .chunk_graph_module_by_module_identifier
+        .insert(*new_module, new_chunk_graph_module);
+    }
 
+    let old_cgm = self.get_chunk_graph_module(*old_module);
     for chunk in old_cgm.chunks.clone().into_iter() {
       let cgc = self.get_chunk_graph_chunk_mut(chunk);
       cgc.modules.remove(old_module);
