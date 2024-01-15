@@ -220,70 +220,76 @@ impl ModuleConcatenationPlugin {
     let get_incoming_connections_by_origin_module =
       module_graph.get_incoming_connections_by_origin_module(module_id);
 
-    // let incoming_connections = get_incoming_connections_by_origin_module;
+    let incoming_connections = get_incoming_connections_by_origin_module;
+
+    if let Some(incoming_connections_from_non_modules) = incoming_connections.get(&None) {
+      let active_non_modules_connections: Vec<_> = incoming_connections_from_non_modules
+        .iter()
+        .filter(|&connection| connection.is_active(&compilation.module_graph, runtime))
+        .collect();
+
+      // TODO: ADD module connection explanations
+      if !active_non_modules_connections.is_empty() {
+        let problem = {
+          // let importing_explanations: HashSet<_> = active_non_modules_connections
+          //   .iter()
+          //   .flat_map(|&c| c.explanation.as_ref())
+          //   .cloned()
+          //   .collect();
+          // let mut explanations: Vec<_> = importing_explanations.into_iter().collect();
+          // explanations.sort();
+          format!(
+            "Module {} is referenced",
+            module_readable_string,
+            // if !explanations.is_empty() {
+            //   format!("by: {}", explanations.join(", "))
+            // } else {
+            //   "in an unsupported way".to_string()
+            // }
+          )
+        };
+        let problem = Warning::Problem(problem);
+        statistics.incorrect_dependency += 1;
+        failure_cache.insert(module_id.clone(), problem.clone());
+        return Some(problem);
+      }
+    }
     //
-    // if let Some(incoming_connections_from_non_modules) = incoming_connections
-    //   .get(&None)
-    //   .or(incoming_connections.get(&Option::<Module>::None))
-    // {
-    //   let active_non_modules_connections: Vec<_> = incoming_connections_from_non_modules
-    //     .iter()
-    //     .filter(|&connection| connection.is_active(runtime))
-    //     .collect();
-    //
-    //   if !active_non_modules_connections.is_empty() {
-    //     let problem = |request_shortener: &str| {
-    //       let importing_explanations: HashSet<_> = active_non_modules_connections
-    //         .iter()
-    //         .flat_map(|&c| c.explanation.as_ref())
-    //         .cloned()
-    //         .collect();
-    //       let mut explanations: Vec<_> = importing_explanations.into_iter().collect();
-    //       explanations.sort();
-    //       format!(
-    //         "Module {} is referenced {}",
-    //         module_id.readable_identifier(request_shortener),
-    //         if !explanations.is_empty() {
-    //           format!("by: {}", explanations.join(", "))
-    //         } else {
-    //           "in an unsupported way".to_string()
-    //         }
-    //       )
-    //     };
-    //
-    //     statistics.incorrect_dependency += 1;
-    //     failure_cache.insert(module_id.clone(), Some(problem));
-    //     return Some(problem);
-    //   }
-    // }
-    //
-    // let mut incoming_connections_from_modules = HashMap::new();
-    // for (origin_module, connections) in incoming_connections {
-    //   if let Some(origin_module) = origin_module {
-    //     if chunk_graph.get_number_of_module_chunks(origin_module) == 0 {
-    //       continue; // Ignore connection from orphan modules
-    //     }
-    //
-    //     let mut origin_runtime = None;
-    //     for r in chunk_graph.get_module_runtimes(origin_module) {
-    //       origin_runtime = merge_runtime_owned(&origin_runtime, &r);
-    //     }
-    //
-    //     if !intersect_runtime(runtime, &origin_runtime) {
-    //       continue;
-    //     }
-    //
-    //     let active_connections: Vec<_> = connections
-    //       .iter()
-    //       .filter(|&connection| connection.is_active(runtime))
-    //       .cloned()
-    //       .collect();
-    //
-    //     if !active_connections.is_empty() {
-    //       incoming_connections_from_modules.insert(origin_module, active_connections);
-    //     }
-    //   }
-    // }
+    let mut incoming_connections_from_modules = HashMap::default();
+    for (origin_module, connections) in incoming_connections {
+      if let Some(origin_module) = origin_module {
+        if chunk_graph.get_number_of_module_chunks(origin_module) == 0 {
+          continue; // Ignore connection from orphan modules
+        }
+
+        let mut origin_runtime = RuntimeSpec::default();
+        for r in chunk_graph
+          .get_module_runtimes(origin_module, chunk_by_ukey)
+          .values()
+        {
+          origin_runtime = merge_runtime(&origin_runtime, &r);
+        }
+
+        let is_intersect = if let Some(runtime) = runtime {
+          runtime.intersection(&origin_runtime).count() > 0
+        } else {
+          false
+        };
+        if !is_intersect {
+          continue;
+        }
+
+        let active_connections: Vec<_> = connections
+          .iter()
+          .filter(|&connection| connection.is_active(&compilation.module_graph, runtime))
+          .cloned()
+          .collect();
+
+        if !active_connections.is_empty() {
+          incoming_connections_from_modules.insert(origin_module, active_connections);
+        }
+      }
+    }
     //
     // let incoming_modules: Vec<_> = incoming_connections_from_modules.keys().cloned().collect();
     //
