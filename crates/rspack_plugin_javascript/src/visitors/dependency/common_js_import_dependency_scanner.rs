@@ -247,14 +247,14 @@ impl<'a> CommonJsImportDependencyScanner<'a> {
     if is_reserved_word_in_strict(ident.sym.as_str()) {
       if self.is_strict {
         self.errors.push(Box::new(create_traceable_error(
-          "SyntaxError".into(),
+          "JavaScript parsing error".into(),
           format!("The keyword '{}' is reserved in strict mode", ident.sym),
           &self.source_file,
           ident.span().into(),
         )));
       } else {
         self.errors.push(Box::new(create_traceable_error(
-          "SyntaxError".into(),
+          "JavaScript parsing error".into(),
           format!("{} is disallowed as a lexically bound name", ident.sym),
           &self.source_file,
           ident.span().into(),
