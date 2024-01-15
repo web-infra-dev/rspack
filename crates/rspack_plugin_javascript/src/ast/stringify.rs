@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use rspack_ast::javascript::Ast;
-use rspack_common::SourceMapKind;
 use rspack_error::{miette::IntoDiagnostic, Result};
+use rspack_util::source_map::SourceMapKind;
 use swc_core::base::config::JsMinifyFormatOptions;
 use swc_core::{
   common::{

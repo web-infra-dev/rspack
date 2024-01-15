@@ -10,13 +10,13 @@ use std::{
 use itertools::Itertools;
 use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
-use rspack_common::SourceMapKind;
 use rspack_core_macros::impl_source_map_config;
 use rspack_error::{impl_empty_diagnosable_trait, miette::IntoDiagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
 use rspack_regex::RspackRegex;
 use rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
+use rspack_util::source_map::SourceMapKind;
 use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
 

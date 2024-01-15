@@ -5,12 +5,12 @@ use std::{any::Any, borrow::Cow, fmt::Debug};
 
 use async_trait::async_trait;
 use json::JsonValue;
-use rspack_common::SourceMapGenConfig;
 use rspack_error::{Diagnosable, Result};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_identifier::{Identifiable, Identifier};
 use rspack_sources::Source;
 use rspack_util::ext::{AsAny, DynEq, DynHash};
+use rspack_util::source_map::SourceMapGenConfig;
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::ecma::atoms::JsWord;
 
@@ -448,10 +448,10 @@ mod test {
   use std::borrow::Cow;
   use std::hash::Hash;
 
-  use rspack_common::{SourceMapGenConfig, SourceMapKind};
   use rspack_error::{Diagnosable, Result};
   use rspack_identifier::{Identifiable, Identifier};
   use rspack_sources::Source;
+  use rspack_util::source_map::{SourceMapGenConfig, SourceMapKind};
 
   use super::Module;
   use crate::{

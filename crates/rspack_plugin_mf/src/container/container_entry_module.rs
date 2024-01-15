@@ -1,7 +1,6 @@
 use std::{borrow::Cow, hash::Hash};
 
 use async_trait::async_trait;
-use rspack_common::SourceMapKind;
 use rspack_core::{
   block_promise, impl_build_info_meta, impl_source_map_config, module_raw, returning_function,
   rspack_sources::{RawSource, Source, SourceExt},
@@ -14,6 +13,7 @@ use rspack_core::{
 use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
+use rspack_util::source_map::SourceMapKind;
 
 use super::{
   container_exposed_dependency::ContainerExposedDependency, container_plugin::ExposeOptions,

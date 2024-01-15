@@ -1,10 +1,10 @@
-use rspack_common::SourceMapKind;
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
   Chunk, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
 };
 use rspack_identifier::Identifier;
+use rspack_util::source_map::SourceMapKind;
 
 use super::utils::{chunk_has_js, get_output_dir};
 use crate::{

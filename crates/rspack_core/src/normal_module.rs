@@ -11,7 +11,6 @@ use std::{
 use bitflags::bitflags;
 use dashmap::DashMap;
 use derivative::Derivative;
-use rspack_common::{SourceMapGenConfig, SourceMapKind};
 use rspack_core_macros::impl_source_map_config;
 use rspack_error::{error, Diagnosable, Diagnostic, DiagnosticExt, MietteExt, Result, Severity};
 use rspack_hash::RspackHash;
@@ -21,6 +20,7 @@ use rspack_sources::{
   BoxSource, CachedSource, OriginalSource, RawSource, Source, SourceExt, SourceMap,
   SourceMapSource, WithoutOriginalOptions,
 };
+use rspack_util::source_map::{SourceMapGenConfig, SourceMapKind};
 use rustc_hash::FxHashSet as HashSet;
 use rustc_hash::FxHasher;
 use serde_json::json;

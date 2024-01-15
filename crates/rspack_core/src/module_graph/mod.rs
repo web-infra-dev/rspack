@@ -747,10 +747,10 @@ impl ModuleGraph {
 mod test {
   use std::borrow::Cow;
 
-  use rspack_common::{SourceMapGenConfig, SourceMapKind};
   use rspack_error::{Diagnosable, Result};
   use rspack_identifier::Identifiable;
   use rspack_sources::Source;
+  use rspack_util::source_map::{SourceMapGenConfig, SourceMapKind};
 
   use crate::{
     AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta,

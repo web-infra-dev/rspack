@@ -1,10 +1,10 @@
-use rspack_common::SourceMapKind;
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
   ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule,
 };
 use rspack_identifier::Identifier;
+use rspack_util::source_map::SourceMapKind;
 
 use crate::get_chunk_runtime_requirements;
 

@@ -2,10 +2,10 @@ use std::{collections::HashMap, fmt::Debug};
 
 use derivative::Derivative;
 use rkyv::AlignedVec;
-use rspack_common::SourceMapKind;
 use rspack_error::{Result, TWithDiagnosticArray};
 use rspack_loader_runner::{AdditionalData, ResourceData};
 use rspack_sources::BoxSource;
+use rspack_util::source_map::SourceMapKind;
 
 use crate::{
   tree_shaking::visitor::OptimizeAnalyzeResult, AsyncDependenciesBlock, BoxDependency, BoxLoader,

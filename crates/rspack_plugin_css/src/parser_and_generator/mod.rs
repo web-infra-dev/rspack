@@ -6,7 +6,6 @@ use indexmap::IndexMap;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rkyv::{from_bytes, to_bytes, AlignedVec};
-use rspack_common::SourceMapKind;
 use rspack_core::{
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
   rspack_sources::{
@@ -18,6 +17,7 @@ use rspack_core::{
 };
 use rspack_core::{ModuleInitFragments, RuntimeGlobals};
 use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_util::source_map::SourceMapKind;
 use rustc_hash::FxHashSet;
 use sugar_path::SugarPath;
 use swc_core::{css::parser::parser::ParserConfig, ecma::atoms::JsWord};

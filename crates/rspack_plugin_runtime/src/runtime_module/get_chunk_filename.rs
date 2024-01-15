@@ -2,13 +2,13 @@ use std::{cmp::Ordering, fmt};
 
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
-use rspack_common::SourceMapKind;
 use rspack_core::{
   get_chunk_from_ukey, get_filename_without_hash_length, impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
   Chunk, ChunkUkey, Compilation, Filename, PathData, RuntimeGlobals, RuntimeModule, SourceType,
 };
 use rspack_identifier::Identifier;
+use rspack_util::source_map::SourceMapKind;
 
 use super::create_fake_chunk;
 use super::stringify_dynamic_chunk_map;

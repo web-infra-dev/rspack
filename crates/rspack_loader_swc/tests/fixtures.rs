@@ -5,13 +5,13 @@ use std::{
   sync::Arc,
 };
 
-use rspack_common::SourceMapKind;
 use rspack_core::{
   run_loaders, CompilerContext, CompilerOptions, Loader, LoaderRunnerContext, ResourceData,
   SideEffectOption,
 };
 use rspack_loader_swc::{SwcLoader, SwcLoaderJsOptions};
 use rspack_testing::{fixture, test_fixture};
+use rspack_util::source_map::SourceMapKind;
 use serde_json::json;
 use swc_core::base::config::PluginConfig;
 

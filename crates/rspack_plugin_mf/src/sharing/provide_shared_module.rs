@@ -1,7 +1,6 @@
 use std::{borrow::Cow, hash::Hash};
 
 use async_trait::async_trait;
-use rspack_common::SourceMapKind;
 use rspack_core::{
   async_module_factory, impl_build_info_meta, impl_source_map_config, rspack_sources::Source,
   sync_module_factory, AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency,
@@ -12,6 +11,7 @@ use rspack_core::{
 use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
+use rspack_util::source_map::SourceMapKind;
 
 use super::{
   provide_for_shared_dependency::ProvideForSharedDependency,

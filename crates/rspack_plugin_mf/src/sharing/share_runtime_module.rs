@@ -1,12 +1,12 @@
 use hashlink::{LinkedHashMap, LinkedHashSet};
 use itertools::Itertools;
-use rspack_common::SourceMapKind;
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
   ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, SourceType,
 };
 use rspack_identifier::Identifier;
+use rspack_util::source_map::SourceMapKind;
 use rustc_hash::FxHashMap;
 
 use super::provide_shared_plugin::ProvideVersion;

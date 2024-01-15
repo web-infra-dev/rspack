@@ -1,10 +1,10 @@
-use rspack_common::SourceMapKind;
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
   Compilation, RuntimeModule,
 };
 use rspack_identifier::Identifier;
+use rspack_util::source_map::SourceMapKind;
 
 #[impl_runtime_module]
 #[derive(Debug, Eq)]

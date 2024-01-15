@@ -11,7 +11,6 @@ use futures::{future::BoxFuture, StreamExt};
 use once_cell::sync::Lazy;
 use pathdiff::diff_paths;
 use regex::{Captures, Regex};
-use rspack_common::SourceMapKind;
 use rspack_core::{
   contextify,
   rspack_sources::{BoxSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap},
@@ -22,6 +21,7 @@ use rspack_core::{
 use rspack_core::{Filename, Logger, Module, ModuleIdentifier, OutputOptions};
 use rspack_error::{miette::IntoDiagnostic, Error, Result};
 use rspack_hash::RspackHash;
+use rspack_util::source_map::SourceMapKind;
 use rspack_util::{
   identifier::make_paths_absolute, path::relative, swc::normalize_custom_filename,
 };

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use rspack_common::SourceMapKind;
 pub use rspack_loader_runner::{run_loaders, Content, Loader, LoaderContext};
+use rspack_util::source_map::SourceMapKind;
 
 use crate::{CompilerOptions, Context, ModuleIdentifier, ResolverFactory};
 

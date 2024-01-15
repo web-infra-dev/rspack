@@ -1,10 +1,10 @@
-use rspack_common::SourceMapKind;
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
   ChunkUkey, Compilation, PathData, RuntimeGlobals, RuntimeModule,
 };
 use rspack_identifier::Identifier;
+use rspack_util::source_map::SourceMapKind;
 
 // TODO workaround for get_chunk_update_filename
 #[impl_runtime_module]

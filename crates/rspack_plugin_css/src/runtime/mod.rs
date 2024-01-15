@@ -1,4 +1,3 @@
-use rspack_common::SourceMapKind;
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
@@ -9,6 +8,7 @@ use rspack_plugin_runtime::{
   chunk_has_css, get_chunk_runtime_requirements, render_condition_map, stringify_chunks,
   BooleanMatcher,
 };
+use rspack_util::source_map::SourceMapKind;
 use rustc_hash::FxHashSet as HashSet;
 
 #[impl_runtime_module]

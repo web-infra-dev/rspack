@@ -1,12 +1,12 @@
 use std::borrow::Cow;
 use std::hash::Hash;
 
-use rspack_common::SourceMapKind;
 use rspack_core_macros::impl_source_map_config;
 use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_hash::RspackHash;
 use rspack_identifier::Identifiable;
 use rspack_sources::{BoxSource, RawSource, Source, SourceExt};
+use rspack_util::source_map::SourceMapKind;
 
 use crate::{
   dependencies_block::AsyncDependenciesBlockIdentifier, impl_build_info_meta, BuildContext,

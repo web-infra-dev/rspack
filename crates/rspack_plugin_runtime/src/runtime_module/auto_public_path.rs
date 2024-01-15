@@ -1,4 +1,3 @@
-use rspack_common::SourceMapKind;
 use rspack_core::{
   get_js_chunk_filename_template, impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
@@ -6,6 +5,7 @@ use rspack_core::{
   RuntimeModuleStage, SourceType,
 };
 use rspack_identifier::Identifier;
+use rspack_util::source_map::SourceMapKind;
 
 use super::utils::get_undo_path;
 

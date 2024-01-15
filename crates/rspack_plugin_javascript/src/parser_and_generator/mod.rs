@@ -1,5 +1,4 @@
 use rspack_ast::RspackAst;
-use rspack_common::SourceMapKind;
 use rspack_core::diagnostics::map_box_diagnostics_to_module_parse_diagnostics;
 use rspack_core::rspack_sources::{
   BoxSource, MapOptions, OriginalSource, RawSource, ReplaceSource, Source, SourceExt, SourceMap,
@@ -15,6 +14,7 @@ use rspack_core::{
 };
 use rspack_error::miette::Diagnostic;
 use rspack_error::{DiagnosticExt, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_util::source_map::SourceMapKind;
 use swc_core::common::SyntaxContext;
 use swc_core::ecma::parser::{EsConfig, Syntax};
 
