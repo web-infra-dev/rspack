@@ -162,7 +162,7 @@ export function ensureEnvObject<T extends Record<string, unknown>>(
 	options: yargs.Arguments
 ): T {
 	if (Array.isArray(options.env)) {
-		// for cases that cli haven't haven `normalizeEnv` middleware applied
+		// in case that cli haven't got `normalizeEnv` middleware applied
 		normalizeEnv(options);
 	}
 	options.env = options.env || {};
