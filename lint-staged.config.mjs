@@ -4,5 +4,5 @@ export default {
   "x.mjs": "prettier --write",
   "crates/rspack_plugin_runtime/**/*.{ts,js}": "prettier --write",
   "*.toml": "npx @taplo/cli format",
-  "**/*.{ts,js,mjs}": () => "oxlint ."
+  "*.{ts,js,mjs}": () => "pnpm run lint:js"
 }
