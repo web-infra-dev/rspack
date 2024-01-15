@@ -702,7 +702,7 @@ pub fn string_of_used_name(used: Option<&UsedName>) -> String {
 #[derive(Debug, Clone, Hash)]
 pub struct ExportInfoTargetValue {
   connection: Option<ModuleGraphConnection>,
-  exports: Option<Vec<Atom>>,
+  export: Option<Vec<Atom>>,
   priority: u8,
 }
 
@@ -824,7 +824,7 @@ impl ExportInfoId {
       .values()
       .map(|item| UnResolvedExportInfoTarget {
         connection: item.connection,
-        export: item.exports.clone(),
+        export: item.export.clone(),
       })
       .collect::<Vec<_>>();
     let target = ExportInfo::resolve_target(
@@ -943,7 +943,7 @@ impl ExportInfoId {
       .next()
       .expect("should have export info target"); // refer https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/ExportsInfo.js#L1388-L1394
     if original_target.connection.as_ref() == Some(&target.connection)
-      || original_target.exports == target.export
+      || original_target.export == target.export
     {
       return None;
     }
@@ -958,7 +958,7 @@ impl ExportInfoId {
       None,
       ExportInfoTargetValue {
         connection: updated_connection,
-        exports: target.export.clone(),
+        export: target.export.clone(),
         priority: 0,
       },
     );
@@ -1051,9 +1051,83 @@ impl ExportInfoId {
   pub(crate) fn find_target(
     &self,
     mg: &ModuleGraph,
-    module: impl Fn(&rspack_identifier::Identifier) -> bool,
-  ) -> Option<ResolvedExportInfoTarget> {
-    todo!()
+    valid_target_module_filter: Arc<impl Fn(&ModuleIdentifier) -> bool>,
+  ) -> FindTargetRetEnum {
+    self._find_target(mg, valid_target_module_filter, &mut HashSet::default())
+  }
+
+  pub(crate) fn _find_target(
+    &self,
+    mg: &ModuleGraph,
+    valid_target_module_filter: Arc<impl Fn(&ModuleIdentifier) -> bool>,
+    visited: &mut HashSet<ExportInfoId>,
+  ) -> FindTargetRetEnum {
+    let export_info = self.get_export_info(mg);
+    dbg!(&export_info);
+    if !export_info.target_is_set || export_info.target.is_empty() {
+      return FindTargetRetEnum::Undefined;
+    }
+    let raw_target = export_info
+      .get_max_target_readonly()
+      .values()
+      .cloned()
+      .next();
+    dbg!(&raw_target);
+    let Some(raw_target) = raw_target else {
+      return FindTargetRetEnum::Undefined;
+    };
+    let mut target = FindTargetRetValue {
+      module: raw_target
+        .connection
+        .expect("should have connection")
+        .module_identifier,
+      export: raw_target.export,
+    };
+    loop {
+      if (valid_target_module_filter(&target.module)) {
+        return FindTargetRetEnum::Value(target);
+      }
+      let exports_info = mg.get_exports_info(&target.module);
+      let export_info = exports_info
+        .id
+        .get_read_only_export_info(&target.export.as_ref().expect("should have export")[0], &mg);
+      if visited.contains(&export_info.id) {
+        return FindTargetRetEnum::Undefined;
+      }
+      visited.insert(export_info.id);
+      let new_target = export_info
+        .id
+        ._find_target(mg, valid_target_module_filter.clone(), visited);
+      let new_target = match new_target {
+        FindTargetRetEnum::Undefined => return FindTargetRetEnum::False,
+        FindTargetRetEnum::False => return FindTargetRetEnum::False,
+        FindTargetRetEnum::Value(target) => target,
+      };
+      if target.export.as_ref().map(|item| item.len()) == Some(1) {
+        target = new_target;
+      } else {
+        target = FindTargetRetValue {
+          module: new_target.module,
+          export: if let Some(export) = new_target.export {
+            Some(
+              vec![
+                export,
+                target
+                  .export
+                  .as_ref()
+                  .and_then(|export| export.get(1..).map(|slice| slice.to_vec()))
+                  .unwrap_or_default(),
+              ]
+              .concat(),
+            )
+          } else {
+            target
+              .export
+              .and_then(|export| export.get(1..).map(|slice| slice.to_vec()))
+          },
+        }
+      }
+    }
   }
 }
 impl Default for ExportInfoId {
@@ -1143,6 +1217,18 @@ pub struct ResolvedExportInfoTarget {
   connection: ModuleGraphConnection,
 }
 
+#[derive(Clone, Debug)]
+pub enum FindTargetRetEnum {
+  Undefined,
+  False,
+  Value(FindTargetRetValue),
+}
+#[derive(Clone, Debug)]
+pub struct FindTargetRetValue {
+  pub module: ModuleIdentifier,
+  pub export: Option<Vec<Atom>>,
+}
+
 #[derive(Debug, Clone)]
 struct UnResolvedExportInfoTarget {
   connection: Option<ModuleGraphConnection>,
@@ -1192,7 +1278,7 @@ impl ExportInfo {
                   k,
                   ExportInfoTargetValue {
                     connection: v.connection,
-                    exports: match v.exports {
+                    export: match v.export {
                       Some(vec) => Some(vec),
                       None => Some(vec![name
                         .clone()
@@ -1339,6 +1425,11 @@ impl ExportInfo {
     }
   }
 
+  fn get_max_target_readonly(&self) -> &HashMap<Option<DependencyId>, ExportInfoTargetValue> {
+    assert!(self.max_target_is_set);
+    return &self.max_target;
+  }
+
   fn get_max_target(&mut self) -> &HashMap<Option<DependencyId>, ExportInfoTargetValue> {
     if self.max_target_is_set {
       return &self.max_target;
@@ -1466,7 +1557,7 @@ impl ExportInfo {
         key,
         ExportInfoTargetValue {
           connection,
-          exports: export_name.cloned(),
+          export: export_name.cloned(),
           priority: normalized_priority,
         },
       );
@@ -1482,7 +1573,7 @@ impl ExportInfo {
         key,
         ExportInfoTargetValue {
           connection,
-          exports: Some(export_name.cloned().unwrap_or_default()),
+          export: Some(export_name.cloned().unwrap_or_default()),
           priority: normalized_priority,
         },
       );
@@ -1492,9 +1583,9 @@ impl ExportInfo {
     };
     if old_target.connection != connection
       || old_target.priority != normalized_priority
-      || old_target.exports.as_ref() != export_name
+      || old_target.export.as_ref() != export_name
     {
-      old_target.exports = export_name.cloned();
+      old_target.export = export_name.cloned();
       old_target.priority = normalized_priority;
       old_target.connection = connection;
       self.max_target.clear();

@@ -1609,7 +1609,6 @@ impl ConcatenatedModule {
     }
 
     already_visited.insert(export_info_id);
-    // TODO: check it after
 
     match info {
       ModuleInfo::Concatenated(info) => {
@@ -1629,6 +1628,7 @@ impl ConcatenatedModule {
             comment: None,
           });
         }
+        dbg!(&export_id, &info.export_map);
 
         if let Some(ref export_id) = export_id
           && let Some(direct_export) = info.export_map.as_ref().and_then(|map| map.get(&export_id))
@@ -1659,7 +1659,7 @@ impl ConcatenatedModule {
           }
         }
 
-        if let Some(export_id) = export_id
+        if let Some(ref export_id) = export_id
           && let Some(raw_export) = info
             .raw_export_map
             .as_ref()
@@ -1674,39 +1674,43 @@ impl ConcatenatedModule {
           });
         }
 
-        if let Some(reexport) =
-          export_info_id.find_target(mg, |module| module_to_info_map.contains_key(module))
-        {
-          // TODO:
-          // if reexport.is_false() {
-          //   panic!(
-          //     "Target module of reexport is not part of the concatenation (export '{}')",
-          //     export_id
-          //   );
-          // }
-
-          if let Some(ref_info) = module_to_info_map.get(&reexport.module) {
-            // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L457
-            let build_meta = mg
-              .module_by_identifier(&ref_info.id())
-              .and_then(|m| m.build_meta())
-              .expect("should have module meta");
-            return Self::get_final_binding(
-              mg,
-              &ref_info.id(),
-              if let Some(reexport_export) = reexport.export {
-                [reexport_export.clone(), export_name[1..].to_vec()].concat()
-              } else {
-                export_name[1..].to_vec()
-              },
-              module_to_info_map,
-              runtime,
-              needed_namespace_objects,
-              as_call,
-              build_meta.strict_harmony_module,
-              asi_safe,
-              already_visited,
+        let reexport = export_info_id.find_target(
+          mg,
+          Arc::new(|module: &ModuleIdentifier| module_to_info_map.contains_key(module)),
+        );
+        dbg!(&reexport);
+        match reexport {
+          crate::FindTargetRetEnum::Undefined => {}
+          crate::FindTargetRetEnum::False => {
+            panic!(
+              "Target module of reexport is not part of the concatenation (export '{:?}')",
+              &export_id
             );
+          }
+          crate::FindTargetRetEnum::Value(reexport) => {
+            if let Some(ref_info) = module_to_info_map.get(&reexport.module) {
+              // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L457
+              let build_meta = mg
+                .module_by_identifier(&ref_info.id())
+                .and_then(|m| m.build_meta())
+                .expect("should have module meta");
+              return Self::get_final_binding(
+                mg,
+                &ref_info.id(),
+                if let Some(reexport_export) = reexport.export {
+                  [reexport_export.clone(), export_name[1..].to_vec()].concat()
+                } else {
+                  export_name[1..].to_vec()
+                },
+                module_to_info_map,
+                runtime,
+                needed_namespace_objects,
+                as_call,
+                build_meta.strict_harmony_module,
+                asi_safe,
+                already_visited,
+              );
+            }
           }
         }
 
