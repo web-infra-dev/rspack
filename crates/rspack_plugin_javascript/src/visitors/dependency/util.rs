@@ -250,7 +250,7 @@ fn test() {
   use swc_core::ecma::ast::{Ident, MemberExpr, MemberProp, MetaPropExpr, MetaPropKind};
   use swc_core::ecma::utils::member_expr;
   use swc_core::ecma::utils::ExprFactory;
-  let expr = *member_expr!(DUMMY_SP, module.hot.accept);
+  let expr = Expr::Member(member_expr!(DUMMY_SP, module.hot.accept));
   assert!(expr_matcher::is_module_hot_accept(&expr));
   assert!(!expr_matcher::is_module_hot_decline(&expr));
   assert!(is_module_hot_accept_call(&CallExpr {
