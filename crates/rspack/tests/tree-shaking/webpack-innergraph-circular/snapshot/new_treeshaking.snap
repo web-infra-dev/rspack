@@ -40,18 +40,18 @@ __webpack_require__.d(__webpack_exports__, {
   exportBUsed: function() { return exportBUsed; },
   exportCUsed: function() { return exportCUsed; }
 });
- function A(s) {
+function A(s) {
     return s + "A";
 }
- function B(s) {
+function B(s) {
     return s + "B";
 }
- function C(s) {
+function C(s) {
     return s + "C";
 }
- const exportAUsed = true;
- const exportBUsed = true;
- const exportCUsed = false;
+const exportAUsed = true;
+const exportBUsed = true;
+const exportCUsed = false;
 }),
 "./module.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";

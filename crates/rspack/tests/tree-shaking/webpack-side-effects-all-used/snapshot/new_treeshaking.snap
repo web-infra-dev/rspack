@@ -63,12 +63,12 @@ __webpack_require__.d(__webpack_exports__, {
   log: function() { return log; },
   track: function() { return track; }
 });
- function track(file) {
+function track(file) {
     log.push(file);
     log.sort();
 }
- var log = [];
- function reset() {
+var log = [];
+function reset() {
     log.length = 0;
 }
 }),

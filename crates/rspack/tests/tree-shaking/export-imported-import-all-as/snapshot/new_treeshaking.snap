@@ -16,7 +16,7 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   result: function() { return result; }
 });
- const result = "";
+const result = "";
 }),
 
 },function(__webpack_require__) {

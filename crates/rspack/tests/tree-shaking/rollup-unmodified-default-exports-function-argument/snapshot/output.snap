@@ -14,7 +14,7 @@ var foo = function() {
     return 42;
 };
 var __WEBPACK_DEFAULT_EXPORT__ = foo;
- function bar() {
+function bar() {
     return contrivedExample(foo);
 }
 }),

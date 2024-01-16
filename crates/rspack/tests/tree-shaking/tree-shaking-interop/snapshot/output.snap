@@ -26,7 +26,7 @@ __webpack_require__.d(__webpack_exports__, {
 __webpack_require__.el("./a.js@0:15").then(__webpack_require__.bind(__webpack_require__, /*! ./bar */"./bar.js")).then((mod)=>{
     console.log(mod);
 });
- const a = "a";
+const a = "a";
 exports.test = 30;
 }),
 "./foo.js": (function (module, __unused_webpack_exports, __webpack_require__) {
