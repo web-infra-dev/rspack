@@ -1,16 +1,17 @@
 mod dependency;
 mod scope_info;
-
-pub use dependency::*;
-use swc_core::common::comments::Comments;
-use swc_core::ecma::visit::Fold;
-
 pub mod swc_visitor;
+
 use rspack_ast::javascript::Ast;
 use rspack_core::CompilerOptions;
 use rspack_error::{AnyhowError, Result};
+use swc_core::common::comments::Comments;
 use swc_core::common::{chain, Mark};
 use swc_core::ecma::transforms::base::pass::Optional;
+use swc_core::ecma::visit::Fold;
+
+pub use self::dependency::*;
+pub use self::JavascriptParser;
 
 /// Webpack builtin plugins
 /// - `define`: a port of `DefinePlugin`

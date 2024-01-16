@@ -1,6 +1,5 @@
 mod api_scanner;
 mod common_js_export_scanner;
-pub(crate) mod common_js_import_dependency_scanner;
 mod common_js_scanner;
 mod compatibility_scanner;
 mod context_helper;
@@ -20,6 +19,7 @@ mod worker_scanner;
 
 use std::sync::Arc;
 
+pub use context_helper::scanner_context_module;
 use rspack_ast::javascript::Program;
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
@@ -32,11 +32,10 @@ use swc_core::common::{SourceFile, Span};
 use swc_core::ecma::atoms::JsWord;
 
 use self::harmony_import_dependency_scanner::ImportMap;
-use self::parser::JavascriptParser;
+pub use self::parser::JavascriptParser;
 pub use self::util::*;
 use self::{
   api_scanner::ApiScanner, common_js_export_scanner::CommonJsExportDependencyScanner,
-  common_js_import_dependency_scanner::CommonJsImportDependencyScanner,
   common_js_scanner::CommonJsScanner, compatibility_scanner::CompatibilityScanner,
   export_info_api_scanner::ExportInfoApiScanner,
   harmony_detection_scanner::HarmonyDetectionScanner,
@@ -91,20 +90,16 @@ pub fn scan_dependencies(
 
   let mut rewrite_usage_span = HashMap::default();
 
-  let mut parser = JavascriptParser::new(&mut dependencies, &mut presentational_dependencies);
-  parser.visit(program.get_inner_program());
-
-  // TODO it should enable at js/auto or js/dynamic, but builtins provider will inject require at esm
-  // https://github.com/web-infra-dev/rspack/issues/3544
-  program.visit_with(&mut CommonJsImportDependencyScanner::new(
+  let mut parser = JavascriptParser::new(
     source_file.clone(),
     &mut dependencies,
     &mut presentational_dependencies,
-    unresolved_ctxt,
-    module_type,
     &mut ignored,
+    module_type,
     &mut errors,
-  ));
+  );
+
+  parser.visit(program.get_inner_program());
 
   program.visit_with(&mut ApiScanner::new(
     source_file.clone(),

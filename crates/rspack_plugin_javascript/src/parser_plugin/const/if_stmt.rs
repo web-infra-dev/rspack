@@ -6,7 +6,7 @@ use swc_core::ecma::ast::{BlockStmt, DoWhileStmt, ForHead, ForInStmt, ForOfStmt,
 use swc_core::ecma::ast::{LabeledStmt, ObjectPatProp, Pat, Stmt, VarDeclOrExpr, WhileStmt};
 use swc_core::ecma::ast::{VarDecl, VarDeclKind, VarDeclarator};
 
-use crate::visitors::common_js_import_dependency_scanner::CommonJsImportDependencyScanner;
+use crate::visitors::JavascriptParser;
 
 fn get_hoisted_declarations<'a>(
   branch: &'a Stmt,
@@ -130,14 +130,7 @@ fn get_hoisted_declarations<'a>(
   declarations
 }
 
-/// Return:
-/// `None` means need walk `stmt.test`, `stmt.cons` and `stmt.alt`
-/// `Some(true)` means only need walk `stmt.cons`
-/// `Some(false)` means only need walk `stmt.alt`
-pub fn statement_if(
-  scanner: &mut CommonJsImportDependencyScanner<'_>,
-  stmt: &IfStmt,
-) -> Option<bool> {
+pub fn statement_if(scanner: &mut JavascriptParser, stmt: &IfStmt) -> Option<bool> {
   let param = scanner.evaluate_expression(&stmt.test);
   let Some(boolean) = param.as_bool() else {
     return None;
@@ -162,7 +155,7 @@ pub fn statement_if(
   };
 
   if let Some(branch_to_remove) = branch_to_remove {
-    let declarations = if scanner.is_strict {
+    let declarations = if scanner.is_strict() {
       get_hoisted_declarations(branch_to_remove, false)
     } else {
       get_hoisted_declarations(branch_to_remove, true)

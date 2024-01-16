@@ -4,7 +4,7 @@ use swc_core::ecma::ast::{CallExpr, Ident, UnaryExpr, UnaryOp};
 
 use super::JavascriptParserPlugin;
 use crate::dependency::WebpackIsIncludedDependency;
-use crate::visitors::common_js_import_dependency_scanner::CommonJsImportDependencyScanner;
+use crate::visitors::JavascriptParser;
 
 const WEBPACK_IS_INCLUDED: &str = "__webpack_is_included__";
 
@@ -15,11 +15,7 @@ fn is_webpack_is_included(ident: &Ident) -> bool {
 pub struct WebpackIsIncludedPlugin;
 
 impl JavascriptParserPlugin for WebpackIsIncludedPlugin {
-  fn call(
-    &self,
-    parser: &mut CommonJsImportDependencyScanner<'_>,
-    expr: &CallExpr,
-  ) -> Option<bool> {
+  fn call(&self, parser: &mut JavascriptParser<'_>, expr: &CallExpr) -> Option<bool> {
     let is_webpack_is_included = expr
       .callee
       .as_expr()
@@ -46,11 +42,7 @@ impl JavascriptParserPlugin for WebpackIsIncludedPlugin {
     Some(true)
   }
 
-  fn r#typeof(
-    &self,
-    parser: &mut CommonJsImportDependencyScanner<'_>,
-    expr: &UnaryExpr,
-  ) -> Option<bool> {
+  fn r#typeof(&self, parser: &mut JavascriptParser<'_>, expr: &UnaryExpr) -> Option<bool> {
     assert!(expr.op == UnaryOp::TypeOf);
     let is_webpack_is_included = expr
       .arg

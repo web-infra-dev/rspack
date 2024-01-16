@@ -1,13 +1,12 @@
 it("should be able to rename require by var", function () {
-	var cjsRequire = typeof require !== "undefined" && require;
-	expect(cjsRequire).toBe(undefined);
+	var cjsRequire; // just to make it difficult
+	var cjsRequire = require,
+		cjsRequire2 = typeof require !== "undefined" && require;
+	// expect(cjsRequire("./file")).toBe("ok");
+	// expect(cjsRequire2("./file")).toBe("ok");
+	expect(typeof cjsRequire).toBe("function");
+	expect(typeof cjsRequire2).toBe("function");
 });
-// it("should be able to rename require by var", function() {
-// 	var cjsRequire; // just to make it difficult
-// 	var cjsRequire = require, cjsRequire2 = typeof require !== "undefined" && require;
-// 	expect(cjsRequire("./file")).toBe("ok");
-// 	expect(cjsRequire2("./file")).toBe("ok");
-// });
 
 // it("should be able to rename require by assign", function() {
 // 	var cjsRequire, cjsRequire2;
