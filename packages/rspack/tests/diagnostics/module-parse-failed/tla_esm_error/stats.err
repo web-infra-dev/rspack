@@ -1,0 +1,13 @@
+ERROR in ./index.js
+ModuleParseError
+
+  × Module parse failed:
+  ╰─▶   × JavaScript parsing error: Top-level-await is only supported in EcmaScript Modules: <PROJECT_ROOT>/tests/diagnostics/module-parse-failed/tla_esm_error/
+      index.js
+         ╭────
+       1 │ await Promise.resolve("aaa");
+         · ────────────────────────────
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.

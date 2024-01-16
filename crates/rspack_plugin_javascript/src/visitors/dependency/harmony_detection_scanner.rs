@@ -1,17 +1,21 @@
+use std::sync::Arc;
+
 use rspack_core::{
   BuildInfo, BuildMeta, BuildMetaExportsType, DependencyLocation, DependencyTemplate,
   ExportsArgument, ModuleArgument, ModuleIdentifier, ModuleType,
 };
-use rspack_error::miette::{diagnostic, Diagnostic};
-use rspack_error::DiagnosticExt;
+use rspack_error::miette::Diagnostic;
+use swc_core::common::{SourceFile, Span};
 use swc_core::ecma::ast::{ArrowExpr, AwaitExpr, Constructor, Function, ModuleItem, Program};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
+use super::create_traceable_error;
 use crate::dependency::HarmonyCompatibilityDependency;
 use crate::no_visit_ignored_stmt;
 
 // Port from https://github.com/webpack/webpack/blob/main/lib/dependencies/HarmonyDetectionParserPlugin.js
 pub struct HarmonyDetectionScanner<'a> {
+  source_file: Arc<SourceFile>,
   module_identifier: &'a ModuleIdentifier,
   build_info: &'a mut BuildInfo,
   build_meta: &'a mut BuildMeta,
@@ -25,6 +29,7 @@ pub struct HarmonyDetectionScanner<'a> {
 impl<'a> HarmonyDetectionScanner<'a> {
   #[allow(clippy::too_many_arguments)]
   pub fn new(
+    source_file: Arc<SourceFile>,
     module_identifier: &'a ModuleIdentifier,
     build_info: &'a mut BuildInfo,
     build_meta: &'a mut BuildMeta,
@@ -35,6 +40,7 @@ impl<'a> HarmonyDetectionScanner<'a> {
     ignored: &'a mut Vec<DependencyLocation>,
   ) -> Self {
     Self {
+      source_file,
       module_identifier,
       build_info,
       build_meta,
@@ -66,19 +72,28 @@ impl Visit for HarmonyDetectionScanner<'_> {
       self.build_meta.exports_argument = ExportsArgument::WebpackExports;
     }
 
-    if has_top_level_await(program) {
+    let top_level_await = get_top_level_await(program);
+
+    if let Some(await_span) = top_level_await {
       if !self.top_level_await {
-        self.errors.push(diagnostic!("The top-level-await experiment is not enabled (set experiments.topLevelAwait: true to enabled it)").boxed());
+        self.errors.push(Box::new(create_traceable_error(
+          "JavaScript parsing error".into(),
+          "The top-level-await experiment is not enabled (set experiments.topLevelAwait: true to enabled it)".into(),
+          &self.source_file,
+          await_span.into()
+        )));
       } else if is_harmony || strict_harmony_module {
         self.build_meta.has_top_level_await = true;
       } else {
-        self.errors.push(
-          diagnostic!(
+        self.errors.push(Box::new(create_traceable_error(
+          "JavaScript parsing error".into(),
+          format!(
             "Top-level-await is only supported in EcmaScript Modules: {}",
             self.module_identifier
-          )
-          .boxed(),
-        );
+          ),
+          &self.source_file,
+          await_span.into(),
+        )));
       }
     }
 
@@ -89,15 +104,15 @@ impl Visit for HarmonyDetectionScanner<'_> {
   }
 }
 
-fn has_top_level_await(m: &Program) -> bool {
+fn get_top_level_await(m: &Program) -> Option<Span> {
   let mut visitor = TopLevelAwaitScanner::default();
   m.visit_with(&mut visitor);
-  visitor.has_top_level_await
+  visitor.top_level_await
 }
 
 #[derive(Default)]
 struct TopLevelAwaitScanner {
-  has_top_level_await: bool,
+  top_level_await: Option<Span>,
 }
 
 impl Visit for TopLevelAwaitScanner {
@@ -106,7 +121,9 @@ impl Visit for TopLevelAwaitScanner {
   fn visit_constructor(&mut self, _: &Constructor) {}
   fn visit_function(&mut self, _: &Function) {}
 
-  fn visit_await_expr(&mut self, _: &AwaitExpr) {
-    self.has_top_level_await = true;
+  fn visit_await_expr(&mut self, await_expr: &AwaitExpr) {
+    if self.top_level_await.is_none() {
+      self.top_level_await = Some(await_expr.span);
+    }
   }
 }
