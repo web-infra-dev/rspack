@@ -438,8 +438,7 @@ impl SourceMapDevToolPlugin {
     let module_id = "".to_string();
     let absolute_resource_path = source.split('!').last().unwrap_or("");
 
-    let text = identifier.clone();
-    let hash = Lazy::new(|| get_hash(&text, output_options));
+    let hash = Lazy::new(|| get_hash(identifier, output_options));
 
     let resource = short_identifier.split('!').last().unwrap_or("");
 

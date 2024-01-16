@@ -4,7 +4,9 @@ use rspack_core::{
   Compilation, RuntimeModule,
 };
 use rspack_identifier::Identifier;
+use rspack_util::source_map::SourceMapKind;
 
+#[impl_runtime_module]
 #[derive(Debug, Eq)]
 pub struct RspackVersionRuntimeModule {
   id: Identifier,
@@ -16,6 +18,7 @@ impl RspackVersionRuntimeModule {
     Self {
       id: Identifier::from("webpack/runtime/rspack_version"),
       version,
+      source_map_kind: SourceMapKind::None,
     }
   }
 }
@@ -30,5 +33,3 @@ impl RuntimeModule for RspackVersionRuntimeModule {
       .boxed()
   }
 }
-
-impl_runtime_module!(RspackVersionRuntimeModule);
