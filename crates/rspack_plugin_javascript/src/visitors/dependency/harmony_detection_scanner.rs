@@ -120,7 +120,7 @@ impl Visit for TopLevelAwaitScanner {
     if self.top_level_await.is_none() {
       self.top_level_await = Some(Span::new(
         await_expr.span.span_lo(),
-        BytePos::from_u32(await_expr.arg.span_lo().0 - 1),
+        BytePos::from_u32(await_expr.span.span_lo().0 + 5),
         await_expr.span.ctxt,
       ));
     }
