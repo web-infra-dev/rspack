@@ -5,7 +5,7 @@ ModuleParseError
   ╰─▶   × JavaScript parsing error: Top-level-await is only supported in EcmaScript Modules
          ╭────
        1 │ await Promise.resolve("aaa");
-         · ────────────────────────────
+         · ──────
          ╰────
       
   help: 

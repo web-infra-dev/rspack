@@ -5,7 +5,7 @@ use rspack_core::{
   ExportsArgument, ModuleArgument, ModuleType,
 };
 use rspack_error::miette::Diagnostic;
-use swc_core::common::{SourceFile, Span};
+use swc_core::common::{SourceFile, Span, Spanned};
 use swc_core::ecma::ast::{ArrowExpr, AwaitExpr, Constructor, Function, ModuleItem, Program};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
@@ -117,7 +117,11 @@ impl Visit for TopLevelAwaitScanner {
 
   fn visit_await_expr(&mut self, await_expr: &AwaitExpr) {
     if self.top_level_await.is_none() {
-      self.top_level_await = Some(await_expr.span);
+      self.top_level_await = Some(Span::new(
+        await_expr.span.span_lo(),
+        await_expr.arg.span_lo(),
+        await_expr.span.ctxt,
+      ));
     }
   }
 }
