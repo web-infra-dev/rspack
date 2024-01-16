@@ -78,7 +78,7 @@ impl DependencyTemplate for ModuleHotAcceptDependency {
         code_generatable_context.compilation,
         &self.id,
         &self.request,
-        false,
+        self.weak(),
       )
       .as_str(),
       None,
