@@ -201,11 +201,8 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   // TODO: remove
-  pub fn is_unresolved_ident(&mut self, ident: &Ident) -> bool {
-    self
-      .definitions_db
-      .get(&self.definitions, ident.sym.as_str())
-      .is_none()
+  pub fn is_unresolved_ident(&mut self, str: &str) -> bool {
+    self.definitions_db.get(&self.definitions, str).is_none()
   }
 
   // TODO: remove
@@ -219,14 +216,14 @@ impl<'parser> JavascriptParser<'parser> {
       unreachable!("please don't use this fn in other case");
     };
     assert!(ident.sym.eq("require"));
-    self.is_unresolved_ident(ident)
+    self.is_unresolved_ident(ident.sym.as_str())
   }
 
   // TODO: remove
   pub fn is_unresolved_member_object_ident(&mut self, expr: &Expr) -> bool {
     if let Expr::Member(member) = expr {
       if let Expr::Ident(ident) = &*member.obj {
-        return self.is_unresolved_ident(ident);
+        return self.is_unresolved_ident(ident.sym.as_str());
       };
     }
     false
