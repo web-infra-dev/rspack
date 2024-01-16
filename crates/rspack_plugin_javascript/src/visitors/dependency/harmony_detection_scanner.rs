@@ -5,7 +5,8 @@ use rspack_core::{
   ExportsArgument, ModuleArgument, ModuleType,
 };
 use rspack_error::miette::Diagnostic;
-use swc_core::common::{SourceFile, Span, Spanned};
+use swc_core::common::source_map::Pos;
+use swc_core::common::{BytePos, SourceFile, Span, Spanned};
 use swc_core::ecma::ast::{ArrowExpr, AwaitExpr, Constructor, Function, ModuleItem, Program};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
@@ -119,7 +120,7 @@ impl Visit for TopLevelAwaitScanner {
     if self.top_level_await.is_none() {
       self.top_level_await = Some(Span::new(
         await_expr.span.span_lo(),
-        await_expr.arg.span_lo(),
+        BytePos::from_u32(await_expr.arg.span_lo().0 - 1),
         await_expr.span.ctxt,
       ));
     }
