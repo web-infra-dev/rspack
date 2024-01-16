@@ -55,7 +55,8 @@ export enum BuiltinPluginName {
 	SideEffectsFlagPlugin = "SideEffectsFlagPlugin",
 	FlagDependencyExportsPlugin = "FlagDependencyExportsPlugin",
 	FlagDependencyUsagePlugin = "FlagDependencyUsagePlugin",
-	MangleExportsPlugin = "MangleExportsPlugin"
+	MangleExportsPlugin = "MangleExportsPlugin",
+	BundlerInfoPlugin = "BundlerInfoPlugin"
 }
 
 type AffectedHooks = keyof Compiler["hooks"];

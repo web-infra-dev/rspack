@@ -170,6 +170,15 @@ const applyExperimentsDefaults = (
 	if (typeof experiments.rspackFuture === "object") {
 		D(experiments.rspackFuture, "newTreeshaking", false);
 		D(experiments.rspackFuture, "disableApplyEntryLazily", true);
+		D(experiments.rspackFuture, "bundlerInfo", {});
+		if (typeof experiments.rspackFuture.bundlerInfo === "object") {
+			D(
+				experiments.rspackFuture.bundlerInfo,
+				"version",
+				require("../../package.json").version
+			);
+			D(experiments.rspackFuture.bundlerInfo, "force", false);
+		}
 	}
 };
 
