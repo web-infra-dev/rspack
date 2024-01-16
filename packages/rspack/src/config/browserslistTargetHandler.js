@@ -104,7 +104,7 @@ const resolve = browsers => {
 				: +parsedMajor > requiredVersion[0];
 		});
 	};
-	const anyNode = browsers.some(b => /^node /.test(b));
+	const anyNode = browsers.some(b => b.startsWith("node "));
 	const anyBrowser = browsers.some(b => /^(?!node)/.test(b));
 	const browserProperty = !anyBrowser ? false : anyNode ? null : true;
 	const nodeProperty = !anyNode ? false : anyBrowser ? null : true;

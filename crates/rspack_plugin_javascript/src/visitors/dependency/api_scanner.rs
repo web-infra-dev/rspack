@@ -35,6 +35,7 @@ pub const WEBPACK_NONCE: &str = "__webpack_nonce__";
 pub const WEBPACK_CHUNK_NAME: &str = "__webpack_chunkname__";
 pub const WEBPACK_RUNTIME_ID: &str = "__webpack_runtime_id__";
 pub const WEBPACK_REQUIRE: &str = "__webpack_require__";
+pub const RSPACK_VERSION: &str = "__rspack_version__";
 
 pub fn get_typeof_evaluate_of_api(sym: &str) -> Option<&str> {
   match sym {
@@ -53,6 +54,7 @@ pub fn get_typeof_evaluate_of_api(sym: &str) -> Option<&str> {
     WEBPACK_NONCE => Some("string"),
     WEBPACK_CHUNK_NAME => Some("string"),
     WEBPACK_RUNTIME_ID => None,
+    RSPACK_VERSION => Some("string"),
     _ => None,
   }
 }
@@ -295,6 +297,16 @@ impl Visit for ApiScanner<'_> {
             ident.span.real_hi(),
             RuntimeGlobals::CHUNK_NAME.name().into(),
             Some(RuntimeGlobals::CHUNK_NAME),
+          )));
+      }
+      RSPACK_VERSION => {
+        self
+          .presentational_dependencies
+          .push(Box::new(ConstDependency::new(
+            ident.span.real_lo(),
+            ident.span.real_hi(),
+            format!("{}()", RuntimeGlobals::RSPACK_VERSION).into(),
+            Some(RuntimeGlobals::RSPACK_VERSION),
           )));
       }
       WEBPACK_RUNTIME_ID => {

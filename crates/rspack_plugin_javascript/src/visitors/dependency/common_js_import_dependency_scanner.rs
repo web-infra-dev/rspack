@@ -1,4 +1,5 @@
 use std::rc::Rc;
+use std::sync::Arc;
 
 use itertools::Itertools;
 use rspack_core::{
@@ -6,8 +7,12 @@ use rspack_core::{
 };
 use rspack_core::{BoxDependency, ConstDependency, ContextMode, ContextNameSpaceObject};
 use rspack_core::{DependencyTemplate, SpanExt};
-use swc_core::common::{Spanned, SyntaxContext};
-use swc_core::ecma::ast::{BinExpr, BlockStmt, CallExpr, Callee, Expr, IfStmt, MemberExpr};
+use rspack_error::miette::Diagnostic;
+use swc_core::common::{SourceFile, Spanned, SyntaxContext};
+use swc_core::ecma::ast::{
+  BinExpr, BlockStmt, CallExpr, Callee, Expr, Ident, IfStmt, MemberExpr, ObjectPatProp, Pat,
+  Program, Stmt, VarDecl, VarDeclKind,
+};
 use swc_core::ecma::ast::{Lit, TryStmt, UnaryExpr, UnaryOp};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
@@ -15,8 +20,8 @@ use super::api_scanner::ApiParserPlugin;
 use super::context_helper::scanner_context_module;
 use super::expr_matcher::{is_module_require, is_require};
 use super::{
-  expr_matcher, extract_require_call_info, is_require_call_start,
-  is_unresolved_member_object_ident, is_unresolved_require,
+  create_traceable_error, expr_matcher, extract_require_call_info, is_require_call_start,
+  is_reserved_word_in_strict, is_unresolved_member_object_ident, is_unresolved_require,
 };
 use crate::dependency::{
   CommonJsFullRequireDependency, CommonJsRequireContextDependency, RequireHeaderDependency,
@@ -27,6 +32,7 @@ use crate::utils::eval::{self, BasicEvaluatedExpression};
 use crate::utils::{expression_logic_operator, statement_if};
 
 pub struct CommonJsImportDependencyScanner<'a> {
+  pub(crate) source_file: Arc<SourceFile>,
   pub(crate) dependencies: &'a mut Vec<BoxDependency>,
   pub(crate) presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
   pub(crate) unresolved_ctxt: SyntaxContext,
@@ -35,6 +41,7 @@ pub struct CommonJsImportDependencyScanner<'a> {
   pub(crate) is_strict: bool,
   pub(crate) plugin_drive: Rc<JavaScriptParserPluginDrive>,
   pub(crate) ignored: &'a mut Vec<DependencyLocation>,
+  pub(crate) errors: &'a mut Vec<Box<dyn Diagnostic + Send + Sync>>,
 }
 
 #[derive(Debug)]
@@ -43,9 +50,8 @@ enum Mode {
   Nothing,
 }
 
-fn detect_mode(stmt: &BlockStmt) -> Mode {
-  let Some(Lit::Str(str)) = stmt
-    .stmts
+fn detect_mode(stmts: &[Stmt]) -> Mode {
+  let Some(Lit::Str(str)) = stmts
     .first()
     .and_then(|stmt| stmt.as_expr())
     .and_then(|expr_stmt| expr_stmt.expr.as_lit())
@@ -60,17 +66,19 @@ fn detect_mode(stmt: &BlockStmt) -> Mode {
   }
 }
 
-fn is_strict(stmt: &BlockStmt) -> bool {
-  matches!(detect_mode(stmt), Mode::Strict)
+fn is_strict(stmts: &[Stmt]) -> bool {
+  matches!(detect_mode(stmts), Mode::Strict)
 }
 
 impl<'a> CommonJsImportDependencyScanner<'a> {
   pub fn new(
+    source_file: Arc<SourceFile>,
     dependencies: &'a mut Vec<BoxDependency>,
     presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
     unresolved_ctxt: SyntaxContext,
     module_type: &ModuleType,
     ignored: &'a mut Vec<DependencyLocation>,
+    errors: &'a mut Vec<Box<dyn Diagnostic + Send + Sync>>,
   ) -> Self {
     let mut plugins: Vec<parser_plugin::BoxJavascriptParserPlugin> = vec![
       Box::new(parser_plugin::CommonJsImportsParserPlugin),
@@ -84,6 +92,7 @@ impl<'a> CommonJsImportDependencyScanner<'a> {
 
     let plugin_drive = JavaScriptParserPluginDrive::new(plugins);
     Self {
+      source_file,
       dependencies,
       presentational_dependencies,
       unresolved_ctxt,
@@ -92,6 +101,7 @@ impl<'a> CommonJsImportDependencyScanner<'a> {
       is_strict: false,
       plugin_drive: Rc::new(plugin_drive),
       ignored,
+      errors,
     }
   }
 
@@ -231,6 +241,60 @@ impl<'a> CommonJsImportDependencyScanner<'a> {
 
   pub fn walk_expression(&mut self, expr: &Expr) {
     expr.visit_children_with(self);
+  }
+
+  pub fn check_ident(&mut self, ident: &Ident) {
+    if is_reserved_word_in_strict(ident.sym.as_str()) {
+      if self.is_strict {
+        self.errors.push(Box::new(create_traceable_error(
+          "JavaScript parsing error".into(),
+          format!("The keyword '{}' is reserved in strict mode", ident.sym),
+          &self.source_file,
+          ident.span().into(),
+        )));
+      } else {
+        self.errors.push(Box::new(create_traceable_error(
+          "JavaScript parsing error".into(),
+          format!("{} is disallowed as a lexically bound name", ident.sym),
+          &self.source_file,
+          ident.span().into(),
+        )));
+      }
+    }
+  }
+  pub fn check_var_decl_pat(&mut self, pat: &Pat) {
+    match pat {
+      Pat::Ident(ident) => {
+        self.check_ident(ident);
+      }
+      Pat::Array(bindings) => {
+        for binding in bindings.elems.iter().flatten() {
+          self.check_var_decl_pat(binding);
+        }
+      }
+      Pat::Object(obj) => {
+        for prop in &obj.props {
+          match prop {
+            ObjectPatProp::KeyValue(pair) => {
+              self.check_var_decl_pat(&pair.value);
+            }
+            ObjectPatProp::Assign(assign) => {
+              self.check_ident(&assign.key);
+            }
+            ObjectPatProp::Rest(rest) => {
+              self.check_var_decl_pat(&rest.arg);
+            }
+          }
+        }
+      }
+      Pat::Assign(assign) => {
+        self.check_var_decl_pat(&assign.left);
+      }
+      Pat::Rest(rest) => {
+        self.check_var_decl_pat(&rest.arg);
+      }
+      _ => unreachable!(),
+    }
   }
 }
 
@@ -401,12 +465,33 @@ impl<'a> Visit for CommonJsImportDependencyScanner<'a> {
     }
   }
 
+  fn visit_program(&mut self, program: &Program) {
+    self.is_strict = match program {
+      Program::Module(_) => true,
+      Program::Script(s) => is_strict(&s.body),
+    };
+    program.visit_children_with(self);
+  }
+
   fn visit_block_stmt(&mut self, n: &BlockStmt) {
     let old_in_strict = self.is_strict;
 
-    self.is_strict = is_strict(n);
+    self.is_strict = is_strict(&n.stmts);
     n.visit_children_with(self);
     self.is_strict = old_in_strict;
+  }
+
+  // TODO: remove this when swc align reserve words with acorn
+  fn visit_var_decl(&mut self, var_decl: &VarDecl) {
+    if match var_decl.kind {
+      VarDeclKind::Var => self.is_strict,
+      _ => true,
+    } {
+      for ele in var_decl.decls.iter() {
+        self.check_var_decl_pat(&ele.name)
+      }
+    }
+    var_decl.visit_children_with(self);
   }
 }
 

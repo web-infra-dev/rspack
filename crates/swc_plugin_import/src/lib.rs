@@ -8,7 +8,7 @@ use inflector::Inflector;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde::Deserialize;
 use swc_core::{
-  common::{util::take::Take, BytePos, Span, SyntaxContext, DUMMY_SP},
+  common::{errors::HANDLER, util::take::Take, BytePos, Span, SyntaxContext, DUMMY_SP},
   ecma::{
     ast::{
       Ident, ImportDecl, ImportDefaultSpecifier, ImportNamedSpecifier, ImportSpecifier, Module,
@@ -77,6 +77,9 @@ const CUSTOM_JS: &str = "CUSTOM_JS_NAME";
 const CUSTOM_STYLE: &str = "CUSTOM_STYLE";
 const CUSTOM_STYLE_NAME: &str = "CUSTOM_STYLE_NAME";
 
+/// Panic:
+///
+/// Panics in sometimes if [swc_core::common::errors::HANDLER] is not provided.
 pub fn plugin_import(config: &Vec<PluginImportConfig>) -> impl Fold + '_ {
   let mut renderer = handlebars::Handlebars::new();
 
@@ -246,19 +249,17 @@ impl<'a> ImportPlugin<'a> {
 
     let path = if let Some(transform) = &config.custom_name {
       match transform {
-        CustomTransform::Fn(f) => f(name.clone()),
-        CustomTransform::Tpl(_) => Some(
-          self
-            .renderer
-            .render(
-              format!("{}{}", &config.library_name, CUSTOM_JS).as_str(),
-              &render_context(name.clone()),
-            )
-            .unwrap(),
-        ),
+        CustomTransform::Fn(f) => Ok(f(name.clone())),
+        CustomTransform::Tpl(_) => self
+          .renderer
+          .render(
+            format!("{}{}", &config.library_name, CUSTOM_JS).as_str(),
+            &render_context(name.clone()),
+          )
+          .map(Some),
       }
     } else {
-      Some(format!(
+      Ok(Some(format!(
         "{}/{}/{}",
         &config.library_name,
         config
@@ -266,7 +267,17 @@ impl<'a> ImportPlugin<'a> {
           .as_ref()
           .unwrap_or(&"lib".to_string()),
         transformed_name
-      ))
+      )))
+    };
+
+    let path = match path {
+      Ok(p) => p,
+      Err(e) => {
+        HANDLER.with(|handler| {
+          handler.err(&e.to_string());
+        });
+        None
+      }
     };
 
     if path.is_none() {

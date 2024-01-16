@@ -1,4 +1,5 @@
 mod raw_banner;
+mod raw_bundle_info;
 mod raw_copy;
 mod raw_html;
 mod raw_limit_chunk_count;
@@ -50,8 +51,8 @@ use rspack_plugin_progress::ProgressPlugin;
 use rspack_plugin_real_content_hash::RealContentHashPlugin;
 use rspack_plugin_remove_empty_chunks::RemoveEmptyChunksPlugin;
 use rspack_plugin_runtime::{
-  enable_chunk_loading_plugin, ArrayPushCallbackChunkFormatPlugin, ChunkPrefetchPreloadPlugin,
-  CommonJsChunkFormatPlugin, ModuleChunkFormatPlugin, RuntimePlugin,
+  enable_chunk_loading_plugin, ArrayPushCallbackChunkFormatPlugin, BundlerInfoPlugin,
+  ChunkPrefetchPreloadPlugin, CommonJsChunkFormatPlugin, ModuleChunkFormatPlugin, RuntimePlugin,
 };
 use rspack_plugin_schemes::{DataUriPlugin, FileUriPlugin};
 use rspack_plugin_swc_css_minimizer::SwcCssMinimizerRspackPlugin;
@@ -61,14 +62,15 @@ use rspack_plugin_wasm::{enable_wasm_loading_plugin, AsyncWasmPlugin};
 use rspack_plugin_web_worker_template::web_worker_template_plugin;
 use rspack_plugin_worker::WorkerPlugin;
 
-use self::raw_mf::{
-  RawConsumeSharedPluginOptions, RawContainerReferencePluginOptions, RawProvideOptions,
-};
 pub use self::{
   raw_banner::RawBannerPluginOptions, raw_copy::RawCopyRspackPluginOptions,
   raw_html::RawHtmlRspackPluginOptions, raw_limit_chunk_count::RawLimitChunkCountPluginOptions,
   raw_mf::RawContainerPluginOptions, raw_progress::RawProgressPluginOptions,
   raw_swc_js_minimizer::RawSwcJsMinimizerRspackPluginOptions,
+};
+use self::{
+  raw_bundle_info::{RawBundlerInfoModeWrapper, RawBundlerInfoPluginOptions},
+  raw_mf::{RawConsumeSharedPluginOptions, RawContainerReferencePluginOptions, RawProvideOptions},
 };
 use crate::{
   RawEntryPluginOptions, RawExternalItemWrapper, RawExternalsPluginOptions,
@@ -134,6 +136,7 @@ pub enum BuiltinPluginName {
   HtmlRspackPlugin,
   SwcJsMinimizerRspackPlugin,
   SwcCssMinimizerRspackPlugin,
+  BundlerInfoPlugin,
 }
 
 #[napi(object)]
@@ -365,6 +368,16 @@ impl BuiltinPlugin {
           HtmlRspackPlugin::new(downcast_into::<RawHtmlRspackPluginOptions>(self.options)?.into())
             .boxed();
         plugins.push(plugin);
+      }
+      BuiltinPluginName::BundlerInfoPlugin => {
+        let plugin_options = downcast_into::<RawBundlerInfoPluginOptions>(self.options)?;
+        plugins.push(
+          BundlerInfoPlugin::new(
+            RawBundlerInfoModeWrapper(plugin_options.force).into(),
+            plugin_options.version,
+          )
+          .boxed(),
+        )
       }
     }
     Ok(())

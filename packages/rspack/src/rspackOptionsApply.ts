@@ -58,7 +58,8 @@ import {
 	MangleExportsPlugin,
 	FlagDependencyExportsPlugin,
 	FlagDependencyUsagePlugin,
-	SideEffectsFlagPlugin
+	SideEffectsFlagPlugin,
+	BundlerInfoPlugin
 } from "./builtin-plugin";
 import { deprecatedWarn, termlink } from "./util";
 
@@ -241,6 +242,12 @@ export class RspackOptionsApply {
 		compiler.hooks.entryOption.call(options.context, options.entry);
 
 		new RuntimePlugin().apply(compiler);
+
+		if (options.experiments.rspackFuture!.bundlerInfo) {
+			new BundlerInfoPlugin(
+				options.experiments.rspackFuture!.bundlerInfo
+			).apply(compiler);
+		}
 
 		new InferAsyncModulesPlugin().apply(compiler);
 

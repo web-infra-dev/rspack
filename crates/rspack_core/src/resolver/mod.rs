@@ -141,8 +141,14 @@ Add the extension to the request.", suggestion, args.specifier));
       .resolve_options
       .as_deref()
       .or(Some(&plugin_driver.options.resolve))
-      .and_then(|o| o.modules.as_ref().map(|m| m.join(", ")))
-      .expect("module directories should exist");
+      .and_then(|o| o.modules.as_ref().map(|m| m.join(", ")));
+    let module_directories = {
+      if let Some(module_directories) = module_directories {
+        format!(" ({module_directories}).")
+      } else {
+        ".".to_string()
+      }
+    };
     let resolver = plugin_driver.resolver_factory.get(dep);
     let request = format!("./{}", args.specifier);
     match resolver.resolve(base_dir, &request) {
@@ -151,7 +157,7 @@ Add the extension to the request.", suggestion, args.specifier));
           "Did you mean './{}'?
 
 Requests that should resolve in the current directory need to start with './'.
-Requests that start with a name are treated as module requests and resolve within module directories ({module_directories}).
+Requests that start with a name are treated as module requests and resolve within module directories{module_directories}
 
 If changing the source code is not an option, there is also a resolve options called 'preferRelative'
 which tries to resolve these kind of requests in the current directory too.",

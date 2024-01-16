@@ -28,6 +28,8 @@ mod startup_chunk_dependencies;
 pub use startup_chunk_dependencies::StartupChunkDependenciesPlugin;
 mod chunk_prefetch_preload;
 pub use chunk_prefetch_preload::ChunkPrefetchPreloadPlugin;
+mod bundler_info;
+pub use bundler_info::{BundlerInfoForceMode, BundlerInfoPlugin};
 
 pub fn enable_chunk_loading_plugin(loading_type: ChunkLoadingType, plugins: &mut Vec<BoxPlugin>) {
   match loading_type {
