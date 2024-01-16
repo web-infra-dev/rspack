@@ -1,8 +1,7 @@
 use rspack_core::SpanExt;
 use swc_core::ecma::ast::{BinExpr, BinaryOp};
 
-use crate::utils::eval::BasicEvaluatedExpression;
-use crate::visitors::common_js_import_dependency_scanner::CommonJsImportDependencyScanner;
+use crate::{utils::eval::BasicEvaluatedExpression, visitors::JavascriptParser};
 
 fn handle_template_string_compare(
   left: &BasicEvaluatedExpression,
@@ -73,7 +72,7 @@ fn is_always_different(a: Option<bool>, b: Option<bool>) -> bool {
 fn handle_strict_equality_comparison(
   eql: bool,
   expr: &BinExpr,
-  scanner: &mut CommonJsImportDependencyScanner<'_>,
+  scanner: &mut JavascriptParser,
 ) -> Option<BasicEvaluatedExpression> {
   assert!(expr.op == BinaryOp::EqEqEq || expr.op == BinaryOp::NotEqEq);
   let left = scanner.evaluate_expression(&expr.left);
@@ -117,7 +116,7 @@ fn handle_strict_equality_comparison(
 fn handle_abstract_equality_comparison(
   eql: bool,
   expr: &BinExpr,
-  scanner: &mut CommonJsImportDependencyScanner<'_>,
+  scanner: &mut JavascriptParser,
 ) -> Option<BasicEvaluatedExpression> {
   assert!(expr.op == BinaryOp::EqEq || expr.op == BinaryOp::NotEq);
   let left = scanner.evaluate_expression(&expr.left);
@@ -144,7 +143,7 @@ fn handle_abstract_equality_comparison(
 
 fn handle_logical_or(
   expr: &BinExpr,
-  scanner: &mut CommonJsImportDependencyScanner<'_>,
+  scanner: &mut JavascriptParser,
 ) -> Option<BasicEvaluatedExpression> {
   let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.hi().0);
   let left = scanner.evaluate_expression(&expr.left);
@@ -184,7 +183,7 @@ fn handle_logical_or(
 
 fn handle_logical_and(
   expr: &BinExpr,
-  scanner: &mut CommonJsImportDependencyScanner<'_>,
+  scanner: &mut JavascriptParser,
 ) -> Option<BasicEvaluatedExpression> {
   let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.hi().0);
 
@@ -223,10 +222,7 @@ fn handle_logical_and(
   }
 }
 
-fn handle_add(
-  expr: &BinExpr,
-  scanner: &mut CommonJsImportDependencyScanner<'_>,
-) -> Option<BasicEvaluatedExpression> {
+fn handle_add(expr: &BinExpr, scanner: &mut JavascriptParser) -> Option<BasicEvaluatedExpression> {
   assert_eq!(expr.op, BinaryOp::Add);
   let left = scanner.evaluate_expression(&expr.left);
   let right = scanner.evaluate_expression(&expr.right);
@@ -241,7 +237,7 @@ fn handle_add(
 }
 
 pub fn eval_binary_expression(
-  scanner: &mut CommonJsImportDependencyScanner<'_>,
+  scanner: &mut JavascriptParser,
   expr: &BinExpr,
 ) -> Option<BasicEvaluatedExpression> {
   match expr.op {

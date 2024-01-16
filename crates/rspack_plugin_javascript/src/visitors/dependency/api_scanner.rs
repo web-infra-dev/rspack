@@ -5,22 +5,18 @@ use rspack_core::{
   RuntimeGlobals, RuntimeRequirementsDependency, SpanExt,
 };
 use rspack_error::miette::Diagnostic;
+use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 use swc_core::{
   common::{SourceFile, Spanned, SyntaxContext},
-  ecma::{
-    ast::{AssignExpr, AssignOp, CallExpr, Callee, Expr, Ident, Pat, PatOrExpr, VarDeclarator},
-    visit::{noop_visit_type, Visit, VisitWith},
-  },
+  ecma::ast::{AssignExpr, AssignOp, CallExpr, Callee, Expr, Ident, Pat, PatOrExpr, VarDeclarator},
 };
 
-use super::expr_matcher;
-use crate::{
-  dependency::ModuleArgumentDependency,
-  no_visit_ignored_stmt,
-  parser_plugin::JavascriptParserPlugin,
-  utils::eval::{self, BasicEvaluatedExpression},
-  visitors::extract_member_root,
-};
+use super::{expr_matcher, JavascriptParser};
+use crate::dependency::ModuleArgumentDependency;
+use crate::no_visit_ignored_stmt;
+use crate::parser_plugin::JavascriptParserPlugin;
+use crate::utils::eval::{self, BasicEvaluatedExpression};
+use crate::visitors::extract_member_root;
 
 pub const WEBPACK_HASH: &str = "__webpack_hash__";
 pub const WEBPACK_PUBLIC_PATH: &str = "__webpack_public_path__";
@@ -66,12 +62,12 @@ pub struct ApiParserPlugin;
 impl JavascriptParserPlugin for ApiParserPlugin {
   fn evaluate_typeof(
     &self,
-    expression: &swc_core::ecma::ast::Ident,
+    parser: &mut JavascriptParser,
+    expression: &Ident,
     start: u32,
     end: u32,
-    unresolved_mark: swc_core::common::SyntaxContext,
   ) -> Option<BasicEvaluatedExpression> {
-    if expression.span.ctxt == unresolved_mark {
+    if parser.is_unresolved_ident(expression) {
       get_typeof_evaluate_of_api(expression.sym.as_ref() as &str)
         .map(|res| eval::evaluate_to_string(res.to_string(), start, end))
     } else {

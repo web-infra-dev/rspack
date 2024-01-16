@@ -3,9 +3,7 @@ use rspack_core::SpanExt;
 use swc_core::common::Spanned;
 use swc_core::ecma::ast::{BinExpr, BinaryOp};
 
-use crate::visitors::common_js_import_dependency_scanner::CommonJsImportDependencyScanner;
-
-type KeepRight = bool;
+use crate::visitors::JavascriptParser;
 
 pub fn is_logic_op(op: BinaryOp) -> bool {
   matches!(
@@ -14,14 +12,7 @@ pub fn is_logic_op(op: BinaryOp) -> bool {
   )
 }
 
-/// Return:
-/// - `None` means should walk left and right;
-/// - `Some(true)` means should walk right;
-/// - `Some(false)` means nothing need to do.
-pub fn expression_logic_operator(
-  scanner: &mut CommonJsImportDependencyScanner<'_>,
-  expr: &BinExpr,
-) -> Option<KeepRight> {
+pub fn expression_logic_operator(scanner: &mut JavascriptParser, expr: &BinExpr) -> Option<bool> {
   if expr.op == BinaryOp::LogicalAnd || expr.op == BinaryOp::LogicalOr {
     let param = scanner.evaluate_expression(&expr.left);
     let boolean = param.as_bool();
@@ -85,6 +76,6 @@ pub fn expression_logic_operator(
       None
     }
   } else {
-    None
+    unreachable!()
   }
 }

@@ -3,10 +3,10 @@ use swc_core::ecma::ast::NewExpr;
 
 use super::BasicEvaluatedExpression;
 use crate::utils::eval;
-use crate::visitors::common_js_import_dependency_scanner::CommonJsImportDependencyScanner;
+use crate::visitors::JavascriptParser;
 
 pub fn eval_new_expression(
-  scanner: &mut CommonJsImportDependencyScanner<'_>,
+  scanner: &mut JavascriptParser,
   expr: &NewExpr,
 ) -> Option<BasicEvaluatedExpression> {
   let Some(ident) = expr.callee.as_ident() else {
