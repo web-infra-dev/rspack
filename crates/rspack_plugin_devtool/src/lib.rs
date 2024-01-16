@@ -609,17 +609,20 @@ impl Plugin for EvalSourceMapDevToolPlugin {
 
 pub struct SourceMapDevToolModuleOptionsPluginOptions {
   pub module: bool,
+  pub columns: bool,
 }
 
 #[derive(Debug)]
 pub struct SourceMapDevToolModuleOptionsPlugin {
   module: bool,
+  columns: bool,
 }
 
 impl SourceMapDevToolModuleOptionsPlugin {
   pub fn new(options: SourceMapDevToolModuleOptionsPluginOptions) -> Self {
     Self {
       module: options.module,
+      columns: options.columns,
     }
   }
 }
@@ -636,6 +639,7 @@ impl Plugin for SourceMapDevToolModuleOptionsPlugin {
     } else {
       module.set_source_map_kind(SourceMapKind::SimpleSourceMap);
     }
+    module.set_source_map_columns(self.columns);
     Ok(())
   }
 
@@ -645,6 +649,7 @@ impl Plugin for SourceMapDevToolModuleOptionsPlugin {
     } else {
       module.set_source_map_kind(SourceMapKind::SimpleSourceMap);
     }
+    module.set_source_map_columns(self.columns);
     Ok(())
   }
 }

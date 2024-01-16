@@ -27,6 +27,7 @@ impl AsyncWasmLoadingRuntimeModule {
       supports_streaming,
       chunk,
       source_map_kind: SourceMapKind::None,
+      source_map_columns: true,
     }
   }
 }

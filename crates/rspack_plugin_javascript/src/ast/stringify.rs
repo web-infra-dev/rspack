@@ -33,12 +33,16 @@ pub struct CodegenOptions {
 }
 
 impl CodegenOptions {
-  pub fn new(source_map_kind: &SourceMapKind, keep_comments: Option<bool>) -> Self {
+  pub fn new(
+    source_map_kind: &SourceMapKind,
+    emit_columns: bool,
+    keep_comments: Option<bool>,
+  ) -> Self {
     Self {
       source_map_config: SourceMapConfig {
         enable: !matches!(source_map_kind, SourceMapKind::None),
         inline_sources_content: true,
-        emit_columns: matches!(source_map_kind, SourceMapKind::SourceMap),
+        emit_columns,
         names: Default::default(),
       },
       keep_comments,

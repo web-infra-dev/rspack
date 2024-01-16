@@ -207,6 +207,7 @@ impl NormalModule {
       build_meta: None,
 
       source_map_kind: SourceMapKind::None,
+      source_map_columns: true,
     }
   }
 
@@ -415,7 +416,8 @@ impl Module for NormalModule {
         module_parser_options: self.parser_options.as_ref(),
         module_type: &self.module_type,
         module_user_request: &self.user_request,
-        module_source_map_kind: &self.source_map_kind,
+        module_source_map_kind: self.get_source_map_kind().clone(),
+        module_source_map_columns: self.get_source_map_columns(),
         loaders: &self.loaders,
         resource_data: &self.resource_data,
         compiler_options: build_context.compiler_options,
@@ -634,7 +636,7 @@ impl NormalModule {
       return Ok(RawSource::Buffer(content.into_bytes()).boxed());
     }
     let source_map_kind = self.get_source_map_kind();
-    if matches!(source_map_kind, SourceMapKind::SourceMap)
+    if !matches!(source_map_kind, SourceMapKind::None)
       && let Some(source_map) = source_map
     {
       let content = content.into_string_lossy();

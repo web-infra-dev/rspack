@@ -24,6 +24,7 @@ impl StartupChunkDependenciesRuntimeModule {
       async_chunk_loading,
       chunk: None,
       source_map_kind: SourceMapKind::None,
+      source_map_columns: true,
     }
   }
 }

@@ -15,6 +15,11 @@ pub fn impl_source_map_config(
         .parse2(quote! { pub source_map_kind: ::rspack_util::source_map::SourceMapKind })
         .expect("Failed to parse new field for source_map_kind"),
     );
+    fields.named.push(
+      syn::Field::parse_named
+        .parse2(quote! { pub source_map_columns: bool })
+        .expect("Failed to parse new field for source_map_columns"),
+    );
   }
 
   quote! {
@@ -27,6 +32,14 @@ pub fn impl_source_map_config(
 
       fn set_source_map_kind(&mut self, source_map_kind: ::rspack_util::source_map::SourceMapKind) {
         self.source_map_kind = source_map_kind;
+      }
+
+      fn get_source_map_columns(&self) -> bool {
+        self.source_map_columns
+      }
+
+      fn set_source_map_columns(&mut self, source_map_columns: bool) {
+        self.source_map_columns = source_map_columns;
       }
     }
   }
@@ -46,6 +59,11 @@ pub fn impl_runtime_module(
       syn::Field::parse_named
         .parse2(quote! { pub source_map_kind: ::rspack_util::source_map::SourceMapKind })
         .expect("Failed to parse new field for source_map_kind"),
+    );
+    fields.named.push(
+      syn::Field::parse_named
+        .parse2(quote! { pub source_map_columns: bool })
+        .expect("Failed to parse new field for source_map_columns"),
     );
   }
 
@@ -150,6 +168,14 @@ pub fn impl_runtime_module(
 
       fn set_source_map_kind(&mut self, source_map_kind: ::rspack_util::source_map::SourceMapKind) {
         self.source_map_kind = source_map_kind;
+      }
+
+      fn get_source_map_columns(&self) -> bool {
+        self.source_map_columns
+      }
+
+      fn set_source_map_columns(&mut self, source_map_columns: bool) {
+        self.source_map_columns = source_map_columns;
       }
     }
   }

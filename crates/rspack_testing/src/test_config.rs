@@ -509,6 +509,7 @@ impl TestConfig {
       plugins.push(
         SourceMapDevToolModuleOptionsPlugin::new(SourceMapDevToolModuleOptionsPluginOptions {
           module,
+          columns: !cheap,
         })
         .boxed(),
       );

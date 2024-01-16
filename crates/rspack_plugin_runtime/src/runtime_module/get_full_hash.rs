@@ -17,6 +17,7 @@ impl Default for GetFullHashRuntimeModule {
     Self {
       id: Identifier::from("webpack/runtime/get_full_hash"),
       source_map_kind: SourceMapKind::None,
+      source_map_columns: true,
     }
   }
 }
