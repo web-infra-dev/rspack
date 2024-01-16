@@ -2,8 +2,7 @@ ERROR in ./index.js
 ModuleParseError
 
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: Top-level-await is only supported in EcmaScript Modules: <PROJECT_ROOT>/tests/diagnostics/module-parse-failed/tla_esm_error/
-      index.js
+  ╰─▶   × JavaScript parsing error: Top-level-await is only supported in EcmaScript Modules
          ╭────
        1 │ await Promise.resolve("aaa");
          · ────────────────────────────

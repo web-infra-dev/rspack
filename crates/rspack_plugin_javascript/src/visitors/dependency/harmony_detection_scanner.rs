@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use rspack_core::{
   BuildInfo, BuildMeta, BuildMetaExportsType, DependencyLocation, DependencyTemplate,
-  ExportsArgument, ModuleArgument, ModuleIdentifier, ModuleType,
+  ExportsArgument, ModuleArgument, ModuleType,
 };
 use rspack_error::miette::Diagnostic;
 use swc_core::common::{SourceFile, Span};
@@ -16,7 +16,6 @@ use crate::no_visit_ignored_stmt;
 // Port from https://github.com/webpack/webpack/blob/main/lib/dependencies/HarmonyDetectionParserPlugin.js
 pub struct HarmonyDetectionScanner<'a> {
   source_file: Arc<SourceFile>,
-  module_identifier: &'a ModuleIdentifier,
   build_info: &'a mut BuildInfo,
   build_meta: &'a mut BuildMeta,
   module_type: &'a ModuleType,
@@ -30,7 +29,6 @@ impl<'a> HarmonyDetectionScanner<'a> {
   #[allow(clippy::too_many_arguments)]
   pub fn new(
     source_file: Arc<SourceFile>,
-    module_identifier: &'a ModuleIdentifier,
     build_info: &'a mut BuildInfo,
     build_meta: &'a mut BuildMeta,
     module_type: &'a ModuleType,
@@ -41,7 +39,6 @@ impl<'a> HarmonyDetectionScanner<'a> {
   ) -> Self {
     Self {
       source_file,
-      module_identifier,
       build_info,
       build_meta,
       module_type,
@@ -87,10 +84,7 @@ impl Visit for HarmonyDetectionScanner<'_> {
       } else {
         self.errors.push(Box::new(create_traceable_error(
           "JavaScript parsing error".into(),
-          format!(
-            "Top-level-await is only supported in EcmaScript Modules: {}",
-            self.module_identifier
-          ),
+          "Top-level-await is only supported in EcmaScript Modules".into(),
           &self.source_file,
           await_span.into(),
         )));

@@ -1,15 +1,17 @@
+use std::sync::Arc;
+
 use rspack_core::{
   CompilerOptions, ConstDependency, DependencyLocation, DependencyTemplate, ResourceData, SpanExt,
 };
-use rspack_error::miette::{diagnostic, Diagnostic, Severity};
-use rspack_error::DiagnosticExt;
-use swc_core::common::Spanned;
+use rspack_error::miette::{Diagnostic, Severity};
+use swc_core::common::{SourceFile, Spanned};
 use swc_core::ecma::ast::{Expr, NewExpr, UnaryExpr, UnaryOp};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 use url::Url;
 
 use super::{
-  expr_matcher, is_member_expr_starts_with, is_member_expr_starts_with_import_meta_webpack_hot,
+  create_traceable_error, expr_matcher, is_member_expr_starts_with,
+  is_member_expr_starts_with_import_meta_webpack_hot,
 };
 use crate::no_visit_ignored_stmt;
 
@@ -20,6 +22,7 @@ use crate::no_visit_ignored_stmt;
 // - evaluate expression. eg `import.meta.env && import.meta.env.xx` should be `false`
 // - add warning for `import.meta`
 pub struct ImportMetaScanner<'a> {
+  pub source_file: Arc<SourceFile>,
   pub presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
   pub compiler_options: &'a CompilerOptions,
   pub resource_data: &'a ResourceData,
@@ -29,6 +32,7 @@ pub struct ImportMetaScanner<'a> {
 
 impl<'a> ImportMetaScanner<'a> {
   pub fn new(
+    source_file: Arc<SourceFile>,
     presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
     resource_data: &'a ResourceData,
     compiler_options: &'a CompilerOptions,
@@ -36,6 +40,7 @@ impl<'a> ImportMetaScanner<'a> {
     ignored: &'a mut Vec<DependencyLocation>,
   ) -> Self {
     Self {
+      source_file,
       presentational_dependencies,
       resource_data,
       compiler_options,
@@ -109,10 +114,12 @@ impl Visit for ImportMetaScanner<'_> {
     // import.meta
     if expr_matcher::is_import_meta(expr) {
       // warn when access import.meta directly
-      self.warning_diagnostics.push(diagnostic!(
-        severity = Severity::Warning,
-        "Critical dependency: Accessing import.meta directly is unsupported (only property access or destructuring is supported)"
-      ).boxed());
+      self.warning_diagnostics.push(Box::new(create_traceable_error(
+        "Critical dependency".into(),
+        "Accessing import.meta directly is unsupported (only property access or destructuring is supported)".into(),
+        &self.source_file,
+        expr.span().into()
+      ).with_severity(Severity::Warning)));
       self
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(
