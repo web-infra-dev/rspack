@@ -442,7 +442,8 @@ pub fn expression_not_supported(
 ) -> (Box<TraceableError>, Box<ConstDependency>) {
   (
     Box::new(
-      create_traceable_parse_error(
+      create_traceable_error(
+        "Module parse failed".into(),
         format!("{name} is not supported by Rspack."),
         file,
         expr.span().into(),
