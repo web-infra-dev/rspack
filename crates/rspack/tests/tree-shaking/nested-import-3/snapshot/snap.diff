@@ -1,8 +1,8 @@
 --- expected
 +++ actual
 @@ -12,26 +12,12 @@
-  const a = 103330;
-  const b = 103330;
+ const a = 103330;
+ const b = 103330;
  }),
 -"./app.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 -"use strict";

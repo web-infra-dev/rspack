@@ -9,7 +9,7 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   answer: function() { return answer; }
 });
- const answer = 103330;
+const answer = 103330;
 }),
 "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";

@@ -16,9 +16,9 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
 });
- const secret = "888";
- const result = 20000;
- const something = function() {};
+const secret = "888";
+const result = 20000;
+const something = function() {};
 function __WEBPACK_DEFAULT_EXPORT__(){}
 }),
 

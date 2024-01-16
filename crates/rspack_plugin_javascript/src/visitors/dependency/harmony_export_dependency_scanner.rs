@@ -110,7 +110,11 @@ impl<'a, 'b> Visit for HarmonyExportDependencyScanner<'a, 'b> {
     self
       .presentational_dependencies
       .push(Box::new(HarmonyExportHeaderDependency::new(
-        export_decl.span().real_lo(),
+        Some(DependencyLocation::new(
+          export_decl.decl.span().real_lo(),
+          export_decl.decl.span().real_hi(),
+        )),
+        DependencyLocation::new(export_decl.span().real_lo(), export_decl.span().real_hi()),
       )));
   }
 

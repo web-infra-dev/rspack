@@ -22,7 +22,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _antd_index__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./antd/index */"./antd/index.js");
 
 _antd_index__WEBPACK_IMPORTED_MODULE_0__.locales.zh_CN;
- function test() {}
+function test() {}
 }),
 "./locale_zh.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";

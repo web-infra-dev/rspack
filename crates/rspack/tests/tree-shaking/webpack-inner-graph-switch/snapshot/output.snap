@@ -22,7 +22,7 @@ __webpack_require__.d(__webpack_exports__, {
 });
 /* harmony import */var _module__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./module */"./module.js");
 
- function test() {
+function test() {
     (0, _module__WEBPACK_IMPORTED_MODULE_0__["default"])({
         type: "inline"
     });

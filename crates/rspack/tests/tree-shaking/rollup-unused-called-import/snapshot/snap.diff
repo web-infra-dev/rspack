@@ -3,7 +3,7 @@
 @@ -22,7 +22,7 @@
      return "foo";
  }
-  function foodead() {
+ function foodead() {
 -    return "foo" + /* "./dead" unused */null();
 +    return "foo" + dead();
  }

@@ -9,7 +9,7 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   a: function() { return a; }
 });
- const a = 'a';
+const a = 'a';
 }),
 
 }]);
@@ -23,7 +23,7 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   b: function() { return b; }
 });
- const b = "b";
+const b = "b";
 }),
 
 }]);

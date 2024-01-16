@@ -11,7 +11,7 @@ __webpack_require__.d(__webpack_exports__, {
 });
 
 var __WEBPACK_DEFAULT_EXPORT__ = (/* unused pure expression or super */ null && (a));
- const b = 1;
+const b = 1;
 }),
 "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";

@@ -36,8 +36,8 @@ __webpack_require__.d(__webpack_exports__, {
   PlatformProvider: function() { return PlatformProvider; },
   usePlatform: function() { return usePlatform; }
 });
- const usePlatform = 3;
- const PlatformProvider = 1000;
+const usePlatform = 3;
+const PlatformProvider = 1000;
 }),
 "./src/index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";

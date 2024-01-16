@@ -10,8 +10,8 @@ __webpack_require__.d(__webpack_exports__, {
   a: function() { return a; },
   b: function() { return b; }
 });
- const a = 3;
- const b = 3;
+const a = 3;
+const b = 3;
 }),
 "./answer.js": (function (__unused_webpack_module, exports, __webpack_require__) {
 const res = __webpack_require__(/*! ./lib.js */"./lib.js");
