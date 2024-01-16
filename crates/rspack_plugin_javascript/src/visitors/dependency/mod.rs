@@ -157,7 +157,7 @@ pub fn scan_dependencies(
 
   if module_type.is_js_auto() || module_type.is_js_esm() {
     program.visit_with(&mut HarmonyDetectionScanner::new(
-      &module_identifier,
+      source_file.clone(),
       build_info,
       build_meta,
       module_type,
@@ -226,6 +226,7 @@ pub fn scan_dependencies(
       ));
     }
     program.visit_with(&mut ImportMetaScanner::new(
+      source_file.clone(),
       &mut presentational_dependencies,
       resource_data,
       compiler_options,

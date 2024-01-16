@@ -1,0 +1,13 @@
+ERROR in ./index.js
+ModuleParseError
+
+  × Module parse failed:
+  ╰─▶   × JavaScript parsing error: The top-level-await experiment is not enabled (set experiments.topLevelAwait: true to enabled it)
+         ╭─[1:1]
+       1 │ const a = await Promise.resolve("aaa");
+         ·           ─────
+       2 │ export default a;
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
