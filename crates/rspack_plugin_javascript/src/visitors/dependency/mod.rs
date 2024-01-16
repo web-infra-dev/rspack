@@ -107,6 +107,7 @@ pub fn scan_dependencies(
   ));
 
   program.visit_with(&mut ApiScanner::new(
+    source_file.clone(),
     unresolved_ctxt,
     resource_data,
     &mut dependencies,

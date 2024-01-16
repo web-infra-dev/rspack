@@ -4,10 +4,7 @@ use rspack_core::{
   extract_member_expression_chain, ConstDependency, DependencyLocation, ErrorSpan,
   ExpressionInfoKind, SpanExt,
 };
-use rspack_error::{
-  miette::{MietteDiagnostic, Severity},
-  DiagnosticKind, TraceableError,
-};
+use rspack_error::{miette::Severity, DiagnosticKind, TraceableError};
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::{
   common::{SourceFile, Spanned, SyntaxContext},
@@ -439,13 +436,18 @@ fn test_is_require_call_start() {
 }
 
 pub fn expression_not_supported(
+  file: &SourceFile,
   name: &str,
   expr: &Expr,
-) -> (Box<MietteDiagnostic>, Box<ConstDependency>) {
+) -> (Box<TraceableError>, Box<ConstDependency>) {
   (
     Box::new(
-      MietteDiagnostic::new(format!("{name} is not supported by Rspack."))
-        .with_severity(Severity::Warning),
+      create_traceable_parse_error(
+        format!("{name} is not supported by Rspack."),
+        file,
+        expr.span().into(),
+      )
+      .with_severity(Severity::Warning),
     ),
     Box::new(ConstDependency::new(
       expr.span().real_lo(),

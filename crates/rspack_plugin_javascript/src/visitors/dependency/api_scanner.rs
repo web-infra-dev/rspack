@@ -1,10 +1,12 @@
+use std::sync::Arc;
+
 use rspack_core::{
   BuildInfo, ConstDependency, Dependency, DependencyLocation, DependencyTemplate, ResourceData,
   RuntimeGlobals, RuntimeRequirementsDependency, SpanExt,
 };
 use rspack_error::miette::Diagnostic;
 use swc_core::{
-  common::{Spanned, SyntaxContext},
+  common::{SourceFile, Spanned, SyntaxContext},
   ecma::{
     ast::{AssignExpr, AssignOp, CallExpr, Callee, Expr, Ident, Pat, PatOrExpr, VarDeclarator},
     visit::{noop_visit_type, Visit, VisitWith},
@@ -79,6 +81,7 @@ impl JavascriptParserPlugin for ApiParserPlugin {
 }
 
 pub struct ApiScanner<'a> {
+  pub source_file: Arc<SourceFile>,
   pub unresolved_ctxt: SyntaxContext,
   pub module: bool,
   pub build_info: &'a mut BuildInfo,
@@ -93,6 +96,7 @@ pub struct ApiScanner<'a> {
 impl<'a> ApiScanner<'a> {
   #[allow(clippy::too_many_arguments)]
   pub fn new(
+    source_file: Arc<SourceFile>,
     unresolved_ctxt: SyntaxContext,
     resource_data: &'a ResourceData,
     dependencies: &'a mut Vec<Box<dyn Dependency>>,
@@ -103,6 +107,7 @@ impl<'a> ApiScanner<'a> {
     ignored: &'a mut Vec<DependencyLocation>,
   ) -> Self {
     Self {
+      source_file,
       unresolved_ctxt,
       module,
       build_info,
@@ -337,7 +342,7 @@ impl Visit for ApiScanner<'_> {
     macro_rules! not_supported_expr {
       ($check: ident, $name: literal) => {
         if expr_matcher::$check(expr) {
-          let (warning, dep) = super::expression_not_supported($name, expr);
+          let (warning, dep) = super::expression_not_supported(&self.source_file, $name, expr);
           self.warning_diagnostics.push(warning);
           self.presentational_dependencies.push(dep);
           return;
@@ -417,8 +422,11 @@ impl Visit for ApiScanner<'_> {
         if let Callee::Expr(box Expr::Member(expr)) = &call_expr.callee
           && expr_matcher::$check(&Expr::Member(expr.to_owned()))
         {
-          let (warning, dep) =
-            super::expression_not_supported($name, &Expr::Call(call_expr.to_owned()));
+          let (warning, dep) = super::expression_not_supported(
+            &self.source_file,
+            $name,
+            &Expr::Call(call_expr.to_owned()),
+          );
           self.warning_diagnostics.push(warning);
           self.presentational_dependencies.push(dep);
           return;
