@@ -68,7 +68,7 @@ impl CommonJsImportsParserPlugin {
     let is_require_member_chain = is_require_call_start(&expr)
       && !expr_matcher::is_require(&expr)
       && !expr_matcher::is_module_require(&expr)
-      && parser.is_unresolved_member_object_ident(&expr);
+      && parser.is_unresolved_ident("require");
     if !is_require_member_chain {
       return None;
     }
@@ -166,7 +166,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     start: u32,
     end: u32,
   ) -> Option<BasicEvaluatedExpression> {
-    if expression.sym.as_str() == "require" && parser.is_unresolved_ident(expression) {
+    if expression.sym.as_str() == "require" && parser.is_unresolved_ident("require") {
       Some(eval::evaluate_to_string("function".to_string(), start, end))
     } else {
       None
@@ -244,7 +244,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
 
     if let Expr::Ident(ident) = &**expr
       && "require".eq(&ident.sym)
-      && parser.is_unresolved_ident(ident)
+      && parser.is_unresolved_ident("require")
       && let Some(expr) = call_expr.args.first()
       && call_expr.args.len() == 1
       && expr.spread.is_none()

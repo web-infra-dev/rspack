@@ -67,8 +67,8 @@ impl JavascriptParserPlugin for ApiParserPlugin {
     start: u32,
     end: u32,
   ) -> Option<BasicEvaluatedExpression> {
-    if parser.is_unresolved_ident(expression) {
-      get_typeof_evaluate_of_api(expression.sym.as_ref() as &str)
+    if parser.is_unresolved_ident(expression.sym.as_str()) {
+      get_typeof_evaluate_of_api(expression.sym.as_str())
         .map(|res| eval::evaluate_to_string(res.to_string(), start, end))
     } else {
       None
