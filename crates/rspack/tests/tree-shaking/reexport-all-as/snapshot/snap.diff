@@ -1,8 +1,8 @@
 --- expected
 +++ actual
 @@ -12,30 +12,12 @@
-  function a() {}
-  function dddd() {}
+ function a() {}
+ function dddd() {}
  }),
 -"./package/autogen/index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 -"use strict";

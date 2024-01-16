@@ -4,8 +4,8 @@
  });
  /* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./lib */"./lib.js");
  
-- class Lib extends /* "./lib" unused */null {
-+ class Lib extends (/* unused pure expression or super */ null && (OriginLib)) {
+-class Lib extends /* "./lib" unused */null {
++class Lib extends (/* unused pure expression or super */ null && (OriginLib)) {
  }
  function foo() {
      return {
@@ -13,4 +13,4 @@
 +        OriginLib
      };
  }
-  const v = _lib__WEBPACK_IMPORTED_MODULE_0__.value;
+ const v = _lib__WEBPACK_IMPORTED_MODULE_0__.value;

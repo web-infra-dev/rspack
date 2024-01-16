@@ -557,7 +557,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "fdf1835c93e2d82b49eb",
+  "hash": "0225d82009913b9bc641",
   "logging": {},
   "modules": [
     {
@@ -810,7 +810,7 @@ webpack/runtime/require_chunk_loading {909}
 webpack/runtime/define_property_getters {909}
 webpack/runtime/get javascript chunk filename {909}
   
-Rspack compiled successfully (fdf1835c93e2d82b49eb)"
+Rspack compiled successfully (0225d82009913b9bc641)"
 `;
 
 exports[`StatsTestCases should print correct stats for hot+production 1`] = `
@@ -5730,7 +5730,7 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "bc29ba38ac2c5652e3c7",
+  "hash": "1fd8021bdf9d8544e1ba",
   "logging": {},
   "modules": [
     {
@@ -5858,7 +5858,7 @@ webpack/runtime/has_own_property {909}
 webpack/runtime/make_namespace_object {909}
 webpack/runtime/define_property_getters {909}
   
-Rspack compiled successfully (bc29ba38ac2c5652e3c7)"
+Rspack compiled successfully (1fd8021bdf9d8544e1ba)"
 `;
 
 exports[`StatsTestCases should print correct stats for simple-module-source 1`] = `
@@ -6334,7 +6334,7 @@ exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "bc29ba38ac2c5652e3c7",
+  "hash": "1fd8021bdf9d8544e1ba",
   "logging": {},
   "modules": [
     {
@@ -6450,7 +6450,7 @@ asset bundle.js 590 bytes [emitted111] (name: main) [testA: aaaaaa]
 Entrypoint main 590 bytes = bundle.js
 runtime modules 3 modules
 ./index.js
-Rspack compiled successfully (bc29ba38ac2c5652e3c7)"
+Rspack compiled successfully (1fd8021bdf9d8544e1ba)"
 `;
 
 exports[`StatsTestCases should print correct stats for try-require--module 1`] = `

@@ -10,12 +10,12 @@
  });
 -/* harmony import */var _aa__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./aa */"./package/autogen/aa.js");
  
-  function a() {}
-  function dddd() {}
+ function a() {}
+ function dddd() {}
 @@ -24,32 +22,15 @@
  });
-  const aa = 3;
-  const cc = 3;
+ const aa = 3;
+ const cc = 3;
 -}),
 -"./package/autogen/index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 -"use strict";
