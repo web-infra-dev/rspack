@@ -423,7 +423,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
         "hotModuleReplacement": false,
       },
       "name": "909.xxxx.js",
-      "size": 934,
+      "size": 935,
       "type": "asset",
     },
   ],
@@ -544,10 +544,10 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       "assets": [
         {
           "name": "909.xxxx.js",
-          "size": 934,
+          "size": 935,
         },
       ],
-      "assetsSize": 934,
+      "assetsSize": 935,
       "chunks": [
         "909",
       ],
@@ -750,10 +750,10 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       "assets": [
         {
           "name": "909.xxxx.js",
-          "size": 934,
+          "size": 935,
         },
       ],
-      "assetsSize": 934,
+      "assetsSize": 935,
       "chunks": [
         "909",
       ],
@@ -770,8 +770,8 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
 exports[`StatsTestCases should print correct stats for filename 2`] = `
 "PublicPath: (none)
 asset 521.xxxx.js 131 bytes {521} [emitted]
-asset 909.xxxx.js 934 bytes {909} [emitted] (name: main)
-Entrypoint main 934 bytes = 909.xxxx.js
+asset 909.xxxx.js 935 bytes {909} [emitted] (name: main)
+Entrypoint main 935 bytes = 909.xxxx.js
 chunk {521} 521.xxxx.js <{909}>
   ./dynamic.js [345] {521}
     dynamic import ./dynamic [10]
@@ -1305,7 +1305,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
             "hotModuleReplacement": false,
           },
           "name": "bundle1.js",
-          "size": 1275,
+          "size": 1276,
           "type": "asset",
         },
       ],
@@ -1528,10 +1528,10 @@ import(/* webpackChunkName: "c" */ "./c");
           "assets": [
             {
               "name": "bundle1.js",
-              "size": 1275,
+              "size": 1276,
             },
           ],
-          "assetsSize": 1275,
+          "assetsSize": 1276,
           "chunks": [
             "909",
           ],
@@ -1814,10 +1814,10 @@ import(/* webpackChunkName: "c" */ "./c");
           "assets": [
             {
               "name": "bundle1.js",
-              "size": 1275,
+              "size": 1276,
             },
           ],
-          "assetsSize": 1275,
+          "assetsSize": 1276,
           "chunks": [
             "909",
           ],
@@ -1827,10 +1827,10 @@ import(/* webpackChunkName: "c" */ "./c");
           "assets": [
             {
               "name": "bundle1.js",
-              "size": 1275,
+              "size": 1276,
             },
           ],
-          "assetsSize": 1275,
+          "assetsSize": 1276,
           "chunks": [
             "909",
           ],
@@ -1873,7 +1873,7 @@ import(/* webpackChunkName: "c" */ "./c");
             "hotModuleReplacement": false,
           },
           "name": "bundle2.js",
-          "size": 1457,
+          "size": 1458,
           "type": "asset",
         },
       ],
@@ -2121,10 +2121,10 @@ import(/* webpackChunkName: "c" */ "./c");
           "assets": [
             {
               "name": "bundle2.js",
-              "size": 1457,
+              "size": 1458,
             },
           ],
-          "assetsSize": 1457,
+          "assetsSize": 1458,
           "chunks": [
             "909",
           ],
@@ -2480,10 +2480,10 @@ import(/* webpackChunkName: "c" */ "./c");
           "assets": [
             {
               "name": "bundle2.js",
-              "size": 1457,
+              "size": 1458,
             },
           ],
-          "assetsSize": 1457,
+          "assetsSize": 1458,
           "chunks": [
             "909",
           ],
@@ -2540,7 +2540,7 @@ import(/* webpackChunkName: "c" */ "./c");
             "hotModuleReplacement": false,
           },
           "name": "bundle3.js",
-          "size": 1457,
+          "size": 1458,
           "type": "asset",
         },
       ],
@@ -2806,10 +2806,10 @@ import(/* webpackChunkName: "c" */ "./c");
           "assets": [
             {
               "name": "bundle3.js",
-              "size": 1457,
+              "size": 1458,
             },
           ],
-          "assetsSize": 1457,
+          "assetsSize": 1458,
           "chunks": [
             "909",
           ],
@@ -3165,10 +3165,10 @@ import(/* webpackChunkName: "c" */ "./c");
           "assets": [
             {
               "name": "bundle3.js",
-              "size": 1457,
+              "size": 1458,
             },
           ],
-          "assetsSize": 1457,
+          "assetsSize": 1458,
           "chunks": [
             "909",
           ],
@@ -3239,7 +3239,7 @@ import(/* webpackChunkName: "c" */ "./c");
             "hotModuleReplacement": false,
           },
           "name": "bundle4.js",
-          "size": 1457,
+          "size": 1458,
           "type": "asset",
         },
       ],
@@ -3525,10 +3525,10 @@ import(/* webpackChunkName: "c" */ "./c");
           "assets": [
             {
               "name": "bundle4.js",
-              "size": 1457,
+              "size": 1458,
             },
           ],
-          "assetsSize": 1457,
+          "assetsSize": 1458,
           "chunks": [
             "909",
           ],
@@ -3884,10 +3884,10 @@ import(/* webpackChunkName: "c" */ "./c");
           "assets": [
             {
               "name": "bundle4.js",
-              "size": 1457,
+              "size": 1458,
             },
           ],
-          "assetsSize": 1457,
+          "assetsSize": 1458,
           "chunks": [
             "909",
           ],
@@ -4191,10 +4191,10 @@ exports[`StatsTestCases should print correct stats for named-chunk-group 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 918,
+          "size": 919,
         },
       ],
-      "assetsSize": 918,
+      "assetsSize": 919,
       "chunks": [
         "909",
       ],
@@ -4219,10 +4219,10 @@ exports[`StatsTestCases should print correct stats for named-chunk-group 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 918,
+          "size": 919,
         },
       ],
-      "assetsSize": 918,
+      "assetsSize": 919,
       "chunks": [
         "909",
       ],
@@ -4233,7 +4233,7 @@ exports[`StatsTestCases should print correct stats for named-chunk-group 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for named-chunk-group 2`] = `
-"Entrypoint main 918 bytes = bundle.js
+"Entrypoint main 919 bytes = bundle.js
 Chunk Group cimanyd 131 bytes = 414.bundle.js"
 `;
 
