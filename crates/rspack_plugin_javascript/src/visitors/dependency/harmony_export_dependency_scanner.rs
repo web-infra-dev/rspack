@@ -10,7 +10,7 @@ use swc_core::{
       ClassDecl, Decl, DefaultDecl, ExportDecl, ExportDefaultDecl, ExportDefaultExpr,
       ExportSpecifier, FnDecl, Ident, ModuleExportName, NamedExport, Program,
     },
-    utils::find_pat_ids,
+    utils::{find_pat_ids, ExprFactory},
     visit::{noop_visit_type, Visit, VisitWith},
   },
 };
@@ -19,9 +19,9 @@ use swc_node_comments::SwcComments;
 use super::{harmony_import_dependency_scanner::ImportMap, ExtraSpanInfo};
 use crate::{
   dependency::{
-    AnonymousFunctionRangeInfo, HarmonyExportExpressionDependency, HarmonyExportHeaderDependency,
-    HarmonyExportImportedSpecifierDependency, HarmonyExportSpecifierDependency, Specifier,
-    DEFAULT_EXPORT,
+    DeclarationId, DeclarationInfo, HarmonyExportExpressionDependency,
+    HarmonyExportHeaderDependency, HarmonyExportImportedSpecifierDependency,
+    HarmonyExportSpecifierDependency, Specifier, DEFAULT_EXPORT,
   },
   no_visit_ignored_stmt,
 };
@@ -183,55 +183,69 @@ impl<'a, 'b> Visit for HarmonyExportDependencyScanner<'a, 'b> {
   }
 
   fn visit_export_default_expr(&mut self, export_default_expr: &'_ ExportDefaultExpr) {
-    // TODO this should be at `HarmonyExportExpressionDependency`
-    self
-      .dependencies
-      .push(Box::new(HarmonyExportSpecifierDependency::new(
-        DEFAULT_JS_WORD.clone(),
-        DEFAULT_EXPORT.into(),
-      )));
-
     self.rewrite_usage_span.insert(
       export_default_expr.span,
       ExtraSpanInfo::AddVariableUsage(vec![(DEFAULT_EXPORT.into(), DEFAULT_JS_WORD.clone())]),
     );
-    let end = self
-      .comments
-      .and_then(|comments| {
-        let comment_list = comments.leading.get(&export_default_expr.expr.span_lo())?;
-        let first_comment = comment_list.first()?;
-        Some(first_comment.span.span().real_lo())
-      })
-      .unwrap_or(export_default_expr.expr.span().real_lo());
     self
       .presentational_dependencies
       .push(Box::new(HarmonyExportExpressionDependency::new(
-        export_default_expr.span().real_lo(),
-        end,
-        false,
+        DependencyLocation::new(
+          export_default_expr.expr.span().real_lo(),
+          export_default_expr.expr.span().real_hi(),
+        ),
+        DependencyLocation::new(
+          export_default_expr.span().real_lo(),
+          export_default_expr.span().real_hi(),
+        ),
         None,
       )));
   }
 
   fn visit_export_default_decl(&mut self, export_default_decl: &'_ ExportDefaultDecl) {
+    let named_id = match &export_default_decl.decl {
+      DefaultDecl::Class(class_expr) => class_expr.to_owned().as_class_decl().map(|c| c.ident.sym),
+      DefaultDecl::Fn(fn_expr) => fn_expr.to_owned().as_fn_decl().map(|c| c.ident.sym),
+      _ => None,
+    };
+
+    if let Some(named_id) = named_id
+      && !named_id.is_empty()
+    {
+      self
+        .dependencies
+        .push(Box::new(HarmonyExportSpecifierDependency::new(
+          DEFAULT_JS_WORD.clone(),
+          named_id.clone(),
+        )));
+      self.rewrite_usage_span.insert(
+        export_default_decl.span,
+        ExtraSpanInfo::AddVariableUsage(vec![(named_id, DEFAULT_JS_WORD.clone())]),
+      );
+      self
+        .presentational_dependencies
+        .push(Box::new(HarmonyExportHeaderDependency::new(
+          Some(DependencyLocation::new(
+            export_default_decl.decl.span().real_lo(),
+            export_default_decl.decl.span().real_hi(),
+          )),
+          DependencyLocation::new(
+            export_default_decl.span().real_lo(),
+            export_default_decl.span().real_hi(),
+          ),
+        )));
+      return;
+    }
+
     let ident = match &export_default_decl.decl {
       DefaultDecl::Class(class_expr) => &class_expr.ident,
       DefaultDecl::Fn(f) => &f.ident,
       _ => unreachable!(),
     };
-
-    // TODO this should be at `HarmonyExportExpressionDependency`
-
     let local = match &ident {
       Some(ident) => ident.sym.clone(),
       None => DEFAULT_EXPORT.into(),
     };
-    self
-      .dependencies
-      .push(Box::new(HarmonyExportSpecifierDependency::new(
-        DEFAULT_JS_WORD.clone(),
-        local.clone(),
-      )));
     self.rewrite_usage_span.insert(
       export_default_decl.span,
       ExtraSpanInfo::AddVariableUsage(vec![(local, DEFAULT_JS_WORD.clone())]),
@@ -239,21 +253,44 @@ impl<'a, 'b> Visit for HarmonyExportDependencyScanner<'a, 'b> {
     self
       .presentational_dependencies
       .push(Box::new(HarmonyExportExpressionDependency::new(
-        export_default_decl.span().real_lo(),
-        export_default_decl.decl.span().real_lo(),
-        ident.is_some(),
-        if let DefaultDecl::Fn(f) = &export_default_decl.decl
-          && f.ident.is_none()
-        {
-          let first_parmas_start = f.function.params.first().map(|first| first.span.real_lo());
-          Some(AnonymousFunctionRangeInfo {
-            is_async: f.function.is_async,
-            is_generator: f.function.is_generator,
-            body_start: f.function.body.span().real_lo(),
-            first_parmas_start,
-          })
-        } else {
-          None
+        DependencyLocation::new(
+          export_default_decl.decl.span().real_lo(),
+          export_default_decl.decl.span().real_hi(),
+        ),
+        DependencyLocation::new(
+          export_default_decl.span().real_lo(),
+          export_default_decl.span().real_hi(),
+        ),
+        match &export_default_decl.decl {
+          DefaultDecl::Class(class_expr) => class_expr
+            .ident
+            .clone()
+            .map(|i| DeclarationId::Id(i.sym.to_string())),
+          DefaultDecl::Fn(f) => {
+            let start = f.span().real_lo();
+            let end = if let Some(first_arg) = f.function.params.first() {
+              first_arg.span().real_lo()
+            } else {
+              f.function.body.span().real_lo()
+            };
+            Some(DeclarationId::Func(DeclarationInfo {
+              range: DependencyLocation::new(start, end),
+              prefix: format!(
+                "{}function{} ",
+                if f.function.is_async { "async " } else { "" },
+                if f.function.is_generator { "*" } else { "" },
+              ),
+              suffix: format!(
+                r#"({}"#,
+                if f.function.params.is_empty() {
+                  ") "
+                } else {
+                  ""
+                }
+              ),
+            }))
+          }
+          _ => unreachable!(),
         },
       )));
   }

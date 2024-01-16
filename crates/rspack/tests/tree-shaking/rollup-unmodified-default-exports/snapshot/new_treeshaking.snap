@@ -6,14 +6,11 @@ source: crates/rspack_testing/src/run_fixture.rs
 "./foo.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
-});
 var Foo = function() {
     console.log("side effect");
     this.isFoo = true;
 };
-var __WEBPACK_DEFAULT_EXPORT__ = Foo;
+/* harmony default export */ __webpack_exports__["default"] = (Foo);
 Foo.prototype = {
     answer: function() {
         return 42;
