@@ -645,7 +645,7 @@ mod test {
     )
     .unwrap();
 
-    let deps = scan_dependencies(&ast.into_program());
+    let deps = scan_dependencies(&ast.0.into_program());
 
     let specifiers = deps
       .iter()
@@ -680,7 +680,7 @@ mod test {
     )
     .unwrap();
 
-    let deps = scan_dependencies(&ast.into_program());
+    let deps = scan_dependencies(&ast.0.into_program());
 
     let specifiers = deps
       .iter()

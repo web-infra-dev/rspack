@@ -18,6 +18,8 @@ mod url_scanner;
 mod util;
 mod worker_scanner;
 
+use std::sync::Arc;
+
 use rspack_ast::javascript::Program;
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
@@ -25,8 +27,8 @@ use rspack_core::{
 };
 use rspack_error::miette::Diagnostic;
 use rustc_hash::FxHashMap as HashMap;
-use swc_core::common::Span;
 use swc_core::common::{comments::Comments, Mark, SyntaxContext};
+use swc_core::common::{SourceFile, Span};
 use swc_core::ecma::atoms::JsWord;
 
 use self::harmony_import_dependency_scanner::ImportMap;
@@ -67,6 +69,7 @@ pub enum ExtraSpanInfo {
 
 #[allow(clippy::too_many_arguments)]
 pub fn scan_dependencies(
+  source_file: Arc<SourceFile>,
   program: &Program,
   unresolved_mark: Mark,
   resource_data: &ResourceData,
@@ -94,11 +97,13 @@ pub fn scan_dependencies(
   // TODO it should enable at js/auto or js/dynamic, but builtins provider will inject require at esm
   // https://github.com/web-infra-dev/rspack/issues/3544
   program.visit_with(&mut CommonJsImportDependencyScanner::new(
+    source_file,
     &mut dependencies,
     &mut presentational_dependencies,
     unresolved_ctxt,
     module_type,
     &mut ignored,
+    &mut errors,
   ));
 
   program.visit_with(&mut ApiScanner::new(
