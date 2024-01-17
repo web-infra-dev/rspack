@@ -7,10 +7,10 @@ use std::{hash::Hash, path::Path};
 
 use dashmap::DashMap;
 use derivative::Derivative;
-use futures::{future::BoxFuture, StreamExt};
 use once_cell::sync::Lazy;
 use pathdiff::diff_paths;
 use regex::{Captures, Regex};
+use rayon::prelude::*;
 use rspack_core::{
   contextify,
   rspack_sources::{BoxSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap},
@@ -23,7 +23,7 @@ use rspack_error::{miette::IntoDiagnostic, Error, Result};
 use rspack_hash::RspackHash;
 use rspack_util::source_map::SourceMapKind;
 use rspack_util::{path::relative, swc::normalize_custom_filename};
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use rustc_hash::FxHashSet as HashSet;
 use serde_json::json;
 
 static CSS_EXTENSION_DETECT_REGEXP: Lazy<Regex> =
@@ -70,7 +70,7 @@ pub enum Append {
   Disabled,
 }
 
-pub type TestFn = Arc<dyn Fn(String) -> BoxFuture<'static, Result<bool>> + Sync + Send>;
+pub type TestFn = Box<dyn Fn(String) -> bool + Sync + Send>;
 
 #[derive(Derivative)]
 #[derivative(Debug)]
@@ -189,27 +189,26 @@ impl Plugin for SourceMapDevToolPlugin {
     let output_options = &compilation.options.output;
     let compiler_options = &compilation.options;
 
-    let compilation_assets = compilation.assets();
-    let assets = futures::stream::iter(compilation_assets.iter())
+    let assets = compilation
+      .assets()
+      .par_iter()
       .filter_map(|(file, asset)| {
-        let test = self.test.clone();
-        async move {
-          let is_match = match &test {
-            Some(test) => test(file.clone()).await.ok()?,
-            None => true,
-          };
+        let is_match = match &self.test {
+          Some(test) => test(file.clone()),
+          None => true,
+        };
 
-          if is_match {
-            asset
-              .get_source()
-              .map(|source| (file, source, source.map(&MapOptions::new(self.columns))))
-          } else {
-            None
-          }
+        if is_match {
+          asset.get_source().map(|source| {
+            let map_options = MapOptions::new(self.columns);
+            let source_map = source.map(&map_options);
+            (file, source, source_map)
+          })
+        } else {
+          None
         }
       })
-      .collect::<Vec<(&String, &Arc<dyn Source>, Option<SourceMap>)>>()
-      .await;
+      .collect::<Vec<_>>();
 
     let mut used_names_set = HashSet::<String>::default();
     let mut maps: Vec<(String, Vec<u8>, Option<Vec<u8>>)> = Vec::with_capacity(assets.len());
@@ -291,12 +290,12 @@ impl Plugin for SourceMapDevToolPlugin {
       };
       let css_extension_detected = CSS_EXTENSION_DETECT_REGEXP.is_match(&filename);
       let current_source_mapping_url_comment = if let Some(SourceMappingUrlComment::String(s)) =
-        self.source_mapping_url_comment.as_ref()
+        &self.source_mapping_url_comment
       {
         let s = if css_extension_detected {
-          URL_FORMATTING_REGEXP.replace_all(s, "\n/*$1*/").to_string()
+          URL_FORMATTING_REGEXP.replace_all(s, "\n/*$1*/")
         } else {
-          s.clone()
+          Cow::from(s)
         };
         Some(s)
       } else {
@@ -433,6 +432,7 @@ impl SourceMapDevToolPlugin {
   ) -> String {
     let context = &options.context;
 
+    let source = normalize_custom_filename(source);
     let short_identifier = contextify(context, source);
     let identifier = &short_identifier;
     let module_id = "".to_string();
@@ -472,31 +472,6 @@ impl SourceMapDevToolPlugin {
         f(ctx)
       }
       ModuleFilenameTemplate::String(s) => {
-        let mut replacements: HashMap<&str, &str> = HashMap::default();
-        replacements.insert("identifier", identifier);
-        replacements.insert("short-identifier", &short_identifier);
-        replacements.insert("resource", resource);
-
-        replacements.insert("resource-path", resource_path);
-        replacements.insert("resourcepath", resource_path);
-
-        replacements.insert("absolute-resource-path", absolute_resource_path);
-        replacements.insert("abs-resource-path", absolute_resource_path);
-        replacements.insert("absoluteresource-path", absolute_resource_path);
-        replacements.insert("absresource-path", absolute_resource_path);
-        replacements.insert("absolute-resourcepath", absolute_resource_path);
-        replacements.insert("abs-resourcepath", absolute_resource_path);
-        replacements.insert("absoluteresourcepath", absolute_resource_path);
-        replacements.insert("absresourcepath", absolute_resource_path);
-
-        replacements.insert("all-loaders", &all_loaders);
-        replacements.insert("allloaders", &all_loaders);
-
-        replacements.insert("query", &query);
-        replacements.insert("id", &module_id);
-        replacements.insert("hash", &hash);
-        replacements.insert("namespace", &self.namespace);
-
         let s = REGEXP_ALL_LOADERS_RESOURCE.replace_all(s, "[identifier]");
         let s = REGEXP_LOADERS_RESOURCE.replace_all(&s, "[short-identifier]");
         SQUARE_BRACKET_TAG_REGEXP
@@ -504,23 +479,44 @@ impl SourceMapDevToolPlugin {
             let full_match = caps
               .get(0)
               .expect("the SQUARE_BRACKET_TAG_REGEXP must match the whole tag, but it did not match anything.")
-              .as_str()
-              .to_string();
+              .as_str();
             let content = caps
               .get(1)
               .expect("the SQUARE_BRACKET_TAG_REGEXP must match the whole tag, but it did not match anything.")
               .as_str();
 
             if content.len() + 2 == full_match.len() {
-              if let Some(replacement) = replacements.get(content.to_lowercase().as_str()) {
-                Cow::from(*replacement)
-              } else {
-                Cow::from(full_match)
+              match content.to_lowercase().as_str() {
+                "identifier" => Cow::from(identifier),
+                "short-identifier" => Cow::from(&short_identifier),
+                "resource" => Cow::from(resource),
+  
+                "resource-path" => Cow::from(resource_path),
+                "resourcepath" => Cow::from(resource_path),
+
+                "absolute-resource-path" => Cow::from(absolute_resource_path),
+                "abs-resource-path" => Cow::from(absolute_resource_path),
+                "absoluteresource-path" => Cow::from(absolute_resource_path),
+                "absresource-path" => Cow::from(absolute_resource_path),
+                "absolute-resourcepath" => Cow::from(absolute_resource_path),
+                "abs-resourcepath" => Cow::from(absolute_resource_path),
+                "absoluteresourcepath" => Cow::from(absolute_resource_path),
+                "absresourcepath" => Cow::from(absolute_resource_path),
+
+                "all-loaders" => Cow::from(&all_loaders),
+                "allloaders" => Cow::from(&all_loaders),
+
+                "query" => Cow::from(&query),
+                "id" => Cow::from(&module_id),
+                "hash" => Cow::from(hash.to_string()),
+                "namespace" => Cow::from(&self.namespace),
+
+                _ => Cow::from(full_match.to_string())
               }
             } else if full_match.starts_with("[\\") && full_match.ends_with("\\]") {
               Cow::from(format!("[{}]", &full_match[2..full_match.len() - 2]))
             } else {
-              Cow::from(full_match)
+              Cow::from(full_match.to_string())
             }
           })
           .to_string()

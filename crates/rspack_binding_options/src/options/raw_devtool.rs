@@ -106,15 +106,15 @@ fn normalize_raw_test(raw: JsFunction) -> TestFn {
     rspack_binding_macros::js_fn_into_threadsafe_fn!(raw, &Env::from(env))
   };
   let fn_payload = fn_payload.expect("convert to threadsafe function failed");
-  Arc::new(move |ctx| {
+  Box::new(move |ctx| {
     let fn_payload = fn_payload.clone();
-    Box::pin(async move {
-      fn_payload
-        .call(ctx, ThreadsafeFunctionCallMode::NonBlocking)
-        .into_rspack_result()?
-        .await
-        .unwrap_or_else(|err| panic!("failed to call external function: {err}"))
-    })
+    fn_payload
+      .call(ctx, ThreadsafeFunctionCallMode::NonBlocking)
+      .into_rspack_result()
+      .expect("into rspack result failed")
+      .blocking_recv()
+      .unwrap_or_else(|err| panic!("failed to call external function: {err}"))
+      .expect("failed")
   })
 }
 
