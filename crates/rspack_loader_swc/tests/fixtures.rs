@@ -100,6 +100,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
       module: "".into(),
       module_context: None,
       module_source_map_kind: SourceMapKind::SourceMap,
+      module_source_map_columns: true,
     },
   )
   .await

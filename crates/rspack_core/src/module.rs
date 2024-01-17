@@ -575,6 +575,12 @@ mod test {
         fn set_source_map_kind(&mut self, _source_map: SourceMapKind) {
           unreachable!()
         }
+        fn get_source_map_columns(&self) -> bool {
+          unreachable!()
+        }
+        fn set_source_map_columns(&mut self, _source_map_columns: bool) {
+          unreachable!()
+        }
       }
     };
   }
