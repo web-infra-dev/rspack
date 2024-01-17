@@ -17,7 +17,6 @@ impl Default for RelativeUrlRuntimeModule {
     Self {
       id: Identifier::from("webpack/runtime/relative_url"),
       source_map_kind: SourceMapKind::None,
-      source_map_columns: true,
     }
   }
 }

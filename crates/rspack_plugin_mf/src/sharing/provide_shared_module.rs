@@ -64,7 +64,6 @@ impl ProvideSharedModule {
       build_info: None,
       build_meta: None,
       source_map_kind: SourceMapKind::None,
-      source_map_columns: true,
     }
   }
 }

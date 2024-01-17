@@ -75,7 +75,6 @@ impl ParserAndGenerator for CssParserAndGenerator {
       module_type,
       module_user_request,
       module_source_map_kind,
-      module_source_map_columns,
       resource_data,
       compiler_options,
       build_info,
@@ -147,7 +146,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
         SwcCssSourceMapGenConfig {
           enable: !matches!(module_source_map_kind, SourceMapKind::None),
           inline_sources_content: false,
-          emit_columns: module_source_map_columns,
+          emit_columns: matches!(module_source_map_kind, SourceMapKind::SourceMap),
         },
       )?;
       source_code = code;

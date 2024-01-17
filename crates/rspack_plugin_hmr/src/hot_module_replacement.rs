@@ -17,7 +17,6 @@ impl Default for HotModuleReplacementRuntimeModule {
     Self {
       id: Identifier::from("webpack/runtime/hot_module_replacement"),
       source_map_kind: SourceMapKind::None,
-      source_map_columns: true,
     }
   }
 }

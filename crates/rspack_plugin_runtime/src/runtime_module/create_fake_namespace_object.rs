@@ -17,7 +17,6 @@ impl Default for CreateFakeNamespaceObjectRuntimeModule {
     Self {
       id: Identifier::from("webpack/runtime/create_fake_namespace_object"),
       source_map_kind: SourceMapKind::None,
-      source_map_columns: true,
     }
   }
 }

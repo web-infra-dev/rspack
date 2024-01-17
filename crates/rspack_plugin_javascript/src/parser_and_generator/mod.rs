@@ -87,7 +87,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       source,
       module_type,
       module_source_map_kind,
-      module_source_map_columns,
       resource_data,
       compiler_options,
       build_info,
@@ -157,13 +156,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       &ast,
       additional_data
         .remove::<CodegenOptions>()
-        .unwrap_or_else(|| {
-          CodegenOptions::new(
-            &module_source_map_kind,
-            module_source_map_columns,
-            Some(true),
-          )
-        }),
+        .unwrap_or_else(|| CodegenOptions::new(&module_source_map_kind, Some(true))),
     )?;
 
     let parse_result = match crate::ast::parse(

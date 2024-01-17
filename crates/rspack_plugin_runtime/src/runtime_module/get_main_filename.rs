@@ -23,7 +23,6 @@ impl GetMainFilenameRuntimeModule {
       global,
       filename,
       source_map_kind: SourceMapKind::None,
-      source_map_columns: true,
     }
   }
 }

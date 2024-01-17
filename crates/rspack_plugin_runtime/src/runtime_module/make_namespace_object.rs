@@ -17,7 +17,6 @@ impl Default for MakeNamespaceObjectRuntimeModule {
     Self {
       id: Identifier::from("webpack/runtime/make_namespace_object"),
       source_map_kind: SourceMapKind::None,
-      source_map_columns: true,
     }
   }
 }

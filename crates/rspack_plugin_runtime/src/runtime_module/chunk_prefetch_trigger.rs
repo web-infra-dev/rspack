@@ -23,7 +23,6 @@ impl ChunkPrefetchTriggerRuntimeModule {
       id: Identifier::from("webpack/runtime/chunk_prefetch_trigger"),
       chunk_map,
       source_map_kind: SourceMapKind::None,
-      source_map_columns: true,
     }
   }
 }

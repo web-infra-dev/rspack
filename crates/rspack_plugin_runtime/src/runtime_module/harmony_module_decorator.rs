@@ -17,7 +17,6 @@ impl Default for HarmonyModuleDecoratorRuntimeModule {
     Self {
       id: Identifier::from("webpack/runtime/harmony_module_decorator"),
       source_map_kind: SourceMapKind::None,
-      source_map_columns: true,
     }
   }
 }

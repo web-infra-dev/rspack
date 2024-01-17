@@ -85,7 +85,6 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
     };
 
     let source_map_kind = &loader_context.context.module_source_map_kind;
-    let source_map_columns = loader_context.context.module_source_map_columns;
     let source = content.try_into_string()?;
     let c = SwcCompiler::new(resource_path.clone(), source.clone(), swc_options)
       .map_err(AnyhowError::from)?;
@@ -125,7 +124,7 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
       source_map_config: SourceMapConfig {
         enable: !matches!(source_map_kind, SourceMapKind::None),
         inline_sources_content: true,
-        emit_columns: source_map_columns,
+        emit_columns: matches!(source_map_kind, SourceMapKind::SourceMap),
         names: Default::default(),
       },
       inline_script: Some(false),

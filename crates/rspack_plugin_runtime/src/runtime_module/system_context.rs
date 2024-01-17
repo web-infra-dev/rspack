@@ -17,7 +17,6 @@ impl Default for SystemContextRuntimeModule {
     Self {
       id: Identifier::from("webpack/runtime/start_entry_point"),
       source_map_kind: SourceMapKind::None,
-      source_map_columns: true,
     }
   }
 }

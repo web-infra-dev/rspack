@@ -12,7 +12,6 @@ pub struct CompilerContext {
   pub module: ModuleIdentifier,             // current module
   pub module_context: Option<Box<Context>>, // current module context
   pub module_source_map_kind: SourceMapKind,
-  pub module_source_map_columns: bool,
 }
 
 pub type LoaderRunnerContext = CompilerContext;

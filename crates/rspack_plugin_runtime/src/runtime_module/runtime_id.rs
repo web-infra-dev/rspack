@@ -20,7 +20,6 @@ impl Default for RuntimeIdRuntimeModule {
       id: Identifier::from("webpack/runtime/runtime_id"),
       chunk: None,
       source_map_kind: SourceMapKind::None,
-      source_map_columns: true,
     }
   }
 }

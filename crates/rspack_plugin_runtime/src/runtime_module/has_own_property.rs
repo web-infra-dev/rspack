@@ -17,7 +17,6 @@ impl Default for HasOwnPropertyRuntimeModule {
     Self {
       id: Identifier::from("webpack/runtime/has_own_property"),
       source_map_kind: SourceMapKind::None,
-      source_map_columns: true,
     }
   }
 }

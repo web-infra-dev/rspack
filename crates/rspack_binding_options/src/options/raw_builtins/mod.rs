@@ -310,7 +310,6 @@ impl BuiltinPlugin {
         plugins.push(
           SourceMapDevToolModuleOptionsPlugin::new(SourceMapDevToolModuleOptionsPluginOptions {
             module: options.module,
-            columns: options.columns,
           })
           .boxed(),
         );
@@ -322,7 +321,6 @@ impl BuiltinPlugin {
         plugins.push(
           SourceMapDevToolModuleOptionsPlugin::new(SourceMapDevToolModuleOptionsPluginOptions {
             module: options.module,
-            columns: options.columns,
           })
           .boxed(),
         );

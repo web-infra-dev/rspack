@@ -9,8 +9,8 @@ use dashmap::DashMap;
 use derivative::Derivative;
 use once_cell::sync::Lazy;
 use pathdiff::diff_paths;
-use regex::{Captures, Regex};
 use rayon::prelude::*;
+use regex::{Captures, Regex};
 use rspack_core::{
   contextify,
   rspack_sources::{BoxSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap},
@@ -289,18 +289,17 @@ impl Plugin for SourceMapDevToolPlugin {
         continue;
       };
       let css_extension_detected = CSS_EXTENSION_DETECT_REGEXP.is_match(&filename);
-      let current_source_mapping_url_comment = if let Some(SourceMappingUrlComment::String(s)) =
-        &self.source_mapping_url_comment
-      {
-        let s = if css_extension_detected {
-          URL_FORMATTING_REGEXP.replace_all(s, "\n/*$1*/")
+      let current_source_mapping_url_comment =
+        if let Some(SourceMappingUrlComment::String(s)) = &self.source_mapping_url_comment {
+          let s = if css_extension_detected {
+            URL_FORMATTING_REGEXP.replace_all(s, "\n/*$1*/")
+          } else {
+            Cow::from(s)
+          };
+          Some(s)
         } else {
-          Cow::from(s)
+          None
         };
-        Some(s)
-      } else {
-        None
-      };
 
       if let Some(source_map_filename_config) = &self.source_map_filename {
         let mut source_map_filename = filename.to_owned() + ".map";
@@ -490,7 +489,7 @@ impl SourceMapDevToolPlugin {
                 "identifier" => Cow::from(identifier),
                 "short-identifier" => Cow::from(&short_identifier),
                 "resource" => Cow::from(resource),
-  
+
                 "resource-path" => Cow::from(resource_path),
                 "resourcepath" => Cow::from(resource_path),
 
@@ -605,20 +604,17 @@ impl Plugin for EvalSourceMapDevToolPlugin {
 
 pub struct SourceMapDevToolModuleOptionsPluginOptions {
   pub module: bool,
-  pub columns: bool,
 }
 
 #[derive(Debug)]
 pub struct SourceMapDevToolModuleOptionsPlugin {
   module: bool,
-  columns: bool,
 }
 
 impl SourceMapDevToolModuleOptionsPlugin {
   pub fn new(options: SourceMapDevToolModuleOptionsPluginOptions) -> Self {
     Self {
       module: options.module,
-      columns: options.columns,
     }
   }
 }
@@ -635,7 +631,6 @@ impl Plugin for SourceMapDevToolModuleOptionsPlugin {
     } else {
       module.set_source_map_kind(SourceMapKind::SimpleSourceMap);
     }
-    module.set_source_map_columns(self.columns);
     Ok(())
   }
 
@@ -645,7 +640,6 @@ impl Plugin for SourceMapDevToolModuleOptionsPlugin {
     } else {
       module.set_source_map_kind(SourceMapKind::SimpleSourceMap);
     }
-    module.set_source_map_columns(self.columns);
     Ok(())
   }
 }

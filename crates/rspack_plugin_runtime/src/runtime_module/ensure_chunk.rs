@@ -21,7 +21,6 @@ impl Default for EnsureChunkRuntimeModule {
       id: Identifier::from("webpack/runtime/ensure_chunk"),
       chunk: None,
       source_map_kind: SourceMapKind::None,
-      source_map_columns: true,
     }
   }
 }

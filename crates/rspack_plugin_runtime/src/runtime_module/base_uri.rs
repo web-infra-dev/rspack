@@ -18,7 +18,6 @@ impl Default for BaseUriRuntimeModule {
       id: Identifier::from("webpack/runtime/base_uri"),
       chunk: None,
       source_map_kind: SourceMapKind::None,
-      source_map_columns: true,
     }
   }
 }

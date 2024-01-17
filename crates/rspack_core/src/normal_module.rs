@@ -207,7 +207,6 @@ impl NormalModule {
       build_meta: None,
 
       source_map_kind: SourceMapKind::None,
-      source_map_columns: true,
     }
   }
 
@@ -417,7 +416,6 @@ impl Module for NormalModule {
         module_type: &self.module_type,
         module_user_request: &self.user_request,
         module_source_map_kind: self.get_source_map_kind().clone(),
-        module_source_map_columns: self.get_source_map_columns(),
         loaders: &self.loaders,
         resource_data: &self.resource_data,
         compiler_options: build_context.compiler_options,

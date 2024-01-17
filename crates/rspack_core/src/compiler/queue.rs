@@ -350,7 +350,6 @@ impl WorkerTask for BuildTask {
               module: module.identifier(),
               module_context: module.as_normal_module().and_then(|m| m.get_context()),
               module_source_map_kind: module.get_source_map_kind().clone(),
-              module_source_map_columns: module.get_source_map_columns(),
             },
             plugin_driver: plugin_driver.clone(),
             compiler_options: &compiler_options,

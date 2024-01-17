@@ -21,7 +21,6 @@ impl Default for LoadChunkWithBlockRuntimeModule {
       id: Identifier::from("webpack/runtime/load_chunk_with_block"),
       chunk: None,
       source_map_kind: SourceMapKind::None,
-      source_map_columns: true,
     }
   }
 }

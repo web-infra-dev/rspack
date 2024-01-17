@@ -30,7 +30,6 @@ impl ImportScriptsChunkLoadingRuntimeModule {
       chunk: None,
       with_create_script_url,
       source_map_kind: SourceMapKind::None,
-      source_map_columns: true,
     }
   }
 

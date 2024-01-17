@@ -24,7 +24,6 @@ impl Default for CssLoadingRuntimeModule {
       id: Identifier::from("webpack/runtime/css_loading"),
       chunk: None,
       source_map_kind: SourceMapKind::None,
-      source_map_columns: true,
     }
   }
 }
