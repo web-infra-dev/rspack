@@ -3,6 +3,7 @@
 use std::future::Future;
 pub mod comparators;
 pub mod ext;
+pub mod fx_dashmap;
 pub mod identifier;
 pub mod number_hash;
 pub mod swc;

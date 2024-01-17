@@ -3175,8 +3175,10 @@ name = "rspack_util"
 version = "0.1.0"
 dependencies = [
  "concat-string",
+ "dashmap",
  "once_cell",
  "regex",
+ "rustc-hash",
  "sugar_path",
  "swc_core",
 ]
