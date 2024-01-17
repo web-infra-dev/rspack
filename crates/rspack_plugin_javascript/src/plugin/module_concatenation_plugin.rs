@@ -10,9 +10,9 @@ use rspack_core::concatenated_module::{
 };
 use rspack_core::{
   filter_runtime, merge_runtime, runtime_to_string, BoxDependency, Compilation, CompilerContext,
-  ExportInfoProvided, ExtendedReferencedExport, LibIdentOptions, Logger, Module, ModuleExt,
-  ModuleGraph, ModuleGraphModule, ModuleIdentifier, OptimizeChunksArgs, Plugin, ProvidedExports,
-  RuntimeCondition, RuntimeSpec, WrappedModuleIdentifier,
+  DependencyId, ExportInfoProvided, ExtendedReferencedExport, LibIdentOptions, Logger, Module,
+  ModuleExt, ModuleGraph, ModuleGraphModule, ModuleIdentifier, OptimizeChunksArgs, Plugin,
+  ProvidedExports, RuntimeCondition, RuntimeSpec, WrappedModuleIdentifier,
 };
 use rspack_error::Result;
 use rspack_util::ext::DynHash;
@@ -773,9 +773,6 @@ impl Plugin for ModuleConcatenationPlugin {
       let modules = modules_set
         .iter()
         .filter_map(|id| {
-          if &root_module_id == id {
-            return None;
-          }
           let module = compilation
             .module_graph
             .module_by_identifier(id)
@@ -861,6 +858,10 @@ impl Plugin for ModuleConcatenationPlugin {
       compilation
         .chunk_graph
         .replace_module(&root_module_id, &new_module.id());
+      dbg!(&compilation.module_graph.connections);
+      dbg!(&compilation
+        .module_graph
+        .connection_by_dependency(&DependencyId(2)));
       compilation.module_graph.move_module_connections(
         &root_module_id,
         &new_module.id(),

@@ -66,8 +66,16 @@ impl ModuleGraphModule {
     self.incoming_connections.insert(connection_id);
   }
 
+  pub fn remove_incoming_connection(&mut self, connection_id: ConnectionId) {
+    self.incoming_connections.remove(&connection_id);
+  }
+
   pub fn add_outgoing_connection(&mut self, connection_id: ConnectionId) {
     self.outgoing_connections.insert(connection_id);
+  }
+
+  pub fn remove_outgoing_connection(&mut self, connection_id: ConnectionId) {
+    self.outgoing_connections.remove(&connection_id);
   }
 
   pub fn incoming_connections_unordered<'m>(

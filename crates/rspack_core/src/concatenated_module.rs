@@ -100,10 +100,13 @@ pub struct ConcatenatedInnerModule {
   pub shorten_id: String,
 }
 
+#[derive(Debug)]
 pub enum ConcatenationEntryType {
   Concatenated,
   External,
 }
+
+#[derive(Debug)]
 pub enum ConnectionOrModuleIdent {
   Module(ModuleIdentifier),
   Connection(ConnectionId),
@@ -123,6 +126,7 @@ impl ConnectionOrModuleIdent {
   }
 }
 
+#[derive(Debug)]
 pub struct ConcatenationEntry {
   ty: ConcatenationEntryType,
   /// I do want to align with webpack, but https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L1018-L1027
@@ -756,6 +760,7 @@ impl Module for ConcatenatedModule {
         for reference in info.global_scope_ident.iter() {
           let name = &reference.id.sym;
           let match_result = ConcatenationScope::match_module_reference(name.as_str());
+          dbg!(&match_result);
           if let Some(match_info) = match_result {
             let referenced_info = &modules_with_info[match_info.index];
             let referenced_info_id = match referenced_info {
@@ -818,19 +823,20 @@ impl Module for ConcatenatedModule {
         let high = span.real_hi();
         let source = info.source.as_mut().expect("should have source");
         // range is extended by 2 chars to cover the appended "._"
-        source.replace(low, high, &final_name, None);
+        // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/ConcatenatedModule.js#L1411-L1412
+        source.replace(low, high + 2, &final_name, None);
       }
     }
-    // for (id, info) in module_to_info_map.iter() {
-    //   match info {
-    //     ModuleInfo::External(_) => {}
-    //     ModuleInfo::Concatenated(info) => {
-    //       let res = info.source.as_ref().expect("should ");
-    //       println!("{id}");
-    //       println!("{}\n", res.source());
-    //     }
-    //   }
-    // }
+    for (id, info) in module_to_info_map.iter() {
+      match info {
+        ModuleInfo::External(_) => {}
+        ModuleInfo::Concatenated(info) => {
+          let res = info.source.as_ref().expect("should ");
+          println!("{id}");
+          println!("{}\n", res.source());
+        }
+      }
+    }
 
     // let mut exports_map: HashMap<String, String> = HashMap::new();
     // let mut unused_exports: HashSet<String> = HashSet::new();
@@ -1629,7 +1635,7 @@ impl ConcatenatedModule {
             comment: None,
           });
         }
-        dbg!(&export_id, &info.export_map);
+        // dbg!(&export_id, &info.export_map);
 
         if let Some(ref export_id) = export_id
           && let Some(direct_export) = info.export_map.as_ref().and_then(|map| map.get(&export_id))

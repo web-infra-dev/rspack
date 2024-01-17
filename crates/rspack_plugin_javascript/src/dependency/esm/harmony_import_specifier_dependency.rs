@@ -151,6 +151,7 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
       } else {
         true
       };
+      dbg!(&is_target_active);
 
       if !is_target_active {
         return;

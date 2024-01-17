@@ -46,7 +46,7 @@ pub struct ModuleGraph {
 
   blocks: HashMap<AsyncDependenciesBlockIdentifier, AsyncDependenciesBlock>,
 
-  dependency_id_to_connection_id: HashMap<DependencyId, ConnectionId>,
+  pub dependency_id_to_connection_id: HashMap<DependencyId, ConnectionId>,
   connection_id_to_dependency_id: HashMap<ConnectionId, DependencyId>,
 
   /// Dependencies indexed by `DependencyId`
@@ -57,7 +57,7 @@ pub struct ModuleGraph {
 
   /// Dependencies indexed by `ConnectionId`
   /// None means the connection has been removed
-  connections: Vec<Option<ModuleGraphConnection>>,
+  pub connections: Vec<Option<ModuleGraphConnection>>,
 
   /// Module graph connections table index for `ConnectionId`
   connections_map: HashMap<ModuleGraphConnection, ConnectionId>,
@@ -941,6 +941,10 @@ impl ModuleGraph {
     mut connection: ModuleGraphConnection,
     module_identifier: ModuleIdentifier,
   ) -> ModuleGraphConnection {
+    let old_connection_id = *mg
+      .connections_map
+      .get(&connection)
+      .expect("should have connection id");
     let old_connection_original_module_id = connection.original_module_identifier;
     let old_connection_dependency_id = connection.dependency_id;
     let new_connection_id = ConnectionId::from(mg.connections.len());
@@ -963,11 +967,13 @@ impl ModuleGraph {
       .expect("should have mgm");
 
     mgm.add_incoming_connection(new_connection_id);
+    mgm.remove_incoming_connection(old_connection_id);
 
     if let Some(identifier) = old_connection_original_module_id
       && let Some(original_mgm) = mg.module_graph_module_by_identifier_mut(&identifier)
     {
       original_mgm.add_outgoing_connection(new_connection_id);
+      original_mgm.remove_outgoing_connection(old_connection_id);
     };
     connection
   }
