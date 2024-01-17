@@ -29,16 +29,16 @@ __webpack_require__.d(__webpack_exports__, {
   bar: function() { return bar; },
   baz: function() { return Baz; }
 });
- function foo() {
+function foo() {
     console.log("outer foo");
 }
- function bar() {
+function bar() {
     console.log("outer bar");
 }
- function bog() {
+function bog() {
     console.log("outer bog");
 }
- function boo() {
+function boo() {
     console.log("outer boo");
 }
 function Baz() {

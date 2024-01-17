@@ -35,10 +35,10 @@
 +/* harmony import */var _enum_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./enum.js */"./b.js");
  
  function Record() {}
-  const code2CreateChatDocPermission = {
+ const code2CreateChatDocPermission = {
 @@ -64,7 +46,7 @@
-  function getDocPermissionTextSendMe() {}
-  class Doc extends Record({}) {
+ function getDocPermissionTextSendMe() {}
+ class Doc extends Record({}) {
      isSheet() {
 -        return this.type === _enum_js__WEBPACK_IMPORTED_MODULE_0__.b.b;
 +        return this.type === _enum_js__WEBPACK_IMPORTED_MODULE_1__.b.b;

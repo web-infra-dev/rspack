@@ -2,7 +2,7 @@
 +++ actual
 @@ -12,19 +12,10 @@
  
-  const answer = 42;
+ const answer = 42;
  }),
 -"./app.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 -"use strict";

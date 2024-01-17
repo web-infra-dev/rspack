@@ -8,17 +8,17 @@ use rspack_core::tree_shaking::analyzer::OptimizeAnalyzer;
 use rspack_core::tree_shaking::js_module::JsModule;
 use rspack_core::tree_shaking::visitor::OptimizeAnalyzeResult;
 use rspack_core::{
-  render_init_fragments, AsyncDependenciesBlockIdentifier, Compilation, DependenciesBlock,
-  DependencyId, GenerateContext, Module, ParseContext, ParseResult, ParserAndGenerator, SourceType,
+  render_init_fragments, AsyncDependenciesBlockId, Compilation, DependenciesBlock, DependencyId,
+  GenerateContext, Module, ParseContext, ParseResult, ParserAndGenerator, SourceType,
   TemplateContext, TemplateReplaceSource,
 };
 use rspack_error::miette::Diagnostic;
 use rspack_error::{DiagnosticExt, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use swc_core::common::SyntaxContext;
+use swc_core::ecma::parser::{EsConfig, Syntax};
 
 use crate::ast::CodegenOptions;
 use crate::inner_graph_plugin::InnerGraphPlugin;
-use crate::utils::syntax_by_module_type;
 use crate::visitors::ScanDependenciesResult;
 use crate::visitors::{run_before_pass, scan_dependencies, swc_visitor::resolver};
 use crate::{SideEffectsFlagPluginVisitor, SyntaxContextInfo};
@@ -35,14 +35,11 @@ impl JavaScriptParserAndGenerator {
   fn source_block(
     &self,
     compilation: &Compilation,
-    block_id: &AsyncDependenciesBlockIdentifier,
+    block_id: &AsyncDependenciesBlockId,
     source: &mut TemplateReplaceSource,
     context: &mut TemplateContext,
   ) {
-    let block = compilation
-      .module_graph
-      .block_by_id(block_id)
-      .expect("should have block");
+    let block = block_id.expect_get(compilation);
     block.get_dependencies().iter().for_each(|dependency_id| {
       self.source_dependency(compilation, dependency_id, source, context)
     });
@@ -95,12 +92,14 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       ..
     } = parse_context;
     let mut diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>> = vec![];
-    let syntax = syntax_by_module_type(
-      &resource_data.resource_path,
-      module_type,
-      compiler_options.builtins.decorator.is_some(),
-      compiler_options.should_transform_by_default(),
-    );
+    let syntax = Syntax::Es(EsConfig {
+      jsx: false,
+      export_default_from: false,
+      decorators: false,
+      fn_bind: true,
+      allow_super_outside_method: true,
+      ..Default::default()
+    });
     let use_source_map = compiler_options.devtool.enabled();
     let use_simple_source_map = compiler_options.devtool.source_map();
     let original_map = source.map(&MapOptions::new(!compiler_options.devtool.cheap()));
@@ -142,17 +141,10 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
             return gen_terminate_res(diagnostics);
           }
         }
+        .0
       };
 
-    run_before_pass(
-      resource_data,
-      &mut ast,
-      compiler_options,
-      syntax,
-      build_info,
-      module_type,
-      &source,
-    )?;
+    run_before_pass(&mut ast, compiler_options)?;
 
     let output: crate::TransformOutput = crate::ast::stringify(
       &ast,
@@ -161,24 +153,26 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         .unwrap_or_else(|| CodegenOptions::new(&compiler_options.devtool, Some(true))),
     )?;
 
-    ast = match crate::ast::parse(
+    let parse_result = match crate::ast::parse(
       output.code.clone(),
       syntax,
       &resource_data.resource_path.to_string_lossy(),
       module_type,
     ) {
-      Ok(ast) => ast,
+      Ok(parse_result) => parse_result,
       Err(e) => {
         diagnostics.append(&mut e.into_iter().map(|e| e.boxed()).collect());
         return gen_terminate_res(diagnostics);
       }
     };
 
+    ast = parse_result.0;
+
     ast.transform(|program, context| {
       program.visit_mut_with(&mut resolver(
         context.unresolved_mark,
         context.top_level_mark,
-        compiler_options.should_transform_by_default() && syntax.typescript(),
+        false,
       ));
     });
 
@@ -191,6 +185,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       mut warning_diagnostics,
     } = match ast.visit(|program, context| {
       scan_dependencies(
+        parse_result.1,
         program,
         context.unresolved_mark,
         resource_data,

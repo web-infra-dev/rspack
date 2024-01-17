@@ -26,8 +26,8 @@ const config = require("{config_path}");
 config.context ??= "{test_dir}";
 config.output ??= {{}};
 config.output.path ??= "{test_dir}/dist";
-const normalized = rspack.getNormalizedRspackOptions(config);
-rspack.applyRspackOptionsDefaults(normalized);
+const normalized = rspack.config.getNormalizedRspackOptions(config);
+rspack.config.applyRspackOptionsDefaults(normalized);
 const raw = rspack.getRawOptions(normalized);
 JSON.stringify(raw, null, 2)
 "#

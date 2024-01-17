@@ -1,9 +1,11 @@
+const { rspack } = require("@rspack/core");
+
 module.exports = {
 	entry: {
 		main: ["./index.js"]
 	},
-	builtins: {
-		provide: {
+	plugins: [
+		new rspack.ProvidePlugin({
 			aaa: "./aaa",
 			"bbb.ccc": "./bbbccc",
 			dddeeefff: ["./ddd", "eee", "3-f"],
@@ -17,12 +19,9 @@ module.exports = {
 			"this.aaa": "./aaa",
 			esm: "./esm.js",
 			process: "./process.js"
-		},
+		})
+	],
+	builtins: {
 		treeShaking: true
-	},
-	experiments: {
-		rspackFuture: {
-			disableTransformByDefault: false
-		}
 	}
 };

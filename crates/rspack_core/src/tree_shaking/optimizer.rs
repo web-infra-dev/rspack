@@ -1561,20 +1561,12 @@ fn is_js_like_uri(uri: &str) -> bool {
   fn resolve_module_type_by_uri(uri: &str) -> Option<ModuleType> {
     let uri = std::path::Path::new(uri);
     let ext = uri.extension()?.to_str()?;
-    let module_type: Option<ModuleType> = ext.try_into().ok();
-    module_type
+    Some(ModuleType::from(ext))
   }
   match resolve_module_type_by_uri(uri) {
     Some(module_type) => matches!(
       module_type,
-      crate::ModuleType::Js
-        | crate::ModuleType::JsDynamic
-        | crate::ModuleType::JsEsm
-        | crate::ModuleType::Jsx
-        | crate::ModuleType::JsxDynamic
-        | crate::ModuleType::JsxEsm
-        | crate::ModuleType::Tsx
-        | crate::ModuleType::Ts
+      crate::ModuleType::Js | crate::ModuleType::JsDynamic | crate::ModuleType::JsEsm
     ),
     None => false,
   }

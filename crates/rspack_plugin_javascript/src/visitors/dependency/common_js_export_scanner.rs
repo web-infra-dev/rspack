@@ -74,7 +74,7 @@ impl Visit for CommonJsExportDependencyScanner<'_> {
   noop_visit_type!();
 
   fn visit_program(&mut self, program: &Program) {
-    self.is_harmony = matches!(self.module_type, ModuleType::JsEsm | ModuleType::JsxEsm)
+    self.is_harmony = matches!(self.module_type, ModuleType::JsEsm)
       || matches!(program, Program::Module(module) if module.body.iter().any(|s| matches!(s, ModuleItem::ModuleDecl(_))));
     program.visit_children_with(self);
   }
@@ -273,9 +273,6 @@ impl Visit for CommonJsExportDependencyScanner<'_> {
               // module.exports = {};
               // this = {};
               self.bailout();
-              if expr_matcher::is_module_exports(expr) {
-                assign_expr.left.visit_children_with(self);
-              }
             }
           } else {
             // exports.__esModule = true;

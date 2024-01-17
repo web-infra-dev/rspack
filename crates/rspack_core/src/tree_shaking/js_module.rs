@@ -42,15 +42,13 @@ impl<'a, 'b> OptimizeAnalyzer for JsModule<'a, 'b> {
         crate::needs_refactor::DEFAULT_WORKER_SYNTAX,
       );
       program.visit_with(&mut worker_syntax_scanner);
-      let worker_syntax_list = &worker_syntax_scanner.into();
-
       let mut analyzer = ModuleRefAnalyze::new(
         SyntaxContextInfo::new(top_level_ctxt, unresolved_ctxt),
         self.module_identifier,
         self.dependencies,
         self.compiler_options,
         program.comments.as_ref(),
-        worker_syntax_list,
+        &worker_syntax_scanner.result,
       );
       program.visit_with(&mut analyzer);
       analyzer.into()

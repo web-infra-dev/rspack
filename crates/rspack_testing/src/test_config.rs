@@ -191,8 +191,6 @@ pub struct Builtins {
   #[serde(default)]
   pub css: Css,
   #[serde(default)]
-  pub dev_friendly_split_chunks: bool,
-  #[serde(default)]
   pub code_generation: Option<CodeGeneration>,
 }
 
@@ -331,30 +329,21 @@ impl TestConfig {
     let mut rules = vec![
       rule!("\\.json$", "json"),
       rule!("\\.mjs$", "js/esm"),
-      rule!("\\.cjs$", "js/auto"), // TODO: change to js/dynamic
+      rule!("\\.cjs$", "js/dynamic"),
       rule!("\\.js$", "js/auto"),
-      rule!("\\.jsx$", "jsx"),
-      rule!("\\.ts$", "ts"),
-      rule!("\\.tsx$", "tsx"),
       rule!("\\.css$", "css"),
       rule!("\\.wasm$", "webassembly/async"),
     ];
-    rules.extend(self.module.rules.into_iter().map(|rule| {
-      c::ModuleRule {
-        test: rule.test.map(|test| match test {
-          ModuleRuleTest::Regexp { matcher } => {
-            c::RuleSetCondition::Regexp(RspackRegex::new(&matcher).expect("should be valid regex"))
-          }
-        }),
-        r#use: c::ModuleRuleUse::Array(
-          rule.r#use.into_iter().map(|i| i.into()).collect::<Vec<_>>(),
-        ),
-        side_effects: rule.side_effect,
-        r#type: rule
-          .r#type
-          .map(|i| ModuleType::try_from(i.as_str()).expect("should give a right module_type")),
-        ..Default::default()
-      }
+    rules.extend(self.module.rules.into_iter().map(|rule| c::ModuleRule {
+      test: rule.test.map(|test| match test {
+        ModuleRuleTest::Regexp { matcher } => {
+          c::RuleSetCondition::Regexp(RspackRegex::new(&matcher).expect("should be valid regex"))
+        }
+      }),
+      r#use: c::ModuleRuleUse::Array(rule.r#use.into_iter().map(|i| i.into()).collect::<Vec<_>>()),
+      side_effects: rule.side_effect,
+      r#type: rule.r#type.map(|i| ModuleType::from(i.as_str())),
+      ..Default::default()
     }));
 
     assert!(context.is_absolute());
@@ -426,13 +415,14 @@ impl TestConfig {
         ),
         ..Default::default()
       },
-      resolve_loader: c::Resolve::default(),
+      resolve_loader: c::Resolve {
+        extensions: Some(vec![".js".to_string()]),
+        ..Default::default()
+      },
       builtins: c::Builtins {
         define: self.builtins.define,
         provide: self.builtins.provide,
         tree_shaking: self.builtins.tree_shaking.into(),
-        preset_env: self.builtins.preset_env.map(Into::into),
-        ..Default::default()
       },
       module: c::ModuleOptions {
         rules,
@@ -483,10 +473,6 @@ impl TestConfig {
       }
     }
     plugins.push(rspack_plugin_merge_duplicate_chunks::MergeDuplicateChunksPlugin.boxed());
-    if self.builtins.dev_friendly_split_chunks {
-      plugins
-        .push(rspack_plugin_dev_friendly_split_chunks::DevFriendlySplitChunksPlugin::new().boxed());
-    }
 
     for html in self.builtins.html {
       plugins.push(rspack_plugin_html::HtmlRspackPlugin::new(html).boxed());
@@ -509,7 +495,6 @@ impl TestConfig {
     plugins.push(rspack_plugin_asset::AssetPlugin.boxed());
     plugins.push(rspack_plugin_json::JsonPlugin {}.boxed());
     plugins.push(rspack_plugin_runtime::ArrayPushCallbackChunkFormatPlugin {}.boxed());
-    plugins.push(rspack_plugin_runtime::CssModulesPlugin {}.boxed());
     plugins.push(rspack_plugin_runtime::JsonpChunkLoadingPlugin {}.boxed());
     plugins.push(rspack_plugin_runtime::RuntimePlugin {}.boxed());
     if options.dev_server.hot {

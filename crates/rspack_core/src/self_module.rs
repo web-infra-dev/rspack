@@ -18,7 +18,7 @@ use crate::{
 pub struct SelfModule {
   identifier: ModuleIdentifier,
   readable_identifier: String,
-  blocks: Vec<AsyncDependenciesBlockIdentifier>,
+  blocks: Vec<AsyncDependenciesBlockId>,
   dependencies: Vec<DependencyId>,
   build_info: Option<BuildInfo>,
   build_meta: Option<BuildMeta>,
@@ -45,11 +45,11 @@ impl Identifiable for SelfModule {
 }
 
 impl DependenciesBlock for SelfModule {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
+  fn add_block_id(&mut self, block: AsyncDependenciesBlockId) {
     self.blocks.push(block)
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
+  fn get_blocks(&self) -> &[AsyncDependenciesBlockId] {
     &self.blocks
   }
 

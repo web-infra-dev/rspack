@@ -3,7 +3,7 @@ use swc_core::common::Spanned;
 use swc_core::ecma::ast::Tpl;
 
 use super::BasicEvaluatedExpression;
-use crate::visitors::common_js_import_dependency_scanner::CommonJsImportDependencyScanner;
+use crate::visitors::JavascriptParser;
 
 #[derive(Debug, Clone)]
 pub enum TemplateStringKind {
@@ -12,7 +12,7 @@ pub enum TemplateStringKind {
 }
 
 fn get_simplified_template_result(
-  scanner: &mut CommonJsImportDependencyScanner<'_>,
+  scanner: &mut JavascriptParser,
   node: &Tpl,
 ) -> (Vec<BasicEvaluatedExpression>, Vec<BasicEvaluatedExpression>) {
   let mut quasis: Vec<BasicEvaluatedExpression> = vec![];
@@ -55,7 +55,7 @@ fn get_simplified_template_result(
 }
 
 pub fn eval_tpl_expression(
-  scanner: &mut CommonJsImportDependencyScanner<'_>,
+  scanner: &mut JavascriptParser,
   tpl: &Tpl,
 ) -> Option<BasicEvaluatedExpression> {
   let (quasis, mut parts) = get_simplified_template_result(scanner, tpl);

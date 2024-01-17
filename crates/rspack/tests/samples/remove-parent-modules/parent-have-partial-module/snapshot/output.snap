@@ -4,8 +4,8 @@ source: crates/rspack_testing/src/run_fixture.rs
 ```js title=index.js
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["index"], {
 "./index.js": (function (__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
-__webpack_require__.el("./index.js@0:20").then(__webpack_require__.bind(__webpack_require__, /*! ./parent-1 */"./parent-1.js"));
-__webpack_require__.el("./index.js@22:42").then(__webpack_require__.t.bind(__webpack_require__, /*! ./parent-2 */"./parent-2.js", 23));
+__webpack_require__.e("parent-1_js").then(__webpack_require__.bind(__webpack_require__, /*! ./parent-1 */"./parent-1.js"));
+__webpack_require__.e("parent-2_js").then(__webpack_require__.t.bind(__webpack_require__, /*! ./parent-2 */"./parent-2.js", 23));
 }),
 
 },function(__webpack_require__) {
@@ -27,7 +27,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _exist__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./exist */"./exist.js");
 /* harmony import */var _exist__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_exist__WEBPACK_IMPORTED_MODULE_0__);
 
-__webpack_require__.el("./parent-1.js@18:36").then(__webpack_require__.bind(__webpack_require__, /*! ./shared */"./shared.js"));
+__webpack_require__.e("shared_js-_ac581").then(__webpack_require__.bind(__webpack_require__, /*! ./shared */"./shared.js"));
 }),
 
 }]);
@@ -36,7 +36,7 @@ __webpack_require__.el("./parent-1.js@18:36").then(__webpack_require__.bind(__we
 ```js title=parent-2_js.js
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["parent-2_js"], {
 "./parent-2.js": (function (__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
-__webpack_require__.el("./parent-2.js@0:18").then(__webpack_require__.bind(__webpack_require__, /*! ./shared */"./shared.js"));
+__webpack_require__.e("shared_js-_ac580").then(__webpack_require__.bind(__webpack_require__, /*! ./shared */"./shared.js"));
 }),
 
 }]);

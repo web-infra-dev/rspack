@@ -1,8 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 import type { RspackOptions } from "./fixtures";
 
-// 3x timeout for each case for CI
-const TIMEOUT = process.env.CI ? 3 : 1;
+const TIMEOUT = 2 * 60 * 1000;
 
 export default defineConfig<RspackOptions>({
 	// Look for test files in the "fixtures" directory, relative to this configuration file.
@@ -19,16 +18,16 @@ export default defineConfig<RspackOptions>({
 	retries: 0,
 
 	// timeout 30s
-	timeout: 30 * 1000 * TIMEOUT,
+	timeout: TIMEOUT,
 
 	// expect
 	expect: {
 		// auto-assertion could be used with HMR.
-		timeout: 30 * 1000 * TIMEOUT
+		timeout: TIMEOUT
 	},
 
 	// Opt out of parallel tests on CI.
-	workers: process.env.CI ? 1 : undefined,
+	workers: process.env.CI ? 4 : undefined,
 
 	// Reporter to use
 	reporter: "html",

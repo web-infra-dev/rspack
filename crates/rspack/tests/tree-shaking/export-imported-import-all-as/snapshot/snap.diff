@@ -26,7 +26,7 @@
 -  filter: function() { return _test_js__WEBPACK_IMPORTED_MODULE_0__; }
 -});
 -/* harmony import */var _test_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./test.js */"./test.js");
-- const a = 3;
+-const a = 3;
 -
 -
 +_answer__WEBPACK_IMPORTED_MODULE_0__;

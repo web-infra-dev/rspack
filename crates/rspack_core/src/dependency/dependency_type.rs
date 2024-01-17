@@ -18,6 +18,8 @@ pub enum DependencyType {
   EsmExport(ErrorSpan),
   EsmExportImportedSpecifier,
   EsmExportSpecifier,
+  EsmExportExpression,
+  EsmExportHeader,
   // import()
   DynamicImport,
   // import() eager
@@ -99,6 +101,8 @@ impl DependencyType {
       DependencyType::EsmExportSpecifier => Cow::Borrowed("esm export specifier"),
       DependencyType::EsmExportImportedSpecifier => Cow::Borrowed("esm export import specifier"),
       DependencyType::EsmImportSpecifier => Cow::Borrowed("esm import specifier"),
+      DependencyType::EsmExportExpression => Cow::Borrowed("esm export expression"),
+      DependencyType::EsmExportHeader => Cow::Borrowed("esm export header"),
       DependencyType::DynamicImport => Cow::Borrowed("dynamic import"),
       DependencyType::CjsRequire => Cow::Borrowed("cjs require"),
       DependencyType::CjsFullRequire => Cow::Borrowed("cjs full require"),

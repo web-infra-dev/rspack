@@ -1,10 +1,6 @@
 (function () {
 	var __webpack_modules__ = {
-		"./src/entry.js": function (
-			__unused_webpack_module,
-			exports,
-			__webpack_require__
-		) {
+		"./src/entry.js": function () {
 			console.log("CONFIG");
 		}
 	};

@@ -27,17 +27,15 @@ describe("Stats", () => {
 		expect(stats?.toJson(statsOptions)).toMatchSnapshot();
 		expect(stats?.toString(statsOptions)).toMatchInlineSnapshot(`
 		"PublicPath: auto
-		asset main.js 211 bytes {main} [emitted] (name: main)
-		Entrypoint main 211 bytes = main.js
-		chunk {main} main.js (main) [entry]
-		  ./fixtures/a.js [585] {main}
+		asset main.js 212 bytes {909} [emitted] (name: main)
+		Entrypoint main 212 bytes = main.js
+		chunk {909} main.js (main) [entry]
+		  ./fixtures/a.js [585] {909}
 		    entry ./fixtures/a
-		    cjs self exports reference self [585]
-		./fixtures/a.js [585] {main}
+		./fixtures/a.js [585] {909}
 		  entry ./fixtures/a
-		  cjs self exports reference self [585]
 		  
-		Rspack compiled successfully (38f6d710192d3067d1eb)"
+		Rspack compiled successfully (57e46af248a1c1fe076f)"
 	`);
 	});
 
@@ -61,14 +59,15 @@ describe("Stats", () => {
 		expect(stats?.toString({ timings: false, version: false }))
 			.toMatchInlineSnapshot(`
 		"PublicPath: auto
-		asset main.js 758 bytes [emitted] (name: main)
-		Entrypoint main 758 bytes = main.js
+		asset main.js 759 bytes [emitted] (name: main)
+		Entrypoint main 759 bytes = main.js
 		./fixtures/a.js
 		./fixtures/b.js
 		./fixtures/c.js
 		./fixtures/abc.js
 
-		ERROR in ./fixtures/b.js ModuleParseError
+		ERROR in ./fixtures/b.js
+		ModuleParseError
 
 		  × Module parse failed:
 		  ╰─▶   × JavaScript parsing error: Return statement is not allowed here
@@ -82,7 +81,7 @@ describe("Stats", () => {
 		  help: 
 		        You may need an appropriate loader to handle this file type.
 
-		Rspack compiled with 1 error (acb0ddfd7b068556fa5f)"
+		Rspack compiled with 1 error (a00b5865a0608547752b)"
 	`);
 	});
 
@@ -164,6 +163,7 @@ describe("Stats", () => {
 		<t> create module assets: X ms
 		<t> create chunk assets: X ms
 		<t> process assets: X ms
+		<t> after process assets: X ms
 
 		LOG from rspack.Compiler
 		<t> make: X ms
@@ -221,52 +221,11 @@ describe("Stats", () => {
 	`);
 	});
 
-	it("should have cache hits log when logging verbose and cache is enabled", async () => {
-		const compiler = rspack({
-			context: __dirname,
-			entry: "./fixtures/abc",
-			cache: true,
-			experiments: {
-				incrementalRebuild: false
-			}
-		});
-		await new Promise<void>((resolve, reject) => {
-			compiler.build(err => {
-				if (err) {
-					return reject(err);
-				}
-				resolve();
-			});
-		});
-		const stats = await new Promise<string>((resolve, reject) => {
-			compiler.rebuild(
-				new Set([path.join(__dirname, "./fixtures/a")]),
-				new Set(),
-				err => {
-					if (err) {
-						return reject(err);
-					}
-					const stats = new Stats(compiler.compilation).toString({
-						all: false,
-						logging: "verbose"
-					});
-					resolve(stats);
-				}
-			);
-		});
-		expect(stats).toContain("module build cache: 100.0% (4/4)");
-		expect(stats).toContain("module factorize cache: 100.0% (7/7)");
-		expect(stats).toContain("module code generation cache: 100.0% (4/4)");
-	});
-
 	it("should not have any cache hits log when cache is disabled", async () => {
 		const compiler = rspack({
 			context: __dirname,
 			entry: "./fixtures/abc",
-			cache: false,
-			experiments: {
-				incrementalRebuild: false
-			}
+			cache: false
 		});
 		await new Promise<void>((resolve, reject) => {
 			compiler.build(err => {
@@ -301,10 +260,7 @@ describe("Stats", () => {
 		const compiler = rspack({
 			context: __dirname,
 			entry: "./fixtures/abc",
-			cache: true,
-			experiments: {
-				incrementalRebuild: true
-			}
+			cache: true
 		});
 		await new Promise<void>((resolve, reject) => {
 			compiler.build(err => {
@@ -349,9 +305,9 @@ describe("Stats", () => {
 		};
 		expect(stats?.toJson(options)).toMatchSnapshot();
 		expect(stats?.toString(options)).toMatchInlineSnapshot(`
-		"asset main.js 211 bytes {main} [emitted] (name: main)
-		chunk {main} main.js (main) [entry]
-		./fixtures/a.js [585] {main}"
+		"asset main.js 212 bytes {909} [emitted] (name: main)
+		chunk {909} main.js (main) [entry]
+		./fixtures/a.js [585] {909}"
 	`);
 	});
 

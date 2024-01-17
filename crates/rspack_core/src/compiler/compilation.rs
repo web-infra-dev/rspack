@@ -30,7 +30,7 @@ use super::{
 use crate::{
   build_chunk_graph::build_chunk_graph,
   cache::{use_code_splitting_cache, Cache, CodeSplittingCache},
-  get_chunk_from_ukey, get_mut_chunk_from_ukey, is_source_equal,
+  create_queue_handle, get_chunk_from_ukey, get_mut_chunk_from_ukey, is_source_equal,
   tree_shaking::{optimizer, visitor::SymbolRef, BailoutFlag, OptimizeDependencyResult},
   AddQueue, AddTask, AddTaskResult, AdditionalChunkRuntimeRequirementsArgs,
   AdditionalModuleRequirementsArgs, AsyncDependenciesBlock, BoxDependency, BoxModule, BuildQueue,
@@ -39,9 +39,10 @@ use crate::{
   CleanTask, CleanTaskResult, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
   CompilationLogging, CompilerOptions, ContentHashArgs, ContextDependency, DependencyId,
   DependencyParents, DependencyType, Entry, EntryData, EntryOptions, Entrypoint, ErrorSpan,
-  FactorizeQueue, FactorizeTask, FactorizeTaskResult, Filename, Logger, Module, ModuleFactory,
-  ModuleGraph, ModuleGraphModule, ModuleIdentifier, ModuleProfile, NormalModuleSource, PathData,
-  ProcessAssetsArgs, ProcessDependenciesQueue, ProcessDependenciesResult, ProcessDependenciesTask,
+  FactorizeQueue, FactorizeTask, FactorizeTaskResult, Filename, Logger, Module,
+  ModuleCreationCallback, ModuleFactory, ModuleFactoryResult, ModuleGraph, ModuleGraphModule,
+  ModuleIdentifier, ModuleProfile, NormalModuleSource, PathData, ProcessAssetsArgs,
+  ProcessDependenciesQueue, ProcessDependenciesResult, ProcessDependenciesTask, QueueHandler,
   RenderManifestArgs, Resolve, ResolverFactory, RuntimeGlobals, RuntimeModule,
   RuntimeRequirementsInTreeArgs, RuntimeSpec, SharedPluginDriver, SourceType, Stats, TaskResult,
   WorkerTask,
@@ -109,6 +110,8 @@ pub struct Compilation {
   pub build_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
   pub side_effects_free_modules: IdentifierSet,
   pub module_item_map: IdentifierMap<Vec<ModuleItem>>,
+
+  pub queue_handle: Option<QueueHandler>,
 }
 
 impl Compilation {
@@ -169,6 +172,8 @@ impl Compilation {
       side_effects_free_modules: IdentifierSet::default(),
       module_item_map: IdentifierMap::default(),
       include_module_ids: IdentifierSet::default(),
+
+      queue_handle: None,
     }
   }
 
@@ -431,13 +436,13 @@ impl Compilation {
   }
 
   #[instrument(name = "compilation:make", skip_all)]
-  pub async fn make(&mut self, mut param: MakeParam) -> Result<()> {
+  pub async fn make(&mut self, mut params: Vec<MakeParam>) -> Result<()> {
     let logger = self.get_logger("rspack.Compilation");
     let start = logger.time("make hook");
     if let Some(e) = self
       .plugin_driver
       .clone()
-      .make(self, &mut param)
+      .make(self, &mut params)
       .await
       .err()
     {
@@ -449,9 +454,9 @@ impl Compilation {
     let make_failed_dependencies =
       MakeParam::ForceBuildDeps(std::mem::take(&mut self.make_failed_dependencies));
 
-    self
-      .update_module_graph(vec![param, make_failed_module, make_failed_dependencies])
-      .await
+    params.push(make_failed_module);
+    params.push(make_failed_dependencies);
+    self.update_module_graph(params).await
   }
 
   pub async fn rebuild_module(
@@ -528,13 +533,18 @@ impl Compilation {
     let mut active_task_count = 0usize;
     let is_expected_shutdown = Arc::new(AtomicBool::new(false));
     let (result_tx, mut result_rx) = tokio::sync::mpsc::unbounded_channel::<Result<TaskResult>>();
+
     let mut factorize_queue = FactorizeQueue::new();
     let mut add_queue = AddQueue::new();
     let mut build_queue = BuildQueue::new();
     let mut process_dependencies_queue = ProcessDependenciesQueue::new();
+
     let mut make_failed_dependencies: HashSet<BuildDependency> = HashSet::default();
-    let mut make_failed_module = HashSet::default();
+    let mut make_failed_module: HashSet<ModuleIdentifier> = HashSet::default();
     let mut errored = None;
+
+    let (handler, mut processor) = create_queue_handle();
+    self.queue_handle = Some(handler);
 
     deps_builder
       .revoke_modules(&mut self.module_graph)
@@ -567,6 +577,7 @@ impl Compilation {
           parent_module
             .and_then(|m| m.as_normal_module())
             .and_then(|module| module.name_for_condition()),
+          None,
         );
       });
 
@@ -585,6 +596,14 @@ impl Compilation {
 
     tokio::task::block_in_place(|| loop {
       let start = factorize_time.start();
+      processor.try_process(
+        self,
+        &mut factorize_queue,
+        &mut add_queue,
+        &mut build_queue,
+        &mut process_dependencies_queue,
+      );
+
       while let Some(task) = factorize_queue.get_task() {
         tokio::spawn({
           let result_tx = result_tx.clone();
@@ -680,7 +699,10 @@ impl Compilation {
           .module_by_identifier(original_module_identifier)
           .expect("Module expected");
 
+        let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
+        let mut remaining = sorted_dependencies.len();
         for dependencies in sorted_dependencies.into_values() {
+          let tx = tx.clone();
           self.handle_module_creation(
             &mut factorize_queue,
             Some(module.identifier()),
@@ -692,21 +714,75 @@ impl Compilation {
             module
               .as_normal_module()
               .and_then(|module| module.name_for_condition()),
+            Some(Box::new(move |_| {
+              tx.send(())
+                .expect("Failed to send callback to process_dependencies");
+            })),
           );
         }
+        drop(tx);
 
-        result_tx
-          .send(Ok(TaskResult::ProcessDependencies(Box::new(
+        let tx = result_tx.clone();
+
+        tokio::spawn(async move {
+          loop {
+            if remaining == 0 {
+              break;
+            }
+
+            rx.recv().await;
+            remaining -= 1;
+          }
+
+          tx.send(Ok(TaskResult::ProcessDependencies(Box::new(
             ProcessDependenciesResult {
               module_identifier: task.original_module_identifier,
             },
           ))))
           .expect("Failed to send process dependencies result");
+        });
       }
       process_deps_time.end(start);
 
       match result_rx.try_recv() {
         Ok(item) => {
+          if let Ok(item) = &item {
+            match item {
+              TaskResult::Factorize(result) => {
+                if let Some(ModuleFactoryResult {
+                  module: Some(module),
+                  ..
+                }) = &result.factory_result
+                {
+                  processor.complete_task(
+                    crate::WaitTask::Factorize(result.dependency),
+                    module.identifier(),
+                    self,
+                  )
+                }
+              }
+              TaskResult::Add(result) => {
+                let module = match result.as_ref() {
+                  AddTaskResult::ModuleReused { module } => module.identifier(),
+                  AddTaskResult::ModuleAdded { module, .. } => module.identifier(),
+                };
+
+                processor.complete_task(crate::WaitTask::Add(module), module, self)
+              }
+              TaskResult::Build(result) => {
+                let id = result.module.identifier();
+                processor.complete_task(crate::WaitTask::Build(id), id, self);
+              }
+              TaskResult::ProcessDependencies(result) => {
+                processor.complete_task(
+                  crate::WaitTask::ProcessDependencies(result.module_identifier),
+                  result.module_identifier,
+                  self,
+                );
+              }
+            }
+          }
+
           match item {
             Ok(TaskResult::Factorize(box task_result)) => {
               let FactorizeTaskResult {
@@ -720,9 +796,15 @@ impl Compilation {
                 context_dependencies,
                 missing_dependencies,
                 diagnostics,
+                callback,
+                ..
               } = task_result;
               if !diagnostics.is_empty() {
-                make_failed_dependencies.insert((dependencies[0], original_module_identifier));
+                if let Some(id) = original_module_identifier {
+                  make_failed_module.insert(id);
+                } else {
+                  make_failed_dependencies.insert((dependencies[0], None));
+                }
               }
 
               self.push_batch_diagnostic(
@@ -756,15 +838,15 @@ impl Compilation {
                   mgm.factory_meta = Some(factory_result.factory_meta);
 
                   self.module_graph.exports_info_map.insert(
-                    exports_info_related.exports_info.id,
+                    *exports_info_related.exports_info.id as usize,
                     exports_info_related.exports_info,
                   );
                   self.module_graph.export_info_map.insert(
-                    exports_info_related.side_effects_info.id,
+                    *exports_info_related.side_effects_info.id as usize,
                     exports_info_related.side_effects_info,
                   );
                   self.module_graph.export_info_map.insert(
-                    exports_info_related.other_exports_info.id,
+                    *exports_info_related.other_exports_info.id as usize,
                     exports_info_related.other_exports_info,
                   );
 
@@ -775,6 +857,7 @@ impl Compilation {
                     dependencies,
                     is_entry,
                     current_profile,
+                    callback,
                   });
                   tracing::trace!("Module created: {}", &module_identifier);
                 } else {
@@ -871,14 +954,14 @@ impl Compilation {
                     module_graph.set_parents(
                       dependency_id,
                       DependencyParents {
-                        block: current_block.as_ref().map(|block| block.identifier()),
+                        block: current_block.as_ref().map(|block| block.id()),
                         module: module.identifier(),
                       },
                     );
                     module_graph.add_dependency(dependency);
                   }
                   if let Some(current_block) = current_block {
-                    module.add_block_id(current_block.identifier());
+                    module.add_block_id(current_block.id());
                     module_graph.add_block(current_block);
                   }
                   for block in blocks {
@@ -1047,7 +1130,13 @@ impl Compilation {
         })
     };
 
-    // dbg!(&self.module_graph.module_identifier_to_module_graph_module);
+    // Avoid to introduce too much overhead,
+    // until we find a better way to align with webpack hmr behavior
+    if self.options.is_new_tree_shaking() {
+      let start = logger.time("finish compilation");
+      self.finish(self.plugin_driver.clone()).await?;
+      logger.time_end(start);
+    }
 
     // add context module and context element module to bailout_module_identifiers
     if self.options.builtins.tree_shaking.enable() {
@@ -1108,6 +1197,7 @@ impl Compilation {
     resolve_options: Option<Box<Resolve>>,
     lazy_visit_modules: std::collections::HashSet<String>,
     issuer: Option<Box<str>>,
+    callback: Option<ModuleCreationCallback>,
   ) {
     let current_profile = self.options.profile.then(Box::<ModuleProfile>::default);
     let dependency = dependencies[0].get_dependency(&self.module_graph).clone();
@@ -1138,6 +1228,7 @@ impl Compilation {
       plugin_driver: self.plugin_driver.clone(),
       cache: self.cache.clone(),
       current_profile,
+      callback,
     });
   }
 
@@ -1277,28 +1368,39 @@ impl Compilation {
       .chunk_by_ukey
       .values()
       .map(|chunk| async {
-        let manifest = plugin_driver
+        let manifest_result = plugin_driver
           .render_manifest(RenderManifestArgs {
             chunk_ukey: chunk.ukey,
             compilation: self,
           })
           .await;
 
-        if let Ok(manifest) = &manifest {
+        if let Ok(manifest) = &manifest_result {
           tracing::debug!(
             "For Chunk({:?}), collected assets: {:?}",
             chunk.id,
-            manifest.iter().map(|m| m.filename()).collect::<Vec<_>>()
+            manifest
+              .inner
+              .iter()
+              .map(|m| m.filename())
+              .collect::<Vec<_>>()
           );
         };
-        (chunk.ukey, manifest)
+
+        (chunk.ukey, manifest_result)
       })
       .collect::<FuturesResults<_>>();
 
     let chunk_ukey_and_manifest = results.into_inner();
 
-    for (chunk_ukey, manifest) in chunk_ukey_and_manifest.into_iter() {
-      for file_manifest in manifest.expect("We should return this error rathen expect") {
+    for (chunk_ukey, manifest_result) in chunk_ukey_and_manifest.into_iter() {
+      let (manifests, diagnostics) = manifest_result
+        .expect("We should return this error rathen expect")
+        .split_into_parts();
+
+      self.push_batch_diagnostic(diagnostics);
+
+      for file_manifest in manifests {
         let filename = file_manifest.filename().to_string();
 
         let current_chunk = self.chunk_by_ukey.expect_get_mut(&chunk_ukey);
@@ -1333,6 +1435,13 @@ impl Compilation {
   async fn process_assets(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     plugin_driver
       .process_assets(ProcessAssetsArgs { compilation: self })
+      .await
+  }
+
+  #[instrument(name = "compilation:after_process_asssets", skip_all)]
+  async fn after_process_assets(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
+    plugin_driver
+      .after_process_assets(ProcessAssetsArgs { compilation: self })
       .await
   }
 
@@ -1472,7 +1581,11 @@ impl Compilation {
     logger.time_end(start);
 
     let start = logger.time("process assets");
-    self.process_assets(plugin_driver).await?;
+    self.process_assets(plugin_driver.clone()).await?;
+    logger.time_end(start);
+
+    let start = logger.time("after process assets");
+    self.after_process_assets(plugin_driver).await?;
     logger.time_end(start);
 
     Ok(())

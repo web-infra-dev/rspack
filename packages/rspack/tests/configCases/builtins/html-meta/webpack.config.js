@@ -1,14 +1,14 @@
+const { rspack } = require("@rspack/core");
+
 module.exports = {
-	builtins: {
-		html: [
-			{
-				meta: {
-					viewport: "width=device-width, initial-scale=1, shrink-to-fit=no",
-					test: {
-						a: "b"
-					}
+	plugins: [
+		new rspack.HtmlRspackPlugin({
+			meta: {
+				viewport: "width=device-width, initial-scale=1, shrink-to-fit=no",
+				test: {
+					a: "b"
 				}
 			}
-		]
-	}
+		})
+	]
 };

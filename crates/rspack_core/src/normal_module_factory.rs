@@ -278,6 +278,7 @@ impl NormalModuleFactory {
 
       let resolve_args = ResolveArgs {
         importer,
+        issuer: data.issuer.as_deref(),
         context: if context_scheme != Scheme::None {
           self.options.context.clone()
         } else {
@@ -306,6 +307,7 @@ impl NormalModuleFactory {
         Ok(result) => result,
         Err(err) => (Err(err), false),
       };
+
       match resource_data {
         Ok(ResolveResult::Resource(resource)) => {
           let uri = resource.full_path().display().to_string();
@@ -334,58 +336,8 @@ impl NormalModuleFactory {
           ));
         }
         Err(err) => {
-          // let mut file_dependencies = Default::default();
-          // let mut missing_dependencies = Default::default();
-          // let mut from_cache_result = from_cache;
-          // if !data
-          //   .resolve_options
-          //   .as_ref()
-          //   .and_then(|x| x.fully_specified)
-          //   .unwrap_or(false)
-          // {
-          //   let new_args = ResolveArgs {
-          //     importer,
-          //     context: if context_scheme != Scheme::None {
-          //       self.options.context.clone()
-          //     } else {
-          //       data.context.clone()
-          //     },
-          //     specifier: request_without_match_resource,
-          //     dependency_type: dependency.dependency_type(),
-          //     dependency_category: dependency.category(),
-          //     resolve_options: data.resolve_options.take(),
-          //     span: dependency.span(),
-          //     resolve_to_context: false,
-          //     optional,
-          //     missing_dependencies: &mut missing_dependencies,
-          //     file_dependencies: &mut file_dependencies,
-          //   };
-          //   let (resource_data, from_cache) = match self
-          //     .cache
-          //     .resolve_module_occasion
-          //     .use_cache(new_args, |args| resolve(args, plugin_driver))
-          //     .await
-          //   {
-          //     Ok(result) => result,
-          //     Err(err) => (Err(err), false),
-          //   };
-          //   from_cache_result = from_cache;
-          //   if let Ok(ResolveResult::Resource(resource)) = resource_data {
-          //     // TODO: Here windows resolver will return normalized path.
-          //     // eg. D:\a\rspack\rspack\packages\rspack\tests\fixtures\errors\resolve-fail-esm\answer.js
-          //     if let Some(_extension) = resource.path.extension() {
-          //       // let resource = format!(
-          //       //   "{request_without_match_resource}.{}",
-          //       //   extension.to_string_lossy()
-          //       // );
-          //       // diagnostics[0].add_notes(vec![format!("Did you mean '{resource}'?
-          //       // BREAKING CHANGE: The request '{request_without_match_resource}' failed to resolve only because it was resolved as fully specified
-          //       // (probably because the origin is strict EcmaScript Module, e. g. a module with javascript mimetype, a '*.mjs' file, or a '*.js' file where the package.json contains '\"type\": \"module\"').
-          //       // The extension in the request is mandatory for it to be fully specified.
-          //       // Add the extension to the request.")]);
-          //     }
-          //   }
-          // }
+          data.add_file_dependencies(file_dependencies);
+          data.add_missing_dependencies(missing_dependencies);
           return Err(err);
         }
       }
@@ -593,18 +545,10 @@ impl NormalModuleFactory {
       .registered_parser_and_generator_builder
       .get(&resolved_module_type)
       .ok_or_else(|| {
-        let mut e = format!("Unexpected `ModuleType` found: {resolved_module_type}. ");
-
-        match resolved_module_type {
-          ModuleType::Css => e.push_str(
-            "Setting `'css'` as the `Rule.type` is only possible with `experiments.css` set to `true`",
-          ),
-          ModuleType::Ts | ModuleType::Tsx |
-          ModuleType::Jsx | ModuleType::JsxDynamic | ModuleType::JsxEsm => e.push_str("`Rule.type` that are not supported by webpack is deprecated. See: https://github.com/web-infra-dev/rspack/discussions/4070"),
-          _ => (),
-        }
-
-        error!(e)
+        error!(
+          "No parser registered for '{}'",
+          resolved_module_type.as_str()
+        )
       })?();
 
     let mut create_data = NormalModuleCreateData {

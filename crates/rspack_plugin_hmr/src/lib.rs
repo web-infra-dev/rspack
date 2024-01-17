@@ -7,12 +7,14 @@ use hot_module_replacement::HotModuleReplacementRuntimeModule;
 use rspack_core::{
   collect_changed_modules,
   rspack_sources::{RawSource, SourceExt},
-  AdditionalChunkRuntimeRequirementsArgs, AssetInfo, Chunk, ChunkKind, CompilationArgs,
-  CompilationAsset, CompilationParams, CompilationRecords, DependencyType, ModuleIdentifier,
-  PathData, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput, PluginCompilationHookOutput,
-  PluginContext, PluginProcessAssetsOutput, ProcessAssetsArgs, RenderManifestArgs, RuntimeGlobals,
+  AdditionalChunkRuntimeRequirementsArgs, ApplyContext, AssetInfo, Chunk, ChunkKind,
+  CompilationArgs, CompilationAsset, CompilationParams, CompilationRecords, CompilerOptions,
+  DependencyType, ModuleIdentifier, PathData, Plugin,
+  PluginAdditionalChunkRuntimeRequirementsOutput, PluginCompilationHookOutput, PluginContext,
+  PluginProcessAssetsOutput, ProcessAssetsArgs, RenderManifestArgs, RuntimeGlobals,
   RuntimeModuleExt, RuntimeSpec, SourceType,
 };
+use rspack_error::Result;
 use rspack_hash::RspackHash;
 use rspack_identifier::IdentifierSet;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
@@ -24,6 +26,15 @@ pub struct HotModuleReplacementPlugin;
 impl Plugin for HotModuleReplacementPlugin {
   fn name(&self) -> &'static str {
     "rspack.HotModuleReplacementPlugin"
+  }
+
+  fn apply(
+    &self,
+    _ctx: PluginContext<&mut ApplyContext>,
+    options: &mut CompilerOptions,
+  ) -> Result<()> {
+    options.dev_server.hot = true;
+    Ok(())
   }
 
   async fn compilation(
@@ -250,7 +261,7 @@ impl Plugin for HotModuleReplacementPlugin {
             .connect_chunk_and_runtime_module(ukey, runtime_module);
         }
 
-        let render_manifest = compilation
+        let render_manifest_result = compilation
           .plugin_driver
           .render_manifest(RenderManifestArgs {
             compilation,
@@ -258,6 +269,9 @@ impl Plugin for HotModuleReplacementPlugin {
           })
           .await
           .expect("render_manifest failed in rebuild");
+
+        let (render_manifest, diagnostics) = render_manifest_result.split_into_parts();
+        compilation.push_batch_diagnostic(diagnostics);
 
         for entry in render_manifest {
           let filename = if entry.has_filename() {

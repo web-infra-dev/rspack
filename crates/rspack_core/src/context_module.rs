@@ -187,7 +187,7 @@ pub enum FakeMapValue {
 #[derive(Debug)]
 pub struct ContextModule {
   dependencies: Vec<DependencyId>,
-  blocks: Vec<AsyncDependenciesBlockIdentifier>,
+  blocks: Vec<AsyncDependenciesBlockId>,
   identifier: Identifier,
   options: ContextModuleOptions,
   resolve_factory: Arc<ResolverFactory>,
@@ -347,10 +347,11 @@ impl ContextModule {
     map
   }
 
-  fn get_block_promise_key_map(
+  fn get_block_promise_map(
     &self,
     blocks: impl IntoIterator<Item = &AsyncDependenciesBlock>,
     compilation: &Compilation,
+    runtime_requirements: &mut RuntimeGlobals,
   ) -> HashMap<String, String> {
     let blocks = blocks
       .into_iter()
@@ -362,17 +363,24 @@ impl ContextModule {
         .dependency_by_id(dep_id)
         .and_then(|d| d.as_module_dependency())
       {
-        let key = block.block_promise_key(compilation);
-        map.insert(dependency.user_request().to_string(), key);
+        let getter = returning_function(
+          &block_promise(Some(&block.id()), runtime_requirements, compilation),
+          "",
+        );
+        map.insert(dependency.user_request().to_string(), getter);
       }
     }
     map
   }
 
   #[inline]
-  fn get_source_string(&self, compilation: &Compilation) -> BoxSource {
+  fn get_source_string(
+    &self,
+    compilation: &Compilation,
+    runtime_requirements: &mut RuntimeGlobals,
+  ) -> BoxSource {
     match self.options.context_options.mode {
-      ContextMode::Lazy => self.get_lazy_source(compilation),
+      ContextMode::Lazy => self.get_lazy_source(compilation, runtime_requirements),
       ContextMode::LazyOnce => {
         let block = self
           .get_blocks()
@@ -388,12 +396,16 @@ impl ContextModule {
     }
   }
 
-  fn get_lazy_source(&self, compilation: &Compilation) -> BoxSource {
+  fn get_lazy_source(
+    &self,
+    compilation: &Compilation,
+    runtime_requirements: &mut RuntimeGlobals,
+  ) -> BoxSource {
     let blocks = self
       .get_blocks()
       .iter()
       .filter_map(|b| compilation.module_graph.block_by_id(b));
-    let block_map = self.get_block_promise_key_map(blocks.clone(), compilation);
+    let block_map = self.get_block_promise_map(blocks.clone(), compilation, runtime_requirements);
     let dependencies = blocks.filter_map(|b| b.get_dependencies().first());
     let fake_map = self.get_fake_map(dependencies.clone(), compilation);
     let map = self.get_user_request_map(dependencies, compilation);
@@ -423,9 +435,9 @@ impl ContextModule {
             throw e;
           }});
         }}
-        var blockId = blockMap[req];
+        var blockGetter = blockMap[req];
         var id = map[req];
-        return __webpack_require__.el(blockId).then(function() {{
+        return blockGetter().then(function() {{
           {return_module_object}
         }});
       }}
@@ -544,11 +556,11 @@ impl ContextModule {
 }
 
 impl DependenciesBlock for ContextModule {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
+  fn add_block_id(&mut self, block: AsyncDependenciesBlockId) {
     self.blocks.push(block)
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
+  fn get_blocks(&self) -> &[AsyncDependenciesBlockId] {
     &self.blocks
   }
 
@@ -641,9 +653,6 @@ impl Module for ContextModule {
         code_generation_result
           .runtime_requirements
           .insert(RuntimeGlobals::ENSURE_CHUNK);
-        code_generation_result
-          .runtime_requirements
-          .insert(RuntimeGlobals::LOAD_CHUNK_WITH_BLOCK);
       }
       _ => {}
     }
@@ -661,7 +670,11 @@ impl Module for ContextModule {
         .runtime_requirements
         .insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
     }
-    code_generation_result.add(SourceType::JavaScript, self.get_source_string(compilation));
+    let source = self.get_source_string(
+      compilation,
+      &mut code_generation_result.runtime_requirements,
+    );
+    code_generation_result.add(SourceType::JavaScript, source);
     code_generation_result.set_hash(
       &compilation.options.output.hash_function,
       &compilation.options.output.hash_digest,
@@ -795,7 +808,7 @@ impl ContextModule {
       && !context_element_dependencies.is_empty()
     {
       let name = self.options.context_options.chunk_name.clone();
-      let mut block = AsyncDependenciesBlock::new(self.identifier, "", None);
+      let mut block = AsyncDependenciesBlock::new(self.identifier, None);
       block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions::new(
         name, None, None,
       )));
@@ -825,11 +838,7 @@ impl ContextModule {
             });
             name.into_owned()
           });
-        let mut block = AsyncDependenciesBlock::new(
-          self.identifier,
-          &context_element_dependency.user_request,
-          None,
-        );
+        let mut block = AsyncDependenciesBlock::new(self.identifier, None);
         block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions::new(
           name, None, None,
         )));

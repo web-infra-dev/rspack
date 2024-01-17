@@ -12,7 +12,9 @@ import rimraf from "rimraf";
 const DEFAULT_CASE_CONFIG: Partial<IDiffProcessorOptions> = {
 	webpackPath: require.resolve("webpack"),
 	rspackPath: require.resolve("@rspack/core"),
-	files: ["bundle.js"]
+	files: ["bundle.js"],
+	bootstrap: true,
+	detail: true
 };
 
 type TFileCompareResult = {
@@ -123,7 +125,9 @@ function createDiffProcessor(config: IDiffProcessorOptions) {
 		ignoreObjectPropertySequence: config.ignoreObjectPropertySequence ?? true,
 		ignoreCssFilePath: config.ignoreCssFilePath ?? true,
 		onCompareModules: createCompareResultHandler("modules"),
-		onCompareRuntimeModules: createCompareResultHandler("runtimeModules")
+		onCompareRuntimeModules: createCompareResultHandler("runtimeModules"),
+		bootstrap: config.bootstrap ?? true,
+		detail: config.detail ?? true
 	});
 
 	return [processor, fileCompareMap] as [

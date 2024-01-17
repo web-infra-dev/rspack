@@ -7,8 +7,8 @@ use rspack_error::{
 };
 
 #[derive(Debug, Error, Diagnostic)]
-#[diagnostic(code(NapiError))]
-#[error("Napi Error: {0}\n{1}")]
+#[diagnostic()]
+#[error("{0}\n{1}")]
 struct NodeError(String, String);
 
 pub trait NapiErrorExt {

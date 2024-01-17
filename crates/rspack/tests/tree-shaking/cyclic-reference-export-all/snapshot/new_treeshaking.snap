@@ -6,9 +6,6 @@ source: crates/rspack_testing/src/run_fixture.rs
 "./src/App.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
-});
 /* harmony import */var _containers__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./containers */"./src/containers/containers.js");
 
 const { PlatformProvider } = _containers__WEBPACK_IMPORTED_MODULE_0__;
@@ -16,7 +13,7 @@ const Index = ()=>{
     console.log("PlatformProvider", PlatformProvider);
     return 'something';
 };
-var __WEBPACK_DEFAULT_EXPORT__ = Index;
+/* harmony default export */ __webpack_exports__["default"] = (Index);
 }),
 "./src/containers/containers.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
@@ -36,8 +33,8 @@ __webpack_require__.d(__webpack_exports__, {
   PlatformProvider: function() { return PlatformProvider; },
   usePlatform: function() { return usePlatform; }
 });
- const usePlatform = 3;
- const PlatformProvider = 1000;
+const usePlatform = 3;
+const PlatformProvider = 1000;
 }),
 "./src/index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";

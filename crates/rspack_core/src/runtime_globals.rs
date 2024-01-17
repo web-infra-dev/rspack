@@ -8,11 +8,6 @@ bitflags! {
     const REQUIRE_SCOPE = 1 << 0;
 
     const EXPORT_STAR = 1 << 1;
-    /**
-     * rspack
-     * load chunk with module, let module code generation result can be cached at hmr
-     */
-    const LOAD_CHUNK_WITH_BLOCK = 1 << 2;
     // port from webpack RuntimeGlobals
 
     /**
@@ -245,6 +240,9 @@ bitflags! {
     const PRELOAD_CHUNK = 1 << 60;
 
     const PRELOAD_CHUNK_HANDLERS = 1 << 61;
+
+    // rspack only
+    const RSPACK_VERSION = 1 << 62;
   }
 }
 
@@ -267,7 +265,6 @@ impl RuntimeGlobals {
     match *self {
       R::REQUIRE_SCOPE => "__webpack_require__.*",
       R::EXPORT_STAR => "es",
-      R::LOAD_CHUNK_WITH_BLOCK => "__webpack_require__.el",
       R::MODULE => "module",
       R::MODULE_ID => "module.id",
       R::MODULE_LOADED => "module.loaded",
@@ -327,6 +324,8 @@ impl RuntimeGlobals {
       R::PREFETCH_CHUNK_HANDLERS => "__webpack_require__.F",
       R::PRELOAD_CHUNK => "__webpack_require__.G",
       R::PRELOAD_CHUNK_HANDLERS => "__webpack_require__.H",
+      // rspack only
+      R::RSPACK_VERSION => "__webpack_require__.rv",
       r => panic!(
         "Unexpected flag `{r:?}`. RuntimeGlobals should only be printed for one single flag."
       ),

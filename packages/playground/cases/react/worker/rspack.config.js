@@ -1,27 +1,49 @@
+const rspack = require("@rspack/core");
+const ReactRefreshPlugin = require("@rspack/plugin-react-refresh");
+
 /** @type { import('@rspack/core').RspackOptions } */
 module.exports = {
 	context: __dirname,
 	mode: "development",
 	entry: "./src/index.jsx",
-	devServer: {
-		hot: true
+	resolve: {
+		extensions: ["...", ".ts", ".tsx", ".jsx"]
 	},
-	cache: false,
-	stats: "none",
-	infrastructureLogging: {
-		debug: false
-	},
-	builtins: {
-		html: [
+	module: {
+		rules: [
 			{
-				template: "./src/index.html"
+				test: /\.jsx$/,
+				use: {
+					loader: "builtin:swc-loader",
+					options: {
+						jsc: {
+							parser: {
+								syntax: "ecmascript",
+								jsx: true
+							},
+							transform: {
+								react: {
+									runtime: "automatic",
+									development: true,
+									refresh: true
+								}
+							}
+						}
+					}
+				}
 			}
 		]
 	},
-	experiments: {
-		rspackFuture: {
-			disableTransformByDefault: false
-		}
+	plugins: [
+		new rspack.HtmlRspackPlugin({ template: "./src/index.html" }),
+		new ReactRefreshPlugin()
+	],
+	devServer: {
+		hot: true
+	},
+	stats: "none",
+	infrastructureLogging: {
+		debug: false
 	},
 	watchOptions: {
 		poll: 1000

@@ -85,6 +85,7 @@ pub struct InnerGraphPlugin<'a> {
   rewrite_usage_span: &'a mut HashMap<Span, ExtraSpanInfo>,
   import_map: &'a ImportMap,
   pub comments: Option<SwcComments>,
+  pub in_named: bool,
 }
 
 impl<'a> Visit for InnerGraphPlugin<'a> {
@@ -311,6 +312,9 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
       let usage = if let Some(symbol) = self.get_top_level_symbol() {
         InnerGraphMapUsage::TopLevel(symbol)
       } else {
+        if self.in_named {
+          return;
+        }
         InnerGraphMapUsage::True
       };
       self.add_usage(ident.sym.clone(), usage);
@@ -411,7 +415,10 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
       }
     }
     *self.rewrite_usage_span = rewrite_usage_span;
+    let in_named = self.in_named;
+    self.in_named = true;
     named_export.visit_children_with(self);
+    self.in_named = in_named;
   }
   fn visit_export_default_expr(&mut self, node: &ExportDefaultExpr) {
     if !self.is_enabled() {
@@ -527,6 +534,7 @@ impl<'a> InnerGraphPlugin<'a> {
       rewrite_usage_span,
       import_map,
       comments,
+      in_named: false,
     }
   }
 

@@ -8,7 +8,7 @@ exports[`StatsTestCases should print correct stats for auxiliary-files-test 1`] 
         "main",
       ],
       "chunks": [
-        "main",
+        "909",
       ],
       "emitted": true,
       "info": {
@@ -25,7 +25,7 @@ exports[`StatsTestCases should print correct stats for auxiliary-files-test 1`] 
         "main",
       ],
       "chunks": [
-        "main",
+        "909",
       ],
       "emitted": true,
       "info": {
@@ -33,7 +33,7 @@ exports[`StatsTestCases should print correct stats for auxiliary-files-test 1`] 
         "hotModuleReplacement": false,
       },
       "name": "bundle.js",
-      "size": 459,
+      "size": 460,
       "type": "asset",
     },
   ],
@@ -54,13 +54,13 @@ exports[`StatsTestCases should print correct stats for auxiliary-files-test 1`] 
       "files": [
         "bundle.js",
       ],
-      "id": "main",
+      "id": "909",
       "initial": true,
       "modules": [
         {
           "assets": [],
           "chunks": [
-            "main",
+            "909",
           ],
           "id": "193",
           "identifier": "asset/resource|<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/raw.png",
@@ -105,7 +105,7 @@ exports[`StatsTestCases should print correct stats for auxiliary-files-test 1`] 
         {
           "assets": [],
           "chunks": [
-            "main",
+            "909",
           ],
           "id": "10",
           "identifier": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/index.js",
@@ -135,7 +135,7 @@ import rawModule from './raw.png';
         {
           "assets": [],
           "chunks": [
-            "main",
+            "909",
           ],
           "id": "151",
           "identifier": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/stringModule.js",
@@ -181,12 +181,12 @@ import rawModule from './raw.png';
       "assets": [
         {
           "name": "bundle.js",
-          "size": 459,
+          "size": 460,
         },
       ],
-      "assetsSize": 459,
+      "assetsSize": 460,
       "chunks": [
-        "main",
+        "909",
       ],
       "name": "main",
     },
@@ -194,13 +194,13 @@ import rawModule from './raw.png';
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "d6dd2961487dd1281bc4",
+  "hash": "9670c403a43c0e34d38b",
   "logging": {},
   "modules": [
     {
       "assets": [],
       "chunks": [
-        "main",
+        "909",
       ],
       "id": "193",
       "identifier": "asset/resource|<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/raw.png",
@@ -245,7 +245,7 @@ import rawModule from './raw.png';
     {
       "assets": [],
       "chunks": [
-        "main",
+        "909",
       ],
       "id": "10",
       "identifier": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/index.js",
@@ -275,7 +275,7 @@ import rawModule from './raw.png';
     {
       "assets": [],
       "chunks": [
-        "main",
+        "909",
       ],
       "id": "151",
       "identifier": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/stringModule.js",
@@ -309,7 +309,7 @@ import rawModule from './raw.png';
     {
       "assets": [],
       "chunks": [
-        "main",
+        "909",
       ],
       "id": "",
       "identifier": "webpack/runtime/public_path",
@@ -329,7 +329,7 @@ import rawModule from './raw.png';
     {
       "assets": [],
       "chunks": [
-        "main",
+        "909",
       ],
       "id": "",
       "identifier": "webpack/runtime/make_namespace_object",
@@ -352,12 +352,12 @@ import rawModule from './raw.png';
       "assets": [
         {
           "name": "bundle.js",
-          "size": 459,
+          "size": 460,
         },
       ],
-      "assetsSize": 459,
+      "assetsSize": 460,
       "chunks": [
-        "main",
+        "909",
       ],
       "name": "main",
     },
@@ -371,26 +371,26 @@ import rawModule from './raw.png';
 
 exports[`StatsTestCases should print correct stats for auxiliary-files-test 2`] = `
 "PublicPath: (none)
-asset 220e6fb336d7b999e76d.png 7 bytes {main} [emitted] [from: raw.png] (name: main)
-asset bundle.js 459 bytes {main} [emitted] (name: main)
-Entrypoint main 459 bytes = bundle.js
-chunk {main} bundle.js (main) [entry]
-  ./raw.png [193] {main}
+asset 220e6fb336d7b999e76d.png 7 bytes {909} [emitted] [from: raw.png] (name: main)
+asset bundle.js 460 bytes {909} [emitted] (name: main)
+Entrypoint main 460 bytes = bundle.js
+chunk {909} bundle.js (main) [entry]
+  ./raw.png [193] {909}
     esm import ./raw.png [10]
-  ./index.js [10] {main}
+  ./index.js [10] {909}
     entry ./index
-  ./stringModule.js [151] {main}
+  ./stringModule.js [151] {909}
     esm import ./stringModule [10]
-./raw.png [193] {main}
+./raw.png [193] {909}
   esm import ./raw.png [10]
-./index.js [10] {main}
+./index.js [10] {909}
   entry ./index
-./stringModule.js [151] {main}
+./stringModule.js [151] {909}
   esm import ./stringModule [10]
-webpack/runtime/public_path {main}
-webpack/runtime/make_namespace_object {main}
+webpack/runtime/public_path {909}
+webpack/runtime/make_namespace_object {909}
   
-Rspack compiled successfully (d6dd2961487dd1281bc4)"
+Rspack compiled successfully (9670c403a43c0e34d38b)"
 `;
 
 exports[`StatsTestCases should print correct stats for filename 1`] = `
@@ -399,15 +399,15 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
     {
       "chunkNames": [],
       "chunks": [
-        "dynamic_js",
+        "521",
       ],
       "emitted": true,
       "info": {
         "development": false,
         "hotModuleReplacement": false,
       },
-      "name": "dynamic_js.xxxx.js",
-      "size": 138,
+      "name": "521.xxxx.js",
+      "size": 131,
       "type": "asset",
     },
     {
@@ -415,21 +415,21 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
         "main",
       ],
       "chunks": [
-        "main",
+        "909",
       ],
       "emitted": true,
       "info": {
         "development": false,
         "hotModuleReplacement": false,
       },
-      "name": "main.xxxx.js",
-      "size": 1081,
+      "name": "909.xxxx.js",
+      "size": 935,
       "type": "asset",
     },
   ],
   "assetsByChunkName": {
     "main": [
-      "main.xxxx.js",
+      "909.xxxx.js",
     ],
   },
   "children": [],
@@ -439,15 +439,15 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       "children": [],
       "entry": false,
       "files": [
-        "dynamic_js.xxxx.js",
+        "521.xxxx.js",
       ],
-      "id": "dynamic_js",
+      "id": "521",
       "initial": false,
       "modules": [
         {
           "assets": [],
           "chunks": [
-            "dynamic_js",
+            "521",
           ],
           "id": "345",
           "identifier": "<PROJECT_ROOT>/tests/statsCases/filename/dynamic.js",
@@ -482,7 +482,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       ],
       "names": [],
       "parents": [
-        "main",
+        "909",
       ],
       "siblings": [],
       "size": 32,
@@ -491,19 +491,19 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
     {
       "auxiliaryFiles": [],
       "children": [
-        "dynamic_js",
+        "521",
       ],
       "entry": true,
       "files": [
-        "main.xxxx.js",
+        "909.xxxx.js",
       ],
-      "id": "main",
+      "id": "909",
       "initial": true,
       "modules": [
         {
           "assets": [],
           "chunks": [
-            "main",
+            "909",
           ],
           "id": "10",
           "identifier": "<PROJECT_ROOT>/tests/statsCases/filename/index.js",
@@ -543,13 +543,13 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
     "main": {
       "assets": [
         {
-          "name": "main.xxxx.js",
-          "size": 1081,
+          "name": "909.xxxx.js",
+          "size": 935,
         },
       ],
-      "assetsSize": 1081,
+      "assetsSize": 935,
       "chunks": [
-        "main",
+        "909",
       ],
       "name": "main",
     },
@@ -557,13 +557,13 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "ccf0aa4014db24570448",
+  "hash": "002c2c04a29dccb65fe6",
   "logging": {},
   "modules": [
     {
       "assets": [],
       "chunks": [
-        "main",
+        "909",
       ],
       "id": "10",
       "identifier": "<PROJECT_ROOT>/tests/statsCases/filename/index.js",
@@ -592,7 +592,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
     {
       "assets": [],
       "chunks": [
-        "dynamic_js",
+        "521",
       ],
       "id": "345",
       "identifier": "<PROJECT_ROOT>/tests/statsCases/filename/dynamic.js",
@@ -627,7 +627,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
     {
       "assets": [],
       "chunks": [
-        "main",
+        "909",
       ],
       "id": "",
       "identifier": "webpack/runtime/ensure_chunk",
@@ -647,7 +647,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
     {
       "assets": [],
       "chunks": [
-        "main",
+        "909",
       ],
       "id": "",
       "identifier": "webpack/runtime/has_own_property",
@@ -667,27 +667,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
     {
       "assets": [],
       "chunks": [
-        "main",
-      ],
-      "id": "",
-      "identifier": "webpack/runtime/load_chunk_with_block",
-      "issuer": undefined,
-      "issuerId": undefined,
-      "issuerName": undefined,
-      "issuerPath": [],
-      "moduleType": "runtime",
-      "name": "webpack/runtime/load_chunk_with_block",
-      "nameForCondition": undefined,
-      "orphan": false,
-      "reasons": [],
-      "size": 160,
-      "source": undefined,
-      "type": "module",
-    },
-    {
-      "assets": [],
-      "chunks": [
-        "main",
+        "909",
       ],
       "id": "",
       "identifier": "webpack/runtime/make_namespace_object",
@@ -707,7 +687,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
     {
       "assets": [],
       "chunks": [
-        "main",
+        "909",
       ],
       "id": "",
       "identifier": "webpack/runtime/require_chunk_loading",
@@ -727,7 +707,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
     {
       "assets": [],
       "chunks": [
-        "main",
+        "909",
       ],
       "id": "",
       "identifier": "webpack/runtime/define_property_getters",
@@ -747,16 +727,16 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
     {
       "assets": [],
       "chunks": [
-        "main",
+        "909",
       ],
       "id": "",
-      "identifier": "webpack/runtime/get_chunk_filename/javascript",
+      "identifier": "webpack/runtime/get javascript chunk filename",
       "issuer": undefined,
       "issuerId": undefined,
       "issuerName": undefined,
       "issuerPath": [],
       "moduleType": "runtime",
-      "name": "webpack/runtime/get_chunk_filename/javascript",
+      "name": "webpack/runtime/get javascript chunk filename",
       "nameForCondition": undefined,
       "orphan": false,
       "reasons": [],
@@ -769,13 +749,13 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
     "main": {
       "assets": [
         {
-          "name": "main.xxxx.js",
-          "size": 1081,
+          "name": "909.xxxx.js",
+          "size": 935,
         },
       ],
-      "assetsSize": 1081,
+      "assetsSize": 935,
       "chunks": [
-        "main",
+        "909",
       ],
       "name": "main",
     },
@@ -789,28 +769,27 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
 
 exports[`StatsTestCases should print correct stats for filename 2`] = `
 "PublicPath: (none)
-asset dynamic_js.xxxx.js 138 bytes {dynamic_js} [emitted]
-asset main.xxxx.js 1.06 KiB {main} [emitted] (name: main)
-Entrypoint main 1.06 KiB = main.xxxx.js
-chunk {dynamic_js} dynamic_js.xxxx.js <{main}>
-  ./dynamic.js [345] {dynamic_js}
+asset 521.xxxx.js 131 bytes {521} [emitted]
+asset 909.xxxx.js 935 bytes {909} [emitted] (name: main)
+Entrypoint main 935 bytes = 909.xxxx.js
+chunk {521} 521.xxxx.js <{909}>
+  ./dynamic.js [345] {521}
     dynamic import ./dynamic [10]
-chunk {main} main.xxxx.js (main) >{dynamic_js}< [entry]
-  ./index.js [10] {main}
+chunk {909} 909.xxxx.js (main) >{521}< [entry]
+  ./index.js [10] {909}
     entry ./index
-./index.js [10] {main}
+./index.js [10] {909}
   entry ./index
-./dynamic.js [345] {dynamic_js}
+./dynamic.js [345] {521}
   dynamic import ./dynamic [10]
-webpack/runtime/ensure_chunk {main}
-webpack/runtime/has_own_property {main}
-webpack/runtime/load_chunk_with_block {main}
-webpack/runtime/make_namespace_object {main}
-webpack/runtime/require_chunk_loading {main}
-webpack/runtime/define_property_getters {main}
-webpack/runtime/get_chunk_filename/javascript {main}
+webpack/runtime/ensure_chunk {909}
+webpack/runtime/has_own_property {909}
+webpack/runtime/make_namespace_object {909}
+webpack/runtime/require_chunk_loading {909}
+webpack/runtime/define_property_getters {909}
+webpack/runtime/get javascript chunk filename {909}
   
-Rspack compiled successfully (ccf0aa4014db24570448)"
+Rspack compiled successfully (002c2c04a29dccb65fe6)"
 `;
 
 exports[`StatsTestCases should print correct stats for hot+production 1`] = `
@@ -821,7 +800,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
         "main",
       ],
       "chunks": [
-        "main",
+        "909",
       ],
       "emitted": true,
       "info": {
@@ -829,7 +808,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
         "hotModuleReplacement": false,
       },
       "name": "bundle.js",
-      "size": 9109,
+      "size": 9107,
       "type": "asset",
     },
   ],
@@ -847,13 +826,13 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
       "files": [
         "bundle.js",
       ],
-      "id": "main",
+      "id": "909",
       "initial": true,
       "modules": [
         {
           "assets": [],
           "chunks": [
-            "main",
+            "909",
           ],
           "id": "10",
           "identifier": "<PROJECT_ROOT>/tests/statsCases/hot+production/index.js",
@@ -894,12 +873,12 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 9109,
+          "size": 9107,
         },
       ],
-      "assetsSize": 9109,
+      "assetsSize": 9107,
       "chunks": [
-        "main",
+        "909",
       ],
       "name": "main",
     },
@@ -907,13 +886,13 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "6eed24d98a02965a7721",
+  "hash": "5f9f75789352d7c6b706",
   "logging": {},
   "modules": [
     {
       "assets": [],
       "chunks": [
-        "main",
+        "909",
       ],
       "id": "10",
       "identifier": "<PROJECT_ROOT>/tests/statsCases/hot+production/index.js",
@@ -942,7 +921,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
     {
       "assets": [],
       "chunks": [
-        "main",
+        "909",
       ],
       "id": "",
       "identifier": "webpack/runtime/get_full_hash",
@@ -962,7 +941,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
     {
       "assets": [],
       "chunks": [
-        "main",
+        "909",
       ],
       "id": "",
       "identifier": "webpack/runtime/has_own_property",
@@ -982,7 +961,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
     {
       "assets": [],
       "chunks": [
-        "main",
+        "909",
       ],
       "id": "",
       "identifier": "webpack/runtime/require_chunk_loading",
@@ -1002,7 +981,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
     {
       "assets": [],
       "chunks": [
-        "main",
+        "909",
       ],
       "id": "",
       "identifier": "webpack/runtime/hot_module_replacement",
@@ -1022,7 +1001,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
     {
       "assets": [],
       "chunks": [
-        "main",
+        "909",
       ],
       "id": "",
       "identifier": "webpack/runtime/get_chunk_update_filename",
@@ -1042,7 +1021,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
     {
       "assets": [],
       "chunks": [
-        "main",
+        "909",
       ],
       "id": "",
       "identifier": "webpack/runtime/get_main_filename/update manifest",
@@ -1065,12 +1044,12 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 9109,
+          "size": 9107,
         },
       ],
-      "assetsSize": 9109,
+      "assetsSize": 9107,
       "chunks": [
-        "main",
+        "909",
       ],
       "name": "main",
     },
@@ -1084,21 +1063,21 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
 
 exports[`StatsTestCases should print correct stats for hot+production 2`] = `
 "PublicPath: (none)
-asset bundle.js 8.9 KiB {main} [emitted] (name: main)
-Entrypoint main 8.9 KiB = bundle.js
-chunk {main} bundle.js (main) [entry]
-  ./index.js [10] {main}
+asset bundle.js 8.89 KiB {909} [emitted] (name: main)
+Entrypoint main 8.89 KiB = bundle.js
+chunk {909} bundle.js (main) [entry]
+  ./index.js [10] {909}
     entry ./index.js
-./index.js [10] {main}
+./index.js [10] {909}
   entry ./index.js
-webpack/runtime/get_full_hash {main}
-webpack/runtime/has_own_property {main}
-webpack/runtime/require_chunk_loading {main}
-webpack/runtime/hot_module_replacement {main}
-webpack/runtime/get_chunk_update_filename {main}
-webpack/runtime/get_main_filename/update manifest {main}
+webpack/runtime/get_full_hash {909}
+webpack/runtime/has_own_property {909}
+webpack/runtime/require_chunk_loading {909}
+webpack/runtime/hot_module_replacement {909}
+webpack/runtime/get_chunk_update_filename {909}
+webpack/runtime/get_main_filename/update manifest {909}
   
-Rspack compiled successfully (6eed24d98a02965a7721)"
+Rspack compiled successfully (5f9f75789352d7c6b706)"
 `;
 
 exports[`StatsTestCases should print correct stats for identifier-let-strict-mode 1`] = `
@@ -1171,7 +1150,8 @@ exports[`StatsTestCases should print correct stats for identifier-let-strict-mod
 `;
 
 exports[`StatsTestCases should print correct stats for identifier-let-strict-mode 2`] = `
-"ERROR in ./index.js ModuleParseError
+"ERROR in ./index.js
+ModuleParseError
 
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: \`let\` cannot be used as an identifier in strict mode
@@ -1183,7 +1163,8 @@ exports[`StatsTestCases should print correct stats for identifier-let-strict-mod
   help: 
         You may need an appropriate loader to handle this file type.
 
-ERROR in ./index.js ModuleParseError
+ERROR in ./index.js
+ModuleParseError
 
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: \`let\` cannot be used as an identifier in strict mode
@@ -1316,7 +1297,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
             "main",
           ],
           "chunks": [
-            "main",
+            "909",
           ],
           "emitted": true,
           "info": {
@@ -1324,7 +1305,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
             "hotModuleReplacement": false,
           },
           "name": "bundle1.js",
-          "size": 1493,
+          "size": 1276,
           "type": "asset",
         },
       ],
@@ -1338,19 +1319,19 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
         {
           "auxiliaryFiles": [],
           "children": [
-            "main",
+            "909",
           ],
           "entry": true,
           "files": [
             "bundle1.js",
           ],
-          "id": "main",
+          "id": "909",
           "initial": true,
           "modules": [
             {
               "assets": [],
               "chunks": [
-                "main",
+                "909",
               ],
               "id": "996",
               "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/b.js",
@@ -1370,13 +1351,6 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
               "orphan": false,
               "reasons": [
                 {
-                  "moduleId": "996",
-                  "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/b.js",
-                  "moduleName": "./b.js",
-                  "type": "cjs self exports reference",
-                  "userRequest": "self",
-                },
-                {
                   "moduleId": "10",
                   "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/index.js",
                   "moduleName": "./index.js",
@@ -1392,7 +1366,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
             {
               "assets": [],
               "chunks": [
-                "main",
+                "909",
               ],
               "id": "460",
               "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/c.js",
@@ -1428,7 +1402,7 @@ import("./e");
             {
               "assets": [],
               "chunks": [
-                "main",
+                "909",
               ],
               "id": "767",
               "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/d.js",
@@ -1459,13 +1433,6 @@ import("./e");
                   "type": "dynamic import",
                   "userRequest": "./d",
                 },
-                {
-                  "moduleId": "767",
-                  "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/d.js",
-                  "moduleName": "./d.js",
-                  "type": "cjs self exports reference",
-                  "userRequest": "self",
-                },
               ],
               "size": 22,
               "source": "module.exports = "d";
@@ -1475,7 +1442,7 @@ import("./e");
             {
               "assets": [],
               "chunks": [
-                "main",
+                "909",
               ],
               "id": "390",
               "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/e.js",
@@ -1506,13 +1473,6 @@ import("./e");
                   "type": "dynamic import",
                   "userRequest": "./e",
                 },
-                {
-                  "moduleId": "390",
-                  "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/e.js",
-                  "moduleName": "./e.js",
-                  "type": "cjs self exports reference",
-                  "userRequest": "self",
-                },
               ],
               "size": 22,
               "source": "module.exports = "e";
@@ -1522,7 +1482,7 @@ import("./e");
             {
               "assets": [],
               "chunks": [
-                "main",
+                "909",
               ],
               "id": "10",
               "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/index.js",
@@ -1556,7 +1516,7 @@ import(/* webpackChunkName: "c" */ "./c");
             "main",
           ],
           "parents": [
-            "main",
+            "909",
           ],
           "siblings": [],
           "size": 219,
@@ -1568,12 +1528,12 @@ import(/* webpackChunkName: "c" */ "./c");
           "assets": [
             {
               "name": "bundle1.js",
-              "size": 1493,
+              "size": 1276,
             },
           ],
-          "assetsSize": 1493,
+          "assetsSize": 1276,
           "chunks": [
-            "main",
+            "909",
           ],
           "name": "main",
         },
@@ -1581,13 +1541,13 @@ import(/* webpackChunkName: "c" */ "./c");
       "errors": [],
       "errorsCount": 0,
       "filteredModules": undefined,
-      "hash": "b772b5c0aeb451ab4831",
+      "hash": "e6ee7f0eb3463f392120",
       "logging": {},
       "modules": [
         {
           "assets": [],
           "chunks": [
-            "main",
+            "909",
           ],
           "id": "996",
           "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/b.js",
@@ -1607,13 +1567,6 @@ import(/* webpackChunkName: "c" */ "./c");
           "orphan": false,
           "reasons": [
             {
-              "moduleId": "996",
-              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/b.js",
-              "moduleName": "./b.js",
-              "type": "cjs self exports reference",
-              "userRequest": "self",
-            },
-            {
               "moduleId": "10",
               "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/index.js",
               "moduleName": "./index.js",
@@ -1629,7 +1582,7 @@ import(/* webpackChunkName: "c" */ "./c");
         {
           "assets": [],
           "chunks": [
-            "main",
+            "909",
           ],
           "id": "460",
           "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/c.js",
@@ -1665,7 +1618,7 @@ import("./e");
         {
           "assets": [],
           "chunks": [
-            "main",
+            "909",
           ],
           "id": "767",
           "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/d.js",
@@ -1696,13 +1649,6 @@ import("./e");
               "type": "dynamic import",
               "userRequest": "./d",
             },
-            {
-              "moduleId": "767",
-              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/d.js",
-              "moduleName": "./d.js",
-              "type": "cjs self exports reference",
-              "userRequest": "self",
-            },
           ],
           "size": 22,
           "source": "module.exports = "d";
@@ -1712,7 +1658,7 @@ import("./e");
         {
           "assets": [],
           "chunks": [
-            "main",
+            "909",
           ],
           "id": "390",
           "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/e.js",
@@ -1743,13 +1689,6 @@ import("./e");
               "type": "dynamic import",
               "userRequest": "./e",
             },
-            {
-              "moduleId": "390",
-              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/e.js",
-              "moduleName": "./e.js",
-              "type": "cjs self exports reference",
-              "userRequest": "self",
-            },
           ],
           "size": 22,
           "source": "module.exports = "e";
@@ -1759,7 +1698,7 @@ import("./e");
         {
           "assets": [],
           "chunks": [
-            "main",
+            "909",
           ],
           "id": "10",
           "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/index.js",
@@ -1791,27 +1730,7 @@ import(/* webpackChunkName: "c" */ "./c");
         {
           "assets": [],
           "chunks": [
-            "main",
-          ],
-          "id": "",
-          "identifier": "webpack/runtime/ensure_chunk",
-          "issuer": undefined,
-          "issuerId": undefined,
-          "issuerName": undefined,
-          "issuerPath": [],
-          "moduleType": "runtime",
-          "name": "webpack/runtime/ensure_chunk",
-          "nameForCondition": undefined,
-          "orphan": false,
-          "reasons": [],
-          "size": 160,
-          "source": undefined,
-          "type": "module",
-        },
-        {
-          "assets": [],
-          "chunks": [
-            "main",
+            "909",
           ],
           "id": "",
           "identifier": "webpack/runtime/has_own_property",
@@ -1831,27 +1750,7 @@ import(/* webpackChunkName: "c" */ "./c");
         {
           "assets": [],
           "chunks": [
-            "main",
-          ],
-          "id": "",
-          "identifier": "webpack/runtime/load_chunk_with_block",
-          "issuer": undefined,
-          "issuerId": undefined,
-          "issuerName": undefined,
-          "issuerPath": [],
-          "moduleType": "runtime",
-          "name": "webpack/runtime/load_chunk_with_block",
-          "nameForCondition": undefined,
-          "orphan": false,
-          "reasons": [],
-          "size": 160,
-          "source": undefined,
-          "type": "module",
-        },
-        {
-          "assets": [],
-          "chunks": [
-            "main",
+            "909",
           ],
           "id": "",
           "identifier": "webpack/runtime/make_namespace_object",
@@ -1871,7 +1770,7 @@ import(/* webpackChunkName: "c" */ "./c");
         {
           "assets": [],
           "chunks": [
-            "main",
+            "909",
           ],
           "id": "",
           "identifier": "webpack/runtime/define_property_getters",
@@ -1891,7 +1790,7 @@ import(/* webpackChunkName: "c" */ "./c");
         {
           "assets": [],
           "chunks": [
-            "main",
+            "909",
           ],
           "id": "",
           "identifier": "webpack/runtime/create_fake_namespace_object",
@@ -1915,12 +1814,12 @@ import(/* webpackChunkName: "c" */ "./c");
           "assets": [
             {
               "name": "bundle1.js",
-              "size": 1493,
+              "size": 1276,
             },
           ],
-          "assetsSize": 1493,
+          "assetsSize": 1276,
           "chunks": [
-            "main",
+            "909",
           ],
           "name": "c",
         },
@@ -1928,12 +1827,12 @@ import(/* webpackChunkName: "c" */ "./c");
           "assets": [
             {
               "name": "bundle1.js",
-              "size": 1493,
+              "size": 1276,
             },
           ],
-          "assetsSize": 1493,
+          "assetsSize": 1276,
           "chunks": [
-            "main",
+            "909",
           ],
           "name": "main",
         },
@@ -1947,10 +1846,26 @@ import(/* webpackChunkName: "c" */ "./c");
       "assets": [
         {
           "chunkNames": [
+            "c",
+          ],
+          "chunks": [
+            "76",
+          ],
+          "emitted": true,
+          "info": {
+            "development": false,
+            "hotModuleReplacement": false,
+          },
+          "name": "76.bundle2.js",
+          "size": 194,
+          "type": "asset",
+        },
+        {
+          "chunkNames": [
             "main",
           ],
           "chunks": [
-            "main",
+            "909",
           ],
           "emitted": true,
           "info": {
@@ -1958,29 +1873,13 @@ import(/* webpackChunkName: "c" */ "./c");
             "hotModuleReplacement": false,
           },
           "name": "bundle2.js",
-          "size": 1635,
-          "type": "asset",
-        },
-        {
-          "chunkNames": [
-            "c",
-          ],
-          "chunks": [
-            "c",
-          ],
-          "emitted": true,
-          "info": {
-            "development": false,
-            "hotModuleReplacement": false,
-          },
-          "name": "c.bundle2.js",
-          "size": 208,
+          "size": 1458,
           "type": "asset",
         },
       ],
       "assetsByChunkName": {
         "c": [
-          "c.bundle2.js",
+          "76.bundle2.js",
         ],
         "main": [
           "bundle2.js",
@@ -1991,19 +1890,19 @@ import(/* webpackChunkName: "c" */ "./c");
         {
           "auxiliaryFiles": [],
           "children": [
-            "c",
+            "76",
           ],
           "entry": false,
           "files": [
-            "c.bundle2.js",
+            "76.bundle2.js",
           ],
-          "id": "c",
+          "id": "76",
           "initial": false,
           "modules": [
             {
               "assets": [],
               "chunks": [
-                "c",
+                "76",
               ],
               "id": "460",
               "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/c.js",
@@ -2039,7 +1938,7 @@ import("./e");
             {
               "assets": [],
               "chunks": [
-                "c",
+                "76",
               ],
               "id": "767",
               "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/d.js",
@@ -2070,13 +1969,6 @@ import("./e");
                   "type": "dynamic import",
                   "userRequest": "./d",
                 },
-                {
-                  "moduleId": "767",
-                  "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/d.js",
-                  "moduleName": "./d.js",
-                  "type": "cjs self exports reference",
-                  "userRequest": "self",
-                },
               ],
               "size": 22,
               "source": "module.exports = "d";
@@ -2086,7 +1978,7 @@ import("./e");
             {
               "assets": [],
               "chunks": [
-                "c",
+                "76",
               ],
               "id": "390",
               "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/e.js",
@@ -2117,13 +2009,6 @@ import("./e");
                   "type": "dynamic import",
                   "userRequest": "./e",
                 },
-                {
-                  "moduleId": "390",
-                  "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/e.js",
-                  "moduleName": "./e.js",
-                  "type": "cjs self exports reference",
-                  "userRequest": "self",
-                },
               ],
               "size": 22,
               "source": "module.exports = "e";
@@ -2135,8 +2020,8 @@ import("./e");
             "c",
           ],
           "parents": [
-            "c",
-            "main",
+            "76",
+            "909",
           ],
           "siblings": [],
           "size": 74,
@@ -2145,19 +2030,19 @@ import("./e");
         {
           "auxiliaryFiles": [],
           "children": [
-            "c",
+            "76",
           ],
           "entry": true,
           "files": [
             "bundle2.js",
           ],
-          "id": "main",
+          "id": "909",
           "initial": true,
           "modules": [
             {
               "assets": [],
               "chunks": [
-                "main",
+                "909",
               ],
               "id": "996",
               "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/b.js",
@@ -2177,13 +2062,6 @@ import("./e");
               "orphan": false,
               "reasons": [
                 {
-                  "moduleId": "996",
-                  "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/b.js",
-                  "moduleName": "./b.js",
-                  "type": "cjs self exports reference",
-                  "userRequest": "self",
-                },
-                {
                   "moduleId": "10",
                   "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/index.js",
                   "moduleName": "./index.js",
@@ -2199,7 +2077,7 @@ import("./e");
             {
               "assets": [],
               "chunks": [
-                "main",
+                "909",
               ],
               "id": "10",
               "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/index.js",
@@ -2243,12 +2121,12 @@ import(/* webpackChunkName: "c" */ "./c");
           "assets": [
             {
               "name": "bundle2.js",
-              "size": 1635,
+              "size": 1458,
             },
           ],
-          "assetsSize": 1635,
+          "assetsSize": 1458,
           "chunks": [
-            "main",
+            "909",
           ],
           "name": "main",
         },
@@ -2256,13 +2134,13 @@ import(/* webpackChunkName: "c" */ "./c");
       "errors": [],
       "errorsCount": 0,
       "filteredModules": undefined,
-      "hash": "42ff0683448bc8e002e8",
+      "hash": "a77f2539f6bd95f6969b",
       "logging": {},
       "modules": [
         {
           "assets": [],
           "chunks": [
-            "main",
+            "909",
           ],
           "id": "996",
           "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/b.js",
@@ -2282,13 +2160,6 @@ import(/* webpackChunkName: "c" */ "./c");
           "orphan": false,
           "reasons": [
             {
-              "moduleId": "996",
-              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/b.js",
-              "moduleName": "./b.js",
-              "type": "cjs self exports reference",
-              "userRequest": "self",
-            },
-            {
               "moduleId": "10",
               "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/index.js",
               "moduleName": "./index.js",
@@ -2304,7 +2175,7 @@ import(/* webpackChunkName: "c" */ "./c");
         {
           "assets": [],
           "chunks": [
-            "c",
+            "76",
           ],
           "id": "460",
           "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/c.js",
@@ -2340,7 +2211,7 @@ import("./e");
         {
           "assets": [],
           "chunks": [
-            "c",
+            "76",
           ],
           "id": "767",
           "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/d.js",
@@ -2371,13 +2242,6 @@ import("./e");
               "type": "dynamic import",
               "userRequest": "./d",
             },
-            {
-              "moduleId": "767",
-              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/d.js",
-              "moduleName": "./d.js",
-              "type": "cjs self exports reference",
-              "userRequest": "self",
-            },
           ],
           "size": 22,
           "source": "module.exports = "d";
@@ -2387,7 +2251,7 @@ import("./e");
         {
           "assets": [],
           "chunks": [
-            "c",
+            "76",
           ],
           "id": "390",
           "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/e.js",
@@ -2418,13 +2282,6 @@ import("./e");
               "type": "dynamic import",
               "userRequest": "./e",
             },
-            {
-              "moduleId": "390",
-              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/e.js",
-              "moduleName": "./e.js",
-              "type": "cjs self exports reference",
-              "userRequest": "self",
-            },
           ],
           "size": 22,
           "source": "module.exports = "e";
@@ -2434,7 +2291,7 @@ import("./e");
         {
           "assets": [],
           "chunks": [
-            "main",
+            "909",
           ],
           "id": "10",
           "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/index.js",
@@ -2466,7 +2323,7 @@ import(/* webpackChunkName: "c" */ "./c");
         {
           "assets": [],
           "chunks": [
-            "main",
+            "909",
           ],
           "id": "",
           "identifier": "webpack/runtime/ensure_chunk",
@@ -2486,7 +2343,7 @@ import(/* webpackChunkName: "c" */ "./c");
         {
           "assets": [],
           "chunks": [
-            "main",
+            "909",
           ],
           "id": "",
           "identifier": "webpack/runtime/has_own_property",
@@ -2506,27 +2363,7 @@ import(/* webpackChunkName: "c" */ "./c");
         {
           "assets": [],
           "chunks": [
-            "main",
-          ],
-          "id": "",
-          "identifier": "webpack/runtime/load_chunk_with_block",
-          "issuer": undefined,
-          "issuerId": undefined,
-          "issuerName": undefined,
-          "issuerPath": [],
-          "moduleType": "runtime",
-          "name": "webpack/runtime/load_chunk_with_block",
-          "nameForCondition": undefined,
-          "orphan": false,
-          "reasons": [],
-          "size": 160,
-          "source": undefined,
-          "type": "module",
-        },
-        {
-          "assets": [],
-          "chunks": [
-            "main",
+            "909",
           ],
           "id": "",
           "identifier": "webpack/runtime/make_namespace_object",
@@ -2546,7 +2383,7 @@ import(/* webpackChunkName: "c" */ "./c");
         {
           "assets": [],
           "chunks": [
-            "main",
+            "909",
           ],
           "id": "",
           "identifier": "webpack/runtime/require_chunk_loading",
@@ -2566,7 +2403,7 @@ import(/* webpackChunkName: "c" */ "./c");
         {
           "assets": [],
           "chunks": [
-            "main",
+            "909",
           ],
           "id": "",
           "identifier": "webpack/runtime/define_property_getters",
@@ -2586,7 +2423,7 @@ import(/* webpackChunkName: "c" */ "./c");
         {
           "assets": [],
           "chunks": [
-            "main",
+            "909",
           ],
           "id": "",
           "identifier": "webpack/runtime/create_fake_namespace_object",
@@ -2606,16 +2443,16 @@ import(/* webpackChunkName: "c" */ "./c");
         {
           "assets": [],
           "chunks": [
-            "main",
+            "909",
           ],
           "id": "",
-          "identifier": "webpack/runtime/get_chunk_filename/javascript",
+          "identifier": "webpack/runtime/get javascript chunk filename",
           "issuer": undefined,
           "issuerId": undefined,
           "issuerName": undefined,
           "issuerPath": [],
           "moduleType": "runtime",
-          "name": "webpack/runtime/get_chunk_filename/javascript",
+          "name": "webpack/runtime/get javascript chunk filename",
           "nameForCondition": undefined,
           "orphan": false,
           "reasons": [],
@@ -2629,13 +2466,13 @@ import(/* webpackChunkName: "c" */ "./c");
         "c": {
           "assets": [
             {
-              "name": "c.bundle2.js",
-              "size": 208,
+              "name": "76.bundle2.js",
+              "size": 194,
             },
           ],
-          "assetsSize": 208,
+          "assetsSize": 194,
           "chunks": [
-            "c",
+            "76",
           ],
           "name": "c",
         },
@@ -2643,12 +2480,12 @@ import(/* webpackChunkName: "c" */ "./c");
           "assets": [
             {
               "name": "bundle2.js",
-              "size": 1635,
+              "size": 1458,
             },
           ],
-          "assetsSize": 1635,
+          "assetsSize": 1458,
           "chunks": [
-            "main",
+            "909",
           ],
           "name": "main",
         },
@@ -2661,11 +2498,41 @@ import(/* webpackChunkName: "c" */ "./c");
     {
       "assets": [
         {
+          "chunkNames": [],
+          "chunks": [
+            "345",
+          ],
+          "emitted": true,
+          "info": {
+            "development": false,
+            "hotModuleReplacement": false,
+          },
+          "name": "345.bundle3.js",
+          "size": 100,
+          "type": "asset",
+        },
+        {
+          "chunkNames": [
+            "c",
+          ],
+          "chunks": [
+            "76",
+          ],
+          "emitted": true,
+          "info": {
+            "development": false,
+            "hotModuleReplacement": false,
+          },
+          "name": "76.bundle3.js",
+          "size": 134,
+          "type": "asset",
+        },
+        {
           "chunkNames": [
             "main",
           ],
           "chunks": [
-            "main",
+            "909",
           ],
           "emitted": true,
           "info": {
@@ -2673,43 +2540,13 @@ import(/* webpackChunkName: "c" */ "./c");
             "hotModuleReplacement": false,
           },
           "name": "bundle3.js",
-          "size": 1651,
-          "type": "asset",
-        },
-        {
-          "chunkNames": [
-            "c",
-          ],
-          "chunks": [
-            "c",
-          ],
-          "emitted": true,
-          "info": {
-            "development": false,
-            "hotModuleReplacement": false,
-          },
-          "name": "c.bundle3.js",
-          "size": 146,
-          "type": "asset",
-        },
-        {
-          "chunkNames": [],
-          "chunks": [
-            "d_js-e_js",
-          ],
-          "emitted": true,
-          "info": {
-            "development": false,
-            "hotModuleReplacement": false,
-          },
-          "name": "d_js-e_js.bundle3.js",
-          "size": 106,
+          "size": 1458,
           "type": "asset",
         },
       ],
       "assetsByChunkName": {
         "c": [
-          "c.bundle3.js",
+          "76.bundle3.js",
         ],
         "main": [
           "bundle3.js",
@@ -2719,20 +2556,119 @@ import(/* webpackChunkName: "c" */ "./c");
       "chunks": [
         {
           "auxiliaryFiles": [],
-          "children": [
-            "d_js-e_js",
-          ],
+          "children": [],
           "entry": false,
           "files": [
-            "c.bundle3.js",
+            "345.bundle3.js",
           ],
-          "id": "c",
+          "id": "345",
           "initial": false,
           "modules": [
             {
               "assets": [],
               "chunks": [
-                "c",
+                "345",
+              ],
+              "id": "767",
+              "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/d.js",
+              "issuer": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/c.js",
+              "issuerId": "460",
+              "issuerName": "./c.js",
+              "issuerPath": [
+                {
+                  "id": "10",
+                  "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/index.js",
+                  "name": "./index.js",
+                },
+                {
+                  "id": "460",
+                  "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/c.js",
+                  "name": "./c.js",
+                },
+              ],
+              "moduleType": "javascript/auto",
+              "name": "./d.js",
+              "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/d.js",
+              "orphan": false,
+              "reasons": [
+                {
+                  "moduleId": "460",
+                  "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/c.js",
+                  "moduleName": "./c.js",
+                  "type": "dynamic import",
+                  "userRequest": "./d",
+                },
+              ],
+              "size": 22,
+              "source": "module.exports = "d";
+",
+              "type": "module",
+            },
+            {
+              "assets": [],
+              "chunks": [
+                "345",
+              ],
+              "id": "390",
+              "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/e.js",
+              "issuer": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/c.js",
+              "issuerId": "460",
+              "issuerName": "./c.js",
+              "issuerPath": [
+                {
+                  "id": "10",
+                  "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/index.js",
+                  "name": "./index.js",
+                },
+                {
+                  "id": "460",
+                  "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/c.js",
+                  "name": "./c.js",
+                },
+              ],
+              "moduleType": "javascript/auto",
+              "name": "./e.js",
+              "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/e.js",
+              "orphan": false,
+              "reasons": [
+                {
+                  "moduleId": "460",
+                  "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/c.js",
+                  "moduleName": "./c.js",
+                  "type": "dynamic import",
+                  "userRequest": "./e",
+                },
+              ],
+              "size": 22,
+              "source": "module.exports = "e";
+",
+              "type": "module",
+            },
+          ],
+          "names": [],
+          "parents": [
+            "76",
+          ],
+          "siblings": [],
+          "size": 44,
+          "type": "chunk",
+        },
+        {
+          "auxiliaryFiles": [],
+          "children": [
+            "345",
+          ],
+          "entry": false,
+          "files": [
+            "76.bundle3.js",
+          ],
+          "id": "76",
+          "initial": false,
+          "modules": [
+            {
+              "assets": [],
+              "chunks": [
+                "76",
               ],
               "id": "460",
               "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/c.js",
@@ -2770,7 +2706,7 @@ import("./e");
             "c",
           ],
           "parents": [
-            "main",
+            "909",
           ],
           "siblings": [],
           "size": 30,
@@ -2778,133 +2714,20 @@ import("./e");
         },
         {
           "auxiliaryFiles": [],
-          "children": [],
-          "entry": false,
-          "files": [
-            "d_js-e_js.bundle3.js",
-          ],
-          "id": "d_js-e_js",
-          "initial": false,
-          "modules": [
-            {
-              "assets": [],
-              "chunks": [
-                "d_js-e_js",
-              ],
-              "id": "767",
-              "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/d.js",
-              "issuer": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/c.js",
-              "issuerId": "460",
-              "issuerName": "./c.js",
-              "issuerPath": [
-                {
-                  "id": "10",
-                  "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/index.js",
-                  "name": "./index.js",
-                },
-                {
-                  "id": "460",
-                  "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/c.js",
-                  "name": "./c.js",
-                },
-              ],
-              "moduleType": "javascript/auto",
-              "name": "./d.js",
-              "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/d.js",
-              "orphan": false,
-              "reasons": [
-                {
-                  "moduleId": "460",
-                  "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/c.js",
-                  "moduleName": "./c.js",
-                  "type": "dynamic import",
-                  "userRequest": "./d",
-                },
-                {
-                  "moduleId": "767",
-                  "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/d.js",
-                  "moduleName": "./d.js",
-                  "type": "cjs self exports reference",
-                  "userRequest": "self",
-                },
-              ],
-              "size": 22,
-              "source": "module.exports = "d";
-",
-              "type": "module",
-            },
-            {
-              "assets": [],
-              "chunks": [
-                "d_js-e_js",
-              ],
-              "id": "390",
-              "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/e.js",
-              "issuer": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/c.js",
-              "issuerId": "460",
-              "issuerName": "./c.js",
-              "issuerPath": [
-                {
-                  "id": "10",
-                  "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/index.js",
-                  "name": "./index.js",
-                },
-                {
-                  "id": "460",
-                  "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/c.js",
-                  "name": "./c.js",
-                },
-              ],
-              "moduleType": "javascript/auto",
-              "name": "./e.js",
-              "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/e.js",
-              "orphan": false,
-              "reasons": [
-                {
-                  "moduleId": "460",
-                  "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/c.js",
-                  "moduleName": "./c.js",
-                  "type": "dynamic import",
-                  "userRequest": "./e",
-                },
-                {
-                  "moduleId": "390",
-                  "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/e.js",
-                  "moduleName": "./e.js",
-                  "type": "cjs self exports reference",
-                  "userRequest": "self",
-                },
-              ],
-              "size": 22,
-              "source": "module.exports = "e";
-",
-              "type": "module",
-            },
-          ],
-          "names": [],
-          "parents": [
-            "c",
-          ],
-          "siblings": [],
-          "size": 44,
-          "type": "chunk",
-        },
-        {
-          "auxiliaryFiles": [],
           "children": [
-            "c",
+            "76",
           ],
           "entry": true,
           "files": [
             "bundle3.js",
           ],
-          "id": "main",
+          "id": "909",
           "initial": true,
           "modules": [
             {
               "assets": [],
               "chunks": [
-                "main",
+                "909",
               ],
               "id": "996",
               "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/b.js",
@@ -2924,13 +2747,6 @@ import("./e");
               "orphan": false,
               "reasons": [
                 {
-                  "moduleId": "996",
-                  "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/b.js",
-                  "moduleName": "./b.js",
-                  "type": "cjs self exports reference",
-                  "userRequest": "self",
-                },
-                {
                   "moduleId": "10",
                   "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/index.js",
                   "moduleName": "./index.js",
@@ -2946,7 +2762,7 @@ import("./e");
             {
               "assets": [],
               "chunks": [
-                "main",
+                "909",
               ],
               "id": "10",
               "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/index.js",
@@ -2990,12 +2806,12 @@ import(/* webpackChunkName: "c" */ "./c");
           "assets": [
             {
               "name": "bundle3.js",
-              "size": 1651,
+              "size": 1458,
             },
           ],
-          "assetsSize": 1651,
+          "assetsSize": 1458,
           "chunks": [
-            "main",
+            "909",
           ],
           "name": "main",
         },
@@ -3003,13 +2819,13 @@ import(/* webpackChunkName: "c" */ "./c");
       "errors": [],
       "errorsCount": 0,
       "filteredModules": undefined,
-      "hash": "e3392fc465fdb8290be3",
+      "hash": "bbe7b9b12e94af876a10",
       "logging": {},
       "modules": [
         {
           "assets": [],
           "chunks": [
-            "main",
+            "909",
           ],
           "id": "996",
           "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/b.js",
@@ -3029,13 +2845,6 @@ import(/* webpackChunkName: "c" */ "./c");
           "orphan": false,
           "reasons": [
             {
-              "moduleId": "996",
-              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/b.js",
-              "moduleName": "./b.js",
-              "type": "cjs self exports reference",
-              "userRequest": "self",
-            },
-            {
               "moduleId": "10",
               "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/index.js",
               "moduleName": "./index.js",
@@ -3051,7 +2860,7 @@ import(/* webpackChunkName: "c" */ "./c");
         {
           "assets": [],
           "chunks": [
-            "c",
+            "76",
           ],
           "id": "460",
           "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/c.js",
@@ -3087,7 +2896,7 @@ import("./e");
         {
           "assets": [],
           "chunks": [
-            "d_js-e_js",
+            "345",
           ],
           "id": "767",
           "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/d.js",
@@ -3118,13 +2927,6 @@ import("./e");
               "type": "dynamic import",
               "userRequest": "./d",
             },
-            {
-              "moduleId": "767",
-              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/d.js",
-              "moduleName": "./d.js",
-              "type": "cjs self exports reference",
-              "userRequest": "self",
-            },
           ],
           "size": 22,
           "source": "module.exports = "d";
@@ -3134,7 +2936,7 @@ import("./e");
         {
           "assets": [],
           "chunks": [
-            "d_js-e_js",
+            "345",
           ],
           "id": "390",
           "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/e.js",
@@ -3165,13 +2967,6 @@ import("./e");
               "type": "dynamic import",
               "userRequest": "./e",
             },
-            {
-              "moduleId": "390",
-              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/e.js",
-              "moduleName": "./e.js",
-              "type": "cjs self exports reference",
-              "userRequest": "self",
-            },
           ],
           "size": 22,
           "source": "module.exports = "e";
@@ -3181,7 +2976,7 @@ import("./e");
         {
           "assets": [],
           "chunks": [
-            "main",
+            "909",
           ],
           "id": "10",
           "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/index.js",
@@ -3213,7 +3008,7 @@ import(/* webpackChunkName: "c" */ "./c");
         {
           "assets": [],
           "chunks": [
-            "main",
+            "909",
           ],
           "id": "",
           "identifier": "webpack/runtime/ensure_chunk",
@@ -3233,7 +3028,7 @@ import(/* webpackChunkName: "c" */ "./c");
         {
           "assets": [],
           "chunks": [
-            "main",
+            "909",
           ],
           "id": "",
           "identifier": "webpack/runtime/has_own_property",
@@ -3253,27 +3048,7 @@ import(/* webpackChunkName: "c" */ "./c");
         {
           "assets": [],
           "chunks": [
-            "main",
-          ],
-          "id": "",
-          "identifier": "webpack/runtime/load_chunk_with_block",
-          "issuer": undefined,
-          "issuerId": undefined,
-          "issuerName": undefined,
-          "issuerPath": [],
-          "moduleType": "runtime",
-          "name": "webpack/runtime/load_chunk_with_block",
-          "nameForCondition": undefined,
-          "orphan": false,
-          "reasons": [],
-          "size": 160,
-          "source": undefined,
-          "type": "module",
-        },
-        {
-          "assets": [],
-          "chunks": [
-            "main",
+            "909",
           ],
           "id": "",
           "identifier": "webpack/runtime/make_namespace_object",
@@ -3293,7 +3068,7 @@ import(/* webpackChunkName: "c" */ "./c");
         {
           "assets": [],
           "chunks": [
-            "main",
+            "909",
           ],
           "id": "",
           "identifier": "webpack/runtime/require_chunk_loading",
@@ -3313,7 +3088,7 @@ import(/* webpackChunkName: "c" */ "./c");
         {
           "assets": [],
           "chunks": [
-            "main",
+            "909",
           ],
           "id": "",
           "identifier": "webpack/runtime/define_property_getters",
@@ -3333,7 +3108,7 @@ import(/* webpackChunkName: "c" */ "./c");
         {
           "assets": [],
           "chunks": [
-            "main",
+            "909",
           ],
           "id": "",
           "identifier": "webpack/runtime/create_fake_namespace_object",
@@ -3353,16 +3128,16 @@ import(/* webpackChunkName: "c" */ "./c");
         {
           "assets": [],
           "chunks": [
-            "main",
+            "909",
           ],
           "id": "",
-          "identifier": "webpack/runtime/get_chunk_filename/javascript",
+          "identifier": "webpack/runtime/get javascript chunk filename",
           "issuer": undefined,
           "issuerId": undefined,
           "issuerName": undefined,
           "issuerPath": [],
           "moduleType": "runtime",
-          "name": "webpack/runtime/get_chunk_filename/javascript",
+          "name": "webpack/runtime/get javascript chunk filename",
           "nameForCondition": undefined,
           "orphan": false,
           "reasons": [],
@@ -3376,13 +3151,13 @@ import(/* webpackChunkName: "c" */ "./c");
         "c": {
           "assets": [
             {
-              "name": "c.bundle3.js",
-              "size": 146,
+              "name": "76.bundle3.js",
+              "size": 134,
             },
           ],
-          "assetsSize": 146,
+          "assetsSize": 134,
           "chunks": [
-            "c",
+            "76",
           ],
           "name": "c",
         },
@@ -3390,12 +3165,12 @@ import(/* webpackChunkName: "c" */ "./c");
           "assets": [
             {
               "name": "bundle3.js",
-              "size": 1651,
+              "size": 1458,
             },
           ],
-          "assetsSize": 1651,
+          "assetsSize": 1458,
           "chunks": [
-            "main",
+            "909",
           ],
           "name": "main",
         },
@@ -3408,11 +3183,55 @@ import(/* webpackChunkName: "c" */ "./c");
     {
       "assets": [
         {
+          "chunkNames": [],
+          "chunks": [
+            "697",
+          ],
+          "emitted": true,
+          "info": {
+            "development": false,
+            "hotModuleReplacement": false,
+          },
+          "name": "697.bundle4.js",
+          "size": 69,
+          "type": "asset",
+        },
+        {
+          "chunkNames": [],
+          "chunks": [
+            "753",
+          ],
+          "emitted": true,
+          "info": {
+            "development": false,
+            "hotModuleReplacement": false,
+          },
+          "name": "753.bundle4.js",
+          "size": 69,
+          "type": "asset",
+        },
+        {
+          "chunkNames": [
+            "c",
+          ],
+          "chunks": [
+            "76",
+          ],
+          "emitted": true,
+          "info": {
+            "development": false,
+            "hotModuleReplacement": false,
+          },
+          "name": "76.bundle4.js",
+          "size": 134,
+          "type": "asset",
+        },
+        {
           "chunkNames": [
             "main",
           ],
           "chunks": [
-            "main",
+            "909",
           ],
           "emitted": true,
           "info": {
@@ -3420,57 +3239,13 @@ import(/* webpackChunkName: "c" */ "./c");
             "hotModuleReplacement": false,
           },
           "name": "bundle4.js",
-          "size": 1641,
-          "type": "asset",
-        },
-        {
-          "chunkNames": [
-            "c",
-          ],
-          "chunks": [
-            "c",
-          ],
-          "emitted": true,
-          "info": {
-            "development": false,
-            "hotModuleReplacement": false,
-          },
-          "name": "c.bundle4.js",
-          "size": 146,
-          "type": "asset",
-        },
-        {
-          "chunkNames": [],
-          "chunks": [
-            "d_js",
-          ],
-          "emitted": true,
-          "info": {
-            "development": false,
-            "hotModuleReplacement": false,
-          },
-          "name": "d_js.bundle4.js",
-          "size": 70,
-          "type": "asset",
-        },
-        {
-          "chunkNames": [],
-          "chunks": [
-            "e_js",
-          ],
-          "emitted": true,
-          "info": {
-            "development": false,
-            "hotModuleReplacement": false,
-          },
-          "name": "e_js.bundle4.js",
-          "size": 70,
+          "size": 1458,
           "type": "asset",
         },
       ],
       "assetsByChunkName": {
         "c": [
-          "c.bundle4.js",
+          "76.bundle4.js",
         ],
         "main": [
           "bundle4.js",
@@ -3480,21 +3255,139 @@ import(/* webpackChunkName: "c" */ "./c");
       "chunks": [
         {
           "auxiliaryFiles": [],
-          "children": [
-            "d_js",
-            "e_js",
-          ],
+          "children": [],
           "entry": false,
           "files": [
-            "c.bundle4.js",
+            "697.bundle4.js",
           ],
-          "id": "c",
+          "id": "697",
           "initial": false,
           "modules": [
             {
               "assets": [],
               "chunks": [
-                "c",
+                "697",
+              ],
+              "id": "390",
+              "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/e.js",
+              "issuer": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/c.js",
+              "issuerId": "460",
+              "issuerName": "./c.js",
+              "issuerPath": [
+                {
+                  "id": "10",
+                  "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/index.js",
+                  "name": "./index.js",
+                },
+                {
+                  "id": "460",
+                  "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/c.js",
+                  "name": "./c.js",
+                },
+              ],
+              "moduleType": "javascript/auto",
+              "name": "./e.js",
+              "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/e.js",
+              "orphan": false,
+              "reasons": [
+                {
+                  "moduleId": "460",
+                  "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/c.js",
+                  "moduleName": "./c.js",
+                  "type": "dynamic import",
+                  "userRequest": "./e",
+                },
+              ],
+              "size": 22,
+              "source": "module.exports = "e";
+",
+              "type": "module",
+            },
+          ],
+          "names": [],
+          "parents": [
+            "76",
+          ],
+          "siblings": [],
+          "size": 22,
+          "type": "chunk",
+        },
+        {
+          "auxiliaryFiles": [],
+          "children": [],
+          "entry": false,
+          "files": [
+            "753.bundle4.js",
+          ],
+          "id": "753",
+          "initial": false,
+          "modules": [
+            {
+              "assets": [],
+              "chunks": [
+                "753",
+              ],
+              "id": "767",
+              "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/d.js",
+              "issuer": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/c.js",
+              "issuerId": "460",
+              "issuerName": "./c.js",
+              "issuerPath": [
+                {
+                  "id": "10",
+                  "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/index.js",
+                  "name": "./index.js",
+                },
+                {
+                  "id": "460",
+                  "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/c.js",
+                  "name": "./c.js",
+                },
+              ],
+              "moduleType": "javascript/auto",
+              "name": "./d.js",
+              "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/d.js",
+              "orphan": false,
+              "reasons": [
+                {
+                  "moduleId": "460",
+                  "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/c.js",
+                  "moduleName": "./c.js",
+                  "type": "dynamic import",
+                  "userRequest": "./d",
+                },
+              ],
+              "size": 22,
+              "source": "module.exports = "d";
+",
+              "type": "module",
+            },
+          ],
+          "names": [],
+          "parents": [
+            "76",
+          ],
+          "siblings": [],
+          "size": 22,
+          "type": "chunk",
+        },
+        {
+          "auxiliaryFiles": [],
+          "children": [
+            "697",
+            "753",
+          ],
+          "entry": false,
+          "files": [
+            "76.bundle4.js",
+          ],
+          "id": "76",
+          "initial": false,
+          "modules": [
+            {
+              "assets": [],
+              "chunks": [
+                "76",
               ],
               "id": "460",
               "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/c.js",
@@ -3532,7 +3425,7 @@ import("./e");
             "c",
           ],
           "parents": [
-            "main",
+            "909",
           ],
           "siblings": [],
           "size": 30,
@@ -3540,152 +3433,20 @@ import("./e");
         },
         {
           "auxiliaryFiles": [],
-          "children": [],
-          "entry": false,
-          "files": [
-            "d_js.bundle4.js",
-          ],
-          "id": "d_js",
-          "initial": false,
-          "modules": [
-            {
-              "assets": [],
-              "chunks": [
-                "d_js",
-              ],
-              "id": "767",
-              "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/d.js",
-              "issuer": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/c.js",
-              "issuerId": "460",
-              "issuerName": "./c.js",
-              "issuerPath": [
-                {
-                  "id": "10",
-                  "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/index.js",
-                  "name": "./index.js",
-                },
-                {
-                  "id": "460",
-                  "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/c.js",
-                  "name": "./c.js",
-                },
-              ],
-              "moduleType": "javascript/auto",
-              "name": "./d.js",
-              "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/d.js",
-              "orphan": false,
-              "reasons": [
-                {
-                  "moduleId": "460",
-                  "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/c.js",
-                  "moduleName": "./c.js",
-                  "type": "dynamic import",
-                  "userRequest": "./d",
-                },
-                {
-                  "moduleId": "767",
-                  "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/d.js",
-                  "moduleName": "./d.js",
-                  "type": "cjs self exports reference",
-                  "userRequest": "self",
-                },
-              ],
-              "size": 22,
-              "source": "module.exports = "d";
-",
-              "type": "module",
-            },
-          ],
-          "names": [],
-          "parents": [
-            "c",
-          ],
-          "siblings": [],
-          "size": 22,
-          "type": "chunk",
-        },
-        {
-          "auxiliaryFiles": [],
-          "children": [],
-          "entry": false,
-          "files": [
-            "e_js.bundle4.js",
-          ],
-          "id": "e_js",
-          "initial": false,
-          "modules": [
-            {
-              "assets": [],
-              "chunks": [
-                "e_js",
-              ],
-              "id": "390",
-              "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/e.js",
-              "issuer": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/c.js",
-              "issuerId": "460",
-              "issuerName": "./c.js",
-              "issuerPath": [
-                {
-                  "id": "10",
-                  "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/index.js",
-                  "name": "./index.js",
-                },
-                {
-                  "id": "460",
-                  "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/c.js",
-                  "name": "./c.js",
-                },
-              ],
-              "moduleType": "javascript/auto",
-              "name": "./e.js",
-              "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/e.js",
-              "orphan": false,
-              "reasons": [
-                {
-                  "moduleId": "460",
-                  "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/c.js",
-                  "moduleName": "./c.js",
-                  "type": "dynamic import",
-                  "userRequest": "./e",
-                },
-                {
-                  "moduleId": "390",
-                  "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/e.js",
-                  "moduleName": "./e.js",
-                  "type": "cjs self exports reference",
-                  "userRequest": "self",
-                },
-              ],
-              "size": 22,
-              "source": "module.exports = "e";
-",
-              "type": "module",
-            },
-          ],
-          "names": [],
-          "parents": [
-            "c",
-          ],
-          "siblings": [],
-          "size": 22,
-          "type": "chunk",
-        },
-        {
-          "auxiliaryFiles": [],
           "children": [
-            "c",
+            "76",
           ],
           "entry": true,
           "files": [
             "bundle4.js",
           ],
-          "id": "main",
+          "id": "909",
           "initial": true,
           "modules": [
             {
               "assets": [],
               "chunks": [
-                "main",
+                "909",
               ],
               "id": "996",
               "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/b.js",
@@ -3705,13 +3466,6 @@ import("./e");
               "orphan": false,
               "reasons": [
                 {
-                  "moduleId": "996",
-                  "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/b.js",
-                  "moduleName": "./b.js",
-                  "type": "cjs self exports reference",
-                  "userRequest": "self",
-                },
-                {
                   "moduleId": "10",
                   "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/index.js",
                   "moduleName": "./index.js",
@@ -3727,7 +3481,7 @@ import("./e");
             {
               "assets": [],
               "chunks": [
-                "main",
+                "909",
               ],
               "id": "10",
               "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/index.js",
@@ -3771,12 +3525,12 @@ import(/* webpackChunkName: "c" */ "./c");
           "assets": [
             {
               "name": "bundle4.js",
-              "size": 1641,
+              "size": 1458,
             },
           ],
-          "assetsSize": 1641,
+          "assetsSize": 1458,
           "chunks": [
-            "main",
+            "909",
           ],
           "name": "main",
         },
@@ -3784,13 +3538,13 @@ import(/* webpackChunkName: "c" */ "./c");
       "errors": [],
       "errorsCount": 0,
       "filteredModules": undefined,
-      "hash": "2fd5ef6e4843e4c8333b",
+      "hash": "73dfa81d964d24fbbb1f",
       "logging": {},
       "modules": [
         {
           "assets": [],
           "chunks": [
-            "main",
+            "909",
           ],
           "id": "996",
           "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/b.js",
@@ -3810,13 +3564,6 @@ import(/* webpackChunkName: "c" */ "./c");
           "orphan": false,
           "reasons": [
             {
-              "moduleId": "996",
-              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/b.js",
-              "moduleName": "./b.js",
-              "type": "cjs self exports reference",
-              "userRequest": "self",
-            },
-            {
               "moduleId": "10",
               "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/index.js",
               "moduleName": "./index.js",
@@ -3832,7 +3579,7 @@ import(/* webpackChunkName: "c" */ "./c");
         {
           "assets": [],
           "chunks": [
-            "c",
+            "76",
           ],
           "id": "460",
           "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/c.js",
@@ -3868,7 +3615,7 @@ import("./e");
         {
           "assets": [],
           "chunks": [
-            "d_js",
+            "753",
           ],
           "id": "767",
           "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/d.js",
@@ -3899,13 +3646,6 @@ import("./e");
               "type": "dynamic import",
               "userRequest": "./d",
             },
-            {
-              "moduleId": "767",
-              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/d.js",
-              "moduleName": "./d.js",
-              "type": "cjs self exports reference",
-              "userRequest": "self",
-            },
           ],
           "size": 22,
           "source": "module.exports = "d";
@@ -3915,7 +3655,7 @@ import("./e");
         {
           "assets": [],
           "chunks": [
-            "e_js",
+            "697",
           ],
           "id": "390",
           "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/e.js",
@@ -3946,13 +3686,6 @@ import("./e");
               "type": "dynamic import",
               "userRequest": "./e",
             },
-            {
-              "moduleId": "390",
-              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/e.js",
-              "moduleName": "./e.js",
-              "type": "cjs self exports reference",
-              "userRequest": "self",
-            },
           ],
           "size": 22,
           "source": "module.exports = "e";
@@ -3962,7 +3695,7 @@ import("./e");
         {
           "assets": [],
           "chunks": [
-            "main",
+            "909",
           ],
           "id": "10",
           "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/index.js",
@@ -3994,7 +3727,7 @@ import(/* webpackChunkName: "c" */ "./c");
         {
           "assets": [],
           "chunks": [
-            "main",
+            "909",
           ],
           "id": "",
           "identifier": "webpack/runtime/ensure_chunk",
@@ -4014,7 +3747,7 @@ import(/* webpackChunkName: "c" */ "./c");
         {
           "assets": [],
           "chunks": [
-            "main",
+            "909",
           ],
           "id": "",
           "identifier": "webpack/runtime/has_own_property",
@@ -4034,27 +3767,7 @@ import(/* webpackChunkName: "c" */ "./c");
         {
           "assets": [],
           "chunks": [
-            "main",
-          ],
-          "id": "",
-          "identifier": "webpack/runtime/load_chunk_with_block",
-          "issuer": undefined,
-          "issuerId": undefined,
-          "issuerName": undefined,
-          "issuerPath": [],
-          "moduleType": "runtime",
-          "name": "webpack/runtime/load_chunk_with_block",
-          "nameForCondition": undefined,
-          "orphan": false,
-          "reasons": [],
-          "size": 160,
-          "source": undefined,
-          "type": "module",
-        },
-        {
-          "assets": [],
-          "chunks": [
-            "main",
+            "909",
           ],
           "id": "",
           "identifier": "webpack/runtime/make_namespace_object",
@@ -4074,7 +3787,7 @@ import(/* webpackChunkName: "c" */ "./c");
         {
           "assets": [],
           "chunks": [
-            "main",
+            "909",
           ],
           "id": "",
           "identifier": "webpack/runtime/require_chunk_loading",
@@ -4094,7 +3807,7 @@ import(/* webpackChunkName: "c" */ "./c");
         {
           "assets": [],
           "chunks": [
-            "main",
+            "909",
           ],
           "id": "",
           "identifier": "webpack/runtime/define_property_getters",
@@ -4114,7 +3827,7 @@ import(/* webpackChunkName: "c" */ "./c");
         {
           "assets": [],
           "chunks": [
-            "main",
+            "909",
           ],
           "id": "",
           "identifier": "webpack/runtime/create_fake_namespace_object",
@@ -4134,16 +3847,16 @@ import(/* webpackChunkName: "c" */ "./c");
         {
           "assets": [],
           "chunks": [
-            "main",
+            "909",
           ],
           "id": "",
-          "identifier": "webpack/runtime/get_chunk_filename/javascript",
+          "identifier": "webpack/runtime/get javascript chunk filename",
           "issuer": undefined,
           "issuerId": undefined,
           "issuerName": undefined,
           "issuerPath": [],
           "moduleType": "runtime",
-          "name": "webpack/runtime/get_chunk_filename/javascript",
+          "name": "webpack/runtime/get javascript chunk filename",
           "nameForCondition": undefined,
           "orphan": false,
           "reasons": [],
@@ -4157,13 +3870,13 @@ import(/* webpackChunkName: "c" */ "./c");
         "c": {
           "assets": [
             {
-              "name": "c.bundle4.js",
-              "size": 146,
+              "name": "76.bundle4.js",
+              "size": 134,
             },
           ],
-          "assetsSize": 146,
+          "assetsSize": 134,
           "chunks": [
-            "c",
+            "76",
           ],
           "name": "c",
         },
@@ -4171,12 +3884,12 @@ import(/* webpackChunkName: "c" */ "./c");
           "assets": [
             {
               "name": "bundle4.js",
-              "size": 1641,
+              "size": 1458,
             },
           ],
-          "assetsSize": 1641,
+          "assetsSize": 1458,
           "chunks": [
-            "main",
+            "909",
           ],
           "name": "main",
         },
@@ -4189,7 +3902,7 @@ import(/* webpackChunkName: "c" */ "./c");
   ],
   "errors": [],
   "errorsCount": 0,
-  "hash": "b772b5c0aeb451ab483142ff0683448bc8e002e8e3392fc465fdb8290be32fd5ef6e4843e4c8333b",
+  "hash": "e6ee7f0eb3463f392120a77f2539f6bd95f6969bbbe7b9b12e94af876a1073dfa81d964d24fbbb1f",
   "warnings": [],
   "warningsCount": 0,
 }
@@ -4198,185 +3911,156 @@ import(/* webpackChunkName: "c" */ "./c");
 exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 2`] = `
 "1 chunks:
   PublicPath: (none)
-  asset bundle1.js 1.46 KiB {main} [emitted] (name: main)
-  Entrypoint main 1.46 KiB = bundle1.js
-  Chunk Group c 1.46 KiB = bundle1.js
-  chunk {main} bundle1.js (main) <{main}> >{main}< [entry]
-    ./b.js [996] {main}
-      cjs self exports reference self [996]
+  asset bundle1.js 1.25 KiB {909} [emitted] (name: main)
+  Entrypoint main 1.25 KiB = bundle1.js
+  Chunk Group c 1.25 KiB = bundle1.js
+  chunk {909} bundle1.js (main) <{909}> >{909}< [entry]
+    ./b.js [996] {909}
       cjs require ./b [10]
-    ./c.js [460] {main}
+    ./c.js [460] {909}
       dynamic import ./c [10]
-    ./d.js [767] {main}
+    ./d.js [767] {909}
       dynamic import ./d [460]
-      cjs self exports reference self [767]
-    ./e.js [390] {main}
+    ./e.js [390] {909}
       dynamic import ./e [460]
-      cjs self exports reference self [390]
-    ./index.js [10] {main}
+    ./index.js [10] {909}
       entry ./index
-  ./b.js [996] {main}
-    cjs self exports reference self [996]
+  ./b.js [996] {909}
     cjs require ./b [10]
-  ./c.js [460] {main}
+  ./c.js [460] {909}
     dynamic import ./c [10]
-  ./d.js [767] {main}
+  ./d.js [767] {909}
     dynamic import ./d [460]
-    cjs self exports reference self [767]
-  ./e.js [390] {main}
+  ./e.js [390] {909}
     dynamic import ./e [460]
-    cjs self exports reference self [390]
-  ./index.js [10] {main}
+  ./index.js [10] {909}
     entry ./index
-  webpack/runtime/ensure_chunk {main}
-  webpack/runtime/has_own_property {main}
-  webpack/runtime/load_chunk_with_block {main}
-  webpack/runtime/make_namespace_object {main}
-  webpack/runtime/define_property_getters {main}
-  webpack/runtime/create_fake_namespace_object {main}
+  webpack/runtime/has_own_property {909}
+  webpack/runtime/make_namespace_object {909}
+  webpack/runtime/define_property_getters {909}
+  webpack/runtime/create_fake_namespace_object {909}
     
-  1 chunks compiled successfully (b772b5c0aeb451ab4831)
+  1 chunks compiled successfully (e6ee7f0eb3463f392120)
 
 2 chunks:
   PublicPath: (none)
-  asset bundle2.js 1.6 KiB {main} [emitted] (name: main)
-  asset c.bundle2.js 208 bytes {c} [emitted] (name: c)
-  Entrypoint main 1.6 KiB = bundle2.js
-  Chunk Group c 208 bytes = c.bundle2.js
-  chunk {c} c.bundle2.js (c) <{c}> <{main}> >{c}<
-    ./c.js [460] {c}
+  asset 76.bundle2.js 194 bytes {76} [emitted] (name: c)
+  asset bundle2.js 1.42 KiB {909} [emitted] (name: main)
+  Entrypoint main 1.42 KiB = bundle2.js
+  Chunk Group c 194 bytes = 76.bundle2.js
+  chunk {76} 76.bundle2.js (c) <{76}> <{909}> >{76}<
+    ./c.js [460] {76}
       dynamic import ./c [10]
-    ./d.js [767] {c}
+    ./d.js [767] {76}
       dynamic import ./d [460]
-      cjs self exports reference self [767]
-    ./e.js [390] {c}
+    ./e.js [390] {76}
       dynamic import ./e [460]
-      cjs self exports reference self [390]
-  chunk {main} bundle2.js (main) >{c}< [entry]
-    ./b.js [996] {main}
-      cjs self exports reference self [996]
+  chunk {909} bundle2.js (main) >{76}< [entry]
+    ./b.js [996] {909}
       cjs require ./b [10]
-    ./index.js [10] {main}
+    ./index.js [10] {909}
       entry ./index
-  ./b.js [996] {main}
-    cjs self exports reference self [996]
+  ./b.js [996] {909}
     cjs require ./b [10]
-  ./c.js [460] {c}
+  ./c.js [460] {76}
     dynamic import ./c [10]
-  ./d.js [767] {c}
+  ./d.js [767] {76}
     dynamic import ./d [460]
-    cjs self exports reference self [767]
-  ./e.js [390] {c}
+  ./e.js [390] {76}
     dynamic import ./e [460]
-    cjs self exports reference self [390]
-  ./index.js [10] {main}
+  ./index.js [10] {909}
     entry ./index
-  webpack/runtime/ensure_chunk {main}
-  webpack/runtime/has_own_property {main}
-  webpack/runtime/load_chunk_with_block {main}
-  webpack/runtime/make_namespace_object {main}
-  webpack/runtime/require_chunk_loading {main}
-  webpack/runtime/define_property_getters {main}
-  webpack/runtime/create_fake_namespace_object {main}
-  webpack/runtime/get_chunk_filename/javascript {main}
+  webpack/runtime/ensure_chunk {909}
+  webpack/runtime/has_own_property {909}
+  webpack/runtime/make_namespace_object {909}
+  webpack/runtime/require_chunk_loading {909}
+  webpack/runtime/define_property_getters {909}
+  webpack/runtime/create_fake_namespace_object {909}
+  webpack/runtime/get javascript chunk filename {909}
     
-  2 chunks compiled successfully (42ff0683448bc8e002e8)
+  2 chunks compiled successfully (a77f2539f6bd95f6969b)
 
 3 chunks:
   PublicPath: (none)
-  asset bundle3.js 1.61 KiB {main} [emitted] (name: main)
-  asset c.bundle3.js 146 bytes {c} [emitted] (name: c)
-  asset d_js-e_js.bundle3.js 106 bytes {d_js-e_js} [emitted]
-  Entrypoint main 1.61 KiB = bundle3.js
-  Chunk Group c 146 bytes = c.bundle3.js
-  chunk {c} c.bundle3.js (c) <{main}> >{d_js-e_js}<
-    ./c.js [460] {c}
-      dynamic import ./c [10]
-  chunk {d_js-e_js} d_js-e_js.bundle3.js <{c}>
-    ./d.js [767] {d_js-e_js}
+  asset 345.bundle3.js 100 bytes {345} [emitted]
+  asset 76.bundle3.js 134 bytes {76} [emitted] (name: c)
+  asset bundle3.js 1.42 KiB {909} [emitted] (name: main)
+  Entrypoint main 1.42 KiB = bundle3.js
+  Chunk Group c 134 bytes = 76.bundle3.js
+  chunk {345} 345.bundle3.js <{76}>
+    ./d.js [767] {345}
       dynamic import ./d [460]
-      cjs self exports reference self [767]
-    ./e.js [390] {d_js-e_js}
+    ./e.js [390] {345}
       dynamic import ./e [460]
-      cjs self exports reference self [390]
-  chunk {main} bundle3.js (main) >{c}< [entry]
-    ./b.js [996] {main}
-      cjs self exports reference self [996]
+  chunk {76} 76.bundle3.js (c) <{909}> >{345}<
+    ./c.js [460] {76}
+      dynamic import ./c [10]
+  chunk {909} bundle3.js (main) >{76}< [entry]
+    ./b.js [996] {909}
       cjs require ./b [10]
-    ./index.js [10] {main}
+    ./index.js [10] {909}
       entry ./index
-  ./b.js [996] {main}
-    cjs self exports reference self [996]
+  ./b.js [996] {909}
     cjs require ./b [10]
-  ./c.js [460] {c}
+  ./c.js [460] {76}
     dynamic import ./c [10]
-  ./d.js [767] {d_js-e_js}
+  ./d.js [767] {345}
     dynamic import ./d [460]
-    cjs self exports reference self [767]
-  ./e.js [390] {d_js-e_js}
+  ./e.js [390] {345}
     dynamic import ./e [460]
-    cjs self exports reference self [390]
-  ./index.js [10] {main}
+  ./index.js [10] {909}
     entry ./index
-  webpack/runtime/ensure_chunk {main}
-  webpack/runtime/has_own_property {main}
-  webpack/runtime/load_chunk_with_block {main}
-  webpack/runtime/make_namespace_object {main}
-  webpack/runtime/require_chunk_loading {main}
-  webpack/runtime/define_property_getters {main}
-  webpack/runtime/create_fake_namespace_object {main}
-  webpack/runtime/get_chunk_filename/javascript {main}
+  webpack/runtime/ensure_chunk {909}
+  webpack/runtime/has_own_property {909}
+  webpack/runtime/make_namespace_object {909}
+  webpack/runtime/require_chunk_loading {909}
+  webpack/runtime/define_property_getters {909}
+  webpack/runtime/create_fake_namespace_object {909}
+  webpack/runtime/get javascript chunk filename {909}
     
-  3 chunks compiled successfully (e3392fc465fdb8290be3)
+  3 chunks compiled successfully (bbe7b9b12e94af876a10)
 
 4 chunks:
   PublicPath: (none)
-  asset bundle4.js 1.6 KiB {main} [emitted] (name: main)
-  asset c.bundle4.js 146 bytes {c} [emitted] (name: c)
-  asset d_js.bundle4.js 70 bytes {d_js} [emitted]
-  asset e_js.bundle4.js 70 bytes {e_js} [emitted]
-  Entrypoint main 1.6 KiB = bundle4.js
-  Chunk Group c 146 bytes = c.bundle4.js
-  chunk {c} c.bundle4.js (c) <{main}> >{d_js}< >{e_js}<
-    ./c.js [460] {c}
-      dynamic import ./c [10]
-  chunk {d_js} d_js.bundle4.js <{c}>
-    ./d.js [767] {d_js}
-      dynamic import ./d [460]
-      cjs self exports reference self [767]
-  chunk {e_js} e_js.bundle4.js <{c}>
-    ./e.js [390] {e_js}
+  asset 697.bundle4.js 69 bytes {697} [emitted]
+  asset 753.bundle4.js 69 bytes {753} [emitted]
+  asset 76.bundle4.js 134 bytes {76} [emitted] (name: c)
+  asset bundle4.js 1.42 KiB {909} [emitted] (name: main)
+  Entrypoint main 1.42 KiB = bundle4.js
+  Chunk Group c 134 bytes = 76.bundle4.js
+  chunk {697} 697.bundle4.js <{76}>
+    ./e.js [390] {697}
       dynamic import ./e [460]
-      cjs self exports reference self [390]
-  chunk {main} bundle4.js (main) >{c}< [entry]
-    ./b.js [996] {main}
-      cjs self exports reference self [996]
+  chunk {753} 753.bundle4.js <{76}>
+    ./d.js [767] {753}
+      dynamic import ./d [460]
+  chunk {76} 76.bundle4.js (c) <{909}> >{697}< >{753}<
+    ./c.js [460] {76}
+      dynamic import ./c [10]
+  chunk {909} bundle4.js (main) >{76}< [entry]
+    ./b.js [996] {909}
       cjs require ./b [10]
-    ./index.js [10] {main}
+    ./index.js [10] {909}
       entry ./index
-  ./b.js [996] {main}
-    cjs self exports reference self [996]
+  ./b.js [996] {909}
     cjs require ./b [10]
-  ./c.js [460] {c}
+  ./c.js [460] {76}
     dynamic import ./c [10]
-  ./d.js [767] {d_js}
+  ./d.js [767] {753}
     dynamic import ./d [460]
-    cjs self exports reference self [767]
-  ./e.js [390] {e_js}
+  ./e.js [390] {697}
     dynamic import ./e [460]
-    cjs self exports reference self [390]
-  ./index.js [10] {main}
+  ./index.js [10] {909}
     entry ./index
-  webpack/runtime/ensure_chunk {main}
-  webpack/runtime/has_own_property {main}
-  webpack/runtime/load_chunk_with_block {main}
-  webpack/runtime/make_namespace_object {main}
-  webpack/runtime/require_chunk_loading {main}
-  webpack/runtime/define_property_getters {main}
-  webpack/runtime/create_fake_namespace_object {main}
-  webpack/runtime/get_chunk_filename/javascript {main}
+  webpack/runtime/ensure_chunk {909}
+  webpack/runtime/has_own_property {909}
+  webpack/runtime/make_namespace_object {909}
+  webpack/runtime/require_chunk_loading {909}
+  webpack/runtime/define_property_getters {909}
+  webpack/runtime/create_fake_namespace_object {909}
+  webpack/runtime/get javascript chunk filename {909}
     
-  4 chunks compiled successfully (2fd5ef6e4843e4c8333b)"
+  4 chunks compiled successfully (73dfa81d964d24fbbb1f)"
 `;
 
 exports[`StatsTestCases should print correct stats for loader-builtin-swc-plugin-warn 1`] = `
@@ -4404,7 +4088,8 @@ exports[`StatsTestCases should print correct stats for loader-builtin-swc-plugin
 `;
 
 exports[`StatsTestCases should print correct stats for loader-builtin-swc-plugin-warn 2`] = `
-"WARNING in ./index.js builtin:swc-loader
+"WARNING in ./index.js
+builtin:swc-loader
 
   ⚠ Experimental plugins are not currently supported.
 
@@ -4506,12 +4191,12 @@ exports[`StatsTestCases should print correct stats for named-chunk-group 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 1062,
+          "size": 919,
         },
       ],
-      "assetsSize": 1062,
+      "assetsSize": 919,
       "chunks": [
-        "main",
+        "909",
       ],
       "name": "main",
     },
@@ -4520,13 +4205,13 @@ exports[`StatsTestCases should print correct stats for named-chunk-group 1`] = `
     "cimanyd": {
       "assets": [
         {
-          "name": "cimanyd.bundle.js",
-          "size": 135,
+          "name": "414.bundle.js",
+          "size": 131,
         },
       ],
-      "assetsSize": 135,
+      "assetsSize": 131,
       "chunks": [
-        "cimanyd",
+        "414",
       ],
       "name": "cimanyd",
     },
@@ -4534,12 +4219,12 @@ exports[`StatsTestCases should print correct stats for named-chunk-group 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 1062,
+          "size": 919,
         },
       ],
-      "assetsSize": 1062,
+      "assetsSize": 919,
       "chunks": [
-        "main",
+        "909",
       ],
       "name": "main",
     },
@@ -4548,8 +4233,8 @@ exports[`StatsTestCases should print correct stats for named-chunk-group 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for named-chunk-group 2`] = `
-"Entrypoint main 1.04 KiB = bundle.js
-Chunk Group cimanyd 135 bytes = cimanyd.bundle.js"
+"Entrypoint main 919 bytes = bundle.js
+Chunk Group cimanyd 131 bytes = 414.bundle.js"
 `;
 
 exports[`StatsTestCases should print correct stats for normal-errors 1`] = `
@@ -4581,7 +4266,8 @@ exports[`StatsTestCases should print correct stats for normal-errors 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for normal-errors 2`] = `
-"ERROR in ./index.js   × Resolve error: Can't resolve 'not-exist' in '<PROJECT_ROOT>/tests/statsCases/normal-errors'
+"ERROR in ./index.js
+  × Resolve error: Can't resolve 'not-exist' in '<PROJECT_ROOT>/tests/statsCases/normal-errors'
    ╭────
  1 │ import "not-exist";
    ·        ───────────
@@ -5205,7 +4891,8 @@ exports[`StatsTestCases should print correct stats for parse-error 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for parse-error 2`] = `
-"ERROR in ./b.js ModuleParseError
+"ERROR in ./b.js
+ModuleParseError
 
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expected ';', '}' or <eof>
@@ -5228,23 +4915,31 @@ exports[`StatsTestCases should print correct stats for parse-error-builtin-swc-l
 {
   "errors": [
     {
-      "formatted": "  × 
-  │   x Expected '{', got 'error'
-  │    ,-[<PROJECT_ROOT>/tests/statsCases/parse-error-builtin-swc-loader/index.ts:1:1]
-  │  1 | export error;
-  │    :        ^^^^^
-  │    \`----
-  │ 
+      "formatted": "ModuleBuildError
+
+  × Module build failed:
+  ├─▶   ×    │   x Expected '{', got 'error'
+  │     │    ,-[<PROJECT_ROOT>/tests/statsCases/parse-error-builtin-swc-loader/index.ts:1:1]
+  │     │  1 | export error;
+  │     │    :        ^^^^^
+  │     │    \`----
+  │     │
+  │   
   ╰─▶ Syntax Error
+  help: File was processed with this loader: 'builtin:swc-loader??ruleSet[1].rules[0].use[0]'
 ",
-      "message": "  × 
-  │   x Expected '{', got 'error'
-  │    ,-[<PROJECT_ROOT>/tests/statsCases/parse-error-builtin-swc-loader/index.ts:1:1]
-  │  1 | export error;
-  │    :        ^^^^^
-  │    \`----
-  │ 
+      "message": "ModuleBuildError
+
+  × Module build failed:
+  ├─▶   ×    │   x Expected '{', got 'error'
+  │     │    ,-[<PROJECT_ROOT>/tests/statsCases/parse-error-builtin-swc-loader/index.ts:1:1]
+  │     │  1 | export error;
+  │     │    :        ^^^^^
+  │     │    \`----
+  │     │
+  │   
   ╰─▶ Syntax Error
+  help: File was processed with this loader: 'builtin:swc-loader??ruleSet[1].rules[0].use[0]'
 ",
       "moduleId": "620",
       "moduleIdentifier": "builtin:swc-loader??ruleSet[1].rules[0].use[0]!<PROJECT_ROOT>/tests/statsCases/parse-error-builtin-swc-loader/index.ts",
@@ -5259,14 +4954,19 @@ exports[`StatsTestCases should print correct stats for parse-error-builtin-swc-l
 `;
 
 exports[`StatsTestCases should print correct stats for parse-error-builtin-swc-loader 2`] = `
-"ERROR in ./index.ts   × 
-  │   x Expected '{', got 'error'
-  │    ,-[<PROJECT_ROOT>/tests/statsCases/parse-error-builtin-swc-loader/index.ts:1:1]
-  │  1 | export error;
-  │    :        ^^^^^
-  │    \`----
-  │ 
+"ERROR in ./index.ts
+ModuleBuildError
+
+  × Module build failed:
+  ├─▶   ×    │   x Expected '{', got 'error'
+  │     │    ,-[<PROJECT_ROOT>/tests/statsCases/parse-error-builtin-swc-loader/index.ts:1:1]
+  │     │  1 | export error;
+  │     │    :        ^^^^^
+  │     │    \`----
+  │     │
+  │   
   ╰─▶ Syntax Error
+  help: File was processed with this loader: 'builtin:swc-loader??ruleSet[1].rules[0].use[0]'
 
 Rspack compiled with 1 error"
 `;
@@ -5290,12 +4990,6 @@ exports[`StatsTestCases should print correct stats for reasons 1`] = `
       "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/reasons/a.js",
       "orphan": false,
       "reasons": [
-        {
-          "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/reasons/a.js",
-          "moduleName": "./a.js",
-          "type": "cjs self exports reference",
-          "userRequest": "self",
-        },
         {
           "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/reasons/index.js",
           "moduleName": "./index.js",
@@ -5332,7 +5026,6 @@ exports[`StatsTestCases should print correct stats for reasons 1`] = `
 
 exports[`StatsTestCases should print correct stats for reasons 2`] = `
 "./a.js
-  cjs self exports reference self
   cjs require ./a
 ./index.js
   entry ./index"
@@ -5346,7 +5039,7 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
         "main",
       ],
       "chunks": [
-        "main",
+        "909",
       ],
       "emitted": true,
       "info": {
@@ -5354,7 +5047,7 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
         "hotModuleReplacement": false,
       },
       "name": "bundle.js",
-      "size": 586,
+      "size": 587,
       "type": "asset",
     },
   ],
@@ -5372,13 +5065,13 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
       "files": [
         "bundle.js",
       ],
-      "id": "main",
+      "id": "909",
       "initial": true,
       "modules": [
         {
           "assets": [],
           "chunks": [
-            "main",
+            "909",
           ],
           "id": "10",
           "identifier": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
@@ -5420,12 +5113,12 @@ console.log(a);
       "assets": [
         {
           "name": "bundle.js",
-          "size": 586,
+          "size": 587,
         },
       ],
-      "assetsSize": 586,
+      "assetsSize": 587,
       "chunks": [
-        "main",
+        "909",
       ],
       "name": "main",
     },
@@ -5455,13 +5148,13 @@ console.log(a);
   ],
   "errorsCount": 1,
   "filteredModules": undefined,
-  "hash": "9b0142d5848973ce25b9",
+  "hash": "bb78d23510df57cf1bd2",
   "logging": {},
   "modules": [
     {
       "assets": [],
       "chunks": [
-        "main",
+        "909",
       ],
       "id": "10",
       "identifier": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
@@ -5491,7 +5184,7 @@ console.log(a);
     {
       "assets": [],
       "chunks": [
-        "main",
+        "909",
       ],
       "id": "",
       "identifier": "webpack/runtime/make_namespace_object",
@@ -5514,12 +5207,12 @@ console.log(a);
       "assets": [
         {
           "name": "bundle.js",
-          "size": 586,
+          "size": 587,
         },
       ],
-      "assetsSize": 586,
+      "assetsSize": 587,
       "chunks": [
-        "main",
+        "909",
       ],
       "name": "main",
     },
@@ -5533,17 +5226,18 @@ console.log(a);
 
 exports[`StatsTestCases should print correct stats for resolve-overflow 2`] = `
 "PublicPath: auto
-asset bundle.js 586 bytes {main} [emitted] (name: main)
-Entrypoint main 586 bytes = bundle.js
-chunk {main} bundle.js (main) [entry]
-  ./index.js [10] {main}
+asset bundle.js 587 bytes {909} [emitted] (name: main)
+Entrypoint main 587 bytes = bundle.js
+chunk {909} bundle.js (main) [entry]
+  ./index.js [10] {909}
     entry ./index
-./index.js [10] {main}
+./index.js [10] {909}
   entry ./index
-webpack/runtime/make_namespace_object {main}
+webpack/runtime/make_namespace_object {909}
   
 
-ERROR in ./index.js   × Resolve error: Can't resolve 'cycle-alias/a' in '<PROJECT_ROOT>/tests/statsCases/resolve-overflow'
+ERROR in ./index.js
+  × Resolve error: Can't resolve 'cycle-alias/a' in '<PROJECT_ROOT>/tests/statsCases/resolve-overflow'
    ╭─[1:1]
  1 │ import { a } from "cycle-alias/a";
    ·                   ───────────────
@@ -5551,7 +5245,7 @@ ERROR in ./index.js   × Resolve error: Can't resolve 'cycle-alias/a' in '<PROJE
    ╰────
   help: maybe it had cyclic aliases
 
-Rspack compiled with 1 error (9b0142d5848973ce25b9)"
+Rspack compiled with 1 error (bb78d23510df57cf1bd2)"
 `;
 
 exports[`StatsTestCases should print correct stats for resolve-unexpected-exports-in-pkg 1`] = `
@@ -5562,7 +5256,7 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
         "main",
       ],
       "chunks": [
-        "main",
+        "909",
       ],
       "emitted": true,
       "info": {
@@ -5570,7 +5264,7 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
         "hotModuleReplacement": false,
       },
       "name": "bundle.js",
-      "size": 570,
+      "size": 571,
       "type": "asset",
     },
   ],
@@ -5588,13 +5282,13 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
       "files": [
         "bundle.js",
       ],
-      "id": "main",
+      "id": "909",
       "initial": true,
       "modules": [
         {
           "assets": [],
           "chunks": [
-            "main",
+            "909",
           ],
           "id": "10",
           "identifier": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
@@ -5636,21 +5330,21 @@ console.log(a);
       "assets": [
         {
           "name": "bundle.js",
-          "size": 570,
+          "size": 571,
         },
       ],
-      "assetsSize": 570,
+      "assetsSize": 571,
       "chunks": [
-        "main",
+        "909",
       ],
       "name": "main",
     },
   },
   "errors": [
     {
-      "formatted": "  × Export should be relative path and start with "./", but got ../../index.js
+      "formatted": "  × Invalid "exports" target "../../index.js" defined for '.' in the package config <PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/node_modules/pkg-a/package.json
 ",
-      "message": "  × Export should be relative path and start with "./", but got ../../index.js
+      "message": "  × Invalid "exports" target "../../index.js" defined for '.' in the package config <PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/node_modules/pkg-a/package.json
 ",
       "moduleId": "10",
       "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
@@ -5659,13 +5353,13 @@ console.log(a);
   ],
   "errorsCount": 1,
   "filteredModules": undefined,
-  "hash": "660067b0d769a99b766b",
+  "hash": "d522bd63336c0fb69e32",
   "logging": {},
   "modules": [
     {
       "assets": [],
       "chunks": [
-        "main",
+        "909",
       ],
       "id": "10",
       "identifier": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
@@ -5695,7 +5389,7 @@ console.log(a);
     {
       "assets": [],
       "chunks": [
-        "main",
+        "909",
       ],
       "id": "",
       "identifier": "webpack/runtime/make_namespace_object",
@@ -5718,12 +5412,12 @@ console.log(a);
       "assets": [
         {
           "name": "bundle.js",
-          "size": 570,
+          "size": 571,
         },
       ],
-      "assetsSize": 570,
+      "assetsSize": 571,
       "chunks": [
-        "main",
+        "909",
       ],
       "name": "main",
     },
@@ -5737,19 +5431,20 @@ console.log(a);
 
 exports[`StatsTestCases should print correct stats for resolve-unexpected-exports-in-pkg 2`] = `
 "PublicPath: (none)
-asset bundle.js 570 bytes {main} [emitted] (name: main)
-Entrypoint main 570 bytes = bundle.js
-chunk {main} bundle.js (main) [entry]
-  ./index.js [10] {main}
+asset bundle.js 571 bytes {909} [emitted] (name: main)
+Entrypoint main 571 bytes = bundle.js
+chunk {909} bundle.js (main) [entry]
+  ./index.js [10] {909}
     entry ./index
-./index.js [10] {main}
+./index.js [10] {909}
   entry ./index
-webpack/runtime/make_namespace_object {main}
+webpack/runtime/make_namespace_object {909}
   
 
-ERROR in ./index.js   × Export should be relative path and start with "./", but got ../../index.js
+ERROR in ./index.js
+  × Invalid "exports" target "../../index.js" defined for '.' in the package config <PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/node_modules/pkg-a/package.json
 
-Rspack compiled with 1 error (660067b0d769a99b766b)"
+Rspack compiled with 1 error (d522bd63336c0fb69e32)"
 `;
 
 exports[`StatsTestCases should print correct stats for runtime-modules 1`] = `
@@ -5823,7 +5518,7 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
         "main",
       ],
       "chunks": [
-        "main",
+        "909",
       ],
       "emitted": true,
       "info": {
@@ -5831,7 +5526,7 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
         "hotModuleReplacement": false,
       },
       "name": "bundle.js",
-      "size": 589,
+      "size": 590,
       "type": "asset",
     },
   ],
@@ -5849,13 +5544,13 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
       "files": [
         "bundle.js",
       ],
-      "id": "main",
+      "id": "909",
       "initial": true,
       "modules": [
         {
           "assets": [],
           "chunks": [
-            "main",
+            "909",
           ],
           "id": "10",
           "identifier": "<PROJECT_ROOT>/tests/statsCases/simple/index.js",
@@ -5896,12 +5591,12 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 589,
+          "size": 590,
         },
       ],
-      "assetsSize": 589,
+      "assetsSize": 590,
       "chunks": [
-        "main",
+        "909",
       ],
       "name": "main",
     },
@@ -5909,13 +5604,13 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "6792d81f6cf29aa1172a",
+  "hash": "1fd8021bdf9d8544e1ba",
   "logging": {},
   "modules": [
     {
       "assets": [],
       "chunks": [
-        "main",
+        "909",
       ],
       "id": "10",
       "identifier": "<PROJECT_ROOT>/tests/statsCases/simple/index.js",
@@ -5944,7 +5639,7 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
     {
       "assets": [],
       "chunks": [
-        "main",
+        "909",
       ],
       "id": "",
       "identifier": "webpack/runtime/has_own_property",
@@ -5964,7 +5659,7 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
     {
       "assets": [],
       "chunks": [
-        "main",
+        "909",
       ],
       "id": "",
       "identifier": "webpack/runtime/make_namespace_object",
@@ -5984,7 +5679,7 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
     {
       "assets": [],
       "chunks": [
-        "main",
+        "909",
       ],
       "id": "",
       "identifier": "webpack/runtime/define_property_getters",
@@ -6007,12 +5702,12 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 589,
+          "size": 590,
         },
       ],
-      "assetsSize": 589,
+      "assetsSize": 590,
       "chunks": [
-        "main",
+        "909",
       ],
       "name": "main",
     },
@@ -6026,18 +5721,18 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
 
 exports[`StatsTestCases should print correct stats for simple 2`] = `
 "PublicPath: (none)
-asset bundle.js 589 bytes {main} [emitted] (name: main)
-Entrypoint main 589 bytes = bundle.js
-chunk {main} bundle.js (main) [entry]
-  ./index.js [10] {main}
+asset bundle.js 590 bytes {909} [emitted] (name: main)
+Entrypoint main 590 bytes = bundle.js
+chunk {909} bundle.js (main) [entry]
+  ./index.js [10] {909}
     entry ./index
-./index.js [10] {main}
+./index.js [10] {909}
   entry ./index
-webpack/runtime/has_own_property {main}
-webpack/runtime/make_namespace_object {main}
-webpack/runtime/define_property_getters {main}
+webpack/runtime/has_own_property {909}
+webpack/runtime/make_namespace_object {909}
+webpack/runtime/define_property_getters {909}
   
-Rspack compiled successfully (6792d81f6cf29aa1172a)"
+Rspack compiled successfully (1fd8021bdf9d8544e1ba)"
 `;
 
 exports[`StatsTestCases should print correct stats for simple-module-source 1`] = `
@@ -6048,7 +5743,7 @@ exports[`StatsTestCases should print correct stats for simple-module-source 1`] 
         "main",
       ],
       "chunks": [
-        "main",
+        "909",
       ],
       "emitted": true,
       "info": {
@@ -6056,7 +5751,7 @@ exports[`StatsTestCases should print correct stats for simple-module-source 1`] 
         "hotModuleReplacement": false,
       },
       "name": "bundle.js",
-      "size": 685,
+      "size": 686,
       "type": "asset",
     },
   ],
@@ -6074,13 +5769,13 @@ exports[`StatsTestCases should print correct stats for simple-module-source 1`] 
       "files": [
         "bundle.js",
       ],
-      "id": "main",
+      "id": "909",
       "initial": true,
       "modules": [
         {
           "assets": [],
           "chunks": [
-            "main",
+            "909",
           ],
           "id": "98",
           "identifier": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/raw.png",
@@ -6115,7 +5810,7 @@ exports[`StatsTestCases should print correct stats for simple-module-source 1`] 
         {
           "assets": [],
           "chunks": [
-            "main",
+            "909",
           ],
           "id": "10",
           "identifier": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/index.js",
@@ -6145,7 +5840,7 @@ import rawModule from './raw.png';
         {
           "assets": [],
           "chunks": [
-            "main",
+            "909",
           ],
           "id": "151",
           "identifier": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/stringModule.js",
@@ -6191,12 +5886,12 @@ import rawModule from './raw.png';
       "assets": [
         {
           "name": "bundle.js",
-          "size": 685,
+          "size": 686,
         },
       ],
-      "assetsSize": 685,
+      "assetsSize": 686,
       "chunks": [
-        "main",
+        "909",
       ],
       "name": "main",
     },
@@ -6204,13 +5899,13 @@ import rawModule from './raw.png';
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "6fa2c05c8bebcd46512b",
+  "hash": "e1950c5429563e58a76d",
   "logging": {},
   "modules": [
     {
       "assets": [],
       "chunks": [
-        "main",
+        "909",
       ],
       "id": "98",
       "identifier": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/raw.png",
@@ -6245,7 +5940,7 @@ import rawModule from './raw.png';
     {
       "assets": [],
       "chunks": [
-        "main",
+        "909",
       ],
       "id": "10",
       "identifier": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/index.js",
@@ -6275,7 +5970,7 @@ import rawModule from './raw.png';
     {
       "assets": [],
       "chunks": [
-        "main",
+        "909",
       ],
       "id": "151",
       "identifier": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/stringModule.js",
@@ -6309,7 +6004,7 @@ import rawModule from './raw.png';
     {
       "assets": [],
       "chunks": [
-        "main",
+        "909",
       ],
       "id": "",
       "identifier": "webpack/runtime/has_own_property",
@@ -6329,7 +6024,7 @@ import rawModule from './raw.png';
     {
       "assets": [],
       "chunks": [
-        "main",
+        "909",
       ],
       "id": "",
       "identifier": "webpack/runtime/make_namespace_object",
@@ -6349,7 +6044,7 @@ import rawModule from './raw.png';
     {
       "assets": [],
       "chunks": [
-        "main",
+        "909",
       ],
       "id": "",
       "identifier": "webpack/runtime/define_property_getters",
@@ -6369,7 +6064,7 @@ import rawModule from './raw.png';
     {
       "assets": [],
       "chunks": [
-        "main",
+        "909",
       ],
       "id": "",
       "identifier": "webpack/runtime/compat_get_default_export",
@@ -6392,12 +6087,12 @@ import rawModule from './raw.png';
       "assets": [
         {
           "name": "bundle.js",
-          "size": 685,
+          "size": 686,
         },
       ],
-      "assetsSize": 685,
+      "assetsSize": 686,
       "chunks": [
-        "main",
+        "909",
       ],
       "name": "main",
     },
@@ -6411,13 +6106,13 @@ import rawModule from './raw.png';
 
 exports[`StatsTestCases should print correct stats for simple-module-source 2`] = `
 "PublicPath: (none)
-asset bundle.js 685 bytes [emitted] (name: main)
-Entrypoint main 685 bytes = bundle.js
+asset bundle.js 686 bytes [emitted] (name: main)
+Entrypoint main 686 bytes = bundle.js
 runtime modules 4 modules
 ./raw.png
 ./index.js
 ./stringModule.js
-Rspack compiled successfully (6fa2c05c8bebcd46512b)"
+Rspack compiled successfully (e1950c5429563e58a76d)"
 `;
 
 exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
@@ -6428,7 +6123,7 @@ exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
         "main",
       ],
       "chunks": [
-        "main",
+        "909",
       ],
       "emitted": true,
       "info": {
@@ -6436,7 +6131,7 @@ exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
         "hotModuleReplacement": false,
       },
       "name": "bundle.js",
-      "size": 589,
+      "size": 590,
       "testA": "aaaaaa",
       "type": "asset",
     },
@@ -6455,13 +6150,13 @@ exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
       "files": [
         "bundle.js",
       ],
-      "id": "main",
+      "id": "909",
       "initial": true,
       "modules": [
         {
           "assets": [],
           "chunks": [
-            "main",
+            "909",
           ],
           "id": "10",
           "identifier": "<PROJECT_ROOT>/tests/statsCases/stats-hooks/index.js",
@@ -6500,12 +6195,12 @@ exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 589,
+          "size": 590,
         },
       ],
-      "assetsSize": 589,
+      "assetsSize": 590,
       "chunks": [
-        "main",
+        "909",
       ],
       "name": "main",
     },
@@ -6513,13 +6208,13 @@ exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "6792d81f6cf29aa1172a",
+  "hash": "1fd8021bdf9d8544e1ba",
   "logging": {},
   "modules": [
     {
       "assets": [],
       "chunks": [
-        "main",
+        "909",
       ],
       "id": "10",
       "identifier": "<PROJECT_ROOT>/tests/statsCases/stats-hooks/index.js",
@@ -6546,7 +6241,7 @@ exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
     {
       "assets": [],
       "chunks": [
-        "main",
+        "909",
       ],
       "id": "",
       "identifier": "webpack/runtime/has_own_property",
@@ -6565,7 +6260,7 @@ exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
     {
       "assets": [],
       "chunks": [
-        "main",
+        "909",
       ],
       "id": "",
       "identifier": "webpack/runtime/make_namespace_object",
@@ -6584,7 +6279,7 @@ exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
     {
       "assets": [],
       "chunks": [
-        "main",
+        "909",
       ],
       "id": "",
       "identifier": "webpack/runtime/define_property_getters",
@@ -6606,12 +6301,12 @@ exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 589,
+          "size": 590,
         },
       ],
-      "assetsSize": 589,
+      "assetsSize": 590,
       "chunks": [
-        "main",
+        "909",
       ],
       "name": "main",
     },
@@ -6625,11 +6320,11 @@ exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
 
 exports[`StatsTestCases should print correct stats for stats-hooks 2`] = `
 "PublicPath: (none)
-asset bundle.js 589 bytes [emitted111] (name: main) [testA: aaaaaa]
-Entrypoint main 589 bytes = bundle.js
+asset bundle.js 590 bytes [emitted111] (name: main) [testA: aaaaaa]
+Entrypoint main 590 bytes = bundle.js
 runtime modules 3 modules
 ./index.js
-Rspack compiled successfully (6792d81f6cf29aa1172a)"
+Rspack compiled successfully (1fd8021bdf9d8544e1ba)"
 `;
 
 exports[`StatsTestCases should print correct stats for try-require--module 1`] = `
@@ -6665,7 +6360,8 @@ exports[`StatsTestCases should print correct stats for try-require--module 1`] =
 `;
 
 exports[`StatsTestCases should print correct stats for try-require--module 2`] = `
-"WARNING in ./index.js   ⚠ Resolve error: Can't resolve './missing-module' in '<PROJECT_ROOT>/tests/statsCases/try-require--module'
+"WARNING in ./index.js
+  ⚠ Resolve error: Can't resolve './missing-module' in '<PROJECT_ROOT>/tests/statsCases/try-require--module'
    ╭─[1:1]
  1 │ try {
  2 │     require('./missing-module');
@@ -6709,7 +6405,8 @@ exports[`StatsTestCases should print correct stats for try-require-resolve-modul
 `;
 
 exports[`StatsTestCases should print correct stats for try-require-resolve-module 2`] = `
-"WARNING in ./index.js   ⚠ Resolve error: Can't resolve './missing-module' in '<PROJECT_ROOT>/tests/statsCases/try-require-resolve-module'
+"WARNING in ./index.js
+  ⚠ Resolve error: Can't resolve './missing-module' in '<PROJECT_ROOT>/tests/statsCases/try-require-resolve-module'
    ╭─[1:1]
  1 │ try {
  2 │     require.resolve('./missing-module');
@@ -6753,7 +6450,8 @@ exports[`StatsTestCases should print correct stats for try-require-resolve-weak-
 `;
 
 exports[`StatsTestCases should print correct stats for try-require-resolve-weak-module 2`] = `
-"WARNING in ./index.js   ⚠ Resolve error: Can't resolve './missing-module' in '<PROJECT_ROOT>/tests/statsCases/try-require-resolve-weak-module'
+"WARNING in ./index.js
+  ⚠ Resolve error: Can't resolve './missing-module' in '<PROJECT_ROOT>/tests/statsCases/try-require-resolve-weak-module'
    ╭─[1:1]
  1 │ try {
  2 │     require.resolveWeak('./missing-module');

@@ -1,25 +1,22 @@
+use std::sync::Arc;
+
 use rspack_core::{
   BuildInfo, ConstDependency, Dependency, DependencyLocation, DependencyTemplate, ResourceData,
   RuntimeGlobals, RuntimeRequirementsDependency, SpanExt,
 };
+use rspack_error::miette::Diagnostic;
+use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 use swc_core::{
-  common::{Spanned, SyntaxContext},
-  ecma::{
-    ast::{
-      AssignExpr, AssignOp, CallExpr, Callee, Expr, Ident, Lit, Pat, PatOrExpr, UnaryExpr,
-      VarDeclarator,
-    },
-    visit::{noop_visit_type, Visit, VisitWith},
-  },
+  common::{SourceFile, Spanned, SyntaxContext},
+  ecma::ast::{AssignExpr, AssignOp, CallExpr, Callee, Expr, Ident, Pat, PatOrExpr, VarDeclarator},
 };
 
-use super::expr_matcher;
-use crate::{
-  dependency::{ModuleArgumentDependency, WebpackIsIncludedDependency},
-  no_visit_ignored_stmt,
-  parser_plugin::JavascriptParserPlugin,
-  utils::eval::{self, BasicEvaluatedExpression},
-};
+use super::{expr_matcher, JavascriptParser};
+use crate::dependency::ModuleArgumentDependency;
+use crate::no_visit_ignored_stmt;
+use crate::parser_plugin::JavascriptParserPlugin;
+use crate::utils::eval::{self, BasicEvaluatedExpression};
+use crate::visitors::extract_member_root;
 
 pub const WEBPACK_HASH: &str = "__webpack_hash__";
 pub const WEBPACK_PUBLIC_PATH: &str = "__webpack_public_path__";
@@ -35,8 +32,8 @@ pub const WEBPACK_INIT_SHARING: &str = "__webpack_init_sharing__";
 pub const WEBPACK_NONCE: &str = "__webpack_nonce__";
 pub const WEBPACK_CHUNK_NAME: &str = "__webpack_chunkname__";
 pub const WEBPACK_RUNTIME_ID: &str = "__webpack_runtime_id__";
-pub const WEBPACK_IS_INCLUDE: &str = "__webpack_is_included__";
 pub const WEBPACK_REQUIRE: &str = "__webpack_require__";
+pub const RSPACK_VERSION: &str = "__rspack_version__";
 
 pub fn get_typeof_evaluate_of_api(sym: &str) -> Option<&str> {
   match sym {
@@ -55,14 +52,7 @@ pub fn get_typeof_evaluate_of_api(sym: &str) -> Option<&str> {
     WEBPACK_NONCE => Some("string"),
     WEBPACK_CHUNK_NAME => Some("string"),
     WEBPACK_RUNTIME_ID => None,
-    WEBPACK_IS_INCLUDE => Some("function"),
-    _ => None,
-  }
-}
-
-pub fn get_typeof_const_of_api(sym: &str) -> Option<&str> {
-  match sym {
-    WEBPACK_IS_INCLUDE => Some("function"),
+    RSPACK_VERSION => Some("string"),
     _ => None,
   }
 }
@@ -72,13 +62,13 @@ pub struct ApiParserPlugin;
 impl JavascriptParserPlugin for ApiParserPlugin {
   fn evaluate_typeof(
     &self,
-    expression: &swc_core::ecma::ast::Ident,
+    parser: &mut JavascriptParser,
+    expression: &Ident,
     start: u32,
     end: u32,
-    unresolved_mark: swc_core::common::SyntaxContext,
   ) -> Option<BasicEvaluatedExpression> {
-    if expression.span.ctxt == unresolved_mark {
-      get_typeof_evaluate_of_api(expression.sym.as_ref() as &str)
+    if parser.is_unresolved_ident(expression.sym.as_str()) {
+      get_typeof_evaluate_of_api(expression.sym.as_str())
         .map(|res| eval::evaluate_to_string(res.to_string(), start, end))
     } else {
       None
@@ -87,6 +77,7 @@ impl JavascriptParserPlugin for ApiParserPlugin {
 }
 
 pub struct ApiScanner<'a> {
+  pub source_file: Arc<SourceFile>,
   pub unresolved_ctxt: SyntaxContext,
   pub module: bool,
   pub build_info: &'a mut BuildInfo,
@@ -94,20 +85,25 @@ pub struct ApiScanner<'a> {
   pub resource_data: &'a ResourceData,
   pub presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
   pub dependencies: &'a mut Vec<Box<dyn Dependency>>,
+  pub warning_diagnostics: &'a mut Vec<Box<dyn Diagnostic + Send + Sync>>,
   pub ignored: &'a mut Vec<DependencyLocation>,
 }
 
 impl<'a> ApiScanner<'a> {
+  #[allow(clippy::too_many_arguments)]
   pub fn new(
+    source_file: Arc<SourceFile>,
     unresolved_ctxt: SyntaxContext,
     resource_data: &'a ResourceData,
     dependencies: &'a mut Vec<Box<dyn Dependency>>,
     presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
     module: bool,
     build_info: &'a mut BuildInfo,
+    warning_diagnostics: &'a mut Vec<Box<dyn Diagnostic + Send + Sync>>,
     ignored: &'a mut Vec<DependencyLocation>,
   ) -> Self {
     Self {
+      source_file,
       unresolved_ctxt,
       module,
       build_info,
@@ -115,6 +111,7 @@ impl<'a> ApiScanner<'a> {
       resource_data,
       presentational_dependencies,
       dependencies,
+      warning_diagnostics,
       ignored,
     }
   }
@@ -303,6 +300,16 @@ impl Visit for ApiScanner<'_> {
             Some(RuntimeGlobals::CHUNK_NAME),
           )));
       }
+      RSPACK_VERSION => {
+        self
+          .presentational_dependencies
+          .push(Box::new(ConstDependency::new(
+            ident.span.real_lo(),
+            ident.span.real_hi(),
+            format!("{}()", RuntimeGlobals::RSPACK_VERSION).into(),
+            Some(RuntimeGlobals::RSPACK_VERSION),
+          )));
+      }
       WEBPACK_RUNTIME_ID => {
         self
           .presentational_dependencies
@@ -327,6 +334,39 @@ impl Visit for ApiScanner<'_> {
       return;
     }
 
+    #[macro_export]
+    macro_rules! not_supported_expr {
+      ($check: ident, $name: literal) => {
+        if expr_matcher::$check(expr) {
+          let (warning, dep) = super::expression_not_supported(&self.source_file, $name, expr);
+          self.warning_diagnostics.push(warning);
+          self.presentational_dependencies.push(dep);
+          return;
+        }
+      };
+    }
+
+    let root = extract_member_root(expr);
+
+    if let Some(root) = root
+      && root.span.ctxt == self.unresolved_ctxt
+    {
+      if root.sym == "require" {
+        not_supported_expr!(is_require_extensions, "require.extensions");
+        not_supported_expr!(is_require_ensure, "require.ensure");
+        not_supported_expr!(is_require_config, "require.config");
+        not_supported_expr!(is_require_version, "require.vesrion");
+        not_supported_expr!(is_require_amd, "require.amd");
+        not_supported_expr!(is_require_include, "require.include");
+        not_supported_expr!(is_require_onerror, "require.onError");
+        not_supported_expr!(is_require_main_require, "require.main.require");
+      }
+
+      if root.sym == "module" {
+        not_supported_expr!(is_module_parent_require, "module.parent.require");
+      }
+    }
+
     if expr_matcher::is_require_cache(expr) {
       self
         .presentational_dependencies
@@ -335,6 +375,23 @@ impl Visit for ApiScanner<'_> {
           expr.span().real_hi(),
           RuntimeGlobals::MODULE_CACHE.name().into(),
           Some(RuntimeGlobals::MODULE_CACHE),
+        )));
+    } else if expr_matcher::is_require_main(expr) {
+      let mut runtime_requirements = RuntimeGlobals::default();
+      runtime_requirements.insert(RuntimeGlobals::MODULE_CACHE);
+      runtime_requirements.insert(RuntimeGlobals::ENTRY_MODULE_ID);
+      self
+        .presentational_dependencies
+        .push(Box::new(ConstDependency::new(
+          expr.span().real_lo(),
+          expr.span().real_hi(),
+          format!(
+            "{}[{}]",
+            RuntimeGlobals::MODULE_CACHE,
+            RuntimeGlobals::ENTRY_MODULE_ID
+          )
+          .into(),
+          Some(runtime_requirements),
         )));
     } else if expr_matcher::is_webpack_module_id(expr) {
       self
@@ -355,52 +412,45 @@ impl Visit for ApiScanner<'_> {
   }
 
   fn visit_call_expr(&mut self, call_expr: &CallExpr) {
-    if let Callee::Expr(box Expr::Ident(ident)) = &call_expr.callee
-      && ident.sym == WEBPACK_IS_INCLUDE
-    {
-      if call_expr.args.len() != 1 {
-        return;
-      }
-      if let Some(arg) = call_expr.args.first() {
-        let request = if arg.spread.is_some() {
-          None
-        } else {
-          arg
-            .expr
-            .as_lit()
-            .and_then(|lit| match lit {
-              Lit::Str(str) => Some(str),
-              _ => None,
-            })
-            .map(|str| str.value.clone())
-        };
-
-        if let Some(request) = request {
-          self
-            .dependencies
-            .push(Box::new(WebpackIsIncludedDependency::new(
-              call_expr.span().real_lo(),
-              call_expr.span().real_hi(),
-              request,
-            )));
+    #[macro_export]
+    macro_rules! not_supported_call {
+      ($check: ident, $name: literal) => {
+        if let Callee::Expr(box Expr::Member(expr)) = &call_expr.callee
+          && expr_matcher::$check(&Expr::Member(expr.to_owned()))
+        {
+          let (warning, dep) = super::expression_not_supported(
+            &self.source_file,
+            $name,
+            &Expr::Call(call_expr.to_owned()),
+          );
+          self.warning_diagnostics.push(warning);
+          self.presentational_dependencies.push(dep);
+          return;
         }
+      };
+    }
+
+    let root = call_expr
+      .callee
+      .as_expr()
+      .and_then(|expr| extract_member_root(expr));
+
+    if let Some(root) = root
+      && root.span.ctxt == self.unresolved_ctxt
+    {
+      if root.sym == "require" {
+        not_supported_call!(is_require_config, "require.config()");
+        not_supported_call!(is_require_ensure, "require.ensure()");
+        not_supported_call!(is_require_include, "require.include()");
+        not_supported_call!(is_require_onerror, "require.onError()");
+        not_supported_call!(is_require_main_require, "require.main.require()");
+      }
+
+      if root.sym == "module" {
+        not_supported_call!(is_module_parent_require, "module.parent.require()");
       }
     }
+
     call_expr.visit_children_with(self);
-  }
-  fn visit_unary_expr(&mut self, unary_expr: &UnaryExpr) {
-    if let box Expr::Ident(ident) = &unary_expr.arg {
-      if let Some(res) = get_typeof_const_of_api(ident.sym.as_ref() as &str) {
-        self
-          .presentational_dependencies
-          .push(Box::new(ConstDependency::new(
-            unary_expr.span().real_lo(),
-            unary_expr.span().real_hi(),
-            format!("'{res}'").into(),
-            None,
-          )));
-      }
-    }
-    unary_expr.visit_children_with(self);
   }
 }

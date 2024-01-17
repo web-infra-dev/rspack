@@ -132,7 +132,7 @@ impl DependencyTemplate for CommonJsExportRequireDependency {
             0
           )
         ),
-        None => "/* unused reexport */ ".to_string(),
+        None => "/* unused reexport */ var __webpack_unused_export__".to_string(),
       };
       source.replace(self.range.0, self.range.1, expr.as_str(), None)
     } else if self.base.is_define_property() {

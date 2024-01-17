@@ -16,6 +16,7 @@ use crate::{
 mod connection;
 pub use connection::*;
 
+use self::vec_map::VecMap;
 use crate::{
   BoxDependency, BoxModule, BuildDependency, BuildInfo, BuildMeta, DependencyCondition,
   DependencyId, ExportInfo, ExportInfoId, ExportsInfo, ExportsInfoId, ModuleGraphModule,
@@ -27,7 +28,7 @@ pub type ImportVarMap = HashMap<Option<String> /* request */, String /* import_v
 
 #[derive(Debug, Default)]
 pub struct DependencyParents {
-  pub block: Option<AsyncDependenciesBlockIdentifier>,
+  pub block: Option<AsyncDependenciesBlockId>,
   pub module: ModuleIdentifier,
 }
 
@@ -44,7 +45,7 @@ pub struct ModuleGraph {
   /// Module identifier to its module graph module
   pub module_identifier_to_module_graph_module: IdentifierMap<ModuleGraphModule>,
 
-  blocks: HashMap<AsyncDependenciesBlockIdentifier, AsyncDependenciesBlock>,
+  blocks: HashMap<AsyncDependenciesBlockId, AsyncDependenciesBlock>,
 
   pub dependency_id_to_connection_id: HashMap<DependencyId, ConnectionId>,
   connection_id_to_dependency_id: HashMap<ConnectionId, DependencyId>,
@@ -64,8 +65,8 @@ pub struct ModuleGraph {
 
   pub import_var_map: DashMap<ModuleIdentifier, ImportVarMap>,
   pub exports_info_hash: DashMap<ExportsInfoId, u64>,
-  pub exports_info_map: HashMap<ExportsInfoId, ExportsInfo>,
-  pub export_info_map: HashMap<ExportInfoId, ExportInfo>,
+  pub exports_info_map: vec_map::VecMap<ExportsInfo>,
+  pub export_info_map: VecMap<ExportInfo>,
   connection_to_condition: HashMap<ModuleGraphConnection, DependencyCondition>,
   pub dep_meta_map: HashMap<DependencyId, DependencyExtraMeta>,
 }
@@ -369,7 +370,7 @@ impl ModuleGraph {
   }
 
   pub fn add_block(&mut self, block: AsyncDependenciesBlock) {
-    self.blocks.insert(block.identifier(), block);
+    self.blocks.insert(block.id(), block);
   }
 
   pub fn set_parents(&mut self, dependency: DependencyId, parents: DependencyParents) {
@@ -383,10 +384,7 @@ impl ModuleGraph {
       .map(|p| &p.module)
   }
 
-  pub fn get_parent_block(
-    &self,
-    dependency: &DependencyId,
-  ) -> Option<&AsyncDependenciesBlockIdentifier> {
+  pub fn get_parent_block(&self, dependency: &DependencyId) -> Option<&AsyncDependenciesBlockId> {
     self
       .dependency_id_to_parents
       .get(dependency)
@@ -395,7 +393,7 @@ impl ModuleGraph {
 
   pub fn block_by_id(
     &self,
-    block_id: &AsyncDependenciesBlockIdentifier,
+    block_id: &AsyncDependenciesBlockId,
   ) -> Option<&AsyncDependenciesBlock> {
     self.blocks.get(block_id)
   }
@@ -653,7 +651,7 @@ impl ModuleGraph {
   pub(crate) fn get_module_dependencies_modules_and_blocks(
     &self,
     module_identifier: &ModuleIdentifier,
-  ) -> (Vec<&ModuleIdentifier>, &[AsyncDependenciesBlockIdentifier]) {
+  ) -> (Vec<&ModuleIdentifier>, &[AsyncDependenciesBlockId]) {
     let Some(m) = self.module_by_identifier(module_identifier) else {
       unreachable!("cannot find the module correspanding to {module_identifier}");
     };
@@ -1002,52 +1000,28 @@ impl ModuleGraph {
     let mgm = self
       .module_graph_module_by_identifier(module_identifier)
       .expect("should have mgm");
-    let exports_info = self
-      .exports_info_map
-      .get(&mgm.exports)
-      .expect("should have export info");
+    let exports_info = self.exports_info_map.get(*mgm.exports as usize);
     exports_info
   }
 
-  // pub fn get_exports_info_mut(&mut self, module_identifier: &ModuleIdentifier) -> &mut ExportsInfo {
-  //   let mgm = self
-  //     .module_graph_module_by_identifier_mut(module_identifier)
-  //     .expect("should have mgm");
-  //   &mut mgm.exports
-  // }
-
   pub fn get_exports_info_by_id(&self, id: &ExportsInfoId) -> &ExportsInfo {
-    let exports_info = self.exports_info_map.get(id).unwrap_or_else(|| {
-      debug_all_exports_info!(self);
-      panic!(
-        "should have exports_info {:#?}, {:?}",
-        self.exports_info_map, id
-      );
-    });
+    let exports_info = self.exports_info_map.get((**id) as usize);
     exports_info
   }
 
   pub fn get_exports_info_mut_by_id(&mut self, id: &ExportsInfoId) -> &mut ExportsInfo {
-    let exports_info = self
-      .exports_info_map
-      .get_mut(id)
-      .expect("should have exports_info");
+    let exports_info = self.exports_info_map.get_mut((**id) as usize);
     exports_info
   }
 
   pub fn get_export_info_by_id(&self, id: &ExportInfoId) -> &ExportInfo {
-    let export_info = self
-      .export_info_map
-      .get(id)
-      .expect("should have export info");
+    let export_info = self.export_info_map.get(**id as usize);
     export_info
   }
 
   pub fn get_export_info_mut_by_id(&mut self, id: &ExportInfoId) -> &mut ExportInfo {
-    let exports_info = self
-      .export_info_map
-      .get_mut(id)
-      .expect("should have export info");
+    let exports_info = self.export_info_map.get_mut(**id as usize);
+
     exports_info
   }
 
@@ -1071,10 +1045,10 @@ mod test {
   use rspack_sources::Source;
 
   use crate::{
-    AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta,
-    BuildResult, CodeGenerationResult, Compilation, Context, DependenciesBlock, Dependency,
-    DependencyId, ExportInfo, ExportsInfo, Module, ModuleDependency, ModuleGraph,
-    ModuleGraphModule, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType, UsageState,
+    AsyncDependenciesBlockId, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
+    CodeGenerationResult, Compilation, Context, DependenciesBlock, Dependency, DependencyId,
+    ExportInfo, ExportsInfo, Module, ModuleDependency, ModuleGraph, ModuleGraphModule,
+    ModuleIdentifier, ModuleType, RuntimeSpec, SourceType, UsageState,
   };
 
   // Define a detailed node type for `ModuleGraphModule`s
@@ -1092,11 +1066,11 @@ mod test {
       impl Diagnosable for $ident {}
 
       impl DependenciesBlock for $ident {
-        fn add_block_id(&mut self, _: AsyncDependenciesBlockIdentifier) {
+        fn add_block_id(&mut self, _: AsyncDependenciesBlockId) {
           unreachable!()
         }
 
-        fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
+        fn get_blocks(&self) -> &[AsyncDependenciesBlockId] {
           unreachable!()
         }
 
@@ -1212,10 +1186,11 @@ mod test {
     mg.add_module_graph_module(mgm);
     mg.add_module(m);
     mg.export_info_map
-      .insert(other_exports_info.id, other_exports_info);
+      .insert(*other_exports_info.id as usize, other_exports_info);
     mg.export_info_map
-      .insert(side_effects_only_info.id, side_effects_only_info);
-    mg.exports_info_map.insert(exports_info.id, exports_info);
+      .insert(*side_effects_only_info.id as usize, side_effects_only_info);
+    mg.exports_info_map
+      .insert(*exports_info.id as usize, exports_info);
   }
 
   fn link_modules_with_dependency(

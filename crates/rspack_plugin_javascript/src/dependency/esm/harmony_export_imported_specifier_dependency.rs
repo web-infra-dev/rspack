@@ -1,6 +1,7 @@
+use std::hash::BuildHasherDefault;
 use std::{collections::HashMap, sync::Arc};
 
-use linked_hash_set::LinkedHashSet;
+use indexmap::IndexSet;
 use rspack_core::{
   create_exports_object_referenced, create_no_exports_referenced, export_from_import,
   get_exports_type, get_import_var, process_export_info, property_access, property_name,
@@ -1296,8 +1297,7 @@ impl From<Option<UsedName>> for ValueKey {
 
 impl AsContextDependency for HarmonyExportImportedSpecifierDependency {}
 
-#[allow(unused)]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum ExportModeType {
   Missing,
   Unused,
@@ -1365,8 +1365,8 @@ fn determine_export_assignments(
   }
 
   // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/dependencies/HarmonyExportImportedSpecifierDependency.js#L109
-  // js `Set` keep the insertion order, use `LinkedHashSet` to align there behavior
-  let mut names: LinkedHashSet<Atom> = LinkedHashSet::new();
+  // js `Set` keep the insertion order, use `IndexSet` to align there behavior
+  let mut names: IndexSet<Atom, BuildHasherDefault<FxHasher>> = IndexSet::default();
   let mut dependency_indices = vec![];
 
   for dependency in dependencies.iter() {
@@ -1375,7 +1375,7 @@ fn determine_export_assignments(
       let exports_info = module_graph.get_exports_info(module_identifier);
       for export_info_id in exports_info.exports.values() {
         let export_info = module_graph.get_export_info_by_id(export_info_id);
-        //SAFETY: This is safe because a real export can't export empty string
+        // SAFETY: This is safe because a real export can't export empty string
         let export_info_name = export_info.name.clone().unwrap_or_default();
         if matches!(export_info.provided, Some(ExportInfoProvided::True))
           && &export_info_name != "default"

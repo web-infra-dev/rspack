@@ -4,6 +4,5 @@ describeCases({
 	name: "HotTestCasesWeb",
 	target: "web",
 	casesPath: "hotCases",
-	hot: true,
-	incrementalRebuild: false
+	hot: true
 });

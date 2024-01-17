@@ -17,18 +17,18 @@ use rspack_identifier::Identifiable;
 #[derive(Debug)]
 pub struct LazyCompilationProxyModule {
   dependencies: Vec<DependencyId>,
-  blocks: Vec<AsyncDependenciesBlockIdentifier>,
+  blocks: Vec<AsyncDependenciesBlockId>,
   pub module_identifier: ModuleIdentifier,
   build_info: Option<BuildInfo>,
   build_meta: Option<BuildMeta>,
 }
 
 impl DependenciesBlock for LazyCompilationProxyModule {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
+  fn add_block_id(&mut self, block: AsyncDependenciesBlockId) {
     self.blocks.push(block)
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
+  fn get_blocks(&self) -> &[AsyncDependenciesBlockId] {
     &self.blocks
   }
 

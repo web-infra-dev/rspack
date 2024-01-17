@@ -1,8 +1,7 @@
 use rspack_core::SpanExt;
 use swc_core::ecma::ast::{BinExpr, BinaryOp};
 
-use crate::utils::eval::BasicEvaluatedExpression;
-use crate::visitors::common_js_import_dependency_scanner::CommonJsImportDependencyScanner;
+use crate::{utils::eval::BasicEvaluatedExpression, visitors::JavascriptParser};
 
 fn handle_template_string_compare(
   left: &BasicEvaluatedExpression,
@@ -73,7 +72,7 @@ fn is_always_different(a: Option<bool>, b: Option<bool>) -> bool {
 fn handle_strict_equality_comparison(
   eql: bool,
   expr: &BinExpr,
-  scanner: &mut CommonJsImportDependencyScanner<'_>,
+  scanner: &mut JavascriptParser,
 ) -> Option<BasicEvaluatedExpression> {
   assert!(expr.op == BinaryOp::EqEqEq || expr.op == BinaryOp::NotEqEq);
   let left = scanner.evaluate_expression(&expr.left);
@@ -117,7 +116,7 @@ fn handle_strict_equality_comparison(
 fn handle_abstract_equality_comparison(
   eql: bool,
   expr: &BinExpr,
-  scanner: &mut CommonJsImportDependencyScanner<'_>,
+  scanner: &mut JavascriptParser,
 ) -> Option<BasicEvaluatedExpression> {
   assert!(expr.op == BinaryOp::EqEq || expr.op == BinaryOp::NotEq);
   let left = scanner.evaluate_expression(&expr.left);
@@ -144,7 +143,7 @@ fn handle_abstract_equality_comparison(
 
 fn handle_logical_or(
   expr: &BinExpr,
-  scanner: &mut CommonJsImportDependencyScanner<'_>,
+  scanner: &mut JavascriptParser,
 ) -> Option<BasicEvaluatedExpression> {
   let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.hi().0);
   let left = scanner.evaluate_expression(&expr.left);
@@ -184,7 +183,7 @@ fn handle_logical_or(
 
 fn handle_logical_and(
   expr: &BinExpr,
-  scanner: &mut CommonJsImportDependencyScanner<'_>,
+  scanner: &mut JavascriptParser,
 ) -> Option<BasicEvaluatedExpression> {
   let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.hi().0);
 
@@ -223,8 +222,22 @@ fn handle_logical_and(
   }
 }
 
+fn handle_add(expr: &BinExpr, scanner: &mut JavascriptParser) -> Option<BasicEvaluatedExpression> {
+  assert_eq!(expr.op, BinaryOp::Add);
+  let left = scanner.evaluate_expression(&expr.left);
+  let right = scanner.evaluate_expression(&expr.right);
+  let mut res = BasicEvaluatedExpression::new();
+  if left.is_string() && right.is_string() {
+    res.set_string(format!("{}{}", left.string(), right.string()));
+    return Some(res);
+    // TODO: right.is_number....
+  }
+  // TODO: left.is_number....
+  None
+}
+
 pub fn eval_binary_expression(
-  scanner: &mut CommonJsImportDependencyScanner<'_>,
+  scanner: &mut JavascriptParser,
   expr: &BinExpr,
 ) -> Option<BasicEvaluatedExpression> {
   match expr.op {
@@ -234,6 +247,7 @@ pub fn eval_binary_expression(
     BinaryOp::NotEqEq => handle_strict_equality_comparison(false, expr, scanner),
     BinaryOp::LogicalAnd => handle_logical_and(expr, scanner),
     BinaryOp::LogicalOr => handle_logical_or(expr, scanner),
+    BinaryOp::Add => handle_add(expr, scanner),
     _ => None,
   }
 }

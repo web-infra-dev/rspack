@@ -360,7 +360,17 @@ const baseResolveOptions = z.strictObject({
 	 * This is `aliasField: ["browser"]` in webpack, because no one
 	 * uses aliasField other than "browser". ---@bvanjoi
 	 */
-	browserField: z.boolean().optional(),
+	browserField: z
+		.boolean()
+		.optional()
+		.refine(val => {
+			if (val !== undefined) {
+				deprecatedWarn(
+					`'resolve.browserField' has been deprecated, and will be removed in 0.6.0. Please use 'resolve.aliasField' instead.`
+				);
+			}
+			return true;
+		}),
 	conditionNames: z.array(z.string()).optional(),
 	extensions: z.array(z.string()).optional(),
 	fallback: resolveAlias.optional(),
@@ -368,12 +378,16 @@ const baseResolveOptions = z.strictObject({
 	mainFiles: z.array(z.string()).optional(),
 	modules: z.array(z.string()).optional(),
 	preferRelative: z.boolean().optional(),
+	preferAbsolute: z.boolean().optional(),
 	symlinks: z.boolean().optional(),
 	tsConfigPath: z.string().optional(),
 	tsConfig: resolveTsconfig.optional(),
 	fullySpecified: z.boolean().optional(),
 	exportsFields: z.array(z.string()).optional(),
-	extensionAlias: z.record(z.string().or(z.array(z.string()))).optional()
+	extensionAlias: z.record(z.string().or(z.array(z.string()))).optional(),
+	aliasFields: z.array(z.string()).optional(),
+	restrictions: z.array(z.string()).optional(),
+	roots: z.array(z.string()).optional()
 });
 
 export type ResolveOptions = z.infer<typeof baseResolveOptions> & {
@@ -1030,54 +1044,23 @@ export type Optimization = z.infer<typeof optimization>;
 //#endregion
 
 //#region Experiments
-const incrementalRebuildOptions = z.strictObject({
-	make: z.boolean().optional(),
-	emitAsset: z.boolean().optional()
-});
-export type IncrementalRebuildOptions = z.infer<
-	typeof incrementalRebuildOptions
->;
-
 const rspackFutureOptions = z.strictObject({
-	newResolver: z
-		.boolean()
-		.optional()
-		.refine(val => {
-			if (val === false) {
-				deprecatedWarn(
-					`'experiments.rspackFuture.newResolver = ${JSON.stringify(
-						val
-					)}' has been deprecated, and will be drop support in 0.5.0, please switch 'experiments.rspackFuture.newResolver = true' to use new resolver, See the discussion ${termlink(
-						"here",
-						"https://github.com/web-infra-dev/rspack/issues/4825"
-					)}`
-				);
-			}
-			return true;
-		}),
 	newTreeshaking: z.boolean().optional(),
-	disableTransformByDefault: z.boolean().optional(),
-	disableApplyEntryLazily: z.boolean().optional()
+	disableApplyEntryLazily: z.boolean().optional(),
+	bundlerInfo: z
+		.strictObject({
+			version: z.string().optional(),
+			force: z
+				.boolean()
+				.or(z.array(z.enum(["version"])))
+				.optional()
+		})
+		.optional()
 });
 export type RspackFutureOptions = z.infer<typeof rspackFutureOptions>;
 
 const experiments = z.strictObject({
 	lazyCompilation: z.boolean().optional(),
-	incrementalRebuild: z
-		.boolean()
-		.or(incrementalRebuildOptions)
-		.optional()
-		.refine(val => {
-			if (val !== undefined) {
-				deprecatedWarn(
-					`'experiments.incrementalRebuild' has been deprecated, and will be drop support in 0.5.0. See the discussion ${termlink(
-						"here",
-						"https://github.com/web-infra-dev/rspack/issues/4708"
-					)}`
-				);
-			}
-			return true;
-		}),
 	asyncWebAssembly: z.boolean().optional(),
 	outputModule: z.boolean().optional(),
 	topLevelAwait: z.boolean().optional(),
@@ -1127,9 +1110,7 @@ export type WatchOptions = z.infer<typeof watchOptions>;
 //#endregion
 
 //#region DevServer
-export interface DevServer extends webpackDevServer.Configuration {
-	hot?: boolean;
-}
+export interface DevServer extends webpackDevServer.Configuration {}
 const devServer = z.custom<DevServer>();
 //#endregion
 

@@ -45,7 +45,7 @@
  
 @@ -55,20 +51,14 @@
  });
-  const result = 'ssss';
+ const result = 'ssss';
  }),
 -"./export.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 -"use strict";
@@ -70,7 +70,7 @@
  "use strict";
 @@ -78,19 +68,6 @@
  });
-  class Something {
+ class Something {
  }
 -}),
 -"./something/index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {

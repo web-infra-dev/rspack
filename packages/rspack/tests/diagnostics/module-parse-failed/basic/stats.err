@@ -1,9 +1,5 @@
-PublicPath: (none)
-asset main.js 1.13 KiB [emitted] (name: main)
-Entrypoint main 1.13 KiB = main.js
-./index.js
-
-ERROR in ./index.js ModuleParseError
+ERROR in ./index.js
+ModuleParseError
 
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expected ',', got ':'
@@ -16,5 +12,3 @@ ERROR in ./index.js ModuleParseError
       
   help: 
         You may need an appropriate loader to handle this file type.
-
-Rspack compiled with 1 error (cd9a376f3b0a452f64a8)

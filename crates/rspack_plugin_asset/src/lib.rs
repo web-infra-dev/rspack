@@ -562,6 +562,6 @@ impl Plugin for AssetPlugin {
       .flatten()
       .collect::<Vec<RenderManifestEntry>>();
 
-    Ok(assets)
+    Ok(assets.with_empty_diagnostic())
   }
 }

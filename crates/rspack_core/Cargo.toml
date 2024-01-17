@@ -6,7 +6,6 @@ repository = "https://github.com/web-infra-dev/rspack"
 version    = "0.1.0"
 
 [dependencies]
-anyhow = { workspace = true }
 anymap = "1.0.0-beta.2"
 async-recursion = { workspace = true }
 async-trait = { workspace = true }
@@ -23,9 +22,8 @@ indexmap = { workspace = true }
 itertools = { workspace = true }
 json = { workspace = true }
 mime_guess = { workspace = true }
-nodejs-resolver = { version = "0.1.1" }
 once_cell = { workspace = true }
-oxc_resolver = { version = "0.6.2" }
+oxc_resolver = "1.2.0"
 paste = { workspace = true }
 petgraph = { version = "0.6.3", features = ["serde-1"] }
 rayon = { workspace = true }
@@ -46,7 +44,6 @@ rspack_util = { path = "../rspack_util" }
 rustc-hash = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-string_cache = "0.8.7"
 sugar_path = { workspace = true }
 swc_core = { workspace = true, features = [
   "__ecma",
@@ -73,10 +70,7 @@ swc_core = { workspace = true, features = [
   "css_compat",
   "css_modules",
 ] }
-swc_emotion = { workspace = true }
-swc_error_reporters = { workspace = true }
 swc_node_comments = { workspace = true }
-swc_plugin_import = { path = "../swc_plugin_import" }
 tokio = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test-util", "parking_lot"] }
 tracing = { workspace = true }
 url = { workspace = true }

@@ -1,12 +1,15 @@
 use itertools::Itertools;
+use once_cell::sync::Lazy;
 use rspack_core::{
-  extract_member_expression_chain, DependencyLocation, ExpressionInfoKind, SpanExt,
+  extract_member_expression_chain, ConstDependency, DependencyLocation, ErrorSpan,
+  ExpressionInfoKind, SpanExt,
 };
+use rspack_error::{miette::Severity, DiagnosticKind, TraceableError};
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::{
-  common::{Spanned, SyntaxContext},
+  common::{SourceFile, Spanned, SyntaxContext},
   ecma::{
-    ast::{CallExpr, Expr, ExprOrSpread, MemberExpr, ObjectPat, ObjectPatProp, PropName},
+    ast::{CallExpr, Expr, ExprOrSpread, Ident, MemberExpr, ObjectPat, ObjectPatProp, PropName},
     atoms::Atom,
   },
 };
@@ -104,6 +107,16 @@ pub(crate) mod expr_matcher {
     is_import_meta_url: "import.meta.url",
     is_import_meta: "import.meta",
     is_object_define_property: "Object.defineProperty",
+    // unsupported
+    is_require_extensions: "require.extensions",
+    is_require_ensure: "require.ensure",
+    is_require_config: "require.config",
+    is_require_version: "require.vesrion",
+    is_require_amd: "require.amd",
+    is_require_include: "require.include",
+    is_require_onerror: "require.onError",
+    is_require_main_require: "require.main.require",
+    is_module_parent_require: "module.parent.require",
   });
 }
 
@@ -237,7 +250,7 @@ fn test() {
   use swc_core::ecma::ast::{Ident, MemberExpr, MemberProp, MetaPropExpr, MetaPropKind};
   use swc_core::ecma::utils::member_expr;
   use swc_core::ecma::utils::ExprFactory;
-  let expr = *member_expr!(DUMMY_SP, module.hot.accept);
+  let expr = Expr::Member(member_expr!(DUMMY_SP, module.hot.accept));
   assert!(expr_matcher::is_module_hot_accept(&expr));
   assert!(!expr_matcher::is_module_hot_decline(&expr));
   assert!(is_module_hot_accept_call(&CallExpr {
@@ -275,28 +288,6 @@ fn test() {
     args: vec![],
     type_args: None
   }));
-}
-
-pub fn is_unresolved_member_object_ident(expr: &Expr, unresolved_ctxt: SyntaxContext) -> bool {
-  if let Expr::Member(member) = expr {
-    if let Expr::Ident(ident) = &*member.obj {
-      return ident.span.ctxt == unresolved_ctxt;
-    };
-  }
-  false
-}
-
-pub fn is_unresolved_require(expr: &Expr, unresolved_ctxt: SyntaxContext) -> bool {
-  let ident = match expr {
-    Expr::Ident(ident) => Some(ident),
-    Expr::Member(mem) => mem.obj.as_ident(),
-    _ => None,
-  };
-  let Some(ident) = ident else {
-    unreachable!("please don't use this fn in other case");
-  };
-  assert!(ident.sym.eq("require"));
-  ident.span.ctxt == unresolved_ctxt
 }
 
 #[macro_export]
@@ -420,4 +411,70 @@ fn test_is_require_call_start() {
   test!("module.require.a().b", false);
   test!("module.require.a.b", false);
   test!("a.module.require.b", false);
+}
+
+pub fn expression_not_supported(
+  file: &SourceFile,
+  name: &str,
+  expr: &Expr,
+) -> (Box<TraceableError>, Box<ConstDependency>) {
+  (
+    Box::new(
+      create_traceable_error(
+        "Module parse failed".into(),
+        format!("{name} is not supported by Rspack."),
+        file,
+        expr.span().into(),
+      )
+      .with_severity(Severity::Warning),
+    ),
+    Box::new(ConstDependency::new(
+      expr.span().real_lo(),
+      expr.span().real_hi(),
+      "(void 0)".into(),
+      None,
+    )),
+  )
+}
+
+pub fn extract_member_root(mut expr: &Expr) -> Option<Ident> {
+  loop {
+    match expr {
+      Expr::Ident(id) => return Some(id.to_owned()),
+      Expr::Member(MemberExpr { obj, .. }) => expr = obj.as_ref(),
+      _ => return None,
+    }
+  }
+}
+
+static STRICT_MODE_RESERVED_WORDS: Lazy<HashSet<String>> = Lazy::new(|| {
+  [
+    "implements",
+    "interface",
+    "let",
+    "package",
+    "private",
+    "protected",
+    "public",
+    "static",
+    "yield",
+    "await",
+  ]
+  .iter()
+  .map(|i| i.to_string())
+  .collect::<HashSet<String>>()
+});
+
+pub fn is_reserved_word_in_strict(word: &str) -> bool {
+  STRICT_MODE_RESERVED_WORDS.contains(word)
+}
+
+pub fn create_traceable_error(
+  title: String,
+  message: String,
+  fm: &SourceFile,
+  span: ErrorSpan,
+) -> TraceableError {
+  TraceableError::from_source_file(fm, span.start as usize, span.end as usize, title, message)
+    .with_kind(DiagnosticKind::JavaScript)
 }

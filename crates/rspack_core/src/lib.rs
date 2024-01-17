@@ -9,8 +9,9 @@
 use std::{fmt, sync::Arc};
 mod dependencies_block;
 pub mod diagnostics;
+mod update_hash;
 pub use dependencies_block::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, DependenciesBlock, DependencyLocation,
+  AsyncDependenciesBlock, AsyncDependenciesBlockId, DependenciesBlock, DependencyLocation,
 };
 mod fake_namespace_object;
 mod template;
@@ -164,11 +165,6 @@ pub enum ModuleType {
   Js,
   JsDynamic,
   JsEsm,
-  Jsx,
-  JsxDynamic,
-  JsxEsm,
-  Tsx,
-  Ts,
   WasmSync,
   WasmAsync,
   AssetInline,
@@ -192,8 +188,8 @@ impl ModuleType {
   pub fn is_js_like(&self) -> bool {
     matches!(
       self,
-      ModuleType::Js | ModuleType::JsEsm | ModuleType::JsDynamic | ModuleType::Ts
-    ) || self.is_jsx_like()
+      ModuleType::Js | ModuleType::JsEsm | ModuleType::JsDynamic
+    )
   }
 
   pub fn is_asset_like(&self) -> bool {
@@ -202,36 +198,21 @@ impl ModuleType {
       ModuleType::Asset | ModuleType::AssetInline | ModuleType::AssetResource
     )
   }
-  pub fn is_jsx_like(&self) -> bool {
-    matches!(
-      self,
-      ModuleType::Tsx | ModuleType::Jsx | ModuleType::JsxEsm | ModuleType::JsxDynamic
-    )
-  }
 
   pub fn is_wasm_like(&self) -> bool {
     matches!(self, ModuleType::WasmSync | ModuleType::WasmAsync)
   }
 
   pub fn is_js_auto(&self) -> bool {
-    matches!(
-      self,
-      ModuleType::Js | ModuleType::Jsx | ModuleType::Ts | ModuleType::Tsx
-    )
+    matches!(self, ModuleType::Js)
   }
 
   pub fn is_js_esm(&self) -> bool {
-    matches!(
-      self,
-      ModuleType::JsEsm | ModuleType::JsxEsm | ModuleType::Ts | ModuleType::Tsx
-    )
+    matches!(self, ModuleType::JsEsm)
   }
 
   pub fn is_js_dynamic(&self) -> bool {
-    matches!(
-      self,
-      ModuleType::JsDynamic | ModuleType::JsxDynamic | ModuleType::Ts | ModuleType::Tsx
-    )
+    matches!(self, ModuleType::JsDynamic)
   }
 
   /// Webpack arbitrary determines the binary type from [NormalModule.binary](https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/NormalModule.js#L302)
@@ -244,13 +225,6 @@ impl ModuleType {
       ModuleType::Js => "javascript/auto",
       ModuleType::JsEsm => "javascript/esm",
       ModuleType::JsDynamic => "javascript/dynamic",
-
-      ModuleType::Jsx => "javascriptx",
-      ModuleType::JsxEsm => "javascriptx/esm",
-      ModuleType::JsxDynamic => "javascriptx/dynamic",
-
-      ModuleType::Ts => "typescript",
-      ModuleType::Tsx => "typescriptx",
 
       ModuleType::Css => "css",
       ModuleType::CssModule => "css/module",
@@ -291,15 +265,6 @@ impl From<&str> for ModuleType {
       "js" | "javascript" | "js/auto" | "javascript/auto" => Self::Js,
       "js/dynamic" | "javascript/dynamic" => Self::JsDynamic,
       "js/esm" | "javascript/esm" => Self::JsEsm,
-
-      // TODO: remove in 0.5.0
-      "jsx" | "javascriptx" | "jsx/auto" | "javascriptx/auto" => Self::Jsx,
-      "jsx/dynamic" | "javascriptx/dynamic" => Self::JsxDynamic,
-      "jsx/esm" | "javascriptx/esm" => Self::JsxEsm,
-
-      // TODO: remove in 0.5.0
-      "ts" | "typescript" => Self::Ts,
-      "tsx" | "typescriptx" => Self::Tsx,
 
       "css" => Self::Css,
       "css/module" => Self::CssModule,

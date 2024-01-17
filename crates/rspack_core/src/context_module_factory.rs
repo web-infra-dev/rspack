@@ -73,6 +73,7 @@ impl ContextModuleFactory {
     let resolve_args = ResolveArgs {
       context: data.context.clone(),
       importer: None,
+      issuer: data.issuer.as_deref(),
       specifier,
       dependency_type: dependency.dependency_type(),
       dependency_category: dependency.category(),

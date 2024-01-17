@@ -18,11 +18,10 @@ use crate::runtime_module::{
   CreateScriptUrlRuntimeModule, DefinePropertyGettersRuntimeModule, EnsureChunkRuntimeModule,
   GetChunkFilenameRuntimeModule, GetChunkUpdateFilenameRuntimeModule, GetFullHashRuntimeModule,
   GetMainFilenameRuntimeModule, GetTrustedTypesPolicyRuntimeModule, GlobalRuntimeModule,
-  HarmonyModuleDecoratorRuntimeModule, HasOwnPropertyRuntimeModule,
-  LoadChunkWithBlockRuntimeModule, LoadScriptRuntimeModule, MakeNamespaceObjectRuntimeModule,
-  NodeModuleDecoratorRuntimeModule, NonceRuntimeModule, NormalRuntimeModule,
-  OnChunkLoadedRuntimeModule, PublicPathRuntimeModule, RelativeUrlRuntimeModule,
-  RuntimeIdRuntimeModule, SystemContextRuntimeModule,
+  HarmonyModuleDecoratorRuntimeModule, HasOwnPropertyRuntimeModule, LoadScriptRuntimeModule,
+  MakeNamespaceObjectRuntimeModule, NodeModuleDecoratorRuntimeModule, NonceRuntimeModule,
+  NormalRuntimeModule, OnChunkLoadedRuntimeModule, PublicPathRuntimeModule,
+  RelativeUrlRuntimeModule, RuntimeIdRuntimeModule, SystemContextRuntimeModule,
 };
 
 static GLOBALS_ON_REQUIRE: Lazy<Vec<RuntimeGlobals>> = Lazy::new(|| {
@@ -57,7 +56,6 @@ static GLOBALS_ON_REQUIRE: Lazy<Vec<RuntimeGlobals>> = Lazy::new(|| {
     RuntimeGlobals::LOAD_SCRIPT,
     RuntimeGlobals::SYSTEM_CONTEXT,
     RuntimeGlobals::ON_CHUNKS_LOADED,
-    RuntimeGlobals::LOAD_CHUNK_WITH_BLOCK,
   ]
 });
 
@@ -332,6 +330,7 @@ impl Plugin for RuntimePlugin {
           chunk,
           GetChunkFilenameRuntimeModule::new(
             "javascript",
+            "javascript",
             SourceType::JavaScript,
             RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME.to_string(),
             |_| false,
@@ -348,6 +347,7 @@ impl Plugin for RuntimePlugin {
         RuntimeGlobals::GET_CHUNK_CSS_FILENAME => compilation.add_runtime_module(
           chunk,
           GetChunkFilenameRuntimeModule::new(
+            "css",
             "css",
             SourceType::Css,
             RuntimeGlobals::GET_CHUNK_CSS_FILENAME.to_string(),
@@ -399,9 +399,6 @@ impl Plugin for RuntimePlugin {
         }
         RuntimeGlobals::GET_FULL_HASH => {
           compilation.add_runtime_module(chunk, GetFullHashRuntimeModule::default().boxed())
-        }
-        RuntimeGlobals::LOAD_CHUNK_WITH_BLOCK => {
-          compilation.add_runtime_module(chunk, LoadChunkWithBlockRuntimeModule::default().boxed())
         }
         RuntimeGlobals::GLOBAL => {
           compilation.add_runtime_module(chunk, GlobalRuntimeModule::default().boxed())

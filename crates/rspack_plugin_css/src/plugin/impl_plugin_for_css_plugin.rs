@@ -11,13 +11,16 @@ use rspack_core::{
   SourceType,
 };
 use rspack_core::{
-  Compilation, CompilationArgs, CompilationParams, CompilerOptions, DependencyType,
-  LibIdentOptions, PluginCompilationHookOutput, PublicPath,
+  ChunkLoading, ChunkLoadingType, Compilation, CompilationArgs, CompilationParams, CompilerOptions,
+  DependencyType, LibIdentOptions, PluginCompilationHookOutput, PluginContext,
+  PluginRuntimeRequirementsInTreeOutput, PublicPath, RuntimeGlobals, RuntimeRequirementsInTreeArgs,
 };
-use rspack_error::Result;
+use rspack_error::{IntoTWithDiagnosticArray, Result};
 use rspack_hash::RspackHash;
+use rspack_plugin_runtime::is_enabled_for_chunk;
 
 use crate::parser_and_generator::CssParserAndGenerator;
+use crate::runtime::CssLoadingRuntimeModule;
 use crate::utils::AUTO_PUBLIC_PATH_PLACEHOLDER_REGEX;
 use crate::CssPlugin;
 
@@ -78,8 +81,8 @@ impl CssPlugin {
   ) -> (ConcatSource, ConcatSource) {
     let mut start = ConcatSource::default();
     let mut end = ConcatSource::default();
-    let is_dev = compilation.options.mode.is_development();
-    if !is_dev {
+
+    if !compilation.options.mode.is_development() {
       return (start, end);
     }
 
@@ -205,7 +208,7 @@ impl Plugin for CssPlugin {
     let compilation = args.compilation;
     let chunk = args.chunk_ukey.as_ref(&compilation.chunk_by_ukey);
     if matches!(chunk.kind, ChunkKind::HotUpdate) {
-      return Ok(vec![]);
+      return Ok(vec![].with_empty_diagnostic());
     }
 
     let ordered_css_modules = Self::get_ordered_chunk_css_modules(
@@ -217,7 +220,7 @@ impl Plugin for CssPlugin {
 
     // Prevent generating css files for chunks which don't contain css modules.
     if ordered_css_modules.is_empty() {
-      return Ok(Default::default());
+      return Ok(vec![].with_empty_diagnostic());
     }
 
     let source = Self::render_chunk_to_source(compilation, chunk, &ordered_css_modules)?;
@@ -255,12 +258,41 @@ impl Plugin for CssPlugin {
     } else {
       source.boxed()
     };
-    Ok(vec![RenderManifestEntry::new(
-      source.boxed(),
-      output_path,
-      asset_info,
-      false,
-      false,
-    )])
+    Ok(
+      vec![RenderManifestEntry::new(
+        source.boxed(),
+        output_path,
+        asset_info,
+        false,
+        false,
+      )]
+      .with_empty_diagnostic(),
+    )
+  }
+
+  fn runtime_requirements_in_tree(
+    &self,
+    _ctx: PluginContext,
+    args: &mut RuntimeRequirementsInTreeArgs,
+  ) -> PluginRuntimeRequirementsInTreeOutput {
+    let compilation = &mut args.compilation;
+    let chunk = args.chunk;
+    let chunk_loading_value = ChunkLoading::Enable(ChunkLoadingType::Jsonp);
+    let is_enabled_for_chunk = is_enabled_for_chunk(chunk, &chunk_loading_value, compilation);
+    let runtime_requirements = args.runtime_requirements;
+    let runtime_requirements_mut = &mut args.runtime_requirements_mut;
+
+    if (runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
+      || runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS))
+      && is_enabled_for_chunk
+    {
+      runtime_requirements_mut.insert(RuntimeGlobals::PUBLIC_PATH);
+      runtime_requirements_mut.insert(RuntimeGlobals::GET_CHUNK_CSS_FILENAME);
+      runtime_requirements_mut.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
+      runtime_requirements_mut.insert(RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY);
+      compilation.add_runtime_module(chunk, Box::<CssLoadingRuntimeModule>::default());
+    }
+
+    Ok(())
   }
 }

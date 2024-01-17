@@ -1,6 +1,6 @@
 {
   "name": "monorepo",
-  "version": "0.4.5",
+  "version": "0.5.1",
   "license": "MIT",
   "description": "A Fast Rust-based web bundler",
   "private": true,
@@ -23,16 +23,15 @@
     "format:js": "npx prettier \"packages/**/*.{ts,js}\" \"crates/rspack_plugin_runtime/**/*.{ts,js}\" --check --write",
     "format-ci:toml": "npx @taplo/cli format --check '.cargo/*.toml' './crates/**/Cargo.toml' './Cargo.toml'",
     "format:toml": "npx @taplo/cli format '.cargo/*.toml' './crates/**/Cargo.toml' './Cargo.toml'",
-    "lint:js": "oxlint .",
+    "lint:js": "oxlint --deny-warnings -c .eslintrc.json",
     "lint:rs": "node ./scripts/check_rust_dependency.cjs",
     "build:binding:debug": "pnpm --filter @rspack/binding run build:debug",
     "build:binding:release": "pnpm --filter @rspack/binding run build:release",
     "prepare": "is-ci || husky install",
-    "test:example": "pnpm --filter \"example-*\" build",
     "test:diff": "pnpm --filter \"@rspack/*\" test:diff",
     "test:unit": "pnpm --filter \"@rspack/*\" test",
     "test:e2e": "pnpm --filter \"@rspack-e2e/*\" test",
-    "test:ci": "cross-env NODE_OPTIONS=--max_old_space_size=8192 pnpm run build:js --force && pnpm run test:example && pnpm run test:unit && pnpm test:webpack",
+    "test:ci": "cross-env NODE_OPTIONS=--max_old_space_size=8192 pnpm run build:js --force && pnpm run test:unit && pnpm test:webpack",
     "test:webpack": "pnpm --filter \"webpack-test\" test:metric"
   },
   "homepage": "https://rspack.dev",
@@ -59,7 +58,7 @@
     "jest-environment-node": "29.5.0",
     "lint-staged": "^12.5.0",
     "npm-run-all": "4.1.5",
-    "oxlint": "0.0.10",
+    "oxlint": "0.2.0",
     "prettier": "2.8",
     "rimraf": "3.0.2",
     "ts-jest": "29.1.0",
@@ -67,15 +66,6 @@
     "webpack": "5.89.0",
     "webpack-cli": "4.10.0",
     "why-is-node-running": "2.2.1"
-  },
-  "optionalDependencies": {
-    "sass-embedded-darwin-arm64": "1.58.3",
-    "sass-embedded-darwin-x64": "1.58.3",
-    "sass-embedded-linux-arm64": "1.58.3",
-    "sass-embedded-linux-ia32": "1.58.3",
-    "sass-embedded-linux-x64": "1.58.3",
-    "sass-embedded-win32-ia32": "1.58.3",
-    "sass-embedded-win32-x64": "1.58.3"
   },
   "packageManager": "pnpm@8.10.5"
 }

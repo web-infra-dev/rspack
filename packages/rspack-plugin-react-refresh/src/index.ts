@@ -34,6 +34,17 @@ class ReactRefreshRspackPlugin {
 	}
 
 	apply(compiler: Compiler) {
+		if (
+			// Webpack do not set process.env.NODE_ENV, so we need to check for mode.
+			// Ref: https://github.com/webpack/webpack/issues/7074
+			(compiler.options.mode !== "development" ||
+				// We also check for production process.env.NODE_ENV,
+				// in case it was set and mode is non-development (e.g. 'none')
+				(process.env.NODE_ENV && process.env.NODE_ENV === "production")) &&
+			!this.options.forceEnable
+		) {
+			return;
+		}
 		new compiler.webpack.EntryPlugin(compiler.context, reactRefreshEntryPath, {
 			name: undefined
 		}).apply(compiler);
@@ -42,11 +53,9 @@ class ReactRefreshRspackPlugin {
 		}).apply(compiler);
 
 		compiler.options.module.rules.unshift({
-			// @ts-expect-error
-			include: this.options.include,
-			// @ts-expect-error
+			include: this.options.include!,
 			exclude: {
-				or: [this.options.exclude, [...runtimePaths]].filter(Boolean)
+				or: [this.options.exclude!, [...runtimePaths]].filter(Boolean)
 			},
 			use: "builtin:react-refresh-loader"
 		});

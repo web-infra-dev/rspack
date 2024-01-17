@@ -1,6 +1,5 @@
 mod api_scanner;
 mod common_js_export_scanner;
-pub(crate) mod common_js_import_dependency_scanner;
 mod common_js_scanner;
 mod compatibility_scanner;
 mod context_helper;
@@ -13,26 +12,27 @@ mod hot_module_replacement_scanner;
 mod import_meta_scanner;
 mod import_scanner;
 mod node_stuff_scanner;
-mod url_scanner;
+mod parser;
 mod util;
 mod worker_scanner;
 
+use std::sync::Arc;
+
+pub use context_helper::scanner_context_module;
 use rspack_ast::javascript::Program;
-use rspack_core::{
-  AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
-  CompilerOptions, JavascriptParserUrl, ModuleIdentifier, ModuleType, ResourceData,
-};
+use rspack_core::{AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo};
+use rspack_core::{BuildMeta, CompilerOptions, ModuleIdentifier, ModuleType, ResourceData};
 use rspack_error::miette::Diagnostic;
 use rustc_hash::FxHashMap as HashMap;
-use swc_core::common::Span;
 use swc_core::common::{comments::Comments, Mark, SyntaxContext};
+use swc_core::common::{SourceFile, Span};
 use swc_core::ecma::atoms::Atom;
-pub use util::*;
 
 use self::harmony_import_dependency_scanner::ImportMap;
+pub use self::parser::JavascriptParser;
+pub use self::util::*;
 use self::{
   api_scanner::ApiScanner, common_js_export_scanner::CommonJsExportDependencyScanner,
-  common_js_import_dependency_scanner::CommonJsImportDependencyScanner,
   common_js_scanner::CommonJsScanner, compatibility_scanner::CompatibilityScanner,
   export_info_api_scanner::ExportInfoApiScanner,
   harmony_detection_scanner::HarmonyDetectionScanner,
@@ -41,7 +41,7 @@ use self::{
   harmony_top_level_this::HarmonyTopLevelThis,
   hot_module_replacement_scanner::HotModuleReplacementScanner,
   import_meta_scanner::ImportMetaScanner, import_scanner::ImportScanner,
-  node_stuff_scanner::NodeStuffScanner, url_scanner::UrlScanner, worker_scanner::WorkerScanner,
+  node_stuff_scanner::NodeStuffScanner, worker_scanner::WorkerScanner,
 };
 
 pub struct ScanDependenciesResult {
@@ -65,6 +65,7 @@ pub enum ExtraSpanInfo {
 
 #[allow(clippy::too_many_arguments)]
 pub fn scan_dependencies(
+  source_file: Arc<SourceFile>,
   program: &Program,
   unresolved_mark: Mark,
   resource_data: &ResourceData,
@@ -86,22 +87,38 @@ pub fn scan_dependencies(
 
   let mut rewrite_usage_span = HashMap::default();
 
-  // TODO it should enable at js/auto or js/dynamic, but builtins provider will inject require at esm
-  // https://github.com/web-infra-dev/rspack/issues/3544
-  program.visit_with(&mut CommonJsImportDependencyScanner::new(
+  let worker_syntax_list = if module_type.is_js_auto() || module_type.is_js_esm() {
+    let mut worker_syntax_scanner = rspack_core::needs_refactor::WorkerSyntaxScanner::new(
+      rspack_core::needs_refactor::DEFAULT_WORKER_SYNTAX,
+    );
+    program.visit_with(&mut worker_syntax_scanner);
+    worker_syntax_scanner.result
+  } else {
+    Default::default()
+  };
+
+  let mut parser = JavascriptParser::new(
+    source_file.clone(),
+    compiler_options,
     &mut dependencies,
     &mut presentational_dependencies,
-    unresolved_ctxt,
     &mut ignored,
-  ));
+    module_type,
+    &worker_syntax_list,
+    &mut errors,
+  );
+
+  parser.visit(program.get_inner_program());
 
   program.visit_with(&mut ApiScanner::new(
+    source_file.clone(),
     unresolved_ctxt,
     resource_data,
     &mut dependencies,
     &mut presentational_dependencies,
     compiler_options.output.module,
     build_info,
+    &mut warning_diagnostics,
     &mut ignored,
   ));
 
@@ -149,7 +166,7 @@ pub fn scan_dependencies(
 
   if module_type.is_js_auto() || module_type.is_js_esm() {
     program.visit_with(&mut HarmonyDetectionScanner::new(
-      &module_identifier,
+      source_file.clone(),
       build_info,
       build_meta,
       module_type,
@@ -184,15 +201,10 @@ pub fn scan_dependencies(
       })
     }
 
-    let mut worker_syntax_scanner = rspack_core::needs_refactor::WorkerSyntaxScanner::new(
-      rspack_core::needs_refactor::DEFAULT_WORKER_SYNTAX,
-    );
-    program.visit_with(&mut worker_syntax_scanner);
-    let worker_syntax_list = &worker_syntax_scanner.into();
     let mut worker_scanner = WorkerScanner::new(
       &module_identifier,
       &compiler_options.output,
-      worker_syntax_list,
+      &worker_syntax_list,
       &mut ignored,
     );
     program.visit_with(&mut worker_scanner);
@@ -200,24 +212,8 @@ pub fn scan_dependencies(
     dependencies.append(&mut worker_scanner.dependencies);
     presentational_dependencies.append(&mut worker_scanner.presentational_dependencies);
 
-    let parse_url = &compiler_options
-      .module
-      .parser
-      .as_ref()
-      .and_then(|p| p.get(module_type))
-      .and_then(|p| p.get_javascript(module_type))
-      .map(|p| p.url)
-      .unwrap_or(JavascriptParserUrl::Enable);
-
-    if !matches!(parse_url, JavascriptParserUrl::Disable) {
-      program.visit_with(&mut UrlScanner::new(
-        &mut dependencies,
-        worker_syntax_list,
-        matches!(parse_url, JavascriptParserUrl::Relative),
-        &mut ignored,
-      ));
-    }
     program.visit_with(&mut ImportMetaScanner::new(
+      source_file.clone(),
       &mut presentational_dependencies,
       resource_data,
       compiler_options,
@@ -227,6 +223,7 @@ pub fn scan_dependencies(
   }
 
   program.visit_with(&mut ImportScanner::new(
+    source_file.clone(),
     module_identifier,
     &mut dependencies,
     &mut blocks,

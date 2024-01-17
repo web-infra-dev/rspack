@@ -3,8 +3,8 @@ use std::{
   sync::{Arc, Mutex},
 };
 
-use rspack_error::{Diagnostic, Result};
-use rspack_loader_runner::ResourceData;
+use rspack_error::{Diagnostic, Result, TWithDiagnosticArray};
+use rspack_loader_runner::{LoaderContext, ResourceData};
 use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
 
@@ -13,16 +13,16 @@ use crate::{
   AssetEmittedArgs, BoxLoader, BoxModule, BoxedParserAndGeneratorBuilder, Chunk, ChunkAssetArgs,
   ChunkContentHash, ChunkHashArgs, CodeGenerationResults, Compilation, CompilationArgs,
   CompilationParams, CompilerOptions, Content, ContentHashArgs, DoneArgs, FactorizeArgs,
-  JsChunkHashArgs, MakeParam, Module, ModuleIdentifier, ModuleType, NormalModule,
-  NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs, NormalModuleCreateData,
-  OptimizeChunksArgs, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput,
-  PluginAdditionalModuleRequirementsOutput, PluginBuildEndHookOutput, PluginChunkHashHookOutput,
-  PluginCompilationHookOutput, PluginContext, PluginFactorizeHookOutput,
-  PluginJsChunkHashHookOutput, PluginMakeHookOutput, PluginNormalModuleFactoryAfterResolveOutput,
-  PluginNormalModuleFactoryBeforeResolveOutput, PluginNormalModuleFactoryCreateModuleHookOutput,
-  PluginNormalModuleFactoryModuleHookOutput, PluginProcessAssetsOutput,
-  PluginRenderChunkHookOutput, PluginRenderHookOutput, PluginRenderManifestHookOutput,
-  PluginRenderModuleContentOutput, PluginRenderStartupHookOutput,
+  JsChunkHashArgs, LoaderRunnerContext, MakeParam, Module, ModuleIdentifier, ModuleType,
+  NormalModule, NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs,
+  NormalModuleCreateData, OptimizeChunksArgs, Plugin,
+  PluginAdditionalChunkRuntimeRequirementsOutput, PluginAdditionalModuleRequirementsOutput,
+  PluginBuildEndHookOutput, PluginChunkHashHookOutput, PluginCompilationHookOutput, PluginContext,
+  PluginFactorizeHookOutput, PluginJsChunkHashHookOutput, PluginMakeHookOutput,
+  PluginNormalModuleFactoryAfterResolveOutput, PluginNormalModuleFactoryBeforeResolveOutput,
+  PluginNormalModuleFactoryCreateModuleHookOutput, PluginNormalModuleFactoryModuleHookOutput,
+  PluginProcessAssetsOutput, PluginRenderChunkHookOutput, PluginRenderHookOutput,
+  PluginRenderManifestHookOutput, PluginRenderModuleContentOutput, PluginRenderStartupHookOutput,
   PluginRuntimeRequirementsInTreeOutput, PluginThisCompilationHookOutput, ProcessAssetsArgs,
   RenderArgs, RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs,
   Resolver, ResolverFactory, RuntimeRequirementsInTreeArgs, Stats, ThisCompilationArgs,
@@ -254,10 +254,15 @@ impl PluginDriver {
     args: RenderManifestArgs<'_>,
   ) -> PluginRenderManifestHookOutput {
     let mut assets = vec![];
+    let mut diagnostics = vec![];
+
     for plugin in &self.plugins {
       let res = plugin
         .render_manifest(PluginContext::new(), args.clone())
         .await?;
+
+      let (res, diags) = res.split_into_parts();
+
       tracing::trace!(
         "For Chunk({:?}), Plugin({}) generate files {:?}",
         args.chunk().id,
@@ -267,9 +272,11 @@ impl PluginDriver {
           .map(|manifest| manifest.filename())
           .collect::<Vec<_>>()
       );
+
       assets.extend(res);
+      diagnostics.extend(diags);
     }
-    Ok(assets)
+    Ok(TWithDiagnosticArray::new(assets, diagnostics))
   }
 
   pub async fn render_chunk(&self, args: RenderChunkArgs<'_>) -> PluginRenderChunkHookOutput {
@@ -363,6 +370,18 @@ impl PluginDriver {
         .await?;
     }
     Ok(module)
+  }
+
+  pub fn normal_module_loader(
+    &self,
+    loader_context: &mut LoaderContext<'_, LoaderRunnerContext>,
+    module: &NormalModule,
+  ) -> Result<()> {
+    for plugin in &self.plugins {
+      tracing::trace!("running normal_module_factory_module:{}", plugin.name());
+      plugin.normal_module_loader(PluginContext::new(), loader_context, module)?;
+    }
+    Ok(())
   }
 
   pub async fn before_resolve(
@@ -503,15 +522,30 @@ impl PluginDriver {
     Ok(())
   }
 
+  #[instrument(name = "plugin:after_process_assets", skip_all)]
+  pub async fn after_process_assets(&self, args: ProcessAssetsArgs<'_>) -> Result<()> {
+    for plugin in &self.plugins {
+      plugin
+        .after_process_assets(
+          PluginContext::new(),
+          ProcessAssetsArgs {
+            compilation: args.compilation,
+          },
+        )
+        .await?
+    }
+    Ok(())
+  }
+
   #[instrument(name = "plugin:make", skip_all)]
   pub async fn make(
     &self,
     compilation: &mut Compilation,
-    param: &mut MakeParam,
+    params: &mut Vec<MakeParam>,
   ) -> PluginMakeHookOutput {
     for plugin in &self.plugins {
       plugin
-        .make(PluginContext::new(), compilation, param)
+        .make(PluginContext::new(), compilation, params)
         .await?;
     }
     Ok(())

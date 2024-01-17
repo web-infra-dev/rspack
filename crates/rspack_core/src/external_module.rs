@@ -11,7 +11,7 @@ use serde::Serialize;
 use crate::{
   extract_url_and_global, impl_build_info_meta, property_access,
   rspack_sources::{BoxSource, RawSource, Source, SourceExt},
-  to_identifier, AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildMeta,
+  to_identifier, AsyncDependenciesBlockId, BuildContext, BuildInfo, BuildMeta,
   BuildMetaExportsType, BuildResult, ChunkInitFragments, ChunkUkey, CodeGenerationDataUrl,
   CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId,
   ExternalType, InitFragmentExt, InitFragmentKey, InitFragmentStage, LibIdentOptions, Module,
@@ -82,7 +82,7 @@ fn get_source_for_default_case(_optional: bool, request: &ExternalRequestValue) 
 #[derive(Debug)]
 pub struct ExternalModule {
   dependencies: Vec<DependencyId>,
-  blocks: Vec<AsyncDependenciesBlockIdentifier>,
+  blocks: Vec<AsyncDependenciesBlockId>,
   id: Identifier,
   pub request: ExternalRequest,
   external_type: ExternalType,
@@ -288,11 +288,11 @@ impl Identifiable for ExternalModule {
 }
 
 impl DependenciesBlock for ExternalModule {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
+  fn add_block_id(&mut self, block: AsyncDependenciesBlockId) {
     self.blocks.push(block)
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
+  fn get_blocks(&self) -> &[AsyncDependenciesBlockId] {
     &self.blocks
   }
 

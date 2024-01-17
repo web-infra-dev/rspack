@@ -1,3 +1,5 @@
+const rspack = require("@rspack/core");
+
 module.exports = {
 	entry: {
 		main: "./index",
@@ -15,16 +17,14 @@ module.exports = {
 			}
 		]
 	},
-	builtins: {
-		banner: [
-			"MMMMMMM",
-			{
-				banner: "/** MMMMMMM */",
-				raw: true,
-				footer: true,
-				entryOnly: true,
-				exclude: [/a\.js/]
-			}
-		]
-	}
+	plugins: [
+		new rspack.BannerPlugin("MMMMMMM"),
+		new rspack.BannerPlugin({
+			banner: "/** MMMMMMM */",
+			raw: true,
+			footer: true,
+			entryOnly: true,
+			exclude: [/a\.js/]
+		})
+	]
 };

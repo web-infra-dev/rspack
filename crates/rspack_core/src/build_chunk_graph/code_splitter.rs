@@ -7,7 +7,7 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use super::remove_parent_modules::RemoveParentModulesContext;
 use crate::dependencies_block::AsyncDependenciesToInitialChunkError;
 use crate::{
-  assign_depth, assign_depths, get_entry_runtime, AsyncDependenciesBlockIdentifier, BoxDependency,
+  assign_depth, assign_depths, get_entry_runtime, AsyncDependenciesBlockId, BoxDependency,
   ChunkGroup, ChunkGroupInfo, ChunkGroupKind, ChunkGroupOptions, ChunkGroupUkey, ChunkLoading,
   ChunkUkey, Compilation, ConnectionState, DependenciesBlock, Dependency, GroupOptions, Logger,
   ModuleGraphConnection, ModuleIdentifier, RuntimeSpec,
@@ -33,7 +33,7 @@ pub(super) struct CodeSplitter<'me> {
   queue_delayed: Vec<QueueAction>,
   queue_connect: HashMap<ChunkGroupUkey, HashSet<ChunkGroupUkey>>,
   outdated_chunk_group_info: HashSet<ChunkGroupUkey>,
-  block_chunk_groups: HashMap<AsyncDependenciesBlockIdentifier, ChunkGroupUkey>,
+  block_chunk_groups: HashMap<AsyncDependenciesBlockId, ChunkGroupUkey>,
   named_chunk_groups: HashMap<String, ChunkGroupUkey>,
   named_async_entrypoints: HashMap<String, ChunkGroupUkey>,
   block_modules_runtime_map: HashMap<
@@ -505,15 +505,13 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         }));
       }
     }
-    let blocks = self
-      .compilation
-      .module_graph
-      .block_by_id(&item.block)
-      .expect("should have block")
+    let blocks = &item
+      .block
+      .expect_get(self.compilation)
       .get_blocks()
       .to_vec();
     for block in blocks {
-      self.iterator_block(block, item.chunk_group, item.chunk);
+      self.iterator_block(*block, item.chunk_group, item.chunk);
     }
   }
 
@@ -559,7 +557,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
   fn iterator_block(
     &mut self,
-    block_id: AsyncDependenciesBlockIdentifier,
+    block_id: AsyncDependenciesBlockId,
     item_chunk_group_ukey: ChunkGroupUkey,
     item_chunk_ukey: ChunkUkey,
   ) {
@@ -782,12 +780,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       return modules.clone();
     }
     // dbg!(&module, &runtime);
-    self.extract_block_modules(
-      *module.get_root_block().expect(
-        "block_modules_map must not empty when calling get_block_modules(AsyncDependenciesBlock)",
-      ),
-      runtime,
-    );
+    self.extract_block_modules(*module.get_root_block(self.compilation), runtime);
     self
       .block_modules_runtime_map
       .get(&runtime.cloned().into())
@@ -1007,7 +1000,7 @@ struct ProcessBlock {
 
 #[derive(Debug, Clone)]
 struct ProcessEntryBlock {
-  block: AsyncDependenciesBlockIdentifier,
+  block: AsyncDependenciesBlockId,
   chunk_group: ChunkGroupUkey,
   chunk: ChunkUkey,
 }
@@ -1015,19 +1008,20 @@ struct ProcessEntryBlock {
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 enum DependenciesBlockIdentifier {
   Module(ModuleIdentifier),
-  AsyncDependenciesBlock(AsyncDependenciesBlockIdentifier),
+  AsyncDependenciesBlock(AsyncDependenciesBlockId),
 }
 
 impl DependenciesBlockIdentifier {
-  // hack for webpack get_root_block, refer TODO: https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/buildChunkGraph.js#L222
-  pub fn get_root_block(&self) -> Option<&ModuleIdentifier> {
+  pub fn get_root_block<'a>(&'a self, compilation: &'a Compilation) -> &'a ModuleIdentifier {
     match self {
-      DependenciesBlockIdentifier::Module(m) => Some(m),
-      DependenciesBlockIdentifier::AsyncDependenciesBlock(ident) => Some(&ident.from),
+      DependenciesBlockIdentifier::Module(m) => m,
+      DependenciesBlockIdentifier::AsyncDependenciesBlock(id) => {
+        id.expect_get(compilation).parent()
+      }
     }
   }
 
-  pub fn get_blocks(&self, compilation: &Compilation) -> Vec<AsyncDependenciesBlockIdentifier> {
+  pub fn get_blocks(&self, compilation: &Compilation) -> Vec<AsyncDependenciesBlockId> {
     match self {
       DependenciesBlockIdentifier::Module(m) => compilation
         .module_graph
@@ -1051,8 +1045,8 @@ impl From<ModuleIdentifier> for DependenciesBlockIdentifier {
   }
 }
 
-impl From<AsyncDependenciesBlockIdentifier> for DependenciesBlockIdentifier {
-  fn from(value: AsyncDependenciesBlockIdentifier) -> Self {
+impl From<AsyncDependenciesBlockId> for DependenciesBlockIdentifier {
+  fn from(value: AsyncDependenciesBlockId) -> Self {
     Self::AsyncDependenciesBlock(value)
   }
 }

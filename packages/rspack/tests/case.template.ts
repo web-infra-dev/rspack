@@ -1,7 +1,6 @@
 import path from "path";
 import fs from "fs";
 import vm from "vm";
-import util from "util";
 import { rspack, RspackOptions } from "../src";
 import assert from "assert";
 import createLazyTestEnv from "./helpers/createLazyTestEnv";
@@ -88,23 +87,6 @@ export function describeCases(config: { name: string; casePath: string }) {
 											return done(err);
 										}
 										const statsJson = stats!.toJson();
-										if (category.name === "errors") {
-											assert(statsJson.errors!.length > 0);
-										} else if (category.name === "warnings") {
-											assert(statsJson.warnings!.length > 0);
-										} else {
-											if (statsJson.errors!.length > 0) {
-												console.log(
-													`case: ${example}\nerrors:\n`,
-													`${statsJson.errors!.map(x => x.message).join("\n")}`
-												);
-											}
-											assert(
-												statsJson.errors!.length === 0,
-												`${JSON.stringify(statsJson.errors, null, 2)}`
-											);
-										}
-
 										if (
 											checkArrayExpectation(
 												testRoot,

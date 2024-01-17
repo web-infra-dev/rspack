@@ -29,7 +29,6 @@ export enum BuiltinPluginName {
 	WebWorkerTemplatePlugin = "WebWorkerTemplatePlugin",
 	MergeDuplicateChunksPlugin = "MergeDuplicateChunksPlugin",
 	SplitChunksPlugin = "SplitChunksPlugin",
-	OldSplitChunksPlugin = "OldSplitChunksPlugin",
 	ShareRuntimePlugin = "ShareRuntimePlugin",
 	ContainerPlugin = "ContainerPlugin",
 	ContainerReferencePlugin = "ContainerReferencePlugin",
@@ -56,7 +55,8 @@ export enum BuiltinPluginName {
 	SideEffectsFlagPlugin = "SideEffectsFlagPlugin",
 	FlagDependencyExportsPlugin = "FlagDependencyExportsPlugin",
 	FlagDependencyUsagePlugin = "FlagDependencyUsagePlugin",
-	MangleExportsPlugin = "MangleExportsPlugin"
+	MangleExportsPlugin = "MangleExportsPlugin",
+	BundlerInfoPlugin = "BundlerInfoPlugin"
 }
 
 type AffectedHooks = keyof Compiler["hooks"];

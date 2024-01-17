@@ -1,11 +1,15 @@
-import { Compiler } from "webpack";
+import { Compiler, WebpackOptionsNormalized } from "webpack";
 import { WebpackModulePlaceholderPlugin } from "./webpack-module-placeholder-plugin";
 
 const PLUGIN_NAME = "WebpackDiffConfigPlugin";
 
 export class WebpackDiffConfigPlugin {
 	public name = PLUGIN_NAME;
-	constructor(private webpackPath: string) {}
+	constructor(
+		private modifier?: (
+			options: WebpackOptionsNormalized
+		) => WebpackOptionsNormalized
+	) {}
 	apply(compiler: Compiler) {
 		const { options } = compiler;
 		options.mode = "development";
@@ -34,6 +38,10 @@ export class WebpackDiffConfigPlugin {
 		options.output.environment.optionalChaining = false;
 		options.output.environment.templateLiteral = false;
 
-		new WebpackModulePlaceholderPlugin(this.webpackPath).apply(compiler);
+		if (typeof this.modifier === "function") {
+			this.modifier(compiler.options);
+		}
+
+		new WebpackModulePlaceholderPlugin().apply(compiler);
 	}
 }

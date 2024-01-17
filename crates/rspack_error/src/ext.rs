@@ -2,6 +2,8 @@ use std::error::Error;
 
 use miette::Diagnostic;
 
+use crate::miette_helpers::WithHelp;
+
 /// Useful to convert [std::error::Error] to [crate::DiagnosticError]
 pub trait ErrorExt {
   fn boxed(self) -> Box<dyn Error + Send + Sync>;
@@ -20,5 +22,23 @@ pub trait DiagnosticExt {
 impl<T: Diagnostic + Send + Sync + 'static> DiagnosticExt for T {
   fn boxed(self) -> Box<dyn Diagnostic + Send + Sync> {
     Box::new(self)
+  }
+}
+
+pub trait MietteExt {
+  fn with_help(self, message: impl Into<String>) -> Box<dyn Diagnostic + Send + Sync>;
+}
+
+impl MietteExt for Box<dyn Diagnostic + Send + Sync> {
+  fn with_help(self, message: impl Into<String>) -> Box<dyn Diagnostic + Send + Sync> {
+    let h = WithHelp::from(self).with_help(message);
+    <WithHelp as DiagnosticExt>::boxed(h)
+  }
+}
+
+impl MietteExt for miette::Error {
+  fn with_help(self, message: impl Into<String>) -> Box<dyn Diagnostic + Send + Sync> {
+    let h = WithHelp::from(self).with_help(message);
+    <WithHelp as DiagnosticExt>::boxed(h)
   }
 }

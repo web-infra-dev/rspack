@@ -16,6 +16,7 @@ pub struct CommonJsFullRequireDependency {
   range: DependencyLocation,
   span: Option<ErrorSpan>,
   is_call: bool,
+  optional: bool,
 }
 
 impl CommonJsFullRequireDependency {
@@ -25,6 +26,7 @@ impl CommonJsFullRequireDependency {
     range: DependencyLocation,
     span: Option<ErrorSpan>,
     is_call: bool,
+    optional: bool,
   ) -> Self {
     Self {
       id: DependencyId::new(),
@@ -33,6 +35,7 @@ impl CommonJsFullRequireDependency {
       range,
       span,
       is_call,
+      optional,
     }
   }
 }
@@ -72,6 +75,10 @@ impl ModuleDependency for CommonJsFullRequireDependency {
     self.request = request;
   }
 
+  fn get_optional(&self) -> bool {
+    self.optional
+  }
+
   fn get_referenced_exports(
     &self,
     module_graph: &rspack_core::ModuleGraph,
@@ -79,9 +86,9 @@ impl ModuleDependency for CommonJsFullRequireDependency {
   ) -> Vec<ExtendedReferencedExport> {
     if self.is_call
       && module_graph
-        .module_identifier_by_dependency_id(&self.id)
-        .and_then(|identifier| module_graph.module_by_identifier(identifier))
-        .map(|module| module.get_exports_type(false))
+        .module_graph_module_by_dependency_id(&self.id)
+        .and_then(|mgm| module_graph.module_by_identifier(&mgm.module_identifier))
+        .map(|m| m.get_exports_type(false))
         .is_some_and(|t| !matches!(t, ExportsType::Namespace))
     {
       if self.names.is_empty() {

@@ -5,6 +5,7 @@ mod catch_unwind;
 mod diagnostic;
 mod error;
 mod ext;
+pub(crate) mod miette_helpers;
 pub use catch_unwind::*;
 pub use diagnostic::*;
 pub use error::*;
@@ -43,6 +44,10 @@ impl<T: std::fmt::Debug> TWithDiagnosticArray<T> {
 
   pub fn split_into_parts(self) -> (T, Vec<Diagnostic>) {
     (self.inner, self.diagnostic)
+  }
+
+  pub fn get(&self) -> &T {
+    &self.inner
   }
 }
 

@@ -32,21 +32,6 @@ export class SplitChunksPlugin extends RspackBuiltinPlugin {
 	}
 }
 
-export class OldSplitChunksPlugin extends RspackBuiltinPlugin {
-	name = BuiltinPluginName.OldSplitChunksPlugin;
-	affectedHooks = "thisCompilation" as const;
-
-	constructor(private options: OptimizationSplitChunksOptions) {
-		super();
-	}
-
-	raw(compiler: Compiler): BuiltinPlugin {
-		const rawOptions = toRawSplitChunksOptions(this.options, compiler);
-		assert(typeof rawOptions !== "undefined");
-		return createBuiltinPlugin(this.name, rawOptions);
-	}
-}
-
 function toRawSplitChunksOptions(
 	sc: false | OptimizationSplitChunksOptions,
 	compiler: Compiler

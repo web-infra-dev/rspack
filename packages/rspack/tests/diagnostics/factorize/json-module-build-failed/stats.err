@@ -1,0 +1,8 @@
+ERROR in ./syntax-error.json
+  × Json parsing error: Unexpected character }
+   ╭─[1:1]
+ 1 │ {
+ 2 │   "a"
+ 3 │ }
+   · ─
+   ╰────

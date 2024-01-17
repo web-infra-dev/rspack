@@ -32,3 +32,9 @@ it("should import by full require with require().l.m()().n", () => {
 	const res = require("./exports.js").l.m()().n;
 	expect(res).toBe("abc");
 });
+
+it("should not throw error when require in try catch", () => {
+	try {
+		let res = require("fail").a;
+	} catch (e) {}
+});

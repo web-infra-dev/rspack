@@ -4,7 +4,7 @@ use serde_json::json;
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
-  get_import_var, property_access, to_comment, to_normal_comment, AsyncDependenciesBlockIdentifier,
+  get_import_var, property_access, to_comment, to_normal_comment, AsyncDependenciesBlockId,
   Compilation, DependenciesBlock, DependencyId, ExportsType, FakeNamespaceObjectMode,
   InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleGraph, ModuleIdentifier,
   NormalInitFragment, RuntimeGlobals, TemplateContext,
@@ -241,7 +241,7 @@ pub fn import_statement(
 pub fn module_namespace_promise(
   code_generatable_context: &mut TemplateContext,
   dep_id: &DependencyId,
-  block: Option<&AsyncDependenciesBlockIdentifier>,
+  block: Option<&AsyncDependenciesBlockId>,
   request: &str,
   _message: &str,
   weak: bool,
@@ -356,7 +356,7 @@ pub fn module_namespace_promise(
 }
 
 pub fn block_promise(
-  block: Option<&AsyncDependenciesBlockIdentifier>,
+  block: Option<&AsyncDependenciesBlockId>,
   runtime_requirements: &mut RuntimeGlobals,
   compilation: &Compilation,
 ) -> String {
@@ -364,14 +364,44 @@ pub fn block_promise(
     // ImportEagerDependency
     return "Promise.resolve()".to_string();
   };
-  let block = compilation
-    .module_graph
-    .block_by_id(block)
-    .expect("should have block");
-  let key = block.block_promise_key(compilation);
-  runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK);
-  runtime_requirements.insert(RuntimeGlobals::LOAD_CHUNK_WITH_BLOCK);
-  format!("{}({key})", RuntimeGlobals::LOAD_CHUNK_WITH_BLOCK)
+  let chunk_group = compilation
+    .chunk_graph
+    .get_block_chunk_group(block, &compilation.chunk_group_by_ukey);
+  let Some(chunk_group) = chunk_group else {
+    return "Promise.resolve()".to_string();
+  };
+  if chunk_group.chunks.is_empty() {
+    return "Promise.resolve()".to_string();
+  }
+  let chunks = chunk_group
+    .chunks
+    .iter()
+    .map(|c| compilation.chunk_by_ukey.expect_get(c))
+    .filter(|c| !c.has_runtime(&compilation.chunk_group_by_ukey) && c.id.is_some())
+    .collect::<Vec<_>>();
+  if chunks.len() == 1 {
+    let chunk_id = serde_json::to_string(chunks[0].id.as_ref().expect("should have chunk.id"))
+      .expect("should able to json stringify");
+    runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK);
+    format!("{}({chunk_id})", RuntimeGlobals::ENSURE_CHUNK)
+  } else if !chunks.is_empty() {
+    runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK);
+    format!(
+      "Promise.all([{}])",
+      chunks
+        .iter()
+        .map(|c| format!(
+          "{}({})",
+          RuntimeGlobals::ENSURE_CHUNK,
+          serde_json::to_string(c.id.as_ref().expect("should have chunk.id"))
+            .expect("should able to json stringify")
+        ))
+        .collect::<Vec<_>>()
+        .join(", ")
+    )
+  } else {
+    "Promise.resolve()".to_string()
+  }
 }
 
 pub fn module_raw(
@@ -455,15 +485,12 @@ pub fn sync_module_factory(
 }
 
 pub fn async_module_factory(
-  block_id: &AsyncDependenciesBlockIdentifier,
+  block_id: &AsyncDependenciesBlockId,
   request: &str,
   compilation: &Compilation,
   runtime_requirements: &mut RuntimeGlobals,
 ) -> String {
-  let block = compilation
-    .module_graph
-    .block_by_id(block_id)
-    .expect("should have block");
+  let block = block_id.expect_get(compilation);
   let dep = block.get_dependencies()[0];
   let ensure_chunk = block_promise(Some(block_id), runtime_requirements, compilation);
   let factory = returning_function(

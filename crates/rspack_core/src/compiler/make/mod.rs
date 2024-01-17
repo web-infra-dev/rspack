@@ -10,20 +10,16 @@ pub use rebuild_deps_builder::RebuildDepsBuilder;
 #[derive(Debug)]
 pub enum MakeParam {
   ModifiedFiles(HashSet<PathBuf>),
+  DeletedFiles(HashSet<PathBuf>),
   ForceBuildDeps(HashSet<BuildDependency>),
   ForceBuildModules(HashSet<ModuleIdentifier>),
 }
 
 impl MakeParam {
-  pub fn add_force_build_dependency(
-    &mut self,
-    dep: DependencyId,
-    module: Option<ModuleIdentifier>,
-  ) -> bool {
-    match self {
-      MakeParam::ForceBuildDeps(set) => set.insert((dep, module)),
-      _ => false,
-    }
+  pub fn new_force_build_dep_param(dep: DependencyId, module: Option<ModuleIdentifier>) -> Self {
+    let mut data = HashSet::default();
+    data.insert((dep, module));
+    Self::ForceBuildDeps(data)
   }
 }
 

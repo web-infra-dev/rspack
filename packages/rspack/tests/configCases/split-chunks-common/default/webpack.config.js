@@ -9,5 +9,8 @@ module.exports = {
 	output: {
 		filename: "[name].js"
 	},
-	optimization: {}
+	optimization: {
+		chunkIds: "named",
+		moduleIds: "named"
+	}
 };

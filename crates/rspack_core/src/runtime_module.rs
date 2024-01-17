@@ -64,11 +64,11 @@ macro_rules! impl_runtime_module {
     }
 
     impl $crate::DependenciesBlock for $ident {
-      fn add_block_id(&mut self, _: $crate::AsyncDependenciesBlockIdentifier) {
+      fn add_block_id(&mut self, _: $crate::AsyncDependenciesBlockId) {
         unreachable!()
       }
 
-      fn get_blocks(&self) -> &[$crate::AsyncDependenciesBlockIdentifier] {
+      fn get_blocks(&self) -> &[$crate::AsyncDependenciesBlockId] {
         unreachable!()
       }
 

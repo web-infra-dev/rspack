@@ -12,7 +12,7 @@ use rspack_core::DependencyLocation;
 pub use self::eval_array_expr::eval_array_expression;
 pub use self::eval_binary_expr::eval_binary_expression;
 pub use self::eval_cond_expr::eval_cond_expression;
-pub use self::eval_lit_expr::eval_lit_expr;
+pub use self::eval_lit_expr::{eval_lit_expr, eval_prop_name};
 pub use self::eval_new_expr::eval_new_expression;
 pub use self::eval_tpl_expr::{eval_tpl_expression, TemplateStringKind};
 pub use self::eval_unary_expr::eval_unary_expression;
@@ -31,7 +31,7 @@ enum Ty {
   Array,
   ConstArray,
   BigInt,
-  // Identifier,
+  Identifier,
   // TypeWrapped,
   TemplateString,
 }
@@ -58,6 +58,7 @@ pub struct BasicEvaluatedExpression {
   string: Option<String>,
   bigint: Option<Bigint>,
   regexp: Option<Regexp>,
+  identifier: Option<String>,
   items: Option<Vec<BasicEvaluatedExpression>>,
   quasis: Option<Vec<BasicEvaluatedExpression>>,
   parts: Option<Vec<BasicEvaluatedExpression>>,
@@ -87,6 +88,7 @@ impl BasicEvaluatedExpression {
       bigint: None,
       quasis: None,
       parts: None,
+      identifier: None,
       template_string_kind: None,
       options: None,
       string: None,
@@ -105,9 +107,9 @@ impl BasicEvaluatedExpression {
   //   matches!(self.ty, Ty::Unknown)
   // }
 
-  // pub fn is_identifier(&self) -> bool {
-  //   matches!(self.ty, Ty::Identifier)
-  // }
+  pub fn is_identifier(&self) -> bool {
+    matches!(self.ty, Ty::Identifier)
+  }
 
   pub fn is_null(&self) -> bool {
     matches!(self.ty, Ty::Null)
@@ -319,6 +321,13 @@ impl BasicEvaluatedExpression {
     self.string.as_ref().expect("make sure string exist")
   }
 
+  pub fn identifier(&self) -> &String {
+    self
+      .identifier
+      .as_ref()
+      .expect("make sure identifier exist")
+  }
+
   pub fn regexp(&self) -> &Regexp {
     self.regexp.as_ref().expect("make sure regexp exist")
   }
@@ -356,34 +365,33 @@ bitflags! {
 }
 
 pub fn is_valid_reg_exp_flags(flags: &str) -> bool {
-  let chars = flags.chars().collect::<Vec<_>>();
-  if chars.is_empty() {
+  if flags.is_empty() {
     true
-  } else if chars.len() > 4 {
+  } else if flags.len() > 4 {
     false
   } else {
     let mut remaining = RegExpFlag::empty();
-    for c in chars {
-      match c {
-        'g' => {
+    for c in flags.as_bytes() {
+      match *c {
+        b'g' => {
           if remaining.contains(RegExpFlag::FLAG_G) {
             return false;
           }
           remaining.insert(RegExpFlag::FLAG_G);
         }
-        'i' => {
+        b'i' => {
           if remaining.contains(RegExpFlag::FLAG_I) {
             return false;
           }
           remaining.insert(RegExpFlag::FLAG_I);
         }
-        'm' => {
+        b'm' => {
           if remaining.contains(RegExpFlag::FLAG_M) {
             return false;
           }
           remaining.insert(RegExpFlag::FLAG_M);
         }
-        'y' => {
+        b'y' => {
           if remaining.contains(RegExpFlag::FLAG_Y) {
             return false;
           }
