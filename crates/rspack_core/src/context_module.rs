@@ -19,13 +19,13 @@ use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  contextify, get_exports_type_with_strict, impl_build_info_meta, stringify_map, to_path,
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo,
-  BuildMeta, BuildResult, ChunkGraph, ChunkGroupOptions, CodeGenerationResult, Compilation,
-  ConcatenationScope, ContextElementDependency, DependenciesBlock, DependencyCategory,
-  DependencyId, ExportsType, FakeNamespaceObjectMode, GroupOptions, LibIdentOptions, Module,
-  ModuleType, Resolve, ResolveInnerOptions, ResolveOptionsWithDependencyType, ResolverFactory,
-  RuntimeGlobals, RuntimeSpec, SourceType,
+  block_promise, contextify, get_exports_type_with_strict, impl_build_info_meta,
+  returning_function, stringify_map, to_path, AsyncDependenciesBlock, AsyncDependenciesBlockId,
+  BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult, ChunkGraph, ChunkGroupOptions,
+  CodeGenerationResult, Compilation, ConcatenationScope, ContextElementDependency,
+  DependenciesBlock, DependencyCategory, DependencyId, ExportsType, FakeNamespaceObjectMode,
+  GroupOptions, LibIdentOptions, Module, ModuleType, Resolve, ResolveInnerOptions,
+  ResolveOptionsWithDependencyType, ResolverFactory, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
 #[derive(Debug, Clone)]

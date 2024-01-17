@@ -13,7 +13,7 @@ use rspack_core::{
   NormalInitFragment, RuntimeGlobals, RuntimeSpec, Template, TemplateContext,
   TemplateReplaceSource, UsageState, UsedName,
 };
-use rustc_hash::FxHashSet as HashSet;
+use rustc_hash::{FxHashSet as HashSet, FxHasher};
 use swc_core::ecma::atoms::Atom;
 
 use super::{create_resource_identifier_for_esm_dependency, harmony_import_dependency_apply};

@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use rspack_core::{
   impl_build_info_meta,
   rspack_sources::{RawSource, Source, SourceExt},
-  AsyncDependenciesBlockIdentifier, BuildInfo, BuildMeta, Compilation, ConcatenationScope,
+  AsyncDependenciesBlockId, BuildInfo, BuildMeta, Compilation, ConcatenationScope,
   DependenciesBlock, DependencyId, Module, ModuleType, NormalModuleCreateData, Plugin,
   PluginContext, PluginNormalModuleFactoryCreateModuleHookOutput, RuntimeGlobals, RuntimeSpec,
   SourceType,

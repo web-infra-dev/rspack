@@ -9,11 +9,11 @@ pub struct WebpackIsIncludedDependency {
   pub start: u32,
   pub end: u32,
   pub id: DependencyId,
-  pub request: Atom,
+  pub request: String,
 }
 
 impl WebpackIsIncludedDependency {
-  pub fn new(start: u32, end: u32, request: Atom) -> Self {
+  pub fn new(start: u32, end: u32, request: String) -> Self {
     Self {
       start,
       end,

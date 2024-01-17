@@ -8,10 +8,9 @@ use rspack_identifier::{Identifiable, Identifier};
 use rspack_sources::Source;
 
 use crate::{
-  impl_build_info_meta, AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildMeta,
-  BuildResult, ChunkUkey, CodeGenerationResult, Compilation, ConcatenationScope, Context,
-  DependenciesBlock, DependencyId, LibIdentOptions, Module, ModuleIdentifier, ModuleType,
-  RuntimeSpec, SourceType,
+  impl_build_info_meta, AsyncDependenciesBlockId, BuildContext, BuildInfo, BuildMeta, BuildResult,
+  ChunkUkey, CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock,
+  DependencyId, LibIdentOptions, Module, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
 };
 
 #[derive(Debug)]

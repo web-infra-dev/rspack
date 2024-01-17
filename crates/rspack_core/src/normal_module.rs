@@ -24,13 +24,13 @@ use rustc_hash::FxHasher;
 use serde_json::json;
 
 use crate::{
-  add_connection_states, contextify, get_context, impl_build_info_meta,
-  AsyncDependenciesBlockIdentifier, BoxLoader, BoxModule, BuildContext, BuildInfo, BuildMeta,
-  BuildResult, CodeGenerationResult, Compilation, CompilerOptions, ConcatenationScope,
+  add_connection_states, contextify, diagnostics::ModuleBuildError, get_context,
+  impl_build_info_meta, AsyncDependenciesBlockId, BoxLoader, BoxModule, BuildContext, BuildInfo,
+  BuildMeta, BuildResult, CodeGenerationResult, Compilation, CompilerOptions, ConcatenationScope,
   ConnectionState, Context, DependenciesBlock, DependencyId, DependencyTemplate, GenerateContext,
-  GeneratorOptions, LibIdentOptions, LoaderRunnerPluginProcessResource, Module, ModuleDependency,
-  ModuleGraph, ModuleIdentifier, ModuleType, ParseContext, ParseResult, ParserAndGenerator,
-  ParserOptions, Resolve, RuntimeSpec, SourceType,
+  GeneratorOptions, LibIdentOptions, Module, ModuleDependency, ModuleGraph, ModuleIdentifier,
+  ModuleType, ParseContext, ParseResult, ParserAndGenerator, ParserOptions, Resolve,
+  RspackLoaderRunnerPlugin, RuntimeSpec, SourceType,
 };
 
 bitflags! {

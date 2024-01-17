@@ -37,7 +37,7 @@ use swc_node_comments::SwcComments;
 use crate::{
   concatenated_module, filter_runtime, merge_runtime_condition, merge_runtime_condition_non_false,
   module_factory, property_access, reserverd_names::RESERVED_NAMES, subtract_runtime_condition,
-  AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta,
+  AsyncDependenciesBlockId, BoxDependency, BuildContext, BuildInfo, BuildMeta,
   BuildMetaDefaultObject, BuildMetaExportsType, BuildResult, ChunkInitFragments,
   CodeGenerationResult, Compilation, ConcatenatedModuleIdent, ConcatenationScope, ConnectionId,
   ConnectionState, Context, DependenciesBlock, DependencyId, DependencyTemplate, ErrorSpan,
@@ -334,7 +334,7 @@ pub struct ConcatenatedModule {
   modules: Vec<ConcatenatedInnerModule>,
   runtime: Option<RuntimeSpec>,
 
-  blocks: Vec<AsyncDependenciesBlockIdentifier>,
+  blocks: Vec<AsyncDependenciesBlockId>,
   dependencies: Vec<DependencyId>,
 
   cached_source_sizes: DashMap<SourceType, f64, BuildHasherDefault<FxHasher>>,
@@ -417,11 +417,11 @@ impl Identifiable for ConcatenatedModule {
 }
 
 impl DependenciesBlock for ConcatenatedModule {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
+  fn add_block_id(&mut self, block: AsyncDependenciesBlockId) {
     self.blocks.push(block)
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
+  fn get_blocks(&self) -> &[AsyncDependenciesBlockId] {
     &self.blocks
   }
 

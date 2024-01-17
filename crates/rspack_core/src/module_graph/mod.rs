@@ -10,11 +10,12 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
-  debug_all_exports_info, self_module, AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier,
+  debug_all_exports_info, self_module, AsyncDependenciesBlock, AsyncDependenciesBlockId,
   ProvidedExports,
 };
 mod connection;
 pub use connection::*;
+pub(crate) mod vec_map;
 
 use self::vec_map::VecMap;
 use crate::{
@@ -65,7 +66,7 @@ pub struct ModuleGraph {
 
   pub import_var_map: DashMap<ModuleIdentifier, ImportVarMap>,
   pub exports_info_hash: DashMap<ExportsInfoId, u64>,
-  pub exports_info_map: vec_map::VecMap<ExportsInfo>,
+  pub exports_info_map: VecMap<ExportsInfo>,
   pub export_info_map: VecMap<ExportInfo>,
   connection_to_condition: HashMap<ModuleGraphConnection, DependencyCondition>,
   pub dep_meta_map: HashMap<DependencyId, DependencyExtraMeta>,
