@@ -484,7 +484,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     }
     let blocks = &item
       .block
-      .expect_get(&self.compilation)
+      .expect_get(self.compilation)
       .get_blocks()
       .to_vec();
     for block in blocks {
@@ -757,7 +757,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       return modules.clone();
     }
     // dbg!(&module, &runtime);
-    self.extract_block_modules(*module.get_root_block(&self.compilation), runtime);
+    self.extract_block_modules(*module.get_root_block(self.compilation), runtime);
     self
       .block_modules_runtime_map
       .get(&runtime.cloned().into())
