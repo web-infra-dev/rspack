@@ -35,7 +35,6 @@ var z = "z";
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; },
   x: function() { return _b__WEBPACK_IMPORTED_MODULE_1__.x; },
   z: function() { return _b__WEBPACK_IMPORTED_MODULE_1__.z; }
 });
@@ -45,7 +44,7 @@ __webpack_require__.d(__webpack_exports__, {
 
 
 (0, _tracker__WEBPACK_IMPORTED_MODULE_2__.track)("index.js");
-var __WEBPACK_DEFAULT_EXPORT__ = "def";
+/* harmony default export */ __webpack_exports__["default"] = ("def");
 }),
 "../node_modules/pmodule/tracker.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";

@@ -16,7 +16,7 @@ function mutate(obj) {
     obj.value += 1;
     return obj;
 }
-var __WEBPACK_DEFAULT_EXPORT__ = mutate(foo);
+/* unused harmony default export */ var __WEBPACK_DEFAULT_EXPORT__ = (mutate(foo));
 }),
 "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";

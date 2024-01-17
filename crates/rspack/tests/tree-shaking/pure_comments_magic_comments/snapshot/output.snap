@@ -23,7 +23,7 @@ function res() {
     _answer__WEBPACK_IMPORTED_MODULE_0__.answer;
 }
 const a = 3;
-var __WEBPACK_DEFAULT_EXPORT__ = /*#__PURE__*/ res();
+/* unused harmony default export */ var __WEBPACK_DEFAULT_EXPORT__ = (res());
 }),
 "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
