@@ -4,14 +4,13 @@ use std::{
   fmt::Debug,
   hash::{BuildHasherDefault, Hash, Hasher},
   sync::{Arc, Mutex},
-  task::Wake,
 };
 
 use dashmap::DashMap;
 use indexmap::{IndexMap, IndexSet};
 use once_cell::sync::OnceCell;
 use rspack_ast::javascript::Ast;
-use rspack_error::{Diagnosable, Diagnostic, DiagnosticKind, ErrorExt, Result, TraceableError};
+use rspack_error::{Diagnosable, Diagnostic, DiagnosticKind, Result, TraceableError};
 use rspack_hash::{HashDigest, HashFunction, RspackHash};
 use rspack_identifier::Identifiable;
 use rspack_sources::{CachedSource, ConcatSource, ReplaceSource, Source, SourceExt};
@@ -37,8 +36,8 @@ use crate::{
   ConcatenationScope, ConnectionId, ConnectionState, Context, DependenciesBlock, DependencyId,
   DependencyTemplate, ErrorSpan, ExportInfoId, ExportsType, IdentCollector, LibIdentOptions,
   Module, ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ModuleType,
-  ParserAndGenerator, Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType, SpanExt,
-  Template, UsedName, DEFAULT_EXPORT, NAMESPACE_OBJECT_EXPORT,
+  Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType, SpanExt, Template, UsedName,
+  DEFAULT_EXPORT, NAMESPACE_OBJECT_EXPORT,
 };
 
 #[derive(Debug)]
@@ -338,6 +337,7 @@ pub struct ConcatenatedModule {
   build_info: Option<BuildInfo>,
 }
 
+#[allow(unused)]
 impl ConcatenatedModule {
   pub fn new(
     id: ModuleIdentifier,
@@ -612,14 +612,11 @@ impl Module for ConcatenatedModule {
           program.visit_with(&mut collector);
         });
         for ident in collector.ids {
-          let mut is_global_ident = false;
           if ident.id.span.ctxt == info.module_ctxt {
             info.module_scope_ident.push(ident.clone());
           }
           if ident.id.span.ctxt == info.global_ctxt {
             info.global_scope_ident.push(ident.clone());
-
-            is_global_ident = true;
             all_used_names.insert(ident.id.sym.to_string());
           }
           info.idents.push(ident);
@@ -1001,7 +998,7 @@ impl ConcatenatedModule {
         .connection_or_module_id
         .get_module_id(mg);
       match map.entry(module_id) {
-        indexmap::map::Entry::Occupied(occ) => {
+        indexmap::map::Entry::Occupied(_) => {
           list.push(ModuleInfoOrReference::Reference {
             module_info_id: module_id,
             runtime_condition: concatenation_entry.runtime_condition,
@@ -1073,6 +1070,7 @@ impl ConcatenatedModule {
     list
   }
 
+  #[allow(clippy::too_many_arguments)]
   fn enter_module(
     &self,
     root_module: ModuleIdentifier,
@@ -1086,7 +1084,7 @@ impl ConcatenatedModule {
   ) {
     let module = con.module_identifier;
     let exist_entry = match exists_entry.get(&module) {
-      Some(condition) if matches!(condition, RuntimeCondition::Boolean(true)) => return,
+      Some(RuntimeCondition::Boolean(true)) => return,
       None => None,
       Some(_condtition) => Some(runtime_condition.clone()),
     };
@@ -1258,6 +1256,7 @@ impl ConcatenatedModule {
         chunk_init_fragments,
         runtime_requirements,
         concatenation_scope,
+        ..
       } = codegen_res;
       let concatenation_scope = concatenation_scope.expect("should have concatenation_scope");
       let source = inner
@@ -1287,8 +1286,11 @@ impl ConcatenatedModule {
         Ok(res) => Program::Module(res),
         Err(err) => {
           let span: ErrorSpan = err.span().into();
-          self.diagnostics.lock().unwrap().append(
-            &mut map_box_diagnostics_to_module_parse_diagnostics(vec![
+          self
+            .diagnostics
+            .lock()
+            .expect("should have diagnostics")
+            .append(&mut map_box_diagnostics_to_module_parse_diagnostics(vec![
               rspack_error::TraceableError::from_source_file(
                 &fm,
                 span.start as usize,
@@ -1297,8 +1299,7 @@ impl ConcatenatedModule {
                 err.kind().msg().to_string(),
               )
               .with_kind(DiagnosticKind::JavaScript),
-            ]),
-          );
+            ]));
           return Ok(ModuleInfo::Concatenated(module_info));
         }
       };
@@ -1331,6 +1332,7 @@ impl ConcatenatedModule {
     }
   }
 
+  #[allow(clippy::too_many_arguments)]
   fn get_final_name(
     module_graph: &ModuleGraph,
     info: &ModuleIdentifier,
@@ -1416,6 +1418,7 @@ impl ConcatenatedModule {
     reference
   }
 
+  #[allow(clippy::too_many_arguments)]
   fn get_final_binding(
     mg: &ModuleGraph,
     info_id: &ModuleIdentifier,
@@ -1581,7 +1584,6 @@ impl ConcatenatedModule {
             comment: None,
           });
         }
-        _ => {}
       }
     }
 
@@ -1799,7 +1801,10 @@ impl ConcatenatedModule {
       name = format!("{}_{}", info_part, name);
       let name_ident = Template::to_identifier(&name);
       if !used_names1.contains(&name_ident)
-        && (used_names2.is_none() || !used_names2.unwrap().contains(&name_ident))
+        && (used_names2.is_none()
+          || !used_names2
+            .expect("should not be none")
+            .contains(&name_ident))
       {
         return name_ident;
       }

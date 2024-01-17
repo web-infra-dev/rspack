@@ -507,7 +507,7 @@ mod test {
   use super::Module;
   use crate::{
     AsyncDependenciesBlockId, BuildContext, BuildResult, CodeGenerationResult, Compilation,
-    Context, DependenciesBlock, DependencyId, ModuleExt, ModuleType, RuntimeSpec, SourceType,
+    Context, DependenciesBlock, DependencyId, ModuleType, RuntimeSpec, SourceType,
   };
 
   #[derive(Debug, Eq)]

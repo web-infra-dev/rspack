@@ -269,7 +269,7 @@ impl ModuleGraph {
     let new_mgm = self
       .module_graph_module_by_identifier_mut(new_module)
       .expect("should have mgm");
-    new_mgm.outgoing_connections == new_connections;
+    new_mgm.outgoing_connections = new_connections;
   }
 
   pub fn clone_module_graph_connection(

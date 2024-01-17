@@ -6,7 +6,7 @@ use rspack_core::concatenated_module::{
   is_harmony_dep_like, ConcatenatedInnerModule, ConcatenatedModule, RootModuleContext,
 };
 use rspack_core::{
-  filter_runtime, merge_runtime, runtime_to_string, Compilation, CompilerContext, DependencyId,
+  filter_runtime, merge_runtime, runtime_to_string, Compilation, CompilerContext,
   ExportInfoProvided, ExtendedReferencedExport, LibIdentOptions, Logger, Module, ModuleExt,
   ModuleGraph, ModuleGraphModule, ModuleIdentifier, OptimizeChunksArgs, Plugin, ProvidedExports,
   RuntimeCondition, RuntimeSpec, WrappedModuleIdentifier,
