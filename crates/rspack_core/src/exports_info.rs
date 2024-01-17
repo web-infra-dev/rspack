@@ -393,7 +393,7 @@ impl ExportsInfoId {
     match name {
       UsedName::Str(name) => {
         let info = self.get_read_only_export_info(&name, mg);
-        info.get_used_name(&name, runtime).map(UsedName::Str)
+        info.get_used_name(Some(&name), runtime).map(UsedName::Str)
       }
       UsedName::Vec(names) => {
         if names.is_empty() {
@@ -403,7 +403,7 @@ impl ExportsInfoId {
           return Some(UsedName::Vec(names));
         }
         let export_info = self.get_read_only_export_info(&names[0], mg);
-        let x = export_info.get_used_name(&names[0], runtime);
+        let x = export_info.get_used_name(Some(&names[0]), runtime);
         let Some(x) = x else {
           return None;
         };
@@ -1369,7 +1369,11 @@ impl ExportInfo {
 
   /// Webpack returns `false | string`, we use `Option<Atom>` to avoid declare a redundant enum
   /// type
-  pub fn get_used_name(&self, fallback_name: &Atom, runtime: Option<&RuntimeSpec>) -> Option<Atom> {
+  pub fn get_used_name(
+    &self,
+    fallback_name: Option<&Atom>,
+    runtime: Option<&RuntimeSpec>,
+  ) -> Option<Atom> {
     if self.has_use_in_runtime_info {
       if let Some(usage) = self.global_used {
         if matches!(usage, UsageState::Unused) {
@@ -1394,7 +1398,7 @@ impl ExportInfo {
     if let Some(name) = self.name.as_ref() {
       Some(name.clone())
     } else {
-      Some(fallback_name.clone())
+      fallback_name.cloned()
     }
   }
 

@@ -247,7 +247,7 @@ fn create_object_for_exports_info(
           std::mem::replace(value, JsonValue::Null)
         };
         let used_name = export_info
-          .get_used_name(&key.into(), runtime)
+          .get_used_name(Some(&(key.into())), runtime)
           .expect("should have used name");
         used_pair.push((used_name, new_value));
       }

@@ -787,7 +787,7 @@ impl Plugin for ModuleConcatenationPlugin {
         Some(rspack_hash::HashFunction::MD4),
         config.runtime.clone(),
       );
-      let _build_result = new_module
+      new_module
         .build(
           rspack_core::BuildContext {
             compiler_context: CompilerContext {

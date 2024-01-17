@@ -13,7 +13,7 @@ use rspack_ast::javascript::Ast;
 use rspack_error::{Diagnosable, Diagnostic, DiagnosticKind, Result, TraceableError};
 use rspack_hash::{HashDigest, HashFunction, RspackHash};
 use rspack_identifier::Identifiable;
-use rspack_sources::{CachedSource, ConcatSource, ReplaceSource, Source, SourceExt};
+use rspack_sources::{CachedSource, ConcatSource, RawSource, ReplaceSource, Source, SourceExt};
 use rspack_util::swc::join_atom;
 use rustc_hash::FxHasher;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
@@ -30,14 +30,15 @@ use swc_node_comments::SwcComments;
 
 use crate::{
   filter_runtime, merge_runtime_condition, merge_runtime_condition_non_false, property_access,
-  reserverd_names::RESERVED_NAMES, subtract_runtime_condition, AsyncDependenciesBlockId,
-  BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType,
-  BuildResult, ChunkInitFragments, CodeGenerationResult, Compilation, ConcatenatedModuleIdent,
-  ConcatenationScope, ConnectionId, ConnectionState, Context, DependenciesBlock, DependencyId,
-  DependencyTemplate, ErrorSpan, ExportInfoId, ExportsType, IdentCollector, LibIdentOptions,
+  property_name, reserverd_names::RESERVED_NAMES, returning_function, subtract_runtime_condition,
+  AsyncDependenciesBlockId, BoxDependency, BuildContext, BuildInfo, BuildMeta,
+  BuildMetaDefaultObject, BuildMetaExportsType, BuildResult, ChunkInitFragments,
+  CodeGenerationResult, Compilation, ConcatenatedModuleIdent, ConcatenationScope, ConnectionId,
+  ConnectionState, Context, DependenciesBlock, DependencyId, DependencyTemplate, ErrorSpan,
+  ExportInfoId, ExportInfoProvided, ExportsArgument, ExportsType, IdentCollector, LibIdentOptions,
   Module, ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ModuleType,
-  Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType, SpanExt, Template, UsedName,
-  DEFAULT_EXPORT, NAMESPACE_OBJECT_EXPORT,
+  ProvidedExports, Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType, SpanExt,
+  Template, UsageState, UsedName, DEFAULT_EXPORT, NAMESPACE_OBJECT_EXPORT,
 };
 
 #[derive(Debug)]
@@ -559,6 +560,7 @@ impl Module for ConcatenatedModule {
     runtime: Option<&RuntimeSpec>,
     _: Option<ConcatenationScope>,
   ) -> Result<CodeGenerationResult> {
+    let mut runtime_requirements = RuntimeGlobals::default();
     let generation_runtime = runtime.cloned().expect("should have runtime");
     let merged_runtime = if let Some(ref runtime) = self.runtime {
       generation_runtime
@@ -817,68 +819,121 @@ impl Module for ConcatenatedModule {
         source.replace(low, high + 2, &final_name, None);
       }
     }
-    for (id, info) in module_to_info_map.iter() {
-      match info {
-        ModuleInfo::External(_) => {}
-        ModuleInfo::Concatenated(info) => {
-          let res = info.source.as_ref().expect("should ");
-          println!("{id}");
-          println!("{}\n", res.source());
-        }
+
+    let mut exports_map: HashMap<Atom, String> = HashMap::default();
+    let mut unused_exports: HashSet<Atom> = HashSet::default();
+
+    let root_info = module_to_info_map
+      .get(&self.root_module_ctxt.id)
+      .expect("should have root module");
+    let root_module_id = root_info.id();
+
+    let root_module = compilation
+      .module_graph
+      .module_by_identifier(&root_module_id)
+      .expect("should have box module");
+    let strict_harmony_module = root_module
+      .build_meta()
+      .map(|item| item.strict_harmony_module)
+      .unwrap_or_default();
+
+    let exports_info = compilation.module_graph.get_exports_info(&root_module_id);
+
+    for (_, export_info_id) in exports_info.exports.iter() {
+      let export_info = export_info_id.get_export_info(&compilation.module_graph);
+      let name = export_info.name.clone().unwrap_or("".into());
+      if matches!(export_info.provided, Some(ExportInfoProvided::False)) {
+        continue;
       }
+      let used_name = export_info.get_used_name(None, runtime);
+
+      let Some(used_name) = used_name else {
+        unused_exports.insert(name);
+        continue;
+      };
+      exports_map.insert(used_name, {
+        let final_name = Self::get_final_name(
+          &compilation.module_graph,
+          &root_module_id,
+          [name.clone()].to_vec(),
+          &mut module_to_info_map,
+          runtime,
+          &mut needed_namespace_objects,
+          false,
+          false,
+          strict_harmony_module,
+          Some(true),
+          &compilation.options.context,
+        );
+        format!(
+          "/* {} */ {}",
+          if export_info.is_reexport() {
+            "reexport"
+          } else {
+            "binding"
+          },
+          final_name
+        )
+      });
     }
 
-    // let mut exports_map: HashMap<String, String> = HashMap::new();
-    // let mut unused_exports: HashSet<String> = HashSet::new();
-    //
-    // let root_info = module_to_info_map.get(&self.root_module).unwrap();
-    // let strict_harmony_module = root_info.module.build_meta.strict_harmony_module;
-    // let exports_info = module_graph.get_exports_info(&root_info.module);
-    //
-    // for export_info in exports_info.ordered_exports.iter() {
-    //   let name = export_info.name.clone();
-    //   if !export_info.provided {
-    //     continue;
-    //   }
-    //   let used = export_info.get_used_name(None, &runtime);
-    //   if used.is_none() {
-    //     unused_exports.insert(name);
-    //     continue;
-    //   }
-    //   exports_map.insert(used.unwrap(), {
-    //     let final_name = get_final_name(
-    //       &module_graph,
-    //       &root_info,
-    //       &[name.clone()],
-    //       &module_to_info_map,
-    //       &runtime,
-    //       request_shortener,
-    //       &runtime_template,
-    //       &needed_namespace_objects,
-    //       false,
-    //       false,
-    //       strict_harmony_module,
-    //       true,
-    //     );
-    //     format!(
-    //       "/* {} */ {}",
-    //       if export_info.is_reexport() {
-    //         "reexport"
-    //       } else {
-    //         "binding"
-    //       },
-    //       final_name
-    //     )
-    //   });
-    // }
+    let mut result = ConcatSource::default();
+
+    // Add harmony compatibility flag (must be first because of possible circular dependencies)
+    if compilation
+      .module_graph
+      .get_exports_info(&self.id())
+      .other_exports_info
+      .get_used(&compilation.module_graph, runtime)
+      != UsageState::Unused
+    {
+      result.add(RawSource::from("// ESM COMPAT FLAG\n"));
+      // TODO:
+      // result.add(
+      //   &runtime_template
+      //     .define_es_module_flag_statement(this.exports_argument, runtime_requirements),
+      // );
+    }
+
+    // Assuming the necessary Rust imports and dependencies are declared
+
+    // Define exports
+    if exports_map.len() > 0 {
+      runtime_requirements.insert(RuntimeGlobals::EXPORTS);
+      runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
+      let mut definitions = Vec::new();
+      for (key, value) in exports_map.iter() {
+        definitions.push(format!(
+          "\n  {}: {}",
+          property_name(key).expect("should convert to property_name"),
+          returning_function(value, "")
+        ));
+      }
+      let exports_argument = self
+        .build_meta()
+        .map(|meta| meta.exports_argument)
+        .unwrap_or(ExportsArgument::Exports);
+      result.add(RawSource::from("\n// EXPORTS\n"));
+      result.add(RawSource::from(format!(
+        "{}({}, {{{}\n}});\n",
+        RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
+        exports_argument,
+        definitions.join(",")
+      )));
+    }
+
+    // List unused exports
+    if unused_exports.len() > 0 {
+      result.add(RawSource::from(format!(
+        "\n// UNUSED EXPORTS: {}\n",
+        join_atom(unused_exports.iter(), ", ")
+      )));
+    }
+
     let mut code_generation_result = CodeGenerationResult::default();
-    let generation_result = ConcatSource::default();
-    code_generation_result.add(
-      SourceType::JavaScript,
-      CachedSource::new(generation_result).boxed(),
-    );
+    code_generation_result.add(SourceType::JavaScript, CachedSource::new(result).boxed());
     code_generation_result.chunk_init_fragments = vec![];
-    code_generation_result.runtime_requirements = RuntimeGlobals::default();
+    code_generation_result.runtime_requirements = runtime_requirements;
     Ok(code_generation_result)
   }
 
@@ -976,7 +1031,7 @@ impl ConcatenatedModule {
       .clear()
   }
 
-  // todo: replace self.modules with indexmap or linkedhashset
+  // TODO: replace self.modules with indexmap or linkedhashset
   fn get_modules_with_info(
     &self,
     mg: &ModuleGraph,
@@ -1733,7 +1788,7 @@ impl ConcatenatedModule {
 
         panic!(
           "Cannot get final name for export '{}'",
-          join_atom(&export_name, ".")
+          join_atom(export_name.iter(), ".")
         );
       }
       ModuleInfo::External(info) => {
@@ -1746,7 +1801,7 @@ impl ConcatenatedModule {
           let comment = if used_name == export_name {
             "".to_string()
           } else {
-            Template::to_normal_comment(&join_atom(&export_name, ",").to_string())
+            Template::to_normal_comment(&join_atom(export_name.iter(), ",").to_string())
           };
           Binding::Raw(RawBinding {
             raw_name: format!(
