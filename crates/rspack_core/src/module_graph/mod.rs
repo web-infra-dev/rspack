@@ -747,7 +747,7 @@ mod test {
   use rspack_error::{Diagnosable, Result};
   use rspack_identifier::Identifiable;
   use rspack_sources::Source;
-  use rspack_util::source_map::{SourceMapGenConfig, SourceMapKind};
+  use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
 
   use crate::{
     AsyncDependenciesBlockId, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
@@ -839,7 +839,7 @@ mod test {
         }
       }
 
-      impl SourceMapGenConfig for $ident {
+      impl ModuleSourceMapConfig for $ident {
         fn get_source_map_kind(&self) -> &SourceMapKind {
           unreachable!()
         }

@@ -20,7 +20,7 @@ use rspack_sources::{
   BoxSource, CachedSource, OriginalSource, RawSource, Source, SourceExt, SourceMap,
   SourceMapSource, WithoutOriginalOptions,
 };
-use rspack_util::source_map::{SourceMapGenConfig, SourceMapKind};
+use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
 use rustc_hash::FxHashSet as HashSet;
 use rustc_hash::FxHasher;
 use serde_json::json;

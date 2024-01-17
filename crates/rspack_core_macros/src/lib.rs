@@ -20,7 +20,7 @@ pub fn impl_source_map_config(
   quote! {
     #input
 
-    impl ::rspack_util::source_map::SourceMapGenConfig for #name {
+    impl ::rspack_util::source_map::ModuleSourceMapConfig for #name {
       fn get_source_map_kind(&self) -> &::rspack_util::source_map::SourceMapKind {
         &self.source_map_kind
       }
@@ -143,7 +143,7 @@ pub fn impl_runtime_module(
 
     impl rspack_error::Diagnosable for #name {}
 
-    impl ::rspack_util::source_map::SourceMapGenConfig for #name {
+    impl ::rspack_util::source_map::ModuleSourceMapConfig for #name {
       fn get_source_map_kind(&self) -> &::rspack_util::source_map::SourceMapKind {
         &self.source_map_kind
       }

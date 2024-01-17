@@ -10,7 +10,7 @@ use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_identifier::{Identifiable, Identifier};
 use rspack_sources::Source;
 use rspack_util::ext::{AsAny, DynEq, DynHash};
-use rspack_util::source_map::SourceMapGenConfig;
+use rspack_util::source_map::ModuleSourceMapConfig;
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::ecma::atoms::JsWord;
 
@@ -151,7 +151,7 @@ pub trait Module:
   + Identifiable
   + DependenciesBlock
   + Diagnosable
-  + SourceMapGenConfig
+  + ModuleSourceMapConfig
 {
   /// Defines what kind of module this is.
   fn module_type(&self) -> &ModuleType;
@@ -451,7 +451,7 @@ mod test {
   use rspack_error::{Diagnosable, Result};
   use rspack_identifier::{Identifiable, Identifier};
   use rspack_sources::Source;
-  use rspack_util::source_map::{SourceMapGenConfig, SourceMapKind};
+  use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
 
   use super::Module;
   use crate::{
@@ -568,7 +568,7 @@ mod test {
         }
       }
 
-      impl SourceMapGenConfig for $ident {
+      impl ModuleSourceMapConfig for $ident {
         fn get_source_map_kind(&self) -> &SourceMapKind {
           unreachable!()
         }
