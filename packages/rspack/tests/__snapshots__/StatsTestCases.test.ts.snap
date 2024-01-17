@@ -557,7 +557,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "85d1f2a03c79c4eaabe2",
+  "hash": "002c2c04a29dccb65fe6",
   "logging": {},
   "modules": [
     {
@@ -789,7 +789,7 @@ webpack/runtime/require_chunk_loading {909}
 webpack/runtime/define_property_getters {909}
 webpack/runtime/get javascript chunk filename {909}
   
-Rspack compiled successfully (85d1f2a03c79c4eaabe2)"
+Rspack compiled successfully (002c2c04a29dccb65fe6)"
 `;
 
 exports[`StatsTestCases should print correct stats for hot+production 1`] = `
