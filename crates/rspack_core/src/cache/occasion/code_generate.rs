@@ -16,7 +16,6 @@ impl CodeGenerateOccasion {
     Self { storage }
   }
 
-  #[allow(clippy::unwrap_in_result)]
   pub fn use_cache<'a, G>(
     &self,
     module: &'a BoxModule,
@@ -38,11 +37,16 @@ impl CodeGenerateOccasion {
     if let Some(normal_module) = module.as_normal_module() {
       // only cache normal module
       // TODO: cache all module type
-      let id = Identifier::from(compilation.chunk_graph.get_module_graph_hash(
-        module,
-        &compilation.module_graph,
-        true,
-      ));
+      let mut id = String::default();
+      for runtime in runtimes.values() {
+        id.push_str(&compilation.chunk_graph.get_module_graph_hash(
+          module,
+          compilation,
+          Some(runtime),
+          true,
+        ));
+      }
+      let id = Identifier::from(id);
 
       // currently no need to separate module hash by runtime
       if let Some(data) = storage.get(&id) {

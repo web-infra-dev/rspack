@@ -59,6 +59,10 @@ impl ModuleDependency for ImportMetaHotDeclineDependency {
   fn set_request(&mut self, request: String) {
     self.request = request.into();
   }
+
+  fn weak(&self) -> bool {
+    true
+  }
 }
 
 impl DependencyTemplate for ImportMetaHotDeclineDependency {
@@ -74,7 +78,7 @@ impl DependencyTemplate for ImportMetaHotDeclineDependency {
         code_generatable_context.compilation,
         &self.id,
         &self.request,
-        false,
+        self.weak(),
       )
       .as_str(),
       None,

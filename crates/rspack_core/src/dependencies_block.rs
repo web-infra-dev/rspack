@@ -1,3 +1,5 @@
+use std::hash::{Hash, Hasher};
+
 use rspack_error::{
   miette::{self, Diagnostic},
   thiserror::{self, Error},
@@ -5,7 +7,10 @@ use rspack_error::{
 use serde::Serialize;
 use ustr::Ustr;
 
-use crate::{BoxDependency, Compilation, DependencyId, GroupOptions, ModuleIdentifier};
+use crate::{
+  update_hash::{UpdateHashContext, UpdateRspackHash},
+  BoxDependency, Compilation, DependencyId, GroupOptions, ModuleIdentifier,
+};
 
 pub trait DependenciesBlock {
   fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier);
@@ -100,16 +105,6 @@ impl AsyncDependenciesBlock {
     self.id
   }
 
-  pub fn block_promise_key(&self, compilation: &Compilation) -> String {
-    let module_id = compilation
-      .chunk_graph
-      .get_module_id(self.id.from)
-      .as_ref()
-      .expect("should have module_id");
-    let key = format!("{}@{}", module_id, self.id.modifier);
-    serde_json::to_string(&key).expect("AsyncDependenciesBlock.id should be able to json to_string")
-  }
-
   pub fn set_group_options(&mut self, group_options: GroupOptions) {
     self.group_options = Some(group_options)
   }
@@ -158,6 +153,22 @@ impl DependenciesBlock for AsyncDependenciesBlock {
 
   fn get_dependencies(&self) -> &[DependencyId] {
     &self.dependency_ids
+  }
+}
+
+impl UpdateRspackHash for AsyncDependenciesBlock {
+  fn update_hash<H: Hasher>(&self, state: &mut H, context: &UpdateHashContext) {
+    self.group_options.hash(state);
+    if let Some(chunk_group) = context
+      .compilation
+      .chunk_graph
+      .get_block_chunk_group(&self.id, &context.compilation.chunk_group_by_ukey)
+    {
+      chunk_group.id(context.compilation).hash(state);
+    }
+    for block in &self.blocks {
+      block.update_hash(state, context);
+    }
   }
 }
 

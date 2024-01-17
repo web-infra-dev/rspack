@@ -32,7 +32,7 @@ const b = "b";
 ```js title=main.js
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./child Lazy  recursive ^\\.\\/.*\\.js$": (function (module, __unused_webpack_exports, __webpack_require__) {
-var blockMap = {"./a.js": "./child Lazy  recursive ^\\.\\/.*\\.js$@./a.js","./b.js": "./child Lazy  recursive ^\\.\\/.*\\.js$@./b.js",};
+var blockMap = {"./a.js": function() { return __webpack_require__.e("child_a_js"); },"./b.js": function() { return __webpack_require__.e("child_b_js"); },};
 var map = {"./a.js": "./child/a.js","./b.js": "./child/b.js",};
 
       function webpackAsyncContext(req) {
@@ -43,9 +43,9 @@ var map = {"./a.js": "./child/a.js","./b.js": "./child/b.js",};
             throw e;
           });
         }
-        var blockId = blockMap[req];
+        var blockGetter = blockMap[req];
         var id = map[req];
-        return __webpack_require__.el(blockId).then(function() {
+        return blockGetter().then(function() {
           return __webpack_require__(id);
         });
       }
@@ -57,8 +57,8 @@ var map = {"./a.js": "./child/a.js","./b.js": "./child/b.js",};
       }),
 "./index.js": (function (__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
 const request = 'a';
-__webpack_require__.el("./index.js@21:43").then(__webpack_require__.bind(__webpack_require__, /*! ./child/a.js */"./child/a.js")).then(({ a })=>console.log("Literal", a));
-__webpack_require__.el("./index.js@86:108").then(__webpack_require__.bind(__webpack_require__, /*! ./child/b.js */"./child/b.js")).then(({ b })=>console.log("Template Literal", b));
+__webpack_require__.e("child_a_js").then(__webpack_require__.bind(__webpack_require__, /*! ./child/a.js */"./child/a.js")).then(({ a })=>console.log("Literal", a));
+__webpack_require__.e("child_b_js").then(__webpack_require__.bind(__webpack_require__, /*! ./child/b.js */"./child/b.js")).then(({ b })=>console.log("Template Literal", b));
 __webpack_require__(/*! ./child */"./child Lazy  recursive ^\\.\\/.*\\.js$")((`./child/${request}.js`).replace('./child/', './')).then(({ a })=>console.log("context_module_tpl", a));
 __webpack_require__(/*! ./child */"./child Lazy  recursive ^\\.\\/.*\\.js$")(('./child/' + request + '.js').replace('./child/', './')).then(({ a })=>console.log("context_module_bin", a));
 __webpack_require__(/*! ./child */"./child Lazy  recursive ^\\.\\/.*\\.js$")(("./child/".concat(request, ".js")).replace('./child/', './')).then(({ a })=>console.log("context_module_concat", a));
