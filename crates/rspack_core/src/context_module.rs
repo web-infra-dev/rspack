@@ -20,11 +20,11 @@ use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
   block_promise, contextify, get_exports_type_with_strict, impl_build_info_meta,
-  returning_function, stringify_map, to_path, AsyncDependenciesBlock,
-  AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
-  ChunkGraph, ChunkGroupOptions, CodeGenerationResult, Compilation, ContextElementDependency,
-  DependenciesBlock, DependencyCategory, DependencyId, ExportsType, FakeNamespaceObjectMode,
-  GroupOptions, LibIdentOptions, Module, ModuleType, Resolve, ResolveInnerOptions,
+  returning_function, stringify_map, to_path, AsyncDependenciesBlock, AsyncDependenciesBlockId,
+  BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult, ChunkGraph, ChunkGroupOptions,
+  CodeGenerationResult, Compilation, ContextElementDependency, DependenciesBlock,
+  DependencyCategory, DependencyId, ExportsType, FakeNamespaceObjectMode, GroupOptions,
+  LibIdentOptions, Module, ModuleType, Resolve, ResolveInnerOptions,
   ResolveOptionsWithDependencyType, ResolverFactory, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
@@ -187,7 +187,7 @@ pub enum FakeMapValue {
 #[derive(Debug)]
 pub struct ContextModule {
   dependencies: Vec<DependencyId>,
-  blocks: Vec<AsyncDependenciesBlockIdentifier>,
+  blocks: Vec<AsyncDependenciesBlockId>,
   identifier: Identifier,
   options: ContextModuleOptions,
   resolve_factory: Arc<ResolverFactory>,
@@ -364,7 +364,7 @@ impl ContextModule {
         .and_then(|d| d.as_module_dependency())
       {
         let getter = returning_function(
-          &block_promise(Some(&block.identifier()), runtime_requirements, compilation),
+          &block_promise(Some(&block.id()), runtime_requirements, compilation),
           "",
         );
         map.insert(dependency.user_request().to_string(), getter);
@@ -556,11 +556,11 @@ impl ContextModule {
 }
 
 impl DependenciesBlock for ContextModule {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
+  fn add_block_id(&mut self, block: AsyncDependenciesBlockId) {
     self.blocks.push(block)
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
+  fn get_blocks(&self) -> &[AsyncDependenciesBlockId] {
     &self.blocks
   }
 
@@ -801,7 +801,7 @@ impl ContextModule {
       && !context_element_dependencies.is_empty()
     {
       let name = self.options.context_options.chunk_name.clone();
-      let mut block = AsyncDependenciesBlock::new(self.identifier, "", None);
+      let mut block = AsyncDependenciesBlock::new(self.identifier, None);
       block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions::new(
         name, None, None,
       )));
@@ -831,11 +831,7 @@ impl ContextModule {
             });
             name.into_owned()
           });
-        let mut block = AsyncDependenciesBlock::new(
-          self.identifier,
-          &context_element_dependency.user_request,
-          None,
-        );
+        let mut block = AsyncDependenciesBlock::new(self.identifier, None);
         block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions::new(
           name, None, None,
         )));

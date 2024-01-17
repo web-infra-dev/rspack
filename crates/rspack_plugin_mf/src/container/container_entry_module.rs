@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use rspack_core::{
   block_promise, impl_build_info_meta, module_raw, returning_function,
   rspack_sources::{RawSource, Source, SourceExt},
-  throw_missing_module_error_block, AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier,
+  throw_missing_module_error_block, AsyncDependenciesBlock, AsyncDependenciesBlockId,
   BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildMetaExportsType, BuildResult,
   ChunkGroupOptions, CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId,
   GroupOptions, LibIdentOptions, Module, ModuleDependency, ModuleIdentifier, ModuleType,
@@ -22,7 +22,7 @@ use crate::utils::json_stringify;
 
 #[derive(Debug)]
 pub struct ContainerEntryModule {
-  blocks: Vec<AsyncDependenciesBlockIdentifier>,
+  blocks: Vec<AsyncDependenciesBlockId>,
   dependencies: Vec<DependencyId>,
   identifier: ModuleIdentifier,
   lib_ident: String,
@@ -59,11 +59,11 @@ impl Identifiable for ContainerEntryModule {
 }
 
 impl DependenciesBlock for ContainerEntryModule {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
+  fn add_block_id(&mut self, block: AsyncDependenciesBlockId) {
     self.blocks.push(block)
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
+  fn get_blocks(&self) -> &[AsyncDependenciesBlockId] {
     &self.blocks
   }
 
@@ -112,7 +112,7 @@ impl Module for ContainerEntryModule {
     let mut blocks = vec![];
     let mut dependencies: Vec<BoxDependency> = vec![];
     for (name, options) in &self.exposes {
-      let mut block = AsyncDependenciesBlock::new(self.identifier, name, None);
+      let mut block = AsyncDependenciesBlock::new(self.identifier, None);
       block.set_group_options(GroupOptions::ChunkGroup(
         ChunkGroupOptions::default().name_optional(options.name.clone()),
       ));
