@@ -45,6 +45,10 @@ impl<T: std::fmt::Debug> TWithDiagnosticArray<T> {
   pub fn split_into_parts(self) -> (T, Vec<Diagnostic>) {
     (self.inner, self.diagnostic)
   }
+
+  pub fn get(&self) -> &T {
+    &self.inner
+  }
 }
 
 impl<T: Clone + std::fmt::Debug> Clone for TWithDiagnosticArray<T> {

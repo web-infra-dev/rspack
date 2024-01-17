@@ -30,7 +30,7 @@ use super::{
 use crate::{
   build_chunk_graph::build_chunk_graph,
   cache::{use_code_splitting_cache, Cache, CodeSplittingCache},
-  get_chunk_from_ukey, get_mut_chunk_from_ukey, is_source_equal,
+  create_queue_handle, get_chunk_from_ukey, get_mut_chunk_from_ukey, is_source_equal,
   tree_shaking::{optimizer, visitor::SymbolRef, BailoutFlag, OptimizeDependencyResult},
   AddQueue, AddTask, AddTaskResult, AdditionalChunkRuntimeRequirementsArgs,
   AdditionalModuleRequirementsArgs, AsyncDependenciesBlock, BoxDependency, BoxModule, BuildQueue,
@@ -39,9 +39,10 @@ use crate::{
   CleanTask, CleanTaskResult, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
   CompilationLogging, CompilerOptions, ContentHashArgs, ContextDependency, DependencyId,
   DependencyParents, DependencyType, Entry, EntryData, EntryOptions, Entrypoint, ErrorSpan,
-  FactorizeQueue, FactorizeTask, FactorizeTaskResult, Filename, Logger, Module, ModuleFactory,
-  ModuleGraph, ModuleGraphModule, ModuleIdentifier, ModuleProfile, NormalModuleSource, PathData,
-  ProcessAssetsArgs, ProcessDependenciesQueue, ProcessDependenciesResult, ProcessDependenciesTask,
+  FactorizeQueue, FactorizeTask, FactorizeTaskResult, Filename, Logger, Module,
+  ModuleCreationCallback, ModuleFactory, ModuleFactoryResult, ModuleGraph, ModuleGraphModule,
+  ModuleIdentifier, ModuleProfile, NormalModuleSource, PathData, ProcessAssetsArgs,
+  ProcessDependenciesQueue, ProcessDependenciesResult, ProcessDependenciesTask, QueueHandler,
   RenderManifestArgs, Resolve, ResolverFactory, RuntimeGlobals, RuntimeModule,
   RuntimeRequirementsInTreeArgs, RuntimeSpec, SharedPluginDriver, SourceType, Stats, TaskResult,
   WorkerTask,
@@ -109,6 +110,8 @@ pub struct Compilation {
   pub build_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
   pub side_effects_free_modules: IdentifierSet,
   pub module_item_map: IdentifierMap<Vec<ModuleItem>>,
+
+  pub queue_handle: Option<QueueHandler>,
 }
 
 impl Compilation {
@@ -170,6 +173,8 @@ impl Compilation {
       side_effects_free_modules: IdentifierSet::default(),
       module_item_map: IdentifierMap::default(),
       include_module_ids: IdentifierSet::default(),
+
+      queue_handle: None,
     }
   }
 
@@ -529,13 +534,18 @@ impl Compilation {
     let mut active_task_count = 0usize;
     let is_expected_shutdown = Arc::new(AtomicBool::new(false));
     let (result_tx, mut result_rx) = tokio::sync::mpsc::unbounded_channel::<Result<TaskResult>>();
+
     let mut factorize_queue = FactorizeQueue::new();
     let mut add_queue = AddQueue::new();
     let mut build_queue = BuildQueue::new();
     let mut process_dependencies_queue = ProcessDependenciesQueue::new();
+
     let mut make_failed_dependencies: HashSet<BuildDependency> = HashSet::default();
     let mut make_failed_module: HashSet<ModuleIdentifier> = HashSet::default();
     let mut errored = None;
+
+    let (handler, mut processor) = create_queue_handle();
+    self.queue_handle = Some(handler);
 
     deps_builder
       .revoke_modules(&mut self.module_graph)
@@ -568,6 +578,7 @@ impl Compilation {
           parent_module
             .and_then(|m| m.as_normal_module())
             .and_then(|module| module.name_for_condition()),
+          None,
         );
       });
 
@@ -586,6 +597,14 @@ impl Compilation {
 
     tokio::task::block_in_place(|| loop {
       let start = factorize_time.start();
+      processor.try_process(
+        self,
+        &mut factorize_queue,
+        &mut add_queue,
+        &mut build_queue,
+        &mut process_dependencies_queue,
+      );
+
       while let Some(task) = factorize_queue.get_task() {
         tokio::spawn({
           let result_tx = result_tx.clone();
@@ -681,7 +700,10 @@ impl Compilation {
           .module_by_identifier(original_module_identifier)
           .expect("Module expected");
 
+        let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
+        let mut remaining = sorted_dependencies.len();
         for dependencies in sorted_dependencies.into_values() {
+          let tx = tx.clone();
           self.handle_module_creation(
             &mut factorize_queue,
             Some(module.identifier()),
@@ -693,21 +715,75 @@ impl Compilation {
             module
               .as_normal_module()
               .and_then(|module| module.name_for_condition()),
+            Some(Box::new(move |_| {
+              tx.send(())
+                .expect("Failed to send callback to process_dependencies");
+            })),
           );
         }
+        drop(tx);
 
-        result_tx
-          .send(Ok(TaskResult::ProcessDependencies(Box::new(
+        let tx = result_tx.clone();
+
+        tokio::spawn(async move {
+          loop {
+            if remaining == 0 {
+              break;
+            }
+
+            rx.recv().await;
+            remaining -= 1;
+          }
+
+          tx.send(Ok(TaskResult::ProcessDependencies(Box::new(
             ProcessDependenciesResult {
               module_identifier: task.original_module_identifier,
             },
           ))))
           .expect("Failed to send process dependencies result");
+        });
       }
       process_deps_time.end(start);
 
       match result_rx.try_recv() {
         Ok(item) => {
+          if let Ok(item) = &item {
+            match item {
+              TaskResult::Factorize(result) => {
+                if let Some(ModuleFactoryResult {
+                  module: Some(module),
+                  ..
+                }) = &result.factory_result
+                {
+                  processor.complete_task(
+                    crate::WaitTask::Factorize(result.dependency),
+                    module.identifier(),
+                    self,
+                  )
+                }
+              }
+              TaskResult::Add(result) => {
+                let module = match result.as_ref() {
+                  AddTaskResult::ModuleReused { module } => module.identifier(),
+                  AddTaskResult::ModuleAdded { module, .. } => module.identifier(),
+                };
+
+                processor.complete_task(crate::WaitTask::Add(module), module, self)
+              }
+              TaskResult::Build(result) => {
+                let id = result.module.identifier();
+                processor.complete_task(crate::WaitTask::Build(id), id, self);
+              }
+              TaskResult::ProcessDependencies(result) => {
+                processor.complete_task(
+                  crate::WaitTask::ProcessDependencies(result.module_identifier),
+                  result.module_identifier,
+                  self,
+                );
+              }
+            }
+          }
+
           match item {
             Ok(TaskResult::Factorize(box task_result)) => {
               let FactorizeTaskResult {
@@ -721,6 +797,8 @@ impl Compilation {
                 context_dependencies,
                 missing_dependencies,
                 diagnostics,
+                callback,
+                ..
               } = task_result;
               if !diagnostics.is_empty() {
                 if let Some(id) = original_module_identifier {
@@ -780,6 +858,7 @@ impl Compilation {
                     dependencies,
                     is_entry,
                     current_profile,
+                    callback,
                   });
                   tracing::trace!("Module created: {}", &module_identifier);
                 } else {
@@ -876,14 +955,14 @@ impl Compilation {
                     module_graph.set_parents(
                       dependency_id,
                       DependencyParents {
-                        block: current_block.as_ref().map(|block| block.identifier()),
+                        block: current_block.as_ref().map(|block| block.id()),
                         module: module.identifier(),
                       },
                     );
                     module_graph.add_dependency(dependency);
                   }
                   if let Some(current_block) = current_block {
-                    module.add_block_id(current_block.identifier());
+                    module.add_block_id(current_block.id());
                     module_graph.add_block(current_block);
                   }
                   for block in blocks {
@@ -1119,6 +1198,7 @@ impl Compilation {
     resolve_options: Option<Box<Resolve>>,
     lazy_visit_modules: std::collections::HashSet<String>,
     issuer: Option<Box<str>>,
+    callback: Option<ModuleCreationCallback>,
   ) {
     let current_profile = self.options.profile.then(Box::<ModuleProfile>::default);
     let dependency = dependencies[0].get_dependency(&self.module_graph).clone();
@@ -1149,6 +1229,7 @@ impl Compilation {
       plugin_driver: self.plugin_driver.clone(),
       cache: self.cache.clone(),
       current_profile,
+      callback,
     });
   }
 

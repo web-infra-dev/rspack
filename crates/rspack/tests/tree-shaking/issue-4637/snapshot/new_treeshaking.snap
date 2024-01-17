@@ -38,7 +38,7 @@ ConsoleExporterWeb = function() {
     ]);
     return ConsoleExporterWeb;
 }();
-var __WEBPACK_DEFAULT_EXPORT__ = (/* unused pure expression or super */ null && (ConsoleExporterWeb));
+/* unused harmony default export */ var __WEBPACK_DEFAULT_EXPORT__ = ((/* unused pure expression or super */ null && (ConsoleExporterWeb)));
 }),
 "../../../../../node_modules/@swc/helpers/esm/_create_class.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
@@ -55,7 +55,7 @@ function _defineProperties(target, props) {
         Object.defineProperty(target, descriptor.key, descriptor);
     }
 }
- function _create_class(Constructor, protoProps, staticProps) {
+function _create_class(Constructor, protoProps, staticProps) {
     if (protoProps) _defineProperties(Constructor.prototype, protoProps);
     if (staticProps) _defineProperties(Constructor, staticProps);
     return Constructor;

@@ -5,15 +5,15 @@ use swc_core::ecma::ast::CallExpr;
 
 use super::JavascriptParserPlugin;
 use crate::dependency::RequireContextDependency;
-use crate::visitors::common_js_import_dependency_scanner::CommonJsImportDependencyScanner;
 use crate::visitors::expr_matcher::is_require_context;
+use crate::visitors::JavascriptParser;
 
 pub struct RequireContextDependencyParserPlugin;
 
 const DEFAULT_REGEXP_STR: &str = r"^\.\/.*$";
 
 impl JavascriptParserPlugin for RequireContextDependencyParserPlugin {
-  fn call(&self, parser: &mut CommonJsImportDependencyScanner, expr: &CallExpr) -> Option<bool> {
+  fn call(&self, parser: &mut JavascriptParser, expr: &CallExpr) -> Option<bool> {
     if expr
       .callee
       .as_expr()

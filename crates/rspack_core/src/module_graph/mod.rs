@@ -9,7 +9,7 @@ use rspack_identifier::{Identifiable, IdentifierMap};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::ecma::atoms::JsWord;
 mod vec_map;
-use crate::{AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier};
+use crate::{AsyncDependenciesBlock, AsyncDependenciesBlockId};
 mod connection;
 pub use connection::*;
 
@@ -25,7 +25,7 @@ pub type ImportVarMap = HashMap<Option<String> /* request */, String /* import_v
 
 #[derive(Debug, Default)]
 pub struct DependencyParents {
-  pub block: Option<AsyncDependenciesBlockIdentifier>,
+  pub block: Option<AsyncDependenciesBlockId>,
   pub module: ModuleIdentifier,
 }
 
@@ -42,7 +42,7 @@ pub struct ModuleGraph {
   /// Module identifier to its module graph module
   pub module_identifier_to_module_graph_module: IdentifierMap<ModuleGraphModule>,
 
-  blocks: HashMap<AsyncDependenciesBlockIdentifier, AsyncDependenciesBlock>,
+  blocks: HashMap<AsyncDependenciesBlockId, AsyncDependenciesBlock>,
 
   dependency_id_to_connection_id: HashMap<DependencyId, ConnectionId>,
   connection_id_to_dependency_id: HashMap<ConnectionId, DependencyId>,
@@ -106,7 +106,7 @@ impl ModuleGraph {
   }
 
   pub fn add_block(&mut self, block: AsyncDependenciesBlock) {
-    self.blocks.insert(block.identifier(), block);
+    self.blocks.insert(block.id(), block);
   }
 
   pub fn set_parents(&mut self, dependency: DependencyId, parents: DependencyParents) {
@@ -120,10 +120,7 @@ impl ModuleGraph {
       .map(|p| &p.module)
   }
 
-  pub fn get_parent_block(
-    &self,
-    dependency: &DependencyId,
-  ) -> Option<&AsyncDependenciesBlockIdentifier> {
+  pub fn get_parent_block(&self, dependency: &DependencyId) -> Option<&AsyncDependenciesBlockId> {
     self
       .dependency_id_to_parents
       .get(dependency)
@@ -132,7 +129,7 @@ impl ModuleGraph {
 
   pub fn block_by_id(
     &self,
-    block_id: &AsyncDependenciesBlockIdentifier,
+    block_id: &AsyncDependenciesBlockId,
   ) -> Option<&AsyncDependenciesBlock> {
     self.blocks.get(block_id)
   }
@@ -390,7 +387,7 @@ impl ModuleGraph {
   pub(crate) fn get_module_dependencies_modules_and_blocks(
     &self,
     module_identifier: &ModuleIdentifier,
-  ) -> (Vec<&ModuleIdentifier>, &[AsyncDependenciesBlockIdentifier]) {
+  ) -> (Vec<&ModuleIdentifier>, &[AsyncDependenciesBlockId]) {
     let Some(m) = self.module_by_identifier(module_identifier) else {
       unreachable!("cannot find the module correspanding to {module_identifier}");
     };
@@ -753,10 +750,10 @@ mod test {
   use rspack_util::source_map::{SourceMapGenConfig, SourceMapKind};
 
   use crate::{
-    AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta,
-    BuildResult, CodeGenerationResult, Compilation, Context, DependenciesBlock, Dependency,
-    DependencyId, ExportInfo, ExportsInfo, Module, ModuleDependency, ModuleGraph,
-    ModuleGraphModule, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType, UsageState,
+    AsyncDependenciesBlockId, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
+    CodeGenerationResult, Compilation, Context, DependenciesBlock, Dependency, DependencyId,
+    ExportInfo, ExportsInfo, Module, ModuleDependency, ModuleGraph, ModuleGraphModule,
+    ModuleIdentifier, ModuleType, RuntimeSpec, SourceType, UsageState,
   };
 
   // Define a detailed node type for `ModuleGraphModule`s
@@ -774,11 +771,11 @@ mod test {
       impl Diagnosable for $ident {}
 
       impl DependenciesBlock for $ident {
-        fn add_block_id(&mut self, _: AsyncDependenciesBlockIdentifier) {
+        fn add_block_id(&mut self, _: AsyncDependenciesBlockId) {
           unreachable!()
         }
 
-        fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
+        fn get_blocks(&self) -> &[AsyncDependenciesBlockId] {
           unreachable!()
         }
 

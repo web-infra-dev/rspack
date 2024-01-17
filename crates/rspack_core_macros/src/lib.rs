@@ -71,11 +71,11 @@ pub fn impl_runtime_module(
     }
 
     impl ::rspack_core::DependenciesBlock for #name {
-      fn add_block_id(&mut self, _: ::rspack_core::AsyncDependenciesBlockIdentifier) {
+      fn add_block_id(&mut self, _: ::rspack_core::AsyncDependenciesBlockId) {
         unreachable!()
       }
 
-      fn get_blocks(&self) -> &[::rspack_core::AsyncDependenciesBlockIdentifier] {
+      fn get_blocks(&self) -> &[::rspack_core::AsyncDependenciesBlockId] {
         unreachable!()
       }
 

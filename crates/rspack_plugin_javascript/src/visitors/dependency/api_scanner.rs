@@ -1,24 +1,22 @@
+use std::sync::Arc;
+
 use rspack_core::{
   BuildInfo, ConstDependency, Dependency, DependencyLocation, DependencyTemplate, ResourceData,
   RuntimeGlobals, RuntimeRequirementsDependency, SpanExt,
 };
 use rspack_error::miette::Diagnostic;
+use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 use swc_core::{
-  common::{Spanned, SyntaxContext},
-  ecma::{
-    ast::{AssignExpr, AssignOp, CallExpr, Callee, Expr, Ident, Pat, PatOrExpr, VarDeclarator},
-    visit::{noop_visit_type, Visit, VisitWith},
-  },
+  common::{SourceFile, Spanned, SyntaxContext},
+  ecma::ast::{AssignExpr, AssignOp, CallExpr, Callee, Expr, Ident, Pat, PatOrExpr, VarDeclarator},
 };
 
-use super::expr_matcher;
-use crate::{
-  dependency::ModuleArgumentDependency,
-  no_visit_ignored_stmt,
-  parser_plugin::JavascriptParserPlugin,
-  utils::eval::{self, BasicEvaluatedExpression},
-  visitors::extract_member_root,
-};
+use super::{expr_matcher, JavascriptParser};
+use crate::dependency::ModuleArgumentDependency;
+use crate::no_visit_ignored_stmt;
+use crate::parser_plugin::JavascriptParserPlugin;
+use crate::utils::eval::{self, BasicEvaluatedExpression};
+use crate::visitors::extract_member_root;
 
 pub const WEBPACK_HASH: &str = "__webpack_hash__";
 pub const WEBPACK_PUBLIC_PATH: &str = "__webpack_public_path__";
@@ -64,13 +62,13 @@ pub struct ApiParserPlugin;
 impl JavascriptParserPlugin for ApiParserPlugin {
   fn evaluate_typeof(
     &self,
-    expression: &swc_core::ecma::ast::Ident,
+    parser: &mut JavascriptParser,
+    expression: &Ident,
     start: u32,
     end: u32,
-    unresolved_mark: swc_core::common::SyntaxContext,
   ) -> Option<BasicEvaluatedExpression> {
-    if expression.span.ctxt == unresolved_mark {
-      get_typeof_evaluate_of_api(expression.sym.as_ref() as &str)
+    if parser.is_unresolved_ident(expression.sym.as_str()) {
+      get_typeof_evaluate_of_api(expression.sym.as_str())
         .map(|res| eval::evaluate_to_string(res.to_string(), start, end))
     } else {
       None
@@ -79,6 +77,7 @@ impl JavascriptParserPlugin for ApiParserPlugin {
 }
 
 pub struct ApiScanner<'a> {
+  pub source_file: Arc<SourceFile>,
   pub unresolved_ctxt: SyntaxContext,
   pub module: bool,
   pub build_info: &'a mut BuildInfo,
@@ -93,6 +92,7 @@ pub struct ApiScanner<'a> {
 impl<'a> ApiScanner<'a> {
   #[allow(clippy::too_many_arguments)]
   pub fn new(
+    source_file: Arc<SourceFile>,
     unresolved_ctxt: SyntaxContext,
     resource_data: &'a ResourceData,
     dependencies: &'a mut Vec<Box<dyn Dependency>>,
@@ -103,6 +103,7 @@ impl<'a> ApiScanner<'a> {
     ignored: &'a mut Vec<DependencyLocation>,
   ) -> Self {
     Self {
+      source_file,
       unresolved_ctxt,
       module,
       build_info,
@@ -337,7 +338,7 @@ impl Visit for ApiScanner<'_> {
     macro_rules! not_supported_expr {
       ($check: ident, $name: literal) => {
         if expr_matcher::$check(expr) {
-          let (warning, dep) = super::expression_not_supported($name, expr);
+          let (warning, dep) = super::expression_not_supported(&self.source_file, $name, expr);
           self.warning_diagnostics.push(warning);
           self.presentational_dependencies.push(dep);
           return;
@@ -417,8 +418,11 @@ impl Visit for ApiScanner<'_> {
         if let Callee::Expr(box Expr::Member(expr)) = &call_expr.callee
           && expr_matcher::$check(&Expr::Member(expr.to_owned()))
         {
-          let (warning, dep) =
-            super::expression_not_supported($name, &Expr::Call(call_expr.to_owned()));
+          let (warning, dep) = super::expression_not_supported(
+            &self.source_file,
+            $name,
+            &Expr::Call(call_expr.to_owned()),
+          );
           self.warning_diagnostics.push(warning);
           self.presentational_dependencies.push(dep);
           return;

@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use rspack_core::{
   clean_regexp_in_context_module, context_reg_exp, AsyncDependenciesBlock, DependencyLocation,
   DynamicImportMode, ErrorSpan, GroupOptions, JavascriptParserOptions, ModuleIdentifier,
@@ -7,7 +9,7 @@ use rspack_core::{ContextNameSpaceObject, ContextOptions, DependencyCategory, Sp
 use rspack_error::miette::Diagnostic;
 use rspack_regex::{regexp_as_str, RspackRegex};
 use swc_core::common::comments::Comments;
-use swc_core::common::Spanned;
+use swc_core::common::{SourceFile, Spanned};
 use swc_core::ecma::ast::{CallExpr, Callee, Expr, Lit};
 use swc_core::ecma::atoms::JsWord;
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
@@ -21,7 +23,8 @@ use crate::utils::{get_bool_by_obj_prop, get_literal_str_by_obj_prop, get_regex_
 use crate::webpack_comment::try_extract_webpack_magic_comment;
 
 pub struct ImportScanner<'a> {
-  module_identifier: ModuleIdentifier,
+  pub source_file: Arc<SourceFile>,
+  pub module_identifier: ModuleIdentifier,
   pub dependencies: &'a mut Vec<BoxDependency>,
   pub blocks: &'a mut Vec<AsyncDependenciesBlock>,
   pub comments: Option<&'a dyn Comments>,
@@ -111,6 +114,7 @@ fn create_import_meta_context_dependency(node: &CallExpr) -> Option<ImportMetaCo
 impl<'a> ImportScanner<'a> {
   #[allow(clippy::too_many_arguments)]
   pub fn new(
+    source_file: Arc<SourceFile>,
     module_identifier: ModuleIdentifier,
     dependencies: &'a mut Vec<BoxDependency>,
     blocks: &'a mut Vec<AsyncDependenciesBlock>,
@@ -121,6 +125,7 @@ impl<'a> ImportScanner<'a> {
     ignored: &'a mut Vec<DependencyLocation>,
   ) -> Self {
     Self {
+      source_file,
       module_identifier,
       dependencies,
       blocks,
@@ -188,7 +193,9 @@ impl Visit for ImportScanner<'_> {
           return;
         }
         let magic_comment_options = try_extract_webpack_magic_comment(
+          &self.source_file,
           &self.comments,
+          node.span,
           imported.span,
           self.warning_diagnostics,
         );
@@ -218,7 +225,6 @@ impl Visit for ImportScanner<'_> {
         ));
         let mut block = AsyncDependenciesBlock::new(
           self.module_identifier,
-          format!("{}:{}", span.start, span.end),
           Some(DependencyLocation::new(span.start, span.end)),
         );
         block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions::new(
@@ -230,8 +236,13 @@ impl Visit for ImportScanner<'_> {
         self.blocks.push(block);
       }
       Expr::Tpl(tpl) if tpl.quasis.len() == 1 => {
-        let magic_comment_options =
-          try_extract_webpack_magic_comment(&self.comments, tpl.span, self.warning_diagnostics);
+        let magic_comment_options = try_extract_webpack_magic_comment(
+          &self.source_file,
+          &self.comments,
+          node.span,
+          tpl.span,
+          self.warning_diagnostics,
+        );
         let chunk_name = magic_comment_options
           .get_webpack_chunk_name()
           .map(|x| x.to_owned());
@@ -259,7 +270,6 @@ impl Visit for ImportScanner<'_> {
         ));
         let mut block = AsyncDependenciesBlock::new(
           self.module_identifier,
-          format!("{}:{}", span.start, span.end),
           Some(DependencyLocation::new(span.start, span.end)),
         );
         block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions::new(
@@ -275,7 +285,9 @@ impl Visit for ImportScanner<'_> {
           return;
         };
         let magic_comment_options = try_extract_webpack_magic_comment(
+          &self.source_file,
           &self.comments,
+          node.span,
           dyn_imported.span(),
           self.warning_diagnostics,
         );

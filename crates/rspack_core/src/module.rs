@@ -455,7 +455,7 @@ mod test {
 
   use super::Module;
   use crate::{
-    AsyncDependenciesBlockIdentifier, BuildContext, BuildResult, CodeGenerationResult, Compilation,
+    AsyncDependenciesBlockId, BuildContext, BuildResult, CodeGenerationResult, Compilation,
     Context, DependenciesBlock, DependencyId, ModuleExt, ModuleType, RuntimeSpec, SourceType,
   };
 
@@ -500,11 +500,11 @@ mod test {
       impl Diagnosable for $ident {}
 
       impl DependenciesBlock for $ident {
-        fn add_block_id(&mut self, _: AsyncDependenciesBlockIdentifier) {
+        fn add_block_id(&mut self, _: AsyncDependenciesBlockId) {
           unreachable!()
         }
 
-        fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
+        fn get_blocks(&self) -> &[AsyncDependenciesBlockId] {
           unreachable!()
         }
 

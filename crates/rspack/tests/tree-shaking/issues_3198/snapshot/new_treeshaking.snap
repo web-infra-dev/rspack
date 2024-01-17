@@ -16,7 +16,7 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   obj: function() { return obj; }
 });
- const obj = {};
+const obj = {};
 }),
 
 },function(__webpack_require__) {

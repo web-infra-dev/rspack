@@ -1,7 +1,8 @@
 use std::borrow::Cow;
 
 use rustc_hash::FxHashSet;
-use swc_core::ecma::ast::{AssignExpr, BlockStmt, CatchClause, Decl, DoWhileStmt, FnDecl};
+use swc_core::ecma::ast::FnDecl;
+use swc_core::ecma::ast::{AssignExpr, BlockStmt, CatchClause, Decl, DoWhileStmt, ExprStmt};
 use swc_core::ecma::ast::{ForInStmt, ForOfStmt, ForStmt, IfStmt, LabeledStmt, WithStmt};
 use swc_core::ecma::ast::{ModuleDecl, ModuleItem, ObjectPat, ObjectPatProp, Stmt, WhileStmt};
 use swc_core::ecma::ast::{SwitchCase, SwitchStmt, TryStmt, VarDecl, VarDeclKind, VarDeclarator};
@@ -148,9 +149,6 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   pub(super) fn _pre_walk_variable_declaration(&mut self, decl: &VarDecl) {
-    if decl.kind != VarDeclKind::Var {
-      return;
-    }
     for declarator in &decl.decls {
       self.pre_walk_variable_declarator(declarator);
       // TODO: hooks.pre_declarator

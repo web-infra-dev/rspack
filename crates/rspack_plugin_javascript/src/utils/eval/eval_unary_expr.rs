@@ -3,19 +3,19 @@ use swc_core::ecma::ast::{UnaryExpr, UnaryOp};
 
 use super::BasicEvaluatedExpression;
 use crate::parser_plugin::JavascriptParserPlugin;
-use crate::visitors::common_js_import_dependency_scanner::CommonJsImportDependencyScanner;
+use crate::visitors::JavascriptParser;
 
 fn eval_typeof(
-  scanner: &mut CommonJsImportDependencyScanner,
+  scanner: &mut JavascriptParser,
   expr: &UnaryExpr,
 ) -> Option<BasicEvaluatedExpression> {
   assert!(expr.op == UnaryOp::TypeOf);
   if let Some(ident) = expr.arg.as_ident()
-    && let res = scanner.plugin_drive.evaluate_typeof(
+    && let res = scanner.plugin_drive.clone().evaluate_typeof(
+      scanner,
       ident,
       expr.span.real_lo(),
       expr.span.hi().0,
-      scanner.unresolved_ctxt,
     )
     && res.is_some()
   {
@@ -27,7 +27,7 @@ fn eval_typeof(
 }
 
 pub fn eval_unary_expression(
-  scanner: &mut CommonJsImportDependencyScanner,
+  scanner: &mut JavascriptParser,
   expr: &UnaryExpr,
 ) -> Option<BasicEvaluatedExpression> {
   match expr.op {

@@ -10,9 +10,9 @@ use rspack_sources::Source;
 use rspack_util::source_map::SourceMapKind;
 
 use crate::{
-  impl_build_info_meta, AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildMeta,
-  BuildResult, ChunkUkey, CodeGenerationResult, Compilation, Context, DependenciesBlock,
-  DependencyId, LibIdentOptions, Module, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
+  impl_build_info_meta, AsyncDependenciesBlockId, BuildContext, BuildInfo, BuildMeta, BuildResult,
+  ChunkUkey, CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId,
+  LibIdentOptions, Module, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
 };
 
 #[impl_source_map_config]
@@ -20,7 +20,7 @@ use crate::{
 pub struct SelfModule {
   identifier: ModuleIdentifier,
   readable_identifier: String,
-  blocks: Vec<AsyncDependenciesBlockIdentifier>,
+  blocks: Vec<AsyncDependenciesBlockId>,
   dependencies: Vec<DependencyId>,
   build_info: Option<BuildInfo>,
   build_meta: Option<BuildMeta>,
@@ -48,11 +48,11 @@ impl Identifiable for SelfModule {
 }
 
 impl DependenciesBlock for SelfModule {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
+  fn add_block_id(&mut self, block: AsyncDependenciesBlockId) {
     self.blocks.push(block)
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
+  fn get_blocks(&self) -> &[AsyncDependenciesBlockId] {
     &self.blocks
   }
 

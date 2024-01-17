@@ -1,9 +1,7 @@
-// TODO
-// it("should find var declaration later in code", function () {
-// 	expect(typeof require).toBe("undefined");
-
-// 	var require;
-// });
+it("should find var declaration later in code", function () {
+	expect(typeof require).toBe("undefined");
+	var require;
+});
 
 it("should find var declaration in same statement", function () {
 	var fn = function () {

@@ -16,7 +16,7 @@ __webpack_require__.d(__webpack_exports__, {
 /* harmony import */var _app__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_app__WEBPACK_IMPORTED_MODULE_1__);
 
 
- const routes = {
+const routes = {
     answer: _answer__WEBPACK_IMPORTED_MODULE_0__.something
 };
 }),

@@ -19,7 +19,7 @@ futures            = { version = "0.3.28" }
 futures-util       = { version = "0.3.28" }
 glob               = { version = "0.3.1" }
 hashlink           = { version = "0.8.3" }
-indexmap           = { version = "1.9.3" }
+indexmap           = { version = "=1.9.3", features = ["serde-1"] }
 insta              = { version = "1.30.0" }
 itertools          = { version = "0.10.5" }
 json               = { version = "0.12.4" }
@@ -58,16 +58,16 @@ napi                = { version = "=2.13.3" }
 napi-build          = { version = "=2.0.1" }
 napi-derive         = { version = "=2.13.0" }
 napi-sys            = { version = "=2.2.3" }
-styled_components   = { version = "0.90.0" }
-swc_config          = { version = "=0.1.7" }
-swc_core            = { version = "0.86.82", default-features = false }
-swc_css             = { version = "0.157.6" }
-swc_ecma_minifier   = { version = "0.189.73", default-features = false }
-swc_emotion         = { version = "=0.58.0" }
-swc_error_reporters = { version = "=0.17.9" }
-swc_html            = { version = "=0.134.29" }
-swc_html_minifier   = { version = "=0.131.29" }
-swc_node_comments   = { version = "=0.20.9" }
+styled_components   = { version = "0.91.0" }
+swc_config          = { version = "=0.1.9" }
+swc_core            = { version = "=0.87.21", default-features = false }
+swc_css             = { version = "=0.157.29" }
+swc_ecma_minifier   = { version = "=0.190.17", default-features = false }
+swc_emotion         = { version = "=0.67.0" }
+swc_error_reporters = { version = "=0.17.12" }
+swc_html            = { version = "=0.135.20" }
+swc_html_minifier   = { version = "=0.132.20" }
+swc_node_comments   = { version = "=0.20.12" }
 tikv-jemallocator   = { version = "=0.5.4", features = ["disable_initial_exec_tls"] }
 
 [profile.dev]

@@ -4,10 +4,7 @@ use rspack_core::{
   extract_member_expression_chain, ConstDependency, DependencyLocation, ErrorSpan,
   ExpressionInfoKind, SpanExt,
 };
-use rspack_error::{
-  miette::{MietteDiagnostic, Severity},
-  DiagnosticKind, TraceableError,
-};
+use rspack_error::{miette::Severity, DiagnosticKind, TraceableError};
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::{
   common::{SourceFile, Spanned, SyntaxContext},
@@ -253,7 +250,7 @@ fn test() {
   use swc_core::ecma::ast::{Ident, MemberExpr, MemberProp, MetaPropExpr, MetaPropKind};
   use swc_core::ecma::utils::member_expr;
   use swc_core::ecma::utils::ExprFactory;
-  let expr = *member_expr!(DUMMY_SP, module.hot.accept);
+  let expr = Expr::Member(member_expr!(DUMMY_SP, module.hot.accept));
   assert!(expr_matcher::is_module_hot_accept(&expr));
   assert!(!expr_matcher::is_module_hot_decline(&expr));
   assert!(is_module_hot_accept_call(&CallExpr {
@@ -291,28 +288,6 @@ fn test() {
     args: vec![],
     type_args: None
   }));
-}
-
-pub fn is_unresolved_member_object_ident(expr: &Expr, unresolved_ctxt: SyntaxContext) -> bool {
-  if let Expr::Member(member) = expr {
-    if let Expr::Ident(ident) = &*member.obj {
-      return ident.span.ctxt == unresolved_ctxt;
-    };
-  }
-  false
-}
-
-pub fn is_unresolved_require(expr: &Expr, unresolved_ctxt: SyntaxContext) -> bool {
-  let ident = match expr {
-    Expr::Ident(ident) => Some(ident),
-    Expr::Member(mem) => mem.obj.as_ident(),
-    _ => None,
-  };
-  let Some(ident) = ident else {
-    unreachable!("please don't use this fn in other case");
-  };
-  assert!(ident.sym.eq("require"));
-  ident.span.ctxt == unresolved_ctxt
 }
 
 #[macro_export]
@@ -439,13 +414,19 @@ fn test_is_require_call_start() {
 }
 
 pub fn expression_not_supported(
+  file: &SourceFile,
   name: &str,
   expr: &Expr,
-) -> (Box<MietteDiagnostic>, Box<ConstDependency>) {
+) -> (Box<TraceableError>, Box<ConstDependency>) {
   (
     Box::new(
-      MietteDiagnostic::new(format!("{name} is not supported by Rspack."))
-        .with_severity(Severity::Warning),
+      create_traceable_error(
+        "Module parse failed".into(),
+        format!("{name} is not supported by Rspack."),
+        file,
+        expr.span().into(),
+      )
+      .with_severity(Severity::Warning),
     ),
     Box::new(ConstDependency::new(
       expr.span().real_lo(),

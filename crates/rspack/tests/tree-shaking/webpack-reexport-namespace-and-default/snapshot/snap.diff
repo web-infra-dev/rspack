@@ -9,7 +9,7 @@
 -var __WEBPACK_DEFAULT_EXPORT__ = /* "./script1" unused */null;
 +var __WEBPACK_DEFAULT_EXPORT__ = (/* unused pure expression or super */ null && (mod));
  
-  const exportDefaultUsed = false;
+ const exportDefaultUsed = false;
  }),
 @@ -54,7 +53,6 @@
  "use strict";
@@ -27,7 +27,7 @@
 +    return mod;
  }
  
-  const exportDefaultUsed = false;
+ const exportDefaultUsed = false;
 @@ -79,7 +77,6 @@
    exportDefaultUsed: function() { return exportDefaultUsed; }
  });

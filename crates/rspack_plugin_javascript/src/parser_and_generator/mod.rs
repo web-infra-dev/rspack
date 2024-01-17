@@ -8,8 +8,8 @@ use rspack_core::tree_shaking::analyzer::OptimizeAnalyzer;
 use rspack_core::tree_shaking::js_module::JsModule;
 use rspack_core::tree_shaking::visitor::OptimizeAnalyzeResult;
 use rspack_core::{
-  render_init_fragments, AsyncDependenciesBlockIdentifier, Compilation, DependenciesBlock,
-  DependencyId, GenerateContext, Module, ParseContext, ParseResult, ParserAndGenerator, SourceType,
+  render_init_fragments, AsyncDependenciesBlockId, Compilation, DependenciesBlock, DependencyId,
+  GenerateContext, Module, ParseContext, ParseResult, ParserAndGenerator, SourceType,
   TemplateContext, TemplateReplaceSource,
 };
 use rspack_error::miette::Diagnostic;
@@ -36,14 +36,11 @@ impl JavaScriptParserAndGenerator {
   fn source_block(
     &self,
     compilation: &Compilation,
-    block_id: &AsyncDependenciesBlockIdentifier,
+    block_id: &AsyncDependenciesBlockId,
     source: &mut TemplateReplaceSource,
     context: &mut TemplateContext,
   ) {
-    let block = compilation
-      .module_graph
-      .block_by_id(block_id)
-      .expect("should have block");
+    let block = block_id.expect_get(compilation);
     block.get_dependencies().iter().for_each(|dependency_id| {
       self.source_dependency(compilation, dependency_id, source, context)
     });

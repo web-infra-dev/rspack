@@ -66,7 +66,7 @@ pub struct TrustedTypes {
   pub policy_name: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ChunkLoading {
   Enable(ChunkLoadingType),
   Disable,
@@ -81,7 +81,7 @@ impl From<&str> for ChunkLoading {
   }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ChunkLoadingType {
   Jsonp,
   ImportScripts,
@@ -418,7 +418,7 @@ fn hash_len(hash: &str, caps: &Captures) -> usize {
     .min(hash_len)
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum PublicPath {
   // TODO: should be RawPublicPath(Filename)
   String(String),

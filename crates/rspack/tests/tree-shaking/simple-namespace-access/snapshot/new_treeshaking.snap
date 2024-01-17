@@ -22,11 +22,11 @@ __webpack_require__.d(__webpack_exports__, {
 // maths.js
 // This function isn't used anywhere, so
 // Rollup excludes it from the bundle...
- function square(x) {
+function square(x) {
     return x * x;
 }
 // This function gets included
- function cube(x) {
+function cube(x) {
     // rewrite this as `square( x ) * x`
     // and see what happens!
     return x * x * x;
@@ -39,8 +39,8 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   test: function() { return test; }
 });
- function test() {}
- function ccc() {}
+function test() {}
+function ccc() {}
 }),
 
 },function(__webpack_require__) {

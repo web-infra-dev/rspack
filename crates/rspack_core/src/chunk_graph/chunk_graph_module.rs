@@ -7,12 +7,13 @@ use rspack_identifier::Identifier;
 use rspack_util::ext::DynHash;
 use rustc_hash::FxHashSet as HashSet;
 
+use crate::update_hash::{UpdateHashContext, UpdateRspackHash};
+use crate::ChunkGraph;
 use crate::{
-  get_chunk_group_from_ukey, AsyncDependenciesBlockIdentifier, BoxModule, ChunkByUkey, ChunkGroup,
-  ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, ExportsHash, ModuleIdentifier, RuntimeGlobals,
-  RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet,
+  get_chunk_group_from_ukey, AsyncDependenciesBlockId, BoxModule, ChunkByUkey, ChunkGroup,
+  ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, ExportsHash, ModuleIdentifier,
+  RuntimeGlobals, RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet,
 };
-use crate::{ChunkGraph, ModuleGraph};
 
 #[derive(Debug, Clone, Default)]
 pub struct ChunkGraphModule {
@@ -148,7 +149,7 @@ impl ChunkGraph {
 
   pub fn get_block_chunk_group<'a>(
     &self,
-    block: &AsyncDependenciesBlockIdentifier,
+    block: &AsyncDependenciesBlockId,
     chunk_group_by_ukey: &'a ChunkGroupByUkey,
   ) -> Option<&'a ChunkGroup> {
     self
@@ -159,7 +160,7 @@ impl ChunkGraph {
 
   pub fn connect_block_and_chunk_group(
     &mut self,
-    block: AsyncDependenciesBlockIdentifier,
+    block: AsyncDependenciesBlockId,
     chunk_group: ChunkGroupUkey,
   ) {
     self.block_to_chunk_group_ukey.insert(block, chunk_group);
@@ -168,17 +169,15 @@ impl ChunkGraph {
   pub fn get_module_graph_hash(
     &self,
     module: &BoxModule,
-    module_graph: &ModuleGraph,
+    compilation: &Compilation,
+    runtime: Option<&RuntimeSpec>,
     with_connections: bool,
   ) -> String {
     let mut hasher = DefaultHasher::new();
     let mut connection_hash_cache: HashMap<Identifier, u64> = HashMap::new();
+    let module_graph = &compilation.module_graph;
 
-    fn process_module_graph_module(
-      module: &BoxModule,
-      module_graph: &ModuleGraph,
-      strict: bool,
-    ) -> u64 {
+    let process_module_graph_module = |module: &BoxModule, strict: bool| -> u64 {
       let mut hasher = DefaultHasher::new();
       module.identifier().dyn_hash(&mut hasher);
       module.source_types().dyn_hash(&mut hasher);
@@ -190,20 +189,34 @@ impl ChunkGraph {
         .get_exports_info(&module.identifier())
         .export_info_hash(&mut hasher, module_graph);
 
+      module
+        .get_blocks()
+        .iter()
+        .filter_map(|id| module_graph.block_by_id(id))
+        .for_each(|block| {
+          block.update_hash(
+            &mut hasher,
+            &UpdateHashContext {
+              compilation,
+              runtime,
+            },
+          )
+        });
+
       if let Some(module) = module_graph.module_by_identifier(&module.identifier()) {
         let export_type = module.get_exports_type(strict);
         export_type.dyn_hash(&mut hasher);
       }
 
       hasher.finish()
-    }
+    };
 
     // hash module build_info
     module_graph
       .get_module_hash(&module.identifier())
       .dyn_hash(&mut hasher);
     // hash module graph module
-    process_module_graph_module(module, module_graph, false).dyn_hash(&mut hasher);
+    process_module_graph_module(module, false).dyn_hash(&mut hasher);
 
     let strict: bool = module_graph
       .module_by_identifier(&module.identifier())
@@ -237,7 +250,6 @@ impl ChunkGraph {
                   connection.module_identifier
                 )
               }),
-            module_graph,
             strict,
           );
           connection_hash.dyn_hash(&mut hasher);

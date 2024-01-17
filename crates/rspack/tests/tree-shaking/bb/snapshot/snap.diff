@@ -12,7 +12,7 @@
 -__webpack_require__.es(_c_js__WEBPACK_IMPORTED_MODULE_1__, __webpack_exports__);
 -
 -
-- const a = 3;
+-const a = 3;
 -_b_js__WEBPACK_IMPORTED_MODULE_0__.d;
 -
 -}),
@@ -22,8 +22,8 @@
 -__webpack_require__.d(__webpack_exports__, {
 -  d: function() { return d; }
 -});
-- const d = 3;
-- const c = 100;
+-const d = 3;
+-const c = 100;
 -}),
  "./c.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
  "use strict";

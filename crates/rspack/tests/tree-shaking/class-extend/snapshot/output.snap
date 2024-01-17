@@ -11,14 +11,14 @@ __webpack_require__.d(__webpack_exports__, {
 });
 /* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./lib */"./lib.js");
 
- class Lib extends /* "./lib" unused */null {
+class Lib extends /* "./lib" unused */null {
 }
 function foo() {
     return {
         OriginLib: /* "./lib" unused */null
     };
 }
- const v = _lib__WEBPACK_IMPORTED_MODULE_0__.value;
+const v = _lib__WEBPACK_IMPORTED_MODULE_0__.value;
 }),
 "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
@@ -33,9 +33,9 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   value: function() { return value; }
 });
- class Lib {
+class Lib {
 }
- const value = 1;
+const value = 1;
 }),
 
 },function(__webpack_require__) {

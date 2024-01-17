@@ -9,7 +9,7 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   defaults: function() { return defaults; }
 });
- const defaults = {
+const defaults = {
     test: 1000
 };
 }),
@@ -21,11 +21,11 @@ __webpack_require__.d(__webpack_exports__, {
 });
 /* harmony import */var _Layout__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./Layout */"./Layout.js");
 
- function callit() {
+function callit() {
     _Layout__WEBPACK_IMPORTED_MODULE_0__.defaults.test;
 }
- var Sider = callit();
- var Something = 20000;
+var Sider = callit();
+var Something = 20000;
 }),
 "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";

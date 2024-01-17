@@ -65,6 +65,8 @@ const getDefaultConfig = config => {
 	config = rspack.config.getNormalizedRspackOptions(config);
 	rspack.config.applyRspackOptionsDefaults(config);
 	process.chdir(cwd);
+	// make snapshot stable
+	config.experiments.rspackFuture.bundlerInfo.version = "$version$";
 	return config;
 };
 

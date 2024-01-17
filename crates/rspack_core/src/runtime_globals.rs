@@ -8,11 +8,6 @@ bitflags! {
     const REQUIRE_SCOPE = 1 << 0;
 
     const EXPORT_STAR = 1 << 1;
-    /**
-     * rspack
-     * load chunk with module, let module code generation result can be cached at hmr
-     */
-    const LOAD_CHUNK_WITH_BLOCK = 1 << 2;
     // port from webpack RuntimeGlobals
 
     /**
@@ -270,7 +265,6 @@ impl RuntimeGlobals {
     match *self {
       R::REQUIRE_SCOPE => "__webpack_require__.*",
       R::EXPORT_STAR => "es",
-      R::LOAD_CHUNK_WITH_BLOCK => "__webpack_require__.el",
       R::MODULE => "module",
       R::MODULE_ID => "module.id",
       R::MODULE_LOADED => "module.loaded",

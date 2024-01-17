@@ -5,8 +5,8 @@ use async_trait::async_trait;
 use rspack_core::{
   impl_build_info_meta, impl_source_map_config,
   rspack_sources::{RawSource, Source, SourceExt},
-  AsyncDependenciesBlockIdentifier, BuildInfo, BuildMeta, Compilation, DependenciesBlock,
-  DependencyId, Module, ModuleType, NormalModuleCreateData, Plugin, PluginContext,
+  AsyncDependenciesBlockId, BuildInfo, BuildMeta, Compilation, DependenciesBlock, DependencyId,
+  Module, ModuleType, NormalModuleCreateData, Plugin, PluginContext,
   PluginNormalModuleFactoryCreateModuleHookOutput, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 use rspack_core::{CodeGenerationResult, Context, ModuleIdentifier};
@@ -17,18 +17,18 @@ use rspack_identifier::Identifiable;
 #[derive(Debug)]
 pub struct LazyCompilationProxyModule {
   dependencies: Vec<DependencyId>,
-  blocks: Vec<AsyncDependenciesBlockIdentifier>,
+  blocks: Vec<AsyncDependenciesBlockId>,
   pub module_identifier: ModuleIdentifier,
   build_info: Option<BuildInfo>,
   build_meta: Option<BuildMeta>,
 }
 
 impl DependenciesBlock for LazyCompilationProxyModule {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
+  fn add_block_id(&mut self, block: AsyncDependenciesBlockId) {
     self.blocks.push(block)
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
+  fn get_blocks(&self) -> &[AsyncDependenciesBlockId] {
     &self.blocks
   }
 

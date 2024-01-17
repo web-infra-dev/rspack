@@ -27,8 +27,8 @@ use serde_json::json;
 
 use crate::{
   add_connection_states, contextify, diagnostics::ModuleBuildError, get_context,
-  impl_build_info_meta, AsyncDependenciesBlockIdentifier, BoxLoader, BoxModule, BuildContext,
-  BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation, ConnectionState, Context,
+  impl_build_info_meta, AsyncDependenciesBlockId, BoxLoader, BoxModule, BuildContext, BuildInfo,
+  BuildMeta, BuildResult, CodeGenerationResult, Compilation, ConnectionState, Context,
   DependenciesBlock, DependencyId, DependencyTemplate, GenerateContext, GeneratorOptions,
   LibIdentOptions, Module, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType,
   ParseContext, ParseResult, ParserAndGenerator, ParserOptions, Resolve, RspackLoaderRunnerPlugin,
@@ -80,7 +80,7 @@ impl ModuleIssuer {
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct NormalModule {
-  blocks: Vec<AsyncDependenciesBlockIdentifier>,
+  blocks: Vec<AsyncDependenciesBlockId>,
   dependencies: Vec<DependencyId>,
 
   id: ModuleIdentifier,
@@ -291,11 +291,11 @@ impl Identifiable for NormalModule {
 }
 
 impl DependenciesBlock for NormalModule {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
+  fn add_block_id(&mut self, block: AsyncDependenciesBlockId) {
     self.blocks.push(block)
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
+  fn get_blocks(&self) -> &[AsyncDependenciesBlockId] {
     &self.blocks
   }
 

@@ -1,4 +1,3 @@
-mod r#const;
 pub mod eval;
 mod get_prop_from_obj;
 pub mod mangle_exports;
@@ -9,7 +8,6 @@ use rustc_hash::FxHashSet as HashSet;
 use swc_core::common::{SourceFile, Span, Spanned};
 
 pub use self::get_prop_from_obj::*;
-pub use self::r#const::*;
 
 #[derive(PartialEq, Eq, Hash)]
 pub struct EcmaError(String, Span);

@@ -2,10 +2,10 @@ use rspack_core::SpanExt;
 use swc_core::ecma::ast::ArrayLit;
 
 use super::BasicEvaluatedExpression;
-use crate::visitors::common_js_import_dependency_scanner::CommonJsImportDependencyScanner;
+use crate::visitors::JavascriptParser;
 
 pub fn eval_array_expression(
-  scanner: &mut CommonJsImportDependencyScanner<'_>,
+  scanner: &mut JavascriptParser,
   expr: &ArrayLit,
 ) -> Option<BasicEvaluatedExpression> {
   let mut items = vec![];

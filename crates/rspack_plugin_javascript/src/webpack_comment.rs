@@ -1,10 +1,11 @@
 use once_cell::sync::Lazy;
 use regex::Captures;
-use rspack_error::miette::{diagnostic, Diagnostic, Severity};
-use rspack_error::DiagnosticExt;
+use rspack_error::miette::{Diagnostic, Severity};
 use rustc_hash::FxHashMap;
 use swc_core::common::comments::{CommentKind, Comments};
-use swc_core::common::Span;
+use swc_core::common::{SourceFile, Span};
+
+use crate::visitors::create_traceable_error;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum WebpackComment {
@@ -51,19 +52,25 @@ impl WebpackCommentMap {
 }
 
 fn add_magic_comment_warning(
+  source_file: &SourceFile,
   comment_name: &str,
   comment_type: &str,
   captures: &Captures,
   warning_diagnostics: &mut Vec<Box<dyn Diagnostic + Send + Sync>>,
+  span: Span,
 ) {
-  warning_diagnostics.push(
-    diagnostic!(
-      severity = Severity::Warning,
-      "`{comment_name}` expected {comment_type}, but received: {}.",
-      captures.get(2).map_or("", |m| m.as_str())
+  warning_diagnostics.push(Box::new(
+    create_traceable_error(
+      "Magic comments parse failed".into(),
+      format!(
+        "`{comment_name}` expected {comment_type}, but received: {}.",
+        captures.get(2).map_or("", |m| m.as_str())
+      ),
+      source_file,
+      span.into(),
     )
-    .boxed(),
-  )
+    .with_severity(Severity::Warning),
+  ))
 }
 
 // Using vm.runInNewContext in webpack
@@ -80,7 +87,9 @@ static WEBPACK_MAGIC_COMMENT_REGEXP: Lazy<regex::Regex> = Lazy::new(|| {
 });
 
 pub fn try_extract_webpack_magic_comment(
+  source_file: &SourceFile,
   comments: &Option<&dyn Comments>,
+  import_span: Span,
   span: Span,
   warning_diagnostics: &mut Vec<Box<dyn Diagnostic + Send + Sync>>,
 ) -> WebpackCommentMap {
@@ -106,7 +115,14 @@ pub fn try_extract_webpack_magic_comment(
                   item_value_match.as_str().to_string(),
                 );
               } else {
-                add_magic_comment_warning(item_name, "a string", &captures, warning_diagnostics);
+                add_magic_comment_warning(
+                  source_file,
+                  item_name,
+                  "a string",
+                  &captures,
+                  warning_diagnostics,
+                  import_span,
+                );
               }
             }
             "webpackPrefetch" => {
@@ -117,10 +133,12 @@ pub fn try_extract_webpack_magic_comment(
                 );
               } else {
                 add_magic_comment_warning(
+                  source_file,
                   item_name,
                   "true or a number",
                   &captures,
                   warning_diagnostics,
+                  import_span,
                 );
               }
             }
@@ -132,10 +150,12 @@ pub fn try_extract_webpack_magic_comment(
                 );
               } else {
                 add_magic_comment_warning(
+                  source_file,
                   item_name,
                   "true or a number",
                   &captures,
                   warning_diagnostics,
+                  import_span,
                 );
               }
             }
@@ -147,10 +167,12 @@ pub fn try_extract_webpack_magic_comment(
                 );
               } else {
                 add_magic_comment_warning(
+                  source_file,
                   item_name,
                   "true or false",
                   &captures,
                   warning_diagnostics,
+                  import_span,
                 );
               }
             }
