@@ -105,7 +105,7 @@ impl AssetParserAndGenerator {
     compiler_options: &CompilerOptions,
   ) -> RspackHashDigest {
     let mut hasher = RspackHash::from(&compiler_options.output);
-    source.hash(&mut hasher);
+    source.buffer().hash(&mut hasher);
     hasher.digest(&compiler_options.output.hash_digest)
   }
 

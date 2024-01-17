@@ -194,7 +194,7 @@ import rawModule from './raw.png';
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "9670c403a43c0e34d38b",
+  "hash": "b74c5338b3a73b8cd01a",
   "logging": {},
   "modules": [
     {
@@ -390,7 +390,7 @@ chunk {909} bundle.js (main) [entry]
 webpack/runtime/public_path {909}
 webpack/runtime/make_namespace_object {909}
   
-Rspack compiled successfully (9670c403a43c0e34d38b)"
+Rspack compiled successfully (b74c5338b3a73b8cd01a)"
 `;
 
 exports[`StatsTestCases should print correct stats for filename 1`] = `
