@@ -522,7 +522,15 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_new_expression(&mut self, expr: &NewExpr) {
-    // TODO: hooks call
+    // TODO: `callHooksForExpression`
+    if self
+      .plugin_drive
+      .clone()
+      .new_expression(self, expr)
+      .unwrap_or_default()
+    {
+      return;
+    }
     self.walk_expression(&expr.callee);
     if let Some(args) = &expr.args {
       self.walk_expr_or_spread(args);

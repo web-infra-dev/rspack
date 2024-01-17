@@ -171,22 +171,23 @@ pub mod needs_refactor {
 
   use crate::SpanExt;
 
+  static IMPORT_META: Lazy<Expr> = Lazy::new(|| {
+    Expr::Member(MemberExpr {
+      span: DUMMY_SP,
+      obj: Box::new(Expr::MetaProp(MetaPropExpr {
+        span: DUMMY_SP,
+        kind: MetaPropKind::ImportMeta,
+      })),
+      prop: MemberProp::Ident(Ident {
+        span: DUMMY_SP,
+        sym: "url".into(),
+        optional: false,
+      }),
+    })
+  });
+
   pub fn match_new_url(new_expr: &NewExpr) -> Option<(u32, u32, String)> {
     fn is_import_meta_url(expr: &Expr) -> bool {
-      static IMPORT_META: Lazy<Expr> = Lazy::new(|| {
-        Expr::Member(MemberExpr {
-          span: DUMMY_SP,
-          obj: Box::new(Expr::MetaProp(MetaPropExpr {
-            span: DUMMY_SP,
-            kind: MetaPropKind::ImportMeta,
-          })),
-          prop: MemberProp::Ident(Ident {
-            span: DUMMY_SP,
-            sym: "url".into(),
-            optional: false,
-          }),
-        })
-      });
       Ident::within_ignored_ctxt(|| expr.eq_ignore_span(&IMPORT_META))
     }
 
@@ -249,12 +250,6 @@ pub mod needs_refactor {
     }
   }
 
-  impl From<WorkerSyntaxScanner<'_>> for WorkerSyntaxList {
-    fn from(value: WorkerSyntaxScanner) -> Self {
-      value.result
-    }
-  }
-
   #[derive(Debug, PartialEq, Eq)]
   pub struct WorkerSyntax {
     word: JsWord,
@@ -277,7 +272,7 @@ pub mod needs_refactor {
   }
 
   pub struct WorkerSyntaxScanner<'a> {
-    result: WorkerSyntaxList,
+    pub result: WorkerSyntaxList,
     caps: Vec<(&'a str, &'a str)>,
   }
 
