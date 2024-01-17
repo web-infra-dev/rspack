@@ -225,7 +225,6 @@ impl Visit for ImportScanner<'_> {
         ));
         let mut block = AsyncDependenciesBlock::new(
           self.module_identifier,
-          format!("{}:{}", span.start, span.end),
           Some(DependencyLocation::new(span.start, span.end)),
         );
         block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions::new(
@@ -271,7 +270,6 @@ impl Visit for ImportScanner<'_> {
         ));
         let mut block = AsyncDependenciesBlock::new(
           self.module_identifier,
-          format!("{}:{}", span.start, span.end),
           Some(DependencyLocation::new(span.start, span.end)),
         );
         block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions::new(

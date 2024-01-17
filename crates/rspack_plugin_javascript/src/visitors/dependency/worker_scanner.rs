@@ -73,7 +73,6 @@ impl<'a> WorkerScanner<'a> {
     ));
     let mut block = AsyncDependenciesBlock::new(
       *self.module_identifier,
-      format!("{}:{}", span.start, span.end),
       Some(DependencyLocation::new(span.start, span.end)),
     );
     block.set_group_options(GroupOptions::Entrypoint(Box::new(EntryOptions {

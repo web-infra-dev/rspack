@@ -4,7 +4,7 @@ use serde_json::json;
 use swc_core::ecma::atoms::JsWord;
 
 use crate::{
-  get_import_var, property_access, to_comment, to_normal_comment, AsyncDependenciesBlockIdentifier,
+  get_import_var, property_access, to_comment, to_normal_comment, AsyncDependenciesBlockId,
   Compilation, DependenciesBlock, DependencyId, ExportsType, FakeNamespaceObjectMode,
   InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleGraph, ModuleIdentifier,
   NormalInitFragment, RuntimeGlobals, TemplateContext,
@@ -241,7 +241,7 @@ pub fn import_statement(
 pub fn module_namespace_promise(
   code_generatable_context: &mut TemplateContext,
   dep_id: &DependencyId,
-  block: Option<&AsyncDependenciesBlockIdentifier>,
+  block: Option<&AsyncDependenciesBlockId>,
   request: &str,
   _message: &str,
   weak: bool,
@@ -356,7 +356,7 @@ pub fn module_namespace_promise(
 }
 
 pub fn block_promise(
-  block: Option<&AsyncDependenciesBlockIdentifier>,
+  block: Option<&AsyncDependenciesBlockId>,
   runtime_requirements: &mut RuntimeGlobals,
   compilation: &Compilation,
 ) -> String {
@@ -485,15 +485,12 @@ pub fn sync_module_factory(
 }
 
 pub fn async_module_factory(
-  block_id: &AsyncDependenciesBlockIdentifier,
+  block_id: &AsyncDependenciesBlockId,
   request: &str,
   compilation: &Compilation,
   runtime_requirements: &mut RuntimeGlobals,
 ) -> String {
-  let block = compilation
-    .module_graph
-    .block_by_id(block_id)
-    .expect("should have block");
+  let block = block_id.expect_get(compilation);
   let dep = block.get_dependencies()[0];
   let ensure_chunk = block_promise(Some(block_id), runtime_requirements, compilation);
   let factory = returning_function(
