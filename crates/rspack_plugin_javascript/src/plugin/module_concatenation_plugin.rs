@@ -1,28 +1,20 @@
-use std::cmp::Ordering;
 use std::collections::hash_map::DefaultHasher;
 use std::collections::VecDeque;
 use std::hash::Hasher;
-use std::os::unix::prelude::OpenOptionsExt;
-use std::sync::Arc;
 
 use rspack_core::concatenated_module::{
   is_harmony_dep_like, ConcatenatedInnerModule, ConcatenatedModule, RootModuleContext,
 };
 use rspack_core::{
-  filter_runtime, merge_runtime, runtime_to_string, BoxDependency, Compilation, CompilerContext,
-  DependencyId, ExportInfoProvided, ExtendedReferencedExport, LibIdentOptions, Logger, Module,
-  ModuleExt, ModuleGraph, ModuleGraphModule, ModuleIdentifier, OptimizeChunksArgs, Plugin,
-  ProvidedExports, RuntimeCondition, RuntimeSpec, WrappedModuleIdentifier,
+  filter_runtime, merge_runtime, runtime_to_string, Compilation, CompilerContext, DependencyId,
+  ExportInfoProvided, ExtendedReferencedExport, LibIdentOptions, Logger, Module, ModuleExt,
+  ModuleGraph, ModuleGraphModule, ModuleIdentifier, OptimizeChunksArgs, Plugin, ProvidedExports,
+  RuntimeCondition, RuntimeSpec, WrappedModuleIdentifier,
 };
 use rspack_error::Result;
 use rspack_util::ext::DynHash;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
-use crate::dependency::{
-  HarmonyExportImportedSpecifierDependency, HarmonyImportSideEffectDependency,
-  HarmonyImportSpecifierDependency,
-};
-use crate::inner_graph_plugin;
 fn format_bailout_reason(msg: &str) -> String {
   format!("ModuleConcatenation bailout: {}", msg)
 }
@@ -37,7 +29,7 @@ impl std::fmt::Debug for Warning {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
       Self::Id(arg0) => f.debug_tuple("Id").field(arg0).finish(),
-      Self::Problem(arg0) => f.write_str("Fn(String) -> String"),
+      Self::Problem(_arg0) => f.write_str("Fn(String) -> String"),
     }
   }
 }
@@ -251,7 +243,7 @@ impl ModuleConcatenationPlugin {
         };
         let problem = Warning::Problem(problem);
         statistics.incorrect_dependency += 1;
-        failure_cache.insert(module_id.clone(), problem.clone());
+        failure_cache.insert(*module_id, problem.clone());
         return Some(problem);
       }
     }
@@ -268,7 +260,7 @@ impl ModuleConcatenationPlugin {
           .get_module_runtimes(*origin_module, chunk_by_ukey)
           .values()
         {
-          origin_runtime = merge_runtime(&origin_runtime, &r);
+          origin_runtime = merge_runtime(&origin_runtime, r);
         }
 
         let is_intersect = if let Some(runtime) = runtime {
@@ -312,7 +304,7 @@ impl ModuleConcatenationPlugin {
           .map(|&mid| {
             let m = compilation
               .module_graph
-              .module_by_identifier(&mid)
+              .module_by_identifier(mid)
               .expect("should have module");
             m.readable_identifier(&compilation.options.context)
               .to_string()
@@ -391,7 +383,7 @@ impl ModuleConcatenationPlugin {
       let problem = Warning::Problem(problem);
 
       statistics.incorrect_module_dependency += 1;
-      failure_cache.insert(module_id.clone(), problem.clone());
+      failure_cache.insert(*module_id, problem.clone());
       return Some(problem);
     }
 
@@ -457,7 +449,7 @@ impl ModuleConcatenationPlugin {
 
         let problem = Warning::Problem(problem);
         statistics.incorrect_runtime_condition += 1;
-        failure_cache.insert(module_id.clone(), problem.clone());
+        failure_cache.insert(*module_id, problem.clone());
         return Some(problem);
       }
     }
@@ -472,7 +464,7 @@ impl ModuleConcatenationPlugin {
     //
     incoming_modules.sort();
     //
-    for origin_module in &incoming_modules {
+    for _origin_module in &incoming_modules {
       if let Some(problem) = Self::try_to_add(
         compilation,
         config,
@@ -486,10 +478,10 @@ impl ModuleConcatenationPlugin {
         statistics,
       ) {
         if let Some(backup) = &backup {
-          config.rollback(backup.clone());
+          config.rollback(*backup);
         }
         statistics.importer_failed += 1;
-        failure_cache.insert(module_id.clone(), problem.clone());
+        failure_cache.insert(*module_id, problem.clone());
         return Some(problem);
       }
     }
@@ -524,7 +516,7 @@ impl Plugin for ModuleConcatenationPlugin {
       // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ModuleConcatenationPlugin.js#L168-L171
       if compilation
         .module_graph
-        .is_async(&*module_id)
+        .is_async(&module_id)
         .expect("should have async result")
       {
         // TODO: bailout
@@ -542,7 +534,7 @@ impl Plugin for ModuleConcatenationPlugin {
         // TODO: bailout
         continue;
       }
-      let exports_info = compilation.module_graph.get_exports_info(&*module_id);
+      let exports_info = compilation.module_graph.get_exports_info(&module_id);
       let relevnat_epxorts = exports_info.get_relevant_exports(None, &compilation.module_graph);
       let unknown_exports = relevnat_epxorts
         .iter()
@@ -558,7 +550,7 @@ impl Plugin for ModuleConcatenationPlugin {
         })
         .copied()
         .collect::<Vec<_>>();
-      if unknown_exports.len() > 0 {
+      if !unknown_exports.is_empty() {
         // TODO: bailout
         continue;
       }
@@ -571,12 +563,12 @@ impl Plugin for ModuleConcatenationPlugin {
         .copied()
         .collect::<Vec<_>>();
 
-      if unknown_provided_exports.len() > 0 {
+      if !unknown_provided_exports.is_empty() {
         // TODO: bailout
         can_be_root = false;
       }
 
-      if compilation.chunk_graph.is_entry_module(&*module_id) {
+      if compilation.chunk_graph.is_entry_module(&module_id) {
         // TODO: bailout
         can_be_inner = false;
       }
@@ -613,7 +605,6 @@ impl Plugin for ModuleConcatenationPlugin {
     let mut used_as_inner: HashSet<ModuleIdentifier> = HashSet::default();
 
     for current_root in relevant_modules.iter() {
-      dbg!(&current_root);
       if used_as_inner.contains(current_root) {
         continue;
       }
@@ -659,7 +650,7 @@ impl Plugin for ModuleConcatenationPlugin {
         }
         let mut import_candidates = HashSet::default();
         match Self::try_to_add(
-          &compilation,
+          compilation,
           &mut current_configuration,
           &imp,
           Some(&chunk_runtime),
@@ -730,10 +721,8 @@ impl Plugin for ModuleConcatenationPlugin {
     concat_configurations.sort_by(|a, b| b.modules.len().cmp(&a.modules.len()));
     logger.time_end(start);
 
-    let start = logger.time("create concatenated modules");
     let mut used_modules = HashSet::default();
 
-    dbg!(&concat_configurations);
     for config in concat_configurations {
       let root_module_id = config.root_module;
       if used_modules.contains(&root_module_id) {
@@ -761,10 +750,10 @@ impl Plugin for ModuleConcatenationPlugin {
         resolve_options: box_module.get_resolve_options().clone(),
         code_generation_dependencies: box_module
           .get_code_generation_dependencies()
-          .map(|deps| deps.into_iter().cloned().collect::<Vec<_>>()),
+          .map(|deps| deps.iter().cloned().collect::<Vec<_>>()),
         presentational_dependencies: box_module
           .get_presentational_dependencies()
-          .map(|deps| deps.into_iter().cloned().collect::<Vec<_>>()),
+          .map(|deps| deps.iter().cloned().collect::<Vec<_>>()),
         context: Some(compilation.options.context.clone()),
         side_effect_connection_state: box_module
           .get_side_effects_connection_state(&compilation.module_graph, &mut HashSet::default()),
@@ -798,7 +787,7 @@ impl Plugin for ModuleConcatenationPlugin {
         Some(rspack_hash::HashFunction::MD4),
         config.runtime.clone(),
       );
-      let build_result = new_module
+      let _build_result = new_module
         .build(
           rspack_core::BuildContext {
             compiler_context: CompilerContext {
@@ -810,7 +799,7 @@ impl Plugin for ModuleConcatenationPlugin {
             plugin_driver: compilation.plugin_driver.clone(),
             compiler_options: &compilation.options,
           },
-          Some(&compilation),
+          Some(compilation),
         )
         .await?;
       let root_mgm_epxorts = compilation
@@ -858,10 +847,6 @@ impl Plugin for ModuleConcatenationPlugin {
       compilation
         .chunk_graph
         .replace_module(&root_module_id, &new_module.id());
-      dbg!(&compilation.module_graph.connections);
-      dbg!(&compilation
-        .module_graph
-        .connection_by_dependency(&DependencyId(2)));
       compilation.module_graph.move_module_connections(
         &root_module_id,
         &new_module.id(),

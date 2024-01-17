@@ -169,13 +169,11 @@ impl<'me> CodeSplitter<'me> {
           entrypoint.ukey,
         );
       }
-      dbg!(&module_identifiers);
       assign_depths(
         &mut assign_depths_map,
         &compilation.module_graph,
         module_identifiers,
       );
-      dbg!(&assign_depths_map,);
 
       let global_included_modules = compilation
         .global_entry

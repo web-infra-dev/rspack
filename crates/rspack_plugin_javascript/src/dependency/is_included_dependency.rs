@@ -2,7 +2,6 @@ use rspack_core::{
   AsContextDependency, Dependency, DependencyId, DependencyTemplate, DependencyType,
   ModuleDependency, TemplateContext, TemplateReplaceSource,
 };
-use swc_core::ecma::atoms::Atom;
 
 #[derive(Debug, Clone)]
 pub struct WebpackIsIncludedDependency {

@@ -6,7 +6,7 @@ use rspack_core::{
   create_exports_object_referenced, create_no_exports_referenced, export_from_import,
   get_exports_type, get_import_var, process_export_info, property_access, property_name,
   string_of_used_name, AsContextDependency, ConnectionState, Dependency, DependencyCategory,
-  DependencyCondition, DependencyId, DependencyTemplate, DependencyType, ErrorSpan, ExportInfoId,
+  DependencyCondition, DependencyId, DependencyTemplate, DependencyType, ExportInfoId,
   ExportInfoProvided, ExportNameOrSpec, ExportSpec, ExportsInfoId, ExportsOfExportsSpec,
   ExportsSpec, ExportsType, ExtendedReferencedExport, HarmonyExportInitFragment, InitFragmentExt,
   InitFragmentKey, InitFragmentStage, ModuleDependency, ModuleGraph, ModuleIdentifier,

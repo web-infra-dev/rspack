@@ -9,10 +9,7 @@ use rspack_identifier::{Identifiable, IdentifierMap};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::ecma::atoms::Atom;
 
-use crate::{
-  debug_all_exports_info, self_module, AsyncDependenciesBlock, AsyncDependenciesBlockId,
-  ProvidedExports,
-};
+use crate::{AsyncDependenciesBlock, AsyncDependenciesBlockId, ProvidedExports};
 mod connection;
 pub use connection::*;
 pub(crate) mod vec_map;
@@ -102,7 +99,7 @@ impl ModuleGraph {
       .module_graph_module_by_identifier(module)
       .expect("should have mgm")
       .incoming_connections;
-    get_connections_by_origin_module(&connections, self)
+    get_connections_by_origin_module(connections, self)
   }
 
   pub fn add_module_graph_module(&mut self, module_graph_module: ModuleGraphModule) {
@@ -258,7 +255,7 @@ impl ModuleGraph {
     if let Ok(old_connections) = old_connections {
       for connection in old_connections.into_iter() {
         if filter_connection(&connection, &*self) {
-          let mut new_connection_id = self.clone_module_graph_connection(
+          let new_connection_id = self.clone_module_graph_connection(
             &connection,
             Some(*new_module),
             connection.module_identifier,

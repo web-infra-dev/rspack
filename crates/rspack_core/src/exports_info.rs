@@ -1059,16 +1059,14 @@ impl ExportInfoId {
     visited: &mut HashSet<ExportInfoId>,
   ) -> FindTargetRetEnum {
     let export_info = self.get_export_info(mg);
-    dbg!(&export_info);
     if !export_info.target_is_set || export_info.target.is_empty() {
       return FindTargetRetEnum::Undefined;
     }
     let raw_target = export_info
       .get_max_target_readonly()
       .values()
-      .cloned()
-      .next();
-    dbg!(&raw_target);
+      .next()
+      .cloned();
     let Some(raw_target) = raw_target else {
       return FindTargetRetEnum::Undefined;
     };
@@ -1080,13 +1078,13 @@ impl ExportInfoId {
       export: raw_target.export,
     };
     loop {
-      if (valid_target_module_filter(&target.module)) {
+      if valid_target_module_filter(&target.module) {
         return FindTargetRetEnum::Value(target);
       }
       let exports_info = mg.get_exports_info(&target.module);
       let export_info = exports_info
         .id
-        .get_read_only_export_info(&target.export.as_ref().expect("should have export")[0], &mg);
+        .get_read_only_export_info(&target.export.as_ref().expect("should have export")[0], mg);
       if visited.contains(&export_info.id) {
         return FindTargetRetEnum::Undefined;
       }
@@ -1106,7 +1104,7 @@ impl ExportInfoId {
           module: new_target.module,
           export: if let Some(export) = new_target.export {
             Some(
-              vec![
+              [
                 export,
                 target
                   .export
@@ -1423,7 +1421,7 @@ impl ExportInfo {
 
   fn get_max_target_readonly(&self) -> &HashMap<Option<DependencyId>, ExportInfoTargetValue> {
     assert!(self.max_target_is_set);
-    return &self.max_target;
+    &self.max_target
   }
 
   fn get_max_target(&mut self) -> &HashMap<Option<DependencyId>, ExportInfoTargetValue> {

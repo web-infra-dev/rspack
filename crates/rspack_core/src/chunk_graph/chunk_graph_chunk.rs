@@ -83,7 +83,7 @@ impl ChunkGraph {
     for chunk in old_cgm.chunks.clone().into_iter() {
       let cgc = self.get_chunk_graph_chunk_mut(chunk);
       cgc.modules.remove(old_module);
-      cgc.modules.insert(new_module.clone());
+      cgc.modules.insert(*new_module);
       let new_cgm = self.get_chunk_graph_module_mut(*new_module);
       new_cgm.chunks.insert(chunk);
     }

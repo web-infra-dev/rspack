@@ -4,14 +4,13 @@ use std::sync::Arc;
 use indexmap::IndexMap;
 use once_cell::sync::Lazy;
 use regex::Regex;
-use rustc_hash::FxHashMap as HashMap;
 use swc_core::atoms::Atom;
 
 use crate::concatenated_module::{ConcatenatedModuleInfo, ModuleInfo};
 use crate::ModuleIdentifier;
 
-pub const DEFAULT_EXPORT: &'static str = "__WEBPACK_DEFAULT_EXPORT__";
-pub const NAMESPACE_OBJECT_EXPORT: &'static str = "__WEBPACK_NAMESPACE_OBJECT__";
+pub const DEFAULT_EXPORT: &str = "__WEBPACK_DEFAULT_EXPORT__";
+pub const NAMESPACE_OBJECT_EXPORT: &str = "__WEBPACK_NAMESPACE_OBJECT__";
 
 const MODULE_REFERENCE_REGEXP: Lazy<Regex> = once_cell::sync::Lazy::new(|| {
   Regex::new(
@@ -103,7 +102,7 @@ impl ConcatenationScope {
       None => "",
     };
 
-    let export_data = if options.ids.len() > 0 {
+    let export_data = if !options.ids.is_empty() {
       hex::encode(serde_json::to_string(&options.ids).expect("should serialize to json string"))
     } else {
       "ns".to_string()
