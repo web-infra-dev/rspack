@@ -13,7 +13,6 @@ mod import_meta_scanner;
 mod import_scanner;
 mod node_stuff_scanner;
 mod parser;
-mod url_scanner;
 mod util;
 mod worker_scanner;
 
@@ -21,10 +20,8 @@ use std::sync::Arc;
 
 pub use context_helper::scanner_context_module;
 use rspack_ast::javascript::Program;
-use rspack_core::{
-  AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
-  CompilerOptions, JavascriptParserUrl, ModuleIdentifier, ModuleType, ResourceData,
-};
+use rspack_core::{AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo};
+use rspack_core::{BuildMeta, CompilerOptions, ModuleIdentifier, ModuleType, ResourceData};
 use rspack_error::miette::Diagnostic;
 use rustc_hash::FxHashMap as HashMap;
 use swc_core::common::{comments::Comments, Mark, SyntaxContext};
@@ -44,7 +41,7 @@ use self::{
   harmony_top_level_this::HarmonyTopLevelThis,
   hot_module_replacement_scanner::HotModuleReplacementScanner,
   import_meta_scanner::ImportMetaScanner, import_scanner::ImportScanner,
-  node_stuff_scanner::NodeStuffScanner, url_scanner::UrlScanner, worker_scanner::WorkerScanner,
+  node_stuff_scanner::NodeStuffScanner, worker_scanner::WorkerScanner,
 };
 
 pub struct ScanDependenciesResult {
@@ -90,12 +87,24 @@ pub fn scan_dependencies(
 
   let mut rewrite_usage_span = HashMap::default();
 
+  let worker_syntax_list = if module_type.is_js_auto() || module_type.is_js_esm() {
+    let mut worker_syntax_scanner = rspack_core::needs_refactor::WorkerSyntaxScanner::new(
+      rspack_core::needs_refactor::DEFAULT_WORKER_SYNTAX,
+    );
+    program.visit_with(&mut worker_syntax_scanner);
+    worker_syntax_scanner.result
+  } else {
+    Default::default()
+  };
+
   let mut parser = JavascriptParser::new(
     source_file.clone(),
+    compiler_options,
     &mut dependencies,
     &mut presentational_dependencies,
     &mut ignored,
     module_type,
+    &worker_syntax_list,
     &mut errors,
   );
 
@@ -192,15 +201,10 @@ pub fn scan_dependencies(
       })
     }
 
-    let mut worker_syntax_scanner = rspack_core::needs_refactor::WorkerSyntaxScanner::new(
-      rspack_core::needs_refactor::DEFAULT_WORKER_SYNTAX,
-    );
-    program.visit_with(&mut worker_syntax_scanner);
-    let worker_syntax_list = &worker_syntax_scanner.into();
     let mut worker_scanner = WorkerScanner::new(
       &module_identifier,
       &compiler_options.output,
-      worker_syntax_list,
+      &worker_syntax_list,
       &mut ignored,
     );
     program.visit_with(&mut worker_scanner);
@@ -208,23 +212,6 @@ pub fn scan_dependencies(
     dependencies.append(&mut worker_scanner.dependencies);
     presentational_dependencies.append(&mut worker_scanner.presentational_dependencies);
 
-    let parse_url = &compiler_options
-      .module
-      .parser
-      .as_ref()
-      .and_then(|p| p.get(module_type))
-      .and_then(|p| p.get_javascript(module_type))
-      .map(|p| p.url)
-      .unwrap_or(JavascriptParserUrl::Enable);
-
-    if !matches!(parse_url, JavascriptParserUrl::Disable) {
-      program.visit_with(&mut UrlScanner::new(
-        &mut dependencies,
-        worker_syntax_list,
-        matches!(parse_url, JavascriptParserUrl::Relative),
-        &mut ignored,
-      ));
-    }
     program.visit_with(&mut ImportMetaScanner::new(
       source_file.clone(),
       &mut presentational_dependencies,

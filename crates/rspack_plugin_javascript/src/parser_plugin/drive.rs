@@ -128,4 +128,19 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     }
     None
   }
+
+  fn new_expression(
+    &self,
+    parser: &mut JavascriptParser,
+    expr: &swc_core::ecma::ast::NewExpr,
+  ) -> Option<bool> {
+    for plugin in &self.plugins {
+      let res = plugin.new_expression(parser, expr);
+      // `SyncBailHook`
+      if res.is_some() {
+        return res;
+      }
+    }
+    None
+  }
 }

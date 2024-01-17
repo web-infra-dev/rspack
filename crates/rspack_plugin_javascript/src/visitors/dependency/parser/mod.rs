@@ -8,7 +8,9 @@ use std::borrow::Cow;
 use std::rc::Rc;
 use std::sync::Arc;
 
-use rspack_core::{BoxDependency, DependencyLocation, DependencyTemplate, ModuleType, SpanExt};
+use rspack_core::needs_refactor::WorkerSyntaxList;
+use rspack_core::{BoxDependency, CompilerOptions, DependencyLocation, DependencyTemplate};
+use rspack_core::{JavascriptParserUrl, ModuleType, SpanExt};
 use rspack_error::miette::Diagnostic;
 use swc_core::common::{SourceFile, Spanned};
 use swc_core::ecma::ast::{ArrayPat, AssignPat, ObjectPat, ObjectPatProp, Pat, Program, Stmt};
@@ -25,6 +27,8 @@ pub struct JavascriptParser<'parser> {
   pub(crate) dependencies: &'parser mut Vec<BoxDependency>,
   pub(crate) presentational_dependencies: &'parser mut Vec<Box<dyn DependencyTemplate>>,
   pub(crate) ignored: &'parser mut Vec<DependencyLocation>,
+  // TODO: remove `worker_syntax_list`
+  pub(crate) worker_syntax_list: &'parser WorkerSyntaxList,
   pub(crate) plugin_drive: Rc<JavaScriptParserPluginDrive>,
   pub(super) definitions_db: ScopeInfoDB,
   // ===== scope info =======
@@ -36,12 +40,15 @@ pub struct JavascriptParser<'parser> {
 }
 
 impl<'parser> JavascriptParser<'parser> {
+  #[allow(clippy::too_many_arguments)]
   pub fn new(
     source_file: Arc<SourceFile>,
+    compiler_options: &CompilerOptions,
     dependencies: &'parser mut Vec<BoxDependency>,
     presentational_dependencies: &'parser mut Vec<Box<dyn DependencyTemplate>>,
     ignored: &'parser mut Vec<DependencyLocation>,
     module_type: &ModuleType,
+    worker_syntax_list: &'parser WorkerSyntaxList,
     errors: &'parser mut Vec<Box<dyn Diagnostic + Send + Sync>>,
   ) -> Self {
     let mut plugins: Vec<parser_plugin::BoxJavascriptParserPlugin> = vec![
@@ -54,6 +61,23 @@ impl<'parser> JavascriptParser<'parser> {
 
     if module_type.is_js_auto() || module_type.is_js_dynamic() || module_type.is_js_esm() {
       plugins.push(Box::new(parser_plugin::WebpackIsIncludedPlugin));
+    }
+
+    if module_type.is_js_auto() || module_type.is_js_esm() {
+      let parse_url = &compiler_options
+        .module
+        .parser
+        .as_ref()
+        .and_then(|p| p.get(module_type))
+        .and_then(|p| p.get_javascript(module_type))
+        .map(|p| p.url)
+        .unwrap_or(JavascriptParserUrl::Enable);
+
+      if !matches!(parse_url, JavascriptParserUrl::Disable) {
+        plugins.push(Box::new(parser_plugin::URLPlugin {
+          relative: matches!(parse_url, JavascriptParserUrl::Relative),
+        }));
+      }
     }
 
     let plugin_drive = Rc::new(JavaScriptParserPluginDrive::new(plugins));
@@ -70,6 +94,7 @@ impl<'parser> JavascriptParser<'parser> {
       definitions_db: db,
       ignored,
       plugin_drive,
+      worker_syntax_list,
     }
   }
 

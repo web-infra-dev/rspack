@@ -4,6 +4,7 @@ mod r#const;
 mod drive;
 mod require_context_dependency_parser_plugin;
 mod r#trait;
+mod url_plugin;
 mod webpack_included_plugin;
 
 pub use self::check_var_decl::CheckVarDeclaratorIdent;
@@ -12,4 +13,5 @@ pub use self::drive::JavaScriptParserPluginDrive;
 pub use self::r#const::{is_logic_op, ConstPlugin};
 pub use self::r#trait::{BoxJavascriptParserPlugin, JavascriptParserPlugin};
 pub use self::require_context_dependency_parser_plugin::RequireContextDependencyParserPlugin;
+pub use self::url_plugin::URLPlugin;
 pub use self::webpack_included_plugin::WebpackIsIncludedPlugin;

@@ -1,6 +1,5 @@
-use swc_core::ecma::ast::{
-  BinExpr, CallExpr, Ident, IfStmt, MemberExpr, UnaryExpr, VarDecl, VarDeclarator,
-};
+use swc_core::ecma::ast::{BinExpr, CallExpr, Ident, IfStmt, MemberExpr, NewExpr, UnaryExpr};
+use swc_core::ecma::ast::{VarDecl, VarDeclarator};
 
 use crate::utils::eval::BasicEvaluatedExpression;
 use crate::visitors::JavascriptParser;
@@ -67,6 +66,10 @@ pub trait JavascriptParserPlugin {
     _expr: &VarDeclarator,
     _stmt: &VarDecl,
   ) -> Option<bool> {
+    None
+  }
+
+  fn new_expression(&self, _parser: &mut JavascriptParser, _expr: &NewExpr) -> Option<bool> {
     None
   }
 }
