@@ -14,10 +14,9 @@ exports[`StatsTestCases should print correct stats for auxiliary-files-test 1`] 
       "info": {
         "development": false,
         "hotModuleReplacement": false,
-        "sourceFilename": "raw.png",
       },
-      "name": "220e6fb336d7b999e76d.png",
-      "size": 7,
+      "name": "bundle.js",
+      "size": 460,
       "type": "asset",
     },
     {
@@ -31,23 +30,24 @@ exports[`StatsTestCases should print correct stats for auxiliary-files-test 1`] 
       "info": {
         "development": false,
         "hotModuleReplacement": false,
+        "sourceFilename": "raw.png",
       },
-      "name": "bundle.js",
-      "size": 460,
+      "name": "f7f4f00355f310234f70.png",
+      "size": 7,
       "type": "asset",
     },
   ],
   "assetsByChunkName": {
     "main": [
-      "220e6fb336d7b999e76d.png",
       "bundle.js",
+      "f7f4f00355f310234f70.png",
     ],
   },
   "children": [],
   "chunks": [
     {
       "auxiliaryFiles": [
-        "220e6fb336d7b999e76d.png",
+        "f7f4f00355f310234f70.png",
       ],
       "children": [],
       "entry": true,
@@ -194,7 +194,7 @@ import rawModule from './raw.png';
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "b74c5338b3a73b8cd01a",
+  "hash": "9670c403a43c0e34d38b",
   "logging": {},
   "modules": [
     {
@@ -371,8 +371,8 @@ import rawModule from './raw.png';
 
 exports[`StatsTestCases should print correct stats for auxiliary-files-test 2`] = `
 "PublicPath: (none)
-asset 220e6fb336d7b999e76d.png 7 bytes {909} [emitted] [from: raw.png] (name: main)
 asset bundle.js 460 bytes {909} [emitted] (name: main)
+asset f7f4f00355f310234f70.png 7 bytes {909} [emitted] [from: raw.png] (name: main)
 Entrypoint main 460 bytes = bundle.js
 chunk {909} bundle.js (main) [entry]
   ./raw.png [193] {909}
@@ -390,7 +390,7 @@ chunk {909} bundle.js (main) [entry]
 webpack/runtime/public_path {909}
 webpack/runtime/make_namespace_object {909}
   
-Rspack compiled successfully (b74c5338b3a73b8cd01a)"
+Rspack compiled successfully (9670c403a43c0e34d38b)"
 `;
 
 exports[`StatsTestCases should print correct stats for filename 1`] = `
