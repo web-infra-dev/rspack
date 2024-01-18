@@ -92,7 +92,7 @@ impl Plugin for ContainerPlugin {
     Ok(())
   }
 
-  fn runtime_requirements_in_tree(
+  async fn runtime_requirements_in_tree(
     &self,
     _ctx: PluginContext,
     args: &mut RuntimeRequirementsInTreeArgs,
@@ -104,10 +104,13 @@ impl Plugin for ContainerPlugin {
       args
         .runtime_requirements_mut
         .insert(RuntimeGlobals::HAS_OWN_PROPERTY);
-      args.compilation.add_runtime_module(
-        args.chunk,
-        Box::new(ExposeRuntimeModule::new(self.options.enhanced)),
-      );
+      args
+        .compilation
+        .add_runtime_module(
+          args.chunk,
+          Box::new(ExposeRuntimeModule::new(self.options.enhanced)),
+        )
+        .await;
     }
     Ok(())
   }

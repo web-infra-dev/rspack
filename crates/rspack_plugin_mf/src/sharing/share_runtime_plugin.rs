@@ -23,7 +23,7 @@ impl Plugin for ShareRuntimePlugin {
     "rspack.ShareRuntimePlugin"
   }
 
-  fn runtime_requirements_in_tree(
+  async fn runtime_requirements_in_tree(
     &self,
     _ctx: PluginContext,
     args: &mut RuntimeRequirementsInTreeArgs,
@@ -34,7 +34,8 @@ impl Plugin for ShareRuntimePlugin {
     {
       args
         .compilation
-        .add_runtime_module(args.chunk, ShareRuntimeModule::new(self.enhanced).boxed());
+        .add_runtime_module(args.chunk, ShareRuntimeModule::new(self.enhanced).boxed())
+        .await;
     }
     Ok(())
   }

@@ -61,7 +61,7 @@ impl Plugin for HotModuleReplacementPlugin {
     Ok(())
   }
 
-  fn additional_tree_runtime_requirements(
+  async fn additional_tree_runtime_requirements(
     &self,
     _ctx: PluginContext,
     args: &mut AdditionalChunkRuntimeRequirementsArgs,
@@ -76,7 +76,9 @@ impl Plugin for HotModuleReplacementPlugin {
     runtime_requirements.insert(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
     runtime_requirements.insert(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION);
     runtime_requirements.insert(RuntimeGlobals::MODULE_CACHE);
-    compilation.add_runtime_module(chunk, HotModuleReplacementRuntimeModule::default().boxed());
+    compilation
+      .add_runtime_module(chunk, HotModuleReplacementRuntimeModule::default().boxed())
+      .await;
 
     Ok(())
   }

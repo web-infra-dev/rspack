@@ -242,7 +242,7 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
-  fn additional_chunk_runtime_requirements(
+  async fn additional_chunk_runtime_requirements(
     &self,
     _ctx: PluginContext,
     _args: &mut AdditionalChunkRuntimeRequirementsArgs,
@@ -250,7 +250,7 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
-  fn additional_tree_runtime_requirements(
+  async fn additional_tree_runtime_requirements(
     &self,
     _ctx: PluginContext,
     _args: &mut AdditionalChunkRuntimeRequirementsArgs,
@@ -266,7 +266,7 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
-  fn runtime_requirements_in_tree(
+  async fn runtime_requirements_in_tree(
     &self,
     _ctx: PluginContext,
     _args: &mut RuntimeRequirementsInTreeArgs,
@@ -480,15 +480,15 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
-  fn runtime_module(&self, _module: &mut dyn Module) -> Result<()> {
-    Ok(())
-  }
-
   async fn succeed_module(&self, _module: &dyn Module) -> Result<()> {
     Ok(())
   }
 
   async fn still_valid_module(&self, _module: &dyn Module) -> Result<()> {
+    Ok(())
+  }
+
+  async fn runtime_module(&self, _module: &mut dyn Module) -> Result<()> {
     Ok(())
   }
 

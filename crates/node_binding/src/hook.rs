@@ -46,6 +46,7 @@ pub enum Hook {
   SucceedModule,
   StillValidModule,
   ExecuteModule,
+  RuntimeModule,
 }
 
 impl From<String> for Hook {
@@ -93,6 +94,7 @@ impl From<String> for Hook {
       "succeedModule" => Hook::SucceedModule,
       "stillValidModule" => Hook::StillValidModule,
       "executeModule" => Hook::ExecuteModule,
+      "runtimeModule" => Hook::RuntimeModule,
       hook_name => panic!("{hook_name} is an invalid hook name"),
     }
   }

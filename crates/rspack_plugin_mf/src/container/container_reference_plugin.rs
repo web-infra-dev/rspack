@@ -109,7 +109,7 @@ impl Plugin for ContainerReferencePlugin {
     Ok(None)
   }
 
-  fn runtime_requirements_in_tree(
+  async fn runtime_requirements_in_tree(
     &self,
     _ctx: PluginContext,
     args: &mut RuntimeRequirementsInTreeArgs,
@@ -131,10 +131,13 @@ impl Plugin for ContainerReferencePlugin {
       args
         .runtime_requirements_mut
         .insert(RuntimeGlobals::SHARE_SCOPE_MAP);
-      args.compilation.add_runtime_module(
-        args.chunk,
-        Box::new(RemoteRuntimeModule::new(self.options.enhanced)),
-      );
+      args
+        .compilation
+        .add_runtime_module(
+          args.chunk,
+          Box::new(RemoteRuntimeModule::new(self.options.enhanced)),
+        )
+        .await;
     }
     Ok(())
   }

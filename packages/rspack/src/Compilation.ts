@@ -127,6 +127,7 @@ export class Compilation {
 		executeModule: tapable.SyncHook<
 			[ExecuteModuleArgument, ExecuteModuleContext]
 		>;
+		runtimeModule: tapable.SyncHook<[JsModule]>;
 	};
 	options: RspackOptionsNormalized;
 	outputOptions: OutputNormalized;
@@ -186,7 +187,8 @@ export class Compilation {
 			statsFactory: new tapable.SyncHook(["statsFactory", "options"]),
 			statsPrinter: new tapable.SyncHook(["statsPrinter", "options"]),
 			buildModule: new tapable.SyncHook(["module"]),
-			executeModule: new tapable.SyncHook(["options", "context"])
+			executeModule: new tapable.SyncHook(["options", "context"]),
+			runtimeModule: new tapable.SyncHook(["module"])
 		};
 		this.compiler = compiler;
 		this.resolverFactory = compiler.resolverFactory;

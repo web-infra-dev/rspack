@@ -67,6 +67,7 @@ pub struct JsHooksAdapter {
   pub succeed_module_tsfn: ThreadsafeFunction<JsModule, ()>,
   pub still_valid_module_tsfn: ThreadsafeFunction<JsModule, ()>,
   pub execute_module_tsfn: ThreadsafeFunction<JsExecuteModuleArg, Option<String>>,
+  pub runtime_module_tsfn: ThreadsafeFunction<JsModule, ()>,
 }
 
 impl Debug for JsHooksAdapter {
@@ -850,6 +851,22 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .blocking_recv()
       .unwrap_or_else(|recv_err| panic!("{}", recv_err.to_string()))
   }
+
+  async fn runtime_module(&self, module: &mut dyn rspack_core::Module) -> rspack_error::Result<()> {
+    if self.is_hook_disabled(&Hook::RuntimeModule) {
+      return Ok(());
+    }
+
+    self
+      .runtime_module_tsfn
+      .call(
+        module.to_js_module().expect("Convert to js_module failed."),
+        ThreadsafeFunctionCallMode::NonBlocking,
+      )
+      .into_rspack_result()?
+      .await
+      .unwrap_or_else(|err| panic!("Failed to call runtime module: {err}"))
+  }
 }
 
 impl JsHooksAdapter {
@@ -897,6 +914,7 @@ impl JsHooksAdapter {
       succeed_module,
       still_valid_module,
       execute_module,
+      runtime_module,
     } = js_hooks;
 
     let process_assets_stage_additional_tsfn: ThreadsafeFunction<(), ()> =
@@ -982,6 +1000,8 @@ impl JsHooksAdapter {
       js_fn_into_threadsafe_fn!(still_valid_module, env);
     let execute_module_tsfn: ThreadsafeFunction<JsExecuteModuleArg, Option<String>> =
       js_fn_into_threadsafe_fn!(execute_module, env);
+    let runtime_module_tsfn: ThreadsafeFunction<JsModule, ()> =
+      js_fn_into_threadsafe_fn!(runtime_module, env);
 
     Ok(JsHooksAdapter {
       disabled_hooks,
@@ -1027,6 +1047,7 @@ impl JsHooksAdapter {
       succeed_module_tsfn,
       still_valid_module_tsfn,
       execute_module_tsfn,
+      runtime_module_tsfn,
     })
   }
 

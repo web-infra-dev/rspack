@@ -31,7 +31,7 @@ impl Plugin for StartupChunkDependenciesPlugin {
     "StartupChunkDependenciesPlugin"
   }
 
-  fn additional_tree_runtime_requirements(
+  async fn additional_tree_runtime_requirements(
     &self,
     _ctx: PluginContext,
     args: &mut AdditionalChunkRuntimeRequirementsArgs,
@@ -47,15 +47,17 @@ impl Plugin for StartupChunkDependenciesPlugin {
       runtime_requirements.insert(RuntimeGlobals::STARTUP);
       runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK);
       runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES);
-      compilation.add_runtime_module(
-        args.chunk,
-        StartupChunkDependenciesRuntimeModule::new(self.async_chunk_loading).boxed(),
-      );
+      compilation
+        .add_runtime_module(
+          args.chunk,
+          StartupChunkDependenciesRuntimeModule::new(self.async_chunk_loading).boxed(),
+        )
+        .await;
     }
     Ok(())
   }
 
-  fn runtime_requirements_in_tree(
+  async fn runtime_requirements_in_tree(
     &self,
     _ctx: PluginContext,
     args: &mut RuntimeRequirementsInTreeArgs,
@@ -69,10 +71,12 @@ impl Plugin for StartupChunkDependenciesPlugin {
       runtime_requirements_mut.insert(RuntimeGlobals::REQUIRE);
       runtime_requirements_mut.insert(RuntimeGlobals::ENSURE_CHUNK);
       runtime_requirements_mut.insert(RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES);
-      compilation.add_runtime_module(
-        args.chunk,
-        StartupEntrypointRuntimeModule::new(self.async_chunk_loading).boxed(),
-      );
+      compilation
+        .add_runtime_module(
+          args.chunk,
+          StartupEntrypointRuntimeModule::new(self.async_chunk_loading).boxed(),
+        )
+        .await;
     }
 
     Ok(())

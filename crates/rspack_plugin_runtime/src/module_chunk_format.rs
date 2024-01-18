@@ -24,7 +24,7 @@ impl Plugin for ModuleChunkFormatPlugin {
     "ModuleChunkFormatPlugin"
   }
 
-  fn additional_chunk_runtime_requirements(
+  async fn additional_chunk_runtime_requirements(
     &self,
     _ctx: PluginContext,
     args: &mut AdditionalChunkRuntimeRequirementsArgs,

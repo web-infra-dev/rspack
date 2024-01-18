@@ -270,7 +270,7 @@ impl Plugin for CssPlugin {
     )
   }
 
-  fn runtime_requirements_in_tree(
+  async fn runtime_requirements_in_tree(
     &self,
     _ctx: PluginContext,
     args: &mut RuntimeRequirementsInTreeArgs,
@@ -290,7 +290,9 @@ impl Plugin for CssPlugin {
       runtime_requirements_mut.insert(RuntimeGlobals::GET_CHUNK_CSS_FILENAME);
       runtime_requirements_mut.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
       runtime_requirements_mut.insert(RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY);
-      compilation.add_runtime_module(chunk, Box::<CssLoadingRuntimeModule>::default());
+      compilation
+        .add_runtime_module(chunk, Box::<CssLoadingRuntimeModule>::default())
+        .await;
     }
 
     Ok(())

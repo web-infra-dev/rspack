@@ -725,7 +725,7 @@ impl Plugin for SourceMapDevToolModuleOptionsPlugin {
     Ok(())
   }
 
-  fn runtime_module(&self, module: &mut dyn Module) -> Result<()> {
+  async fn runtime_module(&self, module: &mut dyn Module) -> Result<()> {
     if self.module {
       module.set_source_map_kind(SourceMapKind::SourceMap);
     } else {

@@ -1650,23 +1650,6 @@ impl Compilation {
     chunk_graph_entries: impl Iterator<Item = ChunkUkey>,
     plugin_driver: SharedPluginDriver,
   ) -> Result<()> {
-    fn process_runtime_requirements_hook(
-      requirements: &mut RuntimeGlobals,
-      mut hook: impl FnMut(&RuntimeGlobals, &mut RuntimeGlobals) -> Result<()>,
-    ) -> Result<()> {
-      let mut runtime_requirements_mut = *requirements;
-      let mut runtime_requirements;
-      while !runtime_requirements_mut.is_empty() {
-        requirements.insert(runtime_requirements_mut);
-        runtime_requirements = runtime_requirements_mut;
-        runtime_requirements_mut = RuntimeGlobals::default();
-        hook(&runtime_requirements, &mut runtime_requirements_mut)?;
-        runtime_requirements_mut =
-          runtime_requirements_mut.difference(requirements.intersection(runtime_requirements_mut));
-      }
-      Ok(())
-    }
-
     let logger = self.get_logger("rspack.Compilation");
     let start = logger.time("runtime requirements.modules");
     let mut module_runtime_requirements = modules
@@ -1696,17 +1679,21 @@ impl Compilation {
 
     for (module_identifier, runtime_requirements) in module_runtime_requirements.iter_mut() {
       for (runtime, requirements) in runtime_requirements.iter_mut() {
-        process_runtime_requirements_hook(
-          requirements,
-          |runtime_requirements, runtime_requirements_mut| {
-            plugin_driver.runtime_requirement_in_module(&mut AdditionalModuleRequirementsArgs {
-              compilation: self,
-              module_identifier,
-              runtime_requirements,
-              runtime_requirements_mut,
-            })
-          },
-        )?;
+        let mut runtime_requirements_mut = *requirements;
+        let mut runtime_requirements;
+        while !runtime_requirements_mut.is_empty() {
+          requirements.insert(runtime_requirements_mut);
+          runtime_requirements = runtime_requirements_mut;
+          runtime_requirements_mut = RuntimeGlobals::default();
+          plugin_driver.runtime_requirement_in_module(&mut AdditionalModuleRequirementsArgs {
+            compilation: self,
+            module_identifier,
+            runtime_requirements: &runtime_requirements,
+            runtime_requirements_mut: &mut runtime_requirements_mut,
+          })?;
+          runtime_requirements_mut = runtime_requirements_mut
+            .difference(requirements.intersection(runtime_requirements_mut));
+        }
         self.chunk_graph.add_module_runtime_requirements(
           *module_identifier,
           runtime,
@@ -1735,13 +1722,13 @@ impl Compilation {
       chunk_requirements.insert(chunk_ukey, set);
     }
     for (chunk_ukey, set) in chunk_requirements.iter_mut() {
-      plugin_driver.additional_chunk_runtime_requirements(
-        &mut AdditionalChunkRuntimeRequirementsArgs {
+      plugin_driver
+        .additional_chunk_runtime_requirements(&mut AdditionalChunkRuntimeRequirementsArgs {
           compilation: self,
           chunk: chunk_ukey,
           runtime_requirements: set,
-        },
-      )?;
+        })
+        .await?;
 
       self
         .chunk_graph
@@ -1761,24 +1748,32 @@ impl Compilation {
         set.insert(*runtime_requirements);
       }
 
-      plugin_driver.additional_tree_runtime_requirements(
-        &mut AdditionalChunkRuntimeRequirementsArgs {
+      plugin_driver
+        .additional_tree_runtime_requirements(&mut AdditionalChunkRuntimeRequirementsArgs {
           compilation: self,
           chunk: &entry_ukey,
           runtime_requirements: &mut set,
-        },
-      )?;
-      process_runtime_requirements_hook(
-        &mut set,
-        |runtime_requirements, runtime_requirements_mut| {
-          plugin_driver.runtime_requirements_in_tree(&mut RuntimeRequirementsInTreeArgs {
+        })
+        .await?;
+
+      let requirements = &mut set;
+      let mut runtime_requirements_mut = *requirements;
+      let mut runtime_requirements;
+      while !runtime_requirements_mut.is_empty() {
+        requirements.insert(runtime_requirements_mut);
+        runtime_requirements = runtime_requirements_mut;
+        runtime_requirements_mut = RuntimeGlobals::default();
+        plugin_driver
+          .runtime_requirements_in_tree(&mut RuntimeRequirementsInTreeArgs {
             compilation: self,
             chunk: &entry_ukey,
-            runtime_requirements,
-            runtime_requirements_mut,
+            runtime_requirements: &runtime_requirements,
+            runtime_requirements_mut: &mut runtime_requirements_mut,
           })
-        },
-      )?;
+          .await?;
+        runtime_requirements_mut =
+          runtime_requirements_mut.difference(requirements.intersection(runtime_requirements_mut));
+      }
 
       self
         .chunk_graph
@@ -1956,7 +1951,11 @@ impl Compilation {
       .collect();
   }
 
-  pub fn add_runtime_module(&mut self, chunk_ukey: &ChunkUkey, mut module: Box<dyn RuntimeModule>) {
+  pub async fn add_runtime_module(
+    &mut self,
+    chunk_ukey: &ChunkUkey,
+    mut module: Box<dyn RuntimeModule>,
+  ) {
     // add chunk runtime to prefix module identifier to avoid multiple entry runtime modules conflict
     let chunk = self.chunk_by_ukey.expect_get(chunk_ukey);
     let runtime_module_identifier =
@@ -1973,6 +1972,7 @@ impl Compilation {
     self
       .plugin_driver
       .runtime_module(module.as_mut())
+      .await
       .expect("Run runtime_module hook failed");
 
     self

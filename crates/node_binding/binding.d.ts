@@ -349,6 +349,7 @@ export interface JsHooks {
   succeedModule: (...args: any[]) => any
   stillValidModule: (...args: any[]) => any
   executeModule: (...args: any[]) => any
+  runtimeModule: (...args: any[]) => any
 }
 
 export interface JsLoaderContext {

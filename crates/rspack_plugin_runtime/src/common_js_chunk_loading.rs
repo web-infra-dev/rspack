@@ -27,7 +27,7 @@ impl Plugin for CommonJsChunkLoadingPlugin {
     "CommonJsChunkLoadingPlugin"
   }
 
-  fn runtime_requirements_in_tree(
+  async fn runtime_requirements_in_tree(
     &self,
     _ctx: PluginContext,
     args: &mut RuntimeRequirementsInTreeArgs,
@@ -76,9 +76,13 @@ impl Plugin for CommonJsChunkLoadingPlugin {
       runtime_requirements_mut.insert(RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY);
       runtime_requirements_mut.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
       if self.async_chunk_loading {
-        compilation.add_runtime_module(chunk, Box::<ReadFileChunkLoadingRuntimeModule>::default())
+        compilation
+          .add_runtime_module(chunk, Box::<ReadFileChunkLoadingRuntimeModule>::default())
+          .await;
       } else {
-        compilation.add_runtime_module(chunk, Box::<RequireChunkLoadingRuntimeModule>::default());
+        compilation
+          .add_runtime_module(chunk, Box::<RequireChunkLoadingRuntimeModule>::default())
+          .await;
       }
     }
 

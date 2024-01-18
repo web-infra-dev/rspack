@@ -17,7 +17,7 @@ impl Plugin for ModuleChunkLoadingPlugin {
     "ModuleChunkLoadingPlugin"
   }
 
-  fn runtime_requirements_in_tree(
+  async fn runtime_requirements_in_tree(
     &self,
     _ctx: PluginContext,
     args: &mut RuntimeRequirementsInTreeArgs,
@@ -38,7 +38,9 @@ impl Plugin for ModuleChunkLoadingPlugin {
         }
         RuntimeGlobals::EXTERNAL_INSTALL_CHUNK if is_enabled_for_chunk => {
           has_chunk_loading = true;
-          compilation.add_runtime_module(chunk, ExportWebpackRequireRuntimeModule::new().boxed());
+          compilation
+            .add_runtime_module(chunk, ExportWebpackRequireRuntimeModule::new().boxed())
+            .await;
         }
         RuntimeGlobals::ON_CHUNKS_LOADED | RuntimeGlobals::BASE_URI if is_enabled_for_chunk => {
           has_chunk_loading = true;
@@ -50,7 +52,9 @@ impl Plugin for ModuleChunkLoadingPlugin {
     if has_chunk_loading && is_enabled_for_chunk {
       runtime_requirements_mut.insert(RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY);
       runtime_requirements_mut.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
-      compilation.add_runtime_module(chunk, Box::<ModuleChunkLoadingRuntimeModule>::default());
+      compilation
+        .add_runtime_module(chunk, Box::<ModuleChunkLoadingRuntimeModule>::default())
+        .await;
     }
 
     Ok(())

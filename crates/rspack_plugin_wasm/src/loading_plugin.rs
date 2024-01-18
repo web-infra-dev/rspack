@@ -22,7 +22,7 @@ impl Plugin for FetchCompileAsyncWasmPlugin {
     "FetchCompileAsyncWasmPlugin"
   }
 
-  fn runtime_requirements_in_tree(
+  async fn runtime_requirements_in_tree(
     &self,
     _ctx: PluginContext,
     args: &mut RuntimeRequirementsInTreeArgs,
@@ -32,15 +32,18 @@ impl Plugin for FetchCompileAsyncWasmPlugin {
 
     if runtime_requirements.contains(RuntimeGlobals::INSTANTIATE_WASM) {
       runtime_requirements_mut.insert(RuntimeGlobals::PUBLIC_PATH);
-      args.compilation.add_runtime_module(
-        args.chunk,
-        AsyncWasmLoadingRuntimeModule::new(
-          format!("fetch({} + $PATH)", RuntimeGlobals::PUBLIC_PATH),
-          true,
-          *args.chunk,
+      args
+        .compilation
+        .add_runtime_module(
+          args.chunk,
+          AsyncWasmLoadingRuntimeModule::new(
+            format!("fetch({} + $PATH)", RuntimeGlobals::PUBLIC_PATH),
+            true,
+            *args.chunk,
+          )
+          .boxed(),
         )
-        .boxed(),
-      );
+        .await;
     }
 
     Ok(())
@@ -64,7 +67,7 @@ impl Plugin for ReadFileCompileAsyncWasmPlugin {
     "ReadFileCompileAsyncWasmPlugin"
   }
 
-  fn runtime_requirements_in_tree(
+  async fn runtime_requirements_in_tree(
     &self,
     _ctx: PluginContext,
     args: &mut RuntimeRequirementsInTreeArgs,
@@ -74,19 +77,22 @@ impl Plugin for ReadFileCompileAsyncWasmPlugin {
 
     if runtime_requirements.contains(RuntimeGlobals::INSTANTIATE_WASM) {
       runtime_requirements_mut.insert(RuntimeGlobals::PUBLIC_PATH);
-      args.compilation.add_runtime_module(
-        args.chunk,
-        AsyncWasmLoadingRuntimeModule::new(
-          if self.import {
-            include_str!("runtime/read_file_compile_async_wasm_with_import.js").to_string()
-          } else {
-            include_str!("runtime/read_file_compile_async_wasm.js").to_string()
-          },
-          false,
-          *args.chunk,
+      args
+        .compilation
+        .add_runtime_module(
+          args.chunk,
+          AsyncWasmLoadingRuntimeModule::new(
+            if self.import {
+              include_str!("runtime/read_file_compile_async_wasm_with_import.js").to_string()
+            } else {
+              include_str!("runtime/read_file_compile_async_wasm.js").to_string()
+            },
+            false,
+            *args.chunk,
+          )
+          .boxed(),
         )
-        .boxed(),
-      );
+        .await;
     }
 
     Ok(())
