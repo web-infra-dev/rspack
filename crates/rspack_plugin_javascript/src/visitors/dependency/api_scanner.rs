@@ -5,6 +5,7 @@ use rspack_core::{
   RuntimeGlobals, RuntimeRequirementsDependency, SpanExt,
 };
 use rspack_error::miette::Diagnostic;
+use rustc_hash::FxHashSet;
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 use swc_core::{
   common::{SourceFile, Spanned, SyntaxContext},
@@ -86,7 +87,7 @@ pub struct ApiScanner<'a> {
   pub presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
   pub dependencies: &'a mut Vec<Box<dyn Dependency>>,
   pub warning_diagnostics: &'a mut Vec<Box<dyn Diagnostic + Send + Sync>>,
-  pub ignored: &'a mut Vec<DependencyLocation>,
+  pub ignored: &'a mut FxHashSet<DependencyLocation>,
 }
 
 impl<'a> ApiScanner<'a> {
@@ -100,7 +101,7 @@ impl<'a> ApiScanner<'a> {
     module: bool,
     build_info: &'a mut BuildInfo,
     warning_diagnostics: &'a mut Vec<Box<dyn Diagnostic + Send + Sync>>,
-    ignored: &'a mut Vec<DependencyLocation>,
+    ignored: &'a mut FxHashSet<DependencyLocation>,
   ) -> Self {
     Self {
       source_file,

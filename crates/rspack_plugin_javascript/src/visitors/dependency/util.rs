@@ -300,8 +300,7 @@ macro_rules! no_visit_ignored_stmt {
       let span = stmt.span();
       if self
         .ignored
-        .iter()
-        .any(|r| r.start() <= span.real_lo() && span.real_hi() <= r.end())
+        .contains(&DependencyLocation::new(span.real_lo(), span.real_hi()))
       {
         return;
       }
@@ -320,8 +319,7 @@ macro_rules! no_visit_ignored_expr {
       let span = expr.span();
       if self
         .ignored
-        .iter()
-        .any(|r| r.start() <= span.real_lo() && span.real_hi() <= r.end())
+        .contains(&DependencyLocation::new(span.real_lo(), span.real_hi()))
       {
         return;
       }

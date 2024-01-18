@@ -1,6 +1,7 @@
 use rspack_core::{
   extract_member_expression_chain, ConstDependency, DependencyLocation, DependencyTemplate, SpanExt,
 };
+use rustc_hash::FxHashSet;
 use swc_core::{
   common::SyntaxContext,
   ecma::{
@@ -14,7 +15,7 @@ use crate::{dependency::ExportInfoApiDependency, no_visit_ignored_stmt};
 pub struct ExportInfoApiScanner<'a> {
   pub presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
   unresolved_ctxt: SyntaxContext,
-  pub ignored: &'a mut Vec<DependencyLocation>,
+  pub ignored: &'a mut FxHashSet<DependencyLocation>,
 }
 
 //__webpack_exports_info__.a.used
@@ -22,7 +23,7 @@ impl<'a> ExportInfoApiScanner<'a> {
   pub fn new(
     presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
     unresolved_ctxt: SyntaxContext,
-    ignored: &'a mut Vec<DependencyLocation>,
+    ignored: &'a mut FxHashSet<DependencyLocation>,
   ) -> Self {
     Self {
       presentational_dependencies,

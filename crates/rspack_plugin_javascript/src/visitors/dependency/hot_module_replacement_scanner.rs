@@ -1,6 +1,7 @@
 use rspack_core::{
   BoxDependency, BoxDependencyTemplate, BuildMeta, DependencyLocation, ErrorSpan, SpanExt,
 };
+use rustc_hash::FxHashSet;
 use swc_core::{
   common::Spanned,
   ecma::{
@@ -24,7 +25,7 @@ pub struct HotModuleReplacementScanner<'a> {
   pub dependencies: &'a mut Vec<BoxDependency>,
   pub presentational_dependencies: &'a mut Vec<BoxDependencyTemplate>,
   pub build_meta: &'a BuildMeta,
-  pub ignored: &'a mut Vec<DependencyLocation>,
+  pub ignored: &'a mut FxHashSet<DependencyLocation>,
 }
 
 type CreateDependency = fn(u32, u32, JsWord, Option<ErrorSpan>) -> BoxDependency;
@@ -34,7 +35,7 @@ impl<'a> HotModuleReplacementScanner<'a> {
     dependencies: &'a mut Vec<BoxDependency>,
     presentational_dependencies: &'a mut Vec<BoxDependencyTemplate>,
     build_meta: &'a BuildMeta,
-    ignored: &'a mut Vec<DependencyLocation>,
+    ignored: &'a mut FxHashSet<DependencyLocation>,
   ) -> Self {
     Self {
       dependencies,

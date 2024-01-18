@@ -12,6 +12,7 @@ use rspack_core::needs_refactor::WorkerSyntaxList;
 use rspack_core::{BoxDependency, CompilerOptions, DependencyLocation, DependencyTemplate};
 use rspack_core::{JavascriptParserUrl, ModuleType, SpanExt};
 use rspack_error::miette::Diagnostic;
+use rustc_hash::FxHashSet;
 use swc_core::common::{SourceFile, Spanned};
 use swc_core::ecma::ast::{ArrayPat, AssignPat, ObjectPat, ObjectPatProp, Pat, Program, Stmt};
 use swc_core::ecma::ast::{BlockStmt, Expr, Ident, Lit, MemberExpr, RestPat};
@@ -26,7 +27,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) errors: &'parser mut Vec<Box<dyn Diagnostic + Send + Sync>>,
   pub(crate) dependencies: &'parser mut Vec<BoxDependency>,
   pub(crate) presentational_dependencies: &'parser mut Vec<Box<dyn DependencyTemplate>>,
-  pub(crate) ignored: &'parser mut Vec<DependencyLocation>,
+  pub(crate) ignored: &'parser mut FxHashSet<DependencyLocation>,
   // TODO: remove `worker_syntax_list`
   pub(crate) worker_syntax_list: &'parser WorkerSyntaxList,
   pub(crate) plugin_drive: Rc<JavaScriptParserPluginDrive>,
@@ -46,7 +47,7 @@ impl<'parser> JavascriptParser<'parser> {
     compiler_options: &CompilerOptions,
     dependencies: &'parser mut Vec<BoxDependency>,
     presentational_dependencies: &'parser mut Vec<Box<dyn DependencyTemplate>>,
-    ignored: &'parser mut Vec<DependencyLocation>,
+    ignored: &'parser mut FxHashSet<DependencyLocation>,
     module_type: &ModuleType,
     worker_syntax_list: &'parser WorkerSyntaxList,
     errors: &'parser mut Vec<Box<dyn Diagnostic + Send + Sync>>,
@@ -260,7 +261,7 @@ impl JavascriptParser<'_> {
     match self.evaluating(expr) {
       Some(evaluated) => {
         if evaluated.is_compile_time_value() {
-          self.ignored.push(DependencyLocation::new(
+          let _ = self.ignored.insert(DependencyLocation::new(
             expr.span().real_lo(),
             expr.span().real_hi(),
           ));

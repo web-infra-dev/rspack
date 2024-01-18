@@ -2,6 +2,7 @@ use rspack_core::{
   CompilerOptions, ConstDependency, DependencyLocation, DependencyTemplate, NodeOption,
   ResourceData, RuntimeGlobals, SpanExt,
 };
+use rustc_hash::FxHashSet;
 use sugar_path::SugarPath;
 use swc_core::common::SyntaxContext;
 use swc_core::ecma::ast::Ident;
@@ -19,7 +20,7 @@ pub struct NodeStuffScanner<'a> {
   pub compiler_options: &'a CompilerOptions,
   pub node_option: &'a NodeOption,
   pub resource_data: &'a ResourceData,
-  pub ignored: &'a mut Vec<DependencyLocation>,
+  pub ignored: &'a mut FxHashSet<DependencyLocation>,
 }
 
 impl<'a> NodeStuffScanner<'a> {
@@ -29,7 +30,7 @@ impl<'a> NodeStuffScanner<'a> {
     compiler_options: &'a CompilerOptions,
     node_option: &'a NodeOption,
     resource_data: &'a ResourceData,
-    ignored: &'a mut Vec<DependencyLocation>,
+    ignored: &'a mut FxHashSet<DependencyLocation>,
   ) -> Self {
     Self {
       presentational_dependencies,

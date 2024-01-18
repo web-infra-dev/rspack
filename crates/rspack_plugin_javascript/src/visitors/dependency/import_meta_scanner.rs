@@ -4,6 +4,7 @@ use rspack_core::{
   CompilerOptions, ConstDependency, DependencyLocation, DependencyTemplate, ResourceData, SpanExt,
 };
 use rspack_error::miette::{Diagnostic, Severity};
+use rustc_hash::FxHashSet;
 use swc_core::common::{SourceFile, Spanned};
 use swc_core::ecma::ast::{Expr, NewExpr, UnaryExpr, UnaryOp};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
@@ -27,7 +28,7 @@ pub struct ImportMetaScanner<'a> {
   pub compiler_options: &'a CompilerOptions,
   pub resource_data: &'a ResourceData,
   pub warning_diagnostics: &'a mut Vec<Box<dyn Diagnostic + Send + Sync>>,
-  pub ignored: &'a mut Vec<DependencyLocation>,
+  pub ignored: &'a mut FxHashSet<DependencyLocation>,
 }
 
 impl<'a> ImportMetaScanner<'a> {
@@ -37,7 +38,7 @@ impl<'a> ImportMetaScanner<'a> {
     resource_data: &'a ResourceData,
     compiler_options: &'a CompilerOptions,
     warning_diagnostics: &'a mut Vec<Box<dyn Diagnostic + Send + Sync>>,
-    ignored: &'a mut Vec<DependencyLocation>,
+    ignored: &'a mut FxHashSet<DependencyLocation>,
   ) -> Self {
     Self {
       source_file,
