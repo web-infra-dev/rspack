@@ -1,8 +1,7 @@
 import { Container } from "./Button";
-import { Container as Container2 } from './Button2'
+import { Container as Container2 } from "./Button2";
 
 it("styled components", () => {
-	console.log(Container.componentStyle);
 	expect(Container.displayName).toMatch("Button__Container");
 	expect(Container.styledComponentId).toMatch(
 		/^Button__Container-rspack-test__/

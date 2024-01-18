@@ -37,7 +37,7 @@ export class Plugin {
 
 						resolveData.request = `${request}.js`;
 
-						console.log(resolveData);
+						// console.log(resolveData);
 					}
 
 					return undefined;
