@@ -7,7 +7,6 @@ use std::{hash::Hash, path::Path};
 
 use dashmap::DashMap;
 use derivative::Derivative;
-use futures::future::BoxFuture;
 use once_cell::sync::Lazy;
 use pathdiff::diff_paths;
 use rayon::prelude::*;
@@ -56,8 +55,7 @@ pub struct ModuleFilenameTemplateFnCtx {
   pub namespace: String,
 }
 
-type ModuleFilenameTemplateFn =
-  Box<dyn Fn(ModuleFilenameTemplateFnCtx) -> BoxFuture<'static, Result<String>> + Sync + Send>;
+type ModuleFilenameTemplateFn = Box<dyn Fn(ModuleFilenameTemplateFnCtx) -> String + Sync + Send>;
 
 pub enum ModuleFilenameTemplate {
   String(String),
@@ -215,20 +213,34 @@ impl Plugin for SourceMapDevToolPlugin {
     let mut used_names_set = HashSet::<String>::default();
     let mut maps: Vec<(String, Vec<u8>, Option<Vec<u8>>)> = Vec::with_capacity(assets.len());
 
+    let mut default_filenames = assets
+      .iter()
+      .filter_map(|(_file, _asset, source_map)| source_map.as_ref())
+      .flat_map(|source_map| source_map.sources())
+      .collect::<Vec<_>>()
+      .par_iter()
+      .map(|source| {
+        Some(self.create_filename(
+          source,
+          compiler_options,
+          &self.module_filename_template,
+          output_options,
+        ))
+      })
+      .collect::<Vec<_>>();
+    let mut default_filenames_index = 0;
+
     for (file, asset, source_map) in assets {
       let source_map_buffer = match source_map {
         Some(mut source_map) => {
           source_map.set_file(Some(file.clone()));
-          for source in source_map.sources_mut() {
-            // try the fallback name first
-            let mut source_name = self
-              .create_filename(
-                source,
-                compiler_options,
-                &self.module_filename_template,
-                output_options,
-              )
-              .await;
+
+          let sources = source_map.sources_mut();
+          for source in sources {
+            let mut source_name = default_filenames[default_filenames_index]
+              .take()
+              .expect("expected a filename at the given index but found None");
+            default_filenames_index += 1;
 
             let mut has_name = used_names_set.contains(&source_name);
             if !has_name {
@@ -238,14 +250,12 @@ impl Plugin for SourceMapDevToolPlugin {
             }
 
             // Try the fallback name first
-            source_name = self
-              .create_filename(
-                source,
-                compiler_options,
-                &self.fallback_module_filename_template,
-                output_options,
-              )
-              .await;
+            source_name = self.create_filename(
+              source,
+              compiler_options,
+              &self.fallback_module_filename_template,
+              output_options,
+            );
             has_name = used_names_set.contains(&source_name);
             if !has_name {
               used_names_set.insert(source_name.clone());
@@ -429,7 +439,7 @@ fn get_hash(text: &str, output_options: &OutputOptions) -> String {
 }
 
 impl SourceMapDevToolPlugin {
-  async fn create_filename(
+  fn create_filename(
     &self,
     source: &str,
     options: &CompilerOptions,
@@ -475,7 +485,7 @@ impl SourceMapDevToolPlugin {
           resource_path: resource_path.to_string(),
           namespace: self.namespace.clone(),
         };
-        f(ctx).await.expect("")
+        f(ctx)
       }
       ModuleFilenameTemplate::String(s) => {
         let s = REGEXP_ALL_LOADERS_RESOURCE.replace_all(s, "[identifier]");
