@@ -217,6 +217,14 @@ impl ModuleInfo {
     }
   }
 
+  pub fn as_concatenated(&self) -> &ConcatenatedModuleInfo {
+    if let Self::Concatenated(ref v) = self {
+      v
+    } else {
+      panic!("should convert as concatenated module info")
+    }
+  }
+
   pub fn id(&self) -> ModuleIdentifier {
     match self {
       ModuleInfo::External(e) => e.module,
@@ -932,84 +940,103 @@ impl Module for ConcatenatedModule {
       )));
     }
 
-    // let mut namespace_object_sources: HashMap<InfoType, String> = HashMap::default();
+    let mut namespace_object_sources: HashMap<ModuleIdentifier, String> = HashMap::default();
 
-    // for module_info_id in needed_namespace_objects.iter() {
-    //   if let Some(namespace_export_symbol) = module_info_id.namespace_export_symbol {
-    //     continue;
-    //   }
-    //
-    //   let mut ns_obj = Vec::new();
-    //   let exports_info = module_graph.get_exports_info(&module_info_id.module);
-    //   for export_info in exports_info.ordered_exports.iter() {
-    //     if !export_info.provided {
-    //       continue;
-    //     }
-    //
-    //     if let Some(used_name) = export_info.get_used_name(None, &runtime) {
-    //       let final_name = Self::get_final_name(
-    //         &module_graph,
-    //         &module_info_id,
-    //         vec![&export_info.name],
-    //         &mut module_to_info_map,
-    //         runtime,
-    //         &mut needed_namespace_objects,
-    //         false,
-    //         None,
-    //         module_info_id.module.build_meta.strict_harmony_module,
-    //         Some(true),
-    //         &context,
-    //       );
-    //
-    //       ns_obj.push(format!(
-    //         "\n  {}: {}",
-    //         property_name(&used_name),
-    //         runtime_template.returning_function(&final_name)
-    //       ));
-    //     }
-    //   }
-    //
-    //   let name = &module_info_id.namespace_object_name;
-    //   let define_getters = if ns_obj.len() > 0 {
-    //     format!(
-    //       "{}({{ {} }});\n",
-    //       RuntimeGlobals::define_property_getters(),
-    //       ns_obj.join(",")
-    //     )
-    //   } else {
-    //     String::new()
-    //   };
-    //
-    //   if ns_obj.len() > 0 {
-    //     runtime_requirements.insert(RuntimeGlobals::define_property_getters());
-    //   }
-    //
-    //   namespace_object_sources.insert(
-    //     module_info_id.clone(),
-    //     format!(
-    //       "// NAMESPACE OBJECT: {}\nvar {} = {{}};\n{}({});\n{}\n",
-    //       module_info_id
-    //         .module
-    //         .readable_identifier(&request_shortener),
-    //       name,
-    //       RuntimeGlobals::make_namespace_object(),
-    //       name,
-    //       define_getters
-    //     ),
-    //   );
-    //
-    //   runtime_requirements.insert(RuntimeGlobals::make_namespace_object());
-    // }
+    // TODO: remove the clone
+    for module_info_id in needed_namespace_objects.clone().iter() {
+      let module_info = module_to_info_map
+        .get(module_info_id)
+        .map(|m| m.as_concatenated())
+        .expect("should have module info");
+
+      let box_module = compilation
+        .module_graph
+        .module_by_identifier(module_info_id)
+        .expect("should have box module");
+      let module_readable_identifier = box_module.readable_identifier(&context).to_string();
+      let strict_harmony_module = box_module
+        .build_meta()
+        .map(|meta| meta.strict_harmony_module)
+        .unwrap_or_default();
+      let name_space_name = module_info.namespace_object_name.clone();
+
+      if let Some(ref namespace_export_symbol) = module_info.namespace_export_symbol {
+        continue;
+      }
+
+      let mut ns_obj = Vec::new();
+      let exports_info = compilation.module_graph.get_exports_info(module_info_id);
+      for (name, export_info_id) in exports_info.exports.iter() {
+        let export_info = export_info_id.get_export_info(&compilation.module_graph);
+        if matches!(export_info.provided, Some(ExportInfoProvided::False)) {
+          continue;
+        }
+
+        if let Some(used_name) = export_info.get_used_name(None, runtime) {
+          let final_name = Self::get_final_name(
+            &compilation.module_graph,
+            module_info_id,
+            vec![export_info.name.clone().unwrap_or("".into())],
+            &mut module_to_info_map,
+            runtime,
+            &mut needed_namespace_objects,
+            false,
+            false,
+            strict_harmony_module,
+            Some(true),
+            &context,
+          );
+
+          ns_obj.push(format!(
+            "\n  {}: {}",
+            property_name(&used_name).expect("should have property_name"),
+            returning_function(&final_name, "")
+          ));
+        }
+      }
+      // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/ConcatenatedModule.js#L1539
+      let name = name_space_name.expect("should have name_space_name");
+      let define_getters = if ns_obj.len() > 0 {
+        format!(
+          "{}({{ {} }});\n",
+          RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
+          ns_obj.join(",")
+        )
+      } else {
+        String::new()
+      };
+      //
+      if ns_obj.len() > 0 {
+        runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
+      }
+
+      namespace_object_sources.insert(
+        *module_info_id,
+        format!(
+          "// NAMESPACE OBJECT: {}\nvar {} = {{}};\n{}({});\n{}\n",
+          module_readable_identifier,
+          name,
+          RuntimeGlobals::MAKE_NAMESPACE_OBJECT,
+          name,
+          define_getters
+        ),
+      );
+
+      runtime_requirements.insert(RuntimeGlobals::MAKE_NAMESPACE_OBJECT);
+    }
     //
     // // Define required namespace objects (must be before evaluation modules)
-    // for info in modules_with_info.iter() {
-    //   if info.type_of() == "concatenated" {
-    //     if let Some(source) = namespace_object_sources.get(info) {
-    //       // Assuming result is a mutable HashSet<String>
-    //       result.insert(source.clone());
-    //     }
-    //   }
-    // }
+    for info in modules_with_info.iter() {
+      let ModuleInfoOrReference::Concatenated(info) = info else {
+        continue;
+      };
+      if let Some(source) = namespace_object_sources.get(&info.module) {
+        // Assuming result is a mutable HashSet<String>
+        result.add(RawSource::from(source.as_str()));
+      }
+    }
+
+    println!("source: \n{}", result.source());
     let mut code_generation_result = CodeGenerationResult::default();
     code_generation_result.add(SourceType::JavaScript, CachedSource::new(result).boxed());
     code_generation_result.chunk_init_fragments = vec![];
@@ -1845,7 +1872,7 @@ impl ConcatenatedModule {
           }
         }
 
-        if let Some(_namespace_export_symbol) = info.namespace_export_symbol.as_ref() {
+        if info.namespace_export_symbol.is_some() {
           // That's how webpack write https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L463-L471
           let used_name = exports_info
             .id
