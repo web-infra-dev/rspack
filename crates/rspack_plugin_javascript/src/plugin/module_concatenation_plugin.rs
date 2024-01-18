@@ -12,9 +12,9 @@ use rspack_core::{
   RuntimeCondition, RuntimeSpec, WrappedModuleIdentifier,
 };
 use rspack_error::Result;
-use rspack_util::ext::DynHash;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
+#[allow(unused)]
 fn format_bailout_reason(msg: &str) -> String {
   format!("ModuleConcatenation bailout: {}", msg)
 }

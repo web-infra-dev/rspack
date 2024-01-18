@@ -11,11 +11,11 @@ pub fn normalize_custom_filename(source: &str) -> &str {
 pub fn join_atom<'a, T: Iterator<Item = &'a Atom>>(mut iter: T, separator: &str) -> String {
   let mut ret = String::new();
   if let Some(item) = iter.next() {
-    ret.push_str(&item);
+    ret.push_str(item);
   }
   for item in iter.skip(1) {
     ret.push_str(separator);
-    ret.push_str(&item);
+    ret.push_str(item);
   }
   ret
 }

@@ -22,7 +22,6 @@ use crate::{
   ModuleGraph, ModuleGraphModule, ModuleType, NormalModule, RawModule, Resolve, RuntimeSpec,
   SelfModule, SharedPluginDriver, SourceType,
 };
-
 pub struct BuildContext<'a> {
   pub compiler_context: CompilerContext,
   pub plugin_driver: SharedPluginDriver,
@@ -500,14 +499,15 @@ mod test {
   use std::borrow::Cow;
   use std::hash::Hash;
 
-  use rspack_error::{Diagnosable, Result};
+  use rspack_error::{Diagnosable, Diagnostic, Result};
   use rspack_identifier::{Identifiable, Identifier};
   use rspack_sources::Source;
 
   use super::Module;
   use crate::{
     AsyncDependenciesBlockId, BuildContext, BuildResult, CodeGenerationResult, Compilation,
-    Context, DependenciesBlock, DependencyId, ModuleType, RuntimeSpec, SourceType,
+    ConcatenationScope, Context, DependenciesBlock, DependencyId, ModuleExt, ModuleType,
+    RuntimeSpec, SourceType,
   };
 
   #[derive(Debug, Eq)]
@@ -590,14 +590,23 @@ mod test {
           (stringify!($ident).to_owned() + self.0).into()
         }
 
-        async fn build(&mut self, _build_context: BuildContext<'_>, _compilation: Option<build_context: BuildContext<'_>Compilation>) -> Result<BuildResult> {
+        async fn build(
+          &mut self,
+          _build_context: BuildContext<'_>,
+          _compilation: Option<&Compilation>,
+        ) -> Result<BuildResult> {
           unreachable!()
+        }
+
+        fn get_diagnostics(&self) -> Vec<Diagnostic> {
+          vec![]
         }
 
         fn code_generation(
           &self,
           _compilation: &Compilation,
           _runtime: Option<&RuntimeSpec>,
+          _concatenation_scope: Option<ConcatenationScope>,
         ) -> Result<CodeGenerationResult> {
           unreachable!()
         }

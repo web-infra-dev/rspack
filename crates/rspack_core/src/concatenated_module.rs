@@ -37,8 +37,8 @@ use crate::{
   ConnectionState, Context, DependenciesBlock, DependencyId, DependencyTemplate, ErrorSpan,
   ExportInfoId, ExportInfoProvided, ExportsArgument, ExportsType, IdentCollector, LibIdentOptions,
   Module, ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ModuleType,
-  ProvidedExports, Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType, SpanExt,
-  Template, UsageState, UsedName, DEFAULT_EXPORT, NAMESPACE_OBJECT_EXPORT,
+  Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType, SpanExt, Template,
+  UsageState, UsedName, DEFAULT_EXPORT, NAMESPACE_OBJECT_EXPORT,
 };
 
 #[derive(Debug)]
@@ -55,6 +55,7 @@ pub struct RootModuleContext {
   pub build_meta: Option<BuildMeta>,
 }
 
+#[allow(unused)]
 #[derive(Debug, Clone)]
 pub struct RawBinding {
   info_id: ModuleIdentifier,
@@ -64,6 +65,7 @@ pub struct RawBinding {
   export_name: Vec<Atom>,
 }
 
+#[allow(unused)]
 #[derive(Debug, Clone)]
 pub struct SymbolBinding {
   /// Should corresponding to a ConcatenatedModuleInfo, ref https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L93-L100
@@ -898,7 +900,7 @@ impl Module for ConcatenatedModule {
     // Assuming the necessary Rust imports and dependencies are declared
 
     // Define exports
-    if exports_map.len() > 0 {
+    if !exports_map.is_empty() {
       runtime_requirements.insert(RuntimeGlobals::EXPORTS);
       runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
       let mut definitions = Vec::new();
@@ -923,14 +925,14 @@ impl Module for ConcatenatedModule {
     }
 
     // List unused exports
-    if unused_exports.len() > 0 {
+    if !unused_exports.is_empty() {
       result.add(RawSource::from(format!(
         "\n// UNUSED EXPORTS: {}\n",
         join_atom(unused_exports.iter(), ", ")
       )));
     }
 
-    let mut namespace_object_sources: HashMap<InfoType, String> = HashMap::default();
+    // let mut namespace_object_sources: HashMap<InfoType, String> = HashMap::default();
 
     // for module_info_id in needed_namespace_objects.iter() {
     //   if let Some(namespace_export_symbol) = module_info_id.namespace_export_symbol {

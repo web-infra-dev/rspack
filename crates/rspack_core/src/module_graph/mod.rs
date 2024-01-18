@@ -12,9 +12,8 @@ use swc_core::ecma::atoms::Atom;
 use crate::{AsyncDependenciesBlock, AsyncDependenciesBlockId, ProvidedExports};
 mod connection;
 pub use connection::*;
-pub(crate) mod vec_map;
+mod vec_map;
 
-use self::vec_map::VecMap;
 use crate::{
   BoxDependency, BoxModule, BuildDependency, BuildInfo, BuildMeta, DependencyCondition,
   DependencyId, ExportInfo, ExportInfoId, ExportsInfo, ExportsInfoId, ModuleGraphModule,
@@ -63,8 +62,8 @@ pub struct ModuleGraph {
 
   pub import_var_map: DashMap<ModuleIdentifier, ImportVarMap>,
   pub exports_info_hash: DashMap<ExportsInfoId, u64>,
-  pub exports_info_map: VecMap<ExportsInfo>,
-  pub export_info_map: VecMap<ExportInfo>,
+  pub exports_info_map: vec_map::VecMap<ExportsInfo>,
+  pub export_info_map: vec_map::VecMap<ExportInfo>,
   connection_to_condition: HashMap<ModuleGraphConnection, DependencyCondition>,
   pub dep_meta_map: HashMap<DependencyId, DependencyExtraMeta>,
 }
@@ -1034,19 +1033,42 @@ impl ModuleGraph {
   }
 }
 
+fn get_connections_by_origin_module(
+  set: &HashSet<ConnectionId>,
+  mg: &ModuleGraph,
+) -> HashMap<Option<ModuleIdentifier>, Vec<ModuleGraphConnection>> {
+  let mut map: HashMap<Option<ModuleIdentifier>, Vec<ModuleGraphConnection>> = HashMap::default();
+
+  for connection_id in set.iter() {
+    let con = mg
+      .connection_by_connection_id(connection_id)
+      .expect("should have connection");
+    match map.entry(con.original_module_identifier) {
+      Entry::Occupied(mut occ) => {
+        occ.get_mut().push(*con);
+      }
+      Entry::Vacant(vac) => {
+        vac.insert(vec![*con]);
+      }
+    }
+  }
+
+  map
+}
+
 #[cfg(test)]
 mod test {
   use std::borrow::Cow;
 
-  use rspack_error::{Diagnosable, Result};
+  use rspack_error::{Diagnosable, Diagnostic, Result};
   use rspack_identifier::Identifiable;
   use rspack_sources::Source;
 
   use crate::{
     AsyncDependenciesBlockId, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
-    CodeGenerationResult, Compilation, Context, DependenciesBlock, Dependency, DependencyId,
-    ExportInfo, ExportsInfo, Module, ModuleDependency, ModuleGraph, ModuleGraphModule,
-    ModuleIdentifier, ModuleType, RuntimeSpec, SourceType, UsageState,
+    CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock, Dependency,
+    DependencyId, ExportInfo, ExportsInfo, Module, ModuleDependency, ModuleGraph,
+    ModuleGraphModule, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType, UsageState,
   };
 
   // Define a detailed node type for `ModuleGraphModule`s
@@ -1103,7 +1125,15 @@ mod test {
           unreachable!()
         }
 
-        async fn build(&mut self, _build_context: BuildContext<'_>, _compilation: Option<build_context: BuildContext<'_>Compilation>) -> Result<BuildResult> {
+        fn get_diagnostics(&self) -> Vec<Diagnostic> {
+          vec![]
+        }
+
+        async fn build(
+          &mut self,
+          _build_context: BuildContext<'_>,
+          _compilation: Option<&Compilation>,
+        ) -> Result<BuildResult> {
           unreachable!()
         }
 
@@ -1111,6 +1141,7 @@ mod test {
           &self,
           _compilation: &Compilation,
           _runtime: Option<&RuntimeSpec>,
+          _concatenation_scope: Option<ConcatenationScope>,
         ) -> Result<CodeGenerationResult> {
           unreachable!()
         }
@@ -1282,27 +1313,4 @@ mod test {
     assert!(mgm_b.outgoing_connections.is_empty());
     assert!(mgm_c.incoming_connections.is_empty());
   }
-}
-
-fn get_connections_by_origin_module(
-  set: &HashSet<ConnectionId>,
-  mg: &ModuleGraph,
-) -> HashMap<Option<ModuleIdentifier>, Vec<ModuleGraphConnection>> {
-  let mut map: HashMap<Option<ModuleIdentifier>, Vec<ModuleGraphConnection>> = HashMap::default();
-
-  for connection_id in set.iter() {
-    let con = mg
-      .connection_by_connection_id(connection_id)
-      .expect("should have connection");
-    match map.entry(con.original_module_identifier) {
-      Entry::Occupied(mut occ) => {
-        occ.get_mut().push(*con);
-      }
-      Entry::Vacant(vac) => {
-        vac.insert(vec![*con]);
-      }
-    }
-  }
-
-  map
 }
