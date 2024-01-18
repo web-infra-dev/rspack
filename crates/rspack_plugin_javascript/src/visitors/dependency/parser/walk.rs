@@ -647,8 +647,9 @@ impl<'parser> JavascriptParser<'parser> {
     self.walk_expression(&expr.arg);
   }
 
-  fn walk_identifier(&mut self, _identifier: &Ident) {
+  fn walk_identifier(&mut self, identifier: &Ident) {
     // TODO: self.call_hooks_for_name
+    self.plugin_drive.clone().identifier(self, identifier);
   }
 
   // fn get_rename_identifier(&mut self, expr: &Expr) -> Option<String> {

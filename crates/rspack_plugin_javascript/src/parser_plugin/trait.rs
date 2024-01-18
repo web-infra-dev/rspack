@@ -72,6 +72,10 @@ pub trait JavascriptParserPlugin {
   fn new_expression(&self, _parser: &mut JavascriptParser, _expr: &NewExpr) -> Option<bool> {
     None
   }
+
+  fn identifier(&self, _parser: &mut JavascriptParser, _expr: &Ident) -> Option<bool> {
+    None
+  }
 }
 
 pub type BoxJavascriptParserPlugin = Box<dyn JavascriptParserPlugin>;
