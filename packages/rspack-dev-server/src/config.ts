@@ -7,8 +7,7 @@ export interface ResolvedDevServer extends DevServer {
 	port: number | string;
 	static: false | Array<WebpackDevServer.NormalizedStatic>;
 	devMiddleware: DevServer["devMiddleware"];
-	// FIXME: hot should be `boolean | 'only'`
-	hot: boolean;
+	hot: boolean | "only";
 	host?: string;
 	open: WebpackDevServer.Open[];
 	magicHtml: boolean;
