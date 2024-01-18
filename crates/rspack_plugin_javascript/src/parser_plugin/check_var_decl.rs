@@ -1,7 +1,7 @@
 use swc_core::common::Spanned;
 use swc_core::ecma::ast::{Ident, ObjectPatProp, Pat, VarDeclKind};
 
-use super::JavascriptParserPlugin;
+use super::{JavaScriptParserPluginDrive, JavascriptParserPlugin};
 use crate::visitors::{create_traceable_error, is_reserved_word_in_strict, JavascriptParser};
 
 pub struct CheckVarDeclaratorIdent;
@@ -63,12 +63,13 @@ impl CheckVarDeclaratorIdent {
   }
 }
 
-impl JavascriptParserPlugin for CheckVarDeclaratorIdent {
+impl<'ast, 'parser> JavascriptParserPlugin<'ast, 'parser> for CheckVarDeclaratorIdent {
   fn declarator(
     &self,
     parser: &mut JavascriptParser,
     _expr: &swc_core::ecma::ast::VarDeclarator,
     stmt: &swc_core::ecma::ast::VarDecl,
+    _plugin_drive: &JavaScriptParserPluginDrive,
   ) -> Option<bool> {
     let should_check = match stmt.kind {
       VarDeclKind::Var => parser.is_strict(),

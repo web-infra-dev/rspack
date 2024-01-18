@@ -2,7 +2,7 @@ use rspack_core::{ConstDependency, SpanExt};
 use swc_core::common::Spanned;
 use swc_core::ecma::ast::{CallExpr, Ident, UnaryExpr, UnaryOp};
 
-use super::JavascriptParserPlugin;
+use super::{JavaScriptParserPluginDrive, JavascriptParserPlugin};
 use crate::dependency::WebpackIsIncludedDependency;
 use crate::visitors::JavascriptParser;
 
@@ -14,8 +14,13 @@ fn is_webpack_is_included(ident: &Ident) -> bool {
 
 pub struct WebpackIsIncludedPlugin;
 
-impl JavascriptParserPlugin for WebpackIsIncludedPlugin {
-  fn call(&self, parser: &mut JavascriptParser<'_>, expr: &CallExpr) -> Option<bool> {
+impl<'ast, 'parser> JavascriptParserPlugin<'ast, 'parser> for WebpackIsIncludedPlugin {
+  fn call(
+    &self,
+    parser: &mut JavascriptParser<'parser>,
+    expr: &'ast CallExpr,
+    plugin_drive: &JavaScriptParserPluginDrive<'ast, 'parser>,
+  ) -> Option<bool> {
     let is_webpack_is_included = expr
       .callee
       .as_expr()
@@ -26,7 +31,7 @@ impl JavascriptParserPlugin for WebpackIsIncludedPlugin {
       return None;
     }
 
-    let request = parser.evaluate_expression(&expr.args[0].expr);
+    let request = parser.evaluate_expression(&expr.args[0].expr, plugin_drive);
     if !request.is_string() {
       return None;
     }
@@ -42,7 +47,12 @@ impl JavascriptParserPlugin for WebpackIsIncludedPlugin {
     Some(true)
   }
 
-  fn r#typeof(&self, parser: &mut JavascriptParser<'_>, expr: &UnaryExpr) -> Option<bool> {
+  fn r#typeof(
+    &self,
+    parser: &mut JavascriptParser,
+    expr: &UnaryExpr,
+    _plugin_drive: &JavaScriptParserPluginDrive,
+  ) -> Option<bool> {
     assert!(expr.op == UnaryOp::TypeOf);
     let is_webpack_is_included = expr
       .arg

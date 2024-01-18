@@ -3,6 +3,7 @@ use rspack_core::SpanExt;
 use swc_core::common::Spanned;
 use swc_core::ecma::ast::{BinExpr, BinaryOp};
 
+use crate::parser_plugin::JavaScriptParserPluginDrive;
 use crate::visitors::JavascriptParser;
 
 pub fn is_logic_op(op: BinaryOp) -> bool {
@@ -12,9 +13,13 @@ pub fn is_logic_op(op: BinaryOp) -> bool {
   )
 }
 
-pub fn expression_logic_operator(scanner: &mut JavascriptParser, expr: &BinExpr) -> Option<bool> {
+pub fn expression_logic_operator<'ast, 'parser>(
+  scanner: &mut JavascriptParser<'parser>,
+  expr: &'ast BinExpr,
+  plugin_drive: &JavaScriptParserPluginDrive<'ast, 'parser>,
+) -> Option<bool> {
   if expr.op == BinaryOp::LogicalAnd || expr.op == BinaryOp::LogicalOr {
-    let param = scanner.evaluate_expression(&expr.left);
+    let param = scanner.evaluate_expression(&expr.left, plugin_drive);
     let boolean = param.as_bool();
     let Some(boolean) = boolean else {
       return None;
@@ -34,7 +39,7 @@ pub fn expression_logic_operator(scanner: &mut JavascriptParser, expr: &BinExpr)
           None,
         )));
     } else {
-      scanner.walk_expression(&expr.left);
+      scanner.walk_expression(&expr.left, plugin_drive);
     }
 
     if !keep_right {
@@ -49,7 +54,7 @@ pub fn expression_logic_operator(scanner: &mut JavascriptParser, expr: &BinExpr)
     }
     Some(keep_right)
   } else if expr.op == BinaryOp::NullishCoalescing {
-    let param = scanner.evaluate_expression(&expr.left);
+    let param = scanner.evaluate_expression(&expr.left, plugin_drive);
     if let Some(keep_right) = param.as_nullish() {
       if !param.could_have_side_effects() && keep_right {
         scanner
@@ -69,7 +74,7 @@ pub fn expression_logic_operator(scanner: &mut JavascriptParser, expr: &BinExpr)
             "0".into(),
             None,
           )));
-        scanner.walk_expression(&expr.left);
+        scanner.walk_expression(&expr.left, plugin_drive);
       }
       Some(keep_right)
     } else {

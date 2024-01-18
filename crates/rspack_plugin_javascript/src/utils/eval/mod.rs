@@ -6,6 +6,8 @@ mod eval_new_expr;
 mod eval_tpl_expr;
 mod eval_unary_expr;
 
+use std::borrow::Cow;
+
 use bitflags::bitflags;
 use rspack_core::DependencyLocation;
 
@@ -38,15 +40,20 @@ enum Ty {
 
 type Boolean = bool;
 type Number = f64;
-type Bigint = num_bigint::BigInt;
+// type Bigint = num_bigint::BigInt;
 // type Array<'a> = &'a ast::ArrayLit;
-type String = std::string::String;
-type Regexp = (String, String); // (expr, flags)
+type String<'ast> = Cow<'ast, str>;
+type Identifier<'ast> = &'ast std::string::String;
+type RegexExpr<'ast> = Cow<'ast, str>;
+type RegexFlags<'ast> = Cow<'ast, str>;
+type Regexp<'ast> = (RegexExpr<'ast>, RegexFlags<'ast>);
 
-// I really don't want there has many alloc, maybe this can be optimized after
-// parse finished.
+const TRUE_STR: &str = "true";
+const FALSE_STR: &str = "false";
+const NULL_STR: &str = "null";
+
 #[derive(Debug)]
-pub struct BasicEvaluatedExpression {
+pub struct BasicEvaluatedExpression<'ast> {
   ty: Ty,
   range: Option<DependencyLocation>,
   falsy: bool,
@@ -55,26 +62,25 @@ pub struct BasicEvaluatedExpression {
   nullish: Option<bool>,
   boolean: Option<Boolean>,
   number: Option<Number>,
-  string: Option<String>,
-  bigint: Option<Bigint>,
-  regexp: Option<Regexp>,
-  identifier: Option<String>,
-  items: Option<Vec<BasicEvaluatedExpression>>,
-  quasis: Option<Vec<BasicEvaluatedExpression>>,
-  parts: Option<Vec<BasicEvaluatedExpression>>,
+  string: Option<String<'ast>>,
+  // bigint: Option<Bigint>,
+  regexp: Option<Regexp<'ast>>,
+  identifier: Option<Identifier<'ast>>,
+  items: Option<Vec<BasicEvaluatedExpression<'ast>>>,
+  quasis: Option<Vec<BasicEvaluatedExpression<'ast>>>,
+  parts: Option<Vec<BasicEvaluatedExpression<'ast>>>,
   // array: Option<Array>
   template_string_kind: Option<TemplateStringKind>,
-
-  options: Option<Vec<BasicEvaluatedExpression>>,
+  options: Option<Vec<BasicEvaluatedExpression<'ast>>>,
 }
 
-impl Default for BasicEvaluatedExpression {
+impl<'ast> Default for BasicEvaluatedExpression<'ast> {
   fn default() -> Self {
     Self::new()
   }
 }
 
-impl BasicEvaluatedExpression {
+impl<'ast> BasicEvaluatedExpression<'ast> {
   pub fn new() -> Self {
     Self {
       ty: Ty::Unknown,
@@ -85,7 +91,7 @@ impl BasicEvaluatedExpression {
       nullish: None,
       boolean: None,
       number: None,
-      bigint: None,
+      // bigint: None,
       quasis: None,
       parts: None,
       identifier: None,
@@ -175,13 +181,17 @@ impl BasicEvaluatedExpression {
     }
   }
 
-  pub fn as_string(&self) -> Option<std::string::String> {
+  pub fn as_string(&self) -> Option<&str> {
     if self.is_bool() {
-      Some(self.bool().to_string())
+      let res = match self.bool() {
+        true => TRUE_STR,
+        false => FALSE_STR,
+      };
+      Some(res)
     } else if self.is_null() {
-      Some("null".to_string())
+      Some(NULL_STR)
     } else if self.is_string() {
-      Some(self.string().to_string())
+      Some(self.string())
     } else {
       None
     }
@@ -190,7 +200,7 @@ impl BasicEvaluatedExpression {
   pub fn as_bool(&self) -> Option<Boolean> {
     if self.truthy {
       Some(true)
-    } else if self.falsy || self.nullish == Some(true) {
+    } else if self.falsy || self.nullish == Some(true) || self.is_null() {
       Some(false)
     } else {
       self.boolean
@@ -234,10 +244,10 @@ impl BasicEvaluatedExpression {
         Ty::RegExp => false, // FIXME: maybe we can use std::ptr::eq
         // Ty::ConstArray => {
         // },
-        Ty::BigInt => {
-          b.bigint.as_ref().expect("should not empty")
-            == self.bigint.as_ref().expect("should not empty")
-        }
+        // Ty::BigInt => {
+        //   b.bigint.as_ref().expect("should not empty")
+        //     == self.bigint.as_ref().expect("should not empty")
+        // }
         _ => unreachable!("can only compare compile-time values"),
       }
     }
@@ -256,7 +266,7 @@ impl BasicEvaluatedExpression {
     self.side_effects = false
   }
 
-  pub fn set_items(&mut self, items: Vec<BasicEvaluatedExpression>) {
+  pub fn set_items(&mut self, items: Vec<BasicEvaluatedExpression<'ast>>) {
     self.ty = Ty::Array;
     self.side_effects = items.iter().any(|item| item.could_have_side_effects());
     self.items = Some(items);
@@ -266,13 +276,13 @@ impl BasicEvaluatedExpression {
     self.options.as_ref().expect("options should not empty")
   }
 
-  pub fn set_options(&mut self, options: Option<Vec<BasicEvaluatedExpression>>) {
+  pub fn set_options(&mut self, options: Option<Vec<BasicEvaluatedExpression<'ast>>>) {
     self.ty = Ty::Conditional;
     self.options = options;
     self.side_effects = true;
   }
 
-  pub fn add_options(&mut self, options: Vec<BasicEvaluatedExpression>) {
+  pub fn add_options(&mut self, options: Vec<BasicEvaluatedExpression<'ast>>) {
     if let Some(old) = &mut self.options {
       old.extend(options);
     } else {
@@ -294,8 +304,8 @@ impl BasicEvaluatedExpression {
 
   pub fn set_template_string(
     &mut self,
-    quasis: Vec<BasicEvaluatedExpression>,
-    parts: Vec<BasicEvaluatedExpression>,
+    quasis: Vec<BasicEvaluatedExpression<'ast>>,
+    parts: Vec<BasicEvaluatedExpression<'ast>>,
     kind: TemplateStringKind,
   ) {
     self.ty = Ty::TemplateString;
@@ -305,23 +315,23 @@ impl BasicEvaluatedExpression {
     self.template_string_kind = Some(kind);
   }
 
-  pub fn set_string(&mut self, string: String) {
+  pub fn set_string(&mut self, string: String<'ast>) {
     self.ty = Ty::String;
     self.string = Some(string);
     self.side_effects = false;
   }
 
-  pub fn set_regexp(&mut self, regexp: String, flags: String) {
+  pub fn set_regexp(&mut self, regexp: RegexExpr<'ast>, flags: RegexFlags<'ast>) {
     self.ty = Ty::RegExp;
     self.regexp = Some((regexp, flags));
     self.side_effects = false;
   }
 
-  pub fn string(&self) -> &String {
+  pub fn string(&self) -> &str {
     self.string.as_ref().expect("make sure string exist")
   }
 
-  pub fn identifier(&self) -> &String {
+  pub fn identifier(&self) -> &str {
     self
       .identifier
       .as_ref()
@@ -336,7 +346,7 @@ impl BasicEvaluatedExpression {
     self.boolean.expect("make sure bool exist")
   }
 
-  pub fn parts(&self) -> &Vec<BasicEvaluatedExpression> {
+  pub fn parts(&self) -> &Vec<BasicEvaluatedExpression<'ast>> {
     self
       .parts
       .as_ref()
@@ -349,9 +359,9 @@ impl BasicEvaluatedExpression {
   }
 }
 
-pub fn evaluate_to_string(value: String, start: u32, end: u32) -> BasicEvaluatedExpression {
+pub fn evaluate_to_string(value: &str, start: u32, end: u32) -> BasicEvaluatedExpression {
   let mut eval = BasicEvaluatedExpression::with_range(start, end);
-  eval.set_string(value);
+  eval.set_string(Cow::Borrowed(value));
   eval
 }
 

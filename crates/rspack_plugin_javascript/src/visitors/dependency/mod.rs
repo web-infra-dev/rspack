@@ -99,16 +99,14 @@ pub fn scan_dependencies(
 
   let mut parser = JavascriptParser::new(
     source_file.clone(),
-    compiler_options,
     &mut dependencies,
     &mut presentational_dependencies,
     &mut ignored,
-    module_type,
     &worker_syntax_list,
     &mut errors,
   );
 
-  parser.visit(program.get_inner_program());
+  parser.visit(program.get_inner_program(), module_type, compiler_options);
 
   program.visit_with(&mut ApiScanner::new(
     source_file.clone(),

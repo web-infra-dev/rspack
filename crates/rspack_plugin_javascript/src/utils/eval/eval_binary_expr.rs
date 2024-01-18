@@ -1,14 +1,19 @@
+use std::borrow::Cow;
+
 use rspack_core::SpanExt;
 use swc_core::ecma::ast::{BinExpr, BinaryOp};
 
-use crate::{utils::eval::BasicEvaluatedExpression, visitors::JavascriptParser};
+use crate::{
+  parser_plugin::JavaScriptParserPluginDrive, utils::eval::BasicEvaluatedExpression,
+  visitors::JavascriptParser,
+};
 
-fn handle_template_string_compare(
-  left: &BasicEvaluatedExpression,
-  right: &BasicEvaluatedExpression,
-  mut res: BasicEvaluatedExpression,
+fn handle_template_string_compare<'ast>(
+  left: &BasicEvaluatedExpression<'ast>,
+  right: &BasicEvaluatedExpression<'ast>,
+  mut res: BasicEvaluatedExpression<'ast>,
   eql: bool,
-) -> Option<BasicEvaluatedExpression> {
+) -> Option<BasicEvaluatedExpression<'ast>> {
   let get_prefix = |parts: &Vec<BasicEvaluatedExpression>| {
     let mut value = vec![];
     for p in parts {
@@ -69,19 +74,20 @@ fn is_always_different(a: Option<bool>, b: Option<bool>) -> bool {
 }
 
 /// `eql` is `true` for `===` and `false` for `!==`
-fn handle_strict_equality_comparison(
+fn handle_strict_equality_comparison<'ast, 'parser>(
   eql: bool,
-  expr: &BinExpr,
-  scanner: &mut JavascriptParser,
-) -> Option<BasicEvaluatedExpression> {
+  expr: &'ast BinExpr,
+  scanner: &mut JavascriptParser<'parser>,
+  plugin_drive: &JavaScriptParserPluginDrive<'ast, 'parser>,
+) -> Option<BasicEvaluatedExpression<'ast>> {
   assert!(expr.op == BinaryOp::EqEqEq || expr.op == BinaryOp::NotEqEq);
-  let left = scanner.evaluate_expression(&expr.left);
-  let right = scanner.evaluate_expression(&expr.right);
+  let left = scanner.evaluate_expression(&expr.left, plugin_drive);
+  let right = scanner.evaluate_expression(&expr.right, plugin_drive);
   let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.hi().0);
   let left_const = left.is_compile_time_value();
   let right_const = right.is_compile_time_value();
 
-  let common = |mut res: BasicEvaluatedExpression| {
+  let common = |mut res: BasicEvaluatedExpression<'ast>| {
     res.set_bool(!eql);
     res.set_side_effects(left.could_have_side_effects() || right.could_have_side_effects());
     Some(res)
@@ -113,14 +119,15 @@ fn handle_strict_equality_comparison(
 }
 
 /// `eql` is `true` for `==` and `false` for `!=`
-fn handle_abstract_equality_comparison(
+fn handle_abstract_equality_comparison<'ast, 'parser>(
   eql: bool,
-  expr: &BinExpr,
-  scanner: &mut JavascriptParser,
-) -> Option<BasicEvaluatedExpression> {
+  expr: &'ast BinExpr,
+  scanner: &mut JavascriptParser<'parser>,
+  plugin_drive: &JavaScriptParserPluginDrive<'ast, 'parser>,
+) -> Option<BasicEvaluatedExpression<'ast>> {
   assert!(expr.op == BinaryOp::EqEq || expr.op == BinaryOp::NotEq);
-  let left = scanner.evaluate_expression(&expr.left);
-  let right = scanner.evaluate_expression(&expr.right);
+  let left = scanner.evaluate_expression(&expr.left, plugin_drive);
+  let right = scanner.evaluate_expression(&expr.right, plugin_drive);
   let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.hi().0);
 
   let left_const = left.is_compile_time_value();
@@ -141,12 +148,13 @@ fn handle_abstract_equality_comparison(
   }
 }
 
-fn handle_logical_or(
-  expr: &BinExpr,
-  scanner: &mut JavascriptParser,
-) -> Option<BasicEvaluatedExpression> {
+fn handle_logical_or<'ast, 'parser>(
+  expr: &'ast BinExpr,
+  scanner: &mut JavascriptParser<'parser>,
+  plugin_drive: &JavaScriptParserPluginDrive<'ast, 'parser>,
+) -> Option<BasicEvaluatedExpression<'ast>> {
   let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.hi().0);
-  let left = scanner.evaluate_expression(&expr.left);
+  let left = scanner.evaluate_expression(&expr.left, plugin_drive);
 
   match left.as_bool() {
     Some(true) => {
@@ -156,7 +164,7 @@ fn handle_logical_or(
       Some(res)
     }
     Some(false) => {
-      let right = scanner.evaluate_expression(&expr.right);
+      let right = scanner.evaluate_expression(&expr.right, plugin_drive);
       // false || unknown = unknown
       right.as_bool().map(|b| {
         // false || right = right
@@ -166,7 +174,7 @@ fn handle_logical_or(
       })
     }
     None => {
-      let right = scanner.evaluate_expression(&expr.right);
+      let right = scanner.evaluate_expression(&expr.right, plugin_drive);
       match right.as_bool() {
         // unknown || true = true
         Some(true) => {
@@ -181,17 +189,18 @@ fn handle_logical_or(
   }
 }
 
-fn handle_logical_and(
-  expr: &BinExpr,
-  scanner: &mut JavascriptParser,
-) -> Option<BasicEvaluatedExpression> {
+fn handle_logical_and<'ast, 'parser>(
+  expr: &'ast BinExpr,
+  scanner: &mut JavascriptParser<'parser>,
+  plugin_drive: &JavaScriptParserPluginDrive<'ast, 'parser>,
+) -> Option<BasicEvaluatedExpression<'ast>> {
   let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.hi().0);
 
-  let left = scanner.evaluate_expression(&expr.left);
+  let left = scanner.evaluate_expression(&expr.left, plugin_drive);
 
   match left.as_bool() {
     Some(true) => {
-      let right = scanner.evaluate_expression(&expr.right);
+      let right = scanner.evaluate_expression(&expr.right, plugin_drive);
       // true && unknown = unknown
       right.as_bool().map(|b| {
         // true && right = right
@@ -207,7 +216,7 @@ fn handle_logical_and(
       Some(res)
     }
     None => {
-      let right = scanner.evaluate_expression(&expr.right);
+      let right = scanner.evaluate_expression(&expr.right, plugin_drive);
       match right.as_bool() {
         // unknown && false = false
         Some(false) => {
@@ -222,13 +231,17 @@ fn handle_logical_and(
   }
 }
 
-fn handle_add(expr: &BinExpr, scanner: &mut JavascriptParser) -> Option<BasicEvaluatedExpression> {
+fn handle_add<'ast, 'parser>(
+  expr: &'ast BinExpr,
+  scanner: &mut JavascriptParser<'parser>,
+  plugin_drive: &JavaScriptParserPluginDrive<'ast, 'parser>,
+) -> Option<BasicEvaluatedExpression<'ast>> {
   assert_eq!(expr.op, BinaryOp::Add);
-  let left = scanner.evaluate_expression(&expr.left);
-  let right = scanner.evaluate_expression(&expr.right);
+  let left = scanner.evaluate_expression(&expr.left, plugin_drive);
+  let right = scanner.evaluate_expression(&expr.right, plugin_drive);
   let mut res = BasicEvaluatedExpression::new();
   if left.is_string() && right.is_string() {
-    res.set_string(format!("{}{}", left.string(), right.string()));
+    res.set_string(Cow::Owned(format!("{}{}", left.string(), right.string())));
     return Some(res);
     // TODO: right.is_number....
   }
@@ -236,18 +249,19 @@ fn handle_add(expr: &BinExpr, scanner: &mut JavascriptParser) -> Option<BasicEva
   None
 }
 
-pub fn eval_binary_expression(
-  scanner: &mut JavascriptParser,
-  expr: &BinExpr,
-) -> Option<BasicEvaluatedExpression> {
+pub fn eval_binary_expression<'ast, 'parser>(
+  scanner: &mut JavascriptParser<'parser>,
+  expr: &'ast BinExpr,
+  plugin_drive: &JavaScriptParserPluginDrive<'ast, 'parser>,
+) -> Option<BasicEvaluatedExpression<'ast>> {
   match expr.op {
-    BinaryOp::EqEq => handle_abstract_equality_comparison(true, expr, scanner),
-    BinaryOp::NotEq => handle_abstract_equality_comparison(false, expr, scanner),
-    BinaryOp::EqEqEq => handle_strict_equality_comparison(true, expr, scanner),
-    BinaryOp::NotEqEq => handle_strict_equality_comparison(false, expr, scanner),
-    BinaryOp::LogicalAnd => handle_logical_and(expr, scanner),
-    BinaryOp::LogicalOr => handle_logical_or(expr, scanner),
-    BinaryOp::Add => handle_add(expr, scanner),
+    BinaryOp::EqEq => handle_abstract_equality_comparison(true, expr, scanner, plugin_drive),
+    BinaryOp::NotEq => handle_abstract_equality_comparison(false, expr, scanner, plugin_drive),
+    BinaryOp::EqEqEq => handle_strict_equality_comparison(true, expr, scanner, plugin_drive),
+    BinaryOp::NotEqEq => handle_strict_equality_comparison(false, expr, scanner, plugin_drive),
+    BinaryOp::LogicalAnd => handle_logical_and(expr, scanner, plugin_drive),
+    BinaryOp::LogicalOr => handle_logical_or(expr, scanner, plugin_drive),
+    BinaryOp::Add => handle_add(expr, scanner, plugin_drive),
     _ => None,
   }
 }

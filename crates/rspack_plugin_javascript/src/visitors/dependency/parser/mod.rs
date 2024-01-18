@@ -29,7 +29,6 @@ pub struct JavascriptParser<'parser> {
   pub(crate) ignored: &'parser mut Vec<DependencyLocation>,
   // TODO: remove `worker_syntax_list`
   pub(crate) worker_syntax_list: &'parser WorkerSyntaxList,
-  pub(crate) plugin_drive: Rc<JavaScriptParserPluginDrive>,
   pub(super) definitions_db: ScopeInfoDB,
   // ===== scope info =======
   // TODO: `in_if` can be removed after eval identifier
@@ -39,19 +38,123 @@ pub struct JavascriptParser<'parser> {
   pub(super) definitions: ScopeInfoId,
 }
 
-impl<'parser> JavascriptParser<'parser> {
-  #[allow(clippy::too_many_arguments)]
+impl<'ast, 'parser> JavascriptParser<'parser> {
   pub fn new(
     source_file: Arc<SourceFile>,
-    compiler_options: &CompilerOptions,
     dependencies: &'parser mut Vec<BoxDependency>,
     presentational_dependencies: &'parser mut Vec<Box<dyn DependencyTemplate>>,
     ignored: &'parser mut Vec<DependencyLocation>,
-    module_type: &ModuleType,
     worker_syntax_list: &'parser WorkerSyntaxList,
     errors: &'parser mut Vec<Box<dyn Diagnostic + Send + Sync>>,
   ) -> Self {
-    let mut plugins: Vec<parser_plugin::BoxJavascriptParserPlugin> = vec![
+    let mut db = ScopeInfoDB::new();
+    Self {
+      source_file,
+      errors,
+      dependencies,
+      presentational_dependencies,
+      in_try: false,
+      in_if: false,
+      in_short_hand: false,
+      definitions: db.create(),
+      definitions_db: db,
+      ignored,
+      worker_syntax_list,
+    }
+  }
+
+  fn define_variable(&mut self, name: &str) {
+    if let Some(id) = self.definitions_db.get(&self.definitions, name)
+      && self.definitions == id
+    {
+      return;
+    }
+    // FIXME: can we use Cow for `name.to_string()`?
+    self.definitions_db.set(self.definitions, name.to_string())
+  }
+
+  fn undefined_variable(&mut self, name: &str) {
+    self.definitions_db.delete(self.definitions, name)
+  }
+
+  fn enter_ident<F>(&mut self, ident: &'ast Ident, on_ident: F)
+  where
+    F: FnOnce(&mut Self, &'ast Ident),
+  {
+    // TODO: add hooks here;
+    on_ident(self, ident);
+  }
+
+  fn enter_array_pattern<F>(&mut self, array_pat: &'ast ArrayPat, on_ident: F)
+  where
+    F: FnOnce(&mut Self, &'ast Ident) + Copy,
+  {
+    array_pat
+      .elems
+      .iter()
+      .flatten()
+      .for_each(|ele| self.enter_pattern(ele, on_ident));
+  }
+
+  fn enter_assignment_pattern<F>(&mut self, assign: &'ast AssignPat, on_ident: F)
+  where
+    F: FnOnce(&mut Self, &'ast Ident) + Copy,
+  {
+    self.enter_pattern(&assign.left, on_ident);
+  }
+
+  fn enter_object_pattern<F>(&mut self, obj: &'ast ObjectPat, on_ident: F)
+  where
+    F: FnOnce(&mut Self, &'ast Ident) + Copy,
+  {
+    for prop in &obj.props {
+      match prop {
+        ObjectPatProp::KeyValue(kv) => self.enter_pattern(&kv.value, on_ident),
+        ObjectPatProp::Assign(assign) => self.enter_ident(&assign.key, on_ident),
+        ObjectPatProp::Rest(rest) => self.enter_rest_pattern(rest, on_ident),
+      }
+    }
+  }
+
+  fn enter_rest_pattern<F>(&mut self, rest: &'ast RestPat, on_ident: F)
+  where
+    F: FnOnce(&mut Self, &'ast Ident) + Copy,
+  {
+    self.enter_pattern(&rest.arg, on_ident)
+  }
+
+  fn enter_pattern<F>(&mut self, pattern: &'ast Pat, on_ident: F)
+  where
+    F: FnOnce(&mut Self, &'ast Ident) + Copy,
+  {
+    match pattern {
+      Pat::Ident(ident) => self.enter_ident(&ident.id, on_ident),
+      Pat::Array(array) => self.enter_array_pattern(array, on_ident),
+      Pat::Assign(assign) => self.enter_assignment_pattern(assign, on_ident),
+      Pat::Object(obj) => self.enter_object_pattern(obj, on_ident),
+      Pat::Rest(rest) => self.enter_rest_pattern(rest, on_ident),
+      Pat::Invalid(_) => (),
+      Pat::Expr(_) => (),
+    }
+  }
+
+  fn enter_patterns<I, F>(&mut self, patterns: I, on_ident: F)
+  where
+    F: FnOnce(&mut Self, &'ast Ident) + Copy,
+    I: Iterator<Item = &'ast Pat>,
+  {
+    for pattern in patterns {
+      self.enter_pattern(pattern, on_ident);
+    }
+  }
+
+  pub fn visit(
+    &mut self,
+    ast: &'ast Program,
+    module_type: &ModuleType,
+    compiler_options: &CompilerOptions,
+  ) {
+    let mut plugins: Vec<parser_plugin::BoxJavascriptParserPlugin<'ast, 'parser>> = vec![
       Box::new(parser_plugin::CheckVarDeclaratorIdent),
       Box::new(parser_plugin::ConstPlugin),
       Box::new(parser_plugin::CommonJsImportsParserPlugin),
@@ -80,122 +183,21 @@ impl<'parser> JavascriptParser<'parser> {
       }
     }
 
-    let plugin_drive = Rc::new(JavaScriptParserPluginDrive::new(plugins));
-    let mut db = ScopeInfoDB::new();
-    Self {
-      source_file,
-      errors,
-      dependencies,
-      presentational_dependencies,
-      in_try: false,
-      in_if: false,
-      in_short_hand: false,
-      definitions: db.create(),
-      definitions_db: db,
-      ignored,
-      plugin_drive,
-      worker_syntax_list,
-    }
-  }
+    let plugin_drive = JavaScriptParserPluginDrive::new(plugins);
 
-  fn define_variable(&mut self, name: String) {
-    if let Some(id) = self.definitions_db.get(&self.definitions, &name)
-      && self.definitions == id
-    {
-      return;
-    }
-    self.definitions_db.set(self.definitions, name)
-  }
-
-  fn undefined_variable(&mut self, name: String) {
-    self.definitions_db.delete(self.definitions, name)
-  }
-
-  fn enter_ident<F>(&mut self, ident: &Ident, on_ident: F)
-  where
-    F: FnOnce(&mut Self, &Ident),
-  {
-    // TODO: add hooks here;
-    on_ident(self, ident);
-  }
-
-  fn enter_array_pattern<F>(&mut self, array_pat: &ArrayPat, on_ident: F)
-  where
-    F: FnOnce(&mut Self, &Ident) + Copy,
-  {
-    array_pat
-      .elems
-      .iter()
-      .flatten()
-      .for_each(|ele| self.enter_pattern(Cow::Borrowed(ele), on_ident));
-  }
-
-  fn enter_assignment_pattern<F>(&mut self, assign: &AssignPat, on_ident: F)
-  where
-    F: FnOnce(&mut Self, &Ident) + Copy,
-  {
-    self.enter_pattern(Cow::Borrowed(&assign.left), on_ident);
-  }
-
-  fn enter_object_pattern<F>(&mut self, obj: &ObjectPat, on_ident: F)
-  where
-    F: FnOnce(&mut Self, &Ident) + Copy,
-  {
-    for prop in &obj.props {
-      match prop {
-        ObjectPatProp::KeyValue(kv) => self.enter_pattern(Cow::Borrowed(&kv.value), on_ident),
-        ObjectPatProp::Assign(assign) => self.enter_ident(&assign.key, on_ident),
-        ObjectPatProp::Rest(rest) => self.enter_rest_pattern(rest, on_ident),
-      }
-    }
-  }
-
-  fn enter_rest_pattern<F>(&mut self, rest: &RestPat, on_ident: F)
-  where
-    F: FnOnce(&mut Self, &Ident) + Copy,
-  {
-    self.enter_pattern(Cow::Borrowed(&rest.arg), on_ident)
-  }
-
-  fn enter_pattern<F>(&mut self, pattern: Cow<Pat>, on_ident: F)
-  where
-    F: FnOnce(&mut Self, &Ident) + Copy,
-  {
-    match &*pattern {
-      Pat::Ident(ident) => self.enter_ident(&ident.id, on_ident),
-      Pat::Array(array) => self.enter_array_pattern(array, on_ident),
-      Pat::Assign(assign) => self.enter_assignment_pattern(assign, on_ident),
-      Pat::Object(obj) => self.enter_object_pattern(obj, on_ident),
-      Pat::Rest(rest) => self.enter_rest_pattern(rest, on_ident),
-      Pat::Invalid(_) => (),
-      Pat::Expr(_) => (),
-    }
-  }
-
-  fn enter_patterns<'a, I, F>(&mut self, patterns: I, on_ident: F)
-  where
-    F: FnOnce(&mut Self, &Ident) + Copy,
-    I: Iterator<Item = Cow<'a, Pat>>,
-  {
-    for pattern in patterns {
-      self.enter_pattern(pattern, on_ident);
-    }
-  }
-
-  pub fn visit(&mut self, ast: &Program) {
     // TODO: `hooks.program.call`
     match ast {
       Program::Module(m) => {
         self.set_strict(true);
-        self.pre_walk_module_declarations(&m.body);
-        self.block_pre_walk_module_declarations(&m.body);
-        self.walk_module_declarations(&m.body);
+        self.pre_walk_module_declarations(&m.body, &plugin_drive);
+        self.block_pre_walk_module_declarations(&m.body, &plugin_drive);
+        self.walk_module_declarations(&m.body, &plugin_drive);
       }
       Program::Script(s) => {
         self.detect_mode(&s.body);
-        self.pre_walk_statements(&s.body);
-        self.block_pre_walk_statements(&s.body);
-        self.walk_statements(&s.body);
+        self.pre_walk_statements(&s.body, &plugin_drive);
+        self.block_pre_walk_statements(&s.body, &plugin_drive);
+        self.walk_statements(&s.body, &plugin_drive);
       }
     };
     // TODO: `hooks.finish.call`
@@ -255,9 +257,13 @@ impl<'parser> JavascriptParser<'parser> {
   }
 }
 
-impl JavascriptParser<'_> {
-  pub fn evaluate_expression(&mut self, expr: &Expr) -> BasicEvaluatedExpression {
-    match self.evaluating(expr) {
+impl<'ast, 'parser> JavascriptParser<'parser> {
+  pub fn evaluate_expression(
+    &mut self,
+    expr: &'ast Expr,
+    plugin_drive: &JavaScriptParserPluginDrive<'ast, 'parser>,
+  ) -> BasicEvaluatedExpression<'ast> {
+    match self.evaluating(expr, plugin_drive) {
       Some(evaluated) => {
         if evaluated.is_compile_time_value() {
           self.ignored.push(DependencyLocation::new(
@@ -273,15 +279,19 @@ impl JavascriptParser<'_> {
 
   // same as `JavascriptParser._initializeEvaluating` in webpack
   // FIXME: should mv it to plugin(for example `parse.hooks.evaluate for`)
-  fn evaluating(&mut self, expr: &Expr) -> Option<BasicEvaluatedExpression> {
+  fn evaluating(
+    &mut self,
+    expr: &'ast Expr,
+    plugin_drive: &JavaScriptParserPluginDrive<'ast, 'parser>,
+  ) -> Option<BasicEvaluatedExpression<'ast>> {
     match expr {
-      Expr::Tpl(tpl) => eval::eval_tpl_expression(self, tpl),
+      Expr::Tpl(tpl) => eval::eval_tpl_expression(self, tpl, plugin_drive),
       Expr::Lit(lit) => eval::eval_lit_expr(lit),
-      Expr::Cond(cond) => eval::eval_cond_expression(self, cond),
-      Expr::Unary(unary) => eval::eval_unary_expression(self, unary),
-      Expr::Bin(binary) => eval::eval_binary_expression(self, binary),
-      Expr::Array(array) => eval::eval_array_expression(self, array),
-      Expr::New(new) => eval::eval_new_expression(self, new),
+      Expr::Cond(cond) => eval::eval_cond_expression(self, cond, plugin_drive),
+      Expr::Unary(unary) => eval::eval_unary_expression(self, unary, plugin_drive),
+      Expr::Bin(binary) => eval::eval_binary_expression(self, binary, plugin_drive),
+      Expr::Array(array) => eval::eval_array_expression(self, array, plugin_drive),
+      Expr::New(new) => eval::eval_new_expression(self, new, plugin_drive),
       _ => None,
     }
   }

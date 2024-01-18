@@ -1,23 +1,24 @@
 use rspack_core::SpanExt;
 
-use super::JavascriptParserPlugin;
+use super::{JavaScriptParserPluginDrive, JavascriptParserPlugin};
 use crate::dependency::URLDependency;
 
 pub struct URLPlugin {
   pub relative: bool,
 }
 
-impl JavascriptParserPlugin for URLPlugin {
+impl<'ast, 'parser> JavascriptParserPlugin<'ast, 'parser> for URLPlugin {
   fn new_expression(
     &self,
-    parser: &mut crate::visitors::JavascriptParser,
-    expr: &swc_core::ecma::ast::NewExpr,
+    parser: &mut crate::visitors::JavascriptParser<'parser>,
+    expr: &'ast swc_core::ecma::ast::NewExpr,
+    plugin_drive: &JavaScriptParserPluginDrive<'ast, 'parser>,
   ) -> Option<bool> {
     if let Some(args) = &expr.args
       && parser.worker_syntax_list.match_new_worker(expr)
     {
       for arg in args.iter().skip(1) {
-        parser.walk_expression(&arg.expr);
+        parser.walk_expression(&arg.expr, plugin_drive);
       }
       // skip `new Worker(new Url,)`
       Some(true)
