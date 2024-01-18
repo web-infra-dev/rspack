@@ -1,8 +1,6 @@
 mod compiler_options;
 
 pub use compiler_options::*;
-mod devtool;
-pub use devtool::*;
 mod entry;
 pub use entry::*;
 mod optimizations;

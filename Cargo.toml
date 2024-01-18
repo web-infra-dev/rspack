@@ -31,6 +31,8 @@ paste              = { version = "1.0" }
 path-clean         = { version = "1.0.1" }
 pathdiff           = { version = "0.2.1" }
 preset_env_base    = { version = "0.4.6" }
+proc-macro2        = { version = "1.0.76" }
+quote              = { version = "1.0.35" }
 rayon              = { version = "1.7.0" }
 regex              = { version = "1.9.1" }
 rkyv               = { version = "0.7.42" }
@@ -41,6 +43,7 @@ serde              = { version = "1.0.194" }
 serde_json         = { version = "1.0.100" }
 similar            = { version = "2.2.1" }
 sugar_path         = { version = "0.0.12" }
+syn                = { version = "2.0.48" }
 testing_macros     = { version = "0.2.11" }
 tokio              = { version = "1.29.1" }
 tracing            = { version = "0.1.40" }

@@ -480,6 +480,10 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
+  fn runtime_module(&self, _module: &mut dyn Module) -> Result<()> {
+    Ok(())
+  }
+
   async fn succeed_module(&self, _module: &dyn Module) -> Result<()> {
     Ok(())
   }

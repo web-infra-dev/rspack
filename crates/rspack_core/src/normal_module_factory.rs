@@ -577,7 +577,6 @@ impl NormalModuleFactory {
         resource_data,
         resolved_resolve_options,
         loaders,
-        self.options.clone(),
         contains_inline,
       );
       Box::new(normal_module)

@@ -4,7 +4,9 @@ use rspack_core::{
   Compilation, RuntimeGlobals, RuntimeModule,
 };
 use rspack_identifier::Identifier;
+use rspack_util::source_map::SourceMapKind;
 
+#[impl_runtime_module]
 #[derive(Debug, Eq)]
 pub struct SystemContextRuntimeModule {
   id: Identifier,
@@ -14,6 +16,7 @@ impl Default for SystemContextRuntimeModule {
   fn default() -> Self {
     Self {
       id: Identifier::from("webpack/runtime/start_entry_point"),
+      source_map_kind: SourceMapKind::None,
     }
   }
 }
@@ -31,5 +34,3 @@ impl RuntimeModule for SystemContextRuntimeModule {
     .boxed()
   }
 }
-
-impl_runtime_module!(SystemContextRuntimeModule);

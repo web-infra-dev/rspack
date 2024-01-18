@@ -5,7 +5,9 @@ use rspack_core::{
   ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule,
 };
 use rspack_identifier::Identifier;
+use rspack_util::source_map::SourceMapKind;
 
+#[impl_runtime_module]
 #[derive(Debug, Eq)]
 pub struct RuntimeIdRuntimeModule {
   id: Identifier,
@@ -17,6 +19,7 @@ impl Default for RuntimeIdRuntimeModule {
     Self {
       id: Identifier::from("webpack/runtime/runtime_id"),
       chunk: None,
+      source_map_kind: SourceMapKind::None,
     }
   }
 }
@@ -60,5 +63,3 @@ impl RuntimeModule for RuntimeIdRuntimeModule {
     }
   }
 }
-
-impl_runtime_module!(RuntimeIdRuntimeModule);

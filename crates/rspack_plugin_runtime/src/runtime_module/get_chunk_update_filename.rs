@@ -4,8 +4,10 @@ use rspack_core::{
   ChunkUkey, Compilation, PathData, RuntimeGlobals, RuntimeModule,
 };
 use rspack_identifier::Identifier;
+use rspack_util::source_map::SourceMapKind;
 
 // TODO workaround for get_chunk_update_filename
+#[impl_runtime_module]
 #[derive(Debug, Eq)]
 pub struct GetChunkUpdateFilenameRuntimeModule {
   id: Identifier,
@@ -17,6 +19,7 @@ impl Default for GetChunkUpdateFilenameRuntimeModule {
     Self {
       chunk: None,
       id: Identifier::from("webpack/runtime/get_chunk_update_filename"),
+      source_map_kind: SourceMapKind::None,
     }
   }
 }
@@ -54,5 +57,3 @@ impl RuntimeModule for GetChunkUpdateFilenameRuntimeModule {
     self.chunk = Some(chunk);
   }
 }
-
-impl_runtime_module!(GetChunkUpdateFilenameRuntimeModule);

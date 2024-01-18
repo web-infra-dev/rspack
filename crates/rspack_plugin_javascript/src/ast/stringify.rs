@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use rspack_ast::javascript::Ast;
-use rspack_core::Devtool;
 use rspack_error::{miette::IntoDiagnostic, Result};
+use rspack_util::source_map::SourceMapKind;
 use swc_core::base::config::JsMinifyFormatOptions;
 use swc_core::{
   common::{
@@ -33,12 +33,12 @@ pub struct CodegenOptions {
 }
 
 impl CodegenOptions {
-  pub fn new(devtool: &Devtool, keep_comments: Option<bool>) -> Self {
+  pub fn new(source_map_kind: &SourceMapKind, keep_comments: Option<bool>) -> Self {
     Self {
       source_map_config: SourceMapConfig {
-        enable: devtool.source_map(),
+        enable: !matches!(source_map_kind, SourceMapKind::None),
         inline_sources_content: true,
-        emit_columns: !devtool.cheap(),
+        emit_columns: matches!(source_map_kind, SourceMapKind::SourceMap),
         names: Default::default(),
       },
       keep_comments,
@@ -52,7 +52,7 @@ pub fn stringify(ast: &Ast, options: CodegenOptions) -> Result<TransformOutput> 
   ast.visit(|program, context| {
     let keep_comments = options.keep_comments;
     let target = options.target.unwrap_or(EsVersion::latest());
-    let source_map_options = options.source_map_config;
+    let source_map_kinds = options.source_map_config;
     let minify = options.minify.unwrap_or_default();
     let format_opt = JsMinifyFormatOptions {
       inline_script: options.inline_script.unwrap_or(true),
@@ -63,7 +63,7 @@ pub fn stringify(ast: &Ast, options: CodegenOptions) -> Result<TransformOutput> 
       program.get_inner_program(),
       context.source_map.clone(),
       target,
-      source_map_options,
+      source_map_kinds,
       minify,
       keep_comments
         .unwrap_or_default()

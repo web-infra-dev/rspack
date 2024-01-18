@@ -17,6 +17,7 @@ use rspack_core::{
 };
 use rspack_core::{ModuleInitFragments, RuntimeGlobals};
 use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_util::source_map::SourceMapKind;
 use rustc_hash::FxHashSet;
 use sugar_path::SugarPath;
 use swc_core::{css::parser::parser::ParserConfig, ecma::atoms::JsWord};
@@ -73,6 +74,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
       source,
       module_type,
       module_user_request,
+      module_source_map_kind,
       resource_data,
       compiler_options,
       build_info,
@@ -100,7 +102,6 @@ impl ParserAndGenerator for CssParserAndGenerator {
       _ => false,
     };
 
-    let devtool = &compiler_options.devtool;
     let mut source_map = None;
     let mut diagnostic_vec = vec![];
 
@@ -143,9 +144,9 @@ impl ParserAndGenerator for CssParserAndGenerator {
       let (code, map) = swc_compiler.codegen(
         &stylesheet,
         SwcCssSourceMapGenConfig {
-          enable: devtool.source_map(),
-          inline_sources_content: !devtool.no_sources(),
-          emit_columns: !devtool.cheap(),
+          enable: !matches!(module_source_map_kind, SourceMapKind::None),
+          inline_sources_content: false,
+          emit_columns: matches!(module_source_map_kind, SourceMapKind::SourceMap),
         },
       )?;
       source_code = code;
@@ -189,7 +190,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
       dependencies
     };
 
-    let new_source = if devtool.source_map() {
+    let new_source = if !matches!(module_source_map_kind, SourceMapKind::None) {
       if let Some(source_map) = source_map {
         SourceMapSource::new(SourceMapSourceOptions {
           value: source_code,

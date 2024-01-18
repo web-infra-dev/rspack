@@ -23,7 +23,11 @@ use rspack_napi_shared::NapiResultExt;
 use rspack_plugin_asset::AssetPlugin;
 use rspack_plugin_banner::BannerPlugin;
 use rspack_plugin_copy::{CopyRspackPlugin, CopyRspackPluginOptions};
-use rspack_plugin_devtool::{EvalSourceMapDevToolPlugin, SourceMapDevToolPlugin};
+use rspack_plugin_devtool::{
+  EvalSourceMapDevToolPlugin, SourceMapDevToolModuleOptionsPlugin,
+  SourceMapDevToolModuleOptionsPluginOptions, SourceMapDevToolPlugin,
+  SourceMapDevToolPluginOptions,
+};
 use rspack_plugin_ensure_chunk_conditions::EnsureChunkConditionsPlugin;
 use rspack_plugin_entry::EntryPlugin;
 use rspack_plugin_externals::{
@@ -300,18 +304,28 @@ impl BuiltinPlugin {
         plugins.push(AsyncWasmPlugin::new().boxed())
       }
       BuiltinPluginName::AssetModulesPlugin => plugins.push(AssetPlugin.boxed()),
-      BuiltinPluginName::SourceMapDevToolPlugin => plugins.push(
-        SourceMapDevToolPlugin::new(
-          downcast_into::<RawSourceMapDevToolPluginOptions>(self.options)?.into(),
-        )
-        .boxed(),
-      ),
-      BuiltinPluginName::EvalSourceMapDevToolPlugin => plugins.push(
-        EvalSourceMapDevToolPlugin::new(
-          downcast_into::<RawSourceMapDevToolPluginOptions>(self.options)?.into(),
-        )
-        .boxed(),
-      ),
+      BuiltinPluginName::SourceMapDevToolPlugin => {
+        let options: SourceMapDevToolPluginOptions =
+          downcast_into::<RawSourceMapDevToolPluginOptions>(self.options)?.into();
+        plugins.push(
+          SourceMapDevToolModuleOptionsPlugin::new(SourceMapDevToolModuleOptionsPluginOptions {
+            module: options.module,
+          })
+          .boxed(),
+        );
+        plugins.push(SourceMapDevToolPlugin::new(options).boxed());
+      }
+      BuiltinPluginName::EvalSourceMapDevToolPlugin => {
+        let options: SourceMapDevToolPluginOptions =
+          downcast_into::<RawSourceMapDevToolPluginOptions>(self.options)?.into();
+        plugins.push(
+          SourceMapDevToolModuleOptionsPlugin::new(SourceMapDevToolModuleOptionsPluginOptions {
+            module: options.module,
+          })
+          .boxed(),
+        );
+        plugins.push(EvalSourceMapDevToolPlugin::new(options).boxed());
+      }
       BuiltinPluginName::SideEffectsFlagPlugin => {
         plugins.push(SideEffectsFlagPlugin::default().boxed())
       }

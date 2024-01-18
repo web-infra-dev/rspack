@@ -15,6 +15,7 @@ rayon             = { workspace = true }
 rspack_core       = { path = "../rspack_core" }
 rspack_error      = { path = "../rspack_error" }
 rspack_identifier = { path = "../rspack_identifier" }
+rspack_util       = { path = "../rspack_util" }
 serde_json        = { workspace = true }
 swc_core          = { workspace = true, features = ["__ecma"] }
 wasmparser        = "0.102.0"

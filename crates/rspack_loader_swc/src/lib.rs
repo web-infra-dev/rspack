@@ -15,6 +15,7 @@ use rspack_error::{error, AnyhowError, Diagnostic, Result};
 use rspack_loader_runner::{Identifiable, Identifier, Loader, LoaderContext};
 use rspack_plugin_javascript::ast::{self, SourceMapConfig};
 use rspack_plugin_javascript::TransformOutput;
+use rspack_util::source_map::SourceMapKind;
 use swc_config::{config_types::MergingOption, merge::Merge};
 use swc_core::base::config::{InputSourceMap, OutputCharset, TransformConfig};
 
@@ -83,7 +84,7 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
       swc_options
     };
 
-    let devtool = &loader_context.context.options.devtool;
+    let source_map_kind = &loader_context.context.module_source_map_kind;
     let source = content.try_into_string()?;
     let c = SwcCompiler::new(resource_path.clone(), source.clone(), swc_options)
       .map_err(AnyhowError::from)?;
@@ -121,9 +122,9 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
         .as_ref()
         .map(|v| matches!(v, OutputCharset::Ascii)),
       source_map_config: SourceMapConfig {
-        enable: devtool.source_map(),
+        enable: !matches!(source_map_kind, SourceMapKind::None),
         inline_sources_content: true,
-        emit_columns: !devtool.cheap(),
+        emit_columns: matches!(source_map_kind, SourceMapKind::SourceMap),
         names: Default::default(),
       },
       inline_script: Some(false),
