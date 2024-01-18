@@ -4,9 +4,11 @@ use rspack_core::{
   ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule,
 };
 use rspack_identifier::Identifier;
+use rspack_util::source_map::SourceMapKind;
 
 use crate::get_chunk_runtime_requirements;
 
+#[impl_runtime_module]
 #[derive(Debug, Eq)]
 pub struct EnsureChunkRuntimeModule {
   id: Identifier,
@@ -18,6 +20,7 @@ impl Default for EnsureChunkRuntimeModule {
     Self {
       id: Identifier::from("webpack/runtime/ensure_chunk"),
       chunk: None,
+      source_map_kind: SourceMapKind::None,
     }
   }
 }
@@ -43,5 +46,3 @@ impl RuntimeModule for EnsureChunkRuntimeModule {
     self.chunk = Some(chunk);
   }
 }
-
-impl_runtime_module!(EnsureChunkRuntimeModule);

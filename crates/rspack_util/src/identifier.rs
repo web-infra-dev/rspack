@@ -1,4 +1,7 @@
-use std::{borrow::Cow, path::Path};
+use std::{
+  borrow::Cow,
+  path::{Path, PathBuf},
+};
 
 use concat_string::concat_string;
 use once_cell::sync::Lazy;
@@ -90,4 +93,23 @@ pub fn relative_path_to_request(rel: &str) -> Cow<str> {
   } else {
     Cow::Owned(concat_string!("./", rel))
   }
+}
+
+fn request_to_absolute(context: &str, relative_path: &str) -> String {
+  if relative_path.starts_with("./") || relative_path.starts_with("../") {
+    Path::new(context)
+      .join(relative_path)
+      .to_string_lossy()
+      .to_string()
+  } else {
+    PathBuf::from(relative_path).to_string_lossy().to_string()
+  }
+}
+
+pub fn make_paths_absolute(context: &str, identifier: &str) -> String {
+  SEGMENTS_SPLIT_REGEXP
+    .split(identifier)
+    .map(|str| request_to_absolute(context, str))
+    .collect::<Vec<String>>()
+    .join("")
 }

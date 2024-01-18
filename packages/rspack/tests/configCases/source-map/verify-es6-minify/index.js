@@ -11,11 +11,11 @@ it("verify es6 (esmodule) minify bundle source map", async () => {
 	const source = fs.readFileSync(__filename + ".map", "utf-8");
 	const map = JSON.parse(source);
 	expect(map.sources).toEqual([
-		"../checkSourceMap.js",
-		"./a.js",
-		"./b-dir/b.js",
-		"./b-dir/c-dir/c.js",
-		"./index.js"
+		"webpack:///../checkSourceMap.js",
+		"webpack:///./a.js",
+		"webpack:///./b-dir/b.js",
+		"webpack:///./b-dir/c-dir/c.js",
+		"webpack:///./index.js"
 	]);
 	expect(map.file).toEqual("main.js");
 	const out = fs.readFileSync(__filename, "utf-8");
@@ -23,12 +23,12 @@ it("verify es6 (esmodule) minify bundle source map", async () => {
 		await checkMap(out, source, {
 			// *${id}* as the search key to aviod conflict with `Object.defineProperty(exports, ${id}, ...)`
 			// "*a0*", "*a1*" is eliminate by minify
-			['"*a2*"']: "a.js",
+			['"*a2*"']: "webpack:///a.js",
 			// "*b0*", "*b1*" is eliminate by minify
-			['"*b2*"']: "b-dir/b.js",
+			['"*b2*"']: "webpack:///b-dir/b.js",
 			// "*c0*" is eliminate by minify
-			['"*c1*"']: "b-dir/c-dir/c.js",
-			['"*c2*"']: "b-dir/c-dir/c.js"
+			['"*c1*"']: "webpack:///b-dir/c-dir/c.js",
+			['"*c2*"']: "webpack:///b-dir/c-dir/c.js"
 		})
 	).toBe(true);
 });

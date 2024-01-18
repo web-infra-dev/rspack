@@ -2069,9 +2069,9 @@ dependencies = [
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.75"
+version = "1.0.76"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "907a61bd0f64c2f29cd1cf1dc34d05176426a3f504a78010f08416ddb7b13708"
+checksum = "95fc56cda0b5c3325f5fbbd7ff9fda9e02bb00bb3dac51252d2f1bfa1cb8cc8c"
 dependencies = [
  "unicode-ident",
 ]
@@ -2465,6 +2465,7 @@ dependencies = [
  "regex",
  "rkyv",
  "rspack_ast",
+ "rspack_core_macros",
  "rspack_database",
  "rspack_error",
  "rspack_fs",
@@ -2486,6 +2487,15 @@ dependencies = [
  "tracing",
  "url",
  "ustr",
+]
+
+[[package]]
+name = "rspack_core_macros"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.48",
 ]
 
 [[package]]
@@ -2622,10 +2632,12 @@ dependencies = [
  "rspack_plugin_javascript",
  "rspack_swc_visitors",
  "rspack_testing",
+ "rspack_util",
  "serde",
  "serde_json",
  "swc_config",
  "swc_core",
+ "tokio",
  "xxhash-rust",
 ]
 
@@ -2737,6 +2749,7 @@ dependencies = [
  "rspack_identifier",
  "rspack_plugin_runtime",
  "rspack_testing",
+ "rspack_util",
  "rustc-hash",
  "serde_json",
  "sugar_path",
@@ -2749,8 +2762,11 @@ dependencies = [
 name = "rspack_plugin_devtool"
 version = "0.1.0"
 dependencies = [
+ "async-recursion",
  "async-trait",
  "dashmap",
+ "derivative",
+ "futures",
  "once_cell",
  "pathdiff",
  "rayon",
@@ -2758,6 +2774,8 @@ dependencies = [
  "rspack_base64",
  "rspack_core",
  "rspack_error",
+ "rspack_hash",
+ "rspack_regex",
  "rspack_util",
  "rustc-hash",
  "serde_json",
@@ -2800,6 +2818,7 @@ dependencies = [
  "rspack_error",
  "rspack_hash",
  "rspack_identifier",
+ "rspack_util",
  "rustc-hash",
  "serde_json",
 ]
@@ -2918,6 +2937,7 @@ dependencies = [
  "rspack_hash",
  "rspack_identifier",
  "rspack_loader_runner",
+ "rspack_util",
  "rustc-hash",
  "serde",
  "serde_json",
@@ -2972,6 +2992,7 @@ dependencies = [
  "rspack_hash",
  "rspack_identifier",
  "rspack_plugin_javascript",
+ "rspack_util",
  "rustc-hash",
  "serde_json",
 ]
@@ -3059,6 +3080,7 @@ dependencies = [
  "rspack_error",
  "rspack_identifier",
  "rspack_testing",
+ "rspack_util",
  "serde_json",
  "swc_core",
  "wasmparser",

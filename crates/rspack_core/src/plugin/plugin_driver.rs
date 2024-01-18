@@ -677,6 +677,14 @@ impl PluginDriver {
     Ok(())
   }
 
+  #[instrument(name = "plugin:runtime_module", skip_all)]
+  pub fn runtime_module(&self, module: &mut dyn Module) -> Result<()> {
+    for plugin in &self.plugins {
+      plugin.runtime_module(module)?;
+    }
+    Ok(())
+  }
+
   #[instrument(name = "plugin:succeed_module", skip_all)]
   pub async fn succeed_module(&self, module: &dyn Module) -> Result<()> {
     for plugin in &self.plugins {

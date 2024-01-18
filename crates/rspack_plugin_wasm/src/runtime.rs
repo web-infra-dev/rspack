@@ -4,7 +4,9 @@ use rspack_core::{
   RuntimeModule, RuntimeModuleStage,
 };
 use rspack_identifier::Identifier;
+use rspack_util::source_map::SourceMapKind;
 
+#[impl_runtime_module]
 #[derive(Debug, Eq)]
 pub struct AsyncWasmLoadingRuntimeModule {
   generate_load_binary_code: String,
@@ -24,6 +26,7 @@ impl AsyncWasmLoadingRuntimeModule {
       id: Identifier::from("webpack/runtime/async_wasm_loading"),
       supports_streaming,
       chunk,
+      source_map_kind: SourceMapKind::None,
     }
   }
 }
@@ -67,8 +70,6 @@ impl RuntimeModule for AsyncWasmLoadingRuntimeModule {
     RuntimeModuleStage::Attach
   }
 }
-
-impl_runtime_module!(AsyncWasmLoadingRuntimeModule);
 
 fn get_async_wasm_loading(req: &str, supports_streaming: bool) -> String {
   let streaming_code = if supports_streaming {

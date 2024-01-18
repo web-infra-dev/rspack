@@ -9,7 +9,7 @@ it("should generate correct sourceMap", async () => {
 		path.resolve(__dirname, "../a.ts"),
 		"utf-8"
 	);
-	expect(map.sources).toContain("./a.ts");
+	expect(map.sources).toContain("webpack:///./a.ts");
 	expect(map.sourcesContent[1]).toEqual(sourceContent);
 
 	checkStub(["fo", "o"].join(""), sourceContent);

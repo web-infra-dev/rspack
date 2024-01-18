@@ -4,7 +4,9 @@ use rspack_core::{
   Compilation, RuntimeModule,
 };
 use rspack_identifier::Identifier;
+use rspack_util::source_map::SourceMapKind;
 
+#[impl_runtime_module]
 #[derive(Debug, Eq)]
 pub struct StartupEntrypointRuntimeModule {
   id: Identifier,
@@ -16,6 +18,7 @@ impl StartupEntrypointRuntimeModule {
     Self {
       id: Identifier::from("webpack/runtime/startup_entrypoint"),
       async_chunk_loading,
+      source_map_kind: SourceMapKind::None,
     }
   }
 }
@@ -34,5 +37,3 @@ impl RuntimeModule for StartupEntrypointRuntimeModule {
     RawSource::from(source).boxed()
   }
 }
-
-impl_runtime_module!(StartupEntrypointRuntimeModule);

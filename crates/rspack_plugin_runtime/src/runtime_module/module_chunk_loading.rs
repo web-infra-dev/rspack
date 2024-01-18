@@ -4,6 +4,7 @@ use rspack_core::{
   Chunk, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
 };
 use rspack_identifier::Identifier;
+use rspack_util::source_map::SourceMapKind;
 
 use super::{
   render_condition_map,
@@ -15,6 +16,7 @@ use crate::{
   runtime_module::utils::{get_initial_chunk_ids, stringify_chunks},
 };
 
+#[impl_runtime_module]
 #[derive(Debug, Eq)]
 pub struct ModuleChunkLoadingRuntimeModule {
   id: Identifier,
@@ -26,6 +28,7 @@ impl Default for ModuleChunkLoadingRuntimeModule {
     Self {
       id: Identifier::from("webpack/runtime/module_chunk_loading"),
       chunk: None,
+      source_map_kind: SourceMapKind::None,
     }
   }
 }
@@ -175,5 +178,3 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
     RuntimeModuleStage::Attach
   }
 }
-
-impl_runtime_module!(ModuleChunkLoadingRuntimeModule);

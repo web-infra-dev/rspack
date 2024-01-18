@@ -4,6 +4,7 @@ use rspack_core::{
   Chunk, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
 };
 use rspack_identifier::Identifier;
+use rspack_util::source_map::SourceMapKind;
 
 use super::utils::{chunk_has_js, get_output_dir};
 use crate::{
@@ -14,6 +15,7 @@ use crate::{
   },
 };
 
+#[impl_runtime_module]
 #[derive(Debug, Default, Eq)]
 pub struct ImportScriptsChunkLoadingRuntimeModule {
   id: Identifier,
@@ -27,6 +29,7 @@ impl ImportScriptsChunkLoadingRuntimeModule {
       id: Identifier::from("webpack/runtime/import_scripts_chunk_loading"),
       chunk: None,
       with_create_script_url,
+      source_map_kind: SourceMapKind::None,
     }
   }
 
@@ -191,5 +194,3 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
     RuntimeModuleStage::Attach
   }
 }
-
-impl_runtime_module!(ImportScriptsChunkLoadingRuntimeModule);

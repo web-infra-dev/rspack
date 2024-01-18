@@ -7,7 +7,9 @@ use rspack_core::{
   ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule,
 };
 use rspack_identifier::Identifier;
+use rspack_util::source_map::SourceMapKind;
 
+#[impl_runtime_module]
 #[derive(Debug, Eq)]
 pub struct StartupChunkDependenciesRuntimeModule {
   id: Identifier,
@@ -21,6 +23,7 @@ impl StartupChunkDependenciesRuntimeModule {
       id: Identifier::from("webpack/runtime/startup_chunk_dependencies"),
       async_chunk_loading,
       chunk: None,
+      source_map_kind: SourceMapKind::None,
     }
   }
 }
@@ -96,5 +99,3 @@ impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
     self.chunk = Some(chunk);
   }
 }
-
-impl_runtime_module!(StartupChunkDependenciesRuntimeModule);

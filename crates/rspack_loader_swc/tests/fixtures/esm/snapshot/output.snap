@@ -1,5 +1,6 @@
 ---
 source: crates/rspack_testing/src/run_fixture.rs
+assertion_line: 146
 ---
 ```js title=main.js
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
@@ -17,5 +18,5 @@ var __webpack_exports__ = (__webpack_exec__("./index.js"));
 
 }
 ]);
-//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoibWFpbi5qcyIsInNvdXJjZXMiOlsiLi9pbmRleC5qcyJdLCJzb3VyY2VzQ29udGVudCI6WyJjbGFzcyBhIHt9XG5cbmZ1bmN0aW9uIEEoKXtcblx0cmV0dXJuIDxkaXY+MTIzPC9kaXY+XG59XG4iXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6Ijs7QUFBQSxNQUFNO0FBQUc7QUFFVCxTQUFTO0lBQ1IscUJBQU8sb0JBQUMsYUFBSTtBQUNiIn0=
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoibWFpbi5qcyIsInNvdXJjZXMiOlsid2VicGFjazovL19fcnNwYWNrX3Rlc3RfXy8uL2luZGV4LmpzIl0sInNvdXJjZXNDb250ZW50IjpbImNsYXNzIGEge31cblxuZnVuY3Rpb24gQSgpe1xuXHRyZXR1cm4gPGRpdj4xMjM8L2Rpdj5cbn1cbiJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiOztBQUFBLE1BQU07QUFBRztBQUVULFNBQVM7SUFDUixxQkFBTyxvQkFBQyxhQUFJO0FBQ2IifQ==
 ```

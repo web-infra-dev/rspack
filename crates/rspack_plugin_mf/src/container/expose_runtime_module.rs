@@ -4,9 +4,11 @@ use rspack_core::{
   ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage, SourceType,
 };
 use rspack_identifier::Identifier;
+use rspack_util::source_map::SourceMapKind;
 
 use crate::utils::json_stringify;
 
+#[impl_runtime_module]
 #[derive(Debug, Eq)]
 pub struct ExposeRuntimeModule {
   id: Identifier,
@@ -20,6 +22,7 @@ impl ExposeRuntimeModule {
       id: Identifier::from("webpack/runtime/initialize_exposes"),
       chunk: None,
       enhanced,
+      source_map_kind: SourceMapKind::None,
     }
   }
 }
@@ -130,8 +133,6 @@ __webpack_require__.initContainer = function(shareScope, initScope) {{
     self.chunk = Some(chunk);
   }
 }
-
-impl_runtime_module!(ExposeRuntimeModule);
 
 #[derive(Debug, Clone)]
 pub struct CodeGenerationDataExpose {

@@ -5,6 +5,7 @@ use rspack_core::{
   RuntimeModuleStage,
 };
 use rspack_identifier::Identifier;
+use rspack_util::source_map::SourceMapKind;
 
 use super::BooleanMatcher;
 use crate::{
@@ -14,6 +15,7 @@ use crate::{
   },
 };
 
+#[impl_runtime_module]
 #[derive(Debug, Eq)]
 pub struct JsonpChunkLoadingRuntimeModule {
   id: Identifier,
@@ -25,6 +27,7 @@ impl Default for JsonpChunkLoadingRuntimeModule {
     Self {
       id: Identifier::from("webpack/runtime/jsonp_chunk_loading"),
       chunk: None,
+      source_map_kind: SourceMapKind::None,
     }
   }
 }
@@ -232,5 +235,3 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     RuntimeModuleStage::Attach
   }
 }
-
-impl_runtime_module!(JsonpChunkLoadingRuntimeModule);

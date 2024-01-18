@@ -29,6 +29,7 @@ rayon = { workspace = true }
 regex = { workspace = true }
 rkyv = { workspace = true }
 rspack_ast = { path = "../rspack_ast" }
+rspack_core_macros = { path = "../rspack_core_macros" }
 rspack_database = { path = "../rspack_database", features = ["rayon"] }
 rspack_error = { path = "../rspack_error" }
 rspack_fs = { path = "../rspack_fs", features = ["async", "rspack-error"] }
