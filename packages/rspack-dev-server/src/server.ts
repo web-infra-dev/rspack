@@ -414,7 +414,7 @@ export class RspackDevServer extends WebpackDevServer {
 
 			additionalEntries.push(
 				`${require.resolve(
-					"webpack-dev-server/client/index.js"
+					"@rspack/dev-server/client/index.js"
 				)}?${webSocketURLStr}`
 			);
 		}
