@@ -1,7 +1,5 @@
 "use strict";
-import assert from "assert";
-import { Stats } from "../dist";
-import { StatsValue, rspack } from "../src";
+import { Configuration, StatsValue, rspack } from "../src";
 import {
 	ensureRspackConfigNotExist,
 	ensureWebpackConfigExist,
@@ -20,7 +18,6 @@ const FakeDocument = require("./helpers/FakeDocument");
 const CurrentScript = require("./helpers/CurrentScript");
 
 const prepareOptions = require("./helpers/prepareOptions");
-// const { parseResource } = require("../lib/util/identifier");
 const captureStdio = require("./helpers/captureStdio");
 const asModule = require("./helpers/asModule");
 const filterInfraStructureErrors = require("./helpers/infrastructureLogErrors");
@@ -28,6 +25,20 @@ const filterInfraStructureErrors = require("./helpers/infrastructureLogErrors");
 const define = function (...args) {
 	const factory = args.pop();
 	factory();
+};
+
+const PATH_QUERY_FRAGMENT_REGEXP =
+	/^((?:\0.|[^?#\0])*)(\?(?:\0.|[^#\0])*)?(#.*)?$/;
+
+// In webpack, it is declared in ../lib/util/identifier
+const parseResource = str => {
+	const match = PATH_QUERY_FRAGMENT_REGEXP.exec(str)!;
+	return {
+		resource: str,
+		path: match[1].replace(/\0(.)/g, "$1"),
+		query: match[2] ? match[2].replace(/\0(.)/g, "$1") : "",
+		fragment: match[3] || ""
+	};
 };
 
 const casesPath = path.join(__dirname, "configCases");
@@ -163,20 +174,20 @@ export const describeCases = config => {
 								// }
 							});
 							testConfig = {
-								findBundle: function (i, options) {
-									// const ext = path.extname(
-									//     parse(options.output.filename).path
-									// );
-									// if (
-									//     fs.existsSync(
-									//         path.join(options.output.path, "bundle" + i + ext)
-									//     )
-									// ) {
-									//     return "./bundle" + i + ext;
-									// }
+								findBundle: function (i: number, options: Configuration) {
+									const ext = path.extname(
+										parseResource(options.output!.filename).path
+									);
+									if (
+										fs.existsSync(
+											path.join(options.output!.path, "bundle" + i + ext)
+										)
+									) {
+										return "./bundle" + i + ext;
+									}
 									return "./main.js";
-								}
-								// timeout: 30000
+								},
+								timeout: 30000
 							};
 							try {
 								// try to load a test file

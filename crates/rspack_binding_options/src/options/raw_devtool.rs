@@ -86,15 +86,14 @@ fn normalize_raw_module_filename_template(
       };
       let fn_payload = fn_payload.expect("convert to threadsafe function failed");
       ModuleFilenameTemplate::Fn(Box::new(move |ctx| {
-        let fn_payload: ThreadsafeFunction<RawModuleFilenameTemplateFnCtx, String> =
-          fn_payload.clone();
-        fn_payload
-          .call(ctx.into(), ThreadsafeFunctionCallMode::NonBlocking)
-          .into_rspack_result()
-          .expect("into rspack result failed")
-          .blocking_recv()
-          .unwrap_or_else(|err| panic!("failed to call external function: {err}"))
-          .expect("failed")
+        let fn_payload = fn_payload.clone();
+        Box::pin(async move {
+          fn_payload
+            .call(ctx.into(), ThreadsafeFunctionCallMode::NonBlocking)
+            .into_rspack_result()?
+            .await
+            .unwrap_or_else(|err| panic!("failed to call external function: {err}"))
+        })
       }))
     }
   }

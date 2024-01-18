@@ -2766,6 +2766,7 @@ dependencies = [
  "async-trait",
  "dashmap",
  "derivative",
+ "futures",
  "once_cell",
  "pathdiff",
  "rayon",

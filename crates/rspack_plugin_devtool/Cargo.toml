@@ -12,6 +12,7 @@ async-recursion = { workspace = true }
 async-trait     = { workspace = true }
 dashmap         = { workspace = true }
 derivative      = { workspace = true }
+futures         = { workspace = true }
 once_cell       = { workspace = true }
 pathdiff        = { workspace = true }
 rayon           = { workspace = true }
