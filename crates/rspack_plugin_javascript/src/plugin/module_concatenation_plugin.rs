@@ -847,6 +847,7 @@ impl Plugin for ModuleConcatenationPlugin {
       compilation
         .chunk_graph
         .replace_module(&root_module_id, &new_module.id());
+
       compilation.module_graph.move_module_connections(
         &root_module_id,
         &new_module.id(),

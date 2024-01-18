@@ -67,37 +67,42 @@ impl ChunkGraph {
     self.chunk_graph_chunk_by_chunk_ukey.insert(chunk_ukey, cgc);
   }
 
-  pub fn replace_module(&mut self, old_module: &ModuleIdentifier, new_module: &ModuleIdentifier) {
+  pub fn replace_module(
+    &mut self,
+    old_module_id: &ModuleIdentifier,
+    new_module_id: &ModuleIdentifier,
+  ) {
     if self
       .chunk_graph_module_by_module_identifier
-      .get(new_module)
+      .get(new_module_id)
       .is_none()
     {
       let new_chunk_graph_module = ChunkGraphModule::new();
       self
         .chunk_graph_module_by_module_identifier
-        .insert(*new_module, new_chunk_graph_module);
+        .insert(*new_module_id, new_chunk_graph_module);
     }
 
-    let old_cgm = self.get_chunk_graph_module(*old_module);
+    let old_cgm = self.get_chunk_graph_module(*old_module_id);
+    // Avoid use mutable borrow and immutable borrow at the same time.
     for chunk in old_cgm.chunks.clone().into_iter() {
       let cgc = self.get_chunk_graph_chunk_mut(chunk);
-      cgc.modules.remove(old_module);
-      cgc.modules.insert(*new_module);
-      let new_cgm = self.get_chunk_graph_module_mut(*new_module);
+      cgc.modules.remove(old_module_id);
+      cgc.modules.insert(*new_module_id);
+      let new_cgm = self.get_chunk_graph_module_mut(*new_module_id);
       new_cgm.chunks.insert(chunk);
     }
     // shadowing the mut ref to avoid violating rustc borrow rules
-    let old_cgm = self.get_chunk_graph_module_mut(*old_module);
+    let old_cgm = self.get_chunk_graph_module_mut(*old_module_id);
     old_cgm.chunks.clear();
 
     for chunk in old_cgm.entry_in_chunks.clone().into_iter() {
       let cgc = self.get_chunk_graph_chunk_mut(chunk);
-      if let Some(old) = cgc.entry_modules.remove(old_module) {
+      if let Some(old) = cgc.entry_modules.get(old_module_id).cloned() {
         let mut new_entry_modules = LinkedHashMap::default();
         for (m, cg) in cgc.entry_modules.iter() {
-          if m == old_module {
-            new_entry_modules.insert(*new_module, old);
+          if m == old_module_id {
+            new_entry_modules.insert(*new_module_id, old);
           } else {
             new_entry_modules.insert(*m, *cg);
           }
@@ -105,21 +110,23 @@ impl ChunkGraph {
         cgc.entry_modules = new_entry_modules;
       }
 
-      let new_cgm = self.get_chunk_graph_module_mut(*new_module);
+      let new_cgm = self.get_chunk_graph_module_mut(*new_module_id);
       new_cgm.entry_in_chunks.insert(chunk);
     }
 
-    let old_cgm = self.get_chunk_graph_module(*old_module);
+    let old_cgm = self.get_chunk_graph_module_mut(*old_module_id);
+    old_cgm.entry_in_chunks.clear();
+    let old_cgm = self.get_chunk_graph_module(*old_module_id);
 
     for chunk in old_cgm.runtime_in_chunks.clone().into_iter() {
       let cgc = self.get_chunk_graph_chunk_mut(chunk);
       // delete old module
       cgc.runtime_modules = std::mem::take(&mut cgc.runtime_modules)
         .into_iter()
-        .filter(|id| old_module != id)
+        .filter(|id| old_module_id != id)
         .collect::<Vec<_>>();
-      cgc.runtime_modules.push(*new_module);
-      let new_cgm = self.get_chunk_graph_module_mut(*new_module);
+      cgc.runtime_modules.push(*new_module_id);
+      let new_cgm = self.get_chunk_graph_module_mut(*new_module_id);
       new_cgm.runtime_in_chunks.insert(chunk);
 
       // TODO: full_hash_modules and dependent_hash_modules, we don't have now https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/ChunkGraph.js#L445-L462
@@ -137,7 +144,7 @@ impl ChunkGraph {
       // }
     }
 
-    let old_cgm = self.get_chunk_graph_module_mut(*old_module);
+    let old_cgm = self.get_chunk_graph_module_mut(*old_module_id);
     old_cgm.runtime_in_chunks.clear();
   }
 

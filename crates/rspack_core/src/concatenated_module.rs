@@ -1187,10 +1187,9 @@ impl Module for ConcatenatedModule {
       }
     };
 
-    println!("source: \n{}", result.source());
     let mut code_generation_result = CodeGenerationResult::default();
     code_generation_result.add(SourceType::JavaScript, CachedSource::new(result).boxed());
-    code_generation_result.chunk_init_fragments = vec![];
+    code_generation_result.chunk_init_fragments = chunk_init_fragments;
     code_generation_result.runtime_requirements = runtime_requirements;
     Ok(code_generation_result)
   }
