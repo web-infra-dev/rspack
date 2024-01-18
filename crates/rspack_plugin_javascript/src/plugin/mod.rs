@@ -315,6 +315,7 @@ impl JsPlugin {
         .keys()
         .last()
         .expect("should have last entry module");
+      dbg!(&last_entry_module);
       if let Some(source) = compilation
         .plugin_driver
         .render_startup(RenderStartupArgs {

@@ -32,7 +32,7 @@ pub struct DependencyParents {
 #[derive(Debug, Default)]
 pub struct ModuleGraph {
   // TODO: removed when new treeshaking is stable
-  is_new_treeshaking: bool,
+  pub is_new_treeshaking: bool,
 
   pub dependency_id_to_module_identifier: HashMap<DependencyId, ModuleIdentifier>,
 

@@ -13,6 +13,7 @@ use dashmap::DashSet;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use rayon::prelude::*;
+use rspack_database::DatabaseItem;
 use rspack_error::{error, Diagnostic, Result, Severity, TWithDiagnosticArray};
 use rspack_futures::FuturesResults;
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -1325,6 +1326,7 @@ impl Compilation {
             }
           })
         });
+      // dbg!(&compilation.code_generation_results.map);
       Ok(())
     }
 

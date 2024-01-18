@@ -84,7 +84,7 @@ impl ChunkGraph {
     }
 
     let old_cgm = self.get_chunk_graph_module(*old_module_id);
-    // Avoid use mutable borrow and immutable borrow at the same time.
+    // Using clone to avoid using mutable borrow and immutable borrow at the same time.
     for chunk in old_cgm.chunks.clone().into_iter() {
       let cgc = self.get_chunk_graph_chunk_mut(chunk);
       cgc.modules.remove(old_module_id);
@@ -92,6 +92,7 @@ impl ChunkGraph {
       let new_cgm = self.get_chunk_graph_module_mut(*new_module_id);
       new_cgm.chunks.insert(chunk);
     }
+
     // shadowing the mut ref to avoid violating rustc borrow rules
     let old_cgm = self.get_chunk_graph_module_mut(*old_module_id);
     old_cgm.chunks.clear();

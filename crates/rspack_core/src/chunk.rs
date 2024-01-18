@@ -275,7 +275,11 @@ impl Chunk {
     self
       .groups
       .iter()
-      .filter_map(|ukey| get_chunk_group_from_ukey(ukey, chunk_group_by_ukey))
+      .filter_map(|ukey| {
+        let res = get_chunk_group_from_ukey(ukey, chunk_group_by_ukey);
+        // dbg!(ukey, &res.map(|item| item.get_runtime_chunk()));
+        res
+      })
       .any(|group| group.kind.is_entrypoint() && group.get_runtime_chunk() == self.ukey)
   }
 

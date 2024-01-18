@@ -240,6 +240,7 @@ impl Plugin for JsPlugin {
       ) {
         return Ok(vec![].with_empty_diagnostic());
       }
+
       self.render_chunk_impl(&args).await?
     };
 

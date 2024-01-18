@@ -27,7 +27,10 @@ pub fn render_chunk_modules(
 
   let mut module_code_array = ordered_modules
     .par_iter()
-    .filter(|module| include_module_ids.contains(&module.identifier()))
+    .filter(|module| {
+      compilation.module_graph.is_new_treeshaking
+        || include_module_ids.contains(&module.identifier())
+    })
     .filter_map(|module| {
       let code_gen_result = compilation
         .code_generation_results
