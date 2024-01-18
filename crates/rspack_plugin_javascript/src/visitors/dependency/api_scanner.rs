@@ -14,7 +14,7 @@ use swc_core::{
 use super::{expr_matcher, JavascriptParser};
 use crate::dependency::ModuleArgumentDependency;
 use crate::no_visit_ignored_stmt;
-use crate::parser_plugin::JavascriptParserPlugin;
+use crate::parser_plugin::{JavaScriptParserPluginDrive, JavascriptParserPlugin};
 use crate::utils::eval::{self, BasicEvaluatedExpression};
 use crate::visitors::extract_member_root;
 
@@ -59,17 +59,18 @@ pub fn get_typeof_evaluate_of_api(sym: &str) -> Option<&str> {
 
 pub struct ApiParserPlugin;
 
-impl JavascriptParserPlugin for ApiParserPlugin {
+impl<'ast, 'parser> JavascriptParserPlugin<'ast, 'parser> for ApiParserPlugin {
   fn evaluate_typeof(
     &self,
     parser: &mut JavascriptParser,
-    expression: &Ident,
+    expression: &'ast Ident,
     start: u32,
     end: u32,
-  ) -> Option<BasicEvaluatedExpression> {
+    _plugin_drive: &JavaScriptParserPluginDrive,
+  ) -> Option<BasicEvaluatedExpression<'ast>> {
     if parser.is_unresolved_ident(expression.sym.as_str()) {
       get_typeof_evaluate_of_api(expression.sym.as_str())
-        .map(|res| eval::evaluate_to_string(res.to_string(), start, end))
+        .map(|res| eval::evaluate_to_string(res, start, end))
     } else {
       None
     }

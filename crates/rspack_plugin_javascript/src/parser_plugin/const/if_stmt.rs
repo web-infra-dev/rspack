@@ -6,6 +6,7 @@ use swc_core::ecma::ast::{BlockStmt, DoWhileStmt, ForHead, ForInStmt, ForOfStmt,
 use swc_core::ecma::ast::{LabeledStmt, ObjectPatProp, Pat, Stmt, VarDeclOrExpr, WhileStmt};
 use swc_core::ecma::ast::{VarDecl, VarDeclKind, VarDeclarator};
 
+use crate::parser_plugin::JavaScriptParserPluginDrive;
 use crate::visitors::JavascriptParser;
 
 fn get_hoisted_declarations<'a>(
@@ -130,8 +131,12 @@ fn get_hoisted_declarations<'a>(
   declarations
 }
 
-pub fn statement_if(scanner: &mut JavascriptParser, stmt: &IfStmt) -> Option<bool> {
-  let param = scanner.evaluate_expression(&stmt.test);
+pub fn statement_if<'ast, 'parser>(
+  scanner: &mut JavascriptParser<'parser>,
+  stmt: &'ast IfStmt,
+  plugin_drive: &JavaScriptParserPluginDrive<'ast, 'parser>,
+) -> Option<bool> {
+  let param = scanner.evaluate_expression(&stmt.test, plugin_drive);
   let Some(boolean) = param.as_bool() else {
     return None;
   };
@@ -145,7 +150,7 @@ pub fn statement_if(scanner: &mut JavascriptParser, stmt: &IfStmt) -> Option<boo
         None,
       )));
   } else {
-    scanner.walk_expression(&stmt.test);
+    scanner.walk_expression(&stmt.test, plugin_drive);
   }
 
   let branch_to_remove = if boolean {

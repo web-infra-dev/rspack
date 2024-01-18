@@ -3,7 +3,7 @@ use rspack_core::{ContextMode, ContextOptions, DependencyCategory, SpanExt};
 use rspack_regex::{regexp_as_str, RspackRegex};
 use swc_core::ecma::ast::CallExpr;
 
-use super::JavascriptParserPlugin;
+use super::{JavaScriptParserPluginDrive, JavascriptParserPlugin};
 use crate::dependency::RequireContextDependency;
 use crate::visitors::expr_matcher::is_require_context;
 use crate::visitors::JavascriptParser;
@@ -12,8 +12,13 @@ pub struct RequireContextDependencyParserPlugin;
 
 const DEFAULT_REGEXP_STR: &str = r"^\.\/.*$";
 
-impl JavascriptParserPlugin for RequireContextDependencyParserPlugin {
-  fn call(&self, parser: &mut JavascriptParser, expr: &CallExpr) -> Option<bool> {
+impl<'ast, 'parser> JavascriptParserPlugin<'ast, 'parser> for RequireContextDependencyParserPlugin {
+  fn call(
+    &self,
+    parser: &mut JavascriptParser<'parser>,
+    expr: &'ast CallExpr,
+    plugin_drive: &JavaScriptParserPluginDrive<'ast, 'parser>,
+  ) -> Option<bool> {
     if expr
       .callee
       .as_expr()
@@ -23,7 +28,7 @@ impl JavascriptParserPlugin for RequireContextDependencyParserPlugin {
     }
 
     let mode = if expr.args.len() == 4 {
-      let mode_expr = parser.evaluate_expression(&expr.args[3].expr);
+      let mode_expr = parser.evaluate_expression(&expr.args[3].expr, plugin_drive);
       if !mode_expr.is_string() {
         // FIXME: return `None` in webpack
         ContextMode::Sync
@@ -37,7 +42,7 @@ impl JavascriptParserPlugin for RequireContextDependencyParserPlugin {
     };
 
     let (reg_exp, reg_str) = if expr.args.len() >= 3 {
-      let reg_exp_expr = parser.evaluate_expression(&expr.args[2].expr);
+      let reg_exp_expr = parser.evaluate_expression(&expr.args[2].expr, plugin_drive);
       if !reg_exp_expr.is_regexp() {
         // FIXME: return `None` in webpack
         let regexp = RspackRegex::new(DEFAULT_REGEXP_STR).expect("reg should success");
@@ -45,8 +50,7 @@ impl JavascriptParserPlugin for RequireContextDependencyParserPlugin {
         (regexp, raw)
       } else {
         let (expr, flags) = reg_exp_expr.regexp();
-        let regexp =
-          RspackRegex::with_flags(expr.as_str(), flags.as_str()).expect("reg should success");
+        let regexp = RspackRegex::with_flags(expr, flags).expect("reg should success");
         let raw = regexp_as_str(&regexp).to_string();
         (regexp, raw)
       }
@@ -57,7 +61,7 @@ impl JavascriptParserPlugin for RequireContextDependencyParserPlugin {
     };
 
     let recursive = if expr.args.len() >= 2 {
-      let recursive_expr = parser.evaluate_expression(&expr.args[1].expr);
+      let recursive_expr = parser.evaluate_expression(&expr.args[1].expr, plugin_drive);
       if !recursive_expr.is_bool() {
         // FIXME: return `None` in webpack
         true
@@ -69,7 +73,7 @@ impl JavascriptParserPlugin for RequireContextDependencyParserPlugin {
     };
 
     if !expr.args.is_empty() {
-      let request_expr = parser.evaluate_expression(&expr.args[0].expr);
+      let request_expr = parser.evaluate_expression(&expr.args[0].expr, plugin_drive);
       if !request_expr.is_string() {
         return None;
       }
