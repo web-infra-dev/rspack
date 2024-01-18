@@ -12,20 +12,19 @@
  /* harmony import */var _tracker__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./tracker */"../node_modules/pmodule/tracker.js");
  var x = "x";
  var y = "y";
-@@ -35,11 +33,8 @@
+@@ -34,11 +32,6 @@
+ "../node_modules/pmodule/index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
  "use strict";
  __webpack_require__.r(__webpack_exports__);
- __webpack_require__.d(__webpack_exports__, {
--  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; },
+-__webpack_require__.d(__webpack_exports__, {
 -  x: function() { return _b__WEBPACK_IMPORTED_MODULE_1__.x; },
 -  z: function() { return _b__WEBPACK_IMPORTED_MODULE_1__.z; }
-+  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
- });
+-});
 -/* harmony import */var _b__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./b */"../node_modules/pmodule/b.js");
  /* harmony import */var _tracker__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./tracker */"../node_modules/pmodule/tracker.js");
  
  
-@@ -66,15 +61,17 @@
+@@ -65,15 +58,17 @@
  "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
  "use strict";
  __webpack_require__.r(__webpack_exports__);

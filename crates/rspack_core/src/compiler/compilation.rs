@@ -1,5 +1,5 @@
 use std::{
-  collections::VecDeque,
+  collections::{hash_map, VecDeque},
   fmt::Debug,
   hash::{BuildHasherDefault, Hash},
   path::PathBuf,
@@ -2204,7 +2204,14 @@ pub fn assign_depths(
     q.push_back((**item, i));
   }
   while let Some((id, depth)) = q.pop_front() {
-    assign_map.insert(id, depth);
+    match assign_map.entry(id) {
+      hash_map::Entry::Occupied(_) => {
+        continue;
+      }
+      hash_map::Entry::Vacant(vac) => {
+        vac.insert(depth);
+      }
+    };
     let m = mg.module_by_identifier(&id).expect("should have module");
     for con in mg.get_outgoing_connections(m) {
       q.push_back((con.module_identifier, depth + 1));

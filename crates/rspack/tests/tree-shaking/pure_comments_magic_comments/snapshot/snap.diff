@@ -25,8 +25,8 @@
 +    answer;
  }
  const a = 3;
--var __WEBPACK_DEFAULT_EXPORT__ = /*#__PURE__*/ res();
-+var __WEBPACK_DEFAULT_EXPORT__ = /*#__PURE__*/ (/* unused pure expression or super */ null && (res()));
+-/* unused harmony default export */ var __WEBPACK_DEFAULT_EXPORT__ = (res());
++/* unused harmony default export */ var __WEBPACK_DEFAULT_EXPORT__ = ((/* unused pure expression or super */ null && (res())));
  }),
  "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
  "use strict";

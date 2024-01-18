@@ -9,7 +9,7 @@
  }
  }),
  "./c.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-@@ -113,7 +113,7 @@
+@@ -103,7 +103,7 @@
  
  class def {
      method() {
