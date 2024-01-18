@@ -106,13 +106,11 @@ impl RealContentHashPlugin {
           .par_iter()
           .filter_map(|name| assets_data.get(name))
           .map(|data| {
-            data
-              .compute_new_source(
-                data.own_hashes.contains(old_hash),
-                &hash_to_new_hash,
-                &hash_regexp,
-              )
-              .buffer()
+            data.compute_new_source(
+              data.own_hashes.contains(old_hash),
+              &hash_to_new_hash,
+              &hash_regexp,
+            )
           })
           .collect();
         let mut hasher = RspackHash::from(&compilation.options.output);
