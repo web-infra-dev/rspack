@@ -32,7 +32,7 @@ pub use runtime_requirements_dependency::RuntimeRequirementsDependency;
 pub use runtime_template::*;
 pub use span::SpanExt;
 pub use static_exports_dependency::StaticExportsDependency;
-use swc_core::ecma::atoms::JsWord;
+use swc_core::ecma::atoms::Atom;
 
 use crate::{
   ConnectionState, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ReferencedExport,
@@ -41,8 +41,8 @@ use crate::{
 
 #[derive(Debug, Default)]
 pub struct ExportSpec {
-  pub name: JsWord,
-  pub export: Option<Nullable<Vec<JsWord>>>,
+  pub name: Atom,
+  pub export: Option<Nullable<Vec<Atom>>>,
   pub exports: Option<Vec<ExportNameOrSpec>>,
   pub can_mangle: Option<bool>,
   pub terminal_binding: Option<bool>,
@@ -61,7 +61,7 @@ pub enum Nullable<T> {
 impl ExportSpec {
   pub fn new(name: String) -> Self {
     Self {
-      name: JsWord::from(name),
+      name: Atom::from(name),
       ..Default::default()
     }
   }
@@ -69,13 +69,13 @@ impl ExportSpec {
 
 #[derive(Debug)]
 pub enum ExportNameOrSpec {
-  String(JsWord),
+  String(Atom),
   ExportSpec(ExportSpec),
 }
 
 impl Default for ExportNameOrSpec {
   fn default() -> Self {
-    Self::String(JsWord::default())
+    Self::String(Atom::default())
   }
 }
 
@@ -96,31 +96,31 @@ pub struct ExportsSpec {
   pub terminal_binding: Option<bool>,
   pub from: Option<ModuleGraphConnection>,
   pub dependencies: Option<Vec<ModuleIdentifier>>,
-  pub hide_export: Option<Vec<JsWord>>,
-  pub exclude_exports: Option<Vec<JsWord>>,
+  pub hide_export: Option<Vec<Atom>>,
+  pub exclude_exports: Option<Vec<Atom>>,
 }
 
 pub enum ExportsReferencedType {
   No,     // NO_EXPORTS_REFERENCED
   Object, // EXPORTS_OBJECT_REFERENCED
-  String(Box<Vec<Vec<JsWord>>>),
+  String(Box<Vec<Vec<Atom>>>),
   Value(Box<Vec<ReferencedExport>>),
 }
 
-impl From<JsWord> for ExportsReferencedType {
-  fn from(value: JsWord) -> Self {
+impl From<Atom> for ExportsReferencedType {
+  fn from(value: Atom) -> Self {
     ExportsReferencedType::String(Box::new(vec![vec![value]]))
   }
 }
 
-impl From<Vec<Vec<JsWord>>> for ExportsReferencedType {
-  fn from(value: Vec<Vec<JsWord>>) -> Self {
+impl From<Vec<Vec<Atom>>> for ExportsReferencedType {
+  fn from(value: Vec<Vec<Atom>>) -> Self {
     ExportsReferencedType::String(Box::new(value))
   }
 }
 
-impl From<Vec<JsWord>> for ExportsReferencedType {
-  fn from(value: Vec<JsWord>) -> Self {
+impl From<Vec<Atom>> for ExportsReferencedType {
+  fn from(value: Vec<Atom>) -> Self {
     ExportsReferencedType::String(Box::new(vec![value]))
   }
 }
@@ -164,7 +164,7 @@ pub mod needs_refactor {
         Expr, ExprOrSpread, Id, Ident, ImportDecl, Lit, MemberExpr, MemberProp, MetaPropExpr,
         MetaPropKind, ModuleExportName, NewExpr,
       },
-      atoms::JsWord,
+      atoms::Atom,
       visit::Visit,
     },
   };
@@ -252,12 +252,12 @@ pub mod needs_refactor {
 
   #[derive(Debug, PartialEq, Eq)]
   pub struct WorkerSyntax {
-    word: JsWord,
+    word: Atom,
     ctxt: Option<SyntaxContext>,
   }
 
   impl WorkerSyntax {
-    pub fn new(word: JsWord, ctxt: Option<SyntaxContext>) -> Self {
+    pub fn new(word: Atom, ctxt: Option<SyntaxContext>) -> Self {
       Self { word, ctxt }
     }
 
@@ -290,7 +290,7 @@ pub mod needs_refactor {
         {
           caps.push((ids.as_str(), source.as_str()));
         } else {
-          result.push(WorkerSyntax::new(JsWord::from(*s), None))
+          result.push(WorkerSyntax::new(Atom::from(*s), None))
         }
       }
       Self { result, caps }

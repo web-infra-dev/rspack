@@ -3,7 +3,7 @@ use std::{any::Any, fmt::Debug};
 use dyn_clone::{clone_trait_object, DynClone};
 use rspack_util::ext::AsAny;
 use rustc_hash::FxHashSet as HashSet;
-use swc_core::{common::Span, ecma::atoms::JsWord};
+use swc_core::{common::Span, ecma::atoms::Atom};
 
 use super::dependency_template::AsDependencyTemplate;
 use super::module_dependency::*;
@@ -73,7 +73,7 @@ pub trait Dependency:
 
   // For now only `HarmonyImportSpecifierDependency` and
   // `HarmonyExportImportedSpecifierDependency` can use this method
-  fn get_ids(&self, _mg: &ModuleGraph) -> Vec<JsWord> {
+  fn get_ids(&self, _mg: &ModuleGraph) -> Vec<Atom> {
     unreachable!()
   }
 

@@ -27,7 +27,7 @@ use swc_core::{
   },
   ecma::{
     ast::Ident,
-    atoms::JsWord,
+    atoms::Atom,
     parser::{EsConfig, Syntax},
     transforms::base::{
       fixer::fixer,
@@ -316,7 +316,7 @@ pub fn minify(
 }
 
 pub struct IdentCollector {
-  names: AHashMap<BytePos, JsWord>,
+  names: AHashMap<BytePos, Atom>,
 }
 
 impl Visit for IdentCollector {

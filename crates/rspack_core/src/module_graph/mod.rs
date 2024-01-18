@@ -7,7 +7,7 @@ use rspack_error::Result;
 use rspack_hash::RspackHashDigest;
 use rspack_identifier::{Identifiable, IdentifierMap};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
-use swc_core::ecma::atoms::JsWord;
+use swc_core::ecma::atoms::Atom;
 mod vec_map;
 use crate::{AsyncDependenciesBlock, AsyncDependenciesBlockId};
 mod connection;
@@ -20,7 +20,7 @@ use crate::{
   ModuleIdentifier, ModuleProfile,
 };
 
-// TODO Here request can be used JsWord
+// TODO Here request can be used Atom
 pub type ImportVarMap = HashMap<Option<String> /* request */, String /* import_var */>;
 
 #[derive(Debug, Default)]
@@ -71,7 +71,7 @@ pub struct ModuleGraph {
 /// https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/ModuleGraph.js#L742-L748
 #[derive(Debug)]
 pub struct DependencyExtraMeta {
-  pub ids: Vec<JsWord>,
+  pub ids: Vec<Atom>,
 }
 
 impl ModuleGraph {
@@ -316,7 +316,7 @@ impl ModuleGraph {
   pub fn get_export_info(
     &mut self,
     module_id: ModuleIdentifier,
-    export_name: &JsWord,
+    export_name: &Atom,
   ) -> ExportInfoId {
     let exports_info_id = self.get_exports_info(&module_id).id;
     exports_info_id.get_export_info(export_name, self)

@@ -1,4 +1,4 @@
-use swc_core::ecma::atoms::JsWord;
+use swc_core::ecma::atoms::Atom;
 
 use crate::{AsContextDependency, AsDependencyTemplate, Context};
 use crate::{ContextMode, ContextOptions, Dependency};
@@ -16,7 +16,7 @@ pub struct ContextElementDependency {
   pub category: DependencyCategory,
   pub context: Context,
   pub resource_identifier: String,
-  pub referenced_exports: Option<Vec<JsWord>>,
+  pub referenced_exports: Option<Vec<Atom>>,
 }
 
 impl Dependency for ContextElementDependency {

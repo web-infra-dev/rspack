@@ -12,7 +12,7 @@ use rustc_hash::FxHashSet;
 use swc_core::common::comments::Comments;
 use swc_core::common::{SourceFile, Spanned};
 use swc_core::ecma::ast::{CallExpr, Callee, Expr, Lit};
-use swc_core::ecma::atoms::JsWord;
+use swc_core::ecma::atoms::Atom;
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
 use super::context_helper::scanner_context_module;
@@ -253,7 +253,7 @@ impl Visit for ImportScanner<'_> {
         let chunk_preload = magic_comment_options
           .get_webpack_preload()
           .and_then(|x| parse_order_string(x.as_str()));
-        let request = JsWord::from(
+        let request = Atom::from(
           tpl
             .quasis
             .first()

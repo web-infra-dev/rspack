@@ -1,12 +1,12 @@
 use swc_core::common::SyntaxContext;
 use swc_core::ecma::ast::{CallExpr, Callee, Expr, Ident, Lit};
-use swc_core::ecma::atoms::JsWord;
+use swc_core::ecma::atoms::Atom;
 
 use super::symbol::{IndirectTopLevelSymbol, StarSymbol, Symbol};
 use super::visitor::SymbolRef;
 use crate::{ModuleGraph, ModuleIdentifier};
 
-fn get_first_string(e: &CallExpr) -> Option<JsWord> {
+fn get_first_string(e: &CallExpr) -> Option<Atom> {
   // we check the length at the begin of [is_require_literal_expr]
   e.args.first().and_then(|arg| {
     if arg.spread.is_some() {
@@ -29,7 +29,7 @@ fn get_first_string(e: &CallExpr) -> Option<JsWord> {
   })
 }
 
-pub fn get_require_literal(e: &CallExpr, unresolved_ctxt: SyntaxContext) -> Option<JsWord> {
+pub fn get_require_literal(e: &CallExpr, unresolved_ctxt: SyntaxContext) -> Option<Atom> {
   if e.args.len() == 1 {
     if match &e.callee {
       ident @ Callee::Expr(box Expr::Ident(Ident { sym, .. })) if sym == "require" => {
@@ -51,7 +51,7 @@ pub fn get_require_literal(e: &CallExpr, unresolved_ctxt: SyntaxContext) -> Opti
   }
 }
 
-pub fn get_dynamic_import_string_literal(e: &CallExpr) -> Option<JsWord> {
+pub fn get_dynamic_import_string_literal(e: &CallExpr) -> Option<Atom> {
   if e.args.len() == 1 && matches!(&e.callee, Callee::Import(_)) {
     get_first_string(e)
   } else {

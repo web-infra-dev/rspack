@@ -1,4 +1,4 @@
-use swc_core::ecma::atoms::JsWord;
+use swc_core::ecma::atoms::Atom;
 
 use crate::{
   AsContextDependency, AsDependencyTemplate, AsModuleDependency, Dependency, DependencyId,
@@ -8,12 +8,12 @@ use crate::{
 #[derive(Debug, Clone)]
 pub struct StaticExportsDependency {
   id: DependencyId,
-  exports: Vec<JsWord>,
+  exports: Vec<Atom>,
   can_mangle: bool,
 }
 
 impl StaticExportsDependency {
-  pub fn new(exports: Vec<JsWord>, can_mangle: bool) -> Self {
+  pub fn new(exports: Vec<Atom>, can_mangle: bool) -> Self {
     Self {
       id: DependencyId::new(),
       exports,

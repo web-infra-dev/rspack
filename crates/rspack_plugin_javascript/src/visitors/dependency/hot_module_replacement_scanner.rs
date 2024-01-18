@@ -6,7 +6,7 @@ use swc_core::{
   common::Spanned,
   ecma::{
     ast::{CallExpr, Expr, Lit},
-    atoms::JsWord,
+    atoms::Atom,
     visit::{noop_visit_type, Visit, VisitWith},
   },
 };
@@ -28,7 +28,7 @@ pub struct HotModuleReplacementScanner<'a> {
   pub ignored: &'a mut FxHashSet<DependencyLocation>,
 }
 
-type CreateDependency = fn(u32, u32, JsWord, Option<ErrorSpan>) -> BoxDependency;
+type CreateDependency = fn(u32, u32, Atom, Option<ErrorSpan>) -> BoxDependency;
 
 impl<'a> HotModuleReplacementScanner<'a> {
   pub fn new(

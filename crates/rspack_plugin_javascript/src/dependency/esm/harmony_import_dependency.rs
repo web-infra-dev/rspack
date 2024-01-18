@@ -11,21 +11,21 @@ use rspack_core::{
 };
 use rspack_core::{ModuleGraph, RuntimeSpec};
 use rustc_hash::FxHashSet as HashSet;
-use swc_core::ecma::atoms::JsWord;
+use swc_core::ecma::atoms::Atom;
 
 use super::create_resource_identifier_for_esm_dependency;
 
 #[derive(Debug, Clone)]
 pub enum Specifier {
-  Namespace(JsWord),
-  Default(JsWord),
-  Named(JsWord, Option<JsWord>),
+  Namespace(Atom),
+  Default(Atom),
+  Named(Atom, Option<Atom>),
 }
 
 // HarmonyImportDependency is merged HarmonyImportSideEffectDependency.
 #[derive(Debug, Clone)]
 pub struct HarmonyImportSideEffectDependency {
-  pub request: JsWord,
+  pub request: Atom,
   pub source_order: i32,
   pub id: DependencyId,
   pub span: Option<ErrorSpan>,
@@ -38,7 +38,7 @@ pub struct HarmonyImportSideEffectDependency {
 
 impl HarmonyImportSideEffectDependency {
   pub fn new(
-    request: JsWord,
+    request: Atom,
     source_order: i32,
     span: Option<ErrorSpan>,
     source_span: Option<ErrorSpan>,
