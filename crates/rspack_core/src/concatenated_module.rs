@@ -930,6 +930,84 @@ impl Module for ConcatenatedModule {
       )));
     }
 
+    let mut namespace_object_sources: HashMap<InfoType, String> = HashMap::default();
+
+    // for module_info_id in needed_namespace_objects.iter() {
+    //   if let Some(namespace_export_symbol) = module_info_id.namespace_export_symbol {
+    //     continue;
+    //   }
+    //
+    //   let mut ns_obj = Vec::new();
+    //   let exports_info = module_graph.get_exports_info(&module_info_id.module);
+    //   for export_info in exports_info.ordered_exports.iter() {
+    //     if !export_info.provided {
+    //       continue;
+    //     }
+    //
+    //     if let Some(used_name) = export_info.get_used_name(None, &runtime) {
+    //       let final_name = Self::get_final_name(
+    //         &module_graph,
+    //         &module_info_id,
+    //         vec![&export_info.name],
+    //         &mut module_to_info_map,
+    //         runtime,
+    //         &mut needed_namespace_objects,
+    //         false,
+    //         None,
+    //         module_info_id.module.build_meta.strict_harmony_module,
+    //         Some(true),
+    //         &context,
+    //       );
+    //
+    //       ns_obj.push(format!(
+    //         "\n  {}: {}",
+    //         property_name(&used_name),
+    //         runtime_template.returning_function(&final_name)
+    //       ));
+    //     }
+    //   }
+    //
+    //   let name = &module_info_id.namespace_object_name;
+    //   let define_getters = if ns_obj.len() > 0 {
+    //     format!(
+    //       "{}({{ {} }});\n",
+    //       RuntimeGlobals::define_property_getters(),
+    //       ns_obj.join(",")
+    //     )
+    //   } else {
+    //     String::new()
+    //   };
+    //
+    //   if ns_obj.len() > 0 {
+    //     runtime_requirements.insert(RuntimeGlobals::define_property_getters());
+    //   }
+    //
+    //   namespace_object_sources.insert(
+    //     module_info_id.clone(),
+    //     format!(
+    //       "// NAMESPACE OBJECT: {}\nvar {} = {{}};\n{}({});\n{}\n",
+    //       module_info_id
+    //         .module
+    //         .readable_identifier(&request_shortener),
+    //       name,
+    //       RuntimeGlobals::make_namespace_object(),
+    //       name,
+    //       define_getters
+    //     ),
+    //   );
+    //
+    //   runtime_requirements.insert(RuntimeGlobals::make_namespace_object());
+    // }
+    //
+    // // Define required namespace objects (must be before evaluation modules)
+    // for info in modules_with_info.iter() {
+    //   if info.type_of() == "concatenated" {
+    //     if let Some(source) = namespace_object_sources.get(info) {
+    //       // Assuming result is a mutable HashSet<String>
+    //       result.insert(source.clone());
+    //     }
+    //   }
+    // }
     let mut code_generation_result = CodeGenerationResult::default();
     code_generation_result.add(SourceType::JavaScript, CachedSource::new(result).boxed());
     code_generation_result.chunk_init_fragments = vec![];
