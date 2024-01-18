@@ -49,7 +49,6 @@ export async function launchJestWithArgs(additionalArgs) {
 			args,
 			env: {
 				NO_COLOR: JSON.stringify(1),
-				RSPACK_DEP_WARNINGS: JSON.stringify(false),
 				...process.env
 			},
 			cwd: process.cwd()
