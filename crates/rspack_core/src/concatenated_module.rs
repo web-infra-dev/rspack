@@ -3,6 +3,7 @@ use std::{
   collections::hash_map::{DefaultHasher, Entry},
   fmt::Debug,
   hash::{BuildHasherDefault, Hash, Hasher},
+  ops::IndexMut,
   sync::{Arc, Mutex},
 };
 
@@ -749,7 +750,7 @@ impl Module for ConcatenatedModule {
       }
     }
 
-    let mut info_map: IndexMap<ModuleIdentifier, _> = IndexMap::default();
+    let mut info_map: IndexMap<rspack_identifier::Identifier, Vec<_>> = IndexMap::default();
     // Find and replace references to modules
     // Splitting read and write to avoid violating rustc borrow rules
     for info in module_to_info_map.values() {
@@ -827,6 +828,17 @@ impl Module for ConcatenatedModule {
         // range is extended by 2 chars to cover the appended "._"
         // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/ConcatenatedModule.js#L1411-L1412
         source.replace(low, high + 2, &final_name, None);
+      }
+    }
+
+    for (id, info) in module_to_info_map.iter() {
+      println!("{}", info.id());
+      match info {
+        ModuleInfo::External(_) => {}
+        ModuleInfo::Concatenated(info) => {
+          let source = info.source.as_ref().expect("should have source");
+          println!("{}", source.source());
+        }
       }
     }
 
@@ -1005,7 +1017,7 @@ impl Module for ConcatenatedModule {
       } else {
         String::new()
       };
-      //
+
       if ns_obj.len() > 0 {
         runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
       }
@@ -1035,6 +1047,145 @@ impl Module for ConcatenatedModule {
         result.add(RawSource::from(source.as_str()));
       }
     }
+
+    // Assuming the necessary Rust imports and dependencies are declared
+
+    let mut chunk_init_fragments = Vec::new();
+
+    // Evaluate modules in order
+    let var_name = for raw_info in modules_with_info {
+      let mut name = None;
+      let mut is_conditional = false;
+      let info = match raw_info {
+        ModuleInfoOrReference::Reference {
+          module_info_id,
+          runtime_condition,
+        } => {
+          let module_info = module_to_info_map
+            .get(&module_info_id)
+            .expect("should should have module info ");
+          module_info
+        }
+        ModuleInfoOrReference::External(info) => {
+          let module_info = module_to_info_map
+            .get(&info.module)
+            .expect("should should have module info ");
+          module_info
+        }
+        ModuleInfoOrReference::Concatenated(info) => {
+          let module_info = module_to_info_map
+            .get(&info.module)
+            .expect("should should have module info ");
+          module_info
+        }
+      };
+
+      let box_module = compilation
+        .module_graph
+        .module_by_identifier(&info.id())
+        .expect("should have box module");
+      let module_readable_identifier = box_module.readable_identifier(&context).to_string();
+
+      match info {
+        ModuleInfo::Concatenated(info) => {
+          result.add(RawSource::from(
+            format!(
+              "\n;// CONCATENATED MODULE: {}\n",
+              module_readable_identifier
+            )
+            .as_str(),
+          ));
+
+          // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/ConcatenatedModule.js#L1582
+          if let Some(ref source) = info.source {
+            result.add(source.clone());
+          } else {
+            println!("{}", info.module);
+          }
+
+          for f in info.chunk_init_fragments.iter() {
+            chunk_init_fragments.push(f.clone());
+          }
+
+          runtime_requirements = runtime_requirements.union(info.runtime_requirements);
+          name = info.namespace_object_name.clone();
+        }
+        ModuleInfo::External(info) => {
+          // result.push_str(&format!(
+          //   "\n// EXTERNAL MODULE: {}\n",
+          //   info.module.readable_identifier(request_shortener)
+          // ));
+          //
+          // runtime_requirements.push(RuntimeGlobals::Require);
+          //
+          // let runtime_condition = match raw_info {
+          //   ExternalModuleInfo {
+          //     runtime_condition, ..
+          //   } => runtime_condition,
+          //   ReferenceToModuleInfo {
+          //     runtime_condition, ..
+          //   } => runtime_condition,
+          //   _ => Default::default(),
+          // };
+          //
+          // let condition = runtime_template.runtime_condition_expression(
+          //   chunk_graph,
+          //   &runtime_condition,
+          //   runtime,
+          //   &mut runtime_requirements,
+          // );
+          //
+          // if condition != "true" {
+          //   is_conditional = true;
+          //   result.push_str(&format!("if ({}) {{\n", condition));
+          // }
+          //
+          // result.push_str(&format!(
+          //   "let {} = {}({});",
+          //   info.name,
+          //   RuntimeGlobals::Require,
+          //   serde_json::to_string(chunk_graph.get_module_id(&info.module)).unwrap()
+          // ));
+          //
+          // name = info.name.clone();
+          todo!()
+        }
+      }
+
+      // if info.interop_namespace_object_used {
+      //   runtime_requirements.push(RuntimeGlobals::CreateFakeNamespaceObject);
+      //   result.push_str(&format!(
+      //     "\nlet {} = /*#__PURE__*/{}({}, 2);",
+      //     info.interop_namespace_object_name,
+      //     RuntimeGlobals::CreateFakeNamespaceObject,
+      //     name
+      //   ));
+      // }
+      //
+      // if info.interop_namespace_object2_used {
+      //   runtime_requirements.push(RuntimeGlobals::CreateFakeNamespaceObject);
+      //   result.push_str(&format!(
+      //     "\nlet {} = /*#__PURE__*/{}({});",
+      //     info.interop_namespace_object2_name,
+      //     RuntimeGlobals::CreateFakeNamespaceObject,
+      //     name
+      //   ));
+      // }
+      //
+      // if info.interop_default_access_used {
+      //   runtime_requirements.push(RuntimeGlobals::CompatGetDefaultExport);
+      //   result.push_str(&format!(
+      //     "\nlet {} = /*#__PURE__*/{}({});",
+      //     info.interop_default_access_name,
+      //     RuntimeGlobals::CompatGetDefaultExport,
+      //     name
+      //   ));
+      // }
+
+      if is_conditional {
+        result.add(RawSource::from("\n}"));
+      }
+    };
 
     println!("source: \n{}", result.source());
     let mut code_generation_result = CodeGenerationResult::default();

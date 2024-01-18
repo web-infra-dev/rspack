@@ -7,3 +7,8 @@ function answer() {
 
 answer()
 
+function test() {
+
+}
+
+
