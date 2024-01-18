@@ -1,5 +1,5 @@
 use rspack_core::{ConstDependency, DependencyLocation, DependencyTemplate, SpanExt};
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::common::SyntaxContext;
 use swc_core::ecma::ast::{FnDecl, Ident, Program};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
@@ -11,14 +11,14 @@ pub struct CompatibilityScanner<'a> {
   presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
   count: u8, // flag __webpack_require__ count
   name_map: FxHashMap<SyntaxContext, u8>,
-  ignored: &'a mut Vec<DependencyLocation>,
+  ignored: &'a mut FxHashSet<DependencyLocation>,
 }
 
 impl<'a> CompatibilityScanner<'a> {
   pub fn new(
     presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
     unresolved_ctxt: SyntaxContext,
-    ignored: &'a mut Vec<DependencyLocation>,
+    ignored: &'a mut FxHashSet<DependencyLocation>,
   ) -> Self {
     Self {
       presentational_dependencies,
@@ -61,7 +61,7 @@ pub struct ReplaceNestWebpackRequireVisitor<'a> {
   unresolved_ctxt: SyntaxContext,
   name_map: &'a FxHashMap<SyntaxContext, u8>,
   presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
-  ignored: &'a mut Vec<DependencyLocation>,
+  ignored: &'a mut FxHashSet<DependencyLocation>,
 }
 
 impl Visit for ReplaceNestWebpackRequireVisitor<'_> {

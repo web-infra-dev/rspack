@@ -1,6 +1,7 @@
 use rspack_core::{
   DependencyLocation, DependencyTemplate, RuntimeGlobals, RuntimeRequirementsDependency,
 };
+use rustc_hash::FxHashSet;
 use swc_core::common::SyntaxContext;
 use swc_core::ecma::ast::{Expr, Ident};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
@@ -12,14 +13,14 @@ pub struct CommonJsScanner<'a> {
   unresolved_ctxt: SyntaxContext,
   presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
   has_module_ident: bool,
-  ignored: &'a mut Vec<DependencyLocation>,
+  ignored: &'a mut FxHashSet<DependencyLocation>,
 }
 
 impl<'a> CommonJsScanner<'a> {
   pub fn new(
     presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
     unresolved_ctxt: SyntaxContext,
-    ignored: &'a mut Vec<DependencyLocation>,
+    ignored: &'a mut FxHashSet<DependencyLocation>,
   ) -> Self {
     Self {
       presentational_dependencies,

@@ -20,10 +20,12 @@ use std::sync::Arc;
 
 pub use context_helper::scanner_context_module;
 use rspack_ast::javascript::Program;
-use rspack_core::{AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo};
+use rspack_core::{
+  AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, DependencyLocation,
+};
 use rspack_core::{BuildMeta, CompilerOptions, ModuleIdentifier, ModuleType, ResourceData};
 use rspack_error::miette::Diagnostic;
-use rustc_hash::FxHashMap as HashMap;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 use swc_core::common::{comments::Comments, Mark, SyntaxContext};
 use swc_core::common::{SourceFile, Span};
 use swc_core::ecma::atoms::JsWord;
@@ -83,7 +85,7 @@ pub fn scan_dependencies(
   let unresolved_ctxt = SyntaxContext::empty().apply_mark(unresolved_mark);
   let comments = program.comments.clone();
   let mut parser_exports_state = None;
-  let mut ignored = vec![];
+  let mut ignored: FxHashSet<DependencyLocation> = FxHashSet::default();
 
   let mut rewrite_usage_span = HashMap::default();
 

@@ -46,7 +46,7 @@ impl AsyncDependenciesBlockId {
   }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct DependencyLocation {
   start: u32,
   end: u32,

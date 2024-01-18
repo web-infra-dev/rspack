@@ -75,7 +75,7 @@ pub struct HarmonyImportDependencyScanner<'a> {
   pub build_info: &'a mut BuildInfo,
   pub rewrite_usage_span: &'a mut HashMap<Span, ExtraSpanInfo>,
   pub last_harmony_import_order: i32,
-  pub ignored: &'a mut Vec<DependencyLocation>,
+  pub ignored: &'a mut HashSet<DependencyLocation>,
 }
 
 impl<'a> HarmonyImportDependencyScanner<'a> {
@@ -85,7 +85,7 @@ impl<'a> HarmonyImportDependencyScanner<'a> {
     import_map: &'a mut ImportMap,
     build_info: &'a mut BuildInfo,
     rewrite_usage_span: &'a mut HashMap<Span, ExtraSpanInfo>,
-    ignored: &'a mut Vec<DependencyLocation>,
+    ignored: &'a mut HashSet<DependencyLocation>,
   ) -> Self {
     Self {
       dependencies,
@@ -590,6 +590,7 @@ impl Visit for HarmonyImportRefDependencyScanner<'_> {
 mod test {
   use rspack_ast::javascript::Program;
   use rspack_core::{BuildInfo, Dependency, ModuleType};
+  use rustc_hash::FxHashSet;
 
   use super::HarmonyImportDependencyScanner;
   use crate::{ast::parse, dependency::HarmonyImportSpecifierDependency};
@@ -613,7 +614,7 @@ mod test {
     let mut deps = vec![];
     let mut presentation_deps = vec![];
     let mut rewrite_usage_span = Default::default();
-    let mut ignored = vec![];
+    let mut ignored = FxHashSet::default();
     let mut scanner = HarmonyImportDependencyScanner::new(
       &mut deps,
       &mut presentation_deps,

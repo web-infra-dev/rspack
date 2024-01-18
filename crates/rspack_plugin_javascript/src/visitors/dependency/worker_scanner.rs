@@ -6,6 +6,7 @@ use rspack_core::{
   SpanExt,
 };
 use rspack_hash::RspackHash;
+use rustc_hash::FxHashSet;
 use swc_core::common::Spanned;
 use swc_core::ecma::ast::{Expr, ExprOrSpread, NewExpr};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
@@ -23,7 +24,7 @@ pub struct WorkerScanner<'a> {
   module_identifier: &'a ModuleIdentifier,
   output_options: &'a OutputOptions,
   syntax_list: &'a rspack_core::needs_refactor::WorkerSyntaxList,
-  pub ignored: &'a mut Vec<DependencyLocation>,
+  pub ignored: &'a mut FxHashSet<DependencyLocation>,
 }
 
 // new Worker(new URL("./foo.worker.js", import.meta.url));
@@ -32,7 +33,7 @@ impl<'a> WorkerScanner<'a> {
     module_identifier: &'a ModuleIdentifier,
     output_options: &'a OutputOptions,
     syntax_list: &'a rspack_core::needs_refactor::WorkerSyntaxList,
-    ignored: &'a mut Vec<DependencyLocation>,
+    ignored: &'a mut FxHashSet<DependencyLocation>,
   ) -> Self {
     Self {
       presentational_dependencies: Vec::new(),
