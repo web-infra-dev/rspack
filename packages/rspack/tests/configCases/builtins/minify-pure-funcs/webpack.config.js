@@ -5,7 +5,7 @@ module.exports = {
 		minimize: true,
 		minimizer: [
 			new rspack.SwcJsMinimizerRspackPlugin({
-				pureFuncs: ["console.error", "console.warn"]
+				pureFuncs: ["__logger.error", "__logger.warn"]
 			})
 		]
 	}
