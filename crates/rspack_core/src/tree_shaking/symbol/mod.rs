@@ -3,7 +3,7 @@ use once_cell::sync::Lazy;
 use rspack_identifier::Identifier;
 use serde::{Deserialize, Serialize};
 use swc_core::ecma::ast::Id;
-use swc_core::ecma::atoms::JsWord;
+use swc_core::ecma::atoms::Atom;
 use swc_core::{common::SyntaxContext, ecma::atoms::js_word};
 
 use crate::DependencyId;
@@ -27,7 +27,7 @@ pub struct Symbol {
   pub(crate) id: BetterId,
   /// exported only used for `export {id as exported};` when there existed a alias in
   /// `ExportNamedDeclaration`
-  pub(crate) exported: Option<JsWord>,
+  pub(crate) exported: Option<Atom>,
   pub(crate) ty: SymbolType,
 }
 
@@ -38,7 +38,7 @@ pub enum SymbolType {
 }
 
 impl Symbol {
-  pub fn new(src: Identifier, id: BetterId, ty: SymbolType, exported: Option<JsWord>) -> Self {
+  pub fn new(src: Identifier, id: BetterId, ty: SymbolType, exported: Option<Atom>) -> Self {
     Self {
       src,
       id,
@@ -47,7 +47,7 @@ impl Symbol {
     }
   }
 
-  pub fn exported(&self) -> &JsWord {
+  pub fn exported(&self) -> &Atom {
     match self.exported {
       Some(ref exported) => exported,
       None => &self.id().atom,
@@ -73,15 +73,15 @@ impl Symbol {
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash, Serialize)]
 pub enum IndirectType {
-  Temp(JsWord),
+  Temp(Atom),
   /// first argument is original, second argument is exported
-  ReExport(JsWord, Option<JsWord>),
+  ReExport(Atom, Option<Atom>),
   /// first argument is local, second argument is imported
-  Import(JsWord, Option<JsWord>),
+  Import(Atom, Option<Atom>),
   ///
-  ImportDefault(JsWord),
+  ImportDefault(Atom),
 }
-pub static DEFAULT_JS_WORD: Lazy<JsWord> = Lazy::new(|| js_word!("default"));
+pub static DEFAULT_JS_WORD: Lazy<Atom> = Lazy::new(|| js_word!("default"));
 /// We have three kind of star symbol
 /// ## import with namespace
 /// ```js
@@ -125,7 +125,7 @@ pub static DEFAULT_JS_WORD: Lazy<JsWord> = Lazy::new(|| js_word!("default"));
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize)]
 pub struct StarSymbol {
   pub src: Identifier,
-  pub binding: JsWord,
+  pub binding: Atom,
   pub module_ident: Identifier,
   pub ty: StarSymbolKind,
   pub dep_id: DependencyId,
@@ -141,7 +141,7 @@ pub enum StarSymbolKind {
 impl StarSymbol {
   pub fn new(
     src: Identifier,
-    binding: JsWord,
+    binding: Atom,
     module_ident: Identifier,
     ty: StarSymbolKind,
     dep_id: DependencyId,
@@ -173,7 +173,7 @@ impl StarSymbol {
     self.module_ident
   }
 
-  pub fn binding(&self) -> &JsWord {
+  pub fn binding(&self) -> &Atom {
     &self.binding
   }
 
@@ -208,7 +208,7 @@ impl IndirectTopLevelSymbol {
 
   /// if `self.ty == IndirectType::Rexport`, it return `exported` if it is [Some] else it return `original`.
   /// else it return binding
-  pub fn indirect_id(&self) -> &JsWord {
+  pub fn indirect_id(&self) -> &Atom {
     match self.ty {
       IndirectType::Temp(ref ident) => ident,
       IndirectType::ReExport(ref original, ref exported) => match exported {
@@ -224,7 +224,7 @@ impl IndirectTopLevelSymbol {
     }
   }
 
-  pub fn id(&self) -> &JsWord {
+  pub fn id(&self) -> &Atom {
     match self.ty {
       IndirectType::Temp(ref ident) => ident,
       IndirectType::ReExport(ref original, ref exported) => match exported {
@@ -271,11 +271,11 @@ impl IndirectTopLevelSymbol {
 /// Just a wrapper type of [swc_ecma_ast::Id],just want a better debug experience e.g.
 /// `BetterId.debug()` -> `xxxxxxx|#10`
 /// debug of [swc_ecma_ast::Id] -> `(#1, atom: Atom('b' type=static))`
-/// We don't care the kind of inter of the [JsWord]
+/// We don't care the kind of inter of the [Atom]
 #[derive(Hash, Clone, PartialEq, Eq, Default, Serialize)]
 pub struct BetterId {
   pub ctxt: SyntaxContext,
-  pub atom: JsWord,
+  pub atom: Atom,
 }
 
 impl std::fmt::Debug for BetterId {
@@ -293,7 +293,7 @@ impl From<Id> for BetterId {
 
 #[derive(Debug, Eq, Clone)]
 pub struct SymbolExt {
-  pub id: JsWord,
+  pub id: Atom,
   pub flag: SymbolFlag,
 }
 
@@ -302,15 +302,15 @@ impl SymbolExt {
     self.flag
   }
 
-  pub fn id(&self) -> &JsWord {
+  pub fn id(&self) -> &Atom {
     &self.id
   }
 
-  pub fn new(id: JsWord, flag: SymbolFlag) -> SymbolExt {
+  pub fn new(id: Atom, flag: SymbolFlag) -> SymbolExt {
     SymbolExt { id, flag }
   }
 
-  pub fn set_id(&mut self, id: JsWord) {
+  pub fn set_id(&mut self, id: Atom) {
     self.id = id;
   }
 
@@ -327,8 +327,8 @@ impl std::hash::Hash for SymbolExt {
   }
 }
 
-impl From<JsWord> for SymbolExt {
-  fn from(id: JsWord) -> Self {
+impl From<Atom> for SymbolExt {
+  fn from(id: Atom) -> Self {
     Self {
       id,
       flag: SymbolFlag::empty(),
@@ -361,10 +361,10 @@ impl PartialEq for SymbolExt {
 /// We use [Part::MemberExpr] to represent namespace access
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum Part {
-  TopLevelId(JsWord),
-  MemberExpr { first: JsWord, rest: Vec<JsWord> },
-  Url(JsWord),
-  Worker(JsWord),
+  TopLevelId(Atom),
+  MemberExpr { first: Atom, rest: Vec<Atom> },
+  Url(Atom),
+  Worker(Atom),
 }
 
 impl Part {
@@ -384,7 +384,7 @@ impl Part {
     matches!(self, Self::MemberExpr { .. })
   }
 
-  pub fn get_id(&self) -> Option<&JsWord> {
+  pub fn get_id(&self) -> Option<&Atom> {
     match self {
       Part::TopLevelId(id) => Some(id),
       Part::MemberExpr { first: object, .. } => Some(object),

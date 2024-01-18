@@ -1,4 +1,4 @@
-use swc_core::atoms::JsWord;
+use swc_core::atoms::Atom;
 
 pub fn normalize_custom_filename(source: &str) -> &str {
   if source.starts_with('<') && source.ends_with('>') {
@@ -8,7 +8,7 @@ pub fn normalize_custom_filename(source: &str) -> &str {
   }
 }
 
-pub fn join_jsword(arr: &[JsWord], separator: &str) -> String {
+pub fn join_jsword(arr: &[Atom], separator: &str) -> String {
   let mut ret = String::new();
   if let Some(item) = arr.first() {
     ret.push_str(item);

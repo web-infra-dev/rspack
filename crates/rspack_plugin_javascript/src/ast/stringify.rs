@@ -11,7 +11,7 @@ use swc_core::{
   },
   ecma::{
     ast::{EsVersion, Program as SwcProgram},
-    atoms::JsWord,
+    atoms::Atom,
     codegen::{
       self,
       text_writer::{self, WriteJs},
@@ -140,7 +140,7 @@ pub struct SourceMapConfig {
   pub enable: bool,
   pub inline_sources_content: bool,
   pub emit_columns: bool,
-  pub names: AHashMap<BytePos, JsWord>,
+  pub names: AHashMap<BytePos, Atom>,
 }
 
 impl SourceMapGenConfig for SourceMapConfig {

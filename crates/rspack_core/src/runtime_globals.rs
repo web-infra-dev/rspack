@@ -1,7 +1,7 @@
 use std::fmt;
 
 use bitflags::bitflags;
-use swc_core::ecma::atoms::JsWord;
+use swc_core::ecma::atoms::Atom;
 
 bitflags! {
   pub struct RuntimeGlobals: u64 {
@@ -349,7 +349,7 @@ impl RuntimeGlobals {
   }
 }
 
-impl From<RuntimeGlobals> for JsWord {
+impl From<RuntimeGlobals> for Atom {
   fn from(value: RuntimeGlobals) -> Self {
     value.name().into()
   }

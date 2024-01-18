@@ -14,7 +14,7 @@ use rspack_core::{
   TemplateReplaceSource, UsageState, UsedName,
 };
 use rustc_hash::{FxHashSet as HashSet, FxHasher};
-use swc_core::ecma::atoms::JsWord;
+use swc_core::ecma::atoms::Atom;
 
 use super::{create_resource_identifier_for_esm_dependency, harmony_import_dependency_apply};
 
@@ -26,14 +26,14 @@ use super::{create_resource_identifier_for_esm_dependency, harmony_import_depend
 pub struct HarmonyExportImportedSpecifierDependency {
   pub id: DependencyId,
   pub source_order: i32,
-  pub request: JsWord,
-  pub ids: Vec<(JsWord, Option<JsWord>)>,
+  pub request: Atom,
+  pub ids: Vec<(Atom, Option<Atom>)>,
   /// used for get_mode, legacy issue
-  pub mode_ids: Vec<(JsWord, Option<JsWord>)>,
-  pub name: Option<JsWord>,
+  pub mode_ids: Vec<(Atom, Option<Atom>)>,
+  pub name: Option<Atom>,
   resource_identifier: String,
   // Because it is shared by multiply HarmonyExportImportedSpecifierDependency, so put it to `BuildInfo`
-  // pub active_exports: HashSet<JsWord>,
+  // pub active_exports: HashSet<Atom>,
   // pub all_star_exports: Option<Vec<DependencyId>>,
   pub other_star_exports: Option<Vec<DependencyId>>,
   pub export_all: bool,
@@ -41,11 +41,11 @@ pub struct HarmonyExportImportedSpecifierDependency {
 
 impl HarmonyExportImportedSpecifierDependency {
   pub fn new(
-    request: JsWord,
+    request: Atom,
     source_order: i32,
-    ids: Vec<(JsWord, Option<JsWord>)>,
-    mode_ids: Vec<(JsWord, Option<JsWord>)>,
-    name: Option<JsWord>,
+    ids: Vec<(Atom, Option<Atom>)>,
+    mode_ids: Vec<(Atom, Option<Atom>)>,
+    name: Option<Atom>,
     export_all: bool,
     other_star_exports: Option<Vec<DependencyId>>,
   ) -> Self {
@@ -63,7 +63,7 @@ impl HarmonyExportImportedSpecifierDependency {
     }
   }
 
-  pub fn active_exports<'a>(&self, module_graph: &'a ModuleGraph) -> &'a HashSet<JsWord> {
+  pub fn active_exports<'a>(&self, module_graph: &'a ModuleGraph) -> &'a HashSet<Atom> {
     let build_info = module_graph
       .parent_module_by_dependency_id(&self.id)
       .and_then(|ident| module_graph.module_by_identifier(&ident))
@@ -87,7 +87,7 @@ impl HarmonyExportImportedSpecifierDependency {
   #[allow(unused)]
   pub fn get_mode(
     &self,
-    name: Option<JsWord>,
+    name: Option<Atom>,
     module_graph: &ModuleGraph,
     id: &DependencyId,
     runtime: Option<&RuntimeSpec>,
@@ -300,7 +300,7 @@ impl HarmonyExportImportedSpecifierDependency {
       UsageState::Unused
     );
 
-    let ignored_exports: HashSet<JsWord> = {
+    let ignored_exports: HashSet<Atom> = {
       let mut e = self.active_exports(module_graph).clone();
       e.insert("default".into());
       e
@@ -794,9 +794,9 @@ impl HarmonyExportImportedSpecifierDependency {
   fn get_conditional_reexport_statement(
     &self,
     ctxt: &mut TemplateContext<'_, '_>,
-    key: JsWord,
+    key: Atom,
     name: &String,
-    first_value_key: JsWord,
+    first_value_key: Atom,
     value_key: ValueKey,
   ) -> String {
     if matches!(value_key, ValueKey::False) {
@@ -832,7 +832,7 @@ impl HarmonyExportImportedSpecifierDependency {
 
 #[derive(Debug)]
 pub struct DiscoverActiveExportsFromOtherStarExportsRet {
-  names: Vec<JsWord>,
+  names: Vec<Atom>,
   names_slice: usize,
   pub dependency_indices: Vec<usize>,
   pub dependency_index: usize,
@@ -925,7 +925,7 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
         // })
         exports.push((
           key,
-          JsWord::from(export_from_import(
+          Atom::from(export_from_import(
             code_generatable_context,
             true,
             &self.request,
@@ -939,7 +939,7 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
       } else {
         exports.push((
           id.0.clone(),
-          JsWord::from(export_from_import(
+          Atom::from(export_from_import(
             code_generatable_context,
             true,
             &self.request,
@@ -1003,7 +1003,7 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
         Some(ExportsSpec {
           exports: ExportsOfExportsSpec::Array(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
             name: mode.name.unwrap_or_default(),
-            export: Some(rspack_core::Nullable::Value(vec![JsWord::from("default")])),
+            export: Some(rspack_core::Nullable::Value(vec![Atom::from("default")])),
             from: from.cloned(),
             ..Default::default()
           })]),
@@ -1017,7 +1017,7 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
         Some(ExportsSpec {
           exports: ExportsOfExportsSpec::Array(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
             name: mode.name.unwrap_or_default(),
-            export: Some(rspack_core::Nullable::Value(vec![JsWord::from("default")])),
+            export: Some(rspack_core::Nullable::Value(vec![Atom::from("default")])),
             from: from.cloned(),
             ..Default::default()
           })]),
@@ -1136,7 +1136,7 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
     ConnectionState::Bool(false)
   }
 
-  fn get_ids(&self, mg: &ModuleGraph) -> Vec<JsWord> {
+  fn get_ids(&self, mg: &ModuleGraph) -> Vec<Atom> {
     mg.get_dep_meta_if_existing(self.id)
       .map(|meta| meta.ids.clone())
       .unwrap_or_else(|| {
@@ -1269,8 +1269,8 @@ impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
 enum ValueKey {
   False,
   Null,
-  Str(JsWord),
-  Vec(Vec<JsWord>),
+  Str(Atom),
+  Vec(Vec<Atom>),
 }
 
 impl From<Option<UsedName>> for ValueKey {
@@ -1301,8 +1301,8 @@ pub enum ExportModeType {
 
 #[derive(Debug)]
 pub struct NormalReexportItem {
-  pub name: JsWord,
-  pub ids: Vec<JsWord>,
+  pub name: Atom,
+  pub ids: Vec<Atom>,
   pub hidden: bool,
   pub checked: bool,
   pub export_info: ExportInfoId,
@@ -1313,11 +1313,11 @@ pub struct ExportMode {
   /// corresponding to `type` field in webpack's `EpxortMode`
   pub ty: ExportModeType,
   pub items: Option<Vec<NormalReexportItem>>,
-  pub name: Option<JsWord>,
+  pub name: Option<Atom>,
   pub fake_type: u8,
   pub partial_namespace_export_info: Option<ExportInfoId>,
-  pub ignored: Option<HashSet<JsWord>>,
-  pub hidden: Option<HashSet<JsWord>>,
+  pub ignored: Option<HashSet<Atom>>,
+  pub hidden: Option<HashSet<Atom>>,
 }
 
 impl ExportMode {
@@ -1336,10 +1336,10 @@ impl ExportMode {
 
 #[derive(Debug, Default)]
 pub struct StarReexportsInfo {
-  exports: Option<HashSet<JsWord>>,
-  checked: Option<HashSet<JsWord>>,
-  ignored_exports: HashSet<JsWord>,
-  hidden: Option<HashSet<JsWord>>,
+  exports: Option<HashSet<Atom>>,
+  checked: Option<HashSet<Atom>>,
+  ignored_exports: HashSet<Atom>,
+  hidden: Option<HashSet<Atom>>,
 }
 
 /// return (names, dependency_indices)
@@ -1347,14 +1347,14 @@ fn determine_export_assignments(
   module_graph: &ModuleGraph,
   mut dependencies: Vec<DependencyId>,
   additional_dependency: Option<DependencyId>,
-) -> (Vec<JsWord>, Vec<usize>) {
+) -> (Vec<Atom>, Vec<usize>) {
   if let Some(additional_dependency) = additional_dependency {
     dependencies.push(additional_dependency);
   }
 
   // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/dependencies/HarmonyExportImportedSpecifierDependency.js#L109
   // js `Set` keep the insertion order, use `IndexSet` to align there behavior
-  let mut names: IndexSet<JsWord, BuildHasherDefault<FxHasher>> = IndexSet::default();
+  let mut names: IndexSet<Atom, BuildHasherDefault<FxHasher>> = IndexSet::default();
   let mut dependency_indices = vec![];
 
   for dependency in dependencies.iter() {
@@ -1377,8 +1377,5 @@ fn determine_export_assignments(
     }
   }
 
-  (
-    names.into_iter().collect::<Vec<JsWord>>(),
-    dependency_indices,
-  )
+  (names.into_iter().collect::<Vec<Atom>>(), dependency_indices)
 }

@@ -8,7 +8,7 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
-use swc_core::ecma::atoms::JsWord;
+use swc_core::ecma::atoms::Atom;
 
 struct FlagDependencyExportsProxy<'a> {
   mg: &'a mut ModuleGraph,
@@ -216,7 +216,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
             global_export_info.terminal_binding,
             None::<&Vec<ExportNameOrSpec>>,
             global_export_info.from.cloned(),
-            None::<&rspack_core::Nullable<Vec<JsWord>>>,
+            None::<&rspack_core::Nullable<Vec<Atom>>>,
             global_export_info.priority,
             false,
           ),

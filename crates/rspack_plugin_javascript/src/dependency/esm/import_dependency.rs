@@ -2,25 +2,25 @@ use rspack_core::{module_namespace_promise, DependencyType, ErrorSpan, ImportDep
 use rspack_core::{AsContextDependency, Dependency};
 use rspack_core::{DependencyCategory, DependencyId, DependencyTemplate};
 use rspack_core::{ModuleDependency, TemplateContext, TemplateReplaceSource};
-use swc_core::ecma::atoms::JsWord;
+use swc_core::ecma::atoms::Atom;
 
 #[derive(Debug, Clone)]
 pub struct ImportDependency {
   start: u32,
   end: u32,
   id: DependencyId,
-  request: JsWord,
+  request: Atom,
   span: Option<ErrorSpan>,
-  referenced_exports: Option<Vec<JsWord>>,
+  referenced_exports: Option<Vec<Atom>>,
 }
 
 impl ImportDependency {
   pub fn new(
     start: u32,
     end: u32,
-    request: JsWord,
+    request: Atom,
     span: Option<ErrorSpan>,
-    referenced_exports: Option<Vec<JsWord>>,
+    referenced_exports: Option<Vec<Atom>>,
   ) -> Self {
     Self {
       start,
@@ -70,7 +70,7 @@ impl ModuleDependency for ImportDependency {
 }
 
 impl ImportDependencyTrait for ImportDependency {
-  fn referenced_exports(&self) -> Option<&Vec<JsWord>> {
+  fn referenced_exports(&self) -> Option<&Vec<Atom>> {
     self.referenced_exports.as_ref()
   }
 }

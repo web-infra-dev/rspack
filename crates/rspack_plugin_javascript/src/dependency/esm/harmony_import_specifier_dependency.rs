@@ -8,7 +8,7 @@ use rspack_core::{
   TemplateReplaceSource, UsedByExports,
 };
 use rustc_hash::FxHashSet as HashSet;
-use swc_core::{common::Span, ecma::atoms::JsWord};
+use swc_core::{common::Span, ecma::atoms::Atom};
 
 use super::{
   create_resource_identifier_for_esm_dependency, harmony_import_dependency_apply, Specifier,
@@ -17,18 +17,18 @@ use super::{
 #[derive(Debug, Clone)]
 pub struct HarmonyImportSpecifierDependency {
   pub id: DependencyId,
-  request: JsWord,
+  request: Atom,
   source_order: i32,
   shorthand: bool,
   start: u32,
   end: u32,
-  ids: Vec<JsWord>,
+  ids: Vec<Atom>,
   pub(crate) call: bool,
   direct_import: bool,
   specifier: Specifier,
   used_by_exports: Option<UsedByExports>,
   pub namespace_object_as_context: bool,
-  referenced_properties_in_destructuring: Option<HashSet<JsWord>>,
+  referenced_properties_in_destructuring: Option<HashSet<Atom>>,
   resource_identifier: String,
   span_for_on_usage_search: Span,
 }
@@ -36,16 +36,16 @@ pub struct HarmonyImportSpecifierDependency {
 impl HarmonyImportSpecifierDependency {
   #[allow(clippy::too_many_arguments)]
   pub fn new(
-    request: JsWord,
+    request: Atom,
     source_order: i32,
     shorthand: bool,
     start: u32,
     end: u32,
-    ids: Vec<JsWord>,
+    ids: Vec<Atom>,
     call: bool,
     direct_import: bool,
     specifier: Specifier,
-    referenced_properties_in_destructuring: Option<HashSet<JsWord>>,
+    referenced_properties_in_destructuring: Option<HashSet<Atom>>,
     span_for_on_usage_search: Span,
   ) -> Self {
     let resource_identifier = create_resource_identifier_for_esm_dependency(&request);
@@ -101,7 +101,7 @@ impl HarmonyImportSpecifierDependency {
 
   pub fn get_referenced_exports_in_destructuring(
     &self,
-    ids: Option<&Vec<JsWord>>,
+    ids: Option<&Vec<Atom>>,
   ) -> Vec<ExtendedReferencedExport> {
     if let Some(referenced_properties) = &self.referenced_properties_in_destructuring {
       referenced_properties
@@ -235,7 +235,7 @@ impl Dependency for HarmonyImportSpecifierDependency {
     ConnectionState::Bool(false)
   }
 
-  fn get_ids(&self, mg: &ModuleGraph) -> Vec<JsWord> {
+  fn get_ids(&self, mg: &ModuleGraph) -> Vec<Atom> {
     mg.get_dep_meta_if_existing(self.id)
       .map(|meta| meta.ids.clone())
       .unwrap_or_else(|| self.ids.clone())

@@ -8,7 +8,7 @@ use rspack_core::{Compilation, OutputOptions, PathData, RuntimeGlobals};
 use rspack_error::{error, Result};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash};
 use swc_core::css::modules::CssClassName;
-use swc_core::ecma::atoms::JsWord;
+use swc_core::ecma::atoms::Atom;
 
 use crate::plugin::{LocalIdentName, LocalIdentNameRenderOptions, LocalsConvention};
 
@@ -43,7 +43,7 @@ impl<'a> ModulesTransformConfig<'a> {
 }
 
 impl swc_core::css::modules::TransformConfig for ModulesTransformConfig<'_> {
-  fn new_name_for(&self, local: &JsWord) -> JsWord {
+  fn new_name_for(&self, local: &Atom) -> Atom {
     let hash = {
       let mut hasher = RspackHash::with_salt(self.hash_function, self.hash_salt);
       self.filename.hash(&mut hasher);
@@ -69,7 +69,7 @@ impl swc_core::css::modules::TransformConfig for ModulesTransformConfig<'_> {
 }
 
 pub(crate) fn export_locals_convention(
-  key: &JsWord,
+  key: &Atom,
   locals_convention: &LocalsConvention,
 ) -> Vec<String> {
   let mut res = Vec::with_capacity(3);

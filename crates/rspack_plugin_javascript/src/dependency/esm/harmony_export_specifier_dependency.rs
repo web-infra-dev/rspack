@@ -3,18 +3,18 @@ use rspack_core::{
   DependencyTemplate, DependencyType, ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec,
   HarmonyExportInitFragment, ModuleGraph, TemplateContext, TemplateReplaceSource, UsedName,
 };
-use swc_core::ecma::atoms::JsWord;
+use swc_core::ecma::atoms::Atom;
 
 // Create _webpack_require__.d(__webpack_exports__, {}) for each export.
 #[derive(Debug, Clone)]
 pub struct HarmonyExportSpecifierDependency {
   id: DependencyId,
-  name: JsWord,
-  value: JsWord, // id
+  name: Atom,
+  value: Atom, // id
 }
 
 impl HarmonyExportSpecifierDependency {
-  pub fn new(name: JsWord, value: JsWord) -> Self {
+  pub fn new(name: Atom, value: Atom) -> Self {
     Self {
       id: DependencyId::new(),
       name,

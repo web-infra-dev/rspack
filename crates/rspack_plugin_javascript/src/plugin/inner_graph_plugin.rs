@@ -10,7 +10,7 @@ use swc_core::{
       ExportDecl, ExportDefaultDecl, ExportDefaultExpr, Expr, FnDecl, FnExpr, Function, Ident, Key,
       MemberExpr, NamedExport, OptChainExpr, Pat, Program, Prop, VarDeclarator,
     },
-    atoms::JsWord,
+    atoms::Atom,
     visit::{noop_visit_type, Visit, VisitWith},
   },
 };
@@ -26,8 +26,8 @@ use crate::{
 
 #[derive(Hash, PartialEq, Eq, Clone, Debug)]
 pub enum InnerGraphMapSetValue {
-  TopLevel(JsWord),
-  Str(JsWord),
+  TopLevel(Atom),
+  Str(Atom),
 }
 
 /// You need to make sure that InnerGraphMapUsage is not a  [InnerGraphMapUsage::True] variant
@@ -42,7 +42,7 @@ impl From<InnerGraphMapUsage> for InnerGraphMapSetValue {
 }
 
 impl InnerGraphMapSetValue {
-  fn to_jsword(&self) -> &JsWord {
+  fn to_jsword(&self) -> &Atom {
     match self {
       InnerGraphMapSetValue::TopLevel(v) => v,
       InnerGraphMapSetValue::Str(v) => v,
@@ -60,8 +60,8 @@ pub enum InnerGraphMapValue {
 
 #[derive(PartialEq, Eq, Debug)]
 pub enum InnerGraphMapUsage {
-  TopLevel(JsWord),
-  Value(JsWord),
+  TopLevel(Atom),
+  Value(Atom),
   True,
 }
 
@@ -69,9 +69,9 @@ pub type UsageCallback = Box<dyn Fn(&mut Vec<Box<dyn Dependency>>, Option<UsedBy
 
 #[derive(Default)]
 pub struct InnerGraphState {
-  inner_graph: HashMap<JsWord, InnerGraphMapValue>,
-  usage_callback_map: HashMap<JsWord, Vec<UsageCallback>>,
-  current_top_level_symbol: Option<JsWord>,
+  inner_graph: HashMap<Atom, InnerGraphMapValue>,
+  usage_callback_map: HashMap<Atom, Vec<UsageCallback>>,
+  current_top_level_symbol: Option<Atom>,
   enable: bool,
   module_identifier: ModuleIdentifier,
 }
@@ -557,7 +557,7 @@ impl<'a> InnerGraphPlugin<'a> {
     self.state.enable
   }
 
-  pub fn add_usage(&mut self, symbol: JsWord, usage: InnerGraphMapUsage) {
+  pub fn add_usage(&mut self, symbol: Atom, usage: InnerGraphMapUsage) {
     if !self.is_enabled() {
       return;
     }
@@ -594,7 +594,7 @@ impl<'a> InnerGraphPlugin<'a> {
     }
   }
 
-  pub fn add_variable_usage(&mut self, name: JsWord, usage: InnerGraphMapUsage) {
+  pub fn add_variable_usage(&mut self, name: Atom, usage: InnerGraphMapUsage) {
     self.add_usage(name, usage);
   }
 
@@ -636,11 +636,11 @@ impl<'a> InnerGraphPlugin<'a> {
     class.visit_children_with(self);
   }
 
-  pub fn set_top_level_symbol(&mut self, symbol: Option<JsWord>) {
+  pub fn set_top_level_symbol(&mut self, symbol: Option<Atom>) {
     self.state.current_top_level_symbol = symbol;
   }
 
-  pub fn set_symbol_if_is_top_level(&mut self, symbol: JsWord) {
+  pub fn set_symbol_if_is_top_level(&mut self, symbol: Atom) {
     if self.is_toplevel() {
       self.set_top_level_symbol(Some(symbol));
     }
@@ -652,7 +652,7 @@ impl<'a> InnerGraphPlugin<'a> {
     }
   }
 
-  pub fn get_top_level_symbol(&self) -> Option<JsWord> {
+  pub fn get_top_level_symbol(&self) -> Option<Atom> {
     if self.is_enabled() {
       self.state.current_top_level_symbol.clone()
     } else {
@@ -667,7 +667,7 @@ impl<'a> InnerGraphPlugin<'a> {
     }
     let state = &mut self.state;
     let mut non_terminal = HashSet::from_iter(state.inner_graph.keys().cloned());
-    let mut processed: HashMap<JsWord, HashSet<InnerGraphMapSetValue>> = HashMap::default();
+    let mut processed: HashMap<Atom, HashSet<InnerGraphMapSetValue>> = HashMap::default();
 
     // dbg!(state.module_identifier, &state.inner_graph,);
     while !non_terminal.is_empty() {
@@ -734,7 +734,7 @@ impl<'a> InnerGraphPlugin<'a> {
           keys_to_remove.push(key.clone());
           // We use `""` to represent global_key
           if key == "" {
-            let global_value = state.inner_graph.get(&JsWord::from("")).cloned();
+            let global_value = state.inner_graph.get(&Atom::from("")).cloned();
             if let Some(global_value) = global_value {
               for (key, value) in state.inner_graph.iter_mut() {
                 if key != "" && value != &InnerGraphMapValue::True {

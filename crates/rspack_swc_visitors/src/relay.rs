@@ -25,7 +25,7 @@ use swc_core::{
   common::{Mark, DUMMY_SP},
   ecma::{
     ast::*,
-    atoms::JsWord,
+    atoms::Atom,
     utils::ExprFactory,
     visit::{Fold, FoldWith},
   },
@@ -57,7 +57,7 @@ fn build_require_expr_from_path(path: &str, unresolved_mark: Mark) -> Expr {
     callee: create_require(unresolved_mark).as_callee(),
     args: vec![Lit::Str(Str {
       span: Default::default(),
-      value: JsWord::from(path),
+      value: Atom::from(path),
       raw: None,
     })
     .as_arg()],

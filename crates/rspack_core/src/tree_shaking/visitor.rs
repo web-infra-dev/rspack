@@ -8,7 +8,7 @@ use serde::Serialize;
 use swc_core::common::SyntaxContext;
 use swc_core::common::{util::take::Take, GLOBALS};
 use swc_core::ecma::ast::*;
-use swc_core::ecma::atoms::JsWord;
+use swc_core::ecma::atoms::Atom;
 use swc_core::ecma::utils::{ExprCtx, ExprExt};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 use swc_node_comments::SwcComments;
@@ -39,7 +39,7 @@ pub enum SymbolRef {
   Declaration(Symbol),
   Indirect(IndirectTopLevelSymbol),
   Star(StarSymbol),
-  Usage(JsWord, Vec<JsWord>, ModuleIdentifier),
+  Usage(Atom, Vec<Atom>, ModuleIdentifier),
   Url {
     importer: ModuleIdentifier,
     src: ModuleIdentifier,
@@ -164,8 +164,8 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   module_identifier: ModuleIdentifier,
   dependencies: &'a Vec<BoxDependency>,
   /// Value of `export_map` must have type [SymbolRef::Direct]
-  pub(crate) export_map: HashMap<JsWord, SymbolRef>,
-  pub(crate) import_map: HashMap<JsWord, SymbolRef>,
+  pub(crate) export_map: HashMap<Atom, SymbolRef>,
+  pub(crate) import_map: HashMap<Atom, SymbolRef>,
   /// key is the module identifier, value is the corresponding export map
   /// This data structure is used for collecting reexport * from some module. e.g.
   /// ```js
@@ -177,12 +177,12 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   current_body_owner_symbol_ext: Option<SymbolExt>,
   pub(crate) maybe_lazy_reference_map: HashMap<SymbolExt, HashSet<Part>>,
   pub(crate) immediate_evaluate_reference_map: HashMap<SymbolExt, HashSet<Part>>,
-  pub(crate) reachable_import_and_export: HashMap<JsWord, HashSet<SymbolRef>>,
+  pub(crate) reachable_import_and_export: HashMap<Atom, HashSet<SymbolRef>>,
   state: AnalyzeState,
   pub(crate) used_id_set: HashSet<Part>,
   pub(crate) used_symbol_ref: HashSet<SymbolRef>,
   // This field is used for duplicated export default checking
-  pub(crate) export_default_name: Option<JsWord>,
+  pub(crate) export_default_name: Option<Atom>,
   /// only care about the related export semantic.
   /// # Examples
   /// 1. `require()` -> CommonJs
@@ -332,7 +332,7 @@ impl<'a> ModuleRefAnalyze<'a> {
   /// when a export has been used from other module, we need to get all
   /// reachable import and export(defined in the same module)
   /// in rest of scenario we only count binding imported from other module.
-  pub fn get_all_import_or_export(&self, start: JsWord, only_import: bool) -> HashSet<SymbolRef> {
+  pub fn get_all_import_or_export(&self, start: Atom, only_import: bool) -> HashSet<SymbolRef> {
     let mut visited: HashSet<Part> = HashSet::default();
     let mut q: VecDeque<Part> = VecDeque::from_iter([Part::TopLevelId(start)]);
     while let Some(cur) = q.pop_front() {
@@ -422,7 +422,7 @@ impl<'a> ModuleRefAnalyze<'a> {
     default_ident
   }
 
-  fn check_commonjs_feature(&mut self, member_chain: &[Cow<(JsWord, SyntaxContext)>]) {
+  fn check_commonjs_feature(&mut self, member_chain: &[Cow<(Atom, SyntaxContext)>]) {
     if self.state.contains(AnalyzeState::ASSIGNMENT_LHS) {
       let member_chain = member_chain.iter().map(|m| &**m).collect::<Vec<_>>();
       match &*member_chain {
@@ -1506,7 +1506,7 @@ impl<'a> ModuleRefAnalyze<'a> {
       };
     }
   }
-  fn add_export(&mut self, id: JsWord, symbol: SymbolRef) {
+  fn add_export(&mut self, id: Atom, symbol: SymbolRef) {
     match self.export_map.entry(id) {
       Entry::Occupied(_) => {
         // TODO: should add some Diagnostic
@@ -1678,13 +1678,13 @@ pub struct OptimizeAnalyzeResult {
   pub top_level_ctxt: SyntaxContext,
   unresolved_ctxt: SyntaxContext,
   pub module_identifier: ModuleIdentifier,
-  pub export_map: HashMap<JsWord, SymbolRef>,
-  pub(crate) import_map: HashMap<JsWord, SymbolRef>,
-  pub inherit_export_maps: LinkedHashMap<ModuleIdentifier, HashMap<JsWord, SymbolRef>>,
+  pub export_map: HashMap<Atom, SymbolRef>,
+  pub(crate) import_map: HashMap<Atom, SymbolRef>,
+  pub inherit_export_maps: LinkedHashMap<ModuleIdentifier, HashMap<Atom, SymbolRef>>,
   pub export_all_dep_id: LinkedHashSet<DependencyId>,
   // current_region: Option<BetterId>,
   // pub(crate) reference_map: HashMap<BetterId, HashSet<BetterId>>,
-  pub(crate) reachable_import_of_export: HashMap<JsWord, HashSet<SymbolRef>>,
+  pub(crate) reachable_import_of_export: HashMap<Atom, HashSet<SymbolRef>>,
   state: AnalyzeState,
   pub(crate) used_symbol_refs: HashSet<SymbolRef>,
   pub(crate) bail_out_module_identifiers: HashMap<ModuleIdOrDepId, BailoutFlag>,

@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use serde_json::json;
-use swc_core::ecma::atoms::JsWord;
+use swc_core::ecma::atoms::Atom;
 
 use crate::{
   get_import_var, property_access, to_comment, to_normal_comment, AsyncDependenciesBlockId,
@@ -16,7 +16,7 @@ pub fn export_from_import(
   default_interop: bool,
   request: &str,
   import_var: &str,
-  mut export_name: Vec<JsWord>,
+  mut export_name: Vec<Atom>,
   id: &DependencyId,
   is_call: bool,
   call_context: bool,
