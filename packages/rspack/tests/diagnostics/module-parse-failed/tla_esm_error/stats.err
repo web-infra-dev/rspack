@@ -1,6 +1,4 @@
 ERROR in ./index.js
-ModuleParseError
-
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Top-level-await is only supported in EcmaScript Modules
          ╭────

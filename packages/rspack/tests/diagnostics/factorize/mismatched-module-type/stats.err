@@ -1,6 +1,4 @@
 ERROR in ./app.js
-ModuleParseError
-
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Unterminated regexp literal
          ╭─[2:1]
@@ -14,8 +12,6 @@ ModuleParseError
         You may need an appropriate loader to handle this file type.
 
 ERROR in ./app.js
-ModuleParseError
-
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expression expected
          ╭─[2:1]
@@ -29,8 +25,6 @@ ModuleParseError
         You may need an appropriate loader to handle this file type.
 
 ERROR in ./app.js
-ModuleParseError
-
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expression expected
          ╭─[2:1]
@@ -44,8 +38,6 @@ ModuleParseError
         You may need an appropriate loader to handle this file type.
 
 ERROR in ./app.jsx
-ModuleParseError
-
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Unterminated regexp literal
          ╭─[2:1]
@@ -59,8 +51,6 @@ ModuleParseError
         You may need an appropriate loader to handle this file type.
 
 ERROR in ./app.jsx
-ModuleParseError
-
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expression expected
          ╭─[2:1]
@@ -74,8 +64,6 @@ ModuleParseError
         You may need an appropriate loader to handle this file type.
 
 ERROR in ./app.jsx
-ModuleParseError
-
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expression expected
          ╭─[2:1]
@@ -89,8 +77,6 @@ ModuleParseError
         You may need an appropriate loader to handle this file type.
 
 ERROR in ./app.ts
-ModuleParseError
-
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expected ',', got ':'
          ╭─[1:1]

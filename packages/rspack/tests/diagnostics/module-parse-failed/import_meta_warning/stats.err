@@ -1,6 +1,4 @@
 WARNING in ./index.js
-ModuleParseWarning
-
   ⚠ Module parse warning:
   ╰─▶   ⚠ Critical dependency: Accessing import.meta directly is unsupported (only property access or destructuring is supported)
          ╭────

@@ -1084,9 +1084,7 @@ exports[`StatsTestCases should print correct stats for identifier-let-strict-mod
 {
   "errors": [
     {
-      "formatted": "ModuleParseError
-
-  × Module parse failed:
+      "formatted": "  × Module parse failed:
   ╰─▶   × JavaScript parsing error: \`let\` cannot be used as an identifier in strict mode
          ╭────
        1 │ let let = let;
@@ -1096,9 +1094,7 @@ exports[`StatsTestCases should print correct stats for identifier-let-strict-mod
   help: 
         You may need an appropriate loader to handle this file type.
 ",
-      "message": "ModuleParseError
-
-  × Module parse failed:
+      "message": "  × Module parse failed:
   ╰─▶   × JavaScript parsing error: \`let\` cannot be used as an identifier in strict mode
          ╭────
        1 │ let let = let;
@@ -1113,9 +1109,7 @@ exports[`StatsTestCases should print correct stats for identifier-let-strict-mod
       "moduleName": "./index.js",
     },
     {
-      "formatted": "ModuleParseError
-
-  × Module parse failed:
+      "formatted": "  × Module parse failed:
   ╰─▶   × JavaScript parsing error: \`let\` cannot be used as an identifier in strict mode
          ╭────
        1 │ let let = let;
@@ -1125,9 +1119,7 @@ exports[`StatsTestCases should print correct stats for identifier-let-strict-mod
   help: 
         You may need an appropriate loader to handle this file type.
 ",
-      "message": "ModuleParseError
-
-  × Module parse failed:
+      "message": "  × Module parse failed:
   ╰─▶   × JavaScript parsing error: \`let\` cannot be used as an identifier in strict mode
          ╭────
        1 │ let let = let;
@@ -1151,8 +1143,6 @@ exports[`StatsTestCases should print correct stats for identifier-let-strict-mod
 
 exports[`StatsTestCases should print correct stats for identifier-let-strict-mode 2`] = `
 "ERROR in ./index.js
-ModuleParseError
-
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: \`let\` cannot be used as an identifier in strict mode
          ╭────
@@ -1164,8 +1154,6 @@ ModuleParseError
         You may need an appropriate loader to handle this file type.
 
 ERROR in ./index.js
-ModuleParseError
-
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: \`let\` cannot be used as an identifier in strict mode
          ╭────
@@ -4070,13 +4058,9 @@ exports[`StatsTestCases should print correct stats for loader-builtin-swc-plugin
   "logging": {},
   "warnings": [
     {
-      "formatted": "builtin:swc-loader
-
-  ⚠ Experimental plugins are not currently supported.
+      "formatted": "  ⚠ Experimental plugins are not currently supported.
 ",
-      "message": "builtin:swc-loader
-
-  ⚠ Experimental plugins are not currently supported.
+      "message": "  ⚠ Experimental plugins are not currently supported.
 ",
       "moduleId": "498",
       "moduleIdentifier": "builtin:swc-loader??ruleSet[1].rules[0].use[0]!<PROJECT_ROOT>/tests/statsCases/loader-builtin-swc-plugin-warn/index.js",
@@ -4089,8 +4073,6 @@ exports[`StatsTestCases should print correct stats for loader-builtin-swc-plugin
 
 exports[`StatsTestCases should print correct stats for loader-builtin-swc-plugin-warn 2`] = `
 "WARNING in ./index.js
-builtin:swc-loader
-
   ⚠ Experimental plugins are not currently supported.
 
 Rspack compiled with 1 warning"
@@ -4846,9 +4828,7 @@ exports[`StatsTestCases should print correct stats for parse-error 1`] = `
 {
   "errors": [
     {
-      "formatted": "ModuleParseError
-
-  × Module parse failed:
+      "formatted": "  × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expected ';', '}' or <eof>
          ╭─[4:1]
        4 │ includes
@@ -4862,9 +4842,7 @@ exports[`StatsTestCases should print correct stats for parse-error 1`] = `
   help: 
         You may need an appropriate loader to handle this file type.
 ",
-      "message": "ModuleParseError
-
-  × Module parse failed:
+      "message": "  × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expected ';', '}' or <eof>
          ╭─[4:1]
        4 │ includes
@@ -4892,8 +4870,6 @@ exports[`StatsTestCases should print correct stats for parse-error 1`] = `
 
 exports[`StatsTestCases should print correct stats for parse-error 2`] = `
 "ERROR in ./b.js
-ModuleParseError
-
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expected ';', '}' or <eof>
          ╭─[4:1]
@@ -4915,9 +4891,7 @@ exports[`StatsTestCases should print correct stats for parse-error-builtin-swc-l
 {
   "errors": [
     {
-      "formatted": "ModuleBuildError
-
-  × Module build failed:
+      "formatted": "  × Module build failed:
   ├─▶   ×    │   x Expected '{', got 'error'
   │     │    ,-[<PROJECT_ROOT>/tests/statsCases/parse-error-builtin-swc-loader/index.ts:1:1]
   │     │  1 | export error;
@@ -4928,9 +4902,7 @@ exports[`StatsTestCases should print correct stats for parse-error-builtin-swc-l
   ╰─▶ Syntax Error
   help: File was processed with this loader: 'builtin:swc-loader??ruleSet[1].rules[0].use[0]'
 ",
-      "message": "ModuleBuildError
-
-  × Module build failed:
+      "message": "  × Module build failed:
   ├─▶   ×    │   x Expected '{', got 'error'
   │     │    ,-[<PROJECT_ROOT>/tests/statsCases/parse-error-builtin-swc-loader/index.ts:1:1]
   │     │  1 | export error;
@@ -4955,8 +4927,6 @@ exports[`StatsTestCases should print correct stats for parse-error-builtin-swc-l
 
 exports[`StatsTestCases should print correct stats for parse-error-builtin-swc-loader 2`] = `
 "ERROR in ./index.ts
-ModuleBuildError
-
   × Module build failed:
   ├─▶   ×    │   x Expected '{', got 'error'
   │     │    ,-[<PROJECT_ROOT>/tests/statsCases/parse-error-builtin-swc-loader/index.ts:1:1]
