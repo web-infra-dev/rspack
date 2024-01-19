@@ -59,16 +59,14 @@ describe("Stats", () => {
 		expect(stats?.toString({ timings: false, version: false }))
 			.toMatchInlineSnapshot(`
 		"PublicPath: auto
-		asset main.js 759 bytes [emitted] (name: main)
-		Entrypoint main 759 bytes = main.js
+		asset main.js 739 bytes [emitted] (name: main)
+		Entrypoint main 739 bytes = main.js
 		./fixtures/a.js
 		./fixtures/b.js
 		./fixtures/c.js
 		./fixtures/abc.js
 
 		ERROR in ./fixtures/b.js
-		ModuleParseError
-
 		  × Module parse failed:
 		  ╰─▶   × JavaScript parsing error: Return statement is not allowed here
 		         ╭─[4:1]
@@ -81,7 +79,7 @@ describe("Stats", () => {
 		  help: 
 		        You may need an appropriate loader to handle this file type.
 
-		Rspack compiled with 1 error (a00b5865a0608547752b)"
+		Rspack compiled with 1 error (9d5d6393c8ec95dac1bb)"
 	`);
 	});
 

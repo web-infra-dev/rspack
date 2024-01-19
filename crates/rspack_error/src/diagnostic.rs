@@ -1,9 +1,9 @@
 use std::{fmt, ops::Deref, sync::Arc};
 
-use miette::{GraphicalReportHandler, GraphicalTheme, IntoDiagnostic, MietteDiagnostic};
+use miette::{GraphicalTheme, IntoDiagnostic, MietteDiagnostic};
 use rspack_identifier::Identifier;
 
-use crate::Error;
+use crate::{graphical::GraphicalReportHandler, Error};
 
 #[derive(Debug, Clone, Default, Copy, PartialEq, Eq, Hash)]
 pub enum RspackSeverity {
