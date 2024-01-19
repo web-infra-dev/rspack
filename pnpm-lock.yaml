@@ -478,9 +478,6 @@ importers:
       '@types/watchpack':
         specifier: ^2.4.0
         version: 2.4.0
-      '@types/webpack-dev-server':
-        specifier: ^4.7.2
-        version: 4.7.2(webpack-cli@4.10.0)(webpack@5.89.0)
       '@types/webpack-sources':
         specifier: 3.2.0
         version: 3.2.0
@@ -7542,20 +7539,6 @@ packages:
       - '@swc/core'
       - esbuild
       - uglify-js
-      - webpack-cli
-    dev: true
-
-  /@types/webpack-dev-server@4.7.2(webpack-cli@4.10.0)(webpack@5.89.0):
-    resolution: {integrity: sha512-Y3p0Fmfvp0MHBDoCzo+xFJaWTw0/z37mWIo6P15j+OtmUDLvznJWdZNeD7Q004R+MpQlys12oXbXsrXRmxwg4Q==}
-    deprecated: This is a stub types definition. webpack-dev-server provides its own type definitions, so you do not need this installed.
-    dependencies:
-      webpack-dev-server: 4.13.1(webpack-cli@4.10.0)(webpack@5.89.0)
-    transitivePeerDependencies:
-      - bufferutil
-      - debug
-      - supports-color
-      - utf-8-validate
-      - webpack
       - webpack-cli
     dev: true
 
