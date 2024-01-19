@@ -45,7 +45,7 @@ function renderTestToMarkdown(testFullName) {
 	let fullName = testFullName
 	let extra = "";
 	if (decoded !== null) {
-		icon = decoded.status === FilteredStatus.TODO ? "⚪️" 
+		icon = decoded.status === FilteredStatus.TODO ? "⚪️"
 			: decoded.status === FilteredStatus.NO_PLAN ? "⚫️"
 			: decoded.status === FilteredStatus.FAILED ? "🔴"
 			: decoded.status === FilteredStatus.PARTIAL_PASS ? "🟡"
