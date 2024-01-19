@@ -66,6 +66,9 @@ pub fn impl_runtime_module(
       fn get_custom_source(&self) -> Option<::std::sync::Arc<::rspack_core::rspack_sources::OriginalSource>> {
         self.custom_source.clone()
       }
+      fn get_constructor_name(&self) -> String {
+        String::from(stringify!(#name))
+      }
     }
 
     impl rspack_identifier::Identifiable for #name {

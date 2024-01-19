@@ -17,6 +17,7 @@ import type {
 	JsCompatSource,
 	JsCompilation,
 	JsModule,
+	JsRuntimeModule,
 	JsStatsChunk,
 	JsStatsError,
 	PathData
@@ -127,7 +128,10 @@ export class Compilation {
 		executeModule: tapable.SyncHook<
 			[ExecuteModuleArgument, ExecuteModuleContext]
 		>;
-		runtimeModule: tapable.SyncHook<[JsModule, JsChunk], JsModule>;
+		runtimeModule: tapable.SyncHook<
+			[JsRuntimeModule, JsChunk],
+			JsRuntimeModule
+		>;
 	};
 	options: RspackOptionsNormalized;
 	outputOptions: OutputNormalized;

@@ -33,6 +33,7 @@ pub trait RuntimeModule: Module + CustomSourceRuntimeModule {
 pub trait CustomSourceRuntimeModule {
   fn set_custom_source(&mut self, source: OriginalSource);
   fn get_custom_source(&self) -> Option<Arc<OriginalSource>>;
+  fn get_constructor_name(&self) -> String;
 }
 
 pub type BoxRuntimeModule = Box<dyn RuntimeModule>;

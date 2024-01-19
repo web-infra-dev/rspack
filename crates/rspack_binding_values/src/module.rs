@@ -90,8 +90,17 @@ pub struct JsExecuteModuleArg {
   pub codegen_results: JsCodegenerationResults,
 }
 
+#[derive(Default)]
+#[napi(object)]
+pub struct JsRuntimeModule {
+  pub source: Option<JsCompatSource>,
+  pub module_identifier: String,
+  pub constructor_name: String,
+  pub name: String,
+}
+
 #[napi(object)]
 pub struct JsRuntimeModuleArg {
-  pub module: JsModule,
+  pub module: JsRuntimeModule,
   pub chunk: JsChunk,
 }

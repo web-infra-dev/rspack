@@ -873,10 +873,10 @@ class Compiler {
 
 	#runtimeModule(arg: binding.JsRuntimeModuleArg) {
 		let { module, chunk } = arg;
-		const originSource = module.originalSource?.source;
+		const originSource = module.source?.source;
 		this.compilation.hooks.runtimeModule.call(module, chunk);
 		this.#updateDisabledHooks();
-		const newSource = module.originalSource?.source;
+		const newSource = module.source?.source;
 		if (newSource && newSource !== originSource) {
 			return module;
 		}

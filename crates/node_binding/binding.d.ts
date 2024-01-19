@@ -423,8 +423,15 @@ export interface JsResourceData {
   fragment?: string
 }
 
+export interface JsRuntimeModule {
+  source?: JsCompatSource
+  moduleIdentifier: string
+  constructorName: string
+  name: string
+}
+
 export interface JsRuntimeModuleArg {
-  module: JsModule
+  module: JsRuntimeModule
   chunk: JsChunk
 }
 

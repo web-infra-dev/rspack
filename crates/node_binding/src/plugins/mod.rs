@@ -6,7 +6,8 @@ use async_trait::async_trait;
 use napi::{Env, Result};
 use rspack_binding_macros::js_fn_into_threadsafe_fn;
 use rspack_binding_values::{
-  AfterResolveData, JsChunk, JsChunkAssetArgs, JsModule, JsRuntimeModuleArg, ToJsCompatSource,
+  AfterResolveData, JsChunk, JsChunkAssetArgs, JsModule, JsRuntimeModule, JsRuntimeModuleArg,
+  ToJsCompatSource,
 };
 use rspack_binding_values::{BeforeResolveData, JsAssetEmittedArgs, ToJsModule};
 use rspack_binding_values::{CreateModuleData, JsExecuteModuleArg};
@@ -71,7 +72,7 @@ pub struct JsHooksAdapter {
   pub succeed_module_tsfn: ThreadsafeFunction<JsModule, ()>,
   pub still_valid_module_tsfn: ThreadsafeFunction<JsModule, ()>,
   pub execute_module_tsfn: ThreadsafeFunction<JsExecuteModuleArg, Option<String>>,
-  pub runtime_module_tsfn: ThreadsafeFunction<JsRuntimeModuleArg, Option<JsModule>>,
+  pub runtime_module_tsfn: ThreadsafeFunction<JsRuntimeModuleArg, Option<JsRuntimeModule>>,
 }
 
 impl Debug for JsHooksAdapter {
@@ -870,17 +871,19 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .runtime_module_tsfn
       .call(
         JsRuntimeModuleArg {
-          module: JsModule {
-            context: None,
-            original_source: Some(
+          module: JsRuntimeModule {
+            source: Some(
               module
                 .generate(compilation)
                 .to_js_compat_source()
                 .expect("generate runtime module failed"),
             ),
-            resource: None,
             module_identifier: module.identifier().to_string(),
-            name_for_condition: None,
+            constructor_name: module.get_constructor_name(),
+            name: module
+              .identifier()
+              .to_string()
+              .replace("webpack/runtime/", ""),
           },
           chunk: JsChunk::from(chunk),
         },
@@ -890,7 +893,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .await
       .unwrap_or_else(|err| panic!("Failed to call runtime module hook: {err}"))
       .map(|r| {
-        r.and_then(|s| s.original_source).map(|s| {
+        r.and_then(|s| s.source).map(|s| {
           std::str::from_utf8(&s.source)
             .expect("Invalid utf-8 sequence")
             .to_string()
@@ -1030,7 +1033,7 @@ impl JsHooksAdapter {
       js_fn_into_threadsafe_fn!(still_valid_module, env);
     let execute_module_tsfn: ThreadsafeFunction<JsExecuteModuleArg, Option<String>> =
       js_fn_into_threadsafe_fn!(execute_module, env);
-    let runtime_module_tsfn: ThreadsafeFunction<JsRuntimeModuleArg, Option<JsModule>> =
+    let runtime_module_tsfn: ThreadsafeFunction<JsRuntimeModuleArg, Option<JsRuntimeModule>> =
       js_fn_into_threadsafe_fn!(runtime_module, env);
 
     Ok(JsHooksAdapter {
