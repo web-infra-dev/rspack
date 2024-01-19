@@ -871,8 +871,9 @@ class Compiler {
 		this.#updateDisabledHooks();
 	}
 
-	#runtimeModule(module: binding.JsModule) {
-		this.compilation.hooks.runtimeModule.call(module);
+	#runtimeModule(arg: binding.JsRuntimeModuleArg) {
+		let { module, chunk } = arg;
+		this.compilation.hooks.runtimeModule.call(module, chunk);
 		this.#updateDisabledHooks();
 		if (module.originalSource?.source) {
 			if (!Buffer.isBuffer(module.originalSource.source)) {
@@ -882,7 +883,6 @@ class Compiler {
 				);
 			}
 		}
-
 		return module;
 	}
 

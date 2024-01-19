@@ -8,7 +8,7 @@ use rspack_sources::BoxSource;
 
 use crate::{
   AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, AssetEmittedArgs,
-  AssetInfo, BoxLoader, BoxModule, ChunkAssetArgs, ChunkHashArgs, CodeGenerationResults,
+  AssetInfo, BoxLoader, BoxModule, Chunk, ChunkAssetArgs, ChunkHashArgs, CodeGenerationResults,
   Compilation, CompilationArgs, CompilationParams, CompilerOptions, ContentHashArgs, DoneArgs,
   FactorizeArgs, JsChunkHashArgs, LoaderRunnerContext, MakeParam, Module, ModuleFactoryResult,
   ModuleIdentifier, ModuleType, NormalModule, NormalModuleAfterResolveArgs,
@@ -491,7 +491,8 @@ pub trait Plugin: Debug + Send + Sync {
   async fn runtime_module(
     &self,
     _module: &mut dyn RuntimeModule,
-    _compilation: &mut Compilation,
+    _chunk: &Chunk,
+    _compilation: &Compilation,
   ) -> Result<Option<String>> {
     Ok(None)
   }

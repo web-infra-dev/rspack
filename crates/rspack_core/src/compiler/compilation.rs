@@ -1972,7 +1972,7 @@ impl Compilation {
     if let Some(new_source) = self
       .plugin_driver
       .clone()
-      .runtime_module(module.as_mut(), self)
+      .runtime_module(module.as_mut(), chunk, self)
       .await
       .expect("Run runtime_module hook failed")
     {

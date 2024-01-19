@@ -688,10 +688,11 @@ impl PluginDriver {
   pub async fn runtime_module(
     &self,
     module: &mut dyn RuntimeModule,
-    compilation: &mut Compilation,
+    chunk: &Chunk,
+    compilation: &Compilation,
   ) -> Result<Option<String>> {
     for plugin in &self.plugins {
-      if let Some(t) = plugin.runtime_module(module, compilation).await? {
+      if let Some(t) = plugin.runtime_module(module, chunk, compilation).await? {
         return Ok(Some(t));
       };
     }

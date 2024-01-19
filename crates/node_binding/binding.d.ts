@@ -423,6 +423,11 @@ export interface JsResourceData {
   fragment?: string
 }
 
+export interface JsRuntimeModuleArg {
+  module: JsModule
+  chunk: JsChunk
+}
+
 export interface JsStatsAsset {
   type: string
   name: string
