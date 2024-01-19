@@ -14,8 +14,8 @@ use crate::{
   ModuleIdentifier, ModuleType, NormalModule, NormalModuleAfterResolveArgs,
   NormalModuleBeforeResolveArgs, NormalModuleCreateData, OptimizeChunksArgs, ParserAndGenerator,
   PluginContext, ProcessAssetsArgs, RenderArgs, RenderChunkArgs, RenderManifestArgs,
-  RenderModuleContentArgs, RenderStartupArgs, Resolver, RuntimeRequirementsInTreeArgs, SourceType,
-  ThisCompilationArgs,
+  RenderModuleContentArgs, RenderStartupArgs, Resolver, RuntimeModule,
+  RuntimeRequirementsInTreeArgs, SourceType, ThisCompilationArgs,
 };
 
 // use anyhow::{Context, Result};
@@ -488,8 +488,12 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
-  async fn runtime_module(&self, _module: &mut dyn Module) -> Result<()> {
-    Ok(())
+  async fn runtime_module(
+    &self,
+    _module: &mut dyn RuntimeModule,
+    _compilation: &mut Compilation,
+  ) -> Result<Option<String>> {
+    Ok(None)
   }
 
   fn module_ids(&self, _modules: &mut Compilation) -> Result<()> {

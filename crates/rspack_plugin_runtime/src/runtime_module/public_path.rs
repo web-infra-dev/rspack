@@ -19,6 +19,7 @@ impl PublicPathRuntimeModule {
       id: Identifier::from("webpack/runtime/public_path"),
       public_path,
       source_map_kind: SourceMapKind::None,
+      custom_source: None,
     }
   }
 }

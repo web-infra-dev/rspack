@@ -21,6 +21,7 @@ impl LoadScriptRuntimeModule {
       unique_name,
       with_create_script_url,
       source_map_kind: SourceMapKind::None,
+      custom_source: None,
     }
   }
 }

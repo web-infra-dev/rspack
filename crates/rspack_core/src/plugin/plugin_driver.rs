@@ -25,7 +25,8 @@ use crate::{
   PluginRenderManifestHookOutput, PluginRenderModuleContentOutput, PluginRenderStartupHookOutput,
   PluginRuntimeRequirementsInTreeOutput, PluginThisCompilationHookOutput, ProcessAssetsArgs,
   RenderArgs, RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs,
-  Resolver, ResolverFactory, RuntimeRequirementsInTreeArgs, Stats, ThisCompilationArgs,
+  Resolver, ResolverFactory, RuntimeModule, RuntimeRequirementsInTreeArgs, Stats,
+  ThisCompilationArgs,
 };
 
 pub struct PluginDriver {
@@ -684,11 +685,17 @@ impl PluginDriver {
   }
 
   #[instrument(name = "plugin:runtime_module", skip_all)]
-  pub async fn runtime_module(&self, module: &mut dyn Module) -> Result<()> {
+  pub async fn runtime_module(
+    &self,
+    module: &mut dyn RuntimeModule,
+    compilation: &mut Compilation,
+  ) -> Result<Option<String>> {
     for plugin in &self.plugins {
-      plugin.runtime_module(module).await?;
+      if let Some(t) = plugin.runtime_module(module, compilation).await? {
+        return Ok(Some(t));
+      };
     }
-    Ok(())
+    Ok(None)
   }
 
   #[instrument(name = "plugin:succeed_module", skip_all)]

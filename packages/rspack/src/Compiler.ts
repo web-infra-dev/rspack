@@ -874,6 +874,16 @@ class Compiler {
 	#runtimeModule(module: binding.JsModule) {
 		this.compilation.hooks.runtimeModule.call(module);
 		this.#updateDisabledHooks();
+		if (module.originalSource?.source) {
+			if (!Buffer.isBuffer(module.originalSource.source)) {
+				module.originalSource.source = Buffer.from(
+					module.originalSource.source,
+					"utf-8"
+				);
+			}
+		}
+
+		return module;
 	}
 
 	#executeModule({

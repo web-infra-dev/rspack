@@ -5,11 +5,13 @@ use std::path::PathBuf;
 use async_trait::async_trait;
 use napi::{Env, Result};
 use rspack_binding_macros::js_fn_into_threadsafe_fn;
-use rspack_binding_values::{AfterResolveData, JsChunkAssetArgs, JsModule};
+use rspack_binding_values::{AfterResolveData, JsChunkAssetArgs, JsModule, ToJsCompatSource};
 use rspack_binding_values::{BeforeResolveData, JsAssetEmittedArgs, ToJsModule};
 use rspack_binding_values::{CreateModuleData, JsExecuteModuleArg};
 use rspack_binding_values::{JsResolveForSchemeInput, JsResolveForSchemeResult};
-use rspack_core::{ChunkAssetArgs, ModuleIdentifier, NormalModuleAfterResolveArgs};
+use rspack_core::{
+  ChunkAssetArgs, Compilation, ModuleIdentifier, NormalModuleAfterResolveArgs, RuntimeModule,
+};
 use rspack_core::{NormalModuleBeforeResolveArgs, PluginNormalModuleFactoryAfterResolveOutput};
 use rspack_core::{
   NormalModuleCreateData, PluginNormalModuleFactoryBeforeResolveOutput,
@@ -67,7 +69,7 @@ pub struct JsHooksAdapter {
   pub succeed_module_tsfn: ThreadsafeFunction<JsModule, ()>,
   pub still_valid_module_tsfn: ThreadsafeFunction<JsModule, ()>,
   pub execute_module_tsfn: ThreadsafeFunction<JsExecuteModuleArg, Option<String>>,
-  pub runtime_module_tsfn: ThreadsafeFunction<JsModule, ()>,
+  pub runtime_module_tsfn: ThreadsafeFunction<JsModule, Option<JsModule>>,
 }
 
 impl Debug for JsHooksAdapter {
@@ -852,20 +854,42 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .unwrap_or_else(|recv_err| panic!("{}", recv_err.to_string()))
   }
 
-  async fn runtime_module(&self, module: &mut dyn rspack_core::Module) -> rspack_error::Result<()> {
+  async fn runtime_module(
+    &self,
+    module: &mut dyn RuntimeModule,
+    compilation: &mut Compilation,
+  ) -> rspack_error::Result<Option<String>> {
     if self.is_hook_disabled(&Hook::RuntimeModule) {
-      return Ok(());
+      return Ok(None);
     }
 
-    self
+    let js_module = JsModule {
+      context: None,
+      original_source: Some(
+        module
+          .generate(compilation)
+          .to_js_compat_source()
+          .expect("generate runtime module failed"),
+      ),
+      resource: None,
+      module_identifier: module.identifier().to_string(),
+      name_for_condition: None,
+    };
+
+    let res = self
       .runtime_module_tsfn
-      .call(
-        module.to_js_module().expect("Convert to js_module failed."),
-        ThreadsafeFunctionCallMode::NonBlocking,
-      )
+      .call(js_module, ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
-      .unwrap_or_else(|err| panic!("Failed to call runtime module: {err}"))
+      .unwrap_or_else(|err| panic!("Failed to call runtime module: {err}"));
+
+    res.map(|r| {
+      r.and_then(|s| s.original_source).map(|s| {
+        std::str::from_utf8(&s.source)
+          .expect("Invalid utf-8 sequence")
+          .to_string()
+      })
+    })
   }
 }
 
@@ -1000,7 +1024,7 @@ impl JsHooksAdapter {
       js_fn_into_threadsafe_fn!(still_valid_module, env);
     let execute_module_tsfn: ThreadsafeFunction<JsExecuteModuleArg, Option<String>> =
       js_fn_into_threadsafe_fn!(execute_module, env);
-    let runtime_module_tsfn: ThreadsafeFunction<JsModule, ()> =
+    let runtime_module_tsfn: ThreadsafeFunction<JsModule, Option<JsModule>> =
       js_fn_into_threadsafe_fn!(runtime_module, env);
 
     Ok(JsHooksAdapter {

@@ -17,7 +17,7 @@ use rspack_error::{error, Diagnostic, Result, Severity, TWithDiagnosticArray};
 use rspack_futures::FuturesResults;
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_identifier::{Identifiable, IdentifierMap, IdentifierSet};
-use rspack_sources::{BoxSource, CachedSource, SourceExt};
+use rspack_sources::{BoxSource, CachedSource, OriginalSource, SourceExt};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use swc_core::ecma::ast::ModuleItem;
 use tokio::sync::mpsc::error::TryRecvError;
@@ -1939,7 +1939,7 @@ impl Compilation {
       .runtime_modules
       .par_iter()
       .map(|(identifier, module)| {
-        let source = module.generate(self);
+        let source = module.generate_with_custom(self);
         let mut hasher = RspackHash::from(&self.options.output);
         module.identifier().hash(&mut hasher);
         source.source().hash(&mut hasher);
@@ -1969,11 +1969,16 @@ impl Compilation {
       .chunk_graph
       .connect_chunk_and_runtime_module(*chunk_ukey, runtime_module_identifier);
 
-    self
+    let module_source_str = self
       .plugin_driver
-      .runtime_module(module.as_mut())
+      .clone()
+      .runtime_module(module.as_mut(), self)
       .await
       .expect("Run runtime_module hook failed");
+
+    if let Some(new_source) = module_source_str {
+      module.set_custom_source(OriginalSource::new(new_source, module.name().to_string()));
+    }
 
     self
       .runtime_modules

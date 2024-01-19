@@ -17,6 +17,7 @@ impl Default for CompatGetDefaultExportRuntimeModule {
     Self {
       id: Identifier::from("webpack/runtime/compat_get_default_export"),
       source_map_kind: SourceMapKind::None,
+      custom_source: None,
     }
   }
 }

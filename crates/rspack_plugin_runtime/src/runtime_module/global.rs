@@ -17,6 +17,7 @@ impl Default for GlobalRuntimeModule {
     Self {
       id: Identifier::from("webpack/runtime/global"),
       source_map_kind: SourceMapKind::None,
+      custom_source: None,
     }
   }
 }

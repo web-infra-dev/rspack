@@ -17,6 +17,7 @@ impl Default for NonceRuntimeModule {
     Self {
       id: Identifier::from("webpack/runtime/nonce"),
       source_map_kind: SourceMapKind::None,
+      custom_source: None,
     }
   }
 }

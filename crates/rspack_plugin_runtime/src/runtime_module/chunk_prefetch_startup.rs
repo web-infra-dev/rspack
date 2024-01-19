@@ -22,6 +22,7 @@ impl ChunkPrefetchStartupRuntimeModule {
       startup_chunks,
       chunk: None,
       source_map_kind: SourceMapKind::None,
+      custom_source: None,
     }
   }
 }

@@ -21,6 +21,7 @@ impl Default for GetTrustedTypesPolicyRuntimeModule {
       id: Identifier::from("webpack/runtime/get_trusted_types_policy"),
       chunk: None,
       source_map_kind: SourceMapKind::None,
+      custom_source: None,
     }
   }
 }

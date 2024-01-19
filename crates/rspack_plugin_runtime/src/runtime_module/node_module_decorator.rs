@@ -17,6 +17,7 @@ impl Default for NodeModuleDecoratorRuntimeModule {
     Self {
       id: Identifier::from("webpack/runtime/node_module_decorator"),
       source_map_kind: SourceMapKind::None,
+      custom_source: None,
     }
   }
 }
