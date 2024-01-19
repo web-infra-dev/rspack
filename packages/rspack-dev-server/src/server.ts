@@ -16,7 +16,6 @@ import type { Server } from "http";
 import fs from "fs";
 import WebpackDevServer from "webpack-dev-server";
 import type { ResolvedDevServer, DevServer } from "./config";
-import { getRspackMemoryAssets } from "./middleware";
 import { applyDevServerPatch } from "./patch";
 
 applyDevServerPatch();
@@ -41,7 +40,7 @@ export class RspackDevServer extends WebpackDevServer {
 		super(options, compiler as any);
 	}
 
-	getClientTransport(): string {
+	private override getClientTransport(): string {
 		// WARNING: we can't use `super.getClientTransport`,
 		// because we doesn't had same directory structure.
 		let clientImplementation: string | undefined;
@@ -104,7 +103,7 @@ export class RspackDevServer extends WebpackDevServer {
 		return clientImplementation;
 	}
 
-	async initialize() {
+	override async initialize() {
 		const compilers =
 			this.compiler instanceof MultiCompiler
 				? this.compiler.compilers
@@ -145,7 +144,6 @@ export class RspackDevServer extends WebpackDevServer {
 
 		if (this.options.webSocketServer) {
 			compilers.forEach(compiler => {
-				// @ts-expect-error: `addAdditionalEntries` is private function in base class.
 				this.addAdditionalEntries(compiler);
 				new compiler.webpack.ProvidePlugin({
 					__webpack_dev_server_client__: this.getClientTransport()
@@ -213,12 +211,12 @@ export class RspackDevServer extends WebpackDevServer {
 		}, this);
 	}
 
-	private setupDevMiddleware() {
+	private override setupDevMiddleware() {
 		// @ts-expect-error
 		this.middleware = rdm(this.compiler, this.options.devMiddleware);
 	}
 
-	private setupMiddlewares() {
+	private override setupMiddlewares() {
 		const middlewares: WebpackDevServer.Middleware[] = [];
 		const compilers =
 			this.compiler instanceof MultiCompiler
@@ -263,5 +261,178 @@ export class RspackDevServer extends WebpackDevServer {
 
 		// @ts-expect-error
 		super.setupMiddlewares();
+	}
+
+	private override addAdditionalEntries(compiler: Compiler) {
+		const additionalEntries = [];
+		// @ts-expect-error
+		const isWebTarget = WebpackDevServer.isWebTarget(compiler);
+
+		// TODO maybe empty client
+		if (this.options.client && isWebTarget) {
+			let webSocketURLStr = "";
+
+			if (this.options.webSocketServer) {
+				const webSocketURL = this.options.client
+					.webSocketURL as WebpackDevServer.WebSocketURL;
+				const webSocketServer = this.options.webSocketServer;
+				const searchParams = new URLSearchParams();
+
+				let protocol: string;
+
+				// We are proxying dev server and need to specify custom `hostname`
+				if (typeof webSocketURL.protocol !== "undefined") {
+					protocol = webSocketURL.protocol;
+				} else {
+					protocol = this.options.server.type === "http" ? "ws:" : "wss:";
+				}
+
+				searchParams.set("protocol", protocol);
+
+				if (typeof webSocketURL.username !== "undefined") {
+					searchParams.set("username", webSocketURL.username);
+				}
+
+				if (typeof webSocketURL.password !== "undefined") {
+					searchParams.set("password", webSocketURL.password);
+				}
+
+				let hostname: string;
+
+				// SockJS is not supported server mode, so `hostname` and `port` can't specified, let's ignore them
+				// TODO show warning about this
+				const isSockJSType = webSocketServer.type === "sockjs";
+
+				// We are proxying dev server and need to specify custom `hostname`
+				if (typeof webSocketURL.hostname !== "undefined") {
+					hostname = webSocketURL.hostname;
+				}
+				// Web socket server works on custom `hostname`, only for `ws` because `sock-js` is not support custom `hostname`
+				else if (
+					typeof webSocketServer.options?.host !== "undefined" &&
+					!isSockJSType
+				) {
+					hostname = webSocketServer.options.host;
+				}
+				// The `host` option is specified
+				else if (typeof this.options.host !== "undefined") {
+					hostname = this.options.host;
+				}
+				// The `port` option is not specified
+				else {
+					hostname = "0.0.0.0";
+				}
+
+				searchParams.set("hostname", hostname);
+
+				let port: number | string;
+
+				// We are proxying dev server and need to specify custom `port`
+				if (typeof webSocketURL.port !== "undefined") {
+					port = webSocketURL.port;
+				}
+				// Web socket server works on custom `port`, only for `ws` because `sock-js` is not support custom `port`
+				else if (
+					typeof webSocketServer.options?.port !== "undefined" &&
+					!isSockJSType
+				) {
+					port = webSocketServer.options.port;
+				}
+				// The `port` option is specified
+				else if (typeof this.options.port === "number") {
+					port = this.options.port;
+				}
+				// The `port` option is specified using `string`
+				else if (
+					typeof this.options.port === "string" &&
+					this.options.port !== "auto"
+				) {
+					port = Number(this.options.port);
+				}
+				// The `port` option is not specified or set to `auto`
+				else {
+					port = "0";
+				}
+
+				searchParams.set("port", String(port));
+
+				let pathname = "";
+
+				// We are proxying dev server and need to specify custom `pathname`
+				if (typeof webSocketURL.pathname !== "undefined") {
+					pathname = webSocketURL.pathname;
+				}
+				// Web socket server works on custom `path`
+				else if (
+					typeof webSocketServer.options?.prefix !== "undefined" ||
+					typeof webSocketServer.options?.path !== "undefined"
+				) {
+					pathname =
+						webSocketServer.options.prefix || webSocketServer.options.path;
+				}
+
+				searchParams.set("pathname", pathname);
+
+				const client = /** @type {ClientConfiguration} */ this.options.client;
+
+				if (typeof client.logging !== "undefined") {
+					searchParams.set("logging", client.logging);
+				}
+
+				if (typeof client.progress !== "undefined") {
+					searchParams.set("progress", String(client.progress));
+				}
+
+				if (typeof client.overlay !== "undefined") {
+					searchParams.set(
+						"overlay",
+						typeof client.overlay === "boolean"
+							? String(client.overlay)
+							: JSON.stringify(client.overlay)
+					);
+				}
+
+				if (typeof client.reconnect !== "undefined") {
+					searchParams.set(
+						"reconnect",
+						typeof client.reconnect === "number"
+							? String(client.reconnect)
+							: "10"
+					);
+				}
+
+				if (typeof this.options.hot !== "undefined") {
+					searchParams.set("hot", String(this.options.hot));
+				}
+
+				if (typeof this.options.liveReload !== "undefined") {
+					searchParams.set("live-reload", String(this.options.liveReload));
+				}
+
+				webSocketURLStr = searchParams.toString();
+			}
+
+			additionalEntries.push(
+				`${require.resolve(
+					"@rspack/dev-server/client/index.js"
+				)}?${webSocketURLStr}`
+			);
+		}
+
+		if (this.options.hot === "only") {
+			additionalEntries.push(
+				require.resolve("@rspack/core/hot/only-dev-server.js")
+			);
+		} else if (this.options.hot) {
+			additionalEntries.push(require.resolve("@rspack/core/hot/dev-server.js"));
+		}
+
+		const webpack = compiler.webpack;
+
+		for (const additionalEntry of additionalEntries) {
+			new webpack.EntryPlugin(compiler.context, additionalEntry, {
+				name: undefined
+			}).apply(compiler);
+		}
 	}
 }

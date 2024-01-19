@@ -432,6 +432,9 @@ importers:
       enhanced-resolve:
         specifier: 5.12.0
         version: 5.12.0
+      events:
+        specifier: ^3.3.0
+        version: 3.3.0
       graceful-fs:
         specifier: 4.2.10
         version: 4.2.10
@@ -632,9 +635,6 @@ importers:
       mime-types:
         specifier: 2.1.35
         version: 2.1.35
-      webpack:
-        specifier: 5.89.0
-        version: 5.89.0(webpack-cli@4.10.0)
       webpack-dev-middleware:
         specifier: 6.0.2
         version: 6.0.2(webpack@5.89.0)
