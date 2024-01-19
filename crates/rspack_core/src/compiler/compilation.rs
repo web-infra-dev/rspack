@@ -1969,14 +1969,13 @@ impl Compilation {
       .chunk_graph
       .connect_chunk_and_runtime_module(*chunk_ukey, runtime_module_identifier);
 
-    let module_source_str = self
+    if let Some(new_source) = self
       .plugin_driver
       .clone()
       .runtime_module(module.as_mut(), self)
       .await
-      .expect("Run runtime_module hook failed");
-
-    if let Some(new_source) = module_source_str {
+      .expect("Run runtime_module hook failed")
+    {
       module.set_custom_source(OriginalSource::new(new_source, module.name().to_string()));
     }
 

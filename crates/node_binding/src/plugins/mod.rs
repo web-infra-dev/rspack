@@ -863,33 +863,33 @@ impl rspack_core::Plugin for JsHooksAdapter {
       return Ok(None);
     }
 
-    let js_module = JsModule {
-      context: None,
-      original_source: Some(
-        module
-          .generate(compilation)
-          .to_js_compat_source()
-          .expect("generate runtime module failed"),
-      ),
-      resource: None,
-      module_identifier: module.identifier().to_string(),
-      name_for_condition: None,
-    };
-
-    let res = self
+    self
       .runtime_module_tsfn
-      .call(js_module, ThreadsafeFunctionCallMode::NonBlocking)
+      .call(
+        JsModule {
+          context: None,
+          original_source: Some(
+            module
+              .generate(compilation)
+              .to_js_compat_source()
+              .expect("generate runtime module failed"),
+          ),
+          resource: None,
+          module_identifier: module.identifier().to_string(),
+          name_for_condition: None,
+        },
+        ThreadsafeFunctionCallMode::NonBlocking,
+      )
       .into_rspack_result()?
       .await
-      .unwrap_or_else(|err| panic!("Failed to call runtime module: {err}"));
-
-    res.map(|r| {
-      r.and_then(|s| s.original_source).map(|s| {
-        std::str::from_utf8(&s.source)
-          .expect("Invalid utf-8 sequence")
-          .to_string()
+      .unwrap_or_else(|err| panic!("Failed to call runtime module hook: {err}"))
+      .map(|r| {
+        r.and_then(|s| s.original_source).map(|s| {
+          std::str::from_utf8(&s.source)
+            .expect("Invalid utf-8 sequence")
+            .to_string()
+        })
       })
-    })
   }
 }
 
