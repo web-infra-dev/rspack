@@ -1,4 +1,3 @@
-mod api_scanner;
 mod common_js_export_scanner;
 mod common_js_scanner;
 mod compatibility_scanner;
@@ -33,9 +32,8 @@ use self::harmony_import_dependency_scanner::ImportMap;
 pub use self::parser::JavascriptParser;
 pub use self::util::*;
 use self::{
-  api_scanner::ApiScanner, common_js_export_scanner::CommonJsExportDependencyScanner,
-  common_js_scanner::CommonJsScanner, compatibility_scanner::CompatibilityScanner,
-  harmony_detection_scanner::HarmonyDetectionScanner,
+  common_js_export_scanner::CommonJsExportDependencyScanner, common_js_scanner::CommonJsScanner,
+  compatibility_scanner::CompatibilityScanner, harmony_detection_scanner::HarmonyDetectionScanner,
   harmony_export_dependency_scanner::HarmonyExportDependencyScanner,
   harmony_import_dependency_scanner::HarmonyImportDependencyScanner,
   harmony_top_level_this::HarmonyTopLevelThis,
@@ -105,22 +103,13 @@ pub fn scan_dependencies(
     &mut ignored,
     module_type,
     &worker_syntax_list,
+    resource_data,
+    build_info,
     &mut errors,
+    &mut warning_diagnostics,
   );
 
   parser.visit(program.get_inner_program());
-
-  program.visit_with(&mut ApiScanner::new(
-    source_file.clone(),
-    unresolved_ctxt,
-    resource_data,
-    &mut dependencies,
-    &mut presentational_dependencies,
-    compiler_options.output.module,
-    build_info,
-    &mut warning_diagnostics,
-    &mut ignored,
-  ));
 
   program.visit_with(&mut CompatibilityScanner::new(
     &mut presentational_dependencies,

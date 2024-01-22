@@ -1,42 +1,46 @@
-use std::sync::Arc;
+use rspack_core::{ConstDependency, RuntimeGlobals, RuntimeRequirementsDependency, SpanExt};
+use swc_core::common::Spanned;
+use swc_core::ecma::ast::{CallExpr, Callee, Expr, Ident};
 
-use rspack_core::{
-  BuildInfo, ConstDependency, Dependency, DependencyLocation, DependencyTemplate, ResourceData,
-  RuntimeGlobals, RuntimeRequirementsDependency, SpanExt,
-};
-use rspack_error::miette::Diagnostic;
-use rustc_hash::FxHashSet;
-use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
-use swc_core::{
-  common::{SourceFile, Spanned, SyntaxContext},
-  ecma::ast::{AssignExpr, AssignOp, CallExpr, Callee, Expr, Ident, Pat, PatOrExpr, VarDeclarator},
-};
-
-use super::{expr_matcher, JavascriptParser};
 use crate::dependency::ModuleArgumentDependency;
-use crate::no_visit_ignored_stmt;
 use crate::parser_plugin::JavascriptParserPlugin;
 use crate::utils::eval::{self, BasicEvaluatedExpression};
-use crate::visitors::extract_member_root;
+use crate::visitors::{expr_matcher, JavascriptParser};
+use crate::visitors::{expression_not_supported, extract_member_root};
 
-pub const WEBPACK_HASH: &str = "__webpack_hash__";
-pub const WEBPACK_PUBLIC_PATH: &str = "__webpack_public_path__";
-pub const WEBPACK_MODULES: &str = "__webpack_modules__";
-pub const WEBPACK_MODULE: &str = "__webpack_module__";
-pub const WEBPACK_RESOURCE_QUERY: &str = "__resourceQuery";
-pub const WEBPACK_CHUNK_LOAD: &str = "__webpack_chunk_load__";
-pub const WEBPACK_BASE_URI: &str = "__webpack_base_uri__";
-pub const NON_WEBPACK_REQUIRE: &str = "__non_webpack_require__";
-pub const SYSTEM_CONTEXT: &str = "__system_context__";
-pub const WEBPACK_SHARE_SCOPES: &str = "__webpack_share_scopes__";
-pub const WEBPACK_INIT_SHARING: &str = "__webpack_init_sharing__";
-pub const WEBPACK_NONCE: &str = "__webpack_nonce__";
-pub const WEBPACK_CHUNK_NAME: &str = "__webpack_chunkname__";
-pub const WEBPACK_RUNTIME_ID: &str = "__webpack_runtime_id__";
-pub const WEBPACK_REQUIRE: &str = "__webpack_require__";
-pub const RSPACK_VERSION: &str = "__rspack_version__";
+const WEBPACK_HASH: &str = "__webpack_hash__";
+const WEBPACK_PUBLIC_PATH: &str = "__webpack_public_path__";
+const WEBPACK_MODULES: &str = "__webpack_modules__";
+const WEBPACK_MODULE: &str = "__webpack_module__";
+const WEBPACK_RESOURCE_QUERY: &str = "__resourceQuery";
+const WEBPACK_CHUNK_LOAD: &str = "__webpack_chunk_load__";
+const WEBPACK_BASE_URI: &str = "__webpack_base_uri__";
+const NON_WEBPACK_REQUIRE: &str = "__non_webpack_require__";
+const SYSTEM_CONTEXT: &str = "__system_context__";
+const WEBPACK_SHARE_SCOPES: &str = "__webpack_share_scopes__";
+const WEBPACK_INIT_SHARING: &str = "__webpack_init_sharing__";
+const WEBPACK_NONCE: &str = "__webpack_nonce__";
+const WEBPACK_CHUNK_NAME: &str = "__webpack_chunkname__";
+const WEBPACK_RUNTIME_ID: &str = "__webpack_runtime_id__";
+const WEBPACK_REQUIRE: &str = "__webpack_require__";
+const RSPACK_VERSION: &str = "__rspack_version__";
 
-pub fn get_typeof_evaluate_of_api(sym: &str) -> Option<&str> {
+pub struct APIPluginOptions {
+  module: bool,
+}
+
+pub struct APIPlugin {
+  options: APIPluginOptions,
+}
+
+impl APIPlugin {
+  pub fn new(module: bool) -> Self {
+    let options = APIPluginOptions { module };
+    Self { options }
+  }
+}
+
+fn get_typeof_evaluate_of_api(sym: &str) -> Option<&str> {
   match sym {
     WEBPACK_REQUIRE => Some("function"),
     WEBPACK_HASH => Some("string"),
@@ -58,9 +62,7 @@ pub fn get_typeof_evaluate_of_api(sym: &str) -> Option<&str> {
   }
 }
 
-pub struct ApiParserPlugin;
-
-impl JavascriptParserPlugin for ApiParserPlugin {
+impl JavascriptParserPlugin for APIPlugin {
   fn evaluate_typeof(
     &self,
     parser: &mut JavascriptParser,
@@ -75,86 +77,15 @@ impl JavascriptParserPlugin for ApiParserPlugin {
       None
     }
   }
-}
 
-pub struct ApiScanner<'a> {
-  pub source_file: Arc<SourceFile>,
-  pub unresolved_ctxt: SyntaxContext,
-  pub module: bool,
-  pub build_info: &'a mut BuildInfo,
-  pub enter_assign: bool,
-  pub resource_data: &'a ResourceData,
-  pub presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
-  pub dependencies: &'a mut Vec<Box<dyn Dependency>>,
-  pub warning_diagnostics: &'a mut Vec<Box<dyn Diagnostic + Send + Sync>>,
-  pub ignored: &'a mut FxHashSet<DependencyLocation>,
-}
-
-impl<'a> ApiScanner<'a> {
-  #[allow(clippy::too_many_arguments)]
-  pub fn new(
-    source_file: Arc<SourceFile>,
-    unresolved_ctxt: SyntaxContext,
-    resource_data: &'a ResourceData,
-    dependencies: &'a mut Vec<Box<dyn Dependency>>,
-    presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
-    module: bool,
-    build_info: &'a mut BuildInfo,
-    warning_diagnostics: &'a mut Vec<Box<dyn Diagnostic + Send + Sync>>,
-    ignored: &'a mut FxHashSet<DependencyLocation>,
-  ) -> Self {
-    Self {
-      source_file,
-      unresolved_ctxt,
-      module,
-      build_info,
-      enter_assign: false,
-      resource_data,
-      presentational_dependencies,
-      dependencies,
-      warning_diagnostics,
-      ignored,
+  fn identifier(&self, parser: &mut JavascriptParser, ident: &Ident) -> Option<bool> {
+    let s = ident.sym.as_str();
+    if !parser.is_unresolved_ident(s) {
+      return None;
     }
-  }
-}
-
-impl Visit for ApiScanner<'_> {
-  noop_visit_type!();
-  no_visit_ignored_stmt!();
-
-  fn visit_var_declarator(&mut self, var_declarator: &VarDeclarator) {
-    match &var_declarator.name {
-      Pat::Ident(ident) => {
-        self.enter_assign = true;
-        ident.visit_children_with(self);
-        self.enter_assign = false;
-      }
-      _ => var_declarator.name.visit_children_with(self),
-    }
-    var_declarator.init.visit_children_with(self);
-  }
-
-  fn visit_assign_expr(&mut self, assign_expr: &AssignExpr) {
-    if matches!(assign_expr.op, AssignOp::Assign) {
-      match &assign_expr.left {
-        PatOrExpr::Pat(box Pat::Ident(ident)) => {
-          self.enter_assign = true;
-          ident.visit_children_with(self);
-          self.enter_assign = false;
-        }
-        _ => assign_expr.left.visit_children_with(self),
-      }
-    }
-    assign_expr.right.visit_children_with(self);
-  }
-
-  fn visit_ident(&mut self, ident: &Ident) {
-    if ident.span.ctxt != self.unresolved_ctxt {
-      return;
-    }
-    match ident.sym.as_ref() as &str {
+    match s {
       WEBPACK_REQUIRE => {
-        self
+        parser
           .presentational_dependencies
           .push(Box::new(ConstDependency::new(
             ident.span.real_lo(),
@@ -164,7 +95,7 @@ impl Visit for ApiScanner<'_> {
           )));
       }
       WEBPACK_HASH => {
-        self
+        parser
           .presentational_dependencies
           .push(Box::new(ConstDependency::new(
             ident.span.real_lo(),
@@ -174,7 +105,7 @@ impl Visit for ApiScanner<'_> {
           )));
       }
       WEBPACK_PUBLIC_PATH => {
-        self
+        parser
           .presentational_dependencies
           .push(Box::new(ConstDependency::new(
             ident.span.real_lo(),
@@ -184,10 +115,10 @@ impl Visit for ApiScanner<'_> {
           )));
       }
       WEBPACK_MODULES => {
-        if self.enter_assign {
-          return;
+        if parser.enter_assign {
+          return None;
         }
-        self
+        parser
           .presentational_dependencies
           .push(Box::new(ConstDependency::new(
             ident.span.real_lo(),
@@ -197,8 +128,8 @@ impl Visit for ApiScanner<'_> {
           )));
       }
       WEBPACK_RESOURCE_QUERY => {
-        let resource_query = self.resource_data.resource_query.as_deref().unwrap_or("");
-        self
+        let resource_query = parser.resource_data.resource_query.as_deref().unwrap_or("");
+        parser
           .presentational_dependencies
           .push(Box::new(ConstDependency::new(
             ident.span.real_lo(),
@@ -210,7 +141,7 @@ impl Visit for ApiScanner<'_> {
           )));
       }
       WEBPACK_CHUNK_LOAD => {
-        self
+        parser
           .presentational_dependencies
           .push(Box::new(ConstDependency::new(
             ident.span.real_lo(),
@@ -220,7 +151,7 @@ impl Visit for ApiScanner<'_> {
           )));
       }
       WEBPACK_MODULE => {
-        self
+        parser
           .presentational_dependencies
           .push(Box::new(ModuleArgumentDependency::new(
             ident.span.real_lo(),
@@ -229,7 +160,7 @@ impl Visit for ApiScanner<'_> {
           )));
       }
       WEBPACK_BASE_URI => {
-        self
+        parser
           .presentational_dependencies
           .push(Box::new(ConstDependency::new(
             ident.span.real_lo(),
@@ -239,13 +170,13 @@ impl Visit for ApiScanner<'_> {
           )));
       }
       NON_WEBPACK_REQUIRE => {
-        self
+        parser
           .presentational_dependencies
           .push(Box::new(ConstDependency::new(
             ident.span.real_lo(),
             ident.span.real_hi(),
-            if self.module {
-              self.build_info.need_create_require = true;
+            if self.options.module {
+              parser.build_info.need_create_require = true;
               "__WEBPACK_EXTERNAL_createRequire(import.meta.url)".into()
             } else {
               "require".into()
@@ -253,7 +184,7 @@ impl Visit for ApiScanner<'_> {
             None,
           )));
       }
-      SYSTEM_CONTEXT => self
+      SYSTEM_CONTEXT => parser
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(
           ident.span.real_lo(),
@@ -262,7 +193,7 @@ impl Visit for ApiScanner<'_> {
           Some(RuntimeGlobals::SYSTEM_CONTEXT),
         ))),
       WEBPACK_SHARE_SCOPES => {
-        self
+        parser
           .presentational_dependencies
           .push(Box::new(ConstDependency::new(
             ident.span.real_lo(),
@@ -272,7 +203,7 @@ impl Visit for ApiScanner<'_> {
           )))
       }
       WEBPACK_INIT_SHARING => {
-        self
+        parser
           .presentational_dependencies
           .push(Box::new(ConstDependency::new(
             ident.span.real_lo(),
@@ -282,7 +213,7 @@ impl Visit for ApiScanner<'_> {
           )))
       }
       WEBPACK_NONCE => {
-        self
+        parser
           .presentational_dependencies
           .push(Box::new(ConstDependency::new(
             ident.span.real_lo(),
@@ -292,7 +223,7 @@ impl Visit for ApiScanner<'_> {
           )));
       }
       WEBPACK_CHUNK_NAME => {
-        self
+        parser
           .presentational_dependencies
           .push(Box::new(ConstDependency::new(
             ident.span.real_lo(),
@@ -302,7 +233,7 @@ impl Visit for ApiScanner<'_> {
           )));
       }
       RSPACK_VERSION => {
-        self
+        parser
           .presentational_dependencies
           .push(Box::new(ConstDependency::new(
             ident.span.real_lo(),
@@ -312,7 +243,7 @@ impl Visit for ApiScanner<'_> {
           )));
       }
       WEBPACK_RUNTIME_ID => {
-        self
+        parser
           .presentational_dependencies
           .push(Box::new(ConstDependency::new(
             ident.span.real_lo(),
@@ -323,53 +254,47 @@ impl Visit for ApiScanner<'_> {
       }
       _ => {}
     }
+    None
   }
 
-  fn visit_expr(&mut self, expr: &Expr) {
-    let span = expr.span();
-    if self
-      .ignored
-      .iter()
-      .any(|r| r.start() <= span.real_lo() && span.real_hi() <= r.end())
-    {
-      return;
-    }
-
-    #[macro_export]
+  fn member(
+    &self,
+    parser: &mut JavascriptParser,
+    member_expr: &swc_core::ecma::ast::MemberExpr,
+  ) -> Option<bool> {
     macro_rules! not_supported_expr {
-      ($check: ident, $name: literal) => {
-        if expr_matcher::$check(expr) {
-          let (warning, dep) = super::expression_not_supported(&self.source_file, $name, expr);
-          self.warning_diagnostics.push(warning);
-          self.presentational_dependencies.push(dep);
-          return;
+      ($check: ident, $expr: ident, $name: literal) => {
+        if expr_matcher::$check($expr) {
+          let (warning, dep) = expression_not_supported(&parser.source_file, $name, $expr);
+          parser.warning_diagnostics.push(warning);
+          parser.presentational_dependencies.push(dep);
+          return Some(true);
         }
       };
     }
 
-    let root = extract_member_root(expr);
+    let expr = &swc_core::ecma::ast::Expr::Member(member_expr.to_owned());
 
-    if let Some(root) = root
-      && root.span.ctxt == self.unresolved_ctxt
+    if let Some(root) = extract_member_root(expr)
+      && let s = root.sym.as_str()
+      && parser.is_unresolved_ident(s)
     {
-      if root.sym == "require" {
-        not_supported_expr!(is_require_extensions, "require.extensions");
-        not_supported_expr!(is_require_ensure, "require.ensure");
-        not_supported_expr!(is_require_config, "require.config");
-        not_supported_expr!(is_require_version, "require.vesrion");
-        not_supported_expr!(is_require_amd, "require.amd");
-        not_supported_expr!(is_require_include, "require.include");
-        not_supported_expr!(is_require_onerror, "require.onError");
-        not_supported_expr!(is_require_main_require, "require.main.require");
-      }
-
-      if root.sym == "module" {
-        not_supported_expr!(is_module_parent_require, "module.parent.require");
+      if s == "require" {
+        not_supported_expr!(is_require_extensions, expr, "require.extensions");
+        not_supported_expr!(is_require_ensure, expr, "require.ensure");
+        not_supported_expr!(is_require_config, expr, "require.config");
+        not_supported_expr!(is_require_version, expr, "require.vesrion");
+        not_supported_expr!(is_require_amd, expr, "require.amd");
+        not_supported_expr!(is_require_include, expr, "require.include");
+        not_supported_expr!(is_require_onerror, expr, "require.onError");
+        not_supported_expr!(is_require_main_require, expr, "require.main.require");
+      } else if s == "module" {
+        not_supported_expr!(is_module_parent_require, expr, "module.parent.require");
       }
     }
 
     if expr_matcher::is_require_cache(expr) {
-      self
+      parser
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(
           expr.span().real_lo(),
@@ -377,11 +302,12 @@ impl Visit for ApiScanner<'_> {
           RuntimeGlobals::MODULE_CACHE.name().into(),
           Some(RuntimeGlobals::MODULE_CACHE),
         )));
+      Some(false)
     } else if expr_matcher::is_require_main(expr) {
       let mut runtime_requirements = RuntimeGlobals::default();
       runtime_requirements.insert(RuntimeGlobals::MODULE_CACHE);
       runtime_requirements.insert(RuntimeGlobals::ENTRY_MODULE_ID);
-      self
+      parser
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(
           expr.span().real_lo(),
@@ -394,39 +320,40 @@ impl Visit for ApiScanner<'_> {
           .into(),
           Some(runtime_requirements),
         )));
+      Some(false)
     } else if expr_matcher::is_webpack_module_id(expr) {
-      self
+      parser
         .presentational_dependencies
         .push(Box::new(RuntimeRequirementsDependency::new(
           RuntimeGlobals::MODULE_ID,
         )));
-      self
+      parser
         .presentational_dependencies
         .push(Box::new(ModuleArgumentDependency::new(
           expr.span().real_lo(),
           expr.span().real_hi(),
           Some("id"),
         )));
-      return;
+      Some(true)
+    } else {
+      None
     }
-    expr.visit_children_with(self);
   }
 
-  fn visit_call_expr(&mut self, call_expr: &CallExpr) {
-    #[macro_export]
+  fn call(&self, parser: &mut JavascriptParser, call_expr: &CallExpr) -> Option<bool> {
     macro_rules! not_supported_call {
       ($check: ident, $name: literal) => {
         if let Callee::Expr(box Expr::Member(expr)) = &call_expr.callee
           && expr_matcher::$check(&Expr::Member(expr.to_owned()))
         {
-          let (warning, dep) = super::expression_not_supported(
-            &self.source_file,
+          let (warning, dep) = expression_not_supported(
+            &parser.source_file,
             $name,
             &Expr::Call(call_expr.to_owned()),
           );
-          self.warning_diagnostics.push(warning);
-          self.presentational_dependencies.push(dep);
-          return;
+          parser.warning_diagnostics.push(warning);
+          parser.presentational_dependencies.push(dep);
+          return Some(false);
         }
       };
     }
@@ -437,21 +364,20 @@ impl Visit for ApiScanner<'_> {
       .and_then(|expr| extract_member_root(expr));
 
     if let Some(root) = root
-      && root.span.ctxt == self.unresolved_ctxt
+      && let s = root.sym.as_str()
+      && parser.is_unresolved_ident(s)
     {
-      if root.sym == "require" {
+      if s == "require" {
         not_supported_call!(is_require_config, "require.config()");
         not_supported_call!(is_require_ensure, "require.ensure()");
         not_supported_call!(is_require_include, "require.include()");
         not_supported_call!(is_require_onerror, "require.onError()");
         not_supported_call!(is_require_main_require, "require.main.require()");
-      }
-
-      if root.sym == "module" {
+      } else if s == "module" {
         not_supported_call!(is_module_parent_require, "module.parent.require()");
       }
     }
 
-    call_expr.visit_children_with(self);
+    None
   }
 }

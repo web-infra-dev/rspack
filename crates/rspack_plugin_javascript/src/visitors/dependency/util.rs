@@ -43,10 +43,8 @@ pub(crate) mod expr_matcher {
   use std::sync::Arc;
 
   use once_cell::sync::Lazy;
-  use swc_core::{
-    common::{EqIgnoreSpan, SourceMap},
-    ecma::{ast::Ident, parser::parse_file_as_expr},
-  };
+  use swc_core::common::{EqIgnoreSpan, SourceMap};
+  use swc_core::ecma::{ast::Ident, parser::parse_file_as_expr};
 
   static PARSED_MEMBER_EXPR_CM: Lazy<Arc<SourceMap>> = Lazy::new(Default::default);
 
