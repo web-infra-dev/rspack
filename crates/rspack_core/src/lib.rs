@@ -94,7 +94,7 @@ pub use module_graph_module::*;
 pub mod resolver;
 pub use resolver::*;
 pub mod concatenated_module;
-pub mod reserverd_names;
+pub mod reserved_names;
 pub mod tree_shaking;
 
 pub use rspack_core_macros::{impl_runtime_module, impl_source_map_config};

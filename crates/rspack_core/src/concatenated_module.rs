@@ -31,7 +31,7 @@ use swc_node_comments::SwcComments;
 use crate::{
   filter_runtime, impl_source_map_config, merge_runtime_condition,
   merge_runtime_condition_non_false, property_access, property_name,
-  reserverd_names::RESERVED_NAMES, returning_function, subtract_runtime_condition,
+  reserved_names::RESERVED_NAMES, returning_function, subtract_runtime_condition,
   AsyncDependenciesBlockId, BoxDependency, BuildContext, BuildInfo, BuildMeta,
   BuildMetaDefaultObject, BuildMetaExportsType, BuildResult, ChunkInitFragments,
   CodeGenerationResult, Compilation, ConcatenatedModuleIdent, ConcatenationScope, ConnectionId,
@@ -296,6 +296,12 @@ impl ModuleInfo {
     }
   }
 
+  pub fn get_interop_default_access_used(&self) -> bool {
+    match self {
+      ModuleInfo::External(e) => e.interop_default_access_used,
+      ModuleInfo::Concatenated(c) => c.interop_default_access_used,
+    }
+  }
   pub fn set_interop_default_access_used(&mut self, v: bool) {
     match self {
       ModuleInfo::External(e) => e.interop_default_access_used = v,
@@ -358,7 +364,7 @@ impl ConcatenatedModule {
     mut modules: Vec<ConcatenatedInnerModule>,
     runtime: Option<RuntimeSpec>,
   ) -> Self {
-    // make the hash consistant
+    // make the hash consistent
     modules.sort_by(|a, b| a.id.cmp(&b.id));
     Self {
       id,
@@ -833,7 +839,7 @@ impl Module for ConcatenatedModule {
       }
     }
 
-    for (id, info) in module_to_info_map.iter() {
+    for (_id, info) in module_to_info_map.iter() {
       println!("{}", info.id());
       match info {
         ModuleInfo::External(_) => {}
@@ -974,13 +980,13 @@ impl Module for ConcatenatedModule {
         .unwrap_or_default();
       let name_space_name = module_info.namespace_object_name.clone();
 
-      if let Some(ref namespace_export_symbol) = module_info.namespace_export_symbol {
+      if let Some(ref _namespace_export_symbol) = module_info.namespace_export_symbol {
         continue;
       }
 
       let mut ns_obj = Vec::new();
       let exports_info = compilation.module_graph.get_exports_info(module_info_id);
-      for (name, export_info_id) in exports_info.exports.iter() {
+      for (_name, export_info_id) in exports_info.exports.iter() {
         let export_info = export_info_id.get_export_info(&compilation.module_graph);
         if matches!(export_info.provided, Some(ExportInfoProvided::False)) {
           continue;
@@ -1010,7 +1016,7 @@ impl Module for ConcatenatedModule {
       }
       // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/ConcatenatedModule.js#L1539
       let name = name_space_name.expect("should have name_space_name");
-      let define_getters = if ns_obj.len() > 0 {
+      let define_getters = if !ns_obj.is_empty() {
         format!(
           "{}({{ {} }});\n",
           RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
@@ -1020,7 +1026,7 @@ impl Module for ConcatenatedModule {
         String::new()
       };
 
-      if ns_obj.len() > 0 {
+      if !ns_obj.is_empty() {
         runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
       }
 
@@ -1055,13 +1061,13 @@ impl Module for ConcatenatedModule {
     let mut chunk_init_fragments = Vec::new();
 
     // Evaluate modules in order
-    let var_name = for raw_info in modules_with_info {
+    for raw_info in modules_with_info {
       let mut name = None;
-      let mut is_conditional = false;
+      let is_conditional = false;
       let info = match raw_info {
         ModuleInfoOrReference::Reference {
           module_info_id,
-          runtime_condition,
+          runtime_condition: _,
         } => {
           let module_info = module_to_info_map
             .get(&module_info_id)
@@ -1112,7 +1118,7 @@ impl Module for ConcatenatedModule {
           runtime_requirements = runtime_requirements.union(info.runtime_requirements);
           name = info.namespace_object_name.clone();
         }
-        ModuleInfo::External(info) => {
+        ModuleInfo::External(_info) => {
           // result.push_str(&format!(
           //   "\n// EXTERNAL MODULE: {}\n",
           //   info.module.readable_identifier(request_shortener)
@@ -1154,40 +1160,46 @@ impl Module for ConcatenatedModule {
         }
       }
 
-      // if info.interop_namespace_object_used {
-      //   runtime_requirements.push(RuntimeGlobals::CreateFakeNamespaceObject);
-      //   result.push_str(&format!(
-      //     "\nlet {} = /*#__PURE__*/{}({}, 2);",
-      //     info.interop_namespace_object_name,
-      //     RuntimeGlobals::CreateFakeNamespaceObject,
-      //     name
-      //   ));
-      // }
-      //
-      // if info.interop_namespace_object2_used {
-      //   runtime_requirements.push(RuntimeGlobals::CreateFakeNamespaceObject);
-      //   result.push_str(&format!(
-      //     "\nlet {} = /*#__PURE__*/{}({});",
-      //     info.interop_namespace_object2_name,
-      //     RuntimeGlobals::CreateFakeNamespaceObject,
-      //     name
-      //   ));
-      // }
-      //
-      // if info.interop_default_access_used {
-      //   runtime_requirements.push(RuntimeGlobals::CompatGetDefaultExport);
-      //   result.push_str(&format!(
-      //     "\nlet {} = /*#__PURE__*/{}({});",
-      //     info.interop_default_access_name,
-      //     RuntimeGlobals::CompatGetDefaultExport,
-      //     name
-      //   ));
-      // }
+      if info.get_interop_namespace_object_used() {
+        runtime_requirements.insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
+        result.add(RawSource::from(format!(
+          "\nlet {} = /*#__PURE__*/{}({}, 2);",
+          info
+            .get_interop_namespace_object_name()
+            .expect("should have interop_namespace_object_name"),
+          RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
+          name.as_ref().expect("should have name")
+        )));
+      }
+
+      if info.get_interop_namespace_object2_used() {
+        runtime_requirements.insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
+        result.add(RawSource::from(format!(
+          "\nlet {} = /*#__PURE__*/{}({});",
+          info
+            .get_interop_namespace_object2_name()
+            .expect("should have interop_namespace_object2_name"),
+          RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
+          name.as_ref().expect("should have name")
+        )));
+      }
+
+      if info.get_interop_default_access_used() {
+        runtime_requirements.insert(RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT);
+        result.add(RawSource::from(format!(
+          "\nlet {} = /*#__PURE__*/{}({});",
+          info
+            .get_interop_default_access_name()
+            .expect("should have interop_default_access_name"),
+          RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT,
+          name.expect("should have name")
+        )));
+      }
 
       if is_conditional {
         result.add(RawSource::from("\n}"));
       }
-    };
+    }
 
     let mut code_generation_result = CodeGenerationResult::default();
     code_generation_result.add(SourceType::JavaScript, CachedSource::new(result).boxed());
@@ -1400,7 +1412,7 @@ impl ConcatenatedModule {
     let exist_entry = match exists_entry.get(&module) {
       Some(RuntimeCondition::Boolean(true)) => return,
       None => None,
-      Some(_condtition) => Some(runtime_condition.clone()),
+      Some(_condition) => Some(runtime_condition.clone()),
     };
     if module_set.contains(&module) {
       exists_entry.insert(module, RuntimeCondition::Boolean(true));
@@ -2149,7 +2161,7 @@ impl Hash for ConcatenatedModule {
     let mut temp_state = DefaultHasher::default();
 
     "__rspack_internal__ConcatenatedModule".hash(&mut temp_state);
-    // the module has been sorted, so the has should be consistant
+    // the module has been sorted, so the has should be consistent
     for module in self.modules.iter() {
       if let Some(ref original_source_hash) = module.original_source_hash {
         temp_state.write_u64(*original_source_hash);

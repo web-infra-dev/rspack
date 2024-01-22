@@ -28,11 +28,11 @@ use serde_json::json;
 use crate::{
   add_connection_states, contextify, diagnostics::ModuleBuildError, get_context,
   impl_build_info_meta, AsyncDependenciesBlockId, BoxLoader, BoxModule, BuildContext, BuildInfo,
-  BuildMeta, BuildResult, CodeGenerationResult, Compilation, CompilerOptions, ConcatenationScope,
-  ConnectionState, Context, DependenciesBlock, DependencyId, DependencyTemplate, GenerateContext,
-  GeneratorOptions, LibIdentOptions, Module, ModuleDependency, ModuleGraph, ModuleIdentifier,
-  ModuleType, ParseContext, ParseResult, ParserAndGenerator, ParserOptions, Resolve,
-  RspackLoaderRunnerPlugin, RuntimeSpec, SourceType,
+  BuildMeta, BuildResult, CodeGenerationResult, Compilation, ConcatenationScope, ConnectionState,
+  Context, DependenciesBlock, DependencyId, DependencyTemplate, GenerateContext, GeneratorOptions,
+  LibIdentOptions, Module, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType,
+  ParseContext, ParseResult, ParserAndGenerator, ParserOptions, Resolve, RspackLoaderRunnerPlugin,
+  RuntimeSpec, SourceType,
 };
 
 bitflags! {

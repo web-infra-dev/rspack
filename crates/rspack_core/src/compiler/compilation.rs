@@ -13,7 +13,6 @@ use dashmap::DashSet;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use rayon::prelude::*;
-use rspack_database::DatabaseItem;
 use rspack_error::{error, Diagnostic, Result, Severity, TWithDiagnosticArray};
 use rspack_futures::FuturesResults;
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -2210,7 +2209,7 @@ pub fn assign_depths(
 ) {
   // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/Compilation.js#L3720
   let mut q = VecDeque::new();
-  for (i, item) in modules.iter().enumerate() {
+  for item in modules.iter() {
     q.push_back((**item, 0));
   }
   while let Some((id, depth)) = q.pop_front() {

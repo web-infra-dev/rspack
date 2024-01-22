@@ -122,7 +122,7 @@ impl ModuleConcatenationPlugin {
         continue;
       }
       // SAFETY: because it is extends harmony dep, we can ensure the dep has been
-      // implemented ModuleDepdency Trait.
+      // implemented ModuleDependency Trait.
       let module_dep = dep.as_module_dependency().expect("should be module dep");
       let imported_names = module_dep.get_referenced_exports(mg, None);
       if imported_names.iter().all(|item| match item {
@@ -750,10 +750,10 @@ impl Plugin for ModuleConcatenationPlugin {
         resolve_options: box_module.get_resolve_options().clone(),
         code_generation_dependencies: box_module
           .get_code_generation_dependencies()
-          .map(|deps| deps.iter().cloned().collect::<Vec<_>>()),
+          .map(|deps| deps.to_vec()),
         presentational_dependencies: box_module
           .get_presentational_dependencies()
-          .map(|deps| deps.iter().cloned().collect::<Vec<_>>()),
+          .map(|deps| deps.to_vec()),
         context: Some(compilation.options.context.clone()),
         side_effect_connection_state: box_module
           .get_side_effects_connection_state(&compilation.module_graph, &mut HashSet::default()),

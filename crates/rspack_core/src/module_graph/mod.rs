@@ -121,7 +121,7 @@ impl ModuleGraph {
       .expect("should have mgm");
 
     // Using this tuple to avoid violating rustc borrow rules
-    let assing_tuple = (
+    let assign_tuple = (
       old_mgm.post_order_index,
       old_mgm.pre_order_index,
       old_mgm.depth,
@@ -131,11 +131,11 @@ impl ModuleGraph {
     let new_mgm = self
       .module_graph_module_by_identifier_mut(target_module)
       .expect("should have mgm");
-    new_mgm.post_order_index = assing_tuple.0;
-    new_mgm.pre_order_index = assing_tuple.1;
-    new_mgm.depth = assing_tuple.2;
-    new_mgm.exports = assing_tuple.3;
-    new_mgm.is_async = assing_tuple.4;
+    new_mgm.post_order_index = assign_tuple.0;
+    new_mgm.pre_order_index = assign_tuple.1;
+    new_mgm.depth = assign_tuple.2;
+    new_mgm.exports = assign_tuple.3;
+    new_mgm.is_async = assign_tuple.4;
   }
 
   pub fn move_module_connections<F>(
@@ -194,8 +194,8 @@ impl ModuleGraph {
 
     // Outgoing connections
     // avoid violating rustc borrow rules
-    let mut add_incomming_connection = vec![];
-    let mut delete_incomming_connection = vec![];
+    let mut add_incoming_connection = vec![];
+    let mut delete_incoming_connection = vec![];
     for connection_id in old_mgm.incoming_connections.clone().into_iter() {
       let connection = self
         .connection_by_connection_id(&connection_id)
@@ -207,22 +207,22 @@ impl ModuleGraph {
           connection.original_module_identifier,
           *new_module,
         );
-        add_incomming_connection.push(new_connection_id);
-        delete_incomming_connection.push(connection_id);
+        add_incoming_connection.push(new_connection_id);
+        delete_incoming_connection.push(connection_id);
       }
     }
 
     let new_mgm = self
       .module_graph_module_by_identifier_mut(new_module)
       .expect("should have mgm");
-    for c in add_incomming_connection {
+    for c in add_incoming_connection {
       new_mgm.incoming_connections.insert(c);
     }
 
     let old_mgm = self
       .module_graph_module_by_identifier_mut(old_module)
       .expect("should have mgm");
-    for c in delete_incomming_connection {
+    for c in delete_incoming_connection {
       old_mgm.incoming_connections.remove(&c);
     }
   }
