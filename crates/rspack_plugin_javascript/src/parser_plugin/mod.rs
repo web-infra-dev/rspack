@@ -1,3 +1,4 @@
+mod api_plugin;
 mod check_var_decl;
 mod common_js_imports_parse_plugin;
 mod r#const;
@@ -8,6 +9,7 @@ mod r#trait;
 mod url_plugin;
 mod webpack_included_plugin;
 
+pub use self::api_plugin::APIPlugin;
 pub use self::check_var_decl::CheckVarDeclaratorIdent;
 pub use self::common_js_imports_parse_plugin::CommonJsImportsParserPlugin;
 pub use self::drive::JavaScriptParserPluginDrive;

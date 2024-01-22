@@ -1,4 +1,4 @@
-/** @type {import("@rspack/core").Configuration} */
+/** @type {import("../../../../").Configuration} */
 module.exports = {
 	target: "web",
 	mode: "development",
@@ -14,6 +14,12 @@ module.exports = {
 			cacheGroups: {
 				assetFixHack: {
 					type: "asset/resource",
+					chunks: "all",
+					name: "main",
+					enforce: true
+				},
+				assetFixHack1: {
+					type: "asset/inline",
 					chunks: "all",
 					name: "main",
 					enforce: true

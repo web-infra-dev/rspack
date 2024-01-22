@@ -9,7 +9,9 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use rspack_core::needs_refactor::WorkerSyntaxList;
-use rspack_core::{BoxDependency, CompilerOptions, DependencyLocation, DependencyTemplate};
+use rspack_core::{
+  BoxDependency, BuildInfo, CompilerOptions, DependencyLocation, DependencyTemplate, ResourceData,
+};
 use rspack_core::{JavascriptParserUrl, ModuleType, SpanExt};
 use rspack_error::miette::Diagnostic;
 use rustc_hash::FxHashSet;
@@ -17,7 +19,6 @@ use swc_core::common::{SourceFile, Spanned};
 use swc_core::ecma::ast::{ArrayPat, AssignPat, ObjectPat, ObjectPatProp, Pat, Program, Stmt};
 use swc_core::ecma::ast::{BlockStmt, Expr, Ident, Lit, MemberExpr, RestPat};
 
-use super::api_scanner::ApiParserPlugin;
 use crate::parser_plugin::{self, JavaScriptParserPluginDrive};
 use crate::utils::eval::{self, BasicEvaluatedExpression};
 use crate::visitors::scope_info::{ScopeInfoDB, ScopeInfoId};
@@ -25,13 +26,18 @@ use crate::visitors::scope_info::{ScopeInfoDB, ScopeInfoId};
 pub struct JavascriptParser<'parser> {
   pub(crate) source_file: Arc<SourceFile>,
   pub(crate) errors: &'parser mut Vec<Box<dyn Diagnostic + Send + Sync>>,
+  pub(crate) warning_diagnostics: &'parser mut Vec<Box<dyn Diagnostic + Send + Sync>>,
   pub(crate) dependencies: &'parser mut Vec<BoxDependency>,
   pub(crate) presentational_dependencies: &'parser mut Vec<Box<dyn DependencyTemplate>>,
   pub(crate) ignored: &'parser mut FxHashSet<DependencyLocation>,
   // TODO: remove `worker_syntax_list`
   pub(crate) worker_syntax_list: &'parser WorkerSyntaxList,
+  pub(crate) build_info: &'parser mut BuildInfo,
+  pub(crate) resource_data: &'parser ResourceData,
   pub(crate) plugin_drive: Rc<JavaScriptParserPluginDrive>,
   pub(super) definitions_db: ScopeInfoDB,
+  // TODO: remove `enter_assign`
+  pub(crate) enter_assign: bool,
   // ===== scope info =======
   // TODO: `in_if` can be removed after eval identifier
   pub(crate) in_if: bool,
@@ -50,19 +56,24 @@ impl<'parser> JavascriptParser<'parser> {
     ignored: &'parser mut FxHashSet<DependencyLocation>,
     module_type: &ModuleType,
     worker_syntax_list: &'parser WorkerSyntaxList,
+    resource_data: &'parser ResourceData,
+    build_info: &'parser mut BuildInfo,
     errors: &'parser mut Vec<Box<dyn Diagnostic + Send + Sync>>,
+    warning_diagnostics: &'parser mut Vec<Box<dyn Diagnostic + Send + Sync>>,
   ) -> Self {
     let mut plugins: Vec<parser_plugin::BoxJavascriptParserPlugin> = vec![
       Box::new(parser_plugin::CheckVarDeclaratorIdent),
       Box::new(parser_plugin::ConstPlugin),
       Box::new(parser_plugin::CommonJsImportsParserPlugin),
       Box::new(parser_plugin::RequireContextDependencyParserPlugin),
-      Box::new(ApiParserPlugin),
     ];
 
     if module_type.is_js_auto() || module_type.is_js_dynamic() || module_type.is_js_esm() {
       plugins.push(Box::new(parser_plugin::WebpackIsIncludedPlugin));
       plugins.push(Box::new(parser_plugin::ExportsInfoApiPlugin));
+      plugins.push(Box::new(parser_plugin::APIPlugin::new(
+        compiler_options.output.module,
+      )))
     }
 
     if module_type.is_js_auto() || module_type.is_js_esm() {
@@ -87,6 +98,7 @@ impl<'parser> JavascriptParser<'parser> {
     Self {
       source_file,
       errors,
+      warning_diagnostics,
       dependencies,
       presentational_dependencies,
       in_try: false,
@@ -97,6 +109,9 @@ impl<'parser> JavascriptParser<'parser> {
       ignored,
       plugin_drive,
       worker_syntax_list,
+      resource_data,
+      build_info,
+      enter_assign: false,
     }
   }
 

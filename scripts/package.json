@@ -16,6 +16,7 @@
     "@pnpm/find-workspace-packages": "6.0.8",
     "@pnpm/logger": "5.0.0",
     "node-fetch": "2.6.7",
+    "prettier": "^3.2.4",
     "zx": "^7.2.1"
   },
   "devDependencies": {
