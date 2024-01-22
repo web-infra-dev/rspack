@@ -11,6 +11,7 @@ module.exports =  {
       // "<rootDir>/*.basictest.js",
       // "<rootDir>/*.longtest.js",
       // "<rootDir>/*.unittest.js",
+      "<rootDir>/Examples.test.js",
       "<rootDir>/TestCasesNormal.basictest.js",
       "<rootDir>/ConfigTestCases.basictest.js"
     ],
