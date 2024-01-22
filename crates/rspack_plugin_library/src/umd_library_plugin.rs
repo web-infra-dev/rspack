@@ -74,12 +74,13 @@ impl UmdLibraryPlugin {
   }
 }
 
+#[async_trait::async_trait]
 impl Plugin for UmdLibraryPlugin {
   fn name(&self) -> &'static str {
     "rspack.UmdLibraryPlugin"
   }
 
-  fn additional_chunk_runtime_requirements(
+  async fn additional_chunk_runtime_requirements(
     &self,
     _ctx: PluginContext,
     args: &mut AdditionalChunkRuntimeRequirementsArgs,

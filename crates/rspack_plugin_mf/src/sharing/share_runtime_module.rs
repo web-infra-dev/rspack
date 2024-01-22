@@ -27,6 +27,7 @@ impl ShareRuntimeModule {
       chunk: None,
       enhanced,
       source_map_kind: SourceMapKind::None,
+      custom_source: None,
     }
   }
 }

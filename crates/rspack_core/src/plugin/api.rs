@@ -8,14 +8,14 @@ use rspack_sources::BoxSource;
 
 use crate::{
   AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, AssetEmittedArgs,
-  AssetInfo, BoxLoader, BoxModule, ChunkAssetArgs, ChunkHashArgs, CodeGenerationResults,
+  AssetInfo, BoxLoader, BoxModule, Chunk, ChunkAssetArgs, ChunkHashArgs, CodeGenerationResults,
   Compilation, CompilationArgs, CompilationParams, CompilerOptions, ContentHashArgs, DoneArgs,
   FactorizeArgs, JsChunkHashArgs, LoaderRunnerContext, MakeParam, Module, ModuleFactoryResult,
   ModuleIdentifier, ModuleType, NormalModule, NormalModuleAfterResolveArgs,
   NormalModuleBeforeResolveArgs, NormalModuleCreateData, OptimizeChunksArgs, ParserAndGenerator,
   PluginContext, ProcessAssetsArgs, RenderArgs, RenderChunkArgs, RenderManifestArgs,
-  RenderModuleContentArgs, RenderStartupArgs, Resolver, RuntimeRequirementsInTreeArgs, SourceType,
-  ThisCompilationArgs,
+  RenderModuleContentArgs, RenderStartupArgs, Resolver, RuntimeModule,
+  RuntimeRequirementsInTreeArgs, SourceType, ThisCompilationArgs,
 };
 
 // use anyhow::{Context, Result};
@@ -242,7 +242,7 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
-  fn additional_chunk_runtime_requirements(
+  async fn additional_chunk_runtime_requirements(
     &self,
     _ctx: PluginContext,
     _args: &mut AdditionalChunkRuntimeRequirementsArgs,
@@ -250,7 +250,7 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
-  fn additional_tree_runtime_requirements(
+  async fn additional_tree_runtime_requirements(
     &self,
     _ctx: PluginContext,
     _args: &mut AdditionalChunkRuntimeRequirementsArgs,
@@ -266,7 +266,7 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
-  fn runtime_requirements_in_tree(
+  async fn runtime_requirements_in_tree(
     &self,
     _ctx: PluginContext,
     _args: &mut RuntimeRequirementsInTreeArgs,
@@ -480,16 +480,21 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
-  fn runtime_module(&self, _module: &mut dyn Module) -> Result<()> {
-    Ok(())
-  }
-
   async fn succeed_module(&self, _module: &dyn Module) -> Result<()> {
     Ok(())
   }
 
   async fn still_valid_module(&self, _module: &dyn Module) -> Result<()> {
     Ok(())
+  }
+
+  async fn runtime_module(
+    &self,
+    _module: &mut dyn RuntimeModule,
+    _chunk: &Chunk,
+    _compilation: &Compilation,
+  ) -> Result<Option<String>> {
+    Ok(None)
   }
 
   fn module_ids(&self, _modules: &mut Compilation) -> Result<()> {

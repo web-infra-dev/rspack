@@ -47,10 +47,29 @@ pub fn impl_runtime_module(
         .parse2(quote! { pub source_map_kind: ::rspack_util::source_map::SourceMapKind })
         .expect("Failed to parse new field for source_map_kind"),
     );
+    fields.named.push(
+      syn::Field::parse_named
+        .parse2(
+          quote! { pub custom_source: Option<::std::sync::Arc<::rspack_core::rspack_sources::OriginalSource>> },
+        )
+        .expect("Failed to parse new field for original_source"),
+    );
   }
 
   quote! {
     #input
+
+    impl ::rspack_core::CustomSourceRuntimeModule for #name {
+      fn set_custom_source(&mut self, source: ::rspack_core::rspack_sources::OriginalSource) -> () {
+        self.custom_source = Some(::std::sync::Arc::new(source));
+      }
+      fn get_custom_source(&self) -> Option<::std::sync::Arc<::rspack_core::rspack_sources::OriginalSource>> {
+        self.custom_source.clone()
+      }
+      fn get_constructor_name(&self) -> String {
+        String::from(stringify!(#name))
+      }
+    }
 
     impl rspack_identifier::Identifiable for #name {
       fn identifier(&self) -> rspack_identifier::Identifier {
@@ -131,7 +150,7 @@ pub fn impl_runtime_module(
         _runtime: Option<&::rspack_core::RuntimeSpec>,
       ) -> rspack_error::Result<::rspack_core::CodeGenerationResult> {
         let mut result = ::rspack_core::CodeGenerationResult::default();
-        result.add(::rspack_core::SourceType::JavaScript, self.generate(compilation));
+        result.add(::rspack_core::SourceType::JavaScript, self.generate_with_custom(compilation));
         result.set_hash(
           &compilation.options.output.hash_function,
           &compilation.options.output.hash_digest,

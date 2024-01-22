@@ -20,6 +20,7 @@ impl Default for GetChunkUpdateFilenameRuntimeModule {
       chunk: None,
       id: Identifier::from("webpack/runtime/get_chunk_update_filename"),
       source_map_kind: SourceMapKind::None,
+      custom_source: None,
     }
   }
 }

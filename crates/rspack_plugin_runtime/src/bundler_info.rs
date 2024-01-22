@@ -25,12 +25,13 @@ impl BundlerInfoPlugin {
   }
 }
 
+#[async_trait::async_trait]
 impl Plugin for BundlerInfoPlugin {
   fn name(&self) -> &'static str {
     "BundlerInfoPlugin"
   }
 
-  fn runtime_requirements_in_tree(
+  async fn runtime_requirements_in_tree(
     &self,
     _ctx: PluginContext,
     args: &mut RuntimeRequirementsInTreeArgs,
@@ -42,10 +43,13 @@ impl Plugin for BundlerInfoPlugin {
         .runtime_requirements
         .contains(RuntimeGlobals::RSPACK_VERSION),
     } {
-      args.compilation.add_runtime_module(
-        args.chunk,
-        Box::new(RspackVersionRuntimeModule::new(self.version.clone())),
-      );
+      args
+        .compilation
+        .add_runtime_module(
+          args.chunk,
+          Box::new(RspackVersionRuntimeModule::new(self.version.clone())),
+        )
+        .await?;
     }
     Ok(())
   }

@@ -18,7 +18,7 @@ impl Plugin for ChunkPrefetchPreloadPlugin {
     "ChunkPrefetchPreloadPlugin"
   }
 
-  fn additional_chunk_runtime_requirements(
+  async fn additional_chunk_runtime_requirements(
     &self,
     _ctx: PluginContext,
     args: &mut AdditionalChunkRuntimeRequirementsArgs,
@@ -38,17 +38,19 @@ impl Plugin for ChunkPrefetchPreloadPlugin {
       {
         runtime_requirements.insert(RuntimeGlobals::PREFETCH_CHUNK);
         runtime_requirements.insert(RuntimeGlobals::ON_CHUNKS_LOADED);
-        compilation.add_runtime_module(
-          chunk_ukey,
-          Box::new(ChunkPrefetchStartupRuntimeModule::new(startup_child_chunks)),
-        )
+        compilation
+          .add_runtime_module(
+            chunk_ukey,
+            Box::new(ChunkPrefetchStartupRuntimeModule::new(startup_child_chunks)),
+          )
+          .await?
       }
     }
 
     Ok(())
   }
 
-  fn additional_tree_runtime_requirements(
+  async fn additional_tree_runtime_requirements(
     &self,
     _ctx: PluginContext,
     args: &mut AdditionalChunkRuntimeRequirementsArgs,
@@ -61,22 +63,26 @@ impl Plugin for ChunkPrefetchPreloadPlugin {
 
     if let Some(prefetch_map) = chunk_map.get(&ChunkGroupOrderKey::Prefetch) {
       runtime_requirements.insert(RuntimeGlobals::PREFETCH_CHUNK);
-      compilation.add_runtime_module(
-        chunk_ukey,
-        Box::new(ChunkPrefetchTriggerRuntimeModule::new(
-          prefetch_map.to_owned(),
-        )),
-      )
+      compilation
+        .add_runtime_module(
+          chunk_ukey,
+          Box::new(ChunkPrefetchTriggerRuntimeModule::new(
+            prefetch_map.to_owned(),
+          )),
+        )
+        .await?
     }
 
     if let Some(preload_map) = chunk_map.get(&ChunkGroupOrderKey::Preload) {
       runtime_requirements.insert(RuntimeGlobals::PRELOAD_CHUNK);
-      compilation.add_runtime_module(
-        chunk_ukey,
-        Box::new(ChunkPreloadTriggerRuntimeModule::new(
-          preload_map.to_owned(),
-        )),
-      )
+      compilation
+        .add_runtime_module(
+          chunk_ukey,
+          Box::new(ChunkPreloadTriggerRuntimeModule::new(
+            preload_map.to_owned(),
+          )),
+        )
+        .await?
     }
 
     Ok(())

@@ -17,6 +17,7 @@ impl ExportWebpackRequireRuntimeModule {
     Self {
       id: Identifier::from("webpack/runtime/export_webpack_runtime"),
       source_map_kind: SourceMapKind::None,
+      custom_source: None,
     }
   }
 }

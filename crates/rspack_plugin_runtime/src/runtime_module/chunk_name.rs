@@ -19,6 +19,7 @@ impl Default for ChunkNameRuntimeModule {
       id: Identifier::from("webpack/runtime/chunk_name"),
       chunk: None,
       source_map_kind: SourceMapKind::None,
+      custom_source: None,
     }
   }
 }

@@ -3,7 +3,7 @@ use napi_derive::napi;
 use rspack_core::Module;
 
 use super::{JsCompatSource, ToJsCompatSource};
-use crate::JsCodegenerationResults;
+use crate::{JsChunk, JsCodegenerationResults};
 
 #[derive(Default)]
 #[napi(object)]
@@ -88,4 +88,19 @@ pub struct JsExecuteModuleArg {
   pub entry: String,
   pub runtime_modules: Vec<String>,
   pub codegen_results: JsCodegenerationResults,
+}
+
+#[derive(Default)]
+#[napi(object)]
+pub struct JsRuntimeModule {
+  pub source: Option<JsCompatSource>,
+  pub module_identifier: String,
+  pub constructor_name: String,
+  pub name: String,
+}
+
+#[napi(object)]
+pub struct JsRuntimeModuleArg {
+  pub module: JsRuntimeModule,
+  pub chunk: JsChunk,
 }

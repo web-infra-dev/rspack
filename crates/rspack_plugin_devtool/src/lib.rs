@@ -18,7 +18,9 @@ use rspack_core::{
   PluginJsChunkHashHookOutput, PluginProcessAssetsOutput, PluginRenderModuleContentOutput,
   ProcessAssetsArgs, RenderModuleContentArgs, SourceType,
 };
-use rspack_core::{Filename, Logger, Module, ModuleIdentifier, OutputOptions};
+use rspack_core::{
+  Chunk, Filename, Logger, Module, ModuleIdentifier, OutputOptions, RuntimeModule,
+};
 use rspack_error::{miette::IntoDiagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_util::identifier::make_paths_absolute;
@@ -725,12 +727,17 @@ impl Plugin for SourceMapDevToolModuleOptionsPlugin {
     Ok(())
   }
 
-  fn runtime_module(&self, module: &mut dyn Module) -> Result<()> {
+  async fn runtime_module(
+    &self,
+    module: &mut dyn RuntimeModule,
+    _chunk: &Chunk,
+    _compilation: &Compilation,
+  ) -> Result<Option<String>> {
     if self.module {
       module.set_source_map_kind(SourceMapKind::SourceMap);
     } else {
       module.set_source_map_kind(SourceMapKind::SimpleSourceMap);
     }
-    Ok(())
+    Ok(None)
   }
 }

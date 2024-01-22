@@ -5,6 +5,7 @@ use rspack_error::Result;
 use rspack_fs::AsyncWritableFileSystem;
 use rspack_hash::RspackHashDigest;
 use rspack_identifier::IdentifierMap;
+use rspack_sources::Source;
 use rustc_hash::FxHashSet as HashSet;
 
 use super::MakeParam;
@@ -182,7 +183,10 @@ pub fn collect_changed_modules(
     .map(|(identifier, module)| {
       (
         *identifier,
-        module.generate(compilation).source().to_string(),
+        module
+          .generate_with_custom(compilation)
+          .source()
+          .to_string(),
       )
     })
     .collect();

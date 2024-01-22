@@ -45,4 +45,5 @@ pub struct JsHooks {
   pub succeed_module: JsFunction,
   pub still_valid_module: JsFunction,
   pub execute_module: JsFunction,
+  pub runtime_module: JsFunction,
 }

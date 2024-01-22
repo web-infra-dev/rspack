@@ -17,6 +17,7 @@ import type {
 	JsCompatSource,
 	JsCompilation,
 	JsModule,
+	JsRuntimeModule,
 	JsStatsChunk,
 	JsStatsError,
 	PathData
@@ -127,6 +128,10 @@ export class Compilation {
 		executeModule: tapable.SyncHook<
 			[ExecuteModuleArgument, ExecuteModuleContext]
 		>;
+		runtimeModule: tapable.SyncHook<
+			[JsRuntimeModule, JsChunk],
+			JsRuntimeModule
+		>;
 	};
 	options: RspackOptionsNormalized;
 	outputOptions: OutputNormalized;
@@ -186,7 +191,8 @@ export class Compilation {
 			statsFactory: new tapable.SyncHook(["statsFactory", "options"]),
 			statsPrinter: new tapable.SyncHook(["statsPrinter", "options"]),
 			buildModule: new tapable.SyncHook(["module"]),
-			executeModule: new tapable.SyncHook(["options", "context"])
+			executeModule: new tapable.SyncHook(["options", "context"]),
+			runtimeModule: new tapable.SyncHook(["module", "chunk"])
 		};
 		this.compiler = compiler;
 		this.resolverFactory = compiler.resolverFactory;

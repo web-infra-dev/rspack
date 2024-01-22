@@ -19,6 +19,7 @@ impl NormalRuntimeModule {
       identifier: Identifier::from(identifier.name()),
       sources,
       source_map_kind: SourceMapKind::None,
+      custom_source: None,
     }
   }
 }

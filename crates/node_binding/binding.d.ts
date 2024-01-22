@@ -349,6 +349,7 @@ export interface JsHooks {
   succeedModule: (...args: any[]) => any
   stillValidModule: (...args: any[]) => any
   executeModule: (...args: any[]) => any
+  runtimeModule: (...args: any[]) => any
 }
 
 export interface JsLoaderContext {
@@ -420,6 +421,18 @@ export interface JsResourceData {
   query?: string
   /** Resource fragment with `#` prefix */
   fragment?: string
+}
+
+export interface JsRuntimeModule {
+  source?: JsCompatSource
+  moduleIdentifier: string
+  constructorName: string
+  name: string
+}
+
+export interface JsRuntimeModuleArg {
+  module: JsRuntimeModule
+  chunk: JsChunk
 }
 
 export interface JsStatsAsset {

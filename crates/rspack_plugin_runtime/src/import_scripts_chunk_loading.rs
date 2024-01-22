@@ -15,7 +15,7 @@ impl Plugin for ImportScriptsChunkLoadingPlugin {
     "ImportScriptsChunkLoadingPlugin"
   }
 
-  fn runtime_requirements_in_tree(
+  async fn runtime_requirements_in_tree(
     &self,
     _ctx: PluginContext,
     args: &mut RuntimeRequirementsInTreeArgs,
@@ -61,10 +61,12 @@ impl Plugin for ImportScriptsChunkLoadingPlugin {
         if with_create_script_url {
           runtime_requirements_mut.insert(RuntimeGlobals::CREATE_SCRIPT_URL);
         }
-        compilation.add_runtime_module(
-          chunk,
-          ImportScriptsChunkLoadingRuntimeModule::new(with_create_script_url).boxed(),
-        );
+        compilation
+          .add_runtime_module(
+            chunk,
+            ImportScriptsChunkLoadingRuntimeModule::new(with_create_script_url).boxed(),
+          )
+          .await?;
       }
     }
     Ok(())

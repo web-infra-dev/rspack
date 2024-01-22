@@ -327,7 +327,8 @@ class Compiler {
 				succeedModule: this.#succeedModule.bind(this),
 				stillValidModule: this.#stillValidModule.bind(this),
 				buildModule: this.#buildModule.bind(this),
-				executeModule: this.#executeModule.bind(this)
+				executeModule: this.#executeModule.bind(this),
+				runtimeModule: this.#runtimeModule.bind(this)
 			},
 			createThreadsafeNodeFSFromRaw(this.outputFileSystem),
 			runLoaders.bind(undefined, this)
@@ -644,7 +645,8 @@ class Compiler {
 				this.compilation.normalModuleFactory?.hooks.createModule,
 			normalModuleFactoryResolveForScheme:
 				this.compilation.normalModuleFactory?.hooks.resolveForScheme,
-			executeModule: undefined
+			executeModule: undefined,
+			runtimeModule: this.compilation.hooks.runtimeModule
 		};
 		for (const [name, hook] of Object.entries(hookMap)) {
 			if (
@@ -867,6 +869,18 @@ class Compiler {
 	#stillValidModule(module: binding.JsModule) {
 		this.compilation.hooks.stillValidModule.call(module);
 		this.#updateDisabledHooks();
+	}
+
+	#runtimeModule(arg: binding.JsRuntimeModuleArg) {
+		let { module, chunk } = arg;
+		const originSource = module.source?.source;
+		this.compilation.hooks.runtimeModule.call(module, chunk);
+		this.#updateDisabledHooks();
+		const newSource = module.source?.source;
+		if (newSource && newSource !== originSource) {
+			return module;
+		}
+		return;
 	}
 
 	#executeModule({

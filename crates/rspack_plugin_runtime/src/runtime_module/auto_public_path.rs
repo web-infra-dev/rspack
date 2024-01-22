@@ -22,6 +22,7 @@ impl Default for AutoPublicPathRuntimeModule {
       id: Identifier::from("webpack/runtime/auto_public_path"),
       chunk: None,
       source_map_kind: SourceMapKind::None,
+      custom_source: None,
     }
   }
 }

@@ -69,12 +69,13 @@ impl AmdLibraryPlugin {
   }
 }
 
+#[async_trait::async_trait]
 impl Plugin for AmdLibraryPlugin {
   fn name(&self) -> &'static str {
     "rspack.AmdLibraryPlugin"
   }
 
-  fn additional_chunk_runtime_requirements(
+  async fn additional_chunk_runtime_requirements(
     &self,
     _ctx: PluginContext,
     args: &mut AdditionalChunkRuntimeRequirementsArgs,
