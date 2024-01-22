@@ -183,13 +183,10 @@ pub async fn resolve(
     dependency_category: *args.dependency_category,
   };
 
-  let base_dir = args.context.clone();
-  let base_dir = base_dir.as_ref();
-
   let mut context = Default::default();
   let resolver = plugin_driver.resolver_factory.get(dep);
   let mut result = resolver
-    .resolve_with_context(base_dir, args.specifier, &mut context)
+    .resolve_with_context(args.context.as_ref(), args.specifier, &mut context)
     .map_err(|error| error.into_resolve_error(&args));
 
   args.file_dependencies.extend(context.file_dependencies);
