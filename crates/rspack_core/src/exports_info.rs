@@ -511,8 +511,31 @@ impl ExportsInfo {
         _ => {}
       }
     }
-    // let mut ret = vec![];
-    todo!()
+    let mut ret = vec![];
+    for export_info_id in self.exports.values() {
+      let export_info = export_info_id.get_export_info(mg);
+      match export_info.provided {
+        Some(ExportInfoProvided::True) | Some(ExportInfoProvided::Null) | None => {
+          ret.push(export_info.name.clone().unwrap_or("".into()));
+        }
+        _ => {}
+      }
+    }
+    if let Some(id) = self.redirect_to {
+      let exports_info = id.get_exports_info(mg);
+      let provided_exports = exports_info.get_provided_exports(mg);
+      let inner = match provided_exports {
+        ProvidedExports::Null => return ProvidedExports::Null,
+        ProvidedExports::True => return ProvidedExports::True,
+        ProvidedExports::Vec(arr) => arr,
+      };
+      for item in inner {
+        if !ret.contains(&item) {
+          ret.push(item);
+        }
+      }
+    }
+    ProvidedExports::Vec(ret)
   }
 
   /// exports that are relevant (not unused and potential provided)
