@@ -876,7 +876,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
               module
                 .generate(compilation)
                 .to_js_compat_source()
-                .expect("generate runtime module failed"),
+                .unwrap_or_else(|err| panic!("Failed to generate runtime module source: {err}")),
             ),
             module_identifier: module.identifier().to_string(),
             constructor_name: module.get_constructor_name(),
@@ -895,7 +895,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .map(|r| {
         r.and_then(|s| s.source).map(|s| {
           std::str::from_utf8(&s.source)
-            .expect("Invalid utf-8 sequence")
+            .unwrap_or_else(|err| panic!("Failed to covert buffer to utf-8 string: {err}"))
             .to_string()
         })
       })
