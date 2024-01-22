@@ -1051,6 +1051,7 @@ const optimization = z.strictObject({
 	realContentHash: z.boolean().optional(),
 	sideEffects: z.enum(["flag"]).or(z.boolean()).optional(),
 	providedExports: z.boolean().optional(),
+	concatenateModules: z.boolean().optional(),
 	innerGraph: z.boolean().optional(),
 	usedExports: z.enum(["global"]).or(z.boolean()).optional(),
 	mangleExports: z.enum(["size", "deterministic"]).or(z.boolean()).optional(),

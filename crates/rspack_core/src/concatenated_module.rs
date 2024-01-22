@@ -1,4 +1,3 @@
-#![allow(unused_assignments)]
 use std::{
   borrow::Cow,
   collections::hash_map::{DefaultHasher, Entry},
@@ -1041,7 +1040,6 @@ impl Module for ConcatenatedModule {
         continue;
       };
       if let Some(source) = namespace_object_sources.get(&info.module) {
-        // Assuming result is a mutable HashSet<String>
         result.add(RawSource::from(source.as_str()));
       }
     }
@@ -1052,7 +1050,7 @@ impl Module for ConcatenatedModule {
 
     // Evaluate modules in order
     for raw_info in modules_with_info {
-      let mut name = None;
+      let name;
       let is_conditional = false;
       let info = match raw_info {
         ModuleInfoOrReference::Reference {
