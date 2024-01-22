@@ -30,7 +30,7 @@ const explain = object => {
 			}
 			let msg = `${key} = ${value}`;
 			if (key !== "stack" && key !== "details" && msg.length > 100)
-				msg = msg.slice(0, 397) + "...";
+				msg = msg.slice(0, 97) + "...";
 			return msg;
 		})
 		.join("; ");
@@ -82,6 +82,11 @@ module.exports = function checkArrayExpectation(
 		}
 	}
 	if (fs.existsSync(path.join(testDirectory, `${filename}.js`))) {
+		// CHANGE: added file for sorting messages in multi-thread environment
+		if (fs.existsSync(path.join(testDirectory, `${filename}-sort.js`))) {
+			const sorter = require(path.join(testDirectory, `${filename}-sort.js`));
+			array = sorter(array);
+		}
 		const expectedFilename = path.join(testDirectory, `${filename}.js`);
 		const expected = require(expectedFilename);
 		const diff = diffItems(array, expected, kind);

@@ -1,5 +1,5 @@
 var webpack = require("../../../../");
-/** @type {import("@rspack/core").Configuration} */
+/** @type {import("../../../../").Configuration} */
 module.exports = {
 	mode: "development",
 	devtool: false,

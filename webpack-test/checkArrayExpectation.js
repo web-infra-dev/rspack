@@ -82,6 +82,7 @@ module.exports = function checkArrayExpectation(
 		}
 	}
 	if (fs.existsSync(path.join(testDirectory, `${filename}.js`))) {
+		// CHANGE: added file for sorting messages in multi-thread environment
 		if (fs.existsSync(path.join(testDirectory, `${filename}-sort.js`))) {
 			const sorter = require(path.join(testDirectory, `${filename}-sort.js`))
 			array = sorter(array)

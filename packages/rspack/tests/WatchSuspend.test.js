@@ -1,6 +1,8 @@
 // Copy from https://github.com/webpack/webpack/blob/main/test/WatchSuspend.test.js
 "use strict";
 
+require("./helpers/warmup-webpack");
+
 const path = require("path");
 const fs = require("fs");
 

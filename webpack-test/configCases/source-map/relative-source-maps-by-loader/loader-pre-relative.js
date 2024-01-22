@@ -1,4 +1,4 @@
-/** @type {import("@rspack/core").LoaderDefinition} */
+/** @type {import("../../../../").LoaderDefinition} */
 module.exports = function () {
 	this.callback(null, "module.exports = 'ok';", {
 		version: 3,

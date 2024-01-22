@@ -382,11 +382,15 @@ getCommon(
 		);
 		if (retained.length > 0) {
 			console.log(
-				"These cases share the same name with webpack, however their content are not identical." +
+				"Due to the historical fact that rspack mixed webpack tests and rspack tests together, so this test is served as a helper to decouple these tests." +
+					"\n\n" +
+					"The following cases share the same name with webpack, however their content are not identical." +
 					"\n" +
+					"This would cause misunderstandings between those tests. This file can be removed after the old tests are no longer coupled with webpack tests." +
+					"\n\n" +
 					"Either ignore these files in the `" +
 					path.join(WORKSPACE_ROOT, "scripts/test/diff-exclude.cjs") +
-					"` with reason or align it with webpack\n"
+					"` with reason (MUST BE CAUTIOUS) or align it with webpack.\n"
 			);
 			console.log(new Set(retained.sort()));
 			process.exit(1);
