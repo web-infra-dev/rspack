@@ -128,10 +128,7 @@ export class Compilation {
 		executeModule: tapable.SyncHook<
 			[ExecuteModuleArgument, ExecuteModuleContext]
 		>;
-		runtimeModule: tapable.SyncHook<
-			[JsRuntimeModule, JsChunk],
-			JsRuntimeModule
-		>;
+		runtimeModule: tapable.SyncHook<[JsRuntimeModule, JsChunk], void>;
 	};
 	options: RspackOptionsNormalized;
 	outputOptions: OutputNormalized;
