@@ -90,7 +90,10 @@ const config = {
 	optimization: {
 		minimize: false, // Disabling minification because it takes too long on CI
 		realContentHash: true,
-		usedExports: false,
+		providedExports: true,
+		usedExports: true,
+		sideEffects: true,
+		mangleExports: false,
 		splitChunks: {
 			cacheGroups: {
 				someVendor: {
