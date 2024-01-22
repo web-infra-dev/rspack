@@ -10,8 +10,8 @@
  /* harmony import */var _antd_index__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./antd/index */"./antd/index.js");
  
  _antd_index__WEBPACK_IMPORTED_MODULE_0__.locales.zh_CN;
-@@ -38,10 +35,11 @@
- var __WEBPACK_DEFAULT_EXPORT__ = _zh_locale__WEBPACK_IMPORTED_MODULE_0__["default"];
+@@ -35,10 +32,11 @@
+ /* harmony default export */ __webpack_exports__["default"] = (_zh_locale__WEBPACK_IMPORTED_MODULE_0__["default"]);
  }),
  "./zh_locale.js": (function (__unused_webpack_module, exports) {
 +var __webpack_unused_export__;
