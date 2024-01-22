@@ -13,7 +13,7 @@ pub fn join_atom<'a, T: Iterator<Item = &'a Atom>>(mut iter: T, separator: &str)
   if let Some(item) = iter.next() {
     ret.push_str(item);
   }
-  for item in iter.skip(1) {
+  for item in iter {
     ret.push_str(separator);
     ret.push_str(item);
   }
