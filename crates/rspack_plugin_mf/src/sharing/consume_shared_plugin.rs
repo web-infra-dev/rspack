@@ -290,7 +290,11 @@ impl ConsumeSharedPlugin {
       .get_required_version(context, request, config.clone(), add_diagnostic)
       .await;
     ConsumeSharedModule::new(
-      context.clone(),
+      if direct_fallback {
+        self.get_context()
+      } else {
+        context.clone()
+      },
       ConsumeOptions {
         import: import_resolved
           .is_some()
