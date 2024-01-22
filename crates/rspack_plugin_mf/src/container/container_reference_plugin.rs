@@ -137,7 +137,7 @@ impl Plugin for ContainerReferencePlugin {
           args.chunk,
           Box::new(RemoteRuntimeModule::new(self.options.enhanced)),
         )
-        .await;
+        .await?;
     }
     Ok(())
   }

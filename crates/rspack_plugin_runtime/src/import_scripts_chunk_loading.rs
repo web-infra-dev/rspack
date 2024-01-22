@@ -66,7 +66,7 @@ impl Plugin for ImportScriptsChunkLoadingPlugin {
             chunk,
             ImportScriptsChunkLoadingRuntimeModule::new(with_create_script_url).boxed(),
           )
-          .await;
+          .await?;
       }
     }
     Ok(())

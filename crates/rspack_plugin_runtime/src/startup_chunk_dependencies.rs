@@ -52,7 +52,7 @@ impl Plugin for StartupChunkDependenciesPlugin {
           args.chunk,
           StartupChunkDependenciesRuntimeModule::new(self.async_chunk_loading).boxed(),
         )
-        .await;
+        .await?;
     }
     Ok(())
   }
@@ -76,7 +76,7 @@ impl Plugin for StartupChunkDependenciesPlugin {
           args.chunk,
           StartupEntrypointRuntimeModule::new(self.async_chunk_loading).boxed(),
         )
-        .await;
+        .await?;
     }
 
     Ok(())

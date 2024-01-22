@@ -1955,7 +1955,7 @@ impl Compilation {
     &mut self,
     chunk_ukey: &ChunkUkey,
     mut module: Box<dyn RuntimeModule>,
-  ) {
+  ) -> Result<()> {
     // add chunk runtime to prefix module identifier to avoid multiple entry runtime modules conflict
     let chunk = self.chunk_by_ukey.expect_get(chunk_ukey);
     let runtime_module_identifier =
@@ -1972,8 +1972,7 @@ impl Compilation {
     if let Some(new_source) = self
       .plugin_driver
       .runtime_module(module.as_mut(), chunk, self)
-      .await
-      .expect("Run runtime_module hook failed")
+      .await?
     {
       module.set_custom_source(OriginalSource::new(new_source, module.name().to_string()));
     }
@@ -1981,6 +1980,8 @@ impl Compilation {
     self
       .runtime_modules
       .insert(runtime_module_identifier, module);
+
+    Ok(())
   }
 
   pub fn get_hash(&self) -> Option<&str> {

@@ -209,7 +209,7 @@ impl Plugin for RuntimePlugin {
           )
           .boxed(),
         )
-        .await
+        .await?
     }
 
     if compilation.options.output.trusted_types.is_some() {
@@ -292,7 +292,7 @@ impl Plugin for RuntimePlugin {
       }
       compilation
         .add_runtime_module(chunk, EnsureChunkRuntimeModule::default().boxed())
-        .await;
+        .await?;
     }
 
     if runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES) {
@@ -313,14 +313,14 @@ impl Plugin for RuntimePlugin {
         RuntimeGlobals::ASYNC_MODULE => {
           compilation
             .add_runtime_module(chunk, AsyncRuntimeModule::default().boxed())
-            .await;
+            .await?;
         }
         RuntimeGlobals::BASE_URI
           if is_enabled_for_chunk(chunk, &ChunkLoading::Disable, compilation) =>
         {
           compilation
             .add_runtime_module(chunk, BaseUriRuntimeModule::default().boxed())
-            .await;
+            .await?;
         }
         RuntimeGlobals::PUBLIC_PATH => {
           match &public_path {
@@ -331,12 +331,12 @@ impl Plugin for RuntimePlugin {
                   chunk,
                   PublicPathRuntimeModule::new(str.as_str().into()).boxed(),
                 )
-                .await;
+                .await?;
             }
             PublicPath::Auto => {
               compilation
                 .add_runtime_module(chunk, AutoPublicPathRuntimeModule::default().boxed())
-                .await;
+                .await?;
             }
           }
         }
@@ -360,7 +360,7 @@ impl Plugin for RuntimePlugin {
               )
               .boxed(),
             )
-            .await;
+            .await?;
         }
         RuntimeGlobals::GET_CHUNK_CSS_FILENAME => {
           compilation
@@ -386,7 +386,7 @@ impl Plugin for RuntimePlugin {
               )
               .boxed(),
             )
-            .await;
+            .await?;
         }
         RuntimeGlobals::GET_CHUNK_UPDATE_SCRIPT_FILENAME => {
           compilation
@@ -394,7 +394,7 @@ impl Plugin for RuntimePlugin {
               chunk,
               GetChunkUpdateFilenameRuntimeModule::default().boxed(),
             )
-            .await;
+            .await?;
         }
         RuntimeGlobals::GET_UPDATE_MANIFEST_FILENAME => {
           compilation
@@ -412,7 +412,7 @@ impl Plugin for RuntimePlugin {
               )
               .boxed(),
             )
-            .await;
+            .await?;
         }
         RuntimeGlobals::LOAD_SCRIPT => {
           compilation
@@ -424,42 +424,42 @@ impl Plugin for RuntimePlugin {
               )
               .boxed(),
             )
-            .await;
+            .await?;
         }
         RuntimeGlobals::HAS_OWN_PROPERTY => {
           compilation
             .add_runtime_module(chunk, HasOwnPropertyRuntimeModule::default().boxed())
-            .await;
+            .await?;
         }
         RuntimeGlobals::GET_FULL_HASH => {
           compilation
             .add_runtime_module(chunk, GetFullHashRuntimeModule::default().boxed())
-            .await;
+            .await?;
         }
         RuntimeGlobals::GLOBAL => {
           compilation
             .add_runtime_module(chunk, GlobalRuntimeModule::default().boxed())
-            .await;
+            .await?;
         }
         RuntimeGlobals::CREATE_SCRIPT_URL => {
           compilation
             .add_runtime_module(chunk, CreateScriptUrlRuntimeModule::default().boxed())
-            .await;
+            .await?;
         }
         RuntimeGlobals::ON_CHUNKS_LOADED => {
           compilation
             .add_runtime_module(chunk, OnChunkLoadedRuntimeModule::default().boxed())
-            .await;
+            .await?;
         }
         RuntimeGlobals::DEFINE_PROPERTY_GETTERS => {
           compilation
             .add_runtime_module(chunk, DefinePropertyGettersRuntimeModule::default().boxed())
-            .await;
+            .await?;
         }
         RuntimeGlobals::GET_TRUSTED_TYPES_POLICY => {
           compilation
             .add_runtime_module(chunk, Box::<GetTrustedTypesPolicyRuntimeModule>::default())
-            .await;
+            .await?;
         }
         RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT => {
           compilation
@@ -467,12 +467,12 @@ impl Plugin for RuntimePlugin {
               chunk,
               CreateFakeNamespaceObjectRuntimeModule::default().boxed(),
             )
-            .await;
+            .await?;
         }
         RuntimeGlobals::MAKE_NAMESPACE_OBJECT => {
           compilation
             .add_runtime_module(chunk, MakeNamespaceObjectRuntimeModule::default().boxed())
-            .await;
+            .await?;
         }
         RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT => {
           compilation
@@ -480,7 +480,7 @@ impl Plugin for RuntimePlugin {
               chunk,
               CompatGetDefaultExportRuntimeModule::default().boxed(),
             )
-            .await;
+            .await?;
         }
         RuntimeGlobals::HARMONY_MODULE_DECORATOR => {
           compilation
@@ -488,37 +488,37 @@ impl Plugin for RuntimePlugin {
               chunk,
               HarmonyModuleDecoratorRuntimeModule::default().boxed(),
             )
-            .await;
+            .await?;
         }
         RuntimeGlobals::NODE_MODULE_DECORATOR => {
           compilation
             .add_runtime_module(chunk, NodeModuleDecoratorRuntimeModule::default().boxed())
-            .await;
+            .await?;
         }
         RuntimeGlobals::SYSTEM_CONTEXT if matches!(&library_type, Some(t) if t == "system") => {
           compilation
             .add_runtime_module(chunk, SystemContextRuntimeModule::default().boxed())
-            .await;
+            .await?;
         }
         RuntimeGlobals::SCRIPT_NONCE => {
           compilation
             .add_runtime_module(chunk, NonceRuntimeModule::default().boxed())
-            .await;
+            .await?;
         }
         RuntimeGlobals::RELATIVE_URL => {
           compilation
             .add_runtime_module(chunk, RelativeUrlRuntimeModule::default().boxed())
-            .await;
+            .await?;
         }
         RuntimeGlobals::CHUNK_NAME => {
           compilation
             .add_runtime_module(chunk, ChunkNameRuntimeModule::default().boxed())
-            .await;
+            .await?;
         }
         RuntimeGlobals::RUNTIME_ID => {
           compilation
             .add_runtime_module(chunk, RuntimeIdRuntimeModule::default().boxed())
-            .await;
+            .await?;
         }
         RuntimeGlobals::PREFETCH_CHUNK => {
           compilation
@@ -531,7 +531,7 @@ impl Plugin for RuntimePlugin {
               )
               .boxed(),
             )
-            .await;
+            .await?;
         }
         RuntimeGlobals::PRELOAD_CHUNK => {
           compilation
@@ -544,7 +544,7 @@ impl Plugin for RuntimePlugin {
               )
               .boxed(),
             )
-            .await;
+            .await?;
         }
         _ => {}
       }

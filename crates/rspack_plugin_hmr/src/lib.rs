@@ -78,7 +78,7 @@ impl Plugin for HotModuleReplacementPlugin {
     runtime_requirements.insert(RuntimeGlobals::MODULE_CACHE);
     compilation
       .add_runtime_module(chunk, HotModuleReplacementRuntimeModule::default().boxed())
-      .await;
+      .await?;
 
     Ok(())
   }

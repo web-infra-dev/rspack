@@ -61,7 +61,7 @@ impl Plugin for JsonpChunkLoadingPlugin {
         runtime_requirements_mut.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
         compilation
           .add_runtime_module(chunk, Box::<JsonpChunkLoadingRuntimeModule>::default())
-          .await;
+          .await?;
       }
     }
     Ok(())

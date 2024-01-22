@@ -49,7 +49,7 @@ impl Plugin for BundlerInfoPlugin {
           args.chunk,
           Box::new(RspackVersionRuntimeModule::new(self.version.clone())),
         )
-        .await;
+        .await?;
     }
     Ok(())
   }

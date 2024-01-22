@@ -78,11 +78,11 @@ impl Plugin for CommonJsChunkLoadingPlugin {
       if self.async_chunk_loading {
         compilation
           .add_runtime_module(chunk, Box::<ReadFileChunkLoadingRuntimeModule>::default())
-          .await;
+          .await?;
       } else {
         compilation
           .add_runtime_module(chunk, Box::<RequireChunkLoadingRuntimeModule>::default())
-          .await;
+          .await?;
       }
     }
 

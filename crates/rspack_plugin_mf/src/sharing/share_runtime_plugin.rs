@@ -35,7 +35,7 @@ impl Plugin for ShareRuntimePlugin {
       args
         .compilation
         .add_runtime_module(args.chunk, ShareRuntimeModule::new(self.enhanced).boxed())
-        .await;
+        .await?;
     }
     Ok(())
   }

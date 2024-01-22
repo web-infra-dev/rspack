@@ -292,7 +292,7 @@ impl Plugin for CssPlugin {
       runtime_requirements_mut.insert(RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY);
       compilation
         .add_runtime_module(chunk, Box::<CssLoadingRuntimeModule>::default())
-        .await;
+        .await?;
     }
 
     Ok(())

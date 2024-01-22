@@ -43,7 +43,7 @@ impl Plugin for ChunkPrefetchPreloadPlugin {
             chunk_ukey,
             Box::new(ChunkPrefetchStartupRuntimeModule::new(startup_child_chunks)),
           )
-          .await
+          .await?
       }
     }
 
@@ -70,7 +70,7 @@ impl Plugin for ChunkPrefetchPreloadPlugin {
             prefetch_map.to_owned(),
           )),
         )
-        .await
+        .await?
     }
 
     if let Some(preload_map) = chunk_map.get(&ChunkGroupOrderKey::Preload) {
@@ -82,7 +82,7 @@ impl Plugin for ChunkPrefetchPreloadPlugin {
             preload_map.to_owned(),
           )),
         )
-        .await
+        .await?
     }
 
     Ok(())

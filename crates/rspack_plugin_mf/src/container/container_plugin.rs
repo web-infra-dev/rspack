@@ -110,7 +110,7 @@ impl Plugin for ContainerPlugin {
           args.chunk,
           Box::new(ExposeRuntimeModule::new(self.options.enhanced)),
         )
-        .await;
+        .await?;
     }
     Ok(())
   }

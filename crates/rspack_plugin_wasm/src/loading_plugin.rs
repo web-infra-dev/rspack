@@ -43,7 +43,7 @@ impl Plugin for FetchCompileAsyncWasmPlugin {
           )
           .boxed(),
         )
-        .await;
+        .await?;
     }
 
     Ok(())
@@ -92,7 +92,7 @@ impl Plugin for ReadFileCompileAsyncWasmPlugin {
           )
           .boxed(),
         )
-        .await;
+        .await?;
     }
 
     Ok(())

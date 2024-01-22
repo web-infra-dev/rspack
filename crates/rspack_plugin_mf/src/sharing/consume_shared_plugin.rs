@@ -430,7 +430,7 @@ impl Plugin for ConsumeSharedPlugin {
         args.chunk,
         Box::new(ConsumeSharedRuntimeModule::new(self.options.enhanced)),
       )
-      .await;
+      .await?;
     Ok(())
   }
 }

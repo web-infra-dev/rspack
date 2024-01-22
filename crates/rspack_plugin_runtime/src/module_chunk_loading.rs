@@ -40,7 +40,7 @@ impl Plugin for ModuleChunkLoadingPlugin {
           has_chunk_loading = true;
           compilation
             .add_runtime_module(chunk, ExportWebpackRequireRuntimeModule::new().boxed())
-            .await;
+            .await?;
         }
         RuntimeGlobals::ON_CHUNKS_LOADED | RuntimeGlobals::BASE_URI if is_enabled_for_chunk => {
           has_chunk_loading = true;
@@ -54,7 +54,7 @@ impl Plugin for ModuleChunkLoadingPlugin {
       runtime_requirements_mut.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
       compilation
         .add_runtime_module(chunk, Box::<ModuleChunkLoadingRuntimeModule>::default())
-        .await;
+        .await?;
     }
 
     Ok(())
