@@ -729,7 +729,7 @@ const applyOptimizationDefaults = (
 	D(optimization, "runtimeChunk", false);
 	D(optimization, "realContentHash", production);
 	D(optimization, "minimize", production);
-	D(optimization, "concatenateModules", production);
+	D(optimization, "concatenateModules", false);
 	A(optimization, "minimizer", () => [
 		new SwcJsMinimizerRspackPlugin(),
 		new SwcCssMinimizerRspackPlugin()
