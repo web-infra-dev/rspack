@@ -839,17 +839,6 @@ impl Module for ConcatenatedModule {
       }
     }
 
-    for (_id, info) in module_to_info_map.iter() {
-      println!("{}", info.id());
-      match info {
-        ModuleInfo::External(_) => {}
-        ModuleInfo::Concatenated(info) => {
-          let source = info.source.as_ref().expect("should have source");
-          println!("{}", source.source());
-        }
-      }
-    }
-
     let mut exports_map: HashMap<Atom, String> = HashMap::default();
     let mut unused_exports: HashSet<Atom> = HashSet::default();
 
@@ -1105,11 +1094,7 @@ impl Module for ConcatenatedModule {
           ));
 
           // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/ConcatenatedModule.js#L1582
-          if let Some(ref source) = info.source {
-            result.add(source.clone());
-          } else {
-            println!("{}", info.module);
-          }
+          result.add(info.source.clone().expect("should have source"));
 
           for f in info.chunk_init_fragments.iter() {
             chunk_init_fragments.push(f.clone());
@@ -1589,7 +1574,6 @@ impl ConcatenatedModule {
         .remove(&SourceType::JavaScript)
         .expect("should have javascript source");
       let source_code = source.source().to_string();
-      println!("{}", source_code);
 
       let cm: Arc<swc_core::common::SourceMap> = Default::default();
       let fm = cm.new_source_file(
