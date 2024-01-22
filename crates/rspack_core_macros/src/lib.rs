@@ -144,10 +144,15 @@ pub fn impl_runtime_module(
       ) {
       }
 
+      fn get_diagnostics(&self) -> Vec<::rspack_error::Diagnostic> {
+        vec![]
+      }
+
       fn code_generation(
         &self,
         compilation: &::rspack_core::Compilation,
         _runtime: Option<&::rspack_core::RuntimeSpec>,
+        _: Option<::rspack_core::ConcatenationScope>,
       ) -> rspack_error::Result<::rspack_core::CodeGenerationResult> {
         let mut result = ::rspack_core::CodeGenerationResult::default();
         result.add(::rspack_core::SourceType::JavaScript, self.generate_with_custom(compilation));

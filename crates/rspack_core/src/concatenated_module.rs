@@ -3,7 +3,6 @@ use std::{
   collections::hash_map::{DefaultHasher, Entry},
   fmt::Debug,
   hash::{BuildHasherDefault, Hash, Hasher},
-  ops::IndexMut,
   sync::{Arc, Mutex},
 };
 
@@ -15,7 +14,7 @@ use rspack_error::{Diagnosable, Diagnostic, DiagnosticKind, Result, TraceableErr
 use rspack_hash::{HashDigest, HashFunction, RspackHash};
 use rspack_identifier::Identifiable;
 use rspack_sources::{CachedSource, ConcatSource, RawSource, ReplaceSource, Source, SourceExt};
-use rspack_util::swc::join_atom;
+use rspack_util::{source_map::SourceMapKind, swc::join_atom};
 use rustc_hash::FxHasher;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::{
@@ -30,8 +29,9 @@ use swc_core::{
 use swc_node_comments::SwcComments;
 
 use crate::{
-  filter_runtime, merge_runtime_condition, merge_runtime_condition_non_false, property_access,
-  property_name, reserverd_names::RESERVED_NAMES, returning_function, subtract_runtime_condition,
+  filter_runtime, impl_source_map_config, merge_runtime_condition,
+  merge_runtime_condition_non_false, property_access, property_name,
+  reserverd_names::RESERVED_NAMES, returning_function, subtract_runtime_condition,
   AsyncDependenciesBlockId, BoxDependency, BuildContext, BuildInfo, BuildMeta,
   BuildMetaDefaultObject, BuildMetaExportsType, BuildResult, ChunkInitFragments,
   CodeGenerationResult, Compilation, ConcatenatedModuleIdent, ConcatenationScope, ConnectionId,
@@ -331,6 +331,7 @@ impl ModuleInfo {
   }
 }
 
+#[impl_source_map_config]
 #[derive(Debug)]
 pub struct ConcatenatedModule {
   id: ModuleIdentifier,
@@ -370,6 +371,7 @@ impl ConcatenatedModule {
       diagnostics: Mutex::new(vec![]),
       cached_hash: OnceCell::default(),
       build_info: None,
+      source_map_kind: SourceMapKind::None,
     }
   }
 

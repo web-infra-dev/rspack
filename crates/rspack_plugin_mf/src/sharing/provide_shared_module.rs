@@ -2,11 +2,11 @@ use std::{borrow::Cow, hash::Hash};
 
 use async_trait::async_trait;
 use rspack_core::{
-  async_module_factory, impl_build_info_meta, rspack_sources::Source, sync_module_factory,
-  AsyncDependenciesBlock, AsyncDependenciesBlockId, BoxDependency, BuildContext, BuildInfo,
-  BuildMeta, BuildResult, CodeGenerationResult, Compilation, ConcatenationScope, Context,
-  DependenciesBlock, DependencyId, LibIdentOptions, Module, ModuleIdentifier, ModuleType,
-  RuntimeGlobals, RuntimeSpec, SourceType,
+  async_module_factory, impl_build_info_meta, impl_source_map_config, rspack_sources::Source,
+  sync_module_factory, AsyncDependenciesBlock, AsyncDependenciesBlockId, BoxDependency,
+  BuildContext, BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation,
+  ConcatenationScope, Context, DependenciesBlock, DependencyId, LibIdentOptions, Module,
+  ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
 use rspack_hash::RspackHash;
