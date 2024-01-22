@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::sync::atomic::Ordering::SeqCst;
 use std::sync::RwLock;
 use std::time::Duration;
@@ -73,7 +74,7 @@ impl ProgressPlugin {
     let mut items = vec![];
     let last_active_module = self.last_active_module.read().expect("TODO:");
 
-    if let Some(last_active_module) = last_active_module.clone() {
+    if let Some(last_active_module) = *last_active_module {
       items.push(last_active_module.to_string());
       let duration = self
         .active_modules
@@ -147,21 +148,22 @@ impl ProgressPlugin {
               report_state
             );
           }
-
-          if i + 1 > full_state.len() {
-            last_state_info.truncate(i);
-          } else if i + 1 == full_state.len() {
-            last_state_info[i] = ProgressPluginStateInfo {
-              value: full_state[i].clone(),
-              time: now,
-              duration: duration,
-            };
-          } else {
-            last_state_info[i] = ProgressPluginStateInfo {
-              value: full_state[i].clone(),
-              time: now,
-              duration: None,
-            };
+          match (i + 1).cmp(&full_state.len()) {
+            Ordering::Greater => last_state_info.truncate(i),
+            Ordering::Equal => {
+              last_state_info[i] = ProgressPluginStateInfo {
+                value: full_state[i].clone(),
+                time: now,
+                duration,
+              }
+            }
+            Ordering::Less => {
+              last_state_info[i] = ProgressPluginStateInfo {
+                value: full_state[i].clone(),
+                time: now,
+                duration: None,
+              };
+            }
           }
         }
       }
@@ -282,7 +284,7 @@ impl Plugin for ProgressPlugin {
       // get the last active module
       if !self.options.profile {
         active_modules.iter().for_each(|(module, _)| {
-          last_active_module = module.clone();
+          last_active_module = *module;
         });
       }
     }
