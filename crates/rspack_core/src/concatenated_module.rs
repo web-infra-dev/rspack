@@ -1,3 +1,4 @@
+#![allow(unused_assignments)]
 use std::{
   borrow::Cow,
   collections::hash_map::{DefaultHasher, Entry},

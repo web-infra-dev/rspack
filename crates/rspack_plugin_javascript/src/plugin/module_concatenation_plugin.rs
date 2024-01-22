@@ -1,3 +1,4 @@
+#![allow(clippy::only_used_in_recursion)]
 use std::collections::hash_map::DefaultHasher;
 use std::collections::VecDeque;
 use std::hash::Hasher;
@@ -136,6 +137,7 @@ impl ModuleConcatenationPlugin {
     set
   }
 
+  #[allow(clippy::too_many_arguments)]
   fn try_to_add(
     compilation: &Compilation,
     config: &mut ConcatConfiguration,
@@ -761,7 +763,7 @@ impl Plugin for ModuleConcatenationPlugin {
       };
       let modules = modules_set
         .iter()
-        .filter_map(|id| {
+        .map(|id| {
           let module = compilation
             .module_graph
             .module_by_identifier(id)
@@ -778,7 +780,7 @@ impl Plugin for ModuleConcatenationPlugin {
               .readable_identifier(&compilation.options.context)
               .to_string(),
           };
-          Some(inner_module)
+          inner_module
         })
         .collect::<Vec<_>>();
       let mut new_module = ConcatenatedModule::create(
