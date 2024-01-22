@@ -20,8 +20,8 @@ module.exports = [
 		mode: "development",
 		devtool: false,
 		plugins
-	},
-	{
+	}
+	/*	{
 		mode: "production",
 		devtool: false,
 		plugins
@@ -33,5 +33,5 @@ module.exports = [
 			minimize: true
 		},
 		plugins
-	}
+	}*/
 ];
