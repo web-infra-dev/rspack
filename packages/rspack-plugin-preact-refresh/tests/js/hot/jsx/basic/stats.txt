@@ -1,0 +1,286 @@
+PublicPath: https://test.cases/path/
+asset bundle.js 99.5 KiB {main} [emitted] (name: main)
+Entrypoint main 99.5 KiB = bundle.js
+chunk {main} bundle.js (main) [entry]
+  ../../../../../../node_modules/@prefresh/core/src/computeKey.js {main}
+    [exports: computeKey]
+    [used exports unknown]
+    esm import ./computeKey [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./computeKey [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./computeKey [../../../../../../node_modules/@prefresh/core/src/index.js]
+  ../../../../../../node_modules/@prefresh/core/src/constants.js {main}
+    [exports: CATCH_ERROR_OPTION, COMPONENT_DIRTY, COMPONENT_HOOKS, EFFECTS_LIST, HOOKS_LIST, HOOK_ARGS, HOOK_CLEANUP, HOOK_VALUE, NAMESPACE, RERENDER_COUNT, VNODE_CHILDREN, VNODE_COMPONENT, VNODE_DOM]
+    [used exports unknown]
+    esm import ./constants [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./constants [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./constants [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./constants [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./constants [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./constants [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./constants [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./constants [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./constants [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./constants [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./constants [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./constants [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./constants [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./constants [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./constants [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./constants [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./constants [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./constants [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./constants [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./constants [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./constants [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./constants [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./constants [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./constants [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./constants [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./constants [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./constants [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./constants [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./constants [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./constants [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./constants [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./constants [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./constants [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./constants [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./constants [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./constants [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./constants [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./constants [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./constants [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./constants [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./constants [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./constants [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./constants [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./constants [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./constants [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./constants [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./constants [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./constants [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./constants [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./constants [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./constants [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./constants [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./constants [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./constants [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./constants [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./constants [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import ../constants [../../../../../../node_modules/@prefresh/core/src/runtime/catchError.js]
+    esm import specifier ../constants [../../../../../../node_modules/@prefresh/core/src/runtime/catchError.js]
+    esm import specifier ../constants [../../../../../../node_modules/@prefresh/core/src/runtime/catchError.js]
+    esm import specifier ../constants [../../../../../../node_modules/@prefresh/core/src/runtime/catchError.js]
+    esm import specifier ../constants [../../../../../../node_modules/@prefresh/core/src/runtime/catchError.js]
+    esm import specifier ../constants [../../../../../../node_modules/@prefresh/core/src/runtime/catchError.js]
+    esm import specifier ../constants [../../../../../../node_modules/@prefresh/core/src/runtime/catchError.js]
+    esm import specifier ../constants [../../../../../../node_modules/@prefresh/core/src/runtime/catchError.js]
+    esm import ../constants [../../../../../../node_modules/@prefresh/core/src/runtime/debounceRendering.js]
+    esm import specifier ../constants [../../../../../../node_modules/@prefresh/core/src/runtime/debounceRendering.js]
+    esm import ../constants [../../../../../../node_modules/@prefresh/core/src/runtime/vnode.js]
+    esm import specifier ../constants [../../../../../../node_modules/@prefresh/core/src/runtime/vnode.js]
+    esm import specifier ../constants [../../../../../../node_modules/@prefresh/core/src/runtime/vnode.js]
+  ../../../../../../node_modules/@prefresh/core/src/index.js {main}
+    [no exports]
+    [used exports unknown]
+    entry @prefresh/core
+  ../../../../../../node_modules/@prefresh/core/src/runtime/catchError.js {main}
+    [no exports]
+    [used exports unknown]
+    esm import ./runtime/catchError [../../../../../../node_modules/@prefresh/core/src/index.js]
+  ../../../../../../node_modules/@prefresh/core/src/runtime/debounceRendering.js {main}
+    [no exports]
+    [used exports unknown]
+    esm import ./runtime/debounceRendering [../../../../../../node_modules/@prefresh/core/src/index.js]
+  ../../../../../../node_modules/@prefresh/core/src/runtime/signaturesForType.js {main}
+    [exports: signaturesForType]
+    [used exports unknown]
+    esm import ./runtime/signaturesForType [../../../../../../node_modules/@prefresh/core/src/computeKey.js]
+    esm import specifier ./runtime/signaturesForType [../../../../../../node_modules/@prefresh/core/src/computeKey.js]
+    esm import ./runtime/signaturesForType [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./runtime/signaturesForType [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./runtime/signaturesForType [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./runtime/signaturesForType [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./runtime/signaturesForType [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./runtime/signaturesForType [../../../../../../node_modules/@prefresh/core/src/index.js]
+  ../../../../../../node_modules/@prefresh/core/src/runtime/unmount.js {main}
+    [no exports]
+    [used exports unknown]
+    esm import ./runtime/unmount [../../../../../../node_modules/@prefresh/core/src/index.js]
+  ../../../../../../node_modules/@prefresh/core/src/runtime/vnode.js {main}
+    [no exports]
+    [used exports unknown]
+    esm import ./runtime/vnode [../../../../../../node_modules/@prefresh/core/src/index.js]
+  ../../../../../../node_modules/@prefresh/core/src/runtime/vnodesForComponent.js {main}
+    [exports: mappedVNodes, vnodesForComponent]
+    [used exports unknown]
+    esm import ./runtime/vnodesForComponent [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./runtime/vnodesForComponent [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./runtime/vnodesForComponent [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./runtime/vnodesForComponent [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier ./runtime/vnodesForComponent [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import ./vnodesForComponent [../../../../../../node_modules/@prefresh/core/src/runtime/unmount.js]
+    esm import specifier ./vnodesForComponent [../../../../../../node_modules/@prefresh/core/src/runtime/unmount.js]
+    esm import specifier ./vnodesForComponent [../../../../../../node_modules/@prefresh/core/src/runtime/unmount.js]
+    esm import ./vnodesForComponent [../../../../../../node_modules/@prefresh/core/src/runtime/vnode.js]
+    esm import specifier ./vnodesForComponent [../../../../../../node_modules/@prefresh/core/src/runtime/vnode.js]
+    esm import specifier ./vnodesForComponent [../../../../../../node_modules/@prefresh/core/src/runtime/vnode.js]
+    esm import specifier ./vnodesForComponent [../../../../../../node_modules/@prefresh/core/src/runtime/vnode.js]
+    esm import specifier ./vnodesForComponent [../../../../../../node_modules/@prefresh/core/src/runtime/vnode.js]
+    esm import specifier ./vnodesForComponent [../../../../../../node_modules/@prefresh/core/src/runtime/vnode.js]
+    esm import specifier ./vnodesForComponent [../../../../../../node_modules/@prefresh/core/src/runtime/vnode.js]
+    esm import specifier ./vnodesForComponent [../../../../../../node_modules/@prefresh/core/src/runtime/vnode.js]
+  ../../../../../../node_modules/@prefresh/utils/dist/src/index.js {main}
+    [exports: flush, isComponent]
+    [used exports unknown]
+    cjs require @prefresh/utils [../../../../client/prefresh.js]
+  ../../../../../../node_modules/preact/compat/client.js {main}
+    [exports: createRoot, hydrateRoot]
+    [used exports unknown]
+    esm import react-dom/client [./index.jsx]
+    esm import specifier react-dom/client [./index.jsx]
+  ../../../../../../node_modules/preact/compat/dist/compat.js {main}
+    [exports: Children, Component, Fragment, PureComponent, StrictMode, Suspense, SuspenseList, __SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED, cloneElement, createContext, createElement, createFactory, createPortal, createRef, default, findDOMNode, flushSync, forwardRef, hydrate, isElement, isFragment, isMemo, isValidElement, lazy, memo, render, startTransition, unmountComponentAtNode, unstable_batchedUpdates, useDeferredValue, useInsertionEffect, useSyncExternalStore, useTransition, version]
+    [used exports unknown]
+    cjs require preact/compat [../../../../../../node_modules/preact/compat/client.js]
+    cjs self exports reference self [../../../../../../node_modules/preact/compat/dist/compat.js]
+    cjs require preact/compat [../../../../../../node_modules/preact/compat/jsx-dev-runtime.js]
+    esm import react [./index.jsx]
+  ../../../../../../node_modules/preact/compat/jsx-dev-runtime.js {main}
+    [exports: Fragment, jsx, jsxAttr, jsxDEV, jsxEscape, jsxTemplate, jsxs]
+    [used exports unknown]
+    esm import react/jsx-dev-runtime [./app.jsx]
+    esm import specifier react/jsx-dev-runtime [./app.jsx]
+    esm import specifier react/jsx-dev-runtime [./app.jsx]
+    esm import react/jsx-dev-runtime [./index.jsx]
+    esm import specifier react/jsx-dev-runtime [./index.jsx]
+    esm import specifier react/jsx-dev-runtime [./index.jsx]
+  ../../../../../../node_modules/preact/dist/preact.js {main}
+    [exports: Component, Fragment, cloneElement, createContext, createElement, createRef, h, hydrate, isValidElement, options, render, toChildArray]
+    [used exports unknown]
+    esm import preact [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import specifier preact [../../../../../../node_modules/@prefresh/core/src/index.js]
+    esm import preact [../../../../../../node_modules/@prefresh/core/src/runtime/catchError.js]
+    esm import specifier preact [../../../../../../node_modules/@prefresh/core/src/runtime/catchError.js]
+    esm import specifier preact [../../../../../../node_modules/@prefresh/core/src/runtime/catchError.js]
+    esm import preact [../../../../../../node_modules/@prefresh/core/src/runtime/debounceRendering.js]
+    esm import specifier preact [../../../../../../node_modules/@prefresh/core/src/runtime/debounceRendering.js]
+    esm import preact [../../../../../../node_modules/@prefresh/core/src/runtime/unmount.js]
+    esm import specifier preact [../../../../../../node_modules/@prefresh/core/src/runtime/unmount.js]
+    esm import specifier preact [../../../../../../node_modules/@prefresh/core/src/runtime/unmount.js]
+    esm import preact [../../../../../../node_modules/@prefresh/core/src/runtime/vnode.js]
+    esm import specifier preact [../../../../../../node_modules/@prefresh/core/src/runtime/vnode.js]
+    esm import specifier preact [../../../../../../node_modules/@prefresh/core/src/runtime/vnode.js]
+    esm import specifier preact [../../../../../../node_modules/@prefresh/core/src/runtime/vnode.js]
+    esm import specifier preact [../../../../../../node_modules/@prefresh/core/src/runtime/vnode.js]
+    cjs require preact [../../../../../../node_modules/preact/compat/dist/compat.js]
+    cjs require preact [../../../../../../node_modules/preact/hooks/dist/hooks.js]
+    cjs require preact [../../../../../../node_modules/preact/jsx-runtime/dist/jsxRuntime.js]
+  ../../../../../../node_modules/preact/hooks/dist/hooks.js {main}
+    [exports: useCallback, useContext, useDebugValue, useEffect, useErrorBoundary, useId, useImperativeHandle, useLayoutEffect, useMemo, useReducer, useRef, useState]
+    [used exports unknown]
+    cjs require preact/hooks [../../../../../../node_modules/preact/compat/dist/compat.js]
+  ../../../../../../node_modules/preact/jsx-runtime/dist/jsxRuntime.js {main}
+    [exports: Fragment, jsx, jsxAttr, jsxDEV, jsxEscape, jsxTemplate, jsxs]
+    [used exports unknown]
+    cjs export require preact/jsx-runtime [../../../../../../node_modules/preact/compat/jsx-dev-runtime.js]
+  ../../../../client/prefresh.js {main}
+    [no exports]
+    [used exports unknown]
+    provided /Users/bytedance/rspack-dev/rspack/packages/rspack-plugin-preact-refresh/client/prefresh.js [./app.jsx]
+    provided /Users/bytedance/rspack-dev/rspack/packages/rspack-plugin-preact-refresh/client/prefresh.js [./app.jsx]
+    provided /Users/bytedance/rspack-dev/rspack/packages/rspack-plugin-preact-refresh/client/prefresh.js [./app.jsx]
+    provided /Users/bytedance/rspack-dev/rspack/packages/rspack-plugin-preact-refresh/client/prefresh.js [./app.jsx]
+    provided /Users/bytedance/rspack-dev/rspack/packages/rspack-plugin-preact-refresh/client/prefresh.js [./app.jsx]
+    provided /Users/bytedance/rspack-dev/rspack/packages/rspack-plugin-preact-refresh/client/prefresh.js [./index.jsx]
+    provided /Users/bytedance/rspack-dev/rspack/packages/rspack-plugin-preact-refresh/client/prefresh.js [./index.jsx]
+    provided /Users/bytedance/rspack-dev/rspack/packages/rspack-plugin-preact-refresh/client/prefresh.js [./index.jsx]
+    provided /Users/bytedance/rspack-dev/rspack/packages/rspack-plugin-preact-refresh/client/prefresh.js [./index.jsx]
+    provided /Users/bytedance/rspack-dev/rspack/packages/rspack-plugin-preact-refresh/client/prefresh.js [./index.jsx]
+    provided /Users/bytedance/rspack-dev/rspack/packages/rspack-plugin-preact-refresh/client/prefresh.js [../../update.js]
+    provided /Users/bytedance/rspack-dev/rspack/packages/rspack-plugin-preact-refresh/client/prefresh.js [../../update.js]
+    provided /Users/bytedance/rspack-dev/rspack/packages/rspack-plugin-preact-refresh/client/prefresh.js [../../update.js]
+    provided /Users/bytedance/rspack-dev/rspack/packages/rspack-plugin-preact-refresh/client/prefresh.js [../../update.js]
+    provided /Users/bytedance/rspack-dev/rspack/packages/rspack-plugin-preact-refresh/client/prefresh.js [../../update.js]
+    cjs self exports reference self [../../../../client/prefresh.js]
+  ../../update.js {main}
+    [no exports]
+    [used exports unknown]
+    esm import ../../update.js [./index.jsx]
+    esm import specifier ../../update.js [./index.jsx]
+    esm import specifier ../../update.js [./index.jsx]
+    cjs self exports reference self [../../update.js]
+    module decorator self [../../update.js]
+    module decorator self [../../update.js]
+    module decorator self [../../update.js]
+  ./app.jsx {main}
+    [exports: App]
+    [used exports unknown]
+    module decorator self [./app.jsx]
+    module decorator self [./app.jsx]
+    module decorator self [./app.jsx]
+    esm import ./app [./index.jsx]
+    esm import specifier ./app [./index.jsx]
+    module.hot.accept ./app [./index.jsx]
+  ./index.jsx {main}
+    [no exports]
+    [used exports unknown]
+    entry ./index.jsx
+    module decorator self [./index.jsx]
+    module decorator self [./index.jsx]
+    module decorator self [./index.jsx]
+  
+
+LOG from rspack.Compilation
+<t> finish modules: 0 ms
+<t> optimize dependencies: 0 ms
+<t> create chunks: 1 ms
+<t> optimize: 0 ms
+<t> module ids: 0 ms
+<t> chunk ids: 0 ms
+<t> optimize code generation: 0 ms
+<c> module code generation cache: 0.0% (0/20)
+<t> code generation: 6 ms
+<t> runtime requirements.modules: 0 ms
+<t> runtime requirements.chunks: 0 ms
+<t> runtime requirements.entries: 2 ms
+<t> runtime requirements: 2 ms
+<t> hashing: hash chunks: 0 ms
+<t> hashing: hash runtime chunks: 1 ms
+<t> hashing: process full hash chunks: 0 ms
+<t> hashing: 1 ms
+<t> create module assets: 0 ms
+<t> create chunk assets: 0 ms
+<t> process assets: 0 ms
+<t> after process assets: 0 ms
+<t> after seal: 0 ms
+
+LOG from rspack.Compiler
+<t> make hook: 0 ms
+<t> make: 45 ms
+<t> finish make hook: 0 ms
+<t> finish compilation: 1 ms
+<t> seal compilation: 14 ms
+<t> emitAssets: 1 ms
+
+LOG from rspack.EnsureChunkConditionsPlugin
+<t> ensure chunk conditions: 0 ms
+
+LOG from rspack.RemoveEmptyChunksPlugin
+<t> remove empty chunks: 0 ms
+
+LOG from rspack.SplitChunksPlugin
+<t> prepare module group map: 0 ms
+<t> ensure min size fit: 0 ms
+<t> process module group map: 0 ms
+<t> ensure max size fit: 0 ms
+
+LOG from rspack.WarnCaseSensitiveModulesPlugin
+<t> check case sensitive modules: 0 ms
+
+LOG from rspack.buildChunkGraph
+<t> prepare entrypoints: 0 ms
+<t> process queue: 0 ms
+<t> extend chunkGroup runtime: 0 ms
+
+2024-06-11 15:56:36: Rspack 0.7.1 compiled successfully in 67 ms (e8eb4c952f218061420e)

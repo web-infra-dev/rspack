@@ -2821,6 +2821,7 @@ dependencies = [
  "rspack_hook",
  "rspack_identifier",
  "rspack_ids",
+ "rspack_loader_preact_refresh",
  "rspack_loader_react_refresh",
  "rspack_loader_runner",
  "rspack_loader_swc",
@@ -3041,6 +3042,16 @@ dependencies = [
  "rspack_error",
  "rspack_hook",
  "rspack_util",
+]
+
+[[package]]
+name = "rspack_loader_preact_refresh"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "rspack_core",
+ "rspack_error",
+ "rspack_loader_runner",
 ]
 
 [[package]]
