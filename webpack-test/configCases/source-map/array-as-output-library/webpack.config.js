@@ -1,4 +1,4 @@
-/** @type {import("@rspack/core").Configuration} */
+/** @type {import("../../../../").Configuration} */
 module.exports = {
 	devtool: "source-map",
 	output: {
