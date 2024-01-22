@@ -402,7 +402,6 @@ impl Plugin for ProgressPlugin {
     _args: DoneArgs<'s, 'c>,
   ) -> PluginBuildEndHookOutput {
     self.handler(1.0, String::from("done"), vec![], None);
-    self.handler(1.0, String::from(""), vec![], None);
     if !self.options.profile {
       self.progress_bar.finish();
     }
