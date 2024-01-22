@@ -26,7 +26,7 @@ impl JavascriptParserPlugin for URLPlugin {
         start,
         end,
         expr.span.real_lo(),
-        expr.span.hi().0,
+        expr.span.real_hi(),
         request.into(),
         Some(expr.span.into()),
         self.relative,
