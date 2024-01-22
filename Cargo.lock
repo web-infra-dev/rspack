@@ -1722,9 +1722,9 @@ checksum = "c1b04fb49957986fdce4d6ee7a65027d55d4b6d2265e5848bbb507b58ccfdb6f"
 
 [[package]]
 name = "oxc_resolver"
-version = "1.2.0"
+version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "497a89a4d3c44b9df9fade0e70cf46e79722bced1ddf6e3a02d1fec9e30ce161"
+checksum = "8c0eb6a40f9d03e5e4da3369c3f3f154e824c2ac46ea045cb7dfcefe6c7fa3dd"
 dependencies = [
  "dashmap",
  "dunce",
@@ -2075,9 +2075,9 @@ dependencies = [
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.75"
+version = "1.0.76"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "907a61bd0f64c2f29cd1cf1dc34d05176426a3f504a78010f08416ddb7b13708"
+checksum = "95fc56cda0b5c3325f5fbbd7ff9fda9e02bb00bb3dac51252d2f1bfa1cb8cc8c"
 dependencies = [
  "unicode-ident",
 ]
@@ -2472,6 +2472,7 @@ dependencies = [
  "regex",
  "rkyv",
  "rspack_ast",
+ "rspack_core_macros",
  "rspack_database",
  "rspack_error",
  "rspack_fs",
@@ -2496,6 +2497,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_core_macros"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.48",
+]
+
+[[package]]
 name = "rspack_database"
 version = "0.1.0"
 dependencies = [
@@ -2513,10 +2523,13 @@ dependencies = [
  "futures",
  "miette 5.10.0",
  "once_cell",
+ "owo-colors",
  "rspack_identifier",
  "swc_core",
  "termcolor",
+ "textwrap 0.15.2",
  "thiserror",
+ "unicode-width",
 ]
 
 [[package]]
@@ -2629,10 +2642,12 @@ dependencies = [
  "rspack_plugin_javascript",
  "rspack_swc_visitors",
  "rspack_testing",
+ "rspack_util",
  "serde",
  "serde_json",
  "swc_config",
  "swc_core",
+ "tokio",
  "xxhash-rust",
 ]
 
@@ -2744,6 +2759,7 @@ dependencies = [
  "rspack_identifier",
  "rspack_plugin_runtime",
  "rspack_testing",
+ "rspack_util",
  "rustc-hash",
  "serde_json",
  "sugar_path",
@@ -2756,8 +2772,11 @@ dependencies = [
 name = "rspack_plugin_devtool"
 version = "0.1.0"
 dependencies = [
+ "async-recursion",
  "async-trait",
  "dashmap",
+ "derivative",
+ "futures",
  "once_cell",
  "pathdiff",
  "rayon",
@@ -2765,6 +2784,8 @@ dependencies = [
  "rspack_base64",
  "rspack_core",
  "rspack_error",
+ "rspack_hash",
+ "rspack_regex",
  "rspack_util",
  "rustc-hash",
  "serde_json",
@@ -2807,6 +2828,7 @@ dependencies = [
  "rspack_error",
  "rspack_hash",
  "rspack_identifier",
+ "rspack_util",
  "rustc-hash",
  "serde_json",
 ]
@@ -2926,6 +2948,7 @@ dependencies = [
  "rspack_hash",
  "rspack_identifier",
  "rspack_loader_runner",
+ "rspack_util",
  "rustc-hash",
  "serde",
  "serde_json",
@@ -2980,6 +3003,7 @@ dependencies = [
  "rspack_hash",
  "rspack_identifier",
  "rspack_plugin_javascript",
+ "rspack_util",
  "rustc-hash",
  "serde_json",
 ]
@@ -3067,6 +3091,7 @@ dependencies = [
  "rspack_error",
  "rspack_identifier",
  "rspack_testing",
+ "rspack_util",
  "serde_json",
  "swc_core",
  "wasmparser",
@@ -3320,9 +3345,9 @@ checksum = "388a1df253eca08550bef6c72392cfe7c30914bf41df5269b68cbd6ff8f570a3"
 
 [[package]]
 name = "serde"
-version = "1.0.194"
+version = "1.0.195"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0b114498256798c94a0689e1a15fec6005dee8ac1f41de56404b67afc2a4b773"
+checksum = "63261df402c67811e9ac6def069e4786148c4563f4b50fd4bf30aa370d626b02"
 dependencies = [
  "serde_derive",
 ]
@@ -3339,9 +3364,9 @@ dependencies = [
 
 [[package]]
 name = "serde_derive"
-version = "1.0.194"
+version = "1.0.195"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a3385e45322e8f9931410f01b3031ec534c3947d0e94c18049af4d9f9907d4e0"
+checksum = "46fe8f8603d81ba86327b23a2e9cdf49e1255fb94a4c5f297f6ee0547178ea2c"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -5265,9 +5290,9 @@ checksum = "1dd624098567895118886609431a7c3b8f516e41d30e0643f03d94592a147e36"
 
 [[package]]
 name = "unicode-width"
-version = "0.1.10"
+version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c0edd1e5b14653f783770bce4a4dabb4a5108a5370a5f5d8cfe8710c361f6c8b"
+checksum = "e51733f11c9c4f72aa0c160008246859e340b00807569a0da0e7a1079b27ba85"
 
 [[package]]
 name = "url"

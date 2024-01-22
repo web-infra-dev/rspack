@@ -8,6 +8,7 @@ use rspack_core::{BoxDependency, BuildMeta, ChunkGroupOptions, ContextMode};
 use rspack_core::{ContextNameSpaceObject, ContextOptions, DependencyCategory, SpanExt};
 use rspack_error::miette::Diagnostic;
 use rspack_regex::{regexp_as_str, RspackRegex};
+use rustc_hash::FxHashSet;
 use swc_core::common::comments::Comments;
 use swc_core::common::{SourceFile, Spanned};
 use swc_core::ecma::ast::{CallExpr, Callee, Expr, Lit};
@@ -31,7 +32,7 @@ pub struct ImportScanner<'a> {
   pub build_meta: &'a BuildMeta,
   pub options: Option<&'a JavascriptParserOptions>,
   pub warning_diagnostics: &'a mut Vec<Box<dyn Diagnostic + Send + Sync>>,
-  pub ignored: &'a mut Vec<DependencyLocation>,
+  pub ignored: &'a mut FxHashSet<DependencyLocation>,
 }
 
 fn create_import_meta_context_dependency(node: &CallExpr) -> Option<ImportMetaContextDependency> {
@@ -122,7 +123,7 @@ impl<'a> ImportScanner<'a> {
     build_meta: &'a BuildMeta,
     options: Option<&'a JavascriptParserOptions>,
     warning_diagnostics: &'a mut Vec<Box<dyn Diagnostic + Send + Sync>>,
-    ignored: &'a mut Vec<DependencyLocation>,
+    ignored: &'a mut FxHashSet<DependencyLocation>,
   ) -> Self {
     Self {
       source_file,

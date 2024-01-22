@@ -1,6 +1,4 @@
 ERROR in ./logo.svg
-ModuleBuildError
-
   × Module build failed:
   ╰─▶   × Error: Failed to load
         │

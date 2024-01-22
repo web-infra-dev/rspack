@@ -1,26 +1,179 @@
-use napi_derive::napi;
-use rspack_plugin_devtool::SourceMapDevToolPluginOptions;
+use std::sync::Arc;
 
-#[derive(Debug)]
+use napi::bindgen_prelude::Either3;
+use napi::{Either, Env, JsFunction};
+use napi_derive::napi;
+use rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
+use rspack_napi_shared::{get_napi_env, NapiResultExt};
+use rspack_plugin_devtool::{
+  Append, ModuleFilenameTemplate, ModuleFilenameTemplateFnCtx, SourceMapDevToolPluginOptions,
+  TestFn,
+};
+use serde::Deserialize;
+
+type RawAppend = Either3<String, bool, JsFunction>;
+
+fn normalize_raw_append(raw: RawAppend) -> Append {
+  match raw {
+    Either3::A(str) => Append::String(str),
+    Either3::B(_) => Append::Disabled,
+    Either3::C(v) => {
+      let fn_payload: napi::Result<ThreadsafeFunction<(), Option<String>>> = try {
+        let env = get_napi_env();
+        rspack_binding_macros::js_fn_into_threadsafe_fn!(v, &Env::from(env))
+      };
+      let fn_payload = fn_payload.expect("convert to threadsafe function failed");
+      Append::Fn(Arc::new(move || {
+        fn_payload
+          .call((), ThreadsafeFunctionCallMode::NonBlocking)
+          .into_rspack_result()
+          .expect("into rspack result failed")
+          .blocking_recv()
+          .unwrap_or_else(|err| panic!("failed to call external function: {err}"))
+          .expect("failed")
+      }))
+    }
+  }
+}
+
+type RawFilename = Either<bool, String>;
+
+type RawModuleFilenameTemplate = Either<String, JsFunction>;
+
+#[derive(Debug, Clone)]
+#[napi(object)]
+pub struct RawModuleFilenameTemplateFnCtx {
+  pub identifier: String,
+  pub short_identifier: String,
+  pub resource: String,
+  pub resource_path: String,
+  pub absolute_resource_path: String,
+  pub loaders: String,
+  pub all_loaders: String,
+  pub query: String,
+  pub module_id: String,
+  pub hash: String,
+  pub namespace: String,
+}
+
+impl From<ModuleFilenameTemplateFnCtx> for RawModuleFilenameTemplateFnCtx {
+  fn from(ctx: ModuleFilenameTemplateFnCtx) -> Self {
+    RawModuleFilenameTemplateFnCtx {
+      identifier: ctx.identifier,
+      short_identifier: ctx.short_identifier,
+      resource: ctx.resource,
+      resource_path: ctx.resource_path,
+      absolute_resource_path: ctx.absolute_resource_path,
+      loaders: ctx.loaders,
+      all_loaders: ctx.all_loaders,
+      query: ctx.query,
+      module_id: ctx.module_id,
+      hash: ctx.hash,
+      namespace: ctx.namespace,
+    }
+  }
+}
+
+fn normalize_raw_module_filename_template(
+  raw: RawModuleFilenameTemplate,
+) -> ModuleFilenameTemplate {
+  match raw {
+    Either::A(str) => ModuleFilenameTemplate::String(str),
+    Either::B(v) => {
+      let fn_payload: napi::Result<ThreadsafeFunction<RawModuleFilenameTemplateFnCtx, String>> = try {
+        let env = get_napi_env();
+        rspack_binding_macros::js_fn_into_threadsafe_fn!(v, &Env::from(env))
+      };
+      let fn_payload = fn_payload.expect("convert to threadsafe function failed");
+      ModuleFilenameTemplate::Fn(Box::new(move |ctx| {
+        fn_payload
+          .call(ctx.into(), ThreadsafeFunctionCallMode::NonBlocking)
+          .into_rspack_result()
+          .expect("into rspack result failed")
+          .blocking_recv()
+          .unwrap_or_else(|err| panic!("failed to call external function: {err}"))
+          .expect("failed")
+      }))
+    }
+  }
+}
+
+fn normalize_raw_test(raw: JsFunction) -> TestFn {
+  let fn_payload: napi::Result<ThreadsafeFunction<String, bool>> = try {
+    let env = get_napi_env();
+    rspack_binding_macros::js_fn_into_threadsafe_fn!(raw, &Env::from(env))
+  };
+  let fn_payload = fn_payload.expect("convert to threadsafe function failed");
+  Box::new(move |ctx| {
+    fn_payload
+      .call(ctx, ThreadsafeFunctionCallMode::NonBlocking)
+      .into_rspack_result()
+      .expect("into rspack result failed")
+      .blocking_recv()
+      .unwrap_or_else(|err| panic!("failed to call external function: {err}"))
+      .expect("failed")
+  })
+}
+
+#[derive(Deserialize)]
 #[napi(object)]
 pub struct RawSourceMapDevToolPluginOptions {
-  pub filename: Option<String>,
-  pub append: Option<bool>,
-  pub namespace: String,
-  pub columns: bool,
-  pub no_sources: bool,
+  #[serde(skip_deserializing)]
+  #[napi(ts_type = "(false | null) | string | Function")]
+  pub append: Option<RawAppend>,
+  pub columns: Option<bool>,
+  #[serde(skip_deserializing)]
+  #[napi(ts_type = "string | Function")]
+  pub fallback_module_filename_template: Option<RawModuleFilenameTemplate>,
+  pub file_context: Option<String>,
+  #[serde(skip_deserializing)]
+  #[napi(ts_type = "(false | null) | string")]
+  pub filename: Option<RawFilename>,
+  pub module: Option<bool>,
+  #[serde(skip_deserializing)]
+  #[napi(ts_type = "string | Function")]
+  pub module_filename_template: Option<RawModuleFilenameTemplate>,
+  pub namespace: Option<String>,
+  pub no_sources: Option<bool>,
   pub public_path: Option<String>,
+  pub source_root: Option<String>,
+  #[serde(skip_deserializing)]
+  #[napi(ts_type = "(text: string) => boolean")]
+  pub test: Option<JsFunction>,
 }
 
 impl From<RawSourceMapDevToolPluginOptions> for SourceMapDevToolPluginOptions {
-  fn from(value: RawSourceMapDevToolPluginOptions) -> Self {
+  fn from(opts: RawSourceMapDevToolPluginOptions) -> Self {
+    let append = opts.append.map(normalize_raw_append);
+    let test = opts.test.map(normalize_raw_test);
+    let filename = opts.filename.and_then(|raw| match raw {
+      Either::A(_) => None,
+      Either::B(s) => Some(s),
+    });
+
+    let module_filename_template = opts
+      .module_filename_template
+      .map(normalize_raw_module_filename_template);
+    let fallback_module_filename_template = opts
+      .fallback_module_filename_template
+      .map(normalize_raw_module_filename_template);
+
+    let columns = opts.columns.unwrap_or(true);
+    let no_sources = opts.no_sources.unwrap_or(false);
+
     Self {
-      filename: value.filename,
-      append: value.append,
-      namespace: value.namespace,
-      columns: value.columns,
-      no_sources: value.no_sources,
-      public_path: value.public_path,
+      append,
+      columns,
+      fallback_module_filename_template,
+      file_context: opts.file_context,
+      filename,
+      namespace: opts.namespace,
+      no_sources,
+      public_path: opts.public_path,
+      module_filename_template,
+      module: opts.module.unwrap_or(false),
+      source_root: opts.source_root,
+      test,
     }
   }
 }

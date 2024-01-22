@@ -290,7 +290,11 @@ impl ConsumeSharedPlugin {
       .get_required_version(context, request, config.clone(), add_diagnostic)
       .await;
     ConsumeSharedModule::new(
-      context.clone(),
+      if direct_fallback {
+        self.get_context()
+      } else {
+        context.clone()
+      },
       ConsumeOptions {
         import: import_resolved
           .is_some()
@@ -403,7 +407,7 @@ impl Plugin for ConsumeSharedPlugin {
     Ok(None)
   }
 
-  fn additional_tree_runtime_requirements(
+  async fn additional_tree_runtime_requirements(
     &self,
     _ctx: PluginContext,
     args: &mut AdditionalChunkRuntimeRequirementsArgs,
@@ -424,10 +428,13 @@ impl Plugin for ConsumeSharedPlugin {
     args
       .runtime_requirements
       .insert(RuntimeGlobals::HAS_OWN_PROPERTY);
-    args.compilation.add_runtime_module(
-      args.chunk,
-      Box::new(ConsumeSharedRuntimeModule::new(self.options.enhanced)),
-    );
+    args
+      .compilation
+      .add_runtime_module(
+        args.chunk,
+        Box::new(ConsumeSharedRuntimeModule::new(self.options.enhanced)),
+      )
+      .await?;
     Ok(())
   }
 }

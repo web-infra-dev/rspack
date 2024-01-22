@@ -143,4 +143,19 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     }
     None
   }
+
+  fn identifier(
+    &self,
+    parser: &mut JavascriptParser,
+    expr: &swc_core::ecma::ast::Ident,
+  ) -> Option<bool> {
+    for plugin in &self.plugins {
+      let res = plugin.identifier(parser, expr);
+      // `SyncBailHook`
+      if res.is_some() {
+        return res;
+      }
+    }
+    None
+  }
 }

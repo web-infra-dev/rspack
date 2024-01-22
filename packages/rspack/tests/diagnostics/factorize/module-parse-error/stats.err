@@ -1,6 +1,4 @@
 ERROR in ./non-recoverable.js
-ModuleParseError
-
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expected ident
          ╭────
@@ -12,8 +10,6 @@ ModuleParseError
         You may need an appropriate loader to handle this file type.
 
 ERROR in ./recoverable.js
-ModuleParseError
-
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expected a semicolon
          ╭────

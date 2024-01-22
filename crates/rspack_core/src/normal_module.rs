@@ -4,13 +4,14 @@ use std::{
   hash::{BuildHasherDefault, Hash},
   sync::{
     atomic::{AtomicUsize, Ordering},
-    Arc, Mutex,
+    Mutex,
   },
 };
 
 use bitflags::bitflags;
 use dashmap::DashMap;
 use derivative::Derivative;
+use rspack_core_macros::impl_source_map_config;
 use rspack_error::{error, Diagnosable, Diagnostic, DiagnosticExt, MietteExt, Result, Severity};
 use rspack_hash::RspackHash;
 use rspack_identifier::Identifiable;
@@ -19,6 +20,7 @@ use rspack_sources::{
   BoxSource, CachedSource, OriginalSource, RawSource, Source, SourceExt, SourceMap,
   SourceMapSource, WithoutOriginalOptions,
 };
+use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
 use rustc_hash::FxHashSet as HashSet;
 use rustc_hash::FxHasher;
 use serde_json::json;
@@ -74,6 +76,7 @@ impl ModuleIssuer {
   }
 }
 
+#[impl_source_map_config]
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct NormalModule {
@@ -115,8 +118,6 @@ pub struct NormalModule {
   /// Generator options derived from [Rule.generator]
   generator_options: Option<GeneratorOptions>,
 
-  #[derivative(Debug = "ignore")]
-  options: Arc<CompilerOptions>,
   #[allow(unused)]
   debug_id: usize,
   cached_source_sizes: DashMap<SourceType, f64, BuildHasherDefault<FxHasher>>,
@@ -173,7 +174,6 @@ impl NormalModule {
     resource_data: ResourceData,
     resolve_options: Option<Box<Resolve>>,
     loaders: Vec<BoxLoader>,
-    options: Arc<CompilerOptions>,
     contains_inline_loader: bool,
   ) -> Self {
     let module_type = module_type.into();
@@ -199,13 +199,14 @@ impl NormalModule {
       source: NormalModuleSource::Unbuild,
       debug_id: DEBUG_ID.fetch_add(1, Ordering::Relaxed),
 
-      options,
       cached_source_sizes: DashMap::default(),
       diagnostics: Mutex::new(Default::default()),
       code_generation_dependencies: None,
       presentational_dependencies: None,
       build_info: None,
       build_meta: None,
+
+      source_map_kind: SourceMapKind::None,
     }
   }
 
@@ -423,6 +424,7 @@ impl Module for NormalModule {
         module_parser_options: self.parser_options.as_ref(),
         module_type: &self.module_type,
         module_user_request: &self.user_request,
+        module_source_map_kind: self.get_source_map_kind().clone(),
         loaders: &self.loaders,
         resource_data: &self.resource_data,
         compiler_options: build_context.compiler_options,
@@ -643,7 +645,8 @@ impl NormalModule {
     if content.is_buffer() {
       return Ok(RawSource::Buffer(content.into_bytes()).boxed());
     }
-    if self.options.devtool.enabled()
+    let source_map_kind = self.get_source_map_kind();
+    if !matches!(source_map_kind, SourceMapKind::None)
       && let Some(source_map) = source_map
     {
       let content = content.into_string_lossy();
@@ -656,7 +659,7 @@ impl NormalModule {
         .boxed(),
       );
     }
-    if self.options.devtool.source_map()
+    if !matches!(source_map_kind, SourceMapKind::None)
       && let Content::String(content) = content
     {
       return Ok(OriginalSource::new(content, self.request()).boxed());

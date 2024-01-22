@@ -11,6 +11,7 @@ use rspack_core::{
 use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
+use rspack_util::source_map::SourceMapKind;
 
 use super::{
   provide_for_shared_dependency::ProvideForSharedDependency,
@@ -20,6 +21,7 @@ use super::{
   },
 };
 
+#[impl_source_map_config]
 #[derive(Debug)]
 pub struct ProvideSharedModule {
   blocks: Vec<AsyncDependenciesBlockId>,
@@ -61,6 +63,7 @@ impl ProvideSharedModule {
       eager,
       build_info: None,
       build_meta: None,
+      source_map_kind: SourceMapKind::None,
     }
   }
 }

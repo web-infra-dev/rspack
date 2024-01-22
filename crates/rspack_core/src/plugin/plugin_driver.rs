@@ -25,7 +25,8 @@ use crate::{
   PluginRenderManifestHookOutput, PluginRenderModuleContentOutput, PluginRenderStartupHookOutput,
   PluginRuntimeRequirementsInTreeOutput, PluginThisCompilationHookOutput, ProcessAssetsArgs,
   RenderArgs, RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs,
-  Resolver, ResolverFactory, RuntimeRequirementsInTreeArgs, Stats, ThisCompilationArgs,
+  Resolver, ResolverFactory, RuntimeModule, RuntimeRequirementsInTreeArgs, Stats,
+  ThisCompilationArgs,
 };
 
 pub struct PluginDriver {
@@ -445,23 +446,27 @@ impl PluginDriver {
   }
 
   #[instrument(name = "plugin:additional_chunk_runtime_requirements", skip_all)]
-  pub fn additional_chunk_runtime_requirements(
+  pub async fn additional_chunk_runtime_requirements(
     &self,
-    args: &mut AdditionalChunkRuntimeRequirementsArgs,
+    args: &mut AdditionalChunkRuntimeRequirementsArgs<'_>,
   ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
     for plugin in &self.plugins {
-      plugin.additional_chunk_runtime_requirements(PluginContext::new(), args)?;
+      plugin
+        .additional_chunk_runtime_requirements(PluginContext::new(), args)
+        .await?;
     }
     Ok(())
   }
 
   #[instrument(name = "plugin:additional_tree_runtime_requirements", skip_all)]
-  pub fn additional_tree_runtime_requirements(
+  pub async fn additional_tree_runtime_requirements(
     &self,
-    args: &mut AdditionalChunkRuntimeRequirementsArgs,
+    args: &mut AdditionalChunkRuntimeRequirementsArgs<'_>,
   ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
     for plugin in &self.plugins {
-      plugin.additional_tree_runtime_requirements(PluginContext::new(), args)?;
+      plugin
+        .additional_tree_runtime_requirements(PluginContext::new(), args)
+        .await?;
     }
     Ok(())
   }
@@ -477,12 +482,14 @@ impl PluginDriver {
   }
 
   #[instrument(name = "plugin:runtime_requirements_in_tree", skip_all)]
-  pub fn runtime_requirements_in_tree(
+  pub async fn runtime_requirements_in_tree(
     &self,
-    args: &mut RuntimeRequirementsInTreeArgs,
+    args: &mut RuntimeRequirementsInTreeArgs<'_>,
   ) -> PluginRuntimeRequirementsInTreeOutput {
     for plugin in &self.plugins {
-      plugin.runtime_requirements_in_tree(PluginContext::new(), args)?;
+      plugin
+        .runtime_requirements_in_tree(PluginContext::new(), args)
+        .await?;
     }
     Ok(())
   }
@@ -675,6 +682,21 @@ impl PluginDriver {
       plugin.build_module(module).await?;
     }
     Ok(())
+  }
+
+  #[instrument(name = "plugin:runtime_module", skip_all)]
+  pub async fn runtime_module(
+    &self,
+    module: &mut dyn RuntimeModule,
+    chunk: &Chunk,
+    compilation: &Compilation,
+  ) -> Result<Option<String>> {
+    for plugin in &self.plugins {
+      if let Some(t) = plugin.runtime_module(module, chunk, compilation).await? {
+        return Ok(Some(t));
+      };
+    }
+    Ok(None)
   }
 
   #[instrument(name = "plugin:succeed_module", skip_all)]

@@ -3,6 +3,7 @@ use rspack_core::{
   BuildMetaExportsType, DependencyLocation, DependencyTemplate, ModuleType, RuntimeGlobals,
   SpanExt,
 };
+use rustc_hash::FxHashSet;
 use swc_core::{
   atoms::Atom,
   common::{Spanned, SyntaxContext},
@@ -40,7 +41,7 @@ pub struct CommonJsExportDependencyScanner<'a> {
   stmt_level: u32,
   last_stmt_is_expr_stmt: bool,
   is_top_level: bool,
-  ignored: &'a mut Vec<DependencyLocation>,
+  ignored: &'a mut FxHashSet<DependencyLocation>,
 }
 
 impl<'a> CommonJsExportDependencyScanner<'a> {
@@ -51,7 +52,7 @@ impl<'a> CommonJsExportDependencyScanner<'a> {
     build_meta: &'a mut BuildMeta,
     module_type: ModuleType,
     parser_exports_state: &'a mut Option<bool>,
-    ignored: &'a mut Vec<DependencyLocation>,
+    ignored: &'a mut FxHashSet<DependencyLocation>,
   ) -> Self {
     Self {
       dependencies,

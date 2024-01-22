@@ -7,8 +7,10 @@ use rspack_core::{
   Compilation, RuntimeModule, RuntimeModuleStage,
 };
 use rspack_identifier::Identifier;
+use rspack_util::source_map::SourceMapKind;
 use rustc_hash::FxHasher;
 
+#[impl_runtime_module]
 #[derive(Debug, Eq)]
 pub struct ChunkPreloadTriggerRuntimeModule {
   id: Identifier,
@@ -20,6 +22,8 @@ impl ChunkPreloadTriggerRuntimeModule {
     Self {
       id: Identifier::from("webpack/runtime/chunk_preload_trigger"),
       chunk_map,
+      source_map_kind: SourceMapKind::None,
+      custom_source: None,
     }
   }
 }
@@ -41,5 +45,3 @@ impl RuntimeModule for ChunkPreloadTriggerRuntimeModule {
     RuntimeModuleStage::Trigger
   }
 }
-
-impl_runtime_module!(ChunkPreloadTriggerRuntimeModule);

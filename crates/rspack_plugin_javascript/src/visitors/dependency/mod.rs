@@ -3,7 +3,6 @@ mod common_js_export_scanner;
 mod common_js_scanner;
 mod compatibility_scanner;
 mod context_helper;
-mod export_info_api_scanner;
 mod harmony_detection_scanner;
 mod harmony_export_dependency_scanner;
 pub mod harmony_import_dependency_scanner;
@@ -20,10 +19,12 @@ use std::sync::Arc;
 
 pub use context_helper::scanner_context_module;
 use rspack_ast::javascript::Program;
-use rspack_core::{AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo};
+use rspack_core::{
+  AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, DependencyLocation,
+};
 use rspack_core::{BuildMeta, CompilerOptions, ModuleIdentifier, ModuleType, ResourceData};
 use rspack_error::miette::Diagnostic;
-use rustc_hash::FxHashMap as HashMap;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 use swc_core::common::{comments::Comments, Mark, SyntaxContext};
 use swc_core::common::{SourceFile, Span};
 use swc_core::ecma::atoms::Atom;
@@ -34,7 +35,6 @@ pub use self::util::*;
 use self::{
   api_scanner::ApiScanner, common_js_export_scanner::CommonJsExportDependencyScanner,
   common_js_scanner::CommonJsScanner, compatibility_scanner::CompatibilityScanner,
-  export_info_api_scanner::ExportInfoApiScanner,
   harmony_detection_scanner::HarmonyDetectionScanner,
   harmony_export_dependency_scanner::HarmonyExportDependencyScanner,
   harmony_import_dependency_scanner::HarmonyImportDependencyScanner,
@@ -83,7 +83,7 @@ pub fn scan_dependencies(
   let unresolved_ctxt = SyntaxContext::empty().apply_mark(unresolved_mark);
   let comments = program.comments.clone();
   let mut parser_exports_state = None;
-  let mut ignored = vec![];
+  let mut ignored: FxHashSet<DependencyLocation> = FxHashSet::default();
 
   let mut rewrite_usage_span = HashMap::default();
 
@@ -123,12 +123,6 @@ pub fn scan_dependencies(
   ));
 
   program.visit_with(&mut CompatibilityScanner::new(
-    &mut presentational_dependencies,
-    unresolved_ctxt,
-    &mut ignored,
-  ));
-
-  program.visit_with(&mut ExportInfoApiScanner::new(
     &mut presentational_dependencies,
     unresolved_ctxt,
     &mut ignored,

@@ -349,6 +349,7 @@ export interface JsHooks {
   succeedModule: (...args: any[]) => any
   stillValidModule: (...args: any[]) => any
   executeModule: (...args: any[]) => any
+  runtimeModule: (...args: any[]) => any
 }
 
 export interface JsLoaderContext {
@@ -420,6 +421,18 @@ export interface JsResourceData {
   query?: string
   /** Resource fragment with `#` prefix */
   fragment?: string
+}
+
+export interface JsRuntimeModule {
+  source?: JsCompatSource
+  moduleIdentifier: string
+  constructorName: string
+  name: string
+}
+
+export interface JsRuntimeModuleArg {
+  module: JsRuntimeModule
+  chunk: JsChunk
 }
 
 export interface JsStatsAsset {
@@ -904,6 +917,20 @@ export interface RawLimitChunkCountPluginOptions {
   maxChunks: number
 }
 
+export interface RawModuleFilenameTemplateFnCtx {
+  identifier: string
+  shortIdentifier: string
+  resource: string
+  resourcePath: string
+  absoluteResourcePath: string
+  loaders: string
+  allLoaders: string
+  query: string
+  moduleId: string
+  hash: string
+  namespace: string
+}
+
 export interface RawModuleOptions {
   rules: Array<RawModuleRule>
   parser?: Record<string, RawParserOptions>
@@ -1159,12 +1186,18 @@ export interface RawSnapshotStrategy {
 }
 
 export interface RawSourceMapDevToolPluginOptions {
-  filename?: string
-  append?: boolean
-  namespace: string
-  columns: boolean
-  noSources: boolean
+  append?: (false | null) | string | Function
+  columns?: boolean
+  fallbackModuleFilenameTemplate?: string | Function
+  fileContext?: string
+  filename?: (false | null) | string
+  module?: boolean
+  moduleFilenameTemplate?: string | Function
+  namespace?: string
+  noSources?: boolean
   publicPath?: string
+  sourceRoot?: string
+  test?: (text: string) => boolean
 }
 
 export interface RawSplitChunksOptions {

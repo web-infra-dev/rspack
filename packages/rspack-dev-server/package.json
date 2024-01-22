@@ -9,6 +9,8 @@
     ".": {
       "default": "./dist/index.js"
     },
+    "./client/*": "./client/*.js",
+    "./client/*.js": "./client/*.js",
     "./package.json": "./package.json"
   },
   "scripts": {
@@ -17,7 +19,8 @@
     "test": "rimraf .test-temp && jest --runInBand"
   },
   "files": [
-    "dist"
+    "dist",
+    "client"
   ],
   "homepage": "https://rspack.dev",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
@@ -42,7 +45,6 @@
     "express": "4.18.1",
     "http-proxy-middleware": "2.0.6",
     "mime-types": "2.1.35",
-    "webpack": "5.89.0",
     "webpack-dev-middleware": "6.0.2",
     "webpack-dev-server": "4.13.1",
     "ws": "8.8.1"

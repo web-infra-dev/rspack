@@ -1063,6 +1063,7 @@ mod test {
   use rspack_error::{Diagnosable, Diagnostic, Result};
   use rspack_identifier::Identifiable;
   use rspack_sources::Source;
+  use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
 
   use crate::{
     AsyncDependenciesBlockId, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
@@ -1159,6 +1160,15 @@ mod test {
           _build_info: BuildInfo,
           _build_meta: BuildMeta,
         ) {
+          unreachable!()
+        }
+      }
+
+      impl ModuleSourceMapConfig for $ident {
+        fn get_source_map_kind(&self) -> &SourceMapKind {
+          unreachable!()
+        }
+        fn set_source_map_kind(&mut self, _source_map: SourceMapKind) {
           unreachable!()
         }
       }

@@ -6,6 +6,9 @@ use std::{
 };
 
 use rspack_core::{BoxPlugin, CompilerOptions, ModuleType, PluginExt};
+use rspack_plugin_devtool::{
+  Append, SourceMapDevToolModuleOptionsPlugin, SourceMapDevToolModuleOptionsPluginOptions,
+};
 use rspack_plugin_html::config::HtmlRspackPluginOptions;
 use rspack_regex::RspackRegex;
 use schemars::JsonSchema;
@@ -428,7 +431,6 @@ impl TestConfig {
         rules,
         ..Default::default()
       },
-      devtool: c::Devtool::from(self.devtool),
       stats: Default::default(),
       snapshot: Default::default(),
       cache: c::CacheOptions::Disabled,
@@ -503,16 +505,35 @@ impl TestConfig {
     // plugins.push(rspack_plugin_externals::ExternalPlugin::default().boxed());
     plugins.push(rspack_plugin_javascript::JsPlugin::new().boxed());
 
-    if options.devtool.source_map() {
+    if self.devtool.contains("source-map") {
+      let hidden = self.devtool.contains("hidden");
+      let cheap = self.devtool.contains("cheap");
+      let module_maps = self.devtool.contains("module");
+      let no_sources = self.devtool.contains("nosources");
+      let module = if module_maps { true } else { !cheap };
+
+      plugins.push(
+        SourceMapDevToolModuleOptionsPlugin::new(SourceMapDevToolModuleOptionsPluginOptions {
+          module,
+        })
+        .boxed(),
+      );
+
       plugins.push(
         rspack_plugin_devtool::SourceMapDevToolPlugin::new(
           rspack_plugin_devtool::SourceMapDevToolPluginOptions {
             filename: None,
-            append: Some(!options.devtool.hidden()),
-            namespace: options.output.unique_name.clone(),
-            columns: !options.devtool.cheap(),
-            no_sources: options.devtool.no_sources(),
+            append: if hidden { Some(Append::Disabled) } else { None },
+            namespace: Some(options.output.unique_name.clone()),
+            columns: !cheap,
+            no_sources,
             public_path: None,
+            module: if module_maps { true } else { !cheap },
+            module_filename_template: None,
+            fallback_module_filename_template: None,
+            file_context: None,
+            source_root: None,
+            test: None,
           },
         )
         .boxed(),

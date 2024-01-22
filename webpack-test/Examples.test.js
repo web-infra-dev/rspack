@@ -6,7 +6,7 @@ const path = require("path");
 const fs = require("graceful-fs");
 const { normalizeFilteredTestName } = require("./lib/util/filterUtil")
 
-describe.skip("Examples", () => {
+describe("Examples", () => {
 	const basePath = path.join(__dirname, "..", "webpack-examples");
 	const examples = require("../webpack-examples/examples.js");
 

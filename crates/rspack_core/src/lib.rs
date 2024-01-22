@@ -97,6 +97,7 @@ pub mod concatenated_module;
 pub mod reserverd_names;
 pub mod tree_shaking;
 
+pub use rspack_core_macros::{impl_runtime_module, impl_source_map_config};
 pub use rspack_loader_runner::{get_scheme, ResourceData, Scheme, BUILTIN_LOADER_PREFIX};
 pub use rspack_sources;
 

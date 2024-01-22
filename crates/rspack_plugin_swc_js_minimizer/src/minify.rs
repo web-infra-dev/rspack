@@ -301,7 +301,7 @@ pub fn minify(
             SourceMapConfig {
               enable: source_map.enabled(),
               inline_sources_content: opts.inline_sources_content,
-              emit_columns: opts.emit_source_map_columns,
+              emit_columns: true,
               names: source_map_names,
             },
             true,

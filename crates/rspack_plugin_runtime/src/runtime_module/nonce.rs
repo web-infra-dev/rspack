@@ -4,7 +4,9 @@ use rspack_core::{
   Compilation, RuntimeGlobals, RuntimeModule,
 };
 use rspack_identifier::Identifier;
+use rspack_util::source_map::SourceMapKind;
 
+#[impl_runtime_module]
 #[derive(Debug, Eq)]
 pub struct NonceRuntimeModule {
   id: Identifier,
@@ -14,6 +16,8 @@ impl Default for NonceRuntimeModule {
   fn default() -> Self {
     Self {
       id: Identifier::from("webpack/runtime/nonce"),
+      source_map_kind: SourceMapKind::None,
+      custom_source: None,
     }
   }
 }
@@ -27,5 +31,3 @@ impl RuntimeModule for NonceRuntimeModule {
     RawSource::from(format!("{} = undefined;", RuntimeGlobals::SCRIPT_NONCE)).boxed()
   }
 }
-
-impl_runtime_module!(NonceRuntimeModule);

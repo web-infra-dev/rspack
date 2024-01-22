@@ -4,7 +4,9 @@ use rspack_core::{
   ChunkUkey, Compilation, PathData, RuntimeGlobals, RuntimeModule,
 };
 use rspack_identifier::Identifier;
+use rspack_util::source_map::SourceMapKind;
 
+#[impl_runtime_module]
 #[derive(Debug, Eq)]
 pub struct GetMainFilenameRuntimeModule {
   chunk: Option<ChunkUkey>,
@@ -20,6 +22,8 @@ impl GetMainFilenameRuntimeModule {
       id: Identifier::from(format!("webpack/runtime/get_main_filename/{content_type}")),
       global,
       filename,
+      source_map_kind: SourceMapKind::None,
+      custom_source: None,
     }
   }
 }
@@ -56,5 +60,3 @@ impl RuntimeModule for GetMainFilenameRuntimeModule {
     self.chunk = Some(chunk);
   }
 }
-
-impl_runtime_module!(GetMainFilenameRuntimeModule);

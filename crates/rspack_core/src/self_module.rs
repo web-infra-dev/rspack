@@ -2,10 +2,12 @@ use std::borrow::Cow;
 use std::hash::Hash;
 
 use async_trait::async_trait;
+use rspack_core_macros::impl_source_map_config;
 use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
 use rspack_sources::Source;
+use rspack_util::source_map::SourceMapKind;
 
 use crate::{
   impl_build_info_meta, AsyncDependenciesBlockId, BuildContext, BuildInfo, BuildMeta, BuildResult,
@@ -13,6 +15,7 @@ use crate::{
   DependencyId, LibIdentOptions, Module, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
 };
 
+#[impl_source_map_config]
 #[derive(Debug)]
 pub struct SelfModule {
   identifier: ModuleIdentifier,
@@ -33,6 +36,7 @@ impl SelfModule {
       dependencies: Default::default(),
       build_info: None,
       build_meta: None,
+      source_map_kind: SourceMapKind::None,
     }
   }
 }

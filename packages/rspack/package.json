@@ -10,15 +10,18 @@
     ".": {
       "default": "./dist/index.js"
     },
+    "./hot/*": "./hot/*.js",
+    "./hot/*.js": "./hot/*.js",
     "./package.json": "./package.json"
   },
   "scripts": {
     "build": "tsc -b ./tsconfig.build.json",
     "dev": "tsc -w",
-    "test": "cross-env NO_COLOR=1 RSPACK_DEP_WARNINGS=false node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --testPathIgnorePatterns \".diff.test.ts\" --runInBand --logHeapUsage"
+    "test": "cross-env NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --testPathIgnorePatterns \".diff.test.ts\" --runInBand --logHeapUsage"
   },
   "files": [
-    "dist"
+    "dist",
+    "hot"
   ],
   "engines": {
     "node": ">=16.0.0"
@@ -37,7 +40,6 @@
     "@swc/core": "^1.3.96",
     "@swc/jest": "^0.2.29",
     "@types/watchpack": "^2.4.0",
-    "@types/webpack-dev-server": "^4.7.2",
     "@types/webpack-sources": "3.2.0",
     "@types/ws": "8.5.3",
     "babel-loader": "^9.1.0",
@@ -68,6 +70,7 @@
     "@rspack/binding": "workspace:*",
     "browserslist": "^4.21.3",
     "enhanced-resolve": "5.12.0",
+    "events": "^3.3.0",
     "graceful-fs": "4.2.10",
     "json-parse-even-better-errors": "^3.0.0",
     "neo-async": "2.6.2",

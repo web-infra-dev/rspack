@@ -14,6 +14,7 @@ use rspack_core::{
 };
 use rspack_error::miette::Diagnostic;
 use rspack_error::{DiagnosticExt, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_util::source_map::SourceMapKind;
 use swc_core::common::SyntaxContext;
 use swc_core::ecma::parser::{EsConfig, Syntax};
 
@@ -82,6 +83,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     let ParseContext {
       source,
       module_type,
+      module_source_map_kind,
       resource_data,
       compiler_options,
       build_info,
@@ -100,9 +102,10 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       allow_super_outside_method: true,
       ..Default::default()
     });
-    let use_source_map = compiler_options.devtool.enabled();
-    let use_simple_source_map = compiler_options.devtool.source_map();
-    let original_map = source.map(&MapOptions::new(!compiler_options.devtool.cheap()));
+
+    let use_source_map = matches!(module_source_map_kind, SourceMapKind::SourceMap);
+    let enable_source_map = !matches!(module_source_map_kind, SourceMapKind::None);
+    let original_map = source.map(&MapOptions::new(use_source_map));
     let source = source.source();
 
     let gen_terminate_res = |diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>>| {
@@ -111,7 +114,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
           source: create_source(
             source.to_string(),
             resource_data.resource_path.to_string_lossy().to_string(),
-            use_simple_source_map,
+            enable_source_map,
           ),
           dependencies: vec![],
           blocks: vec![],
@@ -150,7 +153,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       &ast,
       additional_data
         .remove::<CodegenOptions>()
-        .unwrap_or_else(|| CodegenOptions::new(&compiler_options.devtool, Some(true))),
+        .unwrap_or_else(|| CodegenOptions::new(&module_source_map_kind, Some(true))),
     )?;
 
     let parse_result = match crate::ast::parse(
@@ -261,7 +264,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         ..Default::default()
       })
       .boxed()
-    } else if use_simple_source_map {
+    } else if enable_source_map {
       OriginalSource::new(output.code, resource_data.resource_path.to_string_lossy()).boxed()
     } else {
       RawSource::from(output.code).boxed()

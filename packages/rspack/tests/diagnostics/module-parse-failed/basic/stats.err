@@ -1,6 +1,4 @@
 ERROR in ./index.js
-ModuleParseError
-
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expected ',', got ':'
          ╭─[1:1]

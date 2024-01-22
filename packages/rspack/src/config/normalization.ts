@@ -76,7 +76,9 @@ import type {
 	RspackFutureOptions,
 	HotUpdateGlobal,
 	ScriptType,
-	DevtoolNamespace
+	DevtoolNamespace,
+	DevtoolModuleFilenameTemplate,
+	DevtoolFallbackModuleFilenameTemplate
 } from "./zod";
 
 export const getNormalizedRspackOptions = (
@@ -194,7 +196,10 @@ export const getNormalizedRspackOptions = (
 				workerWasmLoading: output.workerWasmLoading,
 				workerPublicPath: output.workerPublicPath,
 				scriptType: output.scriptType,
-				devtoolNamespace: output.devtoolNamespace
+				devtoolNamespace: output.devtoolNamespace,
+				devtoolModuleFilenameTemplate: output.devtoolModuleFilenameTemplate,
+				devtoolFallbackModuleFilenameTemplate:
+					output.devtoolFallbackModuleFilenameTemplate
 			};
 		}),
 		resolve: nestedConfig(config.resolve, resolve => ({
@@ -456,6 +461,8 @@ export interface OutputNormalized {
 	workerPublicPath?: WorkerPublicPath;
 	scriptType?: ScriptType;
 	devtoolNamespace?: DevtoolNamespace;
+	devtoolModuleFilenameTemplate?: DevtoolModuleFilenameTemplate;
+	devtoolFallbackModuleFilenameTemplate?: DevtoolFallbackModuleFilenameTemplate;
 }
 
 export interface ModuleOptionsNormalized {

@@ -5,6 +5,7 @@ use rspack_core::{
   ExportsArgument, ModuleArgument, ModuleType,
 };
 use rspack_error::miette::Diagnostic;
+use rustc_hash::FxHashSet;
 use swc_core::common::source_map::Pos;
 use swc_core::common::{BytePos, SourceFile, Span, Spanned};
 use swc_core::ecma::ast::{ArrowExpr, AwaitExpr, Constructor, Function, ModuleItem, Program};
@@ -23,7 +24,7 @@ pub struct HarmonyDetectionScanner<'a> {
   top_level_await: bool,
   code_generable_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
   errors: &'a mut Vec<Box<dyn Diagnostic + Send + Sync>>,
-  ignored: &'a mut Vec<DependencyLocation>,
+  ignored: &'a mut FxHashSet<DependencyLocation>,
 }
 
 impl<'a> HarmonyDetectionScanner<'a> {
@@ -36,7 +37,7 @@ impl<'a> HarmonyDetectionScanner<'a> {
     top_level_await: bool,
     code_generable_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
     errors: &'a mut Vec<Box<dyn Diagnostic + Send + Sync>>,
-    ignored: &'a mut Vec<DependencyLocation>,
+    ignored: &'a mut FxHashSet<DependencyLocation>,
   ) -> Self {
     Self {
       source_file,

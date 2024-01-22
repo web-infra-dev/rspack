@@ -2,7 +2,7 @@ use rspack_core::{
   tree_shaking::symbol::DEFAULT_JS_WORD, BoxDependency, BoxDependencyTemplate, BuildInfo,
   ConstDependency, DependencyLocation, SpanExt,
 };
-use rustc_hash::FxHashMap as HashMap;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 use swc_core::{
   common::{Span, Spanned},
   ecma::{
@@ -33,7 +33,7 @@ pub struct HarmonyExportDependencyScanner<'a, 'b> {
   pub build_info: &'a mut BuildInfo,
   pub rewrite_usage_span: &'a mut HashMap<Span, ExtraSpanInfo>,
   pub comments: Option<&'b SwcComments>,
-  pub ignored: &'a mut Vec<DependencyLocation>,
+  pub ignored: &'a mut FxHashSet<DependencyLocation>,
 }
 
 impl<'a, 'b> HarmonyExportDependencyScanner<'a, 'b> {
@@ -44,7 +44,7 @@ impl<'a, 'b> HarmonyExportDependencyScanner<'a, 'b> {
     build_info: &'a mut BuildInfo,
     rewrite_usage_span: &'a mut HashMap<Span, ExtraSpanInfo>,
     comments: Option<&'b SwcComments>,
-    ignored: &'a mut Vec<DependencyLocation>,
+    ignored: &'a mut FxHashSet<DependencyLocation>,
   ) -> Self {
     Self {
       dependencies,

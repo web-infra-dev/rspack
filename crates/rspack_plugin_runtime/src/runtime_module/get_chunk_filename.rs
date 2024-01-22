@@ -8,6 +8,7 @@ use rspack_core::{
   Chunk, ChunkUkey, Compilation, Filename, PathData, RuntimeGlobals, RuntimeModule, SourceType,
 };
 use rspack_identifier::Identifier;
+use rspack_util::source_map::SourceMapKind;
 
 use super::create_fake_chunk;
 use super::stringify_dynamic_chunk_map;
@@ -18,6 +19,7 @@ type GetChunkFilenameAllChunks = Box<dyn Fn(&RuntimeGlobals) -> bool + Sync + Se
 type GetFilenameForChunk =
   Box<dyn for<'me> Fn(&'me Chunk, &'me Compilation) -> Option<&'me Filename> + Sync + Send>;
 
+#[impl_runtime_module]
 pub struct GetChunkFilenameRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,
@@ -65,6 +67,8 @@ impl GetChunkFilenameRuntimeModule {
       global,
       all_chunks: Box::new(all_chunks),
       filename_for_chunk: Box::new(filename_for_chunk),
+      source_map_kind: SourceMapKind::None,
+      custom_source: None,
     }
   }
 }
@@ -336,5 +340,3 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
     self.chunk = Some(chunk);
   }
 }
-
-impl_runtime_module!(GetChunkFilenameRuntimeModule);

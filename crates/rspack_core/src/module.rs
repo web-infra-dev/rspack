@@ -11,6 +11,7 @@ use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_identifier::{Identifiable, Identifier};
 use rspack_sources::Source;
 use rspack_util::ext::{AsAny, DynEq, DynHash};
+use rspack_util::source_map::ModuleSourceMapConfig;
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::ecma::atoms::Atom;
 
@@ -186,7 +187,16 @@ impl From<ModuleIdentifier> for WrappedModuleIdentifier {
 
 #[async_trait]
 pub trait Module:
-  Debug + Send + Sync + AsAny + DynHash + DynEq + Identifiable + DependenciesBlock + Diagnosable
+  Debug
+  + Send
+  + Sync
+  + AsAny
+  + DynHash
+  + DynEq
+  + Identifiable
+  + DependenciesBlock
+  + Diagnosable
+  + ModuleSourceMapConfig
 {
   /// Defines what kind of module this is.
   fn module_type(&self) -> &ModuleType;
@@ -502,6 +512,7 @@ mod test {
   use rspack_error::{Diagnosable, Diagnostic, Result};
   use rspack_identifier::{Identifiable, Identifier};
   use rspack_sources::Source;
+  use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
 
   use super::Module;
   use crate::{
@@ -624,6 +635,15 @@ mod test {
           _build_info: crate::BuildInfo,
           _build_meta: crate::BuildMeta,
         ) {
+          unreachable!()
+        }
+      }
+
+      impl ModuleSourceMapConfig for $ident {
+        fn get_source_map_kind(&self) -> &SourceMapKind {
+          unreachable!()
+        }
+        fn set_source_map_kind(&mut self, _source_map: SourceMapKind) {
           unreachable!()
         }
       }

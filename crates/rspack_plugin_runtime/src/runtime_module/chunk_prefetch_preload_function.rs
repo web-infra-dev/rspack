@@ -4,7 +4,9 @@ use rspack_core::{
   Compilation, RuntimeGlobals, RuntimeModule,
 };
 use rspack_identifier::Identifier;
+use rspack_util::source_map::SourceMapKind;
 
+#[impl_runtime_module]
 #[derive(Debug, Eq)]
 pub struct ChunkPrefetchPreloadFunctionRuntimeModule {
   id: Identifier,
@@ -25,6 +27,8 @@ impl ChunkPrefetchPreloadFunctionRuntimeModule {
       )),
       runtime_function,
       runtime_handlers,
+      source_map_kind: SourceMapKind::None,
+      custom_source: None,
     }
   }
 }
@@ -43,5 +47,3 @@ impl RuntimeModule for ChunkPrefetchPreloadFunctionRuntimeModule {
     .boxed()
   }
 }
-
-impl_runtime_module!(ChunkPrefetchPreloadFunctionRuntimeModule);

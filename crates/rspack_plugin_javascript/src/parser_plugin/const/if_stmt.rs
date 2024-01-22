@@ -169,7 +169,7 @@ pub fn statement_if(scanner: &mut JavascriptParser, stmt: &IfStmt) -> Option<boo
       )
     };
 
-    scanner.ignored.push(DependencyLocation::new(
+    scanner.ignored.insert(DependencyLocation::new(
       branch_to_remove.span().real_lo(),
       branch_to_remove.span().real_hi(),
     ));

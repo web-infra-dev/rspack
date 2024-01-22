@@ -2,9 +2,11 @@ use std::borrow::Cow;
 use std::hash::Hash;
 use std::iter;
 
+use rspack_core_macros::impl_source_map_config;
 use rspack_error::{error, impl_empty_diagnosable_trait, Diagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
+use rspack_util::source_map::SourceMapKind;
 use rustc_hash::FxHashMap as HashMap;
 use serde::Serialize;
 
@@ -79,6 +81,7 @@ fn get_source_for_default_case(_optional: bool, request: &ExternalRequestValue) 
   format!("{variable_name}{object_lookup}")
 }
 
+#[impl_source_map_config]
 #[derive(Debug)]
 pub struct ExternalModule {
   dependencies: Vec<DependencyId>,
@@ -103,6 +106,7 @@ impl ExternalModule {
       user_request,
       build_info: None,
       build_meta: None,
+      source_map_kind: SourceMapKind::None,
     }
   }
 

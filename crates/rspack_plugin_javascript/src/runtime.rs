@@ -220,7 +220,7 @@ pub fn render_runtime_modules(
     if module.cacheable() {
       sources.add(source.clone());
     } else {
-      sources.add(module.generate(compilation));
+      sources.add(module.generate_with_custom(compilation));
     }
     if !module.should_isolate() {
       sources.add(RawSource::from("\n}();\n"));

@@ -4,7 +4,9 @@ use rspack_core::{
   Compilation, RuntimeGlobals, RuntimeModule,
 };
 use rspack_identifier::Identifier;
+use rspack_util::source_map::SourceMapKind;
 
+#[impl_runtime_module]
 #[derive(Debug, Eq)]
 pub struct NormalRuntimeModule {
   pub identifier: Identifier,
@@ -16,6 +18,8 @@ impl NormalRuntimeModule {
     Self {
       identifier: Identifier::from(identifier.name()),
       sources,
+      source_map_kind: SourceMapKind::None,
+      custom_source: None,
     }
   }
 }
@@ -29,5 +33,3 @@ impl RuntimeModule for NormalRuntimeModule {
     RawSource::from(self.sources).boxed()
   }
 }
-
-impl_runtime_module!(NormalRuntimeModule);

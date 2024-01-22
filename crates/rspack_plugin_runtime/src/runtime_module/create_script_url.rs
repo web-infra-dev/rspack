@@ -4,7 +4,9 @@ use rspack_core::{
   Compilation, RuntimeGlobals, RuntimeModule,
 };
 use rspack_identifier::Identifier;
+use rspack_util::source_map::SourceMapKind;
 
+#[impl_runtime_module]
 #[derive(Debug, Eq)]
 pub struct CreateScriptUrlRuntimeModule {
   id: Identifier,
@@ -14,6 +16,8 @@ impl Default for CreateScriptUrlRuntimeModule {
   fn default() -> Self {
     Self {
       id: Identifier::from("webpack/runtime/create_script_url"),
+      source_map_kind: SourceMapKind::None,
+      custom_source: None,
     }
   }
 }
@@ -43,5 +47,3 @@ impl RuntimeModule for CreateScriptUrlRuntimeModule {
     .boxed()
   }
 }
-
-impl_runtime_module!(CreateScriptUrlRuntimeModule);

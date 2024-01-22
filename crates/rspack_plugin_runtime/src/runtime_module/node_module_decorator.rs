@@ -4,7 +4,9 @@ use rspack_core::{
   Compilation, RuntimeModule,
 };
 use rspack_identifier::Identifier;
+use rspack_util::source_map::SourceMapKind;
 
+#[impl_runtime_module]
 #[derive(Debug, Eq)]
 pub struct NodeModuleDecoratorRuntimeModule {
   id: Identifier,
@@ -14,6 +16,8 @@ impl Default for NodeModuleDecoratorRuntimeModule {
   fn default() -> Self {
     Self {
       id: Identifier::from("webpack/runtime/node_module_decorator"),
+      source_map_kind: SourceMapKind::None,
+      custom_source: None,
     }
   }
 }
@@ -27,5 +31,3 @@ impl RuntimeModule for NodeModuleDecoratorRuntimeModule {
     RawSource::from(include_str!("runtime/node_module_decorator.js")).boxed()
   }
 }
-
-impl_runtime_module!(NodeModuleDecoratorRuntimeModule);

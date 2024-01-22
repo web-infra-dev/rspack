@@ -1,4 +1,5 @@
 use rspack_core::{ConstDependency, DependencyLocation, DependencyTemplate, SpanExt};
+use rustc_hash::FxHashSet;
 use swc_core::ecma::{
   ast::{
     ClassMember, ClassMethod, ClassProp, Expr, Function, GetterProp, MethodProp, Prop, PropName,
@@ -11,7 +12,7 @@ use crate::no_visit_ignored_stmt;
 
 pub struct HarmonyTopLevelThis<'a> {
   pub presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
-  pub ignored: &'a mut Vec<DependencyLocation>,
+  pub ignored: &'a mut FxHashSet<DependencyLocation>,
 }
 
 impl Visit for HarmonyTopLevelThis<'_> {
