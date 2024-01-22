@@ -350,6 +350,7 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_variable_declaration(&mut self, decl: &VarDecl) {
+    self.enter_assign = true;
     for declarator in &decl.decls {
       // if let Some(renamed_identifier) = declarator
       //   .init
@@ -373,6 +374,7 @@ impl<'parser> JavascriptParser<'parser> {
           self.walk_expression(init);
         }
       }
+      self.enter_assign = false;
     }
   }
 
@@ -660,11 +662,11 @@ impl<'parser> JavascriptParser<'parser> {
   // }
 
   fn walk_assignment_expression(&mut self, expr: &AssignExpr) {
+    self.enter_assign = true;
     if let Some(ident) = expr.left.as_ident() {
       // if let Some(rename_identifier) = self.get_rename_identifier(&expr.right) {
       //     // TODO:
       //   }
-
       self.walk_expression(&expr.right);
       self.enter_pattern(
         Cow::Owned(warp_ident_to_pat(ident.clone())),
@@ -679,7 +681,8 @@ impl<'parser> JavascriptParser<'parser> {
       self.enter_pattern(Cow::Borrowed(pat), |this, ident| {
         // TODO: if (!this.callHooksForName(this.hooks.assign, name, expression)) {
         this.define_variable(ident.sym.to_string());
-      })
+      });
+      self.walk_pattern(pat);
     } else {
       self.walk_expression(&expr.right);
       match &expr.left {
@@ -687,6 +690,7 @@ impl<'parser> JavascriptParser<'parser> {
         PatOrExpr::Pat(pat) => self.walk_pattern(pat),
       }
     }
+    self.enter_assign = false;
     // TODO:
     // else if let Some(member) = expr.left.as_expr().and_then(|expr| expr.as_member()) {
     // }
@@ -798,6 +802,7 @@ impl<'parser> JavascriptParser<'parser> {
       Pat::Assign(assign) => self.walk_assignment_pattern(assign),
       Pat::Object(obj) => self.walk_object_pattern(obj),
       Pat::Rest(rest) => self.walk_rest_element(rest),
+      Pat::Expr(expr) => self.walk_expression(expr),
       _ => (),
     }
   }
