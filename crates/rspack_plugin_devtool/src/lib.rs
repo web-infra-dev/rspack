@@ -19,7 +19,7 @@ use rspack_core::{
   ProcessAssetsArgs, RenderModuleContentArgs, SourceType,
 };
 use rspack_core::{
-  Chunk, CompilerOptions, Filename, Logger, Module, ModuleIdentifier, OutputOptions, RuntimeModule,
+  Chunk, Filename, Logger, Module, ModuleIdentifier, OutputOptions, RuntimeModule,
 };
 use rspack_error::{miette::IntoDiagnostic, Result};
 use rspack_hash::RspackHash;
