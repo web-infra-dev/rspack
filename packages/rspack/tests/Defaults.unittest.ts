@@ -111,9 +111,10 @@ describe("snapshots", () => {
 		+   "mode": undefined,
 		@@ ... @@
 		-     "chunkIds": "named",
+		+     "chunkIds": "deterministic",
+		@@ ... @@
 		-     "innerGraph": false,
 		-     "mangleExports": false,
-		+     "chunkIds": "deterministic",
 		+     "innerGraph": true,
 		+     "mangleExports": true,
 		@@ ... @@
@@ -161,9 +162,10 @@ describe("snapshots", () => {
 		+   "mode": "production",
 		@@ ... @@
 		-     "chunkIds": "named",
+		+     "chunkIds": "deterministic",
+		@@ ... @@
 		-     "innerGraph": false,
 		-     "mangleExports": false,
-		+     "chunkIds": "deterministic",
 		+     "innerGraph": true,
 		+     "mangleExports": true,
 		@@ ... @@

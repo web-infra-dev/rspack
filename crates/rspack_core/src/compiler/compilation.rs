@@ -2238,8 +2238,12 @@ pub fn assign_depth(
   q.push_back(module_id);
   let mut depth;
   assign_map.insert(module_id, 0);
-  let mut process_module =
-    |mg: &ModuleGraph, m: ModuleIdentifier, depth: usize, q: &mut VecDeque<ModuleIdentifier>| {
+  let process_module =
+    |mg: &ModuleGraph,
+     m: ModuleIdentifier,
+     depth: usize,
+     q: &mut VecDeque<ModuleIdentifier>,
+     assign_map: &mut HashMap<rspack_identifier::Identifier, usize>| {
       if !can_set_if_lower(mg, m, depth) {
         return;
       }
@@ -2247,11 +2251,11 @@ pub fn assign_depth(
       q.push_back(m);
     };
   while let Some(item) = q.pop_front() {
-    depth = mg.get_depth(&item).expect("should have depth") + 1;
+    depth = assign_map.get(&item).expect("should have depth") + 1;
 
     let m = mg.module_by_identifier(&item).expect("should have module");
     for con in mg.get_outgoing_connections(m) {
-      process_module(mg, con.module_identifier, depth, &mut q);
+      process_module(mg, con.module_identifier, depth, &mut q, assign_map);
     }
   }
 }
