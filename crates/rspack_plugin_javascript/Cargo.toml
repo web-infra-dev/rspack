@@ -11,6 +11,7 @@ rspack_testing = { path = "../rspack_testing" }
 [dependencies]
 async-trait = { workspace = true }
 bitflags = { workspace = true }
+dashmap = { workspace = true }
 either = "1"
 hex = "0.4.3"
 indexmap = { workspace = true }

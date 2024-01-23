@@ -1031,6 +1031,13 @@ impl ModuleGraph {
       .get_exports_info(self)
       .get_provided_exports(self)
   }
+
+  pub fn get_optimization_bailout_mut(&mut self, module: ModuleIdentifier) -> &mut Vec<String> {
+    let mgm = self
+      .module_graph_module_by_identifier_mut(&module)
+      .expect("should have module graph module");
+    mgm.optimization_bailout_mut()
+  }
 }
 
 fn get_connections_by_origin_module(
