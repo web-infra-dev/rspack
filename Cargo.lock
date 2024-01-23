@@ -2961,6 +2961,7 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "indicatif",
+ "linked-hash-map",
  "rspack_core",
  "rspack_error",
 ]
