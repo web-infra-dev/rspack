@@ -792,7 +792,7 @@ class Compiler {
 
 	async #optimizeChunkModules() {
 		await this.compilation.hooks.optimizeChunkModules.promise(
-			this.compilation.__internal__getChunks(),
+			this.compilation.chunks,
 			this.compilation.modules
 		);
 		this.#updateDisabledHooks();
@@ -800,7 +800,7 @@ class Compiler {
 
 	async #optimizeTree() {
 		await this.compilation.hooks.optimizeTree.promise(
-			this.compilation.__internal__getChunks(),
+			this.compilation.chunks,
 			this.compilation.modules
 		);
 		this.#updateDisabledHooks();
