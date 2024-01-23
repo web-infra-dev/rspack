@@ -55,8 +55,9 @@ import {
 } from "./util/fake";
 import { NormalizedJsModule, normalizeJsModule } from "./util/normalization";
 import MergeCaller from "./util/MergeCaller";
+import { memoizeValue } from "./util/memoize";
 import { Chunk } from "./Chunk";
-import { CodeGenerationResult, Module } from "./Module";
+import { CodeGenerationResult } from "./Module";
 import { ChunkGraph } from "./ChunkGraph";
 
 export type AssetInfo = Partial<JsAssetInfo> & Record<string, any>;
@@ -722,12 +723,16 @@ export class Compilation {
 	);
 
 	get modules() {
-		return this.__internal__getModules().map(item => normalizeJsModule(item));
+		return memoizeValue(() => {
+			return this.__internal__getModules().map(item => normalizeJsModule(item));
+		});
 	}
 
 	// FIXME: This is not aligned with Webpack.
 	get chunks() {
-		return this.__internal__getChunks();
+		return memoizeValue(() => {
+			return this.__internal__getChunks();
+		});
 	}
 
 	/**
