@@ -2956,8 +2956,6 @@ dependencies = [
  "linked-hash-map",
  "rspack_core",
  "rspack_error",
- "rustc-hash",
- "tokio",
 ]
 
 [[package]]
