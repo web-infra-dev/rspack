@@ -377,12 +377,12 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			}
 			if (!context.cachedGetErrors) {
 				context.cachedGetErrors = _compilation => {
-					return context._inner.getErrors();
+					return context.getInner(compilation).getErrors();
 				};
 			}
 			if (!context.cachedGetWarnings) {
 				context.cachedGetWarnings = _compilation => {
-					const warnings = context._inner.getWarnings();
+					const warnings = context.getInner(compilation).getWarnings();
 
 					return compilation.hooks.processWarnings.call(
 						warnings as any
@@ -447,9 +447,9 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 				}
 				object.logging = {};
 				const compilationLogging = compilation.logging;
-				for (const { name, ...rest } of context._inner.getLogging(
-					acceptedTypes
-				)) {
+				for (const { name, ...rest } of context
+					.getInner(compilation)
+					.getLogging(acceptedTypes)) {
 					const value = compilationLogging.get(name);
 					const entry = {
 						type: rest.type,
@@ -528,8 +528,8 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 				}
 			}
 		},
-		hash: (object, _compilation, context: KnownStatsFactoryContext) => {
-			object.hash = context._inner.getHash() || undefined;
+		hash: (object, compilation, context: KnownStatsFactoryContext) => {
+			object.hash = context.getInner(compilation).getHash() || undefined;
 		},
 		version: object => {
 			const { version, webpackVersion } = require("../../package.json");
@@ -555,12 +555,14 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 		},
 		assets: (
 			object,
-			_compilation,
+			compilation,
 			context: KnownStatsFactoryContext,
 			options,
 			factory
 		) => {
-			const { assets, assetsByChunkName } = context._inner.getAssets();
+			const { assets, assetsByChunkName } = context
+				.getInner(compilation)
+				.getAssets();
 			object.assetsByChunkName = assetsByChunkName.reduce<
 				Record<string, string[]>
 			>((acc, cur) => {
@@ -584,20 +586,22 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 		},
 		chunks: (
 			object,
-			_compilation,
+			compilation,
 			context: KnownStatsFactoryContext,
 			options: StatsOptions,
 			factory
 		) => {
 			const { type } = context;
-			const chunks = context._inner.getChunks(
-				options.chunkModules!,
-				options.chunkRelations!,
-				options.reasons!,
-				options.moduleAssets!,
-				options.nestedModules!,
-				options.source!
-			);
+			const chunks = context
+				.getInner(compilation)
+				.getChunks(
+					options.chunkModules!,
+					options.chunkRelations!,
+					options.reasons!,
+					options.moduleAssets!,
+					options.nestedModules!,
+					options.source!
+				);
 			object.chunks = factory.create(`${type}.chunks`, chunks, context);
 		},
 		modules: (
@@ -608,12 +612,14 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			factory
 		) => {
 			const { type } = context;
-			const array = context._inner.getModules(
-				options.reasons!,
-				options.moduleAssets!,
-				options.nestedModules!,
-				options.source!
-			);
+			const array = context
+				.getInner(compilation)
+				.getModules(
+					options.reasons!,
+					options.moduleAssets!,
+					options.nestedModules!,
+					options.source!
+				);
 			const groupedModules = factory.create(`${type}.modules`, array, context);
 			const limited = spaceLimited(groupedModules, options.modulesSpace!);
 			object.modules = limited.children;
@@ -621,13 +627,13 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 		},
 		entrypoints: (
 			object,
-			_compilation,
+			compilation,
 			context: KnownStatsFactoryContext,
 			_data,
 			_factory
 		) => {
 			// const { type } = context;
-			const array = context._inner.getEntrypoints();
+			const array = context.getInner(compilation).getEntrypoints();
 
 			// object.entrypoints = factory.create(
 			// 	`${type}.entrypoints`,
@@ -645,13 +651,15 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 		},
 		chunkGroups: (
 			object,
-			_compilation,
+			compilation,
 			context: KnownStatsFactoryContext,
 			_options,
 			factory
 		) => {
 			const { type } = context;
-			const namedChunkGroups = context._inner.getNamedChunkGroups();
+			const namedChunkGroups = context
+				.getInner(compilation)
+				.getNamedChunkGroups();
 			// object.namedChunkGroups = factory.create(
 			// 	`${type}.namedChunkGroups`,
 			// 	namedChunkGroups,

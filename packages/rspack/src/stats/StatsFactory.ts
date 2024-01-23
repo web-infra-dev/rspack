@@ -23,7 +23,7 @@ export type KnownStatsFactoryContext = {
 	// runtime?: RuntimeSpec | undefined;
 	cachedGetErrors?: ((arg0: Compilation) => JsStatsError[]) | undefined;
 	cachedGetWarnings?: ((arg0: Compilation) => JsStatsWarning[]) | undefined;
-	_inner: JsStats;
+	getInner: (compilation: Compilation) => JsStats;
 };
 
 export type StatsFactoryContext = KnownStatsFactoryContext &

@@ -24,10 +24,22 @@ export type {
 export class Stats {
 	#inner: binding.JsStats;
 	compilation: Compilation;
+	#innerMap: WeakMap<Compilation, binding.JsStats>;
 
 	constructor(compilation: Compilation) {
 		this.#inner = compilation.__internal_getInner().getStats();
 		this.compilation = compilation;
+		this.#innerMap = new WeakMap([[this.compilation, this.#inner]]);
+	}
+
+	// use correct JsStats for child compilation
+	#getInnerByCompilation(compilation: Compilation) {
+		if (this.#innerMap.has(compilation)) {
+			return this.#innerMap.get(compilation);
+		}
+		const inner = compilation.__internal_getInner().getStats();
+		this.#innerMap.set(compilation, inner);
+		return inner;
 	}
 
 	get hash() {
@@ -57,7 +69,7 @@ export class Stats {
 		try {
 			stats = statsFactory.create("compilation", this.compilation, {
 				compilation: this.compilation,
-				_inner: this.#inner
+				getInner: this.#getInnerByCompilation.bind(this)
 			});
 		} catch (e) {
 			console.warn(
@@ -84,7 +96,7 @@ export class Stats {
 		try {
 			stats = statsFactory.create("compilation", this.compilation, {
 				compilation: this.compilation,
-				_inner: this.#inner
+				getInner: this.#getInnerByCompilation.bind(this)
 			});
 		} catch (e) {
 			console.warn(

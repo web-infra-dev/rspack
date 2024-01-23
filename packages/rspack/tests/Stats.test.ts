@@ -370,7 +370,8 @@ describe("Stats", () => {
 				compiler.hooks.done.tap("test plugin", stats => {
 					statsJson = stats.toJson({
 						all: false,
-						children: true
+						children: true,
+						assets: true
 					});
 				});
 			}
@@ -383,8 +384,59 @@ describe("Stats", () => {
 
 		expect(statsJson).toMatchInlineSnapshot(`
 		{
+		  "assets": [
+		    {
+		      "chunkNames": [],
+		      "emitted": true,
+		      "info": {
+		        "development": false,
+		        "hotModuleReplacement": false,
+		      },
+		      "name": "TestChild.js",
+		      "size": 739,
+		      "type": "asset",
+		    },
+		    {
+		      "chunkNames": [
+		        "main",
+		      ],
+		      "emitted": true,
+		      "info": {
+		        "development": false,
+		        "hotModuleReplacement": false,
+		      },
+		      "name": "main.js",
+		      "size": 212,
+		      "type": "asset",
+		    },
+		  ],
+		  "assetsByChunkName": {
+		    "main": [
+		      "main.js",
+		    ],
+		  },
 		  "children": [
 		    {
+		      "assets": [
+		        {
+		          "chunkNames": [
+		            "TestChild",
+		          ],
+		          "emitted": true,
+		          "info": {
+		            "development": false,
+		            "hotModuleReplacement": false,
+		          },
+		          "name": "TestChild.js",
+		          "size": 739,
+		          "type": "asset",
+		        },
+		      ],
+		      "assetsByChunkName": {
+		        "TestChild": [
+		          "TestChild.js",
+		        ],
+		      },
 		      "children": [],
 		      "name": "TestChild",
 		    },
