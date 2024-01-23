@@ -16,7 +16,13 @@
       "excludePackageNames": ["actions/upload-artifact", "actions/download-artifact"]
     },
     {
-      "groupName": "cargo",
+      "groupName": "upload-download-actions",
+      "matchManagers": ["github-actions"],
+      "matchPackageNames": ["actions/upload-artifact", "actions/download-artifact"],
+      "enabled": false
+    },
+    {
+      "groupName": "crates",
       "matchManagers": ["cargo"],
       "schedule": ["on wednesday"],
       "assignees": ["@Boshen"],
