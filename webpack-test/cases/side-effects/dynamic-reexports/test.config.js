@@ -5,9 +5,7 @@ const config = {
 			newTreeshaking: true,
 		},
 	},
-	builtins: {
-		treeShaking: false,
-	},
+	
 	optimization: {
 		sideEffects: true,
 	},
