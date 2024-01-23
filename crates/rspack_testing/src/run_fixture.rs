@@ -126,7 +126,6 @@ pub async fn test_fixture_share(
     .iter()
     .filter_map(|(filename, asset)| {
       if stats_filter(filename) {
-        println!("{:?}", settings.description());
         let content = asset
           .get_source()
           .map(|x| x.source().to_string())

@@ -1989,7 +1989,7 @@ impl Compilation {
       .map(|(identifier, module)| {
         let source = module.generate_with_custom(self);
         let mut hasher = RspackHash::from(&self.options.output);
-        module.identifier().hash(&mut hasher);
+        module.identifier().as_str().hash(&mut hasher);
         source.source().hash(&mut hasher);
         (
           *identifier,
