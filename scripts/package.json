@@ -11,7 +11,7 @@
     "typecheck": "pnpm tsc --noEmit"
   },
   "dependencies": {
-    "@actions/core": "1.10.0",
+    "@actions/core": "1.10.1",
     "@iarna/toml": "2.2.5",
     "@pnpm/find-workspace-packages": "6.0.8",
     "@pnpm/logger": "5.0.0",
