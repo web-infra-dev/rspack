@@ -643,7 +643,8 @@ class Compiler {
 			succeedModule: this.compilation.hooks.succeedModule,
 			stillValidModule: this.compilation.hooks.stillValidModule,
 			buildModule: this.compilation.hooks.buildModule,
-			thisCompilation: this.hooks.thisCompilation,
+			// various of hooks are called inside `#newCompilation`, we shouldn't prevent `#newCompilation` from calling even when `thisCompilation` is not tapped.
+			thisCompilation: undefined,
 			optimizeChunkModules: this.compilation.hooks.optimizeChunkModules,
 			contextModuleFactoryBeforeResolve:
 				this.compilation.contextModuleFactory?.hooks.beforeResolve,
