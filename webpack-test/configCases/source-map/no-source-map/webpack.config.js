@@ -14,7 +14,7 @@ const plugins = [
 	}
 ];
 
-/** @type {import("@rspack/core").Configuration} */
+/** @type {import("../../../../").Configuration} */
 module.exports = [
 	{
 		mode: "development",

@@ -1,3 +1,3 @@
 const { FilteredStatus } = require("../../../lib/util/filterUtil")
 
-module.exports = () => {return [FilteredStatus.PARTIAL_PASS, "https://github.com/web-infra-dev/rspack/issues/3180, https://github.com/web-infra-dev/rspack/issues/4397"]}
+module.exports = () => {return [FilteredStatus.PARTIAL_PASS, "https://github.com/web-infra-dev/rspack/issues/4397", "https://github.com/web-infra-dev/rspack/issues/5393"]}
