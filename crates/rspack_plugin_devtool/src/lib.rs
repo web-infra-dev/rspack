@@ -7,7 +7,7 @@ use std::{hash::Hash, path::Path};
 
 use dashmap::DashMap;
 use derivative::Derivative;
-use futures::future::BoxFuture;
+use futures::future::{join_all, BoxFuture};
 use once_cell::sync::Lazy;
 use pathdiff::diff_paths;
 use rayon::prelude::*;
@@ -222,13 +222,41 @@ impl Plugin for SourceMapDevToolPlugin {
     let mut used_names_set = HashSet::<String>::default();
     let mut maps: Vec<(String, Vec<u8>, Option<Vec<u8>>)> = Vec::with_capacity(assets.len());
 
-    for (file, asset, source_map) in assets {
-      let source_map_buffer = match source_map {
-        Some(mut source_map) => {
-          source_map.set_file(Some(file.clone()));
-
-          let sources = source_map.sources_mut();
-          for source in sources {
+    let mut default_filenames = match &self.module_filename_template {
+      ModuleFilenameTemplate::String(s) => assets
+        .iter()
+        .filter_map(|(_file, _asset, source_map)| source_map.as_ref())
+        .flat_map(|source_map| source_map.sources())
+        .collect::<Vec<_>>()
+        .par_iter()
+        .map(|source| {
+          let module_or_source = if let Some(stripped) = source.strip_prefix("webpack://") {
+            let source = make_paths_absolute(compilation.options.context.as_str(), stripped);
+            let identifier = ModuleIdentifier::from(source.clone());
+            match compilation.module_graph.module_by_identifier(&identifier) {
+              Some(module) => ModuleOrSource::Module(module.identifier()),
+              None => ModuleOrSource::Source(source),
+            }
+          } else {
+            ModuleOrSource::Source(source.to_string())
+          };
+          Some((
+            self.create_filename_of_string_template(
+              &module_or_source,
+              compilation,
+              s,
+              output_options,
+            ),
+            module_or_source,
+          ))
+        })
+        .collect::<Vec<_>>(),
+      ModuleFilenameTemplate::Fn(f) => {
+        let features = assets
+          .iter()
+          .filter_map(|(_file, _asset, source_map)| source_map.as_ref())
+          .flat_map(|source_map| source_map.sources())
+          .map(|source| async {
             let module_or_source = if let Some(stripped) = source.strip_prefix("webpack://") {
               let source = make_paths_absolute(compilation.options.context.as_str(), stripped);
               let identifier = ModuleIdentifier::from(source.clone());
@@ -240,19 +268,35 @@ impl Plugin for SourceMapDevToolPlugin {
               ModuleOrSource::Source(source.to_string())
             };
 
-            let mut source_name = match &self.module_filename_template {
-              ModuleFilenameTemplate::String(s) => self.create_filename_of_string_template(
-                &module_or_source,
-                compilation,
-                s,
-                output_options,
-              ),
-              ModuleFilenameTemplate::Fn(f) => {
-                self
-                  .create_filename_of_fn_template(&module_or_source, compilation, f, output_options)
-                  .await?
-              }
-            };
+            let filename = self
+              .create_filename_of_fn_template(&module_or_source, compilation, f, output_options)
+              .await;
+
+            match filename {
+              Ok(filename) => Ok(Some((filename, module_or_source))),
+              Err(err) => Err(err),
+            }
+          })
+          .collect::<Vec<_>>();
+        join_all(features)
+          .await
+          .into_iter()
+          .collect::<Result<Vec<_>>>()?
+      }
+    };
+    let mut default_filenames_index = 0;
+
+    for (file, asset, source_map) in assets {
+      let source_map_buffer = match source_map {
+        Some(mut source_map) => {
+          source_map.set_file(Some(file.clone()));
+
+          let sources = source_map.sources_mut();
+          for source in sources {
+            let (source_name, module_or_source) = default_filenames[default_filenames_index]
+              .take()
+              .expect("expected a filename at the given index but found None");
+            default_filenames_index += 1;
 
             let mut has_name = used_names_set.contains(&source_name);
             if !has_name {
@@ -262,7 +306,7 @@ impl Plugin for SourceMapDevToolPlugin {
             }
 
             // Try the fallback name first
-            source_name = match &self.fallback_module_filename_template {
+            let mut source_name = match &self.fallback_module_filename_template {
               ModuleFilenameTemplate::String(s) => self.create_filename_of_string_template(
                 &module_or_source,
                 compilation,
