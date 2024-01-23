@@ -2,7 +2,7 @@
 module.exports = {
 	experiments: {
 		rspackFuture: {
-			newTreeshaking: true,
+			newTreeshaking: true
 		}
 	},
 	optimization: {

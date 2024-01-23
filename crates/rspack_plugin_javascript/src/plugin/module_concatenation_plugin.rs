@@ -99,7 +99,7 @@ impl ConcatConfiguration {
   }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct ModuleConcatenationPlugin;
 
 impl ModuleConcatenationPlugin {
