@@ -1,0 +1,17 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "ignorePaths": [
+    "**/tests/**",
+    "**/fixtures/**",
+    "webpack-examples/**",
+    "webpack-test/**"
+  ],
+  "packageRules": [
+    {
+      "groupName": "github-actions",
+      "matchManagers": ["github-actions"],
+      "schedule": ["on wednesday"],
+      "assignees": ["@Boshen"]
+    }
+  ]
+}
