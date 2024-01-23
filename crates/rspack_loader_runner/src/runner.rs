@@ -230,7 +230,13 @@ async fn process_resource<C: Send>(loader_context: &mut LoaderContext<'_, C>) ->
     }
   }
 
-  if loader_context.content.is_none() {
+  if loader_context.content.is_none()
+    && !loader_context
+      .__resource_data
+      .resource_path
+      .to_string_lossy()
+      .is_empty()
+  {
     let result = tokio::fs::read(&loader_context.__resource_data.resource_path)
       .await
       .map_err(|e| {
