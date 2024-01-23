@@ -5,8 +5,6 @@ const config = {
 			newTreeshaking: true,
 		},
 	},
-	builtins: {
-		treeShaking: false,
-	},
+	
 };
 module.exports = config;
