@@ -16,6 +16,6 @@ owo-colors        = "3.5.0"
 rspack_identifier = { path = "../rspack_identifier" }
 swc_core          = { workspace = true, features = ["common"] }
 termcolor         = "1"
-textwrap          = "0.15.2"
+textwrap          = "0.16.0"
 thiserror         = "1"
-unicode-width     = "0.1.10"
+unicode-width     = "0.1.11"
