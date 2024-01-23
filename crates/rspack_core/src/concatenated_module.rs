@@ -31,9 +31,9 @@ use swc_node_comments::SwcComments;
 use crate::{
   filter_runtime, impl_source_map_config, merge_runtime_condition,
   merge_runtime_condition_non_false, property_access, property_name,
-  reserved_names::RESERVED_NAMES, returning_function, subtract_runtime_condition,
-  AsyncDependenciesBlockId, BoxDependency, BuildContext, BuildInfo, BuildMeta,
-  BuildMetaDefaultObject, BuildMetaExportsType, BuildResult, ChunkInitFragments,
+  reserved_names::RESERVED_NAMES, returning_function, runtime_condition_expression,
+  subtract_runtime_condition, AsyncDependenciesBlockId, BoxDependency, BuildContext, BuildInfo,
+  BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, BuildResult, ChunkInitFragments,
   CodeGenerationResult, Compilation, ConcatenatedModuleIdent, ConcatenationScope, ConnectionId,
   ConnectionState, Context, DependenciesBlock, DependencyId, DependencyTemplate, ErrorSpan,
   ExportInfoId, ExportInfoProvided, ExportsArgument, ExportsType, IdentCollector, LibIdentOptions,
@@ -326,6 +326,18 @@ pub enum ModuleInfoOrReference {
     module_info_id: ModuleIdentifier,
     runtime_condition: RuntimeCondition,
   },
+}
+
+impl ModuleInfoOrReference {
+  pub fn runtime_condition(&self) -> Option<&RuntimeCondition> {
+    match self {
+      ModuleInfoOrReference::External(info) => Some(&info.runtime_condition),
+      ModuleInfoOrReference::Concatenated(info) => None,
+      ModuleInfoOrReference::Reference {
+        runtime_condition, ..
+      } => Some(runtime_condition),
+    }
+  }
 }
 
 impl ModuleInfo {
@@ -1051,7 +1063,7 @@ impl Module for ConcatenatedModule {
     // Evaluate modules in order
     for raw_info in modules_with_info {
       let name;
-      let is_conditional = false;
+      let mut is_conditional = false;
       let info = match raw_info {
         ModuleInfoOrReference::Reference {
           module_info_id,
@@ -1102,43 +1114,35 @@ impl Module for ConcatenatedModule {
           runtime_requirements = runtime_requirements.union(info.runtime_requirements);
           name = info.namespace_object_name.clone();
         }
-        ModuleInfo::External(_info) => {
-          // result.push_str(&format!(
-          //   "\n// EXTERNAL MODULE: {}\n",
-          //   info.module.readable_identifier(request_shortener)
-          // ));
-          //
-          // runtime_requirements.push(RuntimeGlobals::Require);
-          //
-          // let runtime_condition = match raw_info {
-          //   ExternalModuleInfo {
-          //     runtime_condition, ..
-          //   } => runtime_condition,
-          //   ReferenceToModuleInfo {
-          //     runtime_condition, ..
-          //   } => runtime_condition,
-          //   _ => Default::default(),
-          // };
-          //
-          // let condition = runtime_template.runtime_condition_expression(
-          //   chunk_graph,
-          //   &runtime_condition,
-          //   runtime,
-          //   &mut runtime_requirements,
-          // );
-          //
-          // if condition != "true" {
-          //   is_conditional = true;
-          //   result.push_str(&format!("if ({}) {{\n", condition));
-          // }
-          //
-          // result.push_str(&format!(
+        ModuleInfo::External(info) => {
+          result.add(RawSource::from(format!(
+            "\n// EXTERNAL MODULE: {}\n",
+            module_readable_identifier
+          )));
+
+          runtime_requirements.insert(RuntimeGlobals::REQUIRE);
+
+          let runtime_condition = &info.runtime_condition;
+
+          let condition = runtime_condition_expression(
+            &compilation.chunk_graph,
+            Some(runtime_condition),
+            runtime,
+            &mut runtime_requirements,
+          );
+
+          if condition != "true" {
+            is_conditional = true;
+            result.add(RawSource::from(format!("if ({}) {{\n", condition)));
+          }
+
+          // result.add(RawSource::from(format!(
           //   "let {} = {}({});",
           //   info.name,
-          //   RuntimeGlobals::Require,
+          //   RuntimeGlobals::REQUIRE,
           //   serde_json::to_string(chunk_graph.get_module_id(&info.module)).unwrap()
-          // ));
-          //
+          // )));
+
           // name = info.name.clone();
           todo!()
         }

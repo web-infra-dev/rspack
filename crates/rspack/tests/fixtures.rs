@@ -44,7 +44,7 @@ fn samples(fixture_path: PathBuf) {
           );
         }
         if options.optimization.concatenate_modules {
-          plugins.push(Box::new(ModuleConcatenationPlugin));
+          plugins.push(Box::new(ModuleConcatenationPlugin::default()));
         }
       },
     ),
