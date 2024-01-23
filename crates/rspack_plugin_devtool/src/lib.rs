@@ -7,7 +7,7 @@ use std::{hash::Hash, path::Path};
 
 use dashmap::DashMap;
 use derivative::Derivative;
-use futures::future::{join_all, BoxFuture};
+use futures::future::BoxFuture;
 use once_cell::sync::Lazy;
 use pathdiff::diff_paths;
 use rayon::prelude::*;
@@ -222,43 +222,6 @@ impl Plugin for SourceMapDevToolPlugin {
     let mut used_names_set = HashSet::<String>::default();
     let mut maps: Vec<(String, Vec<u8>, Option<Vec<u8>>)> = Vec::with_capacity(assets.len());
 
-    let features = assets
-      .iter()
-      .filter_map(|(_file, _asset, source_map)| source_map.as_ref())
-      .flat_map(|source_map| source_map.sources())
-      .map(|source| async {
-        let module_or_source = if let Some(stripped) = source.strip_prefix("webpack://") {
-          let source = make_paths_absolute(compilation.options.context.as_str(), stripped);
-          let identifier = ModuleIdentifier::from(source.clone());
-          match compilation.module_graph.module_by_identifier(&identifier) {
-            Some(module) => ModuleOrSource::Module(module.identifier()),
-            None => ModuleOrSource::Source(source),
-          }
-        } else {
-          ModuleOrSource::Source(source.to_string())
-        };
-
-        let filename = self
-          .create_filename(
-            &module_or_source,
-            compilation,
-            &self.module_filename_template,
-            output_options,
-          )
-          .await;
-
-        match filename {
-          Ok(filename) => Ok(Some((filename, module_or_source))),
-          Err(err) => Err(err),
-        }
-      })
-      .collect::<Vec<_>>();
-    let mut default_filenames = join_all(features)
-      .await
-      .into_iter()
-      .collect::<Result<Vec<_>>>()?;
-    let mut default_filenames_index = 0;
-
     for (file, asset, source_map) in assets {
       let source_map_buffer = match source_map {
         Some(mut source_map) => {
@@ -266,10 +229,30 @@ impl Plugin for SourceMapDevToolPlugin {
 
           let sources = source_map.sources_mut();
           for source in sources {
-            let (source_name, module_or_source) = default_filenames[default_filenames_index]
-              .take()
-              .expect("expected a filename at the given index but found None");
-            default_filenames_index += 1;
+            let module_or_source = if let Some(stripped) = source.strip_prefix("webpack://") {
+              let source = make_paths_absolute(compilation.options.context.as_str(), stripped);
+              let identifier = ModuleIdentifier::from(source.clone());
+              match compilation.module_graph.module_by_identifier(&identifier) {
+                Some(module) => ModuleOrSource::Module(module.identifier()),
+                None => ModuleOrSource::Source(source),
+              }
+            } else {
+              ModuleOrSource::Source(source.to_string())
+            };
+
+            let mut source_name = match &self.module_filename_template {
+              ModuleFilenameTemplate::String(s) => self.create_filename_of_string_template(
+                &module_or_source,
+                compilation,
+                s,
+                output_options,
+              ),
+              ModuleFilenameTemplate::Fn(f) => {
+                self
+                  .create_filename_of_fn_template(&module_or_source, compilation, f, output_options)
+                  .await?
+              }
+            };
 
             let mut has_name = used_names_set.contains(&source_name);
             if !has_name {
@@ -279,14 +262,20 @@ impl Plugin for SourceMapDevToolPlugin {
             }
 
             // Try the fallback name first
-            let mut source_name = self
-              .create_filename(
+            source_name = match &self.fallback_module_filename_template {
+              ModuleFilenameTemplate::String(s) => self.create_filename_of_string_template(
                 &module_or_source,
                 compilation,
-                &self.fallback_module_filename_template,
+                s,
                 output_options,
-              )
-              .await?;
+              ),
+              ModuleFilenameTemplate::Fn(f) => {
+                self
+                  .create_filename_of_fn_template(&module_or_source, compilation, f, output_options)
+                  .await?
+              }
+            };
+
             has_name = used_names_set.contains(&source_name);
             if !has_name {
               used_names_set.insert(source_name.clone());
@@ -470,11 +459,114 @@ fn get_hash(text: &str, output_options: &OutputOptions) -> String {
 }
 
 impl SourceMapDevToolPlugin {
-  async fn create_filename(
+  fn create_module_filename_template_fn_ctx(
     &self,
     module_or_source: &ModuleOrSource,
     compilation: &Compilation,
-    module_filename_template: &ModuleFilenameTemplate,
+    output_options: &OutputOptions,
+  ) -> ModuleFilenameTemplateFnCtx {
+    let Compilation {
+      chunk_graph,
+      module_graph,
+      options,
+      ..
+    } = compilation;
+    let context = &options.context;
+
+    match module_or_source {
+      ModuleOrSource::Module(module_identifier) => {
+        let module = module_graph
+          .module_by_identifier(module_identifier)
+          .expect("failed to find a module for the given identifier");
+
+        let short_identifier = module.readable_identifier(context).to_string();
+        let identifier = contextify(context, module_identifier);
+        let module_id = chunk_graph
+          .get_module_id(*module_identifier)
+          .clone()
+          .unwrap_or("".to_string());
+        let absolute_resource_path = "".to_string();
+
+        let hash = get_hash(&identifier, output_options);
+
+        let resource = short_identifier
+          .clone()
+          .split('!')
+          .last()
+          .unwrap_or("")
+          .to_string();
+
+        let loaders = get_before(&short_identifier, "!");
+        let all_loaders = get_before(&identifier, "!");
+        let query = get_after(&resource, "?");
+
+        let q = query.len();
+        let resource_path = if q == 0 {
+          resource.clone()
+        } else {
+          resource[..resource.len().saturating_sub(q)].to_string()
+        };
+
+        ModuleFilenameTemplateFnCtx {
+          short_identifier,
+          identifier,
+          module_id,
+          absolute_resource_path,
+          hash,
+          resource,
+          loaders,
+          all_loaders,
+          query,
+          resource_path,
+          namespace: self.namespace.clone(),
+        }
+      }
+      ModuleOrSource::Source(source) => {
+        let short_identifier = contextify(context, source);
+        let identifier = short_identifier.clone();
+
+        let hash = get_hash(&identifier, output_options);
+
+        let resource = short_identifier
+          .clone()
+          .split('!')
+          .last()
+          .unwrap_or("")
+          .to_string();
+
+        let loaders = get_before(&short_identifier, "!");
+        let all_loaders = get_before(&identifier, "!");
+        let query = get_after(&resource, "?");
+
+        let q = query.len();
+        let resource_path = if q == 0 {
+          resource.clone()
+        } else {
+          resource[..resource.len().saturating_sub(q)].to_string()
+        };
+
+        ModuleFilenameTemplateFnCtx {
+          short_identifier,
+          identifier,
+          module_id: "".to_string(),
+          absolute_resource_path: source.split('!').last().unwrap_or("").to_string(),
+          hash,
+          resource,
+          loaders,
+          all_loaders,
+          query,
+          resource_path,
+          namespace: self.namespace.clone(),
+        }
+      }
+    }
+  }
+
+  async fn create_filename_of_fn_template(
+    &self,
+    module_or_source: &ModuleOrSource,
+    compilation: &Compilation,
+    module_filename_template: &ModuleFilenameTemplateFn,
     output_options: &OutputOptions,
   ) -> Result<String> {
     let Compilation {
@@ -573,57 +665,65 @@ impl SourceMapDevToolPlugin {
       }
     };
 
-    return match module_filename_template {
-      ModuleFilenameTemplate::Fn(f) => f(ctx).await,
-      ModuleFilenameTemplate::String(s) => {
-        let s = REGEXP_ALL_LOADERS_RESOURCE.replace_all(s, "[identifier]");
-        let s = REGEXP_LOADERS_RESOURCE.replace_all(&s, "[short-identifier]");
-        Ok(SQUARE_BRACKET_TAG_REGEXP
-          .replace_all(&s, |caps: &Captures| {
-            let full_match = caps
-              .get(0)
-              .expect("the SQUARE_BRACKET_TAG_REGEXP must match the whole tag, but it did not match anything.")
-              .as_str();
-            let content = caps
-              .get(1)
-              .expect("the SQUARE_BRACKET_TAG_REGEXP must match the whole tag, but it did not match anything.")
-              .as_str();
+    module_filename_template(ctx).await
+  }
 
-            if content.len() + 2 == full_match.len() {
-              match content.to_lowercase().as_str() {
-                "identifier" => Cow::from(&ctx.identifier),
-                "short-identifier" => Cow::from(&ctx.short_identifier),
-                "resource" => Cow::from(&ctx.resource),
+  fn create_filename_of_string_template(
+    &self,
+    module_or_source: &ModuleOrSource,
+    compilation: &Compilation,
+    module_filename_template: &str,
+    output_options: &OutputOptions,
+  ) -> String {
+    let ctx =
+      self.create_module_filename_template_fn_ctx(module_or_source, compilation, output_options);
 
-                "resource-path" |  "resourcepath" => Cow::from(&ctx.resource_path),
+    let s = REGEXP_ALL_LOADERS_RESOURCE.replace_all(module_filename_template, "[identifier]");
+    let s = REGEXP_LOADERS_RESOURCE.replace_all(&s, "[short-identifier]");
+    SQUARE_BRACKET_TAG_REGEXP
+      .replace_all(&s, |caps: &Captures| {
+        let full_match = caps
+          .get(0)
+          .expect("the SQUARE_BRACKET_TAG_REGEXP must match the whole tag, but it did not match anything.")
+          .as_str();
+        let content = caps
+          .get(1)
+          .expect("the SQUARE_BRACKET_TAG_REGEXP must match the whole tag, but it did not match anything.")
+          .as_str();
 
-                "absolute-resource-path" |
-                "abs-resource-path" |
-                "absoluteresource-path" |
-                "absresource-path" |
-                "absolute-resourcepath" |
-                "abs-resourcepath" |
-                "absoluteresourcepath" |
-                "absresourcepath" => Cow::from(&ctx.absolute_resource_path),
+        if content.len() + 2 == full_match.len() {
+          match content.to_lowercase().as_str() {
+            "identifier" => Cow::from(&ctx.identifier),
+            "short-identifier" => Cow::from(&ctx.short_identifier),
+            "resource" => Cow::from(&ctx.resource),
 
-                "all-loaders" | "allloaders" => Cow::from(&ctx.all_loaders),
+            "resource-path" |  "resourcepath" => Cow::from(&ctx.resource_path),
 
-                "query" => Cow::from(&ctx.query),
-                "id" => Cow::from(&ctx.module_id),
-                "hash" => Cow::from(&ctx.hash),
-                "namespace" => Cow::from(&self.namespace),
+            "absolute-resource-path" |
+            "abs-resource-path" |
+            "absoluteresource-path" |
+            "absresource-path" |
+            "absolute-resourcepath" |
+            "abs-resourcepath" |
+            "absoluteresourcepath" |
+            "absresourcepath" => Cow::from(&ctx.absolute_resource_path),
 
-                _ => Cow::from(full_match.to_string())
-              }
-            } else if full_match.starts_with("[\\") && full_match.ends_with("\\]") {
-              Cow::from(format!("[{}]", &full_match[2..full_match.len() - 2]))
-            } else {
-              Cow::from(full_match.to_string())
-            }
-          })
-          .to_string())
-      }
-    };
+            "all-loaders" | "allloaders" => Cow::from(&ctx.all_loaders),
+
+            "query" => Cow::from(&ctx.query),
+            "id" => Cow::from(&ctx.module_id),
+            "hash" => Cow::from(&ctx.hash),
+            "namespace" => Cow::from(&self.namespace),
+
+            _ => Cow::from(full_match.to_string())
+          }
+        } else if full_match.starts_with("[\\") && full_match.ends_with("\\]") {
+          Cow::from(format!("[{}]", &full_match[2..full_match.len() - 2]))
+        } else {
+          Cow::from(full_match.to_string())
+        }
+      })
+      .to_string()
   }
 }
 
