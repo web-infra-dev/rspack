@@ -1,4 +1,4 @@
-use swc_core::ecma::ast::{BinExpr, CallExpr, Ident, IfStmt, MemberExpr, NewExpr, UnaryExpr};
+use swc_core::ecma::ast::{BinExpr, CallExpr, Ident, IfStmt, MemberExpr, NewExpr, Stmt, UnaryExpr};
 use swc_core::ecma::ast::{VarDecl, VarDeclarator};
 
 use crate::utils::eval::BasicEvaluatedExpression;
@@ -7,6 +7,14 @@ use crate::visitors::JavascriptParser;
 type KeepRight = bool;
 
 pub trait JavascriptParserPlugin {
+  /// Return:
+  /// - `Some(true)` signifies the termination of the current
+  /// statement's visit during the pre-walk phase.
+  /// - Other return values imply that the walk operation ought to continue
+  fn pre_statement(&self, _parser: &mut JavascriptParser, _stmt: &Stmt) -> Option<bool> {
+    None
+  }
+
   fn evaluate_typeof(
     &self,
     _parser: &mut JavascriptParser,
@@ -73,7 +81,7 @@ pub trait JavascriptParserPlugin {
     None
   }
 
-  fn identifier(&self, _parser: &mut JavascriptParser, _expr: &Ident) -> Option<bool> {
+  fn identifier(&self, _parser: &mut JavascriptParser, _ident: &Ident) -> Option<bool> {
     None
   }
 }
