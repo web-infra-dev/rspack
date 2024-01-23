@@ -1,5 +1,6 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "enabledManagers": ["github-actions", "cargo"],
   "ignorePaths": [
     "**/tests/**",
     "**/fixtures/**",
@@ -12,6 +13,13 @@
       "matchManagers": ["github-actions"],
       "schedule": ["on wednesday"],
       "assignees": ["@Boshen"]
+    },
+    {
+      "groupName": "cargo",
+      "matchManagers": ["github-actions"],
+      "schedule": ["on wednesday"],
+      "assignees": ["@Boshen"],
+      "excludePackagePatterns": ["swc"]
     }
   ]
 }
