@@ -7,6 +7,7 @@ use std::{hash::Hash, path::Path};
 
 use dashmap::DashMap;
 use derivative::Derivative;
+use futures::future::{join_all, BoxFuture};
 use once_cell::sync::Lazy;
 use pathdiff::diff_paths;
 use rayon::prelude::*;
@@ -58,7 +59,8 @@ pub struct ModuleFilenameTemplateFnCtx {
   pub namespace: String,
 }
 
-type ModuleFilenameTemplateFn = Box<dyn Fn(ModuleFilenameTemplateFnCtx) -> String + Sync + Send>;
+type ModuleFilenameTemplateFn =
+  Box<dyn Fn(ModuleFilenameTemplateFnCtx) -> BoxFuture<'static, Result<String>> + Sync + Send>;
 
 pub enum ModuleFilenameTemplate {
   String(String),
@@ -220,13 +222,11 @@ impl Plugin for SourceMapDevToolPlugin {
     let mut used_names_set = HashSet::<String>::default();
     let mut maps: Vec<(String, Vec<u8>, Option<Vec<u8>>)> = Vec::with_capacity(assets.len());
 
-    let mut default_filenames = assets
+    let features = assets
       .iter()
       .filter_map(|(_file, _asset, source_map)| source_map.as_ref())
       .flat_map(|source_map| source_map.sources())
-      .collect::<Vec<_>>()
-      .par_iter()
-      .map(|source| {
+      .map(|source| async {
         let module_or_source = if let Some(stripped) = source.strip_prefix("webpack://") {
           let source = make_paths_absolute(compilation.options.context.as_str(), stripped);
           let identifier = ModuleIdentifier::from(source.clone());
@@ -238,17 +238,25 @@ impl Plugin for SourceMapDevToolPlugin {
           ModuleOrSource::Source(source.to_string())
         };
 
-        Some((
-          self.create_filename(
+        let filename = self
+          .create_filename(
             &module_or_source,
             compilation,
             &self.module_filename_template,
             output_options,
-          ),
-          module_or_source,
-        ))
+          )
+          .await;
+
+        match filename {
+          Ok(filename) => Ok(Some((filename, module_or_source))),
+          Err(err) => Err(err),
+        }
       })
       .collect::<Vec<_>>();
+    let mut default_filenames = join_all(features)
+      .await
+      .into_iter()
+      .collect::<Result<Vec<_>>>()?;
     let mut default_filenames_index = 0;
 
     for (file, asset, source_map) in assets {
@@ -271,12 +279,14 @@ impl Plugin for SourceMapDevToolPlugin {
             }
 
             // Try the fallback name first
-            let mut source_name = self.create_filename(
-              &module_or_source,
-              compilation,
-              &self.fallback_module_filename_template,
-              output_options,
-            );
+            let mut source_name = self
+              .create_filename(
+                &module_or_source,
+                compilation,
+                &self.fallback_module_filename_template,
+                output_options,
+              )
+              .await?;
             has_name = used_names_set.contains(&source_name);
             if !has_name {
               used_names_set.insert(source_name.clone());
@@ -460,13 +470,13 @@ fn get_hash(text: &str, output_options: &OutputOptions) -> String {
 }
 
 impl SourceMapDevToolPlugin {
-  fn create_filename(
+  async fn create_filename(
     &self,
     module_or_source: &ModuleOrSource,
     compilation: &Compilation,
     module_filename_template: &ModuleFilenameTemplate,
     output_options: &OutputOptions,
-  ) -> String {
+  ) -> Result<String> {
     let Compilation {
       chunk_graph,
       module_graph,
@@ -564,11 +574,11 @@ impl SourceMapDevToolPlugin {
     };
 
     return match module_filename_template {
-      ModuleFilenameTemplate::Fn(f) => f(ctx),
+      ModuleFilenameTemplate::Fn(f) => f(ctx).await,
       ModuleFilenameTemplate::String(s) => {
         let s = REGEXP_ALL_LOADERS_RESOURCE.replace_all(s, "[identifier]");
         let s = REGEXP_LOADERS_RESOURCE.replace_all(&s, "[short-identifier]");
-        SQUARE_BRACKET_TAG_REGEXP
+        Ok(SQUARE_BRACKET_TAG_REGEXP
           .replace_all(&s, |caps: &Captures| {
             let full_match = caps
               .get(0)
@@ -611,7 +621,7 @@ impl SourceMapDevToolPlugin {
               Cow::from(full_match.to_string())
             }
           })
-          .to_string()
+          .to_string())
       }
     };
   }
