@@ -184,6 +184,7 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
       self.import_map,
       self.dependencies,
       self.rewrite_usage_span,
+      self.ignored,
     ));
   }
 
@@ -356,6 +357,7 @@ pub struct HarmonyImportRefDependencyScanner<'a> {
   pub dependencies: &'a mut Vec<BoxDependency>,
   pub properties_in_destructuring: HashMap<Atom, HashSet<Atom>>,
   pub rewrite_usage_span: &'a mut HashMap<Span, ExtraSpanInfo>,
+  pub ignored: &'a mut HashSet<DependencyLocation>,
 }
 
 impl<'a> HarmonyImportRefDependencyScanner<'a> {
@@ -363,6 +365,7 @@ impl<'a> HarmonyImportRefDependencyScanner<'a> {
     import_map: &'a ImportMap,
     dependencies: &'a mut Vec<BoxDependency>,
     rewrite_usage_span: &'a mut HashMap<Span, ExtraSpanInfo>,
+    ignored: &'a mut HashSet<DependencyLocation>,
   ) -> Self {
     Self {
       import_map,
@@ -371,12 +374,14 @@ impl<'a> HarmonyImportRefDependencyScanner<'a> {
       enter_new_expr: false,
       properties_in_destructuring: HashMap::default(),
       rewrite_usage_span,
+      ignored,
     }
   }
 }
 
 impl Visit for HarmonyImportRefDependencyScanner<'_> {
   noop_visit_type!();
+  no_visit_ignored_stmt!();
 
   // collect referenced properties in destructuring
   // import * as a from 'a';
