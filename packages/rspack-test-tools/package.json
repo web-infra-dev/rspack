@@ -35,7 +35,7 @@
   },
   "dependencies": {
     "@babel/generator": "7.23.0",
-    "@babel/helpers": "7.23.2",
+    "@babel/helpers": "7.23.8",
     "@babel/parser": "7.23.0",
     "@babel/template": "7.22.15",
     "@babel/traverse": "7.23.2",
