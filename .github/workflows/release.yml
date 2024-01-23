@@ -65,7 +65,7 @@ jobs:
     if: ${{ github.event_name == 'workflow_dispatch' }}
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           # This makes Actions fetch only one branch to release
           fetch-depth: 1

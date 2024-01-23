@@ -36,7 +36,7 @@ jobs:
     runs-on: ${{ fromJSON(needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS) }}
     steps:
       - name: Checkout Branch
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 1
           ref: refs/pull/${{ github.event.issue.number || github.event.pull_request.number }}/head
