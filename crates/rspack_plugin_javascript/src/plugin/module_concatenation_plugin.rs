@@ -833,7 +833,7 @@ impl Plugin for ModuleConcatenationPlugin {
     // Copy from  https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ModuleConcatenationPlugin.js#L368-L371
     // HACK: Sort configurations by length and start with the longest one
     // to get the biggest groups possible. Used modules are marked with usedModules
-    // TODO: Allow reusing existing configuration while trying to add dependencies.
+    // TODO(from webpack): Allow reusing existing configuration while trying to add dependencies.
     // This would improve performance. O(n^2) -> O(n)
     let start = logger.time("sort concat configurations");
     concat_configurations.sort_by(|a, b| b.modules.len().cmp(&a.modules.len()));
