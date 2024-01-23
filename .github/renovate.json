@@ -12,14 +12,21 @@
       "groupName": "github-actions",
       "matchManagers": ["github-actions"],
       "schedule": ["on wednesday"],
-      "assignees": ["@Boshen"]
+      "assignees": ["@Boshen"],
+      "excludePackageNames": ["actions/upload-artifact", "actions/download-artifact"]
     },
     {
       "groupName": "cargo",
       "matchManagers": ["cargo"],
       "schedule": ["on wednesday"],
       "assignees": ["@Boshen"],
-      "excludePackagePatterns": ["swc"]
+      "excludePackagePrefixes": ["swc"]
+    },
+    {
+      "groupName": "swc",
+      "matchManagers": ["cargo"],
+      "matchPackagePrefixes": ["swc"],
+      "enabled": false
     }
   ]
 }
