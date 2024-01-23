@@ -1136,15 +1136,15 @@ impl Module for ConcatenatedModule {
             result.add(RawSource::from(format!("if ({}) {{\n", condition)));
           }
 
-          // result.add(RawSource::from(format!(
-          //   "let {} = {}({});",
-          //   info.name,
-          //   RuntimeGlobals::REQUIRE,
-          //   serde_json::to_string(chunk_graph.get_module_id(&info.module)).unwrap()
-          // )));
+          result.add(RawSource::from(format!(
+            "let {} = {}({});",
+            info.name.as_ref().expect("should have name"),
+            RuntimeGlobals::REQUIRE,
+            serde_json::to_string(compilation.chunk_graph.get_module_id(info.module))
+              .expect("should have module id")
+          )));
 
-          // name = info.name.clone();
-          todo!()
+          name = info.name.as_ref().map(|atom| atom.to_string());
         }
       }
 
