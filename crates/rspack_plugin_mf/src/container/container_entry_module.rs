@@ -6,11 +6,11 @@ use rspack_core::{
   rspack_sources::{RawSource, Source, SourceExt},
   throw_missing_module_error_block, AsyncDependenciesBlock, AsyncDependenciesBlockId,
   BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildMetaExportsType, BuildResult,
-  ChunkGroupOptions, CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId,
-  GroupOptions, LibIdentOptions, Module, ModuleDependency, ModuleIdentifier, ModuleType,
-  RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency,
+  ChunkGroupOptions, CodeGenerationResult, Compilation, ConcatenationScope, Context,
+  DependenciesBlock, DependencyId, GroupOptions, LibIdentOptions, Module, ModuleDependency,
+  ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency,
 };
-use rspack_error::{impl_empty_diagnosable_trait, Result};
+use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
 use rspack_util::source_map::SourceMapKind;
@@ -106,8 +106,14 @@ impl Module for ContainerEntryModule {
   fn lib_ident(&self, _options: LibIdentOptions) -> Option<Cow<str>> {
     Some(self.lib_ident.as_str().into())
   }
-
-  async fn build(&mut self, build_context: BuildContext<'_>) -> Result<BuildResult> {
+  fn get_diagnostics(&self) -> Vec<Diagnostic> {
+    vec![]
+  }
+  async fn build(
+    &mut self,
+    build_context: BuildContext<'_>,
+    _: Option<&Compilation>,
+  ) -> Result<BuildResult> {
     let mut hasher = RspackHash::from(&build_context.compiler_options.output);
     self.update_hash(&mut hasher);
     let hash = hasher.digest(&build_context.compiler_options.output.hash_digest);
@@ -151,6 +157,7 @@ impl Module for ContainerEntryModule {
     &self,
     compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
+    _: Option<ConcatenationScope>,
   ) -> Result<CodeGenerationResult> {
     let mut code_generation_result = CodeGenerationResult::default();
     code_generation_result

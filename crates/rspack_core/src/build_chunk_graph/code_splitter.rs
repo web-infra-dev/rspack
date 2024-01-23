@@ -7,10 +7,10 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use super::remove_parent_modules::RemoveParentModulesContext;
 use crate::dependencies_block::AsyncDependenciesToInitialChunkError;
 use crate::{
-  get_entry_runtime, AsyncDependenciesBlockId, BoxDependency, ChunkGroup, ChunkGroupInfo,
-  ChunkGroupKind, ChunkGroupOptions, ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation,
-  ConnectionState, DependenciesBlock, Dependency, GroupOptions, Logger, ModuleGraphConnection,
-  ModuleIdentifier, RuntimeSpec,
+  assign_depth, assign_depths, get_entry_runtime, AsyncDependenciesBlockId, BoxDependency,
+  ChunkGroup, ChunkGroupInfo, ChunkGroupKind, ChunkGroupOptions, ChunkGroupUkey, ChunkLoading,
+  ChunkUkey, Compilation, ConnectionState, DependenciesBlock, Dependency, GroupOptions, Logger,
+  ModuleGraphConnection, ModuleIdentifier, RuntimeSpec,
 };
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
@@ -82,10 +82,10 @@ impl<'me> CodeSplitter<'me> {
     &mut self,
   ) -> Result<HashMap<ChunkGroupUkey, Vec<ModuleIdentifier>>> {
     let compilation = &mut self.compilation;
-    let module_graph = &compilation.module_graph;
 
     let mut input_entrypoints_and_modules: HashMap<ChunkGroupUkey, Vec<ModuleIdentifier>> =
       HashMap::default();
+    let mut assign_depths_map = HashMap::default();
 
     for (name, entry_data) in &compilation.entries {
       let options = &entry_data.options;
@@ -96,7 +96,11 @@ impl<'me> CodeSplitter<'me> {
       .concat();
       let module_identifiers = dependencies
         .iter()
-        .filter_map(|dep| module_graph.module_identifier_by_dependency_id(dep))
+        .filter_map(|dep| {
+          compilation
+            .module_graph
+            .module_identifier_by_dependency_id(dep)
+        })
         .collect::<Vec<_>>();
 
       let chunk_ukey = Compilation::add_named_chunk(
@@ -151,7 +155,7 @@ impl<'me> CodeSplitter<'me> {
         compilation.chunk_group_by_ukey.expect_get(&ukey)
       };
 
-      for module_identifier in module_identifiers {
+      for &module_identifier in module_identifiers.iter() {
         compilation.chunk_graph.add_module(*module_identifier);
 
         input_entrypoints_and_modules
@@ -165,6 +169,11 @@ impl<'me> CodeSplitter<'me> {
           entrypoint.ukey,
         );
       }
+      assign_depths(
+        &mut assign_depths_map,
+        &compilation.module_graph,
+        module_identifiers,
+      );
 
       let global_included_modules = compilation
         .global_entry
@@ -188,6 +197,13 @@ impl<'me> CodeSplitter<'me> {
         .copied()
         .sorted_unstable();
       let included_modules = global_included_modules.chain(included_modules);
+      for included_module in included_modules.clone() {
+        assign_depth(
+          &mut assign_depths_map,
+          &compilation.module_graph,
+          included_module,
+        );
+      }
       input_entrypoints_and_modules
         .entry(entrypoint.ukey)
         .or_default()
@@ -198,6 +214,11 @@ impl<'me> CodeSplitter<'me> {
           .named_chunk_groups
           .insert(name.to_string(), entrypoint.ukey);
       }
+    }
+
+    // Using this defer insertion strategies to workaround rustc borrow rules
+    for (k, v) in assign_depths_map {
+      compilation.module_graph.set_depth(k, v);
     }
 
     let mut runtime_chunks = HashSet::default();

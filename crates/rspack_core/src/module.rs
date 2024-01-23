@@ -1,11 +1,12 @@
 use std::fmt::Display;
 use std::hash::Hash;
+use std::ops::Deref;
 use std::path::PathBuf;
 use std::{any::Any, borrow::Cow, fmt::Debug};
 
 use async_trait::async_trait;
 use json::JsonValue;
-use rspack_error::{Diagnosable, Result};
+use rspack_error::{Diagnosable, Diagnostic, Result};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_identifier::{Identifiable, Identifier};
 use rspack_sources::Source;
@@ -16,12 +17,12 @@ use swc_core::ecma::atoms::Atom;
 
 use crate::tree_shaking::visitor::OptimizeAnalyzeResult;
 use crate::{
-  AsyncDependenciesBlock, BoxDependency, ChunkUkey, CodeGenerationResult, Compilation,
-  CompilerContext, CompilerOptions, ConnectionState, Context, ContextModule, DependenciesBlock,
-  DependencyId, DependencyTemplate, ExternalModule, ModuleDependency, ModuleGraph, ModuleType,
-  NormalModule, RawModule, Resolve, RuntimeSpec, SelfModule, SharedPluginDriver, SourceType,
+  AsyncDependenciesBlock, BoxDependency, ChunkGraph, ChunkUkey, CodeGenerationResult, Compilation,
+  CompilerContext, CompilerOptions, ConcatenationScope, ConnectionState, Context, ContextModule,
+  DependenciesBlock, DependencyId, DependencyTemplate, ExternalModule, ModuleDependency,
+  ModuleGraph, ModuleGraphModule, ModuleType, NormalModule, RawModule, Resolve, RuntimeSpec,
+  SelfModule, SharedPluginDriver, SourceType,
 };
-
 pub struct BuildContext<'a> {
   pub compiler_context: CompilerContext,
   pub plugin_driver: SharedPluginDriver,
@@ -52,7 +53,7 @@ pub struct BuildInfo {
   pub json_data: Option<JsonValue>,
 }
 
-#[derive(Debug, Default, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum BuildMetaExportsType {
   #[default]
   Unset,
@@ -70,7 +71,7 @@ pub enum ExportsType {
   Dynamic,
 }
 
-#[derive(Debug, Default, Clone, Hash)]
+#[derive(Debug, Default, Clone, Copy, Hash)]
 pub enum BuildMetaDefaultObject {
   #[default]
   False,
@@ -140,6 +141,50 @@ pub struct FactoryMeta {
 
 pub type ModuleIdentifier = Identifier;
 
+pub struct WrappedModuleIdentifier(ModuleIdentifier);
+
+impl WrappedModuleIdentifier {
+  /// # Panic
+  /// It would panic if the corresponding module is not exists in module_graph
+  pub fn module<'a>(&self, mg: &'a ModuleGraph) -> &'a BoxModule {
+    mg.module_by_identifier(self).expect("should have module")
+  }
+  /// # Panic
+  /// It would panic if the corresponding module is not exists in module_graph
+  pub fn module_mut<'a>(&self, mg: &'a mut ModuleGraph) -> &'a mut BoxModule {
+    mg.module_by_identifier_mut(self)
+      .expect("should have module")
+  }
+
+  /// # Panic
+  /// It would panic if the corresponding moduleGraphModule is not exists in module_graph
+  pub fn module_graph_module<'a>(&self, mg: &'a ModuleGraph) -> &'a ModuleGraphModule {
+    mg.module_graph_module_by_identifier(self)
+      .expect("should have module graph module")
+  }
+
+  /// # Panic
+  /// It would panic if the corresponding moduleGraphModule is not exists in module_graph
+  pub fn module_graph_module_mut<'a>(&self, mg: &'a mut ModuleGraph) -> &'a mut ModuleGraphModule {
+    mg.module_graph_module_by_identifier_mut(self)
+      .expect("should have module graph module")
+  }
+}
+
+impl Deref for WrappedModuleIdentifier {
+  type Target = ModuleIdentifier;
+
+  fn deref(&self) -> &Self::Target {
+    &self.0
+  }
+}
+
+impl From<ModuleIdentifier> for WrappedModuleIdentifier {
+  fn from(value: ModuleIdentifier) -> Self {
+    Self(value)
+  }
+}
+
 #[async_trait]
 pub trait Module:
   Debug
@@ -158,7 +203,7 @@ pub trait Module:
 
   /// Defines what kind of code generation results this module can generate.
   fn source_types(&self) -> &[SourceType];
-
+  fn get_diagnostics(&self) -> Vec<Diagnostic>;
   /// The original source of the module. This could be optional, modules like the `NormalModule` can have the corresponding original source.
   /// However, modules that is created from "nowhere" (e.g. `ExternalModule` and `MissingModule`) does not have its original source.
   fn original_source(&self) -> Option<&dyn Source>;
@@ -171,7 +216,11 @@ pub trait Module:
 
   /// The actual build of the module, which will be called by the `Compilation`.
   /// Build can also returns the dependencies of the module, which will be used by the `Compilation` to build the dependency graph.
-  async fn build(&mut self, build_context: BuildContext<'_>) -> Result<BuildResult> {
+  async fn build(
+    &mut self,
+    build_context: BuildContext<'_>,
+    _compilation: Option<&Compilation>,
+  ) -> Result<BuildResult> {
     let mut hasher = RspackHash::from(&build_context.compiler_options.output);
     self.update_hash(&mut hasher);
 
@@ -279,6 +328,7 @@ pub trait Module:
     &self,
     _compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
+    _concatenation_scope: Option<ConcatenationScope>,
   ) -> Result<CodeGenerationResult>;
 
   /// Name matched against bundle-splitting conditions.
@@ -307,6 +357,17 @@ pub trait Module:
 
   fn get_presentational_dependencies(&self) -> Option<&[Box<dyn DependencyTemplate>]> {
     None
+  }
+
+  fn get_concatenation_bailout_reason(
+    &self,
+    _mg: &ModuleGraph,
+    _cg: &ChunkGraph,
+  ) -> Option<String> {
+    Some(format!(
+      "Module Concatenation is not implemented for {}",
+      self.module_type()
+    ))
   }
 
   /// Resolve options matched by module rules.
@@ -448,7 +509,7 @@ mod test {
   use std::borrow::Cow;
   use std::hash::Hash;
 
-  use rspack_error::{Diagnosable, Result};
+  use rspack_error::{Diagnosable, Diagnostic, Result};
   use rspack_identifier::{Identifiable, Identifier};
   use rspack_sources::Source;
   use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
@@ -456,7 +517,8 @@ mod test {
   use super::Module;
   use crate::{
     AsyncDependenciesBlockId, BuildContext, BuildResult, CodeGenerationResult, Compilation,
-    Context, DependenciesBlock, DependencyId, ModuleExt, ModuleType, RuntimeSpec, SourceType,
+    ConcatenationScope, Context, DependenciesBlock, DependencyId, ModuleExt, ModuleType,
+    RuntimeSpec, SourceType,
   };
 
   #[derive(Debug, Eq)]
@@ -539,14 +601,23 @@ mod test {
           (stringify!($ident).to_owned() + self.0).into()
         }
 
-        async fn build(&mut self, _build_context: BuildContext<'_>) -> Result<BuildResult> {
+        async fn build(
+          &mut self,
+          _build_context: BuildContext<'_>,
+          _compilation: Option<&Compilation>,
+        ) -> Result<BuildResult> {
           unreachable!()
+        }
+
+        fn get_diagnostics(&self) -> Vec<Diagnostic> {
+          vec![]
         }
 
         fn code_generation(
           &self,
           _compilation: &Compilation,
           _runtime: Option<&RuntimeSpec>,
+          _concatenation_scope: Option<ConcatenationScope>,
         ) -> Result<CodeGenerationResult> {
           unreachable!()
         }

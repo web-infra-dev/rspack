@@ -11,7 +11,7 @@ use itertools::Itertools;
 use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
 use rspack_core_macros::impl_source_map_config;
-use rspack_error::{impl_empty_diagnosable_trait, miette::IntoDiagnostic, Result};
+use rspack_error::{impl_empty_diagnosable_trait, miette::IntoDiagnostic, Diagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
 use rspack_regex::RspackRegex;
@@ -24,9 +24,9 @@ use crate::{
   block_promise, contextify, get_exports_type_with_strict, impl_build_info_meta,
   returning_function, stringify_map, to_path, AsyncDependenciesBlock, AsyncDependenciesBlockId,
   BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult, ChunkGraph, ChunkGroupOptions,
-  CodeGenerationResult, Compilation, ContextElementDependency, DependenciesBlock,
-  DependencyCategory, DependencyId, ExportsType, FakeNamespaceObjectMode, GroupOptions,
-  LibIdentOptions, Module, ModuleType, Resolve, ResolveInnerOptions,
+  CodeGenerationResult, Compilation, ConcatenationScope, ContextElementDependency,
+  DependenciesBlock, DependencyCategory, DependencyId, ExportsType, FakeNamespaceObjectMode,
+  GroupOptions, LibIdentOptions, Module, ModuleType, Resolve, ResolveInnerOptions,
   ResolveOptionsWithDependencyType, ResolverFactory, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
@@ -588,7 +588,9 @@ impl Module for ContextModule {
   fn source_types(&self) -> &[SourceType] {
     &[SourceType::JavaScript]
   }
-
+  fn get_diagnostics(&self) -> Vec<Diagnostic> {
+    vec![]
+  }
   fn original_source(&self) -> Option<&dyn rspack_sources::Source> {
     None
   }
@@ -611,7 +613,11 @@ impl Module for ContextModule {
     Some(Cow::Owned(id))
   }
 
-  async fn build(&mut self, build_context: BuildContext<'_>) -> Result<BuildResult> {
+  async fn build(
+    &mut self,
+    build_context: BuildContext<'_>,
+    _: Option<&Compilation>,
+  ) -> Result<BuildResult> {
     self.resolve_dependencies(build_context)
   }
 
@@ -619,6 +625,7 @@ impl Module for ContextModule {
     &self,
     compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
+    _: Option<ConcatenationScope>,
   ) -> Result<CodeGenerationResult> {
     let mut code_generation_result = CodeGenerationResult::default();
     code_generation_result

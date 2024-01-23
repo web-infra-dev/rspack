@@ -75,9 +75,13 @@ impl DependencyTemplate for HarmonyExportSpecifierDependency {
       compilation,
       module,
       runtime,
+      concatenation_scope,
       ..
     } = code_generatable_context;
-
+    if let Some(scope) = concatenation_scope {
+      scope.register_export(self.name.clone(), self.value.to_string());
+      return;
+    }
     let module = compilation
       .module_graph
       .module_by_identifier(&module.identifier())

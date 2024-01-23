@@ -3,14 +3,17 @@ use std::fmt::Debug;
 use dyn_clone::{clone_trait_object, DynClone};
 use rspack_sources::{BoxSource, ReplaceSource};
 
-use crate::{Compilation, Module, ModuleInitFragments, RuntimeGlobals, RuntimeSpec};
+use crate::{
+  Compilation, ConcatenationScope, Module, ModuleInitFragments, RuntimeGlobals, RuntimeSpec,
+};
 
-pub struct TemplateContext<'a, 'b> {
+pub struct TemplateContext<'a, 'b, 'c> {
   pub compilation: &'a Compilation,
   pub module: &'a dyn Module,
   pub runtime_requirements: &'a mut RuntimeGlobals,
   pub init_fragments: &'a mut ModuleInitFragments<'b>,
   pub runtime: Option<&'a RuntimeSpec>,
+  pub concatenation_scope: Option<&'c mut ConcatenationScope>,
 }
 
 pub type TemplateReplaceSource = ReplaceSource<BoxSource>;

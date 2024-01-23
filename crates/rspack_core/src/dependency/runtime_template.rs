@@ -160,7 +160,7 @@ pub fn get_exports_type_with_strict(
     .expect("should have module");
   module_graph
     .module_by_identifier(module)
-    .expect("should have mgm")
+    .expect("should have module")
     .get_exports_type(strict)
 }
 

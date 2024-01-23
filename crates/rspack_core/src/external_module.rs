@@ -3,7 +3,7 @@ use std::hash::Hash;
 use std::iter;
 
 use rspack_core_macros::impl_source_map_config;
-use rspack_error::{error, impl_empty_diagnosable_trait, Result};
+use rspack_error::{error, impl_empty_diagnosable_trait, Diagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
 use rspack_util::source_map::SourceMapKind;
@@ -15,9 +15,9 @@ use crate::{
   rspack_sources::{BoxSource, RawSource, Source, SourceExt},
   to_identifier, AsyncDependenciesBlockId, BuildContext, BuildInfo, BuildMeta,
   BuildMetaExportsType, BuildResult, ChunkInitFragments, ChunkUkey, CodeGenerationDataUrl,
-  CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId, ExternalType,
-  InitFragmentExt, InitFragmentKey, InitFragmentStage, LibIdentOptions, Module, ModuleType,
-  NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType,
+  CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId,
+  ExternalType, InitFragmentExt, InitFragmentKey, InitFragmentStage, LibIdentOptions, Module,
+  ModuleType, NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
 static EXTERNAL_MODULE_JS_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
@@ -317,6 +317,10 @@ impl Module for ExternalModule {
     &ModuleType::Js
   }
 
+  fn get_diagnostics(&self) -> Vec<Diagnostic> {
+    vec![]
+  }
+
   fn source_types(&self) -> &[SourceType] {
     if self.external_type == "css-import" {
       EXTERNAL_MODULE_CSS_SOURCE_TYPES
@@ -354,7 +358,11 @@ impl Module for ExternalModule {
     42.0
   }
 
-  async fn build(&mut self, build_context: BuildContext<'_>) -> Result<BuildResult> {
+  async fn build(
+    &mut self,
+    build_context: BuildContext<'_>,
+    _: Option<&Compilation>,
+  ) -> Result<BuildResult> {
     let mut hasher = RspackHash::from(&build_context.compiler_options.output);
     self.update_hash(&mut hasher);
 
@@ -389,6 +397,7 @@ impl Module for ExternalModule {
     &self,
     compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
+    _: Option<ConcatenationScope>,
   ) -> Result<CodeGenerationResult> {
     let mut cgr = CodeGenerationResult::default();
     let (request, external_type) = self.get_request_and_external_type();

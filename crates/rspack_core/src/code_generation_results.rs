@@ -11,8 +11,8 @@ use rustc_hash::FxHashMap as HashMap;
 use serde::Serialize;
 
 use crate::{
-  AssetInfo, ChunkInitFragments, ModuleIdentifier, PublicPath, RuntimeGlobals, RuntimeMode,
-  RuntimeSpec, RuntimeSpecMap, SourceType,
+  AssetInfo, ChunkInitFragments, ConcatenationScope, ModuleIdentifier, PublicPath, RuntimeGlobals,
+  RuntimeMode, RuntimeSpec, RuntimeSpecMap, SourceType,
 };
 
 #[derive(Clone, Debug)]
@@ -96,6 +96,7 @@ pub struct CodeGenerationResult {
   pub runtime_requirements: RuntimeGlobals,
   pub hash: Option<RspackHashDigest>,
   pub id: CodeGenResultId,
+  pub concatenation_scope: Option<ConcatenationScope>,
 }
 
 impl CodeGenerationResult {

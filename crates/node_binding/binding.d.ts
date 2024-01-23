@@ -1004,6 +1004,7 @@ export interface RawOptimizationOptions {
   providedExports: boolean
   innerGraph: boolean
   mangleExports: string
+  concatenateModules: boolean
 }
 
 export interface RawOptions {

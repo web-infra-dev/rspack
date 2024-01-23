@@ -57,6 +57,10 @@ pub trait Dependency:
     None
   }
 
+  fn source_order(&self) -> Option<i32> {
+    None
+  }
+
   /// `Span` used for Dependency search in `on_usage` in `InnerGraph`
   fn span_for_on_usage_search(&self) -> Option<ErrorSpan> {
     self.span()
@@ -89,6 +93,10 @@ impl dyn Dependency + '_ {
 
   pub fn downcast_mut<D: Any>(&mut self) -> Option<&mut D> {
     self.as_any_mut().downcast_mut::<D>()
+  }
+
+  pub fn is<D: Any>(&self) -> bool {
+    self.downcast_ref::<D>().is_some()
   }
 }
 

@@ -12,6 +12,7 @@ rspack_testing = { path = "../rspack_testing" }
 async-trait = { workspace = true }
 bitflags = { workspace = true }
 either = "1"
+hex = "0.4.3"
 indexmap = { workspace = true }
 itertools = { workspace = true }
 linked_hash_set = { workspace = true }

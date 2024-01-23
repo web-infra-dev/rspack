@@ -370,17 +370,20 @@ impl WorkerTask for BuildTask {
           .unwrap_or_else(|e| panic!("Run build_module hook failed: {}", e));
 
         let result = module
-          .build(BuildContext {
-            compiler_context: CompilerContext {
-              options: compiler_options.clone(),
-              resolver_factory: resolver_factory.clone(),
-              module: module.identifier(),
-              module_context: module.as_normal_module().and_then(|m| m.get_context()),
-              module_source_map_kind: module.get_source_map_kind().clone(),
+          .build(
+            BuildContext {
+              compiler_context: CompilerContext {
+                options: compiler_options.clone(),
+                resolver_factory: resolver_factory.clone(),
+                module: module.identifier(),
+                module_context: module.as_normal_module().and_then(|m| m.get_context()),
+                module_source_map_kind: module.get_source_map_kind().clone(),
+              },
+              plugin_driver: plugin_driver.clone(),
+              compiler_options: &compiler_options,
             },
-            plugin_driver: plugin_driver.clone(),
-            compiler_options: &compiler_options,
-          })
+            None,
+          )
           .await;
 
         plugin_driver

@@ -4,11 +4,11 @@ use async_trait::async_trait;
 use rspack_core::{
   async_module_factory, impl_build_info_meta, impl_source_map_config, rspack_sources::Source,
   sync_module_factory, AsyncDependenciesBlock, AsyncDependenciesBlockId, BoxDependency,
-  BuildContext, BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation, Context,
-  DependenciesBlock, DependencyId, LibIdentOptions, Module, ModuleIdentifier, ModuleType,
-  RuntimeGlobals, RuntimeSpec, SourceType,
+  BuildContext, BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation,
+  ConcatenationScope, Context, DependenciesBlock, DependencyId, LibIdentOptions, Module,
+  ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
 };
-use rspack_error::{impl_empty_diagnosable_trait, Result};
+use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
 use rspack_util::source_map::SourceMapKind;
@@ -100,6 +100,10 @@ impl Module for ProvideSharedModule {
     42.0
   }
 
+  fn get_diagnostics(&self) -> Vec<Diagnostic> {
+    vec![]
+  }
+
   fn module_type(&self) -> &ModuleType {
     &ModuleType::ProvideShared
   }
@@ -120,7 +124,11 @@ impl Module for ProvideSharedModule {
     Some(self.lib_ident.as_str().into())
   }
 
-  async fn build(&mut self, build_context: BuildContext<'_>) -> Result<BuildResult> {
+  async fn build(
+    &mut self,
+    build_context: BuildContext<'_>,
+    _: Option<&Compilation>,
+  ) -> Result<BuildResult> {
     let mut hasher = RspackHash::from(&build_context.compiler_options.output);
     self.update_hash(&mut hasher);
     let hash = hasher.digest(&build_context.compiler_options.output.hash_digest);
@@ -154,6 +162,7 @@ impl Module for ProvideSharedModule {
     &self,
     compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
+    _: Option<ConcatenationScope>,
   ) -> Result<CodeGenerationResult> {
     let mut code_generation_result = CodeGenerationResult::default();
     code_generation_result

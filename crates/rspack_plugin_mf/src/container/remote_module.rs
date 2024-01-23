@@ -6,10 +6,10 @@ use rspack_core::{
   impl_build_info_meta, impl_source_map_config,
   rspack_sources::{RawSource, Source, SourceExt},
   AsyncDependenciesBlockId, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
-  CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId, LibIdentOptions,
-  Module, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
+  CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId,
+  LibIdentOptions, Module, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
 };
-use rspack_error::{impl_empty_diagnosable_trait, Result};
+use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
 use rspack_util::source_map::SourceMapKind;
@@ -108,6 +108,10 @@ impl Module for RemoteModule {
     &ModuleType::Remote
   }
 
+  fn get_diagnostics(&self) -> Vec<Diagnostic> {
+    vec![]
+  }
+
   fn source_types(&self) -> &[SourceType] {
     &[SourceType::Remote, SourceType::ShareInit]
   }
@@ -128,7 +132,11 @@ impl Module for RemoteModule {
     Some(self.request.as_str().into())
   }
 
-  async fn build(&mut self, build_context: BuildContext<'_>) -> Result<BuildResult> {
+  async fn build(
+    &mut self,
+    build_context: BuildContext<'_>,
+    _: Option<&Compilation>,
+  ) -> Result<BuildResult> {
     let mut hasher = RspackHash::from(&build_context.compiler_options.output);
     self.update_hash(&mut hasher);
 
@@ -161,6 +169,7 @@ impl Module for RemoteModule {
     &self,
     compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
+    _: Option<ConcatenationScope>,
   ) -> Result<CodeGenerationResult> {
     let mut codegen = CodeGenerationResult::default();
     let module = compilation.module_graph.get_module(&self.dependencies[0]);

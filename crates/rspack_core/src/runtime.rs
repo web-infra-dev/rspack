@@ -28,10 +28,20 @@ pub fn is_runtime_equal(a: &RuntimeSpec, b: &RuntimeSpec) -> bool {
   a.into_iter().zip(b).all(|(a, b)| a == b)
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RuntimeCondition {
   Boolean(bool),
   Spec(RuntimeSpec),
+}
+
+impl RuntimeCondition {
+  pub fn as_spec(&self) -> Option<&RuntimeSpec> {
+    if let Self::Spec(v) = self {
+      Some(v)
+    } else {
+      None
+    }
+  }
 }
 
 pub fn merge_runtime(a: &RuntimeSpec, b: &RuntimeSpec) -> RuntimeSpec {
@@ -43,6 +53,12 @@ pub fn merge_runtime(a: &RuntimeSpec, b: &RuntimeSpec) -> RuntimeSpec {
     set.insert(r.clone());
   }
   set
+}
+
+pub fn runtime_to_string(runtime: &RuntimeSpec) -> String {
+  let mut arr = runtime.iter().map(|item| item.as_ref()).collect::<Vec<_>>();
+  arr.sort();
+  arr.join(",")
 }
 
 pub fn filter_runtime(
@@ -76,6 +92,81 @@ pub fn filter_runtime(
       }
     }
   }
+}
+
+/// assert the runtime condition is not `False`
+pub fn merge_runtime_condition_non_false(
+  a: &RuntimeCondition,
+  b: &RuntimeCondition,
+  runtime: Option<&RuntimeSpec>,
+) -> RuntimeCondition {
+  let merged = match (a, b) {
+    (RuntimeCondition::Boolean(true), _) => return RuntimeCondition::Boolean(true),
+    (RuntimeCondition::Boolean(false), _) => unreachable!(),
+    (_, RuntimeCondition::Boolean(false)) => unreachable!(),
+    (RuntimeCondition::Spec(_), RuntimeCondition::Boolean(true)) => {
+      return RuntimeCondition::Boolean(true)
+    }
+    (RuntimeCondition::Spec(a), RuntimeCondition::Spec(b)) => merge_runtime(a, b),
+  };
+  if runtime.map(|spec| spec.len()).unwrap_or_default() == merged.len() {
+    return RuntimeCondition::Boolean(true);
+  }
+  RuntimeCondition::Spec(merged)
+}
+
+pub fn merge_runtime_condition(
+  a: &RuntimeCondition,
+  b: &RuntimeCondition,
+  runtime: Option<&RuntimeSpec>,
+) -> RuntimeCondition {
+  let merged = match (a, b) {
+    (RuntimeCondition::Boolean(false), _) => return b.clone(),
+    (_, RuntimeCondition::Boolean(false)) => return a.clone(),
+    (_, RuntimeCondition::Boolean(true)) | (RuntimeCondition::Boolean(true), _) => {
+      return RuntimeCondition::Boolean(true)
+    }
+    (RuntimeCondition::Spec(a), RuntimeCondition::Spec(b)) => merge_runtime(a, b),
+  };
+  if runtime.map(|spec| spec.len()).unwrap_or_default() == merged.len() {
+    return RuntimeCondition::Boolean(true);
+  }
+  RuntimeCondition::Spec(merged)
+}
+
+pub fn subtract_runtime_condition(
+  a: &RuntimeCondition,
+  b: &RuntimeCondition,
+  runtime: Option<&RuntimeSpec>,
+) -> RuntimeCondition {
+  let merged = match (a, b) {
+    (_, RuntimeCondition::Boolean(true)) => return RuntimeCondition::Boolean(false),
+    (_, RuntimeCondition::Boolean(false)) => return a.clone(),
+    (RuntimeCondition::Boolean(false), _) => return RuntimeCondition::Boolean(false),
+    (RuntimeCondition::Spec(a), RuntimeCondition::Spec(b)) => {
+      let mut set = HashSet::default();
+      for item in a {
+        if !b.contains(item) {
+          set.insert(item.clone());
+        }
+      }
+      set
+    }
+    (RuntimeCondition::Boolean(true), RuntimeCondition::Spec(b)) => {
+      let a = runtime.cloned().unwrap_or_default();
+      let mut set = HashSet::default();
+      for item in a {
+        if !b.contains(&item) {
+          set.insert(item.clone());
+        }
+      }
+      set
+    }
+  };
+  if merged.is_empty() {
+    return RuntimeCondition::Boolean(false);
+  }
+  RuntimeCondition::Spec(merged)
 }
 
 pub fn get_runtime_key(runtime: RuntimeSpec) -> String {

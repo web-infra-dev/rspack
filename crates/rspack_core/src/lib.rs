@@ -4,7 +4,8 @@
 #![feature(box_patterns)]
 #![feature(anonymous_lifetime_in_impl_trait)]
 #![feature(hash_raw_entry)]
-
+#![feature(option_get_or_insert_default)]
+#![feature(slice_group_by)]
 use std::{fmt, sync::Arc};
 mod dependencies_block;
 pub mod diagnostics;
@@ -92,6 +93,8 @@ mod module_graph_module;
 pub use module_graph_module::*;
 pub mod resolver;
 pub use resolver::*;
+pub mod concatenated_module;
+pub mod reserved_names;
 pub mod tree_shaking;
 
 pub use rspack_core_macros::{impl_runtime_module, impl_source_map_config};

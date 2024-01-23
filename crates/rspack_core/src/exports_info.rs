@@ -1,5 +1,6 @@
 use std::collections::hash_map::DefaultHasher;
 use std::collections::hash_map::Entry;
+use std::collections::BTreeMap;
 use std::hash::Hasher;
 use std::ops::Deref;
 use std::sync::atomic::AtomicU32;
@@ -61,6 +62,21 @@ impl ExportsInfoId {
 
   pub fn get_exports_info_mut<'a>(&self, mg: &'a mut ModuleGraph) -> &'a mut ExportsInfo {
     mg.get_exports_info_mut_by_id(self)
+  }
+
+  pub fn is_module_used(&self, mg: &ModuleGraph, runtime: Option<&RuntimeSpec>) -> bool {
+    if self.is_used(runtime, mg) {
+      return true;
+    }
+
+    let exports_info = self.get_exports_info(mg);
+    if !matches!(
+      exports_info._side_effects_only_info.get_used(mg, runtime),
+      UsageState::Unused
+    ) {
+      return true;
+    }
+    false
   }
 
   /// # Panic
@@ -191,8 +207,6 @@ impl ExportsInfoId {
     changed
   }
 
-  /// # Panic
-  /// this function would panic if name doesn't exists in current exportsInfo
   pub fn get_read_only_export_info<'a>(&self, name: &Atom, mg: &'a ModuleGraph) -> &'a ExportInfo {
     let exports_info = mg.get_exports_info_by_id(self);
     let redirect_id = exports_info.redirect_to;
@@ -379,7 +393,7 @@ impl ExportsInfoId {
     match name {
       UsedName::Str(name) => {
         let info = self.get_read_only_export_info(&name, mg);
-        info.get_used_name(&name, runtime).map(UsedName::Str)
+        info.get_used_name(Some(&name), runtime).map(UsedName::Str)
       }
       UsedName::Vec(names) => {
         if names.is_empty() {
@@ -389,7 +403,7 @@ impl ExportsInfoId {
           return Some(UsedName::Vec(names));
         }
         let export_info = self.get_read_only_export_info(&names[0], mg);
-        let x = export_info.get_used_name(&names[0], runtime);
+        let x = export_info.get_used_name(Some(&names[0]), runtime);
         let Some(x) = x else {
           return None;
         };
@@ -429,7 +443,7 @@ impl ExportsInfoId {
 
 #[derive(Debug)]
 pub struct ExportsInfo {
-  pub exports: HashMap<Atom, ExportInfoId>,
+  pub exports: BTreeMap<Atom, ExportInfoId>,
   pub other_exports_info: ExportInfoId,
   pub _side_effects_only_info: ExportInfoId,
   pub _exports_are_ordered: bool,
@@ -465,16 +479,102 @@ impl ExportsHash for ExportsInfo {
   }
 }
 
+pub enum ProvidedExports {
+  Null,
+  True,
+  Vec(Vec<Atom>),
+}
 impl ExportsInfo {
   pub fn new(other_exports_info: ExportInfoId, _side_effects_only_info: ExportInfoId) -> Self {
     Self {
-      exports: HashMap::default(),
+      exports: BTreeMap::default(),
       other_exports_info,
       _side_effects_only_info,
       _exports_are_ordered: false,
       redirect_to: None,
       id: ExportsInfoId::new(),
     }
+  }
+
+  pub fn get_provided_exports(&self, mg: &ModuleGraph) -> ProvidedExports {
+    if let Some(_redirect_to) = self.redirect_to {
+      match self.other_exports_info.get_export_info(mg).provided {
+        Some(ExportInfoProvided::Null) => {
+          return ProvidedExports::True;
+        }
+        Some(ExportInfoProvided::True) => {
+          return ProvidedExports::True;
+        }
+        None => {
+          return ProvidedExports::Null;
+        }
+        _ => {}
+      }
+    }
+    let mut ret = vec![];
+    for export_info_id in self.exports.values() {
+      let export_info = export_info_id.get_export_info(mg);
+      match export_info.provided {
+        Some(ExportInfoProvided::True) | Some(ExportInfoProvided::Null) | None => {
+          ret.push(export_info.name.clone().unwrap_or("".into()));
+        }
+        _ => {}
+      }
+    }
+    if let Some(id) = self.redirect_to {
+      let exports_info = id.get_exports_info(mg);
+      let provided_exports = exports_info.get_provided_exports(mg);
+      let inner = match provided_exports {
+        ProvidedExports::Null => return ProvidedExports::Null,
+        ProvidedExports::True => return ProvidedExports::True,
+        ProvidedExports::Vec(arr) => arr,
+      };
+      for item in inner {
+        if !ret.contains(&item) {
+          ret.push(item);
+        }
+      }
+    }
+    ProvidedExports::Vec(ret)
+  }
+
+  /// exports that are relevant (not unused and potential provided)
+  pub fn get_relevant_exports(
+    &self,
+    runtime: Option<&RuntimeSpec>,
+    mg: &ModuleGraph,
+  ) -> Vec<ExportInfoId> {
+    let mut list = vec![];
+    for export_info_id in self.exports.values() {
+      let export_info = export_info_id.get_export_info(mg);
+      let used = export_info.get_used(runtime);
+      if matches!(used, UsageState::Unused) {
+        continue;
+      }
+      if matches!(export_info.provided, Some(ExportInfoProvided::False)) {
+        continue;
+      }
+      list.push(*export_info_id);
+    }
+    if let Some(redirect_to) = self.redirect_to {
+      for id in redirect_to
+        .get_exports_info(mg)
+        .get_relevant_exports(runtime, mg)
+      {
+        let name = id.get_export_info(mg).name.as_ref();
+        if !self.exports.contains_key(name.unwrap_or(&"".into())) {
+          list.push(id);
+        }
+      }
+    }
+
+    let other_export_info = self.other_exports_info.get_export_info(mg);
+    if !matches!(other_export_info.provided, Some(ExportInfoProvided::False))
+      && other_export_info.get_used(runtime) != UsageState::Unused
+    {
+      list.push(self.other_exports_info);
+    }
+    list
   }
 
   /// only used for old version tree shaking
@@ -599,6 +699,15 @@ pub enum UsedName {
   Vec(Vec<Atom>),
 }
 
+impl UsedName {
+  pub fn to_used_name_vec(self) -> Vec<Atom> {
+    match self {
+      UsedName::Str(atom) => vec![atom],
+      UsedName::Vec(vec) => vec,
+    }
+  }
+}
+
 pub fn string_of_used_name(used: Option<&UsedName>) -> String {
   match used {
     Some(UsedName::Str(str)) => str.to_string(),
@@ -612,7 +721,7 @@ pub fn string_of_used_name(used: Option<&UsedName>) -> String {
 #[derive(Debug, Clone, Hash)]
 pub struct ExportInfoTargetValue {
   connection: Option<ModuleGraphConnection>,
-  exports: Option<Vec<Atom>>,
+  export: Option<Vec<Atom>>,
   priority: u8,
 }
 
@@ -734,7 +843,7 @@ impl ExportInfoId {
       .values()
       .map(|item| UnResolvedExportInfoTarget {
         connection: item.connection,
-        export: item.exports.clone(),
+        export: item.export.clone(),
       })
       .collect::<Vec<_>>();
     let target = ExportInfo::resolve_target(
@@ -853,7 +962,7 @@ impl ExportInfoId {
       .next()
       .expect("should have export info target"); // refer https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/ExportsInfo.js#L1388-L1394
     if original_target.connection.as_ref() == Some(&target.connection)
-      || original_target.exports == target.export
+      || original_target.export == target.export
     {
       return None;
     }
@@ -868,7 +977,7 @@ impl ExportInfoId {
       None,
       ExportInfoTargetValue {
         connection: updated_connection,
-        exports: target.export.clone(),
+        export: target.export.clone(),
         priority: 0,
       },
     );
@@ -956,6 +1065,86 @@ impl ExportInfoId {
 
   pub fn set_used_name(&self, mg: &mut ModuleGraph, name: Atom) {
     mg.get_export_info_mut_by_id(self).set_used_name(name)
+  }
+
+  pub(crate) fn find_target(
+    &self,
+    mg: &ModuleGraph,
+    valid_target_module_filter: Arc<impl Fn(&ModuleIdentifier) -> bool>,
+  ) -> FindTargetRetEnum {
+    self._find_target(mg, valid_target_module_filter, &mut HashSet::default())
+  }
+
+  pub(crate) fn _find_target(
+    &self,
+    mg: &ModuleGraph,
+    valid_target_module_filter: Arc<impl Fn(&ModuleIdentifier) -> bool>,
+    visited: &mut HashSet<ExportInfoId>,
+  ) -> FindTargetRetEnum {
+    let export_info = self.get_export_info(mg);
+    if !export_info.target_is_set || export_info.target.is_empty() {
+      return FindTargetRetEnum::Undefined;
+    }
+    let raw_target = export_info
+      .get_max_target_readonly()
+      .values()
+      .next()
+      .cloned();
+    let Some(raw_target) = raw_target else {
+      return FindTargetRetEnum::Undefined;
+    };
+    let mut target = FindTargetRetValue {
+      module: raw_target
+        .connection
+        .expect("should have connection")
+        .module_identifier,
+      export: raw_target.export,
+    };
+    loop {
+      if valid_target_module_filter(&target.module) {
+        return FindTargetRetEnum::Value(target);
+      }
+      let exports_info = mg.get_exports_info(&target.module);
+      let export_info = exports_info
+        .id
+        .get_read_only_export_info(&target.export.as_ref().expect("should have export")[0], mg);
+      if visited.contains(&export_info.id) {
+        return FindTargetRetEnum::Undefined;
+      }
+      visited.insert(export_info.id);
+      let new_target = export_info
+        .id
+        ._find_target(mg, valid_target_module_filter.clone(), visited);
+      let new_target = match new_target {
+        FindTargetRetEnum::Undefined => return FindTargetRetEnum::False,
+        FindTargetRetEnum::False => return FindTargetRetEnum::False,
+        FindTargetRetEnum::Value(target) => target,
+      };
+      if target.export.as_ref().map(|item| item.len()) == Some(1) {
+        target = new_target;
+      } else {
+        target = FindTargetRetValue {
+          module: new_target.module,
+          export: if let Some(export) = new_target.export {
+            Some(
+              [
+                export,
+                target
+                  .export
+                  .as_ref()
+                  .and_then(|export| export.get(1..).map(|slice| slice.to_vec()))
+                  .unwrap_or_default(),
+              ]
+              .concat(),
+            )
+          } else {
+            target
+              .export
+              .and_then(|export| export.get(1..).map(|slice| slice.to_vec()))
+          },
+        }
+      }
+    }
   }
 }
 impl Default for ExportInfoId {
@@ -1045,6 +1234,18 @@ pub struct ResolvedExportInfoTarget {
   connection: ModuleGraphConnection,
 }
 
+#[derive(Clone, Debug)]
+pub enum FindTargetRetEnum {
+  Undefined,
+  False,
+  Value(FindTargetRetValue),
+}
+#[derive(Clone, Debug)]
+pub struct FindTargetRetValue {
+  pub module: ModuleIdentifier,
+  pub export: Option<Vec<Atom>>,
+}
+
 #[derive(Debug, Clone)]
 struct UnResolvedExportInfoTarget {
   connection: Option<ModuleGraphConnection>,
@@ -1094,7 +1295,7 @@ impl ExportInfo {
                   k,
                   ExportInfoTargetValue {
                     connection: v.connection,
-                    exports: match v.exports {
+                    export: match v.export {
                       Some(vec) => Some(vec),
                       None => Some(vec![name
                         .clone()
@@ -1132,6 +1333,10 @@ impl ExportInfo {
       can_mangle_use,
       global_used,
     }
+  }
+
+  pub fn is_reexport(&self) -> bool {
+    !self.terminal_binding && self.target_is_set && !self.target.is_empty()
   }
 
   pub fn can_mangle(&self) -> Option<bool> {
@@ -1187,7 +1392,11 @@ impl ExportInfo {
 
   /// Webpack returns `false | string`, we use `Option<Atom>` to avoid declare a redundant enum
   /// type
-  pub fn get_used_name(&self, fallback_name: &Atom, runtime: Option<&RuntimeSpec>) -> Option<Atom> {
+  pub fn get_used_name(
+    &self,
+    fallback_name: Option<&Atom>,
+    runtime: Option<&RuntimeSpec>,
+  ) -> Option<Atom> {
     if self.has_use_in_runtime_info {
       if let Some(usage) = self.global_used {
         if matches!(usage, UsageState::Unused) {
@@ -1212,7 +1421,7 @@ impl ExportInfo {
     if let Some(name) = self.name.as_ref() {
       Some(name.clone())
     } else {
-      Some(fallback_name.clone())
+      fallback_name.cloned()
     }
   }
 
@@ -1235,6 +1444,11 @@ impl ExportInfo {
         _ => false,
       }
     }
+  }
+
+  fn get_max_target_readonly(&self) -> &HashMap<Option<DependencyId>, ExportInfoTargetValue> {
+    assert!(self.max_target_is_set);
+    &self.max_target
   }
 
   fn get_max_target(&mut self) -> &HashMap<Option<DependencyId>, ExportInfoTargetValue> {
@@ -1263,6 +1477,8 @@ impl ExportInfo {
         map.insert(*k, v.clone());
       }
     }
+    self.max_target_is_set = true;
+    self.max_target = map;
     &self.max_target
   }
 
@@ -1362,7 +1578,7 @@ impl ExportInfo {
         key,
         ExportInfoTargetValue {
           connection,
-          exports: export_name.cloned(),
+          export: export_name.cloned(),
           priority: normalized_priority,
         },
       );
@@ -1378,7 +1594,7 @@ impl ExportInfo {
         key,
         ExportInfoTargetValue {
           connection,
-          exports: Some(export_name.cloned().unwrap_or_default()),
+          export: Some(export_name.cloned().unwrap_or_default()),
           priority: normalized_priority,
         },
       );
@@ -1388,9 +1604,9 @@ impl ExportInfo {
     };
     if old_target.connection != connection
       || old_target.priority != normalized_priority
-      || old_target.exports.as_ref() != export_name
+      || old_target.export.as_ref() != export_name
     {
-      old_target.exports = export_name.cloned();
+      old_target.export = export_name.cloned();
       old_target.priority = normalized_priority;
       old_target.connection = connection;
       self.max_target.clear();

@@ -42,7 +42,7 @@ impl From<InnerGraphMapUsage> for InnerGraphMapSetValue {
 }
 
 impl InnerGraphMapSetValue {
-  fn to_jsword(&self) -> &Atom {
+  fn to_atom(&self) -> &Atom {
     match self {
       InnerGraphMapSetValue::TopLevel(v) => v,
       InnerGraphMapSetValue::Str(v) => v,
@@ -773,8 +773,7 @@ impl<'a> InnerGraphPlugin<'a> {
         let used_by_exports = if let Some(usage) = usage {
           match usage {
             InnerGraphMapValue::Set(set) => {
-              let finalized_set =
-                HashSet::from_iter(set.iter().map(|item| item.to_jsword().clone()));
+              let finalized_set = HashSet::from_iter(set.iter().map(|item| item.to_atom().clone()));
               UsedByExports::Set(finalized_set)
             }
             InnerGraphMapValue::True => UsedByExports::Bool(true),

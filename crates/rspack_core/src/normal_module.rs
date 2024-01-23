@@ -28,8 +28,8 @@ use serde_json::json;
 use crate::{
   add_connection_states, contextify, diagnostics::ModuleBuildError, get_context,
   impl_build_info_meta, AsyncDependenciesBlockId, BoxLoader, BoxModule, BuildContext, BuildInfo,
-  BuildMeta, BuildResult, CodeGenerationResult, Compilation, ConnectionState, Context,
-  DependenciesBlock, DependencyId, DependencyTemplate, GenerateContext, GeneratorOptions,
+  BuildMeta, BuildResult, CodeGenerationResult, Compilation, ConcatenationScope, ConnectionState,
+  Context, DependenciesBlock, DependencyId, DependencyTemplate, GenerateContext, GeneratorOptions,
   LibIdentOptions, Module, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType,
   ParseContext, ParseResult, ParserAndGenerator, ParserOptions, Resolve, RspackLoaderRunnerPlugin,
   RuntimeSpec, SourceType,
@@ -316,6 +316,11 @@ impl Module for NormalModule {
     &self.module_type
   }
 
+  fn get_diagnostics(&self) -> Vec<Diagnostic> {
+    let guard = self.diagnostics.lock().expect("should have diagnostics");
+    guard.clone()
+  }
+
   fn source_types(&self) -> &[SourceType] {
     self.parser_and_generator.source_types()
   }
@@ -338,7 +343,11 @@ impl Module for NormalModule {
     }
   }
 
-  async fn build(&mut self, build_context: BuildContext<'_>) -> Result<BuildResult> {
+  async fn build(
+    &mut self,
+    build_context: BuildContext<'_>,
+    _compilation: Option<&Compilation>,
+  ) -> Result<BuildResult> {
     self.clear_diagnostics();
 
     let mut build_info = BuildInfo::default();
@@ -458,6 +467,7 @@ impl Module for NormalModule {
     &self,
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
+    mut concatenation_scope: Option<ConcatenationScope>,
   ) -> Result<CodeGenerationResult> {
     if let NormalModuleSource::BuiltSucceed(source) = &self.source {
       let mut code_generation_result = CodeGenerationResult::default();
@@ -472,6 +482,7 @@ impl Module for NormalModule {
             data: &mut code_generation_result.data,
             requested_source_type: *source_type,
             runtime,
+            concatenation_scope: concatenation_scope.as_mut(),
           },
         )?;
         code_generation_result.add(*source_type, CachedSource::new(generation_result).boxed());
@@ -481,6 +492,7 @@ impl Module for NormalModule {
         &compilation.options.output.hash_digest,
         &compilation.options.output.hash_salt,
       );
+      code_generation_result.concatenation_scope = concatenation_scope;
       Ok(code_generation_result)
     } else if let NormalModuleSource::BuiltFailed(error_message) = &self.source {
       let mut code_generation_result = CodeGenerationResult::default();

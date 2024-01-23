@@ -2,7 +2,7 @@ use std::borrow::Cow;
 use std::hash::Hash;
 
 use rspack_core_macros::impl_source_map_config;
-use rspack_error::{impl_empty_diagnosable_trait, Result};
+use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_identifier::Identifiable;
 use rspack_sources::{BoxSource, RawSource, Source, SourceExt};
@@ -13,6 +13,7 @@ use crate::{
   BuildMeta, BuildResult, CodeGenerationResult, Context, DependenciesBlock, DependencyId, Module,
   ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
 };
+use crate::{Compilation, ConcatenationScope};
 
 #[impl_source_map_config]
 #[derive(Debug)]
@@ -79,6 +80,10 @@ impl DependenciesBlock for RawModule {
 impl Module for RawModule {
   impl_build_info_meta!();
 
+  fn get_diagnostics(&self) -> Vec<Diagnostic> {
+    vec![]
+  }
+
   fn module_type(&self) -> &ModuleType {
     &ModuleType::Js
   }
@@ -99,7 +104,11 @@ impl Module for RawModule {
     f64::max(1.0, self.source.size() as f64)
   }
 
-  async fn build(&mut self, build_context: BuildContext<'_>) -> Result<BuildResult> {
+  async fn build(
+    &mut self,
+    build_context: BuildContext<'_>,
+    _: Option<&Compilation>,
+  ) -> Result<BuildResult> {
     let mut hasher = RspackHash::from(&build_context.compiler_options.output);
     self.update_hash(&mut hasher);
     Ok(BuildResult {
@@ -117,6 +126,7 @@ impl Module for RawModule {
     &self,
     compilation: &crate::Compilation,
     _runtime: Option<&RuntimeSpec>,
+    _: Option<ConcatenationScope>,
   ) -> Result<CodeGenerationResult> {
     let mut cgr = CodeGenerationResult::default();
     cgr.runtime_requirements.insert(self.runtime_requirements);

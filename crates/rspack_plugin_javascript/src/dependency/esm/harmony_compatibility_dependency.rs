@@ -19,8 +19,12 @@ impl DependencyTemplate for HarmonyCompatibilityDependency {
       init_fragments,
       compilation,
       module,
+      concatenation_scope,
       ..
     } = code_generatable_context;
+    if concatenation_scope.is_some() {
+      return;
+    }
     let module = compilation
       .module_graph
       .module_by_identifier(&module.identifier())

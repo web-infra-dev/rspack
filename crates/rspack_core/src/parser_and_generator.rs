@@ -7,6 +7,7 @@ use rspack_loader_runner::{AdditionalData, ResourceData};
 use rspack_sources::BoxSource;
 use rspack_util::source_map::SourceMapKind;
 
+use crate::ConcatenationScope;
 use crate::{
   tree_shaking::visitor::OptimizeAnalyzeResult, AsyncDependenciesBlock, BoxDependency, BoxLoader,
   BuildExtraDataType, BuildInfo, BuildMeta, CodeGenerationData, Compilation, CompilerOptions,
@@ -50,6 +51,7 @@ pub struct GenerateContext<'a> {
   pub data: &'a mut CodeGenerationData,
   pub requested_source_type: SourceType,
   pub runtime: Option<&'a RuntimeSpec>,
+  pub concatenation_scope: Option<&'a mut ConcatenationScope>,
 }
 
 pub trait ParserAndGenerator: Send + Sync + Debug {

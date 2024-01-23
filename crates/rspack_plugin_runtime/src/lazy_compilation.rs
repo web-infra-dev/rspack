@@ -5,9 +5,10 @@ use async_trait::async_trait;
 use rspack_core::{
   impl_build_info_meta, impl_source_map_config,
   rspack_sources::{RawSource, Source, SourceExt},
-  AsyncDependenciesBlockId, BuildInfo, BuildMeta, Compilation, DependenciesBlock, DependencyId,
-  Module, ModuleType, NormalModuleCreateData, Plugin, PluginContext,
-  PluginNormalModuleFactoryCreateModuleHookOutput, RuntimeGlobals, RuntimeSpec, SourceType,
+  AsyncDependenciesBlockId, BuildInfo, BuildMeta, Compilation, ConcatenationScope,
+  DependenciesBlock, DependencyId, Module, ModuleType, NormalModuleCreateData, Plugin,
+  PluginContext, PluginNormalModuleFactoryCreateModuleHookOutput, RuntimeGlobals, RuntimeSpec,
+  SourceType,
 };
 use rspack_core::{CodeGenerationResult, Context, ModuleIdentifier};
 use rspack_error::{impl_empty_diagnosable_trait, Result};
@@ -55,7 +56,9 @@ impl Module for LazyCompilationProxyModule {
   fn original_source(&self) -> Option<&dyn Source> {
     None
   }
-
+  fn get_diagnostics(&self) -> Vec<rspack_error::Diagnostic> {
+    vec![]
+  }
   fn readable_identifier(&self, context: &Context) -> Cow<str> {
     Cow::Owned(context.shorten(&self.identifier()))
   }
@@ -68,6 +71,7 @@ impl Module for LazyCompilationProxyModule {
     &self,
     compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
+    _: Option<ConcatenationScope>,
   ) -> Result<CodeGenerationResult> {
     let mut cgr = CodeGenerationResult::default();
     cgr.runtime_requirements.insert(RuntimeGlobals::LOAD_SCRIPT);

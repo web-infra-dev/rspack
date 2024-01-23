@@ -254,6 +254,10 @@ impl Dependency for HarmonyImportSideEffectDependency {
     self.span
   }
 
+  fn source_order(&self) -> Option<i32> {
+    Some(self.source_order)
+  }
+
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::Esm
   }
@@ -334,6 +338,20 @@ impl DependencyTemplate for HarmonyImportSideEffectDependency {
     _source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
+    let TemplateContext {
+      compilation,
+      concatenation_scope,
+      ..
+    } = code_generatable_context;
+    if let Some(scope) = concatenation_scope {
+      let module = compilation
+        .module_graph
+        .get_module(&self.id)
+        .expect("should have module");
+      if scope.is_module_in_scope(&module.identifier()) {
+        return;
+      }
+    }
     harmony_import_dependency_apply(
       self,
       self.source_order,

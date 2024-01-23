@@ -6,7 +6,7 @@ use rspack_core::{
 };
 use rspack_plugin_javascript::{
   FlagDependencyExportsPlugin, FlagDependencyUsagePlugin, MangleExportsPlugin,
-  SideEffectsFlagPlugin,
+  ModuleConcatenationPlugin, SideEffectsFlagPlugin,
 };
 use rspack_testing::test_fixture;
 use testing_macros::fixture;
@@ -31,6 +31,9 @@ fn samples(fixture_path: PathBuf) {
         options.optimization.used_exports = UsedExportsOption::Global;
         plugins.push(Box::<FlagDependencyExportsPlugin>::default());
         plugins.push(FlagDependencyUsagePlugin::new(is_used_exports_global(options)).boxed());
+        if options.optimization.side_effects.is_enable() {
+          plugins.push(Box::<SideEffectsFlagPlugin>::default());
+        }
         if options.optimization.mangle_exports.is_enable() {
           plugins.push(
             MangleExportsPlugin::new(!matches!(
@@ -39,6 +42,9 @@ fn samples(fixture_path: PathBuf) {
             ))
             .boxed(),
           );
+        }
+        if options.optimization.concatenate_modules {
+          plugins.push(Box::new(ModuleConcatenationPlugin));
         }
       },
     ),

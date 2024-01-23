@@ -3,7 +3,7 @@ use std::hash::Hash;
 
 use async_trait::async_trait;
 use rspack_core_macros::impl_source_map_config;
-use rspack_error::{impl_empty_diagnosable_trait, Result};
+use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
 use rspack_sources::Source;
@@ -11,8 +11,8 @@ use rspack_util::source_map::SourceMapKind;
 
 use crate::{
   impl_build_info_meta, AsyncDependenciesBlockId, BuildContext, BuildInfo, BuildMeta, BuildResult,
-  ChunkUkey, CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId,
-  LibIdentOptions, Module, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
+  ChunkUkey, CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock,
+  DependencyId, LibIdentOptions, Module, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
 };
 
 #[impl_source_map_config]
@@ -69,6 +69,10 @@ impl DependenciesBlock for SelfModule {
 impl Module for SelfModule {
   impl_build_info_meta!();
 
+  fn get_diagnostics(&self) -> Vec<Diagnostic> {
+    vec![]
+  }
+
   fn size(&self, _source_type: &SourceType) -> f64 {
     self.identifier.len() as f64
   }
@@ -97,7 +101,11 @@ impl Module for SelfModule {
     None
   }
 
-  async fn build(&mut self, build_context: BuildContext<'_>) -> Result<BuildResult> {
+  async fn build(
+    &mut self,
+    build_context: BuildContext<'_>,
+    _: Option<&Compilation>,
+  ) -> Result<BuildResult> {
     let mut hasher = RspackHash::from(&build_context.compiler_options.output);
     self.update_hash(&mut hasher);
 
@@ -121,6 +129,7 @@ impl Module for SelfModule {
     &self,
     _compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
+    _: Option<ConcatenationScope>,
   ) -> Result<CodeGenerationResult> {
     Ok(CodeGenerationResult::default())
   }

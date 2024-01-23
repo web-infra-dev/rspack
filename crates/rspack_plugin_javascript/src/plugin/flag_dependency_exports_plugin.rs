@@ -277,7 +277,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
       }
 
       // shadowing the previous `export_info_mut` to reduce the mut borrow life time,
-      // cause `create_nested_exports_info` needs `&mut ModuleGraph`
+      // because `create_nested_exports_info` needs `&mut ModuleGraph`
       let export_info_mut = export_info_id.get_export_info_mut(self.mg);
       if let Some(from) = from {
         let changed = if hidden {
