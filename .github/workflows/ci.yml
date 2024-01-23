@@ -69,7 +69,7 @@ jobs:
     name: Check license of dependencies
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Install cargo-deny
         uses: baptiste0928/cargo-install@v2
         with:
@@ -83,7 +83,7 @@ jobs:
     name: Spell check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - uses: crate-ci/typos@master
         with:
@@ -93,7 +93,7 @@ jobs:
     name: Lint JS
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - uses: dorny/paths-filter@v2
         id: changes
@@ -116,7 +116,7 @@ jobs:
     outputs:
       changed: ${{ steps.filter.outputs.changed }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - uses: dorny/paths-filter@v2
         id: filter
@@ -133,7 +133,7 @@ jobs:
     name: Pnpm Lockfile Check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Pnpm Cache # Required by some tests
         uses: ./.github/actions/pnpm-cache
@@ -146,7 +146,7 @@ jobs:
     if: ${{ needs.rust_changes.outputs.changed == 'true' }}
     runs-on: ${{ fromJSON(needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS) }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup
@@ -176,7 +176,7 @@ jobs:
     if: ${{ needs.rust_changes.outputs.changed == 'true' }}
     runs-on: ${{ fromJSON(needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS) }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Pnpm Cache # Required by some tests
         uses: ./.github/actions/pnpm-cache
@@ -218,8 +218,8 @@ jobs:
     if: ${{ failure() && !cancelled() && github.ref_name == 'main' && github.repository_owner == 'web-infra-dev' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 18
       - shell: bash

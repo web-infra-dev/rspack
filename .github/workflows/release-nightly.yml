@@ -50,7 +50,7 @@ jobs:
     needs: build
     steps:
       - name: Checkout Main Branch
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Pnpm Cache
         uses: ./.github/actions/pnpm-cache
@@ -92,7 +92,7 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ github.repository_owner == 'web-infra-dev' && success() }}
     steps:
-      - uses: actions/github-script@v6
+      - uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.ECOSYSTEM_CI_ACCESS_TOKEN }}
           script: |
@@ -118,8 +118,8 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ github.repository_owner == 'web-infra-dev' && failure() && !cancelled() }}
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 18
       - shell: bash
