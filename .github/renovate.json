@@ -16,7 +16,7 @@
     },
     {
       "groupName": "cargo",
-      "matchManagers": ["github-actions"],
+      "matchManagers": ["cargo"],
       "schedule": ["on wednesday"],
       "assignees": ["@Boshen"],
       "excludePackagePatterns": ["swc"]
