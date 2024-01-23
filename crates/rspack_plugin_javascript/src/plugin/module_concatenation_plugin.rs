@@ -20,42 +20,6 @@ fn format_bailout_reason(msg: &str) -> String {
   format!("ModuleConcatenation bailout: {}", msg)
 }
 
-/**
-* 			/**
-      * @param {Module} module the module
-      * @param {Module | function(RequestShortener): string} problem the problem
-      * @returns {(requestShortener: RequestShortener) => string} the reason
-      */
-     const formatBailoutWarning = (module, problem) => requestShortener => {
-       if (typeof problem === "function") {
-         return formatBailoutReason(
-           `Cannot concat with ${module.readableIdentifier(
-             requestShortener
-           )}: ${problem(requestShortener)}`
-         );
-       }
-       const reason = getInnerBailoutReason(module, requestShortener);
-       const reasonWithPrefix = reason ? `: ${reason}` : "";
-       if (module === problem) {
-         return formatBailoutReason(
-           `Cannot concat with ${module.readableIdentifier(
-             requestShortener
-           )}${reasonWithPrefix}`
-         );
-       } else {
-         return formatBailoutReason(
-           `Cannot concat with ${module.readableIdentifier(
-             requestShortener
-           )} because of ${problem.readableIdentifier(
-             requestShortener
-           )}${reasonWithPrefix}`
-         );
-       }
-     };
-
-*
-*/
-
 #[derive(Clone)]
 enum Warning {
   Id(ModuleIdentifier),
