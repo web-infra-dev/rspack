@@ -13,10 +13,13 @@ use crate::{
   cache::Cache, BuildTimeExecutionOption, BuildTimeExecutionTask, Chunk, ChunkByUkey, ChunkGraph,
   ChunkKind, CodeGenerationDataAssetInfo, CodeGenerationDataFilename, CodeGenerationResult,
   CompilerOptions, Dependency, EntryOptions, Entrypoint, ExecuteModuleResult, FactorizeTask,
-  LoaderImportDependency, ModuleIdentifier, NormalModuleFactory, QueueHandler, QueueTask,
-  ResolverFactory, SharedPluginDriver, SourceType,
+  LoaderImportDependency, ModuleIdentifier, NormalModuleFactory, ResolverFactory,
+  SharedPluginDriver, SourceType,
 };
-use crate::{Compilation, CompilationAsset};
+use crate::{
+  BuildTimeExecutionQueueHandler, Compilation, CompilationAsset, FactorizeQueueHandler,
+  ProcessDependenciesQueueHandler,
+};
 use crate::{Context, RuntimeModule};
 
 static EXECUTE_MODULE_ID: AtomicU32 = AtomicU32::new(0);
@@ -258,7 +261,15 @@ impl Compilation {
   ) -> Result<ExecuteModuleResult> {
     Self::import_module_impl(
       self
-        .queue_handle
+        .factorize_queue
+        .clone()
+        .expect("call import module without queueHandler"),
+      self
+        .process_dependencies_queue
+        .clone()
+        .expect("call import module without queueHandler"),
+      self
+        .build_time_execution_queue
         .clone()
         .expect("call import module without queueHandler"),
       self.resolver_factory.clone(),
@@ -277,7 +288,9 @@ impl Compilation {
   #[allow(clippy::too_many_arguments)]
   #[instrument(name = "compilation::import_module_impl")]
   pub async fn import_module_impl(
-    queue_handler: QueueHandler,
+    factorize_queue: FactorizeQueueHandler,
+    process_dependencies_queue: ProcessDependenciesQueueHandler,
+    build_time_execution_queue: BuildTimeExecutionQueueHandler,
     resolver_factory: Arc<ResolverFactory>,
     options: Arc<CompilerOptions>,
     plugin_driver: SharedPluginDriver,
@@ -296,7 +309,7 @@ impl Compilation {
 
     let tx_clone = tx.clone();
 
-    queue_handler.add_task(crate::QueueTask::Factorize(Box::new(FactorizeTask {
+    factorize_queue.add_task(FactorizeTask {
       module_factory: Arc::new(NormalModuleFactory::new(
         options.clone(),
         resolver_factory.clone(),
@@ -324,7 +337,7 @@ impl Compilation {
           .send((m.identifier(), None))
           .expect("failed to send entry module of buildtime execution modules")
       })),
-    })))?;
+    });
 
     let mut to_be_completed = 0;
     let mut completed = 0;
@@ -355,8 +368,8 @@ impl Compilation {
         while let Some(module) = waited.pop() {
           let tx_clone = tx.clone();
 
-          queue_handler.wait_for(
-            crate::WaitTask::ProcessDependencies(module),
+          process_dependencies_queue.wait_for(
+            module,
             Box::new(move |module, compilation| {
               let m = compilation
                 .module_graph
@@ -390,17 +403,15 @@ impl Compilation {
 
     let (tx, mut rx) = unbounded_channel();
 
-    queue_handler.add_task(QueueTask::BuildTimeExecution(Box::new(
-      BuildTimeExecutionTask {
-        module: entry.expect("should has entry module"),
-        request,
-        options: BuildTimeExecutionOption {
-          public_path,
-          base_uri,
-        },
-        sender: tx,
+    build_time_execution_queue.add_task(BuildTimeExecutionTask {
+      module: entry.expect("should has entry module"),
+      request,
+      options: BuildTimeExecutionOption {
+        public_path,
+        base_uri,
       },
-    )))?;
+      sender: tx,
+    });
 
     rx.recv().await.unwrap_or_else(|| {
       Err(

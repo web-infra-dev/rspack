@@ -5,8 +5,9 @@ use rspack_util::source_map::SourceMapKind;
 use rustc_hash::FxHashSet;
 
 use crate::{
-  cache::Cache, Compilation, CompilerOptions, Context, ModuleIdentifier, QueueHandler,
-  ResolverFactory, SharedPluginDriver,
+  cache::Cache, AddQueueHandler, BuildQueueHandler, BuildTimeExecutionQueueHandler, Compilation,
+  CompilerOptions, Context, FactorizeQueueHandler, ModuleIdentifier,
+  ProcessDependenciesQueueHandler, ResolverFactory, SharedPluginDriver,
 };
 
 #[derive(Debug, Clone)]
@@ -17,7 +18,11 @@ pub struct CompilerContext {
   pub module_context: Option<Box<Context>>, // current module context
   pub module_source_map_kind: SourceMapKind,
 
-  pub queue_handler: Option<QueueHandler>,
+  pub factorize_queue: Option<FactorizeQueueHandler>,
+  pub add_queue: Option<AddQueueHandler>,
+  pub build_queue: Option<BuildQueueHandler>,
+  pub process_dependencies_queue: Option<ProcessDependenciesQueueHandler>,
+  pub build_time_execution_queue: Option<BuildTimeExecutionQueueHandler>,
   pub plugin_driver: SharedPluginDriver,
   pub cache: Arc<Cache>,
 }
@@ -39,14 +44,22 @@ impl CompilerContext {
     public_path: Option<String>,
     base_uri: Option<String>,
   ) -> rspack_error::Result<ExecuteModuleResult> {
-    if self.queue_handler.is_none() {
+    if self.factorize_queue.is_none() {
       return Err(rspack_error::error!(
         "use import_module without queue_handler"
       ));
     }
 
     Compilation::import_module_impl(
-      self.queue_handler.clone().expect("unreachable"),
+      self.factorize_queue.clone().expect("unreachable"),
+      self
+        .process_dependencies_queue
+        .clone()
+        .expect("unreachable"),
+      self
+        .build_time_execution_queue
+        .clone()
+        .expect("unreachable"),
       self.resolver_factory.clone(),
       self.options.clone(),
       self.plugin_driver.clone(),
