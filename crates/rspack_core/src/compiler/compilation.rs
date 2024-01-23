@@ -34,16 +34,16 @@ use crate::{
   tree_shaking::{optimizer, visitor::SymbolRef, BailoutFlag, OptimizeDependencyResult},
   AddQueue, AddTask, AddTaskResult, AdditionalChunkRuntimeRequirementsArgs,
   AdditionalModuleRequirementsArgs, AsyncDependenciesBlock, BoxDependency, BoxModule, BuildQueue,
-  BuildTask, BuildTaskResult, CacheCount, CacheOptions, Chunk, ChunkByUkey, ChunkContentHash,
-  ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkHashArgs, ChunkKind, ChunkUkey, CleanQueue,
-  CleanTask, CleanTaskResult, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
-  CompilationLogging, CompilerOptions, ContentHashArgs, ContextDependency, DependencyId,
-  DependencyParents, DependencyType, Entry, EntryData, EntryOptions, Entrypoint, ErrorSpan,
-  FactorizeQueue, FactorizeTask, FactorizeTaskResult, Filename, Logger, Module,
-  ModuleCreationCallback, ModuleFactory, ModuleFactoryResult, ModuleGraph, ModuleGraphModule,
-  ModuleIdentifier, ModuleProfile, NormalModuleSource, PathData, ProcessAssetsArgs,
-  ProcessDependenciesQueue, ProcessDependenciesResult, ProcessDependenciesTask, QueueHandler,
-  RenderManifestArgs, Resolve, ResolverFactory, RuntimeGlobals, RuntimeModule,
+  BuildTask, BuildTaskResult, BuildTimeExecutionQueue, BuildTimeExecutionTask, CacheCount,
+  CacheOptions, Chunk, ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey,
+  ChunkHashArgs, ChunkKind, ChunkUkey, CleanQueue, CleanTask, CleanTaskResult,
+  CodeGenerationResults, CompilationLogger, CompilationLogging, CompilerOptions, ContentHashArgs,
+  ContextDependency, DependencyId, DependencyParents, DependencyType, Entry, EntryData,
+  EntryOptions, Entrypoint, ErrorSpan, FactorizeQueue, FactorizeTask, FactorizeTaskResult,
+  Filename, Logger, Module, ModuleCreationCallback, ModuleFactory, ModuleFactoryResult,
+  ModuleGraph, ModuleGraphModule, ModuleIdentifier, ModuleProfile, NormalModuleSource, PathData,
+  ProcessAssetsArgs, ProcessDependenciesQueue, ProcessDependenciesResult, ProcessDependenciesTask,
+  QueueHandler, RenderManifestArgs, Resolve, ResolverFactory, RuntimeGlobals, RuntimeModule,
   RuntimeRequirementsInTreeArgs, RuntimeSpec, SharedPluginDriver, SourceType, Stats, TaskResult,
   WorkerTask,
 };
@@ -538,6 +538,7 @@ impl Compilation {
     let mut add_queue = AddQueue::new();
     let mut build_queue = BuildQueue::new();
     let mut process_dependencies_queue = ProcessDependenciesQueue::new();
+    let mut buildtime_execution_queue = BuildTimeExecutionQueue::new();
 
     let mut make_failed_dependencies: HashSet<BuildDependency> = HashSet::default();
     let mut make_failed_module: HashSet<ModuleIdentifier> = HashSet::default();
@@ -577,6 +578,7 @@ impl Compilation {
           parent_module
             .and_then(|m| m.as_normal_module())
             .and_then(|module| module.name_for_condition()),
+          true,
           None,
         );
       });
@@ -585,6 +587,7 @@ impl Compilation {
     let mut process_deps_time = logger.time_aggregate("module process dependencies task");
     let mut factorize_time = logger.time_aggregate("module factorize task");
     let mut build_time = logger.time_aggregate("module build task");
+    let mut buildtime_execution_time = logger.time_aggregate("buildtime execution task");
 
     let mut build_cache_counter = None;
     let mut factorize_cache_counter = None;
@@ -602,13 +605,18 @@ impl Compilation {
         &mut add_queue,
         &mut build_queue,
         &mut process_dependencies_queue,
+        &mut buildtime_execution_queue,
       );
 
       while let Some(task) = factorize_queue.get_task() {
+        active_task_count += 1;
+
+        // TODO: change when we insert dependency to module_graph
+        self.module_graph.add_dependency(task.dependency.clone());
+
         tokio::spawn({
           let result_tx = result_tx.clone();
           let is_expected_shutdown = is_expected_shutdown.clone();
-          active_task_count += 1;
 
           async move {
             if is_expected_shutdown.load(Ordering::SeqCst) {
@@ -628,10 +636,10 @@ impl Compilation {
 
       let start = build_time.start();
       while let Some(task) = build_queue.get_task() {
+        active_task_count += 1;
         tokio::spawn({
           let result_tx = result_tx.clone();
           let is_expected_shutdown = is_expected_shutdown.clone();
-          active_task_count += 1;
 
           async move {
             if is_expected_shutdown.load(Ordering::SeqCst) {
@@ -714,6 +722,7 @@ impl Compilation {
             module
               .as_normal_module()
               .and_then(|module| module.name_for_condition()),
+            true,
             Some(Box::new(move |_| {
               tx.send(())
                 .expect("Failed to send callback to process_dependencies");
@@ -743,6 +752,23 @@ impl Compilation {
         });
       }
       process_deps_time.end(start);
+
+      let start = buildtime_execution_time.start();
+      while let Some(task) = buildtime_execution_queue.get_task() {
+        let BuildTimeExecutionTask {
+          module,
+          request,
+          options,
+          sender,
+        } = task;
+
+        if let Err(e) = self.execute_module(module, &request, options, sender.clone()) {
+          result_tx
+            .send(Err(e))
+            .expect("failed to send error message");
+        };
+      }
+      buildtime_execution_time.end(start);
 
       match result_rx.try_recv() {
         Ok(item) => {
@@ -797,6 +823,7 @@ impl Compilation {
                 missing_dependencies,
                 diagnostics,
                 callback,
+                connect_origin,
                 ..
               } = task_result;
               if !diagnostics.is_empty() {
@@ -858,6 +885,7 @@ impl Compilation {
                     is_entry,
                     current_profile,
                     callback,
+                    connect_origin,
                   });
                   tracing::trace!("Module created: {}", &module_identifier);
                 } else {
@@ -888,6 +916,7 @@ impl Compilation {
                   plugin_driver: self.plugin_driver.clone(),
                   cache: self.cache.clone(),
                   current_profile,
+                  queue_handler: self.queue_handle.clone(),
                 });
               }
               AddTaskResult::ModuleReused { module, .. } => {
@@ -1197,6 +1226,7 @@ impl Compilation {
     resolve_options: Option<Box<Resolve>>,
     lazy_visit_modules: std::collections::HashSet<String>,
     issuer: Option<Box<str>>,
+    connect_origin: bool,
     callback: Option<ModuleCreationCallback>,
   ) {
     let current_profile = self.options.profile.then(Box::<ModuleProfile>::default);
@@ -1228,12 +1258,13 @@ impl Compilation {
       plugin_driver: self.plugin_driver.clone(),
       cache: self.cache.clone(),
       current_profile,
+      connect_origin,
       callback,
     });
   }
 
   #[instrument(name = "compilation:code_generation", skip(self))]
-  async fn code_generation(&mut self) -> Result<()> {
+  fn code_generation(&mut self) -> Result<()> {
     let logger = self.get_logger("rspack.Compilation");
     let mut codegen_cache_counter = match self.options.cache {
       CacheOptions::Disabled => None,
@@ -1249,83 +1280,25 @@ impl Compilation {
       // Else, share same codegen result for all runtimes.
       let used_exports_optimization = compilation.options.is_new_tree_shaking()
         && compilation.options.optimization.used_exports.is_true();
-      let results = compilation
-        .module_graph
-        .modules()
-        .par_iter()
-        .filter(filter_op)
-        .filter_map(|(module_identifier, module)| {
-          let runtimes = compilation
-            .chunk_graph
-            .get_module_runtimes(*module_identifier, &compilation.chunk_by_ukey);
-          if runtimes.is_empty() {
-            return None;
-          }
+      let results = compilation.code_generation_modules(
+        codegen_cache_counter,
+        used_exports_optimization,
+        compilation
+          .module_graph
+          .modules()
+          .iter()
+          .filter(filter_op)
+          .map(|(id, _)| *id)
+          .collect::<Vec<_>>()
+          .into_par_iter(),
+      )?;
 
-          let res = compilation
-            .cache
-            .code_generate_occasion
-            .use_cache(module, runtimes, compilation, |module, runtimes| {
-              let take_length = if used_exports_optimization {
-                runtimes.len()
-              } else {
-                // Only codegen once
-                1
-              };
-              let mut codegen_list = vec![];
-              for runtime in runtimes.into_values().take(take_length) {
-                codegen_list.push((
-                  module.code_generation(compilation, Some(&runtime), None)?,
-                  runtime,
-                ));
-              }
-              Ok(codegen_list)
-            })
-            .map(|(result, from_cache)| (*module_identifier, result, from_cache));
-          Some(res)
-        })
-        .collect::<Result<
-          Vec<(
-            ModuleIdentifier,
-            Vec<(CodeGenerationResult, RuntimeSpec)>,
-            bool,
-          )>,
-        >>()?;
-      results
-        .into_iter()
-        .for_each(|(module_identifier, item, from_cache)| {
-          item.into_iter().for_each(|(result, runtime)| {
-            if let Some(counter) = codegen_cache_counter {
-              if from_cache {
-                counter.hit();
-              } else {
-                counter.miss();
-              }
-            }
-            compilation.code_generated_modules.insert(module_identifier);
+      results.iter().for_each(|module_identifier| {
+        compilation
+          .code_generated_modules
+          .insert(*module_identifier);
+      });
 
-            let runtimes = compilation
-              .chunk_graph
-              .get_module_runtimes(module_identifier, &compilation.chunk_by_ukey);
-            let result_id = result.id;
-            compilation
-              .code_generation_results
-              .module_generation_result_map
-              .insert(result.id, result);
-            if used_exports_optimization {
-              compilation
-                .code_generation_results
-                .add(module_identifier, runtime, result_id);
-            } else {
-              for runtime in runtimes.into_values() {
-                compilation
-                  .code_generation_results
-                  .add(module_identifier, runtime, result_id);
-              }
-            }
-          })
-        });
-      // dbg!(&compilation.code_generation_results.map);
       Ok(())
     }
 
@@ -1342,6 +1315,81 @@ impl Compilation {
     }
 
     Ok(())
+  }
+
+  pub(crate) fn code_generation_modules(
+    &mut self,
+    codegen_cache_counter: &mut Option<CacheCount>,
+    used_exports_optimization: bool,
+    modules: impl ParallelIterator<Item = ModuleIdentifier>,
+  ) -> Result<Vec<ModuleIdentifier>> {
+    let chunk_graph = &self.chunk_graph;
+    #[allow(clippy::type_complexity)]
+    let results = modules
+      .filter_map(|module_identifier| {
+        let runtimes = chunk_graph.get_module_runtimes(module_identifier, &self.chunk_by_ukey);
+        if runtimes.is_empty() {
+          return None;
+        }
+
+        let module = self
+          .module_graph
+          .module_by_identifier(&module_identifier)
+          .expect("module should exist");
+        let res = self
+          .cache
+          .code_generate_occasion
+          .use_cache(module, runtimes, self, |module, runtimes| {
+            let take_length = if used_exports_optimization {
+              runtimes.len()
+            } else {
+              // Only codegen once
+              1
+            };
+            let mut codegen_list = vec![];
+            for runtime in runtimes.into_values().take(take_length) {
+              codegen_list.push((module.code_generation(self, Some(&runtime), None)?, runtime));
+            }
+            Ok(codegen_list)
+          })
+          .map(|(result, from_cache)| (module_identifier, result, from_cache));
+        Some(res)
+      })
+      .collect::<Result<Vec<_>>>()?;
+    let results = results
+      .into_iter()
+      .map(|(module_identifier, item, from_cache)| {
+        item.into_iter().for_each(|(result, runtime)| {
+          if let Some(counter) = codegen_cache_counter {
+            if from_cache {
+              counter.hit();
+            } else {
+              counter.miss();
+            }
+          }
+
+          let runtimes = chunk_graph.get_module_runtimes(module_identifier, &self.chunk_by_ukey);
+          let result_id = result.id;
+          self
+            .code_generation_results
+            .module_generation_result_map
+            .insert(result.id, result);
+          if used_exports_optimization {
+            self
+              .code_generation_results
+              .add(module_identifier, runtime, result_id);
+          } else {
+            for runtime in runtimes.into_values() {
+              self
+                .code_generation_results
+                .add(module_identifier, runtime, result_id);
+            }
+          }
+        });
+        module_identifier
+      });
+
+    Ok(results.collect())
   }
 
   #[instrument(name = "compilation::create_module_assets", skip_all)]
@@ -1542,7 +1590,7 @@ impl Compilation {
     logger.time_end(start);
 
     let start = logger.time("code generation");
-    self.code_generation().await?;
+    self.code_generation()?;
     logger.time_end(start);
     // if self.options.is_new_tree_shaking() {
     //   debug_all_exports_info!(&self.module_graph);
@@ -1642,8 +1690,8 @@ impl Compilation {
     HashSet::from_iter(entries.chain(async_entries))
   }
 
-  #[instrument(name = "compilation:process_runtime_requirements", skip_all)]
-  pub async fn process_runtime_requirements(
+  #[allow(clippy::unwrap_in_result)]
+  pub(crate) async fn process_runtime_requirements(
     &mut self,
     modules: impl IntoParallelIterator<Item = ModuleIdentifier>,
     chunks: impl Iterator<Item = ChunkUkey>,
@@ -2027,14 +2075,6 @@ impl Compilation {
 
   pub fn get_logger(&self, name: impl Into<String>) -> CompilationLogger {
     CompilationLogger::new(name.into(), self.logging.clone())
-  }
-
-  pub fn execute_module(&self, entry: ModuleIdentifier) -> Result<Option<String>> {
-    let codegen_result = Default::default();
-    // TODO
-    self
-      .plugin_driver
-      .execute_module(entry, vec![], &codegen_result)
   }
 
   pub fn set_dependency_factory(

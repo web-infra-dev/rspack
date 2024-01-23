@@ -239,6 +239,80 @@ export async function runLoaders(
 		missingDependencies.length = 0;
 		cacheable = true;
 	};
+	loaderContext.importModule = function importModule(
+		request,
+		options,
+		callback
+	) {
+		const executeModuleKey = request + options.publicPath + options.baseUri;
+		if (!callback) {
+			return new Promise((resolve, reject) => {
+				compiler.compilation
+					.__internal_getInner()
+					.importModule(
+						request,
+						options.publicPath,
+						options.baseUri,
+						rawContext._moduleIdentifier,
+						loaderContext.context,
+						(err, res) => {
+							if (err) reject(err);
+							else {
+								for (const dep of res.buildDependencies) {
+									this.addBuildDependency(dep);
+								}
+								for (const dep of res.contextDependencies) {
+									this.addContextDependency(dep);
+								}
+								for (const dep of res.missingDependencies) {
+									this.addMissingDependency(dep);
+								}
+								for (const dep of res.fileDependencies) {
+									this.addDependency(dep);
+								}
+								assetFilenames.push(...res.assets);
+
+								resolve(compiler.__internal__getModuleExecutionResult(res.id));
+							}
+						}
+					);
+			});
+		}
+		return compiler.compilation
+			.__internal_getInner()
+			.importModule(
+				request,
+				options.publicPath,
+				options.baseUri,
+				rawContext._moduleIdentifier,
+				loaderContext.context,
+				(err, res) => {
+					if (err) {
+						callback(err, undefined);
+					} else {
+						for (const dep of res.buildDependencies) {
+							this.addBuildDependency(dep);
+						}
+						for (const dep of res.contextDependencies) {
+							this.addContextDependency(dep);
+						}
+						for (const dep of res.missingDependencies) {
+							this.addMissingDependency(dep);
+						}
+						for (const dep of res.fileDependencies) {
+							this.addDependency(dep);
+						}
+						assetFilenames.push(...res.assets);
+
+						callback(
+							undefined,
+							compiler.__internal__getModuleExecutionResult(res.id)
+						);
+					}
+				}
+			);
+	};
+
 	Object.defineProperty(loaderContext, "resource", {
 		enumerable: true,
 		get: function () {

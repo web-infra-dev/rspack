@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use napi_derive::napi;
-use rspack_core::{CodeGenerationResult, CodeGenerationResults};
+use rspack_core::{get_runtime_key, CodeGenerationResult, CodeGenerationResults};
 
 #[napi(object)]
 #[derive(Debug)]
@@ -36,23 +36,27 @@ impl From<CodeGenerationResults> for JsCodegenerationResults {
         .map
         .into_iter()
         .map(|(module_id, runtime_result_map)| {
-          (
-            module_id.to_string(),
-            runtime_result_map
-              .map
-              .into_iter()
-              .map(|(k, result_id)| {
-                (
-                  k,
-                  id_result_map
-                    .get(&result_id)
-                    .expect("should exist codegenResult")
-                    .clone()
-                    .into(),
-                )
-              })
-              .collect(),
-          )
+          let mut runtime_map: HashMap<String, JsCodegenerationResult> = Default::default();
+          match &runtime_result_map.mode {
+            rspack_core::RuntimeMode::Empty => {}
+            rspack_core::RuntimeMode::SingleEntry => {
+              runtime_map.insert(
+                get_runtime_key(runtime_result_map.single_runtime.expect("exist")),
+                id_result_map
+                  .get(&runtime_result_map.single_value.expect("TODO"))
+                  .expect("TODO")
+                  .clone()
+                  .into(),
+              );
+            }
+            rspack_core::RuntimeMode::Map => {
+              runtime_result_map.map.into_iter().for_each(|(k, v)| {
+                runtime_map.insert(k, id_result_map.get(&v).expect("TODO").clone().into());
+              });
+            }
+          };
+
+          (module_id.to_string(), runtime_map)
         })
         .collect(),
     }

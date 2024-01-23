@@ -215,6 +215,7 @@ fn sync_loader_context(
   } else {
     loader_context.additional_data.remove::<String>();
   }
+  loader_context.asset_filenames = loader_result.asset_filenames.into_iter().collect();
 
   Ok(())
 }
@@ -256,6 +257,9 @@ pub struct JsLoaderContext {
   /// @internal
   #[napi(ts_type = "ExternalObject<'Diagnostic[]'>")]
   pub diagnostics_external: External<Vec<Diagnostic>>,
+
+  #[napi(js_name = "_moduleIdentifier")]
+  pub module_identifier: String,
 }
 
 impl TryFrom<&mut rspack_core::LoaderContext<'_, rspack_core::LoaderRunnerContext>>
@@ -316,6 +320,7 @@ impl TryFrom<&mut rspack_core::LoaderContext<'_, rspack_core::LoaderRunnerContex
       additional_data_external: External::new(cx.additional_data.clone()),
       context_external: External::new(cx.context.clone()),
       diagnostics_external: External::new(cx.__diagnostics.drain(..).collect()),
+      module_identifier: cx.context.module.to_string(),
     })
   }
 }
@@ -414,6 +419,7 @@ pub struct JsLoaderResult {
   pub context_dependencies: Vec<String>,
   pub missing_dependencies: Vec<String>,
   pub build_dependencies: Vec<String>,
+  pub asset_filenames: Vec<String>,
   pub source_map: Option<Buffer>,
   pub additional_data: Option<Buffer>,
   pub additional_data_external: External<AdditionalData>,
@@ -439,6 +445,12 @@ impl napi::bindgen_prelude::FromNapiValue for JsLoaderResult {
   ) -> napi::bindgen_prelude::Result<Self> {
     let obj = napi::bindgen_prelude::Object::from_napi_value(env, napi_val)?;
     let content_: Option<Buffer> = obj.get("content")?;
+    let asset_filenames_: Vec<String> = obj.get("assetFilenames")?.ok_or_else(|| {
+      napi::bindgen_prelude::Error::new(
+        napi::bindgen_prelude::Status::InvalidArg,
+        format!("Missing field `{}`", "assetFilenames"),
+      )
+    })?;
     let file_dependencies_: Vec<String> = obj.get("fileDependencies")?.ok_or_else(|| {
       napi::bindgen_prelude::Error::new(
         napi::bindgen_prelude::Status::InvalidArg,
@@ -493,6 +505,7 @@ impl napi::bindgen_prelude::FromNapiValue for JsLoaderResult {
       context_dependencies: context_dependencies_,
       missing_dependencies: missing_dependencies_,
       build_dependencies: build_dependencies_,
+      asset_filenames: asset_filenames_,
       source_map: source_map_,
       additional_data: additional_data_,
       additional_data_external: additional_data_external_,

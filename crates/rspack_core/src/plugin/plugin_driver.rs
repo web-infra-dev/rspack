@@ -6,16 +6,17 @@ use std::{
 use rspack_error::{Diagnostic, Result, TWithDiagnosticArray};
 use rspack_loader_runner::{LoaderContext, ResourceData};
 use rustc_hash::FxHashMap as HashMap;
+use tokio::sync::mpsc::UnboundedSender;
 use tracing::instrument;
 
 use crate::{
   AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, ApplyContext,
-  AssetEmittedArgs, BoxLoader, BoxModule, BoxedParserAndGeneratorBuilder, Chunk, ChunkAssetArgs,
-  ChunkContentHash, ChunkHashArgs, CodeGenerationResults, Compilation, CompilationArgs,
-  CompilationParams, CompilerOptions, Content, ContentHashArgs, DoneArgs, FactorizeArgs,
-  JsChunkHashArgs, LoaderRunnerContext, MakeParam, Module, ModuleIdentifier, ModuleType,
-  NormalModule, NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs,
-  NormalModuleCreateData, OptimizeChunksArgs, Plugin,
+  AssetEmittedArgs, BoxLoader, BoxModule, BoxedParserAndGeneratorBuilder, BuildTimeExecutionOption,
+  Chunk, ChunkAssetArgs, ChunkContentHash, ChunkHashArgs, CodeGenerationResults, Compilation,
+  CompilationArgs, CompilationParams, CompilerOptions, Content, ContentHashArgs, DependencyId,
+  DoneArgs, FactorizeArgs, JsChunkHashArgs, LoaderRunnerContext, MakeParam, Module,
+  ModuleIdentifier, ModuleType, NormalModule, NormalModuleAfterResolveArgs,
+  NormalModuleBeforeResolveArgs, NormalModuleCreateData, OptimizeChunksArgs, Plugin,
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginAdditionalModuleRequirementsOutput,
   PluginBuildEndHookOutput, PluginChunkHashHookOutput, PluginCompilationHookOutput, PluginContext,
   PluginFactorizeHookOutput, PluginJsChunkHashHookOutput, PluginMakeHookOutput,
@@ -773,21 +774,40 @@ impl PluginDriver {
     Ok(())
   }
 
+  pub fn prepare_execute_module(
+    &self,
+    dep: DependencyId,
+    options: &BuildTimeExecutionOption,
+    import_module_informer: UnboundedSender<Result<String>>,
+  ) -> Result<()> {
+    for plugin in &self.plugins {
+      plugin.prepare_execute_module(dep, options, import_module_informer.clone())?;
+    }
+
+    Ok(())
+  }
+
   #[instrument(name = "plugin:execute_module", skip_all)]
   pub fn execute_module(
     &self,
     entry: ModuleIdentifier,
+    request: &str,
+    options: &BuildTimeExecutionOption,
     runtime_modules: Vec<ModuleIdentifier>,
     codegen_results: &CodeGenerationResults,
-  ) -> Result<Option<String>> {
+    id: u32,
+  ) -> Result<()> {
     for plugin in &self.plugins {
-      if let Some(exports) =
-        plugin.execute_module(entry, runtime_modules.clone(), codegen_results)?
-      {
-        return Ok(Some(exports));
-      }
+      plugin.execute_module(
+        entry,
+        request,
+        options,
+        runtime_modules.clone(),
+        codegen_results,
+        id,
+      )?
     }
 
-    Ok(None)
+    Ok(())
   }
 }

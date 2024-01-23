@@ -140,6 +140,11 @@ export interface LoaderContext<OptionsType = {}> {
 	getContextDependencies(): string[];
 	getMissingDependencies(): string[];
 	addBuildDependency(file: string): void;
+	importModule(
+		request: string,
+		options: { publicPath: string; baseUri: string },
+		callback: (err?: Error, res?: any) => void
+	): void;
 	fs: any;
 	utils: {
 		absolutify: (context: string, request: string) => string;

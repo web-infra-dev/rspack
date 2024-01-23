@@ -270,6 +270,7 @@ impl StartTimeAggregate {
   }
 }
 
+#[derive(Debug)]
 pub struct CacheCount {
   label: &'static str,
   hit: u32,

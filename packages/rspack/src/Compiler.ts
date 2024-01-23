@@ -49,6 +49,7 @@ import { tryRunOrWebpackError } from "./lib/HookWebpackError";
 import { CodeGenerationResult } from "./Module";
 import { canInherentFromParent } from "./builtin-plugin/base";
 import { CreateModuleData } from "@rspack/binding";
+import ExecuteModulePlugin from "./ExecuteModulePlugin";
 
 class Compiler {
 	#_instance?: binding.Rspack;
@@ -121,6 +122,8 @@ class Compiler {
 	#disabledHooks: string[];
 	parentCompilation?: Compilation;
 
+	#moduleExecutionResultsMap: Map<number, any>;
+
 	constructor(context: string, options: RspackOptionsNormalized) {
 		this.outputFileSystem = fs;
 		this.options = options;
@@ -180,6 +183,9 @@ class Compiler {
 		this.modifiedFiles = undefined;
 		this.removedFiles = undefined;
 		this.#disabledHooks = [];
+		this.#moduleExecutionResultsMap = new Map();
+
+		new ExecuteModulePlugin().apply(this);
 	}
 
 	/**
@@ -883,14 +889,20 @@ class Compiler {
 		return;
 	}
 
-	#executeModule({
+	async #executeModule({
 		entry,
+		request,
+		options,
 		runtimeModules,
-		codegenResults
+		codegenResults,
+		id
 	}: {
 		entry: string;
+		request: string;
+		options: { publicPath?: string; baseUri?: string };
 		runtimeModules: string[];
 		codegenResults: binding.JsCodegenerationResults;
+		id: number;
 	}) {
 		const __webpack_require__: any = (id: string) => {
 			const cached = moduleCache[id];
@@ -922,7 +934,10 @@ class Compiler {
 			tryRunOrWebpackError(
 				() =>
 					this.compilation.hooks.executeModule.call(
-						{ result: new CodeGenerationResult(result), moduleObject },
+						{
+							codeGenerationResult: new CodeGenerationResult(result),
+							moduleObject
+						},
 						{ __webpack_require__ }
 					),
 				"Compilation.hooks.executeModule"
@@ -945,9 +960,9 @@ class Compiler {
 			__webpack_require__(runtimeModule);
 		}
 
-		exports = __webpack_require__(entry);
+		const executeResult = __webpack_require__(entry);
 
-		return JSON.stringify(exports);
+		this.#moduleExecutionResultsMap.set(id, executeResult);
 	}
 
 	#compilation(native: binding.JsCompilation) {
@@ -1157,6 +1172,10 @@ class Compiler {
 
 	__internal__registerBuiltinPlugin(plugin: binding.BuiltinPlugin) {
 		this.builtinPlugins.push(plugin);
+	}
+
+	__internal__getModuleExecutionResult(id: number) {
+		return this.#moduleExecutionResultsMap.get(id);
 	}
 }
 
