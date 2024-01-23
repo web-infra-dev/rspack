@@ -78,16 +78,16 @@ impl CommonJsImportsParserPlugin {
     };
 
     let param = parser.evaluate_expression(&first_arg.expr);
-    param
-      .is_string()
-      .then_some(CommonJsFullRequireDependency::new(
+    param.is_string().then(|| {
+      CommonJsFullRequireDependency::new(
         param.string().to_string(),
         members.iter().map(|i| i.to_owned()).collect_vec(),
         loc,
         Some(mem_expr.span.into()),
         is_call,
         parser.in_try,
-      ))
+      )
+    })
   }
 
   fn require_handler(
