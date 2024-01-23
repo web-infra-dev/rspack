@@ -1,6 +1,5 @@
 mod common_js_export_scanner;
 mod common_js_scanner;
-mod compatibility_scanner;
 mod context_helper;
 mod harmony_detection_scanner;
 mod harmony_export_dependency_scanner;
@@ -29,11 +28,11 @@ use swc_core::common::{SourceFile, Span};
 use swc_core::ecma::atoms::Atom;
 
 use self::harmony_import_dependency_scanner::ImportMap;
-pub use self::parser::JavascriptParser;
+pub use self::parser::{JavascriptParser, TagInfoData};
 pub use self::util::*;
 use self::{
   common_js_export_scanner::CommonJsExportDependencyScanner, common_js_scanner::CommonJsScanner,
-  compatibility_scanner::CompatibilityScanner, harmony_detection_scanner::HarmonyDetectionScanner,
+  harmony_detection_scanner::HarmonyDetectionScanner,
   harmony_export_dependency_scanner::HarmonyExportDependencyScanner,
   harmony_import_dependency_scanner::HarmonyImportDependencyScanner,
   harmony_top_level_this::HarmonyTopLevelThis,
@@ -110,12 +109,6 @@ pub fn scan_dependencies(
   );
 
   parser.visit(program.get_inner_program());
-
-  program.visit_with(&mut CompatibilityScanner::new(
-    &mut presentational_dependencies,
-    unresolved_ctxt,
-    &mut ignored,
-  ));
 
   if module_type.is_js_auto() || module_type.is_js_dynamic() {
     program.visit_with(&mut CommonJsScanner::new(

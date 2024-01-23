@@ -260,7 +260,7 @@ impl Default for RuntimeGlobals {
 }
 
 impl RuntimeGlobals {
-  pub fn name(&self) -> &'static str {
+  pub const fn name(&self) -> &'static str {
     use RuntimeGlobals as R;
     match *self {
       R::REQUIRE_SCOPE => "__webpack_require__.*",
@@ -326,9 +326,7 @@ impl RuntimeGlobals {
       R::PRELOAD_CHUNK_HANDLERS => "__webpack_require__.H",
       // rspack only
       R::RSPACK_VERSION => "__webpack_require__.rv",
-      r => panic!(
-        "Unexpected flag `{r:?}`. RuntimeGlobals should only be printed for one single flag."
-      ),
+      _ => unreachable!(),
     }
   }
 

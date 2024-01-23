@@ -8,6 +8,7 @@ use swc_core::ecma::ast::{ModuleDecl, ModuleItem, ObjectPat, ObjectPatProp, Stmt
 use swc_core::ecma::ast::{SwitchCase, SwitchStmt, TryStmt, VarDecl, VarDeclKind, VarDeclarator};
 
 use super::JavascriptParser;
+use crate::parser_plugin::JavascriptParserPlugin;
 use crate::utils::eval;
 
 impl<'parser> JavascriptParser<'parser> {
@@ -36,7 +37,15 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   pub fn pre_walk_statement(&mut self, statement: &Stmt) {
-    // TODO: hooks.preStatement call
+    if self
+      .plugin_drive
+      .clone()
+      .pre_statement(self, statement)
+      .unwrap_or_default()
+    {
+      return;
+    }
+
     match statement {
       Stmt::Block(stmt) => self.pre_walk_block_statement(stmt),
       Stmt::DoWhile(stmt) => self.pre_walk_do_while_statement(stmt),

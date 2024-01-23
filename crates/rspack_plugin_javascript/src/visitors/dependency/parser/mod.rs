@@ -21,7 +21,12 @@ use swc_core::ecma::ast::{BlockStmt, Expr, Ident, Lit, MemberExpr, RestPat};
 
 use crate::parser_plugin::{self, JavaScriptParserPluginDrive};
 use crate::utils::eval::{self, BasicEvaluatedExpression};
-use crate::visitors::scope_info::{ScopeInfoDB, ScopeInfoId};
+use crate::visitors::scope_info::{FreeName, ScopeInfoDB, ScopeInfoId, TagInfo, VariableInfo};
+
+pub trait TagInfoData {
+  fn serialize(data: &Self) -> serde_json::Value;
+  fn deserialize(value: serde_json::Value) -> Self;
+}
 
 pub struct JavascriptParser<'parser> {
   pub(crate) source_file: Arc<SourceFile>,
@@ -73,7 +78,8 @@ impl<'parser> JavascriptParser<'parser> {
       plugins.push(Box::new(parser_plugin::ExportsInfoApiPlugin));
       plugins.push(Box::new(parser_plugin::APIPlugin::new(
         compiler_options.output.module,
-      )))
+      )));
+      plugins.push(Box::new(parser_plugin::CompatibilityPlugin));
     }
 
     if module_type.is_js_auto() || module_type.is_js_esm() {
@@ -115,17 +121,72 @@ impl<'parser> JavascriptParser<'parser> {
     }
   }
 
+  pub fn get_mut_variable_info(&mut self, name: &str) -> Option<&mut VariableInfo> {
+    let Some(id) = self.definitions_db.get(&self.definitions, name) else {
+      return None;
+    };
+    Some(self.definitions_db.expect_get_mut_variable(&id))
+  }
+
+  fn get_variable_info(&mut self, name: &str) -> Option<&VariableInfo> {
+    let Some(id) = self.definitions_db.get(&self.definitions, name) else {
+      return None;
+    };
+    Some(self.definitions_db.expect_get_variable(&id))
+  }
+
   fn define_variable(&mut self, name: String) {
-    if let Some(id) = self.definitions_db.get(&self.definitions, &name)
-      && self.definitions == id
+    let definitions = self.definitions;
+    if let Some(variable_info) = self.get_variable_info(&name)
+      && variable_info.tag_info.is_some()
+      && definitions == variable_info.declared_scope
     {
       return;
     }
-    self.definitions_db.set(self.definitions, name)
+    let info = VariableInfo::new(definitions, None, None);
+    self.definitions_db.set(definitions, name, info);
   }
 
   fn undefined_variable(&mut self, name: String) {
     self.definitions_db.delete(self.definitions, name)
+  }
+
+  pub fn tag_variable<Data: TagInfoData>(
+    &mut self,
+    name: String,
+    tag: &'static str,
+    data: Option<Data>,
+  ) {
+    let data = data.as_ref().map(|data| TagInfoData::serialize(data));
+    let new_info = if let Some(old_info_id) = self.definitions_db.get(&self.definitions, &name) {
+      let old_info = self.definitions_db.take_variable(&old_info_id);
+      if let Some(old_tag_info) = old_info.tag_info {
+        let free_name = old_info.free_name;
+        let tag_info = Some(TagInfo {
+          tag,
+          data,
+          next: Some(Box::new(old_tag_info)),
+        });
+        VariableInfo::new(old_info.declared_scope, free_name, tag_info)
+      } else {
+        let free_name = Some(FreeName::True);
+        let tag_info = Some(TagInfo {
+          tag,
+          data,
+          next: None,
+        });
+        VariableInfo::new(old_info.declared_scope, free_name, tag_info)
+      }
+    } else {
+      let free_name = Some(FreeName::String(name.clone()));
+      let tag_info = Some(TagInfo {
+        tag,
+        data,
+        next: None,
+      });
+      VariableInfo::new(self.definitions, free_name, tag_info)
+    };
+    self.definitions_db.set(self.definitions, name, new_info);
   }
 
   fn enter_ident<F>(&mut self, ident: &Ident, on_ident: F)
@@ -219,7 +280,7 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn set_strict(&mut self, value: bool) {
-    let current_scope = self.definitions_db.expect_get_mut(&self.definitions);
+    let current_scope = self.definitions_db.expect_get_mut_scope(&self.definitions);
     current_scope.is_strict = value;
   }
 
@@ -238,7 +299,7 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   pub fn is_strict(&mut self) -> bool {
-    let scope = self.definitions_db.expect_get(&self.definitions);
+    let scope = self.definitions_db.expect_get_scope(&self.definitions);
     scope.is_strict
   }
 

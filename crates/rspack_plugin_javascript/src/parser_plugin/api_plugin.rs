@@ -22,7 +22,7 @@ const WEBPACK_INIT_SHARING: &str = "__webpack_init_sharing__";
 const WEBPACK_NONCE: &str = "__webpack_nonce__";
 const WEBPACK_CHUNK_NAME: &str = "__webpack_chunkname__";
 const WEBPACK_RUNTIME_ID: &str = "__webpack_runtime_id__";
-const WEBPACK_REQUIRE: &str = "__webpack_require__";
+const WEBPACK_REQUIRE: &str = RuntimeGlobals::REQUIRE.name();
 const RSPACK_VERSION: &str = "__rspack_version__";
 
 pub struct APIPluginOptions {
