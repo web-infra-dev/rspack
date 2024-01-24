@@ -1,6 +1,7 @@
 pub mod eval;
 mod get_prop_from_obj;
 pub mod mangle_exports;
+// mod scope_query;
 
 use rspack_core::{ErrorSpan, ModuleType};
 use rspack_error::{DiagnosticKind, TraceableError};

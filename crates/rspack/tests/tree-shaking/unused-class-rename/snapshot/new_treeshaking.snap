@@ -11,7 +11,7 @@ class Cls {
     constructor(){}
 }
 if (__AAA__) {
-    const __Cls = (/* unused pure expression or super */ null && (Cls));
+    const __Cls = Cls;
     __Cls.prototype.aaa = function(a, b) {};
 }
 }),
