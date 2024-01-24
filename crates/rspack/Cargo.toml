@@ -22,7 +22,7 @@ rspack_tracing           = { path = "../rspack_tracing" }
 
 
 cargo-rst      = { path = "../cargo-rst" }
-criterion      = { version = "0.3.6", features = ["async_tokio", "async_futures"] }
+criterion      = { version = "0.5.1", features = ["async_tokio", "async_futures"] }
 insta          = { workspace = true }
 serde          = { workspace = true, features = ["derive"] }
 serde_json     = { workspace = true }

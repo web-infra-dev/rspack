@@ -8,10 +8,7 @@ mod raw_progress;
 mod raw_swc_js_minimizer;
 mod raw_to_be_deprecated;
 
-use napi::{
-  bindgen_prelude::{FromNapiValue, ToNapiValue},
-  JsUnknown,
-};
+use napi::{bindgen_prelude::FromNapiValue, JsUnknown};
 use napi_derive::napi;
 use rspack_core::{BoxPlugin, Define, DefinePlugin, PluginExt, Provide, ProvidePlugin};
 use rspack_error::Result;
