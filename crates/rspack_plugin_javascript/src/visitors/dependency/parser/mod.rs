@@ -41,6 +41,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) resource_data: &'parser ResourceData,
   pub(crate) plugin_drive: Rc<JavaScriptParserPluginDrive>,
   pub(super) definitions_db: ScopeInfoDB,
+  pub(crate) compiler_options: &'parser CompilerOptions,
   // TODO: remove `enter_assign`
   pub(crate) enter_assign: bool,
   // ===== scope info =======
@@ -55,7 +56,7 @@ impl<'parser> JavascriptParser<'parser> {
   #[allow(clippy::too_many_arguments)]
   pub fn new(
     source_file: Arc<SourceFile>,
-    compiler_options: &CompilerOptions,
+    compiler_options: &'parser CompilerOptions,
     dependencies: &'parser mut Vec<BoxDependency>,
     presentational_dependencies: &'parser mut Vec<Box<dyn DependencyTemplate>>,
     ignored: &'parser mut FxHashSet<DependencyLocation>,
@@ -74,6 +75,9 @@ impl<'parser> JavascriptParser<'parser> {
     ];
 
     if module_type.is_js_auto() || module_type.is_js_dynamic() || module_type.is_js_esm() {
+      if !compiler_options.builtins.provide.is_empty() {
+        plugins.push(Box::new(parser_plugin::ProviderPlugin));
+      }
       plugins.push(Box::new(parser_plugin::WebpackIsIncludedPlugin));
       plugins.push(Box::new(parser_plugin::ExportsInfoApiPlugin));
       plugins.push(Box::new(parser_plugin::APIPlugin::new(
@@ -117,6 +121,7 @@ impl<'parser> JavascriptParser<'parser> {
       worker_syntax_list,
       resource_data,
       build_info,
+      compiler_options,
       enter_assign: false,
     }
   }

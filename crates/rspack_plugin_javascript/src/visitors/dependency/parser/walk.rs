@@ -609,7 +609,7 @@ impl<'parser> JavascriptParser<'parser> {
     self.walk_expr_or_spread(&expr.args);
   }
 
-  fn walk_expr_or_spread(&mut self, args: &Vec<ExprOrSpread>) {
+  pub fn walk_expr_or_spread(&mut self, args: &Vec<ExprOrSpread>) {
     for arg in args {
       self.walk_expression(&arg.expr)
     }
