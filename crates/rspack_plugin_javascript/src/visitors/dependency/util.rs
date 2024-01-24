@@ -90,6 +90,7 @@ pub(crate) mod expr_matcher {
     is_require_resolve: "require.resolve",
     is_require_resolve_weak: "require.resolveWeak",
     is_require_cache: "require.cache",
+    is_module: "module",
     is_module_hot_accept: "module.hot.accept",
     is_module_hot_decline: "module.hot.decline",
     is_module_hot: "module.hot",

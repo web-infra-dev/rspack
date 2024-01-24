@@ -222,10 +222,10 @@ impl Visit for CommonJsExportDependencyScanner<'_> {
 
     if let PatOrExpr::Pat(box Pat::Expr(box expr)) = &assign_expr.left {
       // exports.xxx = 1;
-      // module.exports.xxx = 1;
-      // this.xxx = 1;
       let is_exports_start = self.is_exports_member_expr_start(expr);
+      // module.exports.xxx = 1;
       let is_module_exports_start = self.is_module_exports_member_expr_start(expr);
+      // this.xxx = 1;
       let is_this_start: bool = self.is_this_member_expr_start(expr);
 
       if is_exports_start || is_module_exports_start || is_this_start {
@@ -270,6 +270,11 @@ impl Visit for CommonJsExportDependencyScanner<'_> {
                   related_require_dep,
                 )));
             } else {
+              // module.export = [not require call]
+              if is_module_exports_start {
+                // make sure had append `RuntimeGlobals::Module`
+                assign_expr.left.visit_children_with(self);
+              }
               // exports = {};
               // module.exports = {};
               // this = {};

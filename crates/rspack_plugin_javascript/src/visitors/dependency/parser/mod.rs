@@ -71,9 +71,13 @@ impl<'parser> JavascriptParser<'parser> {
     let mut plugins: Vec<parser_plugin::BoxJavascriptParserPlugin> = vec![
       Box::new(parser_plugin::CheckVarDeclaratorIdent),
       Box::new(parser_plugin::ConstPlugin),
-      Box::new(parser_plugin::CommonJsImportsParserPlugin),
       Box::new(parser_plugin::RequireContextDependencyParserPlugin),
     ];
+
+    if module_type.is_js_auto() || module_type.is_js_dynamic() {
+      plugins.push(Box::new(parser_plugin::CommonJsPlugin));
+      plugins.push(Box::new(parser_plugin::CommonJsImportsParserPlugin));
+    }
 
     if module_type.is_js_auto() || module_type.is_js_dynamic() || module_type.is_js_esm() {
       if !compiler_options.builtins.provide.is_empty() {
