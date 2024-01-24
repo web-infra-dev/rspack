@@ -406,12 +406,7 @@ impl Plugin for SourceMapDevToolPlugin {
                 PathData::default()
                   .chunk(chunk)
                   .filename(&filename)
-                  .content_hash_optional(
-                    chunk
-                      .content_hash
-                      .get(source_type)
-                      .map(|i| i.rendered(compilation.options.output.hash_digest_length)),
-                  ),
+                  .content_hash_optional(chunk.content_hash.get(source_type).map(|i| i.encoded())),
               );
               break;
             }
