@@ -1,5 +1,5 @@
 use itertools::Itertools;
-use rspack_core::SpanExt;
+use rspack_core::{DependencyLocation, SpanExt};
 use swc_core::{
   atoms::Atom,
   common::Spanned,
@@ -71,7 +71,13 @@ impl JavascriptParserPlugin for ProviderPlugin {
     else {
       return None;
     };
-    dep(&parser, &s, expr.span().real_lo(), expr.span().real_hi()).map(|dep| {
+    dep(
+      parser,
+      &s,
+      expr.callee.span().real_lo(),
+      expr.callee.span().real_hi(),
+    )
+    .map(|dep| {
       parser.dependencies.push(Box::new(dep));
       // FIXME: webpack use `walk_expression` here
       parser.walk_expr_or_spread(&expr.args);
@@ -87,7 +93,12 @@ impl JavascriptParserPlugin for ProviderPlugin {
     let Some(s) = get_nested_identifier_name_from_member(expr) else {
       return None;
     };
-    dep(&parser, &s, expr.span().real_lo(), expr.span().real_hi()).map(|dep| {
+    dep(parser, &s, expr.span().real_lo(), expr.span().real_hi()).map(|dep| {
+      // FIXME: temp
+      parser.ignored.insert(DependencyLocation::new(
+        expr.span.real_lo(),
+        expr.span.real_hi(),
+      ));
       parser.dependencies.push(Box::new(dep));
       true
     })
@@ -99,7 +110,7 @@ impl JavascriptParserPlugin for ProviderPlugin {
     ident: &swc_core::ecma::ast::Ident,
   ) -> Option<bool> {
     dep(
-      &parser,
+      parser,
       ident.sym.as_str(),
       ident.span.real_lo(),
       ident.span.real_hi(),

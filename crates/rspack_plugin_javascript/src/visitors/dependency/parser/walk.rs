@@ -27,11 +27,13 @@ impl<'parser> JavascriptParser<'parser> {
     F: FnOnce(&mut Self),
   {
     let old_definitions = self.definitions;
+    let old_top_level_scope = self.top_level_scope;
 
     self.definitions = self.definitions_db.create_child(&old_definitions);
     f(self);
 
     self.definitions = old_definitions;
+    self.top_level_scope = old_top_level_scope;
   }
 
   fn in_class_scope<'a, I, F>(&mut self, has_this: bool, params: I, f: F)
@@ -41,6 +43,7 @@ impl<'parser> JavascriptParser<'parser> {
   {
     let old_definitions = self.definitions;
     let old_in_try = self.in_try;
+    let old_top_level_scope = self.top_level_scope;
 
     self.in_try = false;
     self.definitions = self.definitions_db.create_child(&old_definitions);
@@ -57,6 +60,7 @@ impl<'parser> JavascriptParser<'parser> {
 
     self.in_try = old_in_try;
     self.definitions = old_definitions;
+    self.top_level_scope = old_top_level_scope;
   }
 
   fn in_function_scope<'a, I, F>(&mut self, has_this: bool, params: I, f: F)
@@ -65,6 +69,7 @@ impl<'parser> JavascriptParser<'parser> {
     I: Iterator<Item = Cow<'a, Pat>>,
   {
     let old_definitions = self.definitions;
+    let old_top_level_scope = self.top_level_scope;
 
     self.definitions = self.definitions_db.create_child(&old_definitions);
     if has_this {
@@ -76,6 +81,7 @@ impl<'parser> JavascriptParser<'parser> {
     f(self);
 
     self.definitions = old_definitions;
+    self.top_level_scope = old_top_level_scope;
   }
 
   pub fn walk_module_declarations(&mut self, statements: &Vec<ModuleItem>) {
@@ -448,8 +454,9 @@ impl<'parser> JavascriptParser<'parser> {
     self.walk_expression(&expr.arg)
   }
 
-  fn walk_this_expression(&mut self, _expr: &ThisExpr) {
+  fn walk_this_expression(&mut self, expr: &ThisExpr) {
     // TODO: `this.hooks.call_hooks_for_names`
+    self.plugin_drive.clone().this(self, expr);
   }
 
   fn walk_template_expression(&mut self, expr: &Tpl) {
@@ -500,19 +507,28 @@ impl<'parser> JavascriptParser<'parser> {
       Prop::KeyValue(kv) => self.walk_key_value_prop(kv),
       Prop::Assign(assign) => self.walk_expression(&assign.value),
       Prop::Getter(getter) => {
+        let was_top_level = self.top_level_scope;
+        self.top_level_scope = false;
         if let Some(body) = &getter.body {
           self.walk_block_statement(body);
         }
+        self.top_level_scope = was_top_level;
       }
       Prop::Setter(seeter) => {
+        let was_top_level = self.top_level_scope;
+        self.top_level_scope = false;
         if let Some(body) = &seeter.body {
           self.walk_block_statement(body);
         }
+        self.top_level_scope = was_top_level;
       }
       Prop::Method(method) => {
         self.walk_prop_name(&method.key);
+        let was_top_level = self.top_level_scope;
+        self.top_level_scope = false;
         // FIXME: maybe we need in_function_scope here
         self.walk_function(&method.function);
+        self.top_level_scope = was_top_level;
       }
     }
   }
@@ -697,6 +713,7 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_arrow_function_expression(&mut self, expr: &ArrowExpr) {
+    // `self.top_level_scope` should not changed.
     self.in_function_scope(false, expr.params.iter().map(Cow::Borrowed), |this| {
       for param in &expr.params {
         this.walk_pattern(param)
@@ -749,6 +766,8 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_function_declaration(&mut self, decl: &FnDecl) {
+    let was_top_level = self.top_level_scope;
+    self.top_level_scope = false;
     self.in_function_scope(
       true,
       decl
@@ -759,7 +778,8 @@ impl<'parser> JavascriptParser<'parser> {
       |this| {
         this.walk_function(&decl.function);
       },
-    )
+    );
+    self.top_level_scope = was_top_level;
   }
 
   fn walk_function(&mut self, f: &Function) {
@@ -776,6 +796,8 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_function_expression(&mut self, expr: &FnExpr) {
+    let was_top_level = self.top_level_scope;
+    self.top_level_scope = false;
     let mut scope_params: Vec<_> = expr
       .function
       .params
@@ -794,6 +816,7 @@ impl<'parser> JavascriptParser<'parser> {
     self.in_function_scope(true, scope_params.into_iter(), |this| {
       this.walk_function(&expr.function);
     });
+    self.top_level_scope = was_top_level;
   }
 
   fn walk_pattern(&mut self, pat: &Pat) {
@@ -877,7 +900,10 @@ impl<'parser> JavascriptParser<'parser> {
             }
             // TODO: `hooks.body_value`;
             if let Some(body) = &ctor.body {
+              let was_top_level = this.top_level_scope;
+              this.top_level_scope = false;
               this.walk_block_statement(body);
+              this.top_level_scope = was_top_level;
             }
           }
           ClassMember::Method(method) => {
@@ -885,6 +911,8 @@ impl<'parser> JavascriptParser<'parser> {
               // FIXME: webpack use `walk_expression` here
               this.walk_prop_name(&method.key);
             }
+            let was_top_level = this.top_level_scope;
+            this.top_level_scope = false;
             this.in_function_scope(
               true,
               method.function.params.iter().map(|p| Cow::Borrowed(&p.pat)),
@@ -895,9 +923,12 @@ impl<'parser> JavascriptParser<'parser> {
                 }
               },
             );
+            this.top_level_scope = was_top_level;
           }
           ClassMember::PrivateMethod(method) => {
             this.walk_identifier(&method.key.id);
+            let was_top_level = this.top_level_scope;
+            this.top_level_scope = false;
             this.in_function_scope(
               true,
               method.function.params.iter().map(|p| Cow::Borrowed(&p.pat)),
@@ -908,6 +939,7 @@ impl<'parser> JavascriptParser<'parser> {
                 }
               },
             );
+            this.top_level_scope = was_top_level;
           }
           ClassMember::ClassProp(prop) => {
             if prop.key.is_computed() {
@@ -915,18 +947,29 @@ impl<'parser> JavascriptParser<'parser> {
               this.walk_prop_name(&prop.key);
             }
             if let Some(value) = &prop.value {
+              let was_top_level = this.top_level_scope;
+              this.top_level_scope = false;
               this.walk_expression(value);
+              this.top_level_scope = was_top_level;
             }
           }
           ClassMember::PrivateProp(prop) => {
             this.walk_identifier(&prop.key.id);
             if let Some(value) = &prop.value {
+              let was_top_level = this.top_level_scope;
+              this.top_level_scope = false;
               this.walk_expression(value);
+              this.top_level_scope = was_top_level;
             }
+          }
+          ClassMember::StaticBlock(block) => {
+            let was_top_level = this.top_level_scope;
+            this.top_level_scope = false;
+            this.walk_block_statement(&block.body);
+            this.top_level_scope = was_top_level;
           }
           ClassMember::Empty(_) => {}
           ClassMember::AutoAccessor(_) => {}
-          ClassMember::StaticBlock(block) => this.walk_block_statement(&block.body),
           ClassMember::TsIndexSignature(_) => unreachable!(),
         };
       }

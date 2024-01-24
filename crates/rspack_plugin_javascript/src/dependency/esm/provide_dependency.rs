@@ -1,5 +1,4 @@
 use itertools::Itertools;
-use rspack_core::rspack_sources::Source;
 use rspack_core::{module_raw, NormalInitFragment, UsedName};
 use rspack_core::{AsContextDependency, Dependency, InitFragmentKey, InitFragmentStage};
 use rspack_core::{DependencyCategory, DependencyId, DependencyTemplate};

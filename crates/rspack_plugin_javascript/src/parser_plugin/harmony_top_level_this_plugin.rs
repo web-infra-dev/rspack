@@ -1,13 +1,27 @@
-use rspack_core::{clean_regexp_in_context_module, try_convert_str_to_context_mode};
-use rspack_core::{ContextMode, ContextOptions, DependencyCategory, SpanExt};
-use rspack_regex::{regexp_as_str, RspackRegex};
-use swc_core::ecma::ast::CallExpr;
+use rspack_core::{ConstDependency, SpanExt};
 
 use super::JavascriptParserPlugin;
-use crate::dependency::RequireContextDependency;
-use crate::visitors::expr_matcher::is_require_context;
 use crate::visitors::JavascriptParser;
 
 pub struct HarmonyTopLevelThisParserPlugin;
 
-impl JavascriptParserPlugin for HarmonyTopLevelThisParserPlugin {}
+impl JavascriptParserPlugin for HarmonyTopLevelThisParserPlugin {
+  fn this(
+    &self,
+    parser: &mut JavascriptParser,
+    expr: &swc_core::ecma::ast::ThisExpr,
+  ) -> Option<bool> {
+    (parser.is_esm && parser.top_level_scope).then(|| {
+      // TODO: harmony_export::is_enabled
+      parser
+        .presentational_dependencies
+        .push(Box::new(ConstDependency::new(
+          expr.span.real_lo(),
+          expr.span.real_hi(),
+          "undefined".into(),
+          None,
+        )));
+      true
+    })
+  }
+}

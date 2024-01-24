@@ -30,7 +30,9 @@ impl<'parser> JavascriptParser<'parser> {
         ModuleDecl::TsImportEquals(_)
         | ModuleDecl::TsExportAssignment(_)
         | ModuleDecl::TsNamespaceExport(_) => unreachable!(),
-        _ => (),
+        _ => {
+          self.is_esm = true;
+        }
       },
       ModuleItem::Stmt(stmt) => self.pre_walk_statement(stmt),
     }
@@ -129,7 +131,9 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn pre_walk_for_of_statement(&mut self, stmt: &ForOfStmt) {
-    // TODO: hooks.topLevelAwait call
+    // TODO: if (stmt.await && self.top_level_scope) {
+    // TODO:    hooks.topLevelAwait call
+    // TODO: }
     if let Some(left) = stmt.left.as_var_decl() {
       self.pre_walk_variable_declaration(left)
     }

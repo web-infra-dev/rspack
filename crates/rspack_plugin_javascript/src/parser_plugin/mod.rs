@@ -18,6 +18,7 @@ pub use self::common_js_imports_parse_plugin::CommonJsImportsParserPlugin;
 pub use self::compatibility_plugin::CompatibilityPlugin;
 pub use self::drive::JavaScriptParserPluginDrive;
 pub use self::exports_info_api_plugin::ExportsInfoApiPlugin;
+pub use self::harmony_top_level_this_plugin::HarmonyTopLevelThisParserPlugin;
 pub use self::provide::ProviderPlugin;
 pub use self::r#const::{is_logic_op, ConstPlugin};
 pub use self::r#trait::{BoxJavascriptParserPlugin, JavascriptParserPlugin};
