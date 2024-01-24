@@ -464,6 +464,10 @@ pub struct SideEffectsFlagPlugin;
 
 #[async_trait]
 impl Plugin for SideEffectsFlagPlugin {
+  fn name(&self) -> &'static str {
+    "SideEffectsFlagPlugin"
+  }
+
   async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<()>> {
     let entries = compilation.entry_modules().collect::<Vec<_>>();
     let mg = &mut compilation.module_graph;

@@ -100,6 +100,18 @@ impl dyn Dependency + '_ {
   }
 }
 
+pub trait AsDependency {
+  fn as_dependency(&self) -> Option<Box<&dyn Dependency>> {
+    None
+  }
+}
+
+impl<T: Dependency> AsDependency for T {
+  fn as_dependency(&self) -> Option<Box<&dyn Dependency>> {
+    Some(Box::new(self))
+  }
+}
+
 clone_trait_object!(Dependency);
 
 pub type BoxDependency = Box<dyn Dependency>;

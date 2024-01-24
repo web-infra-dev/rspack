@@ -1,6 +1,6 @@
 use rspack_core::{
-  DependencyTemplate, InitFragmentKey, InitFragmentStage, NormalInitFragment, RuntimeGlobals,
-  TemplateContext, TemplateReplaceSource,
+  AsDependency, DependencyTemplate, InitFragmentKey, InitFragmentStage, NormalInitFragment,
+  RuntimeGlobals, TemplateContext, TemplateReplaceSource,
 };
 
 // Mark module `__esModule`.
@@ -67,4 +67,9 @@ impl DependencyTemplate for HarmonyCompatibilityDependency {
       )));
     }
   }
+
+  fn dependency_id(&self) -> Option<rspack_core::DependencyId> {
+    None
+  }
 }
+impl AsDependency for HarmonyCompatibilityDependency {}

@@ -1,6 +1,6 @@
 use rspack_core::{
-  DependencyTemplate, InitFragmentKey, InitFragmentStage, NormalInitFragment, RuntimeGlobals,
-  TemplateContext, TemplateReplaceSource,
+  AsDependency, DependencyTemplate, InitFragmentKey, InitFragmentStage, NormalInitFragment,
+  RuntimeGlobals, TemplateContext, TemplateReplaceSource,
 };
 
 #[derive(Debug, Clone)]
@@ -58,4 +58,9 @@ impl DependencyTemplate for ModuleDecoratorDependency {
       None,
     )));
   }
+
+  fn dependency_id(&self) -> Option<rspack_core::DependencyId> {
+    None
+  }
 }
+impl AsDependency for ModuleDecoratorDependency {}

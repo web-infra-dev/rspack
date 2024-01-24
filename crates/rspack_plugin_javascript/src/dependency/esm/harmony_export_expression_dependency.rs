@@ -173,10 +173,11 @@ impl DependencyTemplate for HarmonyExportExpressionDependency {
         None,
       );
     } else {
-      if let Some(ref mut scope) = concatenation_scope {
+      let content = if let Some(ref mut scope) = concatenation_scope {
         scope.register_export(DEFAULT_JS_WORD.clone(), DEFAULT_EXPORT.to_string());
-      };
-      let content = if let Some(used) = get_used_name(
+        // TODO: support const inspect
+        format!("/* unused harmony default export */ var {DEFAULT_EXPORT} = ")
+      } else if let Some(used) = get_used_name(
         DEFAULT_JS_WORD.as_str(),
         compilation,
         runtime,
@@ -206,6 +207,10 @@ impl DependencyTemplate for HarmonyExportExpressionDependency {
       );
       source.replace(self.range.end(), self.range_stmt.end(), ");", None);
     }
+  }
+
+  fn dependency_id(&self) -> Option<DependencyId> {
+    Some(self.id)
   }
 }
 

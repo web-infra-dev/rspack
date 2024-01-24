@@ -738,7 +738,7 @@ impl Module for ConcatenatedModule {
           info.name = Some(external_name.as_str().into());
         }
       }
-      dbg!(&exports_type, info.id());
+      // dbg!(&exports_type, info.id());
       // Handle additional logic based on module build meta
       if exports_type != Some(BuildMetaExportsType::Namespace) {
         let external_name_interop = Self::find_new_name(
@@ -969,6 +969,7 @@ impl Module for ConcatenatedModule {
     let mut namespace_object_sources: HashMap<ModuleIdentifier, String> = HashMap::default();
 
     // TODO: remove the clone
+    // dbg!(&needed_namespace_objects);
     for module_info_id in needed_namespace_objects.clone().iter() {
       let module_info = module_to_info_map
         .get(module_info_id)
@@ -1706,7 +1707,7 @@ impl ConcatenatedModule {
         let module = module_graph
           .module_by_identifier(&info.module)
           .expect("should have module");
-        let _name = info.internal_names.get(export_id).unwrap_or_else(|| {
+        let name = info.internal_names.get(export_id).unwrap_or_else(|| {
           panic!(
             "The export \"{}\" in \"{}\" has no internal name (existing names: {})",
             export_id,
@@ -1721,7 +1722,7 @@ impl ConcatenatedModule {
         });
         let reference = format!(
           "{}{}{}",
-          binding.name,
+          name,
           comment.cloned().unwrap_or_default(),
           property_access(ids, 0)
         );
@@ -1886,6 +1887,7 @@ impl ConcatenatedModule {
     if export_name.is_empty() {
       match info {
         ModuleInfo::Concatenated(info) => {
+          println!("fuck");
           needed_namespace_objects.insert(info.module);
           return Binding::Raw(RawBinding {
             raw_name: info
@@ -1935,7 +1937,9 @@ impl ConcatenatedModule {
       ModuleInfo::Concatenated(info) => {
         let export_id = export_name.first().cloned();
         let export_info = export_info_id.get_export_info(mg);
+        // dbg!(&export_info);
         if matches!(export_info.provided, Some(crate::ExportInfoProvided::False)) {
+          println!("fuck it");
           needed_namespace_objects.insert(info.module);
           return Binding::Raw(RawBinding {
             raw_name: info
@@ -1949,7 +1953,7 @@ impl ConcatenatedModule {
             comment: None,
           });
         }
-        dbg!(&export_id, &info.export_map);
+        // dbg!(&export_id, &info.export_map);
 
         if let Some(ref export_id) = export_id
           && let Some(direct_export) = info.export_map.as_ref().and_then(|map| map.get(export_id))

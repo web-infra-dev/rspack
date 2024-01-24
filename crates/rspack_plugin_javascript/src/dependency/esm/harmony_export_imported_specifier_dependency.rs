@@ -970,6 +970,10 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
         )));
     }
   }
+
+  fn dependency_id(&self) -> Option<DependencyId> {
+    Some(self.id)
+  }
 }
 
 impl Dependency for HarmonyExportImportedSpecifierDependency {

@@ -1,4 +1,6 @@
-use rspack_core::{DependencyTemplate, TemplateContext, TemplateReplaceSource, UsageState};
+use rspack_core::{
+  AsDependency, DependencyTemplate, TemplateContext, TemplateReplaceSource, UsageState,
+};
 use swc_core::ecma::atoms::Atom;
 
 #[derive(Debug, Clone)]
@@ -34,6 +36,10 @@ impl DependencyTemplate for ExportInfoApiDependency {
       Some(UsageState::Used)
     );
     source.replace(self.start, self.end, usage.to_string().as_ref(), None);
+  }
+
+  fn dependency_id(&self) -> Option<rspack_core::DependencyId> {
+    None
   }
 }
 
@@ -84,3 +90,4 @@ impl ExportInfoApiDependency {
     }
   }
 }
+impl AsDependency for ExportInfoApiDependency {}

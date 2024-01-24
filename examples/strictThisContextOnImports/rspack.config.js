@@ -13,7 +13,7 @@ module.exports = {
 		concatenateModules: true,
 		usedExports: true,
 		sideEffects: true,
-		providedExports: true,
+		providedExports: false,
 		minimize: false
 	}
 };
