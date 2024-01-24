@@ -27,7 +27,7 @@
       "schedule": ["on wednesday"],
       "assignees": ["@Boshen"],
       "excludePackagePrefixes": ["swc"],
-      "excludePackageNames": ["ustr"]
+      "excludePackageNames": ["ustr", "textwrap"]
     },
     {
       "groupName": "swc",
@@ -38,7 +38,7 @@
     {
       "groupName": "ignored-crates",
       "matchManagers": ["cargo"],
-      "matchPackageNames": ["ustr"],
+      "matchPackageNames": ["ustr", "textwrap"],
       "enabled": false
     }
   ]
