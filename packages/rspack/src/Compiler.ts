@@ -644,6 +644,7 @@ class Compiler {
 			stillValidModule: this.compilation.hooks.stillValidModule,
 			buildModule: this.compilation.hooks.buildModule,
 			// various of hooks are called inside `#newCompilation`, we shouldn't prevent `#newCompilation` from calling even when `thisCompilation` is not tapped.
+			// issue: https://github.com/web-infra-dev/rspack/issues/5398
 			thisCompilation: undefined,
 			optimizeChunkModules: this.compilation.hooks.optimizeChunkModules,
 			contextModuleFactoryBeforeResolve:
