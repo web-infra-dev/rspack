@@ -18,4 +18,4 @@ swc_core          = { workspace = true, features = ["common"] }
 termcolor         = "1"
 textwrap          = "0.15.2"
 thiserror         = "1"
-unicode-width     = "0.1.10"
+unicode-width     = "0.1.11"
