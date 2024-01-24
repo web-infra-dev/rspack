@@ -363,7 +363,6 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
             let start = init.span().real_lo();
             let end = init.span().real_hi();
             let module_identifier = self.state.module_identifier;
-            // dbg!(&self.is_toplevel());
             self.on_usage(Box::new(
               move |deps, used_by_exports| match used_by_exports {
                 Some(UsedByExports::Bool(true)) | None => {}
@@ -550,12 +549,6 @@ impl<'a> InnerGraphPlugin<'a> {
       top_level_ctxt_set: HashSet::from_iter([top_level_ctxt]),
     }
   }
-
-  // fn with_scope(&mut self, scope: ScopeKind, f: impl Fn(&mut Self)) {
-  //   self.stack.push(scope);
-  //   f(self);
-  //   self.stack.pop();
-  // }
 
   pub fn enable(&mut self) {
     self.state.enable = true;
