@@ -1,0 +1,5 @@
+---
+source: crates/rspack_testing/src/run_fixture.rs
+assertion_line: 146
+---
+

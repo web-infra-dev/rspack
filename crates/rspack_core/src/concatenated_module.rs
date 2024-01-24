@@ -310,6 +310,7 @@ impl ModuleInfo {
   }
 
   pub fn set_interop_default_access_name(&mut self, v: Option<Atom>) {
+    dbg!(&v);
     match self {
       ModuleInfo::External(e) => e.interop_default_access_name = v,
       ModuleInfo::Concatenated(c) => c.interop_default_access_name = v,
@@ -737,6 +738,7 @@ impl Module for ConcatenatedModule {
           info.name = Some(external_name.as_str().into());
         }
       }
+      dbg!(&exports_type, info.id());
       // Handle additional logic based on module build meta
       if exports_type != Some(BuildMetaExportsType::Namespace) {
         let external_name_interop = Self::find_new_name(
@@ -762,7 +764,10 @@ impl Module for ConcatenatedModule {
         info.set_interop_namespace_object2_name(Some(external_name_interop.as_str().into()));
       }
 
-      if exports_type == Some(BuildMetaExportsType::Dynamic) || exports_type.is_none() {
+      if matches!(
+        exports_type,
+        Some(BuildMetaExportsType::Dynamic | BuildMetaExportsType::Unset)
+      ) {
         let external_name_interop =
           Self::find_new_name("default", &all_used_names, None, &readable_identifier);
         all_used_names.insert(external_name_interop.clone());
@@ -1173,6 +1178,7 @@ impl Module for ConcatenatedModule {
       }
 
       if info.get_interop_default_access_used() {
+        dbg!(&info.get_interop_default_access_name());
         runtime_requirements.insert(RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT);
         result.add(RawSource::from(format!(
           "\nlet {} = /*#__PURE__*/{}({});",
@@ -1559,6 +1565,7 @@ impl ConcatenatedModule {
   ) -> Result<ModuleInfo> {
     if let ModuleInfo::Concatenated(info) = info {
       let module_id = info.module;
+
       let concatenation_scope = ConcatenationScope::new(module_info_map, info);
       let module = compilation
         .module_graph
@@ -1578,6 +1585,8 @@ impl ConcatenatedModule {
         .expect("should have javascript source");
       let source_code = source.source().to_string();
 
+      println!("{module_id}\n",);
+      println!("{}\n", &source_code);
       let cm: Arc<swc_core::common::SourceMap> = Default::default();
       let fm = cm.new_source_file(
         FileName::Custom(format!(
@@ -1588,6 +1597,7 @@ impl ConcatenatedModule {
       );
       let comments = SwcComments::default();
       let mut module_info = concatenation_scope.current_module;
+
       let mut errors = vec![];
       let program = match parse_file_as_module(
         &fm,
@@ -1839,7 +1849,8 @@ impl ConcatenatedModule {
             // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/ConcatenatedModule.js#L335-L341
             let default_access_name = info
               .get_interop_default_access_name()
-              .expect("should have interop_default_access_name");
+              .cloned()
+              .unwrap_or("undefined".into());
             let default_export = if as_call {
               format!("{}()", default_access_name)
             } else if let Some(true) = asi_safe {

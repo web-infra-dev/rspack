@@ -146,10 +146,11 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
     let reference_mgm = compilation
       .module_graph
       .module_graph_module_by_dependency_id(&self.id);
-
+    dbg!(&self.id);
     let is_new_treeshaking = compilation.options.is_new_tree_shaking();
     if is_new_treeshaking {
       let connection = compilation.module_graph.connection_by_dependency(&self.id);
+      dbg!(&connection);
       let is_target_active = if let Some(con) = connection {
         con.is_target_active(&compilation.module_graph, *runtime)
       } else {
@@ -184,7 +185,7 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
       && let Some(con) = compilation.module_graph.connection_by_dependency(&self.id)
       && scope.is_module_in_scope(&con.module_identifier)
     {
-      if ids.is_empty() {
+      let expr = if ids.is_empty() {
         scope.create_module_reference(
           &con.module_identifier,
           &ModuleReferenceOptions {
@@ -207,7 +208,9 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
             ..Default::default()
           },
         )
-      }
+      };
+      dbg!(&expr);
+      expr
     } else {
       if is_new_treeshaking {
         harmony_import_dependency_apply(
