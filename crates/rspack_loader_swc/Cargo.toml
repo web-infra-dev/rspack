@@ -22,7 +22,7 @@ rspack_plugin_javascript = { path = "../rspack_plugin_javascript" }
 rspack_swc_visitors = { path = "../rspack_swc_visitors" }
 rspack_util = { path = "../rspack_util" }
 serde = { workspace = true, features = ["derive"] }
-serde_json = "1.0.100"
+serde_json = { workspace = true }
 swc_config = { workspace = true }
 swc_core = { workspace = true, features = [
   "base",

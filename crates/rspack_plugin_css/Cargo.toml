@@ -36,9 +36,9 @@ swc_core = { workspace = true, features = [
   "css_minifier",
 ] }
 tracing = { workspace = true }
-urlencoding = "2.1.2"
+urlencoding = { workspace = true }
 
 [dev-dependencies]
 hrx-parser     = "0.1.1"
-insta          = "1.30.0"
+insta          = { workspace = true }
 rspack_testing = { path = "../rspack_testing" }

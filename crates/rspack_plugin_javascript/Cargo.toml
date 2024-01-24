@@ -44,4 +44,4 @@ swc_core = { workspace = true, features = [
   "ecma_quote",
 ] }
 swc_node_comments = { workspace = true }
-url = "2.4.0"
+url = { workspace = true }
