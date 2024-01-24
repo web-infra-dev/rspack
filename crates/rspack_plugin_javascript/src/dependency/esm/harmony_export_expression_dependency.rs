@@ -3,14 +3,13 @@ use rspack_core::tree_shaking::symbol::DEFAULT_JS_WORD;
 use rspack_core::{
   property_access, AsContextDependency, AsModuleDependency, Compilation, Dependency,
   DependencyLocation, DependencyType, ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec,
-  HarmonyExportInitFragment, ModuleGraph, RuntimeGlobals, RuntimeSpec, UsedName,
+  HarmonyExportInitFragment, InitFragmentExt, ModuleGraph, RuntimeGlobals, RuntimeSpec, UsedName,
+  DEFAULT_EXPORT,
 };
 use rspack_core::{DependencyId, DependencyTemplate};
 use rspack_core::{TemplateContext, TemplateReplaceSource};
 use rspack_identifier::Identifier;
 use swc_core::atoms::Atom;
-
-pub const DEFAULT_EXPORT: &str = "__WEBPACK_DEFAULT_EXPORT__";
 
 #[derive(Debug, Clone)]
 pub enum DeclarationId {
@@ -94,6 +93,7 @@ impl DependencyTemplate for HarmonyExportExpressionDependency {
       runtime_requirements,
       module,
       init_fragments,
+      concatenation_scope,
       ..
     } = code_generatable_context;
 
@@ -139,27 +139,31 @@ impl DependencyTemplate for HarmonyExportExpressionDependency {
         }
       };
 
-      if let Some(used) = get_used_name(
-        DEFAULT_JS_WORD.as_str(),
-        compilation,
-        runtime,
-        &module.identifier(),
-      ) {
-        init_fragments.push(Box::new(HarmonyExportInitFragment::new(
-          module.get_exports_argument(),
-          vec![(
-            match used {
-              UsedName::Str(s) => s,
-              UsedName::Vec(v) => v
-                .iter()
-                .map(|i| i.to_string())
-                .collect_vec()
-                .join("")
-                .into(),
-            },
-            Atom::from(format!("/* export default binding */ {name}")),
-          )],
-        )));
+      if let Some(scope) = concatenation_scope {
+        scope.register_export(DEFAULT_JS_WORD.clone(), name.to_string());
+      } else {
+        if let Some(used) = get_used_name(
+          DEFAULT_JS_WORD.as_str(),
+          compilation,
+          runtime,
+          &module.identifier(),
+        ) {
+          init_fragments.push(Box::new(HarmonyExportInitFragment::new(
+            module.get_exports_argument(),
+            vec![(
+              match used {
+                UsedName::Str(s) => s,
+                UsedName::Vec(v) => v
+                  .iter()
+                  .map(|i| i.to_string())
+                  .collect_vec()
+                  .join("")
+                  .into(),
+              },
+              Atom::from(format!("/* export default binding */ {name}")),
+            )],
+          )));
+        }
       }
 
       source.replace(

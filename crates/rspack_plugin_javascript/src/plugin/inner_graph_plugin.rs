@@ -1,6 +1,6 @@
 use std::{collections::hash_map::Entry, hash::Hash};
 
-use rspack_core::{Dependency, ModuleIdentifier, SpanExt, UsedByExports};
+use rspack_core::{Dependency, ModuleIdentifier, SpanExt, UsedByExports, DEFAULT_EXPORT};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::{
   common::{Span, Spanned, SyntaxContext},
@@ -17,7 +17,7 @@ use swc_core::{
 use swc_node_comments::SwcComments;
 
 use crate::{
-  dependency::{PureExpressionDependency, DEFAULT_EXPORT},
+  dependency::PureExpressionDependency,
   is_pure_class, is_pure_class_member,
   plugin::side_effects_flag_plugin::is_pure_expression,
   visitors::{harmony_import_dependency_scanner::ImportMap, ExtraSpanInfo},

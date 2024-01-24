@@ -81,7 +81,9 @@ pub enum IndirectType {
   ///
   ImportDefault(Atom),
 }
+
 pub static DEFAULT_JS_WORD: Lazy<Atom> = Lazy::new(|| js_word!("default"));
+
 /// We have three kind of star symbol
 /// ## import with namespace
 /// ```js
