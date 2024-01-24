@@ -332,7 +332,7 @@ impl ModuleInfoOrReference {
   pub fn runtime_condition(&self) -> Option<&RuntimeCondition> {
     match self {
       ModuleInfoOrReference::External(info) => Some(&info.runtime_condition),
-      ModuleInfoOrReference::Concatenated(info) => None,
+      ModuleInfoOrReference::Concatenated(_) => None,
       ModuleInfoOrReference::Reference {
         runtime_condition, ..
       } => Some(runtime_condition),
@@ -1045,8 +1045,8 @@ impl Module for ConcatenatedModule {
 
       runtime_requirements.insert(RuntimeGlobals::MAKE_NAMESPACE_OBJECT);
     }
-    //
-    // // Define required namespace objects (must be before evaluation modules)
+
+    // Define required namespace objects (must be before evaluation modules)
     for info in modules_with_info.iter() {
       let ModuleInfoOrReference::Concatenated(info) = info else {
         continue;
@@ -1938,7 +1938,7 @@ impl ConcatenatedModule {
             comment: None,
           });
         }
-        // dbg!(&export_id, &info.export_map);
+        dbg!(&export_id, &info.export_map);
 
         if let Some(ref export_id) = export_id
           && let Some(direct_export) = info.export_map.as_ref().and_then(|map| map.get(export_id))
