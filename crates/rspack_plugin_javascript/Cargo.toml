@@ -11,13 +11,11 @@ rspack_testing = { path = "../rspack_testing" }
 [dependencies]
 async-trait = { workspace = true }
 bitflags = { workspace = true }
-either = "1"
 indexmap = { workspace = true }
 itertools = { workspace = true }
 linked_hash_set = { workspace = true }
 num-bigint = { version = "0.4.4" }
 once_cell = { workspace = true }
-preset_env_base = { workspace = true }
 rayon = { workspace = true }
 regex = { workspace = true }
 rspack_ast = { path = "../rspack_ast" }
