@@ -51,6 +51,9 @@ static MATCH_WEBPACK_EXT_REGEX: Lazy<Regex> = Lazy::new(|| {
   Regex::new(r#"\.webpack\[([^\]]+)\]$"#).expect("Failed to initialize `MATCH_WEBPACK_EXT_REGEX`")
 });
 
+static ELEMENT_SPLIT_REGEX: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"!+").expect("Failed to initialize `ELEMENT_SPLIT_REGEX`"));
+
 impl NormalModuleFactory {
   pub fn new(
     options: Arc<CompilerOptions>,
@@ -260,9 +263,7 @@ impl NormalModuleFactory {
             Some((pos, _)) => &request_without_match_resource[pos..],
             None => request_without_match_resource,
           };
-          s.split('!')
-            .filter(|item| !item.is_empty())
-            .collect::<Vec<_>>()
+          ELEMENT_SPLIT_REGEX.split(s).collect::<Vec<_>>()
         };
 
         request_without_match_resource = raw_elements
@@ -274,71 +275,79 @@ impl NormalModuleFactory {
           options: None,
         }));
       }
-      let optional = dependency.get_optional();
 
-      let resolve_args = ResolveArgs {
-        importer,
-        issuer: data.issuer.as_deref(),
-        context: if context_scheme != Scheme::None {
-          self.options.context.clone()
-        } else {
-          data.context.clone()
-        },
-        specifier: request_without_match_resource,
-        dependency_type: dependency.dependency_type(),
-        dependency_category: dependency.category(),
-        span: dependency.source_span(),
-        // take the options is safe here, because it
-        // is not used in after_resolve hooks
-        resolve_options: data.resolve_options.take(),
-        resolve_to_context: false,
-        optional,
-        file_dependencies: &mut file_dependencies,
-        missing_dependencies: &mut missing_dependencies,
-      };
+      if request_without_match_resource.is_empty() {
+        (
+          ResourceData::new("".to_string(), Path::new("").to_path_buf()),
+          false,
+        )
+      } else {
+        let optional = dependency.get_optional();
 
-      // default resolve
-      let (resource_data, from_cache) = match self
-        .cache
-        .resolve_module_occasion
-        .use_cache(resolve_args, |args| resolve(args, plugin_driver))
-        .await
-      {
-        Ok(result) => result,
-        Err(err) => (Err(err), false),
-      };
+        let resolve_args = ResolveArgs {
+          importer,
+          issuer: data.issuer.as_deref(),
+          context: if context_scheme != Scheme::None {
+            self.options.context.clone()
+          } else {
+            data.context.clone()
+          },
+          specifier: request_without_match_resource,
+          dependency_type: dependency.dependency_type(),
+          dependency_category: dependency.category(),
+          span: dependency.source_span(),
+          // take the options is safe here, because it
+          // is not used in after_resolve hooks
+          resolve_options: data.resolve_options.take(),
+          resolve_to_context: false,
+          optional,
+          file_dependencies: &mut file_dependencies,
+          missing_dependencies: &mut missing_dependencies,
+        };
 
-      match resource_data {
-        Ok(ResolveResult::Resource(resource)) => {
-          let uri = resource.full_path().display().to_string();
-          (
-            ResourceData::new(uri, resource.path)
-              .query_optional(resource.query)
-              .fragment_optional(resource.fragment)
-              .description_optional(resource.description_data),
-            from_cache,
-          )
-        }
-        Ok(ResolveResult::Ignored) => {
-          let ident = format!("{}/{}", &data.context, request_without_match_resource);
-          let module_identifier = ModuleIdentifier::from(format!("ignored|{ident}"));
+        // default resolve
+        let (resource_data, from_cache) = match self
+          .cache
+          .resolve_module_occasion
+          .use_cache(resolve_args, |args| resolve(args, plugin_driver))
+          .await
+        {
+          Ok(result) => result,
+          Err(err) => (Err(err), false),
+        };
 
-          let raw_module = RawModule::new(
-            "/* (ignored) */".to_owned(),
-            module_identifier,
-            format!("{ident} (ignored)"),
-            Default::default(),
-          )
-          .boxed();
+        match resource_data {
+          Ok(ResolveResult::Resource(resource)) => {
+            let uri = resource.full_path().display().to_string();
+            (
+              ResourceData::new(uri, resource.path)
+                .query_optional(resource.query)
+                .fragment_optional(resource.fragment)
+                .description_optional(resource.description_data),
+              from_cache,
+            )
+          }
+          Ok(ResolveResult::Ignored) => {
+            let ident = format!("{}/{}", &data.context, request_without_match_resource);
+            let module_identifier = ModuleIdentifier::from(format!("ignored|{ident}"));
 
-          return Ok(Some(
-            ModuleFactoryResult::new_with_module(raw_module).from_cache(from_cache),
-          ));
-        }
-        Err(err) => {
-          data.add_file_dependencies(file_dependencies);
-          data.add_missing_dependencies(missing_dependencies);
-          return Err(err);
+            let raw_module = RawModule::new(
+              "/* (ignored) */".to_owned(),
+              module_identifier,
+              format!("{ident} (ignored)"),
+              Default::default(),
+            )
+            .boxed();
+
+            return Ok(Some(
+              ModuleFactoryResult::new_with_module(raw_module).from_cache(from_cache),
+            ));
+          }
+          Err(err) => {
+            data.add_file_dependencies(file_dependencies);
+            data.add_missing_dependencies(missing_dependencies);
+            return Err(err);
+          }
         }
       }
     };
