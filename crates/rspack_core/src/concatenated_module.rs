@@ -607,7 +607,7 @@ impl Module for ConcatenatedModule {
       self.get_modules_with_info(&compilation.module_graph, runtime);
 
     // Set with modules that need a generated namespace object
-    let mut needed_namespace_objects: HashSet<ModuleIdentifier> = HashSet::default();
+    let mut needed_namespace_objects: IndexSet<ModuleIdentifier> = IndexSet::default();
 
     // Generate source code and analyze scopes
     // Prepare a ReplaceSource for the final source
@@ -629,9 +629,7 @@ impl Module for ConcatenatedModule {
       module_to_info_map.insert(id, module_info);
     }
 
-    // TODO: recover
     let mut all_used_names = HashSet::from_iter(RESERVED_NAMES.iter().map(|item| item.to_string()));
-    // let mut all_used_names = HashSet::from_iter([]);
 
     for module in modules_with_info.iter() {
       let ModuleInfoOrReference::Concatenated(m) = module else {
@@ -980,11 +978,14 @@ impl Module for ConcatenatedModule {
     let mut namespace_object_sources: HashMap<ModuleIdentifier, String> = HashMap::default();
 
     let mut visited = HashSet::default();
-    /// webpack require iterate the needed_namespace_objects and mutate `needed_namespace_objects`
-    /// at the same time, https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L1514
-    /// Which is impossible in rust, using a fixed point algorithm  to reach the same goal.
+    // webpack require iterate the needed_namespace_objects and mutate `needed_namespace_objects`
+    // at the same time, https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L1514
+    // Which is impossible in rust, using a fixed point algorithm  to reach the same goal.
     loop {
       let mut changed = false;
+      // using the previous round snapshot `needed_namespace_objects` to iterate, and modify the
+      // original `needed_namespace_objects` during the iteration,
+      // if there is no new id inserted into `needed_namespace_objects`, break the outer loop
       for module_info_id in needed_namespace_objects.clone().iter() {
         if visited.contains(module_info_id) {
           continue;
@@ -1079,8 +1080,6 @@ impl Module for ConcatenatedModule {
         break;
       }
     }
-
-    dbg!(&needed_namespace_objects);
 
     // Define required namespace objects (must be before evaluation modules)
     for info in modules_with_info.iter() {
@@ -1692,7 +1691,7 @@ impl ConcatenatedModule {
     export_name: Vec<Atom>,
     module_to_info_map: &mut IndexMap<ModuleIdentifier, ModuleInfo>,
     runtime: Option<&RuntimeSpec>,
-    needed_namespace_objects: &mut HashSet<ModuleIdentifier>,
+    needed_namespace_objects: &mut IndexSet<ModuleIdentifier>,
     as_call: bool,
     call_context: bool,
     strict_harmony_module: bool,
@@ -1779,7 +1778,7 @@ impl ConcatenatedModule {
     mut export_name: Vec<Atom>,
     module_to_info_map: &mut IndexMap<ModuleIdentifier, ModuleInfo>,
     runtime: Option<&RuntimeSpec>,
-    needed_namespace_objects: &mut HashSet<ModuleIdentifier>,
+    needed_namespace_objects: &mut IndexSet<ModuleIdentifier>,
     as_call: bool,
     strict_harmony_module: bool,
     asi_safe: Option<bool>,
