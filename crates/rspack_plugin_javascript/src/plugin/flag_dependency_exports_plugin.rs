@@ -160,7 +160,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
     exports_info_id: ExportsInfoId,
   ) {
     let exports = &export_desc.exports;
-    dbg!(&exports);
+    // dbg!(&exports);
     let global_can_mangle = &export_desc.can_mangle;
     let global_from = export_desc.from.as_ref();
     let global_priority = &export_desc.priority;
@@ -262,7 +262,6 @@ impl<'a> FlagDependencyExportsProxy<'a> {
             spec.hidden.unwrap_or(false),
           ),
         };
-      dbg!(&name);
       let export_info_id = exports_info.get_export_info(&name, self.mg);
 
       let export_info_mut = export_info_id.get_export_info_mut(self.mg);

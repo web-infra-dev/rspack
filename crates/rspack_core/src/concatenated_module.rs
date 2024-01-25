@@ -161,10 +161,9 @@ pub struct ConcatenatedModuleInfo {
   pub interop_namespace_object2_name: Option<Atom>,
   pub interop_default_access_used: bool,
   pub interop_default_access_name: Option<Atom>,
-  pub module_scope_ident: Vec<ConcatenatedModuleIdent>,
   pub global_scope_ident: Vec<ConcatenatedModuleIdent>,
   pub idents: Vec<ConcatenatedModuleIdent>,
-  pub binding_to_ref: HashMap<Atom, Vec<ConcatenatedModuleIdent>>,
+  pub binding_to_ref: HashMap<(Atom, SyntaxContext), Vec<ConcatenatedModuleIdent>>,
 }
 
 #[derive(Debug, Clone)]
@@ -630,7 +629,9 @@ impl Module for ConcatenatedModule {
       module_to_info_map.insert(id, module_info);
     }
 
-    let mut all_used_names = HashSet::from_iter(RESERVED_NAMES.iter().map(|item| item.to_string()));
+    // TODO: recover
+    // let mut all_used_names = HashSet::from_iter(RESERVED_NAMES.iter().map(|item| item.to_string()));
+    let mut all_used_names = HashSet::from_iter([]);
 
     for module in modules_with_info.iter() {
       let ModuleInfoOrReference::Concatenated(m) = module else {
@@ -646,23 +647,33 @@ impl Module for ConcatenatedModule {
           program.visit_with(&mut collector);
         });
         for ident in collector.ids {
-          if ident.id.span.ctxt == info.module_ctxt {
-            info.module_scope_ident.push(ident.clone());
-          }
           if ident.id.span.ctxt == info.global_ctxt {
             info.global_scope_ident.push(ident.clone());
             all_used_names.insert(ident.id.sym.to_string());
           }
+          if ident.class_expr_with_ident {
+            all_used_names.insert(ident.id.sym.to_string());
+            continue;
+          }
           info.idents.push(ident);
         }
-        let mut binding_to_ref = HashMap::default();
-        for list in info.idents.group_by(|a, b| a.id.sym == b.id.sym) {
-          let atom = list[0].id.sym.clone();
-          binding_to_ref.insert(atom, list.to_vec());
+        let mut binding_to_ref: HashMap<(Atom, SyntaxContext), Vec<ConcatenatedModuleIdent>> =
+          HashMap::default();
+
+        for ident in info.idents.iter() {
+          match binding_to_ref.entry((ident.id.sym.clone(), ident.id.span.ctxt)) {
+            Entry::Occupied(mut occ) => {
+              occ.get_mut().push(ident.clone());
+            }
+            Entry::Vacant(vac) => {
+              vac.insert(vec![ident.clone()]);
+            }
+          };
         }
         info.binding_to_ref = binding_to_ref;
       }
     }
+    dbg!(&all_used_names);
 
     for info in module_to_info_map.values_mut() {
       // Get used names in the scope
@@ -680,31 +691,33 @@ impl Module for ConcatenatedModule {
         // Handle concatenated type
         ModuleInfo::Concatenated(info) => {
           // Iterate over variables in moduleScope
-          for variable in info.module_scope_ident.iter() {
-            let name = &variable.id.sym;
-
+          for (id, refs) in info.binding_to_ref.iter() {
+            let name = &id.0;
+            let ctxt = id.1;
+            if ctxt != info.module_ctxt {
+              continue;
+            }
             // Check if the name is already used
             if all_used_names.contains(name.as_str()) {
               // Find a new name and update references
               let new_name = Self::find_new_name(name, &all_used_names, None, &readable_identifier);
+              // dbg!(&name, &new_name);
               all_used_names.insert(new_name.clone());
               info.internal_names.insert(name.clone(), new_name.clone());
 
               // Update source
               let source = info.source.as_mut().expect("should have source");
 
-              if let Some(all_idents) = info.binding_to_ref.get(name) {
-                for identifier in all_idents {
-                  let span = identifier.id.span();
-                  let low = span.real_lo();
-                  let high = span.real_hi();
-                  if identifier.shorthand {
-                    source.insert(low, &format!(": {}", new_name), None);
-                    continue;
-                  }
-
-                  source.replace(low, high, &new_name, None);
+              for identifier in refs {
+                let span = identifier.id.span();
+                let low = span.real_lo();
+                let high = span.real_hi();
+                if identifier.shorthand {
+                  source.insert(low, &format!(": {}", new_name), None);
+                  continue;
                 }
+
+                source.replace(low, high, &new_name, None);
               }
             } else {
               // Handle the case when the name is not already used
@@ -729,6 +742,7 @@ impl Module for ConcatenatedModule {
           if let Some(namespace_object_name) = namespace_object_name {
             info.namespace_object_name = Some(namespace_object_name);
           }
+          // dbg!(info.module, &info.internal_names);
         }
 
         // Handle external type
@@ -817,7 +831,7 @@ impl Module for ConcatenatedModule {
       }
     }
 
-    for (info_id, info_params_list) in info_map {
+    for (module_info_id, info_params_list) in info_map {
       for (
         reference_ident,
         referenced_info_id,
@@ -831,7 +845,8 @@ impl Module for ConcatenatedModule {
         let final_name = Self::get_final_name(
           &compilation.module_graph,
           &referenced_info_id,
-          export_name,
+          // TODO: remove clone
+          export_name.clone(),
           &mut module_to_info_map,
           runtime,
           &mut needed_namespace_objects,
@@ -841,9 +856,10 @@ impl Module for ConcatenatedModule {
           asi_safe,
           &context,
         );
+        // dbg!(&reference_ident, &final_name, &export_name);
         // We assume this should be concatenated module info because previous loop
         let info = module_to_info_map
-          .get_mut(&info_id)
+          .get_mut(&module_info_id)
           .and_then(|info| info.try_as_concatenated_mut())
           .expect("should have concatenate module info");
         let span = reference_ident.id.span();
