@@ -1898,7 +1898,6 @@ impl ConcatenatedModule {
     if export_name.is_empty() {
       match info {
         ModuleInfo::Concatenated(info) => {
-          println!("fuck");
           needed_namespace_objects.insert(info.module);
           return Binding::Raw(RawBinding {
             raw_name: info
@@ -1950,7 +1949,6 @@ impl ConcatenatedModule {
         let export_info = export_info_id.get_export_info(mg);
         // dbg!(&export_info);
         if matches!(export_info.provided, Some(crate::ExportInfoProvided::False)) {
-          println!("fuck it");
           needed_namespace_objects.insert(info.module);
           return Binding::Raw(RawBinding {
             raw_name: info
