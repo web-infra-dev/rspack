@@ -844,9 +844,30 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
     _source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
-    let compilation = &code_generatable_context.compilation;
-    let module = &code_generatable_context.module;
-    let runtime = code_generatable_context.runtime;
+    let TemplateContext {
+      compilation,
+      module,
+      runtime,
+      concatenation_scope,
+      ..
+    } = code_generatable_context;
+
+    let mode = self.get_mode(
+      self.name.clone(),
+      &compilation.module_graph,
+      &self.id,
+      *runtime,
+    );
+
+    if let Some(ref mut scope) = concatenation_scope {
+      if matches!(mode.ty, ExportModeType::ReexportUndefined) {
+        scope.register_raw_export(
+          mode.name.clone().expect("should have name"),
+          String::from("/* reexport non-default export from non-harmony */ undefined"),
+        );
+      }
+      return;
+    }
 
     let module = compilation
       .module_graph
@@ -868,7 +889,7 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
           exports_info_id
             .get_used_name(
               &compilation.module_graph,
-              runtime,
+              *runtime,
               UsedName::Str(local.clone()),
             )
             .map(|item| match item {
@@ -893,20 +914,6 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
     };
 
     if is_new_treeshaking {
-      let mode = self.get_mode(
-        self.name.clone(),
-        &compilation.module_graph,
-        &self.id,
-        runtime,
-      );
-      if let Some(ref mut scope) = code_generatable_context.concatenation_scope {
-        if matches!(mode.ty, ExportModeType::ReexportUndefined) {
-          scope.register_raw_export(
-            mode.name.clone().expect("should have name"),
-            String::from("/* reexport non-default export from non-harmony */ undefined"),
-          );
-        }
-      }
       // dbg!(&mode, self.request());
       if !matches!(mode.ty, ExportModeType::Unused | ExportModeType::EmptyStar) {
         harmony_import_dependency_apply(self, self.source_order, code_generatable_context, &[]);

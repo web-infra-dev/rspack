@@ -10,10 +10,13 @@ module.exports = {
 		}
 	},
 	optimization: {
+		mangleExports: false,
+		moduleIds: 'named',
 		concatenateModules: true,
 		usedExports: true,
 		sideEffects: true,
-		providedExports: false,
-		minimize: false
+		providedExports: true,
+		minimize: false,
+
 	}
 };

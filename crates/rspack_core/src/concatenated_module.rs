@@ -1034,13 +1034,15 @@ impl Module for ConcatenatedModule {
       let name = name_space_name.expect("should have name_space_name");
       let define_getters = if !ns_obj.is_empty() {
         format!(
-          "{}({{ {} }});\n",
+          "{}({}, {{ {} }});\n",
           RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
+          name,
           ns_obj.join(",")
         )
       } else {
         String::new()
       };
+      dbg!(&define_getters);
 
       if !ns_obj.is_empty() {
         runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);

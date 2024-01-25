@@ -176,7 +176,7 @@ impl DependencyTemplate for HarmonyExportExpressionDependency {
       let content = if let Some(ref mut scope) = concatenation_scope {
         scope.register_export(DEFAULT_JS_WORD.clone(), DEFAULT_EXPORT.to_string());
         // TODO: support const inspect
-        format!("/* unused harmony default export */ var {DEFAULT_EXPORT} = ")
+        format!("/* harmony default export */ var {DEFAULT_EXPORT} = ")
       } else if let Some(used) = get_used_name(
         DEFAULT_JS_WORD.as_str(),
         compilation,
