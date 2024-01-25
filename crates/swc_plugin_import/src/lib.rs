@@ -86,7 +86,7 @@ pub fn plugin_import(config: &Vec<PluginImportConfig>) -> impl Fold + '_ {
   renderer.register_helper(
     "kebabCase",
     Box::new(
-      |helper: &Helper<'_, '_>,
+      |helper: &Helper<'_>,
        _: &'_ handlebars::Handlebars<'_>,
        _: &'_ Context,
        _: &mut RenderContext<'_, '_>,
@@ -105,7 +105,7 @@ pub fn plugin_import(config: &Vec<PluginImportConfig>) -> impl Fold + '_ {
   renderer.register_helper(
     "camelCase",
     Box::new(
-      |helper: &Helper<'_, '_>,
+      |helper: &Helper<'_>,
        _: &'_ handlebars::Handlebars<'_>,
        _: &'_ Context,
        _: &mut RenderContext<'_, '_>,
@@ -124,7 +124,7 @@ pub fn plugin_import(config: &Vec<PluginImportConfig>) -> impl Fold + '_ {
   renderer.register_helper(
     "snakeCase",
     Box::new(
-      |helper: &Helper<'_, '_>,
+      |helper: &Helper<'_>,
        _: &'_ handlebars::Handlebars<'_>,
        _: &'_ Context,
        _: &mut RenderContext<'_, '_>,
@@ -143,7 +143,7 @@ pub fn plugin_import(config: &Vec<PluginImportConfig>) -> impl Fold + '_ {
   renderer.register_helper(
     "upperCase",
     Box::new(
-      |helper: &Helper<'_, '_>,
+      |helper: &Helper<'_>,
        _: &'_ handlebars::Handlebars<'_>,
        _: &'_ Context,
        _: &mut RenderContext<'_, '_>,
@@ -162,7 +162,7 @@ pub fn plugin_import(config: &Vec<PluginImportConfig>) -> impl Fold + '_ {
   renderer.register_helper(
     "lowerCase",
     Box::new(
-      |helper: &Helper<'_, '_>,
+      |helper: &Helper<'_>,
        _: &'_ handlebars::Handlebars<'_>,
        _: &'_ Context,
        _: &mut RenderContext<'_, '_>,
