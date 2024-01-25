@@ -35,7 +35,7 @@ describe("Stats", () => {
 		./fixtures/a.js [585] {909}
 		  entry ./fixtures/a
 		  
-		Rspack compiled successfully (57e46af248a1c1fe076f)"
+		Rspack compiled successfully (7b6f567771119c6c5d43)"
 	`);
 	});
 
@@ -79,7 +79,7 @@ describe("Stats", () => {
 		  help: 
 		        You may need an appropriate loader to handle this file type.
 
-		Rspack compiled with 1 error (9d5d6393c8ec95dac1bb)"
+		Rspack compiled with 1 error (1ad2a94e44222b70ba27)"
 	`);
 	});
 

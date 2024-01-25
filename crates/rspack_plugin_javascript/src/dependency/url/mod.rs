@@ -63,6 +63,9 @@ impl Dependency for URLDependency {
   fn span(&self) -> Option<ErrorSpan> {
     self.span
   }
+  fn get_condition(&self) -> Option<DependencyCondition> {
+    get_dependency_used_by_exports_condition(self.id, self.used_by_exports.as_ref())
+  }
 }
 
 impl ModuleDependency for URLDependency {
@@ -76,10 +79,6 @@ impl ModuleDependency for URLDependency {
 
   fn set_request(&mut self, request: String) {
     self.request = request.into();
-  }
-
-  fn get_condition(&self) -> Option<DependencyCondition> {
-    get_dependency_used_by_exports_condition(self.id, self.used_by_exports.as_ref())
   }
 }
 

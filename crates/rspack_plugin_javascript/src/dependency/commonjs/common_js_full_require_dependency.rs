@@ -60,24 +60,6 @@ impl Dependency for CommonJsFullRequireDependency {
   fn dependency_debug_name(&self) -> &'static str {
     "CommonJsFullRequireDependency"
   }
-}
-
-impl ModuleDependency for CommonJsFullRequireDependency {
-  fn request(&self) -> &str {
-    &self.request
-  }
-
-  fn user_request(&self) -> &str {
-    &self.request
-  }
-
-  fn set_request(&mut self, request: String) {
-    self.request = request;
-  }
-
-  fn get_optional(&self) -> bool {
-    self.optional
-  }
 
   fn get_referenced_exports(
     &self,
@@ -100,6 +82,24 @@ impl ModuleDependency for CommonJsFullRequireDependency {
       }
     }
     vec![ExtendedReferencedExport::Array(self.names.clone())]
+  }
+}
+
+impl ModuleDependency for CommonJsFullRequireDependency {
+  fn request(&self) -> &str {
+    &self.request
+  }
+
+  fn user_request(&self) -> &str {
+    &self.request
+  }
+
+  fn set_request(&mut self, request: String) {
+    self.request = request;
+  }
+
+  fn get_optional(&self) -> bool {
+    self.optional
   }
 }
 

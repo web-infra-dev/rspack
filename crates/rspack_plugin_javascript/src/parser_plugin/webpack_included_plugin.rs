@@ -1,6 +1,6 @@
 use rspack_core::{ConstDependency, SpanExt};
 use swc_core::common::Spanned;
-use swc_core::ecma::ast::{CallExpr, Ident, UnaryExpr, UnaryOp};
+use swc_core::ecma::ast::{CallExpr, Ident, UnaryExpr};
 
 use super::JavascriptParserPlugin;
 use crate::dependency::WebpackIsIncludedDependency;
@@ -43,7 +43,6 @@ impl JavascriptParserPlugin for WebpackIsIncludedPlugin {
   }
 
   fn r#typeof(&self, parser: &mut JavascriptParser<'_>, expr: &UnaryExpr) -> Option<bool> {
-    assert!(expr.op == UnaryOp::TypeOf);
     let is_webpack_is_included = expr
       .arg
       .as_ident()

@@ -1167,28 +1167,6 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
   fn source_order(&self) -> Option<i32> {
     Some(self.source_order)
   }
-}
-
-impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
-  fn request(&self) -> &str {
-    &self.request
-  }
-
-  fn user_request(&self) -> &str {
-    &self.request
-  }
-
-  fn set_request(&mut self, request: String) {
-    self.request = request.into();
-  }
-
-  fn is_export_all(&self) -> Option<bool> {
-    if self.export_all {
-      Some(true)
-    } else {
-      None
-    }
-  }
 
   fn get_condition(&self) -> Option<DependencyCondition> {
     let id = self.id;
@@ -1274,6 +1252,28 @@ impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
           .map(ExtendedReferencedExport::Array)
           .collect::<Vec<_>>()
       }
+    }
+  }
+}
+
+impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
+  fn request(&self) -> &str {
+    &self.request
+  }
+
+  fn user_request(&self) -> &str {
+    &self.request
+  }
+
+  fn set_request(&mut self, request: String) {
+    self.request = request.into();
+  }
+
+  fn is_export_all(&self) -> Option<bool> {
+    if self.export_all {
+      Some(true)
+    } else {
+      None
     }
   }
 }

@@ -36,19 +36,18 @@ impl Dependency for WebpackIsIncludedDependency {
   fn id(&self) -> &rspack_core::DependencyId {
     &self.id
   }
-}
-
-impl ModuleDependency for WebpackIsIncludedDependency {
-  fn weak(&self) -> bool {
-    true
-  }
-
   fn get_referenced_exports(
     &self,
     _module_graph: &rspack_core::ModuleGraph,
     _runtime: Option<&rspack_core::RuntimeSpec>,
   ) -> Vec<rspack_core::ExtendedReferencedExport> {
     vec![]
+  }
+}
+
+impl ModuleDependency for WebpackIsIncludedDependency {
+  fn weak(&self) -> bool {
+    true
   }
 
   fn request(&self) -> &str {

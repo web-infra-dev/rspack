@@ -9,8 +9,9 @@ use super::dependency_template::AsDependencyTemplate;
 use super::module_dependency::*;
 use super::ExportsSpec;
 use super::{DependencyCategory, DependencyId, DependencyType};
-use crate::AsContextDependency;
+use crate::{create_exports_object_referenced, AsContextDependency};
 use crate::{ConnectionState, Context, ErrorSpan, ModuleGraph, ModuleIdentifier, UsedByExports};
+use crate::{DependencyCondition, ExtendedReferencedExport, RuntimeSpec};
 
 pub trait Dependency:
   AsDependencyTemplate
@@ -82,6 +83,18 @@ pub trait Dependency:
   }
 
   fn resource_identifier(&self) -> Option<&str> {
+    None
+  }
+
+  fn get_referenced_exports(
+    &self,
+    _module_graph: &ModuleGraph,
+    _runtime: Option<&RuntimeSpec>,
+  ) -> Vec<ExtendedReferencedExport> {
+    create_exports_object_referenced()
+  }
+
+  fn get_condition(&self) -> Option<DependencyCondition> {
     None
   }
 }

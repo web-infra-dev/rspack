@@ -284,28 +284,6 @@ impl Dependency for HarmonyImportSideEffectDependency {
   fn resource_identifier(&self) -> Option<&str> {
     Some(&self.resource_identifier)
   }
-}
-
-impl ModuleDependency for HarmonyImportSideEffectDependency {
-  fn is_export_all(&self) -> Option<bool> {
-    Some(self.export_all)
-  }
-
-  fn request(&self) -> &str {
-    &self.request
-  }
-
-  fn user_request(&self) -> &str {
-    &self.request
-  }
-
-  fn source_span(&self) -> Option<ErrorSpan> {
-    self.source_span
-  }
-
-  fn set_request(&mut self, request: String) {
-    self.request = request.into();
-  }
 
   fn get_referenced_exports(
     &self,
@@ -327,6 +305,28 @@ impl ModuleDependency for HarmonyImportSideEffectDependency {
         }
       },
     )))
+  }
+}
+
+impl ModuleDependency for HarmonyImportSideEffectDependency {
+  fn is_export_all(&self) -> Option<bool> {
+    Some(self.export_all)
+  }
+
+  fn request(&self) -> &str {
+    &self.request
+  }
+
+  fn user_request(&self) -> &str {
+    &self.request
+  }
+
+  fn source_span(&self) -> Option<ErrorSpan> {
+    self.source_span
+  }
+
+  fn set_request(&mut self, request: String) {
+    self.request = request.into();
   }
 
   // It's from HarmonyImportSideEffectDependency.
