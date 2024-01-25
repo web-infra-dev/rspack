@@ -56,12 +56,19 @@
       "matchDepTypes": ["devDependencies"],
       "schedule": ["on wednesday"],
       "excludePackagePrefixes": ["webpack"],
+      "excludePackageNames": ["@playwright/test"],
       "assignees": ["@Boshen"]
     },
     {
       "groupName": "npm dependencies",
       "matchManagers": ["npm"],
       "matchDepTypes": ["dependencies"],
+      "enabled": false
+    },
+    {
+      "groupName": "npm ignored dependencies",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["@playwright/test"],
       "enabled": false
     },
     {
