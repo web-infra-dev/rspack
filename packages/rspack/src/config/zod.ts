@@ -817,6 +817,7 @@ const devTool = z
 	.literal(false)
 	.or(
 		z.enum([
+			"eval",
 			"cheap-source-map",
 			"cheap-module-source-map",
 			"source-map",

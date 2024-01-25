@@ -40,6 +40,7 @@ export * from "./AsyncWebAssemblyModulesPlugin";
 export * from "./AssetModulesPlugin";
 export * from "./SourceMapDevToolPlugin";
 export * from "./EvalSourceMapDevToolPlugin";
+export * from "./EvalDevToolModulePlugin";
 export * from "./SideEffectsFlagPlugin";
 export * from "./FlagDependencyExportsPlugin";
 export * from "./FlagDependencyUsagePlugin";

@@ -6,8 +6,8 @@ use napi_derive::napi;
 use rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use rspack_napi_shared::{get_napi_env, NapiResultExt};
 use rspack_plugin_devtool::{
-  Append, ModuleFilenameTemplate, ModuleFilenameTemplateFnCtx, SourceMapDevToolPluginOptions,
-  TestFn,
+  Append, EvalDevToolModulePluginOptions, ModuleFilenameTemplate, ModuleFilenameTemplateFnCtx,
+  SourceMapDevToolPluginOptions, TestFn,
 };
 use serde::Deserialize;
 
@@ -124,7 +124,7 @@ pub struct RawSourceMapDevToolPluginOptions {
   pub append: Option<RawAppend>,
   pub columns: Option<bool>,
   #[serde(skip_deserializing)]
-  #[napi(ts_type = "string | Function")]
+  #[napi(ts_type = "string | ((info: RawModuleFilenameTemplateFnCtx) => string)")]
   pub fallback_module_filename_template: Option<RawModuleFilenameTemplate>,
   pub file_context: Option<String>,
   #[serde(skip_deserializing)]
@@ -132,7 +132,7 @@ pub struct RawSourceMapDevToolPluginOptions {
   pub filename: Option<RawFilename>,
   pub module: Option<bool>,
   #[serde(skip_deserializing)]
-  #[napi(ts_type = "string | Function")]
+  #[napi(ts_type = "string | ((info: RawModuleFilenameTemplateFnCtx) => string)")]
   pub module_filename_template: Option<RawModuleFilenameTemplate>,
   pub namespace: Option<String>,
   pub no_sources: Option<bool>,
@@ -175,6 +175,30 @@ impl From<RawSourceMapDevToolPluginOptions> for SourceMapDevToolPluginOptions {
       module: opts.module.unwrap_or(false),
       source_root: opts.source_root,
       test,
+    }
+  }
+}
+
+#[derive(Deserialize)]
+#[napi(object)]
+pub struct RawEvalDevToolModulePluginOptions {
+  pub namespace: Option<String>,
+  #[serde(skip_deserializing)]
+  #[napi(ts_type = "string | ((info: RawModuleFilenameTemplateFnCtx) => string)")]
+  pub module_filename_template: Option<RawModuleFilenameTemplate>,
+  pub source_url_comment: Option<String>,
+}
+
+impl From<RawEvalDevToolModulePluginOptions> for EvalDevToolModulePluginOptions {
+  fn from(opts: RawEvalDevToolModulePluginOptions) -> Self {
+    let module_filename_template = opts
+      .module_filename_template
+      .map(normalize_raw_module_filename_template);
+
+    Self {
+      namespace: opts.namespace,
+      source_url_comment: opts.source_url_comment,
+      module_filename_template,
     }
   }
 }

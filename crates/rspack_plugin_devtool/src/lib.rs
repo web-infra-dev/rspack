@@ -67,6 +67,8 @@ pub enum ModuleFilenameTemplate {
   Fn(ModuleFilenameTemplateFn),
 }
 
+pub struct ModuleFilenameHelpers;
+
 type AppendFn = Arc<dyn for<'a> Fn() -> Option<String> + Send + Sync>;
 
 pub enum Append {
@@ -243,11 +245,12 @@ impl Plugin for SourceMapDevToolPlugin {
             ModuleOrSource::Source(source.to_string())
           };
           Some((
-            self.create_filename_of_string_template(
+            ModuleFilenameHelpers::create_filename_of_string_template(
               &module_or_source,
               compilation,
               s,
               output_options,
+              self.namespace.as_str(),
             ),
             module_or_source,
           ))
@@ -270,9 +273,14 @@ impl Plugin for SourceMapDevToolPlugin {
               ModuleOrSource::Source(source.to_string())
             };
 
-            let filename = self
-              .create_filename_of_fn_template(&module_or_source, compilation, f, output_options)
-              .await;
+            let filename = ModuleFilenameHelpers::create_filename_of_fn_template(
+              &module_or_source,
+              compilation,
+              f,
+              output_options,
+              self.namespace.as_str(),
+            )
+            .await;
 
             match filename {
               Ok(filename) => Ok(Some((filename, module_or_source))),
@@ -309,16 +317,24 @@ impl Plugin for SourceMapDevToolPlugin {
 
             // Try the fallback name first
             let mut source_name = match &self.fallback_module_filename_template {
-              ModuleFilenameTemplate::String(s) => self.create_filename_of_string_template(
-                &module_or_source,
-                compilation,
-                s,
-                output_options,
-              ),
+              ModuleFilenameTemplate::String(s) => {
+                ModuleFilenameHelpers::create_filename_of_string_template(
+                  &module_or_source,
+                  compilation,
+                  s,
+                  output_options,
+                  self.namespace.as_str(),
+                )
+              }
               ModuleFilenameTemplate::Fn(f) => {
-                self
-                  .create_filename_of_fn_template(&module_or_source, compilation, f, output_options)
-                  .await?
+                ModuleFilenameHelpers::create_filename_of_fn_template(
+                  &module_or_source,
+                  compilation,
+                  f,
+                  output_options,
+                  self.namespace.as_str(),
+                )
+                .await?
               }
             };
 
@@ -502,12 +518,12 @@ fn get_hash(text: &str, output_options: &OutputOptions) -> String {
   format!("{:x}", hasher.finish())[..4].to_string()
 }
 
-impl SourceMapDevToolPlugin {
+impl ModuleFilenameHelpers {
   fn create_module_filename_template_fn_ctx(
-    &self,
     module_or_source: &ModuleOrSource,
     compilation: &Compilation,
     output_options: &OutputOptions,
+    namespace: &str,
   ) -> ModuleFilenameTemplateFnCtx {
     let Compilation {
       chunk_graph,
@@ -562,7 +578,7 @@ impl SourceMapDevToolPlugin {
           all_loaders,
           query,
           resource_path,
-          namespace: self.namespace.clone(),
+          namespace: namespace.to_string(),
         }
       }
       ModuleOrSource::Source(source) => {
@@ -600,127 +616,42 @@ impl SourceMapDevToolPlugin {
           all_loaders,
           query,
           resource_path,
-          namespace: self.namespace.clone(),
+          namespace: namespace.to_string(),
         }
       }
     }
   }
 
   async fn create_filename_of_fn_template(
-    &self,
     module_or_source: &ModuleOrSource,
     compilation: &Compilation,
     module_filename_template: &ModuleFilenameTemplateFn,
     output_options: &OutputOptions,
+    namespace: &str,
   ) -> Result<String> {
-    let Compilation {
-      chunk_graph,
-      module_graph,
-      options,
-      ..
-    } = compilation;
-    let context = &options.context;
-
-    let ctx = match module_or_source {
-      ModuleOrSource::Module(module_identifier) => {
-        let module = module_graph
-          .module_by_identifier(module_identifier)
-          .expect("failed to find a module for the given identifier");
-
-        let short_identifier = module.readable_identifier(context).to_string();
-        let identifier = contextify(context, module_identifier);
-        let module_id = chunk_graph
-          .get_module_id(*module_identifier)
-          .clone()
-          .unwrap_or("".to_string());
-        let absolute_resource_path = "".to_string();
-
-        let hash = get_hash(&identifier, output_options);
-
-        let resource = short_identifier
-          .clone()
-          .split('!')
-          .last()
-          .unwrap_or("")
-          .to_string();
-
-        let loaders = get_before(&short_identifier, "!");
-        let all_loaders = get_before(&identifier, "!");
-        let query = get_after(&resource, "?");
-
-        let q = query.len();
-        let resource_path = if q == 0 {
-          resource.clone()
-        } else {
-          resource[..resource.len().saturating_sub(q)].to_string()
-        };
-
-        ModuleFilenameTemplateFnCtx {
-          short_identifier,
-          identifier,
-          module_id,
-          absolute_resource_path,
-          hash,
-          resource,
-          loaders,
-          all_loaders,
-          query,
-          resource_path,
-          namespace: self.namespace.clone(),
-        }
-      }
-      ModuleOrSource::Source(source) => {
-        let short_identifier = contextify(context, source);
-        let identifier = short_identifier.clone();
-
-        let hash = get_hash(&identifier, output_options);
-
-        let resource = short_identifier
-          .clone()
-          .split('!')
-          .last()
-          .unwrap_or("")
-          .to_string();
-
-        let loaders = get_before(&short_identifier, "!");
-        let all_loaders = get_before(&identifier, "!");
-        let query = get_after(&resource, "?");
-
-        let q = query.len();
-        let resource_path = if q == 0 {
-          resource.clone()
-        } else {
-          resource[..resource.len().saturating_sub(q)].to_string()
-        };
-
-        ModuleFilenameTemplateFnCtx {
-          short_identifier,
-          identifier,
-          module_id: "".to_string(),
-          absolute_resource_path: source.split('!').last().unwrap_or("").to_string(),
-          hash,
-          resource,
-          loaders,
-          all_loaders,
-          query,
-          resource_path,
-          namespace: self.namespace.clone(),
-        }
-      }
-    };
+    let ctx = ModuleFilenameHelpers::create_module_filename_template_fn_ctx(
+      module_or_source,
+      compilation,
+      output_options,
+      namespace,
+    );
 
     module_filename_template(ctx).await
   }
 
   fn create_filename_of_string_template(
-    &self,
     module_or_source: &ModuleOrSource,
     compilation: &Compilation,
     module_filename_template: &str,
     output_options: &OutputOptions,
+    namespace: &str,
   ) -> String {
-    let ctx =
-      self.create_module_filename_template_fn_ctx(module_or_source, compilation, output_options);
+    let ctx = ModuleFilenameHelpers::create_module_filename_template_fn_ctx(
+      module_or_source,
+      compilation,
+      output_options,
+      namespace,
+    );
 
     let s = REGEXP_ALL_LOADERS_RESOURCE.replace_all(module_filename_template, "[identifier]");
     let s = REGEXP_LOADERS_RESOURCE.replace_all(&s, "[short-identifier]");
@@ -753,11 +684,12 @@ impl SourceMapDevToolPlugin {
             "absresourcepath" => Cow::from(&ctx.absolute_resource_path),
 
             "all-loaders" | "allloaders" => Cow::from(&ctx.all_loaders),
+            "loaders" => Cow::from(&ctx.loaders),
 
             "query" => Cow::from(&ctx.query),
             "id" => Cow::from(&ctx.module_id),
             "hash" => Cow::from(&ctx.hash),
-            "namespace" => Cow::from(&self.namespace),
+            "namespace" => Cow::from(&ctx.namespace),
 
             _ => Cow::from(full_match.to_string())
           }
@@ -893,5 +825,110 @@ impl Plugin for SourceMapDevToolModuleOptionsPlugin {
       module.set_source_map_kind(SourceMapKind::SimpleSourceMap);
     }
     Ok(None)
+  }
+}
+
+#[derive(Derivative)]
+#[derivative(Debug)]
+pub struct EvalDevToolModulePluginOptions {
+  pub namespace: Option<String>,
+  #[derivative(Debug = "ignore")]
+  pub module_filename_template: Option<ModuleFilenameTemplate>,
+  pub source_url_comment: Option<String>,
+}
+
+static EVAL_MODULE_RENDER_CACHE: Lazy<DashMap<BoxSource, BoxSource>> = Lazy::new(DashMap::default);
+
+#[derive(Derivative)]
+#[derivative(Debug)]
+pub struct EvalDevToolModulePlugin {
+  namespace: String,
+  #[derivative(Debug = "ignore")]
+  module_filename_template: ModuleFilenameTemplate,
+  source_url_comment: String,
+}
+
+impl EvalDevToolModulePlugin {
+  pub fn new(options: EvalDevToolModulePluginOptions) -> Self {
+    let source_url_comment = options
+      .source_url_comment
+      .unwrap_or("\n//# sourceURL=[url]".to_string());
+
+    let module_filename_template =
+      options
+        .module_filename_template
+        .unwrap_or(ModuleFilenameTemplate::String(
+          "webpack://[namespace]/[resourcePath]?[loaders]".to_string(),
+        ));
+
+    Self {
+      module_filename_template,
+      namespace: options.namespace.unwrap_or("".to_string()),
+      source_url_comment,
+    }
+  }
+
+  pub fn wrap_eval(&self, source: &str, source_name: &str) -> Result<BoxSource> {
+    let footer = self.source_url_comment.replace("[url]", source_name);
+    let result = RawSource::from(format!("eval({});", json!(format!("{source}{footer}")))).boxed();
+    Ok(result)
+  }
+}
+
+#[async_trait::async_trait]
+impl Plugin for EvalDevToolModulePlugin {
+  fn name(&self) -> &'static str {
+    "rspack.EvalDevToolModulePlugin"
+  }
+
+  fn render_module_content<'a>(
+    &'a self,
+    _ctx: PluginContext,
+    mut args: RenderModuleContentArgs<'a>,
+  ) -> PluginRenderModuleContentOutput<'a> {
+    let origin_source = args.module_source.clone();
+    if let Some(cached) = EVAL_MODULE_RENDER_CACHE.get(&origin_source) {
+      args.module_source = cached.value().clone();
+      return Ok(args);
+    } else if args.module.as_external_module().is_some() {
+      return Ok(args);
+    }
+    let output_options = &args.compilation.options.output;
+    let compilation = args.compilation;
+    let source_name = match &self.module_filename_template {
+      ModuleFilenameTemplate::String(s) => {
+        ModuleFilenameHelpers::create_filename_of_string_template(
+          &ModuleOrSource::Module(args.module.identifier()),
+          args.compilation,
+          s,
+          output_options,
+          self.namespace.as_str(),
+        )
+      }
+      ModuleFilenameTemplate::Fn(f) => {
+        futures::executor::block_on(ModuleFilenameHelpers::create_filename_of_fn_template(
+          &ModuleOrSource::Module(args.module.identifier()),
+          compilation,
+          f,
+          output_options,
+          self.namespace.as_str(),
+        ))
+        .expect("todo!")
+      }
+    };
+    let source = self.wrap_eval(&origin_source.source(), source_name.as_str())?;
+
+    EVAL_MODULE_RENDER_CACHE.insert(origin_source, source.clone());
+    args.module_source = source;
+    Ok(args)
+  }
+
+  fn js_chunk_hash(
+    &self,
+    _ctx: PluginContext,
+    args: &mut JsChunkHashArgs,
+  ) -> PluginJsChunkHashHookOutput {
+    self.name().hash(&mut args.hasher);
+    Ok(())
   }
 }

@@ -52,6 +52,7 @@ export enum BuiltinPluginName {
 	AssetModulesPlugin = "AssetModulesPlugin",
 	SourceMapDevToolPlugin = "SourceMapDevToolPlugin",
 	EvalSourceMapDevToolPlugin = "EvalSourceMapDevToolPlugin",
+	EvalDevToolModulePlugin = "EvalDevToolModulePlugin",
 	SideEffectsFlagPlugin = "SideEffectsFlagPlugin",
 	FlagDependencyExportsPlugin = "FlagDependencyExportsPlugin",
 	FlagDependencyUsagePlugin = "FlagDependencyUsagePlugin",

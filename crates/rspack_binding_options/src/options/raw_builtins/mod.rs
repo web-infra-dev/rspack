@@ -21,7 +21,7 @@ use rspack_plugin_asset::AssetPlugin;
 use rspack_plugin_banner::BannerPlugin;
 use rspack_plugin_copy::{CopyRspackPlugin, CopyRspackPluginOptions};
 use rspack_plugin_devtool::{
-  EvalSourceMapDevToolPlugin, SourceMapDevToolModuleOptionsPlugin,
+  EvalDevToolModulePlugin, EvalSourceMapDevToolPlugin, SourceMapDevToolModuleOptionsPlugin,
   SourceMapDevToolModuleOptionsPluginOptions, SourceMapDevToolPlugin,
   SourceMapDevToolPluginOptions,
 };
@@ -70,8 +70,9 @@ use self::{
   raw_mf::{RawConsumeSharedPluginOptions, RawContainerReferencePluginOptions, RawProvideOptions},
 };
 use crate::{
-  RawEntryPluginOptions, RawExternalItemWrapper, RawExternalsPluginOptions,
-  RawHttpExternalsRspackPluginOptions, RawSourceMapDevToolPluginOptions, RawSplitChunksOptions,
+  RawEntryPluginOptions, RawEvalDevToolModulePluginOptions, RawExternalItemWrapper,
+  RawExternalsPluginOptions, RawHttpExternalsRspackPluginOptions, RawSourceMapDevToolPluginOptions,
+  RawSplitChunksOptions,
 };
 
 #[napi(string_enum)]
@@ -122,6 +123,7 @@ pub enum BuiltinPluginName {
   AssetModulesPlugin,
   SourceMapDevToolPlugin,
   EvalSourceMapDevToolPlugin,
+  EvalDevToolModulePlugin,
   SideEffectsFlagPlugin,
   FlagDependencyExportsPlugin,
   FlagDependencyUsagePlugin,
@@ -323,6 +325,14 @@ impl BuiltinPlugin {
           .boxed(),
         );
         plugins.push(EvalSourceMapDevToolPlugin::new(options).boxed());
+      }
+      BuiltinPluginName::EvalDevToolModulePlugin => {
+        plugins.push(
+          EvalDevToolModulePlugin::new(
+            downcast_into::<RawEvalDevToolModulePluginOptions>(self.options)?.into(),
+          )
+          .boxed(),
+        );
       }
       BuiltinPluginName::SideEffectsFlagPlugin => {
         plugins.push(SideEffectsFlagPlugin::default().boxed())

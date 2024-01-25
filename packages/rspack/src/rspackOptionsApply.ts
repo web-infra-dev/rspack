@@ -60,7 +60,8 @@ import {
 	FlagDependencyUsagePlugin,
 	SideEffectsFlagPlugin,
 	BundlerInfoPlugin,
-	ModuleConcatenationPlugin
+	ModuleConcatenationPlugin,
+	EvalDevToolModulePlugin
 } from "./builtin-plugin";
 import { deprecatedWarn, termlink } from "./util";
 
@@ -221,6 +222,11 @@ export class RspackOptionsApply {
 					module: moduleMaps ? true : cheap ? false : true,
 					columns: cheap ? false : true,
 					noSources: noSources,
+					namespace: options.output.devtoolNamespace
+				}).apply(compiler);
+			} else if (options.devtool.includes("eval")) {
+				new EvalDevToolModulePlugin({
+					moduleFilenameTemplate: options.output.devtoolModuleFilenameTemplate,
 					namespace: options.output.devtoolNamespace
 				}).apply(compiler);
 			}
