@@ -1,5 +1,5 @@
 mod react;
-pub use react::{fold_react_refresh, react, RawReactOptions, ReactOptions};
+pub use react::ReactOptions;
 
 mod define;
 pub use define::{define, Define, RawDefine};
