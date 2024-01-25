@@ -2,8 +2,11 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "enabledManagers": ["github-actions", "cargo", "npm"],
   "ignorePaths": [
-    "**/tests/**",
     "**/fixtures/**",
+    "**/tests/**",
+    "diffcases/**",
+    "npm/**",
+    "packages/create-rspack/**",
     "webpack-examples/**",
     "webpack-test/**"
   ],
