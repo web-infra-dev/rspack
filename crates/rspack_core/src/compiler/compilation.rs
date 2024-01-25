@@ -2279,15 +2279,13 @@ pub fn assign_depth(
   let mut depth;
   assign_map.insert(module_id, 0);
   let process_module =
-    |mg: &ModuleGraph,
-     m: ModuleIdentifier,
+    |m: ModuleIdentifier,
      depth: usize,
      q: &mut VecDeque<ModuleIdentifier>,
      assign_map: &mut HashMap<rspack_identifier::Identifier, usize>| {
-      if !can_set_if_lower(mg, m, depth) {
+      if !set_depth_if_lower(m, depth, assign_map) {
         return;
       }
-      assign_map.insert(m, depth);
       q.push_back(m);
     };
   while let Some(item) = q.pop_front() {
@@ -2295,35 +2293,22 @@ pub fn assign_depth(
 
     let m = mg.module_by_identifier(&item).expect("should have module");
     for con in mg.get_outgoing_connections(m) {
-      process_module(mg, con.module_identifier, depth, &mut q, assign_map);
+      process_module(con.module_identifier, depth, &mut q, assign_map);
     }
   }
 }
 
-// pub fn set_depth_if_lower(&mut self, module_id: ModuleIdentifier, depth: usize) -> bool {
-//   let mgm = self
-//     .module_graph_module_by_identifier_mut(&module_id)
-//     .expect("should have module graph module");
-//   if let Some(ref mut cur_depth) = mgm.depth {
-//     if *cur_depth > depth {
-//       *cur_depth = depth;
-//       return true;
-//     }
-//   } else {
-//     mgm.depth = Some(depth);
-//     return true;
-//   }
-//   false
-// }
-pub fn can_set_if_lower(mg: &ModuleGraph, module_id: ModuleIdentifier, depth: usize) -> bool {
-  let mgm = mg
-    .module_graph_module_by_identifier(&module_id)
-    .expect("should have module graph module");
-  if let Some(ref cur_depth) = mgm.depth {
-    if *cur_depth > depth {
-      return true;
-    }
-  } else {
+pub fn set_depth_if_lower(
+  module_id: ModuleIdentifier,
+  depth: usize,
+  assign_map: &mut HashMap<ModuleIdentifier, usize>,
+) -> bool {
+  let Some(&cur_depth) = assign_map.get(&module_id) else {
+    assign_map.insert(module_id, depth);
+    return true;
+  };
+  if cur_depth > depth {
+    assign_map.insert(module_id, depth);
     return true;
   }
   false
