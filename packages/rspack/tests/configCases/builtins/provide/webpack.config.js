@@ -20,8 +20,5 @@ module.exports = {
 			esm: "./esm.js",
 			process: "./process.js"
 		})
-	],
-	builtins: {
-		treeShaking: true
-	}
+	]
 };

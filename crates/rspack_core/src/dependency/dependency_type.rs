@@ -80,6 +80,7 @@ pub enum DependencyType {
   RemoteToFallback,
   /// fallback item
   RemoteToFallbackItem,
+  Provided,
   /// provide shared module
   ProvideSharedModule,
   /// provide module for shared
@@ -139,6 +140,7 @@ impl DependencyType {
       DependencyType::RemoteToExternal => Cow::Borrowed("remote to external"),
       DependencyType::RemoteToFallback => Cow::Borrowed("fallback"),
       DependencyType::RemoteToFallbackItem => Cow::Borrowed("fallback item"),
+      DependencyType::Provided => Cow::Borrowed("provided"),
       DependencyType::ProvideSharedModule => Cow::Borrowed("provide shared module"),
       DependencyType::ProvideModuleForShared => Cow::Borrowed("provide module for shared"),
       DependencyType::ConsumeSharedFallback => Cow::Borrowed("consume shared fallback"),

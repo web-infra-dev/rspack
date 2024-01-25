@@ -138,6 +138,11 @@ impl Plugin for JsPlugin {
       DependencyType::CjsSelfReference,
       Arc::new(SelfModuleFactory {}),
     );
+    // provide
+    args.compilation.set_dependency_factory(
+      DependencyType::Provided,
+      params.normal_module_factory.clone(),
+    );
     Ok(())
   }
 

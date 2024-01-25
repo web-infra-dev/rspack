@@ -9,10 +9,8 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use rspack_core::needs_refactor::WorkerSyntaxList;
-use rspack_core::{
-  BoxDependency, BuildInfo, CompilerOptions, DependencyLocation, DependencyTemplate, ResourceData,
-};
-use rspack_core::{JavascriptParserUrl, ModuleType, SpanExt};
+use rspack_core::{BoxDependency, BuildInfo, DependencyTemplate, ResourceData};
+use rspack_core::{CompilerOptions, DependencyLocation, JavascriptParserUrl, ModuleType, SpanExt};
 use rspack_error::miette::Diagnostic;
 use rustc_hash::FxHashSet;
 use swc_core::common::{SourceFile, Spanned};
@@ -41,21 +39,25 @@ pub struct JavascriptParser<'parser> {
   pub(crate) resource_data: &'parser ResourceData,
   pub(crate) plugin_drive: Rc<JavaScriptParserPluginDrive>,
   pub(super) definitions_db: ScopeInfoDB,
+  pub(crate) compiler_options: &'parser CompilerOptions,
   // TODO: remove `enter_assign`
   pub(crate) enter_assign: bool,
+  // TODO: remove `is_esm` after `HarmonyExports::isEnabled`
+  pub(crate) is_esm: bool,
   // ===== scope info =======
   // TODO: `in_if` can be removed after eval identifier
   pub(crate) in_if: bool,
   pub(crate) in_try: bool,
   pub(crate) in_short_hand: bool,
   pub(super) definitions: ScopeInfoId,
+  pub(crate) top_level_scope: bool,
 }
 
 impl<'parser> JavascriptParser<'parser> {
   #[allow(clippy::too_many_arguments)]
   pub fn new(
     source_file: Arc<SourceFile>,
-    compiler_options: &CompilerOptions,
+    compiler_options: &'parser CompilerOptions,
     dependencies: &'parser mut Vec<BoxDependency>,
     presentational_dependencies: &'parser mut Vec<Box<dyn DependencyTemplate>>,
     ignored: &'parser mut FxHashSet<DependencyLocation>,
@@ -74,6 +76,9 @@ impl<'parser> JavascriptParser<'parser> {
     ];
 
     if module_type.is_js_auto() || module_type.is_js_dynamic() || module_type.is_js_esm() {
+      if !compiler_options.builtins.provide.is_empty() {
+        plugins.push(Box::new(parser_plugin::ProviderPlugin));
+      }
       plugins.push(Box::new(parser_plugin::WebpackIsIncludedPlugin));
       plugins.push(Box::new(parser_plugin::ExportsInfoApiPlugin));
       plugins.push(Box::new(parser_plugin::APIPlugin::new(
@@ -97,6 +102,7 @@ impl<'parser> JavascriptParser<'parser> {
           relative: matches!(parse_url, JavascriptParserUrl::Relative),
         }));
       }
+      plugins.push(Box::new(parser_plugin::HarmonyTopLevelThisParserPlugin));
     }
 
     let plugin_drive = Rc::new(JavaScriptParserPluginDrive::new(plugins));
@@ -110,6 +116,8 @@ impl<'parser> JavascriptParser<'parser> {
       in_try: false,
       in_if: false,
       in_short_hand: false,
+      top_level_scope: true,
+      is_esm: matches!(module_type, ModuleType::JsEsm),
       definitions: db.create(),
       definitions_db: db,
       ignored,
@@ -117,6 +125,7 @@ impl<'parser> JavascriptParser<'parser> {
       worker_syntax_list,
       resource_data,
       build_info,
+      compiler_options,
       enter_assign: false,
     }
   }

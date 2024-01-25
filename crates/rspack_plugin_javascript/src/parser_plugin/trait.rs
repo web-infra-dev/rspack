@@ -1,4 +1,6 @@
-use swc_core::ecma::ast::{BinExpr, CallExpr, Ident, IfStmt, MemberExpr, NewExpr, Stmt, UnaryExpr};
+use swc_core::ecma::ast::{
+  BinExpr, CallExpr, Ident, IfStmt, MemberExpr, NewExpr, Stmt, ThisExpr, UnaryExpr,
+};
 use swc_core::ecma::ast::{VarDecl, VarDeclarator};
 
 use crate::utils::eval::BasicEvaluatedExpression;
@@ -82,6 +84,10 @@ pub trait JavascriptParserPlugin {
   }
 
   fn identifier(&self, _parser: &mut JavascriptParser, _ident: &Ident) -> Option<bool> {
+    None
+  }
+
+  fn this(&self, _parser: &mut JavascriptParser, _expr: &ThisExpr) -> Option<bool> {
     None
   }
 }
