@@ -3,7 +3,6 @@ use std::collections::BTreeSet;
 use std::ops::Sub;
 
 use itertools::Itertools;
-use regex::Regex;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde_json::json;
 use swc_core::ecma::atoms::Atom;

@@ -808,12 +808,13 @@ impl Plugin for ModuleConcatenationPlugin {
       }
     }
     logger.time_end(start);
-    logger.debug(format!(
-      "{} successful concat configurations (avg size: {}), {} bailed out completely",
-      concat_configurations.len(),
-      stats_size_sum / concat_configurations.len(),
-      stats_empty_configurations
-    ));
+    // TODO: recover
+    // logger.debug(format!(
+    //   "{} successful concat configurations (avg size: {}), {} bailed out completely",
+    //   concat_configurations.len(),
+    //   stats_size_sum / concat_configurations.len(),
+    //   stats_empty_configurations
+    // ));
 
     logger.debug(format!(
         "{} candidates were considered for adding ({} cached failure, {} already in config, {} invalid module, {} incorrect chunks, {} incorrect dependency, {} incorrect chunks of importer, {} incorrect module dependency, {} incorrect runtime condition, {} importer failed, {} added)",

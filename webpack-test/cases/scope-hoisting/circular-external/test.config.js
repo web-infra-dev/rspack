@@ -1,6 +1,13 @@
-/** @type {import("@rspack/core").Configuration} */
-module.exports = {
+/**@type {import("@rspack/cli").Configuration} */
+const config = {
+	experiments: {
+		rspackFuture: {
+			newTreeshaking: true,
+		},
+	},
 	optimization: {
-		concatenateModules: true
-	}
+		concatenateModules: true,
+	},
 };
+module.exports = config;
+

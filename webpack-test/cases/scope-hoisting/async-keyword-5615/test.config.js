@@ -6,11 +6,7 @@ const config = {
 		},
 	},
 	optimization: {
-		concatenateModules: true
-	},
-	builtins: {
-		treeShaking: false,
+		concatenateModules: true,
 	},
 };
 module.exports = config;
-

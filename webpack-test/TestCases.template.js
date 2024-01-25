@@ -116,7 +116,7 @@ const describeCases = config => {
 									? {
 											emitOnErrors: true,
 											minimizer: [terserForTesting],
-											...config.optimization
+											...testConfig.optimization
 									  }
 									: {
 											removeAvailableModules: true,
@@ -128,7 +128,7 @@ const describeCases = config => {
 											usedExports: true,
 											mangleExports: true,
 											emitOnErrors: true,
-											concatenateModules: false,
+											concatenateModules: !!testConfig?.optimization?.concatenateModules,
 											innerGraph: true,
 											// TODO: size is not supported yet
 											// moduleIds: "size",
