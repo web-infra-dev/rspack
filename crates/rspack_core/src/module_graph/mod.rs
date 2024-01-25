@@ -302,9 +302,9 @@ impl ModuleGraph {
         .insert(new_connection, condition.clone());
     }
 
-    // self
-    //   .dependency_id_to_connection_id
-    //   .insert(new_connection.dependency_id, new_connection_id);
+    self
+      .dependency_id_to_module_identifier
+      .insert(new_connection.dependency_id, module_identifier);
 
     self
       .connection_id_to_dependency_id

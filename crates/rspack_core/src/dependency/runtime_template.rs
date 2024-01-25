@@ -11,9 +11,10 @@ use tracing::instrument::WithSubscriber;
 
 use crate::{
   get_import_var, property_access, to_comment, to_normal_comment, AsyncDependenciesBlockId,
-  ChunkGraph, Compilation, DependenciesBlock, DependencyId, ExportsType, FakeNamespaceObjectMode,
-  InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleGraph, ModuleIdentifier,
-  NormalInitFragment, RuntimeCondition, RuntimeGlobals, RuntimeSpec, TemplateContext,
+  ChunkGraph, Compilation, DependenciesBlock, DependencyId, ExportsArgument, ExportsType,
+  FakeNamespaceObjectMode, InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleGraph,
+  ModuleIdentifier, NormalInitFragment, RuntimeCondition, RuntimeGlobals, RuntimeSpec,
+  TemplateContext,
 };
 
 pub fn runtime_condition_expression(
@@ -569,6 +570,9 @@ pub fn module_id(
   request: &str,
   weak: bool,
 ) -> String {
+  dbg!(&compilation
+    .module_graph
+    .module_identifier_by_dependency_id(id));
   if let Some(module_identifier) = compilation
     .module_graph
     .module_identifier_by_dependency_id(id)
@@ -648,6 +652,7 @@ pub fn module_namespace_promise(
     .module_identifier_by_dependency_id(dep_id)
     .is_none()
   {
+    dbg!(&dep_id.get_dependency(&compilation.module_graph));
     return missing_module_promise(request);
   };
 
@@ -898,6 +903,19 @@ pub fn async_module_factory(
   )
 }
 
+pub fn define_es_module_flag_statement(
+  exports_argument: ExportsArgument,
+  runtime_requirements: &mut RuntimeGlobals,
+) -> String {
+  runtime_requirements.insert(RuntimeGlobals::MAKE_NAMESPACE_OBJECT);
+  runtime_requirements.insert(RuntimeGlobals::EXPORTS);
+
+  format!(
+    "{}({});\n",
+    RuntimeGlobals::MAKE_NAMESPACE_OBJECT,
+    exports_argument
+  )
+}
 mod test_items_to_regexp {
 
   use super::items_to_regexp;

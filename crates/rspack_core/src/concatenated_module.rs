@@ -29,7 +29,7 @@ use swc_core::{
 use swc_node_comments::SwcComments;
 
 use crate::{
-  filter_runtime, impl_source_map_config, merge_runtime_condition,
+  define_es_module_flag_statement, filter_runtime, impl_source_map_config, merge_runtime_condition,
   merge_runtime_condition_non_false, property_access, property_name,
   reserved_names::RESERVED_NAMES, returning_function, runtime_condition_expression,
   subtract_runtime_condition, AsyncDependenciesBlockId, BoxDependency, BuildContext, BuildInfo,
@@ -629,9 +629,7 @@ impl Module for ConcatenatedModule {
       module_to_info_map.insert(id, module_info);
     }
 
-    // TODO: recover
-    // let mut all_used_names = HashSet::from_iter(RESERVED_NAMES.iter().map(|item| item.to_string()));
-    let mut all_used_names = HashSet::from_iter([]);
+    let mut all_used_names = HashSet::from_iter(RESERVED_NAMES.iter().map(|item| item.to_string()));
 
     for module in modules_with_info.iter() {
       let ModuleInfoOrReference::Concatenated(m) = module else {
@@ -673,7 +671,6 @@ impl Module for ConcatenatedModule {
         info.binding_to_ref = binding_to_ref;
       }
     }
-    dbg!(&all_used_names);
 
     for info in module_to_info_map.values_mut() {
       // Get used names in the scope
@@ -752,7 +749,6 @@ impl Module for ConcatenatedModule {
           info.name = Some(external_name.as_str().into());
         }
       }
-      // dbg!(&exports_type, info.id());
       // Handle additional logic based on module build meta
       if exports_type != Some(BuildMetaExportsType::Namespace) {
         let external_name_interop = Self::find_new_name(
@@ -845,8 +841,7 @@ impl Module for ConcatenatedModule {
         let final_name = Self::get_final_name(
           &compilation.module_graph,
           &referenced_info_id,
-          // TODO: remove clone
-          export_name.clone(),
+          export_name,
           &mut module_to_info_map,
           runtime,
           &mut needed_namespace_objects,
@@ -856,7 +851,6 @@ impl Module for ConcatenatedModule {
           asi_safe,
           &context,
         );
-        // dbg!(&reference_ident, &final_name, &export_name);
         // We assume this should be concatenated module info because previous loop
         let info = module_to_info_map
           .get_mut(&module_info_id)
@@ -940,14 +934,13 @@ impl Module for ConcatenatedModule {
       != UsageState::Unused
     {
       result.add(RawSource::from("// ESM COMPAT FLAG\n"));
-      // TODO:
-      // result.add(
-      //   &runtime_template
-      //     .define_es_module_flag_statement(this.exports_argument, runtime_requirements),
-      // );
+      result.add(RawSource::from(define_es_module_flag_statement(
+        self.get_exports_argument(),
+        &mut runtime_requirements,
+      )));
     }
 
-    // Assuming the necessary Rust imports and dependencies are declared
+    // Assuming the necessary imports and dependencies are declared
 
     // Define exports
     if !exports_map.is_empty() {

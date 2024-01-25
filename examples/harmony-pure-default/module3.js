@@ -7,3 +7,5 @@ const inc = () => {
 export default /*#__PURE__*/(inc());
 
 export { value };
+
+export const cccc = inc();
