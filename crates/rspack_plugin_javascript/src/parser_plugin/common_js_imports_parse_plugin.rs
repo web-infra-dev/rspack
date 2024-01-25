@@ -9,7 +9,9 @@ use crate::dependency::RequireHeaderDependency;
 use crate::dependency::{CommonJsFullRequireDependency, CommonJsRequireContextDependency};
 use crate::dependency::{CommonJsRequireDependency, RequireResolveDependency};
 use crate::utils::eval::{self, BasicEvaluatedExpression};
-use crate::visitors::{expr_matcher, scanner_context_module, JavascriptParser};
+use crate::visitors::{
+  expr_matcher, scanner_context_module, ContextModuleScanResult, JavascriptParser,
+};
 use crate::visitors::{extract_require_call_info, is_require_call_start};
 
 pub const COMMONJS_REQUIRE: &str = "require";
@@ -311,7 +313,12 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       && let Some(expr) = call_expr.args.first()
       && call_expr.args.len() == 1
       && expr.spread.is_none()
-      && let Some((context, reg)) = scanner_context_module(expr.expr.as_ref())
+      && let Some(ContextModuleScanResult {
+        context,
+        reg,
+        query,
+        fragment,
+      }) = scanner_context_module(expr.expr.as_ref())
     {
       // `require.resolve`
       parser
@@ -329,7 +336,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
             include: None,
             exclude: None,
             category: DependencyCategory::CommonJS,
-            request: context,
+            request: format!("{}{}{}", context, query, fragment),
             namespace_object: ContextNameSpaceObject::Unset,
           },
           Some(call_expr.span.into()),

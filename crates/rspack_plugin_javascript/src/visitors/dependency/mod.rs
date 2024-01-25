@@ -6,7 +6,7 @@ mod util;
 
 use std::sync::Arc;
 
-pub use context_helper::scanner_context_module;
+pub use context_helper::{scanner_context_module, ContextModuleScanResult};
 use rspack_ast::javascript::Program;
 use rspack_core::needs_refactor::WorkerSyntaxList;
 use rspack_core::{

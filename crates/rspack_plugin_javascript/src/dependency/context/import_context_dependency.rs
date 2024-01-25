@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 use rspack_core::{module_raw, AsModuleDependency, ContextDependency};
+=======
+use rspack_core::{module_id_expr, parse_resource, AsModuleDependency, ContextDependency};
+>>>>>>> 320b2c72b (feat: support resource query in context module)
 use rspack_core::{normalize_context, DependencyCategory, DependencyId, DependencyTemplate};
 use rspack_core::{ContextOptions, Dependency, TemplateReplaceSource};
 use rspack_core::{DependencyType, ErrorSpan, TemplateContext};
@@ -113,13 +117,22 @@ impl DependencyTemplate for ImportContextDependency {
     source.replace(self.callee_start, self.callee_end, &expr, None);
 
     let context = normalize_context(&self.options.request);
+    let query = parse_resource(&self.options.request).and_then(|data| data.query);
     if !context.is_empty() {
       source.insert(self.callee_end, "(", None);
       source.insert(
         self.args_end,
-        format!(".replace('{context}', './'))").as_str(),
+        format!(".replace('{context}', './')").as_str(),
         None,
       );
+      if let Some(query) = query {
+        source.insert(
+          self.args_end,
+          format!(".replace('{query}', '')").as_str(),
+          None,
+        );
+      }
+      source.insert(self.args_end, ")", None);
     }
   }
 
