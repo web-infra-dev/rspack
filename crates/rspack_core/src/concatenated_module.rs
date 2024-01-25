@@ -630,8 +630,8 @@ impl Module for ConcatenatedModule {
     }
 
     // TODO: recover
-    // let mut all_used_names = HashSet::from_iter(RESERVED_NAMES.iter().map(|item| item.to_string()));
-    let mut all_used_names = HashSet::from_iter([]);
+    let mut all_used_names = HashSet::from_iter(RESERVED_NAMES.iter().map(|item| item.to_string()));
+    // let mut all_used_names = HashSet::from_iter([]);
 
     for module in modules_with_info.iter() {
       let ModuleInfoOrReference::Concatenated(m) = module else {
@@ -979,97 +979,115 @@ impl Module for ConcatenatedModule {
 
     let mut namespace_object_sources: HashMap<ModuleIdentifier, String> = HashMap::default();
 
-    // TODO: remove the clone
-    // dbg!(&needed_namespace_objects);
-    for module_info_id in needed_namespace_objects.clone().iter() {
-      let module_info = module_to_info_map
-        .get(module_info_id)
-        .map(|m| m.as_concatenated())
-        .expect("should have module info");
+    let mut visited = HashSet::default();
+    /// webpack require iterate the needed_namespace_objects and mutate `needed_namespace_objects`
+    /// at the same time, https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L1514
+    /// Which is impossible in rust, using a fixed point algorithm  to reach the same goal.
+    loop {
+      let mut changed = false;
+      for module_info_id in needed_namespace_objects.clone().iter() {
+        if visited.contains(module_info_id) {
+          continue;
+        } else {
+          visited.insert(*module_info_id);
+          changed = true;
+        }
+        let module_info = module_to_info_map
+          .get(module_info_id)
+          .map(|m| m.as_concatenated())
+          .expect("should have module info");
 
-      let box_module = compilation
-        .module_graph
-        .module_by_identifier(module_info_id)
-        .expect("should have box module");
-      let module_readable_identifier = box_module.readable_identifier(&context).to_string();
-      let strict_harmony_module = box_module
-        .build_meta()
-        .map(|meta| meta.strict_harmony_module)
-        .unwrap_or_default();
-      let name_space_name = module_info.namespace_object_name.clone();
+        let box_module = compilation
+          .module_graph
+          .module_by_identifier(module_info_id)
+          .expect("should have box module");
+        let module_readable_identifier = box_module.readable_identifier(&context).to_string();
+        let strict_harmony_module = box_module
+          .build_meta()
+          .map(|meta| meta.strict_harmony_module)
+          .unwrap_or_default();
+        let name_space_name = module_info.namespace_object_name.clone();
 
-      if let Some(ref _namespace_export_symbol) = module_info.namespace_export_symbol {
-        continue;
-      }
-
-      let mut ns_obj = Vec::new();
-      let exports_info = compilation.module_graph.get_exports_info(module_info_id);
-      for (_name, export_info_id) in exports_info.exports.iter() {
-        let export_info = export_info_id.get_export_info(&compilation.module_graph);
-        if matches!(export_info.provided, Some(ExportInfoProvided::False)) {
+        if let Some(ref _namespace_export_symbol) = module_info.namespace_export_symbol {
           continue;
         }
 
-        if let Some(used_name) = export_info.get_used_name(None, runtime) {
-          let final_name = Self::get_final_name(
-            &compilation.module_graph,
-            module_info_id,
-            vec![export_info.name.clone().unwrap_or("".into())],
-            &mut module_to_info_map,
-            runtime,
-            &mut needed_namespace_objects,
-            false,
-            false,
-            strict_harmony_module,
-            Some(true),
-            &context,
-          );
+        let mut ns_obj = Vec::new();
+        let exports_info = compilation.module_graph.get_exports_info(module_info_id);
+        for (_name, export_info_id) in exports_info.exports.iter() {
+          let export_info = export_info_id.get_export_info(&compilation.module_graph);
+          if matches!(export_info.provided, Some(ExportInfoProvided::False)) {
+            continue;
+          }
 
-          ns_obj.push(format!(
-            "\n  {}: {}",
-            property_name(&used_name).expect("should have property_name"),
-            returning_function(&final_name, "")
-          ));
+          if let Some(used_name) = export_info.get_used_name(None, runtime) {
+            let final_name = Self::get_final_name(
+              &compilation.module_graph,
+              module_info_id,
+              vec![export_info.name.clone().unwrap_or("".into())],
+              &mut module_to_info_map,
+              runtime,
+              &mut needed_namespace_objects,
+              false,
+              false,
+              strict_harmony_module,
+              Some(true),
+              &context,
+            );
+
+            dbg!(&used_name, &final_name);
+
+            ns_obj.push(format!(
+              "\n  {}: {}",
+              property_name(&used_name).expect("should have property_name"),
+              returning_function(&final_name, "")
+            ));
+          }
         }
+        // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/ConcatenatedModule.js#L1539
+        let name = name_space_name.expect("should have name_space_name");
+        let define_getters = if !ns_obj.is_empty() {
+          format!(
+            "{}({}, {{ {} }});\n",
+            RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
+            name,
+            ns_obj.join(",")
+          )
+        } else {
+          String::new()
+        };
+
+        if !ns_obj.is_empty() {
+          runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
+        }
+
+        namespace_object_sources.insert(
+          *module_info_id,
+          format!(
+            "// NAMESPACE OBJECT: {}\nvar {} = {{}};\n{}({});\n{}\n",
+            module_readable_identifier,
+            name,
+            RuntimeGlobals::MAKE_NAMESPACE_OBJECT,
+            name,
+            define_getters
+          ),
+        );
+
+        runtime_requirements.insert(RuntimeGlobals::MAKE_NAMESPACE_OBJECT);
       }
-      // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/ConcatenatedModule.js#L1539
-      let name = name_space_name.expect("should have name_space_name");
-      let define_getters = if !ns_obj.is_empty() {
-        format!(
-          "{}({}, {{ {} }});\n",
-          RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
-          name,
-          ns_obj.join(",")
-        )
-      } else {
-        String::new()
-      };
-      dbg!(&define_getters);
-
-      if !ns_obj.is_empty() {
-        runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
+      if !changed {
+        break;
       }
-
-      namespace_object_sources.insert(
-        *module_info_id,
-        format!(
-          "// NAMESPACE OBJECT: {}\nvar {} = {{}};\n{}({});\n{}\n",
-          module_readable_identifier,
-          name,
-          RuntimeGlobals::MAKE_NAMESPACE_OBJECT,
-          name,
-          define_getters
-        ),
-      );
-
-      runtime_requirements.insert(RuntimeGlobals::MAKE_NAMESPACE_OBJECT);
     }
+
+    dbg!(&needed_namespace_objects);
 
     // Define required namespace objects (must be before evaluation modules)
     for info in modules_with_info.iter() {
       let ModuleInfoOrReference::Concatenated(info) = info else {
         continue;
       };
+
       if let Some(source) = namespace_object_sources.get(&info.module) {
         result.add(RawSource::from(source.as_str()));
       }
@@ -1684,7 +1702,7 @@ impl ConcatenatedModule {
     let binding = Self::get_final_binding(
       module_graph,
       info,
-      export_name,
+      export_name.clone(),
       module_to_info_map,
       runtime,
       needed_namespace_objects,
@@ -1697,6 +1715,7 @@ impl ConcatenatedModule {
       Binding::Raw(ref b) => (&b.ids, b.comment.as_ref()),
       Binding::Symbol(ref b) => (&b.ids, b.comment.as_ref()),
     };
+    dbg!(&export_name, &ids);
 
     let (reference, is_property_access) = match binding {
       Binding::Raw(ref b) => {
