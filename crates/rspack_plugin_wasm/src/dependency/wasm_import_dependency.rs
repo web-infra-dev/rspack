@@ -54,6 +54,13 @@ impl Dependency for WasmImportDependency {
   fn dependency_debug_name(&self) -> &'static str {
     "WasmImportDependency"
   }
+  fn get_referenced_exports(
+    &self,
+    _module_graph: &ModuleGraph,
+    _runtime: Option<&RuntimeSpec>,
+  ) -> Vec<ExtendedReferencedExport> {
+    vec![ExtendedReferencedExport::Array(vec![self.name.clone()])]
+  }
 }
 
 impl ModuleDependency for WasmImportDependency {
@@ -67,14 +74,6 @@ impl ModuleDependency for WasmImportDependency {
 
   fn set_request(&mut self, request: String) {
     self.request = request;
-  }
-
-  fn get_referenced_exports(
-    &self,
-    _module_graph: &ModuleGraph,
-    _runtime: Option<&RuntimeSpec>,
-  ) -> Vec<ExtendedReferencedExport> {
-    vec![ExtendedReferencedExport::Array(vec![self.name.clone()])]
   }
 }
 

@@ -1,4 +1,3 @@
-import path from "node:path";
 import { ExternalsType, externalsType } from "../config";
 import { Compiler } from "../Compiler";
 import { type ModuleFederationPluginV1Options } from "./ModuleFederationPluginV1";

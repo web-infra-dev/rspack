@@ -253,6 +253,7 @@ where
       }
       self.compilation.optimize_analyze_result_map = analyze_result.analyze_results;
     }
+
     let start = logger.time("seal compilation");
     self.compilation.seal(self.plugin_driver.clone()).await?;
     logger.time_end(start);

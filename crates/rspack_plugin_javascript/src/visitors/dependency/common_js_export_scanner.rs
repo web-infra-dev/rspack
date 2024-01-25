@@ -270,7 +270,7 @@ impl Visit for CommonJsExportDependencyScanner<'_> {
                   related_require_dep,
                 )));
             } else {
-              // module.export = [not require call]
+              // module.exports = [not require call]
               if is_module_exports_start {
                 // make sure had append `RuntimeGlobals::Module`
                 assign_expr.left.visit_children_with(self);

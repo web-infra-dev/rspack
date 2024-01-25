@@ -287,20 +287,6 @@ impl Dependency for HarmonyImportSpecifierDependency {
   fn resource_identifier(&self) -> Option<&str> {
     Some(&self.resource_identifier)
   }
-}
-
-impl ModuleDependency for HarmonyImportSpecifierDependency {
-  fn request(&self) -> &str {
-    &self.request
-  }
-
-  fn user_request(&self) -> &str {
-    &self.request
-  }
-
-  fn set_request(&mut self, request: String) {
-    self.request = request.into();
-  }
 
   fn get_condition(&self) -> Option<DependencyCondition> {
     get_dependency_used_by_exports_condition(self.id, self.used_by_exports.as_ref())
@@ -349,6 +335,20 @@ impl ModuleDependency for HarmonyImportSpecifierDependency {
     }
 
     self.get_referenced_exports_in_destructuring(Some(&ids))
+  }
+}
+
+impl ModuleDependency for HarmonyImportSpecifierDependency {
+  fn request(&self) -> &str {
+    &self.request
+  }
+
+  fn user_request(&self) -> &str {
+    &self.request
+  }
+
+  fn set_request(&mut self, request: String) {
+    self.request = request.into();
   }
 }
 
