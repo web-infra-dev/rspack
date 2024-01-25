@@ -19,7 +19,7 @@ futures            = { version = "0.3.30" }
 futures-util       = { version = "0.3.30" }
 glob               = { version = "0.3.1" }
 hashlink           = { version = "0.9.0" }
-indexmap           = { version = "=1.9.3", features = ["serde-1"] }
+indexmap           = { version = "2.1.0" }
 insta              = { version = "1.34.0" }
 itertools          = { version = "0.12.0" }
 json               = { version = "0.12.4" }
