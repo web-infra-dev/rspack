@@ -569,9 +569,6 @@ pub fn module_id(
   request: &str,
   weak: bool,
 ) -> String {
-  dbg!(&compilation
-    .module_graph
-    .module_identifier_by_dependency_id(id));
   if let Some(module_identifier) = compilation
     .module_graph
     .module_identifier_by_dependency_id(id)
