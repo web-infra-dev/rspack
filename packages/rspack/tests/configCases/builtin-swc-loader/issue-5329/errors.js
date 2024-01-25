@@ -1,1 +1,1 @@
-module.exports = [[/Helper not defined: \"unregisteredCase\"/]];
+module.exports = [[/Helper not found unregisteredCase/]];
