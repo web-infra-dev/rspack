@@ -649,7 +649,7 @@ impl Module for ConcatenatedModule {
             info.global_scope_ident.push(ident.clone());
             all_used_names.insert(ident.id.sym.to_string());
           }
-          if ident.class_expr_with_ident {
+          if ident.is_class_expr_with_ident {
             all_used_names.insert(ident.id.sym.to_string());
             continue;
           }
@@ -1501,6 +1501,7 @@ impl ConcatenatedModule {
     runtime: Option<&RuntimeSpec>,
     mg: &ModuleGraph,
   ) -> Vec<ConnectionWithRuntimeCondition> {
+    dbg!(&module_id);
     let mut connections = mg
       .get_outgoing_connections_by_identifier(module_id)
       .into_iter()
@@ -1523,8 +1524,7 @@ impl ConcatenatedModule {
           return None;
         }
 
-        // TODO: we don't have resolved_original_module
-        if !(connection.original_module_identifier == Some(*module_id)
+        if !(connection.resolved_original_module_identifier == Some(*module_id)
           && connection.is_target_active(mg, self.runtime.as_ref()))
         {
           return None;

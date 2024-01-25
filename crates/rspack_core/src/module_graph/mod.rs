@@ -278,13 +278,9 @@ impl ModuleGraph {
     module_identifier: ModuleIdentifier,
   ) -> ConnectionId {
     // let old_con_id = self.connection_id_by_dependency_id(&old_con.dependency_id);
-    let new_connection = ModuleGraphConnection::new(
-      original_module_identifier,
-      old_con.dependency_id,
-      module_identifier,
-      old_con.active,
-      old_con.conditional,
-    );
+    let mut new_connection = old_con.clone();
+    new_connection.original_module_identifier = original_module_identifier;
+    new_connection.module_identifier = module_identifier;
 
     let new_connection_id = {
       let new_connection_id = ConnectionId::from(self.connections.len());
