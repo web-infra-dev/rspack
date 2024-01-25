@@ -1,4 +1,4 @@
-use swc_core::ecma::ast::{ClassExpr, Ident, Prop};
+use swc_core::ecma::ast::{ClassExpr, Ident, ObjectPatProp, Prop};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
 #[derive(Clone, Debug)]
@@ -28,6 +28,21 @@ impl Visit for IdentCollector {
       shorthand: false,
       class_expr_with_ident: false,
     });
+  }
+
+  fn visit_object_pat_prop(&mut self, n: &ObjectPatProp) {
+    match n {
+      ObjectPatProp::Assign(assign) => {
+        self.ids.push(ConcatenatedModuleIdent {
+          id: assign.key.clone(),
+          shorthand: true,
+          class_expr_with_ident: false,
+        });
+      }
+      ObjectPatProp::KeyValue(_) | ObjectPatProp::Rest(_) => {
+        n.visit_children_with(self);
+      }
+    }
   }
 
   fn visit_prop(&mut self, node: &Prop) {

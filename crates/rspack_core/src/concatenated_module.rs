@@ -629,7 +629,9 @@ impl Module for ConcatenatedModule {
       module_to_info_map.insert(id, module_info);
     }
 
-    let mut all_used_names = HashSet::from_iter(RESERVED_NAMES.iter().map(|item| item.to_string()));
+    // TODO: recover
+    // let mut all_used_names = HashSet::from_iter(RESERVED_NAMES.iter().map(|item| item.to_string()));
+    let mut all_used_names = HashSet::from_iter([]);
 
     for module in modules_with_info.iter() {
       let ModuleInfoOrReference::Concatenated(m) = module else {
@@ -710,7 +712,7 @@ impl Module for ConcatenatedModule {
                 let low = span.real_lo();
                 let high = span.real_hi();
                 if identifier.shorthand {
-                  source.insert(low, &format!(": {}", new_name), None);
+                  source.insert(high, &format!(": {}", new_name), None);
                   continue;
                 }
 
@@ -1072,8 +1074,6 @@ impl Module for ConcatenatedModule {
         result.add(RawSource::from(source.as_str()));
       }
     }
-
-    // Assuming the necessary Rust imports and dependencies are declared
 
     let mut chunk_init_fragments = Vec::new();
 
