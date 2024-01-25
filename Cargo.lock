@@ -2512,7 +2512,7 @@ dependencies = [
  "glob-match",
  "hashlink",
  "hex",
- "indexmap 1.9.3",
+ "indexmap 2.1.0",
  "itertools 0.12.0",
  "json",
  "mime_guess",
@@ -2684,7 +2684,7 @@ dependencies = [
  "async-trait",
  "dashmap",
  "either",
- "indexmap 1.9.3",
+ "indexmap 2.1.0",
  "jsonc-parser 0.23.0",
  "once_cell",
  "rspack_ast",
@@ -2914,7 +2914,7 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "bitflags 1.3.2",
- "indexmap 1.9.3",
+ "indexmap 2.1.0",
  "itertools 0.12.0",
  "linked_hash_set",
  "num-bigint",
@@ -3020,7 +3020,7 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "derivative",
- "indexmap 1.9.3",
+ "indexmap 2.1.0",
  "once_cell",
  "rayon",
  "regex",
@@ -3042,7 +3042,7 @@ name = "rspack_plugin_runtime"
 version = "0.1.0"
 dependencies = [
  "async-trait",
- "indexmap 1.9.3",
+ "indexmap 2.1.0",
  "itertools 0.12.0",
  "once_cell",
  "regex",
@@ -3133,7 +3133,7 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "dashmap",
- "indexmap 1.9.3",
+ "indexmap 2.1.0",
  "rayon",
  "rspack_core",
  "rspack_error",
