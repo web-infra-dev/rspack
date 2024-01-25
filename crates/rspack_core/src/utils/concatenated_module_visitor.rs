@@ -5,7 +5,7 @@ use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 pub struct ConcatenatedModuleIdent {
   pub id: Ident,
   pub shorthand: bool,
-  pub class_expr_with_ident: bool,
+  pub is_class_expr_with_ident: bool,
 }
 
 #[derive(Default)]
@@ -26,7 +26,7 @@ impl Visit for IdentCollector {
     self.ids.push(ConcatenatedModuleIdent {
       id: node.clone(),
       shorthand: false,
-      class_expr_with_ident: false,
+      is_class_expr_with_ident: false,
     });
   }
 
@@ -36,7 +36,7 @@ impl Visit for IdentCollector {
         self.ids.push(ConcatenatedModuleIdent {
           id: assign.key.clone(),
           shorthand: true,
-          class_expr_with_ident: false,
+          is_class_expr_with_ident: false,
         });
       }
       ObjectPatProp::KeyValue(_) | ObjectPatProp::Rest(_) => {
@@ -51,7 +51,7 @@ impl Visit for IdentCollector {
         self.ids.push(ConcatenatedModuleIdent {
           id: node.clone(),
           shorthand: true,
-          class_expr_with_ident: false,
+          is_class_expr_with_ident: false,
         });
       }
       _ => {
@@ -68,7 +68,7 @@ impl Visit for IdentCollector {
       self.ids.push(ConcatenatedModuleIdent {
         id: ident.clone(),
         shorthand: false,
-        class_expr_with_ident: true,
+        is_class_expr_with_ident: true,
       });
     }
     node.class.visit_with(self);
