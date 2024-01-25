@@ -4,9 +4,7 @@
   "ignorePaths": [
     "**/fixtures/**",
     "**/tests/**",
-    "diffcases/**",
     "npm/**",
-    "packages/create-rspack/**",
     "webpack-examples/**",
     "webpack-test/**"
   ],
@@ -53,16 +51,23 @@
       "enabled": false
     },
     {
-      "groupName": "npm-devDependencies",
+      "groupName": "npm devDependencies",
       "matchManagers": ["npm"],
       "matchDepTypes": ["devDependencies"],
       "schedule": ["on wednesday"],
+      "excludePackagePrefixes": ["webpack"],
       "assignees": ["@Boshen"]
     },
     {
-      "groupName": "npm-dependencies",
+      "groupName": "npm dependencies",
       "matchManagers": ["npm"],
       "matchDepTypes": ["dependencies"],
+      "enabled": false
+    },
+    {
+      "groupName": "webpack",
+      "matchManagers": ["npm"],
+      "matchPackagePrefixes": ["webpack"],
       "enabled": false
     }
   ]
