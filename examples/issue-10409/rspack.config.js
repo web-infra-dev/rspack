@@ -17,6 +17,7 @@ module.exports = {
 		sideEffects: true,
 		providedExports: true,
 		minimize: false,
+		chunkIds: 'named'
 
 	}
 };

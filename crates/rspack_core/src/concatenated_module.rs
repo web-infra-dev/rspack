@@ -2065,7 +2065,6 @@ impl ConcatenatedModule {
           }
         }
 
-        dbg!(&info.namespace_export_symbol);
         if info.namespace_export_symbol.is_some() {
           // That's how webpack write https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L463-L471
           let used_name = exports_info

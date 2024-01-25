@@ -3,6 +3,7 @@ use std::collections::hash_map::DefaultHasher;
 use std::collections::VecDeque;
 use std::hash::Hasher;
 
+use indexmap::IndexSet;
 use rspack_core::concatenated_module::{
   is_harmony_dep_like, ConcatenatedInnerModule, ConcatenatedModule, RootModuleContext,
 };
@@ -20,20 +21,12 @@ fn format_bailout_reason(msg: &str) -> String {
   format!("ModuleConcatenation bailout: {}", msg)
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 enum Warning {
   Id(ModuleIdentifier),
   Problem(String),
 }
 
-impl std::fmt::Debug for Warning {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    match self {
-      Self::Id(arg0) => f.debug_tuple("Id").field(arg0).finish(),
-      Self::Problem(_arg0) => f.write_str("Fn(String) -> String"),
-    }
-  }
-}
 #[derive(Debug, Clone)]
 struct ConcatConfiguration {
   pub root_module: ModuleIdentifier,
@@ -159,8 +152,8 @@ impl ModuleConcatenationPlugin {
     mg: &ModuleGraph,
     mi: WrappedModuleIdentifier,
     runtime: Option<&RuntimeSpec>,
-  ) -> HashSet<ModuleIdentifier> {
-    let mut set = HashSet::default();
+  ) -> IndexSet<ModuleIdentifier> {
+    let mut set = IndexSet::default();
     let module = mg.module_by_identifier(&mi).expect("should have module");
     for d in module.get_dependencies() {
       let dep = d.get_dependency(mg);
@@ -517,11 +510,11 @@ impl ModuleConcatenationPlugin {
 
     incoming_modules.sort();
 
-    for _origin_module in &incoming_modules {
+    for origin_module in &incoming_modules {
       if let Some(problem) = Self::try_to_add(
         compilation,
         config,
-        module_id,
+        origin_module,
         runtime,
         active_runtime,
         possible_modules,
