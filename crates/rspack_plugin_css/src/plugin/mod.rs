@@ -53,6 +53,7 @@ pub struct LocalIdentNameRenderOptions<'a> {
 }
 
 bitflags! {
+  #[derive(Debug, Clone, Copy)]
   struct LocalsConventionFlags: u8 {
     const ASIS = 1 << 0;
     const CAMELCASE = 1 << 1;
@@ -60,7 +61,7 @@ bitflags! {
   }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct LocalsConvention(LocalsConventionFlags);
 
 impl LocalsConvention {

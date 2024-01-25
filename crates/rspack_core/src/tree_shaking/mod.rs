@@ -18,6 +18,7 @@ pub mod visitor;
 pub mod webpack_ext;
 
 mod test;
+
 #[derive(Debug)]
 pub struct OptimizeDependencyResult {
   pub used_symbol_ref: HashSet<SymbolRef>,
@@ -62,6 +63,7 @@ pub fn debug_care_module_id<T: AsRef<str>>(id: T) -> bool {
 }
 
 bitflags::bitflags! {
+  #[derive(Debug, Clone, Copy)]
   pub struct BailoutFlag: u8 {
       const COMMONJS_REQUIRE = 1 << 1;
       const COMMONJS_EXPORTS = 1 << 2;
