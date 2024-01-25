@@ -61,10 +61,10 @@ importers:
         version: 3.0.2
       ts-jest:
         specifier: 29.1.0
-        version: 29.1.0(@babel/core@7.23.2)(jest@29.5.0)(typescript@5.0.2)
+        version: 29.1.0(@babel/core@7.23.2)(jest@29.5.0)(typescript@5.3.3)
       typescript:
-        specifier: 5.0.2
-        version: 5.0.2
+        specifier: 5.3.3
+        version: 5.3.3
       webpack:
         specifier: 5.89.0
         version: 5.89.0(webpack-cli@4.10.0)
@@ -404,7 +404,7 @@ importers:
         version: 3.3.1(postcss@8.4.21)
       vue:
         specifier: 3.3.7
-        version: 3.3.7(typescript@5.0.2)
+        version: 3.3.7(typescript@5.3.3)
       vue-loader:
         specifier: ^17.3.1
         version: 17.3.1(vue@3.3.7)(webpack@5.89.0)
@@ -549,7 +549,7 @@ importers:
         version: 5.16.1
       ts-node:
         specifier: 10.9.1
-        version: 10.9.1(@swc/core@1.3.99)(@types/node@20.9.4)(typescript@5.1.6)
+        version: 10.9.1(@swc/core@1.3.99)(@types/node@20.9.4)(typescript@5.3.3)
       wast-loader:
         specifier: ^1.11.4
         version: 1.11.4
@@ -613,7 +613,7 @@ importers:
         version: 0.5.21
       ts-node:
         specifier: 10.9.1
-        version: 10.9.1(@swc/core@1.3.99)(@types/node@20.9.4)(typescript@5.1.6)
+        version: 10.9.1(@swc/core@1.3.99)(@types/node@20.9.4)(typescript@5.3.3)
 
   packages/rspack-dev-server:
     dependencies:
@@ -899,9 +899,6 @@ importers:
       normalize.css:
         specifier: ^8.0.0
         version: 8.0.1
-      prettier:
-        specifier: ^2.8.3
-        version: 2.8.8
       react:
         specifier: 18.0.0
         version: 18.0.0
@@ -911,9 +908,6 @@ importers:
       react-refresh:
         specifier: 0.13.0
         version: 0.13.0
-      typescript:
-        specifier: 5.1.6
-        version: 5.1.6
 
   scripts:
     dependencies:
@@ -7735,7 +7729,7 @@ packages:
     dependencies:
       '@vue/compiler-ssr': 3.3.7
       '@vue/shared': 3.3.7
-      vue: 3.3.7(typescript@5.0.2)
+      vue: 3.3.7(typescript@5.3.3)
     dev: true
 
   /@vue/shared@3.2.45:
@@ -16818,7 +16812,7 @@ packages:
     resolution: {integrity: sha512-Y/arvbn+rrz3JCKl9C4kVNfTfSm2/mEp5FSz5EsZSANGPSlQrpRI5M4PKF+mJnE52jOO90PnPSc3Ur3bTQw0gA==}
     dev: true
 
-  /ts-jest@29.1.0(@babel/core@7.23.2)(jest@29.5.0)(typescript@5.0.2):
+  /ts-jest@29.1.0(@babel/core@7.23.2)(jest@29.5.0)(typescript@5.3.3):
     resolution: {integrity: sha512-ZhNr7Z4PcYa+JjMl62ir+zPiNJfXJN6E8hSLnaUKhOgqcn8vb3e537cpkd0FuAfRK3sR1LSqM1MOhliXNgOFPA==}
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
     hasBin: true
@@ -16848,11 +16842,11 @@ packages:
       lodash.memoize: 4.1.2
       make-error: 1.3.6
       semver: 7.5.1
-      typescript: 5.0.2
+      typescript: 5.3.3
       yargs-parser: 21.1.1
     dev: true
 
-  /ts-node@10.9.1(@swc/core@1.3.99)(@types/node@20.9.4)(typescript@5.1.6):
+  /ts-node@10.9.1(@swc/core@1.3.99)(@types/node@20.9.4)(typescript@5.3.3):
     resolution: {integrity: sha512-NtVysVPkxxrwFGUUxGYhfux8k78pQB3JqYBXlLRZgdGUqTO5wU/UyHop5p70iEbGhB7q5KmiZiU0Y3KlJrScEw==}
     hasBin: true
     peerDependencies:
@@ -16879,7 +16873,7 @@ packages:
       create-require: 1.1.1
       diff: 4.0.2
       make-error: 1.3.6
-      typescript: 5.1.6
+      typescript: 5.3.3
       v8-compile-cache-lib: 3.0.1
       yn: 3.1.1
     dev: true
@@ -16994,14 +16988,14 @@ packages:
     hasBin: true
     dev: true
 
-  /typescript@5.0.2:
-    resolution: {integrity: sha512-wVORMBGO/FAs/++blGNeAVdbNKtIh1rbBL2EyQ1+J9lClJ93KiiKe8PmFIVdXhHcyv44SL9oglmfeSsndo0jRw==}
-    engines: {node: '>=12.20'}
+  /typescript@5.1.6:
+    resolution: {integrity: sha512-zaWCozRZ6DLEWAWFrVDz1H6FVXzUSfTy5FUMWsQlU8Ym5JP9eO4xkTIROFCQvhQf61z6O/G6ugw3SgAnvvm+HA==}
+    engines: {node: '>=14.17'}
     hasBin: true
     dev: true
 
-  /typescript@5.1.6:
-    resolution: {integrity: sha512-zaWCozRZ6DLEWAWFrVDz1H6FVXzUSfTy5FUMWsQlU8Ym5JP9eO4xkTIROFCQvhQf61z6O/G6ugw3SgAnvvm+HA==}
+  /typescript@5.3.3:
+    resolution: {integrity: sha512-pXWcraxM0uxAS+tN0AG/BF2TyqmHO014Z070UsJ+pFvYuRSq8KH8DmWpnbXe0pEPDHXZV3FcAbJkijJ5oNEnWw==}
     engines: {node: '>=14.17'}
     hasBin: true
     dev: true
@@ -17352,7 +17346,7 @@ packages:
     dependencies:
       chalk: 4.1.2
       hash-sum: 2.0.0
-      vue: 3.3.7(typescript@5.0.2)
+      vue: 3.3.7(typescript@5.3.3)
       watchpack: 2.4.0
       webpack: 5.89.0(webpack-cli@4.10.0)
     dev: true
@@ -17366,7 +17360,7 @@ packages:
       '@vue/server-renderer': 3.2.45(vue@3.2.45)
       '@vue/shared': 3.2.45
 
-  /vue@3.3.7(typescript@5.0.2):
+  /vue@3.3.7(typescript@5.3.3):
     resolution: {integrity: sha512-YEMDia1ZTv1TeBbnu6VybatmSteGOS3A3YgfINOfraCbf85wdKHzscD6HSS/vB4GAtI7sa1XPX7HcQaJ1l24zA==}
     peerDependencies:
       typescript: '*'
@@ -17379,7 +17373,7 @@ packages:
       '@vue/runtime-dom': 3.3.7
       '@vue/server-renderer': 3.3.7(vue@3.3.7)
       '@vue/shared': 3.3.7
-      typescript: 5.0.2
+      typescript: 5.3.3
     dev: true
 
   /wabt@1.0.0-nightly.20180421:
