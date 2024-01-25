@@ -1501,7 +1501,6 @@ impl ConcatenatedModule {
     runtime: Option<&RuntimeSpec>,
     mg: &ModuleGraph,
   ) -> Vec<ConnectionWithRuntimeCondition> {
-    dbg!(&module_id);
     let mut connections = mg
       .get_outgoing_connections_by_identifier(module_id)
       .into_iter()
@@ -1554,7 +1553,8 @@ impl ConcatenatedModule {
       }
     });
 
-    let mut references_map = HashMap::default();
+    let mut references_map: IndexMap<ModuleIdentifier, ConnectionWithRuntimeCondition> =
+      IndexMap::default();
     for reference in references {
       let runtime_condition =
         filter_runtime(runtime, |r| reference.connection.is_target_active(mg, r));
@@ -1563,7 +1563,7 @@ impl ConcatenatedModule {
       }
       let module = reference.connection.module_identifier;
       match references_map.entry(module) {
-        Entry::Occupied(mut occ) => {
+        indexmap::map::Entry::Occupied(mut occ) => {
           let entry: &ConnectionWithRuntimeCondition = occ.get();
           let merged_condition = merge_runtime_condition_non_false(
             &entry.runtime_condition,
@@ -1572,7 +1572,7 @@ impl ConcatenatedModule {
           );
           occ.get_mut().runtime_condition = merged_condition;
         }
-        Entry::Vacant(vac) => {
+        indexmap::map::Entry::Vacant(vac) => {
           vac.insert(ConnectionWithRuntimeCondition {
             connection: reference.connection,
             runtime_condition,
