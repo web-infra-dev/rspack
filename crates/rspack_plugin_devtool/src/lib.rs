@@ -384,8 +384,11 @@ impl Plugin for SourceMapDevToolPlugin {
 
       if let Some(source_map_filename_config) = &self.source_map_filename {
         let mut source_map_filename = filename.to_owned() + ".map";
+        let mut final_source_map_filename = String::new();
+        let mut source_file_idx = 0;
+
         // TODO(ahabhgk): refactor remove the for loop
-        for chunk in compilation.chunk_by_ukey.values() {
+        for (idx, chunk) in compilation.chunk_by_ukey.values().enumerate() {
           let files: HashSet<String> = chunk.files.union(&chunk.auxiliary_files).cloned().collect();
 
           for file in &files {
@@ -408,9 +411,17 @@ impl Plugin for SourceMapDevToolPlugin {
                   .filename(&filename)
                   .content_hash_optional(chunk.content_hash.get(source_type).map(|i| i.encoded())),
               );
+
+              source_file_idx = idx;
+              final_source_map_filename = source_map_filename.clone();
               break;
             }
           }
+        }
+
+        // add source_map_file to related chunk auxiliary_files
+        if let Some(chunk) = compilation.chunk_by_ukey.values_mut().nth(source_file_idx) {
+          chunk.auxiliary_files.insert(final_source_map_filename);
         }
 
         if let Some(current_source_mapping_url_comment) = current_source_mapping_url_comment {
