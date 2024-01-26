@@ -1,7 +1,5 @@
 use napi_derive::napi;
 
-use super::JsCompatSource;
-
 #[napi(object)]
 pub struct JsAssetInfoRelated {
   pub source_map: Option<String>,
@@ -62,7 +60,6 @@ impl From<JsAssetInfo> for rspack_core::AssetInfo {
 #[napi(object)]
 pub struct JsAsset {
   pub name: String,
-  pub source: Option<JsCompatSource>,
   pub info: JsAssetInfo,
 }
 

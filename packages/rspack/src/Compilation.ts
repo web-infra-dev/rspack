@@ -465,25 +465,20 @@ export class Compilation {
 		const assets = this.#inner.getAssets();
 
 		return assets.map(asset => {
-			return {
-				...asset,
-				get source() {
-					return asset.source ? createSourceFromRaw(asset.source) : undefined;
-				}
-			};
+			return Object.defineProperty(asset, "source", {
+				get: () => this.__internal__getAssetSource(asset.name)
+			});
 		});
 	}
 
-	getAsset(name: string) {
+	getAsset(name: string): Asset | undefined {
 		const asset = this.#inner.getAsset(name);
 		if (!asset) {
 			return;
 		}
-		return {
-			...asset,
-			// @ts-expect-error
-			source: createSourceFromRaw(asset.source)
-		};
+		return Object.defineProperty(asset, "source", {
+			get: () => this.__internal__getAssetSource(asset.name)
+		});
 	}
 
 	pushDiagnostic(
@@ -870,10 +865,10 @@ export class Compilation {
 	 *
 	 * @internal
 	 */
-	__internal__getAssetSource(filename: string): Source | null {
+	__internal__getAssetSource(filename: string): Source | undefined {
 		const rawSource = this.#inner.getAssetSource(filename);
 		if (!rawSource) {
-			return null;
+			return;
 		}
 		return createSourceFromRaw(rawSource);
 	}
