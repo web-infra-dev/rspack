@@ -91,6 +91,14 @@ export function formatCode(
 				}
 			}
 		},
+		SwitchCase(path) {
+			if (
+				path.node.consequent.length === 1 &&
+				path.node.consequent[0].type === "BlockStatement"
+			) {
+				path.node.consequent = path.node.consequent[0].body;
+			}
+		},
 		ObjectExpression(path) {
 			if (options.ignoreObjectPropertySequence) {
 				let result = [];

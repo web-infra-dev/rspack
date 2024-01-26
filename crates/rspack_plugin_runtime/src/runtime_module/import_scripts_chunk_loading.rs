@@ -173,7 +173,7 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
       ));
       source.add(RawSource::from(
         include_str!("runtime/javascript_hot_module_replacement.js")
-          .replace("$key$", "importScrips"),
+          .replace("$key$", "importScripts"),
       ));
     }
 
