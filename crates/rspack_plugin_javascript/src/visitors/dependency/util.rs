@@ -1,15 +1,12 @@
 use itertools::Itertools;
 use once_cell::sync::Lazy;
-use rspack_core::{
-  extract_member_expression_chain, ConstDependency, DependencyLocation, ErrorSpan,
-  ExpressionInfoKind, SpanExt,
-};
+use rspack_core::extract_member_expression_chain;
+use rspack_core::{ConstDependency, DependencyLocation, ErrorSpan, ExpressionInfoKind, SpanExt};
 use rspack_error::{miette::Severity, DiagnosticKind, TraceableError};
 use rustc_hash::FxHashSet as HashSet;
-use swc_core::common::{SourceFile, Spanned, SyntaxContext};
-use swc_core::ecma::ast::{
-  CallExpr, Expr, ExprOrSpread, Ident, MemberExpr, ObjectPat, ObjectPatProp, PropName,
-};
+use swc_core::common::{SourceFile, Spanned};
+use swc_core::ecma::ast::{CallExpr, Expr, ExprOrSpread, Ident, MemberExpr};
+use swc_core::ecma::ast::{ObjectPat, ObjectPatProp, PropName};
 use swc_core::ecma::atoms::Atom;
 
 pub fn collect_destructuring_assignment_properties(
@@ -32,9 +29,10 @@ pub fn collect_destructuring_assignment_properties(
   }
 
   if properties.is_empty() {
-    return None;
+    None
+  } else {
+    Some(properties)
   }
-  Some(properties)
 }
 
 pub(crate) mod expr_matcher {
@@ -115,18 +113,6 @@ pub(crate) mod expr_matcher {
     is_require_main_require: "require.main.require",
     is_module_parent_require: "module.parent.require",
   });
-}
-
-pub fn is_require_call_expr(expr: &Expr, ctxt: SyntaxContext) -> bool {
-  matches!(expr, Expr::Call(call_expr) if is_require_call(call_expr, ctxt))
-}
-
-pub fn is_require_call(node: &CallExpr, ctxt: SyntaxContext) -> bool {
-  node
-    .callee
-    .as_expr()
-    .map(|expr| matches!(expr, box Expr::Ident(ident) if &ident.sym == "require" && ident.span.ctxt == ctxt))
-    .unwrap_or_default()
 }
 
 pub fn is_require_context_call(node: &CallExpr) -> bool {

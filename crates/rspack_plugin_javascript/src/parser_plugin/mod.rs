@@ -1,5 +1,6 @@
 mod api_plugin;
 mod check_var_decl;
+mod common_js_exports_parse_plugin;
 mod common_js_imports_parse_plugin;
 mod common_js_plugin;
 mod compatibility_plugin;
@@ -15,6 +16,7 @@ mod webpack_included_plugin;
 
 pub use self::api_plugin::APIPlugin;
 pub use self::check_var_decl::CheckVarDeclaratorIdent;
+pub use self::common_js_exports_parse_plugin::CommonJsExportsParserPlugin;
 pub use self::common_js_imports_parse_plugin::CommonJsImportsParserPlugin;
 pub use self::common_js_plugin::CommonJsPlugin;
 pub use self::compatibility_plugin::CompatibilityPlugin;
