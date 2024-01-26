@@ -16,6 +16,7 @@ use rspack_core::{
 use rspack_error::Result;
 use rspack_util::fx_dashmap::FxDashMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use swc_core::ecma::utils::IsEmpty;
 
 fn format_bailout_reason(msg: &str) -> String {
   format!("ModuleConcatenation bailout: {}", msg)
@@ -801,13 +802,14 @@ impl Plugin for ModuleConcatenationPlugin {
       }
     }
     logger.time_end(start);
-    // TODO: recover
-    // logger.debug(format!(
-    //   "{} successful concat configurations (avg size: {}), {} bailed out completely",
-    //   concat_configurations.len(),
-    //   stats_size_sum / concat_configurations.len(),
-    //   stats_empty_configurations
-    // ));
+    if !concat_configurations.is_empty() {
+      logger.debug(format!(
+        "{} successful concat configurations (avg size: {}), {} bailed out completely",
+        concat_configurations.len(),
+        stats_size_sum / concat_configurations.len(),
+        stats_empty_configurations
+      ));
+    }
 
     logger.debug(format!(
         "{} candidates were considered for adding ({} cached failure, {} already in config, {} invalid module, {} incorrect chunks, {} incorrect dependency, {} incorrect chunks of importer, {} incorrect module dependency, {} incorrect runtime condition, {} importer failed, {} added)",
