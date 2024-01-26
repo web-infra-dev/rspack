@@ -41,6 +41,7 @@ const OUTPUT_DIR = path.join(__dirname, '../diff_output');
         ignoreSwcHelpersPath: true,
         ignoreObjectPropertySequence: true,
         ignoreCssFilePath: true,
+        detail: false,
         onCompareModules: function (file, results) {
           htmlReporter.increment(name, results);
           statsReporter.increment(name, results);

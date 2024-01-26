@@ -87,7 +87,9 @@ const config = {
 	output: {
 		publicPath: "/",
 		filename: "[name].js",
-		chunkFilename: "[name].js"
+		chunkFilename: "[name].js",
+		cssChunkFilename: "[name].css",
+		cssFilename: "[name].css"
 	},
 	optimization: {
 		minimize: false, // Disabling minification because it takes too long on CI
@@ -100,7 +102,9 @@ const config = {
 			cacheGroups: {
 				someVendor: {
 					chunks: "all",
-					minChunks: 2
+					minChunks: 2,
+					filename: "someVencor-[name].js",
+					name: "vendor"
 				}
 			}
 		}
