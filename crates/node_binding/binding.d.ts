@@ -211,7 +211,6 @@ export interface FactoryMeta {
 
 export interface JsAsset {
   name: string
-  source?: JsCompatSource
   info: JsAssetInfo
 }
 
@@ -1276,6 +1275,14 @@ export function registerGlobalTrace(filter: string, layer: "chrome" | "logger", 
 
 /** Builtin loader runner */
 export function runBuiltinLoader(builtin: string, options: string | undefined | null, loaderContext: JsLoaderContext): Promise<JsLoaderContext>
+
+export interface ThreadsafeNodeFS {
+  writeFile: (...args: any[]) => any
+  removeFile: (...args: any[]) => any
+  mkdir: (...args: any[]) => any
+  mkdirp: (...args: any[]) => any
+  removeDirAll: (...args: any[]) => any
+}
 
 export interface ThreadsafeNodeFS {
   writeFile: (...args: any[]) => any

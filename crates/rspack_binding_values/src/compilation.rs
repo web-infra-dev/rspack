@@ -101,11 +101,6 @@ impl JsCompilation {
     for (filename, asset) in self.inner.assets() {
       assets.push(JsAsset {
         name: filename.clone(),
-        source: asset
-          .source
-          .as_ref()
-          .map(|s| s.to_js_compat_source())
-          .transpose()?,
         info: asset.info.clone().into(),
       });
     }
@@ -118,11 +113,6 @@ impl JsCompilation {
     match self.inner.assets().get(&name) {
       Some(asset) => Ok(Some(JsAsset {
         name,
-        source: asset
-          .source
-          .as_ref()
-          .map(|s| s.to_js_compat_source())
-          .transpose()?,
         info: asset.info.clone().into(),
       })),
       None => Ok(None),
