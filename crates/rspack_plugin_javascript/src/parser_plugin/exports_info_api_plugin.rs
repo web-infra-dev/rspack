@@ -12,6 +12,7 @@ impl JavascriptParserPlugin for ExportsInfoApiPlugin {
     &self,
     parser: &mut crate::visitors::JavascriptParser,
     member_expr: &swc_core::ecma::ast::MemberExpr,
+    _name: &str,
   ) -> Option<bool> {
     let expression_info = extract_member_expression_chain(member_expr);
     let member_chain = expression_info.members();

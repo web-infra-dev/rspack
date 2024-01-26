@@ -24,7 +24,10 @@ use swc_core::common::{SourceFile, Span};
 use swc_core::ecma::atoms::Atom;
 
 use self::harmony_import_dependency_scanner::ImportMap;
-pub use self::parser::{JavascriptParser, TagInfoData};
+pub use self::parser::{
+  CallExpressionInfo, CallHooksName, ExpressionExpressionInfo, JavascriptParser,
+  MemberExpressionInfo, TagInfoData,
+};
 pub use self::util::*;
 use self::{
   harmony_detection_scanner::HarmonyDetectionScanner,

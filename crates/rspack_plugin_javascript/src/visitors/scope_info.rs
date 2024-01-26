@@ -42,8 +42,9 @@ impl VariableInfoDB {
     }
   }
 
-  fn insert(&mut self, variable_info: VariableInfo) -> VariableInfoId {
+  fn insert(&mut self, mut variable_info: VariableInfo) -> VariableInfoId {
     let id = self.next();
+    variable_info.set_id(id);
     let prev = self.map.insert(id, variable_info);
     assert!(prev.is_none());
     id
@@ -55,6 +56,12 @@ pub struct ScopeInfoDB {
   count: ScopeInfoId,
   map: FxHashMap<ScopeInfoId, ScopeInfo>,
   variable_info_db: VariableInfoDB,
+}
+
+impl Default for ScopeInfoDB {
+  fn default() -> Self {
+    Self::new()
+  }
 }
 
 impl ScopeInfoDB {
@@ -205,6 +212,7 @@ pub enum FreeName {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct VariableInfo {
+  id: Option<VariableInfoId>,
   pub declared_scope: ScopeInfoId,
   pub free_name: Option<FreeName>,
   pub tag_info: Option<TagInfo>,
@@ -220,6 +228,7 @@ impl VariableInfo {
     tag_info: Option<TagInfo>,
   ) -> Self {
     Self {
+      id: None,
       declared_scope,
       free_name,
       tag_info,
@@ -236,6 +245,16 @@ impl VariableInfo {
       .free_name
       .as_ref()
       .expect("make sure `free_name` exist")
+  }
+
+  fn set_id(&mut self, id: VariableInfoId) {
+    self.id = Some(id);
+  }
+
+  pub fn id(&self) -> VariableInfoId {
+    self
+      .id
+      .expect("should already store VariableInfo to VariableInfoDB")
   }
 }
 

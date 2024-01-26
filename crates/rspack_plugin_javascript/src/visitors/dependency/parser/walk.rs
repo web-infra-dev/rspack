@@ -14,7 +14,7 @@ use swc_core::ecma::ast::{Prop, PropName, PropOrSpread, RestPat, ReturnStmt, Seq
 use swc_core::ecma::ast::{SwitchCase, SwitchStmt, TryStmt, VarDecl, VarDeclKind};
 use swc_core::ecma::ast::{ThrowStmt, Tpl, UnaryExpr, UpdateExpr, VarDeclOrExpr, YieldExpr};
 
-use super::JavascriptParser;
+use super::{AllowedMemberTypes, JavascriptParser, MemberExpressionInfo, RootName};
 use crate::parser_plugin::{is_logic_op, JavascriptParserPlugin};
 
 fn warp_ident_to_pat(ident: Ident) -> Pat {
@@ -588,17 +588,33 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_member_expression(&mut self, expr: &MemberExpr) {
-    // FIXME: should remove:
-    if self
-      .plugin_drive
-      .clone()
-      .member(self, expr)
-      .unwrap_or_default()
-    {
-      return;
+    if let Some(expr_info) = self.get_member_expression_info(expr, AllowedMemberTypes::All) {
+      match expr_info {
+        MemberExpressionInfo::Expression(expr_info) => {
+          if self
+            .plugin_drive
+            .clone()
+            .member(self, expr, &expr_info.name)
+            .unwrap_or_default()
+          {
+            return;
+          }
+          // TODO: member_chain and unhandled_mamber_chain
+        }
+        MemberExpressionInfo::Call(expr_info) => {
+          if self
+            .plugin_drive
+            .clone()
+            .member_chain_of_call_member_chain(self, expr /* , expr_info */)
+            .unwrap_or_default()
+          {
+            return;
+          }
+          self.walk_call_expression(&expr_info.call);
+          return;
+        }
+      }
     }
-
-    // TODO: member expression info
     self.walk_expression(&expr.obj);
     if let MemberProp::Computed(computed) = &expr.prop {
       self.walk_expression(&computed.expr)
@@ -614,23 +630,34 @@ impl<'parser> JavascriptParser<'parser> {
   fn walk_call_expression(&mut self, expr: &CallExpr) {
     self.enter_call += 1;
     // FIXME: should align to webpack
-    if let Some(result) = self.plugin_drive.clone().call(self, expr) {
-      if !result {
-        self.walk_expr_or_spread(&expr.args);
-      }
-    } else {
-      match &expr.callee {
-        Callee::Super(_) => (),
-        Callee::Import(_import) => {
-          // TODO: `if (this.hooks.importCall.call(expression)) { return }`
+    match &expr.callee {
+      Callee::Expr(callee) => {
+        let evaluated = self.evaluate_expression(callee);
+        if evaluated.is_identifier()
+          && self
+            .plugin_drive
+            .clone()
+            .call(self, expr, evaluated.identifier())
+            .unwrap_or_default()
+        {
+          return;
         }
-        Callee::Expr(expr) => {
-          // TODO: `hooks.callMemberChain`
-          self.walk_expression(expr)
+        if let Some(member) = callee.as_member() {
+          self.walk_expression(&member.obj);
+          if let Some(computed) = member.prop.as_computed() {
+            self.walk_expression(&computed.expr);
+          }
+        } else {
+          self.walk_expression(callee);
         }
       }
-      self.walk_expr_or_spread(&expr.args);
+      Callee::Super(_) => {} // Do nothing about super, same as webpack
+      Callee::Import(import) => {
+        // In webpack this is walkImportExpression, import() is a ImportExpression instead of CallExpression with Callee::Import
+        // TODO: call hooks.importCall
+      }
     }
+    self.walk_expr_or_spread(&expr.args);
     self.enter_call -= 1;
   }
 

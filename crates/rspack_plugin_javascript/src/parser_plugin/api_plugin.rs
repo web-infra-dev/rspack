@@ -261,6 +261,7 @@ impl JavascriptParserPlugin for APIPlugin {
     &self,
     parser: &mut JavascriptParser,
     member_expr: &swc_core::ecma::ast::MemberExpr,
+    _name: &str,
   ) -> Option<bool> {
     macro_rules! not_supported_expr {
       ($check: ident, $expr: ident, $name: literal) => {
@@ -340,7 +341,7 @@ impl JavascriptParserPlugin for APIPlugin {
     }
   }
 
-  fn call(&self, parser: &mut JavascriptParser, call_expr: &CallExpr) -> Option<bool> {
+  fn call(&self, parser: &mut JavascriptParser, call_expr: &CallExpr, _name: &str) -> Option<bool> {
     macro_rules! not_supported_call {
       ($check: ident, $name: literal) => {
         if let Callee::Expr(box Expr::Member(expr)) = &call_expr.callee
@@ -353,7 +354,7 @@ impl JavascriptParserPlugin for APIPlugin {
           );
           parser.warning_diagnostics.push(warning);
           parser.presentational_dependencies.push(dep);
-          return Some(false);
+          return Some(true);
         }
       };
     }

@@ -33,9 +33,9 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     None
   }
 
-  fn call(&self, parser: &mut JavascriptParser, expr: &CallExpr) -> Option<bool> {
+  fn call(&self, parser: &mut JavascriptParser, expr: &CallExpr, name: &str) -> Option<bool> {
     for plugin in &self.plugins {
-      let res = plugin.call(parser, expr);
+      let res = plugin.call(parser, expr, name);
       // `SyncBailHook`
       if res.is_some() {
         return res;
@@ -48,9 +48,25 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     &self,
     parser: &mut JavascriptParser,
     expr: &swc_core::ecma::ast::MemberExpr,
+    name: &str,
   ) -> Option<bool> {
     for plugin in &self.plugins {
-      let res = plugin.member(parser, expr);
+      let res = plugin.member(parser, expr, name);
+      // `SyncBailHook`
+      if res.is_some() {
+        return res;
+      }
+    }
+    None
+  }
+
+  fn member_chain_of_call_member_chain(
+    &self,
+    parser: &mut JavascriptParser,
+    expr: &swc_core::ecma::ast::MemberExpr,
+  ) -> Option<bool> {
+    for plugin in &self.plugins {
+      let res = plugin.member_chain_of_call_member_chain(parser, expr);
       // `SyncBailHook`
       if res.is_some() {
         return res;

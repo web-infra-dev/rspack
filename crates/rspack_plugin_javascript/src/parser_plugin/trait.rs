@@ -27,12 +27,24 @@ pub trait JavascriptParserPlugin {
     None
   }
 
-  fn call(&self, _parser: &mut JavascriptParser, _expr: &CallExpr) -> Option<bool> {
+  fn call(&self, _parser: &mut JavascriptParser, _expr: &CallExpr, _name: &str) -> Option<bool> {
     None
   }
 
-  // FIXME: should remove
-  fn member(&self, _parser: &mut JavascriptParser, _expr: &MemberExpr) -> Option<bool> {
+  fn member(
+    &self,
+    _parser: &mut JavascriptParser,
+    _expr: &MemberExpr,
+    _name: &str,
+  ) -> Option<bool> {
+    None
+  }
+
+  fn member_chain_of_call_member_chain(
+    &self,
+    _parser: &mut JavascriptParser,
+    _expr: &MemberExpr,
+  ) -> Option<bool> {
     None
   }
 
