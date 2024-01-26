@@ -6,13 +6,11 @@ use rspack_core::{
 };
 use rspack_error::{miette::Severity, DiagnosticKind, TraceableError};
 use rustc_hash::FxHashSet as HashSet;
-use swc_core::{
-  common::{SourceFile, Spanned, SyntaxContext},
-  ecma::{
-    ast::{CallExpr, Expr, ExprOrSpread, Ident, MemberExpr, ObjectPat, ObjectPatProp, PropName},
-    atoms::Atom,
-  },
+use swc_core::common::{SourceFile, Spanned, SyntaxContext};
+use swc_core::ecma::ast::{
+  CallExpr, Expr, ExprOrSpread, Ident, MemberExpr, ObjectPat, ObjectPatProp, PropName,
 };
+use swc_core::ecma::atoms::Atom;
 
 pub fn collect_destructuring_assignment_properties(
   object_pat: &ObjectPat,
@@ -90,6 +88,7 @@ pub(crate) mod expr_matcher {
     is_require_resolve: "require.resolve",
     is_require_resolve_weak: "require.resolveWeak",
     is_require_cache: "require.cache",
+    is_module: "module",
     is_module_hot_accept: "module.hot.accept",
     is_module_hot_decline: "module.hot.decline",
     is_module_hot: "module.hot",

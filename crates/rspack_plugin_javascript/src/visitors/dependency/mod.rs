@@ -1,5 +1,4 @@
 mod common_js_export_scanner;
-mod common_js_scanner;
 mod context_helper;
 mod harmony_detection_scanner;
 mod harmony_export_dependency_scanner;
@@ -30,7 +29,7 @@ use self::harmony_import_dependency_scanner::ImportMap;
 pub use self::parser::{JavascriptParser, TagInfoData};
 pub use self::util::*;
 use self::{
-  common_js_export_scanner::CommonJsExportDependencyScanner, common_js_scanner::CommonJsScanner,
+  common_js_export_scanner::CommonJsExportDependencyScanner,
   harmony_detection_scanner::HarmonyDetectionScanner,
   harmony_export_dependency_scanner::HarmonyExportDependencyScanner,
   harmony_import_dependency_scanner::HarmonyImportDependencyScanner,
@@ -109,12 +108,6 @@ pub fn scan_dependencies(
   parser.visit(program.get_inner_program());
 
   if module_type.is_js_auto() || module_type.is_js_dynamic() {
-    program.visit_with(&mut CommonJsScanner::new(
-      &mut presentational_dependencies,
-      unresolved_ctxt,
-      &mut ignored,
-    ));
-
     program.visit_with(&mut CommonJsExportDependencyScanner::new(
       &mut dependencies,
       &mut presentational_dependencies,
