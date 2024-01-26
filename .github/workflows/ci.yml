@@ -100,7 +100,8 @@ jobs:
         with:
           filters: |
             src:
-              - '**/*.{ts,js,mjs}'
+              - pnpm-lock.yaml
+              - '**/*.{ts,js,mjs,tsx,jsx}'
 
       - name: Pnpm Cache
         if: steps.changes.outputs.src == 'true'
