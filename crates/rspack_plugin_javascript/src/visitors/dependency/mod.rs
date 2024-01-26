@@ -1,4 +1,3 @@
-mod common_js_export_scanner;
 mod context_helper;
 mod harmony_detection_scanner;
 mod harmony_export_dependency_scanner;
@@ -29,7 +28,6 @@ use self::harmony_import_dependency_scanner::ImportMap;
 pub use self::parser::{JavascriptParser, TagInfoData};
 pub use self::util::*;
 use self::{
-  common_js_export_scanner::CommonJsExportDependencyScanner,
   harmony_detection_scanner::HarmonyDetectionScanner,
   harmony_export_dependency_scanner::HarmonyExportDependencyScanner,
   harmony_import_dependency_scanner::HarmonyImportDependencyScanner,
@@ -79,8 +77,6 @@ pub fn scan_dependencies(
   let mut parser_exports_state = None;
   let mut ignored: FxHashSet<DependencyLocation> = FxHashSet::default();
 
-  let mut rewrite_usage_span = HashMap::default();
-
   let worker_syntax_list = if module_type.is_js_auto() || module_type.is_js_esm() {
     let mut worker_syntax_scanner = rspack_core::needs_refactor::WorkerSyntaxScanner::new(
       rspack_core::needs_refactor::DEFAULT_WORKER_SYNTAX,
@@ -100,6 +96,8 @@ pub fn scan_dependencies(
     module_type,
     &worker_syntax_list,
     resource_data,
+    &mut parser_exports_state,
+    build_meta,
     build_info,
     &mut errors,
     &mut warning_diagnostics,
@@ -108,15 +106,6 @@ pub fn scan_dependencies(
   parser.visit(program.get_inner_program());
 
   if module_type.is_js_auto() || module_type.is_js_dynamic() {
-    program.visit_with(&mut CommonJsExportDependencyScanner::new(
-      &mut dependencies,
-      &mut presentational_dependencies,
-      unresolved_ctxt,
-      build_meta,
-      *module_type,
-      &mut parser_exports_state,
-      &mut ignored,
-    ));
     if let Some(node_option) = &compiler_options.node {
       program.visit_with(&mut NodeStuffScanner::new(
         &mut presentational_dependencies,
@@ -130,6 +119,7 @@ pub fn scan_dependencies(
   }
 
   let mut import_map = Default::default();
+  let mut rewrite_usage_span = HashMap::default();
 
   if module_type.is_js_auto() || module_type.is_js_esm() {
     program.visit_with(&mut HarmonyDetectionScanner::new(

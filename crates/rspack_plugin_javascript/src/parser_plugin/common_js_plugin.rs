@@ -6,8 +6,6 @@ use crate::visitors::{expr_matcher, JavascriptParser};
 
 pub struct CommonJsPlugin;
 
-const MODULE_NAME: &str = "module";
-
 impl JavascriptParserPlugin for CommonJsPlugin {
   fn r#typeof(
     &self,
@@ -45,29 +43,6 @@ impl JavascriptParserPlugin for CommonJsPlugin {
         .push(Box::new(RuntimeRequirementsDependency::new(
           RuntimeGlobals::MODULE_LOADED,
         )));
-      Some(true)
-    } else {
-      None
-    }
-  }
-
-  // FIXME: `identifier(` should be delete and align `commonjsSelfdependency` with webpack
-  fn identifier(
-    &self,
-    parser: &mut JavascriptParser,
-    ident: &swc_core::ecma::ast::Ident,
-  ) -> Option<bool> {
-    if ident.sym != MODULE_NAME {
-      None
-    } else if parser.has_module_ident {
-      Some(true)
-    } else if parser.is_unresolved_ident(MODULE_NAME) {
-      parser
-        .presentational_dependencies
-        .push(Box::new(RuntimeRequirementsDependency::new(
-          RuntimeGlobals::MODULE,
-        )));
-      parser.has_module_ident = true;
       Some(true)
     } else {
       None

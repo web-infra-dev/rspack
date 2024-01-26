@@ -1,5 +1,5 @@
 use swc_core::ecma::ast::{
-  BinExpr, CallExpr, Ident, IfStmt, MemberExpr, NewExpr, Stmt, ThisExpr, UnaryExpr,
+  AssignExpr, BinExpr, CallExpr, Ident, IfStmt, MemberExpr, NewExpr, Stmt, ThisExpr, UnaryExpr,
 };
 use swc_core::ecma::ast::{VarDecl, VarDeclarator};
 
@@ -88,6 +88,11 @@ pub trait JavascriptParserPlugin {
   }
 
   fn this(&self, _parser: &mut JavascriptParser, _expr: &ThisExpr) -> Option<bool> {
+    None
+  }
+
+  // FIXME: should remove
+  fn assign(&self, _parser: &mut JavascriptParser, _expr: &AssignExpr) -> Option<bool> {
     None
   }
 }

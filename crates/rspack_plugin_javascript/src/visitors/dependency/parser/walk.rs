@@ -163,6 +163,8 @@ impl<'parser> JavascriptParser<'parser> {
 
   fn walk_statement(&mut self, statement: &Stmt) {
     // TODO: `self.hooks.statement.call`
+    let old_last_stmt_is_expr_stmt = self.last_stmt_is_expr_stmt;
+    self.stmt_level += 1;
 
     match statement {
       Stmt::Block(stmt) => self.walk_block_statement(stmt),
@@ -176,7 +178,10 @@ impl<'parser> JavascriptParser<'parser> {
         }
       },
       Stmt::DoWhile(stmt) => self.walk_do_while_statement(stmt),
-      Stmt::Expr(stmt) => self.walk_expression_statement(stmt),
+      Stmt::Expr(stmt) => {
+        self.last_stmt_is_expr_stmt = true;
+        self.walk_expression_statement(stmt)
+      }
       Stmt::ForIn(stmt) => self.walk_for_in_statement(stmt),
       Stmt::ForOf(stmt) => self.walk_for_of_statement(stmt),
       Stmt::For(stmt) => self.walk_for_statement(stmt),
@@ -190,6 +195,9 @@ impl<'parser> JavascriptParser<'parser> {
       Stmt::With(stmt) => self.walk_with_statement(stmt),
       _ => (),
     }
+
+    self.last_stmt_is_expr_stmt = old_last_stmt_is_expr_stmt;
+    self.stmt_level -= 1;
   }
 
   fn walk_with_statement(&mut self, stmt: &WithStmt) {
@@ -604,25 +612,26 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_call_expression(&mut self, expr: &CallExpr) {
+    self.enter_call += 1;
     // FIXME: should align to webpack
     if let Some(result) = self.plugin_drive.clone().call(self, expr) {
       if !result {
         self.walk_expr_or_spread(&expr.args);
       }
-      return;
-    }
-
-    match &expr.callee {
-      Callee::Super(_) => (),
-      Callee::Import(_import) => {
-        // TODO: `if (this.hooks.importCall.call(expression)) { return }`
+    } else {
+      match &expr.callee {
+        Callee::Super(_) => (),
+        Callee::Import(_import) => {
+          // TODO: `if (this.hooks.importCall.call(expression)) { return }`
+        }
+        Callee::Expr(expr) => {
+          // TODO: `hooks.callMemberChain`
+          self.walk_expression(expr)
+        }
       }
-      Callee::Expr(expr) => {
-        // TODO: `hooks.callMemberChain`
-        self.walk_expression(expr)
-      }
+      self.walk_expr_or_spread(&expr.args);
     }
-    self.walk_expr_or_spread(&expr.args);
+    self.enter_call -= 1;
   }
 
   pub fn walk_expr_or_spread(&mut self, args: &Vec<ExprOrSpread>) {
@@ -679,7 +688,15 @@ impl<'parser> JavascriptParser<'parser> {
 
   fn walk_assignment_expression(&mut self, expr: &AssignExpr) {
     self.enter_assign = true;
-    if let Some(ident) = expr.left.as_ident() {
+    // FIXME: should align to webpack
+    if self
+      .plugin_drive
+      .clone()
+      .assign(self, expr)
+      .unwrap_or_default()
+    {
+      // empty
+    } else if let Some(ident) = expr.left.as_ident() {
       // if let Some(rename_identifier) = self.get_rename_identifier(&expr.right) {
       //     // TODO:
       //   }

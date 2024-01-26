@@ -9,7 +9,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use rspack_core::needs_refactor::WorkerSyntaxList;
-use rspack_core::{BoxDependency, BuildInfo, DependencyTemplate, ResourceData};
+use rspack_core::{BoxDependency, BuildInfo, BuildMeta, DependencyTemplate, ResourceData};
 use rspack_core::{CompilerOptions, DependencyLocation, JavascriptParserUrl, ModuleType, SpanExt};
 use rspack_error::miette::Diagnostic;
 use rustc_hash::FxHashSet;
@@ -35,6 +35,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) ignored: &'parser mut FxHashSet<DependencyLocation>,
   // TODO: remove `worker_syntax_list`
   pub(crate) worker_syntax_list: &'parser WorkerSyntaxList,
+  pub(crate) build_meta: &'parser mut BuildMeta,
   pub(crate) build_info: &'parser mut BuildInfo,
   pub(crate) resource_data: &'parser ResourceData,
   pub(crate) plugin_drive: Rc<JavaScriptParserPluginDrive>,
@@ -46,6 +47,10 @@ pub struct JavascriptParser<'parser> {
   pub(crate) is_esm: bool,
   // TODO: delete `has_module_ident`
   pub(crate) has_module_ident: bool,
+  pub(crate) parser_exports_state: &'parser mut Option<bool>,
+  pub(crate) enter_call: u32,
+  pub(crate) stmt_level: u32,
+  pub(crate) last_stmt_is_expr_stmt: bool,
   // ===== scope info =======
   // TODO: `in_if` can be removed after eval identifier
   pub(crate) in_if: bool,
@@ -66,6 +71,8 @@ impl<'parser> JavascriptParser<'parser> {
     module_type: &ModuleType,
     worker_syntax_list: &'parser WorkerSyntaxList,
     resource_data: &'parser ResourceData,
+    parser_exports_state: &'parser mut Option<bool>,
+    build_meta: &'parser mut BuildMeta,
     build_info: &'parser mut BuildInfo,
     errors: &'parser mut Vec<Box<dyn Diagnostic + Send + Sync>>,
     warning_diagnostics: &'parser mut Vec<Box<dyn Diagnostic + Send + Sync>>,
@@ -79,6 +86,7 @@ impl<'parser> JavascriptParser<'parser> {
 
     if module_type.is_js_auto() || module_type.is_js_dynamic() {
       plugins.push(Box::new(parser_plugin::CommonJsPlugin));
+      plugins.push(Box::new(parser_plugin::CommonJsExportsParserPlugin));
     }
 
     if module_type.is_js_auto() || module_type.is_js_dynamic() || module_type.is_js_esm() {
@@ -130,10 +138,15 @@ impl<'parser> JavascriptParser<'parser> {
       plugin_drive,
       worker_syntax_list,
       resource_data,
+      build_meta,
       build_info,
       compiler_options,
       enter_assign: false,
       has_module_ident: false,
+      parser_exports_state,
+      enter_call: 0,
+      stmt_level: 0,
+      last_stmt_is_expr_stmt: false,
     }
   }
 
