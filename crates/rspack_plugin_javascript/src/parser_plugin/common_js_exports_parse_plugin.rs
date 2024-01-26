@@ -290,7 +290,12 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
     }
   }
 
-  fn member(&self, parser: &mut JavascriptParser, mem_expr: &MemberExpr) -> Option<bool> {
+  fn member(
+    &self,
+    parser: &mut JavascriptParser,
+    mem_expr: &MemberExpr,
+    _name: &str,
+  ) -> Option<bool> {
     if parser.is_esm {
       return None;
     }
@@ -435,7 +440,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
     }
   }
 
-  fn call(&self, parser: &mut JavascriptParser, call_expr: &CallExpr) -> Option<bool> {
+  fn call(&self, parser: &mut JavascriptParser, call_expr: &CallExpr, _name: &str) -> Option<bool> {
     if parser.is_esm {
       None
     } else if let Callee::Expr(expr) = &call_expr.callee {
