@@ -1,7 +1,8 @@
 use rspack_core::{
   AsContextDependency, AsModuleDependency, Dependency, DependencyCategory, DependencyId,
   DependencyTemplate, DependencyType, ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec,
-  HarmonyExportInitFragment, ModuleGraph, TemplateContext, TemplateReplaceSource, UsedName,
+  HarmonyExportInitFragment, ModuleGraph, NullDependency, TemplateContext, TemplateReplaceSource,
+  UsedName,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -61,8 +62,7 @@ impl Dependency for HarmonyExportSpecifierDependency {
     rspack_core::ConnectionState::Bool(false)
   }
 }
-
-impl AsModuleDependency for HarmonyExportSpecifierDependency {}
+impl NullDependency for HarmonyExportSpecifierDependency {}
 
 impl DependencyTemplate for HarmonyExportSpecifierDependency {
   fn apply(
@@ -125,3 +125,4 @@ impl DependencyTemplate for HarmonyExportSpecifierDependency {
 }
 
 impl AsContextDependency for HarmonyExportSpecifierDependency {}
+impl AsModuleDependency for HarmonyExportSpecifierDependency {}

@@ -124,8 +124,7 @@ impl ModuleConcatenationPlugin {
       }
       // SAFETY: because it is extends harmony dep, we can ensure the dep has been
       // implemented ModuleDependency Trait.
-      let module_dep = dep.as_module_dependency().expect("should be module dep");
-      let imported_names = module_dep.get_referenced_exports(mg, None);
+      let imported_names = dep.get_referenced_exports(mg, None);
       if imported_names.iter().all(|item| match item {
         ExtendedReferencedExport::Array(arr) => !arr.is_empty(),
         ExtendedReferencedExport::Export(export) => !export.name.is_empty(),

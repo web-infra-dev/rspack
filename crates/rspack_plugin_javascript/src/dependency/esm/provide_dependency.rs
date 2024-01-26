@@ -1,5 +1,5 @@
 use itertools::Itertools;
-use rspack_core::{module_raw, NormalInitFragment, UsedName};
+use rspack_core::{module_raw, AsNullDependency, NormalInitFragment, UsedName};
 use rspack_core::{AsContextDependency, Dependency, InitFragmentKey, InitFragmentStage};
 use rspack_core::{DependencyCategory, DependencyId, DependencyTemplate};
 use rspack_core::{DependencyType, ErrorSpan};
@@ -126,3 +126,4 @@ fn path_to_string(path: Option<&UsedName>) -> String {
 }
 
 impl AsContextDependency for ProvideDependency {}
+impl AsNullDependency for ProvideDependency {}

@@ -23,10 +23,9 @@ use swc_core::ecma::ast::ModuleItem;
 use tokio::sync::mpsc::error::TryRecvError;
 use tracing::instrument;
 
-use super::{
-  hmr::CompilationRecords,
-  make::{MakeParam, RebuildDepsBuilder},
-};
+use super::hmr::CompilationRecords;
+use super::make::{MakeParam, RebuildDepsBuilder};
+use crate::tree_shaking::visitor::OptimizeAnalyzeResult;
 use crate::{
   build_chunk_graph::build_chunk_graph,
   cache::{use_code_splitting_cache, Cache, CodeSplittingCache},
@@ -38,7 +37,7 @@ use crate::{
   CacheOptions, Chunk, ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey,
   ChunkHashArgs, ChunkKind, ChunkUkey, CleanQueue, CleanTask, CleanTaskResult,
   CodeGenerationResults, CompilationLogger, CompilationLogging, CompilerOptions, ContentHashArgs,
-  ContextDependency, DependencyId, DependencyParents, DependencyType, Entry, EntryData,
+  Context, ContextDependency, DependencyId, DependencyParents, DependencyType, Entry, EntryData,
   EntryOptions, Entrypoint, ErrorSpan, FactorizeQueue, FactorizeTask, FactorizeTaskResult,
   Filename, Logger, Module, ModuleCreationCallback, ModuleFactory, ModuleFactoryResult,
   ModuleGraph, ModuleGraphModule, ModuleIdentifier, ModuleProfile, NormalModuleSource, PathData,
@@ -47,7 +46,6 @@ use crate::{
   RuntimeRequirementsInTreeArgs, RuntimeSpec, SharedPluginDriver, SourceType, Stats, TaskResult,
   WorkerTask,
 };
-use crate::{tree_shaking::visitor::OptimizeAnalyzeResult, Context};
 
 pub type BuildDependency = (
   DependencyId,
@@ -557,6 +555,7 @@ impl Compilation {
           .expect("dependency not found");
         if dependency.as_module_dependency().is_none()
           && dependency.as_context_dependency().is_none()
+          && dependency.as_null_dependency().is_none()
         {
           return;
         }
@@ -687,10 +686,10 @@ impl Compilation {
                 )
               };
               Some(id)
+            } else if let Some(context_dep) = dependency.as_context_dependency() {
+              Some(ContextDependency::resource_identifier(context_dep).to_string())
             } else {
-              dependency
-                .as_context_dependency()
-                .map(|d| ContextDependency::resource_identifier(d).to_string())
+              dependency.resource_identifier().map(|id| id.to_string())
             };
 
           if let Some(resource_identifier) = resource_identifier {

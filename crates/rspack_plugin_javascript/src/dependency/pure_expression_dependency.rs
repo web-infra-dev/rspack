@@ -1,6 +1,6 @@
 use rspack_core::{
-  filter_runtime, AsContextDependency, AsModuleDependency, ConnectionState, Dependency,
-  DependencyId, DependencyTemplate, ModuleGraph, ModuleIdentifier, TemplateContext,
+  filter_runtime, AsContextDependency, AsModuleDependency, AsNullDependency, ConnectionState,
+  Dependency, DependencyId, DependencyTemplate, ModuleGraph, ModuleIdentifier, TemplateContext,
   TemplateReplaceSource, UsageState, UsedByExports, UsedName,
 };
 use rustc_hash::FxHashSet as HashSet;
@@ -46,7 +46,6 @@ impl Dependency for PureExpressionDependency {
   }
 }
 
-impl AsModuleDependency for PureExpressionDependency {}
 impl DependencyTemplate for PureExpressionDependency {
   fn apply(&self, source: &mut TemplateReplaceSource, ctx: &mut TemplateContext) {
     match self.used_by_exports {
@@ -96,3 +95,5 @@ impl DependencyTemplate for PureExpressionDependency {
 }
 
 impl AsContextDependency for PureExpressionDependency {}
+impl AsNullDependency for PureExpressionDependency {}
+impl AsModuleDependency for PureExpressionDependency {}

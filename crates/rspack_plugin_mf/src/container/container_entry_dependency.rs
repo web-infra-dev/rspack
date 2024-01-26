@@ -1,6 +1,6 @@
 use rspack_core::{
-  AsContextDependency, AsDependencyTemplate, Dependency, DependencyCategory, DependencyId,
-  DependencyType, ModuleDependency,
+  AsContextDependency, AsDependencyTemplate, AsNullDependency, Dependency, DependencyCategory,
+  DependencyId, DependencyType, ModuleDependency,
 };
 
 use crate::ExposeOptions;
@@ -57,3 +57,4 @@ impl ModuleDependency for ContainerEntryDependency {
 
 impl AsContextDependency for ContainerEntryDependency {}
 impl AsDependencyTemplate for ContainerEntryDependency {}
+impl AsNullDependency for ContainerEntryDependency {}

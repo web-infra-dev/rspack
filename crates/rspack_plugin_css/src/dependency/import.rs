@@ -1,6 +1,7 @@
 use rspack_core::{
-  AsContextDependency, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
-  DependencyType, ErrorSpan, ModuleDependency, TemplateContext, TemplateReplaceSource,
+  AsContextDependency, AsNullDependency, Dependency, DependencyCategory, DependencyId,
+  DependencyTemplate, DependencyType, ErrorSpan, ModuleDependency, TemplateContext,
+  TemplateReplaceSource,
 };
 
 #[derive(Debug, Clone)]
@@ -71,3 +72,4 @@ impl DependencyTemplate for CssImportDependency {
 }
 
 impl AsContextDependency for CssImportDependency {}
+impl AsNullDependency for CssImportDependency {}

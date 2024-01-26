@@ -199,12 +199,10 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
           .dependency_by_id(&dep_id)
           .expect("should have dep");
 
-        let referenced_exports = if let Some(md) = dep.as_module_dependency() {
-          md.get_referenced_exports(&self.compilation.module_graph, runtime.as_ref())
-        } else if dep.as_context_dependency().is_some() {
+        let referenced_exports = if dep.as_context_dependency().is_some() {
           vec![ExtendedReferencedExport::Array(vec![])]
         } else {
-          continue;
+          dep.get_referenced_exports(&self.compilation.module_graph, runtime.as_ref())
         };
         // dbg!(
         //   &connection,

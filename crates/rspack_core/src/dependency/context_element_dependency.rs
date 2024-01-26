@@ -1,6 +1,6 @@
 use swc_core::ecma::atoms::Atom;
 
-use crate::{AsContextDependency, AsDependencyTemplate, Context};
+use crate::{AsContextDependency, AsDependencyTemplate, AsNullDependency, Context};
 use crate::{ContextMode, ContextOptions, Dependency};
 use crate::{DependencyCategory, DependencyId, DependencyType};
 use crate::{ExtendedReferencedExport, ModuleDependency};
@@ -80,3 +80,4 @@ impl ModuleDependency for ContextElementDependency {
 
 impl AsDependencyTemplate for ContextElementDependency {}
 impl AsContextDependency for ContextElementDependency {}
+impl AsNullDependency for ContextElementDependency {}

@@ -1,6 +1,6 @@
 use rspack_core::{
-  AsContextDependency, AsModuleDependency, Dependency, DependencyId, DependencyLocation,
-  DependencyTemplate, DependencyType, TemplateContext, TemplateReplaceSource,
+  AsContextDependency, AsModuleDependency, AsNullDependency, Dependency, DependencyId,
+  DependencyLocation, DependencyTemplate, DependencyType, TemplateContext, TemplateReplaceSource,
 };
 
 // Remove `export` label.
@@ -56,3 +56,4 @@ impl DependencyTemplate for HarmonyExportHeaderDependency {
 
 impl AsModuleDependency for HarmonyExportHeaderDependency {}
 impl AsContextDependency for HarmonyExportHeaderDependency {}
+impl AsNullDependency for HarmonyExportHeaderDependency {}

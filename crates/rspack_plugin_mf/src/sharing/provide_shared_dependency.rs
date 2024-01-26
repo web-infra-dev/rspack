@@ -1,6 +1,6 @@
 use rspack_core::{
-  AsContextDependency, AsDependencyTemplate, Dependency, DependencyCategory, DependencyId,
-  DependencyType, ModuleDependency,
+  AsContextDependency, AsDependencyTemplate, AsNullDependency, Dependency, DependencyCategory,
+  DependencyId, DependencyType, ModuleDependency,
 };
 
 use super::provide_shared_plugin::ProvideVersion;
@@ -74,3 +74,4 @@ impl ModuleDependency for ProvideSharedDependency {
 
 impl AsContextDependency for ProvideSharedDependency {}
 impl AsDependencyTemplate for ProvideSharedDependency {}
+impl AsNullDependency for ProvideSharedDependency {}

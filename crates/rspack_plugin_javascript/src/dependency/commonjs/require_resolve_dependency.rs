@@ -1,7 +1,7 @@
 use rspack_core::{
-  module_id, AsContextDependency, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
-  DependencyType, ErrorSpan, ExtendedReferencedExport, ModuleDependency, ModuleGraph, RuntimeSpec,
-  TemplateContext, TemplateReplaceSource,
+  module_id, AsContextDependency, AsNullDependency, Dependency, DependencyCategory, DependencyId,
+  DependencyTemplate, DependencyType, ErrorSpan, ModuleDependency, TemplateContext,
+  TemplateReplaceSource,
 };
 
 #[derive(Debug, Clone)]
@@ -56,14 +56,6 @@ impl Dependency for RequireResolveDependency {
   fn dependency_debug_name(&self) -> &'static str {
     "RequireResolveDependency"
   }
-
-  fn get_referenced_exports(
-    &self,
-    _module_graph: &ModuleGraph,
-    _runtime: Option<&RuntimeSpec>,
-  ) -> Vec<ExtendedReferencedExport> {
-    vec![]
-  }
 }
 
 impl ModuleDependency for RequireResolveDependency {
@@ -110,3 +102,4 @@ impl DependencyTemplate for RequireResolveDependency {
 }
 
 impl AsContextDependency for RequireResolveDependency {}
+impl AsNullDependency for RequireResolveDependency {}

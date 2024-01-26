@@ -1,9 +1,9 @@
 use itertools::Itertools;
 use rspack_core::tree_shaking::symbol::DEFAULT_JS_WORD;
 use rspack_core::{
-  property_access, AsContextDependency, AsModuleDependency, Compilation, Dependency,
-  DependencyLocation, DependencyType, ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec,
-  HarmonyExportInitFragment, ModuleGraph, RuntimeGlobals, RuntimeSpec, UsedName,
+  property_access, AsContextDependency, AsModuleDependency, AsNullDependency, Compilation,
+  Dependency, DependencyLocation, DependencyType, ExportNameOrSpec, ExportsOfExportsSpec,
+  ExportsSpec, HarmonyExportInitFragment, ModuleGraph, RuntimeGlobals, RuntimeSpec, UsedName,
 };
 use rspack_core::{DependencyId, DependencyTemplate};
 use rspack_core::{TemplateContext, TemplateReplaceSource};
@@ -203,3 +203,4 @@ impl DependencyTemplate for HarmonyExportExpressionDependency {
 }
 
 impl AsContextDependency for HarmonyExportExpressionDependency {}
+impl AsNullDependency for HarmonyExportExpressionDependency {}

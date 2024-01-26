@@ -6,7 +6,7 @@ use rspack_core::{
   ModuleGraph, ModuleGraphModule, ModuleIdentifier, ReferencedExport, RuntimeSpec, TemplateContext,
   TemplateReplaceSource, UsedByExports,
 };
-use rspack_core::{get_import_var, ModuleReferenceOptions};
+use rspack_core::{get_import_var, AsNullDependency, ModuleReferenceOptions};
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::{common::Span, ecma::atoms::Atom};
 
@@ -353,3 +353,4 @@ impl ModuleDependency for HarmonyImportSpecifierDependency {
 }
 
 impl AsContextDependency for HarmonyImportSpecifierDependency {}
+impl AsNullDependency for HarmonyImportSpecifierDependency {}

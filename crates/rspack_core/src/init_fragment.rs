@@ -279,7 +279,7 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for HarmonyExportInitFragment
   fn contents(mut self: Box<Self>, context: &mut C) -> Result<InitFragmentContents> {
     context.add_runtime_requirements(RuntimeGlobals::EXPORTS);
     context.add_runtime_requirements(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
-    self.export_map.sort_by(|a, b| a.0.cmp(&b.0));
+    self.export_map.sort_unstable_by(|a, b| a.0.cmp(&b.0));
     let exports = format!(
       "{{\n  {}\n}}",
       self

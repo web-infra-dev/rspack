@@ -1,6 +1,7 @@
 use rspack_core::{
-  module_id, AsContextDependency, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
-  DependencyType, ErrorSpan, ModuleDependency, TemplateContext, TemplateReplaceSource,
+  module_id, AsContextDependency, AsNullDependency, Dependency, DependencyCategory, DependencyId,
+  DependencyTemplate, DependencyType, ErrorSpan, ModuleDependency, TemplateContext,
+  TemplateReplaceSource,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -87,3 +88,4 @@ impl DependencyTemplate for ImportMetaHotAcceptDependency {
 }
 
 impl AsContextDependency for ImportMetaHotAcceptDependency {}
+impl AsNullDependency for ImportMetaHotAcceptDependency {}

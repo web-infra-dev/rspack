@@ -1,8 +1,8 @@
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
-  AsContextDependency, AsDependencyTemplate, AsModuleDependency, Dependency, DependencyId,
-  DependencyType, ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec, ModuleGraph,
+  AsContextDependency, AsDependencyTemplate, AsModuleDependency, AsNullDependency, Dependency,
+  DependencyId, DependencyType, ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec, ModuleGraph,
 };
 
 #[derive(Debug, Clone)]
@@ -52,5 +52,5 @@ impl Dependency for StaticExportsDependency {
 
 impl AsDependencyTemplate for StaticExportsDependency {}
 impl AsModuleDependency for StaticExportsDependency {}
-
+impl AsNullDependency for StaticExportsDependency {}
 impl AsContextDependency for StaticExportsDependency {}

@@ -1,8 +1,8 @@
 use rspack_core::{
-  module_namespace_promise, AsContextDependency, Dependency, DependencyCategory, DependencyId,
-  DependencyTemplate, DependencyType, ErrorSpan, ExtendedReferencedExport, ImportDependencyTrait,
-  ModuleDependency, ModuleGraph, ReferencedExport, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource,
+  module_namespace_promise, AsContextDependency, AsNullDependency, Dependency, DependencyCategory,
+  DependencyId, DependencyTemplate, DependencyType, ErrorSpan, ExtendedReferencedExport,
+  ImportDependencyTrait, ModuleDependency, ModuleGraph, ReferencedExport, RuntimeSpec,
+  TemplateContext, TemplateReplaceSource,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -117,3 +117,4 @@ impl DependencyTemplate for ImportEagerDependency {
 }
 
 impl AsContextDependency for ImportEagerDependency {}
+impl AsNullDependency for ImportEagerDependency {}

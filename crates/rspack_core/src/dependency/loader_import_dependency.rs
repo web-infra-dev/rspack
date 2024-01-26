@@ -1,5 +1,6 @@
 use crate::{
-  AsContextDependency, AsDependencyTemplate, Dependency, DependencyId, ModuleDependency,
+  AsContextDependency, AsDependencyTemplate, AsNullDependency, Dependency, DependencyId,
+  ModuleDependency,
 };
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
@@ -19,6 +20,7 @@ impl LoaderImportDependency {
 
 impl AsDependencyTemplate for LoaderImportDependency {}
 impl AsContextDependency for LoaderImportDependency {}
+impl AsNullDependency for LoaderImportDependency {}
 
 impl Dependency for LoaderImportDependency {
   fn dependency_debug_name(&self) -> &'static str {

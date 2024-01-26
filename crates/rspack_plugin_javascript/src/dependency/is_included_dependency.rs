@@ -1,6 +1,6 @@
 use rspack_core::{
-  AsContextDependency, Dependency, DependencyId, DependencyTemplate, DependencyType,
-  ModuleDependency, TemplateContext, TemplateReplaceSource,
+  AsContextDependency, AsNullDependency, Dependency, DependencyId, DependencyTemplate,
+  DependencyType, ModuleDependency, TemplateContext, TemplateReplaceSource,
 };
 
 #[derive(Debug, Clone)]
@@ -22,6 +22,7 @@ impl WebpackIsIncludedDependency {
   }
 }
 
+impl AsNullDependency for WebpackIsIncludedDependency {}
 impl AsContextDependency for WebpackIsIncludedDependency {}
 
 impl Dependency for WebpackIsIncludedDependency {

@@ -11,6 +11,7 @@ mod entry;
 mod import_dependency_trait;
 mod loader_import_dependency;
 mod module_dependency;
+mod null_dependency;
 mod runtime_requirements_dependency;
 mod runtime_template;
 mod span;
@@ -18,24 +19,25 @@ mod static_exports_dependency;
 
 use std::sync::Arc;
 
-pub use const_dependency::ConstDependency;
-pub use context_dependency::{AsContextDependency, ContextDependency};
-pub use context_element_dependency::ContextElementDependency;
-pub use dependency_category::DependencyCategory;
-pub use dependency_id::*;
-pub use dependency_template::*;
-pub use dependency_trait::*;
-pub use dependency_type::DependencyType;
-pub use entry::*;
-pub use import_dependency_trait::ImportDependencyTrait;
-pub use loader_import_dependency::LoaderImportDependency;
-pub use module_dependency::*;
-pub use runtime_requirements_dependency::RuntimeRequirementsDependency;
-pub use runtime_template::*;
-pub use span::SpanExt;
-pub use static_exports_dependency::StaticExportsDependency;
 use swc_core::ecma::atoms::Atom;
 
+pub use self::const_dependency::ConstDependency;
+pub use self::context_dependency::{AsContextDependency, ContextDependency};
+pub use self::context_element_dependency::ContextElementDependency;
+pub use self::dependency_category::DependencyCategory;
+pub use self::dependency_id::*;
+pub use self::dependency_template::*;
+pub use self::dependency_trait::*;
+pub use self::dependency_type::DependencyType;
+pub use self::entry::*;
+pub use self::import_dependency_trait::ImportDependencyTrait;
+pub use self::loader_import_dependency::LoaderImportDependency;
+pub use self::module_dependency::{AsModuleDependency, ModuleDependency};
+pub use self::null_dependency::{AsNullDependency, NullDependency};
+pub use self::runtime_requirements_dependency::RuntimeRequirementsDependency;
+pub use self::runtime_template::*;
+pub use self::span::SpanExt;
+pub use self::static_exports_dependency::StaticExportsDependency;
 use crate::{
   ConnectionState, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ReferencedExport,
   RuntimeSpec,

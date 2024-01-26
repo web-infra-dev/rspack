@@ -1,7 +1,8 @@
 use rspack_core::{
-  get_chunk_from_ukey, AsContextDependency, Dependency, DependencyCategory, DependencyId,
-  DependencyTemplate, DependencyType, ErrorSpan, ExtendedReferencedExport, ModuleDependency,
-  ModuleGraph, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  get_chunk_from_ukey, AsContextDependency, AsNullDependency, Dependency, DependencyCategory,
+  DependencyId, DependencyTemplate, DependencyType, ErrorSpan, ExtendedReferencedExport,
+  ModuleDependency, ModuleGraph, RuntimeGlobals, RuntimeSpec, TemplateContext,
+  TemplateReplaceSource,
 };
 
 #[derive(Debug, Clone)]
@@ -128,3 +129,4 @@ impl DependencyTemplate for WorkerDependency {
 }
 
 impl AsContextDependency for WorkerDependency {}
+impl AsNullDependency for WorkerDependency {}

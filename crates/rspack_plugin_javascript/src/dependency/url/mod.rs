@@ -1,8 +1,8 @@
 use rspack_core::{
-  get_dependency_used_by_exports_condition, module_id, AsContextDependency, Dependency,
-  DependencyCategory, DependencyCondition, DependencyId, DependencyTemplate, DependencyType,
-  ErrorSpan, ModuleDependency, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
-  UsedByExports,
+  get_dependency_used_by_exports_condition, module_id, AsContextDependency, AsNullDependency,
+  Dependency, DependencyCategory, DependencyCondition, DependencyId, DependencyTemplate,
+  DependencyType, ErrorSpan, ModuleDependency, RuntimeGlobals, TemplateContext,
+  TemplateReplaceSource, UsedByExports,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -63,6 +63,7 @@ impl Dependency for URLDependency {
   fn span(&self) -> Option<ErrorSpan> {
     self.span
   }
+
   fn get_condition(&self) -> Option<DependencyCondition> {
     get_dependency_used_by_exports_condition(self.id, self.used_by_exports.as_ref())
   }
@@ -129,3 +130,4 @@ impl DependencyTemplate for URLDependency {
 }
 
 impl AsContextDependency for URLDependency {}
+impl AsNullDependency for URLDependency {}

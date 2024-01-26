@@ -38,6 +38,7 @@ pub enum DependencyType {
   NewUrl,
   // new Worker()
   NewWorker,
+  Null,
   // import.meta.webpackHot.accept
   ImportMetaHotAccept,
   // import.meta.webpackHot.decline
@@ -113,6 +114,7 @@ impl DependencyType {
       DependencyType::CjsSelfReference => Cow::Borrowed("cjs self exports reference"),
       DependencyType::NewUrl => Cow::Borrowed("new URL()"),
       DependencyType::NewWorker => Cow::Borrowed("new Worker()"),
+      DependencyType::Null => Cow::Borrowed("null"),
       DependencyType::ImportMetaHotAccept => Cow::Borrowed("import.meta.webpackHot.accept"),
       DependencyType::ImportMetaHotDecline => Cow::Borrowed("import.meta.webpackHot.decline"),
       DependencyType::ModuleHotAccept => Cow::Borrowed("module.hot.accept"),

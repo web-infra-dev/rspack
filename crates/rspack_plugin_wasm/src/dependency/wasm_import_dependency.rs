@@ -1,6 +1,7 @@
 use rspack_core::{
-  AsContextDependency, AsDependencyTemplate, Dependency, DependencyCategory, DependencyId,
-  DependencyType, ErrorSpan, ExtendedReferencedExport, ModuleDependency, ModuleGraph, RuntimeSpec,
+  AsContextDependency, AsDependencyTemplate, AsNullDependency, Dependency, DependencyCategory,
+  DependencyId, DependencyType, ErrorSpan, ExtendedReferencedExport, ModuleDependency, ModuleGraph,
+  RuntimeSpec,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -80,3 +81,4 @@ impl ModuleDependency for WasmImportDependency {
 impl AsDependencyTemplate for WasmImportDependency {}
 
 impl AsContextDependency for WasmImportDependency {}
+impl AsNullDependency for WasmImportDependency {}

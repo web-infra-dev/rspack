@@ -5,13 +5,13 @@ use indexmap::IndexSet;
 use rspack_core::{
   create_exports_object_referenced, create_no_exports_referenced, export_from_import,
   get_exports_type, get_import_var, process_export_info, property_access, property_name,
-  string_of_used_name, AsContextDependency, ConnectionState, Dependency, DependencyCategory,
-  DependencyCondition, DependencyId, DependencyTemplate, DependencyType, ExportInfoId,
-  ExportInfoProvided, ExportNameOrSpec, ExportSpec, ExportsInfoId, ExportsOfExportsSpec,
-  ExportsSpec, ExportsType, ExtendedReferencedExport, HarmonyExportInitFragment, InitFragmentExt,
-  InitFragmentKey, InitFragmentStage, ModuleDependency, ModuleGraph, ModuleIdentifier,
-  NormalInitFragment, RuntimeGlobals, RuntimeSpec, Template, TemplateContext,
-  TemplateReplaceSource, UsageState, UsedName,
+  string_of_used_name, AsContextDependency, AsNullDependency, ConnectionState, Dependency,
+  DependencyCategory, DependencyCondition, DependencyId, DependencyTemplate, DependencyType,
+  ExportInfoId, ExportInfoProvided, ExportNameOrSpec, ExportSpec, ExportsInfoId,
+  ExportsOfExportsSpec, ExportsSpec, ExportsType, ExtendedReferencedExport,
+  HarmonyExportInitFragment, InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleDependency,
+  ModuleGraph, ModuleIdentifier, NormalInitFragment, RuntimeGlobals, RuntimeSpec, Template,
+  TemplateContext, TemplateReplaceSource, UsageState, UsedName,
 };
 use rustc_hash::{FxHashSet as HashSet, FxHasher};
 use swc_core::ecma::atoms::Atom;
@@ -1296,6 +1296,7 @@ impl From<Option<UsedName>> for ValueKey {
 }
 
 impl AsContextDependency for HarmonyExportImportedSpecifierDependency {}
+impl AsNullDependency for HarmonyExportImportedSpecifierDependency {}
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum ExportModeType {

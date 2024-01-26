@@ -1,6 +1,6 @@
 use rspack_core::{
-  module_id, property_access, to_normal_comment, ExportsType, ExtendedReferencedExport,
-  RuntimeGlobals, UsedName,
+  module_id, property_access, to_normal_comment, AsNullDependency, ExportsType,
+  ExtendedReferencedExport, RuntimeGlobals, UsedName,
 };
 use rspack_core::{AsContextDependency, Dependency, DependencyCategory, DependencyLocation};
 use rspack_core::{DependencyId, DependencyTemplate};
@@ -160,3 +160,4 @@ impl DependencyTemplate for CommonJsFullRequireDependency {
 }
 
 impl AsContextDependency for CommonJsFullRequireDependency {}
+impl AsNullDependency for CommonJsFullRequireDependency {}

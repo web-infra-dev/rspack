@@ -1,4 +1,4 @@
-use rspack_core::{module_id_expr, AsModuleDependency, ContextDependency};
+use rspack_core::{module_id_expr, AsModuleDependency, AsNullDependency, ContextDependency};
 use rspack_core::{normalize_context, DependencyCategory, DependencyId, DependencyTemplate};
 use rspack_core::{ContextOptions, Dependency, TemplateReplaceSource};
 use rspack_core::{DependencyType, ErrorSpan, RuntimeGlobals, TemplateContext};
@@ -128,3 +128,4 @@ impl DependencyTemplate for CommonJsRequireContextDependency {
 }
 
 impl AsModuleDependency for CommonJsRequireContextDependency {}
+impl AsNullDependency for CommonJsRequireContextDependency {}

@@ -1,7 +1,7 @@
 use rspack_core::{
-  property_access, AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
-  DependencyId, DependencyTemplate, DependencyType, ExportsOfExportsSpec, ExportsSpec, ModuleGraph,
-  RuntimeGlobals, TemplateContext, TemplateReplaceSource, UsedName,
+  property_access, AsContextDependency, AsModuleDependency, AsNullDependency, Dependency,
+  DependencyCategory, DependencyId, DependencyTemplate, DependencyType, ExportsOfExportsSpec,
+  ExportsSpec, ModuleGraph, RuntimeGlobals, TemplateContext, TemplateReplaceSource, UsedName,
 };
 use swc_core::atoms::Atom;
 
@@ -145,3 +145,4 @@ impl DependencyTemplate for CommonJsExportRequireDependency {
 
 impl AsModuleDependency for CommonJsExportRequireDependency {}
 impl AsContextDependency for CommonJsExportRequireDependency {}
+impl AsNullDependency for CommonJsExportRequireDependency {}

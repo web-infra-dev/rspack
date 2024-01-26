@@ -1,7 +1,7 @@
 use rspack_core::{
   property_access, AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
-  DependencyId, DependencyTemplate, DependencyType, ExtendedReferencedExport, RuntimeGlobals,
-  TemplateContext, TemplateReplaceSource, UsedName,
+  DependencyId, DependencyTemplate, DependencyType, ExtendedReferencedExport, NullDependency,
+  RuntimeGlobals, TemplateContext, TemplateReplaceSource, UsedName,
 };
 use swc_core::atoms::Atom;
 
@@ -62,7 +62,13 @@ impl Dependency for CommonJsSelfReferenceDependency {
       vec![ExtendedReferencedExport::Array(self.names.clone())]
     }
   }
+
+  fn resource_identifier(&self) -> Option<&str> {
+    Some("self")
+  }
 }
+
+impl NullDependency for CommonJsSelfReferenceDependency {}
 
 impl AsModuleDependency for CommonJsSelfReferenceDependency {}
 impl AsContextDependency for CommonJsSelfReferenceDependency {}

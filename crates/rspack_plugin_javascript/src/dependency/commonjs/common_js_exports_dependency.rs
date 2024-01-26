@@ -2,8 +2,8 @@ use rspack_core::{
   property_access, AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
   DependencyId, DependencyTemplate, DependencyType, ExportNameOrSpec, ExportSpec,
   ExportsOfExportsSpec, ExportsSpec, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  ModuleGraph, NormalInitFragment, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
-  UsedName,
+  ModuleGraph, NormalInitFragment, NullDependency, RuntimeGlobals, TemplateContext,
+  TemplateReplaceSource, UsedName,
 };
 use swc_core::atoms::Atom;
 
@@ -101,7 +101,7 @@ impl Dependency for CommonJsExportsDependency {
   }
 }
 
-impl AsModuleDependency for CommonJsExportsDependency {}
+impl NullDependency for CommonJsExportsDependency {}
 
 impl DependencyTemplate for CommonJsExportsDependency {
   fn apply(
@@ -234,3 +234,4 @@ impl DependencyTemplate for CommonJsExportsDependency {
 }
 
 impl AsContextDependency for CommonJsExportsDependency {}
+impl AsModuleDependency for CommonJsExportsDependency {}

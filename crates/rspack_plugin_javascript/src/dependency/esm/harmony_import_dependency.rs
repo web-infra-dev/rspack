@@ -3,11 +3,11 @@ use std::sync::Arc;
 use rspack_core::tree_shaking::symbol::{self, IndirectTopLevelSymbol};
 use rspack_core::tree_shaking::visitor::SymbolRef;
 use rspack_core::{
-  get_import_var, import_statement, AsContextDependency, AwaitDependenciesInitFragment,
-  ConnectionState, Dependency, DependencyCategory, DependencyCondition, DependencyId,
-  DependencyTemplate, DependencyType, ErrorSpan, ExtendedReferencedExport, InitFragmentExt,
-  InitFragmentKey, InitFragmentStage, ModuleDependency, ModuleIdentifier, NormalInitFragment,
-  RuntimeGlobals, TemplateContext, TemplateReplaceSource,
+  get_import_var, import_statement, AsContextDependency, AsNullDependency,
+  AwaitDependenciesInitFragment, ConnectionState, Dependency, DependencyCategory,
+  DependencyCondition, DependencyId, DependencyTemplate, DependencyType, ErrorSpan,
+  ExtendedReferencedExport, InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleDependency,
+  ModuleIdentifier, NormalInitFragment, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
 };
 use rspack_core::{ModuleGraph, RuntimeSpec};
 use rustc_hash::FxHashSet as HashSet;
@@ -362,3 +362,4 @@ impl DependencyTemplate for HarmonyImportSideEffectDependency {
 }
 
 impl AsContextDependency for HarmonyImportSideEffectDependency {}
+impl AsNullDependency for HarmonyImportSideEffectDependency {}

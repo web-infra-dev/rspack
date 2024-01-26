@@ -9,14 +9,16 @@ use super::dependency_template::AsDependencyTemplate;
 use super::module_dependency::*;
 use super::ExportsSpec;
 use super::{DependencyCategory, DependencyId, DependencyType};
-use crate::{create_exports_object_referenced, AsContextDependency};
+use crate::create_exports_object_referenced;
+use crate::{AsContextDependency, AsNullDependency};
 use crate::{ConnectionState, Context, ErrorSpan, ModuleGraph, ModuleIdentifier, UsedByExports};
 use crate::{DependencyCondition, ExtendedReferencedExport, RuntimeSpec};
 
 pub trait Dependency:
-  AsDependencyTemplate
-  + AsContextDependency
+  AsContextDependency
+  + AsDependencyTemplate
   + AsModuleDependency
+  + AsNullDependency
   + AsAny
   + DynClone
   + Send

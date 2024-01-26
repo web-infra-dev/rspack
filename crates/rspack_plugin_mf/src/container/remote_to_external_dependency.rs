@@ -1,6 +1,6 @@
 use rspack_core::{
-  AsContextDependency, AsDependencyTemplate, Dependency, DependencyCategory, DependencyId,
-  DependencyType, ModuleDependency,
+  AsContextDependency, AsDependencyTemplate, AsNullDependency, Dependency, DependencyCategory,
+  DependencyId, DependencyType, ModuleDependency,
 };
 
 #[derive(Debug, Clone)]
@@ -44,3 +44,4 @@ impl ModuleDependency for RemoteToExternalDependency {
 
 impl AsContextDependency for RemoteToExternalDependency {}
 impl AsDependencyTemplate for RemoteToExternalDependency {}
+impl AsNullDependency for RemoteToExternalDependency {}

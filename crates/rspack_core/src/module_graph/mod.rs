@@ -442,31 +442,22 @@ impl ModuleGraph {
     module_identifier: ModuleIdentifier,
   ) -> Result<()> {
     let dependency = dependency_id.get_dependency(self);
-    let is_module_dependency =
-      dependency.as_module_dependency().is_some() || dependency.as_context_dependency().is_some();
     let condition = if self.is_new_treeshaking {
-      dependency
-        .as_module_dependency()
-        .and_then(|dep| dep.get_condition())
+      dependency.get_condition()
     } else {
       None
     };
     self
       .dependency_id_to_module_identifier
       .insert(dependency_id, module_identifier);
-    if !is_module_dependency {
-      return Ok(());
-    }
-
     let active = !matches!(condition, Some(DependencyCondition::False));
-    let conditional = condition.is_some();
     // TODO: just a placeholder here, finish this when we have basic `getCondition` logic
     let new_connection = ModuleGraphConnection::new(
       original_module_identifier,
       dependency_id,
       module_identifier,
       active,
-      conditional,
+      condition.is_some(),
     );
 
     let connection_id = if let Some(connection_id) = self.connections_map.get(&new_connection) {
@@ -479,6 +470,7 @@ impl ModuleGraph {
         .insert(new_connection, new_connection_id);
       new_connection_id
     };
+
     if let Some(condition) = condition {
       self
         .connection_to_condition
@@ -1208,6 +1200,7 @@ mod test {
 
       impl crate::AsDependencyTemplate for $ident {}
       impl crate::AsContextDependency for $ident {}
+      impl crate::AsNullDependency for $ident {}
     };
   }
 

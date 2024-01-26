@@ -1,4 +1,4 @@
-use rspack_core::{module_id_expr, AsModuleDependency, ContextDependency};
+use rspack_core::{module_id_expr, AsModuleDependency, AsNullDependency, ContextDependency};
 use rspack_core::{ContextOptions, Dependency, DependencyCategory, DependencyId};
 use rspack_core::{DependencyTemplate, DependencyType, ErrorSpan, RuntimeGlobals};
 use rspack_core::{TemplateContext, TemplateReplaceSource};
@@ -104,3 +104,4 @@ impl DependencyTemplate for RequireContextDependency {
 }
 
 impl AsModuleDependency for RequireContextDependency {}
+impl AsNullDependency for RequireContextDependency {}
