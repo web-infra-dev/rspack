@@ -44,6 +44,8 @@ pub struct JavascriptParser<'parser> {
   pub(crate) enter_assign: bool,
   // TODO: remove `is_esm` after `HarmonyExports::isEnabled`
   pub(crate) is_esm: bool,
+  // TODO: delete `has_module_ident`
+  pub(crate) has_module_ident: bool,
   // ===== scope info =======
   // TODO: `in_if` can be removed after eval identifier
   pub(crate) in_if: bool,
@@ -74,6 +76,10 @@ impl<'parser> JavascriptParser<'parser> {
       Box::new(parser_plugin::CommonJsImportsParserPlugin),
       Box::new(parser_plugin::RequireContextDependencyParserPlugin),
     ];
+
+    if module_type.is_js_auto() || module_type.is_js_dynamic() {
+      plugins.push(Box::new(parser_plugin::CommonJsPlugin));
+    }
 
     if module_type.is_js_auto() || module_type.is_js_dynamic() || module_type.is_js_esm() {
       if !compiler_options.builtins.provide.is_empty() {
@@ -127,6 +133,7 @@ impl<'parser> JavascriptParser<'parser> {
       build_info,
       compiler_options,
       enter_assign: false,
+      has_module_ident: false,
     }
   }
 
