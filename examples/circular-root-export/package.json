@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "build": "rspack build"
+    "build": "rspack build && cp index.html ./dist"
   },
 	"dependencies": {
 		"@rspack/cli": "workspace:^",

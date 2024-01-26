@@ -1,6 +1,7 @@
 const rspack = require("@rspack/core");
 /** @type {import("@rspack/core").Configuration} */
 const config = {
+	devtool: false,
 	mode: "production",
 	entry: {
 		main: "./index.js",
