@@ -73,33 +73,51 @@ impl RuntimeModule for AsyncWasmLoadingRuntimeModule {
 }
 
 fn get_async_wasm_loading(req: &str, supports_streaming: bool) -> String {
-  let streaming_code = if supports_streaming {
-    r#"
-    if (typeof WebAssembly.instantiateStreaming === 'function') {
-      return WebAssembly.instantiateStreaming(req, importsObj).then(function(res) {
-        return Object.assign(exports, res.instance.exports);
+  let fallback_code = r#"
+          .then(function(x) { return x.arrayBuffer();})
+          .then(function(bytes) { return WebAssembly.instantiate(bytes, importsObj);})
+          .then(function(res) { return Object.assign(exports, res.instance.exports);});
+"#;
+
+  let streaming_code = r#"
+      return req.then(function(res) {
+        if (typeof WebAssembly.instantiateStreaming === "function") {
+          return WebAssembly.instantiateStreaming(res, importsObj)
+            .then(
+              function(res) { return Object.assign(exports, res.instance.exports);},
+              function(e) {
+                if(res.headers.get("Content-Type") !== "application/wasm") {
+                  console.warn("`WebAssembly.instantiateStreaming` failed because your server does not serve wasm with `application/wasm` MIME type. Falling back to `WebAssembly.instantiate` which is slower. Original error:\n", e);
+                  return fallback();
+                }
+                throw e;
+              }
+            );
+        }
+        return fallback();
       });
-    }
-    "#
-  } else {
-    "// no support for streaming compilation"
-  };
-  format!(
-    r#"
+"#;
+
+  if supports_streaming {
+    format!(
+      r#"
     __webpack_require__.v = function(exports, wasmModuleId, wasmModuleHash, importsObj) {{
-      var req = {req}
+      var req = {req};
+      var fallback = function() {{
+        return req{fallback_code}
+      }}
       {streaming_code}
-      return req
-        .then(function(x) {{
-          return x.arrayBuffer();
-        }})
-        .then(function(bytes) {{
-          return WebAssembly.instantiate(bytes, importsObj);
-        }})
-        .then(function(res) {{
-          return Object.assign(exports, res.instance.exports);
-        }});
     }};
-    "#
-  )
+"#
+    )
+  } else {
+    let req = req.trim_end_matches(';');
+    format!(
+      r#"
+    __webpack_require__.v = function(exports, wasmModuleId, wasmModuleHash, importsObj) {{
+      return {req}{fallback_code}
+    }};
+      "#
+    )
+  }
 }

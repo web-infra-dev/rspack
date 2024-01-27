@@ -42,7 +42,7 @@
     "fs-extra": "^11.1.1",
     "glob": "^10.3.10",
     "jest-diff": "^29.7.0",
-    "webpack": "^5.90.0",
+    "webpack": "^5.90.1",
     "webpack-sources": "3.2.3",
     "which-module": "2.0.1"
   },
