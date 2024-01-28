@@ -64,7 +64,7 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
           .transform
           .merge(MergingOption::from(Some(transform)));
       }
-      if let Some(pre_source_map) = std::mem::take(&mut loader_context.source_map) {
+      if let Some(pre_source_map) = loader_context.source_map.clone() {
         if let Ok(source_map) = pre_source_map.to_json() {
           swc_options.config.input_source_map = Some(InputSourceMap::Str(source_map))
         }
