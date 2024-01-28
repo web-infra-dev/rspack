@@ -35,6 +35,7 @@ jobs:
 
   test-linux:
     name: Test Linux
+    if: github.repository_owner == 'web-infra-dev'
     needs: [get-runner-labels]
     uses: ./.github/workflows/reusable-build.yml
     with:
@@ -46,7 +47,7 @@ jobs:
   test-windows:
     name: Test Windows
     needs: [get-runner-labels]
-    if: github.ref_name == 'main'
+    if: github.ref_name == 'main' && github.repository_owner == 'web-infra-dev'
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-pc-windows-msvc
@@ -57,7 +58,7 @@ jobs:
   test-mac:
     name: Test Mac
     needs: [get-runner-labels]
-    if: github.ref_name == 'main'
+    if: github.ref_name == 'main' && github.repository_owner == 'web-infra-dev'
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-apple-darwin
@@ -227,8 +228,9 @@ jobs:
         run: cargo test --workspace -- --nocapture
 
   run_benchmark:
+    name: Run benchmark
     runs-on: ubuntu-latest
-    if: github.ref_name == 'main'
+    if: github.ref_name == 'main' && github.repository_owner == 'web-infra-dev'
     steps:
       - name: Run Benchmark
         uses: convictional/trigger-workflow-and-wait@v1.6.5
