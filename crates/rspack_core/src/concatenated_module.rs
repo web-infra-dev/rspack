@@ -653,6 +653,12 @@ impl Module for ConcatenatedModule {
             all_used_names.insert(ident.id.sym.to_string());
             continue;
           }
+          // deconflict naming from inner scope, the module level deconflict will be finished
+          // you could see webpack-test/cases/scope-hoisting/renaming-4967 as a example
+          // during module eval phase.
+          if ident.id.span.ctxt != info.module_ctxt {
+            all_used_names.insert(ident.id.sym.to_string());
+          }
           info.idents.push(ident);
         }
         let mut binding_to_ref: HashMap<(Atom, SyntaxContext), Vec<ConcatenatedModuleIdent>> =

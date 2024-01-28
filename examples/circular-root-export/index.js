@@ -15,11 +15,11 @@ function expect(v) {
 			}
 			throw new Error(`left ${v}, right: ${vv}`)
 		},
-		toThrow(fn) {
+		toThrow() {
 			try {
-				fn()
+				v()
 			} catch {
-
+				return;
 			}
 			throw new Error("should throw")
 		}
