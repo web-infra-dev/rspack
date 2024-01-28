@@ -9,6 +9,7 @@ use std::{
 use dashmap::DashMap;
 use indexmap::{IndexMap, IndexSet};
 use once_cell::sync::OnceCell;
+use regex::Regex;
 use rspack_ast::javascript::Ast;
 use rspack_error::{Diagnosable, Diagnostic, DiagnosticKind, Result, TraceableError};
 use rspack_hash::{HashDigest, HashFunction, RspackHash};
@@ -123,6 +124,10 @@ impl ConnectionOrModuleIdent {
   }
 }
 
+pub static REGEX: once_cell::sync::Lazy<Regex> = once_cell::sync::Lazy::new(|| {
+  let pattern = r"\.+\/|(\/index)?\.([a-zA-Z0-9]{1,4})($|\s|\?)|\s*\+\s*\d+\s*modules";
+  Regex::new(pattern).unwrap()
+});
 #[derive(Debug)]
 pub struct ConcatenationEntry {
   ty: ConcatenationEntryType,
@@ -743,6 +748,7 @@ impl Module for ConcatenatedModule {
             };
 
           if let Some(namespace_object_name) = namespace_object_name {
+            all_used_names.insert(namespace_object_name.clone());
             info.namespace_object_name = Some(namespace_object_name);
           }
           // dbg!(info.module, &info.internal_names);
@@ -2148,14 +2154,8 @@ impl ConcatenatedModule {
     if name == NAMESPACE_OBJECT_EXPORT {
       name = "namespaceObject".to_string();
     }
-
-    // Remove uncool stuff TODO: unclear
-    let extra_info = extra_info
-      .replace(
-        |c: char| c == '.' || c == '/' || c == '+' || c.is_ascii_whitespace(),
-        "",
-      )
-      .to_string();
+    // Remove uncool stuff
+    let extra_info = REGEX.replace_all(extra_info, "").to_string();
 
     let mut splitted_info: Vec<&str> = extra_info.split('/').collect();
     while let Some(info_part) = splitted_info.pop() {
