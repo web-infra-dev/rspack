@@ -15,7 +15,8 @@ export const commonOptions = (yargs: yargs.Argv) => {
 			},
 			"output-path": {
 				type: "string",
-				describe: "output path dir"
+				describe: "output path dir",
+				alias: "o"
 			},
 			mode: { type: "string", describe: "mode", alias: "m" },
 			watch: {
