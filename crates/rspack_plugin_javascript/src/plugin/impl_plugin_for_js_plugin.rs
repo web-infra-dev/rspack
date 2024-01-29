@@ -28,7 +28,7 @@ impl Plugin for JsPlugin {
     _options: &mut CompilerOptions,
   ) -> Result<()> {
     let create_parser_and_generator =
-      move || Box::new(JavaScriptParserAndGenerator::new()) as Box<dyn ParserAndGenerator>;
+      move || Box::new(JavaScriptParserAndGenerator) as Box<dyn ParserAndGenerator>;
 
     ctx
       .context
