@@ -236,7 +236,12 @@ impl<'parser> JavascriptParser<'parser> {
 pub struct CommonJsExportsParserPlugin;
 
 impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
-  fn identifier(&self, parser: &mut JavascriptParser, ident: &Ident) -> Option<bool> {
+  fn identifier(
+    &self,
+    parser: &mut JavascriptParser,
+    ident: &Ident,
+    _for_name: &str,
+  ) -> Option<bool> {
     if parser.is_module_ident(ident) {
       parser.append_module_runtime();
       // here should use, but scanner is not one pass, so here use extra `visit_program` to calculate is_harmony

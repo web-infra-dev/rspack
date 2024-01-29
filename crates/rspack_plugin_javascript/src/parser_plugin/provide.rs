@@ -39,14 +39,11 @@ impl JavascriptParserPlugin for ProviderPlugin {
     &self,
     parser: &mut crate::visitors::JavascriptParser,
     expr: &swc_core::ecma::ast::CallExpr,
-    name: &str,
+    for_name: &str,
   ) -> Option<bool> {
-    let Some(name) = name.call_hooks_name(parser) else {
-      return None;
-    };
     dep(
       parser,
-      &name,
+      for_name,
       expr.callee.span().real_lo(),
       expr.callee.span().real_hi(),
     )
@@ -62,12 +59,15 @@ impl JavascriptParserPlugin for ProviderPlugin {
     &self,
     parser: &mut crate::visitors::JavascriptParser,
     expr: &swc_core::ecma::ast::MemberExpr,
-    name: &str,
+    for_name: &str,
   ) -> Option<bool> {
-    let Some(name) = name.call_hooks_name(parser) else {
-      return None;
-    };
-    dep(parser, &name, expr.span().real_lo(), expr.span().real_hi()).map(|dep| {
+    dep(
+      parser,
+      for_name,
+      expr.span().real_lo(),
+      expr.span().real_hi(),
+    )
+    .map(|dep| {
       // FIXME: temp
       parser.ignored.insert(DependencyLocation::new(
         expr.span.real_lo(),
@@ -82,6 +82,7 @@ impl JavascriptParserPlugin for ProviderPlugin {
     &self,
     parser: &mut crate::visitors::JavascriptParser,
     ident: &swc_core::ecma::ast::Ident,
+    _for_name: &str,
   ) -> Option<bool> {
     let Some(name) = ident.sym.call_hooks_name(parser) else {
       return None;

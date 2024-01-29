@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::ops::Deref;
 
 use swc_core::ecma::ast::{
   ArrayLit, ArrayPat, ArrowExpr, AssignExpr, AssignPat, AwaitExpr, BinExpr, BlockStmt,
@@ -14,7 +15,7 @@ use swc_core::ecma::ast::{Prop, PropName, PropOrSpread, RestPat, ReturnStmt, Seq
 use swc_core::ecma::ast::{SwitchCase, SwitchStmt, TryStmt, VarDecl, VarDeclKind};
 use swc_core::ecma::ast::{ThrowStmt, Tpl, UnaryExpr, UpdateExpr, VarDeclOrExpr, YieldExpr};
 
-use super::{AllowedMemberTypes, JavascriptParser, MemberExpressionInfo, RootName};
+use super::{AllowedMemberTypes, CallHooksName, JavascriptParser, MemberExpressionInfo, RootName};
 use crate::parser_plugin::{is_logic_op, JavascriptParserPlugin};
 
 fn warp_ident_to_pat(ident: Ident) -> Pat {
@@ -591,22 +592,24 @@ impl<'parser> JavascriptParser<'parser> {
     if let Some(expr_info) = self.get_member_expression_info(expr, AllowedMemberTypes::All) {
       match expr_info {
         MemberExpressionInfo::Expression(expr_info) => {
-          if self
-            .plugin_drive
-            .clone()
-            .member(self, expr, &expr_info.name)
-            .unwrap_or_default()
+          if let Some(for_name) = expr_info.name.call_hooks_name(self)
+            && self
+              .plugin_drive
+              .clone()
+              .member(self, expr, &for_name)
+              .unwrap_or_default()
           {
             return;
           }
           // TODO: member_chain and unhandled_mamber_chain
         }
         MemberExpressionInfo::Call(expr_info) => {
-          if self
-            .plugin_drive
-            .clone()
-            .member_chain_of_call_member_chain(self, expr /* , expr_info */)
-            .unwrap_or_default()
+          if let Some(for_name) = expr_info.root_info.call_hooks_name(self)
+            && self
+              .plugin_drive
+              .clone()
+              .member_chain_of_call_member_chain(self, expr, &for_name)
+              .unwrap_or_default()
           {
             return;
           }
@@ -632,6 +635,20 @@ impl<'parser> JavascriptParser<'parser> {
     // FIXME: should align to webpack
     match &expr.callee {
       Callee::Expr(callee) => {
+        if let Expr::Member(member) = &**callee
+          && let Some(MemberExpressionInfo::Call(expr_info)) =
+            self.get_member_expression_info(member, AllowedMemberTypes::CallExpression)
+        {
+          if let Some(for_name) = expr_info.root_info.call_hooks_name(self)
+            && self
+              .plugin_drive
+              .clone()
+              .call_member_chain_of_call_member_chain(self, expr, &for_name)
+              .unwrap_or_default()
+          {
+            return;
+          }
+        }
         let evaluated = self.evaluate_expression(callee);
         if evaluated.is_identifier()
           && self
@@ -702,8 +719,12 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_identifier(&mut self, identifier: &Ident) {
-    // TODO: self.call_hooks_for_name
-    self.plugin_drive.clone().identifier(self, identifier);
+    if let Some(for_name) = identifier.sym.call_hooks_name(self) {
+      self
+        .plugin_drive
+        .clone()
+        .identifier(self, identifier, &for_name);
+    }
   }
 
   // fn get_rename_identifier(&mut self, expr: &Expr) -> Option<String> {

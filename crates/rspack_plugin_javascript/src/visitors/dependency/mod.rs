@@ -25,8 +25,8 @@ use swc_core::ecma::atoms::Atom;
 
 use self::harmony_import_dependency_scanner::ImportMap;
 pub use self::parser::{
-  CallExpressionInfo, CallHooksName, ExpressionExpressionInfo, JavascriptParser,
-  MemberExpressionInfo, TagInfoData,
+  CallExpressionInfo, CallHooksName, ExportedVariableInfo, ExpressionExpressionInfo,
+  JavascriptParser, MemberExpressionInfo, TagInfoData,
 };
 pub use self::util::*;
 use self::{

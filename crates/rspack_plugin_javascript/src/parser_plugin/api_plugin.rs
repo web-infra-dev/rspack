@@ -78,7 +78,12 @@ impl JavascriptParserPlugin for APIPlugin {
     }
   }
 
-  fn identifier(&self, parser: &mut JavascriptParser, ident: &Ident) -> Option<bool> {
+  fn identifier(
+    &self,
+    parser: &mut JavascriptParser,
+    ident: &Ident,
+    _for_name: &str,
+  ) -> Option<bool> {
     let s = ident.sym.as_str();
     if !parser.is_unresolved_ident(s) {
       return None;

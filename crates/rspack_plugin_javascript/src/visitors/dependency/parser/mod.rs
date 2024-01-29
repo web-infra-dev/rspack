@@ -61,13 +61,19 @@ pub enum MemberExpressionInfo {
 pub struct CallExpressionInfo {
   pub call: CallExpr,
   pub callee_name: String,
-  pub root_info: Option<VariableInfoId>,
+  pub root_info: ExportedVariableInfo,
 }
 
 #[derive(Debug)]
 pub struct ExpressionExpressionInfo {
   pub name: String,
-  pub root_info: Option<VariableInfoId>,
+  pub root_info: ExportedVariableInfo,
+}
+
+#[derive(Debug)]
+pub enum ExportedVariableInfo {
+  Name(String),
+  VariableInfo(VariableInfoId),
 }
 
 fn object_and_members_to_name(
@@ -174,6 +180,21 @@ impl CallHooksName for VariableInfo {
       return Some(free_name.to_string());
     }
     None
+  }
+}
+
+impl CallHooksName for ExportedVariableInfo {
+  fn call_hooks_name(&self, parser: &mut JavascriptParser) -> Option<String> {
+    match self {
+      ExportedVariableInfo::Name(n) => n.call_hooks_name(parser),
+      ExportedVariableInfo::VariableInfo(v) => {
+        let info = parser.definitions_db.expect_get_variable(v);
+        if let Some(FreeName::String(free_name)) = &info.free_name {
+          return Some(free_name.to_string());
+        }
+        None
+      }
+    }
   }
 }
 
@@ -412,7 +433,9 @@ impl<'parser> JavascriptParser<'parser> {
         Some(MemberExpressionInfo::Call(CallExpressionInfo {
           call: expr,
           callee_name,
-          root_info: root_info.map(|i| i.id()),
+          root_info: root_info
+            .map(|i| ExportedVariableInfo::VariableInfo(i.id()))
+            .unwrap_or_else(|| ExportedVariableInfo::Name(root_name.to_string())),
         }))
       }
       Expr::MetaProp(_) | Expr::Ident(_) | Expr::This(_) => {
@@ -432,7 +455,9 @@ impl<'parser> JavascriptParser<'parser> {
         let name = object_and_members_to_name(resolved_root, &members);
         Some(MemberExpressionInfo::Expression(ExpressionExpressionInfo {
           name,
-          root_info: root_info.map(|i| i.id()),
+          root_info: root_info
+            .map(|i| ExportedVariableInfo::VariableInfo(i.id()))
+            .unwrap_or_else(|| ExportedVariableInfo::Name(root_name.to_string())),
         }))
       }
       _ => None,
@@ -660,13 +685,19 @@ impl JavascriptParser<'_> {
         let Some(info) = self.get_variable_info(&ident.sym) else {
           let mut eval =
             BasicEvaluatedExpression::with_range(ident.span.real_lo(), ident.span().hi().0);
-          eval.set_identifier(ident.sym.to_string(), None);
+          eval.set_identifier(
+            ident.sym.to_string(),
+            ExportedVariableInfo::Name(ident.sym.to_string()),
+          );
           return Some(eval);
         };
         if matches!(info.free_name, Some(FreeName::String(_))) {
           let mut eval =
             BasicEvaluatedExpression::with_range(ident.span.real_lo(), ident.span().hi().0);
-          eval.set_identifier(ident.sym.to_string(), Some(info.id()));
+          eval.set_identifier(
+            ident.sym.to_string(),
+            ExportedVariableInfo::VariableInfo(info.id()),
+          );
           return Some(eval);
         }
         None

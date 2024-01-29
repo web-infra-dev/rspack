@@ -16,7 +16,7 @@ pub use self::eval_lit_expr::{eval_lit_expr, eval_prop_name};
 pub use self::eval_new_expr::eval_new_expression;
 pub use self::eval_tpl_expr::{eval_tpl_expression, TemplateStringKind};
 pub use self::eval_unary_expr::eval_unary_expression;
-use crate::visitors::scope_info::VariableInfoId;
+use crate::visitors::ExportedVariableInfo;
 
 #[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -60,7 +60,7 @@ pub struct BasicEvaluatedExpression {
   bigint: Option<Bigint>,
   regexp: Option<Regexp>,
   identifier: Option<String>,
-  root_info: Option<VariableInfoId>,
+  root_info: Option<ExportedVariableInfo>,
   items: Option<Vec<BasicEvaluatedExpression>>,
   quasis: Option<Vec<BasicEvaluatedExpression>>,
   parts: Option<Vec<BasicEvaluatedExpression>>,
@@ -285,10 +285,10 @@ impl BasicEvaluatedExpression {
     }
   }
 
-  pub fn set_identifier(&mut self, name: String, root_info: Option<VariableInfoId>) {
+  pub fn set_identifier(&mut self, name: String, root_info: ExportedVariableInfo) {
     self.ty = Ty::Identifier;
     self.identifier = Some(name);
-    self.root_info = root_info;
+    self.root_info = Some(root_info);
     self.side_effects = true;
   }
 

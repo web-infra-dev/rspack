@@ -49,6 +49,7 @@ impl JavascriptParserPlugin for ExportsInfoApiPlugin {
     &self,
     parser: &mut crate::visitors::JavascriptParser,
     expr: &swc_core::ecma::ast::Ident,
+    _for_name: &str,
   ) -> Option<bool> {
     if expr.sym == WEBPACK_EXPORTS_INFO {
       let dep = Box::new(ConstDependency::new(
