@@ -1,7 +1,7 @@
 use swc_core::ecma::ast::{
-  AssignExpr, BinExpr, CallExpr, Ident, IfStmt, MemberExpr, NewExpr, Stmt, ThisExpr, UnaryExpr,
+  AssignExpr, AwaitExpr, BinExpr, CallExpr, ForOfStmt, Ident, IfStmt, MemberExpr,
 };
-use swc_core::ecma::ast::{VarDecl, VarDeclarator};
+use swc_core::ecma::ast::{NewExpr, Program, Stmt, ThisExpr, UnaryExpr, VarDecl, VarDeclarator};
 
 use crate::utils::eval::BasicEvaluatedExpression;
 use crate::visitors::JavascriptParser;
@@ -14,6 +14,16 @@ pub trait JavascriptParserPlugin {
   /// statement's visit during the pre-walk phase.
   /// - Other return values imply that the walk operation ought to continue
   fn pre_statement(&self, _parser: &mut JavascriptParser, _stmt: &Stmt) -> Option<bool> {
+    None
+  }
+
+  /// The return value will have no effect.
+  fn top_level_await_expr(&self, _parser: &mut JavascriptParser, _expr: &AwaitExpr) {}
+
+  /// The return value will have no effect.
+  fn top_level_for_of_await_stmt(&self, _parser: &mut JavascriptParser, _stmt: &ForOfStmt) {}
+
+  fn program(&self, _parser: &mut JavascriptParser, _ast: &Program) -> Option<bool> {
     None
   }
 
