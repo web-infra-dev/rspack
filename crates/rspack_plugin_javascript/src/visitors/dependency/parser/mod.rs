@@ -264,6 +264,10 @@ impl<'parser> JavascriptParser<'parser> {
     plugins.push(Box::new(
       parser_plugin::RequireContextDependencyParserPlugin,
     ));
+    plugins.push(Box::new(parser_plugin::WorkerSyntaxScanner::new(
+      rspack_core::needs_refactor::DEFAULT_WORKER_SYNTAX,
+      worker_syntax_list,
+    )));
 
     if module_type.is_js_auto() || module_type.is_js_dynamic() {
       plugins.push(Box::new(parser_plugin::CommonJsPlugin));
@@ -284,11 +288,6 @@ impl<'parser> JavascriptParser<'parser> {
     }
 
     if module_type.is_js_auto() || module_type.is_js_esm() {
-      plugins.push(Box::new(parser_plugin::WorkerSyntaxScanner::new(
-        rspack_core::needs_refactor::DEFAULT_WORKER_SYNTAX,
-        worker_syntax_list,
-      )));
-
       let parse_url = &compiler_options
         .module
         .parser
