@@ -29,10 +29,6 @@ pub struct JavaScriptParserAndGenerator;
 
 #[allow(unused)]
 impl JavaScriptParserAndGenerator {
-  pub(crate) fn new() -> Self {
-    Self {}
-  }
-
   fn source_block(
     &self,
     compilation: &Compilation,
@@ -186,11 +182,10 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       mut rewrite_usage_span,
       import_map,
       mut warning_diagnostics,
-    } = match ast.visit(|program, context| {
+    } = match ast.visit(|program, _| {
       scan_dependencies(
         parse_result.1,
         program,
-        context.unresolved_mark,
         resource_data,
         compiler_options,
         module_type,

@@ -5,7 +5,6 @@ pub mod harmony_import_dependency_scanner;
 mod hot_module_replacement_scanner;
 mod import_meta_scanner;
 mod import_scanner;
-mod node_stuff_scanner;
 mod parser;
 mod util;
 mod worker_scanner;
@@ -20,7 +19,7 @@ use rspack_core::{
 use rspack_core::{BuildMeta, CompilerOptions, ModuleIdentifier, ModuleType, ResourceData};
 use rspack_error::miette::Diagnostic;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet};
-use swc_core::common::{comments::Comments, Mark, SyntaxContext};
+use swc_core::common::comments::Comments;
 use swc_core::common::{SourceFile, Span};
 use swc_core::ecma::atoms::Atom;
 
@@ -33,7 +32,7 @@ use self::{
   harmony_import_dependency_scanner::HarmonyImportDependencyScanner,
   hot_module_replacement_scanner::HotModuleReplacementScanner,
   import_meta_scanner::ImportMetaScanner, import_scanner::ImportScanner,
-  node_stuff_scanner::NodeStuffScanner, worker_scanner::WorkerScanner,
+  worker_scanner::WorkerScanner,
 };
 
 pub struct ScanDependenciesResult {
@@ -59,7 +58,6 @@ pub enum ExtraSpanInfo {
 pub fn scan_dependencies(
   source_file: Arc<SourceFile>,
   program: &Program,
-  unresolved_mark: Mark,
   resource_data: &ResourceData,
   compiler_options: &CompilerOptions,
   module_type: &ModuleType,
@@ -72,7 +70,6 @@ pub fn scan_dependencies(
   let mut dependencies = vec![];
   let mut blocks = vec![];
   let mut presentational_dependencies = vec![];
-  let unresolved_ctxt = SyntaxContext::empty().apply_mark(unresolved_mark);
   let comments = program.comments.clone();
   let mut parser_exports_state = None;
   let mut ignored: FxHashSet<DependencyLocation> = FxHashSet::default();
@@ -104,19 +101,6 @@ pub fn scan_dependencies(
   );
 
   parser.visit(program.get_inner_program());
-
-  if module_type.is_js_auto() || module_type.is_js_dynamic() {
-    if let Some(node_option) = &compiler_options.node {
-      program.visit_with(&mut NodeStuffScanner::new(
-        &mut presentational_dependencies,
-        unresolved_ctxt,
-        compiler_options,
-        node_option,
-        resource_data,
-        &mut ignored,
-      ));
-    }
-  }
 
   let mut import_map = Default::default();
   let mut rewrite_usage_span = HashMap::default();
