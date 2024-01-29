@@ -1,5 +1,5 @@
 use swc_core::ecma::ast::{
-  AssignExpr, AwaitExpr, BinExpr, CallExpr, ForOfStmt, Ident, IfStmt, MemberExpr,
+  AssignExpr, AwaitExpr, BinExpr, CallExpr, ForOfStmt, Ident, IfStmt, MemberExpr, ModuleDecl,
 };
 use swc_core::ecma::ast::{NewExpr, Program, Stmt, ThisExpr, UnaryExpr, VarDecl, VarDeclarator};
 
@@ -24,6 +24,15 @@ pub trait JavascriptParserPlugin {
   fn top_level_for_of_await_stmt(&self, _parser: &mut JavascriptParser, _stmt: &ForOfStmt) {}
 
   fn program(&self, _parser: &mut JavascriptParser, _ast: &Program) -> Option<bool> {
+    None
+  }
+
+  /// Return:
+  /// `None` means continue this `ModuleDecl`
+  /// Others means skip this.
+  ///
+  /// This is similar `hooks.statement` in webpack
+  fn module_declaration(&self, _parser: &mut JavascriptParser, _decl: &ModuleDecl) -> Option<bool> {
     None
   }
 

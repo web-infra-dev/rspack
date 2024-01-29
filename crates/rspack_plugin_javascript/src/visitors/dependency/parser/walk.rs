@@ -95,7 +95,14 @@ impl<'parser> JavascriptParser<'parser> {
   fn walk_module_declaration(&mut self, statement: &ModuleItem) {
     match statement {
       ModuleItem::ModuleDecl(m) => {
-        // TODO: `self.hooks.statement.call`
+        if self
+          .plugin_drive
+          .clone()
+          .module_declaration(self, m)
+          .unwrap_or_default()
+        {
+          return;
+        }
         match m {
           ModuleDecl::ExportDefaultDecl(decl) => {
             self.walk_export_default_declaration(decl);

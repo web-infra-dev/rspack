@@ -213,7 +213,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) presentational_dependencies: &'parser mut Vec<Box<dyn DependencyTemplate>>,
   pub(crate) ignored: &'parser mut FxHashSet<DependencyLocation>,
   // TODO: remove `worker_syntax_list`
-  pub(crate) worker_syntax_list: &'parser WorkerSyntaxList,
+  pub(crate) worker_syntax_list: &'parser mut WorkerSyntaxList,
   pub(crate) build_meta: &'parser mut BuildMeta,
   pub(crate) build_info: &'parser mut BuildInfo,
   pub(crate) resource_data: &'parser ResourceData,
@@ -249,7 +249,7 @@ impl<'parser> JavascriptParser<'parser> {
     presentational_dependencies: &'parser mut Vec<Box<dyn DependencyTemplate>>,
     ignored: &'parser mut FxHashSet<DependencyLocation>,
     module_type: &'parser ModuleType,
-    worker_syntax_list: &'parser WorkerSyntaxList,
+    worker_syntax_list: &'parser mut WorkerSyntaxList,
     resource_data: &'parser ResourceData,
     parser_exports_state: &'parser mut Option<bool>,
     build_meta: &'parser mut BuildMeta,
@@ -284,6 +284,11 @@ impl<'parser> JavascriptParser<'parser> {
     }
 
     if module_type.is_js_auto() || module_type.is_js_esm() {
+      plugins.push(Box::new(parser_plugin::WorkerSyntaxScanner::new(
+        rspack_core::needs_refactor::DEFAULT_WORKER_SYNTAX,
+        worker_syntax_list,
+      )));
+
       let parse_url = &compiler_options
         .module
         .parser
@@ -584,7 +589,6 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   pub fn walk_program(&mut self, ast: &Program) {
-    // TODO: `hooks.program.call`
     if self.plugin_drive.clone().program(self, ast).is_none() {
       match ast {
         Program::Module(m) => {
