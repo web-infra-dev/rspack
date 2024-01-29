@@ -230,6 +230,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       .and_then(|mem| self.chain_handler(parser, mem, true))
     {
       parser.dependencies.push(Box::new(dep));
+      parser.walk_expr_or_spread(&call_expr.args);
       return Some(true);
     }
     None

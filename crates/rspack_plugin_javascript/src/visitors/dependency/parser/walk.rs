@@ -638,16 +638,14 @@ impl<'parser> JavascriptParser<'parser> {
         if let Expr::Member(member) = &**callee
           && let Some(MemberExpressionInfo::Call(expr_info)) =
             self.get_member_expression_info(member, AllowedMemberTypes::CallExpression)
+          && let Some(for_name) = expr_info.root_info.call_hooks_name(self)
+          && self
+            .plugin_drive
+            .clone()
+            .call_member_chain_of_call_member_chain(self, expr, &for_name)
+            .unwrap_or_default()
         {
-          if let Some(for_name) = expr_info.root_info.call_hooks_name(self)
-            && self
-              .plugin_drive
-              .clone()
-              .call_member_chain_of_call_member_chain(self, expr, &for_name)
-              .unwrap_or_default()
-          {
-            return;
-          }
+          return;
         }
         let evaluated = self.evaluate_expression(callee);
         if evaluated.is_identifier()
