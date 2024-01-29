@@ -56,7 +56,7 @@
       "matchDepTypes": ["devDependencies"],
       "schedule": ["on wednesday"],
       "excludePackagePrefixes": ["webpack"],
-      "excludePackageNames": ["@playwright/test", "react", "react-dom"],
+      "excludePackageNames": ["@playwright/test", "react", "react-dom", "typescript"],
       "assignees": ["@Boshen"]
     },
     {
@@ -68,7 +68,7 @@
     {
       "groupName": "npm ignored dependencies",
       "matchManagers": ["npm"],
-      "matchPackageNames": ["@playwright/test", "react", "react-dom"],
+      "matchPackageNames": ["@playwright/test", "react", "react-dom", "typescript"],
       "enabled": false
     },
     {
