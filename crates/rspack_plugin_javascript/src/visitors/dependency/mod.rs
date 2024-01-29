@@ -1,5 +1,4 @@
 mod context_helper;
-mod harmony_detection_scanner;
 mod harmony_export_dependency_scanner;
 pub mod harmony_import_dependency_scanner;
 mod hot_module_replacement_scanner;
@@ -24,13 +23,10 @@ use swc_core::common::{SourceFile, Span};
 use swc_core::ecma::atoms::Atom;
 
 use self::harmony_import_dependency_scanner::ImportMap;
-pub use self::parser::{
-  CallExpressionInfo, CallHooksName, ExportedVariableInfo, ExpressionExpressionInfo,
-  JavascriptParser, MemberExpressionInfo, TagInfoData,
-};
+pub use self::parser::{CallExpressionInfo, CallHooksName, ExportedVariableInfo};
+pub use self::parser::{JavascriptParser, MemberExpressionInfo, TagInfoData, TopLevelScope};
 pub use self::util::*;
 use self::{
-  harmony_detection_scanner::HarmonyDetectionScanner,
   harmony_export_dependency_scanner::HarmonyExportDependencyScanner,
   harmony_import_dependency_scanner::HarmonyImportDependencyScanner,
   hot_module_replacement_scanner::HotModuleReplacementScanner,
@@ -103,22 +99,12 @@ pub fn scan_dependencies(
     &mut warning_diagnostics,
   );
 
-  parser.visit(program.get_inner_program());
+  parser.walk_program(program.get_inner_program());
 
   let mut import_map = Default::default();
   let mut rewrite_usage_span = HashMap::default();
 
   if module_type.is_js_auto() || module_type.is_js_esm() {
-    program.visit_with(&mut HarmonyDetectionScanner::new(
-      source_file.clone(),
-      build_info,
-      build_meta,
-      module_type,
-      compiler_options.experiments.top_level_await,
-      &mut presentational_dependencies,
-      &mut errors,
-      &mut ignored,
-    ));
     program.visit_with(&mut HarmonyImportDependencyScanner::new(
       &mut dependencies,
       &mut presentational_dependencies,

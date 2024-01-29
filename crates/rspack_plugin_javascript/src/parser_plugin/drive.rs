@@ -16,6 +16,43 @@ impl JavaScriptParserPluginDrive {
 }
 
 impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
+  fn top_level_await_expr(
+    &self,
+    parser: &mut JavascriptParser,
+    expr: &swc_core::ecma::ast::AwaitExpr,
+  ) {
+    for plugin in &self.plugins {
+      // `SyncBailHook` but without return value
+      plugin.top_level_await_expr(parser, expr);
+    }
+  }
+
+  fn top_level_for_of_await_stmt(
+    &self,
+    parser: &mut JavascriptParser,
+    stmt: &swc_core::ecma::ast::ForOfStmt,
+  ) {
+    for plugin in &self.plugins {
+      // `SyncBailHook` but without return value
+      plugin.top_level_for_of_await_stmt(parser, stmt);
+    }
+  }
+
+  fn program(
+    &self,
+    parser: &mut JavascriptParser,
+    ast: &swc_core::ecma::ast::Program,
+  ) -> Option<bool> {
+    for plugin in &self.plugins {
+      let res = plugin.program(parser, ast);
+      // `SyncBailHook`
+      if res.is_some() {
+        return res;
+      }
+    }
+    None
+  }
+
   fn evaluate_typeof(
     &self,
     parser: &mut JavascriptParser,

@@ -25,7 +25,7 @@ use swc_core::ecma::ast::{
 use swc_core::ecma::ast::{BlockStmt, Expr, Ident, Lit, MemberExpr, RestPat};
 use swc_core::ecma::utils::ExprFactory;
 
-use crate::parser_plugin::{self, JavaScriptParserPluginDrive};
+use crate::parser_plugin::{self, JavaScriptParserPluginDrive, JavascriptParserPlugin};
 use crate::utils::eval::{self, BasicEvaluatedExpression};
 use crate::visitors::scope_info::{
   FreeName, ScopeInfoDB, ScopeInfoId, TagInfo, VariableInfo, VariableInfoId,
@@ -198,6 +198,13 @@ impl CallHooksName for ExportedVariableInfo {
   }
 }
 
+#[derive(Clone, Copy, Debug)]
+pub enum TopLevelScope {
+  Top,
+  ArrowFunction,
+  False,
+}
+
 pub struct JavascriptParser<'parser> {
   pub(crate) source_file: Arc<SourceFile>,
   pub(crate) errors: &'parser mut Vec<Box<dyn Diagnostic + Send + Sync>>,
@@ -213,6 +220,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) plugin_drive: Rc<JavaScriptParserPluginDrive>,
   pub(crate) definitions_db: ScopeInfoDB,
   pub(crate) compiler_options: &'parser CompilerOptions,
+  pub(crate) module_type: &'parser ModuleType,
   // TODO: remove `enter_assign`
   pub(crate) enter_assign: bool,
   // TODO: remove `is_esm` after `HarmonyExports::isEnabled`
@@ -229,7 +237,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) in_try: bool,
   pub(crate) in_short_hand: bool,
   pub(super) definitions: ScopeInfoId,
-  pub(crate) top_level_scope: bool,
+  pub(crate) top_level_scope: TopLevelScope,
 }
 
 impl<'parser> JavascriptParser<'parser> {
@@ -240,7 +248,7 @@ impl<'parser> JavascriptParser<'parser> {
     dependencies: &'parser mut Vec<BoxDependency>,
     presentational_dependencies: &'parser mut Vec<Box<dyn DependencyTemplate>>,
     ignored: &'parser mut FxHashSet<DependencyLocation>,
-    module_type: &ModuleType,
+    module_type: &'parser ModuleType,
     worker_syntax_list: &'parser WorkerSyntaxList,
     resource_data: &'parser ResourceData,
     parser_exports_state: &'parser mut Option<bool>,
@@ -249,12 +257,13 @@ impl<'parser> JavascriptParser<'parser> {
     errors: &'parser mut Vec<Box<dyn Diagnostic + Send + Sync>>,
     warning_diagnostics: &'parser mut Vec<Box<dyn Diagnostic + Send + Sync>>,
   ) -> Self {
-    let mut plugins: Vec<parser_plugin::BoxJavascriptParserPlugin> = vec![
-      Box::new(parser_plugin::CheckVarDeclaratorIdent),
-      Box::new(parser_plugin::ConstPlugin),
-      Box::new(parser_plugin::CommonJsImportsParserPlugin),
-      Box::new(parser_plugin::RequireContextDependencyParserPlugin),
-    ];
+    let mut plugins: Vec<parser_plugin::BoxJavascriptParserPlugin> = Vec::with_capacity(32);
+    plugins.push(Box::new(parser_plugin::CheckVarDeclaratorIdent));
+    plugins.push(Box::new(parser_plugin::ConstPlugin));
+    plugins.push(Box::new(parser_plugin::CommonJsImportsParserPlugin));
+    plugins.push(Box::new(
+      parser_plugin::RequireContextDependencyParserPlugin,
+    ));
 
     if module_type.is_js_auto() || module_type.is_js_dynamic() {
       plugins.push(Box::new(parser_plugin::CommonJsPlugin));
@@ -290,6 +299,9 @@ impl<'parser> JavascriptParser<'parser> {
         }));
       }
       plugins.push(Box::new(parser_plugin::HarmonyTopLevelThisParserPlugin));
+      plugins.push(Box::new(parser_plugin::HarmonDetectionParserPlugin::new(
+        compiler_options.experiments.top_level_await,
+      )));
     }
 
     let plugin_drive = Rc::new(JavaScriptParserPluginDrive::new(plugins));
@@ -303,7 +315,7 @@ impl<'parser> JavascriptParser<'parser> {
       in_try: false,
       in_if: false,
       in_short_hand: false,
-      top_level_scope: true,
+      top_level_scope: TopLevelScope::Top,
       is_esm: matches!(module_type, ModuleType::JsEsm),
       definitions: db.create(),
       definitions_db: db,
@@ -314,6 +326,7 @@ impl<'parser> JavascriptParser<'parser> {
       build_meta,
       build_info,
       compiler_options,
+      module_type,
       enter_assign: false,
       has_module_ident: false,
       parser_exports_state,
@@ -570,22 +583,24 @@ impl<'parser> JavascriptParser<'parser> {
     }
   }
 
-  pub fn visit(&mut self, ast: &Program) {
+  pub fn walk_program(&mut self, ast: &Program) {
     // TODO: `hooks.program.call`
-    match ast {
-      Program::Module(m) => {
-        self.set_strict(true);
-        self.pre_walk_module_declarations(&m.body);
-        self.block_pre_walk_module_declarations(&m.body);
-        self.walk_module_declarations(&m.body);
-      }
-      Program::Script(s) => {
-        self.detect_mode(&s.body);
-        self.pre_walk_statements(&s.body);
-        self.block_pre_walk_statements(&s.body);
-        self.walk_statements(&s.body);
-      }
-    };
+    if self.plugin_drive.clone().program(self, ast).is_none() {
+      match ast {
+        Program::Module(m) => {
+          self.set_strict(true);
+          self.pre_walk_module_declarations(&m.body);
+          self.block_pre_walk_module_declarations(&m.body);
+          self.walk_module_declarations(&m.body);
+        }
+        Program::Script(s) => {
+          self.detect_mode(&s.body);
+          self.pre_walk_statements(&s.body);
+          self.block_pre_walk_statements(&s.body);
+          self.walk_statements(&s.body);
+        }
+      };
+    }
     // TODO: `hooks.finish.call`
   }
 

@@ -1,20 +1,21 @@
 use std::borrow::Cow;
 use std::ops::Deref;
 
-use swc_core::ecma::ast::{
-  ArrayLit, ArrayPat, ArrowExpr, AssignExpr, AssignPat, AwaitExpr, BinExpr, BlockStmt,
-  BlockStmtOrExpr, CallExpr, Callee, CatchClause, Class, ClassDecl, ClassExpr, ClassMember,
-  CondExpr, Decl, DefaultDecl, DoWhileStmt, ExportDecl, ExportDefaultDecl, ExportDefaultExpr, Expr,
-  ExprOrSpread, ExprStmt, FnDecl, FnExpr, ForHead, Function, Ident, KeyValuePatProp, KeyValueProp,
-  MemberExpr, MemberProp, MetaPropExpr, NamedExport, NewExpr, ObjectLit, OptCall, OptChainBase,
-  OptChainExpr, ParamOrTsParamProp, Pat, PatOrExpr, ThisExpr, UnaryOp,
-};
+use swc_core::ecma::ast::{ArrayLit, ArrayPat, ArrowExpr, AssignExpr, AssignPat, AwaitExpr};
+use swc_core::ecma::ast::{BinExpr, BlockStmt, BlockStmtOrExpr, CallExpr, Callee, CatchClause};
+use swc_core::ecma::ast::{Class, ClassDecl, ClassExpr, ClassMember, CondExpr, Decl, DefaultDecl};
+use swc_core::ecma::ast::{DoWhileStmt, ExportDecl, ExportDefaultDecl, ExportDefaultExpr, Expr};
+use swc_core::ecma::ast::{ExprOrSpread, ExprStmt, FnDecl, MemberExpr, MemberProp, VarDeclOrExpr};
+use swc_core::ecma::ast::{FnExpr, ForHead, Function, Ident, KeyValuePatProp, KeyValueProp};
 use swc_core::ecma::ast::{ForInStmt, ForOfStmt, ForStmt, IfStmt, LabeledStmt, WithStmt};
+use swc_core::ecma::ast::{MetaPropExpr, NamedExport, NewExpr, ObjectLit, OptCall, OptChainBase};
 use swc_core::ecma::ast::{ModuleDecl, ModuleItem, ObjectPat, ObjectPatProp, Stmt, WhileStmt};
+use swc_core::ecma::ast::{OptChainExpr, ParamOrTsParamProp, Pat, PatOrExpr, ThisExpr, UnaryOp};
 use swc_core::ecma::ast::{Prop, PropName, PropOrSpread, RestPat, ReturnStmt, SeqExpr, TaggedTpl};
-use swc_core::ecma::ast::{SwitchCase, SwitchStmt, TryStmt, VarDecl, VarDeclKind};
-use swc_core::ecma::ast::{ThrowStmt, Tpl, UnaryExpr, UpdateExpr, VarDeclOrExpr, YieldExpr};
+use swc_core::ecma::ast::{SwitchCase, SwitchStmt, Tpl, TryStmt, VarDecl, VarDeclKind, YieldExpr};
+use swc_core::ecma::ast::{ThrowStmt, UnaryExpr, UpdateExpr};
 
+use super::TopLevelScope;
 use super::{AllowedMemberTypes, CallHooksName, JavascriptParser, MemberExpressionInfo, RootName};
 use crate::parser_plugin::{is_logic_op, JavascriptParserPlugin};
 
@@ -517,7 +518,7 @@ impl<'parser> JavascriptParser<'parser> {
       Prop::Assign(assign) => self.walk_expression(&assign.value),
       Prop::Getter(getter) => {
         let was_top_level = self.top_level_scope;
-        self.top_level_scope = false;
+        self.top_level_scope = TopLevelScope::False;
         if let Some(body) = &getter.body {
           self.walk_block_statement(body);
         }
@@ -525,7 +526,7 @@ impl<'parser> JavascriptParser<'parser> {
       }
       Prop::Setter(seeter) => {
         let was_top_level = self.top_level_scope;
-        self.top_level_scope = false;
+        self.top_level_scope = TopLevelScope::False;
         if let Some(body) = &seeter.body {
           self.walk_block_statement(body);
         }
@@ -534,7 +535,7 @@ impl<'parser> JavascriptParser<'parser> {
       Prop::Method(method) => {
         self.walk_prop_name(&method.key);
         let was_top_level = self.top_level_scope;
-        self.top_level_scope = false;
+        self.top_level_scope = TopLevelScope::False;
         // FIXME: maybe we need in_function_scope here
         self.walk_function(&method.function);
         self.top_level_scope = was_top_level;
@@ -711,8 +712,9 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_await_expression(&mut self, expr: &AwaitExpr) {
-    // TODO: if (this.scope.topLevelScope === true)
-    // this.hooks.topLevelAwait.call(expression);
+    if matches!(self.top_level_scope, TopLevelScope::Top) {
+      self.plugin_drive.clone().top_level_await_expr(self, expr);
+    }
     self.walk_expression(&expr.arg);
   }
 
@@ -776,7 +778,10 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_arrow_function_expression(&mut self, expr: &ArrowExpr) {
-    // `self.top_level_scope` should not changed.
+    let was_top_level_scope = self.top_level_scope;
+    if !matches!(was_top_level_scope, TopLevelScope::False) {
+      self.top_level_scope = TopLevelScope::ArrowFunction;
+    }
     self.in_function_scope(false, expr.params.iter().map(Cow::Borrowed), |this| {
       for param in &expr.params {
         this.walk_pattern(param)
@@ -791,7 +796,8 @@ impl<'parser> JavascriptParser<'parser> {
         }
         BlockStmtOrExpr::Expr(expr) => this.walk_expression(expr),
       }
-    })
+    });
+    self.top_level_scope = was_top_level_scope;
   }
 
   fn walk_expressions<'a, I>(&mut self, expressions: I)
@@ -830,7 +836,7 @@ impl<'parser> JavascriptParser<'parser> {
 
   fn walk_function_declaration(&mut self, decl: &FnDecl) {
     let was_top_level = self.top_level_scope;
-    self.top_level_scope = false;
+    self.top_level_scope = TopLevelScope::False;
     self.in_function_scope(
       true,
       decl
@@ -860,7 +866,7 @@ impl<'parser> JavascriptParser<'parser> {
 
   fn walk_function_expression(&mut self, expr: &FnExpr) {
     let was_top_level = self.top_level_scope;
-    self.top_level_scope = false;
+    self.top_level_scope = TopLevelScope::False;
     let mut scope_params: Vec<_> = expr
       .function
       .params
@@ -964,7 +970,7 @@ impl<'parser> JavascriptParser<'parser> {
             // TODO: `hooks.body_value`;
             if let Some(body) = &ctor.body {
               let was_top_level = this.top_level_scope;
-              this.top_level_scope = false;
+              this.top_level_scope = TopLevelScope::False;
               this.walk_block_statement(body);
               this.top_level_scope = was_top_level;
             }
@@ -975,7 +981,7 @@ impl<'parser> JavascriptParser<'parser> {
               this.walk_prop_name(&method.key);
             }
             let was_top_level = this.top_level_scope;
-            this.top_level_scope = false;
+            this.top_level_scope = TopLevelScope::False;
             this.in_function_scope(
               true,
               method.function.params.iter().map(|p| Cow::Borrowed(&p.pat)),
@@ -991,7 +997,7 @@ impl<'parser> JavascriptParser<'parser> {
           ClassMember::PrivateMethod(method) => {
             this.walk_identifier(&method.key.id);
             let was_top_level = this.top_level_scope;
-            this.top_level_scope = false;
+            this.top_level_scope = TopLevelScope::False;
             this.in_function_scope(
               true,
               method.function.params.iter().map(|p| Cow::Borrowed(&p.pat)),
@@ -1011,7 +1017,7 @@ impl<'parser> JavascriptParser<'parser> {
             }
             if let Some(value) = &prop.value {
               let was_top_level = this.top_level_scope;
-              this.top_level_scope = false;
+              this.top_level_scope = TopLevelScope::False;
               this.walk_expression(value);
               this.top_level_scope = was_top_level;
             }
@@ -1020,14 +1026,14 @@ impl<'parser> JavascriptParser<'parser> {
             this.walk_identifier(&prop.key.id);
             if let Some(value) = &prop.value {
               let was_top_level = this.top_level_scope;
-              this.top_level_scope = false;
+              this.top_level_scope = TopLevelScope::False;
               this.walk_expression(value);
               this.top_level_scope = was_top_level;
             }
           }
           ClassMember::StaticBlock(block) => {
             let was_top_level = this.top_level_scope;
-            this.top_level_scope = false;
+            this.top_level_scope = TopLevelScope::False;
             this.walk_block_statement(&block.body);
             this.top_level_scope = was_top_level;
           }
