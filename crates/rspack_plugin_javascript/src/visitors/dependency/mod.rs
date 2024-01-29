@@ -12,6 +12,7 @@ use std::sync::Arc;
 
 pub use context_helper::scanner_context_module;
 use rspack_ast::javascript::Program;
+use rspack_core::needs_refactor::WorkerSyntaxList;
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, DependencyLocation,
 };
@@ -72,16 +73,7 @@ pub fn scan_dependencies(
   let comments = program.comments.clone();
   let mut parser_exports_state = None;
   let mut ignored: FxHashSet<DependencyLocation> = FxHashSet::default();
-
-  let worker_syntax_list = if module_type.is_js_auto() || module_type.is_js_esm() {
-    let mut worker_syntax_scanner = rspack_core::needs_refactor::WorkerSyntaxScanner::new(
-      rspack_core::needs_refactor::DEFAULT_WORKER_SYNTAX,
-    );
-    program.visit_with(&mut worker_syntax_scanner);
-    worker_syntax_scanner.result
-  } else {
-    Default::default()
-  };
+  let mut worker_syntax_list = WorkerSyntaxList::default();
 
   let mut parser = JavascriptParser::new(
     source_file.clone(),
@@ -90,7 +82,7 @@ pub fn scan_dependencies(
     &mut presentational_dependencies,
     &mut ignored,
     module_type,
-    &worker_syntax_list,
+    &mut worker_syntax_list,
     resource_data,
     &mut parser_exports_state,
     build_meta,
