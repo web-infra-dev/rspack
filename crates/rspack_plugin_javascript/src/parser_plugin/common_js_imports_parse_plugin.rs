@@ -217,10 +217,12 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     }
   }
 
-  fn call(&self, parser: &mut JavascriptParser, call_expr: &CallExpr) -> Option<bool> {
-    let Callee::Expr(expr) = &call_expr.callee else {
-      return Some(false);
-    };
+  fn call_member_chain_of_call_member_chain(
+    &self,
+    parser: &mut JavascriptParser,
+    call_expr: &CallExpr,
+    _for_name: &str,
+  ) -> Option<bool> {
     if let Some(dep) = call_expr
       .callee
       .as_expr()
@@ -228,9 +230,21 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       .and_then(|mem| self.chain_handler(parser, mem, true))
     {
       parser.dependencies.push(Box::new(dep));
-      return Some(false);
+      parser.walk_expr_or_spread(&call_expr.args);
+      return Some(true);
     }
+    None
+  }
 
+  fn call(
+    &self,
+    parser: &mut JavascriptParser,
+    call_expr: &CallExpr,
+    _for_name: &str,
+  ) -> Option<bool> {
+    let Callee::Expr(expr) = &call_expr.callee else {
+      return Some(false);
+    };
     let deps = self.require_handler(parser, call_expr);
 
     if let Some((commonjs_require_deps, require_helper_deps)) = deps {
@@ -287,7 +301,12 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     None
   }
 
-  fn member(&self, parser: &mut JavascriptParser, expr: &MemberExpr) -> Option<bool> {
+  fn member_chain_of_call_member_chain(
+    &self,
+    parser: &mut JavascriptParser,
+    expr: &MemberExpr,
+    _for_name: &str,
+  ) -> Option<bool> {
     if let Some(dep) = self.chain_handler(parser, expr, false) {
       parser.dependencies.push(Box::new(dep));
       Some(true)

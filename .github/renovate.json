@@ -1,5 +1,7 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "timezone": "Asia/Shanghai",
+  "schedule": ["before 8am on wednesday"],
   "enabledManagers": ["github-actions", "cargo", "npm"],
   "ignorePaths": [
     "**/fixtures/**",
@@ -12,7 +14,6 @@
     {
       "groupName": "github-actions",
       "matchManagers": ["github-actions"],
-      "schedule": ["on wednesday"],
       "assignees": ["@Boshen"],
       "excludePackageNames": ["actions/upload-artifact", "actions/download-artifact"]
     },
@@ -25,7 +26,6 @@
     {
       "groupName": "crates",
       "matchManagers": ["cargo"],
-      "schedule": ["on wednesday"],
       "assignees": ["@Boshen"],
       "excludePackagePrefixes": ["swc"],
       "excludePackageNames": ["ustr", "textwrap", "styled_components", "owo-colors"]
@@ -54,9 +54,8 @@
       "groupName": "npm devDependencies",
       "matchManagers": ["npm"],
       "matchDepTypes": ["devDependencies"],
-      "schedule": ["on wednesday"],
       "excludePackagePrefixes": ["webpack"],
-      "excludePackageNames": ["@playwright/test", "react", "react-dom"],
+      "excludePackageNames": ["@playwright/test", "react", "react-dom", "typescript"],
       "assignees": ["@Boshen"]
     },
     {
@@ -68,7 +67,7 @@
     {
       "groupName": "npm ignored dependencies",
       "matchManagers": ["npm"],
-      "matchPackageNames": ["@playwright/test", "react", "react-dom"],
+      "matchPackageNames": ["@playwright/test", "react", "react-dom", "typescript"],
       "enabled": false
     },
     {
