@@ -64,7 +64,7 @@ export type AssetInfo = Partial<JsAssetInfo> & Record<string, any>;
 export type Assets = Record<string, Source>;
 export interface Asset {
 	name: string;
-	source?: Source;
+	source: Source;
 	info: JsAssetInfo;
 }
 export interface LogEntry {
@@ -467,18 +467,18 @@ export class Compilation {
 		return assets.map(asset => {
 			return Object.defineProperty(asset, "source", {
 				get: () => this.__internal__getAssetSource(asset.name)
-			});
+			}) as Asset;
 		});
 	}
 
-	getAsset(name: string): Asset | undefined {
+	getAsset(name: string): Asset | void {
 		const asset = this.#inner.getAsset(name);
 		if (!asset) {
 			return;
 		}
 		return Object.defineProperty(asset, "source", {
 			get: () => this.__internal__getAssetSource(asset.name)
-		});
+		}) as Asset;
 	}
 
 	pushDiagnostic(
@@ -865,7 +865,7 @@ export class Compilation {
 	 *
 	 * @internal
 	 */
-	__internal__getAssetSource(filename: string): Source | undefined {
+	__internal__getAssetSource(filename: string): Source | void {
 		const rawSource = this.#inner.getAssetSource(filename);
 		if (!rawSource) {
 			return;
