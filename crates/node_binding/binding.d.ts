@@ -1284,11 +1284,3 @@ export interface ThreadsafeNodeFS {
   removeDirAll: (...args: any[]) => any
 }
 
-export interface ThreadsafeNodeFS {
-  writeFile: (...args: any[]) => any
-  removeFile: (...args: any[]) => any
-  mkdir: (...args: any[]) => any
-  mkdirp: (...args: any[]) => any
-  removeDirAll: (...args: any[]) => any
-}
-

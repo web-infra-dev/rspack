@@ -236,7 +236,12 @@ impl<'parser> JavascriptParser<'parser> {
 pub struct CommonJsExportsParserPlugin;
 
 impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
-  fn identifier(&self, parser: &mut JavascriptParser, ident: &Ident) -> Option<bool> {
+  fn identifier(
+    &self,
+    parser: &mut JavascriptParser,
+    ident: &Ident,
+    _for_name: &str,
+  ) -> Option<bool> {
     if parser.is_module_ident(ident) {
       parser.append_module_runtime();
       // here should use, but scanner is not one pass, so here use extra `visit_program` to calculate is_harmony
@@ -290,7 +295,12 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
     }
   }
 
-  fn member(&self, parser: &mut JavascriptParser, mem_expr: &MemberExpr) -> Option<bool> {
+  fn member(
+    &self,
+    parser: &mut JavascriptParser,
+    mem_expr: &MemberExpr,
+    _name: &str,
+  ) -> Option<bool> {
     if parser.is_esm {
       return None;
     }
@@ -435,7 +445,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
     }
   }
 
-  fn call(&self, parser: &mut JavascriptParser, call_expr: &CallExpr) -> Option<bool> {
+  fn call(&self, parser: &mut JavascriptParser, call_expr: &CallExpr, _name: &str) -> Option<bool> {
     if parser.is_esm {
       None
     } else if let Callee::Expr(expr) = &call_expr.callee {

@@ -1,5 +1,5 @@
 mod dependency;
-mod scope_info;
+pub mod scope_info;
 pub mod swc_visitor;
 
 use rspack_ast::javascript::Ast;

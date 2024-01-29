@@ -27,8 +27,7 @@ const lib = {
 };
 /* unused harmony default export */ var __WEBPACK_DEFAULT_EXPORT__ = (lib);
 }),
-"./process.js": (function (module, __unused_webpack_exports, __webpack_require__) {
-/* provided dependency */ var process = __webpack_require__(/*! ./process.js */"./process.js");
+"./process.js": (function (module) {
 // shim for using process in browser
 var process = module.exports = {};
 // cached from whatever global is present so that test runners that stub it

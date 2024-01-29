@@ -15,7 +15,7 @@ fn is_webpack_is_included(ident: &Ident) -> bool {
 pub struct WebpackIsIncludedPlugin;
 
 impl JavascriptParserPlugin for WebpackIsIncludedPlugin {
-  fn call(&self, parser: &mut JavascriptParser<'_>, expr: &CallExpr) -> Option<bool> {
+  fn call(&self, parser: &mut JavascriptParser<'_>, expr: &CallExpr, _name: &str) -> Option<bool> {
     let is_webpack_is_included = expr
       .callee
       .as_expr()
