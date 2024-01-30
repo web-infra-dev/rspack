@@ -259,6 +259,24 @@ impl BasicEvaluatedExpression {
     self.side_effects = false
   }
 
+  pub fn set_truthy(&mut self) {
+    self.falsy = false;
+    self.truthy = true;
+    self.nullish = Some(false);
+  }
+
+  pub fn set_falsy(&mut self) {
+    self.falsy = true;
+    self.truthy = false;
+  }
+
+  pub fn set_nullish(&mut self, nullish: bool) {
+    self.nullish = Some(nullish);
+    if nullish {
+      self.set_falsy()
+    }
+  }
+
   pub fn set_items(&mut self, items: Vec<BasicEvaluatedExpression>) {
     self.ty = Ty::Array;
     self.side_effects = items.iter().any(|item| item.could_have_side_effects());
@@ -362,6 +380,29 @@ impl BasicEvaluatedExpression {
 pub fn evaluate_to_string(value: String, start: u32, end: u32) -> BasicEvaluatedExpression {
   let mut eval = BasicEvaluatedExpression::with_range(start, end);
   eval.set_string(value);
+  eval
+}
+
+pub fn evaluate_to_identifier(
+  identifier: String,
+  root_info: String,
+  truthy: Option<bool>,
+  start: u32,
+  end: u32,
+) -> BasicEvaluatedExpression {
+  let mut eval = BasicEvaluatedExpression::with_range(start, end);
+  eval.set_identifier(identifier, ExportedVariableInfo::Name(root_info));
+  eval.set_side_effects(false);
+  match truthy {
+    Some(v) => {
+      if v {
+        eval.set_truthy();
+      } else {
+        eval.set_falsy();
+      }
+    }
+    None => eval.set_nullish(true),
+  };
   eval
 }
 
