@@ -58,6 +58,7 @@ pub enum ExtraSpanInfo {
 pub fn scan_dependencies(
   source_file: Arc<SourceFile>,
   program: &Program,
+  worker_syntax_list: &mut WorkerSyntaxList,
   resource_data: &ResourceData,
   compiler_options: &CompilerOptions,
   module_type: &ModuleType,
@@ -73,7 +74,6 @@ pub fn scan_dependencies(
   let comments = program.comments.clone();
   let mut parser_exports_state = None;
   let mut ignored: FxHashSet<DependencyLocation> = FxHashSet::default();
-  let mut worker_syntax_list = WorkerSyntaxList::default();
 
   let mut parser = JavascriptParser::new(
     source_file.clone(),
@@ -82,7 +82,7 @@ pub fn scan_dependencies(
     &mut presentational_dependencies,
     &mut ignored,
     module_type,
-    &mut worker_syntax_list,
+    worker_syntax_list,
     resource_data,
     &mut parser_exports_state,
     build_meta,
@@ -119,7 +119,7 @@ pub fn scan_dependencies(
     let mut worker_scanner = WorkerScanner::new(
       &module_identifier,
       &compiler_options.output,
-      &worker_syntax_list,
+      worker_syntax_list,
       &mut ignored,
     );
     program.visit_with(&mut worker_scanner);
