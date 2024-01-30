@@ -1,5 +1,5 @@
 use swc_core::ecma::ast::{
-  AssignExpr, AwaitExpr, BinExpr, CallExpr, ForOfStmt, Ident, IfStmt, MemberExpr, ModuleDecl,
+  AssignExpr, AwaitExpr, BinExpr, CallExpr, Expr, ForOfStmt, Ident, IfStmt, MemberExpr, ModuleDecl,
 };
 use swc_core::ecma::ast::{NewExpr, Program, Stmt, ThisExpr, UnaryExpr, VarDecl, VarDeclarator};
 
@@ -23,6 +23,14 @@ pub trait JavascriptParserPlugin {
   /// The return value will have no effect.
   fn top_level_for_of_await_stmt(&self, _parser: &mut JavascriptParser, _stmt: &ForOfStmt) {}
 
+  fn can_rename(&self, _parser: &mut JavascriptParser, _str: &str) -> Option<bool> {
+    None
+  }
+
+  fn rename(&self, _parser: &mut JavascriptParser, _expr: &Expr, _str: &str) -> Option<bool> {
+    None
+  }
+
   fn program(&self, _parser: &mut JavascriptParser, _ast: &Program) -> Option<bool> {
     None
   }
@@ -40,6 +48,16 @@ pub trait JavascriptParserPlugin {
     &self,
     _parser: &mut JavascriptParser,
     _ident: &Ident,
+    _start: u32,
+    _end: u32,
+  ) -> Option<BasicEvaluatedExpression> {
+    None
+  }
+
+  fn evaluate_identifier(
+    &self,
+    _parser: &mut JavascriptParser,
+    _ident: &str,
     _start: u32,
     _end: u32,
   ) -> Option<BasicEvaluatedExpression> {

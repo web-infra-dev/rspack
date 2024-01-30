@@ -240,13 +240,6 @@ impl VariableInfo {
     tag_info.data = data;
   }
 
-  pub fn free_name(&self) -> &FreeName {
-    self
-      .free_name
-      .as_ref()
-      .expect("make sure `free_name` exist")
-  }
-
   fn set_id(&mut self, id: VariableInfoId) {
     self.id = Some(id);
   }

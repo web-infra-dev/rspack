@@ -379,6 +379,16 @@ impl<'parser> JavascriptParser<'parser> {
     self.definitions_db.set(definitions, name, info);
   }
 
+  fn set_variable(&mut self, name: String, variable: String) {
+    let id = self.definitions;
+    if name == variable {
+      self.definitions_db.delete(id, &name);
+    } else {
+      let variable = VariableInfo::new(id, Some(FreeName::String(variable)), None);
+      self.definitions_db.set(id, name, variable);
+    }
+  }
+
   fn undefined_variable(&mut self, name: String) {
     self.definitions_db.delete(self.definitions, name)
   }
@@ -666,6 +676,7 @@ impl JavascriptParser<'_> {
     match self.evaluating(expr) {
       Some(evaluated) => {
         if evaluated.is_compile_time_value() {
+          // TODO: delete this arm
           let _ = self.ignored.insert(DependencyLocation::new(
             expr.span().real_lo(),
             expr.span().real_hi(),
@@ -700,23 +711,30 @@ impl JavascriptParser<'_> {
         None
       }
       Expr::Ident(ident) => {
+        let drive = self.plugin_drive.clone();
         let Some(info) = self.get_variable_info(&ident.sym) else {
-          let mut eval =
-            BasicEvaluatedExpression::with_range(ident.span.real_lo(), ident.span().hi().0);
-          eval.set_identifier(
-            ident.sym.to_string(),
-            ExportedVariableInfo::Name(ident.sym.to_string()),
-          );
-          return Some(eval);
+          // use `ident.sym` as fallback for global variable(or maybe just a undefined variable)
+          return drive
+            .evaluate_identifier(
+              self,
+              ident.sym.as_str(),
+              ident.span.real_lo(),
+              ident.span.hi.0,
+            )
+            .or_else(|| {
+              let mut eval =
+                BasicEvaluatedExpression::with_range(ident.span.real_lo(), ident.span.hi.0);
+              eval.set_identifier(
+                ident.sym.to_string(),
+                ExportedVariableInfo::Name(ident.sym.to_string()),
+              );
+              Some(eval)
+            });
         };
-        if matches!(info.free_name, Some(FreeName::String(_))) {
-          let mut eval =
-            BasicEvaluatedExpression::with_range(ident.span.real_lo(), ident.span().hi().0);
-          eval.set_identifier(
-            ident.sym.to_string(),
-            ExportedVariableInfo::VariableInfo(info.id()),
-          );
-          return Some(eval);
+        if let Some(FreeName::String(name)) = info.free_name.as_ref() {
+          // avoid ownership
+          let name = name.to_string();
+          return drive.evaluate_identifier(self, &name, ident.span.real_lo(), ident.span.hi.0);
         }
         None
       }
