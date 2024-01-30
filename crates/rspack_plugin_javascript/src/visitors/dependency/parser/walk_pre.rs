@@ -131,9 +131,12 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn pre_walk_for_of_statement(&mut self, stmt: &ForOfStmt) {
-    // TODO: if (stmt.await && self.top_level_scope) {
-    // TODO:    hooks.topLevelAwait call
-    // TODO: }
+    if stmt.is_await && matches!(self.top_level_scope, super::TopLevelScope::Top) {
+      self
+        .plugin_drive
+        .clone()
+        .top_level_for_of_await_stmt(self, stmt);
+    }
     if let Some(left) = stmt.left.as_var_decl() {
       self.pre_walk_variable_declaration(left)
     }

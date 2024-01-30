@@ -1,7 +1,8 @@
 use rspack_core::{
   DependencyTemplate, InitFragmentKey, InitFragmentStage, NormalInitFragment, RuntimeGlobals,
-  TemplateContext, TemplateReplaceSource,
+  TemplateContext, TemplateReplaceSource, UsageState,
 };
+use swc_core::atoms::Atom;
 
 // Mark module `__esModule`.
 // Add `__webpack_require__.r(__webpack_exports__);`.
@@ -19,6 +20,7 @@ impl DependencyTemplate for HarmonyCompatibilityDependency {
       init_fragments,
       compilation,
       module,
+      runtime,
       concatenation_scope,
       ..
     } = code_generatable_context;
@@ -29,20 +31,30 @@ impl DependencyTemplate for HarmonyCompatibilityDependency {
       .module_graph
       .module_by_identifier(&module.identifier())
       .expect("should have mgm");
-    // TODO __esModule is used
-    runtime_requirements.insert(RuntimeGlobals::MAKE_NAMESPACE_OBJECT);
-    runtime_requirements.insert(RuntimeGlobals::EXPORTS);
-    init_fragments.push(Box::new(NormalInitFragment::new(
-      format!(
-        "{}({});\n",
-        RuntimeGlobals::MAKE_NAMESPACE_OBJECT,
-        module.get_exports_argument()
-      ),
-      InitFragmentStage::StageHarmonyExports,
-      0,
-      InitFragmentKey::HarmonyCompatibility,
-      None,
-    )));
+    let exports_info = compilation
+      .module_graph
+      .get_exports_info(&module.identifier());
+    if !matches!(
+      exports_info
+        .id
+        .get_read_only_export_info(&Atom::from("__esModule"), &compilation.module_graph)
+        .get_used(*runtime),
+      UsageState::Unused
+    ) {
+      runtime_requirements.insert(RuntimeGlobals::MAKE_NAMESPACE_OBJECT);
+      runtime_requirements.insert(RuntimeGlobals::EXPORTS);
+      init_fragments.push(Box::new(NormalInitFragment::new(
+        format!(
+          "{}({});\n",
+          RuntimeGlobals::MAKE_NAMESPACE_OBJECT,
+          module.get_exports_argument()
+        ),
+        InitFragmentStage::StageHarmonyExports,
+        0,
+        InitFragmentKey::HarmonyCompatibility,
+        None,
+      )));
+    }
 
     if matches!(
       compilation.module_graph.is_async(&module.identifier()),

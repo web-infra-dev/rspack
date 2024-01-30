@@ -1,5 +1,4 @@
 mod context_helper;
-mod harmony_detection_scanner;
 mod harmony_export_dependency_scanner;
 pub mod harmony_import_dependency_scanner;
 mod hot_module_replacement_scanner;
@@ -13,6 +12,7 @@ use std::sync::Arc;
 
 pub use context_helper::scanner_context_module;
 use rspack_ast::javascript::Program;
+use rspack_core::needs_refactor::WorkerSyntaxList;
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, DependencyLocation,
 };
@@ -24,10 +24,10 @@ use swc_core::common::{SourceFile, Span};
 use swc_core::ecma::atoms::Atom;
 
 use self::harmony_import_dependency_scanner::ImportMap;
-pub use self::parser::{JavascriptParser, TagInfoData};
+pub use self::parser::{CallExpressionInfo, CallHooksName, ExportedVariableInfo};
+pub use self::parser::{JavascriptParser, MemberExpressionInfo, TagInfoData, TopLevelScope};
 pub use self::util::*;
 use self::{
-  harmony_detection_scanner::HarmonyDetectionScanner,
   harmony_export_dependency_scanner::HarmonyExportDependencyScanner,
   harmony_import_dependency_scanner::HarmonyImportDependencyScanner,
   hot_module_replacement_scanner::HotModuleReplacementScanner,
@@ -58,6 +58,7 @@ pub enum ExtraSpanInfo {
 pub fn scan_dependencies(
   source_file: Arc<SourceFile>,
   program: &Program,
+  worker_syntax_list: &mut WorkerSyntaxList,
   resource_data: &ResourceData,
   compiler_options: &CompilerOptions,
   module_type: &ModuleType,
@@ -74,16 +75,6 @@ pub fn scan_dependencies(
   let mut parser_exports_state = None;
   let mut ignored: FxHashSet<DependencyLocation> = FxHashSet::default();
 
-  let worker_syntax_list = if module_type.is_js_auto() || module_type.is_js_esm() {
-    let mut worker_syntax_scanner = rspack_core::needs_refactor::WorkerSyntaxScanner::new(
-      rspack_core::needs_refactor::DEFAULT_WORKER_SYNTAX,
-    );
-    program.visit_with(&mut worker_syntax_scanner);
-    worker_syntax_scanner.result
-  } else {
-    Default::default()
-  };
-
   let mut parser = JavascriptParser::new(
     source_file.clone(),
     compiler_options,
@@ -91,7 +82,7 @@ pub fn scan_dependencies(
     &mut presentational_dependencies,
     &mut ignored,
     module_type,
-    &worker_syntax_list,
+    worker_syntax_list,
     resource_data,
     &mut parser_exports_state,
     build_meta,
@@ -100,22 +91,12 @@ pub fn scan_dependencies(
     &mut warning_diagnostics,
   );
 
-  parser.visit(program.get_inner_program());
+  parser.walk_program(program.get_inner_program());
 
   let mut import_map = Default::default();
   let mut rewrite_usage_span = HashMap::default();
 
   if module_type.is_js_auto() || module_type.is_js_esm() {
-    program.visit_with(&mut HarmonyDetectionScanner::new(
-      source_file.clone(),
-      build_info,
-      build_meta,
-      module_type,
-      compiler_options.experiments.top_level_await,
-      &mut presentational_dependencies,
-      &mut errors,
-      &mut ignored,
-    ));
     program.visit_with(&mut HarmonyImportDependencyScanner::new(
       &mut dependencies,
       &mut presentational_dependencies,
@@ -138,7 +119,7 @@ pub fn scan_dependencies(
     let mut worker_scanner = WorkerScanner::new(
       &module_identifier,
       &compiler_options.output,
-      &worker_syntax_list,
+      worker_syntax_list,
       &mut ignored,
     );
     program.visit_with(&mut worker_scanner);

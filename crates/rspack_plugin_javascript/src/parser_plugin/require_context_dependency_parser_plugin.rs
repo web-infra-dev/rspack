@@ -13,7 +13,7 @@ pub struct RequireContextDependencyParserPlugin;
 const DEFAULT_REGEXP_STR: &str = r"^\.\/.*$";
 
 impl JavascriptParserPlugin for RequireContextDependencyParserPlugin {
-  fn call(&self, parser: &mut JavascriptParser, expr: &CallExpr) -> Option<bool> {
+  fn call(&self, parser: &mut JavascriptParser, expr: &CallExpr, _name: &str) -> Option<bool> {
     if expr
       .callee
       .as_expr()
