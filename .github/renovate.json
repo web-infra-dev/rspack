@@ -34,8 +34,7 @@
       "groupName": "swc",
       "matchManagers": ["cargo"],
       "matchPackagePrefixes": ["swc"],
-      "matchPackageNames": ["styled_components"],
-      "enabled": false
+      "matchPackageNames": ["styled_components"]
     },
     {
       "groupName": "ignored-crates",
