@@ -27,7 +27,7 @@ impl JavascriptParserPlugin for CommonJsPlugin {
     }
   }
 
-  fn member(&self, parser: &mut JavascriptParser, expr: &MemberExpr) -> Option<bool> {
+  fn member(&self, parser: &mut JavascriptParser, expr: &MemberExpr, _name: &str) -> Option<bool> {
     // FIXME: delete this `.clone` after extract expression
     let expr = Expr::Member(expr.clone());
     if expr_matcher::is_module_id(&expr) {

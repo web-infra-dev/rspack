@@ -61,10 +61,10 @@ importers:
         version: 3.0.2
       ts-jest:
         specifier: 29.1.2
-        version: 29.1.2(@babel/core@7.23.2)(jest@29.7.0)(typescript@5.3.3)
+        version: 29.1.2(@babel/core@7.23.2)(jest@29.7.0)(typescript@5.0.2)
       typescript:
-        specifier: 5.3.3
-        version: 5.3.3
+        specifier: 5.0.2
+        version: 5.0.2
       webpack:
         specifier: 5.90.0
         version: 5.90.0(webpack-cli@4.10.0)
@@ -231,7 +231,7 @@ importers:
         version: 2.7.2(webpack@5.90.0)
       postcss-loader:
         specifier: 7.3.4
-        version: 7.3.4(postcss@8.4.31)(typescript@5.3.3)(webpack@5.90.0)
+        version: 7.3.4(postcss@8.4.33)(typescript@5.0.2)(webpack@5.90.0)
       react-refresh:
         specifier: ^0.14.0
         version: 0.14.0
@@ -401,7 +401,7 @@ importers:
         version: 3.3.1(postcss@8.4.21)
       vue:
         specifier: 3.4.15
-        version: 3.4.15(typescript@5.3.3)
+        version: 3.4.15(typescript@5.0.2)
       vue-loader:
         specifier: ^17.3.1
         version: 17.3.1(vue@3.4.15)(webpack@5.90.0)
@@ -519,10 +519,10 @@ importers:
         version: 11.1.0(less@4.2.0)(webpack@5.90.0)
       postcss-loader:
         specifier: ^7.0.2
-        version: 7.0.2(postcss@8.4.31)(webpack@5.90.0)
+        version: 7.0.2(postcss@8.4.33)(webpack@5.90.0)
       postcss-pxtorem:
         specifier: ^6.0.0
-        version: 6.0.0(postcss@8.4.31)
+        version: 6.0.0(postcss@8.4.33)
       pug-loader:
         specifier: ^2.4.0
         version: 2.4.0(pug@2.0.4)
@@ -1041,10 +1041,10 @@ importers:
         version: 11.1.0(less@4.1.3)(webpack@5.90.0)
       postcss-loader:
         specifier: ^7.0.2
-        version: 7.0.2(postcss@8.4.31)(webpack@5.90.0)
+        version: 7.0.2(postcss@8.4.33)(webpack@5.90.0)
       postcss-pxtorem:
         specifier: ^6.0.0
-        version: 6.0.0(postcss@8.4.31)
+        version: 6.0.0(postcss@8.4.33)
       pug-loader:
         specifier: ^2.4.0
         version: 2.4.0(pug@2.0.4)
@@ -7773,7 +7773,7 @@ packages:
     dependencies:
       '@vue/compiler-ssr': 3.4.15
       '@vue/shared': 3.4.15
-      vue: 3.4.15(typescript@5.3.3)
+      vue: 3.4.15(typescript@5.0.2)
     dev: true
 
   /@vue/shared@3.2.45:
@@ -9588,7 +9588,7 @@ packages:
       path-type: 4.0.0
     dev: true
 
-  /cosmiconfig@8.3.6(typescript@5.3.3):
+  /cosmiconfig@8.3.6(typescript@5.0.2):
     resolution: {integrity: sha512-kcZ6+W5QzcJ3P1Mt+83OUv/oHFqZHIx8DuxG6eZ5RGMERoLqp4BuGjhHLYGK+Kf5XVkQvqBSmAy/nGWN3qDgEA==}
     engines: {node: '>=14'}
     peerDependencies:
@@ -9601,7 +9601,7 @@ packages:
       js-yaml: 4.1.0
       parse-json: 5.2.0
       path-type: 4.0.0
-      typescript: 5.3.3
+      typescript: 5.0.2
     dev: true
 
   /create-ecdh@4.0.4:
@@ -14189,7 +14189,7 @@ packages:
       yaml: 1.10.2
     dev: true
 
-  /postcss-loader@7.0.2(postcss@8.4.31)(webpack@5.90.0):
+  /postcss-loader@7.0.2(postcss@8.4.33)(webpack@5.90.0):
     resolution: {integrity: sha512-fUJzV/QH7NXUAqV8dWJ9Lg4aTkDCezpTS5HgJ2DvqznexTbSTxgi/dTECvTZ15BwKTtk8G/bqI/QTu2HPd3ZCg==}
     engines: {node: '>= 14.15.0'}
     peerDependencies:
@@ -14198,7 +14198,7 @@ packages:
     dependencies:
       cosmiconfig: 7.1.0
       klona: 2.0.5
-      postcss: 8.4.31
+      postcss: 8.4.33
       semver: 7.3.8
       webpack: 5.90.0(@swc/core@1.3.99)(webpack-cli@4.10.0)
     dev: true
@@ -14217,16 +14217,16 @@ packages:
       webpack: 5.90.0(webpack-cli@4.10.0)
     dev: true
 
-  /postcss-loader@7.3.4(postcss@8.4.31)(typescript@5.3.3)(webpack@5.90.0):
+  /postcss-loader@7.3.4(postcss@8.4.33)(typescript@5.0.2)(webpack@5.90.0):
     resolution: {integrity: sha512-iW5WTTBSC5BfsBJ9daFMPVrLT36MrNiC6fqOZTTaHjBNX6Pfd5p+hSBqe/fEeNd7pc13QiAyGt7VdGMw4eRC4A==}
     engines: {node: '>= 14.15.0'}
     peerDependencies:
       postcss: ^7.0.0 || ^8.0.1
       webpack: ^5.0.0
     dependencies:
-      cosmiconfig: 8.3.6(typescript@5.3.3)
+      cosmiconfig: 8.3.6(typescript@5.0.2)
       jiti: 1.21.0
-      postcss: 8.4.31
+      postcss: 8.4.33
       semver: 7.5.4
       webpack: 5.90.0(@swc/core@1.3.23)(webpack-cli@4.10.0)
     transitivePeerDependencies:
@@ -14325,12 +14325,12 @@ packages:
       postcss-selector-parser: 6.0.11
     dev: true
 
-  /postcss-pxtorem@6.0.0(postcss@8.4.31):
+  /postcss-pxtorem@6.0.0(postcss@8.4.33):
     resolution: {integrity: sha512-ZRXrD7MLLjLk2RNGV6UA4f5Y7gy+a/j1EqjAfp9NdcNYVjUMvg5HTYduTjSkKBkRkfqbg/iKrjMO70V4g1LZeg==}
     peerDependencies:
       postcss: ^8.0.0
     dependencies:
-      postcss: 8.4.31
+      postcss: 8.4.33
     dev: true
 
   /postcss-selector-parser@6.0.11:
@@ -14355,15 +14355,6 @@ packages:
 
   /postcss@8.4.23:
     resolution: {integrity: sha512-bQ3qMcpF6A/YjR55xtoTr0jGOlnPOKAIMdOWiv0EIT6HVPEaJiJB4NLljSbiHoC2RX7DN5Uvjtpbg1NPdwv1oA==}
-    engines: {node: ^10 || ^12 || >=14}
-    dependencies:
-      nanoid: 3.3.6
-      picocolors: 1.0.0
-      source-map-js: 1.0.2
-    dev: true
-
-  /postcss@8.4.31:
-    resolution: {integrity: sha512-PS08Iboia9mts/2ygV3eLpY5ghnUcfLV/EXTOW1E2qYxJKGGBUtNjN76FYHnMs36RmARn41bC0AZmn+rR0OVpQ==}
     engines: {node: ^10 || ^12 || >=14}
     dependencies:
       nanoid: 3.3.6
@@ -16769,7 +16760,7 @@ packages:
     resolution: {integrity: sha512-Y/arvbn+rrz3JCKl9C4kVNfTfSm2/mEp5FSz5EsZSANGPSlQrpRI5M4PKF+mJnE52jOO90PnPSc3Ur3bTQw0gA==}
     dev: true
 
-  /ts-jest@29.1.2(@babel/core@7.23.2)(jest@29.7.0)(typescript@5.3.3):
+  /ts-jest@29.1.2(@babel/core@7.23.2)(jest@29.7.0)(typescript@5.0.2):
     resolution: {integrity: sha512-br6GJoH/WUX4pu7FbZXuWGKGNDuU7b8Uj77g/Sp7puZV6EXzuByl6JrECvm0MzVzSTkSHWTihsXt+5XYER5b+g==}
     engines: {node: ^16.10.0 || ^18.0.0 || >=20.0.0}
     hasBin: true
@@ -16799,7 +16790,7 @@ packages:
       lodash.memoize: 4.1.2
       make-error: 1.3.6
       semver: 7.5.4
-      typescript: 5.3.3
+      typescript: 5.0.2
       yargs-parser: 21.1.1
     dev: true
 
@@ -16945,9 +16936,9 @@ packages:
     hasBin: true
     dev: true
 
-  /typescript@5.3.3:
-    resolution: {integrity: sha512-pXWcraxM0uxAS+tN0AG/BF2TyqmHO014Z070UsJ+pFvYuRSq8KH8DmWpnbXe0pEPDHXZV3FcAbJkijJ5oNEnWw==}
-    engines: {node: '>=14.17'}
+  /typescript@5.0.2:
+    resolution: {integrity: sha512-wVORMBGO/FAs/++blGNeAVdbNKtIh1rbBL2EyQ1+J9lClJ93KiiKe8PmFIVdXhHcyv44SL9oglmfeSsndo0jRw==}
+    engines: {node: '>=12.20'}
     hasBin: true
     dev: true
 
@@ -17297,7 +17288,7 @@ packages:
     dependencies:
       chalk: 4.1.2
       hash-sum: 2.0.0
-      vue: 3.4.15(typescript@5.3.3)
+      vue: 3.4.15(typescript@5.0.2)
       watchpack: 2.4.0
       webpack: 5.90.0(webpack-cli@4.10.0)
     dev: true
@@ -17311,7 +17302,7 @@ packages:
       '@vue/server-renderer': 3.2.45(vue@3.2.45)
       '@vue/shared': 3.2.45
 
-  /vue@3.4.15(typescript@5.3.3):
+  /vue@3.4.15(typescript@5.0.2):
     resolution: {integrity: sha512-jC0GH4KkWLWJOEQjOpkqU1bQsBwf4R1rsFtw5GQJbjHVKWDzO6P0nWWBTmjp1xSemAioDFj1jdaK1qa3DnMQoQ==}
     peerDependencies:
       typescript: '*'
@@ -17324,7 +17315,7 @@ packages:
       '@vue/runtime-dom': 3.4.15
       '@vue/server-renderer': 3.4.15(vue@3.4.15)
       '@vue/shared': 3.4.15
-      typescript: 5.3.3
+      typescript: 5.0.2
     dev: true
 
   /wabt@1.0.0-nightly.20180421:

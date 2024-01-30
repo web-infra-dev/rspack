@@ -5,7 +5,6 @@ source: crates/rspack_testing/src/run_fixture.rs
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./colors/a.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
-__webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   red: function() { return red; }
 });
@@ -13,7 +12,6 @@ const red = 'red';
 }),
 "./colors/b.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
-__webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   blue: function() { return blue; }
 });
@@ -21,7 +19,6 @@ const blue = 'blue';
 }),
 "./colors/c.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
-__webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   result: function() { return /* reexport safe */ _result__WEBPACK_IMPORTED_MODULE_0__.result; }
 });
@@ -45,15 +42,13 @@ __webpack_require__.d(__webpack_exports__, {
 }),
 "./colors/result.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
-__webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   result: function() { return result; }
 });
 const result = 'ssss';
 }),
-"./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
 "use strict";
-__webpack_require__.r(__webpack_exports__);
 /* harmony import */var _export__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./export */"./colors/index.js");
 /* harmony import */var _export__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./export */"./something/Something.js");
 
@@ -62,7 +57,6 @@ _export__WEBPACK_IMPORTED_MODULE_1__.Something;
 }),
 "./something/Something.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
-__webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   Something: function() { return Something; }
 });

@@ -14,6 +14,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
     &self,
     parser: &mut crate::visitors::JavascriptParser,
     ident: &swc_core::ecma::ast::Ident,
+    _for_name: &str,
   ) -> Option<bool> {
     let Some(node_option) = parser.compiler_options.node.as_ref() else {
       return None;

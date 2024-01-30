@@ -188,17 +188,15 @@ fn handle_logical_and(
   let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.hi().0);
 
   let left = scanner.evaluate_expression(&expr.left);
-
   match left.as_bool() {
     Some(true) => {
-      let right = scanner.evaluate_expression(&expr.right);
       // true && unknown = unknown
-      right.as_bool().map(|b| {
-        // true && right = right
-        res.set_bool(b);
-        res.set_side_effects(left.could_have_side_effects() || right.could_have_side_effects());
-        res
-      })
+      let mut right = scanner.evaluate_expression(&expr.right);
+      if left.could_have_side_effects() {
+        right.set_side_effects(true)
+      }
+      right.set_range(expr.span.real_lo(), expr.span.hi.0);
+      Some(right)
     }
     Some(false) => {
       // false && any = false

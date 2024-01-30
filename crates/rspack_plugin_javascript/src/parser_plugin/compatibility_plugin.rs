@@ -53,6 +53,7 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
     &self,
     parser: &mut JavascriptParser,
     ident: &swc_core::ecma::ast::Ident,
+    _for_name: &str,
   ) -> Option<bool> {
     let name = ident.sym.as_str();
     if !(name == RuntimeGlobals::REQUIRE.name() && parser.is_unresolved_ident(name)) {

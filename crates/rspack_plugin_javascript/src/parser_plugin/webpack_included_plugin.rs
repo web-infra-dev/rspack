@@ -15,14 +15,8 @@ fn is_webpack_is_included(ident: &Ident) -> bool {
 pub struct WebpackIsIncludedPlugin;
 
 impl JavascriptParserPlugin for WebpackIsIncludedPlugin {
-  fn call(&self, parser: &mut JavascriptParser<'_>, expr: &CallExpr) -> Option<bool> {
-    let is_webpack_is_included = expr
-      .callee
-      .as_expr()
-      .and_then(|expr| expr.as_ident())
-      .map(is_webpack_is_included)
-      .unwrap_or_default();
-    if !is_webpack_is_included || expr.args.len() != 1 || expr.args[0].spread.is_some() {
+  fn call(&self, parser: &mut JavascriptParser<'_>, expr: &CallExpr, name: &str) -> Option<bool> {
+    if name != WEBPACK_IS_INCLUDED || expr.args.len() != 1 || expr.args[0].spread.is_some() {
       return None;
     }
 

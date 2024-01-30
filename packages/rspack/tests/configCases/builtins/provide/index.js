@@ -32,7 +32,7 @@ it("should provide a module for a property request", function () {
 
 it("should tree-shake unused exports", function () {
 	expect(aa1(2)).toBe(8);
-	// expect(es2015_aUsed).toBe(false);
+	expect(es2015_aUsed).toBe(false);
 });
 
 it("should provide ES2015 modules", function () {
@@ -62,6 +62,16 @@ it("should not provide for function defined variable", function () {
 		expect(process.a).toBe(undefined);
 	}
 	test({});
+});
+
+it("should not provide for defined variable", function () {
+	let bbb = {};
+	expect(bbb.ccc).toBe(undefined);
+
+	aaa(aaa);
+	function aaa(aaa) {
+		expect(typeof aaa).toBe("function");
+	}
 });
 
 // TODO: Add support for these cases
