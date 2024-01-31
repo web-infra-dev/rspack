@@ -18,9 +18,10 @@ use crate::tree_shaking::visitor::OptimizeAnalyzeResult;
 use crate::{
   AsyncDependenciesBlock, BoxDependency, ChunkGraph, ChunkUkey, CodeGenerationResult, Compilation,
   CompilerContext, CompilerOptions, ConcatenationScope, ConnectionState, Context, ContextModule,
-  DependenciesBlock, DependencyId, DependencyTemplate, ExternalModule, ImmutableModuleGraph,
-  ModuleDependency, ModuleGraph, ModuleGraphAccessor, ModuleType, MutexModuleGraph, NormalModule,
-  RawModule, Resolve, RuntimeSpec, SelfModule, SharedPluginDriver, SourceType,
+  DependenciesBlock, DependencyId, DependencyTemplate, ExportInfoProvided, ExternalModule,
+  ImmutableModuleGraph, ModuleDependency, ModuleGraph, ModuleGraphAccessor, ModuleType,
+  MutexModuleGraph, NormalModule, RawModule, Resolve, RuntimeSpec, SelfModule, SharedPluginDriver,
+  SourceType,
 };
 pub struct BuildContext<'a> {
   pub compiler_context: CompilerContext,
@@ -328,10 +329,10 @@ pub trait Module:
   }
 }
 
-fn get_exports_type_impl(
-  _identifier: ModuleIdentifier,
+fn get_exports_type_impl<'a>(
+  identifier: ModuleIdentifier,
   build_meta: Option<&BuildMeta>,
-  _mga: &mut dyn ModuleGraphAccessor,
+  mga: &mut dyn ModuleGraphAccessor,
   strict: bool,
 ) -> ExportsType {
   if let Some((export_type, default_object)) = build_meta
@@ -362,8 +363,51 @@ fn get_exports_type_impl(
         if strict {
           ExportsType::DefaultWithNamed
         } else {
-          // TODO check target
-          ExportsType::Dynamic
+          fn handle_default(default_object: &BuildMetaDefaultObject) -> ExportsType {
+            match default_object {
+              BuildMetaDefaultObject::Redirect => ExportsType::DefaultWithNamed,
+              BuildMetaDefaultObject::RedirectWarn => ExportsType::DefaultWithNamed,
+              _ => ExportsType::DefaultOnly,
+            }
+          }
+
+          if let Some(export_info) =
+            mga.get_read_only_export_info(&Atom::from("__esModule"), &identifier)
+          {
+            if matches!(export_info.provided, Some(ExportInfoProvided::False)) {
+              handle_default(default_object)
+            } else {
+              let Some(target) = export_info.id.get_target(mga, None) else {
+                return ExportsType::Dynamic;
+              };
+              if target
+                .export
+                .and_then(|t| {
+                  if t.len() == 1 {
+                    t.first().cloned()
+                  } else {
+                    None
+                  }
+                })
+                .is_some_and(|v| v == "__esModule")
+              {
+                let Some(target_exports_type) = mga.get_module_meta_exports_type(&target.module)
+                else {
+                  return ExportsType::Dynamic;
+                };
+                match target_exports_type.as_ref() {
+                  BuildMetaExportsType::Flagged => ExportsType::Namespace,
+                  BuildMetaExportsType::Namespace => ExportsType::Namespace,
+                  BuildMetaExportsType::Default => handle_default(default_object),
+                  _ => ExportsType::Dynamic,
+                }
+              } else {
+                ExportsType::Dynamic
+              }
+            }
+          } else {
+            ExportsType::DefaultWithNamed
+          }
         }
       }
       // algin to undefined
