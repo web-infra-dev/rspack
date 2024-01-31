@@ -48,9 +48,8 @@ pub struct ExtractedMemberExpressionChainData {
 
 bitflags! {
   pub struct AllowedMemberTypes: u8 {
-    const CallExpression = 0b01;
-    const Expression = 0b10;
-    const All = 0b11;
+    const CallExpression = 1 << 0;
+    const Expression = 1 << 1;
   }
 }
 
