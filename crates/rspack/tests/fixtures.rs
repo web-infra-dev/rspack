@@ -1,6 +1,5 @@
 use std::path::PathBuf;
 
-use cargo_rst::git_diff;
 use rspack_core::{
   BoxPlugin, CompilerOptions, MangleExportsOption, PluginExt, TreeShaking, UsedExportsOption,
 };
