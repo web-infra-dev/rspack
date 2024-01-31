@@ -542,7 +542,7 @@ pub fn get_exports_type(
   module_graph
     .module_by_identifier(module)
     .expect("should have mgm")
-    .get_exports_type(strict)
+    .get_exports_type_readonly(module_graph, strict)
 }
 
 pub fn get_exports_type_with_strict(
@@ -556,7 +556,7 @@ pub fn get_exports_type_with_strict(
   module_graph
     .module_by_identifier(module)
     .expect("should have module")
-    .get_exports_type(strict)
+    .get_exports_type_readonly(module_graph, strict)
 }
 
 pub fn module_id_expr(request: &str, module_id: &str) -> String {

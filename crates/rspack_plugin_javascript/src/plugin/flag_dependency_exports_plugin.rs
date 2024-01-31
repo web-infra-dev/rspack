@@ -4,7 +4,7 @@ use std::collections::VecDeque;
 use rspack_core::{
   BuildMetaExportsType, Compilation, DependenciesBlock, DependencyId, ExportInfoProvided,
   ExportNameOrSpec, ExportsInfoId, ExportsOfExportsSpec, ExportsSpec, ModuleGraph,
-  ModuleGraphConnection, ModuleIdentifier, Plugin,
+  ModuleGraphConnection, ModuleIdentifier, MutableModuleGraph, Plugin,
 };
 use rspack_error::Result;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
@@ -314,7 +314,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
       }
 
       // Recalculate target exportsInfo
-      let target = export_info_id.get_target(self.mg, None);
+      let target = export_info_id.get_target(&MutableModuleGraph::new(self.mg), None);
 
       let mut target_exports_info: Option<ExportsInfoId> = None;
       if let Some(target) = target {

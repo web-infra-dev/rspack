@@ -177,7 +177,7 @@ impl ChunkGraph {
     let mut connection_hash_cache: HashMap<Identifier, u64> = HashMap::new();
     let module_graph = &compilation.module_graph;
 
-    let process_module_graph_module = |module: &BoxModule, strict: bool| -> u64 {
+    let process_module_graph_module = |module: &BoxModule, strict: Option<bool>| -> u64 {
       let mut hasher = DefaultHasher::new();
       module.identifier().dyn_hash(&mut hasher);
       module.source_types().dyn_hash(&mut hasher);
@@ -203,9 +203,12 @@ impl ChunkGraph {
           )
         });
 
-      if let Some(module) = module_graph.module_by_identifier(&module.identifier()) {
-        let export_type = module.get_exports_type(strict);
-        export_type.dyn_hash(&mut hasher);
+      if let Some(strict) = strict {
+        if let Some(build_meta) = module.build_meta() {
+          strict.dyn_hash(&mut hasher);
+          build_meta.default_object.dyn_hash(&mut hasher);
+          build_meta.exports_type.dyn_hash(&mut hasher);
+        }
       }
 
       hasher.finish()
@@ -216,7 +219,7 @@ impl ChunkGraph {
       .get_module_hash(&module.identifier())
       .dyn_hash(&mut hasher);
     // hash module graph module
-    process_module_graph_module(module, false).dyn_hash(&mut hasher);
+    process_module_graph_module(module, None).dyn_hash(&mut hasher);
 
     let strict: bool = module_graph
       .module_by_identifier(&module.identifier())
@@ -250,7 +253,7 @@ impl ChunkGraph {
                   connection.module_identifier
                 )
               }),
-            strict,
+            Some(strict),
           );
           connection_hash.dyn_hash(&mut hasher);
           connection_hash_cache.insert(connection.module_identifier, connection_hash);

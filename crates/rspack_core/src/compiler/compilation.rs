@@ -30,7 +30,7 @@ use super::{
 use crate::{
   build_chunk_graph::build_chunk_graph,
   cache::{use_code_splitting_cache, Cache, CodeSplittingCache},
-  get_chunk_from_ukey, get_mut_chunk_from_ukey, is_source_equal,
+  get_chunk_from_ukey, get_mut_chunk_from_ukey, is_source_equal, prepare_get_exports_type,
   tree_shaking::{optimizer, visitor::SymbolRef, BailoutFlag, OptimizeDependencyResult},
   AddQueue, AddQueueHandler, AddTask, AddTaskResult, AdditionalChunkRuntimeRequirementsArgs,
   AdditionalModuleRequirementsArgs, AsyncDependenciesBlock, BoxDependency, BoxModule, BuildQueue,
@@ -1305,6 +1305,13 @@ impl Compilation {
 
       Ok(())
     }
+
+    // FIXME:
+    // Webpack may modify the moduleGraph in module.getExportsType()
+    // and it is widely called after compilaiton.finish()
+    // so add this method to trigger moduleGraph modification and
+    // then make sure that moduleGraph is immutable
+    prepare_get_exports_type(&mut self.module_graph);
 
     run_iteration(self, &mut codegen_cache_counter, |(_, module)| {
       module.get_code_generation_dependencies().is_none()

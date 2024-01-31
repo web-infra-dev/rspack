@@ -6,6 +6,7 @@ use std::ops::Deref;
 use std::sync::atomic::AtomicU32;
 use std::sync::atomic::Ordering::Relaxed;
 use std::sync::Arc;
+use std::sync::Mutex;
 
 use itertools::Itertools;
 use rspack_util::ext::DynHash;
@@ -15,6 +16,7 @@ use serde::Serialize;
 use swc_core::ecma::atoms::Atom;
 
 use crate::property_access;
+use crate::BuildMetaExportsType;
 use crate::Nullable;
 use crate::{
   ConnectionState, DependencyCondition, DependencyId, ModuleGraph, ModuleGraphConnection,
@@ -862,28 +864,28 @@ impl ExportInfoId {
     }
   }
 
-  pub fn get_target(
+  pub fn get_target<'a>(
     &self,
-    mg: &mut ModuleGraph,
+    module_graph_accessor: &'a dyn ModuleGraphAccessor<'a>,
     resolve_filter: Option<ResolveFilterFnTy>,
   ) -> Option<ResolvedExportInfoTarget> {
     let filter = resolve_filter.unwrap_or(Arc::new(|_, _| true));
 
     let mut already_visited = HashSet::default();
-    match self._get_target(mg, filter, &mut already_visited) {
+    match self._get_target(module_graph_accessor, filter, &mut already_visited) {
       Some(ResolvedExportInfoTargetWithCircular::Circular) => None,
       Some(ResolvedExportInfoTargetWithCircular::Target(target)) => Some(target),
       None => None,
     }
   }
 
-  pub fn _get_target(
+  pub fn _get_target<'a>(
     &self,
-    mg: &mut ModuleGraph,
+    mga: &'a dyn ModuleGraphAccessor<'a>,
     resolve_filter: ResolveFilterFnTy,
     already_visited: &mut HashSet<ExportInfoId>,
   ) -> Option<ResolvedExportInfoTargetWithCircular> {
-    let self_export_info = self.get_export_info(mg);
+    let self_export_info = mga.get_export_info(self);
     if self_export_info.target.is_empty() {
       return None;
     }
@@ -892,9 +894,8 @@ impl ExportInfoId {
     }
     already_visited.insert(*self);
 
-    let self_export_info_mut = self.get_export_info_mut(mg);
-    let values = self_export_info_mut
-      .get_max_target()
+    let values = mga
+      .get_max_target(self)
       .values()
       .map(|item| UnResolvedExportInfoTarget {
         connection: item.connection,
@@ -905,7 +906,7 @@ impl ExportInfoId {
       values.first().cloned(),
       already_visited,
       resolve_filter.clone(),
-      mg,
+      mga,
     );
 
     match target {
@@ -916,7 +917,7 @@ impl ExportInfoId {
       Some(ResolvedExportInfoTargetWithCircular::Target(target)) => {
         for val in values.into_iter().skip(1) {
           let resolved_target =
-            ExportInfo::resolve_target(Some(val), already_visited, resolve_filter.clone(), mg);
+            ExportInfo::resolve_target(Some(val), already_visited, resolve_filter.clone(), mga);
           match resolved_target {
             Some(ResolvedExportInfoTargetWithCircular::Circular) => {
               return Some(ResolvedExportInfoTargetWithCircular::Circular);
@@ -1004,7 +1005,11 @@ impl ExportInfoId {
     resolve_filter: ResolveFilterFnTy,
     update_original_connection: UpdateOriginalFunctionTy,
   ) -> Option<ResolvedExportInfoTarget> {
-    let target = self._get_target(mg, resolve_filter, &mut HashSet::default());
+    let target = self._get_target(
+      &MutableModuleGraph::new(mg),
+      resolve_filter,
+      &mut HashSet::default(),
+    );
     let target = match target {
       Some(ResolvedExportInfoTargetWithCircular::Circular) => return None,
       Some(ResolvedExportInfoTargetWithCircular::Target(target)) => target,
@@ -1501,6 +1506,28 @@ impl ExportInfo {
     }
   }
 
+  fn _get_max_target(&self) -> HashMap<Option<DependencyId>, ExportInfoTargetValue> {
+    if self.target.len() <= 1 {
+      return self.target.clone();
+    }
+    let mut max_priority = u8::MIN;
+    let mut min_priority = u8::MAX;
+    for value in self.target.values() {
+      max_priority = max_priority.max(value.priority);
+      min_priority = min_priority.min(value.priority);
+    }
+    if max_priority == min_priority {
+      return self.target.clone();
+    }
+    let mut map = HashMap::default();
+    for (k, v) in self.target.iter() {
+      if max_priority == v.priority {
+        map.insert(*k, v.clone());
+      }
+    }
+    map
+  }
+
   fn get_max_target_readonly(&self) -> &HashMap<Option<DependencyId>, ExportInfoTargetValue> {
     assert!(self.max_target_is_set);
     &self.max_target
@@ -1510,39 +1537,17 @@ impl ExportInfo {
     if self.max_target_is_set {
       return &self.max_target;
     }
-    if self.target.len() <= 1 {
-      self.max_target_is_set = true;
-      self.max_target = self.target.clone();
-      return &self.max_target;
-    }
-    let mut max_priority = u8::MIN;
-    let mut min_priority = u8::MAX;
-    for value in self.target.values() {
-      max_priority = max_priority.max(value.priority);
-      min_priority = min_priority.min(value.priority);
-    }
-    if max_priority == min_priority {
-      self.max_target_is_set = true;
-      self.max_target = self.target.clone();
-      return &self.max_target;
-    }
-    let mut map = HashMap::default();
-    for (k, v) in self.target.iter() {
-      if max_priority == v.priority {
-        map.insert(*k, v.clone());
-      }
-    }
+    self.max_target = self._get_max_target();
     self.max_target_is_set = true;
-    self.max_target = map;
     &self.max_target
   }
 
   #[allow(clippy::unwrap_in_result)]
-  fn resolve_target(
+  fn resolve_target<'a>(
     input_target: Option<UnResolvedExportInfoTarget>,
     already_visited: &mut HashSet<ExportInfoId>,
     resolve_filter: ResolveFilterFnTy,
-    mg: &mut ModuleGraph,
+    mga: &'a dyn ModuleGraphAccessor<'a>,
   ) -> Option<ResolvedExportInfoTargetWithCircular> {
     if let Some(input_target) = input_target {
       let mut target = ResolvedExportInfoTarget {
@@ -1557,7 +1562,7 @@ impl ExportInfo {
       if target.export.is_none() {
         return Some(ResolvedExportInfoTargetWithCircular::Target(target));
       }
-      if !resolve_filter(&target, mg) {
+      if !mga.run_resolve_filter(&target, &resolve_filter) {
         return Some(ResolvedExportInfoTargetWithCircular::Target(target));
       }
       loop {
@@ -1568,17 +1573,11 @@ impl ExportInfo {
           return Some(ResolvedExportInfoTargetWithCircular::Target(target));
         };
 
-        let export_info_id = {
-          let id = mg
-            .module_graph_module_by_identifier(&target.module)
-            .expect("should have mgm")
-            .exports;
-          id.get_export_info(name, mg)
-        };
+        let export_info_id = mga.get_export_info_id(name, &target.module);
         if already_visited.contains(&export_info_id) {
           return Some(ResolvedExportInfoTargetWithCircular::Circular);
         }
-        let new_target = export_info_id._get_target(mg, resolve_filter.clone(), already_visited);
+        let new_target = export_info_id._get_target(mga, resolve_filter.clone(), already_visited);
 
         match new_target {
           Some(ResolvedExportInfoTargetWithCircular::Circular) => {
@@ -1605,10 +1604,10 @@ impl ExportInfo {
             }
           }
         }
-        if !resolve_filter(&target, mg) {
+        if !mga.run_resolve_filter(&target, &resolve_filter) {
           return Some(ResolvedExportInfoTargetWithCircular::Target(target));
         }
-        already_visited.insert(export_info_id);
+        already_visited.insert(*export_info_id);
       }
     } else {
       None
@@ -1883,4 +1882,248 @@ macro_rules! debug_exports_info {
       dbg!(&export_info);
     }
   };
+}
+
+pub trait ModuleGraphAccessor<'a> {
+  fn run_resolve_filter(
+    &self,
+    target: &ResolvedExportInfoTarget,
+    resolve_filter: &ResolveFilterFnTy,
+  ) -> bool;
+  fn get_export_info(&self, export_info_id: &ExportInfoId) -> Arc<ExportInfo>;
+  fn get_export_info_id(
+    &self,
+    name: &Atom,
+    module_identifier: &ModuleIdentifier,
+  ) -> Arc<ExportInfoId>;
+  fn get_max_target(
+    &self,
+    export_info_id: &ExportInfoId,
+  ) -> Arc<HashMap<Option<DependencyId>, ExportInfoTargetValue>>;
+  fn get_module_meta_exports_type(
+    &self,
+    module_identifier: &ModuleIdentifier,
+  ) -> Option<Arc<BuildMetaExportsType>>;
+  fn get_read_only_export_info(
+    &self,
+    name: &Atom,
+    module_identifier: &ModuleIdentifier,
+  ) -> Option<Arc<ExportInfo>>;
+}
+
+pub struct MutableModuleGraph<'a> {
+  inner: Mutex<&'a mut ModuleGraph>,
+}
+
+impl<'a> MutableModuleGraph<'a> {
+  pub fn new(mg: &'a mut ModuleGraph) -> Self {
+    Self {
+      inner: Mutex::new(mg),
+    }
+  }
+}
+
+impl<'a> ModuleGraphAccessor<'a> for MutableModuleGraph<'a> {
+  fn get_export_info_id(
+    &self,
+    name: &Atom,
+    module_identifier: &ModuleIdentifier,
+  ) -> Arc<ExportInfoId> {
+    Arc::new(
+      self
+        .inner
+        .lock()
+        .map(|mut mg| {
+          let exports = mg
+            .module_graph_module_by_identifier(module_identifier)
+            .expect("should have mgm")
+            .exports;
+          exports.get_export_info(name, &mut mg)
+        })
+        .expect("Can get export info id"),
+    )
+  }
+
+  fn get_max_target(
+    &self,
+    export_info_id: &ExportInfoId,
+  ) -> Arc<HashMap<Option<DependencyId>, ExportInfoTargetValue>> {
+    Arc::new(
+      self
+        .inner
+        .lock()
+        .map(|mut mg| {
+          mg.get_export_info_mut_by_id(export_info_id)
+            .get_max_target()
+            .to_owned()
+        })
+        .expect("Can get export info id"),
+    )
+  }
+
+  fn run_resolve_filter(
+    &self,
+    target: &ResolvedExportInfoTarget,
+    resolve_filter: &ResolveFilterFnTy,
+  ) -> bool {
+    self
+      .inner
+      .lock()
+      .map(|mg| resolve_filter(target, &mg))
+      .expect("Can run resolve filter")
+  }
+
+  fn get_export_info(&self, export_info_id: &ExportInfoId) -> Arc<ExportInfo> {
+    Arc::new(
+      self
+        .inner
+        .lock()
+        .map(|mg| mg.get_export_info_by_id(export_info_id).to_owned())
+        .expect("Can get export info"),
+    )
+  }
+
+  fn get_read_only_export_info(
+    &self,
+    name: &Atom,
+    module_identifier: &ModuleIdentifier,
+  ) -> Option<Arc<ExportInfo>> {
+    self
+      .inner
+      .lock()
+      .map(|mg| {
+        mg.get_read_only_export_info(module_identifier, name.to_owned())
+          .map(|i| Arc::new(i.to_owned()))
+      })
+      .expect("Can get read only export info")
+  }
+
+  fn get_module_meta_exports_type(
+    &self,
+    module_identifier: &ModuleIdentifier,
+  ) -> Option<Arc<BuildMetaExportsType>> {
+    self
+      .inner
+      .lock()
+      .map(|mg: std::sync::MutexGuard<'_, &mut ModuleGraph>| {
+        mg.module_by_identifier(module_identifier)
+          .and_then(|m| m.build_meta())
+          .map(|meta| meta.exports_type)
+          .map(Arc::new)
+      })
+      .expect("Can get read only export info")
+  }
+}
+
+pub struct ImmutableModuleGraph<'a> {
+  inner: &'a ModuleGraph,
+}
+
+impl<'a> ImmutableModuleGraph<'a> {
+  pub fn new(mg: &'a ModuleGraph) -> Self {
+    Self { inner: mg }
+  }
+}
+
+impl<'a> ModuleGraphAccessor<'a> for ImmutableModuleGraph<'a> {
+  fn get_export_info_id(
+    &self,
+    name: &Atom,
+    module_identifier: &ModuleIdentifier,
+  ) -> Arc<ExportInfoId> {
+    Arc::new(
+      self
+        .inner
+        .module_graph_module_by_identifier(module_identifier)
+        .expect("should have mgm")
+        .exports
+        .get_read_only_export_info(name, self.inner)
+        .id,
+    )
+  }
+
+  fn get_max_target(
+    &self,
+    export_info_id: &ExportInfoId,
+  ) -> Arc<HashMap<Option<DependencyId>, ExportInfoTargetValue>> {
+    Arc::new({
+      let export_info_id = self.inner.get_export_info_by_id(export_info_id);
+
+      if export_info_id.max_target_is_set {
+        export_info_id.get_max_target_readonly().to_owned()
+      } else {
+        // FIXME:
+        // max target should be cached
+        // but when moduleGraph is immutable and no cached max target
+        // generate a new one, this should be removed
+        // when module graph in get_exports and get_referenced_exports
+        // is refactored to mutable
+        export_info_id._get_max_target()
+      }
+    })
+  }
+
+  fn run_resolve_filter(
+    &self,
+    target: &ResolvedExportInfoTarget,
+    resolve_filter: &ResolveFilterFnTy,
+  ) -> bool {
+    resolve_filter(target, self.inner)
+  }
+
+  fn get_export_info(&self, export_info_id: &ExportInfoId) -> Arc<ExportInfo> {
+    Arc::new(self.inner.get_export_info_by_id(export_info_id).to_owned())
+  }
+
+  fn get_read_only_export_info(
+    &self,
+    name: &Atom,
+    module_identifier: &ModuleIdentifier,
+  ) -> Option<Arc<ExportInfo>> {
+    self
+      .inner
+      .get_read_only_export_info(module_identifier, name.to_owned())
+      .map(|i| Arc::new(i.to_owned()))
+  }
+
+  fn get_module_meta_exports_type(
+    &self,
+    module_identifier: &ModuleIdentifier,
+  ) -> Option<Arc<BuildMetaExportsType>> {
+    self
+      .inner
+      .module_by_identifier(module_identifier)
+      .and_then(|m| m.build_meta())
+      .map(|meta| meta.exports_type)
+      .map(Arc::new)
+  }
+}
+
+pub fn prepare_get_exports_type(mg: &mut ModuleGraph) {
+  let export_info_ids = mg
+    .modules()
+    .values()
+    .filter_map(|module| {
+      let Some(export_type) = module.build_meta().as_ref().map(|m| &m.exports_type) else {
+        return None;
+      };
+      if !matches!(export_type, BuildMetaExportsType::Dynamic) {
+        return None;
+      }
+      let Some(export_info) =
+        mg.get_read_only_export_info(&module.identifier(), Atom::from("__esModule"))
+      else {
+        return None;
+      };
+      if !matches!(export_info.provided, Some(ExportInfoProvided::False)) {
+        Some(export_info.id)
+      } else {
+        None
+      }
+    })
+    .collect_vec();
+  let mga = MutableModuleGraph::new(mg);
+  for export_info_id in export_info_ids {
+    let _ = export_info_id.get_target(&mga, None);
+  }
 }

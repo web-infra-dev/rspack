@@ -1034,6 +1034,16 @@ impl ModuleGraph {
       .expect("should have module graph module");
     mgm.optimization_bailout_mut()
   }
+
+  pub fn get_read_only_export_info(
+    &self,
+    module_identifier: &ModuleIdentifier,
+    name: Atom,
+  ) -> Option<&ExportInfo> {
+    self
+      .module_graph_module_by_identifier(module_identifier)
+      .map(|mgm| mgm.exports.get_read_only_export_info(&name, self))
+  }
 }
 
 fn get_connections_by_origin_module(

@@ -5,7 +5,8 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use once_cell::sync::Lazy;
 use rspack_core::{
-  Compilation, ConnectionState, ModuleGraph, ModuleIdentifier, Plugin, ResolvedExportInfoTarget,
+  Compilation, ConnectionState, ModuleGraph, ModuleIdentifier, MutableModuleGraph, Plugin,
+  ResolvedExportInfoTarget,
 };
 use rspack_error::Result;
 use rspack_identifier::IdentifierSet;
@@ -556,7 +557,7 @@ impl Plugin for SideEffectsFlagPlugin {
           let export_info_id = cur_exports_info_id.get_export_info(&ids[0], mg);
 
           let target = export_info_id.get_target(
-            mg,
+            &MutableModuleGraph::new(mg),
             Some(Arc::new(
               |target: &ResolvedExportInfoTarget, mg: &ModuleGraph| {
                 mg.module_by_identifier(&target.module)
