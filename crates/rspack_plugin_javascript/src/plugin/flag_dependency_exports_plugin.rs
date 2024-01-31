@@ -2,9 +2,9 @@ use std::collections::hash_map::Entry;
 use std::collections::VecDeque;
 
 use rspack_core::{
-  BuildMetaExportsType, Compilation, DependenciesBlock, Dependency, DependencyId,
-  ExportInfoProvided, ExportNameOrSpec, ExportsInfoId, ExportsOfExportsSpec, ExportsSpec,
-  ModuleGraph, ModuleGraphConnection, ModuleIdentifier, Plugin,
+  BuildMetaExportsType, Compilation, DependenciesBlock, DependencyId, ExportInfoProvided,
+  ExportNameOrSpec, ExportsInfoId, ExportsOfExportsSpec, ExportsSpec, ModuleGraph,
+  ModuleGraphConnection, ModuleIdentifier, Plugin,
 };
 use rspack_error::Result;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
