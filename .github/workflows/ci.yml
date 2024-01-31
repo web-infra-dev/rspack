@@ -14,8 +14,6 @@ on:
     types: [opened, synchronize]
     paths-ignore:
       - "**/*.md"
-    branches-ignore:
-      - "release-**"
   push:
     branches:
       - main
