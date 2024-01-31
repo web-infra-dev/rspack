@@ -1,7 +1,6 @@
 mod context_helper;
 mod harmony_export_dependency_scanner;
 pub mod harmony_import_dependency_scanner;
-mod import_meta_scanner;
 mod parser;
 mod util;
 
@@ -27,7 +26,6 @@ pub use self::util::*;
 use self::{
   harmony_export_dependency_scanner::HarmonyExportDependencyScanner,
   harmony_import_dependency_scanner::HarmonyImportDependencyScanner,
-  import_meta_scanner::ImportMetaScanner,
 };
 
 pub struct ScanDependenciesResult {
@@ -110,14 +108,6 @@ pub fn scan_dependencies(
       build_info,
       &mut rewrite_usage_span,
       comments,
-      &mut ignored,
-    ));
-    program.visit_with(&mut ImportMetaScanner::new(
-      source_file.clone(),
-      &mut presentational_dependencies,
-      resource_data,
-      compiler_options,
-      &mut warning_diagnostics,
       &mut ignored,
     ));
   }

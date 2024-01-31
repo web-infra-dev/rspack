@@ -11,6 +11,7 @@ mod harmony_detection_parser_plugin;
 mod harmony_top_level_this_plugin;
 mod hot_module_replacement_plugin;
 mod import_meta_context_dependency_parser_plugin;
+mod import_meta_plugin;
 mod import_parser_plugin;
 mod node_stuff_plugin;
 mod provide;
@@ -34,6 +35,7 @@ pub(crate) use self::harmony_detection_parser_plugin::HarmonDetectionParserPlugi
 pub(crate) use self::harmony_top_level_this_plugin::HarmonyTopLevelThisParserPlugin;
 pub(crate) use self::hot_module_replacement_plugin::hot_module_replacement;
 pub(crate) use self::import_meta_context_dependency_parser_plugin::ImportMetaContextDependencyParserPlugin;
+pub(crate) use self::import_meta_plugin::ImportMetaPlugin;
 pub(crate) use self::import_parser_plugin::ImportParserPlugin;
 pub(crate) use self::node_stuff_plugin::NodeStuffPlugin;
 pub(crate) use self::provide::ProviderPlugin;

@@ -1,9 +1,10 @@
+use swc_core::common::Span;
 use swc_core::ecma::ast::{BinExpr, CallExpr, IfStmt, VarDecl, VarDeclarator};
 
 use super::{BoxJavascriptParserPlugin, JavascriptParserPlugin};
 use crate::parser_plugin::r#const::is_logic_op;
 use crate::utils::eval::BasicEvaluatedExpression;
-use crate::visitors::JavascriptParser;
+use crate::visitors::{ExportedVariableInfo, JavascriptParser};
 
 pub struct JavaScriptParserPluginDrive {
   plugins: Vec<BoxJavascriptParserPlugin>,
@@ -342,6 +343,38 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     assert!(expr.callee.is_import());
     for plugin in &self.plugins {
       let res = plugin.import_call(parser, expr);
+      // `SyncBailHook`
+      if res.is_some() {
+        return res;
+      }
+    }
+    None
+  }
+
+  fn meta_property(
+    &self,
+    parser: &mut JavascriptParser,
+    root_name: &swc_core::atoms::Atom,
+    span: Span,
+  ) -> Option<bool> {
+    for plugin in &self.plugins {
+      let res = plugin.meta_property(parser, root_name, span);
+      // `SyncBailHook`
+      if res.is_some() {
+        return res;
+      }
+    }
+    None
+  }
+
+  fn unhandled_expression_member_chain(
+    &self,
+    parser: &mut JavascriptParser,
+    root_info: &ExportedVariableInfo,
+    expr: &swc_core::ecma::ast::MemberExpr,
+  ) -> Option<bool> {
+    for plugin in &self.plugins {
+      let res = plugin.unhandled_expression_member_chain(parser, root_info, expr);
       // `SyncBailHook`
       if res.is_some() {
         return res;
