@@ -1,7 +1,7 @@
-use rspack_core::{module_id_expr, AsModuleDependency, ContextDependency};
+use rspack_core::{module_raw, AsModuleDependency, ContextDependency};
 use rspack_core::{normalize_context, DependencyCategory, DependencyId, DependencyTemplate};
 use rspack_core::{ContextOptions, Dependency, TemplateReplaceSource};
-use rspack_core::{DependencyType, ErrorSpan, RuntimeGlobals, TemplateContext};
+use rspack_core::{DependencyType, ErrorSpan, TemplateContext};
 
 use super::create_resource_identifier_for_context_dependency;
 
@@ -93,29 +93,26 @@ impl DependencyTemplate for CommonJsRequireContextDependency {
       ..
     } = code_generatable_context;
 
-    let module_id = compilation
-      .module_graph
-      .module_graph_module_by_dependency_id(&self.id)
-      .map(|m| m.id(&compilation.chunk_graph))
-      .unwrap_or_else(|| {
-        panic!(
-          "should have dependency id, failed at {}",
-          compilation.options.context
-        )
-      });
-
-    let module_id_str = module_id_expr(&self.options.request, module_id);
-
-    runtime_requirements.insert(RuntimeGlobals::REQUIRE);
-    source.replace(
-      self.callee_start,
-      self.callee_end,
-      format!("{}({module_id_str})", RuntimeGlobals::REQUIRE).as_str(),
-      None,
+    let expr = module_raw(
+      compilation,
+      runtime_requirements,
+      &self.id,
+      self.request(),
+      false,
     );
 
-    let context = normalize_context(&self.options.request);
+    if compilation
+      .module_graph
+      .module_graph_module_by_dependency_id(&self.id)
+      .is_none()
+    {
+      source.replace(self.callee_start, self.args_end, &expr, None);
+      return;
+    }
 
+    source.replace(self.callee_start, self.callee_end, &expr, None);
+
+    let context = normalize_context(&self.options.request);
     if !context.is_empty() {
       source.insert(self.callee_end, "(", None);
       source.insert(
