@@ -201,7 +201,7 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
             asi_safe: Some(false),
             ..Default::default()
           },
-        ) + property_access(ids.into_iter(), 0).as_str()
+        ) + property_access(ids, 0).as_str()
       } else {
         scope.create_module_reference(
           &con.module_identifier,
