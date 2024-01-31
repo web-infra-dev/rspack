@@ -381,7 +381,7 @@ pub fn is_pure_class(
 
   class.body.iter().all(|item| -> bool {
     match item {
-      ClassMember::Constructor(cons) => !class.super_class.is_some(),
+      ClassMember::Constructor(_) => class.super_class.is_none(),
       ClassMember::Method(method) => is_pure_key(&method.key),
       ClassMember::PrivateMethod(method) => is_pure_expression(
         &Expr::PrivateName(method.key.clone()),
