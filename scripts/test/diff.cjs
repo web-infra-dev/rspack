@@ -1,399 +1,131 @@
 const path = require("path");
 const fs = require("fs");
-const prettier = require("prettier");
+
+const {
+	any,
+	retain,
+	each,
+	not,
+	includedIn,
+	matchedInAny,
+	matchedWith,
+	unify,
+	toSet,
+	zip
+} = require("./math.cjs");
+const isBinaryPath = require("./binary-path.cjs");
+const {
+	recursiveCompare,
+	recursiveCompareStrict
+} = require("./recursive-compare.cjs");
 
 const WORKSPACE_ROOT = path.resolve(__dirname, "../../");
-
 const RSPACK_TEST = "packages/rspack/tests";
 const WEBPACK_TEST = "webpack-test";
 
-async function getCommon(
-	baseA,
-	baseB,
-	result = new Set(),
-	difference = new Set()
-) {
-	const a = fs.readdirSync(baseA, {
-		withFileTypes: true
-	});
-	const b = fs.readdirSync(baseB, {
-		withFileTypes: true
-	});
+const indentLines = s =>
+	s
+		.split(/\r?\n/)
+		.map(s => `\t${s}`)
+		.join("\n");
+const help = s => `\nhelp:\n${indentLines(s)}`;
+const suggestion = s => `\nsuggestion:\n${indentLines(s)}`;
 
-	let set = new Set();
-	let ap = a.map(item => item.name);
-	let bp = b.map(item => item.name);
-	for (let i = 0; i < a.length; i++) {
-		if (bp.includes(a[i].name)) {
-			set.add(a[i].name);
-		}
+const format = (s, o) => require("prettier").format(s, o);
+const CONTENT_COMPARATOR = async (p, a, b) => {
+	if (isBinaryPath(p)) {
+		return a.equals(b);
 	}
-	for (let i = 0; i < b.length; i++) {
-		if (ap.includes(b[i].name)) {
-			set.add(b[i].name);
-		}
-	}
+	let aa = a.toString().trim();
+	let bb = b.toString().trim();
+	try {
+		const o = {
+			filepath: p
+		};
+		aa = await format(aa, o);
+		bb = await format(bb, o);
+	} catch (e) {}
+	return aa === bb;
+};
 
-	set = Array.from(set).map(async item => {
-		let old = path.join(WORKSPACE_ROOT, RSPACK_TEST);
-		let nextA = path.join(baseA, item);
-		let nextB = path.join(baseB, item);
-		if (fs.lstatSync(nextA).isFile() && fs.lstatSync(nextB).isFile()) {
-			let p = path.relative(old, nextA);
-			let withoutEnd = p.split(path.sep).slice(0, -1).join(path.sep);
-			let a = fs.readFileSync(nextA);
-			let b = fs.readFileSync(nextB);
+async function main() {
+	const [identical, difference] = await recursiveCompare(
+		path.join(WORKSPACE_ROOT, RSPACK_TEST),
+		path.join(WORKSPACE_ROOT, WEBPACK_TEST),
+		CONTENT_COMPARATOR
+	);
 
-			if (isBinaryPath(p)) {
-				bufferCompare();
-			} else {
-				await trimAndCompare();
-			}
+	let errored = false;
 
-			async function trimAndCompare() {
-				let aa = a.toString().trim();
-				let bb = b.toString().trim();
-				try {
-					// Assume they share the same file type
-					const option = {
-						filepath: nextA
-					};
-					aa = await prettier.format(aa, option);
-					bb = await prettier.format(bb, option);
-				} catch (e) {}
-
-				if (aa !== bb) {
-					difference.add(p);
-				} else {
-					result.add(p);
-				}
-			}
-
-			function bufferCompare() {
-				if (!a.equals(b)) {
-					difference.add(p);
-				} else {
-					result.add(p);
-				}
-			}
-		} else {
-			await getCommon(nextA, nextB, result, difference);
-		}
-	});
-
-	await Promise.all(set);
-}
-
-/**
- * The following code is copied from
- * https://github.com/sindresorhus/binary-extensions/blob/40e44b510d87a63dcf42300bc8fbcb105f45a61c/binary-extensions.json
- *
- * MIT Licensed
- * Author Sindre Sorhus @sindresorhus
- */
-
-const BINARY_EXT = [
-	"3dm",
-	"3ds",
-	"3g2",
-	"3gp",
-	"7z",
-	"a",
-	"aac",
-	"adp",
-	"ai",
-	"aif",
-	"aiff",
-	"alz",
-	"ape",
-	"apk",
-	"appimage",
-	"ar",
-	"arj",
-	"asf",
-	"au",
-	"avi",
-	"bak",
-	"baml",
-	"bh",
-	"bin",
-	"bk",
-	"bmp",
-	"btif",
-	"bz2",
-	"bzip2",
-	"cab",
-	"caf",
-	"cgm",
-	"class",
-	"cmx",
-	"cpio",
-	"cr2",
-	"cur",
-	"dat",
-	"dcm",
-	"deb",
-	"dex",
-	"djvu",
-	"dll",
-	"dmg",
-	"dng",
-	"doc",
-	"docm",
-	"docx",
-	"dot",
-	"dotm",
-	"dra",
-	"DS_Store",
-	"dsk",
-	"dts",
-	"dtshd",
-	"dvb",
-	"dwg",
-	"dxf",
-	"ecelp4800",
-	"ecelp7470",
-	"ecelp9600",
-	"egg",
-	"eol",
-	"eot",
-	"epub",
-	"exe",
-	"f4v",
-	"fbs",
-	"fh",
-	"fla",
-	"flac",
-	"flatpak",
-	"fli",
-	"flv",
-	"fpx",
-	"fst",
-	"fvt",
-	"g3",
-	"gh",
-	"gif",
-	"graffle",
-	"gz",
-	"gzip",
-	"h261",
-	"h263",
-	"h264",
-	"icns",
-	"ico",
-	"ief",
-	"img",
-	"ipa",
-	"iso",
-	"jar",
-	"jpeg",
-	"jpg",
-	"jpgv",
-	"jpm",
-	"jxr",
-	"key",
-	"ktx",
-	"lha",
-	"lib",
-	"lvp",
-	"lz",
-	"lzh",
-	"lzma",
-	"lzo",
-	"m3u",
-	"m4a",
-	"m4v",
-	"mar",
-	"mdi",
-	"mht",
-	"mid",
-	"midi",
-	"mj2",
-	"mka",
-	"mkv",
-	"mmr",
-	"mng",
-	"mobi",
-	"mov",
-	"movie",
-	"mp3",
-	"mp4",
-	"mp4a",
-	"mpeg",
-	"mpg",
-	"mpga",
-	"mxu",
-	"nef",
-	"npx",
-	"numbers",
-	"nupkg",
-	"o",
-	"odp",
-	"ods",
-	"odt",
-	"oga",
-	"ogg",
-	"ogv",
-	"otf",
-	"ott",
-	"pages",
-	"pbm",
-	"pcx",
-	"pdb",
-	"pdf",
-	"pea",
-	"pgm",
-	"pic",
-	"png",
-	"pnm",
-	"pot",
-	"potm",
-	"potx",
-	"ppa",
-	"ppam",
-	"ppm",
-	"pps",
-	"ppsm",
-	"ppsx",
-	"ppt",
-	"pptm",
-	"pptx",
-	"psd",
-	"pya",
-	"pyc",
-	"pyo",
-	"pyv",
-	"qt",
-	"rar",
-	"ras",
-	"raw",
-	"resources",
-	"rgb",
-	"rip",
-	"rlc",
-	"rmf",
-	"rmvb",
-	"rpm",
-	"rtf",
-	"rz",
-	"s3m",
-	"s7z",
-	"scpt",
-	"sgi",
-	"shar",
-	"snap",
-	"sil",
-	"sketch",
-	"slk",
-	"smv",
-	"snk",
-	"so",
-	"stl",
-	"suo",
-	"sub",
-	"swf",
-	"tar",
-	"tbz",
-	"tbz2",
-	"tga",
-	"tgz",
-	"thmx",
-	"tif",
-	"tiff",
-	"tlz",
-	"ttc",
-	"ttf",
-	"txz",
-	"udf",
-	"uvh",
-	"uvi",
-	"uvm",
-	"uvp",
-	"uvs",
-	"uvu",
-	"viv",
-	"vob",
-	"war",
-	"wav",
-	"wax",
-	"wbmp",
-	"wdp",
-	"weba",
-	"webm",
-	"webp",
-	"whl",
-	"wim",
-	"wm",
-	"wma",
-	"wmv",
-	"wmx",
-	"woff",
-	"woff2",
-	"wrm",
-	"wvx",
-	"xbm",
-	"xif",
-	"xla",
-	"xlam",
-	"xls",
-	"xlsb",
-	"xlsm",
-	"xlsx",
-	"xlt",
-	"xltm",
-	"xltx",
-	"xm",
-	"xmind",
-	"xpi",
-	"xpm",
-	"xwd",
-	"xz",
-	"z",
-	"zip",
-	"zipx"
-];
-
-function isBinaryPath(p) {
-	return BINARY_EXT.includes(path.extname(p).slice(1));
-}
-
-let identical = new Set();
-let difference = new Set();
-getCommon(
-	path.join(WORKSPACE_ROOT, RSPACK_TEST),
-	path.join(WORKSPACE_ROOT, WEBPACK_TEST),
-	identical,
-	difference
-).then(() => {
+	// 1. Track tasks that have different content but share the same test name.
 	if (difference.size > 0) {
-		const excludeList = require("./diff-exclude.cjs").map(item => {
-			if (item instanceof RegExp) {
-				return i => item.test(i);
-			}
-			if (typeof item === "string") {
-				return i => i.startsWith(item);
-			}
-			throw new Error(
-				"exclude item should only be the type of `RegExp` or `string`"
-			);
-		});
-		let retained = Array.from(difference).filter(
-			item => !excludeList.some(fn => fn(item))
-		);
+		let excludeList = require("./diff-exclude.cjs");
+		let retained = retain(each(not(matchedInAny(excludeList))))(difference);
 		if (retained.length > 0) {
+			errored = true;
 			console.log(
-				"Due to the historical fact that rspack mixed webpack tests and rspack tests together, so this test is served as a helper to decouple these tests." +
-					"\n\n" +
-					"The following cases share the same name with webpack, however their content are not identical." +
-					"\n" +
-					"This would cause misunderstandings between those tests. This file can be removed after the old tests are no longer coupled with webpack tests." +
-					"\n\n" +
-					"Either ignore these files in the `" +
-					path.join(WORKSPACE_ROOT, "scripts/test/diff-exclude.cjs") +
-					"` with reason (MUST BE CAUTIOUS) or align it with webpack.\n"
+				"1. Mixed test cases: cases below share the same filename with different content on rspack and webpack side.\n"
 			);
-			console.log(new Set(retained.sort()));
-			process.exit(1);
+			console.log(toSet(retained.sort()));
+			console.log(
+				help(`Due to the historical fact that rspack mixed webpack tests and rspack tests together, 
+so this test is served as a helper to decouple these tests.
+
+The following cases share the same name with webpack, however their content are not identical.
+This would cause misunderstandings between those tests. This file can be removed after the old tests are no longer coupled with webpack tests.`)
+			);
+			console.log(
+				suggestion(
+					`Either ignore these files in the \`${path.relative(process.cwd(), path.join(WORKSPACE_ROOT, "scripts/test/diff-exclude.cjs"))}\` with reason (MUST BE CAUTIOUS) or align it with webpack.\n`
+				)
+			);
 		}
 	}
-});
+
+	// 2. Calculate cases that can be safely removed from cases in rspack.
+	{
+		let maybeIdentical = unify(
+			retain(each(matchedWith(/^[^\/]*Cases/)))(identical).map(item => {
+				item = item.split("/").slice(0, 3).join("/");
+				if (path.extname(item)) {
+					return path.dirname(item);
+				}
+				return item;
+			})
+		);
+		const result = zip(
+			maybeIdentical,
+			await Promise.all(
+				maybeIdentical.map(testPath =>
+					recursiveCompareStrict(
+						path.join(WORKSPACE_ROOT, RSPACK_TEST, testPath),
+						path.join(WORKSPACE_ROOT, WEBPACK_TEST, testPath),
+						CONTENT_COMPARATOR
+					)
+				)
+			)
+		)
+			.filter(([, item]) => item)
+			.map(([item, _]) => item);
+		if (result.length) {
+			console.log(
+				"2. Identical test cases: cases below share the identical structure and content in both rspack and webpack.\n"
+			);
+			console.log(toSet(result.sort()));
+			console.log(
+				help(`'dist' and 'test.filter.js' are not included in the test.`)
+			);
+			console.log(
+				suggestion(
+					`Remove the test cases from rspack and TURN ON webpack test case to suppress this warning.`
+				)
+			);
+		}
+	}
+
+	if (errored) {
+		process.exit(1);
+	}
+}
+
+main();

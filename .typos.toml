@@ -16,6 +16,7 @@ extend-exclude = [
   "GOVERNANCE.md",
   "pnpm-lock.yaml",
   "scripts/test/diff.cjs",
+  "scripts/test/binary-path.cjs",
 ]
 
 [default.extend-words]
