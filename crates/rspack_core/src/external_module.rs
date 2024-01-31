@@ -17,7 +17,8 @@ use crate::{
   BuildMetaExportsType, BuildResult, ChunkInitFragments, ChunkUkey, CodeGenerationDataUrl,
   CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId,
   ExternalType, InitFragmentExt, InitFragmentKey, InitFragmentStage, LibIdentOptions, Module,
-  ModuleType, NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType,
+  ModuleType, NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency,
+  StaticExportsSpec,
 };
 
 static EXTERNAL_MODULE_JS_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
@@ -390,6 +391,12 @@ impl Module for ExternalModule {
       }
       _ => build_result.build_meta.exports_type = BuildMetaExportsType::Dynamic,
     }
+    build_result
+      .dependencies
+      .push(Box::new(StaticExportsDependency::new(
+        StaticExportsSpec::True,
+        false,
+      )));
     Ok(build_result)
   }
 
