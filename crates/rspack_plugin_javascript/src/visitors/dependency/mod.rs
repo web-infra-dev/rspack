@@ -6,7 +6,6 @@ mod import_meta_scanner;
 mod import_scanner;
 mod parser;
 mod util;
-mod worker_scanner;
 
 use std::sync::Arc;
 
@@ -32,7 +31,6 @@ use self::{
   harmony_import_dependency_scanner::HarmonyImportDependencyScanner,
   hot_module_replacement_scanner::HotModuleReplacementScanner,
   import_meta_scanner::ImportMetaScanner, import_scanner::ImportScanner,
-  worker_scanner::WorkerScanner,
 };
 
 pub struct ScanDependenciesResult {
@@ -80,7 +78,9 @@ pub fn scan_dependencies(
     compiler_options,
     &mut dependencies,
     &mut presentational_dependencies,
+    &mut blocks,
     &mut ignored,
+    &module_identifier,
     module_type,
     worker_syntax_list,
     resource_data,
@@ -115,17 +115,6 @@ pub fn scan_dependencies(
       comments,
       &mut ignored,
     ));
-
-    let mut worker_scanner = WorkerScanner::new(
-      &module_identifier,
-      &compiler_options.output,
-      worker_syntax_list,
-      &mut ignored,
-    );
-    program.visit_with(&mut worker_scanner);
-    blocks.append(&mut worker_scanner.blocks);
-    dependencies.append(&mut worker_scanner.dependencies);
-    presentational_dependencies.append(&mut worker_scanner.presentational_dependencies);
 
     program.visit_with(&mut ImportMetaScanner::new(
       source_file.clone(),

@@ -17,7 +17,7 @@ impl WorkerSyntaxScanner {
 }
 
 impl JavascriptParserPlugin for WorkerSyntaxScanner {
-  fn module_declaration(
+  fn pre_module_declaration(
     &self,
     parser: &mut JavascriptParser,
     decl: &swc_core::ecma::ast::ModuleDecl,
