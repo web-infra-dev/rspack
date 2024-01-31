@@ -75,26 +75,19 @@ impl Compilation {
 
     chunk.runtime = runtime.clone();
 
-    let mut entrypoint = Entrypoint::new(
-      crate::ChunkGroupKind::Entrypoint {
-        initial: true,
-        options: Box::new(EntryOptions {
-          name: Some("build time".into()),
-          runtime: Some("runtime".into()),
-          chunk_loading: Some(crate::ChunkLoading::Disable),
-          async_chunks: None,
-          public_path: options.public_path.clone().map(crate::PublicPath::String),
-          base_uri: options.base_uri.clone(),
-          filename: None,
-          library: None,
-        }),
-      },
-      crate::ChunkGroupInfo {
-        chunk_loading: false,
-        async_chunks: false,
-        runtime: runtime.clone(),
-      },
-    );
+    let mut entrypoint = Entrypoint::new(crate::ChunkGroupKind::Entrypoint {
+      initial: true,
+      options: Box::new(EntryOptions {
+        name: Some("build time".into()),
+        runtime: Some("runtime".into()),
+        chunk_loading: Some(crate::ChunkLoading::Disable),
+        async_chunks: None,
+        public_path: options.public_path.clone().map(crate::PublicPath::String),
+        base_uri: options.base_uri.clone(),
+        filename: None,
+        library: None,
+      }),
+    });
 
     // add chunk to this compilation
     let chunk_by_ukey = ChunkByUkey::default();
