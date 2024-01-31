@@ -53,13 +53,13 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     None
   }
 
-  fn module_declaration(
+  fn pre_module_declaration(
     &self,
     parser: &mut JavascriptParser,
     decl: &swc_core::ecma::ast::ModuleDecl,
   ) -> Option<bool> {
     for plugin in &self.plugins {
-      let res = plugin.module_declaration(parser, decl);
+      let res = plugin.pre_module_declaration(parser, decl);
       // `SyncBailHook`
       if res.is_some() {
         return res;
