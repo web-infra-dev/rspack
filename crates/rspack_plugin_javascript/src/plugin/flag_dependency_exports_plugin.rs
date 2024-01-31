@@ -368,7 +368,6 @@ impl Plugin for FlagDependencyExportsPlugin {
   }
 
   async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
-    println!("FlagDependencyExportsProxy");
     let mut proxy = FlagDependencyExportsProxy::new(&mut compilation.module_graph);
     proxy.apply();
     Ok(())

@@ -101,12 +101,12 @@ impl ModuleConcatenationPlugin {
   fn format_bailout_warning(&self, module: ModuleIdentifier, warning: &Warning) -> String {
     match warning {
       Warning::Problem(id) => {
-        return format_bailout_reason(&format!("Cannot concat with {}: {}", module, id));
+        format_bailout_reason(&format!("Cannot concat with {}: {}", module, id))
       }
       Warning::Id(id) => {
         let reason = self.get_inner_bailout_reason(id);
         let reason_with_prefix = match reason {
-          Some(reason) => format!(": {}", reason.to_string()),
+          Some(reason) => format!(": {}", *reason),
           None => "".to_string(),
         };
         if id == &module {

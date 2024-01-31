@@ -183,7 +183,7 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
       && let Some(con) = compilation.module_graph.connection_by_dependency(&self.id)
       && scope.is_module_in_scope(&con.module_identifier)
     {
-      let expr = if ids.is_empty() {
+      if ids.is_empty() {
         scope.create_module_reference(
           &con.module_identifier,
           &ModuleReferenceOptions {
@@ -206,8 +206,7 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
             ..Default::default()
           },
         )
-      };
-      expr
+      }
     } else {
       if is_new_treeshaking {
         harmony_import_dependency_apply(

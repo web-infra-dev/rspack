@@ -14,7 +14,7 @@ use rustc_hash::FxHashSet as HashSet;
 // use rspack_error::Result;
 use swc_core::common::{comments, Span, Spanned, SyntaxContext, GLOBALS};
 use swc_core::ecma::ast::*;
-use swc_core::ecma::utils::{ExprCtx, ExprExt, ExprFactory};
+use swc_core::ecma::utils::{ExprCtx, ExprExt};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 use swc_node_comments::SwcComments;
 
@@ -276,11 +276,15 @@ pub fn is_pure_expression<'a>(
   unresolved_ctxt: SyntaxContext,
   comments: Option<&'a SwcComments>,
 ) -> bool {
-  let c = comments.expect("should");
   match expr {
     Expr::Call(call) => is_pure_call_expr(call, unresolved_ctxt, comments),
-    Expr::Paren(call) => {
-      is_pure_expression(&call.clone().wrap_with_paren(), unresolved_ctxt, comments)
+    Expr::Paren(par) => {
+      let mut cur = par.expr.as_ref();
+      while let Expr::Paren(paren) = cur {
+        cur = paren.expr.as_ref();
+      }
+
+      is_pure_expression(cur, unresolved_ctxt, comments)
     }
     _ => !expr.may_have_side_effects(&ExprCtx {
       unresolved_ctxt,

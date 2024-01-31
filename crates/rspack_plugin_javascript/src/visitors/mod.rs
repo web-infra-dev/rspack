@@ -5,7 +5,7 @@ pub mod swc_visitor;
 use rspack_ast::javascript::Ast;
 use rspack_core::CompilerOptions;
 use rspack_error::{AnyhowError, Result};
-use swc_core::common::comments::{self, Comments};
+use swc_core::common::comments::Comments;
 use swc_core::common::{chain, Mark};
 use swc_core::ecma::transforms::base::pass::Optional;
 use swc_core::ecma::visit::Fold;
@@ -66,7 +66,7 @@ pub fn run_before_pass(ast: &mut Ast, options: &CompilerOptions) -> Result<()> {
           swc_visitor::hygiene(false, top_level_mark),
           swc_visitor::fixer(Some(&comments as &dyn Comments))
         );
-        _ = program.fold_with(&mut pass);
+        program.fold_with(&mut pass);
       }
       program.comments = comments;
       Ok(())

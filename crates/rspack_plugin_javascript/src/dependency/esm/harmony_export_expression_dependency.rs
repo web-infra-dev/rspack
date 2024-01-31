@@ -138,6 +138,8 @@ impl DependencyTemplate for HarmonyExportExpressionDependency {
         }
       };
 
+      // skip this lint, will make it easy to align with webpack in the future
+      #[allow(clippy::collapsible_else_if)]
       if let Some(scope) = concatenation_scope {
         scope.register_export(DEFAULT_JS_WORD.clone(), name.to_string());
       } else {
