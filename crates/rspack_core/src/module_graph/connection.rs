@@ -60,7 +60,7 @@ impl ModuleGraphConnection {
     conditional: bool,
   ) -> Self {
     Self {
-      original_module_identifier: original_module_identifier.clone(),
+      original_module_identifier,
       module_identifier,
       dependency_id,
       active,

@@ -2,11 +2,9 @@ use std::borrow::Cow;
 use std::collections::BTreeSet;
 use std::ops::Sub;
 
-use itertools::Itertools;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde_json::json;
 use swc_core::ecma::atoms::Atom;
-use tracing::instrument::WithSubscriber;
 
 use crate::{
   get_import_var, property_access, to_comment, to_normal_comment, AsyncDependenciesBlockId,
@@ -58,10 +56,10 @@ pub fn runtime_condition_expression(
 
   runtime_requirements.insert(RuntimeGlobals::RUNTIME_ID);
 
-  return compile_boolean_matcher_from_lists(
+  compile_boolean_matcher_from_lists(
     positive_runtime_ids.into_iter().collect::<Vec<_>>(),
     negative_runtime_ids.into_iter().collect::<Vec<_>>(),
-  )(RuntimeGlobals::RUNTIME_ID.to_string());
+  )(RuntimeGlobals::RUNTIME_ID.to_string())
 }
 
 fn compile_boolean_matcher_from_lists(
@@ -106,10 +104,7 @@ fn subtract_runtime(a: Option<&RuntimeSpec>, b: Option<&RuntimeSpec>) -> Option<
     (Some(a), None) => Some(a.clone()),
     (None, None) => None,
     (None, Some(b)) => Some(b.clone()),
-    (Some(a), Some(b)) => {
-      if a == b {}
-      Some(a.sub(b))
-    }
+    (Some(a), Some(b)) => Some(a.sub(b)),
   }
 }
 
@@ -121,7 +116,7 @@ where
     None => f(None),
     Some(runtime) => {
       if deterministic_order {
-        let mut runtimes = runtime.into_iter().collect::<Vec<_>>();
+        let mut runtimes = runtime.iter().collect::<Vec<_>>();
         runtimes.sort();
         for r in runtimes {
           f(Some(&r.to_string()));
@@ -136,18 +131,17 @@ where
 }
 
 /// AOT regex optimization, copy from webpack https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/util/compileBooleanMatcher.js#L134-L233
-fn items_to_regexp(items_arr: Vec<String>) -> String {
+pub(crate) fn items_to_regexp(items_arr: Vec<String>) -> String {
   if items_arr.len() == 1 {
     return quote_meta(&items_arr[0]);
   }
 
   let mut finished_items = Vec::new();
-  let mut count_of_single_char_items = 0;
   let mut items_set: Vec<&str> = items_arr.iter().map(|s| s.as_str()).collect();
   items_set.sort();
 
   // Merge single char items: (a|b|c|d|ef) => ([abcd]|ef)
-  count_of_single_char_items = items_set.iter().filter(|&item| item.len() == 1).count();
+  let count_of_single_char_items = items_set.iter().filter(|&item| item.len() == 1).count();
 
   // Special case for only single char items
   if count_of_single_char_items == items_set.len() {
@@ -219,7 +213,7 @@ fn items_to_regexp(items_arr: Vec<String>) -> String {
   let prefixed = pop_common_items(
     &mut items,
     |item| {
-      if item.len() >= 1 {
+      if !item.is_empty() {
         Some(
           item
             .chars()
@@ -263,7 +257,7 @@ fn items_to_regexp(items_arr: Vec<String>) -> String {
   let suffixed = pop_common_items(
     &mut items,
     |item| {
-      if item.len() >= 1 {
+      if !item.is_empty() {
         Some(item[item.len() - 1..].to_string())
       } else {
         None
@@ -288,7 +282,10 @@ fn items_to_regexp(items_arr: Vec<String>) -> String {
       items_to_regexp(
         suffixed_items
           .iter()
-          .map(|item| item.strip_suffix(&suffix).unwrap().to_string())
+          .map(|item| item
+            .strip_suffix(&suffix)
+            .expect("should strip suffix")
+            .to_string())
           .collect::<Vec<_>>()
       ),
       quote_meta(&suffix)
@@ -322,7 +319,7 @@ where
 
   for item in items_set.iter() {
     if let Some(key) = get_key(item) {
-      let list = map.entry(key).or_insert_with(Vec::new);
+      let list = map.entry(key).or_default();
       list.push(item.clone());
     }
   }
@@ -648,7 +645,6 @@ pub fn module_namespace_promise(
     .module_identifier_by_dependency_id(dep_id)
     .is_none()
   {
-    dbg!(&dep_id.get_dependency(&compilation.module_graph));
     return missing_module_promise(request);
   };
 
@@ -912,8 +908,8 @@ pub fn define_es_module_flag_statement(
     exports_argument
   )
 }
+#[allow(unused_imports)]
 mod test_items_to_regexp {
-
   use super::items_to_regexp;
   #[test]
   fn basic() {

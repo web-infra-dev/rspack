@@ -278,7 +278,7 @@ impl ModuleGraph {
     module_identifier: ModuleIdentifier,
   ) -> ConnectionId {
     // let old_con_id = self.connection_id_by_dependency_id(&old_con.dependency_id);
-    let mut new_connection = old_con.clone();
+    let mut new_connection = *old_con;
     new_connection.original_module_identifier = original_module_identifier;
     new_connection.module_identifier = module_identifier;
 

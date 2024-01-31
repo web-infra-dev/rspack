@@ -126,7 +126,7 @@ impl ConnectionOrModuleIdent {
 
 pub static REGEX: once_cell::sync::Lazy<Regex> = once_cell::sync::Lazy::new(|| {
   let pattern = r"\.+\/|(\/index)?\.([a-zA-Z0-9]{1,4})($|\s|\?)|\s*\+\s*\d+\s*modules";
-  Regex::new(pattern).unwrap()
+  Regex::new(pattern).expect("should construct the regex")
 });
 #[derive(Debug)]
 pub struct ConcatenationEntry {
@@ -314,7 +314,6 @@ impl ModuleInfo {
   }
 
   pub fn set_interop_default_access_name(&mut self, v: Option<Atom>) {
-    dbg!(&v);
     match self {
       ModuleInfo::External(e) => e.interop_default_access_name = v,
       ModuleInfo::Concatenated(c) => c.interop_default_access_name = v,
@@ -1048,8 +1047,6 @@ impl Module for ConcatenatedModule {
               &context,
             );
 
-            dbg!(&used_name, &final_name);
-
             ns_obj.push(format!(
               "\n  {}: {}",
               property_name(&used_name).expect("should have property_name"),
@@ -1219,7 +1216,6 @@ impl Module for ConcatenatedModule {
       }
 
       if info.get_interop_default_access_used() {
-        dbg!(&info.get_interop_default_access_name());
         runtime_requirements.insert(RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT);
         result.add(RawSource::from(format!(
           "\nlet {} = /*#__PURE__*/{}({});",
@@ -1726,7 +1722,6 @@ impl ConcatenatedModule {
       Binding::Raw(ref b) => (&b.ids, b.comment.as_ref()),
       Binding::Symbol(ref b) => (&b.ids, b.comment.as_ref()),
     };
-    dbg!(&export_name, &ids);
 
     let (reference, is_property_access) = match binding {
       Binding::Raw(ref b) => {

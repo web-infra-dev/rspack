@@ -3,8 +3,7 @@ use rspack_core::tree_shaking::symbol::DEFAULT_JS_WORD;
 use rspack_core::{
   property_access, AsContextDependency, AsModuleDependency, Compilation, Dependency,
   DependencyLocation, DependencyType, ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec,
-  HarmonyExportInitFragment, InitFragmentExt, ModuleGraph, RuntimeGlobals, RuntimeSpec, UsedName,
-  DEFAULT_EXPORT,
+  HarmonyExportInitFragment, ModuleGraph, RuntimeGlobals, RuntimeSpec, UsedName, DEFAULT_EXPORT,
 };
 use rspack_core::{DependencyId, DependencyTemplate};
 use rspack_core::{TemplateContext, TemplateReplaceSource};
