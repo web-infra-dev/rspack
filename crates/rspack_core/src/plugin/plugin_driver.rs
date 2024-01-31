@@ -386,19 +386,6 @@ impl PluginDriver {
     Ok(())
   }
 
-  pub async fn before_resolve(
-    &self,
-    args: &mut NormalModuleBeforeResolveArgs,
-  ) -> PluginNormalModuleFactoryBeforeResolveOutput {
-    for plugin in &self.plugins {
-      tracing::trace!("before resolve {}", plugin.name());
-      if let Some(data) = plugin.before_resolve(PluginContext::new(), args).await? {
-        return Ok(Some(data));
-      }
-    }
-    Ok(None)
-  }
-
   pub async fn after_resolve(
     &self,
     args: &mut NormalModuleAfterResolveArgs<'_>,

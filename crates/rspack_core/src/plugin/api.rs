@@ -111,14 +111,6 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(None)
   }
 
-  async fn before_resolve(
-    &self,
-    _ctx: PluginContext,
-    _args: &mut NormalModuleBeforeResolveArgs,
-  ) -> PluginNormalModuleFactoryBeforeResolveOutput {
-    Ok(None)
-  }
-
   async fn after_resolve(
     &self,
     _ctx: PluginContext,

@@ -889,6 +889,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "futures-concurrency"
+version = "7.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ef6712e11cdeed5c8cf21ea0b90fec40fbe64afc9bbf2339356197eeca829fc3"
+dependencies = [
+ "bitvec",
+ "futures-core",
+ "pin-project",
+ "slab",
+ "smallvec",
+]
+
+[[package]]
 name = "futures-core"
 version = "0.3.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2507,6 +2520,7 @@ dependencies = [
  "rspack_fs",
  "rspack_futures",
  "rspack_hash",
+ "rspack_hook",
  "rspack_identifier",
  "rspack_loader_runner",
  "rspack_regex",
@@ -2596,6 +2610,18 @@ dependencies = [
  "md4",
  "smol_str",
  "xxhash-rust",
+]
+
+[[package]]
+name = "rspack_hook"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "dashmap",
+ "futures-concurrency",
+ "once_cell",
+ "rspack_error",
+ "rustc-hash",
 ]
 
 [[package]]
