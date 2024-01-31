@@ -7,7 +7,7 @@ use rspack_core::{
 };
 use swc_core::atoms::Atom;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum ExportsBase {
   Exports,
   ModuleExports,
@@ -18,26 +18,26 @@ pub enum ExportsBase {
 }
 
 impl ExportsBase {
-  pub fn is_exports(&self) -> bool {
+  pub const fn is_exports(&self) -> bool {
     matches!(self, Self::Exports | Self::DefinePropertyExports)
   }
 
-  pub fn is_module_exports(&self) -> bool {
+  pub const fn is_module_exports(&self) -> bool {
     matches!(
       self,
       Self::ModuleExports | Self::DefinePropertyModuleExports
     )
   }
 
-  pub fn is_this(&self) -> bool {
+  pub const fn is_this(&self) -> bool {
     matches!(self, Self::This | Self::DefinePropertyThis)
   }
 
-  pub fn is_expression(&self) -> bool {
+  pub const fn is_expression(&self) -> bool {
     matches!(self, Self::Exports | Self::ModuleExports | Self::This)
   }
 
-  pub fn is_define_property(&self) -> bool {
+  pub const fn is_define_property(&self) -> bool {
     matches!(
       self,
       Self::DefinePropertyExports | Self::DefinePropertyModuleExports | Self::DefinePropertyThis

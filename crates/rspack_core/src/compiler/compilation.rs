@@ -30,22 +30,23 @@ use super::{
 use crate::{
   build_chunk_graph::build_chunk_graph,
   cache::{use_code_splitting_cache, Cache, CodeSplittingCache},
-  create_queue_handle, get_chunk_from_ukey, get_mut_chunk_from_ukey, is_source_equal,
+  get_chunk_from_ukey, get_mut_chunk_from_ukey, is_source_equal,
   tree_shaking::{optimizer, visitor::SymbolRef, BailoutFlag, OptimizeDependencyResult},
-  AddQueue, AddTask, AddTaskResult, AdditionalChunkRuntimeRequirementsArgs,
+  AddQueue, AddQueueHandler, AddTask, AddTaskResult, AdditionalChunkRuntimeRequirementsArgs,
   AdditionalModuleRequirementsArgs, AsyncDependenciesBlock, BoxDependency, BoxModule, BuildQueue,
-  BuildTask, BuildTaskResult, BuildTimeExecutionQueue, BuildTimeExecutionTask, CacheCount,
-  CacheOptions, Chunk, ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey,
-  ChunkHashArgs, ChunkKind, ChunkUkey, CleanQueue, CleanTask, CleanTaskResult,
-  CodeGenerationResults, CompilationLogger, CompilationLogging, CompilerOptions, ContentHashArgs,
-  ContextDependency, DependencyId, DependencyParents, DependencyType, Entry, EntryData,
-  EntryOptions, Entrypoint, ErrorSpan, FactorizeQueue, FactorizeTask, FactorizeTaskResult,
-  Filename, Logger, Module, ModuleCreationCallback, ModuleFactory, ModuleFactoryResult,
-  ModuleGraph, ModuleGraphModule, ModuleIdentifier, ModuleProfile, NormalModuleSource, PathData,
-  ProcessAssetsArgs, ProcessDependenciesQueue, ProcessDependenciesResult, ProcessDependenciesTask,
-  QueueHandler, RenderManifestArgs, Resolve, ResolverFactory, RuntimeGlobals, RuntimeModule,
-  RuntimeRequirementsInTreeArgs, RuntimeSpec, SharedPluginDriver, SourceType, Stats, TaskResult,
-  WorkerTask,
+  BuildQueueHandler, BuildTask, BuildTaskResult, BuildTimeExecutionQueue,
+  BuildTimeExecutionQueueHandler, BuildTimeExecutionTask, CacheCount, CacheOptions, Chunk,
+  ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkHashArgs,
+  ChunkKind, ChunkUkey, CleanQueue, CleanTask, CleanTaskResult, CodeGenerationResults,
+  CompilationLogger, CompilationLogging, CompilerOptions, ContentHashArgs, ContextDependency,
+  DependencyId, DependencyParents, DependencyType, Entry, EntryData, EntryOptions, Entrypoint,
+  ErrorSpan, FactorizeQueue, FactorizeQueueHandler, FactorizeTask, FactorizeTaskResult, Filename,
+  Logger, Module, ModuleCreationCallback, ModuleFactory, ModuleFactoryResult, ModuleGraph,
+  ModuleGraphModule, ModuleIdentifier, ModuleProfile, NormalModuleSource, PathData,
+  ProcessAssetsArgs, ProcessDependenciesQueue, ProcessDependenciesQueueHandler,
+  ProcessDependenciesResult, ProcessDependenciesTask, RenderManifestArgs, Resolve, ResolverFactory,
+  RuntimeGlobals, RuntimeModule, RuntimeRequirementsInTreeArgs, RuntimeSpec, SharedPluginDriver,
+  SourceType, Stats, TaskResult, WorkerTask,
 };
 use crate::{tree_shaking::visitor::OptimizeAnalyzeResult, Context};
 
@@ -111,7 +112,11 @@ pub struct Compilation {
   pub side_effects_free_modules: IdentifierSet,
   pub module_item_map: IdentifierMap<Vec<ModuleItem>>,
 
-  pub queue_handle: Option<QueueHandler>,
+  pub factorize_queue: Option<FactorizeQueueHandler>,
+  pub build_queue: Option<BuildQueueHandler>,
+  pub add_queue: Option<AddQueueHandler>,
+  pub process_dependencies_queue: Option<ProcessDependenciesQueueHandler>,
+  pub build_time_execution_queue: Option<BuildTimeExecutionQueueHandler>,
 }
 
 impl Compilation {
@@ -173,7 +178,11 @@ impl Compilation {
       module_item_map: IdentifierMap::default(),
       include_module_ids: IdentifierSet::default(),
 
-      queue_handle: None,
+      factorize_queue: None,
+      build_queue: None,
+      add_queue: None,
+      process_dependencies_queue: None,
+      build_time_execution_queue: None,
     }
   }
 
@@ -544,8 +553,11 @@ impl Compilation {
     let mut make_failed_module: HashSet<ModuleIdentifier> = HashSet::default();
     let mut errored = None;
 
-    let (handler, mut processor) = create_queue_handle();
-    self.queue_handle = Some(handler);
+    self.factorize_queue = Some(factorize_queue.queue_handler());
+    self.build_queue = Some(build_queue.queue_handler());
+    self.add_queue = Some(add_queue.queue_handler());
+    self.process_dependencies_queue = Some(process_dependencies_queue.queue_handler());
+    self.build_time_execution_queue = Some(buildtime_execution_queue.queue_handler());
 
     deps_builder
       .revoke_modules(&mut self.module_graph)
@@ -599,16 +611,8 @@ impl Compilation {
 
     tokio::task::block_in_place(|| loop {
       let start = factorize_time.start();
-      processor.try_process(
-        self,
-        &mut factorize_queue,
-        &mut add_queue,
-        &mut build_queue,
-        &mut process_dependencies_queue,
-        &mut buildtime_execution_queue,
-      );
 
-      while let Some(task) = factorize_queue.get_task() {
+      while let Some(task) = factorize_queue.get_task(self) {
         active_task_count += 1;
 
         // TODO: change when we insert dependency to module_graph
@@ -635,7 +639,7 @@ impl Compilation {
       factorize_time.end(start);
 
       let start = build_time.start();
-      while let Some(task) = build_queue.get_task() {
+      while let Some(task) = build_queue.get_task(self) {
         active_task_count += 1;
         tokio::spawn({
           let result_tx = result_tx.clone();
@@ -656,7 +660,7 @@ impl Compilation {
       build_time.end(start);
 
       let start = add_time.start();
-      while let Some(task) = add_queue.get_task() {
+      while let Some(task) = add_queue.get_task(self) {
         active_task_count += 1;
         let result = task.run(self);
         result_tx.send(result).expect("Failed to send add result");
@@ -664,7 +668,7 @@ impl Compilation {
       add_time.end(start);
 
       let start = process_deps_time.start();
-      while let Some(task) = process_dependencies_queue.get_task() {
+      while let Some(task) = process_dependencies_queue.get_task(self) {
         active_task_count += 1;
 
         let mut sorted_dependencies = HashMap::default();
@@ -754,7 +758,7 @@ impl Compilation {
       process_deps_time.end(start);
 
       let start = buildtime_execution_time.start();
-      while let Some(task) = buildtime_execution_queue.get_task() {
+      while let Some(task) = buildtime_execution_queue.get_task(self) {
         let BuildTimeExecutionTask {
           module,
           request,
@@ -780,11 +784,7 @@ impl Compilation {
                   ..
                 }) = &result.factory_result
                 {
-                  processor.complete_task(
-                    crate::WaitTask::Factorize(result.dependency),
-                    module.identifier(),
-                    self,
-                  )
+                  factorize_queue.complete_task(result.dependency, module.identifier(), self)
                 }
               }
               TaskResult::Add(result) => {
@@ -793,15 +793,15 @@ impl Compilation {
                   AddTaskResult::ModuleAdded { module, .. } => module.identifier(),
                 };
 
-                processor.complete_task(crate::WaitTask::Add(module), module, self)
+                add_queue.complete_task(module, module, self)
               }
               TaskResult::Build(result) => {
                 let id = result.module.identifier();
-                processor.complete_task(crate::WaitTask::Build(id), id, self);
+                build_queue.complete_task(id, id, self);
               }
               TaskResult::ProcessDependencies(result) => {
-                processor.complete_task(
-                  crate::WaitTask::ProcessDependencies(result.module_identifier),
+                process_dependencies_queue.complete_task(
+                  result.module_identifier,
                   result.module_identifier,
                   self,
                 );
@@ -916,7 +916,11 @@ impl Compilation {
                   plugin_driver: self.plugin_driver.clone(),
                   cache: self.cache.clone(),
                   current_profile,
-                  queue_handler: self.queue_handle.clone(),
+                  factorize_queue: self.factorize_queue.clone(),
+                  add_queue: self.add_queue.clone(),
+                  build_queue: self.build_queue.clone(),
+                  process_dependencies_queue: self.process_dependencies_queue.clone(),
+                  build_time_execution_queue: self.build_time_execution_queue.clone(),
                 });
               }
               AddTaskResult::ModuleReused { module, .. } => {
@@ -1091,7 +1095,7 @@ impl Compilation {
         .map(|module_identifier| CleanTask { module_identifier }),
     );
 
-    while let Some(task) = clean_queue.get_task() {
+    while let Some(task) = clean_queue.get_task(self) {
       match task.run(self) {
         CleanTaskResult::ModuleIsUsed { module_identifier } => {
           tracing::trace!("Module is used: {}", module_identifier);
@@ -2279,15 +2283,13 @@ pub fn assign_depth(
   let mut depth;
   assign_map.insert(module_id, 0);
   let process_module =
-    |mg: &ModuleGraph,
-     m: ModuleIdentifier,
+    |m: ModuleIdentifier,
      depth: usize,
      q: &mut VecDeque<ModuleIdentifier>,
      assign_map: &mut HashMap<rspack_identifier::Identifier, usize>| {
-      if !can_set_if_lower(mg, m, depth) {
+      if !set_depth_if_lower(m, depth, assign_map) {
         return;
       }
-      assign_map.insert(m, depth);
       q.push_back(m);
     };
   while let Some(item) = q.pop_front() {
@@ -2295,35 +2297,22 @@ pub fn assign_depth(
 
     let m = mg.module_by_identifier(&item).expect("should have module");
     for con in mg.get_outgoing_connections(m) {
-      process_module(mg, con.module_identifier, depth, &mut q, assign_map);
+      process_module(con.module_identifier, depth, &mut q, assign_map);
     }
   }
 }
 
-// pub fn set_depth_if_lower(&mut self, module_id: ModuleIdentifier, depth: usize) -> bool {
-//   let mgm = self
-//     .module_graph_module_by_identifier_mut(&module_id)
-//     .expect("should have module graph module");
-//   if let Some(ref mut cur_depth) = mgm.depth {
-//     if *cur_depth > depth {
-//       *cur_depth = depth;
-//       return true;
-//     }
-//   } else {
-//     mgm.depth = Some(depth);
-//     return true;
-//   }
-//   false
-// }
-pub fn can_set_if_lower(mg: &ModuleGraph, module_id: ModuleIdentifier, depth: usize) -> bool {
-  let mgm = mg
-    .module_graph_module_by_identifier(&module_id)
-    .expect("should have module graph module");
-  if let Some(ref cur_depth) = mgm.depth {
-    if *cur_depth > depth {
-      return true;
-    }
-  } else {
+pub fn set_depth_if_lower(
+  module_id: ModuleIdentifier,
+  depth: usize,
+  assign_map: &mut HashMap<ModuleIdentifier, usize>,
+) -> bool {
+  let Some(&cur_depth) = assign_map.get(&module_id) else {
+    assign_map.insert(module_id, depth);
+    return true;
+  };
+  if cur_depth > depth {
+    assign_map.insert(module_id, depth);
     return true;
   }
   false

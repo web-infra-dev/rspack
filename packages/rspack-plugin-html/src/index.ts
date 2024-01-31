@@ -99,8 +99,8 @@ export interface Options {
 		  };
 	/**
 	 * HTML Minification options accepts the following values:
-	 * - Set to `false` to disable minifcation
-	 * - Set to `'auto'` to enable minifcation only for production mode
+	 * - Set to `false` to disable minification
+	 * - Set to `'auto'` to enable minification only for production mode
 	 * - Set to custom minification according to
 	 * {@link https://github.com/kangax/html-minifier#options-quick-reference}
 	 */

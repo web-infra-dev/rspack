@@ -102,6 +102,7 @@ impl<C> LoaderItem<C> {
 }
 
 bitflags::bitflags! {
+  #[derive(Debug)]
   struct LoaderItemDataMeta: u8 {
     /// Builtin loader
     const BUILTIN = 1 << 0;

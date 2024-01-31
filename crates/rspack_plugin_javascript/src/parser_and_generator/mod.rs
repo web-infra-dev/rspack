@@ -1,5 +1,6 @@
 use rspack_ast::RspackAst;
 use rspack_core::diagnostics::map_box_diagnostics_to_module_parse_diagnostics;
+use rspack_core::needs_refactor::WorkerSyntaxList;
 use rspack_core::rspack_sources::{
   BoxSource, MapOptions, OriginalSource, RawSource, ReplaceSource, Source, SourceExt, SourceMap,
   SourceMapSource, SourceMapSourceOptions,
@@ -29,10 +30,6 @@ pub struct JavaScriptParserAndGenerator;
 
 #[allow(unused)]
 impl JavaScriptParserAndGenerator {
-  pub(crate) fn new() -> Self {
-    Self {}
-  }
-
   fn source_block(
     &self,
     compilation: &Compilation,
@@ -179,6 +176,8 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       ));
     });
 
+    let mut worker_syntax_list = WorkerSyntaxList::default();
+
     let ScanDependenciesResult {
       mut dependencies,
       blocks,
@@ -186,11 +185,11 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       mut rewrite_usage_span,
       import_map,
       mut warning_diagnostics,
-    } = match ast.visit(|program, context| {
+    } = match ast.visit(|program, _| {
       scan_dependencies(
         parse_result.1,
         program,
-        context.unresolved_mark,
+        &mut worker_syntax_list,
         resource_data,
         compiler_options,
         module_type,
@@ -212,7 +211,14 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       for mut block in blocks.clone() {
         all_dependencies.extend(block.take_dependencies());
       }
-      JsModule::new(&ast, &all_dependencies, module_identifier, compiler_options).analyze()
+      JsModule::new(
+        &ast,
+        &worker_syntax_list,
+        &all_dependencies,
+        module_identifier,
+        compiler_options,
+      )
+      .analyze()
     } else {
       OptimizeAnalyzeResult::default()
     };

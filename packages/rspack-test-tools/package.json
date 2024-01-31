@@ -1,6 +1,6 @@
 {
   "name": "@rspack/test-tools",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "license": "MIT",
   "description": "Test tools for rspack",
   "main": "dist/index.js",
@@ -46,7 +46,7 @@
     "fs-extra": "^11.1.1",
     "glob": "^10.3.10",
     "jest-diff": "^29.7.0",
-    "webpack": "5.89.0",
+    "webpack": "^5.90.0",
     "webpack-sources": "3.2.3",
     "which-module": "2.0.1"
   },
@@ -56,20 +56,18 @@
     "@rspack/cli": "workspace:*",
     "@swc/jest": "^0.2.29",
     "@types/prettier": "^2.7.2",
-    "@types/react": "^18.0.25",
-    "@types/react-dom": "^18.0.8",
-    "@types/webpack": "5.28.3",
-    "@types/webpack-sources": "3.2.0",
-    "core-js": "3.25.0",
+    "@types/react": "^18.2.48",
+    "@types/react-dom": "^18.2.18",
+    "@types/webpack": "5.28.5",
+    "@types/webpack-sources": "3.2.3",
+    "core-js": "3.35.1",
     "jest-serializer-path": "^0.1.15",
     "monaco-editor": "0.45.0",
     "monaco-editor-webpack-plugin": "7.1.0",
     "normalize.css": "^8.0.0",
-    "prettier": "^2.8.3",
     "react": "18.0.0",
     "react-dom": "18.0.0",
-    "react-refresh": "0.13.0",
-    "typescript": "5.1.6"
+    "react-refresh": "0.14.0"
   },
   "peerDependenciesMeta": {}
 }

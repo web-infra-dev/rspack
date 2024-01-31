@@ -127,5 +127,17 @@ pub(crate) fn compare_entries(a: &ModuleGroup, b: &ModuleGroup) -> f64 {
   let mut modules_b = b.modules.iter().collect::<Vec<_>>();
   modules_a.sort_unstable();
   modules_b.sort_unstable();
-  modules_a.cmp(&modules_b) as usize as f64
+
+  loop {
+    match (modules_a.pop(), modules_b.pop()) {
+      (None, None) => return 0f64,
+      (Some(a), Some(b)) => {
+        let res = a.cmp(b);
+        if !res.is_eq() {
+          return res as i32 as f64;
+        }
+      }
+      _ => unreachable!(),
+    }
+  }
 }

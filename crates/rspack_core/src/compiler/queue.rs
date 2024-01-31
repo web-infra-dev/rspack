@@ -4,8 +4,8 @@ use std::sync::Arc;
 use derivative::Derivative;
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result};
 use rspack_sources::BoxSource;
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
-use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
+use rustc_hash::FxHashSet as HashSet;
+use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
   cache::Cache, BoxDependency, BuildContext, BuildResult, Compilation, CompilerContext,
@@ -13,7 +13,9 @@ use crate::{
   ModuleGraph, ModuleGraphModule, ModuleIdentifier, ModuleProfile, Resolve, ResolverFactory,
   SharedPluginDriver, WorkerQueue,
 };
-use crate::{BoxModule, DependencyId, ExecuteModuleResult, ExportInfo, ExportsInfo, UsageState};
+use crate::{
+  BoxModule, DependencyId, ExecuteModuleResult, ExportInfo, ExportsInfo, QueueHandler, UsageState,
+};
 
 #[derive(Debug)]
 pub enum TaskResult {
@@ -212,7 +214,7 @@ impl WorkerTask for FactorizeTask {
   }
 }
 
-pub type FactorizeQueue = WorkerQueue<FactorizeTask>;
+pub type FactorizeQueue = WorkerQueue<FactorizeTask, DependencyId>;
 
 #[derive(Derivative)]
 #[derivative(Debug)]
@@ -334,7 +336,7 @@ fn set_resolved_module(
   Ok(())
 }
 
-pub type AddQueue = WorkerQueue<AddTask>;
+pub type AddQueue = WorkerQueue<AddTask, ModuleIdentifier>;
 
 #[derive(Debug)]
 pub struct BuildTask {
@@ -344,7 +346,11 @@ pub struct BuildTask {
   pub plugin_driver: SharedPluginDriver,
   pub cache: Arc<Cache>,
   pub current_profile: Option<Box<ModuleProfile>>,
-  pub queue_handler: Option<QueueHandler>,
+  pub factorize_queue: Option<FactorizeQueueHandler>,
+  pub add_queue: Option<AddQueueHandler>,
+  pub build_queue: Option<BuildQueueHandler>,
+  pub process_dependencies_queue: Option<ProcessDependenciesQueueHandler>,
+  pub build_time_execution_queue: Option<BuildTimeExecutionQueueHandler>,
 }
 
 #[derive(Debug)]
@@ -386,7 +392,11 @@ impl WorkerTask for BuildTask {
                 module: module.identifier(),
                 module_context: module.as_normal_module().and_then(|m| m.get_context()),
                 module_source_map_kind: module.get_source_map_kind().clone(),
-                queue_handler: self.queue_handler.clone(),
+                factorize_queue: self.factorize_queue.clone(),
+                add_queue: self.add_queue.clone(),
+                build_queue: self.build_queue.clone(),
+                process_dependencies_queue: self.process_dependencies_queue.clone(),
+                build_time_execution_queue: self.build_time_execution_queue.clone(),
                 plugin_driver: plugin_driver.clone(),
                 cache: cache.clone(),
               },
@@ -439,7 +449,7 @@ impl WorkerTask for BuildTask {
   }
 }
 
-pub type BuildQueue = WorkerQueue<BuildTask>;
+pub type BuildQueue = WorkerQueue<BuildTask, ModuleIdentifier>;
 
 #[derive(Debug)]
 pub struct ProcessDependenciesTask {
@@ -453,7 +463,7 @@ pub struct ProcessDependenciesResult {
   pub module_identifier: ModuleIdentifier,
 }
 
-pub type ProcessDependenciesQueue = WorkerQueue<ProcessDependenciesTask>;
+pub type ProcessDependenciesQueue = WorkerQueue<ProcessDependenciesTask, ModuleIdentifier>;
 
 #[derive(Clone, Debug)]
 pub struct BuildTimeExecutionOption {
@@ -469,7 +479,7 @@ pub struct BuildTimeExecutionTask {
   pub sender: UnboundedSender<Result<ExecuteModuleResult>>,
 }
 
-pub type BuildTimeExecutionQueue = WorkerQueue<BuildTimeExecutionTask>;
+pub type BuildTimeExecutionQueue = WorkerQueue<BuildTimeExecutionTask, ModuleIdentifier>;
 
 pub struct CleanTask {
   pub module_identifier: ModuleIdentifier,
@@ -521,171 +531,12 @@ impl CleanTask {
   }
 }
 
-pub type CleanQueue = WorkerQueue<CleanTask>;
+pub type CleanQueue = WorkerQueue<CleanTask, ModuleIdentifier>;
 
 pub type ModuleCreationCallback = Box<dyn FnOnce(&BoxModule) + Send>;
 
-pub type QueueHandleCallback = Box<dyn FnOnce(WaitTaskResult, &mut Compilation) + Send + Sync>;
-
-#[derive(Debug)]
-pub enum QueueTask {
-  Factorize(Box<FactorizeTask>),
-  Add(Box<AddTask>),
-  Build(Box<BuildTask>),
-  ProcessDependencies(Box<ProcessDependenciesTask>),
-  BuildTimeExecution(Box<BuildTimeExecutionTask>),
-
-  Subscription(Box<Subscription>),
-}
-
-#[derive(Debug, Copy, Clone)]
-pub enum WaitTask {
-  Factorize(DependencyId),
-  Add(ModuleIdentifier),
-  Build(ModuleIdentifier),
-  ProcessDependencies(ModuleIdentifier),
-}
-
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
-pub enum WaitTaskKey {
-  Dependency(DependencyId),
-  Identifier(ModuleIdentifier),
-}
-
-impl From<ModuleIdentifier> for WaitTaskKey {
-  fn from(value: ModuleIdentifier) -> Self {
-    Self::Identifier(value)
-  }
-}
-
-impl From<DependencyId> for WaitTaskKey {
-  fn from(value: DependencyId) -> Self {
-    Self::Dependency(value)
-  }
-}
-
-pub type WaitTaskResult = ModuleIdentifier;
-
-#[derive(Derivative)]
-#[derivative(Debug)]
-pub struct Subscription {
-  task: WaitTask,
-  #[derivative(Debug = "ignore")]
-  callback: QueueHandleCallback,
-}
-
-/// QueueHandler can let you have access to `make` phase.
-/// You can also subscribe task, by calling wait_for to
-/// wait for certain task
-#[derive(Clone, Debug)]
-pub struct QueueHandler {
-  sender: UnboundedSender<QueueTask>,
-}
-
-impl QueueHandler {
-  pub fn add_task(&self, task: QueueTask) -> Result<()> {
-    self.sender.send(task).expect("Unexpected dropped receiver");
-    Ok(())
-  }
-
-  pub fn wait_for(&self, wait_task: WaitTask, callback: QueueHandleCallback) {
-    self
-      .sender
-      .send(QueueTask::Subscription(Box::new(Subscription {
-        task: wait_task,
-        callback,
-      })))
-      .expect("failed to wait task");
-  }
-}
-
-pub struct QueueHandlerProcessor {
-  receiver: UnboundedReceiver<QueueTask>,
-  callbacks: [HashMap<WaitTaskKey, Vec<QueueHandleCallback>>; 4],
-  finished: [HashMap<WaitTaskKey, WaitTaskResult>; 4],
-}
-
-impl QueueHandlerProcessor {
-  fn get_bucket_and_key(task: WaitTask) -> (usize, WaitTaskKey) {
-    let (bucket, key) = match task {
-      WaitTask::Factorize(dep_id) => (0, dep_id.into()),
-      WaitTask::Add(m) => (1, m.into()),
-      WaitTask::Build(m) => (2, m.into()),
-      WaitTask::ProcessDependencies(m) => (3, m.into()),
-    };
-
-    (bucket, key)
-  }
-
-  pub fn try_process(
-    &mut self,
-    compilation: &mut Compilation,
-    factorize_queue: &mut FactorizeQueue,
-    add_queue: &mut AddQueue,
-    build_queue: &mut BuildQueue,
-    process_dependencies_queue: &mut ProcessDependenciesQueue,
-    buildtime_execution_queue: &mut BuildTimeExecutionQueue,
-  ) {
-    while let Ok(task) = self.receiver.try_recv() {
-      match task {
-        QueueTask::Factorize(task) => {
-          factorize_queue.add_task(*task);
-        }
-        QueueTask::Add(task) => {
-          add_queue.add_task(*task);
-        }
-        QueueTask::Build(task) => {
-          build_queue.add_task(*task);
-        }
-        QueueTask::ProcessDependencies(task) => {
-          process_dependencies_queue.add_task(*task);
-        }
-        QueueTask::BuildTimeExecution(task) => {
-          buildtime_execution_queue.add_task(*task);
-        }
-        QueueTask::Subscription(subscription) => {
-          let Subscription { task, callback } = *subscription;
-          let (bucket, key) = Self::get_bucket_and_key(task);
-
-          if let Some(module) = self.finished[bucket].get(&key) {
-            // already finished
-            callback(*module, compilation);
-          } else {
-            self.callbacks[bucket]
-              .entry(key)
-              .or_default()
-              .push(callback);
-          }
-        }
-      }
-    }
-  }
-
-  pub fn complete_task(
-    &mut self,
-    task: WaitTask,
-    task_result: WaitTaskResult,
-    compilation: &mut Compilation,
-  ) {
-    let (bucket, key) = Self::get_bucket_and_key(task);
-    self.finished[bucket].insert(key, task_result);
-    if let Some(callbacks) = self.callbacks[bucket].get_mut(&key) {
-      while let Some(cb) = callbacks.pop() {
-        cb(task_result, compilation);
-      }
-    }
-  }
-}
-
-pub fn create_queue_handle() -> (QueueHandler, QueueHandlerProcessor) {
-  let (tx, rx) = unbounded_channel();
-
-  (
-    QueueHandler { sender: tx },
-    QueueHandlerProcessor {
-      receiver: rx,
-      callbacks: Default::default(),
-      finished: Default::default(),
-    },
-  )
-}
+pub type FactorizeQueueHandler = QueueHandler<FactorizeTask, DependencyId>;
+pub type AddQueueHandler = QueueHandler<AddTask, ModuleIdentifier>;
+pub type BuildQueueHandler = QueueHandler<BuildTask, ModuleIdentifier>;
+pub type ProcessDependenciesQueueHandler = QueueHandler<ProcessDependenciesTask, ModuleIdentifier>;
+pub type BuildTimeExecutionQueueHandler = QueueHandler<BuildTimeExecutionTask, ModuleIdentifier>;

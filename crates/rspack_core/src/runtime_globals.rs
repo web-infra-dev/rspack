@@ -4,6 +4,7 @@ use bitflags::bitflags;
 use swc_core::ecma::atoms::Atom;
 
 bitflags! {
+  #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
   pub struct RuntimeGlobals: u64 {
     const REQUIRE_SCOPE = 1 << 0;
 
@@ -260,7 +261,7 @@ impl Default for RuntimeGlobals {
 }
 
 impl RuntimeGlobals {
-  pub fn name(&self) -> &'static str {
+  pub const fn name(&self) -> &'static str {
     use RuntimeGlobals as R;
     match *self {
       R::REQUIRE_SCOPE => "__webpack_require__.*",
@@ -326,26 +327,8 @@ impl RuntimeGlobals {
       R::PRELOAD_CHUNK_HANDLERS => "__webpack_require__.H",
       // rspack only
       R::RSPACK_VERSION => "__webpack_require__.rv",
-      r => panic!(
-        "Unexpected flag `{r:?}`. RuntimeGlobals should only be printed for one single flag."
-      ),
+      _ => unreachable!(),
     }
-  }
-
-  /// A stub function for bitflags `iter` in 2.0.0, we are stuck to 1.3.0 now
-  pub fn iter(&self) -> impl Iterator<Item = Self> {
-    let mut bit = 0;
-    let bits = self.bits();
-    std::iter::from_fn(move || {
-      while bit < 64 {
-        let flag = 1 << bit;
-        bit += 1;
-        if bits & flag != 0 {
-          return Self::from_bits(flag);
-        }
-      }
-      None
-    })
   }
 }
 

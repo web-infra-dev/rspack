@@ -164,6 +164,7 @@ impl Hash for ContextOptions {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct ContextModuleOptions {
+  pub addon: String,
   pub resource: String,
   pub resource_query: Option<String>,
   pub resource_fragment: Option<String>,
@@ -764,7 +765,8 @@ impl ContextModule {
           dependencies.push(ContextElementDependency {
             id: DependencyId::new(),
             request: format!(
-              "{}{}{}",
+              "{}{}{}{}",
+              options.addon,
               r.request,
               options.resource_query.clone().unwrap_or_default(),
               options.resource_fragment.clone().unwrap_or_default()

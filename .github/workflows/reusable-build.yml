@@ -65,7 +65,7 @@ jobs:
       runner-labels: ${{ steps.upload-artifact.outputs.runner-labels || inputs.runner }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref }}
 
@@ -198,7 +198,7 @@ jobs:
     if: inputs.target == 'x86_64-unknown-linux-gnu' && inputs.test
     runs-on: ${{ fromJSON(needs.build.outputs.runner-labels) }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Download bindings
         uses: ./.github/actions/download-artifact
@@ -239,7 +239,7 @@ jobs:
       PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: true
       PUPPETEER_SKIP_DOWNLOAD: true
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Download bindings
         uses: ./.github/actions/download-artifact

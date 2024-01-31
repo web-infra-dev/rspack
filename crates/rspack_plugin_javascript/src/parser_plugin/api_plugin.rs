@@ -22,7 +22,7 @@ const WEBPACK_INIT_SHARING: &str = "__webpack_init_sharing__";
 const WEBPACK_NONCE: &str = "__webpack_nonce__";
 const WEBPACK_CHUNK_NAME: &str = "__webpack_chunkname__";
 const WEBPACK_RUNTIME_ID: &str = "__webpack_runtime_id__";
-const WEBPACK_REQUIRE: &str = "__webpack_require__";
+const WEBPACK_REQUIRE: &str = RuntimeGlobals::REQUIRE.name();
 const RSPACK_VERSION: &str = "__rspack_version__";
 
 pub struct APIPluginOptions {
@@ -78,7 +78,12 @@ impl JavascriptParserPlugin for APIPlugin {
     }
   }
 
-  fn identifier(&self, parser: &mut JavascriptParser, ident: &Ident) -> Option<bool> {
+  fn identifier(
+    &self,
+    parser: &mut JavascriptParser,
+    ident: &Ident,
+    _for_name: &str,
+  ) -> Option<bool> {
     let s = ident.sym.as_str();
     if !parser.is_unresolved_ident(s) {
       return None;
@@ -261,6 +266,7 @@ impl JavascriptParserPlugin for APIPlugin {
     &self,
     parser: &mut JavascriptParser,
     member_expr: &swc_core::ecma::ast::MemberExpr,
+    _name: &str,
   ) -> Option<bool> {
     macro_rules! not_supported_expr {
       ($check: ident, $expr: ident, $name: literal) => {
@@ -340,7 +346,7 @@ impl JavascriptParserPlugin for APIPlugin {
     }
   }
 
-  fn call(&self, parser: &mut JavascriptParser, call_expr: &CallExpr) -> Option<bool> {
+  fn call(&self, parser: &mut JavascriptParser, call_expr: &CallExpr, _name: &str) -> Option<bool> {
     macro_rules! not_supported_call {
       ($check: ident, $name: literal) => {
         if let Callee::Expr(box Expr::Member(expr)) = &call_expr.callee
@@ -353,7 +359,7 @@ impl JavascriptParserPlugin for APIPlugin {
           );
           parser.warning_diagnostics.push(warning);
           parser.presentational_dependencies.push(dep);
-          return Some(false);
+          return Some(true);
         }
       };
     }

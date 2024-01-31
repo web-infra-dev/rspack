@@ -16,6 +16,7 @@ pub use self::eval_lit_expr::{eval_lit_expr, eval_prop_name};
 pub use self::eval_new_expr::eval_new_expression;
 pub use self::eval_tpl_expr::{eval_tpl_expression, TemplateStringKind};
 pub use self::eval_unary_expr::eval_unary_expression;
+use crate::visitors::ExportedVariableInfo;
 
 #[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -59,6 +60,7 @@ pub struct BasicEvaluatedExpression {
   bigint: Option<Bigint>,
   regexp: Option<Regexp>,
   identifier: Option<String>,
+  root_info: Option<ExportedVariableInfo>,
   items: Option<Vec<BasicEvaluatedExpression>>,
   quasis: Option<Vec<BasicEvaluatedExpression>>,
   parts: Option<Vec<BasicEvaluatedExpression>>,
@@ -89,6 +91,7 @@ impl BasicEvaluatedExpression {
       quasis: None,
       parts: None,
       identifier: None,
+      root_info: None,
       template_string_kind: None,
       options: None,
       string: None,
@@ -256,6 +259,24 @@ impl BasicEvaluatedExpression {
     self.side_effects = false
   }
 
+  pub fn set_truthy(&mut self) {
+    self.falsy = false;
+    self.truthy = true;
+    self.nullish = Some(false);
+  }
+
+  pub fn set_falsy(&mut self) {
+    self.falsy = true;
+    self.truthy = false;
+  }
+
+  pub fn set_nullish(&mut self, nullish: bool) {
+    self.nullish = Some(nullish);
+    if nullish {
+      self.set_falsy()
+    }
+  }
+
   pub fn set_items(&mut self, items: Vec<BasicEvaluatedExpression>) {
     self.ty = Ty::Array;
     self.side_effects = items.iter().any(|item| item.could_have_side_effects());
@@ -280,6 +301,13 @@ impl BasicEvaluatedExpression {
       self.options = Some(options);
       self.side_effects = true;
     }
+  }
+
+  pub fn set_identifier(&mut self, name: String, root_info: ExportedVariableInfo) {
+    self.ty = Ty::Identifier;
+    self.identifier = Some(name);
+    self.root_info = Some(root_info);
+    self.side_effects = true;
   }
 
   pub fn set_bool(&mut self, boolean: Boolean) {
@@ -352,6 +380,29 @@ impl BasicEvaluatedExpression {
 pub fn evaluate_to_string(value: String, start: u32, end: u32) -> BasicEvaluatedExpression {
   let mut eval = BasicEvaluatedExpression::with_range(start, end);
   eval.set_string(value);
+  eval
+}
+
+pub fn evaluate_to_identifier(
+  identifier: String,
+  root_info: String,
+  truthy: Option<bool>,
+  start: u32,
+  end: u32,
+) -> BasicEvaluatedExpression {
+  let mut eval = BasicEvaluatedExpression::with_range(start, end);
+  eval.set_identifier(identifier, ExportedVariableInfo::Name(root_info));
+  eval.set_side_effects(false);
+  match truthy {
+    Some(v) => {
+      if v {
+        eval.set_truthy();
+      } else {
+        eval.set_falsy();
+      }
+    }
+    None => eval.set_nullish(true),
+  };
   eval
 }
 

@@ -30,3 +30,29 @@ export const memoizeFn = <const T extends readonly unknown[], const P>(
 		return cache(...args);
 	};
 };
+
+export function memoizeValue<T>(fn: () => T): T {
+	const getValue: () => any = memoize(fn);
+	return new Proxy({} as any, {
+		get(_, property) {
+			return getValue()[property];
+		},
+		set(_, property, newValue) {
+			getValue()[property] = newValue;
+			return true;
+		},
+		deleteProperty(_, property) {
+			const value = getValue();
+			return delete value[property];
+		},
+		has: (_, property) => {
+			return property in getValue();
+		},
+		ownKeys: _ => {
+			return Object.keys(getValue());
+		},
+		getOwnPropertyDescriptor(_, property) {
+			return Object.getOwnPropertyDescriptor(getValue(), property);
+		}
+	});
+}

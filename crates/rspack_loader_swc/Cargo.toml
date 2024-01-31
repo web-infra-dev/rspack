@@ -12,7 +12,7 @@ anyhow = { workspace = true }
 async-trait = { workspace = true }
 dashmap = { workspace = true }
 either = "1"
-jsonc-parser = { version = "0.22.1", features = ["serde"] }
+jsonc-parser = { version = "0.23.0", features = ["serde"] }
 once_cell = { workspace = true }
 rspack_ast = { path = "../rspack_ast" }
 rspack_core = { path = "../rspack_core" }
@@ -22,7 +22,7 @@ rspack_plugin_javascript = { path = "../rspack_plugin_javascript" }
 rspack_swc_visitors = { path = "../rspack_swc_visitors" }
 rspack_util = { path = "../rspack_util" }
 serde = { workspace = true, features = ["derive"] }
-serde_json = "1.0.100"
+serde_json = { workspace = true }
 swc_config = { workspace = true }
 swc_core = { workspace = true, features = [
   "base",

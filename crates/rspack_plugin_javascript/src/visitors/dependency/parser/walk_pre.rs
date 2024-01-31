@@ -8,6 +8,7 @@ use swc_core::ecma::ast::{ModuleDecl, ModuleItem, ObjectPat, ObjectPatProp, Stmt
 use swc_core::ecma::ast::{SwitchCase, SwitchStmt, TryStmt, VarDecl, VarDeclKind, VarDeclarator};
 
 use super::JavascriptParser;
+use crate::parser_plugin::JavascriptParserPlugin;
 use crate::utils::eval;
 
 impl<'parser> JavascriptParser<'parser> {
@@ -29,14 +30,24 @@ impl<'parser> JavascriptParser<'parser> {
         ModuleDecl::TsImportEquals(_)
         | ModuleDecl::TsExportAssignment(_)
         | ModuleDecl::TsNamespaceExport(_) => unreachable!(),
-        _ => (),
+        _ => {
+          self.is_esm = true;
+        }
       },
       ModuleItem::Stmt(stmt) => self.pre_walk_statement(stmt),
     }
   }
 
   pub fn pre_walk_statement(&mut self, statement: &Stmt) {
-    // TODO: hooks.preStatement call
+    if self
+      .plugin_drive
+      .clone()
+      .pre_statement(self, statement)
+      .unwrap_or_default()
+    {
+      return;
+    }
+
     match statement {
       Stmt::Block(stmt) => self.pre_walk_block_statement(stmt),
       Stmt::DoWhile(stmt) => self.pre_walk_do_while_statement(stmt),
@@ -120,7 +131,12 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn pre_walk_for_of_statement(&mut self, stmt: &ForOfStmt) {
-    // TODO: hooks.topLevelAwait call
+    if stmt.is_await && matches!(self.top_level_scope, super::TopLevelScope::Top) {
+      self
+        .plugin_drive
+        .clone()
+        .top_level_for_of_await_stmt(self, stmt);
+    }
     if let Some(left) = stmt.left.as_var_decl() {
       self.pre_walk_variable_declaration(left)
     }

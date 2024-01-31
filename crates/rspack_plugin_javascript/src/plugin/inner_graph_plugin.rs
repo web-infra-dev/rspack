@@ -79,13 +79,13 @@ pub struct InnerGraphState {
 pub struct InnerGraphPlugin<'a> {
   dependencies: &'a mut Vec<Box<dyn Dependency>>,
   unresolved_ctxt: SyntaxContext,
-  top_level_ctxt: SyntaxContext,
   state: InnerGraphState,
   scope_level: usize,
   rewrite_usage_span: &'a mut HashMap<Span, ExtraSpanInfo>,
   import_map: &'a ImportMap,
+  in_named: bool,
+  top_level_ctxt_set: HashSet<SyntaxContext>,
   pub comments: Option<SwcComments>,
-  pub in_named: bool,
 }
 
 impl<'a> Visit for InnerGraphPlugin<'a> {
@@ -295,6 +295,18 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
   }
 
   fn visit_ident(&mut self, ident: &Ident) {
+    let is_toplevel_ident =
+      if ident.span.ctxt != self.unresolved_ctxt && ident.span.ctxt != SyntaxContext::empty() {
+        if self.is_toplevel() {
+          self.top_level_ctxt_set.insert(ident.span.ctxt);
+          true
+        } else {
+          self.top_level_ctxt_set.contains(&ident.span.ctxt)
+        }
+      } else {
+        false
+      };
+
     if let Some(ExtraSpanInfo::ReWriteUsedByExports) = self.rewrite_usage_span.get(&ident.span) {
       let span = ident.span;
       self.on_usage(Box::new(move |deps, used_by_exports| {
@@ -308,7 +320,7 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
     if self.import_map.contains_key(&ident.to_id()) {
       return;
     };
-    if ident.span.ctxt == self.top_level_ctxt {
+    if is_toplevel_ident {
       let usage = if let Some(symbol) = self.get_top_level_symbol() {
         InnerGraphMapUsage::TopLevel(symbol)
       } else {
@@ -525,7 +537,6 @@ impl<'a> InnerGraphPlugin<'a> {
     Self {
       dependencies,
       unresolved_ctxt,
-      top_level_ctxt,
       state: InnerGraphState {
         module_identifier,
         ..Default::default()
@@ -535,6 +546,7 @@ impl<'a> InnerGraphPlugin<'a> {
       import_map,
       comments,
       in_named: false,
+      top_level_ctxt_set: HashSet::from_iter([top_level_ctxt]),
     }
   }
 

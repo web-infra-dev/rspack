@@ -9,7 +9,7 @@ version    = "0.1.0"
 async-trait = { workspace = true }
 bitflags = { workspace = true }
 heck = "0.4.1"
-indexmap = { workspace = true }
+indexmap = { version = "=1.9.3", features = ["serde-1"] } # pinned by rkyv
 once_cell = { workspace = true }
 rayon = { workspace = true }
 regex = { workspace = true }
@@ -36,9 +36,9 @@ swc_core = { workspace = true, features = [
   "css_minifier",
 ] }
 tracing = { workspace = true }
-urlencoding = "2.1.2"
+urlencoding = { workspace = true }
 
 [dev-dependencies]
 hrx-parser     = "0.1.1"
-insta          = "1.30.0"
+insta          = { workspace = true }
 rspack_testing = { path = "../rspack_testing" }

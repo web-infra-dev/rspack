@@ -149,7 +149,7 @@ impl SymbolRef {
 }
 
 bitflags! {
-  #[derive(Default)]
+  #[derive(Debug, Default, Clone, Copy)]
   struct AnalyzeState: u8 {
     const EXPORT_DECL = 1 << 0;
     const EXPORT_DEFAULT = 1 << 1;

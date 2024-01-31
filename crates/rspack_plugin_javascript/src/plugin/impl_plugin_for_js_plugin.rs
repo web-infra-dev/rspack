@@ -28,7 +28,7 @@ impl Plugin for JsPlugin {
     _options: &mut CompilerOptions,
   ) -> Result<()> {
     let create_parser_and_generator =
-      move || Box::new(JavaScriptParserAndGenerator::new()) as Box<dyn ParserAndGenerator>;
+      move || Box::new(JavaScriptParserAndGenerator) as Box<dyn ParserAndGenerator>;
 
     ctx
       .context
@@ -137,6 +137,11 @@ impl Plugin for JsPlugin {
     args.compilation.set_dependency_factory(
       DependencyType::CjsSelfReference,
       Arc::new(SelfModuleFactory {}),
+    );
+    // provide
+    args.compilation.set_dependency_factory(
+      DependencyType::Provided,
+      params.normal_module_factory.clone(),
     );
     Ok(())
   }

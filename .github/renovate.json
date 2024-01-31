@@ -1,9 +1,12 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "enabledManagers": ["github-actions", "cargo"],
+  "timezone": "Asia/Shanghai",
+  "schedule": ["before 8am on wednesday"],
+  "enabledManagers": ["github-actions", "cargo", "npm"],
   "ignorePaths": [
-    "**/tests/**",
     "**/fixtures/**",
+    "**/tests/**",
+    "npm/**",
     "webpack-examples/**",
     "webpack-test/**"
   ],
@@ -11,15 +14,66 @@
     {
       "groupName": "github-actions",
       "matchManagers": ["github-actions"],
-      "schedule": ["on wednesday"],
+      "assignees": ["@Boshen"],
+      "excludePackageNames": ["actions/upload-artifact", "actions/download-artifact"]
+    },
+    {
+      "groupName": "upload-download-actions",
+      "matchManagers": ["github-actions"],
+      "matchPackageNames": ["actions/upload-artifact", "actions/download-artifact"],
+      "enabled": false
+    },
+    {
+      "groupName": "crates",
+      "matchManagers": ["cargo"],
+      "assignees": ["@Boshen"],
+      "excludePackagePrefixes": ["swc"],
+      "excludePackageNames": ["ustr", "textwrap", "styled_components", "owo-colors"]
+    },
+    {
+      "groupName": "swc",
+      "matchManagers": ["cargo"],
+      "matchPackagePrefixes": ["swc"],
+      "matchPackageNames": ["styled_components"]
+    },
+    {
+      "groupName": "ignored-crates",
+      "matchManagers": ["cargo"],
+      "matchPackageNames": ["ustr", "textwrap", "owo-colors"],
+      "enabled": false
+    },
+    {
+      "groupName": "ignored-indexmap",
+      "matchManagers": ["cargo"],
+      "matchFileNames": ["crates/rspack_plugin_css/Cargo.toml"],
+      "matchPackageNames": ["indexmap"],
+      "enabled": false
+    },
+    {
+      "groupName": "npm devDependencies",
+      "matchManagers": ["npm"],
+      "matchDepTypes": ["devDependencies"],
+      "excludePackagePrefixes": ["webpack"],
+      "excludePackageNames": ["@playwright/test", "react", "react-dom", "typescript"],
       "assignees": ["@Boshen"]
     },
     {
-      "groupName": "cargo",
-      "matchManagers": ["cargo"],
-      "schedule": ["on wednesday"],
-      "assignees": ["@Boshen"],
-      "excludePackagePatterns": ["swc"]
+      "groupName": "npm dependencies",
+      "matchManagers": ["npm"],
+      "matchDepTypes": ["dependencies"],
+      "enabled": false
+    },
+    {
+      "groupName": "npm ignored dependencies",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["@playwright/test", "react", "react-dom", "typescript"],
+      "enabled": false
+    },
+    {
+      "groupName": "webpack",
+      "matchManagers": ["npm"],
+      "matchPackagePrefixes": ["webpack"],
+      "enabled": false
     }
   ]
 }

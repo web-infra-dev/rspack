@@ -1,11 +1,10 @@
 mod react;
-pub use react::{fold_react_refresh, react, RawReactOptions, ReactOptions};
+pub use react::ReactOptions;
 
 mod define;
 pub use define::{define, Define, RawDefine};
 
-mod provide;
-pub use provide::{provide, Provide, RawProvide};
+pub type Provide = std::collections::HashMap<String, Vec<String>>;
 
 mod relay;
 pub use relay::{relay, RawRelayOptions, RelayLanguageConfig, RelayOptions};

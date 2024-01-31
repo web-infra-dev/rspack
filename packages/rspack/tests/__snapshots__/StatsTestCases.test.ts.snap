@@ -808,7 +808,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
         "hotModuleReplacement": false,
       },
       "name": "bundle.js",
-      "size": 9107,
+      "size": 9111,
       "type": "asset",
     },
   ],
@@ -873,10 +873,10 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 9107,
+          "size": 9111,
         },
       ],
-      "assetsSize": 9107,
+      "assetsSize": 9111,
       "chunks": [
         "909",
       ],
@@ -886,7 +886,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "5f9f75789352d7c6b706",
+  "hash": "a210589f4b012d53aa0a",
   "logging": {},
   "modules": [
     {
@@ -1044,10 +1044,10 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 9107,
+          "size": 9111,
         },
       ],
-      "assetsSize": 9107,
+      "assetsSize": 9111,
       "chunks": [
         "909",
       ],
@@ -1063,8 +1063,8 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
 
 exports[`StatsTestCases should print correct stats for hot+production 2`] = `
 "PublicPath: (none)
-asset bundle.js 8.89 KiB {909} [emitted] (name: main)
-Entrypoint main 8.89 KiB = bundle.js
+asset bundle.js 8.9 KiB {909} [emitted] (name: main)
+Entrypoint main 8.9 KiB = bundle.js
 chunk {909} bundle.js (main) [entry]
   ./index.js [10] {909}
     entry ./index.js
@@ -1077,7 +1077,7 @@ webpack/runtime/hot_module_replacement {909}
 webpack/runtime/get_chunk_update_filename {909}
 webpack/runtime/get_main_filename/update manifest {909}
   
-Rspack compiled successfully (5f9f75789352d7c6b706)"
+Rspack compiled successfully (a210589f4b012d53aa0a)"
 `;
 
 exports[`StatsTestCases should print correct stats for identifier-let-strict-mode 1`] = `

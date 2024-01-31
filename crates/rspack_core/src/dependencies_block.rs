@@ -7,7 +7,6 @@ use rspack_error::{
   miette::{self, Diagnostic},
   thiserror::{self, Error},
 };
-use serde::Serialize;
 
 use crate::{
   update_hash::{UpdateHashContext, UpdateRspackHash},
@@ -30,7 +29,7 @@ pub trait DependenciesBlock {
 
 pub static ASYNC_DEPENDENCIES_BLOCK_ID: AtomicU32 = AtomicU32::new(0);
 
-#[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize)]
+#[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash, serde::Serialize)]
 pub struct AsyncDependenciesBlockId(u32);
 
 impl AsyncDependenciesBlockId {
@@ -50,7 +49,7 @@ impl AsyncDependenciesBlockId {
   }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Deserialize, serde::Serialize)]
 pub struct DependencyLocation {
   start: u32,
   end: u32,

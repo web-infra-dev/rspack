@@ -1,5 +1,5 @@
 mod dependency;
-mod scope_info;
+pub mod scope_info;
 pub mod swc_visitor;
 
 use rspack_ast::javascript::Ast;
@@ -15,7 +15,6 @@ pub use self::JavascriptParser;
 
 /// Webpack builtin plugins
 /// - `define`: a port of `DefinePlugin`
-/// - `provide`: a port of `ProvidePlugin`
 fn builtins_webpack_plugin(options: &CompilerOptions, unresolved_mark: Mark) -> impl Fold + '_ {
   chain!(
     Optional::new(
@@ -26,10 +25,6 @@ fn builtins_webpack_plugin(options: &CompilerOptions, unresolved_mark: Mark) -> 
       builtins_webpack_plugin_define_optimizer(unresolved_mark),
       !options.builtins.define.is_empty()
     ),
-    Optional::new(
-      rspack_swc_visitors::provide(&options.builtins.provide, unresolved_mark),
-      !options.builtins.provide.is_empty()
-    )
   )
 }
 

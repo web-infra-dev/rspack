@@ -55,15 +55,16 @@ import {
 } from "./util/fake";
 import { NormalizedJsModule, normalizeJsModule } from "./util/normalization";
 import MergeCaller from "./util/MergeCaller";
+import { memoizeValue } from "./util/memoize";
 import { Chunk } from "./Chunk";
-import { CodeGenerationResult, Module } from "./Module";
+import { CodeGenerationResult } from "./Module";
 import { ChunkGraph } from "./ChunkGraph";
 
 export type AssetInfo = Partial<JsAssetInfo> & Record<string, any>;
 export type Assets = Record<string, Source>;
 export interface Asset {
 	name: string;
-	source?: Source;
+	source: Source;
 	info: JsAssetInfo;
 }
 export interface LogEntry {
@@ -464,25 +465,20 @@ export class Compilation {
 		const assets = this.#inner.getAssets();
 
 		return assets.map(asset => {
-			return {
-				...asset,
-				get source() {
-					return asset.source ? createSourceFromRaw(asset.source) : undefined;
-				}
-			};
+			return Object.defineProperty(asset, "source", {
+				get: () => this.__internal__getAssetSource(asset.name)
+			}) as Asset;
 		});
 	}
 
-	getAsset(name: string) {
+	getAsset(name: string): Asset | void {
 		const asset = this.#inner.getAsset(name);
 		if (!asset) {
 			return;
 		}
-		return {
-			...asset,
-			// @ts-expect-error
-			source: createSourceFromRaw(asset.source)
-		};
+		return Object.defineProperty(asset, "source", {
+			get: () => this.__internal__getAssetSource(asset.name)
+		}) as Asset;
 	}
 
 	pushDiagnostic(
@@ -722,12 +718,16 @@ export class Compilation {
 	);
 
 	get modules() {
-		return this.__internal__getModules().map(item => normalizeJsModule(item));
+		return memoizeValue(() => {
+			return this.__internal__getModules().map(item => normalizeJsModule(item));
+		});
 	}
 
 	// FIXME: This is not aligned with Webpack.
 	get chunks() {
-		return this.__internal__getChunks();
+		return memoizeValue(() => {
+			return this.__internal__getChunks();
+		});
 	}
 
 	/**
@@ -865,10 +865,10 @@ export class Compilation {
 	 *
 	 * @internal
 	 */
-	__internal__getAssetSource(filename: string): Source | null {
+	__internal__getAssetSource(filename: string): Source | void {
 		const rawSource = this.#inner.getAssetSource(filename);
 		if (!rawSource) {
-			return null;
+			return;
 		}
 		return createSourceFromRaw(rawSource);
 	}

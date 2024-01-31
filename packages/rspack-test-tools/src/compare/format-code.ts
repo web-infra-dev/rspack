@@ -91,6 +91,14 @@ export function formatCode(
 				}
 			}
 		},
+		SwitchCase(path) {
+			if (
+				path.node.consequent.length === 1 &&
+				path.node.consequent[0].type === "BlockStatement"
+			) {
+				path.node.consequent = path.node.consequent[0].body;
+			}
+		},
 		ObjectExpression(path) {
 			if (options.ignoreObjectPropertySequence) {
 				let result = [];
@@ -145,5 +153,19 @@ export function formatCode(
 		}
 	}
 
-	return result.trim();
+	// result of generate() is not stable with comments sometimes
+	// so do it again
+	return generate(
+		parse(result, {
+			sourceType: "unambiguous"
+		}),
+		{
+			comments: false,
+			compact: false,
+			concise: false,
+			jsescOption: {
+				quotes: "double"
+			}
+		}
+	).code.trim();
 }

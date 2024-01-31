@@ -212,7 +212,6 @@ export interface FactoryMeta {
 
 export interface JsAsset {
   name: string
-  source?: JsCompatSource
   info: JsAssetInfo
 }
 
