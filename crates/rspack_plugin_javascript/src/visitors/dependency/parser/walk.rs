@@ -594,7 +594,7 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_member_expression(&mut self, expr: &MemberExpr) {
-    if let Some(expr_info) = self.get_member_expression_info(expr, AllowedMemberTypes::All) {
+    if let Some(expr_info) = self.get_member_expression_info(expr, AllowedMemberTypes::all()) {
       match expr_info {
         MemberExpressionInfo::Expression(expr_info) => {
           if let Some(for_name) = expr_info.name.call_hooks_name(self)
