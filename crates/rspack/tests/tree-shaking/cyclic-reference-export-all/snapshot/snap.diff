@@ -1,9 +1,10 @@
 --- expected
 +++ actual
-@@ -6,9 +6,9 @@
+@@ -5,10 +5,9 @@
+ (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
  "./src/App.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
  "use strict";
- __webpack_require__.r(__webpack_exports__);
+-__webpack_require__.r(__webpack_exports__);
 -/* harmony import */var _containers__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./containers */"./src/containers/index.js");
 +/* harmony import */var _containers__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./containers */"./src/containers/containers.js");
  
@@ -12,18 +13,20 @@
  const Index = ()=>{
      console.log("PlatformProvider", PlatformProvider);
      return 'something';
-@@ -18,18 +18,11 @@
+@@ -16,26 +15,18 @@
+ /* harmony default export */ __webpack_exports__["default"] = (Index);
+ }),
  "./src/containers/containers.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
- "use strict";
- __webpack_require__.r(__webpack_exports__);
+-"use strict";
+-__webpack_require__.r(__webpack_exports__);
 -/* harmony import */var _platform_container__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./platform-container */"./src/containers/platform-container/index.js");
 -__webpack_require__.es(_platform_container__WEBPACK_IMPORTED_MODULE_0__, __webpack_exports__);
 -
 -
 -}),
 -"./src/containers/index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
--"use strict";
--__webpack_require__.r(__webpack_exports__);
+ "use strict";
+ __webpack_require__.r(__webpack_exports__);
  __webpack_require__.d(__webpack_exports__, {
 -  containers: function() { return _containers__WEBPACK_IMPORTED_MODULE_0__; }
 +  PlatformProvider: function() { return /* reexport safe */ _platform_container__WEBPACK_IMPORTED_MODULE_0__.PlatformProvider; },
@@ -34,3 +37,20 @@
  
  
  }),
+ "./src/containers/platform-container/index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+ "use strict";
+-__webpack_require__.r(__webpack_exports__);
+ __webpack_require__.d(__webpack_exports__, {
+   PlatformProvider: function() { return PlatformProvider; },
+   usePlatform: function() { return usePlatform; }
+@@ -43,9 +34,8 @@
+ const usePlatform = 3;
+ const PlatformProvider = 1000;
+ }),
+-"./src/index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
++"./src/index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
+ "use strict";
+-__webpack_require__.r(__webpack_exports__);
+ /* harmony import */var _App__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./App */"./src/App.js");
+ 
+ (0, _App__WEBPACK_IMPORTED_MODULE_0__["default"])();

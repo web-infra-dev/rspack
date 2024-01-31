@@ -11,8 +11,8 @@ const answer = 103330;
 ;// CONCATENATED MODULE: ./index.js
 
 answer;
-function indexjs_answer() {}
-indexjs_answer();
+function index_answer() {}
+index_answer();
 function test() {}
 }),
 

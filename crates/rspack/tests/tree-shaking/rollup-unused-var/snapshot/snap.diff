@@ -1,6 +1,12 @@
 --- expected
 +++ actual
-@@ -11,7 +11,7 @@
+@@ -5,18 +5,16 @@
+ (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
+ "./foo.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+ "use strict";
+-__webpack_require__.r(__webpack_exports__);
+ __webpack_require__.d(__webpack_exports__, {
+   foo: function() { return foo; }
  });
  var foo = "lol";
  var bar = "wut";
@@ -8,4 +14,10 @@
 +var baz = (/* unused pure expression or super */ null && (bar || foo));
  
  }),
- "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+-"./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
++"./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
+ "use strict";
+-__webpack_require__.r(__webpack_exports__);
+ /* harmony import */var _foo_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./foo.js */"./foo.js");
+ 
+ console.log(_foo_js__WEBPACK_IMPORTED_MODULE_0__.foo);

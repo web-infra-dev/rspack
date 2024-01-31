@@ -1,6 +1,6 @@
 --- expected
 +++ actual
-@@ -3,27 +3,6 @@
+@@ -3,39 +3,16 @@
  ---
  ```js title=main.js
  (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
@@ -27,11 +27,16 @@
 -}),
  "./c.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
  "use strict";
- __webpack_require__.r(__webpack_exports__);
-@@ -35,7 +14,7 @@
- "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+-__webpack_require__.r(__webpack_exports__);
+ __webpack_require__.d(__webpack_exports__, {
+   ccc: function() { return ccc; }
+ });
+ const ccc = 30;
+ }),
+-"./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
++"./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
  "use strict";
- __webpack_require__.r(__webpack_exports__);
+-__webpack_require__.r(__webpack_exports__);
 -/* harmony import */var _a_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./a.js */"./a.js");
 +/* harmony import */var _a_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./a.js */"./c.js");
  

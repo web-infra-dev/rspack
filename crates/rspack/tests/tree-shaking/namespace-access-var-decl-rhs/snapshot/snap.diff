@@ -1,6 +1,22 @@
 --- expected
 +++ actual
-@@ -23,25 +23,6 @@
+@@ -5,7 +5,6 @@
+ (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
+ "./a.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+ "use strict";
+-__webpack_require__.r(__webpack_exports__);
+ __webpack_require__.d(__webpack_exports__, {
+   a: function() { return a; }
+ });
+@@ -15,7 +14,6 @@
+ }),
+ "./b.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+ "use strict";
+-__webpack_require__.r(__webpack_exports__);
+ __webpack_require__.d(__webpack_exports__, {
+   b: function() { return b; }
+ });
+@@ -23,39 +21,19 @@
      b: ""
  };
  }),
@@ -23,10 +39,17 @@
 -__webpack_require__.es(_enum_old__WEBPACK_IMPORTED_MODULE_0__, __webpack_exports__);
 -
 -}),
- "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+-"./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
++"./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
  "use strict";
- __webpack_require__.r(__webpack_exports__);
-@@ -55,7 +36,8 @@
+-__webpack_require__.r(__webpack_exports__);
+ /* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./lib */"./lib.js");
+ 
+ console.log(_lib__WEBPACK_IMPORTED_MODULE_0__.getDocPermissionTextSendMe);
+ }),
+ "./lib.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+ "use strict";
+-__webpack_require__.r(__webpack_exports__);
  __webpack_require__.d(__webpack_exports__, {
    getDocPermissionTextSendMe: function() { return getDocPermissionTextSendMe; }
  });
@@ -36,7 +59,7 @@
  
  function Record() {}
  const code2CreateChatDocPermission = {
-@@ -64,7 +46,7 @@
+@@ -64,7 +42,7 @@
  function getDocPermissionTextSendMe() {}
  class Doc extends Record({}) {
      isSheet() {

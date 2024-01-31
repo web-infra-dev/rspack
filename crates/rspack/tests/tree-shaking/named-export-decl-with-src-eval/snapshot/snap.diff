@@ -1,6 +1,6 @@
 --- expected
 +++ actual
-@@ -3,22 +3,6 @@
+@@ -3,50 +3,16 @@
  ---
  ```js title=main.js
  (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
@@ -22,14 +22,15 @@
 -}),
  "./c.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
  "use strict";
- __webpack_require__.r(__webpack_exports__);
-@@ -26,27 +10,11 @@
+-__webpack_require__.r(__webpack_exports__);
+ __webpack_require__.d(__webpack_exports__, {
    cccc: function() { return cccc; }
  });
  function cccc() {}
--}),
+ }),
 -"./export.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
--"use strict";
++"./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
+ "use strict";
 -__webpack_require__.r(__webpack_exports__);
 -__webpack_require__.d(__webpack_exports__, {
 -  cccc: function() { return _c__WEBPACK_IMPORTED_MODULE_2__.cccc; }
@@ -43,10 +44,10 @@
 -L.something = _Something__WEBPACK_IMPORTED_MODULE_1__.something;
 -
 -var LL = L;
- }),
- "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
- "use strict";
- __webpack_require__.r(__webpack_exports__);
+-}),
+-"./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+-"use strict";
+-__webpack_require__.r(__webpack_exports__);
 -/* harmony import */var _export__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./export */"./export.js");
 +/* harmony import */var _export__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./export */"./c.js");
  
