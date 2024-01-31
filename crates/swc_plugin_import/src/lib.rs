@@ -11,8 +11,8 @@ use swc_core::{
   common::{errors::HANDLER, util::take::Take, BytePos, Span, SyntaxContext, DUMMY_SP},
   ecma::{
     ast::{
-      Ident, ImportDecl, ImportDefaultSpecifier, ImportNamedSpecifier, ImportSpecifier, Module,
-      ModuleDecl, ModuleExportName, ModuleItem, Str,
+      Ident, ImportDecl, ImportDefaultSpecifier, ImportNamedSpecifier, ImportPhase,
+      ImportSpecifier, Module, ModuleDecl, ModuleExportName, ModuleItem, Str,
     },
     atoms::Atom,
     visit::{as_folder, Fold, VisitMut, VisitWith},
@@ -484,6 +484,7 @@ impl<'a> VisitMut for ImportPlugin<'a> {
         }),
         type_only: false,
         with: Default::default(),
+        phase: ImportPhase::default(),
       }));
       body.insert(0, dec);
     }
@@ -499,6 +500,7 @@ impl<'a> VisitMut for ImportPlugin<'a> {
         }),
         type_only: false,
         with: Default::default(),
+        phase: ImportPhase::default(),
       }));
       body.insert(0, dec);
     }
