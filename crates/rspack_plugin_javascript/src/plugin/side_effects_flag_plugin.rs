@@ -14,7 +14,7 @@ use rustc_hash::FxHashSet as HashSet;
 // use rspack_error::Result;
 use swc_core::common::{comments, Span, Spanned, SyntaxContext, GLOBALS};
 use swc_core::ecma::ast::*;
-use swc_core::ecma::utils::{ExprCtx, ExprExt};
+use swc_core::ecma::utils::{ExprCtx, ExprExt, ExprFactory};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 use swc_node_comments::SwcComments;
 
@@ -236,6 +236,7 @@ impl<'a> SideEffectsFlagPluginVisitor<'a> {
 
 static PURE_COMMENTS: Lazy<regex::Regex> =
   Lazy::new(|| regex::Regex::new("^\\s*(#|@)__PURE__\\s*$").expect("Should create the regex"));
+
 fn is_pure_call_expr(
   call_expr: &CallExpr,
   unresolved_ctxt: SyntaxContext,
@@ -275,8 +276,12 @@ pub fn is_pure_expression<'a>(
   unresolved_ctxt: SyntaxContext,
   comments: Option<&'a SwcComments>,
 ) -> bool {
+  let c = comments.expect("should");
   match expr {
     Expr::Call(call) => is_pure_call_expr(call, unresolved_ctxt, comments),
+    Expr::Paren(call) => {
+      is_pure_expression(&call.clone().wrap_with_paren(), unresolved_ctxt, comments)
+    }
     _ => !expr.may_have_side_effects(&ExprCtx {
       unresolved_ctxt,
       is_unresolved_ref_safe: true,

@@ -1622,8 +1622,6 @@ impl ConcatenatedModule {
         .expect("should have javascript source");
       let source_code = source.source().to_string();
 
-      println!("{module_id}\n",);
-      println!("{}\n", &source_code);
       let cm: Arc<swc_core::common::SourceMap> = Default::default();
       let fm = cm.new_source_file(
         FileName::Custom(format!(

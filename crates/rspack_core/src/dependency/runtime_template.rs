@@ -197,7 +197,14 @@ pub(crate) fn items_to_regexp(items_arr: Vec<String>) -> String {
     let a = it.next().expect("should have two element");
     let b = it.next().expect("should have two element");
 
-    if a.ends_with(b.chars().last().unwrap()) {
+    if !a.is_empty()
+      && !b.is_empty()
+      && a.ends_with(
+        b.chars()
+          .last()
+          .expect("should have last char since b is not empty"),
+      )
+    {
       return format!(
         "{}{}",
         items_to_regexp(vec![
