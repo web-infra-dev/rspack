@@ -1,9 +1,0 @@
-{
-  "sideEffects": false,
-  "scripts": {
-    "build": "rspack build"
-  },
-	"dependencies": {
-		"@rspack/cli": "workspace:^"
-	}
-}
