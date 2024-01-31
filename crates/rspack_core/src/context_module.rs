@@ -899,7 +899,7 @@ fn alternative_requests(
   mut items: Vec<AlternativeRequest>,
 ) -> Vec<AlternativeRequest> {
   // TODO: should respect fullySpecified resolve options
-  for mut item in std::mem::take(&mut items) {
+  for item in std::mem::take(&mut items) {
     if !resolve_options.is_enforce_extension_enabled() {
       items.push(item.clone());
     }
@@ -907,52 +907,42 @@ fn alternative_requests(
       if item.request.ends_with(ext) {
         items.push(AlternativeRequest::new(
           item.context.clone(),
-          item
-            .request
-            .drain(..(item.request.len() - ext.len()))
-            .collect(),
+          item.request[..(item.request.len() - ext.len())].to_string(),
         ));
       }
     }
   }
 
-  for mut item in std::mem::take(&mut items) {
+  for item in std::mem::take(&mut items) {
     items.push(item.clone());
     for main_file in resolve_options.main_files() {
       if item.request.ends_with(&format!("/{main_file}")) {
         items.push(AlternativeRequest::new(
           item.context.clone(),
-          item
-            .request
-            .clone()
-            .drain(..(item.request.len() - main_file.len()))
-            .collect(),
+          item.request[..(item.request.len() - main_file.len())].to_string(),
         ));
         items.push(AlternativeRequest::new(
           item.context.clone(),
-          item
-            .request
-            .drain(..(item.request.len() - main_file.len() - 1))
-            .collect(),
+          item.request[..(item.request.len() - main_file.len() - 1)].to_string(),
         ));
       }
     }
   }
 
-  for mut item in std::mem::take(&mut items) {
+  for item in std::mem::take(&mut items) {
     items.push(item.clone());
     // TODO resolveOptions.modules can be array
     for module in resolve_options.modules() {
       let dir = module.replace('\\', "/");
-      let mut full_path: String = format!(
+      let full_path: String = format!(
         "{}{}",
         item.context.replace('\\', "/"),
-        item.request.drain(1..).collect::<String>(),
+        item.request[1..].to_string()
       );
       if full_path.starts_with(&dir) {
         items.push(AlternativeRequest::new(
           item.context.clone(),
-          full_path.drain((dir.len() + 1)..).collect(),
+          full_path[(dir.len() + 1)..].to_string(),
         ));
       }
     }
