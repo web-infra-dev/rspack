@@ -355,6 +355,7 @@ impl SwcCompiler {
             ),
           },
           self.options.output_path.as_deref(),
+          self.options.source_root.clone(),
           self.options.source_file_name.clone(),
           handler,
           Some(self.config.clone()),
