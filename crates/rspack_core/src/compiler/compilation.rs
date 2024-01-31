@@ -1308,7 +1308,7 @@ impl Compilation {
 
     // FIXME:
     // Webpack may modify the moduleGraph in module.getExportsType()
-    // and it is widely called after compilaiton.finish()
+    // and it is widely called after compilation.finish()
     // so add this method to trigger moduleGraph modification and
     // then make sure that moduleGraph is immutable
     prepare_get_exports_type(&mut self.module_graph);
