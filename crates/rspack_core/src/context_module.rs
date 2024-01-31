@@ -934,11 +934,7 @@ fn alternative_requests(
     // TODO resolveOptions.modules can be array
     for module in resolve_options.modules() {
       let dir = module.replace('\\', "/");
-      let full_path: String = format!(
-        "{}{}",
-        item.context.replace('\\', "/"),
-        item.request[1..].to_string()
-      );
+      let full_path: String = format!("{}{}", item.context.replace('\\', "/"), &item.request[1..]);
       if full_path.starts_with(&dir) {
         items.push(AlternativeRequest::new(
           item.context.clone(),
