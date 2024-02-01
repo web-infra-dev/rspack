@@ -329,7 +329,7 @@ pub trait Module:
   }
 }
 
-fn get_exports_type_impl<'a>(
+fn get_exports_type_impl(
   identifier: ModuleIdentifier,
   build_meta: Option<&BuildMeta>,
   mga: &mut dyn ModuleGraphAccessor,
