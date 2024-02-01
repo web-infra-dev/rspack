@@ -1538,7 +1538,7 @@ impl ExportInfo {
   }
 
   // NOTE:
-  // align with webpack _getMaxTarget(), the logic of creatation is implemented in _get_max_target()
+  // align with webpack _getMaxTarget(), the logic of creation is implemented in _get_max_target()
   // https://github.com/webpack/webpack/blob/b9fb99c63ca433b24233e0bbc9ce336b47872c08/lib/ExportsInfo.js#L1208
   fn get_max_target(&mut self) -> &HashMap<Option<DependencyId>, ExportInfoTargetValue> {
     if self.max_target_is_set {
