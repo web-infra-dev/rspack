@@ -5,7 +5,7 @@ resolver = "2"          # See https://doc.rust-lang.org/cargo/reference/resolver
 [workspace.dependencies]
 anyhow             = { version = "1.0.79", features = ["backtrace"] }
 async-recursion    = { version = "1.0.5" }
-async-scoped       = { version = "0.8.0" }
+async-scoped       = { version = "0.9.0" }
 async-trait        = { version = "0.1.77" }
 backtrace          = "0.3"
 better_scoped_tls  = { version = "0.1.1" }
@@ -19,9 +19,9 @@ futures            = { version = "0.3.30" }
 futures-util       = { version = "0.3.30" }
 glob               = { version = "0.3.1" }
 hashlink           = { version = "0.9.0" }
-indexmap           = { version = "2.1.0" }
+indexmap           = { version = "2.2.1" }
 insta              = { version = "1.34.0" }
-itertools          = { version = "0.12.0" }
+itertools          = { version = "0.12.1" }
 json               = { version = "0.12.4" }
 linked_hash_set    = { version = "0.1.4" }
 mimalloc-rust      = { version = "0.2" }
@@ -36,11 +36,11 @@ quote              = { version = "1.0.35" }
 rayon              = { version = "1.8.1" }
 regex              = { version = "1.10.3" }
 rkyv               = { version = "0.7.43" }
-rspack_sources     = { version = "0.2.7" }
+rspack_sources     = { version = "=0.2.7" }
 rustc-hash         = { version = "1.1.0" }
 schemars           = { version = "0.8.16" }
-serde              = { version = "1.0.195" }
-serde_json         = { version = "1.0.111" }
+serde              = { version = "1.0.196" }
+serde_json         = { version = "1.0.113" }
 similar            = { version = "2.4.0" }
 sugar_path         = { version = "0.0.12" }
 syn                = { version = "2.0.48" }
@@ -54,9 +54,9 @@ ustr               = { package = "ustr-fxhash", version = "1.0.0" }
 xxhash-rust        = { version = "0.8.8" }
 
 # Pinned
-napi              = { version = "=2.14.4" }
+napi              = { version = "=2.15.0" }
 napi-build        = { version = "=2.1.0" }
-napi-derive       = { version = "=2.14.6" }
+napi-derive       = { version = "=2.15.0" }
 napi-sys          = { version = "=2.3.0" }
 tikv-jemallocator = { version = "=0.5.4", features = ["disable_initial_exec_tls"] }
 
