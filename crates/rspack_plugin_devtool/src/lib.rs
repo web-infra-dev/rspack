@@ -345,7 +345,6 @@ impl Plugin for SourceMapDevToolPlugin {
           if let Some(source_root) = &self.source_root {
             source_map.set_source_root(Some(source_root.clone()));
           }
-          // sourceMap.sourceRoot = options.sourceRoot || "";
           let mut source_map_buffer = Vec::new();
           source_map
             .to_writer(&mut source_map_buffer)
@@ -797,11 +796,11 @@ impl EvalSourceMapDevToolPlugin {
     for source in map.sources_mut() {
       let resource_path = normalize_custom_filename(source);
       let resource_path = contextify(&compilation.options.context, resource_path);
-      *source = resource_path.into();
+      *source = Cow::from(resource_path);
     }
     if self.no_sources {
       for content in map.sources_content_mut() {
-        *content = String::default().into();
+        *content = Cow::from(String::default());
       }
     }
     let mut map_buffer = Vec::new();
