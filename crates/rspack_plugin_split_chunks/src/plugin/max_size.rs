@@ -133,59 +133,62 @@ fn deterministic_grouping_for_modules(
     })
     .collect::<Vec<_>>();
 
-  let initial_group = Group::new(initial_nodes, None);
+  if !initial_nodes.is_empty() {
+    let initial_group = Group::new(initial_nodes, None);
 
-  let mut queue = vec![initial_group];
+    let mut queue = vec![initial_group];
 
-  while let Some(mut group) = queue.pop() {
-    // only groups bigger than maxSize need to be split
-    if group.size.bigger_than(allow_max_size) || group.nodes.is_empty() {
-      continue;
-    }
-
-    // find unsplittable area from left and right
-    // going minSize from left and right
-    // at least one node need to be included otherwise we get stuck
-    let mut left = 0;
-    let mut left_size = SplitChunkSizes::empty();
-    while left < group.nodes.len() && left_size.smaller_than(min_size) {
-      left_size.add_by(&group.nodes[left].size);
-
-      if left != group.nodes.len() - 1 {
-        left += 1;
+    while let Some(mut group) = queue.pop() {
+      // only groups bigger than maxSize need to be split
+      if !group.size.bigger_than(allow_max_size) {
+        results.push(group);
+        continue;
       }
-    }
 
-    let mut right = group.nodes.len() - 1;
-    let mut right_size = SplitChunkSizes::empty();
-    while right != 0 && right_size.smaller_than(min_size) {
-      right_size.add_by(&group.nodes[right].size);
+      // find unsplittable area from left and right
+      // going minSize from left and right
+      // at least one node need to be included otherwise we get stuck
+      let mut left = 1;
+      let mut left_size = SplitChunkSizes::empty();
+      left_size.add_by(&group.nodes[0].size);
+      while left < group.nodes.len() && left_size.smaller_than(min_size) {
+        left_size.add_by(&group.nodes[left].size);
 
-      if right != 0 {
+        if left != group.nodes.len() - 1 {
+          left += 1;
+        }
+      }
+
+      let mut right = group.nodes.len() - 2;
+      let mut right_size = SplitChunkSizes::empty();
+      right_size.add_by(&group.nodes[right + 1].size);
+      while right != 0 && right_size.smaller_than(min_size) {
+        right_size.add_by(&group.nodes[right].size);
+
         right = right.saturating_sub(1);
       }
-    }
 
-    if left >= right {
-      // There are overlaps
+      if left - 1 > right {
+        // There are overlaps
 
-      // TODO(hyf0): There are some algorithms we could do better in this
-      // situation.
+        // TODO(hyf0): There are some algorithms we could do better in this
+        // situation.
 
-      // can't split group while holding minSize
-      // because minSize is preferred of maxSize we return
-      // the problematic nodes as result here even while it's too big
-      // To avoid this make sure maxSize > minSize * 3
-      group.key = group.nodes.first().map(|n| n.key.clone());
-      results.push(group);
-      continue;
-    }
+        // can't split group while holding minSize
+        // because minSize is preferred of maxSize we return
+        // the problematic nodes as result here even while it's too big
+        // To avoid this make sure maxSize > minSize * 3
+        group.key = group.nodes.first().map(|n| n.key.clone());
+        results.push(group);
+        continue;
+      }
 
-    if left < right {
-      let right_nodes = group.nodes.split_off(left + 1);
-      let left_nodes = group.nodes;
-      queue.push(Group::new(right_nodes, None));
-      queue.push(Group::new(left_nodes, None));
+      if left <= right {
+        let right_nodes = group.nodes.split_off(left);
+        let left_nodes = group.nodes;
+        queue.push(Group::new(right_nodes, None));
+        queue.push(Group::new(left_nodes, None));
+      }
     }
   }
 
