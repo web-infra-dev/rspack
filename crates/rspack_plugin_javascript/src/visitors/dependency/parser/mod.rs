@@ -11,7 +11,10 @@ use std::sync::Arc;
 
 use bitflags::bitflags;
 use rspack_core::needs_refactor::WorkerSyntaxList;
-use rspack_core::{BoxDependency, BuildInfo, BuildMeta, DependencyTemplate, ResourceData};
+use rspack_core::{
+  AsyncDependenciesBlock, BoxDependency, BuildInfo, BuildMeta, DependencyTemplate,
+  ModuleIdentifier, ResourceData,
+};
 use rspack_core::{CompilerOptions, DependencyLocation, JavascriptParserUrl, ModuleType, SpanExt};
 use rspack_error::miette::Diagnostic;
 use rustc_hash::FxHashSet;
@@ -45,9 +48,8 @@ pub struct ExtractedMemberExpressionChainData {
 
 bitflags! {
   pub struct AllowedMemberTypes: u8 {
-    const CallExpression = 0b01;
-    const Expression = 0b10;
-    const All = 0b11;
+    const CallExpression = 1 << 0;
+    const Expression = 1 << 1;
   }
 }
 
@@ -211,9 +213,11 @@ pub struct JavascriptParser<'parser> {
   pub(crate) warning_diagnostics: &'parser mut Vec<Box<dyn Diagnostic + Send + Sync>>,
   pub(crate) dependencies: &'parser mut Vec<BoxDependency>,
   pub(crate) presentational_dependencies: &'parser mut Vec<Box<dyn DependencyTemplate>>,
+  pub(crate) blocks: &'parser mut Vec<AsyncDependenciesBlock>,
   pub(crate) ignored: &'parser mut FxHashSet<DependencyLocation>,
   // TODO: remove `worker_syntax_list`
   pub(crate) worker_syntax_list: &'parser mut WorkerSyntaxList,
+  pub(crate) worker_index: u32,
   pub(crate) build_meta: &'parser mut BuildMeta,
   pub(crate) build_info: &'parser mut BuildInfo,
   pub(crate) resource_data: &'parser ResourceData,
@@ -221,6 +225,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) definitions_db: ScopeInfoDB,
   pub(crate) compiler_options: &'parser CompilerOptions,
   pub(crate) module_type: &'parser ModuleType,
+  pub(crate) module_identifier: &'parser ModuleIdentifier,
   // TODO: remove `enter_assign`
   pub(crate) enter_assign: bool,
   // TODO: remove `is_esm` after `HarmonyExports::isEnabled`
@@ -247,7 +252,9 @@ impl<'parser> JavascriptParser<'parser> {
     compiler_options: &'parser CompilerOptions,
     dependencies: &'parser mut Vec<BoxDependency>,
     presentational_dependencies: &'parser mut Vec<Box<dyn DependencyTemplate>>,
+    blocks: &'parser mut Vec<AsyncDependenciesBlock>,
     ignored: &'parser mut FxHashSet<DependencyLocation>,
+    module_identifier: &'parser ModuleIdentifier,
     module_type: &'parser ModuleType,
     worker_syntax_list: &'parser mut WorkerSyntaxList,
     resource_data: &'parser ResourceData,
@@ -306,6 +313,7 @@ impl<'parser> JavascriptParser<'parser> {
       plugins.push(Box::new(parser_plugin::HarmonDetectionParserPlugin::new(
         compiler_options.experiments.top_level_await,
       )));
+      plugins.push(Box::new(parser_plugin::WorkerPlugin));
     }
 
     let plugin_drive = Rc::new(JavaScriptParserPluginDrive::new(plugins));
@@ -316,6 +324,7 @@ impl<'parser> JavascriptParser<'parser> {
       warning_diagnostics,
       dependencies,
       presentational_dependencies,
+      blocks,
       in_try: false,
       in_if: false,
       in_short_hand: false,
@@ -337,6 +346,8 @@ impl<'parser> JavascriptParser<'parser> {
       enter_call: 0,
       stmt_level: 0,
       last_stmt_is_expr_stmt: false,
+      worker_index: 0,
+      module_identifier,
     }
   }
 

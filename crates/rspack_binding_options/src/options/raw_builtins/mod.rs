@@ -34,7 +34,7 @@ use rspack_plugin_hmr::HotModuleReplacementPlugin;
 use rspack_plugin_html::HtmlRspackPlugin;
 use rspack_plugin_javascript::{
   FlagDependencyExportsPlugin, FlagDependencyUsagePlugin, InferAsyncModulesPlugin, JsPlugin,
-  MangleExportsPlugin, SideEffectsFlagPlugin,
+  MangleExportsPlugin, ModuleConcatenationPlugin, SideEffectsFlagPlugin,
 };
 use rspack_plugin_json::JsonPlugin;
 use rspack_plugin_library::enable_library_plugin;
@@ -126,6 +126,7 @@ pub enum BuiltinPluginName {
   FlagDependencyExportsPlugin,
   FlagDependencyUsagePlugin,
   MangleExportsPlugin,
+  ModuleConcatenationPlugin,
 
   // rspack specific plugins
   HttpExternalsRspackPlugin,
@@ -236,7 +237,7 @@ impl BuiltinPlugin {
         plugins.push(MergeDuplicateChunksPlugin.boxed());
       }
       BuiltinPluginName::SplitChunksPlugin => {
-        use rspack_plugin_split_chunks_new::SplitChunksPlugin;
+        use rspack_plugin_split_chunks::SplitChunksPlugin;
         let options = downcast_into::<RawSplitChunksOptions>(self.options)?.into();
         plugins.push(SplitChunksPlugin::new(options).boxed());
       }
@@ -334,6 +335,9 @@ impl BuiltinPlugin {
       }
       BuiltinPluginName::MangleExportsPlugin => {
         plugins.push(MangleExportsPlugin::new(downcast_into::<bool>(self.options)?).boxed())
+      }
+      BuiltinPluginName::ModuleConcatenationPlugin => {
+        plugins.push(ModuleConcatenationPlugin::default().boxed())
       }
 
       // rspack specific plugins

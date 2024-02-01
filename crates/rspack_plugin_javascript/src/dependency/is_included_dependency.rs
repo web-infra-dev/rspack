@@ -77,4 +77,8 @@ impl DependencyTemplate for WebpackIsIncludedDependency {
 
     source.replace(self.start, self.end, included.to_string().as_str(), None);
   }
+
+  fn dependency_id(&self) -> Option<DependencyId> {
+    Some(self.id)
+  }
 }

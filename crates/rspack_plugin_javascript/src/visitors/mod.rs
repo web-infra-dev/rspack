@@ -58,16 +58,17 @@ pub fn run_before_pass(ast: &mut Ast, options: &CompilerOptions) -> Result<()> {
     .transform_with_handler(cm.clone(), |_handler, program, context| {
       let top_level_mark = context.top_level_mark;
       let unresolved_mark = context.unresolved_mark;
-      let comments: Option<&dyn Comments> = None;
-
-      let mut pass = chain!(
-        swc_visitor::resolver(unresolved_mark, top_level_mark, false),
-        builtins_webpack_plugin(options, unresolved_mark),
-        swc_visitor::hygiene(false, top_level_mark),
-        swc_visitor::fixer(comments.map(|v| v as &dyn Comments)),
-      );
-      program.fold_with(&mut pass);
-
+      let comments = program.comments.take();
+      {
+        let mut pass = chain!(
+          swc_visitor::resolver(unresolved_mark, top_level_mark, false),
+          builtins_webpack_plugin(options, unresolved_mark),
+          swc_visitor::hygiene(false, top_level_mark),
+          swc_visitor::fixer(Some(&comments as &dyn Comments))
+        );
+        program.fold_with(&mut pass);
+      }
+      program.comments = comments;
       Ok(())
     })
     .map_err(AnyhowError::from)?;

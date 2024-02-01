@@ -139,4 +139,8 @@ impl DependencyTemplate for CommonJsSelfReferenceDependency {
       None,
     )
   }
+
+  fn dependency_id(&self) -> Option<DependencyId> {
+    Some(self.id)
+  }
 }

@@ -9,6 +9,7 @@ use rspack_core::{
   ChunkGroupOptions, CodeGenerationResult, Compilation, ConcatenationScope, Context,
   DependenciesBlock, DependencyId, GroupOptions, LibIdentOptions, Module, ModuleDependency,
   ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency,
+  StaticExportsSpec,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
 use rspack_hash::RspackHash;
@@ -132,7 +133,7 @@ impl Module for ContainerEntryModule {
       blocks.push(block);
     }
     dependencies.push(Box::new(StaticExportsDependency::new(
-      vec!["get".into(), "init".into()],
+      StaticExportsSpec::Array(vec!["get".into(), "init".into()]),
       false,
     )));
 

@@ -141,6 +141,7 @@ pub struct FactoryMeta {
 
 pub type ModuleIdentifier = Identifier;
 
+#[derive(Debug)]
 pub struct WrappedModuleIdentifier(ModuleIdentifier);
 
 impl WrappedModuleIdentifier {

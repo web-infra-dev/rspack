@@ -7,6 +7,7 @@ use std::sync::atomic::AtomicU32;
 use std::sync::atomic::Ordering::Relaxed;
 use std::sync::Arc;
 
+use itertools::Itertools;
 use rspack_util::ext::DynHash;
 use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
@@ -743,6 +744,60 @@ impl ExportInfoId {
     Self(EXPORT_INFO_ID.fetch_add(1, Relaxed))
   }
 
+  pub fn get_provided_info(&self, mg: &ModuleGraph) -> String {
+    let export_info = self.get_export_info(mg);
+    match export_info.provided {
+      Some(ExportInfoProvided::False) => "not provided".to_string(),
+      Some(ExportInfoProvided::Null) => "maybe provided (runtime-defined)".to_string(),
+      Some(ExportInfoProvided::True) => "provided".to_string(),
+      None => "no provided info".to_string(),
+    }
+  }
+
+  pub fn get_used_info(&self, mg: &ModuleGraph) -> String {
+    let export_info = self.get_export_info(mg);
+    if let Some(global_used) = export_info.global_used {
+      return match global_used {
+        UsageState::Unused => "unused".to_string(),
+        UsageState::NoInfo => "no usage info".to_string(),
+        UsageState::Unknown => "maybe used (runtime-defined)".to_string(),
+        UsageState::Used => "used".to_string(),
+        UsageState::OnlyPropertiesUsed => "only properties used".to_string(),
+      };
+    } else if let Some(used_in_runtime) = &export_info.used_in_runtime {
+      let mut map = HashMap::default();
+
+      for (runtime, used) in used_in_runtime.iter() {
+        let list = map.entry(*used).or_insert(vec![]);
+        list.push(runtime);
+      }
+
+      let specific_info: Vec<String> = map
+        .iter()
+        .map(|(used, runtimes)| match used {
+          UsageState::NoInfo => format!("no usage info in {}", runtimes.iter().join(", ")),
+          UsageState::Unknown => format!("maybe used in {} (runtime-defined)", runtimes.iter().join(", ")),
+          UsageState::Used => format!("used in {}", runtimes.iter().join(", ")),
+          UsageState::OnlyPropertiesUsed => {
+            format!("only properties used in {}", runtimes.iter().join(", "))
+          }
+          UsageState::Unused => {
+            unreachable!("https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/ExportsInfo.js#L1470-L1481")
+          }
+        })
+        .collect();
+
+      if !specific_info.is_empty() {
+        return specific_info.join("; ");
+      }
+    }
+
+    if export_info.has_use_in_runtime_info {
+      "unused".to_string()
+    } else {
+      "no usage info".to_string()
+    }
+  }
   pub fn get_export_info<'a>(&self, mg: &'a ModuleGraph) -> &'a ExportInfo {
     mg.get_export_info_by_id(self)
   }

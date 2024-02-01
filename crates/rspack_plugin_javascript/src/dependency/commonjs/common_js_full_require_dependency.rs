@@ -157,6 +157,10 @@ impl DependencyTemplate for CommonJsFullRequireDependency {
 
     source.replace(self.range.start(), self.range.end(), &require_expr, None);
   }
+
+  fn dependency_id(&self) -> Option<DependencyId> {
+    Some(self.id)
+  }
 }
 
 impl AsContextDependency for CommonJsFullRequireDependency {}

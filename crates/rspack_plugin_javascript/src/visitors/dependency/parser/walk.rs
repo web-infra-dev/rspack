@@ -94,28 +94,18 @@ impl<'parser> JavascriptParser<'parser> {
 
   fn walk_module_declaration(&mut self, statement: &ModuleItem) {
     match statement {
-      ModuleItem::ModuleDecl(m) => {
-        if self
-          .plugin_drive
-          .clone()
-          .module_declaration(self, m)
-          .unwrap_or_default()
-        {
-          return;
+      ModuleItem::ModuleDecl(m) => match m {
+        ModuleDecl::ExportDefaultDecl(decl) => {
+          self.walk_export_default_declaration(decl);
         }
-        match m {
-          ModuleDecl::ExportDefaultDecl(decl) => {
-            self.walk_export_default_declaration(decl);
-          }
-          ModuleDecl::ExportDecl(decl) => self.walk_export_decl(decl),
-          ModuleDecl::ExportNamed(named) => self.walk_export_named_declaration(named),
-          ModuleDecl::ExportDefaultExpr(expr) => self.walk_export_default_expr(expr),
-          ModuleDecl::ExportAll(_) | ModuleDecl::Import(_) => (),
-          ModuleDecl::TsImportEquals(_)
-          | ModuleDecl::TsExportAssignment(_)
-          | ModuleDecl::TsNamespaceExport(_) => unreachable!(),
-        }
-      }
+        ModuleDecl::ExportDecl(decl) => self.walk_export_decl(decl),
+        ModuleDecl::ExportNamed(named) => self.walk_export_named_declaration(named),
+        ModuleDecl::ExportDefaultExpr(expr) => self.walk_export_default_expr(expr),
+        ModuleDecl::ExportAll(_) | ModuleDecl::Import(_) => (),
+        ModuleDecl::TsImportEquals(_)
+        | ModuleDecl::TsExportAssignment(_)
+        | ModuleDecl::TsNamespaceExport(_) => unreachable!(),
+      },
       ModuleItem::Stmt(s) => self.walk_statement(s),
     }
   }
@@ -604,7 +594,7 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_member_expression(&mut self, expr: &MemberExpr) {
-    if let Some(expr_info) = self.get_member_expression_info(expr, AllowedMemberTypes::All) {
+    if let Some(expr_info) = self.get_member_expression_info(expr, AllowedMemberTypes::all()) {
       match expr_info {
         MemberExpressionInfo::Expression(expr_info) => {
           if let Some(for_name) = expr_info.name.call_hooks_name(self)

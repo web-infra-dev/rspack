@@ -14,7 +14,7 @@ use rspack_core::{
   rspack_sources::{BoxSource, RawSource, Source, SourceExt},
   BuildMetaDefaultObject, BuildMetaExportsType, CompilerOptions, ExportsInfo, GenerateContext,
   Module, ModuleGraph, ParserAndGenerator, Plugin, RuntimeGlobals, RuntimeSpec, SourceType,
-  UsageState,
+  UsageState, NAMESPACE_OBJECT_EXPORT,
 };
 use rspack_error::{
   error, DiagnosticKind, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray, TraceableError,
@@ -132,6 +132,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
     let GenerateContext {
       compilation,
       runtime,
+      concatenation_scope,
       ..
     } = generate_context;
     match generate_context.requested_source_type {
@@ -180,7 +181,13 @@ impl ParserAndGenerator for JsonParserAndGenerator {
         } else {
           json_str
         };
-        Ok(RawSource::from(format!(r#"module.exports = {}"#, json_expr)).boxed())
+        let content = if let Some(ref mut scope) = concatenation_scope {
+          scope.register_namespace_export(NAMESPACE_OBJECT_EXPORT);
+          format!("var {NAMESPACE_OBJECT_EXPORT} = {json_expr}")
+        } else {
+          format!(r#"module.exports = {}"#, json_expr)
+        };
+        Ok(RawSource::from(content).boxed())
       }
       _ => panic!(
         "Unsupported source type: {:?}",

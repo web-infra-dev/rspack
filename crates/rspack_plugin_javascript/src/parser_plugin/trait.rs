@@ -39,8 +39,12 @@ pub trait JavascriptParserPlugin {
   /// `None` means continue this `ModuleDecl`
   /// Others means skip this.
   ///
-  /// This is similar `hooks.statement` in webpack
-  fn module_declaration(&self, _parser: &mut JavascriptParser, _decl: &ModuleDecl) -> Option<bool> {
+  /// This is similar `hooks.pre_statement` in webpack
+  fn pre_module_declaration(
+    &self,
+    _parser: &mut JavascriptParser,
+    _decl: &ModuleDecl,
+  ) -> Option<bool> {
     None
   }
 

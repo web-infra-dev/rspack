@@ -605,7 +605,7 @@ impl PluginDriver {
     Ok(None)
   }
 
-  #[instrument(name = "plugin:optimize_dependencies", skip_all)]
+  #[instrument(name = "plugin:optimize_code_generation", skip_all)]
   pub async fn optimize_code_generation(
     &self,
     compilation: &mut Compilation,

@@ -8,7 +8,7 @@ use rustc_hash::FxHashSet as HashSet;
 
 use crate::{get_chunk_from_ukey, Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey};
 use crate::{ChunkLoading, ChunkUkey, Compilation, Filename};
-use crate::{LibraryOptions, ModuleIdentifier, PublicPath, RuntimeSpec};
+use crate::{LibraryOptions, ModuleIdentifier, PublicPath};
 
 impl DatabaseItem for ChunkGroup {
   fn ukey(&self) -> rspack_database::Ukey<Self> {
@@ -21,7 +21,6 @@ pub struct ChunkGroup {
   pub ukey: ChunkGroupUkey,
   pub kind: ChunkGroupKind,
   pub chunks: Vec<ChunkUkey>,
-  pub info: ChunkGroupInfo,
   pub index: Option<u32>,
   pub parents: HashSet<ChunkGroupUkey>,
   pub(crate) module_pre_order_indices: IdentifierMap<usize>,
@@ -37,11 +36,10 @@ pub struct ChunkGroup {
 }
 
 impl ChunkGroup {
-  pub fn new(kind: ChunkGroupKind, info: ChunkGroupInfo) -> Self {
+  pub fn new(kind: ChunkGroupKind) -> Self {
     Self {
       ukey: ChunkGroupUkey::new(),
       chunks: vec![],
-      info,
       module_post_order_indices: Default::default(),
       module_pre_order_indices: Default::default(),
       parents: Default::default(),
@@ -416,11 +414,4 @@ impl GroupOptions {
       GroupOptions::ChunkGroup(e) => Some(e),
     }
   }
-}
-
-#[derive(Debug, Default, Clone)]
-pub struct ChunkGroupInfo {
-  pub chunk_loading: bool,
-  pub async_chunks: bool,
-  pub runtime: RuntimeSpec,
 }

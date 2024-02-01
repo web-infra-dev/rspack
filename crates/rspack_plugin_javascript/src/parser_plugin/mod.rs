@@ -15,6 +15,7 @@ mod require_context_dependency_parser_plugin;
 mod r#trait;
 mod url_plugin;
 mod webpack_included_plugin;
+mod worker_plugin;
 /// TODO: should move to rspack_plugin_javascript once we drop old treeshaking
 mod worker_syntax_plugin;
 
@@ -35,4 +36,5 @@ pub(crate) use self::r#trait::{BoxJavascriptParserPlugin, JavascriptParserPlugin
 pub(crate) use self::require_context_dependency_parser_plugin::RequireContextDependencyParserPlugin;
 pub(crate) use self::url_plugin::URLPlugin;
 pub(crate) use self::webpack_included_plugin::WebpackIsIncludedPlugin;
+pub(crate) use self::worker_plugin::WorkerPlugin;
 pub(crate) use self::worker_syntax_plugin::WorkerSyntaxScanner;
