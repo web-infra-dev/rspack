@@ -482,6 +482,12 @@ impl Compilation {
       )])
       .await?;
 
+    if self.options.is_new_tree_shaking() {
+      let start = logger.time("finish module");
+      self.finish(self.plugin_driver.clone()).await?;
+      logger.time_end(start);
+    }
+
     Ok(
       module_identifiers
         .into_iter()
@@ -489,7 +495,6 @@ impl Compilation {
         .collect::<Vec<_>>(),
     )
   }
-
   async fn update_module_graph(&mut self, params: Vec<MakeParam>) -> Result<()> {
     let logger = self.get_logger("rspack.Compilation");
     let deps_builder = RebuildDepsBuilder::new(params, &self.module_graph);
@@ -1165,11 +1170,6 @@ impl Compilation {
 
     // Avoid to introduce too much overhead,
     // until we find a better way to align with webpack hmr behavior
-    if self.options.is_new_tree_shaking() {
-      let start = logger.time("finish compilation");
-      self.finish(self.plugin_driver.clone()).await?;
-      logger.time_end(start);
-    }
 
     // add context module and context element module to bailout_module_identifiers
     if self.options.builtins.tree_shaking.enable() {

@@ -37,8 +37,7 @@ pub struct ScanDependenciesResult {
   pub dependencies: Vec<BoxDependency>,
   pub blocks: Vec<AsyncDependenciesBlock>,
   pub presentational_dependencies: Vec<BoxDependencyTemplate>,
-  // TODO: rename this name
-  pub rewrite_usage_span: HashMap<Span, ExtraSpanInfo>,
+  pub usage_span_record: HashMap<Span, ExtraSpanInfo>,
   pub import_map: ImportMap,
   pub warning_diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>>,
 }
@@ -157,7 +156,7 @@ pub fn scan_dependencies(
       dependencies,
       blocks,
       presentational_dependencies,
-      rewrite_usage_span,
+      usage_span_record: rewrite_usage_span,
       import_map,
       warning_diagnostics,
     })
