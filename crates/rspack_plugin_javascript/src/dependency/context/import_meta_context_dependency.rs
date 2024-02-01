@@ -101,6 +101,10 @@ impl DependencyTemplate for ImportMetaContextDependency {
       None,
     );
   }
+
+  fn dependency_id(&self) -> Option<DependencyId> {
+    Some(self.id)
+  }
 }
 
 impl AsModuleDependency for ImportMetaContextDependency {}

@@ -109,6 +109,10 @@ impl DependencyTemplate for ProvideDependency {
     )));
     source.replace(self.start, self.end, &self.identifier, None);
   }
+
+  fn dependency_id(&self) -> Option<DependencyId> {
+    Some(self.id)
+  }
 }
 
 fn path_to_string(path: Option<&UsedName>) -> String {

@@ -101,6 +101,10 @@ impl DependencyTemplate for RequireContextDependency {
       None,
     );
   }
+
+  fn dependency_id(&self) -> Option<DependencyId> {
+    Some(self.id)
+  }
 }
 
 impl AsModuleDependency for RequireContextDependency {}

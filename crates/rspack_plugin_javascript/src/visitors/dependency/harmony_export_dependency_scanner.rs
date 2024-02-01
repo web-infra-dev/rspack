@@ -1,6 +1,6 @@
 use rspack_core::{
   tree_shaking::symbol::DEFAULT_JS_WORD, BoxDependency, BoxDependencyTemplate, BuildInfo,
-  ConstDependency, DependencyLocation, SpanExt,
+  ConstDependency, DependencyLocation, SpanExt, DEFAULT_EXPORT,
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 use swc_core::{
@@ -21,7 +21,7 @@ use crate::{
   dependency::{
     DeclarationId, DeclarationInfo, HarmonyExportExpressionDependency,
     HarmonyExportHeaderDependency, HarmonyExportImportedSpecifierDependency,
-    HarmonyExportSpecifierDependency, Specifier, DEFAULT_EXPORT,
+    HarmonyExportSpecifierDependency, Specifier,
   },
   no_visit_ignored_stmt,
 };

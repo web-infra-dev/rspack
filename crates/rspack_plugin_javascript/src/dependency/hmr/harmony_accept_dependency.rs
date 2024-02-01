@@ -1,5 +1,6 @@
 use rspack_core::{
-  import_statement, DependencyId, DependencyTemplate, TemplateContext, TemplateReplaceSource,
+  import_statement, AsDependency, DependencyId, DependencyTemplate, TemplateContext,
+  TemplateReplaceSource,
 };
 
 #[derive(Debug, Clone)]
@@ -66,4 +67,10 @@ impl DependencyTemplate for HarmonyAcceptDependency {
       );
     }
   }
+
+  fn dependency_id(&self) -> Option<DependencyId> {
+    None
+  }
 }
+
+impl AsDependency for HarmonyAcceptDependency {}

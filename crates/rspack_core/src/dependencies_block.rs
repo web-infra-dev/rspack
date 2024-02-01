@@ -10,7 +10,7 @@ use rspack_error::{
 
 use crate::{
   update_hash::{UpdateHashContext, UpdateRspackHash},
-  BoxDependency, Compilation, DependencyId, GroupOptions, ModuleIdentifier,
+  BoxDependency, Compilation, DependencyId, DependencyTemplate, GroupOptions, ModuleIdentifier,
 };
 
 pub trait DependenciesBlock {
@@ -21,6 +21,10 @@ pub trait DependenciesBlock {
   fn add_dependency_id(&mut self, dependency: DependencyId);
 
   fn get_dependencies(&self) -> &[DependencyId];
+
+  fn get_presentational_dependencies_for_block(&self) -> Option<&[Box<dyn DependencyTemplate>]> {
+    None
+  }
 }
 
 pub static ASYNC_DEPENDENCIES_BLOCK_ID: AtomicU32 = AtomicU32::new(0);

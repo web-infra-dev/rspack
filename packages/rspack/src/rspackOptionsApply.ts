@@ -59,7 +59,8 @@ import {
 	FlagDependencyExportsPlugin,
 	FlagDependencyUsagePlugin,
 	SideEffectsFlagPlugin,
-	BundlerInfoPlugin
+	BundlerInfoPlugin,
+	ModuleConcatenationPlugin
 } from "./builtin-plugin";
 import { deprecatedWarn, termlink } from "./util";
 
@@ -272,6 +273,9 @@ export class RspackOptionsApply {
 				new FlagDependencyUsagePlugin(
 					options.optimization.usedExports === "global"
 				).apply(compiler);
+			}
+			if (options.optimization.concatenateModules) {
+				new ModuleConcatenationPlugin().apply(compiler);
 			}
 		}
 		if (options.optimization.mangleExports) {

@@ -236,6 +236,7 @@ impl<'a> SideEffectsFlagPluginVisitor<'a> {
 
 static PURE_COMMENTS: Lazy<regex::Regex> =
   Lazy::new(|| regex::Regex::new("^\\s*(#|@)__PURE__\\s*$").expect("Should create the regex"));
+
 fn is_pure_call_expr(
   call_expr: &CallExpr,
   unresolved_ctxt: SyntaxContext,
@@ -277,6 +278,14 @@ pub fn is_pure_expression<'a>(
 ) -> bool {
   match expr {
     Expr::Call(call) => is_pure_call_expr(call, unresolved_ctxt, comments),
+    Expr::Paren(par) => {
+      let mut cur = par.expr.as_ref();
+      while let Expr::Paren(paren) = cur {
+        cur = paren.expr.as_ref();
+      }
+
+      is_pure_expression(cur, unresolved_ctxt, comments)
+    }
     _ => !expr.may_have_side_effects(&ExprCtx {
       unresolved_ctxt,
       is_unresolved_ref_safe: true,
@@ -464,6 +473,10 @@ pub struct SideEffectsFlagPlugin;
 
 #[async_trait]
 impl Plugin for SideEffectsFlagPlugin {
+  fn name(&self) -> &'static str {
+    "SideEffectsFlagPlugin"
+  }
+
   async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<()>> {
     let entries = compilation.entry_modules().collect::<Vec<_>>();
     let mg = &mut compilation.module_graph;
