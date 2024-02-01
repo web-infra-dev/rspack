@@ -1,6 +1,4 @@
-// TODO: In the future, when rspack supports `require.ensure`, this test case needs to be changed.
-
-var webpack = require("@rspack/core");
+var webpack = require("../../../");
 /** @type {import("@rspack/core").Configuration[]} */
 module.exports = [1, 2, 3, 4].map(n => ({
 	name: `${n} chunks`,

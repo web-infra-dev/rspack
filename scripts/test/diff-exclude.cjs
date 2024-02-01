@@ -29,7 +29,9 @@ const PARTIALLY_PASSED = [
 	"configCases/trusted-types/custom-policy-name",
 	"configCases/trusted-types/default-policy-name",
 	"configCases/trusted-types/no-policy-name",
-	"configCases/trusted-types/no-trusted-types"
+	"configCases/trusted-types/no-trusted-types",
+
+	"statsCases/limit-chunk-count-plugin"
 ];
 
 // Webpack test fully passed, with additional test with the same name as webpack in rspack.
