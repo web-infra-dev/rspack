@@ -237,7 +237,7 @@ impl BuiltinPlugin {
         plugins.push(MergeDuplicateChunksPlugin.boxed());
       }
       BuiltinPluginName::SplitChunksPlugin => {
-        use rspack_plugin_split_chunks_new::SplitChunksPlugin;
+        use rspack_plugin_split_chunks::SplitChunksPlugin;
         let options = downcast_into::<RawSplitChunksOptions>(self.options)?.into();
         plugins.push(SplitChunksPlugin::new(options).boxed());
       }

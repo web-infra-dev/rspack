@@ -6,7 +6,7 @@ use napi_derive::napi;
 use rspack_binding_values::{JsModule, ToJsModule};
 use rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use rspack_napi_shared::{get_napi_env, JsRegExp, JsRegExpExt, NapiResultExt};
-use rspack_plugin_split_chunks_new::{CacheGroupTest, CacheGroupTestFnCtx};
+use rspack_plugin_split_chunks::{CacheGroupTest, CacheGroupTestFnCtx};
 
 pub(super) type RawCacheGroupTest = Either3<String, JsRegExp, JsFunction>;
 
