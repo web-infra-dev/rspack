@@ -1,6 +1,6 @@
 use rspack_core::{
   module_id, property_access, to_normal_comment, ExportsType, ExtendedReferencedExport,
-  RuntimeGlobals, UsedName,
+  ModuleGraph, RuntimeGlobals, RuntimeSpec, UsedName,
 };
 use rspack_core::{AsContextDependency, Dependency, DependencyCategory, DependencyLocation};
 use rspack_core::{DependencyId, DependencyTemplate};
@@ -81,14 +81,14 @@ impl ModuleDependency for CommonJsFullRequireDependency {
 
   fn get_referenced_exports(
     &self,
-    module_graph: &rspack_core::ModuleGraph,
-    _runtime: Option<&rspack_core::RuntimeSpec>,
+    module_graph: &ModuleGraph,
+    _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     if self.is_call
       && module_graph
         .module_graph_module_by_dependency_id(&self.id)
         .and_then(|mgm| module_graph.module_by_identifier(&mgm.module_identifier))
-        .map(|m| m.get_exports_type(false))
+        .map(|m| m.get_exports_type_readonly(module_graph, false))
         .is_some_and(|t| !matches!(t, ExportsType::Namespace))
     {
       if self.names.is_empty() {

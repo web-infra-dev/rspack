@@ -1,6 +1,7 @@
 use rspack_core::{
   AsContextDependency, Dependency, DependencyId, DependencyTemplate, DependencyType,
-  ModuleDependency, TemplateContext, TemplateReplaceSource,
+  ExtendedReferencedExport, ModuleDependency, ModuleGraph, RuntimeSpec, TemplateContext,
+  TemplateReplaceSource,
 };
 
 #[derive(Debug, Clone)]
@@ -29,11 +30,11 @@ impl Dependency for WebpackIsIncludedDependency {
     "WebpackIsIncludedDependency"
   }
 
-  fn dependency_type(&self) -> &rspack_core::DependencyType {
+  fn dependency_type(&self) -> &DependencyType {
     &DependencyType::WebpackIsIncluded
   }
 
-  fn id(&self) -> &rspack_core::DependencyId {
+  fn id(&self) -> &DependencyId {
     &self.id
   }
 }
@@ -45,9 +46,9 @@ impl ModuleDependency for WebpackIsIncludedDependency {
 
   fn get_referenced_exports(
     &self,
-    _module_graph: &rspack_core::ModuleGraph,
-    _runtime: Option<&rspack_core::RuntimeSpec>,
-  ) -> Vec<rspack_core::ExtendedReferencedExport> {
+    _module_graph: &ModuleGraph,
+    _runtime: Option<&RuntimeSpec>,
+  ) -> Vec<ExtendedReferencedExport> {
     vec![]
   }
 

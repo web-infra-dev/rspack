@@ -1,7 +1,7 @@
 use rspack_core::{
   property_access, AsContextDependency, Dependency, DependencyCategory, DependencyId,
-  DependencyTemplate, DependencyType, ExtendedReferencedExport, ModuleDependency, RuntimeGlobals,
-  TemplateContext, TemplateReplaceSource, UsedName,
+  DependencyTemplate, DependencyType, ExtendedReferencedExport, ModuleDependency, ModuleGraph,
+  RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedName,
 };
 use swc_core::atoms::Atom;
 
@@ -49,9 +49,9 @@ impl Dependency for CommonJsSelfReferenceDependency {
 impl ModuleDependency for CommonJsSelfReferenceDependency {
   fn get_referenced_exports(
     &self,
-    _module_graph: &rspack_core::ModuleGraph,
-    _runtime: Option<&rspack_core::RuntimeSpec>,
-  ) -> Vec<rspack_core::ExtendedReferencedExport> {
+    _module_graph: &ModuleGraph,
+    _runtime: Option<&RuntimeSpec>,
+  ) -> Vec<ExtendedReferencedExport> {
     if self.is_call {
       if self.names.is_empty() {
         vec![ExtendedReferencedExport::Array(vec![])]
