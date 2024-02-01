@@ -314,6 +314,9 @@ impl<'parser> JavascriptParser<'parser> {
         compiler_options.experiments.top_level_await,
       )));
       plugins.push(Box::new(parser_plugin::WorkerPlugin));
+      plugins.push(Box::new(
+        parser_plugin::ImportMetaContextDependencyParserPlugin,
+      ));
     }
 
     let plugin_drive = Rc::new(JavaScriptParserPluginDrive::new(plugins));
