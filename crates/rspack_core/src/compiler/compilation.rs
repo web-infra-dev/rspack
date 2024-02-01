@@ -483,6 +483,7 @@ impl Compilation {
       .await?;
 
     if self.options.is_new_tree_shaking() {
+      let logger = self.get_logger("rspack.Compilation");
       let start = logger.time("finish module");
       self.finish(self.plugin_driver.clone()).await?;
       logger.time_end(start);
