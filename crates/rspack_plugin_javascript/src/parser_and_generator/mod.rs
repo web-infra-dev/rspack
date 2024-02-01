@@ -182,7 +182,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       mut dependencies,
       blocks,
       presentational_dependencies,
-      mut rewrite_usage_span,
+      mut usage_span_record,
       import_map,
       mut warning_diagnostics,
     } = match ast.visit(|program, _| {
@@ -246,7 +246,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
             &mut dependencies,
             unresolved_ctxt,
             top_level_ctxt,
-            &mut rewrite_usage_span,
+            &mut usage_span_record,
             &import_map,
             module_identifier,
             program.comments.take(),
