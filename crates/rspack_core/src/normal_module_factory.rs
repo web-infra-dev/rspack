@@ -91,9 +91,8 @@ impl NormalModuleFactory {
       context: data.context.to_string(),
     };
     if let Some(false) = self
-      .hooks
-      .before_resolve
-      .call(&mut before_resolve_args)
+      .plugin_driver
+      .before_resolve(&mut before_resolve_args)
       .await?
     {
       // ignored

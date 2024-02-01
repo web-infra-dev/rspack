@@ -67,11 +67,7 @@ pub struct SyncBailHookMap<I, O>(HashMap<String, SyncBailHook<I, O>>);
 
 impl<I, O> SyncBailHookMap<I, O> {
   pub fn tap(&mut self, key: String, hook: impl SyncBail<I, O> + 'static + Send + Sync) {
-    self
-      .0
-      .entry(key)
-      .or_insert_with(|| SyncBailHook::default())
-      .tap(hook);
+    self.0.entry(key).or_default().tap(hook);
   }
 
   pub fn get(&self, key: &str) -> Option<&SyncBailHook<I, O>> {

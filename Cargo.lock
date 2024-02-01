@@ -2732,6 +2732,7 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_fs_node",
+ "rspack_hook",
  "rspack_napi_shared",
  "rspack_tracing",
  "testing_macros",
@@ -2810,6 +2811,7 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_hash",
+ "rspack_hook",
  "rspack_identifier",
  "rspack_plugin_runtime",
  "rspack_testing",
@@ -2858,6 +2860,8 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "rspack_core",
+ "rspack_error",
+ "rspack_hook",
 ]
 
 [[package]]
@@ -2879,6 +2883,7 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_hash",
+ "rspack_hook",
  "rspack_identifier",
  "rspack_util",
  "rustc-hash",
@@ -2928,6 +2933,7 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_hash",
+ "rspack_hook",
  "rspack_identifier",
  "rspack_ids",
  "rspack_regex",
@@ -2997,6 +3003,7 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_hash",
+ "rspack_hook",
  "rspack_identifier",
  "rspack_loader_runner",
  "rspack_util",
@@ -3015,6 +3022,7 @@ dependencies = [
  "linked-hash-map",
  "rspack_core",
  "rspack_error",
+ "rspack_hook",
 ]
 
 [[package]]
@@ -3140,6 +3148,7 @@ dependencies = [
  "rayon",
  "rspack_core",
  "rspack_error",
+ "rspack_hook",
  "rspack_identifier",
  "rspack_testing",
  "rspack_util",
@@ -3162,6 +3171,8 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "rspack_core",
+ "rspack_error",
+ "rspack_hook",
 ]
 
 [[package]]

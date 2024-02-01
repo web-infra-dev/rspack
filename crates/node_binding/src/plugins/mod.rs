@@ -1,6 +1,7 @@
 mod loader;
 use std::fmt::Debug;
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use async_trait::async_trait;
 use napi::{Env, Result};
@@ -13,8 +14,8 @@ use rspack_binding_values::{BeforeResolveData, JsAssetEmittedArgs, ToJsModule};
 use rspack_binding_values::{CreateModuleData, JsBuildTimeExecutionOption, JsExecuteModuleArg};
 use rspack_binding_values::{JsResolveForSchemeInput, JsResolveForSchemeResult};
 use rspack_core::{
-  BuildTimeExecutionOption, Chunk, ChunkAssetArgs, Compilation, ModuleIdentifier,
-  NormalModuleAfterResolveArgs, RuntimeModule,
+  ApplyContext, BuildTimeExecutionOption, Chunk, ChunkAssetArgs, Compilation, CompilationParams,
+  CompilerOptions, ModuleIdentifier, NormalModuleAfterResolveArgs, PluginContext, RuntimeModule,
 };
 use rspack_core::{NormalModuleBeforeResolveArgs, PluginNormalModuleFactoryAfterResolveOutput};
 use rspack_core::{
@@ -22,13 +23,14 @@ use rspack_core::{
   PluginNormalModuleFactoryCreateModuleHookOutput, ResourceData,
 };
 use rspack_core::{PluginNormalModuleFactoryResolveForSchemeOutput, PluginShouldEmitHookOutput};
+use rspack_hook::AsyncSeries2;
 use rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use rspack_napi_shared::NapiResultExt;
 
 pub use self::loader::JsLoaderResolver;
 use crate::{DisabledHooks, Hook, JsCompilation, JsHooks};
 
-pub struct JsHooksAdapter {
+pub(crate) struct JsHooksAdapterInner {
   disabled_hooks: DisabledHooks,
   pub make_tsfn: ThreadsafeFunction<(), ()>,
   pub compilation_tsfn: ThreadsafeFunction<JsCompilation, ()>,
@@ -76,9 +78,62 @@ pub struct JsHooksAdapter {
   pub runtime_module_tsfn: ThreadsafeFunction<JsRuntimeModuleArg, Option<JsRuntimeModule>>,
 }
 
-impl Debug for JsHooksAdapter {
+impl Debug for JsHooksAdapterInner {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     write!(f, "rspack_plugin_js_hooks_adapter")
+  }
+}
+
+#[derive(Debug)]
+pub(crate) struct JsHooksAdapter {
+  inner: Arc<JsHooksAdapterInner>,
+}
+
+impl JsHooksAdapter {
+  pub fn from_js_hooks(env: Env, js_hooks: JsHooks, disabled_hooks: DisabledHooks) -> Result<Self> {
+    JsHooksAdapterInner::from_js_hooks(env, js_hooks, disabled_hooks).map(|inner| Self {
+      inner: Arc::new(inner),
+    })
+  }
+}
+
+// TODO: remove deref
+impl std::ops::Deref for JsHooksAdapter {
+  type Target = JsHooksAdapterInner;
+
+  fn deref(&self) -> &Self::Target {
+    &self.inner
+  }
+}
+
+struct JsHooksAdapterCompilationHook {
+  inner: Arc<JsHooksAdapterInner>,
+}
+
+#[async_trait]
+impl AsyncSeries2<Compilation, CompilationParams> for JsHooksAdapterCompilationHook {
+  async fn run(
+    &self,
+    compilation: &mut Compilation,
+    _: &mut CompilationParams,
+  ) -> rspack_error::Result<()> {
+    if self.inner.is_hook_disabled(&Hook::Compilation) {
+      return Ok(());
+    }
+
+    let compilation = JsCompilation::from_compilation(unsafe {
+      std::mem::transmute::<&'_ mut rspack_core::Compilation, &'static mut rspack_core::Compilation>(
+        compilation,
+      )
+    });
+
+    self
+      .inner
+      .compilation_tsfn
+      .call(compilation, ThreadsafeFunctionCallMode::NonBlocking)
+      .into_rspack_result()?
+      .await
+      .unwrap_or_else(|err| panic!("Failed to call compilation: {err}"))
   }
 }
 
@@ -88,27 +143,19 @@ impl rspack_core::Plugin for JsHooksAdapter {
     "rspack.JsHooksAdapterPlugin"
   }
 
-  async fn compilation(
+  fn apply(
     &self,
-    args: rspack_core::CompilationArgs<'_>,
-    _params: &rspack_core::CompilationParams,
-  ) -> rspack_core::PluginCompilationHookOutput {
-    if self.is_hook_disabled(&Hook::Compilation) {
-      return Ok(());
-    }
-
-    let compilation = JsCompilation::from_compilation(unsafe {
-      std::mem::transmute::<&'_ mut rspack_core::Compilation, &'static mut rspack_core::Compilation>(
-        args.compilation,
-      )
-    });
-
-    self
-      .compilation_tsfn
-      .call(compilation, ThreadsafeFunctionCallMode::NonBlocking)
-      .into_rspack_result()?
-      .await
-      .unwrap_or_else(|err| panic!("Failed to call compilation: {err}"))
+    ctx: PluginContext<&mut ApplyContext>,
+    _options: &mut CompilerOptions,
+  ) -> rspack_error::Result<()> {
+    ctx
+      .context
+      .compiler_hooks
+      .compilation
+      .tap(Box::new(JsHooksAdapterCompilationHook {
+        inner: self.inner.clone(),
+      }));
+    Ok(())
   }
 
   async fn this_compilation(
@@ -912,7 +959,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
   }
 }
 
-impl JsHooksAdapter {
+impl JsHooksAdapterInner {
   pub fn from_js_hooks(env: Env, js_hooks: JsHooks, disabled_hooks: DisabledHooks) -> Result<Self> {
     let JsHooks {
       make,
@@ -1046,7 +1093,7 @@ impl JsHooksAdapter {
     let runtime_module_tsfn: ThreadsafeFunction<JsRuntimeModuleArg, Option<JsRuntimeModule>> =
       js_fn_into_threadsafe_fn!(runtime_module, env);
 
-    Ok(JsHooksAdapter {
+    Ok(JsHooksAdapterInner {
       disabled_hooks,
       make_tsfn,
       process_assets_stage_additional_tsfn,

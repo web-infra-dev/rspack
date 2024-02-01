@@ -130,11 +130,6 @@ pub struct DoneArgs<'s, 'c: 's> {
 }
 
 #[derive(Debug)]
-pub struct CompilationArgs<'c> {
-  pub compilation: &'c mut Compilation,
-}
-
-#[derive(Debug)]
 pub struct ThisCompilationArgs<'c> {
   pub this_compilation: &'c mut Compilation,
 }
@@ -235,6 +230,7 @@ impl<'me> JsChunkHashArgs<'me> {
   }
 }
 
+#[derive(Debug)]
 pub struct CompilationParams {
   pub normal_module_factory: Arc<NormalModuleFactory>,
   pub context_module_factory: Arc<ContextModuleFactory>,

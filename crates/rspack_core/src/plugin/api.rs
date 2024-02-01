@@ -1,16 +1,16 @@
 use std::{fmt::Debug, path::Path};
 
-use dashmap::DashMap;
 use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_hash::RspackHashDigest;
 use rspack_loader_runner::{Content, LoaderContext, ResourceData};
 use rspack_sources::BoxSource;
+use rustc_hash::FxHashMap;
 use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
   AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, AssetEmittedArgs,
   AssetInfo, BoxLoader, BoxModule, BuildTimeExecutionOption, Chunk, ChunkAssetArgs, ChunkHashArgs,
-  CodeGenerationResults, Compilation, CompilationArgs, CompilationParams, CompilerOptions,
+  CodeGenerationResults, Compilation, CompilationParams, CompilerHooks, CompilerOptions,
   ContentHashArgs, DependencyId, DoneArgs, FactorizeArgs, JsChunkHashArgs, LoaderRunnerContext,
   MakeParam, Module, ModuleFactoryResult, ModuleIdentifier, ModuleType, NormalModule,
   NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs, NormalModuleCreateData,
@@ -61,14 +61,6 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
-  async fn compilation(
-    &self,
-    _args: CompilationArgs<'_>,
-    _params: &CompilationParams,
-  ) -> PluginCompilationHookOutput {
-    Ok(())
-  }
-
   async fn this_compilation(
     &self,
     _args: ThisCompilationArgs<'_>,
@@ -108,6 +100,14 @@ pub trait Plugin: Debug + Send + Sync {
     _ctx: PluginContext,
     _args: &mut FactorizeArgs<'_>,
   ) -> PluginFactorizeHookOutput {
+    Ok(None)
+  }
+
+  async fn before_resolve(
+    &self,
+    _ctx: PluginContext,
+    _args: &mut NormalModuleBeforeResolveArgs,
+  ) -> PluginNormalModuleFactoryBeforeResolveOutput {
     Ok(None)
   }
 
@@ -613,15 +613,15 @@ pub type BoxedParserAndGenerator = Box<dyn ParserAndGenerator>;
 pub type BoxedParserAndGeneratorBuilder =
   Box<dyn 'static + Send + Sync + Fn() -> BoxedParserAndGenerator>;
 
-#[derive(Default)]
-pub struct ApplyContext {
+pub struct ApplyContext<'c> {
   pub(crate) registered_parser_and_generator_builder:
-    DashMap<ModuleType, BoxedParserAndGeneratorBuilder>,
+    &'c mut FxHashMap<ModuleType, BoxedParserAndGeneratorBuilder>,
+  pub compiler_hooks: &'c mut CompilerHooks,
 }
 
-impl ApplyContext {
+impl<'c> ApplyContext<'c> {
   pub fn register_parser_and_generator_builder(
-    &self,
+    &mut self,
     module_type: ModuleType,
     parser_and_generator_builder: BoxedParserAndGeneratorBuilder,
   ) {
