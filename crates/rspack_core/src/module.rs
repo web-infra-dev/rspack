@@ -21,8 +21,8 @@ use crate::{
   CompilerContext, CompilerOptions, ConcatenationScope, ConnectionState, Context, ContextModule,
   DependenciesBlock, DependencyId, DependencyTemplate, ExternalModule, ImmutableModuleGraph,
   ModuleDependency, ModuleGraph, ModuleGraphAccessor, ModuleGraphModule, ModuleType,
-  MutableModuleGraph, NormalModule, RawModule, Resolve, RuntimeSpec, SelfModule,
-  SharedPluginDriver, SourceType,
+  MutexModuleGraph, NormalModule, RawModule, Resolve, RuntimeSpec, SelfModule, SharedPluginDriver,
+  SourceType,
 };
 pub struct BuildContext<'a> {
   pub compiler_context: CompilerContext,
@@ -263,21 +263,14 @@ pub trait Module:
   }
 
   fn get_exports_type_readonly(&self, module_graph: &ModuleGraph, strict: bool) -> ExportsType {
-    get_exports_type_impl(
-      self.identifier(),
-      self.build_meta(),
-      &ImmutableModuleGraph::new(module_graph),
-      strict,
-    )
+    let mut mga = ImmutableModuleGraph::new(module_graph);
+    get_exports_type_impl(self.identifier(), self.build_meta(), &mut mga, strict)
   }
 
   fn get_exports_type(&self, module_graph: &mut ModuleGraph, strict: bool) -> ExportsType {
-    get_exports_type_impl(
-      self.identifier(),
-      self.build_meta(),
-      &MutableModuleGraph::new(module_graph),
-      strict,
-    )
+    MutexModuleGraph::new(module_graph).with_lock(|mut mga| {
+      get_exports_type_impl(self.identifier(), self.build_meta(), &mut mga, strict)
+    })
   }
 
   fn get_strict_harmony_module(&self) -> bool {
@@ -367,7 +360,7 @@ pub trait Module:
 fn get_exports_type_impl<'a>(
   _identifier: ModuleIdentifier,
   build_meta: Option<&BuildMeta>,
-  _mga: &'a dyn ModuleGraphAccessor<'a>,
+  _mga: &dyn ModuleGraphAccessor,
   strict: bool,
 ) -> ExportsType {
   if let Some((export_type, default_object)) = build_meta

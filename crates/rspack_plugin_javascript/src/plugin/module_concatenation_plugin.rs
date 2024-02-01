@@ -10,7 +10,7 @@ use rspack_core::concatenated_module::{
 use rspack_core::{
   filter_runtime, merge_runtime, runtime_to_string, Compilation, CompilerContext,
   ExportInfoProvided, ExtendedReferencedExport, LibIdentOptions, Logger, Module, ModuleExt,
-  ModuleGraph, ModuleGraphModule, ModuleIdentifier, MutableModuleGraph, OptimizeChunksArgs, Plugin,
+  ModuleGraph, ModuleGraphModule, ModuleIdentifier, MutexModuleGraph, OptimizeChunksArgs, Plugin,
   ProvidedExports, RuntimeCondition, RuntimeSpec, WrappedModuleIdentifier,
 };
 use rspack_error::Result;
@@ -600,14 +600,9 @@ impl Plugin for ModuleConcatenationPlugin {
           let export_info = id
             .get_export_info_mut(&mut compilation.module_graph)
             .clone();
-          export_info.is_reexport()
-            && export_info
-              .id
-              .get_target(
-                &MutableModuleGraph::new(&mut compilation.module_graph),
-                None,
-              )
-              .is_none()
+          MutexModuleGraph::new(&mut compilation.module_graph).with_lock(|mut mga| {
+            export_info.is_reexport() && export_info.id.get_target(&mut mga, None).is_none()
+          })
         })
         .copied()
         .collect::<Vec<_>>();
