@@ -357,10 +357,10 @@ pub trait Module:
   }
 }
 
-fn get_exports_type_impl<'a>(
+fn get_exports_type_impl(
   _identifier: ModuleIdentifier,
   build_meta: Option<&BuildMeta>,
-  _mga: &dyn ModuleGraphAccessor,
+  _mga: &mut dyn ModuleGraphAccessor,
   strict: bool,
 ) -> ExportsType {
   if let Some((export_type, default_object)) = build_meta
