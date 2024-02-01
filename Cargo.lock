@@ -2617,9 +2617,7 @@ name = "rspack_hook"
 version = "0.1.0"
 dependencies = [
  "async-trait",
- "dashmap",
  "futures-concurrency",
- "once_cell",
  "rspack_error",
  "rustc-hash",
 ]

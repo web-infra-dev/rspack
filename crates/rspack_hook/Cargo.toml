@@ -9,8 +9,6 @@ version    = "0.1.0"
 
 [dependencies]
 async-trait         = { workspace = true }
-dashmap             = { workspace = true }
 futures-concurrency = "7.4.3"
-once_cell           = { workspace = true }
 rspack_error        = { path = "../rspack_error" }
 rustc-hash          = { workspace = true }
