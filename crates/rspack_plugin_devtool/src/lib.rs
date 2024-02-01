@@ -136,7 +136,6 @@ pub struct SourceMapDevToolPlugin {
   no_sources: bool,
   public_path: Option<String>,
   module: bool,
-  source_root: Option<String>,
   #[derivative(Debug = "ignore")]
   test: Option<TestFn>,
 }
@@ -179,7 +178,6 @@ impl SourceMapDevToolPlugin {
       no_sources: options.no_sources,
       public_path: options.public_path,
       module: options.module,
-      source_root: options.source_root,
       test: options.test,
     }
   }
@@ -303,7 +301,7 @@ impl Plugin for SourceMapDevToolPlugin {
             let mut has_name = used_names_set.contains(&source_name);
             if !has_name {
               used_names_set.insert(source_name.clone());
-              *source = Cow::from(source_name);
+              *source = source_name;
               continue;
             }
 
@@ -325,7 +323,7 @@ impl Plugin for SourceMapDevToolPlugin {
             has_name = used_names_set.contains(&source_name);
             if !has_name {
               used_names_set.insert(source_name.clone());
-              *source = Cow::from(source_name);
+              *source = source_name;
               continue;
             }
 
@@ -335,15 +333,12 @@ impl Plugin for SourceMapDevToolPlugin {
               has_name = used_names_set.contains(&source_name);
             }
             used_names_set.insert(source_name.clone());
-            *source = Cow::from(source_name);
+            *source = source_name;
           }
           if self.no_sources {
             for content in source_map.sources_content_mut() {
-              *content = Cow::from(String::default());
+              *content = String::default();
             }
-          }
-          if let Some(source_root) = &self.source_root {
-            source_map.set_source_root(Some(source_root.clone()));
           }
           let mut source_map_buffer = Vec::new();
           source_map
@@ -796,11 +791,11 @@ impl EvalSourceMapDevToolPlugin {
     for source in map.sources_mut() {
       let resource_path = normalize_custom_filename(source);
       let resource_path = contextify(&compilation.options.context, resource_path);
-      *source = Cow::from(resource_path);
+      *source = resource_path;
     }
     if self.no_sources {
       for content in map.sources_content_mut() {
-        *content = Cow::from(String::default());
+        *content = String::default();
       }
     }
     let mut map_buffer = Vec::new();
