@@ -889,6 +889,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "futures-concurrency"
+version = "7.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ef6712e11cdeed5c8cf21ea0b90fec40fbe64afc9bbf2339356197eeca829fc3"
+dependencies = [
+ "bitvec",
+ "futures-core",
+ "pin-project",
+ "slab",
+ "smallvec",
+]
+
+[[package]]
 name = "futures-core"
 version = "0.3.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2507,6 +2520,7 @@ dependencies = [
  "rspack_fs",
  "rspack_futures",
  "rspack_hash",
+ "rspack_hook",
  "rspack_identifier",
  "rspack_loader_runner",
  "rspack_regex",
@@ -2596,6 +2610,16 @@ dependencies = [
  "md4",
  "smol_str",
  "xxhash-rust",
+]
+
+[[package]]
+name = "rspack_hook"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "futures-concurrency",
+ "rspack_error",
+ "rustc-hash",
 ]
 
 [[package]]
@@ -2706,6 +2730,7 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_fs_node",
+ "rspack_hook",
  "rspack_napi_shared",
  "rspack_tracing",
  "testing_macros",
@@ -2784,6 +2809,7 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_hash",
+ "rspack_hook",
  "rspack_identifier",
  "rspack_plugin_runtime",
  "rspack_testing",
@@ -2832,6 +2858,8 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "rspack_core",
+ "rspack_error",
+ "rspack_hook",
 ]
 
 [[package]]
@@ -2853,6 +2881,7 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_hash",
+ "rspack_hook",
  "rspack_identifier",
  "rspack_util",
  "rustc-hash",
@@ -2902,6 +2931,7 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_hash",
+ "rspack_hook",
  "rspack_identifier",
  "rspack_ids",
  "rspack_regex",
@@ -2971,6 +3001,7 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_hash",
+ "rspack_hook",
  "rspack_identifier",
  "rspack_loader_runner",
  "rspack_util",
@@ -2989,6 +3020,7 @@ dependencies = [
  "linked-hash-map",
  "rspack_core",
  "rspack_error",
+ "rspack_hook",
 ]
 
 [[package]]
@@ -3114,6 +3146,7 @@ dependencies = [
  "rayon",
  "rspack_core",
  "rspack_error",
+ "rspack_hook",
  "rspack_identifier",
  "rspack_testing",
  "rspack_util",
@@ -3136,6 +3169,8 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "rspack_core",
+ "rspack_error",
+ "rspack_hook",
 ]
 
 [[package]]

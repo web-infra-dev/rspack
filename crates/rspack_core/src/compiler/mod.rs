@@ -12,6 +12,7 @@ use std::sync::Arc;
 use rspack_error::Result;
 use rspack_fs::AsyncWritableFileSystem;
 use rspack_futures::FuturesResults;
+use rspack_hook::AsyncSeries2Hook;
 use rspack_identifier::{IdentifierMap, IdentifierSet};
 use rustc_hash::FxHashMap as HashMap;
 use swc_core::ecma::atoms::Atom;
@@ -31,11 +32,17 @@ use crate::{
 use crate::{BoxPlugin, ExportInfo, UsageState};
 use crate::{CompilationParams, ContextModuleFactory, NormalModuleFactory};
 
+#[derive(Debug, Default)]
+pub struct CompilerHooks {
+  pub compilation: AsyncSeries2Hook<Compilation, CompilationParams>,
+}
+
 #[derive(Debug)]
 pub struct Compiler<T>
 where
   T: AsyncWritableFileSystem + Send + Sync,
 {
+  pub hooks: CompilerHooks,
   pub options: Arc<CompilerOptions>,
   pub output_filesystem: T,
   pub compilation: Compilation,
@@ -60,13 +67,16 @@ where
         debug_info.with_context(options.context.to_string());
       }
     }
+    let mut hooks = Default::default();
     let resolver_factory = Arc::new(ResolverFactory::new(options.resolve.clone()));
     let loader_resolver_factory = Arc::new(ResolverFactory::new(options.resolve_loader.clone()));
-    let (plugin_driver, options) = PluginDriver::new(options, plugins, resolver_factory.clone());
+    let (plugin_driver, options) =
+      PluginDriver::new(options, plugins, resolver_factory.clone(), &mut hooks);
     let cache = Arc::new(Cache::new(options.clone()));
     let is_new_treeshaking = options.is_new_tree_shaking();
     assert!(!(options.is_new_tree_shaking() && options.builtins.tree_shaking.enable()), "Can't enable builtins.tree_shaking and `experiments.rspack_future.new_treeshaking` at the same time");
     Self {
+      hooks,
       options: options.clone(),
       compilation: Compilation::new(
         options,
@@ -121,7 +131,7 @@ where
 
   #[instrument(name = "compile", skip_all)]
   async fn compile(&mut self, params: Vec<MakeParam>) -> Result<()> {
-    let compilation_params = self.new_compilation_params();
+    let mut compilation_params = self.new_compilation_params();
     self
       .plugin_driver
       .before_compile(&compilation_params)
@@ -132,8 +142,9 @@ where
       .this_compilation(&mut self.compilation, &compilation_params)
       .await?;
     self
-      .plugin_driver
-      .compilation(&mut self.compilation, &compilation_params)
+      .hooks
+      .compilation
+      .call(&mut self.compilation, &mut compilation_params)
       .await?;
 
     let logger = self.compilation.get_logger("rspack.Compiler");

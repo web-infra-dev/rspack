@@ -1,10 +1,13 @@
 #![feature(let_chains)]
 
+use async_trait::async_trait;
 use rspack_core::{
-  BoxDependency, Compilation, CompilationArgs, CompilationParams, Context, DependencyType,
-  EntryDependency, EntryOptions, MakeParam, Plugin, PluginCompilationHookOutput, PluginContext,
+  ApplyContext, BoxDependency, Compilation, CompilationParams, CompilerOptions, Context,
+  DependencyType, EntryDependency, EntryOptions, MakeParam, Plugin, PluginContext,
   PluginMakeHookOutput,
 };
+use rspack_error::Result;
+use rspack_hook::AsyncSeries2;
 
 #[derive(Debug)]
 pub struct EntryPlugin {
@@ -23,16 +26,28 @@ impl EntryPlugin {
   }
 }
 
-#[async_trait::async_trait]
+struct EntryPluginCompilationHook;
+
+#[async_trait]
+impl AsyncSeries2<Compilation, CompilationParams> for EntryPluginCompilationHook {
+  async fn run(&self, compilation: &mut Compilation, params: &mut CompilationParams) -> Result<()> {
+    compilation.set_dependency_factory(DependencyType::Entry, params.normal_module_factory.clone());
+    Ok(())
+  }
+}
+
+#[async_trait]
 impl Plugin for EntryPlugin {
-  async fn compilation(
+  fn apply(
     &self,
-    args: CompilationArgs<'_>,
-    params: &CompilationParams,
-  ) -> PluginCompilationHookOutput {
-    args
+    ctx: PluginContext<&mut ApplyContext>,
+    _options: &mut CompilerOptions,
+  ) -> Result<()> {
+    ctx
+      .context
+      .compiler_hooks
       .compilation
-      .set_dependency_factory(DependencyType::Entry, params.normal_module_factory.clone());
+      .tap(Box::new(EntryPluginCompilationHook));
     Ok(())
   }
 

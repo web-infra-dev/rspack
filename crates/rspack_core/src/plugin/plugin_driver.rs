@@ -13,7 +13,7 @@ use crate::{
   AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, ApplyContext,
   AssetEmittedArgs, BoxLoader, BoxModule, BoxedParserAndGeneratorBuilder, BuildTimeExecutionOption,
   Chunk, ChunkAssetArgs, ChunkContentHash, ChunkHashArgs, CodeGenerationResults, Compilation,
-  CompilationArgs, CompilationParams, CompilerOptions, Content, ContentHashArgs, DependencyId,
+  CompilationParams, CompilerHooks, CompilerOptions, Content, ContentHashArgs, DependencyId,
   DoneArgs, FactorizeArgs, JsChunkHashArgs, LoaderRunnerContext, MakeParam, Module,
   ModuleIdentifier, ModuleType, NormalModule, NormalModuleAfterResolveArgs,
   NormalModuleBeforeResolveArgs, NormalModuleCreateData, OptimizeChunksArgs, Plugin,
@@ -57,26 +57,21 @@ impl PluginDriver {
     mut options: CompilerOptions,
     plugins: Vec<Box<dyn Plugin>>,
     resolver_factory: Arc<ResolverFactory>,
+    compiler_hooks: &mut CompilerHooks,
   ) -> (Arc<Self>, Arc<CompilerOptions>) {
-    let registered_parser_and_generator_builder = plugins
-      .iter()
-      .map(|plugin| {
-        let mut apply_context = ApplyContext::default();
-        plugin
-          .apply(
-            PluginContext::with_context(&mut apply_context),
-            &mut options,
-          )
-          .expect("TODO:");
-        apply_context
-      })
-      .flat_map(|apply_context| {
-        apply_context
-          .registered_parser_and_generator_builder
-          .into_iter()
-          .collect::<Vec<_>>()
-      })
-      .collect::<HashMap<ModuleType, BoxedParserAndGeneratorBuilder>>();
+    let mut registered_parser_and_generator_builder = HashMap::default();
+    let mut apply_context = ApplyContext {
+      registered_parser_and_generator_builder: &mut registered_parser_and_generator_builder,
+      compiler_hooks,
+    };
+    for plugin in &plugins {
+      plugin
+        .apply(
+          PluginContext::with_context(&mut apply_context),
+          &mut options,
+        )
+        .expect("TODO:");
+    }
 
     let options = Arc::new(options);
 
@@ -85,7 +80,6 @@ impl PluginDriver {
         options: options.clone(),
         plugins,
         resolver_factory,
-        // registered_parser,
         registered_parser_and_generator_builder,
         diagnostics: Arc::new(Mutex::new(vec![])),
       }),
@@ -112,56 +106,6 @@ impl PluginDriver {
     }
 
     Ok(None)
-  }
-
-  // Disable this clippy rule because lock error is un recoverable, we don't need to
-  // bubble it.
-  // #[allow(clippy::unwrap_in_result)]
-  // #[instrument(skip_all)]
-  // pub fn parse(
-  //   &self,
-  //   args: ParseModuleArgs,
-  //   job_ctx: &mut NormalModuleFactoryContext,
-  // ) -> Result<BoxModule> {
-  //   let module_type = job_ctx.module_type.ok_or_else(|| {
-  //     Error::InternalError(format!(
-  //       "Failed to parse {} as module_type is not set",
-  //       args.uri
-  //     ))
-  //   })?;
-
-  //   let parser = self.registered_parser.get(&module_type).ok_or_else(|| {
-  //     Error::InternalError(format!(
-  //       "parser for module type {:?} is not registered",
-  //       module_type
-  //     ))
-  //   })?;
-
-  //   let mut module = parser.parse(module_type, args)?;
-  //   // Collecting coverable parse error
-  //   if !module.diagnostic.is_empty() {
-  //     let mut diagnostic = self.diagnostics.lock().expect("TODO:");
-  //     diagnostic.append(&mut module.diagnostic);
-  //   }
-  //   Ok(module.take_inner())
-  // }
-
-  /// Runs a plugin after a compilation has been created.
-  ///
-  /// See: https://webpack.js.org/api/compiler-hooks/#compilation
-  #[instrument(name = "plugin:compilation", skip_all)]
-  pub async fn compilation(
-    &self,
-    compilation: &mut Compilation,
-    params: &CompilationParams,
-  ) -> PluginCompilationHookOutput {
-    for plugin in &self.plugins {
-      plugin
-        .compilation(CompilationArgs { compilation }, params)
-        .await?;
-    }
-
-    Ok(())
   }
 
   #[instrument(name = "plugin:module_asset", skip_all)]
