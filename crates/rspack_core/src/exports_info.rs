@@ -1507,6 +1507,9 @@ impl ExportInfo {
     }
   }
 
+  // NOTE:
+  // used when the module graph is immutable
+  // to make sure that the max target can be get
   fn _get_max_target(&self) -> HashMap<Option<DependencyId>, ExportInfoTargetValue> {
     if self.target.len() <= 1 {
       return self.target.clone();
@@ -1534,6 +1537,9 @@ impl ExportInfo {
     &self.max_target
   }
 
+  // NOTE:
+  // align with webpack _getMaxTarget(), the logic of creatation is implemeneted in _get_max_target()
+  // https://github.com/webpack/webpack/blob/b9fb99c63ca433b24233e0bbc9ce336b47872c08/lib/ExportsInfo.js#L1208
   fn get_max_target(&mut self) -> &HashMap<Option<DependencyId>, ExportInfoTargetValue> {
     if self.max_target_is_set {
       return &self.max_target;
@@ -1608,7 +1614,7 @@ impl ExportInfo {
         if !mga.run_resolve_filter(&target, &resolve_filter) {
           return Some(ResolvedExportInfoTargetWithCircular::Target(target));
         }
-        already_visited.insert(*export_info_id);
+        already_visited.insert(export_info_id);
       }
     } else {
       None
@@ -1896,7 +1902,7 @@ pub trait ModuleGraphAccessor<'a> {
     &mut self,
     name: &Atom,
     module_identifier: &ModuleIdentifier,
-  ) -> Arc<ExportInfoId>;
+  ) -> ExportInfoId;
   fn get_max_target(
     &mut self,
     export_info_id: &ExportInfoId,
@@ -1904,7 +1910,7 @@ pub trait ModuleGraphAccessor<'a> {
   fn get_module_meta_exports_type(
     &mut self,
     module_identifier: &ModuleIdentifier,
-  ) -> Option<Arc<BuildMetaExportsType>>;
+  ) -> Option<BuildMetaExportsType>;
   fn get_read_only_export_info(
     &mut self,
     name: &Atom,
@@ -1952,13 +1958,13 @@ impl<'a> ModuleGraphAccessor<'a> for MutableModuleGraph<'a> {
     &mut self,
     name: &Atom,
     module_identifier: &ModuleIdentifier,
-  ) -> Arc<ExportInfoId> {
+  ) -> ExportInfoId {
     let exports = self
       .inner
       .module_graph_module_by_identifier(module_identifier)
       .expect("should have mgm")
       .exports;
-    Arc::new(exports.get_export_info(name, &mut self.inner))
+    exports.get_export_info(name, &mut self.inner)
   }
 
   fn get_max_target(
@@ -2000,13 +2006,12 @@ impl<'a> ModuleGraphAccessor<'a> for MutableModuleGraph<'a> {
   fn get_module_meta_exports_type(
     &mut self,
     module_identifier: &ModuleIdentifier,
-  ) -> Option<Arc<BuildMetaExportsType>> {
+  ) -> Option<BuildMetaExportsType> {
     self
       .inner
       .module_by_identifier(module_identifier)
       .and_then(|m| m.build_meta())
       .map(|meta| meta.exports_type)
-      .map(Arc::new)
   }
 }
 
@@ -2025,16 +2030,14 @@ impl<'a> ModuleGraphAccessor<'a> for ImmutableModuleGraph<'a> {
     &mut self,
     name: &Atom,
     module_identifier: &ModuleIdentifier,
-  ) -> Arc<ExportInfoId> {
-    Arc::new(
-      self
-        .inner
-        .module_graph_module_by_identifier(module_identifier)
-        .expect("should have mgm")
-        .exports
-        .get_read_only_export_info(name, self.inner)
-        .id,
-    )
+  ) -> ExportInfoId {
+    self
+      .inner
+      .module_graph_module_by_identifier(module_identifier)
+      .expect("should have mgm")
+      .exports
+      .get_read_only_export_info(name, self.inner)
+      .id
   }
 
   fn get_max_target(
@@ -2084,13 +2087,12 @@ impl<'a> ModuleGraphAccessor<'a> for ImmutableModuleGraph<'a> {
   fn get_module_meta_exports_type(
     &mut self,
     module_identifier: &ModuleIdentifier,
-  ) -> Option<Arc<BuildMetaExportsType>> {
+  ) -> Option<BuildMetaExportsType> {
     self
       .inner
       .module_by_identifier(module_identifier)
       .and_then(|m| m.build_meta())
       .map(|meta| meta.exports_type)
-      .map(Arc::new)
   }
 }
 

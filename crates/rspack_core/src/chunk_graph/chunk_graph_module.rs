@@ -203,6 +203,11 @@ impl ChunkGraph {
           )
         });
 
+      // NOTE:
+      // Webpack use module.getExportsType() to generate hash
+      // but the module graph may be modified in it
+      // and exports type is calculated from build meta and exports info
+      // so use them to generate hash directly to avoid mutable access to module graph
       if let Some(strict) = strict {
         if let Some(build_meta) = module.build_meta() {
           strict.dyn_hash(&mut hasher);
