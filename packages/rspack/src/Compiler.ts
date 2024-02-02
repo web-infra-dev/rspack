@@ -7,7 +7,7 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-import type * as binding from "@rspack/binding";
+import * as binding from "@rspack/binding";
 import { rspack } from "./index";
 import fs from "fs";
 import * as tapable from "tapable";
@@ -967,13 +967,18 @@ class Compiler {
 		this.#moduleExecutionResultsMap.set(id, executeResult);
 	}
 
-	#compilation(native: binding.JsCompilation) {
-		// TODO: implement this based on the child compiler impl.
-		this.hooks.compilation.call(this.compilation, {
-			normalModuleFactory: this.compilation.normalModuleFactory!
-		});
-
-		this.#updateDisabledHooks();
+	#createCompilerCompilationHooks(): binding.JsHook[] {
+		return [
+			{
+				type: "CompilerCompilation",
+				function: (native: binding.JsCompilation) => {
+					// TODO: implement this based on the child compiler impl.
+					this.hooks.compilation.call(this.compilation, {
+						normalModuleFactory: this.compilation.normalModuleFactory!
+					});
+				}
+			}
+		];
 	}
 
 	#newCompilation(native: binding.JsCompilation) {

@@ -66,6 +66,7 @@ impl Rspack {
     options: RawOptions,
     builtin_plugins: Vec<BuiltinPlugin>,
     js_hooks: Option<JsHooks>,
+    new_js_hooks: Vec<JsHook>,
     output_filesystem: ThreadsafeNodeFS,
     js_loader_runner: JsFunction,
   ) -> Result<Self> {
@@ -75,7 +76,9 @@ impl Rspack {
     let disabled_hooks: DisabledHooks = Default::default();
     let mut plugins = Vec::new();
     if let Some(js_hooks) = js_hooks {
-      plugins.push(JsHooksAdapter::from_js_hooks(env, js_hooks, disabled_hooks.clone())?.boxed());
+      plugins.push(
+        JsHooksAdapter::from_js_hooks(env, js_hooks, disabled_hooks.clone(), new_js_hooks)?.boxed(),
+      );
     }
     for bp in builtin_plugins {
       bp.append_to(&mut plugins)
@@ -110,9 +113,7 @@ impl Rspack {
     ts_args_type = "hooks: Array<string>"
   )]
   pub fn set_disabled_hooks(&self, _env: Env, hooks: Vec<String>) -> Result<()> {
-    let mut disabled_hooks = self.disabled_hooks.write().unwrap();
-    *disabled_hooks = hooks.into_iter().map(Into::into).collect::<Vec<Hook>>();
-    Ok(())
+    self.disabled_hooks.set_disabled_hooks(hooks)
   }
 
   /// Build with the given option passed to the constructor

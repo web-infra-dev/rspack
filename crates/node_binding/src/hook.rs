@@ -100,4 +100,17 @@ impl From<String> for Hook {
   }
 }
 
-pub type DisabledHooks = Arc<RwLock<Vec<Hook>>>;
+#[derive(Default, Clone)]
+pub struct DisabledHooks(Arc<RwLock<Vec<Hook>>>);
+
+impl DisabledHooks {
+  pub fn set_disabled_hooks(&self, hooks: Vec<String>) -> napi::Result<()> {
+    let mut disabled_hooks = self.0.write().unwrap();
+    *disabled_hooks = hooks.into_iter().map(Into::into).collect::<Vec<Hook>>();
+    Ok(())
+  }
+
+  pub fn is_hook_disabled(&self, hook: &Hook) -> bool {
+    self.0.read().expect("").contains(hook)
+  }
+}
