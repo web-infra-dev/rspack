@@ -139,7 +139,7 @@ export interface BuiltinPlugin {
   canInherentFromParent?: boolean
 }
 
-export const enum BuiltinPluginName {
+export enum BuiltinPluginName {
   DefinePlugin = 'DefinePlugin',
   ProvidePlugin = 'ProvidePlugin',
   BannerPlugin = 'BannerPlugin',
