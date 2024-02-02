@@ -1,7 +1,6 @@
 mod context_helper;
 mod harmony_export_dependency_scanner;
 pub mod harmony_import_dependency_scanner;
-mod hot_module_replacement_scanner;
 mod import_meta_scanner;
 mod import_scanner;
 mod parser;
@@ -29,7 +28,6 @@ pub use self::util::*;
 use self::{
   harmony_export_dependency_scanner::HarmonyExportDependencyScanner,
   harmony_import_dependency_scanner::HarmonyImportDependencyScanner,
-  hot_module_replacement_scanner::HotModuleReplacementScanner,
   import_meta_scanner::ImportMetaScanner, import_scanner::ImportScanner,
 };
 
@@ -141,15 +139,6 @@ pub fn scan_dependencies(
     &mut warning_diagnostics,
     &mut ignored,
   ));
-
-  if compiler_options.dev_server.hot {
-    program.visit_with(&mut HotModuleReplacementScanner::new(
-      &mut dependencies,
-      &mut presentational_dependencies,
-      build_meta,
-      &mut ignored,
-    ));
-  }
 
   if errors.is_empty() {
     Ok(ScanDependenciesResult {

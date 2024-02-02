@@ -282,6 +282,25 @@ impl<'parser> JavascriptParser<'parser> {
       plugins.push(Box::new(parser_plugin::NodeStuffPlugin));
     }
 
+    if compiler_options.dev_server.hot {
+      if module_type.is_js_auto() {
+        plugins.push(Box::new(
+          parser_plugin::hot_module_replacement::ModuleHotReplacementParserPlugin,
+        ));
+        plugins.push(Box::new(
+          parser_plugin::hot_module_replacement::ImportMetaHotReplacementParserPlugin,
+        ));
+      } else if module_type.is_js_dynamic() {
+        plugins.push(Box::new(
+          parser_plugin::hot_module_replacement::ModuleHotReplacementParserPlugin,
+        ));
+      } else if module_type.is_js_esm() {
+        plugins.push(Box::new(
+          parser_plugin::hot_module_replacement::ImportMetaHotReplacementParserPlugin,
+        ));
+      }
+    }
+
     if module_type.is_js_auto() || module_type.is_js_dynamic() || module_type.is_js_esm() {
       if !compiler_options.builtins.provide.is_empty() {
         plugins.push(Box::new(parser_plugin::ProviderPlugin));
