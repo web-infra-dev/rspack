@@ -1,5 +1,4 @@
 use itertools::Itertools;
-use once_cell::sync::Lazy;
 use rspack_core::extract_member_expression_chain;
 use rspack_core::{ConstDependency, DependencyLocation, ErrorSpan, ExpressionInfoKind, SpanExt};
 use rspack_error::{miette::Severity, DiagnosticKind, TraceableError};
@@ -89,7 +88,6 @@ pub(crate) mod expr_matcher {
     is_module: "module",
     is_module_hot_accept: "module.hot.accept",
     is_module_hot_decline: "module.hot.decline",
-    is_module_hot: "module.hot",
     is_module_id: "module.id",
     is_module_loaded: "module.loaded",
     is_module_exports: "module.exports",
@@ -426,28 +424,6 @@ pub fn extract_member_root(mut expr: &Expr) -> Option<Ident> {
       _ => return None,
     }
   }
-}
-
-static STRICT_MODE_RESERVED_WORDS: Lazy<HashSet<String>> = Lazy::new(|| {
-  [
-    "implements",
-    "interface",
-    "let",
-    "package",
-    "private",
-    "protected",
-    "public",
-    "static",
-    "yield",
-    "await",
-  ]
-  .iter()
-  .map(|i| i.to_string())
-  .collect::<HashSet<String>>()
-});
-
-pub fn is_reserved_word_in_strict(word: &str) -> bool {
-  STRICT_MODE_RESERVED_WORDS.contains(word)
 }
 
 pub fn create_traceable_error(
