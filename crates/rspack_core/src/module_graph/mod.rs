@@ -898,7 +898,7 @@ impl ModuleGraph {
       .and_then(|mgm| mgm.build_info().as_ref().and_then(|i| i.hash.as_ref()))
   }
 
-  pub fn has_dependencies(
+  pub fn is_module_invalidated(
     &self,
     module_identifier: &ModuleIdentifier,
     files: &HashSet<PathBuf>,
@@ -907,6 +907,10 @@ impl ModuleGraph {
       .module_by_identifier(module_identifier)
       .and_then(|module| module.build_info())
     {
+      if !build_info.cacheable {
+        return true;
+      }
+
       for item in files {
         if build_info.file_dependencies.contains(item)
           || build_info.build_dependencies.contains(item)
