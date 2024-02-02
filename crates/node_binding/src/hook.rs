@@ -103,7 +103,7 @@ pub struct DisabledHooks(Arc<RwLock<Vec<Hook>>>);
 
 impl DisabledHooks {
   pub fn set_disabled_hooks(&self, hooks: Vec<String>) -> napi::Result<()> {
-    let mut disabled_hooks = self.0.write().unwrap();
+    let mut disabled_hooks = self.0.write().expect("failed to write lock");
     *disabled_hooks = hooks.into_iter().map(Into::into).collect::<Vec<Hook>>();
     Ok(())
   }

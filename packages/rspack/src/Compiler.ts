@@ -976,6 +976,7 @@ class Compiler {
 					this.hooks.compilation.call(this.compilation, {
 						normalModuleFactory: this.compilation.normalModuleFactory!
 					});
+					this.#updateDisabledHooks();
 				}
 			}
 		];
