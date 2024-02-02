@@ -141,14 +141,6 @@ impl ScopeInfoDB {
       .unwrap_or_else(|| panic!("{id:#?} should exist"))
   }
 
-  pub fn take_variable(&mut self, id: &VariableInfoId) -> VariableInfo {
-    self
-      .variable_info_db
-      .map
-      .remove(id)
-      .expect("extract an in-exist variable")
-  }
-
   pub fn get<S: AsRef<str>>(&mut self, id: &ScopeInfoId, key: S) -> Option<VariableInfoId> {
     let definitions = self.expect_get_scope(id);
     if let Some(&top_value) = definitions.map.get(key.as_ref()) {
@@ -197,7 +189,7 @@ impl ScopeInfoDB {
   }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct TagInfo {
   pub tag: &'static str,
   pub data: Option<serde_json::Value>,
@@ -238,13 +230,6 @@ impl VariableInfo {
   pub fn update_tag_info_data(&mut self, data: Option<serde_json::Value>) {
     let tag_info = self.tag_info.as_mut().expect("make sure `tag_info` exist");
     tag_info.data = data;
-  }
-
-  pub fn free_name(&self) -> &FreeName {
-    self
-      .free_name
-      .as_ref()
-      .expect("make sure `free_name` exist")
   }
 
   fn set_id(&mut self, id: VariableInfoId) {

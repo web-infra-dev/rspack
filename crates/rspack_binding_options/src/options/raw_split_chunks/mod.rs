@@ -13,7 +13,7 @@ use rspack_core::Filename;
 use rspack_core::SourceType;
 use rspack_core::DEFAULT_DELIMITER;
 use rspack_napi_shared::{JsRegExp, JsRegExpExt, JsStringExt};
-use rspack_plugin_split_chunks_new::ChunkNameGetter;
+use rspack_plugin_split_chunks::ChunkNameGetter;
 use serde::Deserialize;
 
 use self::raw_split_chunk_cache_group_test::default_cache_group_test;
@@ -100,9 +100,9 @@ pub struct RawCacheGroupOptions {
   pub enforce: Option<bool>,
 }
 
-impl From<RawSplitChunksOptions> for rspack_plugin_split_chunks_new::PluginOptions {
+impl From<RawSplitChunksOptions> for rspack_plugin_split_chunks::PluginOptions {
   fn from(raw_opts: RawSplitChunksOptions) -> Self {
-    use rspack_plugin_split_chunks_new::SplitChunkSizes;
+    use rspack_plugin_split_chunks::SplitChunkSizes;
 
     let mut cache_groups = vec![];
 
@@ -174,7 +174,7 @@ impl From<RawSplitChunksOptions> for rspack_plugin_split_chunks_new::PluginOptio
           let r#type = v
             .r#type
             .map(create_module_type_filter)
-            .unwrap_or_else(rspack_plugin_split_chunks_new::create_default_module_type_filter);
+            .unwrap_or_else(rspack_plugin_split_chunks::create_default_module_type_filter);
 
           let mut name = v.name.map_or(default_chunk_option_name(), |name| {
             normalize_raw_chunk_name(name)
@@ -182,7 +182,7 @@ impl From<RawSplitChunksOptions> for rspack_plugin_split_chunks_new::PluginOptio
           if matches!(name, ChunkNameGetter::Disabled) {
             name = overall_name_getter.clone();
           }
-          rspack_plugin_split_chunks_new::CacheGroup {
+          rspack_plugin_split_chunks::CacheGroup {
             id_hint: v.id_hint.unwrap_or_else(|| v.key.clone()),
             key: v.key,
             name,
@@ -193,7 +193,7 @@ impl From<RawSplitChunksOptions> for rspack_plugin_split_chunks_new::PluginOptio
             chunk_filter: v.chunks.map(create_chunks_filter).unwrap_or_else(|| {
               overall_chunk_filter
                 .clone()
-                .unwrap_or_else(rspack_plugin_split_chunks_new::create_async_chunk_filter)
+                .unwrap_or_else(rspack_plugin_split_chunks::create_async_chunk_filter)
             }),
             min_chunks,
             min_size,
@@ -232,13 +232,13 @@ impl From<RawSplitChunksOptions> for rspack_plugin_split_chunks_new::PluginOptio
       .merge(&overall_max_initial_size)
       .merge(&overall_max_size);
 
-    rspack_plugin_split_chunks_new::PluginOptions {
+    rspack_plugin_split_chunks::PluginOptions {
       cache_groups,
-      fallback_cache_group: rspack_plugin_split_chunks_new::FallbackCacheGroup {
+      fallback_cache_group: rspack_plugin_split_chunks::FallbackCacheGroup {
         chunks_filter: fallback_chunks_filter.unwrap_or_else(|| {
           overall_chunk_filter
             .clone()
-            .unwrap_or_else(rspack_plugin_split_chunks_new::create_all_chunk_filter)
+            .unwrap_or_else(rspack_plugin_split_chunks::create_all_chunk_filter)
         }),
         min_size: fallback_min_size,
         max_async_size: fallback_max_async_size,
@@ -270,7 +270,7 @@ pub struct RawFallbackCacheGroupOptions {
 
 fn create_module_type_filter(
   raw: Either<JsRegExp, JsString>,
-) -> rspack_plugin_split_chunks_new::ModuleTypeFilter {
+) -> rspack_plugin_split_chunks::ModuleTypeFilter {
   match raw {
     Either::A(js_reg) => {
       let regex = js_reg.to_rspack_regex();

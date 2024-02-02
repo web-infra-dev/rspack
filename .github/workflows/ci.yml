@@ -14,8 +14,6 @@ on:
     types: [opened, synchronize]
     paths-ignore:
       - "**/*.md"
-    branches-ignore:
-      - "release-**"
   push:
     branches:
       - main
@@ -25,7 +23,7 @@ on:
       - "**"
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: ${{ github.ref_name != 'main' }}
 
 jobs:
@@ -227,8 +225,9 @@ jobs:
         run: cargo test --workspace -- --nocapture
 
   run_benchmark:
+    name: Run benchmark
     runs-on: ubuntu-latest
-    if: github.ref_name == 'main'
+    if: github.ref_name == 'main' && github.repository_owner == 'web-infra-dev'
     steps:
       - name: Run Benchmark
         uses: convictional/trigger-workflow-and-wait@v1.6.5

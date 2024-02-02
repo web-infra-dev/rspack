@@ -7,7 +7,7 @@ use rspack_core::DependencyType::WasmImport;
 use rspack_core::{
   AssetInfo, BoxDependency, BuildMetaExportsType, Compilation, Filename, GenerateContext, Module,
   ModuleDependency, ModuleIdentifier, NormalModule, ParseContext, ParseResult, ParserAndGenerator,
-  PathData, RuntimeGlobals, SourceType, StaticExportsDependency, UsedName,
+  PathData, RuntimeGlobals, SourceType, StaticExportsDependency, StaticExportsSpec, UsedName,
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_identifier::Identifier;
@@ -83,7 +83,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
     }
 
     dependencies.push(Box::new(StaticExportsDependency::new(
-      exports.iter().cloned().map(Atom::from).collect::<Vec<_>>(),
+      StaticExportsSpec::Array(exports.iter().cloned().map(Atom::from).collect::<Vec<_>>()),
       false,
     )));
 

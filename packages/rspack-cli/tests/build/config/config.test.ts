@@ -9,7 +9,34 @@ describe("rspack cli", () => {
 			expect(stderr).toMatch(/not found/);
 		});
 	});
+	describe("should respect cjs in esm folder", () => {
+		const cwd = resolve(__dirname, "./cjs_in_esm");
+		it("should load config.cjs file", async () => {
+			const { exitCode, stderr, stdout } = await run(cwd, [
+				"-c",
+				"rspack.config.cjs"
+			]);
+			expect(stderr).toBeFalsy();
+			expect(stdout).toBeTruthy();
+			expect(exitCode).toBe(0);
+			expect(
+				readFile(resolve(cwd, "./dist/cjs.bundle.js"), { encoding: "utf-8" })
+			).resolves.toMatch(/Main cjs file/);
+		});
 
+		it("should load config.cts file", async () => {
+			const { exitCode, stderr, stdout } = await run(cwd, [
+				"-c",
+				"rspack.config.cts"
+			]);
+			expect(stderr).toBeFalsy();
+			expect(stdout).toBeTruthy();
+			expect(exitCode).toBe(0);
+			expect(
+				readFile(resolve(cwd, "./dist/cts.bundle.js"), { encoding: "utf-8" })
+			).resolves.toMatch(/Main cjs file/);
+		});
+	});
 	describe("should load cjs config", () => {
 		const cwd = resolve(__dirname, "./cjs");
 

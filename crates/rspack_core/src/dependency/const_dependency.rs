@@ -1,4 +1,6 @@
-use crate::{DependencyTemplate, RuntimeGlobals, TemplateContext, TemplateReplaceSource};
+use crate::{
+  AsDependency, DependencyTemplate, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
+};
 
 #[derive(Debug, Clone)]
 pub struct ConstDependency {
@@ -37,4 +39,10 @@ impl DependencyTemplate for ConstDependency {
     }
     source.replace(self.start, self.end, self.content.as_ref(), None);
   }
+
+  fn dependency_id(&self) -> Option<crate::DependencyId> {
+    None
+  }
 }
+
+impl AsDependency for ConstDependency {}

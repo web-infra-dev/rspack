@@ -26,14 +26,24 @@ impl<'parser> JavascriptParser<'parser> {
 
   fn pre_walk_module_declaration(&mut self, statement: &ModuleItem) {
     match statement {
-      ModuleItem::ModuleDecl(decl) => match decl {
-        ModuleDecl::TsImportEquals(_)
-        | ModuleDecl::TsExportAssignment(_)
-        | ModuleDecl::TsNamespaceExport(_) => unreachable!(),
-        _ => {
-          self.is_esm = true;
+      ModuleItem::ModuleDecl(decl) => {
+        if self
+          .plugin_drive
+          .clone()
+          .pre_module_declaration(self, decl)
+          .unwrap_or_default()
+        {
+          return;
         }
-      },
+        match decl {
+          ModuleDecl::TsImportEquals(_)
+          | ModuleDecl::TsExportAssignment(_)
+          | ModuleDecl::TsNamespaceExport(_) => unreachable!(),
+          _ => {
+            self.is_esm = true;
+          }
+        }
+      }
       ModuleItem::Stmt(stmt) => self.pre_walk_statement(stmt),
     }
   }

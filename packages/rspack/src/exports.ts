@@ -194,4 +194,8 @@ export { CopyRspackPlugin } from "./builtin-plugin";
 export type { CopyRspackPluginOptions } from "./builtin-plugin";
 
 export { SourceMapDevToolPlugin } from "./builtin-plugin";
+export { EvalSourceMapDevToolPlugin } from "./builtin-plugin";
 export type { SourceMapDevToolPluginOptions } from "./builtin-plugin";
+
+export { EvalDevToolModulePlugin } from "./builtin-plugin";
+export type { EvalDevToolModulePluginOptions } from "./builtin-plugin";

@@ -29,6 +29,8 @@ pub struct ModuleGraphModule {
   pub profile: Option<Box<ModuleProfile>>,
   pub is_async: bool,
   pub depth: Option<usize>,
+
+  pub optimization_bailout: Vec<String>,
 }
 
 impl ModuleGraphModule {
@@ -53,6 +55,7 @@ impl ModuleGraphModule {
       profile: None,
       is_async: false,
       depth: None,
+      optimization_bailout: vec![],
     }
   }
 
@@ -138,5 +141,9 @@ impl ModuleGraphModule {
 
   pub fn get_issuer(&self) -> &ModuleIssuer {
     &self.issuer
+  }
+
+  pub(crate) fn optimization_bailout_mut(&mut self) -> &mut Vec<String> {
+    &mut self.optimization_bailout
   }
 }

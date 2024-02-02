@@ -11,6 +11,7 @@ rspack_testing = { path = "../rspack_testing" }
 [dependencies]
 async-trait = { workspace = true }
 bitflags = { workspace = true }
+dashmap = { workspace = true }
 indexmap = { workspace = true }
 itertools = { workspace = true }
 linked_hash_set = { workspace = true }
@@ -22,6 +23,7 @@ rspack_ast = { path = "../rspack_ast" }
 rspack_core = { path = "../rspack_core" }
 rspack_error = { path = "../rspack_error" }
 rspack_hash = { path = "../rspack_hash" }
+rspack_hook = { path = "../rspack_hook" }
 rspack_identifier = { path = "../rspack_identifier" }
 rspack_ids = { path = "../rspack_ids/" }
 rspack_regex = { path = "../rspack_regex" }

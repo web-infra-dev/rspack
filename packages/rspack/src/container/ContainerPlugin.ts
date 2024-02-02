@@ -1,6 +1,9 @@
-import { RawContainerPluginOptions, BuiltinPlugin } from "@rspack/binding";
 import {
-	BuiltinPluginName,
+	RawContainerPluginOptions,
+	BuiltinPlugin,
+	BuiltinPluginName
+} from "@rspack/binding";
+import {
 	RspackBuiltinPlugin,
 	createBuiltinPlugin
 } from "../builtin-plugin/base";

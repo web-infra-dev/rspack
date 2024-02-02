@@ -278,13 +278,9 @@ impl ModuleGraph {
     module_identifier: ModuleIdentifier,
   ) -> ConnectionId {
     // let old_con_id = self.connection_id_by_dependency_id(&old_con.dependency_id);
-    let new_connection = ModuleGraphConnection::new(
-      original_module_identifier,
-      old_con.dependency_id,
-      module_identifier,
-      old_con.active,
-      old_con.conditional,
-    );
+    let mut new_connection = *old_con;
+    new_connection.original_module_identifier = original_module_identifier;
+    new_connection.module_identifier = module_identifier;
 
     let new_connection_id = {
       let new_connection_id = ConnectionId::from(self.connections.len());
@@ -303,8 +299,8 @@ impl ModuleGraph {
     }
 
     self
-      .dependency_id_to_connection_id
-      .insert(new_connection.dependency_id, new_connection_id);
+      .dependency_id_to_module_identifier
+      .insert(new_connection.dependency_id, module_identifier);
 
     self
       .connection_id_to_dependency_id
@@ -1030,6 +1026,23 @@ impl ModuleGraph {
       .exports
       .get_exports_info(self)
       .get_provided_exports(self)
+  }
+
+  pub fn get_optimization_bailout_mut(&mut self, module: ModuleIdentifier) -> &mut Vec<String> {
+    let mgm = self
+      .module_graph_module_by_identifier_mut(&module)
+      .expect("should have module graph module");
+    mgm.optimization_bailout_mut()
+  }
+
+  pub fn get_read_only_export_info(
+    &self,
+    module_identifier: &ModuleIdentifier,
+    name: Atom,
+  ) -> Option<&ExportInfo> {
+    self
+      .module_graph_module_by_identifier(module_identifier)
+      .map(|mgm| mgm.exports.get_read_only_export_info(&name, self))
   }
 }
 

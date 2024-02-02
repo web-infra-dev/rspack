@@ -1,12 +1,10 @@
 mod context_helper;
 mod harmony_export_dependency_scanner;
 pub mod harmony_import_dependency_scanner;
-mod hot_module_replacement_scanner;
 mod import_meta_scanner;
 mod import_scanner;
 mod parser;
 mod util;
-mod worker_scanner;
 
 use std::sync::Arc;
 
@@ -30,17 +28,14 @@ pub use self::util::*;
 use self::{
   harmony_export_dependency_scanner::HarmonyExportDependencyScanner,
   harmony_import_dependency_scanner::HarmonyImportDependencyScanner,
-  hot_module_replacement_scanner::HotModuleReplacementScanner,
   import_meta_scanner::ImportMetaScanner, import_scanner::ImportScanner,
-  worker_scanner::WorkerScanner,
 };
 
 pub struct ScanDependenciesResult {
   pub dependencies: Vec<BoxDependency>,
   pub blocks: Vec<AsyncDependenciesBlock>,
   pub presentational_dependencies: Vec<BoxDependencyTemplate>,
-  // TODO: rename this name
-  pub rewrite_usage_span: HashMap<Span, ExtraSpanInfo>,
+  pub usage_span_record: HashMap<Span, ExtraSpanInfo>,
   pub import_map: ImportMap,
   pub warning_diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>>,
 }
@@ -58,6 +53,7 @@ pub enum ExtraSpanInfo {
 pub fn scan_dependencies(
   source_file: Arc<SourceFile>,
   program: &Program,
+  worker_syntax_list: &mut WorkerSyntaxList,
   resource_data: &ResourceData,
   compiler_options: &CompilerOptions,
   module_type: &ModuleType,
@@ -73,16 +69,17 @@ pub fn scan_dependencies(
   let comments = program.comments.clone();
   let mut parser_exports_state = None;
   let mut ignored: FxHashSet<DependencyLocation> = FxHashSet::default();
-  let mut worker_syntax_list = WorkerSyntaxList::default();
 
   let mut parser = JavascriptParser::new(
     source_file.clone(),
     compiler_options,
     &mut dependencies,
     &mut presentational_dependencies,
+    &mut blocks,
     &mut ignored,
+    &module_identifier,
     module_type,
-    &mut worker_syntax_list,
+    worker_syntax_list,
     resource_data,
     &mut parser_exports_state,
     build_meta,
@@ -116,17 +113,6 @@ pub fn scan_dependencies(
       &mut ignored,
     ));
 
-    let mut worker_scanner = WorkerScanner::new(
-      &module_identifier,
-      &compiler_options.output,
-      &worker_syntax_list,
-      &mut ignored,
-    );
-    program.visit_with(&mut worker_scanner);
-    blocks.append(&mut worker_scanner.blocks);
-    dependencies.append(&mut worker_scanner.dependencies);
-    presentational_dependencies.append(&mut worker_scanner.presentational_dependencies);
-
     program.visit_with(&mut ImportMetaScanner::new(
       source_file.clone(),
       &mut presentational_dependencies,
@@ -154,21 +140,12 @@ pub fn scan_dependencies(
     &mut ignored,
   ));
 
-  if compiler_options.dev_server.hot {
-    program.visit_with(&mut HotModuleReplacementScanner::new(
-      &mut dependencies,
-      &mut presentational_dependencies,
-      build_meta,
-      &mut ignored,
-    ));
-  }
-
   if errors.is_empty() {
     Ok(ScanDependenciesResult {
       dependencies,
       blocks,
       presentational_dependencies,
-      rewrite_usage_span,
+      usage_span_record: rewrite_usage_span,
       import_map,
       warning_diagnostics,
     })

@@ -1,6 +1,6 @@
 {
   "name": "@rspack/core",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "webpackVersion": "5.75.0",
   "license": "MIT",
   "description": "A Fast Rust-based Web Bundler",
@@ -53,7 +53,7 @@
     "jest-serializer-path": "^0.1.15",
     "less": "4.2.0",
     "less-loader": "^11.1.0",
-    "postcss-loader": "^7.0.2",
+    "postcss-loader": "^7.3.4",
     "postcss-pxtorem": "^6.0.0",
     "pug-loader": "^2.4.0",
     "react-relay": "^14.1.0",

@@ -33,7 +33,7 @@ pub use module_dependency::*;
 pub use runtime_requirements_dependency::RuntimeRequirementsDependency;
 pub use runtime_template::*;
 pub use span::SpanExt;
-pub use static_exports_dependency::StaticExportsDependency;
+pub use static_exports_dependency::{StaticExportsDependency, StaticExportsSpec};
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
@@ -167,7 +167,6 @@ pub mod needs_refactor {
         MetaPropKind, ModuleExportName, NewExpr,
       },
       atoms::Atom,
-      visit::Visit,
     },
   };
 
@@ -273,11 +272,6 @@ pub mod needs_refactor {
     }
   }
 
-  pub struct WorkerSyntaxScanner {
-    pub result: WorkerSyntaxList,
-    caps: Vec<(&'static str, &'static str)>,
-  }
-
   pub const DEFAULT_WORKER_SYNTAX: &[&str] =
     &["Worker", "SharedWorker", "Worker from worker_threads"];
 
@@ -295,21 +289,6 @@ pub mod needs_refactor {
       } else {
         list.push(WorkerSyntax::new(Atom::from(*s), None))
       }
-    }
-  }
-
-  impl WorkerSyntaxScanner {
-    pub fn new(syntax: &'static [&'static str]) -> Self {
-      let mut result = WorkerSyntaxList::default();
-      let mut caps = Vec::new();
-      init_worker_syntax_scanner(syntax, &mut caps, &mut result);
-      Self { result, caps }
-    }
-  }
-
-  impl Visit for WorkerSyntaxScanner {
-    fn visit_import_decl(&mut self, decl: &ImportDecl) {
-      collect_from_import_decl(&self.caps, decl, &mut self.result);
     }
   }
 

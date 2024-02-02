@@ -11,7 +11,10 @@ use std::sync::Arc;
 
 use bitflags::bitflags;
 use rspack_core::needs_refactor::WorkerSyntaxList;
-use rspack_core::{BoxDependency, BuildInfo, BuildMeta, DependencyTemplate, ResourceData};
+use rspack_core::{
+  AsyncDependenciesBlock, BoxDependency, BuildInfo, BuildMeta, DependencyTemplate,
+  ModuleIdentifier, ResourceData,
+};
 use rspack_core::{CompilerOptions, DependencyLocation, JavascriptParserUrl, ModuleType, SpanExt};
 use rspack_error::miette::Diagnostic;
 use rustc_hash::FxHashSet;
@@ -31,7 +34,7 @@ use crate::visitors::scope_info::{
   FreeName, ScopeInfoDB, ScopeInfoId, TagInfo, VariableInfo, VariableInfoId,
 };
 
-pub trait TagInfoData {
+pub trait TagInfoData: Clone {
   fn serialize(data: &Self) -> serde_json::Value;
   fn deserialize(value: serde_json::Value) -> Self;
 }
@@ -45,9 +48,8 @@ pub struct ExtractedMemberExpressionChainData {
 
 bitflags! {
   pub struct AllowedMemberTypes: u8 {
-    const CallExpression = 0b01;
-    const Expression = 0b10;
-    const All = 0b11;
+    const CallExpression = 1 << 0;
+    const Expression = 1 << 1;
   }
 }
 
@@ -211,9 +213,11 @@ pub struct JavascriptParser<'parser> {
   pub(crate) warning_diagnostics: &'parser mut Vec<Box<dyn Diagnostic + Send + Sync>>,
   pub(crate) dependencies: &'parser mut Vec<BoxDependency>,
   pub(crate) presentational_dependencies: &'parser mut Vec<Box<dyn DependencyTemplate>>,
+  pub(crate) blocks: &'parser mut Vec<AsyncDependenciesBlock>,
   pub(crate) ignored: &'parser mut FxHashSet<DependencyLocation>,
   // TODO: remove `worker_syntax_list`
   pub(crate) worker_syntax_list: &'parser mut WorkerSyntaxList,
+  pub(crate) worker_index: u32,
   pub(crate) build_meta: &'parser mut BuildMeta,
   pub(crate) build_info: &'parser mut BuildInfo,
   pub(crate) resource_data: &'parser ResourceData,
@@ -221,6 +225,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) definitions_db: ScopeInfoDB,
   pub(crate) compiler_options: &'parser CompilerOptions,
   pub(crate) module_type: &'parser ModuleType,
+  pub(crate) module_identifier: &'parser ModuleIdentifier,
   // TODO: remove `enter_assign`
   pub(crate) enter_assign: bool,
   // TODO: remove `is_esm` after `HarmonyExports::isEnabled`
@@ -247,7 +252,9 @@ impl<'parser> JavascriptParser<'parser> {
     compiler_options: &'parser CompilerOptions,
     dependencies: &'parser mut Vec<BoxDependency>,
     presentational_dependencies: &'parser mut Vec<Box<dyn DependencyTemplate>>,
+    blocks: &'parser mut Vec<AsyncDependenciesBlock>,
     ignored: &'parser mut FxHashSet<DependencyLocation>,
+    module_identifier: &'parser ModuleIdentifier,
     module_type: &'parser ModuleType,
     worker_syntax_list: &'parser mut WorkerSyntaxList,
     resource_data: &'parser ResourceData,
@@ -260,15 +267,38 @@ impl<'parser> JavascriptParser<'parser> {
     let mut plugins: Vec<parser_plugin::BoxJavascriptParserPlugin> = Vec::with_capacity(32);
     plugins.push(Box::new(parser_plugin::CheckVarDeclaratorIdent));
     plugins.push(Box::new(parser_plugin::ConstPlugin));
-    plugins.push(Box::new(parser_plugin::CommonJsImportsParserPlugin));
     plugins.push(Box::new(
       parser_plugin::RequireContextDependencyParserPlugin,
     ));
+    plugins.push(Box::new(parser_plugin::WorkerSyntaxScanner::new(
+      rspack_core::needs_refactor::DEFAULT_WORKER_SYNTAX,
+      worker_syntax_list,
+    )));
 
     if module_type.is_js_auto() || module_type.is_js_dynamic() {
+      plugins.push(Box::new(parser_plugin::CommonJsImportsParserPlugin));
       plugins.push(Box::new(parser_plugin::CommonJsPlugin));
       plugins.push(Box::new(parser_plugin::CommonJsExportsParserPlugin));
       plugins.push(Box::new(parser_plugin::NodeStuffPlugin));
+    }
+
+    if compiler_options.dev_server.hot {
+      if module_type.is_js_auto() {
+        plugins.push(Box::new(
+          parser_plugin::hot_module_replacement::ModuleHotReplacementParserPlugin,
+        ));
+        plugins.push(Box::new(
+          parser_plugin::hot_module_replacement::ImportMetaHotReplacementParserPlugin,
+        ));
+      } else if module_type.is_js_dynamic() {
+        plugins.push(Box::new(
+          parser_plugin::hot_module_replacement::ModuleHotReplacementParserPlugin,
+        ));
+      } else if module_type.is_js_esm() {
+        plugins.push(Box::new(
+          parser_plugin::hot_module_replacement::ImportMetaHotReplacementParserPlugin,
+        ));
+      }
     }
 
     if module_type.is_js_auto() || module_type.is_js_dynamic() || module_type.is_js_esm() {
@@ -284,11 +314,6 @@ impl<'parser> JavascriptParser<'parser> {
     }
 
     if module_type.is_js_auto() || module_type.is_js_esm() {
-      plugins.push(Box::new(parser_plugin::WorkerSyntaxScanner::new(
-        rspack_core::needs_refactor::DEFAULT_WORKER_SYNTAX,
-        worker_syntax_list,
-      )));
-
       let parse_url = &compiler_options
         .module
         .parser
@@ -307,6 +332,10 @@ impl<'parser> JavascriptParser<'parser> {
       plugins.push(Box::new(parser_plugin::HarmonDetectionParserPlugin::new(
         compiler_options.experiments.top_level_await,
       )));
+      plugins.push(Box::new(parser_plugin::WorkerPlugin));
+      plugins.push(Box::new(
+        parser_plugin::ImportMetaContextDependencyParserPlugin,
+      ));
     }
 
     let plugin_drive = Rc::new(JavaScriptParserPluginDrive::new(plugins));
@@ -317,6 +346,7 @@ impl<'parser> JavascriptParser<'parser> {
       warning_diagnostics,
       dependencies,
       presentational_dependencies,
+      blocks,
       in_try: false,
       in_if: false,
       in_short_hand: false,
@@ -338,6 +368,8 @@ impl<'parser> JavascriptParser<'parser> {
       enter_call: 0,
       stmt_level: 0,
       last_stmt_is_expr_stmt: false,
+      worker_index: 0,
+      module_identifier,
     }
   }
 
@@ -380,6 +412,16 @@ impl<'parser> JavascriptParser<'parser> {
     self.definitions_db.set(definitions, name, info);
   }
 
+  fn set_variable(&mut self, name: String, variable: String) {
+    let id = self.definitions;
+    if name == variable {
+      self.definitions_db.delete(id, &name);
+    } else {
+      let variable = VariableInfo::new(id, Some(FreeName::String(variable)), None);
+      self.definitions_db.set(id, name, variable);
+    }
+  }
+
   fn undefined_variable(&mut self, name: String) {
     self.definitions_db.delete(self.definitions, name)
   }
@@ -392,13 +434,15 @@ impl<'parser> JavascriptParser<'parser> {
   ) {
     let data = data.as_ref().map(|data| TagInfoData::serialize(data));
     let new_info = if let Some(old_info_id) = self.definitions_db.get(&self.definitions, &name) {
-      let old_info = self.definitions_db.take_variable(&old_info_id);
-      if let Some(old_tag_info) = old_info.tag_info {
-        let free_name = old_info.free_name;
+      let old_info = self.definitions_db.expect_get_variable(&old_info_id);
+      if let Some(old_tag_info) = &old_info.tag_info {
+        // FIXME: remove `.clone`
+        let free_name = old_info.free_name.clone();
         let tag_info = Some(TagInfo {
           tag,
           data,
-          next: Some(Box::new(old_tag_info)),
+          // FIXME: remove `.clone`
+          next: Some(Box::new(old_tag_info.clone())),
         });
         VariableInfo::new(old_info.declared_scope, free_name, tag_info)
       } else {
@@ -667,6 +711,7 @@ impl JavascriptParser<'_> {
     match self.evaluating(expr) {
       Some(evaluated) => {
         if evaluated.is_compile_time_value() {
+          // TODO: delete this arm
           let _ = self.ignored.insert(DependencyLocation::new(
             expr.span().real_lo(),
             expr.span().real_hi(),
@@ -701,23 +746,30 @@ impl JavascriptParser<'_> {
         None
       }
       Expr::Ident(ident) => {
+        let drive = self.plugin_drive.clone();
         let Some(info) = self.get_variable_info(&ident.sym) else {
-          let mut eval =
-            BasicEvaluatedExpression::with_range(ident.span.real_lo(), ident.span().hi().0);
-          eval.set_identifier(
-            ident.sym.to_string(),
-            ExportedVariableInfo::Name(ident.sym.to_string()),
-          );
-          return Some(eval);
+          // use `ident.sym` as fallback for global variable(or maybe just a undefined variable)
+          return drive
+            .evaluate_identifier(
+              self,
+              ident.sym.as_str(),
+              ident.span.real_lo(),
+              ident.span.hi.0,
+            )
+            .or_else(|| {
+              let mut eval =
+                BasicEvaluatedExpression::with_range(ident.span.real_lo(), ident.span.hi.0);
+              eval.set_identifier(
+                ident.sym.to_string(),
+                ExportedVariableInfo::Name(ident.sym.to_string()),
+              );
+              Some(eval)
+            });
         };
-        if matches!(info.free_name, Some(FreeName::String(_))) {
-          let mut eval =
-            BasicEvaluatedExpression::with_range(ident.span.real_lo(), ident.span().hi().0);
-          eval.set_identifier(
-            ident.sym.to_string(),
-            ExportedVariableInfo::VariableInfo(info.id()),
-          );
-          return Some(eval);
+        if let Some(FreeName::String(name)) = info.free_name.as_ref() {
+          // avoid ownership
+          let name = name.to_string();
+          return drive.evaluate_identifier(self, &name, ident.span.real_lo(), ident.span.hi.0);
         }
         None
       }

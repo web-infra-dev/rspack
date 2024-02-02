@@ -106,6 +106,10 @@ impl DependencyTemplate for CssUrlDependency {
       source.replace(self.start, self.end, &content, None);
     }
   }
+
+  fn dependency_id(&self) -> Option<DependencyId> {
+    Some(self.id)
+  }
 }
 
 impl AsContextDependency for CssUrlDependency {}

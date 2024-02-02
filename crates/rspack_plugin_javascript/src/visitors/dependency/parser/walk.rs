@@ -94,28 +94,18 @@ impl<'parser> JavascriptParser<'parser> {
 
   fn walk_module_declaration(&mut self, statement: &ModuleItem) {
     match statement {
-      ModuleItem::ModuleDecl(m) => {
-        if self
-          .plugin_drive
-          .clone()
-          .module_declaration(self, m)
-          .unwrap_or_default()
-        {
-          return;
+      ModuleItem::ModuleDecl(m) => match m {
+        ModuleDecl::ExportDefaultDecl(decl) => {
+          self.walk_export_default_declaration(decl);
         }
-        match m {
-          ModuleDecl::ExportDefaultDecl(decl) => {
-            self.walk_export_default_declaration(decl);
-          }
-          ModuleDecl::ExportDecl(decl) => self.walk_export_decl(decl),
-          ModuleDecl::ExportNamed(named) => self.walk_export_named_declaration(named),
-          ModuleDecl::ExportDefaultExpr(expr) => self.walk_export_default_expr(expr),
-          ModuleDecl::ExportAll(_) | ModuleDecl::Import(_) => (),
-          ModuleDecl::TsImportEquals(_)
-          | ModuleDecl::TsExportAssignment(_)
-          | ModuleDecl::TsNamespaceExport(_) => unreachable!(),
-        }
-      }
+        ModuleDecl::ExportDecl(decl) => self.walk_export_decl(decl),
+        ModuleDecl::ExportNamed(named) => self.walk_export_named_declaration(named),
+        ModuleDecl::ExportDefaultExpr(expr) => self.walk_export_default_expr(expr),
+        ModuleDecl::ExportAll(_) | ModuleDecl::Import(_) => (),
+        ModuleDecl::TsImportEquals(_)
+        | ModuleDecl::TsExportAssignment(_)
+        | ModuleDecl::TsNamespaceExport(_) => unreachable!(),
+      },
       ModuleItem::Stmt(s) => self.walk_statement(s),
     }
   }
@@ -375,17 +365,24 @@ impl<'parser> JavascriptParser<'parser> {
   fn walk_variable_declaration(&mut self, decl: &VarDecl) {
     self.enter_assign = true;
     for declarator in &decl.decls {
-      // if let Some(renamed_identifier) = declarator
-      //   .init
-      //   .as_ref()
-      //   .and_then(|init| self.get_rename_identifier(&init))
-      //   && let Some(name) = declarator.name.as_ident()
-      // {
-      //   // TODO: can_rename hook
-      //   // TODO: rename hook
-
-      //   // if declarator.is_synthesized()
-      // }
+      if let Some(init) = declarator.init.as_ref()
+        && let Some(renamed_identifier) = self.get_rename_identifier(init)
+        && let Some(ident) = declarator.name.as_ident()
+      {
+        let drive = self.plugin_drive.clone();
+        if drive
+          .can_rename(self, &renamed_identifier)
+          .unwrap_or_default()
+        {
+          if !drive
+            .rename(self, init, &renamed_identifier)
+            .unwrap_or_default()
+          {
+            self.set_variable(ident.sym.to_string(), renamed_identifier);
+          }
+          continue;
+        }
+      }
       if !self
         .plugin_drive
         .clone()
@@ -397,8 +394,8 @@ impl<'parser> JavascriptParser<'parser> {
           self.walk_expression(init);
         }
       }
-      self.enter_assign = false;
     }
+    self.enter_assign = false;
   }
 
   fn walk_expression_statement(&mut self, stmt: &ExprStmt) {
@@ -597,7 +594,7 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_member_expression(&mut self, expr: &MemberExpr) {
-    if let Some(expr_info) = self.get_member_expression_info(expr, AllowedMemberTypes::All) {
+    if let Some(expr_info) = self.get_member_expression_info(expr, AllowedMemberTypes::all()) {
       match expr_info {
         MemberExpressionInfo::Expression(expr_info) => {
           if let Some(for_name) = expr_info.name.call_hooks_name(self)
@@ -734,12 +731,12 @@ impl<'parser> JavascriptParser<'parser> {
     }
   }
 
-  // fn get_rename_identifier(&mut self, expr: &Expr) -> Option<String> {
-  //   let result = self.evaluate_expression(expr);
-  //   result
-  //     .is_identifier()
-  //     .then(|| result.identifier().to_string())
-  // }
+  fn get_rename_identifier(&mut self, expr: &Expr) -> Option<String> {
+    let result = self.evaluate_expression(expr);
+    result
+      .is_identifier()
+      .then(|| result.identifier().to_string())
+  }
 
   fn walk_assignment_expression(&mut self, expr: &AssignExpr) {
     self.enter_assign = true;

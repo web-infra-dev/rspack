@@ -3,6 +3,7 @@ use std::{path::Path, sync::Arc};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_error::{error, Result};
+use rspack_hook::AsyncSeriesBailHook;
 use rspack_loader_runner::{get_scheme, Loader, Scheme};
 use sugar_path::{AsPath, SugarPath};
 use swc_core::common::Span;
@@ -21,11 +22,17 @@ use crate::{
   ResourceData, ResourceParsedData, SharedPluginDriver,
 };
 
+#[derive(Debug, Default)]
+pub struct NormalModuleFactoryHooks {
+  pub before_resolve: AsyncSeriesBailHook<NormalModuleBeforeResolveArgs, bool>,
+}
+
 #[derive(Debug)]
 pub struct NormalModuleFactory {
   options: Arc<CompilerOptions>,
   loader_resolver_factory: Arc<ResolverFactory>,
   plugin_driver: SharedPluginDriver,
+  pub hooks: NormalModuleFactoryHooks,
   cache: Arc<Cache>,
 }
 
@@ -65,6 +72,7 @@ impl NormalModuleFactory {
       options,
       loader_resolver_factory,
       plugin_driver,
+      hooks: NormalModuleFactoryHooks::default(),
       cache,
     }
   }
@@ -82,10 +90,10 @@ impl NormalModuleFactory {
       request: dependency.request().to_string(),
       context: data.context.to_string(),
     };
-    if let Ok(Some(false)) = self
+    if let Some(false) = self
       .plugin_driver
       .before_resolve(&mut before_resolve_args)
-      .await
+      .await?
     {
       // ignored
       // See https://github.com/webpack/webpack/blob/6be4065ade1e252c1d8dcba4af0f43e32af1bdc1/lib/NormalModuleFactory.js#L798

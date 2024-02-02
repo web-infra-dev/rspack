@@ -30,7 +30,7 @@ use super::{
 use crate::{
   build_chunk_graph::build_chunk_graph,
   cache::{use_code_splitting_cache, Cache, CodeSplittingCache},
-  get_chunk_from_ukey, get_mut_chunk_from_ukey, is_source_equal,
+  get_chunk_from_ukey, get_mut_chunk_from_ukey, is_source_equal, prepare_get_exports_type,
   tree_shaking::{optimizer, visitor::SymbolRef, BailoutFlag, OptimizeDependencyResult},
   AddQueue, AddQueueHandler, AddTask, AddTaskResult, AdditionalChunkRuntimeRequirementsArgs,
   AdditionalModuleRequirementsArgs, AsyncDependenciesBlock, BoxDependency, BoxModule, BuildQueue,
@@ -482,6 +482,13 @@ impl Compilation {
       )])
       .await?;
 
+    if self.options.is_new_tree_shaking() {
+      let logger = self.get_logger("rspack.Compilation");
+      let start = logger.time("finish module");
+      self.finish(self.plugin_driver.clone()).await?;
+      logger.time_end(start);
+    }
+
     Ok(
       module_identifiers
         .into_iter()
@@ -489,7 +496,6 @@ impl Compilation {
         .collect::<Vec<_>>(),
     )
   }
-
   async fn update_module_graph(&mut self, params: Vec<MakeParam>) -> Result<()> {
     let logger = self.get_logger("rspack.Compilation");
     let deps_builder = RebuildDepsBuilder::new(params, &self.module_graph);
@@ -1165,11 +1171,6 @@ impl Compilation {
 
     // Avoid to introduce too much overhead,
     // until we find a better way to align with webpack hmr behavior
-    if self.options.is_new_tree_shaking() {
-      let start = logger.time("finish compilation");
-      self.finish(self.plugin_driver.clone()).await?;
-      logger.time_end(start);
-    }
 
     // add context module and context element module to bailout_module_identifiers
     if self.options.builtins.tree_shaking.enable() {
@@ -1305,6 +1306,13 @@ impl Compilation {
 
       Ok(())
     }
+
+    // FIXME:
+    // Webpack may modify the moduleGraph in module.getExportsType()
+    // and it is widely called after compilation.finish()
+    // so add this method to trigger moduleGraph modification and
+    // then make sure that moduleGraph is immutable
+    prepare_get_exports_type(&mut self.module_graph);
 
     run_iteration(self, &mut codegen_cache_counter, |(_, module)| {
       module.get_code_generation_dependencies().is_none()

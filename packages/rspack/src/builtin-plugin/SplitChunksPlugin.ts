@@ -1,14 +1,10 @@
 import assert from "assert";
 import { type OptimizationSplitChunksOptions } from "../config/zod";
-import {
-	BuiltinPluginName,
-	RspackBuiltinPlugin,
-	create,
-	createBuiltinPlugin
-} from "./base";
+import { RspackBuiltinPlugin, createBuiltinPlugin } from "./base";
 import { Compiler } from "../Compiler";
 import {
 	BuiltinPlugin,
+	BuiltinPluginName,
 	JsChunk,
 	JsModule,
 	RawCacheGroupOptions,

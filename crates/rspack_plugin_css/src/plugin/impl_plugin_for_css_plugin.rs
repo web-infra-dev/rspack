@@ -2,6 +2,7 @@
 
 use std::hash::Hash;
 
+use async_trait::async_trait;
 use rayon::prelude::*;
 use rspack_core::rspack_sources::ReplaceSource;
 use rspack_core::{
@@ -11,12 +12,13 @@ use rspack_core::{
   SourceType,
 };
 use rspack_core::{
-  ChunkLoading, ChunkLoadingType, Compilation, CompilationArgs, CompilationParams, CompilerOptions,
-  DependencyType, LibIdentOptions, PluginCompilationHookOutput, PluginContext,
-  PluginRuntimeRequirementsInTreeOutput, PublicPath, RuntimeGlobals, RuntimeRequirementsInTreeArgs,
+  ChunkLoading, ChunkLoadingType, Compilation, CompilationParams, CompilerOptions, DependencyType,
+  LibIdentOptions, PluginContext, PluginRuntimeRequirementsInTreeOutput, PublicPath,
+  RuntimeGlobals, RuntimeRequirementsInTreeArgs,
 };
 use rspack_error::{IntoTWithDiagnosticArray, Result};
 use rspack_hash::RspackHash;
+use rspack_hook::AsyncSeries2;
 use rspack_plugin_runtime::is_enabled_for_chunk;
 
 use crate::parser_and_generator::CssParserAndGenerator;
@@ -111,7 +113,26 @@ impl CssPlugin {
   }
 }
 
-#[async_trait::async_trait]
+struct CssPluginCompilationHook;
+
+#[async_trait]
+impl AsyncSeries2<Compilation, CompilationParams> for CssPluginCompilationHook {
+  async fn run(&self, compilation: &mut Compilation, params: &mut CompilationParams) -> Result<()> {
+    compilation
+      .set_dependency_factory(DependencyType::CssUrl, params.normal_module_factory.clone());
+    compilation.set_dependency_factory(
+      DependencyType::CssImport,
+      params.normal_module_factory.clone(),
+    );
+    compilation.set_dependency_factory(
+      DependencyType::CssCompose,
+      params.normal_module_factory.clone(),
+    );
+    Ok(())
+  }
+}
+
+#[async_trait]
 impl Plugin for CssPlugin {
   fn name(&self) -> &'static str {
     "css"
@@ -122,6 +143,12 @@ impl Plugin for CssPlugin {
     ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
     _options: &mut CompilerOptions,
   ) -> Result<()> {
+    ctx
+      .context
+      .compiler_hooks
+      .compilation
+      .tap(Box::new(CssPluginCompilationHook));
+
     let config = self.config.clone();
     let builder = move || {
       Box::new(CssParserAndGenerator {
@@ -140,25 +167,6 @@ impl Plugin for CssPlugin {
       .context
       .register_parser_and_generator_builder(ModuleType::CssAuto, Box::new(builder));
 
-    Ok(())
-  }
-
-  async fn compilation(
-    &self,
-    args: CompilationArgs<'_>,
-    params: &CompilationParams,
-  ) -> PluginCompilationHookOutput {
-    args
-      .compilation
-      .set_dependency_factory(DependencyType::CssUrl, params.normal_module_factory.clone());
-    args.compilation.set_dependency_factory(
-      DependencyType::CssImport,
-      params.normal_module_factory.clone(),
-    );
-    args.compilation.set_dependency_factory(
-      DependencyType::CssCompose,
-      params.normal_module_factory.clone(),
-    );
     Ok(())
   }
 

@@ -7,20 +7,45 @@ use hot_module_replacement::HotModuleReplacementRuntimeModule;
 use rspack_core::{
   collect_changed_modules,
   rspack_sources::{RawSource, SourceExt},
-  AdditionalChunkRuntimeRequirementsArgs, ApplyContext, AssetInfo, Chunk, ChunkKind,
-  CompilationArgs, CompilationAsset, CompilationParams, CompilationRecords, CompilerOptions,
-  DependencyType, ModuleIdentifier, PathData, Plugin,
-  PluginAdditionalChunkRuntimeRequirementsOutput, PluginCompilationHookOutput, PluginContext,
-  PluginProcessAssetsOutput, ProcessAssetsArgs, RenderManifestArgs, RuntimeGlobals,
+  AdditionalChunkRuntimeRequirementsArgs, ApplyContext, AssetInfo, Chunk, ChunkKind, Compilation,
+  CompilationAsset, CompilationParams, CompilationRecords, CompilerOptions, DependencyType,
+  ModuleIdentifier, PathData, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput,
+  PluginContext, PluginProcessAssetsOutput, ProcessAssetsArgs, RenderManifestArgs, RuntimeGlobals,
   RuntimeModuleExt, RuntimeSpec, SourceType,
 };
 use rspack_error::Result;
 use rspack_hash::RspackHash;
+use rspack_hook::AsyncSeries2;
 use rspack_identifier::IdentifierSet;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 #[derive(Debug)]
 pub struct HotModuleReplacementPlugin;
+
+struct HotModuleReplacementPluginCompilationHook;
+
+#[async_trait]
+impl AsyncSeries2<Compilation, CompilationParams> for HotModuleReplacementPluginCompilationHook {
+  async fn run(&self, compilation: &mut Compilation, params: &mut CompilationParams) -> Result<()> {
+    compilation.set_dependency_factory(
+      DependencyType::ImportMetaHotAccept,
+      params.normal_module_factory.clone(),
+    );
+    compilation.set_dependency_factory(
+      DependencyType::ImportMetaHotDecline,
+      params.normal_module_factory.clone(),
+    );
+    compilation.set_dependency_factory(
+      DependencyType::ModuleHotAccept,
+      params.normal_module_factory.clone(),
+    );
+    compilation.set_dependency_factory(
+      DependencyType::ModuleHotDecline,
+      params.normal_module_factory.clone(),
+    );
+    Ok(())
+  }
+}
 
 #[async_trait]
 impl Plugin for HotModuleReplacementPlugin {
@@ -30,34 +55,16 @@ impl Plugin for HotModuleReplacementPlugin {
 
   fn apply(
     &self,
-    _ctx: PluginContext<&mut ApplyContext>,
+    ctx: PluginContext<&mut ApplyContext>,
     options: &mut CompilerOptions,
   ) -> Result<()> {
-    options.dev_server.hot = true;
-    Ok(())
-  }
+    ctx
+      .context
+      .compiler_hooks
+      .compilation
+      .tap(Box::new(HotModuleReplacementPluginCompilationHook));
 
-  async fn compilation(
-    &self,
-    args: CompilationArgs<'_>,
-    params: &CompilationParams,
-  ) -> PluginCompilationHookOutput {
-    args.compilation.set_dependency_factory(
-      DependencyType::ImportMetaHotAccept,
-      params.normal_module_factory.clone(),
-    );
-    args.compilation.set_dependency_factory(
-      DependencyType::ImportMetaHotDecline,
-      params.normal_module_factory.clone(),
-    );
-    args.compilation.set_dependency_factory(
-      DependencyType::ModuleHotAccept,
-      params.normal_module_factory.clone(),
-    );
-    args.compilation.set_dependency_factory(
-      DependencyType::ModuleHotDecline,
-      params.normal_module_factory.clone(),
-    );
+    options.dev_server.hot = true;
     Ok(())
   }
 

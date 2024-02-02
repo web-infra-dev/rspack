@@ -14,10 +14,6 @@
 
 <!-- It would be helpful if you could provide any relevant context, such as GitHub issues or related discussions. -->
 
-## Test Plan
-
-<!-- Can you please describe how you tested the changes you made to the code? -->
-
 ## Require Documentation?
 
 <!-- Does this PR require documentation? -->

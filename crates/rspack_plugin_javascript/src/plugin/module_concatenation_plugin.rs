@@ -3,37 +3,30 @@ use std::collections::hash_map::DefaultHasher;
 use std::collections::VecDeque;
 use std::hash::Hasher;
 
+use indexmap::IndexSet;
 use rspack_core::concatenated_module::{
   is_harmony_dep_like, ConcatenatedInnerModule, ConcatenatedModule, RootModuleContext,
 };
 use rspack_core::{
   filter_runtime, merge_runtime, runtime_to_string, Compilation, CompilerContext,
   ExportInfoProvided, ExtendedReferencedExport, LibIdentOptions, Logger, Module, ModuleExt,
-  ModuleGraph, ModuleGraphModule, ModuleIdentifier, OptimizeChunksArgs, Plugin, ProvidedExports,
-  RuntimeCondition, RuntimeSpec, WrappedModuleIdentifier,
+  ModuleGraph, ModuleGraphModule, ModuleIdentifier, MutexModuleGraph, OptimizeChunksArgs, Plugin,
+  ProvidedExports, RuntimeCondition, RuntimeSpec, WrappedModuleIdentifier,
 };
 use rspack_error::Result;
+use rspack_util::fx_dashmap::FxDashMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
-#[allow(unused)]
 fn format_bailout_reason(msg: &str) -> String {
   format!("ModuleConcatenation bailout: {}", msg)
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 enum Warning {
   Id(ModuleIdentifier),
   Problem(String),
 }
 
-impl std::fmt::Debug for Warning {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    match self {
-      Self::Id(arg0) => f.debug_tuple("Id").field(arg0).finish(),
-      Self::Problem(_arg0) => f.write_str("Fn(String) -> String"),
-    }
-  }
-}
 #[derive(Debug, Clone)]
 struct ConcatConfiguration {
   pub root_module: ModuleIdentifier,
@@ -99,16 +92,68 @@ impl ConcatConfiguration {
   }
 }
 
-#[derive(Debug)]
-pub struct ModuleConcatenationPlugin;
+#[derive(Debug, Default)]
+pub struct ModuleConcatenationPlugin {
+  bailout_reason_map: FxDashMap<ModuleIdentifier, String>,
+}
 
 impl ModuleConcatenationPlugin {
+  fn format_bailout_warning(&self, module: ModuleIdentifier, warning: &Warning) -> String {
+    match warning {
+      Warning::Problem(id) => {
+        format_bailout_reason(&format!("Cannot concat with {}: {}", module, id))
+      }
+      Warning::Id(id) => {
+        let reason = self.get_inner_bailout_reason(id);
+        let reason_with_prefix = match reason {
+          Some(reason) => format!(": {}", *reason),
+          None => "".to_string(),
+        };
+        if id == &module {
+          format_bailout_reason(&format!(
+            "Cannot concat with {}{}",
+            module, reason_with_prefix
+          ))
+        } else {
+          format_bailout_reason(&format!(
+            "Cannot concat with {} because of {}{}",
+            module, id, reason_with_prefix
+          ))
+        }
+      }
+    }
+  }
+
+  fn set_bailout_reason(&self, module: &ModuleIdentifier, reason: String, mg: &mut ModuleGraph) {
+    self.set_inner_bailout_reason(module, reason.clone());
+    mg.get_optimization_bailout_mut(*module)
+      .push(format_bailout_reason(&reason));
+  }
+
+  fn set_inner_bailout_reason(&self, module: &ModuleIdentifier, reason: String) {
+    self.bailout_reason_map.insert(*module, reason);
+  }
+
+  fn get_inner_bailout_reason(
+    &self,
+    module_id: &ModuleIdentifier,
+  ) -> Option<
+    dashmap::mapref::one::Ref<
+      '_,
+      rspack_identifier::Identifier,
+      String,
+      std::hash::BuildHasherDefault<rustc_hash::FxHasher>,
+    >,
+  > {
+    self.bailout_reason_map.get(module_id)
+  }
+
   pub fn get_imports(
     mg: &ModuleGraph,
     mi: WrappedModuleIdentifier,
     runtime: Option<&RuntimeSpec>,
-  ) -> HashSet<ModuleIdentifier> {
-    let mut set = HashSet::default();
+  ) -> IndexSet<ModuleIdentifier> {
+    let mut set = IndexSet::default();
     let module = mg.module_by_identifier(&mi).expect("should have module");
     for d in module.get_dependencies() {
       let dep = d.get_dependency(mg);
@@ -218,10 +263,10 @@ impl ModuleConcatenationPlugin {
     let incoming_connections = get_incoming_connections_by_origin_module;
 
     if let Some(incoming_connections_from_non_modules) = incoming_connections.get(&None) {
-      let active_non_modules_connections: Vec<_> = incoming_connections_from_non_modules
+      let active_non_modules_connections = incoming_connections_from_non_modules
         .iter()
         .filter(|&connection| connection.is_active(&compilation.module_graph, runtime))
-        .collect();
+        .collect::<Vec<_>>();
 
       // TODO: ADD module connection explanations
       if !active_non_modules_connections.is_empty() {
@@ -455,22 +500,21 @@ impl ModuleConcatenationPlugin {
         return Some(problem);
       }
     }
-    //
     let backup = if avoid_mutate_on_failure {
       Some(config.snapshot())
     } else {
       None
     };
-    //
+
     config.add(*module_id);
-    //
+
     incoming_modules.sort();
-    //
-    for _origin_module in &incoming_modules {
+
+    for origin_module in &incoming_modules {
       if let Some(problem) = Self::try_to_add(
         compilation,
         config,
-        module_id,
+        origin_module,
         runtime,
         active_runtime,
         possible_modules,
@@ -521,11 +565,19 @@ impl Plugin for ModuleConcatenationPlugin {
         .is_async(&module_id)
         .expect("should have async result")
       {
-        // TODO: bailout
+        self.set_bailout_reason(
+          &module_id,
+          "Module is async".to_string(),
+          &mut compilation.module_graph,
+        );
         continue;
       }
       if !m.build_info().expect("should have build info").strict {
-        // TODO: bailout
+        self.set_bailout_reason(
+          &module_id,
+          "Module is not in strict mode".to_string(),
+          &mut compilation.module_graph,
+        );
         continue;
       }
       if compilation
@@ -533,7 +585,11 @@ impl Plugin for ModuleConcatenationPlugin {
         .get_number_of_module_chunks(*module_id)
         == 0
       {
-        // TODO: bailout
+        self.set_bailout_reason(
+          &module_id,
+          "Module is not in any chunk".to_string(),
+          &mut compilation.module_graph,
+        );
         continue;
       }
       let exports_info = compilation.module_graph.get_exports_info(&module_id);
@@ -544,16 +600,36 @@ impl Plugin for ModuleConcatenationPlugin {
           let export_info = id
             .get_export_info_mut(&mut compilation.module_graph)
             .clone();
-          export_info.is_reexport()
-            && export_info
-              .id
-              .get_target(&mut compilation.module_graph, None)
-              .is_none()
+          MutexModuleGraph::new(&mut compilation.module_graph).with_lock(|mut mga| {
+            export_info.is_reexport() && export_info.id.get_target(&mut mga, None).is_none()
+          })
         })
         .copied()
         .collect::<Vec<_>>();
       if !unknown_exports.is_empty() {
-        // TODO: bailout
+        let bailout_reason = unknown_exports
+          .into_iter()
+          .map(|id| {
+            let export_info = id.get_export_info(&compilation.module_graph);
+            let name = export_info
+              .name
+              .as_ref()
+              .map(|name| name.to_string())
+              .unwrap_or("other exports".to_string());
+            format!(
+              "{} : {}",
+              name,
+              export_info.id.get_used_info(&compilation.module_graph)
+            )
+          })
+          .collect::<Vec<String>>()
+          .join(", ");
+        self.set_bailout_reason(
+          &module_id,
+          format!("Reexports in this module do not have a static target ({bailout_reason})"),
+          &mut compilation.module_graph,
+        );
+
         continue;
       }
       let unknown_provided_exports = relevnat_epxorts
@@ -566,12 +642,38 @@ impl Plugin for ModuleConcatenationPlugin {
         .collect::<Vec<_>>();
 
       if !unknown_provided_exports.is_empty() {
-        // TODO: bailout
+        let bailout_reason = unknown_provided_exports
+          .into_iter()
+          .map(|id| {
+            let export_info = id.get_export_info(&compilation.module_graph);
+            let name = export_info
+              .name
+              .as_ref()
+              .map(|name| name.to_string())
+              .unwrap_or("other exports".to_string());
+            format!(
+              "{} : {} and {}",
+              name,
+              export_info.id.get_provided_info(&compilation.module_graph),
+              export_info.id.get_used_info(&compilation.module_graph)
+            )
+          })
+          .collect::<Vec<String>>()
+          .join(", ");
+        self.set_bailout_reason(
+          &module_id,
+          format!("List of module exports is dynamic ({bailout_reason})"),
+          &mut compilation.module_graph,
+        );
         can_be_root = false;
       }
 
       if compilation.chunk_graph.is_entry_module(&module_id) {
-        // TODO: bailout
+        self.set_bailout_reason(
+          &module_id,
+          "Module is an entry point".to_string(),
+          &mut compilation.module_graph,
+        );
         can_be_inner = false;
       }
       if can_be_root {
@@ -688,16 +790,23 @@ impl Plugin for ModuleConcatenationPlugin {
         concat_configurations.push(current_configuration);
       } else {
         stats_empty_configurations += 1;
-        // TODO: bailout
+        let optimization_bailouts = compilation
+          .module_graph
+          .get_optimization_bailout_mut(*current_root);
+        for warning in current_configuration.get_warnings_sorted() {
+          optimization_bailouts.push(self.format_bailout_warning(warning.0, &warning.1));
+        }
       }
     }
     logger.time_end(start);
-    logger.debug(format!(
-      "{} successful concat configurations (avg size: {}), {} bailed out completely",
-      concat_configurations.len(),
-      stats_size_sum / concat_configurations.len(),
-      stats_empty_configurations
-    ));
+    if !concat_configurations.is_empty() {
+      logger.debug(format!(
+        "{} successful concat configurations (avg size: {}), {} bailed out completely",
+        concat_configurations.len(),
+        stats_size_sum / concat_configurations.len(),
+        stats_empty_configurations
+      ));
+    }
 
     logger.debug(format!(
         "{} candidates were considered for adding ({} cached failure, {} already in config, {} invalid module, {} incorrect chunks, {} incorrect dependency, {} incorrect chunks of importer, {} incorrect module dependency, {} incorrect runtime condition, {} importer failed, {} added)",
@@ -717,7 +826,7 @@ impl Plugin for ModuleConcatenationPlugin {
     // Copy from  https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ModuleConcatenationPlugin.js#L368-L371
     // HACK: Sort configurations by length and start with the longest one
     // to get the biggest groups possible. Used modules are marked with usedModules
-    // TODO: Allow reusing existing configuration while trying to add dependencies.
+    // TODO(from webpack): Allow reusing existing configuration while trying to add dependencies.
     // This would improve performance. O(n^2) -> O(n)
     let start = logger.time("sort concat configurations");
     concat_configurations.sort_by(|a, b| b.modules.len().cmp(&a.modules.len()));

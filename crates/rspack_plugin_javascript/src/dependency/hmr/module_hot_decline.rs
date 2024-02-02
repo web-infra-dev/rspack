@@ -84,6 +84,10 @@ impl DependencyTemplate for ModuleHotDeclineDependency {
       None,
     );
   }
+
+  fn dependency_id(&self) -> Option<DependencyId> {
+    Some(self.id)
+  }
 }
 
 impl AsContextDependency for ModuleHotDeclineDependency {}

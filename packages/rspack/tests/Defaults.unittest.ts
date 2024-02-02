@@ -665,11 +665,6 @@ describe("snapshots", () => {
 		-     "workerWasmLoading": "fetch",
 		+     "workerWasmLoading": "async-node",
 		@@ ... @@
-		-     "aliasFields": Array [
-		-       "browser",
-		-     ],
-		+     "aliasFields": Array [],
-		@@ ... @@
 		-         "aliasFields": Array [
 		-           "browser",
 		-         ],
@@ -779,11 +774,6 @@ describe("snapshots", () => {
 		-     "workerWasmLoading": "fetch",
 		+     "workerWasmLoading": "async-node",
 		@@ ... @@
-		-     "aliasFields": Array [
-		-       "browser",
-		-     ],
-		+     "aliasFields": Array [],
-		@@ ... @@
 		-         "aliasFields": Array [
 		-           "browser",
 		-         ],
@@ -875,11 +865,6 @@ describe("snapshots", () => {
 		@@ ... @@
 		-     "workerWasmLoading": "fetch",
 		+     "workerWasmLoading": "async-node",
-		@@ ... @@
-		-     "aliasFields": Array [
-		-       "browser",
-		-     ],
-		+     "aliasFields": Array [],
 		@@ ... @@
 		-         "aliasFields": Array [
 		-           "browser",

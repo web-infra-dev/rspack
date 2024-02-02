@@ -139,7 +139,7 @@ export interface BuiltinPlugin {
   canInherentFromParent?: boolean
 }
 
-export const enum BuiltinPluginName {
+export enum BuiltinPluginName {
   DefinePlugin = 'DefinePlugin',
   ProvidePlugin = 'ProvidePlugin',
   BannerPlugin = 'BannerPlugin',
@@ -184,10 +184,12 @@ export const enum BuiltinPluginName {
   AssetModulesPlugin = 'AssetModulesPlugin',
   SourceMapDevToolPlugin = 'SourceMapDevToolPlugin',
   EvalSourceMapDevToolPlugin = 'EvalSourceMapDevToolPlugin',
+  EvalDevToolModulePlugin = 'EvalDevToolModulePlugin',
   SideEffectsFlagPlugin = 'SideEffectsFlagPlugin',
   FlagDependencyExportsPlugin = 'FlagDependencyExportsPlugin',
   FlagDependencyUsagePlugin = 'FlagDependencyUsagePlugin',
   MangleExportsPlugin = 'MangleExportsPlugin',
+  ModuleConcatenationPlugin = 'ModuleConcatenationPlugin',
   HttpExternalsRspackPlugin = 'HttpExternalsRspackPlugin',
   CopyRspackPlugin = 'CopyRspackPlugin',
   HtmlRspackPlugin = 'HtmlRspackPlugin',
@@ -789,6 +791,12 @@ export interface RawEntryPluginOptions {
   options: RawEntryOptions
 }
 
+export interface RawEvalDevToolModulePluginOptions {
+  namespace?: string
+  moduleFilenameTemplate?: string | ((info: RawModuleFilenameTemplateFnCtx) => string)
+  sourceUrlComment?: string
+}
+
 export interface RawExperiments {
   newSplitChunks: boolean
   topLevelAwait: boolean
@@ -1207,11 +1215,11 @@ export interface RawSnapshotStrategy {
 export interface RawSourceMapDevToolPluginOptions {
   append?: (false | null) | string | Function
   columns?: boolean
-  fallbackModuleFilenameTemplate?: string | Function
+  fallbackModuleFilenameTemplate?: string | ((info: RawModuleFilenameTemplateFnCtx) => string)
   fileContext?: string
   filename?: (false | null) | string
   module?: boolean
-  moduleFilenameTemplate?: string | Function
+  moduleFilenameTemplate?: string | ((info: RawModuleFilenameTemplateFnCtx) => string)
   namespace?: string
   noSources?: boolean
   publicPath?: string

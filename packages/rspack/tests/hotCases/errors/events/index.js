@@ -51,11 +51,10 @@ it("should fire the correct events", done => {
 	}
 
 	waitForUpdate(() => {
-		const error = msg => 
+		const error = msg =>
 			expect.objectContaining({
 				message: msg
 			});
-		
 		expect(events).toEqual([
 			{
 				type: "unaccepted",

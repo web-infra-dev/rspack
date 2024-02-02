@@ -1,6 +1,9 @@
-import { RawSourceMapDevToolPluginOptions } from "@rspack/binding";
+import {
+	BuiltinPluginName,
+	RawSourceMapDevToolPluginOptions
+} from "@rspack/binding";
 import { matchObject } from "../ModuleFilenameHelpers";
-import { BuiltinPluginName, create } from "./base";
+import { create } from "./base";
 
 /**
  * Include source maps for modules based on their extension (defaults to .js and .css).

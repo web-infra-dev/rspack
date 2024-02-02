@@ -1,6 +1,6 @@
 use rspack_core::{
-  DependencyTemplate, InitFragmentKey, InitFragmentStage, NormalInitFragment, RuntimeGlobals,
-  TemplateContext, TemplateReplaceSource, UsageState,
+  AsDependency, DependencyTemplate, InitFragmentKey, InitFragmentStage, NormalInitFragment,
+  RuntimeGlobals, TemplateContext, TemplateReplaceSource, UsageState,
 };
 use swc_core::atoms::Atom;
 
@@ -79,4 +79,9 @@ impl DependencyTemplate for HarmonyCompatibilityDependency {
       )));
     }
   }
+
+  fn dependency_id(&self) -> Option<rspack_core::DependencyId> {
+    None
+  }
 }
+impl AsDependency for HarmonyCompatibilityDependency {}

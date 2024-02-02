@@ -19,9 +19,10 @@ use crate::tree_shaking::visitor::OptimizeAnalyzeResult;
 use crate::{
   AsyncDependenciesBlock, BoxDependency, ChunkGraph, ChunkUkey, CodeGenerationResult, Compilation,
   CompilerContext, CompilerOptions, ConcatenationScope, ConnectionState, Context, ContextModule,
-  DependenciesBlock, DependencyId, DependencyTemplate, ExternalModule, ModuleDependency,
-  ModuleGraph, ModuleGraphModule, ModuleType, NormalModule, RawModule, Resolve, RuntimeSpec,
-  SelfModule, SharedPluginDriver, SourceType,
+  DependenciesBlock, DependencyId, DependencyTemplate, ExternalModule, ImmutableModuleGraph,
+  ModuleDependency, ModuleGraph, ModuleGraphAccessor, ModuleGraphModule, ModuleType,
+  MutexModuleGraph, NormalModule, RawModule, Resolve, RuntimeSpec, SelfModule, SharedPluginDriver,
+  SourceType,
 };
 pub struct BuildContext<'a> {
   pub compiler_context: CompilerContext,
@@ -141,6 +142,7 @@ pub struct FactoryMeta {
 
 pub type ModuleIdentifier = Identifier;
 
+#[derive(Debug)]
 pub struct WrappedModuleIdentifier(ModuleIdentifier);
 
 impl WrappedModuleIdentifier {
@@ -260,54 +262,15 @@ pub trait Module:
       .unwrap_or_default()
   }
 
-  fn get_exports_type(&self, strict: bool) -> ExportsType {
-    if let Some((export_type, default_object)) = self
-      .build_meta()
-      .as_ref()
-      .map(|m| (&m.exports_type, &m.default_object))
-    {
-      match export_type {
-        BuildMetaExportsType::Flagged => {
-          if strict {
-            ExportsType::DefaultWithNamed
-          } else {
-            ExportsType::Namespace
-          }
-        }
-        BuildMetaExportsType::Namespace => ExportsType::Namespace,
-        BuildMetaExportsType::Default => match default_object {
-          BuildMetaDefaultObject::Redirect => ExportsType::DefaultWithNamed,
-          BuildMetaDefaultObject::RedirectWarn => {
-            if strict {
-              ExportsType::DefaultOnly
-            } else {
-              ExportsType::DefaultWithNamed
-            }
-          }
-          BuildMetaDefaultObject::False => ExportsType::DefaultOnly,
-        },
-        BuildMetaExportsType::Dynamic => {
-          if strict {
-            ExportsType::DefaultWithNamed
-          } else {
-            // TODO check target
-            ExportsType::Dynamic
-          }
-        }
-        // algin to undefined
-        BuildMetaExportsType::Unset => {
-          if strict {
-            ExportsType::DefaultWithNamed
-          } else {
-            ExportsType::Dynamic
-          }
-        }
-      }
-    } else if strict {
-      ExportsType::DefaultWithNamed
-    } else {
-      ExportsType::Dynamic
-    }
+  fn get_exports_type_readonly(&self, module_graph: &ModuleGraph, strict: bool) -> ExportsType {
+    let mut mga = ImmutableModuleGraph::new(module_graph);
+    get_exports_type_impl(self.identifier(), self.build_meta(), &mut mga, strict)
+  }
+
+  fn get_exports_type(&self, module_graph: &mut ModuleGraph, strict: bool) -> ExportsType {
+    MutexModuleGraph::new(module_graph).with_lock(|mut mga| {
+      get_exports_type_impl(self.identifier(), self.build_meta(), &mut mga, strict)
+    })
   }
 
   fn get_strict_harmony_module(&self) -> bool {
@@ -391,6 +354,60 @@ pub trait Module:
     _module_chain: &mut HashSet<ModuleIdentifier>,
   ) -> ConnectionState {
     ConnectionState::Bool(true)
+  }
+}
+
+fn get_exports_type_impl(
+  _identifier: ModuleIdentifier,
+  build_meta: Option<&BuildMeta>,
+  _mga: &mut dyn ModuleGraphAccessor,
+  strict: bool,
+) -> ExportsType {
+  if let Some((export_type, default_object)) = build_meta
+    .as_ref()
+    .map(|m| (&m.exports_type, &m.default_object))
+  {
+    match export_type {
+      BuildMetaExportsType::Flagged => {
+        if strict {
+          ExportsType::DefaultWithNamed
+        } else {
+          ExportsType::Namespace
+        }
+      }
+      BuildMetaExportsType::Namespace => ExportsType::Namespace,
+      BuildMetaExportsType::Default => match default_object {
+        BuildMetaDefaultObject::Redirect => ExportsType::DefaultWithNamed,
+        BuildMetaDefaultObject::RedirectWarn => {
+          if strict {
+            ExportsType::DefaultOnly
+          } else {
+            ExportsType::DefaultWithNamed
+          }
+        }
+        BuildMetaDefaultObject::False => ExportsType::DefaultOnly,
+      },
+      BuildMetaExportsType::Dynamic => {
+        if strict {
+          ExportsType::DefaultWithNamed
+        } else {
+          // TODO check target
+          ExportsType::Dynamic
+        }
+      }
+      // algin to undefined
+      BuildMetaExportsType::Unset => {
+        if strict {
+          ExportsType::DefaultWithNamed
+        } else {
+          ExportsType::Dynamic
+        }
+      }
+    }
+  } else if strict {
+    ExportsType::DefaultWithNamed
+  } else {
+    ExportsType::Dynamic
   }
 }
 

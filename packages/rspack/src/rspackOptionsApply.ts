@@ -59,7 +59,9 @@ import {
 	FlagDependencyExportsPlugin,
 	FlagDependencyUsagePlugin,
 	SideEffectsFlagPlugin,
-	BundlerInfoPlugin
+	BundlerInfoPlugin,
+	ModuleConcatenationPlugin,
+	EvalDevToolModulePlugin
 } from "./builtin-plugin";
 import { deprecatedWarn, termlink } from "./util";
 
@@ -222,6 +224,11 @@ export class RspackOptionsApply {
 					noSources: noSources,
 					namespace: options.output.devtoolNamespace
 				}).apply(compiler);
+			} else if (options.devtool.includes("eval")) {
+				new EvalDevToolModulePlugin({
+					moduleFilenameTemplate: options.output.devtoolModuleFilenameTemplate,
+					namespace: options.output.devtoolNamespace
+				}).apply(compiler);
 			}
 		}
 
@@ -272,6 +279,9 @@ export class RspackOptionsApply {
 				new FlagDependencyUsagePlugin(
 					options.optimization.usedExports === "global"
 				).apply(compiler);
+			}
+			if (options.optimization.concatenateModules) {
+				new ModuleConcatenationPlugin().apply(compiler);
 			}
 		}
 		if (options.optimization.mangleExports) {

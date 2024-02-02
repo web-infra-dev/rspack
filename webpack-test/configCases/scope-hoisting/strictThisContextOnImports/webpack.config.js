@@ -4,5 +4,7 @@ module.exports = {
 	module: {
 		strictThisContextOnImports: true
 	},
-	plugins: [new webpack.optimize.ModuleConcatenationPlugin()]
+	optimization: {
+		concatenateModules: true
+	}
 };

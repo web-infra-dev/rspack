@@ -1,1 +1,1 @@
-module.exports = [[/Unexpected character/]];
+module.exports = [[/Module parse failed/]];

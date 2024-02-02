@@ -31,7 +31,7 @@ module.exports = (stdio, tty) => {
 			stdio.write = write;
 			stdio.isTTY = isTTY;
 
-			delete require.cache[require.resolve("@rspack/core")];
+			delete require.cache[require.resolve("../../")];
 			// delete require.cache[
 			// 	require.resolve("../../lib/node/NodeEnvironmentPlugin")
 			// ];
