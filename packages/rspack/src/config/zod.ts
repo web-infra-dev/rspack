@@ -823,6 +823,7 @@ const devTool = z
 			"inline-cheap-source-map",
 			"inline-cheap-module-source-map",
 			"inline-source-map",
+			"inline-nosources-cheap-source-map",
 			"inline-nosources-cheap-module-source-map",
 			"inline-nosources-source-map",
 			"nosources-cheap-source-map",
