@@ -4,9 +4,9 @@ use swc_core::common::Spanned;
 use super::JavascriptParserPlugin;
 use crate::visitors::{JavascriptParser, TagInfoData};
 
-const NESTED_WEBPACK_IDENTIFIER_TAG: &str = "nested_webpack_identifier";
+const NESTED_WEBPACK_IDENTIFIER_TAG: &str = "_identifier__nested_webpack_identifier__";
 
-#[derive(serde::Deserialize, serde::Serialize)]
+#[derive(serde::Deserialize, serde::Serialize, Clone)]
 struct NestedRequireData {
   name: String,
   update: bool,
@@ -39,10 +39,14 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
       None
     } else {
       let low = fn_decl.span().lo().0;
+      let hi = fn_decl.span().hi().0;
       let data = NestedRequireData {
-        name: format!("__nested_webpack_require_{low}__"),
+        name: format!("__nested_webpack_require_{low}_{hi}__"),
         update: false,
-        loc: DependencyLocation::new(fn_decl.span().real_lo(), fn_decl.span().real_hi()),
+        loc: DependencyLocation::new(
+          fn_decl.ident.span().real_lo(),
+          fn_decl.ident.span().real_hi(),
+        ),
       };
       parser.tag_variable(name.to_string(), NESTED_WEBPACK_IDENTIFIER_TAG, Some(data));
       Some(true)
@@ -55,43 +59,41 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
     ident: &swc_core::ecma::ast::Ident,
     _for_name: &str,
   ) -> Option<bool> {
+    // FIXME: add condition: `if _for_name != NESTED_WEBPACK_IDENTIFIER_TAG then return None else continue`
     let name = ident.sym.as_str();
-    if !(name == RuntimeGlobals::REQUIRE.name() && parser.is_unresolved_ident(name)) {
+    if name != RuntimeGlobals::REQUIRE.name() {
       return None;
     }
-    let deps = {
-      let mut deps = vec![];
-      let Some(variable_info) = parser.get_mut_variable_info(name) else {
-        return None;
-      };
-      let Some(tag_info) = &mut variable_info.tag_info else {
-        unreachable!();
-      };
-      if tag_info.tag != NESTED_WEBPACK_IDENTIFIER_TAG {
-        return None;
-      }
-      let Some(data) = tag_info.data.as_mut().map(std::mem::take) else {
-        unreachable!();
-      };
-      let mut nested_require_data = NestedRequireData::deserialize(data);
-      if !nested_require_data.update {
-        deps.push(ConstDependency::new(
-          nested_require_data.loc.start(),
-          nested_require_data.loc.end(),
-          nested_require_data.name.clone().into(),
-          None,
-        ));
-        nested_require_data.update = true;
-      }
-      variable_info.update_tag_info_data(Some(NestedRequireData::serialize(&nested_require_data)));
+    let mut deps = vec![];
+    let Some(variable_info) = parser.get_mut_variable_info(name) else {
+      return None;
+    };
+    let Some(tag_info) = &mut variable_info.tag_info else {
+      unreachable!();
+    };
+    if tag_info.tag != NESTED_WEBPACK_IDENTIFIER_TAG {
+      return None;
+    }
+    let Some(data) = tag_info.data.as_mut().map(std::mem::take) else {
+      unreachable!();
+    };
+    let mut nested_require_data = NestedRequireData::deserialize(data);
+    if !nested_require_data.update {
       deps.push(ConstDependency::new(
-        ident.span.real_lo(),
-        ident.span.real_hi(),
-        nested_require_data.name.into(),
+        nested_require_data.loc.start(),
+        nested_require_data.loc.end(),
+        nested_require_data.name.clone().into(),
         None,
       ));
-      deps
-    };
+      nested_require_data.update = true;
+    }
+    variable_info.update_tag_info_data(Some(NestedRequireData::serialize(&nested_require_data)));
+    deps.push(ConstDependency::new(
+      ident.span.real_lo(),
+      ident.span.real_hi(),
+      nested_require_data.name.into(),
+      None,
+    ));
     for dep in deps {
       parser.presentational_dependencies.push(Box::new(dep));
     }

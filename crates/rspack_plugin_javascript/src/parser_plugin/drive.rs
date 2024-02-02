@@ -318,4 +318,19 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     }
     None
   }
+
+  fn pre_statement(
+    &self,
+    parser: &mut JavascriptParser,
+    stmt: &swc_core::ecma::ast::Stmt,
+  ) -> Option<bool> {
+    for plugin in &self.plugins {
+      let res = plugin.pre_statement(parser, stmt);
+      // `SyncBailHook`
+      if res.is_some() {
+        return res;
+      }
+    }
+    None
+  }
 }
