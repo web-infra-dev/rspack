@@ -395,7 +395,7 @@ fn get_exports_type_impl(
                 else {
                   return ExportsType::Dynamic;
                 };
-                match target_exports_type.as_ref() {
+                match target_exports_type {
                   BuildMetaExportsType::Flagged => ExportsType::Namespace,
                   BuildMetaExportsType::Namespace => ExportsType::Namespace,
                   BuildMetaExportsType::Default => handle_default(default_object),
