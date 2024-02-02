@@ -61,7 +61,7 @@ export class JsStats {
 }
 
 export class Rspack {
-  constructor(options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, jsHooks: JsHooks | undefined | null, outputFilesystem: ThreadsafeNodeFS, jsLoaderRunner: (...args: any[]) => any)
+  constructor(options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, jsHooks: JsHooks | undefined | null, newJsHooks: Array<JsHook>, outputFilesystem: ThreadsafeNodeFS, jsLoaderRunner: (...args: any[]) => any)
   unsafe_set_disabled_hooks(hooks: Array<string>): void
   /**
    * Build with the given option passed to the constructor
@@ -325,6 +325,11 @@ export interface JsExecuteModuleResult {
   id: number
 }
 
+export interface JsHook {
+  type: JsHookType
+  function: (...args: any[]) => any
+}
+
 export interface JsHooks {
   processAssetsStageAdditional: (...args: any[]) => any
   processAssetsStagePreProcess: (...args: any[]) => any
@@ -343,7 +348,6 @@ export interface JsHooks {
   processAssetsStageAnalyse: (...args: any[]) => any
   processAssetsStageReport: (...args: any[]) => any
   afterProcessAssets: (...args: any[]) => any
-  compilation: (...args: any[]) => any
   thisCompilation: (...args: any[]) => any
   emit: (...args: any[]) => any
   assetEmitted: (...args: any[]) => any
@@ -369,6 +373,10 @@ export interface JsHooks {
   stillValidModule: (...args: any[]) => any
   executeModule: (...args: any[]) => any
   runtimeModule: (...args: any[]) => any
+}
+
+export enum JsHookType {
+  CompilerCompilation = 'CompilerCompilation'
 }
 
 export interface JsLoaderContext {

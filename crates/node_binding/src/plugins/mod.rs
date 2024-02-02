@@ -33,7 +33,7 @@ use crate::{DisabledHooks, Hook, JsCompilation, JsHooks};
 pub(crate) struct JsHooksAdapter {
   disabled_hooks: DisabledHooks,
   pub make_tsfn: ThreadsafeFunction<(), ()>,
-  pub compiler_compilation_hooks: Vec<CompilerCompilationHookFn>,
+  compiler_compilation_hooks: Vec<CompilerCompilationHookFn>,
   pub this_compilation_tsfn: ThreadsafeFunction<JsCompilation, ()>,
   pub process_assets_stage_additional_tsfn: ThreadsafeFunction<(), ()>,
   pub process_assets_stage_pre_process_tsfn: ThreadsafeFunction<(), ()>,
@@ -85,20 +85,11 @@ impl Debug for JsHooksAdapter {
 }
 
 #[derive(Clone)]
-struct CompilerCompilationHookFn {
-  disabled_hooks: DisabledHooks,
-  function: Arc<ThreadsafeFunction<JsCompilation, ()>>,
-}
+struct CompilerCompilationHookFn(Arc<ThreadsafeFunction<JsCompilation, ()>>);
 
 impl CompilerCompilationHookFn {
-  pub fn new(
-    function: Arc<ThreadsafeFunction<JsCompilation, ()>>,
-    disabled_hooks: DisabledHooks,
-  ) -> Self {
-    Self {
-      disabled_hooks,
-      function,
-    }
+  pub fn new(function: Arc<ThreadsafeFunction<JsCompilation, ()>>) -> Self {
+    Self(function)
   }
 }
 
@@ -109,10 +100,6 @@ impl AsyncSeries2<Compilation, CompilationParams> for CompilerCompilationHookFn 
     compilation: &mut Compilation,
     _: &mut CompilationParams,
   ) -> rspack_error::Result<()> {
-    if self.disabled_hooks.is_hook_disabled(&Hook::Compilation) {
-      return Ok(());
-    }
-
     let compilation = JsCompilation::from_compilation(unsafe {
       std::mem::transmute::<&'_ mut rspack_core::Compilation, &'static mut rspack_core::Compilation>(
         compilation,
@@ -120,7 +107,7 @@ impl AsyncSeries2<Compilation, CompilationParams> for CompilerCompilationHookFn 
     });
 
     self
-      .function
+      .0
       .call(compilation, ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
@@ -1089,12 +1076,9 @@ impl JsHooksAdapter {
     let mut compiler_compilation_hooks = Vec::new();
     for hook in new_js_hooks {
       match hook.r#type {
-        JsHookType::CompilerCompilation => {
-          compiler_compilation_hooks.push(CompilerCompilationHookFn::new(
-            Arc::new(js_fn_into_threadsafe_fn!(hook.function, env)),
-            disabled_hooks.clone(),
-          ))
-        }
+        JsHookType::CompilerCompilation => compiler_compilation_hooks.push(
+          CompilerCompilationHookFn::new(Arc::new(js_fn_into_threadsafe_fn!(hook.function, env))),
+        ),
       }
     }
 
