@@ -29,7 +29,10 @@ const PARTIALLY_PASSED = [
 	"configCases/trusted-types/custom-policy-name",
 	"configCases/trusted-types/default-policy-name",
 	"configCases/trusted-types/no-policy-name",
-	"configCases/trusted-types/no-trusted-types"
+	"configCases/trusted-types/no-trusted-types",
+
+	"hotCases/recover/recover-after-self-error",
+	"hotCases/worker/move-between-runtime"
 ];
 
 // Webpack test fully passed, with additional test with the same name as webpack in rspack.
@@ -69,7 +72,9 @@ module.exports = [
 	// Intended to have different README.md
 	"README.md",
 	// Intended to have different package.json
-	"package.json"
+	"package.json",
+	// output file
+	"js"
 ]
 	.concat(PARTIALLY_PASSED)
 	.concat(ADDITIONAL_TESTS)
