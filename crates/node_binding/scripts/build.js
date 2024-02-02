@@ -21,7 +21,8 @@ async function build() {
 			"--platform",
 			"--dts",
 			"binding.d.ts",
-			"--no-js"
+			"--no-js",
+			"--no-const-enum"
 		];
 		if (release) {
 			args.push("--release");

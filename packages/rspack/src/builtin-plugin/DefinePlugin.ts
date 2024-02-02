@@ -1,4 +1,5 @@
-import { BuiltinPluginName, create } from "./base";
+import { BuiltinPluginName } from "@rspack/binding";
+import { create } from "./base";
 
 export type DefinePluginOptions = Record<string, string | boolean | undefined>;
 export const DefinePlugin = create(

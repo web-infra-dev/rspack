@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { RawHtmlRspackPluginOptions } from "@rspack/binding";
-import { BuiltinPluginName, create } from "./base";
+import { BuiltinPluginName, RawHtmlRspackPluginOptions } from "@rspack/binding";
+import { create } from "./base";
 import { validate } from "../util/validate";
 
 const htmlRspackPluginOptions = z.strictObject({
