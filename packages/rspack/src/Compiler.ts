@@ -7,7 +7,7 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-import type * as binding from "@rspack/binding";
+import * as binding from "@rspack/binding";
 import { rspack } from "./index";
 import fs from "fs";
 import * as tapable from "tapable";
@@ -314,10 +314,6 @@ class Compiler {
 				// See webpack's API: https://webpack.js.org/api/compiler-hooks/#thiscompilation
 				// So it is safe to create a new compilation here.
 				thisCompilation: this.#newCompilation.bind(this),
-				// The hook `Compilation` should be called whenever it's a call from the child compiler or normal compiler and
-				// still it does not matter where the child compiler is created(Rust or Node) as calling the hook `compilation` is a required task.
-				// No matter how it will be implemented, it will be copied to the child compiler.
-				compilation: this.#compilation.bind(this),
 				optimizeModules: this.#optimizeModules.bind(this),
 				afterOptimizeModules: this.#afterOptimizeModules.bind(this),
 				optimizeTree: this.#optimizeTree.bind(this),
@@ -338,6 +334,7 @@ class Compiler {
 				executeModule: this.#executeModule.bind(this),
 				runtimeModule: this.#runtimeModule.bind(this)
 			},
+			this.#collectCompilerHooks(),
 			createThreadsafeNodeFSFromRaw(this.outputFileSystem),
 			runLoaders.bind(undefined, this)
 		);
@@ -634,7 +631,6 @@ class Compiler {
 					Compilation.PROCESS_ASSETS_STAGE_REPORT
 				),
 			afterProcessAssets: this.compilation.hooks.afterProcessAssets,
-			compilation: this.hooks.compilation,
 			optimizeTree: this.compilation.hooks.optimizeTree,
 			finishModules: this.compilation.hooks.finishModules,
 			optimizeModules: this.compilation.hooks.optimizeModules,
@@ -969,13 +965,23 @@ class Compiler {
 		this.#moduleExecutionResultsMap.set(id, executeResult);
 	}
 
-	#compilation(native: binding.JsCompilation) {
-		// TODO: implement this based on the child compiler impl.
-		this.hooks.compilation.call(this.compilation, {
-			normalModuleFactory: this.compilation.normalModuleFactory!
-		});
+	#collectCompilerHooks(): binding.JsHook[] {
+		return [...this.#createCompilerCompilationHooks()];
+	}
 
-		this.#updateDisabledHooks();
+	#createCompilerCompilationHooks(): binding.JsHook[] {
+		if (this.hooks.compilation.taps.length <= 0) return [];
+		return [
+			{
+				type: binding.JsHookType.CompilerCompilation,
+				function: (native: binding.JsCompilation) => {
+					this.hooks.compilation.call(this.compilation, {
+						normalModuleFactory: this.compilation.normalModuleFactory!
+					});
+					this.#updateDisabledHooks();
+				}
+			}
+		];
 	}
 
 	#newCompilation(native: binding.JsCompilation) {

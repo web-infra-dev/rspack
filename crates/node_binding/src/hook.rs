@@ -1,4 +1,4 @@
-use std::sync::{Arc, RwLock};
+use std::sync::RwLock;
 
 /// rust support hooks
 #[derive(PartialEq)]
@@ -6,7 +6,6 @@ pub enum Hook {
   Make,
   FinishMake,
   BuildModule,
-  Compilation,
   ThisCompilation,
   ProcessAssetsStageAdditional,
   ProcessAssetsStagePreProcess,
@@ -55,7 +54,6 @@ impl From<String> for Hook {
       "make" => Hook::Make,
       "finishMake" => Hook::FinishMake,
       "buildModule" => Hook::BuildModule,
-      "compilation" => Hook::Compilation,
       "thisCompilation" => Hook::ThisCompilation,
       "processAssetsStageAdditional" => Hook::ProcessAssetsStageAdditional,
       "processAssetsStagePreProcess" => Hook::ProcessAssetsStagePreProcess,
@@ -100,4 +98,17 @@ impl From<String> for Hook {
   }
 }
 
-pub type DisabledHooks = Arc<RwLock<Vec<Hook>>>;
+#[derive(Default)]
+pub struct DisabledHooks(RwLock<Vec<Hook>>);
+
+impl DisabledHooks {
+  pub fn set_disabled_hooks(&self, hooks: Vec<String>) -> napi::Result<()> {
+    let mut disabled_hooks = self.0.write().expect("failed to write lock");
+    *disabled_hooks = hooks.into_iter().map(Into::into).collect::<Vec<Hook>>();
+    Ok(())
+  }
+
+  pub fn is_hook_disabled(&self, hook: &Hook) -> bool {
+    self.0.read().expect("").contains(hook)
+  }
+}
