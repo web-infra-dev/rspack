@@ -1,4 +1,4 @@
-import styles from './main.css'
+import main from './main.css'
 
-console.log(styles)
+console.log(main)
 
