@@ -505,8 +505,10 @@ pub fn export_from_import(
         };
         Cow::Owned(used)
       } else {
-        // TODO: add some unused comments, part of runtime alignments
-        return "".to_string();
+        return format!(
+          "{} undefined",
+          to_normal_comment(&property_access(&export_name, 0))
+        );
       }
     } else {
       Cow::Borrowed(&export_name)
