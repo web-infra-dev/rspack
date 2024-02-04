@@ -284,6 +284,9 @@ jobs:
         if: ${{ inputs.test-diff }}
         run: pnpm run test:diff
 
+      - name: Test diff test
+        run: node ./scripts/test/diff.cjs
+
       ### write the latest metric into branch gh-pages
       ### Note that, We can't merge this script, because this script only runs on main branch
       - name: Update main branch test compatibility metric
