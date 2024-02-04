@@ -37,7 +37,7 @@ pub enum BuildExtraDataType {
   JavaScriptParserAndGenerator,
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Clone)]
 pub struct BuildInfo {
   /// Whether the result is cacheable, i.e shared between builds.
   pub cacheable: bool,
@@ -52,6 +52,25 @@ pub struct BuildInfo {
   pub all_star_exports: Vec<DependencyId>,
   pub need_create_require: bool,
   pub json_data: Option<JsonValue>,
+}
+
+impl Default for BuildInfo {
+  fn default() -> Self {
+    Self {
+      cacheable: true,
+      hash: None,
+      strict: false,
+      file_dependencies: HashSet::default(),
+      context_dependencies: HashSet::default(),
+      missing_dependencies: HashSet::default(),
+      build_dependencies: HashSet::default(),
+      asset_filenames: HashSet::default(),
+      harmony_named_exports: HashSet::default(),
+      all_star_exports: Vec::default(),
+      need_create_require: false,
+      json_data: None,
+    }
+  }
 }
 
 #[derive(Debug, Default, Clone, Copy, Hash, PartialEq, Eq)]
