@@ -167,6 +167,56 @@ pub fn css_modules_exports_to_string(
   Ok(code)
 }
 
+pub fn css_modules_exports_to_concatenate_module_string(
+  exports: &IndexMap<Vec<String>, Vec<(String, Option<String>)>>,
+  module: &dyn rspack_core::Module,
+  compilation: &Compilation,
+  runtime_requirements: &mut RuntimeGlobals,
+) -> Result<String> {
+  let mut code = String::from("module.exports = {\n");
+  for (key, elements) in exports {
+    let content = elements
+      .iter()
+      .map(|(name, from)| match from {
+        None => name.to_owned(),
+        Some(from_name) => {
+          let from = module
+            .get_dependencies()
+            .iter()
+            .find_map(|id| {
+              let dependency = compilation.module_graph.dependency_by_id(id);
+              let request = if let Some(d) = dependency.and_then(|d| d.as_module_dependency()) {
+                Some(d.request())
+              } else {
+                dependency
+                  .and_then(|d| d.as_context_dependency())
+                  .map(|d| d.request())
+              };
+              if let Some(request) = request
+                && request == from_name
+              {
+                return compilation
+                  .module_graph
+                  .module_graph_module_by_dependency_id(id);
+              }
+              None
+            })
+            .expect("should have css from module");
+
+          let from = serde_json::to_string(from.id(&compilation.chunk_graph)).expect("TODO:");
+          format!("{}({from})[{name}]", RuntimeGlobals::REQUIRE)
+        }
+      })
+      .collect::<Vec<_>>()
+      .join(" + \" \" + ");
+    for item in key {
+      writeln!(code, "  {}: {},", item, content).map_err(|e| error!(e.to_string()))?;
+    }
+  }
+  code += "};\n";
+  Ok(code)
+}
+
 static STRING_MULTILINE: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"\\[\n\r\f]").expect("Invalid RegExp"));
 

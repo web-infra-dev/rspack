@@ -1,6 +1,6 @@
 #![allow(clippy::comparison_chain)]
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use indexmap::IndexMap;
 use once_cell::sync::Lazy;
@@ -9,8 +9,8 @@ use rkyv::{from_bytes, to_bytes, AlignedVec};
 use rspack_core::{
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
   rspack_sources::{
-    BoxSource, MapOptions, RawSource, ReplaceSource, Source, SourceExt, SourceMap, SourceMapSource,
-    SourceMapSourceOptions,
+    BoxSource, ConcatSource, MapOptions, RawSource, ReplaceSource, Source, SourceExt, SourceMap,
+    SourceMapSource, SourceMapSourceOptions,
   },
   BoxDependency, BuildExtraDataType, BuildMetaExportsType, ErrorSpan, GenerateContext, Module,
   ModuleType, ParseContext, ParseResult, ParserAndGenerator, SourceType, TemplateContext,
@@ -245,7 +245,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
           runtime_requirements: generate_context.runtime_requirements,
           runtime: generate_context.runtime,
           init_fragments: &mut init_fragments,
-          concatenation_scope: None,
+          concatenation_scope: generate_context.concatenation_scope.take(),
         };
 
         module.get_dependencies().iter().for_each(|id| {
@@ -265,6 +265,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
             .for_each(|dependency| dependency.apply(&mut source, &mut context));
         };
 
+        generate_context.concatenation_scope = context.concatenation_scope.take();
         Ok(source.boxed())
       }
       SourceType::JavaScript => {
@@ -277,6 +278,13 @@ impl ParserAndGenerator for CssParserAndGenerator {
           )?
         } else if generate_context.compilation.options.dev_server.hot {
           "module.hot.accept();".to_string()
+        } else if let Some(scope) = generate_context.concatenation_scope {
+          let concate_source = ConcatSource::new([]);
+          let mut used_identifier = HashSet::default();
+          if let Some(ref exports) = self.exports {
+            for export in exports.iter() {}
+          }
+          return Ok(concate_source.boxed());
         } else {
           "".to_string()
         };
