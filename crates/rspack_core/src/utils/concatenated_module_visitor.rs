@@ -38,6 +38,7 @@ impl Visit for IdentCollector {
           shorthand: true,
           is_class_expr_with_ident: false,
         });
+        assign.value.visit_with(self);
       }
       ObjectPatProp::KeyValue(_) | ObjectPatProp::Rest(_) => {
         n.visit_children_with(self);
