@@ -32,7 +32,10 @@ const PARTIALLY_PASSED = [
 	"configCases/trusted-types/no-trusted-types",
 
 	"hotCases/recover/recover-after-self-error",
-	"hotCases/worker/move-between-runtime"
+	"hotCases/worker/move-between-runtime",
+
+	"statsCases/limit-chunk-count-plugin",
+	"statsCases/parse-error"
 ];
 
 // Webpack test fully passed, with additional test with the same name as webpack in rspack.

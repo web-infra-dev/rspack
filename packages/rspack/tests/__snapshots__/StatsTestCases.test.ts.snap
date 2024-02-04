@@ -4078,10 +4078,10 @@ exports[`StatsTestCases should print correct stats for loader-builtin-swc-plugin
 Rspack compiled with 1 warning"
 `;
 
-exports[`StatsTestCases should print correct stats for logging 1`] = `
+exports[`StatsTestCases should print correct stats for logging-loader 1`] = `
 {
   "logging": {
-    "TestLoader|<PROJECT_ROOT>/tests/statsCases/logging/index.js": {
+    "TestLoader|<PROJECT_ROOT>/tests/statsCases/logging-loader/index.js": {
       "debug": true,
       "entries": [
         {
@@ -4116,8 +4116,8 @@ exports[`StatsTestCases should print correct stats for logging 1`] = `
 }
 `;
 
-exports[`StatsTestCases should print correct stats for logging 2`] = `
-"DEBUG LOG from TestLoader|<PROJECT_ROOT>/tests/statsCases/logging/index.js
+exports[`StatsTestCases should print correct stats for logging-loader 2`] = `
+"DEBUG LOG from TestLoader|<PROJECT_ROOT>/tests/statsCases/logging-loader/index.js
 <-> group
   <i> info something
       log something
@@ -5480,7 +5480,7 @@ webpack/runtime/make_namespace_object
 webpack/runtime/define_property_getters"
 `;
 
-exports[`StatsTestCases should print correct stats for simple 1`] = `
+exports[`StatsTestCases should print correct stats for simple-export 1`] = `
 {
   "assets": [
     {
@@ -5523,14 +5523,14 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
             "909",
           ],
           "id": "10",
-          "identifier": "<PROJECT_ROOT>/tests/statsCases/simple/index.js",
+          "identifier": "<PROJECT_ROOT>/tests/statsCases/simple-export/index.js",
           "issuer": undefined,
           "issuerId": undefined,
           "issuerName": undefined,
           "issuerPath": [],
           "moduleType": "javascript/auto",
           "name": "./index.js",
-          "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/simple/index.js",
+          "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/simple-export/index.js",
           "orphan": false,
           "reasons": [
             {
@@ -5583,14 +5583,14 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
         "909",
       ],
       "id": "10",
-      "identifier": "<PROJECT_ROOT>/tests/statsCases/simple/index.js",
+      "identifier": "<PROJECT_ROOT>/tests/statsCases/simple-export/index.js",
       "issuer": undefined,
       "issuerId": undefined,
       "issuerName": undefined,
       "issuerPath": [],
       "moduleType": "javascript/auto",
       "name": "./index.js",
-      "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/simple/index.js",
+      "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/simple-export/index.js",
       "orphan": false,
       "reasons": [
         {
@@ -5682,14 +5682,14 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
       "name": "main",
     },
   },
-  "outputPath": "<PROJECT_ROOT>/tests/statsCases/simple/dist",
+  "outputPath": "<PROJECT_ROOT>/tests/statsCases/simple-export/dist",
   "publicPath": "",
   "warnings": [],
   "warningsCount": 0,
 }
 `;
 
-exports[`StatsTestCases should print correct stats for simple 2`] = `
+exports[`StatsTestCases should print correct stats for simple-export 2`] = `
 "PublicPath: (none)
 asset bundle.js 590 bytes {909} [emitted] (name: main)
 Entrypoint main 590 bytes = bundle.js
