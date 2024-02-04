@@ -1,4 +1,5 @@
 #![allow(clippy::only_used_in_recursion)]
+use core::panic;
 use std::collections::hash_map::DefaultHasher;
 use std::collections::VecDeque;
 use std::hash::Hasher;
@@ -572,7 +573,12 @@ impl Plugin for ModuleConcatenationPlugin {
         );
         continue;
       }
-      if !m.build_info().expect("should have build info").strict {
+      dbg!(&m.identifier(), &m.build_info());
+      if !m
+        .build_info()
+        .unwrap_or_else(|| panic!("{} should have build info", m.identifier()))
+        .strict
+      {
         self.set_bailout_reason(
           &module_id,
           "Module is not in strict mode".to_string(),
