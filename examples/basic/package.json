@@ -1,0 +1,13 @@
+{
+  "name": "basic",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "rspack build",
+    "dev": "rspack dev"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
