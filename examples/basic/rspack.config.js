@@ -1,6 +1,7 @@
 const rspack = require("@rspack/core");
 /**@type {import("@rspack/cli").Configuration}*/
 module.exports = {
+	mode: 'production',
 	experiments: {
 		rspackFuture: {
 			newTreeshaking: true,
@@ -16,7 +17,7 @@ module.exports = {
 		],
 	},
 	optimization: {
-		concatenateModules: true,
+		concatenateModules: false,
 		minimize: false,
 	},
 	plugins: [

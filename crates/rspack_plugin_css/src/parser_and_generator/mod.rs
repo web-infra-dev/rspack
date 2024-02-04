@@ -25,6 +25,7 @@ use swc_core::{css::parser::parser::ParserConfig, ecma::atoms::Atom};
 use crate::{
   dependency::CssComposeDependency,
   swc_css_compiler::{SwcCssCompiler, SwcCssSourceMapGenConfig},
+  utils::css_modules_exports_to_concatenate_module_string,
 };
 use crate::{
   plugin::CssConfig,
@@ -269,7 +270,18 @@ impl ParserAndGenerator for CssParserAndGenerator {
         Ok(source.boxed())
       }
       SourceType::JavaScript => {
-        let locals = if let Some(exports) = &self.exports {
+        let locals = if generate_context.concatenation_scope.is_some() {
+          let mut concate_source = ConcatSource::default();
+          if let Some(ref exports) = self.exports {
+            css_modules_exports_to_concatenate_module_string(
+              exports,
+              module,
+              generate_context,
+              &mut concate_source,
+            )?;
+          }
+          return Ok(concate_source.boxed());
+        } else if let Some(exports) = &self.exports {
           css_modules_exports_to_string(
             exports,
             module,
@@ -278,13 +290,6 @@ impl ParserAndGenerator for CssParserAndGenerator {
           )?
         } else if generate_context.compilation.options.dev_server.hot {
           "module.hot.accept();".to_string()
-        } else if let Some(scope) = generate_context.concatenation_scope {
-          let concate_source = ConcatSource::new([]);
-          let mut used_identifier = HashSet::default();
-          if let Some(ref exports) = self.exports {
-            for export in exports.iter() {}
-          }
-          return Ok(concate_source.boxed());
         } else {
           "".to_string()
         };

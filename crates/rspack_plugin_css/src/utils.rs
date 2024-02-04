@@ -3,10 +3,13 @@ use std::{fmt::Write, hash::Hash, path::Path};
 use heck::{ToKebabCase, ToLowerCamelCase};
 use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
-use rspack_core::{Compilation, ErrorSpan, OutputOptions, PathData, RuntimeGlobals};
+use rspack_core::rspack_sources::{ConcatSource, RawSource};
+use rspack_core::{
+  to_identifier, Compilation, GenerateContext, OutputOptions, PathData, RuntimeGlobals,
+};
 use rspack_error::{error, Result};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash};
-use swc_core::common::Spanned;
+use rustc_hash::FxHashSet as HashSet;
 use swc_core::css::modules::CssClassName;
 use swc_core::ecma::atoms::Atom;
 
@@ -159,6 +162,7 @@ pub fn css_modules_exports_to_string(
       })
       .collect::<Vec<_>>()
       .join(" + \" \" + ");
+    dbg!(&key, &content);
     for item in key {
       writeln!(code, "  {}: {},", item, content).map_err(|e| error!(e.to_string()))?;
     }
@@ -170,10 +174,19 @@ pub fn css_modules_exports_to_string(
 pub fn css_modules_exports_to_concatenate_module_string(
   exports: &IndexMap<Vec<String>, Vec<(String, Option<String>)>>,
   module: &dyn rspack_core::Module,
-  compilation: &Compilation,
-  runtime_requirements: &mut RuntimeGlobals,
-) -> Result<String> {
-  let mut code = String::from("module.exports = {\n");
+  generate_context: &mut GenerateContext,
+  concate_source: &mut ConcatSource,
+) -> Result<()> {
+  let GenerateContext {
+    compilation,
+    runtime_requirements,
+    concatenation_scope,
+    ..
+  } = generate_context;
+  let Some(ref mut scope) = concatenation_scope else {
+    return Ok(());
+  };
+  let mut used_identifiers = HashSet::default();
   for (key, elements) in exports {
     let content = elements
       .iter()
@@ -209,12 +222,19 @@ pub fn css_modules_exports_to_concatenate_module_string(
       })
       .collect::<Vec<_>>()
       .join(" + \" \" + ");
-    for item in key {
-      writeln!(code, "  {}: {},", item, content).map_err(|e| error!(e.to_string()))?;
+    for k in key {
+      let mut identifier = to_identifier(k.as_str());
+      let mut i = 0;
+      while used_identifiers.contains(&identifier) {
+        identifier = format!("{k}{i}");
+        i += 1;
+      }
+      concate_source.add(RawSource::from(format!("var {identifier} = {content};\n")));
+      used_identifiers.insert(identifier.clone());
+      scope.register_export(k.as_str().into(), identifier);
     }
   }
-  code += "};\n";
-  Ok(code)
+  Ok(())
 }
 
 static STRING_MULTILINE: Lazy<Regex> =
