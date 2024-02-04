@@ -265,6 +265,10 @@ jobs:
         if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' }}
         run: pnpm run test:ci
 
+      - name: Test diff test
+        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' }}
+        run: node ./scripts/test/diff.cjs
+
       ### x86_64-apple-darwin
 
       - name: Test x86_64-apple-darwin
@@ -283,9 +287,6 @@ jobs:
         timeout-minutes: 15
         if: ${{ inputs.test-diff }}
         run: pnpm run test:diff
-
-      - name: Test diff test
-        run: node ./scripts/test/diff.cjs
 
       ### write the latest metric into branch gh-pages
       ### Note that, We can't merge this script, because this script only runs on main branch
