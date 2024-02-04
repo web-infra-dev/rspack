@@ -332,7 +332,7 @@ class Compiler {
 				executeModule: this.#executeModule.bind(this),
 				runtimeModule: this.#runtimeModule.bind(this)
 			},
-			this.#collectJsHooks(),
+			this.#collectCompilerHooks(),
 			createThreadsafeNodeFSFromRaw(this.outputFileSystem),
 			runLoaders.bind(undefined, this)
 		);
@@ -963,7 +963,7 @@ class Compiler {
 		this.#moduleExecutionResultsMap.set(id, executeResult);
 	}
 
-	#collectJsHooks(): binding.JsHook[] {
+	#collectCompilerHooks(): binding.JsHook[] {
 		return [...this.#createCompilerCompilationHooks()];
 	}
 
