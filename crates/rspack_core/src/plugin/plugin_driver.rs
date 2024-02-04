@@ -7,7 +7,7 @@ use rspack_error::{Diagnostic, Result, TWithDiagnosticArray};
 use rspack_loader_runner::{LoaderContext, ResourceData};
 use rustc_hash::FxHashMap as HashMap;
 use tokio::sync::mpsc::UnboundedSender;
-use tracing::instrument;
+use tracing::{instrument, Instrument};
 
 use crate::{
   AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, ApplyContext,
@@ -442,19 +442,29 @@ impl PluginDriver {
   #[instrument(name = "plugin:process_assets", skip_all)]
   pub async fn process_assets(&self, args: ProcessAssetsArgs<'_>) -> PluginProcessAssetsOutput {
     macro_rules! run_stage {
-      ($stage: ident) => {
-        for plugin in &self.plugins {
-          plugin
-            .$stage(
-              PluginContext::new(),
-              ProcessAssetsArgs {
-                compilation: args.compilation,
-              },
-            )
-            .await?;
+      ($stage: ident) => {{
+        async fn $stage(
+          plugins: &Vec<Box<dyn Plugin>>,
+          compilation: &mut Compilation,
+        ) -> PluginProcessAssetsOutput {
+          for plugin in plugins {
+            plugin
+              .$stage(
+                PluginContext::new(),
+                ProcessAssetsArgs {
+                  compilation: compilation,
+                },
+              )
+              .await?;
+          }
+          Ok(())
         }
-      };
+        let span = tracing::span!(tracing::Level::INFO, concat!("plugin:", stringify!($stage)));
+        let feature = $stage(&self.plugins, args.compilation);
+        feature.instrument(span).await?;
+      }};
     }
+
     run_stage!(process_assets_stage_additional);
     run_stage!(process_assets_stage_pre_process);
     run_stage!(process_assets_stage_derived);
