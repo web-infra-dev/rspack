@@ -52,11 +52,13 @@ import { CreateModuleData } from "@rspack/binding";
 import ExecuteModulePlugin from "./ExecuteModulePlugin";
 
 class Compiler {
-	#_instance?: binding.Rspack;
+	#instance?: binding.Rspack;
 
 	webpack = rspack;
 	// @ts-expect-error
 	compilation: Compilation;
+	// TODO: remove this after remove rebuild on the rust side.
+	first: boolean = true;
 	builtinPlugins: binding.BuiltinPlugin[];
 	root: Compiler;
 	running: boolean;
@@ -211,8 +213,8 @@ class Compiler {
 			return callback(error);
 		}
 
-		if (this.#_instance) {
-			return callback(null, this.#_instance);
+		if (this.#instance) {
+			return callback(null, this.#instance);
 		}
 
 		const options = this.options;
@@ -230,7 +232,7 @@ class Compiler {
 
 		const instanceBinding: typeof binding = require("@rspack/binding");
 
-		this.#_instance = new instanceBinding.Rspack(
+		this.#instance = new instanceBinding.Rspack(
 			rawOptions,
 			this.builtinPlugins,
 			{
@@ -340,7 +342,7 @@ class Compiler {
 			runLoaders.bind(undefined, this)
 		);
 
-		callback(null, this.#_instance);
+		callback(null, this.#instance);
 	}
 
 	createChildCompiler(
@@ -673,9 +675,9 @@ class Compiler {
 		if (this.#disabledHooks.join() !== disabledHooks.join()) {
 			this.#getInstance((error, instance) => {
 				if (error) {
-					return callback && callback(error);
+					return callback?.(error);
 				}
-				instance?.unsafe_set_disabled_hooks(disabledHooks);
+				instance!.unsafe_set_disabled_hooks(disabledHooks);
 				this.#disabledHooks = disabledHooks;
 			});
 		}
@@ -1053,25 +1055,43 @@ class Compiler {
 			doRun();
 		}
 	}
-	// Safety: This method is only valid to call if the previous build task is finished, or there will be data races.
-	build(callback: (error: Error | null) => void) {
+	/**
+	 * Safety: This method is only valid to call if the previous rebuild task is finished, or there will be data races.
+	 */
+	build(callback?: (error: Error | null) => void) {
 		this.#getInstance((error, instance) => {
 			if (error) {
-				return callback && callback(error);
+				return callback?.(error);
 			}
-			const unsafe_build = instance?.unsafe_build;
-			const build_cb = unsafe_build?.bind(instance) as typeof unsafe_build;
-			build_cb?.(error => {
+			if (!this.first) {
+				const rebuild = instance!.unsafe_rebuild.bind(instance);
+				rebuild(
+					Array.from(this.modifiedFiles || []),
+					Array.from(this.removedFiles || []),
+					error => {
+						if (error) {
+							return callback?.(error);
+						}
+						callback?.(null);
+					}
+				);
+				return;
+			}
+			this.first = false;
+			const build = instance!.unsafe_build.bind(instance);
+			build(error => {
 				if (error) {
-					callback(error);
-				} else {
-					callback(null);
+					return callback?.(error);
 				}
+				callback?.(null);
 			});
 		});
 	}
 
-	// Safety: This method is only valid to call if the previous rebuild task is finished, or there will be data races.
+	/**
+	 * Safety: This method is only valid to call if the previous rebuild task is finished, or there will be data races.
+	 * @deprecated This is a low-level incremental rebuild API, which shouldn't be used intentionally. Use `compiler.build` instead.
+	 */
 	rebuild(
 		modifiedFiles?: ReadonlySet<string>,
 		removedFiles?: ReadonlySet<string>,
@@ -1079,21 +1099,17 @@ class Compiler {
 	) {
 		this.#getInstance((error, instance) => {
 			if (error) {
-				return callback && callback(error);
+				return callback?.(error);
 			}
-			const unsafe_rebuild = instance?.unsafe_rebuild;
-			const rebuild_cb = unsafe_rebuild?.bind(
-				instance
-			) as typeof unsafe_rebuild;
-			rebuild_cb?.(
-				[...(modifiedFiles ?? [])],
-				[...(removedFiles ?? [])],
+			const rebuild = instance!.unsafe_rebuild.bind(instance);
+			rebuild(
+				Array.from(modifiedFiles || []),
+				Array.from(removedFiles || []),
 				error => {
 					if (error) {
-						callback && callback(error);
-					} else {
-						callback && callback(null);
+						return callback?.(error);
 					}
+					callback?.(null);
 				}
 			);
 		});
@@ -1148,7 +1164,7 @@ class Compiler {
 		// See: https://github.com/webpack/webpack/blob/4ba225225b1348c8776ca5b5fe53468519413bc0/lib/Compiler.js#L1218
 		if (!this.running) {
 			// Manually drop the instance.
-			// this.#_instance = undefined;
+			// this.#instance = undefined;
 		}
 
 		if (this.watching) {

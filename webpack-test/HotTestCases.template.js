@@ -94,6 +94,9 @@ const describeCases = config => {
 									options.optimization.moduleIds = "named";
 								if (!options.module) options.module = {};
 								if (!options.module.rules) options.module.rules = [];
+								// CHANGE: turn off default experiments.css
+								options.experiments ??= {}
+								options.experiments.css ??= false
 								options.module.rules.push({
 									loader: path.join(
 										__dirname,
