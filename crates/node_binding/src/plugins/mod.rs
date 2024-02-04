@@ -30,8 +30,8 @@ use rspack_napi_shared::NapiResultExt;
 pub use self::loader::JsLoaderResolver;
 use crate::{DisabledHooks, Hook, JsCompilation, JsHooks};
 
-pub(crate) struct JsHooksAdapter {
-  disabled_hooks: DisabledHooks,
+pub struct JsHooksAdapterInner {
+  pub disabled_hooks: DisabledHooks,
   pub make_tsfn: ThreadsafeFunction<(), ()>,
   compiler_compilation_hooks: Vec<CompilerCompilationHookFn>,
   pub this_compilation_tsfn: ThreadsafeFunction<JsCompilation, ()>,
@@ -78,9 +78,23 @@ pub(crate) struct JsHooksAdapter {
   pub runtime_module_tsfn: ThreadsafeFunction<JsRuntimeModuleArg, Option<JsRuntimeModule>>,
 }
 
-impl Debug for JsHooksAdapter {
+#[derive(Clone)]
+pub struct JsHooksAdapterPlugin {
+  inner: Arc<JsHooksAdapterInner>,
+}
+
+impl Debug for JsHooksAdapterPlugin {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     write!(f, "rspack_plugin_js_hooks_adapter")
+  }
+}
+
+// TODO: remove deref
+impl std::ops::Deref for JsHooksAdapterPlugin {
+  type Target = JsHooksAdapterInner;
+
+  fn deref(&self) -> &Self::Target {
+    &self.inner
   }
 }
 
@@ -116,7 +130,7 @@ impl AsyncSeries2<Compilation, CompilationParams> for CompilerCompilationHookFn 
 }
 
 #[async_trait]
-impl rspack_core::Plugin for JsHooksAdapter {
+impl rspack_core::Plugin for JsHooksAdapterPlugin {
   fn name(&self) -> &'static str {
     "rspack.JsHooksAdapterPlugin"
   }
@@ -937,12 +951,12 @@ impl rspack_core::Plugin for JsHooksAdapter {
   }
 }
 
-impl JsHooksAdapter {
+impl JsHooksAdapterPlugin {
   pub fn from_js_hooks(
     env: Env,
     js_hooks: JsHooks,
     disabled_hooks: DisabledHooks,
-    new_js_hooks: Vec<JsHook>,
+    compiler_hooks: Vec<JsHook>,
   ) -> Result<Self> {
     let JsHooks {
       make,
@@ -1074,7 +1088,7 @@ impl JsHooksAdapter {
       js_fn_into_threadsafe_fn!(runtime_module, env);
 
     let mut compiler_compilation_hooks = Vec::new();
-    for hook in new_js_hooks {
+    for hook in compiler_hooks {
       match hook.r#type {
         JsHookType::CompilerCompilation => compiler_compilation_hooks.push(
           CompilerCompilationHookFn::new(Arc::new(js_fn_into_threadsafe_fn!(hook.function, env))),
@@ -1082,55 +1096,61 @@ impl JsHooksAdapter {
       }
     }
 
-    Ok(JsHooksAdapter {
-      disabled_hooks,
-      make_tsfn,
-      process_assets_stage_additional_tsfn,
-      process_assets_stage_pre_process_tsfn,
-      process_assets_stage_derived_tsfn,
-      process_assets_stage_additions_tsfn,
-      process_assets_stage_none_tsfn,
-      process_assets_stage_optimize_tsfn,
-      process_assets_stage_optimize_count_tsfn,
-      process_assets_stage_optimize_compatibility_tsfn,
-      process_assets_stage_optimize_size_tsfn,
-      process_assets_stage_dev_tooling_tsfn,
-      process_assets_stage_optimize_inline_tsfn,
-      process_assets_stage_summarize_tsfn,
-      process_assets_stage_optimize_hash_tsfn,
-      process_assets_stage_optimize_transfer_tsfn,
-      process_assets_stage_analyse_tsfn,
-      process_assets_stage_report_tsfn,
-      after_process_assets_tsfn,
-      compiler_compilation_hooks,
-      this_compilation_tsfn,
-      should_emit_tsfn,
-      emit_tsfn,
-      asset_emitted_tsfn,
-      after_emit_tsfn,
-      optimize_modules_tsfn,
-      after_optimize_modules_tsfn,
-      optimize_tree_tsfn,
-      optimize_chunk_modules_tsfn,
-      before_compile_tsfn,
-      after_compile_tsfn,
-      before_resolve,
-      context_module_factory_before_resolve,
-      normal_module_factory_create_module,
-      normal_module_factory_resolve_for_scheme,
-      finish_modules_tsfn,
-      finish_make_tsfn,
-      build_module_tsfn,
-      chunk_asset_tsfn,
-      after_resolve,
-      succeed_module_tsfn,
-      still_valid_module_tsfn,
-      execute_module_tsfn,
-      runtime_module_tsfn,
+    Ok(JsHooksAdapterPlugin {
+      inner: Arc::new(JsHooksAdapterInner {
+        disabled_hooks,
+        make_tsfn,
+        process_assets_stage_additional_tsfn,
+        process_assets_stage_pre_process_tsfn,
+        process_assets_stage_derived_tsfn,
+        process_assets_stage_additions_tsfn,
+        process_assets_stage_none_tsfn,
+        process_assets_stage_optimize_tsfn,
+        process_assets_stage_optimize_count_tsfn,
+        process_assets_stage_optimize_compatibility_tsfn,
+        process_assets_stage_optimize_size_tsfn,
+        process_assets_stage_dev_tooling_tsfn,
+        process_assets_stage_optimize_inline_tsfn,
+        process_assets_stage_summarize_tsfn,
+        process_assets_stage_optimize_hash_tsfn,
+        process_assets_stage_optimize_transfer_tsfn,
+        process_assets_stage_analyse_tsfn,
+        process_assets_stage_report_tsfn,
+        after_process_assets_tsfn,
+        compiler_compilation_hooks,
+        this_compilation_tsfn,
+        should_emit_tsfn,
+        emit_tsfn,
+        asset_emitted_tsfn,
+        after_emit_tsfn,
+        optimize_modules_tsfn,
+        after_optimize_modules_tsfn,
+        optimize_tree_tsfn,
+        optimize_chunk_modules_tsfn,
+        before_compile_tsfn,
+        after_compile_tsfn,
+        before_resolve,
+        context_module_factory_before_resolve,
+        normal_module_factory_create_module,
+        normal_module_factory_resolve_for_scheme,
+        finish_modules_tsfn,
+        finish_make_tsfn,
+        build_module_tsfn,
+        chunk_asset_tsfn,
+        after_resolve,
+        succeed_module_tsfn,
+        still_valid_module_tsfn,
+        execute_module_tsfn,
+        runtime_module_tsfn,
+      }),
     })
   }
 
   fn is_hook_disabled(&self, hook: &Hook) -> bool {
     self.disabled_hooks.is_hook_disabled(hook)
+  }
+
+  pub fn set_disabled_hooks(&self, hooks: Vec<String>) -> Result<()> {
+    self.disabled_hooks.set_disabled_hooks(hooks)
   }
 }

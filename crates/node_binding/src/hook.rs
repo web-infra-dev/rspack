@@ -1,4 +1,4 @@
-use std::sync::{Arc, RwLock};
+use std::sync::RwLock;
 
 /// rust support hooks
 #[derive(PartialEq)]
@@ -98,8 +98,8 @@ impl From<String> for Hook {
   }
 }
 
-#[derive(Default, Clone)]
-pub struct DisabledHooks(Arc<RwLock<Vec<Hook>>>);
+#[derive(Default)]
+pub struct DisabledHooks(RwLock<Vec<Hook>>);
 
 impl DisabledHooks {
   pub fn set_disabled_hooks(&self, hooks: Vec<String>) -> napi::Result<()> {
