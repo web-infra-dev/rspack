@@ -556,7 +556,7 @@ impl Plugin for ModuleConcatenationPlugin {
     for module_id in module_id_list {
       let mut can_be_root = true;
       let mut can_be_inner = true;
-      let m = compilation.module_graph.module_by_identifier(&module_id);
+      let m = module_id.module(&compilation.module_graph);
       // If the result is `None`, that means we have some differences with webpack,
       // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ModuleConcatenationPlugin.js#L168-L171
       if compilation
@@ -571,12 +571,7 @@ impl Plugin for ModuleConcatenationPlugin {
         );
         continue;
       }
-
-      if !m
-        .and_then(|m| m.build_info())
-        .expect("should have build info")
-        .strict
-      {
+      if !m.build_info().expect("should have build info").strict {
         self.set_bailout_reason(
           &module_id,
           "Module is not in strict mode".to_string(),
@@ -586,7 +581,7 @@ impl Plugin for ModuleConcatenationPlugin {
       }
       if compilation
         .chunk_graph
-        .get_number_of_module_chunks(module_id)
+        .get_number_of_module_chunks(*module_id)
         == 0
       {
         self.set_bailout_reason(

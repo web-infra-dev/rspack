@@ -1,6 +1,5 @@
 use std::fmt::Display;
 use std::hash::Hash;
-use std::ops::Deref;
 use std::path::PathBuf;
 use std::{any::Any, borrow::Cow, fmt::Debug};
 
@@ -20,9 +19,8 @@ use crate::{
   AsyncDependenciesBlock, BoxDependency, ChunkGraph, ChunkUkey, CodeGenerationResult, Compilation,
   CompilerContext, CompilerOptions, ConcatenationScope, ConnectionState, Context, ContextModule,
   DependenciesBlock, DependencyId, DependencyTemplate, ExternalModule, ImmutableModuleGraph,
-  ModuleDependency, ModuleGraph, ModuleGraphAccessor, ModuleGraphModule, ModuleType,
-  MutexModuleGraph, NormalModule, RawModule, Resolve, RuntimeSpec, SelfModule, SharedPluginDriver,
-  SourceType,
+  ModuleDependency, ModuleGraph, ModuleGraphAccessor, ModuleType, MutexModuleGraph, NormalModule,
+  RawModule, Resolve, RuntimeSpec, SelfModule, SharedPluginDriver, SourceType,
 };
 pub struct BuildContext<'a> {
   pub compiler_context: CompilerContext,
@@ -160,52 +158,6 @@ pub struct FactoryMeta {
 }
 
 pub type ModuleIdentifier = Identifier;
-
-#[derive(Debug)]
-pub struct WrappedModuleIdentifier(ModuleIdentifier);
-
-impl WrappedModuleIdentifier {
-  /// # Panic
-  /// It would panic if the corresponding module is not exists in module_graph
-  pub fn module<'a>(&self, mg: &'a ModuleGraph) -> &'a BoxModule {
-    mg.module_by_identifier(self).expect("should have module")
-  }
-  /// # Panic
-  /// It would panic if the corresponding module is not exists in module_graph
-  pub fn module_mut<'a>(&self, mg: &'a mut ModuleGraph) -> &'a mut BoxModule {
-    mg.module_by_identifier_mut(self)
-      .expect("should have module")
-  }
-
-  /// # Panic
-  /// It would panic if the corresponding moduleGraphModule is not exists in module_graph
-  pub fn module_graph_module<'a>(&self, mg: &'a ModuleGraph) -> &'a ModuleGraphModule {
-    mg.module_graph_module_by_identifier(self)
-      .expect("should have module graph module")
-  }
-
-  /// # Panic
-  /// It would panic if the corresponding moduleGraphModule is not exists in module_graph
-  pub fn module_graph_module_mut<'a>(&self, mg: &'a mut ModuleGraph) -> &'a mut ModuleGraphModule {
-    mg.module_graph_module_by_identifier_mut(self)
-      .expect("should have module graph module")
-  }
-}
-
-impl Deref for WrappedModuleIdentifier {
-  type Target = ModuleIdentifier;
-
-  fn deref(&self) -> &Self::Target {
-    &self.0
-  }
-}
-
-impl From<ModuleIdentifier> for WrappedModuleIdentifier {
-  fn from(value: ModuleIdentifier) -> Self {
-    Self(value)
-  }
-}
-
 #[async_trait]
 pub trait Module:
   Debug
