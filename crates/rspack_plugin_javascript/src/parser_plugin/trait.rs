@@ -1,10 +1,12 @@
+use swc_core::atoms::Atom;
+use swc_core::common::Span;
 use swc_core::ecma::ast::{
   AssignExpr, AwaitExpr, BinExpr, CallExpr, Expr, ForOfStmt, Ident, IfStmt, MemberExpr, ModuleDecl,
 };
 use swc_core::ecma::ast::{NewExpr, Program, Stmt, ThisExpr, UnaryExpr, VarDecl, VarDeclarator};
 
 use crate::utils::eval::BasicEvaluatedExpression;
-use crate::visitors::JavascriptParser;
+use crate::visitors::{ExportedVariableInfo, JavascriptParser};
 
 type KeepRight = bool;
 
@@ -82,6 +84,15 @@ pub trait JavascriptParserPlugin {
     _parser: &mut JavascriptParser,
     _expr: &MemberExpr,
     _for_name: &str,
+  ) -> Option<bool> {
+    None
+  }
+
+  fn unhandled_expression_member_chain(
+    &self,
+    _parser: &mut JavascriptParser,
+    _root_info: &ExportedVariableInfo,
+    _expr: &MemberExpr,
   ) -> Option<bool> {
     None
   }
@@ -170,6 +181,15 @@ pub trait JavascriptParserPlugin {
   }
 
   fn import_call(&self, _parser: &mut JavascriptParser, _expr: &CallExpr) -> Option<bool> {
+    None
+  }
+
+  fn meta_property(
+    &self,
+    _parser: &mut JavascriptParser,
+    _root_name: &Atom,
+    _span: Span,
+  ) -> Option<bool> {
     None
   }
 }
