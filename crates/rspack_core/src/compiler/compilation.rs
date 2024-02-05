@@ -741,24 +741,30 @@ impl Compilation {
         }
         drop(tx);
 
-        let tx = result_tx.clone();
+        tokio::spawn({
+          let tx = result_tx.clone();
+          let is_expected_shutdown = is_expected_shutdown.clone();
+          async move {
+            loop {
+              if remaining == 0 {
+                break;
+              }
 
-        tokio::spawn(async move {
-          loop {
-            if remaining == 0 {
-              break;
+              rx.recv().await;
+              remaining -= 1;
             }
 
-            rx.recv().await;
-            remaining -= 1;
-          }
+            if is_expected_shutdown.load(Ordering::SeqCst) {
+              return;
+            }
 
-          tx.send(Ok(TaskResult::ProcessDependencies(Box::new(
-            ProcessDependenciesResult {
-              module_identifier: task.original_module_identifier,
-            },
-          ))))
-          .expect("Failed to send process dependencies result");
+            tx.send(Ok(TaskResult::ProcessDependencies(Box::new(
+              ProcessDependenciesResult {
+                module_identifier: task.original_module_identifier,
+              },
+            ))))
+            .expect("Failed to send process dependencies result");
+          }
         });
       }
       process_deps_time.end(start);
