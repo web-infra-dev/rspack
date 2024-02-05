@@ -650,6 +650,7 @@ impl<'parser> JavascriptParser<'parser> {
             .call_member_chain_of_call_member_chain(self, expr, &for_name)
             .unwrap_or_default()
         {
+          self.enter_call -= 1;
           return;
         }
         let evaluated = self.evaluate_expression(callee);
@@ -660,6 +661,7 @@ impl<'parser> JavascriptParser<'parser> {
             .call(self, expr, evaluated.identifier())
             .unwrap_or_default()
         {
+          self.enter_call -= 1;
           return;
         }
         if let Some(member) = callee.as_member() {
@@ -672,9 +674,17 @@ impl<'parser> JavascriptParser<'parser> {
         }
       }
       Callee::Super(_) => {} // Do nothing about super, same as webpack
-      Callee::Import(import) => {
+      Callee::Import(_) => {
         // In webpack this is walkImportExpression, import() is a ImportExpression instead of CallExpression with Callee::Import
-        // TODO: call hooks.importCall
+        if self
+          .plugin_drive
+          .clone()
+          .import_call(self, expr)
+          .unwrap_or_default()
+        {
+          self.enter_call -= 1;
+          return;
+        }
       }
     }
     self.walk_expr_or_spread(&expr.args);
