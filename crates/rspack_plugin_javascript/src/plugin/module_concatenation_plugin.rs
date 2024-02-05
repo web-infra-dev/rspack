@@ -294,12 +294,12 @@ impl ModuleConcatenationPlugin {
         return Some(problem);
       }
     }
-    //
     let mut incoming_connections_from_modules = HashMap::default();
     for (origin_module, connections) in incoming_connections.iter() {
       if let Some(origin_module) = origin_module {
         if chunk_graph.get_number_of_module_chunks(*origin_module) == 0 {
-          continue; // Ignore connection from orphan modules
+          // Ignore connection from orphan modules
+          continue;
         }
 
         let mut origin_runtime = RuntimeSpec::default();
@@ -343,7 +343,7 @@ impl ModuleConcatenationPlugin {
       })
       .cloned()
       .collect();
-    //
+
     if !other_chunk_modules.is_empty() {
       let problem = {
         let mut names: Vec<_> = other_chunk_modules
@@ -370,7 +370,7 @@ impl ModuleConcatenationPlugin {
       failure_cache.insert(*module_id, problem.clone());
       return Some(problem);
     }
-    //
+
     let mut non_harmony_connections = HashMap::default();
     for (origin_module, connections) in incoming_connections_from_modules.iter() {
       let selected: Vec<_> = connections

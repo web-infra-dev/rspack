@@ -125,6 +125,7 @@ impl SplitChunksPlugin {
         );
       }
 
+                // TODO: check 
       self.move_modules_to_new_chunk_and_remove_from_old_chunks(
         &module_group,
         new_chunk,

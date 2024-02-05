@@ -1387,6 +1387,7 @@ impl Compilation {
             .module_generation_result_map
             .insert(result.id, result);
           if used_exports_optimization {
+            // dbg!(&runtime, module_identifier);
             self
               .code_generation_results
               .add(module_identifier, runtime, result_id);
@@ -2252,8 +2253,8 @@ pub struct AssetInfoRelated {
   pub source_map: Option<String>,
 }
 
-/// level order, the impl is different from webpack, since the length of queue in `for of loop` is
-/// will not change
+/// level order, the impl is different from webpack, since we can't iterate a set and mutate it at
+/// the same time.
 pub fn assign_depths(
   assign_map: &mut HashMap<ModuleIdentifier, usize>,
   mg: &ModuleGraph,
