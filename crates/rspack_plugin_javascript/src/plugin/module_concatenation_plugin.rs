@@ -531,7 +531,7 @@ impl ModuleConcatenationPlugin {
         return Some(problem);
       }
     }
-    for imp in Self::get_imports(&compilation.module_graph, (*module_id).into(), runtime) {
+    for imp in Self::get_imports(&compilation.module_graph, *module_id, runtime) {
       candidates.insert(imp);
     }
     statistics.added += 1;
@@ -743,7 +743,7 @@ impl Plugin for ModuleConcatenationPlugin {
 
       let imports = Self::get_imports(
         &compilation.module_graph,
-        (*current_root).into(),
+        *current_root,
         active_runtime.as_ref(),
       );
       for import in imports {
