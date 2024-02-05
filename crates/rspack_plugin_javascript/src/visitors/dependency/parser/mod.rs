@@ -13,12 +13,13 @@ use bitflags::bitflags;
 use rspack_core::needs_refactor::WorkerSyntaxList;
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BuildInfo, BuildMeta, DependencyTemplate,
-  ModuleIdentifier, ResourceData,
+  JavascriptParserOptions, ModuleIdentifier, ResourceData,
 };
 use rspack_core::{CompilerOptions, DependencyLocation, JavascriptParserUrl, ModuleType, SpanExt};
 use rspack_error::miette::Diagnostic;
 use rustc_hash::FxHashSet;
 use swc_core::atoms::Atom;
+use swc_core::common::comments::Comments;
 use swc_core::common::util::take::Take;
 use swc_core::common::{SourceFile, Span, Spanned};
 use swc_core::ecma::ast::{
@@ -215,6 +216,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) presentational_dependencies: &'parser mut Vec<Box<dyn DependencyTemplate>>,
   pub(crate) blocks: &'parser mut Vec<AsyncDependenciesBlock>,
   pub(crate) ignored: &'parser mut FxHashSet<DependencyLocation>,
+  pub(crate) comments: Option<&'parser dyn Comments>,
   // TODO: remove `worker_syntax_list`
   pub(crate) worker_syntax_list: &'parser mut WorkerSyntaxList,
   pub(crate) worker_index: u32,
@@ -224,6 +226,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) plugin_drive: Rc<JavaScriptParserPluginDrive>,
   pub(crate) definitions_db: ScopeInfoDB,
   pub(crate) compiler_options: &'parser CompilerOptions,
+  pub(crate) javascript_options: Option<&'parser JavascriptParserOptions>,
   pub(crate) module_type: &'parser ModuleType,
   pub(crate) module_identifier: &'parser ModuleIdentifier,
   // TODO: remove `enter_assign`
@@ -233,6 +236,7 @@ pub struct JavascriptParser<'parser> {
   // TODO: delete `has_module_ident`
   pub(crate) has_module_ident: bool,
   pub(crate) parser_exports_state: &'parser mut Option<bool>,
+  // TODO: delete `enter_call`
   pub(crate) enter_call: u32,
   pub(crate) stmt_level: u32,
   pub(crate) last_stmt_is_expr_stmt: bool,
@@ -254,6 +258,7 @@ impl<'parser> JavascriptParser<'parser> {
     presentational_dependencies: &'parser mut Vec<Box<dyn DependencyTemplate>>,
     blocks: &'parser mut Vec<AsyncDependenciesBlock>,
     ignored: &'parser mut FxHashSet<DependencyLocation>,
+    comments: Option<&'parser dyn Comments>,
     module_identifier: &'parser ModuleIdentifier,
     module_type: &'parser ModuleType,
     worker_syntax_list: &'parser mut WorkerSyntaxList,
@@ -311,6 +316,7 @@ impl<'parser> JavascriptParser<'parser> {
         compiler_options.output.module,
       )));
       plugins.push(Box::new(parser_plugin::CompatibilityPlugin));
+      plugins.push(Box::new(parser_plugin::ImportParserPlugin));
     }
 
     if module_type.is_js_auto() || module_type.is_js_esm() {
@@ -340,7 +346,15 @@ impl<'parser> JavascriptParser<'parser> {
 
     let plugin_drive = Rc::new(JavaScriptParserPluginDrive::new(plugins));
     let mut db = ScopeInfoDB::new();
+    let javascript_options = compiler_options
+      .module
+      .parser
+      .as_ref()
+      .and_then(|p| p.get(module_type))
+      .and_then(|p| p.get_javascript(module_type));
     Self {
+      comments,
+      javascript_options,
       source_file,
       errors,
       warning_diagnostics,

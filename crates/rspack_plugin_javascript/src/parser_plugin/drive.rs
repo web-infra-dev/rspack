@@ -333,4 +333,20 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     }
     None
   }
+
+  fn import_call(
+    &self,
+    parser: &mut JavascriptParser,
+    expr: &swc_core::ecma::ast::CallExpr,
+  ) -> Option<bool> {
+    assert!(expr.callee.is_import());
+    for plugin in &self.plugins {
+      let res = plugin.import_call(parser, expr);
+      // `SyncBailHook`
+      if res.is_some() {
+        return res;
+      }
+    }
+    None
+  }
 }

@@ -2,7 +2,6 @@ mod context_helper;
 mod harmony_export_dependency_scanner;
 pub mod harmony_import_dependency_scanner;
 mod import_meta_scanner;
-mod import_scanner;
 mod parser;
 mod util;
 
@@ -28,7 +27,7 @@ pub use self::util::*;
 use self::{
   harmony_export_dependency_scanner::HarmonyExportDependencyScanner,
   harmony_import_dependency_scanner::HarmonyImportDependencyScanner,
-  import_meta_scanner::ImportMetaScanner, import_scanner::ImportScanner,
+  import_meta_scanner::ImportMetaScanner,
 };
 
 pub struct ScanDependenciesResult {
@@ -77,6 +76,7 @@ pub fn scan_dependencies(
     &mut presentational_dependencies,
     &mut blocks,
     &mut ignored,
+    comments.as_ref().map(|c| c as &dyn Comments),
     &module_identifier,
     module_type,
     worker_syntax_list,
@@ -112,7 +112,6 @@ pub fn scan_dependencies(
       comments,
       &mut ignored,
     ));
-
     program.visit_with(&mut ImportMetaScanner::new(
       source_file.clone(),
       &mut presentational_dependencies,
@@ -122,23 +121,6 @@ pub fn scan_dependencies(
       &mut ignored,
     ));
   }
-
-  program.visit_with(&mut ImportScanner::new(
-    source_file.clone(),
-    module_identifier,
-    &mut dependencies,
-    &mut blocks,
-    comments.as_ref().map(|c| c as &dyn Comments),
-    build_meta,
-    compiler_options
-      .module
-      .parser
-      .as_ref()
-      .and_then(|p| p.get(module_type))
-      .and_then(|p| p.get_javascript(module_type)),
-    &mut warning_diagnostics,
-    &mut ignored,
-  ));
 
   if errors.is_empty() {
     Ok(ScanDependenciesResult {

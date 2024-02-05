@@ -168,6 +168,10 @@ pub trait JavascriptParserPlugin {
   fn assign(&self, _parser: &mut JavascriptParser, _expr: &AssignExpr) -> Option<bool> {
     None
   }
+
+  fn import_call(&self, _parser: &mut JavascriptParser, _expr: &CallExpr) -> Option<bool> {
+    None
+  }
 }
 
 pub type BoxJavascriptParserPlugin = Box<dyn JavascriptParserPlugin>;
