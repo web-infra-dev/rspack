@@ -1,7 +1,12 @@
 const rspack = require("@rspack/core");
 module.exports = [
 	{
-		entry: "./index.js",
+		entry: {
+			main: "./index.js"
+		},
+		output: {
+			filename: "[name].js"
+		},
 		externalsPresets: {
 			node: true
 		}
@@ -12,7 +17,8 @@ module.exports = [
 			module: "./module.js"
 		},
 		output: {
-			module: true
+			module: true,
+			filename: "[name].mjs"
 		},
 		experiments: {
 			outputModule: true

@@ -1,7 +1,7 @@
 /** @type {import("../../../../dist").Configuration} */
 module.exports = {
 	output: {
-		filename: "[name].js",
+		filename: "[name].mjs",
 		chunkFormat: "module",
 		chunkLoading: "import",
 		library: {

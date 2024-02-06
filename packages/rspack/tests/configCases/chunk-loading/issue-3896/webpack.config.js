@@ -1,6 +1,7 @@
 const assert = require("assert");
 
 module.exports = {
+	target: "node",
 	plugins: [
 		{
 			apply(compiler) {

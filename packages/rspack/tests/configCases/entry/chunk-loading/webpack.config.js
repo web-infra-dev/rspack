@@ -8,5 +8,8 @@ module.exports = {
 			import: "./b.js",
 			chunkLoading: "require"
 		}
+	},
+	output: {
+		filename: "[name].js"
 	}
 };

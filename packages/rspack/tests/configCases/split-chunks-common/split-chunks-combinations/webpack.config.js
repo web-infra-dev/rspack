@@ -1,6 +1,11 @@
 module.exports = {
+	mode: "development",
+	target: "node",
 	entry: {
 		main: "./index.js"
+	},
+	output: {
+		chunkFilename: "[name].js"
 	},
 	optimization: {
 		minimize: false,
