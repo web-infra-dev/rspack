@@ -27,6 +27,7 @@ pub enum InitFragmentKey {
   HarmonyImport(String),
   HarmonyExportStar(String), // TODO: align with webpack and remove this
   HarmonyExports,
+  CommonJsExports(String),
   ExternalModule(String),
   AwaitDependencies,
   HarmonyCompatibility,
@@ -80,7 +81,8 @@ impl InitFragmentKey {
       | InitFragmentKey::HarmonyFakeNamespaceObjectFragment(_)
       | InitFragmentKey::HarmonyExportStar(_)
       | InitFragmentKey::ExternalModule(_)
-      | InitFragmentKey::ModuleDecorator(_) => first(fragments),
+      | InitFragmentKey::ModuleDecorator(_)
+      | InitFragmentKey::CommonJsExports(_) => first(fragments),
       InitFragmentKey::HarmonyCompatibility | InitFragmentKey::Unique(_) => {
         debug_assert!(fragments.len() == 1, "fragment = {:?}", self);
         first(fragments)

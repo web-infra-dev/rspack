@@ -160,6 +160,7 @@ export class DiffProcessor implements ITestProcessor {
 			ignoreModuleId: this.options.ignoreModuleId,
 			ignorePropertyQuotationMark: this.options.ignorePropertyQuotationMark,
 			ignoreBlockOnlyStatement: this.options.ignoreBlockOnlyStatement,
+			ignoreIfCertainCondition: this.options.ignoreIfCertainCondition,
 			ignoreSwcHelpersPath: this.options.ignoreSwcHelpersPath,
 			ignoreObjectPropertySequence: this.options.ignoreObjectPropertySequence,
 			ignoreCssFilePath: this.options.ignoreCssFilePath,
