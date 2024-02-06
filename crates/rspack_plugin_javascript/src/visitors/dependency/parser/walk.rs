@@ -455,15 +455,23 @@ impl<'parser> JavascriptParser<'parser> {
 
   fn walk_unary_expression(&mut self, expr: &UnaryExpr) {
     if expr.op == UnaryOp::TypeOf {
-      // TODO: call_hooks_from_expression
-      if self
-        .plugin_drive
-        .clone()
-        .r#typeof(self, expr)
-        .unwrap_or_default()
+      if let Some(expr_info) =
+        self.get_member_expression_info_from_expr(&expr.arg, AllowedMemberTypes::Expression)
       {
-        return;
-      }
+        let MemberExpressionInfo::Expression(expr_info) = expr_info else {
+          // we use `AllowedMemberTypes::Expression` above
+          unreachable!();
+        };
+        if let Some(for_name) = expr_info.name.call_hooks_name(self)
+          && self
+            .plugin_drive
+            .clone()
+            .r#typeof(self, expr, &for_name)
+            .unwrap_or_default()
+        {
+          return;
+        }
+      };
       // TODO: expr.arg belongs chain_expression
     }
     self.walk_expression(&expr.arg)

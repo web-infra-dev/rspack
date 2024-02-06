@@ -245,6 +245,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     &self,
     parser: &mut JavascriptParser,
     expr: &swc_core::ecma::ast::UnaryExpr,
+    _for_name: &str,
   ) -> Option<bool> {
     if (expr_matcher::is_require(&expr.arg)
       || expr_matcher::is_require_resolve(&expr.arg)

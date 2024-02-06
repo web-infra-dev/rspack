@@ -11,6 +11,7 @@ impl JavascriptParserPlugin for CommonJsPlugin {
     &self,
     parser: &mut JavascriptParser,
     expr: &swc_core::ecma::ast::UnaryExpr,
+    _for_name: &str,
   ) -> Option<bool> {
     if expr_matcher::is_module(&expr.arg) && parser.is_unresolved_ident("module") {
       parser
