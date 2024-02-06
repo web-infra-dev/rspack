@@ -12,7 +12,7 @@ use crate::options::cache_group_test::{CacheGroupTest, CacheGroupTestFnCtx};
 use crate::options::chunk_name::{ChunkNameGetter, ChunkNameGetterFnCtx};
 use crate::SplitChunksPlugin;
 
-type ChunksKey = u64;
+type ChunksKey = num_bigint::BigUint;
 
 impl SplitChunksPlugin {
   #[tracing::instrument(skip_all)]
@@ -87,11 +87,8 @@ impl SplitChunksPlugin {
         }
       }
 
-      combinations_cache.insert(chunks_key, result);
-      combinations_cache
-        .get(&chunks_key)
-        .expect("This should never happen, please file an issue")
-        .clone()
+      combinations_cache.insert(chunks_key, result.clone());
+      result
     };
 
     compilation.module_graph.modules().values().par_bridge().for_each(|module| {
@@ -107,6 +104,7 @@ impl SplitChunksPlugin {
       let mut temp = vec![];
 
       for idx in 0..self.cache_groups.len() {
+                // let used_exports = compilation.options.optimization
         let cache_group = &self.cache_groups[idx];
         // Filter by `splitChunks.cacheGroups.{cacheGroup}.test`
         let is_match_the_test = match &cache_group.test {
@@ -146,7 +144,7 @@ impl SplitChunksPlugin {
         .filter(|(index, _)| temp[*index].1);
 
       for (cache_group_index, (idx, cache_group)) in filtered.enumerate() {
-        let combs = get_combination(chunks_key);
+        let combs = get_combination(chunks_key.clone());
 
         for chunk_combination in combs {
           // Filter by `splitChunks.cacheGroups.{cacheGroup}.minChunks`
@@ -339,14 +337,12 @@ impl SplitChunksPlugin {
   }
 
   fn get_key<'a, I: Iterator<Item = &'a ChunkUkey>>(chunks: I) -> ChunksKey {
-    let mut sorted = chunks.collect::<Vec<_>>();
-    sorted.sort_unstable();
-    let mut hasher = FxHasher::default();
-    for chunk in sorted {
-      let usize = chunk.as_usize();
-      usize.hash(&mut hasher);
+    let mut bitset = num_bigint::BigUint::default();
+    for c in chunks {
+      let usize = c.as_usize();
+      bitset.set_bit(usize as u64, true);
     }
-    hasher.finish()
+    bitset
   }
 
   #[allow(clippy::type_complexity)]
