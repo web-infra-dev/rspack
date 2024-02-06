@@ -17,6 +17,7 @@ on:
   push:
     branches:
       - main
+      - jerry/test
     paths-ignore:
       - "**/*.md"
     tags-ignore:
@@ -44,7 +45,7 @@ jobs:
   test-windows:
     name: Test Windows
     needs: [get-runner-labels]
-    if: github.ref_name == 'main'
+    if: github.ref_name == 'main' || contains(github.event.pull_request.title, '!windows')
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-pc-windows-msvc
@@ -55,7 +56,7 @@ jobs:
   test-mac:
     name: Test Mac
     needs: [get-runner-labels]
-    if: github.ref_name == 'main'
+    if: github.ref_name == 'main' || contains(github.event.pull_request.title, '!macos')
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-apple-darwin
