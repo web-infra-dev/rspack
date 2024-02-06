@@ -91,8 +91,6 @@ pub(crate) mod expr_matcher {
     is_module_exports: "module.exports",
     is_module_require: "module.require",
     is_webpack_module_id: "__webpack_module__.id",
-    is_import_meta_url: "import.meta.url",
-    is_import_meta: "import.meta",
     is_object_define_property: "Object.defineProperty",
     // unsupported
     is_require_extensions: "require.extensions",

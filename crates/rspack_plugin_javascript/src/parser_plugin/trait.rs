@@ -115,7 +115,12 @@ pub trait JavascriptParserPlugin {
     None
   }
 
-  fn r#typeof(&self, _parser: &mut JavascriptParser, _expr: &UnaryExpr) -> Option<bool> {
+  fn r#typeof(
+    &self,
+    _parser: &mut JavascriptParser,
+    _expr: &UnaryExpr,
+    _for_name: &str,
+  ) -> Option<bool> {
     None
   }
 

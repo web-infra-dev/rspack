@@ -5,7 +5,6 @@ use url::Url;
 
 use super::JavascriptParserPlugin;
 use crate::visitors::create_traceable_error;
-use crate::visitors::expr_matcher;
 use crate::visitors::expr_name;
 use crate::visitors::ExportedVariableInfo;
 
@@ -22,9 +21,9 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
     &self,
     parser: &mut crate::visitors::JavascriptParser,
     unary_expr: &swc_core::ecma::ast::UnaryExpr,
+    for_name: &str,
   ) -> Option<bool> {
-    let expr = unary_expr.arg.as_ref();
-    if expr_matcher::is_import_meta(expr) {
+    if for_name == expr_name::IMPORT_META {
       parser
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(
@@ -34,7 +33,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
           None,
         )));
       Some(true)
-    } else if expr_matcher::is_import_meta_url(expr) {
+    } else if for_name == expr_name::IMPORT_META_URL {
       parser
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(

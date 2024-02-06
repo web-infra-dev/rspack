@@ -1,5 +1,5 @@
 use swc_core::common::Span;
-use swc_core::ecma::ast::{BinExpr, CallExpr, IfStmt, VarDecl, VarDeclarator};
+use swc_core::ecma::ast::{BinExpr, CallExpr, IfStmt, UnaryOp, VarDecl, VarDeclarator};
 
 use super::{BoxJavascriptParserPlugin, JavascriptParserPlugin};
 use crate::parser_plugin::r#const::is_logic_op;
@@ -147,9 +147,11 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     &self,
     parser: &mut JavascriptParser,
     expr: &swc_core::ecma::ast::UnaryExpr,
+    for_name: &str,
   ) -> Option<bool> {
+    assert!(expr.op == UnaryOp::TypeOf);
     for plugin in &self.plugins {
-      let res = plugin.r#typeof(parser, expr);
+      let res = plugin.r#typeof(parser, expr, for_name);
       // `SyncBailHook`
       if res.is_some() {
         return res;
