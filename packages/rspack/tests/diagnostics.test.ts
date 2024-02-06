@@ -6,6 +6,7 @@ import serializer, { normalizePaths } from "jest-serializer-path";
 import merge from "webpack-merge";
 import assert from "assert";
 import { ensureRspackConfigNotExist } from "./utils";
+import { replaceStack } from "./lib/util/replaceMitteDiagnostic";
 
 expect.addSnapshotSerializer(serializer);
 
@@ -66,8 +67,8 @@ describe("Diagnostics", function () {
 							warnings: true
 						})
 					);
-					// Manually replace error stack until `stats.errorStack` is supported.
-					output = output.replaceAll(ERROR_STACK_RE, "");
+
+					output = replaceStack(output);
 
 					const errorOutputPath = path.resolve(casePath, `./stats.err`);
 					const updateSnapshot =

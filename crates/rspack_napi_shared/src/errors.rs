@@ -48,10 +48,7 @@ const fn get_backtrace() -> Option<String> {
 /// otherwise we try to format the error from the given `Error` object that indicates which was created on the Rust side.
 #[inline(always)]
 fn extract_stack_or_message_from_napi_error(env: &Env, err: Error) -> (String, Option<String>) {
-  if !err.reason.is_empty() {
-    return (err.reason, None);
-  }
-
+  let maybe_reason = err.reason.clone();
   match unsafe { ToNapiValue::to_napi_value(env.raw(), err) } {
     Ok(napi_error) => match try_extract_string_value_from_property(env, napi_error, "stack") {
       Err(_) => match try_extract_string_value_from_property(env, napi_error, "message") {
@@ -60,10 +57,11 @@ fn extract_stack_or_message_from_napi_error(env: &Env, err: Error) -> (String, O
       },
       Ok(message) => (message, get_backtrace()),
     },
-    Err(e) => (
+    Err(e) if maybe_reason.is_empty() => (
       format!("Failed to extract NAPI error stack or message: {e}"),
       get_backtrace(),
     ),
+    Err(_) => (maybe_reason, None),
   }
 }
 
