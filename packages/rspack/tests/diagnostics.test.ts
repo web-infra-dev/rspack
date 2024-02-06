@@ -68,7 +68,11 @@ describe("Diagnostics", function () {
 						})
 					);
 
-					output = replaceStack(output);
+					// TODO: change to stats.errorStack
+					if (casePath.includes("module-build-failed")) {
+						// Replace potential loader stack
+						output = replaceStack(output);
+					}
 
 					const errorOutputPath = path.resolve(casePath, `./stats.err`);
 					const updateSnapshot =
