@@ -4892,24 +4892,12 @@ exports[`StatsTestCases should print correct stats for parse-error-builtin-swc-l
   "errors": [
     {
       "formatted": "  × Module build failed:
-  ├─▶   ×    │   x Expected '{', got 'error'
-  │     │    ,-[<PROJECT_ROOT>/tests/statsCases/parse-error-builtin-swc-loader/index.ts:1:1]
-  │     │  1 | export error;
-  │     │    :        ^^^^^
-  │     │    \`----
-  │     │
-  │   
+  ├─▶   ×    │   x Expected '{', got 'error'    │    ,-[<PROJECT_ROOT>/tests/statsCases/parse-error-builtin-swc-loader/index.ts:1:1]    │  1 | export error;    │    :        ^^^^^    │    \`----    │  
   ╰─▶ Syntax Error
   help: File was processed with this loader: 'builtin:swc-loader??ruleSet[1].rules[0].use[0]'
 ",
       "message": "  × Module build failed:
-  ├─▶   ×    │   x Expected '{', got 'error'
-  │     │    ,-[<PROJECT_ROOT>/tests/statsCases/parse-error-builtin-swc-loader/index.ts:1:1]
-  │     │  1 | export error;
-  │     │    :        ^^^^^
-  │     │    \`----
-  │     │
-  │   
+  ├─▶   ×    │   x Expected '{', got 'error'    │    ,-[<PROJECT_ROOT>/tests/statsCases/parse-error-builtin-swc-loader/index.ts:1:1]    │  1 | export error;    │    :        ^^^^^    │    \`----    │  
   ╰─▶ Syntax Error
   help: File was processed with this loader: 'builtin:swc-loader??ruleSet[1].rules[0].use[0]'
 ",
@@ -4928,13 +4916,7 @@ exports[`StatsTestCases should print correct stats for parse-error-builtin-swc-l
 exports[`StatsTestCases should print correct stats for parse-error-builtin-swc-loader 2`] = `
 "ERROR in ./index.ts
   × Module build failed:
-  ├─▶   ×    │   x Expected '{', got 'error'
-  │     │    ,-[<PROJECT_ROOT>/tests/statsCases/parse-error-builtin-swc-loader/index.ts:1:1]
-  │     │  1 | export error;
-  │     │    :        ^^^^^
-  │     │    \`----
-  │     │
-  │   
+  ├─▶   ×    │   x Expected '{', got 'error'    │    ,-[<PROJECT_ROOT>/tests/statsCases/parse-error-builtin-swc-loader/index.ts:1:1]    │  1 | export error;    │    :        ^^^^^    │    \`----    │  
   ╰─▶ Syntax Error
   help: File was processed with this loader: 'builtin:swc-loader??ruleSet[1].rules[0].use[0]'
 
