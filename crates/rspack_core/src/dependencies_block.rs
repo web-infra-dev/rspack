@@ -7,6 +7,7 @@ use rspack_error::{
   miette::{self, Diagnostic},
   thiserror::{self, Error},
 };
+use rspack_identifier::Identifiable;
 
 use crate::{
   update_hash::{UpdateHashContext, UpdateRspackHash},
@@ -81,6 +82,7 @@ pub struct AsyncDependenciesBlock {
   dependencies: Vec<BoxDependency>,
   loc: Option<DependencyLocation>,
   parent: ModuleIdentifier,
+  identifier: ModuleIdentifier,
 }
 
 impl AsyncDependenciesBlock {
@@ -95,6 +97,14 @@ impl AsyncDependenciesBlock {
       dependencies: Default::default(),
       loc,
       parent,
+      identifier: format!(
+        "{}|{}",
+        parent,
+        loc
+          .map(|loc| format!("{}:{}", loc.start, loc.end))
+          .unwrap_or_default()
+      )
+      .into(),
     }
   }
 }
@@ -156,6 +166,12 @@ impl DependenciesBlock for AsyncDependenciesBlock {
 
   fn get_dependencies(&self) -> &[DependencyId] {
     &self.dependency_ids
+  }
+}
+
+impl Identifiable for AsyncDependenciesBlock {
+  fn identifier(&self) -> rspack_identifier::Identifier {
+    self.identifier
   }
 }
 

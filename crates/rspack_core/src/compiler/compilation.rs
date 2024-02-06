@@ -1161,9 +1161,18 @@ impl Compilation {
               origin_blocks.sort_unstable();
 
               for index in 0..origin_blocks.len() {
-                if origin_blocks[index].0 != now_blocks[index].0 {
-                  return false;
+                match (
+                  origin_blocks[index].0.get(self),
+                  now_blocks[index].0.get(self),
+                ) {
+                  (Some(origin), Some(now)) => {
+                    if origin.identifier() != now.identifier() {
+                      return false;
+                    }
+                  }
+                  _ => return false,
                 }
+
                 if origin_blocks[index].1 != now_blocks[index].1 {
                   return false;
                 }
