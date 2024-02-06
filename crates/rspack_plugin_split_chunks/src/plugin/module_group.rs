@@ -104,7 +104,6 @@ impl SplitChunksPlugin {
       let mut temp = vec![];
 
       for idx in 0..self.cache_groups.len() {
-                // let used_exports = compilation.options.optimization
         let cache_group = &self.cache_groups[idx];
         // Filter by `splitChunks.cacheGroups.{cacheGroup}.test`
         let is_match_the_test = match &cache_group.test {

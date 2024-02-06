@@ -408,7 +408,6 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
   fn process_queue(&mut self) {
     tracing::trace!("process_queue");
     while let Some(action) = self.queue.pop() {
-      // dbg!(&action);
       match action {
         QueueAction::AddAndEnterEntryModule(i) => self.add_and_enter_entry_module(&i),
         QueueAction::AddAndEnterModule(i) => self.add_and_enter_module(&i),
@@ -535,7 +534,6 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
   fn process_entry_block(&mut self, item: &ProcessEntryBlock) {
     tracing::trace!("process_entry_block {:?}", item);
-    panic!("");
     let chunk_group_info = self.chunk_group_infos.expect_get(&item.chunk_group_info);
 
     let runtime = chunk_group_info.runtime.clone();
@@ -575,7 +573,6 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
     let runtime = item_chunk_group_info.runtime.clone();
     let modules = self.get_block_modules(item.block, Some(&runtime));
-    // dbg!(&modules);
     for (module, active_state) in modules.into_iter().rev() {
       if self
         .compilation

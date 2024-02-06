@@ -210,7 +210,6 @@ impl ChunkGraph {
     chunk_graph_chunk.modules.remove(&module_identifier);
   }
 
-  #[track_caller]
   pub fn connect_chunk_and_module(
     &mut self,
     chunk: ChunkUkey,
@@ -226,11 +225,6 @@ impl ChunkGraph {
       .chunk_graph_chunk_by_chunk_ukey
       .entry(chunk)
       .or_default();
-    if module_identifier.contains("v5") {
-      dbg!(&module_identifier);
-      let caller_location = std::panic::Location::caller();
-      println!("called from line: {:?}", caller_location);
-    }
     chunk_graph_chunk.modules.insert(module_identifier);
   }
 

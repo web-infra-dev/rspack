@@ -1387,7 +1387,6 @@ impl Compilation {
             .module_generation_result_map
             .insert(result.id, result);
           if used_exports_optimization {
-            // dbg!(&runtime, module_identifier);
             self
               .code_generation_results
               .add(module_identifier, runtime, result_id);

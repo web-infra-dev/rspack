@@ -19,10 +19,6 @@ pub fn render_chunk_modules(
     SourceType::JavaScript,
     module_graph,
   );
-  // dbg!(&ordered_modules
-  //   .iter()
-  //   .map(|item| item.identifier())
-  //   .collect::<Vec<_>>());
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
 
   let plugin_driver = &compilation.plugin_driver;
