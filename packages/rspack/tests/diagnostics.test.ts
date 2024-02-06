@@ -6,14 +6,11 @@ import serializer, { normalizePaths } from "jest-serializer-path";
 import merge from "webpack-merge";
 import assert from "assert";
 import { ensureRspackConfigNotExist } from "./utils";
-import { replaceStack } from "./lib/util/replaceMitteDiagnostic";
 
 expect.addSnapshotSerializer(serializer);
 
 const caseDir = path.resolve(__dirname, "./diagnostics");
 const categories = fs.readdirSync(caseDir);
-
-const ERROR_STACK_RE = /\s+at.*[(\s].*\)?/g;
 
 describe("Diagnostics", function () {
 	categories.forEach(categoryName => {
@@ -71,7 +68,11 @@ describe("Diagnostics", function () {
 					// TODO: change to stats.errorStack
 					if (casePath.includes("module-build-failed")) {
 						// Replace potential loader stack
-						output = replaceStack(output);
+						output = output
+							.replaceAll("│", "")
+							.split(/\r?\n/)
+							.map(s => s.trim())
+							.join("");
 					}
 
 					const errorOutputPath = path.resolve(casePath, `./stats.err`);
