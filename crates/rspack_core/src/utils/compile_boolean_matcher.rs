@@ -335,20 +335,20 @@ fn get_common_suffix<'a, I: Iterator<Item = &'a str> + Clone>(mut items: I) -> S
 
     while s > 0 {
       s -= 1;
-      if let Some(suffix_char) = suffix.chars().nth(s) {
-        if let Some(item_char) = item.chars().nth(p - 1) {
-          if item_char != suffix_char {
-            suffix = suffix[s + 1..].to_string();
-            break;
-          }
-        } else {
-          break;
-        }
+      let Some(suffix_char) = suffix.chars().nth(s) else {
+        break;
+      };
+
+      let item_char = if p > 0 { item.chars().nth(p - 1) } else { None };
+
+      if let Some(item_char) = item_char
+        && item_char == suffix_char
+      {
+        p -= 1;
       } else {
+        suffix = suffix[s + 1..].to_string();
         break;
       }
-
-      p -= 1;
     }
   }
 
