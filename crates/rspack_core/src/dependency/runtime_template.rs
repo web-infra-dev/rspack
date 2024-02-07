@@ -7,10 +7,10 @@ use swc_core::ecma::atoms::Atom;
 
 use crate::{
   compile_boolean_matcher_from_lists, get_import_var, property_access, to_comment,
-  to_normal_comment, AsyncDependenciesBlockId, BooleanMatcher, ChunkGraph, Compilation,
-  DependenciesBlock, DependencyId, ExportsArgument, ExportsType, FakeNamespaceObjectMode,
-  InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleGraph, ModuleIdentifier,
-  NormalInitFragment, RuntimeCondition, RuntimeGlobals, RuntimeSpec, TemplateContext,
+  to_normal_comment, AsyncDependenciesBlockId, ChunkGraph, Compilation, DependenciesBlock,
+  DependencyId, ExportsArgument, ExportsType, FakeNamespaceObjectMode, InitFragmentExt,
+  InitFragmentKey, InitFragmentStage, ModuleGraph, ModuleIdentifier, NormalInitFragment,
+  RuntimeCondition, RuntimeGlobals, RuntimeSpec, TemplateContext,
 };
 
 pub fn runtime_condition_expression(
@@ -55,13 +55,11 @@ pub fn runtime_condition_expression(
 
   runtime_requirements.insert(RuntimeGlobals::RUNTIME_ID);
 
-  match compile_boolean_matcher_from_lists(
+  compile_boolean_matcher_from_lists(
     positive_runtime_ids.into_iter().collect::<Vec<_>>(),
     negative_runtime_ids.into_iter().collect::<Vec<_>>(),
-  ) {
-    BooleanMatcher::Condition(_) => unreachable!(),
-    BooleanMatcher::Matcher(matcher) => matcher(RuntimeGlobals::RUNTIME_ID.to_string()),
-  }
+  )
+  .render(RuntimeGlobals::RUNTIME_ID.to_string().as_str())
 }
 
 fn subtract_runtime(a: Option<&RuntimeSpec>, b: Option<&RuntimeSpec>) -> Option<RuntimeSpec> {
