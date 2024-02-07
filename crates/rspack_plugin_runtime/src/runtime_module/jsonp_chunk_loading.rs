@@ -1,18 +1,15 @@
 use rspack_core::{
-  impl_runtime_module,
+  compile_boolean_matcher, impl_runtime_module,
   rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
-  Chunk, ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule,
+  BooleanMatcher, Chunk, ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule,
   RuntimeModuleStage,
 };
 use rspack_identifier::Identifier;
 use rspack_util::source_map::SourceMapKind;
 
-use super::BooleanMatcher;
 use crate::{
   get_chunk_runtime_requirements,
-  runtime_module::utils::{
-    chunk_has_js, get_initial_chunk_ids, render_condition_map, stringify_chunks,
-  },
+  runtime_module::utils::{chunk_has_js, get_initial_chunk_ids, stringify_chunks},
 };
 
 #[impl_runtime_module]
@@ -70,8 +67,10 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
       compilation
         .chunk_graph
         .get_chunk_condition_map(&chunk.ukey, compilation, chunk_has_js);
-    let has_js_matcher = render_condition_map(&condition_map, "chunkId");
+    let has_js_matcher = compile_boolean_matcher(&condition_map);
     let initial_chunks = get_initial_chunk_ids(self.chunk, compilation, chunk_has_js);
+
+    let js_matcher = has_js_matcher.render("chunkId");
 
     let mut source = ConcatSource::default();
 
@@ -101,7 +100,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
         "installedChunks[chunkId] = 0;".to_string()
       } else {
         include_str!("runtime/jsonp_chunk_loading.js")
-          .replace("$JS_MATCHER$", has_js_matcher.to_string().as_str())
+          .replace("$JS_MATCHER$", &js_matcher)
           .replace(
             "$MATCH_FALLBACK$",
             if matches!(has_js_matcher, BooleanMatcher::Condition(true)) {
@@ -131,7 +130,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
       };
       source.add(RawSource::from(
         include_str!("runtime/jsonp_chunk_loading_with_prefetch.js")
-          .replace("$JS_MATCHER$", has_js_matcher.to_string().as_str())
+          .replace("$JS_MATCHER$", &js_matcher)
           .replace("$CROSS_ORIGIN$", cross_origin.as_str()),
       ));
     }
@@ -173,7 +172,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
 
       source.add(RawSource::from(
         include_str!("runtime/jsonp_chunk_loading_with_preload.js")
-          .replace("$JS_MATCHER$", has_js_matcher.to_string().as_str())
+          .replace("$JS_MATCHER$", &js_matcher)
           .replace("$CROSS_ORIGIN$", cross_origin.as_str())
           .replace("$SCRIPT_TYPE_LINK_PRE$", script_type_link_pre.as_str())
           .replace("$SCRIPT_TYPE_LINK_POST$", script_type_link_post),
