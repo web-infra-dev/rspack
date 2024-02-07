@@ -393,6 +393,277 @@ webpack/runtime/make_namespace_object {909}
 Rspack compiled successfully (727484790d78891314bc)"
 `;
 
+exports[`StatsTestCases should print correct stats for css-concat 1`] = `
+{
+  "assets": [
+    {
+      "chunkNames": [
+        "main",
+      ],
+      "chunks": [
+        "909",
+      ],
+      "emitted": true,
+      "info": {
+        "development": false,
+        "hotModuleReplacement": false,
+      },
+      "name": "bundle.css",
+      "size": 24,
+      "type": "asset",
+    },
+    {
+      "chunkNames": [
+        "main",
+      ],
+      "chunks": [
+        "909",
+      ],
+      "emitted": true,
+      "info": {
+        "development": false,
+        "hotModuleReplacement": false,
+      },
+      "name": "bundle.js",
+      "size": 813,
+      "type": "asset",
+    },
+  ],
+  "assetsByChunkName": {
+    "main": [
+      "bundle.css",
+      "bundle.js",
+    ],
+  },
+  "children": [],
+  "chunks": [
+    {
+      "auxiliaryFiles": [],
+      "children": [],
+      "entry": true,
+      "files": [
+        "bundle.css",
+        "bundle.js",
+      ],
+      "id": "909",
+      "initial": true,
+      "modules": [
+        {
+          "assets": [],
+          "chunks": [
+            "909",
+          ],
+          "id": "135",
+          "identifier": "css|<PROJECT_ROOT>/tests/statsCases/css-concat/foo.css",
+          "issuer": "<PROJECT_ROOT>/tests/statsCases/css-concat/index.js",
+          "issuerId": undefined,
+          "issuerName": "./index.js",
+          "issuerPath": [
+            {
+              "id": undefined,
+              "identifier": "<PROJECT_ROOT>/tests/statsCases/css-concat/index.js",
+              "name": "./index.js",
+            },
+          ],
+          "moduleType": "css",
+          "name": "./foo.css",
+          "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/css-concat/foo.css",
+          "orphan": false,
+          "reasons": [
+            {
+              "moduleId": undefined,
+              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/css-concat/index.js",
+              "moduleName": "./index.js",
+              "type": "esm import",
+              "userRequest": "./foo.css",
+            },
+          ],
+          "size": 42,
+          "source": ".foo {
+  color: black
+}",
+          "type": "module",
+        },
+        {
+          "assets": [],
+          "chunks": [
+            "909",
+          ],
+          "id": "869",
+          "identifier": "<PROJECT_ROOT>/tests/statsCases/css-concat/index.js|8233752f853e139ebf28ce5e2a9d5ff0",
+          "issuer": undefined,
+          "issuerId": undefined,
+          "issuerName": undefined,
+          "issuerPath": [],
+          "moduleType": "javascript/esm",
+          "name": "./index.js + 1 modules",
+          "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/css-concat/index.js",
+          "orphan": false,
+          "reasons": [
+            {
+              "moduleId": undefined,
+              "moduleIdentifier": undefined,
+              "moduleName": undefined,
+              "type": "entry",
+              "userRequest": "./index",
+            },
+          ],
+          "size": 62,
+          "source": undefined,
+          "type": "module",
+        },
+      ],
+      "names": [
+        "main",
+      ],
+      "parents": [],
+      "siblings": [],
+      "size": 127,
+      "type": "chunk",
+    },
+  ],
+  "entrypoints": {
+    "main": {
+      "assets": [
+        {
+          "name": "bundle.js",
+          "size": 813,
+        },
+        {
+          "name": "bundle.css",
+          "size": 24,
+        },
+      ],
+      "assetsSize": 837,
+      "chunks": [
+        "909",
+      ],
+      "name": "main",
+    },
+  },
+  "errors": [],
+  "errorsCount": 0,
+  "filteredModules": undefined,
+  "hash": "114e55a8ecdab6f09498",
+  "logging": {},
+  "modules": [
+    {
+      "filteredChildren": 1,
+      "orphan": true,
+      "size": 20,
+      "sizes": {},
+      "type": "orphan modules",
+    },
+    {
+      "assets": [],
+      "chunks": [
+        "909",
+      ],
+      "id": "135",
+      "identifier": "css|<PROJECT_ROOT>/tests/statsCases/css-concat/foo.css",
+      "issuer": "<PROJECT_ROOT>/tests/statsCases/css-concat/index.js",
+      "issuerId": undefined,
+      "issuerName": "./index.js",
+      "issuerPath": [
+        {
+          "id": undefined,
+          "identifier": "<PROJECT_ROOT>/tests/statsCases/css-concat/index.js",
+          "name": "./index.js",
+        },
+      ],
+      "moduleType": "css",
+      "name": "./foo.css",
+      "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/css-concat/foo.css",
+      "orphan": false,
+      "reasons": [
+        {
+          "moduleId": undefined,
+          "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/css-concat/index.js",
+          "moduleName": "./index.js",
+          "type": "esm import",
+          "userRequest": "./foo.css",
+        },
+      ],
+      "size": 42,
+      "source": ".foo {
+  color: black
+}",
+      "type": "module",
+    },
+    {
+      "assets": [],
+      "chunks": [
+        "909",
+      ],
+      "id": "869",
+      "identifier": "<PROJECT_ROOT>/tests/statsCases/css-concat/index.js|8233752f853e139ebf28ce5e2a9d5ff0",
+      "issuer": undefined,
+      "issuerId": undefined,
+      "issuerName": undefined,
+      "issuerPath": [],
+      "moduleType": "javascript/esm",
+      "name": "./index.js + 1 modules",
+      "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/css-concat/index.js",
+      "orphan": false,
+      "reasons": [
+        {
+          "moduleId": undefined,
+          "moduleIdentifier": undefined,
+          "moduleName": undefined,
+          "type": "entry",
+          "userRequest": "./index",
+        },
+      ],
+      "size": 62,
+      "source": undefined,
+      "type": "module",
+    },
+  ],
+  "namedChunkGroups": {
+    "main": {
+      "assets": [
+        {
+          "name": "bundle.js",
+          "size": 813,
+        },
+        {
+          "name": "bundle.css",
+          "size": 24,
+        },
+      ],
+      "assetsSize": 837,
+      "chunks": [
+        "909",
+      ],
+      "name": "main",
+    },
+  },
+  "outputPath": "<PROJECT_ROOT>/tests/statsCases/css-concat/dist",
+  "publicPath": "",
+  "warnings": [],
+  "warningsCount": 0,
+}
+`;
+
+exports[`StatsTestCases should print correct stats for css-concat 2`] = `
+"PublicPath: (none)
+asset bundle.css 24 bytes {909} [emitted] (name: main)
+asset bundle.js 813 bytes {909} [emitted] (name: main)
+Entrypoint main 837 bytes = bundle.js 813 bytes bundle.css 24 bytes
+chunk {909} bundle.css, bundle.js (main) [entry]
+  ./foo.css [135] {909}
+    esm import ./foo.css
+  ./index.js + 1 modules [869] {909}
+    entry ./index
+orphan modules [orphan] 1 module
+./foo.css [135] {909}
+  esm import ./foo.css
+./index.js + 1 modules [869] {909}
+  entry ./index
+  
+Rspack compiled successfully (114e55a8ecdab6f09498)"
+`;
+
 exports[`StatsTestCases should print correct stats for filename 1`] = `
 {
   "assets": [

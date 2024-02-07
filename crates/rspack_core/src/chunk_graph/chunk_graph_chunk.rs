@@ -3,8 +3,8 @@
 use hashlink::LinkedHashMap;
 use indexmap::IndexSet;
 use rspack_database::Database;
-use rspack_identifier::{IdentifierLinkedMap, IdentifierSet};
-use rustc_hash::FxHashMap as HashMap;
+use rspack_identifier::{IdentifierLinkedMap, IdentifierMap, IdentifierSet};
+use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 
 use crate::{
   find_graph_roots, merge_runtime, BoxModule, Chunk, ChunkByUkey, ChunkGraphModule, ChunkGroup,
@@ -30,6 +30,8 @@ pub struct ChunkGraphChunk {
   pub modules: IdentifierSet,
   pub runtime_requirements: RuntimeGlobals,
   pub(crate) runtime_modules: Vec<ModuleIdentifier>,
+
+  pub(crate) source_types_by_module: Option<IdentifierMap<FxHashSet<SourceType>>>,
 }
 
 impl ChunkGraphChunk {
@@ -39,6 +41,7 @@ impl ChunkGraphChunk {
       modules: Default::default(),
       runtime_requirements: Default::default(),
       runtime_modules: Default::default(),
+      source_types_by_module: Default::default(),
     }
   }
 }
@@ -203,11 +206,16 @@ impl ChunkGraph {
     chunk: &ChunkUkey,
     module_identifier: ModuleIdentifier,
   ) {
-    let chunk_graph_module = self.get_chunk_graph_module_mut(module_identifier);
+    let chunk_graph_module: &mut ChunkGraphModule =
+      self.get_chunk_graph_module_mut(module_identifier);
     chunk_graph_module.chunks.remove(chunk);
 
     let chunk_graph_chunk = self.get_chunk_graph_chunk_mut(*chunk);
     chunk_graph_chunk.modules.remove(&module_identifier);
+
+    if let Some(source_types_by_module) = &mut chunk_graph_chunk.source_types_by_module {
+      source_types_by_module.remove(&module_identifier);
+    }
   }
 
   pub fn connect_chunk_and_module(
@@ -286,11 +294,21 @@ impl ChunkGraph {
     module_graph: &'module ModuleGraph,
   ) -> Vec<&'module BoxModule> {
     let chunk_graph_chunk = self.get_chunk_graph_chunk(chunk);
+    let source_types = &chunk_graph_chunk.source_types_by_module;
+
     let modules = chunk_graph_chunk
       .modules
       .iter()
       .filter_map(|uri| module_graph.module_by_identifier(uri))
-      .filter(|module| module.source_types().contains(&source_type))
+      .filter(|module| {
+        if let Some(source_types) = source_types
+          && let Some(module_source_types) = source_types.get(&module.identifier())
+        {
+          module_source_types.contains(&source_type)
+        } else {
+          module.source_types().contains(&source_type)
+        }
+      })
       .collect::<Vec<_>>();
     modules
   }
@@ -504,6 +522,10 @@ impl ChunkGraph {
 
     let chunk_graph_chunk = self.get_chunk_graph_chunk_mut(*chunk);
     chunk_graph_chunk.entry_modules.remove(&module_identifier);
+
+    if let Some(source_types_by_module) = &mut chunk_graph_chunk.source_types_by_module {
+      source_types_by_module.remove(&module_identifier);
+    }
   }
 
   pub fn can_chunks_be_integrated(
@@ -702,5 +724,43 @@ impl ChunkGraph {
   }
   pub fn get_runtime_id(&self, runtime: String) -> Option<String> {
     self.runtime_ids.get(&runtime).and_then(|v| v.to_owned())
+  }
+
+  pub fn set_chunk_modules_source_types(
+    &mut self,
+    chunk: &ChunkUkey,
+    module: ModuleIdentifier,
+    source_types: FxHashSet<SourceType>,
+  ) {
+    let cgc = self
+      .chunk_graph_chunk_by_chunk_ukey
+      .get_mut(chunk)
+      .expect("should have cgc");
+
+    if let Some(source_types_by_module) = &mut cgc.source_types_by_module {
+      source_types_by_module.insert(module, source_types);
+    } else {
+      let mut map = IdentifierMap::default();
+      map.insert(module, source_types);
+      cgc.source_types_by_module = Some(map);
+    }
+  }
+
+  pub fn get_chunk_module_source_types(
+    &self,
+    chunk: &ChunkUkey,
+    module: &BoxModule,
+  ) -> FxHashSet<SourceType> {
+    self
+      .chunk_graph_chunk_by_chunk_ukey
+      .get(chunk)
+      .and_then(|cgc| {
+        if let Some(source_types_by_module) = &cgc.source_types_by_module {
+          return source_types_by_module.get(&module.identifier()).cloned();
+        }
+
+        None
+      })
+      .unwrap_or(module.source_types().iter().cloned().collect())
   }
 }

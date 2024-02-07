@@ -11,7 +11,7 @@ use rspack_core::{
   filter_runtime, merge_runtime, runtime_to_string, Compilation, CompilerContext,
   ExportInfoProvided, ExtendedReferencedExport, LibIdentOptions, Logger, Module, ModuleExt,
   ModuleGraph, ModuleGraphModule, ModuleIdentifier, MutexModuleGraph, OptimizeChunksArgs, Plugin,
-  ProvidedExports, RuntimeCondition, RuntimeSpec,
+  ProvidedExports, RuntimeCondition, RuntimeSpec, SourceType,
 };
 use rspack_error::Result;
 use rspack_util::fx_dashmap::FxDashMap;
@@ -956,9 +956,30 @@ impl Plugin for ModuleConcatenationPlugin {
           .get_module_chunks(root_module_id)
           .clone()
         {
-          compilation
+          let module = compilation
+            .module_graph
+            .module_by_identifier_mut(m)
+            .expect("should exist module");
+
+          let source_types = compilation
             .chunk_graph
-            .disconnect_chunk_and_module(&chunk_ukey, *m);
+            .get_chunk_module_source_types(&chunk_ukey, module);
+
+          if source_types.len() == 1 {
+            compilation
+              .chunk_graph
+              .disconnect_chunk_and_module(&chunk_ukey, *m);
+          } else {
+            let new_source_types = source_types
+              .into_iter()
+              .filter(|source_type| !matches!(source_type, SourceType::JavaScript))
+              .collect();
+            compilation.chunk_graph.set_chunk_modules_source_types(
+              &chunk_ukey,
+              *m,
+              new_source_types,
+            )
+          }
         }
       }
       // compilation
