@@ -9,7 +9,7 @@ use crate::{
   compile_boolean_matcher_from_lists, get_import_var, property_access, to_comment,
   to_normal_comment, AsyncDependenciesBlockId, ChunkGraph, Compilation, DependenciesBlock,
   DependencyId, ExportsArgument, ExportsType, FakeNamespaceObjectMode, InitFragmentExt,
-  InitFragmentKey, InitFragmentStage, ModuleGraph, ModuleIdentifier, NormalInitFragment,
+  InitFragmentKey, InitFragmentStage, Module, ModuleGraph, ModuleIdentifier, NormalInitFragment,
   RuntimeCondition, RuntimeGlobals, RuntimeSpec, TemplateContext,
 };
 
@@ -277,17 +277,13 @@ pub fn module_id(
 }
 
 pub fn import_statement(
-  code_generatable_context: &mut TemplateContext,
+  module: &dyn Module,
+  compilation: &Compilation,
+  runtime_requirements: &mut RuntimeGlobals,
   id: &DependencyId,
   request: &str,
   update: bool, // whether a new variable should be created or the existing one updated
 ) -> (String, String) {
-  let TemplateContext {
-    runtime_requirements,
-    compilation,
-    module,
-    ..
-  } = code_generatable_context;
   if compilation
     .module_graph
     .module_identifier_by_dependency_id(id)
