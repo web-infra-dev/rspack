@@ -12,8 +12,8 @@
     "vue": "3.2.45"
   },
   "devDependencies": {
-    "@rspack/cli": "0.5.2",
-    "@rspack/core": "0.5.2",
+    "@rspack/cli": "0.5.4",
+    "@rspack/core": "0.5.4",
     "vue-loader": "^17.2.2"
   },
   "keywords": [],
