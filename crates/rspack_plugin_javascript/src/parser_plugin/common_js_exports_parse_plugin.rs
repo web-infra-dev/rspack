@@ -363,70 +363,74 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
 
     let handle_remaining = |parser: &mut JavascriptParser, base: ExportsBase| {
       let is_module_exports_start = matches!(base, ExportsBase::ModuleExports);
-      if let Some(remaining) = get_member_expression_info(left_expr, Some(is_module_exports_start))
-      {
-        parser.walk_expression(&assign_expr.right);
-        if remaining.is_empty() {
-          parser.enable();
+      let Some(remaining) = get_member_expression_info(left_expr, Some(is_module_exports_start))
+      else {
+        return None;
+      };
+      if remaining.is_empty() {
+        parser.enable();
 
-          if parser.is_require_call_expr(&assign_expr.right) {
+        if parser.is_require_call_expr(&assign_expr.right)
+          && let Some(right_expr) = assign_expr.right.as_call()
+          && let Some(first_arg) = right_expr.args.first().map(|arg| &arg.expr)
+        {
+          let param = parser.evaluate_expression(first_arg);
+          if param.is_string() {
             // exports = require('xx');
             // module.exports = require('xx');
             // this = require('xx');
             // It's possible to reexport __esModule, so we must convert to a dynamic module
             parser.set_dynamic();
-            let related_require_dep = parser
-              .dependencies
-              .iter()
-              .find(|item| item.is_span_equal(&assign_expr.right.span()))
-              .map(|item| item.id())
-              .cloned();
             parser
               .dependencies
               .push(Box::new(CommonJsExportRequireDependency::new(
-                (left_expr.span().real_lo(), left_expr.span().real_hi()),
+                param.string().to_string(),
+                parser.in_try,
+                Some(assign_expr.span.into()),
+                (assign_expr.span().real_lo(), assign_expr.span().real_hi()),
                 base,
                 remaining,
-                related_require_dep,
+                false, // TODO: align parser.isStatementLevelExpression
               )));
           } else {
-            // exports = {};
-            // module.exports = {};
-            // this = {};
-            parser.bailout();
+            parser.walk_expression(&assign_expr.right);
           }
         } else {
-          // exports.__esModule = true;
-          // module.exports.__esModule = true;
-          // this.__esModule = true;
-          if let Some(first_member) = remaining.first()
-            && first_member == "__esModule"
-          {
-            parser.check_namespace(
-              // const flagIt = () => (exports.__esModule = true); => stmt_level = 1, last_stmt_is_expr_stmt = false
-              // const flagIt = () => { exports.__esModule = true }; => stmt_level = 2, last_stmt_is_expr_stmt = true
-              // (exports.__esModule = true); => stmt_level = 1, last_stmt_is_expr_stmt = true
-              parser.stmt_level == 1 && parser.last_stmt_is_expr_stmt,
-              Some(&assign_expr.right),
-            );
-          }
-          // exports.a = 1;
-          // module.exports.a = 1;
-          // this.a = 1;
-          parser
-            .dependencies
-            .push(Box::new(CommonJsExportsDependency::new(
-              (left_expr.span().real_lo(), left_expr.span().real_hi()),
-              None,
-              base,
-              remaining.to_owned(),
-            )));
+          // exports = {};
+          // module.exports = {};
+          // this = {};
+          parser.bailout();
+          parser.walk_expression(&assign_expr.right);
         }
-
-        Some(true)
       } else {
-        None
+        // exports.__esModule = true;
+        // module.exports.__esModule = true;
+        // this.__esModule = true;
+        if let Some(first_member) = remaining.first()
+          && first_member == "__esModule"
+        {
+          parser.check_namespace(
+            // const flagIt = () => (exports.__esModule = true); => stmt_level = 1, last_stmt_is_expr_stmt = false
+            // const flagIt = () => { exports.__esModule = true }; => stmt_level = 2, last_stmt_is_expr_stmt = true
+            // (exports.__esModule = true); => stmt_level = 1, last_stmt_is_expr_stmt = true
+            parser.stmt_level == 1 && parser.last_stmt_is_expr_stmt,
+            Some(&assign_expr.right),
+          );
+        }
+        // exports.a = 1;
+        // module.exports.a = 1;
+        // this.a = 1;
+        parser
+          .dependencies
+          .push(Box::new(CommonJsExportsDependency::new(
+            (left_expr.span().real_lo(), left_expr.span().real_hi()),
+            None,
+            base,
+            remaining.to_owned(),
+          )));
+        parser.walk_expression(&assign_expr.right);
       }
+      Some(true)
     };
 
     if parser.is_exports_member_expr_start(left_expr) {
