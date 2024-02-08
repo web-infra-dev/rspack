@@ -3055,7 +3055,6 @@ dependencies = [
  "indexmap 2.2.2",
  "itertools 0.12.1",
  "once_cell",
- "regex",
  "rspack_core",
  "rspack_error",
  "rspack_hash",
