@@ -157,7 +157,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
           fragment,
         }) = scanner_context_module(dyn_imported.expr.as_ref())
         else {
-          return;
+          return None;
         };
         let magic_comment_options = try_extract_webpack_magic_comment(
           &parser.source_file,

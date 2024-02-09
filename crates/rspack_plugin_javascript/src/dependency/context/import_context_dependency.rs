@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-use rspack_core::{module_raw, AsModuleDependency, ContextDependency};
-=======
-use rspack_core::{module_id_expr, parse_resource, AsModuleDependency, ContextDependency};
->>>>>>> 320b2c72b (feat: support resource query in context module)
+use rspack_core::{module_raw, parse_resource, AsModuleDependency, ContextDependency};
 use rspack_core::{normalize_context, DependencyCategory, DependencyId, DependencyTemplate};
 use rspack_core::{ContextOptions, Dependency, TemplateReplaceSource};
 use rspack_core::{DependencyType, ErrorSpan, TemplateContext};
