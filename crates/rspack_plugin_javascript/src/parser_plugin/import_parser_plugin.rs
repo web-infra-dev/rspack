@@ -10,7 +10,7 @@ use swc_core::ecma::atoms::Atom;
 
 use super::JavascriptParserPlugin;
 use crate::dependency::{ImportContextDependency, ImportDependency, ImportEagerDependency};
-use crate::visitors::{parse_order_string, scanner_context_module};
+use crate::visitors::{parse_order_string, scanner_context_module, ContextModuleScanResult};
 use crate::webpack_comment::try_extract_webpack_magic_comment;
 
 pub struct ImportParserPlugin;
@@ -150,7 +150,13 @@ impl JavascriptParserPlugin for ImportParserPlugin {
         Some(true)
       }
       _ => {
-        let Some((context, reg)) = scanner_context_module(dyn_imported.expr.as_ref()) else {
+        let Some(ContextModuleScanResult {
+          context,
+          reg,
+          query,
+          fragment,
+        }) = scanner_context_module(dyn_imported.expr.as_ref())
+        else {
           return None;
         };
         let magic_comment_options = try_extract_webpack_magic_comment(
@@ -178,7 +184,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
               include: None,
               exclude: None,
               category: DependencyCategory::Esm,
-              request: context,
+              request: format!("{}{}{}", context, query, fragment),
               namespace_object: if parser.build_meta.strict_harmony_module {
                 ContextNameSpaceObject::Strict
               } else {
