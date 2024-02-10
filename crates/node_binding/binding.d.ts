@@ -50,8 +50,8 @@ export class JsCompilation {
 
 export class JsStats {
   getAssets(): JsStatsGetAssets
-  getModules(reasons: boolean, moduleAssets: boolean, nestedModules: boolean, source: boolean): Array<JsStatsModule>
-  getChunks(chunkModules: boolean, chunksRelations: boolean, reasons: boolean, moduleAssets: boolean, nestedModules: boolean, source: boolean): Array<JsStatsChunk>
+  getModules(reasons: boolean, moduleAssets: boolean, nestedModules: boolean, source: boolean, usedExports: boolean, providedExports: boolean): Array<JsStatsModule>
+  getChunks(chunkModules: boolean, chunksRelations: boolean, reasons: boolean, moduleAssets: boolean, nestedModules: boolean, source: boolean, usedExports: boolean, providedExports: boolean): Array<JsStatsChunk>
   getEntrypoints(): Array<JsStatsChunkGroup>
   getNamedChunkGroups(): Array<JsStatsChunkGroup>
   getErrors(): Array<JsStatsError>
@@ -554,6 +554,8 @@ export interface JsStatsModule {
   source?: string | Buffer
   profile?: JsStatsModuleProfile
   orphan: boolean
+  providedExports?: Array<string>
+  usedExports?: boolean | Array<string>
 }
 
 export interface JsStatsModuleIssuer {

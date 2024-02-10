@@ -362,7 +362,14 @@ export class Compilation {
 			options.children,
 			!context.forToString
 		);
-
+		options.usedExports = optionOrLocalFallback(
+			options.usedExports,
+			!context.forToString
+		);
+		options.providedExports = optionOrLocalFallback(
+			options.providedExports,
+			!context.forToString
+		);
 		return options;
 	}
 

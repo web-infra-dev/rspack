@@ -6,7 +6,7 @@ use rspack_error::Result;
 use rspack_sources::Source;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
-use crate::{get_chunk_from_ukey, get_chunk_group_from_ukey};
+use crate::{get_chunk_from_ukey, get_chunk_group_from_ukey, ProvidedExports, UsedExports};
 use crate::{BoxModule, BoxRuntimeModule, Chunk};
 use crate::{ChunkGroupUkey, Compilation, LogType, ModuleIdentifier, ModuleType, SourceType};
 
@@ -131,13 +131,25 @@ impl Stats<'_> {
     module_assets: bool,
     nested_modules: bool,
     source: bool,
+    used_exports: bool,
+    provided_exports: bool,
   ) -> Result<Vec<StatsModule>> {
     let mut modules: Vec<StatsModule> = self
       .compilation
       .module_graph
       .modules()
       .values()
-      .map(|module| self.get_module(module, reasons, module_assets, nested_modules, source))
+      .map(|module| {
+        self.get_module(
+          module,
+          reasons,
+          module_assets,
+          nested_modules,
+          source,
+          used_exports,
+          provided_exports,
+        )
+      })
       .chain(
         self
           .compilation
@@ -152,6 +164,7 @@ impl Stats<'_> {
     Ok(modules)
   }
 
+  #[allow(clippy::too_many_arguments)]
   pub fn get_chunks(
     &self,
     chunk_modules: bool,
@@ -160,6 +173,8 @@ impl Stats<'_> {
     module_assets: bool,
     nested_modules: bool,
     source: bool,
+    used_exports: bool,
+    provided_exports: bool,
   ) -> Result<Vec<StatsChunk>> {
     let mut chunks: Vec<StatsChunk> = self
       .compilation
@@ -179,7 +194,17 @@ impl Stats<'_> {
             .get_chunk_modules(&c.ukey, &self.compilation.module_graph);
           let mut chunk_modules = chunk_modules
             .into_iter()
-            .map(|m| self.get_module(m, reasons, module_assets, nested_modules, source))
+            .map(|m| {
+              self.get_module(
+                m,
+                reasons,
+                module_assets,
+                nested_modules,
+                source,
+                used_exports,
+                provided_exports,
+              )
+            })
             .collect::<Result<Vec<_>>>()?;
           Self::sort_modules(&mut chunk_modules);
           Some(chunk_modules)
@@ -371,6 +396,7 @@ impl Stats<'_> {
     });
   }
 
+  #[allow(clippy::too_many_arguments)]
   fn get_module<'a>(
     &'a self,
     module: &'a BoxModule,
@@ -378,6 +404,8 @@ impl Stats<'_> {
     module_assets: bool,
     nested_modules: bool,
     source: bool,
+    used_exports: bool,
+    provided_exports: bool,
   ) -> Result<StatsModule<'a>> {
     let identifier = module.identifier();
     let mgm = self
@@ -481,6 +509,35 @@ impl Stats<'_> {
       None
     };
 
+    let provided_exports = provided_exports
+      .then(|| {
+        match self
+          .compilation
+          .module_graph
+          .get_provided_exports(module.identifier())
+        {
+          ProvidedExports::Vec(v) => Some(v.iter().map(|i| i.to_string()).collect_vec()),
+          _ => None,
+        }
+      })
+      .expect("Should get proviede exports");
+
+    let used_exports = used_exports
+      .then(|| {
+        match self
+          .compilation
+          .module_graph
+          .get_used_exports(module.identifier(), None)
+        {
+          UsedExports::Null => None,
+          UsedExports::Vec(v) => Some(StatsUsedExports::Vec(
+            v.iter().map(|i| i.to_string()).collect_vec(),
+          )),
+          UsedExports::Bool(b) => Some(StatsUsedExports::Bool(b)),
+        }
+      })
+      .expect("Should get used exports");
+
     Ok(StatsModule {
       r#type: "module",
       module_type: *module.module_type(),
@@ -510,6 +567,8 @@ impl Stats<'_> {
         .chunk_graph
         .get_number_of_module_chunks(identifier)
         == 0,
+      provided_exports,
+      used_exports,
     })
   }
 
@@ -553,6 +612,8 @@ impl Stats<'_> {
         .chunk_graph
         .get_number_of_module_chunks(*identifier)
         == 0,
+      provided_exports: None,
+      used_exports: None,
     })
   }
   fn get_chunk_relations(&self, chunk: &Chunk) -> (Vec<String>, Vec<String>, Vec<String>) {
@@ -679,6 +740,14 @@ pub struct StatsModule<'a> {
   pub source: Option<&'a dyn Source>,
   pub profile: Option<StatsModuleProfile>,
   pub orphan: bool,
+  pub provided_exports: Option<Vec<String>>,
+  pub used_exports: Option<StatsUsedExports>,
+}
+
+#[derive(Debug)]
+pub enum StatsUsedExports {
+  Vec(Vec<String>),
+  Bool(bool),
 }
 
 #[derive(Debug)]

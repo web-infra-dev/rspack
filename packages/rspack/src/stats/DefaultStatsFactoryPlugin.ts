@@ -600,7 +600,9 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 					options.reasons!,
 					options.moduleAssets!,
 					options.nestedModules!,
-					options.source!
+					options.source!,
+					options.usedExports!,
+					options.providedExports!
 				);
 			object.chunks = factory.create(`${type}.chunks`, chunks, context);
 		},
@@ -618,7 +620,9 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 					options.reasons!,
 					options.moduleAssets!,
 					options.nestedModules!,
-					options.source!
+					options.source!,
+					options.usedExports!,
+					options.providedExports!
 				);
 			const groupedModules = factory.create(`${type}.modules`, array, context);
 			const limited = spaceLimited(groupedModules, options.modulesSpace!);
@@ -789,6 +793,12 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 		},
 		source: (object, module) => {
 			object.source = module.source;
+		},
+		usedExports: (object, module) => {
+			object.usedExports = module.usedExports;
+		},
+		providedExports: (object, module) => {
+			object.providedExports = module.providedExports;
 		}
 	},
 	profile: {

@@ -4,7 +4,7 @@ use napi::{
   Either,
 };
 use napi_derive::napi;
-use rspack_core::Stats;
+use rspack_core::{Stats, StatsUsedExports};
 
 use super::{JsCompilation, ToJsCompatSource};
 
@@ -217,6 +217,7 @@ impl From<rspack_core::StatsAssetInfo> for JsStatsAssetInfo {
 }
 
 type JsStatsModuleSource = Either<String, Buffer>;
+type JsStatsUsedExports = Either<bool, Vec<String>>;
 #[napi(object)]
 pub struct JsStatsModule {
   pub r#type: &'static str,
@@ -236,6 +237,8 @@ pub struct JsStatsModule {
   pub source: Option<Either<String, Buffer>>,
   pub profile: Option<JsStatsModuleProfile>,
   pub orphan: bool,
+  pub provided_exports: Option<Vec<String>>,
+  pub used_exports: Option<Either<bool, Vec<String>>>,
 }
 
 impl TryFrom<rspack_core::StatsModule<'_>> for JsStatsModule {
@@ -276,6 +279,11 @@ impl TryFrom<rspack_core::StatsModule<'_>> for JsStatsModule {
       source,
       profile: stats.profile.map(|p| p.into()),
       orphan: stats.orphan,
+      provided_exports: stats.provided_exports,
+      used_exports: stats.used_exports.map(|used_exports| match used_exports {
+        StatsUsedExports::Bool(b) => JsStatsUsedExports::A(b),
+        StatsUsedExports::Vec(v) => JsStatsUsedExports::B(v),
+      }),
     })
   }
 }
@@ -475,16 +483,26 @@ impl JsStats {
     module_assets: bool,
     nested_modules: bool,
     source: bool,
+    used_exports: bool,
+    provided_exports: bool,
   ) -> Result<Vec<JsStatsModule>> {
     self
       .inner
-      .get_modules(reasons, module_assets, nested_modules, source)
+      .get_modules(
+        reasons,
+        module_assets,
+        nested_modules,
+        source,
+        used_exports,
+        provided_exports,
+      )
       .map_err(|e| napi::Error::from_reason(e.to_string()))?
       .into_iter()
       .map(TryInto::try_into)
       .collect()
   }
 
+  #[allow(clippy::too_many_arguments)]
   #[napi]
   pub fn get_chunks(
     &self,
@@ -494,6 +512,8 @@ impl JsStats {
     module_assets: bool,
     nested_modules: bool,
     source: bool,
+    used_exports: bool,
+    provided_exports: bool,
   ) -> Result<Vec<JsStatsChunk>> {
     self
       .inner
@@ -504,6 +524,8 @@ impl JsStats {
         module_assets,
         nested_modules,
         source,
+        used_exports,
+        provided_exports,
       )
       .map_err(|e| napi::Error::from_reason(e.to_string()))?
       .into_iter()
