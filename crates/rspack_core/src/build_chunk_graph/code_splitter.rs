@@ -70,6 +70,8 @@ type CgiUkey = Ukey<ChunkGroupInfo>;
 pub(super) struct CodeSplitter<'me> {
   chunk_group_info_map: HashMap<ChunkGroupUkey, CgiUkey>,
   chunk_group_infos: Database<ChunkGroupInfo>,
+  outdated_order_index_chunk_groups: HashSet<CgiUkey>,
+  block_by_cgi: HashMap<CgiUkey, AsyncDependenciesBlockId>,
   pub(super) compilation: &'me mut Compilation,
   next_free_module_pre_order_index: u32,
   next_free_module_post_order_index: u32,
@@ -108,6 +110,8 @@ impl<'me> CodeSplitter<'me> {
     CodeSplitter {
       chunk_group_info_map: Default::default(),
       chunk_group_infos: Default::default(),
+      outdated_order_index_chunk_groups: Default::default(),
+      block_by_cgi: Default::default(),
       compilation,
       next_free_module_pre_order_index: 0,
       next_free_module_post_order_index: 0,
@@ -399,15 +403,57 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     logger.time_end(start);
 
     let start = logger.time("remove parent modules");
-    // if self
-    //   .compilation
-    //   .options
-    //   .optimization
-    //   .remove_available_modules
-    // {
-    //   self.remove_parent_modules();
-    // }
     logger.time_end(start);
+
+    let outdated_order_index_chunk_groups =
+      std::mem::take(&mut self.outdated_order_index_chunk_groups);
+
+    for outdated in outdated_order_index_chunk_groups {
+      let cgi = self.chunk_group_infos.expect_get(&outdated);
+      let chunk_group_ukey = cgi.chunk_group;
+      let runtime = cgi.runtime.clone();
+      let chunk_group = self
+        .compilation
+        .chunk_group_by_ukey
+        .expect_get_mut(&chunk_group_ukey);
+
+      chunk_group.next_pre_order_index = 0;
+      chunk_group.next_post_order_index = 0;
+
+      let Some(block) = self.block_by_cgi.get(&cgi.ukey).copied() else {
+        continue;
+      };
+      let Some(block) = block.get(self.compilation) else {
+        continue;
+      };
+      let blocks = block
+        .get_dependencies()
+        .iter()
+        .filter_map(|dep| {
+          self
+            .compilation
+            .module_graph
+            .module_identifier_by_dependency_id(dep)
+        })
+        .copied()
+        .collect::<Vec<_>>();
+
+      let mut visited = HashSet::default();
+
+      for root in blocks {
+        let mut ctx = (0, 0, Default::default());
+        self.calculate_order_index(root, &runtime, &mut visited, &mut ctx);
+
+        let chunk_group = self
+          .compilation
+          .chunk_group_by_ukey
+          .expect_get_mut(&chunk_group_ukey);
+        for (id, (pre, post)) in ctx.2 {
+          chunk_group.module_pre_order_indices.insert(id, pre);
+          chunk_group.module_post_order_indices.insert(id, post);
+        }
+      }
+    }
 
     // make sure all module (weak dependency particularly) has a mgm
     for module_identifier in self.compilation.module_graph.modules().keys() {
@@ -415,6 +461,38 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     }
 
     Ok(())
+  }
+
+  fn calculate_order_index(
+    &mut self,
+    module_identifier: ModuleIdentifier,
+    runtime: &RuntimeSpec,
+    visited: &mut HashSet<ModuleIdentifier>,
+    ctx: &mut (usize, usize, HashMap<ModuleIdentifier, (usize, usize)>),
+  ) {
+    let block_modules = self.get_block_modules(module_identifier.into(), Some(runtime));
+    if visited.contains(&module_identifier) {
+      return;
+    }
+    visited.insert(module_identifier);
+
+    let indices = ctx.2.entry(module_identifier).or_default();
+
+    indices.0 = ctx.0;
+    ctx.0 += 1;
+
+    for (module, state) in block_modules.iter() {
+      if matches!(state, ConnectionState::Bool(false)) {
+        continue;
+      }
+
+      self.calculate_order_index(*module, runtime, visited, ctx);
+    }
+
+    let indices = ctx.2.entry(module_identifier).or_default();
+
+    indices.1 = ctx.1;
+    ctx.1 += 1;
   }
 
   fn process_queue(&mut self) {
@@ -842,6 +920,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         cgi.ukey
       };
       self.block_chunk_groups.insert(block_id, cgi);
+      self.block_by_cgi.insert(cgi, block_id);
       cgi
     };
 
@@ -1128,6 +1207,10 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             let connect_list = self.queue_connect.entry(chunk_group_info_ukey).or_default();
             connect_list.insert(*child);
           }
+        }
+
+        if !enter_modules.is_empty() {
+          self.outdated_order_index_chunk_groups.insert(cgi.ukey);
         }
       }
     }
