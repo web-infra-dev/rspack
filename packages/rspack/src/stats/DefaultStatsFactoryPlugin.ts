@@ -795,10 +795,20 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			object.source = module.source;
 		},
 		usedExports: (object, module) => {
-			object.usedExports = module.usedExports;
+			if (typeof module.usedExports === "string") {
+				if (module.usedExports === "null") {
+					object.usedExports = null;
+				} else {
+					object.usedExports = module.usedExports === "true";
+				}
+			} else if (Array.isArray(module.usedExports)) {
+				object.usedExports = module.usedExports;
+			}
 		},
 		providedExports: (object, module) => {
-			object.providedExports = module.providedExports;
+			if (Array.isArray(module.providedExports)) {
+				object.providedExports = module.providedExports;
+			}
 		}
 	},
 	profile: {

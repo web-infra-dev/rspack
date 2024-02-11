@@ -555,7 +555,7 @@ export interface JsStatsModule {
   profile?: JsStatsModuleProfile
   orphan: boolean
   providedExports?: Array<string>
-  usedExports?: boolean | Array<string>
+  usedExports?: string | Array<string>
 }
 
 export interface JsStatsModuleIssuer {

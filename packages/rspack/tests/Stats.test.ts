@@ -31,8 +31,12 @@ describe("Stats", () => {
 		Entrypoint main 212 bytes = main.js
 		chunk {909} main.js (main) [entry]
 		  ./fixtures/a.js [585] {909}
+		    [no exports]
+		    [used exports unknown]
 		    entry ./fixtures/a
 		./fixtures/a.js [585] {909}
+		  [no exports]
+		  [used exports unknown]
 		  entry ./fixtures/a
 		  
 		Rspack compiled successfully (57e46af248a1c1fe076f)"

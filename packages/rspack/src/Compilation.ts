@@ -317,6 +317,14 @@ export class Compilation {
 			options.reasons,
 			!context.forToString
 		);
+		options.usedExports = optionOrLocalFallback(
+			options.usedExports,
+			!context.forToString
+		);
+		options.providedExports = optionOrLocalFallback(
+			options.providedExports,
+			!context.forToString
+		);
 		options.entrypoints = optionOrLocalFallback(options.entrypoints, true);
 		options.chunkGroups = optionOrLocalFallback(
 			options.chunkGroups,
@@ -362,14 +370,7 @@ export class Compilation {
 			options.children,
 			!context.forToString
 		);
-		options.usedExports = optionOrLocalFallback(
-			options.usedExports,
-			!context.forToString
-		);
-		options.providedExports = optionOrLocalFallback(
-			options.providedExports,
-			!context.forToString
-		);
+
 		return options;
 	}
 

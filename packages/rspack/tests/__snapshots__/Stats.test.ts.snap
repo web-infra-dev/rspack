@@ -116,6 +116,7 @@ exports[`Stats should have stats 1`] = `
           "name": "./fixtures/a.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
           "orphan": false,
+          "providedExports": [],
           "reasons": [
             {
               "moduleId": undefined,
@@ -131,6 +132,7 @@ exports[`Stats should have stats 1`] = `
 };
 ",
           "type": "module",
+          "usedExports": null,
         },
       ],
       "names": [
@@ -178,6 +180,7 @@ exports[`Stats should have stats 1`] = `
       "name": "./fixtures/a.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
       "orphan": false,
+      "providedExports": [],
       "reasons": [
         {
           "moduleId": undefined,
@@ -193,6 +196,7 @@ exports[`Stats should have stats 1`] = `
 };
 ",
       "type": "module",
+      "usedExports": null,
     },
   ],
   "namedChunkGroups": {
@@ -280,6 +284,7 @@ exports[`Stats should output stats with query 1`] = `
           "name": "./fixtures/a.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
           "orphan": false,
+          "providedExports": [],
           "reasons": [
             {
               "moduleId": "432",
@@ -295,6 +300,7 @@ exports[`Stats should output stats with query 1`] = `
 };
 ",
           "type": "module",
+          "usedExports": null,
         },
         {
           "assets": [],
@@ -317,6 +323,7 @@ exports[`Stats should output stats with query 1`] = `
           "name": "./fixtures/a.js?a=1",
           "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
           "orphan": false,
+          "providedExports": [],
           "reasons": [
             {
               "moduleId": "919",
@@ -332,6 +339,7 @@ exports[`Stats should output stats with query 1`] = `
 };
 ",
           "type": "module",
+          "usedExports": null,
         },
         {
           "assets": [],
@@ -354,6 +362,7 @@ exports[`Stats should output stats with query 1`] = `
           "name": "./fixtures/c.js?c=3",
           "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/c.js",
           "orphan": false,
+          "providedExports": [],
           "reasons": [
             {
               "moduleId": "919",
@@ -370,6 +379,7 @@ exports[`Stats should output stats with query 1`] = `
 };
 ",
           "type": "module",
+          "usedExports": null,
         },
         {
           "assets": [],
@@ -386,6 +396,7 @@ exports[`Stats should output stats with query 1`] = `
           "name": "./fixtures/abc-query.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
           "orphan": false,
+          "providedExports": [],
           "reasons": [
             {
               "moduleId": undefined,
@@ -401,6 +412,7 @@ exports[`Stats should output stats with query 1`] = `
 exports.c = require("./c?c=3");
 ",
           "type": "module",
+          "usedExports": null,
         },
       ],
       "names": [
@@ -459,6 +471,7 @@ exports.c = require("./c?c=3");
       "name": "./fixtures/a.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
       "orphan": false,
+      "providedExports": [],
       "reasons": [
         {
           "moduleId": "432",
@@ -474,6 +487,7 @@ exports.c = require("./c?c=3");
 };
 ",
       "type": "module",
+      "usedExports": null,
     },
     {
       "assets": [],
@@ -496,6 +510,7 @@ exports.c = require("./c?c=3");
       "name": "./fixtures/a.js?a=1",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
       "orphan": false,
+      "providedExports": [],
       "reasons": [
         {
           "moduleId": "919",
@@ -511,6 +526,7 @@ exports.c = require("./c?c=3");
 };
 ",
       "type": "module",
+      "usedExports": null,
     },
     {
       "assets": [],
@@ -533,6 +549,7 @@ exports.c = require("./c?c=3");
       "name": "./fixtures/c.js?c=3",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/c.js",
       "orphan": false,
+      "providedExports": [],
       "reasons": [
         {
           "moduleId": "919",
@@ -549,6 +566,7 @@ exports.c = require("./c?c=3");
 };
 ",
       "type": "module",
+      "usedExports": null,
     },
     {
       "assets": [],
@@ -565,6 +583,7 @@ exports.c = require("./c?c=3");
       "name": "./fixtures/abc-query.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
       "orphan": false,
+      "providedExports": [],
       "reasons": [
         {
           "moduleId": undefined,
@@ -580,6 +599,7 @@ exports.c = require("./c?c=3");
 exports.c = require("./c?c=3");
 ",
       "type": "module",
+      "usedExports": null,
     },
   ],
   "namedChunkGroups": {

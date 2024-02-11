@@ -21,8 +21,13 @@ export type StatsAsset = KnownStatsAsset & Record<string, any>;
 
 export type StatsChunk = KnownStatsChunk & Record<string, any>;
 
-export type KnownStatsModule = binding.JsStatsModule & {
+export type KnownStatsModule = Omit<
+	binding.JsStatsModule,
+	"usedExports" | "providedExports"
+> & {
 	profile?: StatsProfile;
+	usedExports?: null | string[] | boolean;
+	providedExports?: null | string[];
 };
 
 export type StatsProfile = KnownStatsProfile & Record<string, any>;

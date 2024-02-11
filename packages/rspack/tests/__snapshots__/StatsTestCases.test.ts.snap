@@ -78,6 +78,7 @@ exports[`StatsTestCases should print correct stats for auxiliary-files-test 1`] 
           "name": "./raw.png",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/raw.png",
           "orphan": false,
+          "providedExports": [],
           "reasons": [
             {
               "moduleId": "10",
@@ -101,6 +102,7 @@ exports[`StatsTestCases should print correct stats for auxiliary-files-test 1`] 
             "type": "Buffer",
           },
           "type": "module",
+          "usedExports": null,
         },
         {
           "assets": [],
@@ -117,6 +119,7 @@ exports[`StatsTestCases should print correct stats for auxiliary-files-test 1`] 
           "name": "./index.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/index.js",
           "orphan": false,
+          "providedExports": [],
           "reasons": [
             {
               "moduleId": undefined,
@@ -131,6 +134,7 @@ exports[`StatsTestCases should print correct stats for auxiliary-files-test 1`] 
 import rawModule from './raw.png';
 ",
           "type": "module",
+          "usedExports": null,
         },
         {
           "assets": [],
@@ -153,6 +157,7 @@ import rawModule from './raw.png';
           "name": "./stringModule.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/stringModule.js",
           "orphan": false,
+          "providedExports": [],
           "reasons": [
             {
               "moduleId": "10",
@@ -165,6 +170,7 @@ import rawModule from './raw.png';
           "size": 1,
           "source": "",
           "type": "module",
+          "usedExports": null,
         },
       ],
       "names": [
@@ -218,6 +224,7 @@ import rawModule from './raw.png';
       "name": "./raw.png",
       "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/raw.png",
       "orphan": false,
+      "providedExports": [],
       "reasons": [
         {
           "moduleId": "10",
@@ -241,6 +248,7 @@ import rawModule from './raw.png';
         "type": "Buffer",
       },
       "type": "module",
+      "usedExports": null,
     },
     {
       "assets": [],
@@ -257,6 +265,7 @@ import rawModule from './raw.png';
       "name": "./index.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/index.js",
       "orphan": false,
+      "providedExports": [],
       "reasons": [
         {
           "moduleId": undefined,
@@ -271,6 +280,7 @@ import rawModule from './raw.png';
 import rawModule from './raw.png';
 ",
       "type": "module",
+      "usedExports": null,
     },
     {
       "assets": [],
@@ -293,6 +303,7 @@ import rawModule from './raw.png';
       "name": "./stringModule.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/stringModule.js",
       "orphan": false,
+      "providedExports": [],
       "reasons": [
         {
           "moduleId": "10",
@@ -305,6 +316,7 @@ import rawModule from './raw.png';
       "size": 1,
       "source": "",
       "type": "module",
+      "usedExports": null,
     },
     {
       "assets": [],
@@ -376,16 +388,28 @@ asset f7f4f00355f310234f70.png 7 bytes {909} [emitted] [from: raw.png] (name: ma
 Entrypoint main 460 bytes = bundle.js
 chunk {909} bundle.js (main) [entry]
   ./raw.png [193] {909}
+    [no exports]
+    [used exports unknown]
     esm import ./raw.png [10]
   ./index.js [10] {909}
+    [no exports]
+    [used exports unknown]
     entry ./index
   ./stringModule.js [151] {909}
+    [no exports]
+    [used exports unknown]
     esm import ./stringModule [10]
 ./raw.png [193] {909}
+  [no exports]
+  [used exports unknown]
   esm import ./raw.png [10]
 ./index.js [10] {909}
+  [no exports]
+  [used exports unknown]
   entry ./index
 ./stringModule.js [151] {909}
+  [no exports]
+  [used exports unknown]
   esm import ./stringModule [10]
 webpack/runtime/public_path {909}
 webpack/runtime/make_namespace_object {909}
@@ -736,6 +760,9 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
           "name": "./dynamic.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/filename/dynamic.js",
           "orphan": false,
+          "providedExports": [
+            "value",
+          ],
           "reasons": [
             {
               "moduleId": "10",
@@ -749,6 +776,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
           "source": "export const value = "dynamic";
 ",
           "type": "module",
+          "usedExports": null,
         },
       ],
       "names": [],
@@ -786,6 +814,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
           "name": "./index.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/filename/index.js",
           "orphan": false,
+          "providedExports": [],
           "reasons": [
             {
               "moduleId": undefined,
@@ -799,6 +828,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
           "source": "import("./dynamic").then(console.log);
 ",
           "type": "module",
+          "usedExports": null,
         },
       ],
       "names": [
@@ -846,6 +876,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       "name": "./index.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/filename/index.js",
       "orphan": false,
+      "providedExports": [],
       "reasons": [
         {
           "moduleId": undefined,
@@ -859,6 +890,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       "source": "import("./dynamic").then(console.log);
 ",
       "type": "module",
+      "usedExports": null,
     },
     {
       "assets": [],
@@ -881,6 +913,9 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       "name": "./dynamic.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/filename/dynamic.js",
       "orphan": false,
+      "providedExports": [
+        "value",
+      ],
       "reasons": [
         {
           "moduleId": "10",
@@ -894,6 +929,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       "source": "export const value = "dynamic";
 ",
       "type": "module",
+      "usedExports": null,
     },
     {
       "assets": [],
@@ -1045,13 +1081,21 @@ asset 909.xxxx.js 935 bytes {909} [emitted] (name: main)
 Entrypoint main 935 bytes = 909.xxxx.js
 chunk {521} 521.xxxx.js <{909}>
   ./dynamic.js [345] {521}
+    [exports: value]
+    [used exports unknown]
     dynamic import ./dynamic [10]
 chunk {909} 909.xxxx.js (main) >{521}< [entry]
   ./index.js [10] {909}
+    [no exports]
+    [used exports unknown]
     entry ./index
 ./index.js [10] {909}
+  [no exports]
+  [used exports unknown]
   entry ./index
 ./dynamic.js [345] {521}
+  [exports: value]
+  [used exports unknown]
   dynamic import ./dynamic [10]
 webpack/runtime/ensure_chunk {909}
 webpack/runtime/has_own_property {909}
@@ -1115,6 +1159,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
           "name": "./index.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/hot+production/index.js",
           "orphan": false,
+          "providedExports": [],
           "reasons": [
             {
               "moduleId": undefined,
@@ -1128,6 +1173,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
           "source": "console.log("index.js");
 ",
           "type": "module",
+          "usedExports": null,
         },
       ],
       "names": [
@@ -1175,6 +1221,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
       "name": "./index.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/hot+production/index.js",
       "orphan": false,
+      "providedExports": [],
       "reasons": [
         {
           "moduleId": undefined,
@@ -1188,6 +1235,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
       "source": "console.log("index.js");
 ",
       "type": "module",
+      "usedExports": null,
     },
     {
       "assets": [],
@@ -1338,8 +1386,12 @@ asset bundle.js 8.9 KiB {909} [emitted] (name: main)
 Entrypoint main 8.9 KiB = bundle.js
 chunk {909} bundle.js (main) [entry]
   ./index.js [10] {909}
+    [no exports]
+    [used exports unknown]
     entry ./index.js
 ./index.js [10] {909}
+  [no exports]
+  [used exports unknown]
   entry ./index.js
 webpack/runtime/get_full_hash {909}
 webpack/runtime/has_own_property {909}
@@ -1608,6 +1660,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
               "name": "./b.js",
               "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/b.js",
               "orphan": false,
+              "providedExports": [],
               "reasons": [
                 {
                   "moduleId": "10",
@@ -1621,6 +1674,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
               "source": "module.exports = "b";
 ",
               "type": "module",
+              "usedExports": null,
             },
             {
               "assets": [],
@@ -1643,6 +1697,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
               "name": "./c.js",
               "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/c.js",
               "orphan": false,
+              "providedExports": [],
               "reasons": [
                 {
                   "moduleId": "10",
@@ -1657,6 +1712,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
 import("./e");
 ",
               "type": "module",
+              "usedExports": null,
             },
             {
               "assets": [],
@@ -1684,6 +1740,7 @@ import("./e");
               "name": "./d.js",
               "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/d.js",
               "orphan": false,
+              "providedExports": [],
               "reasons": [
                 {
                   "moduleId": "460",
@@ -1697,6 +1754,7 @@ import("./e");
               "source": "module.exports = "d";
 ",
               "type": "module",
+              "usedExports": null,
             },
             {
               "assets": [],
@@ -1724,6 +1782,7 @@ import("./e");
               "name": "./e.js",
               "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/e.js",
               "orphan": false,
+              "providedExports": [],
               "reasons": [
                 {
                   "moduleId": "460",
@@ -1737,6 +1796,7 @@ import("./e");
               "source": "module.exports = "e";
 ",
               "type": "module",
+              "usedExports": null,
             },
             {
               "assets": [],
@@ -1753,6 +1813,7 @@ import("./e");
               "name": "./index.js",
               "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/index.js",
               "orphan": false,
+              "providedExports": [],
               "reasons": [
                 {
                   "moduleId": undefined,
@@ -1769,6 +1830,7 @@ require("./b");
 import(/* webpackChunkName: "c" */ "./c");
 ",
               "type": "module",
+              "usedExports": null,
             },
           ],
           "names": [
@@ -1824,6 +1886,7 @@ import(/* webpackChunkName: "c" */ "./c");
           "name": "./b.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/b.js",
           "orphan": false,
+          "providedExports": [],
           "reasons": [
             {
               "moduleId": "10",
@@ -1837,6 +1900,7 @@ import(/* webpackChunkName: "c" */ "./c");
           "source": "module.exports = "b";
 ",
           "type": "module",
+          "usedExports": null,
         },
         {
           "assets": [],
@@ -1859,6 +1923,7 @@ import(/* webpackChunkName: "c" */ "./c");
           "name": "./c.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/c.js",
           "orphan": false,
+          "providedExports": [],
           "reasons": [
             {
               "moduleId": "10",
@@ -1873,6 +1938,7 @@ import(/* webpackChunkName: "c" */ "./c");
 import("./e");
 ",
           "type": "module",
+          "usedExports": null,
         },
         {
           "assets": [],
@@ -1900,6 +1966,7 @@ import("./e");
           "name": "./d.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/d.js",
           "orphan": false,
+          "providedExports": [],
           "reasons": [
             {
               "moduleId": "460",
@@ -1913,6 +1980,7 @@ import("./e");
           "source": "module.exports = "d";
 ",
           "type": "module",
+          "usedExports": null,
         },
         {
           "assets": [],
@@ -1940,6 +2008,7 @@ import("./e");
           "name": "./e.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/e.js",
           "orphan": false,
+          "providedExports": [],
           "reasons": [
             {
               "moduleId": "460",
@@ -1953,6 +2022,7 @@ import("./e");
           "source": "module.exports = "e";
 ",
           "type": "module",
+          "usedExports": null,
         },
         {
           "assets": [],
@@ -1969,6 +2039,7 @@ import("./e");
           "name": "./index.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/index.js",
           "orphan": false,
+          "providedExports": [],
           "reasons": [
             {
               "moduleId": undefined,
@@ -1985,6 +2056,7 @@ require("./b");
 import(/* webpackChunkName: "c" */ "./c");
 ",
           "type": "module",
+          "usedExports": null,
         },
         {
           "assets": [],
@@ -2179,6 +2251,7 @@ import(/* webpackChunkName: "c" */ "./c");
               "name": "./c.js",
               "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/c.js",
               "orphan": false,
+              "providedExports": [],
               "reasons": [
                 {
                   "moduleId": "10",
@@ -2193,6 +2266,7 @@ import(/* webpackChunkName: "c" */ "./c");
 import("./e");
 ",
               "type": "module",
+              "usedExports": null,
             },
             {
               "assets": [],
@@ -2220,6 +2294,7 @@ import("./e");
               "name": "./d.js",
               "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/d.js",
               "orphan": false,
+              "providedExports": [],
               "reasons": [
                 {
                   "moduleId": "460",
@@ -2233,6 +2308,7 @@ import("./e");
               "source": "module.exports = "d";
 ",
               "type": "module",
+              "usedExports": null,
             },
             {
               "assets": [],
@@ -2260,6 +2336,7 @@ import("./e");
               "name": "./e.js",
               "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/e.js",
               "orphan": false,
+              "providedExports": [],
               "reasons": [
                 {
                   "moduleId": "460",
@@ -2273,6 +2350,7 @@ import("./e");
               "source": "module.exports = "e";
 ",
               "type": "module",
+              "usedExports": null,
             },
           ],
           "names": [
@@ -2319,6 +2397,7 @@ import("./e");
               "name": "./b.js",
               "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/b.js",
               "orphan": false,
+              "providedExports": [],
               "reasons": [
                 {
                   "moduleId": "10",
@@ -2332,6 +2411,7 @@ import("./e");
               "source": "module.exports = "b";
 ",
               "type": "module",
+              "usedExports": null,
             },
             {
               "assets": [],
@@ -2348,6 +2428,7 @@ import("./e");
               "name": "./index.js",
               "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/index.js",
               "orphan": false,
+              "providedExports": [],
               "reasons": [
                 {
                   "moduleId": undefined,
@@ -2364,6 +2445,7 @@ require("./b");
 import(/* webpackChunkName: "c" */ "./c");
 ",
               "type": "module",
+              "usedExports": null,
             },
           ],
           "names": [
@@ -2417,6 +2499,7 @@ import(/* webpackChunkName: "c" */ "./c");
           "name": "./b.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/b.js",
           "orphan": false,
+          "providedExports": [],
           "reasons": [
             {
               "moduleId": "10",
@@ -2430,6 +2513,7 @@ import(/* webpackChunkName: "c" */ "./c");
           "source": "module.exports = "b";
 ",
           "type": "module",
+          "usedExports": null,
         },
         {
           "assets": [],
@@ -2452,6 +2536,7 @@ import(/* webpackChunkName: "c" */ "./c");
           "name": "./c.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/c.js",
           "orphan": false,
+          "providedExports": [],
           "reasons": [
             {
               "moduleId": "10",
@@ -2466,6 +2551,7 @@ import(/* webpackChunkName: "c" */ "./c");
 import("./e");
 ",
           "type": "module",
+          "usedExports": null,
         },
         {
           "assets": [],
@@ -2493,6 +2579,7 @@ import("./e");
           "name": "./d.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/d.js",
           "orphan": false,
+          "providedExports": [],
           "reasons": [
             {
               "moduleId": "460",
@@ -2506,6 +2593,7 @@ import("./e");
           "source": "module.exports = "d";
 ",
           "type": "module",
+          "usedExports": null,
         },
         {
           "assets": [],
@@ -2533,6 +2621,7 @@ import("./e");
           "name": "./e.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/e.js",
           "orphan": false,
+          "providedExports": [],
           "reasons": [
             {
               "moduleId": "460",
@@ -2546,6 +2635,7 @@ import("./e");
           "source": "module.exports = "e";
 ",
           "type": "module",
+          "usedExports": null,
         },
         {
           "assets": [],
@@ -2562,6 +2652,7 @@ import("./e");
           "name": "./index.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/index.js",
           "orphan": false,
+          "providedExports": [],
           "reasons": [
             {
               "moduleId": undefined,
@@ -2578,6 +2669,7 @@ require("./b");
 import(/* webpackChunkName: "c" */ "./c");
 ",
           "type": "module",
+          "usedExports": null,
         },
         {
           "assets": [],
@@ -2849,6 +2941,7 @@ import(/* webpackChunkName: "c" */ "./c");
               "name": "./d.js",
               "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/d.js",
               "orphan": false,
+              "providedExports": [],
               "reasons": [
                 {
                   "moduleId": "460",
@@ -2862,6 +2955,7 @@ import(/* webpackChunkName: "c" */ "./c");
               "source": "module.exports = "d";
 ",
               "type": "module",
+              "usedExports": null,
             },
             {
               "assets": [],
@@ -2889,6 +2983,7 @@ import(/* webpackChunkName: "c" */ "./c");
               "name": "./e.js",
               "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/e.js",
               "orphan": false,
+              "providedExports": [],
               "reasons": [
                 {
                   "moduleId": "460",
@@ -2902,6 +2997,7 @@ import(/* webpackChunkName: "c" */ "./c");
               "source": "module.exports = "e";
 ",
               "type": "module",
+              "usedExports": null,
             },
           ],
           "names": [],
@@ -2945,6 +3041,7 @@ import(/* webpackChunkName: "c" */ "./c");
               "name": "./c.js",
               "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/c.js",
               "orphan": false,
+              "providedExports": [],
               "reasons": [
                 {
                   "moduleId": "10",
@@ -2959,6 +3056,7 @@ import(/* webpackChunkName: "c" */ "./c");
 import("./e");
 ",
               "type": "module",
+              "usedExports": null,
             },
           ],
           "names": [
@@ -3004,6 +3102,7 @@ import("./e");
               "name": "./b.js",
               "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/b.js",
               "orphan": false,
+              "providedExports": [],
               "reasons": [
                 {
                   "moduleId": "10",
@@ -3017,6 +3116,7 @@ import("./e");
               "source": "module.exports = "b";
 ",
               "type": "module",
+              "usedExports": null,
             },
             {
               "assets": [],
@@ -3033,6 +3133,7 @@ import("./e");
               "name": "./index.js",
               "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/index.js",
               "orphan": false,
+              "providedExports": [],
               "reasons": [
                 {
                   "moduleId": undefined,
@@ -3049,6 +3150,7 @@ require("./b");
 import(/* webpackChunkName: "c" */ "./c");
 ",
               "type": "module",
+              "usedExports": null,
             },
           ],
           "names": [
@@ -3102,6 +3204,7 @@ import(/* webpackChunkName: "c" */ "./c");
           "name": "./b.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/b.js",
           "orphan": false,
+          "providedExports": [],
           "reasons": [
             {
               "moduleId": "10",
@@ -3115,6 +3218,7 @@ import(/* webpackChunkName: "c" */ "./c");
           "source": "module.exports = "b";
 ",
           "type": "module",
+          "usedExports": null,
         },
         {
           "assets": [],
@@ -3137,6 +3241,7 @@ import(/* webpackChunkName: "c" */ "./c");
           "name": "./c.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/c.js",
           "orphan": false,
+          "providedExports": [],
           "reasons": [
             {
               "moduleId": "10",
@@ -3151,6 +3256,7 @@ import(/* webpackChunkName: "c" */ "./c");
 import("./e");
 ",
           "type": "module",
+          "usedExports": null,
         },
         {
           "assets": [],
@@ -3178,6 +3284,7 @@ import("./e");
           "name": "./d.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/d.js",
           "orphan": false,
+          "providedExports": [],
           "reasons": [
             {
               "moduleId": "460",
@@ -3191,6 +3298,7 @@ import("./e");
           "source": "module.exports = "d";
 ",
           "type": "module",
+          "usedExports": null,
         },
         {
           "assets": [],
@@ -3218,6 +3326,7 @@ import("./e");
           "name": "./e.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/e.js",
           "orphan": false,
+          "providedExports": [],
           "reasons": [
             {
               "moduleId": "460",
@@ -3231,6 +3340,7 @@ import("./e");
           "source": "module.exports = "e";
 ",
           "type": "module",
+          "usedExports": null,
         },
         {
           "assets": [],
@@ -3247,6 +3357,7 @@ import("./e");
           "name": "./index.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/index.js",
           "orphan": false,
+          "providedExports": [],
           "reasons": [
             {
               "moduleId": undefined,
@@ -3263,6 +3374,7 @@ require("./b");
 import(/* webpackChunkName: "c" */ "./c");
 ",
           "type": "module",
+          "usedExports": null,
         },
         {
           "assets": [],
@@ -3548,6 +3660,7 @@ import(/* webpackChunkName: "c" */ "./c");
               "name": "./e.js",
               "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/e.js",
               "orphan": false,
+              "providedExports": [],
               "reasons": [
                 {
                   "moduleId": "460",
@@ -3561,6 +3674,7 @@ import(/* webpackChunkName: "c" */ "./c");
               "source": "module.exports = "e";
 ",
               "type": "module",
+              "usedExports": null,
             },
           ],
           "names": [],
@@ -3607,6 +3721,7 @@ import(/* webpackChunkName: "c" */ "./c");
               "name": "./d.js",
               "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/d.js",
               "orphan": false,
+              "providedExports": [],
               "reasons": [
                 {
                   "moduleId": "460",
@@ -3620,6 +3735,7 @@ import(/* webpackChunkName: "c" */ "./c");
               "source": "module.exports = "d";
 ",
               "type": "module",
+              "usedExports": null,
             },
           ],
           "names": [],
@@ -3664,6 +3780,7 @@ import(/* webpackChunkName: "c" */ "./c");
               "name": "./c.js",
               "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/c.js",
               "orphan": false,
+              "providedExports": [],
               "reasons": [
                 {
                   "moduleId": "10",
@@ -3678,6 +3795,7 @@ import(/* webpackChunkName: "c" */ "./c");
 import("./e");
 ",
               "type": "module",
+              "usedExports": null,
             },
           ],
           "names": [
@@ -3723,6 +3841,7 @@ import("./e");
               "name": "./b.js",
               "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/b.js",
               "orphan": false,
+              "providedExports": [],
               "reasons": [
                 {
                   "moduleId": "10",
@@ -3736,6 +3855,7 @@ import("./e");
               "source": "module.exports = "b";
 ",
               "type": "module",
+              "usedExports": null,
             },
             {
               "assets": [],
@@ -3752,6 +3872,7 @@ import("./e");
               "name": "./index.js",
               "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/index.js",
               "orphan": false,
+              "providedExports": [],
               "reasons": [
                 {
                   "moduleId": undefined,
@@ -3768,6 +3889,7 @@ require("./b");
 import(/* webpackChunkName: "c" */ "./c");
 ",
               "type": "module",
+              "usedExports": null,
             },
           ],
           "names": [
@@ -3821,6 +3943,7 @@ import(/* webpackChunkName: "c" */ "./c");
           "name": "./b.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/b.js",
           "orphan": false,
+          "providedExports": [],
           "reasons": [
             {
               "moduleId": "10",
@@ -3834,6 +3957,7 @@ import(/* webpackChunkName: "c" */ "./c");
           "source": "module.exports = "b";
 ",
           "type": "module",
+          "usedExports": null,
         },
         {
           "assets": [],
@@ -3856,6 +3980,7 @@ import(/* webpackChunkName: "c" */ "./c");
           "name": "./c.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/c.js",
           "orphan": false,
+          "providedExports": [],
           "reasons": [
             {
               "moduleId": "10",
@@ -3870,6 +3995,7 @@ import(/* webpackChunkName: "c" */ "./c");
 import("./e");
 ",
           "type": "module",
+          "usedExports": null,
         },
         {
           "assets": [],
@@ -3897,6 +4023,7 @@ import("./e");
           "name": "./d.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/d.js",
           "orphan": false,
+          "providedExports": [],
           "reasons": [
             {
               "moduleId": "460",
@@ -3910,6 +4037,7 @@ import("./e");
           "source": "module.exports = "d";
 ",
           "type": "module",
+          "usedExports": null,
         },
         {
           "assets": [],
@@ -3937,6 +4065,7 @@ import("./e");
           "name": "./e.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/e.js",
           "orphan": false,
+          "providedExports": [],
           "reasons": [
             {
               "moduleId": "460",
@@ -3950,6 +4079,7 @@ import("./e");
           "source": "module.exports = "e";
 ",
           "type": "module",
+          "usedExports": null,
         },
         {
           "assets": [],
@@ -3966,6 +4096,7 @@ import("./e");
           "name": "./index.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/index.js",
           "orphan": false,
+          "providedExports": [],
           "reasons": [
             {
               "moduleId": undefined,
@@ -3982,6 +4113,7 @@ require("./b");
 import(/* webpackChunkName: "c" */ "./c");
 ",
           "type": "module",
+          "usedExports": null,
         },
         {
           "assets": [],
@@ -4175,24 +4307,44 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   Chunk Group c 1.25 KiB = bundle1.js
   chunk {909} bundle1.js (main) <{909}> >{909}< [entry]
     ./b.js [996] {909}
+      [no exports]
+      [used exports unknown]
       cjs require ./b [10]
     ./c.js [460] {909}
+      [no exports]
+      [used exports unknown]
       dynamic import ./c [10]
     ./d.js [767] {909}
+      [no exports]
+      [used exports unknown]
       dynamic import ./d [460]
     ./e.js [390] {909}
+      [no exports]
+      [used exports unknown]
       dynamic import ./e [460]
     ./index.js [10] {909}
+      [no exports]
+      [used exports unknown]
       entry ./index
   ./b.js [996] {909}
+    [no exports]
+    [used exports unknown]
     cjs require ./b [10]
   ./c.js [460] {909}
+    [no exports]
+    [used exports unknown]
     dynamic import ./c [10]
   ./d.js [767] {909}
+    [no exports]
+    [used exports unknown]
     dynamic import ./d [460]
   ./e.js [390] {909}
+    [no exports]
+    [used exports unknown]
     dynamic import ./e [460]
   ./index.js [10] {909}
+    [no exports]
+    [used exports unknown]
     entry ./index
   webpack/runtime/has_own_property {909}
   webpack/runtime/make_namespace_object {909}
@@ -4209,25 +4361,45 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   Chunk Group c 194 bytes = 76.bundle2.js
   chunk {76} 76.bundle2.js (c) <{76}> <{909}> >{76}<
     ./c.js [460] {76}
+      [no exports]
+      [used exports unknown]
       dynamic import ./c [10]
     ./d.js [767] {76}
+      [no exports]
+      [used exports unknown]
       dynamic import ./d [460]
     ./e.js [390] {76}
+      [no exports]
+      [used exports unknown]
       dynamic import ./e [460]
   chunk {909} bundle2.js (main) >{76}< [entry]
     ./b.js [996] {909}
+      [no exports]
+      [used exports unknown]
       cjs require ./b [10]
     ./index.js [10] {909}
+      [no exports]
+      [used exports unknown]
       entry ./index
   ./b.js [996] {909}
+    [no exports]
+    [used exports unknown]
     cjs require ./b [10]
   ./c.js [460] {76}
+    [no exports]
+    [used exports unknown]
     dynamic import ./c [10]
   ./d.js [767] {76}
+    [no exports]
+    [used exports unknown]
     dynamic import ./d [460]
   ./e.js [390] {76}
+    [no exports]
+    [used exports unknown]
     dynamic import ./e [460]
   ./index.js [10] {909}
+    [no exports]
+    [used exports unknown]
     entry ./index
   webpack/runtime/ensure_chunk {909}
   webpack/runtime/has_own_property {909}
@@ -4248,26 +4420,46 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   Chunk Group c 134 bytes = 76.bundle3.js
   chunk {345} 345.bundle3.js <{76}>
     ./d.js [767] {345}
+      [no exports]
+      [used exports unknown]
       dynamic import ./d [460]
     ./e.js [390] {345}
+      [no exports]
+      [used exports unknown]
       dynamic import ./e [460]
   chunk {76} 76.bundle3.js (c) <{909}> >{345}<
     ./c.js [460] {76}
+      [no exports]
+      [used exports unknown]
       dynamic import ./c [10]
   chunk {909} bundle3.js (main) >{76}< [entry]
     ./b.js [996] {909}
+      [no exports]
+      [used exports unknown]
       cjs require ./b [10]
     ./index.js [10] {909}
+      [no exports]
+      [used exports unknown]
       entry ./index
   ./b.js [996] {909}
+    [no exports]
+    [used exports unknown]
     cjs require ./b [10]
   ./c.js [460] {76}
+    [no exports]
+    [used exports unknown]
     dynamic import ./c [10]
   ./d.js [767] {345}
+    [no exports]
+    [used exports unknown]
     dynamic import ./d [460]
   ./e.js [390] {345}
+    [no exports]
+    [used exports unknown]
     dynamic import ./e [460]
   ./index.js [10] {909}
+    [no exports]
+    [used exports unknown]
     entry ./index
   webpack/runtime/ensure_chunk {909}
   webpack/runtime/has_own_property {909}
@@ -4289,27 +4481,47 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   Chunk Group c 134 bytes = 76.bundle4.js
   chunk {697} 697.bundle4.js <{76}>
     ./e.js [390] {697}
+      [no exports]
+      [used exports unknown]
       dynamic import ./e [460]
   chunk {753} 753.bundle4.js <{76}>
     ./d.js [767] {753}
+      [no exports]
+      [used exports unknown]
       dynamic import ./d [460]
   chunk {76} 76.bundle4.js (c) <{909}> >{697}< >{753}<
     ./c.js [460] {76}
+      [no exports]
+      [used exports unknown]
       dynamic import ./c [10]
   chunk {909} bundle4.js (main) >{76}< [entry]
     ./b.js [996] {909}
+      [no exports]
+      [used exports unknown]
       cjs require ./b [10]
     ./index.js [10] {909}
+      [no exports]
+      [used exports unknown]
       entry ./index
   ./b.js [996] {909}
+    [no exports]
+    [used exports unknown]
     cjs require ./b [10]
   ./c.js [460] {76}
+    [no exports]
+    [used exports unknown]
     dynamic import ./c [10]
   ./d.js [767] {753}
+    [no exports]
+    [used exports unknown]
     dynamic import ./d [460]
   ./e.js [390] {697}
+    [no exports]
+    [used exports unknown]
     dynamic import ./e [460]
   ./index.js [10] {909}
+    [no exports]
+    [used exports unknown]
     entry ./index
   webpack/runtime/ensure_chunk {909}
   webpack/runtime/has_own_property {909}
@@ -5306,6 +5518,7 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
           "name": "./index.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
           "orphan": false,
+          "providedExports": [],
           "reasons": [
             {
               "moduleId": undefined,
@@ -5320,6 +5533,7 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
 console.log(a);
 ",
           "type": "module",
+          "usedExports": null,
         },
       ],
       "names": [
@@ -5389,6 +5603,7 @@ console.log(a);
       "name": "./index.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
       "orphan": false,
+      "providedExports": [],
       "reasons": [
         {
           "moduleId": undefined,
@@ -5403,6 +5618,7 @@ console.log(a);
 console.log(a);
 ",
       "type": "module",
+      "usedExports": null,
     },
     {
       "assets": [],
@@ -5453,8 +5669,12 @@ asset bundle.js 587 bytes {909} [emitted] (name: main)
 Entrypoint main 587 bytes = bundle.js
 chunk {909} bundle.js (main) [entry]
   ./index.js [10] {909}
+    [no exports]
+    [used exports unknown]
     entry ./index
 ./index.js [10] {909}
+  [no exports]
+  [used exports unknown]
   entry ./index
 webpack/runtime/make_namespace_object {909}
   
@@ -5523,6 +5743,7 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
           "name": "./index.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
           "orphan": false,
+          "providedExports": [],
           "reasons": [
             {
               "moduleId": undefined,
@@ -5537,6 +5758,7 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
 console.log(a);
 ",
           "type": "module",
+          "usedExports": null,
         },
       ],
       "names": [
@@ -5594,6 +5816,7 @@ console.log(a);
       "name": "./index.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
       "orphan": false,
+      "providedExports": [],
       "reasons": [
         {
           "moduleId": undefined,
@@ -5608,6 +5831,7 @@ console.log(a);
 console.log(a);
 ",
       "type": "module",
+      "usedExports": null,
     },
     {
       "assets": [],
@@ -5658,8 +5882,12 @@ asset bundle.js 571 bytes {909} [emitted] (name: main)
 Entrypoint main 571 bytes = bundle.js
 chunk {909} bundle.js (main) [entry]
   ./index.js [10] {909}
+    [no exports]
+    [used exports unknown]
     entry ./index
 ./index.js [10] {909}
+  [no exports]
+  [used exports unknown]
   entry ./index
 webpack/runtime/make_namespace_object {909}
   
@@ -5785,6 +6013,9 @@ exports[`StatsTestCases should print correct stats for simple-export 1`] = `
           "name": "./index.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/simple-export/index.js",
           "orphan": false,
+          "providedExports": [
+            "answer",
+          ],
           "reasons": [
             {
               "moduleId": undefined,
@@ -5798,6 +6029,7 @@ exports[`StatsTestCases should print correct stats for simple-export 1`] = `
           "source": "export const answer = 42;
 ",
           "type": "module",
+          "usedExports": null,
         },
       ],
       "names": [
@@ -5845,6 +6077,9 @@ exports[`StatsTestCases should print correct stats for simple-export 1`] = `
       "name": "./index.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/simple-export/index.js",
       "orphan": false,
+      "providedExports": [
+        "answer",
+      ],
       "reasons": [
         {
           "moduleId": undefined,
@@ -5858,6 +6093,7 @@ exports[`StatsTestCases should print correct stats for simple-export 1`] = `
       "source": "export const answer = 42;
 ",
       "type": "module",
+      "usedExports": null,
     },
     {
       "assets": [],
@@ -5948,8 +6184,12 @@ asset bundle.js 590 bytes {909} [emitted] (name: main)
 Entrypoint main 590 bytes = bundle.js
 chunk {909} bundle.js (main) [entry]
   ./index.js [10] {909}
+    [exports: answer]
+    [used exports unknown]
     entry ./index
 ./index.js [10] {909}
+  [exports: answer]
+  [used exports unknown]
   entry ./index
 webpack/runtime/has_own_property {909}
 webpack/runtime/make_namespace_object {909}
@@ -6016,6 +6256,7 @@ exports[`StatsTestCases should print correct stats for simple-module-source 1`] 
           "name": "./raw.png",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/raw.png",
           "orphan": false,
+          "providedExports": [],
           "reasons": [
             {
               "moduleId": "10",
@@ -6029,6 +6270,7 @@ exports[`StatsTestCases should print correct stats for simple-module-source 1`] 
           "source": "raw.png;
 ",
           "type": "module",
+          "usedExports": null,
         },
         {
           "assets": [],
@@ -6045,6 +6287,7 @@ exports[`StatsTestCases should print correct stats for simple-module-source 1`] 
           "name": "./index.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/index.js",
           "orphan": false,
+          "providedExports": [],
           "reasons": [
             {
               "moduleId": undefined,
@@ -6059,6 +6302,7 @@ exports[`StatsTestCases should print correct stats for simple-module-source 1`] 
 import rawModule from './raw.png';
 ",
           "type": "module",
+          "usedExports": null,
         },
         {
           "assets": [],
@@ -6081,6 +6325,7 @@ import rawModule from './raw.png';
           "name": "./stringModule.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/stringModule.js",
           "orphan": false,
+          "providedExports": [],
           "reasons": [
             {
               "moduleId": "10",
@@ -6093,6 +6338,7 @@ import rawModule from './raw.png';
           "size": 1,
           "source": "",
           "type": "module",
+          "usedExports": null,
         },
       ],
       "names": [
@@ -6146,6 +6392,7 @@ import rawModule from './raw.png';
       "name": "./raw.png",
       "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/raw.png",
       "orphan": false,
+      "providedExports": [],
       "reasons": [
         {
           "moduleId": "10",
@@ -6159,6 +6406,7 @@ import rawModule from './raw.png';
       "source": "raw.png;
 ",
       "type": "module",
+      "usedExports": null,
     },
     {
       "assets": [],
@@ -6175,6 +6423,7 @@ import rawModule from './raw.png';
       "name": "./index.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/index.js",
       "orphan": false,
+      "providedExports": [],
       "reasons": [
         {
           "moduleId": undefined,
@@ -6189,6 +6438,7 @@ import rawModule from './raw.png';
 import rawModule from './raw.png';
 ",
       "type": "module",
+      "usedExports": null,
     },
     {
       "assets": [],
@@ -6211,6 +6461,7 @@ import rawModule from './raw.png';
       "name": "./stringModule.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/stringModule.js",
       "orphan": false,
+      "providedExports": [],
       "reasons": [
         {
           "moduleId": "10",
@@ -6223,6 +6474,7 @@ import rawModule from './raw.png';
       "size": 1,
       "source": "",
       "type": "module",
+      "usedExports": null,
     },
     {
       "assets": [],
@@ -6391,6 +6643,9 @@ exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
           "name": "./index.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/stats-hooks/index.js",
           "orphan": false,
+          "providedExports": [
+            "answer",
+          ],
           "reasons": [
             {
               "moduleId": undefined,
@@ -6402,6 +6657,7 @@ exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
           ],
           "size": 26,
           "type": "module",
+          "usedExports": null,
         },
       ],
       "names": [
@@ -6449,6 +6705,9 @@ exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
       "name": "./index.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/stats-hooks/index.js",
       "orphan": false,
+      "providedExports": [
+        "answer",
+      ],
       "reasons": [
         {
           "moduleId": undefined,
@@ -6460,6 +6719,7 @@ exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
       ],
       "size": 26,
       "type": "module",
+      "usedExports": null,
     },
     {
       "assets": [],

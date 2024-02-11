@@ -217,7 +217,7 @@ impl From<rspack_core::StatsAssetInfo> for JsStatsAssetInfo {
 }
 
 type JsStatsModuleSource = Either<String, Buffer>;
-type JsStatsUsedExports = Either<bool, Vec<String>>;
+type JsStatsUsedExports = Either<String, Vec<String>>;
 #[napi(object)]
 pub struct JsStatsModule {
   pub r#type: &'static str,
@@ -238,7 +238,7 @@ pub struct JsStatsModule {
   pub profile: Option<JsStatsModuleProfile>,
   pub orphan: bool,
   pub provided_exports: Option<Vec<String>>,
-  pub used_exports: Option<Either<bool, Vec<String>>>,
+  pub used_exports: Option<Either<String, Vec<String>>>,
 }
 
 impl TryFrom<rspack_core::StatsModule<'_>> for JsStatsModule {
@@ -281,8 +281,9 @@ impl TryFrom<rspack_core::StatsModule<'_>> for JsStatsModule {
       orphan: stats.orphan,
       provided_exports: stats.provided_exports,
       used_exports: stats.used_exports.map(|used_exports| match used_exports {
-        StatsUsedExports::Bool(b) => JsStatsUsedExports::A(b),
+        StatsUsedExports::Bool(b) => JsStatsUsedExports::A(b.to_string()),
         StatsUsedExports::Vec(v) => JsStatsUsedExports::B(v),
+        StatsUsedExports::Null => JsStatsUsedExports::A("null".to_string()),
       }),
     })
   }

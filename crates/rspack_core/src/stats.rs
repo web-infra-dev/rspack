@@ -509,8 +509,8 @@ impl Stats<'_> {
       None
     };
 
-    let provided_exports = provided_exports
-      .then(|| {
+    let provided_exports =
+      if provided_exports && self.compilation.options.optimization.provided_exports {
         match self
           .compilation
           .module_graph
@@ -519,24 +519,32 @@ impl Stats<'_> {
           ProvidedExports::Vec(v) => Some(v.iter().map(|i| i.to_string()).collect_vec()),
           _ => None,
         }
-      })
-      .expect("Should get proviede exports");
+      } else {
+        None
+      };
 
-    let used_exports = used_exports
-      .then(|| {
-        match self
-          .compilation
-          .module_graph
-          .get_used_exports(module.identifier(), None)
-        {
-          UsedExports::Null => None,
-          UsedExports::Vec(v) => Some(StatsUsedExports::Vec(
-            v.iter().map(|i| i.to_string()).collect_vec(),
-          )),
-          UsedExports::Bool(b) => Some(StatsUsedExports::Bool(b)),
-        }
-      })
-      .expect("Should get used exports");
+    let used_exports = if used_exports
+      && self
+        .compilation
+        .options
+        .optimization
+        .used_exports
+        .is_enable()
+    {
+      match self
+        .compilation
+        .module_graph
+        .get_used_exports(module.identifier(), None)
+      {
+        UsedExports::Null => Some(StatsUsedExports::Null),
+        UsedExports::Vec(v) => Some(StatsUsedExports::Vec(
+          v.iter().map(|i| i.to_string()).collect_vec(),
+        )),
+        UsedExports::Bool(b) => Some(StatsUsedExports::Bool(b)),
+      }
+    } else {
+      None
+    };
 
     Ok(StatsModule {
       r#type: "module",
@@ -748,6 +756,7 @@ pub struct StatsModule<'a> {
 pub enum StatsUsedExports {
   Vec(Vec<String>),
   Bool(bool),
+  Null,
 }
 
 #[derive(Debug)]
