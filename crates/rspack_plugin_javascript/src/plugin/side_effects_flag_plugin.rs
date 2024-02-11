@@ -5,7 +5,8 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use once_cell::sync::Lazy;
 use rspack_core::{
-  Compilation, ConnectionState, ModuleGraph, ModuleIdentifier, Plugin, ResolvedExportInfoTarget,
+  Compilation, ConnectionState, ModuleGraph, ModuleIdentifier, MutexModuleGraph, Plugin,
+  ResolvedExportInfoTarget,
 };
 use rspack_error::Result;
 use rspack_identifier::IdentifierSet;
@@ -236,6 +237,7 @@ impl<'a> SideEffectsFlagPluginVisitor<'a> {
 
 static PURE_COMMENTS: Lazy<regex::Regex> =
   Lazy::new(|| regex::Regex::new("^\\s*(#|@)__PURE__\\s*$").expect("Should create the regex"));
+
 fn is_pure_call_expr(
   call_expr: &CallExpr,
   unresolved_ctxt: SyntaxContext,
@@ -277,6 +279,14 @@ pub fn is_pure_expression<'a>(
 ) -> bool {
   match expr {
     Expr::Call(call) => is_pure_call_expr(call, unresolved_ctxt, comments),
+    Expr::Paren(par) => {
+      let mut cur = par.expr.as_ref();
+      while let Expr::Paren(paren) = cur {
+        cur = paren.expr.as_ref();
+      }
+
+      is_pure_expression(cur, unresolved_ctxt, comments)
+    }
     _ => !expr.may_have_side_effects(&ExprCtx {
       unresolved_ctxt,
       is_unresolved_ref_safe: true,
@@ -371,7 +381,7 @@ pub fn is_pure_class(
 
   class.body.iter().all(|item| -> bool {
     match item {
-      ClassMember::Constructor(cons) => is_pure_key(&cons.key),
+      ClassMember::Constructor(_) => class.super_class.is_none(),
       ClassMember::Method(method) => is_pure_key(&method.key),
       ClassMember::PrivateMethod(method) => is_pure_expression(
         &Expr::PrivateName(method.key.clone()),
@@ -464,6 +474,10 @@ pub struct SideEffectsFlagPlugin;
 
 #[async_trait]
 impl Plugin for SideEffectsFlagPlugin {
+  fn name(&self) -> &'static str {
+    "SideEffectsFlagPlugin"
+  }
+
   async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<()>> {
     let entries = compilation.entry_modules().collect::<Vec<_>>();
     let mg = &mut compilation.module_graph;
@@ -542,17 +556,19 @@ impl Plugin for SideEffectsFlagPlugin {
         if !ids.is_empty() {
           let export_info_id = cur_exports_info_id.get_export_info(&ids[0], mg);
 
-          let target = export_info_id.get_target(
-            mg,
-            Some(Arc::new(
-              |target: &ResolvedExportInfoTarget, mg: &ModuleGraph| {
-                mg.module_by_identifier(&target.module)
-                  .expect("should have module graph")
-                  .get_side_effects_connection_state(mg, &mut HashSet::default())
-                  == ConnectionState::Bool(false)
-              },
-            )),
-          );
+          let target = MutexModuleGraph::new(mg).with_lock(|mut mga| {
+            export_info_id.get_target(
+              &mut mga,
+              Some(Arc::new(
+                |target: &ResolvedExportInfoTarget, mg: &ModuleGraph| {
+                  mg.module_by_identifier(&target.module)
+                    .expect("should have module graph")
+                    .get_side_effects_connection_state(mg, &mut HashSet::default())
+                    == ConnectionState::Bool(false)
+                },
+              )),
+            )
+          });
           let Some(target) = target else {
             continue;
           };

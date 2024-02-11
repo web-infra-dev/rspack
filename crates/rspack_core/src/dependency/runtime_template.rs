@@ -1,14 +1,97 @@
 use std::borrow::Cow;
+use std::ops::Sub;
 
+use rustc_hash::FxHashSet as HashSet;
 use serde_json::json;
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
-  get_import_var, property_access, to_comment, to_normal_comment, AsyncDependenciesBlockId,
-  Compilation, DependenciesBlock, DependencyId, ExportsType, FakeNamespaceObjectMode,
-  InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleGraph, ModuleIdentifier,
-  NormalInitFragment, RuntimeGlobals, TemplateContext,
+  compile_boolean_matcher_from_lists, get_import_var, property_access, to_comment,
+  to_normal_comment, AsyncDependenciesBlockId, ChunkGraph, Compilation, DependenciesBlock,
+  DependencyId, ExportsArgument, ExportsType, FakeNamespaceObjectMode, InitFragmentExt,
+  InitFragmentKey, InitFragmentStage, ModuleGraph, ModuleIdentifier, NormalInitFragment,
+  RuntimeCondition, RuntimeGlobals, RuntimeSpec, TemplateContext,
 };
+
+pub fn runtime_condition_expression(
+  chunk_graph: &ChunkGraph,
+  runtime_condition: Option<&RuntimeCondition>,
+  runtime: Option<&RuntimeSpec>,
+  runtime_requirements: &mut RuntimeGlobals,
+) -> String {
+  let Some(runtime_condition) = runtime_condition else {
+    return "true".to_string();
+  };
+
+  if let RuntimeCondition::Boolean(v) = runtime_condition {
+    return v.to_string();
+  }
+
+  let mut positive_runtime_ids = HashSet::default();
+  for_each_runtime(
+    runtime,
+    |runtime| {
+      if let Some(runtime_id) =
+        runtime.and_then(|runtime| chunk_graph.get_runtime_id(runtime.clone()))
+      {
+        positive_runtime_ids.insert(runtime_id);
+      }
+    },
+    false,
+  );
+
+  let mut negative_runtime_ids = HashSet::default();
+  for_each_runtime(
+    subtract_runtime(runtime, runtime_condition.as_spec()).as_ref(),
+    |runtime| {
+      if let Some(runtime_id) =
+        runtime.and_then(|runtime| chunk_graph.get_runtime_id(runtime.clone()))
+      {
+        negative_runtime_ids.insert(runtime_id);
+      }
+    },
+    false,
+  );
+
+  runtime_requirements.insert(RuntimeGlobals::RUNTIME_ID);
+
+  compile_boolean_matcher_from_lists(
+    positive_runtime_ids.into_iter().collect::<Vec<_>>(),
+    negative_runtime_ids.into_iter().collect::<Vec<_>>(),
+  )
+  .render(RuntimeGlobals::RUNTIME_ID.to_string().as_str())
+}
+
+fn subtract_runtime(a: Option<&RuntimeSpec>, b: Option<&RuntimeSpec>) -> Option<RuntimeSpec> {
+  match (a, b) {
+    (Some(a), None) => Some(a.clone()),
+    (None, None) => None,
+    (None, Some(b)) => Some(b.clone()),
+    (Some(a), Some(b)) => Some(a.sub(b)),
+  }
+}
+
+pub fn for_each_runtime<F>(runtime: Option<&RuntimeSpec>, mut f: F, deterministic_order: bool)
+where
+  F: FnMut(Option<&String>),
+{
+  match runtime {
+    None => f(None),
+    Some(runtime) => {
+      if deterministic_order {
+        let mut runtimes = runtime.iter().collect::<Vec<_>>();
+        runtimes.sort();
+        for r in runtimes {
+          f(Some(&r.to_string()));
+        }
+      } else {
+        for r in runtime {
+          f(Some(&r.to_string()));
+        }
+      }
+    }
+  }
+}
 
 #[allow(clippy::too_many_arguments)]
 pub fn export_from_import(
@@ -110,8 +193,10 @@ pub fn export_from_import(
         };
         Cow::Owned(used)
       } else {
-        // TODO: add some unused comments, part of runtime alignments
-        return "".to_string();
+        return format!(
+          "{} undefined",
+          to_normal_comment(&property_access(&export_name, 0))
+        );
       }
     } else {
       Cow::Borrowed(&export_name)
@@ -147,7 +232,7 @@ pub fn get_exports_type(
   module_graph
     .module_by_identifier(module)
     .expect("should have mgm")
-    .get_exports_type(strict)
+    .get_exports_type_readonly(module_graph, strict)
 }
 
 pub fn get_exports_type_with_strict(
@@ -161,7 +246,7 @@ pub fn get_exports_type_with_strict(
   module_graph
     .module_by_identifier(module)
     .expect("should have module")
-    .get_exports_type(strict)
+    .get_exports_type_readonly(module_graph, strict)
 }
 
 pub fn module_id_expr(request: &str, module_id: &str) -> String {
@@ -505,4 +590,64 @@ pub fn async_module_factory(
     },
     "",
   )
+}
+
+pub fn define_es_module_flag_statement(
+  exports_argument: ExportsArgument,
+  runtime_requirements: &mut RuntimeGlobals,
+) -> String {
+  runtime_requirements.insert(RuntimeGlobals::MAKE_NAMESPACE_OBJECT);
+  runtime_requirements.insert(RuntimeGlobals::EXPORTS);
+
+  format!(
+    "{}({});\n",
+    RuntimeGlobals::MAKE_NAMESPACE_OBJECT,
+    exports_argument
+  )
+}
+#[allow(unused_imports)]
+mod test_items_to_regexp {
+  use crate::items_to_regexp;
+  #[test]
+  fn basic() {
+    assert_eq!(
+      items_to_regexp(
+        vec!["a", "b", "c", "d", "ef"]
+          .into_iter()
+          .map(String::from)
+          .collect::<Vec<_>>(),
+      ),
+      "([abcd]|ef)".to_string()
+    );
+
+    assert_eq!(
+      items_to_regexp(
+        vec!["a1", "a2", "a3", "a4", "b5"]
+          .into_iter()
+          .map(String::from)
+          .collect::<Vec<_>>(),
+      ),
+      "(a[1234]|b5)".to_string()
+    );
+
+    assert_eq!(
+      items_to_regexp(
+        vec!["a1", "b1", "c1", "d1", "e2"]
+          .into_iter()
+          .map(String::from)
+          .collect::<Vec<_>>(),
+      ),
+      "([abcd]1|e2)".to_string()
+    );
+
+    assert_eq!(
+      items_to_regexp(
+        vec!["1", "2", "3", "4", "a"]
+          .into_iter()
+          .map(String::from)
+          .collect::<Vec<_>>(),
+      ),
+      "[1234a]".to_string()
+    );
+  }
 }

@@ -68,6 +68,10 @@ impl DependencyTemplate for CssImportDependency {
   ) {
     source.replace(self.start, self.end, "", None);
   }
+
+  fn dependency_id(&self) -> Option<DependencyId> {
+    Some(self.id)
+  }
 }
 
 impl AsContextDependency for CssImportDependency {}

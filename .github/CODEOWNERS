@@ -66,7 +66,6 @@ pnpm-lock.yaml
 /crates/rspack_plugin_runtime @web-infra-dev/rspack-ux
 /crates/rspack_plugin_schemes @web-infra-dev/rspack-dx
 /crates/rspack_plugin_split_chunks @web-infra-dev/rspack-ux
-/crates/rspack_plugin_split_chunks_new @web-infra-dev/rspack-ux
 /crates/rspack_plugin_wasm @web-infra-dev/rspack-dx
 /crates/rspack_regex @IWANABETHATGUY
 /crates/rspack_symbol @IWANABETHATGUY

@@ -15,7 +15,7 @@ use rspack_core::{
   CodeGenerationDataUrl, Compilation, CompilerOptions, GenerateContext, Module, ModuleType,
   NormalModule, ParseContext, ParserAndGenerator, PathData, Plugin, PluginContext,
   PluginRenderManifestHookOutput, RenderManifestArgs, RenderManifestEntry, ResourceData,
-  RuntimeGlobals, SourceType,
+  RuntimeGlobals, SourceType, NAMESPACE_OBJECT_EXPORT,
 };
 use rspack_error::{error, IntoTWithDiagnosticArray, Result};
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -401,12 +401,22 @@ impl ParserAndGenerator for AssetParserAndGenerator {
         } else {
           unreachable!()
         };
+        if let Some(ref mut scope) = generate_context.concatenation_scope {
+          scope.register_namespace_export(NAMESPACE_OBJECT_EXPORT);
+          // TODO: inspect supportConst https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/asset/AssetGenerator.js#L382-L386
+          Ok(
+            RawSource::from(format!(
+              r#"const {NAMESPACE_OBJECT_EXPORT} = {exported_content};"#
+            ))
+            .boxed(),
+          )
+        } else {
+          generate_context
+            .runtime_requirements
+            .insert(RuntimeGlobals::MODULE);
 
-        generate_context
-          .runtime_requirements
-          .insert(RuntimeGlobals::MODULE);
-
-        Ok(RawSource::from(format!(r#"module.exports = {exported_content};"#)).boxed())
+          Ok(RawSource::from(format!(r#"module.exports = {exported_content};"#)).boxed())
+        }
       }
       SourceType::Asset => {
         if parsed_asset_config.is_source() || parsed_asset_config.is_inline() {

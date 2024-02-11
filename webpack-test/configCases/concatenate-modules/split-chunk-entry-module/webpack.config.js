@@ -8,7 +8,7 @@ module.exports = {
 		filename: "[name].js"
 	},
 	optimization: {
-		concatenateModules: true,
+		concatenateModules: false,
 		chunkIds: "named",
 		runtimeChunk: "single",
 		splitChunks: {

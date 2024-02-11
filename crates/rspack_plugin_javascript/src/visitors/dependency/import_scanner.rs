@@ -15,7 +15,7 @@ use swc_core::ecma::ast::{CallExpr, Callee, Expr, Lit};
 use swc_core::ecma::atoms::Atom;
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
-use super::context_helper::scanner_context_module;
+use super::context_helper::{scanner_context_module, ContextModuleScanResult};
 use super::{is_import_meta_context_call, parse_order_string};
 use crate::dependency::{ImportContextDependency, ImportDependency};
 use crate::dependency::{ImportEagerDependency, ImportMetaContextDependency};
@@ -282,7 +282,13 @@ impl Visit for ImportScanner<'_> {
         self.blocks.push(block);
       }
       _ => {
-        let Some((context, reg)) = scanner_context_module(dyn_imported.expr.as_ref()) else {
+        let Some(ContextModuleScanResult {
+          context,
+          reg,
+          query,
+          fragment,
+        }) = scanner_context_module(dyn_imported.expr.as_ref())
+        else {
           return;
         };
         let magic_comment_options = try_extract_webpack_magic_comment(
@@ -310,7 +316,7 @@ impl Visit for ImportScanner<'_> {
               include: None,
               exclude: None,
               category: DependencyCategory::Esm,
-              request: context,
+              request: format!("{}{}{}", context, query, fragment),
               namespace_object: if self.build_meta.strict_harmony_module {
                 ContextNameSpaceObject::Strict
               } else {

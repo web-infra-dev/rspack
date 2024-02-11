@@ -1,7 +1,7 @@
 use rspack_core::{ConstDependency, SpanExt};
 
 use super::JavascriptParserPlugin;
-use crate::visitors::JavascriptParser;
+use crate::visitors::{JavascriptParser, TopLevelScope};
 
 pub struct HarmonyTopLevelThisParserPlugin;
 
@@ -11,7 +11,7 @@ impl JavascriptParserPlugin for HarmonyTopLevelThisParserPlugin {
     parser: &mut JavascriptParser,
     expr: &swc_core::ecma::ast::ThisExpr,
   ) -> Option<bool> {
-    (parser.is_esm && parser.top_level_scope).then(|| {
+    (parser.is_esm && !matches!(parser.top_level_scope, TopLevelScope::False)).then(|| {
       // TODO: harmony_export::is_enabled
       parser
         .presentational_dependencies

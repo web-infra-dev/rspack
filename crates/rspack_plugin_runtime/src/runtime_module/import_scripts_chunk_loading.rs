@@ -1,7 +1,7 @@
 use rspack_core::{
-  impl_runtime_module,
+  compile_boolean_matcher, impl_runtime_module,
   rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
-  Chunk, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
+  BooleanMatcher, Chunk, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
 };
 use rspack_identifier::Identifier;
 use rspack_util::source_map::SourceMapKind;
@@ -9,10 +9,7 @@ use rspack_util::source_map::SourceMapKind;
 use super::utils::{chunk_has_js, get_output_dir};
 use crate::{
   get_chunk_runtime_requirements,
-  runtime_module::{
-    utils::{get_initial_chunk_ids, render_condition_map, stringify_chunks},
-    BooleanMatcher,
-  },
+  runtime_module::utils::{get_initial_chunk_ids, stringify_chunks},
 };
 
 #[impl_runtime_module]
@@ -77,7 +74,7 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
       compilation
         .chunk_graph
         .get_chunk_condition_map(&chunk.ukey, compilation, chunk_has_js);
-    let has_js_matcher = render_condition_map(&condition_map, "chunkId");
+    let has_js_matcher = compile_boolean_matcher(&condition_map);
 
     let mut source = ConcatSource::default();
 
@@ -134,7 +131,8 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
             }}
           }}
           "#,
-          has_js_matcher, url
+          &has_js_matcher.render("chunkId"),
+          url
         )
       };
 

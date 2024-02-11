@@ -9,6 +9,7 @@ use crate::{
 };
 
 mod comment;
+mod compile_boolean_matcher;
 mod concatenated_module_visitor;
 mod concatenation_scope;
 mod extract_url_and_global;
@@ -26,6 +27,7 @@ mod source;
 mod template;
 mod to_path;
 mod visitor;
+pub use compile_boolean_matcher::*;
 pub use concatenated_module_visitor::*;
 pub use concatenation_scope::*;
 

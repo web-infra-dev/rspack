@@ -1,6 +1,6 @@
 use rspack_core::{ConstDependency, SpanExt};
 use swc_core::common::Spanned;
-use swc_core::ecma::ast::{CallExpr, Ident, UnaryExpr, UnaryOp};
+use swc_core::ecma::ast::{CallExpr, UnaryExpr};
 
 use super::JavascriptParserPlugin;
 use crate::dependency::WebpackIsIncludedDependency;
@@ -8,21 +8,11 @@ use crate::visitors::JavascriptParser;
 
 const WEBPACK_IS_INCLUDED: &str = "__webpack_is_included__";
 
-fn is_webpack_is_included(ident: &Ident) -> bool {
-  ident.sym.as_str() == WEBPACK_IS_INCLUDED
-}
-
 pub struct WebpackIsIncludedPlugin;
 
 impl JavascriptParserPlugin for WebpackIsIncludedPlugin {
-  fn call(&self, parser: &mut JavascriptParser<'_>, expr: &CallExpr) -> Option<bool> {
-    let is_webpack_is_included = expr
-      .callee
-      .as_expr()
-      .and_then(|expr| expr.as_ident())
-      .map(is_webpack_is_included)
-      .unwrap_or_default();
-    if !is_webpack_is_included || expr.args.len() != 1 || expr.args[0].spread.is_some() {
+  fn call(&self, parser: &mut JavascriptParser<'_>, expr: &CallExpr, name: &str) -> Option<bool> {
+    if name != WEBPACK_IS_INCLUDED || expr.args.len() != 1 || expr.args[0].spread.is_some() {
       return None;
     }
 
@@ -42,17 +32,13 @@ impl JavascriptParserPlugin for WebpackIsIncludedPlugin {
     Some(true)
   }
 
-  fn r#typeof(&self, parser: &mut JavascriptParser<'_>, expr: &UnaryExpr) -> Option<bool> {
-    assert!(expr.op == UnaryOp::TypeOf);
-    let is_webpack_is_included = expr
-      .arg
-      .as_ident()
-      .map(is_webpack_is_included)
-      .unwrap_or_default();
-
-    if !is_webpack_is_included {
-      None
-    } else {
+  fn r#typeof(
+    &self,
+    parser: &mut JavascriptParser<'_>,
+    expr: &UnaryExpr,
+    for_name: &str,
+  ) -> Option<bool> {
+    (for_name == WEBPACK_IS_INCLUDED).then(|| {
       parser
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(
@@ -61,7 +47,7 @@ impl JavascriptParserPlugin for WebpackIsIncludedPlugin {
           "'function'".into(),
           None,
         )));
-      Some(true)
-    }
+      true
+    })
   }
 }

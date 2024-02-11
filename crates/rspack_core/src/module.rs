@@ -1,6 +1,5 @@
 use std::fmt::Display;
 use std::hash::Hash;
-use std::ops::Deref;
 use std::path::PathBuf;
 use std::{any::Any, borrow::Cow, fmt::Debug};
 
@@ -19,9 +18,10 @@ use crate::tree_shaking::visitor::OptimizeAnalyzeResult;
 use crate::{
   AsyncDependenciesBlock, BoxDependency, ChunkGraph, ChunkUkey, CodeGenerationResult, Compilation,
   CompilerContext, CompilerOptions, ConcatenationScope, ConnectionState, Context, ContextModule,
-  DependenciesBlock, DependencyId, DependencyTemplate, ExternalModule, ModuleDependency,
-  ModuleGraph, ModuleGraphModule, ModuleType, NormalModule, RawModule, Resolve, RuntimeSpec,
-  SelfModule, SharedPluginDriver, SourceType,
+  DependenciesBlock, DependencyId, DependencyTemplate, ExportInfoProvided, ExternalModule,
+  ImmutableModuleGraph, ModuleDependency, ModuleGraph, ModuleGraphAccessor, ModuleType,
+  MutexModuleGraph, NormalModule, RawModule, Resolve, RuntimeSpec, SelfModule, SharedPluginDriver,
+  SourceType,
 };
 pub struct BuildContext<'a> {
   pub compiler_context: CompilerContext,
@@ -36,7 +36,7 @@ pub enum BuildExtraDataType {
   JavaScriptParserAndGenerator,
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Clone)]
 pub struct BuildInfo {
   /// Whether the result is cacheable, i.e shared between builds.
   pub cacheable: bool,
@@ -51,6 +51,25 @@ pub struct BuildInfo {
   pub all_star_exports: Vec<DependencyId>,
   pub need_create_require: bool,
   pub json_data: Option<JsonValue>,
+}
+
+impl Default for BuildInfo {
+  fn default() -> Self {
+    Self {
+      cacheable: true,
+      hash: None,
+      strict: false,
+      file_dependencies: HashSet::default(),
+      context_dependencies: HashSet::default(),
+      missing_dependencies: HashSet::default(),
+      build_dependencies: HashSet::default(),
+      asset_filenames: HashSet::default(),
+      harmony_named_exports: HashSet::default(),
+      all_star_exports: Vec::default(),
+      need_create_require: false,
+      json_data: None,
+    }
+  }
 }
 
 #[derive(Debug, Default, Clone, Copy, Hash, PartialEq, Eq)]
@@ -140,51 +159,6 @@ pub struct FactoryMeta {
 }
 
 pub type ModuleIdentifier = Identifier;
-
-pub struct WrappedModuleIdentifier(ModuleIdentifier);
-
-impl WrappedModuleIdentifier {
-  /// # Panic
-  /// It would panic if the corresponding module is not exists in module_graph
-  pub fn module<'a>(&self, mg: &'a ModuleGraph) -> &'a BoxModule {
-    mg.module_by_identifier(self).expect("should have module")
-  }
-  /// # Panic
-  /// It would panic if the corresponding module is not exists in module_graph
-  pub fn module_mut<'a>(&self, mg: &'a mut ModuleGraph) -> &'a mut BoxModule {
-    mg.module_by_identifier_mut(self)
-      .expect("should have module")
-  }
-
-  /// # Panic
-  /// It would panic if the corresponding moduleGraphModule is not exists in module_graph
-  pub fn module_graph_module<'a>(&self, mg: &'a ModuleGraph) -> &'a ModuleGraphModule {
-    mg.module_graph_module_by_identifier(self)
-      .expect("should have module graph module")
-  }
-
-  /// # Panic
-  /// It would panic if the corresponding moduleGraphModule is not exists in module_graph
-  pub fn module_graph_module_mut<'a>(&self, mg: &'a mut ModuleGraph) -> &'a mut ModuleGraphModule {
-    mg.module_graph_module_by_identifier_mut(self)
-      .expect("should have module graph module")
-  }
-}
-
-impl Deref for WrappedModuleIdentifier {
-  type Target = ModuleIdentifier;
-
-  fn deref(&self) -> &Self::Target {
-    &self.0
-  }
-}
-
-impl From<ModuleIdentifier> for WrappedModuleIdentifier {
-  fn from(value: ModuleIdentifier) -> Self {
-    Self(value)
-  }
-}
-
 #[async_trait]
 pub trait Module:
   Debug
@@ -260,54 +234,15 @@ pub trait Module:
       .unwrap_or_default()
   }
 
-  fn get_exports_type(&self, strict: bool) -> ExportsType {
-    if let Some((export_type, default_object)) = self
-      .build_meta()
-      .as_ref()
-      .map(|m| (&m.exports_type, &m.default_object))
-    {
-      match export_type {
-        BuildMetaExportsType::Flagged => {
-          if strict {
-            ExportsType::DefaultWithNamed
-          } else {
-            ExportsType::Namespace
-          }
-        }
-        BuildMetaExportsType::Namespace => ExportsType::Namespace,
-        BuildMetaExportsType::Default => match default_object {
-          BuildMetaDefaultObject::Redirect => ExportsType::DefaultWithNamed,
-          BuildMetaDefaultObject::RedirectWarn => {
-            if strict {
-              ExportsType::DefaultOnly
-            } else {
-              ExportsType::DefaultWithNamed
-            }
-          }
-          BuildMetaDefaultObject::False => ExportsType::DefaultOnly,
-        },
-        BuildMetaExportsType::Dynamic => {
-          if strict {
-            ExportsType::DefaultWithNamed
-          } else {
-            // TODO check target
-            ExportsType::Dynamic
-          }
-        }
-        // algin to undefined
-        BuildMetaExportsType::Unset => {
-          if strict {
-            ExportsType::DefaultWithNamed
-          } else {
-            ExportsType::Dynamic
-          }
-        }
-      }
-    } else if strict {
-      ExportsType::DefaultWithNamed
-    } else {
-      ExportsType::Dynamic
-    }
+  fn get_exports_type_readonly(&self, module_graph: &ModuleGraph, strict: bool) -> ExportsType {
+    let mut mga = ImmutableModuleGraph::new(module_graph);
+    get_exports_type_impl(self.identifier(), self.build_meta(), &mut mga, strict)
+  }
+
+  fn get_exports_type(&self, module_graph: &mut ModuleGraph, strict: bool) -> ExportsType {
+    MutexModuleGraph::new(module_graph).with_lock(|mut mga| {
+      get_exports_type_impl(self.identifier(), self.build_meta(), &mut mga, strict)
+    })
   }
 
   fn get_strict_harmony_module(&self) -> bool {
@@ -391,6 +326,103 @@ pub trait Module:
     _module_chain: &mut HashSet<ModuleIdentifier>,
   ) -> ConnectionState {
     ConnectionState::Bool(true)
+  }
+}
+
+fn get_exports_type_impl(
+  identifier: ModuleIdentifier,
+  build_meta: Option<&BuildMeta>,
+  mga: &mut dyn ModuleGraphAccessor,
+  strict: bool,
+) -> ExportsType {
+  if let Some((export_type, default_object)) = build_meta
+    .as_ref()
+    .map(|m| (&m.exports_type, &m.default_object))
+  {
+    match export_type {
+      BuildMetaExportsType::Flagged => {
+        if strict {
+          ExportsType::DefaultWithNamed
+        } else {
+          ExportsType::Namespace
+        }
+      }
+      BuildMetaExportsType::Namespace => ExportsType::Namespace,
+      BuildMetaExportsType::Default => match default_object {
+        BuildMetaDefaultObject::Redirect => ExportsType::DefaultWithNamed,
+        BuildMetaDefaultObject::RedirectWarn => {
+          if strict {
+            ExportsType::DefaultOnly
+          } else {
+            ExportsType::DefaultWithNamed
+          }
+        }
+        BuildMetaDefaultObject::False => ExportsType::DefaultOnly,
+      },
+      BuildMetaExportsType::Dynamic => {
+        if strict {
+          ExportsType::DefaultWithNamed
+        } else {
+          fn handle_default(default_object: &BuildMetaDefaultObject) -> ExportsType {
+            match default_object {
+              BuildMetaDefaultObject::Redirect => ExportsType::DefaultWithNamed,
+              BuildMetaDefaultObject::RedirectWarn => ExportsType::DefaultWithNamed,
+              _ => ExportsType::DefaultOnly,
+            }
+          }
+
+          if let Some(export_info) =
+            mga.get_read_only_export_info(&Atom::from("__esModule"), &identifier)
+          {
+            if matches!(export_info.provided, Some(ExportInfoProvided::False)) {
+              handle_default(default_object)
+            } else {
+              let Some(target) = export_info.id.get_target(mga, None) else {
+                return ExportsType::Dynamic;
+              };
+              if target
+                .export
+                .and_then(|t| {
+                  if t.len() == 1 {
+                    t.first().cloned()
+                  } else {
+                    None
+                  }
+                })
+                .is_some_and(|v| v == "__esModule")
+              {
+                let Some(target_exports_type) = mga.get_module_meta_exports_type(&target.module)
+                else {
+                  return ExportsType::Dynamic;
+                };
+                match target_exports_type {
+                  BuildMetaExportsType::Flagged => ExportsType::Namespace,
+                  BuildMetaExportsType::Namespace => ExportsType::Namespace,
+                  BuildMetaExportsType::Default => handle_default(default_object),
+                  _ => ExportsType::Dynamic,
+                }
+              } else {
+                ExportsType::Dynamic
+              }
+            }
+          } else {
+            ExportsType::DefaultWithNamed
+          }
+        }
+      }
+      // algin to undefined
+      BuildMetaExportsType::Unset => {
+        if strict {
+          ExportsType::DefaultWithNamed
+        } else {
+          ExportsType::Dynamic
+        }
+      }
+    }
+  } else if strict {
+    ExportsType::DefaultWithNamed
+  } else {
+    ExportsType::Dynamic
   }
 }
 

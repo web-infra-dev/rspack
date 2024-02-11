@@ -61,7 +61,7 @@ export class JsStats {
 }
 
 export class Rspack {
-  constructor(options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, jsHooks: JsHooks | undefined | null, outputFilesystem: ThreadsafeNodeFS, jsLoaderRunner: (...args: any[]) => any)
+  constructor(options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, jsHooks: JsHooks, compilerHooks: Array<JsHook>, outputFilesystem: ThreadsafeNodeFS, jsLoaderRunner: (...args: any[]) => any)
   unsafe_set_disabled_hooks(hooks: Array<string>): void
   /**
    * Build with the given option passed to the constructor
@@ -139,7 +139,7 @@ export interface BuiltinPlugin {
   canInherentFromParent?: boolean
 }
 
-export const enum BuiltinPluginName {
+export enum BuiltinPluginName {
   DefinePlugin = 'DefinePlugin',
   ProvidePlugin = 'ProvidePlugin',
   BannerPlugin = 'BannerPlugin',
@@ -184,10 +184,12 @@ export const enum BuiltinPluginName {
   AssetModulesPlugin = 'AssetModulesPlugin',
   SourceMapDevToolPlugin = 'SourceMapDevToolPlugin',
   EvalSourceMapDevToolPlugin = 'EvalSourceMapDevToolPlugin',
+  EvalDevToolModulePlugin = 'EvalDevToolModulePlugin',
   SideEffectsFlagPlugin = 'SideEffectsFlagPlugin',
   FlagDependencyExportsPlugin = 'FlagDependencyExportsPlugin',
   FlagDependencyUsagePlugin = 'FlagDependencyUsagePlugin',
   MangleExportsPlugin = 'MangleExportsPlugin',
+  ModuleConcatenationPlugin = 'ModuleConcatenationPlugin',
   HttpExternalsRspackPlugin = 'HttpExternalsRspackPlugin',
   CopyRspackPlugin = 'CopyRspackPlugin',
   HtmlRspackPlugin = 'HtmlRspackPlugin',
@@ -323,6 +325,11 @@ export interface JsExecuteModuleResult {
   id: number
 }
 
+export interface JsHook {
+  type: JsHookType
+  function: (...args: any[]) => any
+}
+
 export interface JsHooks {
   processAssetsStageAdditional: (...args: any[]) => any
   processAssetsStagePreProcess: (...args: any[]) => any
@@ -341,7 +348,6 @@ export interface JsHooks {
   processAssetsStageAnalyse: (...args: any[]) => any
   processAssetsStageReport: (...args: any[]) => any
   afterProcessAssets: (...args: any[]) => any
-  compilation: (...args: any[]) => any
   thisCompilation: (...args: any[]) => any
   emit: (...args: any[]) => any
   assetEmitted: (...args: any[]) => any
@@ -367,6 +373,10 @@ export interface JsHooks {
   stillValidModule: (...args: any[]) => any
   executeModule: (...args: any[]) => any
   runtimeModule: (...args: any[]) => any
+}
+
+export enum JsHookType {
+  CompilerCompilation = 'CompilerCompilation'
 }
 
 export interface JsLoaderContext {
@@ -789,6 +799,12 @@ export interface RawEntryPluginOptions {
   options: RawEntryOptions
 }
 
+export interface RawEvalDevToolModulePluginOptions {
+  namespace?: string
+  moduleFilenameTemplate?: string | ((info: RawModuleFilenameTemplateFnCtx) => string)
+  sourceUrlComment?: string
+}
+
 export interface RawExperiments {
   newSplitChunks: boolean
   topLevelAwait: boolean
@@ -1207,11 +1223,11 @@ export interface RawSnapshotStrategy {
 export interface RawSourceMapDevToolPluginOptions {
   append?: (false | null) | string | Function
   columns?: boolean
-  fallbackModuleFilenameTemplate?: string | Function
+  fallbackModuleFilenameTemplate?: string | ((info: RawModuleFilenameTemplateFnCtx) => string)
   fileContext?: string
   filename?: (false | null) | string
   module?: boolean
-  moduleFilenameTemplate?: string | Function
+  moduleFilenameTemplate?: string | ((info: RawModuleFilenameTemplateFnCtx) => string)
   namespace?: string
   noSources?: boolean
   publicPath?: string
@@ -1275,14 +1291,6 @@ export function registerGlobalTrace(filter: string, layer: "chrome" | "logger", 
 
 /** Builtin loader runner */
 export function runBuiltinLoader(builtin: string, options: string | undefined | null, loaderContext: JsLoaderContext): Promise<JsLoaderContext>
-
-export interface ThreadsafeNodeFS {
-  writeFile: (...args: any[]) => any
-  removeFile: (...args: any[]) => any
-  mkdir: (...args: any[]) => any
-  mkdirp: (...args: any[]) => any
-  removeDirAll: (...args: any[]) => any
-}
 
 export interface ThreadsafeNodeFS {
   writeFile: (...args: any[]) => any

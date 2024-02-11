@@ -817,12 +817,14 @@ const devTool = z
 	.literal(false)
 	.or(
 		z.enum([
+			"eval",
 			"cheap-source-map",
 			"cheap-module-source-map",
 			"source-map",
 			"inline-cheap-source-map",
 			"inline-cheap-module-source-map",
 			"inline-source-map",
+			"inline-nosources-cheap-source-map",
 			"inline-nosources-cheap-module-source-map",
 			"inline-nosources-source-map",
 			"nosources-cheap-source-map",

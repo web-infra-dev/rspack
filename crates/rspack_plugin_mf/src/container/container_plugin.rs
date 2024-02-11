@@ -1,12 +1,14 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use rspack_core::{ApplyContext, CompilerOptions};
 use rspack_core::{
-  Compilation, CompilationArgs, CompilationParams, Dependency, DependencyType, EntryOptions,
-  EntryRuntime, Filename, LibraryOptions, MakeParam, Plugin, PluginCompilationHookOutput,
-  PluginContext, PluginMakeHookOutput, PluginRuntimeRequirementsInTreeOutput, RuntimeGlobals,
-  RuntimeRequirementsInTreeArgs,
+  Compilation, CompilationParams, Dependency, DependencyType, EntryOptions, EntryRuntime, Filename,
+  LibraryOptions, MakeParam, Plugin, PluginContext, PluginMakeHookOutput,
+  PluginRuntimeRequirementsInTreeOutput, RuntimeGlobals, RuntimeRequirementsInTreeArgs,
 };
+use rspack_error::Result;
+use rspack_hook::AsyncSeries2;
 use serde::Serialize;
 
 use super::{
@@ -43,25 +45,39 @@ impl ContainerPlugin {
   }
 }
 
+struct ContainerPluginCompilationHook;
+
+#[async_trait]
+impl AsyncSeries2<Compilation, CompilationParams> for ContainerPluginCompilationHook {
+  async fn run(&self, compilation: &mut Compilation, params: &mut CompilationParams) -> Result<()> {
+    compilation.set_dependency_factory(
+      DependencyType::ContainerEntry,
+      Arc::new(ContainerEntryModuleFactory),
+    );
+    compilation.set_dependency_factory(
+      DependencyType::ContainerExposed,
+      params.normal_module_factory.clone(),
+    );
+    Ok(())
+  }
+}
+
 #[async_trait]
 impl Plugin for ContainerPlugin {
   fn name(&self) -> &'static str {
     "rspack.ContainerPlugin"
   }
 
-  async fn compilation(
+  fn apply(
     &self,
-    args: CompilationArgs<'_>,
-    params: &CompilationParams,
-  ) -> PluginCompilationHookOutput {
-    args.compilation.set_dependency_factory(
-      DependencyType::ContainerEntry,
-      Arc::new(ContainerEntryModuleFactory),
-    );
-    args.compilation.set_dependency_factory(
-      DependencyType::ContainerExposed,
-      params.normal_module_factory.clone(),
-    );
+    ctx: PluginContext<&mut ApplyContext>,
+    _options: &mut CompilerOptions,
+  ) -> Result<()> {
+    ctx
+      .context
+      .compiler_hooks
+      .compilation
+      .tap(Box::new(ContainerPluginCompilationHook));
     Ok(())
   }
 

@@ -1,4 +1,5 @@
 module.exports = function (content) {
+	// CHANGE:
 	var idx = this.getOptions().updateIndex;
 	var items = content.split(/---+\r?\n/g);
 	if (items.length > 1) {

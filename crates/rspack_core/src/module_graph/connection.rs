@@ -23,6 +23,7 @@ impl From<usize> for ConnectionId {
 pub struct ModuleGraphConnection {
   /// The referencing module identifier
   pub original_module_identifier: Option<ModuleIdentifier>,
+  pub resolved_original_module_identifier: Option<ModuleIdentifier>,
 
   /// The referenced module identifier
   pub module_identifier: ModuleIdentifier,
@@ -64,6 +65,7 @@ impl ModuleGraphConnection {
       dependency_id,
       active,
       conditional,
+      resolved_original_module_identifier: original_module_identifier,
     }
   }
 

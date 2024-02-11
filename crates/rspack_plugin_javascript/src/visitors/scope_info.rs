@@ -42,8 +42,9 @@ impl VariableInfoDB {
     }
   }
 
-  fn insert(&mut self, variable_info: VariableInfo) -> VariableInfoId {
+  fn insert(&mut self, mut variable_info: VariableInfo) -> VariableInfoId {
     let id = self.next();
+    variable_info.set_id(id);
     let prev = self.map.insert(id, variable_info);
     assert!(prev.is_none());
     id
@@ -55,6 +56,12 @@ pub struct ScopeInfoDB {
   count: ScopeInfoId,
   map: FxHashMap<ScopeInfoId, ScopeInfo>,
   variable_info_db: VariableInfoDB,
+}
+
+impl Default for ScopeInfoDB {
+  fn default() -> Self {
+    Self::new()
+  }
 }
 
 impl ScopeInfoDB {
@@ -134,14 +141,6 @@ impl ScopeInfoDB {
       .unwrap_or_else(|| panic!("{id:#?} should exist"))
   }
 
-  pub fn take_variable(&mut self, id: &VariableInfoId) -> VariableInfo {
-    self
-      .variable_info_db
-      .map
-      .remove(id)
-      .expect("extract an in-exist variable")
-  }
-
   pub fn get<S: AsRef<str>>(&mut self, id: &ScopeInfoId, key: S) -> Option<VariableInfoId> {
     let definitions = self.expect_get_scope(id);
     if let Some(&top_value) = definitions.map.get(key.as_ref()) {
@@ -190,7 +189,7 @@ impl ScopeInfoDB {
   }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct TagInfo {
   pub tag: &'static str,
   pub data: Option<serde_json::Value>,
@@ -205,6 +204,7 @@ pub enum FreeName {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct VariableInfo {
+  id: Option<VariableInfoId>,
   pub declared_scope: ScopeInfoId,
   pub free_name: Option<FreeName>,
   pub tag_info: Option<TagInfo>,
@@ -220,6 +220,7 @@ impl VariableInfo {
     tag_info: Option<TagInfo>,
   ) -> Self {
     Self {
+      id: None,
       declared_scope,
       free_name,
       tag_info,
@@ -231,11 +232,14 @@ impl VariableInfo {
     tag_info.data = data;
   }
 
-  pub fn free_name(&self) -> &FreeName {
+  fn set_id(&mut self, id: VariableInfoId) {
+    self.id = Some(id);
+  }
+
+  pub fn id(&self) -> VariableInfoId {
     self
-      .free_name
-      .as_ref()
-      .expect("make sure `free_name` exist")
+      .id
+      .expect("should already store VariableInfo to VariableInfoDB")
   }
 }
 

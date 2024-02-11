@@ -33,7 +33,7 @@ pub use module_dependency::*;
 pub use runtime_requirements_dependency::RuntimeRequirementsDependency;
 pub use runtime_template::*;
 pub use span::SpanExt;
-pub use static_exports_dependency::StaticExportsDependency;
+pub use static_exports_dependency::{StaticExportsDependency, StaticExportsSpec};
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
@@ -167,7 +167,6 @@ pub mod needs_refactor {
         MetaPropKind, ModuleExportName, NewExpr,
       },
       atoms::Atom,
-      visit::Visit,
     },
   };
 
@@ -217,7 +216,7 @@ pub mod needs_refactor {
     None
   }
 
-  static WORKER_FROM_REGEX: Lazy<Regex> =
+  pub static WORKER_FROM_REGEX: Lazy<Regex> =
     Lazy::new(|| Regex::new(r"^(.+?)(\(\))?\s+from\s+(.+)$").expect("invalid regex"));
 
   #[derive(Debug, Default)]
@@ -273,70 +272,65 @@ pub mod needs_refactor {
     }
   }
 
-  pub struct WorkerSyntaxScanner<'a> {
-    pub result: WorkerSyntaxList,
-    caps: Vec<(&'a str, &'a str)>,
-  }
-
   pub const DEFAULT_WORKER_SYNTAX: &[&str] =
     &["Worker", "SharedWorker", "Worker from worker_threads"];
 
-  impl<'a> WorkerSyntaxScanner<'a> {
-    pub fn new(syntax: &'a [&'a str]) -> Self {
-      let mut result = WorkerSyntaxList::default();
-      let mut caps = Vec::new();
-      for s in syntax {
-        if let Some(captures) = WORKER_FROM_REGEX.captures(s)
-          && let Some(ids) = captures.get(1)
-          && let Some(source) = captures.get(3)
-        {
-          caps.push((ids.as_str(), source.as_str()));
-        } else {
-          result.push(WorkerSyntax::new(Atom::from(*s), None))
-        }
+  pub fn init_worker_syntax_scanner(
+    syntax: &'static [&'static str],
+    caps: &mut Vec<(&str, &str)>,
+    list: &mut WorkerSyntaxList,
+  ) {
+    for s in syntax {
+      if let Some(captures) = WORKER_FROM_REGEX.captures(s)
+        && let Some(ids) = captures.get(1)
+        && let Some(source) = captures.get(3)
+      {
+        caps.push((ids.as_str(), source.as_str()));
+      } else {
+        list.push(WorkerSyntax::new(Atom::from(*s), None))
       }
-      Self { result, caps }
     }
   }
 
-  impl Visit for WorkerSyntaxScanner<'_> {
-    fn visit_import_decl(&mut self, decl: &ImportDecl) {
-      let source = &*decl.src.value;
-      let found = self
-        .caps
-        .iter()
-        .filter(|cap| cap.1 == source)
-        .flat_map(|cap| {
-          if cap.0 == "default" {
-            decl
-              .specifiers
-              .iter()
-              .filter_map(|spec| spec.as_default())
-              .map(|spec| spec.local.to_id())
-              .collect::<Vec<Id>>()
-          } else {
-            decl
-              .specifiers
-              .iter()
-              .filter_map(|spec| {
-                spec.as_named().filter(|named| {
-                  if let Some(imported) = &named.imported {
-                    let s = match imported {
-                      ModuleExportName::Ident(s) => &s.sym,
-                      ModuleExportName::Str(s) => &s.value,
-                    };
-                    s == cap.0
-                  } else {
-                    &*named.local.sym == cap.0
-                  }
-                })
+  pub fn collect_from_import_decl(
+    caps: &[(&str, &str)],
+    decl: &ImportDecl,
+    list: &mut WorkerSyntaxList,
+  ) {
+    let source = &*decl.src.value;
+    let found = caps
+      .iter()
+      .filter(|cap| cap.1 == source)
+      .flat_map(|cap| {
+        if cap.0 == "default" {
+          decl
+            .specifiers
+            .iter()
+            .filter_map(|spec| spec.as_default())
+            .map(|spec| spec.local.to_id())
+            .collect::<Vec<Id>>()
+        } else {
+          decl
+            .specifiers
+            .iter()
+            .filter_map(|spec| {
+              spec.as_named().filter(|named| {
+                if let Some(imported) = &named.imported {
+                  let s = match imported {
+                    ModuleExportName::Ident(s) => &s.sym,
+                    ModuleExportName::Str(s) => &s.value,
+                  };
+                  s == cap.0
+                } else {
+                  &*named.local.sym == cap.0
+                }
               })
-              .map(|spec| spec.local.to_id())
-              .collect::<Vec<Id>>()
-          }
-        })
-        .map(|pair| WorkerSyntax::new(pair.0, Some(pair.1)));
-      self.result.extend(found);
-    }
+            })
+            .map(|spec| spec.local.to_id())
+            .collect::<Vec<Id>>()
+        }
+      })
+      .map(|pair| WorkerSyntax::new(pair.0, Some(pair.1)));
+    list.extend(found);
   }
 }

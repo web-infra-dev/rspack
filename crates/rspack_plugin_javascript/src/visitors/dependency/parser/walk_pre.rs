@@ -26,14 +26,24 @@ impl<'parser> JavascriptParser<'parser> {
 
   fn pre_walk_module_declaration(&mut self, statement: &ModuleItem) {
     match statement {
-      ModuleItem::ModuleDecl(decl) => match decl {
-        ModuleDecl::TsImportEquals(_)
-        | ModuleDecl::TsExportAssignment(_)
-        | ModuleDecl::TsNamespaceExport(_) => unreachable!(),
-        _ => {
-          self.is_esm = true;
+      ModuleItem::ModuleDecl(decl) => {
+        if self
+          .plugin_drive
+          .clone()
+          .pre_module_declaration(self, decl)
+          .unwrap_or_default()
+        {
+          return;
         }
-      },
+        match decl {
+          ModuleDecl::TsImportEquals(_)
+          | ModuleDecl::TsExportAssignment(_)
+          | ModuleDecl::TsNamespaceExport(_) => unreachable!(),
+          _ => {
+            self.is_esm = true;
+          }
+        }
+      }
       ModuleItem::Stmt(stmt) => self.pre_walk_statement(stmt),
     }
   }
@@ -131,9 +141,12 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn pre_walk_for_of_statement(&mut self, stmt: &ForOfStmt) {
-    // TODO: if (stmt.await && self.top_level_scope) {
-    // TODO:    hooks.topLevelAwait call
-    // TODO: }
+    if stmt.is_await && matches!(self.top_level_scope, super::TopLevelScope::Top) {
+      self
+        .plugin_drive
+        .clone()
+        .top_level_for_of_await_stmt(self, stmt);
+    }
     if let Some(left) = stmt.left.as_var_decl() {
       self.pre_walk_variable_declaration(left)
     }

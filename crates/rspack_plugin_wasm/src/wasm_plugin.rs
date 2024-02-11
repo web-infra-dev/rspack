@@ -1,12 +1,14 @@
 use std::fmt::Debug;
 
+use async_trait::async_trait;
 use rayon::prelude::*;
 use rspack_core::{
-  ApplyContext, CompilationArgs, CompilationParams, CompilerOptions, DependencyType, ModuleType,
-  ParserAndGenerator, Plugin, PluginCompilationHookOutput, PluginContext,
-  PluginRenderManifestHookOutput, RenderManifestArgs, RenderManifestEntry, SourceType,
+  ApplyContext, Compilation, CompilationParams, CompilerOptions, DependencyType, ModuleType,
+  ParserAndGenerator, Plugin, PluginContext, PluginRenderManifestHookOutput, RenderManifestArgs,
+  RenderManifestEntry, SourceType,
 };
 use rspack_error::{IntoTWithDiagnosticArray, Result};
+use rspack_hook::AsyncSeries2;
 
 use crate::{AsyncWasmParserAndGenerator, ModuleIdToFileName};
 
@@ -25,26 +27,27 @@ impl AsyncWasmPlugin {
   }
 }
 
-#[async_trait::async_trait]
-impl Plugin for AsyncWasmPlugin {
-  fn name(&self) -> &'static str {
-    "rspack.AsyncWebAssemblyModulesPlugin"
-  }
+struct AsyncWasmPluginCompilationHook;
 
-  async fn compilation(
-    &self,
-    args: CompilationArgs<'_>,
-    params: &CompilationParams,
-  ) -> PluginCompilationHookOutput {
-    args.compilation.set_dependency_factory(
+#[async_trait]
+impl AsyncSeries2<Compilation, CompilationParams> for AsyncWasmPluginCompilationHook {
+  async fn run(&self, compilation: &mut Compilation, params: &mut CompilationParams) -> Result<()> {
+    compilation.set_dependency_factory(
       DependencyType::WasmImport,
       params.normal_module_factory.clone(),
     );
-    args.compilation.set_dependency_factory(
+    compilation.set_dependency_factory(
       DependencyType::WasmExportImported,
       params.normal_module_factory.clone(),
     );
     Ok(())
+  }
+}
+
+#[async_trait]
+impl Plugin for AsyncWasmPlugin {
+  fn name(&self) -> &'static str {
+    "rspack.AsyncWebAssemblyModulesPlugin"
   }
 
   fn apply(
@@ -52,6 +55,12 @@ impl Plugin for AsyncWasmPlugin {
     ctx: PluginContext<&mut ApplyContext>,
     _options: &mut CompilerOptions,
   ) -> Result<()> {
+    ctx
+      .context
+      .compiler_hooks
+      .compilation
+      .tap(Box::new(AsyncWasmPluginCompilationHook));
+
     let module_id_to_filename_without_ext = self.module_id_to_filename_without_ext.clone();
 
     let builder = move || {

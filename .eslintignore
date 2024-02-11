@@ -10,3 +10,4 @@ webpack-test
 examples
 diffcases
 scripts/test/diff.cjs
+scripts/test/binary-path.cjs

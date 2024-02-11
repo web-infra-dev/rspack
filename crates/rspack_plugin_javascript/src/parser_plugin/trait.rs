@@ -1,10 +1,12 @@
+use swc_core::atoms::Atom;
+use swc_core::common::Span;
 use swc_core::ecma::ast::{
-  AssignExpr, BinExpr, CallExpr, Ident, IfStmt, MemberExpr, NewExpr, Stmt, ThisExpr, UnaryExpr,
+  AssignExpr, AwaitExpr, BinExpr, CallExpr, Expr, ForOfStmt, Ident, IfStmt, MemberExpr, ModuleDecl,
 };
-use swc_core::ecma::ast::{VarDecl, VarDeclarator};
+use swc_core::ecma::ast::{NewExpr, Program, Stmt, ThisExpr, UnaryExpr, VarDecl, VarDeclarator};
 
 use crate::utils::eval::BasicEvaluatedExpression;
-use crate::visitors::JavascriptParser;
+use crate::visitors::{ExportedVariableInfo, JavascriptParser};
 
 type KeepRight = bool;
 
@@ -14,6 +16,37 @@ pub trait JavascriptParserPlugin {
   /// statement's visit during the pre-walk phase.
   /// - Other return values imply that the walk operation ought to continue
   fn pre_statement(&self, _parser: &mut JavascriptParser, _stmt: &Stmt) -> Option<bool> {
+    None
+  }
+
+  /// The return value will have no effect.
+  fn top_level_await_expr(&self, _parser: &mut JavascriptParser, _expr: &AwaitExpr) {}
+
+  /// The return value will have no effect.
+  fn top_level_for_of_await_stmt(&self, _parser: &mut JavascriptParser, _stmt: &ForOfStmt) {}
+
+  fn can_rename(&self, _parser: &mut JavascriptParser, _str: &str) -> Option<bool> {
+    None
+  }
+
+  fn rename(&self, _parser: &mut JavascriptParser, _expr: &Expr, _str: &str) -> Option<bool> {
+    None
+  }
+
+  fn program(&self, _parser: &mut JavascriptParser, _ast: &Program) -> Option<bool> {
+    None
+  }
+
+  /// Return:
+  /// `None` means continue this `ModuleDecl`
+  /// Others means skip this.
+  ///
+  /// This is similar `hooks.pre_statement` in webpack
+  fn pre_module_declaration(
+    &self,
+    _parser: &mut JavascriptParser,
+    _decl: &ModuleDecl,
+  ) -> Option<bool> {
     None
   }
 
@@ -27,16 +60,67 @@ pub trait JavascriptParserPlugin {
     None
   }
 
-  fn call(&self, _parser: &mut JavascriptParser, _expr: &CallExpr) -> Option<bool> {
+  fn evaluate_identifier(
+    &self,
+    _parser: &mut JavascriptParser,
+    _ident: &str,
+    _start: u32,
+    _end: u32,
+  ) -> Option<BasicEvaluatedExpression> {
     None
   }
 
-  // FIXME: should remove
-  fn member(&self, _parser: &mut JavascriptParser, _expr: &MemberExpr) -> Option<bool> {
+  fn call(
+    &self,
+    _parser: &mut JavascriptParser,
+    _expr: &CallExpr,
+    _for_name: &str,
+  ) -> Option<bool> {
     None
   }
 
-  fn r#typeof(&self, _parser: &mut JavascriptParser, _expr: &UnaryExpr) -> Option<bool> {
+  fn member(
+    &self,
+    _parser: &mut JavascriptParser,
+    _expr: &MemberExpr,
+    _for_name: &str,
+  ) -> Option<bool> {
+    None
+  }
+
+  fn unhandled_expression_member_chain(
+    &self,
+    _parser: &mut JavascriptParser,
+    _root_info: &ExportedVariableInfo,
+    _expr: &MemberExpr,
+  ) -> Option<bool> {
+    None
+  }
+
+  fn member_chain_of_call_member_chain(
+    &self,
+    _parser: &mut JavascriptParser,
+    _expr: &MemberExpr,
+    _for_name: &str,
+  ) -> Option<bool> {
+    None
+  }
+
+  fn call_member_chain_of_call_member_chain(
+    &self,
+    _parser: &mut JavascriptParser,
+    _expr: &CallExpr,
+    _for_name: &str,
+  ) -> Option<bool> {
+    None
+  }
+
+  fn r#typeof(
+    &self,
+    _parser: &mut JavascriptParser,
+    _expr: &UnaryExpr,
+    _for_name: &str,
+  ) -> Option<bool> {
     None
   }
 
@@ -83,7 +167,12 @@ pub trait JavascriptParserPlugin {
     None
   }
 
-  fn identifier(&self, _parser: &mut JavascriptParser, _ident: &Ident) -> Option<bool> {
+  fn identifier(
+    &self,
+    _parser: &mut JavascriptParser,
+    _ident: &Ident,
+    _for_name: &str,
+  ) -> Option<bool> {
     None
   }
 
@@ -93,6 +182,19 @@ pub trait JavascriptParserPlugin {
 
   // FIXME: should remove
   fn assign(&self, _parser: &mut JavascriptParser, _expr: &AssignExpr) -> Option<bool> {
+    None
+  }
+
+  fn import_call(&self, _parser: &mut JavascriptParser, _expr: &CallExpr) -> Option<bool> {
+    None
+  }
+
+  fn meta_property(
+    &self,
+    _parser: &mut JavascriptParser,
+    _root_name: &Atom,
+    _span: Span,
+  ) -> Option<bool> {
     None
   }
 }

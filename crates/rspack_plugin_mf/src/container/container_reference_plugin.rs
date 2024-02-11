@@ -2,11 +2,12 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use rspack_core::{
-  CompilationArgs, CompilationParams, DependencyType, ExternalType, FactorizeArgs, ModuleExt,
-  ModuleFactoryResult, Plugin, PluginCompilationHookOutput, PluginContext,
-  PluginFactorizeHookOutput, PluginRuntimeRequirementsInTreeOutput, RuntimeGlobals,
-  RuntimeRequirementsInTreeArgs,
+  ApplyContext, Compilation, CompilationParams, CompilerOptions, DependencyType, ExternalType,
+  FactorizeArgs, ModuleExt, ModuleFactoryResult, Plugin, PluginContext, PluginFactorizeHookOutput,
+  PluginRuntimeRequirementsInTreeOutput, RuntimeGlobals, RuntimeRequirementsInTreeArgs,
 };
+use rspack_error::Result;
+use rspack_hook::AsyncSeries2;
 
 use super::{
   fallback_module_factory::FallbackModuleFactory, remote_module::RemoteModule,
@@ -38,29 +39,43 @@ impl ContainerReferencePlugin {
   }
 }
 
+struct ContainerReferencePluginCompilationHook;
+
+#[async_trait]
+impl AsyncSeries2<Compilation, CompilationParams> for ContainerReferencePluginCompilationHook {
+  async fn run(&self, compilation: &mut Compilation, params: &mut CompilationParams) -> Result<()> {
+    compilation.set_dependency_factory(
+      DependencyType::RemoteToExternal,
+      params.normal_module_factory.clone(),
+    );
+    compilation.set_dependency_factory(
+      DependencyType::RemoteToFallbackItem,
+      params.normal_module_factory.clone(),
+    );
+    compilation.set_dependency_factory(
+      DependencyType::RemoteToFallback,
+      Arc::new(FallbackModuleFactory),
+    );
+    Ok(())
+  }
+}
+
 #[async_trait]
 impl Plugin for ContainerReferencePlugin {
   fn name(&self) -> &'static str {
     "rspack.ContainerReferencePlugin"
   }
 
-  async fn compilation(
+  fn apply(
     &self,
-    args: CompilationArgs<'_>,
-    params: &CompilationParams,
-  ) -> PluginCompilationHookOutput {
-    args.compilation.set_dependency_factory(
-      DependencyType::RemoteToExternal,
-      params.normal_module_factory.clone(),
-    );
-    args.compilation.set_dependency_factory(
-      DependencyType::RemoteToFallbackItem,
-      params.normal_module_factory.clone(),
-    );
-    args.compilation.set_dependency_factory(
-      DependencyType::RemoteToFallback,
-      Arc::new(FallbackModuleFactory),
-    );
+    ctx: PluginContext<&mut ApplyContext>,
+    _options: &mut CompilerOptions,
+  ) -> Result<()> {
+    ctx
+      .context
+      .compiler_hooks
+      .compilation
+      .tap(Box::new(ContainerReferencePluginCompilationHook));
     Ok(())
   }
 

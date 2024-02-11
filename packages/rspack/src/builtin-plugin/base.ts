@@ -1,64 +1,6 @@
 import * as binding from "@rspack/binding";
 import { Compiler, RspackPluginInstance } from "..";
 
-// TODO: workaround for https://github.com/napi-rs/napi-rs/pull/1690
-export enum BuiltinPluginName {
-	DefinePlugin = "DefinePlugin",
-	ProvidePlugin = "ProvidePlugin",
-	BannerPlugin = "BannerPlugin",
-	ProgressPlugin = "ProgressPlugin",
-	EntryPlugin = "EntryPlugin",
-	ExternalsPlugin = "ExternalsPlugin",
-	NodeTargetPlugin = "NodeTargetPlugin",
-	ElectronTargetPlugin = "ElectronTargetPlugin",
-	EnableChunkLoadingPlugin = "EnableChunkLoadingPlugin",
-	EnableLibraryPlugin = "EnableLibraryPlugin",
-	EnableWasmLoadingPlugin = "EnableWasmLoadingPlugin",
-	ChunkPrefetchPreloadPlugin = "ChunkPrefetchPreloadPlugin",
-	CommonJsChunkFormatPlugin = "CommonJsChunkFormatPlugin",
-	ArrayPushCallbackChunkFormatPlugin = "ArrayPushCallbackChunkFormatPlugin",
-	ModuleChunkFormatPlugin = "ModuleChunkFormatPlugin",
-	HotModuleReplacementPlugin = "HotModuleReplacementPlugin",
-	HttpExternalsRspackPlugin = "HttpExternalsRspackPlugin",
-	CopyRspackPlugin = "CopyRspackPlugin",
-	HtmlRspackPlugin = "HtmlRspackPlugin",
-	SwcJsMinimizerRspackPlugin = "SwcJsMinimizerRspackPlugin",
-	SwcCssMinimizerRspackPlugin = "SwcCssMinimizerRspackPlugin",
-	LimitChunkCountPlugin = "LimitChunkCountPlugin",
-	WorkerPlugin = "WorkerPlugin",
-	WebWorkerTemplatePlugin = "WebWorkerTemplatePlugin",
-	MergeDuplicateChunksPlugin = "MergeDuplicateChunksPlugin",
-	SplitChunksPlugin = "SplitChunksPlugin",
-	ShareRuntimePlugin = "ShareRuntimePlugin",
-	ContainerPlugin = "ContainerPlugin",
-	ContainerReferencePlugin = "ContainerReferencePlugin",
-	ProvideSharedPlugin = "ProvideSharedPlugin",
-	ConsumeSharedPlugin = "ConsumeSharedPlugin",
-	NamedModuleIdsPlugin = "NamedModuleIdsPlugin",
-	DeterministicModuleIdsPlugin = "DeterministicModuleIdsPlugin",
-	NamedChunkIdsPlugin = "NamedChunkIdsPlugin",
-	DeterministicChunkIdsPlugin = "DeterministicChunkIdsPlugin",
-	RealContentHashPlugin = "RealContentHashPlugin",
-	RemoveEmptyChunksPlugin = "RemoveEmptyChunksPlugin",
-	EnsureChunkConditionsPlugin = "EnsureChunkConditionsPlugin",
-	WarnCaseSensitiveModulesPlugin = "WarnCaseSensitiveModulesPlugin",
-	DataUriPlugin = "DataUriPlugin",
-	FileUriPlugin = "FileUriPlugin",
-	RuntimePlugin = "RuntimePlugin",
-	JsonModulesPlugin = "JsonModulesPlugin",
-	InferAsyncModulesPlugin = "InferAsyncModulesPlugin",
-	JavascriptModulesPlugin = "JavascriptModulesPlugin",
-	AsyncWebAssemblyModulesPlugin = "AsyncWebAssemblyModulesPlugin",
-	AssetModulesPlugin = "AssetModulesPlugin",
-	SourceMapDevToolPlugin = "SourceMapDevToolPlugin",
-	EvalSourceMapDevToolPlugin = "EvalSourceMapDevToolPlugin",
-	SideEffectsFlagPlugin = "SideEffectsFlagPlugin",
-	FlagDependencyExportsPlugin = "FlagDependencyExportsPlugin",
-	FlagDependencyUsagePlugin = "FlagDependencyUsagePlugin",
-	MangleExportsPlugin = "MangleExportsPlugin",
-	BundlerInfoPlugin = "BundlerInfoPlugin"
-}
-
 type AffectedHooks = keyof Compiler["hooks"];
 
 export const HOOKS_CAN_NOT_INHERENT_FROM_PARENT = [
@@ -82,7 +24,7 @@ export function canInherentFromParent(affectedHooks?: AffectedHooks): boolean {
 
 export abstract class RspackBuiltinPlugin implements RspackPluginInstance {
 	abstract raw(compiler: Compiler): binding.BuiltinPlugin | null;
-	abstract name: BuiltinPluginName;
+	abstract name: binding.BuiltinPluginName;
 
 	affectedHooks?: AffectedHooks;
 	apply(compiler: Compiler) {
@@ -95,7 +37,7 @@ export abstract class RspackBuiltinPlugin implements RspackPluginInstance {
 }
 
 export function createBuiltinPlugin<R>(
-	name: BuiltinPluginName,
+	name: binding.BuiltinPluginName,
 	options: R
 ): binding.BuiltinPlugin {
 	return {
@@ -105,7 +47,7 @@ export function createBuiltinPlugin<R>(
 }
 
 export function create<T extends any[], R>(
-	name: BuiltinPluginName,
+	name: binding.BuiltinPluginName,
 	resolve: (...args: T) => R,
 	// `affectedHooks` is used to inform `createChildCompile` about which builtin plugin can be reversed.
 	// However, this has a drawback as it doesn't represent the actual condition but merely serves as an indicator.

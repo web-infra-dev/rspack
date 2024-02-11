@@ -1,5 +1,6 @@
 use once_cell::sync::Lazy;
 use regex::Regex;
+use rspack_core::parse_resource;
 use swc_core::ecma::ast::{
   BinExpr, BinaryOp, CallExpr, Callee, Expr, Lit, MemberProp, TaggedTpl, Tpl,
 };
@@ -7,6 +8,13 @@ use swc_core::ecma::ast::{
 enum TemplateStringKind {
   Raw,
   Cooked,
+}
+
+pub struct ContextModuleScanResult {
+  pub context: String,
+  pub reg: String,
+  pub query: String,
+  pub fragment: String,
 }
 
 #[inline]
@@ -18,7 +26,7 @@ fn split_context_from_prefix(prefix: String) -> (String, String) {
   }
 }
 
-pub fn scanner_context_module(expr: &Expr) -> Option<(String, String)> {
+pub fn scanner_context_module(expr: &Expr) -> Option<ContextModuleScanResult> {
   match expr {
     Expr::Tpl(tpl) if !tpl.exprs.is_empty() => {
       Some(scan_context_module_tpl(tpl, TemplateStringKind::Cooked))
@@ -40,7 +48,7 @@ fn quote_meta(str: String) -> String {
 }
 
 // require(`./${a}.js`)
-fn scan_context_module_tpl(tpl: &Tpl, kind: TemplateStringKind) -> (String, String) {
+fn scan_context_module_tpl(tpl: &Tpl, kind: TemplateStringKind) -> ContextModuleScanResult {
   let prefix_raw = tpl
     .quasis
     .first()
@@ -73,16 +81,31 @@ fn scan_context_module_tpl(tpl: &Tpl, kind: TemplateStringKind) -> (String, Stri
     })
     .collect::<Vec<String>>()
     .join("");
+
+  let (postfix, query, fragment) = match parse_resource(&postfix_raw) {
+    Some(data) => (
+      data.path.to_string_lossy().to_string(),
+      data.query.unwrap_or_default(),
+      data.fragment.unwrap_or_default(),
+    ),
+    None => (postfix_raw, String::new(), String::new()),
+  };
+
   let reg = format!(
     "^{prefix}.*{inner_reg}{postfix_raw}$",
     prefix = quote_meta(prefix),
-    postfix_raw = quote_meta(postfix_raw)
+    postfix_raw = quote_meta(postfix)
   );
-  (context, reg)
+  ContextModuleScanResult {
+    context,
+    reg,
+    query,
+    fragment,
+  }
 }
 
 // require("./" + a + ".js")
-fn scan_context_module_bin(bin: &BinExpr) -> Option<(String, String)> {
+fn scan_context_module_bin(bin: &BinExpr) -> Option<ContextModuleScanResult> {
   if !is_add_op_bin_expr(bin) {
     return None;
   }
@@ -102,13 +125,28 @@ fn scan_context_module_bin(bin: &BinExpr) -> Option<(String, String)> {
   }
 
   let (context, prefix) = split_context_from_prefix(prefix_raw);
+
+  let (postfix, query, fragment) = match parse_resource(&postfix_raw) {
+    Some(data) => (
+      data.path.to_string_lossy().to_string(),
+      data.query.unwrap_or_default(),
+      data.fragment.unwrap_or_default(),
+    ),
+    None => (postfix_raw, String::new(), String::new()),
+  };
+
   let reg = format!(
     "^{prefix}.*{postfix_raw}$",
     prefix = quote_meta(prefix),
-    postfix_raw = quote_meta(postfix_raw)
+    postfix_raw = quote_meta(postfix)
   );
 
-  Some((context, reg))
+  Some(ContextModuleScanResult {
+    context,
+    reg,
+    query,
+    fragment,
+  })
 }
 
 fn find_expr_prefix_string(expr: &Expr) -> Option<String> {
@@ -133,7 +171,7 @@ fn is_add_op_bin_expr(bin: &BinExpr) -> bool {
 // require("./".concat(a, ".js"))
 // babel/swc will transform template literal to string concat, so we need to handle this case
 // see https://github.com/webpack/webpack/pull/5679
-fn scan_context_module_concat_call(expr: &CallExpr) -> Option<(String, String)> {
+fn scan_context_module_concat_call(expr: &CallExpr) -> Option<ContextModuleScanResult> {
   if !is_concat_call(expr) {
     return None;
   }
@@ -153,17 +191,30 @@ fn scan_context_module_concat_call(expr: &CallExpr) -> Option<(String, String)> 
   }
 
   let (context, prefix) = split_context_from_prefix(prefix_raw);
+  let (postfix, query, fragment) = match parse_resource(&postfix_raw) {
+    Some(data) => (
+      data.path.to_string_lossy().to_string(),
+      data.query.unwrap_or_default(),
+      data.fragment.unwrap_or_default(),
+    ),
+    None => (postfix_raw, String::new(), String::new()),
+  };
   let reg = format!(
     "^{prefix}.*{postfix_raw}$",
     prefix = quote_meta(prefix),
-    postfix_raw = quote_meta(postfix_raw)
+    postfix_raw = quote_meta(postfix)
   );
 
-  Some((context, reg))
+  Some(ContextModuleScanResult {
+    context,
+    reg,
+    query,
+    fragment,
+  })
 }
 
 // require(String.raw`./${a}.js`)
-fn scan_context_module_tagged_tpl(tpl: &TaggedTpl) -> (String, String) {
+fn scan_context_module_tagged_tpl(tpl: &TaggedTpl) -> ContextModuleScanResult {
   match tpl.tag.as_member() {
     Some(tag)
       if tag
@@ -179,7 +230,12 @@ fn scan_context_module_tagged_tpl(tpl: &TaggedTpl) -> (String, String) {
     {
       scan_context_module_tpl(tpl.tpl.as_ref(), TemplateStringKind::Raw)
     }
-    _ => (String::from("."), String::new()),
+    _ => ContextModuleScanResult {
+      context: String::from("."),
+      reg: String::new(),
+      query: String::new(),
+      fragment: String::new(),
+    },
   }
 }
 

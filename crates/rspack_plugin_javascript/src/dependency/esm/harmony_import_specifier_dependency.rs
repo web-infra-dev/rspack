@@ -6,7 +6,7 @@ use rspack_core::{
   ModuleGraph, ModuleGraphModule, ModuleIdentifier, ReferencedExport, RuntimeSpec, TemplateContext,
   TemplateReplaceSource, UsedByExports,
 };
-use rspack_core::{get_import_var, ModuleReferenceOptions};
+use rspack_core::{get_import_var, property_access, ModuleReferenceOptions};
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::{common::Span, ecma::atoms::Atom};
 
@@ -146,7 +146,6 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
     let reference_mgm = compilation
       .module_graph
       .module_graph_module_by_dependency_id(&self.id);
-
     let is_new_treeshaking = compilation.options.is_new_tree_shaking();
     if is_new_treeshaking {
       let connection = compilation.module_graph.connection_by_dependency(&self.id);
@@ -175,9 +174,6 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
     }
 
     let ids = self.get_ids(&compilation.module_graph);
-    compilation
-      .module_graph
-      .module_identifier_by_dependency_id(&self.id);
     let import_var = get_import_var(&compilation.module_graph, self.id);
 
     let export_expr = if let Some(scope) = concatenation_scope
@@ -194,7 +190,15 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
           },
         )
       } else if self.namespace_object_as_context && ids.len() == 1 {
-        todo!()
+        // ConcatenationScope::create_module_reference(&self, module, options)
+        scope.create_module_reference(
+          &con.module_identifier,
+          &ModuleReferenceOptions {
+            // TODO: align asi_safe when we have it
+            asi_safe: Some(false),
+            ..Default::default()
+          },
+        ) + property_access(ids, 0).as_str()
       } else {
         scope.create_module_reference(
           &con.module_identifier,
@@ -234,6 +238,10 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
     } else {
       source.replace(self.start, self.end, export_expr.as_str(), None);
     }
+  }
+
+  fn dependency_id(&self) -> Option<DependencyId> {
+    Some(self.id)
   }
 }
 

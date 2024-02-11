@@ -11,6 +11,7 @@ impl JavascriptParserPlugin for CommonJsPlugin {
     &self,
     parser: &mut JavascriptParser,
     expr: &swc_core::ecma::ast::UnaryExpr,
+    _for_name: &str,
   ) -> Option<bool> {
     if expr_matcher::is_module(&expr.arg) && parser.is_unresolved_ident("module") {
       parser
@@ -27,7 +28,7 @@ impl JavascriptParserPlugin for CommonJsPlugin {
     }
   }
 
-  fn member(&self, parser: &mut JavascriptParser, expr: &MemberExpr) -> Option<bool> {
+  fn member(&self, parser: &mut JavascriptParser, expr: &MemberExpr, _name: &str) -> Option<bool> {
     // FIXME: delete this `.clone` after extract expression
     let expr = Expr::Member(expr.clone());
     if expr_matcher::is_module_id(&expr) {

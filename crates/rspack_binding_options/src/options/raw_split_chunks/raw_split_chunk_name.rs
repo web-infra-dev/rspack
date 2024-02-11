@@ -6,7 +6,7 @@ use napi_derive::napi;
 use rspack_binding_values::{JsModule, ToJsModule};
 use rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use rspack_napi_shared::{get_napi_env, NapiResultExt};
-use rspack_plugin_split_chunks_new::{ChunkNameGetter, ChunkNameGetterFnCtx};
+use rspack_plugin_split_chunks::{ChunkNameGetter, ChunkNameGetterFnCtx};
 
 pub(super) type RawChunkOptionName = Either3<String, bool, JsFunction>;
 
