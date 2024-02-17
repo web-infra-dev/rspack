@@ -23,7 +23,7 @@ itertools = { workspace = true }
 json = { workspace = true }
 mime_guess = { workspace = true }
 once_cell = { workspace = true }
-oxc_resolver = { version = "1.5.0" }
+oxc_resolver = { version = "1.5.1" }
 paste = { workspace = true }
 petgraph = { version = "0.6.4", features = ["serde-1"] }
 rayon = { workspace = true }
