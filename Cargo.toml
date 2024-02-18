@@ -54,9 +54,9 @@ ustr               = { package = "ustr-fxhash", version = "1.0.0" }
 xxhash-rust        = { version = "0.8.10" }
 
 # Pinned
-napi              = { version = "=2.15.2" }
+napi              = { version = "=2.15.0" }
 napi-build        = { version = "=2.1.0" }
-napi-derive       = { version = "=2.15.2" }
+napi-derive       = { version = "=2.15.0" }
 napi-sys          = { version = "=2.3.0" }
 tikv-jemallocator = { version = "=0.5.4", features = ["disable_initial_exec_tls"] }
 

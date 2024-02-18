@@ -1617,9 +1617,9 @@ dependencies = [
 
 [[package]]
 name = "napi"
-version = "2.15.2"
+version = "2.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "02bd92040344a83763379b122f4e714932ccaa700439e647f1e90481dd1999cb"
+checksum = "efbf98e1bcb85cc441bbf7cdfb11070d2537a100e2697d75397b2584c32492d1"
 dependencies = [
  "anyhow",
  "bitflags 2.4.2",
@@ -1640,9 +1640,9 @@ checksum = "d4b4532cf86bfef556348ac65e561e3123879f0e7566cca6d43a6ff5326f13df"
 
 [[package]]
 name = "napi-derive"
-version = "2.15.2"
+version = "2.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bef56a31cf81a1d183aa991c85128e6f27c312b72227e506b1854068c2ac7d53"
+checksum = "7622f0dbe0968af2dacdd64870eee6dee94f93c989c841f1ad8f300cf1abd514"
 dependencies = [
  "cfg-if",
  "convert_case",
