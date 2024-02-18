@@ -86,7 +86,7 @@ module.exports = class RspackMinifyPlugin {
 											sourceAsString,
 											map,
 											true
-									  )
+										)
 									: new RawSource(result.code),
 								{
 									...asset.info,

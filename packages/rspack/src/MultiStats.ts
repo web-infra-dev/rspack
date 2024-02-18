@@ -53,8 +53,8 @@ export default class MultiStats {
 					...(typeof childOptions === "string"
 						? { preset: childOptions }
 						: childOptions && typeof childOptions === "object"
-						? childOptions
-						: undefined)
+							? childOptions
+							: undefined)
 				},
 				context
 			);

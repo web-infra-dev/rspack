@@ -343,7 +343,7 @@ export default class HtmlRspackPlugin implements RspackPluginInstance {
 				typeof userOptionFilename === "function"
 					? userOptionFilename
 					: // Replace '[name]' with entry name
-					  (entryName: string) =>
+						(entryName: string) =>
 							userOptionFilename.replace(/\[name\]/g, entryName);
 
 			/** output filenames for the given entry names */
@@ -551,7 +551,7 @@ function hookIntoCompiler(
 										bodyTags: assetTags.bodyTags
 									},
 									compilation
-							  )
+								)
 					);
 
 				const injectedHtmlPromise = Promise.all([
@@ -647,16 +647,16 @@ function hookIntoCompiler(
 			customPublicPath !== "auto"
 				? customPublicPath
 				: isPublicPathDefined
-				? // If a hard coded public path exists use it
-				  rspackPublicPath
-				: // If no public path was set get a relative url path
-				  path
-						.relative(
-							path.resolve(outputPath, path.dirname(filename)),
-							outputPath
-						)
-						.split(path.sep)
-						.join("/");
+					? // If a hard coded public path exists use it
+						rspackPublicPath
+					: // If no public path was set get a relative url path
+						path
+							.relative(
+								path.resolve(outputPath, path.dirname(filename)),
+								outputPath
+							)
+							.split(path.sep)
+							.join("/");
 
 		if (publicPath.length && publicPath.substr(-1, 1) !== "/") {
 			publicPath += "/";
@@ -930,7 +930,7 @@ function hookIntoCompiler(
 						typeof baseOption === "string"
 							? {
 									href: baseOption
-							  }
+								}
 							: baseOption
 				}
 			];
@@ -960,7 +960,7 @@ function hookIntoCompiler(
 					? {
 							name: metaName,
 							content: metaTagContent
-					  }
+						}
 					: metaTagContent;
 			})
 			.filter(attribute => attribute !== false);
@@ -1076,14 +1076,14 @@ function hookIntoCompiler(
 		const templateParameterFunction =
 			typeof templateParameters === "function"
 				? // A custom function can overwrite the entire template parameter preparation
-				  templateParameters
+					templateParameters
 				: // If the template parameters is an object merge it with the default values
-				  (
+					(
 						compilation: Compilation,
 						assets: Assets,
 						assetTags: AssetTags,
 						options: ProcessedOptions
-				  ) =>
+					) =>
 						Object.assign(
 							{},
 							templateParametersGenerator(
