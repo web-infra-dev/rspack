@@ -69,15 +69,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install cargo-deny
-        uses: baptiste0928/cargo-install@v2
+      - uses: dorny/paths-filter@v3
+        id: filter
         with:
-          crate: cargo-deny
-          version: "0.11.3"
-
+          filters: |
+            src:
+              - 'Cargo.lock'
+      - name: Install cargo-deny
+        if: steps.filter.outputs.src == 'true'
+        uses: taiki-e/install-action@cargo-deny
       - name: Check licenses
-        run: |
-          cargo deny check license
+        if: steps.filter.outputs.src == 'true'
+        run: cargo deny check license
   spell:
     name: Spell check
     runs-on: ubuntu-latest
