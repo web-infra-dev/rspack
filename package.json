@@ -45,7 +45,7 @@
   },
   "devDependencies": {
     "@rspack/cli": "workspace:*",
-    "@taplo/cli": "^0.7.0",
+    "@taplo/cli": "^0.5.2",
     "@types/is-ci": "^3.0.4",
     "@types/jest": "29.5.12",
     "@types/node": "^20.9.4",
