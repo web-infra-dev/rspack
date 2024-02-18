@@ -79,10 +79,10 @@ export function concatErrorMsgAndStack(err: Error | JsStatsError): string {
 	return isJsStatsError(err)
 		? err.formatted
 		: err.stack
-		? err.stack.startsWith(`${stackStartPrefix}${err.message}`)
-			? `${err.stack}`
-			: `${err.message}\n${err.stack}`
-		: `${err.message}`;
+			? err.stack.startsWith(`${stackStartPrefix}${err.message}`)
+				? `${err.stack}`
+				: `${err.message}\n${err.stack}`
+			: `${err.message}`;
 }
 
 export function indent(str: string, prefix: string) {
