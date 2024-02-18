@@ -199,6 +199,28 @@ exports[`configCases builtins css-modules-simple exported tests css modules simp
 }
 `;
 
+exports[`configCases chunk-index available-modules-order-index exported tests should compile 1`] = `
+"/* #region "./m.css" */
+/*
+- type: css
+*/
+.m {
+  color: red;
+}
+/* #endregion "./m.css" */
+
+/* #region "./n.css" */
+/*
+- type: css
+*/
+.n {
+  color: blue;
+}
+/* #endregion "./n.css" */
+
+"
+`;
+
 exports[`configCases css urls exported tests css urls should works 1`] = `
 "/* #region "./urls.css" */
 /*
