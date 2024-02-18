@@ -1,7 +1,7 @@
 use rspack_identifier::IdentifierMap;
 use rustc_hash::FxHashMap as HashMap;
 
-use crate::{AsyncDependenciesBlockId, ModuleIdentifier};
+use crate::{AsyncDependenciesBlockIdentifier, ModuleIdentifier};
 use crate::{ChunkGroupUkey, ChunkUkey};
 
 pub mod chunk_graph_chunk;
@@ -15,7 +15,7 @@ pub struct ChunkGraph {
   pub split_point_module_identifier_to_chunk_ukey: IdentifierMap<ChunkUkey>,
 
   /// If a module is imported dynamically, it will be assigned to a unique ChunkGroup
-  pub(crate) block_to_chunk_group_ukey: HashMap<AsyncDependenciesBlockId, ChunkGroupUkey>,
+  pub(crate) block_to_chunk_group_ukey: HashMap<AsyncDependenciesBlockIdentifier, ChunkGroupUkey>,
 
   pub chunk_graph_module_by_module_identifier: IdentifierMap<ChunkGraphModule>,
   chunk_graph_chunk_by_chunk_ukey: HashMap<ChunkUkey, ChunkGraphChunk>,
