@@ -1,9 +1,9 @@
-use std::{fmt::Debug, path::Path};
+use std::{fmt::Debug, path::Path, sync::Arc};
 
 use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_hash::RspackHashDigest;
 use rspack_loader_runner::{Content, LoaderContext, ResourceData};
-use rspack_sources::BoxSource;
+use rspack_sources::{BoxSource, Source};
 use rustc_hash::FxHashMap;
 use tokio::sync::mpsc::UnboundedSender;
 
@@ -484,8 +484,8 @@ pub trait Plugin: Debug + Send + Sync {
   async fn runtime_module(
     &self,
     _module: &mut dyn RuntimeModule,
+    _source: Arc<dyn Source>,
     _chunk: &Chunk,
-    _compilation: &Compilation,
   ) -> Result<Option<String>> {
     Ok(None)
   }

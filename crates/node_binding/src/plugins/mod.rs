@@ -13,6 +13,7 @@ use rspack_binding_values::{
 use rspack_binding_values::{BeforeResolveData, JsAssetEmittedArgs, ToJsModule};
 use rspack_binding_values::{CreateModuleData, JsBuildTimeExecutionOption, JsExecuteModuleArg};
 use rspack_binding_values::{JsResolveForSchemeInput, JsResolveForSchemeResult};
+use rspack_core::rspack_sources::Source;
 use rspack_core::{
   ApplyContext, BuildTimeExecutionOption, Chunk, ChunkAssetArgs, Compilation, CompilationParams,
   CompilerOptions, ModuleIdentifier, NormalModuleAfterResolveArgs, PluginContext, RuntimeModule,
@@ -909,8 +910,8 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
   async fn runtime_module(
     &self,
     module: &mut dyn RuntimeModule,
+    source: Arc<dyn Source>,
     chunk: &Chunk,
-    compilation: &Compilation,
   ) -> rspack_error::Result<Option<String>> {
     if self.is_hook_disabled(&Hook::RuntimeModule) {
       return Ok(None);
@@ -922,8 +923,7 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
         JsRuntimeModuleArg {
           module: JsRuntimeModule {
             source: Some(
-              module
-                .generate(compilation)
+              source
                 .to_js_compat_source()
                 .unwrap_or_else(|err| panic!("Failed to generate runtime module source: {err}")),
             ),
