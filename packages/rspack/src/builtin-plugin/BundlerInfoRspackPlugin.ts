@@ -9,8 +9,8 @@ export type BundleInfoOptions = {
 	force?: boolean | string[];
 };
 
-export const BundlerInfoPlugin = create(
-	BuiltinPluginName.BundlerInfoPlugin,
+export const BundlerInfoRspackPlugin = create(
+	BuiltinPluginName.BundlerInfoRspackPlugin,
 	(options: BundleInfoOptions): RawBundlerInfoPluginOptions => {
 		return {
 			version: options.version || "unknown",

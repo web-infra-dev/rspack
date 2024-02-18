@@ -45,7 +45,7 @@ export * from "./SideEffectsFlagPlugin";
 export * from "./FlagDependencyExportsPlugin";
 export * from "./FlagDependencyUsagePlugin";
 export * from "./MangleExportsPlugin";
-export * from "./BundlerInfoPlugin";
+export * from "./BundlerInfoRspackPlugin";
 export * from "./ModuleConcatenationPlugin";
 
 export * from "./HtmlRspackPlugin";
