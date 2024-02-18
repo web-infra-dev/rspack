@@ -14,12 +14,13 @@ on:
     types: [opened, synchronize]
     paths-ignore:
       - "**/*.md"
+      - '!.github/workflows/ci.yml'
   push:
     branches:
       - main
-      - jerry/test
     paths-ignore:
       - "**/*.md"
+      - '!.github/workflows/ci.yml'
     tags-ignore:
       - "**"
 
