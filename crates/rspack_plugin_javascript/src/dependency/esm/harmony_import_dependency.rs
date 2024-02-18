@@ -1,5 +1,6 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
+use dashmap::DashMap;
 use once_cell::sync::Lazy;
 use rspack_core::tree_shaking::symbol::{self, IndirectTopLevelSymbol};
 use rspack_core::tree_shaking::visitor::SymbolRef;
@@ -15,27 +16,24 @@ use rspack_core::{ModuleGraph, RuntimeSpec};
 use rustc_hash::{FxHashMap, FxHashSet as HashSet};
 use swc_core::ecma::atoms::Atom;
 
-pub type ImportEmittedMap =
-  FxHashMap<ModuleIdentifier, FxHashMap<ModuleIdentifier, RuntimeCondition>>;
-
 use super::create_resource_identifier_for_esm_dependency;
 
 // TODO: find a better way to implement this for performance
 // Align with https://github.com/webpack/webpack/blob/51f0f0aeac072f989f8d40247f6c23a1995c5c37/lib/dependencies/HarmonyImportDependency.js#L361-L365
 // This map is used to save the runtime conditions of modules and used by HarmonyAcceptDependency in hot module replacement.
 // It can not be saved in TemplateContext because only dependencies of rebuild modules will be templated again.
-static IMPORT_EMITTED_MAP: Mutex<Lazy<ImportEmittedMap>> = Mutex::new(Lazy::new(Default::default));
+static IMPORT_EMITTED_MAP: Lazy<
+  DashMap<ModuleIdentifier, FxHashMap<ModuleIdentifier, RuntimeCondition>>,
+> = Lazy::new(Default::default);
 
 pub fn get_import_emitted_runtime(
   module: &ModuleIdentifier,
   referenced_module: &ModuleIdentifier,
 ) -> RuntimeCondition {
-  match IMPORT_EMITTED_MAP
-    .lock()
-    .expect("Can get import emitted map")
-    .get(module)
-    .and_then(|map| map.get(referenced_module))
-  {
+  let Some(condition_map) = IMPORT_EMITTED_MAP.get(module) else {
+    return RuntimeCondition::Boolean(false);
+  };
+  match condition_map.get(referenced_module) {
     Some(r) => r.to_owned(),
     None => RuntimeCondition::Boolean(false),
   }
@@ -233,11 +231,7 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
   // The import emitted map is consumed by HarmonyAcceptDependency which enabled by `dev_server.hot`
   if compilation.options.dev_server.hot {
     if let Some(ref_module) = ref_module {
-      let mut imported_emitted_map = IMPORT_EMITTED_MAP
-        .lock()
-        .expect("Can not get import emitted map");
-
-      let emitted_modules = imported_emitted_map.entry(module.identifier()).or_default();
+      let mut emitted_modules = IMPORT_EMITTED_MAP.entry(module.identifier()).or_default();
 
       let old_runtime_condition = match emitted_modules.get(ref_module) {
         Some(v) => v.to_owned(),
@@ -260,7 +254,6 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
         }
       }
       emitted_modules.insert(*ref_module, merged_runtime_condition);
-      drop(imported_emitted_map);
     }
   }
 
