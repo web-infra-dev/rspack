@@ -600,8 +600,8 @@ importers:
         specifier: ^7.0.3
         version: 7.0.3
       execa:
-        specifier: ^8.0.0
-        version: 8.0.1
+        specifier: ^5.0.0
+        version: 5.1.1
       internal-ip:
         specifier: 8.0.0
         version: 8.0.0
@@ -14982,7 +14982,6 @@ packages:
   /signal-exit@4.1.0:
     resolution: {integrity: sha512-bzyZ1e88w9O1iNJbKnOlvYTrWPDl46O1bG0D3XInv+9tkPrxrN8jUUTiFlDkkmKWgn1M6CfIA13SuGqOa9Korw==}
     engines: {node: '>=14'}
-    dev: true
 
   /simple-concat@1.0.1:
     resolution: {integrity: sha512-cSFtAPtRhljv69IK0hTVZQ+OfE9nePi/rtJmw5UjHeVyVroEqJXP1sFztKUy1qU+xvz3u/sfYJLa947b7nAN2Q==}
@@ -16987,7 +16986,7 @@ packages:
     engines: {node: ^14.17.0 || ^16.13.0 || >=18.0.0}
     dependencies:
       imurmurhash: 0.1.4
-      signal-exit: 4.0.1
+      signal-exit: 4.1.0
     dev: false
 
   /write-yaml-file@4.2.0:
