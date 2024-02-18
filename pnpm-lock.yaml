@@ -911,9 +911,6 @@ importers:
       '@actions/core':
         specifier: 1.10.0
         version: 1.10.0
-      '@iarna/toml':
-        specifier: 2.2.5
-        version: 2.2.5
       '@pnpm/find-workspace-packages':
         specifier: 6.0.8
         version: 6.0.8(@pnpm/logger@5.0.0)
@@ -3141,10 +3138,6 @@ packages:
   /@gwhitney/detect-indent@7.0.1:
     resolution: {integrity: sha512-7bQW+gkKa2kKZPeJf6+c6gFK9ARxQfn+FKy9ScTBppyKRWH2KzsmweXUoklqeEiHiNVWaeP5csIdsNq6w7QhzA==}
     engines: {node: '>=12.20'}
-    dev: false
-
-  /@iarna/toml@2.2.5:
-    resolution: {integrity: sha512-trnsAYxU3xnS1gPHPyU961coFyLkh4gAD/0zQ5mymY4yOZ+CYvsPqUbOFSw0aDM4y0tV7tiFxL/1XfXPNC6IPg==}
     dev: false
 
   /@icons/material@0.2.4(react@17.0.2):
