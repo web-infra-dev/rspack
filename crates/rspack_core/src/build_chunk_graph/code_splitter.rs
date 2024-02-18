@@ -9,7 +9,7 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::dependencies_block::AsyncDependenciesToInitialChunkError;
 use crate::{
-  assign_depth, assign_depths, get_entry_runtime, AsyncDependenciesBlockId, BoxDependency,
+  assign_depth, assign_depths, get_entry_runtime, AsyncDependenciesBlockIdentifier, BoxDependency,
   ChunkGroup, ChunkGroupKind, ChunkGroupOptions, ChunkGroupUkey, ChunkLoading, ChunkUkey,
   Compilation, ConnectionState, DependenciesBlock, Dependency, GroupOptions, Logger,
   ModuleGraphConnection, ModuleIdentifier, RuntimeSpec,
@@ -71,7 +71,7 @@ pub(super) struct CodeSplitter<'me> {
   chunk_group_info_map: HashMap<ChunkGroupUkey, CgiUkey>,
   chunk_group_infos: Database<ChunkGroupInfo>,
   outdated_order_index_chunk_groups: HashSet<CgiUkey>,
-  block_by_cgi: HashMap<CgiUkey, AsyncDependenciesBlockId>,
+  block_by_cgi: HashMap<CgiUkey, AsyncDependenciesBlockIdentifier>,
   pub(super) compilation: &'me mut Compilation,
   next_free_module_pre_order_index: u32,
   next_free_module_post_order_index: u32,
@@ -80,7 +80,7 @@ pub(super) struct CodeSplitter<'me> {
   queue_delayed: Vec<QueueAction>,
   queue_connect: HashMap<CgiUkey, HashSet<CgiUkey>>,
   outdated_chunk_group_info: HashSet<CgiUkey>,
-  block_chunk_groups: HashMap<AsyncDependenciesBlockId, CgiUkey>,
+  block_chunk_groups: HashMap<AsyncDependenciesBlockIdentifier, CgiUkey>,
   named_chunk_groups: HashMap<String, CgiUkey>,
   named_async_entrypoints: HashMap<String, CgiUkey>,
   block_modules_runtime_map: HashMap<
@@ -721,7 +721,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
   fn iterator_block(
     &mut self,
-    block_id: AsyncDependenciesBlockId,
+    block_id: AsyncDependenciesBlockIdentifier,
     item_chunk_group_info_ukey: CgiUkey,
     item_chunk_ukey: ChunkUkey,
   ) {
@@ -1257,7 +1257,7 @@ struct ProcessBlock {
 
 #[derive(Debug, Clone)]
 struct ProcessEntryBlock {
-  block: AsyncDependenciesBlockId,
+  block: AsyncDependenciesBlockIdentifier,
   chunk_group_info: CgiUkey,
   chunk: ChunkUkey,
 }
@@ -1265,7 +1265,7 @@ struct ProcessEntryBlock {
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 enum DependenciesBlockIdentifier {
   Module(ModuleIdentifier),
-  AsyncDependenciesBlock(AsyncDependenciesBlockId),
+  AsyncDependenciesBlock(AsyncDependenciesBlockIdentifier),
 }
 
 impl DependenciesBlockIdentifier {
@@ -1278,7 +1278,7 @@ impl DependenciesBlockIdentifier {
     }
   }
 
-  pub fn get_blocks(&self, compilation: &Compilation) -> Vec<AsyncDependenciesBlockId> {
+  pub fn get_blocks(&self, compilation: &Compilation) -> Vec<AsyncDependenciesBlockIdentifier> {
     match self {
       DependenciesBlockIdentifier::Module(m) => compilation
         .module_graph
@@ -1302,8 +1302,8 @@ impl From<ModuleIdentifier> for DependenciesBlockIdentifier {
   }
 }
 
-impl From<AsyncDependenciesBlockId> for DependenciesBlockIdentifier {
-  fn from(value: AsyncDependenciesBlockId) -> Self {
+impl From<AsyncDependenciesBlockIdentifier> for DependenciesBlockIdentifier {
+  fn from(value: AsyncDependenciesBlockIdentifier) -> Self {
     Self::AsyncDependenciesBlock(value)
   }
 }

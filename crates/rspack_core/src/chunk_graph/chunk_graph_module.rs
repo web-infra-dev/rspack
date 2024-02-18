@@ -10,7 +10,7 @@ use rustc_hash::FxHashSet as HashSet;
 use crate::update_hash::{UpdateHashContext, UpdateRspackHash};
 use crate::ChunkGraph;
 use crate::{
-  get_chunk_group_from_ukey, AsyncDependenciesBlockId, BoxModule, ChunkByUkey, ChunkGroup,
+  get_chunk_group_from_ukey, AsyncDependenciesBlockIdentifier, BoxModule, ChunkByUkey, ChunkGroup,
   ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, ExportsHash, ModuleIdentifier,
   RuntimeGlobals, RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet,
 };
@@ -149,7 +149,7 @@ impl ChunkGraph {
 
   pub fn get_block_chunk_group<'a>(
     &self,
-    block: &AsyncDependenciesBlockId,
+    block: &AsyncDependenciesBlockIdentifier,
     chunk_group_by_ukey: &'a ChunkGroupByUkey,
   ) -> Option<&'a ChunkGroup> {
     self
@@ -160,7 +160,7 @@ impl ChunkGraph {
 
   pub fn connect_block_and_chunk_group(
     &mut self,
-    block: AsyncDependenciesBlockId,
+    block: AsyncDependenciesBlockIdentifier,
     chunk_group: ChunkGroupUkey,
   ) {
     self.block_to_chunk_group_ukey.insert(block, chunk_group);

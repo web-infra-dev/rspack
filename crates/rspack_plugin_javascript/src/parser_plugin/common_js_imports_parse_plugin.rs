@@ -338,6 +338,8 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
             category: DependencyCategory::CommonJS,
             request: format!("{}{}{}", context, query, fragment),
             namespace_object: ContextNameSpaceObject::Unset,
+            start: call_expr.span().real_lo(),
+            end: call_expr.span().real_hi(),
           },
           Some(call_expr.span.into()),
         )));

@@ -999,14 +999,14 @@ impl Compilation {
                     module_graph.set_parents(
                       dependency_id,
                       DependencyParents {
-                        block: current_block.as_ref().map(|block| block.id()),
+                        block: current_block.as_ref().map(|block| block.identifier()),
                         module: module.identifier(),
                       },
                     );
                     module_graph.add_dependency(dependency);
                   }
                   if let Some(current_block) = current_block {
-                    module.add_block_id(current_block.id());
+                    module.add_block_id(current_block.identifier());
                     module_graph.add_block(current_block);
                   }
                   for block in blocks {
