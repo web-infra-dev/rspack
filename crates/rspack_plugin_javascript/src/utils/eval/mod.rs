@@ -126,6 +126,10 @@ impl BasicEvaluatedExpression {
     matches!(self.ty, Ty::Null)
   }
 
+  pub fn is_unknown(&self) -> bool {
+    matches!(self.ty, Ty::Unknown)
+  }
+
   pub fn is_undefined(&self) -> bool {
     matches!(self.ty, Ty::Undefined)
   }
