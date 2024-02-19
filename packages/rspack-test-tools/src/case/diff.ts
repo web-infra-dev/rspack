@@ -121,6 +121,7 @@ function createDiffProcessor(config: IDiffProcessorOptions) {
 		ignoreModuleArguments: config.ignoreModuleArguments ?? true,
 		ignorePropertyQuotationMark: config.ignorePropertyQuotationMark ?? true,
 		ignoreBlockOnlyStatement: config.ignoreBlockOnlyStatement ?? true,
+		ignoreIfCertainCondition: config.ignoreIfCertainCondition ?? true,
 		ignoreSwcHelpersPath: config.ignoreSwcHelpersPath ?? true,
 		ignoreObjectPropertySequence: config.ignoreObjectPropertySequence ?? true,
 		ignoreCssFilePath: config.ignoreCssFilePath ?? true,
