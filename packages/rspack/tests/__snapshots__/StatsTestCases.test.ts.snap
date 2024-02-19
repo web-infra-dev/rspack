@@ -6321,7 +6321,7 @@ exports[`StatsTestCases should print correct stats for runtime-specific-exports 
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "a70d51933f0b44467f41",
+  "hash": "5491370cb8e3b8b37e5f",
   "logging": {},
   "modules": [
     {
@@ -6475,7 +6475,7 @@ Entrypoint main 391 bytes = bundle.js
 ./increment.js
   [exports: decrement, increment, incrementBy2]
   [only some exports used: increment]
-Rspack compiled successfully (a70d51933f0b44467f41)"
+Rspack compiled successfully (5491370cb8e3b8b37e5f)"
 `;
 
 exports[`StatsTestCases should print correct stats for simple-export 1`] = `
