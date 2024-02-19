@@ -131,7 +131,7 @@ impl SplitChunksPlugin {
 
         temp.push((idx, is_match));
       }
-        let mut chunk_key_to_string = FxHashMap::default();
+      let mut chunk_key_to_string = FxHashMap::default();
       temp.sort_by(|a, b| a.0.cmp(&b.0));
 
       let filtered = self
