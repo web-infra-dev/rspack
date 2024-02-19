@@ -7,10 +7,7 @@ use swc_core::ecma::ast::{
   BinExpr, BinaryOp, CallExpr, Callee, Expr, Lit, MemberProp, TaggedTpl, Tpl,
 };
 
-enum TemplateStringKind {
-  Raw,
-  Cooked,
-}
+use crate::utils::eval::TemplateStringKind;
 
 pub struct ContextModuleScanResult {
   pub context: String,
