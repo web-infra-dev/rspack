@@ -70,6 +70,16 @@ pub trait JavascriptParserPlugin {
     None
   }
 
+  fn evaluate_call_expression_member(
+    &self,
+    _parser: &mut JavascriptParser,
+    _property: &str,
+    _expr: &CallExpr,
+    _param: &BasicEvaluatedExpression,
+  ) -> Option<BasicEvaluatedExpression> {
+    None
+  }
+
   fn call(
     &self,
     _parser: &mut JavascriptParser,

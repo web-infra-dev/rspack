@@ -278,6 +278,23 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     None
   }
 
+  fn evaluate_call_expression_member(
+    &self,
+    parser: &mut JavascriptParser,
+    property: &str,
+    expr: &CallExpr,
+    param: &BasicEvaluatedExpression,
+  ) -> Option<BasicEvaluatedExpression> {
+    for plugin in &self.plugins {
+      let res = plugin.evaluate_call_expression_member(parser, property, expr, param);
+      // `SyncBailHook`
+      if res.is_some() {
+        return res;
+      }
+    }
+    None
+  }
+
   fn evaluate_identifier(
     &self,
     parser: &mut JavascriptParser,
