@@ -620,7 +620,7 @@ impl Stats<'_> {
         .chunk_graph
         .get_number_of_module_chunks(*identifier)
         == 0,
-      provided_exports: None,
+      provided_exports: Some(vec![]),
       used_exports: None,
     })
   }
