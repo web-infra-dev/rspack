@@ -1,23 +1,21 @@
 use std::borrow::Cow;
-use std::ops::Deref;
 
 use swc_core::ecma::ast::{ArrayLit, ArrayPat, ArrowExpr, AssignExpr, AssignPat, AwaitExpr};
 use swc_core::ecma::ast::{BinExpr, BlockStmt, BlockStmtOrExpr, CallExpr, Callee, CatchClause};
 use swc_core::ecma::ast::{Class, ClassDecl, ClassExpr, ClassMember, CondExpr, Decl, DefaultDecl};
 use swc_core::ecma::ast::{DoWhileStmt, ExportDecl, ExportDefaultDecl, ExportDefaultExpr, Expr};
 use swc_core::ecma::ast::{ExprOrSpread, ExprStmt, FnDecl, MemberExpr, MemberProp, VarDeclOrExpr};
-use swc_core::ecma::ast::{FnExpr, ForHead, Function, Ident, KeyValuePatProp, KeyValueProp};
+use swc_core::ecma::ast::{FnExpr, ForHead, Function, Ident, KeyValueProp};
 use swc_core::ecma::ast::{ForInStmt, ForOfStmt, ForStmt, IfStmt, LabeledStmt, WithStmt};
 use swc_core::ecma::ast::{MetaPropExpr, NamedExport, NewExpr, ObjectLit, OptCall, OptChainBase};
 use swc_core::ecma::ast::{ModuleDecl, ModuleItem, ObjectPat, ObjectPatProp, Stmt, WhileStmt};
 use swc_core::ecma::ast::{OptChainExpr, ParamOrTsParamProp, Pat, PatOrExpr, ThisExpr, UnaryOp};
 use swc_core::ecma::ast::{Prop, PropName, PropOrSpread, RestPat, ReturnStmt, SeqExpr, TaggedTpl};
-use swc_core::ecma::ast::{SwitchCase, SwitchStmt, Tpl, TryStmt, VarDecl, VarDeclKind, YieldExpr};
+use swc_core::ecma::ast::{SwitchCase, SwitchStmt, Tpl, TryStmt, VarDecl, YieldExpr};
 use swc_core::ecma::ast::{ThrowStmt, UnaryExpr, UpdateExpr};
-use swc_core::ecma::utils::ExprFactory;
 
+use super::TopLevelScope;
 use super::{AllowedMemberTypes, CallHooksName, JavascriptParser, MemberExpressionInfo, RootName};
-use super::{ExportedVariableInfo, TopLevelScope};
 use crate::parser_plugin::{is_logic_op, JavascriptParserPlugin};
 
 fn warp_ident_to_pat(ident: Ident) -> Pat {
@@ -1124,6 +1122,6 @@ fn member_prop_len(member_prop: &MemberProp) -> Option<usize> {
   match member_prop {
     MemberProp::Ident(ident) => Some(ident.sym.len()),
     MemberProp::PrivateName(name) => Some(name.id.sym.len() + 1),
-    MemberProp::Computed(name) => None,
+    MemberProp::Computed(_) => None,
   }
 }
