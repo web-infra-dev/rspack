@@ -501,6 +501,7 @@ exports[`StatsTestCases should print correct stats for css-concat 1`] = `
           "name": "./foo.css",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/css-concat/foo.css",
           "orphan": false,
+          "providedExports": [],
           "reasons": [
             {
               "moduleId": undefined,
@@ -515,6 +516,7 @@ exports[`StatsTestCases should print correct stats for css-concat 1`] = `
   color: black
 }",
           "type": "module",
+          "usedExports": [],
         },
         {
           "assets": [],
@@ -531,6 +533,7 @@ exports[`StatsTestCases should print correct stats for css-concat 1`] = `
           "name": "./index.js + 1 modules",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/css-concat/index.js",
           "orphan": false,
+          "providedExports": [],
           "reasons": [
             {
               "moduleId": undefined,
@@ -543,6 +546,7 @@ exports[`StatsTestCases should print correct stats for css-concat 1`] = `
           "size": 62,
           "source": undefined,
           "type": "module",
+          "usedExports": [],
         },
       ],
       "names": [
@@ -607,6 +611,7 @@ exports[`StatsTestCases should print correct stats for css-concat 1`] = `
       "name": "./foo.css",
       "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/css-concat/foo.css",
       "orphan": false,
+      "providedExports": [],
       "reasons": [
         {
           "moduleId": undefined,
@@ -621,6 +626,7 @@ exports[`StatsTestCases should print correct stats for css-concat 1`] = `
   color: black
 }",
       "type": "module",
+      "usedExports": [],
     },
     {
       "assets": [],
@@ -637,6 +643,7 @@ exports[`StatsTestCases should print correct stats for css-concat 1`] = `
       "name": "./index.js + 1 modules",
       "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/css-concat/index.js",
       "orphan": false,
+      "providedExports": [],
       "reasons": [
         {
           "moduleId": undefined,
@@ -649,6 +656,7 @@ exports[`StatsTestCases should print correct stats for css-concat 1`] = `
       "size": 62,
       "source": undefined,
       "type": "module",
+      "usedExports": [],
     },
   ],
   "namedChunkGroups": {
@@ -684,13 +692,21 @@ asset bundle.js 813 bytes {909} [emitted] (name: main)
 Entrypoint main 837 bytes = bundle.js 813 bytes bundle.css 24 bytes
 chunk {909} bundle.css, bundle.js (main) [entry]
   ./foo.css [135] {909}
+    [no exports]
+    [no exports used]
     esm import ./foo.css
   ./index.js + 1 modules [869] {909}
+    [no exports]
+    [no exports used]
     entry ./index
 orphan modules [orphan] 1 module
 ./foo.css [135] {909}
+  [no exports]
+  [no exports used]
   esm import ./foo.css
 ./index.js + 1 modules [869] {909}
+  [no exports]
+  [no exports used]
   entry ./index
   
 Rspack compiled successfully (114e55a8ecdab6f09498)"
