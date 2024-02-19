@@ -1,9 +1,7 @@
-use std::hash::{Hash, Hasher};
-
 use dashmap::DashMap;
 use rayon::prelude::*;
 use rspack_core::{Chunk, ChunkGraph, ChunkUkey, Compilation, Module, ModuleGraph};
-use rustc_hash::{FxHashMap, FxHashSet, FxHasher};
+use rustc_hash::{FxHashMap, FxHashSet};
 
 use super::ModuleGroupMap;
 use crate::module_group::{compare_entries, CacheGroupIdx, ModuleGroup};
@@ -133,7 +131,7 @@ impl SplitChunksPlugin {
 
         temp.push((idx, is_match));
       }
-
+        let mut chunk_key_to_string = FxHashMap::default();
       temp.sort_by(|a, b| a.0.cmp(&b.0));
 
       let filtered = self
@@ -192,11 +190,13 @@ impl SplitChunksPlugin {
               selected_chunks_key,
             },
             module_group_map,
+            &mut chunk_key_to_string
           );
 
           fn merge_matched_item_into_module_group_map(
             matched_item: MatchedItem<'_>,
             module_group_map: &DashMap<String, ModuleGroup>,
+            chunk_key_to_string: &mut FxHashMap<ChunksKey, String>
           ) {
             let MatchedItem {
               idx,
@@ -225,7 +225,13 @@ impl SplitChunksPlugin {
               key.push_str(cache_group_name);
               key
             } else {
-              let selected_chunks_key = selected_chunks_key.to_str_radix(16);
+                let selected_chunks_key = if let Some(item) = chunk_key_to_string.get(&selected_chunks_key) {
+                  item.to_string()
+                } else {
+                  let key = selected_chunks_key.to_str_radix(16);
+                  chunk_key_to_string.insert(selected_chunks_key, key.clone());
+                  key
+                };
               let mut key =
                 String::with_capacity(cache_group.key.len() + " chunks:".len() + selected_chunks_key.len());
               key.push_str(&cache_group.key);
