@@ -41,7 +41,7 @@
     "url": "https://github.com/web-infra-dev/rspack"
   },
   "engines": {
-    "pnpm": ">=8.14.3"
+    "pnpm": "8.14.3"
   },
   "devDependencies": {
     "@rspack/cli": "workspace:*",
