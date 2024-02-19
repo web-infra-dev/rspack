@@ -6,11 +6,11 @@ use rspack_core::tree_shaking::symbol::{self, IndirectTopLevelSymbol};
 use rspack_core::tree_shaking::visitor::SymbolRef;
 use rspack_core::{
   filter_runtime, get_import_var, import_statement, merge_runtime, AsContextDependency,
-  AwaitDependenciesInitFragment, ConnectionState, Dependency, DependencyCategory,
-  DependencyCondition, DependencyId, DependencyTemplate, DependencyType, ErrorSpan,
-  ExtendedReferencedExport, InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleDependency,
-  ModuleIdentifier, NormalInitFragment, RuntimeCondition, RuntimeGlobals, TemplateContext,
-  TemplateReplaceSource,
+  AwaitDependenciesInitFragment, ConditionalInitFragment, ConnectionState, Dependency,
+  DependencyCategory, DependencyCondition, DependencyId, DependencyTemplate, DependencyType,
+  ErrorSpan, ExtendedReferencedExport, InitFragmentExt, InitFragmentKey, InitFragmentStage,
+  ModuleDependency, ModuleIdentifier, NormalInitFragment, RuntimeCondition, RuntimeGlobals,
+  TemplateContext, TemplateReplaceSource,
 };
 use rspack_core::{ModuleGraph, RuntimeSpec};
 use rustc_hash::{FxHashMap, FxHashSet as HashSet};
@@ -238,7 +238,7 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
         None => RuntimeCondition::Boolean(false),
       };
 
-      let mut merged_runtime_condition = runtime_condition;
+      let mut merged_runtime_condition = runtime_condition.clone();
       if !matches!(old_runtime_condition, RuntimeCondition::Boolean(false))
         && !matches!(merged_runtime_condition, RuntimeCondition::Boolean(true))
       {
@@ -259,28 +259,31 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
 
   let is_async_module = matches!(ref_module, Some(ref_module) if compilation.module_graph.is_async(ref_module) == Some(true));
   if is_async_module {
-    init_fragments.push(Box::new(NormalInitFragment::new(
+    init_fragments.push(Box::new(ConditionalInitFragment::new(
       content.0,
       InitFragmentStage::StageHarmonyImports,
       source_order,
       InitFragmentKey::HarmonyImport(key.to_string()),
       None,
+      runtime_condition.clone(),
     )));
     init_fragments.push(AwaitDependenciesInitFragment::new_single(import_var.to_string()).boxed());
-    init_fragments.push(Box::new(NormalInitFragment::new(
+    init_fragments.push(Box::new(ConditionalInitFragment::new(
       content.1,
       InitFragmentStage::StageAsyncHarmonyImports,
       source_order,
       InitFragmentKey::HarmonyImport(format!("{} compat", key)),
       None,
+      runtime_condition,
     )));
   } else {
-    init_fragments.push(Box::new(NormalInitFragment::new(
+    init_fragments.push(Box::new(ConditionalInitFragment::new(
       format!("{}{}", content.0, content.1),
       InitFragmentStage::StageHarmonyImports,
       source_order,
       InitFragmentKey::HarmonyImport(key.to_string()),
       None,
+      runtime_condition,
     )));
   }
 
