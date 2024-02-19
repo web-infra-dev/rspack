@@ -3,6 +3,7 @@ use std::collections::hash_map::Entry;
 use std::path::PathBuf;
 
 use dashmap::DashMap;
+use itertools::Itertools;
 use rspack_error::Result;
 use rspack_hash::RspackHashDigest;
 use rspack_identifier::{Identifiable, IdentifierMap};
@@ -647,14 +648,33 @@ impl ModuleGraph {
   pub(crate) fn get_module_dependencies_modules_and_blocks(
     &self,
     module_identifier: &ModuleIdentifier,
-  ) -> (Vec<&ModuleIdentifier>, &[AsyncDependenciesBlockIdentifier]) {
+  ) -> (Vec<ModuleIdentifier>, &[AsyncDependenciesBlockIdentifier]) {
     let Some(m) = self.module_by_identifier(module_identifier) else {
       unreachable!("cannot find the module correspanding to {module_identifier}");
     };
-    let modules = m
+    let mut deps = m
       .get_dependencies()
       .iter()
-      .filter_map(|id| self.module_identifier_by_dependency_id(id))
+      .filter_map(|id| self.dependency_by_id(id))
+      .filter(|dep| dep.as_module_dependency().is_some())
+      .collect::<Vec<_>>();
+
+    // sort by span, so user change import order can recalculate chunk graph
+    deps.sort_by(|a, b| {
+      if let (Some(span_a), Some(span_b)) = (a.span(), b.span()) {
+        span_a.cmp(&span_b)
+      } else if let (Some(a), Some(b)) = (a.source_order(), b.source_order()) {
+        a.cmp(&b)
+      } else {
+        a.id().cmp(b.id())
+      }
+    });
+
+    let modules = deps
+      .into_iter()
+      .filter_map(|dep| self.module_identifier_by_dependency_id(dep.id()))
+      .dedup_by(|a, b| a.as_str() == b.as_str())
+      .copied()
       .collect();
     let blocks = m.get_blocks();
     (modules, blocks)
