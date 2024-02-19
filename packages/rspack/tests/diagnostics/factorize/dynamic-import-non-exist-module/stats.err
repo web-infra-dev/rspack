@@ -9,7 +9,7 @@ ERROR in ./index.js
  6 │         errored = true;
    ╰────
   help: try to resolve './non-exist' in '<PROJECT_ROOT>/tests/diagnostics/factorize/dynamic-import-non-exist-module'
-         use description file: <PROJECT_ROOT>/tests/diagnostics/factorize/package.json
+        use description file: <PROJECT_ROOT>/tests/diagnostics/factorize/package.json
         '<PROJECT_ROOT>/tests/diagnostics/factorize/dynamic-import-non-exist-module/non-exist.json' doesn't exist
         '<PROJECT_ROOT>/tests/diagnostics/factorize/dynamic-import-non-exist-module/non-exist.js' doesn't exist
         '<PROJECT_ROOT>/tests/diagnostics/factorize/dynamic-import-non-exist-module/non-exist.wasm' doesn't exist

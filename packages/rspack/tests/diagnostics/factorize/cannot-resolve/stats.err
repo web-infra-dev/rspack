@@ -5,7 +5,7 @@ ERROR in ./index.js
    ·        ─────
    ╰────
   help: try to resolve './a' in '<PROJECT_ROOT>/tests/diagnostics/factorize/cannot-resolve'
-         use description file: <PROJECT_ROOT>/tests/diagnostics/factorize/package.json
+        use description file: <PROJECT_ROOT>/tests/diagnostics/factorize/package.json
         '<PROJECT_ROOT>/tests/diagnostics/factorize/cannot-resolve/a.json' doesn't exist
         '<PROJECT_ROOT>/tests/diagnostics/factorize/cannot-resolve/a' doesn't exist
         '<PROJECT_ROOT>/tests/diagnostics/factorize/cannot-resolve/a.js' doesn't exist

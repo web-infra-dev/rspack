@@ -198,7 +198,7 @@ which tries to resolve these kind of requests in the current directory too.",
     };
 
     return Some(format!(
-      "try to resolve '{}' in '{}'\n {}{}",
+      "try to resolve '{}' in '{}'\n{}{}",
       args.specifier,
       base_dir.to_string_lossy(),
       using_description_data_hint,

@@ -1,6 +1,6 @@
 ERROR in × Resolve error: Can't resolve './' in '<PROJECT_ROOT>/tests/diagnostics/builtins/recoverable_syntax_error'
   help: try to resolve './' in '<PROJECT_ROOT>/tests/diagnostics/builtins/recoverable_syntax_error'
-         use description file: <PROJECT_ROOT>/tests/diagnostics/builtins/recoverable_syntax_error/package.json
+        use description file: <PROJECT_ROOT>/tests/diagnostics/builtins/recoverable_syntax_error/package.json
         '<PROJECT_ROOT>/tests/diagnostics/builtins/recoverable_syntax_error/index.js' doesn't exist
         '<PROJECT_ROOT>/tests/diagnostics/builtins/recoverable_syntax_error/index' doesn't exist
         '<PROJECT_ROOT>/tests/diagnostics/builtins/recoverable_syntax_error/index.json' doesn't exist

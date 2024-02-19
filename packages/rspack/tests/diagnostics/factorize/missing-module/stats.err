@@ -9,7 +9,7 @@ WARNING in ./index.js
  6 │         errored = true;
    ╰────
   help: try to resolve './missing-module' in '<PROJECT_ROOT>/tests/diagnostics/factorize/missing-module'
-         use description file: <PROJECT_ROOT>/tests/diagnostics/factorize/package.json
+        use description file: <PROJECT_ROOT>/tests/diagnostics/factorize/package.json
         '<PROJECT_ROOT>/tests/diagnostics/factorize/missing-module/missing-module' doesn't exist
         '<PROJECT_ROOT>/tests/diagnostics/factorize/missing-module/missing-module.js' doesn't exist
         '<PROJECT_ROOT>/tests/diagnostics/factorize/missing-module/missing-module.wasm' doesn't exist
