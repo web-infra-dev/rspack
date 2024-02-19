@@ -274,7 +274,7 @@ impl JavascriptParserPlugin for APIPlugin {
         not_supported_expr!(is_require_extensions, expr, "require.extensions");
         not_supported_expr!(is_require_ensure, expr, "require.ensure");
         not_supported_expr!(is_require_config, expr, "require.config");
-        not_supported_expr!(is_require_version, expr, "require.vesrion");
+        not_supported_expr!(is_require_version, expr, "require.version");
         not_supported_expr!(is_require_amd, expr, "require.amd");
         not_supported_expr!(is_require_include, expr, "require.include");
         not_supported_expr!(is_require_onerror, expr, "require.onError");
