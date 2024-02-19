@@ -2494,6 +2494,7 @@ dependencies = [
  "async-recursion",
  "async-trait",
  "bitflags 2.4.2",
+ "colored",
  "dashmap",
  "derivative",
  "dyn-clone",

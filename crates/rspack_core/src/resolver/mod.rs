@@ -3,6 +3,7 @@ mod resolver_impl;
 
 use std::{fmt, path::PathBuf};
 
+use colored::Colorize;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_error::{Error, MietteExt};
@@ -167,6 +168,42 @@ which tries to resolve these kind of requests in the current directory too.",
       Err(_) => return None,
       _ => {}
     }
+  }
+
+  if args.missing_dependencies.len() > 0 {
+    let description_data = args
+      .missing_dependencies
+      .iter()
+      .find(|p| p.ends_with("package.json"));
+
+    let missing_dependencies = args
+      .missing_dependencies
+      .iter()
+      .filter(|p| !p.ends_with("package.json"))
+      .map(|p| {
+        let path = p.to_string_lossy().to_string();
+        format!("'{}' doesn't exist", path)
+      })
+      .collect::<Vec<_>>()
+      .join("\n")
+      .red();
+
+    let using_description_data_hint = if let Some(description_data) = description_data {
+      format!(
+        "use description file: {}\n",
+        description_data.to_string_lossy()
+      )
+    } else {
+      "".to_string()
+    };
+
+    return Some(format!(
+      "try to resolve '{}' in '{}'\n {}{}",
+      args.specifier,
+      base_dir.to_string_lossy(),
+      using_description_data_hint,
+      missing_dependencies
+    ));
   }
 
   None

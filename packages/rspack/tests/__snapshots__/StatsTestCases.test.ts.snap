@@ -6293,6 +6293,12 @@ exports[`StatsTestCases should print correct stats for try-require--module 1`] =
    ·     ───────────────────────────
  3 │ } catch (e) {}
    ╰────
+  help: try to resolve './missing-module' in '<PROJECT_ROOT>/tests/statsCases/try-require--module'
+         use description file: <PROJECT_ROOT>/tests/statsCases/try-require--module/package.json
+        '<PROJECT_ROOT>/tests/statsCases/try-require--module/missing-module.wasm' doesn't exist
+        '<PROJECT_ROOT>/tests/statsCases/try-require--module/missing-module.json' doesn't exist
+        '<PROJECT_ROOT>/tests/statsCases/try-require--module/missing-module' doesn't exist
+        '<PROJECT_ROOT>/tests/statsCases/try-require--module/missing-module.js' doesn't exist
 ",
       "message": "  ⚠ Resolve error: Can't resolve './missing-module' in '<PROJECT_ROOT>/tests/statsCases/try-require--module'
    ╭─[1:1]
@@ -6301,6 +6307,12 @@ exports[`StatsTestCases should print correct stats for try-require--module 1`] =
    ·     ───────────────────────────
  3 │ } catch (e) {}
    ╰────
+  help: try to resolve './missing-module' in '<PROJECT_ROOT>/tests/statsCases/try-require--module'
+         use description file: <PROJECT_ROOT>/tests/statsCases/try-require--module/package.json
+        '<PROJECT_ROOT>/tests/statsCases/try-require--module/missing-module.wasm' doesn't exist
+        '<PROJECT_ROOT>/tests/statsCases/try-require--module/missing-module.json' doesn't exist
+        '<PROJECT_ROOT>/tests/statsCases/try-require--module/missing-module' doesn't exist
+        '<PROJECT_ROOT>/tests/statsCases/try-require--module/missing-module.js' doesn't exist
 ",
       "moduleId": "10",
       "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/try-require--module/index.js",
@@ -6320,6 +6332,12 @@ exports[`StatsTestCases should print correct stats for try-require--module 2`] =
    ·     ───────────────────────────
  3 │ } catch (e) {}
    ╰────
+  help: try to resolve './missing-module' in '<PROJECT_ROOT>/tests/statsCases/try-require--module'
+         use description file: <PROJECT_ROOT>/tests/statsCases/try-require--module/package.json
+        '<PROJECT_ROOT>/tests/statsCases/try-require--module/missing-module.wasm' doesn't exist
+        '<PROJECT_ROOT>/tests/statsCases/try-require--module/missing-module.json' doesn't exist
+        '<PROJECT_ROOT>/tests/statsCases/try-require--module/missing-module' doesn't exist
+        '<PROJECT_ROOT>/tests/statsCases/try-require--module/missing-module.js' doesn't exist
 
 Rspack compiled with 1 warning"
 `;
@@ -6338,6 +6356,12 @@ exports[`StatsTestCases should print correct stats for try-require-resolve-modul
    ·     ───────────────────────────────────
  3 │ } catch (e) {}
    ╰────
+  help: try to resolve './missing-module' in '<PROJECT_ROOT>/tests/statsCases/try-require-resolve-module'
+         use description file: <PROJECT_ROOT>/tests/statsCases/package.json
+        '<PROJECT_ROOT>/tests/statsCases/try-require-resolve-module/missing-module.json' doesn't exist
+        '<PROJECT_ROOT>/tests/statsCases/try-require-resolve-module/missing-module.wasm' doesn't exist
+        '<PROJECT_ROOT>/tests/statsCases/try-require-resolve-module/missing-module.js' doesn't exist
+        '<PROJECT_ROOT>/tests/statsCases/try-require-resolve-module/missing-module' doesn't exist
 ",
       "message": "  ⚠ Resolve error: Can't resolve './missing-module' in '<PROJECT_ROOT>/tests/statsCases/try-require-resolve-module'
    ╭─[1:1]
@@ -6346,6 +6370,12 @@ exports[`StatsTestCases should print correct stats for try-require-resolve-modul
    ·     ───────────────────────────────────
  3 │ } catch (e) {}
    ╰────
+  help: try to resolve './missing-module' in '<PROJECT_ROOT>/tests/statsCases/try-require-resolve-module'
+         use description file: <PROJECT_ROOT>/tests/statsCases/package.json
+        '<PROJECT_ROOT>/tests/statsCases/try-require-resolve-module/missing-module.json' doesn't exist
+        '<PROJECT_ROOT>/tests/statsCases/try-require-resolve-module/missing-module.wasm' doesn't exist
+        '<PROJECT_ROOT>/tests/statsCases/try-require-resolve-module/missing-module.js' doesn't exist
+        '<PROJECT_ROOT>/tests/statsCases/try-require-resolve-module/missing-module' doesn't exist
 ",
       "moduleId": "10",
       "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/try-require-resolve-module/index.js",
@@ -6365,6 +6395,12 @@ exports[`StatsTestCases should print correct stats for try-require-resolve-modul
    ·     ───────────────────────────────────
  3 │ } catch (e) {}
    ╰────
+  help: try to resolve './missing-module' in '<PROJECT_ROOT>/tests/statsCases/try-require-resolve-module'
+         use description file: <PROJECT_ROOT>/tests/statsCases/package.json
+        '<PROJECT_ROOT>/tests/statsCases/try-require-resolve-module/missing-module.json' doesn't exist
+        '<PROJECT_ROOT>/tests/statsCases/try-require-resolve-module/missing-module.wasm' doesn't exist
+        '<PROJECT_ROOT>/tests/statsCases/try-require-resolve-module/missing-module.js' doesn't exist
+        '<PROJECT_ROOT>/tests/statsCases/try-require-resolve-module/missing-module' doesn't exist
 
 Rspack compiled with 1 warning"
 `;
@@ -6383,6 +6419,12 @@ exports[`StatsTestCases should print correct stats for try-require-resolve-weak-
    ·     ───────────────────────────────────────
  3 │ } catch (e) {}
    ╰────
+  help: try to resolve './missing-module' in '<PROJECT_ROOT>/tests/statsCases/try-require-resolve-weak-module'
+         use description file: <PROJECT_ROOT>/tests/statsCases/try-require-resolve-weak-module/package.json
+        '<PROJECT_ROOT>/tests/statsCases/try-require-resolve-weak-module/missing-module' doesn't exist
+        '<PROJECT_ROOT>/tests/statsCases/try-require-resolve-weak-module/missing-module.wasm' doesn't exist
+        '<PROJECT_ROOT>/tests/statsCases/try-require-resolve-weak-module/missing-module.js' doesn't exist
+        '<PROJECT_ROOT>/tests/statsCases/try-require-resolve-weak-module/missing-module.json' doesn't exist
 ",
       "message": "  ⚠ Resolve error: Can't resolve './missing-module' in '<PROJECT_ROOT>/tests/statsCases/try-require-resolve-weak-module'
    ╭─[1:1]
@@ -6391,6 +6433,12 @@ exports[`StatsTestCases should print correct stats for try-require-resolve-weak-
    ·     ───────────────────────────────────────
  3 │ } catch (e) {}
    ╰────
+  help: try to resolve './missing-module' in '<PROJECT_ROOT>/tests/statsCases/try-require-resolve-weak-module'
+         use description file: <PROJECT_ROOT>/tests/statsCases/try-require-resolve-weak-module/package.json
+        '<PROJECT_ROOT>/tests/statsCases/try-require-resolve-weak-module/missing-module' doesn't exist
+        '<PROJECT_ROOT>/tests/statsCases/try-require-resolve-weak-module/missing-module.wasm' doesn't exist
+        '<PROJECT_ROOT>/tests/statsCases/try-require-resolve-weak-module/missing-module.js' doesn't exist
+        '<PROJECT_ROOT>/tests/statsCases/try-require-resolve-weak-module/missing-module.json' doesn't exist
 ",
       "moduleId": "10",
       "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/try-require-resolve-weak-module/index.js",
@@ -6410,6 +6458,12 @@ exports[`StatsTestCases should print correct stats for try-require-resolve-weak-
    ·     ───────────────────────────────────────
  3 │ } catch (e) {}
    ╰────
+  help: try to resolve './missing-module' in '<PROJECT_ROOT>/tests/statsCases/try-require-resolve-weak-module'
+         use description file: <PROJECT_ROOT>/tests/statsCases/try-require-resolve-weak-module/package.json
+        '<PROJECT_ROOT>/tests/statsCases/try-require-resolve-weak-module/missing-module' doesn't exist
+        '<PROJECT_ROOT>/tests/statsCases/try-require-resolve-weak-module/missing-module.wasm' doesn't exist
+        '<PROJECT_ROOT>/tests/statsCases/try-require-resolve-weak-module/missing-module.js' doesn't exist
+        '<PROJECT_ROOT>/tests/statsCases/try-require-resolve-weak-module/missing-module.json' doesn't exist
 
 Rspack compiled with 1 warning"
 `;

@@ -1,1 +1,7 @@
 ERROR in × Resolve error: Can't resolve './' in '<PROJECT_ROOT>/tests/diagnostics/factorize/missing-entry'
+  help: try to resolve './' in '<PROJECT_ROOT>/tests/diagnostics/factorize/missing-entry'
+         use description file: <PROJECT_ROOT>/tests/diagnostics/factorize/package.json
+        '<PROJECT_ROOT>/tests/diagnostics/factorize/missing-entry/index.js' doesn't exist
+        '<PROJECT_ROOT>/tests/diagnostics/factorize/missing-entry/index.json' doesn't exist
+        '<PROJECT_ROOT>/tests/diagnostics/factorize/missing-entry/index' doesn't exist
+        '<PROJECT_ROOT>/tests/diagnostics/factorize/missing-entry/index.wasm' doesn't exist

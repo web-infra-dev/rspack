@@ -1,0 +1,12 @@
+ERROR in ./index.js
+  × Resolve error: Can't resolve './a' in '<PROJECT_ROOT>/tests/diagnostics/factorize/resolve-extensions'
+   ╭────
+ 1 │ import a from './a';
+   ·               ─────
+   ╰────
+  help: try to resolve './a' in '<PROJECT_ROOT>/tests/diagnostics/factorize/resolve-extensions'
+         use description file: <PROJECT_ROOT>/tests/diagnostics/factorize/package.json
+        '<PROJECT_ROOT>/tests/diagnostics/factorize/resolve-extensions/a.js' doesn't exist
+        '<PROJECT_ROOT>/tests/diagnostics/factorize/resolve-extensions/a' doesn't exist
+        '<PROJECT_ROOT>/tests/diagnostics/factorize/resolve-extensions/a.wasm' doesn't exist
+        '<PROJECT_ROOT>/tests/diagnostics/factorize/resolve-extensions/a.json' doesn't exist
