@@ -12,6 +12,6 @@
   },
   "devDependencies": {
     "@napi-rs/cli": "2.18.0",
-    "memfs": "3.5.3"
+    "memfs": "4.7.6"
   }
 }

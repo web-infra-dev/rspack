@@ -73,5 +73,5 @@ export async function evaluate(
 						templateFilename +
 						"\" didn't return html."
 				)
-		  );
+			);
 }

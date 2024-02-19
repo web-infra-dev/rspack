@@ -488,6 +488,12 @@ pub enum ProvidedExports {
   True,
   Vec(Vec<Atom>),
 }
+
+pub enum UsedExports {
+  Null,
+  Bool(bool),
+  Vec(Vec<Atom>),
+}
 impl ExportsInfo {
   pub fn new(other_exports_info: ExportInfoId, _side_effects_only_info: ExportInfoId) -> Self {
     Self {
@@ -540,6 +546,51 @@ impl ExportsInfo {
       }
     }
     ProvidedExports::Vec(ret)
+  }
+
+  pub fn get_used_exports(&self, mg: &ModuleGraph, runtime: Option<&RuntimeSpec>) -> UsedExports {
+    if self.redirect_to.is_none() {
+      match self.other_exports_info.get_used(mg, runtime) {
+        UsageState::NoInfo => return UsedExports::Null,
+        UsageState::Unknown | UsageState::OnlyPropertiesUsed | UsageState::Used => {
+          return UsedExports::Bool(true);
+        }
+        _ => (),
+      }
+    }
+
+    let mut res = vec![];
+    for export_info_id in self.exports.values() {
+      match export_info_id.get_used(mg, runtime) {
+        UsageState::NoInfo => return UsedExports::Null,
+        UsageState::Unknown => return UsedExports::Bool(true),
+        UsageState::OnlyPropertiesUsed | UsageState::Used => {
+          if let Some(name) = export_info_id.get_export_info(mg).name.to_owned() {
+            res.push(name);
+          }
+        }
+        _ => (),
+      }
+    }
+
+    if let Some(redirect) = self.redirect_to {
+      let inner = redirect.get_exports_info(mg).get_used_exports(mg, runtime);
+      match inner {
+        UsedExports::Vec(v) => res.extend(v),
+        UsedExports::Null | UsedExports::Bool(true) => return inner,
+        _ => (),
+      }
+    }
+
+    if res.is_empty() {
+      match self._side_effects_only_info.get_used(mg, runtime) {
+        UsageState::NoInfo => return UsedExports::Null,
+        UsageState::Unused => return UsedExports::Bool(false),
+        _ => (),
+      }
+    }
+
+    UsedExports::Vec(res)
   }
 
   /// exports that are relevant (not unused and potential provided)

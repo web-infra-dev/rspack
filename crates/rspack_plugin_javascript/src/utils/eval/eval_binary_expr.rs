@@ -224,7 +224,7 @@ fn handle_add(expr: &BinExpr, scanner: &mut JavascriptParser) -> Option<BasicEva
   assert_eq!(expr.op, BinaryOp::Add);
   let left = scanner.evaluate_expression(&expr.left);
   let right = scanner.evaluate_expression(&expr.right);
-  let mut res = BasicEvaluatedExpression::new();
+  let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.hi.0);
   if left.is_string() && right.is_string() {
     res.set_string(format!("{}{}", left.string(), right.string()));
     return Some(res);

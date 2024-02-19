@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::parse_resource;
@@ -5,10 +7,7 @@ use swc_core::ecma::ast::{
   BinExpr, BinaryOp, CallExpr, Callee, Expr, Lit, MemberProp, TaggedTpl, Tpl,
 };
 
-enum TemplateStringKind {
-  Raw,
-  Cooked,
-}
+use crate::utils::eval::TemplateStringKind;
 
 pub struct ContextModuleScanResult {
   pub context: String,
@@ -17,8 +16,7 @@ pub struct ContextModuleScanResult {
   pub fragment: String,
 }
 
-#[inline]
-fn split_context_from_prefix(prefix: String) -> (String, String) {
+pub(super) fn split_context_from_prefix(prefix: String) -> (String, String) {
   if let Some(idx) = prefix.rfind('/') {
     (prefix[..idx].to_string(), format!(".{}", &prefix[idx..]))
   } else {
@@ -26,6 +24,7 @@ fn split_context_from_prefix(prefix: String) -> (String, String) {
   }
 }
 
+/// FIXME: remove this function
 pub fn scanner_context_module(expr: &Expr) -> Option<ContextModuleScanResult> {
   match expr {
     Expr::Tpl(tpl) if !tpl.exprs.is_empty() => {
@@ -42,9 +41,8 @@ static META_REG: Lazy<Regex> = Lazy::new(|| {
   Regex::new(r"[-\[\]\\/{}()*+?.^$|]").expect("Failed to initialize `MATCH_RESOURCE_REGEX`")
 });
 
-#[inline]
-fn quote_meta(str: String) -> String {
-  META_REG.replace_all(&str, "\\$0").to_string()
+pub fn quote_meta(str: &str) -> Cow<str> {
+  META_REG.replace_all(str, "\\$0")
 }
 
 // require(`./${a}.js`)
@@ -93,8 +91,8 @@ fn scan_context_module_tpl(tpl: &Tpl, kind: TemplateStringKind) -> ContextModule
 
   let reg = format!(
     "^{prefix}.*{inner_reg}{postfix_raw}$",
-    prefix = quote_meta(prefix),
-    postfix_raw = quote_meta(postfix)
+    prefix = quote_meta(&prefix),
+    postfix_raw = quote_meta(&postfix)
   );
   ContextModuleScanResult {
     context,
@@ -137,8 +135,8 @@ fn scan_context_module_bin(bin: &BinExpr) -> Option<ContextModuleScanResult> {
 
   let reg = format!(
     "^{prefix}.*{postfix_raw}$",
-    prefix = quote_meta(prefix),
-    postfix_raw = quote_meta(postfix)
+    prefix = quote_meta(&prefix),
+    postfix_raw = quote_meta(&postfix)
   );
 
   Some(ContextModuleScanResult {
@@ -201,8 +199,8 @@ fn scan_context_module_concat_call(expr: &CallExpr) -> Option<ContextModuleScanR
   };
   let reg = format!(
     "^{prefix}.*{postfix_raw}$",
-    prefix = quote_meta(prefix),
-    postfix_raw = quote_meta(postfix)
+    prefix = quote_meta(&prefix),
+    postfix_raw = quote_meta(&postfix)
   );
 
   Some(ContextModuleScanResult {

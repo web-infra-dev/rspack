@@ -67,6 +67,8 @@ impl JavascriptParser<'_> {
     let mut block = AsyncDependenciesBlock::new(
       *self.module_identifier,
       Some(DependencyLocation::new(span.start, span.end)),
+      None,
+      vec![dep],
     );
     block.set_group_options(GroupOptions::Entrypoint(Box::new(EntryOptions {
       name,
@@ -78,7 +80,7 @@ impl JavascriptParser<'_> {
       filename: None,
       library: None,
     })));
-    block.add_dependency(dep);
+
     self.blocks.push(block);
     if let Some(range) = range {
       self

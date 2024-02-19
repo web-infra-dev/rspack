@@ -12,7 +12,6 @@ const WEBPACK_HASH: &str = "__webpack_hash__";
 const WEBPACK_PUBLIC_PATH: &str = "__webpack_public_path__";
 const WEBPACK_MODULES: &str = "__webpack_modules__";
 const WEBPACK_MODULE: &str = "__webpack_module__";
-const WEBPACK_RESOURCE_QUERY: &str = "__resourceQuery";
 const WEBPACK_CHUNK_LOAD: &str = "__webpack_chunk_load__";
 const WEBPACK_BASE_URI: &str = "__webpack_base_uri__";
 const NON_WEBPACK_REQUIRE: &str = "__non_webpack_require__";
@@ -47,7 +46,6 @@ fn get_typeof_evaluate_of_api(sym: &str) -> Option<&str> {
     WEBPACK_PUBLIC_PATH => Some("string"),
     WEBPACK_MODULES => Some("object"),
     WEBPACK_MODULE => Some("object"),
-    WEBPACK_RESOURCE_QUERY => Some("string"),
     WEBPACK_CHUNK_LOAD => Some("function"),
     WEBPACK_BASE_URI => Some("string"),
     NON_WEBPACK_REQUIRE => None,
@@ -130,19 +128,6 @@ impl JavascriptParserPlugin for APIPlugin {
             ident.span.real_hi(),
             RuntimeGlobals::MODULE_FACTORIES.name().into(),
             Some(RuntimeGlobals::MODULE_FACTORIES),
-          )));
-      }
-      WEBPACK_RESOURCE_QUERY => {
-        let resource_query = parser.resource_data.resource_query.as_deref().unwrap_or("");
-        parser
-          .presentational_dependencies
-          .push(Box::new(ConstDependency::new(
-            ident.span.real_lo(),
-            ident.span.real_hi(),
-            serde_json::to_string(resource_query)
-              .expect("should render module id")
-              .into(),
-            None,
           )));
       }
       WEBPACK_CHUNK_LOAD => {
@@ -289,7 +274,7 @@ impl JavascriptParserPlugin for APIPlugin {
         not_supported_expr!(is_require_extensions, expr, "require.extensions");
         not_supported_expr!(is_require_ensure, expr, "require.ensure");
         not_supported_expr!(is_require_config, expr, "require.config");
-        not_supported_expr!(is_require_version, expr, "require.vesrion");
+        not_supported_expr!(is_require_version, expr, "require.version");
         not_supported_expr!(is_require_amd, expr, "require.amd");
         not_supported_expr!(is_require_include, expr, "require.include");
         not_supported_expr!(is_require_onerror, expr, "require.onError");

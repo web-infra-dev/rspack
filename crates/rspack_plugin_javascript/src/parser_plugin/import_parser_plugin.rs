@@ -93,13 +93,14 @@ impl JavascriptParserPlugin for ImportParserPlugin {
         let mut block = AsyncDependenciesBlock::new(
           *parser.module_identifier,
           Some(DependencyLocation::new(span.start, span.end)),
+          None,
+          vec![dep],
         );
         block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions::new(
           chunk_name,
           chunk_preload.or(dynamic_import_preload),
           chunk_prefetch.or(dynamic_import_prefetch),
         )));
-        block.add_dependency(dep);
         parser.blocks.push(block);
         Some(true)
       }
@@ -139,13 +140,14 @@ impl JavascriptParserPlugin for ImportParserPlugin {
         let mut block = AsyncDependenciesBlock::new(
           *parser.module_identifier,
           Some(DependencyLocation::new(span.start, span.end)),
+          None,
+          vec![dep],
         );
         block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions::new(
           chunk_name,
           chunk_preload.or(dynamic_import_preload),
           chunk_prefetch.or(dynamic_import_prefetch),
         )));
-        block.add_dependency(dep);
         parser.blocks.push(block);
         Some(true)
       }
@@ -190,6 +192,8 @@ impl JavascriptParserPlugin for ImportParserPlugin {
               } else {
                 ContextNameSpaceObject::Bool(true)
               },
+              start: node.span().real_lo(),
+              end: node.span().real_hi(),
             },
             Some(node.span.into()),
           )));

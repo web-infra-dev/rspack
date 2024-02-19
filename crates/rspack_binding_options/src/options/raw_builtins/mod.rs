@@ -131,12 +131,13 @@ pub enum BuiltinPluginName {
   ModuleConcatenationPlugin,
 
   // rspack specific plugins
+  // naming format follow XxxRspackPlugin
   HttpExternalsRspackPlugin,
   CopyRspackPlugin,
   HtmlRspackPlugin,
   SwcJsMinimizerRspackPlugin,
   SwcCssMinimizerRspackPlugin,
-  BundlerInfoPlugin,
+  BundlerInfoRspackPlugin,
 }
 
 #[napi(object)]
@@ -380,7 +381,7 @@ impl BuiltinPlugin {
             .boxed();
         plugins.push(plugin);
       }
-      BuiltinPluginName::BundlerInfoPlugin => {
+      BuiltinPluginName::BundlerInfoRspackPlugin => {
         let plugin_options = downcast_into::<RawBundlerInfoPluginOptions>(self.options)?;
         plugins.push(
           BundlerInfoPlugin::new(
