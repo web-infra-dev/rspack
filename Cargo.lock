@@ -3086,6 +3086,7 @@ dependencies = [
  "async-trait",
  "dashmap",
  "derivative",
+ "num-bigint",
  "once_cell",
  "rayon",
  "regex",
