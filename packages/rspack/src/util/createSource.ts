@@ -49,8 +49,8 @@ function createRawFromSource(source: Source): JsCompatSource {
 		(isBuffer
 			? sourceSource
 			: sourceSource instanceof ArrayBuffer
-			? arrayBufferToBuffer(sourceSource)
-			: Buffer.from(sourceSource));
+				? arrayBufferToBuffer(sourceSource)
+				: Buffer.from(sourceSource));
 	const map = JSON.stringify(
 		source.map?.({
 			columns: true

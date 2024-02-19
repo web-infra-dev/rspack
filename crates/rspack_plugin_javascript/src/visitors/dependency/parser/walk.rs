@@ -14,9 +14,10 @@ use swc_core::ecma::ast::{OptChainExpr, ParamOrTsParamProp, Pat, PatOrExpr, This
 use swc_core::ecma::ast::{Prop, PropName, PropOrSpread, RestPat, ReturnStmt, SeqExpr, TaggedTpl};
 use swc_core::ecma::ast::{SwitchCase, SwitchStmt, Tpl, TryStmt, VarDecl, VarDeclKind, YieldExpr};
 use swc_core::ecma::ast::{ThrowStmt, UnaryExpr, UpdateExpr};
+use swc_core::ecma::utils::ExprFactory;
 
-use super::TopLevelScope;
 use super::{AllowedMemberTypes, CallHooksName, JavascriptParser, MemberExpressionInfo, RootName};
+use super::{ExportedVariableInfo, TopLevelScope};
 use crate::parser_plugin::{is_logic_op, JavascriptParserPlugin};
 
 fn warp_ident_to_pat(ident: Ident) -> Pat {
@@ -454,15 +455,23 @@ impl<'parser> JavascriptParser<'parser> {
 
   fn walk_unary_expression(&mut self, expr: &UnaryExpr) {
     if expr.op == UnaryOp::TypeOf {
-      // TODO: call_hooks_from_expression
-      if self
-        .plugin_drive
-        .clone()
-        .r#typeof(self, expr)
-        .unwrap_or_default()
+      if let Some(expr_info) =
+        self.get_member_expression_info_from_expr(&expr.arg, AllowedMemberTypes::Expression)
       {
-        return;
-      }
+        let MemberExpressionInfo::Expression(expr_info) = expr_info else {
+          // we use `AllowedMemberTypes::Expression` above
+          unreachable!();
+        };
+        if let Some(for_name) = expr_info.name.call_hooks_name(self)
+          && self
+            .plugin_drive
+            .clone()
+            .r#typeof(self, expr, &for_name)
+            .unwrap_or_default()
+        {
+          return;
+        }
+      };
       // TODO: expr.arg belongs chain_expression
     }
     self.walk_expression(&expr.arg)
@@ -569,8 +578,14 @@ impl<'parser> JavascriptParser<'parser> {
     }
   }
 
-  fn walk_meta_property(&mut self, _expr: &MetaPropExpr) {
-    // TODO: hooks call
+  fn walk_meta_property(&mut self, expr: &MetaPropExpr) {
+    let Some(root_name) = expr.get_root_name() else {
+      unreachable!()
+    };
+    self
+      .plugin_drive
+      .clone()
+      .meta_property(self, &root_name, expr.span);
   }
 
   fn walk_conditional_expression(&mut self, expr: &CondExpr) {
@@ -597,16 +612,25 @@ impl<'parser> JavascriptParser<'parser> {
     if let Some(expr_info) = self.get_member_expression_info(expr, AllowedMemberTypes::all()) {
       match expr_info {
         MemberExpressionInfo::Expression(expr_info) => {
+          let drive = self.plugin_drive.clone();
           if let Some(for_name) = expr_info.name.call_hooks_name(self)
-            && self
-              .plugin_drive
-              .clone()
-              .member(self, expr, &for_name)
-              .unwrap_or_default()
+            && drive.member(self, expr, &for_name).unwrap_or_default()
           {
             return;
           }
-          // TODO: member_chain and unhandled_mamber_chain
+          // TODO: member_chain
+          self.walk_member_expression_with_expression_name(
+            expr,
+            &expr_info.name,
+            Some(|this: &mut Self| {
+              this.plugin_drive.clone().unhandled_expression_member_chain(
+                this,
+                &expr_info.root_info,
+                expr,
+              )
+            }),
+          );
+          return;
         }
         MemberExpressionInfo::Call(expr_info) => {
           if let Some(for_name) = expr_info.root_info.call_hooks_name(self)
@@ -624,6 +648,42 @@ impl<'parser> JavascriptParser<'parser> {
       }
     }
     self.walk_expression(&expr.obj);
+    if let MemberProp::Computed(computed) = &expr.prop {
+      self.walk_expression(&computed.expr)
+    }
+  }
+
+  fn walk_member_expression_with_expression_name<F>(
+    &mut self,
+    expr: &MemberExpr,
+    name: &str,
+    on_unhandled: Option<F>,
+  ) where
+    F: FnOnce(&mut Self) -> Option<bool>,
+  {
+    if let Some(member) = expr.obj.as_member()
+      && let Some(len) = member_prop_len(&expr.prop)
+    {
+      let origin = name.len();
+      let name = &name[0..origin - 1 - len];
+      if let Some(for_name) = name.call_hooks_name(self)
+        && self
+          .plugin_drive
+          .clone()
+          .member(self, member, &for_name)
+          .unwrap_or_default()
+      {
+        return;
+      }
+      self.walk_member_expression_with_expression_name(member, name, on_unhandled);
+    } else if on_unhandled.is_none() {
+      self.walk_expression(&expr.obj);
+    } else if let Some(on_unhandled) = on_unhandled
+      && !on_unhandled(self).unwrap_or_default()
+    {
+      self.walk_expression(&expr.obj);
+    }
+
     if let MemberProp::Computed(computed) = &expr.prop {
       self.walk_expression(&computed.expr)
     }
@@ -1057,5 +1117,13 @@ impl<'parser> JavascriptParser<'parser> {
         };
       }
     });
+  }
+}
+
+fn member_prop_len(member_prop: &MemberProp) -> Option<usize> {
+  match member_prop {
+    MemberProp::Ident(ident) => Some(ident.sym.len()),
+    MemberProp::PrivateName(name) => Some(name.id.sym.len() + 1),
+    MemberProp::Computed(name) => None,
   }
 }

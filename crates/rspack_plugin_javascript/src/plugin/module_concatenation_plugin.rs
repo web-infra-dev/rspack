@@ -11,7 +11,7 @@ use rspack_core::{
   filter_runtime, merge_runtime, runtime_to_string, Compilation, CompilerContext,
   ExportInfoProvided, ExtendedReferencedExport, LibIdentOptions, Logger, Module, ModuleExt,
   ModuleGraph, ModuleGraphModule, ModuleIdentifier, MutexModuleGraph, OptimizeChunksArgs, Plugin,
-  ProvidedExports, RuntimeCondition, RuntimeSpec, WrappedModuleIdentifier,
+  ProvidedExports, RuntimeCondition, RuntimeSpec, SourceType,
 };
 use rspack_error::Result;
 use rspack_util::fx_dashmap::FxDashMap;
@@ -150,7 +150,7 @@ impl ModuleConcatenationPlugin {
 
   pub fn get_imports(
     mg: &ModuleGraph,
-    mi: WrappedModuleIdentifier,
+    mi: ModuleIdentifier,
     runtime: Option<&RuntimeSpec>,
   ) -> IndexSet<ModuleIdentifier> {
     let mut set = IndexSet::default();
@@ -174,7 +174,7 @@ impl ModuleConcatenationPlugin {
       if imported_names.iter().all(|item| match item {
         ExtendedReferencedExport::Array(arr) => !arr.is_empty(),
         ExtendedReferencedExport::Export(export) => !export.name.is_empty(),
-      }) || matches!(mg.get_provided_exports(*mi), ProvidedExports::Vec(_))
+      }) || matches!(mg.get_provided_exports(mi), ProvidedExports::Vec(_))
       {
         set.insert(con.module_identifier);
       }
@@ -531,7 +531,7 @@ impl ModuleConcatenationPlugin {
         return Some(problem);
       }
     }
-    for imp in Self::get_imports(&compilation.module_graph, (*module_id).into(), runtime) {
+    for imp in Self::get_imports(&compilation.module_graph, *module_id, runtime) {
       candidates.insert(imp);
     }
     statistics.added += 1;
@@ -552,12 +552,11 @@ impl Plugin for ModuleConcatenationPlugin {
       .module_graph_modules()
       .keys()
       .copied()
-      .map(WrappedModuleIdentifier::from)
       .collect::<Vec<_>>();
     for module_id in module_id_list {
       let mut can_be_root = true;
       let mut can_be_inner = true;
-      let m = module_id.module(&compilation.module_graph);
+      let m = compilation.module_graph.module_by_identifier(&module_id);
       // If the result is `None`, that means we have some differences with webpack,
       // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ModuleConcatenationPlugin.js#L168-L171
       if compilation
@@ -572,7 +571,12 @@ impl Plugin for ModuleConcatenationPlugin {
         );
         continue;
       }
-      if !m.build_info().expect("should have build info").strict {
+
+      if !m
+        .and_then(|m| m.build_info())
+        .expect("should have build info")
+        .strict
+      {
         self.set_bailout_reason(
           &module_id,
           "Module is not in strict mode".to_string(),
@@ -582,7 +586,7 @@ impl Plugin for ModuleConcatenationPlugin {
       }
       if compilation
         .chunk_graph
-        .get_number_of_module_chunks(*module_id)
+        .get_number_of_module_chunks(module_id)
         == 0
       {
         self.set_bailout_reason(
@@ -677,10 +681,10 @@ impl Plugin for ModuleConcatenationPlugin {
         can_be_inner = false;
       }
       if can_be_root {
-        relevant_modules.push(*module_id);
+        relevant_modules.push(module_id);
       }
       if can_be_inner {
-        possible_inners.insert(*module_id);
+        possible_inners.insert(module_id);
       }
     }
 
@@ -739,7 +743,7 @@ impl Plugin for ModuleConcatenationPlugin {
 
       let imports = Self::get_imports(
         &compilation.module_graph,
-        (*current_root).into(),
+        *current_root,
         active_runtime.as_ref(),
       );
       for import in imports {
@@ -952,9 +956,30 @@ impl Plugin for ModuleConcatenationPlugin {
           .get_module_chunks(root_module_id)
           .clone()
         {
-          compilation
+          let module = compilation
+            .module_graph
+            .module_by_identifier_mut(m)
+            .expect("should exist module");
+
+          let source_types = compilation
             .chunk_graph
-            .disconnect_chunk_and_module(&chunk_ukey, *m);
+            .get_chunk_module_source_types(&chunk_ukey, module);
+
+          if source_types.len() == 1 {
+            compilation
+              .chunk_graph
+              .disconnect_chunk_and_module(&chunk_ukey, *m);
+          } else {
+            let new_source_types = source_types
+              .into_iter()
+              .filter(|source_type| !matches!(source_type, SourceType::JavaScript))
+              .collect();
+            compilation.chunk_graph.set_chunk_modules_source_types(
+              &chunk_ukey,
+              *m,
+              new_source_types,
+            )
+          }
         }
       }
       // compilation

@@ -48,6 +48,7 @@ pub struct ExtractedMemberExpressionChainData {
 }
 
 bitflags! {
+  #[derive(Clone, Copy)]
   pub struct AllowedMemberTypes: u8 {
     const CallExpression = 1 << 0;
     const Expression = 1 << 1;
@@ -270,6 +271,7 @@ impl<'parser> JavascriptParser<'parser> {
     warning_diagnostics: &'parser mut Vec<Box<dyn Diagnostic + Send + Sync>>,
   ) -> Self {
     let mut plugins: Vec<parser_plugin::BoxJavascriptParserPlugin> = Vec::with_capacity(32);
+    plugins.push(Box::new(parser_plugin::InitializeEvaluating));
     plugins.push(Box::new(parser_plugin::CheckVarDeclaratorIdent));
     plugins.push(Box::new(parser_plugin::ConstPlugin));
     plugins.push(Box::new(
@@ -342,6 +344,7 @@ impl<'parser> JavascriptParser<'parser> {
       plugins.push(Box::new(
         parser_plugin::ImportMetaContextDependencyParserPlugin,
       ));
+      plugins.push(Box::new(parser_plugin::ImportMetaPlugin));
     }
 
     let plugin_drive = Rc::new(JavaScriptParserPluginDrive::new(plugins));
@@ -480,16 +483,13 @@ impl<'parser> JavascriptParser<'parser> {
     self.definitions_db.set(self.definitions, name, new_info);
   }
 
-  fn get_member_expression_info(
+  fn _get_member_expression_info(
     &mut self,
-    expr: &MemberExpr,
+    object: Expr,
+    members: Vec<Atom>,
+    members_range: Vec<Span>,
     allowed_types: AllowedMemberTypes,
   ) -> Option<MemberExpressionInfo> {
-    let ExtractedMemberExpressionChainData {
-      object,
-      members,
-      member_ranges,
-    } = Self::extract_member_expression_chain(expr);
     match object {
       Expr::Call(expr) => {
         if !allowed_types.contains(AllowedMemberTypes::CallExpression) {
@@ -538,6 +538,30 @@ impl<'parser> JavascriptParser<'parser> {
       }
       _ => None,
     }
+  }
+
+  fn get_member_expression_info_from_expr(
+    &mut self,
+    expr: &Expr,
+    allowed_types: AllowedMemberTypes,
+  ) -> Option<MemberExpressionInfo> {
+    expr
+      .as_member()
+      .and_then(|member| self.get_member_expression_info(member, allowed_types))
+      .or_else(|| self._get_member_expression_info(expr.clone(), vec![], vec![], allowed_types))
+  }
+
+  fn get_member_expression_info(
+    &mut self,
+    expr: &MemberExpr,
+    allowed_types: AllowedMemberTypes,
+  ) -> Option<MemberExpressionInfo> {
+    let ExtractedMemberExpressionChainData {
+      object,
+      members,
+      member_ranges,
+    } = Self::extract_member_expression_chain(expr);
+    self._get_member_expression_info(object, members, member_ranges, allowed_types)
   }
 
   fn extract_member_expression_chain(expr: &MemberExpr) -> ExtractedMemberExpressionChainData {
@@ -748,6 +772,8 @@ impl JavascriptParser<'_> {
       Expr::Bin(binary) => eval::eval_binary_expression(self, binary),
       Expr::Array(array) => eval::eval_array_expression(self, array),
       Expr::New(new) => eval::eval_new_expression(self, new),
+      Expr::Call(call) => eval::eval_call_expression(self, call),
+      Expr::Paren(paren) => self.evaluating(&paren.expr),
       Expr::Member(member) => {
         if let Some(MemberExpressionInfo::Expression(info)) =
           self.get_member_expression_info(member, AllowedMemberTypes::Expression)

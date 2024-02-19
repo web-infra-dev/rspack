@@ -2,10 +2,10 @@ use std::collections::hash_map::Entry;
 use std::collections::VecDeque;
 
 use rspack_core::{
-  is_exports_object_referenced, is_no_exports_referenced, merge_runtime, AsyncDependenciesBlockId,
-  BuildMetaExportsType, Compilation, ConnectionState, DependenciesBlock, DependencyId,
-  ExportsInfoId, ExtendedReferencedExport, GroupOptions, ModuleIdentifier, Plugin,
-  ReferencedExport, RuntimeSpec, UsageState,
+  is_exports_object_referenced, is_no_exports_referenced, merge_runtime,
+  AsyncDependenciesBlockIdentifier, BuildMetaExportsType, Compilation, ConnectionState,
+  DependenciesBlock, DependencyId, ExportsInfoId, ExtendedReferencedExport, GroupOptions,
+  ModuleIdentifier, Plugin, ReferencedExport, RuntimeSpec, UsageState,
 };
 use rspack_error::Result;
 use rspack_identifier::IdentifierMap;
@@ -15,7 +15,7 @@ use rustc_hash::FxHashMap as HashMap;
 #[derive(Debug)]
 enum ModuleOrAsyncDependenciesBlock {
   Module(ModuleIdentifier),
-  AsyncDependenciesBlock(AsyncDependenciesBlockId),
+  AsyncDependenciesBlock(AsyncDependenciesBlockIdentifier),
 }
 #[allow(unused)]
 pub struct FlagDependencyUsagePluginProxy<'a> {

@@ -33,14 +33,14 @@ use crate::{
   define_es_module_flag_statement, filter_runtime, impl_source_map_config, merge_runtime_condition,
   merge_runtime_condition_non_false, property_access, property_name,
   reserved_names::RESERVED_NAMES, returning_function, runtime_condition_expression,
-  subtract_runtime_condition, AsyncDependenciesBlockId, BoxDependency, BuildContext, BuildInfo,
-  BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, BuildResult, ChunkInitFragments,
-  CodeGenerationResult, Compilation, ConcatenatedModuleIdent, ConcatenationScope, ConnectionId,
-  ConnectionState, Context, DependenciesBlock, DependencyId, DependencyTemplate, ErrorSpan,
-  ExportInfoId, ExportInfoProvided, ExportsArgument, ExportsType, IdentCollector, LibIdentOptions,
-  Module, ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ModuleType,
-  Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType, SpanExt, Template,
-  UsageState, UsedName, DEFAULT_EXPORT, NAMESPACE_OBJECT_EXPORT,
+  subtract_runtime_condition, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext,
+  BuildInfo, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, BuildResult,
+  ChunkInitFragments, CodeGenerationResult, Compilation, ConcatenatedModuleIdent,
+  ConcatenationScope, ConnectionId, ConnectionState, Context, DependenciesBlock, DependencyId,
+  DependencyTemplate, ErrorSpan, ExportInfoId, ExportInfoProvided, ExportsArgument, ExportsType,
+  IdentCollector, LibIdentOptions, Module, ModuleDependency, ModuleGraph, ModuleGraphConnection,
+  ModuleIdentifier, ModuleType, Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType,
+  SpanExt, Template, UsageState, UsedName, DEFAULT_EXPORT, NAMESPACE_OBJECT_EXPORT,
 };
 
 #[derive(Debug)]
@@ -362,7 +362,7 @@ pub struct ConcatenatedModule {
   modules: Vec<ConcatenatedInnerModule>,
   runtime: Option<RuntimeSpec>,
 
-  blocks: Vec<AsyncDependenciesBlockId>,
+  blocks: Vec<AsyncDependenciesBlockIdentifier>,
   dependencies: Vec<DependencyId>,
 
   cached_source_sizes: DashMap<SourceType, f64, BuildHasherDefault<FxHasher>>,
@@ -447,11 +447,11 @@ impl Identifiable for ConcatenatedModule {
 }
 
 impl DependenciesBlock for ConcatenatedModule {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockId) {
+  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
     self.blocks.push(block)
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockId] {
+  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
     &self.blocks
   }
 

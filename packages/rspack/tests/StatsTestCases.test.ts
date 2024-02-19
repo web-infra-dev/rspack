@@ -4,6 +4,7 @@ import util from "util";
 import { rspack, RspackOptions } from "../src";
 import serializer from "jest-serializer-path";
 import { isValidTestCaseDir } from "./utils";
+import { replace } from "./lib/util/replaceMitteDiagnostic";
 
 expect.addSnapshotSerializer(serializer);
 
@@ -79,11 +80,6 @@ describe("StatsTestCases", () => {
 			} else if (statsJson.errors) {
 				expect(statsJson.errors.length === 0);
 			}
-
-			// Remove the "|" padding from miette,
-			// used to ensure no line breaks with padding being returned,
-			// which breaks local and CI checks.
-			const replace = (s: string) => s.replace(/\n[ ]+│ /, "");
 
 			statsJson.errors?.forEach(e => {
 				e.message = replace(e.message);

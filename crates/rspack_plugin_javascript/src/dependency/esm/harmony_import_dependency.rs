@@ -1,19 +1,43 @@
 use std::sync::Arc;
 
+use dashmap::DashMap;
+use once_cell::sync::Lazy;
 use rspack_core::tree_shaking::symbol::{self, IndirectTopLevelSymbol};
 use rspack_core::tree_shaking::visitor::SymbolRef;
 use rspack_core::{
-  get_import_var, import_statement, AsContextDependency, AwaitDependenciesInitFragment,
-  ConnectionState, Dependency, DependencyCategory, DependencyCondition, DependencyId,
-  DependencyTemplate, DependencyType, ErrorSpan, ExtendedReferencedExport, InitFragmentExt,
-  InitFragmentKey, InitFragmentStage, ModuleDependency, ModuleIdentifier, NormalInitFragment,
-  RuntimeGlobals, TemplateContext, TemplateReplaceSource,
+  filter_runtime, get_import_var, import_statement, merge_runtime, AsContextDependency,
+  AwaitDependenciesInitFragment, ConditionalInitFragment, ConnectionState, Dependency,
+  DependencyCategory, DependencyCondition, DependencyId, DependencyTemplate, DependencyType,
+  ErrorSpan, ExtendedReferencedExport, InitFragmentExt, InitFragmentKey, InitFragmentStage,
+  ModuleDependency, ModuleIdentifier, NormalInitFragment, RuntimeCondition, RuntimeGlobals,
+  TemplateContext, TemplateReplaceSource,
 };
 use rspack_core::{ModuleGraph, RuntimeSpec};
-use rustc_hash::FxHashSet as HashSet;
+use rustc_hash::{FxHashMap, FxHashSet as HashSet};
 use swc_core::ecma::atoms::Atom;
 
 use super::create_resource_identifier_for_esm_dependency;
+
+// TODO: find a better way to implement this for performance
+// Align with https://github.com/webpack/webpack/blob/51f0f0aeac072f989f8d40247f6c23a1995c5c37/lib/dependencies/HarmonyImportDependency.js#L361-L365
+// This map is used to save the runtime conditions of modules and used by HarmonyAcceptDependency in hot module replacement.
+// It can not be saved in TemplateContext because only dependencies of rebuild modules will be templated again.
+static IMPORT_EMITTED_MAP: Lazy<
+  DashMap<ModuleIdentifier, FxHashMap<ModuleIdentifier, RuntimeCondition>>,
+> = Lazy::new(Default::default);
+
+pub fn get_import_emitted_runtime(
+  module: &ModuleIdentifier,
+  referenced_module: &ModuleIdentifier,
+) -> RuntimeCondition {
+  let Some(condition_map) = IMPORT_EMITTED_MAP.get(module) else {
+    return RuntimeCondition::Boolean(false);
+  };
+  match condition_map.get(referenced_module) {
+    Some(r) => r.to_owned(),
+    None => RuntimeCondition::Boolean(false),
+  }
+}
 
 #[derive(Debug, Clone)]
 pub enum Specifier {
@@ -71,6 +95,7 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
     compilation,
     module,
     runtime,
+    runtime_requirements,
     ..
   } = code_generatable_context;
   // Only available when module factorization is successful.
@@ -164,8 +189,22 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
       return;
     }
   }
+
+  let runtime_condition = if let Some(connection) = compilation
+    .module_graph
+    .connection_by_dependency(module_dependency.id())
+  {
+    filter_runtime(*runtime, |r| {
+      connection.is_target_active(&compilation.module_graph, r)
+    })
+  } else {
+    RuntimeCondition::Boolean(true)
+  };
+
   let content: (String, String) = import_statement(
-    code_generatable_context,
+    *module,
+    compilation,
+    runtime_requirements,
     module_dependency.id(),
     module_dependency.request(),
     false,
@@ -187,30 +226,64 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
     .map(|i| i.as_str())
     .unwrap_or(module_dependency.request());
   let key = format!("harmony import {}", module_key);
+
+  // NOTE: different with webpack
+  // The import emitted map is consumed by HarmonyAcceptDependency which enabled by `dev_server.hot`
+  if compilation.options.dev_server.hot {
+    if let Some(ref_module) = ref_module {
+      let mut emitted_modules = IMPORT_EMITTED_MAP.entry(module.identifier()).or_default();
+
+      let old_runtime_condition = match emitted_modules.get(ref_module) {
+        Some(v) => v.to_owned(),
+        None => RuntimeCondition::Boolean(false),
+      };
+
+      let mut merged_runtime_condition = runtime_condition.clone();
+      if !matches!(old_runtime_condition, RuntimeCondition::Boolean(false))
+        && !matches!(merged_runtime_condition, RuntimeCondition::Boolean(true))
+      {
+        if matches!(merged_runtime_condition, RuntimeCondition::Boolean(false))
+          || matches!(old_runtime_condition, RuntimeCondition::Boolean(true))
+        {
+          merged_runtime_condition = old_runtime_condition;
+        } else {
+          merged_runtime_condition = RuntimeCondition::Spec(merge_runtime(
+            old_runtime_condition.as_spec().expect("should be spec"),
+            merged_runtime_condition.as_spec().expect("should be spec"),
+          ));
+        }
+      }
+      emitted_modules.insert(*ref_module, merged_runtime_condition);
+    }
+  }
+
   let is_async_module = matches!(ref_module, Some(ref_module) if compilation.module_graph.is_async(ref_module) == Some(true));
   if is_async_module {
-    init_fragments.push(Box::new(NormalInitFragment::new(
+    init_fragments.push(Box::new(ConditionalInitFragment::new(
       content.0,
       InitFragmentStage::StageHarmonyImports,
       source_order,
       InitFragmentKey::HarmonyImport(key.to_string()),
       None,
+      runtime_condition.clone(),
     )));
     init_fragments.push(AwaitDependenciesInitFragment::new_single(import_var.to_string()).boxed());
-    init_fragments.push(Box::new(NormalInitFragment::new(
+    init_fragments.push(Box::new(ConditionalInitFragment::new(
       content.1,
       InitFragmentStage::StageAsyncHarmonyImports,
       source_order,
       InitFragmentKey::HarmonyImport(format!("{} compat", key)),
       None,
+      runtime_condition,
     )));
   } else {
-    init_fragments.push(Box::new(NormalInitFragment::new(
+    init_fragments.push(Box::new(ConditionalInitFragment::new(
       format!("{}{}", content.0, content.1),
       InitFragmentStage::StageHarmonyImports,
       source_order,
       InitFragmentKey::HarmonyImport(key.to_string()),
       None,
+      runtime_condition,
     )));
   }
 

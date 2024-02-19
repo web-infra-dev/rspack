@@ -1,6 +1,6 @@
 {
   "name": "@rspack/plugin-html",
-  "version": "0.5.3",
+  "version": "0.5.4",
   "license": "MIT",
   "description": "HTML plugin for rspack",
   "main": "index.cjs",
@@ -51,7 +51,7 @@
     "@types/html-minifier-terser": "7.0.2",
     "@types/lodash.template": "^4.5.1",
     "@types/pug": "^2.0.6",
-    "html-loader": "^4.2.0",
+    "html-loader": "^5.0.0",
     "loader-runner": "^4.3.0",
     "pug": "^3.0.2"
   },

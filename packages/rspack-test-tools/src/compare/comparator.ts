@@ -34,6 +34,7 @@ export class DiffComparator {
 								ignoreModuleId: true,
 								ignoreModuleArguments: true,
 								ignoreBlockOnlyStatement: true,
+								ignoreIfCertainCondition: true,
 								ignoreSwcHelpersPath: true,
 								ignoreObjectPropertySequence: true,
 								ignoreCssFilePath: true

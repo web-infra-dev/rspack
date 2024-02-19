@@ -3,15 +3,14 @@ use rspack_core::{
   ContextOptions, DependencyCategory, SpanExt,
 };
 use rspack_regex::{regexp_as_str, RspackRegex};
+use swc_core::common::Spanned;
 use swc_core::ecma::ast::{CallExpr, Lit};
 
 use super::JavascriptParserPlugin;
 use crate::dependency::ImportMetaContextDependency;
 use crate::utils::eval::{self, BasicEvaluatedExpression};
 use crate::utils::{get_bool_by_obj_prop, get_literal_str_by_obj_prop, get_regex_by_obj_prop};
-use crate::visitors::JavascriptParser;
-
-const IMPORT_META_WEBPACK_CONTEXT: &str = "import.meta.webpackContext";
+use crate::visitors::{expr_name, JavascriptParser};
 
 fn create_import_meta_context_dependency(node: &CallExpr) -> Option<ImportMetaContextDependency> {
   assert!(node.callee.is_expr());
@@ -67,6 +66,8 @@ fn create_import_meta_context_dependency(node: &CallExpr) -> Option<ImportMetaCo
       request: context,
       namespace_object: ContextNameSpaceObject::Unset,
       mode,
+      start: node.span().real_lo(),
+      end: node.span().real_hi(),
     }
   } else {
     ContextOptions {
@@ -80,6 +81,8 @@ fn create_import_meta_context_dependency(node: &CallExpr) -> Option<ImportMetaCo
       category: DependencyCategory::Esm,
       request: context,
       namespace_object: ContextNameSpaceObject::Unset,
+      start: node.span().real_lo(),
+      end: node.span().real_hi(),
     }
   };
   Some(ImportMetaContextDependency::new(
@@ -100,10 +103,10 @@ impl JavascriptParserPlugin for ImportMetaContextDependencyParserPlugin {
     start: u32,
     end: u32,
   ) -> Option<BasicEvaluatedExpression> {
-    if ident == IMPORT_META_WEBPACK_CONTEXT {
+    if ident == expr_name::IMPORT_META_WEBPACK_CONTEXT {
       Some(eval::evaluate_to_identifier(
-        IMPORT_META_WEBPACK_CONTEXT.to_string(),
-        "import.meta".to_string(),
+        expr_name::IMPORT_META_WEBPACK_CONTEXT.to_string(),
+        expr_name::IMPORT_META.to_string(),
         Some(true),
         start,
         end,
@@ -119,7 +122,10 @@ impl JavascriptParserPlugin for ImportMetaContextDependencyParserPlugin {
     expr: &swc_core::ecma::ast::CallExpr,
     for_name: &str,
   ) -> Option<bool> {
-    if for_name != IMPORT_META_WEBPACK_CONTEXT || expr.args.is_empty() || expr.args.len() > 2 {
+    if for_name != expr_name::IMPORT_META_WEBPACK_CONTEXT
+      || expr.args.is_empty()
+      || expr.args.len() > 2
+    {
       None
     } else if let Some(dep) = create_import_meta_context_dependency(expr) {
       parser.dependencies.push(Box::new(dep));

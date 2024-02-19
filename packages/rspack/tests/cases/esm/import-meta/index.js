@@ -23,10 +23,10 @@ it('typeof import.meta.url === "string"', () => {
 
 it("should return correct import.meta.url", () => {
 	expect(import.meta.url).toBe(url);
-	// expect(import.meta["url"]).toBe(url);
+	expect(import.meta["url"]).toBe(url);
 	expect("my" + import.meta.url).toBe("my" + url);
+	expect(import.meta.url.indexOf("index.js") === -1).toBe(false);
 	// TODO
-	// expect(import.meta.url.indexOf("index.js") === -1).toBe(false)
 	// if (import.meta.url.indexOf("index.js") === -1) require("fail");
 });
 

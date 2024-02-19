@@ -8,7 +8,7 @@ use crate::visitors::JavascriptParser;
 #[derive(Debug, Clone)]
 pub enum TemplateStringKind {
   Cooked,
-  // Raw,
+  Raw,
 }
 
 fn get_simplified_template_result(
