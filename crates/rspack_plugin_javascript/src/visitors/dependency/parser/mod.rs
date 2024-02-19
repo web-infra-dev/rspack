@@ -1,15 +1,14 @@
-#![allow(unused)]
-
+mod call_hooks_name;
 mod walk;
 mod walk_block_pre;
 mod walk_pre;
 
 use std::borrow::Cow;
-use std::fmt::Display;
 use std::rc::Rc;
 use std::sync::Arc;
 
 use bitflags::bitflags;
+pub use call_hooks_name::CallHooksName;
 use rspack_core::needs_refactor::WorkerSyntaxList;
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BuildInfo, BuildMeta, DependencyTemplate,
@@ -24,10 +23,9 @@ use swc_core::common::util::take::Take;
 use swc_core::common::{SourceFile, Span, Spanned};
 use swc_core::ecma::ast::{
   ArrayPat, AssignPat, CallExpr, Callee, MetaPropExpr, MetaPropKind, ObjectPat, ObjectPatProp, Pat,
-  Program, Stmt, Super, ThisExpr,
+  Program, Stmt, ThisExpr,
 };
-use swc_core::ecma::ast::{BlockStmt, Expr, Ident, Lit, MemberExpr, RestPat};
-use swc_core::ecma::utils::ExprFactory;
+use swc_core::ecma::ast::{Expr, Ident, Lit, MemberExpr, RestPat};
 
 use crate::parser_plugin::{self, JavaScriptParserPluginDrive, JavascriptParserPlugin};
 use crate::utils::eval::{self, BasicEvaluatedExpression};
@@ -145,63 +143,6 @@ pub struct FreeInfo<'a> {
   pub info: Option<&'a VariableInfo>,
 }
 
-// callHooksForName/callHooksForInfo in webpack
-// webpack use HookMap and filter at callHooksForName/callHooksForInfo
-// we need to pass the name to hook to filter in the hook
-pub trait CallHooksName {
-  fn call_hooks_name(&self, parser: &mut JavascriptParser) -> Option<String>;
-}
-
-impl CallHooksName for &str {
-  fn call_hooks_name(&self, parser: &mut JavascriptParser) -> Option<String> {
-    let mut name = *self;
-    if let Some(info) = parser.get_variable_info(name) {
-      if let Some(FreeName::String(free_name)) = &info.free_name {
-        name = free_name;
-      } else {
-        return None;
-      }
-    }
-    Some(name.to_string())
-  }
-}
-
-impl CallHooksName for String {
-  fn call_hooks_name(&self, parser: &mut JavascriptParser) -> Option<String> {
-    self.as_str().call_hooks_name(parser)
-  }
-}
-
-impl CallHooksName for Atom {
-  fn call_hooks_name(&self, parser: &mut JavascriptParser) -> Option<String> {
-    self.as_str().call_hooks_name(parser)
-  }
-}
-
-impl CallHooksName for VariableInfo {
-  fn call_hooks_name(&self, parser: &mut JavascriptParser) -> Option<String> {
-    if let Some(FreeName::String(free_name)) = &self.free_name {
-      return Some(free_name.to_string());
-    }
-    None
-  }
-}
-
-impl CallHooksName for ExportedVariableInfo {
-  fn call_hooks_name(&self, parser: &mut JavascriptParser) -> Option<String> {
-    match self {
-      ExportedVariableInfo::Name(n) => n.call_hooks_name(parser),
-      ExportedVariableInfo::VariableInfo(v) => {
-        let info = parser.definitions_db.expect_get_variable(v);
-        if let Some(FreeName::String(free_name)) = &info.free_name {
-          return Some(free_name.to_string());
-        }
-        None
-      }
-    }
-  }
-}
-
 #[derive(Clone, Copy, Debug)]
 pub enum TopLevelScope {
   Top,
@@ -234,8 +175,6 @@ pub struct JavascriptParser<'parser> {
   pub(crate) enter_assign: bool,
   // TODO: remove `is_esm` after `HarmonyExports::isEnabled`
   pub(crate) is_esm: bool,
-  // TODO: delete `has_module_ident`
-  pub(crate) has_module_ident: bool,
   pub(crate) parser_exports_state: &'parser mut Option<bool>,
   // TODO: delete `enter_call`
   pub(crate) enter_call: u32,
@@ -382,7 +321,6 @@ impl<'parser> JavascriptParser<'parser> {
       compiler_options,
       module_type,
       enter_assign: false,
-      has_module_ident: false,
       parser_exports_state,
       enter_call: 0,
       stmt_level: 0,
@@ -489,7 +427,7 @@ impl<'parser> JavascriptParser<'parser> {
     &mut self,
     object: Expr,
     members: Vec<Atom>,
-    members_range: Vec<Span>,
+    _members_range: Vec<Span>,
     allowed_types: AllowedMemberTypes,
   ) -> Option<MemberExpressionInfo> {
     match object {
@@ -578,7 +516,7 @@ impl<'parser> JavascriptParser<'parser> {
         let value = match lit {
           Lit::Str(s) => s.value.clone(),
           Lit::Bool(b) => if b.value { "true" } else { "false" }.into(),
-          Lit::Null(n) => "null".into(),
+          Lit::Null(_) => "null".into(),
           Lit::Num(n) => n.value.to_string().into(),
           Lit::BigInt(i) => i.value.to_string().into(),
           Lit::Regex(r) => r.exp.clone(),
