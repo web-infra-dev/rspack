@@ -154,9 +154,7 @@ fn deterministic_grouping_for_modules(
       while left < group.nodes.len() && left_size.smaller_than(min_size) {
         left_size.add_by(&group.nodes[left].size);
 
-        if left != group.nodes.len() - 1 {
-          left += 1;
-        }
+        left += 1;
       }
 
       let mut right = group.nodes.len() - 2;
