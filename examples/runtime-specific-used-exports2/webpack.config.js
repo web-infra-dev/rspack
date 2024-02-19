@@ -4,14 +4,8 @@ module.exports = {
 		filename: "[name].js"
 	},
 	target: "node",
-	experiments: {
-		rspackFuture: {
-			newTreeshaking: true
-		}
-	},
 	optimization: {
 		chunkIds: "named",
-		usedExports: true,
 		splitChunks: {
 			chunks: "all",
 			cacheGroups: {

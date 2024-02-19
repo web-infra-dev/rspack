@@ -1,17 +1,12 @@
-/** @type {import("@rspack/core").Configuration} */
+const rspack = require("@rspack/core");
+/**@type {import("@rspack/cli").Configuration}*/
 module.exports = {
 	output: {
 		filename: "[name].js"
 	},
 	target: "node",
-	experiments: {
-		rspackFuture: {
-			newTreeshaking: true
-		}
-	},
 	optimization: {
 		chunkIds: "named",
-		usedExports: true,
 		splitChunks: {
 			chunks: "all",
 			cacheGroups: {

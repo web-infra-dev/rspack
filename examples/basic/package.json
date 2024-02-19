@@ -1,0 +1,6 @@
+{
+  "scripts":{
+    "build": "rspack build",
+    "dev": "rspack dev"
+  }
+}
