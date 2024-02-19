@@ -96,7 +96,7 @@ pub(crate) mod expr_matcher {
     is_require_extensions: "require.extensions",
     is_require_ensure: "require.ensure",
     is_require_config: "require.config",
-    is_require_version: "require.vesrion",
+    is_require_version: "require.version",
     is_require_amd: "require.amd",
     is_require_include: "require.include",
     is_require_onerror: "require.onError",
