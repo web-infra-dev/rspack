@@ -333,10 +333,12 @@ import rawModule from './raw.png';
       "name": "webpack/runtime/public_path",
       "nameForCondition": undefined,
       "orphan": false,
+      "providedExports": null,
       "reasons": [],
       "size": 160,
       "source": undefined,
       "type": "module",
+      "usedExports": null,
     },
     {
       "assets": [],
@@ -353,10 +355,12 @@ import rawModule from './raw.png';
       "name": "webpack/runtime/make_namespace_object",
       "nameForCondition": undefined,
       "orphan": false,
+      "providedExports": null,
       "reasons": [],
       "size": 160,
       "source": undefined,
       "type": "module",
+      "usedExports": null,
     },
   ],
   "namedChunkGroups": {
@@ -412,7 +416,9 @@ chunk {909} bundle.js (main) [entry]
   [used exports unknown]
   esm import ./stringModule [10]
 webpack/runtime/public_path {909}
+  [used exports unknown]
 webpack/runtime/make_namespace_object {909}
+  [used exports unknown]
   
 Rspack compiled successfully (727484790d78891314bc)"
 `;
@@ -946,10 +952,12 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       "name": "webpack/runtime/ensure_chunk",
       "nameForCondition": undefined,
       "orphan": false,
+      "providedExports": null,
       "reasons": [],
       "size": 160,
       "source": undefined,
       "type": "module",
+      "usedExports": null,
     },
     {
       "assets": [],
@@ -966,10 +974,12 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       "name": "webpack/runtime/has_own_property",
       "nameForCondition": undefined,
       "orphan": false,
+      "providedExports": null,
       "reasons": [],
       "size": 160,
       "source": undefined,
       "type": "module",
+      "usedExports": null,
     },
     {
       "assets": [],
@@ -986,10 +996,12 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       "name": "webpack/runtime/make_namespace_object",
       "nameForCondition": undefined,
       "orphan": false,
+      "providedExports": null,
       "reasons": [],
       "size": 160,
       "source": undefined,
       "type": "module",
+      "usedExports": null,
     },
     {
       "assets": [],
@@ -1006,10 +1018,12 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       "name": "webpack/runtime/require_chunk_loading",
       "nameForCondition": undefined,
       "orphan": false,
+      "providedExports": null,
       "reasons": [],
       "size": 160,
       "source": undefined,
       "type": "module",
+      "usedExports": null,
     },
     {
       "assets": [],
@@ -1026,10 +1040,12 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       "name": "webpack/runtime/define_property_getters",
       "nameForCondition": undefined,
       "orphan": false,
+      "providedExports": null,
       "reasons": [],
       "size": 160,
       "source": undefined,
       "type": "module",
+      "usedExports": null,
     },
     {
       "assets": [],
@@ -1046,10 +1062,12 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       "name": "webpack/runtime/get javascript chunk filename",
       "nameForCondition": undefined,
       "orphan": false,
+      "providedExports": null,
       "reasons": [],
       "size": 160,
       "source": undefined,
       "type": "module",
+      "usedExports": null,
     },
   ],
   "namedChunkGroups": {
@@ -1098,11 +1116,17 @@ chunk {909} 909.xxxx.js (main) >{521}< [entry]
   [used exports unknown]
   dynamic import ./dynamic [10]
 webpack/runtime/ensure_chunk {909}
+  [used exports unknown]
 webpack/runtime/has_own_property {909}
+  [used exports unknown]
 webpack/runtime/make_namespace_object {909}
+  [used exports unknown]
 webpack/runtime/require_chunk_loading {909}
+  [used exports unknown]
 webpack/runtime/define_property_getters {909}
+  [used exports unknown]
 webpack/runtime/get javascript chunk filename {909}
+  [used exports unknown]
   
 Rspack compiled successfully (8b5dc2283e091b3acb32)"
 `;
@@ -1252,10 +1276,12 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
       "name": "webpack/runtime/get_full_hash",
       "nameForCondition": undefined,
       "orphan": false,
+      "providedExports": null,
       "reasons": [],
       "size": 160,
       "source": undefined,
       "type": "module",
+      "usedExports": null,
     },
     {
       "assets": [],
@@ -1272,10 +1298,12 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
       "name": "webpack/runtime/has_own_property",
       "nameForCondition": undefined,
       "orphan": false,
+      "providedExports": null,
       "reasons": [],
       "size": 160,
       "source": undefined,
       "type": "module",
+      "usedExports": null,
     },
     {
       "assets": [],
@@ -1292,10 +1320,12 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
       "name": "webpack/runtime/require_chunk_loading",
       "nameForCondition": undefined,
       "orphan": false,
+      "providedExports": null,
       "reasons": [],
       "size": 160,
       "source": undefined,
       "type": "module",
+      "usedExports": null,
     },
     {
       "assets": [],
@@ -1312,10 +1342,12 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
       "name": "webpack/runtime/hot_module_replacement",
       "nameForCondition": undefined,
       "orphan": false,
+      "providedExports": null,
       "reasons": [],
       "size": 160,
       "source": undefined,
       "type": "module",
+      "usedExports": null,
     },
     {
       "assets": [],
@@ -1332,10 +1364,12 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
       "name": "webpack/runtime/get_chunk_update_filename",
       "nameForCondition": undefined,
       "orphan": false,
+      "providedExports": null,
       "reasons": [],
       "size": 160,
       "source": undefined,
       "type": "module",
+      "usedExports": null,
     },
     {
       "assets": [],
@@ -1352,10 +1386,12 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
       "name": "webpack/runtime/get_main_filename/update manifest",
       "nameForCondition": undefined,
       "orphan": false,
+      "providedExports": null,
       "reasons": [],
       "size": 160,
       "source": undefined,
       "type": "module",
+      "usedExports": null,
     },
   ],
   "namedChunkGroups": {
@@ -1394,11 +1430,17 @@ chunk {909} bundle.js (main) [entry]
   [used exports unknown]
   entry ./index.js
 webpack/runtime/get_full_hash {909}
+  [used exports unknown]
 webpack/runtime/has_own_property {909}
+  [used exports unknown]
 webpack/runtime/require_chunk_loading {909}
+  [used exports unknown]
 webpack/runtime/hot_module_replacement {909}
+  [used exports unknown]
 webpack/runtime/get_chunk_update_filename {909}
+  [used exports unknown]
 webpack/runtime/get_main_filename/update manifest {909}
+  [used exports unknown]
   
 Rspack compiled successfully (a282ef4df6a5ef41a10b)"
 `;
@@ -2073,10 +2115,12 @@ import(/* webpackChunkName: "c" */ "./c");
           "name": "webpack/runtime/has_own_property",
           "nameForCondition": undefined,
           "orphan": false,
+          "providedExports": null,
           "reasons": [],
           "size": 160,
           "source": undefined,
           "type": "module",
+          "usedExports": null,
         },
         {
           "assets": [],
@@ -2093,10 +2137,12 @@ import(/* webpackChunkName: "c" */ "./c");
           "name": "webpack/runtime/make_namespace_object",
           "nameForCondition": undefined,
           "orphan": false,
+          "providedExports": null,
           "reasons": [],
           "size": 160,
           "source": undefined,
           "type": "module",
+          "usedExports": null,
         },
         {
           "assets": [],
@@ -2113,10 +2159,12 @@ import(/* webpackChunkName: "c" */ "./c");
           "name": "webpack/runtime/define_property_getters",
           "nameForCondition": undefined,
           "orphan": false,
+          "providedExports": null,
           "reasons": [],
           "size": 160,
           "source": undefined,
           "type": "module",
+          "usedExports": null,
         },
         {
           "assets": [],
@@ -2133,10 +2181,12 @@ import(/* webpackChunkName: "c" */ "./c");
           "name": "webpack/runtime/create_fake_namespace_object",
           "nameForCondition": undefined,
           "orphan": false,
+          "providedExports": null,
           "reasons": [],
           "size": 160,
           "source": undefined,
           "type": "module",
+          "usedExports": null,
         },
       ],
       "name": "1 chunks",
@@ -2686,10 +2736,12 @@ import(/* webpackChunkName: "c" */ "./c");
           "name": "webpack/runtime/ensure_chunk",
           "nameForCondition": undefined,
           "orphan": false,
+          "providedExports": null,
           "reasons": [],
           "size": 160,
           "source": undefined,
           "type": "module",
+          "usedExports": null,
         },
         {
           "assets": [],
@@ -2706,10 +2758,12 @@ import(/* webpackChunkName: "c" */ "./c");
           "name": "webpack/runtime/has_own_property",
           "nameForCondition": undefined,
           "orphan": false,
+          "providedExports": null,
           "reasons": [],
           "size": 160,
           "source": undefined,
           "type": "module",
+          "usedExports": null,
         },
         {
           "assets": [],
@@ -2726,10 +2780,12 @@ import(/* webpackChunkName: "c" */ "./c");
           "name": "webpack/runtime/make_namespace_object",
           "nameForCondition": undefined,
           "orphan": false,
+          "providedExports": null,
           "reasons": [],
           "size": 160,
           "source": undefined,
           "type": "module",
+          "usedExports": null,
         },
         {
           "assets": [],
@@ -2746,10 +2802,12 @@ import(/* webpackChunkName: "c" */ "./c");
           "name": "webpack/runtime/require_chunk_loading",
           "nameForCondition": undefined,
           "orphan": false,
+          "providedExports": null,
           "reasons": [],
           "size": 160,
           "source": undefined,
           "type": "module",
+          "usedExports": null,
         },
         {
           "assets": [],
@@ -2766,10 +2824,12 @@ import(/* webpackChunkName: "c" */ "./c");
           "name": "webpack/runtime/define_property_getters",
           "nameForCondition": undefined,
           "orphan": false,
+          "providedExports": null,
           "reasons": [],
           "size": 160,
           "source": undefined,
           "type": "module",
+          "usedExports": null,
         },
         {
           "assets": [],
@@ -2786,10 +2846,12 @@ import(/* webpackChunkName: "c" */ "./c");
           "name": "webpack/runtime/create_fake_namespace_object",
           "nameForCondition": undefined,
           "orphan": false,
+          "providedExports": null,
           "reasons": [],
           "size": 160,
           "source": undefined,
           "type": "module",
+          "usedExports": null,
         },
         {
           "assets": [],
@@ -2806,10 +2868,12 @@ import(/* webpackChunkName: "c" */ "./c");
           "name": "webpack/runtime/get javascript chunk filename",
           "nameForCondition": undefined,
           "orphan": false,
+          "providedExports": null,
           "reasons": [],
           "size": 160,
           "source": undefined,
           "type": "module",
+          "usedExports": null,
         },
       ],
       "name": "2 chunks",
@@ -3391,10 +3455,12 @@ import(/* webpackChunkName: "c" */ "./c");
           "name": "webpack/runtime/ensure_chunk",
           "nameForCondition": undefined,
           "orphan": false,
+          "providedExports": null,
           "reasons": [],
           "size": 160,
           "source": undefined,
           "type": "module",
+          "usedExports": null,
         },
         {
           "assets": [],
@@ -3411,10 +3477,12 @@ import(/* webpackChunkName: "c" */ "./c");
           "name": "webpack/runtime/has_own_property",
           "nameForCondition": undefined,
           "orphan": false,
+          "providedExports": null,
           "reasons": [],
           "size": 160,
           "source": undefined,
           "type": "module",
+          "usedExports": null,
         },
         {
           "assets": [],
@@ -3431,10 +3499,12 @@ import(/* webpackChunkName: "c" */ "./c");
           "name": "webpack/runtime/make_namespace_object",
           "nameForCondition": undefined,
           "orphan": false,
+          "providedExports": null,
           "reasons": [],
           "size": 160,
           "source": undefined,
           "type": "module",
+          "usedExports": null,
         },
         {
           "assets": [],
@@ -3451,10 +3521,12 @@ import(/* webpackChunkName: "c" */ "./c");
           "name": "webpack/runtime/require_chunk_loading",
           "nameForCondition": undefined,
           "orphan": false,
+          "providedExports": null,
           "reasons": [],
           "size": 160,
           "source": undefined,
           "type": "module",
+          "usedExports": null,
         },
         {
           "assets": [],
@@ -3471,10 +3543,12 @@ import(/* webpackChunkName: "c" */ "./c");
           "name": "webpack/runtime/define_property_getters",
           "nameForCondition": undefined,
           "orphan": false,
+          "providedExports": null,
           "reasons": [],
           "size": 160,
           "source": undefined,
           "type": "module",
+          "usedExports": null,
         },
         {
           "assets": [],
@@ -3491,10 +3565,12 @@ import(/* webpackChunkName: "c" */ "./c");
           "name": "webpack/runtime/create_fake_namespace_object",
           "nameForCondition": undefined,
           "orphan": false,
+          "providedExports": null,
           "reasons": [],
           "size": 160,
           "source": undefined,
           "type": "module",
+          "usedExports": null,
         },
         {
           "assets": [],
@@ -3511,10 +3587,12 @@ import(/* webpackChunkName: "c" */ "./c");
           "name": "webpack/runtime/get javascript chunk filename",
           "nameForCondition": undefined,
           "orphan": false,
+          "providedExports": null,
           "reasons": [],
           "size": 160,
           "source": undefined,
           "type": "module",
+          "usedExports": null,
         },
       ],
       "name": "3 chunks",
@@ -4130,10 +4208,12 @@ import(/* webpackChunkName: "c" */ "./c");
           "name": "webpack/runtime/ensure_chunk",
           "nameForCondition": undefined,
           "orphan": false,
+          "providedExports": null,
           "reasons": [],
           "size": 160,
           "source": undefined,
           "type": "module",
+          "usedExports": null,
         },
         {
           "assets": [],
@@ -4150,10 +4230,12 @@ import(/* webpackChunkName: "c" */ "./c");
           "name": "webpack/runtime/has_own_property",
           "nameForCondition": undefined,
           "orphan": false,
+          "providedExports": null,
           "reasons": [],
           "size": 160,
           "source": undefined,
           "type": "module",
+          "usedExports": null,
         },
         {
           "assets": [],
@@ -4170,10 +4252,12 @@ import(/* webpackChunkName: "c" */ "./c");
           "name": "webpack/runtime/make_namespace_object",
           "nameForCondition": undefined,
           "orphan": false,
+          "providedExports": null,
           "reasons": [],
           "size": 160,
           "source": undefined,
           "type": "module",
+          "usedExports": null,
         },
         {
           "assets": [],
@@ -4190,10 +4274,12 @@ import(/* webpackChunkName: "c" */ "./c");
           "name": "webpack/runtime/require_chunk_loading",
           "nameForCondition": undefined,
           "orphan": false,
+          "providedExports": null,
           "reasons": [],
           "size": 160,
           "source": undefined,
           "type": "module",
+          "usedExports": null,
         },
         {
           "assets": [],
@@ -4210,10 +4296,12 @@ import(/* webpackChunkName: "c" */ "./c");
           "name": "webpack/runtime/define_property_getters",
           "nameForCondition": undefined,
           "orphan": false,
+          "providedExports": null,
           "reasons": [],
           "size": 160,
           "source": undefined,
           "type": "module",
+          "usedExports": null,
         },
         {
           "assets": [],
@@ -4230,10 +4318,12 @@ import(/* webpackChunkName: "c" */ "./c");
           "name": "webpack/runtime/create_fake_namespace_object",
           "nameForCondition": undefined,
           "orphan": false,
+          "providedExports": null,
           "reasons": [],
           "size": 160,
           "source": undefined,
           "type": "module",
+          "usedExports": null,
         },
         {
           "assets": [],
@@ -4250,10 +4340,12 @@ import(/* webpackChunkName: "c" */ "./c");
           "name": "webpack/runtime/get javascript chunk filename",
           "nameForCondition": undefined,
           "orphan": false,
+          "providedExports": null,
           "reasons": [],
           "size": 160,
           "source": undefined,
           "type": "module",
+          "usedExports": null,
         },
       ],
       "name": "4 chunks",
@@ -4347,9 +4439,13 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
     [used exports unknown]
     entry ./index
   webpack/runtime/has_own_property {909}
+    [used exports unknown]
   webpack/runtime/make_namespace_object {909}
+    [used exports unknown]
   webpack/runtime/define_property_getters {909}
+    [used exports unknown]
   webpack/runtime/create_fake_namespace_object {909}
+    [used exports unknown]
     
   1 chunks compiled successfully (1c1cba9ed80886e1bebd)
 
@@ -4402,12 +4498,19 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
     [used exports unknown]
     entry ./index
   webpack/runtime/ensure_chunk {909}
+    [used exports unknown]
   webpack/runtime/has_own_property {909}
+    [used exports unknown]
   webpack/runtime/make_namespace_object {909}
+    [used exports unknown]
   webpack/runtime/require_chunk_loading {909}
+    [used exports unknown]
   webpack/runtime/define_property_getters {909}
+    [used exports unknown]
   webpack/runtime/create_fake_namespace_object {909}
+    [used exports unknown]
   webpack/runtime/get javascript chunk filename {909}
+    [used exports unknown]
     
   2 chunks compiled successfully (d18941cda0b800d47546)
 
@@ -4462,12 +4565,19 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
     [used exports unknown]
     entry ./index
   webpack/runtime/ensure_chunk {909}
+    [used exports unknown]
   webpack/runtime/has_own_property {909}
+    [used exports unknown]
   webpack/runtime/make_namespace_object {909}
+    [used exports unknown]
   webpack/runtime/require_chunk_loading {909}
+    [used exports unknown]
   webpack/runtime/define_property_getters {909}
+    [used exports unknown]
   webpack/runtime/create_fake_namespace_object {909}
+    [used exports unknown]
   webpack/runtime/get javascript chunk filename {909}
+    [used exports unknown]
     
   3 chunks compiled successfully (45b8f0ffb7d412472c8d)
 
@@ -4524,12 +4634,19 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
     [used exports unknown]
     entry ./index
   webpack/runtime/ensure_chunk {909}
+    [used exports unknown]
   webpack/runtime/has_own_property {909}
+    [used exports unknown]
   webpack/runtime/make_namespace_object {909}
+    [used exports unknown]
   webpack/runtime/require_chunk_loading {909}
+    [used exports unknown]
   webpack/runtime/define_property_getters {909}
+    [used exports unknown]
   webpack/runtime/create_fake_namespace_object {909}
+    [used exports unknown]
   webpack/runtime/get javascript chunk filename {909}
+    [used exports unknown]
     
   4 chunks compiled successfully (b6cf46c3bead7099f6e2)"
 `;
@@ -5635,10 +5752,12 @@ console.log(a);
       "name": "webpack/runtime/make_namespace_object",
       "nameForCondition": undefined,
       "orphan": false,
+      "providedExports": null,
       "reasons": [],
       "size": 160,
       "source": undefined,
       "type": "module",
+      "usedExports": null,
     },
   ],
   "namedChunkGroups": {
@@ -5677,6 +5796,7 @@ chunk {909} bundle.js (main) [entry]
   [used exports unknown]
   entry ./index
 webpack/runtime/make_namespace_object {909}
+  [used exports unknown]
   
 
 ERROR in ./index.js
@@ -5848,10 +5968,12 @@ console.log(a);
       "name": "webpack/runtime/make_namespace_object",
       "nameForCondition": undefined,
       "orphan": false,
+      "providedExports": null,
       "reasons": [],
       "size": 160,
       "source": undefined,
       "type": "module",
+      "usedExports": null,
     },
   ],
   "namedChunkGroups": {
@@ -5890,6 +6012,7 @@ chunk {909} bundle.js (main) [entry]
   [used exports unknown]
   entry ./index
 webpack/runtime/make_namespace_object {909}
+  [used exports unknown]
   
 
 ERROR in ./index.js
@@ -6447,10 +6570,12 @@ exports[`StatsTestCases should print correct stats for simple-export 1`] = `
       "name": "webpack/runtime/has_own_property",
       "nameForCondition": undefined,
       "orphan": false,
+      "providedExports": null,
       "reasons": [],
       "size": 160,
       "source": undefined,
       "type": "module",
+      "usedExports": null,
     },
     {
       "assets": [],
@@ -6467,10 +6592,12 @@ exports[`StatsTestCases should print correct stats for simple-export 1`] = `
       "name": "webpack/runtime/make_namespace_object",
       "nameForCondition": undefined,
       "orphan": false,
+      "providedExports": null,
       "reasons": [],
       "size": 160,
       "source": undefined,
       "type": "module",
+      "usedExports": null,
     },
     {
       "assets": [],
@@ -6487,10 +6614,12 @@ exports[`StatsTestCases should print correct stats for simple-export 1`] = `
       "name": "webpack/runtime/define_property_getters",
       "nameForCondition": undefined,
       "orphan": false,
+      "providedExports": null,
       "reasons": [],
       "size": 160,
       "source": undefined,
       "type": "module",
+      "usedExports": null,
     },
   ],
   "namedChunkGroups": {
@@ -6529,8 +6658,11 @@ chunk {909} bundle.js (main) [entry]
   [used exports unknown]
   entry ./index
 webpack/runtime/has_own_property {909}
+  [used exports unknown]
 webpack/runtime/make_namespace_object {909}
+  [used exports unknown]
 webpack/runtime/define_property_getters {909}
+  [used exports unknown]
   
 Rspack compiled successfully (fa23dce0ee1c2be463ba)"
 `;
@@ -6828,10 +6960,12 @@ import rawModule from './raw.png';
       "name": "webpack/runtime/has_own_property",
       "nameForCondition": undefined,
       "orphan": false,
+      "providedExports": null,
       "reasons": [],
       "size": 160,
       "source": undefined,
       "type": "module",
+      "usedExports": null,
     },
     {
       "assets": [],
@@ -6848,10 +6982,12 @@ import rawModule from './raw.png';
       "name": "webpack/runtime/make_namespace_object",
       "nameForCondition": undefined,
       "orphan": false,
+      "providedExports": null,
       "reasons": [],
       "size": 160,
       "source": undefined,
       "type": "module",
+      "usedExports": null,
     },
     {
       "assets": [],
@@ -6868,10 +7004,12 @@ import rawModule from './raw.png';
       "name": "webpack/runtime/define_property_getters",
       "nameForCondition": undefined,
       "orphan": false,
+      "providedExports": null,
       "reasons": [],
       "size": 160,
       "source": undefined,
       "type": "module",
+      "usedExports": null,
     },
     {
       "assets": [],
@@ -6888,10 +7026,12 @@ import rawModule from './raw.png';
       "name": "webpack/runtime/compat_get_default_export",
       "nameForCondition": undefined,
       "orphan": false,
+      "providedExports": null,
       "reasons": [],
       "size": 160,
       "source": undefined,
       "type": "module",
+      "usedExports": null,
     },
   ],
   "namedChunkGroups": {
@@ -7073,9 +7213,11 @@ exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
       "name": "webpack/runtime/has_own_property",
       "nameForCondition": undefined,
       "orphan": false,
+      "providedExports": null,
       "reasons": [],
       "size": 160,
       "type": "module",
+      "usedExports": null,
     },
     {
       "assets": [],
@@ -7092,9 +7234,11 @@ exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
       "name": "webpack/runtime/make_namespace_object",
       "nameForCondition": undefined,
       "orphan": false,
+      "providedExports": null,
       "reasons": [],
       "size": 160,
       "type": "module",
+      "usedExports": null,
     },
     {
       "assets": [],
@@ -7111,9 +7255,11 @@ exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
       "name": "webpack/runtime/define_property_getters",
       "nameForCondition": undefined,
       "orphan": false,
+      "providedExports": null,
       "reasons": [],
       "size": 160,
       "type": "module",
+      "usedExports": null,
     },
   ],
   "namedChunkGroups": {
