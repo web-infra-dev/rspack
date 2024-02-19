@@ -1,9 +1,0 @@
-{
-  "scripts":{
-    "build": "rspack build",
-    "dev": "rspack dev"
-  },
-  "devDependencies": {
-    "@rspack/core": "workspace:^"
-  }
-}
