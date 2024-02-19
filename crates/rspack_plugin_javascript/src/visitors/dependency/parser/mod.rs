@@ -286,7 +286,9 @@ impl<'parser> JavascriptParser<'parser> {
       plugins.push(Box::new(parser_plugin::CommonJsImportsParserPlugin));
       plugins.push(Box::new(parser_plugin::CommonJsPlugin));
       plugins.push(Box::new(parser_plugin::CommonJsExportsParserPlugin));
-      plugins.push(Box::new(parser_plugin::NodeStuffPlugin));
+      if compiler_options.node.is_some() {
+        plugins.push(Box::new(parser_plugin::NodeStuffPlugin));
+      }
     }
 
     if compiler_options.dev_server.hot {

@@ -6,21 +6,6 @@ use crate::utils::eval::BasicEvaluatedExpression;
 const SLICE_METHOD_NAME: &str = "slice";
 const REPLACE_METHOD_NAME: &str = "replace";
 
-fn mock_javascript_slice(str: &str, number: f64) -> String {
-  if number == f64::INFINITY {
-    String::new()
-  } else if number == f64::NEG_INFINITY || number.is_nan() {
-    str.to_string()
-  } else {
-    let n = number.trunc() as isize;
-    if n >= 0 {
-      str[n as usize..].to_string()
-    } else {
-      str[str.len() - ((-n) as usize)..].to_string()
-    }
-  }
-}
-
 pub struct InitializeEvaluating;
 
 impl JavascriptParserPlugin for InitializeEvaluating {
@@ -29,8 +14,8 @@ impl JavascriptParserPlugin for InitializeEvaluating {
     parser: &mut crate::visitors::JavascriptParser,
     property: &str,
     expr: &swc_core::ecma::ast::CallExpr,
-    param: &crate::utils::eval::BasicEvaluatedExpression,
-  ) -> Option<crate::utils::eval::BasicEvaluatedExpression> {
+    param: &BasicEvaluatedExpression,
+  ) -> Option<BasicEvaluatedExpression> {
     if property == SLICE_METHOD_NAME
       && param.is_string()
       && expr.args.len() == 1
@@ -104,4 +89,41 @@ fn eval_regexp_to_regexp(expr: &str, flags: &str) -> regex::Regex {
     format!("(?{re}){expr}")
   };
   regex::Regex::new(&re).expect("should an valid regexp")
+}
+
+fn mock_javascript_slice(str: &str, number: f64) -> String {
+  if number == f64::INFINITY {
+    String::new()
+  } else if number == f64::NEG_INFINITY || number.is_nan() {
+    str.to_string()
+  } else {
+    let n = number.trunc() as isize;
+    if n >= str.len() as isize {
+      String::new()
+    } else if n >= 0 {
+      str[n as usize..].to_string()
+    } else if n.unsigned_abs() >= str.len() {
+      str.to_string()
+    } else {
+      str[str.len() - (n.unsigned_abs())..].to_string()
+    }
+  }
+}
+
+#[test]
+fn test_mock_javascript_slice() {
+  assert_eq!(mock_javascript_slice("123", 0.), "123".to_string());
+  assert_eq!(mock_javascript_slice("123", 0.1), "123".to_string());
+  assert_eq!(mock_javascript_slice("123", 1.1), "23".to_string());
+  assert_eq!(mock_javascript_slice("123", f64::INFINITY), String::new());
+  assert_eq!(mock_javascript_slice("123", f64::NAN), "123".to_string());
+  assert_eq!(mock_javascript_slice("123", 3.), String::new());
+  assert_eq!(mock_javascript_slice("123", -0.), "123".to_string());
+  assert_eq!(
+    mock_javascript_slice("123", f64::NEG_INFINITY),
+    "123".to_string()
+  );
+  assert_eq!(mock_javascript_slice("123", -1.), "3".to_string());
+  assert_eq!(mock_javascript_slice("123", -2.2), "23".to_string());
+  assert_eq!(mock_javascript_slice("123", -3.), "123".to_string());
 }

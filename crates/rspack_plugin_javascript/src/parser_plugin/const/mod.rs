@@ -4,10 +4,13 @@ mod logic_expr;
 use rspack_core::{ConstDependency, SpanExt};
 
 pub use self::logic_expr::is_logic_op;
-use super::{api_plugin::WEBPACK_RESOURCE_QUERY, JavascriptParserPlugin};
+use super::JavascriptParserPlugin;
 use crate::{utils::eval::evaluate_to_string, visitors::JavascriptParser};
 
 pub struct ConstPlugin;
+
+const WEBPACK_RESOURCE_FRAGMENT: &str = "__resourceFragment";
+const WEBPACK_RESOURCE_QUERY: &str = "__resourceQuery";
 
 impl JavascriptParserPlugin for ConstPlugin {
   fn expression_logical_operator(
@@ -32,25 +35,40 @@ impl JavascriptParserPlugin for ConstPlugin {
     ident: &swc_core::ecma::ast::Ident,
     for_name: &str,
   ) -> Option<bool> {
-    if for_name == WEBPACK_RESOURCE_FRAGMENT {
-      let resource_fragment = parser
-        .resource_data
-        .resource_fragment
-        .as_deref()
-        .unwrap_or("");
-      parser
-        .presentational_dependencies
-        .push(Box::new(ConstDependency::new(
-          ident.span.real_lo(),
-          ident.span.real_hi(),
-          serde_json::to_string(resource_fragment)
-            .expect("should render module id")
-            .into(),
-          None,
-        )));
-      Some(true)
-    } else {
-      None
+    match for_name {
+      WEBPACK_RESOURCE_FRAGMENT => {
+        let resource_fragment = parser
+          .resource_data
+          .resource_fragment
+          .as_deref()
+          .unwrap_or("");
+        parser
+          .presentational_dependencies
+          .push(Box::new(ConstDependency::new(
+            ident.span.real_lo(),
+            ident.span.real_hi(),
+            serde_json::to_string(resource_fragment)
+              .expect("should render module id")
+              .into(),
+            None,
+          )));
+        Some(true)
+      }
+      WEBPACK_RESOURCE_QUERY => {
+        let resource_query = parser.resource_data.resource_query.as_deref().unwrap_or("");
+        parser
+          .presentational_dependencies
+          .push(Box::new(ConstDependency::new(
+            ident.span.real_lo(),
+            ident.span.real_hi(),
+            serde_json::to_string(resource_query)
+              .expect("should render module id")
+              .into(),
+            None,
+          )));
+        Some(true)
+      }
+      _ => None,
     }
   }
 
@@ -61,8 +79,8 @@ impl JavascriptParserPlugin for ConstPlugin {
     start: u32,
     end: u32,
   ) -> Option<crate::utils::eval::BasicEvaluatedExpression> {
-    if ident == WEBPACK_RESOURCE_QUERY {
-      Some(evaluate_to_string(
+    match ident {
+      WEBPACK_RESOURCE_QUERY => Some(evaluate_to_string(
         parser
           .resource_data
           .resource_query
@@ -70,9 +88,8 @@ impl JavascriptParserPlugin for ConstPlugin {
           .unwrap_or_default(),
         start,
         end,
-      ))
-    } else if ident == WEBPACK_RESOURCE_FRAGMENT {
-      Some(evaluate_to_string(
+      )),
+      WEBPACK_RESOURCE_FRAGMENT => Some(evaluate_to_string(
         parser
           .resource_data
           .resource_fragment
@@ -80,11 +97,8 @@ impl JavascriptParserPlugin for ConstPlugin {
           .unwrap_or_default(),
         start,
         end,
-      ))
-    } else {
-      None
+      )),
+      _ => None,
     }
   }
 }
-
-const WEBPACK_RESOURCE_FRAGMENT: &str = "__resourceFragment";
