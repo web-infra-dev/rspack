@@ -271,6 +271,7 @@ impl<'parser> JavascriptParser<'parser> {
     warning_diagnostics: &'parser mut Vec<Box<dyn Diagnostic + Send + Sync>>,
   ) -> Self {
     let mut plugins: Vec<parser_plugin::BoxJavascriptParserPlugin> = Vec::with_capacity(32);
+    plugins.push(Box::new(parser_plugin::InitializeEvaluating));
     plugins.push(Box::new(parser_plugin::CheckVarDeclaratorIdent));
     plugins.push(Box::new(parser_plugin::ConstPlugin));
     plugins.push(Box::new(
@@ -285,7 +286,9 @@ impl<'parser> JavascriptParser<'parser> {
       plugins.push(Box::new(parser_plugin::CommonJsImportsParserPlugin));
       plugins.push(Box::new(parser_plugin::CommonJsPlugin));
       plugins.push(Box::new(parser_plugin::CommonJsExportsParserPlugin));
-      plugins.push(Box::new(parser_plugin::NodeStuffPlugin));
+      if compiler_options.node.is_some() {
+        plugins.push(Box::new(parser_plugin::NodeStuffPlugin));
+      }
     }
 
     if compiler_options.dev_server.hot {
@@ -771,6 +774,8 @@ impl JavascriptParser<'_> {
       Expr::Bin(binary) => eval::eval_binary_expression(self, binary),
       Expr::Array(array) => eval::eval_array_expression(self, array),
       Expr::New(new) => eval::eval_new_expression(self, new),
+      Expr::Call(call) => eval::eval_call_expression(self, call),
+      Expr::Paren(paren) => self.evaluating(&paren.expr),
       Expr::Member(member) => {
         if let Some(MemberExpressionInfo::Expression(info)) =
           self.get_member_expression_info(member, AllowedMemberTypes::Expression)

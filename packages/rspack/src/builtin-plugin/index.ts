@@ -45,7 +45,7 @@ export * from "./SideEffectsFlagPlugin";
 export * from "./FlagDependencyExportsPlugin";
 export * from "./FlagDependencyUsagePlugin";
 export * from "./MangleExportsPlugin";
-export * from "./BundlerInfoPlugin";
+export * from "./BundlerInfoRspackPlugin";
 export * from "./ModuleConcatenationPlugin";
 
 export * from "./HtmlRspackPlugin";
@@ -68,8 +68,8 @@ function resolveTreeShaking(
 	return treeShaking !== undefined
 		? treeShaking.toString()
 		: production
-		? "true"
-		: "false";
+			? "true"
+			: "false";
 }
 
 export interface Builtins {
@@ -98,7 +98,7 @@ export function deprecated_resolveBuiltins(
 						exportsOnly: false,
 						...builtins.css?.modules
 					}
-			  }
+				}
 			: undefined,
 		treeShaking: resolveTreeShaking(builtins.treeShaking, production)
 	};

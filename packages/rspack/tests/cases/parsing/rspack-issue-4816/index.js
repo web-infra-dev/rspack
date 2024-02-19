@@ -149,6 +149,16 @@ it("should try to evaluate new RegExp()", function () {
 	);
 });
 
+it("should evaluate __dirname and __resourceQuery with replace and substr", function () {
+	const result = require("./resourceQuery/index?" + __dirname);
+	expect(result).toEqual("?resourceQuery");
+});
+
+it("should evaluate __dirname and __resourceFragment with replace and substr", function () {
+	const result = require("./resourceFragment/index#" + __dirname);
+	expect(result).toEqual("#resourceFragment");
+});
+
 it("should parse nullish coalescing correctly", () => {
 	let result;
 
@@ -173,9 +183,3 @@ it("should evaluate nullish coalescing", function () {
 	expect(((x = 1), null) ?? true).toBe(true);
 	expect(x).toBe(1);
 });
-
-// NEXT:
-// it("should evaluate __dirname and __resourceQuery with replace and substr", function () {
-// 	const result = require("./resourceQuery/index?" + __dirname);
-// 	expect(result).toEqual("?resourceQuery");
-// });

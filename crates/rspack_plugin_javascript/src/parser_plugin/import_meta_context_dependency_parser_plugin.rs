@@ -3,6 +3,7 @@ use rspack_core::{
   ContextOptions, DependencyCategory, SpanExt,
 };
 use rspack_regex::{regexp_as_str, RspackRegex};
+use swc_core::common::Spanned;
 use swc_core::ecma::ast::{CallExpr, Lit};
 
 use super::JavascriptParserPlugin;
@@ -65,6 +66,8 @@ fn create_import_meta_context_dependency(node: &CallExpr) -> Option<ImportMetaCo
       request: context,
       namespace_object: ContextNameSpaceObject::Unset,
       mode,
+      start: node.span().real_lo(),
+      end: node.span().real_hi(),
     }
   } else {
     ContextOptions {
@@ -78,6 +81,8 @@ fn create_import_meta_context_dependency(node: &CallExpr) -> Option<ImportMetaCo
       category: DependencyCategory::Esm,
       request: context,
       namespace_object: ContextNameSpaceObject::Unset,
+      start: node.span().real_lo(),
+      end: node.span().real_hi(),
     }
   };
   Some(ImportMetaContextDependency::new(

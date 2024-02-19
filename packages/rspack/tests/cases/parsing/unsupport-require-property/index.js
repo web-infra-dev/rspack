@@ -2,7 +2,7 @@ it("should transform unsupported require api to undefined", function () {
 	expect(require.extensions).toBeUndefined();
 	expect(require.ensure).toBeUndefined();
 	expect(require.config).toBeUndefined();
-	expect(require.vesrion).toBeUndefined();
+	expect(require.version).toBeUndefined();
 	expect(require.amd).toBeUndefined();
 	expect(require.include).toBeUndefined();
 	expect(require.onError).toBeUndefined();
@@ -24,7 +24,7 @@ it("should transform unsupported require api to undefined", function () {
 			extensions: {},
 			ensure: {},
 			config: {},
-			vesrion: {},
+			version: {},
 			amd: {},
 			include: {},
 			onError: {},
@@ -40,7 +40,7 @@ it("should transform unsupported require api to undefined", function () {
 		expect(require.extensions).toBeTruthy();
 		expect(require.ensure).toBeTruthy();
 		expect(require.config).toBeTruthy();
-		expect(require.vesrion).toBeTruthy();
+		expect(require.version).toBeTruthy();
 		expect(require.amd).toBeTruthy();
 		expect(require.include).toBeTruthy();
 		expect(require.onError).toBeTruthy();

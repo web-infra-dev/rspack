@@ -999,14 +999,14 @@ impl Compilation {
                     module_graph.set_parents(
                       dependency_id,
                       DependencyParents {
-                        block: current_block.as_ref().map(|block| block.id()),
+                        block: current_block.as_ref().map(|block| block.identifier()),
                         module: module.identifier(),
                       },
                     );
                     module_graph.add_dependency(dependency);
                   }
                   if let Some(current_block) = current_block {
-                    module.add_block_id(current_block.id());
+                    module.add_block_id(current_block.identifier());
                     module_graph.add_block(current_block);
                   }
                   for block in blocks {
@@ -1845,6 +1845,34 @@ impl Compilation {
         .chunk_graph
         .add_tree_runtime_requirements(&entry_ukey, set);
     }
+
+    // NOTE: webpack runs hooks.runtime_module in compilation.add_runtime_module
+    // and overwrite the runtime_module.generate() to get new source in create_chunk_assets
+    // this needs full runtime requirements, so run hooks.runtime_module after runtime_requirements_in_tree
+    for entry_ukey in self.get_chunk_graph_entries() {
+      let chunk = self.chunk_by_ukey.expect_get(&entry_ukey);
+      for runtime_module_id in self
+        .chunk_graph
+        .get_chunk_runtime_modules_iterable(&entry_ukey)
+      {
+        let Some((origin_source, name)) = self
+          .runtime_modules
+          .get(runtime_module_id)
+          .map(|m| (m.generate(self), m.name().to_string()))
+        else {
+          continue;
+        };
+        if let Some(runtime_module) = self.runtime_modules.get_mut(runtime_module_id)
+          && let Some(new_source) = self
+            .plugin_driver
+            .runtime_module(runtime_module.as_mut(), origin_source, chunk)
+            .await?
+        {
+          runtime_module.set_custom_source(OriginalSource::new(new_source, name));
+        }
+      }
+    }
+
     logger.time_end(start);
     Ok(())
   }
@@ -2034,14 +2062,6 @@ impl Compilation {
     self
       .chunk_graph
       .connect_chunk_and_runtime_module(*chunk_ukey, runtime_module_identifier);
-
-    if let Some(new_source) = self
-      .plugin_driver
-      .runtime_module(module.as_mut(), chunk, self)
-      .await?
-    {
-      module.set_custom_source(OriginalSource::new(new_source, module.name().to_string()));
-    }
 
     self
       .runtime_modules

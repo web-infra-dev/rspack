@@ -116,6 +116,7 @@ exports[`Stats should have stats 1`] = `
           "name": "./fixtures/a.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
           "orphan": false,
+          "providedExports": [],
           "reasons": [
             {
               "moduleId": undefined,
@@ -131,6 +132,7 @@ exports[`Stats should have stats 1`] = `
 };
 ",
           "type": "module",
+          "usedExports": null,
         },
       ],
       "names": [
@@ -178,6 +180,7 @@ exports[`Stats should have stats 1`] = `
       "name": "./fixtures/a.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
       "orphan": false,
+      "providedExports": [],
       "reasons": [
         {
           "moduleId": undefined,
@@ -193,6 +196,7 @@ exports[`Stats should have stats 1`] = `
 };
 ",
       "type": "module",
+      "usedExports": null,
     },
   ],
   "namedChunkGroups": {
@@ -204,6 +208,496 @@ exports[`Stats should have stats 1`] = `
         },
       ],
       "assetsSize": 212,
+      "chunks": [
+        "909",
+      ],
+      "name": "main",
+    },
+  },
+  "outputPath": "<PROJECT_ROOT>/dist",
+  "publicPath": "auto",
+  "warnings": [],
+  "warningsCount": 0,
+}
+`;
+
+exports[`Stats should have usedExports and providedExports stats 1`] = `
+{
+  "assets": [
+    {
+      "chunkNames": [
+        "main",
+      ],
+      "chunks": [
+        "909",
+      ],
+      "emitted": true,
+      "info": {
+        "development": false,
+        "hotModuleReplacement": false,
+      },
+      "name": "main.js",
+      "size": 785,
+      "type": "asset",
+    },
+  ],
+  "assetsByChunkName": {
+    "main": [
+      "main.js",
+    ],
+  },
+  "children": [],
+  "chunks": [
+    {
+      "auxiliaryFiles": [],
+      "children": [],
+      "entry": true,
+      "files": [
+        "main.js",
+      ],
+      "id": "909",
+      "initial": true,
+      "modules": [
+        {
+          "assets": [],
+          "chunks": [
+            "909",
+          ],
+          "id": "83",
+          "identifier": "<PROJECT_ROOT>/tests/fixtures/esm/a.js",
+          "issuer": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
+          "issuerId": "314",
+          "issuerName": "./fixtures/esm/abc.js",
+          "issuerPath": [
+            {
+              "id": "314",
+              "identifier": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
+              "name": "./fixtures/esm/abc.js",
+            },
+          ],
+          "moduleType": "javascript/auto",
+          "name": "./fixtures/esm/a.js",
+          "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/esm/a.js",
+          "orphan": false,
+          "providedExports": [
+            "a",
+            "default",
+          ],
+          "reasons": [
+            {
+              "moduleId": "314",
+              "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
+              "moduleName": "./fixtures/esm/abc.js",
+              "type": "esm import",
+              "userRequest": "./a",
+            },
+            {
+              "moduleId": "314",
+              "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
+              "moduleName": "./fixtures/esm/abc.js",
+              "type": "esm import specifier",
+              "userRequest": "./a",
+            },
+          ],
+          "size": 38,
+          "type": "module",
+          "usedExports": [
+            "a",
+          ],
+        },
+        {
+          "assets": [],
+          "chunks": [
+            "909",
+          ],
+          "id": "178",
+          "identifier": "<PROJECT_ROOT>/tests/fixtures/esm/b.js",
+          "issuer": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
+          "issuerId": "314",
+          "issuerName": "./fixtures/esm/abc.js",
+          "issuerPath": [
+            {
+              "id": "314",
+              "identifier": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
+              "name": "./fixtures/esm/abc.js",
+            },
+          ],
+          "moduleType": "javascript/auto",
+          "name": "./fixtures/esm/b.js",
+          "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/esm/b.js",
+          "orphan": false,
+          "providedExports": [
+            "b",
+            "default",
+          ],
+          "reasons": [
+            {
+              "moduleId": "314",
+              "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
+              "moduleName": "./fixtures/esm/abc.js",
+              "type": "esm import",
+              "userRequest": "./b",
+            },
+            {
+              "moduleId": "314",
+              "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
+              "moduleName": "./fixtures/esm/abc.js",
+              "type": "esm import specifier",
+              "userRequest": "./b",
+            },
+          ],
+          "size": 38,
+          "type": "module",
+          "usedExports": [
+            "default",
+          ],
+        },
+        {
+          "assets": [],
+          "chunks": [
+            "909",
+          ],
+          "id": "609",
+          "identifier": "<PROJECT_ROOT>/tests/fixtures/esm/c.js",
+          "issuer": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
+          "issuerId": "314",
+          "issuerName": "./fixtures/esm/abc.js",
+          "issuerPath": [
+            {
+              "id": "314",
+              "identifier": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
+              "name": "./fixtures/esm/abc.js",
+            },
+          ],
+          "moduleType": "javascript/auto",
+          "name": "./fixtures/esm/c.js",
+          "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/esm/c.js",
+          "orphan": false,
+          "providedExports": [
+            "c",
+            "default",
+          ],
+          "reasons": [
+            {
+              "moduleId": "314",
+              "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
+              "moduleName": "./fixtures/esm/abc.js",
+              "type": "esm import",
+              "userRequest": "./c",
+            },
+            {
+              "moduleId": "314",
+              "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
+              "moduleName": "./fixtures/esm/abc.js",
+              "type": "esm import specifier",
+              "userRequest": "./c",
+            },
+          ],
+          "size": 38,
+          "type": "module",
+          "usedExports": true,
+        },
+        {
+          "assets": [],
+          "chunks": [
+            "909",
+          ],
+          "id": "314",
+          "identifier": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
+          "issuer": undefined,
+          "issuerId": undefined,
+          "issuerName": undefined,
+          "issuerPath": [],
+          "moduleType": "javascript/auto",
+          "name": "./fixtures/esm/abc.js",
+          "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
+          "orphan": false,
+          "providedExports": [],
+          "reasons": [
+            {
+              "moduleId": undefined,
+              "moduleIdentifier": undefined,
+              "moduleName": undefined,
+              "type": "entry",
+              "userRequest": "./fixtures/esm/abc",
+            },
+          ],
+          "size": 81,
+          "type": "module",
+          "usedExports": [],
+        },
+      ],
+      "names": [
+        "main",
+      ],
+      "parents": [],
+      "siblings": [],
+      "size": 195,
+      "type": "chunk",
+    },
+  ],
+  "entrypoints": {
+    "main": {
+      "assets": [
+        {
+          "name": "main.js",
+          "size": 785,
+        },
+      ],
+      "assetsSize": 785,
+      "chunks": [
+        "909",
+      ],
+      "name": "main",
+    },
+  },
+  "errors": [],
+  "errorsCount": 0,
+  "filteredModules": undefined,
+  "hash": "90855ad020cd8866adbb",
+  "logging": {},
+  "modules": [
+    {
+      "assets": [],
+      "chunks": [
+        "909",
+      ],
+      "id": "83",
+      "identifier": "<PROJECT_ROOT>/tests/fixtures/esm/a.js",
+      "issuer": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
+      "issuerId": "314",
+      "issuerName": "./fixtures/esm/abc.js",
+      "issuerPath": [
+        {
+          "id": "314",
+          "identifier": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
+          "name": "./fixtures/esm/abc.js",
+        },
+      ],
+      "moduleType": "javascript/auto",
+      "name": "./fixtures/esm/a.js",
+      "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/esm/a.js",
+      "orphan": false,
+      "providedExports": [
+        "a",
+        "default",
+      ],
+      "reasons": [
+        {
+          "moduleId": "314",
+          "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
+          "moduleName": "./fixtures/esm/abc.js",
+          "type": "esm import",
+          "userRequest": "./a",
+        },
+        {
+          "moduleId": "314",
+          "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
+          "moduleName": "./fixtures/esm/abc.js",
+          "type": "esm import specifier",
+          "userRequest": "./a",
+        },
+      ],
+      "size": 38,
+      "type": "module",
+      "usedExports": [
+        "a",
+      ],
+    },
+    {
+      "assets": [],
+      "chunks": [
+        "909",
+      ],
+      "id": "178",
+      "identifier": "<PROJECT_ROOT>/tests/fixtures/esm/b.js",
+      "issuer": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
+      "issuerId": "314",
+      "issuerName": "./fixtures/esm/abc.js",
+      "issuerPath": [
+        {
+          "id": "314",
+          "identifier": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
+          "name": "./fixtures/esm/abc.js",
+        },
+      ],
+      "moduleType": "javascript/auto",
+      "name": "./fixtures/esm/b.js",
+      "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/esm/b.js",
+      "orphan": false,
+      "providedExports": [
+        "b",
+        "default",
+      ],
+      "reasons": [
+        {
+          "moduleId": "314",
+          "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
+          "moduleName": "./fixtures/esm/abc.js",
+          "type": "esm import",
+          "userRequest": "./b",
+        },
+        {
+          "moduleId": "314",
+          "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
+          "moduleName": "./fixtures/esm/abc.js",
+          "type": "esm import specifier",
+          "userRequest": "./b",
+        },
+      ],
+      "size": 38,
+      "type": "module",
+      "usedExports": [
+        "default",
+      ],
+    },
+    {
+      "assets": [],
+      "chunks": [
+        "909",
+      ],
+      "id": "609",
+      "identifier": "<PROJECT_ROOT>/tests/fixtures/esm/c.js",
+      "issuer": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
+      "issuerId": "314",
+      "issuerName": "./fixtures/esm/abc.js",
+      "issuerPath": [
+        {
+          "id": "314",
+          "identifier": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
+          "name": "./fixtures/esm/abc.js",
+        },
+      ],
+      "moduleType": "javascript/auto",
+      "name": "./fixtures/esm/c.js",
+      "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/esm/c.js",
+      "orphan": false,
+      "providedExports": [
+        "c",
+        "default",
+      ],
+      "reasons": [
+        {
+          "moduleId": "314",
+          "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
+          "moduleName": "./fixtures/esm/abc.js",
+          "type": "esm import",
+          "userRequest": "./c",
+        },
+        {
+          "moduleId": "314",
+          "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
+          "moduleName": "./fixtures/esm/abc.js",
+          "type": "esm import specifier",
+          "userRequest": "./c",
+        },
+      ],
+      "size": 38,
+      "type": "module",
+      "usedExports": true,
+    },
+    {
+      "assets": [],
+      "chunks": [
+        "909",
+      ],
+      "id": "314",
+      "identifier": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
+      "issuer": undefined,
+      "issuerId": undefined,
+      "issuerName": undefined,
+      "issuerPath": [],
+      "moduleType": "javascript/auto",
+      "name": "./fixtures/esm/abc.js",
+      "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
+      "orphan": false,
+      "providedExports": [],
+      "reasons": [
+        {
+          "moduleId": undefined,
+          "moduleIdentifier": undefined,
+          "moduleName": undefined,
+          "type": "entry",
+          "userRequest": "./fixtures/esm/abc",
+        },
+      ],
+      "size": 81,
+      "type": "module",
+      "usedExports": [],
+    },
+    {
+      "assets": [],
+      "chunks": [
+        "909",
+      ],
+      "id": "",
+      "identifier": "webpack/runtime/has_own_property",
+      "issuer": undefined,
+      "issuerId": undefined,
+      "issuerName": undefined,
+      "issuerPath": [],
+      "moduleType": "runtime",
+      "name": "webpack/runtime/has_own_property",
+      "nameForCondition": undefined,
+      "orphan": false,
+      "providedExports": [],
+      "reasons": [],
+      "size": 160,
+      "type": "module",
+      "usedExports": null,
+    },
+    {
+      "assets": [],
+      "chunks": [
+        "909",
+      ],
+      "id": "",
+      "identifier": "webpack/runtime/make_namespace_object",
+      "issuer": undefined,
+      "issuerId": undefined,
+      "issuerName": undefined,
+      "issuerPath": [],
+      "moduleType": "runtime",
+      "name": "webpack/runtime/make_namespace_object",
+      "nameForCondition": undefined,
+      "orphan": false,
+      "providedExports": [],
+      "reasons": [],
+      "size": 160,
+      "type": "module",
+      "usedExports": null,
+    },
+    {
+      "assets": [],
+      "chunks": [
+        "909",
+      ],
+      "id": "",
+      "identifier": "webpack/runtime/define_property_getters",
+      "issuer": undefined,
+      "issuerId": undefined,
+      "issuerName": undefined,
+      "issuerPath": [],
+      "moduleType": "runtime",
+      "name": "webpack/runtime/define_property_getters",
+      "nameForCondition": undefined,
+      "orphan": false,
+      "providedExports": [],
+      "reasons": [],
+      "size": 160,
+      "type": "module",
+      "usedExports": null,
+    },
+  ],
+  "namedChunkGroups": {
+    "main": {
+      "assets": [
+        {
+          "name": "main.js",
+          "size": 785,
+        },
+      ],
+      "assetsSize": 785,
       "chunks": [
         "909",
       ],
@@ -280,6 +774,7 @@ exports[`Stats should output stats with query 1`] = `
           "name": "./fixtures/a.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
           "orphan": false,
+          "providedExports": [],
           "reasons": [
             {
               "moduleId": "432",
@@ -295,6 +790,7 @@ exports[`Stats should output stats with query 1`] = `
 };
 ",
           "type": "module",
+          "usedExports": null,
         },
         {
           "assets": [],
@@ -317,6 +813,7 @@ exports[`Stats should output stats with query 1`] = `
           "name": "./fixtures/a.js?a=1",
           "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
           "orphan": false,
+          "providedExports": [],
           "reasons": [
             {
               "moduleId": "919",
@@ -332,6 +829,7 @@ exports[`Stats should output stats with query 1`] = `
 };
 ",
           "type": "module",
+          "usedExports": null,
         },
         {
           "assets": [],
@@ -354,6 +852,7 @@ exports[`Stats should output stats with query 1`] = `
           "name": "./fixtures/c.js?c=3",
           "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/c.js",
           "orphan": false,
+          "providedExports": [],
           "reasons": [
             {
               "moduleId": "919",
@@ -370,6 +869,7 @@ exports[`Stats should output stats with query 1`] = `
 };
 ",
           "type": "module",
+          "usedExports": null,
         },
         {
           "assets": [],
@@ -386,6 +886,7 @@ exports[`Stats should output stats with query 1`] = `
           "name": "./fixtures/abc-query.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
           "orphan": false,
+          "providedExports": [],
           "reasons": [
             {
               "moduleId": undefined,
@@ -401,6 +902,7 @@ exports[`Stats should output stats with query 1`] = `
 exports.c = require("./c?c=3");
 ",
           "type": "module",
+          "usedExports": null,
         },
       ],
       "names": [
@@ -459,6 +961,7 @@ exports.c = require("./c?c=3");
       "name": "./fixtures/a.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
       "orphan": false,
+      "providedExports": [],
       "reasons": [
         {
           "moduleId": "432",
@@ -474,6 +977,7 @@ exports.c = require("./c?c=3");
 };
 ",
       "type": "module",
+      "usedExports": null,
     },
     {
       "assets": [],
@@ -496,6 +1000,7 @@ exports.c = require("./c?c=3");
       "name": "./fixtures/a.js?a=1",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
       "orphan": false,
+      "providedExports": [],
       "reasons": [
         {
           "moduleId": "919",
@@ -511,6 +1016,7 @@ exports.c = require("./c?c=3");
 };
 ",
       "type": "module",
+      "usedExports": null,
     },
     {
       "assets": [],
@@ -533,6 +1039,7 @@ exports.c = require("./c?c=3");
       "name": "./fixtures/c.js?c=3",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/c.js",
       "orphan": false,
+      "providedExports": [],
       "reasons": [
         {
           "moduleId": "919",
@@ -549,6 +1056,7 @@ exports.c = require("./c?c=3");
 };
 ",
       "type": "module",
+      "usedExports": null,
     },
     {
       "assets": [],
@@ -565,6 +1073,7 @@ exports.c = require("./c?c=3");
       "name": "./fixtures/abc-query.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
       "orphan": false,
+      "providedExports": [],
       "reasons": [
         {
           "moduleId": undefined,
@@ -580,6 +1089,7 @@ exports.c = require("./c?c=3");
 exports.c = require("./c?c=3");
 ",
       "type": "module",
+      "usedExports": null,
     },
   ],
   "namedChunkGroups": {

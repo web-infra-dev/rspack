@@ -96,7 +96,7 @@ pub(crate) mod expr_matcher {
     is_require_extensions: "require.extensions",
     is_require_ensure: "require.ensure",
     is_require_config: "require.config",
-    is_require_version: "require.vesrion",
+    is_require_version: "require.version",
     is_require_amd: "require.amd",
     is_require_include: "require.include",
     is_require_onerror: "require.onError",
@@ -116,30 +116,6 @@ pub mod expr_name {
   pub const IMPORT_META_WEBPACK_HOT_ACCEPT: &str = "import.meta.webpackHot.accept";
   pub const IMPORT_META_WEBPACK_HOT_DECLINE: &str = "import.meta.webpackHot.decline";
   pub const IMPORT_META_WEBPACK_CONTEXT: &str = "import.meta.webpackContext";
-}
-
-pub fn is_require_context_call(node: &CallExpr) -> bool {
-  node
-    .callee
-    .as_expr()
-    .map(|expr| expr_matcher::is_require_context(expr))
-    .unwrap_or_default()
-}
-
-pub fn is_require_resolve_call(node: &CallExpr) -> bool {
-  node
-    .callee
-    .as_expr()
-    .map(|expr| expr_matcher::is_require_resolve(expr))
-    .unwrap_or_default()
-}
-
-pub fn is_require_resolve_weak_call(node: &CallExpr) -> bool {
-  node
-    .callee
-    .as_expr()
-    .map(|expr| expr_matcher::is_require_resolve_weak(expr))
-    .unwrap_or_default()
 }
 
 pub fn parse_order_string(x: &str) -> Option<u32> {

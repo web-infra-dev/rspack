@@ -1,7 +1,9 @@
 use rspack_core::{
-  import_statement, AsDependency, DependencyId, DependencyTemplate, TemplateContext,
-  TemplateReplaceSource,
+  import_statement, runtime_condition_expression, AsDependency, DependencyId, DependencyTemplate,
+  RuntimeCondition, TemplateContext, TemplateReplaceSource,
 };
+
+use crate::dependency::get_import_emitted_runtime;
 
 #[derive(Debug, Clone)]
 pub struct HarmonyAcceptDependency {
@@ -28,12 +30,39 @@ impl DependencyTemplate for HarmonyAcceptDependency {
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
-    let TemplateContext { compilation, .. } = code_generatable_context;
+    let TemplateContext {
+      compilation,
+      module,
+      runtime,
+      runtime_requirements,
+      ..
+    } = code_generatable_context;
 
     let mut content = String::default();
 
     self.dependency_ids.iter().for_each(|id| {
       let dependency = compilation.module_graph.dependency_by_id(id);
+      let runtime_condition =
+        match dependency.and_then(|dep| compilation.module_graph.get_module(dep.id())) {
+          Some(ref_module) => {
+            get_import_emitted_runtime(&module.identifier(), &ref_module.identifier())
+          }
+          None => RuntimeCondition::Boolean(false),
+        };
+
+      if matches!(runtime_condition, RuntimeCondition::Boolean(false)) {
+        return;
+      }
+
+      let condition = {
+        runtime_condition_expression(
+          &compilation.chunk_graph,
+          Some(&runtime_condition),
+          *runtime,
+          runtime_requirements,
+        )
+      };
+
       let request = if let Some(dependency) = dependency.and_then(|d| d.as_module_dependency()) {
         Some(dependency.request())
       } else {
@@ -42,9 +71,23 @@ impl DependencyTemplate for HarmonyAcceptDependency {
           .map(|d| d.request())
       };
       if let Some(request) = request {
-        let stmts = import_statement(code_generatable_context, id, request, true);
-        content.push_str(stmts.0.as_str());
-        content.push_str(stmts.1.as_str());
+        let stmts = import_statement(
+          *module,
+          compilation,
+          runtime_requirements,
+          id,
+          request,
+          true,
+        );
+        if condition == "true" {
+          content.push_str(stmts.0.as_str());
+          content.push_str(stmts.1.as_str());
+        } else {
+          content.push_str(format!("if ({}) {{\n", condition).as_str());
+          content.push_str(stmts.0.as_str());
+          content.push_str(stmts.1.as_str());
+          content.push_str("\n}\n");
+        }
       }
     });
 

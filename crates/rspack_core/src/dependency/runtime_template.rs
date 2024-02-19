@@ -7,9 +7,9 @@ use swc_core::ecma::atoms::Atom;
 
 use crate::{
   compile_boolean_matcher_from_lists, get_import_var, property_access, to_comment,
-  to_normal_comment, AsyncDependenciesBlockId, ChunkGraph, Compilation, DependenciesBlock,
+  to_normal_comment, AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, DependenciesBlock,
   DependencyId, ExportsArgument, ExportsType, FakeNamespaceObjectMode, InitFragmentExt,
-  InitFragmentKey, InitFragmentStage, ModuleGraph, ModuleIdentifier, NormalInitFragment,
+  InitFragmentKey, InitFragmentStage, Module, ModuleGraph, ModuleIdentifier, NormalInitFragment,
   RuntimeCondition, RuntimeGlobals, RuntimeSpec, TemplateContext,
 };
 
@@ -277,17 +277,13 @@ pub fn module_id(
 }
 
 pub fn import_statement(
-  code_generatable_context: &mut TemplateContext,
+  module: &dyn Module,
+  compilation: &Compilation,
+  runtime_requirements: &mut RuntimeGlobals,
   id: &DependencyId,
   request: &str,
   update: bool, // whether a new variable should be created or the existing one updated
 ) -> (String, String) {
-  let TemplateContext {
-    runtime_requirements,
-    compilation,
-    module,
-    ..
-  } = code_generatable_context;
   if compilation
     .module_graph
     .module_identifier_by_dependency_id(id)
@@ -326,7 +322,7 @@ pub fn import_statement(
 pub fn module_namespace_promise(
   code_generatable_context: &mut TemplateContext,
   dep_id: &DependencyId,
-  block: Option<&AsyncDependenciesBlockId>,
+  block: Option<&AsyncDependenciesBlockIdentifier>,
   request: &str,
   _message: &str,
   weak: bool,
@@ -441,7 +437,7 @@ pub fn module_namespace_promise(
 }
 
 pub fn block_promise(
-  block: Option<&AsyncDependenciesBlockId>,
+  block: Option<&AsyncDependenciesBlockIdentifier>,
   runtime_requirements: &mut RuntimeGlobals,
   compilation: &Compilation,
 ) -> String {
@@ -570,7 +566,7 @@ pub fn sync_module_factory(
 }
 
 pub fn async_module_factory(
-  block_id: &AsyncDependenciesBlockId,
+  block_id: &AsyncDependenciesBlockIdentifier,
   request: &str,
   compilation: &Compilation,
   runtime_requirements: &mut RuntimeGlobals,

@@ -1,3 +1,4 @@
+mod context_dependency_helper;
 mod context_helper;
 mod harmony_export_dependency_scanner;
 pub mod harmony_import_dependency_scanner;
@@ -6,6 +7,7 @@ mod util;
 
 use std::sync::Arc;
 
+pub use context_dependency_helper::create_context_dependency;
 pub use context_helper::{scanner_context_module, ContextModuleScanResult};
 use rspack_ast::javascript::Program;
 use rspack_core::needs_refactor::WorkerSyntaxList;
@@ -58,11 +60,11 @@ pub fn scan_dependencies(
   build_meta: &mut BuildMeta,
   module_identifier: ModuleIdentifier,
 ) -> Result<ScanDependenciesResult, Vec<Box<dyn Diagnostic + Send + Sync>>> {
-  let mut warning_diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>> = vec![];
-  let mut errors = vec![];
-  let mut dependencies = vec![];
-  let mut blocks = vec![];
-  let mut presentational_dependencies = vec![];
+  let mut warning_diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>> = Vec::with_capacity(32);
+  let mut errors = Vec::with_capacity(32);
+  let mut dependencies = Vec::with_capacity(256);
+  let mut blocks = Vec::with_capacity(256);
+  let mut presentational_dependencies = Vec::with_capacity(256);
   let comments = program.comments.clone();
   let mut parser_exports_state = None;
   let mut ignored: FxHashSet<DependencyLocation> = FxHashSet::default();
