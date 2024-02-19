@@ -5961,6 +5961,343 @@ webpack/runtime/make_namespace_object
 webpack/runtime/define_property_getters"
 `;
 
+exports[`StatsTestCases should print correct stats for runtime-specific-exports 1`] = `
+{
+  "assets": [
+    {
+      "chunkNames": [
+        "main",
+      ],
+      "chunks": [
+        "909",
+      ],
+      "emitted": true,
+      "info": {
+        "development": false,
+        "hotModuleReplacement": false,
+      },
+      "name": "bundle.js",
+      "size": 391,
+      "type": "asset",
+    },
+  ],
+  "assetsByChunkName": {
+    "main": [
+      "bundle.js",
+    ],
+  },
+  "children": [],
+  "chunks": [
+    {
+      "auxiliaryFiles": [],
+      "children": [],
+      "entry": true,
+      "files": [
+        "bundle.js",
+      ],
+      "id": "909",
+      "initial": true,
+      "modules": [
+        {
+          "assets": [],
+          "chunks": [
+            "909",
+          ],
+          "id": "451",
+          "identifier": "<PROJECT_ROOT>/tests/statsCases/runtime-specific-exports/math.js",
+          "issuer": "<PROJECT_ROOT>/tests/statsCases/runtime-specific-exports/increment.js",
+          "issuerId": "822",
+          "issuerName": "./increment.js",
+          "issuerPath": [
+            {
+              "id": "144",
+              "identifier": "<PROJECT_ROOT>/tests/statsCases/runtime-specific-exports/example.js",
+              "name": "./example.js",
+            },
+            {
+              "id": "822",
+              "identifier": "<PROJECT_ROOT>/tests/statsCases/runtime-specific-exports/increment.js",
+              "name": "./increment.js",
+            },
+          ],
+          "moduleType": "javascript/auto",
+          "name": "./math.js",
+          "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/runtime-specific-exports/math.js",
+          "orphan": false,
+          "providedExports": [
+            "add",
+            "multiply",
+          ],
+          "reasons": [
+            {
+              "moduleId": "822",
+              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/runtime-specific-exports/increment.js",
+              "moduleName": "./increment.js",
+              "type": "cjs require",
+              "userRequest": "./math",
+            },
+          ],
+          "size": 303,
+          "type": "module",
+          "usedExports": [
+            "add",
+          ],
+        },
+        {
+          "assets": [],
+          "chunks": [
+            "909",
+          ],
+          "id": "144",
+          "identifier": "<PROJECT_ROOT>/tests/statsCases/runtime-specific-exports/example.js",
+          "issuer": undefined,
+          "issuerId": undefined,
+          "issuerName": undefined,
+          "issuerPath": [],
+          "moduleType": "javascript/auto",
+          "name": "./example.js",
+          "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/runtime-specific-exports/example.js",
+          "orphan": false,
+          "providedExports": [],
+          "reasons": [
+            {
+              "moduleId": undefined,
+              "moduleIdentifier": undefined,
+              "moduleName": undefined,
+              "type": "entry",
+              "userRequest": "./example.js",
+            },
+          ],
+          "size": 70,
+          "type": "module",
+          "usedExports": [],
+        },
+        {
+          "assets": [],
+          "chunks": [
+            "909",
+          ],
+          "id": "822",
+          "identifier": "<PROJECT_ROOT>/tests/statsCases/runtime-specific-exports/increment.js",
+          "issuer": "<PROJECT_ROOT>/tests/statsCases/runtime-specific-exports/example.js",
+          "issuerId": "144",
+          "issuerName": "./example.js",
+          "issuerPath": [
+            {
+              "id": "144",
+              "identifier": "<PROJECT_ROOT>/tests/statsCases/runtime-specific-exports/example.js",
+              "name": "./example.js",
+            },
+          ],
+          "moduleType": "javascript/auto",
+          "name": "./increment.js",
+          "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/runtime-specific-exports/increment.js",
+          "orphan": false,
+          "providedExports": [
+            "decrement",
+            "increment",
+            "incrementBy2",
+          ],
+          "reasons": [
+            {
+              "moduleId": "144",
+              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/runtime-specific-exports/example.js",
+              "moduleName": "./example.js",
+              "type": "cjs require",
+              "userRequest": "./increment",
+            },
+          ],
+          "size": 260,
+          "type": "module",
+          "usedExports": [
+            "increment",
+          ],
+        },
+      ],
+      "names": [
+        "main",
+      ],
+      "parents": [],
+      "siblings": [],
+      "size": 633,
+      "type": "chunk",
+    },
+  ],
+  "entrypoints": {
+    "main": {
+      "assets": [
+        {
+          "name": "bundle.js",
+          "size": 391,
+        },
+      ],
+      "assetsSize": 391,
+      "chunks": [
+        "909",
+      ],
+      "name": "main",
+    },
+  },
+  "errors": [],
+  "errorsCount": 0,
+  "filteredModules": undefined,
+  "hash": "a70d51933f0b44467f41",
+  "logging": {},
+  "modules": [
+    {
+      "assets": [],
+      "chunks": [
+        "909",
+      ],
+      "id": "451",
+      "identifier": "<PROJECT_ROOT>/tests/statsCases/runtime-specific-exports/math.js",
+      "issuer": "<PROJECT_ROOT>/tests/statsCases/runtime-specific-exports/increment.js",
+      "issuerId": "822",
+      "issuerName": "./increment.js",
+      "issuerPath": [
+        {
+          "id": "144",
+          "identifier": "<PROJECT_ROOT>/tests/statsCases/runtime-specific-exports/example.js",
+          "name": "./example.js",
+        },
+        {
+          "id": "822",
+          "identifier": "<PROJECT_ROOT>/tests/statsCases/runtime-specific-exports/increment.js",
+          "name": "./increment.js",
+        },
+      ],
+      "moduleType": "javascript/auto",
+      "name": "./math.js",
+      "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/runtime-specific-exports/math.js",
+      "orphan": false,
+      "providedExports": [
+        "add",
+        "multiply",
+      ],
+      "reasons": [
+        {
+          "moduleId": "822",
+          "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/runtime-specific-exports/increment.js",
+          "moduleName": "./increment.js",
+          "type": "cjs require",
+          "userRequest": "./math",
+        },
+      ],
+      "size": 303,
+      "type": "module",
+      "usedExports": [
+        "add",
+      ],
+    },
+    {
+      "assets": [],
+      "chunks": [
+        "909",
+      ],
+      "id": "144",
+      "identifier": "<PROJECT_ROOT>/tests/statsCases/runtime-specific-exports/example.js",
+      "issuer": undefined,
+      "issuerId": undefined,
+      "issuerName": undefined,
+      "issuerPath": [],
+      "moduleType": "javascript/auto",
+      "name": "./example.js",
+      "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/runtime-specific-exports/example.js",
+      "orphan": false,
+      "providedExports": [],
+      "reasons": [
+        {
+          "moduleId": undefined,
+          "moduleIdentifier": undefined,
+          "moduleName": undefined,
+          "type": "entry",
+          "userRequest": "./example.js",
+        },
+      ],
+      "size": 70,
+      "type": "module",
+      "usedExports": [],
+    },
+    {
+      "assets": [],
+      "chunks": [
+        "909",
+      ],
+      "id": "822",
+      "identifier": "<PROJECT_ROOT>/tests/statsCases/runtime-specific-exports/increment.js",
+      "issuer": "<PROJECT_ROOT>/tests/statsCases/runtime-specific-exports/example.js",
+      "issuerId": "144",
+      "issuerName": "./example.js",
+      "issuerPath": [
+        {
+          "id": "144",
+          "identifier": "<PROJECT_ROOT>/tests/statsCases/runtime-specific-exports/example.js",
+          "name": "./example.js",
+        },
+      ],
+      "moduleType": "javascript/auto",
+      "name": "./increment.js",
+      "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/runtime-specific-exports/increment.js",
+      "orphan": false,
+      "providedExports": [
+        "decrement",
+        "increment",
+        "incrementBy2",
+      ],
+      "reasons": [
+        {
+          "moduleId": "144",
+          "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/runtime-specific-exports/example.js",
+          "moduleName": "./example.js",
+          "type": "cjs require",
+          "userRequest": "./increment",
+        },
+      ],
+      "size": 260,
+      "type": "module",
+      "usedExports": [
+        "increment",
+      ],
+    },
+  ],
+  "namedChunkGroups": {
+    "main": {
+      "assets": [
+        {
+          "name": "bundle.js",
+          "size": 391,
+        },
+      ],
+      "assetsSize": 391,
+      "chunks": [
+        "909",
+      ],
+      "name": "main",
+    },
+  },
+  "outputPath": "<PROJECT_ROOT>/tests/statsCases/runtime-specific-exports/dist",
+  "publicPath": "",
+  "warnings": [],
+  "warningsCount": 0,
+}
+`;
+
+exports[`StatsTestCases should print correct stats for runtime-specific-exports 2`] = `
+"PublicPath: (none)
+asset bundle.js 391 bytes [emitted] (name: main)
+Entrypoint main 391 bytes = bundle.js
+./math.js
+  [exports: add, multiply]
+  [only some exports used: add]
+./example.js
+  [no exports]
+  [no exports used]
+./increment.js
+  [exports: decrement, increment, incrementBy2]
+  [only some exports used: increment]
+Rspack compiled successfully (a70d51933f0b44467f41)"
+`;
+
 exports[`StatsTestCases should print correct stats for simple-export 1`] = `
 {
   "assets": [
