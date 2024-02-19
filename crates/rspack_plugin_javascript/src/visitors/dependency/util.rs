@@ -118,30 +118,6 @@ pub mod expr_name {
   pub const IMPORT_META_WEBPACK_CONTEXT: &str = "import.meta.webpackContext";
 }
 
-pub fn is_require_context_call(node: &CallExpr) -> bool {
-  node
-    .callee
-    .as_expr()
-    .map(|expr| expr_matcher::is_require_context(expr))
-    .unwrap_or_default()
-}
-
-pub fn is_require_resolve_call(node: &CallExpr) -> bool {
-  node
-    .callee
-    .as_expr()
-    .map(|expr| expr_matcher::is_require_resolve(expr))
-    .unwrap_or_default()
-}
-
-pub fn is_require_resolve_weak_call(node: &CallExpr) -> bool {
-  node
-    .callee
-    .as_expr()
-    .map(|expr| expr_matcher::is_require_resolve_weak(expr))
-    .unwrap_or_default()
-}
-
 pub fn parse_order_string(x: &str) -> Option<u32> {
   match x {
     "true" => Some(0),
