@@ -803,11 +803,15 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 				}
 			} else if (Array.isArray(module.usedExports)) {
 				object.usedExports = module.usedExports;
+			} else {
+				object.usedExports = null;
 			}
 		},
 		providedExports: (object, module) => {
 			if (Array.isArray(module.providedExports)) {
 				object.providedExports = module.providedExports;
+			} else {
+				object.providedExports = null;
 			}
 		}
 	},
