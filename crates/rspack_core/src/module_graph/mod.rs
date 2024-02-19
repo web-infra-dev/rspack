@@ -9,7 +9,10 @@ use rspack_identifier::{Identifiable, IdentifierMap};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::ecma::atoms::Atom;
 
-use crate::{AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, ProvidedExports};
+use crate::{
+  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, ProvidedExports, RuntimeSpec,
+  UsedExports,
+};
 mod connection;
 pub use connection::*;
 mod vec_map;
@@ -1033,6 +1036,20 @@ impl ModuleGraph {
       .exports
       .get_exports_info(self)
       .get_provided_exports(self)
+  }
+
+  pub fn get_used_exports(
+    &self,
+    module_id: ModuleIdentifier,
+    runtime: Option<&RuntimeSpec>,
+  ) -> UsedExports {
+    let mgm = self
+      .module_graph_module_by_identifier(&module_id)
+      .expect("should have module graph module");
+    mgm
+      .exports
+      .get_exports_info(self)
+      .get_used_exports(self, runtime)
   }
 
   pub fn get_optimization_bailout_mut(&mut self, module: ModuleIdentifier) -> &mut Vec<String> {
