@@ -393,6 +393,60 @@ webpack/runtime/make_namespace_object {909}
 Rspack compiled successfully (727484790d78891314bc)"
 `;
 
+exports[`StatsTestCases should print correct stats for builtin-swc-loader-parse-error 1`] = `
+{
+  "errors": [
+    {
+      "formatted": "  × Module build failed:
+  ├─▶   ×    │   x Expected '{', got 'error'
+  │     │    ,-[<PROJECT_ROOT>/tests/statsCases/builtin-swc-loader-parse-error/index.ts:1:1]
+  │     │  1 | export error;
+  │     │    :        ^^^^^
+  │     │    \`----
+  │     │
+  │   
+  ╰─▶ Syntax Error
+  help: File was processed with this loader: 'builtin:swc-loader??ruleSet[1].rules[0].use[0]'
+",
+      "message": "  × Module build failed:
+  ├─▶   ×    │   x Expected '{', got 'error'
+  │     │    ,-[<PROJECT_ROOT>/tests/statsCases/builtin-swc-loader-parse-error/index.ts:1:1]
+  │     │  1 | export error;
+  │     │    :        ^^^^^
+  │     │    \`----
+  │     │
+  │   
+  ╰─▶ Syntax Error
+  help: File was processed with this loader: 'builtin:swc-loader??ruleSet[1].rules[0].use[0]'
+",
+      "moduleId": "620",
+      "moduleIdentifier": "builtin:swc-loader??ruleSet[1].rules[0].use[0]!<PROJECT_ROOT>/tests/statsCases/builtin-swc-loader-parse-error/index.ts",
+      "moduleName": "./index.ts",
+    },
+  ],
+  "errorsCount": 1,
+  "logging": {},
+  "warnings": [],
+  "warningsCount": 0,
+}
+`;
+
+exports[`StatsTestCases should print correct stats for builtin-swc-loader-parse-error 2`] = `
+"ERROR in ./index.ts
+  × Module build failed:
+  ├─▶   ×    │   x Expected '{', got 'error'
+  │     │    ,-[<PROJECT_ROOT>/tests/statsCases/builtin-swc-loader-parse-error/index.ts:1:1]
+  │     │  1 | export error;
+  │     │    :        ^^^^^
+  │     │    \`----
+  │     │
+  │   
+  ╰─▶ Syntax Error
+  help: File was processed with this loader: 'builtin:swc-loader??ruleSet[1].rules[0].use[0]'
+
+Rspack compiled with 1 error"
+`;
+
 exports[`StatsTestCases should print correct stats for filename 1`] = `
 {
   "assets": [
@@ -1080,93 +1134,6 @@ webpack/runtime/get_main_filename/update manifest {909}
 Rspack compiled successfully (a282ef4df6a5ef41a10b)"
 `;
 
-exports[`StatsTestCases should print correct stats for identifier-let-strict-mode 1`] = `
-{
-  "errors": [
-    {
-      "formatted": "  × Module parse failed:
-  ╰─▶   × JavaScript parsing error: \`let\` cannot be used as an identifier in strict mode
-         ╭────
-       1 │ let let = let;
-         ·           ───
-         ╰────
-      
-  help: 
-        You may need an appropriate loader to handle this file type.
-",
-      "message": "  × Module parse failed:
-  ╰─▶   × JavaScript parsing error: \`let\` cannot be used as an identifier in strict mode
-         ╭────
-       1 │ let let = let;
-         ·           ───
-         ╰────
-      
-  help: 
-        You may need an appropriate loader to handle this file type.
-",
-      "moduleId": "21",
-      "moduleIdentifier": "javascript/esm|<PROJECT_ROOT>/tests/statsCases/identifier-let-strict-mode/index.js",
-      "moduleName": "./index.js",
-    },
-    {
-      "formatted": "  × Module parse failed:
-  ╰─▶   × JavaScript parsing error: \`let\` cannot be used as an identifier in strict mode
-         ╭────
-       1 │ let let = let;
-         ·     ───
-         ╰────
-      
-  help: 
-        You may need an appropriate loader to handle this file type.
-",
-      "message": "  × Module parse failed:
-  ╰─▶   × JavaScript parsing error: \`let\` cannot be used as an identifier in strict mode
-         ╭────
-       1 │ let let = let;
-         ·     ───
-         ╰────
-      
-  help: 
-        You may need an appropriate loader to handle this file type.
-",
-      "moduleId": "21",
-      "moduleIdentifier": "javascript/esm|<PROJECT_ROOT>/tests/statsCases/identifier-let-strict-mode/index.js",
-      "moduleName": "./index.js",
-    },
-  ],
-  "errorsCount": 2,
-  "logging": {},
-  "warnings": [],
-  "warningsCount": 0,
-}
-`;
-
-exports[`StatsTestCases should print correct stats for identifier-let-strict-mode 2`] = `
-"ERROR in ./index.js
-  × Module parse failed:
-  ╰─▶   × JavaScript parsing error: \`let\` cannot be used as an identifier in strict mode
-         ╭────
-       1 │ let let = let;
-         ·           ───
-         ╰────
-      
-  help: 
-        You may need an appropriate loader to handle this file type.
-
-ERROR in ./index.js
-  × Module parse failed:
-  ╰─▶   × JavaScript parsing error: \`let\` cannot be used as an identifier in strict mode
-         ╭────
-       1 │ let let = let;
-         ·     ───
-         ╰────
-      
-  help: 
-        You may need an appropriate loader to handle this file type.
-
-Rspack compiled with 2 errors"
-`;
-
 exports[`StatsTestCases should print correct stats for ignore-plugin 1`] = `
 {
   "filteredModules": undefined,
@@ -1274,6 +1241,93 @@ exports[`StatsTestCases should print correct stats for legacy-ie-css-warning 1`]
 `;
 
 exports[`StatsTestCases should print correct stats for legacy-ie-css-warning 2`] = `"Rspack compiled successfully"`;
+
+exports[`StatsTestCases should print correct stats for let-keyword-as-variable-name-error 1`] = `
+{
+  "errors": [
+    {
+      "formatted": "  × Module parse failed:
+  ╰─▶   × JavaScript parsing error: \`let\` cannot be used as an identifier in strict mode
+         ╭────
+       1 │ let let = let;
+         ·           ───
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
+",
+      "message": "  × Module parse failed:
+  ╰─▶   × JavaScript parsing error: \`let\` cannot be used as an identifier in strict mode
+         ╭────
+       1 │ let let = let;
+         ·           ───
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
+",
+      "moduleId": "21",
+      "moduleIdentifier": "javascript/esm|<PROJECT_ROOT>/tests/statsCases/let-keyword-as-variable-name-error/index.js",
+      "moduleName": "./index.js",
+    },
+    {
+      "formatted": "  × Module parse failed:
+  ╰─▶   × JavaScript parsing error: \`let\` cannot be used as an identifier in strict mode
+         ╭────
+       1 │ let let = let;
+         ·     ───
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
+",
+      "message": "  × Module parse failed:
+  ╰─▶   × JavaScript parsing error: \`let\` cannot be used as an identifier in strict mode
+         ╭────
+       1 │ let let = let;
+         ·     ───
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
+",
+      "moduleId": "21",
+      "moduleIdentifier": "javascript/esm|<PROJECT_ROOT>/tests/statsCases/let-keyword-as-variable-name-error/index.js",
+      "moduleName": "./index.js",
+    },
+  ],
+  "errorsCount": 2,
+  "logging": {},
+  "warnings": [],
+  "warningsCount": 0,
+}
+`;
+
+exports[`StatsTestCases should print correct stats for let-keyword-as-variable-name-error 2`] = `
+"ERROR in ./index.js
+  × Module parse failed:
+  ╰─▶   × JavaScript parsing error: \`let\` cannot be used as an identifier in strict mode
+         ╭────
+       1 │ let let = let;
+         ·           ───
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
+
+ERROR in ./index.js
+  × Module parse failed:
+  ╰─▶   × JavaScript parsing error: \`let\` cannot be used as an identifier in strict mode
+         ╭────
+       1 │ let let = let;
+         ·     ───
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
+
+Rspack compiled with 2 errors"
+`;
 
 exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 1`] = `
 {
@@ -4125,7 +4179,7 @@ exports[`StatsTestCases should print correct stats for logging-loader 2`] = `
 "
 `;
 
-exports[`StatsTestCases should print correct stats for minify-error-recovery 1`] = `
+exports[`StatsTestCases should print correct stats for minify-error 1`] = `
 {
   "errors": [
     {
@@ -4154,7 +4208,7 @@ exports[`StatsTestCases should print correct stats for minify-error-recovery 1`]
 }
 `;
 
-exports[`StatsTestCases should print correct stats for minify-error-recovery 2`] = `
+exports[`StatsTestCases should print correct stats for minify-error 2`] = `
 "ERROR in × JavaScript parsing error: Expected a semicolon
    ╭─[1:1]
  1 │ const a {}
@@ -4219,24 +4273,24 @@ exports[`StatsTestCases should print correct stats for named-chunk-group 2`] = `
 Chunk Group cimanyd 131 bytes = 414.bundle.js"
 `;
 
-exports[`StatsTestCases should print correct stats for normal-errors 1`] = `
+exports[`StatsTestCases should print correct stats for nonexistent-import-source-error 1`] = `
 {
   "errors": [
     {
-      "formatted": "  × Resolve error: Can't resolve 'not-exist' in '<PROJECT_ROOT>/tests/statsCases/normal-errors'
+      "formatted": "  × Resolve error: Can't resolve 'not-exist' in '<PROJECT_ROOT>/tests/statsCases/nonexistent-import-source-error'
    ╭────
  1 │ import "not-exist";
    ·        ───────────
    ╰────
 ",
-      "message": "  × Resolve error: Can't resolve 'not-exist' in '<PROJECT_ROOT>/tests/statsCases/normal-errors'
+      "message": "  × Resolve error: Can't resolve 'not-exist' in '<PROJECT_ROOT>/tests/statsCases/nonexistent-import-source-error'
    ╭────
  1 │ import "not-exist";
    ·        ───────────
    ╰────
 ",
       "moduleId": "10",
-      "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/normal-errors/index.js",
+      "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/nonexistent-import-source-error/index.js",
       "moduleName": "./index.js",
     },
   ],
@@ -4247,9 +4301,9 @@ exports[`StatsTestCases should print correct stats for normal-errors 1`] = `
 }
 `;
 
-exports[`StatsTestCases should print correct stats for normal-errors 2`] = `
+exports[`StatsTestCases should print correct stats for nonexistent-import-source-error 2`] = `
 "ERROR in ./index.js
-  × Resolve error: Can't resolve 'not-exist' in '<PROJECT_ROOT>/tests/statsCases/normal-errors'
+  × Resolve error: Can't resolve 'not-exist' in '<PROJECT_ROOT>/tests/statsCases/nonexistent-import-source-error'
    ╭────
  1 │ import "not-exist";
    ·        ───────────
@@ -4887,60 +4941,6 @@ exports[`StatsTestCases should print correct stats for parse-error 2`] = `
 Rspack compiled with 1 error"
 `;
 
-exports[`StatsTestCases should print correct stats for parse-error-builtin-swc-loader 1`] = `
-{
-  "errors": [
-    {
-      "formatted": "  × Module build failed:
-  ├─▶   ×    │   x Expected '{', got 'error'
-  │     │    ,-[<PROJECT_ROOT>/tests/statsCases/parse-error-builtin-swc-loader/index.ts:1:1]
-  │     │  1 | export error;
-  │     │    :        ^^^^^
-  │     │    \`----
-  │     │
-  │   
-  ╰─▶ Syntax Error
-  help: File was processed with this loader: 'builtin:swc-loader??ruleSet[1].rules[0].use[0]'
-",
-      "message": "  × Module build failed:
-  ├─▶   ×    │   x Expected '{', got 'error'
-  │     │    ,-[<PROJECT_ROOT>/tests/statsCases/parse-error-builtin-swc-loader/index.ts:1:1]
-  │     │  1 | export error;
-  │     │    :        ^^^^^
-  │     │    \`----
-  │     │
-  │   
-  ╰─▶ Syntax Error
-  help: File was processed with this loader: 'builtin:swc-loader??ruleSet[1].rules[0].use[0]'
-",
-      "moduleId": "620",
-      "moduleIdentifier": "builtin:swc-loader??ruleSet[1].rules[0].use[0]!<PROJECT_ROOT>/tests/statsCases/parse-error-builtin-swc-loader/index.ts",
-      "moduleName": "./index.ts",
-    },
-  ],
-  "errorsCount": 1,
-  "logging": {},
-  "warnings": [],
-  "warningsCount": 0,
-}
-`;
-
-exports[`StatsTestCases should print correct stats for parse-error-builtin-swc-loader 2`] = `
-"ERROR in ./index.ts
-  × Module build failed:
-  ├─▶   ×    │   x Expected '{', got 'error'
-  │     │    ,-[<PROJECT_ROOT>/tests/statsCases/parse-error-builtin-swc-loader/index.ts:1:1]
-  │     │  1 | export error;
-  │     │    :        ^^^^^
-  │     │    \`----
-  │     │
-  │   
-  ╰─▶ Syntax Error
-  help: File was processed with this loader: 'builtin:swc-loader??ruleSet[1].rules[0].use[0]'
-
-Rspack compiled with 1 error"
-`;
-
 exports[`StatsTestCases should print correct stats for reasons 1`] = `
 {
   "filteredModules": undefined,
@@ -5001,7 +5001,7 @@ exports[`StatsTestCases should print correct stats for reasons 2`] = `
   entry ./index"
 `;
 
-exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
+exports[`StatsTestCases should print correct stats for resolve-overflow-error 1`] = `
 {
   "assets": [
     {
@@ -5044,14 +5044,14 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
             "909",
           ],
           "id": "10",
-          "identifier": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
+          "identifier": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow-error/index.js",
           "issuer": undefined,
           "issuerId": undefined,
           "issuerName": undefined,
           "issuerPath": [],
           "moduleType": "javascript/auto",
           "name": "./index.js",
-          "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
+          "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow-error/index.js",
           "orphan": false,
           "reasons": [
             {
@@ -5095,7 +5095,7 @@ console.log(a);
   },
   "errors": [
     {
-      "formatted": "  × Resolve error: Can't resolve 'cycle-alias/a' in '<PROJECT_ROOT>/tests/statsCases/resolve-overflow'
+      "formatted": "  × Resolve error: Can't resolve 'cycle-alias/a' in '<PROJECT_ROOT>/tests/statsCases/resolve-overflow-error'
    ╭─[1:1]
  1 │ import { a } from "cycle-alias/a";
    ·                   ───────────────
@@ -5103,7 +5103,7 @@ console.log(a);
    ╰────
   help: maybe it had cyclic aliases
 ",
-      "message": "  × Resolve error: Can't resolve 'cycle-alias/a' in '<PROJECT_ROOT>/tests/statsCases/resolve-overflow'
+      "message": "  × Resolve error: Can't resolve 'cycle-alias/a' in '<PROJECT_ROOT>/tests/statsCases/resolve-overflow-error'
    ╭─[1:1]
  1 │ import { a } from "cycle-alias/a";
    ·                   ───────────────
@@ -5112,7 +5112,7 @@ console.log(a);
   help: maybe it had cyclic aliases
 ",
       "moduleId": "10",
-      "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
+      "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow-error/index.js",
       "moduleName": "./index.js",
     },
   ],
@@ -5127,14 +5127,14 @@ console.log(a);
         "909",
       ],
       "id": "10",
-      "identifier": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
+      "identifier": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow-error/index.js",
       "issuer": undefined,
       "issuerId": undefined,
       "issuerName": undefined,
       "issuerPath": [],
       "moduleType": "javascript/auto",
       "name": "./index.js",
-      "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
+      "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow-error/index.js",
       "orphan": false,
       "reasons": [
         {
@@ -5187,14 +5187,14 @@ console.log(a);
       "name": "main",
     },
   },
-  "outputPath": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/dist",
+  "outputPath": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow-error/dist",
   "publicPath": "auto",
   "warnings": [],
   "warningsCount": 0,
 }
 `;
 
-exports[`StatsTestCases should print correct stats for resolve-overflow 2`] = `
+exports[`StatsTestCases should print correct stats for resolve-overflow-error 2`] = `
 "PublicPath: auto
 asset bundle.js 587 bytes {909} [emitted] (name: main)
 Entrypoint main 587 bytes = bundle.js
@@ -5207,7 +5207,7 @@ webpack/runtime/make_namespace_object {909}
   
 
 ERROR in ./index.js
-  × Resolve error: Can't resolve 'cycle-alias/a' in '<PROJECT_ROOT>/tests/statsCases/resolve-overflow'
+  × Resolve error: Can't resolve 'cycle-alias/a' in '<PROJECT_ROOT>/tests/statsCases/resolve-overflow-error'
    ╭─[1:1]
  1 │ import { a } from "cycle-alias/a";
    ·                   ───────────────
@@ -5218,7 +5218,7 @@ ERROR in ./index.js
 Rspack compiled with 1 error (00c7c84cfce886a9d69b)"
 `;
 
-exports[`StatsTestCases should print correct stats for resolve-unexpected-exports-in-pkg 1`] = `
+exports[`StatsTestCases should print correct stats for resolve-unexpected-exports-in-pkg-error 1`] = `
 {
   "assets": [
     {
@@ -5261,14 +5261,14 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
             "909",
           ],
           "id": "10",
-          "identifier": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
+          "identifier": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg-error/index.js",
           "issuer": undefined,
           "issuerId": undefined,
           "issuerName": undefined,
           "issuerPath": [],
           "moduleType": "javascript/auto",
           "name": "./index.js",
-          "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
+          "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg-error/index.js",
           "orphan": false,
           "reasons": [
             {
@@ -5312,12 +5312,12 @@ console.log(a);
   },
   "errors": [
     {
-      "formatted": "  × Invalid "exports" target "../../index.js" defined for '.' in the package config <PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/node_modules/pkg-a/package.json
+      "formatted": "  × Invalid "exports" target "../../index.js" defined for '.' in the package config <PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg-error/node_modules/pkg-a/package.json
 ",
-      "message": "  × Invalid "exports" target "../../index.js" defined for '.' in the package config <PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/node_modules/pkg-a/package.json
+      "message": "  × Invalid "exports" target "../../index.js" defined for '.' in the package config <PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg-error/node_modules/pkg-a/package.json
 ",
       "moduleId": "10",
-      "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
+      "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg-error/index.js",
       "moduleName": "./index.js",
     },
   ],
@@ -5332,14 +5332,14 @@ console.log(a);
         "909",
       ],
       "id": "10",
-      "identifier": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
+      "identifier": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg-error/index.js",
       "issuer": undefined,
       "issuerId": undefined,
       "issuerName": undefined,
       "issuerPath": [],
       "moduleType": "javascript/auto",
       "name": "./index.js",
-      "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
+      "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg-error/index.js",
       "orphan": false,
       "reasons": [
         {
@@ -5392,14 +5392,14 @@ console.log(a);
       "name": "main",
     },
   },
-  "outputPath": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/dist",
+  "outputPath": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg-error/dist",
   "publicPath": "",
   "warnings": [],
   "warningsCount": 0,
 }
 `;
 
-exports[`StatsTestCases should print correct stats for resolve-unexpected-exports-in-pkg 2`] = `
+exports[`StatsTestCases should print correct stats for resolve-unexpected-exports-in-pkg-error 2`] = `
 "PublicPath: (none)
 asset bundle.js 571 bytes {909} [emitted] (name: main)
 Entrypoint main 571 bytes = bundle.js
@@ -5412,7 +5412,7 @@ webpack/runtime/make_namespace_object {909}
   
 
 ERROR in ./index.js
-  × Invalid "exports" target "../../index.js" defined for '.' in the package config <PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/node_modules/pkg-a/package.json
+  × Invalid "exports" target "../../index.js" defined for '.' in the package config <PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg-error/node_modules/pkg-a/package.json
 
 Rspack compiled with 1 error (cbf412691ccd0a8f248f)"
 `;
@@ -6297,14 +6297,14 @@ runtime modules 3 modules
 Rspack compiled successfully (fa23dce0ee1c2be463ba)"
 `;
 
-exports[`StatsTestCases should print correct stats for try-require--module 1`] = `
+exports[`StatsTestCases should print correct stats for try-require-module 1`] = `
 {
   "errors": [],
   "errorsCount": 0,
   "logging": {},
   "warnings": [
     {
-      "formatted": "  ⚠ Resolve error: Can't resolve './missing-module' in '<PROJECT_ROOT>/tests/statsCases/try-require--module'
+      "formatted": "  ⚠ Resolve error: Can't resolve './missing-module' in '<PROJECT_ROOT>/tests/statsCases/try-require-module'
    ╭─[1:1]
  1 │ try {
  2 │     require('./missing-module');
@@ -6312,7 +6312,7 @@ exports[`StatsTestCases should print correct stats for try-require--module 1`] =
  3 │ } catch (e) {}
    ╰────
 ",
-      "message": "  ⚠ Resolve error: Can't resolve './missing-module' in '<PROJECT_ROOT>/tests/statsCases/try-require--module'
+      "message": "  ⚠ Resolve error: Can't resolve './missing-module' in '<PROJECT_ROOT>/tests/statsCases/try-require-module'
    ╭─[1:1]
  1 │ try {
  2 │     require('./missing-module');
@@ -6321,7 +6321,7 @@ exports[`StatsTestCases should print correct stats for try-require--module 1`] =
    ╰────
 ",
       "moduleId": "10",
-      "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/try-require--module/index.js",
+      "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/try-require-module/index.js",
       "moduleName": "./index.js",
     },
   ],
@@ -6329,9 +6329,9 @@ exports[`StatsTestCases should print correct stats for try-require--module 1`] =
 }
 `;
 
-exports[`StatsTestCases should print correct stats for try-require--module 2`] = `
+exports[`StatsTestCases should print correct stats for try-require-module 2`] = `
 "WARNING in ./index.js
-  ⚠ Resolve error: Can't resolve './missing-module' in '<PROJECT_ROOT>/tests/statsCases/try-require--module'
+  ⚠ Resolve error: Can't resolve './missing-module' in '<PROJECT_ROOT>/tests/statsCases/try-require-module'
    ╭─[1:1]
  1 │ try {
  2 │     require('./missing-module');
