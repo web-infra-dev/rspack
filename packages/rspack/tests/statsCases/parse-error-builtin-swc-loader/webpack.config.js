@@ -1,7 +1,9 @@
+/** @type {import('@rspack/core').Configuration} */
 module.exports = {
+	entry: "./index",
 	stats: "errors-warnings",
 	resolve: {
-		extensions: ["...", ".ts",".tsx", ".jsx"]
+		extensions: ["...", ".ts", ".tsx", ".jsx"]
 	},
 	module: {
 		rules: [

@@ -1,6 +1,8 @@
+/** @type {import('@rspack/core').Configuration} */
 module.exports = {
+	entry: "./index",
 	stats: "errors-warnings",
-  ignoreWarnings: [/Using \/ for division outside/],
+	ignoreWarnings: [/Using \/ for division outside/],
 	module: {
 		rules: [
 			{
