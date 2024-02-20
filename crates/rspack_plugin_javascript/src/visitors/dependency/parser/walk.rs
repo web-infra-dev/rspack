@@ -362,7 +362,6 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_variable_declaration(&mut self, decl: &VarDecl) {
-    self.enter_assign = true;
     for declarator in &decl.decls {
       if let Some(init) = declarator.init.as_ref()
         && let Some(renamed_identifier) = self.get_rename_identifier(init)
@@ -394,7 +393,6 @@ impl<'parser> JavascriptParser<'parser> {
         }
       }
     }
-    self.enter_assign = false;
   }
 
   fn walk_expression_statement(&mut self, stmt: &ExprStmt) {
@@ -807,7 +805,6 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_assignment_expression(&mut self, expr: &AssignExpr) {
-    self.enter_assign = true;
     // FIXME: should align to webpack
     if self
       .plugin_drive
@@ -825,7 +822,6 @@ impl<'parser> JavascriptParser<'parser> {
         if !drive.rename(self, &expr.right, &name).unwrap_or_default() {
           self.set_variable(ident.sym.to_string(), name);
         }
-        self.enter_assign = false;
         return;
       }
       self.walk_expression(&expr.right);
@@ -851,7 +847,6 @@ impl<'parser> JavascriptParser<'parser> {
         PatOrExpr::Pat(pat) => self.walk_pattern(pat),
       }
     }
-    self.enter_assign = false;
     // TODO:
     // else if let Some(member) = expr.left.as_expr().and_then(|expr| expr.as_member()) {
     // }
