@@ -12,8 +12,6 @@ expect.addSnapshotSerializer(serializer);
 const caseDir = path.resolve(__dirname, "./diagnostics");
 const categories = fs.readdirSync(caseDir);
 
-const ERROR_STACK_RE = /\s+at.*[(\s].*\)?/g;
-
 describe("Diagnostics", function () {
 	categories.forEach(categoryName => {
 		const categoryDir = path.resolve(caseDir, categoryName);
@@ -66,8 +64,16 @@ describe("Diagnostics", function () {
 							warnings: true
 						})
 					);
-					// Manually replace error stack until `stats.errorStack` is supported.
-					output = output.replaceAll(ERROR_STACK_RE, "");
+
+					// TODO: change to stats.errorStack
+					if (casePath.includes("module-build-failed")) {
+						// Replace potential loader stack
+						output = output
+							.replaceAll("│", "")
+							.split(/\r?\n/)
+							.map(s => s.trim())
+							.join("");
+					}
 
 					const errorOutputPath = path.resolve(casePath, `./stats.err`);
 					const updateSnapshot =

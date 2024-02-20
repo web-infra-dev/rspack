@@ -1,6 +1,0 @@
-ERROR in ./logo.svg
-  × Module build failed:
-  ╰─▶   × Error: Failed to load
-        │
-      
-  help: File was processed with this loader: '<PROJECT_ROOT>/tests/diagnostics/factorize/asset-module-build-failed/my-loader.js'

@@ -504,7 +504,7 @@ impl Compilation {
       let (deps, blocks) = compalition
         .module_graph
         .get_module_dependencies_modules_and_blocks(module_identifier);
-      let deps: Vec<_> = deps.into_iter().cloned().collect();
+
       let blocks_with_option: Vec<_> = blocks
         .iter()
         .map(|block| {
@@ -741,24 +741,30 @@ impl Compilation {
         }
         drop(tx);
 
-        let tx = result_tx.clone();
+        tokio::spawn({
+          let tx = result_tx.clone();
+          let is_expected_shutdown = is_expected_shutdown.clone();
+          async move {
+            loop {
+              if remaining == 0 {
+                break;
+              }
 
-        tokio::spawn(async move {
-          loop {
-            if remaining == 0 {
-              break;
+              rx.recv().await;
+              remaining -= 1;
             }
 
-            rx.recv().await;
-            remaining -= 1;
-          }
+            if is_expected_shutdown.load(Ordering::SeqCst) {
+              return;
+            }
 
-          tx.send(Ok(TaskResult::ProcessDependencies(Box::new(
-            ProcessDependenciesResult {
-              module_identifier: task.original_module_identifier,
-            },
-          ))))
-          .expect("Failed to send process dependencies result");
+            tx.send(Ok(TaskResult::ProcessDependencies(Box::new(
+              ProcessDependenciesResult {
+                module_identifier: task.original_module_identifier,
+              },
+            ))))
+            .expect("Failed to send process dependencies result");
+          }
         });
       }
       process_deps_time.end(start);
@@ -993,14 +999,14 @@ impl Compilation {
                     module_graph.set_parents(
                       dependency_id,
                       DependencyParents {
-                        block: current_block.as_ref().map(|block| block.id()),
+                        block: current_block.as_ref().map(|block| block.identifier()),
                         module: module.identifier(),
                       },
                     );
                     module_graph.add_dependency(dependency);
                   }
                   if let Some(current_block) = current_block {
-                    module.add_block_id(current_block.id());
+                    module.add_block_id(current_block.identifier());
                     module_graph.add_block(current_block);
                   }
                   for block in blocks {
@@ -1137,14 +1143,11 @@ impl Compilation {
           if self.module_graph.module_by_identifier(&module_id).is_none() {
             false
           } else {
-            let (mut now_deps, mut now_blocks) = module_deps(self, &module_id);
-            let (mut origin_deps, mut origin_blocks) = deps;
+            let (now_deps, mut now_blocks) = module_deps(self, &module_id);
+            let (origin_deps, mut origin_blocks) = deps;
             if now_deps.len() != origin_deps.len() || now_blocks.len() != origin_blocks.len() {
               false
             } else {
-              now_deps.sort_unstable();
-              origin_deps.sort_unstable();
-
               for index in 0..origin_deps.len() {
                 if origin_deps[index] != now_deps[index] {
                   return false;
@@ -1839,6 +1842,34 @@ impl Compilation {
         .chunk_graph
         .add_tree_runtime_requirements(&entry_ukey, set);
     }
+
+    // NOTE: webpack runs hooks.runtime_module in compilation.add_runtime_module
+    // and overwrite the runtime_module.generate() to get new source in create_chunk_assets
+    // this needs full runtime requirements, so run hooks.runtime_module after runtime_requirements_in_tree
+    for entry_ukey in self.get_chunk_graph_entries() {
+      let chunk = self.chunk_by_ukey.expect_get(&entry_ukey);
+      for runtime_module_id in self
+        .chunk_graph
+        .get_chunk_runtime_modules_iterable(&entry_ukey)
+      {
+        let Some((origin_source, name)) = self
+          .runtime_modules
+          .get(runtime_module_id)
+          .map(|m| (m.generate(self), m.name().to_string()))
+        else {
+          continue;
+        };
+        if let Some(runtime_module) = self.runtime_modules.get_mut(runtime_module_id)
+          && let Some(new_source) = self
+            .plugin_driver
+            .runtime_module(runtime_module.as_mut(), origin_source, chunk)
+            .await?
+        {
+          runtime_module.set_custom_source(OriginalSource::new(new_source, name));
+        }
+      }
+    }
+
     logger.time_end(start);
     Ok(())
   }
@@ -2028,14 +2059,6 @@ impl Compilation {
     self
       .chunk_graph
       .connect_chunk_and_runtime_module(*chunk_ukey, runtime_module_identifier);
-
-    if let Some(new_source) = self
-      .plugin_driver
-      .runtime_module(module.as_mut(), chunk, self)
-      .await?
-    {
-      module.set_custom_source(OriginalSource::new(new_source, module.name().to_string()));
-    }
 
     self
       .runtime_modules
@@ -2252,8 +2275,8 @@ pub struct AssetInfoRelated {
   pub source_map: Option<String>,
 }
 
-/// level order, the impl is different from webpack, since the length of queue in `for of loop` is
-/// will not change
+/// level order, the impl is different from webpack, since we can't iterate a set and mutate it at
+/// the same time.
 pub fn assign_depths(
   assign_map: &mut HashMap<ModuleIdentifier, usize>,
   mg: &ModuleGraph,

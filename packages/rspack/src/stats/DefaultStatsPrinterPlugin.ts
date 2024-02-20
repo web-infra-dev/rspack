@@ -94,7 +94,7 @@ const SIMPLE_PRINTERS: Record<
 			warningsCount && warningsCount > 0
 				? yellow(
 						`${warningsCount} ${plural(warningsCount, "warning", "warnings")}`
-				  )
+					)
 				: "";
 		const errorsMessage =
 			errorsCount && errorsCount > 0
@@ -110,10 +110,10 @@ const SIMPLE_PRINTERS: Record<
 			root && name
 				? bold(name)
 				: name
-				? `Child ${bold(name)}`
-				: root
-				? ""
-				: "Child";
+					? `Child ${bold(name)}`
+					: root
+						? ""
+						: "Child";
 		const subjectMessage =
 			nameMessage && versionMessage
 				? `${nameMessage} (${versionMessage})`
@@ -147,7 +147,7 @@ const SIMPLE_PRINTERS: Record<
 					count,
 					"warning has",
 					"warnings have"
-			  )} detailed information that is not shown.\nUse 'stats.errorDetails: true' resp. '--stats-error-details' to show it.`
+				)} detailed information that is not shown.\nUse 'stats.errorDetails: true' resp. '--stats-error-details' to show it.`
 			: undefined,
 	"compilation.filteredErrorDetailsCount": (count, { yellow }) =>
 		count
@@ -157,7 +157,7 @@ const SIMPLE_PRINTERS: Record<
 						"error has",
 						"errors have"
 					)} detailed information that is not shown.\nUse 'stats.errorDetails: true' resp. '--stats-error-details' to show it.`
-			  )
+				)
 			: undefined,
 	"compilation.env": (env, { bold }) =>
 		env
@@ -171,7 +171,7 @@ const SIMPLE_PRINTERS: Record<
 			: printer.print(context.type, Object.values(entrypoints), {
 					...context,
 					chunkGroupKind: "Entrypoint"
-			  }),
+				}),
 	"compilation.namedChunkGroups": (
 		namedChunkGroups: StatsChunkGroup,
 		context,
@@ -205,15 +205,18 @@ const SIMPLE_PRINTERS: Record<
 					filteredModules,
 					"module",
 					"modules"
-			  )}`
+				)}`
 			: undefined,
-	"compilation.filteredAssets": (filteredAssets, { compilation: { assets } }) =>
+	"compilation.filteredAssets": (
+		filteredAssets,
+		{ compilation: { assets } }
+	) =>
 		filteredAssets > 0
 			? `${moreCount(assets, filteredAssets)} ${plural(
 					filteredAssets,
 					"asset",
 					"assets"
-			  )}`
+				)}`
 			: undefined,
 	"compilation.logging": (logging, context, printer) =>
 		Array.isArray(logging)
@@ -225,7 +228,7 @@ const SIMPLE_PRINTERS: Record<
 						name
 					})),
 					context
-			  ),
+				),
 	"compilation.warningsInChildren!": (_, { yellow, compilation }) => {
 		if (
 			!compilation.children &&
@@ -300,7 +303,7 @@ const SIMPLE_PRINTERS: Record<
 					sourceFilename === true
 						? "from source file"
 						: `from: ${sourceFilename}`
-			  )
+				)
 			: undefined,
 	"asset.info.development": (development, { green, formatFlag }) =>
 		development ? green(formatFlag("dev")) : undefined,
@@ -315,7 +318,7 @@ const SIMPLE_PRINTERS: Record<
 					filteredRelated,
 					"asset",
 					"assets"
-			  )}`
+				)}`
 			: undefined,
 	"asset.filteredChildren": (filteredChildren, { asset: { children } }) =>
 		filteredChildren > 0
@@ -323,7 +326,7 @@ const SIMPLE_PRINTERS: Record<
 					filteredChildren,
 					"asset",
 					"assets"
-			  )}`
+				)}`
 			: undefined,
 
 	assetChunk: (id, { formatChunkId }) => formatChunkId(id),
@@ -369,22 +372,22 @@ const SIMPLE_PRINTERS: Record<
 					formatFlag(
 						`${assets.length} ${plural(assets.length, "asset", "assets")}`
 					)
-			  )
+				)
 			: undefined,
 	"module.warnings": (warnings, { formatFlag, yellow }) =>
 		warnings === true
 			? yellow(formatFlag("warnings"))
 			: warnings
-			? yellow(
-					formatFlag(`${warnings} ${plural(warnings, "warning", "warnings")}`)
-			  )
-			: undefined,
+				? yellow(
+						formatFlag(`${warnings} ${plural(warnings, "warning", "warnings")}`)
+					)
+				: undefined,
 	"module.errors": (errors, { formatFlag, red }) =>
 		errors === true
 			? red(formatFlag("errors"))
 			: errors
-			? red(formatFlag(`${errors} ${plural(errors, "error", "errors")}`))
-			: undefined,
+				? red(formatFlag(`${errors} ${plural(errors, "error", "errors")}`))
+				: undefined,
 	"module.providedExports": (providedExports, { formatFlag, cyan }) => {
 		if (Array.isArray(providedExports)) {
 			if (providedExports.length === 0) return cyan(formatFlag("no exports"));
@@ -425,7 +428,7 @@ const SIMPLE_PRINTERS: Record<
 					filteredModules,
 					"module",
 					"modules"
-			  )}`
+				)}`
 			: undefined,
 	"module.filteredReasons": (filteredReasons, { module: { reasons } }) =>
 		filteredReasons > 0
@@ -433,7 +436,7 @@ const SIMPLE_PRINTERS: Record<
 					filteredReasons,
 					"reason",
 					"reasons"
-			  )}`
+				)}`
 			: undefined,
 	"module.filteredChildren": (filteredChildren, { module: { children } }) =>
 		filteredChildren > 0
@@ -441,7 +444,7 @@ const SIMPLE_PRINTERS: Record<
 					filteredChildren,
 					"module",
 					"modules"
-			  )}`
+				)}`
 			: undefined,
 	"module.separator!": () => "\n",
 
@@ -468,7 +471,7 @@ const SIMPLE_PRINTERS: Record<
 					filteredChildren,
 					"reason",
 					"reasons"
-			  )}`
+				)}`
 			: undefined,
 
 	"module.profile.total": (value, { formatTime }) => formatTime(value),
@@ -509,7 +512,7 @@ const SIMPLE_PRINTERS: Record<
 					n,
 					"asset",
 					"assets"
-			  )}`
+				)}`
 			: undefined,
 	"chunkGroup.is!": () => "=",
 	"chunkGroupAsset.name": (asset, { green }) => green(asset),
@@ -528,7 +531,7 @@ const SIMPLE_PRINTERS: Record<
 						children: children[key]
 					})),
 					context
-			  ),
+				),
 	"chunkGroupChildGroup.type": type => `${type}:`,
 	"chunkGroupChild.assets[]": (file, { formatFilename }) =>
 		formatFilename(file),
@@ -557,7 +560,7 @@ const SIMPLE_PRINTERS: Record<
 						children: childrenByOrder[key]
 					})),
 					context
-			  ),
+				),
 	"chunk.childrenByOrder[].type": type => `${type}:`,
 	"chunk.childrenByOrder[].children[]": (id, { formatChunkId }) =>
 		isValidId(id) ? formatChunkId(id) : undefined,
@@ -576,7 +579,7 @@ const SIMPLE_PRINTERS: Record<
 					filteredModules,
 					"module",
 					"modules"
-			  )}`
+				)}`
 			: undefined,
 	"chunk.separator!": () => "\n",
 
@@ -1369,7 +1372,7 @@ export class DefaultStatsPrinterPlugin {
 												? str.replace(
 														/((\u001b\[39m|\u001b\[22m|\u001b\[0m)+)/g,
 														`$1${start}`
-												  )
+													)
 												: str
 										}\u001b[39m\u001b[22m`;
 								} else {

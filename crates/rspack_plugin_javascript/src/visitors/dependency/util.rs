@@ -82,29 +82,19 @@ pub(crate) mod expr_matcher {
     is_require: "require",
     is_require_main: "require.main",
     is_require_context: "require.context",
-    is_require_resolve: "require.resolve",
-    is_require_resolve_weak: "require.resolveWeak",
     is_require_cache: "require.cache",
     is_module: "module",
-    is_module_hot_accept: "module.hot.accept",
-    is_module_hot_decline: "module.hot.decline",
     is_module_id: "module.id",
     is_module_loaded: "module.loaded",
     is_module_exports: "module.exports",
     is_module_require: "module.require",
     is_webpack_module_id: "__webpack_module__.id",
-    is_import_meta_webpack_hot: "import.meta.webpackHot",
-    is_import_meta_webpack_hot_accept: "import.meta.webpackHot.accept",
-    is_import_meta_webpack_hot_decline: "import.meta.webpackHot.decline",
-    is_import_meta_webpack_context: "import.meta.webpackContext",
-    is_import_meta_url: "import.meta.url",
-    is_import_meta: "import.meta",
     is_object_define_property: "Object.defineProperty",
     // unsupported
     is_require_extensions: "require.extensions",
     is_require_ensure: "require.ensure",
     is_require_config: "require.config",
-    is_require_version: "require.vesrion",
+    is_require_version: "require.version",
     is_require_amd: "require.amd",
     is_require_include: "require.include",
     is_require_onerror: "require.onError",
@@ -113,102 +103,20 @@ pub(crate) mod expr_matcher {
   });
 }
 
-pub fn is_require_context_call(node: &CallExpr) -> bool {
-  node
-    .callee
-    .as_expr()
-    .map(|expr| expr_matcher::is_require_context(expr))
-    .unwrap_or_default()
-}
-
-pub fn is_require_resolve_call(node: &CallExpr) -> bool {
-  node
-    .callee
-    .as_expr()
-    .map(|expr| expr_matcher::is_require_resolve(expr))
-    .unwrap_or_default()
-}
-
-pub fn is_require_resolve_weak_call(node: &CallExpr) -> bool {
-  node
-    .callee
-    .as_expr()
-    .map(|expr| expr_matcher::is_require_resolve_weak(expr))
-    .unwrap_or_default()
-}
-
-pub fn is_module_hot_accept_call(node: &CallExpr) -> bool {
-  node
-    .callee
-    .as_expr()
-    .map(|expr| expr_matcher::is_module_hot_accept(expr))
-    .unwrap_or_default()
-}
-
-pub fn is_module_hot_decline_call(node: &CallExpr) -> bool {
-  node
-    .callee
-    .as_expr()
-    .map(|expr| expr_matcher::is_module_hot_decline(expr))
-    .unwrap_or_default()
-}
-
-pub fn is_import_meta_hot_accept_call(node: &CallExpr) -> bool {
-  node
-    .callee
-    .as_expr()
-    .map(|expr| expr_matcher::is_import_meta_webpack_hot_accept(expr))
-    .unwrap_or_default()
-}
-
-pub fn is_import_meta_hot_decline_call(node: &CallExpr) -> bool {
-  node
-    .callee
-    .as_expr()
-    .map(|expr| expr_matcher::is_import_meta_webpack_hot_decline(expr))
-    .unwrap_or_default()
-}
-
-pub fn is_import_meta_context_call(node: &CallExpr) -> bool {
-  node
-    .callee
-    .as_expr()
-    .map(|expr| expr_matcher::is_import_meta_webpack_context(expr))
-    .unwrap_or_default()
-}
-
-pub fn is_member_expr_starts_with<F>(mut expr: &Expr, checker: F) -> bool
-where
-  F: Fn(&Expr) -> bool,
-{
-  loop {
-    match expr {
-      _ if checker(expr) => return true,
-      Expr::Member(MemberExpr { obj, .. }) => expr = obj.as_ref(),
-      _ => return false,
-    }
-  }
-}
-
-// Notice: Include `import.meta.webpackHot` itself
-pub fn is_member_expr_starts_with_import_meta_webpack_hot(expr: &Expr) -> bool {
-  use swc_core::ecma::ast;
-  let mut match_target = expr;
-
-  loop {
-    match match_target {
-      // If the target self is `import.meta.webpackHot` just return true
-      ast::Expr::Member(..) if expr_matcher::is_import_meta_webpack_hot(match_target) => {
-        return true
-      }
-      // The expr is sub-part of `import.meta.webpackHot.xxx`. Recursively look up.
-      ast::Expr::Member(ast::MemberExpr { obj, .. }) if obj.is_member() => {
-        match_target = obj.as_ref();
-      }
-      // The expr could never be `import.meta.webpackHot`
-      _ => return false,
-    }
-  }
+pub mod expr_name {
+  pub const MODULE: &str = "module";
+  pub const MODULE_HOT: &str = "module.hot";
+  pub const MODULE_HOT_ACCEPT: &str = "module.hot.accept";
+  pub const MODULE_HOT_DECLINE: &str = "module.hot.decline";
+  pub const REQUIRE: &str = "require";
+  pub const REQUIRE_RESOLVE: &str = "require.resolve";
+  pub const REQUIRE_RESOLVE_WEAK: &str = "require.resolveWeak";
+  pub const IMPORT_META: &str = "import.meta";
+  pub const IMPORT_META_URL: &str = "import.meta.url";
+  pub const IMPORT_META_WEBPACK_HOT: &str = "import.meta.webpackHot";
+  pub const IMPORT_META_WEBPACK_HOT_ACCEPT: &str = "import.meta.webpackHot.accept";
+  pub const IMPORT_META_WEBPACK_HOT_DECLINE: &str = "import.meta.webpackHot.decline";
+  pub const IMPORT_META_WEBPACK_CONTEXT: &str = "import.meta.webpackContext";
 }
 
 pub fn parse_order_string(x: &str) -> Option<u32> {
@@ -223,52 +131,6 @@ pub fn parse_order_string(x: &str) -> Option<u32> {
       }
     }
   }
-}
-
-#[test]
-fn test() {
-  use swc_core::common::DUMMY_SP;
-  use swc_core::ecma::ast::{Ident, MemberExpr, MemberProp, MetaPropExpr, MetaPropKind};
-  use swc_core::ecma::utils::member_expr;
-  use swc_core::ecma::utils::ExprFactory;
-  let expr = Expr::Member(member_expr!(DUMMY_SP, module.hot.accept));
-  assert!(expr_matcher::is_module_hot_accept(&expr));
-  assert!(!expr_matcher::is_module_hot_decline(&expr));
-  assert!(is_module_hot_accept_call(&CallExpr {
-    span: DUMMY_SP,
-    callee: expr.as_callee(),
-    args: vec![],
-    type_args: None
-  }));
-
-  let import_meta_expr = Expr::Member(MemberExpr {
-    span: DUMMY_SP,
-    obj: Box::new(Expr::Member(MemberExpr {
-      span: DUMMY_SP,
-      obj: Box::new(Expr::MetaProp(MetaPropExpr {
-        span: DUMMY_SP,
-        kind: MetaPropKind::ImportMeta,
-      })),
-      prop: MemberProp::Ident(Ident::new("webpackHot".into(), DUMMY_SP)),
-    })),
-    prop: MemberProp::Ident(Ident::new("accept".into(), DUMMY_SP)),
-  });
-  assert!(is_member_expr_starts_with(
-    &import_meta_expr,
-    |expr: &Expr| expr_matcher::is_import_meta(expr)
-  ));
-  assert!(is_member_expr_starts_with_import_meta_webpack_hot(
-    &import_meta_expr
-  ));
-  assert!(expr_matcher::is_import_meta_webpack_hot_accept(
-    &import_meta_expr,
-  ));
-  assert!(is_import_meta_hot_accept_call(&CallExpr {
-    span: DUMMY_SP,
-    callee: import_meta_expr.as_callee(),
-    args: vec![],
-    type_args: None
-  }));
 }
 
 #[macro_export]

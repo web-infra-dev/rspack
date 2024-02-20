@@ -856,8 +856,8 @@ impl Plugin for SourceMapDevToolModuleOptionsPlugin {
   async fn runtime_module(
     &self,
     module: &mut dyn RuntimeModule,
+    _source: Arc<dyn Source>,
     _chunk: &Chunk,
-    _compilation: &Compilation,
   ) -> Result<Option<String>> {
     if self.module {
       module.set_source_map_kind(SourceMapKind::SourceMap);

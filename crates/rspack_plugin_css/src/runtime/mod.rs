@@ -1,13 +1,10 @@
 use rspack_core::{
-  impl_runtime_module,
+  compile_boolean_matcher, impl_runtime_module,
   rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
-  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
+  BooleanMatcher, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
 };
 use rspack_identifier::Identifier;
-use rspack_plugin_runtime::{
-  chunk_has_css, get_chunk_runtime_requirements, render_condition_map, stringify_chunks,
-  BooleanMatcher,
-};
+use rspack_plugin_runtime::{chunk_has_css, get_chunk_runtime_requirements, stringify_chunks};
 use rspack_util::source_map::SourceMapKind;
 use rustc_hash::FxHashSet as HashSet;
 
@@ -45,13 +42,10 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         compilation
           .chunk_graph
           .get_chunk_condition_map(&chunk_ukey, compilation, chunk_has_css);
-      let css_matcher = render_condition_map(&condition_map, "chunkId");
+      let has_css_matcher = compile_boolean_matcher(&condition_map);
 
       let with_loading = runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
-        && match css_matcher {
-          BooleanMatcher::Condition(c) => c,
-          BooleanMatcher::Matcher(_) => true,
-        };
+        && !matches!(has_css_matcher, BooleanMatcher::Condition(false));
 
       let initial_chunks = chunk.get_all_initial_chunks(&compilation.chunk_group_by_ukey);
       let mut initial_chunk_ids_with_css = HashSet::default();
@@ -99,7 +93,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         source.add(RawSource::from(
           include_str!("./css_loading_with_loading.js")
             .replace("$CHUNK_LOADING_GLOBAL_EXPR$", &chunk_loading_global_expr)
-            .replace("CSS_MATCHER", &css_matcher.to_string()),
+            .replace("CSS_MATCHER", &has_css_matcher.render("chunkId")),
         ));
       }
 

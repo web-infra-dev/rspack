@@ -1,7 +1,8 @@
-use rspack_core::{ConstDependency, RuntimeGlobals, SpanExt};
+use rspack_core::{get_context, ConstDependency, RuntimeGlobals, SpanExt};
 use sugar_path::SugarPath;
 
 use super::JavascriptParserPlugin;
+use crate::utils::eval;
 
 const DIR_NAME: &str = "__dirname";
 const FILE_NAME: &str = "__filename";
@@ -17,7 +18,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
     _for_name: &str,
   ) -> Option<bool> {
     let Some(node_option) = parser.compiler_options.node.as_ref() else {
-      return None;
+      unreachable!("ensure only invoke `NodeStuffPlugin` when node options is enabled");
     };
     let str = ident.sym.as_str();
     if !parser.is_unresolved_ident(str) {
@@ -89,5 +90,23 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
       return Some(true);
     }
     None
+  }
+
+  fn evaluate_identifier(
+    &self,
+    parser: &mut crate::visitors::JavascriptParser,
+    ident: &str,
+    start: u32,
+    end: u32,
+  ) -> Option<crate::utils::eval::BasicEvaluatedExpression> {
+    if ident == DIR_NAME {
+      Some(eval::evaluate_to_string(
+        get_context(parser.resource_data).as_str().to_string(),
+        start,
+        end,
+      ))
+    } else {
+      None
+    }
   }
 }

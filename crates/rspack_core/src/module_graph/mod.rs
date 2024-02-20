@@ -3,13 +3,17 @@ use std::collections::hash_map::Entry;
 use std::path::PathBuf;
 
 use dashmap::DashMap;
+use itertools::Itertools;
 use rspack_error::Result;
 use rspack_hash::RspackHashDigest;
 use rspack_identifier::{Identifiable, IdentifierMap};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::ecma::atoms::Atom;
 
-use crate::{AsyncDependenciesBlock, AsyncDependenciesBlockId, ProvidedExports};
+use crate::{
+  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, ProvidedExports, RuntimeSpec,
+  UsedExports,
+};
 mod connection;
 pub use connection::*;
 mod vec_map;
@@ -25,7 +29,7 @@ pub type ImportVarMap = HashMap<Option<String> /* request */, String /* import_v
 
 #[derive(Debug, Default)]
 pub struct DependencyParents {
-  pub block: Option<AsyncDependenciesBlockId>,
+  pub block: Option<AsyncDependenciesBlockIdentifier>,
   pub module: ModuleIdentifier,
 }
 
@@ -42,7 +46,7 @@ pub struct ModuleGraph {
   /// Module identifier to its module graph module
   pub module_identifier_to_module_graph_module: IdentifierMap<ModuleGraphModule>,
 
-  blocks: HashMap<AsyncDependenciesBlockId, AsyncDependenciesBlock>,
+  blocks: HashMap<AsyncDependenciesBlockIdentifier, AsyncDependenciesBlock>,
 
   pub dependency_id_to_connection_id: HashMap<DependencyId, ConnectionId>,
   connection_id_to_dependency_id: HashMap<ConnectionId, DependencyId>,
@@ -363,7 +367,7 @@ impl ModuleGraph {
   }
 
   pub fn add_block(&mut self, block: AsyncDependenciesBlock) {
-    self.blocks.insert(block.id(), block);
+    self.blocks.insert(block.identifier(), block);
   }
 
   pub fn set_parents(&mut self, dependency: DependencyId, parents: DependencyParents) {
@@ -377,7 +381,10 @@ impl ModuleGraph {
       .map(|p| &p.module)
   }
 
-  pub fn get_parent_block(&self, dependency: &DependencyId) -> Option<&AsyncDependenciesBlockId> {
+  pub fn get_parent_block(
+    &self,
+    dependency: &DependencyId,
+  ) -> Option<&AsyncDependenciesBlockIdentifier> {
     self
       .dependency_id_to_parents
       .get(dependency)
@@ -386,7 +393,7 @@ impl ModuleGraph {
 
   pub fn block_by_id(
     &self,
-    block_id: &AsyncDependenciesBlockId,
+    block_id: &AsyncDependenciesBlockIdentifier,
   ) -> Option<&AsyncDependenciesBlock> {
     self.blocks.get(block_id)
   }
@@ -644,14 +651,33 @@ impl ModuleGraph {
   pub(crate) fn get_module_dependencies_modules_and_blocks(
     &self,
     module_identifier: &ModuleIdentifier,
-  ) -> (Vec<&ModuleIdentifier>, &[AsyncDependenciesBlockId]) {
+  ) -> (Vec<ModuleIdentifier>, &[AsyncDependenciesBlockIdentifier]) {
     let Some(m) = self.module_by_identifier(module_identifier) else {
       unreachable!("cannot find the module correspanding to {module_identifier}");
     };
-    let modules = m
+    let mut deps = m
       .get_dependencies()
       .iter()
-      .filter_map(|id| self.module_identifier_by_dependency_id(id))
+      .filter_map(|id| self.dependency_by_id(id))
+      .filter(|dep| dep.as_module_dependency().is_some())
+      .collect::<Vec<_>>();
+
+    // sort by span, so user change import order can recalculate chunk graph
+    deps.sort_by(|a, b| {
+      if let (Some(span_a), Some(span_b)) = (a.span(), b.span()) {
+        span_a.cmp(&span_b)
+      } else if let (Some(a), Some(b)) = (a.source_order(), b.source_order()) {
+        a.cmp(&b)
+      } else {
+        a.id().cmp(b.id())
+      }
+    });
+
+    let modules = deps
+      .into_iter()
+      .filter_map(|dep| self.module_identifier_by_dependency_id(dep.id()))
+      .dedup_by(|a, b| a.as_str() == b.as_str())
+      .copied()
       .collect();
     let blocks = m.get_blocks();
     (modules, blocks)
@@ -1032,6 +1058,20 @@ impl ModuleGraph {
       .get_provided_exports(self)
   }
 
+  pub fn get_used_exports(
+    &self,
+    module_id: ModuleIdentifier,
+    runtime: Option<&RuntimeSpec>,
+  ) -> UsedExports {
+    let mgm = self
+      .module_graph_module_by_identifier(&module_id)
+      .expect("should have module graph module");
+    mgm
+      .exports
+      .get_exports_info(self)
+      .get_used_exports(self, runtime)
+  }
+
   pub fn get_optimization_bailout_mut(&mut self, module: ModuleIdentifier) -> &mut Vec<String> {
     let mgm = self
       .module_graph_module_by_identifier_mut(&module)
@@ -1083,9 +1123,9 @@ mod test {
   use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
 
   use crate::{
-    AsyncDependenciesBlockId, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
-    CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock, Dependency,
-    DependencyId, ExportInfo, ExportsInfo, Module, ModuleDependency, ModuleGraph,
+    AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta,
+    BuildResult, CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock,
+    Dependency, DependencyId, ExportInfo, ExportsInfo, Module, ModuleDependency, ModuleGraph,
     ModuleGraphModule, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType, UsageState,
   };
 
@@ -1104,11 +1144,11 @@ mod test {
       impl Diagnosable for $ident {}
 
       impl DependenciesBlock for $ident {
-        fn add_block_id(&mut self, _: AsyncDependenciesBlockId) {
+        fn add_block_id(&mut self, _: AsyncDependenciesBlockIdentifier) {
           unreachable!()
         }
 
-        fn get_blocks(&self) -> &[AsyncDependenciesBlockId] {
+        fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
           unreachable!()
         }
 

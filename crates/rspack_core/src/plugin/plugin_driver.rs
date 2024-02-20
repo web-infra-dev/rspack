@@ -5,6 +5,7 @@ use std::{
 
 use rspack_error::{Diagnostic, Result, TWithDiagnosticArray};
 use rspack_loader_runner::{LoaderContext, ResourceData};
+use rspack_sources::Source;
 use rustc_hash::FxHashMap as HashMap;
 use tokio::sync::mpsc::UnboundedSender;
 use tracing::instrument;
@@ -633,11 +634,11 @@ impl PluginDriver {
   pub async fn runtime_module(
     &self,
     module: &mut dyn RuntimeModule,
+    source: Arc<dyn Source>,
     chunk: &Chunk,
-    compilation: &Compilation,
   ) -> Result<Option<String>> {
     for plugin in &self.plugins {
-      if let Some(t) = plugin.runtime_module(module, chunk, compilation).await? {
+      if let Some(t) = plugin.runtime_module(module, source.clone(), chunk).await? {
         return Ok(Some(t));
       };
     }
