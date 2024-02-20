@@ -176,7 +176,8 @@ describe("StatsTestCases", () => {
 					actual = stderr.toString() + actual;
 					actual = actual
 						.replace(/\u001b\[[0-9;]*m/g, "")
-						.replace(/[.0-9]+(\s?ms)/g, "X$1");
+						// CHANGE: The time unit display in Rspack is second
+						.replace(/[.0-9]+(\s?s)/g, "X$1");
 				} else {
 					actual = stderr.toStringRaw() + actual;
 					actual = actual
@@ -184,13 +185,16 @@ describe("StatsTestCases", () => {
 						.replace(/\u001b\[1m/g, "<CLR=BOLD>")
 						.replace(/\u001b\[39m\u001b\[22m/g, "</CLR>")
 						.replace(/\u001b\[([0-9;]*)m/g, "<CLR=$1>")
-						.replace(/[.0-9]+(<\/CLR>)?(\s?ms)/g, "X$1$2");
+						// CHANGE: The time unit display in Rspack is second
+						.replace(/[.0-9]+(<\/CLR>)?(\s?s)/g, "X$1$2");
 				}
 				// cspell:ignore Xdir
 				const testPath = path.join(base, testName);
 				actual = actual
 					.replace(/\r\n?/g, "\n")
-					.replace(/webpack [^ )]+(\)?) compiled/g, "webpack x.x.x$1 compiled")
+					// CHANGE: Update the regular expression to replace the 'Rspack' version string
+					.replace(/webpack [^ )]+(\)?) compiled/g, "Rspack x.x.x$1 compiled")
+					.replace(/Rspack [^ )]+(\)?) compiled/g, "Rspack x.x.x$1 compiled")
 					.replace(new RegExp(quoteMeta(testPath), "g"), "Xdir/" + testName)
 					.replace(/(\w)\\(\w)/g, "$1/$2")
 					.replace(/, additional resolving: X ms/g, "")
