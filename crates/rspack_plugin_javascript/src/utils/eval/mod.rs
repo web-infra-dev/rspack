@@ -158,6 +158,10 @@ impl BasicEvaluatedExpression {
     matches!(self.ty, Ty::Number)
   }
 
+  pub fn is_bigint(&self) -> bool {
+    matches!(self.ty, Ty::BigInt)
+  }
+
   pub fn is_template_string(&self) -> bool {
     matches!(self.ty, Ty::TemplateString)
   }
@@ -419,8 +423,15 @@ impl BasicEvaluatedExpression {
     self.postfix.as_deref()
   }
 
+  pub fn template_string_kind(&self) -> TemplateStringKind {
+    assert!(self.is_template_string());
+    self
+      .template_string_kind
+      .expect("make sure template string exist")
+  }
+
   pub fn parts(&self) -> &Vec<BasicEvaluatedExpression> {
-    assert!(self.is_template_string(),);
+    assert!(self.is_template_string());
     self
       .parts
       .as_ref()
