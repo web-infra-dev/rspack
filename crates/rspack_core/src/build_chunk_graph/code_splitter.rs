@@ -3,7 +3,7 @@ use std::hash::BuildHasherDefault;
 use std::rc::Rc;
 use std::sync::Arc;
 
-use indexmap::IndexMap;
+use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use rspack_database::{Database, Ukey};
 use rspack_error::{error, Error, Result};
@@ -31,6 +31,8 @@ pub struct ChunkGroupInfo {
   pub resulting_available_modules: Rc<HashSet<ModuleIdentifier>>,
 
   pub skipped_items: HashSet<ModuleIdentifier>,
+  pub skipped_module_connections:
+    IndexSet<(ModuleIdentifier, Vec<ConnectionId>), BuildHasherDefault<FxHasher>>,
   pub children: HashSet<CgiUkey>,
 }
 
@@ -52,6 +54,7 @@ impl ChunkGroupInfo {
       available_modules_to_be_merged: Default::default(),
       resulting_available_modules: Default::default(),
       skipped_items: Default::default(),
+      skipped_module_connections: Default::default(),
       children: Default::default(),
     }
   }
@@ -513,8 +516,8 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     indices.0 = ctx.0;
     ctx.0 += 1;
 
-    for (module, state, connections) in block_modules.iter() {
-      if matches!(state, ConnectionState::Bool(false)) {
+    for (module, state, _) in block_modules.iter() {
+      if state.is_false() {
         continue;
       }
 
@@ -687,7 +690,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
     let modules = self.get_block_modules(item.block.into(), Some(&runtime));
 
-    for (module, active_state, connections) in modules {
+    for (module, active_state, _) in modules {
       if active_state.is_true() {
         self.queue.push(QueueAction::AddAndEnterEntryModule(
           AddAndEnterEntryModule {
@@ -727,6 +730,16 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         .is_module_in_chunk(&module, item.chunk)
       {
         continue;
+      }
+
+      if !active_state.is_true() {
+        let cgi = self
+          .chunk_group_infos
+          .expect_get_mut(&item.chunk_group_info);
+        cgi.skipped_module_connections.insert((module, connections));
+        if active_state.is_false() {
+          continue;
+        }
       }
 
       if active_state.is_true() {
@@ -1215,6 +1228,45 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             }))
         }
 
+        // reconsider skipped connections
+        if !cgi.skipped_module_connections.is_empty() {
+          let mut active_connections = Vec::new();
+          for (i, (module, connections)) in cgi.skipped_module_connections.iter().enumerate() {
+            let active_state = get_active_state_of_connections(
+              connections,
+              Some(&cgi.runtime),
+              &self.compilation.module_graph,
+            );
+            if active_state.is_false() {
+              continue;
+            }
+            if active_state.is_true() {
+              active_connections.push(i);
+              if cgi.min_available_modules.contains(module) {
+                cgi.skipped_items.insert(*module);
+                continue;
+              }
+            }
+            self.queue.push(if active_state.is_true() {
+              QueueAction::AddAndEnterModule(AddAndEnterModule {
+                module: *module,
+                chunk_group_info: chunk_group_info_ukey,
+                chunk: chunk_group.chunks[0],
+              })
+            } else {
+              QueueAction::ProcessBlock(ProcessBlock {
+                block: (*module).into(),
+                chunk_group_info: chunk_group_info_ukey,
+                chunk: chunk_group.chunks[0],
+              })
+            })
+          }
+          for i in active_connections {
+            cgi.skipped_module_connections.shift_remove_index(i);
+          }
+        }
+
+        // reconsider children chunk groups
         if !cgi.children.is_empty() {
           for child in cgi.children.iter() {
             let connect_list = self.queue_connect.entry(chunk_group_info_ukey).or_default();

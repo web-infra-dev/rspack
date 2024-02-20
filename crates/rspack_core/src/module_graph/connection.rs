@@ -140,6 +140,10 @@ impl ConnectionState {
   pub fn is_not_false(&self) -> bool {
     !matches!(self, ConnectionState::Bool(false))
   }
+
+  pub fn is_false(&self) -> bool {
+    !self.is_not_false()
+  }
 }
 
 pub fn add_connection_states(a: ConnectionState, b: ConnectionState) -> ConnectionState {
