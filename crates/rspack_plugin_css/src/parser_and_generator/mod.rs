@@ -129,8 +129,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
       );
       let mut exports: IndexMap<Atom, _> = result.renamed.into_iter().collect();
       exports.sort_keys();
-
-      self.exports = Some(IndexMap::from_iter(
+      let normalized_exports = IndexMap::from_iter(
         exports
           .iter()
           .map(|(name, elements)| {
@@ -140,7 +139,12 @@ impl ParserAndGenerator for CssParserAndGenerator {
             (names, stringify_css_modules_exports_elements(elements))
           })
           .collect::<Vec<_>>(),
-      ));
+      );
+      let mut exports_pairs = vec![];
+      for (k, v) in normalized_exports.iter() {
+        for kk in k {}
+      }
+      self.exports = Some(normalized_exports);
 
       let (code, map) = swc_compiler.codegen(
         &stylesheet,

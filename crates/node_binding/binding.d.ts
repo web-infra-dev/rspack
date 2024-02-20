@@ -587,6 +587,13 @@ export interface JsStatsWarning {
   moduleId?: string
 }
 
+export interface NodeFS {
+  writeFile: (...args: any[]) => any
+  removeFile: (...args: any[]) => any
+  mkdir: (...args: any[]) => any
+  mkdirp: (...args: any[]) => any
+}
+
 export interface PathData {
   filename?: string
   hash?: string
@@ -1287,4 +1294,12 @@ export function registerGlobalTrace(filter: string, layer: "chrome" | "logger", 
 
 /** Builtin loader runner */
 export function runBuiltinLoader(builtin: string, options: string | undefined | null, loaderContext: JsLoaderContext): Promise<JsLoaderContext>
+
+export interface ThreadsafeNodeFS {
+  writeFile: (...args: any[]) => any
+  removeFile: (...args: any[]) => any
+  mkdir: (...args: any[]) => any
+  mkdirp: (...args: any[]) => any
+  removeDirAll: (...args: any[]) => any
+}
 

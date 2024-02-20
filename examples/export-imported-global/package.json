@@ -1,0 +1,8 @@
+{
+  "scripts": {
+    "build": "rspack build"
+  },
+	"dependencies": {
+		"wast-loader": "^1.11.4"
+	}
+}

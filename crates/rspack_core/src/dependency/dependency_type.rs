@@ -52,6 +52,8 @@ pub enum DependencyType {
   CssImport,
   // css modules compose
   CssCompose,
+  // css export
+  CssExport,
   // context element
   ContextElement,
   // import context
@@ -120,6 +122,7 @@ impl DependencyType {
       DependencyType::CssUrl => Cow::Borrowed("css url"),
       DependencyType::CssImport => Cow::Borrowed("css import"),
       DependencyType::CssCompose => Cow::Borrowed("css compose"),
+      DependencyType::CssExport => Cow::Borrowed("css export"),
       DependencyType::ContextElement => Cow::Borrowed("context element"),
       // TODO: mode
       DependencyType::ImportContext => Cow::Borrowed("import context"),

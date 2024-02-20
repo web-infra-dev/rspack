@@ -1026,6 +1026,7 @@ impl Module for ConcatenatedModule {
 
         let mut ns_obj = Vec::new();
         let exports_info = compilation.module_graph.get_exports_info(module_info_id);
+        dbg!(&exports_info);
         for (_name, export_info_id) in exports_info.exports.iter() {
           let export_info = export_info_id.get_export_info(&compilation.module_graph);
           if matches!(export_info.provided, Some(ExportInfoProvided::False)) {

@@ -229,8 +229,10 @@ pub fn css_modules_exports_to_concatenate_module_string(
         identifier = format!("{k}{i}");
         i += 1;
       }
+      // TODO: conditional support `const or var` after we finished runtimeTemplate utils
       concate_source.add(RawSource::from(format!("var {identifier} = {content};\n")));
       used_identifiers.insert(identifier.clone());
+      dbg!(&k, &identifier);
       scope.register_export(k.as_str().into(), identifier);
     }
   }
