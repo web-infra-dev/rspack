@@ -12,10 +12,9 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use crate::dependencies_block::AsyncDependenciesToInitialChunkError;
 use crate::{
   add_connection_states, assign_depth, assign_depths, get_entry_runtime,
-  AsyncDependenciesBlockIdentifier, BoxDependency, ChunkGroup, ChunkGroupKind, ChunkGroupOptions,
-  ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation, ConnectionId, ConnectionState,
-  DependenciesBlock, Dependency, GroupOptions, Logger, ModuleGraph, ModuleGraphConnection,
-  ModuleIdentifier, RuntimeSpec,
+  AsyncDependenciesBlockIdentifier, ChunkGroup, ChunkGroupKind, ChunkGroupOptions, ChunkGroupUkey,
+  ChunkLoading, ChunkUkey, Compilation, ConnectionId, ConnectionState, DependenciesBlock,
+  GroupOptions, Logger, ModuleGraph, ModuleIdentifier, RuntimeSpec,
 };
 
 #[derive(Debug, Clone)]
@@ -73,6 +72,11 @@ impl From<Option<RuntimeSpec>> for OptionalRuntimeSpec {
 
 type CgiUkey = Ukey<ChunkGroupInfo>;
 
+type BlockModulesRuntimeMap = HashMap<
+  OptionalRuntimeSpec,
+  HashMap<DependenciesBlockIdentifier, Vec<(ModuleIdentifier, ConnectionState, Vec<ConnectionId>)>>,
+>;
+
 pub(super) struct CodeSplitter<'me> {
   chunk_group_info_map: HashMap<ChunkGroupUkey, CgiUkey>,
   chunk_group_infos: Database<ChunkGroupInfo>,
@@ -89,13 +93,7 @@ pub(super) struct CodeSplitter<'me> {
   block_chunk_groups: HashMap<AsyncDependenciesBlockIdentifier, CgiUkey>,
   named_chunk_groups: HashMap<String, CgiUkey>,
   named_async_entrypoints: HashMap<String, CgiUkey>,
-  block_modules_runtime_map: HashMap<
-    OptionalRuntimeSpec,
-    HashMap<
-      DependenciesBlockIdentifier,
-      Vec<(ModuleIdentifier, ConnectionState, Vec<ConnectionId>)>,
-    >,
-  >,
+  block_modules_runtime_map: BlockModulesRuntimeMap,
 }
 
 fn add_chunk_in_group(group_options: Option<&GroupOptions>) -> ChunkGroup {
