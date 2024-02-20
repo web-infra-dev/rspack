@@ -2,7 +2,7 @@
 
 use std::borrow::Cow;
 use std::hash::Hasher;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 use std::{hash::Hash, path::Path};
 
 use dashmap::DashMap;
@@ -22,11 +22,13 @@ use rspack_core::{
 use rspack_core::{
   Chunk, Filename, Logger, Module, ModuleIdentifier, OutputOptions, RuntimeModule,
 };
-use rspack_error::{miette::IntoDiagnostic, Result};
-use rspack_hash::RspackHash;
+use rspack_error::miette::IntoDiagnostic;
+use rspack_error::Result;
+use rspack_hash::{HashFunction, RspackHash};
 use rspack_util::identifier::make_paths_absolute;
 use rspack_util::source_map::SourceMapKind;
 use rspack_util::{path::relative, swc::normalize_custom_filename};
+use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
 use serde_json::json;
 
@@ -141,6 +143,7 @@ pub struct SourceMapDevToolPlugin {
   source_root: Option<String>,
   #[derivative(Debug = "ignore")]
   test: Option<TestFn>,
+  source_map_cache: RwLock<HashMap<u64, Option<SourceMap>>>,
 }
 
 impl SourceMapDevToolPlugin {
@@ -183,6 +186,7 @@ impl SourceMapDevToolPlugin {
       module: options.module,
       source_root: options.source_root,
       test: options.test,
+      source_map_cache: RwLock::new(HashMap::default()),
     }
   }
 }
@@ -202,26 +206,62 @@ impl Plugin for SourceMapDevToolPlugin {
     let start = logger.time("collect source maps");
     let output_options = &compilation.options.output;
 
-    let assets = compilation
-      .assets()
+    let compilation_assets = compilation.assets();
+    let mut assets: Vec<Option<(&String, &Arc<dyn Source>, Option<SourceMap>)>> =
+      vec![None; compilation_assets.len()];
+    let mut missing_cache_assets = vec![];
+    {
+      let source_map_cache = self.source_map_cache.read().unwrap();
+      for (index, (file, asset)) in compilation.assets().iter().enumerate() {
+        let source = asset.get_source();
+        if let Some(source) = source {
+          let mut hasher = RspackHash::new(&HashFunction::MD4);
+          source.update_hash(&mut hasher);
+          let hash = hasher.finish();
+          if let Some(source_map) = source_map_cache.get(&hash) {
+            assets[index] = Some((file, source, source_map.clone()));
+          } else {
+            missing_cache_assets.push((index, (file, asset, source)));
+          }
+        }
+      }
+    }
+
+    missing_cache_assets
       .par_iter()
-      .filter_map(|(file, asset)| {
+      .filter_map(|(index, (file, _asset, source))| {
         let is_match = match &self.test {
-          Some(test) => test(file.clone()),
+          Some(test) => test(file.to_string()),
           None => true,
         };
-
         if is_match {
-          asset.get_source().map(|source| {
-            let map_options = MapOptions::new(self.columns);
-            let source_map = source.map(&map_options);
-            (file, source, source_map)
-          })
+          let map_options = MapOptions::new(self.columns);
+          let source_map = source.map(&map_options);
+          Some((index, (file, source, source_map.clone())))
         } else {
           None
         }
       })
+      .collect::<Vec<_>>()
+      .iter()
+      .for_each(|(index, (file, source, source_map))| {
+        assets[**index] = Some((**file, **source, source_map.clone()))
+      });
+    let assets = assets
+      .iter()
+      .filter_map(|item| item.clone())
       .collect::<Vec<_>>();
+
+    {
+      let mut source_map_cache = self.source_map_cache.write().unwrap();
+      source_map_cache.clear();
+      assets.iter().for_each(|(_file, asset, source_map)| {
+        let mut hasher = RspackHash::new(&HashFunction::MD4);
+        asset.update_hash(&mut hasher);
+        let hash = hasher.finish();
+        source_map_cache.insert(hash, source_map.clone());
+      });
+    }
 
     let mut used_names_set = HashSet::<String>::default();
     let mut maps: Vec<(String, Vec<u8>, Option<Vec<u8>>)> = Vec::with_capacity(assets.len());
