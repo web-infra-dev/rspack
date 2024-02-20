@@ -13,8 +13,10 @@ pub trait CallHooksName {
 impl CallHooksName for &str {
   fn call_hooks_name(&self, parser: &mut JavascriptParser) -> Option<String> {
     if let Some(info) = parser.get_variable_info(self.as_ref()) {
+      // resolved variable info
       call_hooks_info(info)
     } else {
+      // unresolved
       Some(self.to_string())
     }
   }
