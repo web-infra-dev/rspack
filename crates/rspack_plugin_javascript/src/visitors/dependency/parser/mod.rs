@@ -171,8 +171,6 @@ pub struct JavascriptParser<'parser> {
   pub(crate) javascript_options: Option<&'parser JavascriptParserOptions>,
   pub(crate) module_type: &'parser ModuleType,
   pub(crate) module_identifier: &'parser ModuleIdentifier,
-  // TODO: remove `enter_assign`
-  pub(crate) enter_assign: bool,
   // TODO: remove `is_esm` after `HarmonyExports::isEnabled`
   pub(crate) is_esm: bool,
   pub(crate) parser_exports_state: &'parser mut Option<bool>,
@@ -255,10 +253,10 @@ impl<'parser> JavascriptParser<'parser> {
       }
       plugins.push(Box::new(parser_plugin::WebpackIsIncludedPlugin));
       plugins.push(Box::new(parser_plugin::ExportsInfoApiPlugin));
+      plugins.push(Box::new(parser_plugin::CompatibilityPlugin));
       plugins.push(Box::new(parser_plugin::APIPlugin::new(
         compiler_options.output.module,
       )));
-      plugins.push(Box::new(parser_plugin::CompatibilityPlugin));
       plugins.push(Box::new(parser_plugin::ImportParserPlugin));
     }
 
@@ -320,7 +318,6 @@ impl<'parser> JavascriptParser<'parser> {
       build_info,
       compiler_options,
       module_type,
-      enter_assign: false,
       parser_exports_state,
       enter_call: 0,
       stmt_level: 0,
