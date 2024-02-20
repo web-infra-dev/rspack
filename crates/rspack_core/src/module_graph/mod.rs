@@ -101,8 +101,8 @@ impl ModuleGraph {
     let connections = &self
       .module_graph_module_by_identifier(module)
       .expect("should have mgm")
-      .incoming_connections;
-    get_connections_by_origin_module(connections, self)
+      .incoming_connections();
+    get_connections_by_origin_module(connections.iter(), self)
   }
 
   pub fn add_module_graph_module(&mut self, module_graph_module: ModuleGraphModule) {
@@ -162,7 +162,7 @@ impl ModuleGraph {
     // avoid violating rustc borrow rules
     let mut add_outgoing_connection = vec![];
     let mut delete_outgoing_connection = vec![];
-    for connection_id in old_mgm.outgoing_connections.clone().into_iter() {
+    for connection_id in old_mgm.outgoing_connections().clone().into_iter() {
       let connection = self
         .connection_by_connection_id(&connection_id)
         .cloned()
@@ -182,14 +182,14 @@ impl ModuleGraph {
       .module_graph_module_by_identifier_mut(new_module)
       .expect("should have mgm");
     for c in add_outgoing_connection {
-      new_mgm.outgoing_connections.insert(c);
+      new_mgm.add_outgoing_connection(c);
     }
 
     let old_mgm = self
       .module_graph_module_by_identifier_mut(old_module)
       .expect("should have mgm");
     for c in delete_outgoing_connection {
-      old_mgm.outgoing_connections.remove(&c);
+      old_mgm.remove_outgoing_connection(c);
     }
 
     let old_mgm = self
@@ -200,7 +200,7 @@ impl ModuleGraph {
     // avoid violating rustc borrow rules
     let mut add_incoming_connection = vec![];
     let mut delete_incoming_connection = vec![];
-    for connection_id in old_mgm.incoming_connections.clone().into_iter() {
+    for connection_id in old_mgm.incoming_connections().clone().into_iter() {
       let connection = self
         .connection_by_connection_id(&connection_id)
         .cloned()
@@ -220,14 +220,14 @@ impl ModuleGraph {
       .module_graph_module_by_identifier_mut(new_module)
       .expect("should have mgm");
     for c in add_incoming_connection {
-      new_mgm.incoming_connections.insert(c);
+      new_mgm.add_incoming_connection(c);
     }
 
     let old_mgm = self
       .module_graph_module_by_identifier_mut(old_module)
       .expect("should have mgm");
     for c in delete_incoming_connection {
-      old_mgm.incoming_connections.remove(&c);
+      old_mgm.remove_incoming_connection(c);
     }
   }
 
@@ -247,12 +247,8 @@ impl ModuleGraph {
       .module_graph_module_by_identifier(old_module)
       .expect("should have mgm");
     let old_connections = old_mgm
-      .outgoing_connections_unordered(self)
+      .get_outgoing_connections_unordered(self)
       .map(|cons| cons.copied().collect::<Vec<_>>());
-    let new_mgm = self
-      .module_graph_module_by_identifier_mut(new_module)
-      .expect("should have mgm");
-    let mut new_connections = std::mem::take(&mut new_mgm.outgoing_connections);
 
     // Outgoing connections
     if let Ok(old_connections) = old_connections {
@@ -263,16 +259,13 @@ impl ModuleGraph {
             Some(*new_module),
             connection.module_identifier,
           );
-          new_connections.insert(new_connection_id);
+          let new_mgm = self
+            .module_graph_module_by_identifier_mut(new_module)
+            .expect("should have mgm");
+          new_mgm.add_outgoing_connection(new_connection_id);
         }
       }
     }
-
-    // shadowing the mutable ref to avoid violating rustc borrow rules
-    let new_mgm = self
-      .module_graph_module_by_identifier_mut(new_module)
-      .expect("should have mgm");
-    new_mgm.outgoing_connections = new_connections;
   }
 
   pub fn clone_module_graph_connection(
@@ -733,12 +726,12 @@ impl ModuleGraph {
           .as_ref()
           .and_then(|ident| self.module_graph_module_by_identifier_mut(ident))
         {
-          mgm.outgoing_connections.remove(&connection_id);
+          mgm.remove_outgoing_connection(connection_id);
         };
 
         if let Some(mgm) = self.module_graph_module_by_identifier_mut(&connection.module_identifier)
         {
-          mgm.incoming_connections.remove(&connection_id);
+          mgm.remove_incoming_connection(connection_id);
         }
 
         removed = Some(connection);
@@ -781,7 +774,7 @@ impl ModuleGraph {
       .module_graph_module_by_identifier(&module.identifier())
       .map(|mgm| {
         mgm
-          .outgoing_connections
+          .outgoing_connections()
           .iter()
           .filter_map(|id| self.connection_by_connection_id(id))
           .collect()
@@ -797,7 +790,7 @@ impl ModuleGraph {
       .module_graph_module_by_identifier(module)
       .map(|mgm| {
         mgm
-          .outgoing_connections
+          .outgoing_connections()
           .iter()
           .filter_map(|id| self.connection_by_connection_id(id))
           .collect()
@@ -810,7 +803,7 @@ impl ModuleGraph {
       .module_graph_module_by_identifier(&module.identifier())
       .map(|mgm| {
         mgm
-          .incoming_connections
+          .incoming_connections()
           .iter()
           .filter_map(|id| self.connection_by_connection_id(id))
           .collect()
@@ -826,7 +819,7 @@ impl ModuleGraph {
       .module_graph_module_by_identifier(&module.identifier())
       .map(|mgm| {
         mgm
-          .incoming_connections
+          .incoming_connections()
           .clone()
           .into_iter()
           .filter_map(|id| self.connection_by_connection_id(&id).cloned())
@@ -868,7 +861,7 @@ impl ModuleGraph {
         .module_identifier_to_module_graph_module
         .get_mut(original_module_identifier)
       {
-        mgm.outgoing_connections.remove(&connection_id);
+        mgm.remove_outgoing_connection(connection_id);
         // Because of mgm.dependencies is set when original module build success
         // it does not need to remove dependency in mgm.dependencies.
       }
@@ -878,7 +871,7 @@ impl ModuleGraph {
       .module_identifier_to_module_graph_module
       .get_mut(&module_identifier)
     {
-      mgm.incoming_connections.remove(&connection_id);
+      mgm.remove_incoming_connection(connection_id);
     }
 
     Some((dependency_id, original_module_identifier))
@@ -892,12 +885,12 @@ impl ModuleGraph {
       .remove(module_identifier);
 
     if let Some(mgm) = mgm {
-      for cid in mgm.outgoing_connections {
-        self.revoke_connection(cid);
+      for cid in mgm.outgoing_connections() {
+        self.revoke_connection(*cid);
       }
 
       mgm
-        .incoming_connections
+        .incoming_connections()
         .iter()
         .filter_map(|cid| self.revoke_connection(*cid))
         .collect()
@@ -1091,12 +1084,12 @@ impl ModuleGraph {
 }
 
 fn get_connections_by_origin_module(
-  set: &HashSet<ConnectionId>,
+  connections: impl Iterator<Item = &ConnectionId>,
   mg: &ModuleGraph,
 ) -> HashMap<Option<ModuleIdentifier>, Vec<ModuleGraphConnection>> {
   let mut map: HashMap<Option<ModuleIdentifier>, Vec<ModuleGraphConnection>> = HashMap::default();
 
-  for connection_id in set.iter() {
+  for connection_id in connections {
     let con = mg
       .connection_by_connection_id(connection_id)
       .expect("should have connection");
@@ -1350,8 +1343,8 @@ mod test {
 
     let mgm_a = mgm(&mg, &a_id);
     let mgm_b = mgm(&mg, &b_id);
-    let conn_a = mgm_a.outgoing_connections.iter().collect::<Vec<_>>();
-    let conn_b = mgm_b.incoming_connections.iter().collect::<Vec<_>>();
+    let conn_a = mgm_a.outgoing_connections().iter().collect::<Vec<_>>();
+    let conn_b = mgm_b.incoming_connections().iter().collect::<Vec<_>>();
     assert_eq!(conn_a[0], conn_b[0]);
 
     let c = node!("c");
@@ -1362,22 +1355,22 @@ mod test {
 
     let mgm_b = mgm(&mg, &b_id);
     let mgm_c = mgm(&mg, &c_id);
-    let conn_b = mgm_b.outgoing_connections.iter().collect::<Vec<_>>();
-    let conn_c = mgm_c.incoming_connections.iter().collect::<Vec<_>>();
+    let conn_b = mgm_b.outgoing_connections().iter().collect::<Vec<_>>();
+    let conn_c = mgm_c.incoming_connections().iter().collect::<Vec<_>>();
     assert_eq!(conn_c[0], conn_b[0]);
 
     mg.remove_connection_by_dependency(&a_to_b_id);
 
     let mgm_a = mgm(&mg, &a_id);
     let mgm_b = mgm(&mg, &b_id);
-    assert!(mgm_a.outgoing_connections.is_empty());
-    assert!(mgm_b.incoming_connections.is_empty());
+    assert!(mgm_a.outgoing_connections().is_empty());
+    assert!(mgm_b.incoming_connections().is_empty());
 
     mg.remove_connection_by_dependency(&b_to_c_id);
 
     let mgm_b = mgm(&mg, &b_id);
     let mgm_c = mgm(&mg, &c_id);
-    assert!(mgm_b.outgoing_connections.is_empty());
-    assert!(mgm_c.incoming_connections.is_empty());
+    assert!(mgm_b.outgoing_connections().is_empty());
+    assert!(mgm_c.incoming_connections().is_empty());
   }
 }
