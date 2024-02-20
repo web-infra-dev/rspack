@@ -2593,6 +2593,7 @@ dependencies = [
  "napi-derive",
  "rspack_fs",
  "rspack_napi_shared",
+ "tracing",
 ]
 
 [[package]]
