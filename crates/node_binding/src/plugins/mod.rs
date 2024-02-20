@@ -1,5 +1,5 @@
 mod loader;
-use std::fmt::Debug;
+use std::fmt;
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -7,8 +7,8 @@ use async_trait::async_trait;
 use napi::{Env, Result};
 use rspack_binding_macros::js_fn_into_threadsafe_fn;
 use rspack_binding_values::{
-  AfterResolveData, JsChunk, JsChunkAssetArgs, JsHook, JsHookType, JsModule, JsRuntimeModule,
-  JsRuntimeModuleArg, ToJsCompatSource,
+  AfterResolveData, JsChunk, JsChunkAssetArgs, JsHook, JsHookStageRange, JsHookType, JsModule,
+  JsRuntimeModule, JsRuntimeModuleArg, ToJsCompatSource,
 };
 use rspack_binding_values::{BeforeResolveData, JsAssetEmittedArgs, ToJsModule};
 use rspack_binding_values::{CreateModuleData, JsBuildTimeExecutionOption, JsExecuteModuleArg};
@@ -85,8 +85,8 @@ pub struct JsHooksAdapterPlugin {
   inner: Arc<JsHooksAdapterInner>,
 }
 
-impl Debug for JsHooksAdapterPlugin {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::Debug for JsHooksAdapterPlugin {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "rspack_plugin_js_hooks_adapter")
   }
 }
@@ -101,11 +101,41 @@ impl std::ops::Deref for JsHooksAdapterPlugin {
 }
 
 #[derive(Clone)]
-struct CompilerCompilationHook(Arc<ThreadsafeFunction<JsCompilation, ()>>);
+struct HookStageRange {
+  from: i32,
+  to: i32,
+}
+
+impl fmt::Debug for HookStageRange {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{} - {}", self.from, self.to)
+  }
+}
+
+impl From<JsHookStageRange> for HookStageRange {
+  fn from(value: JsHookStageRange) -> Self {
+    Self {
+      from: value.from,
+      to: value.to,
+    }
+  }
+}
+
+#[derive(Clone)]
+struct CompilerCompilationHook {
+  function: Arc<ThreadsafeFunction<JsCompilation, ()>>,
+  stage_range: HookStageRange,
+}
 
 impl CompilerCompilationHook {
-  pub fn new(function: Arc<ThreadsafeFunction<JsCompilation, ()>>) -> Self {
-    Self(function)
+  pub fn new(
+    function: Arc<ThreadsafeFunction<JsCompilation, ()>>,
+    stage_range: HookStageRange,
+  ) -> Self {
+    Self {
+      function,
+      stage_range,
+    }
   }
 }
 
@@ -123,11 +153,15 @@ impl AsyncSeries2<Compilation, CompilationParams> for CompilerCompilationHook {
     });
 
     self
-      .0
+      .function
       .call(compilation, ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
       .unwrap_or_else(|err| panic!("Failed to call compilation: {err}"))
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage_range.from
   }
 }
 
@@ -1105,9 +1139,12 @@ impl JsHooksAdapterPlugin {
     let mut compiler_make_hooks = Vec::new();
     for hook in compiler_hooks {
       match hook.r#type {
-        JsHookType::CompilerCompilation => compiler_compilation_hooks.push(
-          CompilerCompilationHook::new(Arc::new(js_fn_into_threadsafe_fn!(hook.function, env))),
-        ),
+        JsHookType::CompilerCompilation => {
+          compiler_compilation_hooks.push(CompilerCompilationHook::new(
+            Arc::new(js_fn_into_threadsafe_fn!(hook.function, env)),
+            hook.stage_range.into(),
+          ))
+        }
         JsHookType::CompilerMake => compiler_make_hooks.push(CompilerMakeHook::new(Arc::new(
           js_fn_into_threadsafe_fn!(hook.function, env),
         ))),

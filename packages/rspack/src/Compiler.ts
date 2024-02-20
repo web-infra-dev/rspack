@@ -11,6 +11,7 @@ import * as binding from "@rspack/binding";
 import { rspack } from "./index";
 import fs from "fs";
 import * as tapable from "tapable";
+import * as liteTapable from "./lite-tapable";
 import { Callback, SyncBailHook, SyncHook } from "tapable";
 import type { WatchOptions } from "watchpack";
 import {
@@ -48,7 +49,6 @@ import { RuntimeGlobals } from "./RuntimeGlobals";
 import { tryRunOrWebpackError } from "./lib/HookWebpackError";
 import { CodeGenerationResult } from "./Module";
 import { canInherentFromParent } from "./builtin-plugin/base";
-import { CreateModuleData } from "@rspack/binding";
 import ExecuteModulePlugin from "./ExecuteModulePlugin";
 
 class Compiler {
@@ -90,7 +90,7 @@ class Compiler {
 		done: tapable.AsyncSeriesHook<Stats>;
 		afterDone: tapable.SyncHook<Stats>;
 		// TODO: CompilationParams
-		compilation: tapable.SyncHook<[Compilation, CompilationParams]>;
+		compilation: liteTapable.SyncHook<[Compilation, CompilationParams]>;
 		// TODO: CompilationParams
 		thisCompilation: tapable.SyncHook<[Compilation, CompilationParams]>;
 		invalid: tapable.SyncHook<[string | null, number]>;
@@ -154,7 +154,7 @@ class Compiler {
 				"compilation",
 				"params"
 			]),
-			compilation: new tapable.SyncHook<[Compilation, CompilationParams]>([
+			compilation: new liteTapable.SyncHook<[Compilation, CompilationParams]>([
 				"compilation",
 				"params"
 			]),
@@ -968,17 +968,22 @@ class Compiler {
 
 	#createCompilerCompilationHooks(): binding.JsHook[] {
 		if (!this.hooks.compilation.isUsed()) return [];
-		return [
-			{
+		const stages = [-Infinity, 0, Infinity];
+		const jsHooks = [];
+		for (let i = 0; i < stages.length - 1; i++) {
+			const stageRange = { from: stages[i], to: stages[i + 1] };
+			jsHooks.push({
 				type: binding.JsHookType.CompilerCompilation,
 				function: (native: binding.JsCompilation) => {
-					this.hooks.compilation.call(this.compilation, {
+					this.hooks.compilation.callStageRange(stageRange, this.compilation, {
 						normalModuleFactory: this.compilation.normalModuleFactory!
 					});
-					this.#updateDisabledHooks();
-				}
-			}
-		];
+					if (i + 1 >= stages.length - 1) this.#updateDisabledHooks();
+				},
+				stageRange
+			});
+		}
+		return jsHooks;
 	}
 
 	#createCompilerMakeHooks(): binding.JsHook[] {

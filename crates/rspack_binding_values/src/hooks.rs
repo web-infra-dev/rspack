@@ -54,7 +54,15 @@ pub enum JsHookType {
 }
 
 #[napi(object)]
+#[derive(Debug)]
+pub struct JsHookStageRange {
+  pub from: i32,
+  pub to: i32,
+}
+
+#[napi(object)]
 pub struct JsHook {
   pub r#type: JsHookType,
   pub function: JsFunction,
+  pub stage_range: JsHookStageRange,
 }

@@ -328,6 +328,7 @@ export interface JsExecuteModuleResult {
 export interface JsHook {
   type: JsHookType
   function: (...args: any[]) => any
+  stageRange: JsHookStageRange
 }
 
 export interface JsHooks {
@@ -372,6 +373,11 @@ export interface JsHooks {
   stillValidModule: (...args: any[]) => any
   executeModule: (...args: any[]) => any
   runtimeModule: (...args: any[]) => any
+}
+
+export interface JsHookStageRange {
+  from: number
+  to: number
 }
 
 export enum JsHookType {
