@@ -4,7 +4,7 @@ module.exports =  {
     main: "./index.js",
   },
   optimization: {
-    concatenateModules: false,
+    concatenateModules: true,
     minimize: false,
   },
   module: {

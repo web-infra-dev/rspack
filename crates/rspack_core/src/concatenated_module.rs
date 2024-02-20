@@ -1047,6 +1047,7 @@ impl Module for ConcatenatedModule {
               Some(true),
               &context,
             );
+            dbg!(&final_name);
 
             ns_obj.push(format!(
               "\n  {}: {}",
@@ -1717,6 +1718,7 @@ impl ConcatenatedModule {
       asi_safe,
       &mut HashSet::default(),
     );
+
     let (ids, comment) = match binding {
       Binding::Raw(ref b) => (&b.ids, b.comment.as_ref()),
       Binding::Symbol(ref b) => (&b.ids, b.comment.as_ref()),
@@ -1797,6 +1799,13 @@ impl ConcatenatedModule {
       .module_by_identifier(&info.id())
       .expect("should have module");
     let exports_type = module.get_exports_type_readonly(mg, strict_harmony_module);
+    dbg!(
+      &info.id(),
+      exports_type,
+      &export_name,
+      module.as_normal_module().is_some(),
+      module.build_meta()
+    );
 
     if export_name.is_empty() {
       match exports_type {

@@ -23,7 +23,7 @@ use sugar_path::SugarPath;
 use swc_core::{css::parser::parser::ParserConfig, ecma::atoms::Atom};
 
 use crate::{
-  dependency::CssComposeDependency,
+  dependency::{CssComposeDependency, CssExportDependency},
   swc_css_compiler::{SwcCssCompiler, SwcCssSourceMapGenConfig},
   utils::css_modules_exports_to_concatenate_module_string,
 };
@@ -106,6 +106,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
     let mut source_map = None;
     let mut diagnostic_vec = vec![];
 
+    let mut exports_pairs = vec![];
     if is_enable_css_modules {
       let mut stylesheet = swc_compiler.parse_file(
         &resource_path.to_string_lossy(),
@@ -140,9 +141,10 @@ impl ParserAndGenerator for CssParserAndGenerator {
           })
           .collect::<Vec<_>>(),
       );
-      let mut exports_pairs = vec![];
       for (k, v) in normalized_exports.iter() {
-        for kk in k {}
+        for kk in k {
+          exports_pairs.push((kk.to_string(), v[0].0.to_owned()));
+        }
       }
       self.exports = Some(normalized_exports);
 
@@ -169,6 +171,12 @@ impl ParserAndGenerator for CssParserAndGenerator {
       code_generation_dependencies,
       &mut diagnostic_vec,
     );
+    for (k, v) in exports_pairs {
+      dependencies.push(Box::new(CssExportDependency::new(
+        k[1..k.len() - 1].to_owned(),
+        v,
+      )));
+    }
 
     let dependencies = if let Some(locals) = &self.exports
       && !locals.is_empty()

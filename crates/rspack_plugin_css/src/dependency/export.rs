@@ -12,7 +12,7 @@ pub struct CssExportDependency {
 }
 
 impl CssExportDependency {
-  pub fn new(request: String, name: String, value: String) -> Self {
+  pub fn new(name: String, value: String) -> Self {
     Self {
       id: DependencyId::new(),
       name,

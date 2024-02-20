@@ -411,6 +411,7 @@ impl Module for NormalModule {
     let original_source = self.create_source(content, loader_result.source_map)?;
     let mut code_generation_dependencies: Vec<Box<dyn ModuleDependency>> = Vec::new();
 
+    dbg!(&self.parser_and_generator.source_types());
     let (
       ParseResult {
         source,
