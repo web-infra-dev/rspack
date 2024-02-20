@@ -16,7 +16,7 @@ impl CallHooksName for &str {
       // resolved variable info
       call_hooks_info(info)
     } else {
-      // unresolved
+      // unresolved variable, for example the global `require` in commonjs.
       Some(self.to_string())
     }
   }
