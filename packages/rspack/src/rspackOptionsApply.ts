@@ -59,7 +59,7 @@ import {
 	FlagDependencyExportsPlugin,
 	FlagDependencyUsagePlugin,
 	SideEffectsFlagPlugin,
-	BundlerInfoPlugin,
+	BundlerInfoRspackPlugin,
 	ModuleConcatenationPlugin,
 	EvalDevToolModulePlugin
 } from "./builtin-plugin";
@@ -251,7 +251,7 @@ export class RspackOptionsApply {
 		new RuntimePlugin().apply(compiler);
 
 		if (options.experiments.rspackFuture!.bundlerInfo) {
-			new BundlerInfoPlugin(
+			new BundlerInfoRspackPlugin(
 				options.experiments.rspackFuture!.bundlerInfo
 			).apply(compiler);
 		}

@@ -1,18 +1,17 @@
 use std::borrow::Cow;
-use std::ops::Deref;
 
 use swc_core::ecma::ast::{ArrayLit, ArrayPat, ArrowExpr, AssignExpr, AssignPat, AwaitExpr};
 use swc_core::ecma::ast::{BinExpr, BlockStmt, BlockStmtOrExpr, CallExpr, Callee, CatchClause};
 use swc_core::ecma::ast::{Class, ClassDecl, ClassExpr, ClassMember, CondExpr, Decl, DefaultDecl};
 use swc_core::ecma::ast::{DoWhileStmt, ExportDecl, ExportDefaultDecl, ExportDefaultExpr, Expr};
 use swc_core::ecma::ast::{ExprOrSpread, ExprStmt, FnDecl, MemberExpr, MemberProp, VarDeclOrExpr};
-use swc_core::ecma::ast::{FnExpr, ForHead, Function, Ident, KeyValuePatProp, KeyValueProp};
+use swc_core::ecma::ast::{FnExpr, ForHead, Function, Ident, KeyValueProp};
 use swc_core::ecma::ast::{ForInStmt, ForOfStmt, ForStmt, IfStmt, LabeledStmt, WithStmt};
 use swc_core::ecma::ast::{MetaPropExpr, NamedExport, NewExpr, ObjectLit, OptCall, OptChainBase};
 use swc_core::ecma::ast::{ModuleDecl, ModuleItem, ObjectPat, ObjectPatProp, Stmt, WhileStmt};
 use swc_core::ecma::ast::{OptChainExpr, ParamOrTsParamProp, Pat, PatOrExpr, ThisExpr, UnaryOp};
 use swc_core::ecma::ast::{Prop, PropName, PropOrSpread, RestPat, ReturnStmt, SeqExpr, TaggedTpl};
-use swc_core::ecma::ast::{SwitchCase, SwitchStmt, Tpl, TryStmt, VarDecl, VarDeclKind, YieldExpr};
+use swc_core::ecma::ast::{SwitchCase, SwitchStmt, Tpl, TryStmt, VarDecl, YieldExpr};
 use swc_core::ecma::ast::{ThrowStmt, UnaryExpr, UpdateExpr};
 
 use super::TopLevelScope;
@@ -363,7 +362,6 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_variable_declaration(&mut self, decl: &VarDecl) {
-    self.enter_assign = true;
     for declarator in &decl.decls {
       if let Some(init) = declarator.init.as_ref()
         && let Some(renamed_identifier) = self.get_rename_identifier(init)
@@ -395,7 +393,6 @@ impl<'parser> JavascriptParser<'parser> {
         }
       }
     }
-    self.enter_assign = false;
   }
 
   fn walk_expression_statement(&mut self, stmt: &ExprStmt) {
@@ -454,15 +451,23 @@ impl<'parser> JavascriptParser<'parser> {
 
   fn walk_unary_expression(&mut self, expr: &UnaryExpr) {
     if expr.op == UnaryOp::TypeOf {
-      // TODO: call_hooks_from_expression
-      if self
-        .plugin_drive
-        .clone()
-        .r#typeof(self, expr)
-        .unwrap_or_default()
+      if let Some(expr_info) =
+        self.get_member_expression_info_from_expr(&expr.arg, AllowedMemberTypes::Expression)
       {
-        return;
-      }
+        let MemberExpressionInfo::Expression(expr_info) = expr_info else {
+          // we use `AllowedMemberTypes::Expression` above
+          unreachable!();
+        };
+        if let Some(for_name) = expr_info.name.call_hooks_name(self)
+          && self
+            .plugin_drive
+            .clone()
+            .r#typeof(self, expr, &for_name)
+            .unwrap_or_default()
+        {
+          return;
+        }
+      };
       // TODO: expr.arg belongs chain_expression
     }
     self.walk_expression(&expr.arg)
@@ -569,8 +574,14 @@ impl<'parser> JavascriptParser<'parser> {
     }
   }
 
-  fn walk_meta_property(&mut self, _expr: &MetaPropExpr) {
-    // TODO: hooks call
+  fn walk_meta_property(&mut self, expr: &MetaPropExpr) {
+    let Some(root_name) = expr.get_root_name() else {
+      unreachable!()
+    };
+    self
+      .plugin_drive
+      .clone()
+      .meta_property(self, &root_name, expr.span);
   }
 
   fn walk_conditional_expression(&mut self, expr: &CondExpr) {
@@ -597,16 +608,25 @@ impl<'parser> JavascriptParser<'parser> {
     if let Some(expr_info) = self.get_member_expression_info(expr, AllowedMemberTypes::all()) {
       match expr_info {
         MemberExpressionInfo::Expression(expr_info) => {
+          let drive = self.plugin_drive.clone();
           if let Some(for_name) = expr_info.name.call_hooks_name(self)
-            && self
-              .plugin_drive
-              .clone()
-              .member(self, expr, &for_name)
-              .unwrap_or_default()
+            && drive.member(self, expr, &for_name).unwrap_or_default()
           {
             return;
           }
-          // TODO: member_chain and unhandled_mamber_chain
+          // TODO: member_chain
+          self.walk_member_expression_with_expression_name(
+            expr,
+            &expr_info.name,
+            Some(|this: &mut Self| {
+              this.plugin_drive.clone().unhandled_expression_member_chain(
+                this,
+                &expr_info.root_info,
+                expr,
+              )
+            }),
+          );
+          return;
         }
         MemberExpressionInfo::Call(expr_info) => {
           if let Some(for_name) = expr_info.root_info.call_hooks_name(self)
@@ -624,6 +644,42 @@ impl<'parser> JavascriptParser<'parser> {
       }
     }
     self.walk_expression(&expr.obj);
+    if let MemberProp::Computed(computed) = &expr.prop {
+      self.walk_expression(&computed.expr)
+    }
+  }
+
+  fn walk_member_expression_with_expression_name<F>(
+    &mut self,
+    expr: &MemberExpr,
+    name: &str,
+    on_unhandled: Option<F>,
+  ) where
+    F: FnOnce(&mut Self) -> Option<bool>,
+  {
+    if let Some(member) = expr.obj.as_member()
+      && let Some(len) = member_prop_len(&expr.prop)
+    {
+      let origin = name.len();
+      let name = &name[0..origin - 1 - len];
+      if let Some(for_name) = name.call_hooks_name(self)
+        && self
+          .plugin_drive
+          .clone()
+          .member(self, member, &for_name)
+          .unwrap_or_default()
+      {
+        return;
+      }
+      self.walk_member_expression_with_expression_name(member, name, on_unhandled);
+    } else if on_unhandled.is_none() {
+      self.walk_expression(&expr.obj);
+    } else if let Some(on_unhandled) = on_unhandled
+      && !on_unhandled(self).unwrap_or_default()
+    {
+      self.walk_expression(&expr.obj);
+    }
+
     if let MemberProp::Computed(computed) = &expr.prop {
       self.walk_expression(&computed.expr)
     }
@@ -650,6 +706,7 @@ impl<'parser> JavascriptParser<'parser> {
             .call_member_chain_of_call_member_chain(self, expr, &for_name)
             .unwrap_or_default()
         {
+          self.enter_call -= 1;
           return;
         }
         let evaluated = self.evaluate_expression(callee);
@@ -660,6 +717,7 @@ impl<'parser> JavascriptParser<'parser> {
             .call(self, expr, evaluated.identifier())
             .unwrap_or_default()
         {
+          self.enter_call -= 1;
           return;
         }
         if let Some(member) = callee.as_member() {
@@ -672,9 +730,17 @@ impl<'parser> JavascriptParser<'parser> {
         }
       }
       Callee::Super(_) => {} // Do nothing about super, same as webpack
-      Callee::Import(import) => {
+      Callee::Import(_) => {
         // In webpack this is walkImportExpression, import() is a ImportExpression instead of CallExpression with Callee::Import
-        // TODO: call hooks.importCall
+        if self
+          .plugin_drive
+          .clone()
+          .import_call(self, expr)
+          .unwrap_or_default()
+        {
+          self.enter_call -= 1;
+          return;
+        }
       }
     }
     self.walk_expr_or_spread(&expr.args);
@@ -739,7 +805,6 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_assignment_expression(&mut self, expr: &AssignExpr) {
-    self.enter_assign = true;
     // FIXME: should align to webpack
     if self
       .plugin_drive
@@ -749,9 +814,16 @@ impl<'parser> JavascriptParser<'parser> {
     {
       // empty
     } else if let Some(ident) = expr.left.as_ident() {
-      // if let Some(rename_identifier) = self.get_rename_identifier(&expr.right) {
-      //     // TODO:
-      //   }
+      if let Some(rename_identifier) = self.get_rename_identifier(&expr.right)
+        && let Some(name) = rename_identifier.call_hooks_name(self)
+        && let drive = self.plugin_drive.clone()
+        && drive.can_rename(self, &name).unwrap_or_default()
+      {
+        if !drive.rename(self, &expr.right, &name).unwrap_or_default() {
+          self.set_variable(ident.sym.to_string(), name);
+        }
+        return;
+      }
       self.walk_expression(&expr.right);
       self.enter_pattern(
         Cow::Owned(warp_ident_to_pat(ident.clone())),
@@ -775,7 +847,6 @@ impl<'parser> JavascriptParser<'parser> {
         PatOrExpr::Pat(pat) => self.walk_pattern(pat),
       }
     }
-    self.enter_assign = false;
     // TODO:
     // else if let Some(member) = expr.left.as_expr().and_then(|expr| expr.as_member()) {
     // }
@@ -1047,5 +1118,13 @@ impl<'parser> JavascriptParser<'parser> {
         };
       }
     });
+  }
+}
+
+fn member_prop_len(member_prop: &MemberProp) -> Option<usize> {
+  match member_prop {
+    MemberProp::Ident(ident) => Some(ident.sym.len()),
+    MemberProp::PrivateName(name) => Some(name.id.sym.len() + 1),
+    MemberProp::Computed(_) => None,
   }
 }

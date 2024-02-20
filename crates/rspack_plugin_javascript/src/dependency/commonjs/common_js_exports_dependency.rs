@@ -173,7 +173,7 @@ impl DependencyTemplate for CommonJsExportsDependency {
             "var __webpack_unused_export__;\n".to_string(),
             InitFragmentStage::StageConstants,
             0,
-            InitFragmentKey::unique(),
+            InitFragmentKey::CommonJsExports("__webpack_unused_export__".to_owned()),
             None,
           )
           .boxed(),
@@ -211,7 +211,7 @@ impl DependencyTemplate for CommonJsExportsDependency {
               "var __webpack_unused_export__;\n".to_string(),
               InitFragmentStage::StageConstants,
               0,
-              InitFragmentKey::unique(),
+              InitFragmentKey::CommonJsExports("__webpack_unused_export__".to_owned()),
               None,
             )
             .boxed(),

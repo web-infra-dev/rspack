@@ -77,7 +77,7 @@ jobs:
           COMMENT: ${{ toJson(github.event.comment) }}
 
       - name: Write a new comment
-        uses: peter-evans/create-or-update-comment@v3
+        uses: peter-evans/create-or-update-comment@v4
         continue-on-error: true
         with:
           issue-number: ${{ github.event.issue.number }}

@@ -7,7 +7,7 @@ version     = "0.1.5"
 
 [dependencies]
 Inflector  = "0.11.4"
-handlebars = "5.1.1"
+handlebars = "5.1.0"
 rustc-hash = { workspace = true }
 serde      = { workspace = true }
 swc_core   = { workspace = true, features = ["common", "ecma_ast", "ecma_visit"] }

@@ -37,24 +37,24 @@
       "matchPackageNames": ["styled_components"]
     },
     {
-      "groupName": "ignored-crates",
+      "groupName": "ignored crates",
       "matchManagers": ["cargo"],
       "matchPackageNames": ["ustr", "textwrap", "owo-colors"],
       "enabled": false
     },
     {
-      "groupName": "ignored-indexmap",
+      "groupName": "ignored indexmap",
       "matchManagers": ["cargo"],
       "matchFileNames": ["crates/rspack_plugin_css/Cargo.toml"],
       "matchPackageNames": ["indexmap"],
       "enabled": false
     },
     {
-      "groupName": "npm devDependencies",
+      "groupName": "npm dev dependencies",
       "matchManagers": ["npm"],
       "matchDepTypes": ["devDependencies"],
       "excludePackagePrefixes": ["webpack"],
-      "excludePackageNames": ["@playwright/test", "react", "react-dom", "typescript"],
+      "excludePackageNames": ["@playwright/test", "react", "react-dom", "typescript", "pnpm"],
       "assignees": ["@Boshen"]
     },
     {
@@ -66,7 +66,7 @@
     {
       "groupName": "npm ignored dependencies",
       "matchManagers": ["npm"],
-      "matchPackageNames": ["@playwright/test", "react", "react-dom", "typescript"],
+      "matchPackageNames": ["@playwright/test", "react", "react-dom", "typescript", "pnpm"],
       "enabled": false
     },
     {
