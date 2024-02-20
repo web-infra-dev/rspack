@@ -817,9 +817,17 @@ impl<'parser> JavascriptParser<'parser> {
     {
       // empty
     } else if let Some(ident) = expr.left.as_ident() {
-      // if let Some(rename_identifier) = self.get_rename_identifier(&expr.right) {
-      //     // TODO:
-      //   }
+      if let Some(rename_identifier) = self.get_rename_identifier(&expr.right)
+        && let Some(name) = rename_identifier.call_hooks_name(self)
+        && let drive = self.plugin_drive.clone()
+        && drive.can_rename(self, &name).unwrap_or_default()
+      {
+        if !drive.rename(self, &expr.right, &name).unwrap_or_default() {
+          self.set_variable(ident.sym.to_string(), name);
+        }
+        self.enter_assign = false;
+        return;
+      }
       self.walk_expression(&expr.right);
       self.enter_pattern(
         Cow::Owned(warp_ident_to_pat(ident.clone())),
