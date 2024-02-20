@@ -99,20 +99,22 @@ describe("StatsTestCases", () => {
 						])
 					);
 				};
-				c.hooks.compilation.tap("StatsTestCasesTest", compilation => {
-					[
-						"optimize",
-						"optimizeModules",
-						"optimizeChunks",
-						"afterOptimizeTree",
-						"afterOptimizeAssets",
-						"beforeHash"
-					].forEach(hook => {
-						compilation.hooks[hook].tap("TestCasesTest", () =>
-							compilation.checkConstraints()
-						);
-					});
-				});
+
+				// CHANGE: The checkConstraints() function is currently not implemented in rspack
+				// c.hooks.compilation.tap("StatsTestCasesTest", compilation => {
+				// 	[
+				// 		"optimize",
+				// 		"optimizeModules",
+				// 		"optimizeChunks",
+				// 		"afterOptimizeTree",
+				// 		"afterOptimizeAssets",
+				// 		"beforeHash"
+				// 	].forEach(hook => {
+				// 		compilation.hooks[hook].tap("TestCasesTest", () =>
+				// 			compilation.checkConstraints()
+				// 		);
+				// 	});
+				// });
 			});
 			c.run((err, stats) => {
 				if (err) return done(err);
