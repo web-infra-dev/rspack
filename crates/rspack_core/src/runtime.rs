@@ -213,6 +213,15 @@ pub struct RuntimeSpecMap<T> {
 }
 
 impl<T> RuntimeSpecMap<T> {
+  pub fn new() -> Self {
+    Self {
+      mode: RuntimeMode::default(),
+      map: Default::default(),
+      single_runtime: None,
+      single_value: None,
+    }
+  }
+
   pub fn size(&self) -> usize {
     let mode = self.mode as usize;
 
@@ -299,6 +308,29 @@ impl<T> RuntimeSpecMap<T> {
         .as_ref()
         .expect("Expected single value exists")],
       RuntimeMode::Map => self.map.values().collect(),
+    }
+  }
+
+  pub fn get_values_with_runtime_key(&self) -> Vec<(RuntimeKey, &T)> {
+    match self.mode {
+      RuntimeMode::Empty => vec![],
+      RuntimeMode::SingleEntry => vec![(
+        get_runtime_key(
+          self
+            .single_runtime
+            .clone()
+            .expect("Expected single key exists"),
+        ),
+        self
+          .single_value
+          .as_ref()
+          .expect("Expected single value exists"),
+      )],
+      RuntimeMode::Map => self
+        .map
+        .iter()
+        .map(|(rt, value)| (rt.clone(), value))
+        .collect(),
     }
   }
 }

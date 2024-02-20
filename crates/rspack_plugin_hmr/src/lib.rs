@@ -5,13 +5,13 @@ use std::{hash::Hash, ops::Sub};
 use async_trait::async_trait;
 use hot_module_replacement::HotModuleReplacementRuntimeModule;
 use rspack_core::{
-  collect_changed_modules,
+  collect_changed_modules, get_runtime_key,
   rspack_sources::{RawSource, SourceExt},
   AdditionalChunkRuntimeRequirementsArgs, ApplyContext, AssetInfo, Chunk, ChunkKind, Compilation,
   CompilationAsset, CompilationParams, CompilationRecords, CompilerOptions, DependencyType,
   ModuleIdentifier, PathData, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput,
   PluginContext, PluginProcessAssetsOutput, ProcessAssetsArgs, RenderManifestArgs, RuntimeGlobals,
-  RuntimeModuleExt, RuntimeSpec, SourceType,
+  RuntimeMode, RuntimeModuleExt, RuntimeSpec, SourceType,
 };
 use rspack_error::Result;
 use rspack_hash::RspackHash;
@@ -128,16 +128,54 @@ impl Plugin for HotModuleReplacementPlugin {
     let mut updated_runtime_modules: IdentifierSet = Default::default();
     let mut completely_removed_modules: HashSet<String> = Default::default();
 
-    for (old_uri, (old_hash, old_module_id)) in &old_all_modules {
-      if let Some((now_hash, _)) = now_all_modules.get(old_uri) {
-        // updated
-        if now_hash != old_hash {
-          updated_modules.insert(*old_uri);
-        }
-      } else {
-        // deleted
-        completely_removed_modules.insert(old_module_id.to_string());
-      }
+    for (old_uri, old_modules) in &old_all_modules {
+      let now = now_all_modules.get(old_uri);
+
+      old_modules
+        .get_values_with_runtime_key()
+        .into_iter()
+        .for_each(|(rt, (old_hash, old_module_id))| {
+          if let Some(now_module_for_runtime) = now {
+            match now_module_for_runtime.mode {
+              RuntimeMode::Empty => {
+                // deleted
+                completely_removed_modules.insert(old_module_id.to_string());
+              }
+              RuntimeMode::SingleEntry => {
+                let now_runtime = get_runtime_key(
+                  now_module_for_runtime
+                    .single_runtime
+                    .clone()
+                    .expect("should have single runtime"),
+                );
+                let (now_hash, _) = now_module_for_runtime
+                  .single_value
+                  .as_ref()
+                  .expect("should have value");
+                if now_runtime != rt {
+                  // deleted
+                  completely_removed_modules.insert(old_module_id.to_string());
+                } else if now_hash != old_hash {
+                  // updated
+                  updated_modules.insert(*old_uri);
+                }
+              }
+              RuntimeMode::Map => {
+                if let Some((now_hash, _)) = now_module_for_runtime.map.get(&rt) {
+                  if now_hash != old_hash {
+                    // updated
+                    updated_modules.insert(*old_uri);
+                  }
+                } else {
+                  completely_removed_modules.insert(old_module_id.to_string());
+                }
+              }
+            }
+          } else {
+            // deleted
+            completely_removed_modules.insert(old_module_id.to_string());
+          }
+        });
     }
     for identifier in now_all_modules.keys() {
       if !old_all_modules.contains_key(identifier) {

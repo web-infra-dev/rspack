@@ -3,7 +3,8 @@ use regex::{Captures, Regex};
 use rspack_core::{
   AsContextDependency, CodeGenerationDataFilename, CodeGenerationDataUrl, Compilation, Dependency,
   DependencyCategory, DependencyId, DependencyTemplate, DependencyType, ErrorSpan,
-  ModuleDependency, ModuleIdentifier, PublicPath, TemplateContext, TemplateReplaceSource,
+  ModuleDependency, ModuleIdentifier, PublicPath, RuntimeSpec, TemplateContext,
+  TemplateReplaceSource,
 };
 
 use crate::utils::AUTO_PUBLIC_PATH_PLACEHOLDER;
@@ -32,24 +33,21 @@ impl CssUrlDependency {
     &self,
     identifier: &ModuleIdentifier,
     compilation: &Compilation,
+    runtime: Option<&RuntimeSpec>,
   ) -> Option<String> {
     // TODO: how to handle if module related to multi runtime codegen
-    let code_gen_result = compilation.code_generation_results.get_one(identifier);
-    if let Some(code_gen_result) = code_gen_result {
-      if let Some(url) = code_gen_result.data.get::<CodeGenerationDataUrl>() {
-        Some(url.inner().to_string())
-      } else if let Some(data) = code_gen_result.data.get::<CodeGenerationDataFilename>() {
-        let filename = data.filename();
-        let public_path = match data.public_path() {
-          PublicPath::String(p) => p,
-          PublicPath::Auto => AUTO_PUBLIC_PATH_PLACEHOLDER,
-        };
-        Some(format!("{public_path}{filename}"))
-      } else {
-        None
-      }
+    let code_gen_result = compilation.code_generation_results.get(identifier, runtime);
+    if let Some(url) = code_gen_result.data.get::<CodeGenerationDataUrl>() {
+      Some(url.inner().to_string())
+    } else if let Some(data) = code_gen_result.data.get::<CodeGenerationDataFilename>() {
+      let filename = data.filename();
+      let public_path = match data.public_path() {
+        PublicPath::String(p) => p,
+        PublicPath::Auto => AUTO_PUBLIC_PATH_PLACEHOLDER,
+      };
+      Some(format!("{public_path}{filename}"))
     } else {
-      Some("data:,".to_string())
+      None
     }
   }
 }
@@ -96,11 +94,15 @@ impl DependencyTemplate for CssUrlDependency {
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
-    let TemplateContext { compilation, .. } = code_generatable_context;
+    let TemplateContext {
+      compilation,
+      runtime,
+      ..
+    } = code_generatable_context;
     if let Some(mgm) = compilation
       .module_graph
       .module_graph_module_by_dependency_id(self.id())
-      && let Some(target_url) = self.get_target_url(&mgm.module_identifier, compilation)
+      && let Some(target_url) = self.get_target_url(&mgm.module_identifier, compilation, *runtime)
     {
       let content = format!("url({})", css_escape_string(&target_url));
       source.replace(self.start, self.end, &content, None);

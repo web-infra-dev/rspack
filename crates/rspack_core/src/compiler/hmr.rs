@@ -11,6 +11,7 @@ use rustc_hash::FxHashSet as HashSet;
 use super::MakeParam;
 use crate::{
   fast_set, get_chunk_from_ukey, ChunkKind, Compilation, Compiler, ModuleGraph, RuntimeSpec,
+  RuntimeSpecMap,
 };
 
 impl<T> Compiler<T>
@@ -146,7 +147,7 @@ where
 pub struct CompilationRecords {
   pub old_chunks: Vec<(String, RuntimeSpec)>,
   pub all_old_runtime: RuntimeSpec,
-  pub old_all_modules: IdentifierMap<(RspackHashDigest, String)>,
+  pub old_all_modules: IdentifierMap<RuntimeSpecMap<(RspackHashDigest, String)>>,
   pub old_runtime_modules: IdentifierMap<String>,
   pub old_hash: Option<RspackHashDigest>,
 }
@@ -154,25 +155,36 @@ pub struct CompilationRecords {
 pub fn collect_changed_modules(
   compilation: &Compilation,
 ) -> (
-  IdentifierMap<(RspackHashDigest, String)>,
+  IdentifierMap<RuntimeSpecMap<(RspackHashDigest, String)>>,
   IdentifierMap<String>,
 ) {
   let modules_map = compilation
     .chunk_graph
     .chunk_graph_module_by_module_identifier
     .par_iter()
-    .filter_map(|(identifier, cgm)| {
-      let cid = cgm.id.as_deref();
-      // TODO: Determine how to calc module hash if module related to multiple runtime code
-      // gen
-      if let Some(code_generation_result) = compilation.code_generation_results.get_one(identifier)
-        && let Some(module_hash) = &code_generation_result.hash
-        && let Some(cid) = cid
-      {
-        Some((*identifier, (module_hash.clone(), cid.to_string())))
-      } else {
-        None
-      }
+    .map(|(identifier, cgm)| {
+      let runtimes = compilation
+        .chunk_graph
+        .get_module_runtimes(*identifier, &compilation.chunk_by_ukey);
+
+      let mut map = RuntimeSpecMap::new();
+
+      runtimes.values().into_iter().for_each(|runtime| {
+        let cid = cgm.id.as_deref();
+        // TODO: Determine how to calc module hash if module related to multiple runtime code
+        // gen
+        let code_generation_result = compilation
+          .code_generation_results
+          .get(identifier, Some(runtime));
+
+        if let Some(module_hash) = &code_generation_result.hash
+          && let Some(cid) = cid
+        {
+          map.set(runtime.clone(), (module_hash.clone(), cid.to_string()));
+        }
+      });
+
+      (*identifier, map)
     })
     .collect::<IdentifierMap<_>>();
 
