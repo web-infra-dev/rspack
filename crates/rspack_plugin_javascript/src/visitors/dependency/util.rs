@@ -181,12 +181,14 @@ pub fn extract_require_call_info(
       .iter()
       .map(|n| n.0.to_owned())
       .collect_vec(),
+    ExpressionInfoKind::MemberExpression(_) => vec![],
     ExpressionInfoKind::Expression => vec![],
   };
   let args = match member_info.kind() {
     ExpressionInfoKind::CallExpression(info) => {
       info.args().iter().map(|i| i.to_owned()).collect_vec()
     }
+    ExpressionInfoKind::MemberExpression(_) => vec![],
     ExpressionInfoKind::Expression => vec![],
   };
 
