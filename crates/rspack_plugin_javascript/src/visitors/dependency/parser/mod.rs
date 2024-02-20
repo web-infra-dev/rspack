@@ -672,16 +672,6 @@ impl<'parser> JavascriptParser<'parser> {
     assert!(ident.sym.eq("require"));
     self.is_unresolved_ident(ident.sym.as_str())
   }
-
-  // TODO: remove
-  pub fn is_unresolved_member_object_ident(&mut self, expr: &Expr) -> bool {
-    if let Expr::Member(member) = expr {
-      if let Expr::Ident(ident) = &*member.obj {
-        return self.is_unresolved_ident(ident.sym.as_str());
-      };
-    }
-    false
-  }
 }
 
 impl JavascriptParser<'_> {
@@ -718,12 +708,20 @@ impl JavascriptParser<'_> {
         if let Some(MemberExpressionInfo::Expression(info)) =
           self.get_member_expression_info(member, AllowedMemberTypes::Expression)
         {
-          let mut eval =
-            BasicEvaluatedExpression::with_range(member.span.real_lo(), member.span.hi().0);
-          eval.set_identifier(info.name, info.root_info);
-          return Some(eval);
+          self
+            .plugin_drive
+            .clone()
+            .evaluate_identifier(self, &info.name, member.span.real_lo(), member.span.hi().0)
+            .or_else(|| {
+              // TODO: fallback with `evaluateDefinedIdentifier`
+              let mut eval =
+                BasicEvaluatedExpression::with_range(member.span.real_lo(), member.span.hi().0);
+              eval.set_identifier(info.name, info.root_info);
+              Some(eval)
+            })
+        } else {
+          None
         }
-        None
       }
       Expr::Ident(ident) => {
         let drive = self.plugin_drive.clone();

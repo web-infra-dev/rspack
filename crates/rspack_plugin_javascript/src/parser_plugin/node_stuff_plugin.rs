@@ -99,7 +99,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
     start: u32,
     end: u32,
   ) -> Option<crate::utils::eval::BasicEvaluatedExpression> {
-    if ident == DIR_NAME && parser.is_unresolved_ident(DIR_NAME) {
+    if ident == DIR_NAME {
       Some(eval::evaluate_to_string(
         get_context(parser.resource_data).as_str().to_string(),
         start,
