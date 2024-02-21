@@ -60,7 +60,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
           return None;
         }
         let magic_comment_options = try_extract_webpack_magic_comment(
-          &parser.source_file,
+          parser.source_file,
           &parser.comments,
           node.span,
           imported.span,
@@ -106,7 +106,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       }
       Expr::Tpl(tpl) if tpl.quasis.len() == 1 => {
         let magic_comment_options = try_extract_webpack_magic_comment(
-          &parser.source_file,
+          parser.source_file,
           &parser.comments,
           node.span,
           tpl.span,
@@ -162,7 +162,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
           return None;
         };
         let magic_comment_options = try_extract_webpack_magic_comment(
-          &parser.source_file,
+          parser.source_file,
           &parser.comments,
           node.span,
           dyn_imported.span(),

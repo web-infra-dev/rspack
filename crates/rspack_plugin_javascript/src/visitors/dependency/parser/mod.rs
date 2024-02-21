@@ -5,7 +5,6 @@ mod walk_pre;
 
 use std::borrow::Cow;
 use std::rc::Rc;
-use std::sync::Arc;
 
 use bitflags::bitflags;
 pub use call_hooks_name::CallHooksName;
@@ -153,7 +152,7 @@ pub enum TopLevelScope {
 }
 
 pub struct JavascriptParser<'parser> {
-  pub(crate) source_file: Arc<SourceFile>,
+  pub(crate) source_file: &'parser SourceFile,
   pub(crate) errors: &'parser mut Vec<Box<dyn Diagnostic + Send + Sync>>,
   pub(crate) warning_diagnostics: &'parser mut Vec<Box<dyn Diagnostic + Send + Sync>>,
   pub(crate) dependencies: &'parser mut Vec<BoxDependency>,
@@ -198,7 +197,7 @@ pub struct JavascriptParser<'parser> {
 impl<'parser> JavascriptParser<'parser> {
   #[allow(clippy::too_many_arguments)]
   pub fn new(
-    source_file: Arc<SourceFile>,
+    source_file: &'parser SourceFile,
     compiler_options: &'parser CompilerOptions,
     dependencies: &'parser mut Vec<BoxDependency>,
     presentational_dependencies: &'parser mut Vec<Box<dyn DependencyTemplate>>,
