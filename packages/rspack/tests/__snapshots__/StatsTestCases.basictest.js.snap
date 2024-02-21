@@ -323,8 +323,7 @@ runtime modules 1 module
 ./index.js
 
 ERROR in ./index.js
-  × Invalid "exports" target "../../index.js" defined for '.' in the package config /Users/bytedance/Documents/github/swc_swc/rspack/packages/rspack/tests/statsCases/resolve-unexpected-exports-in-
-  │ pkg-error/node_modules/pkg-a/package.json
+  × Invalid "exports" target "../../index.js" defined for '.' in the package config Xdir/resolve-unexpected-exports-in-pkg-error/node_modules/pkg-a/package.json
 
 Rspack x.x.x compiled with 1 error in X s (c1888f6bacf659a49dc3)"
 `;

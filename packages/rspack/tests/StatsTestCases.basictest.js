@@ -192,8 +192,9 @@ describe("StatsTestCases", () => {
 				const testPath = path.join(base, testName);
 				actual = actual
 					.replace(/\r\n?/g, "\n")
+					// CHANGE: Remove potential line break and "|" caused by long text
+					.replace(/((ERROR|WARNING)([\s\S](?!╭|├))*?)(\n  │ )/g, "$1")
 					// CHANGE: Update the regular expression to replace the 'Rspack' version string
-					.replace(/webpack [^ )]+(\)?) compiled/g, "Rspack x.x.x$1 compiled")
 					.replace(/Rspack [^ )]+(\)?) compiled/g, "Rspack x.x.x$1 compiled")
 					.replace(new RegExp(quoteMeta(testPath), "g"), "Xdir/" + testName)
 					.replace(/(\w)\\(\w)/g, "$1/$2")
