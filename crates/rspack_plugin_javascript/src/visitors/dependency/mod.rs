@@ -5,8 +5,6 @@ pub mod harmony_import_dependency_scanner;
 mod parser;
 mod util;
 
-use std::sync::Arc;
-
 pub use context_dependency_helper::create_context_dependency;
 pub use context_helper::{scanner_context_module, ContextModuleScanResult};
 use rspack_ast::javascript::Program;
@@ -50,7 +48,7 @@ pub enum ExtraSpanInfo {
 
 #[allow(clippy::too_many_arguments)]
 pub fn scan_dependencies(
-  source_file: Arc<SourceFile>,
+  source_file: &SourceFile,
   program: &Program,
   worker_syntax_list: &mut WorkerSyntaxList,
   resource_data: &ResourceData,
@@ -72,7 +70,7 @@ pub fn scan_dependencies(
   let mut rewrite_usage_span = FxHashMap::default();
 
   let mut parser = JavascriptParser::new(
-    source_file.clone(),
+    source_file,
     compiler_options,
     &mut dependencies,
     &mut presentational_dependencies,
