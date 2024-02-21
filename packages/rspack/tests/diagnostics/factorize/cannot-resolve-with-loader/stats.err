@@ -5,9 +5,3 @@ ERROR in ./index.js
  2 │ require("./a");
    · ──────────────
    ╰────
-  help: try to resolve './a' in '<PROJECT_ROOT>/tests/diagnostics/factorize/cannot-resolve-with-loader'
-        use description file: <PROJECT_ROOT>/tests/diagnostics/factorize/package.json
-        '<PROJECT_ROOT>/tests/diagnostics/factorize/cannot-resolve-with-loader/a' doesn't exist
-        '<PROJECT_ROOT>/tests/diagnostics/factorize/cannot-resolve-with-loader/a.wasm' doesn't exist
-        '<PROJECT_ROOT>/tests/diagnostics/factorize/cannot-resolve-with-loader/a.json' doesn't exist
-        '<PROJECT_ROOT>/tests/diagnostics/factorize/cannot-resolve-with-loader/a.js' doesn't exist

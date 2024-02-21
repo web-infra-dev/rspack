@@ -1,7 +1,5 @@
 ERROR in × Resolve error: Can't resolve './' in '<PROJECT_ROOT>/tests/diagnostics/builtins/recoverable_syntax_error'
-  help: try to resolve './' in '<PROJECT_ROOT>/tests/diagnostics/builtins/recoverable_syntax_error'
-        use description file: <PROJECT_ROOT>/tests/diagnostics/builtins/recoverable_syntax_error/package.json
-        '<PROJECT_ROOT>/tests/diagnostics/builtins/recoverable_syntax_error/index.js' doesn't exist
-        '<PROJECT_ROOT>/tests/diagnostics/builtins/recoverable_syntax_error/index' doesn't exist
-        '<PROJECT_ROOT>/tests/diagnostics/builtins/recoverable_syntax_error/index.json' doesn't exist
-        '<PROJECT_ROOT>/tests/diagnostics/builtins/recoverable_syntax_error/index.wasm' doesn't exist
+  help: Found the module './index.tsx' exists, but it was not resolved because its extension doesn't in the `resolve.extensions` list. There are two solutions:
+        
+        1. use './index.tsx' instead of './'
+        2. add the extension '.tsx' to `resolve.extensions` in your rspack configuration

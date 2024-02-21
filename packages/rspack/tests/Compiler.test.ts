@@ -335,11 +335,6 @@ describe("Compiler", () => {
 		} catch (err) {
 			expect(err.toString()).toMatchInlineSnapshot(`
 			"Error:   × Resolve error: Can't resolve './missing-file' in '<PROJECT_ROOT>/tests'
-			  help: try to resolve './missing-file' in '<PROJECT_ROOT>/tests'
-			        '<PROJECT_ROOT>/tests/missing-file.json' doesn't exist
-			        '<PROJECT_ROOT>/tests/missing-file.js' doesn't exist
-			        '<PROJECT_ROOT>/tests/missing-file' doesn't exist
-			        '<PROJECT_ROOT>/tests/missing-file.wasm' doesn't exist
 			"
 		`);
 		}

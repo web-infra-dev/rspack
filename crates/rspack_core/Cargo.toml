@@ -10,7 +10,6 @@ anymap = "1.0.0-beta.2"
 async-recursion = { workspace = true }
 async-trait = { workspace = true }
 bitflags = { workspace = true }
-colored = { workspace = true }
 dashmap = { workspace = true }
 derivative = { workspace = true }
 dyn-clone = "1.0.16"

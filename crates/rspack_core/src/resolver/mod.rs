@@ -1,9 +1,9 @@
 mod factory;
 mod resolver_impl;
-
+use std::borrow::Borrow;
+use std::fs;
 use std::{fmt, path::PathBuf};
 
-use colored::Colorize;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_error::{Error, MietteExt};
@@ -170,40 +170,98 @@ which tries to resolve these kind of requests in the current directory too.",
     }
   }
 
-  if args.missing_dependencies.len() > 0 {
-    let description_data = args
-      .missing_dependencies
-      .iter()
-      .find(|p| p.ends_with("package.json"));
+  // try to resolve relative path with extension
+  if RELATIVE_PATH_REGEX.is_match(args.specifier) {
+    let connected_path = base_dir.join(args.specifier);
+    let normalized_path = connected_path.absolutize();
 
-    let missing_dependencies = args
-      .missing_dependencies
-      .iter()
-      .filter(|p| !p.ends_with("package.json"))
-      .map(|p| {
-        let path = p.to_string_lossy().to_string();
-        format!("'{}' doesn't exist", path)
-      })
-      .collect::<Vec<_>>()
-      .join("\n")
-      .red();
+    let mut resolve_dir = false;
 
-    let using_description_data_hint = if let Some(description_data) = description_data {
-      format!(
-        "use description file: {}\n",
-        description_data.to_string_lossy()
-      )
-    } else {
-      "".to_string()
+    let file_name = normalized_path.file_name();
+
+    let parent_path = match fs::metadata(&normalized_path) {
+      Ok(metadata) => {
+        if !metadata.is_dir() {
+          normalized_path.parent()
+        } else {
+          resolve_dir = true;
+          Some(normalized_path.borrow())
+        }
+      }
+      Err(_) => normalized_path.parent(),
     };
 
-    return Some(format!(
-      "try to resolve '{}' in '{}'\n{}{}",
-      args.specifier,
-      base_dir.to_string_lossy(),
-      using_description_data_hint,
-      missing_dependencies
-    ));
+    if parent_path.is_none() || file_name.is_none() {
+      return None;
+    }
+
+    let file_name = file_name.unwrap();
+    let parent_path = parent_path.unwrap();
+
+    let mut possible_matched_files = vec![file_name
+      .to_str()
+      .map(|f| f.to_string())
+      .unwrap_or_default()];
+    if resolve_dir {
+      // also need to resolve the main files(like `index`) in the directory
+      let main_files = dep
+        .resolve_options
+        .as_deref()
+        .or(Some(&plugin_driver.options.resolve))
+        .and_then(|o| o.main_files.as_ref().map(|f| f.clone()))
+        .unwrap_or_else(|| Vec::new());
+
+      possible_matched_files.extend(main_files);
+    }
+
+    // read the files in the parent directory
+    let files = fs::read_dir(parent_path);
+    match files {
+      Ok(files) => {
+        let suggestions = files
+          .into_iter()
+          .filter_map(|file| {
+            file.ok().and_then(|file| {
+              file.path().file_stem().and_then(|file_stem| {
+                if possible_matched_files.contains(&file_stem.to_string_lossy().to_string()) {
+                  let mut suggestion = file.path().relative(args.context.as_path());
+
+                  if !suggestion.to_string_lossy().starts_with(".") {
+                    suggestion = PathBuf::from(format!("./{}", suggestion.to_string_lossy()));
+                  }
+                  Some(suggestion)
+                } else {
+                  None
+                }
+              })
+            })
+          })
+          .collect::<Vec<_>>();
+
+        if suggestions.len() == 0 {
+          return None;
+        }
+
+        let mut hint: Vec<String> = vec![];
+        for suggestion in suggestions {
+          let suggestion_ext = suggestion
+            .extension()
+            .map(|e| e.to_string_lossy())
+            .unwrap_or_default();
+          let suggestion_path = suggestion.to_string_lossy();
+          let specifier = args.specifier;
+
+          hint.push(format!(
+          "Found the module '{suggestion_path}' exists, but it was not resolved because its extension doesn't in the `resolve.extensions` list. Here are some solutions:
+
+1. use '{suggestion_path}' instead of '{specifier}'
+2. add the extension '.{suggestion_ext}' to `resolve.extensions` in your rspack configuration"));
+        }
+
+        return Some(hint.join("\n"));
+      }
+      Err(_) => return None,
+    }
   }
 
   None

@@ -1,10 +1,4 @@
 ERROR in × Resolve error: Can't resolve './' in '<PROJECT_ROOT>/tests/diagnostics/factorize/entry-runtime-error'
-  help: try to resolve './' in '<PROJECT_ROOT>/tests/diagnostics/factorize/entry-runtime-error'
-        use description file: <PROJECT_ROOT>/tests/diagnostics/factorize/package.json
-        '<PROJECT_ROOT>/tests/diagnostics/factorize/entry-runtime-error/index' doesn't exist
-        '<PROJECT_ROOT>/tests/diagnostics/factorize/entry-runtime-error/index.wasm' doesn't exist
-        '<PROJECT_ROOT>/tests/diagnostics/factorize/entry-runtime-error/index.js' doesn't exist
-        '<PROJECT_ROOT>/tests/diagnostics/factorize/entry-runtime-error/index.json' doesn't exist
 
 ERROR in × Entrypoint 'b1' has a 'runtime' option which points to another entrypoint named 'a1'.
   │ It's not valid to use other entrypoints as runtime chunk.

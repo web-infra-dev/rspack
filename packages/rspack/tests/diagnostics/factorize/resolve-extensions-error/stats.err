@@ -1,0 +1,10 @@
+ERROR in ./index.js
+  × Resolve error: Can't resolve './a' in '<PROJECT_ROOT>/tests/diagnostics/factorize/resolve-extensions-error'
+   ╭────
+ 1 │ import a from './a';
+   ·               ─────
+   ╰────
+  help: Found the module './a.txt' exists, but it was not resolved because its extension doesn't in the `resolve.extensions` list. There are two solutions:
+        
+        1. use './a.txt' instead of './a'
+        2. add the extension '.txt' to `resolve.extensions` in your rspack configuration
