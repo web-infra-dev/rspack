@@ -97,7 +97,6 @@ impl Plugin for ExportPropertyLibraryPlugin {
       let Some(library_options) = library_options else {
         continue;
       };
-      dbg!(&library_options.export);
       if let Some(export) = library_options
         .export
         .as_ref()
@@ -119,8 +118,6 @@ impl Plugin for ExportPropertyLibraryPlugin {
           .module_graph
           .get_exports_info(&module_of_last_dep.identifier())
           .id;
-        dbg!(&&module_of_last_dep.identifier());
-        dbg!(&exports_info_id.get_exports_info(&compilation.module_graph));
         if self.ns_object_used {
           exports_info_id.set_used_in_unknown_way(&mut compilation.module_graph, Some(&runtime));
         } else {
