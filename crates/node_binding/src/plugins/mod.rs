@@ -168,6 +168,7 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
     "rspack.JsHooksAdapterPlugin"
   }
 
+  #[tracing::instrument(name = "js_hooks_adapter::apply", skip_all)]
   fn apply(
     &self,
     ctx: PluginContext<&mut ApplyContext>,
