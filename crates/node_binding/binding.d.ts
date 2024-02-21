@@ -420,7 +420,6 @@ export interface JsLoaderContext {
    */
   diagnosticsExternal: ExternalObject<'Diagnostic[]'>
   _moduleIdentifier: string
-  hot: boolean
 }
 
 export interface JsModule {
@@ -585,6 +584,13 @@ export interface JsStatsWarning {
   moduleIdentifier?: string
   moduleName?: string
   moduleId?: string
+}
+
+export interface NodeFS {
+  writeFile: (...args: any[]) => any
+  removeFile: (...args: any[]) => any
+  mkdir: (...args: any[]) => any
+  mkdirp: (...args: any[]) => any
 }
 
 export interface PathData {
@@ -776,7 +782,6 @@ export interface RawCssModulesConfig {
 
 export interface RawCssPluginConfig {
   modules: RawCssModulesConfig
-  namedExports?: boolean
 }
 
 export interface RawEntryOptions {
@@ -1288,4 +1293,12 @@ export function registerGlobalTrace(filter: string, layer: "chrome" | "logger", 
 
 /** Builtin loader runner */
 export function runBuiltinLoader(builtin: string, options: string | undefined | null, loaderContext: JsLoaderContext): Promise<JsLoaderContext>
+
+export interface ThreadsafeNodeFS {
+  writeFile: (...args: any[]) => any
+  removeFile: (...args: any[]) => any
+  mkdir: (...args: any[]) => any
+  mkdirp: (...args: any[]) => any
+  removeDirAll: (...args: any[]) => any
+}
 
