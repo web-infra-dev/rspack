@@ -654,6 +654,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     let runtime = chunk_group_info.runtime.clone();
 
     let modules = self.get_block_modules(item.block.into(), Some(&runtime));
+
     for (module, active_state) in modules {
       if active_state.is_true() {
         self.queue.push(QueueAction::AddAndEnterEntryModule(
@@ -965,7 +966,6 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     {
       return modules.clone();
     }
-    // dbg!(&module, &runtime);
     self.extract_block_modules(*module.get_root_block(self.compilation), runtime);
     self
       .block_modules_runtime_map

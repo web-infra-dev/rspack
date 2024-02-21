@@ -2,8 +2,8 @@ it("should be able to rename require by var", function () {
 	var cjsRequire; // just to make it difficult
 	var cjsRequire = require,
 		cjsRequire2 = typeof require !== "undefined" && require;
-	expect(typeof cjsRequire).toBe("undefined");
-	expect(typeof cjsRequire2).toBe("undefined");
+	expect(typeof cjsRequire).toBe("function");
+	expect(typeof cjsRequire2).toBe("function");
 	expect(cjsRequire("./file")).toBe("ok");
 	expect(cjsRequire2("./file")).toBe("ok");
 });

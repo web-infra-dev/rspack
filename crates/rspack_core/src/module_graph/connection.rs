@@ -39,7 +39,6 @@ impl Hash for ModuleGraphConnection {
     self.original_module_identifier.hash(state);
     self.module_identifier.hash(state);
     self.dependency_id.hash(state);
-    self.conditional.hash(state);
   }
 }
 impl PartialEq for ModuleGraphConnection {
@@ -47,7 +46,6 @@ impl PartialEq for ModuleGraphConnection {
     self.original_module_identifier == other.original_module_identifier
       && self.module_identifier == other.module_identifier
       && self.dependency_id == other.dependency_id
-      && self.conditional == other.conditional
   }
 }
 
@@ -70,6 +68,7 @@ impl ModuleGraphConnection {
   }
 
   pub fn set_active(&mut self, value: bool) {
+    self.conditional = false;
     self.active = value;
   }
 

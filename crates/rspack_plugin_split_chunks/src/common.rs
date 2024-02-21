@@ -93,7 +93,9 @@ impl SplitChunkSizes {
       if *ty_size == 0.0 {
         false
       } else {
-        let other_size = other.get(ty).copied().unwrap_or(-f64::INFINITY);
+        let Some(other_size) = other.get(ty).copied() else {
+          return false;
+        };
         *ty_size > other_size
       }
     })
@@ -103,7 +105,9 @@ impl SplitChunkSizes {
       if *ty_size == 0.0 {
         false
       } else {
-        let other_size = other.get(ty).copied().unwrap_or(f64::INFINITY);
+        let Some(other_size) = other.get(ty).copied() else {
+          return false;
+        };
         *ty_size < other_size
       }
     })

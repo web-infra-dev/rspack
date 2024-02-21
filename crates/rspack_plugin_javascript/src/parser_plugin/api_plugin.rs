@@ -80,13 +80,9 @@ impl JavascriptParserPlugin for APIPlugin {
     &self,
     parser: &mut JavascriptParser,
     ident: &Ident,
-    _for_name: &str,
+    for_name: &str,
   ) -> Option<bool> {
-    let s = ident.sym.as_str();
-    if !parser.is_unresolved_ident(s) {
-      return None;
-    }
-    match s {
+    match for_name {
       WEBPACK_REQUIRE => {
         parser
           .presentational_dependencies
@@ -96,6 +92,7 @@ impl JavascriptParserPlugin for APIPlugin {
             RuntimeGlobals::REQUIRE.name().into(),
             Some(RuntimeGlobals::REQUIRE),
           )));
+        Some(true)
       }
       WEBPACK_HASH => {
         parser
@@ -106,6 +103,7 @@ impl JavascriptParserPlugin for APIPlugin {
             format!("{}()", RuntimeGlobals::GET_FULL_HASH).into(),
             Some(RuntimeGlobals::GET_FULL_HASH),
           )));
+        Some(true)
       }
       WEBPACK_PUBLIC_PATH => {
         parser
@@ -116,11 +114,9 @@ impl JavascriptParserPlugin for APIPlugin {
             RuntimeGlobals::PUBLIC_PATH.name().into(),
             Some(RuntimeGlobals::PUBLIC_PATH),
           )));
+        Some(true)
       }
       WEBPACK_MODULES => {
-        if parser.enter_assign {
-          return None;
-        }
         parser
           .presentational_dependencies
           .push(Box::new(ConstDependency::new(
@@ -129,6 +125,7 @@ impl JavascriptParserPlugin for APIPlugin {
             RuntimeGlobals::MODULE_FACTORIES.name().into(),
             Some(RuntimeGlobals::MODULE_FACTORIES),
           )));
+        Some(true)
       }
       WEBPACK_CHUNK_LOAD => {
         parser
@@ -139,6 +136,7 @@ impl JavascriptParserPlugin for APIPlugin {
             RuntimeGlobals::ENSURE_CHUNK.name().into(),
             Some(RuntimeGlobals::ENSURE_CHUNK),
           )));
+        Some(true)
       }
       WEBPACK_MODULE => {
         parser
@@ -148,6 +146,7 @@ impl JavascriptParserPlugin for APIPlugin {
             ident.span.real_hi(),
             None,
           )));
+        Some(true)
       }
       WEBPACK_BASE_URI => {
         parser
@@ -158,6 +157,7 @@ impl JavascriptParserPlugin for APIPlugin {
             RuntimeGlobals::BASE_URI.name().into(),
             Some(RuntimeGlobals::BASE_URI),
           )));
+        Some(true)
       }
       NON_WEBPACK_REQUIRE => {
         parser
@@ -173,15 +173,19 @@ impl JavascriptParserPlugin for APIPlugin {
             },
             None,
           )));
+        Some(true)
       }
-      SYSTEM_CONTEXT => parser
-        .presentational_dependencies
-        .push(Box::new(ConstDependency::new(
-          ident.span.real_lo(),
-          ident.span.real_hi(),
-          RuntimeGlobals::SYSTEM_CONTEXT.name().into(),
-          Some(RuntimeGlobals::SYSTEM_CONTEXT),
-        ))),
+      SYSTEM_CONTEXT => {
+        parser
+          .presentational_dependencies
+          .push(Box::new(ConstDependency::new(
+            ident.span.real_lo(),
+            ident.span.real_hi(),
+            RuntimeGlobals::SYSTEM_CONTEXT.name().into(),
+            Some(RuntimeGlobals::SYSTEM_CONTEXT),
+          )));
+        Some(true)
+      }
       WEBPACK_SHARE_SCOPES => {
         parser
           .presentational_dependencies
@@ -190,7 +194,8 @@ impl JavascriptParserPlugin for APIPlugin {
             ident.span.real_hi(),
             RuntimeGlobals::SHARE_SCOPE_MAP.name().into(),
             Some(RuntimeGlobals::SHARE_SCOPE_MAP),
-          )))
+          )));
+        Some(true)
       }
       WEBPACK_INIT_SHARING => {
         parser
@@ -200,7 +205,8 @@ impl JavascriptParserPlugin for APIPlugin {
             ident.span.real_hi(),
             RuntimeGlobals::INITIALIZE_SHARING.name().into(),
             Some(RuntimeGlobals::INITIALIZE_SHARING),
-          )))
+          )));
+        Some(true)
       }
       WEBPACK_NONCE => {
         parser
@@ -211,6 +217,7 @@ impl JavascriptParserPlugin for APIPlugin {
             RuntimeGlobals::SCRIPT_NONCE.name().into(),
             Some(RuntimeGlobals::SCRIPT_NONCE),
           )));
+        Some(true)
       }
       WEBPACK_CHUNK_NAME => {
         parser
@@ -221,6 +228,7 @@ impl JavascriptParserPlugin for APIPlugin {
             RuntimeGlobals::CHUNK_NAME.name().into(),
             Some(RuntimeGlobals::CHUNK_NAME),
           )));
+        Some(true)
       }
       RSPACK_VERSION => {
         parser
@@ -231,6 +239,7 @@ impl JavascriptParserPlugin for APIPlugin {
             format!("{}()", RuntimeGlobals::RSPACK_VERSION).into(),
             Some(RuntimeGlobals::RSPACK_VERSION),
           )));
+        Some(true)
       }
       WEBPACK_RUNTIME_ID => {
         parser
@@ -241,10 +250,10 @@ impl JavascriptParserPlugin for APIPlugin {
             RuntimeGlobals::RUNTIME_ID.name().into(),
             Some(RuntimeGlobals::RUNTIME_ID),
           )));
+        Some(true)
       }
-      _ => {}
+      _ => None,
     }
-    None
   }
 
   fn member(

@@ -16,25 +16,25 @@ use rspack_core::{
 };
 use rspack_core::{BuildMeta, CompilerOptions, ModuleIdentifier, ModuleType, ResourceData};
 use rspack_error::miette::Diagnostic;
-use rustc_hash::{FxHashMap as HashMap, FxHashSet};
+use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::common::comments::Comments;
 use swc_core::common::{SourceFile, Span};
 use swc_core::ecma::atoms::Atom;
 
-use self::harmony_import_dependency_scanner::ImportMap;
+use self::harmony_import_dependency_scanner::{handle_importer_info, ImportMap};
 pub use self::parser::{CallExpressionInfo, CallHooksName, ExportedVariableInfo};
 pub use self::parser::{JavascriptParser, MemberExpressionInfo, TagInfoData, TopLevelScope};
 pub use self::util::*;
 use self::{
   harmony_export_dependency_scanner::HarmonyExportDependencyScanner,
-  harmony_import_dependency_scanner::HarmonyImportDependencyScanner,
+  harmony_import_dependency_scanner::HarmonyImportRefDependencyScanner,
 };
 
 pub struct ScanDependenciesResult {
   pub dependencies: Vec<BoxDependency>,
   pub blocks: Vec<AsyncDependenciesBlock>,
   pub presentational_dependencies: Vec<BoxDependencyTemplate>,
-  pub usage_span_record: HashMap<Span, ExtraSpanInfo>,
+  pub usage_span_record: FxHashMap<Span, ExtraSpanInfo>,
   pub import_map: ImportMap,
   pub warning_diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>>,
 }
@@ -68,6 +68,8 @@ pub fn scan_dependencies(
   let comments = program.comments.clone();
   let mut parser_exports_state = None;
   let mut ignored: FxHashSet<DependencyLocation> = FxHashSet::default();
+  let mut import_map = FxHashMap::default();
+  let mut rewrite_usage_span = FxHashMap::default();
 
   let mut parser = JavascriptParser::new(
     source_file.clone(),
@@ -76,6 +78,8 @@ pub fn scan_dependencies(
     &mut presentational_dependencies,
     &mut blocks,
     &mut ignored,
+    &mut import_map,
+    &mut rewrite_usage_span,
     comments.as_ref().map(|c| c as &dyn Comments),
     &module_identifier,
     module_type,
@@ -90,15 +94,11 @@ pub fn scan_dependencies(
 
   parser.walk_program(program.get_inner_program());
 
-  let mut import_map = Default::default();
-  let mut rewrite_usage_span = HashMap::default();
-
   if module_type.is_js_auto() || module_type.is_js_esm() {
-    program.visit_with(&mut HarmonyImportDependencyScanner::new(
+    handle_importer_info(&mut parser);
+    program.visit_with(&mut HarmonyImportRefDependencyScanner::new(
+      &import_map,
       &mut dependencies,
-      &mut presentational_dependencies,
-      &mut import_map,
-      build_info,
       &mut rewrite_usage_span,
       &mut ignored,
     ));
@@ -106,7 +106,7 @@ pub fn scan_dependencies(
     program.visit_with(&mut HarmonyExportDependencyScanner::new(
       &mut dependencies,
       &mut presentational_dependencies,
-      &mut import_map,
+      &import_map,
       build_info,
       &mut rewrite_usage_span,
       comments,

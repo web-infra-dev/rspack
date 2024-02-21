@@ -29,7 +29,7 @@ use crate::{
 pub struct HarmonyExportDependencyScanner<'a, 'b> {
   pub dependencies: &'a mut Vec<BoxDependency>,
   pub presentational_dependencies: &'a mut Vec<BoxDependencyTemplate>,
-  pub import_map: &'a mut ImportMap,
+  pub import_map: &'a ImportMap,
   pub build_info: &'a mut BuildInfo,
   pub rewrite_usage_span: &'a mut HashMap<Span, ExtraSpanInfo>,
   pub comments: Option<&'b SwcComments>,
@@ -40,7 +40,7 @@ impl<'a, 'b> HarmonyExportDependencyScanner<'a, 'b> {
   pub fn new(
     dependencies: &'a mut Vec<BoxDependency>,
     presentational_dependencies: &'a mut Vec<BoxDependencyTemplate>,
-    import_map: &'a mut ImportMap,
+    import_map: &'a ImportMap,
     build_info: &'a mut BuildInfo,
     rewrite_usage_span: &'a mut HashMap<Span, ExtraSpanInfo>,
     comments: Option<&'b SwcComments>,
