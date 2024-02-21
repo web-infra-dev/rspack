@@ -138,6 +138,8 @@ pub type AdditionalData = anymap::Map<dyn CloneAny + Send + Sync>;
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct LoaderContext<'c, C> {
+  pub hot: bool,
+
   /// Content of loader, represented by string or buffer
   /// Content should always be exist if at normal stage,
   /// It will be `None` at pitching stage.
@@ -279,6 +281,7 @@ async fn create_loader_context<'c, C: 'c>(
   }
 
   let mut loader_context = LoaderContext {
+    hot: false,
     cacheable: true,
     file_dependencies,
     context_dependencies: Default::default(),
