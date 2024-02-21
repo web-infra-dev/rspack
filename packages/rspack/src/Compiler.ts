@@ -229,7 +229,6 @@ class Compiler {
 			this
 		) as any;
 		const rawOptions = getRawOptions(options, this);
-		console.log(rawOptions.builtins.css);
 
 		const instanceBinding: typeof binding = require("@rspack/binding");
 
