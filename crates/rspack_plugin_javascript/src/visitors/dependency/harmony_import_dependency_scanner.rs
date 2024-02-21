@@ -34,25 +34,6 @@ impl ImporterReferenceInfo {
 
 pub type ImportMap = HashMap<Id, ImporterReferenceInfo>;
 
-#[derive(Debug)]
-pub struct ImporterInfo {
-  pub span: Span,
-  pub source_span: Span,
-  pub specifiers: Vec<Specifier>,
-  pub exports_all: bool,
-}
-
-impl ImporterInfo {
-  pub fn new(span: Span, source_span: Span, specifiers: Vec<Specifier>, exports_all: bool) -> Self {
-    Self {
-      span,
-      source_span,
-      specifiers,
-      exports_all,
-    }
-  }
-}
-
 pub struct HarmonyImportRefDependencyScanner<'a> {
   pub enter_callee: bool,
   pub enter_new_expr: bool,

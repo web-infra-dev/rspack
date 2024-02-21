@@ -6,7 +6,7 @@ use swc_core::ecma::ast::{ImportDecl, ImportSpecifier, ModuleExportName};
 
 use super::JavascriptParserPlugin;
 use crate::dependency::{HarmonyImportSideEffectDependency, Specifier};
-use crate::visitors::harmony_import_dependency_scanner::ImporterReferenceInfo;
+use crate::visitors::ImporterReferenceInfo;
 use crate::visitors::JavascriptParser;
 
 pub(super) fn handle_harmony_import_side_effects_dep(
