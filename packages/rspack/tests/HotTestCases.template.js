@@ -75,8 +75,9 @@ const describeCases = config => {
 								if (!options.output.path) options.output.path = outputDirectory;
 								if (!options.output.filename)
 									options.output.filename = "bundle.js";
-								if (!options.output.chunkFilename)
-									options.output.chunkFilename = "[name].chunk.[fullhash].js";
+								// CHANGE: chunkFilename may cause errors in Rspack
+								// if (!options.output.chunkFilename)
+								// 	options.output.chunkFilename = "[name].chunk.[fullhash].js";
 								// CHANGE: the pathinfo is currently not supported in Rspack
 								// if (options.output.pathinfo === undefined)
 								// 	options.output.pathinfo = true;
