@@ -1,23 +1,21 @@
 use std::borrow::Cow;
-use std::ops::Deref;
 
 use swc_core::ecma::ast::{ArrayLit, ArrayPat, ArrowExpr, AssignExpr, AssignPat, AwaitExpr};
 use swc_core::ecma::ast::{BinExpr, BlockStmt, BlockStmtOrExpr, CallExpr, Callee, CatchClause};
 use swc_core::ecma::ast::{Class, ClassDecl, ClassExpr, ClassMember, CondExpr, Decl, DefaultDecl};
 use swc_core::ecma::ast::{DoWhileStmt, ExportDecl, ExportDefaultDecl, ExportDefaultExpr, Expr};
 use swc_core::ecma::ast::{ExprOrSpread, ExprStmt, FnDecl, MemberExpr, MemberProp, VarDeclOrExpr};
-use swc_core::ecma::ast::{FnExpr, ForHead, Function, Ident, KeyValuePatProp, KeyValueProp};
+use swc_core::ecma::ast::{FnExpr, ForHead, Function, Ident, KeyValueProp};
 use swc_core::ecma::ast::{ForInStmt, ForOfStmt, ForStmt, IfStmt, LabeledStmt, WithStmt};
 use swc_core::ecma::ast::{MetaPropExpr, NamedExport, NewExpr, ObjectLit, OptCall, OptChainBase};
 use swc_core::ecma::ast::{ModuleDecl, ModuleItem, ObjectPat, ObjectPatProp, Stmt, WhileStmt};
 use swc_core::ecma::ast::{OptChainExpr, ParamOrTsParamProp, Pat, PatOrExpr, ThisExpr, UnaryOp};
 use swc_core::ecma::ast::{Prop, PropName, PropOrSpread, RestPat, ReturnStmt, SeqExpr, TaggedTpl};
-use swc_core::ecma::ast::{SwitchCase, SwitchStmt, Tpl, TryStmt, VarDecl, VarDeclKind, YieldExpr};
+use swc_core::ecma::ast::{SwitchCase, SwitchStmt, Tpl, TryStmt, VarDecl, YieldExpr};
 use swc_core::ecma::ast::{ThrowStmt, UnaryExpr, UpdateExpr};
-use swc_core::ecma::utils::ExprFactory;
 
+use super::TopLevelScope;
 use super::{AllowedMemberTypes, CallHooksName, JavascriptParser, MemberExpressionInfo, RootName};
-use super::{ExportedVariableInfo, TopLevelScope};
 use crate::parser_plugin::{is_logic_op, JavascriptParserPlugin};
 
 fn warp_ident_to_pat(ident: Ident) -> Pat {
@@ -31,12 +29,15 @@ impl<'parser> JavascriptParser<'parser> {
   {
     let old_definitions = self.definitions;
     let old_top_level_scope = self.top_level_scope;
+    let old_in_tagged_template_tag = self.in_tagged_template_tag;
 
+    self.in_tagged_template_tag = false;
     self.definitions = self.definitions_db.create_child(&old_definitions);
     f(self);
 
     self.definitions = old_definitions;
     self.top_level_scope = old_top_level_scope;
+    self.in_tagged_template_tag = old_in_tagged_template_tag;
   }
 
   fn in_class_scope<'a, I, F>(&mut self, has_this: bool, params: I, f: F)
@@ -47,8 +48,10 @@ impl<'parser> JavascriptParser<'parser> {
     let old_definitions = self.definitions;
     let old_in_try = self.in_try;
     let old_top_level_scope = self.top_level_scope;
+    let old_in_tagged_template_tag = self.in_tagged_template_tag;
 
     self.in_try = false;
+    self.in_tagged_template_tag = false;
     self.definitions = self.definitions_db.create_child(&old_definitions);
 
     if has_this {
@@ -64,6 +67,7 @@ impl<'parser> JavascriptParser<'parser> {
     self.in_try = old_in_try;
     self.definitions = old_definitions;
     self.top_level_scope = old_top_level_scope;
+    self.in_tagged_template_tag = old_in_tagged_template_tag;
   }
 
   fn in_function_scope<'a, I, F>(&mut self, has_this: bool, params: I, f: F)
@@ -73,8 +77,10 @@ impl<'parser> JavascriptParser<'parser> {
   {
     let old_definitions = self.definitions;
     let old_top_level_scope = self.top_level_scope;
+    let old_in_tagged_template_tag = self.in_tagged_template_tag;
 
     self.definitions = self.definitions_db.create_child(&old_definitions);
+    self.in_tagged_template_tag = false;
     if has_this {
       self.undefined_variable("this".to_string());
     }
@@ -85,6 +91,7 @@ impl<'parser> JavascriptParser<'parser> {
 
     self.definitions = old_definitions;
     self.top_level_scope = old_top_level_scope;
+    self.in_tagged_template_tag = old_in_tagged_template_tag;
   }
 
   pub fn walk_module_declarations(&mut self, statements: &Vec<ModuleItem>) {
@@ -364,7 +371,6 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_variable_declaration(&mut self, decl: &VarDecl) {
-    self.enter_assign = true;
     for declarator in &decl.decls {
       if let Some(init) = declarator.init.as_ref()
         && let Some(renamed_identifier) = self.get_rename_identifier(init)
@@ -396,7 +402,6 @@ impl<'parser> JavascriptParser<'parser> {
         }
       }
     }
-    self.enter_assign = false;
   }
 
   fn walk_expression_statement(&mut self, stmt: &ExprStmt) {
@@ -488,7 +493,9 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_tagged_template_expression(&mut self, expr: &TaggedTpl) {
+    self.in_tagged_template_tag = true;
     self.walk_expression(&expr.tag);
+    self.in_tagged_template_tag = false;
 
     let exprs = expr.tpl.exprs.iter().map(|expr| &**expr);
     self.walk_expressions(exprs);
@@ -700,6 +707,8 @@ impl<'parser> JavascriptParser<'parser> {
     // FIXME: should align to webpack
     match &expr.callee {
       Callee::Expr(callee) => {
+        // TODO: iife
+
         if let Expr::Member(member) = &**callee
           && let Some(MemberExpressionInfo::Call(expr_info)) =
             self.get_member_expression_info(member, AllowedMemberTypes::CallExpression)
@@ -713,17 +722,34 @@ impl<'parser> JavascriptParser<'parser> {
           self.enter_call -= 1;
           return;
         }
-        let evaluated = self.evaluate_expression(callee);
-        if evaluated.is_identifier()
-          && self
-            .plugin_drive
-            .clone()
-            .call(self, expr, evaluated.identifier())
+        let evaluated_callee = self.evaluate_expression(callee);
+        if evaluated_callee.is_identifier() {
+          let drive = self.plugin_drive.clone();
+          if drive
+            .call_member_chain(
+              self,
+              evaluated_callee.root_info(),
+              expr,
+              // evaluated_callee.get_members(),
+              // evaluated_callee.identifier(),
+            )
             .unwrap_or_default()
-        {
-          self.enter_call -= 1;
-          return;
+          {
+            /* result1 */
+            self.enter_call -= 1;
+            return;
+          }
+
+          if drive
+            .call(self, expr, evaluated_callee.identifier())
+            .unwrap_or_default()
+          {
+            /* result2 */
+            self.enter_call -= 1;
+            return;
+          }
         }
+
         if let Some(member) = callee.as_member() {
           self.walk_expression(&member.obj);
           if let Some(computed) = member.prop.as_computed() {
@@ -733,7 +759,6 @@ impl<'parser> JavascriptParser<'parser> {
           self.walk_expression(callee);
         }
       }
-      Callee::Super(_) => {} // Do nothing about super, same as webpack
       Callee::Import(_) => {
         // In webpack this is walkImportExpression, import() is a ImportExpression instead of CallExpression with Callee::Import
         if self
@@ -746,6 +771,7 @@ impl<'parser> JavascriptParser<'parser> {
           return;
         }
       }
+      Callee::Super(_) => {} // Do nothing about super, same as webpack
     }
     self.walk_expr_or_spread(&expr.args);
     self.enter_call -= 1;
@@ -809,7 +835,6 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_assignment_expression(&mut self, expr: &AssignExpr) {
-    self.enter_assign = true;
     // FIXME: should align to webpack
     if self
       .plugin_drive
@@ -819,9 +844,16 @@ impl<'parser> JavascriptParser<'parser> {
     {
       // empty
     } else if let Some(ident) = expr.left.as_ident() {
-      // if let Some(rename_identifier) = self.get_rename_identifier(&expr.right) {
-      //     // TODO:
-      //   }
+      if let Some(rename_identifier) = self.get_rename_identifier(&expr.right)
+        && let Some(name) = rename_identifier.call_hooks_name(self)
+        && let drive = self.plugin_drive.clone()
+        && drive.can_rename(self, &name).unwrap_or_default()
+      {
+        if !drive.rename(self, &expr.right, &name).unwrap_or_default() {
+          self.set_variable(ident.sym.to_string(), name);
+        }
+        return;
+      }
       self.walk_expression(&expr.right);
       self.enter_pattern(
         Cow::Owned(warp_ident_to_pat(ident.clone())),
@@ -845,7 +877,6 @@ impl<'parser> JavascriptParser<'parser> {
         PatOrExpr::Pat(pat) => self.walk_pattern(pat),
       }
     }
-    self.enter_assign = false;
     // TODO:
     // else if let Some(member) = expr.left.as_expr().and_then(|expr| expr.as_member()) {
     // }
@@ -1124,6 +1155,6 @@ fn member_prop_len(member_prop: &MemberProp) -> Option<usize> {
   match member_prop {
     MemberProp::Ident(ident) => Some(ident.sym.len()),
     MemberProp::PrivateName(name) => Some(name.id.sym.len() + 1),
-    MemberProp::Computed(name) => None,
+    MemberProp::Computed(_) => None,
   }
 }

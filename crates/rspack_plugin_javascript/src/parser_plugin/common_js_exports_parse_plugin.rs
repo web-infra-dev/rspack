@@ -1,6 +1,6 @@
 use rspack_core::{
-  extract_member_expression_chain, BuildMetaDefaultObject, BuildMetaExportsType, RuntimeGlobals,
-  RuntimeRequirementsDependency, SpanExt,
+  extract_member_expression_chain, BuildMetaDefaultObject, BuildMetaExportsType,
+  ExpressionInfoKind, RuntimeGlobals, RuntimeRequirementsDependency, SpanExt,
 };
 use swc_core::atoms::Atom;
 use swc_core::common::Spanned;
@@ -25,7 +25,14 @@ fn get_member_expression_info(
     None => is_module_exports_member_expr_start(expr),
   };
   expr.as_member().and_then(|expr: &MemberExpr| {
-    let members = extract_member_expression_chain(expr)
+    let expression_info = extract_member_expression_chain(expr);
+    if matches!(
+      expression_info.kind(),
+      ExpressionInfoKind::MemberExpression(_)
+    ) {
+      return None;
+    }
+    let members = expression_info
       .members()
       .iter()
       .skip(if is_module_exports_start { 2 } else { 1 })
@@ -244,7 +251,6 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
   ) -> Option<bool> {
     if parser.is_module_ident(ident) {
       parser.append_module_runtime();
-      // here should use, but scanner is not one pass, so here use extra `visit_program` to calculate is_harmony
       // matches!( self.build_meta.exports_type, BuildMetaExportsType::Namespace)
       let decorator = if parser.is_esm {
         RuntimeGlobals::HARMONY_MODULE_DECORATOR
@@ -305,8 +311,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
       return None;
     }
 
-    // FIXME: remove this `.clone`
-    let expr = Expr::Member(mem_expr.clone());
+    let expr = Expr::Member(mem_expr.to_owned());
     let handle_remaining = |parser: &mut JavascriptParser, base: ExportsBase| {
       let is_module_exports_start = matches!(base, ExportsBase::ModuleExports);
       if let Some(remaining) = get_member_expression_info(&expr, Some(is_module_exports_start)) {
@@ -326,19 +331,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
         None
       }
     };
-    if expr_matcher::is_module_exports(&expr) {
-      // `module.exports`
-      parser.bailout();
-      parser
-        .dependencies
-        .push(Box::new(CommonJsSelfReferenceDependency::new(
-          (expr.span().real_lo(), expr.span().real_hi()),
-          ExportsBase::ModuleExports,
-          vec![],
-          false,
-        )));
-      Some(true)
-    } else if parser.is_exports_member_expr_start(&expr) {
+    if parser.is_exports_member_expr_start(&expr) {
       // `exports.x.y`
       handle_remaining(parser, ExportsBase::Exports)
     } else if is_module_exports_member_expr_start(&expr) {
@@ -367,75 +360,81 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
       else {
         return None;
       };
-      if remaining.is_empty() {
-        parser.enable();
 
-        if parser.is_require_call_expr(&assign_expr.right)
-          && let Some(right_expr) = assign_expr.right.as_call()
-          && let Some(first_arg) = right_expr.args.first().map(|arg| &arg.expr)
-        {
-          let param = parser.evaluate_expression(first_arg);
-          if param.is_string() {
+      if (remaining.is_empty() || remaining.first().is_some_and(|i| i != "__esModule"))
+        && parser.is_require_call_expr(&assign_expr.right)
+        && let Some(right_expr) = assign_expr.right.as_call()
+        && let Some(first_arg) = right_expr.args.first().map(|arg| &arg.expr)
+      {
+        let param = parser.evaluate_expression(first_arg);
+        if param.is_string() {
+          parser.enable();
+          if remaining.is_empty() {
             // exports = require('xx');
             // module.exports = require('xx');
             // this = require('xx');
             // It's possible to reexport __esModule, so we must convert to a dynamic module
             parser.set_dynamic();
-            parser
-              .dependencies
-              .push(Box::new(CommonJsExportRequireDependency::new(
-                param.string().to_string(),
-                parser.in_try,
-                Some(assign_expr.span.into()),
-                (assign_expr.span().real_lo(), assign_expr.span().real_hi()),
-                base,
-                remaining,
-                false, // TODO: align parser.isStatementLevelExpression
-              )));
-          } else {
-            parser.walk_expression(&assign_expr.right);
           }
-        } else {
-          // exports = {};
-          // module.exports = {};
-          // this = {};
-          parser.bailout();
-          parser.walk_expression(&assign_expr.right);
+          // exports.aaa = require('xx');
+          // module.exports.aaa = require('xx');
+          // this.aaa = require('xx');
+          parser
+            .dependencies
+            .push(Box::new(CommonJsExportRequireDependency::new(
+              param.string().to_string(),
+              parser.in_try,
+              Some(assign_expr.span.into()),
+              (assign_expr.span().real_lo(), assign_expr.span().real_hi()),
+              base,
+              remaining,
+              false, // TODO: align parser.isStatementLevelExpression
+            )));
+          return Some(true);
         }
-      } else {
-        // exports.__esModule = true;
-        // module.exports.__esModule = true;
-        // this.__esModule = true;
-        if let Some(first_member) = remaining.first()
-          && first_member == "__esModule"
-        {
-          parser.check_namespace(
-            // const flagIt = () => (exports.__esModule = true); => stmt_level = 1, last_stmt_is_expr_stmt = false
-            // const flagIt = () => { exports.__esModule = true }; => stmt_level = 2, last_stmt_is_expr_stmt = true
-            // (exports.__esModule = true); => stmt_level = 1, last_stmt_is_expr_stmt = true
-            parser.stmt_level == 1 && parser.last_stmt_is_expr_stmt,
-            Some(&assign_expr.right),
-          );
-        }
-        // exports.a = 1;
-        // module.exports.a = 1;
-        // this.a = 1;
-        parser
-          .dependencies
-          .push(Box::new(CommonJsExportsDependency::new(
-            (left_expr.span().real_lo(), left_expr.span().real_hi()),
-            None,
-            base,
-            remaining.to_owned(),
-          )));
-        parser.walk_expression(&assign_expr.right);
       }
+
+      if remaining.is_empty() {
+        // exports = {};
+        // module.exports = {};
+        // this = {};
+        parser.bailout();
+        parser.walk_expression(&assign_expr.right);
+        return Some(true);
+      }
+
+      parser.enable();
+      // exports.__esModule = true;
+      // module.exports.__esModule = true;
+      // this.__esModule = true;
+      if let Some(first_member) = remaining.first()
+        && first_member == "__esModule"
+      {
+        parser.check_namespace(
+          // const flagIt = () => (exports.__esModule = true); => stmt_level = 1, last_stmt_is_expr_stmt = false
+          // const flagIt = () => { exports.__esModule = true }; => stmt_level = 2, last_stmt_is_expr_stmt = true
+          // (exports.__esModule = true); => stmt_level = 1, last_stmt_is_expr_stmt = true
+          parser.stmt_level == 1 && parser.last_stmt_is_expr_stmt,
+          Some(&assign_expr.right),
+        );
+      }
+      // exports.a = 1;
+      // module.exports.a = 1;
+      // this.a = 1;
+      parser
+        .dependencies
+        .push(Box::new(CommonJsExportsDependency::new(
+          (left_expr.span().real_lo(), left_expr.span().real_hi()),
+          None,
+          base,
+          remaining.to_owned(),
+        )));
+      parser.walk_expression(&assign_expr.right);
       Some(true)
     };
 
     if parser.is_exports_member_expr_start(left_expr) {
       // exports.x = y;
-      parser.enable();
       handle_remaining(parser, ExportsBase::Exports)
     } else if is_module_exports_member_expr_start(left_expr) {
       // module.exports.x = y;

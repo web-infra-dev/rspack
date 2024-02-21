@@ -4,17 +4,15 @@ use rspack_core::{
 };
 use rspack_core::{ContextNameSpaceObject, ContextOptions};
 use swc_core::common::{Span, Spanned};
-use swc_core::ecma::ast::{CallExpr, Callee, Expr, Ident, Lit, MemberExpr};
+use swc_core::ecma::ast::{CallExpr, Expr, Ident, Lit, MemberExpr};
 
 use super::JavascriptParserPlugin;
 use crate::dependency::RequireHeaderDependency;
 use crate::dependency::{CommonJsFullRequireDependency, CommonJsRequireContextDependency};
 use crate::dependency::{CommonJsRequireDependency, RequireResolveDependency};
 use crate::utils::eval::{self, BasicEvaluatedExpression};
-use crate::visitors::{expr_matcher, scanner_context_module, JavascriptParser};
+use crate::visitors::{expr_matcher, expr_name, scanner_context_module, JavascriptParser};
 use crate::visitors::{extract_require_call_info, is_require_call_start};
-
-pub const COMMONJS_REQUIRE: &str = "require";
 
 fn create_commonjs_require_context_dependency(
   expr: &Expr,
@@ -76,31 +74,6 @@ impl CommonJsImportsParserPlugin {
           node.span.into(),
           parser.in_try,
         )));
-    }
-  }
-
-  fn replace_require_resolve(
-    &self,
-    parser: &mut JavascriptParser,
-    expr: &Expr,
-    value: &'static str,
-  ) -> Option<bool> {
-    if (expr_matcher::is_require(expr)
-      || expr_matcher::is_require_resolve(expr)
-      || expr_matcher::is_require_resolve_weak(expr))
-      && parser.is_unresolved_require(expr)
-    {
-      parser
-        .presentational_dependencies
-        .push(Box::new(ConstDependency::new(
-          expr.span().real_lo(),
-          expr.span().real_hi(),
-          value.into(),
-          None,
-        )));
-      Some(true)
-    } else {
-      None
     }
   }
 
@@ -185,7 +158,7 @@ impl CommonJsImportsParserPlugin {
     call_expr: &CallExpr,
     for_name: &str,
   ) -> Option<bool> {
-    let is_require_expr = for_name == COMMONJS_REQUIRE
+    let is_require_expr = for_name == expr_name::REQUIRE
       || call_expr
         .callee
         .as_expr()
@@ -238,7 +211,7 @@ impl CommonJsImportsParserPlugin {
 
 impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
   fn can_rename(&self, parser: &mut JavascriptParser, str: &str) -> Option<bool> {
-    if str == COMMONJS_REQUIRE && parser.is_unresolved_ident(str) {
+    if str == expr_name::REQUIRE && parser.is_unresolved_ident(str) {
       Some(true)
     } else {
       None
@@ -246,7 +219,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
   }
 
   fn rename(&self, parser: &mut JavascriptParser, expr: &Expr, str: &str) -> Option<bool> {
-    if str == COMMONJS_REQUIRE && parser.is_unresolved_ident(str) {
+    if str == expr_name::REQUIRE && parser.is_unresolved_ident(str) {
       parser
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(
@@ -268,7 +241,9 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     start: u32,
     end: u32,
   ) -> Option<BasicEvaluatedExpression> {
-    if expression.sym.as_str() == COMMONJS_REQUIRE && parser.is_unresolved_ident(COMMONJS_REQUIRE) {
+    if expression.sym.as_str() == expr_name::REQUIRE
+      && parser.is_unresolved_ident(expr_name::REQUIRE)
+    {
       Some(eval::evaluate_to_string("function".to_string(), start, end))
     } else {
       None
@@ -277,54 +252,47 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
 
   fn evaluate_identifier(
     &self,
-    parser: &mut JavascriptParser,
+    _parser: &mut JavascriptParser,
     ident: &str,
     start: u32,
     end: u32,
   ) -> Option<BasicEvaluatedExpression> {
-    if ident == COMMONJS_REQUIRE && parser.is_unresolved_ident(COMMONJS_REQUIRE) {
-      Some(eval::evaluate_to_identifier(
-        COMMONJS_REQUIRE.to_string(),
-        COMMONJS_REQUIRE.to_string(),
+    match ident {
+      expr_name::REQUIRE => Some(eval::evaluate_to_identifier(
+        expr_name::REQUIRE.to_string(),
+        expr_name::REQUIRE.to_string(),
         Some(true),
         start,
         end,
-      ))
-    } else {
-      None
+      )),
+      expr_name::REQUIRE_RESOLVE => Some(eval::evaluate_to_identifier(
+        expr_name::REQUIRE_RESOLVE.to_string(),
+        expr_name::REQUIRE.to_string(),
+        Some(true),
+        start,
+        end,
+      )),
+      expr_name::REQUIRE_RESOLVE_WEAK => Some(eval::evaluate_to_identifier(
+        expr_name::REQUIRE_RESOLVE_WEAK.to_string(),
+        expr_name::REQUIRE.to_string(),
+        Some(true),
+        start,
+        end,
+      )),
+      _ => None,
     }
-  }
-
-  fn expression_logical_operator(
-    &self,
-    parser: &mut JavascriptParser,
-    expr: &swc_core::ecma::ast::BinExpr,
-  ) -> Option<bool> {
-    // TODO: this block can be removed after eval identifier
-    let value = if parser.in_if { "true" } else { "undefined" };
-    self.replace_require_resolve(parser, &expr.left, value);
-    self.replace_require_resolve(parser, &expr.right, value);
-    None
-  }
-
-  fn statement_if(
-    &self,
-    parser: &mut JavascriptParser,
-    expr: &swc_core::ecma::ast::IfStmt,
-  ) -> Option<bool> {
-    self.replace_require_resolve(parser, &expr.test, "true")
   }
 
   fn r#typeof(
     &self,
     parser: &mut JavascriptParser,
     expr: &swc_core::ecma::ast::UnaryExpr,
-    _for_name: &str,
+    for_name: &str,
   ) -> Option<bool> {
-    if (expr_matcher::is_require(&expr.arg)
-      || expr_matcher::is_require_resolve(&expr.arg)
-      || expr_matcher::is_require_resolve_weak(&expr.arg))
-      && parser.is_unresolved_require(&expr.arg)
+    // same as webpack/tagRequireExpression
+    if for_name == expr_name::REQUIRE
+      || for_name == expr_name::REQUIRE_RESOLVE
+      || for_name == expr_name::REQUIRE_RESOLVE_WEAK
     {
       parser
         .presentational_dependencies
@@ -365,27 +333,20 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     call_expr: &CallExpr,
     for_name: &str,
   ) -> Option<bool> {
-    let Callee::Expr(expr) = &call_expr.callee else {
-      return Some(false);
-    };
     if self
       .require_handler(parser, call_expr, for_name)
       .unwrap_or_default()
     {
-      return Some(true);
+      Some(true)
+    } else if for_name == expr_name::REQUIRE_RESOLVE {
+      self.add_require_resolve(parser, call_expr, false);
+      Some(true)
+    } else if for_name == expr_name::REQUIRE_RESOLVE_WEAK {
+      self.add_require_resolve(parser, call_expr, true);
+      Some(true)
+    } else {
+      None
     }
-
-    if parser.is_unresolved_member_object_ident(expr) {
-      if expr_matcher::is_require_resolve(expr) {
-        self.add_require_resolve(parser, call_expr, false);
-        return Some(true);
-      }
-      if expr_matcher::is_require_resolve_weak(expr) {
-        self.add_require_resolve(parser, call_expr, true);
-        return Some(true);
-      }
-    }
-    None
   }
 
   fn member_chain_of_call_member_chain(

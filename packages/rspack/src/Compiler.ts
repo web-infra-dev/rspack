@@ -994,7 +994,7 @@ class Compiler {
 		this.compilation.normalModuleFactory = normalModuleFactory;
 		this.hooks.normalModuleFactory.call(normalModuleFactory);
 		this.compilation.contextModuleFactory = contextModuleFactory;
-		this.hooks.contextModuleFactory.call(normalModuleFactory);
+		this.hooks.contextModuleFactory.call(contextModuleFactory);
 		this.hooks.thisCompilation.call(this.compilation, {
 			normalModuleFactory: normalModuleFactory
 		});

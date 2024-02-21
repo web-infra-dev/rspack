@@ -11,6 +11,7 @@ version    = "0.1.0"
 async-trait       = { workspace = true }
 dashmap           = { workspace = true }
 derivative        = { workspace = true }
+num-bigint        = "0.4.4"
 once_cell         = { workspace = true }
 rayon             = { workspace = true }
 regex             = { workspace = true }

@@ -504,7 +504,7 @@ impl Compilation {
       let (deps, blocks) = compalition
         .module_graph
         .get_module_dependencies_modules_and_blocks(module_identifier);
-      let deps: Vec<_> = deps.into_iter().cloned().collect();
+
       let blocks_with_option: Vec<_> = blocks
         .iter()
         .map(|block| {
@@ -1143,14 +1143,11 @@ impl Compilation {
           if self.module_graph.module_by_identifier(&module_id).is_none() {
             false
           } else {
-            let (mut now_deps, mut now_blocks) = module_deps(self, &module_id);
-            let (mut origin_deps, mut origin_blocks) = deps;
+            let (now_deps, mut now_blocks) = module_deps(self, &module_id);
+            let (origin_deps, mut origin_blocks) = deps;
             if now_deps.len() != origin_deps.len() || now_blocks.len() != origin_blocks.len() {
               false
             } else {
-              now_deps.sort_unstable();
-              origin_deps.sort_unstable();
-
               for index in 0..origin_deps.len() {
                 if origin_deps[index] != now_deps[index] {
                   return false;
@@ -2278,8 +2275,8 @@ pub struct AssetInfoRelated {
   pub source_map: Option<String>,
 }
 
-/// level order, the impl is different from webpack, since the length of queue in `for of loop` is
-/// will not change
+/// level order, the impl is different from webpack, since we can't iterate a set and mutate it at
+/// the same time.
 pub fn assign_depths(
   assign_map: &mut HashMap<ModuleIdentifier, usize>,
   mg: &ModuleGraph,

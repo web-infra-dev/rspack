@@ -33,18 +33,18 @@ impl<'parser> JavascriptParser<'parser> {
   }
 }
 
-pub struct HarmonDetectionParserPlugin {
+pub struct HarmonyDetectionParserPlugin {
   top_level_await: bool,
 }
 
-impl HarmonDetectionParserPlugin {
+impl HarmonyDetectionParserPlugin {
   pub fn new(top_level_await: bool) -> Self {
     Self { top_level_await }
   }
 }
 
 // Port from https://github.com/webpack/webpack/blob/main/lib/dependencies/HarmonyDetectionParserPlugin.js
-impl JavascriptParserPlugin for HarmonDetectionParserPlugin {
+impl JavascriptParserPlugin for HarmonyDetectionParserPlugin {
   fn program(&self, parser: &mut JavascriptParser, ast: &Program) -> Option<bool> {
     let is_strict_harmony = matches!(parser.module_type, ModuleType::JsEsm);
     let is_harmony = is_strict_harmony
