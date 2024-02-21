@@ -77,7 +77,7 @@ const describeCases = config => {
 									options.output.filename = "bundle.js";
 								if (!options.output.chunkFilename)
 									options.output.chunkFilename = "[name].chunk.[fullhash].js";
-								// CHANGE: The pathinfo is currently not supported in rspack
+								// CHANGE: the pathinfo is currently not supported in Rspack
 								// if (options.output.pathinfo === undefined)
 								// 	options.output.pathinfo = true;
 								if (options.output.publicPath === undefined)
@@ -89,13 +89,19 @@ const describeCases = config => {
 									options.optimization.moduleIds = "named";
 								if (!options.module) options.module = {};
 								if (!options.module.rules) options.module.rules = [];
+								// CHANGE: switched to `use` configuration, `loader` may not work in Rspack
 								options.module.rules.push({
-									loader: path.join(
-										__dirname,
-										"hotCases",
-										"fake-update-loader.js"
-									),
-									enforce: "pre"
+									test: /\.(js|css|json)/,
+									use: [
+										{
+											loader: path.join(
+												__dirname,
+												"hotCases",
+												"fake-update-loader.js"
+											),
+											options: fakeUpdateLoaderOptions
+										}
+									]
 								});
 								if (!options.target) options.target = config.target;
 								if (!options.plugins) options.plugins = [];
@@ -103,7 +109,7 @@ const describeCases = config => {
 									new webpack.HotModuleReplacementPlugin(),
 									new webpack.LoaderOptionsPlugin(fakeUpdateLoaderOptions)
 								);
-								// CHANGE: The recordsPath is currently not supported in rspack
+								// CHANGE: the recordsPath is currently not supported in Rspack
 								// if (!options.recordsPath) options.recordsPath = recordsPath;
 								compiler = webpack(options);
 								compiler.run((err, stats) => {
@@ -179,26 +185,67 @@ const describeCases = config => {
 													setAttribute(name, value) {
 														this._attrs[name] = value;
 													},
+													// CHANGE: added support for `getAttribute` method
+													getAttribute(name) {
+														return this._attrs[name];
+													},
 													parentNode: {
 														removeChild(node) {
 															// ok
 														}
+													},
+													// CHANGE: added support for css link
+													sheet: {
+														disabled: false
 													}
 												};
 											},
 											head: {
+												// CHANGE: added support for `children` property
+												children: [],
+												// CHANGE: added support for `insertBefore` method
+												insertBefore(element, before) {
+													element.parentNode = this;
+													this.children.unshift(element);
+													Promise.resolve().then(() => {
+														if (element.onload) {
+															element.onload({ type: "load", target: element });
+														}
+													});
+												},
+												// CHANGE: enhanced `insertBefore` method
 												appendChild(element) {
+													element.parentNode = this;
+													this.children.push(element);
 													if (element._type === "script") {
-														// run it
 														Promise.resolve().then(() => {
 															_require(urlToRelativePath(element.src));
+															if (element.onload) {
+																element.onload({
+																	type: "load",
+																	target: element
+																});
+															}
 														});
+													} else {
+														if (element.onload) {
+															element.onload({ type: "load", target: element });
+														}
 													}
+												},
+												// CHANGE: added support for `removeChild` method
+												removeChild(node) {
+													const index = this.children.indexOf(node);
+													this.children.splice(index, 1);
 												}
 											},
 											getElementsByTagName(name) {
 												if (name === "head") return [this.head];
-												if (name === "script") return [];
+												// CHANGE: added support for link tag
+												if (name === "script" || name === "link")
+													return this.head.children.filter(
+														i => i._type === name
+													);
 												throw new Error("Not supported");
 											}
 										},
@@ -296,10 +343,20 @@ const describeCases = config => {
 									let promise = Promise.resolve();
 									const info = stats.toJson({ all: false, entrypoints: true });
 									if (config.target === "web") {
-										for (const file of info.entrypoints.main.assets)
+										// CHANGE: filtered non-JavaScript files from test and included CSS file handling
+										if (file.name.endsWith(".js")) {
 											_require(`./${file.name}`);
+										} else {
+											const cssElement = window.document.createElement("link");
+											cssElement.href = file.name;
+											cssElement.rel = "stylesheet";
+											window.document.head.appendChild(cssElement);
+										}
 									} else {
-										const assets = info.entrypoints.main.assets;
+										// CHANGE: filtered non-JavaScript files
+										const assets = info.entrypoints.main.assets.filter(s =>
+											s.name.endsWith(".js")
+										);
 										const result = _require(
 											`./${assets[assets.length - 1].name}`
 										);
