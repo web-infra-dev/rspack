@@ -830,10 +830,6 @@ class Compiler {
 		this.#updateDisabledHooks();
 	}
 
-	async #make() {
-		await this.hooks.make.promise(this.compilation);
-		this.#updateDisabledHooks();
-	}
 	async #shouldEmit(): Promise<boolean | undefined> {
 		const res = this.hooks.shouldEmit.call(this.compilation);
 		this.#updateDisabledHooks();
