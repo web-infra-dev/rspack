@@ -3,6 +3,7 @@ const fs = require("fs");
 const assert = require("assert");
 
 module.exports = {
+	mode: "production",
 	entry: {
 		main: "./index.js",
 		m: "./m.js"
@@ -13,6 +14,9 @@ module.exports = {
 		library: {
 			type: "module"
 		}
+	},
+	optimization: {
+		minimize: false
 	},
 	experiments: {
 		outputModule: true,

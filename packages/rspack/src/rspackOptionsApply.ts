@@ -183,15 +183,6 @@ export class RspackOptionsApply {
 			}
 		}
 
-		if (
-			options.output.enabledLibraryTypes &&
-			options.output.enabledLibraryTypes.length > 0
-		) {
-			for (const type of options.output.enabledLibraryTypes) {
-				new EnableLibraryPlugin(type).apply(compiler);
-			}
-		}
-
 		const runtimeChunk = options.optimization
 			.runtimeChunk as OptimizationRuntimeChunkNormalized;
 		if (runtimeChunk) {
@@ -283,11 +274,20 @@ export class RspackOptionsApply {
 			if (options.optimization.concatenateModules) {
 				new ModuleConcatenationPlugin().apply(compiler);
 			}
+			if (options.optimization.mangleExports) {
+				new MangleExportsPlugin(
+					options.optimization.mangleExports !== "size"
+				).apply(compiler);
+			}
 		}
-		if (options.optimization.mangleExports) {
-			new MangleExportsPlugin(
-				options.optimization.mangleExports !== "size"
-			).apply(compiler);
+
+		if (
+			options.output.enabledLibraryTypes &&
+			options.output.enabledLibraryTypes.length > 0
+		) {
+			for (const type of options.output.enabledLibraryTypes) {
+				new EnableLibraryPlugin(type).apply(compiler);
+			}
 		}
 		if (options.optimization.splitChunks) {
 			new SplitChunksPlugin(options.optimization.splitChunks).apply(compiler);
