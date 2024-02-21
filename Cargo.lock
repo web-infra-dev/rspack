@@ -2506,6 +2506,7 @@ dependencies = [
  "itertools 0.12.1",
  "json",
  "mime_guess",
+ "num-bigint",
  "once_cell",
  "oxc_resolver",
  "paste",
