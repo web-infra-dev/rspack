@@ -14,7 +14,7 @@ export interface ITestContext {
 	getSource(sub?: string): string;
 	getDist(sub?: string): string;
 	options<T extends ECompilerType>(
-		fn: (options: TCompilerOptions<T>) => TCompilerOptions<T>,
+		fn: (options: TCompilerOptions<T>) => TCompilerOptions<T> | void,
 		name?: string
 	): void;
 	compiler<T extends ECompilerType>(
@@ -28,7 +28,7 @@ export interface ITestContext {
 		fn: (
 			compiler: TCompiler<T> | null,
 			stats: TCompilerStats<T> | null
-		) => TCompilerStats<T> | null,
+		) => TCompilerStats<T> | void,
 		name?: string
 	): void;
 	result<T extends ECompilerType>(
@@ -61,7 +61,7 @@ export type TCompilerStats<T> = T extends ECompilerType.Rspack
 export interface ITestCompilerManager<T extends ECompilerType> {
 	options(
 		context: ITestContext,
-		fn: (options: TCompilerOptions<T>) => TCompilerOptions<T>
+		fn: (options: TCompilerOptions<T>) => TCompilerOptions<T> | void
 	): void;
 	compiler(
 		context: ITestContext,
@@ -75,7 +75,7 @@ export interface ITestCompilerManager<T extends ECompilerType> {
 		fn: (
 			compiler: TCompiler<T> | null,
 			stats: TCompilerStats<T> | null
-		) => TCompilerStats<T> | null
+		) => TCompilerStats<T> | void
 	): void;
 	result(
 		context: ITestContext,
@@ -102,7 +102,7 @@ export interface ITester {
 	step: number;
 	prepare(): Promise<void>;
 	compile(): Promise<void>;
-	check(): Promise<void>;
+	check(env: ITestEnv): Promise<void>;
 	next(): boolean;
 	resume(): Promise<void>;
 }
@@ -116,8 +116,8 @@ export interface ITestProcessor {
 	config?(context: ITestContext): Promise<void>;
 	compiler?(context: ITestContext): Promise<void>;
 	build?(context: ITestContext): Promise<void>;
-	run?(context: ITestContext): Promise<void>;
-	check?(context: ITestContext): Promise<unknown>;
+	run?(env: ITestEnv, context: ITestContext): Promise<void>;
+	check?(env: ITestEnv, context: ITestContext): Promise<unknown>;
 }
 
 export interface ITestReporter<T> {
@@ -171,3 +171,9 @@ export type TDiffStats = {
 	root: string;
 	data: Array<TDiffStatsItem>;
 };
+
+export interface ITestEnv {
+	it: (...args: any[]) => void;
+	beforeEach: (...args: any[]) => void;
+	afterEach: (...args: any[]) => void;
+}

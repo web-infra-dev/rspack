@@ -65,9 +65,10 @@ export function createDiffCase(name: string, src: string, dist: string) {
 				);
 			});
 			describe(`${prefix}check`, () => {
+				const env = Tester.createTestEnv();
 				beforeAll(async () => {
 					compareMap.clear();
-					await tester.check();
+					await tester.check(env);
 				});
 				for (let file of caseConfig.files!) {
 					describe(`Comparing "${file}"`, () => {

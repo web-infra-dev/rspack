@@ -41,7 +41,7 @@ export class TestContext implements ITestContext {
 		await compiler.build(this, fn);
 	}
 	options<T extends ECompilerType>(
-		fn: (options: TCompilerOptions<T>) => TCompilerOptions<T>,
+		fn: (options: TCompilerOptions<T>) => TCompilerOptions<T> | void,
 		name = DEFAULT_COMPILER_NAME
 	) {
 		const compiler = this.getCompilerManage<T>(name);
@@ -61,7 +61,7 @@ export class TestContext implements ITestContext {
 		fn: (
 			compiler: TCompiler<T> | null,
 			stats: TCompilerStats<T> | null
-		) => TCompilerStats<T> | null,
+		) => TCompilerStats<T> | void,
 		name = DEFAULT_COMPILER_NAME
 	) {
 		const compiler = this.getCompilerManage<T>(name);

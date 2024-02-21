@@ -226,3 +226,5 @@ justfile
 smoke-example
 diff_output
 
+
+packages/rspack-test-tools/tests/configCases

@@ -6,6 +6,7 @@ import {
 	TCompilerOptions,
 	TCompilerStats
 } from "./type";
+import merge from "webpack-merge";
 
 export class TestCompilerManager<T extends ECompilerType>
 	implements ITestCompilerManager<T>
@@ -17,12 +18,12 @@ export class TestCompilerManager<T extends ECompilerType>
 
 	options(
 		context: ITestContext,
-		fn: (options: TCompilerOptions<T>) => TCompilerOptions<T>
+		fn: (options: TCompilerOptions<T>) => TCompilerOptions<T> | void
 	) {
 		try {
 			const newOptions = fn(this.compilerOptions);
 			if (newOptions) {
-				this.compilerOptions = newOptions;
+				this.compilerOptions = merge(this.compilerOptions, newOptions);
 			}
 		} catch (e) {
 			context.emitError(e as Error);
@@ -49,7 +50,7 @@ export class TestCompilerManager<T extends ECompilerType>
 		fn: (
 			compiler: TCompiler<T> | null,
 			stats: TCompilerStats<T> | null
-		) => TCompilerStats<T> | null
+		) => TCompilerStats<T> | void
 	) {
 		try {
 			const newStats = fn(this.compilerInstance, this.compilerStats);
