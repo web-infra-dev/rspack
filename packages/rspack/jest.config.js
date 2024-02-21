@@ -5,6 +5,7 @@ const config = {
 	testEnvironment: "../../scripts/test/patch-node-env.cjs",
 	testMatch: [
 		"<rootDir>/tests/*.test.ts",
+		"<rootDir>/tests/*.test.js",
 		"<rootDir>/tests/*.basictest.ts",
 		"<rootDir>/tests/*.longtest.ts",
 		"<rootDir>/tests/*.unittest.ts",
