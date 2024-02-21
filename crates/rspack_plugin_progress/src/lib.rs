@@ -10,8 +10,8 @@ use linked_hash_map::LinkedHashMap as HashMap;
 use rspack_core::{
   ApplyContext, Compilation, CompilationParams, CompilerOptions, DoneArgs, MakeParam, Module,
   ModuleIdentifier, OptimizeChunksArgs, Plugin, PluginBuildEndHookOutput, PluginContext,
-  PluginMakeHookOutput, PluginOptimizeChunksOutput, PluginProcessAssetsOutput,
-  PluginThisCompilationHookOutput, ProcessAssetsArgs, ThisCompilationArgs,
+  PluginOptimizeChunksOutput, PluginProcessAssetsOutput, PluginThisCompilationHookOutput,
+  ProcessAssetsArgs, ThisCompilationArgs,
 };
 use rspack_error::Result;
 use rspack_hook::AsyncSeries2;
@@ -218,6 +218,27 @@ impl AsyncSeries2<Compilation, CompilationParams> for ProgressPluginCompilationH
   }
 }
 
+struct ProgressPluginMakeHook {
+  inner: Arc<ProgressPluginInner>,
+}
+
+#[async_trait]
+impl AsyncSeries2<Compilation, Vec<MakeParam>> for ProgressPluginMakeHook {
+  async fn run(&self, _: &mut Compilation, _: &mut Vec<MakeParam>) -> Result<()> {
+    if !self.inner.options.profile {
+      self.inner.progress_bar.reset();
+      self
+        .inner
+        .progress_bar
+        .set_prefix(self.inner.options.prefix.clone());
+    }
+    self.inner.handler(0.01, String::from("make"), vec![], None);
+    self.inner.modules_count.store(0, SeqCst);
+    self.inner.modules_done.store(0, SeqCst);
+    Ok(())
+  }
+}
+
 #[async_trait]
 impl Plugin for ProgressPlugin {
   fn name(&self) -> &'static str {
@@ -236,25 +257,6 @@ impl Plugin for ProgressPlugin {
       .tap(Box::new(ProgressPluginCompilationHook {
         inner: self.inner.clone(),
       }));
-    Ok(())
-  }
-
-  async fn make(
-    &self,
-    _ctx: PluginContext,
-    _compilation: &mut Compilation,
-    _params: &mut Vec<MakeParam>,
-  ) -> PluginMakeHookOutput {
-    if !self.inner.options.profile {
-      self.inner.progress_bar.reset();
-      self
-        .inner
-        .progress_bar
-        .set_prefix(self.inner.options.prefix.clone());
-    }
-    self.inner.handler(0.01, String::from("make"), vec![], None);
-    self.inner.modules_count.store(0, SeqCst);
-    self.inner.modules_done.store(0, SeqCst);
     Ok(())
   }
 
