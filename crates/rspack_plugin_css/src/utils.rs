@@ -3,7 +3,7 @@ use std::{fmt::Write, hash::Hash, path::Path};
 use heck::{ToKebabCase, ToLowerCamelCase};
 use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
-use rspack_core::rspack_sources::{ConcatSource, RawSource, Source};
+use rspack_core::rspack_sources::{ConcatSource, RawSource};
 use rspack_core::{
   to_identifier, Compilation, GenerateContext, OutputOptions, PathData, RuntimeGlobals,
 };
@@ -162,7 +162,6 @@ pub fn css_modules_exports_to_string(
       })
       .collect::<Vec<_>>()
       .join(" + \" \" + ");
-    dbg!(&key, &content);
     for item in key {
       writeln!(code, "  {}: {},", item, content).map_err(|e| error!(e.to_string()))?;
     }
@@ -179,7 +178,6 @@ pub fn css_modules_exports_to_concatenate_module_string(
 ) -> Result<()> {
   let GenerateContext {
     compilation,
-    runtime_requirements,
     concatenation_scope,
     ..
   } = generate_context;
@@ -235,7 +233,6 @@ pub fn css_modules_exports_to_concatenate_module_string(
       used_identifiers.insert(identifier.clone());
       scope.register_export(k.as_str()[1..k.as_str().len() - 1].into(), identifier);
     }
-    println!("source {}", concate_source.source().to_string());
   }
   Ok(())
 }

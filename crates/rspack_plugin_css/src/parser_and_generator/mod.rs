@@ -1,6 +1,6 @@
 #![allow(clippy::comparison_chain)]
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use indexmap::IndexMap;
 use once_cell::sync::Lazy;

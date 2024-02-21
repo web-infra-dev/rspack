@@ -9,7 +9,7 @@ module.exports =  {
   },
 	builtins: {
 		css: {
-			// namedExports: true
+			namedExports: true
 		}
 	},
   module: {

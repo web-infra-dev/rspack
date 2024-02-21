@@ -1026,7 +1026,6 @@ impl Module for ConcatenatedModule {
 
         let mut ns_obj = Vec::new();
         let exports_info = compilation.module_graph.get_exports_info(module_info_id);
-        dbg!(&exports_info);
         for (_name, export_info_id) in exports_info.exports.iter() {
           let export_info = export_info_id.get_export_info(&compilation.module_graph);
           if matches!(export_info.provided, Some(ExportInfoProvided::False)) {
@@ -1047,7 +1046,6 @@ impl Module for ConcatenatedModule {
               Some(true),
               &context,
             );
-            dbg!(&final_name);
 
             ns_obj.push(format!(
               "\n  {}: {}",
@@ -1799,13 +1797,6 @@ impl ConcatenatedModule {
       .module_by_identifier(&info.id())
       .expect("should have module");
     let exports_type = module.get_exports_type_readonly(mg, strict_harmony_module);
-    dbg!(
-      &info.id(),
-      exports_type,
-      &export_name,
-      module.as_normal_module().is_some(),
-      module.build_meta()
-    );
 
     if export_name.is_empty() {
       match exports_type {
@@ -1978,11 +1969,8 @@ impl ConcatenatedModule {
 
     match info {
       ModuleInfo::Concatenated(info) => {
-        dbg!(&info.export_map);
-        dbg!(&info.raw_export_map);
         let export_id = export_name.first().cloned();
         let export_info = export_info_id.get_export_info(mg);
-        // dbg!(&export_info);
         if matches!(export_info.provided, Some(crate::ExportInfoProvided::False)) {
           needed_namespace_objects.insert(info.module);
           return Binding::Raw(RawBinding {

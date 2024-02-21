@@ -1,9 +1,10 @@
 use rspack_core::{
-  AsContextDependency, AsDependencyTemplate, AsModuleDependency, Dependency, DependencyCategory,
-  DependencyId, DependencyTemplate, DependencyType, ErrorSpan, ExportNameOrSpec, ExportSpec,
-  ExportsOfExportsSpec, ExportsSpec, ModuleDependency, TemplateContext, TemplateReplaceSource,
+  AsContextDependency, AsModuleDependency, Dependency, DependencyCategory, DependencyId,
+  DependencyTemplate, DependencyType, ExportNameOrSpec, ExportSpec, ExportsOfExportsSpec,
+  ExportsSpec, TemplateContext, TemplateReplaceSource,
 };
 
+#[allow(unused)]
 #[derive(Debug, Clone)]
 pub struct CssExportDependency {
   id: DependencyId,
@@ -53,7 +54,7 @@ impl Dependency for CssExportDependency {
 impl DependencyTemplate for CssExportDependency {
   fn apply(
     &self,
-    source: &mut TemplateReplaceSource,
+    _source: &mut TemplateReplaceSource,
     _code_generatable_context: &mut TemplateContext,
   ) {
     // TODO: currently our css module implementation is different from `webpack`, so we do
