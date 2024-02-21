@@ -224,7 +224,7 @@ pub fn css_modules_exports_to_concatenate_module_string(
       .join(" + \" \" + ");
     for k in key {
       let normalized_k = k.as_str()[1..k.len() - 1].to_owned();
-      let mut identifier = normalized_k.clone();
+      let mut identifier = to_identifier(&normalized_k);
       let mut i = 0;
       while used_identifiers.contains(&identifier) {
         identifier = format!("{k}{i}");
