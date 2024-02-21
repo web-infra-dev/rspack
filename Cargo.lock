@@ -1799,9 +1799,9 @@ checksum = "c1b04fb49957986fdce4d6ee7a65027d55d4b6d2265e5848bbb507b58ccfdb6f"
 
 [[package]]
 name = "oxc_resolver"
-version = "1.5.2"
+version = "1.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7faa4b55abfa8e27cf976540fe0c6f56d1de6dcae0f36532a151e3f9e595cdcb"
+checksum = "2c3b78270f66cd7cb6f6398e543629c31c65bbfe96246fafeda77a4628570cc1"
 dependencies = [
  "dashmap",
  "dunce",
