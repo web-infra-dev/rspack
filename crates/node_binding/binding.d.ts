@@ -420,6 +420,7 @@ export interface JsLoaderContext {
    */
   diagnosticsExternal: ExternalObject<'Diagnostic[]'>
   _moduleIdentifier: string
+  hot: boolean
 }
 
 export interface JsModule {
@@ -782,7 +783,6 @@ export interface RawCssModulesConfig {
 
 export interface RawCssPluginConfig {
   modules: RawCssModulesConfig
-  namedExports?: boolean
 }
 
 export interface RawEntryOptions {
