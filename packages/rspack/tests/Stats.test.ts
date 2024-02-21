@@ -83,7 +83,7 @@ describe("Stats", () => {
 		  help: 
 		        You may need an appropriate loader to handle this file type.
 
-		Rspack compiled with 1 error (9d5d6393c8ec95dac1bb)"
+		Rspack compiled with 1 error (8137ab425c2721784808)"
 	`);
 	});
 
