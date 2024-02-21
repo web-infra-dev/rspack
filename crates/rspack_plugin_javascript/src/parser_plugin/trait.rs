@@ -1,7 +1,8 @@
 use swc_core::atoms::Atom;
 use swc_core::common::Span;
 use swc_core::ecma::ast::{
-  AssignExpr, AwaitExpr, BinExpr, CallExpr, Expr, ForOfStmt, Ident, IfStmt, MemberExpr, ModuleDecl,
+  AssignExpr, AwaitExpr, BinExpr, CallExpr, ExportAll, Expr, ForOfStmt, Ident, IfStmt, ImportDecl,
+  MemberExpr, ModuleDecl, NamedExport,
 };
 use swc_core::ecma::ast::{NewExpr, Program, Stmt, ThisExpr, UnaryExpr, VarDecl, VarDeclarator};
 
@@ -85,6 +86,18 @@ pub trait JavascriptParserPlugin {
     _parser: &mut JavascriptParser,
     _expr: &CallExpr,
     _for_name: &str,
+  ) -> Option<bool> {
+    None
+  }
+
+  fn call_member_chain(
+    &self,
+    _parser: &mut JavascriptParser,
+    _root_info: &ExportedVariableInfo,
+    _expr: &CallExpr,
+    // TODO: members: &Vec<String>,
+    // TODO: members_optionals: Vec<bool>,
+    // TODO: members_ranges: Vec<DependencyLoc>
   ) -> Option<bool> {
     None
   }
@@ -204,6 +217,33 @@ pub trait JavascriptParserPlugin {
     _parser: &mut JavascriptParser,
     _root_name: &Atom,
     _span: Span,
+  ) -> Option<bool> {
+    None
+  }
+
+  fn import(
+    &self,
+    _parser: &mut JavascriptParser,
+    _statement: &ImportDecl,
+    _source: &str,
+  ) -> Option<bool> {
+    None
+  }
+
+  fn named_export_import(
+    &self,
+    _parser: &mut JavascriptParser,
+    _statement: &NamedExport,
+    _source: &str,
+  ) -> Option<bool> {
+    None
+  }
+
+  fn all_export_import(
+    &self,
+    _parser: &mut JavascriptParser,
+    _statement: &ExportAll,
+    _source: &str,
   ) -> Option<bool> {
     None
   }

@@ -3,6 +3,7 @@ use swc_core::ecma::ast::{Decl, DefaultDecl, ExportAll, ExportDefaultDecl, ExprS
 use swc_core::ecma::ast::{ModuleDecl, ModuleItem, NamedExport, Stmt, VarDecl, VarDeclKind};
 
 use super::JavascriptParser;
+use crate::parser_plugin::JavascriptParserPlugin;
 
 impl<'parser> JavascriptParser<'parser> {
   pub fn block_pre_walk_module_declarations(&mut self, statements: &Vec<ModuleItem>) {
@@ -67,12 +68,15 @@ impl<'parser> JavascriptParser<'parser> {
     }
   }
 
-  fn block_pre_walk_export_name_declaration(&mut self, _decl: &NamedExport) {
-    // if let Some(source) = decl.src {
-    //   // TODO: `hooks.export_import.call`
-    // } else {
-    //   // TODO: `hooks.export.call`
-    // }
+  fn block_pre_walk_export_name_declaration(&mut self, decl: &NamedExport) {
+    if let Some(source) = &decl.src {
+      self
+        .plugin_drive
+        .clone()
+        .named_export_import(self, decl, source.value.as_str());
+    } else {
+      // TODO: `hooks.export.call`
+    }
   }
 
   fn block_pre_walk_class_declaration(&mut self, decl: &ClassDecl) {
@@ -111,13 +115,20 @@ impl<'parser> JavascriptParser<'parser> {
     // }
   }
 
-  fn block_pre_walk_export_all_declaration(&mut self, _decl: &ExportAll) {
-    // TODO: `hooks.export_import.call`
+  fn block_pre_walk_export_all_declaration(&mut self, decl: &ExportAll) {
+    self
+      .plugin_drive
+      .clone()
+      .all_export_import(self, decl, decl.src.value.as_str());
     // TODO: `hooks.export_import_specifier.call`
   }
 
   fn block_pre_walk_import_declaration(&mut self, decl: &ImportDecl) {
-    // TODO: `hooks.import.call`
+    self
+      .plugin_drive
+      .clone()
+      .import(self, decl, decl.src.value.as_str());
+
     for specifier in &decl.specifiers {
       match specifier {
         ImportSpecifier::Named(named) => {

@@ -394,10 +394,16 @@ impl BasicEvaluatedExpression {
   }
 
   pub fn identifier(&self) -> &String {
+    assert!(self.is_identifier());
     self
       .identifier
       .as_ref()
       .expect("make sure identifier exist")
+  }
+
+  pub fn root_info(&self) -> &ExportedVariableInfo {
+    assert!(self.is_identifier());
+    self.root_info.as_ref().expect("make sure identifier exist")
   }
 
   pub fn regexp(&self) -> &Regexp {
