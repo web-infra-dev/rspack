@@ -16,7 +16,7 @@ exports[`StatsTestCases should print correct stats for auxiliary-files-test 1`] 
         "hotModuleReplacement": false,
       },
       "name": "bundle.js",
-      "size": 460,
+      "size": 459,
       "type": "asset",
     },
     {
@@ -187,10 +187,10 @@ import rawModule from './raw.png';
       "assets": [
         {
           "name": "bundle.js",
-          "size": 460,
+          "size": 459,
         },
       ],
-      "assetsSize": 460,
+      "assetsSize": 459,
       "chunks": [
         "909",
       ],
@@ -368,10 +368,10 @@ import rawModule from './raw.png';
       "assets": [
         {
           "name": "bundle.js",
-          "size": 460,
+          "size": 459,
         },
       ],
-      "assetsSize": 460,
+      "assetsSize": 459,
       "chunks": [
         "909",
       ],
@@ -387,9 +387,9 @@ import rawModule from './raw.png';
 
 exports[`StatsTestCases should print correct stats for auxiliary-files-test 2`] = `
 "PublicPath: (none)
-asset bundle.js 460 bytes {909} [emitted] (name: main)
+asset bundle.js 459 bytes {909} [emitted] (name: main)
 asset f7f4f00355f310234f70.png 7 bytes {909} [emitted] [from: raw.png] (name: main)
-Entrypoint main 460 bytes = bundle.js
+Entrypoint main 459 bytes = bundle.js
 chunk {909} bundle.js (main) [entry]
   ./raw.png [193] {909}
     [no exports]
@@ -742,7 +742,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
         "hotModuleReplacement": false,
       },
       "name": "909.xxxx.js",
-      "size": 935,
+      "size": 934,
       "type": "asset",
     },
   ],
@@ -869,10 +869,10 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       "assets": [
         {
           "name": "909.xxxx.js",
-          "size": 935,
+          "size": 934,
         },
       ],
-      "assetsSize": 935,
+      "assetsSize": 934,
       "chunks": [
         "909",
       ],
@@ -1093,10 +1093,10 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       "assets": [
         {
           "name": "909.xxxx.js",
-          "size": 935,
+          "size": 934,
         },
       ],
-      "assetsSize": 935,
+      "assetsSize": 934,
       "chunks": [
         "909",
       ],
@@ -1113,8 +1113,8 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
 exports[`StatsTestCases should print correct stats for filename 2`] = `
 "PublicPath: (none)
 asset 521.xxxx.js 131 bytes {521} [emitted]
-asset 909.xxxx.js 935 bytes {909} [emitted] (name: main)
-Entrypoint main 935 bytes = 909.xxxx.js
+asset 909.xxxx.js 934 bytes {909} [emitted] (name: main)
+Entrypoint main 934 bytes = 909.xxxx.js
 chunk {521} 521.xxxx.js <{909}>
   ./dynamic.js [345] {521}
     [exports: value]
@@ -1171,7 +1171,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
         "hotModuleReplacement": false,
       },
       "name": "bundle.js",
-      "size": 9111,
+      "size": 9112,
       "type": "asset",
     },
   ],
@@ -1238,10 +1238,10 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 9111,
+          "size": 9112,
         },
       ],
-      "assetsSize": 9111,
+      "assetsSize": 9112,
       "chunks": [
         "909",
       ],
@@ -1423,10 +1423,10 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 9111,
+          "size": 9112,
         },
       ],
-      "assetsSize": 9111,
+      "assetsSize": 9112,
       "chunks": [
         "909",
       ],
@@ -1688,7 +1688,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
             "hotModuleReplacement": false,
           },
           "name": "bundle1.js",
-          "size": 1276,
+          "size": 1275,
           "type": "asset",
         },
       ],
@@ -1921,10 +1921,10 @@ import(/* webpackChunkName: "c" */ "./c");
           "assets": [
             {
               "name": "bundle1.js",
-              "size": 1276,
+              "size": 1275,
             },
           ],
-          "assetsSize": 1276,
+          "assetsSize": 1275,
           "chunks": [
             "909",
           ],
@@ -2225,10 +2225,10 @@ import(/* webpackChunkName: "c" */ "./c");
           "assets": [
             {
               "name": "bundle1.js",
-              "size": 1276,
+              "size": 1275,
             },
           ],
-          "assetsSize": 1276,
+          "assetsSize": 1275,
           "chunks": [
             "909",
           ],
@@ -2238,10 +2238,10 @@ import(/* webpackChunkName: "c" */ "./c");
           "assets": [
             {
               "name": "bundle1.js",
-              "size": 1276,
+              "size": 1275,
             },
           ],
-          "assetsSize": 1276,
+          "assetsSize": 1275,
           "chunks": [
             "909",
           ],
@@ -2284,7 +2284,7 @@ import(/* webpackChunkName: "c" */ "./c");
             "hotModuleReplacement": false,
           },
           "name": "bundle2.js",
-          "size": 1458,
+          "size": 1457,
           "type": "asset",
         },
       ],
@@ -2542,10 +2542,10 @@ import(/* webpackChunkName: "c" */ "./c");
           "assets": [
             {
               "name": "bundle2.js",
-              "size": 1458,
+              "size": 1457,
             },
           ],
-          "assetsSize": 1458,
+          "assetsSize": 1457,
           "chunks": [
             "909",
           ],
@@ -2925,10 +2925,10 @@ import(/* webpackChunkName: "c" */ "./c");
           "assets": [
             {
               "name": "bundle2.js",
-              "size": 1458,
+              "size": 1457,
             },
           ],
-          "assetsSize": 1458,
+          "assetsSize": 1457,
           "chunks": [
             "909",
           ],
@@ -2985,7 +2985,7 @@ import(/* webpackChunkName: "c" */ "./c");
             "hotModuleReplacement": false,
           },
           "name": "bundle3.js",
-          "size": 1458,
+          "size": 1457,
           "type": "asset",
         },
       ],
@@ -3261,10 +3261,10 @@ import(/* webpackChunkName: "c" */ "./c");
           "assets": [
             {
               "name": "bundle3.js",
-              "size": 1458,
+              "size": 1457,
             },
           ],
-          "assetsSize": 1458,
+          "assetsSize": 1457,
           "chunks": [
             "909",
           ],
@@ -3644,10 +3644,10 @@ import(/* webpackChunkName: "c" */ "./c");
           "assets": [
             {
               "name": "bundle3.js",
-              "size": 1458,
+              "size": 1457,
             },
           ],
-          "assetsSize": 1458,
+          "assetsSize": 1457,
           "chunks": [
             "909",
           ],
@@ -3718,7 +3718,7 @@ import(/* webpackChunkName: "c" */ "./c");
             "hotModuleReplacement": false,
           },
           "name": "bundle4.js",
-          "size": 1458,
+          "size": 1457,
           "type": "asset",
         },
       ],
@@ -4014,10 +4014,10 @@ import(/* webpackChunkName: "c" */ "./c");
           "assets": [
             {
               "name": "bundle4.js",
-              "size": 1458,
+              "size": 1457,
             },
           ],
-          "assetsSize": 1458,
+          "assetsSize": 1457,
           "chunks": [
             "909",
           ],
@@ -4397,10 +4397,10 @@ import(/* webpackChunkName: "c" */ "./c");
           "assets": [
             {
               "name": "bundle4.js",
-              "size": 1458,
+              "size": 1457,
             },
           ],
-          "assetsSize": 1458,
+          "assetsSize": 1457,
           "chunks": [
             "909",
           ],
@@ -4828,10 +4828,10 @@ exports[`StatsTestCases should print correct stats for named-chunk-group 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 919,
+          "size": 918,
         },
       ],
-      "assetsSize": 919,
+      "assetsSize": 918,
       "chunks": [
         "909",
       ],
@@ -4856,10 +4856,10 @@ exports[`StatsTestCases should print correct stats for named-chunk-group 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 919,
+          "size": 918,
         },
       ],
-      "assetsSize": 919,
+      "assetsSize": 918,
       "chunks": [
         "909",
       ],
@@ -4870,7 +4870,7 @@ exports[`StatsTestCases should print correct stats for named-chunk-group 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for named-chunk-group 2`] = `
-"Entrypoint main 919 bytes = bundle.js
+"Entrypoint main 918 bytes = bundle.js
 Chunk Group cimanyd 131 bytes = 414.bundle.js"
 `;
 
@@ -5654,7 +5654,7 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
         "hotModuleReplacement": false,
       },
       "name": "bundle.js",
-      "size": 587,
+      "size": 586,
       "type": "asset",
     },
   ],
@@ -5722,10 +5722,10 @@ console.log(a);
       "assets": [
         {
           "name": "bundle.js",
-          "size": 587,
+          "size": 586,
         },
       ],
-      "assetsSize": 587,
+      "assetsSize": 586,
       "chunks": [
         "909",
       ],
@@ -5820,10 +5820,10 @@ console.log(a);
       "assets": [
         {
           "name": "bundle.js",
-          "size": 587,
+          "size": 586,
         },
       ],
-      "assetsSize": 587,
+      "assetsSize": 586,
       "chunks": [
         "909",
       ],
@@ -5839,8 +5839,8 @@ console.log(a);
 
 exports[`StatsTestCases should print correct stats for resolve-overflow 2`] = `
 "PublicPath: auto
-asset bundle.js 587 bytes {909} [emitted] (name: main)
-Entrypoint main 587 bytes = bundle.js
+asset bundle.js 586 bytes {909} [emitted] (name: main)
+Entrypoint main 586 bytes = bundle.js
 chunk {909} bundle.js (main) [entry]
   ./index.js [10] {909}
     [no exports]
@@ -5883,7 +5883,7 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
         "hotModuleReplacement": false,
       },
       "name": "bundle.js",
-      "size": 571,
+      "size": 570,
       "type": "asset",
     },
   ],
@@ -5951,10 +5951,10 @@ console.log(a);
       "assets": [
         {
           "name": "bundle.js",
-          "size": 571,
+          "size": 570,
         },
       ],
-      "assetsSize": 571,
+      "assetsSize": 570,
       "chunks": [
         "909",
       ],
@@ -6037,10 +6037,10 @@ console.log(a);
       "assets": [
         {
           "name": "bundle.js",
-          "size": 571,
+          "size": 570,
         },
       ],
-      "assetsSize": 571,
+      "assetsSize": 570,
       "chunks": [
         "909",
       ],
@@ -6056,8 +6056,8 @@ console.log(a);
 
 exports[`StatsTestCases should print correct stats for resolve-unexpected-exports-in-pkg 2`] = `
 "PublicPath: (none)
-asset bundle.js 571 bytes {909} [emitted] (name: main)
-Entrypoint main 571 bytes = bundle.js
+asset bundle.js 570 bytes {909} [emitted] (name: main)
+Entrypoint main 570 bytes = bundle.js
 chunk {909} bundle.js (main) [entry]
   ./index.js [10] {909}
     [no exports]
@@ -6157,7 +6157,7 @@ exports[`StatsTestCases should print correct stats for runtime-specific-exports 
         "hotModuleReplacement": false,
       },
       "name": "bundle.js",
-      "size": 391,
+      "size": 390,
       "type": "asset",
     },
   ],
@@ -6308,10 +6308,10 @@ exports[`StatsTestCases should print correct stats for runtime-specific-exports 
       "assets": [
         {
           "name": "bundle.js",
-          "size": 391,
+          "size": 390,
         },
       ],
-      "assetsSize": 391,
+      "assetsSize": 390,
       "chunks": [
         "909",
       ],
@@ -6445,10 +6445,10 @@ exports[`StatsTestCases should print correct stats for runtime-specific-exports 
       "assets": [
         {
           "name": "bundle.js",
-          "size": 391,
+          "size": 390,
         },
       ],
-      "assetsSize": 391,
+      "assetsSize": 390,
       "chunks": [
         "909",
       ],
@@ -6464,8 +6464,8 @@ exports[`StatsTestCases should print correct stats for runtime-specific-exports 
 
 exports[`StatsTestCases should print correct stats for runtime-specific-exports 2`] = `
 "PublicPath: (none)
-asset bundle.js 391 bytes [emitted] (name: main)
-Entrypoint main 391 bytes = bundle.js
+asset bundle.js 390 bytes [emitted] (name: main)
+Entrypoint main 390 bytes = bundle.js
 ./math.js
   [exports: add, multiply]
   [only some exports used: add]
@@ -6494,7 +6494,7 @@ exports[`StatsTestCases should print correct stats for simple-export 1`] = `
         "hotModuleReplacement": false,
       },
       "name": "bundle.js",
-      "size": 590,
+      "size": 589,
       "type": "asset",
     },
   ],
@@ -6563,10 +6563,10 @@ exports[`StatsTestCases should print correct stats for simple-export 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 590,
+          "size": 589,
         },
       ],
-      "assetsSize": 590,
+      "assetsSize": 589,
       "chunks": [
         "909",
       ],
@@ -6684,10 +6684,10 @@ exports[`StatsTestCases should print correct stats for simple-export 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 590,
+          "size": 589,
         },
       ],
-      "assetsSize": 590,
+      "assetsSize": 589,
       "chunks": [
         "909",
       ],
@@ -6703,8 +6703,8 @@ exports[`StatsTestCases should print correct stats for simple-export 1`] = `
 
 exports[`StatsTestCases should print correct stats for simple-export 2`] = `
 "PublicPath: (none)
-asset bundle.js 590 bytes {909} [emitted] (name: main)
-Entrypoint main 590 bytes = bundle.js
+asset bundle.js 589 bytes {909} [emitted] (name: main)
+Entrypoint main 589 bytes = bundle.js
 chunk {909} bundle.js (main) [entry]
   ./index.js [10] {909}
     [exports: answer]
@@ -6743,7 +6743,7 @@ exports[`StatsTestCases should print correct stats for simple-module-source 1`] 
         "hotModuleReplacement": false,
       },
       "name": "bundle.js",
-      "size": 686,
+      "size": 685,
       "type": "asset",
     },
   ],
@@ -6884,10 +6884,10 @@ import rawModule from './raw.png';
       "assets": [
         {
           "name": "bundle.js",
-          "size": 686,
+          "size": 685,
         },
       ],
-      "assetsSize": 686,
+      "assetsSize": 685,
       "chunks": [
         "909",
       ],
@@ -7099,10 +7099,10 @@ import rawModule from './raw.png';
       "assets": [
         {
           "name": "bundle.js",
-          "size": 686,
+          "size": 685,
         },
       ],
-      "assetsSize": 686,
+      "assetsSize": 685,
       "chunks": [
         "909",
       ],
@@ -7118,8 +7118,8 @@ import rawModule from './raw.png';
 
 exports[`StatsTestCases should print correct stats for simple-module-source 2`] = `
 "PublicPath: (none)
-asset bundle.js 686 bytes [emitted] (name: main)
-Entrypoint main 686 bytes = bundle.js
+asset bundle.js 685 bytes [emitted] (name: main)
+Entrypoint main 685 bytes = bundle.js
 runtime modules 4 modules
 ./raw.png
 ./index.js
@@ -7143,7 +7143,7 @@ exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
         "hotModuleReplacement": false,
       },
       "name": "bundle.js",
-      "size": 590,
+      "size": 589,
       "testA": "aaaaaa",
       "type": "asset",
     },
@@ -7211,10 +7211,10 @@ exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 590,
+          "size": 589,
         },
       ],
-      "assetsSize": 590,
+      "assetsSize": 589,
       "chunks": [
         "909",
       ],
@@ -7327,10 +7327,10 @@ exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 590,
+          "size": 589,
         },
       ],
-      "assetsSize": 590,
+      "assetsSize": 589,
       "chunks": [
         "909",
       ],
@@ -7346,8 +7346,8 @@ exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
 
 exports[`StatsTestCases should print correct stats for stats-hooks 2`] = `
 "PublicPath: (none)
-asset bundle.js 590 bytes [emitted111] (name: main) [testA: aaaaaa]
-Entrypoint main 590 bytes = bundle.js
+asset bundle.js 589 bytes [emitted111] (name: main) [testA: aaaaaa]
+Entrypoint main 589 bytes = bundle.js
 runtime modules 3 modules
 ./index.js
 Rspack compiled successfully (fa23dce0ee1c2be463ba)"
