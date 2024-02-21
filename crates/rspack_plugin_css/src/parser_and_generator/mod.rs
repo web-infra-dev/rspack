@@ -86,7 +86,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
     } = parse_context;
 
     build_info.strict = true;
-    build_meta.exports_type = BuildMetaExportsType::Default;
+    build_meta.exports_type = BuildMetaExportsType::Namespace;
 
     let swc_compiler = SwcCssCompiler::default();
 

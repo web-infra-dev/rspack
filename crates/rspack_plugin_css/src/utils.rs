@@ -234,7 +234,7 @@ pub fn css_modules_exports_to_concatenate_module_string(
       concate_source.add(RawSource::from(format!("var {identifier} = {content};\n")));
       used_identifiers.insert(identifier.clone());
       dbg!(&k, &identifier);
-      scope.register_export(k.as_str().into(), identifier);
+      scope.register_export(k.as_str()[1..k.as_str().len() - 1].into(), identifier);
     }
     println!("source {}", concate_source.source().to_string());
   }

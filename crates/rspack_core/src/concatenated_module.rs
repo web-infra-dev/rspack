@@ -1978,6 +1978,8 @@ impl ConcatenatedModule {
 
     match info {
       ModuleInfo::Concatenated(info) => {
+        dbg!(&info.export_map);
+        dbg!(&info.raw_export_map);
         let export_id = export_name.first().cloned();
         let export_info = export_info_id.get_export_info(mg);
         // dbg!(&export_info);
