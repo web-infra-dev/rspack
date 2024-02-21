@@ -16,7 +16,7 @@ use rspack_core::{
 };
 use rspack_core::{CompilerOptions, DependencyLocation, JavascriptParserUrl, ModuleType, SpanExt};
 use rspack_error::miette::Diagnostic;
-use rustc_hash::FxHashSet;
+use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::atoms::Atom;
 use swc_core::common::comments::Comments;
 use swc_core::common::util::take::Take;
@@ -27,6 +27,8 @@ use swc_core::ecma::ast::{
 };
 use swc_core::ecma::ast::{Expr, Ident, Lit, MemberExpr, RestPat};
 
+use super::harmony_import_dependency_scanner::{ImportMap, Imports};
+use super::ExtraSpanInfo;
 use crate::parser_plugin::{self, JavaScriptParserPluginDrive, JavascriptParserPlugin};
 use crate::utils::eval::{self, BasicEvaluatedExpression};
 use crate::visitors::scope_info::{
@@ -158,6 +160,12 @@ pub struct JavascriptParser<'parser> {
   pub(crate) presentational_dependencies: &'parser mut Vec<Box<dyn DependencyTemplate>>,
   pub(crate) blocks: &'parser mut Vec<AsyncDependenciesBlock>,
   pub(crate) ignored: &'parser mut FxHashSet<DependencyLocation>,
+  // TODO: remove `import_map`
+  pub(crate) import_map: &'parser mut ImportMap,
+  // TODO: remove `imports`
+  pub(crate) imports: Imports,
+  // TODO: remove `rewrite_usage_span`
+  pub(crate) _rewrite_usage_span: &'parser mut FxHashMap<Span, ExtraSpanInfo>,
   pub(crate) comments: Option<&'parser dyn Comments>,
   // TODO: remove `worker_syntax_list`
   pub(crate) worker_syntax_list: &'parser mut WorkerSyntaxList,
@@ -173,6 +181,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) module_identifier: &'parser ModuleIdentifier,
   // TODO: remove `is_esm` after `HarmonyExports::isEnabled`
   pub(crate) is_esm: bool,
+  pub(crate) in_tagged_template_tag: bool,
   pub(crate) parser_exports_state: &'parser mut Option<bool>,
   // TODO: delete `enter_call`
   pub(crate) enter_call: u32,
@@ -185,6 +194,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) in_short_hand: bool,
   pub(super) definitions: ScopeInfoId,
   pub(crate) top_level_scope: TopLevelScope,
+  pub(crate) last_harmony_import_order: i32,
 }
 
 impl<'parser> JavascriptParser<'parser> {
@@ -196,6 +206,8 @@ impl<'parser> JavascriptParser<'parser> {
     presentational_dependencies: &'parser mut Vec<Box<dyn DependencyTemplate>>,
     blocks: &'parser mut Vec<AsyncDependenciesBlock>,
     ignored: &'parser mut FxHashSet<DependencyLocation>,
+    import_map: &'parser mut ImportMap,
+    rewrite_usage_span: &'parser mut FxHashMap<Span, ExtraSpanInfo>,
     comments: Option<&'parser dyn Comments>,
     module_identifier: &'parser ModuleIdentifier,
     module_type: &'parser ModuleType,
@@ -276,7 +288,7 @@ impl<'parser> JavascriptParser<'parser> {
         }));
       }
       plugins.push(Box::new(parser_plugin::HarmonyTopLevelThisParserPlugin));
-      plugins.push(Box::new(parser_plugin::HarmonDetectionParserPlugin::new(
+      plugins.push(Box::new(parser_plugin::HarmonyDetectionParserPlugin::new(
         compiler_options.experiments.top_level_await,
       )));
       plugins.push(Box::new(parser_plugin::WorkerPlugin));
@@ -284,6 +296,7 @@ impl<'parser> JavascriptParser<'parser> {
         parser_plugin::ImportMetaContextDependencyParserPlugin,
       ));
       plugins.push(Box::new(parser_plugin::ImportMetaPlugin));
+      plugins.push(Box::new(parser_plugin::HarmonyImportDependencyParserPlugin))
     }
 
     let plugin_drive = Rc::new(JavaScriptParserPluginDrive::new(plugins));
@@ -295,6 +308,7 @@ impl<'parser> JavascriptParser<'parser> {
       .and_then(|p| p.get(module_type))
       .and_then(|p| p.get_javascript(module_type));
     Self {
+      last_harmony_import_order: 0,
       comments,
       javascript_options,
       source_file,
@@ -308,6 +322,7 @@ impl<'parser> JavascriptParser<'parser> {
       in_short_hand: false,
       top_level_scope: TopLevelScope::Top,
       is_esm: matches!(module_type, ModuleType::JsEsm),
+      in_tagged_template_tag: false,
       definitions: db.create(),
       definitions_db: db,
       ignored,
@@ -324,6 +339,9 @@ impl<'parser> JavascriptParser<'parser> {
       last_stmt_is_expr_stmt: false,
       worker_index: 0,
       module_identifier,
+      import_map,
+      _rewrite_usage_span: rewrite_usage_span,
+      imports: Default::default(),
     }
   }
 

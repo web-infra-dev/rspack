@@ -97,6 +97,25 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     None
   }
 
+  fn call_member_chain(
+    &self,
+    parser: &mut JavascriptParser,
+    root_info: &ExportedVariableInfo,
+    expr: &CallExpr,
+    // TODO: members: &Vec<String>,
+    // TODO: members_optionals: Vec<bool>,
+    // TODO: members_ranges: Vec<DependencyLoc>
+  ) -> Option<bool> {
+    for plugin in &self.plugins {
+      let res = plugin.call_member_chain(parser, root_info, expr);
+      // `SyncBailHook`
+      if res.is_some() {
+        return res;
+      }
+    }
+    None
+  }
+
   fn member_chain_of_call_member_chain(
     &self,
     parser: &mut JavascriptParser,
@@ -382,6 +401,55 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
   ) -> Option<bool> {
     for plugin in &self.plugins {
       let res = plugin.unhandled_expression_member_chain(parser, root_info, expr);
+      // `SyncBailHook`
+      if res.is_some() {
+        return res;
+      }
+    }
+    None
+  }
+
+  fn import(
+    &self,
+    parser: &mut JavascriptParser,
+    statement: &swc_core::ecma::ast::ImportDecl,
+    source: &str,
+  ) -> Option<bool> {
+    for plugin in &self.plugins {
+      let res = plugin.import(parser, statement, source);
+      // `SyncBailHook`
+      if res.is_some() {
+        return res;
+      }
+    }
+    None
+  }
+
+  fn named_export_import(
+    &self,
+    parser: &mut JavascriptParser,
+    statement: &swc_core::ecma::ast::NamedExport,
+    source: &str,
+  ) -> Option<bool> {
+    assert!(statement.src.is_some());
+    for plugin in &self.plugins {
+      let res = plugin.named_export_import(parser, statement, source);
+      // `SyncBailHook`
+      if res.is_some() {
+        return res;
+      }
+    }
+    None
+  }
+
+  fn all_export_import(
+    &self,
+    parser: &mut JavascriptParser,
+    statement: &swc_core::ecma::ast::ExportAll,
+    source: &str,
+  ) -> Option<bool> {
+    for plugin in &self.plugins {
+      let res = plugin.all_export_import(parser, statement, source);
       // `SyncBailHook`
       if res.is_some() {
         return res;
