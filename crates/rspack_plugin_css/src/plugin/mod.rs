@@ -102,6 +102,8 @@ impl Default for LocalsConvention {
 #[derive(Debug, Clone)]
 pub struct CssConfig {
   pub modules: ModulesConfig,
+  /// FIXME: Temp workaround, this option should be placed in `module.rules.*.parser`
+  pub named_exports: Option<bool>,
 }
 
 impl CssPlugin {

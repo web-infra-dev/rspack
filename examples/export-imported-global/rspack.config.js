@@ -1,4 +1,4 @@
-// rspack.config.js
+/**@type {import("@rspack/cli").Configuration}*/
 module.exports =  {
   entry: {
     main: "./index.js",
@@ -7,6 +7,11 @@ module.exports =  {
     concatenateModules: true,
     minimize: false,
   },
+	builtins: {
+		css: {
+			// namedExports: true
+		}
+	},
   module: {
     rules: [
       {

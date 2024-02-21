@@ -776,6 +776,7 @@ export interface RawCssModulesConfig {
 
 export interface RawCssPluginConfig {
   modules: RawCssModulesConfig
+  namedExports?: boolean
 }
 
 export interface RawEntryOptions {
