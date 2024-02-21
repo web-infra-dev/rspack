@@ -175,16 +175,17 @@ which tries to resolve these kind of requests in the current directory too.",
     let connected_path = base_dir.join(args.specifier);
     let normalized_path = connected_path.absolutize();
 
-    let mut resolve_dir = false;
+    let mut is_resolving_dir = false; // whether the request is to resolve a directory or not
 
     let file_name = normalized_path.file_name();
 
     let parent_path = match fs::metadata(&normalized_path) {
       Ok(metadata) => {
+        // if the path is not directory, we need to resolve the parent directory
         if !metadata.is_dir() {
           normalized_path.parent()
         } else {
-          resolve_dir = true;
+          is_resolving_dir = true;
           Some(normalized_path.borrow())
         }
       }
@@ -198,32 +199,33 @@ which tries to resolve these kind of requests in the current directory too.",
     let file_name = file_name.unwrap();
     let parent_path = parent_path.unwrap();
 
-    let mut possible_matched_files = vec![file_name
-      .to_str()
-      .map(|f| f.to_string())
-      .unwrap_or_default()];
-    if resolve_dir {
-      // also need to resolve the main files(like `index`) in the directory
-      let main_files = dep
-        .resolve_options
-        .as_deref()
-        .or(Some(&plugin_driver.options.resolve))
-        .and_then(|o| o.main_files.as_ref().map(|f| f.clone()))
-        .unwrap_or_else(|| Vec::new());
-
-      possible_matched_files.extend(main_files);
-    }
-
     // read the files in the parent directory
     let files = fs::read_dir(parent_path);
     match files {
       Ok(files) => {
+        let mut requested_names = vec![file_name
+          .to_str()
+          .map(|f| f.to_string())
+          .unwrap_or_default()];
+        if is_resolving_dir {
+          // The request maybe is like `./` or `./dir` to resolve the main file (e.g.: index) in directory
+          // So we need to check them.
+          let main_files = dep
+            .resolve_options
+            .as_deref()
+            .or(Some(&plugin_driver.options.resolve))
+            .and_then(|o| o.main_files.as_ref().map(|f| f.clone()))
+            .unwrap_or_else(|| Vec::new());
+
+          requested_names.extend(main_files);
+        }
+
         let suggestions = files
           .into_iter()
           .filter_map(|file| {
             file.ok().and_then(|file| {
               file.path().file_stem().and_then(|file_stem| {
-                if possible_matched_files.contains(&file_stem.to_string_lossy().to_string()) {
+                if requested_names.contains(&file_stem.to_string_lossy().to_string()) {
                   let mut suggestion = file.path().relative(args.context.as_path());
 
                   if !suggestion.to_string_lossy().starts_with(".") {
@@ -252,10 +254,12 @@ which tries to resolve these kind of requests in the current directory too.",
           let specifier = args.specifier;
 
           hint.push(format!(
-          "Found the module '{suggestion_path}' exists, but it was not resolved because its extension doesn't in the `resolve.extensions` list. Here are some solutions:
+          "Found the module '{suggestion_path}' exists, but it was not resolved because its extension doesn't in the `resolve.extensions` list. Here are some possible solutions:
 
-1. use '{suggestion_path}' instead of '{specifier}'
-2. add the extension '.{suggestion_ext}' to `resolve.extensions` in your rspack configuration"));
+1. add the extension '.{suggestion_ext}' to `resolve.extensions` in your rspack configuration
+2. use '{suggestion_path}' instead of '{specifier}'
+3. add the file path '{suggestion_path}' to the `entry` in your rspack configuration
+"));
         }
 
         return Some(hint.join("\n"));

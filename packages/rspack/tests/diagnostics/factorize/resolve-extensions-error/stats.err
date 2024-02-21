@@ -1,10 +1,24 @@
+ERROR in ./err/index.js
+  × Resolve error: Can't resolve '../a' in '<PROJECT_ROOT>/tests/diagnostics/factorize/resolve-extensions-error/err'
+   ╭────
+ 1 │ import a from '../a';
+   ·               ──────
+   ╰────
+  help: Found the module '../a.txt' exists, but it was not resolved because its extension doesn't in the `resolve.extensions` list. Here are some possible solutions:
+        
+        1. add the extension '.txt' to `resolve.extensions` in your rspack configuration
+        2. use '../a.txt' instead of '../a'
+        3. add the file path '../a.txt' to the `entry` in your rspack configuration
+
 ERROR in ./index.js
   × Resolve error: Can't resolve './a' in '<PROJECT_ROOT>/tests/diagnostics/factorize/resolve-extensions-error'
-   ╭────
- 1 │ import a from './a';
+   ╭─[1:1]
+ 1 │ import './err';
+ 2 │ import a from './a';
    ·               ─────
    ╰────
-  help: Found the module './a.txt' exists, but it was not resolved because its extension doesn't in the `resolve.extensions` list. There are two solutions:
+  help: Found the module './a.txt' exists, but it was not resolved because its extension doesn't in the `resolve.extensions` list. Here are some possible solutions:
         
-        1. use './a.txt' instead of './a'
-        2. add the extension '.txt' to `resolve.extensions` in your rspack configuration
+        1. add the extension '.txt' to `resolve.extensions` in your rspack configuration
+        2. use './a.txt' instead of './a'
+        3. add the file path './a.txt' to the `entry` in your rspack configuration
