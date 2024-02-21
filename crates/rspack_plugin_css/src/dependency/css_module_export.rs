@@ -6,13 +6,13 @@ use rspack_core::{
 
 #[allow(unused)]
 #[derive(Debug, Clone)]
-pub struct CssExportDependency {
+pub struct CssModuleExportDependency {
   id: DependencyId,
   name: String,
   value: String,
 }
 
-impl CssExportDependency {
+impl CssModuleExportDependency {
   pub fn new(name: String, value: String) -> Self {
     Self {
       id: DependencyId::new(),
@@ -22,9 +22,9 @@ impl CssExportDependency {
   }
 }
 
-impl Dependency for CssExportDependency {
+impl Dependency for CssModuleExportDependency {
   fn dependency_debug_name(&self) -> &'static str {
-    "CssExportDependency"
+    "CssModuleExportDependency"
   }
 
   fn id(&self) -> &DependencyId {
@@ -32,11 +32,11 @@ impl Dependency for CssExportDependency {
   }
 
   fn category(&self) -> &DependencyCategory {
-    &DependencyCategory::CssExport
+    &DependencyCategory::CssModuleExport
   }
 
   fn dependency_type(&self) -> &DependencyType {
-    &DependencyType::CssExport
+    &DependencyType::CssModuleExport
   }
 
   fn get_exports(&self, _mg: &rspack_core::ModuleGraph) -> Option<ExportsSpec> {
@@ -51,7 +51,7 @@ impl Dependency for CssExportDependency {
   }
 }
 
-impl DependencyTemplate for CssExportDependency {
+impl DependencyTemplate for CssModuleExportDependency {
   fn apply(
     &self,
     _source: &mut TemplateReplaceSource,
@@ -66,5 +66,5 @@ impl DependencyTemplate for CssExportDependency {
   }
 }
 
-impl AsContextDependency for CssExportDependency {}
-impl AsModuleDependency for CssExportDependency {}
+impl AsContextDependency for CssModuleExportDependency {}
+impl AsModuleDependency for CssModuleExportDependency {}

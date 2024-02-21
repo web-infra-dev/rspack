@@ -23,7 +23,7 @@ use sugar_path::SugarPath;
 use swc_core::{css::parser::parser::ParserConfig, ecma::atoms::Atom};
 
 use crate::{
-  dependency::{CssComposeDependency, CssExportDependency},
+  dependency::{CssComposeDependency, CssModuleExportDependency},
   swc_css_compiler::{SwcCssCompiler, SwcCssSourceMapGenConfig},
   utils::css_modules_exports_to_concatenate_module_string,
 };
@@ -178,7 +178,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
       &mut diagnostic_vec,
     );
     for (k, v) in exports_pairs {
-      dependencies.push(Box::new(CssExportDependency::new(
+      dependencies.push(Box::new(CssModuleExportDependency::new(
         k[1..k.len() - 1].to_owned(),
         v,
       )));
