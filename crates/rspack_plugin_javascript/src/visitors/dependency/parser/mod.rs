@@ -27,7 +27,7 @@ use swc_core::ecma::ast::{
 };
 use swc_core::ecma::ast::{Expr, Ident, Lit, MemberExpr, RestPat};
 
-use super::harmony_import_dependency_scanner::{ImportMap, Imports};
+use super::harmony_import_dependency_scanner::ImportMap;
 use super::ExtraSpanInfo;
 use crate::parser_plugin::{self, JavaScriptParserPluginDrive, JavascriptParserPlugin};
 use crate::utils::eval::{self, BasicEvaluatedExpression};
@@ -162,8 +162,6 @@ pub struct JavascriptParser<'parser> {
   pub(crate) ignored: &'parser mut FxHashSet<DependencyLocation>,
   // TODO: remove `import_map`
   pub(crate) import_map: &'parser mut ImportMap,
-  // TODO: remove `imports`
-  pub(crate) imports: Imports,
   // TODO: remove `rewrite_usage_span`
   pub(crate) _rewrite_usage_span: &'parser mut FxHashMap<Span, ExtraSpanInfo>,
   pub(crate) comments: Option<&'parser dyn Comments>,
@@ -296,7 +294,8 @@ impl<'parser> JavascriptParser<'parser> {
         parser_plugin::ImportMetaContextDependencyParserPlugin,
       ));
       plugins.push(Box::new(parser_plugin::ImportMetaPlugin));
-      plugins.push(Box::new(parser_plugin::HarmonyImportDependencyParserPlugin))
+      plugins.push(Box::new(parser_plugin::HarmonyImportDependencyParserPlugin));
+      plugins.push(Box::new(parser_plugin::HarmonyExportDependencyParserPlugin));
     }
 
     let plugin_drive = Rc::new(JavaScriptParserPluginDrive::new(plugins));
@@ -341,7 +340,6 @@ impl<'parser> JavascriptParser<'parser> {
       module_identifier,
       import_map,
       _rewrite_usage_span: rewrite_usage_span,
-      imports: Default::default(),
     }
   }
 

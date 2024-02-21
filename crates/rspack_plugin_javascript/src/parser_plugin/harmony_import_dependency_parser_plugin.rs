@@ -1,20 +1,42 @@
-use rspack_core::{
-  tree_shaking::symbol::DEFAULT_JS_WORD, ConstDependency, DependencyType, SpanExt,
-};
-use swc_core::ecma::ast::{ExportSpecifier, ImportSpecifier, ModuleExportName};
+use rspack_core::tree_shaking::symbol::DEFAULT_JS_WORD;
+use rspack_core::{ConstDependency, DependencyType, SpanExt};
+use swc_core::atoms::Atom;
+use swc_core::common::Span;
+use swc_core::ecma::ast::{ImportDecl, ImportSpecifier, ModuleExportName};
 
 use super::JavascriptParserPlugin;
-use crate::dependency::Specifier;
-use crate::visitors::harmony_import_dependency_scanner::{ImporterInfo, ImporterReferenceInfo};
+use crate::dependency::{HarmonyImportSideEffectDependency, Specifier};
+use crate::visitors::harmony_import_dependency_scanner::ImporterReferenceInfo;
 use crate::visitors::JavascriptParser;
+
+pub(super) fn handle_harmony_import_side_effects_dep(
+  parser: &mut JavascriptParser,
+  request: Atom,
+  span: Span,
+  source_span: Span,
+  specifiers: Vec<Specifier>,
+  dep_type: DependencyType,
+  exports_all: bool,
+) {
+  let dependency = HarmonyImportSideEffectDependency::new(
+    request,
+    parser.last_harmony_import_order,
+    Some(span.into()),
+    Some(source_span.into()),
+    specifiers,
+    dep_type,
+    exports_all,
+  );
+  parser.dependencies.push(Box::new(dependency));
+}
 
 pub struct HarmonyImportDependencyParserPlugin;
 
 impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
   fn import(
     &self,
-    parser: &mut crate::visitors::JavascriptParser,
-    import_decl: &swc_core::ecma::ast::ImportDecl,
+    parser: &mut JavascriptParser,
+    import_decl: &ImportDecl,
     _source: &str,
   ) -> Option<bool> {
     parser.last_harmony_import_order += 1;
@@ -73,118 +95,21 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
       }
     });
 
-    let key = (
+    handle_harmony_import_side_effects_dep(
+      parser,
       import_decl.src.value.clone(),
+      import_decl.span,
+      import_decl.src.span,
+      specifiers,
       DependencyType::EsmImport(import_decl.span.into()),
-      parser.last_harmony_import_order,
+      false,
     );
-    if let Some(importer_info) = parser.imports.get_mut(&key) {
-      importer_info.specifiers.extend(specifiers);
-    } else {
-      parser.imports.insert(
-        key,
-        ImporterInfo::new(import_decl.span, import_decl.src.span, specifiers, false),
-      );
-    }
+
     parser
       .presentational_dependencies
       .push(Box::new(ConstDependency::new(
         import_decl.span.real_lo(),
         import_decl.span.real_hi(),
-        "".into(),
-        None,
-      )));
-    Some(true)
-  }
-
-  fn named_export_import(
-    &self,
-    parser: &mut JavascriptParser,
-    named_export: &swc_core::ecma::ast::NamedExport,
-    _source: &str,
-  ) -> Option<bool> {
-    let Some(src) = &named_export.src else {
-      unreachable!()
-    };
-    parser.last_harmony_import_order += 1;
-    let mut specifiers = vec![];
-    named_export
-      .specifiers
-      .iter()
-      .for_each(|specifier| match specifier {
-        ExportSpecifier::Namespace(n) => {
-          if let ModuleExportName::Ident(export) = &n.name {
-            specifiers.push(Specifier::Namespace(export.sym.clone()));
-          }
-        }
-        ExportSpecifier::Default(_) => {
-          // export a from "./a"; is a syntax error
-          unreachable!()
-        }
-        ExportSpecifier::Named(named) => {
-          if let ModuleExportName::Ident(orig) = &named.orig {
-            specifiers.push(Specifier::Named(
-              orig.sym.clone(),
-              match &named.exported {
-                Some(ModuleExportName::Str(export)) => Some(export.value.clone()),
-                Some(ModuleExportName::Ident(export)) => Some(export.sym.clone()),
-                None => None,
-              },
-            ));
-          }
-        }
-      });
-    let key = (
-      src.value.clone(),
-      DependencyType::EsmExport(named_export.span.into()),
-      parser.last_harmony_import_order,
-    );
-    if let Some(importer_info) = parser.imports.get_mut(&key) {
-      importer_info.specifiers.extend(specifiers);
-    } else {
-      parser.imports.insert(
-        key,
-        ImporterInfo::new(named_export.span, src.span, specifiers, false),
-      );
-    }
-    parser
-      .presentational_dependencies
-      .push(Box::new(ConstDependency::new(
-        named_export.span.real_lo(),
-        named_export.span.real_hi(),
-        "".into(),
-        None,
-      )));
-    Some(true)
-  }
-
-  fn all_export_import(
-    &self,
-    parser: &mut JavascriptParser,
-    export_all: &swc_core::ecma::ast::ExportAll,
-    _source: &str,
-  ) -> Option<bool> {
-    parser.last_harmony_import_order += 1;
-    let key = (
-      export_all.src.value.clone(),
-      DependencyType::EsmExport(export_all.span.into()),
-      parser.last_harmony_import_order,
-    );
-
-    if let Some(importer_info) = parser.imports.get_mut(&key) {
-      importer_info.exports_all = true;
-    } else {
-      parser.imports.insert(
-        key,
-        ImporterInfo::new(export_all.span, export_all.src.span, vec![], true),
-      );
-    }
-
-    parser
-      .presentational_dependencies
-      .push(Box::new(ConstDependency::new(
-        export_all.span.real_lo(),
-        export_all.span.real_hi(),
         "".into(),
         None,
       )));

@@ -21,7 +21,7 @@ use swc_core::common::comments::Comments;
 use swc_core::common::{SourceFile, Span};
 use swc_core::ecma::atoms::Atom;
 
-use self::harmony_import_dependency_scanner::{handle_importer_info, ImportMap};
+use self::harmony_import_dependency_scanner::ImportMap;
 pub use self::parser::{CallExpressionInfo, CallHooksName, ExportedVariableInfo};
 pub use self::parser::{JavascriptParser, MemberExpressionInfo, TagInfoData, TopLevelScope};
 pub use self::util::*;
@@ -95,7 +95,6 @@ pub fn scan_dependencies(
   parser.walk_program(program.get_inner_program());
 
   if module_type.is_js_auto() || module_type.is_js_esm() {
-    handle_importer_info(&mut parser);
     program.visit_with(&mut HarmonyImportRefDependencyScanner::new(
       &import_map,
       &mut dependencies,

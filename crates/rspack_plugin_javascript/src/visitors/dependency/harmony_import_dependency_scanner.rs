@@ -1,6 +1,5 @@
-use indexmap::IndexMap;
 use rspack_core::DependencyLocation;
-use rspack_core::{extract_member_expression_chain, BoxDependency, DependencyType, SpanExt};
+use rspack_core::{extract_member_expression_chain, BoxDependency, SpanExt};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::atoms::Atom;
 use swc_core::common::Span;
@@ -10,11 +9,8 @@ use swc_core::ecma::ast::{Expr, Id, TaggedTpl};
 use swc_core::ecma::ast::{Ident, ImportDecl, Pat, PatOrExpr, Prop};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
-use super::{collect_destructuring_assignment_properties, ExtraSpanInfo, JavascriptParser};
-use crate::dependency::{
-  HarmonyExportImportedSpecifierDependency, HarmonyImportSideEffectDependency,
-  HarmonyImportSpecifierDependency, Specifier,
-};
+use super::{collect_destructuring_assignment_properties, ExtraSpanInfo};
+use crate::dependency::{HarmonyImportSpecifierDependency, Specifier};
 use crate::no_visit_ignored_stmt;
 
 #[derive(Debug)]
@@ -54,87 +50,6 @@ impl ImporterInfo {
       specifiers,
       exports_all,
     }
-  }
-}
-
-pub type Imports = IndexMap<(Atom, DependencyType, i32), ImporterInfo>;
-
-pub fn handle_importer_info(parser: &mut JavascriptParser) {
-  for ((request, dependency_type, source_order), importer_info) in
-    std::mem::take(&mut parser.imports).into_iter()
-  {
-    if matches!(dependency_type, DependencyType::EsmExport(_))
-      && !importer_info.specifiers.is_empty()
-    {
-      importer_info
-        .specifiers
-        .iter()
-        .for_each(|specifier| match specifier {
-          Specifier::Namespace(n) => {
-            let ids = vec![(n.clone(), None)];
-            parser
-              .dependencies
-              .push(Box::new(HarmonyExportImportedSpecifierDependency::new(
-                request.clone(),
-                source_order,
-                ids,
-                vec![],
-                Some(n.clone()),
-                false,
-                None,
-              )));
-            parser.build_info.harmony_named_exports.insert(n.clone());
-          }
-          Specifier::Default(_) => {
-            unreachable!()
-          }
-          Specifier::Named(orig, exported) => {
-            let name = exported.clone().unwrap_or(orig.clone());
-            let ids = vec![(name.clone(), Some(orig.clone()))];
-            // TODO: add variable usage
-            parser
-              .dependencies
-              .push(Box::new(HarmonyExportImportedSpecifierDependency::new(
-                request.clone(),
-                source_order,
-                ids.clone(),
-                ids,
-                Some(name.clone()),
-                false,
-                None,
-              )));
-            parser.build_info.harmony_named_exports.insert(name);
-          }
-        });
-    }
-    if importer_info.exports_all {
-      let list = Some(parser.build_info.all_star_exports.clone());
-      let export_imported_dep = HarmonyExportImportedSpecifierDependency::new(
-        request.clone(),
-        source_order,
-        vec![],
-        vec![],
-        None,
-        true,
-        list,
-      );
-
-      parser
-        .build_info
-        .all_star_exports
-        .push(export_imported_dep.id);
-      parser.dependencies.push(Box::new(export_imported_dep));
-    }
-    let dependency = HarmonyImportSideEffectDependency::new(
-      request.clone(),
-      source_order,
-      Some(importer_info.span.into()),
-      Some(importer_info.source_span.into()),
-      importer_info.specifiers,
-      dependency_type,
-      importer_info.exports_all,
-    );
-    parser.dependencies.push(Box::new(dependency));
   }
 }
 
