@@ -1,12 +1,10 @@
 mod context_dependency_helper;
 mod context_helper;
 mod harmony_export_dependency_scanner;
-pub mod harmony_import_dependency_scanner;
+mod harmony_import_dependency_scanner;
 mod parser;
 mod util;
 
-pub use context_dependency_helper::create_context_dependency;
-pub use context_helper::{scanner_context_module, ContextModuleScanResult};
 use rspack_ast::javascript::Program;
 use rspack_core::needs_refactor::WorkerSyntaxList;
 use rspack_core::{
@@ -19,14 +17,14 @@ use swc_core::common::comments::Comments;
 use swc_core::common::{SourceFile, Span};
 use swc_core::ecma::atoms::Atom;
 
-use self::harmony_import_dependency_scanner::ImportMap;
+pub use self::context_dependency_helper::create_context_dependency;
+pub use self::context_helper::{scanner_context_module, ContextModuleScanResult};
+use self::harmony_export_dependency_scanner::HarmonyExportDependencyScanner;
+use self::harmony_import_dependency_scanner::HarmonyImportRefDependencyScanner;
+pub use self::harmony_import_dependency_scanner::{ImportMap, ImporterReferenceInfo};
 pub use self::parser::{CallExpressionInfo, CallHooksName, ExportedVariableInfo};
 pub use self::parser::{JavascriptParser, MemberExpressionInfo, TagInfoData, TopLevelScope};
 pub use self::util::*;
-use self::{
-  harmony_export_dependency_scanner::HarmonyExportDependencyScanner,
-  harmony_import_dependency_scanner::HarmonyImportRefDependencyScanner,
-};
 
 pub struct ScanDependenciesResult {
   pub dependencies: Vec<BoxDependency>,
