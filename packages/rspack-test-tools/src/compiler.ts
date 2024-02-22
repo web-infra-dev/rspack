@@ -16,6 +16,8 @@ export class TestCompilerManager<T extends ECompilerType>
 	private compilerStats: TCompilerStats<T> | null = null;
 	private runResult: unknown;
 
+	constructor(private name: string) {}
+
 	options(
 		context: ITestContext,
 		fn: (options: TCompilerOptions<T>) => TCompilerOptions<T> | void
@@ -26,7 +28,7 @@ export class TestCompilerManager<T extends ECompilerType>
 				this.compilerOptions = merge(this.compilerOptions, newOptions);
 			}
 		} catch (e) {
-			context.emitError(e as Error);
+			context.emitError(e as Error, this.name);
 		}
 	}
 	compiler(
@@ -42,7 +44,7 @@ export class TestCompilerManager<T extends ECompilerType>
 				this.compilerInstance = newCompiler;
 			}
 		} catch (e) {
-			context.emitError(e as Error);
+			context.emitError(e as Error, this.name);
 		}
 	}
 	stats(
@@ -58,20 +60,20 @@ export class TestCompilerManager<T extends ECompilerType>
 				this.compilerStats = newStats;
 			}
 		} catch (e) {
-			context.emitError(e as Error);
+			context.emitError(e as Error, this.name);
 		}
 	}
-	result(
+	result<R>(
 		context: ITestContext,
-		fn: <R>(compiler: TCompiler<T> | null, result: R) => R
+		fn: (compiler: TCompiler<T> | null, result: R) => R
 	) {
 		try {
-			const newResult = fn(this.compilerInstance, this.runResult);
+			const newResult = fn(this.compilerInstance, this.runResult as R);
 			if (newResult) {
 				this.runResult = newResult;
 			}
 		} catch (e) {
-			context.emitError(e as Error);
+			context.emitError(e as Error, this.name);
 		}
 	}
 	async build(
@@ -79,12 +81,15 @@ export class TestCompilerManager<T extends ECompilerType>
 		fn: (compiler: TCompiler<T>) => Promise<void>
 	) {
 		if (!this.compilerInstance) {
-			context.emitError(new Error("Build failed: compiler not exists"));
+			context.emitError(
+				new Error("Build failed: compiler not exists"),
+				this.name
+			);
 		}
 		try {
 			await fn(this.compilerInstance!);
 		} catch (e) {
-			context.emitError(e as Error);
+			context.emitError(e as Error, this.name);
 		}
 	}
 }

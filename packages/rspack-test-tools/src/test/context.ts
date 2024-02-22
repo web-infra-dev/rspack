@@ -13,7 +13,7 @@ import path from "path";
 const DEFAULT_COMPILER_NAME = "__default__";
 
 export class TestContext implements ITestContext {
-	errors: Error[] = [];
+	errors: Map<string, Error[]> = new Map();
 	private compilers: Map<string, ITestCompilerManager<ECompilerType>> =
 		new Map();
 
@@ -67,22 +67,33 @@ export class TestContext implements ITestContext {
 		const compiler = this.getCompilerManage<T>(name);
 		compiler.stats(this, fn);
 	}
-	result<T extends ECompilerType>(
-		fn: <R>(compiler: TCompiler<T> | null, result: R) => R,
+	result<T extends ECompilerType, R>(
+		fn: (compiler: TCompiler<T> | null, result: R) => R,
 		name = DEFAULT_COMPILER_NAME
 	) {
 		const compiler = this.getCompilerManage<T>(name);
 		compiler.result(this, fn);
 	}
-	emitError(err: Error | string) {
-		this.errors.push(typeof err === "string" ? new Error(err) : err);
+	emitError(err: Error | string, name = DEFAULT_COMPILER_NAME) {
+		const errors = this.errors.get(name) || [];
+		errors.push(typeof err === "string" ? new Error(err) : err);
+		this.errors.set(name, errors);
 	}
 	hasError() {
-		return !!this.errors.length;
+		return !!Array.from(this.errors.values()).reduce(
+			(res, arr) => res + arr.length,
+			0
+		);
+	}
+	getError(name = DEFAULT_COMPILER_NAME) {
+		return this.errors.get(name);
+	}
+	clearError(name = DEFAULT_COMPILER_NAME) {
+		this.errors.delete(name);
 	}
 	private getCompilerManage<T extends ECompilerType>(name: string) {
 		if (!this.compilers.has(name)) {
-			this.compilers.set(name, new TestCompilerManager<T>());
+			this.compilers.set(name, new TestCompilerManager<T>(name));
 		}
 		return this.compilers.get(name) as ITestCompilerManager<T>;
 	}

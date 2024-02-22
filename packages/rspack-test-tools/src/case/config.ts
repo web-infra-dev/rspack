@@ -1,22 +1,28 @@
 import { Tester } from "../test/tester";
 import rimraf from "rimraf";
 import { RspackConfigProcessor } from "../processor/config";
+import fs from "fs-extra";
+import path from "path";
 
 export function createConfigCase(name: string, src: string, dist: string) {
+	const testConfigFile = path.join(src, "test.config.js");
 	const tester = new Tester({
 		name,
 		src,
 		dist,
 		steps: [
 			new RspackConfigProcessor({
-				name
+				name,
+				testConfig: fs.existsSync(testConfigFile) ? require(testConfigFile) : {}
 			})
 		]
 	});
 
 	describe(name, () => {
+		rimraf.sync(dist);
+		fs.mkdirSync(dist, { recursive: true });
+
 		beforeAll(async () => {
-			rimraf.sync(dist);
 			await tester.prepare();
 		});
 

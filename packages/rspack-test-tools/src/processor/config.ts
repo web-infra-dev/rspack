@@ -1,24 +1,58 @@
-import { ECompilerType, ITestContext, TCompilerOptions } from "..";
-import { IMultiTaskProcessorOptions, MultiTaskProcessor } from "./base";
+import {
+	ECompilerType,
+	ITestContext,
+	TCompilerOptions,
+	TTestConfig
+} from "../type";
+import { MultiTaskProcessor } from "./multi";
+import path from "path";
+import fs from "fs";
+import { parseResource } from "../helper/legacy/parseResource";
 
-export interface IRspackConfigProcessorOptions {
+export interface IRspackConfigProcessorOptions<
+	T extends ECompilerType = ECompilerType.Rspack
+> {
 	name: string;
+	testConfig: TTestConfig<T>;
 }
 
-export class RspackConfigProcessor extends MultiTaskProcessor<ECompilerType.Rspack> {
-	constructor(options: IRspackConfigProcessorOptions) {
+export class RspackConfigProcessor<
+	T extends ECompilerType = ECompilerType.Rspack
+> extends MultiTaskProcessor<T> {
+	constructor(options: IRspackConfigProcessorOptions<T>) {
 		super({
-			preOptions: RspackConfigProcessor.preOptions,
-			postOptions: RspackConfigProcessor.postOptions,
+			preOptions: RspackConfigProcessor.preOptions<T>,
+			postOptions: RspackConfigProcessor.postOptions<T>,
 			getCompiler: () => require("@rspack/core").rspack,
-			getBundle: () => ["main.js"],
+			getBundle: options.testConfig.findBundle
+				? (index, context, compilerOptions) =>
+						options.testConfig.findBundle!(index, compilerOptions)
+				: RspackConfigProcessor.findBundle<T>,
 			configFiles: ["rspack.config.js", "webpack.config.js"],
-			name: options.name
+			name: options.name,
+			testConfig: options.testConfig
 		});
 	}
-	static preOptions(
+
+	static findBundle<T extends ECompilerType>(
+		index: number,
+		context: ITestContext,
+		options: TCompilerOptions<T>
+	) {
+		const ext = path.extname(parseResource(options.output?.filename).path);
+		if (
+			options.output?.path &&
+			fs.existsSync(path.join(options.output.path!, "bundle" + index + ext))
+		) {
+			return "./bundle" + index + ext;
+		}
+		return "./main.js";
+	}
+
+	static preOptions<T extends ECompilerType>(
+		index: number,
 		context: ITestContext
-	): TCompilerOptions<ECompilerType.Rspack> {
+	): TCompilerOptions<T> {
 		return {
 			context: context.getSource(),
 			mode: "development",
@@ -28,9 +62,10 @@ export class RspackConfigProcessor extends MultiTaskProcessor<ECompilerType.Rspa
 			}
 		};
 	}
-	static postOptions(
-		options: TCompilerOptions<ECompilerType.Rspack>,
-		context: ITestContext
+	static postOptions<T extends ECompilerType>(
+		index: number,
+		context: ITestContext,
+		options: TCompilerOptions<T>
 	): void {
 		if (!options.entry) {
 			options.entry = {

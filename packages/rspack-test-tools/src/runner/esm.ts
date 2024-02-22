@@ -1,24 +1,16 @@
 import { ECompilerType } from "../type";
 import vm, { SourceTextModule } from "vm";
 import path from "path";
-import { pathToFileURL } from "url";
+import { fileURLToPath, pathToFileURL } from "url";
 import asModule from "../helper/legacy/asModule";
-import {
-	EEsmMode,
-	IBasicGlobalContext,
-	IBasicModuleScope,
-	TRunnerRequirer
-} from "./type";
+import { EEsmMode, TRunnerRequirer } from "./type";
 import { BasicRunner } from "./basic";
 
 export class EsmRunner<
 	T extends ECompilerType = ECompilerType.Rspack
 > extends BasicRunner<T> {
-	protected createEsmRequirer(
-		moduleScope: IBasicModuleScope,
-		globalContext: IBasicGlobalContext
-	): TRunnerRequirer {
-		const esmContext = vm.createContext(moduleScope, {
+	protected createEsmRequirer(): TRunnerRequirer {
+		const esmContext = vm.createContext(this.baseModuleScope!, {
 			name: "context for esm"
 		});
 		const esmCache = new Map<string, SourceTextModule>();
@@ -39,12 +31,11 @@ export class EsmRunner<
 				esm = new SourceTextModule(file.content, {
 					identifier: esmIdentifier + "-" + file.path,
 					// no attribute
-					// url: pathToFileURL(p).href + "?" + esmIdentifier,
+					url: pathToFileURL(file.path).href + "?" + esmIdentifier,
 					context: esmContext,
 					initializeImportMeta: (meta: { url: string }, _: any) => {
 						meta.url = pathToFileURL(file!.path).href;
 					},
-					// wrong type
 					importModuleDynamically: async (
 						specifier: any,
 						module: { context: any }
@@ -59,15 +50,17 @@ export class EsmRunner<
 						return await asModule(result, module.context);
 					}
 				} as any);
+				esmCache.set(file.path, esm);
 			}
-			esmCache.set(file.path, esm);
 			if (context["esmMode"] === EEsmMode.Unlinked) return esm;
 			return (async () => {
 				await esm.link(async (specifier, referencingModule) => {
 					return await asModule(
 						await this.requirers.get("entry")!(
 							path.dirname(
-								referencingModule.identifier.slice(esmIdentifier.length + 1)
+								referencingModule.identifier
+									? referencingModule.identifier.slice(esmIdentifier.length + 1)
+									: fileURLToPath((referencingModule as any).url)
 							),
 							specifier,
 							{
@@ -78,6 +71,7 @@ export class EsmRunner<
 						true
 					);
 				});
+				if ((esm as any).instantiate) (esm as any).instantiate();
 				await esm.evaluate();
 				if (context["esmMode"] === EEsmMode.Evaluated) {
 					return esm;
@@ -91,17 +85,10 @@ export class EsmRunner<
 		};
 	}
 
-	protected createRunner(
-		moduleScope: IBasicModuleScope,
-		globalContext: IBasicGlobalContext
-	) {
-		super.createRunner(moduleScope, globalContext);
+	protected createRunner() {
+		super.createRunner();
 		this.requirers.set("cjs", this.requirers.get("entry")!);
-
-		this.requirers.set(
-			"esm",
-			this.createEsmRequirer(moduleScope, globalContext)
-		);
+		this.requirers.set("esm", this.createEsmRequirer());
 		this.requirers.set("entry", (currentDirectory, modulePath, context) => {
 			let file = this.getFile(modulePath, currentDirectory);
 			if (!file) {

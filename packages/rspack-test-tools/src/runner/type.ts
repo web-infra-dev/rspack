@@ -2,7 +2,8 @@ import {
 	ECompilerType,
 	ITestEnv,
 	TCompilerOptions,
-	TCompilerStats
+	TCompilerStats,
+	TTestConfig
 } from "../type";
 
 export type TRunnerRequirer = (
@@ -48,7 +49,7 @@ export interface IBasicRunnerOptions<T extends ECompilerType> {
 	stats: TCompilerStats<T>;
 	name: string;
 	runInNewContext: boolean;
-	testConfig: any;
+	testConfig: TTestConfig<T>;
 	source: string;
 	dist: string;
 	compilerOptions: TCompilerOptions<T>;

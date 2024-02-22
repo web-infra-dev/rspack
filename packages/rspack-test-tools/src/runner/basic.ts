@@ -10,6 +10,10 @@ import {
 	TRunnerRequirer
 } from "./type";
 
+const define = function (...args: unknown[]) {
+	const factory = args.pop() as () => {};
+	factory();
+};
 const isRelativePath = (p: string) => /^\.\.?\//.test(p);
 const getSubPath = (p: string) => {
 	const lastSlash = p.lastIndexOf("/");
@@ -33,32 +37,43 @@ const getSubPath = (p: string) => {
 };
 
 export class BasicRunner<T extends ECompilerType = ECompilerType.Rspack> {
+	protected globalContext: IBasicGlobalContext | null = null;
+	protected baseModuleScope: IBasicModuleScope | null = null;
 	protected requirers: Map<string, TRunnerRequirer> = new Map();
 	constructor(protected options: IBasicRunnerOptions<T>) {}
 
 	run(file: string) {
-		const globalContext = this.createGlobalContext();
-		const baseModuleScope = this.createBaseModuleScope();
+		this.globalContext = this.createGlobalContext();
+		this.baseModuleScope = this.createBaseModuleScope();
 		if (typeof this.options.testConfig.moduleScope === "function") {
-			this.options.testConfig.moduleScope(baseModuleScope);
+			this.options.testConfig.moduleScope(this.baseModuleScope);
 		}
-		this.createRunner(baseModuleScope, globalContext);
-		return this.requirers.get("entry")!(
+		this.createRunner();
+		const res = this.requirers.get("entry")!(
 			this.options.dist,
 			file.startsWith("./") ? file : `./${file}`
 		);
+		return res;
 	}
 
-	protected createGlobalContext() {
+	protected createGlobalContext(): IBasicGlobalContext {
 		return {
 			console: console,
 			expect: expect,
-			setTimeout: setTimeout,
+			setTimeout: ((
+				cb: (...args: any[]) => void,
+				ms: number | undefined,
+				...args: any
+			) => {
+				let timeout = setTimeout(cb, ms, ...args);
+				timeout.unref();
+				return timeout;
+			}) as typeof setTimeout,
 			clearTimeout: clearTimeout
 		};
 	}
 
-	protected createBaseModuleScope() {
+	protected createBaseModuleScope(): IBasicModuleScope {
 		return {
 			console: console,
 			it: this.options.env.it,
@@ -76,20 +91,20 @@ export class BasicRunner<T extends ECompilerType = ECompilerType.Rspack> {
 		};
 	}
 
-	protected createSubModuleScope(
+	protected createModuleScope(
 		requireFn: TRunnerRequirer,
-		m: any,
-		file: TBasicRunnerFile,
-		baseModuleScope: IBasicModuleScope
+		m: { exports: unknown },
+		file: TBasicRunnerFile
 	): IBasicModuleScope {
 		return {
-			...baseModuleScope,
+			...this.baseModuleScope!,
 			require: requireFn.bind(null, path.dirname(file.path)),
 			module: m,
 			exports: m.exports,
 			__dirname: path.dirname(file.path),
 			__filename: file.path,
-			_globalAssign: { expect }
+			_globalAssign: { expect },
+			define
 		};
 	}
 
@@ -112,17 +127,14 @@ export class BasicRunner<T extends ECompilerType = ECompilerType.Rspack> {
 			return {
 				path: p,
 				content: fs.readFileSync(p, "utf-8"),
-				subPath: getSubPath(p)
+				subPath: getSubPath(modulePath)
 			};
 		} else {
 			return null;
 		}
 	}
 
-	protected createMissRequirer(
-		moduleScope: IBasicModuleScope,
-		globalContext: IBasicGlobalContext
-	): TRunnerRequirer {
+	protected createMissRequirer(): TRunnerRequirer {
 		return (currentDirectory, modulePath, context = {}) => {
 			const modulePathStr = modulePath as string;
 			const modules = this.options.testConfig.modules;
@@ -138,10 +150,7 @@ export class BasicRunner<T extends ECompilerType = ECompilerType.Rspack> {
 		};
 	}
 
-	protected createCjsRequirer(
-		moduleScope: IBasicModuleScope,
-		globalContext: IBasicGlobalContext
-	): TRunnerRequirer {
+	protected createCjsRequirer(): TRunnerRequirer {
 		const requireCache = Object.create(null);
 
 		return (currentDirectory, modulePath, context = {}) => {
@@ -153,49 +162,50 @@ export class BasicRunner<T extends ECompilerType = ECompilerType.Rspack> {
 			if (file.path in requireCache) {
 				return requireCache[file.path].exports;
 			}
+
 			const m = {
 				exports: {}
 			};
-			const currentModuleScope = this.createSubModuleScope(
+			requireCache[file.path] = m;
+			const currentModuleScope = this.createModuleScope(
 				this.requirers.get("entry")!,
 				m,
-				file,
-				moduleScope
+				file
 			);
 
 			if (this.options.testConfig.moduleScope) {
 				this.options.testConfig.moduleScope(currentModuleScope);
 			}
+
 			if (!this.options.runInNewContext) {
 				file.content = `Object.assign(global, _globalAssign);\n ${file.content}`;
 			}
 			const args = Object.keys(currentModuleScope);
 			const argValues = args.map(arg => currentModuleScope[arg]);
 			const code = `(function(${args.join(", ")}) {${file.content}\n})`;
+
+			this.preExecute(code, file);
 			const fn = this.options.runInNewContext
-				? vm.runInNewContext(code, globalContext, file.path)
+				? vm.runInNewContext(code, this.globalContext!, file.path)
 				: vm.runInThisContext(code, file.path);
+
 			fn.call(
 				this.options.testConfig.nonEsmThis
 					? this.options.testConfig.nonEsmThis(modulePath)
 					: m.exports,
 				...argValues
 			);
+
+			this.postExecute(m, file);
 			return m.exports;
 		};
 	}
 
-	protected createRunner(
-		moduleScope: IBasicModuleScope,
-		globalContext: IBasicGlobalContext
-	) {
-		this.requirers.set(
-			"miss",
-			this.createMissRequirer(moduleScope, globalContext)
-		);
-		this.requirers.set(
-			"entry",
-			this.createCjsRequirer(moduleScope, globalContext)
-		);
+	protected preExecute(code: string, file: TBasicRunnerFile) {}
+	protected postExecute(m: Object, file: TBasicRunnerFile) {}
+
+	protected createRunner() {
+		this.requirers.set("miss", this.createMissRequirer());
+		this.requirers.set("entry", this.createCjsRequirer());
 	}
 }

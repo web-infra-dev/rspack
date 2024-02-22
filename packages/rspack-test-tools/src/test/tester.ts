@@ -29,25 +29,28 @@ export class Tester implements ITester {
 		const currentStep = this.steps[this.step];
 		if (!currentStep) return;
 
-		await this.runStepMethods(currentStep, [
-			"before",
-			"config",
-			"compiler",
-			"build"
-		]);
-
-		if (this.context.hasError()) {
-			this.outputErrors();
-			throw new Error(`Case "${this.config.name}" build failed`);
-		}
+		try {
+			await this.runStepMethods(currentStep, [
+				"before",
+				"config",
+				"compiler",
+				"build"
+			]);
+		} catch (e) {}
 	}
 	async check(env: ITestEnv) {
 		const currentStep = this.steps[this.step];
 		if (!currentStep) return;
 
-		await this.runCheckStepMethods(currentStep, env, ["run", "check"]);
+		try {
+			if (this.context.hasError()) {
+				await this.runCheckStepMethods(currentStep, env, ["check"]);
+			} else {
+				await this.runCheckStepMethods(currentStep, env, ["run", "check"]);
+			}
 
-		await this.runStepMethods(currentStep, ["after"]);
+			await this.runStepMethods(currentStep, ["after"]);
+		} catch (e) {}
 
 		if (this.context.hasError()) {
 			this.outputErrors();
@@ -94,7 +97,6 @@ export class Tester implements ITester {
 		methods: Array<"run" | "check">
 	) {
 		for (let i of methods) {
-			if (this.context.hasError()) return;
 			if (typeof step[i] === "function") {
 				await step[i]!(env, this.context);
 			}
@@ -105,8 +107,11 @@ export class Tester implements ITester {
 		console.error(
 			`Case "${this.config.name}" run failed: errors occur in step ${this.step + 1}:`
 		);
-		for (let error of this.context.errors) {
-			console.error(error);
+		for (let [key, errors] of this.context.errors) {
+			console.error(`Error index: ${key}:`);
+			for (let error of errors) {
+				console.error(error);
+			}
 		}
 	}
 

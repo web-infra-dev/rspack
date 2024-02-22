@@ -11,6 +11,7 @@ const config = {
 		"<rootDir>/tests/copyPlugin/*.test.js",
 		"<rootDir>/tests/WatchSuspend.test.js"
 	],
+	snapshotResolver: path.join(__dirname, "./snapshot-resolver.js"),
 	testTimeout: process.env.CI ? 60000 : 30000,
 	cache: false,
 	transform: {

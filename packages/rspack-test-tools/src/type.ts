@@ -8,9 +8,10 @@ import type {
 	Compiler as WebpackCompiler,
 	Stats as WebpackStats
 } from "webpack";
+import { IBasicModuleScope } from "./runner/type";
 
 export interface ITestContext {
-	errors: Error[];
+	errors: Map<string, Error[]>;
 	getSource(sub?: string): string;
 	getDist(sub?: string): string;
 	options<T extends ECompilerType>(
@@ -31,16 +32,18 @@ export interface ITestContext {
 		) => TCompilerStats<T> | void,
 		name?: string
 	): void;
-	result<T extends ECompilerType>(
-		fn: <R>(compiler: TCompiler<T> | null, result: R) => R,
+	result<T extends ECompilerType, R>(
+		fn: (compiler: TCompiler<T> | null, result: R) => R,
 		name?: string
 	): void;
 	build<T extends ECompilerType>(
 		fn: (compiler: TCompiler<T>) => Promise<void>,
 		name?: string
 	): Promise<void>;
-	emitError(err: Error | string): void;
+	emitError(err: Error | string, name?: string): void;
+	getError(name?: string): Error[] | void;
 	hasError(): boolean;
+	clearError(name?: string): void;
 }
 
 export enum ECompilerType {
@@ -77,9 +80,9 @@ export interface ITestCompilerManager<T extends ECompilerType> {
 			stats: TCompilerStats<T> | null
 		) => TCompilerStats<T> | void
 	): void;
-	result(
+	result<R>(
 		context: ITestContext,
-		fn: <R>(compiler: TCompiler<T> | null, result: R) => R
+		fn: (compiler: TCompiler<T> | null, result: R) => R
 	): void;
 	build(
 		context: ITestContext,
@@ -177,3 +180,17 @@ export interface ITestEnv {
 	beforeEach: (...args: any[]) => void;
 	afterEach: (...args: any[]) => void;
 }
+
+export type TTestConfig<T extends ECompilerType> = {
+	noTest?: boolean;
+	beforeExecute?: () => void;
+	afterExecute?: () => void;
+	moduleScope?: (ms: IBasicModuleScope) => IBasicModuleScope;
+	findBundle?: (
+		index: number,
+		options: TCompilerOptions<T>
+	) => string | string[];
+	nonEsmThis?: (p: string | string[]) => Object;
+	modules?: Record<string, Object>;
+	timeout?: number;
+};

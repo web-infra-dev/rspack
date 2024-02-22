@@ -15,7 +15,8 @@ import {
 	replaceRuntimeModuleName
 } from "../compare";
 import { RspackDiffConfigPlugin, WebpackDiffConfigPlugin } from "../plugin";
-import { MultiTaskProcessor } from "./base";
+import { BasicTaskProcessor } from "./basic";
+import { readConfigFile } from "..";
 
 export interface IDiffProcessorOptions extends IFormatCodeOptions {
 	webpackPath: string;
@@ -32,13 +33,12 @@ export interface IDiffProcessorOptions extends IFormatCodeOptions {
 		results: TModuleCompareResult[]
 	) => void;
 }
-
 export class DiffProcessor implements ITestProcessor {
 	private hashes: string[] = [];
-	private webpack: MultiTaskProcessor<ECompilerType.Webpack>;
-	private rspack: MultiTaskProcessor<ECompilerType.Rspack>;
+	private webpack: BasicTaskProcessor<ECompilerType.Webpack>;
+	private rspack: BasicTaskProcessor<ECompilerType.Rspack>;
 	constructor(private options: IDiffProcessorOptions) {
-		this.webpack = new MultiTaskProcessor<ECompilerType.Webpack>({
+		this.webpack = new BasicTaskProcessor<ECompilerType.Webpack>({
 			preOptions: context =>
 				this.getDefaultOptions(
 					ECompilerType.Webpack,
@@ -48,10 +48,15 @@ export class DiffProcessor implements ITestProcessor {
 			getCompiler: () => require(this.options.webpackPath).webpack,
 			getBundle: () => {},
 			name: ECompilerType.Webpack,
-			configFiles: ["webpack.config.js", "rspack.config.js"]
+			getCompilerOptions: context =>
+				readConfigFile<ECompilerType.Webpack>(context.getSource(), [
+					"webpack.config.js",
+					"rspack.config.js"
+				])[0],
+			testConfig: {}
 		});
 
-		this.rspack = new MultiTaskProcessor<ECompilerType.Rspack>({
+		this.rspack = new BasicTaskProcessor<ECompilerType.Rspack>({
 			preOptions: context =>
 				this.getDefaultOptions(
 					ECompilerType.Rspack,
@@ -61,7 +66,12 @@ export class DiffProcessor implements ITestProcessor {
 			getCompiler: () => require(this.options.rspackPath).rspack,
 			getBundle: () => {},
 			name: ECompilerType.Rspack,
-			configFiles: ["rspack.config.js", "webpack.config.js"]
+			getCompilerOptions: context =>
+				readConfigFile<ECompilerType.Rspack>(context.getSource(), [
+					"rspack.config.js",
+					"webpack.config.js"
+				])[0],
+			testConfig: {}
 		});
 	}
 
@@ -78,13 +88,14 @@ export class DiffProcessor implements ITestProcessor {
 		await this.rspack.build(context);
 	}
 	async check(env: ITestEnv, context: ITestContext) {
-		for (let stats of [
-			...this.webpack.getStats(context),
-			...this.rspack.getStats(context)
-		]) {
+		context.stats((compiler, stats) => {
 			//TODO: handle chunk hash and content hash
 			stats?.hash && this.hashes.push(stats?.hash);
-		}
+		}, ECompilerType.Webpack);
+		context.stats((compiler, stats) => {
+			//TODO: handle chunk hash and content hash
+			stats?.hash && this.hashes.push(stats?.hash);
+		}, ECompilerType.Rspack);
 
 		const dist = context.getDist();
 		for (let file of this.options.files!) {
