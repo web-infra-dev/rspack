@@ -16,6 +16,9 @@ module.exports = {
 		new rspack.SourceMapDevToolPlugin({
 			filename: "[file].map",
 			sourceRoot: path.join(__dirname, "folder") + "/"
+		}),
+		new rspack.DefinePlugin({
+			CONTEXT: JSON.stringify(__dirname)
 		})
 	]
 };

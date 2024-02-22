@@ -12,7 +12,7 @@ const deprecationTracking = require("./helpers/deprecationTracking");
 const captureStdio = require("./helpers/captureStdio");
 const asModule = require("./helpers/asModule");
 const filterInfraStructureErrors = require("./helpers/infrastructureLogErrors");
-const { normalizeFilteredTestName } = require('./lib/util/filterUtil')
+const { normalizeFilteredTestName } = require("./lib/util/filterUtil")
 
 const casesPath = path.join(__dirname, "cases");
 let categories = fs.readdirSync(casesPath);
@@ -64,6 +64,7 @@ const describeCases = config => {
 						if (fs.existsSync(filterPath)) {
 							let flag = require(filterPath)(config)
 							if (flag !== true) {
+								// CHANGE: added custom filter for tracking alignment status
 								let filteredName = normalizeFilteredTestName(flag, test);
 								describe.skip(test, () => {
 									it(filteredName, () => {});
@@ -128,9 +129,10 @@ const describeCases = config => {
 											usedExports: true,
 											mangleExports: true,
 											emitOnErrors: true,
-											concatenateModules: !!testConfig?.optimization?.concatenateModules,
+											concatenateModules:
+												!!testConfig?.optimization?.concatenateModules,
 											innerGraph: true,
-											// TODO: size is not supported yet
+											// CHANGE: size is not supported yet
 											// moduleIds: "size",
 											// chunkIds: "size",
 											moduleIds: "named",
@@ -198,34 +200,36 @@ const describeCases = config => {
 										}
 									]
 								},
-								plugins: (config.plugins || []).concat(testConfig.plugins || []).concat(function () {
-									this.hooks.compilation.tap("TestCasesTest", compilation => {
-										[
-											// TODO: the follwing hooks are not supported yet, so comment it out
-											// "optimize",
-											// "optimizeModules",
-											// "optimizeChunks",
-											// "afterOptimizeTree",
-											// "afterOptimizeAssets"
-										].forEach(hook => {
-											compilation.hooks[hook].tap("TestCasesTest", () =>
-												compilation.checkConstraints()
-											);
+								plugins: (config.plugins || [])
+									.concat(testConfig.plugins || [])
+									.concat(function () {
+										this.hooks.compilation.tap("TestCasesTest", compilation => {
+											[
+												// CHANGE: the follwing hooks are not supported yet, so comment it out
+												// "optimize",
+												// "optimizeModules",
+												// "optimizeChunks",
+												// "afterOptimizeTree",
+												// "afterOptimizeAssets"
+											].forEach(hook => {
+												compilation.hooks[hook].tap("TestCasesTest", () =>
+													compilation.checkConstraints()
+												);
+											});
 										});
-									});
-								}),
+									}),
 								experiments: {
 									asyncWebAssembly: true,
 									topLevelAwait: true,
 									backCompat: false,
-                  // RSPACK exclusive: Rspack enables `css` by default.
-                  // Turning off here to fallback to webpack's default css processing logic.
+									// CHANGE: Rspack enables `css` by default.
+									// Turning off here to fallback to webpack's default css processing logic.
 
 									rspackFuture: testConfig?.experiments?.rspackFuture ?? {
 										newTreeshaking: true
 									},
-                  css: false,
-									...(config.module ? { outputModule: true } : {}),
+									css: false,
+									...(config.module ? { outputModule: true } : {})
 								},
 								infrastructureLogging: config.cache && {
 									debug: true,
@@ -290,7 +294,6 @@ const describeCases = config => {
 										);
 										infraStructureLog.length = 0;
 										const deprecationTracker = deprecationTracking.start();
-										console.log(options.experiments)
 										const webpack = require("@rspack/core").rspack;
 										webpack(options, err => {
 											deprecationTracker();

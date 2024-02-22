@@ -1,4 +1,4 @@
-/** @type {import("../../../../src/index").RspackOptions} */
+/** @type {import("../../../../").Configuration} */
 module.exports = [
 	{
 		entry: "./a",

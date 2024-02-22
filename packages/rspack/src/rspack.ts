@@ -103,9 +103,17 @@ function rspack(
 	options: MultiRspackOptions | RspackOptions,
 	callback?: Callback<Error, MultiStats> | Callback<Error, Stats>
 ) {
-	asArray(options).every(opts => {
-		validate(opts, rspackOptions);
-	});
+	try {
+		for (let o of asArray(options)) {
+			validate(o, rspackOptions);
+		}
+	} catch (e) {
+		if (e instanceof Error) {
+			callback?.(e);
+			return;
+		}
+		throw e;
+	}
 	const create = () => {
 		if (isMultiRspackOptions(options)) {
 			const compiler = createMultiCompiler(options);
@@ -139,10 +147,8 @@ function rspack(
 	} else {
 		const { compiler, watch } = create();
 		if (watch) {
-			util.deprecate(
-				() => {},
-				"A 'callback' argument needs to be provided to the 'rspack(options, callback)' function when the 'watch' option is set. There is no way to handle the 'watch' option without a callback."
-			)();
+			util.deprecate(() => {},
+			"A 'callback' argument needs to be provided to the 'rspack(options, callback)' function when the 'watch' option is set. There is no way to handle the 'watch' option without a callback.")();
 		}
 		return compiler;
 	}

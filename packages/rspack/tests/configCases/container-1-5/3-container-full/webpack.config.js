@@ -7,7 +7,7 @@ module.exports = {
 		new ModuleFederationPlugin({
 			remoteType: "commonjs-module",
 			remotes: {
-				containerB: "../../1-container-full/dist/container.js"
+				containerB: "../1-container-full/container.js"
 			},
 			shared: ["react"]
 		})

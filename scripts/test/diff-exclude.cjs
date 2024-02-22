@@ -50,6 +50,10 @@ const UNALIGNED_FIXTURES = [
 	// TO BE ALIGNED:
 	"fixtures/buildDependencies/index.js",
 
+	// Added filtered test filter
+	"ConfigTestCases.template.js",
+	"TestCases.template.js",
+
 	// Change marked
 	"checkArrayExpectation.js",
 	"WatchSuspend.test.js",
