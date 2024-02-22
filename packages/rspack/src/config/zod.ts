@@ -989,7 +989,7 @@ const optimizationSplitChunksChunks = z
 const optimizationSplitChunksSizes = z.number();
 const sharedOptimizationSplitChunksCacheGroup = {
 	chunks: optimizationSplitChunksChunks.optional(),
-	minChunks: z.number().optional(),
+	minChunks: z.number().min(1).optional(),
 	name: optimizationSplitChunksName.optional(),
 	minSize: optimizationSplitChunksSizes.optional(),
 	maxSize: optimizationSplitChunksSizes.optional(),
