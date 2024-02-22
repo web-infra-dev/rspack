@@ -2,6 +2,7 @@ mod if_stmt;
 mod logic_expr;
 
 use rspack_core::{ConstDependency, SpanExt};
+use swc_core::common::Spanned;
 
 pub use self::logic_expr::is_logic_op;
 use super::JavascriptParserPlugin;
@@ -19,6 +20,50 @@ impl JavascriptParserPlugin for ConstPlugin {
     expr: &swc_core::ecma::ast::BinExpr,
   ) -> Option<bool> {
     self::logic_expr::expression_logic_operator(parser, expr)
+  }
+
+  fn expression_conditional_operation(
+    &self,
+    parser: &mut JavascriptParser,
+    expression: &swc_core::ecma::ast::CondExpr,
+  ) -> Option<bool> {
+    let param = parser.evaluate_expression(&expression.test);
+    if let Some(bool) = param.as_bool() {
+      if !param.could_have_side_effects() {
+        parser
+          .presentational_dependencies
+          .push(Box::new(ConstDependency::new(
+            param.range().0,
+            param.range().1 - 1,
+            format!(" {bool}").into(),
+            None,
+          )));
+      } else {
+        parser.walk_expression(&expression.test);
+      }
+      if bool {
+        parser
+          .presentational_dependencies
+          .push(Box::new(ConstDependency::new(
+            expression.alt.span().real_lo(),
+            expression.alt.span().real_hi(),
+            "0".into(),
+            None,
+          )));
+      } else {
+        parser
+          .presentational_dependencies
+          .push(Box::new(ConstDependency::new(
+            expression.cons.span().real_lo(),
+            expression.cons.span().real_hi(),
+            "0".into(),
+            None,
+          )));
+      }
+      Some(bool)
+    } else {
+      None
+    }
   }
 
   fn statement_if(
