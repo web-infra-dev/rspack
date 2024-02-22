@@ -6,7 +6,6 @@ const fs = require("graceful-fs");
 const rimraf = require("rimraf");
 const captureStdio = require("./helpers/captureStdio");
 const webpack = require("..");
-const { normalizeFilteredTestName } = require('./lib/util/filterUtil')
 
 /**
  * Escapes regular expression metacharacters
@@ -29,14 +28,9 @@ const tests = fs
 	.filter(testName => {
 		const testDirectory = path.join(base, testName);
 		const filterPath = path.join(testDirectory, "test.filter.js");
-		if (fs.existsSync(filterPath)) {
-			// CHANGE: added custom filter for tracking alignment status
-			let flag = require(filterPath)()
-			if (flag !== true) {
-				let filteredName = normalizeFilteredTestName(flag, testName);
-				describe.skip(testName, () => it(filteredName, () => { }));
-				return false;
-			}
+		if (fs.existsSync(filterPath) && !require(filterPath)()) {
+			describe.skip(testName, () => it("filtered", () => {}));
+			return false;
 		}
 		return true;
 	});
@@ -44,18 +38,12 @@ const tests = fs
 describe("StatsTestCases", () => {
 	jest.setTimeout(30000);
 	let stderr;
-	// CHANGE: prevent beforeEach() be used in a describe block containing no tests
-	if (tests.length) {
-		beforeEach(() => {
-			stderr = captureStdio(process.stderr, true);
-		});
-	}
-	// CHANGE: prevent afterEach() be used in a describe block containing no tests
-	if (tests.length) {
-		afterEach(() => {
-			stderr.restore();
-		});
-	}
+	beforeEach(() => {
+		stderr = captureStdio(process.stderr, true);
+	});
+	afterEach(() => {
+		stderr.restore();
+	});
 	tests.forEach(testName => {
 		it("should print correct stats for " + testName, done => {
 			const outputDirectory = path.join(outputBase, testName);
