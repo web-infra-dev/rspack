@@ -5,11 +5,12 @@ use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
 use rspack_core::rspack_sources::{ConcatSource, RawSource};
 use rspack_core::{
-  to_identifier, Compilation, GenerateContext, OutputOptions, PathData, RuntimeGlobals,
+  to_identifier, Compilation, ErrorSpan, GenerateContext, OutputOptions, PathData, RuntimeGlobals,
 };
 use rspack_error::{error, Result};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash};
 use rustc_hash::FxHashSet as HashSet;
+use swc_core::common::Spanned;
 use swc_core::css::modules::CssClassName;
 use swc_core::ecma::atoms::Atom;
 
@@ -171,7 +172,7 @@ pub fn css_modules_exports_to_string(
 }
 
 pub fn css_modules_exports_to_concatenate_module_string(
-  exports: &IndexMap<Vec<String>, Vec<(String, Option<String>)>>,
+  exports: &CssExportsType,
   module: &dyn rspack_core::Module,
   generate_context: &mut GenerateContext,
   concate_source: &mut ConcatSource,
@@ -188,7 +189,7 @@ pub fn css_modules_exports_to_concatenate_module_string(
   for (key, elements) in exports {
     let content = elements
       .iter()
-      .map(|(name, from)| match from {
+      .map(|(name, _span, from)| match from {
         None => name.to_owned(),
         Some(from_name) => {
           let from = module
