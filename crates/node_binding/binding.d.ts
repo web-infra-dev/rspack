@@ -353,7 +353,6 @@ export interface JsHooks {
   assetEmitted: (...args: any[]) => any
   shouldEmit: (...args: any[]) => any
   afterEmit: (...args: any[]) => any
-  make: (...args: any[]) => any
   optimizeModules: (...args: any[]) => any
   afterOptimizeModules: (...args: any[]) => any
   optimizeTree: (...args: any[]) => any
@@ -376,7 +375,8 @@ export interface JsHooks {
 }
 
 export enum JsHookType {
-  CompilerCompilation = 'CompilerCompilation'
+  CompilerCompilation = 'CompilerCompilation',
+  CompilerMake = 'CompilerMake'
 }
 
 export interface JsLoaderContext {
