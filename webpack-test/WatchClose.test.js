@@ -1,6 +1,6 @@
 "use strict";
 
-// require("./helpers/warmup-webpack");
+require("./helpers/warmup-webpack");
 
 const path = require("path");
 
@@ -16,7 +16,7 @@ describe("WatchClose", () => {
 		let watcher;
 
 		beforeEach(() => {
-			const webpack = require("@rspack/core").rspack;
+			const webpack = require("../");
 			compiler = webpack({
 				mode: "development",
 				entry: filePath,
@@ -25,7 +25,7 @@ describe("WatchClose", () => {
 					filename: "bundle.js"
 				}
 			});
-			watcher = compiler.watch({ poll: 300 }, () => {});
+			watcher = compiler.watch({ poll: 300 }, () => { });
 		});
 
 		afterEach(() => {
