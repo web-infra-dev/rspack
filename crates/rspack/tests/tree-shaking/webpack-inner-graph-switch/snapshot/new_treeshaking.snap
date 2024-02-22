@@ -45,13 +45,13 @@ function getType(obj) {
 }
 // Local functions
 function doSomethingWithBlock(obj) {
-    return _some_module__WEBPACK_IMPORTED_MODULE_0__.Block.doSomething(obj);
+    return (0, _some_module__WEBPACK_IMPORTED_MODULE_0__.Block).doSomething(obj);
 }
 function doSomethingWithInline(obj) {
-    return _some_module__WEBPACK_IMPORTED_MODULE_0__.Inline.doSomething(obj);
+    return (0, _some_module__WEBPACK_IMPORTED_MODULE_0__.Inline).doSomething(obj);
 }
 function doSomethingWithDocument(obj) {
-    return _some_module__WEBPACK_IMPORTED_MODULE_0__.Document.doSomething(obj);
+    return (0, _some_module__WEBPACK_IMPORTED_MODULE_0__.Document).doSomething(obj);
 }
 // Exported functions
 function doSomething(obj) {

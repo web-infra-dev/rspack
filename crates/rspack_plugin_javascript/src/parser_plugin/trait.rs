@@ -2,7 +2,7 @@ use swc_core::atoms::Atom;
 use swc_core::common::Span;
 use swc_core::ecma::ast::{
   AssignExpr, AwaitExpr, BinExpr, CallExpr, ExportAll, Expr, ForOfStmt, Ident, IfStmt, ImportDecl,
-  MemberExpr, ModuleDecl, NamedExport,
+  MemberExpr, ModuleDecl, NamedExport, OptChainExpr,
 };
 use swc_core::ecma::ast::{NewExpr, Program, Stmt, ThisExpr, UnaryExpr, VarDecl, VarDeclarator};
 
@@ -230,6 +230,17 @@ pub trait JavascriptParserPlugin {
     None
   }
 
+  fn import_specifier(
+    &self,
+    _parser: &mut JavascriptParser,
+    _statement: &ImportDecl,
+    _source: &Atom,
+    _export_name: Option<&str>,
+    _identifier_name: &str,
+  ) -> Option<bool> {
+    None
+  }
+
   fn named_export_import(
     &self,
     _parser: &mut JavascriptParser,
@@ -244,6 +255,14 @@ pub trait JavascriptParserPlugin {
     _parser: &mut JavascriptParser,
     _statement: &ExportAll,
     _source: &str,
+  ) -> Option<bool> {
+    None
+  }
+
+  fn optional_chaining(
+    &self,
+    _parser: &mut JavascriptParser,
+    _expr: &OptChainExpr,
   ) -> Option<bool> {
     None
   }

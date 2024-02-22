@@ -149,6 +149,8 @@ impl JavascriptParserPlugin for ImportParserPlugin {
           chunk_prefetch.or(dynamic_import_prefetch),
         )));
         parser.blocks.push(block);
+        // FIXME: align `parser.walk_expression` to webpack, which put into `context_dependency_helper`
+        parser.walk_template_expression(tpl);
         Some(true)
       }
       _ => {
@@ -197,6 +199,8 @@ impl JavascriptParserPlugin for ImportParserPlugin {
             },
             Some(node.span.into()),
           )));
+        // FIXME: align `parser.walk_expression` to webpack, which put into `context_dependency_helper`
+        parser.walk_expression(&dyn_imported.expr);
         Some(true)
       }
     }
