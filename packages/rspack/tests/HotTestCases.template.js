@@ -75,9 +75,8 @@ const describeCases = config => {
 								if (!options.output.path) options.output.path = outputDirectory;
 								if (!options.output.filename)
 									options.output.filename = "bundle.js";
-								// CHANGE: chunkFilename may cause errors in Rspack
-								// if (!options.output.chunkFilename)
-								// 	options.output.chunkFilename = "[name].chunk.[fullhash].js";
+								if (!options.output.chunkFilename)
+									options.output.chunkFilename = "[name].chunk.[fullhash].js";
 								// CHANGE: the pathinfo is currently not supported in Rspack
 								// if (options.output.pathinfo === undefined)
 								// 	options.output.pathinfo = true;
@@ -90,7 +89,7 @@ const describeCases = config => {
 									options.optimization.moduleIds = "named";
 								if (!options.module) options.module = {};
 								if (!options.module.rules) options.module.rules = [];
-								// CHANGE: switched to `use` configuration, `loader` may not work in Rspack
+								// CHANGE: switched to `use` configuration to support css and json
 								options.module.rules.push({
 									test: /\.(js|css|json)/,
 									use: [
