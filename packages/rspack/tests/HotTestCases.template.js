@@ -189,6 +189,10 @@ const describeCases = config => {
 													getAttribute(name) {
 														return this._attrs[name];
 													},
+													// CHANGE: added support for `removeAttribute` method
+													removeAttribute(name) {
+														delete this._attrs[name];
+													},
 													parentNode: {
 														removeChild(node) {
 															// ok
@@ -342,15 +346,22 @@ const describeCases = config => {
 									}
 									let promise = Promise.resolve();
 									const info = stats.toJson({ all: false, entrypoints: true });
-									if (config.target === "web") {
-										// CHANGE: filtered non-JavaScript files from test and included CSS file handling
-										if (file.name.endsWith(".js")) {
-											_require(`./${file.name}`);
-										} else {
-											const cssElement = window.document.createElement("link");
-											cssElement.href = file.name;
-											cssElement.rel = "stylesheet";
-											window.document.head.appendChild(cssElement);
+									// CHANGE: here it is diffrent from webpack, because we add hotCases/chunk/multi-chunk-single-runtime
+									if (
+										config.target === "web" ||
+										config.target === "webworker"
+									) {
+										for (const file of info.entrypoints.main.assets) {
+											// CHANGE: filtered non-JavaScript files from test and included CSS file handling
+											if (file.name.endsWith(".js")) {
+												_require(`./${file.name}`);
+											} else {
+												const cssElement =
+													window.document.createElement("link");
+												cssElement.href = file.name;
+												cssElement.rel = "stylesheet";
+												window.document.head.appendChild(cssElement);
+											}
 										}
 									} else {
 										// CHANGE: filtered non-JavaScript files
