@@ -365,6 +365,7 @@ export interface JsHooks {
   beforeResolve: (...args: any[]) => any
   afterResolve: (...args: any[]) => any
   contextModuleFactoryBeforeResolve: (...args: any[]) => any
+  contextModuleFactoryAfterResolve: (...args: any[]) => any
   normalModuleFactoryCreateModule: (...args: any[]) => any
   normalModuleFactoryResolveForScheme: (...args: any[]) => any
   chunkAsset: (...args: any[]) => any

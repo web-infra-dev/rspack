@@ -327,6 +327,8 @@ class Compiler {
 				afterResolve: this.#afterResolve.bind(this),
 				contextModuleFactoryBeforeResolve:
 					this.#contextModuleFactoryBeforeResolve.bind(this),
+				contextModuleFactoryAfterResolve:
+					this.#contextModuleFactoryAfterResolve.bind(this),
 				succeedModule: this.#succeedModule.bind(this),
 				stillValidModule: this.#stillValidModule.bind(this),
 				buildModule: this.#buildModule.bind(this),
@@ -645,6 +647,8 @@ class Compiler {
 			optimizeChunkModules: this.compilation.hooks.optimizeChunkModules,
 			contextModuleFactoryBeforeResolve:
 				this.compilation.contextModuleFactory?.hooks.beforeResolve,
+			contextModuleFactoryAfterResolve:
+				this.compilation.contextModuleFactory?.hooks.afterResolve,
 			normalModuleFactoryCreateModule:
 				this.compilation.normalModuleFactory?.hooks.createModule,
 			normalModuleFactoryResolveForScheme:
@@ -757,6 +761,18 @@ class Compiler {
 	) {
 		let res =
 			await this.compilation.contextModuleFactory?.hooks.beforeResolve.promise(
+				resourceData
+			);
+
+		this.#updateDisabledHooks();
+		return res;
+	}
+
+	async #contextModuleFactoryAfterResolve(
+		resourceData: binding.AfterResolveData
+	) {
+		let res =
+			await this.compilation.contextModuleFactory?.hooks.afterResolve.promise(
 				resourceData
 			);
 
