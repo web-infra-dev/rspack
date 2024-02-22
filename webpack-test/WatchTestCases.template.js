@@ -1,6 +1,6 @@
 "use strict";
 
-// require("./helpers/warmup-webpack");
+require("./helpers/warmup-webpack");
 
 const path = require("path");
 const fs = require("graceful-fs");
@@ -9,7 +9,6 @@ const rimraf = require("rimraf");
 const checkArrayExpectation = require("./checkArrayExpectation");
 const createLazyTestEnv = require("./helpers/createLazyTestEnv");
 const { remove } = require("./helpers/remove");
-const { normalizeFilteredTestName } = require('./lib/util/filterUtil')
 const prepareOptions = require("./helpers/prepareOptions");
 const deprecationTracking = require("./helpers/deprecationTracking");
 const FakeDocument = require("./helpers/FakeDocument");
@@ -47,7 +46,7 @@ function copyDiff(src, dest, initial) {
 const describeCases = config => {
 	describe(config.name, () => {
 		if (process.env.NO_WATCH_TESTS) {
-			it.skip("long running tests excluded", () => {});
+			it.skip("long running tests excluded", () => { });
 			return;
 		}
 
@@ -63,15 +62,9 @@ const describeCases = config => {
 					.filter(testName => {
 						const testDirectory = path.join(casesPath, cat, testName);
 						const filterPath = path.join(testDirectory, "test.filter.js");
-						if (fs.existsSync(filterPath)) {
-							let flag = require(filterPath)(config)
-							if (flag !== true) {
-								let filteredName = normalizeFilteredTestName(flag, testName);
-								describe.skip(testName, () => {
-									it(filteredName, () => {});
-								});
-								return false;
-							}
+						if (fs.existsSync(filterPath) && !require(filterPath)(config)) {
+							describe.skip(testName, () => it("filtered", () => { }));
+							return false;
 						}
 						return true;
 					})
@@ -151,8 +144,9 @@ const describeCases = config => {
 									if (!options.output) options.output = {};
 									if (!options.output.path)
 										options.output.path = outputDirectory;
-									if (typeof options.output.pathinfo === "undefined")
-										options.output.pathinfo = true;
+									// CHANGE: The pathinfo is currently not supported in rspack
+									// if (typeof options.output.pathinfo === "undefined")
+									// 	options.output.pathinfo = true;
 									if (!options.output.filename)
 										options.output.filename = "bundle.js";
 									if (options.cache && options.cache.type === "filesystem") {
@@ -198,7 +192,7 @@ const describeCases = config => {
 
 								setTimeout(() => {
 									const deprecationTracker = deprecationTracking.start();
-									const webpack = require("@rspack/core").rspack;
+									const webpack = require("..");
 									const compiler = webpack(options);
 									compiler.hooks.invalid.tap(
 										"WatchTestCasesTest",
@@ -223,14 +217,14 @@ const describeCases = config => {
 												return compilationFinished(
 													new Error(
 														"Compilation changed but no change was issued " +
-															lastHash +
-															" != " +
-															stats.hash +
-															" (run " +
-															runIdx +
-															")\n" +
-															"Triggering change: " +
-															triggeringFilename
+														lastHash +
+														" != " +
+														stats.hash +
+														" (run " +
+														runIdx +
+														")\n" +
+														"Triggering change: " +
+														triggeringFilename
 													)
 												);
 											}
@@ -309,19 +303,19 @@ const describeCases = config => {
 													) {
 														fn = vm.runInNewContext(
 															"(function(require, module, exports, __dirname, __filename, it, WATCH_STEP, STATS_JSON, STATE, expect, window, self) {" +
-																'function nsObj(m) { Object.defineProperty(m, Symbol.toStringTag, { value: "Module" }); return m; }' +
-																content +
-																"\n})",
+															'function nsObj(m) { Object.defineProperty(m, Symbol.toStringTag, { value: "Module" }); return m; }' +
+															content +
+															"\n})",
 															globalContext,
 															p
 														);
 													} else {
 														fn = vm.runInThisContext(
 															"(function(require, module, exports, __dirname, __filename, it, WATCH_STEP, STATS_JSON, STATE, expect) {" +
-																"global.expect = expect;" +
-																'function nsObj(m) { Object.defineProperty(m, Symbol.toStringTag, { value: "Module" }); return m; }' +
-																content +
-																"\n})",
+															"global.expect = expect;" +
+															'function nsObj(m) { Object.defineProperty(m, Symbol.toStringTag, { value: "Module" }); return m; }' +
+															content +
+															"\n})",
 															p
 														);
 													}
@@ -403,7 +397,7 @@ const describeCases = config => {
 																done
 															)
 														) {
-															compiler.close(() => {});
+															compiler.close(() => { });
 															return;
 														}
 														compiler.close(done);
