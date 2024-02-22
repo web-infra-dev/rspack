@@ -1,8 +1,10 @@
 use rspack_core::tree_shaking::symbol::DEFAULT_JS_WORD;
 use rspack_core::{extract_member_expression_chain, ConstDependency, DependencyType, SpanExt};
 use swc_core::atoms::Atom;
-use swc_core::common::Span;
-use swc_core::ecma::ast::{AssignExpr, AssignOp, ImportSpecifier, ModuleExportName, OptChainExpr};
+use swc_core::common::{Span, Spanned};
+use swc_core::ecma::ast::{
+  AssignExpr, AssignOp, Callee, ImportSpecifier, ModuleExportName, OptChainExpr,
+};
 use swc_core::ecma::ast::{Expr, Ident, ImportDecl, Pat, PatOrExpr};
 
 use super::JavascriptParserPlugin;
@@ -198,6 +200,62 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
     } else {
       None
     }
+  }
+
+  fn call_member_chain(
+    &self,
+    parser: &mut JavascriptParser,
+    _root_info: &crate::visitors::ExportedVariableInfo,
+    expr: &swc_core::ecma::ast::CallExpr,
+    // TODO: members: &Vec<String>,
+    // TODO: members_optionals: Vec<bool>,
+    // TODO: members_ranges: Vec<DependencyLoc>
+  ) -> Option<bool> {
+    let Callee::Expr(callee) = &expr.callee else {
+      unreachable!()
+    };
+    let expression_info = extract_member_expression_chain(&**callee);
+    let member_chain = expression_info.members();
+    assert!(
+      !member_chain.is_empty(),
+      "enter from call expression so the len of member must be not empty"
+    );
+    let direct_import = member_chain.len() == 1;
+    if let Some(reference) = parser.import_map.get(&member_chain[0]) {
+      let mut member_chain = member_chain.clone();
+      member_chain.pop_front();
+      if !member_chain.is_empty() {
+        let mut ids = reference.names.clone().map(|f| vec![f]).unwrap_or_default();
+        // dbg!(&member_chain);
+        ids.extend_from_slice(
+          &member_chain
+            .into_iter()
+            .map(|item| item.0.clone())
+            .collect::<Vec<_>>(),
+        );
+        parser
+          .rewrite_usage_span
+          .insert(callee.span(), ExtraSpanInfo::ReWriteUsedByExports);
+        parser
+          .dependencies
+          .push(Box::new(HarmonyImportSpecifierDependency::new(
+            reference.request.clone(),
+            reference.source_order,
+            false,
+            callee.span().real_lo(),
+            callee.span().real_hi(),
+            ids,
+            true,
+            direct_import,
+            reference.specifier.clone(),
+            None,
+            callee.span(),
+          )));
+        parser.walk_expr_or_spread(&expr.args);
+        return Some(true);
+      }
+    }
+    None
   }
 
   fn member(

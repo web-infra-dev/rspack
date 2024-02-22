@@ -732,7 +732,6 @@ impl<'parser> JavascriptParser<'parser> {
     match &expr.callee {
       Callee::Expr(callee) => {
         // TODO: iife
-
         if let Expr::Member(member) = &**callee
           && let Some(MemberExpressionInfo::Call(expr_info)) =
             self.get_member_expression_info(member, AllowedMemberTypes::CallExpression)
