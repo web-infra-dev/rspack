@@ -12,6 +12,7 @@ const { remove } = require("./helpers/remove");
 const prepareOptions = require("./helpers/prepareOptions");
 const deprecationTracking = require("./helpers/deprecationTracking");
 const FakeDocument = require("./helpers/FakeDocument");
+const { normalizeFilteredTestName } = require("./lib/util/filterUtil");
 
 function copyDiff(src, dest, initial) {
 	if (!fs.existsSync(dest)) fs.mkdirSync(dest);
@@ -62,9 +63,15 @@ const describeCases = config => {
 					.filter(testName => {
 						const testDirectory = path.join(casesPath, cat, testName);
 						const filterPath = path.join(testDirectory, "test.filter.js");
-						if (fs.existsSync(filterPath) && !require(filterPath)(config)) {
-							describe.skip(testName, () => it("filtered", () => { }));
-							return false;
+						if (fs.existsSync(filterPath)) {
+							let flag = require(filterPath)(config)
+							if (flag !== true) {
+								let filteredName = normalizeFilteredTestName(flag, testName);
+								describe.skip(testName, () => {
+									it(filteredName, () => { });
+								});
+								return false;
+							}
 						}
 						return true;
 					})
