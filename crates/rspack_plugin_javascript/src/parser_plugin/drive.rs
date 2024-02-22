@@ -1,5 +1,5 @@
 use swc_core::common::Span;
-use swc_core::ecma::ast::{BinExpr, CallExpr, Expr, OptChainExpr};
+use swc_core::ecma::ast::{BinExpr, CallExpr, Callee, Expr, OptChainExpr};
 use swc_core::ecma::ast::{IfStmt, MemberExpr, Stmt, UnaryOp, VarDecl, VarDeclarator};
 
 use super::{BoxJavascriptParserPlugin, JavascriptParserPlugin};
@@ -106,6 +106,7 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     // TODO: members_optionals: Vec<bool>,
     // TODO: members_ranges: Vec<DependencyLoc>
   ) -> Option<bool> {
+    assert!(matches!(expr.callee, Callee::Expr(_)));
     for plugin in &self.plugins {
       let res = plugin.call_member_chain(parser, root_info, expr);
       // `SyncBailHook`
