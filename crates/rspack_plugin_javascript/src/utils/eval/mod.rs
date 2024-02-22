@@ -218,7 +218,7 @@ impl BasicEvaluatedExpression {
   pub fn as_bool(&self) -> Option<Boolean> {
     if self.truthy {
       Some(true)
-    } else if self.falsy || self.nullish == Some(true) {
+    } else if self.falsy || self.nullish == Some(true) || self.is_null() {
       Some(false)
     } else {
       self.boolean
