@@ -1,6 +1,5 @@
 mod context_dependency_helper;
 mod context_helper;
-mod harmony_export_dependency_scanner;
 mod parser;
 mod util;
 
@@ -18,7 +17,6 @@ use swc_core::ecma::atoms::Atom;
 
 pub use self::context_dependency_helper::create_context_dependency;
 pub use self::context_helper::{scanner_context_module, ContextModuleScanResult};
-use self::harmony_export_dependency_scanner::HarmonyExportDependencyScanner;
 pub use self::parser::{CallExpressionInfo, CallHooksName, ExportedVariableInfo};
 pub use self::parser::{JavascriptParser, MemberExpressionInfo, TagInfoData, TopLevelScope};
 pub use self::util::*;
@@ -109,17 +107,6 @@ pub fn scan_dependencies(
   );
 
   parser.walk_program(program.get_inner_program());
-
-  if module_type.is_js_auto() || module_type.is_js_esm() {
-    program.visit_with(&mut HarmonyExportDependencyScanner::new(
-      &mut dependencies,
-      &mut presentational_dependencies,
-      &import_map,
-      build_info,
-      &mut rewrite_usage_span,
-      &mut ignored,
-    ));
-  }
 
   if errors.is_empty() {
     Ok(ScanDependenciesResult {

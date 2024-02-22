@@ -119,6 +119,9 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_export_decl(&mut self, expr: &ExportDecl) {
+    // FIXME: delete `ExportDecl`
+    self.plugin_drive.clone().export_decl(self, expr);
+
     match &expr.decl {
       Decl::Class(c) => {
         // FIXME: webpack use `self.walk_statement` here
@@ -137,16 +140,18 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_export_default_expr(&mut self, expr: &ExportDefaultExpr) {
-    // TODO: `self.hooks.export.call`
+    // TODO: delete `export_default_expr`
+    self.plugin_drive.clone().export_default_expr(self, expr);
     self.walk_expression(&expr.expr);
   }
 
-  fn walk_export_named_declaration(&mut self, _decl: &NamedExport) {
+  fn walk_export_named_declaration(&mut self, decl: &NamedExport) {
+    self.plugin_drive.clone().named_export(self, decl);
     // self.walk_statement(decl)
   }
 
   fn walk_export_default_declaration(&mut self, decl: &ExportDefaultDecl) {
-    // TODO: `hooks.export.call`
+    self.plugin_drive.clone().export(self, decl);
     match &decl.decl {
       DefaultDecl::Class(c) => {
         // FIXME: webpack use `self.walk_statement` here
