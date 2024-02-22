@@ -1,5 +1,5 @@
 use swc_core::common::Span;
-use swc_core::ecma::ast::{BinExpr, CallExpr, Expr};
+use swc_core::ecma::ast::{BinExpr, CallExpr, Expr, OptChainExpr};
 use swc_core::ecma::ast::{IfStmt, MemberExpr, Stmt, UnaryOp, VarDecl, VarDeclarator};
 
 use super::{BoxJavascriptParserPlugin, JavascriptParserPlugin};
@@ -425,6 +425,24 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     None
   }
 
+  fn import_specifier(
+    &self,
+    parser: &mut JavascriptParser,
+    statement: &swc_core::ecma::ast::ImportDecl,
+    source: &swc_core::atoms::Atom,
+    export_name: Option<&str>,
+    identifier_name: &str,
+  ) -> Option<bool> {
+    for plugin in &self.plugins {
+      let res = plugin.import_specifier(parser, statement, source, export_name, identifier_name);
+      // `SyncBailHook`
+      if res.is_some() {
+        return res;
+      }
+    }
+    None
+  }
+
   fn named_export_import(
     &self,
     parser: &mut JavascriptParser,
@@ -450,6 +468,17 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
   ) -> Option<bool> {
     for plugin in &self.plugins {
       let res = plugin.all_export_import(parser, statement, source);
+      // `SyncBailHook`
+      if res.is_some() {
+        return res;
+      }
+    }
+    None
+  }
+
+  fn optional_chaining(&self, parser: &mut JavascriptParser, expr: &OptChainExpr) -> Option<bool> {
+    for plugin in &self.plugins {
+      let res = plugin.optional_chaining(parser, expr);
       // `SyncBailHook`
       if res.is_some() {
         return res;

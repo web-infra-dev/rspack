@@ -8,15 +8,14 @@ use swc_core::{
   ecma::{
     ast::{
       ClassDecl, Decl, DefaultDecl, ExportDecl, ExportDefaultDecl, ExportDefaultExpr,
-      ExportSpecifier, FnDecl, Ident, ModuleExportName, NamedExport, Program,
+      ExportSpecifier, FnDecl, Ident, ModuleExportName, NamedExport,
     },
     utils::{find_pat_ids, ExprFactory},
-    visit::{noop_visit_type, Visit, VisitWith},
+    visit::{noop_visit_type, Visit},
   },
 };
-use swc_node_comments::SwcComments;
 
-use super::{harmony_import_dependency_scanner::ImportMap, ExtraSpanInfo};
+use super::{ExtraSpanInfo, ImportMap};
 use crate::{
   dependency::{
     DeclarationId, DeclarationInfo, HarmonyExportExpressionDependency,
@@ -26,24 +25,22 @@ use crate::{
   no_visit_ignored_stmt,
 };
 
-pub struct HarmonyExportDependencyScanner<'a, 'b> {
+pub struct HarmonyExportDependencyScanner<'a> {
   pub dependencies: &'a mut Vec<BoxDependency>,
   pub presentational_dependencies: &'a mut Vec<BoxDependencyTemplate>,
   pub import_map: &'a ImportMap,
   pub build_info: &'a mut BuildInfo,
   pub rewrite_usage_span: &'a mut HashMap<Span, ExtraSpanInfo>,
-  pub comments: Option<&'b SwcComments>,
   pub ignored: &'a mut FxHashSet<DependencyLocation>,
 }
 
-impl<'a, 'b> HarmonyExportDependencyScanner<'a, 'b> {
+impl<'a> HarmonyExportDependencyScanner<'a> {
   pub fn new(
     dependencies: &'a mut Vec<BoxDependency>,
     presentational_dependencies: &'a mut Vec<BoxDependencyTemplate>,
     import_map: &'a ImportMap,
     build_info: &'a mut BuildInfo,
     rewrite_usage_span: &'a mut HashMap<Span, ExtraSpanInfo>,
-    comments: Option<&'b SwcComments>,
     ignored: &'a mut FxHashSet<DependencyLocation>,
   ) -> Self {
     Self {
@@ -52,19 +49,14 @@ impl<'a, 'b> HarmonyExportDependencyScanner<'a, 'b> {
       import_map,
       build_info,
       rewrite_usage_span,
-      comments,
       ignored,
     }
   }
 }
 
-impl<'a, 'b> Visit for HarmonyExportDependencyScanner<'a, 'b> {
+impl<'a> Visit for HarmonyExportDependencyScanner<'a> {
   noop_visit_type!();
   no_visit_ignored_stmt!();
-
-  fn visit_program(&mut self, program: &'_ Program) {
-    program.visit_children_with(self);
-  }
 
   fn visit_export_decl(&mut self, export_decl: &'_ ExportDecl) {
     match &export_decl.decl {

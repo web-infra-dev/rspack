@@ -148,6 +148,7 @@ impl JavascriptParserPlugin for WorkerPlugin {
       .parse_new_worker(new_expr)
       .map(|(parsed_path, parsed_options)| {
         parser.add_dependencies(new_expr, parsed_path, parsed_options);
+        parser.walk_expression(&new_expr.callee);
         true
       })
   }

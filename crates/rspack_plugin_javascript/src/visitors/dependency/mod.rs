@@ -1,7 +1,6 @@
 mod context_dependency_helper;
 mod context_helper;
 mod harmony_export_dependency_scanner;
-mod harmony_import_dependency_scanner;
 mod parser;
 mod util;
 
@@ -20,11 +19,31 @@ use swc_core::ecma::atoms::Atom;
 pub use self::context_dependency_helper::create_context_dependency;
 pub use self::context_helper::{scanner_context_module, ContextModuleScanResult};
 use self::harmony_export_dependency_scanner::HarmonyExportDependencyScanner;
-use self::harmony_import_dependency_scanner::HarmonyImportRefDependencyScanner;
-pub use self::harmony_import_dependency_scanner::{ImportMap, ImporterReferenceInfo};
 pub use self::parser::{CallExpressionInfo, CallHooksName, ExportedVariableInfo};
 pub use self::parser::{JavascriptParser, MemberExpressionInfo, TagInfoData, TopLevelScope};
 pub use self::util::*;
+use crate::dependency::Specifier;
+
+#[derive(Debug)]
+pub struct ImporterReferenceInfo {
+  pub request: Atom,
+  pub specifier: Specifier,
+  pub names: Option<Atom>,
+  pub source_order: i32,
+}
+
+impl ImporterReferenceInfo {
+  pub fn new(request: Atom, specifier: Specifier, names: Option<Atom>, source_order: i32) -> Self {
+    Self {
+      request,
+      specifier,
+      names,
+      source_order,
+    }
+  }
+}
+
+pub type ImportMap = FxHashMap<swc_core::ecma::ast::Id, ImporterReferenceInfo>;
 
 pub struct ScanDependenciesResult {
   pub dependencies: Vec<BoxDependency>,
@@ -61,6 +80,7 @@ pub fn scan_dependencies(
   let mut dependencies = Vec::with_capacity(256);
   let mut blocks = Vec::with_capacity(256);
   let mut presentational_dependencies = Vec::with_capacity(256);
+  // FIXME: delete `.clone`
   let comments = program.comments.clone();
   let mut parser_exports_state = None;
   let mut ignored: FxHashSet<DependencyLocation> = FxHashSet::default();
@@ -91,20 +111,12 @@ pub fn scan_dependencies(
   parser.walk_program(program.get_inner_program());
 
   if module_type.is_js_auto() || module_type.is_js_esm() {
-    program.visit_with(&mut HarmonyImportRefDependencyScanner::new(
-      &import_map,
-      &mut dependencies,
-      &mut rewrite_usage_span,
-      &mut ignored,
-    ));
-    let comments = program.comments.as_ref();
     program.visit_with(&mut HarmonyExportDependencyScanner::new(
       &mut dependencies,
       &mut presentational_dependencies,
       &import_map,
       build_info,
       &mut rewrite_usage_span,
-      comments,
       &mut ignored,
     ));
   }

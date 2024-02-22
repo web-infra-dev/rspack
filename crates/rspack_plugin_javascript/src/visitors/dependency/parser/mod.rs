@@ -26,8 +26,8 @@ use swc_core::ecma::ast::{
 };
 use swc_core::ecma::ast::{Expr, Ident, Lit, MemberExpr, RestPat};
 
-use super::harmony_import_dependency_scanner::ImportMap;
 use super::ExtraSpanInfo;
+use super::ImportMap;
 use crate::parser_plugin::{self, JavaScriptParserPluginDrive, JavascriptParserPlugin};
 use crate::utils::eval::{self, BasicEvaluatedExpression};
 use crate::visitors::scope_info::{
@@ -162,7 +162,7 @@ pub struct JavascriptParser<'parser> {
   // TODO: remove `import_map`
   pub(crate) import_map: &'parser mut ImportMap,
   // TODO: remove `rewrite_usage_span`
-  pub(crate) _rewrite_usage_span: &'parser mut FxHashMap<Span, ExtraSpanInfo>,
+  pub(crate) rewrite_usage_span: &'parser mut FxHashMap<Span, ExtraSpanInfo>,
   pub(crate) comments: Option<&'parser dyn Comments>,
   // TODO: remove `worker_syntax_list`
   pub(crate) worker_syntax_list: &'parser mut WorkerSyntaxList,
@@ -182,8 +182,14 @@ pub struct JavascriptParser<'parser> {
   pub(crate) parser_exports_state: &'parser mut Option<bool>,
   // TODO: delete `enter_call`
   pub(crate) enter_call: u32,
+  // TODO: delete `enter_new_expr`
+  pub(crate) enter_new_expr: bool,
+  // TODO: delete `enter_callee`
+  pub(crate) enter_callee: bool,
   pub(crate) stmt_level: u32,
   pub(crate) last_stmt_is_expr_stmt: bool,
+  // TODO: delete `properties_in_destructuring`
+  pub(crate) properties_in_destructuring: FxHashMap<Atom, FxHashSet<Atom>>,
   // ===== scope info =======
   // TODO: `in_if` can be removed after eval identifier
   pub(crate) in_if: bool,
@@ -338,7 +344,10 @@ impl<'parser> JavascriptParser<'parser> {
       worker_index: 0,
       module_identifier,
       import_map,
-      _rewrite_usage_span: rewrite_usage_span,
+      rewrite_usage_span,
+      enter_new_expr: false,
+      enter_callee: false,
+      properties_in_destructuring: Default::default(),
     }
   }
 
