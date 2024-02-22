@@ -13,6 +13,9 @@ it("format", () => {
 });
 
 it("css", () => {
-	const content = fs.readFileSync(path.resolve(__dirname, "main.css"), "utf-8");
+	const content = fs.readFileSync(
+		path.resolve(__dirname, "bundle0.css"),
+		"utf-8"
+	);
 	expect(content).toMatch("\n");
 });

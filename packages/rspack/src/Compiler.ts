@@ -239,7 +239,6 @@ class Compiler {
 				beforeCompile: this.#beforeCompile.bind(this),
 				afterCompile: this.#afterCompile.bind(this),
 				finishMake: this.#finishMake.bind(this),
-				make: this.#make.bind(this),
 				shouldEmit: this.#shouldEmit.bind(this),
 				emit: this.#emit.bind(this),
 				assetEmitted: this.#assetEmitted.bind(this),
@@ -558,7 +557,6 @@ class Compiler {
 		const disabledHooks: string[] = [];
 		type HookMap = Record<keyof binding.JsHooks, any>;
 		const hookMap: HookMap = {
-			make: this.hooks.make,
 			beforeCompile: this.hooks.beforeCompile,
 			afterCompile: this.hooks.afterCompile,
 			finishMake: this.hooks.finishMake,
@@ -832,10 +830,6 @@ class Compiler {
 		this.#updateDisabledHooks();
 	}
 
-	async #make() {
-		await this.hooks.make.promise(this.compilation);
-		this.#updateDisabledHooks();
-	}
 	async #shouldEmit(): Promise<boolean | undefined> {
 		const res = this.hooks.shouldEmit.call(this.compilation);
 		this.#updateDisabledHooks();
@@ -966,11 +960,14 @@ class Compiler {
 	}
 
 	#collectCompilerHooks(): binding.JsHook[] {
-		return [...this.#createCompilerCompilationHooks()];
+		return [
+			...this.#createCompilerCompilationHooks(),
+			...this.#createCompilerMakeHooks()
+		];
 	}
 
 	#createCompilerCompilationHooks(): binding.JsHook[] {
-		if (this.hooks.compilation.taps.length <= 0) return [];
+		if (!this.hooks.compilation.isUsed()) return [];
 		return [
 			{
 				type: binding.JsHookType.CompilerCompilation,
@@ -978,6 +975,19 @@ class Compiler {
 					this.hooks.compilation.call(this.compilation, {
 						normalModuleFactory: this.compilation.normalModuleFactory!
 					});
+					this.#updateDisabledHooks();
+				}
+			}
+		];
+	}
+
+	#createCompilerMakeHooks(): binding.JsHook[] {
+		if (!this.hooks.make.isUsed()) return [];
+		return [
+			{
+				type: binding.JsHookType.CompilerMake,
+				function: (native: binding.JsCompilation) => {
+					this.hooks.make.promise(this.compilation);
 					this.#updateDisabledHooks();
 				}
 			}
@@ -994,7 +1004,7 @@ class Compiler {
 		this.compilation.normalModuleFactory = normalModuleFactory;
 		this.hooks.normalModuleFactory.call(normalModuleFactory);
 		this.compilation.contextModuleFactory = contextModuleFactory;
-		this.hooks.contextModuleFactory.call(normalModuleFactory);
+		this.hooks.contextModuleFactory.call(contextModuleFactory);
 		this.hooks.thisCompilation.call(this.compilation, {
 			normalModuleFactory: normalModuleFactory
 		});

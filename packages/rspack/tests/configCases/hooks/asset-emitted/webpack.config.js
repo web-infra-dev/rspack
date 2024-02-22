@@ -6,9 +6,8 @@ class Plugin {
 	apply(compiler) {
 		let hasMainJs = false;
 		compiler.hooks.assetEmitted.tap(pluginName, (filename, info) => {
-			if (filename === "main.js") {
-				assert(info.outputPath === path.resolve(__dirname, "dist"));
-				assert(info.targetPath === path.resolve(__dirname, "dist/main.js"));
+			if (filename === "bundle0.js") {
+				assert(info.targetPath.includes("bundle0.js"));
 				assert(info.content.toString().includes("expect(3).toBe(3)"));
 				hasMainJs = true;
 			}

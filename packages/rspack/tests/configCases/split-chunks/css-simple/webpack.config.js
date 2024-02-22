@@ -6,5 +6,8 @@ module.exports = {
 	output: {
 		filename: "[name].js"
 	},
+	optimization: {
+		chunkIds: "named"
+	},
 	target: "node"
 };

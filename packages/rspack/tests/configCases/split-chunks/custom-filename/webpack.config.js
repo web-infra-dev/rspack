@@ -1,5 +1,6 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
+	mode: "development",
 	entry: {
 		a: "./a",
 		b: "./b"

@@ -60,7 +60,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
           return None;
         }
         let magic_comment_options = try_extract_webpack_magic_comment(
-          &parser.source_file,
+          parser.source_file,
           &parser.comments,
           node.span,
           imported.span,
@@ -106,7 +106,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       }
       Expr::Tpl(tpl) if tpl.quasis.len() == 1 => {
         let magic_comment_options = try_extract_webpack_magic_comment(
-          &parser.source_file,
+          parser.source_file,
           &parser.comments,
           node.span,
           tpl.span,
@@ -149,6 +149,8 @@ impl JavascriptParserPlugin for ImportParserPlugin {
           chunk_prefetch.or(dynamic_import_prefetch),
         )));
         parser.blocks.push(block);
+        // FIXME: align `parser.walk_expression` to webpack, which put into `context_dependency_helper`
+        parser.walk_template_expression(tpl);
         Some(true)
       }
       _ => {
@@ -162,7 +164,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
           return None;
         };
         let magic_comment_options = try_extract_webpack_magic_comment(
-          &parser.source_file,
+          parser.source_file,
           &parser.comments,
           node.span,
           dyn_imported.span(),
@@ -197,6 +199,8 @@ impl JavascriptParserPlugin for ImportParserPlugin {
             },
             Some(node.span.into()),
           )));
+        // FIXME: align `parser.walk_expression` to webpack, which put into `context_dependency_helper`
+        parser.walk_expression(&dyn_imported.expr);
         Some(true)
       }
     }

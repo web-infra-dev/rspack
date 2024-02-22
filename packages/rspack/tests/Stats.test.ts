@@ -140,7 +140,6 @@ describe("Stats", () => {
 				.replace(/\d+ ms/g, "X ms")
 		).toMatchInlineSnapshot(`
 		"LOG from rspack.Compilation
-		<t> make hook: X ms
 		<t> module add task: X ms
 		<t> module process dependencies task: X ms
 		<t> module factorize task: X ms
@@ -168,6 +167,7 @@ describe("Stats", () => {
 		<t> after process assets: X ms
 
 		LOG from rspack.Compiler
+		<t> make hook: X ms
 		<t> make: X ms
 		<t> finish make hook: X ms
 		<t> finish compilation: X ms

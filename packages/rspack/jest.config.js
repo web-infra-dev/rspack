@@ -6,6 +6,7 @@ const config = {
 	testMatch: [
 		"<rootDir>/tests/*.test.ts",
 		"<rootDir>/tests/*.basictest.ts",
+		"<rootDir>/tests/*.basictest.js",
 		"<rootDir>/tests/*.longtest.ts",
 		"<rootDir>/tests/*.longtest.js",
 		"<rootDir>/tests/*.unittest.ts",

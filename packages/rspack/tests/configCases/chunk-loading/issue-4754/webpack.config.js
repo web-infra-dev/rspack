@@ -1,6 +1,10 @@
 const path = require("path");
 
 module.exports = {
+	target: "node",
+	output: {
+		filename: "[name].js"
+	},
 	plugins: [
 		{
 			apply(compiler) {

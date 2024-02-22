@@ -7,13 +7,17 @@ module.exports = {
 		{
 			apply(compiler) {
 				compiler.hooks.normalModuleFactory.tap("mock-plugin", nmf => {
-					nmf.hooks.createModule.tap("mock-plugin", createData => {
-						if (createData.matchResource.includes("a.js")) {
-							fs.writeFileSync(
-								path.resolve(__dirname, "./dist/createData.json"),
-								JSON.stringify(createData, null, 2)
-							);
-						}
+					compiler.hooks.compilation.tap("mock-plugin", compilation => {
+						nmf.hooks.createModule.tap("mock-plugin", createData => {
+							if (createData.matchResource.includes("a.js")) {
+								const { RawSource } = compiler.webpack.sources;
+								compilation.emitAsset(
+									"./createData.json",
+									new RawSource(JSON.stringify(createData, null, 2)),
+									{}
+								);
+							}
+						});
 					});
 				});
 			}
