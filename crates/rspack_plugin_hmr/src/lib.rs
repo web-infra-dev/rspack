@@ -9,9 +9,9 @@ use rspack_core::{
   rspack_sources::{RawSource, SourceExt},
   AdditionalChunkRuntimeRequirementsArgs, ApplyContext, AssetInfo, Chunk, ChunkKind, Compilation,
   CompilationAsset, CompilationParams, CompilationRecords, CompilerOptions, DependencyType,
-  ModuleIdentifier, PathData, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput,
-  PluginContext, PluginProcessAssetsOutput, ProcessAssetsArgs, RenderManifestArgs, RuntimeGlobals,
-  RuntimeModuleExt, RuntimeSpec, SourceType,
+  LoaderContext, LoaderRunnerContext, ModuleIdentifier, NormalModule, PathData, Plugin,
+  PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, PluginProcessAssetsOutput,
+  ProcessAssetsArgs, RenderManifestArgs, RuntimeGlobals, RuntimeModuleExt, RuntimeSpec, SourceType,
 };
 use rspack_error::Result;
 use rspack_hash::RspackHash;
@@ -65,6 +65,16 @@ impl Plugin for HotModuleReplacementPlugin {
       .tap(Box::new(HotModuleReplacementPluginCompilationHook));
 
     options.dev_server.hot = true;
+    Ok(())
+  }
+
+  fn normal_module_loader(
+    &self,
+    _ctx: PluginContext,
+    loader_context: &mut LoaderContext<LoaderRunnerContext>,
+    _module: &NormalModule,
+  ) -> Result<()> {
+    loader_context.hot = true;
     Ok(())
   }
 

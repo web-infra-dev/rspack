@@ -10,8 +10,8 @@ use crate::{
 #[derive(Debug)]
 pub struct ModuleGraphModule {
   // edges from module to module
-  pub outgoing_connections: HashSet<ConnectionId>,
-  pub incoming_connections: HashSet<ConnectionId>,
+  outgoing_connections: HashSet<ConnectionId>,
+  incoming_connections: HashSet<ConnectionId>,
 
   issuer: ModuleIssuer,
 
@@ -81,7 +81,15 @@ impl ModuleGraphModule {
     self.outgoing_connections.remove(&connection_id);
   }
 
-  pub fn incoming_connections_unordered<'m>(
+  pub fn incoming_connections(&self) -> &HashSet<ConnectionId> {
+    &self.incoming_connections
+  }
+
+  pub fn outgoing_connections(&self) -> &HashSet<ConnectionId> {
+    &self.outgoing_connections
+  }
+
+  pub fn get_incoming_connections_unordered<'m>(
     &self,
     module_graph: &'m ModuleGraph,
   ) -> Result<impl Iterator<Item = &'m ModuleGraphConnection>> {
@@ -101,7 +109,7 @@ impl ModuleGraphModule {
     Ok(result)
   }
 
-  pub fn outgoing_connections_unordered<'m>(
+  pub fn get_outgoing_connections_unordered<'m>(
     &self,
     module_graph: &'m ModuleGraph,
   ) -> Result<impl Iterator<Item = &'m ModuleGraphConnection>> {

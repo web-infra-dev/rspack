@@ -12,7 +12,7 @@ use crate::{
   AssetInfo, BoxLoader, BoxModule, BuildTimeExecutionOption, Chunk, ChunkAssetArgs, ChunkHashArgs,
   CodeGenerationResults, Compilation, CompilationParams, CompilerHooks, CompilerOptions,
   ContentHashArgs, DependencyId, DoneArgs, FactorizeArgs, JsChunkHashArgs, LoaderRunnerContext,
-  MakeParam, Module, ModuleFactoryResult, ModuleIdentifier, ModuleType, NormalModule,
+  Module, ModuleFactoryResult, ModuleIdentifier, ModuleType, NormalModule,
   NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs, NormalModuleCreateData,
   OptimizeChunksArgs, ParserAndGenerator, PluginContext, ProcessAssetsArgs, RenderArgs,
   RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, Resolver,
@@ -66,15 +66,6 @@ pub trait Plugin: Debug + Send + Sync {
     _args: ThisCompilationArgs<'_>,
     _params: &CompilationParams,
   ) -> PluginThisCompilationHookOutput {
-    Ok(())
-  }
-
-  async fn make(
-    &self,
-    _ctx: PluginContext,
-    _compilation: &mut Compilation,
-    _params: &mut Vec<MakeParam>,
-  ) -> PluginMakeHookOutput {
     Ok(())
   }
 

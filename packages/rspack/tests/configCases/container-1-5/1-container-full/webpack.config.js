@@ -34,7 +34,7 @@ module.exports = [
 				library: { type: "commonjs-module" },
 				filename: "container.js",
 				remotes: {
-					containerA: "../../0-container-full/dist/container.js",
+					containerA: "../0-container-full/container.js",
 					containerB: "./container.js"
 				},
 				...commonMF
@@ -59,7 +59,7 @@ module.exports = [
 				library: { type: "module" },
 				filename: "module/container.mjs",
 				remotes: {
-					containerA: "../../../0-container-full/dist/module/container.mjs",
+					containerA: "../../0-container-full/module/container.mjs",
 					containerB: "./container.mjs"
 				},
 				...commonMF

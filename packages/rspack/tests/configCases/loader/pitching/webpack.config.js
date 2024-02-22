@@ -1,8 +1,8 @@
+const rspack = require("@rspack/core");
 /**
  * @type {import('@rspack/core').RspackOptions}
  */
 module.exports = {
-	context: __dirname,
 	module: {
 		rules: [
 			{
@@ -14,5 +14,10 @@ module.exports = {
 				]
 			}
 		]
-	}
+	},
+	plugins: [
+		new rspack.DefinePlugin({
+			CONTEXT: JSON.stringify(__dirname)
+		})
+	]
 };

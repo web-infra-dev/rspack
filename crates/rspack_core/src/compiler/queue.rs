@@ -502,7 +502,7 @@ impl CleanTask {
       }
     };
 
-    if !mgm.incoming_connections.is_empty() {
+    if !mgm.incoming_connections().is_empty() {
       return CleanTaskResult::ModuleIsUsed { module_identifier };
     }
 

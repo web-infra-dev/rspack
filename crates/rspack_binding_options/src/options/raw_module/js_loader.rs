@@ -260,6 +260,8 @@ pub struct JsLoaderContext {
 
   #[napi(js_name = "_moduleIdentifier")]
   pub module_identifier: String,
+
+  pub hot: bool,
 }
 
 impl TryFrom<&mut rspack_core::LoaderContext<'_, rspack_core::LoaderRunnerContext>>
@@ -321,6 +323,7 @@ impl TryFrom<&mut rspack_core::LoaderContext<'_, rspack_core::LoaderRunnerContex
       context_external: External::new(cx.context.clone()),
       diagnostics_external: External::new(cx.__diagnostics.drain(..).collect()),
       module_identifier: cx.context.module.to_string(),
+      hot: cx.hot,
     })
   }
 }
@@ -347,6 +350,7 @@ pub async fn run_builtin_loader(
   };
 
   let mut cx = LoaderContext {
+    hot: loader_context.hot,
     content: loader_context
       .content
       .map(|c| Content::from(c.as_ref().to_owned())),
