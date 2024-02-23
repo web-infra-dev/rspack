@@ -254,11 +254,10 @@ which tries to resolve these kind of requests in the current directory too.",
           let specifier = args.specifier;
 
           hint.push(format!(
-          "Found the module '{suggestion_path}' exists, but it was not resolved because its extension doesn't in the `resolve.extensions` list. Here are some possible solutions:
+          "Found the module '{suggestion_path}' exists, but its extension is not listed in the `resolve.extensions`. Here are some possible solutions:
 
-1. add the extension '.{suggestion_ext}' to `resolve.extensions` in your rspack configuration
+1. add the extension `\".{suggestion_ext}\"` to `resolve.extensions` in your rspack configuration
 2. use '{suggestion_path}' instead of '{specifier}'
-3. add the file path '{suggestion_path}' to the `entry` in your rspack configuration
 "));
         }
 
