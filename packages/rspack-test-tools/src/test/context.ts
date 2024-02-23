@@ -6,7 +6,8 @@ import {
 	ITesterConfig,
 	TCompiler,
 	TCompilerOptions,
-	TCompilerStats
+	TCompilerStats,
+	TTestRunResult
 } from "../type";
 import path from "path";
 
@@ -67,8 +68,11 @@ export class TestContext implements ITestContext {
 		const compiler = this.getCompilerManage<T>(name);
 		compiler.stats(this, fn);
 	}
-	result<T extends ECompilerType, R>(
-		fn: (compiler: TCompiler<T> | null, result: R) => R,
+	result<T extends ECompilerType>(
+		fn: (
+			compiler: TCompiler<T> | null,
+			result: TTestRunResult
+		) => TTestRunResult | void,
 		name = DEFAULT_COMPILER_NAME
 	) {
 		const compiler = this.getCompilerManage<T>(name);

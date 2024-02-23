@@ -7,7 +7,8 @@ const caseDir: string = path.resolve(
 	__dirname,
 	"../../rspack/tests/configCases"
 );
-// const tempDir: string = path.resolve(__dirname, "js");
+
+const tempDir: string = path.resolve(__dirname, "../../rspack/tests/js");
 
 const categories = fs
 	.readdirSync(caseDir)
@@ -24,12 +25,12 @@ const categories = fs
 		};
 	});
 
-describe(`configCases`, () => {
-	for (let { name, tests } of categories) {
-		describe(name, () => {
+describe(`ConfigTestCases`, () => {
+	for (let { name: catName, tests } of categories) {
+		describe(catName, () => {
 			for (const testName of tests) {
-				const src = path.join(caseDir, name, testName);
-				const dist = path.join(src, "dist");
+				const src = path.join(caseDir, catName, testName);
+				const dist = path.join(tempDir, "ConfigTestCases", catName, testName);
 				createConfigCase(testName, src, dist);
 			}
 		});

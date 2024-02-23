@@ -14,7 +14,7 @@ export class TestCompilerManager<T extends ECompilerType>
 	private compilerOptions: TCompilerOptions<T> = {} as TCompilerOptions<T>;
 	private compilerInstance: TCompiler<T> | null = null;
 	private compilerStats: TCompilerStats<T> | null = null;
-	private runResult: unknown;
+	private runResult: Record<string, any> = {};
 
 	constructor(private name: string) {}
 
@@ -65,7 +65,7 @@ export class TestCompilerManager<T extends ECompilerType>
 	}
 	result<R>(
 		context: ITestContext,
-		fn: (compiler: TCompiler<T> | null, result: R) => R
+		fn: (compiler: TCompiler<T> | null, result: R) => R | void
 	) {
 		try {
 			const newResult = fn(this.compilerInstance, this.runResult as R);

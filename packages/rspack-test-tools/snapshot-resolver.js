@@ -7,11 +7,14 @@ const snapshotBasePath = path.resolve(
 module.exports = {
 	resolveSnapshotPath: (testPath, snapshotExtension) => {
 		const relative = testPath.replace(testBasePath, "");
-		return path.join(snapshotBasePath, relative) + snapshotExtension;
+		return (
+			path.join(snapshotBasePath, relative).replace(".ts", ".js") +
+			snapshotExtension
+		);
 	},
 	resolveTestPath: (snapshotFilePath, snapshotExtension) => {
 		const relative = snapshotFilePath.replace(snapshotBasePath + "/", "");
-		return relative.slice(0, -snapshotExtension.length);
+		return relative.replace(".js", ".ts").slice(0, -snapshotExtension.length);
 	},
-	testPathForConsistencyCheck: "tests/example.test.js"
+	testPathForConsistencyCheck: "tests/example.test.ts"
 };

@@ -10,6 +10,8 @@ import {
 	TCompilerOptions,
 	TTestConfig
 } from "../type";
+import fs from "fs";
+import path from "path";
 
 export interface IBasicProcessorOptions<
 	T extends ECompilerType = ECompilerType.Rspack
@@ -94,15 +96,19 @@ export class BasicTaskProcessor<T extends ECompilerType = ECompilerType.Rspack>
 				}
 				for (let bundle of bundles!) {
 					const result = runner.run(bundle);
-					context.result<T, Object>(
-						_compiler => ({
-							exports: result
-						}),
-						this.options.name
-					);
+					context.result<T>((_compiler, res) => {
+						res.results ??= [];
+						res.results.push(result);
+					}, this.options.name);
 				}
 			}, this.options.name);
 		}, this.options.name);
+
+		let results: Promise<unknown>[] = [];
+		context.result<T>((_compiler, res) => {
+			results = res.results || [];
+		}, this.options.name);
+		await Promise.all(results);
 
 		if (typeof this.options.testConfig.afterExecute === "function") {
 			this.options.testConfig.afterExecute();
@@ -119,9 +125,22 @@ export class BasicTaskProcessor<T extends ECompilerType = ECompilerType.Rspack>
 		const warnings: Array<{ message: string; stack?: string }> = [];
 		context.stats<T>((_, stats) => {
 			if (stats) {
+				fs.writeFileSync(
+					path.join(context.getDist(), "stats.txt"),
+					stats.toString({
+						preset: "verbose",
+						colors: false
+					}),
+					"utf-8"
+				);
 				const jsonStats = stats.toJson({
 					errorDetails: true
 				});
+				fs.writeFileSync(
+					path.join(context.getDist(), "stats.json"),
+					JSON.stringify(jsonStats, null, 2),
+					"utf-8"
+				);
 				if (jsonStats.errors) {
 					errors.push(...jsonStats.errors);
 				}

@@ -1,7 +1,7 @@
 import { Tester } from "../test/tester";
 import rimraf from "rimraf";
 import { RspackConfigProcessor } from "../processor/config";
-import fs from "fs-extra";
+import fs from "fs";
 import path from "path";
 
 export function createConfigCase(name: string, src: string, dist: string) {

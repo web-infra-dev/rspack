@@ -32,8 +32,11 @@ export interface ITestContext {
 		) => TCompilerStats<T> | void,
 		name?: string
 	): void;
-	result<T extends ECompilerType, R>(
-		fn: (compiler: TCompiler<T> | null, result: R) => R,
+	result<T extends ECompilerType>(
+		fn: (
+			compiler: TCompiler<T> | null,
+			result: TTestRunResult
+		) => TTestRunResult | void,
 		name?: string
 	): void;
 	build<T extends ECompilerType>(
@@ -80,9 +83,12 @@ export interface ITestCompilerManager<T extends ECompilerType> {
 			stats: TCompilerStats<T> | null
 		) => TCompilerStats<T> | void
 	): void;
-	result<R>(
+	result(
 		context: ITestContext,
-		fn: (compiler: TCompiler<T> | null, result: R) => R
+		fn: (
+			compiler: TCompiler<T> | null,
+			result: TTestRunResult
+		) => TTestRunResult | void
 	): void;
 	build(
 		context: ITestContext,
@@ -93,6 +99,8 @@ export interface ITestCompilerManager<T extends ECompilerType> {
 export interface ITestLoader {
 	walk(): Promise<void>;
 }
+
+export type TTestRunResult = Record<string, any>;
 
 export interface ITesterConfig {
 	name: string;

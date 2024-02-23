@@ -9,35 +9,34 @@ import path from "path";
 import fs from "fs";
 import { parseResource } from "../helper/legacy/parseResource";
 
-export interface IRspackConfigProcessorOptions<
-	T extends ECompilerType = ECompilerType.Rspack
-> {
+export interface IRspackConfigProcessorOptions<T extends ECompilerType.Rspack> {
 	name: string;
 	testConfig: TTestConfig<T>;
 }
 
-export class RspackConfigProcessor<
-	T extends ECompilerType = ECompilerType.Rspack
-> extends MultiTaskProcessor<T> {
-	constructor(options: IRspackConfigProcessorOptions<T>) {
+export class RspackConfigProcessor extends MultiTaskProcessor<ECompilerType.Rspack> {
+	constructor(options: IRspackConfigProcessorOptions<ECompilerType.Rspack>) {
 		super({
-			preOptions: RspackConfigProcessor.preOptions<T>,
-			postOptions: RspackConfigProcessor.postOptions<T>,
+			preOptions: RspackConfigProcessor.preOptions,
+			postOptions: RspackConfigProcessor.postOptions,
 			getCompiler: () => require("@rspack/core").rspack,
 			getBundle: options.testConfig.findBundle
 				? (index, context, compilerOptions) =>
 						options.testConfig.findBundle!(index, compilerOptions)
-				: RspackConfigProcessor.findBundle<T>,
+				: RspackConfigProcessor.findBundle,
 			configFiles: ["rspack.config.js", "webpack.config.js"],
 			name: options.name,
-			testConfig: options.testConfig
+			testConfig: {
+				timeout: 10000,
+				...options.testConfig
+			}
 		});
 	}
 
-	static findBundle<T extends ECompilerType>(
+	static findBundle(
 		index: number,
 		context: ITestContext,
-		options: TCompilerOptions<T>
+		options: TCompilerOptions<ECompilerType.Rspack>
 	) {
 		const ext = path.extname(parseResource(options.output?.filename).path);
 		if (
@@ -46,31 +45,43 @@ export class RspackConfigProcessor<
 		) {
 			return "./bundle" + index + ext;
 		}
-		return "./main.js";
 	}
 
-	static preOptions<T extends ECompilerType>(
+	static preOptions(
 		index: number,
 		context: ITestContext
-	): TCompilerOptions<T> {
+	): TCompilerOptions<ECompilerType.Rspack> {
 		return {
 			context: context.getSource(),
-			mode: "development",
-			target: "node",
+			mode: "production",
+			target: "async-node",
+			devtool: false,
+			cache: false,
 			output: {
 				path: context.getDist()
+			},
+			optimization: {
+				minimize: false
+			},
+			experiments: {
+				rspackFuture: {
+					newTreeshaking: true
+				}
 			}
 		};
 	}
-	static postOptions<T extends ECompilerType>(
+	static postOptions(
 		index: number,
 		context: ITestContext,
-		options: TCompilerOptions<T>
+		options: TCompilerOptions<ECompilerType.Rspack>
 	): void {
 		if (!options.entry) {
-			options.entry = {
-				main: "./"
-			};
+			options.entry = "./index.js";
+		}
+		if (!options.output?.filename) {
+			const outputModule = options.experiments?.outputModule;
+			options.output ??= {};
+			options.output.filename = `bundle${index}${outputModule ? ".mjs" : ".js"}`;
 		}
 	}
 }
