@@ -119,6 +119,9 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_export_decl(&mut self, expr: &ExportDecl) {
+    // FIXME: delete `ExportDecl`
+    self.plugin_drive.clone().export_decl(self, expr);
+
     match &expr.decl {
       Decl::Class(c) => {
         // FIXME: webpack use `self.walk_statement` here
@@ -137,16 +140,18 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_export_default_expr(&mut self, expr: &ExportDefaultExpr) {
-    // TODO: `self.hooks.export.call`
+    // TODO: delete `export_default_expr`
+    self.plugin_drive.clone().export_default_expr(self, expr);
     self.walk_expression(&expr.expr);
   }
 
-  fn walk_export_named_declaration(&mut self, _decl: &NamedExport) {
+  fn walk_export_named_declaration(&mut self, decl: &NamedExport) {
+    self.plugin_drive.clone().named_export(self, decl);
     // self.walk_statement(decl)
   }
 
   fn walk_export_default_declaration(&mut self, decl: &ExportDefaultDecl) {
-    // TODO: `hooks.export.call`
+    self.plugin_drive.clone().export(self, decl);
     match &decl.decl {
       DefaultDecl::Class(c) => {
         // FIXME: webpack use `self.walk_statement` here
@@ -487,15 +492,23 @@ impl<'parser> JavascriptParser<'parser> {
     self.plugin_drive.clone().this(self, expr);
   }
 
-  fn walk_template_expression(&mut self, expr: &Tpl) {
+  pub(crate) fn walk_template_expression(&mut self, expr: &Tpl) {
     let exprs = expr.exprs.iter().map(|expr| &**expr);
     self.walk_expressions(exprs);
   }
 
   fn walk_tagged_template_expression(&mut self, expr: &TaggedTpl) {
+    // every time into new tagged tpl expr, reset enter callee
+    let old = self.enter_new_expr;
+    self.enter_new_expr = false;
+    self.enter_callee = true;
+
     self.in_tagged_template_tag = true;
     self.walk_expression(&expr.tag);
     self.in_tagged_template_tag = false;
+
+    self.enter_new_expr = old;
+    self.enter_callee = false;
 
     let exprs = expr.tpl.exprs.iter().map(|expr| &**expr);
     self.walk_expressions(exprs);
@@ -570,6 +583,9 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_new_expression(&mut self, expr: &NewExpr) {
+    let old = self.enter_new_expr;
+    self.enter_new_expr = true;
+
     // TODO: `callHooksForExpression`
     if self
       .plugin_drive
@@ -577,9 +593,11 @@ impl<'parser> JavascriptParser<'parser> {
       .new_expression(self, expr)
       .unwrap_or_default()
     {
+      self.enter_new_expr = old;
       return;
     }
     self.walk_expression(&expr.callee);
+    self.enter_new_expr = old;
     if let Some(args) = &expr.args {
       self.walk_expr_or_spread(args);
     }
@@ -596,11 +614,22 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_conditional_expression(&mut self, expr: &CondExpr) {
-    // TODO: self.hooks.expression_conditional_operation.call
+    let result = self
+      .plugin_drive
+      .clone()
+      .expression_conditional_operation(self, expr);
 
-    self.walk_expression(&expr.test);
-    self.walk_expression(&expr.cons);
-    self.walk_expression(&expr.alt);
+    if let Some(result) = result {
+      if result {
+        self.walk_expression(&expr.cons);
+      } else {
+        self.walk_expression(&expr.alt);
+      }
+    } else {
+      self.walk_expression(&expr.test);
+      self.walk_expression(&expr.cons);
+      self.walk_expression(&expr.alt);
+    }
   }
 
   fn walk_class_expression(&mut self, expr: &ClassExpr) {
@@ -608,11 +637,17 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_chain_expression(&mut self, expr: &OptChainExpr) {
-    // TODO: `let result = this.hooks.optional_chaining.call(expression)`
-    match &*expr.base {
-      OptChainBase::Call(call) => self.walk_opt_call(call),
-      OptChainBase::Member(member) => self.walk_member_expression(member),
-    };
+    if self
+      .plugin_drive
+      .clone()
+      .optional_chaining(self, expr)
+      .is_none()
+    {
+      match &*expr.base {
+        OptChainBase::Call(call) => self.walk_opt_call(call),
+        OptChainBase::Member(member) => self.walk_member_expression(member),
+      };
+    }
   }
 
   fn walk_member_expression(&mut self, expr: &MemberExpr) {
@@ -703,12 +738,16 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_call_expression(&mut self, expr: &CallExpr) {
+    // every time into new call_expr, reset enter callee
+    let old = self.enter_new_expr;
+    self.enter_new_expr = false;
+    self.enter_callee = true;
     self.enter_call += 1;
+
     // FIXME: should align to webpack
     match &expr.callee {
       Callee::Expr(callee) => {
         // TODO: iife
-
         if let Expr::Member(member) = &**callee
           && let Some(MemberExpressionInfo::Call(expr_info)) =
             self.get_member_expression_info(member, AllowedMemberTypes::CallExpression)
@@ -720,6 +759,8 @@ impl<'parser> JavascriptParser<'parser> {
             .unwrap_or_default()
         {
           self.enter_call -= 1;
+          self.enter_new_expr = old;
+          self.enter_callee = false;
           return;
         }
         let evaluated_callee = self.evaluate_expression(callee);
@@ -737,6 +778,8 @@ impl<'parser> JavascriptParser<'parser> {
           {
             /* result1 */
             self.enter_call -= 1;
+            self.enter_new_expr = old;
+            self.enter_callee = false;
             return;
           }
 
@@ -746,6 +789,8 @@ impl<'parser> JavascriptParser<'parser> {
           {
             /* result2 */
             self.enter_call -= 1;
+            self.enter_new_expr = old;
+            self.enter_callee = false;
             return;
           }
         }
@@ -768,11 +813,16 @@ impl<'parser> JavascriptParser<'parser> {
           .unwrap_or_default()
         {
           self.enter_call -= 1;
+          self.enter_new_expr = old;
+          self.enter_callee = false;
           return;
         }
       }
       Callee::Super(_) => {} // Do nothing about super, same as webpack
     }
+    self.enter_new_expr = old;
+    self.enter_callee = false;
+
     self.walk_expr_or_spread(&expr.args);
     self.enter_call -= 1;
   }

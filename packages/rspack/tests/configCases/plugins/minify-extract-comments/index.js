@@ -38,7 +38,7 @@ function getComments(content, regex) {
 }
 it("should minify and extract comments", () => {
 	const content = fs.readFileSync(
-		path.resolve(__dirname, "main.js.LICENSE.txt"),
+		path.resolve(__dirname, "bundle0.js.LICENSE.txt"),
 		"utf-8"
 	);
 	expect(getComments(content, /@preserve/g).length).toBe(1);

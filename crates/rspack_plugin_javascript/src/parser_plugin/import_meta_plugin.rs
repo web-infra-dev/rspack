@@ -60,7 +60,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
       parser.warning_diagnostics.push(Box::new(create_traceable_error(
       "Critical dependency".into(),
       "Accessing import.meta directly is unsupported (only property access or destructuring is supported)".into(),
-      &parser.source_file,
+      parser.source_file,
       span.into()
     ).with_severity(Severity::Warning)));
       parser

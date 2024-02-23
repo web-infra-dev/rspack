@@ -4,8 +4,8 @@ use async_trait::async_trait;
 use rspack_core::{ApplyContext, CompilerOptions};
 use rspack_core::{
   Compilation, CompilationParams, Dependency, DependencyType, EntryOptions, EntryRuntime, Filename,
-  LibraryOptions, MakeParam, Plugin, PluginContext, PluginMakeHookOutput,
-  PluginRuntimeRequirementsInTreeOutput, RuntimeGlobals, RuntimeRequirementsInTreeArgs,
+  LibraryOptions, MakeParam, Plugin, PluginContext, PluginRuntimeRequirementsInTreeOutput,
+  RuntimeGlobals, RuntimeRequirementsInTreeArgs,
 };
 use rspack_error::Result;
 use rspack_hook::AsyncSeries2;
@@ -36,12 +36,14 @@ pub struct ExposeOptions {
 
 #[derive(Debug)]
 pub struct ContainerPlugin {
-  options: ContainerPluginOptions,
+  options: Arc<ContainerPluginOptions>,
 }
 
 impl ContainerPlugin {
   pub fn new(options: ContainerPluginOptions) -> Self {
-    Self { options }
+    Self {
+      options: Arc::new(options),
+    }
   }
 }
 
@@ -62,31 +64,13 @@ impl AsyncSeries2<Compilation, CompilationParams> for ContainerPluginCompilation
   }
 }
 
+struct ContainerPluginMakeHook {
+  options: Arc<ContainerPluginOptions>,
+}
+
 #[async_trait]
-impl Plugin for ContainerPlugin {
-  fn name(&self) -> &'static str {
-    "rspack.ContainerPlugin"
-  }
-
-  fn apply(
-    &self,
-    ctx: PluginContext<&mut ApplyContext>,
-    _options: &mut CompilerOptions,
-  ) -> Result<()> {
-    ctx
-      .context
-      .compiler_hooks
-      .compilation
-      .tap(Box::new(ContainerPluginCompilationHook));
-    Ok(())
-  }
-
-  async fn make(
-    &self,
-    _ctx: PluginContext,
-    compilation: &mut Compilation,
-    params: &mut Vec<MakeParam>,
-  ) -> PluginMakeHookOutput {
+impl AsyncSeries2<Compilation, Vec<MakeParam>> for ContainerPluginMakeHook {
+  async fn run(&self, compilation: &mut Compilation, params: &mut Vec<MakeParam>) -> Result<()> {
     let dep = ContainerEntryDependency::new(
       self.options.name.clone(),
       self.options.exposes.clone(),
@@ -105,6 +89,33 @@ impl Plugin for ContainerPlugin {
     )?;
 
     params.push(MakeParam::new_force_build_dep_param(dependency_id, None));
+    Ok(())
+  }
+}
+
+#[async_trait]
+impl Plugin for ContainerPlugin {
+  fn name(&self) -> &'static str {
+    "rspack.ContainerPlugin"
+  }
+
+  fn apply(
+    &self,
+    ctx: PluginContext<&mut ApplyContext>,
+    _options: &mut CompilerOptions,
+  ) -> Result<()> {
+    ctx
+      .context
+      .compiler_hooks
+      .compilation
+      .tap(Box::new(ContainerPluginCompilationHook));
+    ctx
+      .context
+      .compiler_hooks
+      .make
+      .tap(Box::new(ContainerPluginMakeHook {
+        options: self.options.clone(),
+      }));
     Ok(())
   }
 

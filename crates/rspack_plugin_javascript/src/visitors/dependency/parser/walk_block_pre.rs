@@ -1,4 +1,4 @@
-use swc_core::ecma::ast::{ClassDecl, ImportDecl, ImportSpecifier};
+use swc_core::ecma::ast::{ClassDecl, ImportDecl, ImportSpecifier, ModuleExportName};
 use swc_core::ecma::ast::{Decl, DefaultDecl, ExportAll, ExportDefaultDecl, ExprStmt};
 use swc_core::ecma::ast::{ModuleDecl, ModuleItem, NamedExport, Stmt, VarDecl, VarDeclKind};
 
@@ -124,24 +124,42 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn block_pre_walk_import_declaration(&mut self, decl: &ImportDecl) {
-    self
-      .plugin_drive
-      .clone()
-      .import(self, decl, decl.src.value.as_str());
+    let drive = self.plugin_drive.clone();
+    let source = &decl.src.value;
+    drive.import(self, decl, source.as_str());
 
     for specifier in &decl.specifiers {
       match specifier {
         ImportSpecifier::Named(named) => {
-          // TODO: `hooks.import_specifier.call`
-          self.define_variable(named.local.sym.to_string())
+          let identifier_name = named.local.sym.as_str();
+          let export_name = named.imported.as_ref().map(|imported| match imported {
+            ModuleExportName::Ident(ident) => ident.sym.as_str(),
+            ModuleExportName::Str(s) => s.value.as_str(),
+          });
+          if drive
+            .import_specifier(self, decl, source, export_name, identifier_name)
+            .unwrap_or_default()
+          {
+            self.define_variable(identifier_name.to_string())
+          }
         }
         ImportSpecifier::Default(default) => {
-          // TODO: `hooks.import_specifier.call`
-          self.define_variable(default.local.sym.to_string())
+          let identifier_name = default.local.sym.as_str();
+          if drive
+            .import_specifier(self, decl, source, Some("default"), identifier_name)
+            .unwrap_or_default()
+          {
+            self.define_variable(identifier_name.to_string())
+          }
         }
         ImportSpecifier::Namespace(namespace) => {
-          // TODO: `hooks.import_specifier.call`
-          self.define_variable(namespace.local.sym.to_string());
+          let identifier_name = namespace.local.sym.as_str();
+          if drive
+            .import_specifier(self, decl, source, None, identifier_name)
+            .unwrap_or_default()
+          {
+            self.define_variable(identifier_name.to_string())
+          }
         }
       }
     }

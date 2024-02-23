@@ -5,7 +5,7 @@ module.exports = {
 			{
 				test: /\.png$/,
 				use: [{ loader: "./loader.js" }],
-				type: "asset"
+				type: "asset/resource"
 			}
 		]
 	}

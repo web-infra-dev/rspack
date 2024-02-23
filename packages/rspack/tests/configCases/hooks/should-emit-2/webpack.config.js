@@ -17,7 +17,11 @@ class Plugin {
 
 			count += 1;
 
-			const filePath = path.resolve(__dirname, "./dist/main.js");
+			const filePath = path.resolve(
+				__dirname,
+				"../../../js/ConfigTestCases/hooks/should-emit-2",
+				"bundle0.js"
+			);
 			fs.writeFileSync(filePath, customBundleFile);
 			return false;
 		});
@@ -30,6 +34,5 @@ class Plugin {
 
 /**@type {import('@rspack/cli').Configuration}*/
 module.exports = {
-	context: __dirname,
 	plugins: [new Plugin()]
 };

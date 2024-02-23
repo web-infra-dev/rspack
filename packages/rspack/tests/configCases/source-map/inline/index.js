@@ -7,5 +7,5 @@ it("should have map from url comments if inline options is used", function () {
 		)[1];
 	const map = JSON.parse(Buffer.from(base64, "base64").toString("utf-8"));
 	expect(map.sources).toContain("webpack:///./index.js");
-	expect(map.file).toEqual("main.js");
+	expect(map.file).toEqual("bundle0.js");
 });

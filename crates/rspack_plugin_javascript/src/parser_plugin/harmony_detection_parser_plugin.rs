@@ -14,7 +14,7 @@ impl<'parser> JavascriptParser<'parser> {
     self.errors.push(Box::new(create_traceable_error(
       "JavaScript parsing error".into(),
       msg,
-      &self.source_file,
+      self.source_file,
       span.into(),
     )));
   }

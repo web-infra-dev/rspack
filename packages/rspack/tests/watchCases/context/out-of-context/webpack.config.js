@@ -1,6 +1,6 @@
+/** @type {import('@rspack/core').Configuration} */
 module.exports = {
-	entry: "./index",
-	context: "./src",
+	entry: "./src/index",
 	module: {
 		rules: [
 			{

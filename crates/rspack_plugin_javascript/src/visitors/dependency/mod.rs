@@ -1,14 +1,8 @@
 mod context_dependency_helper;
 mod context_helper;
-mod harmony_export_dependency_scanner;
-pub mod harmony_import_dependency_scanner;
 mod parser;
 mod util;
 
-use std::sync::Arc;
-
-pub use context_dependency_helper::create_context_dependency;
-pub use context_helper::{scanner_context_module, ContextModuleScanResult};
 use rspack_ast::javascript::Program;
 use rspack_core::needs_refactor::WorkerSyntaxList;
 use rspack_core::{
@@ -21,14 +15,33 @@ use swc_core::common::comments::Comments;
 use swc_core::common::{SourceFile, Span};
 use swc_core::ecma::atoms::Atom;
 
-use self::harmony_import_dependency_scanner::{handle_importer_info, ImportMap};
+pub use self::context_dependency_helper::create_context_dependency;
+pub use self::context_helper::{scanner_context_module, ContextModuleScanResult};
 pub use self::parser::{CallExpressionInfo, CallHooksName, ExportedVariableInfo};
 pub use self::parser::{JavascriptParser, MemberExpressionInfo, TagInfoData, TopLevelScope};
 pub use self::util::*;
-use self::{
-  harmony_export_dependency_scanner::HarmonyExportDependencyScanner,
-  harmony_import_dependency_scanner::HarmonyImportRefDependencyScanner,
-};
+use crate::dependency::Specifier;
+
+#[derive(Debug)]
+pub struct ImporterReferenceInfo {
+  pub request: Atom,
+  pub specifier: Specifier,
+  pub names: Option<Atom>,
+  pub source_order: i32,
+}
+
+impl ImporterReferenceInfo {
+  pub fn new(request: Atom, specifier: Specifier, names: Option<Atom>, source_order: i32) -> Self {
+    Self {
+      request,
+      specifier,
+      names,
+      source_order,
+    }
+  }
+}
+
+pub type ImportMap = FxHashMap<swc_core::ecma::ast::Id, ImporterReferenceInfo>;
 
 pub struct ScanDependenciesResult {
   pub dependencies: Vec<BoxDependency>,
@@ -50,7 +63,7 @@ pub enum ExtraSpanInfo {
 
 #[allow(clippy::too_many_arguments)]
 pub fn scan_dependencies(
-  source_file: Arc<SourceFile>,
+  source_file: &SourceFile,
   program: &Program,
   worker_syntax_list: &mut WorkerSyntaxList,
   resource_data: &ResourceData,
@@ -65,6 +78,7 @@ pub fn scan_dependencies(
   let mut dependencies = Vec::with_capacity(256);
   let mut blocks = Vec::with_capacity(256);
   let mut presentational_dependencies = Vec::with_capacity(256);
+  // FIXME: delete `.clone`
   let comments = program.comments.clone();
   let mut parser_exports_state = None;
   let mut ignored: FxHashSet<DependencyLocation> = FxHashSet::default();
@@ -72,7 +86,7 @@ pub fn scan_dependencies(
   let mut rewrite_usage_span = FxHashMap::default();
 
   let mut parser = JavascriptParser::new(
-    source_file.clone(),
+    source_file,
     compiler_options,
     &mut dependencies,
     &mut presentational_dependencies,
@@ -93,26 +107,6 @@ pub fn scan_dependencies(
   );
 
   parser.walk_program(program.get_inner_program());
-
-  if module_type.is_js_auto() || module_type.is_js_esm() {
-    handle_importer_info(&mut parser);
-    program.visit_with(&mut HarmonyImportRefDependencyScanner::new(
-      &import_map,
-      &mut dependencies,
-      &mut rewrite_usage_span,
-      &mut ignored,
-    ));
-    let comments = program.comments.as_ref();
-    program.visit_with(&mut HarmonyExportDependencyScanner::new(
-      &mut dependencies,
-      &mut presentational_dependencies,
-      &import_map,
-      build_info,
-      &mut rewrite_usage_span,
-      comments,
-      &mut ignored,
-    ));
-  }
 
   if errors.is_empty() {
     Ok(ScanDependenciesResult {

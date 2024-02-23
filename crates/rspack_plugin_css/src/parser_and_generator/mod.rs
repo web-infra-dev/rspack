@@ -12,8 +12,8 @@ use rspack_core::{
     BoxSource, MapOptions, RawSource, ReplaceSource, Source, SourceExt, SourceMap, SourceMapSource,
     SourceMapSourceOptions,
   },
-  BoxDependency, BuildExtraDataType, BuildMetaExportsType, GenerateContext, Module, ModuleType,
-  ParseContext, ParseResult, ParserAndGenerator, SourceType, TemplateContext,
+  BoxDependency, BuildExtraDataType, BuildMetaExportsType, ErrorSpan, GenerateContext, Module,
+  ModuleType, ParseContext, ParseResult, ParserAndGenerator, SourceType, TemplateContext,
 };
 use rspack_core::{ModuleInitFragments, RuntimeGlobals};
 use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
@@ -44,12 +44,12 @@ pub(crate) static CSS_MODULE_SOURCE_TYPE_LIST: &[SourceType; 2] =
 pub(crate) static CSS_MODULE_EXPORTS_ONLY_SOURCE_TYPE_LIST: &[SourceType; 1] =
   &[SourceType::JavaScript];
 
-type CssExportsType = Option<IndexMap<Vec<String>, Vec<(String, Option<String>)>>>;
+pub type CssExportsType = IndexMap<Vec<String>, Vec<(String, ErrorSpan, Option<String>)>>;
 
 #[derive(Debug)]
 pub struct CssParserAndGenerator {
   pub config: CssConfig,
-  pub exports: CssExportsType,
+  pub exports: Option<CssExportsType>,
 }
 
 impl ParserAndGenerator for CssParserAndGenerator {
@@ -169,21 +169,22 @@ impl ParserAndGenerator for CssParserAndGenerator {
       && !locals.is_empty()
     {
       let mut dep_set = FxHashSet::default();
-      let compose_deps = locals
-        .iter()
-        .flat_map(|(_, value)| value)
-        .filter_map(|(_, from)| {
-          if let Some(from) = from {
-            if dep_set.contains(&from) {
-              None
+      let compose_deps =
+        locals
+          .iter()
+          .flat_map(|(_, value)| value)
+          .filter_map(|(_, span, from)| {
+            if let Some(from) = from {
+              if dep_set.contains(&from) {
+                None
+              } else {
+                dep_set.insert(from);
+                Some(Box::new(CssComposeDependency::new(from.to_owned(), *span)) as BoxDependency)
+              }
             } else {
-              dep_set.insert(from);
-              Some(Box::new(CssComposeDependency::new(from.to_owned(), None)) as BoxDependency)
+              None
             }
-          } else {
-            None
-          }
-        });
+          });
       dependencies.extend(compose_deps);
       dependencies
     } else {
@@ -301,8 +302,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
   }
   fn resume(&mut self, extra_data: &HashMap<BuildExtraDataType, AlignedVec>) {
     if let Some(data) = extra_data.get(&BuildExtraDataType::CssParserAndGenerator) {
-      let data = from_bytes::<Option<IndexMap<Vec<String>, Vec<(String, Option<String>)>>>>(data)
-        .expect("Failed to resume extra data");
+      let data = from_bytes::<Option<CssExportsType>>(data).expect("Failed to resume extra data");
       self.exports = data;
     }
   }
