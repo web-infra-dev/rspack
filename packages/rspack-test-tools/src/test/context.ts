@@ -52,7 +52,7 @@ export class TestContext implements ITestContext {
 		fn: (
 			options: TCompilerOptions<T>,
 			compiler: TCompiler<T> | null
-		) => TCompiler<T> | null,
+		) => TCompiler<T> | void,
 		name = DEFAULT_COMPILER_NAME
 	) {
 		const compiler = this.getCompilerManage<T>(name);

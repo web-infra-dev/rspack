@@ -8,7 +8,7 @@ import type {
 	Compiler as WebpackCompiler,
 	Stats as WebpackStats
 } from "webpack";
-import { IBasicModuleScope } from "./runner/type";
+import { IBasicModuleScope, TRunnerRequirer } from "./runner/type";
 
 export interface ITestContext {
 	errors: Map<string, Error[]>;
@@ -22,7 +22,7 @@ export interface ITestContext {
 		fn: (
 			options: TCompilerOptions<T>,
 			compiler: TCompiler<T> | null
-		) => TCompiler<T> | null,
+		) => TCompiler<T> | void,
 		name?: string
 	): void;
 	stats<T extends ECompilerType>(
@@ -74,7 +74,7 @@ export interface ITestCompilerManager<T extends ECompilerType> {
 		fn: (
 			options: TCompilerOptions<T>,
 			compiler: TCompiler<T> | null
-		) => TCompiler<T> | null
+		) => TCompiler<T> | void
 	): void;
 	stats(
 		context: ITestContext,
@@ -202,3 +202,8 @@ export type TTestConfig<T extends ECompilerType> = {
 	modules?: Record<string, Object>;
 	timeout?: number;
 };
+
+export interface ITestRunner {
+	run(file: string): Promise<unknown>;
+	getRequire(): TRunnerRequirer;
+}

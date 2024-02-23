@@ -1,4 +1,4 @@
-import { ECompilerType } from "../type";
+import { ECompilerType, ITestRunner } from "../type";
 import vm from "vm";
 import path from "path";
 import fs from "fs";
@@ -36,24 +36,34 @@ const getSubPath = (p: string) => {
 	return "";
 };
 
-export class BasicRunner<T extends ECompilerType = ECompilerType.Rspack> {
+export class BasicRunner<T extends ECompilerType = ECompilerType.Rspack>
+	implements ITestRunner
+{
 	protected globalContext: IBasicGlobalContext | null = null;
 	protected baseModuleScope: IBasicModuleScope | null = null;
 	protected requirers: Map<string, TRunnerRequirer> = new Map();
 	constructor(protected options: IBasicRunnerOptions<T>) {}
 
-	run(file: string) {
+	run(file: string): Promise<unknown> {
 		this.globalContext = this.createGlobalContext();
 		this.baseModuleScope = this.createBaseModuleScope();
 		if (typeof this.options.testConfig.moduleScope === "function") {
 			this.options.testConfig.moduleScope(this.baseModuleScope);
 		}
 		this.createRunner();
-		const res = this.requirers.get("entry")!(
+		const res = this.getRequire()(
 			this.options.dist,
 			file.startsWith("./") ? file : `./${file}`
 		);
-		return res;
+		if (typeof res === "object" && "then" in res) {
+			return res;
+		} else {
+			return Promise.resolve(res);
+		}
+	}
+
+	getRequire(): TRunnerRequirer {
+		return this.requirers.get("entry")!;
 	}
 
 	protected createGlobalContext(): IBasicGlobalContext {
@@ -168,7 +178,7 @@ export class BasicRunner<T extends ECompilerType = ECompilerType.Rspack> {
 			};
 			requireCache[file.path] = m;
 			const currentModuleScope = this.createModuleScope(
-				this.requirers.get("entry")!,
+				this.getRequire(),
 				m,
 				file
 			);
@@ -182,7 +192,9 @@ export class BasicRunner<T extends ECompilerType = ECompilerType.Rspack> {
 			}
 			const args = Object.keys(currentModuleScope);
 			const argValues = args.map(arg => currentModuleScope[arg]);
-			const code = `(function(${args.join(", ")}) {${file.content}\n})`;
+			const code = `(function(${args.join(", ")}) {
+        ${file.content}
+      })`;
 
 			this.preExecute(code, file);
 			const fn = this.options.runInNewContext

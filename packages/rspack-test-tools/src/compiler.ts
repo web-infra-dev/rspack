@@ -36,7 +36,7 @@ export class TestCompilerManager<T extends ECompilerType>
 		fn: (
 			options: TCompilerOptions<T>,
 			compiler: TCompiler<T> | null
-		) => TCompiler<T> | null
+		) => TCompiler<T> | void
 	) {
 		try {
 			const newCompiler = fn(this.compilerOptions, this.compilerInstance);

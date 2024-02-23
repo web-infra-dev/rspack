@@ -20,10 +20,7 @@ export class WebRunner<
 			...options,
 			runInNewContext: true
 		});
-	}
-	run(file: string) {
 		this.document = new FakeDocument(this.options.dist);
-		return super.run(file);
 	}
 	protected createGlobalContext() {
 		const globalContext = super.createGlobalContext();
@@ -49,7 +46,7 @@ export class WebRunner<
 		const subModuleScope = super.createModuleScope(requireFn, m, file);
 		subModuleScope["importScripts"] = (url: string) => {
 			expect(url).toMatch(/^https:\/\/test\.cases\/path\//);
-			this.requirers.get("entry")!(
+			this.getRequire()(
 				this.options.dist,
 				`.${url.slice("https://test.cases/path".length)}`
 			);

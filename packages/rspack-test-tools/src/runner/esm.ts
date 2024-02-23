@@ -21,6 +21,7 @@ export class EsmRunner<
 					"Running this test requires '--experimental-vm-modules'.\nRun with 'node --experimental-vm-modules node_modules/jest-cli/bin/jest'."
 				);
 			}
+			const _require = this.getRequire();
 			let file = context["file"] || this.getFile(modulePath, currentDirectory);
 			if (!file) {
 				return this.requirers.get("miss")!(currentDirectory, modulePath);
@@ -40,13 +41,9 @@ export class EsmRunner<
 						specifier: any,
 						module: { context: any }
 					) => {
-						const result = await this.requirers.get("entry")!(
-							path.dirname(file!.path),
-							specifier,
-							{
-								esmMode: EEsmMode.Evaluated
-							}
-						);
+						const result = await _require(path.dirname(file!.path), specifier, {
+							esmMode: EEsmMode.Evaluated
+						});
 						return await asModule(result, module.context);
 					}
 				} as any);
@@ -56,7 +53,7 @@ export class EsmRunner<
 			return (async () => {
 				await esm.link(async (specifier, referencingModule) => {
 					return await asModule(
-						await this.requirers.get("entry")!(
+						await _require(
 							path.dirname(
 								referencingModule.identifier
 									? referencingModule.identifier.slice(esmIdentifier.length + 1)
@@ -87,7 +84,7 @@ export class EsmRunner<
 
 	protected createRunner() {
 		super.createRunner();
-		this.requirers.set("cjs", this.requirers.get("entry")!);
+		this.requirers.set("cjs", this.getRequire());
 		this.requirers.set("esm", this.createEsmRequirer());
 		this.requirers.set("entry", (currentDirectory, modulePath, context) => {
 			let file = this.getFile(modulePath, currentDirectory);
@@ -96,8 +93,8 @@ export class EsmRunner<
 			}
 
 			if (
-				/* p.endsWith(".mjs") &&  */ this.options.compilerOptions.experiments
-					?.outputModule
+				file.path.endsWith(".mjs") &&
+				this.options.compilerOptions.experiments?.outputModule
 			) {
 				return this.requirers.get("esm")!(currentDirectory, modulePath, {
 					...context,

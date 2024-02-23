@@ -1,19 +1,23 @@
 import { Tester } from "../test/tester";
 import rimraf from "rimraf";
-import { RspackConfigProcessor } from "../processor/config";
 import fs from "fs";
-import path from "path";
+import { RspackHotProcessor } from "../processor/hot";
+import { ECompilerType, TCompilerOptions } from "../type";
 
-export function createConfigCase(name: string, src: string, dist: string) {
-	const testConfigFile = path.join(src, "test.config.js");
+export function createHotCase(
+	name: string,
+	src: string,
+	dist: string,
+	target: TCompilerOptions<ECompilerType.Rspack>["target"]
+) {
 	const tester = new Tester({
 		name,
 		src,
 		dist,
 		steps: [
-			new RspackConfigProcessor({
-				name,
-				testConfig: fs.existsSync(testConfigFile) ? require(testConfigFile) : {}
+			new RspackHotProcessor({
+				target,
+				name
 			})
 		]
 	});

@@ -6,6 +6,7 @@ import {
 	ITestContext,
 	ITestEnv,
 	ITestProcessor,
+	ITestRunner,
 	TCompiler,
 	TCompilerOptions,
 	TTestConfig
@@ -75,33 +76,17 @@ export class BasicTaskProcessor<T extends ECompilerType = ECompilerType.Rspack>
 			if (!bundles || !bundles.length) {
 				return;
 			}
-			context.stats<T>((_, stats) => {
-				const runnerOptions = {
-					env,
-					stats: stats!,
-					name: this.options.name,
-					runInNewContext: false,
-					testConfig: this.options.testConfig,
-					source: context.getSource(),
-					dist: context.getDist(),
-					compilerOptions: options
-				};
-				let runner;
-				if (options.target === "web" || options.target === "webworker") {
-					runner = new WebRunner<T>(runnerOptions);
-				} else if (options.experiments?.outputModule) {
-					runner = new EsmRunner<T>(runnerOptions);
-				} else {
-					runner = new BasicRunner<T>(runnerOptions);
+			const runner = this.createRunner(env, context, options);
+			for (let bundle of bundles!) {
+				if (!runner) {
+					throw new Error("create test runner failed");
 				}
-				for (let bundle of bundles!) {
-					const result = runner.run(bundle);
-					context.result<T>((_compiler, res) => {
-						res.results ??= [];
-						res.results.push(result);
-					}, this.options.name);
-				}
-			}, this.options.name);
+				const result = runner.run(bundle);
+				context.result<T>((_compiler, res) => {
+					res.results ??= [];
+					res.results.push(result);
+				}, this.options.name);
+			}
 		}, this.options.name);
 
 		let results: Promise<unknown>[] = [];
@@ -170,5 +155,43 @@ export class BasicTaskProcessor<T extends ECompilerType = ECompilerType.Rspack>
 			resolve();
 		});
 		context.clearError(this.options.name);
+	}
+
+	async afterAll(context: ITestContext) {
+		let task;
+		context.compiler((_, compiler) => {
+			if (compiler) {
+				task = new Promise(resolve => compiler.close(resolve));
+			}
+		}, this.options.name);
+		return task;
+	}
+
+	protected createRunner(
+		env: ITestEnv,
+		context: ITestContext,
+		options: TCompilerOptions<T>
+	): ITestRunner | null {
+		let runner: ITestRunner | null = null;
+		context.stats<T>((_, stats) => {
+			const runnerOptions = {
+				env,
+				stats: stats!,
+				name: this.options.name,
+				runInNewContext: false,
+				testConfig: this.options.testConfig,
+				source: context.getSource(),
+				dist: context.getDist(),
+				compilerOptions: options
+			};
+			if (options.target === "web" || options.target === "webworker") {
+				runner = new WebRunner<T>(runnerOptions);
+			} else if (options.experiments?.outputModule) {
+				runner = new EsmRunner<T>(runnerOptions);
+			} else {
+				runner = new BasicRunner<T>(runnerOptions);
+			}
+		}, this.options.name);
+		return runner;
 	}
 }

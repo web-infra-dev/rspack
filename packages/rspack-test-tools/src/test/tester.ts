@@ -7,6 +7,8 @@ import {
 	ITestEnv
 } from "../type";
 import createLazyTestEnv from "../helper/legacy/createLazyTestEnv";
+import path from "path";
+import fs from "fs";
 
 export class Tester implements ITester {
 	private context: ITestContext;
@@ -117,5 +119,10 @@ export class Tester implements ITester {
 
 	static createTestEnv(): ITestEnv {
 		return createLazyTestEnv(10000);
+	}
+
+	static isSkipped(config: { name: string; casePath: string }) {
+		const filterPath = path.join(config.casePath, "test.filter.js");
+		return fs.existsSync(filterPath) && !require(filterPath)(config);
 	}
 }

@@ -82,6 +82,7 @@ module.exports = function checkArrayExpectation(
 			array = array.filter(item => !/from Terser/.test(item));
 		}
 	}
+
 	if (fs.existsSync(path.join(testDirectory, `${filename}.js`))) {
 		// CHANGE: added file for sorting messages in multi-thread environment
 		if (fs.existsSync(path.join(testDirectory, `${filename}-sort.js`))) {
@@ -91,6 +92,7 @@ module.exports = function checkArrayExpectation(
 		const expectedFilename = path.join(testDirectory, `${filename}.js`);
 		const expected = require(expectedFilename);
 		const diff = diffItems(array, expected, kind);
+
 		if (expected.length < array.length) {
 			return (
 				done(
