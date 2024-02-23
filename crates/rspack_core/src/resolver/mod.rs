@@ -211,8 +211,8 @@ which tries to resolve these kind of requests in the current directory too.",
               .resolve_options
               .as_deref()
               .or(Some(&plugin_driver.options.resolve))
-              .and_then(|o| o.main_files.as_ref().map(|f| f.clone()))
-              .unwrap_or_else(|| Vec::new());
+              .and_then(|o| o.main_files.as_ref().cloned())
+              .unwrap_or_default();
 
             requested_names.extend(main_files);
           }
@@ -225,7 +225,7 @@ which tries to resolve these kind of requests in the current directory too.",
                   if requested_names.contains(&file_stem.to_string_lossy().to_string()) {
                     let mut suggestion = file.path().relative(args.context.as_path());
 
-                    if !suggestion.to_string_lossy().starts_with(".") {
+                    if !suggestion.to_string_lossy().starts_with('.') {
                       suggestion = PathBuf::from(format!("./{}", suggestion.to_string_lossy()));
                     }
                     Some(suggestion)
@@ -237,7 +237,7 @@ which tries to resolve these kind of requests in the current directory too.",
             })
             .collect::<Vec<_>>();
 
-          if suggestions.len() == 0 {
+          if suggestions.is_empty() {
             return None;
           }
 
