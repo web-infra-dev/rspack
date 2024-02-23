@@ -61,7 +61,9 @@ const UNALIGNED_FIXTURES = [
 	"helpers/warmup-webpack.js",
 	"hotCases/fake-update-loader.js",
 	"StatsTestCases.basictest.js",
-	"WatchTestCases.template.js"
+	"WatchTestCases.template.js",
+	"HotTestCases.template.js",
+	"HotTestCasesNode.test.js"
 ];
 
 // Only different in comments. For example, license information difference.

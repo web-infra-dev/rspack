@@ -609,11 +609,22 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_conditional_expression(&mut self, expr: &CondExpr) {
-    // TODO: self.hooks.expression_conditional_operation.call
+    let result = self
+      .plugin_drive
+      .clone()
+      .expression_conditional_operation(self, expr);
 
-    self.walk_expression(&expr.test);
-    self.walk_expression(&expr.cons);
-    self.walk_expression(&expr.alt);
+    if let Some(result) = result {
+      if result {
+        self.walk_expression(&expr.cons);
+      } else {
+        self.walk_expression(&expr.alt);
+      }
+    } else {
+      self.walk_expression(&expr.test);
+      self.walk_expression(&expr.cons);
+      self.walk_expression(&expr.alt);
+    }
   }
 
   fn walk_class_expression(&mut self, expr: &ClassExpr) {

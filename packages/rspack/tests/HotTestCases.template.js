@@ -1,34 +1,28 @@
-import path from "path";
-import fs from "graceful-fs";
-import vm from "vm";
-import rimraf from "rimraf";
-import checkArrayExpectation from "./checkArrayExpectation";
-import createLazyTestEnv from "./helpers/createLazyTestEnv";
-import {
-	Compiler,
-	rspack,
-	Stats,
-	HotModuleReplacementPlugin
-} from "@rspack/core";
-import { isValidTestCaseDir } from "./utils";
+"use strict";
 
-export function describeCases(config: {
-	name: string;
-	target: string;
-	casesPath: string;
-	hot: boolean;
-}) {
-	const casesPath = path.join(__dirname, config.casesPath);
-	const categories = fs
-		.readdirSync(casesPath)
-		.filter(dir => fs.statSync(path.join(casesPath, dir)).isDirectory())
-		.filter(isValidTestCaseDir)
-		.map(cat => ({
-			name: cat,
-			tests: fs
-				.readdirSync(path.join(casesPath, cat))
-				.filter(isValidTestCaseDir)
-		}));
+require("./helpers/warmup-webpack");
+
+const path = require("path");
+const fs = require("graceful-fs");
+const vm = require("vm");
+const rimraf = require("rimraf");
+const checkArrayExpectation = require("./checkArrayExpectation");
+const createLazyTestEnv = require("./helpers/createLazyTestEnv");
+
+const casesPath = path.join(__dirname, "hotCases");
+let categories = fs
+	.readdirSync(casesPath)
+	.filter(dir => fs.statSync(path.join(casesPath, dir)).isDirectory());
+categories = categories.map(cat => {
+	return {
+		name: cat,
+		tests: fs
+			.readdirSync(path.join(casesPath, cat))
+			.filter(folder => folder.indexOf("_") < 0)
+	};
+});
+
+const describeCases = config => {
 	describe(config.name, () => {
 		categories.forEach(category => {
 			describe(category.name, () => {
@@ -41,21 +35,17 @@ export function describeCases(config: {
 						});
 						return;
 					}
-
 					describe(testName, () => {
-						let compiler: undefined | Compiler;
-
+						let compiler;
 						afterAll(callback => {
-							if (!compiler) {
-								return;
-							}
 							compiler.close(callback);
-							// compiler = undefined;
+							compiler = undefined;
 						});
 
 						it(
 							testName + " should compile",
 							done => {
+								const webpack = require("..");
 								const outputDirectory = path.join(
 									__dirname,
 									"js",
@@ -64,12 +54,7 @@ export function describeCases(config: {
 									testName
 								);
 								rimraf.sync(outputDirectory);
-								// TODO: should remove it.
-								const changedFiles = path.join(
-									testDirectory,
-									"changed-file.js"
-								);
-
+								const recordsPath = path.join(outputDirectory, "records.json");
 								const fakeUpdateLoaderOptions = {
 									updateIndex: 0
 								};
@@ -77,22 +62,61 @@ export function describeCases(config: {
 									testDirectory,
 									"webpack.config.js"
 								);
-								const options = getOptions(
-									configPath,
-									testDirectory,
-									outputDirectory,
-									fakeUpdateLoaderOptions,
-									config.target,
-									config.hot
+								let options = {};
+								if (fs.existsSync(configPath)) options = require(configPath);
+								if (typeof options === "function") {
+									options = options({ config });
+								}
+								if (!options.mode) options.mode = "development";
+								if (!options.devtool) options.devtool = false;
+								if (!options.context) options.context = testDirectory;
+								if (!options.entry) options.entry = "./index.js";
+								if (!options.output) options.output = {};
+								if (!options.output.path) options.output.path = outputDirectory;
+								if (!options.output.filename)
+									options.output.filename = "bundle.js";
+								if (!options.output.chunkFilename)
+									options.output.chunkFilename = "[name].chunk.[fullhash].js";
+								// CHANGE: the pathinfo is currently not supported in Rspack
+								// if (options.output.pathinfo === undefined)
+								// 	options.output.pathinfo = true;
+								if (options.output.publicPath === undefined)
+									options.output.publicPath = "https://test.cases/path/";
+								if (options.output.library === undefined)
+									options.output.library = { type: "commonjs2" };
+								if (!options.optimization) options.optimization = {};
+								if (!options.optimization.moduleIds)
+									options.optimization.moduleIds = "named";
+								if (!options.module) options.module = {};
+								if (!options.module.rules) options.module.rules = [];
+								// CHANGE: switched to `use` configuration to support css and json
+								options.module.rules.push({
+									test: /\.(js|css|json)/,
+									use: [
+										{
+											loader: path.join(
+												__dirname,
+												"hotCases",
+												"fake-update-loader.js"
+											),
+											options: fakeUpdateLoaderOptions
+										}
+									]
+								});
+								if (!options.target) options.target = config.target;
+								if (!options.plugins) options.plugins = [];
+								options.plugins.push(
+									new webpack.HotModuleReplacementPlugin(),
+									new webpack.LoaderOptionsPlugin(fakeUpdateLoaderOptions)
 								);
-								compiler = rspack(options);
-								compiler.build(err => {
-									if (err) {
-										return done(err);
-									}
-
-									const stats = new Stats(compiler!.compilation);
-									const jsonStats = stats.toJson();
+								// CHANGE: the recordsPath is currently not supported in Rspack
+								// if (!options.recordsPath) options.recordsPath = recordsPath;
+								compiler = webpack(options);
+								compiler.run((err, stats) => {
+									if (err) return done(err);
+									const jsonStats = stats.toJson({
+										errorDetails: true
+									});
 									if (
 										checkArrayExpectation(
 											testDirectory,
@@ -115,27 +139,24 @@ export function describeCases(config: {
 									) {
 										return;
 									}
-									const urlToPath = (url: string) => {
-										if (url.startsWith("https://test.cases/path/")) {
+
+									const urlToPath = url => {
+										if (url.startsWith("https://test.cases/path/"))
 											url = url.slice(24);
-										}
 										return path.resolve(outputDirectory, `./${url}`);
 									};
-									const urlToRelativePath = (url: string) => {
-										if (url.startsWith("https://test.cases/path/")) {
+									const urlToRelativePath = url => {
+										if (url.startsWith("https://test.cases/path/"))
 											url = url.slice(24);
-										}
 										return `./${url}`;
 									};
 									const window = {
-										fetch: async (url: string) => {
+										fetch: async url => {
 											try {
-												const buffer: any = await new Promise(
-													(resolve, reject) => {
-														fs.readFile(urlToPath(url), (err, b) => {
-															err ? reject(err) : resolve(b);
-														});
-													}
+												const buffer = await new Promise((resolve, reject) =>
+													fs.readFile(urlToPath(url), (err, b) =>
+														err ? reject(err) : resolve(b)
+													)
 												);
 												return {
 													status: 200,
@@ -152,7 +173,7 @@ export function describeCases(config: {
 												throw err;
 											}
 										},
-										importScripts: (url: string) => {
+										importScripts: url => {
 											expect(url).toMatch(/^https:\/\/test\.cases\/path\//);
 											_require(urlToRelativePath(url));
 										},
@@ -164,9 +185,11 @@ export function describeCases(config: {
 													setAttribute(name, value) {
 														this._attrs[name] = value;
 													},
+													// CHANGE: added support for `getAttribute` method
 													getAttribute(name) {
 														return this._attrs[name];
 													},
+													// CHANGE: added support for `removeAttribute` method
 													removeAttribute(name) {
 														delete this._attrs[name];
 													},
@@ -175,15 +198,17 @@ export function describeCases(config: {
 															// ok
 														}
 													},
-													// css link
+													// CHANGE: added support for css link
 													sheet: {
 														disabled: false
 													}
 												};
 											},
 											head: {
+												// CHANGE: added support for `children` property
 												children: [],
-												insertBefore(element: any, before: any) {
+												// CHANGE: added support for `insertBefore` method
+												insertBefore(element, before) {
 													element.parentNode = this;
 													this.children.unshift(element);
 													Promise.resolve().then(() => {
@@ -192,7 +217,8 @@ export function describeCases(config: {
 														}
 													});
 												},
-												appendChild(element: any) {
+												// CHANGE: enhanced `insertBefore` method
+												appendChild(element) {
 													element.parentNode = this;
 													this.children.push(element);
 													if (element._type === "script") {
@@ -211,21 +237,20 @@ export function describeCases(config: {
 														}
 													}
 												},
+												// CHANGE: added support for `removeChild` method
 												removeChild(node) {
 													const index = this.children.indexOf(node);
 													this.children.splice(index, 1);
 												}
 											},
-											getElementsByTagName(name: string) {
-												if (name === "head") {
-													return [this.head];
-												}
-												if (name === "script" || name === "link") {
+											getElementsByTagName(name) {
+												if (name === "head") return [this.head];
+												// CHANGE: added support for link tag
+												if (name === "script" || name === "link")
 													return this.head.children.filter(
 														i => i._type === name
 													);
-												}
-												throw Error("No supported");
+												throw new Error("Not supported");
 											}
 										},
 										Worker: require("./helpers/createFakeWorker")({
@@ -243,24 +268,11 @@ export function describeCases(config: {
 
 									function _next(callback) {
 										fakeUpdateLoaderOptions.updateIndex++;
-										if (!compiler) {
-											throw Error("can't find compiler");
-										}
-										// should delete after removed `rebuild`
-										let changed = [];
-										try {
-											changed = require(changedFiles);
-										} catch (err) {}
-										if (changed.length === 0) {
-											throw Error("can not found changed files");
-										}
-										compiler.rebuild(new Set(changed), new Set(), err => {
-											if (err) {
-												return callback(err);
-											}
-											const jsonStats = new Stats(
-												compiler!.compilation
-											).toJson();
+										compiler.run((err, stats) => {
+											if (err) return callback(err);
+											const jsonStats = stats.toJson({
+												errorDetails: true
+											});
 											if (
 												checkArrayExpectation(
 													testDirectory,
@@ -288,19 +300,21 @@ export function describeCases(config: {
 											callback(null, jsonStats);
 										});
 									}
-									function _require(module: string) {
+
+									function _require(module) {
 										if (module.startsWith("./")) {
 											const p = path.join(outputDirectory, module);
 											if (module.endsWith(".json")) {
-												return JSON.parse(fs.readFileSync(p, "utf8"));
+												return JSON.parse(fs.readFileSync(p, "utf-8"));
 											} else {
-												const code =
+												const fn = vm.runInThisContext(
 													"(function(require, module, exports, __dirname, __filename, it, beforeEach, afterEach, expect, jest, self, window, fetch, document, importScripts, Worker, EventSource, NEXT, STATS) {" +
-													"global.expect = expect;" +
-													'function nsObj(m) { Object.defineProperty(m, Symbol.toStringTag, { value: "Module" }); return m; }\n' +
-													fs.readFileSync(p, "utf-8") +
-													"\n})";
-												const fn = vm.runInThisContext(code, p);
+														"global.expect = expect;" +
+														'function nsObj(m) { Object.defineProperty(m, Symbol.toStringTag, { value: "Module" }); return m; }' +
+														fs.readFileSync(p, "utf-8") +
+														"\n})",
+													p
+												);
 												const m = {
 													exports: {}
 												};
@@ -328,32 +342,30 @@ export function describeCases(config: {
 												);
 												return m.exports;
 											}
-										} else {
-											return require(module);
-										}
+										} else return require(module);
 									}
 									let promise = Promise.resolve();
-									const info = stats.toJson({});
-									// here it is diffrent from webpack, because we add hotCases/chunk/multi-chunk-single-runtime
+									const info = stats.toJson({ all: false, entrypoints: true });
+									// CHANGE: here it is diffrent from webpack, because we add hotCases/chunk/multi-chunk-single-runtime
 									if (
 										config.target === "web" ||
 										config.target === "webworker"
 									) {
-										for (const file of info.entrypoints!.main.assets) {
+										for (const file of info.entrypoints.main.assets) {
+											// CHANGE: filtered non-JavaScript files from test and included CSS file handling
 											if (file.name.endsWith(".js")) {
 												_require(`./${file.name}`);
 											} else {
 												const cssElement =
 													window.document.createElement("link");
-												// @ts-expect-error
 												cssElement.href = file.name;
-												// @ts-expect-error
 												cssElement.rel = "stylesheet";
 												window.document.head.appendChild(cssElement);
 											}
 										}
 									} else {
-										const assets = info.entrypoints!.main.assets.filter(s =>
+										// CHANGE: filtered non-JavaScript files
+										const assets = info.entrypoints.main.assets.filter(s =>
 											s.name.endsWith(".js")
 										);
 										const result = _require(
@@ -364,16 +376,16 @@ export function describeCases(config: {
 									}
 									promise.then(
 										() => {
-											if (getNumberOfTests() < 1) {
+											if (getNumberOfTests() < 1)
 												return done(
 													new Error("No tests exported by test case")
 												);
-											}
+
 											done();
 										},
-										error => {
+										err => {
 											console.log(err);
-											done(error);
+											done(err);
 										}
 									);
 								});
@@ -392,75 +404,6 @@ export function describeCases(config: {
 			});
 		});
 	});
-}
+};
 
-function getOptions(
-	configPath: string,
-	testDirectory: string,
-	outputDirectory: string,
-	fakeUpdateLoaderOptions: any,
-	target: string,
-	hot: boolean
-): Record<string, string> {
-	let options: any = {};
-	if (fs.existsSync(configPath)) {
-		Object.assign(options, require(configPath));
-	}
-	if (!options.mode) {
-		options.mode = "development";
-	}
-	if (!options.devtool) {
-		options.devtool = false;
-	}
-	if (!options.context) {
-		options.context = testDirectory;
-	}
-	if (!options.entry) {
-		options.entry = "./index.js";
-	}
-	if (!options.output) {
-		options.output = {};
-	}
-	if (!options.output.path) {
-		options.output.path = outputDirectory;
-	}
-	if (!options.output.filename) {
-		options.output.filename == "bundle.js";
-	}
-	if (!options.output.chunkFilename) {
-	}
-	if (options.output.publicPath === undefined) {
-		options.output.publicPath = "https://test.cases/path/";
-	}
-	if (!options.module) {
-		options.module = {};
-	}
-	if (!options.module.rules) {
-		options.module.rules = [];
-	}
-	options.module.rules.push({
-		test: /\.(js|css|json)/,
-		use: [
-			{
-				loader: path.join(__dirname, "hotCases", "fake-update-loader.js"),
-				options: fakeUpdateLoaderOptions
-			}
-		]
-	});
-
-	if (!options.target) {
-		options.target = target;
-	}
-	if (!options.plugins) {
-		options.plugins = [];
-	}
-
-	options.devServer = {
-		...options.devServer,
-		hot
-	};
-	if (hot) {
-		options.plugins.push(new HotModuleReplacementPlugin());
-	}
-	return options;
-}
+module.exports.describeCases = describeCases;

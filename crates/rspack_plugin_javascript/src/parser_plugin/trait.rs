@@ -1,8 +1,8 @@
 use swc_core::atoms::Atom;
 use swc_core::common::Span;
 use swc_core::ecma::ast::{
-  AssignExpr, AwaitExpr, BinExpr, CallExpr, ExportAll, Expr, ForOfStmt, Ident, IfStmt, ImportDecl,
-  MemberExpr, ModuleDecl, NamedExport, OptChainExpr,
+  AssignExpr, AwaitExpr, BinExpr, CallExpr, CondExpr, ExportAll, Expr, ForOfStmt, Ident, IfStmt,
+  ImportDecl, MemberExpr, ModuleDecl, NamedExport, OptChainExpr,
 };
 use swc_core::ecma::ast::{NewExpr, Program, Stmt, ThisExpr, UnaryExpr, VarDecl, VarDeclarator};
 
@@ -263,6 +263,14 @@ pub trait JavascriptParserPlugin {
     &self,
     _parser: &mut JavascriptParser,
     _expr: &OptChainExpr,
+  ) -> Option<bool> {
+    None
+  }
+
+  fn expression_conditional_operation(
+    &self,
+    _parser: &mut JavascriptParser,
+    _expr: &CondExpr,
   ) -> Option<bool> {
     None
   }
