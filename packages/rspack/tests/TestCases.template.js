@@ -1,6 +1,6 @@
 "use strict";
 
-// require("./helpers/warmup-webpack");
+require("./helpers/warmup-webpack");
 const path = require("path");
 const fs = require("graceful-fs");
 const vm = require("vm");
@@ -117,12 +117,14 @@ const describeCases = config => {
 											removeAvailableModules: true,
 											removeEmptyChunks: true,
 											mergeDuplicateChunks: true,
-											flagIncludedChunks: true,
+											// CHANGE: rspack does not support `flagIncludedChunks` yet.
+											// flagIncludedChunks: true,
 											sideEffects: true,
 											providedExports: true,
 											usedExports: true,
 											mangleExports: true,
-											emitOnErrors: true,
+											// CHANGE: rspack does not support `emitOnErrors` yet.
+											// emitOnErrors: true,
 											concatenateModules:
 												!!testConfig?.optimization?.concatenateModules,
 											innerGraph: true,
@@ -134,9 +136,10 @@ const describeCases = config => {
 											minimizer: [terserForTesting],
 											...config.optimization
 									  },
-								performance: {
-									hints: false
-								},
+								// CHANGE: rspack does not support `performance` yet.
+								// performance: {
+								// 	hints: false
+								// },
 								node: {
 									__dirname: "mock",
 									__filename: "mock"
@@ -146,7 +149,8 @@ const describeCases = config => {
 									...config.cache
 								},
 								output: {
-									pathinfo: "verbose",
+									// CHANGE: rspack does not support `pathinfo` yet.
+									// pathinfo: "verbose",
 									path: outputDirectory,
 									filename: config.module ? "bundle.mjs" : "bundle.js"
 								},
@@ -215,7 +219,8 @@ const describeCases = config => {
 								experiments: {
 									asyncWebAssembly: true,
 									topLevelAwait: true,
-									backCompat: false,
+									// CHANGE: rspack does not support `backCompat` yet.
+									// backCompat: false,
 									// CHANGE: Rspack enables `css` by default.
 									// Turning off here to fallback to webpack's default css processing logic.
 
@@ -321,7 +326,7 @@ const describeCases = config => {
 								testName + " should compile",
 								done => {
 									infraStructureLog.length = 0;
-									const webpack = require("@rspack/core").rspack;
+									const webpack = require("..");
 									const compiler = webpack(options);
 									const run = () => {
 										const deprecationTracker = deprecationTracking.start();
