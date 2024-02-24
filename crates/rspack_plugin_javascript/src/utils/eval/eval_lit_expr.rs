@@ -31,8 +31,16 @@ pub fn eval_lit_expr(expr: &Lit) -> Option<BasicEvaluatedExpression> {
       Some(res)
     }
     Lit::Num(num) => Some(eval_number(num)),
-    // TODO:
-    _ => None,
+    Lit::Bool(bool) => {
+      let mut res = BasicEvaluatedExpression::with_range(bool.span.real_lo(), bool.span.hi().0);
+      res.set_bool(bool.value);
+      Some(res)
+    }
+    Lit::BigInt(_) => {
+      // TODO:
+      None
+    }
+    Lit::JSXText(_) => unreachable!(),
   }
 }
 
