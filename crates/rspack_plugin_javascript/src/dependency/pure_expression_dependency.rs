@@ -6,11 +6,11 @@ use rspack_core::{
 use rustc_hash::FxHashSet as HashSet;
 #[derive(Debug, Clone)]
 pub struct PureExpressionDependency {
-  pub start: u32,
-  pub end: u32,
+  start: u32,
+  end: u32,
   pub used_by_exports: Option<UsedByExports>,
   id: DependencyId,
-  pub module_identifier: ModuleIdentifier,
+  module_identifier: ModuleIdentifier,
 }
 
 impl PureExpressionDependency {

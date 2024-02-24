@@ -186,7 +186,6 @@ fn handle_logical_and(
   scanner: &mut JavascriptParser,
 ) -> Option<BasicEvaluatedExpression> {
   let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.hi().0);
-
   let left = scanner.evaluate_expression(&expr.left);
   match left.as_bool() {
     Some(true) => {
