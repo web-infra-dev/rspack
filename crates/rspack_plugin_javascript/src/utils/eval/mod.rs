@@ -218,7 +218,7 @@ impl BasicEvaluatedExpression {
   pub fn as_bool(&self) -> Option<Boolean> {
     if self.truthy {
       Some(true)
-    } else if self.falsy || self.nullish == Some(true) || self.is_null() {
+    } else if self.falsy || self.nullish == Some(true) || self.is_null() || self.is_undefined() {
       Some(false)
     } else {
       self.boolean
@@ -282,6 +282,11 @@ impl BasicEvaluatedExpression {
   pub fn set_null(&mut self) {
     self.ty = Ty::Null;
     self.side_effects = false
+  }
+
+  pub fn set_undefined(&mut self) {
+    self.ty = Ty::Undefined;
+    self.side_effects = false;
   }
 
   pub fn set_number(&mut self, number: Number) {

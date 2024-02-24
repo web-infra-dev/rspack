@@ -758,10 +758,16 @@ impl JavascriptParser<'_> {
             .or_else(|| {
               let mut eval =
                 BasicEvaluatedExpression::with_range(ident.span.real_lo(), ident.span.hi.0);
-              eval.set_identifier(
-                ident.sym.to_string(),
-                ExportedVariableInfo::Name(ident.sym.to_string()),
-              );
+
+              if ident.sym.eq("undefined") {
+                eval.set_undefined();
+              } else {
+                eval.set_identifier(
+                  ident.sym.to_string(),
+                  ExportedVariableInfo::Name(ident.sym.to_string()),
+                );
+              }
+
               Some(eval)
             });
         };
