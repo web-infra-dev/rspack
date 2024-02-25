@@ -133,44 +133,6 @@ pub fn parse_order_string(x: &str) -> Option<u32> {
   }
 }
 
-#[macro_export]
-macro_rules! no_visit_ignored_stmt {
-  () => {
-    fn visit_stmt(&mut self, stmt: &swc_core::ecma::ast::Stmt) {
-      use rspack_core::SpanExt;
-      use swc_core::common::Spanned;
-      use swc_core::ecma::visit::VisitWith;
-      let span = stmt.span();
-      if self
-        .ignored
-        .contains(&DependencyLocation::new(span.real_lo(), span.real_hi()))
-      {
-        return;
-      }
-      stmt.visit_children_with(self);
-    }
-  };
-}
-
-#[macro_export]
-macro_rules! no_visit_ignored_expr {
-  () => {
-    fn visit_expr(&mut self, expr: &swc_core::ecma::ast::Expr) {
-      use rspack_core::SpanExt;
-      use swc_core::common::Spanned;
-      use swc_core::ecma::visit::VisitWith;
-      let span = expr.span();
-      if self
-        .ignored
-        .contains(&DependencyLocation::new(span.real_lo(), span.real_hi()))
-      {
-        return;
-      }
-      expr.visit_children_with(self);
-    }
-  };
-}
-
 pub fn extract_require_call_info(
   expr: &Expr,
 ) -> Option<(Vec<Atom>, ExprOrSpread, DependencyLocation)> {

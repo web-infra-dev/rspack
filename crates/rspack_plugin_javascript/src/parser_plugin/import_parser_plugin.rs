@@ -64,7 +64,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
           &parser.comments,
           node.span,
           imported.span,
-          parser.warning_diagnostics,
+          &mut parser.warning_diagnostics,
         );
         if magic_comment_options
           .get_webpack_ignore()
@@ -110,7 +110,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
           &parser.comments,
           node.span,
           tpl.span,
-          parser.warning_diagnostics,
+          &mut parser.warning_diagnostics,
         );
         let chunk_name = magic_comment_options
           .get_webpack_chunk_name()
@@ -168,7 +168,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
           &parser.comments,
           node.span,
           dyn_imported.span(),
-          parser.warning_diagnostics,
+          &mut parser.warning_diagnostics,
         );
         let chunk_name = magic_comment_options
           .get_webpack_chunk_name()
