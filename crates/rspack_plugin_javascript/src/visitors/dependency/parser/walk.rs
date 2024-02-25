@@ -294,8 +294,6 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_if_statement(&mut self, stmt: &IfStmt) {
-    let old = self.in_if;
-    self.in_if = true;
     if let Some(result) = self.plugin_drive.clone().statement_if(self, stmt) {
       if result {
         self.walk_nested_statement(&stmt.cons);
@@ -309,7 +307,6 @@ impl<'parser> JavascriptParser<'parser> {
         self.walk_nested_statement(alt);
       }
     }
-    self.in_if = old;
   }
 
   fn walk_for_statement(&mut self, stmt: &ForStmt) {
