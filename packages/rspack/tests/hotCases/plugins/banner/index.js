@@ -8,6 +8,7 @@ it("should inject banner to hot-update.js to update bannerIndex", (done) => {
 			expect(value).toBe(global.bannerIndex);
 			NEXT(require("../../update")(done, true, () => {
 				expect(value).toBe(global.bannerIndex);
+				delete global.bannerIndex;
 				done();
 			}))
 		}));
