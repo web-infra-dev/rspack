@@ -2,6 +2,7 @@ use std::borrow::Cow;
 
 use itertools::Itertools;
 use rspack_core::parse_resource;
+use swc_core::atoms::Atom;
 use swc_core::ecma::ast::Expr;
 
 use super::context_helper::{quote_meta, split_context_from_prefix};
@@ -25,7 +26,7 @@ pub fn create_context_dependency(
     let postfix_raw = if quasis.len() > 1 {
       Cow::Borrowed(quasis[quasis.len() - 1].string())
     } else {
-      Cow::Owned(String::new())
+      Cow::Owned(Atom::new(""))
     };
 
     let (context, prefix) = split_context_from_prefix(prefix_raw.to_string());
@@ -75,7 +76,7 @@ pub fn create_context_dependency(
           .expect("must exist"),
       )
     } else {
-      Cow::Owned(String::new())
+      Cow::Owned(Atom::new(""))
     };
     let postfix_raw = if postfix_is_string {
       Cow::Borrowed(
@@ -85,7 +86,7 @@ pub fn create_context_dependency(
           .expect("must exist"),
       )
     } else {
-      Cow::Owned(String::new())
+      Cow::Owned(Atom::new(""))
     };
 
     let (context, prefix) = split_context_from_prefix(prefix_raw.to_string());

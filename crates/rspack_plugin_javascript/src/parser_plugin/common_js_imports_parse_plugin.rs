@@ -3,6 +3,7 @@ use rspack_core::{
   context_reg_exp, ConstDependency, ContextMode, DependencyCategory, ErrorSpan, SpanExt,
 };
 use rspack_core::{ContextNameSpaceObject, ContextOptions};
+use swc_core::atoms::Atom;
 use swc_core::common::{Span, Spanned};
 use swc_core::ecma::ast::{CallExpr, Expr, Ident, Lit, MemberExpr};
 
@@ -88,7 +89,7 @@ impl CommonJsImportsParserPlugin {
     let is_require_member_chain = is_require_call_start(&expr)
       && !expr_matcher::is_require(&expr)
       && !expr_matcher::is_module_require(&expr)
-      && parser.is_unresolved_ident("require");
+      && parser.is_unresolved_ident(&Atom::new("require"));
     if !is_require_member_chain {
       return None;
     }
@@ -213,7 +214,7 @@ impl CommonJsImportsParserPlugin {
 
 impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
   fn can_rename(&self, parser: &mut JavascriptParser, str: &str) -> Option<bool> {
-    if str == expr_name::REQUIRE && parser.is_unresolved_ident(str) {
+    if str == expr_name::REQUIRE && parser.is_unresolved_ident(&Atom::new(str)) {
       Some(true)
     } else {
       None
@@ -221,7 +222,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
   }
 
   fn rename(&self, parser: &mut JavascriptParser, expr: &Expr, str: &str) -> Option<bool> {
-    if str == expr_name::REQUIRE && parser.is_unresolved_ident(str) {
+    if str == expr_name::REQUIRE && parser.is_unresolved_ident(&Atom::new(str)) {
       parser
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(
@@ -244,9 +245,9 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     end: u32,
   ) -> Option<BasicEvaluatedExpression> {
     if expression.sym.as_str() == expr_name::REQUIRE
-      && parser.is_unresolved_ident(expr_name::REQUIRE)
+      && parser.is_unresolved_ident(&Atom::new(expr_name::REQUIRE))
     {
-      Some(eval::evaluate_to_string("function".to_string(), start, end))
+      Some(eval::evaluate_to_string(Atom::new("function"), start, end))
     } else {
       None
     }
@@ -261,22 +262,22 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
   ) -> Option<BasicEvaluatedExpression> {
     match ident {
       expr_name::REQUIRE => Some(eval::evaluate_to_identifier(
-        expr_name::REQUIRE.to_string(),
-        expr_name::REQUIRE.to_string(),
+        Atom::new(expr_name::REQUIRE),
+        Atom::new(expr_name::REQUIRE),
         Some(true),
         start,
         end,
       )),
       expr_name::REQUIRE_RESOLVE => Some(eval::evaluate_to_identifier(
-        expr_name::REQUIRE_RESOLVE.to_string(),
-        expr_name::REQUIRE.to_string(),
+        Atom::new(expr_name::REQUIRE_RESOLVE),
+        Atom::new(expr_name::REQUIRE),
         Some(true),
         start,
         end,
       )),
       expr_name::REQUIRE_RESOLVE_WEAK => Some(eval::evaluate_to_identifier(
-        expr_name::REQUIRE_RESOLVE_WEAK.to_string(),
-        expr_name::REQUIRE.to_string(),
+        Atom::new(expr_name::REQUIRE_RESOLVE_WEAK),
+        Atom::new(expr_name::REQUIRE),
         Some(true),
         start,
         end,

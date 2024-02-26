@@ -63,33 +63,33 @@ pub enum MemberExpressionInfo {
 #[derive(Debug)]
 pub struct CallExpressionInfo {
   pub call: CallExpr,
-  pub callee_name: String,
+  pub callee_name: Atom,
   pub root_info: ExportedVariableInfo,
 }
 
 #[derive(Debug)]
 pub struct ExpressionExpressionInfo {
-  pub name: String,
+  pub name: Atom,
   pub root_info: ExportedVariableInfo,
 }
 
 #[derive(Debug)]
 pub enum ExportedVariableInfo {
-  Name(String),
+  Name(Atom),
   VariableInfo(VariableInfoId),
 }
 
 fn object_and_members_to_name(
   object: impl AsRef<str>,
   members_reversed: &[impl AsRef<str>],
-) -> String {
+) -> Atom {
   let mut name = String::from(object.as_ref());
   let iter = members_reversed.iter();
   for member in iter.rev() {
     name.push('.');
     name.push_str(member.as_ref());
   }
-  name
+  Atom::from(name)
 }
 
 pub trait RootName {
@@ -140,7 +140,7 @@ impl RootName for Callee {
 }
 
 pub struct FreeInfo<'a> {
-  pub name: &'a str,
+  pub name: &'a Atom,
   pub info: Option<&'a VariableInfo>,
 }
 
@@ -346,21 +346,21 @@ impl<'parser> JavascriptParser<'parser> {
     }
   }
 
-  pub fn get_mut_variable_info(&mut self, name: &str) -> Option<&mut VariableInfo> {
+  pub fn get_mut_variable_info(&mut self, name: &Atom) -> Option<&mut VariableInfo> {
     let Some(id) = self.definitions_db.get(&self.definitions, name) else {
       return None;
     };
     Some(self.definitions_db.expect_get_mut_variable(&id))
   }
 
-  pub fn get_variable_info(&mut self, name: &str) -> Option<&VariableInfo> {
+  pub fn get_variable_info(&mut self, name: &Atom) -> Option<&VariableInfo> {
     let Some(id) = self.definitions_db.get(&self.definitions, name) else {
       return None;
     };
     Some(self.definitions_db.expect_get_variable(&id))
   }
 
-  pub fn get_free_info_from_variable<'a>(&'a mut self, name: &'a str) -> Option<FreeInfo<'a>> {
+  pub fn get_free_info_from_variable<'a>(&'a mut self, name: &'a Atom) -> Option<FreeInfo<'a>> {
     let Some(info) = self.get_variable_info(name) else {
       return Some(FreeInfo { name, info: None });
     };
@@ -373,35 +373,35 @@ impl<'parser> JavascriptParser<'parser> {
     })
   }
 
-  fn define_variable(&mut self, name: String) {
+  fn define_variable(&mut self, name: &Atom) {
     let definitions = self.definitions;
-    if let Some(variable_info) = self.get_variable_info(&name)
+    if let Some(variable_info) = self.get_variable_info(name)
       && variable_info.tag_info.is_some()
       && definitions == variable_info.declared_scope
     {
       return;
     }
     let info = VariableInfo::new(definitions, None, None);
-    self.definitions_db.set(definitions, name, info);
+    self.definitions_db.set(definitions, name.clone(), info);
   }
 
-  fn set_variable(&mut self, name: String, variable: String) {
+  fn set_variable(&mut self, name: &Atom, variable: Atom) {
     let id = self.definitions;
-    if name == variable {
-      self.definitions_db.delete(id, &name);
+    if *name == variable {
+      self.definitions_db.delete(id, name.clone());
     } else {
-      let variable = VariableInfo::new(id, Some(FreeName::String(variable)), None);
-      self.definitions_db.set(id, name, variable);
+      let variable = VariableInfo::new(id, Some(FreeName::String(variable.clone())), None);
+      self.definitions_db.set(id, name.clone(), variable);
     }
   }
 
-  fn undefined_variable(&mut self, name: String) {
+  fn undefined_variable(&mut self, name: Atom) {
     self.definitions_db.delete(self.definitions, name)
   }
 
   pub fn tag_variable<Data: TagInfoData>(
     &mut self,
-    name: String,
+    name: Atom,
     tag: &'static str,
     data: Option<Data>,
   ) {
@@ -467,7 +467,7 @@ impl<'parser> JavascriptParser<'parser> {
           callee_name,
           root_info: root_info
             .map(|i| ExportedVariableInfo::VariableInfo(i.id()))
-            .unwrap_or_else(|| ExportedVariableInfo::Name(root_name.to_string())),
+            .unwrap_or_else(|| ExportedVariableInfo::Name(root_name.clone())),
         }))
       }
       Expr::MetaProp(_) | Expr::Ident(_) | Expr::This(_) => {
@@ -489,7 +489,7 @@ impl<'parser> JavascriptParser<'parser> {
           name,
           root_info: root_info
             .map(|i| ExportedVariableInfo::VariableInfo(i.id()))
-            .unwrap_or_else(|| ExportedVariableInfo::Name(root_name.to_string())),
+            .unwrap_or_else(|| ExportedVariableInfo::Name(root_name)),
         }))
       }
       _ => None,
@@ -671,7 +671,7 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   // TODO: remove
-  pub fn is_unresolved_ident(&mut self, str: &str) -> bool {
+  pub fn is_unresolved_ident(&mut self, str: &Atom) -> bool {
     self.definitions_db.get(&self.definitions, str).is_none()
   }
 }
@@ -735,8 +735,8 @@ impl JavascriptParser<'_> {
                 eval.set_undefined();
               } else {
                 eval.set_identifier(
-                  ident.sym.to_string(),
-                  ExportedVariableInfo::Name(ident.sym.to_string()),
+                  ident.sym.clone(),
+                  ExportedVariableInfo::Name(ident.sym.clone()),
                 );
               }
 

@@ -1,5 +1,8 @@
 use rspack_core::{DependencyLocation, SpanExt};
-use swc_core::ecma::ast::{BinExpr, BinaryOp};
+use swc_core::{
+  atoms::Atom,
+  ecma::ast::{BinExpr, BinaryOp},
+};
 
 use crate::{utils::eval::BasicEvaluatedExpression, visitors::JavascriptParser};
 
@@ -18,7 +21,7 @@ fn handle_template_string_compare(
         break;
       }
     }
-    value.concat()
+    value
   };
   let get_suffix = |parts: &Vec<BasicEvaluatedExpression>| {
     let mut value = vec![];
@@ -29,7 +32,7 @@ fn handle_template_string_compare(
         break;
       }
     }
-    value.concat()
+    value
   };
 
   let prefix_res = {
@@ -230,16 +233,19 @@ fn handle_add(expr: &BinExpr, scanner: &mut JavascriptParser) -> Option<BasicEva
   }
   if left.is_string() {
     if right.is_string() {
-      res.set_string(format!("{}{}", left.string(), right.string()));
+      let s = Atom::new(format!("{}{}", left.string(), right.string()));
+      res.set_string(s);
     } else if right.is_number() {
-      res.set_string(format!("{}{}", left.string(), right.number()));
+      let s = Atom::new(format!("{}{}", left.string(), right.number()));
+      res.set_string(s);
     } else if right.is_wrapped()
       && let Some(prefix) = right.prefix()
       && prefix.is_string()
     {
       let (start, end) = join_locations(left.range.as_ref(), prefix.range.as_ref());
       let mut left_prefix = BasicEvaluatedExpression::with_range(start, end);
-      left_prefix.set_string(format!("{}{}", left.string(), prefix.string()));
+      let s = Atom::new(format!("{}{}", left.string(), prefix.string()));
+      left_prefix.set_string(s);
       res.set_wrapped(
         Some(left_prefix),
         right.postfix.map(|postfix| *postfix),
@@ -260,7 +266,8 @@ fn handle_add(expr: &BinExpr, scanner: &mut JavascriptParser) -> Option<BasicEva
     }
   } else if left.is_number() {
     if right.is_string() {
-      res.set_string(format!("{}{}", left.number(), right.string()));
+      let s = Atom::new(format!("{}{}", left.number(), right.string()));
+      res.set_string(s);
     } else if right.is_number() {
       res.set_number(left.number() + right.number())
     } else {
@@ -274,7 +281,8 @@ fn handle_add(expr: &BinExpr, scanner: &mut JavascriptParser) -> Option<BasicEva
       if postfix.is_string() && right.is_string() {
         let range = join_locations(postfix.range.as_ref(), right.range.as_ref());
         let mut right_postfix = BasicEvaluatedExpression::with_range(range.0, range.1);
-        right_postfix.set_string(format!("{}{}", postfix.string(), right.string()));
+        let s = Atom::new(format!("{}{}", postfix.string(), right.string()));
+        right_postfix.set_string(s);
         res.set_wrapped(
           left.prefix.map(|prefix| *prefix),
           Some(right_postfix),
@@ -285,7 +293,8 @@ fn handle_add(expr: &BinExpr, scanner: &mut JavascriptParser) -> Option<BasicEva
       } else if postfix.is_string() && right.is_number() {
         let range = join_locations(postfix.range.as_ref(), right.range.as_ref());
         let mut right_postfix = BasicEvaluatedExpression::with_range(range.0, range.1);
-        right_postfix.set_string(format!("{}{}", postfix.string(), right.number()));
+        let s = Atom::new(format!("{}{}", postfix.string(), right.number()));
+        right_postfix.set_string(s);
         res.set_wrapped(
           left.prefix.map(|prefix| *prefix),
           Some(right_postfix),
@@ -305,7 +314,7 @@ fn handle_add(expr: &BinExpr, scanner: &mut JavascriptParser) -> Option<BasicEva
     } else if right.is_number() {
       let range = right.range();
       let mut postfix = BasicEvaluatedExpression::with_range(range.0, range.1);
-      postfix.set_string(right.number().to_string());
+      postfix.set_string(Atom::new(right.number().to_string()));
       res.set_wrapped(
         left.prefix.map(|prefix| *prefix),
         Some(postfix),

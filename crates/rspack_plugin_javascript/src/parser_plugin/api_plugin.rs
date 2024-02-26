@@ -1,4 +1,5 @@
 use rspack_core::{ConstDependency, RuntimeGlobals, RuntimeRequirementsDependency, SpanExt};
+use swc_core::atoms::Atom;
 use swc_core::common::Spanned;
 use swc_core::ecma::ast::{CallExpr, Callee, Expr, Ident};
 
@@ -68,9 +69,9 @@ impl JavascriptParserPlugin for APIPlugin {
     start: u32,
     end: u32,
   ) -> Option<BasicEvaluatedExpression> {
-    if parser.is_unresolved_ident(expression.sym.as_str()) {
+    if parser.is_unresolved_ident(&expression.sym) {
       get_typeof_evaluate_of_api(expression.sym.as_str())
-        .map(|res| eval::evaluate_to_string(res.to_string(), start, end))
+        .map(|res| eval::evaluate_to_string(Atom::new(res), start, end))
     } else {
       None
     }
@@ -277,7 +278,7 @@ impl JavascriptParserPlugin for APIPlugin {
 
     if let Some(root) = extract_member_root(expr)
       && let s = root.sym.as_str()
-      && parser.is_unresolved_ident(s)
+      && parser.is_unresolved_ident(&root.sym)
     {
       if s == "require" {
         not_supported_expr!(is_require_extensions, expr, "require.extensions");
@@ -365,7 +366,7 @@ impl JavascriptParserPlugin for APIPlugin {
 
     if let Some(root) = root
       && let s = root.sym.as_str()
-      && parser.is_unresolved_ident(s)
+      && parser.is_unresolved_ident(&root.sym)
     {
       if s == "require" {
         not_supported_call!(is_require_config, "require.config()");

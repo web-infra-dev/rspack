@@ -6,7 +6,7 @@ use super::BasicEvaluatedExpression;
 
 fn eval_str(str: &Str) -> BasicEvaluatedExpression {
   let mut res = BasicEvaluatedExpression::with_range(str.span().real_lo(), str.span_hi().0);
-  res.set_string(str.value.to_string());
+  res.set_string(str.value.clone());
   res
 }
 
@@ -22,7 +22,7 @@ pub fn eval_lit_expr(expr: &Lit) -> Option<BasicEvaluatedExpression> {
     Lit::Regex(regexp) => {
       let mut res =
         BasicEvaluatedExpression::with_range(regexp.span().real_lo(), regexp.span_hi().0);
-      res.set_regexp(regexp.exp.to_string(), regexp.flags.to_string());
+      res.set_regexp(regexp.exp.clone(), regexp.flags.clone());
       Some(res)
     }
     Lit::Null(null) => {

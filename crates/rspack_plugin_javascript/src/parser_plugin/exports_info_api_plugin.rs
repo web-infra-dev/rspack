@@ -1,4 +1,5 @@
 use rspack_core::{extract_member_expression_chain, ConstDependency, SpanExt};
+use swc_core::atoms::Atom;
 
 use super::JavascriptParserPlugin;
 use crate::dependency::ExportInfoApiDependency;
@@ -18,7 +19,7 @@ impl JavascriptParserPlugin for ExportsInfoApiPlugin {
     let member_chain = expression_info.members();
     if !member_chain.is_empty()
       && member_chain[0].0 == WEBPACK_EXPORTS_INFO
-      && parser.is_unresolved_ident(WEBPACK_EXPORTS_INFO)
+      && parser.is_unresolved_ident(&Atom::new(WEBPACK_EXPORTS_INFO))
     {
       let len = member_chain.len();
       if len >= 3 {

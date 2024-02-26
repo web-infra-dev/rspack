@@ -3,6 +3,7 @@ use rspack_core::{
   ContextOptions, DependencyCategory, SpanExt,
 };
 use rspack_regex::{regexp_as_str, RspackRegex};
+use swc_core::atoms::Atom;
 use swc_core::common::Spanned;
 use swc_core::ecma::ast::{CallExpr, Lit};
 
@@ -105,8 +106,8 @@ impl JavascriptParserPlugin for ImportMetaContextDependencyParserPlugin {
   ) -> Option<BasicEvaluatedExpression> {
     if ident == expr_name::IMPORT_META_WEBPACK_CONTEXT {
       Some(eval::evaluate_to_identifier(
-        expr_name::IMPORT_META_WEBPACK_CONTEXT.to_string(),
-        expr_name::IMPORT_META.to_string(),
+        Atom::new(expr_name::IMPORT_META_WEBPACK_CONTEXT),
+        Atom::new(expr_name::IMPORT_META),
         Some(true),
         start,
         end,

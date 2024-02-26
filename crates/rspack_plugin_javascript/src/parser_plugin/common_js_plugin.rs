@@ -2,7 +2,7 @@ use rspack_core::{ConstDependency, RuntimeGlobals, RuntimeRequirementsDependency
 use swc_core::ecma::ast::{Expr, MemberExpr};
 
 use super::JavascriptParserPlugin;
-use crate::visitors::{expr_matcher, JavascriptParser};
+use crate::visitors::{expr_matcher, expr_name, JavascriptParser};
 
 pub struct CommonJsPlugin;
 
@@ -11,9 +11,9 @@ impl JavascriptParserPlugin for CommonJsPlugin {
     &self,
     parser: &mut JavascriptParser,
     expr: &swc_core::ecma::ast::UnaryExpr,
-    _for_name: &str,
+    for_name: &str,
   ) -> Option<bool> {
-    if expr_matcher::is_module(&expr.arg) && parser.is_unresolved_ident("module") {
+    if expr_matcher::is_module(&expr.arg) && for_name == expr_name::MODULE {
       parser
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(

@@ -1,4 +1,5 @@
 use rspack_core::SpanExt;
+use swc_core::atoms::Atom;
 use swc_core::ecma::ast::NewExpr;
 
 use super::BasicEvaluatedExpression;
@@ -19,13 +20,13 @@ pub fn eval_new_expression(
   // FIXME: should detect RegExpr variable info
   let Some(args) = &expr.args else {
     let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.hi().0);
-    res.set_regexp(String::new(), String::new());
+    res.set_regexp(Atom::new(""), Atom::new(""));
     return Some(res);
   };
 
   let Some(arg1) = args.first() else {
     let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.hi().0);
-    res.set_regexp(String::new(), String::new());
+    res.set_regexp(Atom::new(""), Atom::new(""));
     return Some(res);
   };
 
@@ -52,7 +53,7 @@ pub fn eval_new_expression(
       return None;
     }
   } else {
-    String::new()
+    Atom::new("")
   };
 
   let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.hi().0);

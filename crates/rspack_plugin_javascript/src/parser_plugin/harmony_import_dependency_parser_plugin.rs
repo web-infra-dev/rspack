@@ -145,7 +145,7 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
     identifier_name: &str,
   ) -> Option<bool> {
     // TODO: fill data with `Some({name, source, ids, source_order, assertions })`
-    parser.tag_variable::<MockData>(identifier_name.to_string(), HARMONY_SPECIFIER_TAG, None);
+    parser.tag_variable::<MockData>(Atom::new(identifier_name), HARMONY_SPECIFIER_TAG, None);
     Some(true)
   }
 

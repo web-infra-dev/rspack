@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 
 use rustc_hash::FxHashSet;
+use swc_core::atoms::Atom;
 use swc_core::ecma::ast::FnDecl;
 use swc_core::ecma::ast::{AssignExpr, BlockStmt, CatchClause, Decl, DoWhileStmt};
 use swc_core::ecma::ast::{ForInStmt, ForOfStmt, ForStmt, IfStmt, LabeledStmt, WithStmt};
@@ -129,7 +130,7 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn pre_walk_function_declaration(&mut self, decl: &FnDecl) {
-    self.define_variable(decl.ident.sym.to_string());
+    self.define_variable(&decl.ident.sym);
   }
 
   fn pre_walk_for_statement(&mut self, stmt: &ForStmt) {
@@ -179,12 +180,12 @@ impl<'parser> JavascriptParser<'parser> {
       self.pre_walk_variable_declarator(declarator);
       // TODO: hooks.pre_declarator
       self.enter_pattern(Cow::Borrowed(&declarator.name), |this, ident| {
-        this.define_variable(ident.sym.to_string());
+        this.define_variable(&ident.sym);
       });
     }
   }
 
-  fn _pre_walk_object_pattern(&mut self, obj_pat: &ObjectPat) -> Option<FxHashSet<String>> {
+  fn _pre_walk_object_pattern(&mut self, obj_pat: &ObjectPat) -> Option<FxHashSet<Atom>> {
     let mut keys = FxHashSet::default();
     for prop in &obj_pat.props {
       match prop {
@@ -195,7 +196,7 @@ impl<'parser> JavascriptParser<'parser> {
           }
         }
         ObjectPatProp::Assign(prop) => {
-          keys.insert(prop.key.sym.to_string());
+          keys.insert(prop.key.sym.clone());
         }
         ObjectPatProp::Rest(_) => return None,
       };

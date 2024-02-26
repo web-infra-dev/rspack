@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 
+use swc_core::atoms::Atom;
 use swc_core::ecma::ast::{ArrayLit, ArrayPat, ArrowExpr, AssignExpr, AssignPat, AwaitExpr};
 use swc_core::ecma::ast::{BinExpr, BlockStmt, BlockStmtOrExpr, CallExpr, Callee, CatchClause};
 use swc_core::ecma::ast::{Class, ClassDecl, ClassExpr, ClassMember, CondExpr, Decl, DefaultDecl};
@@ -55,11 +56,11 @@ impl<'parser> JavascriptParser<'parser> {
     self.definitions = self.definitions_db.create_child(&old_definitions);
 
     if has_this {
-      self.undefined_variable("this".to_string());
+      self.undefined_variable(Atom::new("this"));
     }
 
     self.enter_patterns(params, |this, ident| {
-      this.define_variable(ident.sym.to_string());
+      this.define_variable(&ident.sym);
     });
 
     f(self);
@@ -82,10 +83,10 @@ impl<'parser> JavascriptParser<'parser> {
     self.definitions = self.definitions_db.create_child(&old_definitions);
     self.in_tagged_template_tag = false;
     if has_this {
-      self.undefined_variable("this".to_string());
+      self.undefined_variable(Atom::new("this"));
     }
     self.enter_patterns(params, |this, ident| {
-      this.define_variable(ident.sym.to_string());
+      this.define_variable(&ident.sym);
     });
     f(self);
 
@@ -247,7 +248,7 @@ impl<'parser> JavascriptParser<'parser> {
     self.in_block_scope(|this| {
       if let Some(param) = &catch_clause.param {
         this.enter_pattern(Cow::Borrowed(param), |this, ident| {
-          this.define_variable(ident.sym.to_string());
+          this.define_variable(&ident.sym);
         });
         this.walk_pattern(param)
       }
@@ -387,7 +388,7 @@ impl<'parser> JavascriptParser<'parser> {
             .rename(self, init, &renamed_identifier)
             .unwrap_or_default()
           {
-            self.set_variable(ident.sym.to_string(), renamed_identifier);
+            self.set_variable(&ident.sym, renamed_identifier);
           }
           continue;
         }
@@ -705,7 +706,8 @@ impl<'parser> JavascriptParser<'parser> {
     {
       let origin = name.len();
       let name = &name[0..origin - 1 - len];
-      if let Some(for_name) = name.call_hooks_name(self)
+      let atom = Atom::new(name);
+      if let Some(for_name) = atom.call_hooks_name(self)
         && self
           .plugin_drive
           .clone()
@@ -874,11 +876,9 @@ impl<'parser> JavascriptParser<'parser> {
     }
   }
 
-  fn get_rename_identifier(&mut self, expr: &Expr) -> Option<String> {
+  fn get_rename_identifier(&mut self, expr: &Expr) -> Option<Atom> {
     let result = self.evaluate_expression(expr);
-    result
-      .is_identifier()
-      .then(|| result.identifier().to_string())
+    result.is_identifier().then(|| result.identifier().clone())
   }
 
   fn walk_assignment_expression(&mut self, expr: &AssignExpr) {
@@ -897,7 +897,7 @@ impl<'parser> JavascriptParser<'parser> {
         && drive.can_rename(self, &name).unwrap_or_default()
       {
         if !drive.rename(self, &expr.right, &name).unwrap_or_default() {
-          self.set_variable(ident.sym.to_string(), name);
+          self.set_variable(&ident.sym, name);
         }
         return;
       }
@@ -914,7 +914,7 @@ impl<'parser> JavascriptParser<'parser> {
       self.walk_expression(&expr.right);
       self.enter_pattern(Cow::Borrowed(pat), |this, ident| {
         // TODO: if (!this.callHooksForName(this.hooks.assign, name, expression)) {
-        this.define_variable(ident.sym.to_string());
+        this.define_variable(&ident.sym);
       });
       self.walk_pattern(pat);
     } else {

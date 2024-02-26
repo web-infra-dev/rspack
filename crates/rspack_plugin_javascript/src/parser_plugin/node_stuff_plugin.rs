@@ -1,5 +1,6 @@
 use rspack_core::{get_context, ConstDependency, RuntimeGlobals, SpanExt};
 use sugar_path::SugarPath;
+use swc_core::atoms::Atom;
 
 use super::JavascriptParserPlugin;
 use crate::utils::eval;
@@ -20,10 +21,10 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
     let Some(node_option) = parser.compiler_options.node.as_ref() else {
       unreachable!("ensure only invoke `NodeStuffPlugin` when node options is enabled");
     };
-    let str = ident.sym.as_str();
-    if !parser.is_unresolved_ident(str) {
+    if !parser.is_unresolved_ident(&ident.sym) {
       return None;
     }
+    let str = ident.sym.as_str();
     if str == DIR_NAME {
       let dirname = match node_option.dirname.as_str() {
         "mock" => Some("/".to_string()),
@@ -101,7 +102,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
   ) -> Option<crate::utils::eval::BasicEvaluatedExpression> {
     if ident == DIR_NAME {
       Some(eval::evaluate_to_string(
-        get_context(parser.resource_data).as_str().to_string(),
+        Atom::from(get_context(parser.resource_data).as_str()),
         start,
         end,
       ))

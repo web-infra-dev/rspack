@@ -11,9 +11,8 @@ use swc_core::ecma::ast::{Expr, Lit, Pat, PatOrExpr, Prop, PropName, ThisExpr, U
 use super::JavascriptParserPlugin;
 use crate::dependency::{CommonJsExportRequireDependency, CommonJsExportsDependency};
 use crate::dependency::{CommonJsSelfReferenceDependency, ExportsBase, ModuleDecoratorDependency};
-use crate::visitors::{expr_matcher, JavascriptParser, TopLevelScope};
+use crate::visitors::{expr_matcher, expr_name, JavascriptParser, TopLevelScope};
 
-const MODULE_NAME: &str = "module";
 const EXPORTS_NAME: &str = "exports";
 
 fn get_member_expression_info(
@@ -126,11 +125,11 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn is_module_ident(&mut self, ident: &Ident) -> bool {
-    ident.sym == MODULE_NAME && self.is_unresolved_ident(MODULE_NAME)
+    ident.sym == expr_name::MODULE && self.is_unresolved_ident(&ident.sym)
   }
 
   fn is_exports_ident(&mut self, ident: &Ident) -> bool {
-    ident.sym == EXPORTS_NAME && self.is_unresolved_ident(EXPORTS_NAME)
+    ident.sym == EXPORTS_NAME && self.is_unresolved_ident(&ident.sym)
   }
 
   fn is_exports_expr(&mut self, expr: &Expr) -> bool {
@@ -222,7 +221,7 @@ impl<'parser> JavascriptParser<'parser> {
     node
       .callee
       .as_expr()
-      .map(|expr| matches!(expr, box Expr::Ident(ident) if &ident.sym == "require" && self.is_unresolved_ident("require")))
+      .map(|expr| matches!(expr, box Expr::Ident(ident) if &ident.sym == "require" && self.is_unresolved_ident(&ident.sym)))
       .unwrap_or_default()
   }
 

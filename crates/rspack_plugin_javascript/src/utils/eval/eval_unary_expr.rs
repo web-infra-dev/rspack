@@ -1,4 +1,5 @@
 use rspack_core::SpanExt;
+use swc_core::atoms::Atom;
 use swc_core::ecma::ast::{UnaryExpr, UnaryOp};
 
 use super::BasicEvaluatedExpression;
@@ -28,11 +29,11 @@ fn eval_typeof(
     None
   } else if arg.is_string() {
     let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.hi.0);
-    res.set_string("string".to_string());
+    res.set_string(Atom::new("string"));
     Some(res)
   } else if arg.is_undefined() {
     let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.hi.0);
-    res.set_string("undefined".to_string());
+    res.set_string(Atom::new("undefined"));
     Some(res)
   } else {
     // TODO: `arg.is_wrapped()`...

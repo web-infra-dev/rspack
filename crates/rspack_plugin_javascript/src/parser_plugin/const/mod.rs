@@ -130,7 +130,8 @@ impl JavascriptParserPlugin for ConstPlugin {
           .resource_data
           .resource_query
           .clone()
-          .unwrap_or_default(),
+          .unwrap_or_default()
+          .into(),
         start,
         end,
       )),
@@ -139,7 +140,8 @@ impl JavascriptParserPlugin for ConstPlugin {
           .resource_data
           .resource_fragment
           .clone()
-          .unwrap_or_default(),
+          .unwrap_or_default()
+          .into(),
         start,
         end,
       )),

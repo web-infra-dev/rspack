@@ -7,41 +7,29 @@ use crate::visitors::scope_info::{FreeName, VariableInfo};
 /// webpack use HookMap and filter at callHooksForName/callHooksForInfo
 /// we need to pass the name to hook to filter in the hook
 pub trait CallHooksName {
-  fn call_hooks_name(&self, parser: &mut JavascriptParser) -> Option<String>;
+  fn call_hooks_name(&self, parser: &mut JavascriptParser) -> Option<Atom>;
 }
 
-impl CallHooksName for &str {
-  fn call_hooks_name(&self, parser: &mut JavascriptParser) -> Option<String> {
-    if let Some(info) = parser.get_variable_info(self.as_ref()) {
+impl CallHooksName for Atom {
+  fn call_hooks_name(&self, parser: &mut JavascriptParser) -> Option<Atom> {
+    if let Some(info) = parser.get_variable_info(self) {
       // resolved variable info
       call_hooks_info(info)
     } else {
       // unresolved variable, for example the global `require` in commonjs.
-      Some(self.to_string())
+      Some(self.clone())
     }
   }
 }
 
-impl CallHooksName for String {
-  fn call_hooks_name(&self, parser: &mut JavascriptParser) -> Option<String> {
-    self.as_str().call_hooks_name(parser)
-  }
-}
-
-impl CallHooksName for Atom {
-  fn call_hooks_name(&self, parser: &mut JavascriptParser) -> Option<String> {
-    self.as_str().call_hooks_name(parser)
-  }
-}
-
 impl CallHooksName for VariableInfo {
-  fn call_hooks_name(&self, _parser: &mut JavascriptParser) -> Option<String> {
+  fn call_hooks_name(&self, _parser: &mut JavascriptParser) -> Option<Atom> {
     call_hooks_info(self)
   }
 }
 
 impl CallHooksName for ExportedVariableInfo {
-  fn call_hooks_name(&self, parser: &mut JavascriptParser) -> Option<String> {
+  fn call_hooks_name(&self, parser: &mut JavascriptParser) -> Option<Atom> {
     match self {
       ExportedVariableInfo::Name(n) => n.call_hooks_name(parser),
       ExportedVariableInfo::VariableInfo(v) => {
@@ -52,10 +40,10 @@ impl CallHooksName for ExportedVariableInfo {
   }
 }
 
-fn call_hooks_info(info: &VariableInfo) -> Option<String> {
+fn call_hooks_info(info: &VariableInfo) -> Option<Atom> {
   // TODO: tag_info with hooks
   if let Some(FreeName::String(free_name)) = &info.free_name {
-    Some(free_name.to_string())
+    Some(free_name.clone())
   } else {
     // should run `defined ? defined() : None`
     None

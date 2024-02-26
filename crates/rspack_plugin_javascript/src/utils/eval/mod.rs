@@ -43,7 +43,7 @@ type Boolean = bool;
 type Number = f64;
 type Bigint = num_bigint::BigInt;
 // type Array<'a> = &'a ast::ArrayLit;
-type String = std::string::String;
+type String = swc_core::atoms::Atom;
 type Regexp = (String, String); // (expr, flags)
 
 // I really don't want there has many alloc, maybe this can be optimized after
@@ -203,13 +203,17 @@ impl BasicEvaluatedExpression {
     }
   }
 
-  pub fn as_string(&self) -> Option<std::string::String> {
+  pub fn as_string(&self) -> Option<String> {
     if self.is_bool() {
-      Some(self.bool().to_string())
+      if self.bool() {
+        Some(String::from("true"))
+      } else {
+        Some(String::from("false"))
+      }
     } else if self.is_null() {
-      Some("null".to_string())
+      Some(String::from("null"))
     } else if self.is_string() {
-      Some(self.string().to_string())
+      Some(self.string().clone())
     } else {
       None
     }

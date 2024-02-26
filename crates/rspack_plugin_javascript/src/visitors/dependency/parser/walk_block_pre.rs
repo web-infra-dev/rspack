@@ -80,7 +80,7 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn block_pre_walk_class_declaration(&mut self, decl: &ClassDecl) {
-    self.define_variable(decl.ident.sym.to_string())
+    self.define_variable(&decl.ident.sym)
   }
 
   fn block_pre_walk_export_default_declaration(&mut self, decl: &ExportDefaultDecl) {
@@ -88,12 +88,12 @@ impl<'parser> JavascriptParser<'parser> {
     match &decl.decl {
       DefaultDecl::Class(expr) => {
         if let Some(ident) = &expr.ident {
-          self.define_variable(ident.sym.to_string())
+          self.define_variable(&ident.sym)
         }
       }
       DefaultDecl::Fn(expr) => {
         if let Some(ident) = &expr.ident {
-          self.define_variable(ident.sym.to_string())
+          self.define_variable(&ident.sym)
         }
       }
       DefaultDecl::TsInterfaceDecl(_) => unreachable!(),
@@ -131,34 +131,34 @@ impl<'parser> JavascriptParser<'parser> {
     for specifier in &decl.specifiers {
       match specifier {
         ImportSpecifier::Named(named) => {
-          let identifier_name = named.local.sym.as_str();
+          let symbol = &named.local.sym;
           let export_name = named.imported.as_ref().map(|imported| match imported {
             ModuleExportName::Ident(ident) => ident.sym.as_str(),
             ModuleExportName::Str(s) => s.value.as_str(),
           });
           if drive
-            .import_specifier(self, decl, source, export_name, identifier_name)
+            .import_specifier(self, decl, source, export_name, symbol)
             .unwrap_or_default()
           {
-            self.define_variable(identifier_name.to_string())
+            self.define_variable(symbol)
           }
         }
         ImportSpecifier::Default(default) => {
-          let identifier_name = default.local.sym.as_str();
+          let symbol = &default.local.sym;
           if drive
-            .import_specifier(self, decl, source, Some("default"), identifier_name)
+            .import_specifier(self, decl, source, Some("default"), symbol)
             .unwrap_or_default()
           {
-            self.define_variable(identifier_name.to_string())
+            self.define_variable(symbol)
           }
         }
         ImportSpecifier::Namespace(namespace) => {
-          let identifier_name = namespace.local.sym.as_str();
+          let symbol = &namespace.local.sym;
           if drive
-            .import_specifier(self, decl, source, None, identifier_name)
+            .import_specifier(self, decl, source, None, symbol)
             .unwrap_or_default()
           {
-            self.define_variable(identifier_name.to_string())
+            self.define_variable(symbol)
           }
         }
       }

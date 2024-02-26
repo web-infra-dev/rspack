@@ -1,4 +1,5 @@
 use rspack_core::SpanExt;
+use swc_core::atoms::Atom;
 use swc_core::common::Spanned;
 use swc_core::ecma::ast::Tpl;
 
@@ -33,7 +34,8 @@ fn get_simplified_template_result(
       if !expr.could_have_side_effects()
         && let Some(str) = expr.as_string()
       {
-        prev_expr.set_string(format!("{}{}{}", prev_expr.string(), str, quasi));
+        let atom = Atom::from(format!("{}{}{}", prev_expr.string(), str, quasi));
+        prev_expr.set_string(atom);
         prev_expr.set_range(prev_expr.range().0, prev_expr.range().1);
         // prev_expr.set_expression(None);
         continue;
@@ -43,7 +45,7 @@ fn get_simplified_template_result(
 
     let part = || {
       let mut part = BasicEvaluatedExpression::new();
-      part.set_string(quasi.to_string());
+      part.set_string(quasi.clone());
       part.set_range(quasi_expr.span().real_lo(), quasi_expr.span_hi().0);
       part
     };

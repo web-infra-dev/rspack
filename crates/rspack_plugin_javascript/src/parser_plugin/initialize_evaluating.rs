@@ -1,4 +1,5 @@
 use rspack_core::SpanExt;
+use swc_core::atoms::Atom;
 
 use super::JavascriptParserPlugin;
 use crate::utils::eval::BasicEvaluatedExpression;
@@ -24,7 +25,10 @@ impl JavascriptParserPlugin for InitializeEvaluating {
       // TODO: expr.args.len == 2
       let arg1 = parser.evaluate_expression(&expr.args[0].expr);
       if arg1.is_number() {
-        let result = mock_javascript_slice(param.string().as_str(), arg1.number());
+        let result = Atom::new(mock_javascript_slice(
+          param.string().as_str(),
+          arg1.number(),
+        ));
         let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.hi().0);
         res.set_string(result);
         res.set_side_effects(param.could_have_side_effects());
@@ -49,21 +53,22 @@ impl JavascriptParserPlugin for InitializeEvaluating {
       let s = if arg1.is_string() {
         param
           .string()
-          .replacen(arg1.string(), arg2.string().as_str(), 1)
+          .as_str()
+          .replacen(arg1.string().as_str(), arg2.string().as_str(), 1)
       } else if arg1.regexp().1.contains('g') {
         let raw = arg1.regexp();
         let regexp = eval_regexp_to_regexp(&raw.0, &raw.1);
         regexp
-          .replace_all(param.string().as_ref(), arg2.string())
+          .replace_all(param.string().as_ref(), arg2.string().as_str())
           .to_string()
       } else {
         let raw = arg1.regexp();
         let regexp = eval_regexp_to_regexp(&raw.0, &raw.1);
         regexp
-          .replace(param.string().as_ref(), arg2.string())
+          .replace(param.string().as_ref(), arg2.string().as_str())
           .to_string()
       };
-      res.set_string(s);
+      res.set_string(Atom::new(s));
       res.set_side_effects(param.could_have_side_effects());
       return Some(res);
     }

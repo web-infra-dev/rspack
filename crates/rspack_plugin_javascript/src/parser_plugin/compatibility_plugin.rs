@@ -48,7 +48,11 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
           fn_decl.ident.span().real_hi(),
         ),
       };
-      parser.tag_variable(name.to_string(), NESTED_WEBPACK_IDENTIFIER_TAG, Some(data));
+      parser.tag_variable(
+        fn_decl.ident.sym.clone(),
+        NESTED_WEBPACK_IDENTIFIER_TAG,
+        Some(data),
+      );
       Some(true)
     }
   }
@@ -65,7 +69,7 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
       return None;
     }
     let mut deps = vec![];
-    let Some(variable_info) = parser.get_mut_variable_info(name) else {
+    let Some(variable_info) = parser.get_mut_variable_info(&ident.sym) else {
       return None;
     };
     let Some(tag_info) = &mut variable_info.tag_info else {
