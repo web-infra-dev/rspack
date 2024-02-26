@@ -3,8 +3,8 @@
 require("./helpers/warmup-webpack");
 
 const path = require("path");
-// CHANGE: Changed the import path from the lib directory to the dist directory for the Stats module
-const { Stats } = require("../dist/Stats");
+// CHANGE: changed the import path
+const { Stats } = require("..");
 const { createFsFromVolume, Volume } = require("memfs");
 const captureStdio = require("./helpers/captureStdio");
 const deprecationTracking = require("./helpers/deprecationTracking");
