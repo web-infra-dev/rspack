@@ -218,7 +218,7 @@ impl Plugin for SourceMapDevToolPlugin {
 
     {
       let cache = self.source_and_map_assets_cache.read().unwrap();
-      for (file, asset) in compilation.assets().iter() {
+      for (file, asset) in compilation.assets() {
         let source = asset.get_source();
         if let Some(source) = source {
           if let Some((cached_hash, cached_source_asset, cached_map_asset)) = cache.get(file) {
@@ -235,17 +235,16 @@ impl Plugin for SourceMapDevToolPlugin {
               continue;
             }
           }
-          recompute_assets.push((file, asset, source));
+          recompute_assets.push((file.to_owned(), asset.clone()));
         }
       }
     }
 
-    let assets = compilation
-      .assets()
+    let assets = recompute_assets
       .par_iter()
       .filter_map(|(file, asset)| {
         let is_match = match &self.test {
-          Some(test) => test(file.clone()),
+          Some(test) => test(file.to_owned()),
           None => true,
         };
 
@@ -534,14 +533,14 @@ impl Plugin for SourceMapDevToolPlugin {
       {
         let mut cache = self.source_and_map_assets_cache.write().unwrap();
         cache.clear();
-        for (source_filename, hash, source_asset, source_map) in &source_and_map_asstes {
+        for (source_filename, source_hash, source_asset, source_map) in &source_and_map_asstes {
           compilation.emit_asset(source_filename.to_owned(), source_asset.clone());
           if let Some((source_map_filename, source_map_asset)) = source_map {
             compilation.emit_asset(source_map_filename.to_owned(), source_map_asset.clone());
             cache.insert(
               source_filename.to_owned(),
               (
-                *hash,
+                *source_hash,
                 source_asset.clone(),
                 Some((source_map_filename.to_owned(), source_map_asset.clone())),
               ),
@@ -549,12 +548,13 @@ impl Plugin for SourceMapDevToolPlugin {
           } else {
             cache.insert(
               source_filename.to_owned(),
-              (*hash, source_asset.clone(), None),
+              (*source_hash, source_asset.clone(), None),
             );
           }
         }
       }
     }
+
     logger.time_end(start);
     Ok(())
   }
