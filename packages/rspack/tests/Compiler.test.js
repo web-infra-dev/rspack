@@ -1448,10 +1448,12 @@ describe("Compiler", () => {
 		});
 	});
 
+	// CHANGE: specially added for rspack
 	describe("should print error", () => {
 		it("splitChunks.minChunks equals 0", done => {
+			const webpack = require("..");
 			try {
-				rspack({
+				webpack({
 					entry: "./a",
 					context: path.join(__dirname, "fixtures"),
 					optimization: {
