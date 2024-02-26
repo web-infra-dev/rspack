@@ -1447,4 +1447,27 @@ describe("Compiler", () => {
 			});
 		});
 	});
+
+	describe("should print error", () => {
+		it("splitChunks.minChunks equals 0", done => {
+			try {
+				rspack({
+					entry: "./a",
+					context: path.join(__dirname, "fixtures"),
+					optimization: {
+						splitChunks: {
+							minChunks: 0
+						}
+					}
+				});
+			} catch (err) {
+				expect(err.toString()).toContain(
+					'Number must be greater than or equal to 1 at "optimization.splitChunks.minChunks"'
+				);
+				done();
+			}
+
+			expect.assertions(1);
+		});
+	});
 });

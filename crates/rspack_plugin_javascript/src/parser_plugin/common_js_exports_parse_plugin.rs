@@ -157,7 +157,7 @@ impl<'parser> JavascriptParser<'parser> {
       self.build_meta.exports_type = BuildMetaExportsType::Unset;
       self.build_meta.default_object = BuildMetaDefaultObject::False;
     }
-    *self.parser_exports_state = Some(false);
+    self.parser_exports_state = Some(false);
   }
 
   // `__esModule` is false
@@ -169,7 +169,7 @@ impl<'parser> JavascriptParser<'parser> {
       self.build_meta.exports_type = BuildMetaExportsType::Default;
       self.build_meta.default_object = BuildMetaDefaultObject::Redirect;
     }
-    *self.parser_exports_state = Some(true);
+    self.parser_exports_state = Some(true);
   }
 
   // `__esModule` is true

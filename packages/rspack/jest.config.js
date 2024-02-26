@@ -6,9 +6,11 @@ const config = {
 	setupFilesAfterEnv: ["<rootDir>/tests/setupTestFramework.js"],
 	testMatch: [
 		"<rootDir>/tests/*.test.ts",
+		"<rootDir>/tests/*.test.js",
 		"<rootDir>/tests/*.basictest.ts",
 		"<rootDir>/tests/*.basictest.js",
 		"<rootDir>/tests/*.longtest.ts",
+		"<rootDir>/tests/*.longtest.js",
 		"<rootDir>/tests/*.unittest.ts",
 		"<rootDir>/tests/copyPlugin/*.test.js",
 		"<rootDir>/tests/WatchSuspend.test.js"

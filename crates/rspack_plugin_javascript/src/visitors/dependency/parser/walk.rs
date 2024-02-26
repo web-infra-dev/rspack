@@ -119,6 +119,9 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_export_decl(&mut self, expr: &ExportDecl) {
+    // FIXME: delete `ExportDecl`
+    self.plugin_drive.clone().export_decl(self, expr);
+
     match &expr.decl {
       Decl::Class(c) => {
         // FIXME: webpack use `self.walk_statement` here
@@ -137,16 +140,18 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_export_default_expr(&mut self, expr: &ExportDefaultExpr) {
-    // TODO: `self.hooks.export.call`
+    // TODO: delete `export_default_expr`
+    self.plugin_drive.clone().export_default_expr(self, expr);
     self.walk_expression(&expr.expr);
   }
 
-  fn walk_export_named_declaration(&mut self, _decl: &NamedExport) {
+  fn walk_export_named_declaration(&mut self, decl: &NamedExport) {
+    self.plugin_drive.clone().named_export(self, decl);
     // self.walk_statement(decl)
   }
 
   fn walk_export_default_declaration(&mut self, decl: &ExportDefaultDecl) {
-    // TODO: `hooks.export.call`
+    self.plugin_drive.clone().export(self, decl);
     match &decl.decl {
       DefaultDecl::Class(c) => {
         // FIXME: webpack use `self.walk_statement` here
@@ -289,8 +294,6 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_if_statement(&mut self, stmt: &IfStmt) {
-    let old = self.in_if;
-    self.in_if = true;
     if let Some(result) = self.plugin_drive.clone().statement_if(self, stmt) {
       if result {
         self.walk_nested_statement(&stmt.cons);
@@ -304,7 +307,6 @@ impl<'parser> JavascriptParser<'parser> {
         self.walk_nested_statement(alt);
       }
     }
-    self.in_if = old;
   }
 
   fn walk_for_statement(&mut self, stmt: &ForStmt) {
@@ -609,11 +611,22 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_conditional_expression(&mut self, expr: &CondExpr) {
-    // TODO: self.hooks.expression_conditional_operation.call
+    let result = self
+      .plugin_drive
+      .clone()
+      .expression_conditional_operation(self, expr);
 
-    self.walk_expression(&expr.test);
-    self.walk_expression(&expr.cons);
-    self.walk_expression(&expr.alt);
+    if let Some(result) = result {
+      if result {
+        self.walk_expression(&expr.cons);
+      } else {
+        self.walk_expression(&expr.alt);
+      }
+    } else {
+      self.walk_expression(&expr.test);
+      self.walk_expression(&expr.cons);
+      self.walk_expression(&expr.alt);
+    }
   }
 
   fn walk_class_expression(&mut self, expr: &ClassExpr) {
@@ -732,7 +745,6 @@ impl<'parser> JavascriptParser<'parser> {
     match &expr.callee {
       Callee::Expr(callee) => {
         // TODO: iife
-
         if let Expr::Member(member) = &**callee
           && let Some(MemberExpressionInfo::Call(expr_info)) =
             self.get_member_expression_info(member, AllowedMemberTypes::CallExpression)

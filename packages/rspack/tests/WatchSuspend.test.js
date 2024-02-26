@@ -1,4 +1,3 @@
-// Copy from https://github.com/webpack/webpack/blob/main/test/WatchSuspend.test.js
 "use strict";
 
 require("./helpers/warmup-webpack");
@@ -11,6 +10,8 @@ describe("WatchSuspend", () => {
 		it.skip("long running tests excluded", () => {});
 		return;
 	}
+
+	jest.setTimeout(5000);
 
 	describe("suspend and resume watcher", () => {
 		const fixturePath = path.join(
@@ -40,7 +41,7 @@ describe("WatchSuspend", () => {
 			} catch (e) {
 				// skip
 			}
-			const { rspack: webpack } = require("../");
+			const webpack = require("../");
 			compiler = webpack({
 				mode: "development",
 				entry: filePath,
@@ -50,6 +51,7 @@ describe("WatchSuspend", () => {
 				}
 			});
 			watching = compiler.watch({ aggregateTimeout: 50 }, () => {});
+
 			compiler.hooks.done.tap("WatchSuspendTest", () => {
 				if (onChange) onChange();
 			});
@@ -59,12 +61,12 @@ describe("WatchSuspend", () => {
 			watching.close();
 			compiler = null;
 			try {
-				// fs.unlinkSync(filePath);
+				fs.unlinkSync(filePath);
 			} catch (e) {
 				// skip
 			}
 			try {
-				// fs.rmdirSync(fixturePath);
+				fs.rmdirSync(fixturePath);
 			} catch (e) {
 				// skip
 			}
@@ -78,7 +80,7 @@ describe("WatchSuspend", () => {
 			};
 		});
 
-		it.skip("should suspend compilation", done => {
+		it("should suspend compilation", done => {
 			onChange = jest.fn();
 			watching.suspend();
 			fs.writeFileSync(filePath, "'bar'", "utf-8");
@@ -89,7 +91,7 @@ describe("WatchSuspend", () => {
 			}, 1000);
 		});
 
-		it.skip("should resume compilation", done => {
+		it("should resume compilation", done => {
 			onChange = () => {
 				expect(fs.readFileSync(outputFile, "utf-8")).toContain("'bar'");
 				onChange = null;
@@ -101,7 +103,7 @@ describe("WatchSuspend", () => {
 		for (const changeBefore of [false, true])
 			for (const delay of [200, 1500]) {
 				// eslint-disable-next-line no-loop-func
-				it.skip(`should not ignore changes during resumed compilation (changeBefore: ${changeBefore}, delay: ${delay}ms)`, async () => {
+				it(`should not ignore changes during resumed compilation (changeBefore: ${changeBefore}, delay: ${delay}ms)`, async () => {
 					// aggregateTimeout must be long enough for this test
 					//  So set-up new watcher and wait when initial compilation is done
 					await new Promise(resolve => {
@@ -140,7 +142,7 @@ describe("WatchSuspend", () => {
 				});
 			}
 
-		it.skip("should not drop changes when suspended", done => {
+		it("should not drop changes when suspended", done => {
 			const aggregateTimeout = 50;
 			// Trigger initial compilation with file2.js (assuming correct)
 			fs.writeFileSync(

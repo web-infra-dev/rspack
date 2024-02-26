@@ -108,9 +108,9 @@ function rspack(
 			validate(o, rspackOptions);
 		}
 	} catch (e) {
-		if (e instanceof Error) {
-			callback?.(e);
-			return;
+		if (e instanceof Error && callback) {
+			callback(e);
+			return null;
 		}
 		throw e;
 	}
