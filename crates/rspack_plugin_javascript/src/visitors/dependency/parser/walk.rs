@@ -547,6 +547,7 @@ impl<'parser> JavascriptParser<'parser> {
       Prop::KeyValue(kv) => self.walk_key_value_prop(kv),
       Prop::Assign(assign) => self.walk_expression(&assign.value),
       Prop::Getter(getter) => {
+        self.walk_prop_name(&getter.key);
         let was_top_level = self.top_level_scope;
         self.top_level_scope = TopLevelScope::False;
         if let Some(body) = &getter.body {
@@ -554,10 +555,11 @@ impl<'parser> JavascriptParser<'parser> {
         }
         self.top_level_scope = was_top_level;
       }
-      Prop::Setter(seeter) => {
+      Prop::Setter(setter) => {
+        self.walk_prop_name(&setter.key);
         let was_top_level = self.top_level_scope;
         self.top_level_scope = TopLevelScope::False;
-        if let Some(body) = &seeter.body {
+        if let Some(body) = &setter.body {
           self.walk_block_statement(body);
         }
         self.top_level_scope = was_top_level;
