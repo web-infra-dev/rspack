@@ -1,4 +1,4 @@
-const checkMap = require("../checkSourceMap").default;
+const checkMap = require("../../../lib/util/checkSourceMap").default;
 const fs = require("fs");
 const path = require("path");
 
@@ -12,11 +12,11 @@ it("verify importing css js source map", async () => {
 	const source = fs.readFileSync(__filename + ".map", "utf-8");
 	const map = JSON.parse(source);
 	expect(map.sources).toEqual([
-		"webpack:///../checkSourceMap.js",
 		"webpack:///./a.js",
-		"webpack:///./index.js"
+		"webpack:///./index.js",
+		"webpack:///../../../lib/util/checkSourceMap.js"
 	]);
-	expect(map.file).toEqual("main.js");
+	expect(map.file).toEqual("bundle0.js");
 	const out = fs.readFileSync(__filename, "utf-8");
 	expect(
 		await checkMap(out, source, {
@@ -29,13 +29,16 @@ it("verify importing css js source map", async () => {
 
 it("verify css source map", async () => {
 	const cssSource = fs.readFileSync(
-		path.resolve(__dirname, "main.css.map"),
+		path.resolve(__dirname, "bundle0.css.map"),
 		"utf-8"
 	);
 	const cssMap = JSON.parse(cssSource);
 	expect(cssMap.sources).toEqual(["webpack:///./a.css"]);
-	expect(cssMap.file).toEqual("main.css");
-	const cssOut = fs.readFileSync(path.resolve(__dirname, "main.css"), "utf-8");
+	expect(cssMap.file).toEqual("bundle0.css");
+	const cssOut = fs.readFileSync(
+		path.resolve(__dirname, "bundle0.css"),
+		"utf-8"
+	);
 	expect(
 		await checkMap(cssOut, cssSource, {
 			[`a:nth-child(0):after { content: "a0"; }`]: "webpack:///a.css",

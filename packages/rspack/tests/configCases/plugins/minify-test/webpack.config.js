@@ -10,6 +10,9 @@ module.exports = {
 		c: "./c",
 		main: "./index"
 	},
+	output: {
+		filename: "[name].js"
+	},
 	optimization: {
 		minimize: true,
 		minimizer: [

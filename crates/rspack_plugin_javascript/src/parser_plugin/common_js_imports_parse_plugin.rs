@@ -148,6 +148,8 @@ impl CommonJsImportsParserPlugin {
     )
     .map(|dep| {
       parser.dependencies.push(Box::new(dep));
+      // FIXME: align `parser.walk_expression` to webpack, which put into `context_dependency_helper`
+      parser.walk_expression(argument_expr);
       true
     })
   }

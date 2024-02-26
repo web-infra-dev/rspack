@@ -5,5 +5,5 @@ it("should not have map from url comments if hidden options is used", function (
 	const mapSource = fs.readFileSync(__filename + ".map", "utf-8");
 	const map = JSON.parse(mapSource);
 	expect(map.sources).toContain("webpack:///./index.js");
-	expect(map.file).toEqual("main.js");
+	expect(map.file).toEqual("bundle0.js");
 });

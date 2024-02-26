@@ -30,6 +30,10 @@ fn eval_typeof(
     let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.hi.0);
     res.set_string("string".to_string());
     Some(res)
+  } else if arg.is_undefined() {
+    let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.hi.0);
+    res.set_string("undefined".to_string());
+    Some(res)
   } else {
     // TODO: `arg.is_wrapped()`...
     None

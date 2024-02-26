@@ -41,7 +41,7 @@ impl Plugin for InferAsyncModulesPlugin {
       module_graph.set_async(&module);
       if let Some(mgm) = module_graph.module_graph_module_by_identifier(&module) {
         mgm
-          .incoming_connections_unordered(module_graph)?
+          .get_incoming_connections_unordered(module_graph)?
           .filter(|con| {
             if let Some(dep) = module_graph.dependency_by_id(&con.dependency_id) {
               matches!(

@@ -3,6 +3,9 @@ module.exports = {
 		main: "./index.js",
 		css: "./css"
 	},
+	output: {
+		filename: "[name].js"
+	},
 	experiments: {
 		css: true
 	},

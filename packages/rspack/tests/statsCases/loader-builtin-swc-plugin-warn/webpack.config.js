@@ -1,4 +1,6 @@
+/** @type {import('@rspack/core').Configuration} */
 module.exports = {
+	entry: "./index",
 	module: {
 		rules: [
 			{
@@ -13,14 +15,14 @@ module.exports = {
 								syntax: "typescript",
 								jsx: true
 							},
-							experimental:{
-								plugins:[
+							experimental: {
+								plugins: [
 									[
 										"@swc/plugin-styled-components",
 										{
 											"displayName": true,
 											"ssr": true,
-											"fileName":true,
+											"fileName": true,
 											"namespace": "my-app"
 										}
 									]

@@ -133,44 +133,6 @@ pub fn parse_order_string(x: &str) -> Option<u32> {
   }
 }
 
-#[macro_export]
-macro_rules! no_visit_ignored_stmt {
-  () => {
-    fn visit_stmt(&mut self, stmt: &swc_core::ecma::ast::Stmt) {
-      use rspack_core::SpanExt;
-      use swc_core::common::Spanned;
-      use swc_core::ecma::visit::VisitWith;
-      let span = stmt.span();
-      if self
-        .ignored
-        .contains(&DependencyLocation::new(span.real_lo(), span.real_hi()))
-      {
-        return;
-      }
-      stmt.visit_children_with(self);
-    }
-  };
-}
-
-#[macro_export]
-macro_rules! no_visit_ignored_expr {
-  () => {
-    fn visit_expr(&mut self, expr: &swc_core::ecma::ast::Expr) {
-      use rspack_core::SpanExt;
-      use swc_core::common::Spanned;
-      use swc_core::ecma::visit::VisitWith;
-      let span = expr.span();
-      if self
-        .ignored
-        .contains(&DependencyLocation::new(span.real_lo(), span.real_hi()))
-      {
-        return;
-      }
-      expr.visit_children_with(self);
-    }
-  };
-}
-
 pub fn extract_require_call_info(
   expr: &Expr,
 ) -> Option<(Vec<Atom>, ExprOrSpread, DependencyLocation)> {
@@ -181,12 +143,14 @@ pub fn extract_require_call_info(
       .iter()
       .map(|n| n.0.to_owned())
       .collect_vec(),
+    ExpressionInfoKind::MemberExpression(_) => vec![],
     ExpressionInfoKind::Expression => vec![],
   };
   let args = match member_info.kind() {
     ExpressionInfoKind::CallExpression(info) => {
       info.args().iter().map(|i| i.to_owned()).collect_vec()
     }
+    ExpressionInfoKind::MemberExpression(_) => vec![],
     ExpressionInfoKind::Expression => vec![],
   };
 

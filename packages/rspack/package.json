@@ -61,7 +61,7 @@
     "sass-loader": "^13.2.0",
     "source-map": "^0.7.4",
     "styled-components": "^6.0.8",
-    "terser": "5.27.0",
+    "terser": "5.27.2",
     "wast-loader": "^1.11.4"
   },
   "dependencies": {

@@ -434,7 +434,7 @@ impl Stats<'_> {
     let reasons = reasons
       .then(|| -> Result<_> {
         let mut reasons: Vec<StatsModuleReason> = mgm
-          .incoming_connections_unordered(&self.compilation.module_graph)?
+          .get_incoming_connections_unordered(&self.compilation.module_graph)?
           .map(|connection| {
             let (module_name, module_id) = connection
               .original_module_identifier

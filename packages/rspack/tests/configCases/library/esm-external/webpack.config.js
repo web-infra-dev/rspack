@@ -5,7 +5,7 @@ module.exports = {
 		libraryTarget: "module",
 		iife: false,
 		chunkFormat: "module",
-		filename: "main.js"
+		filename: "bundle0.mjs"
 	},
 	experiments: {
 		outputModule: true,

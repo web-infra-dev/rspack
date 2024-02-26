@@ -1,5 +1,5 @@
 use itertools::Itertools;
-use rspack_core::{DependencyLocation, SpanExt};
+use rspack_core::SpanExt;
 use swc_core::{atoms::Atom, common::Spanned};
 
 use super::JavascriptParserPlugin;
@@ -68,11 +68,6 @@ impl JavascriptParserPlugin for ProviderPlugin {
       expr.span().real_hi(),
     )
     .map(|dep| {
-      // FIXME: temp
-      parser.ignored.insert(DependencyLocation::new(
-        expr.span.real_lo(),
-        expr.span.real_hi(),
-      ));
       parser.dependencies.push(Box::new(dep));
       true
     })

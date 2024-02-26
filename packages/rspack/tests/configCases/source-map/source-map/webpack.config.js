@@ -1,3 +1,4 @@
+const rspack = require("@rspack/core");
 module.exports = {
 	devtool: "source-map",
 	externals: ["source-map"],
@@ -21,5 +22,10 @@ module.exports = {
 				}
 			}
 		]
-	}
+	},
+	plugins: [
+		new rspack.DefinePlugin({
+			CONTEXT: JSON.stringify(__dirname)
+		})
+	]
 };

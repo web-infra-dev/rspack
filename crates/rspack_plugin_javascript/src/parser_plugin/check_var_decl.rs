@@ -37,14 +37,14 @@ impl CheckVarDeclaratorIdent {
         parser.errors.push(Box::new(create_traceable_error(
           "JavaScript parsing error".into(),
           format!("The keyword '{}' is reserved in strict mode", ident.sym),
-          &parser.source_file,
+          parser.source_file,
           ident.span().into(),
         )));
       } else {
         parser.errors.push(Box::new(create_traceable_error(
           "JavaScript parsing error".into(),
           format!("{} is disallowed as a lexically bound name", ident.sym),
-          &parser.source_file,
+          parser.source_file,
           ident.span().into(),
         )));
       }

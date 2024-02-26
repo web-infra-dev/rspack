@@ -10,9 +10,9 @@ it("should provide a module for a nested var", function () {
 
 it("should provide a module for a nested var within a IIFE's argument", function () {
 	(function (process) {
-		expect(process.env.NODE_ENV).toBe("development");
+		expect(process.env.NODE_ENV).toBe("production");
 		var x = process.env.NODE_ENV;
-		expect(x).toBe("development");
+		expect(x).toBe("production");
 	})(process);
 });
 
