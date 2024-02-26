@@ -47,6 +47,7 @@ use rspack_plugin_mf::{
 use rspack_plugin_progress::ProgressPlugin;
 use rspack_plugin_real_content_hash::RealContentHashPlugin;
 use rspack_plugin_remove_empty_chunks::RemoveEmptyChunksPlugin;
+use rspack_plugin_rsc::RSCClientEntryRspackPlugin;
 use rspack_plugin_runtime::{
   enable_chunk_loading_plugin, ArrayPushCallbackChunkFormatPlugin, BundlerInfoPlugin,
   ChunkPrefetchPreloadPlugin, CommonJsChunkFormatPlugin, ModuleChunkFormatPlugin, RuntimePlugin,
@@ -138,10 +139,8 @@ pub enum BuiltinPluginName {
   SwcJsMinimizerRspackPlugin,
   SwcCssMinimizerRspackPlugin,
   BundlerInfoRspackPlugin,
-
-  // rspack js adapter plugins
-  // naming format follow XxxRspackPlugin
   JsLoaderRspackPlugin,
+  RSCClientEntryRspackPlugin,
 }
 
 #[napi(object)]
@@ -397,11 +396,16 @@ impl BuiltinPlugin {
           .boxed(),
         )
       }
+<<<<<<< HEAD
       // rspack js adapter plugins
       BuiltinPluginName::JsLoaderRspackPlugin => {
         plugins.push(
           JsLoaderResolverPlugin::new(downcast_into::<JsLoaderRunner>(self.options)?).boxed(),
         );
+=======
+      BuiltinPluginName::RSCClientEntryRspackPlugin => {
+        plugins.push(RSCClientEntryRspackPlugin {}.boxed())
+>>>>>>> c013a9ab6 (feat: client entry plugin)
       }
     }
     Ok(())
