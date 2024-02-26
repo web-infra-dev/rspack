@@ -3788,6 +3788,7 @@ dependencies = [
  "rspack_plugin_real_content_hash",
  "rspack_plugin_remove_duplicate_modules",
  "rspack_plugin_remove_empty_chunks",
+ "rspack_plugin_rsc",
  "rspack_plugin_runtime",
  "rspack_plugin_runtime_chunk",
  "rspack_plugin_schemes",
@@ -4687,6 +4688,40 @@ dependencies = [
  "rspack_error",
  "rspack_hook",
  "tracing",
+]
+
+[[package]]
+name = "rspack_plugin_rsc"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "bitflags 2.5.0",
+ "dashmap",
+ "indexmap 2.2.6",
+ "itertools 0.12.1",
+ "linked_hash_set",
+ "num-bigint",
+ "once_cell",
+ "rayon",
+ "regex",
+ "rspack_ast",
+ "rspack_core",
+ "rspack_error",
+ "rspack_hash",
+ "rspack_hook",
+ "rspack_identifier",
+ "rspack_ids",
+ "rspack_regex",
+ "rspack_swc_visitors",
+ "rspack_testing",
+ "rspack_util",
+ "rustc-hash",
+ "serde",
+ "serde_json",
+ "sugar_path",
+ "swc_core",
+ "swc_node_comments",
+ "url",
 ]
 
 [[package]]

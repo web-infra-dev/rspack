@@ -34,6 +34,7 @@ export * from "./HttpExternalsRspackPlugin";
 export * from "./IgnorePlugin";
 export * from "./InferAsyncModulesPlugin";
 export * from "./JavascriptModulesPlugin";
+export * from "./CopyRspackPlugin";
 export * from "./JsLoaderRspackPlugin";
 export * from "./JsonModulesPlugin";
 export * from "./lazy-compilation/plugin";
