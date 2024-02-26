@@ -1,10 +1,9 @@
-use std::borrow::Borrow;
 use std::hash::BuildHasherDefault;
-use std::rc::Rc;
 use std::sync::Arc;
 
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
+use num_bigint::BigUint;
 use rspack_database::{Database, Ukey};
 use rspack_error::{error, Error, Result};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
@@ -24,10 +23,10 @@ pub struct ChunkGroupInfo {
   pub chunk_loading: bool,
   pub async_chunks: bool,
   pub runtime: RuntimeSpec,
-  pub min_available_modules: HashSet<ModuleIdentifier>,
+  pub min_available_modules: BigUint,
   pub min_available_modules_init: bool,
-  pub available_modules_to_be_merged: Vec<Rc<HashSet<ModuleIdentifier>>>,
-  pub resulting_available_modules: Rc<HashSet<ModuleIdentifier>>,
+  pub available_modules_to_be_merged: Vec<BigUint>,
+  pub resulting_available_modules: BigUint,
 
   pub skipped_items: HashSet<ModuleIdentifier>,
   pub skipped_module_connections:
@@ -94,6 +93,9 @@ pub(super) struct CodeSplitter<'me> {
   named_chunk_groups: HashMap<String, CgiUkey>,
   named_async_entrypoints: HashMap<String, CgiUkey>,
   block_modules_runtime_map: BlockModulesRuntimeMap,
+
+  // Store module unique int ID for intersection optimization
+  module_ids: HashMap<ModuleIdentifier, BigUint>,
 }
 
 fn add_chunk_in_group(group_options: Option<&GroupOptions>) -> ChunkGroup {
@@ -138,8 +140,24 @@ fn get_active_state_of_connections(
   merged
 }
 
+fn contains(container: &BigUint, target: &BigUint) -> bool {
+  &(container & target) == target
+}
+
 impl<'me> CodeSplitter<'me> {
   pub fn new(compilation: &'me mut Compilation) -> Self {
+    let mut module_ids = HashMap::default();
+
+    let mut current = BigUint::from(1u32);
+
+    // This optimization is inspired from  https://github.com/webpack/webpack/pull/18090 by https://github.com/dmichon-msft
+    // Thanks!
+    for m in compilation.module_graph.modules().keys() {
+      module_ids.insert(*m, current.clone());
+
+      current <<= 1;
+    }
+
     CodeSplitter {
       chunk_group_info_map: Default::default(),
       chunk_group_infos: Default::default(),
@@ -157,7 +175,12 @@ impl<'me> CodeSplitter<'me> {
       named_chunk_groups: Default::default(),
       named_async_entrypoints: Default::default(),
       block_modules_runtime_map: Default::default(),
+      module_ids,
     }
+  }
+
+  fn get_module_id(&self, m: &ModuleIdentifier) -> &BigUint {
+    self.module_ids.get(m).expect("should have module id")
   }
 
   fn prepare_input_entrypoints_and_modules(
@@ -435,9 +458,6 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     }
     logger.time_end(start);
 
-    let start = logger.time("remove parent modules");
-    logger.time_end(start);
-
     let outdated_order_index_chunk_groups =
       std::mem::take(&mut self.outdated_order_index_chunk_groups);
 
@@ -544,6 +564,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
   fn add_and_enter_entry_module(&mut self, item: &AddAndEnterEntryModule) {
     tracing::trace!("add_and_enter_entry_module {:?}", item);
+    let module_id = self.get_module_id(&item.module).clone();
     let cgi = self
       .chunk_group_infos
       .expect_get_mut(&item.chunk_group_info);
@@ -556,7 +577,8 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       return;
     }
 
-    if cgi.min_available_modules.contains(&item.module) {
+    // if cgi.min_available_modules.contains(&item.module) {
+    if contains(&cgi.min_available_modules, &module_id) {
       cgi.skipped_items.insert(item.module);
       return;
     }
@@ -587,7 +609,13 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       return;
     }
 
-    if cgi.min_available_modules.contains(&item.module) {
+    // if this module in parent chunks
+    let module_id = self
+      .module_ids
+      .get(&item.module)
+      .expect("should have module id");
+
+    if &(cgi.min_available_modules.clone() & module_id) == module_id {
       cgi.skipped_items.insert(item.module);
       return;
     }
@@ -597,6 +625,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       .compilation
       .chunk_graph
       .connect_chunk_and_module(item.chunk, item.module);
+
     self.enter_module(&EnterModule {
       module: item.module,
       chunk_group_info: item.chunk_group_info,
@@ -1115,8 +1144,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       let runtime = chunk_group_info.runtime.clone();
 
       // calculate minAvailableModules
-      let mut resulting_available_modules =
-        HashSet::from_iter(chunk_group_info.min_available_modules.iter().copied());
+      let mut resulting_available_modules = chunk_group_info.min_available_modules.clone();
 
       for chunk in &chunk_group.chunks {
         for m in self
@@ -1124,11 +1152,13 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           .chunk_graph
           .get_chunk_modules(chunk, &self.compilation.module_graph)
         {
-          resulting_available_modules.insert(m.identifier());
+          let m_id = self
+            .module_ids
+            .get(&m.identifier())
+            .expect("should have module id");
+          resulting_available_modules |= m_id;
         }
       }
-
-      let resulting_available_modules = Rc::new(resulting_available_modules);
 
       chunk_group_info.resulting_available_modules = resulting_available_modules.clone();
       chunk_group_info.children.extend(targets.iter().cloned());
@@ -1184,24 +1214,16 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           std::mem::take(&mut cgi.available_modules_to_be_merged);
 
         for modules_to_be_merged in available_modules_to_be_merged {
-          let modules_to_be_merged: &HashSet<_> = modules_to_be_merged.borrow();
           if !cgi.min_available_modules_init {
             cgi.min_available_modules_init = true;
-            cgi.min_available_modules.extend(modules_to_be_merged);
+            cgi.min_available_modules = modules_to_be_merged;
             changed = true;
             continue;
           }
 
-          let mut removed = HashSet::default();
-          for m in &cgi.min_available_modules {
-            if !modules_to_be_merged.contains(m) {
-              removed.insert(*m);
-            }
-          }
-          for removal in removed {
-            changed = true;
-            cgi.min_available_modules.remove(&removal);
-          }
+          let orig = cgi.min_available_modules.clone();
+          cgi.min_available_modules &= modules_to_be_merged;
+          changed = orig != cgi.min_available_modules;
         }
       }
 
@@ -1209,7 +1231,8 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         // reconsider skipped items
         let mut enter_modules = vec![];
         for skipped in &cgi.skipped_items {
-          if !cgi.min_available_modules.contains(skipped) {
+          let skipped_id = self.module_ids.get(skipped).expect("should have module id");
+          if !contains(&cgi.min_available_modules, skipped_id) {
             enter_modules.push(*skipped);
           }
         }
@@ -1240,7 +1263,10 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             }
             if active_state.is_true() {
               active_connections.push(i);
-              if cgi.min_available_modules.contains(module) {
+              if contains(
+                &cgi.min_available_modules,
+                self.module_ids.get(module).expect("should have module id"),
+              ) {
                 cgi.skipped_items.insert(*module);
                 continue;
               }
