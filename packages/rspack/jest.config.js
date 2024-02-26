@@ -12,6 +12,7 @@ const config = {
 		"<rootDir>/tests/*.longtest.js",
 		"<rootDir>/tests/*.unittest.ts",
 		"<rootDir>/tests/copyPlugin/*.test.js",
+		"<rootDir>/tests/cssExtract/*.test.js",
 		"<rootDir>/tests/WatchSuspend.test.js"
 	],
 	testTimeout: process.env.CI ? 60000 : 30000,

@@ -1,0 +1,3 @@
+.foo {background: url(img.png)}
+.bar {background: url(../outer-img.png)}
+.baz {background: url(nested/nested-img.png)}

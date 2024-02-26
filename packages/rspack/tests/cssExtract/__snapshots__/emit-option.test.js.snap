@@ -1,0 +1,139 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`emit option should invalidate the cache with disabled "emit" option: assets 1`] = `
+[
+  "main.js",
+  "static/react.svg",
+]
+`;
+
+exports[`emit option should invalidate the cache with disabled "emit" option: assets 2`] = `
+[
+  "main.js",
+]
+`;
+
+exports[`emit option should invalidate the cache with disabled "emit" option: errors 1`] = `[]`;
+
+exports[`emit option should invalidate the cache with disabled "emit" option: errors 2`] = `[]`;
+
+exports[`emit option should invalidate the cache with disabled "emit" option: warnings 1`] = `[]`;
+
+exports[`emit option should invalidate the cache with disabled "emit" option: warnings 2`] = `[]`;
+
+exports[`emit option should work when emit option is "false": assets 1`] = `
+[
+  "main.js",
+  "react.svg",
+]
+`;
+
+exports[`emit option should work when emit option is "false": errors 1`] = `[]`;
+
+exports[`emit option should work when emit option is "false": warnings 1`] = `[]`;
+
+exports[`emit option should work when emit option is "true": assets 1`] = `
+[
+  "main.css",
+  "main.js",
+  "react.svg",
+]
+`;
+
+exports[`emit option should work when emit option is "true": errors 1`] = `[]`;
+
+exports[`emit option should work when emit option is "true": warnings 1`] = `[]`;
+
+exports[`emit option should work with locals and invalidate cache when emit option is "false": DOM 1`] = `
+"<!DOCTYPE html><html><head>
+  <title>style-loader test</title>
+  <style id="existing-style">.existing { color: yellow }</style>
+</head>
+<body>
+css.foo: uC86G4ZAUGUNgZ_8kGoW
+css.bar: gaVCpLpTGYrkNPCq0Aat
+css.baz: L2DsMGOk1eHgwznhgQ5Z
+</body></html>"
+`;
+
+exports[`emit option should work with locals and invalidate cache when emit option is "false": DOM 2`] = `
+"<!DOCTYPE html><html><head>
+  <title>style-loader test</title>
+  <style id="existing-style">.existing { color: yellow }</style>
+</head>
+<body>
+css.foo-bar: zXlHvQRDVIOOddpg43og
+css.bar: gaVCpLpTGYrkNPCq0Aat
+css.baz: L2DsMGOk1eHgwznhgQ5Z
+</body></html>"
+`;
+
+exports[`emit option should work with locals and invalidate cache when emit option is "false": assets 1`] = `
+[
+  "main.js",
+]
+`;
+
+exports[`emit option should work with locals and invalidate cache when emit option is "false": assets 2`] = `
+[
+  "main.js",
+]
+`;
+
+exports[`emit option should work with locals and invalidate cache when emit option is "false": errors 1`] = `[]`;
+
+exports[`emit option should work with locals and invalidate cache when emit option is "false": errors 2`] = `[]`;
+
+exports[`emit option should work with locals and invalidate cache when emit option is "false": warnings 1`] = `[]`;
+
+exports[`emit option should work with locals and invalidate cache when emit option is "false": warnings 2`] = `[]`;
+
+exports[`emit option should work with locals when emit option is "false": DOM 1`] = `
+"<!DOCTYPE html><html><head>
+  <title>style-loader test</title>
+  <style id="existing-style">.existing { color: yellow }</style>
+</head>
+<body>
+css.foo: uC86G4ZAUGUNgZ_8kGoW
+css.bar: gaVCpLpTGYrkNPCq0Aat
+css.baz: L2DsMGOk1eHgwznhgQ5Z
+</body></html>"
+`;
+
+exports[`emit option should work with locals when emit option is "false": errors 1`] = `[]`;
+
+exports[`emit option should work with locals when emit option is "false": warnings 1`] = `[]`;
+
+exports[`emit option should work with the "memory" cache and disabled "emit" option: assets 1`] = `
+[
+  "main.js",
+  "static/react.svg",
+]
+`;
+
+exports[`emit option should work with the "memory" cache and disabled "emit" option: assets 2`] = `
+[
+  "main.js",
+  "static/react.svg",
+]
+`;
+
+exports[`emit option should work with the "memory" cache and disabled "emit" option: errors 1`] = `[]`;
+
+exports[`emit option should work with the "memory" cache and disabled "emit" option: errors 2`] = `[]`;
+
+exports[`emit option should work with the "memory" cache and disabled "emit" option: warnings 1`] = `[]`;
+
+exports[`emit option should work with the "memory" cache and disabled "emit" option: warnings 2`] = `[]`;
+
+exports[`emit option should work without emit option: assets 1`] = `
+[
+  "main.bundle.js",
+  "main.css",
+  "react.svg",
+]
+`;
+
+exports[`emit option should work without emit option: errors 1`] = `[]`;
+
+exports[`emit option should work without emit option: warnings 1`] = `[]`;

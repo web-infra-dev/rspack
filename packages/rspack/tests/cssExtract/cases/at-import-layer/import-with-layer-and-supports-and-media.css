@@ -1,0 +1,6 @@
+/* prettier-ignore */
+@import url("./zzz.css") layer(base) supports(display: grid) screen and (min-width: 900px);
+
+.bar {
+  color: blue;
+}

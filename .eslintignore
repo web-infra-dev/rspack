@@ -4,6 +4,7 @@ crates/rspack_plugin_css/webpack_css_cases_to_be_migrated
 crates/rspack_plugin_mf
 packages/playground
 packages/rspack/src/stats/DefaultStatsPrinterPlugin.ts
+packages/rspack-plugin-mini-css-extract/test
 packages/rspack-test-tools/template
 webpack-examples
 webpack-test

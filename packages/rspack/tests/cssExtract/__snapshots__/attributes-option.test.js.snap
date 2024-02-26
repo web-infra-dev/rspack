@@ -1,0 +1,37 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`attributes option should work with attributes option: DOM 1`] = `
+"<!DOCTYPE html><html><head>
+  <title>style-loader test</title>
+  <style id="existing-style">.existing { color: yellow }</style>
+<link data-target="example" id="target" rel="stylesheet" type="text/css" href="simple.css"><script charset="utf-8" src="simple.bundle.js"></script></head>
+<body>
+  <h1>Body</h1>
+  <div class="target"></div>
+  <iframe class="iframeTarget"></iframe>
+
+
+</body></html>"
+`;
+
+exports[`attributes option should work with attributes option: errors 1`] = `[]`;
+
+exports[`attributes option should work with attributes option: warnings 1`] = `[]`;
+
+exports[`attributes option should work without attributes option: DOM 1`] = `
+"<!DOCTYPE html><html><head>
+  <title>style-loader test</title>
+  <style id="existing-style">.existing { color: yellow }</style>
+<link rel="stylesheet" type="text/css" href="simple.css"><script charset="utf-8" src="simple.bundle.js"></script></head>
+<body>
+  <h1>Body</h1>
+  <div class="target"></div>
+  <iframe class="iframeTarget"></iframe>
+
+
+</body></html>"
+`;
+
+exports[`attributes option should work without attributes option: errors 1`] = `[]`;
+
+exports[`attributes option should work without attributes option: warnings 1`] = `[]`;

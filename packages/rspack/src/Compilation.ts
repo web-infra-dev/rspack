@@ -370,6 +370,10 @@ export class Compilation {
 			options.children,
 			!context.forToString
 		);
+		options.orphanModules = optionOrLocalFallback(
+			options.orphanModules,
+			context.forToString ? false : true
+		);
 
 		return options;
 	}
@@ -524,6 +528,9 @@ export class Compilation {
 						);
 					}
 				}
+			},
+			get length() {
+				return inner.getStats().getErrors().length;
 			},
 			[Symbol.iterator]() {
 				// TODO: this is obviously a bad design, optimize this after finishing angular prototype

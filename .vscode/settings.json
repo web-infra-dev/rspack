@@ -12,14 +12,16 @@
   "[typescript]": {
     "editor.formatOnSave": true
   },
-  "editor.formatOnSave": true,
+  // "editor.formatOnSave": true,
   "git.ignoreLimitWarning": true,
   "eslint.enable": false,
   "cSpell.allowCompoundWords": true,
   "cSpell.caseSensitive": true,
   "json.schemas": [
     {
-      "fileMatch": ["test.config.json"],
+      "fileMatch": [
+        "test.config.json"
+      ],
       // Point to the options schema of rspack.
       "url": "./crates/rspack_testing/test.config.scheme.json"
     }

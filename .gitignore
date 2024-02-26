@@ -168,6 +168,7 @@ webpack-dist
 !packages/rspack/tests/configCases/target
 packages/rspack/tests/js
 packages/rspack/tests/fixtures/temp-*
+packages/rspack/tests/cssExtract/js
 packages/playground/temp
 packages/rspack-test-tools/tests/js
 
@@ -191,6 +192,7 @@ esbuild.cpuprofile
 # this node_modules is used for tree-shaking snapshot
 !crates/rspack/tests/tree-shaking/node_modules
 !packages/rspack/tests/configCases/less/resolve/node_modules
+!packages/rspack/tests/cssExtract/cases/**/node_modules
 
 # Binding artifacts
 artifacts

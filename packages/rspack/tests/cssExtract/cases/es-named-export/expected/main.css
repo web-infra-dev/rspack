@@ -1,0 +1,12 @@
+.foo__style__a-class {
+  background: red;
+}
+
+.foo__style__b__class {
+  color: green;
+}
+
+.foo__style__cClass {
+  color: blue;
+}
+

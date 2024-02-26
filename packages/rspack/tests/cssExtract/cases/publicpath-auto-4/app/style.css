@@ -1,0 +1,11 @@
+.a {
+  background: url("./img.png");
+}
+
+.b {
+  background: url("../outer-img.png");
+}
+
+.c {
+  background: url("./nested/nested-img.png");
+}

@@ -67,7 +67,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
   }
 
   fn stage(&self) -> RuntimeModuleStage {
-    RuntimeModuleStage::Trigger
+    RuntimeModuleStage::Attach
   }
 
   fn generate(
@@ -77,7 +77,10 @@ impl RuntimeModule for CssLoadingRuntimeModule {
     let runtime = RUNTIME_CODE;
 
     let mut attr = String::default();
-    for (attr_key, attr_value) in &self.options.attributes {
+    let mut attributes = self.options.attributes.iter().collect::<Vec<_>>();
+    attributes.sort_unstable_by(|(k1, _), (k2, _)| k1.cmp(k2));
+
+    for (attr_key, attr_value) in attributes {
       attr += &format!("linkTag.setAttribute({}, {});\n", attr_key, attr_value);
     }
     let runtime = runtime.replace("__SET_ATTRIBUTES__", &attr);

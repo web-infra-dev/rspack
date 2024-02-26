@@ -1,0 +1,47 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`HMR should handle error event 1`] = `"[HMR] css reload %s"`;
+
+exports[`HMR should handle error event 2`] = `"<link rel="stylesheet" href="/dist/main.css"><link rel="stylesheet" href="http://localhost/dist/main.css?1479427200000">"`;
+
+exports[`HMR should reloads with # link href 1`] = `"[HMR] css reload %s"`;
+
+exports[`HMR should reloads with # link href 2`] = `"<link rel="stylesheet" href="/dist/main.css"><link rel="stylesheet" href="http://localhost/dist/main.css?1479427200000"><link rel="shortcut icon" href="#href">"`;
+
+exports[`HMR should reloads with absolute remove url 1`] = `"[HMR] css reload %s"`;
+
+exports[`HMR should reloads with absolute remove url 2`] = `"<link rel="stylesheet" href="/dist/main.css"><link rel="stylesheet" href="http://localhost/dist/main.css?1479427200000"><link rel="stylesheet" href="http://dev.com/dist/main.css">"`;
+
+exports[`HMR should reloads with browser extension protocol 1`] = `"[HMR] css reload %s"`;
+
+exports[`HMR should reloads with browser extension protocol 2`] = `"<link rel="stylesheet" href="/dist/main.css"><link rel="stylesheet" href="http://localhost/dist/main.css?1479427200000"><link rel="stylesheet" href="chrome-extension://main.css">"`;
+
+exports[`HMR should reloads with link without href 1`] = `"[HMR] css reload %s"`;
+
+exports[`HMR should reloads with link without href 2`] = `"<link rel="stylesheet" href="/dist/main.css"><link rel="stylesheet" href="http://localhost/dist/main.css?1479427200000"><link rel="shortcut icon">"`;
+
+exports[`HMR should reloads with locals 1`] = `"[HMR] Detected local css modules. Reload all css"`;
+
+exports[`HMR should reloads with locals 2`] = `"<link rel="stylesheet" href="/dist/main.css"><link rel="stylesheet" href="http://localhost/dist/main.css?1479427200000">"`;
+
+exports[`HMR should reloads with non http/https link href 1`] = `"[HMR] css reload %s"`;
+
+exports[`HMR should reloads with non http/https link href 2`] = `"<link rel="stylesheet" href="/dist/main.css"><link rel="stylesheet" href="http://localhost/dist/main.css?1479427200000"><link rel="shortcut icon" href="data:;base64,=">"`;
+
+exports[`HMR should reloads with non-file script in the end of page 1`] = `"[HMR] Reload all css"`;
+
+exports[`HMR should reloads with non-file script in the end of page 2`] = `"<link rel="stylesheet" href="/dist/main.css"><link rel="stylesheet" href="http://localhost/dist/main.css?1479427200000">"`;
+
+exports[`HMR should work reload all css 1`] = `"[HMR] Reload all css"`;
+
+exports[`HMR should work reload all css 2`] = `"<link rel="stylesheet" href="/dist/main.css"><link rel="stylesheet" href="http://localhost/dist/main.css?1479427200000">"`;
+
+exports[`HMR should works 1`] = `"[HMR] css reload %s"`;
+
+exports[`HMR should works 2`] = `"<link rel="stylesheet" href="/dist/main.css"><link rel="stylesheet" href="http://localhost/dist/main.css?1479427200000">"`;
+
+exports[`HMR should works with multiple updates 1`] = `"[HMR] css reload %s"`;
+
+exports[`HMR should works with multiple updates 2`] = `"<link rel="stylesheet" href="/dist/main.css"><link rel="stylesheet" href="http://localhost/dist/main.css?1479427200000">"`;
+
+exports[`HMR should works with multiple updates 3`] = `"<link rel="stylesheet" href="http://localhost/dist/main.css?1479427200000"><link rel="stylesheet" href="http://localhost/dist/main.css?1479427200001">"`;

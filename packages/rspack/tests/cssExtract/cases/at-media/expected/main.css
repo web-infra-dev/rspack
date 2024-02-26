@@ -1,0 +1,40 @@
+body {
+  font-size: 24px;
+}
+
+@media screen and (orientation: landscape) {
+body {
+  font-size: 32px;
+}
+
+}
+/*@import url("./c.css") supports(display: flex);*/
+/*@import url("./d.css") supports(display: flex) screen and (min-width: 400px);*/
+/*@import url("./e.css")    supports(   display   :    flex   )    screen    and    (   min-width   :    400px   )   ;*/
+/*@import url("./f.css") supports(not (display: flex));*/
+/*@import url("./g.css") SUPPORTS(NOT (DISPLAY: FLEX));*/
+
+div {
+  color: blue;
+}
+
+@media {
+  div {
+    color: red;
+  }
+}
+
+@media screen and (min-width: 900px) {
+  article {
+    padding: 1rem 3rem;
+  }
+}
+
+@supports (display: flex) {
+  @media screen and (min-width: 900px) {
+    article {
+      display: flex;
+    }
+  }
+}
+

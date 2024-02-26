@@ -1694,7 +1694,8 @@ impl Compilation {
   }
 
   #[allow(clippy::unwrap_in_result)]
-  pub(crate) async fn process_runtime_requirements(
+  #[instrument(name = "compilation:process_runtime_requirements", skip_all)]
+  pub async fn process_runtime_requirements(
     &mut self,
     modules: impl IntoParallelIterator<Item = ModuleIdentifier>,
     chunks: impl Iterator<Item = ChunkUkey>,
