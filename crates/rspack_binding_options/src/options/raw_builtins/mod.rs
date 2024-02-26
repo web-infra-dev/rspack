@@ -59,6 +59,7 @@ use rspack_plugin_mf::{
 use rspack_plugin_progress::ProgressPlugin;
 use rspack_plugin_real_content_hash::RealContentHashPlugin;
 use rspack_plugin_remove_empty_chunks::RemoveEmptyChunksPlugin;
+use rspack_plugin_rsc::RSCClientEntryRspackPlugin;
 use rspack_plugin_runtime::{
   enable_chunk_loading_plugin, ArrayPushCallbackChunkFormatPlugin, BundlerInfoPlugin,
   ChunkPrefetchPreloadPlugin, CommonJsChunkFormatPlugin, ModuleChunkFormatPlugin, RuntimePlugin,
@@ -172,11 +173,9 @@ pub enum BuiltinPluginName {
   LightningCssMinimizerRspackPlugin,
   BundlerInfoRspackPlugin,
   CssExtractRspackPlugin,
-
-  // rspack js adapter plugins
-  // naming format follow XxxRspackPlugin
   JsLoaderRspackPlugin,
   LazyCompilationPlugin,
+  RSCClientEntryRspackPlugin,
 }
 
 #[napi(object)]
@@ -506,6 +505,9 @@ impl BuiltinPlugin {
             options.imports,
           ),
         ) as Box<dyn Plugin>)
+      }
+      BuiltinPluginName::RSCClientEntryRspackPlugin => {
+        plugins.push(RSCClientEntryRspackPlugin {}.boxed())
       }
     }
     Ok(())

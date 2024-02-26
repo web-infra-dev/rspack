@@ -52,6 +52,7 @@ export default defineConfig({
 		]
 	},
 	plugins: [
+		new rspack.RSCClientEntryPlugin(),
 		new rspack.DefinePlugin({
 			"process.env.NODE_ENV": JSON.stringify(process.env.NODE_ENV)
 		}),
