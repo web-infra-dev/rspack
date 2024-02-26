@@ -317,8 +317,10 @@ impl Plugin for HotModuleReplacementPlugin {
               .with_version(Default::default()),
           );
           if let Some(current_chunk_ukey) = current_chunk_ukey {
-            let files = updated_chunks.entry(current_chunk_ukey).or_default();
-            files.insert(filename.clone());
+            updated_chunks
+              .entry(current_chunk_ukey)
+              .or_default()
+              .insert(filename.clone());
           }
           compilation.emit_asset(filename, asset);
         }
@@ -333,8 +335,11 @@ impl Plugin for HotModuleReplacementPlugin {
 
     // update chunk files
     for (chunk_ukey, files) in updated_chunks {
-      let chunk = compilation.chunk_by_ukey.expect_get_mut(&chunk_ukey);
-      chunk.files.extend(files);
+      compilation
+        .chunk_by_ukey
+        .expect_get_mut(&chunk_ukey)
+        .files
+        .extend(files);
     }
 
     let completely_removed_modules_array: Vec<String> =
