@@ -361,6 +361,49 @@ describe("Compiler", () => {
 			);
 		}
 	});
+	// CHANGE: specially added for rspack
+	it("should bubble up errors when wrapped in a promise and bail is true (empty dependency)", async () => {
+		try {
+			const createCompiler = options => {
+				return new Promise((resolve, reject) => {
+					const webpack = require("..");
+					const c = webpack(options);
+					c.run((err, stats) => {
+						if (err) {
+							reject(err);
+						}
+						if (stats !== undefined && "errors" in stats) {
+							reject(err);
+						} else {
+							resolve(c);
+						}
+					});
+					return c;
+				});
+			};
+			compiler = await createCompiler({
+				context: path.join(__dirname, "fixtures"),
+				mode: "production",
+				entry: "./empty-dependency",
+				output: {
+					filename: "bundle.js"
+				},
+				bail: true
+			});
+		} catch (err) {
+			expect(err.toString()).toMatchInlineSnapshot(`
+			"Error:   × Empty dependency: Expected a non-empty request
+			   ╭─[1:1]
+			 1 │ module.exports = function b() {
+			 2 │     /* eslint-disable node/no-missing-require */ require("");
+			   ·                                                  ───────────
+			 3 │     return "This is an empty dependency";
+			 4 │ };
+			   ╰────
+			"
+		`);
+		}
+	});
 	it("should not emit compilation errors in async (watch)", async () => {
 		const createStats = options => {
 			return new Promise((resolve, reject) => {
