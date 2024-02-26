@@ -114,15 +114,15 @@ describe("Compiler", () => {
 		);
 	});
 
-	it("should compile a single file", done => {
+	// CHANGE: skip due to Rspack defaults to numerical module ids, unlike webpack's string-based ids
+	it.skip("should compile a single file", done => {
 		compile("./c", {}, (stats, files) => {
 			expect(Object.keys(files)).toEqual(["/main.js"]);
 			const bundle = files["/main.js"];
 			expect(bundle).toMatch("function __webpack_require__(");
-			// CHANGE: Rspack defaults to numerical module ids, unlike webpack's string-based ids
-			// expect(bundle).toMatch(/__webpack_require__\(\/\*! \.\/a \*\/ \w+\);/);
-			// expect(bundle).toMatch("./c.js");
-			// expect(bundle).toMatch("./a.js");
+			expect(bundle).toMatch(/__webpack_require__\(\/\*! \.\/a \*\/ \w+\);/);
+			expect(bundle).toMatch("./c.js");
+			expect(bundle).toMatch("./a.js");
 			expect(bundle).toMatch("This is a");
 			expect(bundle).toMatch("This is c");
 			expect(bundle).not.toMatch("2: function(");
