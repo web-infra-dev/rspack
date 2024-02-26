@@ -3,7 +3,6 @@ use std::sync::RwLock;
 /// rust support hooks
 #[derive(PartialEq)]
 pub enum Hook {
-  Make,
   FinishMake,
   BuildModule,
   ThisCompilation,
@@ -51,7 +50,6 @@ pub enum Hook {
 impl From<String> for Hook {
   fn from(s: String) -> Self {
     match s.as_str() {
-      "make" => Hook::Make,
       "finishMake" => Hook::FinishMake,
       "buildModule" => Hook::BuildModule,
       "thisCompilation" => Hook::ThisCompilation,

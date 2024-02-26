@@ -902,7 +902,7 @@ impl Plugin for ModuleConcatenationPlugin {
         Some(rspack_hash::HashFunction::MD4),
         config.runtime.clone(),
       );
-      new_module
+      let build_result = new_module
         .build(
           rspack_core::BuildContext {
             compiler_context: CompilerContext {
@@ -925,6 +925,7 @@ impl Plugin for ModuleConcatenationPlugin {
           Some(compilation),
         )
         .await?;
+      new_module.set_module_build_info_and_meta(build_result.build_info, build_result.build_meta);
       let root_mgm_epxorts = compilation
         .module_graph
         .module_graph_module_by_identifier(&root_module_id)

@@ -16,7 +16,7 @@ exports[`Stats should have ids when ids is true 1`] = `
         "hotModuleReplacement": false,
       },
       "name": "main.js",
-      "size": 212,
+      "size": 211,
       "type": "asset",
     },
   ],
@@ -80,7 +80,7 @@ exports[`Stats should have stats 1`] = `
         "hotModuleReplacement": false,
       },
       "name": "main.js",
-      "size": 212,
+      "size": 211,
       "type": "asset",
     },
   ],
@@ -149,10 +149,10 @@ exports[`Stats should have stats 1`] = `
       "assets": [
         {
           "name": "main.js",
-          "size": 212,
+          "size": 211,
         },
       ],
-      "assetsSize": 212,
+      "assetsSize": 211,
       "chunks": [
         "909",
       ],
@@ -204,10 +204,10 @@ exports[`Stats should have stats 1`] = `
       "assets": [
         {
           "name": "main.js",
-          "size": 212,
+          "size": 211,
         },
       ],
-      "assetsSize": 212,
+      "assetsSize": 211,
       "chunks": [
         "909",
       ],
@@ -237,7 +237,7 @@ exports[`Stats should have usedExports and providedExports stats 1`] = `
         "hotModuleReplacement": false,
       },
       "name": "main.js",
-      "size": 785,
+      "size": 784,
       "type": "asset",
     },
   ],
@@ -441,10 +441,10 @@ exports[`Stats should have usedExports and providedExports stats 1`] = `
       "assets": [
         {
           "name": "main.js",
-          "size": 785,
+          "size": 784,
         },
       ],
-      "assetsSize": 785,
+      "assetsSize": 784,
       "chunks": [
         "909",
       ],
@@ -694,10 +694,10 @@ exports[`Stats should have usedExports and providedExports stats 1`] = `
       "assets": [
         {
           "name": "main.js",
-          "size": 785,
+          "size": 784,
         },
       ],
-      "assetsSize": 785,
+      "assetsSize": 784,
       "chunks": [
         "909",
       ],
@@ -727,7 +727,7 @@ exports[`Stats should output stats with query 1`] = `
         "hotModuleReplacement": false,
       },
       "name": "main.js",
-      "size": 387,
+      "size": 386,
       "type": "asset",
     },
   ],
@@ -819,7 +819,7 @@ exports[`Stats should output stats with query 1`] = `
               "moduleId": "919",
               "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
               "moduleName": "./fixtures/abc-query.js",
-              "type": "cjs require",
+              "type": "cjs export require",
               "userRequest": "./a?a=1",
             },
           ],
@@ -858,7 +858,7 @@ exports[`Stats should output stats with query 1`] = `
               "moduleId": "919",
               "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
               "moduleName": "./fixtures/abc-query.js",
-              "type": "cjs require",
+              "type": "cjs export require",
               "userRequest": "./c?c=3",
             },
           ],
@@ -919,10 +919,10 @@ exports.c = require("./c?c=3");
       "assets": [
         {
           "name": "main.js",
-          "size": 387,
+          "size": 386,
         },
       ],
-      "assetsSize": 387,
+      "assetsSize": 386,
       "chunks": [
         "909",
       ],
@@ -932,7 +932,7 @@ exports.c = require("./c?c=3");
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "863c8adf2d7c24d82182",
+  "hash": "d74b6e06f8e6041c6743",
   "logging": {},
   "modules": [
     {
@@ -1006,7 +1006,7 @@ exports.c = require("./c?c=3");
           "moduleId": "919",
           "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
           "moduleName": "./fixtures/abc-query.js",
-          "type": "cjs require",
+          "type": "cjs export require",
           "userRequest": "./a?a=1",
         },
       ],
@@ -1045,7 +1045,7 @@ exports.c = require("./c?c=3");
           "moduleId": "919",
           "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
           "moduleName": "./fixtures/abc-query.js",
-          "type": "cjs require",
+          "type": "cjs export require",
           "userRequest": "./c?c=3",
         },
       ],
@@ -1097,10 +1097,10 @@ exports.c = require("./c?c=3");
       "assets": [
         {
           "name": "main.js",
-          "size": 387,
+          "size": 386,
         },
       ],
-      "assetsSize": 387,
+      "assetsSize": 386,
       "chunks": [
         "909",
       ],

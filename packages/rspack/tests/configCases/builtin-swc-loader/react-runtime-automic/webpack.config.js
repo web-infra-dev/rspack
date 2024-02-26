@@ -1,4 +1,5 @@
 module.exports = {
+	entry: "./index.jsx",
 	resolve: {
 		extensions: ["...", ".ts", ".tsx", ".jsx"]
 	},

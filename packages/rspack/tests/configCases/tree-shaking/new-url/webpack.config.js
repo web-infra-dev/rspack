@@ -1,5 +1,6 @@
 /**@type {import('@rspack/cli').Configuration}*/
 module.exports = {
+	mode: "development",
 	context: __dirname,
 	module: {
 		rules: [
@@ -14,6 +15,9 @@ module.exports = {
 	},
 	optimization: {
 		sideEffects: true
+	},
+	output: {
+		chunkFilename: "[name].js"
 	},
 	externalsPresets: {
 		node: true

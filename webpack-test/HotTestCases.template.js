@@ -1,6 +1,6 @@
 "use strict";
 
-// require("./helpers/warmup-webpack");
+require("./helpers/warmup-webpack");
 
 const path = require("path");
 const fs = require("graceful-fs");
@@ -8,7 +8,7 @@ const vm = require("vm");
 const rimraf = require("rimraf");
 const checkArrayExpectation = require("./checkArrayExpectation");
 const createLazyTestEnv = require("./helpers/createLazyTestEnv");
-const { normalizeFilteredTestName } = require('./lib/util/filterUtil')
+const { normalizeFilteredTestName } = require("./lib/util/filterUtil");
 
 const casesPath = path.join(__dirname, "hotCases");
 let categories = fs
@@ -30,18 +30,18 @@ const describeCases = config => {
 				category.tests.forEach(testName => {
 					const testDirectory = path.join(casesPath, category.name, testName);
 					const filterPath = path.join(testDirectory, "test.filter.js");
-					if (fs.existsSync(filterPath) ) {
+					// CHANGE: added custom filter for tracking alignment status
+					if (fs.existsSync(filterPath)) {
 						let flag = require(filterPath)(config)
 						if (flag !== true) {
 							let filteredName = normalizeFilteredTestName(flag, testName);
 							describe.skip(testName, () => {
-								it(filteredName, () => {});
+								it(filteredName, () => { });
 							});
 							return;
 						}
 					}
 					describe(testName, () => {
-						/**@type{import("@rspack/core").MultiCompiler}*/
 						let compiler;
 						afterAll(callback => {
 							compiler.close(callback);
@@ -51,7 +51,7 @@ const describeCases = config => {
 						it(
 							testName + " should compile",
 							done => {
-								const webpack = require("@rspack/core").rspack;
+								const webpack = require("..");
 								const outputDirectory = path.join(
 									__dirname,
 									"js",
@@ -265,10 +265,10 @@ const describeCases = config => {
 											} else {
 												const fn = vm.runInThisContext(
 													"(function(require, module, exports, __dirname, __filename, it, beforeEach, afterEach, expect, jest, self, window, fetch, document, importScripts, Worker, EventSource, NEXT, STATS) {" +
-														"global.expect = expect;" +
-														'function nsObj(m) { Object.defineProperty(m, Symbol.toStringTag, { value: "Module" }); return m; }' +
-														fs.readFileSync(p, "utf-8") +
-														"\n})",
+													"global.expect = expect;" +
+													'function nsObj(m) { Object.defineProperty(m, Symbol.toStringTag, { value: "Module" }); return m; }' +
+													fs.readFileSync(p, "utf-8") +
+													"\n})",
 													p
 												);
 												const m = {

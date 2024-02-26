@@ -50,12 +50,20 @@ const UNALIGNED_FIXTURES = [
 	// TO BE ALIGNED:
 	"fixtures/buildDependencies/index.js",
 
+	// Added filtered test filter
+	"ConfigTestCases.template.js",
+	"TestCases.template.js",
+
 	// Change marked
 	"checkArrayExpectation.js",
 	"WatchSuspend.test.js",
 	"helpers/FakeDocument.js",
 	"helpers/warmup-webpack.js",
-	"hotCases/fake-update-loader.js"
+	"hotCases/fake-update-loader.js",
+	"StatsTestCases.basictest.js",
+	"WatchTestCases.template.js",
+	"HotTestCases.template.js",
+	"HotTestCasesNode.test.js"
 ];
 
 // Only different in comments. For example, license information difference.

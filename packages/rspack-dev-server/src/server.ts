@@ -80,7 +80,6 @@ export class RspackDevServer extends WebpackDevServer {
 				} else {
 					try {
 						clientImplementation = require.resolve(clientTransport);
-						throw Error("Do not support custom ws client now");
 					} catch (e) {
 						clientImplementationFound = false;
 					}

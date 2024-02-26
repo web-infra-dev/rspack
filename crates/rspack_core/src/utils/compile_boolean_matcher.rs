@@ -1,5 +1,7 @@
 use std::collections::BTreeSet;
 
+use once_cell::sync::Lazy;
+use regex::Regex;
 use rustc_hash::FxHashMap as HashMap;
 
 pub enum BooleanMatcher {
@@ -262,8 +264,11 @@ pub(crate) fn items_to_regexp(items_arr: Vec<String>) -> String {
   }
 }
 
-fn quote_meta(s: &str) -> String {
-  regex::escape(s)
+static QUOTE_META_REG: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"[-\[\]\\/{}()*+?.^$|]").expect("regexp init failed"));
+
+fn quote_meta(str: &str) -> String {
+  QUOTE_META_REG.replace_all(str, "\\$0").to_string()
 }
 
 fn pop_common_items<T, F, G>(items_set: &mut BTreeSet<T>, get_key: F, condition: G) -> Vec<Vec<T>>

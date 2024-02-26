@@ -25,7 +25,6 @@ pub struct JsHooks {
   pub asset_emitted: JsFunction,
   pub should_emit: JsFunction,
   pub after_emit: JsFunction,
-  pub make: JsFunction,
   pub optimize_modules: JsFunction,
   pub after_optimize_modules: JsFunction,
   pub optimize_tree: JsFunction,
@@ -51,6 +50,7 @@ pub struct JsHooks {
 #[derive(Debug)]
 pub enum JsHookType {
   CompilerCompilation,
+  CompilerMake,
 }
 
 #[napi(object)]

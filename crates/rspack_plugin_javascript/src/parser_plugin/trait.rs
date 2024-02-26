@@ -1,7 +1,9 @@
 use swc_core::atoms::Atom;
 use swc_core::common::Span;
 use swc_core::ecma::ast::{
-  AssignExpr, AwaitExpr, BinExpr, CallExpr, Expr, ForOfStmt, Ident, IfStmt, MemberExpr, ModuleDecl,
+  AssignExpr, AwaitExpr, BinExpr, CallExpr, CondExpr, ExportAll, ExportDecl, ExportDefaultDecl,
+  ExportDefaultExpr, Expr, ForOfStmt, Ident, IfStmt, ImportDecl, MemberExpr, ModuleDecl,
+  NamedExport, OptChainExpr,
 };
 use swc_core::ecma::ast::{NewExpr, Program, Stmt, ThisExpr, UnaryExpr, VarDecl, VarDeclarator};
 
@@ -85,6 +87,18 @@ pub trait JavascriptParserPlugin {
     _parser: &mut JavascriptParser,
     _expr: &CallExpr,
     _for_name: &str,
+  ) -> Option<bool> {
+    None
+  }
+
+  fn call_member_chain(
+    &self,
+    _parser: &mut JavascriptParser,
+    _root_info: &ExportedVariableInfo,
+    _expr: &CallExpr,
+    // TODO: members: &Vec<String>,
+    // TODO: members_optionals: Vec<bool>,
+    // TODO: members_ranges: Vec<DependencyLoc>
   ) -> Option<bool> {
     None
   }
@@ -205,6 +219,83 @@ pub trait JavascriptParserPlugin {
     _root_name: &Atom,
     _span: Span,
   ) -> Option<bool> {
+    None
+  }
+
+  fn import(
+    &self,
+    _parser: &mut JavascriptParser,
+    _statement: &ImportDecl,
+    _source: &str,
+  ) -> Option<bool> {
+    None
+  }
+
+  fn import_specifier(
+    &self,
+    _parser: &mut JavascriptParser,
+    _statement: &ImportDecl,
+    _source: &Atom,
+    _export_name: Option<&str>,
+    _identifier_name: &str,
+  ) -> Option<bool> {
+    None
+  }
+
+  fn named_export_import(
+    &self,
+    _parser: &mut JavascriptParser,
+    _statement: &NamedExport,
+    _source: &str,
+  ) -> Option<bool> {
+    None
+  }
+
+  fn all_export_import(
+    &self,
+    _parser: &mut JavascriptParser,
+    _statement: &ExportAll,
+    _source: &str,
+  ) -> Option<bool> {
+    None
+  }
+
+  fn optional_chaining(
+    &self,
+    _parser: &mut JavascriptParser,
+    _expr: &OptChainExpr,
+  ) -> Option<bool> {
+    None
+  }
+
+  fn expression_conditional_operation(
+    &self,
+    _parser: &mut JavascriptParser,
+    _expr: &CondExpr,
+  ) -> Option<bool> {
+    None
+  }
+
+  fn export(&self, _parser: &mut JavascriptParser, _expr: &ExportDefaultDecl) -> Option<bool> {
+    None
+  }
+
+  // TODO: remove `export_default_expr`
+  fn export_default_expr(
+    &self,
+    _parser: &mut JavascriptParser,
+    _expr: &ExportDefaultExpr,
+  ) -> Option<bool> {
+    None
+  }
+
+  // TODO: remove `export_decl`
+  fn export_decl(&self, _parser: &mut JavascriptParser, _expr: &ExportDecl) -> Option<bool> {
+    None
+  }
+
+  // TODO: remove `named_export`
+  fn named_export(&self, _parser: &mut JavascriptParser, _expr: &NamedExport) -> Option<bool> {
     None
   }
 }

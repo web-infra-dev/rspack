@@ -446,18 +446,6 @@ impl Compilation {
 
   #[instrument(name = "compilation:make", skip_all)]
   pub async fn make(&mut self, mut params: Vec<MakeParam>) -> Result<()> {
-    let logger = self.get_logger("rspack.Compilation");
-    let start = logger.time("make hook");
-    if let Some(e) = self
-      .plugin_driver
-      .clone()
-      .make(self, &mut params)
-      .await
-      .err()
-    {
-      self.push_batch_diagnostic(vec![e.into()]);
-    }
-    logger.time_end(start);
     let make_failed_module =
       MakeParam::ForceBuildModules(std::mem::take(&mut self.make_failed_module));
     let make_failed_dependencies =

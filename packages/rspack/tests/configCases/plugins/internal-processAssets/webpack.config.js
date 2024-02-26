@@ -23,8 +23,8 @@ module.exports = {
 						assert((Object.keys(assets).length = 1));
 						assert((Object.getOwnPropertyNames(assets).length = 1));
 						assert((Reflect.ownKeys(assets).length = 1));
-						assert("main.js" in assets);
-						assert(assets["main.js"].source().startsWith("//banner;\n"));
+						assert("bundle0.js" in assets);
+						assert(assets["bundle0.js"].source().startsWith("//banner;\n"));
 					});
 				});
 			}

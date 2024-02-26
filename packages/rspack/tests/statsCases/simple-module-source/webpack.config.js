@@ -1,5 +1,6 @@
 /** @type {import("../../../dist").Configuration} */
 module.exports = {
+	entry: "./index",
 	mode: "production",
 	entry: "./index",
 	output: {
@@ -9,6 +10,6 @@ module.exports = {
 		builtAt: false,
 		timings: false,
 		source: true,
-    version: false
+		version: false
 	}
 }

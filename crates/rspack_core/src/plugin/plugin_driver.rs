@@ -15,12 +15,12 @@ use crate::{
   AssetEmittedArgs, BoxLoader, BoxModule, BoxedParserAndGeneratorBuilder, BuildTimeExecutionOption,
   Chunk, ChunkAssetArgs, ChunkContentHash, ChunkHashArgs, CodeGenerationResults, Compilation,
   CompilationParams, CompilerHooks, CompilerOptions, Content, ContentHashArgs, DependencyId,
-  DoneArgs, FactorizeArgs, JsChunkHashArgs, LoaderRunnerContext, MakeParam, Module,
-  ModuleIdentifier, ModuleType, NormalModule, NormalModuleAfterResolveArgs,
-  NormalModuleBeforeResolveArgs, NormalModuleCreateData, OptimizeChunksArgs, Plugin,
+  DoneArgs, FactorizeArgs, JsChunkHashArgs, LoaderRunnerContext, Module, ModuleIdentifier,
+  ModuleType, NormalModule, NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs,
+  NormalModuleCreateData, OptimizeChunksArgs, Plugin,
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginAdditionalModuleRequirementsOutput,
   PluginBuildEndHookOutput, PluginChunkHashHookOutput, PluginCompilationHookOutput, PluginContext,
-  PluginFactorizeHookOutput, PluginJsChunkHashHookOutput, PluginMakeHookOutput,
+  PluginFactorizeHookOutput, PluginJsChunkHashHookOutput,
   PluginNormalModuleFactoryAfterResolveOutput, PluginNormalModuleFactoryBeforeResolveOutput,
   PluginNormalModuleFactoryCreateModuleHookOutput, PluginNormalModuleFactoryModuleHookOutput,
   PluginProcessAssetsOutput, PluginRenderChunkHookOutput, PluginRenderHookOutput,
@@ -486,20 +486,6 @@ impl PluginDriver {
           },
         )
         .await?
-    }
-    Ok(())
-  }
-
-  #[instrument(name = "plugin:make", skip_all)]
-  pub async fn make(
-    &self,
-    compilation: &mut Compilation,
-    params: &mut Vec<MakeParam>,
-  ) -> PluginMakeHookOutput {
-    for plugin in &self.plugins {
-      plugin
-        .make(PluginContext::new(), compilation, params)
-        .await?;
     }
     Ok(())
   }
