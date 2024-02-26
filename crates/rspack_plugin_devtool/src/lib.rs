@@ -143,8 +143,8 @@ pub struct SourceMapDevToolPlugin {
   source_root: Option<String>,
   #[derivative(Debug = "ignore")]
   test: Option<TestFn>,
-  source_map_cache: RwLock<HashMap<u64, Option<Arc<SourceMap>>>>,
-  compilation_asset_cache: RwLock<HashMap<String, (u64, CompilationAsset)>>,
+  source_and_map_assets_cache:
+    RwLock<HashMap<String, (u64, CompilationAsset, Option<(String, CompilationAsset)>)>>,
 }
 
 impl SourceMapDevToolPlugin {
@@ -187,8 +187,7 @@ impl SourceMapDevToolPlugin {
       module: options.module,
       source_root: options.source_root,
       test: options.test,
-      source_map_cache: RwLock::new(HashMap::default()),
-      compilation_asset_cache: RwLock::new(HashMap::default()),
+      source_and_map_assets_cache: RwLock::new(HashMap::default()),
     }
   }
 }
@@ -209,66 +208,61 @@ impl Plugin for SourceMapDevToolPlugin {
     let output_options = &compilation.options.output;
 
     let compilation_assets = compilation.assets();
-    let mut assets: Vec<Option<(&String, &Arc<dyn Source>, Option<Arc<SourceMap>>)>> =
-      vec![None; compilation_assets.len()];
-    let mut missing_cache_assets = vec![];
+    let mut source_and_map_asstes: Vec<(
+      String,
+      u64,
+      CompilationAsset,
+      Option<(String, CompilationAsset)>,
+    )> = Vec::with_capacity(compilation_assets.len());
+    let mut recompute_assets = vec![];
+
     {
-      let compilation_asset_cache = self.compilation_asset_cache.read().unwrap();
-      for (index, (file, asset)) in compilation.assets().iter().enumerate() {
+      let cache = self.source_and_map_assets_cache.read().unwrap();
+      for (file, asset) in compilation.assets().iter() {
         let source = asset.get_source();
         if let Some(source) = source {
-          if let Some((cached_hash, cached_compilation_asset)) = compilation_asset_cache.get(file) {
+          if let Some((cached_hash, cached_source_asset, cached_map_asset)) = cache.get(file) {
             let mut hasher = RspackHash::new(&HashFunction::MD4);
             source.update_hash(&mut hasher);
             let hash = hasher.finish();
             if hash == *cached_hash {
-              compilation.emit_asset(*file, cached_compilation_asset.clone());
+              source_and_map_asstes.push((
+                file.to_owned(),
+                hash,
+                cached_source_asset.clone(),
+                cached_map_asset.clone(),
+              ));
               continue;
             }
           }
-          missing_cache_assets.push((index, (file, asset, source)));
+          recompute_assets.push((file, asset, source));
         }
       }
     }
 
-    missing_cache_assets
+    let assets = compilation
+      .assets()
       .par_iter()
-      .filter_map(|(index, (file, _asset, source))| {
+      .filter_map(|(file, asset)| {
         let is_match = match &self.test {
-          Some(test) => test(file.to_string()),
+          Some(test) => test(file.clone()),
           None => true,
         };
+
         if is_match {
-          let map_options = MapOptions::new(self.columns);
-          let source_map = source.map(&map_options);
-          Some((index, (file, source, source_map.clone())))
+          asset.get_source().map(|source| {
+            let map_options = MapOptions::new(self.columns);
+            let source_map = source.map(&map_options);
+            (file, source, source_map)
+          })
         } else {
           None
         }
       })
-      .collect::<Vec<_>>()
-      .into_iter()
-      .for_each(|(index, (file, source, source_map))| {
-        assets[*index] = Some((*file, *source, source_map.map(|m| Arc::new(m))))
-      });
-    let assets = assets
-      .iter()
-      .filter_map(|item| item.clone())
       .collect::<Vec<_>>();
 
-    {
-      let mut source_map_cache = self.source_map_cache.write().unwrap();
-      source_map_cache.clear();
-      assets.iter().for_each(|(_file, asset, source_map)| {
-        let mut hasher = RspackHash::new(&HashFunction::MD4);
-        asset.update_hash(&mut hasher);
-        let hash = hasher.finish();
-        source_map_cache.insert(hash, source_map.clone());
-      });
-    }
-
     let mut used_names_set = HashSet::<String>::default();
-    let mut maps: Vec<(String, Vec<u8>, Option<Vec<u8>>)> = Vec::with_capacity(assets.len());
+    let mut maps: Vec<(String, u64, Vec<u8>, Option<Vec<u8>>)> = Vec::with_capacity(assets.len());
 
     let mut default_filenames = match &self.module_filename_template {
       ModuleFilenameTemplate::String(s) => assets
@@ -414,15 +408,19 @@ impl Plugin for SourceMapDevToolPlugin {
         None => None,
       };
 
+      let mut hasher = RspackHash::new(&HashFunction::MD4);
+      asset.update_hash(&mut hasher);
+      let hash = hasher.finish();
+
       let mut code_buffer = Vec::new();
       asset.to_writer(&mut code_buffer).into_diagnostic()?;
-      maps.push((file.to_owned(), code_buffer, source_map_buffer));
+      maps.push((file.to_owned(), hash, code_buffer, source_map_buffer));
     }
 
     logger.time_end(start);
 
     let start = logger.time("emit source map assets");
-    for (filename, code_buffer, source_map_buffer) in maps {
+    for (filename, hash, code_buffer, source_map_buffer) in maps {
       let mut asset = compilation
         .assets_mut()
         .remove(&filename)
@@ -430,8 +428,6 @@ impl Plugin for SourceMapDevToolPlugin {
       // convert to RawSource to reduce one time source map calculation when convert to JsCompatSource
       let raw_source = RawSource::from(code_buffer).boxed();
       let Some(source_map_buffer) = source_map_buffer else {
-        asset.source = Some(raw_source);
-        compilation.emit_asset(filename, asset);
         continue;
       };
       let css_extension_detected = CSS_EXTENSION_DETECT_REGEXP.is_match(&filename);
@@ -500,19 +496,21 @@ impl Plugin for SourceMapDevToolPlugin {
         } else {
           asset.source = Some(raw_source);
         }
-        compilation.update_asset(&filename, asset);
         let mut source_map_asset_info = AssetInfo::default().with_development(true);
         if let Some(asset) = compilation.assets().get(&filename) {
           // set source map asset version to be the same as the target asset
           source_map_asset_info.version = asset.info.version.clone();
         }
-        compilation.emit_asset(
-          source_map_filename,
-          CompilationAsset::new(
-            Some(RawSource::from(source_map_buffer).boxed()),
-            source_map_asset_info,
-          ),
+        let source_map_asset = CompilationAsset::new(
+          Some(RawSource::from(source_map_buffer).boxed()),
+          source_map_asset_info,
         );
+        source_and_map_asstes.push((
+          filename,
+          hash,
+          asset,
+          Some((source_map_filename, source_map_asset)),
+        ));
       } else {
         let current_source_mapping_url_comment = current_source_mapping_url_comment
           .expect("SourceMapDevToolPlugin: append can't be false when no filename is provided.");
@@ -528,9 +526,33 @@ impl Plugin for SourceMapDevToolPlugin {
           ])
           .boxed(),
         );
-        compilation.emit_asset(filename, asset);
+        source_and_map_asstes.push((filename, hash, asset, None));
         // TODO
         // chunk.auxiliary_files.add(filename);
+      }
+
+      {
+        let mut cache = self.source_and_map_assets_cache.write().unwrap();
+        cache.clear();
+        for (source_filename, hash, source_asset, source_map) in &source_and_map_asstes {
+          compilation.emit_asset(source_filename.to_owned(), source_asset.clone());
+          if let Some((source_map_filename, source_map_asset)) = source_map {
+            compilation.emit_asset(source_map_filename.to_owned(), source_map_asset.clone());
+            cache.insert(
+              source_filename.to_owned(),
+              (
+                *hash,
+                source_asset.clone(),
+                Some((source_map_filename.to_owned(), source_map_asset.clone())),
+              ),
+            );
+          } else {
+            cache.insert(
+              source_filename.to_owned(),
+              (*hash, source_asset.clone(), None),
+            );
+          }
+        }
       }
     }
     logger.time_end(start);
