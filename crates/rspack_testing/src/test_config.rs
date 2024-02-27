@@ -202,6 +202,7 @@ pub struct Builtins {
 pub struct Css {
   #[serde(default)]
   pub modules: ModulesConfig,
+  pub named_exports: Option<bool>,
 }
 
 #[derive(Debug, JsonSchema, Deserialize)]
@@ -491,6 +492,7 @@ impl TestConfig {
           ),
           exports_only: self.builtins.css.modules.exports_only,
         },
+        named_exports: self.builtins.css.named_exports,
       })
       .boxed(),
     );

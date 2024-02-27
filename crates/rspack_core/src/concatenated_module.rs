@@ -1716,6 +1716,7 @@ impl ConcatenatedModule {
       asi_safe,
       &mut HashSet::default(),
     );
+
     let (ids, comment) = match binding {
       Binding::Raw(ref b) => (&b.ids, b.comment.as_ref()),
       Binding::Symbol(ref b) => (&b.ids, b.comment.as_ref()),
@@ -1970,7 +1971,6 @@ impl ConcatenatedModule {
       ModuleInfo::Concatenated(info) => {
         let export_id = export_name.first().cloned();
         let export_info = export_info_id.get_export_info(mg);
-        // dbg!(&export_info);
         if matches!(export_info.provided, Some(crate::ExportInfoProvided::False)) {
           needed_namespace_objects.insert(info.module);
           return Binding::Raw(RawBinding {

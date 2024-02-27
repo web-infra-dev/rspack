@@ -3,9 +3,13 @@ use std::{fmt::Write, hash::Hash, path::Path};
 use heck::{ToKebabCase, ToLowerCamelCase};
 use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
-use rspack_core::{Compilation, ErrorSpan, OutputOptions, PathData, RuntimeGlobals};
+use rspack_core::rspack_sources::{ConcatSource, RawSource};
+use rspack_core::{
+  to_identifier, Compilation, ErrorSpan, GenerateContext, OutputOptions, PathData, RuntimeGlobals,
+};
 use rspack_error::{error, Result};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash};
+use rustc_hash::FxHashSet as HashSet;
 use swc_core::common::Spanned;
 use swc_core::css::modules::CssClassName;
 use swc_core::ecma::atoms::Atom;
@@ -165,6 +169,73 @@ pub fn css_modules_exports_to_string(
   }
   code += "};\n";
   Ok(code)
+}
+
+pub fn css_modules_exports_to_concatenate_module_string(
+  exports: &CssExportsType,
+  module: &dyn rspack_core::Module,
+  generate_context: &mut GenerateContext,
+  concate_source: &mut ConcatSource,
+) -> Result<()> {
+  let GenerateContext {
+    compilation,
+    concatenation_scope,
+    ..
+  } = generate_context;
+  let Some(ref mut scope) = concatenation_scope else {
+    return Ok(());
+  };
+  let mut used_identifiers = HashSet::default();
+  for (key, elements) in exports {
+    let content = elements
+      .iter()
+      .map(|(name, _span, from)| match from {
+        None => name.to_owned(),
+        Some(from_name) => {
+          let from = module
+            .get_dependencies()
+            .iter()
+            .find_map(|id| {
+              let dependency = compilation.module_graph.dependency_by_id(id);
+              let request = if let Some(d) = dependency.and_then(|d| d.as_module_dependency()) {
+                Some(d.request())
+              } else {
+                dependency
+                  .and_then(|d| d.as_context_dependency())
+                  .map(|d| d.request())
+              };
+              if let Some(request) = request
+                && request == from_name
+              {
+                return compilation
+                  .module_graph
+                  .module_graph_module_by_dependency_id(id);
+              }
+              None
+            })
+            .expect("should have css from module");
+
+          let from = serde_json::to_string(from.id(&compilation.chunk_graph)).expect("TODO:");
+          format!("{}({from})[{name}]", RuntimeGlobals::REQUIRE)
+        }
+      })
+      .collect::<Vec<_>>()
+      .join(" + \" \" + ");
+    for k in key {
+      let normalized_k = k.as_str()[1..k.len() - 1].to_owned();
+      let mut identifier = to_identifier(&normalized_k);
+      let mut i = 0;
+      while used_identifiers.contains(&identifier) {
+        identifier = format!("{k}{i}");
+        i += 1;
+      }
+      // TODO: conditional support `const or var` after we finished runtimeTemplate utils
+      concate_source.add(RawSource::from(format!("var {identifier} = {content};\n")));
+      used_identifiers.insert(identifier.clone());
+      scope.register_export(k.as_str()[1..k.as_str().len() - 1].into(), identifier);
+    }
+  }
+  Ok(())
 }
 
 static STRING_MULTILINE: Lazy<Regex> =

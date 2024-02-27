@@ -59,6 +59,7 @@ import { Compiler, RspackOptionsNormalized } from "..";
 
 type BuiltinsCssConfig = {
 	modules?: Partial<RawCssModulesConfig>;
+	namedExports?: boolean;
 };
 
 function resolveTreeShaking(
@@ -97,7 +98,8 @@ export function deprecated_resolveBuiltins(
 							: "[path][name][ext]__[local]",
 						exportsOnly: false,
 						...builtins.css?.modules
-					}
+					},
+					namedExports: builtins.css?.namedExports
 				}
 			: undefined,
 		treeShaking: resolveTreeShaking(builtins.treeShaking, production)
