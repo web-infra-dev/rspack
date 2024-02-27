@@ -7,6 +7,7 @@ const path = require("path");
 const { Stats } = require("../dist");
 const serializer = require("jest-serializer-path");
 
+// CHANGE: required for additional tests
 expect.addSnapshotSerializer(serializer);
 
 const compile = options => {
@@ -53,7 +54,7 @@ chunk {909} main.js (main) [entry]
   [no exports]
   [used exports unknown]
   entry ./fixtures/a
-  
+
 Rspack compiled successfully (57e46af248a1c1fe076f)"
 `);
 	});
@@ -94,8 +95,8 @@ ERROR in ./fixtures/b.js
        6 │ return;
          · ───────
          ╰────
-      
-  help: 
+
+  help:
         You may need an appropriate loader to handle this file type.
 
 Rspack compiled with 1 error (8137ab425c2721784808)"

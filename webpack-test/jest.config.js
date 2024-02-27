@@ -53,7 +53,7 @@ module.exports = {
 		// "<rootDir>/SideEffectsFlagPlugin.unittest.js",
 		// "<rootDir>/SizeFormatHelpers.unittest.js",
 		// "<rootDir>/SortableSet.unittest.js",
-		// "<rootDir>/Stats.test.js",
+		"<rootDir>/Stats.test.js",
 		"<rootDir>/StatsTestCases.basictest.js",
 		// "<rootDir>/Template.unittest.js",
 		// "<rootDir>/TestCasesAllCombined.longtest.js",
