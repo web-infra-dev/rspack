@@ -87,3 +87,8 @@ Thanks to:
 ## License
 
 Rspack is [MIT licensed](https://github.com/web-infra-dev/rspack/blob/main/LICENSE).
+
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=web-infra-dev/rspack&type=Date)](https://star-history.com/#web-infra-dev/rspack&Date)

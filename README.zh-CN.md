@@ -80,3 +80,8 @@ Rspack 项目基于 [MIT 协议](https://github.com/web-infra-dev/rspack/blob/ma
 - 可以在 [Discord](https://discord.gg/79ZZ66GH9E) 上和 Rspack Team 以及 Rspack 用户交流
 
 - 也可以在 [飞书](https://applink.feishu.cn/client/chat/chatter/add_by_link?link_token=3c3vca77-bfc0-4ef5-b62b-9c5c9c92f1b4) 上和我们交流
+
+
+## Star 趋势
+
+[![Star History Chart](https://api.star-history.com/svg?repos=web-infra-dev/rspack&type=Date)](https://star-history.com/#web-infra-dev/rspack&Date)
