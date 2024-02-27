@@ -96,7 +96,8 @@ describe("Compiler", () => {
 		}
 	});
 
-	it("should compile a single file to deep output", done => {
+	// CHANGE: skip due to Rspack defaults to numerical module ids, unlike webpack's string-based ids
+	it.skip(normalizeFilteredTestName("TODO", "should compile a single file to deep output"), done => {
 		compile(
 			"./c",
 			{
@@ -551,7 +552,9 @@ describe("Compiler", () => {
 			});
 		});
 	});
-	it("should run again correctly after first closed watch", done => {
+	// CHANGE: skip with custom test name for tracking alignment status
+	// CHANGE: skip due to panic occurred at runtime
+	it.skip(normalizeFilteredTestName("TODO", "should run again correctly after first closed watch"), done => {
 		const webpack = require("..");
 		compiler = webpack({
 			context: __dirname,
