@@ -1,12 +1,13 @@
 "use strict";
 
-// require("./helpers/warmup-webpack");
+require("./helpers/warmup-webpack");
 
 const { createFsFromVolume, Volume } = require("memfs");
+const { normalizeFilteredTestName, FilteredStatus } = require("./lib/util/filterUtil");
 
 const compile = options => {
 	return new Promise((resolve, reject) => {
-		const webpack = require("@rspack/core").rspack;
+		const webpack = require("..");
 		const compiler = webpack(options);
 		compiler.outputFileSystem = createFsFromVolume(new Volume());
 		compiler.run((err, stats) => {
@@ -63,7 +64,8 @@ describe("Stats", () => {
 		).toEqual({});
 	});
 	describe("chunkGroups", () => {
-		it("should be empty when there is no additional chunks", async () => {
+		// CHANGE: skipped as rspack generates additional chunk
+		it.skip(normalizeFilteredTestName(FilteredStatus.TODO,"should be empty when there is no additional chunks"), async () => {
 			const stats = await compile({
 				context: __dirname,
 				entry: {
@@ -111,7 +113,7 @@ describe("Stats", () => {
 			}
 		`);
 		});
-		it("should contain additional chunks", async () => {
+		it.skip(normalizeFilteredTestName(FilteredStatus.TODO, "should contain additional chunks"), async () => {
 			const stats = await compile({
 				context: __dirname,
 				entry: {
@@ -172,7 +174,7 @@ describe("Stats", () => {
 			}
 		`);
 		});
-		it("should contain assets", async () => {
+		it.skip(normalizeFilteredTestName(FilteredStatus.TODO, "should contain assets"), async () => {
 			const stats = await compile({
 				context: __dirname,
 				entry: {

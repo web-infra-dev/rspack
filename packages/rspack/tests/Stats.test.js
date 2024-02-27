@@ -1,12 +1,28 @@
-import * as util from "util";
-import path from "path";
-import { Compiler, rspack, RspackOptions, Stats } from "../src";
-import serializer from "jest-serializer-path";
+"use strict";
 
+require("./helpers/warmup-webpack");
+
+const { createFsFromVolume, Volume } = require("memfs");
+const path = require("path");
+const { Stats } = require("../dist");
+const serializer = require("jest-serializer-path");
+
+// CHANGE: required for additional tests
 expect.addSnapshotSerializer(serializer);
 
-const compile = async (options: RspackOptions) => {
-	return util.promisify(rspack)(options);
+const compile = options => {
+	return new Promise((resolve, reject) => {
+		const webpack = require("..");
+		const compiler = webpack(options);
+		compiler.outputFileSystem = createFsFromVolume(new Volume());
+		compiler.run((err, stats) => {
+			if (err) {
+				reject(err);
+			} else {
+				resolve(stats);
+			}
+		});
+	});
 };
 
 describe("Stats", () => {
@@ -223,12 +239,12 @@ describe("Stats", () => {
 	});
 
 	it("should not have any cache hits log when cache is disabled", async () => {
-		const compiler = rspack({
+		const compiler = require("../dist")({
 			context: __dirname,
 			entry: "./fixtures/abc",
 			cache: false
 		});
-		await new Promise<void>((resolve, reject) => {
+		await new Promise((resolve, reject) => {
 			compiler.build(err => {
 				if (err) {
 					return reject(err);
@@ -236,7 +252,7 @@ describe("Stats", () => {
 				resolve();
 			});
 		});
-		const stats = await new Promise<string>((resolve, reject) => {
+		const stats = await new Promise((resolve, reject) => {
 			compiler.rebuild(
 				new Set([path.join(__dirname, "./fixtures/a")]),
 				new Set(),
@@ -258,12 +274,12 @@ describe("Stats", () => {
 	});
 
 	it("should have any cache hits log of modules in incremental rebuild mode", async () => {
-		const compiler = rspack({
+		const compiler = require("../dist")({
 			context: __dirname,
 			entry: "./fixtures/abc",
 			cache: true
 		});
-		await new Promise<void>((resolve, reject) => {
+		await new Promise((resolve, reject) => {
 			compiler.build(err => {
 				if (err) {
 					return reject(err);
@@ -271,7 +287,7 @@ describe("Stats", () => {
 				resolve();
 			});
 		});
-		const stats = await new Promise<string>((resolve, reject) => {
+		const stats = await new Promise((resolve, reject) => {
 			compiler.rebuild(
 				new Set([path.join(__dirname, "./fixtures/a")]),
 				new Set(),
@@ -316,7 +332,7 @@ describe("Stats", () => {
 		let stats;
 
 		class TestPlugin {
-			apply(compiler: Compiler) {
+			apply(compiler) {
 				compiler.hooks.thisCompilation.tap("custom", compilation => {
 					compilation.hooks.optimizeModules.tap("test plugin", () => {
 						stats = compiler.compilation.getStats().toJson({});
@@ -330,7 +346,7 @@ describe("Stats", () => {
 			plugins: [new TestPlugin()]
 		});
 
-		expect(stats!.entrypoints).toMatchInlineSnapshot(`
+		expect(stats.entrypoints).toMatchInlineSnapshot(`
 		{
 		  "main": {
 		    "assets": [],
@@ -348,7 +364,7 @@ describe("Stats", () => {
 		let statsJson;
 
 		class TestPlugin {
-			apply(compiler: Compiler) {
+			apply(compiler) {
 				compiler.hooks.thisCompilation.tap(TestPlugin.name, compilation => {
 					compilation.hooks.processAssets.tapAsync(
 						TestPlugin.name,
