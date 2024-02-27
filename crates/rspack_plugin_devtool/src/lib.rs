@@ -124,6 +124,8 @@ pub enum ModuleOrSource {
   Module(ModuleIdentifier),
 }
 
+type AssetsCache = HashMap<String, (u64, CompilationAsset, Option<(String, CompilationAsset)>)>;
+
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct SourceMapDevToolPlugin {
@@ -143,8 +145,7 @@ pub struct SourceMapDevToolPlugin {
   source_root: Option<String>,
   #[derivative(Debug = "ignore")]
   test: Option<TestFn>,
-  source_and_map_assets_cache:
-    RwLock<HashMap<String, (u64, CompilationAsset, Option<(String, CompilationAsset)>)>>,
+  assets_cache: RwLock<AssetsCache>,
 }
 
 impl SourceMapDevToolPlugin {
@@ -187,7 +188,7 @@ impl SourceMapDevToolPlugin {
       module: options.module,
       source_root: options.source_root,
       test: options.test,
-      source_and_map_assets_cache: RwLock::new(HashMap::default()),
+      assets_cache: RwLock::new(HashMap::default()),
     }
   }
 }
@@ -215,13 +216,17 @@ impl Plugin for SourceMapDevToolPlugin {
       Option<(String, CompilationAsset)>,
     )> = Vec::with_capacity(compilation_assets.len());
     let mut recompute_assets = vec![];
-
     {
-      let cache = self.source_and_map_assets_cache.read().unwrap();
+      let assets_cache = self
+        .assets_cache
+        .read()
+        .expect("assets cache read lock acquisition failed");
       for (filename, asset) in compilation.assets() {
         let source = asset.get_source();
         if let Some(source) = source {
-          if let Some((cached_hash, cached_source_asset, cached_map_asset)) = cache.get(filename) {
+          if let Some((cached_hash, cached_source_asset, cached_map_asset)) =
+            assets_cache.get(filename)
+          {
             let mut hasher = RspackHash::new(&HashFunction::MD4);
             source.update_hash(&mut hasher);
             let hash = hasher.finish();
@@ -530,8 +535,11 @@ impl Plugin for SourceMapDevToolPlugin {
       }
 
       {
-        let mut cache = self.source_and_map_assets_cache.write().unwrap();
-        cache.clear();
+        let mut assets_cache = self
+          .assets_cache
+          .write()
+          .expect("assets cache write lock acquisition failed");
+        assets_cache.clear();
         for (source_filename, source_hash, source_asset, source_map) in &source_and_map_asstes {
           let mut source_asset = source_asset.clone();
           if let Some(asset) = compilation.assets_mut().remove(source_filename) {
@@ -540,7 +548,7 @@ impl Plugin for SourceMapDevToolPlugin {
           compilation.emit_asset(source_filename.to_owned(), source_asset.clone());
           if let Some((source_map_filename, source_map_asset)) = source_map {
             compilation.emit_asset(source_map_filename.to_owned(), source_map_asset.clone());
-            cache.insert(
+            assets_cache.insert(
               source_filename.to_owned(),
               (
                 *source_hash,
@@ -549,7 +557,7 @@ impl Plugin for SourceMapDevToolPlugin {
               ),
             );
           } else {
-            cache.insert(
+            assets_cache.insert(
               source_filename.to_owned(),
               (*source_hash, source_asset, None),
             );
