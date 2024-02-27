@@ -10,6 +10,8 @@ pub enum DependencyCategory {
   Url,
   CssImport,
   CssCompose,
+  /// FIXME: remove after we align css module with webpack
+  CssModuleExport,
   Wasm,
   Worker,
   LoaderImport,
@@ -23,6 +25,7 @@ impl From<&str> for DependencyCategory {
       "url" => Self::Url,
       "wasm" => Self::Wasm,
       "css-import" => Self::CssImport,
+      "css-export" => Self::CssModuleExport,
       "css-compose" => Self::CssCompose,
       "worker" => Self::Worker,
       "unknown" => Self::Unknown,
@@ -43,6 +46,7 @@ impl DependencyCategory {
       DependencyCategory::Wasm => "wasm",
       DependencyCategory::Worker => "worker",
       DependencyCategory::LoaderImport => "loader import",
+      DependencyCategory::CssModuleExport => "css-export",
     }
   }
 }
