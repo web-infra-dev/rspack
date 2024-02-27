@@ -533,36 +533,33 @@ impl Plugin for SourceMapDevToolPlugin {
         // TODO
         // chunk.auxiliary_files.add(filename);
       }
+    }
 
-      {
-        let mut assets_cache = self
-          .assets_cache
-          .write()
-          .expect("assets cache write lock acquisition failed");
-        assets_cache.clear();
-        for (source_filename, source_hash, source_asset, source_map) in &source_and_map_asstes {
-          let mut source_asset = source_asset.clone();
-          if let Some(asset) = compilation.assets_mut().remove(source_filename) {
-            source_asset.info = asset.info;
-          }
-          compilation.emit_asset(source_filename.to_owned(), source_asset.clone());
-          if let Some((source_map_filename, source_map_asset)) = source_map {
-            compilation.emit_asset(source_map_filename.to_owned(), source_map_asset.clone());
-            assets_cache.insert(
-              source_filename.to_owned(),
-              (
-                *source_hash,
-                source_asset,
-                Some((source_map_filename.to_owned(), source_map_asset.clone())),
-              ),
-            );
-          } else {
-            assets_cache.insert(
-              source_filename.to_owned(),
-              (*source_hash, source_asset, None),
-            );
-          }
-        }
+    let mut assets_cache = self
+      .assets_cache
+      .write()
+      .expect("assets cache write lock acquisition failed");
+    assets_cache.clear();
+    for (source_filename, source_hash, mut source_asset, source_map) in source_and_map_asstes {
+      if let Some(asset) = compilation.assets_mut().remove(&source_filename) {
+        source_asset.info = asset.info;
+      }
+      compilation.emit_asset(source_filename.to_owned(), source_asset.clone());
+      if let Some((source_map_filename, source_map_asset)) = source_map {
+        compilation.emit_asset(source_map_filename.to_owned(), source_map_asset.clone());
+        assets_cache.insert(
+          source_filename.to_owned(),
+          (
+            source_hash,
+            source_asset,
+            Some((source_map_filename.to_owned(), source_map_asset.clone())),
+          ),
+        );
+      } else {
+        assets_cache.insert(
+          source_filename.to_owned(),
+          (source_hash, source_asset, None),
+        );
       }
     }
 
