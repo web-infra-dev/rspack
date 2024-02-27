@@ -378,7 +378,7 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
         }
       }
     } else {
-      n.init.visit_with(self);
+      n.visit_children_with(self);
     }
   }
 
