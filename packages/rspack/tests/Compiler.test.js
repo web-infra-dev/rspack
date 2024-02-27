@@ -1,55 +1,67 @@
-// @ts-nocheck
-import { RawSource } from "webpack-sources";
-import { Compiler, rspack } from "../src";
-import { Stats } from "../src/Stats";
+"use strict";
+
+require("./helpers/warmup-webpack");
+
 const path = require("path");
-import { createFsFromVolume, Volume } from "memfs";
-import serializer from "jest-serializer-path";
+// CHANGE: changed the import path
+const { Stats } = require("..");
+const { createFsFromVolume, Volume } = require("memfs");
 const captureStdio = require("./helpers/captureStdio");
 const deprecationTracking = require("./helpers/deprecationTracking");
 
-expect.addSnapshotSerializer(serializer);
-
 describe("Compiler", () => {
-	function compile(entry: string, options, callback) {
+	jest.setTimeout(20000);
+	function compile(entry, options, callback) {
 		const noOutputPath = !options.output || !options.output.path;
-
-		options = rspack.config.getNormalizedRspackOptions(options);
-
+		const webpack = require("..");
+		options = webpack.config.getNormalizedWebpackOptions(options);
 		if (!options.mode) options.mode = "production";
 		options.entry = entry;
 		options.context = path.join(__dirname, "fixtures");
 		if (noOutputPath) options.output.path = "/";
+		// CHANGE: The pathinfo is currently not supported in rspack
+		// options.output.pathinfo = true;
 		options.optimization = {
 			minimize: false
 		};
-		options.cache = true;
 		const logs = {
 			mkdir: [],
 			writeFile: []
 		};
-
-		const c = rspack(options);
+		const c = webpack(options);
 		const files = {};
-		// c.outputFileSystem = {
-		// 	mkdir(path, callback) {
-		// 		logs.mkdir.push(path);
-		// 		const err = new Error();
-		// 		err.code = "EEXIST";
-		// 		callback(err);
-		// 	},
-		// 	writeFile(name, content, callback) {
-		// 		logs.writeFile.push(name, content);
-		// 		files[name] = content.toString("utf-8");
-		// 		callback();
-		// 	},
-		// 	stat(path, callback) {
-		// 		callback(new Error("ENOENT"));
-		// 	}
-		// };
-		c.hooks.compilation.tap("CompilerTest", compilation => {
-			compilation.bail = true;
-		});
+		c.outputFileSystem = {
+			// CHANGE: Added support for the `options` parameter to enable recursive directory creation,
+			// accommodating Rspack's requirement that differs from webpack's usage
+			mkdir(path, options, callback) {
+				let recursive = false;
+				if (typeof options === "function") {
+					callback = options;
+				} else if (options) {
+					if (options.recursive !== undefined) recursive = options.recursive;
+				}
+				logs.mkdir.push(path);
+				if (recursive) {
+					callback();
+				} else {
+					const err = new Error();
+					err.code = "EEXIST";
+					callback(err);
+				}
+			},
+			writeFile(name, content, callback) {
+				logs.writeFile.push(name, content);
+				files[name] = content.toString("utf-8");
+				callback();
+			},
+			stat(path, callback) {
+				callback(new Error("ENOENT"));
+			}
+		};
+		c.hooks.compilation.tap(
+			"CompilerTest",
+			compilation => (compilation.bail = true)
+		);
 		c.run((err, stats) => {
 			if (err) throw err;
 			expect(typeof stats).toBe("object");
@@ -73,7 +85,7 @@ describe("Compiler", () => {
 		});
 	}
 
-	let compiler: Compiler;
+	let compiler;
 	afterEach(callback => {
 		if (compiler) {
 			compiler.close(callback);
@@ -82,27 +94,27 @@ describe("Compiler", () => {
 			callback();
 		}
 	});
-
+	// CHANGE: skip due to panic occurred at runtime
 	it("should compile a single file to deep output", done => {
 		compile(
-			"./a",
+			"./c",
 			{
 				output: {
-					path: "dist",
+					path: "/what",
 					filename: "the/hell.js"
 				}
 			},
 			(stats, files) => {
-				//expect(stats.logs.mkdir).toEqual(["/what", "/what/the"]);
-				let result = stats.errors.some(err =>
-					err.message.includes("failed to resolve")
-				);
-				expect(stats.errors.length).toBe(0);
+				// CHANGE: Rspack utilizes the `recursive = true` option for `mkdir`, creating nested directories as needed
+				// The expected log should only include the deepest directory "/what/the"
+				// expect(stats.logs.mkdir).toEqual(["/what", "/what/the"]);
+				expect(stats.logs.mkdir).toEqual(["/what/the"]);
 				done();
 			}
 		);
 	});
 
+	// CHANGE: skip due to Rspack defaults to numerical module ids, unlike webpack's string-based ids
 	it.skip("should compile a single file", done => {
 		compile("./c", {}, (stats, files) => {
 			expect(Object.keys(files)).toEqual(["/main.js"]);
@@ -213,10 +225,15 @@ describe("Compiler", () => {
 	describe("methods", () => {
 		let compiler;
 		beforeEach(() => {
-			compiler = rspack({
+			const webpack = require("..");
+			compiler = webpack({
 				entry: "./c",
 				context: path.join(__dirname, "fixtures"),
-				output: {}
+				output: {
+					path: "/directory"
+					// CHANGE: The pathinfo is currently not supported in rspack
+					// pathinfo: true
+				}
 			});
 		});
 		afterEach(callback => {
@@ -261,7 +278,7 @@ describe("Compiler", () => {
 				const response3 = compiler.isChild();
 				expect(response3).toBe(true);
 
-				compiler.parentCompilation = ["Array", 123, true, null, [], () => {}];
+				compiler.parentCompilation = ["Array", 123, true, null, [], () => { }];
 				const response4 = compiler.isChild();
 				expect(response4).toBe(true);
 
@@ -289,11 +306,13 @@ describe("Compiler", () => {
 		});
 	});
 	it("should not emit on errors", done => {
-		compiler = rspack({
+		const webpack = require("..");
+		compiler = webpack({
 			context: __dirname,
 			mode: "production",
 			entry: "./missing",
 			output: {
+				path: "/directory",
 				filename: "bundle.js"
 			}
 		});
@@ -309,7 +328,8 @@ describe("Compiler", () => {
 		try {
 			const createCompiler = options => {
 				return new Promise((resolve, reject) => {
-					const c = rspack(options);
+					const webpack = require("..");
+					const c = webpack(options);
 					c.run((err, stats) => {
 						if (err) {
 							reject(err);
@@ -317,7 +337,7 @@ describe("Compiler", () => {
 						if (stats !== undefined && "errors" in stats) {
 							reject(err);
 						} else {
-							resolve(c);
+							resolve(stats);
 						}
 					});
 					return c;
@@ -328,22 +348,26 @@ describe("Compiler", () => {
 				mode: "production",
 				entry: "./missing-file",
 				output: {
+					path: "/directory",
 					filename: "bundle.js"
 				},
 				bail: true
 			});
 		} catch (err) {
-			expect(err.toString()).toMatchInlineSnapshot(`
-			"Error:   × Resolve error: Can't resolve './missing-file' in '<PROJECT_ROOT>/tests'
-			"
-		`);
+			expect(err.toString()).toMatch(
+				// CHANGE: Error messages from Rspack differ from those in webpack
+				// "ModuleNotFoundError: Module not found: Error: Can't resolve './missing-file'"
+				"Error:   × Resolve error: Can't resolve './missing-file'"
+			);
 		}
 	});
+	// CHANGE: specially added for rspack
 	it("should bubble up errors when wrapped in a promise and bail is true (empty dependency)", async () => {
 		try {
 			const createCompiler = options => {
 				return new Promise((resolve, reject) => {
-					const c = rspack(options);
+					const webpack = require("..");
+					const c = webpack(options);
 					c.run((err, stats) => {
 						if (err) {
 							reject(err);
@@ -383,7 +407,8 @@ describe("Compiler", () => {
 	it("should not emit compilation errors in async (watch)", async () => {
 		const createStats = options => {
 			return new Promise((resolve, reject) => {
-				const c = rspack(options);
+				const webpack = require("..");
+				const c = webpack(options);
 				c.outputFileSystem = createFsFromVolume(new Volume());
 				const watching = c.watch({}, (err, stats) => {
 					watching.close(() => {
@@ -398,34 +423,34 @@ describe("Compiler", () => {
 			mode: "production",
 			entry: "./missing-file",
 			output: {
-				// path: "/directory",
+				path: "/directory",
 				filename: "bundle.js"
 			}
 		});
 		expect(stats).toBeInstanceOf(Stats);
 	});
 
-	it.skip("should not emit on errors (watch)", done => {
-		compiler = rspack({
+	it("should not emit on errors (watch)", done => {
+		const webpack = require("..");
+		compiler = webpack({
 			context: __dirname,
 			mode: "production",
 			entry: "./missing",
 			output: {
-				// path: "/directory",
+				path: "/directory",
 				filename: "bundle.js"
 			}
 		});
 		compiler.outputFileSystem = createFsFromVolume(new Volume());
 		const watching = compiler.watch({}, (err, stats) => {
-			watching.close(() => {
-				if (err) return done(err);
-				if (compiler.outputFileSystem.existsSync("/bundle.js"))
-					return done(new Error("Bundle should not be created on error"));
-				done();
-			});
+			watching.close();
+			if (err) return done(err);
+			if (compiler.outputFileSystem.existsSync("/bundle.js"))
+				return done(new Error("Bundle should not be created on error"));
+			done();
 		});
 	});
-	it.skip("should not be running twice at a time (run)", done => {
+	it("should not be running twice at a time (run)", done => {
 		const webpack = require("..");
 		compiler = webpack({
 			context: __dirname,
@@ -444,7 +469,7 @@ describe("Compiler", () => {
 			if (err) return done();
 		});
 	});
-	it.skip("should not be running twice at a time (watch)", done => {
+	it("should not be running twice at a time (watch)", done => {
 		const webpack = require("..");
 		compiler = webpack({
 			context: __dirname,
@@ -463,7 +488,7 @@ describe("Compiler", () => {
 			if (err) return done();
 		});
 	});
-	it.skip("should not be running twice at a time (run - watch)", done => {
+	it("should not be running twice at a time (run - watch)", done => {
 		const webpack = require("..");
 		compiler = webpack({
 			context: __dirname,
@@ -482,7 +507,7 @@ describe("Compiler", () => {
 			if (err) return done();
 		});
 	});
-	it.skip("should not be running twice at a time (watch - run)", done => {
+	it("should not be running twice at a time (watch - run)", done => {
 		const webpack = require("..");
 		compiler = webpack({
 			context: __dirname,
@@ -501,7 +526,7 @@ describe("Compiler", () => {
 			if (err) return done();
 		});
 	});
-	it.skip("should not be running twice at a time (instance cb)", done => {
+	it("should not be running twice at a time (instance cb)", done => {
 		const webpack = require("..");
 		compiler = webpack(
 			{
@@ -513,14 +538,14 @@ describe("Compiler", () => {
 					filename: "bundle.js"
 				}
 			},
-			() => {}
+			() => { }
 		);
 		compiler.outputFileSystem = createFsFromVolume(new Volume());
 		compiler.run((err, stats) => {
 			if (err) return done();
 		});
 	});
-	it.skip("should run again correctly after first compilation", done => {
+	it("should run again correctly after first compilation", done => {
 		const webpack = require("..");
 		compiler = webpack({
 			context: __dirname,
@@ -542,7 +567,7 @@ describe("Compiler", () => {
 			});
 		});
 	});
-	it.skip("should watch again correctly after first compilation", done => {
+	it("should watch again correctly after first compilation", done => {
 		const webpack = require("..");
 		compiler = webpack({
 			context: __dirname,
@@ -563,6 +588,7 @@ describe("Compiler", () => {
 			});
 		});
 	});
+	// CHANGE: skip due to panic occurred at runtime
 	it.skip("should run again correctly after first closed watch", done => {
 		const webpack = require("..");
 		compiler = webpack({
@@ -585,7 +611,7 @@ describe("Compiler", () => {
 			});
 		});
 	});
-	it.skip("should set compiler.watching correctly", function (done) {
+	it("should set compiler.watching correctly", function (done) {
 		const webpack = require("..");
 		compiler = webpack({
 			context: __dirname,
@@ -603,6 +629,7 @@ describe("Compiler", () => {
 		});
 		expect(compiler.watching).toBe(watching);
 	});
+	// CHANGE: skip due to panic occurred at runtime
 	it.skip("should watch again correctly after first closed watch", done => {
 		const webpack = require("..");
 		compiler = webpack({
@@ -626,11 +653,13 @@ describe("Compiler", () => {
 		});
 	});
 	it("should run again correctly inside afterDone hook", done => {
-		compiler = rspack({
+		const webpack = require("..");
+		compiler = webpack({
 			context: __dirname,
 			mode: "production",
 			entry: "./c",
 			output: {
+				path: "/directory",
 				filename: "bundle.js"
 			}
 		});
@@ -649,11 +678,13 @@ describe("Compiler", () => {
 		});
 	});
 	it("should call afterDone hook after other callbacks (run)", done => {
-		compiler = rspack({
+		const webpack = require("..");
+		compiler = webpack({
 			context: __dirname,
 			mode: "production",
 			entry: "./c",
 			output: {
+				path: "/directory",
 				filename: "bundle.js"
 			}
 		});
@@ -673,12 +704,15 @@ describe("Compiler", () => {
 	});
 	it("should call afterDone hook after other callbacks (instance cb)", done => {
 		const instanceCb = jest.fn();
-		compiler = rspack(
+		const webpack = require("..");
+		compiler = webpack(
 			{
 				context: __dirname,
 				mode: "production",
 				entry: "./c",
 				output: {
+					// CHANGE: The `afterDone` hook will not be called if the `path` configuration is added
+					// path: "/directory",
 					filename: "bundle.js"
 				}
 			},
@@ -696,8 +730,10 @@ describe("Compiler", () => {
 			done();
 		});
 	});
+	// CHANGE: skip due to panic occurred at runtime
 	it.skip("should call afterDone hook after other callbacks (watch)", done => {
-		compiler = rspack({
+		const webpack = require("..");
+		compiler = webpack({
 			context: __dirname,
 			mode: "production",
 			entry: "./c",
@@ -728,7 +764,7 @@ describe("Compiler", () => {
 			watching.invalidate(invalidateCb);
 		});
 	});
-	it.skip("should call afterDone hook after other callbacks (watch close)", done => {
+	it("should call afterDone hook after other callbacks (watch close)", done => {
 		const webpack = require("..");
 		compiler = webpack({
 			context: __dirname,
@@ -761,7 +797,7 @@ describe("Compiler", () => {
 			watch.invalidate(invalidateCb);
 		});
 	});
-	it.skip("should flag watchMode as true in watch", done => {
+	it("should flag watchMode as true in watch", done => {
 		const webpack = require("..");
 		compiler = webpack({
 			context: __dirname,
@@ -784,6 +820,7 @@ describe("Compiler", () => {
 			});
 		});
 	});
+	// CHANGE: skip due to panic occurred at runtime
 	it.skip("should use cache on second run call", done => {
 		const webpack = require("..");
 		compiler = webpack({
@@ -809,7 +846,8 @@ describe("Compiler", () => {
 	});
 	it("should call the failed-hook on error", done => {
 		const failedSpy = jest.fn();
-		compiler = rspack({
+		const webpack = require("..");
+		compiler = webpack({
 			bail: true,
 			context: __dirname,
 			mode: "production",
@@ -828,6 +866,7 @@ describe("Compiler", () => {
 			done();
 		});
 	});
+	// CHANGE: skip as rspack does not currently emit correct error code
 	it.skip("should deprecate when watch option is used without callback", () => {
 		const tracker = deprecationTracking.start();
 		const webpack = require("..");
@@ -873,7 +912,8 @@ describe("Compiler", () => {
 			}
 		}
 		it("should log to the console (verbose)", done => {
-			compiler = rspack({
+			const webpack = require("..");
+			compiler = webpack({
 				context: path.join(__dirname, "fixtures"),
 				entry: "./a",
 				output: {
@@ -889,21 +929,22 @@ describe("Compiler", () => {
 			compiler.run((err, stats) => {
 				expect(capture.toString().replace(/[\d.]+ ms/, "X ms"))
 					.toMatchInlineSnapshot(`
-			"<-> [MyPlugin] Group
-			  <e> [MyPlugin] Error
-			  <w> [MyPlugin] Warning
-			  <i> [MyPlugin] Info
-			      [MyPlugin] Log
-			  <-> [MyPlugin] Collapsed group
-			        [MyPlugin] Log inside collapsed group
-			<t> [MyPlugin] Time: X ms
-			"
-		`);
+	"<-> [MyPlugin] Group
+	  <e> [MyPlugin] Error
+	  <w> [MyPlugin] Warning
+	  <i> [MyPlugin] Info
+	      [MyPlugin] Log
+	  <-> [MyPlugin] Collapsed group
+	        [MyPlugin] Log inside collapsed group
+	<t> [MyPlugin] Time: X ms
+	"
+	`);
 				done();
 			});
 		});
 		it("should log to the console (debug mode)", done => {
-			compiler = rspack({
+			const webpack = require("..");
+			compiler = webpack({
 				context: path.join(__dirname, "fixtures"),
 				entry: "./a",
 				output: {
@@ -920,22 +961,23 @@ describe("Compiler", () => {
 			compiler.run((err, stats) => {
 				expect(capture.toString().replace(/[\d.]+ ms/, "X ms"))
 					.toMatchInlineSnapshot(`
-			"<-> [MyPlugin] Group
-			  <e> [MyPlugin] Error
-			  <w> [MyPlugin] Warning
-			  <i> [MyPlugin] Info
-			      [MyPlugin] Log
-			      [MyPlugin] Debug
-			  <-> [MyPlugin] Collapsed group
-			        [MyPlugin] Log inside collapsed group
-			<t> [MyPlugin] Time: X ms
-			"
+		"<-> [MyPlugin] Group
+		  <e> [MyPlugin] Error
+		  <w> [MyPlugin] Warning
+		  <i> [MyPlugin] Info
+		      [MyPlugin] Log
+		      [MyPlugin] Debug
+		  <-> [MyPlugin] Collapsed group
+		        [MyPlugin] Log inside collapsed group
+		<t> [MyPlugin] Time: X ms
+		"
 		`);
 				done();
 			});
 		});
 		it("should log to the console (none)", done => {
-			compiler = rspack({
+			const webpack = require("..");
+			compiler = webpack({
 				context: path.join(__dirname, "fixtures"),
 				entry: "./a",
 				output: {
@@ -954,10 +996,12 @@ describe("Compiler", () => {
 			});
 		});
 		it("should log to the console with colors (verbose)", done => {
-			compiler = rspack({
+			const webpack = require("..");
+			compiler = webpack({
 				context: path.join(__dirname, "fixtures"),
 				entry: "./a",
 				output: {
+					path: "/directory",
 					filename: "bundle.js"
 				},
 				infrastructureLogging: {
@@ -970,24 +1014,26 @@ describe("Compiler", () => {
 			compiler.run((err, stats) => {
 				expect(escapeAnsi(capture.toStringRaw()).replace(/[\d.]+ ms/, "X ms"))
 					.toMatchInlineSnapshot(`
-			"<-> <CLR=36,BOLD>[MyPlugin] Group</CLR>
-			  <e> <CLR=31,BOLD>[MyPlugin] Error</CLR>
-			  <w> <CLR=33,BOLD>[MyPlugin] Warning</CLR>
-			  <i> <CLR=32,BOLD>[MyPlugin] Info</CLR>
-			      <CLR=BOLD>[MyPlugin] Log<CLR=22>
-			  <-> <CLR=36,BOLD>[MyPlugin] Collapsed group</CLR>
-			        <CLR=BOLD>[MyPlugin] Log inside collapsed group<CLR=22>
-			<t> <CLR=35,BOLD>[MyPlugin] Time: X ms</CLR>
-			"
+		"<-> <CLR=36,BOLD>[MyPlugin] Group</CLR>
+		  <e> <CLR=31,BOLD>[MyPlugin] Error</CLR>
+		  <w> <CLR=33,BOLD>[MyPlugin] Warning</CLR>
+		  <i> <CLR=32,BOLD>[MyPlugin] Info</CLR>
+		      <CLR=BOLD>[MyPlugin] Log<CLR=22>
+		  <-> <CLR=36,BOLD>[MyPlugin] Collapsed group</CLR>
+		        <CLR=BOLD>[MyPlugin] Log inside collapsed group<CLR=22>
+		<t> <CLR=35,BOLD>[MyPlugin] Time: X ms</CLR>
+		"
 		`);
 				done();
 			});
 		});
 		it("should log to the console with colors (debug mode)", done => {
-			compiler = rspack({
+			const webpack = require("..");
+			compiler = webpack({
 				context: path.join(__dirname, "fixtures"),
 				entry: "./a",
 				output: {
+					path: "/directory",
 					filename: "bundle.js"
 				},
 				infrastructureLogging: {
@@ -1001,23 +1047,25 @@ describe("Compiler", () => {
 			compiler.run((err, stats) => {
 				expect(escapeAnsi(capture.toStringRaw()).replace(/[\d.]+ ms/, "X ms"))
 					.toMatchInlineSnapshot(`
-			"<-> <CLR=36,BOLD>[MyPlugin] Group</CLR>
-			  <e> <CLR=31,BOLD>[MyPlugin] Error</CLR>
-			  <w> <CLR=33,BOLD>[MyPlugin] Warning</CLR>
-			  <i> <CLR=32,BOLD>[MyPlugin] Info</CLR>
-			      <CLR=BOLD>[MyPlugin] Log<CLR=22>
-			      [MyPlugin] Debug
-			  <-> <CLR=36,BOLD>[MyPlugin] Collapsed group</CLR>
-			        <CLR=BOLD>[MyPlugin] Log inside collapsed group<CLR=22>
-			<t> <CLR=35,BOLD>[MyPlugin] Time: X ms</CLR>
-			"
+		"<-> <CLR=36,BOLD>[MyPlugin] Group</CLR>
+		  <e> <CLR=31,BOLD>[MyPlugin] Error</CLR>
+		  <w> <CLR=33,BOLD>[MyPlugin] Warning</CLR>
+		  <i> <CLR=32,BOLD>[MyPlugin] Info</CLR>
+		      <CLR=BOLD>[MyPlugin] Log<CLR=22>
+		      [MyPlugin] Debug
+		  <-> <CLR=36,BOLD>[MyPlugin] Collapsed group</CLR>
+		        <CLR=BOLD>[MyPlugin] Log inside collapsed group<CLR=22>
+		<t> <CLR=35,BOLD>[MyPlugin] Time: X ms</CLR>
+		"
 		`);
 				done();
 			});
 		});
+
+		// CHANGE: specially added for rspack
 		it("should print error with stack information with async callback", done => {
 			class MyPlugin {
-				apply(compiler: Compiler) {
+				apply(compiler) {
 					compiler.hooks.compilation.tap("MyPlugin", compilation => {
 						compilation.hooks.processAssets.tapPromise(
 							"MyPlugin",
@@ -1028,8 +1076,8 @@ describe("Compiler", () => {
 					});
 				}
 			}
-
-			compiler = rspack({
+			const webpack = require("..");
+			compiler = webpack({
 				context: path.join(__dirname, "fixtures"),
 				entry: "./a",
 				output: {
@@ -1045,17 +1093,17 @@ describe("Compiler", () => {
 				done();
 			});
 		});
-
+		// CHANGE: specially added for rspack
 		it("should print error with stack information with sync callback", done => {
 			class MyPlugin {
-				apply(compiler: Compiler) {
+				apply(compiler) {
 					compiler.hooks.compilation.tap("MyPlugin", compilation => {
 						throw new Error("Failed to handle process assets from JS");
 					});
 				}
 			}
-
-			compiler = rspack({
+			const webpack = require("..");
+			compiler = webpack({
 				context: path.join(__dirname, "fixtures"),
 				entry: "./a",
 				output: {
@@ -1072,18 +1120,19 @@ describe("Compiler", () => {
 			});
 		});
 	});
-
+	// CHANGE: specially added for rspack
 	describe("compilation", () => {
 		it("should be called", done => {
 			const mockFn = jest.fn();
 			class MyPlugin {
-				apply(compiler: Compiler) {
+				apply(compiler) {
 					compiler.hooks.compilation.tap("Plugin", compilation => {
 						mockFn();
 					});
 				}
 			}
-			const compiler = rspack({
+			const webpack = require("..");
+			const compiler = webpack({
 				entry: "./d",
 				context: path.join(__dirname, "fixtures"),
 				plugins: [new MyPlugin()]
@@ -1100,7 +1149,7 @@ describe("Compiler", () => {
 		it("should work with `namedChunks`", done => {
 			const mockFn = jest.fn();
 			class MyPlugin {
-				apply(compiler: Compiler) {
+				apply(compiler) {
 					compiler.hooks.afterCompile.tap("Plugin", compilation => {
 						let c = compilation.namedChunks.get("d");
 						expect(c.name).toBe("d");
@@ -1108,7 +1157,8 @@ describe("Compiler", () => {
 					});
 				}
 			}
-			const compiler = rspack({
+			const webpack = require("..");
+			const compiler = webpack({
 				entry: {
 					d: "./d"
 				},
@@ -1125,7 +1175,7 @@ describe("Compiler", () => {
 
 		it("should get assets with both `getAssets` and `assets`(getter)", done => {
 			class MyPlugin {
-				apply(compiler: Compiler) {
+				apply(compiler) {
 					compiler.hooks.compilation.tap("Plugin", compilation => {
 						compilation.hooks.processAssets.tap("Plugin", () => {
 							let list = compilation.getAssets();
@@ -1141,8 +1191,8 @@ describe("Compiler", () => {
 					});
 				}
 			}
-
-			const compiler = rspack({
+			const webpack = require("..");
+			const compiler = webpack({
 				entry: "./d",
 				context: path.join(__dirname, "fixtures"),
 				plugins: [new MyPlugin()]
@@ -1155,20 +1205,20 @@ describe("Compiler", () => {
 
 		it("should update assets", done => {
 			class MyPlugin {
-				apply(compiler: Compiler) {
+				apply(compiler) {
 					compiler.hooks.compilation.tap("Plugin", compilation => {
 						compilation.hooks.processAssets.tap("Plugin", () => {
 							const oldSource = compilation.assets["main.js"];
 							expect(oldSource).toBeTruthy();
 							expect(oldSource.source().includes("This is d")).toBeTruthy();
-
+							const { RawSource } = require("webpack-sources");
 							const updatedSource = new RawSource(
 								`module.exports = "This is the updated d"`
 							);
 							compilation.updateAsset(
 								"main.js",
 								source => {
-									expect(source.buffer()).toEqual(oldSource!.buffer());
+									expect(source.buffer()).toEqual(oldSource.buffer());
 									return updatedSource;
 								},
 								_ => _
@@ -1181,8 +1231,8 @@ describe("Compiler", () => {
 					});
 				}
 			}
-
-			const compiler = rspack({
+			const webpack = require("..");
+			const compiler = webpack({
 				entry: "./d",
 				context: path.join(__dirname, "fixtures"),
 				plugins: [new MyPlugin()]
@@ -1197,9 +1247,10 @@ describe("Compiler", () => {
 			const mockFn = jest.fn();
 
 			class MyPlugin {
-				apply(compiler: Compiler) {
+				apply(compiler) {
 					compiler.hooks.compilation.tap("Plugin", compilation => {
 						compilation.hooks.processAssets.tap("Plugin", () => {
+							const { RawSource } = require("webpack-sources");
 							try {
 								compilation.updateAsset(
 									"something-else.js",
@@ -1221,8 +1272,8 @@ describe("Compiler", () => {
 					});
 				}
 			}
-
-			const compiler = rspack({
+			const webpack = require("..");
+			const compiler = webpack({
 				entry: "./d",
 				context: path.join(__dirname, "fixtures"),
 				plugins: [new MyPlugin()]
@@ -1237,11 +1288,11 @@ describe("Compiler", () => {
 
 		it("should emit assets correctly", done => {
 			class MyPlugin {
-				apply(compiler: Compiler) {
+				apply(compiler) {
 					compiler.hooks.compilation.tap("Plugin", compilation => {
 						let assets = compilation.getAssets();
 						expect(assets.length).toBe(0);
-
+						const { RawSource } = require("webpack-sources");
 						compilation.emitAsset(
 							"dd.js",
 							new RawSource(`module.exports = "This is dd"`)
@@ -1258,7 +1309,8 @@ describe("Compiler", () => {
 					});
 				}
 			}
-			const compiler = rspack({
+			const webpack = require("..");
+			const compiler = webpack({
 				entry: "./d",
 				context: path.join(__dirname, "fixtures"),
 				plugins: [new MyPlugin()],
@@ -1294,9 +1346,10 @@ describe("Compiler", () => {
 
 		it("should have error if the asset to be emitted is exist", done => {
 			class MyPlugin {
-				apply(compiler: Compiler) {
+				apply(compiler) {
 					compiler.hooks.compilation.tap("Plugin", compilation => {
 						compilation.hooks.processAssets.tap("Plugin", () => {
+							const { RawSource } = require("webpack-sources");
 							compilation.emitAsset(
 								"main.js",
 								new RawSource(`module.exports = "I'm the right main.js"`)
@@ -1305,8 +1358,8 @@ describe("Compiler", () => {
 					});
 				}
 			}
-
-			const compiler = rspack({
+			const webpack = require("..");
+			const compiler = webpack({
 				entry: "./d",
 				context: path.join(__dirname, "fixtures"),
 				plugins: [new MyPlugin()]
@@ -1324,7 +1377,7 @@ describe("Compiler", () => {
 
 		it("should call optimizeModules hook correctly", done => {
 			class MyPlugin {
-				apply(compiler: Compiler) {
+				apply(compiler) {
 					compiler.hooks.compilation.tap("MyPlugin", compilation => {
 						compilation.hooks.optimizeModules.tap("MyPlugin", modules => {
 							expect(modules.length).toEqual(1);
@@ -1333,7 +1386,8 @@ describe("Compiler", () => {
 					});
 				}
 			}
-			const compiler = rspack({
+			const webpack = require("..");
+			const compiler = webpack({
 				entry: "./d",
 				context: path.join(__dirname, "fixtures"),
 				plugins: [new MyPlugin()]
@@ -1346,7 +1400,7 @@ describe("Compiler", () => {
 
 		it("should call afterOptimizeModules hook correctly", done => {
 			class MyPlugin {
-				apply(compiler: Compiler) {
+				apply(compiler) {
 					let a = 1;
 					compiler.hooks.compilation.tap("MyPlugin", compilation => {
 						compilation.hooks.optimizeModules.tap("MyPlugin", () => {
@@ -1361,7 +1415,8 @@ describe("Compiler", () => {
 					});
 				}
 			}
-			const compiler = rspack({
+			const webpack = require("..");
+			const compiler = webpack({
 				entry: "./d",
 				context: path.join(__dirname, "fixtures"),
 				plugins: [new MyPlugin()]
@@ -1374,14 +1429,15 @@ describe("Compiler", () => {
 
 		it("should call getCache function correctly", done => {
 			class MyPlugin {
-				apply(compiler: Compiler) {
+				apply(compiler) {
 					compiler.hooks.compilation.tap("MyPlugin", compilation => {
 						let cache = compilation.getCache("MyPlugin");
 						expect(cache).not.toBeNull();
 					});
 				}
 			}
-			const compiler = rspack({
+			const webpack = require("..");
+			const compiler = webpack({
 				entry: "./d",
 				context: path.join(__dirname, "fixtures"),
 				plugins: [new MyPlugin()]
@@ -1393,10 +1449,12 @@ describe("Compiler", () => {
 		});
 	});
 
+	// CHANGE: specially added for rspack
 	describe("should print error", () => {
 		it("splitChunks.minChunks equals 0", done => {
+			const webpack = require("..");
 			try {
-				rspack({
+				webpack({
 					entry: "./a",
 					context: path.join(__dirname, "fixtures"),
 					optimization: {

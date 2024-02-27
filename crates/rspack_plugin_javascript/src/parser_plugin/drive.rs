@@ -1,5 +1,7 @@
 use swc_core::common::Span;
-use swc_core::ecma::ast::{BinExpr, CallExpr, Callee, CondExpr, Expr, OptChainExpr};
+use swc_core::ecma::ast::{
+  BinExpr, CallExpr, Callee, CondExpr, ExportDecl, ExportDefaultDecl, Expr, OptChainExpr,
+};
 use swc_core::ecma::ast::{IfStmt, MemberExpr, Stmt, UnaryOp, VarDecl, VarDeclarator};
 
 use super::{BoxJavascriptParserPlugin, JavascriptParserPlugin};
@@ -495,6 +497,58 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
   ) -> Option<bool> {
     for plugin in &self.plugins {
       let res = plugin.expression_conditional_operation(parser, expr);
+      // `SyncBailHook`
+      if res.is_some() {
+        return res;
+      }
+    }
+    None
+  }
+
+  fn export(&self, parser: &mut JavascriptParser, expr: &ExportDefaultDecl) -> Option<bool> {
+    for plugin in &self.plugins {
+      let res = plugin.export(parser, expr);
+      // `SyncBailHook`
+      if res.is_some() {
+        return res;
+      }
+    }
+    None
+  }
+
+  fn export_default_expr(
+    &self,
+    parser: &mut JavascriptParser,
+    expr: &swc_core::ecma::ast::ExportDefaultExpr,
+  ) -> Option<bool> {
+    for plugin in &self.plugins {
+      let res = plugin.export_default_expr(parser, expr);
+      // `SyncBailHook`
+      if res.is_some() {
+        return res;
+      }
+    }
+    None
+  }
+
+  fn export_decl(&self, parser: &mut JavascriptParser, expr: &ExportDecl) -> Option<bool> {
+    for plugin in &self.plugins {
+      let res = plugin.export_decl(parser, expr);
+      // `SyncBailHook`
+      if res.is_some() {
+        return res;
+      }
+    }
+    None
+  }
+
+  fn named_export(
+    &self,
+    parser: &mut JavascriptParser,
+    expr: &swc_core::ecma::ast::NamedExport,
+  ) -> Option<bool> {
+    for plugin in &self.plugins {
+      let res = plugin.named_export(parser, expr);
       // `SyncBailHook`
       if res.is_some() {
         return res;

@@ -198,7 +198,6 @@ describe("Stats", () => {
 		<t> prepare entrypoints: X ms
 		<t> process queue: X ms
 		<t> extend chunkGroup runtime: X ms
-		<t> remove parent modules: X ms
 		"
 	`);
 	});

@@ -1,20 +1,22 @@
-import path from "path";
-import fs from "graceful-fs";
-import vm from "vm";
-import rimraf from "rimraf";
-import checkArrayExpectation from "./checkArrayExpectation";
-import createLazyTestEnv from "./helpers/createLazyTestEnv";
-import { remove } from "./helpers/remove";
-import prepareOptions from "./helpers/prepareOptions";
-import deprecationTracking from "./helpers/deprecationTracking";
-import FakeDocument from "./helpers/FakeDocument";
-import { rspack, RspackOptions } from "../src";
-import { isValidTestCaseDir } from "./utils";
+"use strict";
 
-function copyDiff(src: string, dest: string, initial: boolean) {
+require("./helpers/warmup-webpack");
+
+const path = require("path");
+const fs = require("graceful-fs");
+const vm = require("vm");
+const rimraf = require("rimraf");
+const checkArrayExpectation = require("./checkArrayExpectation");
+const createLazyTestEnv = require("./helpers/createLazyTestEnv");
+const { remove } = require("./helpers/remove");
+const prepareOptions = require("./helpers/prepareOptions");
+const deprecationTracking = require("./helpers/deprecationTracking");
+const FakeDocument = require("./helpers/FakeDocument");
+
+function copyDiff(src, dest, initial) {
 	if (!fs.existsSync(dest)) fs.mkdirSync(dest);
 	const files = fs.readdirSync(src);
-	files.filter(isValidTestCaseDir).forEach(filename => {
+	files.forEach(filename => {
 		const srcFile = path.join(src, filename);
 		const destFile = path.join(dest, filename);
 		const directory = fs.statSync(srcFile).isDirectory();
@@ -41,15 +43,17 @@ function copyDiff(src: string, dest: string, initial: boolean) {
 	});
 }
 
-export const describeCases = (config: any) => {
+const describeCases = config => {
 	describe(config.name, () => {
 		if (process.env.NO_WATCH_TESTS) {
 			it.skip("long running tests excluded", () => {});
 			return;
 		}
 
-		const casesPath = path.join(__dirname, config.casePath);
-		let categories = fs.readdirSync(casesPath).map(cat => {
+		const casesPath = path.join(__dirname, "watchCases");
+		let categories = fs.readdirSync(casesPath);
+
+		categories = categories.map(cat => {
 			return {
 				name: cat,
 				tests: fs
@@ -102,7 +106,7 @@ export const describeCases = (config: any) => {
 									.statSync(path.join(testDirectory, name))
 									.isDirectory();
 							})
-							.map(name => ({ name } as any));
+							.map(name => ({ name }));
 
 						beforeAll(done => {
 							rimraf(tempDirectory, done);
@@ -121,7 +125,7 @@ export const describeCases = (config: any) => {
 
 								rimraf.sync(outputDirectory);
 
-								let options: RspackOptions = {};
+								let options = {};
 								const configPath = path.join(
 									testDirectory,
 									"webpack.config.js"
@@ -134,28 +138,22 @@ export const describeCases = (config: any) => {
 								}
 								const applyConfig = (options, idx) => {
 									if (!options.mode) options.mode = "development";
-									if (!options.context) {
-										options.context = tempDirectory;
-									} else if (!path.isAbsolute(options.context)) {
-										options.context = path.join(tempDirectory, options.context);
-									}
+									if (!options.context) options.context = tempDirectory;
 									if (!options.entry) options.entry = "./index.js";
-									// TODO: should be `if (!options.target) options.target = "async-node";`
-									if (!options.target) {
-										options.target = "node";
-									}
+									if (!options.target) options.target = "async-node";
 									if (!options.output) options.output = {};
 									if (!options.output.path)
 										options.output.path = outputDirectory;
+									// CHANGE: The pathinfo is currently not supported in rspack
 									// if (typeof options.output.pathinfo === "undefined")
 									// 	options.output.pathinfo = true;
 									if (!options.output.filename)
 										options.output.filename = "bundle.js";
-									// if (options.cache && options.cache.type === "filesystem") {
-									// 	const cacheDirectory = path.join(tempDirectory, ".cache");
-									// 	options.cache.cacheDirectory = cacheDirectory;
-									// 	options.cache.name = `config-${idx}`;
-									// }
+									if (options.cache && options.cache.type === "filesystem") {
+										const cacheDirectory = path.join(tempDirectory, ".cache");
+										options.cache.cacheDirectory = cacheDirectory;
+										options.cache.name = `config-${idx}`;
+									}
 									if (config.experiments) {
 										if (!options.experiments) options.experiments = {};
 										for (const key of Object.keys(config.experiments)) {
@@ -180,7 +178,7 @@ export const describeCases = (config: any) => {
 								const state = {};
 								let runIdx = 0;
 								let waitMode = false;
-								let run: any = runs[runIdx];
+								let run = runs[runIdx];
 								let triggeringFilename;
 								let lastHash = "";
 								const currentWatchStepModule = require("./helpers/currentWatchStep");
@@ -194,17 +192,17 @@ export const describeCases = (config: any) => {
 
 								setTimeout(() => {
 									const deprecationTracker = deprecationTracking.start();
-									const compiler = rspack(options);
-									// compiler.hooks.invalid.tap(
-									// 	"WatchTestCasesTest",
-									// 	(filename, mtime) => {
-									// 		triggeringFilename = filename;
-									// 	}
-									// );
+									const webpack = require("..");
+									const compiler = webpack(options);
+									compiler.hooks.invalid.tap(
+										"WatchTestCasesTest",
+										(filename, mtime) => {
+											triggeringFilename = filename;
+										}
+									);
 									compiler.watch(
 										{
-											aggregateTimeout: 1000,
-											poll: 1000
+											aggregateTimeout: 1000
 										},
 										(err, stats) => {
 											if (err) return compilationFinished(err);
@@ -235,10 +233,10 @@ export const describeCases = (config: any) => {
 											run.stats = stats;
 											if (err) return compilationFinished(err);
 											const statOptions = {
-												preset: "verbose" as const,
-												// cached: true,
-												// cachedAssets: true,
-												// cachedModules: true,
+												preset: "verbose",
+												cached: true,
+												cachedAssets: true,
+												cachedModules: true,
 												colors: false
 											};
 											fs.mkdirSync(outputDirectory, { recursive: true });
@@ -251,7 +249,7 @@ export const describeCases = (config: any) => {
 												"utf-8"
 											);
 											const jsonStats = stats.toJson({
-												errors: true
+												errorDetails: true
 											});
 											if (
 												checkArrayExpectation(
@@ -348,7 +346,7 @@ export const describeCases = (config: any) => {
 												} else return jest.requireActual(module);
 											}
 
-											let testConfig: any = {};
+											let testConfig = {};
 											try {
 												// try to load a test file
 												testConfig = require(path.join(
@@ -441,3 +439,4 @@ export const describeCases = (config: any) => {
 		});
 	});
 };
+exports.describeCases = describeCases;

@@ -119,6 +119,9 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_export_decl(&mut self, expr: &ExportDecl) {
+    // FIXME: delete `ExportDecl`
+    self.plugin_drive.clone().export_decl(self, expr);
+
     match &expr.decl {
       Decl::Class(c) => {
         // FIXME: webpack use `self.walk_statement` here
@@ -137,16 +140,18 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_export_default_expr(&mut self, expr: &ExportDefaultExpr) {
-    // TODO: `self.hooks.export.call`
+    // TODO: delete `export_default_expr`
+    self.plugin_drive.clone().export_default_expr(self, expr);
     self.walk_expression(&expr.expr);
   }
 
-  fn walk_export_named_declaration(&mut self, _decl: &NamedExport) {
+  fn walk_export_named_declaration(&mut self, decl: &NamedExport) {
+    self.plugin_drive.clone().named_export(self, decl);
     // self.walk_statement(decl)
   }
 
   fn walk_export_default_declaration(&mut self, decl: &ExportDefaultDecl) {
-    // TODO: `hooks.export.call`
+    self.plugin_drive.clone().export(self, decl);
     match &decl.decl {
       DefaultDecl::Class(c) => {
         // FIXME: webpack use `self.walk_statement` here
@@ -289,8 +294,6 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_if_statement(&mut self, stmt: &IfStmt) {
-    let old = self.in_if;
-    self.in_if = true;
     if let Some(result) = self.plugin_drive.clone().statement_if(self, stmt) {
       if result {
         self.walk_nested_statement(&stmt.cons);
@@ -304,7 +307,6 @@ impl<'parser> JavascriptParser<'parser> {
         self.walk_nested_statement(alt);
       }
     }
-    self.in_if = old;
   }
 
   fn walk_for_statement(&mut self, stmt: &ForStmt) {
@@ -545,6 +547,7 @@ impl<'parser> JavascriptParser<'parser> {
       Prop::KeyValue(kv) => self.walk_key_value_prop(kv),
       Prop::Assign(assign) => self.walk_expression(&assign.value),
       Prop::Getter(getter) => {
+        self.walk_prop_name(&getter.key);
         let was_top_level = self.top_level_scope;
         self.top_level_scope = TopLevelScope::False;
         if let Some(body) = &getter.body {
@@ -552,10 +555,11 @@ impl<'parser> JavascriptParser<'parser> {
         }
         self.top_level_scope = was_top_level;
       }
-      Prop::Setter(seeter) => {
+      Prop::Setter(setter) => {
+        self.walk_prop_name(&setter.key);
         let was_top_level = self.top_level_scope;
         self.top_level_scope = TopLevelScope::False;
-        if let Some(body) = &seeter.body {
+        if let Some(body) = &setter.body {
           self.walk_block_statement(body);
         }
         self.top_level_scope = was_top_level;

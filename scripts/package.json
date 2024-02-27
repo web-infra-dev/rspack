@@ -11,8 +11,8 @@
     "typecheck": "pnpm tsc --noEmit"
   },
   "devDependencies": {
-    "@actions/core": "1.10.0",
-    "@pnpm/find-workspace-packages": "6.0.8",
+    "@actions/core": "1.10.1",
+    "@pnpm/find-workspace-packages": "6.0.9",
     "chalk": "^5.3.0",
     "prettier": "^3.2.4",
     "zx": "^7.2.1"

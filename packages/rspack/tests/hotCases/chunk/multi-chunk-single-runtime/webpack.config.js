@@ -6,9 +6,7 @@ module.exports = {
 	},
 	output: {
 		filename: '[name].js',
-		// FIXME: throws an error when chunkFilename = "[name].chunk.[fullhash].js"
-		// Record in issue #5752
-		chunkFilename: '[name].js',
+		chunkFilename: '[name].chunk.[fullhash].js',
 	},
 	optimization: {
 		runtimeChunk: 'single'

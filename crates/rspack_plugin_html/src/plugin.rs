@@ -128,11 +128,13 @@ impl Plugin for HtmlRspackPlugin {
       })
       .map(|entry_name| compilation.entrypoint_by_name(entry_name))
       .flat_map(|entry| entry.get_files(&compilation.chunk_by_ukey))
-      .map(|asset_name| {
-        (
-          asset_name.clone(),
-          compilation.assets().get(&asset_name).expect("TODO:"),
-        )
+      .filter_map(|asset_name| {
+        let asset = compilation.assets().get(&asset_name).expect("TODO:");
+        if asset.info.hot_module_replacement || asset.info.development {
+          None
+        } else {
+          Some((asset_name.clone(), asset))
+        }
       })
       .collect::<Vec<_>>();
 

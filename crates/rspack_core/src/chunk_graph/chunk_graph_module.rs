@@ -187,7 +187,7 @@ impl ChunkGraph {
 
       module_graph
         .get_exports_info(&module.identifier())
-        .export_info_hash(&mut hasher, module_graph);
+        .export_info_hash(&mut hasher, module_graph, &mut HashSet::default());
 
       module
         .get_blocks()
