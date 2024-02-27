@@ -3,10 +3,7 @@ use rspack_core::SpanExt;
 use swc_core::{atoms::Atom, common::Spanned};
 
 use super::JavascriptParserPlugin;
-use crate::{
-  dependency::ProvideDependency,
-  visitors::{CallHooksName, JavascriptParser},
-};
+use crate::{dependency::ProvideDependency, visitors::JavascriptParser};
 
 const SOURCE_DOT: &str = r#"."#;
 const MODULE_DOT: &str = r#"_dot_"#;
@@ -77,12 +74,9 @@ impl JavascriptParserPlugin for ProviderPlugin {
     &self,
     parser: &mut crate::visitors::JavascriptParser,
     ident: &swc_core::ecma::ast::Ident,
-    _for_name: &str,
+    for_name: &str,
   ) -> Option<bool> {
-    let Some(name) = ident.sym.call_hooks_name(parser) else {
-      return None;
-    };
-    dep(parser, &name, ident.span.real_lo(), ident.span.real_hi()).map(|dep| {
+    dep(parser, for_name, ident.span.real_lo(), ident.span.real_hi()).map(|dep| {
       parser.dependencies.push(Box::new(dep));
       true
     })
