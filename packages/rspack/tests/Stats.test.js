@@ -42,21 +42,21 @@ describe("Stats", () => {
 		expect(typeof stats?.hash).toBe("string");
 		expect(stats?.toJson(statsOptions)).toMatchSnapshot();
 		expect(stats?.toString(statsOptions)).toMatchInlineSnapshot(`
-"PublicPath: auto
-asset main.js 211 bytes {909} [emitted] (name: main)
-Entrypoint main 211 bytes = main.js
-chunk {909} main.js (main) [entry]
-  ./fixtures/a.js [585] {909}
-    [no exports]
-    [used exports unknown]
-    entry ./fixtures/a
-./fixtures/a.js [585] {909}
-  [no exports]
-  [used exports unknown]
-  entry ./fixtures/a
-
-Rspack compiled successfully (57e46af248a1c1fe076f)"
-`);
+		"PublicPath: auto
+		asset main.js 211 bytes {909} [emitted] (name: main)
+		Entrypoint main 211 bytes = main.js
+		chunk {909} main.js (main) [entry]
+		  ./fixtures/a.js [585] {909}
+		    [no exports]
+		    [used exports unknown]
+		    entry ./fixtures/a
+		./fixtures/a.js [585] {909}
+		  [no exports]
+		  [used exports unknown]
+		  entry ./fixtures/a
+		  
+		Rspack compiled successfully (57e46af248a1c1fe076f)"
+	`);
 	});
 
 	it("should omit all properties with all false", async () => {
@@ -78,29 +78,29 @@ Rspack compiled successfully (57e46af248a1c1fe076f)"
 		});
 		expect(stats?.toString({ timings: false, version: false }))
 			.toMatchInlineSnapshot(`
-"PublicPath: auto
-asset main.js 738 bytes [emitted] (name: main)
-Entrypoint main 738 bytes = main.js
-./fixtures/a.js
-./fixtures/b.js
-./fixtures/c.js
-./fixtures/abc.js
+		"PublicPath: auto
+		asset main.js 738 bytes [emitted] (name: main)
+		Entrypoint main 738 bytes = main.js
+		./fixtures/a.js
+		./fixtures/b.js
+		./fixtures/c.js
+		./fixtures/abc.js
 
-ERROR in ./fixtures/b.js
-  × Module parse failed:
-  ╰─▶   × JavaScript parsing error: Return statement is not allowed here
-         ╭─[4:1]
-       4 │
-       5 │ // Test CJS top-level return
-       6 │ return;
-         · ───────
-         ╰────
+		ERROR in ./fixtures/b.js
+		  × Module parse failed:
+		  ╰─▶   × JavaScript parsing error: Return statement is not allowed here
+		         ╭─[4:1]
+		       4 │
+		       5 │ // Test CJS top-level return
+		       6 │ return;
+		         · ───────
+		         ╰────
+		      
+		  help: 
+		        You may need an appropriate loader to handle this file type.
 
-  help:
-        You may need an appropriate loader to handle this file type.
-
-Rspack compiled with 1 error (8137ab425c2721784808)"
-`);
+		Rspack compiled with 1 error (8137ab425c2721784808)"
+	`);
 	});
 
 	it("should output stats with query", async () => {
