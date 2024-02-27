@@ -218,16 +218,16 @@ impl Plugin for SourceMapDevToolPlugin {
 
     {
       let cache = self.source_and_map_assets_cache.read().unwrap();
-      for (file, asset) in compilation.assets() {
+      for (filename, asset) in compilation.assets() {
         let source = asset.get_source();
         if let Some(source) = source {
-          if let Some((cached_hash, cached_source_asset, cached_map_asset)) = cache.get(file) {
+          if let Some((cached_hash, cached_source_asset, cached_map_asset)) = cache.get(filename) {
             let mut hasher = RspackHash::new(&HashFunction::MD4);
             source.update_hash(&mut hasher);
             let hash = hasher.finish();
             if hash == *cached_hash {
               source_and_map_asstes.push((
-                file.to_owned(),
+                filename.to_owned(),
                 hash,
                 cached_source_asset.clone(),
                 cached_map_asset.clone(),
@@ -235,25 +235,22 @@ impl Plugin for SourceMapDevToolPlugin {
               continue;
             }
           }
-          recompute_assets.push((file.to_owned(), asset.clone()));
+          recompute_assets.push((filename.to_owned(), source.clone()));
         }
       }
     }
 
     let assets = recompute_assets
       .par_iter()
-      .filter_map(|(file, asset)| {
+      .filter_map(|(file, source)| {
         let is_match = match &self.test {
           Some(test) => test(file.to_owned()),
           None => true,
         };
-
         if is_match {
-          asset.get_source().map(|source| {
-            let map_options = MapOptions::new(self.columns);
-            let source_map = source.map(&map_options);
-            (file, source, source_map)
-          })
+          let map_options = MapOptions::new(self.columns);
+          let source_map = source.map(&map_options);
+          Some((file, source, source_map))
         } else {
           None
         }
@@ -427,6 +424,8 @@ impl Plugin for SourceMapDevToolPlugin {
       // convert to RawSource to reduce one time source map calculation when convert to JsCompatSource
       let raw_source = RawSource::from(code_buffer).boxed();
       let Some(source_map_buffer) = source_map_buffer else {
+        asset.source = Some(raw_source);
+        compilation.emit_asset(filename, asset);
         continue;
       };
       let css_extension_detected = CSS_EXTENSION_DETECT_REGEXP.is_match(&filename);
@@ -534,6 +533,10 @@ impl Plugin for SourceMapDevToolPlugin {
         let mut cache = self.source_and_map_assets_cache.write().unwrap();
         cache.clear();
         for (source_filename, source_hash, source_asset, source_map) in &source_and_map_asstes {
+          let mut source_asset = source_asset.clone();
+          if let Some(asset) = compilation.assets_mut().remove(source_filename) {
+            source_asset.info = asset.info;
+          }
           compilation.emit_asset(source_filename.to_owned(), source_asset.clone());
           if let Some((source_map_filename, source_map_asset)) = source_map {
             compilation.emit_asset(source_map_filename.to_owned(), source_map_asset.clone());
@@ -541,14 +544,14 @@ impl Plugin for SourceMapDevToolPlugin {
               source_filename.to_owned(),
               (
                 *source_hash,
-                source_asset.clone(),
+                source_asset,
                 Some((source_map_filename.to_owned(), source_map_asset.clone())),
               ),
             );
           } else {
             cache.insert(
               source_filename.to_owned(),
-              (*source_hash, source_asset.clone(), None),
+              (*source_hash, source_asset, None),
             );
           }
         }
