@@ -30,7 +30,7 @@ pub enum DependencyType {
   CjsFullRequire,
   // cjs exports
   CjsExports,
-  // cjs export require
+  // module.exports = require(), should bailout in old tree shaking
   CjsExportRequire,
   // cjs self reference
   CjsSelfReference,
