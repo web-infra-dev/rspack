@@ -28,7 +28,7 @@
       "matchManagers": ["cargo"],
       "assignees": ["@Boshen"],
       "excludePackagePrefixes": ["swc"],
-      "excludePackageNames": ["ustr", "textwrap", "styled_components", "owo-colors"]
+      "excludePackageNames": ["ustr", "textwrap", "styled_components", "owo-colors", "miette"]
     },
     {
       "groupName": "swc",
@@ -39,7 +39,7 @@
     {
       "groupName": "ignored crates",
       "matchManagers": ["cargo"],
-      "matchPackageNames": ["ustr", "textwrap", "owo-colors"],
+      "matchPackageNames": ["ustr", "textwrap", "owo-colors", "miette"],
       "enabled": false
     },
     {
