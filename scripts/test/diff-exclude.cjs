@@ -64,7 +64,8 @@ const UNALIGNED_FIXTURES = [
 	"WatchTestCases.template.js",
 	"HotTestCases.template.js",
 	"HotTestCasesNode.test.js",
-	"MultiCompiler.test.js"
+	"MultiCompiler.test.js",
+	"Compiler.test.js"
 ];
 
 // Only different in comments. For example, license information difference.

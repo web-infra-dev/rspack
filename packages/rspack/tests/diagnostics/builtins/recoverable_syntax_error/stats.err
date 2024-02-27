@@ -1,1 +1,5 @@
 ERROR in × Resolve error: Can't resolve './' in '<PROJECT_ROOT>/tests/diagnostics/builtins/recoverable_syntax_error'
+  help: Found the module './index.tsx' exists, but its extension is not listed in the `resolve.extensions`. Here are some possible solutions:
+        
+        1. add the extension `".tsx"` to `resolve.extensions` in your rspack configuration
+        2. use './index.tsx' instead of './'

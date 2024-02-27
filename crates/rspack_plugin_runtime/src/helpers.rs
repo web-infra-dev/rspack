@@ -1,7 +1,7 @@
 use std::hash::Hash;
 
 use rspack_core::{
-  get_chunk_from_ukey, get_chunk_group_from_ukey,
+  get_chunk_from_ukey, get_chunk_group_from_ukey, get_js_chunk_filename_template,
   rspack_sources::{BoxSource, RawSource, SourceExt},
   Chunk, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, PathData, RenderChunkArgs,
   RuntimeGlobals,
@@ -239,8 +239,13 @@ pub fn get_relative_path(base_chunk_output_name: &str, other_chunk_output_name: 
 
 pub fn get_chunk_output_name(chunk: &Chunk, compilation: &Compilation) -> String {
   let hash = chunk.get_render_hash(compilation.options.output.hash_digest_length);
+  let filename = get_js_chunk_filename_template(
+    chunk,
+    &compilation.options.output,
+    &compilation.chunk_group_by_ukey,
+  );
   compilation.get_path(
-    &compilation.options.output.chunk_filename,
+    filename,
     PathData::default()
       .chunk(chunk)
       .content_hash_optional(hash)

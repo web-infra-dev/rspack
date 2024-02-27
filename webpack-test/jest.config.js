@@ -16,7 +16,7 @@ module.exports = {
 		// "<rootDir>/Chunk.unittest.js",
 		// "<rootDir>/Cli.basictest.js",
 		// "<rootDir>/Compiler-caching.test.js",
-		// "<rootDir>/Compiler.test.js",
+		"<rootDir>/Compiler.test.js",
 		// "<rootDir>/ConfigCacheTestCases.longtest.js",
 		"<rootDir>/ConfigTestCases.basictest.js",
 		// "<rootDir>/ContextModule.unittest.js",
