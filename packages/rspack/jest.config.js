@@ -3,6 +3,7 @@ const path = require("path");
 /** @type {import('ts-jest/dist/types').JestConfigWithTsJest} */
 const config = {
 	testEnvironment: "../../scripts/test/patch-node-env.cjs",
+	setupFilesAfterEnv: ["<rootDir>/tests/setupTestFramework.js"],
 	testMatch: [
 		"<rootDir>/tests/*.test.ts",
 		"<rootDir>/tests/*.test.js",
