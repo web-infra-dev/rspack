@@ -12,6 +12,7 @@ extend-exclude = [
   "packages/rspack/src/util/hash",
   "webpack-examples",
   "webpack-test",
+  "webpack-cli-test",
   "**/CHANGELOG.md",
   "GOVERNANCE.md",
   "pnpm-lock.yaml",

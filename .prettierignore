@@ -26,4 +26,5 @@ crates/**/*
 target/**/*
 
 webpack-test/**/*
+webpack-cli-test/**/*
 webpack-examples/**/*

@@ -11,4 +11,5 @@ packages:
   - "webpack-examples"
   - "benchcases/react-refresh"
   - "webpack-test"
+  - "webpack-cli-test"
   - "diffcases/*"
