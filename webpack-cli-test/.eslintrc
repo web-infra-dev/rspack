@@ -1,0 +1,10 @@
+{
+  "extends": ["eslint:recommended", "plugin:node/recommended", "prettier"],
+  "env": {
+    "node": true,
+    "es6": true,
+    "jest": true
+  },
+  "plugins": ["node"],
+  "parserOptions": { "ecmaVersion": 2020, "sourceType": "module" }
+}

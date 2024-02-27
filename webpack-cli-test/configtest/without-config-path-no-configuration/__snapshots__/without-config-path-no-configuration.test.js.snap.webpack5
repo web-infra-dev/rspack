@@ -1,0 +1,5 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`'configtest' command without the configuration path option should validate default configuration: stderr 1`] = `"[webpack-cli] No configuration found."`;
+
+exports[`'configtest' command without the configuration path option should validate default configuration: stdout 1`] = `""`;

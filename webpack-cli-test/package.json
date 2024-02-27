@@ -1,0 +1,10 @@
+{
+  "name": "webpack-cli-test",
+  "scripts": {
+    "test:cli": "jest test --reporters=default"
+  },
+  "dependencies": {
+    "@rspack/cli": "workspace:*",
+    "jest-watch-typeahead": "^2.2.2"
+  }
+}
