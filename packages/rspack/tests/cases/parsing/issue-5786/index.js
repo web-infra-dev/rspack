@@ -13,3 +13,5 @@ it("ensure top level is right in constructor parameters", () => {
 	expect(a.a).toBe(1);
 	expect(typeof a).toBe("object");
 });
+
+export default "";
