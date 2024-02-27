@@ -100,7 +100,8 @@ describe("Compiler", () => {
 			"./c",
 			{
 				output: {
-					path: "/what",
+					// CHANGE: pass Windows-style absolute path on Windows systems
+					path: process.platform === "win32" ? "c:\\what" : "/what",
 					filename: "the/hell.js"
 				}
 			},
@@ -108,7 +109,7 @@ describe("Compiler", () => {
 				// CHANGE: Rspack utilizes the `recursive = true` option for `mkdir`, creating nested directories as needed
 				// The expected log should only include the deepest directory "/what/the"
 				// expect(stats.logs.mkdir).toEqual(["/what", "/what/the"]);
-				expect(stats.logs.mkdir).toEqual(["/what/the"]);
+				expect(stats.logs.mkdir).toEqual([process.platform === "win32" ? "c:\\what\\the" : "/what/the"]);
 				done();
 			}
 		);
