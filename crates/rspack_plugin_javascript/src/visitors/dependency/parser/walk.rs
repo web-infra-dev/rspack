@@ -1134,6 +1134,10 @@ impl<'parser> JavascriptParser<'parser> {
               // FIXME: webpack use `walk_expression` here
               this.walk_prop_name(&ctor.key);
             }
+
+            let was_top_level = this.top_level_scope;
+            this.top_level_scope = TopLevelScope::False;
+
             for prop in &ctor.params {
               match prop {
                 ParamOrTsParamProp::Param(param) => this.walk_pattern(&param.pat),
@@ -1142,11 +1146,10 @@ impl<'parser> JavascriptParser<'parser> {
             }
             // TODO: `hooks.body_value`;
             if let Some(body) = &ctor.body {
-              let was_top_level = this.top_level_scope;
-              this.top_level_scope = TopLevelScope::False;
               this.walk_block_statement(body);
-              this.top_level_scope = was_top_level;
             }
+
+            this.top_level_scope = was_top_level;
           }
           ClassMember::Method(method) => {
             if method.key.is_computed() {
