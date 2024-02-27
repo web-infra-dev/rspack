@@ -59,7 +59,7 @@ import {
 	FlagDependencyExportsPlugin,
 	FlagDependencyUsagePlugin,
 	SideEffectsFlagPlugin,
-	BundlerInfoPlugin,
+	BundlerInfoRspackPlugin,
 	ModuleConcatenationPlugin,
 	EvalDevToolModulePlugin
 } from "./builtin-plugin";
@@ -183,15 +183,6 @@ export class RspackOptionsApply {
 			}
 		}
 
-		if (
-			options.output.enabledLibraryTypes &&
-			options.output.enabledLibraryTypes.length > 0
-		) {
-			for (const type of options.output.enabledLibraryTypes) {
-				new EnableLibraryPlugin(type).apply(compiler);
-			}
-		}
-
 		const runtimeChunk = options.optimization
 			.runtimeChunk as OptimizationRuntimeChunkNormalized;
 		if (runtimeChunk) {
@@ -214,7 +205,7 @@ export class RspackOptionsApply {
 					? EvalSourceMapDevToolPlugin
 					: SourceMapDevToolPlugin;
 				new Plugin({
-					filename: inline ? null : options.output.sourceMapFilename,
+					filename: inline ? undefined : options.output.sourceMapFilename,
 					moduleFilenameTemplate: options.output.devtoolModuleFilenameTemplate,
 					fallbackModuleFilenameTemplate:
 						options.output.devtoolFallbackModuleFilenameTemplate,
@@ -251,7 +242,7 @@ export class RspackOptionsApply {
 		new RuntimePlugin().apply(compiler);
 
 		if (options.experiments.rspackFuture!.bundlerInfo) {
-			new BundlerInfoPlugin(
+			new BundlerInfoRspackPlugin(
 				options.experiments.rspackFuture!.bundlerInfo
 			).apply(compiler);
 		}
@@ -283,11 +274,20 @@ export class RspackOptionsApply {
 			if (options.optimization.concatenateModules) {
 				new ModuleConcatenationPlugin().apply(compiler);
 			}
+			if (options.optimization.mangleExports) {
+				new MangleExportsPlugin(
+					options.optimization.mangleExports !== "size"
+				).apply(compiler);
+			}
 		}
-		if (options.optimization.mangleExports) {
-			new MangleExportsPlugin(
-				options.optimization.mangleExports !== "size"
-			).apply(compiler);
+
+		if (
+			options.output.enabledLibraryTypes &&
+			options.output.enabledLibraryTypes.length > 0
+		) {
+			for (const type of options.output.enabledLibraryTypes) {
+				new EnableLibraryPlugin(type).apply(compiler);
+			}
 		}
 		if (options.optimization.splitChunks) {
 			new SplitChunksPlugin(options.optimization.splitChunks).apply(compiler);

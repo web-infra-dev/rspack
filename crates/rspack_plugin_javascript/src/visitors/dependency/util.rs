@@ -82,8 +82,6 @@ pub(crate) mod expr_matcher {
     is_require: "require",
     is_require_main: "require.main",
     is_require_context: "require.context",
-    is_require_resolve: "require.resolve",
-    is_require_resolve_weak: "require.resolveWeak",
     is_require_cache: "require.cache",
     is_module: "module",
     is_module_id: "module.id",
@@ -96,7 +94,7 @@ pub(crate) mod expr_matcher {
     is_require_extensions: "require.extensions",
     is_require_ensure: "require.ensure",
     is_require_config: "require.config",
-    is_require_version: "require.vesrion",
+    is_require_version: "require.version",
     is_require_amd: "require.amd",
     is_require_include: "require.include",
     is_require_onerror: "require.onError",
@@ -110,36 +108,15 @@ pub mod expr_name {
   pub const MODULE_HOT: &str = "module.hot";
   pub const MODULE_HOT_ACCEPT: &str = "module.hot.accept";
   pub const MODULE_HOT_DECLINE: &str = "module.hot.decline";
+  pub const REQUIRE: &str = "require";
+  pub const REQUIRE_RESOLVE: &str = "require.resolve";
+  pub const REQUIRE_RESOLVE_WEAK: &str = "require.resolveWeak";
   pub const IMPORT_META: &str = "import.meta";
   pub const IMPORT_META_URL: &str = "import.meta.url";
   pub const IMPORT_META_WEBPACK_HOT: &str = "import.meta.webpackHot";
   pub const IMPORT_META_WEBPACK_HOT_ACCEPT: &str = "import.meta.webpackHot.accept";
   pub const IMPORT_META_WEBPACK_HOT_DECLINE: &str = "import.meta.webpackHot.decline";
   pub const IMPORT_META_WEBPACK_CONTEXT: &str = "import.meta.webpackContext";
-}
-
-pub fn is_require_context_call(node: &CallExpr) -> bool {
-  node
-    .callee
-    .as_expr()
-    .map(|expr| expr_matcher::is_require_context(expr))
-    .unwrap_or_default()
-}
-
-pub fn is_require_resolve_call(node: &CallExpr) -> bool {
-  node
-    .callee
-    .as_expr()
-    .map(|expr| expr_matcher::is_require_resolve(expr))
-    .unwrap_or_default()
-}
-
-pub fn is_require_resolve_weak_call(node: &CallExpr) -> bool {
-  node
-    .callee
-    .as_expr()
-    .map(|expr| expr_matcher::is_require_resolve_weak(expr))
-    .unwrap_or_default()
 }
 
 pub fn parse_order_string(x: &str) -> Option<u32> {
@@ -156,44 +133,6 @@ pub fn parse_order_string(x: &str) -> Option<u32> {
   }
 }
 
-#[macro_export]
-macro_rules! no_visit_ignored_stmt {
-  () => {
-    fn visit_stmt(&mut self, stmt: &swc_core::ecma::ast::Stmt) {
-      use rspack_core::SpanExt;
-      use swc_core::common::Spanned;
-      use swc_core::ecma::visit::VisitWith;
-      let span = stmt.span();
-      if self
-        .ignored
-        .contains(&DependencyLocation::new(span.real_lo(), span.real_hi()))
-      {
-        return;
-      }
-      stmt.visit_children_with(self);
-    }
-  };
-}
-
-#[macro_export]
-macro_rules! no_visit_ignored_expr {
-  () => {
-    fn visit_expr(&mut self, expr: &swc_core::ecma::ast::Expr) {
-      use rspack_core::SpanExt;
-      use swc_core::common::Spanned;
-      use swc_core::ecma::visit::VisitWith;
-      let span = expr.span();
-      if self
-        .ignored
-        .contains(&DependencyLocation::new(span.real_lo(), span.real_hi()))
-      {
-        return;
-      }
-      expr.visit_children_with(self);
-    }
-  };
-}
-
 pub fn extract_require_call_info(
   expr: &Expr,
 ) -> Option<(Vec<Atom>, ExprOrSpread, DependencyLocation)> {
@@ -204,12 +143,14 @@ pub fn extract_require_call_info(
       .iter()
       .map(|n| n.0.to_owned())
       .collect_vec(),
+    ExpressionInfoKind::MemberExpression(_) => vec![],
     ExpressionInfoKind::Expression => vec![],
   };
   let args = match member_info.kind() {
     ExpressionInfoKind::CallExpression(info) => {
       info.args().iter().map(|i| i.to_owned()).collect_vec()
     }
+    ExpressionInfoKind::MemberExpression(_) => vec![],
     ExpressionInfoKind::Expression => vec![],
   };
 

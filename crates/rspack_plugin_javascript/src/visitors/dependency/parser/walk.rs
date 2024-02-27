@@ -1,24 +1,23 @@
 use std::borrow::Cow;
-use std::ops::Deref;
 
 use swc_core::ecma::ast::{ArrayLit, ArrayPat, ArrowExpr, AssignExpr, AssignPat, AwaitExpr};
 use swc_core::ecma::ast::{BinExpr, BlockStmt, BlockStmtOrExpr, CallExpr, Callee, CatchClause};
 use swc_core::ecma::ast::{Class, ClassDecl, ClassExpr, ClassMember, CondExpr, Decl, DefaultDecl};
 use swc_core::ecma::ast::{DoWhileStmt, ExportDecl, ExportDefaultDecl, ExportDefaultExpr, Expr};
 use swc_core::ecma::ast::{ExprOrSpread, ExprStmt, FnDecl, MemberExpr, MemberProp, VarDeclOrExpr};
-use swc_core::ecma::ast::{FnExpr, ForHead, Function, Ident, KeyValuePatProp, KeyValueProp};
+use swc_core::ecma::ast::{FnExpr, ForHead, Function, Ident, KeyValueProp};
 use swc_core::ecma::ast::{ForInStmt, ForOfStmt, ForStmt, IfStmt, LabeledStmt, WithStmt};
 use swc_core::ecma::ast::{MetaPropExpr, NamedExport, NewExpr, ObjectLit, OptCall, OptChainBase};
 use swc_core::ecma::ast::{ModuleDecl, ModuleItem, ObjectPat, ObjectPatProp, Stmt, WhileStmt};
 use swc_core::ecma::ast::{OptChainExpr, ParamOrTsParamProp, Pat, PatOrExpr, ThisExpr, UnaryOp};
 use swc_core::ecma::ast::{Prop, PropName, PropOrSpread, RestPat, ReturnStmt, SeqExpr, TaggedTpl};
-use swc_core::ecma::ast::{SwitchCase, SwitchStmt, Tpl, TryStmt, VarDecl, VarDeclKind, YieldExpr};
+use swc_core::ecma::ast::{SwitchCase, SwitchStmt, Tpl, TryStmt, VarDecl, YieldExpr};
 use swc_core::ecma::ast::{ThrowStmt, UnaryExpr, UpdateExpr};
-use swc_core::ecma::utils::ExprFactory;
 
+use super::TopLevelScope;
 use super::{AllowedMemberTypes, CallHooksName, JavascriptParser, MemberExpressionInfo, RootName};
-use super::{ExportedVariableInfo, TopLevelScope};
 use crate::parser_plugin::{is_logic_op, JavascriptParserPlugin};
+use crate::visitors::scope_info::FreeName;
 
 fn warp_ident_to_pat(ident: Ident) -> Pat {
   Pat::Ident(ident.into())
@@ -31,12 +30,15 @@ impl<'parser> JavascriptParser<'parser> {
   {
     let old_definitions = self.definitions;
     let old_top_level_scope = self.top_level_scope;
+    let old_in_tagged_template_tag = self.in_tagged_template_tag;
 
+    self.in_tagged_template_tag = false;
     self.definitions = self.definitions_db.create_child(&old_definitions);
     f(self);
 
     self.definitions = old_definitions;
     self.top_level_scope = old_top_level_scope;
+    self.in_tagged_template_tag = old_in_tagged_template_tag;
   }
 
   fn in_class_scope<'a, I, F>(&mut self, has_this: bool, params: I, f: F)
@@ -47,8 +49,10 @@ impl<'parser> JavascriptParser<'parser> {
     let old_definitions = self.definitions;
     let old_in_try = self.in_try;
     let old_top_level_scope = self.top_level_scope;
+    let old_in_tagged_template_tag = self.in_tagged_template_tag;
 
     self.in_try = false;
+    self.in_tagged_template_tag = false;
     self.definitions = self.definitions_db.create_child(&old_definitions);
 
     if has_this {
@@ -64,6 +68,7 @@ impl<'parser> JavascriptParser<'parser> {
     self.in_try = old_in_try;
     self.definitions = old_definitions;
     self.top_level_scope = old_top_level_scope;
+    self.in_tagged_template_tag = old_in_tagged_template_tag;
   }
 
   fn in_function_scope<'a, I, F>(&mut self, has_this: bool, params: I, f: F)
@@ -73,8 +78,10 @@ impl<'parser> JavascriptParser<'parser> {
   {
     let old_definitions = self.definitions;
     let old_top_level_scope = self.top_level_scope;
+    let old_in_tagged_template_tag = self.in_tagged_template_tag;
 
     self.definitions = self.definitions_db.create_child(&old_definitions);
+    self.in_tagged_template_tag = false;
     if has_this {
       self.undefined_variable("this".to_string());
     }
@@ -85,6 +92,7 @@ impl<'parser> JavascriptParser<'parser> {
 
     self.definitions = old_definitions;
     self.top_level_scope = old_top_level_scope;
+    self.in_tagged_template_tag = old_in_tagged_template_tag;
   }
 
   pub fn walk_module_declarations(&mut self, statements: &Vec<ModuleItem>) {
@@ -112,6 +120,9 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_export_decl(&mut self, expr: &ExportDecl) {
+    // FIXME: delete `ExportDecl`
+    self.plugin_drive.clone().export_decl(self, expr);
+
     match &expr.decl {
       Decl::Class(c) => {
         // FIXME: webpack use `self.walk_statement` here
@@ -130,16 +141,18 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_export_default_expr(&mut self, expr: &ExportDefaultExpr) {
-    // TODO: `self.hooks.export.call`
+    // TODO: delete `export_default_expr`
+    self.plugin_drive.clone().export_default_expr(self, expr);
     self.walk_expression(&expr.expr);
   }
 
-  fn walk_export_named_declaration(&mut self, _decl: &NamedExport) {
+  fn walk_export_named_declaration(&mut self, decl: &NamedExport) {
+    self.plugin_drive.clone().named_export(self, decl);
     // self.walk_statement(decl)
   }
 
   fn walk_export_default_declaration(&mut self, decl: &ExportDefaultDecl) {
-    // TODO: `hooks.export.call`
+    self.plugin_drive.clone().export(self, decl);
     match &decl.decl {
       DefaultDecl::Class(c) => {
         // FIXME: webpack use `self.walk_statement` here
@@ -282,8 +295,6 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_if_statement(&mut self, stmt: &IfStmt) {
-    let old = self.in_if;
-    self.in_if = true;
     if let Some(result) = self.plugin_drive.clone().statement_if(self, stmt) {
       if result {
         self.walk_nested_statement(&stmt.cons);
@@ -297,7 +308,6 @@ impl<'parser> JavascriptParser<'parser> {
         self.walk_nested_statement(alt);
       }
     }
-    self.in_if = old;
   }
 
   fn walk_for_statement(&mut self, stmt: &ForStmt) {
@@ -364,7 +374,6 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_variable_declaration(&mut self, decl: &VarDecl) {
-    self.enter_assign = true;
     for declarator in &decl.decls {
       if let Some(init) = declarator.init.as_ref()
         && let Some(renamed_identifier) = self.get_rename_identifier(init)
@@ -396,7 +405,6 @@ impl<'parser> JavascriptParser<'parser> {
         }
       }
     }
-    self.enter_assign = false;
   }
 
   fn walk_expression_statement(&mut self, stmt: &ExprStmt) {
@@ -462,12 +470,12 @@ impl<'parser> JavascriptParser<'parser> {
           // we use `AllowedMemberTypes::Expression` above
           unreachable!();
         };
-        if let Some(for_name) = expr_info.name.call_hooks_name(self)
-          && self
-            .plugin_drive
-            .clone()
-            .r#typeof(self, expr, &for_name)
-            .unwrap_or_default()
+        if expr_info
+          .name
+          .call_hooks_name(self, |this, for_name| {
+            this.plugin_drive.clone().r#typeof(this, expr, for_name)
+          })
+          .unwrap_or_default()
         {
           return;
         }
@@ -482,13 +490,23 @@ impl<'parser> JavascriptParser<'parser> {
     self.plugin_drive.clone().this(self, expr);
   }
 
-  fn walk_template_expression(&mut self, expr: &Tpl) {
+  pub(crate) fn walk_template_expression(&mut self, expr: &Tpl) {
     let exprs = expr.exprs.iter().map(|expr| &**expr);
     self.walk_expressions(exprs);
   }
 
   fn walk_tagged_template_expression(&mut self, expr: &TaggedTpl) {
+    // every time into new tagged tpl expr, reset enter callee
+    let old = self.enter_new_expr;
+    self.enter_new_expr = false;
+    self.enter_callee = true;
+
+    self.in_tagged_template_tag = true;
     self.walk_expression(&expr.tag);
+    self.in_tagged_template_tag = false;
+
+    self.enter_new_expr = old;
+    self.enter_callee = false;
 
     let exprs = expr.tpl.exprs.iter().map(|expr| &**expr);
     self.walk_expressions(exprs);
@@ -530,6 +548,7 @@ impl<'parser> JavascriptParser<'parser> {
       Prop::KeyValue(kv) => self.walk_key_value_prop(kv),
       Prop::Assign(assign) => self.walk_expression(&assign.value),
       Prop::Getter(getter) => {
+        self.walk_prop_name(&getter.key);
         let was_top_level = self.top_level_scope;
         self.top_level_scope = TopLevelScope::False;
         if let Some(body) = &getter.body {
@@ -537,10 +556,11 @@ impl<'parser> JavascriptParser<'parser> {
         }
         self.top_level_scope = was_top_level;
       }
-      Prop::Setter(seeter) => {
+      Prop::Setter(setter) => {
+        self.walk_prop_name(&setter.key);
         let was_top_level = self.top_level_scope;
         self.top_level_scope = TopLevelScope::False;
-        if let Some(body) = &seeter.body {
+        if let Some(body) = &setter.body {
           self.walk_block_statement(body);
         }
         self.top_level_scope = was_top_level;
@@ -563,6 +583,9 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_new_expression(&mut self, expr: &NewExpr) {
+    let old = self.enter_new_expr;
+    self.enter_new_expr = true;
+
     // TODO: `callHooksForExpression`
     if self
       .plugin_drive
@@ -570,9 +593,11 @@ impl<'parser> JavascriptParser<'parser> {
       .new_expression(self, expr)
       .unwrap_or_default()
     {
+      self.enter_new_expr = old;
       return;
     }
     self.walk_expression(&expr.callee);
+    self.enter_new_expr = old;
     if let Some(args) = &expr.args {
       self.walk_expr_or_spread(args);
     }
@@ -589,11 +614,22 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_conditional_expression(&mut self, expr: &CondExpr) {
-    // TODO: self.hooks.expression_conditional_operation.call
+    let result = self
+      .plugin_drive
+      .clone()
+      .expression_conditional_operation(self, expr);
 
-    self.walk_expression(&expr.test);
-    self.walk_expression(&expr.cons);
-    self.walk_expression(&expr.alt);
+    if let Some(result) = result {
+      if result {
+        self.walk_expression(&expr.cons);
+      } else {
+        self.walk_expression(&expr.alt);
+      }
+    } else {
+      self.walk_expression(&expr.test);
+      self.walk_expression(&expr.cons);
+      self.walk_expression(&expr.alt);
+    }
   }
 
   fn walk_class_expression(&mut self, expr: &ClassExpr) {
@@ -601,11 +637,17 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_chain_expression(&mut self, expr: &OptChainExpr) {
-    // TODO: `let result = this.hooks.optional_chaining.call(expression)`
-    match &*expr.base {
-      OptChainBase::Call(call) => self.walk_opt_call(call),
-      OptChainBase::Member(member) => self.walk_member_expression(member),
-    };
+    if self
+      .plugin_drive
+      .clone()
+      .optional_chaining(self, expr)
+      .is_none()
+    {
+      match &*expr.base {
+        OptChainBase::Call(call) => self.walk_opt_call(call),
+        OptChainBase::Member(member) => self.walk_member_expression(member),
+      };
+    }
   }
 
   fn walk_member_expression(&mut self, expr: &MemberExpr) {
@@ -613,8 +655,10 @@ impl<'parser> JavascriptParser<'parser> {
       match expr_info {
         MemberExpressionInfo::Expression(expr_info) => {
           let drive = self.plugin_drive.clone();
-          if let Some(for_name) = expr_info.name.call_hooks_name(self)
-            && drive.member(self, expr, &for_name).unwrap_or_default()
+          if expr_info
+            .name
+            .call_hooks_name(self, |this, for_name| drive.member(this, expr, for_name))
+            .unwrap_or_default()
           {
             return;
           }
@@ -623,22 +667,21 @@ impl<'parser> JavascriptParser<'parser> {
             expr,
             &expr_info.name,
             Some(|this: &mut Self| {
-              this.plugin_drive.clone().unhandled_expression_member_chain(
-                this,
-                &expr_info.root_info,
-                expr,
-              )
+              drive.unhandled_expression_member_chain(this, &expr_info.root_info, expr)
             }),
           );
           return;
         }
         MemberExpressionInfo::Call(expr_info) => {
-          if let Some(for_name) = expr_info.root_info.call_hooks_name(self)
-            && self
-              .plugin_drive
-              .clone()
-              .member_chain_of_call_member_chain(self, expr, &for_name)
-              .unwrap_or_default()
+          if expr_info
+            .root_info
+            .call_hooks_name(self, |this, for_name| {
+              this
+                .plugin_drive
+                .clone()
+                .member_chain_of_call_member_chain(this, expr, for_name)
+            })
+            .unwrap_or_default()
           {
             return;
           }
@@ -666,12 +709,11 @@ impl<'parser> JavascriptParser<'parser> {
     {
       let origin = name.len();
       let name = &name[0..origin - 1 - len];
-      if let Some(for_name) = name.call_hooks_name(self)
-        && self
-          .plugin_drive
-          .clone()
-          .member(self, member, &for_name)
-          .unwrap_or_default()
+      if name
+        .call_hooks_name(self, |this, for_name| {
+          this.plugin_drive.clone().member(this, member, for_name)
+        })
+        .unwrap_or_default()
       {
         return;
       }
@@ -696,34 +738,66 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_call_expression(&mut self, expr: &CallExpr) {
+    // every time into new call_expr, reset enter callee
+    let old = self.enter_new_expr;
+    self.enter_new_expr = false;
+    self.enter_callee = true;
     self.enter_call += 1;
+
     // FIXME: should align to webpack
     match &expr.callee {
       Callee::Expr(callee) => {
+        // TODO: iife
         if let Expr::Member(member) = &**callee
           && let Some(MemberExpressionInfo::Call(expr_info)) =
             self.get_member_expression_info(member, AllowedMemberTypes::CallExpression)
-          && let Some(for_name) = expr_info.root_info.call_hooks_name(self)
-          && self
-            .plugin_drive
-            .clone()
-            .call_member_chain_of_call_member_chain(self, expr, &for_name)
+          && expr_info
+            .root_info
+            .call_hooks_name(self, |this, for_name| {
+              this
+                .plugin_drive
+                .clone()
+                .call_member_chain_of_call_member_chain(this, expr, for_name)
+            })
             .unwrap_or_default()
         {
           self.enter_call -= 1;
+          self.enter_new_expr = old;
+          self.enter_callee = false;
           return;
         }
-        let evaluated = self.evaluate_expression(callee);
-        if evaluated.is_identifier()
-          && self
-            .plugin_drive
-            .clone()
-            .call(self, expr, evaluated.identifier())
+        let evaluated_callee = self.evaluate_expression(callee);
+        if evaluated_callee.is_identifier() {
+          let drive = self.plugin_drive.clone();
+          if drive
+            .call_member_chain(
+              self,
+              evaluated_callee.root_info(),
+              expr,
+              // evaluated_callee.get_members(),
+              // evaluated_callee.identifier(),
+            )
             .unwrap_or_default()
-        {
-          self.enter_call -= 1;
-          return;
+          {
+            /* result1 */
+            self.enter_call -= 1;
+            self.enter_new_expr = old;
+            self.enter_callee = false;
+            return;
+          }
+
+          if drive
+            .call(self, expr, evaluated_callee.identifier())
+            .unwrap_or_default()
+          {
+            /* result2 */
+            self.enter_call -= 1;
+            self.enter_new_expr = old;
+            self.enter_callee = false;
+            return;
+          }
         }
+
         if let Some(member) = callee.as_member() {
           self.walk_expression(&member.obj);
           if let Some(computed) = member.prop.as_computed() {
@@ -733,7 +807,6 @@ impl<'parser> JavascriptParser<'parser> {
           self.walk_expression(callee);
         }
       }
-      Callee::Super(_) => {} // Do nothing about super, same as webpack
       Callee::Import(_) => {
         // In webpack this is walkImportExpression, import() is a ImportExpression instead of CallExpression with Callee::Import
         if self
@@ -743,10 +816,16 @@ impl<'parser> JavascriptParser<'parser> {
           .unwrap_or_default()
         {
           self.enter_call -= 1;
+          self.enter_new_expr = old;
+          self.enter_callee = false;
           return;
         }
       }
+      Callee::Super(_) => {} // Do nothing about super, same as webpack
     }
+    self.enter_new_expr = old;
+    self.enter_callee = false;
+
     self.walk_expr_or_spread(&expr.args);
     self.enter_call -= 1;
   }
@@ -793,12 +872,12 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_identifier(&mut self, identifier: &Ident) {
-    if let Some(for_name) = identifier.sym.call_hooks_name(self) {
-      self
+    identifier.sym.call_hooks_name(self, |this, for_name| {
+      this
         .plugin_drive
         .clone()
-        .identifier(self, identifier, &for_name);
-    }
+        .identifier(this, identifier, for_name)
+    });
   }
 
   fn get_rename_identifier(&mut self, expr: &Expr) -> Option<String> {
@@ -809,7 +888,6 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_assignment_expression(&mut self, expr: &AssignExpr) {
-    self.enter_assign = true;
     // FIXME: should align to webpack
     if self
       .plugin_drive
@@ -819,9 +897,31 @@ impl<'parser> JavascriptParser<'parser> {
     {
       // empty
     } else if let Some(ident) = expr.left.as_ident() {
-      // if let Some(rename_identifier) = self.get_rename_identifier(&expr.right) {
-      //     // TODO:
-      //   }
+      if let Some(rename_identifier) = self.get_rename_identifier(&expr.right)
+        && let drive = self.plugin_drive.clone()
+        && rename_identifier
+          .call_hooks_name(self, |this, for_name| drive.can_rename(this, for_name))
+          .unwrap_or_default()
+      {
+        if !rename_identifier
+          .call_hooks_name(self, |this, for_name| {
+            drive.rename(this, &expr.right, for_name)
+          })
+          .unwrap_or_default()
+        {
+          let variable = self
+            .get_variable_info(&rename_identifier)
+            .map(|info| info.free_name.as_ref())
+            .and_then(|free_name| free_name)
+            .and_then(|free_name| match free_name {
+              FreeName::String(s) => Some(s.to_string()),
+              FreeName::True => None,
+            })
+            .unwrap_or(rename_identifier);
+          self.set_variable(ident.sym.to_string(), variable);
+        }
+        return;
+      }
       self.walk_expression(&expr.right);
       self.enter_pattern(
         Cow::Owned(warp_ident_to_pat(ident.clone())),
@@ -845,7 +945,6 @@ impl<'parser> JavascriptParser<'parser> {
         PatOrExpr::Pat(pat) => self.walk_pattern(pat),
       }
     }
-    self.enter_assign = false;
     // TODO:
     // else if let Some(member) = expr.left.as_expr().and_then(|expr| expr.as_member()) {
     // }
@@ -1124,6 +1223,6 @@ fn member_prop_len(member_prop: &MemberProp) -> Option<usize> {
   match member_prop {
     MemberProp::Ident(ident) => Some(ident.sym.len()),
     MemberProp::PrivateName(name) => Some(name.id.sym.len() + 1),
-    MemberProp::Computed(name) => None,
+    MemberProp::Computed(_) => None,
   }
 }

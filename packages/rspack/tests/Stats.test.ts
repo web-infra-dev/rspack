@@ -27,12 +27,16 @@ describe("Stats", () => {
 		expect(stats?.toJson(statsOptions)).toMatchSnapshot();
 		expect(stats?.toString(statsOptions)).toMatchInlineSnapshot(`
 		"PublicPath: auto
-		asset main.js 212 bytes {909} [emitted] (name: main)
-		Entrypoint main 212 bytes = main.js
+		asset main.js 211 bytes {909} [emitted] (name: main)
+		Entrypoint main 211 bytes = main.js
 		chunk {909} main.js (main) [entry]
 		  ./fixtures/a.js [585] {909}
+		    [no exports]
+		    [used exports unknown]
 		    entry ./fixtures/a
 		./fixtures/a.js [585] {909}
+		  [no exports]
+		  [used exports unknown]
 		  entry ./fixtures/a
 		  
 		Rspack compiled successfully (57e46af248a1c1fe076f)"
@@ -59,8 +63,8 @@ describe("Stats", () => {
 		expect(stats?.toString({ timings: false, version: false }))
 			.toMatchInlineSnapshot(`
 		"PublicPath: auto
-		asset main.js 739 bytes [emitted] (name: main)
-		Entrypoint main 739 bytes = main.js
+		asset main.js 738 bytes [emitted] (name: main)
+		Entrypoint main 738 bytes = main.js
 		./fixtures/a.js
 		./fixtures/b.js
 		./fixtures/c.js
@@ -79,7 +83,7 @@ describe("Stats", () => {
 		  help: 
 		        You may need an appropriate loader to handle this file type.
 
-		Rspack compiled with 1 error (9d5d6393c8ec95dac1bb)"
+		Rspack compiled with 1 error (8137ab425c2721784808)"
 	`);
 	});
 
@@ -136,7 +140,6 @@ describe("Stats", () => {
 				.replace(/\d+ ms/g, "X ms")
 		).toMatchInlineSnapshot(`
 		"LOG from rspack.Compilation
-		<t> make hook: X ms
 		<t> module add task: X ms
 		<t> module process dependencies task: X ms
 		<t> module factorize task: X ms
@@ -164,6 +167,7 @@ describe("Stats", () => {
 		<t> after process assets: X ms
 
 		LOG from rspack.Compiler
+		<t> make hook: X ms
 		<t> make: X ms
 		<t> finish make hook: X ms
 		<t> finish compilation: X ms
@@ -194,7 +198,6 @@ describe("Stats", () => {
 		<t> prepare entrypoints: X ms
 		<t> process queue: X ms
 		<t> extend chunkGroup runtime: X ms
-		<t> remove parent modules: X ms
 		"
 	`);
 	});
@@ -303,7 +306,7 @@ describe("Stats", () => {
 		};
 		expect(stats?.toJson(options)).toMatchSnapshot();
 		expect(stats?.toString(options)).toMatchInlineSnapshot(`
-		"asset main.js 212 bytes {909} [emitted] (name: main)
+		"asset main.js 211 bytes {909} [emitted] (name: main)
 		chunk {909} main.js (main) [entry]
 		./fixtures/a.js [585] {909}"
 	`);
@@ -393,7 +396,7 @@ describe("Stats", () => {
 		        "hotModuleReplacement": false,
 		      },
 		      "name": "TestChild.js",
-		      "size": 739,
+		      "size": 738,
 		      "type": "asset",
 		    },
 		    {
@@ -406,7 +409,7 @@ describe("Stats", () => {
 		        "hotModuleReplacement": false,
 		      },
 		      "name": "main.js",
-		      "size": 212,
+		      "size": 211,
 		      "type": "asset",
 		    },
 		  ],
@@ -428,7 +431,7 @@ describe("Stats", () => {
 		            "hotModuleReplacement": false,
 		          },
 		          "name": "TestChild.js",
-		          "size": 739,
+		          "size": 738,
 		          "type": "asset",
 		        },
 		      ],
@@ -442,6 +445,51 @@ describe("Stats", () => {
 		    },
 		  ],
 		}
+	`);
+	});
+
+	it("should have usedExports and providedExports stats", async () => {
+		const stats = await compile({
+			context: __dirname,
+			entry: {
+				main: "./fixtures/esm/abc"
+			},
+			optimization: {
+				usedExports: true,
+				providedExports: true
+			},
+			experiments: {
+				rspackFuture: {
+					newTreeshaking: true
+				}
+			}
+		});
+		const statsOptions = {
+			usedExports: true,
+			providedExports: true,
+			timings: false,
+			builtAt: false,
+			version: false
+		};
+		expect(typeof stats?.hash).toBe("string");
+		expect(stats?.toJson(statsOptions)).toMatchSnapshot();
+		expect(stats?.toString(statsOptions)).toMatchInlineSnapshot(`
+		"PublicPath: auto
+		asset main.js 784 bytes [emitted] (name: main)
+		Entrypoint main 784 bytes = main.js
+		runtime modules 3 modules
+		./fixtures/esm/a.js
+		  [exports: a, default]
+		  [only some exports used: a]
+		./fixtures/esm/b.js
+		  [exports: b, default]
+		  [only some exports used: default]
+		./fixtures/esm/c.js
+		  [exports: c, default]
+		./fixtures/esm/abc.js
+		  [no exports]
+		  [no exports used]
+		Rspack compiled successfully (90855ad020cd8866adbb)"
 	`);
 	});
 });

@@ -103,9 +103,17 @@ function rspack(
 	options: MultiRspackOptions | RspackOptions,
 	callback?: Callback<Error, MultiStats> | Callback<Error, Stats>
 ) {
-	asArray(options).every(opts => {
-		validate(opts, rspackOptions);
-	});
+	try {
+		for (let o of asArray(options)) {
+			validate(o, rspackOptions);
+		}
+	} catch (e) {
+		if (e instanceof Error && callback) {
+			callback(e);
+			return null;
+		}
+		throw e;
+	}
 	const create = () => {
 		if (isMultiRspackOptions(options)) {
 			const compiler = createMultiCompiler(options);

@@ -7,7 +7,7 @@ it("should map to the original content if `module` enabled", async () => {
 
 	const source = fs.readFileSync(__filename + ".map", "utf-8");
 	const generated = fs.readFileSync(__filename, "utf-8");
-	const app = fs.readFileSync(path.resolve(__dirname, "../App.jsx"), "utf-8");
+	const app = fs.readFileSync(path.resolve(CONTEXT, "./App.jsx"), "utf-8");
 	const map = JSON.parse(source);
 	const consumer = await new sourceMap.SourceMapConsumer(map);
 	expect(map.sources).toContain("webpack:///./App.jsx");

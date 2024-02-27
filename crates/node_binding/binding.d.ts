@@ -50,8 +50,8 @@ export class JsCompilation {
 
 export class JsStats {
   getAssets(): JsStatsGetAssets
-  getModules(reasons: boolean, moduleAssets: boolean, nestedModules: boolean, source: boolean): Array<JsStatsModule>
-  getChunks(chunkModules: boolean, chunksRelations: boolean, reasons: boolean, moduleAssets: boolean, nestedModules: boolean, source: boolean): Array<JsStatsChunk>
+  getModules(reasons: boolean, moduleAssets: boolean, nestedModules: boolean, source: boolean, usedExports: boolean, providedExports: boolean): Array<JsStatsModule>
+  getChunks(chunkModules: boolean, chunksRelations: boolean, reasons: boolean, moduleAssets: boolean, nestedModules: boolean, source: boolean, usedExports: boolean, providedExports: boolean): Array<JsStatsChunk>
   getEntrypoints(): Array<JsStatsChunkGroup>
   getNamedChunkGroups(): Array<JsStatsChunkGroup>
   getErrors(): Array<JsStatsError>
@@ -195,7 +195,7 @@ export enum BuiltinPluginName {
   HtmlRspackPlugin = 'HtmlRspackPlugin',
   SwcJsMinimizerRspackPlugin = 'SwcJsMinimizerRspackPlugin',
   SwcCssMinimizerRspackPlugin = 'SwcCssMinimizerRspackPlugin',
-  BundlerInfoPlugin = 'BundlerInfoPlugin'
+  BundlerInfoRspackPlugin = 'BundlerInfoRspackPlugin'
 }
 
 export function cleanupGlobalTrace(): void
@@ -353,7 +353,6 @@ export interface JsHooks {
   assetEmitted: (...args: any[]) => any
   shouldEmit: (...args: any[]) => any
   afterEmit: (...args: any[]) => any
-  make: (...args: any[]) => any
   optimizeModules: (...args: any[]) => any
   afterOptimizeModules: (...args: any[]) => any
   optimizeTree: (...args: any[]) => any
@@ -376,7 +375,8 @@ export interface JsHooks {
 }
 
 export enum JsHookType {
-  CompilerCompilation = 'CompilerCompilation'
+  CompilerCompilation = 'CompilerCompilation',
+  CompilerMake = 'CompilerMake'
 }
 
 export interface JsLoaderContext {
@@ -420,6 +420,7 @@ export interface JsLoaderContext {
    */
   diagnosticsExternal: ExternalObject<'Diagnostic[]'>
   _moduleIdentifier: string
+  hot: boolean
 }
 
 export interface JsModule {
@@ -554,6 +555,8 @@ export interface JsStatsModule {
   source?: string | Buffer
   profile?: JsStatsModuleProfile
   orphan: boolean
+  providedExports?: Array<string>
+  usedExports?: string | Array<string>
 }
 
 export interface JsStatsModuleIssuer {
@@ -780,6 +783,7 @@ export interface RawCssModulesConfig {
 
 export interface RawCssPluginConfig {
   modules: RawCssModulesConfig
+  namedExports?: boolean
 }
 
 export interface RawEntryOptions {

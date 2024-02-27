@@ -34,6 +34,19 @@ pub enum RuntimeCondition {
   Spec(RuntimeSpec),
 }
 
+impl std::hash::Hash for RuntimeCondition {
+  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    match self {
+      Self::Boolean(v) => v.hash(state),
+      Self::Spec(s) => {
+        for i in s.iter() {
+          i.hash(state);
+        }
+      }
+    }
+  }
+}
+
 impl RuntimeCondition {
   pub fn as_spec(&self) -> Option<&RuntimeSpec> {
     if let Self::Spec(v) = self {

@@ -1,25 +1,27 @@
 "use strict";
 
-// require("./helpers/warmup-webpack");
+require("./helpers/warmup-webpack");
 
-// TODO: recover after we have these module
-// const path = require("path");
-// const Stats = require("../lib/Stats");
-// const { createFsFromVolume, Volume } = require("memfs");
-// const captureStdio = require("./helpers/captureStdio");
-// const deprecationTracking = require("./helpers/deprecationTracking");
+const path = require("path");
+// CHANGE: changed the import path
+const { Stats } = require("..");
+const { createFsFromVolume, Volume } = require("memfs");
+const captureStdio = require("./helpers/captureStdio");
+const deprecationTracking = require("./helpers/deprecationTracking");
+const { normalizeFilteredTestName } = require("./lib/util/filterUtil");
 
-describe.skip("Compiler", () => {
+describe("Compiler", () => {
 	jest.setTimeout(20000);
 	function compile(entry, options, callback) {
 		const noOutputPath = !options.output || !options.output.path;
-		const webpack = require("@rspack/core").rspack;
+		const webpack = require("..");
 		options = webpack.config.getNormalizedWebpackOptions(options);
 		if (!options.mode) options.mode = "production";
 		options.entry = entry;
 		options.context = path.join(__dirname, "fixtures");
 		if (noOutputPath) options.output.path = "/";
-		options.output.pathinfo = true;
+		// CHANGE: The pathinfo is currently not supported in rspack
+		// options.output.pathinfo = true;
 		options.optimization = {
 			minimize: false
 		};
@@ -27,15 +29,26 @@ describe.skip("Compiler", () => {
 			mkdir: [],
 			writeFile: []
 		};
-
 		const c = webpack(options);
 		const files = {};
 		c.outputFileSystem = {
-			mkdir(path, callback) {
+			// CHANGE: Added support for the `options` parameter to enable recursive directory creation,
+			// accommodating Rspack's requirement that differs from webpack's usage
+			mkdir(path, options, callback) {
+				let recursive = false;
+				if (typeof options === "function") {
+					callback = options;
+				} else if (options) {
+					if (options.recursive !== undefined) recursive = options.recursive;
+				}
 				logs.mkdir.push(path);
-				const err = new Error();
-				err.code = "EEXIST";
-				callback(err);
+				if (recursive) {
+					callback();
+				} else {
+					const err = new Error();
+					err.code = "EEXIST";
+					callback(err);
+				}
 			},
 			writeFile(name, content, callback) {
 				logs.writeFile.push(name, content);
@@ -83,23 +96,29 @@ describe.skip("Compiler", () => {
 		}
 	});
 
-	it("should compile a single file to deep output", done => {
+	// CHANGE: skip due to Rspack defaults to numerical module ids, unlike webpack's string-based ids
+	it.skip(normalizeFilteredTestName("TODO", "should compile a single file to deep output"), done => {
 		compile(
 			"./c",
 			{
 				output: {
-					path: "/what",
+					// CHANGE: pass Windows-style absolute path on Windows systems
+					path: process.platform === "win32" ? "c:\\what" : "/what",
 					filename: "the/hell.js"
 				}
 			},
 			(stats, files) => {
-				expect(stats.logs.mkdir).toEqual(["/what", "/what/the"]);
+				// CHANGE: Rspack utilizes the `recursive = true` option for `mkdir`, creating nested directories as needed
+				// The expected log should only include the deepest directory "/what/the"
+				// expect(stats.logs.mkdir).toEqual(["/what", "/what/the"]);
+				expect(stats.logs.mkdir).toEqual([process.platform === "win32" ? "c:\\what\\the" : "/what/the"]);
 				done();
 			}
 		);
 	});
 
-	it("should compile a single file", done => {
+	// CHANGE: skip due to Rspack defaults to numerical module ids, unlike webpack's string-based ids
+	it.skip(normalizeFilteredTestName("TODO", "should compile a single file"), done => {
 		compile("./c", {}, (stats, files) => {
 			expect(Object.keys(files)).toEqual(["/main.js"]);
 			const bundle = files["/main.js"];
@@ -117,7 +136,8 @@ describe.skip("Compiler", () => {
 		});
 	});
 
-	it("should compile a complex file", done => {
+	// CHANGE: skip with custom test name for tracking alignment status
+	it.skip(normalizeFilteredTestName("TODO", "should compile a complex file"), done => {
 		compile("./main1", {}, (stats, files) => {
 			expect(Object.keys(files)).toEqual(["/main.js"]);
 			const bundle = files["/main.js"];
@@ -138,7 +158,8 @@ describe.skip("Compiler", () => {
 		});
 	});
 
-	it("should compile a file with transitive dependencies", done => {
+	// CHANGE: skip with custom test name for tracking alignment status
+	it.skip(normalizeFilteredTestName("TODO", "should compile a file with transitive dependencies"), done => {
 		compile("./abc", {}, (stats, files) => {
 			expect(Object.keys(files)).toEqual(["/main.js"]);
 			const bundle = files["/main.js"];
@@ -161,7 +182,8 @@ describe.skip("Compiler", () => {
 		});
 	});
 
-	it("should compile a file with multiple chunks", done => {
+	// CHANGE: skip with custom test name for tracking alignment status
+	it.skip(normalizeFilteredTestName("TODO", "should compile a file with multiple chunks"), done => {
 		compile("./chunks", {}, (stats, files) => {
 			expect(stats.chunks).toHaveLength(2);
 			expect(Object.keys(files)).toEqual(["/main.js", "/394.js"]);
@@ -186,8 +208,9 @@ describe.skip("Compiler", () => {
 		});
 	});
 
+	// CHANGE: skip with custom test name for tracking alignment status
 	// cspell:word asmjs
-	it("should not evaluate constants in asm.js", done => {
+	it.skip(normalizeFilteredTestName("TODO", "should not evaluate constants in asm.js"), done => {
 		compile("./asmjs", {}, (stats, files) => {
 			expect(Object.keys(files)).toEqual(["/main.js"]);
 			const bundle = files["/main.js"];
@@ -209,13 +232,14 @@ describe.skip("Compiler", () => {
 	describe("methods", () => {
 		let compiler;
 		beforeEach(() => {
-			const webpack = require("@rspack/core").rspack;
+			const webpack = require("..");
 			compiler = webpack({
 				entry: "./c",
 				context: path.join(__dirname, "fixtures"),
 				output: {
-					path: "/directory",
-					pathinfo: true
+					path: "/directory"
+					// CHANGE: The pathinfo is currently not supported in rspack
+					// pathinfo: true
 				}
 			});
 		});
@@ -246,7 +270,8 @@ describe.skip("Compiler", () => {
 			});
 		});
 		describe("isChild", () => {
-			it("returns booleanized this.parentCompilation", done => {
+			// CHANGE: skip with custom test name for tracking alignment status
+			it.skip(normalizeFilteredTestName("TODO", "returns booleanized this.parentCompilation"), done => {
 				compiler.parentCompilation = "stringyStringString";
 				const response1 = compiler.isChild();
 				expect(response1).toBe(true);
@@ -261,7 +286,7 @@ describe.skip("Compiler", () => {
 				const response3 = compiler.isChild();
 				expect(response3).toBe(true);
 
-				compiler.parentCompilation = ["Array", 123, true, null, [], () => {}];
+				compiler.parentCompilation = ["Array", 123, true, null, [], () => { }];
 				const response4 = compiler.isChild();
 				expect(response4).toBe(true);
 
@@ -289,7 +314,7 @@ describe.skip("Compiler", () => {
 		});
 	});
 	it("should not emit on errors", done => {
-		const webpack = require("@rspack/core").rspack;
+		const webpack = require("..");
 		compiler = webpack({
 			context: __dirname,
 			mode: "production",
@@ -311,7 +336,7 @@ describe.skip("Compiler", () => {
 		try {
 			const createCompiler = options => {
 				return new Promise((resolve, reject) => {
-					const webpack = require("@rspack/core").rspack;
+					const webpack = require("..");
 					const c = webpack(options);
 					c.run((err, stats) => {
 						if (err) {
@@ -338,14 +363,16 @@ describe.skip("Compiler", () => {
 			});
 		} catch (err) {
 			expect(err.toString()).toMatch(
-				"ModuleNotFoundError: Module not found: Error: Can't resolve './missing-file'"
+				// CHANGE: Error messages from Rspack differ from those in webpack
+				// "ModuleNotFoundError: Module not found: Error: Can't resolve './missing-file'"
+				"Error:   × Resolve error: Can't resolve './missing-file'"
 			);
 		}
 	});
 	it("should not emit compilation errors in async (watch)", async () => {
 		const createStats = options => {
 			return new Promise((resolve, reject) => {
-				const webpack = require("@rspack/core").rspack;
+				const webpack = require("..");
 				const c = webpack(options);
 				c.outputFileSystem = createFsFromVolume(new Volume());
 				const watching = c.watch({}, (err, stats) => {
@@ -369,7 +396,7 @@ describe.skip("Compiler", () => {
 	});
 
 	it("should not emit on errors (watch)", done => {
-		const webpack = require("@rspack/core").rspack;
+		const webpack = require("..");
 		compiler = webpack({
 			context: __dirname,
 			mode: "production",
@@ -389,7 +416,7 @@ describe.skip("Compiler", () => {
 		});
 	});
 	it("should not be running twice at a time (run)", done => {
-		const webpack = require("@rspack/core").rspack;
+		const webpack = require("..");
 		compiler = webpack({
 			context: __dirname,
 			mode: "production",
@@ -408,7 +435,7 @@ describe.skip("Compiler", () => {
 		});
 	});
 	it("should not be running twice at a time (watch)", done => {
-		const webpack = require("@rspack/core").rspack;
+		const webpack = require("..");
 		compiler = webpack({
 			context: __dirname,
 			mode: "production",
@@ -427,7 +454,7 @@ describe.skip("Compiler", () => {
 		});
 	});
 	it("should not be running twice at a time (run - watch)", done => {
-		const webpack = require("@rspack/core").rspack;
+		const webpack = require("..");
 		compiler = webpack({
 			context: __dirname,
 			mode: "production",
@@ -446,7 +473,7 @@ describe.skip("Compiler", () => {
 		});
 	});
 	it("should not be running twice at a time (watch - run)", done => {
-		const webpack = require("@rspack/core").rspack;
+		const webpack = require("..");
 		compiler = webpack({
 			context: __dirname,
 			mode: "production",
@@ -465,7 +492,7 @@ describe.skip("Compiler", () => {
 		});
 	});
 	it("should not be running twice at a time (instance cb)", done => {
-		const webpack = require("@rspack/core").rspack;
+		const webpack = require("..");
 		compiler = webpack(
 			{
 				context: __dirname,
@@ -476,7 +503,7 @@ describe.skip("Compiler", () => {
 					filename: "bundle.js"
 				}
 			},
-			() => {}
+			() => { }
 		);
 		compiler.outputFileSystem = createFsFromVolume(new Volume());
 		compiler.run((err, stats) => {
@@ -484,7 +511,7 @@ describe.skip("Compiler", () => {
 		});
 	});
 	it("should run again correctly after first compilation", done => {
-		const webpack = require("@rspack/core").rspack;
+		const webpack = require("..");
 		compiler = webpack({
 			context: __dirname,
 			mode: "production",
@@ -506,7 +533,7 @@ describe.skip("Compiler", () => {
 		});
 	});
 	it("should watch again correctly after first compilation", done => {
-		const webpack = require("@rspack/core").rspack;
+		const webpack = require("..");
 		compiler = webpack({
 			context: __dirname,
 			mode: "production",
@@ -526,8 +553,10 @@ describe.skip("Compiler", () => {
 			});
 		});
 	});
-	it("should run again correctly after first closed watch", done => {
-		const webpack = require("@rspack/core").rspack;
+	// CHANGE: skip with custom test name for tracking alignment status
+	// CHANGE: skip due to panic occurred at runtime
+	it.skip(normalizeFilteredTestName("TODO", "should run again correctly after first closed watch"), done => {
+		const webpack = require("..");
 		compiler = webpack({
 			context: __dirname,
 			mode: "production",
@@ -549,7 +578,7 @@ describe.skip("Compiler", () => {
 		});
 	});
 	it("should set compiler.watching correctly", function (done) {
-		const webpack = require("@rspack/core").rspack;
+		const webpack = require("..");
 		compiler = webpack({
 			context: __dirname,
 			mode: "production",
@@ -566,8 +595,11 @@ describe.skip("Compiler", () => {
 		});
 		expect(compiler.watching).toBe(watching);
 	});
-	it("should watch again correctly after first closed watch", done => {
-		const webpack = require("@rspack/core").rspack;
+
+	// CHANGE: skip with custom test name for tracking alignment status
+	// CHANGE: skip due to panic occurred at runtime
+	it.skip(normalizeFilteredTestName("TODO", "should watch again correctly after first closed watch"), done => {
+		const webpack = require("..");
 		compiler = webpack({
 			context: __dirname,
 			mode: "production",
@@ -589,7 +621,7 @@ describe.skip("Compiler", () => {
 		});
 	});
 	it("should run again correctly inside afterDone hook", done => {
-		const webpack = require("@rspack/core").rspack;
+		const webpack = require("..");
 		compiler = webpack({
 			context: __dirname,
 			mode: "production",
@@ -614,7 +646,7 @@ describe.skip("Compiler", () => {
 		});
 	});
 	it("should call afterDone hook after other callbacks (run)", done => {
-		const webpack = require("@rspack/core").rspack;
+		const webpack = require("..");
 		compiler = webpack({
 			context: __dirname,
 			mode: "production",
@@ -640,14 +672,15 @@ describe.skip("Compiler", () => {
 	});
 	it("should call afterDone hook after other callbacks (instance cb)", done => {
 		const instanceCb = jest.fn();
-		const webpack = require("@rspack/core").rspack;
+		const webpack = require("..");
 		compiler = webpack(
 			{
 				context: __dirname,
 				mode: "production",
 				entry: "./c",
 				output: {
-					path: "/directory",
+					// CHANGE: The `afterDone` hook will not be called if the `path` configuration is added
+					// path: "/directory",
 					filename: "bundle.js"
 				}
 			},
@@ -665,8 +698,10 @@ describe.skip("Compiler", () => {
 			done();
 		});
 	});
-	it("should call afterDone hook after other callbacks (watch)", done => {
-		const webpack = require("@rspack/core").rspack;
+	// CHANGE: skip with custom test name for tracking alignment status
+	// CHANGE: skip due to panic occurred at runtime
+	it.skip(normalizeFilteredTestName("TODO", "should call afterDone hook after other callbacks (watch)"), done => {
+		const webpack = require("..");
 		compiler = webpack({
 			context: __dirname,
 			mode: "production",
@@ -699,7 +734,7 @@ describe.skip("Compiler", () => {
 		});
 	});
 	it("should call afterDone hook after other callbacks (watch close)", done => {
-		const webpack = require("@rspack/core").rspack;
+		const webpack = require("..");
 		compiler = webpack({
 			context: __dirname,
 			mode: "production",
@@ -732,7 +767,7 @@ describe.skip("Compiler", () => {
 		});
 	});
 	it("should flag watchMode as true in watch", done => {
-		const webpack = require("@rspack/core").rspack;
+		const webpack = require("..");
 		compiler = webpack({
 			context: __dirname,
 			mode: "production",
@@ -754,8 +789,10 @@ describe.skip("Compiler", () => {
 			});
 		});
 	});
-	it("should use cache on second run call", done => {
-		const webpack = require("@rspack/core").rspack;
+	// CHANGE: skip with custom test name for tracking alignment status
+	// CHANGE: skip due to panic occurred at runtime
+	it.skip(normalizeFilteredTestName("TODO", "should use cache on second run call"), done => {
+		const webpack = require("..");
 		compiler = webpack({
 			context: __dirname,
 			mode: "development",
@@ -779,7 +816,7 @@ describe.skip("Compiler", () => {
 	});
 	it("should call the failed-hook on error", done => {
 		const failedSpy = jest.fn();
-		const webpack = require("@rspack/core").rspack;
+		const webpack = require("..");
 		compiler = webpack({
 			bail: true,
 			context: __dirname,
@@ -799,9 +836,11 @@ describe.skip("Compiler", () => {
 			done();
 		});
 	});
-	it("should deprecate when watch option is used without callback", () => {
+	// CHANGE: skip with custom test name for tracking alignment status
+	// CHANGE: skip as rspack does not currently emit correct error code
+	it.skip(normalizeFilteredTestName("TODO", "should deprecate when watch option is used without callback"), () => {
 		const tracker = deprecationTracking.start();
-		const webpack = require("@rspack/core").rspack;
+		const webpack = require("..");
 		compiler = webpack({
 			watch: true
 		});
@@ -844,7 +883,7 @@ describe.skip("Compiler", () => {
 			}
 		}
 		it("should log to the console (verbose)", done => {
-			const webpack = require("@rspack/core").rspack;
+			const webpack = require("..");
 			compiler = webpack({
 				context: path.join(__dirname, "fixtures"),
 				entry: "./a",
@@ -861,21 +900,21 @@ describe.skip("Compiler", () => {
 			compiler.run((err, stats) => {
 				expect(capture.toString().replace(/[\d.]+ ms/, "X ms"))
 					.toMatchInlineSnapshot(`
-"<-> [MyPlugin] Group
-  <e> [MyPlugin] Error
-  <w> [MyPlugin] Warning
-  <i> [MyPlugin] Info
-      [MyPlugin] Log
-  <-> [MyPlugin] Collapsed group
-        [MyPlugin] Log inside collapsed group
-<t> [MyPlugin] Time: X ms
-"
-`);
+	"<-> [MyPlugin] Group
+	  <e> [MyPlugin] Error
+	  <w> [MyPlugin] Warning
+	  <i> [MyPlugin] Info
+	      [MyPlugin] Log
+	  <-> [MyPlugin] Collapsed group
+	        [MyPlugin] Log inside collapsed group
+	<t> [MyPlugin] Time: X ms
+	"
+	`);
 				done();
 			});
 		});
 		it("should log to the console (debug mode)", done => {
-			const webpack = require("@rspack/core").rspack;
+			const webpack = require("..");
 			compiler = webpack({
 				context: path.join(__dirname, "fixtures"),
 				entry: "./a",
@@ -893,22 +932,22 @@ describe.skip("Compiler", () => {
 			compiler.run((err, stats) => {
 				expect(capture.toString().replace(/[\d.]+ ms/, "X ms"))
 					.toMatchInlineSnapshot(`
-"<-> [MyPlugin] Group
-  <e> [MyPlugin] Error
-  <w> [MyPlugin] Warning
-  <i> [MyPlugin] Info
-      [MyPlugin] Log
-      [MyPlugin] Debug
-  <-> [MyPlugin] Collapsed group
-        [MyPlugin] Log inside collapsed group
-<t> [MyPlugin] Time: X ms
-"
-`);
+		"<-> [MyPlugin] Group
+		  <e> [MyPlugin] Error
+		  <w> [MyPlugin] Warning
+		  <i> [MyPlugin] Info
+		      [MyPlugin] Log
+		      [MyPlugin] Debug
+		  <-> [MyPlugin] Collapsed group
+		        [MyPlugin] Log inside collapsed group
+		<t> [MyPlugin] Time: X ms
+		"
+		`);
 				done();
 			});
 		});
 		it("should log to the console (none)", done => {
-			const webpack = require("@rspack/core").rspack;
+			const webpack = require("..");
 			compiler = webpack({
 				context: path.join(__dirname, "fixtures"),
 				entry: "./a",
@@ -928,7 +967,7 @@ describe.skip("Compiler", () => {
 			});
 		});
 		it("should log to the console with colors (verbose)", done => {
-			const webpack = require("@rspack/core").rspack;
+			const webpack = require("..");
 			compiler = webpack({
 				context: path.join(__dirname, "fixtures"),
 				entry: "./a",
@@ -946,21 +985,21 @@ describe.skip("Compiler", () => {
 			compiler.run((err, stats) => {
 				expect(escapeAnsi(capture.toStringRaw()).replace(/[\d.]+ ms/, "X ms"))
 					.toMatchInlineSnapshot(`
-"<-> <CLR=36,BOLD>[MyPlugin] Group</CLR>
-  <e> <CLR=31,BOLD>[MyPlugin] Error</CLR>
-  <w> <CLR=33,BOLD>[MyPlugin] Warning</CLR>
-  <i> <CLR=32,BOLD>[MyPlugin] Info</CLR>
-      <CLR=BOLD>[MyPlugin] Log<CLR=22>
-  <-> <CLR=36,BOLD>[MyPlugin] Collapsed group</CLR>
-        <CLR=BOLD>[MyPlugin] Log inside collapsed group<CLR=22>
-<t> <CLR=35,BOLD>[MyPlugin] Time: X ms</CLR>
-"
-`);
+		"<-> <CLR=36,BOLD>[MyPlugin] Group</CLR>
+		  <e> <CLR=31,BOLD>[MyPlugin] Error</CLR>
+		  <w> <CLR=33,BOLD>[MyPlugin] Warning</CLR>
+		  <i> <CLR=32,BOLD>[MyPlugin] Info</CLR>
+		      <CLR=BOLD>[MyPlugin] Log<CLR=22>
+		  <-> <CLR=36,BOLD>[MyPlugin] Collapsed group</CLR>
+		        <CLR=BOLD>[MyPlugin] Log inside collapsed group<CLR=22>
+		<t> <CLR=35,BOLD>[MyPlugin] Time: X ms</CLR>
+		"
+		`);
 				done();
 			});
 		});
 		it("should log to the console with colors (debug mode)", done => {
-			const webpack = require("@rspack/core").rspack;
+			const webpack = require("..");
 			compiler = webpack({
 				context: path.join(__dirname, "fixtures"),
 				entry: "./a",
@@ -979,17 +1018,17 @@ describe.skip("Compiler", () => {
 			compiler.run((err, stats) => {
 				expect(escapeAnsi(capture.toStringRaw()).replace(/[\d.]+ ms/, "X ms"))
 					.toMatchInlineSnapshot(`
-"<-> <CLR=36,BOLD>[MyPlugin] Group</CLR>
-  <e> <CLR=31,BOLD>[MyPlugin] Error</CLR>
-  <w> <CLR=33,BOLD>[MyPlugin] Warning</CLR>
-  <i> <CLR=32,BOLD>[MyPlugin] Info</CLR>
-      <CLR=BOLD>[MyPlugin] Log<CLR=22>
-      [MyPlugin] Debug
-  <-> <CLR=36,BOLD>[MyPlugin] Collapsed group</CLR>
-        <CLR=BOLD>[MyPlugin] Log inside collapsed group<CLR=22>
-<t> <CLR=35,BOLD>[MyPlugin] Time: X ms</CLR>
-"
-`);
+		"<-> <CLR=36,BOLD>[MyPlugin] Group</CLR>
+		  <e> <CLR=31,BOLD>[MyPlugin] Error</CLR>
+		  <w> <CLR=33,BOLD>[MyPlugin] Warning</CLR>
+		  <i> <CLR=32,BOLD>[MyPlugin] Info</CLR>
+		      <CLR=BOLD>[MyPlugin] Log<CLR=22>
+		      [MyPlugin] Debug
+		  <-> <CLR=36,BOLD>[MyPlugin] Collapsed group</CLR>
+		        <CLR=BOLD>[MyPlugin] Log inside collapsed group<CLR=22>
+		<t> <CLR=35,BOLD>[MyPlugin] Time: X ms</CLR>
+		"
+		`);
 				done();
 			});
 		});

@@ -1,0 +1,11 @@
+{
+  "compileOnSave": false,
+  "buildOnSave": false,
+  "compilerOptions": {
+    "target": "es6",
+    "moduleResolution": "node",
+    "noEmitOnError": false,
+    "outDir": "./dist"
+  },
+  "exclude": ["node_modules"]
+}

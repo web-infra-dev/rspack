@@ -36,8 +36,7 @@
     "cross-env": "^7.0.3",
     "execa": "^5.0.0",
     "internal-ip": "6.2.0",
-    "source-map-support": "^0.5.19",
-    "ts-node": "10.9.2"
+    "source-map-support": "^0.5.19"
   },
   "dependencies": {
     "@discoveryjs/json-ext": "^0.5.7",

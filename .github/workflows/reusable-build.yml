@@ -211,7 +211,7 @@ jobs:
       - name: Setup Pnpm
         uses: ./.github/actions/pnpm-cache
         with:
-          node-version: 16
+          node-version: 20
 
       - name: Run e2e
         uses: ./.github/actions/docker-run

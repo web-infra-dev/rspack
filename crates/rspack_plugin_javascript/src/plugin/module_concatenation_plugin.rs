@@ -11,7 +11,7 @@ use rspack_core::{
   filter_runtime, merge_runtime, runtime_to_string, Compilation, CompilerContext,
   ExportInfoProvided, ExtendedReferencedExport, LibIdentOptions, Logger, Module, ModuleExt,
   ModuleGraph, ModuleGraphModule, ModuleIdentifier, MutexModuleGraph, OptimizeChunksArgs, Plugin,
-  ProvidedExports, RuntimeCondition, RuntimeSpec,
+  ProvidedExports, RuntimeCondition, RuntimeSpec, SourceType,
 };
 use rspack_error::Result;
 use rspack_util::fx_dashmap::FxDashMap;
@@ -294,12 +294,12 @@ impl ModuleConcatenationPlugin {
         return Some(problem);
       }
     }
-    //
     let mut incoming_connections_from_modules = HashMap::default();
     for (origin_module, connections) in incoming_connections.iter() {
       if let Some(origin_module) = origin_module {
         if chunk_graph.get_number_of_module_chunks(*origin_module) == 0 {
-          continue; // Ignore connection from orphan modules
+          // Ignore connection from orphan modules
+          continue;
         }
 
         let mut origin_runtime = RuntimeSpec::default();
@@ -343,7 +343,7 @@ impl ModuleConcatenationPlugin {
       })
       .cloned()
       .collect();
-    //
+
     if !other_chunk_modules.is_empty() {
       let problem = {
         let mut names: Vec<_> = other_chunk_modules
@@ -370,7 +370,7 @@ impl ModuleConcatenationPlugin {
       failure_cache.insert(*module_id, problem.clone());
       return Some(problem);
     }
-    //
+
     let mut non_harmony_connections = HashMap::default();
     for (origin_module, connections) in incoming_connections_from_modules.iter() {
       let selected: Vec<_> = connections
@@ -902,7 +902,7 @@ impl Plugin for ModuleConcatenationPlugin {
         Some(rspack_hash::HashFunction::MD4),
         config.runtime.clone(),
       );
-      new_module
+      let build_result = new_module
         .build(
           rspack_core::BuildContext {
             compiler_context: CompilerContext {
@@ -925,6 +925,7 @@ impl Plugin for ModuleConcatenationPlugin {
           Some(compilation),
         )
         .await?;
+      new_module.set_module_build_info_and_meta(build_result.build_info, build_result.build_meta);
       let root_mgm_epxorts = compilation
         .module_graph
         .module_graph_module_by_identifier(&root_module_id)
@@ -956,9 +957,30 @@ impl Plugin for ModuleConcatenationPlugin {
           .get_module_chunks(root_module_id)
           .clone()
         {
-          compilation
+          let module = compilation
+            .module_graph
+            .module_by_identifier_mut(m)
+            .expect("should exist module");
+
+          let source_types = compilation
             .chunk_graph
-            .disconnect_chunk_and_module(&chunk_ukey, *m);
+            .get_chunk_module_source_types(&chunk_ukey, module);
+
+          if source_types.len() == 1 {
+            compilation
+              .chunk_graph
+              .disconnect_chunk_and_module(&chunk_ukey, *m);
+          } else {
+            let new_source_types = source_types
+              .into_iter()
+              .filter(|source_type| !matches!(source_type, SourceType::JavaScript))
+              .collect();
+            compilation.chunk_graph.set_chunk_modules_source_types(
+              &chunk_ukey,
+              *m,
+              new_source_types,
+            )
+          }
         }
       }
       // compilation

@@ -18,6 +18,8 @@ it("should not generated comment banner when there no comments", function () {
 		"extract.js",
 		"extract.js.LICENSE.txt",
 		"main.js",
-		"no-extract.js"
+		"no-extract.js",
+		"stats.json",
+		"stats.txt"
 	]);
 });

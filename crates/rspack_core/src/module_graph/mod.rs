@@ -3,13 +3,17 @@ use std::collections::hash_map::Entry;
 use std::path::PathBuf;
 
 use dashmap::DashMap;
+use itertools::Itertools;
 use rspack_error::Result;
 use rspack_hash::RspackHashDigest;
 use rspack_identifier::{Identifiable, IdentifierMap};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::ecma::atoms::Atom;
 
-use crate::{AsyncDependenciesBlock, AsyncDependenciesBlockId, ProvidedExports};
+use crate::{
+  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, ProvidedExports, RuntimeSpec,
+  UsedExports,
+};
 mod connection;
 pub use connection::*;
 mod vec_map;
@@ -25,7 +29,7 @@ pub type ImportVarMap = HashMap<Option<String> /* request */, String /* import_v
 
 #[derive(Debug, Default)]
 pub struct DependencyParents {
-  pub block: Option<AsyncDependenciesBlockId>,
+  pub block: Option<AsyncDependenciesBlockIdentifier>,
   pub module: ModuleIdentifier,
 }
 
@@ -42,7 +46,7 @@ pub struct ModuleGraph {
   /// Module identifier to its module graph module
   pub module_identifier_to_module_graph_module: IdentifierMap<ModuleGraphModule>,
 
-  blocks: HashMap<AsyncDependenciesBlockId, AsyncDependenciesBlock>,
+  blocks: HashMap<AsyncDependenciesBlockIdentifier, AsyncDependenciesBlock>,
 
   pub dependency_id_to_connection_id: HashMap<DependencyId, ConnectionId>,
   connection_id_to_dependency_id: HashMap<ConnectionId, DependencyId>,
@@ -97,8 +101,8 @@ impl ModuleGraph {
     let connections = &self
       .module_graph_module_by_identifier(module)
       .expect("should have mgm")
-      .incoming_connections;
-    get_connections_by_origin_module(connections, self)
+      .incoming_connections();
+    get_connections_by_origin_module(connections.iter(), self)
   }
 
   pub fn add_module_graph_module(&mut self, module_graph_module: ModuleGraphModule) {
@@ -158,7 +162,7 @@ impl ModuleGraph {
     // avoid violating rustc borrow rules
     let mut add_outgoing_connection = vec![];
     let mut delete_outgoing_connection = vec![];
-    for connection_id in old_mgm.outgoing_connections.clone().into_iter() {
+    for connection_id in old_mgm.outgoing_connections().clone().into_iter() {
       let connection = self
         .connection_by_connection_id(&connection_id)
         .cloned()
@@ -178,14 +182,14 @@ impl ModuleGraph {
       .module_graph_module_by_identifier_mut(new_module)
       .expect("should have mgm");
     for c in add_outgoing_connection {
-      new_mgm.outgoing_connections.insert(c);
+      new_mgm.add_outgoing_connection(c);
     }
 
     let old_mgm = self
       .module_graph_module_by_identifier_mut(old_module)
       .expect("should have mgm");
     for c in delete_outgoing_connection {
-      old_mgm.outgoing_connections.remove(&c);
+      old_mgm.remove_outgoing_connection(c);
     }
 
     let old_mgm = self
@@ -196,7 +200,7 @@ impl ModuleGraph {
     // avoid violating rustc borrow rules
     let mut add_incoming_connection = vec![];
     let mut delete_incoming_connection = vec![];
-    for connection_id in old_mgm.incoming_connections.clone().into_iter() {
+    for connection_id in old_mgm.incoming_connections().clone().into_iter() {
       let connection = self
         .connection_by_connection_id(&connection_id)
         .cloned()
@@ -216,14 +220,14 @@ impl ModuleGraph {
       .module_graph_module_by_identifier_mut(new_module)
       .expect("should have mgm");
     for c in add_incoming_connection {
-      new_mgm.incoming_connections.insert(c);
+      new_mgm.add_incoming_connection(c);
     }
 
     let old_mgm = self
       .module_graph_module_by_identifier_mut(old_module)
       .expect("should have mgm");
     for c in delete_incoming_connection {
-      old_mgm.incoming_connections.remove(&c);
+      old_mgm.remove_incoming_connection(c);
     }
   }
 
@@ -243,12 +247,8 @@ impl ModuleGraph {
       .module_graph_module_by_identifier(old_module)
       .expect("should have mgm");
     let old_connections = old_mgm
-      .outgoing_connections_unordered(self)
+      .get_outgoing_connections_unordered(self)
       .map(|cons| cons.copied().collect::<Vec<_>>());
-    let new_mgm = self
-      .module_graph_module_by_identifier_mut(new_module)
-      .expect("should have mgm");
-    let mut new_connections = std::mem::take(&mut new_mgm.outgoing_connections);
 
     // Outgoing connections
     if let Ok(old_connections) = old_connections {
@@ -259,16 +259,13 @@ impl ModuleGraph {
             Some(*new_module),
             connection.module_identifier,
           );
-          new_connections.insert(new_connection_id);
+          let new_mgm = self
+            .module_graph_module_by_identifier_mut(new_module)
+            .expect("should have mgm");
+          new_mgm.add_outgoing_connection(new_connection_id);
         }
       }
     }
-
-    // shadowing the mutable ref to avoid violating rustc borrow rules
-    let new_mgm = self
-      .module_graph_module_by_identifier_mut(new_module)
-      .expect("should have mgm");
-    new_mgm.outgoing_connections = new_connections;
   }
 
   pub fn clone_module_graph_connection(
@@ -363,7 +360,7 @@ impl ModuleGraph {
   }
 
   pub fn add_block(&mut self, block: AsyncDependenciesBlock) {
-    self.blocks.insert(block.id(), block);
+    self.blocks.insert(block.identifier(), block);
   }
 
   pub fn set_parents(&mut self, dependency: DependencyId, parents: DependencyParents) {
@@ -377,7 +374,10 @@ impl ModuleGraph {
       .map(|p| &p.module)
   }
 
-  pub fn get_parent_block(&self, dependency: &DependencyId) -> Option<&AsyncDependenciesBlockId> {
+  pub fn get_parent_block(
+    &self,
+    dependency: &DependencyId,
+  ) -> Option<&AsyncDependenciesBlockIdentifier> {
     self
       .dependency_id_to_parents
       .get(dependency)
@@ -386,7 +386,7 @@ impl ModuleGraph {
 
   pub fn block_by_id(
     &self,
-    block_id: &AsyncDependenciesBlockId,
+    block_id: &AsyncDependenciesBlockIdentifier,
   ) -> Option<&AsyncDependenciesBlock> {
     self.blocks.get(block_id)
   }
@@ -644,14 +644,33 @@ impl ModuleGraph {
   pub(crate) fn get_module_dependencies_modules_and_blocks(
     &self,
     module_identifier: &ModuleIdentifier,
-  ) -> (Vec<&ModuleIdentifier>, &[AsyncDependenciesBlockId]) {
+  ) -> (Vec<ModuleIdentifier>, &[AsyncDependenciesBlockIdentifier]) {
     let Some(m) = self.module_by_identifier(module_identifier) else {
       unreachable!("cannot find the module correspanding to {module_identifier}");
     };
-    let modules = m
+    let mut deps = m
       .get_dependencies()
       .iter()
-      .filter_map(|id| self.module_identifier_by_dependency_id(id))
+      .filter_map(|id| self.dependency_by_id(id))
+      .filter(|dep| dep.as_module_dependency().is_some())
+      .collect::<Vec<_>>();
+
+    // sort by span, so user change import order can recalculate chunk graph
+    deps.sort_by(|a, b| {
+      if let (Some(span_a), Some(span_b)) = (a.span(), b.span()) {
+        span_a.cmp(&span_b)
+      } else if let (Some(a), Some(b)) = (a.source_order(), b.source_order()) {
+        a.cmp(&b)
+      } else {
+        a.id().cmp(b.id())
+      }
+    });
+
+    let modules = deps
+      .into_iter()
+      .filter_map(|dep| self.module_identifier_by_dependency_id(dep.id()))
+      .dedup_by(|a, b| a.as_str() == b.as_str())
+      .copied()
       .collect();
     let blocks = m.get_blocks();
     (modules, blocks)
@@ -707,12 +726,12 @@ impl ModuleGraph {
           .as_ref()
           .and_then(|ident| self.module_graph_module_by_identifier_mut(ident))
         {
-          mgm.outgoing_connections.remove(&connection_id);
+          mgm.remove_outgoing_connection(connection_id);
         };
 
         if let Some(mgm) = self.module_graph_module_by_identifier_mut(&connection.module_identifier)
         {
-          mgm.incoming_connections.remove(&connection_id);
+          mgm.remove_incoming_connection(connection_id);
         }
 
         removed = Some(connection);
@@ -755,7 +774,7 @@ impl ModuleGraph {
       .module_graph_module_by_identifier(&module.identifier())
       .map(|mgm| {
         mgm
-          .outgoing_connections
+          .outgoing_connections()
           .iter()
           .filter_map(|id| self.connection_by_connection_id(id))
           .collect()
@@ -771,7 +790,7 @@ impl ModuleGraph {
       .module_graph_module_by_identifier(module)
       .map(|mgm| {
         mgm
-          .outgoing_connections
+          .outgoing_connections()
           .iter()
           .filter_map(|id| self.connection_by_connection_id(id))
           .collect()
@@ -784,7 +803,7 @@ impl ModuleGraph {
       .module_graph_module_by_identifier(&module.identifier())
       .map(|mgm| {
         mgm
-          .incoming_connections
+          .incoming_connections()
           .iter()
           .filter_map(|id| self.connection_by_connection_id(id))
           .collect()
@@ -800,7 +819,7 @@ impl ModuleGraph {
       .module_graph_module_by_identifier(&module.identifier())
       .map(|mgm| {
         mgm
-          .incoming_connections
+          .incoming_connections()
           .clone()
           .into_iter()
           .filter_map(|id| self.connection_by_connection_id(&id).cloned())
@@ -827,14 +846,23 @@ impl ModuleGraph {
       original_module_identifier,
       module_identifier,
       dependency_id,
+      active,
       ..
     } = connection;
+    // remove active connection id if current connection not active
+    if !active
+      && let Some(active_connection_id) = self.dependency_id_to_connection_id.get(&dependency_id)
+      && active_connection_id != &connection_id
+    {
+      self.revoke_connection(*active_connection_id);
+    }
 
     // remove dependency
     self.dependency_id_to_connection_id.remove(&dependency_id);
     self
       .dependency_id_to_module_identifier
       .remove(&dependency_id);
+    self.connection_id_to_dependency_id.remove(&connection_id);
 
     // remove outgoing from original module graph module
     if let Some(original_module_identifier) = &original_module_identifier {
@@ -842,7 +870,7 @@ impl ModuleGraph {
         .module_identifier_to_module_graph_module
         .get_mut(original_module_identifier)
       {
-        mgm.outgoing_connections.remove(&connection_id);
+        mgm.remove_outgoing_connection(connection_id);
         // Because of mgm.dependencies is set when original module build success
         // it does not need to remove dependency in mgm.dependencies.
       }
@@ -852,7 +880,7 @@ impl ModuleGraph {
       .module_identifier_to_module_graph_module
       .get_mut(&module_identifier)
     {
-      mgm.incoming_connections.remove(&connection_id);
+      mgm.remove_incoming_connection(connection_id);
     }
 
     Some((dependency_id, original_module_identifier))
@@ -866,12 +894,12 @@ impl ModuleGraph {
       .remove(module_identifier);
 
     if let Some(mgm) = mgm {
-      for cid in mgm.outgoing_connections {
-        self.revoke_connection(cid);
+      for cid in mgm.outgoing_connections() {
+        self.revoke_connection(*cid);
       }
 
       mgm
-        .incoming_connections
+        .incoming_connections()
         .iter()
         .filter_map(|cid| self.revoke_connection(*cid))
         .collect()
@@ -931,48 +959,6 @@ impl ModuleGraph {
     self.dep_meta_map.get(&id)
   }
 
-  pub fn normalize_new_connection(
-    mg: &mut ModuleGraph,
-    mut connection: ModuleGraphConnection,
-    module_identifier: ModuleIdentifier,
-  ) -> ModuleGraphConnection {
-    let old_connection_id = *mg
-      .connections_map
-      .get(&connection)
-      .expect("should have connection id");
-    let old_connection_original_module_id = connection.original_module_identifier;
-    let old_connection_dependency_id = connection.dependency_id;
-    let new_connection_id = ConnectionId::from(mg.connections.len());
-    connection.set_active(true);
-    connection.module_identifier = module_identifier;
-    mg.connections.push(Some(connection));
-    mg.connections_map.insert(connection, new_connection_id);
-
-    mg.dependency_id_to_module_identifier
-      .insert(old_connection_dependency_id, module_identifier);
-
-    mg.dependency_id_to_connection_id
-      .insert(old_connection_dependency_id, new_connection_id);
-
-    mg.connection_id_to_dependency_id
-      .insert(new_connection_id, old_connection_dependency_id);
-
-    let mgm = mg
-      .module_graph_module_by_identifier_mut(&module_identifier)
-      .expect("should have mgm");
-
-    mgm.add_incoming_connection(new_connection_id);
-    mgm.remove_incoming_connection(old_connection_id);
-
-    if let Some(identifier) = old_connection_original_module_id
-      && let Some(original_mgm) = mg.module_graph_module_by_identifier_mut(&identifier)
-    {
-      original_mgm.add_outgoing_connection(new_connection_id);
-      original_mgm.remove_outgoing_connection(old_connection_id);
-    };
-    connection
-  }
-
   pub fn update_module(&mut self, dep_id: &DependencyId, module_id: &ModuleIdentifier) {
     let connection = self
       .connection_by_dependency_mut(dep_id)
@@ -980,16 +966,51 @@ impl ModuleGraph {
     if &connection.module_identifier == module_id {
       return;
     }
-    let connection_copy = *connection;
+
+    // clone connection
+    let mut new_connection = *connection;
+    new_connection.module_identifier = *module_id;
+    // modify connection
     connection.set_active(false);
-    let condition = { self.connection_to_condition.get(&connection_copy).cloned() };
-    let new_connection = Self::normalize_new_connection(self, connection_copy, *module_id);
+    let connection = *connection;
+
+    let new_connection_id = ConnectionId::from(self.connections.len());
+    self.connections.push(Some(new_connection));
+    self
+      .connections_map
+      .insert(new_connection, new_connection_id);
+
+    // link dependency to new connection
+    let old_connection_dependency_id = connection.dependency_id;
+    self.dependency_id_to_module_identifier.insert(
+      old_connection_dependency_id,
+      new_connection.module_identifier,
+    );
+    self
+      .dependency_id_to_connection_id
+      .insert(old_connection_dependency_id, new_connection_id);
+    self
+      .connection_id_to_dependency_id
+      .insert(new_connection_id, old_connection_dependency_id);
+
+    // add new connection to original_module outgoing connections
+    if let Some(original_module_identifier) = &new_connection.original_module_identifier {
+      if let Some(mgm) = self.module_graph_module_by_identifier_mut(original_module_identifier) {
+        mgm.add_outgoing_connection(new_connection_id);
+      }
+    }
+    // add new connection to module incoming connections
+    if let Some(mgm) = self.module_graph_module_by_identifier_mut(&new_connection.module_identifier)
+    {
+      mgm.add_incoming_connection(new_connection_id);
+    }
 
     // copy condition
+    let condition = self.connection_to_condition.get(&connection);
     if let Some(condition) = condition {
       self
         .connection_to_condition
-        .insert(new_connection, condition);
+        .insert(new_connection, condition.clone());
     }
   }
 
@@ -1032,6 +1053,20 @@ impl ModuleGraph {
       .get_provided_exports(self)
   }
 
+  pub fn get_used_exports(
+    &self,
+    module_id: ModuleIdentifier,
+    runtime: Option<&RuntimeSpec>,
+  ) -> UsedExports {
+    let mgm = self
+      .module_graph_module_by_identifier(&module_id)
+      .expect("should have module graph module");
+    mgm
+      .exports
+      .get_exports_info(self)
+      .get_used_exports(self, runtime)
+  }
+
   pub fn get_optimization_bailout_mut(&mut self, module: ModuleIdentifier) -> &mut Vec<String> {
     let mgm = self
       .module_graph_module_by_identifier_mut(&module)
@@ -1051,12 +1086,12 @@ impl ModuleGraph {
 }
 
 fn get_connections_by_origin_module(
-  set: &HashSet<ConnectionId>,
+  connections: impl Iterator<Item = &ConnectionId>,
   mg: &ModuleGraph,
 ) -> HashMap<Option<ModuleIdentifier>, Vec<ModuleGraphConnection>> {
   let mut map: HashMap<Option<ModuleIdentifier>, Vec<ModuleGraphConnection>> = HashMap::default();
 
-  for connection_id in set.iter() {
+  for connection_id in connections {
     let con = mg
       .connection_by_connection_id(connection_id)
       .expect("should have connection");
@@ -1083,9 +1118,9 @@ mod test {
   use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
 
   use crate::{
-    AsyncDependenciesBlockId, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
-    CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock, Dependency,
-    DependencyId, ExportInfo, ExportsInfo, Module, ModuleDependency, ModuleGraph,
+    AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta,
+    BuildResult, CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock,
+    Dependency, DependencyId, ExportInfo, ExportsInfo, Module, ModuleDependency, ModuleGraph,
     ModuleGraphModule, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType, UsageState,
   };
 
@@ -1104,11 +1139,11 @@ mod test {
       impl Diagnosable for $ident {}
 
       impl DependenciesBlock for $ident {
-        fn add_block_id(&mut self, _: AsyncDependenciesBlockId) {
+        fn add_block_id(&mut self, _: AsyncDependenciesBlockIdentifier) {
           unreachable!()
         }
 
-        fn get_blocks(&self) -> &[AsyncDependenciesBlockId] {
+        fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
           unreachable!()
         }
 
@@ -1310,8 +1345,8 @@ mod test {
 
     let mgm_a = mgm(&mg, &a_id);
     let mgm_b = mgm(&mg, &b_id);
-    let conn_a = mgm_a.outgoing_connections.iter().collect::<Vec<_>>();
-    let conn_b = mgm_b.incoming_connections.iter().collect::<Vec<_>>();
+    let conn_a = mgm_a.outgoing_connections().iter().collect::<Vec<_>>();
+    let conn_b = mgm_b.incoming_connections().iter().collect::<Vec<_>>();
     assert_eq!(conn_a[0], conn_b[0]);
 
     let c = node!("c");
@@ -1322,22 +1357,22 @@ mod test {
 
     let mgm_b = mgm(&mg, &b_id);
     let mgm_c = mgm(&mg, &c_id);
-    let conn_b = mgm_b.outgoing_connections.iter().collect::<Vec<_>>();
-    let conn_c = mgm_c.incoming_connections.iter().collect::<Vec<_>>();
+    let conn_b = mgm_b.outgoing_connections().iter().collect::<Vec<_>>();
+    let conn_c = mgm_c.incoming_connections().iter().collect::<Vec<_>>();
     assert_eq!(conn_c[0], conn_b[0]);
 
     mg.remove_connection_by_dependency(&a_to_b_id);
 
     let mgm_a = mgm(&mg, &a_id);
     let mgm_b = mgm(&mg, &b_id);
-    assert!(mgm_a.outgoing_connections.is_empty());
-    assert!(mgm_b.incoming_connections.is_empty());
+    assert!(mgm_a.outgoing_connections().is_empty());
+    assert!(mgm_b.incoming_connections().is_empty());
 
     mg.remove_connection_by_dependency(&b_to_c_id);
 
     let mgm_b = mgm(&mg, &b_id);
     let mgm_c = mgm(&mg, &c_id);
-    assert!(mgm_b.outgoing_connections.is_empty());
-    assert!(mgm_c.incoming_connections.is_empty());
+    assert!(mgm_b.outgoing_connections().is_empty());
+    assert!(mgm_c.incoming_connections().is_empty());
   }
 }

@@ -22,13 +22,14 @@ indexmap = { workspace = true }
 itertools = { workspace = true }
 json = { workspace = true }
 mime_guess = { workspace = true }
+num-bigint = "0.4.4"
 once_cell = { workspace = true }
-oxc_resolver = { version = "1.5.0" }
+oxc_resolver = { version = "1.5.3" }
 paste = { workspace = true }
 petgraph = { version = "0.6.4", features = ["serde-1"] }
 rayon = { workspace = true }
 regex = { workspace = true }
-rkyv = { workspace = true }
+rkyv = { workspace = true, features = ["indexmap", "validation"] }
 rspack_ast = { path = "../rspack_ast" }
 rspack_core_macros = { path = "../rspack_core_macros" }
 rspack_database = { path = "../rspack_database", features = ["rayon"] }

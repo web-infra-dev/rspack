@@ -391,7 +391,7 @@ impl<'a> ModuleRefAnalyze<'a> {
         }),
         Part::Url(src) => {
           let dep_id = self
-            .resolve_module_identifier(src, &DependencyType::NewUrl)
+            .resolve_module_identifier(src, &[DependencyType::NewUrl])
             .unwrap_or_else(|| panic!("Can't resolve {} in {}", src, self.module_identifier));
 
           Some(SymbolRef::Url {
@@ -402,7 +402,7 @@ impl<'a> ModuleRefAnalyze<'a> {
         }
         Part::Worker(src) => {
           let dep_id = self
-            .resolve_module_identifier(src, &DependencyType::NewWorker)
+            .resolve_module_identifier(src, &[DependencyType::NewWorker])
             .unwrap_or_else(|| panic!("Can't resolve {} in {}", src, self.module_identifier));
 
           Some(SymbolRef::Url {
@@ -523,7 +523,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
                 },
                 Part::Url(src) => {
                   let dep_id = self
-                    .resolve_module_identifier(src, &DependencyType::NewUrl)
+                    .resolve_module_identifier(src, &[DependencyType::NewUrl])
                     .unwrap_or_else(|| {
                       panic!("Can't resolve {} in {}", src, self.module_identifier)
                     });
@@ -535,7 +535,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
                 }
                 Part::Worker(src) => {
                   let dep_id = self
-                    .resolve_module_identifier(src, &DependencyType::NewWorker)
+                    .resolve_module_identifier(src, &[DependencyType::NewWorker])
                     .unwrap_or_else(|| {
                       panic!("Can't resolve {} in {}", src, self.module_identifier)
                     });
@@ -584,7 +584,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
               },
               Part::Url(src) => {
                 let dep_id = self
-                  .resolve_module_identifier(src, &DependencyType::NewUrl)
+                  .resolve_module_identifier(src, &[DependencyType::NewUrl])
                   .unwrap_or_else(|| panic!("Can't resolve {} in {}", src, self.module_identifier));
 
                 return HashSet::from_iter([SymbolRef::Url {
@@ -595,7 +595,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
               }
               Part::Worker(src) => {
                 let dep_id = self
-                  .resolve_module_identifier(src, &DependencyType::NewWorker)
+                  .resolve_module_identifier(src, &[DependencyType::NewWorker])
                   .unwrap_or_else(|| panic!("Can't resolve {} in {}", src, self.module_identifier));
 
                 return HashSet::from_iter([SymbolRef::Url {
@@ -640,7 +640,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         },
         Part::Url(src) => {
           let dep_id = self
-            .resolve_module_identifier(src, &DependencyType::NewUrl)
+            .resolve_module_identifier(src, &[DependencyType::NewUrl])
             .unwrap_or_else(|| panic!("Can't resolve {} in {}", src, self.module_identifier));
 
           let url = SymbolRef::Url {
@@ -652,7 +652,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         }
         Part::Worker(src) => {
           let dep_id = self
-            .resolve_module_identifier(src, &DependencyType::NewWorker)
+            .resolve_module_identifier(src, &[DependencyType::NewWorker])
             .unwrap_or_else(|| panic!("Can't resolve {} in {}", src, self.module_identifier));
 
           let url = SymbolRef::Url {
@@ -776,7 +776,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
             let src = &import.src.value;
             let dep_id = match self.resolve_module_identifier(
               src,
-              &DependencyType::EsmImport(ErrorSpan::from(import.span)),
+              &[DependencyType::EsmImport(ErrorSpan::from(import.span))],
             ) {
               Some(module_identifier) => module_identifier,
               None => {
@@ -882,7 +882,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
           ModuleDecl::ExportAll(export_all) => {
             let dep_id = match self.resolve_module_identifier(
               &export_all.src.value,
-              &DependencyType::EsmExport(export_all.span.into()),
+              &[DependencyType::EsmExport(export_all.span.into())],
             ) {
               Some(module_identifier) => module_identifier,
               None => {
@@ -1106,7 +1106,10 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
   fn visit_call_expr(&mut self, node: &CallExpr) {
     if let Some(require_lit) = get_require_literal(node, self.unresolved_ctxt) {
       self.module_syntax.insert(ModuleSyntax::COMMONJS);
-      match self.resolve_module_identifier(&require_lit, &DependencyType::CjsRequire) {
+      match self.resolve_module_identifier(
+        &require_lit,
+        &[DependencyType::CjsRequire, DependencyType::CjsExportRequire],
+      ) {
         Some(dep_id) => match self
           .bail_out_module_identifiers
           .entry(ModuleIdOrDepId::DepId(dep_id))
@@ -1126,7 +1129,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         }
       };
     } else if let Some(import_str) = get_dynamic_import_string_literal(node) {
-      match self.resolve_module_identifier(&import_str, &DependencyType::DynamicImport) {
+      match self.resolve_module_identifier(&import_str, &[DependencyType::DynamicImport]) {
         Some(dep_id) => match self
           .bail_out_module_identifiers
           .entry(ModuleIdOrDepId::DepId(dep_id))
@@ -1532,7 +1535,7 @@ impl<'a> ModuleRefAnalyze<'a> {
     let src = named_export.src.as_ref().map(|src| &src.value);
     if let Some(src) = src {
       let dep_id = match self
-        .resolve_module_identifier(src, &DependencyType::EsmExport(named_export.span.into()))
+        .resolve_module_identifier(src, &[DependencyType::EsmExport(named_export.span.into())])
       {
         Some(module_identifier) => module_identifier,
         None => {
@@ -1651,17 +1654,17 @@ impl<'a> ModuleRefAnalyze<'a> {
   fn resolve_module_identifier(
     &self,
     src: &str,
-    dependency_type: &DependencyType,
+    dependency_types: &[DependencyType],
   ) -> Option<DependencyId> {
     self.dependencies.iter().find_map(|dep| {
       if let Some(dep) = dep.as_module_dependency()
         && dep.request() == src
-        && dependency_type == dep.dependency_type()
+        && dependency_types.contains(dep.dependency_type())
       {
         Some(*dep.id())
       } else if let Some(dep) = dep.as_context_dependency()
         && dep.request() == src
-        && dependency_type == dep.dependency_type()
+        && dependency_types.contains(dep.dependency_type())
       {
         Some(*dep.id())
       } else {

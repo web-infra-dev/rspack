@@ -9,8 +9,8 @@ use rspack_core::tree_shaking::analyzer::OptimizeAnalyzer;
 use rspack_core::tree_shaking::js_module::JsModule;
 use rspack_core::tree_shaking::visitor::OptimizeAnalyzeResult;
 use rspack_core::{
-  render_init_fragments, AsyncDependenciesBlockId, Compilation, DependenciesBlock, DependencyId,
-  GenerateContext, Module, ParseContext, ParseResult, ParserAndGenerator, SourceType,
+  render_init_fragments, AsyncDependenciesBlockIdentifier, Compilation, DependenciesBlock,
+  DependencyId, GenerateContext, Module, ParseContext, ParseResult, ParserAndGenerator, SourceType,
   TemplateContext, TemplateReplaceSource,
 };
 use rspack_error::miette::Diagnostic;
@@ -33,7 +33,7 @@ impl JavaScriptParserAndGenerator {
   fn source_block(
     &self,
     compilation: &Compilation,
-    block_id: &AsyncDependenciesBlockId,
+    block_id: &AsyncDependenciesBlockIdentifier,
     source: &mut TemplateReplaceSource,
     context: &mut TemplateContext,
   ) {
@@ -187,7 +187,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       mut warning_diagnostics,
     } = match ast.visit(|program, _| {
       scan_dependencies(
-        parse_result.1,
+        &parse_result.1,
         program,
         &mut worker_syntax_list,
         resource_data,

@@ -16,7 +16,8 @@ export const EvalSourceMapDevToolPlugin = create(
 			namespace: options.namespace ?? "",
 			columns: options.columns ?? true,
 			noSources: options.noSources ?? false,
-			publicPath: options.publicPath
+			publicPath: options.publicPath,
+			module: options.module
 		};
 	},
 	"compilation"

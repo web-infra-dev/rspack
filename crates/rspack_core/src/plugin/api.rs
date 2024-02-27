@@ -1,9 +1,9 @@
-use std::{fmt::Debug, path::Path};
+use std::{fmt::Debug, path::Path, sync::Arc};
 
 use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_hash::RspackHashDigest;
 use rspack_loader_runner::{Content, LoaderContext, ResourceData};
-use rspack_sources::BoxSource;
+use rspack_sources::{BoxSource, Source};
 use rustc_hash::FxHashMap;
 use tokio::sync::mpsc::UnboundedSender;
 
@@ -12,7 +12,7 @@ use crate::{
   AssetInfo, BoxLoader, BoxModule, BuildTimeExecutionOption, Chunk, ChunkAssetArgs, ChunkHashArgs,
   CodeGenerationResults, Compilation, CompilationParams, CompilerHooks, CompilerOptions,
   ContentHashArgs, DependencyId, DoneArgs, FactorizeArgs, JsChunkHashArgs, LoaderRunnerContext,
-  MakeParam, Module, ModuleFactoryResult, ModuleIdentifier, ModuleType, NormalModule,
+  Module, ModuleFactoryResult, ModuleIdentifier, ModuleType, NormalModule,
   NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs, NormalModuleCreateData,
   OptimizeChunksArgs, ParserAndGenerator, PluginContext, ProcessAssetsArgs, RenderArgs,
   RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, Resolver,
@@ -66,15 +66,6 @@ pub trait Plugin: Debug + Send + Sync {
     _args: ThisCompilationArgs<'_>,
     _params: &CompilationParams,
   ) -> PluginThisCompilationHookOutput {
-    Ok(())
-  }
-
-  async fn make(
-    &self,
-    _ctx: PluginContext,
-    _compilation: &mut Compilation,
-    _params: &mut Vec<MakeParam>,
-  ) -> PluginMakeHookOutput {
     Ok(())
   }
 
@@ -484,8 +475,8 @@ pub trait Plugin: Debug + Send + Sync {
   async fn runtime_module(
     &self,
     _module: &mut dyn RuntimeModule,
+    _source: Arc<dyn Source>,
     _chunk: &Chunk,
-    _compilation: &Compilation,
   ) -> Result<Option<String>> {
     Ok(None)
   }

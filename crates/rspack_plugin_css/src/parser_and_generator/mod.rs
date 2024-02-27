@@ -9,11 +9,11 @@ use rkyv::{from_bytes, to_bytes, AlignedVec};
 use rspack_core::{
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
   rspack_sources::{
-    BoxSource, MapOptions, RawSource, ReplaceSource, Source, SourceExt, SourceMap, SourceMapSource,
-    SourceMapSourceOptions,
+    BoxSource, ConcatSource, MapOptions, RawSource, ReplaceSource, Source, SourceExt, SourceMap,
+    SourceMapSource, SourceMapSourceOptions,
   },
-  BoxDependency, BuildExtraDataType, BuildMetaExportsType, GenerateContext, Module, ModuleType,
-  ParseContext, ParseResult, ParserAndGenerator, SourceType, TemplateContext,
+  BoxDependency, BuildExtraDataType, BuildMetaExportsType, ErrorSpan, GenerateContext, Module,
+  ModuleType, ParseContext, ParseResult, ParserAndGenerator, SourceType, TemplateContext,
 };
 use rspack_core::{ModuleInitFragments, RuntimeGlobals};
 use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
@@ -23,8 +23,9 @@ use sugar_path::SugarPath;
 use swc_core::{css::parser::parser::ParserConfig, ecma::atoms::Atom};
 
 use crate::{
-  dependency::CssComposeDependency,
+  dependency::{CssComposeDependency, CssModuleExportDependency},
   swc_css_compiler::{SwcCssCompiler, SwcCssSourceMapGenConfig},
+  utils::css_modules_exports_to_concatenate_module_string,
 };
 use crate::{
   plugin::CssConfig,
@@ -44,12 +45,12 @@ pub(crate) static CSS_MODULE_SOURCE_TYPE_LIST: &[SourceType; 2] =
 pub(crate) static CSS_MODULE_EXPORTS_ONLY_SOURCE_TYPE_LIST: &[SourceType; 1] =
   &[SourceType::JavaScript];
 
-type CssExportsType = Option<IndexMap<Vec<String>, Vec<(String, Option<String>)>>>;
+pub type CssExportsType = IndexMap<Vec<String>, Vec<(String, ErrorSpan, Option<String>)>>;
 
 #[derive(Debug)]
 pub struct CssParserAndGenerator {
   pub config: CssConfig,
-  pub exports: CssExportsType,
+  pub exports: Option<CssExportsType>,
 }
 
 impl ParserAndGenerator for CssParserAndGenerator {
@@ -85,7 +86,13 @@ impl ParserAndGenerator for CssParserAndGenerator {
     } = parse_context;
 
     build_info.strict = true;
-    build_meta.exports_type = BuildMetaExportsType::Default;
+    build_meta.exports_type = if self.config.named_exports.unwrap_or_default() {
+      BuildMetaExportsType::Namespace
+    } else {
+      BuildMetaExportsType::Default
+    };
+
+    // build_meta.exports_type = BuildMetaExportsType::Namespace;
 
     let swc_compiler = SwcCssCompiler::default();
 
@@ -105,6 +112,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
     let mut source_map = None;
     let mut diagnostic_vec = vec![];
 
+    let mut exports_pairs = vec![];
     if is_enable_css_modules {
       let mut stylesheet = swc_compiler.parse_file(
         &resource_path.to_string_lossy(),
@@ -128,8 +136,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
       );
       let mut exports: IndexMap<Atom, _> = result.renamed.into_iter().collect();
       exports.sort_keys();
-
-      self.exports = Some(IndexMap::from_iter(
+      let normalized_exports = IndexMap::from_iter(
         exports
           .iter()
           .map(|(name, elements)| {
@@ -139,7 +146,13 @@ impl ParserAndGenerator for CssParserAndGenerator {
             (names, stringify_css_modules_exports_elements(elements))
           })
           .collect::<Vec<_>>(),
-      ));
+      );
+      for (k, v) in normalized_exports.iter() {
+        for kk in k {
+          exports_pairs.push((kk.to_string(), v[0].0.to_owned()));
+        }
+      }
+      self.exports = Some(normalized_exports);
 
       let (code, map) = swc_compiler.codegen(
         &stylesheet,
@@ -164,26 +177,33 @@ impl ParserAndGenerator for CssParserAndGenerator {
       code_generation_dependencies,
       &mut diagnostic_vec,
     );
+    for (k, v) in exports_pairs {
+      dependencies.push(Box::new(CssModuleExportDependency::new(
+        k[1..k.len() - 1].to_owned(),
+        v,
+      )));
+    }
 
     let dependencies = if let Some(locals) = &self.exports
       && !locals.is_empty()
     {
       let mut dep_set = FxHashSet::default();
-      let compose_deps = locals
-        .iter()
-        .flat_map(|(_, value)| value)
-        .filter_map(|(_, from)| {
-          if let Some(from) = from {
-            if dep_set.contains(&from) {
-              None
+      let compose_deps =
+        locals
+          .iter()
+          .flat_map(|(_, value)| value)
+          .filter_map(|(_, span, from)| {
+            if let Some(from) = from {
+              if dep_set.contains(&from) {
+                None
+              } else {
+                dep_set.insert(from);
+                Some(Box::new(CssComposeDependency::new(from.to_owned(), *span)) as BoxDependency)
+              }
             } else {
-              dep_set.insert(from);
-              Some(Box::new(CssComposeDependency::new(from.to_owned(), None)) as BoxDependency)
+              None
             }
-          } else {
-            None
-          }
-        });
+          });
       dependencies.extend(compose_deps);
       dependencies
     } else {
@@ -244,7 +264,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
           runtime_requirements: generate_context.runtime_requirements,
           runtime: generate_context.runtime,
           init_fragments: &mut init_fragments,
-          concatenation_scope: None,
+          concatenation_scope: generate_context.concatenation_scope.take(),
         };
 
         module.get_dependencies().iter().for_each(|id| {
@@ -264,10 +284,22 @@ impl ParserAndGenerator for CssParserAndGenerator {
             .for_each(|dependency| dependency.apply(&mut source, &mut context));
         };
 
+        generate_context.concatenation_scope = context.concatenation_scope.take();
         Ok(source.boxed())
       }
       SourceType::JavaScript => {
-        let locals = if let Some(exports) = &self.exports {
+        let locals = if generate_context.concatenation_scope.is_some() {
+          let mut concate_source = ConcatSource::default();
+          if let Some(ref exports) = self.exports {
+            css_modules_exports_to_concatenate_module_string(
+              exports,
+              module,
+              generate_context,
+              &mut concate_source,
+            )?;
+          }
+          return Ok(concate_source.boxed());
+        } else if let Some(exports) = &self.exports {
           css_modules_exports_to_string(
             exports,
             module,
@@ -301,8 +333,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
   }
   fn resume(&mut self, extra_data: &HashMap<BuildExtraDataType, AlignedVec>) {
     if let Some(data) = extra_data.get(&BuildExtraDataType::CssParserAndGenerator) {
-      let data = from_bytes::<Option<IndexMap<Vec<String>, Vec<(String, Option<String>)>>>>(data)
-        .expect("Failed to resume extra data");
+      let data = from_bytes::<Option<CssExportsType>>(data).expect("Failed to resume extra data");
       self.exports = data;
     }
   }

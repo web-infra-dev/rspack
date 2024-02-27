@@ -25,7 +25,12 @@ use crate::{
 };
 
 pub trait ExportsHash {
-  fn export_info_hash(&self, hasher: &mut dyn Hasher, module_graph: &ModuleGraph);
+  fn export_info_hash(
+    &self,
+    hasher: &mut dyn Hasher,
+    module_graph: &ModuleGraph,
+    already_visited: &mut HashSet<ExportInfoId>,
+  );
 }
 
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize)]
@@ -34,9 +39,14 @@ pub struct ExportsInfoId(u32);
 pub static EXPORTS_INFO_ID: AtomicU32 = AtomicU32::new(0);
 
 impl ExportsHash for ExportsInfoId {
-  fn export_info_hash(&self, hasher: &mut dyn Hasher, module_graph: &ModuleGraph) {
+  fn export_info_hash(
+    &self,
+    hasher: &mut dyn Hasher,
+    module_graph: &ModuleGraph,
+    already_visited: &mut HashSet<ExportInfoId>,
+  ) {
     if let Some(exports_info) = module_graph.exports_info_map.try_get(**self as usize) {
-      exports_info.export_info_hash(hasher, module_graph);
+      exports_info.export_info_hash(hasher, module_graph, already_visited);
     }
   }
 }
@@ -456,7 +466,12 @@ pub struct ExportsInfo {
 }
 
 impl ExportsHash for ExportsInfo {
-  fn export_info_hash(&self, hasher: &mut dyn Hasher, module_graph: &ModuleGraph) {
+  fn export_info_hash(
+    &self,
+    hasher: &mut dyn Hasher,
+    module_graph: &ModuleGraph,
+    already_visited: &mut HashSet<ExportInfoId>,
+  ) {
     if let Some(hash) = module_graph.exports_info_hash.get(&self.id) {
       hash.dyn_hash(hasher);
       return;
@@ -464,18 +479,18 @@ impl ExportsHash for ExportsInfo {
     let mut default_hash = DefaultHasher::default();
     for (name, export_info_id) in &self.exports {
       name.dyn_hash(&mut default_hash);
-      export_info_id.export_info_hash(&mut default_hash, module_graph);
+      export_info_id.export_info_hash(&mut default_hash, module_graph, already_visited);
     }
     self
       .other_exports_info
-      .export_info_hash(&mut default_hash, module_graph);
+      .export_info_hash(&mut default_hash, module_graph, already_visited);
     self
       ._side_effects_only_info
-      .export_info_hash(&mut default_hash, module_graph);
+      .export_info_hash(&mut default_hash, module_graph, already_visited);
     self._exports_are_ordered.dyn_hash(&mut default_hash);
 
     if let Some(redirect_to) = self.redirect_to {
-      redirect_to.export_info_hash(&mut default_hash, module_graph);
+      redirect_to.export_info_hash(&mut default_hash, module_graph, already_visited);
     }
     let hash = default_hash.finish();
     module_graph.exports_info_hash.insert(self.id, hash);
@@ -486,6 +501,12 @@ impl ExportsHash for ExportsInfo {
 pub enum ProvidedExports {
   Null,
   True,
+  Vec(Vec<Atom>),
+}
+
+pub enum UsedExports {
+  Null,
+  Bool(bool),
   Vec(Vec<Atom>),
 }
 impl ExportsInfo {
@@ -540,6 +561,51 @@ impl ExportsInfo {
       }
     }
     ProvidedExports::Vec(ret)
+  }
+
+  pub fn get_used_exports(&self, mg: &ModuleGraph, runtime: Option<&RuntimeSpec>) -> UsedExports {
+    if self.redirect_to.is_none() {
+      match self.other_exports_info.get_used(mg, runtime) {
+        UsageState::NoInfo => return UsedExports::Null,
+        UsageState::Unknown | UsageState::OnlyPropertiesUsed | UsageState::Used => {
+          return UsedExports::Bool(true);
+        }
+        _ => (),
+      }
+    }
+
+    let mut res = vec![];
+    for export_info_id in self.exports.values() {
+      match export_info_id.get_used(mg, runtime) {
+        UsageState::NoInfo => return UsedExports::Null,
+        UsageState::Unknown => return UsedExports::Bool(true),
+        UsageState::OnlyPropertiesUsed | UsageState::Used => {
+          if let Some(name) = export_info_id.get_export_info(mg).name.to_owned() {
+            res.push(name);
+          }
+        }
+        _ => (),
+      }
+    }
+
+    if let Some(redirect) = self.redirect_to {
+      let inner = redirect.get_exports_info(mg).get_used_exports(mg, runtime);
+      match inner {
+        UsedExports::Vec(v) => res.extend(v),
+        UsedExports::Null | UsedExports::Bool(true) => return inner,
+        _ => (),
+      }
+    }
+
+    if res.is_empty() {
+      match self._side_effects_only_info.get_used(mg, runtime) {
+        UsageState::NoInfo => return UsedExports::Null,
+        UsageState::Unused => return UsedExports::Bool(false),
+        _ => (),
+      }
+    }
+
+    UsedExports::Vec(res)
   }
 
   /// exports that are relevant (not unused and potential provided)
@@ -735,9 +801,19 @@ pub struct ExportInfoId(u32);
 pub static EXPORT_INFO_ID: AtomicU32 = AtomicU32::new(0);
 
 impl ExportsHash for ExportInfoId {
-  fn export_info_hash(&self, hasher: &mut dyn Hasher, module_graph: &ModuleGraph) {
+  fn export_info_hash(
+    &self,
+    hasher: &mut dyn Hasher,
+    module_graph: &ModuleGraph,
+    already_visited: &mut HashSet<ExportInfoId>,
+  ) {
+    if already_visited.contains(self) {
+      return;
+    }
+    already_visited.insert(*self);
+
     if let Some(export_info) = module_graph.export_info_map.try_get(**self as usize) {
-      export_info.export_info_hash(hasher, module_graph);
+      export_info.export_info_hash(hasher, module_graph, already_visited);
     }
   }
 }
@@ -1255,7 +1331,12 @@ pub struct ExportInfo {
 }
 
 impl ExportsHash for ExportInfo {
-  fn export_info_hash(&self, hasher: &mut dyn Hasher, module_graph: &ModuleGraph) {
+  fn export_info_hash(
+    &self,
+    hasher: &mut dyn Hasher,
+    module_graph: &ModuleGraph,
+    already_visited: &mut HashSet<ExportInfoId>,
+  ) {
     self.name.dyn_hash(hasher);
     self.module_identifier.dyn_hash(hasher);
     self.usage_state.dyn_hash(hasher);
@@ -1274,7 +1355,7 @@ impl ExportsHash for ExportInfo {
     self.target_is_set.dyn_hash(hasher);
     self.max_target_is_set.dyn_hash(hasher);
     if let Some(exports_info_id) = self.exports_info {
-      exports_info_id.export_info_hash(hasher, module_graph);
+      exports_info_id.export_info_hash(hasher, module_graph, already_visited);
     }
     self.exports_info_owned.dyn_hash(hasher);
   }

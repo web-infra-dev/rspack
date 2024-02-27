@@ -1,34 +1,33 @@
-#![allow(unused)]
-
+mod call_hooks_name;
 mod walk;
 mod walk_block_pre;
 mod walk_pre;
 
 use std::borrow::Cow;
-use std::fmt::Display;
 use std::rc::Rc;
-use std::sync::Arc;
 
 use bitflags::bitflags;
+pub use call_hooks_name::CallHooksName;
 use rspack_core::needs_refactor::WorkerSyntaxList;
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BuildInfo, BuildMeta, DependencyTemplate,
   JavascriptParserOptions, ModuleIdentifier, ResourceData,
 };
-use rspack_core::{CompilerOptions, DependencyLocation, JavascriptParserUrl, ModuleType, SpanExt};
+use rspack_core::{CompilerOptions, JavascriptParserUrl, ModuleType, SpanExt};
 use rspack_error::miette::Diagnostic;
-use rustc_hash::FxHashSet;
+use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::atoms::Atom;
 use swc_core::common::comments::Comments;
 use swc_core::common::util::take::Take;
 use swc_core::common::{SourceFile, Span, Spanned};
 use swc_core::ecma::ast::{
   ArrayPat, AssignPat, CallExpr, Callee, MetaPropExpr, MetaPropKind, ObjectPat, ObjectPatProp, Pat,
-  Program, Stmt, Super, ThisExpr,
+  Program, Stmt, ThisExpr,
 };
-use swc_core::ecma::ast::{BlockStmt, Expr, Ident, Lit, MemberExpr, RestPat};
-use swc_core::ecma::utils::ExprFactory;
+use swc_core::ecma::ast::{Expr, Ident, Lit, MemberExpr, RestPat};
 
+use super::ExtraSpanInfo;
+use super::ImportMap;
 use crate::parser_plugin::{self, JavaScriptParserPluginDrive, JavascriptParserPlugin};
 use crate::utils::eval::{self, BasicEvaluatedExpression};
 use crate::visitors::scope_info::{
@@ -145,63 +144,6 @@ pub struct FreeInfo<'a> {
   pub info: Option<&'a VariableInfo>,
 }
 
-// callHooksForName/callHooksForInfo in webpack
-// webpack use HookMap and filter at callHooksForName/callHooksForInfo
-// we need to pass the name to hook to filter in the hook
-pub trait CallHooksName {
-  fn call_hooks_name(&self, parser: &mut JavascriptParser) -> Option<String>;
-}
-
-impl CallHooksName for &str {
-  fn call_hooks_name(&self, parser: &mut JavascriptParser) -> Option<String> {
-    let mut name = *self;
-    if let Some(info) = parser.get_variable_info(name) {
-      if let Some(FreeName::String(free_name)) = &info.free_name {
-        name = free_name;
-      } else {
-        return None;
-      }
-    }
-    Some(name.to_string())
-  }
-}
-
-impl CallHooksName for String {
-  fn call_hooks_name(&self, parser: &mut JavascriptParser) -> Option<String> {
-    self.as_str().call_hooks_name(parser)
-  }
-}
-
-impl CallHooksName for Atom {
-  fn call_hooks_name(&self, parser: &mut JavascriptParser) -> Option<String> {
-    self.as_str().call_hooks_name(parser)
-  }
-}
-
-impl CallHooksName for VariableInfo {
-  fn call_hooks_name(&self, parser: &mut JavascriptParser) -> Option<String> {
-    if let Some(FreeName::String(free_name)) = &self.free_name {
-      return Some(free_name.to_string());
-    }
-    None
-  }
-}
-
-impl CallHooksName for ExportedVariableInfo {
-  fn call_hooks_name(&self, parser: &mut JavascriptParser) -> Option<String> {
-    match self {
-      ExportedVariableInfo::Name(n) => n.call_hooks_name(parser),
-      ExportedVariableInfo::VariableInfo(v) => {
-        let info = parser.definitions_db.expect_get_variable(v);
-        if let Some(FreeName::String(free_name)) = &info.free_name {
-          return Some(free_name.to_string());
-        }
-        None
-      }
-    }
-  }
-}
-
 #[derive(Clone, Copy, Debug)]
 pub enum TopLevelScope {
   Top,
@@ -210,13 +152,16 @@ pub enum TopLevelScope {
 }
 
 pub struct JavascriptParser<'parser> {
-  pub(crate) source_file: Arc<SourceFile>,
-  pub(crate) errors: &'parser mut Vec<Box<dyn Diagnostic + Send + Sync>>,
-  pub(crate) warning_diagnostics: &'parser mut Vec<Box<dyn Diagnostic + Send + Sync>>,
-  pub(crate) dependencies: &'parser mut Vec<BoxDependency>,
-  pub(crate) presentational_dependencies: &'parser mut Vec<Box<dyn DependencyTemplate>>,
-  pub(crate) blocks: &'parser mut Vec<AsyncDependenciesBlock>,
-  pub(crate) ignored: &'parser mut FxHashSet<DependencyLocation>,
+  pub(crate) source_file: &'parser SourceFile,
+  pub(crate) errors: Vec<Box<dyn Diagnostic + Send + Sync>>,
+  pub(crate) warning_diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>>,
+  pub(crate) dependencies: Vec<BoxDependency>,
+  pub(crate) presentational_dependencies: Vec<Box<dyn DependencyTemplate>>,
+  pub(crate) blocks: Vec<AsyncDependenciesBlock>,
+  // TODO: remove `import_map`
+  pub(crate) import_map: ImportMap,
+  // TODO: remove `rewrite_usage_span`
+  pub(crate) rewrite_usage_span: FxHashMap<Span, ExtraSpanInfo>,
   pub(crate) comments: Option<&'parser dyn Comments>,
   // TODO: remove `worker_syntax_list`
   pub(crate) worker_syntax_list: &'parser mut WorkerSyntaxList,
@@ -230,47 +175,52 @@ pub struct JavascriptParser<'parser> {
   pub(crate) javascript_options: Option<&'parser JavascriptParserOptions>,
   pub(crate) module_type: &'parser ModuleType,
   pub(crate) module_identifier: &'parser ModuleIdentifier,
-  // TODO: remove `enter_assign`
-  pub(crate) enter_assign: bool,
   // TODO: remove `is_esm` after `HarmonyExports::isEnabled`
   pub(crate) is_esm: bool,
-  // TODO: delete `has_module_ident`
-  pub(crate) has_module_ident: bool,
-  pub(crate) parser_exports_state: &'parser mut Option<bool>,
+  pub(crate) in_tagged_template_tag: bool,
+  pub(crate) parser_exports_state: Option<bool>,
   // TODO: delete `enter_call`
   pub(crate) enter_call: u32,
+  // TODO: delete `enter_new_expr`
+  pub(crate) enter_new_expr: bool,
+  // TODO: delete `enter_callee`
+  pub(crate) enter_callee: bool,
   pub(crate) stmt_level: u32,
   pub(crate) last_stmt_is_expr_stmt: bool,
+  // TODO: delete `properties_in_destructuring`
+  pub(crate) properties_in_destructuring: FxHashMap<Atom, FxHashSet<Atom>>,
   // ===== scope info =======
-  // TODO: `in_if` can be removed after eval identifier
-  pub(crate) in_if: bool,
   pub(crate) in_try: bool,
   pub(crate) in_short_hand: bool,
   pub(super) definitions: ScopeInfoId,
   pub(crate) top_level_scope: TopLevelScope,
+  pub(crate) last_harmony_import_order: i32,
 }
 
 impl<'parser> JavascriptParser<'parser> {
   #[allow(clippy::too_many_arguments)]
   pub fn new(
-    source_file: Arc<SourceFile>,
+    source_file: &'parser SourceFile,
     compiler_options: &'parser CompilerOptions,
-    dependencies: &'parser mut Vec<BoxDependency>,
-    presentational_dependencies: &'parser mut Vec<Box<dyn DependencyTemplate>>,
-    blocks: &'parser mut Vec<AsyncDependenciesBlock>,
-    ignored: &'parser mut FxHashSet<DependencyLocation>,
     comments: Option<&'parser dyn Comments>,
     module_identifier: &'parser ModuleIdentifier,
     module_type: &'parser ModuleType,
     worker_syntax_list: &'parser mut WorkerSyntaxList,
     resource_data: &'parser ResourceData,
-    parser_exports_state: &'parser mut Option<bool>,
     build_meta: &'parser mut BuildMeta,
     build_info: &'parser mut BuildInfo,
-    errors: &'parser mut Vec<Box<dyn Diagnostic + Send + Sync>>,
-    warning_diagnostics: &'parser mut Vec<Box<dyn Diagnostic + Send + Sync>>,
   ) -> Self {
+    let warning_diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>> = Vec::with_capacity(32);
+    let errors = Vec::with_capacity(32);
+    let dependencies = Vec::with_capacity(256);
+    let blocks = Vec::with_capacity(256);
+    let presentational_dependencies = Vec::with_capacity(256);
+    let parser_exports_state: Option<bool> = None;
+    let import_map = FxHashMap::default();
+    let rewrite_usage_span = FxHashMap::default();
+
     let mut plugins: Vec<parser_plugin::BoxJavascriptParserPlugin> = Vec::with_capacity(32);
+    plugins.push(Box::new(parser_plugin::InitializeEvaluating));
     plugins.push(Box::new(parser_plugin::CheckVarDeclaratorIdent));
     plugins.push(Box::new(parser_plugin::ConstPlugin));
     plugins.push(Box::new(
@@ -285,7 +235,9 @@ impl<'parser> JavascriptParser<'parser> {
       plugins.push(Box::new(parser_plugin::CommonJsImportsParserPlugin));
       plugins.push(Box::new(parser_plugin::CommonJsPlugin));
       plugins.push(Box::new(parser_plugin::CommonJsExportsParserPlugin));
-      plugins.push(Box::new(parser_plugin::NodeStuffPlugin));
+      if compiler_options.node.is_some() {
+        plugins.push(Box::new(parser_plugin::NodeStuffPlugin));
+      }
     }
 
     if compiler_options.dev_server.hot {
@@ -313,10 +265,10 @@ impl<'parser> JavascriptParser<'parser> {
       }
       plugins.push(Box::new(parser_plugin::WebpackIsIncludedPlugin));
       plugins.push(Box::new(parser_plugin::ExportsInfoApiPlugin));
+      plugins.push(Box::new(parser_plugin::CompatibilityPlugin));
       plugins.push(Box::new(parser_plugin::APIPlugin::new(
         compiler_options.output.module,
       )));
-      plugins.push(Box::new(parser_plugin::CompatibilityPlugin));
       plugins.push(Box::new(parser_plugin::ImportParserPlugin));
     }
 
@@ -336,7 +288,7 @@ impl<'parser> JavascriptParser<'parser> {
         }));
       }
       plugins.push(Box::new(parser_plugin::HarmonyTopLevelThisParserPlugin));
-      plugins.push(Box::new(parser_plugin::HarmonDetectionParserPlugin::new(
+      plugins.push(Box::new(parser_plugin::HarmonyDetectionParserPlugin::new(
         compiler_options.experiments.top_level_await,
       )));
       plugins.push(Box::new(parser_plugin::WorkerPlugin));
@@ -344,6 +296,8 @@ impl<'parser> JavascriptParser<'parser> {
         parser_plugin::ImportMetaContextDependencyParserPlugin,
       ));
       plugins.push(Box::new(parser_plugin::ImportMetaPlugin));
+      plugins.push(Box::new(parser_plugin::HarmonyImportDependencyParserPlugin));
+      plugins.push(Box::new(parser_plugin::HarmonyExportDependencyParserPlugin));
     }
 
     let plugin_drive = Rc::new(JavaScriptParserPluginDrive::new(plugins));
@@ -355,6 +309,7 @@ impl<'parser> JavascriptParser<'parser> {
       .and_then(|p| p.get(module_type))
       .and_then(|p| p.get_javascript(module_type));
     Self {
+      last_harmony_import_order: 0,
       comments,
       javascript_options,
       source_file,
@@ -364,13 +319,12 @@ impl<'parser> JavascriptParser<'parser> {
       presentational_dependencies,
       blocks,
       in_try: false,
-      in_if: false,
       in_short_hand: false,
       top_level_scope: TopLevelScope::Top,
       is_esm: matches!(module_type, ModuleType::JsEsm),
+      in_tagged_template_tag: false,
       definitions: db.create(),
       definitions_db: db,
-      ignored,
       plugin_drive,
       worker_syntax_list,
       resource_data,
@@ -378,14 +332,17 @@ impl<'parser> JavascriptParser<'parser> {
       build_info,
       compiler_options,
       module_type,
-      enter_assign: false,
-      has_module_ident: false,
       parser_exports_state,
       enter_call: 0,
       stmt_level: 0,
       last_stmt_is_expr_stmt: false,
       worker_index: 0,
       module_identifier,
+      import_map,
+      rewrite_usage_span,
+      enter_new_expr: false,
+      enter_callee: false,
+      properties_in_destructuring: Default::default(),
     }
   }
 
@@ -486,7 +443,7 @@ impl<'parser> JavascriptParser<'parser> {
     &mut self,
     object: Expr,
     members: Vec<Atom>,
-    members_range: Vec<Span>,
+    _members_range: Vec<Span>,
     allowed_types: AllowedMemberTypes,
   ) -> Option<MemberExpressionInfo> {
     match object {
@@ -575,7 +532,7 @@ impl<'parser> JavascriptParser<'parser> {
         let value = match lit {
           Lit::Str(s) => s.value.clone(),
           Lit::Bool(b) => if b.value { "true" } else { "false" }.into(),
-          Lit::Null(n) => "null".into(),
+          Lit::Null(_) => "null".into(),
           Lit::Num(n) => n.value.to_string().into(),
           Lit::BigInt(i) => i.value.to_string().into(),
           Lit::Regex(r) => r.exp.clone(),
@@ -717,45 +674,12 @@ impl<'parser> JavascriptParser<'parser> {
   pub fn is_unresolved_ident(&mut self, str: &str) -> bool {
     self.definitions_db.get(&self.definitions, str).is_none()
   }
-
-  // TODO: remove
-  pub fn is_unresolved_require(&mut self, expr: &Expr) -> bool {
-    let ident = match expr {
-      Expr::Ident(ident) => Some(ident),
-      Expr::Member(mem) => mem.obj.as_ident(),
-      _ => None,
-    };
-    let Some(ident) = ident else {
-      unreachable!("please don't use this fn in other case");
-    };
-    assert!(ident.sym.eq("require"));
-    self.is_unresolved_ident(ident.sym.as_str())
-  }
-
-  // TODO: remove
-  pub fn is_unresolved_member_object_ident(&mut self, expr: &Expr) -> bool {
-    if let Expr::Member(member) = expr {
-      if let Expr::Ident(ident) = &*member.obj {
-        return self.is_unresolved_ident(ident.sym.as_str());
-      };
-    }
-    false
-  }
 }
 
 impl JavascriptParser<'_> {
   pub fn evaluate_expression(&mut self, expr: &Expr) -> BasicEvaluatedExpression {
     match self.evaluating(expr) {
-      Some(evaluated) => {
-        if evaluated.is_compile_time_value() {
-          // TODO: delete this arm
-          let _ = self.ignored.insert(DependencyLocation::new(
-            expr.span().real_lo(),
-            expr.span().real_hi(),
-          ));
-        }
-        evaluated
-      }
+      Some(evaluated) => evaluated,
       None => BasicEvaluatedExpression::with_range(expr.span().real_lo(), expr.span_hi().0),
     }
   }
@@ -771,16 +695,26 @@ impl JavascriptParser<'_> {
       Expr::Bin(binary) => eval::eval_binary_expression(self, binary),
       Expr::Array(array) => eval::eval_array_expression(self, array),
       Expr::New(new) => eval::eval_new_expression(self, new),
+      Expr::Call(call) => eval::eval_call_expression(self, call),
+      Expr::Paren(paren) => self.evaluating(&paren.expr),
       Expr::Member(member) => {
         if let Some(MemberExpressionInfo::Expression(info)) =
           self.get_member_expression_info(member, AllowedMemberTypes::Expression)
         {
-          let mut eval =
-            BasicEvaluatedExpression::with_range(member.span.real_lo(), member.span.hi().0);
-          eval.set_identifier(info.name, info.root_info);
-          return Some(eval);
+          self
+            .plugin_drive
+            .clone()
+            .evaluate_identifier(self, &info.name, member.span.real_lo(), member.span.hi().0)
+            .or_else(|| {
+              // TODO: fallback with `evaluateDefinedIdentifier`
+              let mut eval =
+                BasicEvaluatedExpression::with_range(member.span.real_lo(), member.span.hi().0);
+              eval.set_identifier(info.name, info.root_info);
+              Some(eval)
+            })
+        } else {
+          None
         }
-        None
       }
       Expr::Ident(ident) => {
         let drive = self.plugin_drive.clone();
@@ -796,10 +730,16 @@ impl JavascriptParser<'_> {
             .or_else(|| {
               let mut eval =
                 BasicEvaluatedExpression::with_range(ident.span.real_lo(), ident.span.hi.0);
-              eval.set_identifier(
-                ident.sym.to_string(),
-                ExportedVariableInfo::Name(ident.sym.to_string()),
-              );
+
+              if ident.sym.eq("undefined") {
+                eval.set_undefined();
+              } else {
+                eval.set_identifier(
+                  ident.sym.to_string(),
+                  ExportedVariableInfo::Name(ident.sym.to_string()),
+                );
+              }
+
               Some(eval)
             });
         };

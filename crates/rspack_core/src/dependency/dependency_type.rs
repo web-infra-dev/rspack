@@ -30,7 +30,7 @@ pub enum DependencyType {
   CjsFullRequire,
   // cjs exports
   CjsExports,
-  // cjs export require
+  // module.exports = require(), should bailout in old tree shaking
   CjsExportRequire,
   // cjs self reference
   CjsSelfReference,
@@ -52,6 +52,9 @@ pub enum DependencyType {
   CssImport,
   // css modules compose
   CssCompose,
+  /// css module export
+  /// FIXME: remove after we align css module with webpack
+  CssModuleExport,
   // context element
   ContextElement,
   // import context
@@ -120,6 +123,7 @@ impl DependencyType {
       DependencyType::CssUrl => Cow::Borrowed("css url"),
       DependencyType::CssImport => Cow::Borrowed("css import"),
       DependencyType::CssCompose => Cow::Borrowed("css compose"),
+      DependencyType::CssModuleExport => Cow::Borrowed("css export"),
       DependencyType::ContextElement => Cow::Borrowed("context element"),
       // TODO: mode
       DependencyType::ImportContext => Cow::Borrowed("import context"),

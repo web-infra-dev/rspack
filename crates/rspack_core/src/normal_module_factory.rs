@@ -742,7 +742,21 @@ impl NormalModuleFactory {
 /// Rspan aka `Rspack span`, just avoiding conflict with span in other crate
 /// ## Warning
 /// RSpan is zero based, `Span` of `swc` is 1 based. see https://swc-css.netlify.app/?code=eJzLzC3ILypRSFRIK8rPVVAvSS0u0csqVgcAZaoIKg
-#[derive(Debug, Hash, PartialEq, Eq, Clone, Copy, Default, PartialOrd, Ord)]
+#[derive(
+  Debug,
+  Hash,
+  PartialEq,
+  Eq,
+  Clone,
+  Copy,
+  Default,
+  PartialOrd,
+  Ord,
+  rkyv::Archive,
+  rkyv::Serialize,
+  rkyv::Deserialize,
+)]
+#[archive(check_bytes)]
 pub struct ErrorSpan {
   pub start: u32,
   pub end: u32,

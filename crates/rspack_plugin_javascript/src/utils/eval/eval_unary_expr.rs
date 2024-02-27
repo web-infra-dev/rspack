@@ -6,13 +6,13 @@ use crate::parser_plugin::JavascriptParserPlugin;
 use crate::visitors::JavascriptParser;
 
 fn eval_typeof(
-  scanner: &mut JavascriptParser,
+  parser: &mut JavascriptParser,
   expr: &UnaryExpr,
 ) -> Option<BasicEvaluatedExpression> {
   assert!(expr.op == UnaryOp::TypeOf);
   if let Some(ident) = expr.arg.as_ident()
-    && let res = scanner.plugin_drive.clone().evaluate_typeof(
-      scanner,
+    && /* FIXME: should use call hooks for name */ let res = parser.plugin_drive.clone().evaluate_typeof(
+      parser,
       ident,
       expr.span.real_lo(),
       expr.span.hi().0,
@@ -23,7 +23,21 @@ fn eval_typeof(
   }
 
   // TODO: if let `MetaProperty`, `MemberExpression` ...
-  None
+  let arg = parser.evaluate_expression(&expr.arg);
+  if arg.is_unknown() {
+    None
+  } else if arg.is_string() {
+    let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.hi.0);
+    res.set_string("string".to_string());
+    Some(res)
+  } else if arg.is_undefined() {
+    let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.hi.0);
+    res.set_string("undefined".to_string());
+    Some(res)
+  } else {
+    // TODO: `arg.is_wrapped()`...
+    None
+  }
 }
 
 pub fn eval_unary_expression(

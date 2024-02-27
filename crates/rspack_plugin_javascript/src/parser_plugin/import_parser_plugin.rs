@@ -60,11 +60,11 @@ impl JavascriptParserPlugin for ImportParserPlugin {
           return None;
         }
         let magic_comment_options = try_extract_webpack_magic_comment(
-          &parser.source_file,
+          parser.source_file,
           &parser.comments,
           node.span,
           imported.span,
-          parser.warning_diagnostics,
+          &mut parser.warning_diagnostics,
         );
         if magic_comment_options
           .get_webpack_ignore()
@@ -93,23 +93,24 @@ impl JavascriptParserPlugin for ImportParserPlugin {
         let mut block = AsyncDependenciesBlock::new(
           *parser.module_identifier,
           Some(DependencyLocation::new(span.start, span.end)),
+          None,
+          vec![dep],
         );
         block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions::new(
           chunk_name,
           chunk_preload.or(dynamic_import_preload),
           chunk_prefetch.or(dynamic_import_prefetch),
         )));
-        block.add_dependency(dep);
         parser.blocks.push(block);
         Some(true)
       }
       Expr::Tpl(tpl) if tpl.quasis.len() == 1 => {
         let magic_comment_options = try_extract_webpack_magic_comment(
-          &parser.source_file,
+          parser.source_file,
           &parser.comments,
           node.span,
           tpl.span,
-          parser.warning_diagnostics,
+          &mut parser.warning_diagnostics,
         );
         let chunk_name = magic_comment_options
           .get_webpack_chunk_name()
@@ -139,14 +140,17 @@ impl JavascriptParserPlugin for ImportParserPlugin {
         let mut block = AsyncDependenciesBlock::new(
           *parser.module_identifier,
           Some(DependencyLocation::new(span.start, span.end)),
+          None,
+          vec![dep],
         );
         block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions::new(
           chunk_name,
           chunk_preload.or(dynamic_import_preload),
           chunk_prefetch.or(dynamic_import_prefetch),
         )));
-        block.add_dependency(dep);
         parser.blocks.push(block);
+        // FIXME: align `parser.walk_expression` to webpack, which put into `context_dependency_helper`
+        parser.walk_template_expression(tpl);
         Some(true)
       }
       _ => {
@@ -160,11 +164,11 @@ impl JavascriptParserPlugin for ImportParserPlugin {
           return None;
         };
         let magic_comment_options = try_extract_webpack_magic_comment(
-          &parser.source_file,
+          parser.source_file,
           &parser.comments,
           node.span,
           dyn_imported.span(),
-          parser.warning_diagnostics,
+          &mut parser.warning_diagnostics,
         );
         let chunk_name = magic_comment_options
           .get_webpack_chunk_name()
@@ -190,9 +194,13 @@ impl JavascriptParserPlugin for ImportParserPlugin {
               } else {
                 ContextNameSpaceObject::Bool(true)
               },
+              start: node.span().real_lo(),
+              end: node.span().real_hi(),
             },
             Some(node.span.into()),
           )));
+        // FIXME: align `parser.walk_expression` to webpack, which put into `context_dependency_helper`
+        parser.walk_expression(&dyn_imported.expr);
         Some(true)
       }
     }
