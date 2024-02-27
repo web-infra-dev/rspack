@@ -35,7 +35,7 @@ module.exports = {
 		// "<rootDir>/LocalModulesHelpers.unittest.js",
 		// "<rootDir>/MemoryLimitTestCases.test.js",
 		// "<rootDir>/ModuleDependencyError.unittest.js",
-		// "<rootDir>/MultiCompiler.test.js",
+		"<rootDir>/MultiCompiler.test.js",
 		// "<rootDir>/MultiItemCache.unittest.js",
 		"<rootDir>/MultiStats.test.js",
 		// "<rootDir>/MultiWatching.unittest.js",

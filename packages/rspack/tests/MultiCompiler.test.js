@@ -1,13 +1,12 @@
-import path from "path";
-import { createFsFromVolume, Volume } from "memfs";
-import { FileSystemInfoEntry, Watcher } from "../src/util/fs";
-import { Compiler, MultiRspackOptions, rspack, RspackOptions } from "../src";
-import { assert } from "console";
+"use strict";
 
-const createMultiCompiler = (
-	options?: RspackOptions[] | { parallelism?: number }
-) => {
-	const compiler = rspack(
+require("./helpers/warmup-webpack");
+const path = require("path");
+const { createFsFromVolume, Volume } = require("memfs");
+const webpack = require("..");
+
+const createMultiCompiler = options => {
+	const compiler = webpack(
 		Object.assign(
 			[
 				{
@@ -26,14 +25,14 @@ const createMultiCompiler = (
 	);
 	compiler.outputFileSystem = createFsFromVolume(new Volume());
 	compiler.watchFileSystem = {
-		watch(a, b, c, d, e, f, g) {
-			return null as any;
-		}
+		watch(a, b, c, d, e, f, g) {}
 	};
 	return compiler;
 };
 
 describe("MultiCompiler", function () {
+	jest.setTimeout(20000);
+
 	it("should trigger 'run' for each child compiler", done => {
 		const compiler = createMultiCompiler();
 		let called = 0;
@@ -47,11 +46,14 @@ describe("MultiCompiler", function () {
 			compiler.close(done);
 		});
 	});
+
 	it("should trigger 'watchRun' for each child compiler", done => {
 		const compiler = createMultiCompiler();
 		let called = 0;
 
 		compiler.hooks.watchRun.tap("MultiCompiler test", () => called++);
+		// CHANGE: Rspack use `aggregateTimeout` for debouncing changes
+		// compiler.watch(1000, err => {
 		compiler.watch({ aggregateTimeout: 1000 }, err => {
 			if (err) {
 				throw err;
@@ -60,8 +62,8 @@ describe("MultiCompiler", function () {
 			compiler.close(done);
 		});
 	});
-	// Running this will cause a segmentation fault in `RwLock` of compiler/mod.rs:119, more diagnostics are necessary.
-	it.skip("should not be running twice at a time (run)", done => {
+
+	it("should not be running twice at a time (run)", done => {
 		const compiler = createMultiCompiler();
 		compiler.run((err, stats) => {
 			if (err) return done(err);
@@ -72,8 +74,7 @@ describe("MultiCompiler", function () {
 			}
 		});
 	});
-	// Running this will cause a segmentation fault in `RwLock` of compiler/mod.rs:119, more diagnostics are necessary.
-	it.skip("should not be running twice at a time (watch)", done => {
+	it("should not be running twice at a time (watch)", done => {
 		const compiler = createMultiCompiler();
 		compiler.watch({}, (err, stats) => {
 			if (err) return done(err);
@@ -84,8 +85,7 @@ describe("MultiCompiler", function () {
 			}
 		});
 	});
-	// Running this will cause a segmentation fault in `RwLock` of compiler/mod.rs:119, more diagnostics are necessary.
-	it.skip("should not be running twice at a time (run - watch)", done => {
+	it("should not be running twice at a time (run - watch)", done => {
 		const compiler = createMultiCompiler();
 		compiler.run((err, stats) => {
 			if (err) return done(err);
@@ -96,8 +96,7 @@ describe("MultiCompiler", function () {
 			}
 		});
 	});
-	// Running this will cause a segmentation fault in `RwLock` of compiler/mod.rs:119, more diagnostics are necessary.
-	it.skip("should not be running twice at a time (watch - run)", done => {
+	it("should not be running twice at a time (watch - run)", done => {
 		const compiler = createMultiCompiler();
 		compiler.watch({}, (err, stats) => {
 			if (err) return done(err);
@@ -108,9 +107,8 @@ describe("MultiCompiler", function () {
 			}
 		});
 	});
-	// Running this will cause a segmentation fault in `RwLock` of compiler/mod.rs:119, more diagnostics are necessary.
-	it.skip("should not be running twice at a time (instance cb)", done => {
-		const compiler = rspack(
+	it("should not be running twice at a time (instance cb)", done => {
+		const compiler = webpack(
 			{
 				context: __dirname,
 				mode: "production",
@@ -156,7 +154,7 @@ describe("MultiCompiler", function () {
 		const watching = compiler.watch({}, (err, stats) => {
 			if (err) return done(err);
 		});
-		watching!.close(() => {
+		watching.close(() => {
 			compiler.run((err, stats) => {
 				if (err) return done(err);
 				compiler.close(done);
@@ -168,7 +166,7 @@ describe("MultiCompiler", function () {
 		const watching = compiler.watch({}, (err, stats) => {
 			if (err) return done(err);
 		});
-		watching!.close(() => {
+		watching.close(() => {
 			compiler.watch({}, (err, stats) => {
 				if (err) return done(err);
 				compiler.close(done);
@@ -195,7 +193,7 @@ describe("MultiCompiler", function () {
 				entry: "./a.js"
 			}
 		});
-		const events: string[] = [];
+		const events = [];
 		compiler.compilers.forEach(c => {
 			c.hooks.run.tap("test", () => {
 				events.push(`${c.name} run`);
@@ -211,27 +209,27 @@ describe("MultiCompiler", function () {
 			compiler.close(done);
 		});
 	});
-	// Parse error: CJS Top level return
+	// CHANGE: skip due to parse error: CJS Top level return
 	it.skip("should respect parallelism and dependencies for watching", done => {
-		const compiler = rspack(
+		const compiler = webpack(
 			Object.assign(
 				[
 					{
 						name: "a",
-						mode: "development" as const,
+						mode: "development",
 						context: path.join(__dirname, "fixtures"),
 						entry: "./a.js",
 						dependencies: ["b", "c"]
 					},
 					{
 						name: "b",
-						mode: "development" as const,
+						mode: "development",
 						context: path.join(__dirname, "fixtures"),
 						entry: "./b.js"
 					},
 					{
 						name: "c",
-						mode: "development" as const,
+						mode: "development",
 						context: path.join(__dirname, "fixtures"),
 						entry: "./a.js"
 					}
@@ -240,14 +238,8 @@ describe("MultiCompiler", function () {
 			)
 		);
 		compiler.outputFileSystem = createFsFromVolume(new Volume());
-		const watchCallbacks: ((
-			error: Error | null,
-			fileTimeInfoEntries: Map<string, FileSystemInfoEntry | "ignore">,
-			contextTimeInfoEntries: Map<string, FileSystemInfoEntry | "ignore">,
-			changedFiles: Set<string>,
-			removedFiles: Set<string>
-		) => void)[] = [];
-		const watchCallbacksUndelayed: (() => void)[] = [];
+		const watchCallbacks = [];
+		const watchCallbacksUndelayed = [];
 		compiler.watchFileSystem = {
 			watch(
 				files,
@@ -259,11 +251,10 @@ describe("MultiCompiler", function () {
 				callbackUndelayed
 			) {
 				watchCallbacks.push(callback);
-				watchCallbacksUndelayed.push(callbackUndelayed as any);
-				return null as any;
+				watchCallbacksUndelayed.push(callbackUndelayed);
 			}
 		};
-		const events: string[] = [];
+		const events = [];
 		compiler.compilers.forEach(c => {
 			c.hooks.invalid.tap("test", () => {
 				events.push(`${c.name} invalid`);
@@ -279,7 +270,7 @@ describe("MultiCompiler", function () {
 		let update = 0;
 		compiler.watch({}, (err, stats) => {
 			if (err) return done(err);
-			const info = () => stats!.toString({ preset: "summary", version: false });
+			const info = () => stats.toString({ preset: "summary", version: false });
 			switch (update++) {
 				case 0:
 					expect(info()).toMatchInlineSnapshot(`
@@ -294,6 +285,7 @@ describe("MultiCompiler", function () {
 					`);
 					expect(compiler.compilers[0].modifiedFiles).toBe(undefined);
 					expect(compiler.compilers[0].removedFiles).toBe(undefined);
+					// CHANGE: Rspack generates a distinct snapshot
 					expect(events).toMatchInlineSnapshot(`
 				[
 				  "b run",
@@ -321,6 +313,7 @@ describe("MultiCompiler", function () {
 			`);
 					expect(compiler.compilers[1].modifiedFiles).toEqual(new Set());
 					expect(compiler.compilers[1].removedFiles).toEqual(new Set());
+					// CHANGE: Rspack generates a distinct snapshot
 					expect(events).toMatchInlineSnapshot(`
 				[
 				  "b invalid",
@@ -339,6 +332,7 @@ describe("MultiCompiler", function () {
 				"a:
 				  a compiled successfully"
 			`);
+					// CHANGE: Rspack generates a distinct snapshot
 					expect(events).toMatchInlineSnapshot(`
 				[
 				  "b invalid",
@@ -369,6 +363,7 @@ describe("MultiCompiler", function () {
 				c:
 				  c compiled successfully"
 			`);
+					// CHANGE: Rspack generates a distinct snapshot
 					expect(events).toMatchInlineSnapshot(`
 				[
 				  "b invalid",
@@ -390,8 +385,9 @@ describe("MultiCompiler", function () {
 			}
 		});
 	});
+
 	it("should respect parallelism when using invalidate", done => {
-		const configs: MultiRspackOptions = [
+		const configs = [
 			{
 				name: "a",
 				mode: "development",
@@ -406,9 +402,9 @@ describe("MultiCompiler", function () {
 			}
 		];
 		configs.parallelism = 1;
-		const compiler = rspack(configs);
+		const compiler = webpack(configs);
 
-		const events: string[] = [];
+		const events = [];
 		compiler.compilers.forEach(c => {
 			c.hooks.invalid.tap("test", () => {
 				events.push(`${c.name} invalid`);
@@ -421,6 +417,7 @@ describe("MultiCompiler", function () {
 			});
 		});
 
+		compiler.watchFileSystem = { watch() {} };
 		compiler.outputFileSystem = createFsFromVolume(new Volume());
 
 		let state = 0;
@@ -432,6 +429,7 @@ describe("MultiCompiler", function () {
 			if (state !== 0) return;
 			state++;
 
+			// CHANGE: Rspack generates a distinct snapshot
 			expect(events).toMatchInlineSnapshot(`
 			[
 			  "a run",
@@ -446,6 +444,7 @@ describe("MultiCompiler", function () {
 				try {
 					if (err) return done(err);
 
+					// CHANGE: Rspack generates a distinct snapshot
 					expect(events).toMatchInlineSnapshot(`
 				[
 				  "a invalid",
@@ -467,11 +466,11 @@ describe("MultiCompiler", function () {
 				}
 			});
 		});
-	}, 20000);
+	}, 2000);
 
-	// issue #2585
+	// CHANGE: specially added for rspack, fix issue #2585
 	it("should respect parallelism when using watching", done => {
-		const configMaps: any = [];
+		const configMaps = [];
 
 		for (let index = 0; index < 3; index++) {
 			configMaps.push({
@@ -484,7 +483,7 @@ describe("MultiCompiler", function () {
 			});
 		}
 		configMaps.parallelism = 1;
-		const compiler = rspack(configMaps);
+		const compiler = webpack(configMaps);
 
 		compiler.watch({}, err => {
 			if (err) {
@@ -501,7 +500,7 @@ describe("MultiCompiler", function () {
 	}, 20000);
 
 	it("should respect dependencies when using invalidate", done => {
-		const compiler = rspack([
+		const compiler = webpack([
 			{
 				name: "a",
 				mode: "development",
@@ -517,7 +516,7 @@ describe("MultiCompiler", function () {
 			}
 		]);
 
-		const events: string[] = [];
+		const events = [];
 		compiler.compilers.forEach(c => {
 			c.hooks.invalid.tap("test", () => {
 				events.push(`${c.name} invalid`);
@@ -530,7 +529,6 @@ describe("MultiCompiler", function () {
 			});
 		});
 
-		// @ts-ignore
 		compiler.watchFileSystem = { watch() {} };
 		compiler.outputFileSystem = createFsFromVolume(new Volume());
 
@@ -543,6 +541,7 @@ describe("MultiCompiler", function () {
 			if (state !== 0) return;
 			state++;
 
+			// CHANGE: Rspack generates a distinct snapshot
 			expect(events).toMatchInlineSnapshot(`
 			[
 			  "b run",
@@ -557,6 +556,7 @@ describe("MultiCompiler", function () {
 				try {
 					if (err) return done(err);
 
+					// CHANGE: Rspack generates a distinct snapshot
 					expect(events).toMatchInlineSnapshot(`
 				[
 				  "a invalid",
@@ -578,27 +578,30 @@ describe("MultiCompiler", function () {
 				}
 			});
 		});
-	}, 20000);
+	}, 2000);
 
 	it("shouldn't hang when invalidating watchers", done => {
-		const entriesA: { a: string; b?: string } = { a: "./a.js" };
-		const entriesB: { a?: string; b: string } = { b: "./b.js" };
-		const compiler = rspack([
+		const entriesA = { a: "./a.js" };
+		const entriesB = { b: "./b.js" };
+		const compiler = webpack([
 			{
 				name: "a",
 				mode: "development",
+				// CHANGE:Rspack does not support function-based entry
+				// entry: () => entriesA,
 				entry: entriesA,
 				context: path.join(__dirname, "fixtures")
 			},
 			{
 				name: "b",
 				mode: "development",
+				// CHANGE: Rspack does not support function-based entry
+				// entry: () => entriesB,
 				entry: entriesB,
 				context: path.join(__dirname, "fixtures")
 			}
 		]);
 
-		// @ts-ignore
 		compiler.watchFileSystem = { watch() {} };
 		compiler.outputFileSystem = createFsFromVolume(new Volume());
 
@@ -616,10 +619,10 @@ describe("MultiCompiler", function () {
 				compiler.close(done);
 			});
 		});
-	}, 20000);
+	}, 2000);
 
 	it("shouldn't hang when invalidating during build", done => {
-		const compiler = rspack(
+		const compiler = webpack(
 			Object.assign([
 				{
 					name: "a",
@@ -637,11 +640,8 @@ describe("MultiCompiler", function () {
 			])
 		);
 		compiler.outputFileSystem = createFsFromVolume(new Volume());
-		const watchCallbacks: any[] = [];
-		const watchCallbacksUndelayed: ((
-			fileName: string,
-			changeTime: number
-		) => void)[] = [];
+		const watchCallbacks = [];
+		const watchCallbacksUndelayed = [];
 		let firstRun = true;
 		compiler.watchFileSystem = {
 			watch(
@@ -655,27 +655,22 @@ describe("MultiCompiler", function () {
 			) {
 				watchCallbacks.push(callback);
 				watchCallbacksUndelayed.push(callbackUndelayed);
-
-				const filesSet = new Set(files);
-				if (
-					firstRun &&
-					filesSet.has(path.join(__dirname, "fixtures", "a.js"))
-				) {
+				if (firstRun && files.has(path.join(__dirname, "fixtures", "a.js"))) {
 					process.nextTick(() => {
 						callback(null, new Map(), new Map(), new Set(), new Set());
 					});
 					firstRun = false;
 				}
-				return null as unknown as Watcher;
 			}
 		};
 		compiler.watch({}, (err, stats) => {
 			if (err) return done(err);
 			compiler.close(done);
 		});
-	}, 20000);
+	});
 });
 
+// CHANGE: specially added for rspack
 describe.skip("Pressure test", function () {
 	it("should work well in multiCompilers", done => {
 		const configs = Array(100).fill({
@@ -683,7 +678,7 @@ describe.skip("Pressure test", function () {
 			entry: "./a.js"
 		});
 
-		const multiCompiler = rspack(configs);
+		const multiCompiler = webpack(configs);
 
 		multiCompiler.run(err => {
 			if (err) done(err);
@@ -696,12 +691,12 @@ describe.skip("Pressure test", function () {
 
 		let finish = 0;
 
-		const runnings: Promise<null>[] = [];
+		const runnings = [];
 
 		for (let i = 0; i < total; i++) {
 			if (i % 10 == 0) {
 				// Insert new instance while we are running
-				rspack(
+				webpack(
 					{
 						context: path.join(__dirname, "fixtures"),
 						entry: "./a.js"
@@ -712,7 +707,7 @@ describe.skip("Pressure test", function () {
 
 			runnings.push(
 				new Promise(resolve => {
-					rspack(
+					webpack(
 						{
 							context: path.join(__dirname, "fixtures"),
 							entry: "./a.js"

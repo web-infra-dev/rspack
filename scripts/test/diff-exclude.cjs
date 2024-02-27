@@ -64,6 +64,7 @@ const UNALIGNED_FIXTURES = [
 	"WatchTestCases.template.js",
 	"HotTestCases.template.js",
 	"HotTestCasesNode.test.js",
+	"MultiCompiler.test.js",
 	"Compiler.test.js"
 ];
 
