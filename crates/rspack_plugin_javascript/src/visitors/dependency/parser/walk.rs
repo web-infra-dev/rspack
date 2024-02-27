@@ -17,6 +17,7 @@ use swc_core::ecma::ast::{ThrowStmt, UnaryExpr, UpdateExpr};
 use super::TopLevelScope;
 use super::{AllowedMemberTypes, CallHooksName, JavascriptParser, MemberExpressionInfo, RootName};
 use crate::parser_plugin::{is_logic_op, JavascriptParserPlugin};
+use crate::visitors::scope_info::FreeName;
 
 fn warp_ident_to_pat(ident: Ident) -> Pat {
   Pat::Ident(ident.into())
@@ -469,12 +470,12 @@ impl<'parser> JavascriptParser<'parser> {
           // we use `AllowedMemberTypes::Expression` above
           unreachable!();
         };
-        if let Some(for_name) = expr_info.name.call_hooks_name(self)
-          && self
-            .plugin_drive
-            .clone()
-            .r#typeof(self, expr, &for_name)
-            .unwrap_or_default()
+        if expr_info
+          .name
+          .call_hooks_name(self, |this, for_name| {
+            this.plugin_drive.clone().r#typeof(this, expr, for_name)
+          })
+          .unwrap_or_default()
         {
           return;
         }
@@ -654,8 +655,10 @@ impl<'parser> JavascriptParser<'parser> {
       match expr_info {
         MemberExpressionInfo::Expression(expr_info) => {
           let drive = self.plugin_drive.clone();
-          if let Some(for_name) = expr_info.name.call_hooks_name(self)
-            && drive.member(self, expr, &for_name).unwrap_or_default()
+          if expr_info
+            .name
+            .call_hooks_name(self, |this, for_name| drive.member(this, expr, for_name))
+            .unwrap_or_default()
           {
             return;
           }
@@ -664,22 +667,21 @@ impl<'parser> JavascriptParser<'parser> {
             expr,
             &expr_info.name,
             Some(|this: &mut Self| {
-              this.plugin_drive.clone().unhandled_expression_member_chain(
-                this,
-                &expr_info.root_info,
-                expr,
-              )
+              drive.unhandled_expression_member_chain(this, &expr_info.root_info, expr)
             }),
           );
           return;
         }
         MemberExpressionInfo::Call(expr_info) => {
-          if let Some(for_name) = expr_info.root_info.call_hooks_name(self)
-            && self
-              .plugin_drive
-              .clone()
-              .member_chain_of_call_member_chain(self, expr, &for_name)
-              .unwrap_or_default()
+          if expr_info
+            .root_info
+            .call_hooks_name(self, |this, for_name| {
+              this
+                .plugin_drive
+                .clone()
+                .member_chain_of_call_member_chain(this, expr, for_name)
+            })
+            .unwrap_or_default()
           {
             return;
           }
@@ -707,12 +709,11 @@ impl<'parser> JavascriptParser<'parser> {
     {
       let origin = name.len();
       let name = &name[0..origin - 1 - len];
-      if let Some(for_name) = name.call_hooks_name(self)
-        && self
-          .plugin_drive
-          .clone()
-          .member(self, member, &for_name)
-          .unwrap_or_default()
+      if name
+        .call_hooks_name(self, |this, for_name| {
+          this.plugin_drive.clone().member(this, member, for_name)
+        })
+        .unwrap_or_default()
       {
         return;
       }
@@ -750,11 +751,14 @@ impl<'parser> JavascriptParser<'parser> {
         if let Expr::Member(member) = &**callee
           && let Some(MemberExpressionInfo::Call(expr_info)) =
             self.get_member_expression_info(member, AllowedMemberTypes::CallExpression)
-          && let Some(for_name) = expr_info.root_info.call_hooks_name(self)
-          && self
-            .plugin_drive
-            .clone()
-            .call_member_chain_of_call_member_chain(self, expr, &for_name)
+          && expr_info
+            .root_info
+            .call_hooks_name(self, |this, for_name| {
+              this
+                .plugin_drive
+                .clone()
+                .call_member_chain_of_call_member_chain(this, expr, for_name)
+            })
             .unwrap_or_default()
         {
           self.enter_call -= 1;
@@ -868,12 +872,12 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_identifier(&mut self, identifier: &Ident) {
-    if let Some(for_name) = identifier.sym.call_hooks_name(self) {
-      self
+    identifier.sym.call_hooks_name(self, |this, for_name| {
+      this
         .plugin_drive
         .clone()
-        .identifier(self, identifier, &for_name);
-    }
+        .identifier(this, identifier, for_name)
+    });
   }
 
   fn get_rename_identifier(&mut self, expr: &Expr) -> Option<String> {
@@ -894,12 +898,27 @@ impl<'parser> JavascriptParser<'parser> {
       // empty
     } else if let Some(ident) = expr.left.as_ident() {
       if let Some(rename_identifier) = self.get_rename_identifier(&expr.right)
-        && let Some(name) = rename_identifier.call_hooks_name(self)
         && let drive = self.plugin_drive.clone()
-        && drive.can_rename(self, &name).unwrap_or_default()
+        && rename_identifier
+          .call_hooks_name(self, |this, for_name| drive.can_rename(this, for_name))
+          .unwrap_or_default()
       {
-        if !drive.rename(self, &expr.right, &name).unwrap_or_default() {
-          self.set_variable(ident.sym.to_string(), name);
+        if !rename_identifier
+          .call_hooks_name(self, |this, for_name| {
+            drive.rename(this, &expr.right, for_name)
+          })
+          .unwrap_or_default()
+        {
+          let variable = self
+            .get_variable_info(&rename_identifier)
+            .map(|info| info.free_name.as_ref())
+            .and_then(|free_name| free_name)
+            .and_then(|free_name| match free_name {
+              FreeName::String(s) => Some(s.to_string()),
+              FreeName::True => None,
+            })
+            .unwrap_or(rename_identifier);
+          self.set_variable(ident.sym.to_string(), variable);
         }
         return;
       }

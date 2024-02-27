@@ -57,17 +57,20 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
     &self,
     parser: &mut JavascriptParser,
     ident: &swc_core::ecma::ast::Ident,
-    _for_name: &str,
+    for_name: &str,
   ) -> Option<bool> {
-    // FIXME: add condition: `if _for_name != NESTED_WEBPACK_IDENTIFIER_TAG then return None else continue`
+    if for_name != NESTED_WEBPACK_IDENTIFIER_TAG {
+      return None;
+    }
     let name = ident.sym.as_str();
     if name != RuntimeGlobals::REQUIRE.name() {
       return None;
     }
-    let mut deps = vec![];
     let Some(variable_info) = parser.get_mut_variable_info(name) else {
       return None;
     };
+
+    // FIXME: should find the `tag_info` which tag equal `NESTED_WEBPACK_IDENTIFIER_TAG`;
     let Some(tag_info) = &mut variable_info.tag_info else {
       unreachable!();
     };
@@ -78,6 +81,7 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
       unreachable!();
     };
     let mut nested_require_data = NestedRequireData::deserialize(data);
+    let mut deps = Vec::with_capacity(2);
     if !nested_require_data.update {
       deps.push(ConstDependency::new(
         nested_require_data.loc.start(),
@@ -87,7 +91,8 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
       ));
       nested_require_data.update = true;
     }
-    variable_info.update_tag_info_data(Some(NestedRequireData::serialize(&nested_require_data)));
+    tag_info.data = Some(NestedRequireData::serialize(&nested_require_data));
+
     deps.push(ConstDependency::new(
       ident.span.real_lo(),
       ident.span.real_hi(),
