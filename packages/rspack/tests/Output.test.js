@@ -1,14 +1,11 @@
-// @ts-nocheck
-import { readdirSync } from "fs";
-import { Compiler, rspack } from "../src";
 const path = require("path");
+const fs = require("fs");
+const rspack = require("..");
 
 describe("Output", () => {
-	function compile(entry: string, options, callback) {
+	function compile(entry, options, callback) {
 		const noOutputPath = !options.output || !options.output.path;
-
 		options = rspack.config.getNormalizedRspackOptions(options);
-
 		if (!options.mode) options.mode = "production";
 		options.entry = entry;
 		options.context = path.join(__dirname, "fixtures");
@@ -17,29 +14,8 @@ describe("Output", () => {
 			minimize: false
 		};
 		options.cache = true;
-		const logs = {
-			mkdir: [],
-			writeFile: []
-		};
-
 		const c = rspack(options);
 		const files = {};
-		// c.outputFileSystem = {
-		// 	mkdir(path, callback) {
-		// 		logs.mkdir.push(path);
-		// 		const err = new Error();
-		// 		err.code = "EEXIST";
-		// 		callback(err);
-		// 	},
-		// 	writeFile(name, content, callback) {
-		// 		logs.writeFile.push(name, content);
-		// 		files[name] = content.toString("utf-8");
-		// 		callback();
-		// 	},
-		// 	stat(path, callback) {
-		// 		callback(new Error("ENOENT"));
-		// 	}
-		// };
 		c.hooks.compilation.tap("CompilerTest", compilation => {
 			compilation.bail = true;
 		});
@@ -58,7 +34,6 @@ describe("Output", () => {
 				expect(stats.errors[0]).toBeInstanceOf(Error);
 				throw stats.errors[0];
 			}
-			stats.logs = logs;
 			c.close(err => {
 				if (err) return callback(err);
 				callback(stats, files, compilation);
@@ -66,7 +41,7 @@ describe("Output", () => {
 		});
 	}
 
-	let compiler: Compiler;
+	let compiler;
 	afterEach(callback => {
 		if (compiler) {
 			compiler.close(callback);
@@ -97,7 +72,7 @@ describe("Output", () => {
 						}
 					},
 					() => {
-						expect(readdirSync(outputDist)).toEqual(["hell2.js"]);
+						expect(fs.readdirSync(outputDist)).toEqual(["hell2.js"]);
 						done();
 					}
 				);
