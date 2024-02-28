@@ -4,14 +4,14 @@
 
 const path = require("path");
 const fs = require("graceful-fs");
-const webpack = require("@rspack/core").rspack;
+const webpack = require("..");
 const prettyFormat = require("pretty-format").default;
 
 const CWD_PATTERN = new RegExp(process.cwd().replace(/\\/g, "/"), "gm");
 const ERROR_STACK_PATTERN = /(?:\n\s+at\s.*)+/gm;
 
 function cleanError(err) {
-	const result: any = {};
+	const result = {};
 	for (const key of Object.getOwnPropertyNames(err)) {
 		result[key] = err[key];
 	}
@@ -55,7 +55,7 @@ expect.addSnapshotSerializer({
 	test(received) {
 		return received.errors || received.warnings;
 	},
-	print(received: any) {
+	print(received) {
 		return serialize({
 			errors: received.errors.map(cleanError),
 			warnings: received.warnings.map(cleanError)
@@ -82,6 +82,7 @@ const defaults = {
 		}
 	},
 	outputFileSystem: {
+		// CHANGE: rspack outputFileSystem `mkdirp` uses option `{ recursive: true }`, webpack's second parameter is alway a callback
 		mkdir(dir, maybeOptionOrCallback, maybeCallback) {
 			if (typeof maybeOptionOrCallback === "function") {
 				maybeOptionOrCallback();
@@ -101,7 +102,7 @@ const defaults = {
 };
 
 async function compile(options) {
-	const stats: any = await new Promise((resolve, reject) => {
+	const stats = await new Promise((resolve, reject) => {
 		const compiler = webpack({ ...defaults.options, ...options });
 		if (options.mode === "production") {
 			if (options.optimization) options.optimization.minimize = true;

@@ -1,7 +1,7 @@
 import path from "path";
 import fs from "fs";
 import util from "util";
-import { rspack, RspackOptions } from "../src";
+import { rspack } from "../src";
 import serializer, { normalizePaths } from "jest-serializer-path";
 import merge from "webpack-merge";
 import assert from "assert";
@@ -29,7 +29,7 @@ describe("Diagnostics", function () {
 						config = require(configFile);
 					}
 
-					let options: RspackOptions = merge(
+					let options = merge(
 						{
 							target: "node",
 							context: casePath,
