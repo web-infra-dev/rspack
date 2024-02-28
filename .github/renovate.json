@@ -10,11 +10,11 @@
     "webpack-examples/**",
     "webpack-test/**"
   ],
+  "assignees": ["@Boshen"],
   "packageRules": [
     {
       "groupName": "github-actions",
       "matchManagers": ["github-actions"],
-      "assignees": ["@Boshen"],
       "excludePackageNames": ["actions/upload-artifact", "actions/download-artifact"]
     },
     {
@@ -26,8 +26,7 @@
     {
       "groupName": "crates",
       "matchManagers": ["cargo"],
-      "assignees": ["@Boshen"],
-      "excludePackagePrefixes": ["swc"],
+      "excludePackagePrefixes": ["swc", "napi"],
       "excludePackageNames": ["ustr", "textwrap", "styled_components", "owo-colors", "miette"]
     },
     {
@@ -35,6 +34,11 @@
       "matchManagers": ["cargo"],
       "matchPackagePrefixes": ["swc"],
       "matchPackageNames": ["styled_components"]
+    },
+    {
+      "groupName": "napi",
+      "matchManagers": ["cargo"],
+      "matchPackagePrefixes": ["napi"]
     },
     {
       "groupName": "ignored crates",
@@ -54,8 +58,7 @@
       "matchManagers": ["npm"],
       "matchDepTypes": ["devDependencies"],
       "excludePackagePrefixes": ["webpack"],
-      "excludePackageNames": ["@playwright/test", "react", "react-dom", "typescript", "pnpm"],
-      "assignees": ["@Boshen"]
+      "excludePackageNames": ["@playwright/test", "react", "react-dom", "typescript", "pnpm"]
     },
     {
       "groupName": "npm dependencies",
