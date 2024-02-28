@@ -61,12 +61,10 @@ fn register_taps_fn_into_threadsafe_fn<
     let result = unsafe { call_js_function_with_napi_objects!(env, cb, ctx.value) };
 
     resolver.resolve_non_promise(result, |env, result: Vec<JsTap>| {
-      Ok(
-        result
-          .into_iter()
-          .map(|t| ThreadsafeJsTap::from_js_tap(t, *env))
-          .collect::<napi::Result<Vec<_>>>()?,
-      )
+      result
+        .into_iter()
+        .map(|t| ThreadsafeJsTap::from_js_tap(t, *env))
+        .collect::<napi::Result<Vec<_>>>()
     })
   })?;
 

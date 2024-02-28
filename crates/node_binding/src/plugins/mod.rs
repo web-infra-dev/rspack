@@ -17,9 +17,8 @@ use rspack_binding_values::{CreateModuleData, JsBuildTimeExecutionOption, JsExec
 use rspack_binding_values::{JsResolveForSchemeInput, JsResolveForSchemeResult};
 use rspack_core::rspack_sources::Source;
 use rspack_core::{
-  ApplyContext, BuildTimeExecutionOption, Chunk, ChunkAssetArgs, Compilation, CompilationParams,
-  CompilerOptions, MakeParam, ModuleIdentifier, NormalModuleAfterResolveArgs, PluginContext,
-  RuntimeModule,
+  ApplyContext, BuildTimeExecutionOption, Chunk, ChunkAssetArgs, CompilerOptions, ModuleIdentifier,
+  NormalModuleAfterResolveArgs, PluginContext, RuntimeModule,
 };
 use rspack_core::{NormalModuleBeforeResolveArgs, PluginNormalModuleFactoryAfterResolveOutput};
 use rspack_core::{
@@ -27,7 +26,6 @@ use rspack_core::{
   PluginNormalModuleFactoryCreateModuleHookOutput, ResourceData,
 };
 use rspack_core::{PluginNormalModuleFactoryResolveForSchemeOutput, PluginShouldEmitHookOutput};
-use rspack_hook::AsyncSeries2;
 use rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use rspack_napi_shared::NapiResultExt;
 
