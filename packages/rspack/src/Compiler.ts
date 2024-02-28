@@ -333,7 +333,11 @@ class Compiler {
 				executeModule: this.#executeModule.bind(this),
 				runtimeModule: this.#runtimeModule.bind(this)
 			},
-			this.#collectCompilerHooks(),
+			{
+				registerCompilerCompilationTaps:
+					this.#registerCompilerCompilationTaps.bind(this),
+				registerCompilerMakeTaps: this.#registerCompilerMakeTaps.bind(this)
+			},
 			createThreadsafeNodeFSFromRaw(this.outputFileSystem),
 			runLoaders.bind(undefined, this)
 		);
@@ -658,8 +662,8 @@ class Compiler {
 				(hook.taps
 					? !hook.isUsed()
 					: hook._map
-					? /* hook map */ hook._map.size === 0
-					: false)
+						? /* hook map */ hook._map.size === 0
+						: false)
 			) {
 				disabledHooks.push(name);
 			}
@@ -959,42 +963,37 @@ class Compiler {
 		this.#moduleExecutionResultsMap.set(id, executeResult);
 	}
 
-	#collectCompilerHooks(): binding.JsHook[] {
-		return [
-			...this.#createCompilerCompilationHooks(),
-			...this.#createCompilerMakeHooks()
-		];
-	}
-
-	#createCompilerCompilationHooks(): binding.JsHook[] {
+	#registerCompilerCompilationTaps(stages: number[]): binding.JsTap[] {
 		if (!this.hooks.compilation.isUsed()) return [];
-		const stages = [-Infinity, 0, Infinity];
-		const jsHooks = [];
-		for (let i = 0; i < stages.length - 1; i++) {
-			const stageRange = { from: stages[i], to: stages[i + 1] };
-			jsHooks.push({
-				type: binding.JsHookType.CompilerCompilation,
+		const stages2 = [-Infinity, ...stages, Infinity];
+		const jsTaps = [];
+		for (let i = 0; i < stages2.length - 1; i++) {
+			const stageRange = liteTapable.StageRange.from(
+				stages2[i],
+				stages2[i + 1]
+			);
+			jsTaps.push({
 				function: (native: binding.JsCompilation) => {
 					this.hooks.compilation.callStageRange(stageRange, this.compilation, {
 						normalModuleFactory: this.compilation.normalModuleFactory!
 					});
-					if (i + 1 >= stages.length - 1) this.#updateDisabledHooks();
+					if (i + 1 >= stages2.length - 1) this.#updateDisabledHooks();
 				},
-				stageRange
+				stage: stageRange.from
 			});
 		}
-		return jsHooks;
+		return jsTaps;
 	}
 
-	#createCompilerMakeHooks(): binding.JsHook[] {
+	#registerCompilerMakeTaps(stages: number[]): binding.JsTap[] {
 		if (!this.hooks.make.isUsed()) return [];
 		return [
 			{
-				type: binding.JsHookType.CompilerMake,
 				function: (native: binding.JsCompilation) => {
 					this.hooks.make.promise(this.compilation);
 					this.#updateDisabledHooks();
-				}
+				},
+				stage: liteTapable.StageRange.MIN
 			}
 		];
 	}

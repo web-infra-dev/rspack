@@ -10,5 +10,7 @@ version    = "0.1.0"
 [dependencies]
 async-trait         = { workspace = true }
 futures-concurrency = "7.4.3"
+parking_lot         = { version = "0.12.1", features = ["send_guard"] }
 rspack_error        = { path = "../rspack_error" }
 rustc-hash          = { workspace = true }
+tokio               = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test-util", "parking_lot"] }

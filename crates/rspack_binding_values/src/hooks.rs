@@ -45,24 +45,3 @@ pub struct JsHooks {
   pub execute_module: JsFunction,
   pub runtime_module: JsFunction,
 }
-
-#[napi(string_enum)]
-#[derive(Debug)]
-pub enum JsHookType {
-  CompilerCompilation,
-  CompilerMake,
-}
-
-#[napi(object)]
-#[derive(Debug)]
-pub struct JsHookStageRange {
-  pub from: i32,
-  pub to: i32,
-}
-
-#[napi(object)]
-pub struct JsHook {
-  pub r#type: JsHookType,
-  pub function: JsFunction,
-  pub stage_range: JsHookStageRange,
-}

@@ -66,7 +66,7 @@ impl Rspack {
     options: RawOptions,
     builtin_plugins: Vec<BuiltinPlugin>,
     js_hooks: JsHooks,
-    compiler_hooks: Vec<JsHook>,
+    register_js_taps: RegisterJsTaps,
     output_filesystem: ThreadsafeNodeFS,
     js_loader_runner: JsFunction,
   ) -> Result<Self> {
@@ -76,7 +76,7 @@ impl Rspack {
     let disabled_hooks: DisabledHooks = Default::default();
     let mut plugins = Vec::new();
     let js_plugin =
-      JsHooksAdapterPlugin::from_js_hooks(env, js_hooks, disabled_hooks, compiler_hooks)?;
+      JsHooksAdapterPlugin::from_js_hooks(env, js_hooks, disabled_hooks, register_js_taps)?;
     plugins.push(js_plugin.clone().boxed());
     for bp in builtin_plugins {
       bp.append_to(&mut plugins)

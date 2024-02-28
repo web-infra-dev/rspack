@@ -118,6 +118,46 @@ impl<R: 'static + Send> ThreadSafeResolver<R> {
   }
 }
 
+impl<R: 'static> ThreadSafeResolver<R> {
+  pub fn resolve_non_promise<P>(
+    mut self,
+    result: Result<impl NapiRaw>,
+    resolver: impl 'static + Send + Sync + FnOnce(&mut Env, P) -> Result<R>,
+  ) -> Result<()>
+  where
+    P: FromNapiValue + 'static,
+  {
+    match result {
+      Ok(result) => {
+        let raw = unsafe { result.raw() };
+
+        debug_assert!(
+          {
+            let mut is_promise = false;
+            check_status!(unsafe { sys::napi_is_promise(self.env.raw(), raw, &mut is_promise) })?;
+            !is_promise
+          },
+          "The result of the ThreadsafeFunction should not be a Promise"
+        );
+
+        let p = {
+          let p = unsafe { P::from_napi_value(self.env.raw(), raw) }?;
+          resolver(&mut self.env, p)
+        };
+
+        self
+          .tx
+          .send(p.into_rspack_result_with_detail(&self.env))
+          .map_err(|_| napi::Error::from_reason("Failed to send resolve message".to_string()))
+      }
+      Err(e) => self
+        .tx
+        .send(Err(e.into_rspack_error_with_detail(&self.env)))
+        .map_err(|_| napi::Error::from_reason("Failed to send resolve message".to_string())),
+    }
+  }
+}
+
 #[repr(u8)]
 pub enum ThreadsafeFunctionCallMode {
   NonBlocking,

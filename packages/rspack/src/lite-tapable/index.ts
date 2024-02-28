@@ -189,10 +189,40 @@ class Hook<T, R, AdditionalOptions = UnsetAdditionalOptions> {
 	}
 }
 
-export type StageRange = {
-	from: number;
-	to: number;
-};
+export class StageRange {
+	#from: number;
+	#to: number;
+
+	constructor(from: number, to: number) {
+		this.#from = StageRange.trim(from);
+		this.#to = StageRange.trim(to);
+	}
+
+	static from(from: number, to: number) {
+		return new StageRange(from, to);
+	}
+
+	static all() {
+		return StageRange.from(StageRange.MIN, StageRange.MAX);
+	}
+
+	get from() {
+		return this.#from;
+	}
+
+	get to() {
+		return this.#to;
+	}
+
+	static MAX = 2 ** 31 - 1;
+	static MIN = -(2 ** 31);
+
+	static trim(n: number) {
+		if (n > StageRange.MAX) return StageRange.MAX;
+		if (n < StageRange.MIN) return StageRange.MIN;
+		return n;
+	}
+}
 
 export class SyncHook<
 	T,
@@ -200,7 +230,7 @@ export class SyncHook<
 	AdditionalOptions = UnsetAdditionalOptions
 > extends Hook<T, R, AdditionalOptions> {
 	call(...args: AsArray<T>): R {
-		return this.callStageRange({ from: -Infinity, to: Infinity }, ...args);
+		return this.callStageRange(StageRange.all(), ...args);
 	}
 
 	callStageRange({ from, to }: StageRange, ...args: AsArray<T>): R {

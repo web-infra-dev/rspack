@@ -61,7 +61,7 @@ export class JsStats {
 }
 
 export class Rspack {
-  constructor(options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, jsHooks: JsHooks, compilerHooks: Array<JsHook>, outputFilesystem: ThreadsafeNodeFS, jsLoaderRunner: (...args: any[]) => any)
+  constructor(options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, jsHooks: JsHooks, registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, jsLoaderRunner: (...args: any[]) => any)
   unsafe_set_disabled_hooks(hooks: Array<string>): void
   /**
    * Build with the given option passed to the constructor
@@ -325,12 +325,6 @@ export interface JsExecuteModuleResult {
   id: number
 }
 
-export interface JsHook {
-  type: JsHookType
-  function: (...args: any[]) => any
-  stageRange: JsHookStageRange
-}
-
 export interface JsHooks {
   processAssetsStageAdditional: (...args: any[]) => any
   processAssetsStagePreProcess: (...args: any[]) => any
@@ -373,16 +367,6 @@ export interface JsHooks {
   stillValidModule: (...args: any[]) => any
   executeModule: (...args: any[]) => any
   runtimeModule: (...args: any[]) => any
-}
-
-export interface JsHookStageRange {
-  from: number
-  to: number
-}
-
-export enum JsHookType {
-  CompilerCompilation = 'CompilerCompilation',
-  CompilerMake = 'CompilerMake'
 }
 
 export interface JsLoaderContext {
@@ -591,6 +575,16 @@ export interface JsStatsWarning {
   moduleIdentifier?: string
   moduleName?: string
   moduleId?: string
+}
+
+export interface JsTap {
+  function: (...args: any[]) => any
+  stage: number
+}
+
+export enum JsTapType {
+  CompilerCompilation = 'CompilerCompilation',
+  CompilerMake = 'CompilerMake'
 }
 
 export interface NodeFS {
@@ -1298,6 +1292,11 @@ export interface RawTrustedTypes {
  * Copyright (c)
  */
 export function registerGlobalTrace(filter: string, layer: "chrome" | "logger", output: string): void
+
+export interface RegisterJsTaps {
+  registerCompilerCompilationTaps: (...args: any[]) => any
+  registerCompilerMakeTaps: (...args: any[]) => any
+}
 
 /** Builtin loader runner */
 export function runBuiltinLoader(builtin: string, options: string | undefined | null, loaderContext: JsLoaderContext): Promise<JsLoaderContext>
