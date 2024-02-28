@@ -1,8 +1,8 @@
-import path from "path";
-import fs from "fs";
-import util from "util";
-import { rspack } from "../src";
-import serializer from "jest-serializer-path";
+const path = require("path");
+const fs = require("fs");
+const util = require("util");
+const { rspack } = require("../dist");
+const serializer = require("jest-serializer-path");
 
 expect.addSnapshotSerializer(serializer);
 
@@ -43,9 +43,9 @@ describe("HashTestCases", () => {
 			const statsJson = stats.toJson({ assets: true });
 			// case ends with error should generate errors
 			if (/error$/.test(testName)) {
-				expect(statsJson.errors!.length > 0);
+				expect(statsJson.errors.length > 0);
 			} else {
-				expect(statsJson.errors!.length === 0);
+				expect(statsJson.errors.length === 0);
 			}
 
 			if (testConfig && testConfig.validate) {
