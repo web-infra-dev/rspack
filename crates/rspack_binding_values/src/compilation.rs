@@ -18,6 +18,7 @@ use rspack_napi_shared::NapiResultExt;
 use super::module::ToJsModule;
 use super::PathWithInfo;
 use crate::utils::callbackify;
+use crate::JsStatsOptimizationBailout;
 use crate::{
   chunk::JsChunk, module::JsModule, CompatSource, JsAsset, JsAssetInfo, JsChunkGroup,
   JsCompatSource, JsStats, PathData, ToJsCompatSource,
@@ -137,6 +138,18 @@ impl JsCompilation {
       .modules()
       .values()
       .filter_map(|module| module.to_js_module().ok())
+      .collect::<Vec<_>>()
+  }
+
+  #[napi]
+  pub fn get_optimization_bailout(&self) -> Vec<JsStatsOptimizationBailout> {
+    self
+      .inner
+      .module_graph
+      .module_graph_modules()
+      .values()
+      .flat_map(|item| item.optimization_bailout.clone())
+      .map(|item| JsStatsOptimizationBailout { inner: item })
       .collect::<Vec<_>>()
   }
 

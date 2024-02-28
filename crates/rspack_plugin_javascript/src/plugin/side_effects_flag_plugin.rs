@@ -13,7 +13,7 @@ use rspack_identifier::IdentifierSet;
 use rustc_hash::FxHashSet as HashSet;
 // use rspack_core::Plugin;
 // use rspack_error::Result;
-use swc_core::common::{comments, Span, Spanned, SyntaxContext, GLOBALS};
+use swc_core::common::{comments, Spanned, SyntaxContext, GLOBALS};
 use swc_core::ecma::ast::*;
 use swc_core::ecma::utils::{ExprCtx, ExprExt};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};

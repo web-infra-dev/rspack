@@ -239,6 +239,7 @@ pub struct JsStatsModule {
   pub orphan: bool,
   pub provided_exports: Option<Vec<String>>,
   pub used_exports: Option<Either<String, Vec<String>>>,
+  pub optimization_bailouts: Option<Vec<String>>,
 }
 
 impl TryFrom<rspack_core::StatsModule<'_>> for JsStatsModule {
@@ -285,6 +286,7 @@ impl TryFrom<rspack_core::StatsModule<'_>> for JsStatsModule {
         StatsUsedExports::Vec(v) => JsStatsUsedExports::B(v),
         StatsUsedExports::Null => JsStatsUsedExports::A("null".to_string()),
       }),
+      optimization_bailouts: Some(stats.optimization_bailouts),
     })
   }
 }
@@ -430,6 +432,11 @@ impl From<rspack_core::StatsChunkGroup> for JsStatsChunkGroup {
       assets_size: stats.assets_size,
     }
   }
+}
+
+#[napi(object)]
+pub struct JsStatsOptimizationBailout {
+  pub inner: String,
 }
 
 #[napi(object)]

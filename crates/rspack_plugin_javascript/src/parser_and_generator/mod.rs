@@ -15,7 +15,6 @@ use rspack_core::{
 };
 use rspack_error::miette::Diagnostic;
 use rspack_error::{DiagnosticExt, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
-use rspack_ids::id_helpers::shorten_long_string;
 use rspack_util::source_map::SourceMapKind;
 use swc_core::common::SyntaxContext;
 use swc_core::ecma::parser::{EsConfig, Syntax};
