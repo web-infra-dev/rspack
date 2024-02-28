@@ -29,7 +29,6 @@ pub struct ModuleGraphModule {
   pub profile: Option<Box<ModuleProfile>>,
   pub is_async: bool,
   pub depth: Option<usize>,
-
   pub optimization_bailout: Vec<String>,
 }
 

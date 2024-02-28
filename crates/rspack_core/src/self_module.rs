@@ -122,6 +122,7 @@ impl Module for SelfModule {
       dependencies: Vec::new(),
       blocks: Vec::new(),
       analyze_result: Default::default(),
+      optimization_bailouts: vec![],
     })
   }
 
@@ -152,3 +153,6 @@ impl PartialEq for SelfModule {
 }
 
 impl Eq for SelfModule {}
+
+// 530,063,683
+// 100,000,000

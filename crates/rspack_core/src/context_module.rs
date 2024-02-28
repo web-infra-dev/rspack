@@ -900,6 +900,7 @@ impl ContextModule {
       dependencies,
       blocks,
       analyze_result: Default::default(),
+      optimization_bailouts: vec![],
     })
   }
 }

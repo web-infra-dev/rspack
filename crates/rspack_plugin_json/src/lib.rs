@@ -120,6 +120,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
         blocks: vec![],
         source: box_source,
         analyze_result: Default::default(),
+        side_effects_bailout: None,
       }
       .with_diagnostic(diagnostics),
     )

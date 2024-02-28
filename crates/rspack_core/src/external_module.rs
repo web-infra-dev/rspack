@@ -378,6 +378,7 @@ impl Module for ExternalModule {
       dependencies: Vec::new(),
       blocks: Vec::new(),
       analyze_result: Default::default(),
+      optimization_bailouts: vec![],
     };
     // TODO add exports_type for request
     match self.external_type.as_str() {
