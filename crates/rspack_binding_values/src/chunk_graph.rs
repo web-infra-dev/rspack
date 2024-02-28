@@ -64,8 +64,7 @@ pub fn get_chunk_modules_iterable_by_source_type(
       .chunk_graph
       .get_chunk_modules_iterable_by_source_type(
         &ChunkUkey::from(js_chunk_ukey as usize),
-        SourceType::try_from(source_type.as_str())
-          .map_err(|e| napi::Error::from_reason(e.to_string()))?,
+        SourceType::from(source_type.as_str()),
         &compilation.module_graph,
       )
       .filter_map(|module| module.to_js_module().ok())

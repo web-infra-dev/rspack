@@ -43,6 +43,7 @@ swc_core = { workspace = true, features = [
   "ecma_transforms_compat",
   "ecma_transforms_proposal",
   "ecma_transforms_typescript",
+  "base",
   "ecma_quote",
 ] }
 swc_node_comments = { workspace = true }

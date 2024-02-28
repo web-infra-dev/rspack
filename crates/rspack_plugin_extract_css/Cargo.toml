@@ -1,0 +1,23 @@
+[package]
+edition    = "2021"
+license    = "MIT"
+name       = "rspack_plugin_extract_css"
+repository = "https://github.com/web-infra-dev/rspack"
+version    = "0.1.0"
+
+[dependencies]
+async-trait           = { workspace = true }
+dashmap               = { workspace = true }
+once_cell             = { workspace = true }
+regex                 = { workspace = true }
+rspack_core           = { path = "../rspack_core" }
+rspack_error          = { path = "../rspack_error" }
+rspack_hash           = { path = "../rspack_hash" }
+rspack_identifier     = { path = "../rspack_identifier" }
+rspack_plugin_css     = { path = "../rspack_plugin_css" }
+rspack_plugin_runtime = { path = "../rspack_plugin_runtime" }
+rspack_util           = { path = "../rspack_util" }
+rustc-hash            = { workspace = true }
+serde                 = { workspace = true, features = ["derive"] }
+serde_json            = { workspace = true }
+ustr                  = { workspace = true }

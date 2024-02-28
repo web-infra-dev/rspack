@@ -987,8 +987,10 @@ const optimizationSplitChunksChunks = z
 	.or(z.instanceof(RegExp))
 	.or(z.function().args(z.instanceof(Chunk)).returns(z.boolean()));
 const optimizationSplitChunksSizes = z.number();
+const optimizationSplitChunksDefaultSizeTypes = z.array(z.string());
 const sharedOptimizationSplitChunksCacheGroup = {
 	chunks: optimizationSplitChunksChunks.optional(),
+	defaultSizeTypes: optimizationSplitChunksDefaultSizeTypes.optional(),
 	minChunks: z.number().min(1).optional(),
 	name: optimizationSplitChunksName.optional(),
 	minSize: optimizationSplitChunksSizes.optional(),

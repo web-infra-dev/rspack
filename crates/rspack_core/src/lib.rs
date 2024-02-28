@@ -114,6 +114,7 @@ pub enum SourceType {
   Remote,
   ShareInit,
   ConsumeShared,
+  Custom(Ustr),
   #[default]
   Unknown,
 }
@@ -130,29 +131,24 @@ impl std::fmt::Display for SourceType {
       SourceType::ShareInit => write!(f, "share-init"),
       SourceType::ConsumeShared => write!(f, "consume-shared"),
       SourceType::Unknown => write!(f, "unknown"),
+      SourceType::Custom(source_type) => f.write_str(source_type),
     }
   }
 }
 
-impl TryFrom<&str> for SourceType {
-  type Error = rspack_error::Error;
-
-  fn try_from(value: &str) -> Result<Self, Self::Error> {
+impl From<&str> for SourceType {
+  fn from(value: &str) -> Self {
     match value {
-      "javascript" => Ok(Self::JavaScript),
-      "css" => Ok(Self::Css),
-      "wasm" => Ok(Self::Wasm),
-      "asset" => Ok(Self::Asset),
-      "expose" => Ok(Self::Expose),
-      "remote" => Ok(Self::Remote),
-      "share-init" => Ok(Self::ShareInit),
-      "consume-shared" => Ok(Self::ConsumeShared),
-      "unknown" => Ok(Self::Unknown),
-
-      _ => {
-        use rspack_error::error;
-        Err(error!("invalid source type: {value}"))
-      }
+      "javascript" => Self::JavaScript,
+      "css" => Self::Css,
+      "wasm" => Self::Wasm,
+      "asset" => Self::Asset,
+      "expose" => Self::Expose,
+      "remote" => Self::Remote,
+      "share-init" => Self::ShareInit,
+      "consume-shared" => Self::ConsumeShared,
+      "unknown" => Self::Unknown,
+      other => SourceType::Custom(other.into()),
     }
   }
 }

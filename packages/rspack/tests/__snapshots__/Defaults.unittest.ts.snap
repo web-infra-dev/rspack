@@ -229,6 +229,11 @@ exports[`snapshots should have the correct base config 1`] = `
         },
       },
       "chunks": "async",
+      "defaultSizeTypes": [
+        "javascript",
+        "css",
+        "unknown",
+      ],
       "hidePathInfo": false,
       "maxAsyncRequests": Infinity,
       "maxInitialRequests": Infinity,

@@ -195,7 +195,8 @@ export enum BuiltinPluginName {
   HtmlRspackPlugin = 'HtmlRspackPlugin',
   SwcJsMinimizerRspackPlugin = 'SwcJsMinimizerRspackPlugin',
   SwcCssMinimizerRspackPlugin = 'SwcCssMinimizerRspackPlugin',
-  BundlerInfoRspackPlugin = 'BundlerInfoRspackPlugin'
+  BundlerInfoRspackPlugin = 'BundlerInfoRspackPlugin',
+  CssExtractPlugin = 'CssExtractPlugin'
 }
 
 export function cleanupGlobalTrace(): void
@@ -775,6 +776,17 @@ export interface RawCrossOriginLoading {
   boolPayload?: boolean
 }
 
+export interface RawCssExtractPluginOption {
+  filename: string
+  chunkFilename: string
+  ignoreOrder: boolean
+  insert?: string
+  attributes: Record<string, string>
+  linkType?: string
+  runtime: boolean
+  pathinfo: boolean
+}
+
 export interface RawCssModulesConfig {
   localsConvention: "asIs" | "camelCase" | "camelCaseOnly" | "dashes" | "dashesOnly"
   localIdentName: string
@@ -1248,6 +1260,7 @@ export interface RawSplitChunksOptions {
   automaticNameDelimiter?: string
   maxAsyncRequests?: number
   maxInitialRequests?: number
+  defaultSizeTypes: Array<string>
   minChunks?: number
   hidePathInfo?: boolean
   minSize?: number

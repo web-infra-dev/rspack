@@ -30,6 +30,7 @@ rspack_plugin_devtool                 = { path = "../rspack_plugin_devtool" }
 rspack_plugin_ensure_chunk_conditions = { path = "../rspack_plugin_ensure_chunk_conditions" }
 rspack_plugin_entry                   = { path = "../rspack_plugin_entry" }
 rspack_plugin_externals               = { path = "../rspack_plugin_externals" }
+rspack_plugin_extract_css             = { path = "../rspack_plugin_extract_css" }
 rspack_plugin_hmr                     = { path = "../rspack_plugin_hmr" }
 rspack_plugin_html                    = { path = "../rspack_plugin_html" }
 rspack_plugin_javascript              = { path = "../rspack_plugin_javascript" }

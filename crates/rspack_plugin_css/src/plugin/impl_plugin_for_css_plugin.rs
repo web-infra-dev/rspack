@@ -177,7 +177,7 @@ impl Plugin for CssPlugin {
   ) -> rspack_core::PluginContentHashHookOutput {
     let compilation = &args.compilation;
     let chunk = compilation.chunk_by_ukey.expect_get(&args.chunk_ukey);
-    let ordered_modules = Self::get_ordered_chunk_css_modules(
+    let (ordered_modules, _) = Self::get_ordered_chunk_css_modules(
       chunk,
       &compilation.chunk_graph,
       &compilation.module_graph,
@@ -219,12 +219,31 @@ impl Plugin for CssPlugin {
       return Ok(vec![].with_empty_diagnostic());
     }
 
-    let ordered_css_modules = Self::get_ordered_chunk_css_modules(
+    let (ordered_css_modules, _conflicts) = Self::get_ordered_chunk_css_modules(
       chunk,
       &compilation.chunk_graph,
       &compilation.module_graph,
       compilation,
     );
+
+    // if let Some(conflicts) = conflicts {
+    //   for conflict in conflicts {
+    //     let chunk = compilation.chunk_by_ukey.expect_get(&conflict.chunk);
+    //     let warning = Diagnostic::warn(
+    //       "css order conflicts".into(),
+    //       format!(
+    //         "chunk {}",
+    //         chunk
+    //           .name
+    //           .as_ref()
+    //           .map(|s| s.as_str())
+    //           .or_else(|| { chunk.id.as_ref().map(|s| s.as_str()) })
+    //           .unwrap_or(""),
+    //       ),
+    //     );
+    //     compilation.push_diagnostic(warning);
+    //   }
+    // }
 
     // Prevent generating css files for chunks which don't contain css modules.
     if ordered_css_modules.is_empty() {

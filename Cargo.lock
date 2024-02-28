@@ -2438,6 +2438,7 @@ dependencies = [
  "rspack_plugin_ensure_chunk_conditions",
  "rspack_plugin_entry",
  "rspack_plugin_externals",
+ "rspack_plugin_extract_css",
  "rspack_plugin_hmr",
  "rspack_plugin_html",
  "rspack_plugin_javascript",
@@ -2873,6 +2874,27 @@ dependencies = [
  "regex",
  "rspack_core",
  "rspack_regex",
+]
+
+[[package]]
+name = "rspack_plugin_extract_css"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "dashmap",
+ "once_cell",
+ "regex",
+ "rspack_core",
+ "rspack_error",
+ "rspack_hash",
+ "rspack_identifier",
+ "rspack_plugin_css",
+ "rspack_plugin_runtime",
+ "rspack_util",
+ "rustc-hash",
+ "serde",
+ "serde_json",
+ "ustr-fxhash",
 ]
 
 [[package]]

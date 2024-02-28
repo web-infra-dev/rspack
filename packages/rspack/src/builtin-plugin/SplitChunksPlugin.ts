@@ -89,6 +89,7 @@ function toRawSplitChunksOptions(
 	const {
 		name,
 		chunks,
+		defaultSizeTypes,
 		cacheGroups = {},
 		fallbackCacheGroup,
 		...passThrough
@@ -97,6 +98,7 @@ function toRawSplitChunksOptions(
 	return {
 		name: getName(name),
 		chunks: getChunks(chunks),
+		defaultSizeTypes: defaultSizeTypes || ["javascript", "unknown"],
 		cacheGroups: Object.entries(cacheGroups)
 			.filter(([_key, group]) => group !== false)
 			.map(([key, group]) => {

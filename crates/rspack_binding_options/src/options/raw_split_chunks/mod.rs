@@ -41,7 +41,7 @@ pub struct RawSplitChunksOptions {
   pub automatic_name_delimiter: Option<String>,
   pub max_async_requests: Option<u32>,
   pub max_initial_requests: Option<u32>,
-  //   pub default_size_types: Option<Vec<SizeType>>,
+  pub default_size_types: Vec<String>,
   pub min_chunks: Option<u32>,
   pub hide_path_info: Option<bool>,
   pub min_size: Option<f64>,
@@ -114,7 +114,11 @@ impl From<RawSplitChunksOptions> for rspack_plugin_split_chunks::PluginOptions {
       normalize_raw_chunk_name(name)
     });
 
-    let default_size_types = [SourceType::JavaScript, SourceType::Unknown];
+    let default_size_types = raw_opts
+      .default_size_types
+      .into_iter()
+      .map(|size_type| SourceType::from(size_type.as_str()))
+      .collect::<Vec<_>>();
 
     let create_sizes = |size: Option<f64>| {
       size

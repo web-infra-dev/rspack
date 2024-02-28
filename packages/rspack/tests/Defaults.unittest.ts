@@ -1238,7 +1238,8 @@ describe("snapshots", () => {
 			-             },
 			-             "test": /\\.module\\.css$/i,
 			-             "type": "css/module",
-			@@ ... @@
+			-           },
+			-           Object {
 			-             "resolve": Object {
 			-               "fullySpecified": true,
 			-               "preferRelative": true,
@@ -1247,8 +1248,7 @@ describe("snapshots", () => {
 			-           },
 			-         ],
 			-         "test": /\\.css$/i,
-			-       },
-			-       Object {
+			@@ ... @@
 			-         "mimetype": "text/css+module",
 			-         "resolve": Object {
 			-           "fullySpecified": true,
@@ -1264,6 +1264,8 @@ describe("snapshots", () => {
 			-         "type": "css",
 			-       },
 			-       Object {
+			@@ ... @@
+			-         "css",
 			@@ ... @@
 			-     "hashDigestLength": 20,
 			-     "hashFunction": "md4",

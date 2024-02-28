@@ -351,11 +351,14 @@ impl Plugin for RuntimePlugin {
                 RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME.to_string(),
                 |_| false,
                 |chunk, compilation| {
-                  Some(get_js_chunk_filename_template(
-                    chunk,
-                    &compilation.options.output,
-                    &compilation.chunk_group_by_ukey,
-                  ))
+                  Some(
+                    get_js_chunk_filename_template(
+                      chunk,
+                      &compilation.options.output,
+                      &compilation.chunk_group_by_ukey,
+                    )
+                    .clone(),
+                  )
                 },
               )
               .boxed(),
@@ -381,6 +384,7 @@ impl Plugin for RuntimePlugin {
                       &compilation.options.output,
                       &compilation.chunk_group_by_ukey,
                     )
+                    .clone()
                   })
                 },
               )

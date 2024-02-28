@@ -47,7 +47,7 @@ impl Compilation {
       let m = self
         .module_graph
         .module_by_identifier(&m)
-        .expect("should have module");
+        .unwrap_or_else(|| panic!("should have module: {m}"));
       for m in self.module_graph.get_outgoing_connections(m) {
         // TODO: handle circle
         if !modules.contains(&m.module_identifier) {
@@ -369,19 +369,15 @@ impl Compilation {
                 .module_by_identifier(&module)
                 .expect("todo");
 
-              tx_clone
-                .send((
-                  module,
-                  Some(
-                    compilation
-                      .module_graph
-                      .get_outgoing_connections(m)
-                      .into_iter()
-                      .map(|conn| conn.module_identifier)
-                      .collect(),
-                  ),
-                ))
-                .expect("todo");
+              let deps = compilation
+                .module_graph
+                .get_outgoing_connections(m)
+                .into_iter()
+                .map(|conn| conn.module_identifier)
+                .filter(|m| compilation.module_graph.module_by_identifier(m).is_none())
+                .collect();
+
+              tx_clone.send((module, Some(deps))).expect("todo");
             }),
           );
         }

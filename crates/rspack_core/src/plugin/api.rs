@@ -4,7 +4,7 @@ use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_hash::RspackHashDigest;
 use rspack_loader_runner::{Content, LoaderContext, ResourceData};
 use rspack_sources::{BoxSource, Source};
-use rustc_hash::FxHashMap;
+use rspack_util::fx_dashmap::FxDashMap;
 use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
@@ -606,7 +606,7 @@ pub type BoxedParserAndGeneratorBuilder =
 
 pub struct ApplyContext<'c> {
   pub(crate) registered_parser_and_generator_builder:
-    &'c mut FxHashMap<ModuleType, BoxedParserAndGeneratorBuilder>,
+    &'c mut FxDashMap<ModuleType, BoxedParserAndGeneratorBuilder>,
   pub compiler_hooks: &'c mut CompilerHooks,
 }
 

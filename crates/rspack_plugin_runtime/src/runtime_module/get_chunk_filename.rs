@@ -16,8 +16,7 @@ use super::stringify_static_chunk_map;
 use crate::{get_chunk_runtime_requirements, runtime_module::unquoted_stringify};
 
 type GetChunkFilenameAllChunks = Box<dyn Fn(&RuntimeGlobals) -> bool + Sync + Send>;
-type GetFilenameForChunk =
-  Box<dyn for<'me> Fn(&'me Chunk, &'me Compilation) -> Option<&'me Filename> + Sync + Send>;
+type GetFilenameForChunk = Box<dyn Fn(&Chunk, &Compilation) -> Option<Filename> + Sync + Send>;
 
 #[impl_runtime_module]
 pub struct GetChunkFilenameRuntimeModule {
@@ -50,7 +49,7 @@ impl Eq for GetChunkFilenameRuntimeModule {}
 impl GetChunkFilenameRuntimeModule {
   pub fn new<
     F: Fn(&RuntimeGlobals) -> bool + Sync + Send + 'static,
-    T: for<'me> Fn(&'me Chunk, &'me Compilation) -> Option<&'me Filename> + Sync + Send + 'static,
+    T: Fn(&Chunk, &Compilation) -> Option<Filename> + Sync + Send + 'static,
   >(
     content_type: &'static str,
     name: &'static str,
@@ -117,7 +116,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
         }
       });
 
-    let mut dynamic_filename: Option<&Filename> = None;
+    let mut dynamic_filename: Option<Filename> = None;
     let mut max_chunk_set_size = 0;
     let mut chunk_filenames = IndexMap::new();
     let mut chunk_map = IndexMap::new();
@@ -138,7 +137,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
 
             chunk_set.insert(&chunk.ukey);
 
-            let should_update = match dynamic_filename {
+            let should_update = match &dynamic_filename {
               Some(dynamic_filename) => match chunk_set.len().cmp(&max_chunk_set_size) {
                 Ordering::Less => false,
                 Ordering::Greater => true,
@@ -168,6 +167,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
     }
 
     let dynamic_url = dynamic_filename
+      .as_ref()
       .and_then(|filename| {
         chunk_filenames
           .get(filename)
@@ -242,7 +242,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
     for (filename_template, chunks) in
       chunk_filenames
         .iter()
-        .filter(|(filename, _)| match dynamic_filename {
+        .filter(|(filename, _)| match &dynamic_filename {
           None => true,
           Some(dynamic_filename) => dynamic_filename != *filename,
         })

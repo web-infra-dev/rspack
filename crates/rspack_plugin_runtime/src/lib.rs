@@ -21,7 +21,9 @@ pub use module_chunk_loading::ModuleChunkLoadingPlugin;
 mod import_scripts_chunk_loading;
 pub use import_scripts_chunk_loading::ImportScriptsChunkLoadingPlugin;
 mod runtime_module;
-pub use runtime_module::{chunk_has_css, is_enabled_for_chunk, stringify_chunks};
+pub use runtime_module::{
+  chunk_has_css, is_enabled_for_chunk, stringify_chunks, GetChunkFilenameRuntimeModule,
+};
 mod startup_chunk_dependencies;
 pub use startup_chunk_dependencies::StartupChunkDependenciesPlugin;
 mod chunk_prefetch_preload;
