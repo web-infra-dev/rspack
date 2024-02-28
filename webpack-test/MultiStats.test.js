@@ -1,12 +1,12 @@
 "use strict";
 
-// require("./helpers/warmup-webpack");
+require("./helpers/warmup-webpack");
 
 const { createFsFromVolume, Volume } = require("memfs");
 
 describe("MultiStats", () => {
 	it("should create JSON of children stats", done => {
-		const webpack = require("@rspack/core").rspack;
+		const webpack = require("..");
 		const compiler = webpack([
 			{
 				context: __dirname,
