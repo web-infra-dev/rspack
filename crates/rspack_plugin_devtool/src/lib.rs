@@ -2,7 +2,7 @@
 
 use std::borrow::Cow;
 use std::hash::Hasher;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 use std::{hash::Hash, path::Path};
 
 use dashmap::DashMap;
@@ -28,7 +28,6 @@ use rspack_hash::{HashFunction, RspackHash};
 use rspack_util::identifier::make_paths_absolute;
 use rspack_util::source_map::SourceMapKind;
 use rspack_util::{path::relative, swc::normalize_custom_filename};
-use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
 use serde_json::json;
 
@@ -124,7 +123,7 @@ pub enum ModuleOrSource {
   Module(ModuleIdentifier),
 }
 
-type AssetsCache = HashMap<String, (u64, CompilationAsset, Option<(String, CompilationAsset)>)>;
+type AssetsCache = DashMap<String, (u64, CompilationAsset, Option<(String, CompilationAsset)>)>;
 
 #[derive(Derivative)]
 #[derivative(Debug)]
@@ -145,7 +144,7 @@ pub struct SourceMapDevToolPlugin {
   source_root: Option<String>,
   #[derivative(Debug = "ignore")]
   test: Option<TestFn>,
-  assets_cache: RwLock<AssetsCache>,
+  assets_cache: AssetsCache,
 }
 
 impl SourceMapDevToolPlugin {
@@ -188,7 +187,7 @@ impl SourceMapDevToolPlugin {
       module: options.module,
       source_root: options.source_root,
       test: options.test,
-      assets_cache: RwLock::new(HashMap::default()),
+      assets_cache: DashMap::default(),
     }
   }
 }
@@ -216,32 +215,25 @@ impl Plugin for SourceMapDevToolPlugin {
       Option<(String, CompilationAsset)>,
     )> = Vec::with_capacity(compilation_assets.len());
     let mut recompute_assets = vec![];
-    {
-      let assets_cache = self
-        .assets_cache
-        .read()
-        .expect("assets cache read lock acquisition failed");
-      for (filename, asset) in compilation.assets() {
-        let source = asset.get_source();
-        if let Some(source) = source {
-          if let Some((cached_hash, cached_source_asset, cached_map_asset)) =
-            assets_cache.get(filename)
-          {
-            let mut hasher = RspackHash::new(&HashFunction::MD4);
-            source.update_hash(&mut hasher);
-            let hash = hasher.finish();
-            if hash == *cached_hash {
-              source_and_map_asstes.push((
-                filename.to_owned(),
-                hash,
-                cached_source_asset.clone(),
-                cached_map_asset.clone(),
-              ));
-              continue;
-            }
+    for (filename, asset) in compilation.assets() {
+      let source = asset.get_source();
+      if let Some(source) = source {
+        if let Some(asset) = self.assets_cache.get(filename) {
+          let (source_hash, source_asset, source_map_asset) = asset.value();
+          let mut hasher = RspackHash::new(&HashFunction::MD4);
+          source.update_hash(&mut hasher);
+          let hash = hasher.finish();
+          if hash == *source_hash {
+            source_and_map_asstes.push((
+              filename.to_owned(),
+              hash,
+              source_asset.clone(),
+              source_map_asset.clone(),
+            ));
+            continue;
           }
-          recompute_assets.push((filename.to_owned(), source.clone()));
         }
+        recompute_assets.push((filename.to_owned(), source.clone()));
       }
     }
 
@@ -535,11 +527,7 @@ impl Plugin for SourceMapDevToolPlugin {
       }
     }
 
-    let mut assets_cache = self
-      .assets_cache
-      .write()
-      .expect("assets cache write lock acquisition failed");
-    assets_cache.clear();
+    self.assets_cache.clear();
     for (source_filename, source_hash, mut source_asset, source_map) in source_and_map_asstes {
       if let Some(asset) = compilation.assets_mut().remove(&source_filename) {
         source_asset.info = asset.info;
@@ -547,7 +535,7 @@ impl Plugin for SourceMapDevToolPlugin {
       compilation.emit_asset(source_filename.to_owned(), source_asset.clone());
       if let Some((source_map_filename, source_map_asset)) = source_map {
         compilation.emit_asset(source_map_filename.to_owned(), source_map_asset.clone());
-        assets_cache.insert(
+        self.assets_cache.insert(
           source_filename.to_owned(),
           (
             source_hash,
@@ -556,7 +544,7 @@ impl Plugin for SourceMapDevToolPlugin {
           ),
         );
       } else {
-        assets_cache.insert(
+        self.assets_cache.insert(
           source_filename.to_owned(),
           (source_hash, source_asset, None),
         );
