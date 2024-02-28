@@ -24,7 +24,7 @@ use rspack_core::{
 };
 use rspack_error::miette::IntoDiagnostic;
 use rspack_error::Result;
-use rspack_hash::{HashFunction, RspackHash};
+use rspack_hash::RspackHash;
 use rspack_util::identifier::make_paths_absolute;
 use rspack_util::source_map::SourceMapKind;
 use rspack_util::{path::relative, swc::normalize_custom_filename};
@@ -123,7 +123,7 @@ pub enum ModuleOrSource {
   Module(ModuleIdentifier),
 }
 
-type AssetsCache = DashMap<String, (u64, CompilationAsset, Option<(String, CompilationAsset)>)>;
+type AssetsCache = DashMap<String, (CompilationAsset, Option<(String, CompilationAsset)>)>;
 
 #[derive(Derivative)]
 #[derivative(Debug)]
@@ -210,44 +210,38 @@ impl Plugin for SourceMapDevToolPlugin {
     let compilation_assets = compilation.assets();
     let mut source_and_map_asstes: Vec<(
       String,
-      u64,
       CompilationAsset,
       Option<(String, CompilationAsset)>,
     )> = Vec::with_capacity(compilation_assets.len());
     let mut recompute_assets = vec![];
     for (filename, asset) in compilation.assets() {
-      let source = asset.get_source();
-      if let Some(source) = source {
-        if let Some(asset) = self.assets_cache.get(filename) {
-          let (source_hash, source_asset, source_map_asset) = asset.value();
-          let mut hasher = RspackHash::new(&HashFunction::MD4);
-          source.update_hash(&mut hasher);
-          let hash = hasher.finish();
-          if hash == *source_hash {
-            source_and_map_asstes.push((
-              filename.to_owned(),
-              hash,
-              source_asset.clone(),
-              source_map_asset.clone(),
-            ));
-            continue;
-          }
+      if let Some(cache) = self.assets_cache.get(filename) {
+        let (source_asset, source_map_asset) = cache.value();
+        if !asset.info.version.is_empty() && asset.info.version == source_asset.info.version {
+          source_and_map_asstes.push((
+            filename.to_owned(),
+            source_asset.clone(),
+            source_map_asset.clone(),
+          ));
+          continue;
         }
-        recompute_assets.push((filename.to_owned(), source.clone()));
       }
+      recompute_assets.push((filename.to_owned(), asset));
     }
 
     let assets = recompute_assets
       .par_iter()
-      .filter_map(|(file, source)| {
+      .filter_map(|(file, asset)| {
         let is_match = match &self.test {
           Some(test) => test(file.to_owned()),
           None => true,
         };
         if is_match {
-          let map_options = MapOptions::new(self.columns);
-          let source_map = source.map(&map_options);
-          Some((file, source, source_map))
+          asset.get_source().map(|source| {
+            let map_options = MapOptions::new(self.columns);
+            let source_map = source.map(&map_options);
+            (file, source, source_map)
+          })
         } else {
           None
         }
@@ -255,7 +249,7 @@ impl Plugin for SourceMapDevToolPlugin {
       .collect::<Vec<_>>();
 
     let mut used_names_set = HashSet::<String>::default();
-    let mut maps: Vec<(String, u64, Vec<u8>, Option<Vec<u8>>)> = Vec::with_capacity(assets.len());
+    let mut maps: Vec<(String, Vec<u8>, Option<Vec<u8>>)> = Vec::with_capacity(assets.len());
 
     let mut default_filenames = match &self.module_filename_template {
       ModuleFilenameTemplate::String(s) => assets
@@ -327,10 +321,10 @@ impl Plugin for SourceMapDevToolPlugin {
     };
     let mut default_filenames_index = 0;
 
-    for (file, asset, source_map) in assets {
+    for (filename, asset, source_map) in assets {
       let source_map_buffer = match source_map {
         Some(mut source_map) => {
-          source_map.set_file(Some(file.clone()));
+          source_map.set_file(Some(filename.clone()));
 
           let sources = source_map.sources_mut();
           for source in sources {
@@ -401,19 +395,15 @@ impl Plugin for SourceMapDevToolPlugin {
         None => None,
       };
 
-      let mut hasher = RspackHash::new(&HashFunction::MD4);
-      asset.update_hash(&mut hasher);
-      let hash = hasher.finish();
-
       let mut code_buffer = Vec::new();
       asset.to_writer(&mut code_buffer).into_diagnostic()?;
-      maps.push((file.to_owned(), hash, code_buffer, source_map_buffer));
+      maps.push((filename.to_owned(), code_buffer, source_map_buffer));
     }
 
     logger.time_end(start);
 
     let start = logger.time("emit source map assets");
-    for (filename, hash, code_buffer, source_map_buffer) in maps {
+    for (filename, code_buffer, source_map_buffer) in maps {
       let mut asset = compilation
         .assets_mut()
         .remove(&filename)
@@ -502,7 +492,6 @@ impl Plugin for SourceMapDevToolPlugin {
         );
         source_and_map_asstes.push((
           filename,
-          hash,
           asset,
           Some((source_map_filename, source_map_asset)),
         ));
@@ -521,33 +510,33 @@ impl Plugin for SourceMapDevToolPlugin {
           ])
           .boxed(),
         );
-        source_and_map_asstes.push((filename, hash, asset, None));
+        source_and_map_asstes.push((filename, asset, None));
         // TODO
         // chunk.auxiliary_files.add(filename);
       }
     }
 
     self.assets_cache.clear();
-    for (source_filename, source_hash, mut source_asset, source_map) in source_and_map_asstes {
+    for (source_filename, mut source_asset, source_map) in source_and_map_asstes {
       if let Some(asset) = compilation.assets_mut().remove(&source_filename) {
         source_asset.info = asset.info;
       }
       compilation.emit_asset(source_filename.to_owned(), source_asset.clone());
       if let Some((source_map_filename, source_map_asset)) = source_map {
         compilation.emit_asset(source_map_filename.to_owned(), source_map_asset.clone());
-        self.assets_cache.insert(
-          source_filename.to_owned(),
-          (
-            source_hash,
-            source_asset,
-            Some((source_map_filename.to_owned(), source_map_asset.clone())),
-          ),
-        );
-      } else {
-        self.assets_cache.insert(
-          source_filename.to_owned(),
-          (source_hash, source_asset, None),
-        );
+        if !source_asset.info.version.is_empty() {
+          self.assets_cache.insert(
+            source_filename.to_owned(),
+            (
+              source_asset,
+              Some((source_map_filename.to_owned(), source_map_asset.clone())),
+            ),
+          );
+        }
+      } else if !source_asset.info.version.is_empty() {
+        self
+          .assets_cache
+          .insert(source_filename.to_owned(), (source_asset, None));
       }
     }
 
