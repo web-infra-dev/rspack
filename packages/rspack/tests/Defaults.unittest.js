@@ -1,8 +1,9 @@
-// @ts-nocheck
+require("./helpers/warmup-webpack");
+
 const path = require("path");
 const jestDiff = require("jest-diff").diff;
 const stripAnsi = require("strip-ansi");
-import rspack from "../src";
+
 /**
  * Escapes regular expression metacharacters
  * @param {string} str String to quote
@@ -37,7 +38,6 @@ const normalize = str => {
 };
 
 class Diff {
-	value: any;
 	constructor(value) {
 		this.value = value;
 	}
@@ -47,7 +47,7 @@ expect.addSnapshotSerializer({
 	test(value) {
 		return value instanceof Diff;
 	},
-	print(received: any) {
+	print(received) {
 		return normalize(received.value);
 	}
 });
@@ -62,8 +62,10 @@ expect.addSnapshotSerializer({
 });
 
 const getDefaultConfig = config => {
-	config = rspack.config.getNormalizedRspackOptions(config);
-	rspack.config.applyRspackOptionsDefaults(config);
+	const { applyWebpackOptionsDefaults, getNormalizedWebpackOptions } =
+		require("..").config;
+	config = getNormalizedWebpackOptions(config);
+	applyWebpackOptionsDefaults(config);
 	process.chdir(cwd);
 	// make snapshot stable
 	config.experiments.rspackFuture.bundlerInfo.version = "$version$";
