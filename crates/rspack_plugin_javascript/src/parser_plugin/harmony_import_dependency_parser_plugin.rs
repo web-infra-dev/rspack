@@ -11,8 +11,8 @@ use super::JavascriptParserPlugin;
 use crate::dependency::{
   HarmonyImportSideEffectDependency, HarmonyImportSpecifierDependency, Specifier,
 };
+use crate::visitors::ImporterReferenceInfo;
 use crate::visitors::{collect_destructuring_assignment_properties, JavascriptParser, TagInfoData};
-use crate::visitors::{ExtraSpanInfo, ImporterReferenceInfo};
 
 pub(super) fn handle_harmony_import_side_effects_dep(
   parser: &mut JavascriptParser,
@@ -156,9 +156,9 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
     _for_name: &str,
   ) -> Option<bool> {
     if parser.in_short_hand {
-      parser
-        .rewrite_usage_span
-        .insert(ident.span, ExtraSpanInfo::ReWriteUsedByExports);
+      // parser
+      //   .rewrite_usage_span
+      //   .insert(ident.span, ExtraSpanInfo::ReWriteUsedByExports);
       if let Some(reference) = parser.import_map.get(&ident.to_id()) {
         parser
           .dependencies
@@ -178,9 +178,9 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
       }
       Some(true)
     } else if let Some(reference) = parser.import_map.get(&ident.to_id()) {
-      parser
-        .rewrite_usage_span
-        .insert(ident.span, ExtraSpanInfo::ReWriteUsedByExports);
+      // parser
+      //   .rewrite_usage_span
+      //   .insert(ident.span, ExtraSpanInfo::ReWriteUsedByExports);
       parser
         .dependencies
         .push(Box::new(HarmonyImportSpecifierDependency::new(
@@ -233,9 +233,9 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
             .map(|item| item.0.clone())
             .collect::<Vec<_>>(),
         );
-        parser
-          .rewrite_usage_span
-          .insert(callee.span(), ExtraSpanInfo::ReWriteUsedByExports);
+        // parser
+        //   .rewrite_usage_span
+        //   .insert(callee.span(), ExtraSpanInfo::ReWriteUsedByExports);
         parser
           .dependencies
           .push(Box::new(HarmonyImportSpecifierDependency::new(
@@ -280,9 +280,9 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
             .map(|item| item.0.clone())
             .collect::<Vec<_>>(),
         );
-        parser
-          .rewrite_usage_span
-          .insert(member_expr.span, ExtraSpanInfo::ReWriteUsedByExports);
+        // parser
+        //   .rewrite_usage_span
+        //   .insert(member_expr.span, ExtraSpanInfo::ReWriteUsedByExports);
         parser
           .dependencies
           .push(Box::new(HarmonyImportSpecifierDependency::new(
@@ -356,9 +356,9 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
           .map(|item| item.0.clone())
           .collect::<Vec<_>>(),
       );
-      parser
-        .rewrite_usage_span
-        .insert(opt_chain_expr.span, ExtraSpanInfo::ReWriteUsedByExports);
+      // parser
+      //   .rewrite_usage_span
+      //   .insert(opt_chain_expr.span, ExtraSpanInfo::ReWriteUsedByExports);
       parser
         .dependencies
         .push(Box::new(HarmonyImportSpecifierDependency::new(

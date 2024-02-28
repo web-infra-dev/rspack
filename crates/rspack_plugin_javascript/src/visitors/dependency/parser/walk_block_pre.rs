@@ -22,6 +22,15 @@ impl<'parser> JavascriptParser<'parser> {
     match statement {
       ModuleItem::ModuleDecl(decl) => {
         // TODO: `hooks.block_pre_statement.call`
+        if self
+          .plugin_drive
+          .clone()
+          .block_pre_module_declration(self, decl)
+          .unwrap_or_default()
+        {
+          return;
+        }
+
         match decl {
           ModuleDecl::Import(decl) => self.block_pre_walk_import_declaration(decl),
           ModuleDecl::ExportAll(decl) => self.block_pre_walk_export_all_declaration(decl),
@@ -41,7 +50,15 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn block_pre_walk_statement(&mut self, stmt: &Stmt) {
-    // TODO: `hooks.block_pre_statement.call`
+    if self
+      .plugin_drive
+      .clone()
+      .block_pre_statement(self, stmt)
+      .unwrap_or_default()
+    {
+      return;
+    }
+
     match stmt {
       Stmt::Decl(stmt) => match stmt {
         Decl::Class(decl) => self.block_pre_walk_class_declaration(decl),

@@ -11,8 +11,8 @@ use std::sync::MutexGuard;
 
 use itertools::Itertools;
 use rspack_util::ext::DynHash;
-use rustc_hash::FxHashMap as HashMap;
-use rustc_hash::FxHashSet as HashSet;
+use rustc_hash::FxHashMap;
+use rustc_hash::FxHashSet;
 use serde::Serialize;
 use swc_core::ecma::atoms::Atom;
 
@@ -29,7 +29,7 @@ pub trait ExportsHash {
     &self,
     hasher: &mut dyn Hasher,
     module_graph: &ModuleGraph,
-    already_visited: &mut HashSet<ExportInfoId>,
+    already_visited: &mut FxHashSet<ExportInfoId>,
   );
 }
 
@@ -43,7 +43,7 @@ impl ExportsHash for ExportsInfoId {
     &self,
     hasher: &mut dyn Hasher,
     module_graph: &ModuleGraph,
-    already_visited: &mut HashSet<ExportInfoId>,
+    already_visited: &mut FxHashSet<ExportInfoId>,
   ) {
     if let Some(exports_info) = module_graph.exports_info_map.try_get(**self as usize) {
       exports_info.export_info_hash(hasher, module_graph, already_visited);
@@ -470,7 +470,7 @@ impl ExportsHash for ExportsInfo {
     &self,
     hasher: &mut dyn Hasher,
     module_graph: &ModuleGraph,
-    already_visited: &mut HashSet<ExportInfoId>,
+    already_visited: &mut FxHashSet<ExportInfoId>,
   ) {
     if let Some(hash) = module_graph.exports_info_hash.get(&self.id) {
       hash.dyn_hash(hasher);
@@ -648,8 +648,8 @@ impl ExportsInfo {
   }
 
   /// only used for old version tree shaking
-  pub fn old_get_used_exports(&self) -> HashSet<Atom> {
-    self.exports.keys().cloned().collect::<HashSet<_>>()
+  pub fn old_get_used_exports(&self) -> FxHashSet<Atom> {
+    self.exports.keys().cloned().collect::<FxHashSet<_>>()
   }
 
   pub fn owned_exports(&self) -> impl Iterator<Item = &ExportInfoId> {
@@ -805,7 +805,7 @@ impl ExportsHash for ExportInfoId {
     &self,
     hasher: &mut dyn Hasher,
     module_graph: &ModuleGraph,
-    already_visited: &mut HashSet<ExportInfoId>,
+    already_visited: &mut FxHashSet<ExportInfoId>,
   ) {
     if already_visited.contains(self) {
       return;
@@ -844,7 +844,7 @@ impl ExportInfoId {
         UsageState::OnlyPropertiesUsed => "only properties used".to_string(),
       };
     } else if let Some(used_in_runtime) = &export_info.used_in_runtime {
-      let mut map = HashMap::default();
+      let mut map = FxHashMap::default();
 
       for (runtime, used) in used_in_runtime.iter() {
         let list = map.entry(*used).or_insert(vec![]);
@@ -948,7 +948,7 @@ impl ExportInfoId {
   ) -> Option<ResolvedExportInfoTarget> {
     let filter = resolve_filter.unwrap_or(Arc::new(|_, _| true));
 
-    let mut already_visited = HashSet::default();
+    let mut already_visited = FxHashSet::default();
     match self._get_target(module_graph_accessor, filter, &mut already_visited) {
       Some(ResolvedExportInfoTargetWithCircular::Circular) => None,
       Some(ResolvedExportInfoTargetWithCircular::Target(target)) => Some(target),
@@ -960,7 +960,7 @@ impl ExportInfoId {
     &self,
     mga: &mut dyn ModuleGraphAccessor,
     resolve_filter: ResolveFilterFnTy,
-    already_visited: &mut HashSet<ExportInfoId>,
+    already_visited: &mut FxHashSet<ExportInfoId>,
   ) -> Option<ResolvedExportInfoTargetWithCircular> {
     let self_export_info = mga.get_export_info(self);
     if self_export_info.target.is_empty() {
@@ -1037,7 +1037,7 @@ impl ExportInfoId {
       let export_info_mut = mg.get_export_info_mut_by_id(self);
       let used_in_runtime = export_info_mut
         .used_in_runtime
-        .get_or_insert(HashMap::default());
+        .get_or_insert(FxHashMap::default());
       let mut changed = false;
       for k in runtime.iter() {
         match used_in_runtime.entry(k.to_string()) {
@@ -1084,7 +1084,7 @@ impl ExportInfoId {
   ) -> Option<ResolvedExportInfoTarget> {
     let target = {
       MutexModuleGraph::new(mg)
-        .with_lock(|mut mga| self._get_target(&mut mga, resolve_filter, &mut HashSet::default()))
+        .with_lock(|mut mga| self._get_target(&mut mga, resolve_filter, &mut FxHashSet::default()))
     };
 
     let target = match target {
@@ -1132,7 +1132,7 @@ impl ExportInfoId {
       let export_info_mut = mg.get_export_info_mut_by_id(self);
       let used_in_runtime = export_info_mut
         .used_in_runtime
-        .get_or_insert(HashMap::default());
+        .get_or_insert(FxHashMap::default());
       let mut changed = false;
 
       for k in runtime.iter() {
@@ -1209,14 +1209,14 @@ impl ExportInfoId {
     mg: &ModuleGraph,
     valid_target_module_filter: Arc<impl Fn(&ModuleIdentifier) -> bool>,
   ) -> FindTargetRetEnum {
-    self._find_target(mg, valid_target_module_filter, &mut HashSet::default())
+    self._find_target(mg, valid_target_module_filter, &mut FxHashSet::default())
   }
 
   pub(crate) fn _find_target(
     &self,
     mg: &ModuleGraph,
     valid_target_module_filter: Arc<impl Fn(&ModuleIdentifier) -> bool>,
-    visited: &mut HashSet<ExportInfoId>,
+    visited: &mut FxHashSet<ExportInfoId>,
   ) -> FindTargetRetEnum {
     let export_info = self.get_export_info(mg);
     if !export_info.target_is_set || export_info.target.is_empty() {
@@ -1313,8 +1313,8 @@ pub struct ExportInfo {
   pub usage_state: UsageState,
   /// this is mangled name, https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/ExportsInfo.js#L1181-L1188
   used_name: Option<Atom>,
-  pub target: HashMap<Option<DependencyId>, ExportInfoTargetValue>,
-  max_target: HashMap<Option<DependencyId>, ExportInfoTargetValue>,
+  pub target: FxHashMap<Option<DependencyId>, ExportInfoTargetValue>,
+  max_target: FxHashMap<Option<DependencyId>, ExportInfoTargetValue>,
   pub provided: Option<ExportInfoProvided>,
   pub can_mangle_provide: Option<bool>,
   pub terminal_binding: bool,
@@ -1327,7 +1327,7 @@ pub struct ExportInfo {
   pub has_use_in_runtime_info: bool,
   pub can_mangle_use: Option<bool>,
   pub global_used: Option<UsageState>,
-  pub used_in_runtime: Option<HashMap<String, UsageState>>,
+  pub used_in_runtime: Option<FxHashMap<String, UsageState>>,
 }
 
 impl ExportsHash for ExportInfo {
@@ -1335,7 +1335,7 @@ impl ExportsHash for ExportInfo {
     &self,
     hasher: &mut dyn Hasher,
     module_graph: &ModuleGraph,
-    already_visited: &mut HashSet<ExportInfoId>,
+    already_visited: &mut FxHashSet<ExportInfoId>,
   ) {
     self.name.dyn_hash(hasher);
     self.module_identifier.dyn_hash(hasher);
@@ -1447,7 +1447,7 @@ impl ExportInfo {
                   },
                 )
               })
-              .collect::<HashMap<Option<DependencyId>, ExportInfoTargetValue>>(),
+              .collect::<FxHashMap<Option<DependencyId>, ExportInfoTargetValue>>(),
           )
         } else {
           None
@@ -1469,7 +1469,7 @@ impl ExportInfo {
       max_target_is_set: false,
       id: ExportInfoId::new(),
       exports_info: None,
-      max_target: HashMap::default(),
+      max_target: FxHashMap::default(),
       exports_info_owned: false,
       has_use_in_runtime_info,
       can_mangle_use,
@@ -1591,7 +1591,7 @@ impl ExportInfo {
   // NOTE:
   // used when the module graph is immutable
   // to make sure that the max target can be get
-  fn _get_max_target(&self) -> HashMap<Option<DependencyId>, ExportInfoTargetValue> {
+  fn _get_max_target(&self) -> FxHashMap<Option<DependencyId>, ExportInfoTargetValue> {
     if self.target.len() <= 1 {
       return self.target.clone();
     }
@@ -1604,7 +1604,7 @@ impl ExportInfo {
     if max_priority == min_priority {
       return self.target.clone();
     }
-    let mut map = HashMap::default();
+    let mut map = FxHashMap::default();
     for (k, v) in self.target.iter() {
       if max_priority == v.priority {
         map.insert(*k, v.clone());
@@ -1613,7 +1613,7 @@ impl ExportInfo {
     map
   }
 
-  fn get_max_target_readonly(&self) -> &HashMap<Option<DependencyId>, ExportInfoTargetValue> {
+  fn get_max_target_readonly(&self) -> &FxHashMap<Option<DependencyId>, ExportInfoTargetValue> {
     assert!(self.max_target_is_set);
     &self.max_target
   }
@@ -1621,7 +1621,7 @@ impl ExportInfo {
   // NOTE:
   // align with webpack _getMaxTarget(), the logic of creation is implemented in _get_max_target()
   // https://github.com/webpack/webpack/blob/b9fb99c63ca433b24233e0bbc9ce336b47872c08/lib/ExportsInfo.js#L1208
-  fn get_max_target(&mut self) -> &HashMap<Option<DependencyId>, ExportInfoTargetValue> {
+  fn get_max_target(&mut self) -> &FxHashMap<Option<DependencyId>, ExportInfoTargetValue> {
     if self.max_target_is_set {
       return &self.max_target;
     }
@@ -1633,7 +1633,7 @@ impl ExportInfo {
   #[allow(clippy::unwrap_in_result)]
   fn resolve_target(
     input_target: Option<UnResolvedExportInfoTarget>,
-    already_visited: &mut HashSet<ExportInfoId>,
+    already_visited: &mut FxHashSet<ExportInfoId>,
     resolve_filter: ResolveFilterFnTy,
     mga: &mut dyn ModuleGraphAccessor,
   ) -> Option<ResolvedExportInfoTargetWithCircular> {
@@ -1788,7 +1788,7 @@ pub enum RuntimeUsageStateType {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum UsedByExports {
-  Set(HashSet<Atom>),
+  Set(FxHashSet<Atom>),
   Bool(bool),
 }
 
@@ -1893,7 +1893,7 @@ pub fn process_export_info(
   prefix: Vec<Atom>,
   export_info: Option<ExportInfoId>,
   default_points_to_self: bool,
-  already_visited: &mut HashSet<ExportInfoId>,
+  already_visited: &mut FxHashSet<ExportInfoId>,
 ) {
   if let Some(export_info_id) = export_info {
     let export_info = module_graph.get_export_info_by_id(&export_info_id);
@@ -1987,7 +1987,7 @@ pub trait ModuleGraphAccessor<'a> {
   fn get_max_target(
     &mut self,
     export_info_id: &ExportInfoId,
-  ) -> Arc<HashMap<Option<DependencyId>, ExportInfoTargetValue>>;
+  ) -> Arc<FxHashMap<Option<DependencyId>, ExportInfoTargetValue>>;
   fn get_module_meta_exports_type(
     &mut self,
     module_identifier: &ModuleIdentifier,
@@ -2051,7 +2051,7 @@ impl<'a> ModuleGraphAccessor<'a> for MutableModuleGraph<'a> {
   fn get_max_target(
     &mut self,
     export_info_id: &ExportInfoId,
-  ) -> Arc<HashMap<Option<DependencyId>, ExportInfoTargetValue>> {
+  ) -> Arc<FxHashMap<Option<DependencyId>, ExportInfoTargetValue>> {
     Arc::new(
       self
         .inner
@@ -2124,7 +2124,7 @@ impl<'a> ModuleGraphAccessor<'a> for ImmutableModuleGraph<'a> {
   fn get_max_target(
     &mut self,
     export_info_id: &ExportInfoId,
-  ) -> Arc<HashMap<Option<DependencyId>, ExportInfoTargetValue>> {
+  ) -> Arc<FxHashMap<Option<DependencyId>, ExportInfoTargetValue>> {
     Arc::new({
       let export_info_id = self.inner.get_export_info_by_id(export_info_id);
 

@@ -53,7 +53,7 @@ fn builtins_webpack_plugin_define_optimizer(unresolved_mark: Mark) -> impl Fold 
 
 #[allow(clippy::too_many_arguments)]
 pub fn run_before_pass(ast: &mut Ast, options: &CompilerOptions) -> Result<()> {
-  let cm = ast.get_context().source_map.clone();
+  let cm = ast.context().source_map.clone();
   ast
     .transform_with_handler(cm.clone(), |_handler, program, context| {
       let top_level_mark = context.top_level_mark;

@@ -118,54 +118,67 @@ impl BasicEvaluatedExpression {
   //   matches!(self.ty, Ty::Unknown)
   // }
 
+  #[inline]
   pub fn is_identifier(&self) -> bool {
     matches!(self.ty, Ty::Identifier)
   }
 
+  #[inline]
   pub fn is_null(&self) -> bool {
     matches!(self.ty, Ty::Null)
   }
 
+  #[inline]
   pub fn is_unknown(&self) -> bool {
     matches!(self.ty, Ty::Unknown)
   }
 
+  #[inline]
   pub fn is_undefined(&self) -> bool {
     matches!(self.ty, Ty::Undefined)
   }
 
+  #[inline]
   pub fn is_conditional(&self) -> bool {
     matches!(self.ty, Ty::Conditional)
   }
 
+  #[inline]
   pub fn is_string(&self) -> bool {
     matches!(self.ty, Ty::String)
   }
 
+  #[inline]
   pub fn is_bool(&self) -> bool {
     matches!(self.ty, Ty::Boolean)
   }
 
+  #[inline]
   pub fn is_array(&self) -> bool {
     matches!(self.ty, Ty::Array)
   }
 
+  #[inline]
   pub fn is_wrapped(&self) -> bool {
     matches!(self.ty, Ty::Wrapped)
   }
 
+  #[inline]
   pub fn is_number(&self) -> bool {
     matches!(self.ty, Ty::Number)
   }
 
+  #[inline]
   pub fn is_bigint(&self) -> bool {
     matches!(self.ty, Ty::BigInt)
   }
 
+  #[inline]
   pub fn is_template_string(&self) -> bool {
     matches!(self.ty, Ty::TemplateString)
   }
 
+  #[inline]
   pub fn is_regexp(&self) -> bool {
     matches!(self.ty, Ty::RegExp)
   }
@@ -184,6 +197,7 @@ impl BasicEvaluatedExpression {
     )
   }
 
+  #[inline]
   pub fn is_nullish(&self) -> Option<bool> {
     self.nullish
   }
@@ -220,6 +234,8 @@ impl BasicEvaluatedExpression {
       Some(true)
     } else if self.falsy || self.nullish == Some(true) || self.is_null() || self.is_undefined() {
       Some(false)
+    } else if self.is_string() {
+      Some(!self.string().is_empty())
     } else {
       self.boolean
     }
@@ -395,6 +411,7 @@ impl BasicEvaluatedExpression {
   }
 
   pub fn string(&self) -> &String {
+    assert!(self.is_string());
     self.string.as_ref().expect("make sure string exist")
   }
 
