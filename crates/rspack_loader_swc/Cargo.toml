@@ -28,9 +28,9 @@ swc_core = { workspace = true, features = [
   "base",
   "ecma_ast",
   "common",
-  #  "swc_plugin_runner",
-  #  "plugin_transform_host_native_filesystem_cache",
-  #  "plugin_transform_host_native",
+  "plugin_transform_host_native",
+  "plugin_transform_host_native_filesystem_cache",
+  "plugin_transform_host_native_shared_runtime",
 ] }
 xxhash-rust = { workspace = true, features = ["xxh32"] }
 
