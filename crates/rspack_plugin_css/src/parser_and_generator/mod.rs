@@ -188,22 +188,28 @@ impl ParserAndGenerator for CssParserAndGenerator {
       && !locals.is_empty()
     {
       let mut dep_set = FxHashSet::default();
-      let compose_deps =
-        locals
-          .iter()
-          .flat_map(|(_, value)| value)
-          .filter_map(|(_, span, from)| {
-            if let Some(from) = from {
-              if dep_set.contains(&from) {
-                None
-              } else {
-                dep_set.insert(from);
-                Some(Box::new(CssComposeDependency::new(from.to_owned(), *span)) as BoxDependency)
-              }
-            } else {
+      let mut compose_deps = locals
+        .iter()
+        .flat_map(|(_, value)| value)
+        .filter_map(|(_, span, from)| {
+          if let Some(from) = from {
+            if dep_set.contains(&from) {
               None
+            } else {
+              dep_set.insert(from);
+              Some(Box::new(CssComposeDependency::new(from.to_owned(), *span)) as BoxDependency)
             }
-          });
+          } else {
+            None
+          }
+        })
+        .collect::<Vec<_>>();
+
+      compose_deps.sort_by(|a, b| match (a.span(), b.span()) {
+        (Some(span_a), Some(span_b)) => span_a.cmp(&span_b),
+        _ => unreachable!(),
+      });
+
       dependencies.extend(compose_deps);
       dependencies
     } else {
