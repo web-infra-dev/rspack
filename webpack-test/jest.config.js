@@ -141,5 +141,10 @@ module.exports = {
 		"<rootDir>/schemas",
 		"<rootDir>/node_modules"
 	],
-	"testEnvironment": "./patch-node-env.js"
+	"testEnvironment": "./patch-node-env.js",
+	"prettierPath": require.resolve("prettier-2"),
+	"snapshotFormat": {
+		"escapeString": true,
+		"printBasicPrototype": true
+	}
 }

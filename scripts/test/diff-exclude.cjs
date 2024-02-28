@@ -53,6 +53,8 @@ const UNALIGNED_FIXTURES = [
 	// Added filtered test filter
 	"ConfigTestCases.template.js",
 	"TestCases.template.js",
+	"WatchTestCases.template.js",
+	"HotTestCases.template.js",
 
 	// Change marked
 	"checkArrayExpectation.js",
@@ -60,13 +62,12 @@ const UNALIGNED_FIXTURES = [
 	"helpers/FakeDocument.js",
 	"helpers/warmup-webpack.js",
 	"hotCases/fake-update-loader.js",
-	"StatsTestCases.basictest.js",
-	"WatchTestCases.template.js",
-	"HotTestCases.template.js",
-	"HotTestCasesNode.test.js",
-	"MultiCompiler.test.js",
-	"Compiler.test.js",
-	"Stats.test.js"
+
+  // Additional tests
+  /^[^\\/]*test\.js/,
+  /^[^\\/]*basictest\.js/,
+  /^[^\\/]*unittest\.js/,
+  /^[^\\/]*longtest\.js/,
 ];
 
 // Only different in comments. For example, license information difference.

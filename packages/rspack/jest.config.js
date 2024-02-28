@@ -12,11 +12,11 @@ const config = {
 		"<rootDir>/tests/*.longtest.ts",
 		"<rootDir>/tests/*.longtest.js",
 		"<rootDir>/tests/*.unittest.ts",
+		"<rootDir>/tests/*.unittest.js",
 		"<rootDir>/tests/copyPlugin/*.test.js",
 		"<rootDir>/tests/WatchSuspend.test.js"
 	],
 	testTimeout: process.env.CI ? 60000 : 30000,
-	cache: false,
 	prettierPath: require.resolve("prettier-2"),
 	transform: {
 		"^.+\\.(t|j)sx?$": "@swc/jest"
