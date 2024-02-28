@@ -4,7 +4,8 @@ ERROR in ./err/index.js
  1 │ import a from '../a';
    ·               ──────
    ╰────
-  help: Found the module '../a.txt' exists, but its extension is not listed in the `resolve.extensions`. Here are some possible solutions:
+  help: Found module '../a.txt'. However, it's not possible to request this module without the extension
+        if its extension was not listed in the `resolve.extensions`. Here're some possible solutions:
         
         1. add the extension `".txt"` to `resolve.extensions` in your rspack configuration
         2. use '../a.txt' instead of '../a'
@@ -17,7 +18,8 @@ ERROR in ./index.js
    ·        ────────
  3 │ import a from './a';
    ╰────
-  help: Found the module './test/index.txt' exists, but its extension is not listed in the `resolve.extensions`. Here are some possible solutions:
+  help: Found module './test/index.txt'. However, it's not possible to request this module without the extension
+        if its extension was not listed in the `resolve.extensions`. Here're some possible solutions:
         
         1. add the extension `".txt"` to `resolve.extensions` in your rspack configuration
         2. use './test/index.txt' instead of './test'
@@ -30,7 +32,8 @@ ERROR in ./index.js
  3 │ import a from './a';
    ·               ─────
    ╰────
-  help: Found the module './a.txt' exists, but its extension is not listed in the `resolve.extensions`. Here are some possible solutions:
+  help: Found module './a.txt'. However, it's not possible to request this module without the extension
+        if its extension was not listed in the `resolve.extensions`. Here're some possible solutions:
         
         1. add the extension `".txt"` to `resolve.extensions` in your rspack configuration
         2. use './a.txt' instead of './a'

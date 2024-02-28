@@ -251,7 +251,8 @@ which tries to resolve these kind of requests in the current directory too.",
             let specifier = args.specifier;
 
             hint.push(format!(
-          "Found the module '{suggestion_path}' exists, but its extension is not listed in the `resolve.extensions`. Here are some possible solutions:
+          "Found module '{suggestion_path}'. However, it's not possible to request this module without the extension 
+if its extension was not listed in the `resolve.extensions`. Here're some possible solutions:
 
 1. add the extension `\".{suggestion_ext}\"` to `resolve.extensions` in your rspack configuration
 2. use '{suggestion_path}' instead of '{specifier}'
