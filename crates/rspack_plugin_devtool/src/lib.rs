@@ -8,6 +8,7 @@ use std::{hash::Hash, path::Path};
 use dashmap::DashMap;
 use derivative::Derivative;
 use futures::future::{join_all, BoxFuture};
+use futures::Future;
 use once_cell::sync::Lazy;
 use pathdiff::diff_paths;
 use rayon::prelude::*;
@@ -20,8 +21,10 @@ use rspack_core::{
   ProcessAssetsArgs, RenderModuleContentArgs, SourceType,
 };
 use rspack_core::{
-  Chunk, Filename, Logger, Module, ModuleIdentifier, OutputOptions, RuntimeModule,
+  Chunk, CompilationAssets, Filename, Logger, Module, ModuleIdentifier, OutputOptions,
+  RuntimeModule,
 };
+use rspack_error::Error;
 use rspack_error::{miette::IntoDiagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_util::identifier::make_paths_absolute;
@@ -193,39 +196,13 @@ impl SourceMapDevToolPlugin {
       assets_cache: DashMap::default(),
     }
   }
-}
 
-#[async_trait::async_trait]
-impl Plugin for SourceMapDevToolPlugin {
-  fn name(&self) -> &'static str {
-    "rspack.SourceMapDevToolPlugin"
-  }
-
-  async fn process_assets_stage_dev_tooling(
+  async fn map_assets(
     &self,
-    _ctx: PluginContext,
-    ProcessAssetsArgs { compilation }: ProcessAssetsArgs<'_>,
-  ) -> PluginProcessAssetsOutput {
-    let logger = compilation.get_logger(self.name());
-    let start = logger.time("collect source maps");
+    compilation: &Compilation,
+    raw_assets: Vec<(String, &CompilationAsset)>,
+  ) -> Result<Vec<MappedAsset>> {
     let output_options = &compilation.options.output;
-
-    let compilation_assets = compilation.assets();
-    let mut mapped_asstes: Vec<MappedAsset> = Vec::with_capacity(compilation_assets.len());
-    let mut raw_assets = vec![];
-    for (filename, raw_asset) in compilation.assets() {
-      if let Some(cache) = self.assets_cache.get(filename) {
-        let MappedAsset { asset, source_map } = cache.value();
-        if !raw_asset.info.version.is_empty() && raw_asset.info.version == asset.1.info.version {
-          mapped_asstes.push(MappedAsset {
-            asset: asset.clone(),
-            source_map: source_map.clone(),
-          });
-          continue;
-        }
-      }
-      raw_assets.push((filename.to_owned(), raw_asset));
-    }
 
     let mapped_sources = raw_assets
       .par_iter()
@@ -247,7 +224,7 @@ impl Plugin for SourceMapDevToolPlugin {
       .collect::<Vec<_>>();
 
     let mut used_names_set = HashSet::<String>::default();
-    let mut maps: Vec<(String, Vec<u8>, Option<Vec<u8>>)> =
+    let mut mapped_buffer: Vec<(String, Vec<u8>, Option<Vec<u8>>)> =
       Vec::with_capacity(mapped_sources.len());
 
     let mut default_filenames = match &self.module_filename_template {
@@ -396,22 +373,24 @@ impl Plugin for SourceMapDevToolPlugin {
 
       let mut code_buffer = Vec::new();
       asset.to_writer(&mut code_buffer).into_diagnostic()?;
-      maps.push((filename.to_owned(), code_buffer, source_map_buffer));
+      mapped_buffer.push((filename.to_owned(), code_buffer, source_map_buffer));
     }
 
-    logger.time_end(start);
-
-    let start = logger.time("emit source map assets");
-    for (filename, code_buffer, source_map_buffer) in maps {
+    let mut mapped_asstes: Vec<MappedAsset> = Vec::with_capacity(raw_assets.len());
+    for (filename, code_buffer, source_map_buffer) in mapped_buffer {
       let mut asset = compilation
-        .assets_mut()
-        .remove(&filename)
-        .expect("should have filename in compilation.assets");
+        .assets()
+        .get(&filename)
+        .expect("should have filename in compilation.assets")
+        .clone();
       // convert to RawSource to reduce one time source map calculation when convert to JsCompatSource
       let raw_source = RawSource::from(code_buffer).boxed();
       let Some(source_map_buffer) = source_map_buffer else {
         asset.source = Some(raw_source);
-        compilation.emit_asset(filename, asset);
+        mapped_asstes.push(MappedAsset {
+          asset: (filename, asset),
+          source_map: None,
+        });
         continue;
       };
       let css_extension_detected = CSS_EXTENSION_DETECT_REGEXP.is_match(&filename);
@@ -490,7 +469,7 @@ impl Plugin for SourceMapDevToolPlugin {
           source_map_asset_info,
         );
         mapped_asstes.push(MappedAsset {
-          asset: (filename, asset),
+          asset: (filename, asset.clone()),
           source_map: Some((source_map_filename, source_map_asset)),
         });
       } else {
@@ -516,8 +495,79 @@ impl Plugin for SourceMapDevToolPlugin {
         // chunk.auxiliary_files.add(filename);
       }
     }
+    Ok(mapped_asstes)
+  }
+
+  async fn use_cache<'a, F, R>(
+    &self,
+    assets: &'a CompilationAssets,
+    map_assets: F,
+  ) -> Result<Vec<MappedAsset>>
+  where
+    F: FnOnce(Vec<(String, &'a CompilationAsset)>) -> R,
+    R: Future<Output = Result<Vec<MappedAsset>, Error>> + Send + 'a,
+  {
+    let mut mapped_asstes: Vec<MappedAsset> = Vec::with_capacity(assets.len());
+    let mut vanilla_assets = Vec::with_capacity(assets.len());
+    for (filename, vanilla_asset) in assets {
+      if let Some(cache) = self.assets_cache.get(filename) {
+        let MappedAsset { asset, source_map } = cache.value();
+        if !vanilla_asset.info.version.is_empty()
+          && vanilla_asset.info.version == asset.1.info.version
+        {
+          mapped_asstes.push(MappedAsset {
+            asset: asset.clone(),
+            source_map: source_map.clone(),
+          });
+          continue;
+        }
+      }
+      vanilla_assets.push((filename.to_owned(), vanilla_asset));
+    }
+
+    mapped_asstes.extend(map_assets(vanilla_assets).await?);
 
     self.assets_cache.clear();
+    for mapped_asset in &mapped_asstes {
+      let MappedAsset {
+        asset: (filename, asset),
+        ..
+      } = mapped_asset;
+      if !asset.info.version.is_empty() {
+        self
+          .assets_cache
+          .insert(filename.to_owned(), mapped_asset.clone());
+      }
+    }
+
+    Ok(mapped_asstes)
+  }
+}
+
+#[async_trait::async_trait]
+impl Plugin for SourceMapDevToolPlugin {
+  fn name(&self) -> &'static str {
+    "rspack.SourceMapDevToolPlugin"
+  }
+
+  async fn process_assets_stage_dev_tooling(
+    &self,
+    _ctx: PluginContext,
+    ProcessAssetsArgs { compilation }: ProcessAssetsArgs<'_>,
+  ) -> PluginProcessAssetsOutput {
+    let logger = compilation.get_logger(self.name());
+    let start = logger.time("collect source maps");
+
+    let mapped_asstes = self
+      .use_cache(compilation.assets(), |assets| {
+        self.map_assets(compilation, assets)
+      })
+      .await?;
+
+    logger.time_end(start);
+
+    let start = logger.time("emit source map assets");
+
     for mapped_asset in mapped_asstes {
       let MappedAsset {
         asset: (source_filename, mut source_asset),
@@ -529,11 +579,6 @@ impl Plugin for SourceMapDevToolPlugin {
       compilation.emit_asset(source_filename.to_owned(), source_asset.clone());
       if let Some((source_map_filename, source_map_asset)) = source_map {
         compilation.emit_asset(source_map_filename.to_owned(), source_map_asset.clone());
-      }
-      if !source_asset.info.version.is_empty() {
-        self
-          .assets_cache
-          .insert(source_filename.to_owned(), mapped_asset);
       }
     }
 
