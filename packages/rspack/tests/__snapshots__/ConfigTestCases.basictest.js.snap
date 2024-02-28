@@ -209,6 +209,18 @@ exports[`ConfigTestCases chunk-index available-modules-order-index exported test
 "
 `;
 
+exports[`ConfigTestCases css rewrite-url exported tests should rewrite the css url() 1`] = `"eb587e4780c414fe3a22.png"`;
+
+exports[`ConfigTestCases css rewrite-url exported tests should rewrite the css url() 2`] = `"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAOCAYAAAAbvf3sAAAACXBIWXMAABYlAAAWJQFJUiTwAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAEWSURBVHgBjZFRSsNAEIb/3fQAOUK9gfpe6YIovjU3UE+gJ2g8gTcw3sC+itUFrW+BeAN7ATFSKAjbHWcSC+mSlszLDrvfzvzzj0LHmNpZBtBQd4Gf7fuYgHPPueoCe1DK1UsHd7Dzw+P0daQj/SC5h09OzdGktw221vZXUBlVMN0ILPd6O9yzBBXX8CBdv6kWOGa4YLivQJNjM0ia73oTLsBwJjCB5gu4i7CgbsIey5ThEcOfKziTGFOGHypJeZ7jZ/Gbst4x2/fN9h2eGTNvgk92VrDEWLNmfJXLpIYrRy5b4Fs+9v2/pL0oUncI7FuHLI6PK5lJZGoe8qXNvrry27DesoRLpLPmNkTw9yEcxPWJMR+S/AFbfpAZqxwUNQAAAABJRU5ErkJggg=="`;
+
+exports[`ConfigTestCases css rewrite-url-css-variables exported tests should rewrite the css url() in css variables 1`] = `"eb587e4780c414fe3a22.png"`;
+
+exports[`ConfigTestCases css rewrite-url-css-variables exported tests should rewrite the css url() in css variables 2`] = `"eb587e4780c414fe3a22.png"`;
+
+exports[`ConfigTestCases css rewrite-url-with-css-filename exported tests should rewrite the css url() with publicPath and ~@ prefix 1`] = `"/image/logo.eb587e47.png"`;
+
+exports[`ConfigTestCases css rewrite-url-with-css-filename exported tests should rewrite the css url() with publicPath when output.cssFilename is set 1`] = `"/image/logo.eb587e47.png"`;
+
 exports[`ConfigTestCases css urls exported tests css urls should works 1`] = `
 "/* @supports (background-image: url("unknown.png")) {
 	div {
@@ -300,4 +312,28 @@ exports[`ConfigTestCases plugins chunk-modules exported tests chunk-modules 1`] 
     ],
   },
 }
+`;
+
+exports[`ConfigTestCases schemes data-imports exported tests data imports 1`] = `
+".red{color: red;}
+.b{color: green}
+.a { color: palegreen; };;;
+
+.bad {
+  a: url(data:text/bad-base64;base64,abcd?#iefix);
+  b: url("data:text/bad-base64;base64,    abcd?#iefix");
+}
+
+ /* .b{color: green} */
+
+
+
+.class {
+  a: url(bd595024fc7e226eea64.svg);
+  b: url(bd595024fc7e226eea64.svg);
+  c: url(bd595024fc7e226eea64);
+  d: url(bd595024fc7e226eea64);
+}
+
+"
 `;

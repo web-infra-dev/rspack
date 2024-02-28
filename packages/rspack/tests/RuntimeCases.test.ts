@@ -1,5 +1,5 @@
 import { describeCases as describeCasesForJsonp } from "./HotTestCases.template";
-import { describeCases as describeCasesForNode } from "./case.template";
+import { describeCases as describeCasesForNode } from "./TestCases.template";
 
 describe("RuntimeTestCases", () => {
 	describeCasesForJsonp({
