@@ -18,14 +18,6 @@ const config = {
 	],
 	testTimeout: process.env.CI ? 60000 : 30000,
 	prettierPath: require.resolve("prettier-2"),
-	transform: {
-		"^.+\\.(t|j)sx?$": "@swc/jest"
-	},
-	globals: {
-		"ts-jest": {
-			tsconfig: "<rootDir>/tests/tsconfig.json"
-		}
-	},
 	moduleNameMapper: {
 		// Fixed jest-serialize-path not working when non-ascii code contains.
 		slash: path.join(__dirname, "../../scripts/test/slash.cjs")

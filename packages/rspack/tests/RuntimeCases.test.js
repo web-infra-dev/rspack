@@ -1,5 +1,7 @@
-import { describeCases as describeCasesForJsonp } from "./HotTestCases.template";
-import { describeCases as describeCasesForNode } from "./TestCases.template";
+const {
+	describeCases: describeCasesForJsonp
+} = require("./HotTestCases.template");
+const { describeCases: describeCasesForNode } = require("./TestCases.template");
 
 describe("RuntimeTestCases", () => {
 	describeCasesForJsonp({
