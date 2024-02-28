@@ -39,9 +39,12 @@ impl<'parser> JavascriptParser<'parser> {
           ModuleDecl::TsImportEquals(_)
           | ModuleDecl::TsExportAssignment(_)
           | ModuleDecl::TsNamespaceExport(_) => unreachable!(),
-          _ => {
-            self.is_esm = true;
-          }
+          ModuleDecl::Import(_)
+          | ModuleDecl::ExportDecl(_)
+          | ModuleDecl::ExportNamed(_)
+          | ModuleDecl::ExportDefaultDecl(_)
+          | ModuleDecl::ExportDefaultExpr(_)
+          | ModuleDecl::ExportAll(_) => self.is_esm = true,
         }
       }
       ModuleItem::Stmt(stmt) => self.pre_walk_statement(stmt),
@@ -177,8 +180,18 @@ impl<'parser> JavascriptParser<'parser> {
   pub(super) fn _pre_walk_variable_declaration(&mut self, decl: &VarDecl) {
     for declarator in &decl.decls {
       self.pre_walk_variable_declarator(declarator);
-      // TODO: hooks.pre_declarator
+
+      if self
+        .plugin_drive
+        .clone()
+        .pre_declarator(self, declarator)
+        .unwrap_or_default()
+      {
+        continue;
+      }
+
       self.enter_pattern(Cow::Borrowed(&declarator.name), |this, ident| {
+        // TODO: hooks_map
         this.define_variable(ident.sym.to_string());
       });
     }

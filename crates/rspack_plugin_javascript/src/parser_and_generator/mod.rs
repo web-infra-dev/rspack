@@ -20,9 +20,8 @@ use swc_core::common::SyntaxContext;
 use swc_core::ecma::parser::{EsConfig, Syntax};
 
 use crate::ast::CodegenOptions;
-use crate::inner_graph_plugin::InnerGraphPlugin;
-use crate::visitors::ScanDependenciesResult;
-use crate::visitors::{run_before_pass, scan_dependencies, swc_visitor::resolver};
+use crate::visitors::JavascriptParser;
+use crate::visitors::{run_before_pass, swc_visitor::resolver};
 use crate::{SideEffectsFlagPluginVisitor, SyntaxContextInfo};
 
 #[derive(Debug)]
@@ -178,32 +177,30 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
 
     let mut worker_syntax_list = WorkerSyntaxList::default();
 
-    let ScanDependenciesResult {
-      mut dependencies,
-      blocks,
-      presentational_dependencies,
-      mut usage_span_record,
-      import_map,
-      mut warning_diagnostics,
-    } = match ast.visit(|program, _| {
-      scan_dependencies(
-        &parse_result.1,
-        program,
-        &mut worker_syntax_list,
-        resource_data,
-        compiler_options,
-        module_type,
-        build_info,
-        build_meta,
-        module_identifier,
-      )
-    }) {
-      Ok(result) => result,
-      Err(mut e) => {
-        diagnostics.append(&mut e);
-        return gen_terminate_res(diagnostics);
-      }
-    };
+    let program = ast.program();
+    let mut parser = JavascriptParser::new(
+      &parse_result.1,
+      compiler_options,
+      program.comments.as_ref(),
+      &module_identifier,
+      module_type,
+      &mut worker_syntax_list,
+      resource_data,
+      build_meta,
+      build_info,
+    );
+
+    parser.walk_program(program.get_inner_program());
+
+    if !parser.errors.is_empty() {
+      diagnostics.append(&mut parser.errors);
+      return gen_terminate_res(diagnostics);
+    }
+    let dependencies = parser.dependencies;
+    let blocks = parser.blocks;
+    let presentational_dependencies = parser.presentational_dependencies;
+    let mut warning_diagnostics = parser.warning_diagnostics;
+
     diagnostics.append(&mut warning_diagnostics);
 
     let analyze_result = if compiler_options.builtins.tree_shaking.enable() {
@@ -237,29 +234,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       });
     }
 
-    let inner_graph =
-      if compiler_options.is_new_tree_shaking() && compiler_options.optimization.inner_graph {
-        ast.transform(|program, context| {
-          let unresolved_ctxt = SyntaxContext::empty().apply_mark(context.unresolved_mark);
-          let top_level_ctxt = SyntaxContext::empty().apply_mark(context.top_level_mark);
-          let mut plugin = InnerGraphPlugin::new(
-            &mut dependencies,
-            unresolved_ctxt,
-            top_level_ctxt,
-            &mut usage_span_record,
-            &import_map,
-            module_identifier,
-            program.comments.take(),
-          );
-          plugin.enable();
-          program.visit_with(&mut plugin);
-          program.comments = plugin.comments.take();
-          Some(plugin)
-        })
-      } else {
-        None
-      };
-
     let source = if let Some(map) = output.map {
       SourceMapSource::new(SourceMapSourceOptions {
         value: output.code,
@@ -281,9 +255,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         return OriginalSource::new(content, resource_path).boxed();
       }
       RawSource::from(content).boxed()
-    }
-    if let Some(mut inner_graph) = inner_graph {
-      inner_graph.infer_dependency_usage();
     }
 
     Ok(

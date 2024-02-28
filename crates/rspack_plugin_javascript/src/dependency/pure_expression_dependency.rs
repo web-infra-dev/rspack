@@ -3,7 +3,7 @@ use rspack_core::{
   DependencyId, DependencyTemplate, ModuleGraph, ModuleIdentifier, TemplateContext,
   TemplateReplaceSource, UsageState, UsedByExports, UsedName,
 };
-use rustc_hash::FxHashSet as HashSet;
+use rustc_hash::FxHashSet;
 #[derive(Debug, Clone)]
 pub struct PureExpressionDependency {
   start: u32,
@@ -37,10 +37,11 @@ impl Dependency for PureExpressionDependency {
   fn dependency_debug_name(&self) -> &'static str {
     "PureExpressionDependency"
   }
+
   fn get_module_evaluation_side_effects_state(
     &self,
     _module_graph: &ModuleGraph,
-    _module_chain: &mut HashSet<ModuleIdentifier>,
+    _module_chain: &mut FxHashSet<ModuleIdentifier>,
   ) -> ConnectionState {
     ConnectionState::Bool(false)
   }
@@ -50,6 +51,10 @@ impl AsModuleDependency for PureExpressionDependency {}
 
 impl DependencyTemplate for PureExpressionDependency {
   fn apply(&self, source: &mut TemplateReplaceSource, ctx: &mut TemplateContext) {
+    assert!(
+      ctx.compilation.options.is_new_tree_shaking(),
+      "PureExpressionDependency is only enabled for new treeshaking"
+    );
     match self.used_by_exports {
       Some(UsedByExports::Bool(true)) => {
         unreachable!()
