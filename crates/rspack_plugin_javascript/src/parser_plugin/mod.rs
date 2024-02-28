@@ -16,6 +16,8 @@ mod import_meta_context_dependency_parser_plugin;
 mod import_meta_plugin;
 mod import_parser_plugin;
 mod initialize_evaluating;
+mod inner_graph;
+mod meta_info_plugin;
 mod node_stuff_plugin;
 mod provide;
 mod require_context_dependency_parser_plugin;
@@ -43,6 +45,8 @@ pub(crate) use self::import_meta_context_dependency_parser_plugin::ImportMetaCon
 pub(crate) use self::import_meta_plugin::ImportMetaPlugin;
 pub(crate) use self::import_parser_plugin::ImportParserPlugin;
 pub(crate) use self::initialize_evaluating::InitializeEvaluating;
+pub(crate) use self::inner_graph::{InnerGraphPlugin, InnerGraphState};
+pub(crate) use self::meta_info_plugin::JavascriptMetaInfoPlugin;
 pub(crate) use self::node_stuff_plugin::NodeStuffPlugin;
 pub(crate) use self::provide::ProviderPlugin;
 pub(crate) use self::r#const::{is_logic_op, ConstPlugin};

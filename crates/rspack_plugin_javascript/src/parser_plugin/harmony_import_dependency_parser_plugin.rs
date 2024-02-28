@@ -1,5 +1,7 @@
 use rspack_core::tree_shaking::symbol::DEFAULT_JS_WORD;
-use rspack_core::{extract_member_expression_chain, ConstDependency, DependencyType, SpanExt};
+use rspack_core::{
+  extract_member_expression_chain, ConstDependency, DependencyId, DependencyType, SpanExt,
+};
 use swc_core::atoms::Atom;
 use swc_core::common::{Span, Spanned};
 use swc_core::ecma::ast::{
@@ -11,8 +13,8 @@ use super::JavascriptParserPlugin;
 use crate::dependency::{
   HarmonyImportSideEffectDependency, HarmonyImportSpecifierDependency, Specifier,
 };
+use crate::visitors::ImporterReferenceInfo;
 use crate::visitors::{collect_destructuring_assignment_properties, JavascriptParser, TagInfoData};
-use crate::visitors::{ExtraSpanInfo, ImporterReferenceInfo};
 
 pub(super) fn handle_harmony_import_side_effects_dep(
   parser: &mut JavascriptParser,
@@ -156,46 +158,40 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
     _for_name: &str,
   ) -> Option<bool> {
     if parser.in_short_hand {
-      parser
-        .rewrite_usage_span
-        .insert(ident.span, ExtraSpanInfo::ReWriteUsedByExports);
       if let Some(reference) = parser.import_map.get(&ident.to_id()) {
-        parser
-          .dependencies
-          .push(Box::new(HarmonyImportSpecifierDependency::new(
-            reference.request.clone(),
-            reference.source_order,
-            true,
-            ident.span.real_lo(),
-            ident.span.real_hi(),
-            reference.names.clone().map(|f| vec![f]).unwrap_or_default(),
-            false,
-            false,
-            reference.specifier.clone(),
-            None,
-            ident.span,
-          )));
-      }
-      Some(true)
-    } else if let Some(reference) = parser.import_map.get(&ident.to_id()) {
-      parser
-        .rewrite_usage_span
-        .insert(ident.span, ExtraSpanInfo::ReWriteUsedByExports);
-      parser
-        .dependencies
-        .push(Box::new(HarmonyImportSpecifierDependency::new(
+        let dep = HarmonyImportSpecifierDependency::new(
           reference.request.clone(),
           reference.source_order,
-          false,
+          true,
           ident.span.real_lo(),
           ident.span.real_hi(),
           reference.names.clone().map(|f| vec![f]).unwrap_or_default(),
-          parser.enter_callee && !parser.enter_new_expr,
-          true, // x()
+          false,
+          false,
           reference.specifier.clone(),
-          parser.properties_in_destructuring.remove(&ident.sym),
+          None,
           ident.span,
-        )));
+        );
+        update_import_specifier_dep_used_by_exports(parser, dep.id);
+        parser.dependencies.push(Box::new(dep));
+      }
+      Some(true)
+    } else if let Some(reference) = parser.import_map.get(&ident.to_id()) {
+      let dep = HarmonyImportSpecifierDependency::new(
+        reference.request.clone(),
+        reference.source_order,
+        false,
+        ident.span.real_lo(),
+        ident.span.real_hi(),
+        reference.names.clone().map(|f| vec![f]).unwrap_or_default(),
+        parser.enter_callee && !parser.enter_new_expr,
+        true, // x()
+        reference.specifier.clone(),
+        parser.properties_in_destructuring.remove(&ident.sym),
+        ident.span,
+      );
+      update_import_specifier_dep_used_by_exports(parser, dep.id);
+      parser.dependencies.push(Box::new(dep));
       Some(true)
     } else {
       None
@@ -233,24 +229,23 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
             .map(|item| item.0.clone())
             .collect::<Vec<_>>(),
         );
-        parser
-          .rewrite_usage_span
-          .insert(callee.span(), ExtraSpanInfo::ReWriteUsedByExports);
-        parser
-          .dependencies
-          .push(Box::new(HarmonyImportSpecifierDependency::new(
-            reference.request.clone(),
-            reference.source_order,
-            false,
-            callee.span().real_lo(),
-            callee.span().real_hi(),
-            ids,
-            true,
-            direct_import,
-            reference.specifier.clone(),
-            None,
-            callee.span(),
-          )));
+        let dep = HarmonyImportSpecifierDependency::new(
+          reference.request.clone(),
+          reference.source_order,
+          false,
+          callee.span().real_lo(),
+          callee.span().real_hi(),
+          ids,
+          true,
+          direct_import,
+          reference.specifier.clone(),
+          None,
+          callee.span(),
+        );
+        // TODO:
+        // dep.namespace_object_as_context = member_is_not_empty && parser.strict_this_context_on_imports;
+        update_import_specifier_dep_used_by_exports(parser, dep.id);
+        parser.dependencies.push(Box::new(dep));
         parser.walk_expr_or_spread(&expr.args);
         return Some(true);
       }
@@ -280,24 +275,21 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
             .map(|item| item.0.clone())
             .collect::<Vec<_>>(),
         );
-        parser
-          .rewrite_usage_span
-          .insert(member_expr.span, ExtraSpanInfo::ReWriteUsedByExports);
-        parser
-          .dependencies
-          .push(Box::new(HarmonyImportSpecifierDependency::new(
-            reference.request.clone(),
-            reference.source_order,
-            false,
-            member_expr.span.real_lo(),
-            member_expr.span.real_hi(),
-            ids,
-            parser.enter_callee && !parser.enter_new_expr,
-            !parser.enter_callee, // x.xx()
-            reference.specifier.clone(),
-            None,
-            member_expr.span,
-          )));
+        let dep = HarmonyImportSpecifierDependency::new(
+          reference.request.clone(),
+          reference.source_order,
+          false,
+          member_expr.span.real_lo(),
+          member_expr.span.real_hi(),
+          ids,
+          parser.enter_callee && !parser.enter_new_expr,
+          !parser.enter_callee, // x.xx()
+          reference.specifier.clone(),
+          None,
+          member_expr.span,
+        );
+        update_import_specifier_dep_used_by_exports(parser, dep.id);
+        parser.dependencies.push(Box::new(dep));
         return Some(true);
       }
     }
@@ -356,26 +348,50 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
           .map(|item| item.0.clone())
           .collect::<Vec<_>>(),
       );
-      parser
-        .rewrite_usage_span
-        .insert(opt_chain_expr.span, ExtraSpanInfo::ReWriteUsedByExports);
-      parser
-        .dependencies
-        .push(Box::new(HarmonyImportSpecifierDependency::new(
-          reference.request.clone(),
-          reference.source_order,
-          false,
-          start,
-          end,
-          ids,
-          parser.enter_callee && !parser.enter_new_expr,
-          !parser.enter_callee, // x.xx()
-          reference.specifier.clone(),
-          None,
-          opt_chain_expr.span,
-        )));
+      let dep = HarmonyImportSpecifierDependency::new(
+        reference.request.clone(),
+        reference.source_order,
+        false,
+        start,
+        end,
+        ids,
+        parser.enter_callee && !parser.enter_new_expr,
+        !parser.enter_callee, // x.xx()
+        reference.specifier.clone(),
+        None,
+        opt_chain_expr.span,
+      );
+      update_import_specifier_dep_used_by_exports(parser, dep.id);
+      parser.dependencies.push(Box::new(dep));
       return Some(true);
     }
     None
   }
+
+  fn is_pure_identifier(&self, parser: &mut JavascriptParser, ident: &Ident) -> Option<bool> {
+    let name = ident.sym.as_str();
+    if parser.is_variable_defined(name)
+      || parser.get_tag_data(name, HARMONY_SPECIFIER_TAG).is_some()
+    {
+      Some(true)
+    } else {
+      None
+    }
+  }
+}
+
+fn update_import_specifier_dep_used_by_exports(
+  parser: &mut JavascriptParser,
+  dep_id: DependencyId,
+) {
+  parser.on_usage(Box::new(move |deps, used_by_exports| {
+    let Some(dep) = deps.iter_mut().find(|dep| *dep.id() == dep_id) else {
+      // can we use `unreachable` here?
+      return;
+    };
+    let dep = dep
+      .downcast_mut::<HarmonyImportSpecifierDependency>()
+      .unwrap_or_else(|| panic!("{dep_id:#?} must belong to `HarmonyImportSpecifierDependency`"));
+    dep.used_by_exports = used_by_exports;
+  }));
 }

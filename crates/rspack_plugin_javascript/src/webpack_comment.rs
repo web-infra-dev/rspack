@@ -4,6 +4,7 @@ use rspack_error::miette::{Diagnostic, Severity};
 use rustc_hash::FxHashMap;
 use swc_core::common::comments::{CommentKind, Comments};
 use swc_core::common::{SourceFile, Span};
+use swc_node_comments::SwcComments;
 
 use crate::visitors::create_traceable_error;
 
@@ -88,7 +89,7 @@ static WEBPACK_MAGIC_COMMENT_REGEXP: Lazy<regex::Regex> = Lazy::new(|| {
 
 pub fn try_extract_webpack_magic_comment(
   source_file: &SourceFile,
-  comments: &Option<&dyn Comments>,
+  comments: &Option<&SwcComments>,
   import_span: Span,
   span: Span,
   warning_diagnostics: &mut Vec<Box<dyn Diagnostic + Send + Sync>>,

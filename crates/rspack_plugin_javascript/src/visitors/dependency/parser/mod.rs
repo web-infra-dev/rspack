@@ -1,4 +1,7 @@
 mod call_hooks_name;
+mod eval;
+mod in_scope;
+mod is_pure;
 mod walk;
 mod walk_block_pre;
 mod walk_pre;
@@ -13,23 +16,21 @@ use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BuildInfo, BuildMeta, DependencyTemplate,
   JavascriptParserOptions, ModuleIdentifier, ResourceData,
 };
-use rspack_core::{CompilerOptions, JavascriptParserUrl, ModuleType, SpanExt};
+use rspack_core::{CompilerOptions, JavascriptParserUrl, ModuleType};
 use rspack_error::miette::Diagnostic;
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::atoms::Atom;
-use swc_core::common::comments::Comments;
 use swc_core::common::util::take::Take;
 use swc_core::common::{SourceFile, Span, Spanned};
-use swc_core::ecma::ast::{
-  ArrayPat, AssignPat, CallExpr, Callee, MetaPropExpr, MetaPropKind, ObjectPat, ObjectPatProp, Pat,
-  Program, Stmt, ThisExpr,
-};
-use swc_core::ecma::ast::{Expr, Ident, Lit, MemberExpr, RestPat};
+use swc_core::ecma::ast::{ArrayPat, AssignPat, CallExpr, Callee, MetaPropExpr, MetaPropKind};
+use swc_core::ecma::ast::{Expr, Ident, Lit, MemberExpr, ObjectPat, ObjectPatProp, Pat, RestPat};
+use swc_core::ecma::ast::{Program, Stmt, ThisExpr};
+use swc_node_comments::SwcComments;
 
-use super::ExtraSpanInfo;
 use super::ImportMap;
-use crate::parser_plugin::{self, JavaScriptParserPluginDrive, JavascriptParserPlugin};
-use crate::utils::eval::{self, BasicEvaluatedExpression};
+use crate::parser_plugin::{
+  self, InnerGraphState, JavaScriptParserPluginDrive, JavascriptParserPlugin,
+};
 use crate::visitors::scope_info::{
   FreeName, ScopeInfoDB, ScopeInfoId, TagInfo, VariableInfo, VariableInfoId,
 };
@@ -146,9 +147,18 @@ pub struct FreeInfo<'a> {
 
 #[derive(Clone, Copy, Debug)]
 pub enum TopLevelScope {
+  /// `true` in webpack
   Top,
+  /// `arrow` in webpack
   ArrowFunction,
+  /// `false` in webpack
   False,
+}
+
+impl TopLevelScope {
+  pub fn top_or_top_arrow(&self) -> bool {
+    matches!(self, TopLevelScope::Top | TopLevelScope::ArrowFunction)
+  }
 }
 
 pub struct JavascriptParser<'parser> {
@@ -160,9 +170,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) blocks: Vec<AsyncDependenciesBlock>,
   // TODO: remove `import_map`
   pub(crate) import_map: ImportMap,
-  // TODO: remove `rewrite_usage_span`
-  pub(crate) rewrite_usage_span: FxHashMap<Span, ExtraSpanInfo>,
-  pub(crate) comments: Option<&'parser dyn Comments>,
+  pub(crate) comments: Option<&'parser SwcComments>,
   // TODO: remove `worker_syntax_list`
   pub(crate) worker_syntax_list: &'parser mut WorkerSyntaxList,
   pub(crate) worker_index: u32,
@@ -189,6 +197,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) last_stmt_is_expr_stmt: bool,
   // TODO: delete `properties_in_destructuring`
   pub(crate) properties_in_destructuring: FxHashMap<Atom, FxHashSet<Atom>>,
+  pub(crate) inner_graph_state: InnerGraphState,
   // ===== scope info =======
   pub(crate) in_try: bool,
   pub(crate) in_short_hand: bool,
@@ -202,7 +211,7 @@ impl<'parser> JavascriptParser<'parser> {
   pub fn new(
     source_file: &'parser SourceFile,
     compiler_options: &'parser CompilerOptions,
-    comments: Option<&'parser dyn Comments>,
+    comments: Option<&'parser SwcComments>,
     module_identifier: &'parser ModuleIdentifier,
     module_type: &'parser ModuleType,
     worker_syntax_list: &'parser mut WorkerSyntaxList,
@@ -217,7 +226,6 @@ impl<'parser> JavascriptParser<'parser> {
     let presentational_dependencies = Vec::with_capacity(256);
     let parser_exports_state: Option<bool> = None;
     let import_map = FxHashMap::default();
-    let rewrite_usage_span = FxHashMap::default();
 
     let mut plugins: Vec<parser_plugin::BoxJavascriptParserPlugin> = Vec::with_capacity(32);
     plugins.push(Box::new(parser_plugin::InitializeEvaluating));
@@ -270,6 +278,7 @@ impl<'parser> JavascriptParser<'parser> {
         compiler_options.output.module,
       )));
       plugins.push(Box::new(parser_plugin::ImportParserPlugin));
+      plugins.push(Box::new(parser_plugin::JavascriptMetaInfoPlugin));
     }
 
     if module_type.is_js_auto() || module_type.is_js_esm() {
@@ -298,6 +307,10 @@ impl<'parser> JavascriptParser<'parser> {
       plugins.push(Box::new(parser_plugin::ImportMetaPlugin));
       plugins.push(Box::new(parser_plugin::HarmonyImportDependencyParserPlugin));
       plugins.push(Box::new(parser_plugin::HarmonyExportDependencyParserPlugin));
+
+      if compiler_options.is_new_tree_shaking() && compiler_options.optimization.inner_graph {
+        plugins.push(Box::new(parser_plugin::InnerGraphPlugin));
+      }
     }
 
     let plugin_drive = Rc::new(JavaScriptParserPluginDrive::new(plugins));
@@ -309,6 +322,7 @@ impl<'parser> JavascriptParser<'parser> {
       .and_then(|p| p.get(module_type))
       .and_then(|p| p.get_javascript(module_type));
     Self {
+      inner_graph_state: InnerGraphState::default(),
       last_harmony_import_order: 0,
       comments,
       javascript_options,
@@ -339,7 +353,6 @@ impl<'parser> JavascriptParser<'parser> {
       worker_index: 0,
       module_identifier,
       import_map,
-      rewrite_usage_span,
       enter_new_expr: false,
       enter_callee: false,
       properties_in_destructuring: Default::default(),
@@ -373,7 +386,7 @@ impl<'parser> JavascriptParser<'parser> {
     })
   }
 
-  fn define_variable(&mut self, name: String) {
+  pub fn define_variable(&mut self, name: String) {
     let definitions = self.definitions;
     if let Some(variable_info) = self.get_variable_info(&name)
       && variable_info.tag_info.is_some()
@@ -395,8 +408,19 @@ impl<'parser> JavascriptParser<'parser> {
     }
   }
 
-  fn undefined_variable(&mut self, name: String) {
-    self.definitions_db.delete(self.definitions, name)
+  fn undefined_variable<S: AsRef<str>>(&mut self, name: S) {
+    self.definitions_db.delete(self.definitions, name.as_ref())
+  }
+
+  pub fn is_variable_defined<S: AsRef<str>>(&mut self, name: S) -> bool {
+    let Some(info) = self.get_variable_info(name.as_ref()) else {
+      return false;
+    };
+    if let Some(free_name) = &info.free_name {
+      matches!(free_name, FreeName::True)
+    } else {
+      true
+    }
   }
 
   pub fn tag_variable<Data: TagInfoData>(
@@ -437,6 +461,23 @@ impl<'parser> JavascriptParser<'parser> {
       VariableInfo::new(self.definitions, free_name, tag_info)
     };
     self.definitions_db.set(self.definitions, name, new_info);
+  }
+
+  pub fn get_tag_data(&mut self, name: &str, tag: &'static str) -> Option<&serde_json::Value> {
+    if let Some(info) = self
+      .definitions_db
+      .get(&self.definitions, name)
+      .map(|id| self.definitions_db.expect_get_variable(&id))
+    {
+      let mut next = info.tag_info.as_ref();
+      while let Some(tag_info) = next {
+        if tag_info.tag == tag {
+          return tag_info.data.as_ref();
+        }
+        next = tag_info.next.as_deref()
+      }
+    }
+    None
   }
 
   fn _get_member_expression_info(
@@ -627,7 +668,8 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   pub fn walk_program(&mut self, ast: &Program) {
-    if self.plugin_drive.clone().program(self, ast).is_none() {
+    let plugin_drive = self.plugin_drive.clone();
+    if plugin_drive.program(self, ast).is_none() {
       match ast {
         Program::Module(m) => {
           self.set_strict(true);
@@ -643,7 +685,7 @@ impl<'parser> JavascriptParser<'parser> {
         }
       };
     }
-    // TODO: `hooks.finish.call`
+    plugin_drive.finish(self, ast);
   }
 
   fn set_strict(&mut self, value: bool) {
@@ -673,84 +715,5 @@ impl<'parser> JavascriptParser<'parser> {
   // TODO: remove
   pub fn is_unresolved_ident(&mut self, str: &str) -> bool {
     self.definitions_db.get(&self.definitions, str).is_none()
-  }
-}
-
-impl JavascriptParser<'_> {
-  pub fn evaluate_expression(&mut self, expr: &Expr) -> BasicEvaluatedExpression {
-    match self.evaluating(expr) {
-      Some(evaluated) => evaluated,
-      None => BasicEvaluatedExpression::with_range(expr.span().real_lo(), expr.span_hi().0),
-    }
-  }
-
-  // same as `JavascriptParser._initializeEvaluating` in webpack
-  // FIXME: should mv it to plugin(for example `parse.hooks.evaluate for`)
-  fn evaluating(&mut self, expr: &Expr) -> Option<BasicEvaluatedExpression> {
-    match expr {
-      Expr::Tpl(tpl) => eval::eval_tpl_expression(self, tpl),
-      Expr::Lit(lit) => eval::eval_lit_expr(lit),
-      Expr::Cond(cond) => eval::eval_cond_expression(self, cond),
-      Expr::Unary(unary) => eval::eval_unary_expression(self, unary),
-      Expr::Bin(binary) => eval::eval_binary_expression(self, binary),
-      Expr::Array(array) => eval::eval_array_expression(self, array),
-      Expr::New(new) => eval::eval_new_expression(self, new),
-      Expr::Call(call) => eval::eval_call_expression(self, call),
-      Expr::Paren(paren) => self.evaluating(&paren.expr),
-      Expr::Member(member) => {
-        if let Some(MemberExpressionInfo::Expression(info)) =
-          self.get_member_expression_info(member, AllowedMemberTypes::Expression)
-        {
-          self
-            .plugin_drive
-            .clone()
-            .evaluate_identifier(self, &info.name, member.span.real_lo(), member.span.hi().0)
-            .or_else(|| {
-              // TODO: fallback with `evaluateDefinedIdentifier`
-              let mut eval =
-                BasicEvaluatedExpression::with_range(member.span.real_lo(), member.span.hi().0);
-              eval.set_identifier(info.name, info.root_info);
-              Some(eval)
-            })
-        } else {
-          None
-        }
-      }
-      Expr::Ident(ident) => {
-        let drive = self.plugin_drive.clone();
-        let Some(info) = self.get_variable_info(&ident.sym) else {
-          // use `ident.sym` as fallback for global variable(or maybe just a undefined variable)
-          return drive
-            .evaluate_identifier(
-              self,
-              ident.sym.as_str(),
-              ident.span.real_lo(),
-              ident.span.hi.0,
-            )
-            .or_else(|| {
-              let mut eval =
-                BasicEvaluatedExpression::with_range(ident.span.real_lo(), ident.span.hi.0);
-
-              if ident.sym.eq("undefined") {
-                eval.set_undefined();
-              } else {
-                eval.set_identifier(
-                  ident.sym.to_string(),
-                  ExportedVariableInfo::Name(ident.sym.to_string()),
-                );
-              }
-
-              Some(eval)
-            });
-        };
-        if let Some(FreeName::String(name)) = info.free_name.as_ref() {
-          // avoid ownership
-          let name = name.to_string();
-          return drive.evaluate_identifier(self, &name, ident.span.real_lo(), ident.span.hi.0);
-        }
-        None
-      }
-      _ => None,
-    }
   }
 }

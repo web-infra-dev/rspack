@@ -1,7 +1,6 @@
 use swc_core::common::Span;
-use swc_core::ecma::ast::{
-  BinExpr, CallExpr, Callee, CondExpr, ExportDecl, ExportDefaultDecl, Expr, OptChainExpr,
-};
+use swc_core::ecma::ast::{BinExpr, CallExpr, Callee, CondExpr};
+use swc_core::ecma::ast::{ExportDecl, ExportDefaultDecl, Expr, Ident, OptChainExpr};
 use swc_core::ecma::ast::{IfStmt, MemberExpr, Stmt, UnaryOp, VarDecl, VarDeclarator};
 
 use super::{BoxJavascriptParserPlugin, JavascriptParserPlugin};
@@ -49,6 +48,21 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
   ) -> Option<bool> {
     for plugin in &self.plugins {
       let res = plugin.program(parser, ast);
+      // `SyncBailHook`
+      if res.is_some() {
+        return res;
+      }
+    }
+    None
+  }
+
+  fn finish(
+    &self,
+    parser: &mut JavascriptParser,
+    ast: &swc_core::ecma::ast::Program,
+  ) -> Option<bool> {
+    for plugin in &self.plugins {
+      let res = plugin.finish(parser, ast);
       // `SyncBailHook`
       if res.is_some() {
         return res;
@@ -368,6 +382,43 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     None
   }
 
+  fn pre_declarator(&self, parser: &mut JavascriptParser, decl: &VarDeclarator) -> Option<bool> {
+    for plugin in &self.plugins {
+      let res = plugin.pre_declarator(parser, decl);
+      // `SyncBailHook`
+      if res.is_some() {
+        return res;
+      }
+    }
+    None
+  }
+
+  fn block_pre_statement(&self, parser: &mut JavascriptParser, stmt: &Stmt) -> Option<bool> {
+    for plugin in &self.plugins {
+      let res = plugin.block_pre_statement(parser, stmt);
+      // `SyncBailHook`
+      if res.is_some() {
+        return res;
+      }
+    }
+    None
+  }
+
+  fn block_pre_module_declration(
+    &self,
+    parser: &mut JavascriptParser,
+    decl: &swc_core::ecma::ast::ModuleDecl,
+  ) -> Option<bool> {
+    for plugin in &self.plugins {
+      let res = plugin.block_pre_module_declration(parser, decl);
+      // `SyncBailHook`
+      if res.is_some() {
+        return res;
+      }
+    }
+    None
+  }
+
   fn import_call(&self, parser: &mut JavascriptParser, expr: &CallExpr) -> Option<bool> {
     assert!(expr.callee.is_import());
     for plugin in &self.plugins {
@@ -549,6 +600,125 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
   ) -> Option<bool> {
     for plugin in &self.plugins {
       let res = plugin.named_export(parser, expr);
+      // `SyncBailHook`
+      if res.is_some() {
+        return res;
+      }
+    }
+    None
+  }
+
+  fn statement(&self, parser: &mut JavascriptParser, stmt: &Stmt) -> Option<bool> {
+    for plugin in &self.plugins {
+      let res = plugin.statement(parser, stmt);
+      // `SyncBailHook`
+      if res.is_some() {
+        return res;
+      }
+    }
+    None
+  }
+
+  fn module_declaration(
+    &self,
+    parser: &mut JavascriptParser,
+    decl: &swc_core::ecma::ast::ModuleDecl,
+  ) -> Option<bool> {
+    for plugin in &self.plugins {
+      let res = plugin.module_declaration(parser, decl);
+      // `SyncBailHook`
+      if res.is_some() {
+        return res;
+      }
+    }
+    None
+  }
+
+  fn class_extends_expression(
+    &self,
+    parser: &mut JavascriptParser,
+    super_class: &Expr,
+    classy: &swc_core::ecma::ast::Class,
+    ident: Option<&Ident>,
+  ) -> Option<bool> {
+    for plugin in &self.plugins {
+      let res = plugin.class_extends_expression(parser, super_class, classy, ident);
+      // `SyncBailHook`
+      if res.is_some() {
+        return res;
+      }
+    }
+    None
+  }
+
+  fn class_body_element(
+    &self,
+    parser: &mut JavascriptParser,
+    element: &swc_core::ecma::ast::ClassMember,
+    classy: &swc_core::ecma::ast::Class,
+  ) -> Option<bool> {
+    for plugin in &self.plugins {
+      let res = plugin.class_body_element(parser, element, classy);
+      // `SyncBailHook`
+      if res.is_some() {
+        return res;
+      }
+    }
+    None
+  }
+
+  fn class_body_body(
+    &self,
+    parser: &mut JavascriptParser,
+    body: &swc_core::ecma::ast::BlockStmt,
+    element: &swc_core::ecma::ast::ClassMember,
+    classy: &swc_core::ecma::ast::Class,
+  ) -> Option<bool> {
+    for plugin in &self.plugins {
+      let res = plugin.class_body_body(parser, body, element, classy);
+      // `SyncBailHook`
+      if res.is_some() {
+        return res;
+      }
+    }
+    None
+  }
+
+  fn class_body_value(
+    &self,
+    parser: &mut JavascriptParser,
+    value: &swc_core::ecma::ast::Expr,
+    element: &swc_core::ecma::ast::ClassMember,
+    classy: &swc_core::ecma::ast::Class,
+  ) -> Option<bool> {
+    for plugin in &self.plugins {
+      let res = plugin.class_body_value(parser, value, element, classy);
+      // `SyncBailHook`
+      if res.is_some() {
+        return res;
+      }
+    }
+    None
+  }
+
+  fn is_pure_identifier(&self, parser: &mut JavascriptParser, ident: &Ident) -> Option<bool> {
+    for plugin in &self.plugins {
+      let res = plugin.is_pure_identifier(parser, ident);
+      // `SyncBailHook`
+      if res.is_some() {
+        return res;
+      }
+    }
+    None
+  }
+
+  fn block_pre_walk_export_default_declaration(
+    &self,
+    parser: &mut JavascriptParser,
+    decl: &ExportDefaultDecl,
+  ) -> Option<bool> {
+    for plugin in &self.plugins {
+      let res = plugin.block_pre_walk_export_default_declaration(parser, decl);
       // `SyncBailHook`
       if res.is_some() {
         return res;

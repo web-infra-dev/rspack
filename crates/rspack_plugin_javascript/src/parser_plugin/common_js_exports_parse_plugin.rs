@@ -6,12 +6,12 @@ use swc_core::atoms::Atom;
 use swc_core::common::Spanned;
 use swc_core::ecma::ast::{AssignExpr, CallExpr, PropOrSpread};
 use swc_core::ecma::ast::{Callee, ExprOrSpread, Ident, MemberExpr, ObjectLit};
-use swc_core::ecma::ast::{Expr, Lit, Pat, PatOrExpr, Prop, PropName, ThisExpr, UnaryOp};
+use swc_core::ecma::ast::{Expr, Lit, Pat, PatOrExpr, Prop, PropName, UnaryOp};
 
 use super::JavascriptParserPlugin;
 use crate::dependency::{CommonJsExportRequireDependency, CommonJsExportsDependency};
 use crate::dependency::{CommonJsSelfReferenceDependency, ExportsBase, ModuleDecoratorDependency};
-use crate::visitors::{expr_matcher, JavascriptParser, TopLevelScope};
+use crate::visitors::{expr_matcher, JavascriptParser};
 
 const MODULE_NAME: &str = "module";
 const EXPORTS_NAME: &str = "exports";
@@ -137,12 +137,8 @@ impl<'parser> JavascriptParser<'parser> {
     matches!(expr,  Expr::Ident(ident) if self.is_exports_ident(ident))
   }
 
-  fn is_top_level_this(&self, _expr: &ThisExpr) -> bool {
-    !matches!(self.top_level_scope, TopLevelScope::False)
-  }
-
   fn is_top_level_this_expr(&self, expr: &Expr) -> bool {
-    matches!(expr,  Expr::This(e) if self.is_top_level_this(e))
+    matches!(expr,  Expr::This(_) if self.top_level_scope.top_or_top_arrow())
   }
 
   fn is_exports_or_module_exports_or_this_expr(&mut self, expr: &Expr) -> bool {
@@ -285,7 +281,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
   ) -> Option<bool> {
     if parser.is_esm {
       None
-    } else if parser.is_top_level_this(expr) {
+    } else if parser.top_level_scope.top_or_top_arrow() {
       parser.bailout();
       parser
         .dependencies

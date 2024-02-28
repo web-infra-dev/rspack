@@ -10,7 +10,7 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_identifier::IdentifierSet;
-use rustc_hash::FxHashSet as HashSet;
+use rustc_hash::FxHashSet;
 // use rspack_core::Plugin;
 // use rspack_error::Result;
 use swc_core::common::{comments, Span, Spanned, SyntaxContext, GLOBALS};
@@ -284,7 +284,6 @@ pub fn is_pure_expression<'a>(
       while let Expr::Paren(paren) = cur {
         cur = paren.expr.as_ref();
       }
-
       is_pure_expression(cur, unresolved_ctxt, comments)
     }
     _ => !expr.may_have_side_effects(&ExprCtx {
@@ -354,7 +353,6 @@ pub fn is_pure_decl(
     Decl::Using(_) => false,
     Decl::TsInterface(_) => unreachable!(),
     Decl::TsTypeAlias(_) => unreachable!(),
-
     Decl::TsEnum(_) => unreachable!(),
     Decl::TsModule(_) => unreachable!(),
   }
@@ -444,19 +442,19 @@ impl ClassExt for ClassMember {
       ClassMember::PrivateMethod(_) => None,
       ClassMember::ClassProp(c) => Some(&c.key),
       ClassMember::PrivateProp(_) => None,
-      ClassMember::TsIndexSignature(_) => unreachable!(),
       ClassMember::Empty(_) => None,
       ClassMember::StaticBlock(_) => None,
       ClassMember::AutoAccessor(a) => match a.key {
         Key::Private(_) => None,
         Key::Public(ref public) => Some(public),
       },
+      ClassMember::TsIndexSignature(_) => unreachable!(),
     }
   }
 
   fn is_static(&self) -> bool {
     match self {
-      ClassMember::Constructor(_cons) => false,
+      ClassMember::Constructor(_) => false,
       ClassMember::Method(m) => m.is_static,
       ClassMember::PrivateMethod(m) => m.is_static,
       ClassMember::ClassProp(p) => p.is_static,
@@ -483,7 +481,7 @@ impl Plugin for SideEffectsFlagPlugin {
     let mg = &mut compilation.module_graph;
     let level_order_module_identifier = get_level_order_module_ids(mg, entries);
     for module_identifier in level_order_module_identifier {
-      let mut module_chain = HashSet::default();
+      let mut module_chain = FxHashSet::default();
       // dbg!(&module_identifier);
       let Some(module) = mg.module_by_identifier(&module_identifier) else {
         continue;
@@ -525,7 +523,7 @@ impl Plugin for SideEffectsFlagPlugin {
             Arc::new(|target: &ResolvedExportInfoTarget, mg: &ModuleGraph| {
               mg.module_by_identifier(&target.module)
                 .expect("should have module")
-                .get_side_effects_connection_state(mg, &mut HashSet::default())
+                .get_side_effects_connection_state(mg, &mut FxHashSet::default())
                 == ConnectionState::Bool(false)
             }),
             Arc::new(
@@ -563,7 +561,7 @@ impl Plugin for SideEffectsFlagPlugin {
                 |target: &ResolvedExportInfoTarget, mg: &ModuleGraph| {
                   mg.module_by_identifier(&target.module)
                     .expect("should have module graph")
-                    .get_side_effects_connection_state(mg, &mut HashSet::default())
+                    .get_side_effects_connection_state(mg, &mut FxHashSet::default())
                     == ConnectionState::Bool(false)
                 },
               )),

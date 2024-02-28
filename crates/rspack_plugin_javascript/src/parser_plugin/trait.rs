@@ -1,9 +1,9 @@
 use swc_core::atoms::Atom;
 use swc_core::common::Span;
 use swc_core::ecma::ast::{
-  AssignExpr, AwaitExpr, BinExpr, CallExpr, CondExpr, ExportAll, ExportDecl, ExportDefaultDecl,
-  ExportDefaultExpr, Expr, ForOfStmt, Ident, IfStmt, ImportDecl, MemberExpr, ModuleDecl,
-  NamedExport, OptChainExpr,
+  AssignExpr, AwaitExpr, BinExpr, BlockStmt, CallExpr, Class, ClassMember, CondExpr, ExportAll,
+  ExportDecl, ExportDefaultDecl, ExportDefaultExpr, Expr, ForOfStmt, Ident, IfStmt, ImportDecl,
+  MemberExpr, ModuleDecl, NamedExport, OptChainExpr,
 };
 use swc_core::ecma::ast::{NewExpr, Program, Stmt, ThisExpr, UnaryExpr, VarDecl, VarDeclarator};
 
@@ -18,6 +18,31 @@ pub trait JavascriptParserPlugin {
   /// statement's visit during the pre-walk phase.
   /// - Other return values imply that the walk operation ought to continue
   fn pre_statement(&self, _parser: &mut JavascriptParser, _stmt: &Stmt) -> Option<bool> {
+    None
+  }
+
+  fn pre_declarator(&self, _parser: &mut JavascriptParser, _decl: &VarDeclarator) -> Option<bool> {
+    None
+  }
+
+  fn block_pre_statement(&self, _parser: &mut JavascriptParser, _stmt: &Stmt) -> Option<bool> {
+    None
+  }
+
+  fn block_pre_walk_export_default_declaration(
+    &self,
+    _parser: &mut JavascriptParser,
+    _decl: &ExportDefaultDecl,
+  ) -> Option<bool> {
+    None
+  }
+
+  /// This is similar `hooks.block_pre_statement` in webpack
+  fn block_pre_module_declration(
+    &self,
+    _parser: &mut JavascriptParser,
+    _decl: &ModuleDecl,
+  ) -> Option<bool> {
     None
   }
 
@@ -36,6 +61,18 @@ pub trait JavascriptParserPlugin {
   }
 
   fn program(&self, _parser: &mut JavascriptParser, _ast: &Program) -> Option<bool> {
+    None
+  }
+
+  fn finish(&self, _parser: &mut JavascriptParser, _ast: &Program) -> Option<bool> {
+    None
+  }
+
+  fn statement(&self, _parser: &mut JavascriptParser, _stmt: &Stmt) -> Option<bool> {
+    None
+  }
+
+  fn module_declaration(&self, _parser: &mut JavascriptParser, _decl: &ModuleDecl) -> Option<bool> {
     None
   }
 
@@ -296,6 +333,49 @@ pub trait JavascriptParserPlugin {
 
   // TODO: remove `named_export`
   fn named_export(&self, _parser: &mut JavascriptParser, _expr: &NamedExport) -> Option<bool> {
+    None
+  }
+
+  fn class_extends_expression(
+    &self,
+    _parser: &mut JavascriptParser,
+    _super_class: &Expr,
+    _classy: &Class,
+    _ident: Option<&Ident>,
+  ) -> Option<bool> {
+    None
+  }
+
+  fn class_body_element(
+    &self,
+    _parser: &mut JavascriptParser,
+    _element: &ClassMember,
+    _classy: &Class,
+  ) -> Option<bool> {
+    None
+  }
+
+  fn class_body_body(
+    &self,
+    _parser: &mut JavascriptParser,
+    _body: &BlockStmt,
+    _element: &ClassMember,
+    _classy: &Class,
+  ) -> Option<bool> {
+    None
+  }
+
+  fn class_body_value(
+    &self,
+    _parser: &mut JavascriptParser,
+    _value: &Expr,
+    _element: &ClassMember,
+    _classy: &Class,
+  ) -> Option<bool> {
+    None
+  }
+
+  fn is_pure_identifier(&self, _parser: &mut JavascriptParser, _ident: &Ident) -> Option<bool> {
     None
   }
 }

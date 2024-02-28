@@ -10,7 +10,7 @@ use super::module_dependency::*;
 use super::ExportsSpec;
 use super::{DependencyCategory, DependencyId, DependencyType};
 use crate::AsContextDependency;
-use crate::{ConnectionState, Context, ErrorSpan, ModuleGraph, ModuleIdentifier, UsedByExports};
+use crate::{ConnectionState, Context, ErrorSpan, ModuleGraph, ModuleIdentifier};
 
 pub trait Dependency:
   AsDependencyTemplate
@@ -42,8 +42,6 @@ pub trait Dependency:
   fn get_exports(&self, _mg: &ModuleGraph) -> Option<ExportsSpec> {
     None
   }
-
-  fn set_used_by_exports(&mut self, _used_by_exports: Option<UsedByExports>) {}
 
   fn get_module_evaluation_side_effects_state(
     &self,

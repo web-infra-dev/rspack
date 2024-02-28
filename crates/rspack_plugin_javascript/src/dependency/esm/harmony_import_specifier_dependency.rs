@@ -7,7 +7,7 @@ use rspack_core::{
   TemplateReplaceSource, UsedByExports,
 };
 use rspack_core::{get_import_var, property_access, ModuleReferenceOptions};
-use rustc_hash::FxHashSet as HashSet;
+use rustc_hash::FxHashSet;
 use swc_core::{common::Span, ecma::atoms::Atom};
 
 use super::{
@@ -26,9 +26,9 @@ pub struct HarmonyImportSpecifierDependency {
   pub(crate) call: bool,
   direct_import: bool,
   specifier: Specifier,
-  used_by_exports: Option<UsedByExports>,
+  pub used_by_exports: Option<UsedByExports>,
   pub namespace_object_as_context: bool,
-  referenced_properties_in_destructuring: Option<HashSet<Atom>>,
+  referenced_properties_in_destructuring: Option<FxHashSet<Atom>>,
   resource_identifier: String,
   span_for_on_usage_search: Span,
 }
@@ -45,7 +45,7 @@ impl HarmonyImportSpecifierDependency {
     call: bool,
     direct_import: bool,
     specifier: Specifier,
-    referenced_properties_in_destructuring: Option<HashSet<Atom>>,
+    referenced_properties_in_destructuring: Option<FxHashSet<Atom>>,
     span_for_on_usage_search: Span,
   ) -> Self {
     let resource_identifier = create_resource_identifier_for_esm_dependency(&request);
@@ -263,9 +263,7 @@ impl Dependency for HarmonyImportSpecifierDependency {
   fn span_for_on_usage_search(&self) -> Option<rspack_core::ErrorSpan> {
     Some(self.span_for_on_usage_search.into())
   }
-  fn set_used_by_exports(&mut self, used_by_exports: Option<UsedByExports>) {
-    self.used_by_exports = used_by_exports;
-  }
+
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::Esm
   }
@@ -277,7 +275,7 @@ impl Dependency for HarmonyImportSpecifierDependency {
   fn get_module_evaluation_side_effects_state(
     &self,
     _module_graph: &ModuleGraph,
-    _module_chain: &mut HashSet<ModuleIdentifier>,
+    _module_chain: &mut FxHashSet<ModuleIdentifier>,
   ) -> ConnectionState {
     ConnectionState::Bool(false)
   }

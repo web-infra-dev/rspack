@@ -24,77 +24,6 @@ fn warp_ident_to_pat(ident: Ident) -> Pat {
 }
 
 impl<'parser> JavascriptParser<'parser> {
-  fn in_block_scope<F>(&mut self, f: F)
-  where
-    F: FnOnce(&mut Self),
-  {
-    let old_definitions = self.definitions;
-    let old_top_level_scope = self.top_level_scope;
-    let old_in_tagged_template_tag = self.in_tagged_template_tag;
-
-    self.in_tagged_template_tag = false;
-    self.definitions = self.definitions_db.create_child(&old_definitions);
-    f(self);
-
-    self.definitions = old_definitions;
-    self.top_level_scope = old_top_level_scope;
-    self.in_tagged_template_tag = old_in_tagged_template_tag;
-  }
-
-  fn in_class_scope<'a, I, F>(&mut self, has_this: bool, params: I, f: F)
-  where
-    F: FnOnce(&mut Self),
-    I: Iterator<Item = Cow<'a, Pat>>,
-  {
-    let old_definitions = self.definitions;
-    let old_in_try = self.in_try;
-    let old_top_level_scope = self.top_level_scope;
-    let old_in_tagged_template_tag = self.in_tagged_template_tag;
-
-    self.in_try = false;
-    self.in_tagged_template_tag = false;
-    self.definitions = self.definitions_db.create_child(&old_definitions);
-
-    if has_this {
-      self.undefined_variable("this".to_string());
-    }
-
-    self.enter_patterns(params, |this, ident| {
-      this.define_variable(ident.sym.to_string());
-    });
-
-    f(self);
-
-    self.in_try = old_in_try;
-    self.definitions = old_definitions;
-    self.top_level_scope = old_top_level_scope;
-    self.in_tagged_template_tag = old_in_tagged_template_tag;
-  }
-
-  fn in_function_scope<'a, I, F>(&mut self, has_this: bool, params: I, f: F)
-  where
-    F: FnOnce(&mut Self),
-    I: Iterator<Item = Cow<'a, Pat>>,
-  {
-    let old_definitions = self.definitions;
-    let old_top_level_scope = self.top_level_scope;
-    let old_in_tagged_template_tag = self.in_tagged_template_tag;
-
-    self.definitions = self.definitions_db.create_child(&old_definitions);
-    self.in_tagged_template_tag = false;
-    if has_this {
-      self.undefined_variable("this".to_string());
-    }
-    self.enter_patterns(params, |this, ident| {
-      this.define_variable(ident.sym.to_string());
-    });
-    f(self);
-
-    self.definitions = old_definitions;
-    self.top_level_scope = old_top_level_scope;
-    self.in_tagged_template_tag = old_in_tagged_template_tag;
-  }
-
   pub fn walk_module_declarations(&mut self, statements: &Vec<ModuleItem>) {
     for statement in statements {
       self.walk_module_declaration(statement);
@@ -103,18 +32,28 @@ impl<'parser> JavascriptParser<'parser> {
 
   fn walk_module_declaration(&mut self, statement: &ModuleItem) {
     match statement {
-      ModuleItem::ModuleDecl(m) => match m {
-        ModuleDecl::ExportDefaultDecl(decl) => {
-          self.walk_export_default_declaration(decl);
+      ModuleItem::ModuleDecl(m) => {
+        if self
+          .plugin_drive
+          .clone()
+          .module_declaration(self, m)
+          .is_some()
+        {
+          return;
         }
-        ModuleDecl::ExportDecl(decl) => self.walk_export_decl(decl),
-        ModuleDecl::ExportNamed(named) => self.walk_export_named_declaration(named),
-        ModuleDecl::ExportDefaultExpr(expr) => self.walk_export_default_expr(expr),
-        ModuleDecl::ExportAll(_) | ModuleDecl::Import(_) => (),
-        ModuleDecl::TsImportEquals(_)
-        | ModuleDecl::TsExportAssignment(_)
-        | ModuleDecl::TsNamespaceExport(_) => unreachable!(),
-      },
+        match m {
+          ModuleDecl::ExportDefaultDecl(decl) => {
+            self.walk_export_default_declaration(decl);
+          }
+          ModuleDecl::ExportDecl(decl) => self.walk_export_decl(decl),
+          ModuleDecl::ExportNamed(named) => self.walk_export_named_declaration(named),
+          ModuleDecl::ExportDefaultExpr(expr) => self.walk_export_default_expr(expr),
+          ModuleDecl::ExportAll(_) | ModuleDecl::Import(_) => (),
+          ModuleDecl::TsImportEquals(_)
+          | ModuleDecl::TsExportAssignment(_)
+          | ModuleDecl::TsNamespaceExport(_) => unreachable!(),
+        }
+      }
       ModuleItem::Stmt(s) => self.walk_statement(s),
     }
   }
@@ -126,7 +65,7 @@ impl<'parser> JavascriptParser<'parser> {
     match &expr.decl {
       Decl::Class(c) => {
         // FIXME: webpack use `self.walk_statement` here
-        self.walk_class(Some(&c.ident), &c.class)
+        self.walk_class_declaration(c)
       }
       Decl::Fn(f) => {
         // FIXME: webpack use `self.walk_statement` here
@@ -156,7 +95,7 @@ impl<'parser> JavascriptParser<'parser> {
     match &decl.decl {
       DefaultDecl::Class(c) => {
         // FIXME: webpack use `self.walk_statement` here
-        self.walk_class(c.ident.as_ref(), &c.class)
+        self.walk_class_expression(c)
       }
       DefaultDecl::Fn(f) => {
         // FIXME: webpack use `self.walk_statement` here
@@ -175,9 +114,19 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_statement(&mut self, statement: &Stmt) {
-    // TODO: `self.hooks.statement.call`
     let old_last_stmt_is_expr_stmt = self.last_stmt_is_expr_stmt;
     self.stmt_level += 1;
+
+    if self
+      .plugin_drive
+      .clone()
+      .statement(self, statement)
+      .is_some()
+    {
+      self.last_stmt_is_expr_stmt = old_last_stmt_is_expr_stmt;
+      self.stmt_level -= 1;
+      return;
+    }
 
     match statement {
       Stmt::Block(stmt) => self.walk_block_statement(stmt),
@@ -952,7 +901,7 @@ impl<'parser> JavascriptParser<'parser> {
 
   fn walk_arrow_function_expression(&mut self, expr: &ArrowExpr) {
     let was_top_level_scope = self.top_level_scope;
-    if !matches!(was_top_level_scope, TopLevelScope::False) {
+    if self.top_level_scope.top_or_top_arrow() {
       self.top_level_scope = TopLevelScope::ArrowFunction;
     }
     self.in_function_scope(false, expr.params.iter().map(Cow::Borrowed), |this| {
@@ -1115,8 +1064,14 @@ impl<'parser> JavascriptParser<'parser> {
 
   fn walk_class(&mut self, ident: Option<&Ident>, classy: &Class) {
     if let Some(super_class) = &classy.super_class {
-      // TODO: `hooks.class_extends_expression`
-      self.walk_expression(super_class);
+      if !self
+        .plugin_drive
+        .clone()
+        .class_extends_expression(self, super_class, classy, ident)
+        .unwrap_or_default()
+      {
+        self.walk_expression(super_class);
+      }
     }
 
     let scope_params = if let Some(pat) = ident.map(|ident| warp_ident_to_pat(ident.clone())) {
@@ -1127,96 +1082,129 @@ impl<'parser> JavascriptParser<'parser> {
 
     self.in_class_scope(true, scope_params.into_iter(), |this| {
       for class_element in &classy.body {
-        // TODO: `hooks.class_body_element`
-        match class_element {
-          ClassMember::Constructor(ctor) => {
-            if ctor.key.is_computed() {
-              // FIXME: webpack use `walk_expression` here
-              this.walk_prop_name(&ctor.key);
+        if !this
+          .plugin_drive
+          .clone()
+          .class_body_element(this, class_element, classy)
+          .unwrap_or_default()
+        {
+          match class_element {
+            ClassMember::Constructor(ctor) => {
+              if ctor.key.is_computed() {
+                // FIXME: webpack use `walk_expression` here
+                this.walk_prop_name(&ctor.key);
+              }
+
+              let was_top_level = this.top_level_scope;
+              this.top_level_scope = TopLevelScope::False;
+
+              for prop in &ctor.params {
+                match prop {
+                  ParamOrTsParamProp::Param(param) => this.walk_pattern(&param.pat),
+                  ParamOrTsParamProp::TsParamProp(_) => unreachable!(),
+                }
+              }
+              if let Some(body) = &ctor.body
+                && !this
+                  .plugin_drive
+                  .clone()
+                  .class_body_body(this, body, class_element, classy)
+                  .unwrap_or_default()
+              {
+                this.walk_block_statement(body);
+              }
+
+              this.top_level_scope = was_top_level;
             }
-
-            let was_top_level = this.top_level_scope;
-            this.top_level_scope = TopLevelScope::False;
-
-            for prop in &ctor.params {
-              match prop {
-                ParamOrTsParamProp::Param(param) => this.walk_pattern(&param.pat),
-                ParamOrTsParamProp::TsParamProp(_) => unreachable!(),
+            ClassMember::Method(method) => {
+              if method.key.is_computed() {
+                // FIXME: webpack use `walk_expression` here
+                this.walk_prop_name(&method.key);
+              }
+              let was_top_level = this.top_level_scope;
+              this.top_level_scope = TopLevelScope::False;
+              this.in_function_scope(
+                true,
+                method.function.params.iter().map(|p| Cow::Borrowed(&p.pat)),
+                |this| {
+                  if let Some(body) = &method.function.body
+                    && !this
+                      .plugin_drive
+                      .clone()
+                      .class_body_body(this, body, class_element, classy)
+                      .unwrap_or_default()
+                  {
+                    this.walk_block_statement(body);
+                  }
+                },
+              );
+              this.top_level_scope = was_top_level;
+            }
+            ClassMember::PrivateMethod(method) => {
+              this.walk_identifier(&method.key.id);
+              let was_top_level = this.top_level_scope;
+              this.top_level_scope = TopLevelScope::False;
+              this.in_function_scope(
+                true,
+                method.function.params.iter().map(|p| Cow::Borrowed(&p.pat)),
+                |this| {
+                  if let Some(body) = &method.function.body
+                    && !this
+                      .plugin_drive
+                      .clone()
+                      .class_body_body(this, body, class_element, classy)
+                      .unwrap_or_default()
+                  {
+                    this.walk_block_statement(body);
+                  }
+                },
+              );
+              this.top_level_scope = was_top_level;
+            }
+            ClassMember::ClassProp(prop) => {
+              if prop.key.is_computed() {
+                // FIXME: webpack use `walk_expression` here
+                this.walk_prop_name(&prop.key);
+              }
+              if let Some(value) = &prop.value
+                && !this
+                  .plugin_drive
+                  .clone()
+                  .class_body_value(this, value, class_element, classy)
+                  .unwrap_or_default()
+              {
+                let was_top_level = this.top_level_scope;
+                this.top_level_scope = TopLevelScope::False;
+                this.walk_expression(value);
+                this.top_level_scope = was_top_level;
               }
             }
-            // TODO: `hooks.body_value`;
-            if let Some(body) = &ctor.body {
-              this.walk_block_statement(body);
+            ClassMember::PrivateProp(prop) => {
+              this.walk_identifier(&prop.key.id);
+              if let Some(value) = &prop.value
+                && !this
+                  .plugin_drive
+                  .clone()
+                  .class_body_value(this, value, class_element, classy)
+                  .unwrap_or_default()
+              {
+                let was_top_level = this.top_level_scope;
+                this.top_level_scope = TopLevelScope::False;
+                this.walk_expression(value);
+                this.top_level_scope = was_top_level;
+              }
             }
-
-            this.top_level_scope = was_top_level;
-          }
-          ClassMember::Method(method) => {
-            if method.key.is_computed() {
-              // FIXME: webpack use `walk_expression` here
-              this.walk_prop_name(&method.key);
-            }
-            let was_top_level = this.top_level_scope;
-            this.top_level_scope = TopLevelScope::False;
-            this.in_function_scope(
-              true,
-              method.function.params.iter().map(|p| Cow::Borrowed(&p.pat)),
-              |this| {
-                // TODO: `hooks.body_value`;
-                if let Some(body) = &method.function.body {
-                  this.walk_block_statement(body);
-                }
-              },
-            );
-            this.top_level_scope = was_top_level;
-          }
-          ClassMember::PrivateMethod(method) => {
-            this.walk_identifier(&method.key.id);
-            let was_top_level = this.top_level_scope;
-            this.top_level_scope = TopLevelScope::False;
-            this.in_function_scope(
-              true,
-              method.function.params.iter().map(|p| Cow::Borrowed(&p.pat)),
-              |this| {
-                // TODO: `hooks.body_value`;
-                if let Some(body) = &method.function.body {
-                  this.walk_block_statement(body);
-                }
-              },
-            );
-            this.top_level_scope = was_top_level;
-          }
-          ClassMember::ClassProp(prop) => {
-            if prop.key.is_computed() {
-              // FIXME: webpack use `walk_expression` here
-              this.walk_prop_name(&prop.key);
-            }
-            if let Some(value) = &prop.value {
+            ClassMember::StaticBlock(block) => {
               let was_top_level = this.top_level_scope;
               this.top_level_scope = TopLevelScope::False;
-              this.walk_expression(value);
+              this.walk_block_statement(&block.body);
               this.top_level_scope = was_top_level;
             }
-          }
-          ClassMember::PrivateProp(prop) => {
-            this.walk_identifier(&prop.key.id);
-            if let Some(value) = &prop.value {
-              let was_top_level = this.top_level_scope;
-              this.top_level_scope = TopLevelScope::False;
-              this.walk_expression(value);
-              this.top_level_scope = was_top_level;
-            }
-          }
-          ClassMember::StaticBlock(block) => {
-            let was_top_level = this.top_level_scope;
-            this.top_level_scope = TopLevelScope::False;
-            this.walk_block_statement(&block.body);
-            this.top_level_scope = was_top_level;
-          }
-          ClassMember::Empty(_) => {}
-          ClassMember::AutoAccessor(_) => {}
-          ClassMember::TsIndexSignature(_) => unreachable!(),
-        };
+            ClassMember::Empty(_) => {}
+            ClassMember::AutoAccessor(_) => {}
+            ClassMember::TsIndexSignature(_) => unreachable!(),
+          };
+        }
       }
     });
   }

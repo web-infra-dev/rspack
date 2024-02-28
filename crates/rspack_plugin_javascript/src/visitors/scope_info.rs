@@ -198,6 +198,7 @@ pub struct TagInfo {
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum FreeName {
+  // FIXME: maybe `Atom` is better?
   String(String),
   True,
 }
@@ -241,6 +242,7 @@ impl VariableInfo {
 #[derive(Debug)]
 pub struct ScopeInfo {
   stack: Vec<ScopeInfoId>,
+  // FIXME: maybe `Atom` is better?
   map: FxHashMap<String, VariableInfoId>,
   pub is_strict: bool,
 }
