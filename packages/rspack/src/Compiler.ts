@@ -113,7 +113,7 @@ class Compiler {
 		afterEnvironment: tapable.SyncHook<[]>;
 		afterPlugins: tapable.SyncHook<[Compiler]>;
 		afterResolvers: tapable.SyncHook<[Compiler]>;
-		make: tapable.AsyncParallelHook<[Compilation]>;
+		make: liteTapable.AsyncParallelHook<[Compilation]>;
 		beforeCompile: tapable.AsyncSeriesHook<any>;
 		afterCompile: tapable.AsyncSeriesHook<[Compilation]>;
 		finishModules: tapable.AsyncSeriesHook<[any]>;
@@ -175,7 +175,7 @@ class Compiler {
 			afterEnvironment: new tapable.SyncHook([]),
 			afterPlugins: new tapable.SyncHook(["compiler"]),
 			afterResolvers: new tapable.SyncHook(["compiler"]),
-			make: new tapable.AsyncParallelHook(["compilation"]),
+			make: new liteTapable.AsyncParallelHook(["compilation"]),
 			beforeCompile: new tapable.AsyncSeriesHook(["params"]),
 			afterCompile: new tapable.AsyncSeriesHook(["compilation"]),
 			finishMake: new tapable.AsyncSeriesHook(["compilation"]),
@@ -965,21 +965,21 @@ class Compiler {
 
 	#registerCompilerCompilationTaps(stages: number[]): binding.JsTap[] {
 		if (!this.hooks.compilation.isUsed()) return [];
-		const stages2 = [-Infinity, ...stages, Infinity];
+		const breakpoints = [-Infinity, ...stages, Infinity];
 		const jsTaps = [];
-		for (let i = 0; i < stages2.length - 1; i++) {
+		for (let i = 0; i < breakpoints.length - 1; i++) {
 			const stageRange = liteTapable.StageRange.from(
-				stages2[i],
-				stages2[i + 1]
+				breakpoints[i],
+				breakpoints[i + 1]
 			);
 			jsTaps.push({
 				function: (native: binding.JsCompilation) => {
 					this.hooks.compilation.callStageRange(stageRange, this.compilation, {
 						normalModuleFactory: this.compilation.normalModuleFactory!
 					});
-					if (i + 1 >= stages2.length - 1) this.#updateDisabledHooks();
+					if (i + 1 >= breakpoints.length - 1) this.#updateDisabledHooks();
 				},
-				stage: stageRange.from
+				stage: stageRange.from + 1
 			});
 		}
 		return jsTaps;
@@ -987,15 +987,22 @@ class Compiler {
 
 	#registerCompilerMakeTaps(stages: number[]): binding.JsTap[] {
 		if (!this.hooks.make.isUsed()) return [];
-		return [
-			{
+		const breakpoints = [-Infinity, ...stages, Infinity];
+		const jsTaps = [];
+		for (let i = 0; i < breakpoints.length - 1; i++) {
+			const stageRange = liteTapable.StageRange.from(
+				breakpoints[i],
+				breakpoints[i + 1]
+			);
+			jsTaps.push({
 				function: (native: binding.JsCompilation) => {
-					this.hooks.make.promise(this.compilation);
-					this.#updateDisabledHooks();
+					this.hooks.make.promiseStageRange(stageRange, this.compilation);
+					if (i + 1 >= breakpoints.length - 1) this.#updateDisabledHooks();
 				},
-				stage: liteTapable.StageRange.MIN
-			}
-		];
+				stage: stageRange.from + 1
+			});
+		}
+		return jsTaps;
 	}
 
 	#newCompilation(native: binding.JsCompilation) {

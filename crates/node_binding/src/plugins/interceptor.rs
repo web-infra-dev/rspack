@@ -7,7 +7,7 @@ use rspack_binding_values::JsCompilation;
 use rspack_core::{
   Compilation, CompilationParams, CompilerCompilationHook, CompilerMakeHook, MakeParam,
 };
-use rspack_hook::{AsyncSeries2, Interceptor};
+use rspack_hook::{AsyncSeries2, Hook, Interceptor};
 use rspack_napi_shared::{
   threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},
   NapiResultExt,
@@ -149,7 +149,10 @@ impl AsyncSeries2<Compilation, CompilationParams> for CompilerCompilationTap {
 
 #[async_trait]
 impl Interceptor<CompilerCompilationHook> for ThreadsafeRegisterJsTaps {
-  async fn call(&self, hook: &CompilerCompilationHook) -> rspack_error::Result<()> {
+  async fn call(
+    &self,
+    hook: &CompilerCompilationHook,
+  ) -> rspack_error::Result<Vec<<CompilerCompilationHook as Hook>::Tap>> {
     let mut used_stages = Vec::from_iter(hook.used_stages());
     used_stages.sort();
     let js_taps: Vec<ThreadsafeJsTap<JsCompilation, ()>> = self
@@ -159,10 +162,11 @@ impl Interceptor<CompilerCompilationHook> for ThreadsafeRegisterJsTaps {
       .into_rspack_result()?
       .await
       .unwrap_or_else(|err| panic!("Failed to call compiler.hooks.compilation: {err}"))?;
-    for js_tap in js_taps {
-      hook.tap(Box::new(CompilerCompilationTap::new(js_tap)));
-    }
-    Ok(())
+    let js_taps = js_taps
+      .into_iter()
+      .map(|t| Box::new(CompilerCompilationTap::new(t)) as <CompilerCompilationHook as Hook>::Tap)
+      .collect();
+    Ok(js_taps)
   }
 }
 
@@ -209,7 +213,10 @@ impl AsyncSeries2<Compilation, Vec<MakeParam>> for CompilerMakeTap {
 
 #[async_trait]
 impl Interceptor<CompilerMakeHook> for ThreadsafeRegisterJsTaps {
-  async fn call(&self, hook: &CompilerMakeHook) -> rspack_error::Result<()> {
+  async fn call(
+    &self,
+    hook: &CompilerMakeHook,
+  ) -> rspack_error::Result<Vec<<CompilerMakeHook as Hook>::Tap>> {
     let mut used_stages = Vec::from_iter(hook.used_stages());
     used_stages.sort();
     let js_taps: Vec<ThreadsafeJsTap<JsCompilation, ()>> = self
@@ -219,9 +226,10 @@ impl Interceptor<CompilerMakeHook> for ThreadsafeRegisterJsTaps {
       .into_rspack_result()?
       .await
       .unwrap_or_else(|err| panic!("Failed to call compiler.hooks.make: {err}"))?;
-    for js_tap in js_taps {
-      hook.tap(Box::new(CompilerMakeTap::new(js_tap)));
-    }
-    Ok(())
+    let js_taps = js_taps
+      .into_iter()
+      .map(|t| Box::new(CompilerMakeTap::new(t)) as <CompilerMakeHook as Hook>::Tap)
+      .collect();
+    Ok(js_taps)
   }
 }

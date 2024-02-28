@@ -2617,7 +2617,6 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "futures-concurrency",
- "parking_lot",
  "rspack_error",
  "rustc-hash",
  "tokio",

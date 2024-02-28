@@ -1,11 +1,13 @@
 use std::fmt;
 
 use async_trait::async_trait;
-use parking_lot::Mutex;
 use rspack_error::Result;
 use rustc_hash::FxHashSet;
 
-use crate::{interceptor::Interceptor, util::sort_push};
+use crate::{
+  interceptor::{Hook, Interceptor},
+  util::sort_push,
+};
 
 #[async_trait]
 pub trait AsyncSeries<Input> {
@@ -51,8 +53,12 @@ pub trait AsyncSeries2<I1, I2> {
 }
 
 pub struct AsyncSeries2Hook<I1, I2> {
-  taps: Mutex<Vec<Box<dyn AsyncSeries2<I1, I2> + Send + Sync>>>,
+  taps: Vec<Box<dyn AsyncSeries2<I1, I2> + Send + Sync>>,
   interceptors: Vec<Box<dyn Interceptor<AsyncSeries2Hook<I1, I2>> + Send + Sync>>,
+}
+
+impl<I1, I2> Hook for AsyncSeries2Hook<I1, I2> {
+  type Tap = Box<dyn AsyncSeries2<I1, I2> + Send + Sync>;
 }
 
 impl<I1, I2> fmt::Debug for AsyncSeries2Hook<I1, I2> {
@@ -72,19 +78,22 @@ impl<I1, I2> Default for AsyncSeries2Hook<I1, I2> {
 
 impl<I1, I2> AsyncSeries2Hook<I1, I2> {
   pub async fn call(&self, input1: &mut I1, input2: &mut I2) -> Result<()> {
+    let mut additional_taps = Vec::new();
     for interceptor in self.interceptors.iter() {
-      interceptor.call(self).await?;
+      additional_taps.extend(interceptor.call(self).await?);
     }
-    let mut taps = self.taps.lock();
-    taps.sort_by_key(|hook| hook.stage());
-    for tap in taps.iter() {
+    let mut all_taps = Vec::new();
+    all_taps.extend(&self.taps);
+    all_taps.extend(&additional_taps);
+    all_taps.sort_by_key(|hook| hook.stage());
+    for tap in all_taps {
       tap.run(input1, input2).await?;
     }
     Ok(())
   }
 
-  pub fn tap(&self, tap: Box<dyn AsyncSeries2<I1, I2> + Send + Sync>) {
-    self.taps.lock().push(tap);
+  pub fn tap(&mut self, tap: Box<dyn AsyncSeries2<I1, I2> + Send + Sync>) {
+    sort_push(&mut self.taps, tap, |t| t.stage())
   }
 
   pub fn intercept(
@@ -95,6 +104,6 @@ impl<I1, I2> AsyncSeries2Hook<I1, I2> {
   }
 
   pub fn used_stages(&self) -> FxHashSet<i32> {
-    FxHashSet::from_iter(self.taps.lock().iter().map(|h| h.stage()))
+    FxHashSet::from_iter(self.taps.iter().map(|h| h.stage()))
   }
 }
