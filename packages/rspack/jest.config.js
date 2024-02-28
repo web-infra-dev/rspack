@@ -17,7 +17,6 @@ const config = {
 		"<rootDir>/tests/WatchSuspend.test.js"
 	],
 	testTimeout: process.env.CI ? 60000 : 30000,
-	cache: false,
 	prettierPath: require.resolve("prettier-2"),
 	transform: {
 		"^.+\\.(t|j)sx?$": "@swc/jest"
