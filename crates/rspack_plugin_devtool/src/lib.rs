@@ -1,5 +1,7 @@
 #![feature(let_chains)]
 
+mod mapped_assets_cache;
+
 use std::borrow::Cow;
 use std::hash::Hasher;
 use std::sync::Arc;
@@ -8,7 +10,7 @@ use std::{hash::Hash, path::Path};
 use dashmap::DashMap;
 use derivative::Derivative;
 use futures::future::{join_all, BoxFuture};
-use futures::Future;
+use mapped_assets_cache::MappedAssetsCache;
 use once_cell::sync::Lazy;
 use pathdiff::diff_paths;
 use rayon::prelude::*;
@@ -21,10 +23,8 @@ use rspack_core::{
   ProcessAssetsArgs, RenderModuleContentArgs, SourceType,
 };
 use rspack_core::{
-  Chunk, CompilationAssets, Filename, Logger, Module, ModuleIdentifier, OutputOptions,
-  RuntimeModule,
+  Chunk, Filename, Logger, Module, ModuleIdentifier, OutputOptions, RuntimeModule,
 };
-use rspack_error::Error;
 use rspack_error::{miette::IntoDiagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_util::identifier::make_paths_absolute;
@@ -150,7 +150,7 @@ pub struct SourceMapDevToolPlugin {
   source_root: Option<String>,
   #[derivative(Debug = "ignore")]
   test: Option<TestFn>,
-  assets_cache: DashMap<String, MappedAsset>,
+  mapped_assets_cache: MappedAssetsCache,
 }
 
 impl SourceMapDevToolPlugin {
@@ -193,7 +193,7 @@ impl SourceMapDevToolPlugin {
       module: options.module,
       source_root: options.source_root,
       test: options.test,
-      assets_cache: DashMap::default(),
+      mapped_assets_cache: MappedAssetsCache::new(),
     }
   }
 
@@ -497,51 +497,6 @@ impl SourceMapDevToolPlugin {
     }
     Ok(mapped_asstes)
   }
-
-  async fn use_cache<'a, F, R>(
-    &self,
-    assets: &'a CompilationAssets,
-    map_assets: F,
-  ) -> Result<Vec<MappedAsset>>
-  where
-    F: FnOnce(Vec<(String, &'a CompilationAsset)>) -> R,
-    R: Future<Output = Result<Vec<MappedAsset>, Error>> + Send + 'a,
-  {
-    let mut mapped_asstes: Vec<MappedAsset> = Vec::with_capacity(assets.len());
-    let mut vanilla_assets = Vec::with_capacity(assets.len());
-    for (filename, vanilla_asset) in assets {
-      if let Some(cache) = self.assets_cache.get(filename) {
-        let MappedAsset { asset, source_map } = cache.value();
-        if !vanilla_asset.info.version.is_empty()
-          && vanilla_asset.info.version == asset.1.info.version
-        {
-          mapped_asstes.push(MappedAsset {
-            asset: asset.clone(),
-            source_map: source_map.clone(),
-          });
-          continue;
-        }
-      }
-      vanilla_assets.push((filename.to_owned(), vanilla_asset));
-    }
-
-    mapped_asstes.extend(map_assets(vanilla_assets).await?);
-
-    self.assets_cache.clear();
-    for mapped_asset in &mapped_asstes {
-      let MappedAsset {
-        asset: (filename, asset),
-        ..
-      } = mapped_asset;
-      if !asset.info.version.is_empty() {
-        self
-          .assets_cache
-          .insert(filename.to_owned(), mapped_asset.clone());
-      }
-    }
-
-    Ok(mapped_asstes)
-  }
 }
 
 #[async_trait::async_trait]
@@ -559,6 +514,7 @@ impl Plugin for SourceMapDevToolPlugin {
     let start = logger.time("collect source maps");
 
     let mapped_asstes = self
+      .mapped_assets_cache
       .use_cache(compilation.assets(), |assets| {
         self.map_assets(compilation, assets)
       })
