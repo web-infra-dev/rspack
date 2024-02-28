@@ -25,15 +25,11 @@ impl MappedAssetsCache {
     let mut mapped_asstes: Vec<MappedAsset> = Vec::with_capacity(assets.len());
     let mut vanilla_assets = Vec::with_capacity(assets.len());
     for (filename, vanilla_asset) in assets {
-      if let Some(cache) = self.0.get(filename) {
-        let MappedAsset { asset, source_map } = cache.value();
+      if let Some((_, MappedAsset { asset, source_map })) = self.0.remove(filename) {
         if !vanilla_asset.info.version.is_empty()
           && vanilla_asset.info.version == asset.1.info.version
         {
-          mapped_asstes.push(MappedAsset {
-            asset: asset.clone(),
-            source_map: source_map.clone(),
-          });
+          mapped_asstes.push(MappedAsset { asset, source_map });
           continue;
         }
       }
