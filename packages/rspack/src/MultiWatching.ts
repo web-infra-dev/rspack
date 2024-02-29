@@ -11,7 +11,6 @@
 import { MultiCompiler } from "./MultiCompiler";
 import { Watching } from "./Watching";
 import asyncLib from "neo-async";
-import { Callback } from "tapable";
 
 /** @typedef {import("./MultiCompiler")} MultiCompiler */
 /** @typedef {import("./Watching")} Watching */

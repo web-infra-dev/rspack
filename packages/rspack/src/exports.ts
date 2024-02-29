@@ -51,8 +51,7 @@ export { sources };
 
 import {
 	getNormalizedRspackOptions,
-	applyRspackOptionsDefaults,
-	getRawOptions
+	applyRspackOptionsDefaults
 } from "./config";
 export const config = {
 	getNormalizedRspackOptions,

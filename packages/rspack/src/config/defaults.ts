@@ -24,7 +24,6 @@ import type {
 	InfrastructureLogging,
 	JavascriptParserOptions,
 	Library,
-	LibraryOptions,
 	Mode,
 	ModuleOptions,
 	Node,
