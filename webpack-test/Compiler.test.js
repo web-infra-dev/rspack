@@ -96,8 +96,7 @@ describe("Compiler", () => {
 		}
 	});
 
-	// CHANGE: skip due to Rspack defaults to numerical module ids, unlike webpack's string-based ids
-	it.skip(normalizeFilteredTestName(FilteredStatus.TODO, "should compile a single file to deep output"), done => {
+	it("should compile a single file to deep output", done => {
 		compile(
 			"./c",
 			{

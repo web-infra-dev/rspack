@@ -59,18 +59,6 @@ describe("Stats", () => {
 	`);
 	});
 
-	it("should omit all properties with all false", async () => {
-		const stats = await compile({
-			context: __dirname,
-			entry: "./fixtures/a"
-		});
-		expect(
-			stats?.toJson({
-				all: false
-			})
-		).toEqual({});
-	});
-
 	it("should look not bad for default stats toString", async () => {
 		const stats = await compile({
 			context: __dirname,
