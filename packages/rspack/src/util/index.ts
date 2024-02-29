@@ -1,5 +1,3 @@
-import terminalLink from "terminal-link";
-
 import type { JsAssetInfo, JsStatsError } from "@rspack/binding";
 
 import { AssetInfo } from "../Compilation";
@@ -79,10 +77,10 @@ export function concatErrorMsgAndStack(err: Error | JsStatsError): string {
 	return isJsStatsError(err)
 		? err.formatted
 		: err.stack
-			? err.stack.startsWith(`${stackStartPrefix}${err.message}`)
-				? `${err.stack}`
-				: `${err.message}\n${err.stack}`
-			: `${err.message}`;
+		? err.stack.startsWith(`${stackStartPrefix}${err.message}`)
+			? `${err.stack}`
+			: `${err.message}\n${err.stack}`
+		: `${err.message}`;
 }
 
 export function indent(str: string, prefix: string) {
@@ -142,4 +140,3 @@ export const deprecatedWarn = (
 		);
 	}
 };
-export const termlink = terminalLink;
