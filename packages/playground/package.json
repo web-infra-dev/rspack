@@ -12,7 +12,7 @@
     "directory": "packages/playground"
   },
   "devDependencies": {
-    "@babel/core": "^7.22.20",
+    "@babel/core": "7.22.20",
     "@babel/preset-react": "^7.22.15",
     "@playwright/test": "1.35.0",
     "@rspack/core": "workspace:*",
