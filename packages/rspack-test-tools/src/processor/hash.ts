@@ -29,7 +29,7 @@ export class RspackHashProcessor extends MultiTaskProcessor<ECompilerType.Rspack
 	}
 
 	async check(env: ITestEnv, context: ITestContext) {
-		for (const processor of this.processors.keys()) {
+		for (const name of this.processors.keys()) {
 			context.stats<ECompilerType.Rspack>((_, stats) => {
 				if (!stats) {
 					expect(false);
@@ -49,7 +49,7 @@ export class RspackHashProcessor extends MultiTaskProcessor<ECompilerType.Rspack
 						"HashTestCases should have test.config.js and a validate method"
 					);
 				}
-			}, processor);
+			}, name);
 		}
 	}
 

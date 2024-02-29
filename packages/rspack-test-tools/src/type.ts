@@ -190,7 +190,7 @@ export interface ITestEnv {
 }
 
 export type TTestConfig<T extends ECompilerType> = {
-	validate?: (stats: TCompilerStats<T>) => void;
+	validate?: (stats: TCompilerStats<T>, stderr?: string) => void;
 	noTest?: boolean;
 	beforeExecute?: () => void;
 	afterExecute?: () => void;
