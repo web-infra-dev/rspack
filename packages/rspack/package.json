@@ -72,7 +72,6 @@
     "json-parse-even-better-errors": "^3.0.0",
     "neo-async": "2.6.2",
     "tapable": "2.2.1",
-    "terminal-link": "^2.1.1",
     "watchpack": "^2.4.0",
     "webpack-sources": "3.2.3",
     "zod": "^3.21.4",
