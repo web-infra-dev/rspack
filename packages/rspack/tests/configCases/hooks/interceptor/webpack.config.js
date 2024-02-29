@@ -3,14 +3,26 @@ const { deepEqual } = require("assert");
 class InterceptPlugin {
 	apply(compiler) {
 		const content = [];
-		compiler.hooks.compilation.intercept({
+		compiler.hooks.beforeCompile.intercept({
 			call() {
-				content.push("compiler.hooks.compilation.intercept.call")
+				content.push("compiler.hooks.beforeCompile.intercept.call")
+			}
+		})
+		compiler.hooks.finishMake.intercept({
+			call() {
+				content.push("compiler.hooks.finishMake.intercept.call")
+			}
+		})
+		compiler.hooks.afterCompile.intercept({
+			call() {
+				content.push("compiler.hooks.afterCompile.intercept.call")
 			}
 		})
 		compiler.hooks.done.tap(InterceptPlugin.name, () => {
 			deepEqual(content, [
-				"compiler.hooks.compilation.intercept.call"
+				"compiler.hooks.beforeCompile.intercept.call",
+				"compiler.hooks.finishMake.intercept.call",
+				"compiler.hooks.afterCompile.intercept.call",
 			]);
 		});
 	}
