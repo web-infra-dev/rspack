@@ -13,13 +13,6 @@ use rspack_napi_shared::{
   NapiResultExt,
 };
 
-#[napi(string_enum)]
-#[derive(Debug)]
-pub enum JsTapType {
-  CompilerCompilation,
-  CompilerMake,
-}
-
 #[napi(object)]
 pub struct JsTap {
   pub function: JsFunction,

@@ -3,7 +3,7 @@ type FixedSizeArray<T extends number, U> = T extends 0
 	: ReadonlyArray<U> & {
 			0: U;
 			length: T;
-		};
+	  };
 type Measure<T extends number> = T extends 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8
 	? T
 	: never;
@@ -344,7 +344,6 @@ export class AsyncParallelHook<
 			const stage = tap.stage ?? 0;
 			if (from < stage && stage <= to) {
 				this._runTapInterceptors(tap);
-				this.counter += 1;
 				if (tap.type === "promise") {
 					const promise = tap.fn(...args2);
 					if (!promise || !promise.then) {
@@ -396,10 +395,19 @@ export class AsyncParallelHook<
 		}
 	}
 
+	tap(
+		options: string | (Tap & IfSet<AdditionalOptions>),
+		fn: (...args: AsArray<T>) => void
+	) {
+		this.counter += 1;
+		this._tap("sync", options, fn);
+	}
+
 	tapAsync(
 		options: string | (Tap & IfSet<AdditionalOptions>),
 		fn: (...args: AsArray<T>) => void
 	): void {
+		this.counter += 1;
 		this._tap("async", options, fn);
 	}
 
@@ -407,6 +415,7 @@ export class AsyncParallelHook<
 		options: string | (Tap & IfSet<AdditionalOptions>),
 		fn: (...args: AsArray<T>) => void
 	): void {
+		this.counter += 1;
 		this._tap("promise", options, fn);
 	}
 }

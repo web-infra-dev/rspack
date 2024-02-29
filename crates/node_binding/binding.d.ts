@@ -582,11 +582,6 @@ export interface JsTap {
   stage: number
 }
 
-export enum JsTapType {
-  CompilerCompilation = 'CompilerCompilation',
-  CompilerMake = 'CompilerMake'
-}
-
 export interface NodeFS {
   writeFile: (...args: any[]) => any
   removeFile: (...args: any[]) => any
