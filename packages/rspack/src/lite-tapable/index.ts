@@ -321,8 +321,6 @@ export class AsyncParallelHook<
 	T,
 	AdditionalOptions = UnsetAdditionalOptions
 > extends Hook<T, void, AdditionalOptions> {
-	counter = 0;
-
 	callAsyncStageRange(
 		{ from, to }: StageRange,
 		...args: Append<AsArray<T>, Callback<Error, void>>
@@ -340,74 +338,70 @@ export class AsyncParallelHook<
 			this._runErrorInterceptors(e);
 			cb(e);
 		};
+		const tapsInRange = [];
 		for (let tap of this.taps) {
 			const stage = tap.stage ?? 0;
 			if (from < stage && stage <= to) {
-				this._runTapInterceptors(tap);
-				if (tap.type === "promise") {
-					const promise = tap.fn(...args2);
-					if (!promise || !promise.then) {
-						throw new Error(
-							"Tap function (tapPromise) did not return promise (returned " +
-								promise +
-								")"
-						);
-					}
-					promise.then(
-						() => {
-							this.counter -= 1;
-							if (this.counter === 0) {
-								done();
-							}
-						},
-						(e: Error) => {
-							this.counter = 0;
-							error(e);
-						}
-					);
-				} else if (tap.type === "async") {
-					tap.fn(...args2, (e: Error) => {
-						if (e) {
-							this.counter = 0;
-							error(e);
-						} else {
-							this.counter -= 1;
-							if (this.counter === 0) {
-								done();
-							}
-						}
-					});
-				} else {
-					let hasError = false;
-					try {
-						tap.fn(...args2);
-					} catch (e) {
-						hasError = true;
-						this.counter = 0;
-						error(e as Error);
-					}
-					if (!hasError && --this.counter === 0) {
-						done();
-					}
-				}
-				if (this.counter <= 0) return;
+				tapsInRange.push(tap);
 			}
 		}
-	}
-
-	tap(
-		options: string | (Tap & IfSet<AdditionalOptions>),
-		fn: (...args: AsArray<T>) => void
-	) {
-		this.counter += 1;
-		this._tap("sync", options, fn);
+		let counter = tapsInRange.length;
+		for (let tap of tapsInRange) {
+			this._runTapInterceptors(tap);
+			if (tap.type === "promise") {
+				const promise = tap.fn(...args2);
+				if (!promise || !promise.then) {
+					throw new Error(
+						"Tap function (tapPromise) did not return promise (returned " +
+							promise +
+							")"
+					);
+				}
+				promise.then(
+					() => {
+						counter -= 1;
+						if (counter === 0) {
+							done();
+						}
+					},
+					(e: Error) => {
+						counter = 0;
+						error(e);
+					}
+				);
+			} else if (tap.type === "async") {
+				tap.fn(...args2, (e: Error) => {
+					if (e) {
+						counter = 0;
+						error(e);
+					} else {
+						counter -= 1;
+						if (counter === 0) {
+							done();
+						}
+					}
+				});
+			} else {
+				let hasError = false;
+				try {
+					tap.fn(...args2);
+				} catch (e) {
+					hasError = true;
+					counter = 0;
+					error(e as Error);
+				}
+				if (!hasError && --counter === 0) {
+					done();
+				}
+			}
+			if (counter <= 0) return;
+		}
 	}
 
 	tapAsync(
 		options: string | (Tap & IfSet<AdditionalOptions>),
 		fn: (...args: AsArray<T>) => void
 	): void {
-		this.counter += 1;
 		this._tap("async", options, fn);
 	}
 
@@ -415,7 +409,6 @@ export class AsyncParallelHook<
 		options: string | (Tap & IfSet<AdditionalOptions>),
 		fn: (...args: AsArray<T>) => void
 	): void {
-		this.counter += 1;
 		this._tap("promise", options, fn);
 	}
 }

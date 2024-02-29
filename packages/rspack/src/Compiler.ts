@@ -662,8 +662,8 @@ class Compiler {
 				(hook.taps
 					? !hook.isUsed()
 					: hook._map
-						? /* hook map */ hook._map.size === 0
-						: false)
+					? /* hook map */ hook._map.size === 0
+					: false)
 			) {
 				disabledHooks.push(name);
 			}
@@ -995,8 +995,8 @@ class Compiler {
 				breakpoints[i + 1]
 			);
 			jsTaps.push({
-				function: (native: binding.JsCompilation) => {
-					this.hooks.make.promiseStageRange(stageRange, this.compilation);
+				function: async (native: binding.JsCompilation) => {
+					await this.hooks.make.promiseStageRange(stageRange, this.compilation);
 					if (i + 1 >= breakpoints.length - 1) this.#updateDisabledHooks();
 				},
 				stage: stageRange.from + 1
