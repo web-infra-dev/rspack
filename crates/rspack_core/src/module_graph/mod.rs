@@ -600,6 +600,20 @@ impl ModuleGraph {
       .and_then(|connection_id| self.connection_by_connection_id_mut(&connection_id))
   }
 
+  pub(crate) fn get_ordered_connections(
+    &self,
+    module_identifier: &ModuleIdentifier,
+  ) -> Option<Vec<&ConnectionId>> {
+    self
+      .module_graph_module_by_identifier(module_identifier)
+      .map(|m| {
+        m.__deprecated_all_dependencies
+          .iter()
+          .filter_map(|dep_id| self.connection_id_by_dependency_id(dep_id))
+          .collect()
+      })
+  }
+
   /// # Deprecated!!!
   /// # Don't use this anymore!!!
   /// A module is a DependenciesBlock, which means it has some Dependencies and some AsyncDependenciesBlocks

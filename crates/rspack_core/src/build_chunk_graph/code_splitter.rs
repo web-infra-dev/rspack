@@ -1050,6 +1050,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
   }
 
   fn extract_block_modules(&mut self, module: ModuleIdentifier, runtime: Option<&RuntimeSpec>) {
+    let module_graph = &self.compilation.module_graph;
     let map = self
       .block_modules_runtime_map
       .entry(runtime.cloned().into())
@@ -1060,28 +1061,22 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       map.insert(b.into(), Vec::new());
     }
 
-    let mgm = self
-      .compilation
-      .module_graph
-      .module_graph_module_by_identifier(&module)
-      .unwrap_or_else(|| panic!("no module found: {:?}", &module));
+    let sorted_connections = module_graph
+      .get_ordered_connections(&module)
+      .expect("should have module")
+      .into_iter()
+      .map(|conn_id| {
+        let conn = module_graph
+          .connection_by_connection_id(conn_id)
+          .expect("should have connection");
 
-    let sorted_connections = mgm
-      .outgoing_connections()
-      .iter()
-      .filter_map(|c| {
-        self
-          .compilation
-          .module_graph
-          .dependency_by_connection_id(c)
-          .map(|d| (d, c))
-      })
-      // keep the dependency original order if it does not have span, or sort the dependency by
-      // the error span
-      .sorted_by(|(a, _), (b, _)| match (a.span(), b.span()) {
-        (Some(a), Some(b)) => a.cmp(&b),
-        _ => std::cmp::Ordering::Equal,
+        let dep = module_graph
+          .dependency_by_id(&conn.dependency_id)
+          .expect("should have dependency");
+
+        (dep, conn_id)
       });
+
     // keep the dependency order sorted by span
     let mut connection_map: IndexMap<
       (DependenciesBlockIdentifier, ModuleIdentifier),
@@ -1228,6 +1223,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       }
 
       if changed {
+        let origin_queue_len = self.queue.len();
         // reconsider skipped items
         let mut enter_modules = vec![];
         for skipped in &cgi.skipped_items {
@@ -1298,7 +1294,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           }
         }
 
-        if !enter_modules.is_empty() {
+        if origin_queue_len != self.queue.len() {
           self.outdated_order_index_chunk_groups.insert(cgi.ukey);
         }
       }
