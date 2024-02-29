@@ -7,6 +7,9 @@ module.exports = {
 			import: "./index2"
 		}
 	},
+	output: {
+		filename: '[name].js'
+	},
 	optimization: {
 		runtimeChunk: "single",
 		splitChunks: {

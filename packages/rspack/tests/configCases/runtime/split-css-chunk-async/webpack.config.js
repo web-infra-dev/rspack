@@ -5,7 +5,8 @@ module.exports = {
 		main3: "./index3.js"
 	},
 	output: {
-		chunkFilename: "[id].[contenthash].js"
+		chunkFilename: "[id].[contenthash].js",
+		filename: '[name].js'
 	},
 	optimization: {
 		splitChunks: {
@@ -24,6 +25,7 @@ module.exports = {
 				}
 			}
 		},
-		runtimeChunk: "single"
+		runtimeChunk: "single",
+		chunkIds: 'named'
 	}
 };
