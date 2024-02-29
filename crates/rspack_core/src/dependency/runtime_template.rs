@@ -161,12 +161,14 @@ pub fn export_from_import(
       ExportsType::DefaultOnly | ExportsType::DefaultWithNamed
     ) {
       runtime_requirements.insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
+
+      let name = format!("var {import_var}_namespace_cache;\n");
       init_fragments.push(
         NormalInitFragment::new(
-          format!("var {import_var}_namespace_cache;\n",),
+          name.clone(),
           InitFragmentStage::StageHarmonyExports,
           -1,
-          InitFragmentKey::unique(),
+          InitFragmentKey::HarmonyFakeNamespaceObjectFragment(name),
           None,
         )
         .boxed(),
