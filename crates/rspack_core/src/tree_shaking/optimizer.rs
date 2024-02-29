@@ -33,8 +33,8 @@ use super::{
 use crate::{
   contextify, join_string_component,
   tree_shaking::{utils::ConvertModulePath, visitor::ModuleRefAnalyze},
-  Compilation, DependencyId, DependencyType, ModuleGraph, ModuleIdentifier, ModuleType,
-  NormalModuleSource,
+  Compilation, DependencyId, DependencyType, ModuleGraph, ModuleIdentifier, ModuleSyntax,
+  ModuleType, NormalModuleSource,
 };
 
 pub struct CodeSizeOptimizer<'a> {
@@ -392,6 +392,7 @@ impl<'a> CodeSizeOptimizer<'a> {
       .keys()
       .cloned()
       .collect::<HashSet<SymbolRef>>();
+    dbg!(&visited_symbol_ref);
     let mut include_module_ids = IdentifierSet::default();
 
     if side_effects_analyze {
@@ -413,6 +414,8 @@ impl<'a> CodeSizeOptimizer<'a> {
       let mut q = VecDeque::from_iter(
         self.compilation.entry_modules(), //
       );
+      dbg!(&self.bailout_modules);
+      dbg!(&self.side_effects_free_modules);
       while let Some(module_identifier) = q.pop_front() {
         if visited.contains(&module_identifier) {
           continue;
@@ -432,6 +435,7 @@ impl<'a> CodeSizeOptimizer<'a> {
 
         if eliminator.could_be_skipped() {
           continue;
+        } else {
         }
 
         let mut reachable_dependency_identifier = IdentifierSet::default();
@@ -441,8 +445,10 @@ impl<'a> CodeSizeOptimizer<'a> {
           .module_graph
           .module_graph_module_by_identifier_mut(&module_identifier)
           .unwrap_or_else(|| panic!("Failed to get mgm by module identifier {module_identifier}"));
+        dbg!(&mgm.module_identifier);
         include_module_ids.insert(mgm.module_identifier);
         if let Some(symbol_ref_list) = module_visited_symbol_ref.get(&module_identifier) {
+          dbg!(&symbol_ref_list);
           for symbol_ref in symbol_ref_list {
             update_reachable_dependency(
               symbol_ref,
@@ -476,10 +482,11 @@ impl<'a> CodeSizeOptimizer<'a> {
             .module_graph
             .dependency_by_id(dependency_id)
             .expect("should have dependency");
+
           if dep.as_module_dependency().is_none() && dep.as_context_dependency().is_none() {
             continue;
           }
-          let module_identifier = match self
+          let module_id_by_dep_id = match self
             .compilation
             .module_graph
             .module_identifier_by_dependency_id(dependency_id)
@@ -538,9 +545,10 @@ impl<'a> CodeSizeOptimizer<'a> {
               | DependencyType::ContainerExposed
               | DependencyType::ProvideModuleForShared
           );
+          dbg!(&module_identifier, &reachable_dependency_identifier);
 
-          if self.side_effects_free_modules.contains(module_identifier)
-            && !reachable_dependency_identifier.contains(module_identifier)
+          if self.side_effects_free_modules.contains(module_id_by_dep_id)
+            && !reachable_dependency_identifier.contains(module_id_by_dep_id)
             && !need_bailout
           {
             continue;
@@ -557,7 +565,7 @@ impl<'a> CodeSizeOptimizer<'a> {
             let deps_module_id_of_context_module = self
               .compilation
               .module_graph
-              .get_module_all_dependencies(module_identifier)
+              .get_module_all_dependencies(module_id_by_dep_id)
               .map(|deps| {
                 deps
                   .iter()
@@ -573,7 +581,7 @@ impl<'a> CodeSizeOptimizer<'a> {
               .unwrap_or_default();
             q.extend(deps_module_id_of_context_module);
           }
-          q.push_back(*module_identifier);
+          q.push_back(*module_id_by_dep_id);
         }
       }
 
@@ -589,6 +597,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     } else {
       *used_symbol_ref = visited_symbol_ref;
     }
+    dbg!(&include_module_ids);
     include_module_ids
   }
 
@@ -910,7 +919,7 @@ impl<'a> CodeSizeOptimizer<'a> {
             // TODO: better diagnostic and handle if multiple extends_map has export same symbol
             let mut ret = vec![];
             // Checking if any inherit export map is belong to a bailout module
-            // let mut has_bailout_module_identifiers = false;
+            let mut has_bailout_module_identifiers = HashSet::default();
             let mut is_first_result = true;
             for (inherit_module_identifier, extends_export_map) in
               module_result.inherit_export_maps.iter()
@@ -1003,11 +1012,46 @@ impl<'a> CodeSizeOptimizer<'a> {
                   is_first_result = false;
                 }
               }
-              // has_bailout_module_identifiers = has_bailout_module_identifiers
-              //   || self.bailout_modules.contains_key(module_identifier);
+              if self.bailout_modules.contains_key(inherit_module_identifier) {
+                has_bailout_module_identifiers.insert(*inherit_module_identifier);
+              }
             }
 
+            dbg!(&indirect_symbol, &has_bailout_module_identifiers, ret.len());
             let selected_symbol = match ret.len() {
+              0 if !has_bailout_module_identifiers.is_empty() => {
+                for mi in has_bailout_module_identifiers {
+                  let mid = SymbolRef::Star(StarSymbol {
+                    src: mi,
+                    binding: Default::default(),
+                    module_ident: indirect_symbol.src(),
+                    ty: StarSymbolKind::ReExportAll,
+                    dep_id: DependencyId::default(),
+                  });
+
+                  self.symbol_graph.add_edge(&current_symbol_ref, &mid);
+                  self.symbol_graph.add_edge(
+                    &mid,
+                    &SymbolRef::Declaration(Symbol::new(
+                      mi,
+                      BetterId {
+                        ctxt: SyntaxContext::empty(),
+                        atom: indirect_symbol.indirect_id().clone(),
+                      },
+                      SymbolType::Temp,
+                      None,
+                    )),
+                  );
+
+                  merge_used_export_type(
+                    used_export_module_identifiers,
+                    mi,
+                    ModuleUsedType::DIRECT,
+                  );
+                }
+                dbg!(&used_export_module_identifiers);
+                return;
+              }
               0 => {
                 self.symbol_graph.add_edge(
                   &current_symbol_ref,
@@ -1618,11 +1662,11 @@ fn create_inherit_graph(
 }
 
 pub fn merge_used_export_type(
-  used_export: &mut IdentifierMap<ModuleUsedType>,
+  used_export_map: &mut IdentifierMap<ModuleUsedType>,
   module_id: ModuleIdentifier,
   ty: ModuleUsedType,
 ) {
-  match used_export.entry(module_id) {
+  match used_export_map.entry(module_id) {
     Entry::Occupied(mut occ) => {
       occ.borrow_mut().get_mut().insert(ty);
     }

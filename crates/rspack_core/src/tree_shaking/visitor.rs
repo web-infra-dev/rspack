@@ -1640,6 +1640,7 @@ impl<'a> ModuleRefAnalyze<'a> {
               SymbolType::Temp,
               exported_atom,
             ));
+            dbg!(&symbol_ref);
 
             self.add_export(export_name, symbol_ref);
           }
