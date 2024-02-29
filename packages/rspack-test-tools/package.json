@@ -20,7 +20,8 @@
     "test:config": "cross-env NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --runInBand --logHeapUsage --testPathPattern \"ConfigTestCases.basictest.ts\"",
     "test:hot": "cross-env NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --runInBand --logHeapUsage --testPathPattern \"HotTestCasesWeb.test.ts\"",
     "test:hash": "cross-env NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --runInBand --logHeapUsage --testPathPattern \"HashTestCases.test.ts\"",
-    "test:stats": "cross-env NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --runInBand --logHeapUsage --testPathPattern \"StatsTestCases.basictest.ts\""
+    "test:stats": "cross-env NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --runInBand --logHeapUsage --testPathPattern \"StatsTestCases.basictest.ts\"",
+    "test:diagnostic": "cross-env NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --runInBand --logHeapUsage --testPathPattern \"Diagnostics.test.ts\""
   },
   "files": [
     "client",
@@ -50,6 +51,7 @@
     "fs-extra": "^11.1.1",
     "glob": "^10.3.10",
     "jest-diff": "^29.7.0",
+    "jest-serializer-path": "^0.1.15",
     "webpack": "^5.90.1",
     "webpack-merge": "5.9.0",
     "webpack-sources": "3.2.3",
@@ -66,7 +68,6 @@
     "@types/webpack": "5.28.5",
     "@types/webpack-sources": "3.2.3",
     "core-js": "3.36.0",
-    "jest-serializer-path": "^0.1.15",
     "monaco-editor": "0.46.0",
     "monaco-editor-webpack-plugin": "7.1.0",
     "normalize.css": "^8.0.0",
