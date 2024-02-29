@@ -37,7 +37,7 @@ export class RspackHotProcessor extends BasicTaskProcessor<ECompilerType.Rspack>
 				options,
 				fakeUpdateLoaderOptions
 			),
-			getCompiler: () => rspack,
+			getCompiler: () => require("@rspack/core"),
 			getBundle: RspackHotProcessor.findBundle(options),
 			getCompilerOptions: context =>
 				readConfigFile<ECompilerType.Rspack>(context.getSource(), [

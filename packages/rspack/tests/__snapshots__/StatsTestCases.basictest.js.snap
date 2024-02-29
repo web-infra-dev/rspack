@@ -130,67 +130,65 @@ Rspack compiled with 2 errors"
 `;
 
 exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 1`] = `
-"PublicPath: auto
-asset bundle1.js 3.49 KiB [emitted] (name: main)
-Entrypoint main 3.49 KiB = bundle1.js
-chunk bundle1.js (main) <{909}> >{909}< [entry]
-  ./b.js
-  ./c.js
-  ./d.js
-  ./e.js
-  ./index.js
-1 chunks (Rspack x.x.x) compiled successfully in X s (10795a915d1dcb2bd3ba)"
-`;
+"1 chunks:
+  PublicPath: auto
+  asset bundle1.js 3.49 KiB [emitted] (name: main)
+  Entrypoint main 3.49 KiB = bundle1.js
+  chunk bundle1.js (main) <{909}> >{909}< [entry]
+    ./b.js
+    ./c.js
+    ./d.js
+    ./e.js
+    ./index.js
+  1 chunks (Rspack x.x.x) compiled successfully in X s (10795a915d1dcb2bd3ba)
 
-exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 2`] = `
-"PublicPath: auto
-asset 76.bundle2.js 485 bytes [emitted] (name: c)
-asset bundle2.js 10.1 KiB [emitted] (name: main)
-Entrypoint main 10.1 KiB = bundle2.js
-chunk 76.bundle2.js (c) <{76}> <{909}> >{76}<
-  ./c.js
-  ./d.js
-  ./e.js
-chunk bundle2.js (main) >{76}< [entry]
-  ./b.js
-  ./index.js
-2 chunks (Rspack x.x.x) compiled successfully in X s (168e72010bebe4658596)"
-`;
+2 chunks:
+  PublicPath: auto
+  asset 76.bundle2.js 485 bytes [emitted] (name: c)
+  asset bundle2.js 10.1 KiB [emitted] (name: main)
+  Entrypoint main 10.1 KiB = bundle2.js
+  chunk 76.bundle2.js (c) <{76}> <{909}> >{76}<
+    ./c.js
+    ./d.js
+    ./e.js
+  chunk bundle2.js (main) >{76}< [entry]
+    ./b.js
+    ./index.js
+  2 chunks (Rspack x.x.x) compiled successfully in X s (168e72010bebe4658596)
 
-exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 3`] = `
-"PublicPath: auto
-asset 345.bundle3.js 182 bytes [emitted]
-asset 76.bundle3.js 379 bytes [emitted] (name: c)
-asset bundle3.js 10.1 KiB [emitted] (name: main)
-Entrypoint main 10.1 KiB = bundle3.js
-chunk 345.bundle3.js <{76}>
-  ./d.js
-  ./e.js
-chunk 76.bundle3.js (c) <{909}> >{345}<
-  ./c.js
-chunk bundle3.js (main) >{76}< [entry]
-  ./b.js
-  ./index.js
-3 chunks (Rspack x.x.x) compiled successfully in X s (7fd90c80752b52cbaf04)"
-`;
+3 chunks:
+  PublicPath: auto
+  asset 345.bundle3.js 182 bytes [emitted]
+  asset 76.bundle3.js 379 bytes [emitted] (name: c)
+  asset bundle3.js 10.1 KiB [emitted] (name: main)
+  Entrypoint main 10.1 KiB = bundle3.js
+  chunk 345.bundle3.js <{76}>
+    ./d.js
+    ./e.js
+  chunk 76.bundle3.js (c) <{909}> >{345}<
+    ./c.js
+  chunk bundle3.js (main) >{76}< [entry]
+    ./b.js
+    ./index.js
+  3 chunks (Rspack x.x.x) compiled successfully in X s (7fd90c80752b52cbaf04)
 
-exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 4`] = `
-"PublicPath: auto
-asset 697.bundle4.js 128 bytes [emitted]
-asset 753.bundle4.js 128 bytes [emitted]
-asset 76.bundle4.js 379 bytes [emitted] (name: c)
-asset bundle4.js 10.1 KiB [emitted] (name: main)
-Entrypoint main 10.1 KiB = bundle4.js
-chunk 697.bundle4.js <{76}>
-  ./e.js
-chunk 753.bundle4.js <{76}>
-  ./d.js
-chunk 76.bundle4.js (c) <{909}> >{697}< >{753}<
-  ./c.js
-chunk bundle4.js (main) >{76}< [entry]
-  ./b.js
-  ./index.js
-4 chunks (Rspack x.x.x) compiled successfully in X s (548e146544e55a805a9d)"
+4 chunks:
+  PublicPath: auto
+  asset 697.bundle4.js 128 bytes [emitted]
+  asset 753.bundle4.js 128 bytes [emitted]
+  asset 76.bundle4.js 379 bytes [emitted] (name: c)
+  asset bundle4.js 10.1 KiB [emitted] (name: main)
+  Entrypoint main 10.1 KiB = bundle4.js
+  chunk 697.bundle4.js <{76}>
+    ./e.js
+  chunk 753.bundle4.js <{76}>
+    ./d.js
+  chunk 76.bundle4.js (c) <{909}> >{697}< >{753}<
+    ./c.js
+  chunk bundle4.js (main) >{76}< [entry]
+    ./b.js
+    ./index.js
+  4 chunks (Rspack x.x.x) compiled successfully in X s (548e146544e55a805a9d)"
 `;
 
 exports[`StatsTestCases should print correct stats for loader-builtin-swc-plugin-warn 1`] = `

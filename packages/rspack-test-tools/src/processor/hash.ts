@@ -29,28 +29,26 @@ export class RspackHashProcessor extends MultiTaskProcessor<ECompilerType.Rspack
 	}
 
 	async check(env: ITestEnv, context: ITestContext) {
-		for (const name of this.processors.keys()) {
-			context.stats<ECompilerType.Rspack>((_, stats) => {
-				if (!stats) {
-					expect(false);
-					return;
-				}
-				const statsJson = stats.toJson({ assets: true });
-				if (REG_ERROR_CASE.test(this.options.name)) {
-					expect((statsJson.errors || []).length > 0);
-				} else {
-					expect((statsJson.errors || []).length === 0);
-				}
+		context.stats<ECompilerType.Rspack>((_, stats) => {
+			if (!stats) {
+				expect(false);
+				return;
+			}
+			const statsJson = stats.toJson({ assets: true });
+			if (REG_ERROR_CASE.test(this.options.name)) {
+				expect((statsJson.errors || []).length > 0);
+			} else {
+				expect((statsJson.errors || []).length === 0);
+			}
 
-				if (typeof this.options.testConfig.validate === "function") {
-					this.options.testConfig.validate(stats);
-				} else {
-					throw new Error(
-						"HashTestCases should have test.config.js and a validate method"
-					);
-				}
-			}, name);
-		}
+			if (typeof this.options.testConfig.validate === "function") {
+				this.options.testConfig.validate(stats);
+			} else {
+				throw new Error(
+					"HashTestCases should have test.config.js and a validate method"
+				);
+			}
+		}, this.options.name);
 	}
 
 	static preOptions(

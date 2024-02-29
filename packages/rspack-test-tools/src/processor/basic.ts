@@ -21,11 +21,17 @@ export interface IBasicProcessorOptions<
 	postOptions?: (context: ITestContext, options: TCompilerOptions<T>) => void;
 	getCompiler: (
 		context: ITestContext
-	) => (options: TCompilerOptions<T>) => TCompiler<T>;
+	) => (options: TCompilerOptions<T> | TCompilerOptions<T>[]) => TCompiler<T>;
 	getBundle: (
 		context: ITestContext,
 		options: TCompilerOptions<T>
 	) => string[] | string | void;
+	getRunner?: (
+		env: ITestEnv,
+		context: ITestContext,
+		options: TCompilerOptions<T>,
+		file: string
+	) => ITestRunner;
 	getCompilerOptions: (context: ITestContext) => TCompilerOptions<T>;
 	testConfig: TTestConfig<T>;
 	name: string;
@@ -76,8 +82,14 @@ export class BasicTaskProcessor<T extends ECompilerType = ECompilerType.Rspack>
 			if (!bundles || !bundles.length) {
 				return;
 			}
-			const runner = this.createRunner(env, context, options);
+
 			for (let bundle of bundles!) {
+				const runner = (this.options.getRunner || this.createRunner)(
+					env,
+					context,
+					options,
+					bundle
+				);
 				if (!runner) {
 					throw new Error("create test runner failed");
 				}
@@ -170,7 +182,8 @@ export class BasicTaskProcessor<T extends ECompilerType = ECompilerType.Rspack>
 	protected createRunner(
 		env: ITestEnv,
 		context: ITestContext,
-		options: TCompilerOptions<T>
+		options: TCompilerOptions<T>,
+		file: string
 	): ITestRunner | null {
 		let runner: ITestRunner | null = null;
 		context.stats<T>((_, stats) => {
