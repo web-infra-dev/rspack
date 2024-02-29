@@ -768,14 +768,17 @@ impl HarmonyExportImportedSpecifierDependency {
     );
     export_map.push((key.into(), value.into()));
     let frags = vec![
-      NormalInitFragment::new(
-        format!("var {name}_namespace_cache;\n"),
-        InitFragmentStage::StageConstants,
-        -1,
-        InitFragmentKey::unique(),
-        None,
-      )
-      .boxed(),
+      {
+        let name = format!("var {name}_namespace_cache;\n");
+        NormalInitFragment::new(
+          name.clone(),
+          InitFragmentStage::StageConstants,
+          -1,
+          InitFragmentKey::HarmonyFakeNamespaceObjectFragment(name),
+          None,
+        )
+        .boxed()
+      },
       HarmonyExportInitFragment::new(module.get_exports_argument(), export_map).boxed(),
     ];
     ctxt.init_fragments.extend_from_slice(&frags);
