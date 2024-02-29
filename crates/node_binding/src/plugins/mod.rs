@@ -71,6 +71,7 @@ pub struct JsHooksAdapterInner {
   pub before_resolve: ThreadsafeFunction<BeforeResolveData, (Option<bool>, BeforeResolveData)>,
   pub after_resolve: ThreadsafeFunction<AfterResolveData, Option<bool>>,
   pub context_module_factory_before_resolve: ThreadsafeFunction<BeforeResolveData, Option<bool>>,
+  pub context_module_factory_after_resolve: ThreadsafeFunction<AfterResolveData, Option<bool>>,
   pub normal_module_factory_create_module: ThreadsafeFunction<CreateModuleData, ()>,
   pub normal_module_factory_resolve_for_scheme:
     ThreadsafeFunction<JsResolveForSchemeInput, JsResolveForSchemeResult>,
@@ -277,6 +278,22 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
     self
       .context_module_factory_before_resolve
       .call(args.clone().into(), ThreadsafeFunctionCallMode::NonBlocking)
+      .into_rspack_result()?
+      .await
+      .unwrap_or_else(|err| panic!("Failed to call this_compilation: {err}"))
+  }
+
+  async fn context_module_after_resolve(
+    &self,
+    _ctx: rspack_core::PluginContext,
+    args: &mut NormalModuleAfterResolveArgs<'_>,
+  ) -> PluginNormalModuleFactoryBeforeResolveOutput {
+    if self.is_hook_disabled(&Hook::ContextModuleFactoryAfterResolve) {
+      return Ok(None);
+    }
+    self
+      .context_module_factory_after_resolve
+      .call((&*args).into(), ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
       .unwrap_or_else(|err| panic!("Failed to call this_compilation: {err}"))
@@ -1004,6 +1021,7 @@ impl JsHooksAdapterPlugin {
       before_resolve,
       after_resolve,
       context_module_factory_before_resolve,
+      context_module_factory_after_resolve,
       normal_module_factory_create_module,
       normal_module_factory_resolve_for_scheme,
       before_compile,
@@ -1080,6 +1098,8 @@ impl JsHooksAdapterPlugin {
       js_fn_into_threadsafe_fn!(finish_modules, env);
     let context_module_factory_before_resolve: ThreadsafeFunction<BeforeResolveData, Option<bool>> =
       js_fn_into_threadsafe_fn!(context_module_factory_before_resolve, env);
+    let context_module_factory_after_resolve: ThreadsafeFunction<AfterResolveData, Option<bool>> =
+      js_fn_into_threadsafe_fn!(context_module_factory_after_resolve, env);
     let before_resolve: ThreadsafeFunction<BeforeResolveData, (Option<bool>, BeforeResolveData)> =
       js_fn_into_threadsafe_fn!(before_resolve, env);
     let after_resolve: ThreadsafeFunction<AfterResolveData, Option<bool>> =
@@ -1149,6 +1169,7 @@ impl JsHooksAdapterPlugin {
         after_compile_tsfn,
         before_resolve,
         context_module_factory_before_resolve,
+        context_module_factory_after_resolve,
         normal_module_factory_create_module,
         normal_module_factory_resolve_for_scheme,
         finish_modules_tsfn,
