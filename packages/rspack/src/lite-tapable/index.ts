@@ -345,6 +345,7 @@ export class AsyncParallelHook<
 				tapsInRange.push(tap);
 			}
 		}
+		if (tapsInRange.length === 0) return done();
 		let counter = tapsInRange.length;
 		for (let tap of tapsInRange) {
 			this._runTapInterceptors(tap);

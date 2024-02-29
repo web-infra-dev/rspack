@@ -83,8 +83,8 @@ impl<I1, I2> AsyncSeries2Hook<I1, I2> {
       additional_taps.extend(interceptor.call(self).await?);
     }
     let mut all_taps = Vec::new();
-    all_taps.extend(&self.taps);
     all_taps.extend(&additional_taps);
+    all_taps.extend(&self.taps);
     all_taps.sort_by_key(|hook| hook.stage());
     for tap in all_taps {
       tap.run(input1, input2).await?;
