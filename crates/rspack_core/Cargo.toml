@@ -12,7 +12,7 @@ async-trait = { workspace = true }
 bitflags = { workspace = true }
 dashmap = { workspace = true }
 derivative = { workspace = true }
-dyn-clone = "1.0.16"
+dyn-clone = "1.0.17"
 either = "1"
 futures = { workspace = true }
 glob-match = "0.2.1"
@@ -24,7 +24,7 @@ json = { workspace = true }
 mime_guess = { workspace = true }
 num-bigint = "0.4.4"
 once_cell = { workspace = true }
-oxc_resolver = { version = "1.5.3" }
+oxc_resolver = { version = "1.5.4" }
 paste = { workspace = true }
 petgraph = { version = "0.6.4", features = ["serde-1"] }
 rayon = { workspace = true }
