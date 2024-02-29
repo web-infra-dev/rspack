@@ -1,11 +1,12 @@
-import path from "path";
-import fs from "fs";
-import util from "util";
-import { rspack, RspackOptions } from "../src";
-import serializer, { normalizePaths } from "jest-serializer-path";
-import merge from "webpack-merge";
-import assert from "assert";
-import { ensureRspackConfigNotExist } from "./utils";
+const path = require("path");
+const fs = require("fs");
+const util = require("util");
+const rspack = require("..");
+const serializer = require("jest-serializer-path");
+const normalizePaths = serializer.normalizePaths;
+const merge = require("webpack-merge").default;
+const assert = require("assert");
+const { ensureRspackConfigNotExist } = require("./utils");
 
 expect.addSnapshotSerializer(serializer);
 
@@ -29,7 +30,7 @@ describe("Diagnostics", function () {
 						config = require(configFile);
 					}
 
-					let options: RspackOptions = merge(
+					let options = merge(
 						{
 							target: "node",
 							context: casePath,

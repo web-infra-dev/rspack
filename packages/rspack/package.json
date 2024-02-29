@@ -37,8 +37,6 @@
     "@rspack/core": "workspace:*",
     "@rspack/plugin-minify": "workspace:^",
     "@rspack/plugin-node-polyfill": "workspace:^",
-    "@swc/core": "^1.3.96",
-    "@swc/jest": "^0.2.29",
     "@types/watchpack": "^2.4.0",
     "@types/webpack-sources": "3.2.3",
     "@types/ws": "8.5.10",
