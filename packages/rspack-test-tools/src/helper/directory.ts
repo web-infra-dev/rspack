@@ -1,5 +1,4 @@
 import fs from "fs";
-import { globSync } from "glob";
 import path from "path";
 
 export const isDirectory = (p: string) => fs.lstatSync(p).isDirectory();

@@ -36,7 +36,7 @@ export interface IMultiTaskProcessorOptions<
 export class MultiTaskProcessor<T extends ECompilerType = ECompilerType.Rspack>
 	implements ITestProcessor
 {
-	private processors: Map<string, BasicTaskProcessor<T>> = new Map();
+	protected processors: Map<string, BasicTaskProcessor<T>> = new Map();
 	constructor(protected options: IMultiTaskProcessorOptions<T>) {}
 
 	async config(context: ITestContext) {
