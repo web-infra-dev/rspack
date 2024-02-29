@@ -1162,6 +1162,10 @@ impl<'parser> JavascriptParser<'parser> {
               true,
               method.function.params.iter().map(|p| Cow::Borrowed(&p.pat)),
               |this| {
+                for param in &method.function.params {
+                  this.walk_pattern(&param.pat);
+                }
+
                 // TODO: `hooks.body_value`;
                 if let Some(body) = &method.function.body {
                   this.walk_block_statement(body);
