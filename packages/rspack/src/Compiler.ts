@@ -11,6 +11,7 @@ import * as binding from "@rspack/binding";
 import { rspack } from "./index";
 import fs from "fs";
 import * as tapable from "tapable";
+import * as liteTapable from "./lite-tapable";
 import { Callback, SyncBailHook, SyncHook } from "tapable";
 import type { WatchOptions } from "watchpack";
 import {
@@ -48,7 +49,6 @@ import { RuntimeGlobals } from "./RuntimeGlobals";
 import { tryRunOrWebpackError } from "./lib/HookWebpackError";
 import { CodeGenerationResult } from "./Module";
 import { canInherentFromParent } from "./builtin-plugin/base";
-import { CreateModuleData } from "@rspack/binding";
 import ExecuteModulePlugin from "./ExecuteModulePlugin";
 
 class Compiler {
@@ -90,7 +90,7 @@ class Compiler {
 		done: tapable.AsyncSeriesHook<Stats>;
 		afterDone: tapable.SyncHook<Stats>;
 		// TODO: CompilationParams
-		compilation: tapable.SyncHook<[Compilation, CompilationParams]>;
+		compilation: liteTapable.SyncHook<[Compilation, CompilationParams]>;
 		// TODO: CompilationParams
 		thisCompilation: tapable.SyncHook<[Compilation, CompilationParams]>;
 		invalid: tapable.SyncHook<[string | null, number]>;
@@ -113,7 +113,7 @@ class Compiler {
 		afterEnvironment: tapable.SyncHook<[]>;
 		afterPlugins: tapable.SyncHook<[Compiler]>;
 		afterResolvers: tapable.SyncHook<[Compiler]>;
-		make: tapable.AsyncParallelHook<[Compilation]>;
+		make: liteTapable.AsyncParallelHook<[Compilation]>;
 		beforeCompile: tapable.AsyncSeriesHook<any>;
 		afterCompile: tapable.AsyncSeriesHook<[Compilation]>;
 		finishModules: tapable.AsyncSeriesHook<[any]>;
@@ -154,7 +154,7 @@ class Compiler {
 				"compilation",
 				"params"
 			]),
-			compilation: new tapable.SyncHook<[Compilation, CompilationParams]>([
+			compilation: new liteTapable.SyncHook<[Compilation, CompilationParams]>([
 				"compilation",
 				"params"
 			]),
@@ -175,7 +175,7 @@ class Compiler {
 			afterEnvironment: new tapable.SyncHook([]),
 			afterPlugins: new tapable.SyncHook(["compiler"]),
 			afterResolvers: new tapable.SyncHook(["compiler"]),
-			make: new tapable.AsyncParallelHook(["compilation"]),
+			make: new liteTapable.AsyncParallelHook(["compilation"]),
 			beforeCompile: new tapable.AsyncSeriesHook(["params"]),
 			afterCompile: new tapable.AsyncSeriesHook(["compilation"]),
 			finishMake: new tapable.AsyncSeriesHook(["compilation"]),
@@ -335,7 +335,11 @@ class Compiler {
 				executeModule: this.#executeModule.bind(this),
 				runtimeModule: this.#runtimeModule.bind(this)
 			},
-			this.#collectCompilerHooks(),
+			{
+				registerCompilerCompilationTaps:
+					this.#registerCompilerCompilationTaps.bind(this),
+				registerCompilerMakeTaps: this.#registerCompilerMakeTaps.bind(this)
+			},
 			createThreadsafeNodeFSFromRaw(this.outputFileSystem),
 			runLoaders.bind(undefined, this)
 		);
@@ -975,39 +979,46 @@ class Compiler {
 		this.#moduleExecutionResultsMap.set(id, executeResult);
 	}
 
-	#collectCompilerHooks(): binding.JsHook[] {
-		return [
-			...this.#createCompilerCompilationHooks(),
-			...this.#createCompilerMakeHooks()
-		];
-	}
-
-	#createCompilerCompilationHooks(): binding.JsHook[] {
+	#registerCompilerCompilationTaps(stages: number[]): binding.JsTap[] {
 		if (!this.hooks.compilation.isUsed()) return [];
-		return [
-			{
-				type: binding.JsHookType.CompilerCompilation,
+		const breakpoints = [-Infinity, ...stages, Infinity];
+		const jsTaps = [];
+		for (let i = 0; i < breakpoints.length - 1; i++) {
+			const stageRange = liteTapable.StageRange.from(
+				breakpoints[i],
+				breakpoints[i + 1]
+			);
+			jsTaps.push({
 				function: (native: binding.JsCompilation) => {
-					this.hooks.compilation.call(this.compilation, {
+					this.hooks.compilation.callStageRange(stageRange, this.compilation, {
 						normalModuleFactory: this.compilation.normalModuleFactory!
 					});
-					this.#updateDisabledHooks();
-				}
-			}
-		];
+					if (i + 1 >= breakpoints.length - 1) this.#updateDisabledHooks();
+				},
+				stage: stageRange.from + 1
+			});
+		}
+		return jsTaps;
 	}
 
-	#createCompilerMakeHooks(): binding.JsHook[] {
+	#registerCompilerMakeTaps(stages: number[]): binding.JsTap[] {
 		if (!this.hooks.make.isUsed()) return [];
-		return [
-			{
-				type: binding.JsHookType.CompilerMake,
-				function: (native: binding.JsCompilation) => {
-					this.hooks.make.promise(this.compilation);
-					this.#updateDisabledHooks();
-				}
-			}
-		];
+		const breakpoints = [-Infinity, ...stages, Infinity];
+		const jsTaps = [];
+		for (let i = 0; i < breakpoints.length - 1; i++) {
+			const stageRange = liteTapable.StageRange.from(
+				breakpoints[i],
+				breakpoints[i + 1]
+			);
+			jsTaps.push({
+				function: async (native: binding.JsCompilation) => {
+					await this.hooks.make.promiseStageRange(stageRange, this.compilation);
+					if (i + 1 >= breakpoints.length - 1) this.#updateDisabledHooks();
+				},
+				stage: stageRange.from + 1
+			});
+		}
+		return jsTaps;
 	}
 
 	#newCompilation(native: binding.JsCompilation) {
