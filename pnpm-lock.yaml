@@ -596,9 +596,6 @@ importers:
       internal-ip:
         specifier: 6.2.0
         version: 6.2.0
-      source-map-support:
-        specifier: ^0.5.19
-        version: 0.5.21
 
   packages/rspack-dev-server:
     dependencies:
