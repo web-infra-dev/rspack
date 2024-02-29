@@ -1,5 +1,6 @@
 {
   "name": "webpack-cli-test",
+  "private": true,
   "scripts": {
     "test:cli": "jest test --reporters=default"
   },
