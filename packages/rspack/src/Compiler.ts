@@ -656,7 +656,7 @@ class Compiler {
 			if (
 				typeof hook !== "undefined" &&
 				(hook.taps
-					? hook.taps.length === 0
+					? !hook.isUsed()
 					: hook._map
 					? /* hook map */ hook._map.size === 0
 					: false)
