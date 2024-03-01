@@ -153,12 +153,12 @@ impl NormalModuleFactory {
       .as_module_dependency()
       .expect("should be module dependency");
     let importer = data.issuer_identifier.as_ref();
-    let mut request_without_match_resource = dependency.request();
+    let mut unresolved_resource = dependency.request();
 
     let mut file_dependencies = Default::default();
     let mut missing_dependencies = Default::default();
 
-    let scheme = get_scheme(request_without_match_resource);
+    let scheme = get_scheme(unresolved_resource);
     let context_scheme = get_scheme(data.context.as_ref());
     let context = data.context.as_path();
     let plugin_driver = &self.plugin_driver;
@@ -172,193 +172,197 @@ impl NormalModuleFactory {
     let mut no_pre_post_auto_loaders = false;
 
     // with scheme, windows absolute path is considered scheme by `url`
-    let (resource_data, from_cache) = if scheme != Scheme::None
-      && !Path::is_absolute(Path::new(request_without_match_resource))
-    {
-      // resource with scheme
-      (
-        plugin_driver
-          .normal_module_factory_resolve_for_scheme(ResourceData::new(
-            request_without_match_resource.to_string(),
-            "".into(),
-          ))
-          .await?,
-        false,
-      )
-    }
-    // TODO: resource within scheme, call resolveInScheme hook
-    else {
-      {
-        request_without_match_resource = {
-          let match_resource_match = MATCH_RESOURCE_REGEX.captures(request_without_match_resource);
-          if let Some(m) = match_resource_match {
-            let mut match_resource: String = m
-              .get(1)
-              .expect("Should have match resource")
-              .as_str()
-              .to_owned();
-            let mut chars = match_resource.chars();
-            let first_char = chars.next();
-            let second_char = chars.next();
-
-            if matches!(first_char, Some('.'))
-              && (matches!(second_char, Some('/'))
-                || (matches!(second_char, Some('.')) && matches!(chars.next(), Some('/'))))
-            {
-              // if matchResources startsWith ../ or ./
-              match_resource = context
-                .join(match_resource)
-                .absolutize()
-                .to_string_lossy()
-                .to_string();
-            }
-
-            let ResourceParsedData {
-              path,
-              query,
-              fragment,
-            } = parse_resource(&match_resource).expect("Should parse resource");
-            match_resource_data = Some(
-              ResourceData::new(match_resource, path)
-                .query_optional(query)
-                .fragment_optional(fragment),
-            );
-
-            // e.g. ./index.js!=!
-            let whole_matched = m.get(0).expect("Whole matched").as_str();
-
-            match request_without_match_resource
-              .char_indices()
-              .nth(whole_matched.chars().count())
-            {
-              Some((pos, _)) => &request_without_match_resource[pos..],
-              None => {
-                unreachable!("Invalid dependency: {:?}", &data.dependency)
-              }
-            }
-          } else {
-            request_without_match_resource
-          }
-        };
-
-        // dbg!(&match_resource_data);
-
-        let mut request = request_without_match_resource.chars();
-        let first_char = request.next();
-        let second_char = request.next();
-
-        if first_char.is_none() {
-          let span = dependency.source_span().unwrap_or_default();
-          return Err(EmptyDependency::new(span).into());
-        }
-
-        // See: https://webpack.js.org/concepts/loaders/#inline
-        no_pre_auto_loaders = matches!(first_char, Some('-')) && matches!(second_char, Some('!'));
-        no_auto_loaders = no_pre_auto_loaders || matches!(first_char, Some('!'));
-        no_pre_post_auto_loaders =
-          matches!(first_char, Some('!')) && matches!(second_char, Some('!'));
-
-        let mut raw_elements = {
-          let s = match request_without_match_resource.char_indices().nth({
-            if no_pre_auto_loaders || no_pre_post_auto_loaders {
-              2
-            } else if no_auto_loaders {
-              1
-            } else {
-              0
-            }
-          }) {
-            Some((pos, _)) => &request_without_match_resource[pos..],
-            None => request_without_match_resource,
-          };
-          ELEMENT_SPLIT_REGEX.split(s).collect::<Vec<_>>()
-        };
-
-        request_without_match_resource = raw_elements
-          .pop()
-          .ok_or_else(|| error!("Invalid request: {request_without_match_resource}"))?;
-
-        inline_loaders.extend(raw_elements.into_iter().map(|r| ModuleRuleUseLoader {
-          loader: r.to_owned(),
-          options: None,
-        }));
-      }
-
-      if request_without_match_resource.is_empty() {
+    let (resource_data, from_cache) =
+      if scheme != Scheme::None && !Path::is_absolute(Path::new(unresolved_resource)) {
+        // resource with scheme
         (
-          ResourceData::new("".to_string(), Path::new("").to_path_buf()),
+          plugin_driver
+            .normal_module_factory_resolve_for_scheme(ResourceData::new(
+              unresolved_resource.to_string(),
+              "".into(),
+            ))
+            .await?,
           false,
         )
-      } else {
-        let optional = dependency.get_optional();
-
-        let resolve_args = ResolveArgs {
-          importer,
-          issuer: data.issuer.as_deref(),
-          context: if context_scheme != Scheme::None {
-            self.options.context.clone()
-          } else {
-            data.context.clone()
-          },
-          specifier: request_without_match_resource,
-          dependency_type: dependency.dependency_type(),
-          dependency_category: dependency.category(),
-          span: dependency.source_span(),
-          // take the options is safe here, because it
-          // is not used in after_resolve hooks
-          resolve_options: data.resolve_options.take(),
-          resolve_to_context: false,
-          optional,
-          file_dependencies: &mut file_dependencies,
-          missing_dependencies: &mut missing_dependencies,
-        };
-
-        // default resolve
-        let (resource_data, from_cache) = match self
-          .cache
-          .resolve_module_occasion
-          .use_cache(resolve_args, |args| resolve(args, plugin_driver))
-          .await
+      }
+      // TODO: resource within scheme, call resolveInScheme hook
+      else {
         {
-          Ok(result) => result,
-          Err(err) => (Err(err), false),
-        };
+          unresolved_resource = {
+            let match_resource_match = MATCH_RESOURCE_REGEX.captures(unresolved_resource);
+            if let Some(m) = match_resource_match {
+              let mut match_resource: String = m
+                .get(1)
+                .expect("Should have match resource")
+                .as_str()
+                .to_owned();
+              let mut chars = match_resource.chars();
+              let first_char = chars.next();
+              let second_char = chars.next();
 
-        match resource_data {
-          Ok(ResolveResult::Resource(resource)) => {
-            let uri = resource.full_path().display().to_string();
-            (
-              ResourceData::new(uri, resource.path)
-                .query_optional(resource.query)
-                .fragment_optional(resource.fragment)
-                .description_optional(resource.description_data),
-              from_cache,
-            )
+              if matches!(first_char, Some('.'))
+                && (matches!(second_char, Some('/'))
+                  || (matches!(second_char, Some('.')) && matches!(chars.next(), Some('/'))))
+              {
+                // if matchResources startsWith ../ or ./
+                match_resource = context
+                  .join(match_resource)
+                  .absolutize()
+                  .to_string_lossy()
+                  .to_string();
+              }
+
+              let ResourceParsedData {
+                path,
+                query,
+                fragment,
+              } = parse_resource(&match_resource).expect("Should parse resource");
+              match_resource_data = Some(
+                ResourceData::new(match_resource, path)
+                  .query_optional(query)
+                  .fragment_optional(fragment),
+              );
+
+              // e.g. ./index.js!=!
+              let whole_matched = m.get(0).expect("Whole matched").as_str();
+
+              match unresolved_resource
+                .char_indices()
+                .nth(whole_matched.chars().count())
+              {
+                Some((pos, _)) => &unresolved_resource[pos..],
+                None => {
+                  unreachable!("Invalid dependency: {:?}", &data.dependency)
+                }
+              }
+            } else {
+              unresolved_resource
+            }
+          };
+
+          // dbg!(&match_resource_data);
+
+          let mut request = unresolved_resource.chars();
+          let first_char = request.next();
+          let second_char = request.next();
+
+          if first_char.is_none() {
+            let span = dependency.source_span().unwrap_or_default();
+            return Err(EmptyDependency::new(span).into());
           }
-          Ok(ResolveResult::Ignored) => {
-            let ident = format!("{}/{}", &data.context, request_without_match_resource);
-            let module_identifier = ModuleIdentifier::from(format!("ignored|{ident}"));
 
-            let raw_module = RawModule::new(
-              "/* (ignored) */".to_owned(),
-              module_identifier,
-              format!("{ident} (ignored)"),
-              Default::default(),
-            )
-            .boxed();
+          // See: https://webpack.js.org/concepts/loaders/#inline
+          no_pre_auto_loaders = matches!(first_char, Some('-')) && matches!(second_char, Some('!'));
+          no_auto_loaders = no_pre_auto_loaders || matches!(first_char, Some('!'));
+          no_pre_post_auto_loaders =
+            matches!(first_char, Some('!')) && matches!(second_char, Some('!'));
 
-            return Ok(Some(
-              ModuleFactoryResult::new_with_module(raw_module).from_cache(from_cache),
-            ));
-          }
-          Err(err) => {
-            data.add_file_dependencies(file_dependencies);
-            data.add_missing_dependencies(missing_dependencies);
-            return Err(err);
+          let mut raw_elements = {
+            let s = match unresolved_resource.char_indices().nth({
+              if no_pre_auto_loaders || no_pre_post_auto_loaders {
+                2
+              } else if no_auto_loaders {
+                1
+              } else {
+                0
+              }
+            }) {
+              Some((pos, _)) => &unresolved_resource[pos..],
+              None => unresolved_resource,
+            };
+            ELEMENT_SPLIT_REGEX.split(s).collect::<Vec<_>>()
+          };
+
+          unresolved_resource = raw_elements
+            .pop()
+            .ok_or_else(|| error!("Invalid request: {unresolved_resource}"))?;
+
+          inline_loaders.extend(raw_elements.into_iter().map(|r| ModuleRuleUseLoader {
+            loader: r.to_owned(),
+            options: None,
+          }));
+        }
+
+        if unresolved_resource.is_empty() || unresolved_resource.starts_with("?") {
+          let ResourceParsedData {
+            path,
+            query,
+            fragment,
+          } = parse_resource(unresolved_resource).expect("Should parse resource");
+          let resource_data = ResourceData::new(unresolved_resource.to_string(), path)
+            .query_optional(query)
+            .fragment_optional(fragment);
+          (resource_data, false)
+        } else {
+          let optional = dependency.get_optional();
+
+          let resolve_args = ResolveArgs {
+            importer,
+            issuer: data.issuer.as_deref(),
+            context: if context_scheme != Scheme::None {
+              self.options.context.clone()
+            } else {
+              data.context.clone()
+            },
+            specifier: unresolved_resource,
+            dependency_type: dependency.dependency_type(),
+            dependency_category: dependency.category(),
+            span: dependency.source_span(),
+            // take the options is safe here, because it
+            // is not used in after_resolve hooks
+            resolve_options: data.resolve_options.take(),
+            resolve_to_context: false,
+            optional,
+            file_dependencies: &mut file_dependencies,
+            missing_dependencies: &mut missing_dependencies,
+          };
+
+          // default resolve
+          let (resource_data, from_cache) = match self
+            .cache
+            .resolve_module_occasion
+            .use_cache(resolve_args, |args| resolve(args, plugin_driver))
+            .await
+          {
+            Ok(result) => result,
+            Err(err) => (Err(err), false),
+          };
+
+          match resource_data {
+            Ok(ResolveResult::Resource(resource)) => {
+              let uri = resource.full_path().display().to_string();
+              (
+                ResourceData::new(uri, resource.path)
+                  .query_optional(resource.query)
+                  .fragment_optional(resource.fragment)
+                  .description_optional(resource.description_data),
+                from_cache,
+              )
+            }
+            Ok(ResolveResult::Ignored) => {
+              let ident = format!("{}/{}", &data.context, unresolved_resource);
+              let module_identifier = ModuleIdentifier::from(format!("ignored|{ident}"));
+
+              let raw_module = RawModule::new(
+                "/* (ignored) */".to_owned(),
+                module_identifier,
+                format!("{ident} (ignored)"),
+                Default::default(),
+              )
+              .boxed();
+
+              return Ok(Some(
+                ModuleFactoryResult::new_with_module(raw_module).from_cache(from_cache),
+              ));
+            }
+            Err(err) => {
+              data.add_file_dependencies(file_dependencies);
+              data.add_missing_dependencies(missing_dependencies);
+              return Err(err);
+            }
           }
         }
-      }
-    };
+      };
 
     let resolved_module_rules = if let Some(match_resource_data) = &mut match_resource_data
       && let Some(captures) = MATCH_WEBPACK_EXT_REGEX.captures(&match_resource_data.resource)
