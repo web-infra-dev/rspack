@@ -51,6 +51,7 @@ pub struct BuildInfo {
   pub all_star_exports: Vec<DependencyId>,
   pub need_create_require: bool,
   pub json_data: Option<JsonValue>,
+  pub directives: Vec<String>,
 }
 
 impl Default for BuildInfo {
@@ -68,6 +69,7 @@ impl Default for BuildInfo {
       all_star_exports: Vec::default(),
       need_create_require: false,
       json_data: None,
+      directives: Vec::default(),
     }
   }
 }

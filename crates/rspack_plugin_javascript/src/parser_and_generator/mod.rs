@@ -23,6 +23,7 @@ use crate::ast::CodegenOptions;
 use crate::inner_graph_plugin::InnerGraphPlugin;
 use crate::visitors::ScanDependenciesResult;
 use crate::visitors::{run_before_pass, scan_dependencies, swc_visitor::resolver};
+use crate::ReactServerComponentsVisitor;
 use crate::{SideEffectsFlagPluginVisitor, SyntaxContextInfo};
 
 #[derive(Debug)]
@@ -222,6 +223,12 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     } else {
       OptimizeAnalyzeResult::default()
     };
+
+    ast.transform(|program, _context| {
+      let mut visitor = ReactServerComponentsVisitor::new();
+      program.visit_with(&mut visitor);
+      build_info.directives = visitor.directives;
+    });
 
     if compiler_options.is_new_tree_shaking()
       && compiler_options.optimization.side_effects.is_true()
