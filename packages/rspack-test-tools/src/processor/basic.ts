@@ -87,12 +87,9 @@ export class BasicTaskProcessor<T extends ECompilerType = ECompilerType.Rspack>
 			}
 
 			for (let bundle of bundles!) {
-				const runner = (this._options.getRunner || this.createRunner)(
-					env,
-					context,
-					options,
-					bundle
-				);
+				const runner = (
+					this._options.getRunner || this.createRunner.bind(this)
+				)(env, context, options, bundle);
 				if (!runner) {
 					throw new Error("create test runner failed");
 				}

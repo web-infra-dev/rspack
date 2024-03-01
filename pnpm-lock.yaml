@@ -878,6 +878,9 @@ importers:
       normalize.css:
         specifier: ^8.0.0
         version: 8.0.1
+      npm-run-all:
+        specifier: 4.1.5
+        version: 4.1.5
       react:
         specifier: 18.0.0
         version: 18.0.0

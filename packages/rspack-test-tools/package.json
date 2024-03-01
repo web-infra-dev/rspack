@@ -16,6 +16,7 @@
     "build:viewer": "rspack build",
     "dev:viewer": "rspack serve",
     "dev": "tsc -b -w",
+    "test": "run-s test:**",
     "test:diff": "cross-env RSPACK_DIFF=true NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --runInBand --logHeapUsage --testPathPattern \".diff.test.ts\"",
     "test:config": "cross-env NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --runInBand --logHeapUsage --testPathPattern \"ConfigTestCases.basictest.ts\"",
     "test:hot:node": "cross-env NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --runInBand --logHeapUsage --testPathPattern \"HotTestCasesNode.test.ts\"",
@@ -24,7 +25,8 @@
     "test:hash": "cross-env NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --runInBand --logHeapUsage --testPathPattern \"HashTestCases.test.ts\"",
     "test:stats": "cross-env NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --runInBand --logHeapUsage --testPathPattern \"StatsTestCases.basictest.ts\"",
     "test:diagnostic": "cross-env NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --runInBand --logHeapUsage --testPathPattern \"Diagnostics.test.ts\"",
-    "test:watch": "cross-env NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --runInBand --logHeapUsage --testPathPattern \"WatchTestCases.longtest.ts\""
+    "test:watch": "cross-env NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --runInBand --logHeapUsage --testPathPattern \"WatchTestCases.longtest.ts\"",
+    "test:normal": "cross-env NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --runInBand --logHeapUsage --testPathPattern \"TestCasesNormal.basictest.ts\""
   },
   "files": [
     "client",
@@ -74,6 +76,7 @@
     "monaco-editor": "0.46.0",
     "monaco-editor-webpack-plugin": "7.1.0",
     "normalize.css": "^8.0.0",
+    "npm-run-all": "4.1.5",
     "react": "18.0.0",
     "react-dom": "18.0.0",
     "react-refresh": "0.14.0"

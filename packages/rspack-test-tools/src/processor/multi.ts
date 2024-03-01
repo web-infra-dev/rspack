@@ -2,8 +2,8 @@ import { readConfigFile } from "../helper";
 import {
 	ECompilerType,
 	ITestContext,
-	ITestEnv,
 	ITestProcessor,
+	ITestRunner,
 	TCompiler,
 	TCompilerOptions,
 	TTestConfig
@@ -39,6 +39,7 @@ export class MultiTaskProcessor<T extends ECompilerType = ECompilerType.Rspack>
 {
 	protected multiCompilerOptions: TCompilerOptions<T>[] = [];
 	protected files: Record<string, number> = {};
+	protected runners: ITestRunner[] = [];
 	constructor(protected _multiOptions: IMultiTaskProcessorOptions<T>) {
 		super({
 			getCompiler: _multiOptions.getCompiler,
@@ -53,8 +54,8 @@ export class MultiTaskProcessor<T extends ECompilerType = ECompilerType.Rspack>
 						const bundles = Array.isArray(curBundles)
 							? curBundles
 							: curBundles
-								? [curBundles]
-								: [];
+							? [curBundles]
+							: [];
 						for (const bundle of bundles) {
 							this.files[bundle] = index;
 						}
@@ -67,12 +68,16 @@ export class MultiTaskProcessor<T extends ECompilerType = ECompilerType.Rspack>
 				);
 			},
 			getRunner: (env, context, options, file) => {
-				return this.createRunner(
-					env,
-					context,
-					this.multiCompilerOptions[this.files[file]],
-					file
-				)!;
+				const index = this.files[file];
+				this.runners[index] =
+					this.runners[index] ||
+					this.createRunner(
+						env,
+						context,
+						this.multiCompilerOptions[this.files[file]],
+						file
+					)!;
+				return this.runners[index];
 			},
 			getCompilerOptions: () => ({}),
 			testConfig: _multiOptions.testConfig,

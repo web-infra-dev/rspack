@@ -22,29 +22,30 @@ type TUpdateOptions = {
 };
 
 export class RspackHotProcessor extends BasicTaskProcessor<ECompilerType.Rspack> {
-	private updateOptions: TUpdateOptions;
+	protected updateOptions: TUpdateOptions;
+	protected runner: ITestRunner | null = null;
 
-	constructor(options: IRspackHotProcessorOptions) {
+	constructor(protected _hotOptions: IRspackHotProcessorOptions) {
 		const fakeUpdateLoaderOptions: TUpdateOptions = {
 			updateIndex: 0
 		};
 		super({
 			preOptions: RspackHotProcessor.preOptions(
-				options,
+				_hotOptions,
 				fakeUpdateLoaderOptions
 			),
 			postOptions: RspackHotProcessor.postOptions(
-				options,
+				_hotOptions,
 				fakeUpdateLoaderOptions
 			),
 			getCompiler: () => require("@rspack/core"),
-			getBundle: RspackHotProcessor.findBundle(options),
+			getBundle: RspackHotProcessor.findBundle(_hotOptions),
 			getCompilerOptions: context =>
 				readConfigFile<ECompilerType.Rspack>(context.getSource(), [
 					"rspack.config.js",
 					"webpack.config.js"
 				])[0],
-			name: options.name,
+			name: _hotOptions.name,
 			testConfig: {
 				timeout: 10000
 			}
@@ -55,11 +56,11 @@ export class RspackHotProcessor extends BasicTaskProcessor<ECompilerType.Rspack>
 	protected createRunner(
 		env: ITestEnv,
 		context: ITestContext,
-		options: TCompilerOptions<ECompilerType.Rspack>
+		hotOptions: TCompilerOptions<ECompilerType.Rspack>
 	): ITestRunner | null {
-		let runner: ITestRunner | null = null;
+		if (this.runner) return this.runner;
 		context.stats<ECompilerType.Rspack>((_, stats) => {
-			runner = new HotRunner({
+			this.runner = new HotRunner({
 				env,
 				stats: stats!,
 				name: this._options.name,
@@ -67,7 +68,7 @@ export class RspackHotProcessor extends BasicTaskProcessor<ECompilerType.Rspack>
 				testConfig: this._options.testConfig,
 				source: context.getSource(),
 				dist: context.getDist(),
-				compilerOptions: options,
+				compilerOptions: hotOptions,
 				next: (
 					callback: (error: Error | null, stats?: StatsCompilation) => void
 				) => {
@@ -110,11 +111,11 @@ export class RspackHotProcessor extends BasicTaskProcessor<ECompilerType.Rspack>
 				}
 			});
 		}, this._options.name);
-		return runner;
+		return this.runner;
 	}
 
 	static findBundle(
-		options: IRspackHotProcessorOptions
+		hotOptions: IRspackHotProcessorOptions
 	): IBasicProcessorOptions<ECompilerType.Rspack>["getBundle"] {
 		return context => {
 			let files: string[] = [];
@@ -122,7 +123,10 @@ export class RspackHotProcessor extends BasicTaskProcessor<ECompilerType.Rspack>
 			context.stats((_compiler, stats) => {
 				if (stats) {
 					const info = stats.toJson({ all: false, entrypoints: true });
-					if (options.target === "web" || options.target === "webworker") {
+					if (
+						hotOptions.target === "web" ||
+						hotOptions.target === "webworker"
+					) {
 						for (const file of info.entrypoints!.main.assets!) {
 							if (file.name.endsWith(".js")) {
 								files.push(file.name);
@@ -137,13 +141,13 @@ export class RspackHotProcessor extends BasicTaskProcessor<ECompilerType.Rspack>
 						files.push(assets[assets.length - 1].name);
 					}
 				}
-			}, options.name);
+			}, hotOptions.name);
 			return [...prefiles, ...files];
 		};
 	}
 
 	static preOptions(
-		options: IRspackHotProcessorOptions,
+		hotOptions: IRspackHotProcessorOptions,
 		updateOptions: TUpdateOptions
 	): IBasicProcessorOptions<ECompilerType.Rspack>["preOptions"] {
 		return (context: ITestContext) => ({
@@ -160,12 +164,12 @@ export class RspackHotProcessor extends BasicTaskProcessor<ECompilerType.Rspack>
 			optimization: {
 				moduleIds: "named"
 			},
-			target: options.target,
+			target: hotOptions.target,
 			plugins: [new rspack.HotModuleReplacementPlugin()]
 		});
 	}
 	static postOptions(
-		options: IRspackHotProcessorOptions,
+		hotOptions: IRspackHotProcessorOptions,
 		updateOptions: TUpdateOptions
 	): IBasicProcessorOptions<ECompilerType.Rspack>["postOptions"] {
 		return (
