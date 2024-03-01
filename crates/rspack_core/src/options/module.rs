@@ -246,10 +246,31 @@ pub struct AssetGeneratorOptions {
   pub data_url: Option<AssetGeneratorDataUrl>,
 }
 
-#[derive(Debug, Clone)]
+pub type AssetGeneratorDataUrlFn =
+  Box<dyn Fn(&str) -> BoxFuture<'static, Result<String>> + Sync + Send>;
+
 pub enum AssetGeneratorDataUrl {
   Options(AssetGeneratorDataUrlOptions),
-  // TODO: Function
+  Func(AssetGeneratorDataUrlFn),
+}
+
+impl fmt::Debug for AssetGeneratorDataUrl {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      Self::Options(i) => i.fmt(f),
+      Self::Func(_) => "Func(...)".fmt(f),
+    }
+  }
+}
+
+impl Clone for AssetGeneratorDataUrl {
+  fn clone(&self) -> Self {
+    match self {
+      Self::Options(i) => Self::Options(i.clone()),
+      // FIXME: unimplemented
+      Self::Func(_) => unimplemented!("Func(...)"),
+    }
+  }
 }
 
 #[derive(Debug, Clone)]
