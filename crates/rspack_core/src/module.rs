@@ -53,6 +53,7 @@ pub struct BuildInfo {
   pub json_data: Option<JsonValue>,
   pub top_level_declarations: Option<HashSet<Atom>>,
   pub module_concatenation_bailout: Option<String>,
+  pub directives: Vec<String>,
 }
 
 impl Default for BuildInfo {
@@ -71,6 +72,7 @@ impl Default for BuildInfo {
       json_data: None,
       top_level_declarations: None,
       module_concatenation_bailout: None,
+      directives: Vec::default(),
     }
   }
 }

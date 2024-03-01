@@ -16,6 +16,7 @@ use std::borrow::Cow;
 use std::collections::hash_map::Entry;
 use std::hash::Hash;
 use std::sync::LazyLock;
+mod react_server_components_plugin;
 
 pub use drive::*;
 pub use flag_dependency_exports_plugin::*;
@@ -23,6 +24,7 @@ pub use flag_dependency_usage_plugin::*;
 use indoc::indoc;
 pub use mangle_exports_plugin::*;
 pub use module_concatenation_plugin::*;
+pub use react_server_components_plugin::*;
 use rspack_ast::javascript::Ast;
 use rspack_collections::{Identifier, IdentifierDashMap, IdentifierLinkedMap, IdentifierMap};
 use rspack_core::concatenated_module::find_new_name;

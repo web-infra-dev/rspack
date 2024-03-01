@@ -24,7 +24,7 @@ use crate::dependency::HarmonyCompatibilityDependency;
 use crate::visitors::{scan_dependencies, swc_visitor::resolver};
 use crate::visitors::{semicolon, ScanDependenciesResult};
 use crate::{BoxJavascriptParserPlugin, SideEffectsFlagPluginVisitor, SyntaxContextInfo};
-
+use crate::ReactServerComponentsVisitor;
 #[derive(Default)]
 pub struct JavaScriptParserAndGenerator {
   parser_plugins: Vec<BoxJavascriptParserPlugin>,
@@ -222,7 +222,15 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     diagnostics.append(&mut warning_diagnostics);
     let mut side_effects_bailout = None;
 
-    if compiler_options.optimization.side_effects.is_true() {
+    ast.transform(|program, _context| {
+      let mut visitor = ReactServerComponentsVisitor::new();
+      program.visit_with(&mut visitor);
+      build_info.directives = visitor.directives;
+    });
+
+    if compiler_options.is_new_tree_shaking()
+      && compiler_options.optimization.side_effects.is_true()
+    {
       ast.transform(|program, context| {
         let unresolved_ctxt = SyntaxContext::empty().apply_mark(context.unresolved_mark);
         let mut visitor = SideEffectsFlagPluginVisitor::new(
