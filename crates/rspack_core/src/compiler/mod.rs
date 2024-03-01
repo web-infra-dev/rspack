@@ -32,12 +32,15 @@ use crate::{
 use crate::{BoxPlugin, ExportInfo, UsageState};
 use crate::{CompilationParams, ContextModuleFactory, NormalModuleFactory};
 
+pub type CompilerCompilationHook = AsyncSeries2Hook<Compilation, CompilationParams>;
+pub type CompilerMakeHook = AsyncSeries2Hook<Compilation, Vec<MakeParam>>;
+
 #[derive(Debug, Default)]
 pub struct CompilerHooks {
   // should be SyncHook, but rspack need call js hook
-  pub compilation: AsyncSeries2Hook<Compilation, CompilationParams>,
+  pub compilation: CompilerCompilationHook,
   // should be AsyncParallelHook, but rspack need add MakeParam to incremental rebuild
-  pub make: AsyncSeries2Hook<Compilation, Vec<MakeParam>>,
+  pub make: CompilerMakeHook,
 }
 
 #[derive(Debug)]

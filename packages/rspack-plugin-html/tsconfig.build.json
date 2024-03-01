@@ -4,5 +4,9 @@
     "sourceMap": false,
     "declarationMap": false,
   },
-  "references": []
+  "references": [
+    {
+      "path": "../rspack/tsconfig.build.json"
+    }
+  ]
 }

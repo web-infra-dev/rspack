@@ -372,6 +372,22 @@ impl PluginDriver {
     Ok(None)
   }
 
+  pub async fn context_module_after_resolve(
+    &self,
+    args: &mut NormalModuleAfterResolveArgs<'_>,
+  ) -> PluginNormalModuleFactoryAfterResolveOutput {
+    for plugin in &self.plugins {
+      tracing::trace!("running resolve for scheme:{}", plugin.name());
+      if let Some(data) = plugin
+        .context_module_after_resolve(PluginContext::new(), args)
+        .await?
+      {
+        return Ok(Some(data));
+      }
+    }
+    Ok(None)
+  }
+
   pub async fn normal_module_factory_resolve_for_scheme(
     &self,
     args: ResourceData,

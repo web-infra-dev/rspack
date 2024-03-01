@@ -118,6 +118,14 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(None)
   }
 
+  async fn context_module_after_resolve(
+    &self,
+    _ctx: PluginContext,
+    _args: &mut NormalModuleAfterResolveArgs<'_>,
+  ) -> PluginNormalModuleFactoryAfterResolveOutput {
+    Ok(None)
+  }
+
   async fn normal_module_factory_create_module(
     &self,
     _ctx: PluginContext,

@@ -37,6 +37,7 @@ pub struct JsHooks {
   pub before_resolve: JsFunction,
   pub after_resolve: JsFunction,
   pub context_module_factory_before_resolve: JsFunction,
+  pub context_module_factory_after_resolve: JsFunction,
   pub normal_module_factory_create_module: JsFunction,
   pub normal_module_factory_resolve_for_scheme: JsFunction,
   pub chunk_asset: JsFunction,
@@ -44,17 +45,4 @@ pub struct JsHooks {
   pub still_valid_module: JsFunction,
   pub execute_module: JsFunction,
   pub runtime_module: JsFunction,
-}
-
-#[napi(string_enum)]
-#[derive(Debug)]
-pub enum JsHookType {
-  CompilerCompilation,
-  CompilerMake,
-}
-
-#[napi(object)]
-pub struct JsHook {
-  pub r#type: JsHookType,
-  pub function: JsFunction,
 }

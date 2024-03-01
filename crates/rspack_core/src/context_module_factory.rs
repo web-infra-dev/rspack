@@ -5,8 +5,9 @@ use tracing::instrument;
 
 use crate::{
   cache::Cache, resolve, BoxModule, ContextModule, ContextModuleOptions, ModuleExt, ModuleFactory,
-  ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, NormalModuleBeforeResolveArgs,
-  RawModule, ResolveArgs, ResolveResult, SharedPluginDriver,
+  ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, NormalModuleAfterResolveArgs,
+  NormalModuleBeforeResolveArgs, PluginNormalModuleFactoryAfterResolveOutput, RawModule,
+  ResolveArgs, ResolveResult, SharedPluginDriver,
 };
 
 #[derive(Debug)]
@@ -22,7 +23,14 @@ impl ModuleFactory for ContextModuleFactory {
     if let Ok(Some(before_resolve_result)) = self.before_resolve(data).await {
       return Ok(before_resolve_result);
     }
-    Ok(self.resolve(data).await?)
+
+    let factorize_result = self.resolve(data).await?;
+
+    if let Some(false) = self.after_resolve(data, &factorize_result).await? {
+      return Ok(ModuleFactoryResult::default());
+    }
+
+    Ok(factorize_result)
   }
 }
 
@@ -139,5 +147,29 @@ impl ContextModuleFactory {
       factory_meta,
       from_cache,
     })
+  }
+
+  async fn after_resolve(
+    &self,
+    data: &mut ModuleFactoryCreateData,
+    factory_result: &ModuleFactoryResult,
+  ) -> PluginNormalModuleFactoryAfterResolveOutput {
+    let dependency = data
+      .dependency
+      .as_context_dependency()
+      .expect("should be module dependency");
+
+    self
+      .plugin_driver
+      .context_module_after_resolve(&mut NormalModuleAfterResolveArgs {
+        request: dependency.request(),
+        context: data.context.as_ref(),
+        file_dependencies: &data.file_dependencies,
+        context_dependencies: &data.context_dependencies,
+        missing_dependencies: &data.missing_dependencies,
+        diagnostics: &mut data.diagnostics,
+        factory_meta: &factory_result.factory_meta,
+      })
+      .await
   }
 }

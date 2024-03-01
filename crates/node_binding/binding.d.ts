@@ -61,7 +61,7 @@ export class JsStats {
 }
 
 export class Rspack {
-  constructor(options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, jsHooks: JsHooks, compilerHooks: Array<JsHook>, outputFilesystem: ThreadsafeNodeFS, jsLoaderRunner: (...args: any[]) => any)
+  constructor(options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, jsHooks: JsHooks, registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, jsLoaderRunner: (...args: any[]) => any)
   unsafe_set_disabled_hooks(hooks: Array<string>): void
   /**
    * Build with the given option passed to the constructor
@@ -325,11 +325,6 @@ export interface JsExecuteModuleResult {
   id: number
 }
 
-export interface JsHook {
-  type: JsHookType
-  function: (...args: any[]) => any
-}
-
 export interface JsHooks {
   processAssetsStageAdditional: (...args: any[]) => any
   processAssetsStagePreProcess: (...args: any[]) => any
@@ -365,6 +360,7 @@ export interface JsHooks {
   beforeResolve: (...args: any[]) => any
   afterResolve: (...args: any[]) => any
   contextModuleFactoryBeforeResolve: (...args: any[]) => any
+  contextModuleFactoryAfterResolve: (...args: any[]) => any
   normalModuleFactoryCreateModule: (...args: any[]) => any
   normalModuleFactoryResolveForScheme: (...args: any[]) => any
   chunkAsset: (...args: any[]) => any
@@ -372,11 +368,6 @@ export interface JsHooks {
   stillValidModule: (...args: any[]) => any
   executeModule: (...args: any[]) => any
   runtimeModule: (...args: any[]) => any
-}
-
-export enum JsHookType {
-  CompilerCompilation = 'CompilerCompilation',
-  CompilerMake = 'CompilerMake'
 }
 
 export interface JsLoaderContext {
@@ -585,6 +576,11 @@ export interface JsStatsWarning {
   moduleIdentifier?: string
   moduleName?: string
   moduleId?: string
+}
+
+export interface JsTap {
+  function: (...args: any[]) => any
+  stage: number
 }
 
 export interface NodeFS {
@@ -1292,6 +1288,11 @@ export interface RawTrustedTypes {
  * Copyright (c)
  */
 export function registerGlobalTrace(filter: string, layer: "chrome" | "logger", output: string): void
+
+export interface RegisterJsTaps {
+  registerCompilerCompilationTaps: (...args: any[]) => any
+  registerCompilerMakeTaps: (...args: any[]) => any
+}
 
 /** Builtin loader runner */
 export function runBuiltinLoader(builtin: string, options: string | undefined | null, loaderContext: JsLoaderContext): Promise<JsLoaderContext>
