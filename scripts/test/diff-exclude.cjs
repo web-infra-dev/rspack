@@ -63,11 +63,11 @@ const UNALIGNED_FIXTURES = [
 	"helpers/warmup-webpack.js",
 	"hotCases/fake-update-loader.js",
 
-  // Additional tests
-  /^[^\\/]*test\.js/,
-  /^[^\\/]*basictest\.js/,
-  /^[^\\/]*unittest\.js/,
-  /^[^\\/]*longtest\.js/,
+	// Additional tests
+	/^[^\\/]*test\.js/,
+	/^[^\\/]*basictest\.js/,
+	/^[^\\/]*unittest\.js/,
+	/^[^\\/]*longtest\.js/
 ];
 
 // Only different in comments. For example, license information difference.
@@ -84,6 +84,8 @@ const WEBPACK_TEST_FIX = ["cases/context/ignore-hidden-files"];
  * @type {Array<[RegExp | string, string]>}
  */
 module.exports = [
+	// ignore node_modules
+	"node_modules",
 	// Intended to have different README.md
 	"README.md",
 	// Intended to have different package.json

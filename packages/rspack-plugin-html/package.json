@@ -13,7 +13,7 @@
   },
   "scripts": {
     "build": "tsc -b ./tsconfig.build.json",
-    "dev": "tsc -w",
+    "dev": "tsc -w ./tsconfig.build.json",
     "test": "jest --runInBand --verbose"
   },
   "files": [
@@ -38,6 +38,10 @@
     "parse5": "7.1.1",
     "tapable": "2.2.1"
   },
+  "devDependencies": {
+    "@types/html-minifier-terser": "7.0.2",
+    "@types/lodash.template": "^4.5.1"
+  },
   "peerDependencies": {
     "@rspack/core": "workspace:*"
   },
@@ -45,15 +49,6 @@
     "@rspack/core": {
       "optional": true
     }
-  },
-  "devDependencies": {
-    "@rspack/core": "workspace:*",
-    "@types/html-minifier-terser": "7.0.2",
-    "@types/lodash.template": "^4.5.1",
-    "@types/pug": "^2.0.6",
-    "html-loader": "^5.0.0",
-    "loader-runner": "^4.3.0",
-    "pug": "^3.0.2"
   },
   "jest": {
     "watchPathIgnorePatterns": [

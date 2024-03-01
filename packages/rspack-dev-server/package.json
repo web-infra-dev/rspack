@@ -29,15 +29,6 @@
     "url": "https://github.com/web-infra-dev/rspack",
     "directory": "packages/rspack-dev-server"
   },
-  "devDependencies": {
-    "@rspack/core": "workspace:*",
-    "@rspack/dev-server": "workspace:*",
-    "@rspack/plugin-react-refresh": "workspace:*",
-    "@types/connect-history-api-fallback": "1.5.4",
-    "@types/express": "4.17.21",
-    "@types/mime-types": "2.1.4",
-    "@types/ws": "8.5.10"
-  },
   "dependencies": {
     "chokidar": "3.5.3",
     "connect-history-api-fallback": "2.0.0",
@@ -47,6 +38,12 @@
     "webpack-dev-middleware": "6.0.2",
     "webpack-dev-server": "4.13.1",
     "ws": "8.8.1"
+  },
+  "devDependencies": {
+    "@types/connect-history-api-fallback": "1.5.4",
+    "@types/express": "4.17.21",
+    "@types/mime-types": "2.1.4",
+    "@types/ws": "8.5.10"
   },
   "peerDependencies": {
     "@rspack/core": "*"

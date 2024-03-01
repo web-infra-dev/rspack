@@ -1,0 +1,10 @@
+{
+  "name": "rspack-dev-server-tests",
+  "version": "0.0.0",
+  "private": true,
+  "devDependencies": {
+    "@rspack/core": "workspace:*",
+    "@rspack/dev-server": "workspace:*",
+    "@rspack/plugin-react-refresh": "workspace:*"
+  }
+}

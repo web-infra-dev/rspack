@@ -15,7 +15,7 @@
     "build": "tsc -b ./tsconfig.build.json",
     "build:viewer": "rspack build",
     "dev:viewer": "rspack serve",
-    "dev": "tsc -b -w",
+    "dev": "tsc -b -w ./tsconfig.build.json",
     "test:diff": "cross-env RSPACK_DIFF=true NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --runInBand --logHeapUsage --testPathPattern \".diff.test.ts\""
   },
   "files": ["client", "dist", "template"],

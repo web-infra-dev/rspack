@@ -1,5 +1,5 @@
 import path from "path";
-import type { Compiler } from "@rspack/core";
+import type { Compiler, RspackPluginInstance } from "@rspack/core";
 import { normalizeOptions, type PluginOptions } from "./options";
 
 export type { PluginOptions };
@@ -24,7 +24,7 @@ const runtimePaths = [
  * @property {(string | RegExp | (string | RegExp)[] | null)=} include included resourcePath for loader
  * @property {(string | RegExp | (string | RegExp)[] | null)=} exclude excluded resourcePath for loader
  */
-class ReactRefreshRspackPlugin {
+class ReactRefreshRspackPlugin implements RspackPluginInstance {
 	options: PluginOptions;
 
 	static deprecated_runtimePaths: string[];

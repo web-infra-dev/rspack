@@ -1,8 +1,34 @@
 {
   "name": "rspack-core-tests",
-  "version": "1.0.0",
+  "version": "0.0.0",
   "description": "this is generated to avoid lookup @rspack/core's package.json and affected by the exports field ",
-  "keywords": [],
-  "author": "",
-  "license": "ISC"
+  "private": true,
+  "devDependencies": {
+    "@rspack/core": "workspace:*",
+    "@rspack/plugin-minify": "workspace:*",
+    "@rspack/plugin-node-polyfill": "workspace:*",
+    "@swc/plugin-remove-console": "^1.5.114",
+    "babel-loader": "^9.1.0",
+    "babel-plugin-import": "^1.13.5",
+    "copy-webpack-plugin": "5.1.2",
+    "cross-env": "^7.0.3",
+    "file-loader": "^6.2.0",
+    "glob": "^10.3.10",
+    "html-loader": "^5.0.0",
+    "html-webpack-plugin": "^5.5.0",
+    "jest-serializer-path": "^0.1.15",
+    "less": "4.2.0",
+    "less-loader": "^12.0.0",
+    "postcss-loader": "^8.0.0",
+    "postcss-pxtorem": "^6.0.0",
+    "pug-loader": "^2.4.0",
+    "react-relay": "^16.0.0",
+    "sass": "^1.56.2",
+    "sass-loader": "^13.2.0",
+    "source-map": "^0.7.4",
+    "styled-components": "^6.0.8",
+    "terser": "5.27.2",
+    "wast-loader": "^1.11.4",
+    "identity-obj-proxy": "3.0.0"
+  }
 }

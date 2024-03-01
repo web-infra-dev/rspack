@@ -15,6 +15,9 @@ async function _recursiveCompareBase(
 	let set = new Set(intersection(a, b));
 	await Promise.all(
 		Array.from(set).map(async item => {
+			if (item === "node_modules" && rootA === baseA) {
+				return Promise.resolve();
+			}
 			let nextA = path.join(baseA, item);
 			let nextB = path.join(baseB, item);
 			let fileA = fs.lstatSync(nextA).isFile();

@@ -15,7 +15,7 @@
   },
   "scripts": {
     "build": "tsc -b ./tsconfig.build.json",
-    "dev": "tsc -b -w",
+    "dev": "tsc -b -w ./tsconfig.build.json",
     "test": "jest --runInBand"
   },
   "files": [
@@ -31,11 +31,6 @@
     "type": "git",
     "url": "https://github.com/web-infra-dev/rspack",
     "directory": "packages/rspack-plugin-react-refresh"
-  },
-  "devDependencies": {
-    "@rspack/core": "workspace:*",
-    "@rspack/plugin-react-refresh": "workspace:*",
-    "react-refresh": "0.14.0"
   },
   "peerDependencies": {
     "react-refresh": ">=0.10.0 <1.0.0"

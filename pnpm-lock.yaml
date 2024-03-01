@@ -460,99 +460,21 @@ importers:
         specifier: 1.3.1
         version: 1.3.1(zod@3.21.4)
     devDependencies:
-      '@rspack/core':
-        specifier: workspace:*
-        version: 'link:'
-      '@rspack/plugin-minify':
-        specifier: workspace:^
-        version: link:../rspack-plugin-minify
-      '@rspack/plugin-node-polyfill':
-        specifier: workspace:^
-        version: link:../rspack-plugin-node-polyfill
-      '@swc/plugin-remove-console':
-        specifier: ^1.5.114
-        version: 1.5.117
       '@types/watchpack':
         specifier: ^2.4.0
         version: 2.4.0
       '@types/webpack-sources':
         specifier: 3.2.3
         version: 3.2.3
-      '@types/ws':
-        specifier: 8.5.10
-        version: 8.5.10
-      babel-loader:
-        specifier: ^9.1.0
-        version: 9.1.2(@babel/core@7.23.2)(webpack@5.90.1)
-      babel-plugin-import:
-        specifier: ^1.13.5
-        version: 1.13.5
-      copy-webpack-plugin:
-        specifier: 5.1.2
-        version: 5.1.2(webpack@5.90.1)
-      cross-env:
-        specifier: ^7.0.3
-        version: 7.0.3
-      file-loader:
-        specifier: ^6.2.0
-        version: 6.2.0(webpack@5.90.1)
-      glob:
-        specifier: ^10.3.10
-        version: 10.3.10
-      html-loader:
-        specifier: ^5.0.0
-        version: 5.0.0(webpack@5.90.1)
-      html-webpack-plugin:
-        specifier: ^5.5.0
-        version: 5.5.0(webpack@5.90.1)
-      identity-obj-proxy:
-        specifier: 3.0.0
-        version: 3.0.0
-      jest-serializer-path:
-        specifier: ^0.1.15
-        version: 0.1.15
-      less:
-        specifier: 4.2.0
-        version: 4.2.0
-      less-loader:
-        specifier: ^12.0.0
-        version: 12.2.0(@rspack/core@packages+rspack)(less@4.2.0)(webpack@5.90.1)
-      postcss-loader:
-        specifier: ^8.0.0
-        version: 8.1.0(@rspack/core@packages+rspack)(postcss@8.4.33)(typescript@5.0.2)(webpack@5.90.1)
-      postcss-pxtorem:
-        specifier: ^6.0.0
-        version: 6.0.0(postcss@8.4.33)
-      pug-loader:
-        specifier: ^2.4.0
-        version: 2.4.0(pug@2.0.4)
-      react-relay:
-        specifier: ^16.0.0
-        version: 16.2.0(react@18.2.0)
-      sass:
-        specifier: ^1.56.2
-        version: 1.56.2
-      sass-loader:
-        specifier: ^13.2.0
-        version: 13.2.0(sass@1.56.2)(webpack@5.90.1)
-      source-map:
-        specifier: ^0.7.4
-        version: 0.7.4
-      styled-components:
-        specifier: ^6.0.8
-        version: 6.0.8(react-dom@18.2.0)(react@18.2.0)
-      terser:
-        specifier: 5.27.2
-        version: 5.27.2
-      wast-loader:
-        specifier: ^1.11.4
-        version: 1.11.6
 
   packages/rspack-cli:
     dependencies:
       '@discoveryjs/json-ext':
         specifier: ^0.5.7
         version: 0.5.7
+      '@rspack/core':
+        specifier: '>=0.4.0'
+        version: link:../rspack
       '@rspack/dev-server':
         specifier: workspace:*
         version: link:../rspack-dev-server
@@ -577,10 +499,12 @@ importers:
       yargs:
         specifier: 17.6.2
         version: 17.6.2
+
+  packages/rspack-cli/tests:
     devDependencies:
       '@rspack/core':
         specifier: workspace:*
-        version: link:../rspack
+        version: link:../../rspack
       '@types/rechoir':
         specifier: ^0.6.1
         version: 0.6.1
@@ -605,6 +529,9 @@ importers:
 
   packages/rspack-dev-server:
     dependencies:
+      '@rspack/core':
+        specifier: '*'
+        version: link:../rspack
       chokidar:
         specifier: 3.5.3
         version: 3.5.3
@@ -630,15 +557,6 @@ importers:
         specifier: 8.8.1
         version: 8.8.1
     devDependencies:
-      '@rspack/core':
-        specifier: workspace:*
-        version: link:../rspack
-      '@rspack/dev-server':
-        specifier: workspace:*
-        version: 'link:'
-      '@rspack/plugin-react-refresh':
-        specifier: workspace:*
-        version: link:../rspack-plugin-react-refresh
       '@types/connect-history-api-fallback':
         specifier: 1.5.4
         version: 1.5.4
@@ -652,8 +570,23 @@ importers:
         specifier: 8.5.10
         version: 8.5.10
 
+  packages/rspack-dev-server/tests:
+    devDependencies:
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../rspack
+      '@rspack/dev-server':
+        specifier: workspace:*
+        version: link:..
+      '@rspack/plugin-react-refresh':
+        specifier: workspace:*
+        version: link:../../rspack-plugin-react-refresh
+
   packages/rspack-plugin-html:
     dependencies:
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../rspack
       html-minifier-terser:
         specifier: 7.0.0
         version: 7.0.0
@@ -667,15 +600,18 @@ importers:
         specifier: 2.2.1
         version: 2.2.1
     devDependencies:
-      '@rspack/core':
-        specifier: workspace:*
-        version: link:../rspack
       '@types/html-minifier-terser':
         specifier: 7.0.2
         version: 7.0.2
       '@types/lodash.template':
         specifier: ^4.5.1
         version: 4.5.1
+
+  packages/rspack-plugin-html/tests:
+    devDependencies:
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../rspack
       '@types/pug':
         specifier: ^2.0.6
         version: 2.0.6
@@ -780,13 +716,19 @@ importers:
         version: 1.1.2
 
   packages/rspack-plugin-react-refresh:
+    dependencies:
+      react-refresh:
+        specifier: '>=0.10.0 <1.0.0'
+        version: 0.14.0
+
+  packages/rspack-plugin-react-refresh/tests:
     devDependencies:
       '@rspack/core':
         specifier: workspace:*
-        version: link:../rspack
+        version: link:../../rspack
       '@rspack/plugin-react-refresh':
         specifier: workspace:*
-        version: 'link:'
+        version: link:..
       react-refresh:
         specifier: 0.14.0
         version: 0.14.0
@@ -891,6 +833,87 @@ importers:
         specifier: 0.14.0
         version: 0.14.0
 
+  packages/rspack/tests:
+    devDependencies:
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:..
+      '@rspack/plugin-minify':
+        specifier: workspace:*
+        version: link:../../rspack-plugin-minify
+      '@rspack/plugin-node-polyfill':
+        specifier: workspace:*
+        version: link:../../rspack-plugin-node-polyfill
+      '@swc/plugin-remove-console':
+        specifier: ^1.5.114
+        version: 1.5.117
+      babel-loader:
+        specifier: ^9.1.0
+        version: 9.1.3(@babel/core@7.23.2)(webpack@5.90.1)
+      babel-plugin-import:
+        specifier: ^1.13.5
+        version: 1.13.5
+      copy-webpack-plugin:
+        specifier: 5.1.2
+        version: 5.1.2(webpack@5.90.1)
+      cross-env:
+        specifier: ^7.0.3
+        version: 7.0.3
+      file-loader:
+        specifier: ^6.2.0
+        version: 6.2.0(webpack@5.90.1)
+      glob:
+        specifier: ^10.3.10
+        version: 10.3.10
+      html-loader:
+        specifier: ^5.0.0
+        version: 5.0.0(webpack@5.90.1)
+      html-webpack-plugin:
+        specifier: ^5.5.0
+        version: 5.5.0(webpack@5.90.1)
+      identity-obj-proxy:
+        specifier: 3.0.0
+        version: 3.0.0
+      jest-serializer-path:
+        specifier: ^0.1.15
+        version: 0.1.15
+      less:
+        specifier: 4.2.0
+        version: 4.2.0
+      less-loader:
+        specifier: ^12.0.0
+        version: 12.2.0(@rspack/core@packages+rspack)(less@4.2.0)(webpack@5.90.1)
+      postcss-loader:
+        specifier: ^8.0.0
+        version: 8.1.0(@rspack/core@packages+rspack)(postcss@8.4.33)(typescript@5.0.2)(webpack@5.90.1)
+      postcss-pxtorem:
+        specifier: ^6.0.0
+        version: 6.0.0(postcss@8.4.33)
+      pug-loader:
+        specifier: ^2.4.0
+        version: 2.4.0(pug@2.0.4)
+      react-relay:
+        specifier: ^16.0.0
+        version: 16.2.0(react@18.2.0)
+      sass:
+        specifier: ^1.56.2
+        version: 1.56.2
+      sass-loader:
+        specifier: ^13.2.0
+        version: 13.2.0(sass@1.56.2)(webpack@5.90.1)
+      source-map:
+        specifier: ^0.7.4
+        version: 0.7.4
+      styled-components:
+        specifier: ^6.0.8
+        version: 6.0.8(react-dom@18.2.0)(react@18.2.0)
+      terser:
+        specifier: 5.27.2
+        version: 5.27.2
+      wast-loader:
+        specifier: ^1.11.4
+        version: 1.11.6
+
   scripts:
     devDependencies:
       '@actions/core':
@@ -958,10 +981,10 @@ importers:
         specifier: workspace:*
         version: link:../packages/rspack
       '@rspack/plugin-minify':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../packages/rspack-plugin-minify
       '@rspack/plugin-node-polyfill':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../packages/rspack-plugin-node-polyfill
       '@types/node':
         specifier: ^20.9.4
@@ -1542,25 +1565,11 @@ packages:
       '@babel/types': 7.23.0
     dev: true
 
-  /@babel/helper-module-imports@7.18.6:
-    resolution: {integrity: sha512-0NFvs3VkuSYbFi1x2Vd6tKrywq+z/cLeYC/RJNFrIX/30Bf5aiGYbtvGXolEktzJH8o5E5KJ3tT+nkxuuZFVlA==}
-    engines: {node: '>=6.9.0'}
-    dependencies:
-      '@babel/types': 7.23.0
-    dev: true
-
   /@babel/helper-module-imports@7.22.15:
     resolution: {integrity: sha512-0pYVBnDKZO2fnSPCrgM/6WMc7eS20Fbok+0r88fp+YtWVLZrp4CkafFGIp+W0VKw4a22sgebPT99y+FDNMdP4w==}
     engines: {node: '>=6.9.0'}
     dependencies:
       '@babel/types': 7.23.0
-
-  /@babel/helper-module-imports@7.22.5:
-    resolution: {integrity: sha512-8Dl6+HD/cKifutF5qGd/8ZJi84QeAKh+CEe1sBzz8UayBBGg1dAIJrdHOcOM5b2MpzWL2yuotJTtGjETq0qjXg==}
-    engines: {node: '>=6.9.0'}
-    dependencies:
-      '@babel/types': 7.23.0
-    dev: true
 
   /@babel/helper-module-transforms@7.23.0(@babel/core@7.22.20):
     resolution: {integrity: sha512-WhDWw1tdrlT0gMgUJSlX0IQvoO1eN279zrAUbVB+KpV2c3Tylz8+GnKOLllCS6Z/iZQEyVYxhZVUdPTqs2YYPw==}
@@ -2764,24 +2773,6 @@ packages:
       '@babel/code-frame': 7.22.13
       '@babel/parser': 7.23.0
       '@babel/types': 7.23.0
-
-  /@babel/traverse@7.22.5:
-    resolution: {integrity: sha512-7DuIjPgERaNo6r+PZwItpjCZEa5vyw4eJGufeLxrPdBXBoLcCJCIasvK6pK/9DVNrLZTLFhUGqaC6X/PA007TQ==}
-    engines: {node: '>=6.9.0'}
-    dependencies:
-      '@babel/code-frame': 7.22.13
-      '@babel/generator': 7.23.0
-      '@babel/helper-environment-visitor': 7.22.20
-      '@babel/helper-function-name': 7.23.0
-      '@babel/helper-hoist-variables': 7.22.5
-      '@babel/helper-split-export-declaration': 7.22.6
-      '@babel/parser': 7.23.0
-      '@babel/types': 7.23.0
-      debug: 4.3.4
-      globals: 11.12.0
-    transitivePeerDependencies:
-      - supports-color
-    dev: true
 
   /@babel/traverse@7.23.2:
     resolution: {integrity: sha512-azpe59SQ48qG6nu2CzcMLbxUudtN+dOM9kDbUqGq3HXUJRlo7i8fvPoxQUzYgLZ4cMVmuZgm8vvBpNeRhd6XSw==}
@@ -4925,7 +4916,7 @@ packages:
       '@swc/helpers':
         optional: true
     dependencies:
-      '@swc/counter': 0.1.2
+      '@swc/counter': 0.1.3
       '@swc/types': 0.1.5
     optionalDependencies:
       '@swc/core-darwin-arm64': 1.3.99
@@ -4938,12 +4929,8 @@ packages:
       '@swc/core-win32-ia32-msvc': 1.3.99
       '@swc/core-win32-x64-msvc': 1.3.99
 
-  /@swc/counter@0.1.2:
-    resolution: {integrity: sha512-9F4ys4C74eSTEUNndnER3VJ15oru2NumfQxS8geE+f3eB5xvfxpWyqE5XlVnxb/R14uoXi6SLbBwwiDSkv+XEw==}
-
   /@swc/counter@0.1.3:
     resolution: {integrity: sha512-e2BR4lsJkkRlKZ/qCHPw9ZaSxc0MVUd7gtbtaB7aMvHeJVYe8sOB8DBZkP2DtISHGSku9sCK6T6cnY0CtXrOCQ==}
-    dev: true
 
   /@swc/helpers@0.5.1:
     resolution: {integrity: sha512-sJ902EfIzn1Fa+qYmjdQqh8tPsoxyBz+8yBKC2HKUxyezKJFwPGOn7pv4WY6QuQW//ySQi5lJjA/ZT9sNWWNTg==}
@@ -6095,12 +6082,12 @@ packages:
     resolution: {integrity: sha512-h8QJa8xSb1WD4fpKBDcATDNGXghFj6/3GRWG6dhmRcu0RX1Ubasur2Uvx5aeEwlf0MwblEC2bMzzMQntxnw/Cw==}
     dependencies:
       '@types/express-serve-static-core': 4.17.31
-      '@types/node': 16.11.7
+      '@types/node': 20.9.4
 
   /@types/connect-history-api-fallback@1.5.4:
     resolution: {integrity: sha512-n6Cr2xS1h4uAulPRdlw6Jl6s1oG8KrVilPN2yUITEs+K48EzMJJ3W1xy8K5eWuFvjp3R74AOIGSmp2UfBJ8HFw==}
     dependencies:
-      '@types/express-serve-static-core': 4.17.31
+      '@types/express-serve-static-core': 4.17.42
       '@types/node': 20.9.4
     dev: true
 
@@ -6277,9 +6264,6 @@ packages:
     resolution: {integrity: sha512-jhuKLIRrhvCPLqwPcx6INqmKeiA5EWrsCOPhrlFSrbrmU4ZMPjj5Ul/oLCMDO98XRUIwVm78xICz4EPCektzeQ==}
     dev: true
 
-  /@types/node@16.11.7:
-    resolution: {integrity: sha512-QB5D2sqfSjCmTuWcBWyJ+/44bcjO7VbjSbOE0ucoVbAsSNQc4Lt6QkgkVXkTDwkL4z/beecZNDvVX15D4P8Jbw==}
-
   /@types/node@18.15.11:
     resolution: {integrity: sha512-E5Kwq2n4SbMzQOn6wnmBjuK9ouqlURrcZDVfbo9ftDDTFt3nk7ZKK4GMOzoYgnpQJKcxwQw+lGaBvvlMo0qN/Q==}
 
@@ -6403,13 +6387,13 @@ packages:
     resolution: {integrity: sha512-PSAD+o9hezvfUFFzrYB/PO6Je7kwiZ2BSnB3/EZ9le+jTDKB6x5NJ96WWzQz1h/AyGJ/de3/1KpuBTkUFZm77A==}
     dependencies:
       '@types/graceful-fs': 4.1.5
-      '@types/node': 18.15.11
+      '@types/node': 20.9.4
     dev: true
 
   /@types/webpack-bundle-analyzer@4.6.0(webpack-cli@4.10.0):
     resolution: {integrity: sha512-XeQmQCCXdZdap+A/60UKmxW5Mz31Vp9uieGlHB3T4z/o2OLVLtTI3bvTuS6A2OWd/rbAAQiGGWIEFQACu16szA==}
     dependencies:
-      '@types/node': 18.15.11
+      '@types/node': 20.9.4
       tapable: 2.2.1
       webpack: 5.90.1(webpack-cli@4.10.0)
     transitivePeerDependencies:
@@ -7186,10 +7170,23 @@ packages:
       webpack: 5.90.1(webpack-cli@4.10.0)
     dev: true
 
+  /babel-loader@9.1.3(@babel/core@7.23.2)(webpack@5.90.1):
+    resolution: {integrity: sha512-xG3ST4DglodGf8qSwv0MdeWLhrDsw/32QMdTO5T1ZIp9gQur0HkCyFs7Awskr10JKXFXwpAhiCuYX5oGXnRGbw==}
+    engines: {node: '>= 14.15.0'}
+    peerDependencies:
+      '@babel/core': ^7.12.0
+      webpack: '>=5'
+    dependencies:
+      '@babel/core': 7.23.2
+      find-cache-dir: 4.0.0
+      schema-utils: 4.0.1
+      webpack: 5.90.1(webpack-cli@4.10.0)
+    dev: true
+
   /babel-plugin-import@1.13.5:
     resolution: {integrity: sha512-IkqnoV+ov1hdJVofly9pXRJmeDm9EtROfrc5i6eII0Hix2xMs5FEm8FG3ExMvazbnZBbgHIt6qdO8And6lCloQ==}
     dependencies:
-      '@babel/helper-module-imports': 7.18.6
+      '@babel/helper-module-imports': 7.22.15
     dev: true
 
   /babel-plugin-istanbul@6.1.1:
@@ -9739,7 +9736,7 @@ packages:
       webpack: ^4.0.0 || ^5.0.0
     dependencies:
       loader-utils: 2.0.4
-      schema-utils: 3.1.1
+      schema-utils: 3.3.0
       webpack: 5.90.1(webpack-cli@4.10.0)
     dev: true
 
@@ -14689,15 +14686,6 @@ packages:
       ajv-keywords: 3.5.2(ajv@6.12.6)
     dev: true
 
-  /schema-utils@3.1.1:
-    resolution: {integrity: sha512-Y5PQxS4ITlC+EahLuXaY86TXfR7Dc5lw294alXOq86JAHCihAIZfqv8nNCWvaEJvaC51uN9hbLGeV0cFBdH+Fw==}
-    engines: {node: '>= 10.13.0'}
-    dependencies:
-      '@types/json-schema': 7.0.11
-      ajv: 6.12.6
-      ajv-keywords: 3.5.2(ajv@6.12.6)
-    dev: true
-
   /schema-utils@3.3.0:
     resolution: {integrity: sha512-pN/yOAvcC+5rQ5nERGuwrjLlYvLTbCibnZ1I7B1LaiAz9BRBlE9GMgE/eqV30P7aJQUf7Ddimy/RsbYO/GrVGg==}
     engines: {node: '>= 10.13.0'}
@@ -15429,20 +15417,20 @@ packages:
     dependencies:
       '@babel/cli': 7.23.0(@babel/core@7.23.2)
       '@babel/core': 7.23.2
-      '@babel/helper-module-imports': 7.22.5
+      '@babel/helper-module-imports': 7.22.15
       '@babel/plugin-external-helpers': 7.22.5(@babel/core@7.23.2)
       '@babel/plugin-proposal-class-properties': 7.18.6(@babel/core@7.23.2)
       '@babel/plugin-proposal-object-rest-spread': 7.20.7(@babel/core@7.23.2)
       '@babel/preset-env': 7.20.2(@babel/core@7.23.2)
       '@babel/preset-react': 7.22.15(@babel/core@7.23.2)
       '@babel/preset-typescript': 7.22.5(@babel/core@7.23.2)
-      '@babel/traverse': 7.22.5
+      '@babel/traverse': 7.23.2
       '@emotion/is-prop-valid': 1.2.1
       '@emotion/unitless': 0.8.0
       '@types/stylis': 4.2.2
       css-to-react-native: 3.2.0
-      csstype: 3.1.2
-      postcss: 8.4.23
+      csstype: 3.1.3
+      postcss: 8.4.33
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)
       shallowequal: 1.1.0

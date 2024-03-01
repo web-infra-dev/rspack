@@ -15,8 +15,8 @@
   "repository": "web-infra-dev/rspack",
   "devDependencies": {
     "@rspack/core": "workspace:*",
-    "@rspack/plugin-minify": "workspace:^",
-    "@rspack/plugin-node-polyfill": "workspace:^",
+    "@rspack/plugin-minify": "workspace:*",
+    "@rspack/plugin-node-polyfill": "workspace:*",
     "@types/node": "^20.9.4",
     "@types/rimraf": "3.0.2",
     "@types/watchpack": "^2.4.0",

@@ -1,0 +1,12 @@
+{
+  "name": "rspack-plugin-html-tests",
+  "version": "0.0.0",
+  "private": true,
+  "devDependencies": {
+    "@rspack/core": "workspace:*",
+    "@types/pug": "^2.0.6",
+    "html-loader": "^5.0.0",
+    "loader-runner": "^4.3.0",
+    "pug": "^3.0.2"
+  }
+}

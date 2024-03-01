@@ -48,6 +48,7 @@ describe("normalize options snapshot", () => {
 			{
 				mode: "production",
 				entry: ["something"],
+				// @ts-expect-error: Property '#private' not matched, even though they are pointing to the same file.
 				plugins: [new ReactRefreshPlugin({ forceEnable: true })]
 			}
 		);
@@ -57,6 +58,7 @@ describe("normalize options snapshot", () => {
 			{
 				mode: "development",
 				entry: ["something"],
+				// @ts-expect-error: Property '#private' not matched, even though they are pointing to the same file.
 				plugins: [new ReactRefreshPlugin()]
 			}
 		);
@@ -66,6 +68,7 @@ describe("normalize options snapshot", () => {
 			{
 				mode: "production",
 				entry: ["something"],
+				// @ts-expect-error: Property '#private' not matched, even though they are pointing to the same file.
 				plugins: [new ReactRefreshPlugin()]
 			}
 		);
