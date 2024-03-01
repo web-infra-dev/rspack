@@ -17,6 +17,7 @@ const config = {
 		// Fixed jest-serialize-path not working when non-ascii code contains.
 		slash: path.join(__dirname, "../../scripts/test/slash.cjs")
 	},
+	cache: false,
 	transformIgnorePatterns: ["<rootDir>/tests"],
 	snapshotFormat: {
 		escapeString: true,
