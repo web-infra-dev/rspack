@@ -156,11 +156,9 @@ export async function runLoaders(
 	const resource = rawContext.resource;
 	const loaderContext: LoaderContext = {} as LoaderContext;
 
-	//
-	const splittedResource = parsePathQueryFragment(resource);
-	const resourcePath = splittedResource.path;
-	const resourceQuery = splittedResource.query;
-	const resourceFragment = splittedResource.fragment;
+	const resourcePath = rawContext.resourcePath;
+	const resourceQuery = rawContext.resourceQuery;
+	const resourceFragment = rawContext.resourceFragment;
 	const contextDirectory = dirname(resourcePath);
 
 	// execution state
@@ -318,6 +316,7 @@ export async function runLoaders(
 		enumerable: true,
 		get: function () {
 			if (loaderContext.resourcePath === undefined) return undefined;
+			if (loaderContext.resourceQuery === undefined) return undefined;
 			return (
 				loaderContext.resourcePath.replace(/#/g, "\0#") +
 				loaderContext.resourceQuery.replace(/#/g, "\0#") +
