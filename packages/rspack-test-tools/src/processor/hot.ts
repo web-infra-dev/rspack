@@ -62,9 +62,9 @@ export class RspackHotProcessor extends BasicTaskProcessor<ECompilerType.Rspack>
 			runner = new HotRunner({
 				env,
 				stats: stats!,
-				name: this.options.name,
+				name: this._options.name,
 				runInNewContext: false,
-				testConfig: this.options.testConfig,
+				testConfig: this._options.testConfig,
 				source: context.getSource(),
 				dist: context.getDist(),
 				compilerOptions: options,
@@ -106,10 +106,10 @@ export class RspackHotProcessor extends BasicTaskProcessor<ECompilerType.Rspack>
 								callback(null, jsonStats);
 							}
 						});
-					}, this.options.name);
+					}, this._options.name);
 				}
 			});
-		}, this.options.name);
+		}, this._options.name);
 		return runner;
 	}
 

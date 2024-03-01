@@ -42,17 +42,17 @@ export class BasicRunner<T extends ECompilerType = ECompilerType.Rspack>
 	protected globalContext: IBasicGlobalContext | null = null;
 	protected baseModuleScope: IBasicModuleScope | null = null;
 	protected requirers: Map<string, TRunnerRequirer> = new Map();
-	constructor(protected options: IBasicRunnerOptions<T>) {}
+	constructor(protected _options: IBasicRunnerOptions<T>) {}
 
 	run(file: string): Promise<unknown> {
 		this.globalContext = this.createGlobalContext();
 		this.baseModuleScope = this.createBaseModuleScope();
-		if (typeof this.options.testConfig.moduleScope === "function") {
-			this.options.testConfig.moduleScope(this.baseModuleScope);
+		if (typeof this._options.testConfig.moduleScope === "function") {
+			this._options.testConfig.moduleScope(this.baseModuleScope);
 		}
 		this.createRunner();
 		const res = this.getRequire()(
-			this.options.dist,
+			this._options.dist,
 			file.startsWith("./") ? file : `./${file}`
 		);
 		if (typeof res === "object" && "then" in res) {
@@ -86,12 +86,12 @@ export class BasicRunner<T extends ECompilerType = ECompilerType.Rspack>
 	protected createBaseModuleScope(): IBasicModuleScope {
 		return {
 			console: console,
-			it: this.options.env.it,
-			beforeEach: this.options.env.beforeEach,
-			afterEach: this.options.env.afterEach,
+			it: this._options.env.it,
+			beforeEach: this._options.env.beforeEach,
+			afterEach: this._options.env.afterEach,
 			expect,
 			jest,
-			__STATS__: this.options.stats,
+			__STATS__: this._options.stats,
 			nsObj: (m: Object) => {
 				Object.defineProperty(m, Symbol.toStringTag, {
 					value: "Module"
@@ -147,7 +147,7 @@ export class BasicRunner<T extends ECompilerType = ECompilerType.Rspack>
 	protected createMissRequirer(): TRunnerRequirer {
 		return (currentDirectory, modulePath, context = {}) => {
 			const modulePathStr = modulePath as string;
-			const modules = this.options.testConfig.modules;
+			const modules = this._options.testConfig.modules;
 			if (modules && modulePathStr in modules) {
 				return modules[modulePathStr];
 			} else {
@@ -183,11 +183,11 @@ export class BasicRunner<T extends ECompilerType = ECompilerType.Rspack>
 				file
 			);
 
-			if (this.options.testConfig.moduleScope) {
-				this.options.testConfig.moduleScope(currentModuleScope);
+			if (this._options.testConfig.moduleScope) {
+				this._options.testConfig.moduleScope(currentModuleScope);
 			}
 
-			if (!this.options.runInNewContext) {
+			if (!this._options.runInNewContext) {
 				file.content = `Object.assign(global, _globalAssign);\n ${file.content}`;
 			}
 			const args = Object.keys(currentModuleScope);
@@ -197,13 +197,13 @@ export class BasicRunner<T extends ECompilerType = ECompilerType.Rspack>
       })`;
 
 			this.preExecute(code, file);
-			const fn = this.options.runInNewContext
+			const fn = this._options.runInNewContext
 				? vm.runInNewContext(code, this.globalContext!, file.path)
 				: vm.runInThisContext(code, file.path);
 
 			fn.call(
-				this.options.testConfig.nonEsmThis
-					? this.options.testConfig.nonEsmThis(modulePath)
+				this._options.testConfig.nonEsmThis
+					? this._options.testConfig.nonEsmThis(modulePath)
 					: m.exports,
 				...argValues
 			);

@@ -35,20 +35,20 @@ export class RspackHashProcessor extends MultiTaskProcessor<ECompilerType.Rspack
 				return;
 			}
 			const statsJson = stats.toJson({ assets: true });
-			if (REG_ERROR_CASE.test(this.options.name)) {
+			if (REG_ERROR_CASE.test(this._options.name)) {
 				expect((statsJson.errors || []).length > 0);
 			} else {
 				expect((statsJson.errors || []).length === 0);
 			}
 
-			if (typeof this.options.testConfig.validate === "function") {
-				this.options.testConfig.validate(stats);
+			if (typeof this._options.testConfig.validate === "function") {
+				this._options.testConfig.validate(stats);
 			} else {
 				throw new Error(
 					"HashTestCases should have test.config.js and a validate method"
 				);
 			}
-		}, this.options.name);
+		}, this._options.name);
 	}
 
 	static preOptions(

@@ -24,7 +24,6 @@ export function createDiagnosticCase(
 	describe(name, () => {
 		rimraf.sync(dist);
 		fs.mkdirSync(dist, { recursive: true });
-		let cwd = process.cwd();
 
 		beforeAll(async () => {
 			await tester.prepare();
@@ -32,15 +31,13 @@ export function createDiagnosticCase(
 
 		it(`${name} should compile`, async () => {
 			await tester.compile();
-			await tester.check({
-				it,
-				beforeEach,
-				afterEach
-			});
+			await tester.check(env);
 		}, 30000);
 
 		afterAll(async () => {
 			await tester.resume();
 		});
+
+		const env = Tester.createTestEnv();
 	});
 }

@@ -14,7 +14,7 @@ export class EsmRunner<
 			name: "context for esm"
 		});
 		const esmCache = new Map<string, SourceTextModule>();
-		const esmIdentifier = this.options.name;
+		const esmIdentifier = this._options.name;
 		return (currentDirectory, modulePath, context = {}) => {
 			if (!SourceTextModule) {
 				throw new Error(
@@ -94,7 +94,7 @@ export class EsmRunner<
 
 			if (
 				file.path.endsWith(".mjs") &&
-				this.options.compilerOptions.experiments?.outputModule
+				this._options.compilerOptions.experiments?.outputModule
 			) {
 				return this.requirers.get("esm")!(currentDirectory, modulePath, {
 					...context,

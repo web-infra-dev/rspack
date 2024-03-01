@@ -47,6 +47,6 @@ export function createConfigCase(name: string, src: string, dist: string) {
 			await tester.resume();
 		});
 
-		const env = Tester.createTestEnv();
+		const env = Tester.createLazyTestEnv();
 	});
 }

@@ -1,3 +1,4 @@
+import EventEmitter from "events";
 import { ECompilerType, ITestContext, TCompilerStats } from "../type";
 
 export async function runBuild<T extends ECompilerType>(
@@ -20,4 +21,31 @@ export async function runBuild<T extends ECompilerType>(
 		name
 	);
 	return stats;
+}
+
+export function startWatch<T extends ECompilerType>(
+	context: ITestContext,
+	aggregateTimeout: number,
+	emitter: EventEmitter,
+	name?: string
+): void {
+	let stats: TCompilerStats<T> | null = null;
+	context.compiler<T>((_, compiler) => {
+		if (!compiler) {
+			emitter.emit("built", new Error("Compiler not exists when start watch"));
+			return;
+		}
+		compiler.watch(
+			{
+				aggregateTimeout
+			},
+			(error, newStats) => {
+				if (error) return emitter.emit("built", error);
+				if (newStats) {
+					context.stats(() => newStats as TCompilerStats<T>, name);
+				}
+				return emitter.emit("built", null, newStats);
+			}
+		);
+	}, name);
 }

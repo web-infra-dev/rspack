@@ -20,8 +20,7 @@ export interface IRspackDiagnosticProcessorOptions {
 const CWD = process.cwd();
 
 export class RspackDiagnosticProcessor extends BasicTaskProcessor<ECompilerType.Rspack> {
-	private root: string = process.cwd();
-	constructor(options: IRspackDiagnosticProcessorOptions) {
+	constructor(protected _diagnosticOptions: IRspackDiagnosticProcessorOptions) {
 		super({
 			preOptions: RspackDiagnosticProcessor.preOptions,
 			getCompiler: () => require("@rspack/core").rspack,
@@ -31,14 +30,13 @@ export class RspackDiagnosticProcessor extends BasicTaskProcessor<ECompilerType.
 					"rspack.config.js",
 					"webpack.config.js"
 				])[0],
-			name: options.name,
+			name: _diagnosticOptions.name,
 			testConfig: {}
 		});
-		this.root = options.root;
 	}
 
 	async before(context: ITestContext) {
-		process.chdir(this.root);
+		process.chdir(this._diagnosticOptions.root);
 	}
 
 	async after(context: ITestContext) {
@@ -77,7 +75,7 @@ export class RspackDiagnosticProcessor extends BasicTaskProcessor<ECompilerType.
 			} else {
 				expect(output).toBe(fs.readFileSync(errorOutputPath, "utf-8"));
 			}
-		}, this.options.name);
+		}, this._diagnosticOptions.name);
 	}
 
 	static preOptions(

@@ -30,7 +30,7 @@ export function createStatsCase(name: string, src: string, dist: string) {
 		return;
 	}
 
-	beforeEach(async () => {
+	beforeAll(async () => {
 		rimraf.sync(dist);
 		fs.mkdirSync(dist, { recursive: true });
 		await tester.prepare();
@@ -38,14 +38,12 @@ export function createStatsCase(name: string, src: string, dist: string) {
 
 	it(`should print correct stats for ${name}`, async () => {
 		await tester.compile();
-		await tester.check({
-			it,
-			beforeEach,
-			afterEach
-		});
+		await tester.check(env);
 	}, 30000);
 
-	afterEach(async () => {
+	afterAll(async () => {
 		await tester.resume();
 	});
+
+	const env = Tester.createTestEnv();
 }

@@ -15,12 +15,12 @@ export class WebRunner<
 > extends BasicRunner<T> {
 	private document: FakeDocument | null = null;
 	private oldCurrentScript: CurrentScript | null = null;
-	constructor(options: IBasicRunnerOptions<T>) {
+	constructor(protected _webOptions: IBasicRunnerOptions<T>) {
 		super({
-			...options,
+			..._webOptions,
 			runInNewContext: true
 		});
-		this.document = new FakeDocument(this.options.dist);
+		this.document = new FakeDocument(_webOptions.dist);
 	}
 	protected createGlobalContext() {
 		const globalContext = super.createGlobalContext();
@@ -47,7 +47,7 @@ export class WebRunner<
 		subModuleScope["importScripts"] = (url: string) => {
 			expect(url).toMatch(/^https:\/\/test\.cases\/path\//);
 			this.getRequire()(
-				this.options.dist,
+				this._options.dist,
 				`.${url.slice("https://test.cases/path".length)}`
 			);
 		};
@@ -63,7 +63,7 @@ export class WebRunner<
 		moduleScope["clearTimeout"] = this.globalContext!.clearTimeout;
 		moduleScope["URL"] = URL;
 		moduleScope["Worker"] = createFakeWorker({
-			outputDirectory: this.options.dist
+			outputDirectory: this._options.dist
 		});
 		return moduleScope;
 	}

@@ -117,8 +117,16 @@ export class Tester implements ITester {
 		}
 	}
 
-	static createTestEnv(): ITestEnv {
+	static createLazyTestEnv(): ITestEnv {
 		return createLazyTestEnv(10000);
+	}
+
+	static createTestEnv(): ITestEnv {
+		return {
+			it,
+			beforeEach,
+			afterEach
+		};
 	}
 
 	static isSkipped(config: { name: string; casePath: string }) {

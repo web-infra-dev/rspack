@@ -22,9 +22,12 @@ export class HotRunner<
 	T extends ECompilerType = ECompilerType.Rspack
 > extends BasicRunner<T> {
 	private document: any;
-	constructor(protected options: IHotRunnerOptionsr<T>) {
-		super(options);
-		this.document = createHotDocument(options.dist, this.getRequire.bind(this));
+	constructor(protected _options: IHotRunnerOptionsr<T>) {
+		super(_options);
+		this.document = createHotDocument(
+			_options.dist,
+			this.getRequire.bind(this)
+		);
 	}
 
 	run(file: string) {
@@ -42,7 +45,7 @@ export class HotRunner<
 		const globalContext = super.createGlobalContext();
 		const urlToPath = (url: string) => {
 			if (url.startsWith("https://test.cases/path/")) url = url.slice(24);
-			return path.resolve(this.options.dist, `./${url}`);
+			return path.resolve(this._options.dist, `./${url}`);
 		};
 
 		globalContext["fetch"] = async (url: string) => {
@@ -69,11 +72,11 @@ export class HotRunner<
 		};
 		globalContext["importScripts"] = (url: string) => {
 			expect(url).toMatch(/^https:\/\/test\.cases\/path\//);
-			this.requirers.get("entry")!(this.options.dist, urlToRelativePath(url));
+			this.requirers.get("entry")!(this._options.dist, urlToRelativePath(url));
 		};
 		globalContext["document"] = this.document;
 		globalContext["Worker"] = createFakeWorker({
-			outputDirectory: this.options.dist
+			outputDirectory: this._options.dist
 		});
 		globalContext["EventSource"] = EventSource;
 		globalContext["location"] = {
@@ -92,7 +95,7 @@ export class HotRunner<
 		file: TBasicRunnerFile
 	): IBasicModuleScope {
 		const moduleScope = super.createModuleScope(requireFn, m, file);
-		moduleScope["__dirname"] = this.options.dist;
+		moduleScope["__dirname"] = this._options.dist;
 		moduleScope["window"] = this.globalContext;
 		moduleScope["self"] = this.globalContext;
 		moduleScope["fetch"] = this.globalContext!["fetch"];
@@ -101,7 +104,7 @@ export class HotRunner<
 		moduleScope["Worker"] = this.globalContext!["Worker"];
 		moduleScope["EventSource"] = this.globalContext!["EventSource"];
 		moduleScope["STATS"] = moduleScope.__STATS__;
-		moduleScope["NEXT"] = this.options.next;
+		moduleScope["NEXT"] = this._options.next;
 		return moduleScope;
 	}
 
@@ -117,10 +120,10 @@ export class HotRunner<
 			}
 			if (modulePath.endsWith(".json")) {
 				return JSON.parse(
-					fs.readFileSync(path.join(this.options.dist, modulePath), "utf-8")
+					fs.readFileSync(path.join(this._options.dist, modulePath), "utf-8")
 				);
 			} else {
-				return this.requirers.get("cjs")!(this.options.dist, modulePath, {
+				return this.requirers.get("cjs")!(this._options.dist, modulePath, {
 					...context
 				});
 			}

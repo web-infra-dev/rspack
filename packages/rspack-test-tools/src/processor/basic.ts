@@ -40,42 +40,45 @@ export interface IBasicProcessorOptions<
 export class BasicTaskProcessor<T extends ECompilerType = ECompilerType.Rspack>
 	implements ITestProcessor
 {
-	constructor(protected options: IBasicProcessorOptions<T>) {}
+	constructor(protected _options: IBasicProcessorOptions<T>) {}
 
 	async config(context: ITestContext) {
 		context.options<T>(
 			() =>
-				typeof this.options.preOptions === "function"
-					? this.options.preOptions!(context)
+				typeof this._options.preOptions === "function"
+					? this._options.preOptions!(context)
 					: {},
-			this.options.name
+			this._options.name
 		);
 		context.options<T>(
-			() => this.options.getCompilerOptions(context),
-			this.options.name
+			() => this._options.getCompilerOptions(context),
+			this._options.name
 		);
 		context.options<T>(options => {
-			if (typeof this.options.postOptions === "function") {
-				this.options.postOptions(context, options);
+			if (typeof this._options.postOptions === "function") {
+				this._options.postOptions(context, options);
 			}
-		}, this.options.name);
+		}, this._options.name);
 	}
 
 	async compiler(context: ITestContext) {
-		const factory = this.options.getCompiler(context);
-		context.compiler<T>(options => factory(options), this.options.name);
+		const factory = this._options.getCompiler(context);
+		context.compiler<T>(options => factory(options), this._options.name);
 	}
 
 	async build(context: ITestContext) {
-		await runBuild<T>(context, this.options.name);
+		await runBuild<T>(context, this._options.name);
 	}
 
 	async run(env: ITestEnv, context: ITestContext) {
-		if (typeof this.options.testConfig.beforeExecute === "function") {
-			this.options.testConfig.beforeExecute();
+		if (this._options.testConfig.noTest) return;
+		if (typeof this._options.testConfig.beforeExecute === "function") {
+			this._options.testConfig.beforeExecute();
 		}
 		context.options<T>((options: TCompilerOptions<T>) => {
-			let bundles = this.options.getBundle(context, options);
+			let bundles =
+				this._options.testConfig.bundlePath ||
+				this._options.getBundle(context, options);
 			if (typeof bundles === "string") {
 				bundles = [bundles];
 			}
@@ -84,7 +87,7 @@ export class BasicTaskProcessor<T extends ECompilerType = ECompilerType.Rspack>
 			}
 
 			for (let bundle of bundles!) {
-				const runner = (this.options.getRunner || this.createRunner)(
+				const runner = (this._options.getRunner || this.createRunner)(
 					env,
 					context,
 					options,
@@ -97,24 +100,25 @@ export class BasicTaskProcessor<T extends ECompilerType = ECompilerType.Rspack>
 				context.result<T>((_compiler, res) => {
 					res.results ??= [];
 					res.results.push(result);
-				}, this.options.name);
+				}, this._options.name);
 			}
-		}, this.options.name);
+		}, this._options.name);
 
 		let results: Promise<unknown>[] = [];
 		context.result<T>((_compiler, res) => {
 			results = res.results || [];
-		}, this.options.name);
+		}, this._options.name);
 		await Promise.all(results);
 
-		if (typeof this.options.testConfig.afterExecute === "function") {
-			this.options.testConfig.afterExecute();
+		if (typeof this._options.testConfig.afterExecute === "function") {
+			this._options.testConfig.afterExecute();
 		}
 	}
 
 	async check(env: ITestEnv, context: ITestContext) {
+		if (this._options.testConfig.noTest) return;
 		const errors: Array<{ message: string; stack?: string }> = (
-			context.errors.get(this.options.name) || []
+			context.errors.get(this._options.name) || []
 		).map(e => ({
 			message: e.message,
 			stack: e.stack
@@ -145,7 +149,7 @@ export class BasicTaskProcessor<T extends ECompilerType = ECompilerType.Rspack>
 					warnings.push(...jsonStats.warnings);
 				}
 			}
-		}, this.options.name);
+		}, this._options.name);
 		await new Promise<void>((resolve, reject) => {
 			checkArrayExpectation(
 				context.getSource(),
@@ -166,16 +170,19 @@ export class BasicTaskProcessor<T extends ECompilerType = ECompilerType.Rspack>
 			);
 			resolve();
 		});
-		context.clearError(this.options.name);
+		context.clearError(this._options.name);
 	}
 
+	async before(context: ITestContext): Promise<void> {}
+	async after(context: ITestContext): Promise<void> {}
+	async beforeAll(context: ITestContext): Promise<void> {}
 	async afterAll(context: ITestContext) {
 		let task;
 		context.compiler((_, compiler) => {
 			if (compiler) {
 				task = new Promise(resolve => compiler.close(resolve));
 			}
-		}, this.options.name);
+		}, this._options.name);
 		return task;
 	}
 
@@ -190,9 +197,9 @@ export class BasicTaskProcessor<T extends ECompilerType = ECompilerType.Rspack>
 			const runnerOptions = {
 				env,
 				stats: stats!,
-				name: this.options.name,
+				name: this._options.name,
 				runInNewContext: false,
-				testConfig: this.options.testConfig,
+				testConfig: this._options.testConfig,
 				source: context.getSource(),
 				dist: context.getDist(),
 				compilerOptions: options
@@ -204,7 +211,7 @@ export class BasicTaskProcessor<T extends ECompilerType = ECompilerType.Rspack>
 			} else {
 				runner = new BasicRunner<T>(runnerOptions);
 			}
-		}, this.options.name);
+		}, this._options.name);
 		return runner;
 	}
 }

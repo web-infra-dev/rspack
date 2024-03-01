@@ -88,7 +88,7 @@ export class RspackStatsProcessor extends MultiTaskProcessor<ECompilerType.Rspac
 				// 	});
 				// });
 			});
-		}, this.options.name);
+		}, this._options.name);
 	}
 
 	async check(env: ITestEnv, context: ITestContext) {
@@ -100,7 +100,7 @@ export class RspackStatsProcessor extends MultiTaskProcessor<ECompilerType.Rspac
 				compilation.logging.delete("webpack.Compilation.ModuleProfile");
 			}
 
-			if (REG_ERROR_CASE.test(this.options.name)) {
+			if (REG_ERROR_CASE.test(this._options.name)) {
 				expect(stats.hasErrors()).toBe(true);
 			} else if (stats.hasErrors()) {
 				throw new Error(
@@ -179,16 +179,16 @@ export class RspackStatsProcessor extends MultiTaskProcessor<ECompilerType.Rspac
 				.replace(/Rspack [^ )]+(\)?) compiled/g, "Rspack x.x.x$1 compiled")
 				.replace(
 					new RegExp(quoteMeta(testPath), "g"),
-					"Xdir/" + this.options.name
+					"Xdir/" + this._options.name
 				)
 				.replace(/(\w)\\(\w)/g, "$1/$2")
 				.replace(/, additional resolving: X ms/g, "")
 				.replace(/Unexpected identifier '.+?'/g, "Unexpected identifier");
 			expect(actual).toMatchSnapshot();
-			if (typeof this.options.testConfig?.validate === "function") {
-				this.options.testConfig.validate(stats, this.stderr.toString());
+			if (typeof this._options.testConfig?.validate === "function") {
+				this._options.testConfig.validate(stats, this.stderr.toString());
 			}
-		}, this.options.name);
+		}, this._options.name);
 	}
 
 	static preOptions(

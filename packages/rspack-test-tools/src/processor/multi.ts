@@ -39,13 +39,17 @@ export class MultiTaskProcessor<T extends ECompilerType = ECompilerType.Rspack>
 {
 	protected multiCompilerOptions: TCompilerOptions<T>[] = [];
 	protected files: Record<string, number> = {};
-	constructor(protected opts: IMultiTaskProcessorOptions<T>) {
+	constructor(protected _multiOptions: IMultiTaskProcessorOptions<T>) {
 		super({
-			getCompiler: opts.getCompiler,
+			getCompiler: _multiOptions.getCompiler,
 			getBundle: (context, _) => {
 				return this.multiCompilerOptions.reduce<string[]>(
 					(res, compilerOptions, index) => {
-						const curBundles = opts.getBundle(index, context, compilerOptions);
+						const curBundles = _multiOptions.getBundle(
+							index,
+							context,
+							compilerOptions
+						);
 						const bundles = Array.isArray(curBundles)
 							? curBundles
 							: curBundles
@@ -71,8 +75,8 @@ export class MultiTaskProcessor<T extends ECompilerType = ECompilerType.Rspack>
 				)!;
 			},
 			getCompilerOptions: () => ({}),
-			testConfig: opts.testConfig,
-			name: opts.name
+			testConfig: _multiOptions.testConfig,
+			name: _multiOptions.name
 		});
 	}
 
@@ -80,21 +84,21 @@ export class MultiTaskProcessor<T extends ECompilerType = ECompilerType.Rspack>
 		this.multiCompilerOptions = [];
 		const source = context.getSource();
 		const caseOptions: TCompilerOptions<T>[] = Array.isArray(
-			this.opts.configFiles
+			this._multiOptions.configFiles
 		)
-			? readConfigFile(source, this.opts.configFiles!)
+			? readConfigFile(source, this._multiOptions.configFiles!)
 			: [{}];
 
 		for (let [index, options] of caseOptions.entries()) {
 			const compilerOptions = merge(
-				typeof this.opts.preOptions === "function"
-					? this.opts.preOptions!(index, context)
+				typeof this._multiOptions.preOptions === "function"
+					? this._multiOptions.preOptions!(index, context)
 					: {},
 				options
 			);
 
-			if (typeof this.opts.postOptions === "function") {
-				this.opts.postOptions!(index, context, compilerOptions);
+			if (typeof this._multiOptions.postOptions === "function") {
+				this._multiOptions.postOptions!(index, context, compilerOptions);
 			}
 
 			this.multiCompilerOptions.push(compilerOptions);
@@ -102,10 +106,10 @@ export class MultiTaskProcessor<T extends ECompilerType = ECompilerType.Rspack>
 	}
 
 	async compiler(context: ITestContext) {
-		const factory = this.options.getCompiler(context);
+		const factory = this._options.getCompiler(context);
 		context.compiler<T>(
 			options => factory(this.multiCompilerOptions),
-			this.options.name
+			this._options.name
 		);
 	}
 }

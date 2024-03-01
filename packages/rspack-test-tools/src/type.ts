@@ -199,6 +199,7 @@ export type TTestConfig<T extends ECompilerType> = {
 		index: number,
 		options: TCompilerOptions<T>
 	) => string | string[];
+	bundlePath?: string[];
 	nonEsmThis?: (p: string | string[]) => Object;
 	modules?: Record<string, Object>;
 	timeout?: number;
