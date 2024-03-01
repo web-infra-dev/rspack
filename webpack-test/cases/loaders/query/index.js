@@ -7,28 +7,22 @@ it("should pass query to loader", function () {
 	});
 });
 
-/**
- * edge case, will be added later
- */
-// it("should pass query to loader without resource with resource query", function () {
-// 	var result = require("./loaders/queryloader?query!?resourcequery");
-// 	expect(result).toEqual({
-// 		resourceQuery: "?resourcequery",
-// 		query: "?query",
-// 		prev: null
-// 	});
-// });
+it("should pass query to loader without resource with resource query", function () {
+	var result = require("./loaders/queryloader?query!?resourcequery");
+	expect(result).toEqual({
+		resourceQuery: "?resourcequery",
+		query: "?query",
+		prev: null
+	});
+});
 
-/**
- * edge case, will be added later
- */
-// it("should pass query to loader without resource", function() {
-// 	var result = require("./loaders/queryloader?query!");
-// 	expect(result).toEqual({
-// 		query: "?query",
-// 		prev: null
-// 	});
-// });
+it("should pass query to loader without resource", function () {
+	var result = require("./loaders/queryloader?query!");
+	expect(result).toEqual({
+		query: "?query",
+		prev: null
+	});
+});
 
 it("should pass query to multiple loaders", function () {
 	var result = require("./loaders/queryloader?query1!./loaders/queryloader?query2!./a?resourcequery");

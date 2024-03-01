@@ -372,7 +372,7 @@ export interface JsHooks {
 
 export interface JsLoaderContext {
   /** Content maybe empty in pitching stage */
-  content?: Buffer
+  content: null | Buffer
   additionalData?: Buffer
   sourceMap?: Buffer
   resource: string
