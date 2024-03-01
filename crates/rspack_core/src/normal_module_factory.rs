@@ -283,7 +283,7 @@ impl NormalModuleFactory {
           }));
         }
 
-        if unresolved_resource.is_empty() || unresolved_resource.starts_with("?") {
+        if unresolved_resource.is_empty() || unresolved_resource.starts_with('?') {
           let ResourceParsedData {
             path,
             query,
