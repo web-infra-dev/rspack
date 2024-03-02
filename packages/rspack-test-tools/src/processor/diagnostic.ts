@@ -22,13 +22,13 @@ const CWD = process.cwd();
 export class RspackDiagnosticProcessor extends BasicTaskProcessor<ECompilerType.Rspack> {
 	constructor(protected _diagnosticOptions: IRspackDiagnosticProcessorOptions) {
 		super({
-			preOptions: RspackDiagnosticProcessor.preOptions,
-			getCompiler: () => require("@rspack/core").rspack,
+			defaultOptions: RspackDiagnosticProcessor.defaultOptions,
+			compilerFactory: () => require("@rspack/core").rspack,
 			getBundle: () => [],
-			getCompilerOptions: context =>
-				readConfigFile<ECompilerType.Rspack>(context.getSource(), [
-					"rspack.config.js",
-					"webpack.config.js"
+			compilerOptions: context =>
+				readConfigFile<ECompilerType.Rspack>([
+					context.getSource("rspack.config.js"),
+					context.getSource("webpack.config.js")
 				])[0],
 			name: _diagnosticOptions.name,
 			testConfig: {}
@@ -44,41 +44,40 @@ export class RspackDiagnosticProcessor extends BasicTaskProcessor<ECompilerType.
 	}
 
 	async check(env: ITestEnv, context: ITestContext) {
-		context.stats<ECompilerType.Rspack>((error, stats) => {
-			if (!stats) {
-				throw new Error("Stats should exists");
-			}
-			assert(stats.hasErrors() || stats.hasWarnings());
-			let output = normalizePaths(
-				stats.toString({
-					all: false,
-					errors: true,
-					warnings: true
-				})
-			);
-			// TODO: change to stats.errorStack
-			if (context.getSource().includes("module-build-failed")) {
-				// Replace potential loader stack
-				output = output
-					.replaceAll("│", "")
-					.split(/\r?\n/)
-					.map((s: string) => s.trim())
-					.join("");
-			}
+		const compiler = this.getCompiler(context);
+		const stats = compiler.getStats();
+		if (!stats) {
+			throw new Error("Stats should exists");
+		}
+		assert(stats.hasErrors() || stats.hasWarnings());
+		let output = normalizePaths(
+			stats.toString({
+				all: false,
+				errors: true,
+				warnings: true
+			})
+		);
+		// TODO: change to stats.errorStack
+		if (context.getSource().includes("module-build-failed")) {
+			// Replace potential loader stack
+			output = output
+				.replaceAll("│", "")
+				.split(/\r?\n/)
+				.map((s: string) => s.trim())
+				.join("");
+		}
 
-			const errorOutputPath = path.resolve(context.getSource(), `./stats.err`);
-			const updateSnapshot =
-				process.argv.includes("-u") ||
-				process.argv.includes("--updateSnapshot");
-			if (!fs.existsSync(errorOutputPath) || updateSnapshot) {
-				fs.writeFileSync(errorOutputPath, output);
-			} else {
-				expect(output).toBe(fs.readFileSync(errorOutputPath, "utf-8"));
-			}
-		}, this._diagnosticOptions.name);
+		const errorOutputPath = path.resolve(context.getSource(), `./stats.err`);
+		const updateSnapshot =
+			process.argv.includes("-u") || process.argv.includes("--updateSnapshot");
+		if (!fs.existsSync(errorOutputPath) || updateSnapshot) {
+			fs.writeFileSync(errorOutputPath, output);
+		} else {
+			expect(output).toBe(fs.readFileSync(errorOutputPath, "utf-8"));
+		}
 	}
 
-	static preOptions(
+	static defaultOptions(
 		context: ITestContext
 	): TCompilerOptions<ECompilerType.Rspack> {
 		return {

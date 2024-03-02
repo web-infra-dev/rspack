@@ -18,8 +18,8 @@ const REG_ERROR_CASE = /error$/;
 export class RspackHashProcessor extends MultiTaskProcessor<ECompilerType.Rspack> {
 	constructor(options: IRspackHashProcessorOptions) {
 		super({
-			preOptions: RspackHashProcessor.preOptions,
-			postOptions: RspackHashProcessor.postOptions,
+			defaultOptions: RspackHashProcessor.defaultOptions,
+			overrideOptions: RspackHashProcessor.overrideOptions,
 			getCompiler: () => require("@rspack/core").rspack,
 			getBundle: () => [],
 			configFiles: ["rspack.config.js", "webpack.config.js"],
@@ -29,29 +29,29 @@ export class RspackHashProcessor extends MultiTaskProcessor<ECompilerType.Rspack
 	}
 
 	async check(env: ITestEnv, context: ITestContext) {
-		context.stats<ECompilerType.Rspack>((_, stats) => {
-			if (!stats) {
-				expect(false);
-				return;
-			}
-			const statsJson = stats.toJson({ assets: true });
-			if (REG_ERROR_CASE.test(this._options.name)) {
-				expect((statsJson.errors || []).length > 0);
-			} else {
-				expect((statsJson.errors || []).length === 0);
-			}
+		const compiler = this.getCompiler(context);
+		const stats = compiler.getStats();
+		if (!stats) {
+			expect(false);
+			return;
+		}
+		const statsJson = stats.toJson({ assets: true });
+		if (REG_ERROR_CASE.test(this._options.name)) {
+			expect((statsJson.errors || []).length > 0);
+		} else {
+			expect((statsJson.errors || []).length === 0);
+		}
 
-			if (typeof this._options.testConfig.validate === "function") {
-				this._options.testConfig.validate(stats);
-			} else {
-				throw new Error(
-					"HashTestCases should have test.config.js and a validate method"
-				);
-			}
-		}, this._options.name);
+		if (typeof this._options.testConfig.validate === "function") {
+			this._options.testConfig.validate(stats);
+		} else {
+			throw new Error(
+				"HashTestCases should have test.config.js and a validate method"
+			);
+		}
 	}
 
-	static preOptions(
+	static defaultOptions(
 		index: number,
 		context: ITestContext
 	): TCompilerOptions<ECompilerType.Rspack> {
@@ -62,7 +62,7 @@ export class RspackHashProcessor extends MultiTaskProcessor<ECompilerType.Rspack
 			}
 		};
 	}
-	static postOptions(
+	static overrideOptions(
 		index: number,
 		context: ITestContext,
 		options: TCompilerOptions<ECompilerType.Rspack>

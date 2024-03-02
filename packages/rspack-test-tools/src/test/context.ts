@@ -7,98 +7,95 @@ import {
 	TCompiler,
 	TCompilerOptions,
 	TCompilerStats,
-	TTestRunResult
+	TTestRunResult,
+	TCompilerFactory
 } from "../type";
 import path from "path";
 
-const DEFAULT_COMPILER_NAME = "__default__";
-
 export class TestContext implements ITestContext {
-	errors: Map<string, Error[]> = new Map();
-	private compilers: Map<string, ITestCompilerManager<ECompilerType>> =
+	protected errors: Map<string, Error[]> = new Map();
+	protected compilers: Map<string, ITestCompilerManager<ECompilerType>> =
 		new Map();
+	protected result: Map<string, unknown> = new Map();
 
 	constructor(private config: ITesterConfig) {}
 
-	getSource(sub?: string) {
+	getSource(sub?: string): string {
 		if (sub) {
 			return path.resolve(this.config.src, sub);
 		}
 		return this.config.src;
 	}
 
-	getDist(sub?: string) {
+	getDist(sub?: string): string {
 		if (sub) {
 			return path.resolve(this.config.dist, sub);
 		}
 		return this.config.dist;
 	}
 
-	async build<T extends ECompilerType>(
-		fn: (compiler: TCompiler<T>) => Promise<void>,
-		name = DEFAULT_COMPILER_NAME
-	) {
-		const compiler = this.getCompilerManage<T>(name);
-		await compiler.build(this, fn);
+	getTemp(sub?: string): string | null {
+		if (!this.config.temp) return null;
+		if (sub) {
+			return path.resolve(this.config.temp, sub);
+		}
+		return this.config.temp;
 	}
-	options<T extends ECompilerType>(
-		fn: (options: TCompilerOptions<T>) => TCompilerOptions<T> | void,
-		name = DEFAULT_COMPILER_NAME
-	) {
-		const compiler = this.getCompilerManage<T>(name);
-		compiler.options(this, fn);
+
+	getCompiler<T extends ECompilerType>(
+		name: string,
+		factory: TCompilerFactory<T>
+	): ITestCompilerManager<T> {
+		let compiler = this.compilers.get(name);
+		if (!compiler) {
+			if (!factory) {
+				throw new Error("Compiler does not exists");
+			}
+			compiler = new TestCompilerManager(factory);
+			this.compilers.set(name, compiler);
+		}
+		return compiler;
 	}
-	compiler<T extends ECompilerType>(
-		fn: (
-			options: TCompilerOptions<T>,
-			compiler: TCompiler<T> | null
-		) => TCompiler<T> | void,
-		name = DEFAULT_COMPILER_NAME
-	) {
-		const compiler = this.getCompilerManage<T>(name);
-		compiler.compiler(this, fn);
+
+	setResult<T>(name: string, value: T) {
+		this.result.set(name, value);
 	}
-	stats<T extends ECompilerType>(
-		fn: (
-			compiler: TCompiler<T> | null,
-			stats: TCompilerStats<T> | null
-		) => TCompilerStats<T> | void,
-		name = DEFAULT_COMPILER_NAME
-	) {
-		const compiler = this.getCompilerManage<T>(name);
-		compiler.stats(this, fn);
+
+	getResult<T>(name: string): T | void {
+		return this.result.get(name) as T;
 	}
-	result<T extends ECompilerType>(
-		fn: (
-			compiler: TCompiler<T> | null,
-			result: TTestRunResult
-		) => TTestRunResult | void,
-		name = DEFAULT_COMPILER_NAME
-	) {
-		const compiler = this.getCompilerManage<T>(name);
-		compiler.result(this, fn);
-	}
-	emitError(err: Error | string, name = DEFAULT_COMPILER_NAME) {
-		const errors = this.errors.get(name) || [];
-		errors.push(typeof err === "string" ? new Error(err) : err);
-		this.errors.set(name, errors);
-	}
-	hasError() {
+
+	hasError(name?: string): boolean {
+		if (name) {
+			return this.getError(name).length > 0;
+		}
 		return !!Array.from(this.errors.values()).reduce(
 			(res, arr) => res + arr.length,
 			0
 		);
 	}
-	getError(name = DEFAULT_COMPILER_NAME) {
-		return this.errors.get(name);
+	emitError(name: string, err: Error | string): void {
+		const errors = this.errors.get(name) || [];
+		errors.push(typeof err === "string" ? new Error(err) : err);
+		this.errors.set(name, errors);
 	}
-	clearError(name = DEFAULT_COMPILER_NAME) {
-		this.errors.delete(name);
+	getNames() {
+		return Array.from(this.compilers.keys());
 	}
-	private getCompilerManage<T extends ECompilerType>(name: string) {
-		if (!this.compilers.has(name)) {
-			this.compilers.set(name, new TestCompilerManager<T>(name));
+	getError(name?: string): Error[] {
+		if (name) {
+			return this.errors.get(name) || [];
 		}
-		return this.compilers.get(name) as ITestCompilerManager<T>;
+		return Array.from(this.errors.values()).reduce(
+			(res, arr) => [...res, ...arr],
+			[]
+		);
+	}
+	clearError(name?: string) {
+		if (name) {
+			this.errors.delete(name);
+		} else {
+			this.errors.clear();
+		}
 	}
 }

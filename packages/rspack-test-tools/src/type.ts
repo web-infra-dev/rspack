@@ -9,43 +9,25 @@ import type {
 	Stats as WebpackStats
 } from "webpack";
 import { IBasicModuleScope, TRunnerRequirer } from "./runner/type";
+import EventEmitter from "events";
 
 export interface ITestContext {
-	errors: Map<string, Error[]>;
 	getSource(sub?: string): string;
 	getDist(sub?: string): string;
-	options<T extends ECompilerType>(
-		fn: (options: TCompilerOptions<T>) => TCompilerOptions<T> | void,
-		name?: string
-	): void;
-	compiler<T extends ECompilerType>(
-		fn: (
-			options: TCompilerOptions<T>,
-			compiler: TCompiler<T> | null
-		) => TCompiler<T> | void,
-		name?: string
-	): void;
-	stats<T extends ECompilerType>(
-		fn: (
-			compiler: TCompiler<T> | null,
-			stats: TCompilerStats<T> | null
-		) => TCompilerStats<T> | void,
-		name?: string
-	): void;
-	result<T extends ECompilerType>(
-		fn: (
-			compiler: TCompiler<T> | null,
-			result: TTestRunResult
-		) => TTestRunResult | void,
-		name?: string
-	): void;
-	build<T extends ECompilerType>(
-		fn: (compiler: TCompiler<T>) => Promise<void>,
-		name?: string
-	): Promise<void>;
-	emitError(err: Error | string, name?: string): void;
-	getError(name?: string): Error[] | void;
-	hasError(): boolean;
+	getTemp(sub?: string): string | null;
+
+	getCompiler<T extends ECompilerType>(
+		name: string,
+		factory?: TCompilerFactory<T>
+	): ITestCompilerManager<T>;
+
+	setResult<T>(name: string, value: T): void;
+	getResult<T>(name: string): T | void;
+	getNames(): string[];
+
+	hasError(name?: string): boolean;
+	emitError(name: string, err: Error | string): void;
+	getError(name?: string): Error[];
 	clearError(name?: string): void;
 }
 
@@ -65,35 +47,16 @@ export type TCompilerStats<T> = T extends ECompilerType.Rspack
 	: WebpackStats;
 
 export interface ITestCompilerManager<T extends ECompilerType> {
-	options(
-		context: ITestContext,
-		fn: (options: TCompilerOptions<T>) => TCompilerOptions<T> | void
-	): void;
-	compiler(
-		context: ITestContext,
-		fn: (
-			options: TCompilerOptions<T>,
-			compiler: TCompiler<T> | null
-		) => TCompiler<T> | void
-	): void;
-	stats(
-		context: ITestContext,
-		fn: (
-			compiler: TCompiler<T> | null,
-			stats: TCompilerStats<T> | null
-		) => TCompilerStats<T> | void
-	): void;
-	result(
-		context: ITestContext,
-		fn: (
-			compiler: TCompiler<T> | null,
-			result: TTestRunResult
-		) => TTestRunResult | void
-	): void;
-	build(
-		context: ITestContext,
-		fn: (compiler: TCompiler<T>) => Promise<void>
-	): Promise<void>;
+	getOptions(): TCompilerOptions<T>;
+	setOptions(newOptions: TCompilerOptions<T>): TCompilerOptions<T>;
+	mergeOptions(newOptions: TCompilerOptions<T>): TCompilerOptions<T>;
+	getCompiler(): TCompiler<T> | null;
+	createCompiler(): TCompiler<T>;
+	build(): Promise<TCompilerStats<T>>;
+	watch(timeout?: number): void;
+	getStats(): TCompilerStats<T> | null;
+	getEmitter(): EventEmitter;
+	close(): Promise<void>;
 }
 
 export interface ITestLoader {
@@ -106,6 +69,7 @@ export interface ITesterConfig {
 	name: string;
 	src: string;
 	dist: string;
+	temp?: string;
 	steps?: ITestProcessor[];
 }
 
@@ -209,3 +173,7 @@ export interface ITestRunner {
 	run(file: string): Promise<unknown>;
 	getRequire(): TRunnerRequirer;
 }
+
+export type TCompilerFactory<T extends ECompilerType> = (
+	options: TCompilerOptions<T> | TCompilerOptions<T>[]
+) => TCompiler<T>;

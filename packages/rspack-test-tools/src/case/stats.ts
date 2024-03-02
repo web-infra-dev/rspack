@@ -30,9 +30,10 @@ export function createStatsCase(name: string, src: string, dist: string) {
 		return;
 	}
 
+	rimraf.sync(dist);
+	fs.mkdirSync(dist, { recursive: true });
+
 	beforeAll(async () => {
-		rimraf.sync(dist);
-		fs.mkdirSync(dist, { recursive: true });
 		await tester.prepare();
 	});
 

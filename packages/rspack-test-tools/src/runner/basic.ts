@@ -84,7 +84,7 @@ export class BasicRunner<T extends ECompilerType = ECompilerType.Rspack>
 	}
 
 	protected createBaseModuleScope(): IBasicModuleScope {
-		return {
+		const baseModuleScope = {
 			console: console,
 			it: this._options.env.it,
 			beforeEach: this._options.env.beforeEach,
@@ -99,6 +99,10 @@ export class BasicRunner<T extends ECompilerType = ECompilerType.Rspack>
 				return m;
 			}
 		};
+		if (this._options.stats) {
+			baseModuleScope["__STATS__"] = this._options.stats;
+		}
+		return baseModuleScope;
 	}
 
 	protected createModuleScope(
@@ -151,11 +155,9 @@ export class BasicRunner<T extends ECompilerType = ECompilerType.Rspack>
 			if (modules && modulePathStr in modules) {
 				return modules[modulePathStr];
 			} else {
-				return require(
-					modulePathStr.startsWith("node:")
-						? modulePathStr.slice(5)
-						: modulePathStr
-				);
+				return require(modulePathStr.startsWith("node:")
+					? modulePathStr.slice(5)
+					: modulePathStr);
 			}
 		};
 	}

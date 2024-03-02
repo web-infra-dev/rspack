@@ -14,8 +14,11 @@ import { merge } from "webpack-merge";
 export interface IMultiTaskProcessorOptions<
 	T extends ECompilerType = ECompilerType.Rspack
 > {
-	preOptions?: (index: number, context: ITestContext) => TCompilerOptions<T>;
-	postOptions?: (
+	defaultOptions?: (
+		index: number,
+		context: ITestContext
+	) => TCompilerOptions<T>;
+	overrideOptions?: (
 		index: number,
 		context: ITestContext,
 		options: TCompilerOptions<T>
@@ -42,7 +45,7 @@ export class MultiTaskProcessor<T extends ECompilerType = ECompilerType.Rspack>
 	protected runners: ITestRunner[] = [];
 	constructor(protected _multiOptions: IMultiTaskProcessorOptions<T>) {
 		super({
-			getCompiler: _multiOptions.getCompiler,
+			compilerFactory: _multiOptions.getCompiler,
 			getBundle: (context, _) => {
 				return this.multiCompilerOptions.reduce<string[]>(
 					(res, compilerOptions, index) => {
@@ -79,7 +82,7 @@ export class MultiTaskProcessor<T extends ECompilerType = ECompilerType.Rspack>
 					)!;
 				return this.runners[index];
 			},
-			getCompilerOptions: () => ({}),
+			compilerOptions: () => ({}),
 			testConfig: _multiOptions.testConfig,
 			name: _multiOptions.name
 		});
@@ -87,34 +90,30 @@ export class MultiTaskProcessor<T extends ECompilerType = ECompilerType.Rspack>
 
 	async config(context: ITestContext) {
 		this.multiCompilerOptions = [];
-		const source = context.getSource();
 		const caseOptions: TCompilerOptions<T>[] = Array.isArray(
 			this._multiOptions.configFiles
 		)
-			? readConfigFile(source, this._multiOptions.configFiles!)
+			? readConfigFile(
+					this._multiOptions.configFiles!.map(i => context.getSource(i))
+			  )
 			: [{}];
 
 		for (let [index, options] of caseOptions.entries()) {
 			const compilerOptions = merge(
-				typeof this._multiOptions.preOptions === "function"
-					? this._multiOptions.preOptions!(index, context)
+				typeof this._multiOptions.defaultOptions === "function"
+					? this._multiOptions.defaultOptions!(index, context)
 					: {},
 				options
 			);
 
-			if (typeof this._multiOptions.postOptions === "function") {
-				this._multiOptions.postOptions!(index, context, compilerOptions);
+			if (typeof this._multiOptions.overrideOptions === "function") {
+				this._multiOptions.overrideOptions!(index, context, compilerOptions);
 			}
 
 			this.multiCompilerOptions.push(compilerOptions);
 		}
-	}
 
-	async compiler(context: ITestContext) {
-		const factory = this._options.getCompiler(context);
-		context.compiler<T>(
-			options => factory(this.multiCompilerOptions),
-			this._options.name
-		);
+		const compiler = this.getCompiler(context);
+		compiler.setOptions(this.multiCompilerOptions as any);
 	}
 }

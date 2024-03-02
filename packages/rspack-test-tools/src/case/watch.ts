@@ -6,7 +6,6 @@ import {
 	RspackWatchProcessor,
 	RspackWatchStepProcessor
 } from "../processor/watch";
-import EventEmitter from "events";
 
 export function createWatchCase(
 	name: string,
@@ -26,7 +25,6 @@ export function createWatchCase(
 	const testConfig = fs.existsSync(testConfigFile)
 		? require(testConfigFile)
 		: {};
-	const emitter = new EventEmitter();
 	const tester = new Tester({
 		name,
 		src,
@@ -37,16 +35,14 @@ export function createWatchCase(
 						name,
 						stepName: run.name,
 						tempDir: temp,
-						testConfig,
-						emitter
-					})
+						testConfig
+				  })
 				: new RspackWatchStepProcessor({
 						name,
 						stepName: run.name,
 						tempDir: temp,
-						testConfig,
-						emitter
-					})
+						testConfig
+				  })
 		)
 	});
 

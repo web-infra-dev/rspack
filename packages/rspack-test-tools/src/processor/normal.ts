@@ -1,33 +1,45 @@
 import {
 	ECompilerType,
 	ITestContext,
+	ITestEnv,
+	ITestRunner,
 	TCompilerOptions,
 	TTestConfig
 } from "../type";
 import { BasicTaskProcessor } from "./basic";
 import path from "path";
 import fs from "fs";
+import { NormalRunner } from "../runner";
+
+const CWD = process.cwd();
 
 export interface IRspackNormalProcessorOptions {
 	name: string;
+	root: string;
 	compilerOptions?: TCompilerOptions<ECompilerType.Rspack>;
 	testConfig: TTestConfig<ECompilerType.Rspack>;
 }
 
 export class RspackNormalProcessor extends BasicTaskProcessor<ECompilerType.Rspack> {
-	constructor(protected _caseOptions: IRspackNormalProcessorOptions) {
+	constructor(protected _normalOptions: IRspackNormalProcessorOptions) {
 		super({
-			getCompiler: () => require("@rspack/core").rspack,
+			compilerFactory: () => require("@rspack/core").rspack,
 			getBundle: (context, options) => options.output?.filename,
-			getCompilerOptions: () => ({}),
-			name: _caseOptions.name,
+			compilerOptions: RspackNormalProcessor.compilerOptions(_normalOptions),
+			name: _normalOptions.name,
 			testConfig: {}
 		});
 	}
 
-	static getCompilerOptions({
-		compilerOptions
-	}: IRspackNormalProcessorOptions) {
+	async before(context: ITestContext) {
+		process.chdir(this._normalOptions.root);
+	}
+
+	async after(context: ITestContext) {
+		process.chdir(CWD);
+	}
+
+	static compilerOptions({ compilerOptions }: IRspackNormalProcessorOptions) {
 		return (context: ITestContext): TCompilerOptions<ECompilerType.Rspack> => {
 			let testConfig: TCompilerOptions<ECompilerType.Rspack> = {};
 			const testConfigPath = path.join(context.getSource(), "test.config.js");
@@ -167,5 +179,22 @@ export class RspackNormalProcessor extends BasicTaskProcessor<ECompilerType.Rspa
 				// }
 			};
 		};
+	}
+
+	protected createRunner(
+		env: ITestEnv,
+		context: ITestContext,
+		options: TCompilerOptions<ECompilerType.Rspack>
+	): ITestRunner | null {
+		return new NormalRunner({
+			env,
+			name: this._options.name,
+			runInNewContext:
+				options.target === "web" || options.target === "webworker",
+			testConfig: this._options.testConfig,
+			source: context.getSource(),
+			dist: context.getDist(),
+			compilerOptions: options
+		});
 	}
 }

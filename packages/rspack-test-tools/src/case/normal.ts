@@ -9,6 +9,7 @@ export function createNormalCase(
 	name: string,
 	src: string,
 	dist: string,
+	root: string,
 	compilerOptions: TCompilerOptions<ECompilerType.Rspack> = {}
 ) {
 	const testConfigFile = path.join(src, "test.config.js");
@@ -19,6 +20,7 @@ export function createNormalCase(
 		steps: [
 			new RspackNormalProcessor({
 				name,
+				root,
 				compilerOptions,
 				testConfig: fs.existsSync(testConfigFile) ? require(testConfigFile) : {}
 			})

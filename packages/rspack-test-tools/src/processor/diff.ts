@@ -39,37 +39,37 @@ export class DiffProcessor implements ITestProcessor {
 	private rspack: BasicTaskProcessor<ECompilerType.Rspack>;
 	constructor(private options: IDiffProcessorOptions) {
 		this.webpack = new BasicTaskProcessor<ECompilerType.Webpack>({
-			preOptions: context =>
+			defaultOptions: context =>
 				this.getDefaultOptions(
 					ECompilerType.Webpack,
 					context.getSource(),
 					path.join(context.getDist(), ECompilerType.Webpack)
 				),
-			getCompiler: () => require(this.options.webpackPath).webpack,
+			compilerFactory: () => require(this.options.webpackPath).webpack,
 			getBundle: () => {},
 			name: ECompilerType.Webpack,
-			getCompilerOptions: context =>
-				readConfigFile<ECompilerType.Webpack>(context.getSource(), [
-					"webpack.config.js",
-					"rspack.config.js"
+			compilerOptions: context =>
+				readConfigFile<ECompilerType.Webpack>([
+					context.getSource("webpack.config.js"),
+					context.getSource("rspack.config.js")
 				])[0],
 			testConfig: {}
 		});
 
 		this.rspack = new BasicTaskProcessor<ECompilerType.Rspack>({
-			preOptions: context =>
+			defaultOptions: context =>
 				this.getDefaultOptions(
 					ECompilerType.Rspack,
 					context.getSource(),
 					path.join(context.getDist(), ECompilerType.Rspack)
 				),
-			getCompiler: () => require(this.options.rspackPath).rspack,
+			compilerFactory: () => require(this.options.rspackPath).rspack,
 			getBundle: () => {},
 			name: ECompilerType.Rspack,
-			getCompilerOptions: context =>
-				readConfigFile<ECompilerType.Rspack>(context.getSource(), [
-					"rspack.config.js",
-					"webpack.config.js"
+			compilerOptions: context =>
+				readConfigFile<ECompilerType.Rspack>([
+					context.getSource("rspack.config.js"),
+					context.getSource("webpack.config.js")
 				])[0],
 			testConfig: {}
 		});
@@ -88,14 +88,15 @@ export class DiffProcessor implements ITestProcessor {
 		await this.rspack.build(context);
 	}
 	async check(env: ITestEnv, context: ITestContext) {
-		context.stats((compiler, stats) => {
-			//TODO: handle chunk hash and content hash
-			stats?.hash && this.hashes.push(stats?.hash);
-		}, ECompilerType.Webpack);
-		context.stats((compiler, stats) => {
-			//TODO: handle chunk hash and content hash
-			stats?.hash && this.hashes.push(stats?.hash);
-		}, ECompilerType.Rspack);
+		const webpackCompiler = context.getCompiler(ECompilerType.Webpack);
+		const webpackStats = webpackCompiler.getStats();
+		//TODO: handle chunk hash and content hash
+		webpackStats?.hash && this.hashes.push(webpackStats?.hash);
+
+		const rspackCompiler = context.getCompiler(ECompilerType.Rspack);
+		const rspackStats = rspackCompiler.getStats();
+		//TODO: handle chunk hash and content hash
+		rspackStats?.hash && this.hashes.push(rspackStats?.hash);
 
 		const dist = context.getDist();
 		for (let file of this.options.files!) {

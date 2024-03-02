@@ -17,8 +17,8 @@ export interface IRspackConfigProcessorOptions<T extends ECompilerType.Rspack> {
 export class RspackConfigProcessor extends MultiTaskProcessor<ECompilerType.Rspack> {
 	constructor(options: IRspackConfigProcessorOptions<ECompilerType.Rspack>) {
 		super({
-			preOptions: RspackConfigProcessor.preOptions,
-			postOptions: RspackConfigProcessor.postOptions,
+			defaultOptions: RspackConfigProcessor.defaultOptions,
+			overrideOptions: RspackConfigProcessor.overrideOptions,
 			getCompiler: () => require("@rspack/core").rspack,
 			getBundle: options.testConfig.findBundle
 				? (index, context, compilerOptions) =>
@@ -47,7 +47,7 @@ export class RspackConfigProcessor extends MultiTaskProcessor<ECompilerType.Rspa
 		}
 	}
 
-	static preOptions(
+	static defaultOptions(
 		index: number,
 		context: ITestContext
 	): TCompilerOptions<ECompilerType.Rspack> {
@@ -70,7 +70,7 @@ export class RspackConfigProcessor extends MultiTaskProcessor<ECompilerType.Rspa
 			}
 		};
 	}
-	static postOptions(
+	static overrideOptions(
 		index: number,
 		context: ITestContext,
 		options: TCompilerOptions<ECompilerType.Rspack>
@@ -81,7 +81,9 @@ export class RspackConfigProcessor extends MultiTaskProcessor<ECompilerType.Rspa
 		if (!options.output?.filename) {
 			const outputModule = options.experiments?.outputModule;
 			options.output ??= {};
-			options.output.filename = `bundle${index}${outputModule ? ".mjs" : ".js"}`;
+			options.output.filename = `bundle${index}${
+				outputModule ? ".mjs" : ".js"
+			}`;
 		}
 	}
 }

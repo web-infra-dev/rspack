@@ -31,8 +31,6 @@ export interface IBasicModuleScope extends ITestEnv {
 	console: Console;
 	expect: jest.Expect;
 	jest: typeof jest;
-	__STATS__: TCompilerStats<ECompilerType>;
-	nsObj: (m: Object) => Object;
 	[key: string]: any;
 }
 
@@ -46,7 +44,7 @@ export interface IBasicGlobalContext {
 
 export interface IBasicRunnerOptions<T extends ECompilerType> {
 	env: ITestEnv;
-	stats: TCompilerStats<T>;
+	stats?: TCompilerStats<T>;
 	name: string;
 	runInNewContext: boolean;
 	testConfig: TTestConfig<T>;
