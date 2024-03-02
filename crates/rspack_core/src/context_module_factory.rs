@@ -142,7 +142,7 @@ impl ContextModuleFactory {
           "{}{}{}",
           loaders_prefix,
           loader_result.join("!"),
-          if loader_result.len() > 0 { "!" } else { "" }
+          if loader_result.is_empty() { "" } else { "!" }
         );
         (request, resource)
       }
@@ -153,7 +153,7 @@ impl ContextModuleFactory {
       context: data.context.clone(),
       importer: None,
       issuer: data.issuer.as_deref(),
-      specifier: &specifier,
+      specifier,
       dependency_type: dependency.dependency_type(),
       dependency_category: dependency.category(),
       span: dependency.span(),
