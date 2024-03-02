@@ -36,15 +36,12 @@ it("should pass query to multiple loaders", function () {
 	}));
 });
 
-/**
- * This should be supported, but we currently don't.
- */
-// it("should pass query to loader over context", function () {
-// 	var test = "test";
-// 	var result = require("./loaders/queryloader?query!./context-query-test/" + test);
-// 	expect(result).toEqual({
-// 		resourceQuery: "",
-// 		query: "?query",
-// 		prev: "test content"
-// 	});
-// });
+it("should pass query to loader over context", function () {
+	var test = "test";
+	var result = require("./loaders/queryloader?query!./context-query-test/" + test);
+	expect(result).toEqual({
+		resourceQuery: "",
+		query: "?query",
+		prev: "test content"
+	});
+});

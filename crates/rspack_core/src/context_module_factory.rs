@@ -4,14 +4,16 @@ use rspack_error::{error, Result};
 use tracing::instrument;
 
 use crate::{
-  cache::Cache, resolve, BoxModule, ContextModule, ContextModuleOptions, ModuleExt, ModuleFactory,
-  ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, NormalModuleAfterResolveArgs,
-  NormalModuleBeforeResolveArgs, PluginNormalModuleFactoryAfterResolveOutput, RawModule,
-  ResolveArgs, ResolveResult, SharedPluginDriver,
+  cache::Cache, resolve, BoxModule, ContextModule, ContextModuleOptions, DependencyCategory,
+  ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier,
+  NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs,
+  PluginNormalModuleFactoryAfterResolveOutput, RawModule, ResolveArgs,
+  ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory, SharedPluginDriver,
 };
 
 #[derive(Debug)]
 pub struct ContextModuleFactory {
+  loader_resolver_factory: Arc<ResolverFactory>,
   plugin_driver: SharedPluginDriver,
   cache: Arc<Cache>,
 }
@@ -35,8 +37,13 @@ impl ModuleFactory for ContextModuleFactory {
 }
 
 impl ContextModuleFactory {
-  pub fn new(plugin_driver: SharedPluginDriver, cache: Arc<Cache>) -> Self {
+  pub fn new(
+    loader_resolver_factory: Arc<ResolverFactory>,
+    plugin_driver: SharedPluginDriver,
+    cache: Arc<Cache>,
+  ) -> Self {
     Self {
+      loader_resolver_factory,
       plugin_driver,
       cache,
     }
@@ -68,6 +75,16 @@ impl ContextModuleFactory {
     Ok(None)
   }
 
+  fn get_loader_resolver(&self) -> Arc<Resolver> {
+    self
+      .loader_resolver_factory
+      .get(ResolveOptionsWithDependencyType {
+        resolve_options: None,
+        resolve_to_context: false,
+        dependency_category: DependencyCategory::CommonJS,
+      })
+  }
+
   async fn resolve(&self, data: &mut ModuleFactoryCreateData) -> Result<ModuleFactoryResult> {
     let plugin_driver = &self.plugin_driver;
     let dependency = data
@@ -81,10 +98,7 @@ impl ContextModuleFactory {
     let request = dependency.request();
     let (loader_request, specifier) = match request.rfind('!') {
       Some(idx) => {
-        let mut loaders: Vec<&str> = vec![];
-        let mut resource = "";
         let mut loaders_prefix = String::new();
-
         let mut loaders_request = request[..idx + 1].to_string();
         let mut i = 0;
         while i < loaders_request.len() && loaders_request.chars().nth(i) == Some('!') {
@@ -95,33 +109,25 @@ impl ContextModuleFactory {
           .trim_end_matches('!')
           .replace("!!", "!");
 
-        if loaders_request.is_empty() {
-          loaders = vec![];
+        let loaders = if loaders_request.is_empty() {
+          vec![]
         } else {
-          loaders = loaders_request.split('!').collect();
-        }
-        resource = &request[idx + 1..];
+          loaders_request.split('!').collect()
+        };
+        let resource = &request[idx + 1..];
 
         let mut loader_result = Vec::with_capacity(loaders.len());
+        let loader_resolver = self.get_loader_resolver();
         for loader_request in loaders {
-          let resolve_args = ResolveArgs {
-            context: data.context.clone(),
-            importer: None,
-            issuer: None,
-            specifier: &loader_request,
-            dependency_type: dependency.dependency_type(),
-            dependency_category: dependency.category(),
-            span: dependency.span(),
-            resolve_options: data.resolve_options.clone(),
-            resolve_to_context: true,
-            optional: false,
-            file_dependencies: &mut file_dependencies,
-            missing_dependencies: &mut missing_dependencies,
-          };
-          let resolve_result = resolve(resolve_args, plugin_driver).await?;
+          let resolve_result = loader_resolver
+            .resolve(data.context.as_ref(), loader_request)
+            .map_err(|err| {
+              let context = data.context.to_string();
+              error!("Failed to resolve loader: {loader_request} in {context} {err:?}")
+            })?;
           match resolve_result {
             ResolveResult::Resource(resource) => {
-              let resource = resource.path.to_string_lossy().to_string();
+              let resource = resource.full_path().to_string_lossy().to_string();
               loader_result.push(resource);
             }
             ResolveResult::Ignored => {
@@ -138,9 +144,9 @@ impl ContextModuleFactory {
           loader_result.join("!"),
           if loader_result.len() > 0 { "!" } else { "" }
         );
-        (resource, request)
+        (request, resource)
       }
-      None => ("", request.to_string()),
+      None => ("".to_string(), request),
     };
 
     let resolve_args = ResolveArgs {
