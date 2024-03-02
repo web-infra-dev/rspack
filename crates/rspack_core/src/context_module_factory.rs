@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use rspack_error::Result;
+use rspack_error::{error, Result};
 use tracing::instrument;
 
 use crate::{
@@ -69,6 +69,7 @@ impl ContextModuleFactory {
   }
 
   async fn resolve(&self, data: &mut ModuleFactoryCreateData) -> Result<ModuleFactoryResult> {
+    let plugin_driver = &self.plugin_driver;
     let dependency = data
       .dependency
       .as_context_dependency()
@@ -79,15 +80,74 @@ impl ContextModuleFactory {
     // let context_dependencies = Default::default();
     let request = dependency.request();
     let (loader_request, specifier) = match request.rfind('!') {
-      Some(idx) => request.split_at(idx + 1),
-      None => ("", request),
+      Some(idx) => {
+        let mut loaders: Vec<&str> = vec![];
+        let mut resource = "";
+        let mut loaders_prefix = String::new();
+
+        let mut loaders_request = request[..idx + 1].to_string();
+        let mut i = 0;
+        while i < loaders_request.len() && loaders_request.chars().nth(i) == Some('!') {
+          loaders_prefix.push('!');
+          i += 1;
+        }
+        loaders_request = loaders_request[i..]
+          .trim_end_matches('!')
+          .replace("!!", "!");
+
+        if loaders_request.is_empty() {
+          loaders = vec![];
+        } else {
+          loaders = loaders_request.split('!').collect();
+        }
+        resource = &request[idx + 1..];
+
+        let mut loader_result = Vec::with_capacity(loaders.len());
+        for loader_request in loaders {
+          let resolve_args = ResolveArgs {
+            context: data.context.clone(),
+            importer: None,
+            issuer: None,
+            specifier: &loader_request,
+            dependency_type: dependency.dependency_type(),
+            dependency_category: dependency.category(),
+            span: dependency.span(),
+            resolve_options: data.resolve_options.clone(),
+            resolve_to_context: true,
+            optional: false,
+            file_dependencies: &mut file_dependencies,
+            missing_dependencies: &mut missing_dependencies,
+          };
+          let resolve_result = resolve(resolve_args, plugin_driver).await?;
+          match resolve_result {
+            ResolveResult::Resource(resource) => {
+              let resource = resource.path.to_string_lossy().to_string();
+              loader_result.push(resource);
+            }
+            ResolveResult::Ignored => {
+              let context = data.context.to_string();
+              return Err(error!(
+                "Failed to resolve loader: loader_request={loader_request}, context={context}"
+              ));
+            }
+          }
+        }
+        let request = format!(
+          "{}{}{}",
+          loaders_prefix,
+          loader_result.join("!"),
+          if loader_result.len() > 0 { "!" } else { "" }
+        );
+        (resource, request)
+      }
+      None => ("", request.to_string()),
     };
 
     let resolve_args = ResolveArgs {
       context: data.context.clone(),
       importer: None,
       issuer: data.issuer.as_deref(),
-      specifier,
+      specifier: &specifier,
       dependency_type: dependency.dependency_type(),
       dependency_category: dependency.category(),
       span: dependency.span(),
@@ -97,7 +157,6 @@ impl ContextModuleFactory {
       file_dependencies: &mut file_dependencies,
       missing_dependencies: &mut missing_dependencies,
     };
-    let plugin_driver = &self.plugin_driver;
 
     let (resource_data, from_cache) = match self
       .cache
