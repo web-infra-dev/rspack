@@ -3,7 +3,7 @@ members  = ["crates/*"]
 resolver = "2"          # See https://doc.rust-lang.org/cargo/reference/resolver.html#feature-resolver-version-2
 
 [workspace.dependencies]
-anyhow             = { version = "1.0.79", features = ["backtrace"] }
+anyhow             = { version = "1.0.80", features = ["backtrace"] }
 async-recursion    = { version = "1.0.5" }
 async-scoped       = { version = "0.9.0" }
 async-trait        = { version = "0.1.77" }
@@ -14,13 +14,13 @@ colored            = { version = "2.1.0" }
 concat-string      = "1.0.1"
 dashmap            = { version = "5.5.3" }
 derivative         = { version = "2.2.0" }
-derive_builder     = { version = "0.13.0" }
+derive_builder     = { version = "0.20.0" }
 futures            = { version = "0.3.30" }
 futures-util       = { version = "0.3.30" }
 glob               = { version = "0.3.1" }
 hashlink           = { version = "0.9.0" }
-indexmap           = { version = "2.2.1" }
-insta              = { version = "1.34.0" }
+indexmap           = { version = "2.2.4" }
+insta              = { version = "1.35.1" }
 itertools          = { version = "0.12.1" }
 json               = { version = "0.12.4" }
 linked_hash_set    = { version = "0.1.4" }
@@ -30,33 +30,33 @@ once_cell          = { version = "1.19.0" }
 paste              = { version = "1.0" }
 path-clean         = { version = "1.0.1" }
 pathdiff           = { version = "0.2.1" }
-preset_env_base    = { version = "0.4.10" }
+preset_env_base    = { version = "0.4.11" }
 proc-macro2        = { version = "1.0.78" }
 quote              = { version = "1.0.35" }
-rayon              = { version = "1.8.1" }
+rayon              = { version = "1.9.0" }
 regex              = { version = "1.10.3" }
-rkyv               = { version = "0.7.43" }
-rspack_sources     = { version = "=0.2.10" }
+rkyv               = { version = "0.7.44" }
+rspack_sources     = { version = "=0.2.12" }
 rustc-hash         = { version = "1.1.0" }
 schemars           = { version = "0.8.16" }
-serde              = { version = "1.0.196" }
-serde_json         = { version = "1.0.113" }
+serde              = { version = "1.0.197" }
+serde_json         = { version = "1.0.114" }
 similar            = { version = "2.4.0" }
 sugar_path         = { version = "0.0.12" }
-syn                = { version = "2.0.48" }
+syn                = { version = "2.0.52" }
 testing_macros     = { version = "0.2.12" }
-tokio              = { version = "1.35.1" }
+tokio              = { version = "1.36.0" }
 tracing            = { version = "0.1.40" }
 tracing-subscriber = { version = "0.3.18" }
 url                = { version = "2.5.0" }
 urlencoding        = { version = "2.1.3" }
 ustr               = { package = "ustr-fxhash", version = "1.0.0" }
-xxhash-rust        = { version = "0.8.8" }
+xxhash-rust        = { version = "0.8.10" }
 
 # Pinned
-napi              = { version = "=2.15.0" }
-napi-build        = { version = "=2.1.0" }
-napi-derive       = { version = "=2.15.0" }
+napi              = { version = "=2.15.4" }
+napi-build        = { version = "=2.1.2" }
+napi-derive       = { version = "=2.15.3" }
 napi-sys          = { version = "=2.3.0" }
 tikv-jemallocator = { version = "=0.5.4", features = ["disable_initial_exec_tls"] }
 

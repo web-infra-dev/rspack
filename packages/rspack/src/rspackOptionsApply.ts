@@ -59,11 +59,11 @@ import {
 	FlagDependencyExportsPlugin,
 	FlagDependencyUsagePlugin,
 	SideEffectsFlagPlugin,
-	BundlerInfoPlugin,
+	BundlerInfoRspackPlugin,
 	ModuleConcatenationPlugin,
 	EvalDevToolModulePlugin
 } from "./builtin-plugin";
-import { deprecatedWarn, termlink } from "./util";
+import { deprecatedWarn } from "./util";
 
 export function applyEntryOptions(
 	compiler: Compiler,
@@ -71,10 +71,7 @@ export function applyEntryOptions(
 ) {
 	if (!options.experiments.rspackFuture!.disableApplyEntryLazily) {
 		deprecatedWarn(
-			`You are depending on ${termlink(
-				"apply entry lazily",
-				"https://rspack.dev/config/experiments.html#experimentsrspackfuturedisableapplyentrylazily"
-			)}, this behavior has been deprecated, you can setup 'experiments.rspackFuture.disableApplyEntryLazily = true' to disable this behavior, and this will be enabled by default in v0.5`
+			`You are depending on apply entry lazily (https://rspack.dev/config/experiments.html#experimentsrspackfuturedisableapplyentrylazily), this behavior has been deprecated, you can setup 'experiments.rspackFuture.disableApplyEntryLazily = true' to disable this behavior, and this will be enabled by default in v0.5`
 		);
 	}
 	if (compiler.parentCompilation === undefined) {
@@ -183,15 +180,6 @@ export class RspackOptionsApply {
 			}
 		}
 
-		if (
-			options.output.enabledLibraryTypes &&
-			options.output.enabledLibraryTypes.length > 0
-		) {
-			for (const type of options.output.enabledLibraryTypes) {
-				new EnableLibraryPlugin(type).apply(compiler);
-			}
-		}
-
 		const runtimeChunk = options.optimization
 			.runtimeChunk as OptimizationRuntimeChunkNormalized;
 		if (runtimeChunk) {
@@ -251,7 +239,7 @@ export class RspackOptionsApply {
 		new RuntimePlugin().apply(compiler);
 
 		if (options.experiments.rspackFuture!.bundlerInfo) {
-			new BundlerInfoPlugin(
+			new BundlerInfoRspackPlugin(
 				options.experiments.rspackFuture!.bundlerInfo
 			).apply(compiler);
 		}
@@ -283,11 +271,20 @@ export class RspackOptionsApply {
 			if (options.optimization.concatenateModules) {
 				new ModuleConcatenationPlugin().apply(compiler);
 			}
+			if (options.optimization.mangleExports) {
+				new MangleExportsPlugin(
+					options.optimization.mangleExports !== "size"
+				).apply(compiler);
+			}
 		}
-		if (options.optimization.mangleExports) {
-			new MangleExportsPlugin(
-				options.optimization.mangleExports !== "size"
-			).apply(compiler);
+
+		if (
+			options.output.enabledLibraryTypes &&
+			options.output.enabledLibraryTypes.length > 0
+		) {
+			for (const type of options.output.enabledLibraryTypes) {
+				new EnableLibraryPlugin(type).apply(compiler);
+			}
 		}
 		if (options.optimization.splitChunks) {
 			new SplitChunksPlugin(options.optimization.splitChunks).apply(compiler);

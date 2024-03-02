@@ -20,7 +20,7 @@ use crate::{
   dependency::PureExpressionDependency,
   is_pure_class, is_pure_class_member,
   plugin::side_effects_flag_plugin::is_pure_expression,
-  visitors::{harmony_import_dependency_scanner::ImportMap, ExtraSpanInfo},
+  visitors::{ExtraSpanInfo, ImportMap},
   ClassExt,
 };
 
@@ -378,7 +378,7 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
         }
       }
     } else {
-      n.init.visit_with(self);
+      n.visit_children_with(self);
     }
   }
 

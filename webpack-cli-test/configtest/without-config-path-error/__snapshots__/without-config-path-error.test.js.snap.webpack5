@@ -1,0 +1,10 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`'configtest' command without the configuration path option should validate default configuration: stderr 1`] = `
+"[webpack-cli] Invalid configuration object. Webpack has been initialized using a configuration object that does not match the API schema.
+ - configuration.mode should be one of these:
+   "development" | "production" | "none"
+   -> Enable production optimizations or development hints."
+`;
+
+exports[`'configtest' command without the configuration path option should validate default configuration: stdout 1`] = `"[webpack-cli] Validate '<cwd>/test/configtest/without-config-path-error/webpack.config.js'."`;

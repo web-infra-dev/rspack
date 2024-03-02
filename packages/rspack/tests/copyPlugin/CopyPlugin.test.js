@@ -1,11 +1,11 @@
-import path from "path";
-import fs from "fs";
+const path = require("path");
+const fs = require("fs");
 
-import { rspack } from "@rspack/core";
+const rspack = require("../../");
 
-import { run, runEmit, runChange } from "./helpers/run";
+const { run, runEmit, runChange } = require("./helpers/run");
 
-import { readAssets, getCompiler, compile } from "./helpers";
+const { readAssets, getCompiler, compile } = require("./helpers");
 
 const FIXTURES_DIR = path.join(__dirname, "fixtures");
 

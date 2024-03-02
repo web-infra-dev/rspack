@@ -227,11 +227,6 @@ impl VariableInfo {
     }
   }
 
-  pub fn update_tag_info_data(&mut self, data: Option<serde_json::Value>) {
-    let tag_info = self.tag_info.as_mut().expect("make sure `tag_info` exist");
-    tag_info.data = data;
-  }
-
   fn set_id(&mut self, id: VariableInfoId) {
     self.id = Some(id);
   }

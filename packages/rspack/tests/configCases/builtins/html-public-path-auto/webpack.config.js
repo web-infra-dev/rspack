@@ -7,10 +7,10 @@ module.exports = {
 		path: "require('path')",
 		fs: "require('fs')"
 	},
+	node: {
+		__dirname: false
+	},
 	plugins: [
-		new rspack.DefinePlugin({
-			__dirname: JSON.stringify(path.join(__dirname, "./dist"))
-		}),
 		new rspack.HtmlRspackPlugin({
 			filename: "main_page/index.html"
 		})

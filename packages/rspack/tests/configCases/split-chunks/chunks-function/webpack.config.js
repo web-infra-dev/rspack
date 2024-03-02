@@ -17,6 +17,9 @@ module.exports = {
 			}
 		}
 	},
+	output: {
+		filename: "[name].js"
+	},
 	target: "async-node",
 	optimization: {
 		splitChunks: {

@@ -13,7 +13,8 @@ use crate::dependency::{
   ModuleArgumentDependency, ModuleHotAcceptDependency, ModuleHotDeclineDependency,
 };
 use crate::parser_plugin::JavascriptParserPlugin;
-use crate::visitors::{expr_matcher, JavascriptParser};
+use crate::utils::eval;
+use crate::visitors::{expr_name, JavascriptParser};
 
 type CreateDependency = fn(u32, u32, Atom, Option<ErrorSpan>) -> BoxDependency;
 
@@ -123,15 +124,33 @@ impl JavascriptParser<'_> {
 pub struct ModuleHotReplacementParserPlugin;
 
 impl JavascriptParserPlugin for ModuleHotReplacementParserPlugin {
+  fn evaluate_identifier(
+    &self,
+    _parser: &mut JavascriptParser,
+    ident: &str,
+    start: u32,
+    end: u32,
+  ) -> Option<crate::utils::eval::BasicEvaluatedExpression> {
+    if ident == expr_name::MODULE_HOT {
+      Some(eval::evaluate_to_identifier(
+        expr_name::MODULE_HOT.to_string(),
+        expr_name::MODULE.to_string(),
+        Some(true),
+        start,
+        end,
+      ))
+    } else {
+      None
+    }
+  }
+
   fn member(
     &self,
     parser: &mut JavascriptParser,
     expr: &swc_core::ecma::ast::MemberExpr,
-    _for_name: &str,
+    for_name: &str,
   ) -> Option<bool> {
-    // FIXME: remove this `.clone`
-    let expr = Expr::Member(expr.clone());
-    if expr_matcher::is_module_hot(&expr) {
+    if for_name == expr_name::MODULE_HOT {
       parser.create_hmr_expression_handler(expr.span());
       Some(true)
     } else {
@@ -143,13 +162,13 @@ impl JavascriptParserPlugin for ModuleHotReplacementParserPlugin {
     &self,
     parser: &mut JavascriptParser,
     call_expr: &swc_core::ecma::ast::CallExpr,
-    _for_name: &str,
+    for_name: &str,
   ) -> Option<bool> {
-    if crate::visitors::is_module_hot_accept_call(call_expr) {
+    if for_name == expr_name::MODULE_HOT_ACCEPT {
       parser.create_accept_handler(call_expr, |start, end, request, span| {
         Box::new(ModuleHotAcceptDependency::new(start, end, request, span))
       })
-    } else if crate::visitors::is_module_hot_decline_call(call_expr) {
+    } else if for_name == expr_name::MODULE_HOT_DECLINE {
       parser.create_decline_handler(call_expr, |start, end, request, span| {
         Box::new(ModuleHotDeclineDependency::new(start, end, request, span))
       })
@@ -162,15 +181,33 @@ impl JavascriptParserPlugin for ModuleHotReplacementParserPlugin {
 pub struct ImportMetaHotReplacementParserPlugin;
 
 impl JavascriptParserPlugin for ImportMetaHotReplacementParserPlugin {
+  fn evaluate_identifier(
+    &self,
+    _parser: &mut JavascriptParser,
+    ident: &str,
+    start: u32,
+    end: u32,
+  ) -> Option<crate::utils::eval::BasicEvaluatedExpression> {
+    if ident == expr_name::IMPORT_META_WEBPACK_HOT {
+      Some(eval::evaluate_to_identifier(
+        expr_name::IMPORT_META_WEBPACK_HOT.to_string(),
+        expr_name::IMPORT_META.to_string(),
+        Some(true),
+        start,
+        end,
+      ))
+    } else {
+      None
+    }
+  }
+
   fn member(
     &self,
     parser: &mut JavascriptParser,
     expr: &swc_core::ecma::ast::MemberExpr,
-    _for_name: &str,
+    for_name: &str,
   ) -> Option<bool> {
-    // FIXME: remove this `.clone`
-    let expr = Expr::Member(expr.clone());
-    if expr_matcher::is_import_meta_webpack_hot(&expr) {
+    if for_name == expr_name::IMPORT_META_WEBPACK_HOT {
       parser.create_hmr_expression_handler(expr.span());
       Some(true)
     } else {
@@ -182,15 +219,15 @@ impl JavascriptParserPlugin for ImportMetaHotReplacementParserPlugin {
     &self,
     parser: &mut JavascriptParser,
     call_expr: &swc_core::ecma::ast::CallExpr,
-    _for_name: &str,
+    for_name: &str,
   ) -> Option<bool> {
-    if crate::visitors::is_import_meta_hot_accept_call(call_expr) {
+    if for_name == expr_name::IMPORT_META_WEBPACK_HOT_ACCEPT {
       parser.create_accept_handler(call_expr, |start, end, request, span| {
         Box::new(ImportMetaHotAcceptDependency::new(
           start, end, request, span,
         ))
       })
-    } else if crate::visitors::is_import_meta_hot_decline_call(call_expr) {
+    } else if for_name == expr_name::IMPORT_META_WEBPACK_HOT_DECLINE {
       parser.create_decline_handler(call_expr, |start, end, request, span| {
         Box::new(ImportMetaHotDeclineDependency::new(
           start, end, request, span,

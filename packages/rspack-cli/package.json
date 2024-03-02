@@ -1,6 +1,6 @@
 {
   "name": "@rspack/cli",
-  "version": "0.5.3",
+  "version": "0.5.5",
   "license": "MIT",
   "description": "CLI for rspack",
   "bin": {
@@ -35,9 +35,7 @@
     "concat-stream": "^2.0.0",
     "cross-env": "^7.0.3",
     "execa": "^5.0.0",
-    "internal-ip": "6.2.0",
-    "source-map-support": "^0.5.19",
-    "ts-node": "10.9.2"
+    "internal-ip": "6.2.0"
   },
   "dependencies": {
     "@discoveryjs/json-ext": "^0.5.7",

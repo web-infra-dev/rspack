@@ -174,9 +174,6 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
     }
 
     let ids = self.get_ids(&compilation.module_graph);
-    compilation
-      .module_graph
-      .module_identifier_by_dependency_id(&self.id);
     let import_var = get_import_var(&compilation.module_graph, self.id);
 
     let export_expr = if let Some(scope) = concatenation_scope

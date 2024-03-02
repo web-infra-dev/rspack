@@ -32,9 +32,15 @@ use crate::{
 use crate::{BoxPlugin, ExportInfo, UsageState};
 use crate::{CompilationParams, ContextModuleFactory, NormalModuleFactory};
 
+pub type CompilerCompilationHook = AsyncSeries2Hook<Compilation, CompilationParams>;
+pub type CompilerMakeHook = AsyncSeries2Hook<Compilation, Vec<MakeParam>>;
+
 #[derive(Debug, Default)]
 pub struct CompilerHooks {
-  pub compilation: AsyncSeries2Hook<Compilation, CompilationParams>,
+  // should be SyncHook, but rspack need call js hook
+  pub compilation: CompilerCompilationHook,
+  // should be AsyncParallelHook, but rspack need add MakeParam to incremental rebuild
+  pub make: CompilerMakeHook,
 }
 
 #[derive(Debug)]
@@ -130,7 +136,7 @@ where
   }
 
   #[instrument(name = "compile", skip_all)]
-  async fn compile(&mut self, params: Vec<MakeParam>) -> Result<()> {
+  async fn compile(&mut self, mut params: Vec<MakeParam>) -> Result<()> {
     let mut compilation_params = self.new_compilation_params();
     self
       .plugin_driver
@@ -149,9 +155,20 @@ where
 
     let logger = self.compilation.get_logger("rspack.Compiler");
     let option = self.options.clone();
-    let start = logger.time("make");
+    let make_start = logger.time("make");
+    let make_hook_start = logger.time("make hook");
+    if let Some(e) = self
+      .hooks
+      .make
+      .call(&mut self.compilation, &mut params)
+      .await
+      .err()
+    {
+      self.compilation.push_batch_diagnostic(vec![e.into()]);
+    }
+    logger.time_end(make_hook_start);
     self.compilation.make(params).await?;
-    logger.time_end(start);
+    logger.time_end(make_start);
 
     let start = logger.time("finish make hook");
     self

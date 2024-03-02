@@ -42,7 +42,7 @@ macro_rules! call_js_function_with_napi_objects {
 
 #[macro_export]
 macro_rules! js_fn_into_threadsafe_fn {
-  ($js_cb:ident, $env:expr) => {{
+  ($js_cb:expr, $env:expr) => {{
     use napi::NapiRaw;
     use rspack_napi_shared::threadsafe_function::ThreadsafeFunction;
 

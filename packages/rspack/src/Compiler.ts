@@ -7,10 +7,11 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-import type * as binding from "@rspack/binding";
+import * as binding from "@rspack/binding";
 import { rspack } from "./index";
 import fs from "fs";
 import * as tapable from "tapable";
+import * as liteTapable from "./lite-tapable";
 import { Callback, SyncBailHook, SyncHook } from "tapable";
 import type { WatchOptions } from "watchpack";
 import {
@@ -48,15 +49,16 @@ import { RuntimeGlobals } from "./RuntimeGlobals";
 import { tryRunOrWebpackError } from "./lib/HookWebpackError";
 import { CodeGenerationResult } from "./Module";
 import { canInherentFromParent } from "./builtin-plugin/base";
-import { CreateModuleData } from "@rspack/binding";
 import ExecuteModulePlugin from "./ExecuteModulePlugin";
 
 class Compiler {
-	#_instance?: binding.Rspack;
+	#instance?: binding.Rspack;
 
 	webpack = rspack;
 	// @ts-expect-error
 	compilation: Compilation;
+	// TODO: remove this after remove rebuild on the rust side.
+	first: boolean = true;
 	builtinPlugins: binding.BuiltinPlugin[];
 	root: Compiler;
 	running: boolean;
@@ -88,7 +90,7 @@ class Compiler {
 		done: tapable.AsyncSeriesHook<Stats>;
 		afterDone: tapable.SyncHook<Stats>;
 		// TODO: CompilationParams
-		compilation: tapable.SyncHook<[Compilation, CompilationParams]>;
+		compilation: liteTapable.SyncHook<[Compilation, CompilationParams]>;
 		// TODO: CompilationParams
 		thisCompilation: tapable.SyncHook<[Compilation, CompilationParams]>;
 		invalid: tapable.SyncHook<[string | null, number]>;
@@ -111,7 +113,7 @@ class Compiler {
 		afterEnvironment: tapable.SyncHook<[]>;
 		afterPlugins: tapable.SyncHook<[Compiler]>;
 		afterResolvers: tapable.SyncHook<[Compiler]>;
-		make: tapable.AsyncParallelHook<[Compilation]>;
+		make: liteTapable.AsyncParallelHook<[Compilation]>;
 		beforeCompile: tapable.AsyncSeriesHook<any>;
 		afterCompile: tapable.AsyncSeriesHook<[Compilation]>;
 		finishModules: tapable.AsyncSeriesHook<[any]>;
@@ -152,7 +154,7 @@ class Compiler {
 				"compilation",
 				"params"
 			]),
-			compilation: new tapable.SyncHook<[Compilation, CompilationParams]>([
+			compilation: new liteTapable.SyncHook<[Compilation, CompilationParams]>([
 				"compilation",
 				"params"
 			]),
@@ -173,7 +175,7 @@ class Compiler {
 			afterEnvironment: new tapable.SyncHook([]),
 			afterPlugins: new tapable.SyncHook(["compiler"]),
 			afterResolvers: new tapable.SyncHook(["compiler"]),
-			make: new tapable.AsyncParallelHook(["compilation"]),
+			make: new liteTapable.AsyncParallelHook(["compilation"]),
 			beforeCompile: new tapable.AsyncSeriesHook(["params"]),
 			afterCompile: new tapable.AsyncSeriesHook(["compilation"]),
 			finishMake: new tapable.AsyncSeriesHook(["compilation"]),
@@ -211,8 +213,8 @@ class Compiler {
 			return callback(error);
 		}
 
-		if (this.#_instance) {
-			return callback(null, this.#_instance);
+		if (this.#instance) {
+			return callback(null, this.#instance);
 		}
 
 		const options = this.options;
@@ -230,14 +232,13 @@ class Compiler {
 
 		const instanceBinding: typeof binding = require("@rspack/binding");
 
-		this.#_instance = new instanceBinding.Rspack(
+		this.#instance = new instanceBinding.Rspack(
 			rawOptions,
 			this.builtinPlugins,
 			{
 				beforeCompile: this.#beforeCompile.bind(this),
 				afterCompile: this.#afterCompile.bind(this),
 				finishMake: this.#finishMake.bind(this),
-				make: this.#make.bind(this),
 				shouldEmit: this.#shouldEmit.bind(this),
 				emit: this.#emit.bind(this),
 				assetEmitted: this.#assetEmitted.bind(this),
@@ -312,10 +313,6 @@ class Compiler {
 				// See webpack's API: https://webpack.js.org/api/compiler-hooks/#thiscompilation
 				// So it is safe to create a new compilation here.
 				thisCompilation: this.#newCompilation.bind(this),
-				// The hook `Compilation` should be called whenever it's a call from the child compiler or normal compiler and
-				// still it does not matter where the child compiler is created(Rust or Node) as calling the hook `compilation` is a required task.
-				// No matter how it will be implemented, it will be copied to the child compiler.
-				compilation: this.#compilation.bind(this),
 				optimizeModules: this.#optimizeModules.bind(this),
 				afterOptimizeModules: this.#afterOptimizeModules.bind(this),
 				optimizeTree: this.#optimizeTree.bind(this),
@@ -330,17 +327,24 @@ class Compiler {
 				afterResolve: this.#afterResolve.bind(this),
 				contextModuleFactoryBeforeResolve:
 					this.#contextModuleFactoryBeforeResolve.bind(this),
+				contextModuleFactoryAfterResolve:
+					this.#contextModuleFactoryAfterResolve.bind(this),
 				succeedModule: this.#succeedModule.bind(this),
 				stillValidModule: this.#stillValidModule.bind(this),
 				buildModule: this.#buildModule.bind(this),
 				executeModule: this.#executeModule.bind(this),
 				runtimeModule: this.#runtimeModule.bind(this)
 			},
+			{
+				registerCompilerCompilationTaps:
+					this.#registerCompilerCompilationTaps.bind(this),
+				registerCompilerMakeTaps: this.#registerCompilerMakeTaps.bind(this)
+			},
 			createThreadsafeNodeFSFromRaw(this.outputFileSystem),
 			runLoaders.bind(undefined, this)
 		);
 
-		callback(null, this.#_instance);
+		callback(null, this.#instance);
 	}
 
 	createChildCompiler(
@@ -559,7 +563,6 @@ class Compiler {
 		const disabledHooks: string[] = [];
 		type HookMap = Record<keyof binding.JsHooks, any>;
 		const hookMap: HookMap = {
-			make: this.hooks.make,
 			beforeCompile: this.hooks.beforeCompile,
 			afterCompile: this.hooks.afterCompile,
 			finishMake: this.hooks.finishMake,
@@ -632,7 +635,6 @@ class Compiler {
 					Compilation.PROCESS_ASSETS_STAGE_REPORT
 				),
 			afterProcessAssets: this.compilation.hooks.afterProcessAssets,
-			compilation: this.hooks.compilation,
 			optimizeTree: this.compilation.hooks.optimizeTree,
 			finishModules: this.compilation.hooks.finishModules,
 			optimizeModules: this.compilation.hooks.optimizeModules,
@@ -649,6 +651,8 @@ class Compiler {
 			optimizeChunkModules: this.compilation.hooks.optimizeChunkModules,
 			contextModuleFactoryBeforeResolve:
 				this.compilation.contextModuleFactory?.hooks.beforeResolve,
+			contextModuleFactoryAfterResolve:
+				this.compilation.contextModuleFactory?.hooks.afterResolve,
 			normalModuleFactoryCreateModule:
 				this.compilation.normalModuleFactory?.hooks.createModule,
 			normalModuleFactoryResolveForScheme:
@@ -660,7 +664,7 @@ class Compiler {
 			if (
 				typeof hook !== "undefined" &&
 				(hook.taps
-					? hook.taps.length === 0
+					? !hook.isUsed()
 					: hook._map
 					? /* hook map */ hook._map.size === 0
 					: false)
@@ -673,9 +677,9 @@ class Compiler {
 		if (this.#disabledHooks.join() !== disabledHooks.join()) {
 			this.#getInstance((error, instance) => {
 				if (error) {
-					return callback && callback(error);
+					return callback?.(error);
 				}
-				instance?.unsafe_set_disabled_hooks(disabledHooks);
+				instance!.unsafe_set_disabled_hooks(disabledHooks);
 				this.#disabledHooks = disabledHooks;
 			});
 		}
@@ -768,6 +772,18 @@ class Compiler {
 		return res;
 	}
 
+	async #contextModuleFactoryAfterResolve(
+		resourceData: binding.AfterResolveData
+	) {
+		let res =
+			await this.compilation.contextModuleFactory?.hooks.afterResolve.promise(
+				resourceData
+			);
+
+		this.#updateDisabledHooks();
+		return res;
+	}
+
 	async #normalModuleFactoryCreateModule(createData: binding.CreateModuleData) {
 		const data = Object.assign({}, createData, {
 			settings: {},
@@ -834,10 +850,6 @@ class Compiler {
 		this.#updateDisabledHooks();
 	}
 
-	async #make() {
-		await this.hooks.make.promise(this.compilation);
-		this.#updateDisabledHooks();
-	}
 	async #shouldEmit(): Promise<boolean | undefined> {
 		const res = this.hooks.shouldEmit.call(this.compilation);
 		this.#updateDisabledHooks();
@@ -967,13 +979,46 @@ class Compiler {
 		this.#moduleExecutionResultsMap.set(id, executeResult);
 	}
 
-	#compilation(native: binding.JsCompilation) {
-		// TODO: implement this based on the child compiler impl.
-		this.hooks.compilation.call(this.compilation, {
-			normalModuleFactory: this.compilation.normalModuleFactory!
-		});
+	#registerCompilerCompilationTaps(stages: number[]): binding.JsTap[] {
+		if (!this.hooks.compilation.isUsed()) return [];
+		const breakpoints = [-Infinity, ...stages, Infinity];
+		const jsTaps = [];
+		for (let i = 0; i < breakpoints.length - 1; i++) {
+			const stageRange = liteTapable.StageRange.from(
+				breakpoints[i],
+				breakpoints[i + 1]
+			);
+			jsTaps.push({
+				function: (native: binding.JsCompilation) => {
+					this.hooks.compilation.callStageRange(stageRange, this.compilation, {
+						normalModuleFactory: this.compilation.normalModuleFactory!
+					});
+					if (i + 1 >= breakpoints.length - 1) this.#updateDisabledHooks();
+				},
+				stage: stageRange.from + 1
+			});
+		}
+		return jsTaps;
+	}
 
-		this.#updateDisabledHooks();
+	#registerCompilerMakeTaps(stages: number[]): binding.JsTap[] {
+		if (!this.hooks.make.isUsed()) return [];
+		const breakpoints = [-Infinity, ...stages, Infinity];
+		const jsTaps = [];
+		for (let i = 0; i < breakpoints.length - 1; i++) {
+			const stageRange = liteTapable.StageRange.from(
+				breakpoints[i],
+				breakpoints[i + 1]
+			);
+			jsTaps.push({
+				function: async (native: binding.JsCompilation) => {
+					await this.hooks.make.promiseStageRange(stageRange, this.compilation);
+					if (i + 1 >= breakpoints.length - 1) this.#updateDisabledHooks();
+				},
+				stage: stageRange.from + 1
+			});
+		}
+		return jsTaps;
 	}
 
 	#newCompilation(native: binding.JsCompilation) {
@@ -986,7 +1031,7 @@ class Compiler {
 		this.compilation.normalModuleFactory = normalModuleFactory;
 		this.hooks.normalModuleFactory.call(normalModuleFactory);
 		this.compilation.contextModuleFactory = contextModuleFactory;
-		this.hooks.contextModuleFactory.call(normalModuleFactory);
+		this.hooks.contextModuleFactory.call(contextModuleFactory);
 		this.hooks.thisCompilation.call(this.compilation, {
 			normalModuleFactory: normalModuleFactory
 		});
@@ -1053,25 +1098,43 @@ class Compiler {
 			doRun();
 		}
 	}
-	// Safety: This method is only valid to call if the previous build task is finished, or there will be data races.
-	build(callback: (error: Error | null) => void) {
+	/**
+	 * Safety: This method is only valid to call if the previous rebuild task is finished, or there will be data races.
+	 */
+	build(callback?: (error: Error | null) => void) {
 		this.#getInstance((error, instance) => {
 			if (error) {
-				return callback && callback(error);
+				return callback?.(error);
 			}
-			const unsafe_build = instance?.unsafe_build;
-			const build_cb = unsafe_build?.bind(instance) as typeof unsafe_build;
-			build_cb?.(error => {
+			if (!this.first) {
+				const rebuild = instance!.unsafe_rebuild.bind(instance);
+				rebuild(
+					Array.from(this.modifiedFiles || []),
+					Array.from(this.removedFiles || []),
+					error => {
+						if (error) {
+							return callback?.(error);
+						}
+						callback?.(null);
+					}
+				);
+				return;
+			}
+			this.first = false;
+			const build = instance!.unsafe_build.bind(instance);
+			build(error => {
 				if (error) {
-					callback(error);
-				} else {
-					callback(null);
+					return callback?.(error);
 				}
+				callback?.(null);
 			});
 		});
 	}
 
-	// Safety: This method is only valid to call if the previous rebuild task is finished, or there will be data races.
+	/**
+	 * Safety: This method is only valid to call if the previous rebuild task is finished, or there will be data races.
+	 * @deprecated This is a low-level incremental rebuild API, which shouldn't be used intentionally. Use `compiler.build` instead.
+	 */
 	rebuild(
 		modifiedFiles?: ReadonlySet<string>,
 		removedFiles?: ReadonlySet<string>,
@@ -1079,21 +1142,17 @@ class Compiler {
 	) {
 		this.#getInstance((error, instance) => {
 			if (error) {
-				return callback && callback(error);
+				return callback?.(error);
 			}
-			const unsafe_rebuild = instance?.unsafe_rebuild;
-			const rebuild_cb = unsafe_rebuild?.bind(
-				instance
-			) as typeof unsafe_rebuild;
-			rebuild_cb?.(
-				[...(modifiedFiles ?? [])],
-				[...(removedFiles ?? [])],
+			const rebuild = instance!.unsafe_rebuild.bind(instance);
+			rebuild(
+				Array.from(modifiedFiles || []),
+				Array.from(removedFiles || []),
 				error => {
 					if (error) {
-						callback && callback(error);
-					} else {
-						callback && callback(null);
+						return callback?.(error);
 					}
+					callback?.(null);
 				}
 			);
 		});
@@ -1148,7 +1207,7 @@ class Compiler {
 		// See: https://github.com/webpack/webpack/blob/4ba225225b1348c8776ca5b5fe53468519413bc0/lib/Compiler.js#L1218
 		if (!this.running) {
 			// Manually drop the instance.
-			// this.#_instance = undefined;
+			// this.#instance = undefined;
 		}
 
 		if (this.watching) {

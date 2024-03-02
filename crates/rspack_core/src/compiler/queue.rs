@@ -375,13 +375,10 @@ impl WorkerTask for BuildTask {
     let cache = self.cache;
     let plugin_driver = self.plugin_driver;
 
-    let (build_result, is_cache_valid) = match cache
+    let (build_result, is_cache_valid) = cache
       .build_module_occasion
       .use_cache(&mut module, |module| async {
-        plugin_driver
-          .build_module(module.as_mut())
-          .await
-          .unwrap_or_else(|e| panic!("Run build_module hook failed: {}", e));
+        plugin_driver.build_module(module.as_mut()).await?;
 
         let result = module
           .build(
@@ -407,10 +404,7 @@ impl WorkerTask for BuildTask {
           )
           .await;
 
-        plugin_driver
-          .succeed_module(&**module)
-          .await
-          .unwrap_or_else(|e| panic!("Run succeed_module hook failed: {}", e));
+        plugin_driver.succeed_module(&**module).await?;
 
         result.map(|t| {
           let diagnostics = module
@@ -421,11 +415,7 @@ impl WorkerTask for BuildTask {
           (t.with_diagnostic(diagnostics), module)
         })
       })
-      .await
-    {
-      Ok(result) => result,
-      Err(err) => panic!("build module get error: {}", err),
-    };
+      .await?;
 
     if is_cache_valid {
       plugin_driver.still_valid_module(module.as_ref()).await?;
@@ -512,7 +502,7 @@ impl CleanTask {
       }
     };
 
-    if !mgm.incoming_connections.is_empty() {
+    if !mgm.incoming_connections().is_empty() {
       return CleanTaskResult::ModuleIsUsed { module_identifier };
     }
 

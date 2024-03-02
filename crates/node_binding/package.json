@@ -1,6 +1,6 @@
 {
   "name": "@rspack/binding",
-  "version": "0.5.3",
+  "version": "0.5.5",
   "license": "MIT",
   "description": "Node binding for rspack",
   "main": "binding.js",
@@ -30,7 +30,7 @@
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
   "repository": "web-infra-dev/rspack",
   "devDependencies": {
-    "@napi-rs/cli": "3.0.0-alpha.36"
+    "@napi-rs/cli": "3.0.0-alpha.41"
   },
   "napi": {
     "binaryName": "rspack"

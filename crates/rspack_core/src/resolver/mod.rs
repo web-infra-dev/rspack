@@ -1,6 +1,7 @@
 mod factory;
 mod resolver_impl;
-
+use std::borrow::Borrow;
+use std::fs;
 use std::{fmt, path::PathBuf};
 
 use once_cell::sync::Lazy;
@@ -166,6 +167,102 @@ which tries to resolve these kind of requests in the current directory too.",
       }
       Err(_) => return None,
       _ => {}
+    }
+  }
+
+  // try to resolve relative path with extension
+  if RELATIVE_PATH_REGEX.is_match(args.specifier) {
+    let connected_path = base_dir.join(args.specifier);
+    let normalized_path = connected_path.absolutize();
+
+    let mut is_resolving_dir = false; // whether the request is to resolve a directory or not
+
+    let file_name = normalized_path.file_name();
+    let parent_path = match fs::metadata(&normalized_path) {
+      Ok(metadata) => {
+        // if the path is not directory, we need to resolve the parent directory
+        if !metadata.is_dir() {
+          normalized_path.parent()
+        } else {
+          is_resolving_dir = true;
+          Some(normalized_path.borrow())
+        }
+      }
+      Err(_) => normalized_path.parent(),
+    };
+
+    if file_name.is_some() && parent_path.is_some() {
+      let file_name = file_name.expect("fail to get the filename of the current resolved module");
+      let parent_path =
+        parent_path.expect("fail to get the parent path of the current resolved module");
+
+      // read the files in the parent directory
+      let files = fs::read_dir(parent_path);
+      match files {
+        Ok(files) => {
+          let mut requested_names = vec![file_name
+            .to_str()
+            .map(|f| f.to_string())
+            .unwrap_or_default()];
+          if is_resolving_dir {
+            // The request maybe is like `./` or `./dir` to resolve the main file (e.g.: index) in directory
+            // So we need to check them.
+            let main_files = dep
+              .resolve_options
+              .as_deref()
+              .or(Some(&plugin_driver.options.resolve))
+              .and_then(|o| o.main_files.as_ref().cloned())
+              .unwrap_or_default();
+
+            requested_names.extend(main_files);
+          }
+
+          let suggestions = files
+            .into_iter()
+            .filter_map(|file| {
+              file.ok().and_then(|file| {
+                file.path().file_stem().and_then(|file_stem| {
+                  if requested_names.contains(&file_stem.to_string_lossy().to_string()) {
+                    let mut suggestion = file.path().relative(args.context.as_path());
+
+                    if !suggestion.to_string_lossy().starts_with('.') {
+                      suggestion = PathBuf::from(format!("./{}", suggestion.to_string_lossy()));
+                    }
+                    Some(suggestion)
+                  } else {
+                    None
+                  }
+                })
+              })
+            })
+            .collect::<Vec<_>>();
+
+          if suggestions.is_empty() {
+            return None;
+          }
+
+          let mut hint: Vec<String> = vec![];
+          for suggestion in suggestions {
+            let suggestion_ext = suggestion
+              .extension()
+              .map(|e| e.to_string_lossy())
+              .unwrap_or_default();
+            let suggestion_path = suggestion.to_string_lossy();
+            let specifier = args.specifier;
+
+            hint.push(format!(
+          "Found module '{suggestion_path}'. However, it's not possible to request this module without the extension 
+if its extension was not listed in the `resolve.extensions`. Here're some possible solutions:
+
+1. add the extension `\".{suggestion_ext}\"` to `resolve.extensions` in your rspack configuration
+2. use '{suggestion_path}' instead of '{specifier}'
+"));
+          }
+
+          return Some(hint.join("\n"));
+        }
+        Err(_) => return None,
+      }
     }
   }
 

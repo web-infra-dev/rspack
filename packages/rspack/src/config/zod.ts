@@ -3,7 +3,7 @@ import { z } from "zod";
 import { Compilation, Compiler } from "..";
 import type * as oldBuiltins from "../builtin-plugin";
 import type * as webpackDevServer from "webpack-dev-server";
-import { deprecatedWarn, termlink } from "../util";
+import { deprecatedWarn } from "../util";
 import { Module } from "../Module";
 import { Chunk } from "../Chunk";
 
@@ -925,7 +925,9 @@ const statsOptions = z.strictObject({
 	loggingDebug: z.boolean().or(filterTypes).optional(),
 	loggingTrace: z.boolean().optional(),
 	runtimeModules: z.boolean().optional(),
-	children: z.boolean().optional()
+	children: z.boolean().optional(),
+	usedExports: z.boolean().optional(),
+	providedExports: z.boolean().optional()
 });
 export type StatsOptions = z.infer<typeof statsOptions>;
 
@@ -987,7 +989,7 @@ const optimizationSplitChunksChunks = z
 const optimizationSplitChunksSizes = z.number();
 const sharedOptimizationSplitChunksCacheGroup = {
 	chunks: optimizationSplitChunksChunks.optional(),
-	minChunks: z.number().optional(),
+	minChunks: z.number().min(1).optional(),
 	name: optimizationSplitChunksName.optional(),
 	minSize: optimizationSplitChunksSizes.optional(),
 	maxSize: optimizationSplitChunksSizes.optional(),
@@ -1092,10 +1094,7 @@ const experiments = z.strictObject({
 					`'experiments.newSplitChunks = ${JSON.stringify(
 						val
 					)}' has been deprecated, please switch to 'experiments.newSplitChunks = true' to use webpack's behavior.
- 	See the discussion ${termlink(
-		"here",
-		"https://github.com/web-infra-dev/rspack/discussions/4168"
-	)}`
+ 	See the discussion here (https://github.com/web-infra-dev/rspack/discussions/4168)`
 				);
 			}
 			return true;

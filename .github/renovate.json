@@ -10,11 +10,11 @@
     "webpack-examples/**",
     "webpack-test/**"
   ],
+  "assignees": ["@Boshen"],
   "packageRules": [
     {
       "groupName": "github-actions",
       "matchManagers": ["github-actions"],
-      "assignees": ["@Boshen"],
       "excludePackageNames": ["actions/upload-artifact", "actions/download-artifact"]
     },
     {
@@ -26,9 +26,8 @@
     {
       "groupName": "crates",
       "matchManagers": ["cargo"],
-      "assignees": ["@Boshen"],
-      "excludePackagePrefixes": ["swc"],
-      "excludePackageNames": ["ustr", "textwrap", "styled_components", "owo-colors"]
+      "excludePackagePrefixes": ["swc", "napi"],
+      "excludePackageNames": ["ustr", "textwrap", "styled_components", "owo-colors", "miette"]
     },
     {
       "groupName": "swc",
@@ -37,25 +36,29 @@
       "matchPackageNames": ["styled_components"]
     },
     {
-      "groupName": "ignored-crates",
+      "groupName": "napi",
       "matchManagers": ["cargo"],
-      "matchPackageNames": ["ustr", "textwrap", "owo-colors"],
+      "matchPackagePrefixes": ["napi"]
+    },
+    {
+      "groupName": "ignored crates",
+      "matchManagers": ["cargo"],
+      "matchPackageNames": ["ustr", "textwrap", "owo-colors", "miette"],
       "enabled": false
     },
     {
-      "groupName": "ignored-indexmap",
+      "groupName": "ignored indexmap",
       "matchManagers": ["cargo"],
       "matchFileNames": ["crates/rspack_plugin_css/Cargo.toml"],
       "matchPackageNames": ["indexmap"],
       "enabled": false
     },
     {
-      "groupName": "npm devDependencies",
+      "groupName": "npm dev dependencies",
       "matchManagers": ["npm"],
       "matchDepTypes": ["devDependencies"],
       "excludePackagePrefixes": ["webpack"],
-      "excludePackageNames": ["@playwright/test", "react", "react-dom", "typescript"],
-      "assignees": ["@Boshen"]
+      "excludePackageNames": ["@playwright/test", "react", "react-dom", "typescript", "pnpm"]
     },
     {
       "groupName": "npm dependencies",
@@ -66,7 +69,7 @@
     {
       "groupName": "npm ignored dependencies",
       "matchManagers": ["npm"],
-      "matchPackageNames": ["@playwright/test", "react", "react-dom", "typescript"],
+      "matchPackageNames": ["@playwright/test", "react", "react-dom", "typescript", "pnpm"],
       "enabled": false
     },
     {

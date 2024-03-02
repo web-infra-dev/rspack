@@ -5,6 +5,7 @@ use std::{
 
 use rspack_error::{Diagnostic, Result, TWithDiagnosticArray};
 use rspack_loader_runner::{LoaderContext, ResourceData};
+use rspack_sources::Source;
 use rustc_hash::FxHashMap as HashMap;
 use tokio::sync::mpsc::UnboundedSender;
 use tracing::instrument;
@@ -14,12 +15,12 @@ use crate::{
   AssetEmittedArgs, BoxLoader, BoxModule, BoxedParserAndGeneratorBuilder, BuildTimeExecutionOption,
   Chunk, ChunkAssetArgs, ChunkContentHash, ChunkHashArgs, CodeGenerationResults, Compilation,
   CompilationParams, CompilerHooks, CompilerOptions, Content, ContentHashArgs, DependencyId,
-  DoneArgs, FactorizeArgs, JsChunkHashArgs, LoaderRunnerContext, MakeParam, Module,
-  ModuleIdentifier, ModuleType, NormalModule, NormalModuleAfterResolveArgs,
-  NormalModuleBeforeResolveArgs, NormalModuleCreateData, OptimizeChunksArgs, Plugin,
+  DoneArgs, FactorizeArgs, JsChunkHashArgs, LoaderRunnerContext, Module, ModuleIdentifier,
+  ModuleType, NormalModule, NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs,
+  NormalModuleCreateData, OptimizeChunksArgs, Plugin,
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginAdditionalModuleRequirementsOutput,
   PluginBuildEndHookOutput, PluginChunkHashHookOutput, PluginCompilationHookOutput, PluginContext,
-  PluginFactorizeHookOutput, PluginJsChunkHashHookOutput, PluginMakeHookOutput,
+  PluginFactorizeHookOutput, PluginJsChunkHashHookOutput,
   PluginNormalModuleFactoryAfterResolveOutput, PluginNormalModuleFactoryBeforeResolveOutput,
   PluginNormalModuleFactoryCreateModuleHookOutput, PluginNormalModuleFactoryModuleHookOutput,
   PluginProcessAssetsOutput, PluginRenderChunkHookOutput, PluginRenderHookOutput,
@@ -371,6 +372,22 @@ impl PluginDriver {
     Ok(None)
   }
 
+  pub async fn context_module_after_resolve(
+    &self,
+    args: &mut NormalModuleAfterResolveArgs<'_>,
+  ) -> PluginNormalModuleFactoryAfterResolveOutput {
+    for plugin in &self.plugins {
+      tracing::trace!("running resolve for scheme:{}", plugin.name());
+      if let Some(data) = plugin
+        .context_module_after_resolve(PluginContext::new(), args)
+        .await?
+      {
+        return Ok(Some(data));
+      }
+    }
+    Ok(None)
+  }
+
   pub async fn normal_module_factory_resolve_for_scheme(
     &self,
     args: ResourceData,
@@ -485,20 +502,6 @@ impl PluginDriver {
           },
         )
         .await?
-    }
-    Ok(())
-  }
-
-  #[instrument(name = "plugin:make", skip_all)]
-  pub async fn make(
-    &self,
-    compilation: &mut Compilation,
-    params: &mut Vec<MakeParam>,
-  ) -> PluginMakeHookOutput {
-    for plugin in &self.plugins {
-      plugin
-        .make(PluginContext::new(), compilation, params)
-        .await?;
     }
     Ok(())
   }
@@ -633,11 +636,11 @@ impl PluginDriver {
   pub async fn runtime_module(
     &self,
     module: &mut dyn RuntimeModule,
+    source: Arc<dyn Source>,
     chunk: &Chunk,
-    compilation: &Compilation,
   ) -> Result<Option<String>> {
     for plugin in &self.plugins {
-      if let Some(t) = plugin.runtime_module(module, chunk, compilation).await? {
+      if let Some(t) = plugin.runtime_module(module, source.clone(), chunk).await? {
         return Ok(Some(t));
       };
     }

@@ -7,11 +7,11 @@ use hot_module_replacement::HotModuleReplacementRuntimeModule;
 use rspack_core::{
   collect_changed_modules,
   rspack_sources::{RawSource, SourceExt},
-  AdditionalChunkRuntimeRequirementsArgs, ApplyContext, AssetInfo, Chunk, ChunkKind, Compilation,
-  CompilationAsset, CompilationParams, CompilationRecords, CompilerOptions, DependencyType,
-  ModuleIdentifier, PathData, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput,
-  PluginContext, PluginProcessAssetsOutput, ProcessAssetsArgs, RenderManifestArgs, RuntimeGlobals,
-  RuntimeModuleExt, RuntimeSpec, SourceType,
+  AdditionalChunkRuntimeRequirementsArgs, ApplyContext, AssetInfo, Chunk, ChunkKind, ChunkUkey,
+  Compilation, CompilationAsset, CompilationParams, CompilationRecords, CompilerOptions,
+  DependencyType, LoaderContext, LoaderRunnerContext, ModuleIdentifier, NormalModule, PathData,
+  Plugin, PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, PluginProcessAssetsOutput,
+  ProcessAssetsArgs, RenderManifestArgs, RuntimeGlobals, RuntimeModuleExt, RuntimeSpec, SourceType,
 };
 use rspack_error::Result;
 use rspack_hash::RspackHash;
@@ -65,6 +65,16 @@ impl Plugin for HotModuleReplacementPlugin {
       .tap(Box::new(HotModuleReplacementPluginCompilationHook));
 
     options.dev_server.hot = true;
+    Ok(())
+  }
+
+  fn normal_module_loader(
+    &self,
+    _ctx: PluginContext,
+    loader_context: &mut LoaderContext<LoaderRunnerContext>,
+    _module: &NormalModule,
+  ) -> Result<()> {
+    loader_context.hot = true;
     Ok(())
   }
 
@@ -127,6 +137,7 @@ impl Plugin for HotModuleReplacementPlugin {
     let mut updated_modules: IdentifierSet = Default::default();
     let mut updated_runtime_modules: IdentifierSet = Default::default();
     let mut completely_removed_modules: HashSet<String> = Default::default();
+    let mut updated_chunks: HashMap<ChunkUkey, HashSet<String>> = Default::default();
 
     for (old_uri, (old_hash, old_module_id)) in &old_all_modules {
       if let Some((now_hash, _)) = now_all_modules.get(old_uri) {
@@ -180,6 +191,7 @@ impl Plugin for HotModuleReplacementPlugin {
         .iter()
         .find(|(_, chunk)| chunk.expect_id().eq(&chunk_id))
         .map(|(_, chunk)| chunk);
+      let current_chunk_ukey = current_chunk.map(|c| c.ukey);
 
       if let Some(current_chunk) = current_chunk {
         chunk_id = current_chunk.expect_id().to_string();
@@ -304,6 +316,12 @@ impl Plugin for HotModuleReplacementPlugin {
               .with_hot_module_replacement(true)
               .with_version(Default::default()),
           );
+          if let Some(current_chunk_ukey) = current_chunk_ukey {
+            updated_chunks
+              .entry(current_chunk_ukey)
+              .or_default()
+              .insert(filename.clone());
+          }
           compilation.emit_asset(filename, asset);
         }
 
@@ -313,6 +331,15 @@ impl Plugin for HotModuleReplacementPlugin {
           }
         });
       }
+    }
+
+    // update chunk files
+    for (chunk_ukey, files) in updated_chunks {
+      compilation
+        .chunk_by_ukey
+        .expect_get_mut(&chunk_ukey)
+        .files
+        .extend(files);
     }
 
     let completely_removed_modules_array: Vec<String> =

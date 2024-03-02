@@ -29,7 +29,13 @@ const PARTIALLY_PASSED = [
 	"configCases/trusted-types/custom-policy-name",
 	"configCases/trusted-types/default-policy-name",
 	"configCases/trusted-types/no-policy-name",
-	"configCases/trusted-types/no-trusted-types"
+	"configCases/trusted-types/no-trusted-types",
+
+	"hotCases/recover/recover-after-self-error",
+	"hotCases/worker/move-between-runtime",
+
+	"statsCases/limit-chunk-count-plugin",
+	"statsCases/parse-error"
 ];
 
 // Webpack test fully passed, with additional test with the same name as webpack in rspack.
@@ -44,12 +50,24 @@ const UNALIGNED_FIXTURES = [
 	// TO BE ALIGNED:
 	"fixtures/buildDependencies/index.js",
 
+	// Added filtered test filter
+	"ConfigTestCases.template.js",
+	"TestCases.template.js",
+	"WatchTestCases.template.js",
+	"HotTestCases.template.js",
+
 	// Change marked
 	"checkArrayExpectation.js",
 	"WatchSuspend.test.js",
 	"helpers/FakeDocument.js",
 	"helpers/warmup-webpack.js",
-	"hotCases/fake-update-loader.js"
+	"hotCases/fake-update-loader.js",
+
+  // Additional tests
+  /^[^\\/]*test\.js/,
+  /^[^\\/]*basictest\.js/,
+  /^[^\\/]*unittest\.js/,
+  /^[^\\/]*longtest\.js/,
 ];
 
 // Only different in comments. For example, license information difference.
@@ -69,7 +87,9 @@ module.exports = [
 	// Intended to have different README.md
 	"README.md",
 	// Intended to have different package.json
-	"package.json"
+	"package.json",
+	// output file
+	"js"
 ]
 	.concat(PARTIALLY_PASSED)
 	.concat(ADDITIONAL_TESTS)

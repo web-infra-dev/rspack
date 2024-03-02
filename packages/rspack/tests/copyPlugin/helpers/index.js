@@ -1,6 +1,6 @@
-import compile from "./compile";
-import getCompiler from "./getCompiler";
-import readAsset from "./readAsset";
-import readAssets from "./readAssets";
+const compile = require("./compile");
+const getCompiler = require("./getCompiler");
+const readAsset = require("./readAsset");
+const readAssets = require("./readAssets");
 
-export { compile, getCompiler, readAsset, readAssets };
+module.exports = { compile, getCompiler, readAsset, readAssets };

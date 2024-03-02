@@ -55,7 +55,7 @@ type CompilerId = u32;
 #[napi(custom_finalize)]
 pub struct Rspack {
   id: CompilerId,
-  disabled_hooks: DisabledHooks,
+  js_plugin: JsHooksAdapterPlugin,
 }
 
 #[napi]
@@ -65,7 +65,8 @@ impl Rspack {
     env: Env,
     options: RawOptions,
     builtin_plugins: Vec<BuiltinPlugin>,
-    js_hooks: Option<JsHooks>,
+    js_hooks: JsHooks,
+    register_js_taps: RegisterJsTaps,
     output_filesystem: ThreadsafeNodeFS,
     js_loader_runner: JsFunction,
   ) -> Result<Self> {
@@ -74,9 +75,9 @@ impl Rspack {
 
     let disabled_hooks: DisabledHooks = Default::default();
     let mut plugins = Vec::new();
-    if let Some(js_hooks) = js_hooks {
-      plugins.push(JsHooksAdapter::from_js_hooks(env, js_hooks, disabled_hooks.clone())?.boxed());
-    }
+    let js_plugin =
+      JsHooksAdapterPlugin::from_js_hooks(env, js_hooks, disabled_hooks, register_js_taps)?;
+    plugins.push(js_plugin.clone().boxed());
     for bp in builtin_plugins {
       bp.append_to(&mut plugins)
         .map_err(|e| Error::from_reason(format!("{e}")))?;
@@ -101,7 +102,7 @@ impl Rspack {
     let id = NEXT_COMPILER_ID.fetch_add(1, Ordering::SeqCst);
     unsafe { COMPILERS.insert_if_vacant(id, Box::pin(rspack)) }?;
 
-    Ok(Self { id, disabled_hooks })
+    Ok(Self { id, js_plugin })
   }
 
   #[allow(clippy::unwrap_in_result, clippy::unwrap_used)]
@@ -110,9 +111,7 @@ impl Rspack {
     ts_args_type = "hooks: Array<string>"
   )]
   pub fn set_disabled_hooks(&self, _env: Env, hooks: Vec<String>) -> Result<()> {
-    let mut disabled_hooks = self.disabled_hooks.write().unwrap();
-    *disabled_hooks = hooks.into_iter().map(Into::into).collect::<Vec<Hook>>();
-    Ok(())
+    self.js_plugin.set_disabled_hooks(hooks)
   }
 
   /// Build with the given option passed to the constructor

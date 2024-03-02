@@ -278,10 +278,8 @@ export class Watching {
 				this._done(null, this.compiler.compilation);
 			};
 
-			if (canRebuild) {
-				this.compiler.rebuild(modifiedFiles, deleteFiles, onBuild as any);
-			} else {
-				this.compiler.build(onBuild);
+			this.compiler.build(onBuild);
+			if (!canRebuild) {
 				this.#initial = false;
 			}
 		});

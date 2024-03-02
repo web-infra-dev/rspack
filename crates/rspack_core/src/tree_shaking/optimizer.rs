@@ -533,6 +533,7 @@ impl<'a> CodeSizeOptimizer<'a> {
               | DependencyType::RequireContext
               | DependencyType::DynamicImport
               | DependencyType::CjsRequire
+              | DependencyType::CjsExportRequire
               | DependencyType::ImportContext
               | DependencyType::ContainerExposed
               | DependencyType::ProvideModuleForShared

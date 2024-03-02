@@ -1,17 +1,19 @@
+use std::hash::BuildHasherDefault;
 use std::sync::Arc;
 
+use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
+use num_bigint::BigUint;
 use rspack_database::{Database, Ukey};
 use rspack_error::{error, Error, Result};
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 
-use super::remove_parent_modules::RemoveParentModulesContext;
 use crate::dependencies_block::AsyncDependenciesToInitialChunkError;
 use crate::{
-  assign_depth, assign_depths, get_entry_runtime, AsyncDependenciesBlockId, BoxDependency,
-  ChunkGroup, ChunkGroupKind, ChunkGroupOptions, ChunkGroupUkey, ChunkLoading, ChunkUkey,
-  Compilation, ConnectionState, DependenciesBlock, Dependency, GroupOptions, Logger,
-  ModuleGraphConnection, ModuleIdentifier, RuntimeSpec,
+  add_connection_states, assign_depth, assign_depths, get_entry_runtime,
+  AsyncDependenciesBlockIdentifier, ChunkGroup, ChunkGroupKind, ChunkGroupOptions, ChunkGroupUkey,
+  ChunkLoading, ChunkUkey, Compilation, ConnectionId, ConnectionState, DependenciesBlock,
+  GroupOptions, Logger, ModuleGraph, ModuleIdentifier, RuntimeSpec,
 };
 
 #[derive(Debug, Clone)]
@@ -21,7 +23,15 @@ pub struct ChunkGroupInfo {
   pub chunk_loading: bool,
   pub async_chunks: bool,
   pub runtime: RuntimeSpec,
-  pub available_children: HashSet<CgiUkey>,
+  pub min_available_modules: BigUint,
+  pub min_available_modules_init: bool,
+  pub available_modules_to_be_merged: Vec<BigUint>,
+  pub resulting_available_modules: BigUint,
+
+  pub skipped_items: HashSet<ModuleIdentifier>,
+  pub skipped_module_connections:
+    IndexSet<(ModuleIdentifier, Vec<ConnectionId>), BuildHasherDefault<FxHasher>>,
+  pub children: HashSet<CgiUkey>,
 }
 
 impl ChunkGroupInfo {
@@ -37,7 +47,13 @@ impl ChunkGroupInfo {
       chunk_loading,
       async_chunks,
       runtime,
-      available_children: Default::default(),
+      min_available_modules: Default::default(),
+      min_available_modules_init: false,
+      available_modules_to_be_merged: Default::default(),
+      resulting_available_modules: Default::default(),
+      skipped_items: Default::default(),
+      skipped_module_connections: Default::default(),
+      children: Default::default(),
     }
   }
 }
@@ -55,9 +71,16 @@ impl From<Option<RuntimeSpec>> for OptionalRuntimeSpec {
 
 type CgiUkey = Ukey<ChunkGroupInfo>;
 
+type BlockModulesRuntimeMap = HashMap<
+  OptionalRuntimeSpec,
+  HashMap<DependenciesBlockIdentifier, Vec<(ModuleIdentifier, ConnectionState, Vec<ConnectionId>)>>,
+>;
+
 pub(super) struct CodeSplitter<'me> {
   chunk_group_info_map: HashMap<ChunkGroupUkey, CgiUkey>,
   chunk_group_infos: Database<ChunkGroupInfo>,
+  outdated_order_index_chunk_groups: HashSet<CgiUkey>,
+  block_by_cgi: HashMap<CgiUkey, AsyncDependenciesBlockIdentifier>,
   pub(super) compilation: &'me mut Compilation,
   next_free_module_pre_order_index: u32,
   next_free_module_post_order_index: u32,
@@ -66,14 +89,13 @@ pub(super) struct CodeSplitter<'me> {
   queue_delayed: Vec<QueueAction>,
   queue_connect: HashMap<CgiUkey, HashSet<CgiUkey>>,
   outdated_chunk_group_info: HashSet<CgiUkey>,
-  block_chunk_groups: HashMap<AsyncDependenciesBlockId, CgiUkey>,
+  block_chunk_groups: HashMap<AsyncDependenciesBlockIdentifier, CgiUkey>,
   named_chunk_groups: HashMap<String, CgiUkey>,
   named_async_entrypoints: HashMap<String, CgiUkey>,
-  block_modules_runtime_map: HashMap<
-    OptionalRuntimeSpec,
-    HashMap<DependenciesBlockIdentifier, Vec<(ModuleIdentifier, ConnectionState)>>,
-  >,
-  pub(super) remove_parent_modules_context: RemoveParentModulesContext,
+  block_modules_runtime_map: BlockModulesRuntimeMap,
+
+  // Store module unique int ID for intersection optimization
+  module_ids: HashMap<ModuleIdentifier, BigUint>,
 }
 
 fn add_chunk_in_group(group_options: Option<&GroupOptions>) -> ChunkGroup {
@@ -92,11 +114,55 @@ fn add_chunk_in_group(group_options: Option<&GroupOptions>) -> ChunkGroup {
   ChunkGroup::new(kind)
 }
 
+fn get_active_state_of_connections(
+  connections: &[ConnectionId],
+  runtime: Option<&RuntimeSpec>,
+  module_graph: &ModuleGraph,
+) -> ConnectionState {
+  let mut iter = connections.iter();
+  let id = iter.next().expect("should have connection");
+  let mut merged = module_graph
+    .connection_by_connection_id(id)
+    .expect("should have connection")
+    .get_active_state(module_graph, runtime);
+  if merged.is_true() {
+    return merged;
+  }
+  for c in iter {
+    let c = module_graph
+      .connection_by_connection_id(c)
+      .expect("should have connection");
+    merged = add_connection_states(merged, c.get_active_state(module_graph, runtime));
+    if merged.is_true() {
+      return merged;
+    }
+  }
+  merged
+}
+
+fn contains(container: &BigUint, target: &BigUint) -> bool {
+  &(container & target) == target
+}
+
 impl<'me> CodeSplitter<'me> {
   pub fn new(compilation: &'me mut Compilation) -> Self {
+    let mut module_ids = HashMap::default();
+
+    let mut current = BigUint::from(1u32);
+
+    // This optimization is inspired from  https://github.com/webpack/webpack/pull/18090 by https://github.com/dmichon-msft
+    // Thanks!
+    for m in compilation.module_graph.modules().keys() {
+      module_ids.insert(*m, current.clone());
+
+      current <<= 1;
+    }
+
     CodeSplitter {
       chunk_group_info_map: Default::default(),
       chunk_group_infos: Default::default(),
+      outdated_order_index_chunk_groups: Default::default(),
+      block_by_cgi: Default::default(),
       compilation,
       next_free_module_pre_order_index: 0,
       next_free_module_post_order_index: 0,
@@ -109,8 +175,12 @@ impl<'me> CodeSplitter<'me> {
       named_chunk_groups: Default::default(),
       named_async_entrypoints: Default::default(),
       block_modules_runtime_map: Default::default(),
-      remove_parent_modules_context: Default::default(),
+      module_ids,
     }
+  }
+
+  fn get_module_id(&self, m: &ModuleIdentifier) -> &BigUint {
+    self.module_ids.get(m).expect("should have module id")
   }
 
   fn prepare_input_entrypoints_and_modules(
@@ -148,9 +218,6 @@ impl<'me> CodeSplitter<'me> {
         chunk.filename_template = Some(filename.clone());
       }
       chunk.chunk_reasons.push(format!("Entrypoint({name})",));
-      self
-        .remove_parent_modules_context
-        .add_root_chunk(chunk.ukey);
 
       compilation.chunk_graph.add_chunk(chunk.ukey);
 
@@ -159,20 +226,25 @@ impl<'me> CodeSplitter<'me> {
         Box::new(options.clone()),
       ));
 
-      let chunk_group_info = ChunkGroupInfo::new(
-        entrypoint.ukey,
-        get_entry_runtime(name, options),
-        !matches!(
+      let chunk_group_info = {
+        let mut cgi = ChunkGroupInfo::new(
+          entrypoint.ukey,
+          get_entry_runtime(name, options),
+          !matches!(
+            options
+              .chunk_loading
+              .as_ref()
+              .unwrap_or(&compilation.options.output.chunk_loading),
+            ChunkLoading::Disable
+          ),
           options
-            .chunk_loading
-            .as_ref()
-            .unwrap_or(&compilation.options.output.chunk_loading),
-          ChunkLoading::Disable
-        ),
-        options
-          .async_chunks
-          .unwrap_or(compilation.options.output.async_chunks),
-      );
+            .async_chunks
+            .unwrap_or(compilation.options.output.async_chunks),
+        );
+        cgi.min_available_modules_init = true;
+        cgi
+      };
+
       if options.runtime.is_none() {
         entrypoint.set_runtime_chunk(chunk.ukey);
       }
@@ -355,13 +427,13 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     self.queue.reverse();
 
     let start = logger.time("process queue");
-    while !self.queue.is_empty() || !self.queue_connect.is_empty() {
+    while !self.queue.is_empty() {
       self.process_queue();
-      if !self.queue_connect.is_empty() {
+      while !self.queue_connect.is_empty() {
         self.process_connect_queue();
-      }
-      if !self.outdated_chunk_group_info.is_empty() {
-        self.process_outdated_chunk_group_info();
+        if !self.outdated_chunk_group_info.is_empty() {
+          self.process_outdated_chunk_group_info();
+        }
       }
       if self.queue.is_empty() {
         self.queue = std::mem::replace(&mut self.queue_delayed, self.queue);
@@ -386,16 +458,55 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     }
     logger.time_end(start);
 
-    let start = logger.time("remove parent modules");
-    if self
-      .compilation
-      .options
-      .optimization
-      .remove_available_modules
-    {
-      self.remove_parent_modules();
+    let outdated_order_index_chunk_groups =
+      std::mem::take(&mut self.outdated_order_index_chunk_groups);
+
+    for outdated in outdated_order_index_chunk_groups {
+      let cgi = self.chunk_group_infos.expect_get(&outdated);
+      let chunk_group_ukey = cgi.chunk_group;
+      let runtime = cgi.runtime.clone();
+      let chunk_group = self
+        .compilation
+        .chunk_group_by_ukey
+        .expect_get_mut(&chunk_group_ukey);
+
+      chunk_group.next_pre_order_index = 0;
+      chunk_group.next_post_order_index = 0;
+
+      let Some(block) = self.block_by_cgi.get(&cgi.ukey).copied() else {
+        continue;
+      };
+      let Some(block) = block.get(self.compilation) else {
+        continue;
+      };
+      let blocks = block
+        .get_dependencies()
+        .iter()
+        .filter_map(|dep| {
+          self
+            .compilation
+            .module_graph
+            .module_identifier_by_dependency_id(dep)
+        })
+        .copied()
+        .collect::<Vec<_>>();
+
+      let mut visited = HashSet::default();
+
+      for root in blocks {
+        let mut ctx = (0, 0, Default::default());
+        self.calculate_order_index(root, &runtime, &mut visited, &mut ctx);
+
+        let chunk_group = self
+          .compilation
+          .chunk_group_by_ukey
+          .expect_get_mut(&chunk_group_ukey);
+        for (id, (pre, post)) in ctx.2 {
+          chunk_group.module_pre_order_indices.insert(id, pre);
+          chunk_group.module_post_order_indices.insert(id, post);
+        }
+      }
     }
-    logger.time_end(start);
 
     // make sure all module (weak dependency particularly) has a mgm
     for module_identifier in self.compilation.module_graph.modules().keys() {
@@ -403,6 +514,38 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     }
 
     Ok(())
+  }
+
+  fn calculate_order_index(
+    &mut self,
+    module_identifier: ModuleIdentifier,
+    runtime: &RuntimeSpec,
+    visited: &mut HashSet<ModuleIdentifier>,
+    ctx: &mut (usize, usize, HashMap<ModuleIdentifier, (usize, usize)>),
+  ) {
+    let block_modules = self.get_block_modules(module_identifier.into(), Some(runtime));
+    if visited.contains(&module_identifier) {
+      return;
+    }
+    visited.insert(module_identifier);
+
+    let indices = ctx.2.entry(module_identifier).or_default();
+
+    indices.0 = ctx.0;
+    ctx.0 += 1;
+
+    for (module, state, _) in block_modules.iter() {
+      if state.is_false() {
+        continue;
+      }
+
+      self.calculate_order_index(*module, runtime, visited, ctx);
+    }
+
+    let indices = ctx.2.entry(module_identifier).or_default();
+
+    indices.1 = ctx.1;
+    ctx.1 += 1;
   }
 
   fn process_queue(&mut self) {
@@ -421,7 +564,25 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
   fn add_and_enter_entry_module(&mut self, item: &AddAndEnterEntryModule) {
     tracing::trace!("add_and_enter_entry_module {:?}", item);
-    let cgi = self.chunk_group_infos.expect_get(&item.chunk_group_info);
+    let module_id = self.get_module_id(&item.module).clone();
+    let cgi = self
+      .chunk_group_infos
+      .expect_get_mut(&item.chunk_group_info);
+
+    if self
+      .compilation
+      .chunk_graph
+      .is_module_in_chunk(&item.module, item.chunk)
+    {
+      return;
+    }
+
+    // if cgi.min_available_modules.contains(&item.module) {
+    if contains(&cgi.min_available_modules, &module_id) {
+      cgi.skipped_items.insert(item.module);
+      return;
+    }
+
     self.compilation.chunk_graph.connect_chunk_and_entry_module(
       item.chunk,
       item.module,
@@ -436,6 +597,10 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
   fn add_and_enter_module(&mut self, item: &AddAndEnterModule) {
     tracing::trace!("add_and_enter_module {:?}", item);
+    let cgi = self
+      .chunk_group_infos
+      .expect_get_mut(&item.chunk_group_info);
+
     if self
       .compilation
       .chunk_graph
@@ -444,11 +609,23 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       return;
     }
 
+    // if this module in parent chunks
+    let module_id = self
+      .module_ids
+      .get(&item.module)
+      .expect("should have module id");
+
+    if &(cgi.min_available_modules.clone() & module_id) == module_id {
+      cgi.skipped_items.insert(item.module);
+      return;
+    }
+
     self.compilation.chunk_graph.add_module(item.module);
     self
       .compilation
       .chunk_graph
       .connect_chunk_and_module(item.chunk, item.module);
+
     self.enter_module(&EnterModule {
       module: item.module,
       chunk_group_info: item.chunk_group_info,
@@ -539,7 +716,8 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     let runtime = chunk_group_info.runtime.clone();
 
     let modules = self.get_block_modules(item.block.into(), Some(&runtime));
-    for (module, active_state) in modules {
+
+    for (module, active_state, _) in modules {
       if active_state.is_true() {
         self.queue.push(QueueAction::AddAndEnterEntryModule(
           AddAndEnterEntryModule {
@@ -572,13 +750,23 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
     let runtime = item_chunk_group_info.runtime.clone();
     let modules = self.get_block_modules(item.block, Some(&runtime));
-    for (module, active_state) in modules.into_iter().rev() {
+    for (module, active_state, connections) in modules.into_iter().rev() {
       if self
         .compilation
         .chunk_graph
         .is_module_in_chunk(&module, item.chunk)
       {
         continue;
+      }
+
+      if !active_state.is_true() {
+        let cgi = self
+          .chunk_group_infos
+          .expect_get_mut(&item.chunk_group_info);
+        cgi.skipped_module_connections.insert((module, connections));
+        if active_state.is_false() {
+          continue;
+        }
       }
 
       if active_state.is_true() {
@@ -606,7 +794,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
   fn iterator_block(
     &mut self,
-    block_id: AsyncDependenciesBlockId,
+    block_id: AsyncDependenciesBlockIdentifier,
     item_chunk_group_info_ukey: CgiUkey,
     item_chunk_ukey: ChunkUkey,
   ) {
@@ -667,9 +855,6 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             chunk
               .chunk_reasons
               .push(format!("AsyncEntrypoint({:?})", block_id));
-            self
-              .remove_parent_modules_context
-              .add_root_chunk(chunk.ukey);
             let mut entrypoint = ChunkGroup::new(ChunkGroupKind::new_entrypoint(
               false,
               Box::new(entry_options.clone()),
@@ -808,6 +993,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         cgi.ukey
       };
       self.block_chunk_groups.insert(block_id, cgi);
+      self.block_by_cgi.insert(cgi, block_id);
       cgi
     };
 
@@ -844,7 +1030,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     &mut self,
     module: DependenciesBlockIdentifier,
     runtime: Option<&RuntimeSpec>,
-  ) -> Vec<(ModuleIdentifier, ConnectionState)> {
+  ) -> Vec<(ModuleIdentifier, ConnectionState, Vec<ConnectionId>)> {
     if let Some(modules) = self
       .block_modules_runtime_map
       .get(&runtime.cloned().into())
@@ -852,7 +1038,6 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     {
       return modules.clone();
     }
-    // dbg!(&module, &runtime);
     self.extract_block_modules(*module.get_root_block(self.compilation), runtime);
     self
       .block_modules_runtime_map
@@ -865,6 +1050,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
   }
 
   fn extract_block_modules(&mut self, module: ModuleIdentifier, runtime: Option<&RuntimeSpec>) {
+    let module_graph = &self.compilation.module_graph;
     let map = self
       .block_modules_runtime_map
       .entry(runtime.cloned().into())
@@ -875,56 +1061,30 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       map.insert(b.into(), Vec::new());
     }
 
-    let dependencies: Vec<(&BoxDependency, ConnectionState)> =
-      if self.compilation.options.is_new_tree_shaking() {
-        let mgm = self
-          .compilation
-          .module_graph
-          .module_graph_module_by_identifier(&module)
-          .unwrap_or_else(|| panic!("no module found: {:?}", &module));
-        let mut filtered_dep: Vec<(&Box<dyn Dependency>, ConnectionState)> = mgm
-          .outgoing_connections_unordered(&self.compilation.module_graph)
-          .expect("should have outgoing connections")
-          .filter_map(|con: &ModuleGraphConnection| {
-            let active_state = con.get_active_state(&self.compilation.module_graph, runtime);
-            match active_state {
-              crate::ConnectionState::Bool(false) => None,
-              _ => Some((con.dependency_id, active_state)),
-            }
-          })
-          .filter_map(|(dep_id, active_state)| {
-            self
-              .compilation
-              .module_graph
-              .dependency_by_id(&dep_id)
-              .map(|id| (id, active_state))
-          })
-          .collect();
-        // keep the dependency original order if it does not have span, or sort the dependency by
-        // the error span
-        filtered_dep.sort_by(|(a, _), (b, _)| match (a.span(), b.span()) {
-          (Some(a), Some(b)) => a.cmp(&b),
-          _ => std::cmp::Ordering::Equal,
-        });
-        filtered_dep
-      } else {
-        self
-          .compilation
-          .module_graph
-          .get_module_all_dependencies(&module)
-          .expect("should have module")
-          .iter()
-          .filter_map(|dep_id| {
-            self
-              .compilation
-              .module_graph
-              .dependency_by_id(dep_id)
-              .map(|id| (id, ConnectionState::Bool(true)))
-          })
-          .collect()
-      };
+    let sorted_connections = module_graph
+      .get_ordered_connections(&module)
+      .expect("should have module")
+      .into_iter()
+      .map(|conn_id| {
+        let conn = module_graph
+          .connection_by_connection_id(conn_id)
+          .expect("should have connection");
 
-    for (dep, active_state) in dependencies {
+        let dep = module_graph
+          .dependency_by_id(&conn.dependency_id)
+          .expect("should have dependency");
+
+        (dep, conn_id)
+      });
+
+    // keep the dependency order sorted by span
+    let mut connection_map: IndexMap<
+      (DependenciesBlockIdentifier, ModuleIdentifier),
+      Vec<ConnectionId>,
+      BuildHasherDefault<FxHasher>,
+    > = IndexMap::default();
+
+    for (dep, connection_id) in sorted_connections {
       if dep.as_module_dependency().is_none() && dep.as_context_dependency().is_none() {
         continue;
       }
@@ -934,39 +1094,42 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       let dep_id = dep.id();
       // Dependency created but no module is available.
       // This could happen when module factorization is failed, but `options.bail` set to `false`
-      if self
+      let Some(module_identifier) = self
         .compilation
         .module_graph
         .module_identifier_by_dependency_id(dep_id)
-        .is_none()
-      {
+      else {
         continue;
-      }
+      };
       let block_id = if let Some(block) = self.compilation.module_graph.get_parent_block(dep_id) {
         (*block).into()
       } else {
         module.into()
       };
-      let modules = self
-        .block_modules_runtime_map
-        .get_mut(&runtime.cloned().into())
-        .expect("should have runtime in block_modules_runtime_map")
+      connection_map
+        .entry((block_id, *module_identifier))
+        .and_modify(|e| e.push(*connection_id))
+        .or_insert_with(|| vec![*connection_id]);
+    }
+
+    for ((block_id, module_identifier), connections) in connection_map {
+      let modules = map
         .get_mut(&block_id)
         .expect("should have modules in block_modules_runtime_map");
-      modules.push((
-        *self
-          .compilation
-          .module_graph
-          .module_identifier_by_dependency_id(dep_id)
-          .expect("should have module_identifier"),
-        active_state,
-      ));
+      let active_state = if self.compilation.options.is_new_tree_shaking() {
+        get_active_state_of_connections(&connections, runtime, &self.compilation.module_graph)
+      } else {
+        ConnectionState::Bool(true)
+      };
+      modules.push((module_identifier, active_state, connections));
     }
   }
 
   fn process_connect_queue(&mut self) {
     for (chunk_group_info_ukey, targets) in self.queue_connect.drain() {
-      let chunk_group_info = self.chunk_group_infos.expect_get(&chunk_group_info_ukey);
+      let chunk_group_info = self
+        .chunk_group_infos
+        .expect_get_mut(&chunk_group_info_ukey);
       let chunk_group_ukey = chunk_group_info.chunk_group;
 
       let chunk_group = self
@@ -975,38 +1138,40 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         .expect_get_mut(&chunk_group_ukey);
       let runtime = chunk_group_info.runtime.clone();
 
+      // calculate minAvailableModules
+      let mut resulting_available_modules = chunk_group_info.min_available_modules.clone();
+
+      for chunk in &chunk_group.chunks {
+        for m in self
+          .compilation
+          .chunk_graph
+          .get_chunk_modules(chunk, &self.compilation.module_graph)
+        {
+          let m_id = self
+            .module_ids
+            .get(&m.identifier())
+            .expect("should have module id");
+          resulting_available_modules |= m_id;
+        }
+      }
+
+      chunk_group_info.resulting_available_modules = resulting_available_modules.clone();
+      chunk_group_info.children.extend(targets.iter().cloned());
+
+      for target in &targets {
+        let target_cgi = self.chunk_group_infos.expect_get_mut(target);
+        target_cgi
+          .available_modules_to_be_merged
+          .push(resulting_available_modules.clone());
+        self.outdated_chunk_group_info.insert(*target);
+      }
+
       let target_groups = targets.iter().map(|chunk_group_info_ukey| {
         let cgi = self.chunk_group_infos.expect_get(chunk_group_info_ukey);
         cgi.chunk_group
       });
 
       chunk_group.children.extend(target_groups.clone());
-
-      let parents = chunk_group
-        .chunks
-        .iter()
-        .map(|c| self.compilation.chunk_by_ukey.expect_get(c))
-        // ignore runtime chunk when try removing
-        .filter(|c| chunk_group.chunks.len() <= 1 || chunk_group.get_runtime_chunk() != c.ukey)
-        .map(|c| c.ukey)
-        .collect::<Vec<_>>();
-
-      target_groups
-        .flat_map(|child| {
-          self
-            .compilation
-            .chunk_group_by_ukey
-            .expect_get(&child)
-            .chunks
-            .clone()
-        })
-        .for_each(|child| {
-          parents.iter().for_each(|parent| {
-            self
-              .remove_parent_modules_context
-              .add_chunk_relation(*parent, child);
-          });
-        });
 
       for target_ukey in targets {
         let target_cgi = self.chunk_group_infos.expect_get_mut(&target_ukey);
@@ -1029,21 +1194,108 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
   fn process_outdated_chunk_group_info(&mut self) {
     for chunk_group_info_ukey in self.outdated_chunk_group_info.drain() {
-      let cgi = self.chunk_group_infos.expect_get(&chunk_group_info_ukey);
+      let cgi = self
+        .chunk_group_infos
+        .expect_get_mut(&chunk_group_info_ukey);
       let chunk_group = self
         .compilation
         .chunk_group_by_ukey
         .expect_get(&cgi.chunk_group);
 
-      if !chunk_group.children.is_empty() {
-        for child in chunk_group.children.iter() {
-          let child_info = self
-            .chunk_group_info_map
-            .get(child)
-            .expect("should have chunk group");
+      let mut changed = false;
 
-          let connect_list = self.queue_connect.entry(chunk_group_info_ukey).or_default();
-          connect_list.insert(*child_info);
+      if !cgi.available_modules_to_be_merged.is_empty() {
+        let available_modules_to_be_merged =
+          std::mem::take(&mut cgi.available_modules_to_be_merged);
+
+        for modules_to_be_merged in available_modules_to_be_merged {
+          if !cgi.min_available_modules_init {
+            cgi.min_available_modules_init = true;
+            cgi.min_available_modules = modules_to_be_merged;
+            changed = true;
+            continue;
+          }
+
+          let orig = cgi.min_available_modules.clone();
+          cgi.min_available_modules &= modules_to_be_merged;
+          changed = orig != cgi.min_available_modules;
+        }
+      }
+
+      if changed {
+        let origin_queue_len = self.queue.len();
+        // reconsider skipped items
+        let mut enter_modules = vec![];
+        for skipped in &cgi.skipped_items {
+          let skipped_id = self.module_ids.get(skipped).expect("should have module id");
+          if !contains(&cgi.min_available_modules, skipped_id) {
+            enter_modules.push(*skipped);
+          }
+        }
+
+        for m in &enter_modules {
+          cgi.skipped_items.remove(m);
+
+          self
+            .queue
+            .push(QueueAction::AddAndEnterModule(AddAndEnterModule {
+              module: *m,
+              chunk_group_info: cgi.ukey,
+              chunk: chunk_group.chunks[0],
+            }))
+        }
+
+        // reconsider skipped connections
+        if !cgi.skipped_module_connections.is_empty() {
+          let mut active_connections = Vec::new();
+          for (i, (module, connections)) in cgi.skipped_module_connections.iter().enumerate() {
+            let active_state = get_active_state_of_connections(
+              connections,
+              Some(&cgi.runtime),
+              &self.compilation.module_graph,
+            );
+            if active_state.is_false() {
+              continue;
+            }
+            if active_state.is_true() {
+              active_connections.push(i);
+              if contains(
+                &cgi.min_available_modules,
+                self.module_ids.get(module).expect("should have module id"),
+              ) {
+                cgi.skipped_items.insert(*module);
+                continue;
+              }
+            }
+            self.queue.push(if active_state.is_true() {
+              QueueAction::AddAndEnterModule(AddAndEnterModule {
+                module: *module,
+                chunk_group_info: chunk_group_info_ukey,
+                chunk: chunk_group.chunks[0],
+              })
+            } else {
+              QueueAction::ProcessBlock(ProcessBlock {
+                block: (*module).into(),
+                chunk_group_info: chunk_group_info_ukey,
+                chunk: chunk_group.chunks[0],
+              })
+            })
+          }
+          for i in active_connections {
+            cgi.skipped_module_connections.shift_remove_index(i);
+          }
+        }
+
+        // reconsider children chunk groups
+        if !cgi.children.is_empty() {
+          for child in cgi.children.iter() {
+            let connect_list = self.queue_connect.entry(chunk_group_info_ukey).or_default();
+            connect_list.insert(*child);
+          }
+        }
+
+        if origin_queue_len != self.queue.len() {
+          self.outdated_order_index_chunk_groups.insert(cgi.ukey);
         }
       }
     }
@@ -1090,7 +1342,7 @@ struct ProcessBlock {
 
 #[derive(Debug, Clone)]
 struct ProcessEntryBlock {
-  block: AsyncDependenciesBlockId,
+  block: AsyncDependenciesBlockIdentifier,
   chunk_group_info: CgiUkey,
   chunk: ChunkUkey,
 }
@@ -1098,7 +1350,7 @@ struct ProcessEntryBlock {
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 enum DependenciesBlockIdentifier {
   Module(ModuleIdentifier),
-  AsyncDependenciesBlock(AsyncDependenciesBlockId),
+  AsyncDependenciesBlock(AsyncDependenciesBlockIdentifier),
 }
 
 impl DependenciesBlockIdentifier {
@@ -1111,7 +1363,7 @@ impl DependenciesBlockIdentifier {
     }
   }
 
-  pub fn get_blocks(&self, compilation: &Compilation) -> Vec<AsyncDependenciesBlockId> {
+  pub fn get_blocks(&self, compilation: &Compilation) -> Vec<AsyncDependenciesBlockIdentifier> {
     match self {
       DependenciesBlockIdentifier::Module(m) => compilation
         .module_graph
@@ -1135,8 +1387,8 @@ impl From<ModuleIdentifier> for DependenciesBlockIdentifier {
   }
 }
 
-impl From<AsyncDependenciesBlockId> for DependenciesBlockIdentifier {
-  fn from(value: AsyncDependenciesBlockId) -> Self {
+impl From<AsyncDependenciesBlockIdentifier> for DependenciesBlockIdentifier {
+  fn from(value: AsyncDependenciesBlockIdentifier) -> Self {
     Self::AsyncDependenciesBlock(value)
   }
 }

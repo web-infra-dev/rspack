@@ -45,7 +45,7 @@ export * from "./SideEffectsFlagPlugin";
 export * from "./FlagDependencyExportsPlugin";
 export * from "./FlagDependencyUsagePlugin";
 export * from "./MangleExportsPlugin";
-export * from "./BundlerInfoPlugin";
+export * from "./BundlerInfoRspackPlugin";
 export * from "./ModuleConcatenationPlugin";
 
 export * from "./HtmlRspackPlugin";
@@ -59,6 +59,7 @@ import { Compiler, RspackOptionsNormalized } from "..";
 
 type BuiltinsCssConfig = {
 	modules?: Partial<RawCssModulesConfig>;
+	namedExports?: boolean;
 };
 
 function resolveTreeShaking(
@@ -68,8 +69,8 @@ function resolveTreeShaking(
 	return treeShaking !== undefined
 		? treeShaking.toString()
 		: production
-		? "true"
-		: "false";
+			? "true"
+			: "false";
 }
 
 export interface Builtins {
@@ -97,8 +98,9 @@ export function deprecated_resolveBuiltins(
 							: "[path][name][ext]__[local]",
 						exportsOnly: false,
 						...builtins.css?.modules
-					}
-			  }
+					},
+					namedExports: builtins.css?.namedExports
+				}
 			: undefined,
 		treeShaking: resolveTreeShaking(builtins.treeShaking, production)
 	};
