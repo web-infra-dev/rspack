@@ -3,8 +3,8 @@ use std::sync::Arc;
 use rayon::prelude::*;
 use rspack_core::rspack_sources::{BoxSource, ConcatSource, RawSource, Source, SourceExt};
 use rspack_core::{
-  BoxModule, ChunkInitFragments, ChunkUkey, Compilation, Context, RenderModuleContentArgs,
-  RuntimeGlobals, SourceType,
+  BoxModule, ChunkInitFragments, ChunkUkey, Compilation, Context, PathInfo,
+  RenderModuleContentArgs, RuntimeGlobals, SourceType,
 };
 use rspack_error::{error, Result};
 use rustc_hash::FxHashSet as HashSet;
@@ -63,7 +63,7 @@ pub fn render_chunk_modules(
               .get_module_id(module.identifier())
               .as_ref()
               .expect("should have module id"),
-            compilation.options.output.pathinfo,
+            &compilation.options.output.pathinfo,
             &compilation.options.context,
           ),
           &code_gen_result.chunk_init_fragments,
@@ -111,7 +111,7 @@ fn render_module(
   module: &BoxModule,
   runtime_requirements: Option<&RuntimeGlobals>,
   module_id: &str,
-  pathinfo: bool,
+  pathinfo: &PathInfo,
   context: &Context,
 ) -> Result<BoxSource> {
   let need_module = runtime_requirements.is_some_and(|r| r.contains(RuntimeGlobals::MODULE));
@@ -164,10 +164,15 @@ fn render_module(
   }
   sources.add(RawSource::from(",\n"));
 
-  let sources = if pathinfo {
-    render_module_package(Arc::new(sources), module.as_ref(), context)?
-  } else {
-    Arc::new(sources)
+  let sources = match pathinfo {
+    PathInfo::Bool(pathinfo) => {
+      if *pathinfo {
+        render_module_package(Arc::new(sources), module.as_ref(), context)?
+      } else {
+        sources.boxed()
+      }
+    }
+    PathInfo::String(_) => render_module_package(Arc::new(sources), module.as_ref(), context)?,
   };
   Ok(sources)
 }

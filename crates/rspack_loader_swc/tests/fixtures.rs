@@ -36,7 +36,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
     output: rspack_core::OutputOptions {
       clean: false,
       path: Default::default(),
-      pathinfo: false,
+      pathinfo: rspack_core::PathInfo::Bool(false),
       public_path: Default::default(),
       filename: rspack_core::Filename::from_str("").expect("TODO:"),
       asset_module_filename: rspack_core::Filename::from_str("").expect("TODO:"),
@@ -115,7 +115,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
         output: rspack_core::OutputOptions {
           clean: false,
           path: Default::default(),
-          pathinfo: false,
+          pathinfo: rspack_core::PathInfo::Bool(false),
           public_path: Default::default(),
           filename: rspack_core::Filename::from_str("").expect("TODO:"),
           asset_module_filename: rspack_core::Filename::from_str("").expect("TODO:"),
