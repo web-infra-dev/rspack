@@ -19,6 +19,7 @@ use crate::{
 #[derive(Debug)]
 pub struct OutputOptions {
   pub path: PathBuf,
+  pub pathinfo: bool,
   pub clean: bool,
   pub public_path: PublicPath,
   pub asset_module_filename: Filename,

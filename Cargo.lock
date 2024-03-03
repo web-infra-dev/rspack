@@ -3011,6 +3011,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_plugin_module_info_header"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "rspack_core",
+ "rspack_database",
+]
+
+[[package]]
 name = "rspack_plugin_progress"
 version = "0.1.0"
 dependencies = [

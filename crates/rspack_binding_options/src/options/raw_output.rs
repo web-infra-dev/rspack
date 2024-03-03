@@ -150,6 +150,7 @@ impl From<RawCrossOriginLoading> for CrossOriginLoading {
 #[napi(object)]
 pub struct RawOutputOptions {
   pub path: String,
+  pub pathinfo: bool,
   pub clean: bool,
   pub public_path: String,
   pub asset_module_filename: String,
@@ -195,6 +196,7 @@ impl TryFrom<RawOutputOptions> for OutputOptions {
   fn try_from(value: RawOutputOptions) -> rspack_error::Result<Self> {
     Ok(OutputOptions {
       path: value.path.into(),
+      pathinfo: value.pathinfo,
       clean: value.clean,
       public_path: value.public_path.into(),
       asset_module_filename: value.asset_module_filename.into(),

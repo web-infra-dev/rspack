@@ -61,8 +61,8 @@ export const applyRspackOptionsDefaults = (
 		target === false
 			? false
 			: typeof target === "string"
-				? getTargetProperties(target, options.context!)
-				: getTargetsProperties(target, options.context!);
+			? getTargetProperties(target, options.context!)
+			: getTargetsProperties(target, options.context!);
 
 	const development = mode === "development";
 	const production = mode === "production" || !mode;
@@ -102,6 +102,7 @@ export const applyRspackOptionsDefaults = (
 			(Array.isArray(target) &&
 				target.some(target => target.startsWith("browserslist"))),
 		outputModule: options.experiments.outputModule,
+		development,
 		entry: options.entry,
 		futureDefaults
 	});
@@ -115,8 +116,8 @@ export const applyRspackOptionsDefaults = (
 		return options.output.library
 			? options.output.library.type
 			: options.output.module
-				? "module"
-				: "var";
+			? "module"
+			: "var";
 	});
 
 	applyNodeDefaults(options.node, { targetProperties });
@@ -369,6 +370,7 @@ const applyOutputDefaults = (
 		outputModule,
 		targetProperties: tp,
 		isAffectedByBrowserslist,
+		development,
 		entry,
 		futureDefaults
 	}: {
@@ -376,6 +378,7 @@ const applyOutputDefaults = (
 		outputModule?: boolean;
 		targetProperties: any;
 		isAffectedByBrowserslist: boolean;
+		development: boolean;
 		entry: EntryNormalized;
 		futureDefaults: boolean;
 	}
@@ -469,6 +472,7 @@ const applyOutputDefaults = (
 	D(output, "assetModuleFilename", "[hash][ext][query]");
 	D(output, "webassemblyModuleFilename", "[hash].module.wasm");
 	F(output, "path", () => path.join(process.cwd(), "dist"));
+	F(output, "pathinfo", () => development);
 	D(
 		output,
 		"publicPath",
