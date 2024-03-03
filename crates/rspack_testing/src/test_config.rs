@@ -379,6 +379,7 @@ impl TestConfig {
         chunk_loading: c::ChunkLoading::Enable(c::ChunkLoadingType::Jsonp),
         chunk_loading_global: "webpackChunkwebpack".to_string(),
         path: context.join("dist"),
+        pathinfo: false,
         library: self.output.library.map(|l| c::LibraryOptions {
           name: None,
           export: None,

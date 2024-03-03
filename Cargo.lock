@@ -2934,6 +2934,7 @@ dependencies = [
  "rspack_identifier",
  "rspack_ids",
  "rspack_regex",
+ "rspack_sources",
  "rspack_swc_visitors",
  "rspack_testing",
  "rspack_util",
@@ -3008,15 +3009,6 @@ dependencies = [
  "serde",
  "serde_json",
  "tokio",
-]
-
-[[package]]
-name = "rspack_plugin_module_info_header"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "rspack_core",
- "rspack_database",
 ]
 
 [[package]]

@@ -15,6 +15,7 @@ pub mod visitors;
 mod webpack_comment;
 pub use crate::plugin::infer_async_modules_plugin::InferAsyncModulesPlugin;
 pub use crate::plugin::*;
+pub(crate) mod module_info_header;
 
 #[derive(Debug)]
 pub struct TransformOutput {

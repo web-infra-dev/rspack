@@ -1,12 +1,15 @@
+use std::sync::Arc;
+
 use rayon::prelude::*;
-use rspack_core::rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
+use rspack_core::rspack_sources::{BoxSource, ConcatSource, RawSource, Source, SourceExt};
 use rspack_core::{
-  BoxModule, ChunkInitFragments, ChunkUkey, Compilation, RenderModuleContentArgs, RuntimeGlobals,
-  SourceType,
+  BoxModule, ChunkInitFragments, ChunkUkey, Compilation, Context, RenderModuleContentArgs,
+  RuntimeGlobals, SourceType,
 };
 use rspack_error::{error, Result};
 use rustc_hash::FxHashSet as HashSet;
 
+use crate::module_info_header::render_module_package;
 use crate::utils::is_diff_mode;
 
 pub fn render_chunk_modules(
@@ -60,6 +63,7 @@ pub fn render_chunk_modules(
               .get_module_id(module.identifier())
               .as_ref()
               .expect("should have module id"),
+            &compilation.options.context,
           ),
           &code_gen_result.chunk_init_fragments,
           render_module_result.chunk_init_fragments,
@@ -106,6 +110,7 @@ fn render_module(
   module: &BoxModule,
   runtime_requirements: Option<&RuntimeGlobals>,
   module_id: &str,
+  context: &Context,
 ) -> Result<BoxSource> {
   let need_module = runtime_requirements.is_some_and(|r| r.contains(RuntimeGlobals::MODULE));
   let need_exports = runtime_requirements.is_some_and(|r| r.contains(RuntimeGlobals::EXPORTS));
@@ -157,7 +162,8 @@ fn render_module(
   }
   sources.add(RawSource::from(",\n"));
 
-  Ok(sources.boxed())
+  let sources = render_module_package(Arc::new(sources), module.as_ref(), context)?;
+  Ok(sources)
 }
 
 pub fn render_chunk_runtime_modules(
