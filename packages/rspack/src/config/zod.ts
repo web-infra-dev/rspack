@@ -567,7 +567,7 @@ const assetGeneratorDataUrlOptions = z.strictObject({
 export type AssetGeneratorDataUrlOptions = z.infer<
 	typeof assetGeneratorDataUrlOptions
 >;
-
+// TODO: add function type here
 const assetGeneratorDataUrl = assetGeneratorDataUrlOptions;
 export type AssetGeneratorDataUrl = z.infer<typeof assetGeneratorDataUrl>;
 

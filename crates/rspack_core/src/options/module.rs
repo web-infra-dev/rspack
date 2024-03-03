@@ -1,4 +1,7 @@
-use std::fmt::{self, Debug};
+use std::{
+  fmt::{self, Debug},
+  sync::Arc,
+};
 
 use async_recursion::async_recursion;
 use derivative::Derivative;
@@ -246,8 +249,7 @@ pub struct AssetGeneratorOptions {
   pub data_url: Option<AssetGeneratorDataUrl>,
 }
 
-pub type AssetGeneratorDataUrlFn =
-  Box<dyn Fn(&str) -> BoxFuture<'static, Result<String>> + Sync + Send>;
+pub type AssetGeneratorDataUrlFn = Arc<dyn Fn(&str) -> Result<String> + Sync + Send>;
 
 pub enum AssetGeneratorDataUrl {
   Options(AssetGeneratorDataUrlOptions),
@@ -267,8 +269,7 @@ impl Clone for AssetGeneratorDataUrl {
   fn clone(&self) -> Self {
     match self {
       Self::Options(i) => Self::Options(i.clone()),
-      // FIXME: unimplemented
-      Self::Func(_) => unimplemented!("Func(...)"),
+      Self::Func(i) => Self::Func(i.clone()),
     }
   }
 }

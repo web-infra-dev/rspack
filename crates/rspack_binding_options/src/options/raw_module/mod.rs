@@ -489,7 +489,7 @@ impl From<RawAssetResourceGeneratorOptions> for AssetResourceGeneratorOptions {
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawAssetGeneratorDataUrl {
-  #[napi(ts_type = r#""options""#)]
+  #[napi(ts_type = r#""options"| "function""#)]
   pub r#type: String,
   pub options: Option<RawAssetGeneratorDataUrlOptions>,
   // TODO: lack of the param function (content, { filename, module }) => string
@@ -527,18 +527,25 @@ impl From<RawAssetGeneratorDataUrl> for AssetGeneratorDataUrl {
         let func: napi::Result<ThreadsafeFunction<String, String>> =
           try { rspack_binding_macros::js_fn_into_threadsafe_fn!(func, &Env::from(env)) };
 
-        Self::Func(Box::new(move |data: &str| {
+        Self::Func(Arc::new(move |data: &str| {
           let func = func
             .clone()
             .expect("Can't clone RawAssetGeneratorDataUrl.type as function");
           let data = data.to_string();
-          Box::pin(async move {
-            func
-              .call(data, ThreadsafeFunctionCallMode::NonBlocking)
-              .into_rspack_result()?
-              .await
-              .unwrap_or_else(|err| panic!("Failed to call AssetGeneratorDataUrl func: {err}"))
-          })
+          let res = func
+            .call(data, ThreadsafeFunctionCallMode::NonBlocking)
+            .into_rspack_result()
+            .expect("111")
+            .blocking_recv()
+            .expect("222")
+            .expect("333");
+          // TODO: Fix the expect error message
+          Ok(res)
+          // Box::pin(move || {
+          //   func
+          //     .call(data, ThreadsafeFunctionCallMode::NonBlocking)
+          //     .into_rspack_result()
+          // })
         }))
       }
       _ => panic!(

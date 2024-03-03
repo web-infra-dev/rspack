@@ -609,8 +609,9 @@ export interface PathWithInfo {
 }
 
 export interface RawAssetGeneratorDataUrl {
-  type: "options"
+  type: "options"| "function"
   options?: RawAssetGeneratorDataUrlOptions
+  function?: (content: string) => string
 }
 
 export interface RawAssetGeneratorDataUrlOptions {

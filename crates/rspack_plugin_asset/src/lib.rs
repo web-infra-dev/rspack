@@ -109,6 +109,25 @@ impl AssetParserAndGenerator {
     hasher.digest(&compiler_options.output.hash_digest)
   }
 
+  fn get_data_url(
+    &self,
+    resource_data: &ResourceData,
+    data_url: Option<&AssetGeneratorDataUrl>,
+  ) -> String {
+    if let Some(AssetGeneratorDataUrl::Func(data_url)) = data_url {
+      let content = "I am content"; // FIXME: get content from source
+      let res = data_url(content).expect("xx");
+      println!("res {}", res);
+    }
+    // if let Some(AssetGeneratorDataUrl::Options(data_url)) = data_url {
+    //   return data_url.url.to_owned();
+    // }
+    // if let Some(data_url) = &resource_data.data_url {
+    //   return data_url.to_owned();
+    // }
+    String::new()
+  }
+
   fn get_mimetype(
     &self,
     resource_data: &ResourceData,
@@ -324,10 +343,12 @@ impl ParserAndGenerator for AssetParserAndGenerator {
     let result = match generate_context.requested_source_type {
       SourceType::JavaScript => {
         let exported_content = if parsed_asset_config.is_inline() {
-          let resource_data = normal_module.resource_resolved_data();
+          let resource_data: &ResourceData = normal_module.resource_resolved_data();
           let data_url = generate_context
             .module_generator_options
             .and_then(|x| x.asset_data_url(module_type));
+          let custom_data_url = self.get_data_url(resource_data, data_url);
+          println!("{:?}", custom_data_url);
           let mimetype = self.get_mimetype(resource_data, data_url)?;
           let encoding = self.get_encoding(resource_data, data_url);
           let encoded_content = self.get_encoded_content(resource_data, &encoding, source)?;
