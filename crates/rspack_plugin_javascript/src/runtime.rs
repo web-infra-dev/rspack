@@ -63,6 +63,7 @@ pub fn render_chunk_modules(
               .get_module_id(module.identifier())
               .as_ref()
               .expect("should have module id"),
+            compilation.options.output.pathinfo,
             &compilation.options.context,
           ),
           &code_gen_result.chunk_init_fragments,
@@ -110,6 +111,7 @@ fn render_module(
   module: &BoxModule,
   runtime_requirements: Option<&RuntimeGlobals>,
   module_id: &str,
+  pathinfo: bool,
   context: &Context,
 ) -> Result<BoxSource> {
   let need_module = runtime_requirements.is_some_and(|r| r.contains(RuntimeGlobals::MODULE));
@@ -162,7 +164,11 @@ fn render_module(
   }
   sources.add(RawSource::from(",\n"));
 
-  let sources = render_module_package(Arc::new(sources), module.as_ref(), context)?;
+  let sources = if pathinfo {
+    render_module_package(Arc::new(sources), module.as_ref(), context)?
+  } else {
+    Arc::new(sources)
+  };
   Ok(sources)
 }
 
