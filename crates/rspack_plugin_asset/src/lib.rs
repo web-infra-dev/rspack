@@ -10,12 +10,12 @@ use rspack_core::{
   tree_shaking::{
     analyzer::OptimizeAnalyzer, asset_module::AssetModule, visitor::OptimizeAnalyzeResult,
   },
-  AssetGeneratorDataUrl, AssetParserDataUrl, BuildExtraDataType, BuildMetaDefaultObject,
-  BuildMetaExportsType, CodeGenerationDataAssetInfo, CodeGenerationDataFilename,
-  CodeGenerationDataUrl, Compilation, CompilerOptions, GenerateContext, Module, ModuleType,
-  NormalModule, ParseContext, ParserAndGenerator, PathData, Plugin, PluginContext,
-  PluginRenderManifestHookOutput, RenderManifestArgs, RenderManifestEntry, ResourceData,
-  RuntimeGlobals, SourceType, NAMESPACE_OBJECT_EXPORT,
+  AssetGeneratorDataUrl, AssetGeneratorDataUrlFnArgs, AssetParserDataUrl, BuildExtraDataType,
+  BuildMetaDefaultObject, BuildMetaExportsType, CodeGenerationDataAssetInfo,
+  CodeGenerationDataFilename, CodeGenerationDataUrl, Compilation, CompilerOptions, GenerateContext,
+  Module, ModuleType, NormalModule, ParseContext, ParserAndGenerator, PathData, Plugin,
+  PluginContext, PluginRenderManifestHookOutput, RenderManifestArgs, RenderManifestEntry,
+  ResourceData, RuntimeGlobals, SourceType, NAMESPACE_OBJECT_EXPORT,
 };
 use rspack_error::{error, IntoTWithDiagnosticArray, Result};
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -113,19 +113,17 @@ impl AssetParserAndGenerator {
     &self,
     resource_data: &ResourceData,
     data_url: Option<&AssetGeneratorDataUrl>,
-  ) -> String {
+    source: &BoxSource,
+  ) -> Option<String> {
+    let func_args = AssetGeneratorDataUrlFnArgs {
+      filename: resource_data.resource_path.to_string_lossy().to_string(),
+      content: source.source().into_owned().to_string(),
+    };
+
     if let Some(AssetGeneratorDataUrl::Func(data_url)) = data_url {
-      let content = "I am content"; // FIXME: get content from source
-      let res = data_url(content).expect("xx");
-      println!("res {}", res);
+      return Some(data_url(func_args).expect("call data_url function failed"));
     }
-    // if let Some(AssetGeneratorDataUrl::Options(data_url)) = data_url {
-    //   return data_url.url.to_owned();
-    // }
-    // if let Some(data_url) = &resource_data.data_url {
-    //   return data_url.to_owned();
-    // }
-    String::new()
+    None
   }
 
   fn get_mimetype(
@@ -347,19 +345,24 @@ impl ParserAndGenerator for AssetParserAndGenerator {
           let data_url = generate_context
             .module_generator_options
             .and_then(|x| x.asset_data_url(module_type));
-          let custom_data_url = self.get_data_url(resource_data, data_url);
-          println!("{:?}", custom_data_url);
-          let mimetype = self.get_mimetype(resource_data, data_url)?;
-          let encoding = self.get_encoding(resource_data, data_url);
-          let encoded_content = self.get_encoded_content(resource_data, &encoding, source)?;
-          let encoded_source = format!(
-            r#"data:{mimetype}{},{encoded_content}"#,
-            if encoding.is_empty() {
-              String::new()
-            } else {
-              format!(";{encoding}")
-            }
-          );
+
+          let encoded_source: String;
+
+          if let Some(custom_data_url) = self.get_data_url(resource_data, data_url, source) {
+            encoded_source = custom_data_url;
+          } else {
+            let mimetype = self.get_mimetype(resource_data, data_url)?;
+            let encoding = self.get_encoding(resource_data, data_url);
+            let encoded_content = self.get_encoded_content(resource_data, &encoding, source)?;
+            encoded_source = format!(
+              r#"data:{mimetype}{},{encoded_content}"#,
+              if encoding.is_empty() {
+                String::new()
+              } else {
+                format!(";{encoding}")
+              }
+            );
+          }
 
           generate_context
             .data

@@ -249,7 +249,13 @@ pub struct AssetGeneratorOptions {
   pub data_url: Option<AssetGeneratorDataUrl>,
 }
 
-pub type AssetGeneratorDataUrlFn = Arc<dyn Fn(&str) -> Result<String> + Sync + Send>;
+pub struct AssetGeneratorDataUrlFnArgs {
+  pub filename: String,
+  pub content: String,
+}
+
+pub type AssetGeneratorDataUrlFn =
+  Arc<dyn Fn(AssetGeneratorDataUrlFnArgs) -> Result<String> + Sync + Send>;
 
 pub enum AssetGeneratorDataUrl {
   Options(AssetGeneratorDataUrlOptions),

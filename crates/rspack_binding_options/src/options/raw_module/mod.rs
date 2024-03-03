@@ -6,12 +6,13 @@ use derivative::Derivative;
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rspack_core::{
-  AssetGeneratorDataUrl, AssetGeneratorDataUrlOptions, AssetGeneratorOptions,
-  AssetInlineGeneratorOptions, AssetParserDataUrl, AssetParserDataUrlOptions, AssetParserOptions,
-  AssetResourceGeneratorOptions, BoxLoader, DescriptionData, DynamicImportMode, FuncUseCtx,
-  GeneratorOptions, GeneratorOptionsByModuleType, JavascriptParserOptions, JavascriptParserOrder,
-  JavascriptParserUrl, ModuleOptions, ModuleRule, ModuleRuleEnforce, ModuleRuleUse,
-  ModuleRuleUseLoader, ModuleType, ParserOptions, ParserOptionsByModuleType,
+  AssetGeneratorDataUrl, AssetGeneratorDataUrlFnArgs, AssetGeneratorDataUrlOptions,
+  AssetGeneratorOptions, AssetInlineGeneratorOptions, AssetParserDataUrl,
+  AssetParserDataUrlOptions, AssetParserOptions, AssetResourceGeneratorOptions, BoxLoader,
+  DescriptionData, DynamicImportMode, FuncUseCtx, GeneratorOptions, GeneratorOptionsByModuleType,
+  JavascriptParserOptions, JavascriptParserOrder, JavascriptParserUrl, ModuleOptions, ModuleRule,
+  ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, ModuleType, ParserOptions,
+  ParserOptionsByModuleType,
 };
 use rspack_error::{error, miette::IntoDiagnostic};
 use rspack_loader_react_refresh::REACT_REFRESH_LOADER_IDENTIFIER;
@@ -492,12 +493,27 @@ pub struct RawAssetGeneratorDataUrl {
   #[napi(ts_type = r#""options"| "function""#)]
   pub r#type: String,
   pub options: Option<RawAssetGeneratorDataUrlOptions>,
-  // TODO: lack of the param function (content, { filename, module }) => string
   #[serde(skip_deserializing)]
-  #[napi(ts_type = r#"(content: string) => string"#)]
+  #[napi(ts_type = r#"(options: { content: string, filename: string }) => string"#)]
   pub function: Option<JsFunction>,
 }
 
+#[derive(Debug, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+#[napi(object)]
+pub struct RawAssetGeneratorDataUrlFnArgs {
+  pub filename: String,
+  pub content: String,
+}
+
+impl From<AssetGeneratorDataUrlFnArgs> for RawAssetGeneratorDataUrlFnArgs {
+  fn from(value: AssetGeneratorDataUrlFnArgs) -> Self {
+    Self {
+      filename: value.filename,
+      content: value.content,
+    }
+  }
+}
 impl Debug for RawAssetGeneratorDataUrl {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     f.debug_struct("RawAssetGeneratorDataUrl")
@@ -524,28 +540,22 @@ impl From<RawAssetGeneratorDataUrl> for AssetGeneratorDataUrl {
 
         let env = get_napi_env();
 
-        let func: napi::Result<ThreadsafeFunction<String, String>> =
+        let func: napi::Result<ThreadsafeFunction<RawAssetGeneratorDataUrlFnArgs, String>> =
           try { rspack_binding_macros::js_fn_into_threadsafe_fn!(func, &Env::from(env)) };
 
-        Self::Func(Arc::new(move |data: &str| {
+        Self::Func(Arc::new(move |value: AssetGeneratorDataUrlFnArgs| {
           let func = func
             .clone()
             .expect("Can't clone RawAssetGeneratorDataUrl.type as function");
-          let data = data.to_string();
-          let res = func
-            .call(data, ThreadsafeFunctionCallMode::NonBlocking)
-            .into_rspack_result()
-            .expect("111")
-            .blocking_recv()
-            .expect("222")
-            .expect("333");
-          // TODO: Fix the expect error message
-          Ok(res)
-          // Box::pin(move || {
-          //   func
-          //     .call(data, ThreadsafeFunctionCallMode::NonBlocking)
-          //     .into_rspack_result()
-          // })
+          Ok(
+            func
+              .call(value.into(), ThreadsafeFunctionCallMode::NonBlocking)
+              .into_rspack_result()
+              .expect("The result of dataUrl function into rspack result failed")
+              .blocking_recv()
+              .unwrap_or_else(|err| panic!("Failed to call external function: {err}"))
+              .expect("call dataUrl function failed"),
+          )
         }))
       }
       _ => panic!(

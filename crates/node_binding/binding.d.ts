@@ -611,7 +611,12 @@ export interface PathWithInfo {
 export interface RawAssetGeneratorDataUrl {
   type: "options"| "function"
   options?: RawAssetGeneratorDataUrlOptions
-  function?: (content: string) => string
+  function?: (options: { content: string, filename: string }) => string
+}
+
+export interface RawAssetGeneratorDataUrlFnArgs {
+  filename: string
+  content: string
 }
 
 export interface RawAssetGeneratorDataUrlOptions {

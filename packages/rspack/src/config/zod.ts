@@ -1,6 +1,6 @@
 import { RawFuncUseCtx } from "@rspack/binding";
 import { z } from "zod";
-import { Compilation, Compiler } from "..";
+import { Compilation, Compiler, NormalModule } from "..";
 import type * as oldBuiltins from "../builtin-plugin";
 import type * as webpackDevServer from "webpack-dev-server";
 import { deprecatedWarn, termlink } from "../util";
@@ -567,8 +567,23 @@ const assetGeneratorDataUrlOptions = z.strictObject({
 export type AssetGeneratorDataUrlOptions = z.infer<
 	typeof assetGeneratorDataUrlOptions
 >;
-// TODO: add function type here
-const assetGeneratorDataUrl = assetGeneratorDataUrlOptions;
+
+const assetGeneratorDataUrlFunction = z
+	.function()
+	.args(
+		z.strictObject({
+			content: z.string(),
+			filename: z.string()
+		})
+	)
+	.returns(z.string());
+export type AssetGeneratorDataUrlFunction = z.infer<
+	typeof assetGeneratorDataUrlFunction
+>;
+
+const assetGeneratorDataUrl = assetGeneratorDataUrlOptions.or(
+	assetGeneratorDataUrlFunction
+);
 export type AssetGeneratorDataUrl = z.infer<typeof assetGeneratorDataUrl>;
 
 const assetInlineGeneratorOptions = z.strictObject({
