@@ -220,8 +220,8 @@ impl CommonJsImportsParserPlugin {
   ) -> Option<bool> {
     let dep = CommonJsRequireContextDependency::new(
       ident.span().real_lo(),
-      ident.span_hi().0,
-      ident.span_hi().0,
+      ident.span().real_hi(),
+      ident.span().real_hi(),
       ContextOptions {
         chunk_name: None,
         mode: ContextMode::Sync,
@@ -234,7 +234,7 @@ impl CommonJsImportsParserPlugin {
         request: ".".to_string(),
         namespace_object: ContextNameSpaceObject::Unset,
         start: ident.span().real_lo(),
-        end: ident.span_hi().0,
+        end: ident.span().real_hi(),
       },
       Some(ident.span().into()),
     );
