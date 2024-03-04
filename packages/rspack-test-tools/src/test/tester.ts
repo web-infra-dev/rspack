@@ -44,16 +44,12 @@ export class Tester implements ITester {
 		const currentStep = this.steps[this.step];
 		if (!currentStep) return;
 
-		try {
-			if (this.context.hasError()) {
-				await this.runCheckStepMethods(currentStep, env, ["check"]);
-			} else {
-				await this.runCheckStepMethods(currentStep, env, ["run", "check"]);
-			}
-		} catch (e) {
-		} finally {
-			await this.runStepMethods(currentStep, ["after"], true);
+		if (this.context.hasError()) {
+			await this.runCheckStepMethods(currentStep, env, ["check"]);
+		} else {
+			await this.runCheckStepMethods(currentStep, env, ["run", "check"]);
 		}
+		await this.runStepMethods(currentStep, ["after"], true);
 
 		if (this.context.hasError()) {
 			this.outputErrors();

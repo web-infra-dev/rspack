@@ -17,16 +17,8 @@
     "dev:viewer": "rspack serve",
     "dev": "tsc -b -w",
     "test": "run-s test:**",
-    "test:diff": "cross-env RSPACK_DIFF=true NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --runInBand --logHeapUsage --testPathPattern \".diff.test.ts\"",
-    "test:config": "cross-env NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --runInBand --logHeapUsage --testPathPattern \"ConfigTestCases.basictest.ts\"",
-    "test:hot:node": "cross-env NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --runInBand --logHeapUsage --testPathPattern \"HotTestCasesNode.test.ts\"",
-    "test:hot:web": "cross-env NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --runInBand --logHeapUsage --testPathPattern \"HotTestCasesWeb.test.ts\"",
-    "test:hot:webworker": "cross-env NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --runInBand --logHeapUsage --testPathPattern \"HotTestCasesWebWorker.test.ts\"",
-    "test:hash": "cross-env NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --runInBand --logHeapUsage --testPathPattern \"HashTestCases.test.ts\"",
-    "test:stats": "cross-env NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --runInBand --logHeapUsage --testPathPattern \"StatsTestCases.basictest.ts\"",
-    "test:diagnostic": "cross-env NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --runInBand --logHeapUsage --testPathPattern \"Diagnostics.test.ts\"",
-    "test:watch": "cross-env NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --runInBand --logHeapUsage --testPathPattern \"WatchTestCases.longtest.ts\"",
-    "test:normal": "cross-env NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --runInBand --logHeapUsage --testPathPattern \"TestCasesNormal.basictest.ts\""
+    "test:diff": "cross-env RSPACK_DIFF=true NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --runInBand --logHeapUsage --testPathPattern \".diff.test.js\"",
+    "test:new": "cross-env NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --runInBand --testPathIgnorePatterns \".diff.test.js\" --logHeapUsage"
   },
   "files": [
     "client",

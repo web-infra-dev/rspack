@@ -1,9 +1,9 @@
-import { globSync } from "glob";
-import path from "path";
-import { createDiffCase } from "../src/case/diff";
+const { globSync } = require("glob");
+const path = require("path");
+const { describeByWalk, createDiffCase } = require("..");
 
-const caseDir: string = path.resolve(__dirname, "runtimeDiffCases");
-const tempDir: string = path.resolve(__dirname, "js");
+const caseDir = path.resolve(__dirname, "runtimeDiffCases");
+const tempDir = path.resolve(__dirname, "js");
 
 describe(`RuntimeDiffCases`, () => {
 	for (let name of globSync("**/test.config.js", {

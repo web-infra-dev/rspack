@@ -23,7 +23,7 @@ export class NormalRunner<
 		m: { exports: unknown },
 		file: TBasicRunnerFile
 	): IBasicModuleScope {
-		const moduleScope = this.baseModuleScope!;
+		const moduleScope = super.createModuleScope(requireFn, m, file);
 		delete moduleScope.define;
 		return moduleScope;
 	}

@@ -24,7 +24,10 @@ export class RspackHashProcessor extends MultiTaskProcessor<ECompilerType.Rspack
 			getBundle: () => [],
 			configFiles: ["rspack.config.js", "webpack.config.js"],
 			name: options.name,
-			testConfig: options.testConfig
+			testConfig: {
+				noTest: true,
+				...options.testConfig
+			}
 		});
 	}
 

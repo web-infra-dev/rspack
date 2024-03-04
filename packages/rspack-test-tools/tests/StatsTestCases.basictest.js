@@ -1,13 +1,10 @@
-import path from "path";
-import fs from "fs";
-import { createStatsCase } from "../src/case/stats";
+const path = require("path");
+const fs = require("fs");
+const { createStatsCase } = require("..");
 
 const NAME = "StatsTestCases";
-const caseDir: string = path.resolve(
-	__dirname,
-	"../../rspack/tests/statsCases"
-);
-const distDir: string = path.resolve(__dirname, `../../rspack/tests/js/stats`);
+const caseDir = path.resolve(__dirname, "../../rspack/tests/statsCases");
+const distDir = path.resolve(__dirname, `../../rspack/tests/js/stats`);
 
 const tests = fs
 	.readdirSync(caseDir)

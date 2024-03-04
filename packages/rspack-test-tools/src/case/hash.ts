@@ -30,23 +30,13 @@ export function createHashCase(name: string, src: string, dist: string) {
 		return;
 	}
 
-	describe(name, () => {
+	it(`should print correct hash for ${name}`, async () => {
 		rimraf.sync(dist);
 		fs.mkdirSync(dist, { recursive: true });
 
-		beforeAll(async () => {
-			await tester.prepare();
-		});
-
-		it(`${name} should compile`, async () => {
-			await tester.compile();
-			await tester.check(env);
-		}, 30000);
-
-		afterAll(async () => {
-			await tester.resume();
-		});
-
-		const env = Tester.createLazyTestEnv();
-	});
+		await tester.prepare();
+		await tester.compile();
+		await tester.check(Tester.createTestEnv());
+		await tester.resume();
+	}, 30000);
 }
