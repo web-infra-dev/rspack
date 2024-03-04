@@ -223,7 +223,7 @@ impl BasicEvaluatedExpression {
     } else if self.is_bool() {
       self.boolean
     } else if self.is_string() {
-      Some(matches!(&self.string, Some(s) if s != ""))
+      Some(matches!(&self.string, Some(s) if !s.is_empty()))
     } else if self.is_number() {
       Some(matches!(self.number, Some(n) if n != 0.0))
     } else {
