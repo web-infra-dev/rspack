@@ -19,6 +19,7 @@ struct RawSwcJsMinimizerRulesWrapper(RawSwcJsMinimizerRules);
 pub struct RawExtractComments {
   pub banner: Option<Either<String, bool>>,
   pub condition: Option<String>,
+  pub filename: Option<String>,
 }
 
 #[derive(Debug)]
@@ -53,6 +54,7 @@ fn into_condition(c: Option<RawSwcJsMinimizerRules>) -> Option<SwcJsMinimizerRul
 fn into_extract_comments(c: Option<RawExtractComments>) -> Option<ExtractComments> {
   let c = c?;
   let condition = c.condition?;
+  let filename = c.filename;
   let banner = match c.banner {
     Some(banner) => match banner {
       Either::A(s) => OptionWrapper::Custom(s),
@@ -67,7 +69,11 @@ fn into_extract_comments(c: Option<RawExtractComments>) -> Option<ExtractComment
     None => OptionWrapper::Default,
   };
 
-  Some(ExtractComments { condition, banner })
+  Some(ExtractComments {
+    condition,
+    banner,
+    filename,
+  })
 }
 
 impl TryFrom<RawSwcJsMinimizerRspackPluginOptions> for SwcJsMinimizerRspackPluginOptions {
