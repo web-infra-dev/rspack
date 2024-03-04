@@ -1,8 +1,34 @@
-import { Tester } from "../test/tester";
-import rimraf from "rimraf";
-import fs from "fs";
 import { RspackHotProcessor } from "../processor/hot";
 import { ECompilerType, TCompilerOptions } from "../type";
+import { BasicCaseCreator } from "../test/creator";
+
+type TTarget = TCompilerOptions<ECompilerType.Rspack>["target"];
+
+const creators: Map<
+	TTarget,
+	BasicCaseCreator<ECompilerType.Rspack>
+> = new Map();
+
+function getCreator(target: TTarget) {
+	if (!creators.has(target)) {
+		creators.set(
+			target,
+			new BasicCaseCreator({
+				clean: true,
+				runable: true,
+				describe: true,
+				target,
+				steps: ({ name, target }) => [
+					new RspackHotProcessor({
+						name,
+						target: target as TTarget
+					})
+				]
+			})
+		);
+	}
+	return creators.get(target)!;
+}
 
 export function createHotCase(
 	name: string,
@@ -10,47 +36,6 @@ export function createHotCase(
 	dist: string,
 	target: TCompilerOptions<ECompilerType.Rspack>["target"]
 ) {
-	const tester = new Tester({
-		name,
-		src,
-		dist,
-		steps: [
-			new RspackHotProcessor({
-				target,
-				name
-			})
-		]
-	});
-
-	if (
-		Tester.isSkipped({
-			casePath: src,
-			name
-		})
-	) {
-		describe.skip(name, () => {
-			it("filtered", () => {});
-		});
-		return;
-	}
-
-	describe(name, () => {
-		rimraf.sync(dist);
-		fs.mkdirSync(dist, { recursive: true });
-
-		beforeAll(async () => {
-			await tester.prepare();
-		});
-
-		it(`${name} should compile`, async () => {
-			await tester.compile();
-			await tester.check(env);
-		}, 30000);
-
-		afterAll(async () => {
-			await tester.resume();
-		});
-
-		const env = Tester.createLazyTestEnv();
-	});
+	const creator = getCreator(target);
+	creator.create(name, src, dist);
 }

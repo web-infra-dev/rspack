@@ -1,61 +1,21 @@
-import { Tester } from "../test/tester";
-import rimraf from "rimraf";
-import fs from "fs";
 import path from "path";
 import { RspackNormalProcessor } from "../processor/normal";
-import { ECompilerType, TCompilerOptions } from "..";
+import { BasicCaseCreator } from "../test/creator";
 
-export function createNormalCase(
-	name: string,
-	src: string,
-	dist: string,
-	root: string,
-	compilerOptions: TCompilerOptions<ECompilerType.Rspack> = {}
-) {
-	const testConfigFile = path.join(src, "test.config.js");
-	const tester = new Tester({
-		name,
-		src,
-		dist,
-		steps: [
-			new RspackNormalProcessor({
-				name,
-				root,
-				compilerOptions,
-				testConfig: fs.existsSync(testConfigFile) ? require(testConfigFile) : {}
-			})
-		]
-	});
-
-	if (
-		Tester.isSkipped({
-			casePath: src,
-			name
+const creator = new BasicCaseCreator({
+	clean: true,
+	runable: true,
+	describe: true,
+	steps: ({ name }, testConfig) => [
+		new RspackNormalProcessor({
+			name,
+			root: path.resolve(__dirname, "../../../rspack"),
+			compilerOptions: {}, // do not used in rspack
+			testConfig
 		})
-	) {
-		describe.skip(name, () => {
-			it("filtered", () => {});
-		});
-		return;
-	}
+	]
+});
 
-	describe(name, () => {
-		rimraf.sync(dist);
-		fs.mkdirSync(dist, { recursive: true });
-
-		beforeAll(async () => {
-			await tester.prepare();
-		});
-
-		it(`${name} should compile`, async () => {
-			await tester.compile();
-			await tester.check(env);
-		}, 30000);
-
-		afterAll(async () => {
-			await tester.resume();
-		});
-
-		const env = Tester.createLazyTestEnv();
-	});
+export function createNormalCase(name: string, src: string, dist: string) {
+	creator.create(name, src, dist);
 }

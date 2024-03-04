@@ -75,6 +75,7 @@ export interface ITesterConfig {
 
 export interface ITester {
 	step: number;
+	total: number;
 	prepare(): Promise<void>;
 	compile(): Promise<void>;
 	check(env: ITestEnv): Promise<void>;
@@ -168,6 +169,11 @@ export type TTestConfig<T extends ECompilerType> = {
 	modules?: Record<string, Object>;
 	timeout?: number;
 };
+
+export type TTestFilter<T extends ECompilerType> = (
+	creatorConfig: Record<string, unknown>,
+	testConfig: TTestConfig<T>
+) => boolean | string;
 
 export interface ITestRunner {
 	run(file: string): Promise<unknown>;

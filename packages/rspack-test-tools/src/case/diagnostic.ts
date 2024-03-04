@@ -1,43 +1,19 @@
-import { Tester } from "../test/tester";
-import rimraf from "rimraf";
-import { RspackDiagnosticProcessor } from "../processor/diagnostic";
-import fs from "fs";
+import path from "path";
+import { RspackDiagnosticProcessor } from "../processor";
+import { BasicCaseCreator } from "../test/creator";
 
-export function createDiagnosticCase(
-	name: string,
-	src: string,
-	dist: string,
-	root: string
-) {
-	const tester = new Tester({
-		name,
-		src,
-		dist,
-		steps: [
-			new RspackDiagnosticProcessor({
-				name,
-				root
-			})
-		]
-	});
+const creator = new BasicCaseCreator({
+	clean: true,
+	runable: false,
+	describe: true,
+	steps: ({ name }) => [
+		new RspackDiagnosticProcessor({
+			name,
+			root: path.resolve(__dirname, "../../../rspack")
+		})
+	]
+});
 
-	describe(name, () => {
-		rimraf.sync(dist);
-		fs.mkdirSync(dist, { recursive: true });
-
-		beforeAll(async () => {
-			await tester.prepare();
-		});
-
-		it(`${name} should compile`, async () => {
-			await tester.compile();
-			await tester.check(env);
-		}, 30000);
-
-		afterAll(async () => {
-			await tester.resume();
-		});
-
-		const env = Tester.createTestEnv();
-	});
+export function createDiagnosticCase(name: string, src: string, dist: string) {
+	creator.create(name, src, dist);
 }

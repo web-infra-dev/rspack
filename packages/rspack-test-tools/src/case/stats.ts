@@ -1,50 +1,19 @@
-import { Tester } from "../test/tester";
-import rimraf from "rimraf";
-import fs from "fs";
-import path from "path";
 import { RspackStatsProcessor } from "../processor/stats";
+import { BasicCaseCreator } from "../test/creator";
+
+const creator = new BasicCaseCreator({
+	clean: true,
+	runable: false,
+	describe: false,
+	steps: ({ name }, testConfig) => [
+		new RspackStatsProcessor({
+			name,
+			testConfig
+		})
+	],
+	description: name => `should print correct stats for ${name}`
+});
 
 export function createStatsCase(name: string, src: string, dist: string) {
-	const testConfigFile = path.join(src, "test.config.js");
-	const tester = new Tester({
-		name,
-		src,
-		dist,
-		steps: [
-			new RspackStatsProcessor({
-				name,
-				testConfig: fs.existsSync(testConfigFile) ? require(testConfigFile) : {}
-			})
-		]
-	});
-
-	if (
-		Tester.isSkipped({
-			casePath: src,
-			name
-		})
-	) {
-		describe.skip(name, () => {
-			it("filtered", () => {});
-		});
-		return;
-	}
-
-	rimraf.sync(dist);
-	fs.mkdirSync(dist, { recursive: true });
-
-	beforeAll(async () => {
-		await tester.prepare();
-	});
-
-	it(`should print correct stats for ${name}`, async () => {
-		await tester.compile();
-		await tester.check(env);
-	}, 30000);
-
-	afterAll(async () => {
-		await tester.resume();
-	});
-
-	const env = Tester.createTestEnv();
+	creator.create(name, src, dist);
 }

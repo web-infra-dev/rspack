@@ -1,42 +1,33 @@
-import { Tester } from "../test/tester";
-import rimraf from "rimraf";
-import fs from "fs";
-import path from "path";
-import { RspackHashProcessor } from "../processor/hash";
+import { ECompilerType, ITester, TTestConfig } from "../type";
+import { RspackHashProcessor } from "../processor";
+import { BasicCaseCreator } from "../test/creator";
+class HashCaseCreator<T extends ECompilerType> extends BasicCaseCreator<T> {
+	protected describe(
+		name: string,
+		tester: ITester,
+		testConfig: TTestConfig<T>
+	) {
+		it(`should print correct hash for ${name}`, async () => {
+			await tester.prepare();
+			await tester.compile();
+			await tester.check(this.createEnv(testConfig));
+			await tester.resume();
+		}, 30000);
+	}
+}
+
+const creator = new HashCaseCreator({
+	clean: true,
+	runable: false,
+	describe: false,
+	steps: ({ name }, testConfig) => [
+		new RspackHashProcessor({
+			name,
+			testConfig
+		})
+	]
+});
 
 export function createHashCase(name: string, src: string, dist: string) {
-	const testConfigFile = path.join(src, "test.config.js");
-	const tester = new Tester({
-		name,
-		src,
-		dist,
-		steps: [
-			new RspackHashProcessor({
-				name,
-				testConfig: fs.existsSync(testConfigFile) ? require(testConfigFile) : {}
-			})
-		]
-	});
-
-	if (
-		Tester.isSkipped({
-			casePath: src,
-			name
-		})
-	) {
-		describe.skip(name, () => {
-			it("filtered", () => {});
-		});
-		return;
-	}
-
-	it(`should print correct hash for ${name}`, async () => {
-		rimraf.sync(dist);
-		fs.mkdirSync(dist, { recursive: true });
-
-		await tester.prepare();
-		await tester.compile();
-		await tester.check(Tester.createTestEnv());
-		await tester.resume();
-	}, 30000);
+	creator.create(name, src, dist);
 }

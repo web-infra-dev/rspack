@@ -14,11 +14,13 @@ export class Tester implements ITester {
 	private context: ITestContext;
 	private steps: ITestProcessor[] = [];
 	step: number = 0;
+	total: number = 0;
 
 	constructor(private config: ITesterConfig) {
 		this.context = new TestContext(config);
 		this.steps = config.steps || [];
 		this.step = 0;
+		this.total = config.steps?.length || 0;
 	}
 	async prepare() {
 		for (let i of this.steps) {
