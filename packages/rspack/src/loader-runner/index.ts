@@ -245,7 +245,6 @@ export async function runLoaders(
 		options,
 		callback
 	) {
-		const executeModuleKey = request + options.publicPath + options.baseUri;
 		if (!callback) {
 			return new Promise((resolve, reject) => {
 				compiler.compilation

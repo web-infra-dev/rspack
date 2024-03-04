@@ -9,7 +9,6 @@
  */
 
 import { Compilation } from "..";
-import { deprecatedWarn } from "../util";
 import type {
 	Context,
 	Dependencies,

@@ -21,7 +21,7 @@ import type {
 import assert from "assert";
 import { Compiler } from "../Compiler";
 import { normalizeStatsPreset } from "../Stats";
-import { deprecatedWarn, isNil } from "../util";
+import { isNil } from "../util";
 import { parseResource } from "../util/identifier";
 import {
 	ComposeJsUseOptions,

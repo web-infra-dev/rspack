@@ -26,7 +26,6 @@ import { Compilation, CompilationParams } from "./Compilation";
 import { ContextModuleFactory } from "./ContextModuleFactory";
 import ResolverFactory from "./ResolverFactory";
 import { getRawOptions } from "./config";
-import { LoaderContext, LoaderResult } from "./config/adapterRuleUse";
 import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
 import { createThreadsafeNodeFSFromRaw } from "./fileSystem";
 import Cache from "./lib/Cache";
@@ -35,7 +34,6 @@ import { runLoaders } from "./loader-runner";
 import { Logger } from "./logging/Logger";
 import { NormalModuleFactory } from "./NormalModuleFactory";
 import { WatchFileSystem } from "./util/fs";
-import { getScheme } from "./util/scheme";
 import { checkVersion } from "./util/bindingVersionCheck";
 import { Watching } from "./Watching";
 import { NormalModule } from "./NormalModule";
@@ -225,8 +223,7 @@ class Compiler {
 		// TODO: remove this when drop support for builtins options
 		options.builtins = deprecated_resolveBuiltins(
 			options.builtins,
-			options,
-			this
+			options
 		) as any;
 		const rawOptions = getRawOptions(options, this);
 
@@ -666,8 +663,8 @@ class Compiler {
 				(hook.taps
 					? !hook.isUsed()
 					: hook._map
-					? /* hook map */ hook._map.size === 0
-					: false)
+						? /* hook map */ hook._map.size === 0
+						: false)
 			) {
 				disabledHooks.push(name);
 			}
