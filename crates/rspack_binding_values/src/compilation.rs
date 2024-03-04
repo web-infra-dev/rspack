@@ -244,6 +244,11 @@ impl JsCompilation {
     self.inner.delete_asset(&filename);
   }
 
+  #[napi]
+  pub fn rename_asset(&mut self, filename: String, new_name: String) {
+    self.inner.rename_asset(&filename, new_name);
+  }
+
   #[napi(getter)]
   pub fn entrypoints(&self) -> HashMap<String, JsChunkGroup> {
     let entrypoints = self.inner.entrypoints();
