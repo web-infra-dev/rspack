@@ -244,10 +244,24 @@ jobs:
           ref: 'main'
           client_payload: '{"commit_sha":"${{ github.sha }}"}'
 
+  run_ecosystem_ci:
+    name: Run Ecosystem CI
+    runs-on: ubuntu-latest
+    if: github.ref_name == 'main' && github.repository_owner == 'web-infra-dev'
+    steps:
+      - name: Run Ecosystem CI
+        uses: convictional/trigger-workflow-and-wait@v1.6.5
+        with:
+          owner: ${{ github.repository_owner }}
+          repo: 'rspack-ecosystem-ci'
+          workflow_file_name: 'ecosystem-ci-selected.yml'
+          github-token: ${{ secrets.ECOSYSTEM_CI_ACCESS_TOKEN }}
+          ref: 'main'
+          client_payload: '{"refType":"commit","ref":"${{ github.sha }}","repo":"web-infra-dev/rspack","suite":"-","suiteRefType":"precoded","suiteRef":"precoded"}'
 
   failure_notification:
     name: Failure Notification
-    needs: [test-linux, test-windows, test-mac, rust_check, rust_test, run_benchmark]
+    needs: [test-linux, test-windows, test-mac, rust_check, rust_test, run_benchmark, run_ecosystem_ci]
     if: ${{ failure() && !cancelled() && github.ref_name == 'main' && github.repository_owner == 'web-infra-dev' }}
     runs-on: ubuntu-latest
     steps:
