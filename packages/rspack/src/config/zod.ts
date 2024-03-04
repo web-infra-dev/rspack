@@ -1,6 +1,6 @@
 import { RawFuncUseCtx } from "@rspack/binding";
 import { z } from "zod";
-import { Compilation, Compiler, NormalModule } from "..";
+import { Compilation, Compiler } from "..";
 import type * as oldBuiltins from "../builtin-plugin";
 import type * as webpackDevServer from "webpack-dev-server";
 import { deprecatedWarn, termlink } from "../util";
