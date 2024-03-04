@@ -20,7 +20,7 @@ const config = {
 		"source-map-support/register": "identity-obj-proxy"
 	},
 	cache: false,
-	// transformIgnorePatterns: ["<rootDir>/tests"],
+	transformIgnorePatterns: ["<rootDir>/tests", "/node_modules/"],
 	snapshotFormat: {
 		escapeString: true,
 		printBasicPrototype: true
