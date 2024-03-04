@@ -153,6 +153,3 @@ impl PartialEq for SelfModule {
 }
 
 impl Eq for SelfModule {}
-
-// 530,063,683
-// 100,000,000
