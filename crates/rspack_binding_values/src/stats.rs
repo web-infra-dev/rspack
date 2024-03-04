@@ -239,7 +239,7 @@ pub struct JsStatsModule {
   pub orphan: bool,
   pub provided_exports: Option<Vec<String>>,
   pub used_exports: Option<Either<String, Vec<String>>>,
-  pub optimization_bailouts: Option<Vec<String>>,
+  pub optimization_bailout: Option<Vec<String>>,
 }
 
 impl TryFrom<rspack_core::StatsModule<'_>> for JsStatsModule {
@@ -259,7 +259,6 @@ impl TryFrom<rspack_core::StatsModule<'_>> for JsStatsModule {
       })
       .transpose()
       .map_err(|e| napi::Error::from_reason(e.to_string()))?;
-
     Ok(Self {
       r#type: stats.r#type,
       name: stats.name,
@@ -286,7 +285,7 @@ impl TryFrom<rspack_core::StatsModule<'_>> for JsStatsModule {
         StatsUsedExports::Vec(v) => JsStatsUsedExports::B(v),
         StatsUsedExports::Null => JsStatsUsedExports::A("null".to_string()),
       }),
-      optimization_bailouts: Some(stats.optimization_bailouts),
+      optimization_bailout: Some(stats.optimization_bailout),
     })
   }
 }

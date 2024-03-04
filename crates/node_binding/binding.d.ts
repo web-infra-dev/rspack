@@ -14,6 +14,7 @@ export class JsCompilation {
   getAsset(name: string): JsAsset | null
   getAssetSource(name: string): JsCompatSource | null
   getModules(): Array<JsModule>
+  getOptimizationBailout(): Array<JsStatsOptimizationBailout>
   getChunks(): Array<JsChunk>
   getNamedChunk(name: string): JsChunk | null
   /**
@@ -549,6 +550,7 @@ export interface JsStatsModule {
   orphan: boolean
   providedExports?: Array<string>
   usedExports?: string | Array<string>
+  optimizationBailout?: Array<string>
 }
 
 export interface JsStatsModuleIssuer {
@@ -569,6 +571,10 @@ export interface JsStatsModuleReason {
   moduleId?: string
   type?: string
   userRequest?: string
+}
+
+export interface JsStatsOptimizationBailout {
+  inner: string
 }
 
 export interface JsStatsWarning {

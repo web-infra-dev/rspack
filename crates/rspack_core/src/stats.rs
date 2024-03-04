@@ -577,7 +577,7 @@ impl Stats<'_> {
         == 0,
       provided_exports,
       used_exports,
-      optimization_bailouts: mgm.optimization_bailout.clone(),
+      optimization_bailout: mgm.optimization_bailout.clone(),
     })
   }
 
@@ -623,7 +623,7 @@ impl Stats<'_> {
         == 0,
       provided_exports: Some(vec![]),
       used_exports: None,
-      optimization_bailouts: vec![],
+      optimization_bailout: vec![],
     })
   }
   fn get_chunk_relations(&self, chunk: &Chunk) -> (Vec<String>, Vec<String>, Vec<String>) {
@@ -752,7 +752,7 @@ pub struct StatsModule<'a> {
   pub orphan: bool,
   pub provided_exports: Option<Vec<String>>,
   pub used_exports: Option<StatsUsedExports>,
-  pub optimization_bailouts: Vec<String>,
+  pub optimization_bailout: Vec<String>,
 }
 
 #[derive(Debug)]
