@@ -29,10 +29,10 @@ use crate::{
   add_connection_states, contextify, diagnostics::ModuleBuildError, get_context,
   impl_build_info_meta, AsyncDependenciesBlockIdentifier, BoxLoader, BoxModule, BuildContext,
   BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation, ConcatenationScope,
-  ConnectionState, Context, DependenciesBlock, DependencyId, DependencyTemplate, GenerateContext,
-  GeneratorOptions, LibIdentOptions, Module, ModuleDependency, ModuleGraph, ModuleIdentifier,
-  ModuleType, ParseContext, ParseResult, ParserAndGenerator, ParserOptions, Resolve,
-  RspackLoaderRunnerPlugin, RuntimeSpec, SourceType,
+  ConnectionState, Context, DependenciesBlock, DependencyId, DependencyTemplate, ErrorSpan,
+  GenerateContext, GeneratorOptions, LibIdentOptions, Module, ModuleDependency, ModuleGraph,
+  ModuleIdentifier, ModuleType, ParseContext, ParseResult, ParserAndGenerator, ParserOptions,
+  Resolve, RspackLoaderRunnerPlugin, RuntimeSpec, SourceType,
 };
 
 bitflags! {
@@ -364,7 +364,6 @@ impl Module for NormalModule {
       normal_module: self,
       current_loader: Default::default(),
     };
-
     let loader_result = run_loaders(
       &self.loaders,
       &self.resource_data,
@@ -398,6 +397,7 @@ impl Module for NormalModule {
           dependencies: Vec::new(),
           blocks: Vec::new(),
           analyze_result: Default::default(),
+          optimization_bailouts: vec![],
         });
       }
     };
@@ -418,6 +418,7 @@ impl Module for NormalModule {
         blocks,
         presentational_dependencies,
         analyze_result,
+        side_effects_bailout,
       },
       ds,
     ) = self
@@ -439,6 +440,16 @@ impl Module for NormalModule {
       })?
       .split_into_parts();
     self.add_diagnostics(ds);
+    let optimization_bailouts = if let Some(side_effects_bailout) = side_effects_bailout {
+      let short_id = self.readable_identifier(&build_context.compiler_options.context);
+      vec![format!(
+        "{} with side_effects in source code at {short_id}:{:?}",
+        side_effects_bailout.ty,
+        ErrorSpan::from(side_effects_bailout.span)
+      )]
+    } else {
+      vec![]
+    };
     // Only side effects used in code_generate can stay here
     // Other side effects should be set outside use_cache
     self.original_source = Some(source.clone());
@@ -464,6 +475,7 @@ impl Module for NormalModule {
       dependencies,
       blocks,
       analyze_result,
+      optimization_bailouts,
     })
   }
 

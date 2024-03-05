@@ -298,6 +298,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
         source,
         presentational_dependencies: vec![],
         analyze_result,
+        side_effects_bailout: None,
       }
       .with_empty_diagnostic(),
     )

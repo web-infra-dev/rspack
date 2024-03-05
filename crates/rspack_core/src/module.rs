@@ -151,6 +151,7 @@ pub struct BuildResult {
   pub analyze_result: OptimizeAnalyzeResult,
   pub dependencies: Vec<BoxDependency>,
   pub blocks: Vec<AsyncDependenciesBlock>,
+  pub optimization_bailouts: Vec<String>,
 }
 
 #[derive(Debug, Default, Clone)]
@@ -209,6 +210,7 @@ pub trait Module:
       dependencies: Vec::new(),
       blocks: Vec::new(),
       analyze_result: Default::default(),
+      optimization_bailouts: vec![],
     })
   }
 

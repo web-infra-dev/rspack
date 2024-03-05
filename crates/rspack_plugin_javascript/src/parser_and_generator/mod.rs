@@ -99,7 +99,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       allow_super_outside_method: true,
       ..Default::default()
     });
-
     let use_source_map = matches!(module_source_map_kind, SourceMapKind::SourceMap);
     let enable_source_map = !matches!(module_source_map_kind, SourceMapKind::None);
     let original_map = source.map(&MapOptions::new(use_source_map));
@@ -117,6 +116,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
           blocks: vec![],
           presentational_dependencies: vec![],
           analyze_result: Default::default(),
+          side_effects_bailout: None,
         }
         .with_diagnostic(map_box_diagnostics_to_module_parse_diagnostics(
           diagnostics,
@@ -205,7 +205,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       }
     };
     diagnostics.append(&mut warning_diagnostics);
-
+    let mut side_effects_bailout = None;
     let analyze_result = if compiler_options.builtins.tree_shaking.enable() {
       let mut all_dependencies = dependencies.clone();
       for mut block in blocks.clone() {
@@ -233,7 +233,9 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
           program.comments.as_ref(),
         );
         program.visit_with(&mut visitor);
-        build_meta.side_effect_free = Some(visitor.side_effects_span.is_none());
+        build_meta.side_effect_free = Some(visitor.side_effects_item.is_none());
+        // Take the item from visitor is safe, because the field is only used in this place
+        side_effects_bailout = visitor.side_effects_item.take();
       });
     }
 
@@ -293,6 +295,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         blocks,
         presentational_dependencies,
         analyze_result,
+        side_effects_bailout,
       }
       .with_diagnostic(map_box_diagnostics_to_module_parse_diagnostics(
         diagnostics,

@@ -813,6 +813,9 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			} else {
 				object.providedExports = null;
 			}
+		},
+		optimizationBailout: (object, module) => {
+			object.optimizationBailout = module.optimizationBailout || null;
 		}
 	},
 	profile: {

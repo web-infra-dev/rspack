@@ -321,6 +321,10 @@ export class Compilation {
 			options.usedExports,
 			!context.forToString
 		);
+		options.optimizationBailout = optionOrLocalFallback(
+			options.optimizationBailout,
+			!context.forToString
+		);
 		options.providedExports = optionOrLocalFallback(
 			options.providedExports,
 			!context.forToString

@@ -956,7 +956,10 @@ impl Compilation {
 
               tracing::trace!("Module built: {}", module.identifier());
               self.push_batch_diagnostic(diagnostics);
-
+              self
+                .module_graph
+                .get_optimization_bailout_mut(module.identifier())
+                .extend(build_result.optimization_bailouts);
               self
                 .file_dependencies
                 .extend(build_result.build_info.file_dependencies.clone());
