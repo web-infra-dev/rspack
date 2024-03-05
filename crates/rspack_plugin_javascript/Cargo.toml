@@ -44,6 +44,7 @@ swc_core = { workspace = true, features = [
   "ecma_transforms_typescript",
   "base",
   "ecma_quote",
+  "base",
 ] }
 swc_node_comments = { workspace = true }
 url = { workspace = true }

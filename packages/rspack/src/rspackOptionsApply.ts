@@ -45,6 +45,7 @@ import {
 	JavascriptModulesPlugin,
 	JsLoaderRspackPlugin,
 	JsonModulesPlugin,
+	LazyCompilationPlugin,
 	MangleExportsPlugin,
 	MergeDuplicateChunksPlugin,
 	ModuleChunkFormatPlugin,
@@ -65,6 +66,7 @@ import {
 } from "./builtin-plugin";
 import EntryOptionPlugin from "./lib/EntryOptionPlugin";
 import IgnoreWarningsPlugin from "./lib/ignoreWarningsPlugin";
+import { Module } from "./Module";
 import { DefaultStatsFactoryPlugin } from "./stats/DefaultStatsFactoryPlugin";
 import { DefaultStatsPrinterPlugin } from "./stats/DefaultStatsPrinterPlugin";
 import { assertNotNill } from "./util/assertNotNil";
@@ -254,6 +256,33 @@ export class RspackOptionsApply {
 					options.optimization.mangleExports !== "size"
 				).apply(compiler);
 			}
+		}
+
+		if (options.experiments.lazyCompilation) {
+			const lazyOptions = options.experiments.lazyCompilation;
+
+			new LazyCompilationPlugin(
+				// this is only for test
+				// @ts-expect-error cacheable is hide
+				lazyOptions.cacheable ?? true,
+				lazyOptions.entries ?? true,
+				lazyOptions.imports ?? true,
+				typeof lazyOptions.test === "function"
+					? function (jsModule) {
+							return (lazyOptions.test as (jsModule: Module) => boolean)!.call(
+								lazyOptions,
+								new Module(jsModule)
+							);
+						}
+					: lazyOptions.test
+						? {
+								source: lazyOptions.test.source,
+								flags: lazyOptions.test.flags
+							}
+						: undefined,
+				// @ts-expect-error backend is hide
+				lazyOptions.backend
+			).apply(compiler);
 		}
 
 		if (

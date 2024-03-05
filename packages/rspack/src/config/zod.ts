@@ -1,4 +1,4 @@
-import { JsAssetInfo, RawFuncUseCtx } from "@rspack/binding";
+import { JsAssetInfo, JsModule, RawFuncUseCtx } from "@rspack/binding";
 import type * as webpackDevServer from "webpack-dev-server";
 import { z } from "zod";
 
@@ -7,7 +7,6 @@ import type { Builtins as BuiltinsType } from "../builtin-plugin";
 import { Chunk } from "../Chunk";
 import { PathData } from "../Compilation";
 import { Module } from "../Module";
-import { deprecatedWarn } from "../util";
 
 //#region Name
 const name = z.string();
@@ -1193,8 +1192,19 @@ const rspackFutureOptions = z.strictObject({
 });
 export type RspackFutureOptions = z.infer<typeof rspackFutureOptions>;
 
+const lazyCompilationOptions = z.object({
+	imports: z.boolean().optional(),
+	entries: z.boolean().optional(),
+	test: z
+		.instanceof(RegExp)
+		.or(z.function().args(z.custom<Module>()).returns(z.boolean()))
+		.optional()
+});
+
+export type LazyCompilationOptions = z.infer<typeof lazyCompilationOptions>;
+
 const experiments = z.strictObject({
-	lazyCompilation: z.boolean().optional(),
+	lazyCompilation: z.boolean().optional().or(lazyCompilationOptions),
 	asyncWebAssembly: z.boolean().optional(),
 	outputModule: z.boolean().optional(),
 	topLevelAwait: z.boolean().optional(),
