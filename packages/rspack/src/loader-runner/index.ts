@@ -321,8 +321,8 @@ export async function runLoaders(
 			if (loaderContext.resourcePath === undefined) return undefined;
 			return (
 				loaderContext.resourcePath.replace(/#/g, "\0#") +
-				loaderContext.resourceQuery!.replace(/#/g, "\0#") +
-				loaderContext.resourceFragment!
+				loaderContext.resourceQuery.replace(/#/g, "\0#") +
+				loaderContext.resourceFragment
 			);
 		},
 		set: function (value) {
