@@ -61,9 +61,9 @@ export interface LoaderObject {
 export interface LoaderContext<OptionsType = {}> {
 	version: 2;
 	resource: string;
-	resourcePath: string;
-	resourceQuery: string;
-	resourceFragment: string;
+	resourcePath?: string;
+	resourceQuery?: string;
+	resourceFragment?: string;
 	async(): (
 		err?: Error | null,
 		content?: string | Buffer,
@@ -79,7 +79,7 @@ export interface LoaderContext<OptionsType = {}> {
 	cacheable(cacheable?: boolean): void;
 	sourceMap: boolean;
 	rootContext: string;
-	context: string;
+	context: string | null;
 	loaderIndex: number;
 	remainingRequest: string;
 	currentRequest: string;

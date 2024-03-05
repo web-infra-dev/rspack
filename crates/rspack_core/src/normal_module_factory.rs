@@ -284,11 +284,18 @@ impl NormalModuleFactory {
         }));
       }
 
-      if request_without_match_resource.is_empty() {
-        (
-          ResourceData::new("".to_string(), Path::new("").to_path_buf()),
-          false,
-        )
+      if request_without_match_resource.is_empty()
+        || request_without_match_resource.starts_with('?')
+      {
+        let ResourceParsedData {
+          path,
+          query,
+          fragment,
+        } = parse_resource(request_without_match_resource).expect("Should parse resource");
+        let resource_data = ResourceData::new(request_without_match_resource.to_string(), path)
+          .query_optional(query)
+          .fragment_optional(fragment);
+        (resource_data, false)
       } else {
         let optional = dependency.get_optional();
 

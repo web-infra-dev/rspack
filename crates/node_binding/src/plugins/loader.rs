@@ -86,7 +86,10 @@ impl Plugin for JsLoaderResolver {
       }
       ResolveResult::Ignored => {
         let loader_request = prev.display();
-        Err(error!("Failed to resolve loader: {loader_request}"))
+        let context = context.to_string_lossy();
+        Err(error!(
+          "Failed to resolve loader: loader_request={loader_request}, context={context}"
+        ))
       }
     }
   }

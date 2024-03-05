@@ -112,13 +112,13 @@ const ASSETS_GROUPERS: Record<
 								[name]: !!key,
 								filteredChildren: assets.length,
 								...assetGroup(children)
-							}
+						  }
 						: {
 								type: "assets by status",
 								[name]: !!key,
 								children,
 								...assetGroup(children)
-							};
+						  };
 				}
 			});
 		};
