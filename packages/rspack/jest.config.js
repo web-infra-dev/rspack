@@ -1,5 +1,7 @@
 const path = require("path");
 
+const root = path.resolve(__dirname, "../../");
+
 /** @type {import('jest').Config} */
 const config = {
 	testEnvironment: "../../scripts/test/patch-node-env.cjs",
@@ -20,7 +22,7 @@ const config = {
 		"source-map-support/register": "identity-obj-proxy"
 	},
 	cache: false,
-	transformIgnorePatterns: ["<rootDir>/tests", "/node_modules/"],
+	transformIgnorePatterns: [root],
 	snapshotFormat: {
 		escapeString: true,
 		printBasicPrototype: true
