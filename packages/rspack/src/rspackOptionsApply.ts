@@ -202,7 +202,7 @@ export class RspackOptionsApply {
 					? EvalSourceMapDevToolPlugin
 					: SourceMapDevToolPlugin;
 				new Plugin({
-					filename: inline ? undefined : options.output.sourceMapFilename,
+					filename: inline ? null : options.output.sourceMapFilename,
 					moduleFilenameTemplate: options.output.devtoolModuleFilenameTemplate,
 					fallbackModuleFilenameTemplate:
 						options.output.devtoolFallbackModuleFilenameTemplate,

@@ -9,7 +9,7 @@ const requireAsync = file => {
 				module: {
 					exports: {}
 				},
-				require: require,
+				require: __non_webpack_require__,
 				__dirname: __dirname,
 				__filename: __filename
 			};

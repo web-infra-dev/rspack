@@ -9,7 +9,7 @@
     "x": "zx x.mjs",
     "dev": "pnpm --filter @rspack/cli run dev",
     "clean": "pnpm --filter @rspack/cli run clean",
-    "build:js": "pnpm --filter \"@rspack/core\" build && pnpm --filter \"@rspack/*\" --filter \"!@rspack/core\" build",
+    "build:js": "pnpm --filter \"@rspack/core\" build --force && pnpm --filter \"@rspack/*\" --filter \"!@rspack/core\" build --force",
     "build:cli:debug": "npm run build:binding:debug && npm run build:js",
     "build:cli:release": "npm run build:binding:release && npm run build:js",
     "build:cli:release:all": "pnpm --filter @rspack/binding build:release:all && npm run build:js",
@@ -31,7 +31,7 @@
     "test:diff": "pnpm --filter \"@rspack/*\" test:diff",
     "test:unit": "pnpm --filter \"@rspack/*\" test",
     "test:e2e": "pnpm --filter \"@rspack-e2e/*\" test",
-    "test:ci": "cross-env NODE_OPTIONS=--max_old_space_size=8192 pnpm run build:js --force && pnpm run test:unit && pnpm test:webpack",
+    "test:ci": "cross-env NODE_OPTIONS=--max_old_space_size=8192 pnpm run build:js && pnpm run test:unit && pnpm test:webpack",
     "test:webpack": "pnpm --filter \"webpack-test\" test:metric"
   },
   "homepage": "https://rspack.dev",

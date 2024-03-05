@@ -3,6 +3,7 @@ use rspack_core::{
   context_reg_exp, ConstDependency, ContextMode, DependencyCategory, ErrorSpan, SpanExt,
 };
 use rspack_core::{ContextNameSpaceObject, ContextOptions};
+use rspack_error::Severity;
 use swc_core::common::{Span, Spanned};
 use swc_core::ecma::ast::{CallExpr, Expr, Ident, Lit, MemberExpr};
 
@@ -11,7 +12,9 @@ use crate::dependency::RequireHeaderDependency;
 use crate::dependency::{CommonJsFullRequireDependency, CommonJsRequireContextDependency};
 use crate::dependency::{CommonJsRequireDependency, RequireResolveDependency};
 use crate::utils::eval::{self, BasicEvaluatedExpression};
-use crate::visitors::{expr_matcher, expr_name, scanner_context_module, JavascriptParser};
+use crate::visitors::{
+  create_traceable_error, expr_matcher, expr_name, scanner_context_module, JavascriptParser,
+};
 use crate::visitors::{extract_require_call_info, is_require_call_start};
 
 fn create_commonjs_require_context_dependency(
@@ -209,6 +212,45 @@ impl CommonJsImportsParserPlugin {
     }
     Some(true)
   }
+
+  fn require_as_expression_handler(
+    &self,
+    parser: &mut JavascriptParser,
+    ident: &Ident,
+  ) -> Option<bool> {
+    let dep = CommonJsRequireContextDependency::new(
+      ident.span().real_lo(),
+      ident.span().real_hi(),
+      ident.span().real_hi(),
+      ContextOptions {
+        chunk_name: None,
+        mode: ContextMode::Sync,
+        recursive: true,
+        reg_exp: None,
+        reg_str: "".to_string(),
+        include: None,
+        exclude: None,
+        category: DependencyCategory::Unknown,
+        request: ".".to_string(),
+        namespace_object: ContextNameSpaceObject::Unset,
+        start: ident.span().real_lo(),
+        end: ident.span().real_hi(),
+      },
+      Some(ident.span().into()),
+    );
+    parser.warning_diagnostics.push(Box::new(
+      create_traceable_error(
+        "Critical dependency".into(),
+        "require function is used in a way in which dependencies cannot be statically extracted"
+          .to_string(),
+        parser.source_file,
+        ident.span().into(),
+      )
+      .with_severity(Severity::Warn),
+    ));
+    parser.dependencies.push(Box::new(dep));
+    Some(true)
+  }
 }
 
 impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
@@ -363,5 +405,17 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     } else {
       None
     }
+  }
+
+  fn identifier(
+    &self,
+    parser: &mut JavascriptParser,
+    ident: &Ident,
+    for_name: &str,
+  ) -> Option<bool> {
+    if for_name == expr_name::REQUIRE {
+      return self.require_as_expression_handler(parser, ident);
+    }
+    None
   }
 }

@@ -27,6 +27,7 @@ export class JsCompilation {
   hasAsset(name: string): boolean
   emitAsset(filename: string, source: JsCompatSource, assetInfo: JsAssetInfo): void
   deleteAsset(filename: string): void
+  renameAsset(filename: string, newName: string): void
   get entrypoints(): Record<string, JsChunkGroup>
   get hash(): string | null
   getFileDependencies(): Array<string>

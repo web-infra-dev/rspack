@@ -463,6 +463,10 @@ export class Compilation {
 		this.#inner.deleteAsset(filename);
 	}
 
+	renameAsset(filename: string, newFilename: string) {
+		this.#inner.renameAsset(filename, newFilename);
+	}
+
 	/**
 	 * Get an array of Asset
 	 *

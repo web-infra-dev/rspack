@@ -15,9 +15,12 @@ const config = {
 	prettierPath: require.resolve("prettier-2"),
 	moduleNameMapper: {
 		// Fixed jest-serialize-path not working when non-ascii code contains.
-		slash: path.join(__dirname, "../../scripts/test/slash.cjs")
+		slash: path.join(__dirname, "../../scripts/test/slash.cjs"),
+		// disable sourcmap remapping for ts file
+		"source-map-support/register": "identity-obj-proxy"
 	},
-	transformIgnorePatterns: ["<rootDir>/tests"],
+	cache: false,
+	transformIgnorePatterns: ["<rootDir>/tests", "/node_modules/"],
 	snapshotFormat: {
 		escapeString: true,
 		printBasicPrototype: true
