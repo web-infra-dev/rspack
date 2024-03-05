@@ -359,7 +359,7 @@ chunk {909} main.js (main) [entry]
   ./lib.js [467] {909}
     [exports: test]
     [all exports used]
-    Statement with side_effects in source code at ./lib.js:Span { lo: BytePos(43), hi: BytePos(50), ctxt: #0 }
+    Statement with side_effects in source code at ./lib.js:ErrorSpan { start: 42, end: 49 }
     esm import ./lib.js [10]
     esm import specifier ./lib.js [10]
   ./index.js [10] {909}
@@ -369,7 +369,7 @@ chunk {909} main.js (main) [entry]
 ./lib.js [467] {909}
   [exports: test]
   [all exports used]
-  Statement with side_effects in source code at ./lib.js:Span { lo: BytePos(43), hi: BytePos(50), ctxt: #0 }
+  Statement with side_effects in source code at ./lib.js:ErrorSpan { start: 42, end: 49 }
   esm import ./lib.js [10]
   esm import specifier ./lib.js [10]
 ./index.js [10] {909}
