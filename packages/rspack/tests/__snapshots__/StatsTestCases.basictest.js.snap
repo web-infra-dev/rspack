@@ -351,6 +351,41 @@ Entrypoint main 1.69 KiB = main.js
 Rspack x.x.x compiled successfully in X s (781b6a11a8ec452188ee)"
 `;
 
+exports[`StatsTestCases should print correct stats for side-effects-bailouts 1`] = `
+"PublicPath: auto
+asset main.js 1.69 KiB {909} [emitted] (name: main)
+Entrypoint main 1.69 KiB = main.js
+chunk {909} main.js (main) [entry]
+  ./lib.js [467] {909}
+    [exports: test]
+    [all exports used]
+    Statement with side_effects in source code at ./lib.js:Span { lo: BytePos(43), hi: BytePos(50), ctxt: #0 }
+    esm import ./lib.js [10]
+    esm import specifier ./lib.js [10]
+  ./index.js [10] {909}
+    [no exports]
+    [no exports used]
+    entry ./index.js
+./lib.js [467] {909}
+  [exports: test]
+  [all exports used]
+  Statement with side_effects in source code at ./lib.js:Span { lo: BytePos(43), hi: BytePos(50), ctxt: #0 }
+  esm import ./lib.js [10]
+  esm import specifier ./lib.js [10]
+./index.js [10] {909}
+  [no exports]
+  [no exports used]
+  entry ./index.js
+webpack/runtime/has_own_property {909}
+  [no exports]
+  [used exports unknown]
+webpack/runtime/define_property_getters {909}
+  [no exports]
+  [used exports unknown]
+  
+1970-04-20 12:42:42: Rspack x.x.x compiled successfully in X s (1b5e99c7289b023d2b92)"
+`;
+
 exports[`StatsTestCases should print correct stats for simple-export 1`] = `
 "PublicPath: auto
 asset bundle.js 1.79 KiB [emitted] (name: main)
