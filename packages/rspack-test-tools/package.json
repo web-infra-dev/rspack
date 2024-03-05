@@ -1,6 +1,6 @@
 {
   "name": "@rspack/test-tools",
-  "version": "0.5.5",
+  "version": "0.5.6",
   "license": "MIT",
   "description": "Test tools for rspack",
   "main": "dist/index.js",
@@ -18,7 +18,11 @@
     "dev": "tsc -b -w",
     "test:diff": "cross-env RSPACK_DIFF=true NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --runInBand --logHeapUsage --testPathPattern \".diff.test.ts\""
   },
-  "files": ["client", "dist", "template"],
+  "files": [
+    "client",
+    "dist",
+    "template"
+  ],
   "publishConfig": {
     "access": "public"
   },
