@@ -31,14 +31,18 @@ export class RspackNormalProcessor extends BasicTaskProcessor<ECompilerType.Rspa
 	}
 
 	async before(context: ITestContext) {
-		process.chdir(this._normalOptions.root);
+		//TODO: remove this
+		process.chdir(path.resolve(__dirname, "../../../rspack"));
 	}
 
 	async after(context: ITestContext) {
 		process.chdir(CWD);
 	}
 
-	static defaultOptions({ compilerOptions }: IRspackNormalProcessorOptions) {
+	static defaultOptions({
+		compilerOptions,
+		root
+	}: IRspackNormalProcessorOptions) {
 		return (context: ITestContext): TCompilerOptions<ECompilerType.Rspack> => {
 			let testConfig: TCompilerOptions<ECompilerType.Rspack> = {};
 			const testConfigPath = path.join(context.getSource(), "test.config.js");
@@ -50,8 +54,8 @@ export class RspackNormalProcessor extends BasicTaskProcessor<ECompilerType.Rspa
 				parallel: false
 			});
 			return {
-				context: context.getSource(),
-				entry: "./",
+				context: root,
+				entry: "./" + path.relative(root, context.getSource()) + "/",
 				target: compilerOptions?.target || "async-node",
 				devtool: compilerOptions?.devtool,
 				mode: compilerOptions?.mode || "none",
