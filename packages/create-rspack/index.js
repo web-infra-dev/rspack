@@ -47,7 +47,8 @@ yargs(hideBin(process.argv))
 				choices: [
 					{ title: "react", value: "react" },
 					{ title: "react-ts", value: "react-ts" },
-					{ title: "vue", value: "vue" }
+					{ title: "vue", value: "vue" },
+					{ title: "vue-ts", value: "vue-ts" }
 				],
 				onState: state => {
 					template = state.value;
