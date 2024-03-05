@@ -37,12 +37,25 @@ pub struct ParseContext<'a> {
 
 #[derive(Debug)]
 pub struct SideEffectsBailoutItem {
-  pub span: Span,
+  pub msg: String,
   /// The type of AstNode
   pub ty: String,
 }
 
 impl SideEffectsBailoutItem {
+  pub fn new(msg: String, ty: String) -> Self {
+    Self { msg, ty }
+  }
+}
+
+#[derive(Debug)]
+pub struct SideEffectsBailoutItemWithSpan {
+  pub span: Span,
+  /// The type of AstNode
+  pub ty: String,
+}
+
+impl SideEffectsBailoutItemWithSpan {
   pub fn new(span: Span, ty: String) -> Self {
     Self { span, ty }
   }

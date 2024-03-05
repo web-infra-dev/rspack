@@ -443,9 +443,8 @@ impl Module for NormalModule {
     let optimization_bailouts = if let Some(side_effects_bailout) = side_effects_bailout {
       let short_id = self.readable_identifier(&build_context.compiler_options.context);
       vec![format!(
-        "{} with side_effects in source code at {short_id}:{:?}",
-        side_effects_bailout.ty,
-        ErrorSpan::from(side_effects_bailout.span)
+        "{} with side_effects in source code at {short_id}:{}",
+        side_effects_bailout.ty, side_effects_bailout.msg
       )]
     } else {
       vec![]

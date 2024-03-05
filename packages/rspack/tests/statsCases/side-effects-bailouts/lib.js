@@ -1,5 +1,5 @@
 export const test = 3;
-function test() {
+function result() {
 
 }
-test()
+result();
