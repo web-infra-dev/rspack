@@ -23,15 +23,10 @@ export class RspackDiagnosticProcessor extends BasicTaskProcessor<ECompilerType.
 	constructor(protected _diagnosticOptions: IRspackDiagnosticProcessorOptions) {
 		super({
 			defaultOptions: RspackDiagnosticProcessor.defaultOptions,
-			compilerFactory: () => require("@rspack/core").rspack,
-			getBundle: () => [],
-			compilerOptions: context =>
-				readConfigFile<ECompilerType.Rspack>([
-					context.getSource("rspack.config.js"),
-					context.getSource("webpack.config.js")
-				])[0],
+			configFiles: ["rspack.config.js", "webpack.config.js"],
+			compilerType: ECompilerType.Rspack,
 			name: _diagnosticOptions.name,
-			testConfig: {}
+			runable: false
 		});
 	}
 

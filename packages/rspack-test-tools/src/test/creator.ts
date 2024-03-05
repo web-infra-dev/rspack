@@ -1,4 +1,11 @@
-import { ECompilerType, ITestProcessor, ITester, TTestConfig } from "../type";
+import {
+	ECompilerType,
+	ITestContext,
+	ITestProcessor,
+	ITester,
+	TRunnerFactory,
+	TTestConfig
+} from "../type";
 import fs from "fs";
 import path from "path";
 import rimraf from "rimraf";
@@ -7,7 +14,6 @@ import createLazyTestEnv from "../helper/legacy/createLazyTestEnv";
 
 export interface IBasicCaseCreatorOptions<T extends ECompilerType> {
 	clean?: boolean;
-	runable?: boolean;
 	describe?: boolean;
 	timeout?: number;
 	steps: (
@@ -16,10 +22,13 @@ export interface IBasicCaseCreatorOptions<T extends ECompilerType> {
 			src: string;
 			dist: string;
 			temp: string | void;
-		},
-		testConfig: TTestConfig<T>
+		}
 	) => ITestProcessor[];
 	description?: (name: string) => string;
+	runner?: new (
+		name: string,
+		context: ITestContext
+	) => TRunnerFactory<ECompilerType>;
 	[key: string]: unknown;
 }
 
@@ -76,7 +85,7 @@ export class BasicCaseCreator<T extends ECompilerType> {
 	}
 
 	protected createEnv(testConfig: TTestConfig<T>) {
-		if (this._options.runable && !testConfig.noTest) {
+		if (typeof this._options.runner === "function" && !testConfig.noTest) {
 			return createLazyTestEnv(10000);
 		} else {
 			return {
@@ -130,16 +139,15 @@ export class BasicCaseCreator<T extends ECompilerType> {
 			name,
 			src,
 			dist,
-			steps: this._options.steps(
-				{
-					...this._options,
-					name,
-					src,
-					dist,
-					temp
-				},
-				testConfig
-			)
+			testConfig,
+			runnerFactory: this._options.runner,
+			steps: this._options.steps({
+				...this._options,
+				name,
+				src,
+				dist,
+				temp
+			})
 		});
 	}
 }

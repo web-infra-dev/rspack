@@ -15,6 +15,17 @@ export const enum ECompilerEvent {
 	Create = "create",
 	Close = "close"
 }
+
+export const COMPILER_FACTORIES: Record<
+	ECompilerType,
+	TCompilerFactory<ECompilerType>
+> = {
+	[ECompilerType.Rspack]: ((options: TCompilerOptions<ECompilerType.Rspack>) =>
+		require("@rspack/core")(options)) as TCompilerFactory<ECompilerType>,
+	[ECompilerType.Webpack]: ((
+		options: TCompilerOptions<ECompilerType.Webpack>
+	) => require("webpack")(options)) as TCompilerFactory<ECompilerType>
+};
 export class TestCompilerManager<T extends ECompilerType>
 	implements ITestCompilerManager<T>
 {
@@ -23,7 +34,7 @@ export class TestCompilerManager<T extends ECompilerType>
 	protected compilerStats: TCompilerStats<T> | null = null;
 	protected emitter: EventEmitter = new EventEmitter();
 
-	constructor(protected factory: TCompilerFactory<T>) {}
+	constructor(protected type: T) {}
 
 	getOptions(): TCompilerOptions<T> {
 		return this.compilerOptions;
@@ -46,7 +57,9 @@ export class TestCompilerManager<T extends ECompilerType>
 	}
 
 	createCompiler(): TCompiler<T> {
-		this.compilerInstance = this.factory(this.compilerOptions);
+		this.compilerInstance = COMPILER_FACTORIES[this.type](
+			this.compilerOptions
+		) as TCompiler<T>;
 		this.emitter.emit(ECompilerEvent.Create, this.compilerInstance);
 		return this.compilerInstance;
 	}

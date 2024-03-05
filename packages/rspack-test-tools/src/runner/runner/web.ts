@@ -1,14 +1,14 @@
-import { ECompilerType } from "../type";
+import { ECompilerType } from "../../type";
 import { BasicRunner } from "./basic";
 import {
 	IBasicModuleScope,
 	IBasicRunnerOptions,
 	TBasicRunnerFile,
 	TRunnerRequirer
-} from "./type";
-import FakeDocument from "../helper/legacy/FakeDocument";
-import CurrentScript from "../helper/legacy/currentScript";
-import createFakeWorker from "../helper/legacy/createFakeWorker";
+} from "../type";
+import FakeDocument from "../../helper/legacy/FakeDocument";
+import CurrentScript from "../../helper/legacy/currentScript";
+import createFakeWorker from "../../helper/legacy/createFakeWorker";
 
 export class WebRunner<
 	T extends ECompilerType = ECompilerType.Rspack

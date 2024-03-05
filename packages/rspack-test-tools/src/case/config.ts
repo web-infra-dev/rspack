@@ -1,16 +1,17 @@
 import { RspackConfigProcessor } from "../processor/config";
+import { MultipleRunnerFactory } from "../runner";
 import { BasicCaseCreator } from "../test/creator";
 
 const creator = new BasicCaseCreator({
 	clean: true,
-	runable: true,
 	describe: true,
-	steps: ({ name }, testConfig) => [
+	steps: ({ name }) => [
 		new RspackConfigProcessor({
 			name,
-			testConfig
+			runable: true
 		})
-	]
+	],
+	runner: MultipleRunnerFactory
 });
 
 export function createConfigCase(name: string, src: string, dist: string) {

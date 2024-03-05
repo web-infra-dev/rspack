@@ -1,14 +1,12 @@
+import { readConfigFile } from "../helper";
 import checkArrayExpectation from "../helper/legacy/checkArrayExpectation";
-import { BasicRunner, EsmRunner, WebRunner } from "../runner";
 import {
 	ECompilerType,
 	ITestContext,
 	ITestEnv,
 	ITestProcessor,
 	ITestRunner,
-	TCompilerFactory,
-	TCompilerOptions,
-	TTestConfig
+	TCompilerOptions
 } from "../type";
 import fs from "fs";
 import path from "path";
@@ -17,23 +15,17 @@ export interface IBasicProcessorOptions<
 	T extends ECompilerType = ECompilerType.Rspack
 > {
 	defaultOptions?: (context: ITestContext) => TCompilerOptions<T>;
+	configFiles?: string[];
 	overrideOptions?: (
 		context: ITestContext,
 		options: TCompilerOptions<T>
 	) => void;
-	compilerFactory: (context: ITestContext) => TCompilerFactory<T>;
-	getBundle: (
+	findBundle?: (
 		context: ITestContext,
 		options: TCompilerOptions<T>
 	) => string[] | string | void;
-	getRunner?: (
-		env: ITestEnv,
-		context: ITestContext,
-		options: TCompilerOptions<T>,
-		file: string
-	) => ITestRunner;
-	compilerOptions: (context: ITestContext) => TCompilerOptions<T>;
-	testConfig: TTestConfig<T>;
+	compilerType: T;
+	runable: boolean;
 	name: string;
 }
 
@@ -48,7 +40,12 @@ export class BasicTaskProcessor<T extends ECompilerType = ECompilerType.Rspack>
 			compiler.setOptions(this._options.defaultOptions(context));
 		}
 
-		compiler.mergeOptions(this._options.compilerOptions(context));
+		if (Array.isArray(this._options.configFiles)) {
+			const fileOptions = readConfigFile<T>(
+				this._options.configFiles.map(i => context.getSource(i))
+			)[0];
+			compiler.mergeOptions(fileOptions);
+		}
 
 		if (typeof this._options.overrideOptions === "function") {
 			const compilerOptions = compiler.getOptions();
@@ -67,14 +64,24 @@ export class BasicTaskProcessor<T extends ECompilerType = ECompilerType.Rspack>
 	}
 
 	async run(env: ITestEnv, context: ITestContext) {
-		if (this._options.testConfig.noTest) return;
-		if (typeof this._options.testConfig.beforeExecute === "function") {
-			this._options.testConfig.beforeExecute();
+		if (!this._options.runable) return;
+
+		const testConfig = context.getTestConfig();
+		if (testConfig.noTest) return;
+
+		if (typeof testConfig.beforeExecute === "function") {
+			testConfig.beforeExecute();
 		}
 		const compiler = this.getCompiler(context);
-		let bundles =
-			this._options.testConfig.bundlePath ||
-			this._options.getBundle(context, compiler.getOptions());
+		let bundles: string[] | void | string;
+		if (testConfig.bundlePath) {
+			bundles = testConfig.bundlePath;
+		} else if (typeof this._options.findBundle === "function") {
+			bundles = this._options.findBundle(context, compiler.getOptions());
+		} else {
+			bundles = [];
+		}
+
 		if (typeof bundles === "string") {
 			bundles = [bundles];
 		}
@@ -83,33 +90,41 @@ export class BasicTaskProcessor<T extends ECompilerType = ECompilerType.Rspack>
 		}
 
 		for (let bundle of bundles!) {
-			const runner = (this._options.getRunner || this.createRunner.bind(this))(
-				env,
-				context,
-				compiler.getOptions(),
-				bundle
-			);
-			if (!runner) {
-				throw new Error("create test runner failed");
+			const runnerFactory = context.getRunnerFactory(this._options.name);
+			if (!runnerFactory) {
+				throw new Error(`Test case ${this._options.name} is not runable`);
 			}
+			const runner = runnerFactory.create(bundle, compiler.getOptions(), env);
 			const mod = runner.run(bundle);
 			const result =
-				context.getResult<Array<Promise<unknown>>>(this._options.name) || [];
+				context.getValue<Array<Promise<unknown>>>(
+					this._options.name,
+					"modules"
+				) || [];
 			result.push(mod);
-			context.setResult<Array<Promise<unknown>>>(this._options.name, result);
+			context.setValue<Array<Promise<unknown>>>(
+				this._options.name,
+				"modules",
+				result
+			);
 		}
 
 		const results =
-			context.getResult<Array<Promise<unknown>>>(this._options.name) || [];
+			context.getValue<Array<Promise<unknown>>>(
+				this._options.name,
+				"modules"
+			) || [];
 		await Promise.all(results);
 
-		if (typeof this._options.testConfig.afterExecute === "function") {
-			this._options.testConfig.afterExecute();
+		if (typeof testConfig.afterExecute === "function") {
+			testConfig.afterExecute();
 		}
 	}
 
 	async check(env: ITestEnv, context: ITestContext) {
-		if (this._options.testConfig.noTest) return;
+		const testConfig = context.getTestConfig();
+		if (testConfig.noTest) return;
+
 		const errors: Array<{ message: string; stack?: string }> = (
 			context.getError(this._options.name) || []
 		).map(e => ({
@@ -175,39 +190,7 @@ export class BasicTaskProcessor<T extends ECompilerType = ECompilerType.Rspack>
 		await compiler.close();
 	}
 
-	protected createRunner(
-		env: ITestEnv,
-		context: ITestContext,
-		options: TCompilerOptions<T>,
-		file: string
-	): ITestRunner | null {
-		const compiler = this.getCompiler(context);
-		const stats = compiler.getStats();
-		const runnerOptions = {
-			env,
-			stats: stats!,
-			name: this._options.name,
-			runInNewContext: false,
-			testConfig: this._options.testConfig,
-			source: context.getSource(),
-			dist: context.getDist(),
-			compilerOptions: options
-		};
-		if (options.target === "web" || options.target === "webworker") {
-			return new WebRunner<T>(runnerOptions);
-		} else if (
-			path.extname(file) === ".mjs" &&
-			options.experiments?.outputModule
-		) {
-			return new EsmRunner<T>(runnerOptions);
-		}
-		return new BasicRunner<T>(runnerOptions);
-	}
-
 	protected getCompiler(context: ITestContext) {
-		return context.getCompiler(
-			this._options.name,
-			this._options.compilerFactory(context)
-		);
+		return context.getCompiler(this._options.name, this._options.compilerType);
 	}
 }

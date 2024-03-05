@@ -4,9 +4,7 @@ import {
 	ITestContext,
 	ITestProcessor,
 	ITestRunner,
-	TCompiler,
-	TCompilerOptions,
-	TTestConfig
+	TCompilerOptions
 } from "../type";
 import { BasicTaskProcessor } from "./basic";
 import { merge } from "webpack-merge";
@@ -23,17 +21,15 @@ export interface IMultiTaskProcessorOptions<
 		context: ITestContext,
 		options: TCompilerOptions<T>
 	) => void;
-	getCompiler: (
-		context: ITestContext
-	) => (options: TCompilerOptions<T> | TCompilerOptions<T>[]) => TCompiler<T>;
-	getBundle: (
+	findBundle?: (
 		index: number,
 		context: ITestContext,
 		options: TCompilerOptions<T>
 	) => string[] | string | void;
-	testConfig: TTestConfig<T>;
+	compilerType: ECompilerType.Rspack;
 	name: string;
 	configFiles?: string[];
+	runable: boolean;
 }
 
 export class MultiTaskProcessor<T extends ECompilerType = ECompilerType.Rspack>
@@ -41,27 +37,39 @@ export class MultiTaskProcessor<T extends ECompilerType = ECompilerType.Rspack>
 	implements ITestProcessor
 {
 	protected multiCompilerOptions: TCompilerOptions<T>[] = [];
-	protected files: Record<string, number> = {};
 	protected runners: ITestRunner[] = [];
 	constructor(protected _multiOptions: IMultiTaskProcessorOptions<T>) {
 		super({
-			compilerFactory: _multiOptions.getCompiler,
-			getBundle: (context, _) => {
+			runable: _multiOptions.runable,
+			compilerType: _multiOptions.compilerType as T,
+			findBundle: (context, _) => {
+				if (typeof _multiOptions.findBundle !== "function") {
+					return [];
+				}
 				return this.multiCompilerOptions.reduce<string[]>(
 					(res, compilerOptions, index) => {
-						const curBundles = _multiOptions.getBundle(
+						const curBundles = _multiOptions.findBundle!(
 							index,
 							context,
 							compilerOptions
 						);
+
 						const bundles = Array.isArray(curBundles)
 							? curBundles
 							: curBundles
-							? [curBundles]
-							: [];
+								? [curBundles]
+								: [];
+
+						const multiFileIndexMap: Record<string, number> =
+							context.getValue(_multiOptions.name, "multiFileIndexMap") || {};
 						for (const bundle of bundles) {
-							this.files[bundle] = index;
+							multiFileIndexMap[bundle] = index;
 						}
+						context.setValue(
+							_multiOptions.name,
+							"multiFileIndexMap",
+							multiFileIndexMap
+						);
 						return [
 							...res,
 							...(Array.isArray(bundles) ? bundles : bundles ? [bundles] : [])
@@ -70,20 +78,6 @@ export class MultiTaskProcessor<T extends ECompilerType = ECompilerType.Rspack>
 					[]
 				);
 			},
-			getRunner: (env, context, options, file) => {
-				const index = this.files[file];
-				this.runners[index] =
-					this.runners[index] ||
-					this.createRunner(
-						env,
-						context,
-						this.multiCompilerOptions[this.files[file]],
-						file
-					)!;
-				return this.runners[index];
-			},
-			compilerOptions: () => ({}),
-			testConfig: _multiOptions.testConfig,
 			name: _multiOptions.name
 		});
 	}
@@ -95,7 +89,7 @@ export class MultiTaskProcessor<T extends ECompilerType = ECompilerType.Rspack>
 		)
 			? readConfigFile(
 					this._multiOptions.configFiles!.map(i => context.getSource(i))
-			  )
+				)
 			: [{}];
 
 		for (let [index, options] of caseOptions.entries()) {
@@ -115,5 +109,10 @@ export class MultiTaskProcessor<T extends ECompilerType = ECompilerType.Rspack>
 
 		const compiler = this.getCompiler(context);
 		compiler.setOptions(this.multiCompilerOptions as any);
+		context.setValue(
+			this._options.name,
+			"multiCompilerOptions",
+			this.multiCompilerOptions
+		);
 	}
 }

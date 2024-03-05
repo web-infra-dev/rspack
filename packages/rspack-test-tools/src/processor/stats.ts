@@ -15,7 +15,6 @@ import captureStdio from "../helper/legacy/captureStdio";
 
 export interface IRspackStatsProcessorOptions<T extends ECompilerType.Rspack> {
 	name: string;
-	testConfig: TTestConfig<T>;
 }
 
 const REG_ERROR_CASE = /error$/;
@@ -29,14 +28,10 @@ export class RspackStatsProcessor extends MultiTaskProcessor<ECompilerType.Rspac
 		super({
 			defaultOptions: RspackStatsProcessor.defaultOptions,
 			overrideOptions: RspackStatsProcessor.overrideOptions,
-			getCompiler: () => require("@rspack/core").rspack,
-			getBundle: () => [],
+			compilerType: ECompilerType.Rspack,
 			configFiles: ["rspack.config.js", "webpack.config.js"],
 			name: options.name,
-			testConfig: {
-				timeout: 10000,
-				...options.testConfig
-			}
+			runable: false
 		});
 	}
 
@@ -185,8 +180,9 @@ export class RspackStatsProcessor extends MultiTaskProcessor<ECompilerType.Rspac
 			.replace(/, additional resolving: X ms/g, "")
 			.replace(/Unexpected identifier '.+?'/g, "Unexpected identifier");
 		expect(actual).toMatchSnapshot();
-		if (typeof this._options.testConfig?.validate === "function") {
-			this._options.testConfig.validate(stats, this.stderr.toString());
+		const testConfig = context.getTestConfig();
+		if (typeof testConfig?.validate === "function") {
+			testConfig.validate(stats, this.stderr.toString());
 		}
 	}
 

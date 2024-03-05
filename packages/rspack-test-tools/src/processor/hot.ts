@@ -7,10 +7,7 @@ import {
 } from "../type";
 import { BasicTaskProcessor, IBasicProcessorOptions } from "./basic";
 import path from "path";
-import { StatsCompilation, rspack } from "@rspack/core";
-import { readConfigFile } from "../helper";
-import { HotRunner } from "../runner";
-import checkArrayExpectation from "../helper/legacy/checkArrayExpectation";
+import { rspack } from "@rspack/core";
 
 export interface IRspackHotProcessorOptions {
 	name: string;
@@ -38,85 +35,27 @@ export class RspackHotProcessor extends BasicTaskProcessor<ECompilerType.Rspack>
 				_hotOptions,
 				fakeUpdateLoaderOptions
 			),
-			compilerFactory: () => require("@rspack/core"),
-			getBundle: RspackHotProcessor.findBundle(_hotOptions),
-			compilerOptions: context =>
-				readConfigFile<ECompilerType.Rspack>([
-					context.getSource("rspack.config.js"),
-					context.getSource("webpack.config.js")
-				])[0],
+			compilerType: ECompilerType.Rspack,
+			findBundle: RspackHotProcessor.findBundle(_hotOptions),
+			configFiles: ["rspack.config.js", "webpack.config.js"],
 			name: _hotOptions.name,
-			testConfig: {
-				timeout: 10000
-			}
+			runable: true
 		});
 		this.updateOptions = fakeUpdateLoaderOptions;
 	}
 
-	protected createRunner(
-		env: ITestEnv,
-		context: ITestContext,
-		hotOptions: TCompilerOptions<ECompilerType.Rspack>
-	): ITestRunner | null {
-		if (this.runner) return this.runner;
-		const compiler = this.getCompiler(context);
-		const stats = compiler.getStats();
-		this.runner = new HotRunner({
-			env,
-			stats: stats!,
-			name: this._options.name,
-			runInNewContext: false,
-			testConfig: this._options.testConfig,
-			source: context.getSource(),
-			dist: context.getDist(),
-			compilerOptions: hotOptions,
-			next: (
-				callback: (error: Error | null, stats?: StatsCompilation) => void
-			) => {
-				this.updateOptions.updateIndex++;
-				compiler
-					.build()
-					.then(stats => {
-						if (!stats)
-							return callback(new Error("Should generate stats during build"));
-						const jsonStats = stats.toJson({
-							// errorDetails: true
-						});
-						if (
-							checkArrayExpectation(
-								context.getSource(),
-								jsonStats,
-								"error",
-								"errors" + this.updateOptions.updateIndex,
-								"Error",
-								callback
-							)
-						) {
-							return;
-						}
-						if (
-							checkArrayExpectation(
-								context.getSource(),
-								jsonStats,
-								"warning",
-								"warnings" + this.updateOptions.updateIndex,
-								"Warning",
-								callback
-							)
-						) {
-							return;
-						}
-						callback(null, jsonStats);
-					})
-					.catch(callback);
-			}
-		});
-		return this.runner;
+	async run(env: ITestEnv, context: ITestContext) {
+		context.setValue(
+			this._options.name,
+			"hotUpdateContext",
+			this.updateOptions
+		);
+		await super.run(env, context);
 	}
 
 	static findBundle(
 		hotOptions: IRspackHotProcessorOptions
-	): IBasicProcessorOptions<ECompilerType.Rspack>["getBundle"] {
+	): IBasicProcessorOptions<ECompilerType.Rspack>["findBundle"] {
 		return context => {
 			let files: string[] = [];
 			let prefiles: string[] = [];
@@ -165,6 +104,7 @@ export class RspackHotProcessor extends BasicTaskProcessor<ECompilerType.Rspack>
 			plugins: [new rspack.HotModuleReplacementPlugin()]
 		});
 	}
+
 	static overrideOptions(
 		hotOptions: IRspackHotProcessorOptions,
 		updateOptions: TUpdateOptions

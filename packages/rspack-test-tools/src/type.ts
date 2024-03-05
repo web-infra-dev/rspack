@@ -18,11 +18,18 @@ export interface ITestContext {
 
 	getCompiler<T extends ECompilerType>(
 		name: string,
-		factory?: TCompilerFactory<T>
+		type: T | void
 	): ITestCompilerManager<T>;
 
-	setResult<T>(name: string, value: T): void;
-	getResult<T>(name: string): T | void;
+	getTestConfig<T extends ECompilerType>(): TTestConfig<T>;
+	getRunnerFactory<T extends ECompilerType>(
+		name: string
+	): TRunnerFactory<T> | null;
+	getRunner(key: string): ITestRunner | null;
+	setRunner(key: string, runner: ITestRunner): void;
+
+	setValue<T>(name: string, key: string, value: T): void;
+	getValue<T>(name: string, key: string): T | void;
 	getNames(): string[];
 
 	hasError(name?: string): boolean;
@@ -71,6 +78,11 @@ export interface ITesterConfig {
 	dist: string;
 	temp?: string;
 	steps?: ITestProcessor[];
+	testConfig?: TTestConfig<ECompilerType>;
+	runnerFactory?: new (
+		name: string,
+		context: ITestContext
+	) => TRunnerFactory<ECompilerType>;
 }
 
 export interface ITester {
@@ -183,3 +195,11 @@ export interface ITestRunner {
 export type TCompilerFactory<T extends ECompilerType> = (
 	options: TCompilerOptions<T> | TCompilerOptions<T>[]
 ) => TCompiler<T>;
+
+export interface TRunnerFactory<T extends ECompilerType> {
+	create(
+		file: string,
+		compilerOptions: TCompilerOptions<T>,
+		env: ITestEnv
+	): ITestRunner;
+}

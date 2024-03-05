@@ -3,12 +3,10 @@ import { BasicCaseCreator } from "../test/creator";
 
 const creator = new BasicCaseCreator({
 	clean: true,
-	runable: false,
 	describe: false,
-	steps: ({ name }, testConfig) => [
+	steps: ({ name }) => [
 		new RspackStatsProcessor({
-			name,
-			testConfig
+			name
 		})
 	],
 	description: name => `should print correct stats for ${name}`

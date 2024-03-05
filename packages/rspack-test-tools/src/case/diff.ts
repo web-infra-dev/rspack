@@ -8,6 +8,7 @@ import {
 	TModuleCompareResult
 } from "../";
 import rimraf from "rimraf";
+import createLazyTestEnv from "../helper/legacy/createLazyTestEnv";
 
 const DEFAULT_CASE_CONFIG: Partial<IDiffProcessorOptions> = {
 	webpackPath: require.resolve("webpack"),
@@ -65,7 +66,6 @@ export function createDiffCase(name: string, src: string, dist: string) {
 				);
 			});
 			describe(`${prefix}check`, () => {
-				const env = Tester.createTestEnv();
 				beforeAll(async () => {
 					compareMap.clear();
 					await tester.check(env);
@@ -90,6 +90,7 @@ export function createDiffCase(name: string, src: string, dist: string) {
 						}
 					});
 				}
+				const env = createLazyTestEnv(1000);
 			});
 		} while (tester.next());
 

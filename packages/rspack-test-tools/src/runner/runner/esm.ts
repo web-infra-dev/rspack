@@ -1,9 +1,9 @@
-import { ECompilerType } from "../type";
+import { ECompilerType } from "../../type";
 import vm, { SourceTextModule } from "vm";
 import path from "path";
 import { fileURLToPath, pathToFileURL } from "url";
-import asModule from "../helper/legacy/asModule";
-import { EEsmMode, TRunnerRequirer } from "./type";
+import asModule from "../../helper/legacy/asModule";
+import { EEsmMode, TRunnerRequirer } from "../type";
 import { BasicRunner } from "./basic";
 
 export class EsmRunner<

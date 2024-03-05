@@ -11,25 +11,19 @@ import { parseResource } from "../helper/legacy/parseResource";
 
 export interface IRspackConfigProcessorOptions<T extends ECompilerType.Rspack> {
 	name: string;
-	testConfig: TTestConfig<T>;
+	runable: boolean;
 }
 
 export class RspackConfigProcessor extends MultiTaskProcessor<ECompilerType.Rspack> {
 	constructor(options: IRspackConfigProcessorOptions<ECompilerType.Rspack>) {
 		super({
 			defaultOptions: RspackConfigProcessor.defaultOptions,
-			overrideOptions: RspackConfigProcessor.overrideOptions,
-			getCompiler: () => require("@rspack/core").rspack,
-			getBundle: options.testConfig.findBundle
-				? (index, context, compilerOptions) =>
-						options.testConfig.findBundle!(index, compilerOptions)
-				: RspackConfigProcessor.findBundle,
 			configFiles: ["rspack.config.js", "webpack.config.js"],
+			overrideOptions: RspackConfigProcessor.overrideOptions,
+			findBundle: RspackConfigProcessor.findBundle,
+			compilerType: ECompilerType.Rspack,
 			name: options.name,
-			testConfig: {
-				timeout: 10000,
-				...options.testConfig
-			}
+			runable: options.runable
 		});
 	}
 
@@ -38,6 +32,12 @@ export class RspackConfigProcessor extends MultiTaskProcessor<ECompilerType.Rspa
 		context: ITestContext,
 		options: TCompilerOptions<ECompilerType.Rspack>
 	) {
+		const testConfig = context.getTestConfig();
+
+		if (typeof testConfig.findBundle === "function") {
+			return testConfig.findBundle!(index, options);
+		}
+
 		const ext = path.extname(parseResource(options.output?.filename).path);
 		if (
 			options.output?.path &&

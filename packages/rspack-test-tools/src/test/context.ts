@@ -4,11 +4,9 @@ import {
 	ECompilerType,
 	ITestContext,
 	ITesterConfig,
-	TCompiler,
-	TCompilerOptions,
-	TCompilerStats,
-	TTestRunResult,
-	TCompilerFactory
+	ITestRunner,
+	TTestConfig,
+	TRunnerFactory
 } from "../type";
 import path from "path";
 
@@ -16,7 +14,9 @@ export class TestContext implements ITestContext {
 	protected errors: Map<string, Error[]> = new Map();
 	protected compilers: Map<string, ITestCompilerManager<ECompilerType>> =
 		new Map();
-	protected result: Map<string, unknown> = new Map();
+	protected store: Map<string, Record<string, unknown>> = new Map();
+	protected runners: Map<string, ITestRunner> = new Map();
+	protected runnerFactory: TRunnerFactory<ECompilerType> | null = null;
 
 	constructor(private config: ITesterConfig) {}
 
@@ -44,25 +44,57 @@ export class TestContext implements ITestContext {
 
 	getCompiler<T extends ECompilerType>(
 		name: string,
-		factory: TCompilerFactory<T>
+		type: T | void
 	): ITestCompilerManager<T> {
 		let compiler = this.compilers.get(name);
 		if (!compiler) {
-			if (!factory) {
+			if (!type) {
 				throw new Error("Compiler does not exists");
 			}
-			compiler = new TestCompilerManager(factory);
+			compiler = new TestCompilerManager(type);
 			this.compilers.set(name, compiler);
 		}
 		return compiler;
 	}
 
-	setResult<T>(name: string, value: T) {
-		this.result.set(name, value);
+	getRunnerFactory<T extends ECompilerType>(
+		name: string
+	): TRunnerFactory<T> | null {
+		if (
+			!this.runnerFactory &&
+			typeof this.config.runnerFactory === "function"
+		) {
+			this.runnerFactory = new this.config.runnerFactory(name, this);
+		}
+		return this.runnerFactory;
 	}
 
-	getResult<T>(name: string): T | void {
-		return this.result.get(name) as T;
+	getRunner(key: string): ITestRunner | null {
+		return this.runners.get(key) || null;
+	}
+
+	setRunner(key: string, runner: ITestRunner) {
+		this.runners.set(key, runner);
+	}
+
+	getTestConfig<T extends ECompilerType>(): TTestConfig<T> {
+		return this.config.testConfig || {};
+	}
+
+	setValue<T>(name: string, key: string, value: T) {
+		if (!this.store.has(name)) {
+			this.store.set(name, {});
+		}
+		const scope = this.store.get(name)!;
+		scope[key] = value;
+	}
+
+	getValue<T>(name: string, key: string): T | void {
+		if (!this.store.has(name)) {
+			this.store.set(name, {});
+		}
+		const scope = this.store.get(name)!;
+		return scope[key] as T | void;
 	}
 
 	hasError(name?: string): boolean {

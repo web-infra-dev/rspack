@@ -1,6 +1,7 @@
 import { RspackHotProcessor } from "../processor/hot";
 import { ECompilerType, TCompilerOptions } from "../type";
 import { BasicCaseCreator } from "../test/creator";
+import { HotRunnerFactory } from "../runner";
 
 type TTarget = TCompilerOptions<ECompilerType.Rspack>["target"];
 
@@ -15,7 +16,6 @@ function getCreator(target: TTarget) {
 			target,
 			new BasicCaseCreator({
 				clean: true,
-				runable: true,
 				describe: true,
 				target,
 				steps: ({ name, target }) => [
@@ -23,7 +23,8 @@ function getCreator(target: TTarget) {
 						name,
 						target: target as TTarget
 					})
-				]
+				],
+				runner: HotRunnerFactory
 			})
 		);
 	}

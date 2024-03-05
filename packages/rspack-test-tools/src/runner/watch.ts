@@ -1,49 +1,48 @@
-import { ECompilerType } from "../type";
-import { BasicRunner } from "./basic";
 import {
-	IBasicModuleScope,
-	IBasicRunnerOptions,
-	TBasicRunnerFile,
-	TRunnerRequirer
-} from "./type";
-import fs from "fs";
-import path from "path";
-import FakeDocument from "../helper/legacy/FakeDocument";
+	ECompilerType,
+	ITestEnv,
+	ITestRunner,
+	TCompilerOptions
+} from "../type";
+import { WatchRunner } from "./runner/watch";
+import { BasicRunnerFactory } from "./basic";
 
-interface IWatchRunnerOptions<T extends ECompilerType = ECompilerType.Rspack>
-	extends IBasicRunnerOptions<T> {
-	stepName: string;
-}
-
-export class WatchRunner<
-	T extends ECompilerType = ECompilerType.Rspack
-> extends BasicRunner<T> {
-	private document: any;
-	private state: Record<string, any> = {};
-	constructor(protected _watchOptions: IWatchRunnerOptions<T>) {
-		super(_watchOptions);
-		this.document = new FakeDocument(_watchOptions.dist);
+export class WatchRunnerFactory<
+	T extends ECompilerType
+> extends BasicRunnerFactory<T> {
+	protected getRunnerKey(name: string, file: string): string {
+		const stepName: string | void = this.context.getValue(
+			this.name,
+			"watchStepName"
+		);
+		return `${name}-${stepName}`;
 	}
-
-	protected createGlobalContext() {
-		const globalContext = super.createGlobalContext();
-		globalContext["document"] = this.document;
-		return globalContext;
-	}
-
-	protected createModuleScope(
-		requireFn: TRunnerRequirer,
-		m: any,
-		file: TBasicRunnerFile
-	): IBasicModuleScope {
-		const moduleScope = super.createModuleScope(requireFn, m, file);
-		moduleScope["__dirname"] = path.dirname(file.path);
-		moduleScope["document"] = this.globalContext!["document"];
-		moduleScope["STATS_JSON"] = moduleScope.__STATS__.toJson({
-			errorDetails: true
-		} as any);
-		moduleScope["STATE"] = this.state;
-		moduleScope["WATCH_STEP"] = this._watchOptions.stepName;
-		return moduleScope;
+	protected createRunner(
+		file: string,
+		compilerOptions: TCompilerOptions<T>,
+		env: ITestEnv
+	): ITestRunner {
+		const compiler = this.context.getCompiler<T>(this.name);
+		const stepName: string | void = this.context.getValue(
+			this.name,
+			"watchStepName"
+		);
+		if (!stepName) {
+			throw new Error("Can not get watch step name from context");
+		}
+		const stats = compiler.getStats();
+		return new WatchRunner({
+			env,
+			stats: stats!,
+			name: this.name,
+			stepName,
+			runInNewContext:
+				compilerOptions.target === "web" ||
+				compilerOptions.target === "webworker",
+			testConfig: this.context.getTestConfig(),
+			source: this.context.getSource(),
+			dist: this.context.getDist(),
+			compilerOptions
+		});
 	}
 }

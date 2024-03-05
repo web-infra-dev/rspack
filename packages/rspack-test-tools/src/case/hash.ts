@@ -18,12 +18,10 @@ class HashCaseCreator<T extends ECompilerType> extends BasicCaseCreator<T> {
 
 const creator = new HashCaseCreator({
 	clean: true,
-	runable: false,
 	describe: false,
-	steps: ({ name }, testConfig) => [
+	steps: ({ name }) => [
 		new RspackHashProcessor({
-			name,
-			testConfig
+			name
 		})
 	]
 });

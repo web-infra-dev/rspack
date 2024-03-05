@@ -45,15 +45,10 @@ export class DiffProcessor implements ITestProcessor {
 					context.getSource(),
 					path.join(context.getDist(), ECompilerType.Webpack)
 				),
-			compilerFactory: () => require(this.options.webpackPath).webpack,
-			getBundle: () => {},
+			compilerType: ECompilerType.Webpack,
 			name: ECompilerType.Webpack,
-			compilerOptions: context =>
-				readConfigFile<ECompilerType.Webpack>([
-					context.getSource("webpack.config.js"),
-					context.getSource("rspack.config.js")
-				])[0],
-			testConfig: {}
+			configFiles: ["webpack.config.js", "rspack.config.js"],
+			runable: false
 		});
 
 		this.rspack = new BasicTaskProcessor<ECompilerType.Rspack>({
@@ -63,15 +58,10 @@ export class DiffProcessor implements ITestProcessor {
 					context.getSource(),
 					path.join(context.getDist(), ECompilerType.Rspack)
 				),
-			compilerFactory: () => require(this.options.rspackPath).rspack,
-			getBundle: () => {},
+			compilerType: ECompilerType.Rspack,
 			name: ECompilerType.Rspack,
-			compilerOptions: context =>
-				readConfigFile<ECompilerType.Rspack>([
-					context.getSource("rspack.config.js"),
-					context.getSource("webpack.config.js")
-				])[0],
-			testConfig: {}
+			configFiles: ["rspack.config.js", "webpack.config.js"],
+			runable: false
 		});
 	}
 

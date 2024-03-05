@@ -10,7 +10,6 @@ import { MultiTaskProcessor } from "./multi";
 
 export interface IRspackHashProcessorOptions {
 	name: string;
-	testConfig: TTestConfig<ECompilerType.Rspack>;
 }
 
 const REG_ERROR_CASE = /error$/;
@@ -20,19 +19,16 @@ export class RspackHashProcessor extends MultiTaskProcessor<ECompilerType.Rspack
 		super({
 			defaultOptions: RspackHashProcessor.defaultOptions,
 			overrideOptions: RspackHashProcessor.overrideOptions,
-			getCompiler: () => require("@rspack/core").rspack,
-			getBundle: () => [],
+			compilerType: ECompilerType.Rspack,
 			configFiles: ["rspack.config.js", "webpack.config.js"],
 			name: options.name,
-			testConfig: {
-				noTest: true,
-				...options.testConfig
-			}
+			runable: false
 		});
 	}
 
 	async check(env: ITestEnv, context: ITestContext) {
 		const compiler = this.getCompiler(context);
+		const testConfig = context.getTestConfig();
 		const stats = compiler.getStats();
 		if (!stats) {
 			expect(false);
@@ -45,8 +41,8 @@ export class RspackHashProcessor extends MultiTaskProcessor<ECompilerType.Rspack
 			expect((statsJson.errors || []).length === 0);
 		}
 
-		if (typeof this._options.testConfig.validate === "function") {
-			this._options.testConfig.validate(stats);
+		if (typeof testConfig.validate === "function") {
+			testConfig.validate(stats);
 		} else {
 			throw new Error(
 				"HashTestCases should have test.config.js and a validate method"

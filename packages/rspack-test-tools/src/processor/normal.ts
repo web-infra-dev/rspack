@@ -9,7 +9,6 @@ import {
 import { BasicTaskProcessor } from "./basic";
 import path from "path";
 import fs from "fs";
-import { NormalRunner } from "../runner";
 
 const CWD = process.cwd();
 
@@ -17,17 +16,17 @@ export interface IRspackNormalProcessorOptions {
 	name: string;
 	root: string;
 	compilerOptions?: TCompilerOptions<ECompilerType.Rspack>;
-	testConfig: TTestConfig<ECompilerType.Rspack>;
+	runable: boolean;
 }
 
 export class RspackNormalProcessor extends BasicTaskProcessor<ECompilerType.Rspack> {
 	constructor(protected _normalOptions: IRspackNormalProcessorOptions) {
 		super({
-			compilerFactory: () => require("@rspack/core").rspack,
-			getBundle: (context, options) => options.output?.filename,
-			compilerOptions: RspackNormalProcessor.compilerOptions(_normalOptions),
+			compilerType: ECompilerType.Rspack,
+			findBundle: (context, options) => options.output?.filename,
+			defaultOptions: RspackNormalProcessor.defaultOptions(_normalOptions),
 			name: _normalOptions.name,
-			testConfig: {}
+			runable: _normalOptions.runable
 		});
 	}
 
@@ -39,7 +38,7 @@ export class RspackNormalProcessor extends BasicTaskProcessor<ECompilerType.Rspa
 		process.chdir(CWD);
 	}
 
-	static compilerOptions({ compilerOptions }: IRspackNormalProcessorOptions) {
+	static defaultOptions({ compilerOptions }: IRspackNormalProcessorOptions) {
 		return (context: ITestContext): TCompilerOptions<ECompilerType.Rspack> => {
 			let testConfig: TCompilerOptions<ECompilerType.Rspack> = {};
 			const testConfigPath = path.join(context.getSource(), "test.config.js");
@@ -179,21 +178,5 @@ export class RspackNormalProcessor extends BasicTaskProcessor<ECompilerType.Rspa
 				// }
 			};
 		};
-	}
-
-	protected createRunner(
-		env: ITestEnv,
-		context: ITestContext,
-		options: TCompilerOptions<ECompilerType.Rspack>
-	): ITestRunner | null {
-		return new NormalRunner({
-			env,
-			name: this._options.name,
-			runInNewContext: false,
-			testConfig: this._options.testConfig,
-			source: context.getSource(),
-			dist: context.getDist(),
-			compilerOptions: options
-		});
 	}
 }

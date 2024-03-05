@@ -1,5 +1,3 @@
-import { Tester } from "../test/tester";
-import rimraf from "rimraf";
 import fs from "fs";
 import path from "path";
 import {
@@ -8,6 +6,7 @@ import {
 } from "../processor/watch";
 import { BasicCaseCreator } from "../test/creator";
 import { ECompilerType, ITester, TTestConfig } from "../type";
+import { WatchRunnerFactory } from "../runner";
 
 class WatchCaseCreator<T extends ECompilerType> extends BasicCaseCreator<T> {
 	protected describe(
@@ -29,7 +28,7 @@ class WatchCaseCreator<T extends ECompilerType> extends BasicCaseCreator<T> {
 				},
 				5000
 			);
-			const env = Tester.createLazyTestEnv();
+			const env = this.createEnv(testConfig);
 		}
 
 		afterAll(async () => {
@@ -40,9 +39,9 @@ class WatchCaseCreator<T extends ECompilerType> extends BasicCaseCreator<T> {
 
 const creator = new WatchCaseCreator({
 	clean: true,
-	runable: true,
+	runner: WatchRunnerFactory,
 	describe: false,
-	steps: ({ name, src, temp }, testConfig) => {
+	steps: ({ name, src, temp }) => {
 		const runs = fs
 			.readdirSync(src)
 			.sort()
@@ -57,13 +56,13 @@ const creator = new WatchCaseCreator({
 						name,
 						stepName: run.name,
 						tempDir: temp!,
-						testConfig
+						runable: true
 					})
 				: new RspackWatchStepProcessor({
 						name,
 						stepName: run.name,
 						tempDir: temp!,
-						testConfig
+						runable: true
 					})
 		);
 	}

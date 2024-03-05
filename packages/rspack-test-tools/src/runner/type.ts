@@ -46,7 +46,7 @@ export interface IBasicRunnerOptions<T extends ECompilerType> {
 	env: ITestEnv;
 	stats?: TCompilerStats<T>;
 	name: string;
-	runInNewContext: boolean;
+	runInNewContext?: boolean;
 	testConfig: TTestConfig<T>;
 	source: string;
 	dist: string;

@@ -1,30 +1,28 @@
-import { ECompilerType } from "../type";
-import { EsmRunner } from "./esm";
-import { IBasicModuleScope, TBasicRunnerFile, TRunnerRequirer } from "./type";
-import { URL } from "url";
+import {
+	ECompilerType,
+	ITestEnv,
+	ITestRunner,
+	TCompilerOptions
+} from "../type";
+import { BasicRunnerFactory } from "./basic";
+import { NormalRunner } from "./runner/normal";
 
-export class NormalRunner<
-	T extends ECompilerType = ECompilerType.Rspack
-> extends EsmRunner<T> {
-	protected createBaseModuleScope(): IBasicModuleScope {
-		const baseModuleScope = Object.assign(super.createBaseModuleScope(), {
-			process,
-			global,
-			URL,
-			Buffer,
-			setTimeout,
-			setImmediate
+export class NormalRunnerFactory<
+	T extends ECompilerType
+> extends BasicRunnerFactory<T> {
+	protected createRunner(
+		file: string,
+		compilerOptions: TCompilerOptions<T>,
+		env: ITestEnv
+	): ITestRunner {
+		return new NormalRunner({
+			env,
+			name: this.name,
+			runInNewContext: false,
+			testConfig: this.context.getTestConfig(),
+			source: this.context.getSource(),
+			dist: this.context.getDist(),
+			compilerOptions: compilerOptions
 		});
-		return baseModuleScope;
-	}
-
-	protected createModuleScope(
-		requireFn: TRunnerRequirer,
-		m: { exports: unknown },
-		file: TBasicRunnerFile
-	): IBasicModuleScope {
-		const moduleScope = super.createModuleScope(requireFn, m, file);
-		delete moduleScope.define;
-		return moduleScope;
 	}
 }

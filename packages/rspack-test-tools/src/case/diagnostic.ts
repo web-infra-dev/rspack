@@ -4,7 +4,6 @@ import { BasicCaseCreator } from "../test/creator";
 
 const creator = new BasicCaseCreator({
 	clean: true,
-	runable: false,
 	describe: true,
 	steps: ({ name }) => [
 		new RspackDiagnosticProcessor({

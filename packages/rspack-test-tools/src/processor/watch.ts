@@ -10,7 +10,6 @@ import { MultiTaskProcessor } from "./multi";
 import path from "path";
 import fs from "fs";
 import copyDiff from "../helper/legacy/copyDiff";
-import { WatchRunner } from "../runner";
 import { ECompilerEvent } from "../compiler";
 
 const currentWatchStepModulePath = path.resolve(
@@ -26,9 +25,9 @@ export interface IRspackWatchProcessorOptions {
 	name: string;
 	stepName: string;
 	tempDir: string;
-	testConfig: TTestConfig<ECompilerType.Rspack>;
 	experiments?: TRspackExperiments;
 	optimization?: TRspackOptimization;
+	runable: boolean;
 }
 
 export class RspackWatchProcessor extends MultiTaskProcessor<ECompilerType.Rspack> {
@@ -38,14 +37,11 @@ export class RspackWatchProcessor extends MultiTaskProcessor<ECompilerType.Rspac
 	constructor(protected _watchOptions: IRspackWatchProcessorOptions) {
 		super({
 			overrideOptions: RspackWatchProcessor.overrideOptions(_watchOptions),
-			getCompiler: () => require("@rspack/core").rspack,
-			getBundle: () => "bundle.js",
+			compilerType: ECompilerType.Rspack,
+			findBundle: () => "bundle.js",
 			configFiles: ["rspack.config.js", "webpack.config.js"],
 			name: _watchOptions.name,
-			testConfig: {
-				timeout: 10000,
-				..._watchOptions.testConfig
-			}
+			runable: _watchOptions.runable
 		});
 	}
 
@@ -75,6 +71,15 @@ export class RspackWatchProcessor extends MultiTaskProcessor<ECompilerType.Rspac
 		});
 		compiler.watch();
 		await task;
+	}
+
+	async run(env: ITestEnv, context: ITestContext) {
+		context.setValue(
+			this._options.name,
+			"watchStepName",
+			this._watchOptions.stepName
+		);
+		await super.run(env, context);
 	}
 
 	async check(env: ITestEnv, context: ITestContext) {
@@ -136,34 +141,13 @@ export class RspackWatchProcessor extends MultiTaskProcessor<ECompilerType.Rspac
 			}
 		};
 	}
-
-	protected createRunner(
-		env: ITestEnv,
-		context: ITestContext,
-		options: TCompilerOptions<ECompilerType.Rspack>
-	): ITestRunner | null {
-		const compiler = this.getCompiler(context);
-		const stats = compiler.getStats();
-		return new WatchRunner({
-			env,
-			stats: stats!,
-			name: this._options.name,
-			stepName: this._watchOptions.stepName,
-			runInNewContext:
-				options.target === "web" || options.target === "webworker",
-			testConfig: this._options.testConfig,
-			source: context.getSource(),
-			dist: context.getDist(),
-			compilerOptions: options
-		});
-	}
 }
 
 export interface IRspackWatchStepProcessorOptions {
 	name: string;
 	stepName: string;
 	tempDir: string;
-	testConfig: TTestConfig<ECompilerType.Rspack>;
+	runable: boolean;
 }
 
 export class RspackWatchStepProcessor extends RspackWatchProcessor {
