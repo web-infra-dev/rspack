@@ -832,6 +832,9 @@ importers:
       webpack:
         specifier: ^5.90.1
         version: 5.90.1(@swc/core@1.3.99)(webpack-cli@4.10.0)
+      webpack-merge:
+        specifier: 5.9.0
+        version: 5.9.0
       webpack-sources:
         specifier: 3.2.3
         version: 3.2.3

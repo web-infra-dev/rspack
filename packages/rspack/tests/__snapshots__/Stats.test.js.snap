@@ -115,7 +115,6 @@ Object {
           "moduleType": "javascript/auto",
           "name": "./fixtures/a.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
-          "optimizationBailout": Array [],
           "orphan": false,
           "providedExports": Array [],
           "reasons": Array [
@@ -180,7 +179,6 @@ Object {
       "moduleType": "javascript/auto",
       "name": "./fixtures/a.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
-      "optimizationBailout": Array [],
       "orphan": false,
       "providedExports": Array [],
       "reasons": Array [
@@ -280,7 +278,6 @@ Object {
           "moduleType": "javascript/auto",
           "name": "./fixtures/esm/a.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/esm/a.js",
-          "optimizationBailout": Array [],
           "orphan": false,
           "providedExports": Array [
             "a",
@@ -328,7 +325,6 @@ Object {
           "moduleType": "javascript/auto",
           "name": "./fixtures/esm/b.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/esm/b.js",
-          "optimizationBailout": Array [],
           "orphan": false,
           "providedExports": Array [
             "b",
@@ -376,7 +372,6 @@ Object {
           "moduleType": "javascript/auto",
           "name": "./fixtures/esm/c.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/esm/c.js",
-          "optimizationBailout": Array [],
           "orphan": false,
           "providedExports": Array [
             "c",
@@ -416,7 +411,6 @@ Object {
           "moduleType": "javascript/auto",
           "name": "./fixtures/esm/abc.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
-          "optimizationBailout": Array [],
           "orphan": false,
           "providedExports": Array [],
           "reasons": Array [
@@ -483,7 +477,6 @@ Object {
       "moduleType": "javascript/auto",
       "name": "./fixtures/esm/a.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/esm/a.js",
-      "optimizationBailout": Array [],
       "orphan": false,
       "providedExports": Array [
         "a",
@@ -531,7 +524,6 @@ Object {
       "moduleType": "javascript/auto",
       "name": "./fixtures/esm/b.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/esm/b.js",
-      "optimizationBailout": Array [],
       "orphan": false,
       "providedExports": Array [
         "b",
@@ -579,7 +571,6 @@ Object {
       "moduleType": "javascript/auto",
       "name": "./fixtures/esm/c.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/esm/c.js",
-      "optimizationBailout": Array [],
       "orphan": false,
       "providedExports": Array [
         "c",
@@ -619,7 +610,6 @@ Object {
       "moduleType": "javascript/auto",
       "name": "./fixtures/esm/abc.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
-      "optimizationBailout": Array [],
       "orphan": false,
       "providedExports": Array [],
       "reasons": Array [
@@ -649,7 +639,6 @@ Object {
       "moduleType": "runtime",
       "name": "webpack/runtime/has_own_property",
       "nameForCondition": undefined,
-      "optimizationBailout": Array [],
       "orphan": false,
       "providedExports": Array [],
       "reasons": Array [],
@@ -671,7 +660,6 @@ Object {
       "moduleType": "runtime",
       "name": "webpack/runtime/make_namespace_object",
       "nameForCondition": undefined,
-      "optimizationBailout": Array [],
       "orphan": false,
       "providedExports": Array [],
       "reasons": Array [],
@@ -693,7 +681,6 @@ Object {
       "moduleType": "runtime",
       "name": "webpack/runtime/define_property_getters",
       "nameForCondition": undefined,
-      "optimizationBailout": Array [],
       "orphan": false,
       "providedExports": Array [],
       "reasons": Array [],
@@ -786,7 +773,6 @@ Object {
           "moduleType": "javascript/auto",
           "name": "./fixtures/a.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
-          "optimizationBailout": Array [],
           "orphan": false,
           "providedExports": Array [],
           "reasons": Array [
@@ -826,7 +812,6 @@ Object {
           "moduleType": "javascript/auto",
           "name": "./fixtures/a.js?a=1",
           "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
-          "optimizationBailout": Array [],
           "orphan": false,
           "providedExports": Array [],
           "reasons": Array [
@@ -866,7 +851,6 @@ Object {
           "moduleType": "javascript/auto",
           "name": "./fixtures/c.js?c=3",
           "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/c.js",
-          "optimizationBailout": Array [],
           "orphan": false,
           "providedExports": Array [],
           "reasons": Array [
@@ -901,7 +885,6 @@ Object {
           "moduleType": "javascript/auto",
           "name": "./fixtures/abc-query.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
-          "optimizationBailout": Array [],
           "orphan": false,
           "providedExports": Array [],
           "reasons": Array [
@@ -977,7 +960,6 @@ exports.c = require(\\"./c?c=3\\");
       "moduleType": "javascript/auto",
       "name": "./fixtures/a.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
-      "optimizationBailout": Array [],
       "orphan": false,
       "providedExports": Array [],
       "reasons": Array [
@@ -1017,7 +999,6 @@ exports.c = require(\\"./c?c=3\\");
       "moduleType": "javascript/auto",
       "name": "./fixtures/a.js?a=1",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
-      "optimizationBailout": Array [],
       "orphan": false,
       "providedExports": Array [],
       "reasons": Array [
@@ -1057,7 +1038,6 @@ exports.c = require(\\"./c?c=3\\");
       "moduleType": "javascript/auto",
       "name": "./fixtures/c.js?c=3",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/c.js",
-      "optimizationBailout": Array [],
       "orphan": false,
       "providedExports": Array [],
       "reasons": Array [
@@ -1092,7 +1072,6 @@ exports.c = require(\\"./c?c=3\\");
       "moduleType": "javascript/auto",
       "name": "./fixtures/abc-query.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
-      "optimizationBailout": Array [],
       "orphan": false,
       "providedExports": Array [],
       "reasons": Array [
