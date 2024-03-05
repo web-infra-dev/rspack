@@ -209,9 +209,9 @@ export async function runLoaders(
 	loaderContext.context = contextDirectory;
 	loaderContext.loaderIndex = 0;
 	loaderContext.loaders = loaders;
-	loaderContext.resourcePath = resourcePath;
-	loaderContext.resourceQuery = resourceQuery;
-	loaderContext.resourceFragment = resourceFragment;
+	loaderContext.resourcePath = resourcePath!;
+	loaderContext.resourceQuery = resourceQuery!;
+	loaderContext.resourceFragment = resourceFragment!;
 	loaderContext.cacheable = function (flag) {
 		if (flag === false) {
 			cacheable = false;
