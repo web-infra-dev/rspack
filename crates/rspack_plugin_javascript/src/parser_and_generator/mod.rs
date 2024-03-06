@@ -1,5 +1,3 @@
-use std::fmt::write;
-
 use rspack_ast::RspackAst;
 use rspack_core::diagnostics::map_box_diagnostics_to_module_parse_diagnostics;
 use rspack_core::needs_refactor::WorkerSyntaxList;
@@ -18,7 +16,6 @@ use rspack_core::{
 use rspack_error::miette::Diagnostic;
 use rspack_error::{DiagnosticExt, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_util::source_map::SourceMapKind;
-use swc_core::common::source_map::Pos;
 use swc_core::common::{Span, SyntaxContext};
 use swc_core::ecma::parser::{EsConfig, Syntax};
 
@@ -242,8 +239,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
           .side_effects_item
           .take()
           .and_then(|item| -> Option<_> {
-            let msg = span_to_location(item.span, &source)?;
-            dbg!(&msg);
+            let msg = span_to_location(item.span, &output.code)?;
             Some(SideEffectsBailoutItem { msg, ty: item.ty })
           })
       });
@@ -363,11 +359,9 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
 }
 
 fn span_to_location(span: Span, source: &str) -> Option<String> {
-  println!("{}", source);
   let r = ropey::Rope::from_str(source);
   let start = span.real_lo();
-  let end = span.real_hi() - 1;
-  dbg!(&span);
+  let end = span.real_hi();
   let start_char_offset = r.try_byte_to_char(start as usize).ok()?;
   let start_line = r.char_to_line(start_char_offset);
   let start_column = start_char_offset - r.line_to_char(start_line);
