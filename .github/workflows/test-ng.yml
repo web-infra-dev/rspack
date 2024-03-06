@@ -31,18 +31,6 @@ jobs:
       runner: ${{ matrix.array.runner }}
       test-ng: true
   
-  comment-result:
-    name: Write a new comment
-    needs: [comment-test]
-    uses: peter-evans/create-or-update-comment@v4
-    continue-on-error: true
-    with:
-      issue-number: ${{ github.event.issue.number || github.event.pull_request.number }}
-      body: |
-        This is a multi-line test comment
-        - With GitHub **Markdown** :sparkles:
-        - Created by [create-or-update-comment][1]
-
   schedule-test:
     name: Test trigger by schedule
     needs: [get-runner-labels]
