@@ -1281,9 +1281,9 @@ export interface RawTrustedTypes {
 export function registerGlobalTrace(filter: string, layer: "chrome" | "logger", output: string): void
 
 export interface RegisterJsTaps {
-  registerCompilerCompilationTaps: (...args: any[]) => any
-  registerCompilerMakeTaps: (...args: any[]) => any
-  registerCompilationProcessAssetsTaps: (...args: any[]) => any
+  registerCompilerCompilationTaps: (arg: Array<number>) => any
+  registerCompilerMakeTaps: (arg: Array<number>) => any
+  registerCompilationProcessAssetsTaps: (arg: Array<number>) => any
 }
 
 /** Builtin loader runner */

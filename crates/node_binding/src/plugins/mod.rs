@@ -29,7 +29,6 @@ use rspack_core::{PluginNormalModuleFactoryResolveForSchemeOutput, PluginShouldE
 use rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use rspack_napi_shared::NapiResultExt;
 
-use self::interceptor::ThreadsafeRegisterJsTaps;
 pub use self::loader::JsLoaderResolver;
 use crate::{DisabledHooks, Hook, JsCompilation, JsHooks};
 
@@ -67,7 +66,7 @@ pub struct JsHooksAdapterInner {
 #[derive(Clone)]
 pub struct JsHooksAdapterPlugin {
   inner: Arc<JsHooksAdapterInner>,
-  interceptor: Box<ThreadsafeRegisterJsTaps>,
+  interceptor: Box<RegisterJsTaps>,
 }
 
 impl fmt::Debug for JsHooksAdapterPlugin {
@@ -726,7 +725,7 @@ impl JsHooksAdapterPlugin {
       js_fn_into_threadsafe_fn!(runtime_module, env);
 
     Ok(JsHooksAdapterPlugin {
-      interceptor: Box::new(ThreadsafeRegisterJsTaps::from_js_taps(interceptor, env)?),
+      interceptor: Box::new(interceptor),
       inner: Arc::new(JsHooksAdapterInner {
         disabled_hooks,
         after_process_assets_tsfn,
