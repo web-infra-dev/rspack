@@ -5,9 +5,10 @@ use napi::{Env, JsFunction, NapiRaw};
 use rspack_binding_macros::{call_js_function_with_napi_objects, js_fn_into_threadsafe_fn};
 use rspack_binding_values::JsCompilation;
 use rspack_core::{
-  Compilation, CompilationParams, CompilerCompilationHook, CompilerMakeHook, MakeParam,
+  Compilation, CompilationParams, CompilationProcessAssetsHook, CompilerCompilationHook,
+  CompilerMakeHook, MakeParam,
 };
-use rspack_hook::{AsyncSeries2, Hook, Interceptor};
+use rspack_hook::{AsyncSeries, AsyncSeries2, Hook, Interceptor};
 use rspack_napi_shared::{
   threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},
   NapiResultExt,
@@ -70,6 +71,7 @@ fn register_taps_fn_into_threadsafe_fn<
 pub struct RegisterJsTaps {
   pub register_compiler_compilation_taps: JsFunction,
   pub register_compiler_make_taps: JsFunction,
+  pub register_compilation_process_assets_taps: JsFunction,
 }
 
 #[derive(Clone)]
@@ -79,6 +81,8 @@ struct ThreadsafeRegisterJsTapsInner {
   register_compiler_compilation_taps:
     ThreadsafeFunction<Vec<i32>, Vec<ThreadsafeJsTap<JsCompilation, ()>>>,
   register_compiler_make_taps:
+    ThreadsafeFunction<Vec<i32>, Vec<ThreadsafeJsTap<JsCompilation, ()>>>,
+  register_compilation_process_assets_taps:
     ThreadsafeFunction<Vec<i32>, Vec<ThreadsafeJsTap<JsCompilation, ()>>>,
 }
 
@@ -91,6 +95,10 @@ impl ThreadsafeRegisterJsTaps {
       )?,
       register_compiler_make_taps: register_taps_fn_into_threadsafe_fn(
         register_js_taps.register_compiler_make_taps,
+        env,
+      )?,
+      register_compilation_process_assets_taps: register_taps_fn_into_threadsafe_fn(
+        register_js_taps.register_compilation_process_assets_taps,
         env,
       )?,
     })))
@@ -130,7 +138,7 @@ impl AsyncSeries2<Compilation, CompilationParams> for CompilerCompilationTap {
       .call(compilation, ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
-      .unwrap_or_else(|err| panic!("Failed to call compilation: {err}"))
+      .unwrap_or_else(|err| panic!("Failed to call compiler.hooks.compilation: {err}"))
   }
 
   fn stage(&self) -> i32 {
@@ -152,7 +160,7 @@ impl Interceptor<CompilerCompilationHook> for ThreadsafeRegisterJsTaps {
       .call(used_stages, ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
-      .unwrap_or_else(|err| panic!("Failed to call compiler.hooks.compilation: {err}"))?;
+      .unwrap_or_else(|err| panic!("Failed to register compiler.hooks.compilation: {err}"))?;
     let js_taps = js_taps
       .into_iter()
       .map(|t| Box::new(CompilerCompilationTap::new(t)) as <CompilerCompilationHook as Hook>::Tap)
@@ -194,7 +202,7 @@ impl AsyncSeries2<Compilation, Vec<MakeParam>> for CompilerMakeTap {
       .call(compilation, ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
-      .unwrap_or_else(|err| panic!("Failed to call compilation: {err}"))
+      .unwrap_or_else(|err| panic!("Failed to call compiler.hooks.make: {err}"))
   }
 
   fn stage(&self) -> i32 {
@@ -216,10 +224,72 @@ impl Interceptor<CompilerMakeHook> for ThreadsafeRegisterJsTaps {
       .call(used_stages, ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
-      .unwrap_or_else(|err| panic!("Failed to call compiler.hooks.make: {err}"))?;
+      .unwrap_or_else(|err| panic!("Failed to register compiler.hooks.make: {err}"))?;
     let js_taps = js_taps
       .into_iter()
       .map(|t| Box::new(CompilerMakeTap::new(t)) as <CompilerMakeHook as Hook>::Tap)
+      .collect();
+    Ok(js_taps)
+  }
+}
+
+#[derive(Clone)]
+struct CompilationProcessAssetsTap {
+  function: ThreadsafeFunction<JsCompilation, ()>,
+  stage: i32,
+}
+
+impl CompilationProcessAssetsTap {
+  pub fn new(tap: ThreadsafeJsTap<JsCompilation, ()>) -> Self {
+    Self {
+      function: tap.function,
+      stage: tap.stage,
+    }
+  }
+}
+
+#[async_trait]
+impl AsyncSeries<Compilation> for CompilationProcessAssetsTap {
+  async fn run(&self, compilation: &mut Compilation) -> rspack_error::Result<()> {
+    let compilation = JsCompilation::from_compilation(unsafe {
+      std::mem::transmute::<&'_ mut rspack_core::Compilation, &'static mut rspack_core::Compilation>(
+        compilation,
+      )
+    });
+
+    self
+      .function
+      .call(compilation, ThreadsafeFunctionCallMode::NonBlocking)
+      .into_rspack_result()?
+      .await
+      .unwrap_or_else(|err| panic!("Failed to call compilation.hooks.processAssets: {err}"))
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
+
+#[async_trait]
+impl Interceptor<CompilationProcessAssetsHook> for ThreadsafeRegisterJsTaps {
+  async fn call(
+    &self,
+    hook: &CompilationProcessAssetsHook,
+  ) -> rspack_error::Result<Vec<<CompilationProcessAssetsHook as Hook>::Tap>> {
+    let mut used_stages = Vec::from_iter(hook.used_stages());
+    used_stages.sort();
+    let js_taps: Vec<ThreadsafeJsTap<JsCompilation, ()>> = self
+      .0
+      .register_compilation_process_assets_taps
+      .call(used_stages, ThreadsafeFunctionCallMode::NonBlocking)
+      .into_rspack_result()?
+      .await
+      .unwrap_or_else(|err| panic!("Failed to register compilation.hooks.processAssets: {err}"))?;
+    let js_taps = js_taps
+      .into_iter()
+      .map(|t| {
+        Box::new(CompilationProcessAssetsTap::new(t)) as <CompilationProcessAssetsHook as Hook>::Tap
+      })
       .collect();
     Ok(js_taps)
   }

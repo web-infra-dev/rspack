@@ -16,6 +16,7 @@ use rayon::prelude::*;
 use rspack_error::{error, Diagnostic, Result, Severity, TWithDiagnosticArray};
 use rspack_futures::FuturesResults;
 use rspack_hash::{RspackHash, RspackHashDigest};
+use rspack_hook::AsyncSeriesHook;
 use rspack_identifier::{Identifiable, IdentifierMap, IdentifierSet};
 use rspack_sources::{BoxSource, CachedSource, OriginalSource, SourceExt};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
@@ -55,6 +56,13 @@ pub type BuildDependency = (
   Option<ModuleIdentifier>, /* parent module */
 );
 
+pub type CompilationProcessAssetsHook = AsyncSeriesHook<Compilation>;
+
+#[derive(Debug, Default)]
+pub struct CompilationHooks {
+  pub process_assets: CompilationProcessAssetsHook,
+}
+
 #[derive(Debug)]
 pub struct Compilation {
   // Mark compilation status, because the hash of `[hash].hot-update.js/json` is previous compilation hash.
@@ -63,6 +71,7 @@ pub struct Compilation {
   // The status is different, should generate different hash for `.hot-update.js`
   // So use compilation hash update `hot_index` to fix it.
   pub hot_index: u32,
+  pub hooks: Arc<CompilationHooks>,
   pub records: Option<CompilationRecords>,
   pub options: Arc<CompilerOptions>,
   pub entries: Entry,
@@ -120,6 +129,22 @@ pub struct Compilation {
 }
 
 impl Compilation {
+  pub const PROCESS_ASSETS_STAGE_ADDITIONAL: i32 = -2000;
+  pub const PROCESS_ASSETS_STAGE_PRE_PROCESS: i32 = -1000;
+  pub const PROCESS_ASSETS_STAGE_DERIVED: i32 = -200;
+  pub const PROCESS_ASSETS_STAGE_ADDITIONS: i32 = -100;
+  pub const PROCESS_ASSETS_STAGE_OPTIMIZE: i32 = 100;
+  pub const PROCESS_ASSETS_STAGE_OPTIMIZE_COUNT: i32 = 200;
+  pub const PROCESS_ASSETS_STAGE_OPTIMIZE_COMPATIBILITY: i32 = 300;
+  pub const PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE: i32 = 400;
+  pub const PROCESS_ASSETS_STAGE_DEV_TOOLING: i32 = 500;
+  pub const PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE: i32 = 700;
+  pub const PROCESS_ASSETS_STAGE_SUMMARIZE: i32 = 1000;
+  pub const PROCESS_ASSETS_STAGE_OPTIMIZE_HASH: i32 = 2500;
+  pub const PROCESS_ASSETS_STAGE_OPTIMIZE_TRANSFER: i32 = 3000;
+  pub const PROCESS_ASSETS_STAGE_ANALYSE: i32 = 4000;
+  pub const PROCESS_ASSETS_STAGE_REPORT: i32 = 5000;
+
   #[allow(clippy::too_many_arguments)]
   pub fn new(
     options: Arc<CompilerOptions>,
@@ -128,10 +153,12 @@ impl Compilation {
     resolver_factory: Arc<ResolverFactory>,
     loader_resolver_factory: Arc<ResolverFactory>,
     records: Option<CompilationRecords>,
+    hooks: Arc<CompilationHooks>,
     cache: Arc<Cache>,
   ) -> Self {
     Self {
       hot_index: 0,
+      hooks,
       records,
       options,
       module_graph,
@@ -1486,12 +1513,6 @@ impl Compilation {
     // .for_each(|(chunk_ukey, manifest)| {
     // })
   }
-  #[instrument(name = "compilation:process_asssets", skip_all)]
-  async fn process_assets(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
-    plugin_driver
-      .process_assets(ProcessAssetsArgs { compilation: self })
-      .await
-  }
 
   #[instrument(name = "compilation:after_process_asssets", skip_all)]
   async fn after_process_assets(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
@@ -1636,7 +1657,7 @@ impl Compilation {
     logger.time_end(start);
 
     let start = logger.time("process assets");
-    self.process_assets(plugin_driver.clone()).await?;
+    self.hooks.clone().process_assets.call(self).await?;
     logger.time_end(start);
 
     let start = logger.time("after process assets");

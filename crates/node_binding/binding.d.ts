@@ -328,22 +328,6 @@ export interface JsExecuteModuleResult {
 }
 
 export interface JsHooks {
-  processAssetsStageAdditional: (...args: any[]) => any
-  processAssetsStagePreProcess: (...args: any[]) => any
-  processAssetsStageDerived: (...args: any[]) => any
-  processAssetsStageAdditions: (...args: any[]) => any
-  processAssetsStageNone: (...args: any[]) => any
-  processAssetsStageOptimize: (...args: any[]) => any
-  processAssetsStageOptimizeCount: (...args: any[]) => any
-  processAssetsStageOptimizeCompatibility: (...args: any[]) => any
-  processAssetsStageOptimizeSize: (...args: any[]) => any
-  processAssetsStageDevTooling: (...args: any[]) => any
-  processAssetsStageOptimizeInline: (...args: any[]) => any
-  processAssetsStageSummarize: (...args: any[]) => any
-  processAssetsStageOptimizeHash: (...args: any[]) => any
-  processAssetsStageOptimizeTransfer: (...args: any[]) => any
-  processAssetsStageAnalyse: (...args: any[]) => any
-  processAssetsStageReport: (...args: any[]) => any
   afterProcessAssets: (...args: any[]) => any
   thisCompilation: (...args: any[]) => any
   emit: (...args: any[]) => any
@@ -1299,6 +1283,7 @@ export function registerGlobalTrace(filter: string, layer: "chrome" | "logger", 
 export interface RegisterJsTaps {
   registerCompilerCompilationTaps: (...args: any[]) => any
   registerCompilerMakeTaps: (...args: any[]) => any
+  registerCompilationProcessAssetsTaps: (...args: any[]) => any
 }
 
 /** Builtin loader runner */

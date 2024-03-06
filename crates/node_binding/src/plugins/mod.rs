@@ -36,22 +36,6 @@ use crate::{DisabledHooks, Hook, JsCompilation, JsHooks};
 pub struct JsHooksAdapterInner {
   pub disabled_hooks: DisabledHooks,
   pub this_compilation_tsfn: ThreadsafeFunction<JsCompilation, ()>,
-  pub process_assets_stage_additional_tsfn: ThreadsafeFunction<(), ()>,
-  pub process_assets_stage_pre_process_tsfn: ThreadsafeFunction<(), ()>,
-  pub process_assets_stage_derived_tsfn: ThreadsafeFunction<(), ()>,
-  pub process_assets_stage_additions_tsfn: ThreadsafeFunction<(), ()>,
-  pub process_assets_stage_none_tsfn: ThreadsafeFunction<(), ()>,
-  pub process_assets_stage_optimize_tsfn: ThreadsafeFunction<(), ()>,
-  pub process_assets_stage_optimize_count_tsfn: ThreadsafeFunction<(), ()>,
-  pub process_assets_stage_optimize_compatibility_tsfn: ThreadsafeFunction<(), ()>,
-  pub process_assets_stage_optimize_size_tsfn: ThreadsafeFunction<(), ()>,
-  pub process_assets_stage_dev_tooling_tsfn: ThreadsafeFunction<(), ()>,
-  pub process_assets_stage_optimize_inline_tsfn: ThreadsafeFunction<(), ()>,
-  pub process_assets_stage_summarize_tsfn: ThreadsafeFunction<(), ()>,
-  pub process_assets_stage_optimize_hash_tsfn: ThreadsafeFunction<(), ()>,
-  pub process_assets_stage_optimize_transfer_tsfn: ThreadsafeFunction<(), ()>,
-  pub process_assets_stage_analyse_tsfn: ThreadsafeFunction<(), ()>,
-  pub process_assets_stage_report_tsfn: ThreadsafeFunction<(), ()>,
   pub after_process_assets_tsfn: ThreadsafeFunction<(), ()>,
   pub emit_tsfn: ThreadsafeFunction<(), ()>,
   pub asset_emitted_tsfn: ThreadsafeFunction<JsAssetEmittedArgs, ()>,
@@ -122,6 +106,11 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
       .context
       .compiler_hooks
       .make
+      .intercept(self.interceptor.clone());
+    ctx
+      .context
+      .compilation_hooks
+      .process_assets
       .intercept(self.interceptor.clone());
     Ok(())
   }
@@ -280,281 +269,6 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
         stop,
       )
     })
-  }
-
-  async fn process_assets_stage_additional(
-    &self,
-    _ctx: rspack_core::PluginContext,
-    _args: rspack_core::ProcessAssetsArgs<'_>,
-  ) -> rspack_core::PluginProcessAssetsHookOutput {
-    if self.is_hook_disabled(&Hook::ProcessAssetsStageAdditional) {
-      return Ok(());
-    }
-
-    self
-      .process_assets_stage_additional_tsfn
-      .call((), ThreadsafeFunctionCallMode::NonBlocking)
-      .into_rspack_result()?
-      .await
-      .unwrap_or_else(|err| panic!("Failed to call process assets stage additional: {err}"))
-  }
-
-  async fn process_assets_stage_pre_process(
-    &self,
-    _ctx: rspack_core::PluginContext,
-    _args: rspack_core::ProcessAssetsArgs<'_>,
-  ) -> rspack_core::PluginProcessAssetsHookOutput {
-    if self.is_hook_disabled(&Hook::ProcessAssetsStagePreProcess) {
-      return Ok(());
-    }
-
-    self
-      .process_assets_stage_pre_process_tsfn
-      .call((), ThreadsafeFunctionCallMode::NonBlocking)
-      .into_rspack_result()?
-      .await
-      .unwrap_or_else(|err| panic!("Failed to call process assets stage pre-process: {err}"))
-  }
-
-  async fn process_assets_stage_derived(
-    &self,
-    _ctx: rspack_core::PluginContext,
-    _args: rspack_core::ProcessAssetsArgs<'_>,
-  ) -> rspack_core::PluginProcessAssetsHookOutput {
-    if self.is_hook_disabled(&Hook::ProcessAssetsStageDerived) {
-      return Ok(());
-    }
-
-    self
-      .process_assets_stage_derived_tsfn
-      .call((), ThreadsafeFunctionCallMode::NonBlocking)
-      .into_rspack_result()?
-      .await
-      .unwrap_or_else(|err| panic!("Failed to call process assets stage derived: {err}"))
-  }
-
-  async fn process_assets_stage_additions(
-    &self,
-    _ctx: rspack_core::PluginContext,
-    _args: rspack_core::ProcessAssetsArgs<'_>,
-  ) -> rspack_core::PluginProcessAssetsHookOutput {
-    if self.is_hook_disabled(&Hook::ProcessAssetsStageAdditions) {
-      return Ok(());
-    }
-
-    self
-      .process_assets_stage_additions_tsfn
-      .call((), ThreadsafeFunctionCallMode::NonBlocking)
-      .into_rspack_result()?
-      .await
-      .unwrap_or_else(|err| panic!("Failed to call process assets stage additions: {err}"))
-  }
-
-  async fn process_assets_stage_none(
-    &self,
-    _ctx: rspack_core::PluginContext,
-    _args: rspack_core::ProcessAssetsArgs<'_>,
-  ) -> rspack_core::PluginProcessAssetsHookOutput {
-    if self.is_hook_disabled(&Hook::ProcessAssetsStageNone) {
-      return Ok(());
-    }
-
-    self
-      .process_assets_stage_none_tsfn
-      .call((), ThreadsafeFunctionCallMode::NonBlocking)
-      .into_rspack_result()?
-      .await
-      .unwrap_or_else(|err| panic!("Failed to call process assets: {err}"))
-  }
-
-  async fn process_assets_stage_optimize(
-    &self,
-    _ctx: rspack_core::PluginContext,
-    _args: rspack_core::ProcessAssetsArgs<'_>,
-  ) -> rspack_core::PluginProcessAssetsHookOutput {
-    if self.is_hook_disabled(&Hook::ProcessAssetsStageOptimize) {
-      return Ok(());
-    }
-
-    self
-      .process_assets_stage_optimize_tsfn
-      .call((), ThreadsafeFunctionCallMode::NonBlocking)
-      .into_rspack_result()?
-      .await
-      .unwrap_or_else(|err| panic!("Failed to call process assets stage optimize: {err}"))
-  }
-
-  async fn process_assets_stage_optimize_count(
-    &self,
-    _ctx: rspack_core::PluginContext,
-    _args: rspack_core::ProcessAssetsArgs<'_>,
-  ) -> rspack_core::PluginProcessAssetsHookOutput {
-    if self.is_hook_disabled(&Hook::ProcessAssetsStageOptimizeCount) {
-      return Ok(());
-    }
-
-    self
-      .process_assets_stage_optimize_count_tsfn
-      .call((), ThreadsafeFunctionCallMode::NonBlocking)
-      .into_rspack_result()?
-      .await
-      .unwrap_or_else(|err| panic!("Failed to call process assets stage optimize count: {err}"))
-  }
-
-  async fn process_assets_stage_optimize_compatibility(
-    &self,
-    _ctx: rspack_core::PluginContext,
-    _args: rspack_core::ProcessAssetsArgs<'_>,
-  ) -> rspack_core::PluginProcessAssetsHookOutput {
-    if self.is_hook_disabled(&Hook::ProcessAssetsStageOptimizeCompatibility) {
-      return Ok(());
-    }
-
-    self
-      .process_assets_stage_optimize_compatibility_tsfn
-      .call((), ThreadsafeFunctionCallMode::NonBlocking)
-      .into_rspack_result()?
-      .await
-      .unwrap_or_else(|err| {
-        panic!("Failed to call process assets stage optimize compatibility: {err}")
-      })
-  }
-
-  async fn process_assets_stage_optimize_size(
-    &self,
-    _ctx: rspack_core::PluginContext,
-    _args: rspack_core::ProcessAssetsArgs<'_>,
-  ) -> rspack_core::PluginProcessAssetsHookOutput {
-    if self.is_hook_disabled(&Hook::ProcessAssetsStageOptimizeSize) {
-      return Ok(());
-    }
-
-    self
-      .process_assets_stage_optimize_size_tsfn
-      .call((), ThreadsafeFunctionCallMode::NonBlocking)
-      .into_rspack_result()?
-      .await
-      .unwrap_or_else(|err| panic!("Failed to call process assets stage optimize size: {err}"))
-  }
-
-  async fn process_assets_stage_dev_tooling(
-    &self,
-    _ctx: rspack_core::PluginContext,
-    _args: rspack_core::ProcessAssetsArgs<'_>,
-  ) -> rspack_core::PluginProcessAssetsHookOutput {
-    if self.is_hook_disabled(&Hook::ProcessAssetsStageDevTooling) {
-      return Ok(());
-    }
-
-    self
-      .process_assets_stage_dev_tooling_tsfn
-      .call((), ThreadsafeFunctionCallMode::NonBlocking)
-      .into_rspack_result()?
-      .await
-      .unwrap_or_else(|err| panic!("Failed to call process assets stage dev tooling: {err}"))
-  }
-
-  async fn process_assets_stage_optimize_inline(
-    &self,
-    _ctx: rspack_core::PluginContext,
-    _args: rspack_core::ProcessAssetsArgs<'_>,
-  ) -> rspack_core::PluginProcessAssetsHookOutput {
-    if self.is_hook_disabled(&Hook::ProcessAssetsStageOptimizeInline) {
-      return Ok(());
-    }
-
-    self
-      .process_assets_stage_optimize_inline_tsfn
-      .call((), ThreadsafeFunctionCallMode::NonBlocking)
-      .into_rspack_result()?
-      .await
-      .unwrap_or_else(|err| panic!("Failed to call process assets stage optimize inline: {err}"))
-  }
-
-  async fn process_assets_stage_summarize(
-    &self,
-    _ctx: rspack_core::PluginContext,
-    _args: rspack_core::ProcessAssetsArgs<'_>,
-  ) -> rspack_core::PluginProcessAssetsHookOutput {
-    if self.is_hook_disabled(&Hook::ProcessAssetsStageSummarize) {
-      return Ok(());
-    }
-
-    // Directly calling hook processAssets without converting assets to JsAssets, instead, we use APIs to get `Source` lazily on the Node side.
-    self
-      .process_assets_stage_summarize_tsfn
-      .call((), ThreadsafeFunctionCallMode::NonBlocking)
-      .into_rspack_result()?
-      .await
-      .unwrap_or_else(|err| panic!("Failed to call process assets stage summarize: {err}"))
-  }
-
-  async fn process_assets_stage_optimize_hash(
-    &self,
-    _ctx: rspack_core::PluginContext,
-    _args: rspack_core::ProcessAssetsArgs<'_>,
-  ) -> rspack_core::PluginProcessAssetsHookOutput {
-    if self.is_hook_disabled(&Hook::ProcessAssetsStageOptimizeHash) {
-      return Ok(());
-    }
-
-    self
-      .process_assets_stage_optimize_hash_tsfn
-      .call((), ThreadsafeFunctionCallMode::NonBlocking)
-      .into_rspack_result()?
-      .await
-      .unwrap_or_else(|err| panic!("Failed to call process assets stage summarize: {err}"))
-  }
-
-  async fn process_assets_stage_optimize_transfer(
-    &self,
-    _ctx: rspack_core::PluginContext,
-    _args: rspack_core::ProcessAssetsArgs<'_>,
-  ) -> rspack_core::PluginProcessAssetsHookOutput {
-    if self.is_hook_disabled(&Hook::ProcessAssetsStageOptimizeTransfer) {
-      return Ok(());
-    }
-
-    self
-      .process_assets_stage_optimize_transfer_tsfn
-      .call((), ThreadsafeFunctionCallMode::NonBlocking)
-      .into_rspack_result()?
-      .await
-      .unwrap_or_else(|err| panic!("Failed to call process assets stage optimize transfer: {err}"))
-  }
-
-  async fn process_assets_stage_analyse(
-    &self,
-    _ctx: rspack_core::PluginContext,
-    _args: rspack_core::ProcessAssetsArgs<'_>,
-  ) -> rspack_core::PluginProcessAssetsHookOutput {
-    if self.is_hook_disabled(&Hook::ProcessAssetsStageAnalyse) {
-      return Ok(());
-    }
-
-    self
-      .process_assets_stage_analyse_tsfn
-      .call((), ThreadsafeFunctionCallMode::NonBlocking)
-      .into_rspack_result()?
-      .await
-      .unwrap_or_else(|err| panic!("Failed to call process assets stage analyse: {err}"))
-  }
-
-  async fn process_assets_stage_report(
-    &self,
-    _ctx: rspack_core::PluginContext,
-    _args: rspack_core::ProcessAssetsArgs<'_>,
-  ) -> rspack_core::PluginProcessAssetsHookOutput {
-    if self.is_hook_disabled(&Hook::ProcessAssetsStageReport) {
-      return Ok(());
-    }
-    // Directly calling hook processAssets without converting assets to JsAssets, instead, we use APIs to get `Source` lazily on the Node side.
-    self
-      .process_assets_stage_report_tsfn
-      .call((), ThreadsafeFunctionCallMode::NonBlocking)
-      .into_rspack_result()?
-      .await
-      .unwrap_or_else(|err| panic!("Failed to call process assets stage report: {err}"))
   }
 
   async fn after_process_assets(
@@ -930,22 +644,6 @@ impl JsHooksAdapterPlugin {
     interceptor: RegisterJsTaps,
   ) -> Result<Self> {
     let JsHooks {
-      process_assets_stage_additional,
-      process_assets_stage_pre_process,
-      process_assets_stage_derived,
-      process_assets_stage_additions,
-      process_assets_stage_none,
-      process_assets_stage_optimize,
-      process_assets_stage_optimize_count,
-      process_assets_stage_optimize_compatibility,
-      process_assets_stage_optimize_size,
-      process_assets_stage_dev_tooling,
-      process_assets_stage_optimize_inline,
-      process_assets_stage_summarize,
-      process_assets_stage_optimize_hash,
-      process_assets_stage_optimize_transfer,
-      process_assets_stage_analyse,
-      process_assets_stage_report,
       after_process_assets,
       this_compilation,
       should_emit,
@@ -974,38 +672,6 @@ impl JsHooksAdapterPlugin {
       runtime_module,
     } = js_hooks;
 
-    let process_assets_stage_additional_tsfn: ThreadsafeFunction<(), ()> =
-      js_fn_into_threadsafe_fn!(process_assets_stage_additional, env);
-    let process_assets_stage_pre_process_tsfn: ThreadsafeFunction<(), ()> =
-      js_fn_into_threadsafe_fn!(process_assets_stage_pre_process, env);
-    let process_assets_stage_derived_tsfn: ThreadsafeFunction<(), ()> =
-      js_fn_into_threadsafe_fn!(process_assets_stage_derived, env);
-    let process_assets_stage_additions_tsfn: ThreadsafeFunction<(), ()> =
-      js_fn_into_threadsafe_fn!(process_assets_stage_additions, env);
-    let process_assets_stage_none_tsfn: ThreadsafeFunction<(), ()> =
-      js_fn_into_threadsafe_fn!(process_assets_stage_none, env);
-    let process_assets_stage_optimize_tsfn: ThreadsafeFunction<(), ()> =
-      js_fn_into_threadsafe_fn!(process_assets_stage_optimize, env);
-    let process_assets_stage_optimize_count_tsfn: ThreadsafeFunction<(), ()> =
-      js_fn_into_threadsafe_fn!(process_assets_stage_optimize_count, env);
-    let process_assets_stage_optimize_compatibility_tsfn: ThreadsafeFunction<(), ()> =
-      js_fn_into_threadsafe_fn!(process_assets_stage_optimize_compatibility, env);
-    let process_assets_stage_optimize_size_tsfn: ThreadsafeFunction<(), ()> =
-      js_fn_into_threadsafe_fn!(process_assets_stage_optimize_size, env);
-    let process_assets_stage_dev_tooling_tsfn: ThreadsafeFunction<(), ()> =
-      js_fn_into_threadsafe_fn!(process_assets_stage_dev_tooling, env);
-    let process_assets_stage_optimize_inline_tsfn: ThreadsafeFunction<(), ()> =
-      js_fn_into_threadsafe_fn!(process_assets_stage_optimize_inline, env);
-    let process_assets_stage_optimize_transfer_tsfn: ThreadsafeFunction<(), ()> =
-      js_fn_into_threadsafe_fn!(process_assets_stage_optimize_transfer, env);
-    let process_assets_stage_analyse_tsfn: ThreadsafeFunction<(), ()> =
-      js_fn_into_threadsafe_fn!(process_assets_stage_analyse, env);
-    let process_assets_stage_summarize_tsfn: ThreadsafeFunction<(), ()> =
-      js_fn_into_threadsafe_fn!(process_assets_stage_summarize, env);
-    let process_assets_stage_optimize_hash_tsfn: ThreadsafeFunction<(), ()> =
-      js_fn_into_threadsafe_fn!(process_assets_stage_optimize_hash, env);
-    let process_assets_stage_report_tsfn: ThreadsafeFunction<(), ()> =
-      js_fn_into_threadsafe_fn!(process_assets_stage_report, env);
     let after_process_assets_tsfn: ThreadsafeFunction<(), ()> =
       js_fn_into_threadsafe_fn!(after_process_assets, env);
     let emit_tsfn: ThreadsafeFunction<(), ()> = js_fn_into_threadsafe_fn!(emit, env);
@@ -1063,22 +729,6 @@ impl JsHooksAdapterPlugin {
       interceptor: Box::new(ThreadsafeRegisterJsTaps::from_js_taps(interceptor, env)?),
       inner: Arc::new(JsHooksAdapterInner {
         disabled_hooks,
-        process_assets_stage_additional_tsfn,
-        process_assets_stage_pre_process_tsfn,
-        process_assets_stage_derived_tsfn,
-        process_assets_stage_additions_tsfn,
-        process_assets_stage_none_tsfn,
-        process_assets_stage_optimize_tsfn,
-        process_assets_stage_optimize_count_tsfn,
-        process_assets_stage_optimize_compatibility_tsfn,
-        process_assets_stage_optimize_size_tsfn,
-        process_assets_stage_dev_tooling_tsfn,
-        process_assets_stage_optimize_inline_tsfn,
-        process_assets_stage_summarize_tsfn,
-        process_assets_stage_optimize_hash_tsfn,
-        process_assets_stage_optimize_transfer_tsfn,
-        process_assets_stage_analyse_tsfn,
-        process_assets_stage_report_tsfn,
         after_process_assets_tsfn,
         this_compilation_tsfn,
         should_emit_tsfn,

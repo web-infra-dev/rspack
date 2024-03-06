@@ -8,12 +8,14 @@ version    = "0.1.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-async-trait = { workspace = true }
-derivative  = { workspace = true }
-indexmap    = { workspace = true }
-once_cell   = { workspace = true }
-rayon       = { workspace = true }
-regex       = { workspace = true }
-rspack_core = { path = "../rspack_core" }
-rspack_hash = { path = "../rspack_hash" }
-rustc-hash  = { workspace = true }
+async-trait  = { workspace = true }
+derivative   = { workspace = true }
+indexmap     = { workspace = true }
+once_cell    = { workspace = true }
+rayon        = { workspace = true }
+regex        = { workspace = true }
+rspack_core  = { path = "../rspack_core" }
+rspack_error = { path = "../rspack_error" }
+rspack_hash  = { path = "../rspack_hash" }
+rspack_hook  = { path = "../rspack_hook" }
+rustc-hash   = { workspace = true }

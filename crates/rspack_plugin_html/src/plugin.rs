@@ -3,6 +3,7 @@ use std::{
   fs,
   hash::{Hash, Hasher},
   path::{Path, PathBuf},
+  sync::Arc,
 };
 
 use anyhow::Context;
@@ -12,9 +13,10 @@ use rayon::prelude::*;
 use rspack_core::{
   parse_to_url,
   rspack_sources::{RawSource, SourceExt},
-  CompilationAsset, Filename, PathData, Plugin,
+  Compilation, CompilationAsset, Filename, PathData, Plugin,
 };
-use rspack_error::AnyhowError;
+use rspack_error::{AnyhowError, Result};
+use rspack_hook::AsyncSeries;
 use serde::Deserialize;
 use swc_html::visit::VisitMutWith;
 
@@ -25,42 +27,33 @@ use crate::{
   visitors::asset::{AssetWriter, HTMLPluginTag},
 };
 
-#[derive(Deserialize, Debug, Default)]
+#[derive(Debug)]
 pub struct HtmlRspackPlugin {
-  config: HtmlRspackPluginOptions,
+  inner: Arc<HtmlRspackPluginInner>,
 }
 
 impl HtmlRspackPlugin {
   pub fn new(config: HtmlRspackPluginOptions) -> HtmlRspackPlugin {
-    HtmlRspackPlugin { config }
+    HtmlRspackPlugin {
+      inner: Arc::new(HtmlRspackPluginInner { config }),
+    }
   }
 }
 
-fn default_template() -> &'static str {
-  r#"<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <title>rspack</title>
-  </head>
-  <body>
-  </body>
-</html>"#
+#[derive(Deserialize, Debug, Default)]
+struct HtmlRspackPluginInner {
+  config: HtmlRspackPluginOptions,
+}
+
+struct HtmlRspackPluginProcessAssetsHook {
+  inner: Arc<HtmlRspackPluginInner>,
 }
 
 #[async_trait]
-impl Plugin for HtmlRspackPlugin {
-  fn name(&self) -> &'static str {
-    "rspack.HtmlRspackPlugin"
-  }
-
-  async fn process_assets_stage_optimize_inline(
-    &self,
-    _ctx: rspack_core::PluginContext,
-    args: rspack_core::ProcessAssetsArgs<'_>,
-  ) -> rspack_core::PluginProcessAssetsOutput {
-    let config = &self.config;
-    let compilation = args.compilation;
+impl AsyncSeries<Compilation> for HtmlRspackPluginProcessAssetsHook {
+  async fn run(&self, compilation: &mut Compilation) -> Result<()> {
+    let inner = &self.inner;
+    let config = &inner.config;
 
     let parser = HtmlCompiler::new(config);
     let (content, url, normalized_template_name) = if let Some(content) = &config.template_content {
@@ -96,7 +89,7 @@ impl Plugin for HtmlRspackPlugin {
     };
 
     // process with template parameters
-    let template_result = if let Some(template_parameters) = &self.config.template_parameters {
+    let template_result = if let Some(template_parameters) = &inner.config.template_parameters {
       let mut dj = Dojang::new();
       dj.add(url.clone(), content)
         .expect("failed to add template");
@@ -145,7 +138,7 @@ impl Plugin for HtmlRspackPlugin {
         if let Some(extension) = Path::new(&asset_name).extension() {
           let asset_uri = format!(
             "{}{asset_name}",
-            config.get_public_path(compilation, &self.config.filename),
+            config.get_public_path(compilation, &inner.config.filename),
           );
           let mut tag: Option<HTMLPluginTag> = None;
           if extension.eq_ignore_ascii_case("css") {
@@ -201,7 +194,7 @@ impl Plugin for HtmlRspackPlugin {
       CompilationAsset::new(Some(RawSource::from(source).boxed()), asset_info),
     );
 
-    if let Some(favicon) = &self.config.favicon {
+    if let Some(favicon) = &inner.config.favicon {
       let url = parse_to_url(favicon);
       let favicon_file_path = PathBuf::from(config.get_relative_path(compilation, favicon));
 
@@ -221,6 +214,43 @@ impl Plugin for HtmlRspackPlugin {
 
     Ok(())
   }
+
+  fn stage(&self) -> i32 {
+    Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE
+  }
+}
+
+impl Plugin for HtmlRspackPlugin {
+  fn name(&self) -> &'static str {
+    "rspack.HtmlRspackPlugin"
+  }
+
+  fn apply(
+    &self,
+    ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
+    _options: &mut rspack_core::CompilerOptions,
+  ) -> Result<()> {
+    ctx
+      .context
+      .compilation_hooks
+      .process_assets
+      .tap(Box::new(HtmlRspackPluginProcessAssetsHook {
+        inner: self.inner.clone(),
+      }));
+    Ok(())
+  }
+}
+
+fn default_template() -> &'static str {
+  r#"<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>rspack</title>
+  </head>
+  <body>
+  </body>
+</html>"#
 }
 
 fn hash_for_source(source: &str) -> String {

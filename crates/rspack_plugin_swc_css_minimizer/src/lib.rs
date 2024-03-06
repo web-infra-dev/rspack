@@ -1,27 +1,18 @@
 use async_trait::async_trait;
 use rayon::prelude::*;
-use rspack_core::{rspack_sources::MapOptions, Plugin};
+use rspack_core::{rspack_sources::MapOptions, Compilation, Plugin};
 use rspack_error::Result;
+use rspack_hook::AsyncSeries;
 use rspack_plugin_css::swc_css_compiler::{SwcCssCompiler, SwcCssSourceMapGenConfig};
 
 #[derive(Debug)]
 pub struct SwcCssMinimizerRspackPlugin;
 
+struct SwcCssMinimizerRspackPluginProcessAssetsHook;
+
 #[async_trait]
-impl Plugin for SwcCssMinimizerRspackPlugin {
-  fn name(&self) -> &'static str {
-    "rspack.SwcCssMinimizerRspackPlugin"
-  }
-
-  // TODO: chunk hash
-
-  async fn process_assets_stage_optimize_size(
-    &self,
-    _ctx: rspack_core::PluginContext,
-    args: rspack_core::ProcessAssetsArgs<'_>,
-  ) -> rspack_core::PluginProcessAssetsOutput {
-    let compilation = args.compilation;
-
+impl AsyncSeries<Compilation> for SwcCssMinimizerRspackPluginProcessAssetsHook {
+  async fn run(&self, compilation: &mut Compilation) -> Result<()> {
     compilation
       .assets_mut()
       .par_iter_mut()
@@ -53,4 +44,29 @@ impl Plugin for SwcCssMinimizerRspackPlugin {
 
     Ok(())
   }
+
+  fn stage(&self) -> i32 {
+    Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE
+  }
+}
+
+impl Plugin for SwcCssMinimizerRspackPlugin {
+  fn name(&self) -> &'static str {
+    "rspack.SwcCssMinimizerRspackPlugin"
+  }
+
+  fn apply(
+    &self,
+    ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
+    _options: &mut rspack_core::CompilerOptions,
+  ) -> Result<()> {
+    ctx
+      .context
+      .compilation_hooks
+      .process_assets
+      .tap(Box::new(SwcCssMinimizerRspackPluginProcessAssetsHook));
+    Ok(())
+  }
+
+  // TODO: chunk hash
 }
