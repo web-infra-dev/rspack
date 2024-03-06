@@ -177,7 +177,7 @@ describe("StatsTestCases", () => {
 					actual = actual
 						.replace(/\u001b\[[0-9;]*m/g, "")
 						// CHANGE: The time unit display in Rspack is second
-						.replace(/[0-9]*\.[0-9]+(\s?s)/g, "X$1");
+						.replace(/[.0-9]+(\s?s)/g, "X$1");
 				} else {
 					actual = stderr.toStringRaw() + actual;
 					actual = actual
@@ -186,7 +186,7 @@ describe("StatsTestCases", () => {
 						.replace(/\u001b\[39m\u001b\[22m/g, "</CLR>")
 						.replace(/\u001b\[([0-9;]*)m/g, "<CLR=$1>")
 						// CHANGE: The time unit display in Rspack is second
-						.replace(/[0-9]*\.[0-9]+(<\/CLR>)?(\s?s)/g, "X$1$2");
+						.replace(/[.0-9]+(<\/CLR>)?(\s?s)/g, "X$1$2");
 				}
 				// cspell:ignore Xdir
 				const testPath = path.join(base, testName);

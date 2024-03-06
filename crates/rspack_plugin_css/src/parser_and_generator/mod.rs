@@ -45,11 +45,7 @@ pub(crate) static CSS_MODULE_SOURCE_TYPE_LIST: &[SourceType; 2] =
 pub(crate) static CSS_MODULE_EXPORTS_ONLY_SOURCE_TYPE_LIST: &[SourceType; 1] =
   &[SourceType::JavaScript];
 
-#[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
-#[archive(check_bytes)]
-pub struct CssExport(pub String, pub ErrorSpan, pub Option<String>);
-
-pub type CssExportsType = IndexMap<Vec<String>, Vec<CssExport>>;
+pub type CssExportsType = IndexMap<Vec<String>, Vec<(String, ErrorSpan, Option<String>)>>;
 
 #[derive(Debug)]
 pub struct CssParserAndGenerator {
@@ -195,7 +191,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
       let mut compose_deps = locals
         .iter()
         .flat_map(|(_, value)| value)
-        .filter_map(|CssExport(_, span, from)| {
+        .filter_map(|(_, span, from)| {
           if let Some(from) = from {
             if dep_set.contains(&from) {
               None
