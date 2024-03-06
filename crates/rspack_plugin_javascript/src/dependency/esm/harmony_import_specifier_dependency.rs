@@ -251,12 +251,7 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
     if self.shorthand {
       source.insert(self.end, format!(": {export_expr}").as_str(), None);
     } else {
-      source.replace(
-        self.start,
-        self.end,
-        &format!("/** harmony_import_dependency*/{export_expr}"),
-        None,
-      );
+      source.replace(self.start, self.end, export_expr.as_str(), None);
     }
   }
 
