@@ -72,3 +72,6 @@ export * from "./ContextReplacementPlugin";
 export * from "./LibManifestPlugin";
 export * from "./DllEntryPlugin";
 export * from "./DllReferenceAgencyPlugin";
+export * from "./RSCClientEntryPlugin";
+export * from "./RSCClientReferenceManifestRspackPlugin";
+

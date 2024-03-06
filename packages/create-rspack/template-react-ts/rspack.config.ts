@@ -15,6 +15,11 @@ export default defineConfig({
 	resolve: {
 		extensions: ["...", ".ts", ".tsx", ".jsx"]
 	},
+	devServer: {
+		devMiddleware: {
+			writeToDisk: true
+		}
+	},
 	module: {
 		rules: [
 			{
