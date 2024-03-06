@@ -152,9 +152,21 @@ export class HotRunner<
 		return moduleScope;
 	}
 
+	protected createJsonRequirer(): TRunnerRequirer {
+		return (_, modulePath, context = {}) => {
+			if (Array.isArray(modulePath)) {
+				throw new Error("Array module path is not supported in hot cases");
+			}
+			return JSON.parse(
+				fs.readFileSync(path.join(this._options.dist, modulePath), "utf-8")
+			);
+		};
+	}
+
 	protected createRunner() {
 		super.createRunner();
 		this.requirers.set("cjs", this.getRequire());
+		this.requirers.set("json", this.createJsonRequirer());
 		this.requirers.set("entry", (_, modulePath, context) => {
 			if (Array.isArray(modulePath)) {
 				throw new Error("Array module path is not supported in hot cases");
@@ -163,13 +175,17 @@ export class HotRunner<
 				return require(modulePath);
 			}
 			if (modulePath.endsWith(".json")) {
-				return JSON.parse(
-					fs.readFileSync(path.join(this._options.dist, modulePath), "utf-8")
+				return this.requirers.get("json")!(
+					this._options.dist,
+					modulePath,
+					context
 				);
 			} else {
-				return this.requirers.get("cjs")!(this._options.dist, modulePath, {
-					...context
-				});
+				return this.requirers.get("cjs")!(
+					this._options.dist,
+					modulePath,
+					context
+				);
 			}
 		});
 	}
