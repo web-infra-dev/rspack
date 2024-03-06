@@ -6,7 +6,7 @@ use async_trait::async_trait;
 use once_cell::sync::Lazy;
 use rspack_core::{
   Compilation, ConnectionState, ModuleGraph, ModuleIdentifier, MutexModuleGraph, Plugin,
-  ResolvedExportInfoTarget, SideEffectsBailoutItem,
+  ResolvedExportInfoTarget, SideEffectsBailoutItemWithSpan,
 };
 use rspack_error::Result;
 use rspack_identifier::IdentifierSet;
@@ -25,7 +25,7 @@ use crate::dependency::{
 
 pub struct SideEffectsFlagPluginVisitor<'a> {
   unresolved_ctxt: SyntaxContext,
-  pub side_effects_item: Option<SideEffectsBailoutItem>,
+  pub side_effects_item: Option<SideEffectsBailoutItemWithSpan>,
   is_top_level: bool,
   comments: Option<&'a SwcComments>,
 }
@@ -83,7 +83,7 @@ impl<'a> Visit for SideEffectsFlagPluginVisitor<'a> {
           }
           ModuleDecl::ExportDefaultExpr(expr) => {
             if !is_pure_expression(&expr.expr, self.unresolved_ctxt, self.comments) {
-              self.side_effects_item = Some(SideEffectsBailoutItem::new(
+              self.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
                 expr.span,
                 String::from("ExportDefaultExpr"),
               ));
@@ -116,7 +116,7 @@ impl<'a> Visit for SideEffectsFlagPluginVisitor<'a> {
 
   fn visit_export_decl(&mut self, node: &ExportDecl) {
     if !is_pure_decl(&node.decl, self.unresolved_ctxt, self.comments) {
-      self.side_effects_item = Some(SideEffectsBailoutItem::new(
+      self.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
         node.decl.span(),
         String::from("Decl"),
       ));
@@ -168,7 +168,7 @@ impl<'a> SideEffectsFlagPluginVisitor<'a> {
     match ele {
       Stmt::If(stmt) => {
         if !is_pure_expression(&stmt.test, self.unresolved_ctxt, self.comments) {
-          self.side_effects_item = Some(SideEffectsBailoutItem::new(
+          self.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
             stmt.span(),
             String::from("Statement"),
           ));
@@ -176,7 +176,7 @@ impl<'a> SideEffectsFlagPluginVisitor<'a> {
       }
       Stmt::While(stmt) => {
         if !is_pure_expression(&stmt.test, self.unresolved_ctxt, self.comments) {
-          self.side_effects_item = Some(SideEffectsBailoutItem::new(
+          self.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
             stmt.span(),
             String::from("Statement"),
           ));
@@ -184,7 +184,7 @@ impl<'a> SideEffectsFlagPluginVisitor<'a> {
       }
       Stmt::DoWhile(stmt) => {
         if !is_pure_expression(&stmt.test, self.unresolved_ctxt, self.comments) {
-          self.side_effects_item = Some(SideEffectsBailoutItem::new(
+          self.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
             stmt.span(),
             String::from("Statement"),
           ));
@@ -204,7 +204,7 @@ impl<'a> SideEffectsFlagPluginVisitor<'a> {
         };
 
         if !pure_init {
-          self.side_effects_item = Some(SideEffectsBailoutItem::new(
+          self.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
             stmt.span(),
             String::from("Statement"),
           ));
@@ -217,7 +217,7 @@ impl<'a> SideEffectsFlagPluginVisitor<'a> {
         };
 
         if !pure_test {
-          self.side_effects_item = Some(SideEffectsBailoutItem::new(
+          self.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
             stmt.span(),
             String::from("Statement"),
           ));
@@ -230,7 +230,7 @@ impl<'a> SideEffectsFlagPluginVisitor<'a> {
         };
 
         if !pure_update {
-          self.side_effects_item = Some(SideEffectsBailoutItem::new(
+          self.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
             stmt.span(),
             String::from("Statement"),
           ));
@@ -238,7 +238,7 @@ impl<'a> SideEffectsFlagPluginVisitor<'a> {
       }
       Stmt::Expr(stmt) => {
         if !is_pure_expression(&stmt.expr, self.unresolved_ctxt, self.comments) {
-          self.side_effects_item = Some(SideEffectsBailoutItem::new(
+          self.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
             stmt.span(),
             String::from("Statement"),
           ));
@@ -246,7 +246,7 @@ impl<'a> SideEffectsFlagPluginVisitor<'a> {
       }
       Stmt::Switch(stmt) => {
         if !is_pure_expression(&stmt.discriminant, self.unresolved_ctxt, self.comments) {
-          self.side_effects_item = Some(SideEffectsBailoutItem::new(
+          self.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
             stmt.span(),
             String::from("Statement"),
           ));
@@ -254,7 +254,7 @@ impl<'a> SideEffectsFlagPluginVisitor<'a> {
       }
       Stmt::Decl(stmt) => {
         if !is_pure_decl(stmt, self.unresolved_ctxt, self.comments) {
-          self.side_effects_item = Some(SideEffectsBailoutItem::new(
+          self.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
             stmt.span(),
             String::from("Statement"),
           ));
@@ -264,7 +264,7 @@ impl<'a> SideEffectsFlagPluginVisitor<'a> {
       Stmt::Labeled(_) => {}
       Stmt::Block(_) => {}
       _ => {
-        self.side_effects_item = Some(SideEffectsBailoutItem::new(
+        self.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
           ele.span(),
           String::from("Statement"),
         ))

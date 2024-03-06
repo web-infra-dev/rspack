@@ -2926,6 +2926,7 @@ dependencies = [
  "once_cell",
  "rayon",
  "regex",
+ "ropey",
  "rspack_ast",
  "rspack_core",
  "rspack_error",

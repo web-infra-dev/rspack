@@ -359,7 +359,7 @@ chunk {909} main.js (main) [entry]
   ./lib.js [467] {909}
     [exports: test]
     [all exports used]
-    Statement with side_effects in source code at ./lib.js:ErrorSpan { start: 42, end: 49 }
+    Statement with side_effects in source code at ./lib.js:3:0-9
     esm import ./lib.js [10]
     esm import specifier ./lib.js [10]
   ./index.js [10] {909}
@@ -369,7 +369,7 @@ chunk {909} main.js (main) [entry]
 ./lib.js [467] {909}
   [exports: test]
   [all exports used]
-  Statement with side_effects in source code at ./lib.js:ErrorSpan { start: 42, end: 49 }
+  Statement with side_effects in source code at ./lib.js:3:0-9
   esm import ./lib.js [10]
   esm import specifier ./lib.js [10]
 ./index.js [10] {909}
@@ -383,7 +383,7 @@ webpack/runtime/define_property_getters {909}
   [no exports]
   [used exports unknown]
   
-1970-04-20 12:42:42: Rspack x.x.x compiled successfully in X s (1b5e99c7289b023d2b92)"
+1970-04-20 12:42:42: Rspack x.x.x compiled successfully in X s (aa839c2ab732086cca33)"
 `;
 
 exports[`StatsTestCases should print correct stats for simple-export 1`] = `

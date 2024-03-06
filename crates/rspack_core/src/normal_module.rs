@@ -29,10 +29,10 @@ use crate::{
   add_connection_states, contextify, diagnostics::ModuleBuildError, get_context,
   impl_build_info_meta, AsyncDependenciesBlockIdentifier, BoxLoader, BoxModule, BuildContext,
   BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation, ConcatenationScope,
-  ConnectionState, Context, DependenciesBlock, DependencyId, DependencyTemplate, ErrorSpan,
-  GenerateContext, GeneratorOptions, LibIdentOptions, Module, ModuleDependency, ModuleGraph,
-  ModuleIdentifier, ModuleType, ParseContext, ParseResult, ParserAndGenerator, ParserOptions,
-  Resolve, RspackLoaderRunnerPlugin, RuntimeSpec, SourceType,
+  ConnectionState, Context, DependenciesBlock, DependencyId, DependencyTemplate, GenerateContext,
+  GeneratorOptions, LibIdentOptions, Module, ModuleDependency, ModuleGraph, ModuleIdentifier,
+  ModuleType, ParseContext, ParseResult, ParserAndGenerator, ParserOptions, Resolve,
+  RspackLoaderRunnerPlugin, RuntimeSpec, SourceType,
 };
 
 bitflags! {
@@ -443,9 +443,8 @@ impl Module for NormalModule {
     let optimization_bailouts = if let Some(side_effects_bailout) = side_effects_bailout {
       let short_id = self.readable_identifier(&build_context.compiler_options.context);
       vec![format!(
-        "{} with side_effects in source code at {short_id}:{:?}",
-        side_effects_bailout.ty,
-        ErrorSpan::from(side_effects_bailout.span)
+        "{} with side_effects in source code at {short_id}:{}",
+        side_effects_bailout.ty, side_effects_bailout.msg
       )]
     } else {
       vec![]

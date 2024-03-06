@@ -10,13 +10,13 @@ use rspack_core::tree_shaking::js_module::JsModule;
 use rspack_core::tree_shaking::visitor::OptimizeAnalyzeResult;
 use rspack_core::{
   render_init_fragments, AsyncDependenciesBlockIdentifier, Compilation, DependenciesBlock,
-  DependencyId, GenerateContext, Module, ParseContext, ParseResult, ParserAndGenerator, SourceType,
-  TemplateContext, TemplateReplaceSource,
+  DependencyId, GenerateContext, Module, ParseContext, ParseResult, ParserAndGenerator,
+  SideEffectsBailoutItem, SourceType, SpanExt, TemplateContext, TemplateReplaceSource,
 };
 use rspack_error::miette::Diagnostic;
 use rspack_error::{DiagnosticExt, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_util::source_map::SourceMapKind;
-use swc_core::common::SyntaxContext;
+use swc_core::common::{Span, SyntaxContext};
 use swc_core::ecma::parser::{EsConfig, Syntax};
 
 use crate::ast::CodegenOptions;
@@ -235,7 +235,13 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         program.visit_with(&mut visitor);
         build_meta.side_effect_free = Some(visitor.side_effects_item.is_none());
         // Take the item from visitor is safe, because the field is only used in this place
-        side_effects_bailout = visitor.side_effects_item.take();
+        side_effects_bailout = visitor
+          .side_effects_item
+          .take()
+          .and_then(|item| -> Option<_> {
+            let msg = span_to_location(item.span, &output.code)?;
+            Some(SideEffectsBailoutItem { msg, ty: item.ty })
+          })
       });
     }
 
@@ -349,5 +355,27 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         generate_context.requested_source_type
       )
     }
+  }
+}
+
+fn span_to_location(span: Span, source: &str) -> Option<String> {
+  let r = ropey::Rope::from_str(source);
+  let start = span.real_lo();
+  let end = span.real_hi();
+  let start_char_offset = r.try_byte_to_char(start as usize).ok()?;
+  let start_line = r.char_to_line(start_char_offset);
+  let start_column = start_char_offset - r.line_to_char(start_line);
+
+  let end_char_offset = r.try_byte_to_char(end as usize).ok()?;
+  let end_line = r.char_to_line(end_char_offset);
+  let end_column = end_char_offset - r.line_to_char(end_line);
+  if start_line == end_line {
+    Some(format!("{}:{start_column}-{end_column}", start_line + 1))
+  } else {
+    Some(format!(
+      "{}:{start_column}-{}:{end_column}",
+      start_line + 1,
+      end_line + 1
+    ))
   }
 }
