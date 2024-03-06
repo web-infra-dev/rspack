@@ -59,13 +59,8 @@ export class BasicRunnerFactory<T extends ECompilerType>
 			compilerOptions.target === "webworker"
 		) {
 			return new WebRunner<T>(runnerOptions);
-		} else if (
-			path.extname(file) === ".mjs" &&
-			compilerOptions.experiments?.outputModule
-		) {
-			return new EsmRunner<T>(runnerOptions);
 		} else {
-			return new BasicRunner<T>(runnerOptions);
+			return new EsmRunner<T>(runnerOptions);
 		}
 	}
 }

@@ -37,7 +37,6 @@ export class MultiTaskProcessor<T extends ECompilerType = ECompilerType.Rspack>
 	implements ITestProcessor
 {
 	protected multiCompilerOptions: TCompilerOptions<T>[] = [];
-	protected runners: ITestRunner[] = [];
 	constructor(protected _multiOptions: IMultiTaskProcessorOptions<T>) {
 		super({
 			runable: _multiOptions.runable,
