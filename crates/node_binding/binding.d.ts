@@ -175,7 +175,8 @@ export enum BuiltinPluginName {
   SwcCssMinimizerRspackPlugin = 'SwcCssMinimizerRspackPlugin',
   BundlerInfoRspackPlugin = 'BundlerInfoRspackPlugin',
   JsLoaderRspackPlugin = 'JsLoaderRspackPlugin',
-  RSCClientEntryRspackPlugin = 'RSCClientEntryRspackPlugin'
+  RSCClientEntryRspackPlugin = 'RSCClientEntryRspackPlugin',
+  RSCClientReferenceManifestRspackPlugin = 'RSCClientReferenceManifestRspackPlugin'
 }
 
 export function cleanupGlobalTrace(): void

@@ -6,12 +6,18 @@ const isDev = process.env.NODE_ENV === "development";
  * @type {import('@rspack/cli').Configuration}
  */
 module.exports = {
+	devtool: "source-map",
 	context: __dirname,
 	entry: {
 		main: "./src/main.tsx"
 	},
 	resolve: {
 		extensions: ["...", ".ts", ".tsx", ".jsx"]
+	},
+	devServer: {
+		devMiddleware: {
+			writeToDisk: true
+		}
 	},
 	module: {
 		rules: [
@@ -53,8 +59,21 @@ module.exports = {
 			}
 		]
 	},
+	// optimization: {
+	// 	sideEffects: true,
+	// 	usedExports: true,
+	// 	providedExports: true,
+	// 	mangleExports: true,
+	// 	moduleIds: 'named'
+	// },
+	experiments: {
+		rspackFuture: {
+			newTreeshaking: true
+		}
+	},
 	plugins: [
 		new rspack.RSCClientEntryPlugin(),
+		new rspack.RSCClientReferenceManifestRspackPlugin(),
 		new rspack.DefinePlugin({
 			"process.env.NODE_ENV": JSON.stringify(process.env.NODE_ENV)
 		}),
