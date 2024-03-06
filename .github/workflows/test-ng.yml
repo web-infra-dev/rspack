@@ -4,47 +4,52 @@ on:
   workflow_dispatch:
   schedule:
     - cron: "0 0 * * *"
+  pull_request_review_comment:
+    types: [created]
+  issue_comment:
+    types: [created]
 
 jobs:
   get-runner-labels:
     name: Get Runner Labels
     uses: ./.github/workflows/get-runner-labels.yml
 
-  test-linux:
-    name: Test Linux
+  comment-test:
+    name: Test trigger by comment
     needs: [get-runner-labels]
+    if: (github.event_name == 'issue_comment' || github.event_name == 'pull_request_review_comment') && contains(github.event.comment.body, '!test-ng')
+    strategy:
+      matrix:
+        array:
+          - target: x86_64-unknown-linux-gnu
+            runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
     uses: ./.github/workflows/reusable-build.yml
     with:
-      target: x86_64-unknown-linux-gnu
       profile: "debug"
-      runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
+      ref: refs/pull/${{ github.event.issue.number || github.event.pull_request.number }}/head
+      target: ${{ matrix.array.target }}
+      runner: ${{ matrix.array.runner }}
       test-ng: true
 
-  test-windows:
-    name: Test Windows
+  schedule-test:
+    name: Test trigger by schedule
     needs: [get-runner-labels]
-    if: github.ref_name == 'main' || contains(github.event.pull_request.title, '!windows')
+    if: (github.event_name == 'workflow_dispatch' || github.event_name == 'schedule')
+    strategy:
+      matrix:
+        array:
+          - target: x86_64-unknown-linux-gnu
+            runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
     uses: ./.github/workflows/reusable-build.yml
     with:
-      target: x86_64-pc-windows-msvc
       profile: "debug"
-      runner: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS }}
-      test-ng: true
-
-  test-mac:
-    name: Test Mac
-    needs: [get-runner-labels]
-    if: github.ref_name == 'main' || contains(github.event.pull_request.title, '!macos')
-    uses: ./.github/workflows/reusable-build.yml
-    with:
-      target: x86_64-apple-darwin
-      profile: "debug"
-      runner: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_LABELS }}
+      target: ${{ matrix.array.target }}
+      runner: ${{ matrix.array.runner }}
       test-ng: true
 
   notify:
     name: Notify if failed
-    needs: [test-linux, test-windows, test-mac]
+    needs: [schedule-test]
     runs-on: ubuntu-latest
     if: ${{ github.repository_owner == 'web-infra-dev' && failure() && !cancelled() }}
     steps:
