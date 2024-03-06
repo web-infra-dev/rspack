@@ -5,7 +5,7 @@ use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
 use rspack_core::rspack_sources::{ConcatSource, RawSource};
 use rspack_core::{
-  to_identifier, Compilation, GenerateContext, OutputOptions, PathData, RuntimeGlobals,
+  to_identifier, Compilation, ErrorSpan, GenerateContext, OutputOptions, PathData, RuntimeGlobals,
 };
 use rspack_error::{error, Result};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash};
@@ -14,7 +14,7 @@ use swc_core::common::Spanned;
 use swc_core::css::modules::CssClassName;
 use swc_core::ecma::atoms::Atom;
 
-use crate::parser_and_generator::{CssExport, CssExportsType};
+use crate::parser_and_generator::CssExportsType;
 use crate::plugin::{LocalIdentName, LocalIdentNameRenderOptions, LocalsConvention};
 
 pub const AUTO_PUBLIC_PATH_PLACEHOLDER: &str = "__RSPACK_PLUGIN_CSS_AUTO_PUBLIC_PATH__";
@@ -99,16 +99,18 @@ pub(crate) fn export_locals_convention(
   res
 }
 
-pub fn stringify_css_modules_exports_elements(elements: &[CssClassName]) -> Vec<CssExport> {
+pub fn stringify_css_modules_exports_elements(
+  elements: &[CssClassName],
+) -> Vec<(String, ErrorSpan, Option<String>)> {
   elements
     .iter()
     .map(|element| match element {
-      CssClassName::Local { name } | CssClassName::Global { name } => CssExport(
+      CssClassName::Local { name } | CssClassName::Global { name } => (
         serde_json::to_string(&name.value).expect("TODO:"),
         name.span().into(),
         None,
       ),
-      CssClassName::Import { name, from } => CssExport(
+      CssClassName::Import { name, from } => (
         serde_json::to_string(&name.value).expect("TODO:"),
         name.span().into(),
         Some(from.to_string()),
@@ -128,7 +130,7 @@ pub fn css_modules_exports_to_string(
   for (key, elements) in exports {
     let content = elements
       .iter()
-      .map(|CssExport(name, _, from)| match from {
+      .map(|(name, _, from)| match from {
         None => name.to_owned(),
         Some(from_name) => {
           let from = module
@@ -187,7 +189,7 @@ pub fn css_modules_exports_to_concatenate_module_string(
   for (key, elements) in exports {
     let content = elements
       .iter()
-      .map(|CssExport(name, _span, from)| match from {
+      .map(|(name, _span, from)| match from {
         None => name.to_owned(),
         Some(from_name) => {
           let from = module

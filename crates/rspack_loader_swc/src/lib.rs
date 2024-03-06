@@ -68,6 +68,13 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
         }
       }
 
+      if swc_options.config.jsc.experimental.plugins.is_some() {
+        loader_context.emit_diagnostic(Diagnostic::warn(
+          SWC_LOADER_IDENTIFIER.to_string(),
+          "Experimental plugins are not currently supported.".to_string(),
+        ));
+      }
+
       if swc_options.config.jsc.target.is_some() && swc_options.config.env.is_some() {
         loader_context.emit_diagnostic(Diagnostic::warn(
           SWC_LOADER_IDENTIFIER.to_string(),
