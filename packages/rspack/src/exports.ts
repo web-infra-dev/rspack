@@ -265,3 +265,4 @@ export type {
 	SwcLoaderTsParserConfig
 } from "./builtin-loader/swc/index";
 export { RSCClientEntryPlugin } from "./builtin-plugin";
+export { RSCClientReferenceManifestRspackPlugin } from "./builtin-plugin";
