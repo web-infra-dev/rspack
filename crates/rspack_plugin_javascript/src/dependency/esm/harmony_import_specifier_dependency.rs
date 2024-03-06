@@ -102,7 +102,6 @@ impl HarmonyImportSpecifierDependency {
       return false;
     }
 
-    // self.span_for_on_usage_search;
     match &self.specifier {
       Specifier::Namespace(_) => true,
       Specifier::Default(_) => compilation
