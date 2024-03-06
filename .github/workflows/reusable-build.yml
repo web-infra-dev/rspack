@@ -203,6 +203,8 @@ jobs:
     runs-on: ${{ fromJSON(needs.build.outputs.runner-labels) }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
 
       - name: Download bindings
         uses: ./.github/actions/download-artifact
@@ -244,6 +246,8 @@ jobs:
       PUPPETEER_SKIP_DOWNLOAD: true
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
 
       - name: Download bindings
         uses: ./.github/actions/download-artifact
