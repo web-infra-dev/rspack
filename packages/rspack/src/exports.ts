@@ -46,13 +46,14 @@ export const WebpackError = Error;
 
 export type { Watching } from "./Watching";
 
-const sources = require("webpack-sources"); // use require to avoid wrong types, @types/webpack-sources is outdate
-export { sources };
-
+import sources from "webpack-sources";
 import {
 	getNormalizedRspackOptions,
 	applyRspackOptionsDefaults
 } from "./config";
+
+export { sources };
+
 export const config = {
 	getNormalizedRspackOptions,
 	applyRspackOptionsDefaults,

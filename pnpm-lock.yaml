@@ -472,9 +472,6 @@ importers:
       '@types/watchpack':
         specifier: ^2.4.0
         version: 2.4.0
-      '@types/webpack-sources':
-        specifier: 3.2.3
-        version: 3.2.3
       '@types/ws':
         specifier: 8.5.10
         version: 8.5.10
