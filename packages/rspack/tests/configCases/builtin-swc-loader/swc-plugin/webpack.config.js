@@ -1,6 +1,5 @@
-/** @type {import('@rspack/core').Configuration} */
 module.exports = {
-	entry: "./index",
+	context: __dirname,
 	module: {
 		rules: [
 			{
@@ -8,7 +7,6 @@ module.exports = {
 				use: {
 					loader: "builtin:swc-loader",
 					options: {
-						// Enable source map
 						sourceMap: true,
 						jsc: {
 							parser: {
@@ -18,22 +16,18 @@ module.exports = {
 							experimental: {
 								plugins: [
 									[
-										"@swc/plugin-styled-components",
+										"@swc/plugin-remove-console",
 										{
-											"displayName": true,
-											"ssr": true,
-											"fileName": true,
-											"namespace": "my-app"
+											"exclude": ["error"]
 										}
 									]
-								]
+								],
 							},
 						},
-					}
+					},
 				},
 				type: "javascript/auto"
 			}
 		]
-	},
-	stats: "errors-warnings"
+	}
 };

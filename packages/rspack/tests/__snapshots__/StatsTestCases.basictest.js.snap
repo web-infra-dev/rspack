@@ -191,13 +191,6 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   4 chunks (Rspack x.x.x) compiled successfully in X s (548e146544e55a805a9d)"
 `;
 
-exports[`StatsTestCases should print correct stats for loader-builtin-swc-plugin-warn 1`] = `
-"WARNING in ./index.js
-  ⚠ Experimental plugins are not currently supported.
-
-Rspack compiled with 1 warning"
-`;
-
 exports[`StatsTestCases should print correct stats for logging-loader 1`] = `
 "DEBUG LOG from TestLoader|Xdir/logging-loader/index.js
 <-> group
