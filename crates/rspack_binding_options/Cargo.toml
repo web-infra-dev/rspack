@@ -5,6 +5,10 @@ name       = "rspack_binding_options"
 repository = "https://github.com/web-infra-dev/rspack"
 version    = "0.1.0"
 
+[features]
+default = []
+plugin  = ["rspack_loader_swc/plugin"]
+
 [dependencies]
 async-trait                           = { workspace = true }
 better_scoped_tls                     = { workspace = true }
