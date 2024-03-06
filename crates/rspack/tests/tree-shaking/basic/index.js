@@ -1,5 +1,3 @@
-import  {a, result} from "./lib";
-import {test} from './a.js'
-test
-result
-a
+import { answer } from "./lib";
+answer
+
