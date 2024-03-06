@@ -50,6 +50,10 @@ on:
         type: boolean
         required: false
         default: false
+      test-ng: # Run By New Runner
+        type: boolean
+        required: false
+        default: false
       ref: # Git reference to checkout
         required: false
         type: string
@@ -282,6 +286,11 @@ jobs:
         timeout-minutes: 20 # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
         if: ${{ inputs.target == 'x86_64-pc-windows-msvc' }}
         run: pnpm run test:ci
+
+      - name: Test new runner
+        timeout-minutes: 15
+        if: ${{ inputs.test-ng }}
+        run: pnpm run test:ng
 
       - name: Diff test
         timeout-minutes: 15

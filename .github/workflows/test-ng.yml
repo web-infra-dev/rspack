@@ -1,0 +1,62 @@
+name: Test new runner
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 0 * * *"
+
+jobs:
+  get-runner-labels:
+    name: Get Runner Labels
+    uses: ./.github/workflows/get-runner-labels.yml
+
+  test-linux:
+    name: Test Linux
+    needs: [get-runner-labels]
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      target: x86_64-unknown-linux-gnu
+      profile: "debug"
+      runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
+      test-ng: true
+
+  test-windows:
+    name: Test Windows
+    needs: [get-runner-labels]
+    if: github.ref_name == 'main' || contains(github.event.pull_request.title, '!windows')
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      target: x86_64-pc-windows-msvc
+      profile: "debug"
+      runner: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS }}
+      test-ng: true
+
+  test-mac:
+    name: Test Mac
+    needs: [get-runner-labels]
+    if: github.ref_name == 'main' || contains(github.event.pull_request.title, '!macos')
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      target: x86_64-apple-darwin
+      profile: "debug"
+      runner: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_LABELS }}
+      test-ng: true
+
+  notify:
+    name: Notify if failed
+    needs: [test-linux, test-windows, test-mac]
+    runs-on: ubuntu-latest
+    if: ${{ github.repository_owner == 'web-infra-dev' && failure() && !cancelled() }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - shell: bash
+        run: ./scripts/alert/lark.js
+        env:
+          TITLE: New Runner failed
+          DESCRIPTION: |
+            commitID: [${{github.sha}}](${{github.server_url}}/${{github.repository}}/commit/${{github.sha}})
+          URL: ${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}}
+          LARK_WEBHOOK_URL: ${{secrets.LARK_WEBHOOK_URL}}
