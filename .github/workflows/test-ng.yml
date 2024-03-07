@@ -14,45 +14,77 @@ jobs:
     name: Get Runner Labels
     uses: ./.github/workflows/get-runner-labels.yml
 
-  comment-test:
-    name: Test trigger by comment
+  build:
+    name: Build
     needs: [get-runner-labels]
-    if: (github.event_name == 'issue_comment' || github.event_name == 'pull_request_review_comment') && contains(github.event.comment.body, '!test-ng')
-    strategy:
-      matrix:
-        array:
-          - target: x86_64-unknown-linux-gnu
-            runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
     uses: ./.github/workflows/reusable-build.yml
-    with:
-      profile: "debug"
-      ref: refs/pull/${{ github.event.issue.number || github.event.pull_request.number }}/merge
-      target: ${{ matrix.array.target }}
-      runner: ${{ matrix.array.runner }}
-      test-ng: true
-  
-  schedule-test:
-    name: Test trigger by schedule
-    needs: [get-runner-labels]
-    if: (github.event_name == 'workflow_dispatch' || github.event_name == 'schedule')
-    strategy:
-      matrix:
-        array:
-          - target: x86_64-unknown-linux-gnu
-            runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
-    uses: ./.github/workflows/reusable-build.yml
-    with:
-      profile: "debug"
-      target: ${{ matrix.array.target }}
-      runner: ${{ matrix.array.runner }}
-      test-ng: true
+      if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || (github.event_name == 'issue_comment' || github.event_name == 'pull_request_review_comment') && contains(github.event.comment.body, '!test-ng')
+      with:
+        profile: "debug"
+        ref: ${{ (github.event_name == 'issue_comment' || github.event_name == 'pull_request_review_comment') && format('refs/pull/{0}/merge',  github.event.issue.number || github.event.pull_request.number) || "" }}
+        target: x86_64-unknown-linux-gnu
+        runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
+        test: false
+        
+  test:
+    name: Test by new runner
+    needs: [build, get-runner-labels]
+    runs-on: ${{ fromJSON(needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS) }}
+    outputs:
+      testng: ${{ env.RESULT }}
+    steps:
+      - name: Checkout Branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ (github.event_name == 'issue_comment' || github.event_name == 'pull_request_review_comment') && format('refs/pull/{0}/merge',  github.event.issue.number || github.event.pull_request.number) || "" }}
 
+      - name: Pnpm Cache
+        uses: ./.github/actions/pnpm-cache
 
+      - name: Download bindings
+        uses: ./.github/actions/download-artifact
+        with:
+          name: bindings-x86_64-unknown-linux-gnu
+          path: crates/node_binding/
+          try-local-cache: true
+          link-when-local: true
+
+      - name: Build node packages
+        run: pnpm run build:js
+
+      - name: Test diff
+        id: testng
+        run: pnpm run test:diff
+
+      - name: Test new runner
+        run: |
+          OUTPUT=$(pnpm run test:ng)
+          echo 'RESULT<<EOF' >> $GITHUB_ENV
+          echo  "$OUTPUT"  >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
+
+  comment:
+    name: Write a new comment
+    uses: peter-evans/create-or-update-comment@v4
+    needs: [test]
+    continue-on-error: true
+    if: github.event_name == 'issue_comment' || github.event_name == 'pull_request_review_comment'
+    with:
+      issue-number: ${{ github.event.issue.number || github.event.pull_request.number }}
+      body: |
+        **${{ failed() && "🟢🟢🟢 Test new runner successed" || "🔴🔴🔴 Test new runner failed" }}**
+        
+        > Task: ${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}}
+
+        ```
+        ${{ needs.test.outputs.testng }}
+        ```
+    
   notify:
-    name: Notify if failed
-    needs: [schedule-test]
+    name: Notify
+    needs: [test]
     runs-on: ubuntu-latest
-    if: ${{ github.repository_owner == 'web-infra-dev' && failure() && !cancelled() }}
+    if: ${{ github.event_name == 'schedule' && github.repository_owner == 'web-infra-dev' && failure() && !cancelled() }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -61,8 +93,12 @@ jobs:
       - shell: bash
         run: ./scripts/alert/lark.js
         env:
-          TITLE: New Runner failed
+          TITLE: New Runner Failed
           DESCRIPTION: |
             commitID: [${{github.sha}}](${{github.server_url}}/${{github.repository}}/commit/${{github.sha}})
           URL: ${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}}
           LARK_WEBHOOK_URL: ${{secrets.LARK_WEBHOOK_URL}}
+
+      
+  
+ 
