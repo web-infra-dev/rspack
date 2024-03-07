@@ -87,7 +87,7 @@ asset main.js 32.3 KiB [emitted] (name: main)
 Entrypoint main 32.3 KiB = main.js
 runtime modules 11 modules
 ./index.js
-Rspack x.x.x compiled successfully in X s (30a302845ffd45f6b1aa)"
+Rspack x.x.x compiled successfully in X s (71aa1be8a8c1afa978eb)"
 `;
 
 exports[`StatsTestCases should print correct stats for ignore-plugin 1`] = `
