@@ -66,6 +66,7 @@ jobs:
   comment:
     name: Write a new comment
     needs: [test]
+    runs-on: ${{ fromJSON(needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS) }}
     if: github.event_name == 'issue_comment' || github.event_name == 'pull_request_review_comment'
     steps:
       - name: Write comment
@@ -85,7 +86,7 @@ jobs:
   notify:
     name: Notify
     needs: [test]
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS) }}
     if: ${{ github.event_name == 'schedule' && github.repository_owner == 'web-infra-dev' && failure() && !cancelled() }}
     steps:
       - uses: actions/checkout@v4
