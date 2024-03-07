@@ -18,13 +18,13 @@ jobs:
     name: Build
     needs: [get-runner-labels]
     uses: ./.github/workflows/reusable-build.yml
-      if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || (github.event_name == 'issue_comment' || github.event_name == 'pull_request_review_comment') && contains(github.event.comment.body, '!test-ng')
-      with:
-        profile: "debug"
-        ref: ${{ (github.event_name == 'issue_comment' || github.event_name == 'pull_request_review_comment') && format('refs/pull/{0}/merge',  github.event.issue.number || github.event.pull_request.number) || "" }}
-        target: x86_64-unknown-linux-gnu
-        runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
-        test: false
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || (github.event_name == 'issue_comment' || github.event_name == 'pull_request_review_comment') && contains(github.event.comment.body, '!test-ng')
+    with:
+      profile: "debug"
+      ref: ${{ (github.event_name == 'issue_comment' || github.event_name == 'pull_request_review_comment') && format('refs/pull/{0}/merge',  github.event.issue.number || github.event.pull_request.number) || "" }}
+      target: x86_64-unknown-linux-gnu
+      runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
+      test: false
         
   test:
     name: Test by new runner
