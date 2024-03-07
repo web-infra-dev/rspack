@@ -137,6 +137,25 @@ pub struct ContextOptions {
   pub end: u32,
 }
 
+impl Display for ContextOptions {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(
+      f,
+      "|{:?}|{:?}|{:?}|{:?}|{:?}|{:?}|{:?}|{:?}|{:?}|{:?}",
+      self.mode,
+      self.recursive,
+      self.reg_exp,
+      self.reg_str,
+      self.include,
+      self.exclude,
+      self.category,
+      self.request,
+      self.namespace_object,
+      self.chunk_name
+    )
+  }
+}
+
 impl PartialEq for ContextOptions {
   fn eq(&self, other: &Self) -> bool {
     self.mode == other.mode
@@ -179,7 +198,7 @@ impl Display for ContextModuleOptions {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(
       f,
-      "{}|{:?}|{:?}|{:?}",
+      "{}|{:?}|{:?}|{}",
       self.resource, self.resource_query, self.resource_fragment, self.context_options
     )
   }
