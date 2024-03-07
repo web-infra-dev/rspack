@@ -247,7 +247,7 @@ jobs:
   run_ecosystem_ci:
     name: Run Ecosystem CI
     runs-on: ubuntu-latest
-    if: github.ref_name == 'main' && github.repository_owner == 'web-infra-dev'
+    if: github.repository_owner == 'web-infra-dev'
     steps:
       - name: Run Ecosystem CI
         uses: convictional/trigger-workflow-and-wait@v1.6.5
