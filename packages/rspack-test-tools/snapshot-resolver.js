@@ -10,7 +10,7 @@ module.exports = {
 		return path.join(snapshotBasePath, relative) + snapshotExtension;
 	},
 	resolveTestPath: (snapshotFilePath, snapshotExtension) => {
-		const relative = snapshotFilePath.replace(snapshotBasePath + "/", "");
+		const relative = snapshotFilePath.replace(snapshotBasePath + path.sep, "");
 		return relative.slice(0, -snapshotExtension.length);
 	},
 	testPathForConsistencyCheck: "tests/example.test.js"
