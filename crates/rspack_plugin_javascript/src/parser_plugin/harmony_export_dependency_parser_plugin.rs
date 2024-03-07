@@ -377,8 +377,8 @@ impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
             if let ModuleExportName::Ident(orig) = &named.orig {
               let export = match &named.exported {
                 Some(ModuleExportName::Ident(export)) => export.sym.clone(),
+                Some(ModuleExportName::Str(name)) => name.value.clone(),
                 None => orig.sym.clone(),
-                _ => unreachable!(),
               };
               if let Some(reference) = parser.import_map.get(&orig.to_id()) {
                 let ids = vec![(export.clone(), reference.names.clone())];
