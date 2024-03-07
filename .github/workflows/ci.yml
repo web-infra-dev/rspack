@@ -254,7 +254,7 @@ jobs:
         with:
           owner: ${{ github.repository_owner }}
           repo: 'rspack-ecosystem-ci'
-          workflow_file_name: 'rspack-ecosystem-ci-from-commit.yml'
+          workflow_file_name: 'ecosystem-ci-from-commit.yml'
           github_token: ${{ secrets.ECOSYSTEM_CI_ACCESS_TOKEN }}
           ref: 'main'
           client_payload: '{"commitSHA":"${{ github.sha }}","repo":"web-infra-dev/rspack","suite":"-","suiteRefType":"precoded","suiteRef":"precoded"}'
