@@ -65,20 +65,22 @@ jobs:
 
   comment:
     name: Write a new comment
-    uses: peter-evans/create-or-update-comment@v4
     needs: [test]
-    continue-on-error: true
     if: github.event_name == 'issue_comment' || github.event_name == 'pull_request_review_comment'
-    with:
-      issue-number: ${{ github.event.issue.number || github.event.pull_request.number }}
-      body: |
-        **${{ failed() && "🟢🟢🟢 Test new runner successed" || "🔴🔴🔴 Test new runner failed" }}**
-        
-        > Task: ${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}}
+    steps:
+      - name: Write comment
+        uses: peter-evans/create-or-update-comment@v4
+        continue-on-error: true
+        with:
+          issue-number: ${{ github.event.issue.number || github.event.pull_request.number }}
+          body: |
+            **${{ failed() && "🟢🟢🟢 Test new runner successed" || "🔴🔴🔴 Test new runner failed" }}**
+            
+            > Task: ${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}}
 
-        ```
-        ${{ needs.test.outputs.testng }}
-        ```
+            ```
+            ${{ needs.test.outputs.testng }}
+            ```
     
   notify:
     name: Notify
