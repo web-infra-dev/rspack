@@ -1114,19 +1114,19 @@ impl Module for ConcatenatedModule {
         } => {
           let module_info = module_to_info_map
             .get(&module_info_id)
-            .expect("should should have module info ");
+            .expect("should have module info ");
           module_info
         }
         ModuleInfoOrReference::External(info) => {
           let module_info = module_to_info_map
             .get(&info.module)
-            .expect("should should have module info ");
+            .expect("should have module info ");
           module_info
         }
         ModuleInfoOrReference::Concatenated(info) => {
           let module_info = module_to_info_map
             .get(&info.module)
-            .expect("should should have module info ");
+            .expect("should have module info ");
           module_info
         }
       };
