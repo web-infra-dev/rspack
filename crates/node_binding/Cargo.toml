@@ -9,6 +9,10 @@ version    = "0.1.0"
 [lib]
 crate-type = ["cdylib"]
 
+[features]
+default = []
+plugin  = ["rspack_binding_options/plugin"]
+
 [dependencies]
 rspack_binding_macros  = { path = "../rspack_binding_macros" }
 rspack_binding_options = { path = "../rspack_binding_options" }

@@ -225,3 +225,6 @@ justfile
 
 smoke-example
 diff_output
+
+# .swc plugins cache
+.swc/
