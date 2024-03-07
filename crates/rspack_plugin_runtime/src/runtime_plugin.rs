@@ -144,31 +144,6 @@ impl Plugin for RuntimePlugin {
     "rspack.RuntimePlugin"
   }
 
-  async fn additional_tree_runtime_requirements(
-    &self,
-    _ctx: PluginContext,
-    args: &mut AdditionalChunkRuntimeRequirementsArgs,
-  ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
-    let compilation = &args.compilation;
-    let chunk = args.chunk();
-    if args
-      .runtime_requirements
-      .contains(RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES)
-      || (args
-        .runtime_requirements
-        .contains(RuntimeGlobals::ENSURE_CHUNK)
-        && !chunk
-          .get_all_async_chunks(&compilation.chunk_group_by_ukey)
-          .is_empty())
-    {
-      args
-        .runtime_requirements
-        .insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
-    }
-
-    Ok(())
-  }
-
   #[allow(clippy::unwrap_in_result)]
   fn runtime_requirements_in_module(
     &self,

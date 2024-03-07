@@ -163,10 +163,9 @@ impl AsyncSeries<Compilation> for HotModuleReplacementPluginProcessAssetsHook {
 
         new_runtime_modules = compilation
           .chunk_graph
-          .get_chunk_runtime_modules_in_order(&current_chunk.ukey)
-          .iter()
-          .filter(|&module| updated_runtime_modules.contains(module))
-          .map(|module| ModuleIdentifier::from(module.as_str()))
+          .get_chunk_runtime_modules_in_order(&current_chunk.ukey, &compilation)
+          .filter(|(module, _)| updated_runtime_modules.contains(module))
+          .map(|(&module, _)| module)
           .collect::<Vec<_>>();
 
         // subtractRuntime
