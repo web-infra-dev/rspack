@@ -14,14 +14,16 @@ use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, ProvidedExports, RuntimeSpec,
   UsedExports,
 };
+mod module;
+pub use module::*;
 mod connection;
 pub use connection::*;
 mod vec_map;
 
 use crate::{
   BoxDependency, BoxModule, BuildDependency, BuildInfo, BuildMeta, DependencyCondition,
-  DependencyId, ExportInfo, ExportInfoId, ExportsInfo, ExportsInfoId, ModuleGraphModule,
-  ModuleIdentifier, ModuleProfile,
+  DependencyId, ExportInfo, ExportInfoId, ExportsInfo, ExportsInfoId, ModuleIdentifier,
+  ModuleProfile,
 };
 
 // TODO Here request can be used Atom
