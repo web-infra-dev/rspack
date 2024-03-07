@@ -4,8 +4,7 @@ use async_trait::async_trait;
 use once_cell::sync::Lazy;
 use rspack_core::{
   get_css_chunk_filename_template, get_js_chunk_filename_template,
-  AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, ChunkLoading,
-  JsChunkHashArgs, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput,
+  AdditionalModuleRequirementsArgs, ChunkLoading, JsChunkHashArgs, Plugin,
   PluginAdditionalModuleRequirementsOutput, PluginContext, PluginJsChunkHashHookOutput,
   PluginRuntimeRequirementsInTreeOutput, PublicPath, RuntimeGlobals, RuntimeModuleExt,
   RuntimeRequirementsInTreeArgs, SourceType, FULL_HASH_PLACEHOLDER, HASH_PLACEHOLDER,

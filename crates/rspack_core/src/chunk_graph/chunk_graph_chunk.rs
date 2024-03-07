@@ -8,9 +8,9 @@ use rspack_identifier::{IdentifierLinkedMap, IdentifierMap, IdentifierSet};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 
 use crate::{
-  find_graph_roots, merge_runtime, BoxModule, BoxRuntimeModule, Chunk, ChunkByUkey,
-  ChunkGraphModule, ChunkGroup, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Module, ModuleGraph,
-  ModuleIdentifier, RuntimeGlobals, RuntimeModule, SourceType,
+  find_graph_roots, merge_runtime, BoxModule, Chunk, ChunkByUkey, ChunkGraphModule, ChunkGroup,
+  ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Module, ModuleGraph, ModuleIdentifier,
+  RuntimeGlobals, RuntimeModule, SourceType,
 };
 use crate::{ChunkGraph, Compilation};
 

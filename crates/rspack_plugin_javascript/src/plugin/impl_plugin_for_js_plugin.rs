@@ -217,11 +217,11 @@ impl Plugin for JsPlugin {
 
     for (runtime_module_idenfitier, _) in compilation
       .chunk_graph
-      .get_chunk_runtime_modules_in_order(&args.chunk_ukey, &compilation)
+      .get_chunk_runtime_modules_in_order(&args.chunk_ukey, compilation)
     {
       if let Some((hash, _)) = compilation
         .runtime_module_code_generation_results
-        .get(&runtime_module_idenfitier)
+        .get(runtime_module_idenfitier)
       {
         hash.hash(&mut hasher);
       }
