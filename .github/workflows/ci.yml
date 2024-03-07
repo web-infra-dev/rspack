@@ -56,7 +56,6 @@ jobs:
           - target: aarch64-unknown-linux-gnu
           - target: x86_64-unknown-linux-musl
           - target: aarch64-unknown-linux-musl
-    uses: ./.github/workflows/reusable-build.yml
     with:
       target: ${{ matrix.array.target }}
       runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
@@ -83,7 +82,6 @@ jobs:
           - target: i686-pc-windows-msvc
           - target: x86_64-pc-windows-msvc
           - target: aarch64-pc-windows-msvc
-    uses: ./.github/workflows/reusable-build.yml
     with:
       target: ${{ matrix.array.target }}
       runner: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS }}
@@ -110,7 +108,6 @@ jobs:
         array:
           - target: x86_64-apple-darwin
           - target: aarch64-apple-darwin
-    uses: ./.github/workflows/reusable-build.yml
     with:
       target: ${{ matrix.array.target }}
       runner: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_LABELS }}
