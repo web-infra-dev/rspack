@@ -99,6 +99,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
     vec![],
     Default::default(),
     &mut Default::default(),
+    &mut Default::default(),
   );
 
   let (result, _) = run_loaders(

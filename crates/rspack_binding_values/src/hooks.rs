@@ -3,22 +3,6 @@ use napi_derive::napi;
 
 #[napi(object)]
 pub struct JsHooks {
-  pub process_assets_stage_additional: JsFunction,
-  pub process_assets_stage_pre_process: JsFunction,
-  pub process_assets_stage_derived: JsFunction,
-  pub process_assets_stage_additions: JsFunction,
-  pub process_assets_stage_none: JsFunction,
-  pub process_assets_stage_optimize: JsFunction,
-  pub process_assets_stage_optimize_count: JsFunction,
-  pub process_assets_stage_optimize_compatibility: JsFunction,
-  pub process_assets_stage_optimize_size: JsFunction,
-  pub process_assets_stage_dev_tooling: JsFunction,
-  pub process_assets_stage_optimize_inline: JsFunction,
-  pub process_assets_stage_summarize: JsFunction,
-  pub process_assets_stage_optimize_hash: JsFunction,
-  pub process_assets_stage_optimize_transfer: JsFunction,
-  pub process_assets_stage_analyse: JsFunction,
-  pub process_assets_stage_report: JsFunction,
   pub after_process_assets: JsFunction,
   pub this_compilation: JsFunction,
   pub emit: JsFunction,

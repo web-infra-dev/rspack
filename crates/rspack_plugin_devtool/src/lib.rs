@@ -7,6 +7,7 @@ use std::hash::Hasher;
 use std::sync::Arc;
 use std::{hash::Hash, path::Path};
 
+use async_trait::async_trait;
 use dashmap::DashMap;
 use derivative::Derivative;
 use futures::future::{join_all, BoxFuture};
@@ -19,14 +20,15 @@ use rspack_core::{
   contextify,
   rspack_sources::{BoxSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap},
   AssetInfo, Compilation, CompilationAsset, JsChunkHashArgs, PathData, Plugin, PluginContext,
-  PluginJsChunkHashHookOutput, PluginProcessAssetsOutput, PluginRenderModuleContentOutput,
-  ProcessAssetsArgs, RenderModuleContentArgs, SourceType,
+  PluginJsChunkHashHookOutput, PluginRenderModuleContentOutput, RenderModuleContentArgs,
+  SourceType,
 };
 use rspack_core::{
   Chunk, Filename, Logger, Module, ModuleIdentifier, OutputOptions, RuntimeModule,
 };
 use rspack_error::{miette::IntoDiagnostic, Result};
 use rspack_hash::RspackHash;
+use rspack_hook::AsyncSeries;
 use rspack_util::identifier::make_paths_absolute;
 use rspack_util::source_map::SourceMapKind;
 use rspack_util::{path::relative, swc::normalize_custom_filename};
@@ -131,9 +133,22 @@ struct MappedAsset {
   source_map: Option<(String, CompilationAsset)>,
 }
 
+#[derive(Debug)]
+pub struct SourceMapDevToolPlugin {
+  inner: Arc<SourceMapDevToolPluginInner>,
+}
+
+impl SourceMapDevToolPlugin {
+  pub fn new(options: SourceMapDevToolPluginOptions) -> Self {
+    Self {
+      inner: Arc::new(SourceMapDevToolPluginInner::new(options)),
+    }
+  }
+}
+
 #[derive(Derivative)]
 #[derivative(Debug)]
-pub struct SourceMapDevToolPlugin {
+struct SourceMapDevToolPluginInner {
   source_map_filename: Option<Filename>,
   #[derivative(Debug = "ignore")]
   source_mapping_url_comment: Option<SourceMappingUrlComment>,
@@ -153,8 +168,8 @@ pub struct SourceMapDevToolPlugin {
   mapped_assets_cache: MappedAssetsCache,
 }
 
-impl SourceMapDevToolPlugin {
-  pub fn new(options: SourceMapDevToolPluginOptions) -> Self {
+impl SourceMapDevToolPluginInner {
+  fn new(options: SourceMapDevToolPluginOptions) -> Self {
     let source_mapping_url_comment = match options.append {
       Some(append) => match append {
         Append::String(s) => Some(SourceMappingUrlComment::String(s)),
@@ -499,24 +514,21 @@ impl SourceMapDevToolPlugin {
   }
 }
 
-#[async_trait::async_trait]
-impl Plugin for SourceMapDevToolPlugin {
-  fn name(&self) -> &'static str {
-    "rspack.SourceMapDevToolPlugin"
-  }
+struct SourceMapDevToolPluginProcessAssetsHook {
+  inner: Arc<SourceMapDevToolPluginInner>,
+}
 
-  async fn process_assets_stage_dev_tooling(
-    &self,
-    _ctx: PluginContext,
-    ProcessAssetsArgs { compilation }: ProcessAssetsArgs<'_>,
-  ) -> PluginProcessAssetsOutput {
-    let logger = compilation.get_logger(self.name());
+#[async_trait]
+impl AsyncSeries<Compilation> for SourceMapDevToolPluginProcessAssetsHook {
+  async fn run(&self, compilation: &mut Compilation) -> Result<()> {
+    let inner = &self.inner;
+    let logger = compilation.get_logger("rspack.SourceMapDevToolPlugin");
     let start = logger.time("collect source maps");
 
-    let mapped_asstes = self
+    let mapped_asstes = inner
       .mapped_assets_cache
       .use_cache(compilation.assets(), |assets| {
-        self.map_assets(compilation, assets)
+        inner.map_assets(compilation, assets)
       })
       .await?;
 
@@ -539,6 +551,29 @@ impl Plugin for SourceMapDevToolPlugin {
     }
 
     logger.time_end(start);
+    Ok(())
+  }
+
+  fn stage(&self) -> i32 {
+    Compilation::PROCESS_ASSETS_STAGE_DEV_TOOLING
+  }
+}
+
+impl Plugin for SourceMapDevToolPlugin {
+  fn name(&self) -> &'static str {
+    "rspack.SourceMapDevToolPlugin"
+  }
+
+  fn apply(
+    &self,
+    ctx: PluginContext<&mut rspack_core::ApplyContext>,
+    _options: &mut rspack_core::CompilerOptions,
+  ) -> Result<()> {
+    ctx.context.compilation_hooks.process_assets.tap(Box::new(
+      SourceMapDevToolPluginProcessAssetsHook {
+        inner: self.inner.clone(),
+      },
+    ));
     Ok(())
   }
 }

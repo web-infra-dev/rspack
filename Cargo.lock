@@ -2766,6 +2766,7 @@ dependencies = [
  "regex",
  "rspack_core",
  "rspack_error",
+ "rspack_hook",
  "rspack_regex",
  "rspack_util",
 ]
@@ -2784,6 +2785,7 @@ dependencies = [
  "rspack_error",
  "rspack_futures",
  "rspack_hash",
+ "rspack_hook",
  "rspack_testing",
  "rustc-hash",
  "sugar_path",
@@ -2837,6 +2839,7 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_hash",
+ "rspack_hook",
  "rspack_util",
  "rustc-hash",
  "serde_json",
@@ -2901,6 +2904,7 @@ dependencies = [
  "rspack_base64",
  "rspack_core",
  "rspack_error",
+ "rspack_hook",
  "rspack_testing",
  "schemars",
  "serde",
@@ -3034,7 +3038,9 @@ dependencies = [
  "rayon",
  "regex",
  "rspack_core",
+ "rspack_error",
  "rspack_hash",
+ "rspack_hook",
  "rustc-hash",
 ]
 
@@ -3106,6 +3112,7 @@ dependencies = [
  "rayon",
  "rspack_core",
  "rspack_error",
+ "rspack_hook",
  "rspack_plugin_css",
 ]
 
@@ -3119,6 +3126,7 @@ dependencies = [
  "regex",
  "rspack_core",
  "rspack_error",
+ "rspack_hook",
  "rspack_plugin_javascript",
  "rspack_regex",
  "rspack_util",
