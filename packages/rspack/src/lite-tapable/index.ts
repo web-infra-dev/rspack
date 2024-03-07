@@ -142,6 +142,17 @@ class Hook<T, R, AdditionalOptions = UnsetAdditionalOptions> {
 		return this.taps.length > 0 || this.interceptors.length > 0;
 	}
 
+	queryStageRange([from, to]: StageRange) {
+		const tapsInRange = [];
+		for (let tap of this.taps) {
+			const stage = tap.stage ?? 0;
+			if (from < stage && stage <= to) {
+				tapsInRange.push(tap);
+			}
+		}
+		return tapsInRange;
+	}
+
 	callAsyncStageRange(
 		stageRange: StageRange,
 		...args: Append<AsArray<T>, Callback<Error, R>>
@@ -150,7 +161,7 @@ class Hook<T, R, AdditionalOptions = UnsetAdditionalOptions> {
 	}
 
 	callAsync(...args: Append<AsArray<T>, Callback<Error, R>>): void {
-		return this.callAsyncStageRange(StageRange.all(), ...args);
+		return this.callAsyncStageRange(allStageRange, ...args);
 	}
 
 	promiseStageRange(stageRange: StageRange, ...args: AsArray<T>): Promise<R> {
@@ -164,7 +175,7 @@ class Hook<T, R, AdditionalOptions = UnsetAdditionalOptions> {
 	}
 
 	promise(...args: AsArray<T>): Promise<R> {
-		return this.promiseStageRange(StageRange.all(), ...args);
+		return this.promiseStageRange(allStageRange, ...args);
 	}
 
 	tap(options: Options<AdditionalOptions>, fn: Fn<T, R>) {
@@ -191,9 +202,6 @@ class Hook<T, R, AdditionalOptions = UnsetAdditionalOptions> {
 			options
 		);
 		insert = this._runRegisterInterceptors(insert);
-		if (insert.stage) {
-			insert.stage = StageRange.trim(insert.stage);
-		}
 		this._insert(insert);
 	}
 
@@ -233,40 +241,10 @@ class Hook<T, R, AdditionalOptions = UnsetAdditionalOptions> {
 	}
 }
 
-export class StageRange {
-	#from: number;
-	#to: number;
-
-	constructor(from: number, to: number) {
-		this.#from = StageRange.trim(from);
-		this.#to = StageRange.trim(to);
-	}
-
-	static from(from: number, to: number) {
-		return new StageRange(from, to);
-	}
-
-	static all() {
-		return StageRange.from(StageRange.MIN, StageRange.MAX);
-	}
-
-	get from() {
-		return this.#from;
-	}
-
-	get to() {
-		return this.#to;
-	}
-
-	static MAX = 2 ** 31 - 1;
-	static MIN = -(2 ** 31);
-
-	static trim(n: number) {
-		if (n > StageRange.MAX) return StageRange.MAX;
-		if (n < StageRange.MIN) return StageRange.MIN;
-		return n;
-	}
-}
+export type StageRange = readonly [number, number];
+const minStage = -Infinity;
+const maxStage = Infinity;
+const allStageRange = [minStage, maxStage] as const;
 
 export class SyncHook<
 	T,
@@ -274,12 +252,12 @@ export class SyncHook<
 	AdditionalOptions = UnsetAdditionalOptions
 > extends Hook<T, R, AdditionalOptions> {
 	callAsyncStageRange(
-		{ from, to }: StageRange,
+		[from, to]: StageRange,
 		...args: Append<AsArray<T>, Callback<Error, R>>
 	) {
 		const args2 = [...args];
 		const cb = args2.pop() as Callback<Error, R>;
-		if (from === StageRange.MIN) {
+		if (from === minStage) {
 			this._runCallInterceptors(...args2);
 		}
 		for (let tap of this.taps) {
@@ -295,14 +273,14 @@ export class SyncHook<
 				}
 			}
 		}
-		if (to === StageRange.MAX) {
+		if (to === maxStage) {
 			this._runDoneInterceptors();
 			cb(null);
 		}
 	}
 
 	call(...args: AsArray<T>): R {
-		return this.callStageRange(StageRange.all(), ...args);
+		return this.callStageRange(allStageRange, ...args);
 	}
 
 	/**
@@ -335,12 +313,12 @@ export class AsyncParallelHook<
 	AdditionalOptions = UnsetAdditionalOptions
 > extends Hook<T, void, AdditionalOptions> {
 	callAsyncStageRange(
-		{ from, to }: StageRange,
+		[from, to]: StageRange,
 		...args: Append<AsArray<T>, Callback<Error, void>>
 	) {
 		const args2 = [...args];
 		const cb = args2.pop() as Callback<Error, void>;
-		if (from === StageRange.MIN) {
+		if (from === minStage) {
 			this._runCallInterceptors(...args2);
 		}
 		const done = () => {
@@ -429,12 +407,12 @@ export class AsyncSeriesHook<
 	AdditionalOptions = UnsetAdditionalOptions
 > extends Hook<T, void, AdditionalOptions> {
 	callAsyncStageRange(
-		{ from, to }: StageRange,
+		[from, to]: StageRange,
 		...args: Append<AsArray<T>, Callback<Error, void>>
 	) {
 		const args2 = [...args];
 		const cb = args2.pop() as Callback<Error, void>;
-		if (from === StageRange.MIN) {
+		if (from === minStage) {
 			this._runCallInterceptors(...args2);
 		}
 		const done = () => {

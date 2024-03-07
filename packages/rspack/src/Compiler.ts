@@ -848,10 +848,7 @@ class Compiler {
 		const breakpoints = [-Infinity, ...stages, Infinity];
 		const jsTaps = [];
 		for (let i = 0; i < breakpoints.length - 1; i++) {
-			const stageRange = liteTapable.StageRange.from(
-				breakpoints[i],
-				breakpoints[i + 1]
-			);
+			const stageRange = [breakpoints[i], breakpoints[i + 1]] as const;
 			jsTaps.push({
 				function: (native: binding.JsCompilation) => {
 					this.hooks.compilation.callStageRange(stageRange, this.compilation, {
@@ -870,10 +867,7 @@ class Compiler {
 		const breakpoints = [-Infinity, ...stages, Infinity];
 		const jsTaps = [];
 		for (let i = 0; i < breakpoints.length - 1; i++) {
-			const stageRange = liteTapable.StageRange.from(
-				breakpoints[i],
-				breakpoints[i + 1]
-			);
+			const stageRange = [breakpoints[i], breakpoints[i + 1]] as const;
 			jsTaps.push({
 				function: async (native: binding.JsCompilation) => {
 					await this.hooks.make.promiseStageRange(stageRange, this.compilation);
@@ -890,10 +884,7 @@ class Compiler {
 		const breakpoints = [-Infinity, ...stages, Infinity];
 		const jsTaps = [];
 		for (let i = 0; i < breakpoints.length - 1; i++) {
-			const stageRange = liteTapable.StageRange.from(
-				breakpoints[i],
-				breakpoints[i + 1]
-			);
+			const stageRange = [breakpoints[i], breakpoints[i + 1]] as const;
 			jsTaps.push({
 				function: async () => {
 					await this.compilation.hooks.processAssets.promiseStageRange(
