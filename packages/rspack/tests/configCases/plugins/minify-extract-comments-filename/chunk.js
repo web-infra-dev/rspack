@@ -1,0 +1,3 @@
+/**
+ * @preserve Some comment
+ */

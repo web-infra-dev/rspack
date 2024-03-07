@@ -14,8 +14,9 @@ use regex::Regex;
 use rspack_core::rspack_sources::{ConcatSource, MapOptions, RawSource, SourceExt, SourceMap};
 use rspack_core::rspack_sources::{Source, SourceMapSource, SourceMapSourceOptions};
 use rspack_core::{
-  AssetInfo, CompilationAsset, JsChunkHashArgs, Plugin, PluginContext, PluginJsChunkHashHookOutput,
-  PluginProcessAssetsOutput, ProcessAssetsArgs,
+  parse_resource, AssetInfo, CompilationAsset, JsChunkHashArgs, Plugin, PluginContext,
+  PluginJsChunkHashHookOutput, PluginProcessAssetsOutput, ProcessAssetsArgs, ResourceParsedData,
+  BASE_PLACEHOLDER, FILE_PLACEHOLDER, QUERY_PLACEHOLDER,
 };
 use rspack_error::miette::IntoDiagnostic;
 use rspack_error::{Diagnostic, Result};
@@ -120,6 +121,7 @@ pub enum OptionWrapper<T: std::fmt::Debug + Hash> {
 #[derive(Debug)]
 pub struct ExtractComments {
   pub condition: String,
+  pub filename: Option<String>,
   pub banner: OptionWrapper<String>,
 }
 
@@ -214,7 +216,27 @@ impl Plugin for SwcJsMinimizerRspackPlugin {
             ..Default::default()
             };
           let extract_comments_option = minify_options.extract_comments.as_ref().map(|extract_comments| {
-            let comments_filename = format!("{}.LICENSE.txt", filename);
+            let comments_filename = match &extract_comments.filename {
+              None => format!("{}.LICENSE.txt", filename),
+              Some(template) => {
+                if let Some(ResourceParsedData {
+                  path: file,
+                  query,
+                  fragment: _,
+                }) = parse_resource(filename) {
+                  let mut template = template.clone();
+                  template = template.replace(FILE_PLACEHOLDER, &file.to_string_lossy());
+                  template = template.replace(QUERY_PLACEHOLDER, &query.unwrap_or_default());
+                  if let Some(base) = file.file_name().map(|p| p.to_string_lossy()) {
+                    template = template.replace(BASE_PLACEHOLDER, &base);
+                  }
+                  template
+                } else {
+                  template.clone()
+                }
+              }
+            };
+
             let banner = match &extract_comments.banner {
               OptionWrapper::Default => {
                 let dir = Path::new(filename).parent().expect("should has parent");

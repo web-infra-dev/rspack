@@ -852,6 +852,7 @@ export interface RawExternalsPresets {
 export interface RawExtractComments {
   banner?: string | boolean
   condition?: string
+  filename?: string
 }
 
 export interface RawFallbackCacheGroupOptions {

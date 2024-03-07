@@ -10,11 +10,11 @@ type MinifyConditions = MinifyCondition | MinifyCondition[];
 
 type ExtractCommentsCondition = boolean | RegExp;
 type ExtractCommentsBanner = string | boolean;
-// type ExtractFilename = string;
+type ExtractFilename = string;
 type ExtractCommentsObject = {
 	condition?: ExtractCommentsCondition | undefined;
 	banner?: ExtractCommentsBanner | undefined;
-	// filename?: ExtractFilename | undefined
+	filename?: ExtractFilename | undefined;
 };
 type ExtractCommentsOptions = ExtractCommentsCondition | ExtractCommentsObject;
 
@@ -368,7 +368,8 @@ function getRawExtractCommentsOptions(
 		} else {
 			const res = {
 				condition: conditionStr(extractComments.condition),
-				banner: extractComments.banner
+				banner: extractComments.banner,
+				filename: extractComments.filename
 			};
 			return res;
 		}
