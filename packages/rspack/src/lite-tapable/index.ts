@@ -191,6 +191,9 @@ class Hook<T, R, AdditionalOptions = UnsetAdditionalOptions> {
 			options
 		);
 		insert = this._runRegisterInterceptors(insert);
+		if (insert.stage) {
+			insert.stage = StageRange.trim(insert.stage);
+		}
 		this._insert(insert);
 	}
 
