@@ -94,7 +94,7 @@ exports[`StatsTestCases should print correct stats for ignore-plugin 1`] = `
 "runtime modules 1 module
 ./index.js
 ./locals/en.js
-Xdir/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex(\\"^\\\\\\\\.\\\\\\\\/.*$\\")), reg_str: \\"^\\\\\\\\.\\\\\\\\/.*$\\", include: None, exclude: None, category: CommonJS, request: \\"./locals\\", namespace_object: Unset, chunk_name: None, start: 52, end: 59 }"
+Xdir/ignore-plugin/locals|None|None||Sync|true|Some(RspackRegex(\\"^\\\\\\\\.\\\\\\\\/.*$\\"))|\\"^\\\\\\\\.\\\\\\\\/.*$\\"|None|None|CommonJS|\\"./locals\\"|Unset|None"
 `;
 
 exports[`StatsTestCases should print correct stats for ignore-warning 1`] = `"Rspack compiled successfully"`;
