@@ -70,6 +70,8 @@ swc_html_minifier   = { version = "=0.132.20" }
 swc_node_comments   = { version = "=0.20.12" }
 tikv-jemallocator   = { version = "=0.5.4", features = ["disable_initial_exec_tls"] }
 
+[workspace.lints.clippy]
+pub_use = "warn"
 [profile.dev]
 codegen-units = 16      # debug build will cause runtime panic if codegen-unints is default
 debug         = 2
