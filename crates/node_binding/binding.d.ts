@@ -965,6 +965,7 @@ export interface RawModuleOptions {
   rules: Array<RawModuleRule>
   parser?: Record<string, RawParserOptions>
   generator?: Record<string, RawGeneratorOptions>
+  noParse?: string | RegExp | ((request: string) => boolean) | (string | RegExp | ((request: string) => boolean))[]
 }
 
 export interface RawModuleRule {

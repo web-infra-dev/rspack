@@ -612,11 +612,19 @@ export type GeneratorOptionsByModuleType = z.infer<
 	typeof generatorOptionsByModuleType
 >;
 
+const noParseOptionSingle = z
+	.string()
+	.or(z.instanceof(RegExp))
+	.or(z.function().args(z.string()).returns(z.boolean()));
+const noParseOption = noParseOptionSingle.or(z.array(noParseOptionSingle));
+export type NoParseOption = z.infer<typeof noParseOption>;
+
 const moduleOptions = z.strictObject({
 	defaultRules: ruleSetRules.optional(),
 	rules: ruleSetRules.optional(),
 	parser: parserOptionsByModuleType.optional(),
-	generator: generatorOptionsByModuleType.optional()
+	generator: generatorOptionsByModuleType.optional(),
+	noParse: noParseOption.optional()
 });
 export type ModuleOptions = z.infer<typeof moduleOptions>;
 //#endregion

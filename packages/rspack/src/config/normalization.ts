@@ -75,6 +75,7 @@ import type {
 	RspackFutureOptions,
 	HotUpdateGlobal,
 	ScriptType,
+	NoParseOption,
 	DevtoolNamespace,
 	DevtoolModuleFilenameTemplate,
 	DevtoolFallbackModuleFilenameTemplate
@@ -208,6 +209,7 @@ export const getNormalizedRspackOptions = (
 			...resolve
 		})),
 		module: nestedConfig(config.module, module => ({
+			noParse: module.noParse,
 			parser: keyedNestedConfig(
 				module.parser as Record<string, any>,
 				cloneObject,
@@ -469,6 +471,7 @@ export interface ModuleOptionsNormalized {
 	rules: RuleSetRules;
 	parser: ParserOptionsByModuleType;
 	generator: GeneratorOptionsByModuleType;
+	noParse?: NoParseOption;
 }
 
 export interface ExperimentsNormalized {
