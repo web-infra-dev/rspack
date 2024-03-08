@@ -99,10 +99,9 @@ impl Plugin for ModuleChunkFormatPlugin {
     sources.add(args.module_source.clone());
     sources.add(RawSource::from(";\n"));
 
-    if !compilation
+    if compilation
       .chunk_graph
-      .get_chunk_runtime_modules_in_order(args.chunk_ukey)
-      .is_empty()
+      .has_chunk_runtime_modules(args.chunk_ukey)
     {
       sources.add(RawSource::from("export const runtime = "));
       sources.add(render_chunk_runtime_modules(compilation, args.chunk_ukey)?);

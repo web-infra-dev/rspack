@@ -266,6 +266,10 @@ impl ParserAndGenerator for CssParserAndGenerator {
   ) -> Result<BoxSource> {
     let result = match generate_context.requested_source_type {
       SourceType::Css => {
+        generate_context
+          .runtime_requirements
+          .insert(RuntimeGlobals::HAS_CSS_MODULES);
+
         let mut source = ReplaceSource::new(source.clone());
         let compilation = generate_context.compilation;
         let mut init_fragments = ModuleInitFragments::default();

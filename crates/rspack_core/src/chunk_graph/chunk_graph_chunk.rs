@@ -2,6 +2,7 @@
 
 use hashlink::LinkedHashMap;
 use indexmap::IndexSet;
+use itertools::Itertools;
 use rspack_database::Database;
 use rspack_identifier::{IdentifierLinkedMap, IdentifierMap, IdentifierSet};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet};
@@ -9,7 +10,7 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 use crate::{
   find_graph_roots, merge_runtime, BoxModule, Chunk, ChunkByUkey, ChunkGraphModule, ChunkGroup,
   ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Module, ModuleGraph, ModuleIdentifier,
-  RuntimeGlobals, SourceType,
+  RuntimeGlobals, RuntimeModule, SourceType,
 };
 use crate::{ChunkGraph, Compilation};
 
@@ -373,12 +374,31 @@ impl ChunkGraph {
     self.get_chunk_runtime_requirements(chunk_ukey)
   }
 
-  pub fn get_chunk_runtime_modules_in_order(
+  pub fn get_chunk_runtime_modules_in_order<'a>(
     &self,
     chunk_ukey: &ChunkUkey,
-  ) -> &Vec<ModuleIdentifier> {
+    compilation: &'a Compilation,
+  ) -> impl Iterator<Item = (&ModuleIdentifier, &'a dyn RuntimeModule)> {
     let cgc = self.get_chunk_graph_chunk(chunk_ukey);
-    &cgc.runtime_modules
+    cgc
+      .runtime_modules
+      .iter()
+      .map(|identifier| {
+        (
+          identifier,
+          &**compilation
+            .runtime_modules
+            .get(identifier)
+            .expect("should have runtime module"),
+        )
+      })
+      .sorted_unstable_by(|(a_id, a), (b_id, b)| {
+        let s = a.stage().cmp(&b.stage());
+        if s.is_ne() {
+          return s;
+        }
+        a_id.cmp(b_id)
+      })
   }
 
   pub fn get_chunk_runtime_modules_iterable(
@@ -387,6 +407,11 @@ impl ChunkGraph {
   ) -> impl Iterator<Item = &ModuleIdentifier> {
     let cgc = self.get_chunk_graph_chunk(chunk_ukey);
     cgc.runtime_modules.iter()
+  }
+
+  pub fn has_chunk_runtime_modules(&self, chunk_ukey: &ChunkUkey) -> bool {
+    let cgc = self.get_chunk_graph_chunk(chunk_ukey);
+    !cgc.runtime_modules.is_empty()
   }
 
   pub fn get_chunk_condition_map<F: Fn(&ChunkUkey, &Compilation) -> bool>(

@@ -184,54 +184,48 @@ pub fn render_runtime_modules(
   chunk_ukey: &ChunkUkey,
 ) -> Result<BoxSource> {
   let mut sources = ConcatSource::default();
-  let mut runtime_modules = compilation
+  compilation
     .chunk_graph
-    .get_chunk_runtime_modules_in_order(chunk_ukey)
-    .iter()
-    .map(|identifier| {
+    .get_chunk_runtime_modules_in_order(chunk_ukey, compilation)
+    .map(|(identifier, runtime_module)| {
       (
         compilation
           .runtime_module_code_generation_results
           .get(identifier)
           .expect("should have runtime module result"),
-        compilation
-          .runtime_modules
-          .get(identifier)
-          .expect("should have runtime module"),
+        runtime_module,
       )
     })
-    .collect::<Vec<_>>();
-  runtime_modules.sort_unstable_by_key(|(_, m)| m.stage());
-  runtime_modules.iter().for_each(|((_, source), module)| {
-    if source.size() == 0 {
-      return;
-    }
-    if is_diff_mode() {
-      sources.add(RawSource::from(format!(
-        "/* start::{} */\n",
-        module.identifier()
-      )));
-    } else {
-      sources.add(RawSource::from(format!("// {}\n", module.identifier())));
-    }
-    if !module.should_isolate() {
-      sources.add(RawSource::from("!function() {\n"));
-    }
-    if module.cacheable() {
-      sources.add(source.clone());
-    } else {
-      sources.add(module.generate_with_custom(compilation));
-    }
-    if !module.should_isolate() {
-      sources.add(RawSource::from("\n}();\n"));
-    }
-    if is_diff_mode() {
-      sources.add(RawSource::from(format!(
-        "/* end::{} */\n",
-        module.identifier()
-      )));
-    }
-  });
+    .for_each(|((_, source), module)| {
+      if source.size() == 0 {
+        return;
+      }
+      if is_diff_mode() {
+        sources.add(RawSource::from(format!(
+          "/* start::{} */\n",
+          module.identifier()
+        )));
+      } else {
+        sources.add(RawSource::from(format!("// {}\n", module.identifier())));
+      }
+      if !module.should_isolate() {
+        sources.add(RawSource::from("!function() {\n"));
+      }
+      if module.cacheable() {
+        sources.add(source.clone());
+      } else {
+        sources.add(module.generate_with_custom(compilation));
+      }
+      if !module.should_isolate() {
+        sources.add(RawSource::from("\n}();\n"));
+      }
+      if is_diff_mode() {
+        sources.add(RawSource::from(format!(
+          "/* end::{} */\n",
+          module.identifier()
+        )));
+      }
+    });
   Ok(sources.boxed())
 }
 
