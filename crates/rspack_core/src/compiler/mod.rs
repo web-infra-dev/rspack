@@ -73,16 +73,22 @@ where
         debug_info.with_context(options.context.to_string());
       }
     }
-    let mut hooks = Default::default();
+    let mut compiler_hooks = Default::default();
+    let mut compilation_hooks = Default::default();
     let resolver_factory = Arc::new(ResolverFactory::new(options.resolve.clone()));
     let loader_resolver_factory = Arc::new(ResolverFactory::new(options.resolve_loader.clone()));
-    let (plugin_driver, options) =
-      PluginDriver::new(options, plugins, resolver_factory.clone(), &mut hooks);
+    let (plugin_driver, options) = PluginDriver::new(
+      options,
+      plugins,
+      resolver_factory.clone(),
+      &mut compiler_hooks,
+      &mut compilation_hooks,
+    );
     let cache = Arc::new(Cache::new(options.clone()));
     let is_new_treeshaking = options.is_new_tree_shaking();
     assert!(!(options.is_new_tree_shaking() && options.builtins.tree_shaking.enable()), "Can't enable builtins.tree_shaking and `experiments.rspack_future.new_treeshaking` at the same time");
     Self {
-      hooks,
+      hooks: compiler_hooks,
       options: options.clone(),
       compilation: Compilation::new(
         options,
@@ -91,6 +97,7 @@ where
         resolver_factory.clone(),
         loader_resolver_factory.clone(),
         None,
+        Arc::new(compilation_hooks),
         cache.clone(),
       ),
       output_filesystem,
@@ -114,6 +121,7 @@ where
     // TODO: maybe it's better to use external entries.
     self.plugin_driver.resolver_factory.clear_cache();
 
+    let compilation_hooks = self.compilation.hooks.clone();
     fast_set(
       &mut self.compilation,
       Compilation::new(
@@ -123,6 +131,7 @@ where
         self.resolver_factory.clone(),
         self.loader_resolver_factory.clone(),
         None,
+        compilation_hooks,
         self.cache.clone(),
       ),
     );

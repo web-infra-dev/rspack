@@ -78,7 +78,7 @@ Entrypoint main 8.74 KiB = 909.xxxx.js
 runtime modules 11 modules
 ./index.js
 ./dynamic.js
-Rspack x.x.x compiled successfully in X s (3e05cd9368122937eddd)"
+Rspack x.x.x compiled successfully in X s (151f016c2efdfe82334f)"
 `;
 
 exports[`StatsTestCases should print correct stats for hot+production 1`] = `
@@ -87,7 +87,7 @@ asset main.js 32.3 KiB [emitted] (name: main)
 Entrypoint main 32.3 KiB = main.js
 runtime modules 11 modules
 ./index.js
-Rspack x.x.x compiled successfully in X s (30a302845ffd45f6b1aa)"
+Rspack x.x.x compiled successfully in X s (71aa1be8a8c1afa978eb)"
 `;
 
 exports[`StatsTestCases should print correct stats for ignore-plugin 1`] = `
@@ -154,7 +154,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   chunk bundle2.js (main) >{76}< [entry]
     ./b.js
     ./index.js
-  2 chunks (Rspack x.x.x) compiled successfully in X s (168e72010bebe4658596)
+  2 chunks (Rspack x.x.x) compiled successfully in X s (85443fd14e9de41ace48)
 
 3 chunks:
   PublicPath: auto
@@ -170,7 +170,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   chunk bundle3.js (main) >{76}< [entry]
     ./b.js
     ./index.js
-  3 chunks (Rspack x.x.x) compiled successfully in X s (7fd90c80752b52cbaf04)
+  3 chunks (Rspack x.x.x) compiled successfully in X s (0535ccf91c4cf25cec90)
 
 4 chunks:
   PublicPath: auto
@@ -188,14 +188,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   chunk bundle4.js (main) >{76}< [entry]
     ./b.js
     ./index.js
-  4 chunks (Rspack x.x.x) compiled successfully in X s (548e146544e55a805a9d)"
-`;
-
-exports[`StatsTestCases should print correct stats for loader-builtin-swc-plugin-warn 1`] = `
-"WARNING in ./index.js
-  ⚠ Experimental plugins are not currently supported.
-
-Rspack compiled with 1 warning"
+  4 chunks (Rspack x.x.x) compiled successfully in X s (a4de92f5f4e040cb2380)"
 `;
 
 exports[`StatsTestCases should print correct stats for logging-loader 1`] = `
@@ -359,7 +352,7 @@ chunk {909} main.js (main) [entry]
   ./lib.js [467] {909}
     [exports: test]
     [all exports used]
-    Statement with side_effects in source code at ./lib.js:ErrorSpan { start: 42, end: 49 }
+    Statement with side_effects in source code at ./lib.js:3:0-9
     esm import ./lib.js [10]
     esm import specifier ./lib.js [10]
   ./index.js [10] {909}
@@ -369,7 +362,7 @@ chunk {909} main.js (main) [entry]
 ./lib.js [467] {909}
   [exports: test]
   [all exports used]
-  Statement with side_effects in source code at ./lib.js:ErrorSpan { start: 42, end: 49 }
+  Statement with side_effects in source code at ./lib.js:3:0-9
   esm import ./lib.js [10]
   esm import specifier ./lib.js [10]
 ./index.js [10] {909}
@@ -383,7 +376,7 @@ webpack/runtime/define_property_getters {909}
   [no exports]
   [used exports unknown]
   
-1970-04-20 12:42:42: Rspack x.x.x compiled successfully in X s (1b5e99c7289b023d2b92)"
+1970-04-20 12:42:42: Rspack x.x.x compiled successfully in X s (aa839c2ab732086cca33)"
 `;
 
 exports[`StatsTestCases should print correct stats for simple-export 1`] = `

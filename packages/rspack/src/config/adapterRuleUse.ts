@@ -61,9 +61,9 @@ export interface LoaderObject {
 export interface LoaderContext<OptionsType = {}> {
 	version: 2;
 	resource: string;
-	resourcePath?: string;
-	resourceQuery?: string;
-	resourceFragment?: string;
+	resourcePath: string;
+	resourceQuery: string;
+	resourceFragment: string;
 	async(): (
 		err?: Error | null,
 		content?: string | Buffer,

@@ -1,6 +1,9 @@
 #![feature(let_chains)]
 
-use std::fmt::{self, Debug};
+use std::{
+  fmt::{self, Debug},
+  sync::Arc,
+};
 
 use async_recursion::async_recursion;
 use async_trait::async_trait;
@@ -9,9 +12,10 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
   rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
-  to_comment, Chunk, Filename, Logger, PathData, Plugin,
+  to_comment, Chunk, Compilation, Filename, Logger, PathData, Plugin,
 };
 use rspack_error::Result;
+use rspack_hook::AsyncSeries;
 use rspack_regex::RspackRegex;
 use rspack_util::try_any_sync;
 
@@ -134,14 +138,23 @@ fn wrap_comment(str: &str) -> String {
 
 #[derive(Debug)]
 pub struct BannerPlugin {
-  config: BannerPluginOptions,
+  inner: Arc<BannerPluginInner>,
 }
 
 impl BannerPlugin {
   pub fn new(config: BannerPluginOptions) -> Self {
-    Self { config }
+    Self {
+      inner: Arc::new(BannerPluginInner { config }),
+    }
   }
+}
 
+#[derive(Debug)]
+struct BannerPluginInner {
+  config: BannerPluginOptions,
+}
+
+impl BannerPluginInner {
   fn wrap_comment(&self, value: &str) -> String {
     if let Some(true) = self.config.raw {
       value.to_owned()
@@ -173,19 +186,15 @@ impl BannerPlugin {
   }
 }
 
-#[async_trait]
-impl Plugin for BannerPlugin {
-  fn name(&self) -> &'static str {
-    "rspack.BannerPlugin"
-  }
+struct BannerPluginProcessAssetsHook {
+  inner: Arc<BannerPluginInner>,
+}
 
-  async fn process_assets_stage_additions(
-    &self,
-    _ctx: rspack_core::PluginContext,
-    args: rspack_core::ProcessAssetsArgs<'_>,
-  ) -> rspack_core::PluginProcessAssetsOutput {
-    let compilation = args.compilation;
-    let logger = compilation.get_logger(self.name());
+#[async_trait]
+impl AsyncSeries<Compilation> for BannerPluginProcessAssetsHook {
+  async fn run(&self, compilation: &mut Compilation) -> Result<()> {
+    let inner = &self.inner;
+    let logger = compilation.get_logger("rspack.BannerPlugin");
     let start = logger.time("add banner");
     let mut updates = vec![];
 
@@ -193,7 +202,7 @@ impl Plugin for BannerPlugin {
     for chunk in compilation.chunk_by_ukey.values() {
       let can_be_initial = chunk.can_be_initial(&compilation.chunk_group_by_ukey);
 
-      if let Some(entry_only) = self.config.entry_only
+      if let Some(entry_only) = inner.config.entry_only
         && entry_only
         && !can_be_initial
       {
@@ -201,7 +210,7 @@ impl Plugin for BannerPlugin {
       }
 
       for file in &chunk.files {
-        let is_match = match_object(&self.config, file).await.unwrap_or(false);
+        let is_match = match_object(&inner.config, file).await.unwrap_or(false);
 
         if !is_match {
           continue;
@@ -214,8 +223,8 @@ impl Plugin for BannerPlugin {
           .encoded()
           .to_owned();
         // todo: support placeholder, such as [fullhash]、[chunkhash]
-        let banner = match &self.config.banner {
-          BannerContent::String(content) => self.wrap_comment(content),
+        let banner = match &inner.config.banner {
+          BannerContent::String(content) => inner.wrap_comment(content),
           BannerContent::Fn(func) => {
             let res = func(BannerContentFnCtx {
               hash: &hash,
@@ -223,7 +232,7 @@ impl Plugin for BannerPlugin {
               filename: file,
             })
             .await?;
-            self.wrap_comment(&res)
+            inner.wrap_comment(&res)
           }
         };
         let comment = compilation.get_path(
@@ -236,13 +245,38 @@ impl Plugin for BannerPlugin {
 
     for (file, comment) in updates {
       let _res = compilation.update_asset(file.as_str(), |old, info| {
-        let new = self.update_source(comment, old, self.config.footer);
+        let new = inner.update_source(comment, old, inner.config.footer);
         Ok((new, info))
       });
     }
 
     logger.time_end(start);
 
+    Ok(())
+  }
+
+  fn stage(&self) -> i32 {
+    Compilation::PROCESS_ASSETS_STAGE_ADDITIONS
+  }
+}
+
+impl Plugin for BannerPlugin {
+  fn name(&self) -> &'static str {
+    "rspack.BannerPlugin"
+  }
+
+  fn apply(
+    &self,
+    ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
+    _options: &mut rspack_core::CompilerOptions,
+  ) -> Result<()> {
+    ctx
+      .context
+      .compilation_hooks
+      .process_assets
+      .tap(Box::new(BannerPluginProcessAssetsHook {
+        inner: self.inner.clone(),
+      }));
     Ok(())
   }
 }

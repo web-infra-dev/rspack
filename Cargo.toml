@@ -19,8 +19,8 @@ futures            = { version = "0.3.30" }
 futures-util       = { version = "0.3.30" }
 glob               = { version = "0.3.1" }
 hashlink           = { version = "0.9.0" }
-indexmap           = { version = "2.2.4" }
-insta              = { version = "1.35.1" }
+indexmap           = { version = "2.2.5" }
+insta              = { version = "1.36.1" }
 itertools          = { version = "0.12.1" }
 json               = { version = "0.12.4" }
 linked_hash_set    = { version = "0.1.4" }
@@ -35,7 +35,7 @@ proc-macro2        = { version = "1.0.78" }
 quote              = { version = "1.0.35" }
 rayon              = { version = "1.9.0" }
 regex              = { version = "1.10.3" }
-rkyv               = { version = "0.7.44" }
+rkyv               = { version = "=0.7.42" }
 rspack_sources     = { git = "https://github.com/SyMind/rspack-sources.git#dba020522de7bdfba7651ff486b17b8d56e3ed95" }
 rustc-hash         = { version = "1.1.0" }
 schemars           = { version = "0.8.16" }
@@ -54,9 +54,9 @@ ustr               = { package = "ustr-fxhash", version = "1.0.0" }
 xxhash-rust        = { version = "0.8.10" }
 
 # Pinned
-napi              = { version = "=2.15.4" }
+napi              = { version = "=2.16.0" }
 napi-build        = { version = "=2.1.2" }
-napi-derive       = { version = "=2.15.3" }
+napi-derive       = { version = "=2.16.0" }
 napi-sys          = { version = "=2.3.0" }
 tikv-jemallocator = { version = "=0.5.4", features = ["disable_initial_exec_tls"] }
 

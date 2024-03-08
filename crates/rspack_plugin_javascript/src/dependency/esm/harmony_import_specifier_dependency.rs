@@ -87,6 +87,20 @@ impl HarmonyImportSpecifierDependency {
     if !reference_mgm.module_type.is_js_like() {
       return true;
     }
+    let related_symbol = compilation
+      .module_graph
+      .get_parent_module(&self.id)
+      .and_then(|parent_module| compilation.optimize_analyze_result_map.get(parent_module))
+      .and_then(|analyze_res| {
+        analyze_res
+          .harmony_import_specifier_dependency_alias_map
+          .get(&self.span_for_on_usage_search)
+      });
+    if let Some(related_symbol) = related_symbol
+      && !compilation.used_symbol_ref.contains(related_symbol)
+    {
+      return false;
+    }
 
     match &self.specifier {
       Specifier::Namespace(_) => true,

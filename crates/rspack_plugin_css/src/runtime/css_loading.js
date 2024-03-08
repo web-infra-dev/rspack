@@ -1,7 +1,7 @@
-var uniqueName = "webpack";
+var uniqueName = "__UNIQUE_NAME__";
 // loadCssChunkData is unnecessary
 var loadingAttribute = "data-webpack-loading";
-var loadStylesheet = function(chunkId, url, done, hmr) {
+var loadStylesheet = function (chunkId, url, done, hmr) {
 	var link,
 		needAttach,
 		key = "chunk-" + chunkId;

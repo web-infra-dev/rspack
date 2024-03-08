@@ -54,7 +54,7 @@
     "serve": "14.2.1",
     "style-loader": "^3.3.3",
     "swc-loader": "^0.2.3",
-    "webpack": "^5.90.0"
+    "webpack": "^5.90.1"
   },
   "browserslist": {
     "production": [

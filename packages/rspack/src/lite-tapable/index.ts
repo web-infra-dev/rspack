@@ -18,7 +18,12 @@ type Append<T extends any[], U> = {
 	7: [T[0], T[1], T[2], T[3], T[4], T[5], T[6], U];
 	8: [T[0], T[1], T[2], T[3], T[4], T[5], T[6], T[7], U];
 }[Measure<T["length"]>];
-type AsArray<T> = T extends any[] ? T : [T];
+export type AsArray<T> = T extends any[] ? T : [T];
+
+export type Fn<T, R> = (...args: AsArray<T>) => R;
+export type FnWithCallback<T, R> = (
+	...args: Append<AsArray<T>, InnerCallback<Error, R>>
+) => void;
 
 declare class UnsetAdditionalOptions {
 	_UnsetAdditionalOptions: true;
@@ -42,7 +47,15 @@ type TapOptions = {
 	stage?: number;
 };
 
-interface HookInterceptor<T, R, AdditionalOptions = UnsetAdditionalOptions> {
+export type Options<AdditionalOptions = UnsetAdditionalOptions> =
+	| string
+	| (Tap & IfSet<AdditionalOptions>);
+
+export interface HookInterceptor<
+	T,
+	R,
+	AdditionalOptions = UnsetAdditionalOptions
+> {
 	name?: string;
 	tap?: (tap: FullTap & IfSet<AdditionalOptions>) => void;
 	call?: (...args: any[]) => void;
@@ -154,17 +167,14 @@ class Hook<T, R, AdditionalOptions = UnsetAdditionalOptions> {
 		return this.promiseStageRange(StageRange.all(), ...args);
 	}
 
-	tap(
-		options: string | (Tap & IfSet<AdditionalOptions>),
-		fn: (...args: AsArray<T>) => R
-	) {
+	tap(options: Options<AdditionalOptions>, fn: Fn<T, R>) {
 		this._tap("sync", options, fn);
 	}
 
 	_tap(
 		type: "sync" | "async" | "promise",
-		options: string | (Tap & IfSet<AdditionalOptions>),
-		fn: (...args: AsArray<T>) => R
+		options: Options<AdditionalOptions>,
+		fn: Function
 	) {
 		if (typeof options === "string") {
 			options = {
@@ -181,6 +191,9 @@ class Hook<T, R, AdditionalOptions = UnsetAdditionalOptions> {
 			options
 		);
 		insert = this._runRegisterInterceptors(insert);
+		if (insert.stage) {
+			insert.stage = StageRange.trim(insert.stage);
+		}
 		this._insert(insert);
 	}
 
@@ -400,16 +413,118 @@ export class AsyncParallelHook<
 	}
 
 	tapAsync(
-		options: string | (Tap & IfSet<AdditionalOptions>),
-		fn: (...args: AsArray<T>) => void
+		options: Options<AdditionalOptions>,
+		fn: FnWithCallback<T, void>
 	): void {
 		this._tap("async", options, fn);
 	}
 
-	tapPromise(
-		options: string | (Tap & IfSet<AdditionalOptions>),
-		fn: (...args: AsArray<T>) => void
+	tapPromise(options: Options<AdditionalOptions>, fn: Fn<T, void>): void {
+		this._tap("promise", options, fn);
+	}
+}
+
+export class AsyncSeriesHook<
+	T,
+	AdditionalOptions = UnsetAdditionalOptions
+> extends Hook<T, void, AdditionalOptions> {
+	callAsyncStageRange(
+		{ from, to }: StageRange,
+		...args: Append<AsArray<T>, Callback<Error, void>>
+	) {
+		const args2 = [...args];
+		const cb = args2.pop() as Callback<Error, void>;
+		if (from === StageRange.MIN) {
+			this._runCallInterceptors(...args2);
+		}
+		const done = () => {
+			this._runDoneInterceptors();
+			cb(null);
+		};
+		const error = (e: Error) => {
+			this._runErrorInterceptors(e);
+			cb(e);
+		};
+		const tapsInRange: (FullTap & IfSet<AdditionalOptions>)[] = [];
+		for (let tap of this.taps) {
+			const stage = tap.stage ?? 0;
+			if (from < stage && stage <= to) {
+				tapsInRange.push(tap);
+			}
+		}
+		if (tapsInRange.length === 0) return done();
+		let index = 0;
+		const next = () => {
+			const tap = tapsInRange[index];
+			this._runTapInterceptors(tap);
+			if (tap.type === "promise") {
+				const promise = tap.fn(...args2);
+				if (!promise || !promise.then) {
+					throw new Error(
+						"Tap function (tapPromise) did not return promise (returned " +
+							promise +
+							")"
+					);
+				}
+				promise.then(
+					() => {
+						index += 1;
+						if (index === tapsInRange.length) {
+							done();
+						} else {
+							next();
+						}
+					},
+					(e: Error) => {
+						index = tapsInRange.length;
+						error(e);
+					}
+				);
+			} else if (tap.type === "async") {
+				tap.fn(...args2, (e: Error) => {
+					if (e) {
+						index = tapsInRange.length;
+						error(e);
+					} else {
+						index += 1;
+						if (index === tapsInRange.length) {
+							done();
+						} else {
+							next();
+						}
+					}
+				});
+			} else {
+				let hasError = false;
+				try {
+					tap.fn(...args2);
+				} catch (e) {
+					hasError = true;
+					index = tapsInRange.length;
+					error(e as Error);
+				}
+				if (!hasError) {
+					index += 1;
+					if (index === tapsInRange.length) {
+						done();
+					} else {
+						next();
+					}
+				}
+			}
+			if (index === tapsInRange.length) return;
+		};
+		next();
+	}
+
+	tapAsync(
+		options: Options<AdditionalOptions>,
+		fn: FnWithCallback<T, void>
 	): void {
+		this._tap("async", options, fn);
+	}
+
+	tapPromise(options: Options<AdditionalOptions>, fn: Fn<T, void>): void {
 		this._tap("promise", options, fn);
 	}
 }

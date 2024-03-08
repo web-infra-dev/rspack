@@ -15,5 +15,6 @@ once_cell       = { workspace = true }
 regex           = { workspace = true }
 rspack_core     = { path = "../rspack_core" }
 rspack_error    = { path = "../rspack_error" }
+rspack_hook     = { path = "../rspack_hook" }
 rspack_regex    = { path = "../rspack_regex" }
 rspack_util     = { path = "../rspack_util" }

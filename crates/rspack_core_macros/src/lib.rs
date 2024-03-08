@@ -8,6 +8,8 @@ pub fn impl_source_map_config(
 ) -> proc_macro::TokenStream {
   let mut input = parse_macro_input!(tokens as ItemStruct);
   let name = &input.ident;
+  let generics = &input.generics;
+  let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
 
   if let syn::Fields::Named(ref mut fields) = input.fields {
     fields.named.push(
@@ -20,7 +22,7 @@ pub fn impl_source_map_config(
   quote! {
     #input
 
-    impl ::rspack_util::source_map::ModuleSourceMapConfig for #name {
+    impl #impl_generics ::rspack_util::source_map::ModuleSourceMapConfig for #name #ty_generics #where_clause {
       fn get_source_map_kind(&self) -> &::rspack_util::source_map::SourceMapKind {
         &self.source_map_kind
       }
@@ -40,6 +42,8 @@ pub fn impl_runtime_module(
 ) -> proc_macro::TokenStream {
   let mut input = parse_macro_input!(tokens as ItemStruct);
   let name = &input.ident;
+  let generics = &input.generics;
+  let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
 
   if let syn::Fields::Named(ref mut fields) = input.fields {
     fields.named.push(
@@ -59,7 +63,7 @@ pub fn impl_runtime_module(
   quote! {
     #input
 
-    impl ::rspack_core::CustomSourceRuntimeModule for #name {
+    impl #impl_generics ::rspack_core::CustomSourceRuntimeModule for #name #ty_generics #where_clause {
       fn set_custom_source(&mut self, source: ::rspack_core::rspack_sources::OriginalSource) -> () {
         self.custom_source = Some(::std::sync::Arc::new(source));
       }
@@ -71,25 +75,25 @@ pub fn impl_runtime_module(
       }
     }
 
-    impl rspack_identifier::Identifiable for #name {
+    impl #impl_generics rspack_identifier::Identifiable for #name #ty_generics #where_clause {
       fn identifier(&self) -> rspack_identifier::Identifier {
         self.name()
       }
     }
 
-    impl PartialEq for #name {
+    impl #impl_generics PartialEq for #name #ty_generics #where_clause {
       fn eq(&self, other: &Self) -> bool {
         self.name() == other.name()
       }
     }
 
-    impl std::hash::Hash for #name {
+    impl #impl_generics std::hash::Hash for #name #ty_generics #where_clause {
       fn hash<H: std::hash::Hasher>(&self, _state: &mut H) {
         unreachable!()
       }
     }
 
-    impl ::rspack_core::DependenciesBlock for #name {
+    impl #impl_generics ::rspack_core::DependenciesBlock for #name #ty_generics #where_clause {
       fn add_block_id(&mut self, _: ::rspack_core::AsyncDependenciesBlockIdentifier) {
         unreachable!()
       }
@@ -107,7 +111,7 @@ pub fn impl_runtime_module(
       }
     }
 
-    impl ::rspack_core::Module for #name {
+    impl #impl_generics ::rspack_core::Module for #name #ty_generics #where_clause {
       fn module_type(&self) -> &::rspack_core::ModuleType {
         &::rspack_core::ModuleType::Runtime
       }
@@ -165,9 +169,9 @@ pub fn impl_runtime_module(
       }
     }
 
-    impl rspack_error::Diagnosable for #name {}
+    impl #impl_generics rspack_error::Diagnosable for #name  #ty_generics #where_clause {}
 
-    impl ::rspack_util::source_map::ModuleSourceMapConfig for #name {
+    impl #impl_generics ::rspack_util::source_map::ModuleSourceMapConfig for #name #ty_generics #where_clause {
       fn get_source_map_kind(&self) -> &::rspack_util::source_map::SourceMapKind {
         &self.source_map_kind
       }

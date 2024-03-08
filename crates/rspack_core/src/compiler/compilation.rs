@@ -3,10 +3,7 @@ use std::{
   fmt::Debug,
   hash::{BuildHasherDefault, Hash},
   path::PathBuf,
-  sync::{
-    atomic::{AtomicBool, Ordering},
-    Arc,
-  },
+  sync::Arc,
 };
 
 use dashmap::DashSet;
@@ -16,44 +13,45 @@ use rayon::prelude::*;
 use rspack_error::{error, Diagnostic, Result, Severity, TWithDiagnosticArray};
 use rspack_futures::FuturesResults;
 use rspack_hash::{RspackHash, RspackHashDigest};
+use rspack_hook::AsyncSeriesHook;
 use rspack_identifier::{Identifiable, IdentifierMap, IdentifierSet};
 use rspack_sources::{BoxSource, CachedSource, OriginalSource, SourceExt};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use swc_core::ecma::ast::ModuleItem;
-use tokio::sync::mpsc::error::TryRecvError;
 use tracing::instrument;
 
 use super::{
   hmr::CompilationRecords,
-  make::{MakeParam, RebuildDepsBuilder},
+  make::{update_module_graph, MakeParam},
 };
+use crate::tree_shaking::visitor::OptimizeAnalyzeResult;
 use crate::{
   build_chunk_graph::build_chunk_graph,
   cache::{use_code_splitting_cache, Cache, CodeSplittingCache},
   get_chunk_from_ukey, get_mut_chunk_from_ukey, is_source_equal, prepare_get_exports_type,
   tree_shaking::{optimizer, visitor::SymbolRef, BailoutFlag, OptimizeDependencyResult},
-  AddQueue, AddQueueHandler, AddTask, AddTaskResult, AdditionalChunkRuntimeRequirementsArgs,
-  AdditionalModuleRequirementsArgs, AsyncDependenciesBlock, BoxDependency, BoxModule, BuildQueue,
-  BuildQueueHandler, BuildTask, BuildTaskResult, BuildTimeExecutionQueue,
-  BuildTimeExecutionQueueHandler, BuildTimeExecutionTask, CacheCount, CacheOptions, Chunk,
-  ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkHashArgs,
-  ChunkKind, ChunkUkey, CleanQueue, CleanTask, CleanTaskResult, CodeGenerationResults,
-  CompilationLogger, CompilationLogging, CompilerOptions, ContentHashArgs, ContextDependency,
-  DependencyId, DependencyParents, DependencyType, Entry, EntryData, EntryOptions, Entrypoint,
-  ErrorSpan, FactorizeQueue, FactorizeQueueHandler, FactorizeTask, FactorizeTaskResult, Filename,
-  Logger, Module, ModuleCreationCallback, ModuleFactory, ModuleFactoryResult, ModuleGraph,
-  ModuleGraphModule, ModuleIdentifier, ModuleProfile, NormalModuleSource, PathData,
-  ProcessAssetsArgs, ProcessDependenciesQueue, ProcessDependenciesQueueHandler,
-  ProcessDependenciesResult, ProcessDependenciesTask, RenderManifestArgs, Resolve, ResolverFactory,
-  RuntimeGlobals, RuntimeModule, RuntimeRequirementsInTreeArgs, RuntimeSpec, SharedPluginDriver,
-  SourceType, Stats, TaskResult, WorkerTask,
+  AddQueueHandler, AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs,
+  BoxDependency, BoxModule, BuildQueueHandler, BuildTimeExecutionQueueHandler, CacheCount,
+  CacheOptions, Chunk, ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey,
+  ChunkHashArgs, ChunkKind, ChunkUkey, CodeGenerationResults, CompilationLogger,
+  CompilationLogging, CompilerOptions, ContentHashArgs, DependencyId, DependencyType, Entry,
+  EntryData, EntryOptions, Entrypoint, ErrorSpan, FactorizeQueueHandler, Filename, Logger, Module,
+  ModuleFactory, ModuleGraph, ModuleIdentifier, PathData, ProcessAssetsArgs,
+  ProcessDependenciesQueueHandler, RenderManifestArgs, ResolverFactory, RuntimeGlobals,
+  RuntimeModule, RuntimeRequirementsInTreeArgs, RuntimeSpec, SharedPluginDriver, SourceType, Stats,
 };
-use crate::{tree_shaking::visitor::OptimizeAnalyzeResult, Context};
 
 pub type BuildDependency = (
   DependencyId,
   Option<ModuleIdentifier>, /* parent module */
 );
+
+pub type CompilationProcessAssetsHook = AsyncSeriesHook<Compilation>;
+
+#[derive(Debug, Default)]
+pub struct CompilationHooks {
+  pub process_assets: CompilationProcessAssetsHook,
+}
 
 #[derive(Debug)]
 pub struct Compilation {
@@ -63,6 +61,7 @@ pub struct Compilation {
   // The status is different, should generate different hash for `.hot-update.js`
   // So use compilation hash update `hot_index` to fix it.
   pub hot_index: u32,
+  pub hooks: Arc<CompilationHooks>,
   pub records: Option<CompilationRecords>,
   pub options: Arc<CompilerOptions>,
   pub entries: Entry,
@@ -120,6 +119,22 @@ pub struct Compilation {
 }
 
 impl Compilation {
+  pub const PROCESS_ASSETS_STAGE_ADDITIONAL: i32 = -2000;
+  pub const PROCESS_ASSETS_STAGE_PRE_PROCESS: i32 = -1000;
+  pub const PROCESS_ASSETS_STAGE_DERIVED: i32 = -200;
+  pub const PROCESS_ASSETS_STAGE_ADDITIONS: i32 = -100;
+  pub const PROCESS_ASSETS_STAGE_OPTIMIZE: i32 = 100;
+  pub const PROCESS_ASSETS_STAGE_OPTIMIZE_COUNT: i32 = 200;
+  pub const PROCESS_ASSETS_STAGE_OPTIMIZE_COMPATIBILITY: i32 = 300;
+  pub const PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE: i32 = 400;
+  pub const PROCESS_ASSETS_STAGE_DEV_TOOLING: i32 = 500;
+  pub const PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE: i32 = 700;
+  pub const PROCESS_ASSETS_STAGE_SUMMARIZE: i32 = 1000;
+  pub const PROCESS_ASSETS_STAGE_OPTIMIZE_HASH: i32 = 2500;
+  pub const PROCESS_ASSETS_STAGE_OPTIMIZE_TRANSFER: i32 = 3000;
+  pub const PROCESS_ASSETS_STAGE_ANALYSE: i32 = 4000;
+  pub const PROCESS_ASSETS_STAGE_REPORT: i32 = 5000;
+
   #[allow(clippy::too_many_arguments)]
   pub fn new(
     options: Arc<CompilerOptions>,
@@ -128,10 +143,12 @@ impl Compilation {
     resolver_factory: Arc<ResolverFactory>,
     loader_resolver_factory: Arc<ResolverFactory>,
     records: Option<CompilationRecords>,
+    hooks: Arc<CompilationHooks>,
     cache: Arc<Cache>,
   ) -> Self {
     Self {
       hot_index: 0,
+      hooks,
       records,
       options,
       module_graph,
@@ -240,11 +257,13 @@ impl Compilation {
     } else {
       self.global_entry.include_dependencies.push(entry_id);
     }
-    self
-      .update_module_graph(vec![MakeParam::ForceBuildDeps(HashSet::from_iter([(
+    update_module_graph(
+      self,
+      vec![MakeParam::ForceBuildDeps(HashSet::from_iter([(
         entry_id, None,
-      )]))])
-      .await
+      )]))],
+    )
+    .await
   }
 
   pub fn update_asset(
@@ -453,7 +472,7 @@ impl Compilation {
 
     params.push(make_failed_module);
     params.push(make_failed_dependencies);
-    self.update_module_graph(params).await
+    update_module_graph(self, params).await
   }
 
   pub async fn rebuild_module(
@@ -464,11 +483,11 @@ impl Compilation {
       self.cache.build_module_occasion.remove_cache(id);
     }
 
-    self
-      .update_module_graph(vec![MakeParam::ForceBuildModules(
-        module_identifiers.clone(),
-      )])
-      .await?;
+    update_module_graph(
+      self,
+      vec![MakeParam::ForceBuildModules(module_identifiers.clone())],
+    )
+    .await?;
 
     if self.options.is_new_tree_shaking() {
       let logger = self.get_logger("rspack.Compilation");
@@ -483,783 +502,6 @@ impl Compilation {
         .filter_map(|id| self.module_graph.module_by_identifier(&id))
         .collect::<Vec<_>>(),
     )
-  }
-  async fn update_module_graph(&mut self, params: Vec<MakeParam>) -> Result<()> {
-    let logger = self.get_logger("rspack.Compilation");
-    let deps_builder = RebuildDepsBuilder::new(params, &self.module_graph);
-
-    let module_deps = |compalition: &Compilation, module_identifier: &ModuleIdentifier| {
-      let (deps, blocks) = compalition
-        .module_graph
-        .get_module_dependencies_modules_and_blocks(module_identifier);
-
-      let blocks_with_option: Vec<_> = blocks
-        .iter()
-        .map(|block| {
-          (
-            *block,
-            block
-              .get(compalition)
-              .expect("block muse be exist")
-              .get_group_options()
-              .cloned(),
-          )
-        })
-        .collect();
-      (deps, blocks_with_option)
-    };
-
-    let origin_module_deps: HashMap<_, _> = deps_builder
-      .get_force_build_modules()
-      .iter()
-      .map(|module_identifier| (*module_identifier, module_deps(self, module_identifier)))
-      .collect();
-
-    let mut need_check_isolated_module_ids = HashSet::default();
-    // rebuild module issuer mappings
-    // save rebuild module issue to restore them
-    let mut origin_module_issuers = HashMap::default();
-    // calc need_check_isolated_module_ids & regen_module_issues
-    for id in deps_builder.get_force_build_modules() {
-      if let Some(mgm) = self.module_graph.module_graph_module_by_identifier(id) {
-        let depended_modules = self
-          .module_graph
-          .get_module_all_depended_modules(id)
-          .expect("module graph module not exist")
-          .into_iter()
-          .copied();
-        need_check_isolated_module_ids.extend(depended_modules);
-        origin_module_issuers.insert(*id, mgm.get_issuer().clone());
-      }
-    }
-
-    let mut active_task_count = 0usize;
-    let is_expected_shutdown = Arc::new(AtomicBool::new(false));
-    let (result_tx, mut result_rx) = tokio::sync::mpsc::unbounded_channel::<Result<TaskResult>>();
-
-    let mut factorize_queue = FactorizeQueue::new();
-    let mut add_queue = AddQueue::new();
-    let mut build_queue = BuildQueue::new();
-    let mut process_dependencies_queue = ProcessDependenciesQueue::new();
-    let mut buildtime_execution_queue = BuildTimeExecutionQueue::new();
-
-    let mut make_failed_dependencies: HashSet<BuildDependency> = HashSet::default();
-    let mut make_failed_module: HashSet<ModuleIdentifier> = HashSet::default();
-    let mut errored = None;
-
-    self.factorize_queue = Some(factorize_queue.queue_handler());
-    self.build_queue = Some(build_queue.queue_handler());
-    self.add_queue = Some(add_queue.queue_handler());
-    self.process_dependencies_queue = Some(process_dependencies_queue.queue_handler());
-    self.build_time_execution_queue = Some(buildtime_execution_queue.queue_handler());
-
-    deps_builder
-      .revoke_modules(&mut self.module_graph)
-      .into_iter()
-      .for_each(|(id, parent_module_identifier)| {
-        let dependency = self
-          .module_graph
-          .dependency_by_id(&id)
-          .expect("dependency not found");
-        if dependency.as_module_dependency().is_none()
-          && dependency.as_context_dependency().is_none()
-        {
-          return;
-        }
-
-        let parent_module =
-          parent_module_identifier.and_then(|id| self.module_graph.module_by_identifier(&id));
-        if parent_module_identifier.is_some() && parent_module.is_none() {
-          return;
-        }
-
-        self.handle_module_creation(
-          &mut factorize_queue,
-          parent_module_identifier,
-          parent_module.and_then(|m| m.get_context()),
-          vec![id],
-          parent_module_identifier.is_none(),
-          parent_module.and_then(|module| module.get_resolve_options()),
-          self.lazy_visit_modules.clone(),
-          parent_module
-            .and_then(|m| m.as_normal_module())
-            .and_then(|module| module.name_for_condition()),
-          true,
-          None,
-        );
-      });
-
-    let mut add_time = logger.time_aggregate("module add task");
-    let mut process_deps_time = logger.time_aggregate("module process dependencies task");
-    let mut factorize_time = logger.time_aggregate("module factorize task");
-    let mut build_time = logger.time_aggregate("module build task");
-    let mut buildtime_execution_time = logger.time_aggregate("buildtime execution task");
-
-    let mut build_cache_counter = None;
-    let mut factorize_cache_counter = None;
-
-    if !(matches!(self.options.cache, CacheOptions::Disabled)) {
-      build_cache_counter = Some(logger.cache("module build cache"));
-      factorize_cache_counter = Some(logger.cache("module factorize cache"));
-    }
-
-    tokio::task::block_in_place(|| loop {
-      let start = factorize_time.start();
-
-      while let Some(task) = factorize_queue.get_task(self) {
-        active_task_count += 1;
-
-        // TODO: change when we insert dependency to module_graph
-        self.module_graph.add_dependency(task.dependency.clone());
-
-        tokio::spawn({
-          let result_tx = result_tx.clone();
-          let is_expected_shutdown = is_expected_shutdown.clone();
-
-          async move {
-            if is_expected_shutdown.load(Ordering::SeqCst) {
-              return;
-            }
-
-            let result = task.run().await;
-            if !is_expected_shutdown.load(Ordering::SeqCst) {
-              result_tx
-                .send(result)
-                .expect("Failed to send factorize result");
-            }
-          }
-        });
-      }
-      factorize_time.end(start);
-
-      let start = build_time.start();
-      while let Some(task) = build_queue.get_task(self) {
-        active_task_count += 1;
-        tokio::spawn({
-          let result_tx = result_tx.clone();
-          let is_expected_shutdown = is_expected_shutdown.clone();
-
-          async move {
-            if is_expected_shutdown.load(Ordering::SeqCst) {
-              return;
-            }
-
-            let result = task.run().await;
-            if !is_expected_shutdown.load(Ordering::SeqCst) {
-              result_tx.send(result).expect("Failed to send build result");
-            }
-          }
-        });
-      }
-      build_time.end(start);
-
-      let start = add_time.start();
-      while let Some(task) = add_queue.get_task(self) {
-        active_task_count += 1;
-        let result = task.run(self);
-        result_tx.send(result).expect("Failed to send add result");
-      }
-      add_time.end(start);
-
-      let start = process_deps_time.start();
-      while let Some(task) = process_dependencies_queue.get_task(self) {
-        active_task_count += 1;
-
-        let mut sorted_dependencies = HashMap::default();
-
-        task.dependencies.into_iter().for_each(|dependency_id| {
-          let dependency = dependency_id.get_dependency(&self.module_graph);
-          // FIXME: now only module/context dependency can put into resolve queue.
-          // FIXME: should align webpack
-          let resource_identifier =
-            if let Some(module_dependency) = dependency.as_module_dependency() {
-              // TODO need implement more dependency `resource_identifier()`
-              // https://github.com/webpack/webpack/blob/main/lib/Compilation.js#L1621
-              let id = if let Some(resource_identifier) = module_dependency.resource_identifier() {
-                resource_identifier.to_string()
-              } else {
-                format!(
-                  "{}|{}",
-                  module_dependency.dependency_type(),
-                  module_dependency.request()
-                )
-              };
-              Some(id)
-            } else {
-              dependency
-                .as_context_dependency()
-                .map(|d| ContextDependency::resource_identifier(d).to_string())
-            };
-
-          if let Some(resource_identifier) = resource_identifier {
-            sorted_dependencies
-              .entry(resource_identifier)
-              .or_insert(vec![])
-              .push(dependency_id);
-          }
-        });
-
-        let original_module_identifier = &task.original_module_identifier;
-        let module = self
-          .module_graph
-          .module_by_identifier(original_module_identifier)
-          .expect("Module expected");
-
-        let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
-        let mut remaining = sorted_dependencies.len();
-        for dependencies in sorted_dependencies.into_values() {
-          let tx = tx.clone();
-          self.handle_module_creation(
-            &mut factorize_queue,
-            Some(module.identifier()),
-            module.get_context(),
-            dependencies,
-            false,
-            task.resolve_options.clone(),
-            self.lazy_visit_modules.clone(),
-            module
-              .as_normal_module()
-              .and_then(|module| module.name_for_condition()),
-            true,
-            Some(Box::new(move |_| {
-              tx.send(())
-                .expect("Failed to send callback to process_dependencies");
-            })),
-          );
-        }
-        drop(tx);
-
-        tokio::spawn({
-          let tx = result_tx.clone();
-          let is_expected_shutdown = is_expected_shutdown.clone();
-          async move {
-            loop {
-              if remaining == 0 {
-                break;
-              }
-
-              rx.recv().await;
-              remaining -= 1;
-            }
-
-            if is_expected_shutdown.load(Ordering::SeqCst) {
-              return;
-            }
-
-            tx.send(Ok(TaskResult::ProcessDependencies(Box::new(
-              ProcessDependenciesResult {
-                module_identifier: task.original_module_identifier,
-              },
-            ))))
-            .expect("Failed to send process dependencies result");
-          }
-        });
-      }
-      process_deps_time.end(start);
-
-      let start = buildtime_execution_time.start();
-      while let Some(task) = buildtime_execution_queue.get_task(self) {
-        let BuildTimeExecutionTask {
-          module,
-          request,
-          options,
-          sender,
-        } = task;
-
-        if let Err(e) = self.execute_module(module, &request, options, sender.clone()) {
-          result_tx
-            .send(Err(e))
-            .expect("failed to send error message");
-        };
-      }
-      buildtime_execution_time.end(start);
-
-      match result_rx.try_recv() {
-        Ok(item) => {
-          if let Ok(item) = &item {
-            match item {
-              TaskResult::Factorize(result) => {
-                if let Some(ModuleFactoryResult {
-                  module: Some(module),
-                  ..
-                }) = &result.factory_result
-                {
-                  factorize_queue.complete_task(result.dependency, module.identifier(), self)
-                }
-              }
-              TaskResult::Add(result) => {
-                let module = match result.as_ref() {
-                  AddTaskResult::ModuleReused { module } => module.identifier(),
-                  AddTaskResult::ModuleAdded { module, .. } => module.identifier(),
-                };
-
-                add_queue.complete_task(module, module, self)
-              }
-              TaskResult::Build(result) => {
-                let id = result.module.identifier();
-                build_queue.complete_task(id, id, self);
-              }
-              TaskResult::ProcessDependencies(result) => {
-                process_dependencies_queue.complete_task(
-                  result.module_identifier,
-                  result.module_identifier,
-                  self,
-                );
-              }
-            }
-          }
-
-          match item {
-            Ok(TaskResult::Factorize(box task_result)) => {
-              let FactorizeTaskResult {
-                original_module_identifier,
-                factory_result,
-                dependencies,
-                is_entry,
-                current_profile,
-                exports_info_related,
-                file_dependencies,
-                context_dependencies,
-                missing_dependencies,
-                diagnostics,
-                callback,
-                connect_origin,
-                ..
-              } = task_result;
-              if !diagnostics.is_empty() {
-                if let Some(id) = original_module_identifier {
-                  make_failed_module.insert(id);
-                } else {
-                  make_failed_dependencies.insert((dependencies[0], None));
-                }
-              }
-
-              self.push_batch_diagnostic(
-                diagnostics
-                  .into_iter()
-                  .map(|d| d.with_module_identifier(original_module_identifier))
-                  .collect(),
-              );
-
-              self.file_dependencies.extend(file_dependencies);
-              self.context_dependencies.extend(context_dependencies);
-              self.missing_dependencies.extend(missing_dependencies);
-
-              if let Some(factory_result) = factory_result {
-                if let Some(counter) = &mut factorize_cache_counter {
-                  if factory_result.from_cache {
-                    counter.hit();
-                  } else {
-                    counter.miss();
-                  }
-                }
-
-                if let Some(module) = factory_result.module {
-                  let module_identifier = module.identifier();
-                  let mut mgm = ModuleGraphModule::new(
-                    module.identifier(),
-                    *module.module_type(),
-                    exports_info_related.exports_info.id,
-                  );
-                  mgm.set_issuer_if_unset(original_module_identifier);
-                  mgm.factory_meta = Some(factory_result.factory_meta);
-
-                  self.module_graph.exports_info_map.insert(
-                    *exports_info_related.exports_info.id as usize,
-                    exports_info_related.exports_info,
-                  );
-                  self.module_graph.export_info_map.insert(
-                    *exports_info_related.side_effects_info.id as usize,
-                    exports_info_related.side_effects_info,
-                  );
-                  self.module_graph.export_info_map.insert(
-                    *exports_info_related.other_exports_info.id as usize,
-                    exports_info_related.other_exports_info,
-                  );
-
-                  add_queue.add_task(AddTask {
-                    original_module_identifier,
-                    module,
-                    module_graph_module: Box::new(mgm),
-                    dependencies,
-                    is_entry,
-                    current_profile,
-                    callback,
-                    connect_origin,
-                  });
-                  tracing::trace!("Module created: {}", &module_identifier);
-                } else {
-                  let dep = self
-                    .module_graph
-                    .dependency_by_id(&dependencies[0])
-                    .expect("dep should available");
-                  tracing::trace!("Module ignored: {dep:?}")
-                }
-              } else {
-                let dep = self
-                  .module_graph
-                  .dependency_by_id(&dependencies[0])
-                  .expect("dep should available");
-                tracing::trace!("Module created with failure, but without bailout: {dep:?}");
-              }
-            }
-            Ok(TaskResult::Add(box task_result)) => match task_result {
-              AddTaskResult::ModuleAdded {
-                module,
-                current_profile,
-              } => {
-                tracing::trace!("Module added: {}", module.identifier());
-                build_queue.add_task(BuildTask {
-                  module,
-                  resolver_factory: self.resolver_factory.clone(),
-                  compiler_options: self.options.clone(),
-                  plugin_driver: self.plugin_driver.clone(),
-                  cache: self.cache.clone(),
-                  current_profile,
-                  factorize_queue: self.factorize_queue.clone(),
-                  add_queue: self.add_queue.clone(),
-                  build_queue: self.build_queue.clone(),
-                  process_dependencies_queue: self.process_dependencies_queue.clone(),
-                  build_time_execution_queue: self.build_time_execution_queue.clone(),
-                });
-              }
-              AddTaskResult::ModuleReused { module, .. } => {
-                tracing::trace!("Module reused: {}, skipping build", module.identifier());
-              }
-            },
-            Ok(TaskResult::Build(box task_result)) => {
-              let BuildTaskResult {
-                mut module,
-                build_result,
-                diagnostics,
-                current_profile,
-                from_cache,
-              } = task_result;
-
-              if let Some(counter) = &mut build_cache_counter {
-                if from_cache {
-                  counter.hit();
-                } else {
-                  counter.miss();
-                }
-              }
-
-              if self.options.builtins.tree_shaking.enable() {
-                self
-                  .optimize_analyze_result_map
-                  .insert(module.identifier(), build_result.analyze_result);
-              }
-
-              if !diagnostics.is_empty() {
-                make_failed_module.insert(module.identifier());
-              }
-
-              tracing::trace!("Module built: {}", module.identifier());
-              self.push_batch_diagnostic(diagnostics);
-              self
-                .module_graph
-                .get_optimization_bailout_mut(module.identifier())
-                .extend(build_result.optimization_bailouts);
-              self
-                .file_dependencies
-                .extend(build_result.build_info.file_dependencies.clone());
-              self
-                .context_dependencies
-                .extend(build_result.build_info.context_dependencies.clone());
-              self
-                .missing_dependencies
-                .extend(build_result.build_info.missing_dependencies.clone());
-              self
-                .build_dependencies
-                .extend(build_result.build_info.build_dependencies.clone());
-
-              let mut queue = VecDeque::new();
-              let mut all_dependencies = vec![];
-              let mut handle_block =
-                |dependencies: Vec<BoxDependency>,
-                 blocks: Vec<AsyncDependenciesBlock>,
-                 queue: &mut VecDeque<AsyncDependenciesBlock>,
-                 module_graph: &mut ModuleGraph,
-                 current_block: Option<AsyncDependenciesBlock>| {
-                  for dependency in dependencies {
-                    let dependency_id = *dependency.id();
-                    if current_block.is_none() {
-                      module.add_dependency_id(dependency_id);
-                    }
-                    all_dependencies.push(dependency_id);
-                    module_graph.set_parents(
-                      dependency_id,
-                      DependencyParents {
-                        block: current_block.as_ref().map(|block| block.identifier()),
-                        module: module.identifier(),
-                      },
-                    );
-                    module_graph.add_dependency(dependency);
-                  }
-                  if let Some(current_block) = current_block {
-                    module.add_block_id(current_block.identifier());
-                    module_graph.add_block(current_block);
-                  }
-                  for block in blocks {
-                    queue.push_back(block);
-                  }
-                };
-              handle_block(
-                build_result.dependencies,
-                build_result.blocks,
-                &mut queue,
-                &mut self.module_graph,
-                None,
-              );
-              while let Some(mut block) = queue.pop_front() {
-                let dependencies = block.take_dependencies();
-                let blocks = block.take_blocks();
-                handle_block(
-                  dependencies,
-                  blocks,
-                  &mut queue,
-                  &mut self.module_graph,
-                  Some(block),
-                );
-              }
-
-              {
-                let mgm = self
-                  .module_graph
-                  .module_graph_module_by_identifier_mut(&module.identifier())
-                  .expect("Failed to get mgm");
-                mgm.__deprecated_all_dependencies = all_dependencies.clone();
-                if let Some(current_profile) = current_profile {
-                  mgm.set_profile(current_profile);
-                }
-              }
-              process_dependencies_queue.add_task(ProcessDependenciesTask {
-                dependencies: all_dependencies,
-                original_module_identifier: module.identifier(),
-                resolve_options: module.get_resolve_options(),
-              });
-
-              module
-                .set_module_build_info_and_meta(build_result.build_info, build_result.build_meta);
-              self.module_graph.add_module(module);
-            }
-            Ok(TaskResult::ProcessDependencies(task_result)) => {
-              tracing::trace!(
-                "Processing dependencies of {} finished",
-                task_result.module_identifier
-              );
-            }
-            Err(err) => {
-              // Severe internal error encountered, we should end the compiling here.
-              errored = Some(err);
-              is_expected_shutdown.store(true, Ordering::SeqCst);
-              break;
-            }
-          }
-
-          active_task_count -= 1;
-        }
-        Err(TryRecvError::Disconnected) => {
-          is_expected_shutdown.store(true, Ordering::SeqCst);
-          break;
-        }
-        Err(TryRecvError::Empty) => {
-          if active_task_count == 0 {
-            is_expected_shutdown.store(true, Ordering::SeqCst);
-            break;
-          }
-        }
-      }
-    });
-    logger.time_aggregate_end(add_time);
-    logger.time_aggregate_end(process_deps_time);
-    logger.time_aggregate_end(factorize_time);
-    logger.time_aggregate_end(build_time);
-
-    if let Some(counter) = build_cache_counter {
-      logger.cache_end(counter);
-    }
-    if let Some(counter) = factorize_cache_counter {
-      logger.cache_end(counter);
-    }
-
-    // TODO @jerrykingxyz make update_module_graph a pure function
-    self
-      .make_failed_dependencies
-      .extend(make_failed_dependencies);
-    self.make_failed_module.extend(make_failed_module);
-    tracing::debug!("All task is finished");
-
-    // clean isolated module
-    let mut clean_queue = CleanQueue::new();
-    clean_queue.add_tasks(
-      need_check_isolated_module_ids
-        .into_iter()
-        .map(|module_identifier| CleanTask { module_identifier }),
-    );
-
-    while let Some(task) = clean_queue.get_task(self) {
-      match task.run(self) {
-        CleanTaskResult::ModuleIsUsed { module_identifier } => {
-          tracing::trace!("Module is used: {}", module_identifier);
-        }
-        CleanTaskResult::ModuleIsCleaned {
-          module_identifier,
-          dependent_module_identifiers,
-        } => {
-          tracing::trace!("Module is cleaned: {}", module_identifier);
-          clean_queue.add_tasks(
-            dependent_module_identifiers
-              .into_iter()
-              .map(|module_identifier| CleanTask { module_identifier }),
-          );
-        }
-      };
-    }
-
-    tracing::debug!("All clean task is finished");
-    // set origin module issues
-    for (id, issuer) in origin_module_issuers {
-      if let Some(mgm) = self.module_graph.module_graph_module_by_identifier_mut(&id) {
-        mgm.set_issuer(issuer);
-      }
-    }
-
-    // calc has_module_import_export_change
-    self.has_module_import_export_change = if origin_module_deps.is_empty() {
-      true
-    } else {
-      self.has_module_import_export_change
-        || !origin_module_deps.into_iter().all(|(module_id, deps)| {
-          if self.module_graph.module_by_identifier(&module_id).is_none() {
-            false
-          } else {
-            let (now_deps, mut now_blocks) = module_deps(self, &module_id);
-            let (origin_deps, mut origin_blocks) = deps;
-            if now_deps.len() != origin_deps.len() || now_blocks.len() != origin_blocks.len() {
-              false
-            } else {
-              for index in 0..origin_deps.len() {
-                if origin_deps[index] != now_deps[index] {
-                  return false;
-                }
-              }
-
-              now_blocks.sort_unstable();
-              origin_blocks.sort_unstable();
-
-              for index in 0..origin_blocks.len() {
-                if origin_blocks[index].0 != now_blocks[index].0 {
-                  return false;
-                }
-                if origin_blocks[index].1 != now_blocks[index].1 {
-                  return false;
-                }
-              }
-
-              true
-            }
-          }
-        })
-    };
-
-    // Avoid to introduce too much overhead,
-    // until we find a better way to align with webpack hmr behavior
-
-    // add context module and context element module to bailout_module_identifiers
-    if self.options.builtins.tree_shaking.enable() {
-      self.bailout_module_identifiers = self
-        .module_graph
-        .dependencies()
-        .values()
-        .par_bridge()
-        .filter_map(|dep| {
-          if dep.as_context_dependency().is_some()
-            && let Some(module) = self.module_graph.get_module(dep.id())
-          {
-            let mut values = vec![(module.identifier(), BailoutFlag::CONTEXT_MODULE)];
-            if let Some(dependencies) = self
-              .module_graph
-              .get_module_all_dependencies(&module.identifier())
-            {
-              for dependency in dependencies {
-                if let Some(dependency_module) = self
-                  .module_graph
-                  .module_identifier_by_dependency_id(dependency)
-                {
-                  values.push((*dependency_module, BailoutFlag::CONTEXT_MODULE));
-                }
-              }
-            }
-
-            Some(values)
-          } else if matches!(
-            dep.dependency_type(),
-            DependencyType::ContainerExposed | DependencyType::ProvideModuleForShared
-          ) && let Some(module) = self.module_graph.get_module(dep.id())
-          {
-            Some(vec![(module.identifier(), BailoutFlag::CONTAINER_EXPOSED)])
-          } else {
-            None
-          }
-        })
-        .flatten()
-        .collect();
-    }
-
-    if let Some(err) = errored {
-      Err(err)
-    } else {
-      Ok(())
-    }
-  }
-
-  #[allow(clippy::too_many_arguments)]
-  fn handle_module_creation(
-    &self,
-    queue: &mut FactorizeQueue,
-    original_module_identifier: Option<ModuleIdentifier>,
-    original_module_context: Option<Box<Context>>,
-    dependencies: Vec<DependencyId>,
-    is_entry: bool,
-    resolve_options: Option<Box<Resolve>>,
-    lazy_visit_modules: std::collections::HashSet<String>,
-    issuer: Option<Box<str>>,
-    connect_origin: bool,
-    callback: Option<ModuleCreationCallback>,
-  ) {
-    let current_profile = self.options.profile.then(Box::<ModuleProfile>::default);
-    let dependency = dependencies[0].get_dependency(&self.module_graph).clone();
-    let original_module_source = original_module_identifier
-      .and_then(|i| self.module_graph.module_by_identifier(&i))
-      .and_then(|m| m.as_normal_module())
-      .and_then(|m| {
-        if let NormalModuleSource::BuiltSucceed(s) = m.source() {
-          Some(s.clone())
-        } else {
-          None
-        }
-      });
-    queue.add_task(FactorizeTask {
-      module_factory: self.get_dependency_factory(&dependency),
-      original_module_identifier,
-      original_module_source,
-      issuer,
-      original_module_context,
-      dependency,
-      dependencies,
-      is_entry,
-      resolve_options,
-      lazy_visit_modules,
-      resolver_factory: self.resolver_factory.clone(),
-      loader_resolver_factory: self.loader_resolver_factory.clone(),
-      options: self.options.clone(),
-      plugin_driver: self.plugin_driver.clone(),
-      cache: self.cache.clone(),
-      current_profile,
-      connect_origin,
-      callback,
-    });
   }
 
   #[instrument(name = "compilation:code_generation", skip(self))]
@@ -1486,12 +728,6 @@ impl Compilation {
     // .for_each(|(chunk_ukey, manifest)| {
     // })
   }
-  #[instrument(name = "compilation:process_asssets", skip_all)]
-  async fn process_assets(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
-    plugin_driver
-      .process_assets(ProcessAssetsArgs { compilation: self })
-      .await
-  }
 
   #[instrument(name = "compilation:after_process_asssets", skip_all)]
   async fn after_process_assets(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
@@ -1636,7 +872,7 @@ impl Compilation {
     logger.time_end(start);
 
     let start = logger.time("process assets");
-    self.process_assets(plugin_driver.clone()).await?;
+    self.hooks.clone().process_assets.call(self).await?;
     logger.time_end(start);
 
     let start = logger.time("after process assets");

@@ -209,9 +209,9 @@ export async function runLoaders(
 	loaderContext.context = contextDirectory;
 	loaderContext.loaderIndex = 0;
 	loaderContext.loaders = loaders;
-	loaderContext.resourcePath = resourcePath;
-	loaderContext.resourceQuery = resourceQuery;
-	loaderContext.resourceFragment = resourceFragment;
+	loaderContext.resourcePath = resourcePath!;
+	loaderContext.resourceQuery = resourceQuery!;
+	loaderContext.resourceFragment = resourceFragment!;
 	loaderContext.cacheable = function (flag) {
 		if (flag === false) {
 			cacheable = false;
@@ -321,8 +321,8 @@ export async function runLoaders(
 			if (loaderContext.resourcePath === undefined) return undefined;
 			return (
 				loaderContext.resourcePath.replace(/#/g, "\0#") +
-				loaderContext.resourceQuery!.replace(/#/g, "\0#") +
-				loaderContext.resourceFragment!
+				loaderContext.resourceQuery.replace(/#/g, "\0#") +
+				loaderContext.resourceFragment
 			);
 		},
 		set: function (value) {

@@ -240,70 +240,6 @@ class Compiler {
 				emit: this.#emit.bind(this),
 				assetEmitted: this.#assetEmitted.bind(this),
 				afterEmit: this.#afterEmit.bind(this),
-				processAssetsStageAdditional: this.#processAssets.bind(
-					this,
-					Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL
-				),
-				processAssetsStagePreProcess: this.#processAssets.bind(
-					this,
-					Compilation.PROCESS_ASSETS_STAGE_PRE_PROCESS
-				),
-				processAssetsStageDerived: this.#processAssets.bind(
-					this,
-					Compilation.PROCESS_ASSETS_STAGE_DERIVED
-				),
-				processAssetsStageAdditions: this.#processAssets.bind(
-					this,
-					Compilation.PROCESS_ASSETS_STAGE_ADDITIONS
-				),
-				processAssetsStageNone: this.#processAssets.bind(
-					this,
-					Compilation.PROCESS_ASSETS_STAGE_NONE
-				),
-				processAssetsStageOptimize: this.#processAssets.bind(
-					this,
-					Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE
-				),
-				processAssetsStageOptimizeCount: this.#processAssets.bind(
-					this,
-					Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_COUNT
-				),
-				processAssetsStageOptimizeCompatibility: this.#processAssets.bind(
-					this,
-					Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_COMPATIBILITY
-				),
-				processAssetsStageOptimizeSize: this.#processAssets.bind(
-					this,
-					Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE
-				),
-				processAssetsStageDevTooling: this.#processAssets.bind(
-					this,
-					Compilation.PROCESS_ASSETS_STAGE_DEV_TOOLING
-				),
-				processAssetsStageOptimizeInline: this.#processAssets.bind(
-					this,
-					Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE
-				),
-				processAssetsStageSummarize: this.#processAssets.bind(
-					this,
-					Compilation.PROCESS_ASSETS_STAGE_SUMMARIZE
-				),
-				processAssetsStageOptimizeHash: this.#processAssets.bind(
-					this,
-					Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_HASH
-				),
-				processAssetsStageOptimizeTransfer: this.#processAssets.bind(
-					this,
-					Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_TRANSFER
-				),
-				processAssetsStageAnalyse: this.#processAssets.bind(
-					this,
-					Compilation.PROCESS_ASSETS_STAGE_ANALYSE
-				),
-				processAssetsStageReport: this.#processAssets.bind(
-					this,
-					Compilation.PROCESS_ASSETS_STAGE_REPORT
-				),
 				afterProcessAssets: this.#afterProcessAssets.bind(this),
 				// `Compilation` should be created with hook `thisCompilation`, and here is the reason:
 				// We know that the hook `thisCompilation` will not be called from a child compiler(it doesn't matter whether the child compiler is created on the Rust or the Node side).
@@ -335,7 +271,9 @@ class Compiler {
 			{
 				registerCompilerCompilationTaps:
 					this.#registerCompilerCompilationTaps.bind(this),
-				registerCompilerMakeTaps: this.#registerCompilerMakeTaps.bind(this)
+				registerCompilerMakeTaps: this.#registerCompilerMakeTaps.bind(this),
+				registerCompilationProcessAssetsTaps:
+					this.#registerCompilationProcessAssetsTaps.bind(this)
 			},
 			createThreadsafeNodeFSFromRaw(this.outputFileSystem),
 			runLoaders.bind(undefined, this)
@@ -567,70 +505,6 @@ class Compiler {
 			emit: this.hooks.emit,
 			assetEmitted: this.hooks.assetEmitted,
 			afterEmit: this.hooks.afterEmit,
-			processAssetsStageAdditional:
-				this.compilation.__internal_getProcessAssetsHookByStage(
-					Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL
-				),
-			processAssetsStagePreProcess:
-				this.compilation.__internal_getProcessAssetsHookByStage(
-					Compilation.PROCESS_ASSETS_STAGE_PRE_PROCESS
-				),
-			processAssetsStageDerived:
-				this.compilation.__internal_getProcessAssetsHookByStage(
-					Compilation.PROCESS_ASSETS_STAGE_DERIVED
-				),
-			processAssetsStageAdditions:
-				this.compilation.__internal_getProcessAssetsHookByStage(
-					Compilation.PROCESS_ASSETS_STAGE_ADDITIONS
-				),
-			processAssetsStageNone:
-				this.compilation.__internal_getProcessAssetsHookByStage(
-					Compilation.PROCESS_ASSETS_STAGE_NONE
-				),
-			processAssetsStageOptimize:
-				this.compilation.__internal_getProcessAssetsHookByStage(
-					Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE
-				),
-			processAssetsStageOptimizeCount:
-				this.compilation.__internal_getProcessAssetsHookByStage(
-					Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_COUNT
-				),
-			processAssetsStageOptimizeCompatibility:
-				this.compilation.__internal_getProcessAssetsHookByStage(
-					Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_COMPATIBILITY
-				),
-			processAssetsStageOptimizeSize:
-				this.compilation.__internal_getProcessAssetsHookByStage(
-					Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE
-				),
-			processAssetsStageDevTooling:
-				this.compilation.__internal_getProcessAssetsHookByStage(
-					Compilation.PROCESS_ASSETS_STAGE_DEV_TOOLING
-				),
-			processAssetsStageOptimizeInline:
-				this.compilation.__internal_getProcessAssetsHookByStage(
-					Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE
-				),
-			processAssetsStageSummarize:
-				this.compilation.__internal_getProcessAssetsHookByStage(
-					Compilation.PROCESS_ASSETS_STAGE_SUMMARIZE
-				),
-			processAssetsStageOptimizeHash:
-				this.compilation.__internal_getProcessAssetsHookByStage(
-					Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_HASH
-				),
-			processAssetsStageOptimizeTransfer:
-				this.compilation.__internal_getProcessAssetsHookByStage(
-					Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_TRANSFER
-				),
-			processAssetsStageAnalyse:
-				this.compilation.__internal_getProcessAssetsHookByStage(
-					Compilation.PROCESS_ASSETS_STAGE_ANALYSE
-				),
-			processAssetsStageReport:
-				this.compilation.__internal_getProcessAssetsHookByStage(
-					Compilation.PROCESS_ASSETS_STAGE_REPORT
-				),
 			afterProcessAssets: this.compilation.hooks.afterProcessAssets,
 			optimizeTree: this.compilation.hooks.optimizeTree,
 			finishModules: this.compilation.hooks.finishModules,
@@ -701,13 +575,6 @@ class Compiler {
 	async #buildModule(module: binding.JsModule) {
 		const normalized = normalizeJsModule(module);
 		this.compilation.hooks.buildModule.call(normalized);
-		this.#updateDisabledHooks();
-	}
-
-	async #processAssets(stage: number) {
-		await this.compilation
-			.__internal_getProcessAssetsHookByStage(stage)
-			.promise(this.compilation.assets);
 		this.#updateDisabledHooks();
 	}
 
@@ -1010,6 +877,29 @@ class Compiler {
 			jsTaps.push({
 				function: async (native: binding.JsCompilation) => {
 					await this.hooks.make.promiseStageRange(stageRange, this.compilation);
+					if (i + 1 >= breakpoints.length - 1) this.#updateDisabledHooks();
+				},
+				stage: stageRange.from + 1
+			});
+		}
+		return jsTaps;
+	}
+
+	#registerCompilationProcessAssetsTaps(stages: number[]): binding.JsTap[] {
+		if (!this.compilation.hooks.processAssets.isUsed()) return [];
+		const breakpoints = [-Infinity, ...stages, Infinity];
+		const jsTaps = [];
+		for (let i = 0; i < breakpoints.length - 1; i++) {
+			const stageRange = liteTapable.StageRange.from(
+				breakpoints[i],
+				breakpoints[i + 1]
+			);
+			jsTaps.push({
+				function: async () => {
+					await this.compilation.hooks.processAssets.promiseStageRange(
+						stageRange,
+						this.compilation.assets
+					);
 					if (i + 1 >= breakpoints.length - 1) this.#updateDisabledHooks();
 				},
 				stage: stageRange.from + 1

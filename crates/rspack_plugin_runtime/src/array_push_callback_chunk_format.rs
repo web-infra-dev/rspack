@@ -85,10 +85,10 @@ impl Plugin for ArrayPushCallbackChunkFormatPlugin {
     args: &RenderChunkArgs,
   ) -> PluginRenderChunkHookOutput {
     let chunk = args.chunk();
-    let runtime_modules = args
+    let has_runtime_modules = args
       .compilation
       .chunk_graph
-      .get_chunk_runtime_modules_in_order(args.chunk_ukey);
+      .has_chunk_runtime_modules(args.chunk_ukey);
     let global_object = &args.compilation.options.output.global_object;
     let hot_update_global = &args.compilation.options.output.hot_update_global;
     let mut source = ConcatSource::default();
@@ -101,7 +101,7 @@ impl Plugin for ArrayPushCallbackChunkFormatPlugin {
         chunk.expect_id()
       )));
       source.add(args.module_source.clone());
-      if !runtime_modules.is_empty() {
+      if has_runtime_modules {
         source.add(RawSource::Source(",".to_string()));
         source.add(render_chunk_runtime_modules(
           args.compilation,
@@ -122,13 +122,13 @@ impl Plugin for ArrayPushCallbackChunkFormatPlugin {
       )));
       source.add(args.module_source.clone());
       let has_entry = chunk.has_entry_module(&args.compilation.chunk_graph);
-      if has_entry || !runtime_modules.is_empty() {
+      if has_entry || has_runtime_modules {
         source.add(RawSource::from(","));
         source.add(RawSource::from(format!(
           "function({}) {{\n",
           RuntimeGlobals::REQUIRE
         )));
-        if !runtime_modules.is_empty() {
+        if has_runtime_modules {
           source.add(render_runtime_modules(args.compilation, args.chunk_ukey)?);
         }
         if has_entry {

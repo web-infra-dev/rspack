@@ -36,6 +36,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
       let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
       let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk_ukey);
 
+      let unique_name = &compilation.options.output.unique_name;
       let with_hmr = runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
 
       let condition_map =
@@ -79,10 +80,14 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         &stringify_chunks(&initial_chunk_ids_without_css, 0)
       )));
 
-      source.add(RawSource::from(include_str!("./css_loading.js").replace(
-        "__CROSS_ORIGIN_LOADING_PLACEHOLDER__",
-        &compilation.options.output.cross_origin_loading.to_string(),
-      )));
+      source.add(RawSource::from(
+        include_str!("./css_loading.js")
+          .replace(
+            "__CROSS_ORIGIN_LOADING_PLACEHOLDER__",
+            &compilation.options.output.cross_origin_loading.to_string(),
+          )
+          .replace("__UNIQUE_NAME__", unique_name),
+      ));
 
       if with_loading {
         let chunk_loading_global_expr = format!(

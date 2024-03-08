@@ -14,7 +14,8 @@ unsafe fn object_prototype_to_string_call<T: NapiRaw>(
   let env = Env::from(raw_env);
   let s: JsString = env
     .get_global()?
-    .get_named_property::<JsObject>("Object")?
+    // `Object` is a function, but we want to use it as an JSObject.
+    .get_named_property_unchecked::<JsObject>("Object")?
     .get_named_property::<JsObject>("prototype")?
     .get_named_property::<JsFunction>("toString")?
     .call_without_args(Some(
