@@ -2,7 +2,6 @@ mod compilation;
 mod execute_module;
 mod hmr;
 mod make;
-mod queue;
 
 use std::collections::hash_map::Entry;
 use std::ops::Deref;
@@ -20,8 +19,11 @@ use tracing::instrument;
 
 pub use self::compilation::*;
 pub use self::hmr::{collect_changed_modules, CompilationRecords};
-pub use self::make::MakeParam;
-pub use self::queue::*;
+pub use self::make::{
+  AddQueueHandler, BuildQueueHandler, BuildTimeExecutionOption, BuildTimeExecutionQueueHandler,
+  BuildTimeExecutionTask, FactorizeQueueHandler, FactorizeTask, MakeParam,
+  ProcessDependenciesQueueHandler,
+};
 use crate::cache::Cache;
 use crate::tree_shaking::symbol::{IndirectType, StarSymbolKind, DEFAULT_JS_WORD};
 use crate::tree_shaking::visitor::SymbolRef;

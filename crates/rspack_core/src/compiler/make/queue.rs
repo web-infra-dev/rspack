@@ -17,6 +17,16 @@ use crate::{
   BoxModule, DependencyId, ExecuteModuleResult, ExportInfo, ExportsInfo, QueueHandler, UsageState,
 };
 
+pub type CleanQueue = WorkerQueue<CleanTask, ModuleIdentifier>;
+
+pub type ModuleCreationCallback = Box<dyn FnOnce(&BoxModule) + Send>;
+
+pub type FactorizeQueueHandler = QueueHandler<FactorizeTask, DependencyId>;
+pub type AddQueueHandler = QueueHandler<AddTask, ModuleIdentifier>;
+pub type BuildQueueHandler = QueueHandler<BuildTask, ModuleIdentifier>;
+pub type ProcessDependenciesQueueHandler = QueueHandler<ProcessDependenciesTask, ModuleIdentifier>;
+pub type BuildTimeExecutionQueueHandler = QueueHandler<BuildTimeExecutionTask, ModuleIdentifier>;
+
 #[derive(Debug)]
 pub enum TaskResult {
   Factorize(Box<FactorizeTaskResult>),
@@ -520,13 +530,3 @@ impl CleanTask {
     }
   }
 }
-
-pub type CleanQueue = WorkerQueue<CleanTask, ModuleIdentifier>;
-
-pub type ModuleCreationCallback = Box<dyn FnOnce(&BoxModule) + Send>;
-
-pub type FactorizeQueueHandler = QueueHandler<FactorizeTask, DependencyId>;
-pub type AddQueueHandler = QueueHandler<AddTask, ModuleIdentifier>;
-pub type BuildQueueHandler = QueueHandler<BuildTask, ModuleIdentifier>;
-pub type ProcessDependenciesQueueHandler = QueueHandler<ProcessDependenciesTask, ModuleIdentifier>;
-pub type BuildTimeExecutionQueueHandler = QueueHandler<BuildTimeExecutionTask, ModuleIdentifier>;

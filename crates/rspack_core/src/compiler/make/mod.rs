@@ -1,3 +1,6 @@
+mod queue;
+mod rebuild_deps_builder;
+
 use std::{
   collections::VecDeque,
   path::PathBuf,
@@ -14,20 +17,24 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use tokio::sync::mpsc;
 use tokio::sync::mpsc::error::TryRecvError;
 
-use crate::{
-  logger::Logger, tree_shaking::BailoutFlag, AddQueue, AddTask, AddTaskResult,
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BuildDependency,
-  BuildQueue, BuildTask, BuildTaskResult, BuildTimeExecutionQueue, BuildTimeExecutionTask,
-  CacheOptions, CleanQueue, CleanTask, CleanTaskResult, Compilation, Context, ContextDependency,
-  DependencyId, DependencyParents, DependencyType, FactorizeQueue, FactorizeTask,
-  FactorizeTaskResult, GroupOptions, Module, ModuleCreationCallback, ModuleFactoryResult,
-  ModuleGraph, ModuleGraphModule, ModuleIdentifier, ModuleIssuer, ModuleProfile,
-  NormalModuleSource, ProcessDependenciesQueue, ProcessDependenciesResult, ProcessDependenciesTask,
-  Resolve, TaskResult, WorkerTask,
+use self::queue::{
+  AddQueue, AddTask, AddTaskResult, BuildQueue, BuildTask, BuildTaskResult,
+  BuildTimeExecutionQueue, CleanQueue, CleanTask, CleanTaskResult, FactorizeQueue,
+  FactorizeTaskResult, ModuleCreationCallback, ProcessDependenciesQueue, ProcessDependenciesResult,
+  ProcessDependenciesTask, TaskResult, WorkerTask,
 };
-
-mod rebuild_deps_builder;
-pub use rebuild_deps_builder::RebuildDepsBuilder;
+pub use self::queue::{
+  AddQueueHandler, BuildQueueHandler, BuildTimeExecutionOption, BuildTimeExecutionQueueHandler,
+  BuildTimeExecutionTask, FactorizeQueueHandler, FactorizeTask, ProcessDependenciesQueueHandler,
+};
+pub use self::rebuild_deps_builder::RebuildDepsBuilder;
+use crate::{
+  logger::Logger, tree_shaking::BailoutFlag, AsyncDependenciesBlock,
+  AsyncDependenciesBlockIdentifier, BoxDependency, BuildDependency, CacheOptions, Compilation,
+  Context, ContextDependency, DependencyId, DependencyParents, DependencyType, GroupOptions,
+  Module, ModuleFactoryResult, ModuleGraph, ModuleGraphModule, ModuleIdentifier, ModuleIssuer,
+  ModuleProfile, NormalModuleSource, Resolve,
+};
 
 #[derive(Debug)]
 pub enum MakeParam {
