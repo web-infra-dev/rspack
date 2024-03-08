@@ -56,13 +56,16 @@ export class MultiTaskProcessor<T extends ECompilerType = ECompilerType.Rspack>
 						const bundles = Array.isArray(curBundles)
 							? curBundles
 							: curBundles
-								? [curBundles]
-								: [];
+							? [curBundles]
+							: [];
 
-						const multiFileIndexMap: Record<string, number> =
+						const multiFileIndexMap: Record<string, number[]> =
 							context.getValue(_multiOptions.name, "multiFileIndexMap") || {};
 						for (const bundle of bundles) {
-							multiFileIndexMap[bundle] = index;
+							multiFileIndexMap[bundle] = [
+								...(multiFileIndexMap[bundle] || []),
+								index
+							];
 						}
 						context.setValue(
 							_multiOptions.name,
@@ -88,7 +91,7 @@ export class MultiTaskProcessor<T extends ECompilerType = ECompilerType.Rspack>
 		)
 			? readConfigFile(
 					this._multiOptions.configFiles!.map(i => context.getSource(i))
-				)
+			  )
 			: [{}];
 
 		for (let [index, options] of caseOptions.entries()) {

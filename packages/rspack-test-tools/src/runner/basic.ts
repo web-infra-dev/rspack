@@ -6,25 +6,20 @@ import {
 	TCompilerOptions,
 	TRunnerFactory
 } from "../type";
-import path from "path";
 import { WebRunner } from "./runner/web";
 import { EsmRunner } from "./runner/esm";
-import { BasicRunner } from "./runner/basic";
 
 export class BasicRunnerFactory<T extends ECompilerType>
 	implements TRunnerFactory<T>
 {
-	constructor(
-		protected name: string,
-		protected context: ITestContext
-	) {}
+	constructor(protected name: string, protected context: ITestContext) {}
 
 	create(
 		file: string,
 		compilerOptions: TCompilerOptions<T>,
 		env: ITestEnv
 	): ITestRunner {
-		const key = this.getRunnerKey(this.name, file);
+		const key = this.getRunnerKey(file);
 		const exists = this.context.getRunner(key);
 		if (exists) {
 			return exists;
@@ -34,8 +29,8 @@ export class BasicRunnerFactory<T extends ECompilerType>
 		return runner;
 	}
 
-	protected getRunnerKey(name: string, file: string) {
-		return name;
+	protected getRunnerKey(file: string) {
+		return this.name;
 	}
 
 	protected createRunner(
