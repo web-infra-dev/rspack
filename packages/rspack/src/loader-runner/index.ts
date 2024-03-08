@@ -638,7 +638,7 @@ export async function runLoaders(
 				resolve({
 					content: isNil(content) ? undefined : toBuffer(content),
 					sourceMap: serializeObject(sourceMap),
-					additionalData: serializeObject(additionalData),
+					additionalData,
 					buildDependencies,
 					cacheable,
 					fileDependencies,
@@ -662,7 +662,7 @@ export async function runLoaders(
 						: toObject(rawContext.sourceMap),
 					isNil(rawContext.additionalData)
 						? undefined
-						: toObject(rawContext.additionalData)
+						: rawContext.additionalData
 				],
 				(err: Error, result: any[]) => {
 					if (err) {
@@ -672,7 +672,7 @@ export async function runLoaders(
 					resolve({
 						content: isNil(content) ? undefined : toBuffer(content),
 						sourceMap: serializeObject(sourceMap),
-						additionalData: serializeObject(additionalData),
+						additionalData,
 						buildDependencies,
 						cacheable,
 						fileDependencies,
