@@ -196,8 +196,6 @@ impl Plugin for SourceMapDevToolPlugin {
   ) -> PluginProcessAssetsOutput {
     let logger = compilation.get_logger(self.name());
     let start = logger.time("collect source maps");
-    let span = tracing::info_span!("collect source maps");
-    let entered = span.enter();
     let output_options = &compilation.options.output;
 
     let assets = compilation
@@ -357,11 +355,8 @@ impl Plugin for SourceMapDevToolPlugin {
     }
 
     logger.time_end(start);
-    drop(entered);
 
     let start = logger.time("emit source map assets");
-    let span = tracing::info_span!("emit source map assets");
-    let _entered = span.enter();
     for (filename, code_buffer, source_map_buffer) in maps {
       let mut asset = compilation
         .assets_mut()

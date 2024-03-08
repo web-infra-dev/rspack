@@ -18,7 +18,6 @@ napi               = { workspace = true, features = ["napi4", "tokio_rt"] }
 napi-derive        = { workspace = true }
 rspack_fs          = { path = "../rspack_fs", default-features = false, features = ["rspack-error"] }
 rspack_napi_shared = { path = "../rspack_napi_shared" }
-tracing            = { workspace = true }
 
 [build-dependencies]
 napi-build = { workspace = true }

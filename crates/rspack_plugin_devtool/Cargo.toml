@@ -23,4 +23,3 @@ rspack_hash   = { path = "../rspack_hash" }
 rspack_util   = { path = "../rspack_util" }
 rustc-hash    = { workspace = true }
 serde_json    = { workspace = true }
-tracing       = { workspace = true }

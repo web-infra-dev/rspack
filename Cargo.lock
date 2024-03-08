@@ -2593,7 +2593,6 @@ dependencies = [
  "napi-derive",
  "rspack_fs",
  "rspack_napi_shared",
- "tracing",
 ]
 
 [[package]]
@@ -2842,7 +2841,6 @@ dependencies = [
  "rspack_util",
  "rustc-hash",
  "serde_json",
- "tracing",
 ]
 
 [[package]]

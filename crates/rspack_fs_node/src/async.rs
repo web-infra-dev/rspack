@@ -2,7 +2,6 @@ use futures::future::BoxFuture;
 use napi::Env;
 use rspack_fs::r#async::AsyncWritableFileSystem;
 use rspack_napi_shared::threadsafe_function::ThreadsafeFunctionCallMode;
-use tracing::instrument;
 
 use crate::node::{ThreadsafeFunctionRef, ThreadsafeNodeFS, TryIntoThreadsafeFunctionRef};
 
@@ -18,7 +17,6 @@ impl AsyncNodeWritableFileSystem {
 }
 
 impl AsyncWritableFileSystem for AsyncNodeWritableFileSystem {
-  #[instrument(skip_all)]
   fn create_dir<P: AsRef<std::path::Path>>(&self, dir: P) -> BoxFuture<'_, rspack_fs::Result<()>> {
     let dir = dir.as_ref().to_string_lossy().to_string();
     let fut = async move {
@@ -40,7 +38,6 @@ impl AsyncWritableFileSystem for AsyncNodeWritableFileSystem {
     Box::pin(fut)
   }
 
-  #[instrument(skip_all)]
   fn create_dir_all<P: AsRef<std::path::Path>>(
     &self,
     dir: P,
@@ -65,7 +62,6 @@ impl AsyncWritableFileSystem for AsyncNodeWritableFileSystem {
     Box::pin(fut)
   }
 
-  #[instrument(skip_all)]
   fn write<P: AsRef<std::path::Path>, D: AsRef<[u8]>>(
     &self,
     file: P,
@@ -91,7 +87,6 @@ impl AsyncWritableFileSystem for AsyncNodeWritableFileSystem {
     Box::pin(fut)
   }
 
-  #[instrument(skip_all)]
   fn remove_file<P: AsRef<std::path::Path>>(
     &self,
     file: P,
@@ -116,7 +111,6 @@ impl AsyncWritableFileSystem for AsyncNodeWritableFileSystem {
     Box::pin(fut)
   }
 
-  #[instrument(skip_all)]
   fn remove_dir_all<P: AsRef<std::path::Path>>(
     &self,
     dir: P,
