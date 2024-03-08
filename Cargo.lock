@@ -3304,7 +3304,6 @@ dependencies = [
  "napi-build",
  "napi-derive",
  "once_cell",
- "rspack_binding_macros",
  "rspack_binding_options",
  "rspack_binding_values",
  "rspack_core",
@@ -3315,6 +3314,7 @@ dependencies = [
  "rspack_tracing",
  "testing_macros",
  "tikv-jemallocator",
+ "tokio",
  "tracing",
 ]
 

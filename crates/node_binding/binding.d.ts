@@ -331,32 +331,32 @@ export interface JsExecuteModuleResult {
 }
 
 export interface JsHooks {
-  afterProcessAssets: (...args: any[]) => any
-  thisCompilation: (...args: any[]) => any
-  emit: (...args: any[]) => any
-  assetEmitted: (...args: any[]) => any
-  shouldEmit: (...args: any[]) => any
-  afterEmit: (...args: any[]) => any
-  optimizeModules: (...args: any[]) => any
-  afterOptimizeModules: (...args: any[]) => any
-  optimizeTree: (...args: any[]) => any
-  optimizeChunkModules: (...args: any[]) => any
-  beforeCompile: (...args: any[]) => any
-  afterCompile: (...args: any[]) => any
-  finishModules: (...args: any[]) => any
-  finishMake: (...args: any[]) => any
-  buildModule: (...args: any[]) => any
-  beforeResolve: (...args: any[]) => any
-  afterResolve: (...args: any[]) => any
-  contextModuleFactoryBeforeResolve: (...args: any[]) => any
-  contextModuleFactoryAfterResolve: (...args: any[]) => any
-  normalModuleFactoryCreateModule: (...args: any[]) => any
-  normalModuleFactoryResolveForScheme: (...args: any[]) => any
-  chunkAsset: (...args: any[]) => any
-  succeedModule: (...args: any[]) => any
-  stillValidModule: (...args: any[]) => any
-  executeModule: (...args: any[]) => any
-  runtimeModule: (...args: any[]) => any
+  thisCompilation: (compilation: JsCompilation) => void
+  afterProcessAssets: () => void
+  emit: () => void
+  assetEmitted: (asset: JsAssetEmittedArgs) => void
+  shouldEmit: (compilation: JsCompilation) => void
+  afterEmit: () => void
+  optimizeModules: (compilation: JsCompilation) => void
+  afterOptimizeModules: (compilation: JsCompilation) => void
+  optimizeTree: () => void
+  optimizeChunkModules: (compilation: JsCompilation) => void
+  beforeCompile: () => void
+  afterCompile: (compilation: JsCompilation) => void
+  finishModules: (compilation: JsCompilation) => void
+  finishMake: (compilation: JsCompilation) => void
+  buildModule: (module: JsModule) => void
+  chunkAsset: (asset: JsChunkAssetArgs) => void
+  beforeResolve: (data: BeforeResolveData) => Promise<(boolean | void | BeforeResolveData)[]>
+  afterResolve: (data: AfterResolveData) => Promise<boolean | void>
+  contextModuleFactoryBeforeResolve: (data: BeforeResolveData) => Promise<boolean | void>
+  contextModuleFactoryAfterResolve: (data: AfterResolveData) => Promise<boolean | void>
+  normalModuleFactoryCreateModule: (data: CreateModuleData) => void
+  normalModuleFactoryResolveForScheme: (data: JsResolveForSchemeInput) => Promise<JsResolveForSchemeResult>
+  succeedModule: (module: JsModule) => void
+  stillValidModule: (module: JsModule) => void
+  executeModule: (arg: JsExecuteModuleArg) => void
+  runtimeModule: (arg: JsRuntimeModuleArg) => JsRuntimeModule | void
 }
 
 export interface JsLoaderContext {
@@ -1022,7 +1022,7 @@ export interface RawModuleRuleUse {
 export interface RawModuleRuleUses {
   type: "array" | "function"
   arrayUse?: Array<RawModuleRuleUse>
-  funcUse?: (...args: any[]) => any
+  funcUse?: (arg: RawFuncUseCtx) => RawModuleRuleUse[]
 }
 
 export interface RawNodeOption {
