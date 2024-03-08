@@ -127,9 +127,9 @@ function getRawTarget(target: Target | undefined): RawOptions["target"] {
 	return target;
 }
 
-function getRawAlias(
-	alias: Resolve["alias"] = {}
-): RawOptions["resolve"]["alias"] {
+function getRawExtensionAlias(
+	alias: Resolve["extensionAlias"] = {}
+): RawOptions["resolve"]["extensionAlias"] {
 	const entries = Object.entries(alias).map(([key, value]) => {
 		if (Array.isArray(value)) {
 			return [key, value];
@@ -138,6 +138,15 @@ function getRawAlias(
 		}
 	});
 	return Object.fromEntries(entries);
+}
+
+function getRawAlias(
+	alias: Resolve["alias"] = {}
+): RawOptions["resolve"]["alias"] {
+	return Object.entries(alias).map(([key, value]) => ({
+		path: key,
+		redirect: Array.isArray(value) ? value : [value]
+	}));
 }
 
 function getRawResolveByDependency(
@@ -156,7 +165,7 @@ function getRawResolve(resolve: Resolve): RawOptions["resolve"] {
 		...resolve,
 		alias: getRawAlias(resolve.alias),
 		fallback: getRawAlias(resolve.fallback),
-		extensionAlias: getRawAlias(resolve.extensionAlias) as Record<
+		extensionAlias: getRawExtensionAlias(resolve.extensionAlias) as Record<
 			string,
 			Array<string>
 		>,

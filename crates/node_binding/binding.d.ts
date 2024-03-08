@@ -595,6 +595,11 @@ export interface PathWithInfo {
   info: JsAssetInfo
 }
 
+export interface RawAliasOptionItem {
+  path: string
+  redirect: Array<string | false>
+}
+
 export interface RawAssetGeneratorDataUrl {
   type: "options"
   options?: RawAssetGeneratorDataUrlOptions
@@ -1162,8 +1167,8 @@ export interface RawResolveOptions {
   mainFiles?: Array<string>
   mainFields?: Array<string>
   conditionNames?: Array<string>
-  alias?: Record<string, Array<string | false>>
-  fallback?: Record<string, Array<string | false>>
+  alias?: Array<RawAliasOptionItem>
+  fallback?: Array<RawAliasOptionItem>
   symlinks?: boolean
   tsconfig?: RawResolveTsconfigOptions
   modules?: Array<string>

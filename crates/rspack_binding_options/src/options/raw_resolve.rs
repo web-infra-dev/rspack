@@ -7,7 +7,13 @@ use serde::Deserialize;
 
 pub type AliasValue = serde_json::Value;
 
-type RawAliasOption = HashMap<String, Vec<AliasValue>>;
+#[derive(Deserialize, Debug)]
+#[napi(object)]
+pub struct RawAliasOptionItem {
+  pub path: String,
+  #[napi(ts_type = "Array<string | false>")]
+  pub redirect: Vec<AliasValue>,
+}
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -29,12 +35,8 @@ pub struct RawResolveOptions {
   pub main_files: Option<Vec<String>>,
   pub main_fields: Option<Vec<String>>,
   pub condition_names: Option<Vec<String>>,
-  #[serde(serialize_with = "ordered_map")]
-  #[napi(ts_type = "Record<string, Array<string | false>>")]
-  pub alias: Option<RawAliasOption>,
-  #[serde(serialize_with = "ordered_map")]
-  #[napi(ts_type = "Record<string, Array<string | false>>")]
-  pub fallback: Option<RawAliasOption>,
+  pub alias: Option<Vec<RawAliasOptionItem>>,
+  pub fallback: Option<Vec<RawAliasOptionItem>>,
   pub symlinks: Option<bool>,
   pub tsconfig: Option<RawResolveTsconfigOptions>,
   pub modules: Option<Vec<String>>,
@@ -49,29 +51,33 @@ pub struct RawResolveOptions {
   pub roots: Option<Vec<String>>,
 }
 
-fn normalize_alias(alias: Option<RawAliasOption>) -> rspack_error::Result<Option<Alias>> {
+fn normalize_alias(alias: Option<Vec<RawAliasOptionItem>>) -> rspack_error::Result<Option<Alias>> {
   alias
     .map(|alias| {
       alias
         .into_iter()
-        .map(|(key, array)| {
-          array
+        .map(|alias_item| {
+          alias_item
+            .redirect
             .into_iter()
             .map(|value| {
               if let Some(s) = value.as_str() {
                 Ok(AliasMap::Path(s.to_string()))
               } else if let Some(b) = value.as_bool() {
                 if b {
-                  Err(error!("Alias should not be true in {key}"))
+                  Err(error!("Alias should not be true in {}", alias_item.path))
                 } else {
                   Ok(AliasMap::Ignore)
                 }
               } else {
-                Err(error!("Alias should be false or string in {key}"))
+                Err(error!(
+                  "Alias should be false or string in {}",
+                  alias_item.path
+                ))
               }
             })
             .collect::<rspack_error::Result<_>>()
-            .map(|value| (key, value))
+            .map(|value| (alias_item.path, value))
         })
         .collect::<rspack_error::Result<_>>()
     })
