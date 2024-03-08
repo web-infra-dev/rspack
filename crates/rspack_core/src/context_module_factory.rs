@@ -179,8 +179,8 @@ impl ContextModuleFactory {
         ContextModuleOptions {
           addon: loader_request.to_string(),
           resource: resource.path.to_string_lossy().to_string(),
-          resource_query: resource.query,
-          resource_fragment: resource.fragment,
+          resource_query: Some(resource.query),
+          resource_fragment: Some(resource.fragment),
           resolve_options: data.resolve_options.clone(),
           context_options: dependency.options().clone(),
         },

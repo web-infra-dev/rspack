@@ -336,8 +336,8 @@ impl NormalModuleFactory {
             let uri = resource.full_path().display().to_string();
             (
               ResourceData::new(uri, resource.path)
-                .query_optional(resource.query)
-                .fragment_optional(resource.fragment)
+                .query(resource.query)
+                .fragment(resource.fragment)
                 .description_optional(resource.description_data),
               from_cache,
             )
