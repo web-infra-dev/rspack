@@ -3,7 +3,7 @@ type FixedSizeArray<T extends number, U> = T extends 0
 	: ReadonlyArray<U> & {
 			0: U;
 			length: T;
-	  };
+		};
 type Measure<T extends number> = T extends 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8
 	? T
 	: never;
@@ -142,15 +142,10 @@ class Hook<T, R, AdditionalOptions = UnsetAdditionalOptions> {
 		return this.taps.length > 0 || this.interceptors.length > 0;
 	}
 
-	queryStageRange([from, to]: StageRange) {
-		const tapsInRange = [];
-		for (let tap of this.taps) {
-			const stage = tap.stage ?? 0;
-			if (from < stage && stage <= to) {
-				tapsInRange.push(tap);
-			}
-		}
-		return tapsInRange;
+	queryStageRange(
+		stageRange: StageRange
+	): QueriedHook<T, R, AdditionalOptions> {
+		return new QueriedHook(stageRange, this);
 	}
 
 	callAsyncStageRange(
@@ -245,6 +240,71 @@ export type StageRange = readonly [number, number];
 const minStage = -Infinity;
 const maxStage = Infinity;
 const allStageRange = [minStage, maxStage] as const;
+const i32MIN = -(2 ** 31);
+const i32MAX = 2 ** 31 - 1;
+export const safeStage = (stage: number) => {
+	if (stage < i32MIN) return i32MIN;
+	if (stage > i32MAX) return i32MAX;
+	return stage;
+};
+
+export class QueriedHook<T, R, AdditionalOptions = UnsetAdditionalOptions> {
+	stageRange: StageRange;
+	hook: Hook<T, R, AdditionalOptions>;
+	tapsInRange: (FullTap & IfSet<AdditionalOptions>)[];
+
+	constructor(stageRange: StageRange, hook: Hook<T, R, AdditionalOptions>) {
+		const tapsInRange = [];
+		const [from, to] = stageRange;
+		for (let tap of hook.taps) {
+			const stage = tap.stage ?? 0;
+			if (from < stage && stage <= to) {
+				tapsInRange.push(tap);
+			}
+		}
+		this.stageRange = stageRange;
+		this.hook = hook;
+		this.tapsInRange = tapsInRange;
+	}
+
+	isUsed(): boolean {
+		if (this.tapsInRange.length > 0) return true;
+		if (
+			this.stageRange[0] === minStage &&
+			this.hook.interceptors.some(i => i.call)
+		)
+			return true;
+		if (
+			this.stageRange[1] === maxStage &&
+			this.hook.interceptors.some(i => i.done)
+		)
+			return true;
+		return false;
+	}
+
+	call(...args: AsArray<T>): R {
+		if (
+			typeof (this.hook as SyncHook<T, R, AdditionalOptions>).callStageRange !==
+			"function"
+		) {
+			throw new Error(
+				"hook is not a SyncHook, call methods only exists on SyncHook"
+			);
+		}
+		return (this.hook as SyncHook<T, R, AdditionalOptions>).callStageRange(
+			this.stageRange,
+			...args
+		);
+	}
+
+	callAsync(...args: Append<AsArray<T>, Callback<Error, R>>): void {
+		return this.hook.callAsyncStageRange(this.stageRange, ...args);
+	}
+
+	promise(...args: AsArray<T>): Promise<R> {
+		return this.hook.promiseStageRange(this.stageRange, ...args);
+	}
+}
 
 export class SyncHook<
 	T,
