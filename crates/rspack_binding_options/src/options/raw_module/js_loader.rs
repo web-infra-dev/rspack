@@ -398,7 +398,7 @@ impl Clone for AdditionalDataRef {
 impl Drop for AdditionalDataRef {
   fn drop(&mut self) {
     if Arc::strong_count(&self.ref_count) == 1 {
-      if self.ref_ == ptr::null_mut() {
+      if self.ref_.is_null() {
         return;
       }
 
@@ -406,7 +406,7 @@ impl Drop for AdditionalDataRef {
       check_status_or_throw!(
         self.env,
         unsafe { sys::napi_reference_unref(self.env, self.ref_, &mut ref_count) },
-        "Failed to unref AddditionalDataRef reference in drop"
+        "Failed to unref AdditionalDataRef reference in drop"
       );
       debug_assert!(
         ref_count == 0,
@@ -507,7 +507,7 @@ impl napi::bindgen_prelude::FromNapiValue for JsLoaderResult {
     let source_map_: Option<Buffer> = obj.get("sourceMap")?;
     let additional_data_: Option<AdditionalDataRef> = obj
       .get::<_, Unknown>("additionalData")?
-      .and_then(|v| Some(AdditionalDataRef::from_napi_value(env, unsafe { v.raw() })))
+      .map(|v| AdditionalDataRef::from_napi_value(env, unsafe { v.raw() }))
       .transpose()?;
 
     // change: eagerly clone this field since `External<T>` might be dropped.
