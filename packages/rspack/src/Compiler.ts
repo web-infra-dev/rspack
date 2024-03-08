@@ -537,8 +537,8 @@ class Compiler {
 				(hook.taps
 					? !hook.isUsed()
 					: hook._map
-					? /* hook map */ hook._map.size === 0
-					: false)
+						? /* hook map */ hook._map.size === 0
+						: false)
 			) {
 				disabledHooks.push(name);
 			}
@@ -843,68 +843,80 @@ class Compiler {
 		this.#moduleExecutionResultsMap.set(id, executeResult);
 	}
 
+	#decorateUpdateDisabledHooks(jsTaps: binding.JsTap[]) {
+		if (jsTaps.length > 0) {
+			const last = jsTaps[jsTaps.length - 1];
+			const old = last.function;
+			last.function = async () => {
+				await old();
+				this.#updateDisabledHooks();
+			};
+		}
+	}
+
 	#registerCompilerCompilationTaps(stages: number[]): binding.JsTap[] {
 		if (!this.hooks.compilation.isUsed()) return [];
-		const breakpoints = [-Infinity, ...stages, Infinity];
-		const jsTaps = [];
+		const breakpoints = [liteTapable.minStage, ...stages, liteTapable.maxStage];
+		const jsTaps: binding.JsTap[] = [];
 		for (let i = 0; i < breakpoints.length - 1; i++) {
-			const stageRange = liteTapable.StageRange.from(
-				breakpoints[i],
-				breakpoints[i + 1]
-			);
+			const from = breakpoints[i];
+			const to = breakpoints[i + 1];
+			const stageRange = [from, to] as const;
+			const queried = this.hooks.compilation.queryStageRange(stageRange);
+			if (!queried.isUsed()) continue;
 			jsTaps.push({
-				function: (native: binding.JsCompilation) => {
-					this.hooks.compilation.callStageRange(stageRange, this.compilation, {
+				function: () => {
+					queried.call(this.compilation, {
 						normalModuleFactory: this.compilation.normalModuleFactory!
 					});
-					if (i + 1 >= breakpoints.length - 1) this.#updateDisabledHooks();
 				},
-				stage: stageRange.from + 1
+				stage: liteTapable.safeStage(from + 1)
 			});
 		}
+		this.#decorateUpdateDisabledHooks(jsTaps);
 		return jsTaps;
 	}
 
 	#registerCompilerMakeTaps(stages: number[]): binding.JsTap[] {
 		if (!this.hooks.make.isUsed()) return [];
-		const breakpoints = [-Infinity, ...stages, Infinity];
+		const breakpoints = [liteTapable.minStage, ...stages, liteTapable.maxStage];
 		const jsTaps = [];
 		for (let i = 0; i < breakpoints.length - 1; i++) {
-			const stageRange = liteTapable.StageRange.from(
-				breakpoints[i],
-				breakpoints[i + 1]
-			);
+			const from = breakpoints[i];
+			const to = breakpoints[i + 1];
+			const stageRange = [from, to] as const;
+			const queried = this.hooks.make.queryStageRange(stageRange);
+			if (!queried.isUsed()) continue;
 			jsTaps.push({
-				function: async (native: binding.JsCompilation) => {
-					await this.hooks.make.promiseStageRange(stageRange, this.compilation);
-					if (i + 1 >= breakpoints.length - 1) this.#updateDisabledHooks();
+				function: async () => {
+					await queried.promise(this.compilation);
 				},
-				stage: stageRange.from + 1
+				stage: liteTapable.safeStage(from + 1)
 			});
 		}
+		this.#decorateUpdateDisabledHooks(jsTaps);
 		return jsTaps;
 	}
 
 	#registerCompilationProcessAssetsTaps(stages: number[]): binding.JsTap[] {
 		if (!this.compilation.hooks.processAssets.isUsed()) return [];
-		const breakpoints = [-Infinity, ...stages, Infinity];
+		const breakpoints = [liteTapable.minStage, ...stages, liteTapable.maxStage];
 		const jsTaps = [];
 		for (let i = 0; i < breakpoints.length - 1; i++) {
-			const stageRange = liteTapable.StageRange.from(
-				breakpoints[i],
-				breakpoints[i + 1]
-			);
+			const from = breakpoints[i];
+			const to = breakpoints[i + 1];
+			const stageRange = [from, to] as const;
+			const queried =
+				this.compilation.hooks.processAssets.queryStageRange(stageRange);
+			if (!queried.isUsed()) continue;
 			jsTaps.push({
 				function: async () => {
-					await this.compilation.hooks.processAssets.promiseStageRange(
-						stageRange,
-						this.compilation.assets
-					);
-					if (i + 1 >= breakpoints.length - 1) this.#updateDisabledHooks();
+					await queried.promise(this.compilation.assets);
 				},
-				stage: stageRange.from + 1
+				stage: liteTapable.safeStage(from + 1)
 			});
 		}
+		this.#decorateUpdateDisabledHooks(jsTaps);
 		return jsTaps;
 	}
 

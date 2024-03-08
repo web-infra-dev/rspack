@@ -3,7 +3,7 @@ type FixedSizeArray<T extends number, U> = T extends 0
 	: ReadonlyArray<U> & {
 			0: U;
 			length: T;
-	  };
+		};
 type Measure<T extends number> = T extends 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8
 	? T
 	: never;
@@ -142,29 +142,45 @@ class Hook<T, R, AdditionalOptions = UnsetAdditionalOptions> {
 		return this.taps.length > 0 || this.interceptors.length > 0;
 	}
 
+	queryStageRange(
+		stageRange: StageRange
+	): QueriedHook<T, R, AdditionalOptions> {
+		return new QueriedHook(stageRange, this);
+	}
+
 	callAsyncStageRange(
-		stageRange: StageRange,
+		queried: QueriedHook<T, R, AdditionalOptions>,
 		...args: Append<AsArray<T>, Callback<Error, R>>
 	) {
 		throw new Error("Hook should implement there own _callAsyncStageRange");
 	}
 
 	callAsync(...args: Append<AsArray<T>, Callback<Error, R>>): void {
-		return this.callAsyncStageRange(StageRange.all(), ...args);
+		return this.callAsyncStageRange(
+			this.queryStageRange(allStageRange),
+			...args
+		);
 	}
 
-	promiseStageRange(stageRange: StageRange, ...args: AsArray<T>): Promise<R> {
+	promiseStageRange(
+		queried: QueriedHook<T, R, AdditionalOptions>,
+		...args: AsArray<T>
+	): Promise<R> {
 		return new Promise((resolve, reject) => {
-			// @ts-expect-error
-			this.callAsyncStageRange(stageRange, ...args, (e, r) => {
-				if (e) return reject(e);
-				return resolve(r);
-			});
+			this.callAsyncStageRange(
+				queried,
+				// @ts-expect-error
+				...args,
+				(e: Error, r: R) => {
+					if (e) return reject(e);
+					return resolve(r);
+				}
+			);
 		});
 	}
 
 	promise(...args: AsArray<T>): Promise<R> {
-		return this.promiseStageRange(StageRange.all(), ...args);
+		return this.promiseStageRange(this.queryStageRange(allStageRange), ...args);
 	}
 
 	tap(options: Options<AdditionalOptions>, fn: Fn<T, R>) {
@@ -191,9 +207,6 @@ class Hook<T, R, AdditionalOptions = UnsetAdditionalOptions> {
 			options
 		);
 		insert = this._runRegisterInterceptors(insert);
-		if (insert.stage) {
-			insert.stage = StageRange.trim(insert.stage);
-		}
 		this._insert(insert);
 	}
 
@@ -233,38 +246,75 @@ class Hook<T, R, AdditionalOptions = UnsetAdditionalOptions> {
 	}
 }
 
-export class StageRange {
-	#from: number;
-	#to: number;
+export type StageRange = readonly [number, number];
+export const minStage = -Infinity;
+export const maxStage = Infinity;
+const allStageRange = [minStage, maxStage] as const;
+const i32MIN = -(2 ** 31);
+const i32MAX = 2 ** 31 - 1;
+export const safeStage = (stage: number) => {
+	if (stage < i32MIN) return i32MIN;
+	if (stage > i32MAX) return i32MAX;
+	return stage;
+};
 
-	constructor(from: number, to: number) {
-		this.#from = StageRange.trim(from);
-		this.#to = StageRange.trim(to);
+export class QueriedHook<T, R, AdditionalOptions = UnsetAdditionalOptions> {
+	stageRange: StageRange;
+	hook: Hook<T, R, AdditionalOptions>;
+	tapsInRange: (FullTap & IfSet<AdditionalOptions>)[];
+
+	constructor(stageRange: StageRange, hook: Hook<T, R, AdditionalOptions>) {
+		const tapsInRange = [];
+		const [from, to] = stageRange;
+		for (let tap of hook.taps) {
+			const stage = tap.stage ?? 0;
+			if (from < stage && stage <= to) {
+				tapsInRange.push(tap);
+			} else if (from === minStage && stage === minStage) {
+				tapsInRange.push(tap);
+			}
+		}
+		this.stageRange = stageRange;
+		this.hook = hook;
+		this.tapsInRange = tapsInRange;
 	}
 
-	static from(from: number, to: number) {
-		return new StageRange(from, to);
+	isUsed(): boolean {
+		if (this.tapsInRange.length > 0) return true;
+		if (
+			this.stageRange[0] === minStage &&
+			this.hook.interceptors.some(i => i.call)
+		)
+			return true;
+		if (
+			this.stageRange[1] === maxStage &&
+			this.hook.interceptors.some(i => i.done)
+		)
+			return true;
+		return false;
 	}
 
-	static all() {
-		return StageRange.from(StageRange.MIN, StageRange.MAX);
+	call(...args: AsArray<T>): R {
+		if (
+			typeof (this.hook as SyncHook<T, R, AdditionalOptions>).callStageRange !==
+			"function"
+		) {
+			throw new Error(
+				"hook is not a SyncHook, call methods only exists on SyncHook"
+			);
+		}
+		return (this.hook as SyncHook<T, R, AdditionalOptions>).callStageRange(
+			this,
+			...args
+		);
 	}
 
-	get from() {
-		return this.#from;
+	callAsync(...args: Append<AsArray<T>, Callback<Error, R>>): void {
+		return this.hook.callAsyncStageRange(this, ...args);
 	}
 
-	get to() {
-		return this.#to;
-	}
-
-	static MAX = 2 ** 31 - 1;
-	static MIN = -(2 ** 31);
-
-	static trim(n: number) {
-		if (n > StageRange.MAX) return StageRange.MAX;
-		if (n < StageRange.MIN) return StageRange.MIN;
-		return n;
+	promise(...args: AsArray<T>): Promise<R> {
+		return this.hook.promiseStageRange(this, ...args);
 	}
 }
 
@@ -274,47 +324,52 @@ export class SyncHook<
 	AdditionalOptions = UnsetAdditionalOptions
 > extends Hook<T, R, AdditionalOptions> {
 	callAsyncStageRange(
-		{ from, to }: StageRange,
+		queried: QueriedHook<T, R, AdditionalOptions>,
 		...args: Append<AsArray<T>, Callback<Error, R>>
 	) {
+		const {
+			stageRange: [from, to],
+			tapsInRange
+		} = queried;
 		const args2 = [...args];
 		const cb = args2.pop() as Callback<Error, R>;
-		if (from === StageRange.MIN) {
+		if (from === minStage) {
 			this._runCallInterceptors(...args2);
 		}
-		for (let tap of this.taps) {
-			const stage = tap.stage ?? 0;
-			if (from < stage && stage <= to) {
-				this._runTapInterceptors(tap);
-				try {
-					tap.fn(...args2);
-				} catch (e) {
-					const err = e as Error;
-					this._runErrorInterceptors(err);
-					return cb(err);
-				}
+		for (let tap of tapsInRange) {
+			this._runTapInterceptors(tap);
+			try {
+				tap.fn(...args2);
+			} catch (e) {
+				const err = e as Error;
+				this._runErrorInterceptors(err);
+				return cb(err);
 			}
 		}
-		if (to === StageRange.MAX) {
+		if (to === maxStage) {
 			this._runDoneInterceptors();
 			cb(null);
 		}
 	}
 
 	call(...args: AsArray<T>): R {
-		return this.callStageRange(StageRange.all(), ...args);
+		return this.callStageRange(this.queryStageRange(allStageRange), ...args);
 	}
 
-	/**
-	 * call a range of taps, from < stage <= to, (from, to]
-	 */
-	callStageRange(stageRange: StageRange, ...args: AsArray<T>): R {
+	callStageRange(
+		queried: QueriedHook<T, R, AdditionalOptions>,
+		...args: AsArray<T>
+	): R {
 		let result, error;
-		// @ts-expect-error
-		this.callAsyncStageRange(stageRange, ...args, (e, r) => {
-			error = e;
-			result = r;
-		});
+		this.callAsyncStageRange(
+			queried,
+			// @ts-expect-error
+			...args,
+			(e: Error, r: R): void => {
+				error = e;
+				result = r;
+			}
+		);
 		if (error) {
 			throw error;
 		}
@@ -335,12 +390,16 @@ export class AsyncParallelHook<
 	AdditionalOptions = UnsetAdditionalOptions
 > extends Hook<T, void, AdditionalOptions> {
 	callAsyncStageRange(
-		{ from, to }: StageRange,
+		queried: QueriedHook<T, void, AdditionalOptions>,
 		...args: Append<AsArray<T>, Callback<Error, void>>
 	) {
+		const {
+			stageRange: [from, to],
+			tapsInRange
+		} = queried;
 		const args2 = [...args];
 		const cb = args2.pop() as Callback<Error, void>;
-		if (from === StageRange.MIN) {
+		if (from === minStage) {
 			this._runCallInterceptors(...args2);
 		}
 		const done = () => {
@@ -351,13 +410,6 @@ export class AsyncParallelHook<
 			this._runErrorInterceptors(e);
 			cb(e);
 		};
-		const tapsInRange = [];
-		for (let tap of this.taps) {
-			const stage = tap.stage ?? 0;
-			if (from < stage && stage <= to) {
-				tapsInRange.push(tap);
-			}
-		}
 		if (tapsInRange.length === 0) return done();
 		let counter = tapsInRange.length;
 		for (let tap of tapsInRange) {
@@ -429,12 +481,16 @@ export class AsyncSeriesHook<
 	AdditionalOptions = UnsetAdditionalOptions
 > extends Hook<T, void, AdditionalOptions> {
 	callAsyncStageRange(
-		{ from, to }: StageRange,
+		queried: QueriedHook<T, void, AdditionalOptions>,
 		...args: Append<AsArray<T>, Callback<Error, void>>
 	) {
+		const {
+			stageRange: [from, to],
+			tapsInRange
+		} = queried;
 		const args2 = [...args];
 		const cb = args2.pop() as Callback<Error, void>;
-		if (from === StageRange.MIN) {
+		if (from === minStage) {
 			this._runCallInterceptors(...args2);
 		}
 		const done = () => {
@@ -445,13 +501,6 @@ export class AsyncSeriesHook<
 			this._runErrorInterceptors(e);
 			cb(e);
 		};
-		const tapsInRange: (FullTap & IfSet<AdditionalOptions>)[] = [];
-		for (let tap of this.taps) {
-			const stage = tap.stage ?? 0;
-			if (from < stage && stage <= to) {
-				tapsInRange.push(tap);
-			}
-		}
 		if (tapsInRange.length === 0) return done();
 		let index = 0;
 		const next = () => {
