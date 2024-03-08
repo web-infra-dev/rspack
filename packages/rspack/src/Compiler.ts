@@ -856,7 +856,7 @@ class Compiler {
 
 	#registerCompilerCompilationTaps(stages: number[]): binding.JsTap[] {
 		if (!this.hooks.compilation.isUsed()) return [];
-		const breakpoints = [-Infinity, ...stages, Infinity];
+		const breakpoints = [liteTapable.minStage, ...stages, liteTapable.maxStage];
 		const jsTaps: binding.JsTap[] = [];
 		for (let i = 0; i < breakpoints.length - 1; i++) {
 			const from = breakpoints[i];
@@ -879,7 +879,7 @@ class Compiler {
 
 	#registerCompilerMakeTaps(stages: number[]): binding.JsTap[] {
 		if (!this.hooks.make.isUsed()) return [];
-		const breakpoints = [-Infinity, ...stages, Infinity];
+		const breakpoints = [liteTapable.minStage, ...stages, liteTapable.maxStage];
 		const jsTaps = [];
 		for (let i = 0; i < breakpoints.length - 1; i++) {
 			const from = breakpoints[i];
@@ -900,7 +900,7 @@ class Compiler {
 
 	#registerCompilationProcessAssetsTaps(stages: number[]): binding.JsTap[] {
 		if (!this.compilation.hooks.processAssets.isUsed()) return [];
-		const breakpoints = [-Infinity, ...stages, Infinity];
+		const breakpoints = [liteTapable.minStage, ...stages, liteTapable.maxStage];
 		const jsTaps = [];
 		for (let i = 0; i < breakpoints.length - 1; i++) {
 			const from = breakpoints[i];
