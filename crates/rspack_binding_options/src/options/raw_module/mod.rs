@@ -1,4 +1,5 @@
 mod js_loader;
+mod js_value_ref;
 
 use std::fmt::Formatter;
 use std::{collections::HashMap, fmt::Debug, sync::Arc};
@@ -28,6 +29,7 @@ use tokio::runtime::Handle;
 
 pub use self::js_loader::JsLoaderAdapter;
 pub use self::js_loader::*;
+pub use self::js_value_ref::JsValueRef;
 use crate::RawResolveOptions;
 
 pub fn get_builtin_loader(builtin: &str, options: Option<&str>) -> BoxLoader {
