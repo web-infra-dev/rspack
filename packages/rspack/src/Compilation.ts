@@ -67,7 +67,7 @@ export interface Asset {
 }
 export interface LogEntry {
 	type: string;
-	args: any[];
+	args?: any[];
 	time?: number;
 	trace?: string[];
 }
@@ -662,7 +662,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 						);
 					}
 				}
-				let trace: string[];
+				let trace: string[] | undefined;
 				switch (type) {
 					case LogType.warn:
 					case LogType.error:
@@ -675,14 +675,12 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 				const logEntry: LogEntry = {
 					time: Date.now(),
 					type,
-					// @ts-expect-error
 					args,
-					// @ts-expect-error
 					trace
 				};
 				if (this.hooks.log.call(name, logEntry) === undefined) {
 					if (logEntry.type === LogType.profileEnd) {
-						if (typeof console.profileEnd === "function") {
+						if (typeof console.profileEnd === "function" && logEntry.args) {
 							console.profileEnd(`[${name}] ${logEntry.args[0]}`);
 						}
 					}
@@ -695,7 +693,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 					}
 					logEntries.push(logEntry);
 					if (logEntry.type === LogType.profile) {
-						if (typeof console.profile === "function") {
+						if (typeof console.profile === "function" && logEntry.args) {
 							console.profile(`[${name}] ${logEntry.args[0]}`);
 						}
 					}
