@@ -31,7 +31,7 @@ use swc_node_comments::SwcComments;
 
 use crate::{
   define_es_module_flag_statement, filter_runtime, impl_source_map_config, merge_runtime_condition,
-  merge_runtime_condition_non_false, property_access, property_name,
+  merge_runtime_condition_non_false, module_graph, property_access, property_name,
   reserved_names::RESERVED_NAMES, returning_function, runtime_condition_expression,
   subtract_runtime_condition, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext,
   BuildInfo, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, BuildResult,
@@ -1183,6 +1183,13 @@ impl Module for ConcatenatedModule {
             result.add(RawSource::from(format!("if ({}) {{\n", condition)));
           }
 
+          // if info.module.contains("toConsumableArray.js") {
+          //   dbg!(&box_module.identifier());
+          //   dbg!(&info.module);
+          //   dbg!(&compilation
+          //     .module_graph
+          //     .module_graph_module_by_identifier(&info.module));
+          // }
           result.add(RawSource::from(format!(
             "let {} = {}({});",
             info.name.as_ref().expect("should have name"),

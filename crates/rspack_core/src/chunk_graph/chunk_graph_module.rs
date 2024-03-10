@@ -143,6 +143,7 @@ impl ChunkGraph {
   }
 
   pub fn set_module_id(&mut self, module_identifier: ModuleIdentifier, id: String) {
+    // dbg!(&module_identifier, &id);
     let cgm = self.get_chunk_graph_module_mut(module_identifier);
     cgm.id = Some(id);
   }

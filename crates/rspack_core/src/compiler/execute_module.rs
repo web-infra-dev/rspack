@@ -106,6 +106,7 @@ impl Compilation {
 
     // Assign ids to modules and modules to the chunk
     for m in &modules {
+      dbg!(&m);
       let module = self
         .get_module_graph()
         .module_by_identifier(m)
