@@ -1184,11 +1184,11 @@ impl Module for ConcatenatedModule {
           }
 
           // if info.module.contains("toConsumableArray.js") {
-          //   dbg!(&box_module.identifier());
-          //   dbg!(&info.module);
-          //   dbg!(&compilation
-          //     .module_graph
-          //     .module_graph_module_by_identifier(&info.module));
+          // dbg!(&box_module.identifier());
+          // dbg!(&info.module);
+          // dbg!(&compilation
+          //   .module_graph
+          //   .module_graph_module_by_identifier(&info.module));
           // }
           result.add(RawSource::from(format!(
             "let {} = {}({});",
