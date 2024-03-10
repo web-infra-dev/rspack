@@ -1129,6 +1129,7 @@ const watchOptions = z.strictObject({
 		.array()
 		.or(z.instanceof(RegExp))
 		.or(z.string())
+		.or(z.function(z.tuple([z.string()])).returns(z.boolean()))
 		.optional(),
 	poll: z.number().or(z.boolean()).optional(),
 	stdin: z.boolean().optional()

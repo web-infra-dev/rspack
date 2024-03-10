@@ -13,7 +13,7 @@ import fs from "fs";
 import * as tapable from "tapable";
 import * as liteTapable from "./lite-tapable";
 import { Callback, SyncBailHook, SyncHook } from "tapable";
-import type { WatchOptions } from "watchpack";
+import { WatchOptions } from "./config";
 import {
 	EntryNormalized,
 	OutputNormalized,
@@ -53,8 +53,7 @@ class Compiler {
 	#instance?: binding.Rspack;
 
 	webpack = rspack;
-	// @ts-expect-error
-	compilation: Compilation;
+	compilation!: Compilation;
 	// TODO: remove this after remove rebuild on the rust side.
 	first: boolean = true;
 	builtinPlugins: binding.BuiltinPlugin[];
@@ -69,11 +68,9 @@ class Compiler {
 	inputFileSystem: any;
 	outputFileSystem: typeof import("fs");
 	ruleSet: RuleSetCompiler;
-	// @ts-expect-error
-	watchFileSystem: WatchFileSystem;
+	watchFileSystem!: WatchFileSystem;
 	intermediateFileSystem: any;
-	// @ts-expect-error
-	watchMode: boolean;
+	watchMode?: boolean;
 	context: string;
 	modifiedFiles?: ReadonlySet<string>;
 	cache: Cache;
@@ -97,7 +94,7 @@ class Compiler {
 		contextModuleFactory: tapable.SyncHook<ContextModuleFactory>;
 		initialize: tapable.SyncHook<[]>;
 		shouldEmit: tapable.SyncBailHook<[Compilation], boolean>;
-		infrastructureLog: tapable.SyncBailHook<[string, string, any[]], true>;
+		infrastructureLog: tapable.SyncBailHook<[string, string, any[]?], true>;
 		beforeRun: tapable.AsyncSeriesHook<[Compiler]>;
 		run: tapable.AsyncSeriesHook<[Compiler]>;
 		emit: tapable.AsyncSeriesHook<[Compilation]>;
@@ -428,7 +425,6 @@ class Compiler {
 					}
 				} else {
 					if (
-						// @ts-expect-error
 						this.hooks.infrastructureLog.call(name, type, args) === undefined
 					) {
 						if (this.infrastructureLogger !== undefined) {
@@ -440,8 +436,7 @@ class Compiler {
 			(childName): any => {
 				if (typeof name === "function") {
 					if (typeof childName === "function") {
-						// @ts-expect-error
-						return this.getInfrastructureLogger(_ => {
+						return this.getInfrastructureLogger(() => {
 							if (typeof name === "function") {
 								name = name();
 								if (!name) {
@@ -537,8 +532,8 @@ class Compiler {
 				(hook.taps
 					? !hook.isUsed()
 					: hook._map
-						? /* hook map */ hook._map.size === 0
-						: false)
+					? /* hook map */ hook._map.size === 0
+					: false)
 			) {
 				disabledHooks.push(name);
 			}
@@ -944,8 +939,7 @@ class Compiler {
 		const startTime = Date.now();
 		this.running = true;
 		const doRun = () => {
-			// @ts-expect-error
-			const finalCallback = (err, stats?) => {
+			const finalCallback = (err: Error | null, stats?: Stats) => {
 				this.idle = true;
 				this.cache.beginIdle();
 				this.idle = true;
@@ -956,7 +950,7 @@ class Compiler {
 				if (callback) {
 					callback(err, stats);
 				}
-				this.hooks.afterDone.call(stats);
+				stats && this.hooks.afterDone.call(stats);
 			};
 			this.hooks.beforeRun.callAsync(this, err => {
 				if (err) {
@@ -1081,14 +1075,15 @@ class Compiler {
 		});
 	}
 
-	watch(watchOptions: WatchOptions, handler: Callback<Error, Stats>): Watching {
+	watch(
+		watchOptions: WatchOptions,
+		handler: (error?: Error, stats?: Stats) => void
+	): Watching | void {
 		if (this.running) {
-			// @ts-expect-error
 			return handler(new ConcurrentCompilationError());
 		}
 		this.running = true;
 		this.watchMode = true;
-		// @ts-expect-error
 		this.watching = new Watching(this, watchOptions, handler);
 		return this.watching;
 	}
