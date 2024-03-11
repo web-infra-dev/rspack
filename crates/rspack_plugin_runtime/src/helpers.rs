@@ -28,7 +28,7 @@ pub fn update_hash_for_entry_startup(
     }
 
     if let Some(runtime_chunk) = get_chunk_group_from_ukey(entry, &compilation.chunk_group_by_ukey)
-      .map(|e| e.get_runtime_chunk())
+      .map(|e| e.get_runtime_chunk(&compilation.chunk_group_by_ukey))
     {
       for chunk_ukey in get_all_chunks(
         entry,
@@ -128,7 +128,7 @@ pub fn get_runtime_chunk_output_name(args: &RenderChunkArgs) -> Result<String> {
   let runtime_chunk = args
     .compilation
     .chunk_by_ukey
-    .expect_get(&entry_point.get_runtime_chunk());
+    .expect_get(&entry_point.get_runtime_chunk(&args.compilation.chunk_group_by_ukey));
 
   Ok(get_chunk_output_name(runtime_chunk, args.compilation))
 }
@@ -153,7 +153,7 @@ pub fn generate_entry_startup(
     }
 
     if let Some(runtime_chunk) = get_chunk_group_from_ukey(entry, &compilation.chunk_group_by_ukey)
-      .map(|e| e.get_runtime_chunk())
+      .map(|e| e.get_runtime_chunk(&compilation.chunk_group_by_ukey))
     {
       let chunks = get_all_chunks(
         entry,

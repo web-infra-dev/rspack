@@ -56,6 +56,7 @@ import { memoizeValue } from "./util/memoize";
 import { Chunk } from "./Chunk";
 import { CodeGenerationResult } from "./Module";
 import { ChunkGraph } from "./ChunkGraph";
+import { Entrypoint } from "./Entrypoint";
 
 export type AssetInfo = Partial<JsAssetInfo> & Record<string, any>;
 export type Assets = Record<string, Source>;
@@ -310,11 +311,11 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	/**
 	 * Get a map of all entrypoints.
 	 */
-	get entrypoints(): ReadonlyMap<string, ChunkGroup> {
+	get entrypoints(): ReadonlyMap<string, Entrypoint> {
 		return new Map(
 			Object.entries(this.#inner.entrypoints).map(([n, e]) => [
 				n,
-				ChunkGroup.__from_binding(e, this.#inner)
+				Entrypoint.__from_binding(e, this.#inner)
 			])
 		);
 	}
