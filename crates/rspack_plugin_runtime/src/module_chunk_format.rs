@@ -129,7 +129,7 @@ impl Plugin for ModuleChunkFormatPlugin {
       let mut loaded_chunks = HashSet::default();
       for (i, (module, entry)) in entries.iter().enumerate() {
         let module_id = compilation
-          .module_graph
+          .get_module_graph()
           .module_graph_module_by_identifier(module)
           .map(|module| module.id(&compilation.chunk_graph))
           .expect("should have module id");

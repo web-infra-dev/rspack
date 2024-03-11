@@ -119,16 +119,16 @@ impl DependencyTemplate for CommonJsExportsDependency {
     } = code_generatable_context;
 
     let module = compilation
-      .module_graph
+      .get_module_graph()
       .module_by_identifier(&module.identifier())
       .expect("should have mgm");
 
     let used = compilation
-      .module_graph
+      .get_module_graph()
       .get_exports_info(&module.identifier())
       .id
       .get_used_name(
-        &compilation.module_graph,
+        &compilation.get_module_graph(),
         *runtime,
         UsedName::Vec(self.names.clone()),
       );

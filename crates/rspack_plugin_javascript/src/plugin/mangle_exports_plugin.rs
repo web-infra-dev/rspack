@@ -49,7 +49,7 @@ impl Plugin for MangleExportsPlugin {
   async fn optimize_code_generation(&self, compilation: &mut Compilation) -> Result<Option<()>> {
     // TODO: should bailout if compilation.moduleMemCache is enable, https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/MangleExportsPlugin.js#L160-L164
     // We don't do that cause we don't have this option
-    let mg = &mut compilation.module_graph;
+    let mg = compilation.get_module_graph_mut();
     let module_id_list = mg
       .module_identifier_to_module
       .keys()

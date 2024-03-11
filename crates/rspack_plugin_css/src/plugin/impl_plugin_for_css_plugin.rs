@@ -180,7 +180,7 @@ impl Plugin for CssPlugin {
     let ordered_modules = Self::get_ordered_chunk_css_modules(
       chunk,
       &compilation.chunk_graph,
-      &compilation.module_graph,
+      &compilation.get_module_graph(),
       compilation,
     );
     let mut hasher = RspackHash::from(&compilation.options.output);
@@ -222,7 +222,7 @@ impl Plugin for CssPlugin {
     let ordered_css_modules = Self::get_ordered_chunk_css_modules(
       chunk,
       &compilation.chunk_graph,
-      &compilation.module_graph,
+      &compilation.get_module_graph(),
       compilation,
     );
 

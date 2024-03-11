@@ -45,10 +45,10 @@ impl Compilation {
     while let Some(m) = queue.pop() {
       modules.insert(m);
       let m = self
-        .module_graph
+        .get_module_graph()
         .module_by_identifier(&m)
         .expect("should have module");
-      for m in self.module_graph.get_outgoing_connections(m) {
+      for m in self.get_module_graph().get_outgoing_connections(m) {
         // TODO: handle circle
         if !modules.contains(&m.module_identifier) {
           queue.push(m.module_identifier);
@@ -107,7 +107,7 @@ impl Compilation {
     // Assign ids to modules and modules to the chunk
     for m in &modules {
       let module = self
-        .module_graph
+        .get_module_graph()
         .module_by_identifier(m)
         .expect("should have module");
 
@@ -188,7 +188,7 @@ impl Compilation {
           .iter()
           .fold(ExecuteModuleResult::default(), |mut res, m| {
             let module = self
-              .module_graph
+              .get_module_graph()
               .module_by_identifier(m)
               .expect("unreachable");
 
@@ -365,7 +365,7 @@ impl Compilation {
             module,
             Box::new(move |module, compilation| {
               let m = compilation
-                .module_graph
+                .get_module_graph()
                 .module_by_identifier(&module)
                 .expect("todo");
 
@@ -374,7 +374,7 @@ impl Compilation {
                   module,
                   Some(
                     compilation
-                      .module_graph
+                      .get_module_graph()
                       .get_outgoing_connections(m)
                       .into_iter()
                       .map(|conn| conn.module_identifier)

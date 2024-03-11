@@ -518,7 +518,7 @@ impl Plugin for SideEffectsFlagPlugin {
 
   async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<()>> {
     let entries = compilation.entry_modules().collect::<Vec<_>>();
-    let mg = &mut compilation.module_graph;
+    let mg = compilation.get_module_graph_mut();
     let level_order_module_identifier = get_level_order_module_ids(mg, entries);
     for module_identifier in level_order_module_identifier {
       let mut module_chain = HashSet::default();

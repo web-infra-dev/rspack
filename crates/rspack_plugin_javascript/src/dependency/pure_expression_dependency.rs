@@ -58,7 +58,7 @@ impl DependencyTemplate for PureExpressionDependency {
       Some(UsedByExports::Set(ref set)) => {
         let exports_info = ctx
           .compilation
-          .module_graph
+          .get_module_graph()
           .get_exports_info(&self.module_identifier);
         let runtime = ctx.runtime;
         let runtime_condition = filter_runtime(runtime, |cur_runtime| {
@@ -66,7 +66,7 @@ impl DependencyTemplate for PureExpressionDependency {
             exports_info.get_used(
               UsedName::Str(id.clone()),
               cur_runtime,
-              &ctx.compilation.module_graph,
+              &ctx.compilation.get_module_graph(),
             ) != UsageState::Unused
           })
         });

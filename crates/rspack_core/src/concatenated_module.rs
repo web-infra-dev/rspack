@@ -547,7 +547,7 @@ impl Module for ConcatenatedModule {
 
     for m in self.modules.iter() {
       let module = compilation
-        .module_graph
+        .get_module_graph()
         .module_by_identifier(&m.id)
         .expect("should have module");
       let cur_build_info = module.build_info().expect("should have module info");
@@ -559,9 +559,9 @@ impl Module for ConcatenatedModule {
 
       // populate dependencies
       for dep_id in module.get_dependencies() {
-        let dep = dep_id.get_dependency(&compilation.module_graph);
+        let dep = dep_id.get_dependency(&compilation.get_module_graph());
         let module_id_of_dep = compilation
-          .module_graph
+          .get_module_graph()
           .module_identifier_by_dependency_id(dep_id);
         if !is_harmony_dep_like(dep)
           || !self
@@ -608,7 +608,7 @@ impl Module for ConcatenatedModule {
     let context = compilation.options.context.clone();
 
     let (modules_with_info, module_to_info_map) =
-      self.get_modules_with_info(&compilation.module_graph, runtime);
+      self.get_modules_with_info(&compilation.get_module_graph(), runtime);
 
     // Set with modules that need a generated namespace object
     let mut needed_namespace_objects: IndexSet<ModuleIdentifier> = IndexSet::default();
@@ -686,7 +686,7 @@ impl Module for ConcatenatedModule {
       // Get used names in the scope
 
       let module = compilation
-        .module_graph
+        .get_module_graph()
         .module_by_identifier(&info.id())
         .expect("should have module identifier");
       let readable_identifier = module.readable_identifier(&context).to_string();
@@ -802,7 +802,7 @@ impl Module for ConcatenatedModule {
     for info in module_to_info_map.values() {
       if let ModuleInfo::Concatenated(info) = info {
         let module = compilation
-          .module_graph
+          .get_module_graph()
           .module_by_identifier(&info.module)
           .expect("should have module");
         let build_meta = module.build_meta().expect("should have build meta");
@@ -850,7 +850,7 @@ impl Module for ConcatenatedModule {
       ) in info_params_list
       {
         let final_name = Self::get_final_name(
-          &compilation.module_graph,
+          &compilation.get_module_graph(),
           &referenced_info_id,
           export_name,
           &mut module_to_info_map,
@@ -886,7 +886,7 @@ impl Module for ConcatenatedModule {
     let root_module_id = root_info.id();
 
     let root_module = compilation
-      .module_graph
+      .get_module_graph()
       .module_by_identifier(&root_module_id)
       .expect("should have box module");
     let strict_harmony_module = root_module
@@ -894,10 +894,12 @@ impl Module for ConcatenatedModule {
       .map(|item| item.strict_harmony_module)
       .unwrap_or_default();
 
-    let exports_info = compilation.module_graph.get_exports_info(&root_module_id);
+    let exports_info = compilation
+      .get_module_graph()
+      .get_exports_info(&root_module_id);
 
     for (_, export_info_id) in exports_info.exports.iter() {
-      let export_info = export_info_id.get_export_info(&compilation.module_graph);
+      let export_info = export_info_id.get_export_info(&compilation.get_module_graph());
       let name = export_info.name.clone().unwrap_or("".into());
       if matches!(export_info.provided, Some(ExportInfoProvided::False)) {
         continue;
@@ -910,7 +912,7 @@ impl Module for ConcatenatedModule {
       };
       exports_map.insert(used_name, {
         let final_name = Self::get_final_name(
-          &compilation.module_graph,
+          &compilation.get_module_graph(),
           &root_module_id,
           [name.clone()].to_vec(),
           &mut module_to_info_map,
@@ -938,10 +940,10 @@ impl Module for ConcatenatedModule {
 
     // Add harmony compatibility flag (must be first because of possible circular dependencies)
     if compilation
-      .module_graph
+      .get_module_graph()
       .get_exports_info(&self.id())
       .other_exports_info
-      .get_used(&compilation.module_graph, runtime)
+      .get_used(&compilation.get_module_graph(), runtime)
       != UsageState::Unused
     {
       result.add(RawSource::from("// ESM COMPAT FLAG\n"));
@@ -1010,7 +1012,7 @@ impl Module for ConcatenatedModule {
           .expect("should have module info");
 
         let box_module = compilation
-          .module_graph
+          .get_module_graph()
           .module_by_identifier(module_info_id)
           .expect("should have box module");
         let module_readable_identifier = box_module.readable_identifier(&context).to_string();
@@ -1025,16 +1027,18 @@ impl Module for ConcatenatedModule {
         }
 
         let mut ns_obj = Vec::new();
-        let exports_info = compilation.module_graph.get_exports_info(module_info_id);
+        let exports_info = compilation
+          .get_module_graph()
+          .get_exports_info(module_info_id);
         for (_name, export_info_id) in exports_info.exports.iter() {
-          let export_info = export_info_id.get_export_info(&compilation.module_graph);
+          let export_info = export_info_id.get_export_info(&compilation.get_module_graph());
           if matches!(export_info.provided, Some(ExportInfoProvided::False)) {
             continue;
           }
 
           if let Some(used_name) = export_info.get_used_name(None, runtime) {
             let final_name = Self::get_final_name(
-              &compilation.module_graph,
+              &compilation.get_module_graph(),
               module_info_id,
               vec![export_info.name.clone().unwrap_or("".into())],
               &mut module_to_info_map,
@@ -1132,7 +1136,7 @@ impl Module for ConcatenatedModule {
       };
 
       let box_module = compilation
-        .module_graph
+        .get_module_graph()
         .module_by_identifier(&info.id())
         .expect("should have box module");
       let module_readable_identifier = box_module.readable_identifier(&context).to_string();
@@ -1605,7 +1609,7 @@ impl ConcatenatedModule {
 
       let concatenation_scope = ConcatenationScope::new(module_info_map, info);
       let module = compilation
-        .module_graph
+        .get_module_graph()
         .module_by_identifier(&module_id)
         .unwrap_or_else(|| panic!("should have module {}", module_id));
       let codegen_res = module.code_generation(compilation, runtime, Some(concatenation_scope))?;

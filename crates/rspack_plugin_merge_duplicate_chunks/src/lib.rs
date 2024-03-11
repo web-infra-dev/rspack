@@ -42,7 +42,7 @@ impl Plugin for MergeDuplicateChunksPlugin {
       let mut possible_duplicates: Option<HashSet<ChunkUkey>> = None;
       for module in compilation
         .chunk_graph
-        .get_chunk_modules(&chunk_ukey, &compilation.module_graph)
+        .get_chunk_modules(&chunk_ukey, &compilation.get_module_graph())
       {
         if let Some(ref mut possible_duplicates) = possible_duplicates {
           possible_duplicates.retain(|dup| {
@@ -102,15 +102,15 @@ impl Plugin for MergeDuplicateChunksPlugin {
           if !is_runtime_equal(&chunk.runtime, &other_chunk.runtime) {
             for module in compilation
               .chunk_graph
-              .get_chunk_modules(&chunk_ukey, &compilation.module_graph)
+              .get_chunk_modules(&chunk_ukey, &compilation.get_module_graph())
             {
               let exports_info = compilation
-                .module_graph
+                .get_module_graph()
                 .get_exports_info(&module.identifier());
               if !exports_info.is_equally_used(
                 &chunk.runtime,
                 &other_chunk.runtime,
-                &compilation.module_graph,
+                &compilation.get_module_graph(),
               ) {
                 continue 'outer;
               }
@@ -122,14 +122,20 @@ impl Plugin for MergeDuplicateChunksPlugin {
             &compilation.chunk_by_ukey,
             &compilation.chunk_group_by_ukey,
           ) {
-            compilation.chunk_graph.integrate_chunks(
+            let mut chunk_graph = std::mem::take(&mut compilation.chunk_graph);
+            let mut chunk_by_ukey = std::mem::take(&mut compilation.chunk_by_ukey);
+            let mut chunk_group_by_ukey = std::mem::take(&mut compilation.chunk_group_by_ukey);
+            chunk_graph.integrate_chunks(
               &chunk_ukey,
               &other_chunk_ukey,
-              &mut compilation.chunk_by_ukey,
-              &mut compilation.chunk_group_by_ukey,
-              &compilation.module_graph,
+              &mut chunk_by_ukey,
+              &mut chunk_group_by_ukey,
+              &compilation.get_module_graph(),
             );
-            compilation.chunk_by_ukey.remove(&other_chunk_ukey);
+            chunk_by_ukey.remove(&other_chunk_ukey);
+            compilation.chunk_graph = chunk_graph;
+            compilation.chunk_by_ukey = chunk_by_ukey;
+            compilation.chunk_group_by_ukey = chunk_group_by_ukey;
           }
         }
       }

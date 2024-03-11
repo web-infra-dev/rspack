@@ -28,16 +28,16 @@ impl DependencyTemplate for HarmonyCompatibilityDependency {
       return;
     }
     let module = compilation
-      .module_graph
+      .get_module_graph()
       .module_by_identifier(&module.identifier())
       .expect("should have mgm");
     let exports_info = compilation
-      .module_graph
+      .get_module_graph()
       .get_exports_info(&module.identifier());
     if !matches!(
       exports_info
         .id
-        .get_read_only_export_info(&Atom::from("__esModule"), &compilation.module_graph)
+        .get_read_only_export_info(&Atom::from("__esModule"), &compilation.get_module_graph())
         .get_used(*runtime),
       UsageState::Unused
     ) {
@@ -57,7 +57,9 @@ impl DependencyTemplate for HarmonyCompatibilityDependency {
     }
 
     if matches!(
-      compilation.module_graph.is_async(&module.identifier()),
+      compilation
+        .get_module_graph()
+        .is_async(&module.identifier()),
       Some(true)
     ) {
       runtime_requirements.insert(RuntimeGlobals::MODULE);
@@ -67,7 +69,7 @@ impl DependencyTemplate for HarmonyCompatibilityDependency {
           "{}({}, async function (__webpack_handle_async_dependencies__, __webpack_async_result__) {{ try {{\n",
           RuntimeGlobals::ASYNC_MODULE,
           compilation
-            .module_graph
+            .get_module_graph()
             .module_by_identifier(&module.identifier())
             .expect("should have mgm")
             .get_module_argument()

@@ -49,9 +49,12 @@ impl Plugin for ModuleLibraryPlugin {
     source.add(args.source.clone());
     let mut exports = vec![];
     if args.compilation.options.is_new_tree_shaking() {
-      let exports_info = args.compilation.module_graph.get_exports_info(&args.module);
+      let exports_info = args
+        .compilation
+        .get_module_graph()
+        .get_exports_info(&args.module);
       for id in exports_info.get_ordered_exports() {
-        let info = id.get_export_info(&args.compilation.module_graph);
+        let info = id.get_export_info(&args.compilation.get_module_graph());
         let info_name = info.name.as_ref().expect("name can't be empty").as_str();
         let name = to_identifier(info_name);
         let var_name = format!("__webpack_exports__{name}");

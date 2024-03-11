@@ -117,7 +117,7 @@ impl UpdateModuleGraph {
     compilation: &mut Compilation,
     params: Vec<MakeParam>,
   ) -> Result<HashSet<BuildDependency>> {
-    let deps_builder = RebuildDepsBuilder::new(params, &compilation.module_graph);
+    let deps_builder = RebuildDepsBuilder::new(params, &compilation.get_module_graph());
 
     self.origin_module_deps = HashMap::from_iter(
       deps_builder
@@ -134,11 +134,11 @@ impl UpdateModuleGraph {
     // calc need_check_isolated_module_ids & regen_module_issues
     for id in deps_builder.get_force_build_modules() {
       if let Some(mgm) = compilation
-        .module_graph
+        .get_module_graph()
         .module_graph_module_by_identifier(id)
       {
         let depended_modules = compilation
-          .module_graph
+          .get_module_graph()
           .get_module_all_depended_modules(id)
           .expect("module graph module not exist")
           .into_iter()
@@ -156,7 +156,7 @@ impl UpdateModuleGraph {
     compilation.process_dependencies_queue = Some(self.process_dependencies_queue.queue_handler());
     compilation.build_time_execution_queue = Some(self.buildtime_execution_queue.queue_handler());
 
-    Ok(deps_builder.revoke_modules(&mut compilation.module_graph))
+    Ok(deps_builder.revoke_modules(compilation.get_module_graph_mut()))
   }
 
   fn repair(
@@ -172,7 +172,7 @@ impl UpdateModuleGraph {
       .into_iter()
       .for_each(|(id, parent_module_identifier)| {
         let dependency = compilation
-          .module_graph
+          .get_module_graph()
           .dependency_by_id(&id)
           .expect("dependency not found");
         if dependency.as_module_dependency().is_none()
@@ -182,7 +182,7 @@ impl UpdateModuleGraph {
         }
 
         let parent_module = parent_module_identifier
-          .and_then(|id| compilation.module_graph.module_by_identifier(&id));
+          .and_then(|id| compilation.get_module_graph().module_by_identifier(&id));
         if parent_module_identifier.is_some() && parent_module.is_none() {
           return;
         }
@@ -225,7 +225,7 @@ impl UpdateModuleGraph {
 
         // TODO: change when we insert dependency to module_graph
         compilation
-          .module_graph
+          .get_module_graph_mut()
           .add_dependency(task.dependency.clone());
 
         tokio::spawn({
@@ -287,7 +287,7 @@ impl UpdateModuleGraph {
         let mut sorted_dependencies = HashMap::default();
 
         task.dependencies.into_iter().for_each(|dependency_id| {
-          let dependency = dependency_id.get_dependency(&compilation.module_graph);
+          let dependency = dependency_id.get_dependency(&compilation.get_module_graph());
           // FIXME: now only module/context dependency can put into resolve queue.
           // FIXME: should align webpack
           let resource_identifier =
@@ -320,7 +320,7 @@ impl UpdateModuleGraph {
 
         let original_module_identifier = &task.original_module_identifier;
         let module = compilation
-          .module_graph
+          .get_module_graph()
           .module_by_identifier(original_module_identifier)
           .expect("Module expected");
 
@@ -494,15 +494,16 @@ impl UpdateModuleGraph {
                   mgm.set_issuer_if_unset(original_module_identifier);
                   mgm.factory_meta = Some(factory_result.factory_meta);
 
-                  compilation.module_graph.exports_info_map.insert(
+                  let module_graph = compilation.get_module_graph_mut();
+                  module_graph.exports_info_map.insert(
                     *exports_info_related.exports_info.id as usize,
                     exports_info_related.exports_info,
                   );
-                  compilation.module_graph.export_info_map.insert(
+                  module_graph.export_info_map.insert(
                     *exports_info_related.side_effects_info.id as usize,
                     exports_info_related.side_effects_info,
                   );
-                  compilation.module_graph.export_info_map.insert(
+                  module_graph.export_info_map.insert(
                     *exports_info_related.other_exports_info.id as usize,
                     exports_info_related.other_exports_info,
                   );
@@ -520,14 +521,14 @@ impl UpdateModuleGraph {
                   tracing::trace!("Module created: {}", &module_identifier);
                 } else {
                   let dep = compilation
-                    .module_graph
+                    .get_module_graph()
                     .dependency_by_id(&dependencies[0])
                     .expect("dep should available");
                   tracing::trace!("Module ignored: {dep:?}")
                 }
               } else {
                 let dep = compilation
-                  .module_graph
+                  .get_module_graph()
                   .dependency_by_id(&dependencies[0])
                   .expect("dep should available");
                 tracing::trace!("Module created with failure, but without bailout: {dep:?}");
@@ -587,7 +588,7 @@ impl UpdateModuleGraph {
               tracing::trace!("Module built: {}", module.identifier());
               compilation.push_batch_diagnostic(diagnostics);
               compilation
-                .module_graph
+                .get_module_graph_mut()
                 .get_optimization_bailout_mut(module.identifier())
                 .extend(build_result.optimization_bailouts);
               compilation
@@ -638,7 +639,7 @@ impl UpdateModuleGraph {
                 build_result.dependencies,
                 build_result.blocks,
                 &mut queue,
-                &mut compilation.module_graph,
+                compilation.get_module_graph_mut(),
                 None,
               );
               while let Some(mut block) = queue.pop_front() {
@@ -648,14 +649,14 @@ impl UpdateModuleGraph {
                   dependencies,
                   blocks,
                   &mut queue,
-                  &mut compilation.module_graph,
+                  compilation.get_module_graph_mut(),
                   Some(block),
                 );
               }
 
               {
                 let mgm = compilation
-                  .module_graph
+                  .get_module_graph_mut()
                   .module_graph_module_by_identifier_mut(&module.identifier())
                   .expect("Failed to get mgm");
                 mgm.__deprecated_all_dependencies = all_dependencies.clone();
@@ -673,7 +674,7 @@ impl UpdateModuleGraph {
 
               module
                 .set_module_build_info_and_meta(build_result.build_info, build_result.build_meta);
-              compilation.module_graph.add_module(module);
+              compilation.get_module_graph_mut().add_module(module);
             }
             Ok(TaskResult::ProcessDependencies(task_result)) => {
               tracing::trace!(
@@ -755,7 +756,7 @@ impl UpdateModuleGraph {
     // set origin module issues
     for (id, issuer) in self.origin_module_issuers.drain() {
       if let Some(mgm) = compilation
-        .module_graph
+        .get_module_graph_mut()
         .module_graph_module_by_identifier_mut(&id)
       {
         mgm.set_issuer(issuer);
@@ -769,7 +770,7 @@ impl UpdateModuleGraph {
       compilation.has_module_import_export_change
         || !self.origin_module_deps.drain().all(|(module_id, deps)| {
           if compilation
-            .module_graph
+            .get_module_graph_mut()
             .module_by_identifier(&module_id)
             .is_none()
           {
@@ -810,22 +811,22 @@ impl UpdateModuleGraph {
     // add context module and context element module to bailout_module_identifiers
     if compilation.options.builtins.tree_shaking.enable() {
       compilation.bailout_module_identifiers = compilation
-        .module_graph
+        .get_module_graph()
         .dependencies()
         .values()
         .par_bridge()
         .filter_map(|dep| {
           if dep.as_context_dependency().is_some()
-            && let Some(module) = compilation.module_graph.get_module(dep.id())
+            && let Some(module) = compilation.get_module_graph().get_module(dep.id())
           {
             let mut values = vec![(module.identifier(), BailoutFlag::CONTEXT_MODULE)];
             if let Some(dependencies) = compilation
-              .module_graph
+              .get_module_graph()
               .get_module_all_dependencies(&module.identifier())
             {
               for dependency in dependencies {
                 if let Some(dependency_module) = compilation
-                  .module_graph
+                  .get_module_graph()
                   .module_identifier_by_dependency_id(dependency)
                 {
                   values.push((*dependency_module, BailoutFlag::CONTEXT_MODULE));
@@ -837,7 +838,7 @@ impl UpdateModuleGraph {
           } else if matches!(
             dep.dependency_type(),
             DependencyType::ContainerExposed | DependencyType::ProvideModuleForShared
-          ) && let Some(module) = compilation.module_graph.get_module(dep.id())
+          ) && let Some(module) = compilation.get_module_graph().get_module(dep.id())
           {
             Some(vec![(module.identifier(), BailoutFlag::CONTAINER_EXPOSED)])
           } else {
@@ -874,10 +875,10 @@ impl UpdateModuleGraph {
       .profile
       .then(Box::<ModuleProfile>::default);
     let dependency = dependencies[0]
-      .get_dependency(&compilation.module_graph)
+      .get_dependency(&compilation.get_module_graph())
       .clone();
     let original_module_source = original_module_identifier
-      .and_then(|i| compilation.module_graph.module_by_identifier(&i))
+      .and_then(|i| compilation.get_module_graph().module_by_identifier(&i))
       .and_then(|m| m.as_normal_module())
       .and_then(|m| {
         if let NormalModuleSource::BuiltSucceed(s) = m.source() {
@@ -910,7 +911,7 @@ impl UpdateModuleGraph {
 
   fn module_deps(compalition: &Compilation, module_identifier: &ModuleIdentifier) -> ModuleDeps {
     let (deps, blocks) = compalition
-      .module_graph
+      .get_module_graph()
       .get_module_dependencies_modules_and_blocks(module_identifier);
 
     let blocks_with_option: Vec<_> = blocks

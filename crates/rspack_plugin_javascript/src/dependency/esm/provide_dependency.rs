@@ -78,14 +78,17 @@ impl DependencyTemplate for ProvideDependency {
       init_fragments,
       ..
     } = code_generatable_context;
-    let Some(con) = compilation.module_graph.connection_by_dependency(&self.id) else {
+    let Some(con) = compilation
+      .get_module_graph()
+      .connection_by_dependency(&self.id)
+    else {
       unreachable!();
     };
     let exports_info = compilation
-      .module_graph
+      .get_module_graph()
       .get_exports_info(&con.module_identifier);
     let used_name = exports_info.id.get_used_name(
-      &compilation.module_graph,
+      &compilation.get_module_graph(),
       *runtime,
       UsedName::Vec(self.ids.clone()),
     );

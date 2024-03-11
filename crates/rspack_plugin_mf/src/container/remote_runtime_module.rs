@@ -53,7 +53,7 @@ impl RuntimeModule for RemoteRuntimeModule {
         .get_chunk_modules_iterable_by_source_type(
           &chunk,
           SourceType::Remote,
-          &compilation.module_graph,
+          &compilation.get_module_graph(),
         );
       let mut remotes = Vec::new();
       for m in modules {
@@ -69,7 +69,7 @@ impl RuntimeModule for RemoteRuntimeModule {
         let share_scope = m.share_scope.as_str();
         let dep = m.get_dependencies()[0];
         let external_module = compilation
-          .module_graph
+          .get_module_graph()
           .get_module(&dep)
           .expect("should have module");
         let external_module_id = compilation

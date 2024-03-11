@@ -104,17 +104,17 @@ impl DependencyTemplate for HarmonyExportExpressionDependency {
     ) -> Option<UsedName> {
       if compilation.options.is_new_tree_shaking() {
         compilation
-          .module_graph
+          .get_module_graph()
           .get_exports_info(module_identifier)
           .id
           .get_used_name(
-            &compilation.module_graph,
+            &compilation.get_module_graph(),
             *runtime,
             UsedName::Str(name.into()),
           )
       } else if compilation.options.builtins.tree_shaking.is_true() {
         compilation
-          .module_graph
+          .get_module_graph()
           .get_exports_info(module_identifier)
           .old_get_used_exports()
           .contains(&name.into())

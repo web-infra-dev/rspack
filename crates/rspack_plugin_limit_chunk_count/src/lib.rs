@@ -67,9 +67,6 @@ impl Plugin for LimitChunkCountPlugin {
       return Ok(());
     }
 
-    let chunk_by_ukey = compilation.chunk_by_ukey.clone();
-    let chunk_group_by_ukey = compilation.chunk_group_by_ukey.clone();
-
     let mut chunks_ukeys = compilation
       .chunk_by_ukey
       .keys()
@@ -79,8 +76,15 @@ impl Plugin for LimitChunkCountPlugin {
       return Ok(());
     }
 
+    let chunk_by_ukey = &compilation.chunk_by_ukey.clone();
+    let chunk_group_by_ukey = &compilation.chunk_group_by_ukey.clone();
     let chunk_graph = &compilation.chunk_graph.clone();
-    let module_graph = &compilation.module_graph;
+    let mut new_chunk_by_ukey = std::mem::take(&mut compilation.chunk_by_ukey);
+    let mut new_chunk_group_by_ukey = std::mem::take(&mut compilation.chunk_group_by_ukey);
+    let mut new_chunk_graph = std::mem::take(&mut compilation.chunk_graph);
+
+    //    let chunk_graph = &compilation.chunk_graph.clone();
+    let module_graph = compilation.get_module_graph();
     let mut remaining_chunks_to_merge = (chunks_ukeys.len() - max_chunks) as i64;
 
     // order chunks in a deterministic way
@@ -198,14 +202,14 @@ impl Plugin for LimitChunkCountPlugin {
       }
 
       if chunk_graph.can_chunks_be_integrated(&a, &b, &chunk_by_ukey, &chunk_group_by_ukey) {
-        compilation.chunk_graph.integrate_chunks(
+        new_chunk_graph.integrate_chunks(
           &a,
           &b,
-          &mut compilation.chunk_by_ukey,
-          &mut compilation.chunk_group_by_ukey,
+          &mut new_chunk_by_ukey,
+          &mut new_chunk_group_by_ukey,
           module_graph,
         );
-        compilation.chunk_by_ukey.remove(&b);
+        new_chunk_by_ukey.remove(&b);
 
         // flag chunk a as modified as further optimization are possible for all children here
         modified_chunks.insert(a);
@@ -290,6 +294,10 @@ impl Plugin for LimitChunkCountPlugin {
         combinations_by_chunk.remove(&b);
       }
     }
+
+    compilation.chunk_by_ukey = new_chunk_by_ukey;
+    compilation.chunk_group_by_ukey = new_chunk_group_by_ukey;
+    compilation.chunk_graph = new_chunk_graph;
 
     Ok(())
   }
