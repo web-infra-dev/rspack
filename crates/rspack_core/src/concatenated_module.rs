@@ -927,7 +927,6 @@ impl Module for ConcatenatedModule {
           Some(true),
           &compilation.options.context,
         );
-        dbg!(&final_name);
         format!(
           "/* {} */ {}",
           if export_info.is_reexport() {

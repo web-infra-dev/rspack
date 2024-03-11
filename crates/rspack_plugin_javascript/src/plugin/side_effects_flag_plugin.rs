@@ -1,3 +1,4 @@
+use core::panic;
 use std::collections::VecDeque;
 use std::fmt::Debug;
 use std::sync::Arc;
@@ -640,11 +641,8 @@ fn get_level_order_module_ids(
     .values()
     .map(|item| item.identifier())
     .collect::<Vec<_>>();
-  modules.sort_by(|a, b| {
-    let ad = mg.get_depth(a);
-    let bd = mg.get_depth(b);
-    ad.cmp(&bd)
-  });
+  modules.sort();
+  return modules;
   // let mut res = vec![];
   // let mut visited = IdentifierSet::default();
   // for entry in entries {
@@ -665,6 +663,12 @@ fn get_level_order_module_ids(
   //     }
   //   }
   // }
+  //
+  // res.sort_by(|a, b| {
+  //   let ad = mg.get_depth(a);
+  //   let bd = mg.get_depth(b);
+  //   ad.cmp(&bd)
+  // });
   // res
-  modules
+  // modules
 }

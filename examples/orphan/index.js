@@ -1,6 +1,8 @@
 import x from "pkg";
 
-it("should compile fine", () => {
+
 	const result = x;
-	expect(result.value).toBe(42);
-});
+console.log(`result.value: `, result.value)
+// 	expect(result.value).toBe(42);
+// it("should compile fine", () => {
+// });

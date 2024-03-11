@@ -990,8 +990,11 @@ impl ModuleGraph {
   }
 
   pub fn update_module(&mut self, dep_id: &DependencyId, module_id: &ModuleIdentifier) {
+    let connection_id = *self
+      .connection_id_by_dependency_id(dep_id)
+      .expect("should have connection id");
     let connection = self
-      .connection_by_dependency_mut(dep_id)
+      .connection_by_connection_id_mut(&connection_id)
       .expect("should have connection");
     if &connection.module_identifier == module_id {
       return;
@@ -1027,12 +1030,14 @@ impl ModuleGraph {
     if let Some(original_module_identifier) = &new_connection.original_module_identifier {
       if let Some(mgm) = self.module_graph_module_by_identifier_mut(original_module_identifier) {
         mgm.add_outgoing_connection(new_connection_id);
+        mgm.remove_outgoing_connection(connection_id);
       }
     }
     // add new connection to module incoming connections
     if let Some(mgm) = self.module_graph_module_by_identifier_mut(&new_connection.module_identifier)
     {
       mgm.add_incoming_connection(new_connection_id);
+      mgm.remove_incoming_connection(connection_id);
     }
 
     // copy condition
