@@ -28,7 +28,8 @@ use crate::tree_shaking::visitor::OptimizeAnalyzeResult;
 use crate::{
   build_chunk_graph::build_chunk_graph,
   cache::{use_code_splitting_cache, Cache, CodeSplittingCache},
-  get_chunk_from_ukey, get_mut_chunk_from_ukey, is_source_equal, prepare_get_exports_type,
+  debug_all_exports_info, get_chunk_from_ukey, get_mut_chunk_from_ukey, is_source_equal,
+  prepare_get_exports_type,
   tree_shaking::{optimizer, visitor::SymbolRef, BailoutFlag, OptimizeDependencyResult},
   AddQueueHandler, AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs,
   BoxDependency, BoxModule, BuildQueueHandler, BuildTimeExecutionQueueHandler, CacheCount,
@@ -808,14 +809,17 @@ impl Compilation {
     // https://github.com/webpack/webpack/blob/main/lib/Compilation.js#L2809
     plugin_driver.seal(self)?;
 
+    if self.options.is_new_tree_shaking() {
+      debug_all_exports_info!(&self.module_graph);
+    }
     let start = logger.time("optimize dependencies");
     // https://github.com/webpack/webpack/blob/d15c73469fd71cf98734685225250148b68ddc79/lib/Compilation.js#L2812-L2814
     while plugin_driver.optimize_dependencies(self).await?.is_some() {}
     logger.time_end(start);
 
-    // if self.options.is_new_tree_shaking() {
-    //   debug_all_exports_info!(&self.get_module_graph());
-    // }
+    if self.options.is_new_tree_shaking() {
+      debug_all_exports_info!(&self.get_module_graph());
+    }
     let start = logger.time("create chunks");
     use_code_splitting_cache(self, |compilation| async {
       build_chunk_graph(compilation)?;
@@ -831,6 +835,10 @@ impl Compilation {
     plugin_driver.optimize_tree(self).await?;
     plugin_driver.optimize_chunk_modules(self).await?;
     logger.time_end(start);
+
+    // if self.options.is_new_tree_shaking() {
+    //   debug_all_exports_info!(&self.module_graph);
+    // }
 
     let start = logger.time("module ids");
     plugin_driver.module_ids(self)?;

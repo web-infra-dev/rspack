@@ -170,12 +170,17 @@ impl ModuleGraph {
         .cloned()
         .expect("should have connection");
       if filter_connection(&connection, &*self) {
-        let new_connection_id = self.clone_module_graph_connection(
-          &connection,
-          Some(*new_module),
-          connection.module_identifier,
-        );
-        add_outgoing_connection.push(new_connection_id);
+        let connection = self
+          .connection_by_connection_id_mut(&connection_id)
+          .expect("should have connection");
+        connection.original_module_identifier = Some(*new_module);
+        // dbg!(&self.dependency_id_to_parents.get(&connection.dependency_id));
+        // let new_connection_id = self.clone_module_graph_connection(
+        //   &connection,
+        //   Some(*new_module),
+        //   connection.module_identifier,
+        // );
+        add_outgoing_connection.push(connection_id);
         delete_outgoing_connection.push(connection_id);
       }
     }
@@ -208,12 +213,21 @@ impl ModuleGraph {
         .cloned()
         .expect("should have connection");
       if filter_connection(&connection, &*self) {
-        let new_connection_id = self.clone_module_graph_connection(
-          &connection,
-          connection.original_module_identifier,
-          *new_module,
-        );
-        add_incoming_connection.push(new_connection_id);
+        // let new_connection_id = self.clone_module_graph_connection(
+        //   &connection,
+        //   connection.original_module_identifier,
+        //   *new_module,
+        // );
+
+        let connection = self
+          .connection_by_connection_id_mut(&connection_id)
+          .expect("should have connection");
+        connection.module_identifier = *new_module;
+        let dep_id = connection.dependency_id;
+        self
+          .dependency_id_to_module_identifier
+          .insert(dep_id, *new_module);
+        add_incoming_connection.push(connection_id);
         delete_incoming_connection.push(connection_id);
       }
     }

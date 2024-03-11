@@ -137,7 +137,7 @@ impl ExportsInfoId {
     can_mangle: bool,
     exclude_exports: Option<Vec<Atom>>,
     target_key: Option<DependencyId>,
-    target_module: Option<ModuleGraphConnection>,
+    target_module: Option<DependencyId>,
     priority: Option<u8>,
   ) -> bool {
     let mut changed = false;
@@ -790,7 +790,7 @@ pub fn string_of_used_name(used: Option<&UsedName>) -> String {
 
 #[derive(Debug, Clone, Hash)]
 pub struct ExportInfoTargetValue {
-  connection: Option<ModuleGraphConnection>,
+  connection: Option<DependencyId>,
   export: Option<Vec<Atom>>,
   priority: u8,
 }
@@ -1104,7 +1104,8 @@ impl ExportInfoId {
       return None;
     }
     export_info_mut.target.clear();
-    export_info_mut.target_is_set = true;
+    export_info_mut.max_target.clear();
+    export_info_mut.max_target_is_set = false;
     let updated_connection = update_original_connection(&target, mg);
 
     // shadowning `export_info_mut` to reduce `&mut ModuleGraph` borrow life time, since
@@ -1118,6 +1119,8 @@ impl ExportInfoId {
         priority: 0,
       },
     );
+
+    export_info_mut.target_is_set = true;
     Some(target)
   }
 
@@ -1233,6 +1236,7 @@ impl ExportInfoId {
     let mut target = FindTargetRetValue {
       module: raw_target
         .connection
+        .and_then(|dep_id| mg.connection_by_dependency(&dep_id))
         .expect("should have connection")
         .module_identifier,
       export: raw_target.export,
@@ -1373,7 +1377,8 @@ pub enum ExportInfoProvided {
 pub struct ResolvedExportInfoTarget {
   pub module: ModuleIdentifier,
   pub export: Option<Vec<Atom>>,
-  connection: ModuleGraphConnection,
+  /// using dependency id to retrieve Connection
+  connection: DependencyId,
 }
 
 #[derive(Clone, Debug)]
@@ -1390,7 +1395,7 @@ pub struct FindTargetRetValue {
 
 #[derive(Debug, Clone)]
 struct UnResolvedExportInfoTarget {
-  connection: Option<ModuleGraphConnection>,
+  connection: Option<DependencyId>,
   export: Option<Vec<Atom>>,
 }
 
@@ -1401,7 +1406,7 @@ pub enum ResolvedExportInfoTargetWithCircular {
 }
 
 pub type UpdateOriginalFunctionTy =
-  Arc<dyn Fn(&ResolvedExportInfoTarget, &mut ModuleGraph) -> Option<ModuleGraphConnection>>;
+  Arc<dyn Fn(&ResolvedExportInfoTarget, &mut ModuleGraph) -> Option<DependencyId>>;
 
 pub type ResolveFilterFnTy = Arc<dyn Fn(&ResolvedExportInfoTarget, &ModuleGraph) -> bool>;
 
@@ -1575,6 +1580,7 @@ impl ExportInfo {
 
   pub fn unset_target(&mut self, key: &DependencyId) -> bool {
     if self.target.is_empty() {
+      self.max_target_is_set = false;
       false
     } else {
       match self.target.remove(&Some(*key)) {
@@ -1623,6 +1629,8 @@ impl ExportInfo {
   // https://github.com/webpack/webpack/blob/b9fb99c63ca433b24233e0bbc9ce336b47872c08/lib/ExportsInfo.js#L1208
   fn get_max_target(&mut self) -> &HashMap<Option<DependencyId>, ExportInfoTargetValue> {
     if self.max_target_is_set {
+      println!("fuck");
+      dbg!(&self.max_target);
       return &self.max_target;
     }
     self.max_target = self._get_max_target();
@@ -1642,6 +1650,7 @@ impl ExportInfo {
         module: input_target
           .connection
           .as_ref()
+          .and_then(|dep_id| mga.connection_by_dependency(*dep_id))
           .expect("should have connection")
           .module_identifier,
         export: input_target.export,
@@ -1705,7 +1714,7 @@ impl ExportInfo {
   pub fn set_target(
     &mut self,
     key: Option<DependencyId>,
-    connection: Option<ModuleGraphConnection>,
+    connection_inner_dep_id: Option<DependencyId>,
     export_name: Option<&Nullable<Vec<Atom>>>,
     priority: Option<u8>,
   ) -> bool {
@@ -1719,7 +1728,7 @@ impl ExportInfo {
       self.target.insert(
         key,
         ExportInfoTargetValue {
-          connection,
+          connection: connection_inner_dep_id,
           export: export_name.cloned(),
           priority: normalized_priority,
         },
@@ -1728,14 +1737,14 @@ impl ExportInfo {
       return true;
     }
     let Some(old_target) = self.target.get_mut(&key) else {
-      if connection.is_none() {
+      if connection_inner_dep_id.is_none() {
         return false;
       }
 
       self.target.insert(
         key,
         ExportInfoTargetValue {
-          connection,
+          connection: connection_inner_dep_id,
           export: Some(export_name.cloned().unwrap_or_default()),
           priority: normalized_priority,
         },
@@ -1744,13 +1753,13 @@ impl ExportInfo {
       self.max_target_is_set = false;
       return true;
     };
-    if old_target.connection != connection
+    if old_target.connection != connection_inner_dep_id
       || old_target.priority != normalized_priority
       || old_target.export.as_ref() != export_name
     {
       old_target.export = export_name.cloned();
       old_target.priority = normalized_priority;
-      old_target.connection = connection;
+      old_target.connection = connection_inner_dep_id;
       self.max_target.clear();
       self.max_target_is_set = false;
       return true;
@@ -1973,6 +1982,8 @@ macro_rules! debug_exports_info {
 }
 
 pub trait ModuleGraphAccessor<'a> {
+  fn connection_by_dependency(&self, dependency_id: DependencyId)
+    -> Option<&ModuleGraphConnection>;
   fn run_resolve_filter(
     &mut self,
     target: &ResolvedExportInfoTarget,
@@ -2094,6 +2105,13 @@ impl<'a> ModuleGraphAccessor<'a> for MutableModuleGraph<'a> {
       .and_then(|m| m.build_meta())
       .map(|meta| meta.exports_type)
   }
+
+  fn connection_by_dependency(
+    &self,
+    dependency_id: DependencyId,
+  ) -> Option<&ModuleGraphConnection> {
+    self.inner.connection_by_dependency(&dependency_id)
+  }
 }
 
 pub struct ImmutableModuleGraph<'a> {
@@ -2125,19 +2143,22 @@ impl<'a> ModuleGraphAccessor<'a> for ImmutableModuleGraph<'a> {
     &mut self,
     export_info_id: &ExportInfoId,
   ) -> Arc<HashMap<Option<DependencyId>, ExportInfoTargetValue>> {
+    unreachable!();
     Arc::new({
       let export_info_id = self.inner.get_export_info_by_id(export_info_id);
 
       if export_info_id.max_target_is_set {
         export_info_id.get_max_target_readonly().to_owned()
       } else {
+        panic!();
+        println!("Fuck");
         // FIXME:
         // max target should be cached
         // but when moduleGraph is immutable and no cached max target
         // generate a new one, this should be removed
         // when module graph in get_exports and get_referenced_exports
         // is refactored to mutable
-        export_info_id._get_max_target()
+        export_info_id._get_max_target().clone()
       }
     })
   }
@@ -2174,6 +2195,13 @@ impl<'a> ModuleGraphAccessor<'a> for ImmutableModuleGraph<'a> {
       .module_by_identifier(module_identifier)
       .and_then(|m| m.build_meta())
       .map(|meta| meta.exports_type)
+  }
+
+  fn connection_by_dependency(
+    &self,
+    dependency_id: DependencyId,
+  ) -> Option<&ModuleGraphConnection> {
+    self.inner.connection_by_dependency(&dependency_id)
   }
 }
 

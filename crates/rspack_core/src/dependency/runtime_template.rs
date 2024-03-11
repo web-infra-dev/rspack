@@ -274,6 +274,10 @@ pub fn module_id(
   } else if weak {
     "null /* weak dependency, without id */".to_string()
   } else {
+    dbg!(&compilation
+      .module_graph
+      .module_identifier_by_dependency_id(id));
+    // dbg!(&compilation.module_graph.dependency_id_to_module_identifier);
     missing_module(request)
   }
 }
@@ -512,7 +516,9 @@ pub fn module_raw(
   }
 }
 
+#[track_caller]
 fn missing_module(request: &str) -> String {
+  dbg!(&std::panic::Location::caller());
   format!("Object({}())", throw_missing_module_error_function(request))
 }
 

@@ -581,7 +581,7 @@ impl Plugin for SideEffectsFlagPlugin {
                   })
                   .unwrap_or_else(|| ids.get(1..).unwrap_or_default().to_vec());
                 dep_id.set_ids(processed_ids, mg);
-                mg.connection_by_dependency(&dep_id).cloned()
+                mg.connection_by_dependency(&dep_id).map(|_| dep_id)
               },
             ),
           );
@@ -635,25 +635,36 @@ fn get_level_order_module_ids(
   mg: &ModuleGraph,
   entries: Vec<ModuleIdentifier>,
 ) -> Vec<ModuleIdentifier> {
-  let mut res = vec![];
-  let mut visited = IdentifierSet::default();
-  for entry in entries {
-    let mut q = VecDeque::from_iter([entry]);
-    while let Some(mi) = q.pop_front() {
-      if visited.contains(&mi) {
-        continue;
-      } else {
-        visited.insert(mi);
-        res.push(mi);
-      }
-      let Some(m) = mg.module_by_identifier(&mi) else {
-        continue;
-      };
-      for con in mg.get_outgoing_connections(m) {
-        let mi = con.module_identifier;
-        q.push_back(mi);
-      }
-    }
-  }
-  res
+  let mut modules = mg
+    .modules()
+    .values()
+    .map(|item| item.identifier())
+    .collect::<Vec<_>>();
+  modules.sort_by(|a, b| {
+    let ad = mg.get_depth(a);
+    let bd = mg.get_depth(b);
+    ad.cmp(&bd)
+  });
+  // let mut res = vec![];
+  // let mut visited = IdentifierSet::default();
+  // for entry in entries {
+  //   let mut q = VecDeque::from_iter([entry]);
+  //   while let Some(mi) = q.pop_front() {
+  //     if visited.contains(&mi) {
+  //       continue;
+  //     } else {
+  //       visited.insert(mi);
+  //       res.push(mi);
+  //     }
+  //     let Some(m) = mg.module_by_identifier(&mi) else {
+  //       continue;
+  //     };
+  //     for con in mg.get_outgoing_connections(m) {
+  //       let mi = con.module_identifier;
+  //       q.push_back(mi);
+  //     }
+  //   }
+  // }
+  // res
+  modules
 }

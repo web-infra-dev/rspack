@@ -183,7 +183,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
           global_can_mangle.unwrap_or_default(),
           export_desc.exclude_exports,
           global_from.map(|_| dep_id),
-          global_from.cloned(),
+          global_from.map(|_| dep_id),
           *global_priority,
         ) {
           self.changed = true;
@@ -308,7 +308,12 @@ impl<'a> FlagDependencyExportsProxy<'a> {
           } else {
             Some(&fallback)
           };
-          export_info_mut.set_target(Some(dep_id), Some(from), export_name, priority)
+          export_info_mut.set_target(
+            Some(dep_id),
+            Some(from.dependency_id),
+            export_name,
+            priority,
+          )
         };
         self.changed |= changed;
       }

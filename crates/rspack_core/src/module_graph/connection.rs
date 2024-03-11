@@ -36,16 +36,16 @@ pub struct ModuleGraphConnection {
 
 impl Hash for ModuleGraphConnection {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-    self.resolved_original_module_identifier.hash(state);
-    self.module_identifier.hash(state);
+    // self.resolved_original_module_identifier.hash(state);
+    // self.module_identifier.hash(state);
     self.dependency_id.hash(state);
   }
 }
 impl PartialEq for ModuleGraphConnection {
   fn eq(&self, other: &Self) -> bool {
-    self.resolved_original_module_identifier == other.resolved_original_module_identifier
-      && self.module_identifier == other.module_identifier
-      && self.dependency_id == other.dependency_id
+    // self.resolved_original_module_identifier == other.resolved_original_module_identifier
+    //   && self.module_identifier == other.module_identifier
+    self.dependency_id == other.dependency_id
   }
 }
 

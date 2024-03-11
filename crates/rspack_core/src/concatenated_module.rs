@@ -897,9 +897,12 @@ impl Module for ConcatenatedModule {
     let exports_info = compilation
       .get_module_graph()
       .get_exports_info(&root_module_id);
+    dbg!(&root_module_id);
+    dbg!(&exports_info);
 
-    for (_, export_info_id) in exports_info.exports.iter() {
+    for (name, export_info_id) in exports_info.exports.iter() {
       let export_info = export_info_id.get_export_info(compilation.get_module_graph());
+      dbg!(&name, export_info);
       let name = export_info.name.clone().unwrap_or("".into());
       if matches!(export_info.provided, Some(ExportInfoProvided::False)) {
         continue;
@@ -924,6 +927,7 @@ impl Module for ConcatenatedModule {
           Some(true),
           &compilation.options.context,
         );
+        dbg!(&final_name);
         format!(
           "/* {} */ {}",
           if export_info.is_reexport() {
@@ -960,6 +964,7 @@ impl Module for ConcatenatedModule {
       runtime_requirements.insert(RuntimeGlobals::EXPORTS);
       runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
       let mut definitions = Vec::new();
+      dbg!(&exports_map);
       for (key, value) in exports_map.iter() {
         definitions.push(format!(
           "\n  {}: {}",
@@ -994,6 +999,8 @@ impl Module for ConcatenatedModule {
     // webpack require iterate the needed_namespace_objects and mutate `needed_namespace_objects`
     // at the same time, https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L1514
     // Which is impossible in rust, using a fixed point algorithm  to reach the same goal.
+    dbg!(&self.id);
+    dbg!(&needed_namespace_objects);
     loop {
       let mut changed = false;
       // using the previous round snapshot `needed_namespace_objects` to iterate, and modify the
@@ -1183,13 +1190,11 @@ impl Module for ConcatenatedModule {
             result.add(RawSource::from(format!("if ({}) {{\n", condition)));
           }
 
-          // if info.module.contains("toConsumableArray.js") {
           // dbg!(&box_module.identifier());
           // dbg!(&info.module);
           // dbg!(&compilation
           //   .module_graph
           //   .module_graph_module_by_identifier(&info.module));
-          // }
           result.add(RawSource::from(format!(
             "let {} = {}({});",
             info.name.as_ref().expect("should have name"),
@@ -1530,6 +1535,7 @@ impl ConcatenatedModule {
         .module_by_identifier(&self.id)
         .expect("should have module");
       for c in mg.get_outgoing_connections(self_module) {
+        // dbg!(&c);
         connections.push(*c);
       }
     }
@@ -1804,6 +1810,8 @@ impl ConcatenatedModule {
     let info = module_to_info_map
       .get(info_id)
       .expect("should have module info");
+
+    dbg!(&info_id, info.id());
     let module = mg
       .module_by_identifier(&info.id())
       .expect("should have module");
@@ -1959,6 +1967,10 @@ impl ConcatenatedModule {
     }
 
     let exports_info = mg.get_exports_info(&info.id());
+    dbg!(&info.id(), &export_name[0], &exports_info);
+    dbg!(&exports_info
+      .id
+      .get_read_only_export_info(&export_name[0], mg));
     // webpack use get_exports_info here, https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/ConcatenatedModule.js#L377-L377
     // But in our arch, there is no way to modify module graph during code_generation phase
     let export_info_id = exports_info
@@ -1983,6 +1995,7 @@ impl ConcatenatedModule {
         let export_id = export_name.first().cloned();
         let export_info = export_info_id.get_export_info(mg);
         if matches!(export_info.provided, Some(crate::ExportInfoProvided::False)) {
+          dbg!(&info.module);
           needed_namespace_objects.insert(info.module);
           return Binding::Raw(RawBinding {
             raw_name: info
@@ -2046,6 +2059,7 @@ impl ConcatenatedModule {
           mg,
           Arc::new(|module: &ModuleIdentifier| module_to_info_map.contains_key(module)),
         );
+        dbg!(&reexport);
         match reexport {
           crate::FindTargetRetEnum::Undefined => {}
           crate::FindTargetRetEnum::False => {
