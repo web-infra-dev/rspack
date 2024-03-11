@@ -162,7 +162,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
           json::JsonValue::Object(_) | json::JsonValue::Array(_)
             if exports_info
               .other_exports_info
-              .get_export_info(&compilation.get_module_graph())
+              .get_export_info(compilation.get_module_graph())
               .get_used(*runtime)
               == UsageState::Unused =>
           {
@@ -170,7 +170,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
               json_data.clone(),
               exports_info,
               *runtime,
-              &compilation.get_module_graph(),
+              compilation.get_module_graph(),
             )
           }
           _ => json_data.clone(),

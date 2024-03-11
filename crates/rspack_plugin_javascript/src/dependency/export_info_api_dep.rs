@@ -74,7 +74,7 @@ impl ExportInfoApiDependency {
             Some(exports_info.get_used(
               rspack_core::UsedName::Str(export_name.clone()),
               *runtime,
-              &compilation.get_module_graph(),
+              compilation.get_module_graph(),
             ))
           } else {
             Some(export_info.usage_state)

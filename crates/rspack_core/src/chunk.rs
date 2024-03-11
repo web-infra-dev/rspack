@@ -420,7 +420,7 @@ impl Chunk {
     self.ids.hash(hasher);
     for module in compilation
       .chunk_graph
-      .get_ordered_chunk_modules(&self.ukey, &compilation.get_module_graph())
+      .get_ordered_chunk_modules(&self.ukey, compilation.get_module_graph())
     {
       if let Some(hash) = compilation
         .code_generation_results

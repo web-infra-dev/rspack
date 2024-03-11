@@ -89,7 +89,7 @@ impl Plugin for WarnCaseSensitiveModulesPlugin {
         case_modules.sort_by_key(|m| m.identifier());
         diagnostics.push(Diagnostic::warn(
           "Sensitive Modules Warn".to_string(),
-          self.create_sensitive_modules_warning(&case_modules, &compilation.get_module_graph()),
+          self.create_sensitive_modules_warning(&case_modules, compilation.get_module_graph()),
         ));
       }
     }

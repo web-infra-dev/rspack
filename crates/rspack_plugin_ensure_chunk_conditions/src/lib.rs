@@ -67,7 +67,7 @@ impl Plugin for EnsureChunkConditionsPlugin {
                   .module_by_identifier(module_id)
                 {
                   if matches!(module.chunk_condition(chunk, compilation), Some(true)) {
-                    target_chunks.insert(chunk.clone());
+                    target_chunks.insert(*chunk);
                     continue 'out;
                   }
                 }

@@ -168,7 +168,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
           continue;
         };
         let active_state =
-          connection.get_active_state(&self.compilation.get_module_graph(), runtime.as_ref());
+          connection.get_active_state(self.compilation.get_module_graph(), runtime.as_ref());
 
         // dbg!(
         //   &connection,
@@ -200,7 +200,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
           .expect("should have dep");
 
         let referenced_exports = if let Some(md) = dep.as_module_dependency() {
-          md.get_referenced_exports(&self.compilation.get_module_graph(), runtime.as_ref())
+          md.get_referenced_exports(self.compilation.get_module_graph(), runtime.as_ref())
         } else if dep.as_context_dependency().is_some() {
           vec![ExtendedReferencedExport::Array(vec![])]
         } else {
@@ -378,7 +378,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
             let last_one = i == len - 1;
             if !last_one {
               let nested_info =
-                export_info_id.get_nested_exports_info(&self.compilation.get_module_graph());
+                export_info_id.get_nested_exports_info(self.compilation.get_module_graph());
               // dbg!(&nested_info);
               if let Some(nested_info) = nested_info {
                 let changed_flag = export_info_id.set_used_conditionally(

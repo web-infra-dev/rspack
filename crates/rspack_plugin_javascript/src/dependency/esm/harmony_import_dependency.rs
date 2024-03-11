@@ -107,7 +107,7 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
       .get_module_graph()
       .connection_by_dependency(module_dependency.id());
     if let Some(con) = connection {
-      Some(con.is_target_active(&compilation.get_module_graph(), *runtime))
+      Some(con.is_target_active(compilation.get_module_graph(), *runtime))
     } else {
       Some(true)
     }
@@ -195,7 +195,7 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
     .connection_by_dependency(module_dependency.id())
   {
     filter_runtime(*runtime, |r| {
-      connection.is_target_active(&compilation.get_module_graph(), r)
+      connection.is_target_active(compilation.get_module_graph(), r)
     })
   } else {
     RuntimeCondition::Boolean(true)
@@ -219,7 +219,7 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
   let ref_module = compilation
     .get_module_graph()
     .module_identifier_by_dependency_id(module_dependency.id());
-  let import_var = get_import_var(&compilation.get_module_graph(), *module_dependency.id());
+  let import_var = get_import_var(compilation.get_module_graph(), *module_dependency.id());
   //
   // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/dependencies/HarmonyImportDependency.js#L282-L285
   let module_key = ref_module

@@ -279,7 +279,7 @@ impl ContextModule {
       .sorted_unstable_by_key(|(module_id, _)| module_id.to_string());
     for (module_id, dep) in sorted_modules {
       let exports_type = get_exports_type_with_strict(
-        &compilation.get_module_graph(),
+        compilation.get_module_graph(),
         dep,
         matches!(
           self.options.context_options.namespace_object,

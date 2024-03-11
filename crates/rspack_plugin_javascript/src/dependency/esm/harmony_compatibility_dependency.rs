@@ -37,7 +37,7 @@ impl DependencyTemplate for HarmonyCompatibilityDependency {
     if !matches!(
       exports_info
         .id
-        .get_read_only_export_info(&Atom::from("__esModule"), &compilation.get_module_graph())
+        .get_read_only_export_info(&Atom::from("__esModule"), compilation.get_module_graph())
         .get_used(*runtime),
       UsageState::Unused
     ) {

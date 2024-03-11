@@ -97,7 +97,7 @@ impl DependencyTemplate for CommonJsSelfReferenceDependency {
         .get_exports_info(&module.identifier())
         .id
         .get_used_name(
-          &compilation.get_module_graph(),
+          compilation.get_module_graph(),
           *runtime,
           UsedName::Vec(self.names.clone()),
         )

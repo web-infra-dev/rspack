@@ -108,7 +108,7 @@ impl DependencyTemplate for HarmonyExportExpressionDependency {
           .get_exports_info(module_identifier)
           .id
           .get_used_name(
-            &compilation.get_module_graph(),
+            compilation.get_module_graph(),
             *runtime,
             UsedName::Str(name.into()),
           )

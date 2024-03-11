@@ -857,7 +857,7 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
 
     let mode = self.get_mode(
       self.name.clone(),
-      &compilation.get_module_graph(),
+      compilation.get_module_graph(),
       &self.id,
       *runtime,
     );
@@ -877,7 +877,7 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
       .module_by_identifier(&module.identifier())
       .expect("should have module graph module");
 
-    let import_var = get_import_var(&compilation.get_module_graph(), self.id);
+    let import_var = get_import_var(compilation.get_module_graph(), self.id);
     let is_new_treeshaking = compilation.options.is_new_tree_shaking();
 
     let mut used_exports = if is_new_treeshaking {
@@ -891,7 +891,7 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
         .filter_map(|(local, _)| {
           exports_info_id
             .get_used_name(
-              &compilation.get_module_graph(),
+              compilation.get_module_graph(),
               *runtime,
               UsedName::Str(local.clone()),
             )

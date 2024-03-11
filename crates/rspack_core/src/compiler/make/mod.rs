@@ -117,7 +117,7 @@ impl UpdateModuleGraph {
     compilation: &mut Compilation,
     params: Vec<MakeParam>,
   ) -> Result<HashSet<BuildDependency>> {
-    let deps_builder = RebuildDepsBuilder::new(params, &compilation.get_module_graph());
+    let deps_builder = RebuildDepsBuilder::new(params, compilation.get_module_graph());
 
     self.origin_module_deps = HashMap::from_iter(
       deps_builder
@@ -287,7 +287,7 @@ impl UpdateModuleGraph {
         let mut sorted_dependencies = HashMap::default();
 
         task.dependencies.into_iter().for_each(|dependency_id| {
-          let dependency = dependency_id.get_dependency(&compilation.get_module_graph());
+          let dependency = dependency_id.get_dependency(compilation.get_module_graph());
           // FIXME: now only module/context dependency can put into resolve queue.
           // FIXME: should align webpack
           let resource_identifier =
@@ -875,7 +875,7 @@ impl UpdateModuleGraph {
       .profile
       .then(Box::<ModuleProfile>::default);
     let dependency = dependencies[0]
-      .get_dependency(&compilation.get_module_graph())
+      .get_dependency(compilation.get_module_graph())
       .clone();
     let original_module_source = original_module_identifier
       .and_then(|i| compilation.get_module_graph().module_by_identifier(&i))

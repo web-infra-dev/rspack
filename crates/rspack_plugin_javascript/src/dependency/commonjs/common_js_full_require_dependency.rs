@@ -133,7 +133,7 @@ impl DependencyTemplate for CommonJsFullRequireDependency {
         .get_exports_info(&imported_module.module_identifier)
         .id
         .get_used_name(
-          &compilation.get_module_graph(),
+          compilation.get_module_graph(),
           *runtime,
           UsedName::Vec(self.names.clone()),
         );

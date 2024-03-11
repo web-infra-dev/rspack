@@ -63,7 +63,7 @@ pub fn chunk_has_js(chunk_ukey: &ChunkUkey, compilation: &Compilation) -> bool {
     .get_chunk_modules_by_source_type(
       chunk_ukey,
       SourceType::JavaScript,
-      &compilation.get_module_graph(),
+      compilation.get_module_graph(),
     )
     .is_empty()
 }
@@ -71,7 +71,7 @@ pub fn chunk_has_js(chunk_ukey: &ChunkUkey, compilation: &Compilation) -> bool {
 pub fn chunk_has_css(chunk: &ChunkUkey, compilation: &Compilation) -> bool {
   !compilation
     .chunk_graph
-    .get_chunk_modules_by_source_type(chunk, SourceType::Css, &compilation.get_module_graph())
+    .get_chunk_modules_by_source_type(chunk, SourceType::Css, compilation.get_module_graph())
     .is_empty()
 }
 

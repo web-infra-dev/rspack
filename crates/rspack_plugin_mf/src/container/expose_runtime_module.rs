@@ -42,7 +42,7 @@ impl ExposeRuntimeModule {
         .get_chunk_modules_iterable_by_source_type(
           &c,
           SourceType::Expose,
-          &compilation.get_module_graph(),
+          compilation.get_module_graph(),
         );
       for m in modules {
         let code_gen = compilation

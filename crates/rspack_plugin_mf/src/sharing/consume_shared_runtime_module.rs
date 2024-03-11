@@ -78,7 +78,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
         .get_chunk_modules_iterable_by_source_type(
           &chunk,
           SourceType::ConsumeShared,
-          &compilation.get_module_graph(),
+          compilation.get_module_graph(),
         );
       let chunk = compilation.chunk_by_ukey.expect_get(&chunk);
       let mut ids = vec![];
@@ -99,7 +99,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
         .get_chunk_modules_iterable_by_source_type(
           &chunk,
           SourceType::ConsumeShared,
-          &compilation.get_module_graph(),
+          compilation.get_module_graph(),
         );
       let chunk = compilation.chunk_by_ukey.expect_get(&chunk);
       for module in modules {

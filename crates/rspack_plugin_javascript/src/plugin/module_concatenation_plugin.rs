@@ -265,7 +265,7 @@ impl ModuleConcatenationPlugin {
     if let Some(incoming_connections_from_non_modules) = incoming_connections.get(&None) {
       let active_non_modules_connections = incoming_connections_from_non_modules
         .iter()
-        .filter(|&connection| connection.is_active(&compilation.get_module_graph(), runtime))
+        .filter(|&connection| connection.is_active(compilation.get_module_graph(), runtime))
         .collect::<Vec<_>>();
 
       // TODO: ADD module connection explanations
@@ -321,7 +321,7 @@ impl ModuleConcatenationPlugin {
 
         let active_connections: Vec<_> = connections
           .iter()
-          .filter(|&connection| connection.is_active(&compilation.get_module_graph(), runtime))
+          .filter(|&connection| connection.is_active(compilation.get_module_graph(), runtime))
           .cloned()
           .collect();
 
@@ -442,7 +442,7 @@ impl ModuleConcatenationPlugin {
         let mut current_runtime_condition = RuntimeCondition::Boolean(false);
         for connection in connections {
           let runtime_condition = filter_runtime(Some(runtime), |runtime| {
-            connection.is_target_active(&compilation.get_module_graph(), runtime)
+            connection.is_target_active(compilation.get_module_graph(), runtime)
           });
 
           if runtime_condition == RuntimeCondition::Boolean(false) {
@@ -531,7 +531,7 @@ impl ModuleConcatenationPlugin {
         return Some(problem);
       }
     }
-    for imp in Self::get_imports(&compilation.get_module_graph(), *module_id, runtime) {
+    for imp in Self::get_imports(compilation.get_module_graph(), *module_id, runtime) {
       candidates.insert(imp);
     }
     statistics.added += 1;
@@ -600,7 +600,7 @@ impl Plugin for ModuleConcatenationPlugin {
       }
       let exports_info = compilation.get_module_graph().get_exports_info(&module_id);
       let relevnat_epxorts =
-        exports_info.get_relevant_exports(None, &compilation.get_module_graph());
+        exports_info.get_relevant_exports(None, compilation.get_module_graph());
       let unknown_exports = relevnat_epxorts
         .iter()
         .filter(|id| {
@@ -617,7 +617,7 @@ impl Plugin for ModuleConcatenationPlugin {
         let bailout_reason = unknown_exports
           .into_iter()
           .map(|id| {
-            let export_info = id.get_export_info(&compilation.get_module_graph());
+            let export_info = id.get_export_info(compilation.get_module_graph());
             let name = export_info
               .name
               .as_ref()
@@ -626,9 +626,7 @@ impl Plugin for ModuleConcatenationPlugin {
             format!(
               "{} : {}",
               name,
-              export_info
-                .id
-                .get_used_info(&compilation.get_module_graph())
+              export_info.id.get_used_info(compilation.get_module_graph())
             )
           })
           .collect::<Vec<String>>()
@@ -644,7 +642,7 @@ impl Plugin for ModuleConcatenationPlugin {
       let unknown_provided_exports = relevnat_epxorts
         .iter()
         .filter(|id| {
-          let export_info = id.get_export_info(&compilation.get_module_graph());
+          let export_info = id.get_export_info(compilation.get_module_graph());
           !matches!(export_info.provided, Some(ExportInfoProvided::True))
         })
         .copied()
@@ -654,7 +652,7 @@ impl Plugin for ModuleConcatenationPlugin {
         let bailout_reason = unknown_provided_exports
           .into_iter()
           .map(|id| {
-            let export_info = id.get_export_info(&compilation.get_module_graph());
+            let export_info = id.get_export_info(compilation.get_module_graph());
             let name = export_info
               .name
               .as_ref()
@@ -665,10 +663,8 @@ impl Plugin for ModuleConcatenationPlugin {
               name,
               export_info
                 .id
-                .get_provided_info(&compilation.get_module_graph()),
-              export_info
-                .id
-                .get_used_info(&compilation.get_module_graph())
+                .get_provided_info(compilation.get_module_graph()),
+              export_info.id.get_used_info(compilation.get_module_graph())
             )
           })
           .collect::<Vec<String>>()
@@ -738,7 +734,7 @@ impl Plugin for ModuleConcatenationPlugin {
         .get_exports_info(current_root)
         .id;
       let filtered_runtime = filter_runtime(Some(&chunk_runtime), |r| {
-        exports_info_id.is_module_used(&compilation.get_module_graph(), r)
+        exports_info_id.is_module_used(compilation.get_module_graph(), r)
       });
       let active_runtime = match filtered_runtime {
         RuntimeCondition::Boolean(true) => Some(chunk_runtime.clone()),
@@ -754,7 +750,7 @@ impl Plugin for ModuleConcatenationPlugin {
       let mut candidates = VecDeque::new();
 
       let imports = Self::get_imports(
-        &compilation.get_module_graph(),
+        compilation.get_module_graph(),
         *current_root,
         active_runtime.as_ref(),
       );
@@ -883,7 +879,7 @@ impl Plugin for ModuleConcatenationPlugin {
           .map(|deps| deps.to_vec()),
         context: Some(compilation.options.context.clone()),
         side_effect_connection_state: box_module.get_side_effects_connection_state(
-          &compilation.get_module_graph(),
+          compilation.get_module_graph(),
           &mut HashSet::default(),
         ),
         build_meta: box_module.build_meta().cloned(),

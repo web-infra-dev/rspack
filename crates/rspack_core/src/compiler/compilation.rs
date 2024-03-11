@@ -661,7 +661,7 @@ impl Compilation {
             .get_module_chunks(*module_identifier)
             .iter()
           {
-            temp.push((chunk.clone(), asset.clone()))
+            temp.push((*chunk, asset.clone()))
           }
           // already emitted asset by loader, so no need to re emit here
         }
@@ -1014,7 +1014,7 @@ impl Compilation {
       let mut set = RuntimeGlobals::default();
       for module in self
         .chunk_graph
-        .get_chunk_modules(&chunk_ukey, &self.get_module_graph())
+        .get_chunk_modules(&chunk_ukey, self.get_module_graph())
       {
         let chunk = self.chunk_by_ukey.expect_get(&chunk_ukey);
         if let Some(runtime_requirements) = self

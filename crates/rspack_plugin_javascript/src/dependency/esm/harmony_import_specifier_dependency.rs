@@ -166,7 +166,7 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
         .get_module_graph()
         .connection_by_dependency(&self.id);
       let is_target_active = if let Some(con) = connection {
-        con.is_target_active(&compilation.get_module_graph(), *runtime)
+        con.is_target_active(compilation.get_module_graph(), *runtime)
       } else {
         true
       };
@@ -189,8 +189,8 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
       return;
     }
 
-    let ids = self.get_ids(&compilation.get_module_graph());
-    let import_var = get_import_var(&compilation.get_module_graph(), self.id);
+    let ids = self.get_ids(compilation.get_module_graph());
+    let import_var = get_import_var(compilation.get_module_graph(), self.id);
 
     let export_expr = if let Some(scope) = concatenation_scope
       && let Some(con) = compilation

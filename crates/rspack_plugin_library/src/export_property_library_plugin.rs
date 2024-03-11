@@ -84,7 +84,7 @@ impl Plugin for ExportPropertyLibraryPlugin {
         options,
         ..
       } = entry;
-      let runtime = compilation.get_entry_runtime(&entry_name, Some(&options));
+      let runtime = compilation.get_entry_runtime(entry_name, Some(options));
       let library_options = options
         .library
         .as_ref()

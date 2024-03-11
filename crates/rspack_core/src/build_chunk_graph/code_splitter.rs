@@ -1279,7 +1279,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             let active_state = get_active_state_of_connections(
               connections,
               Some(&cgi.runtime),
-              &self.compilation.get_module_graph(),
+              self.compilation.get_module_graph(),
             );
             if active_state.is_false() {
               continue;

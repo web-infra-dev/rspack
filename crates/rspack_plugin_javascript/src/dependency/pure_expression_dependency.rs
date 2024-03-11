@@ -66,7 +66,7 @@ impl DependencyTemplate for PureExpressionDependency {
             exports_info.get_used(
               UsedName::Str(id.clone()),
               cur_runtime,
-              &ctx.compilation.get_module_graph(),
+              ctx.compilation.get_module_graph(),
             ) != UsageState::Unused
           })
         });

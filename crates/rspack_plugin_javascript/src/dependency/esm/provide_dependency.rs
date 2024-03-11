@@ -88,7 +88,7 @@ impl DependencyTemplate for ProvideDependency {
       .get_module_graph()
       .get_exports_info(&con.module_identifier);
     let used_name = exports_info.id.get_used_name(
-      &compilation.get_module_graph(),
+      compilation.get_module_graph(),
       *runtime,
       UsedName::Vec(self.ids.clone()),
     );

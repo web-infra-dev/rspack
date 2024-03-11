@@ -191,7 +191,7 @@ impl Stats<'_> {
           let chunk_modules = self
             .compilation
             .chunk_graph
-            .get_chunk_modules(&c.ukey, &self.compilation.get_module_graph());
+            .get_chunk_modules(&c.ukey, self.compilation.get_module_graph());
           let mut chunk_modules = chunk_modules
             .into_iter()
             .map(|m| {
@@ -229,7 +229,7 @@ impl Stats<'_> {
           size: self
             .compilation
             .chunk_graph
-            .get_chunk_modules_size(&c.ukey, &self.compilation.get_module_graph()),
+            .get_chunk_modules_size(&c.ukey, self.compilation.get_module_graph()),
           modules: chunk_modules,
           parents,
           children,
@@ -434,7 +434,7 @@ impl Stats<'_> {
     let reasons = reasons
       .then(|| -> Result<_> {
         let mut reasons: Vec<StatsModuleReason> = mgm
-          .get_incoming_connections_unordered(&self.compilation.get_module_graph())?
+          .get_incoming_connections_unordered(self.compilation.get_module_graph())?
           .map(|connection| {
             let (module_name, module_id) = connection
               .original_module_identifier

@@ -559,7 +559,7 @@ impl Module for ConcatenatedModule {
 
       // populate dependencies
       for dep_id in module.get_dependencies() {
-        let dep = dep_id.get_dependency(&compilation.get_module_graph());
+        let dep = dep_id.get_dependency(compilation.get_module_graph());
         let module_id_of_dep = compilation
           .get_module_graph()
           .module_identifier_by_dependency_id(dep_id);
@@ -608,7 +608,7 @@ impl Module for ConcatenatedModule {
     let context = compilation.options.context.clone();
 
     let (modules_with_info, module_to_info_map) =
-      self.get_modules_with_info(&compilation.get_module_graph(), runtime);
+      self.get_modules_with_info(compilation.get_module_graph(), runtime);
 
     // Set with modules that need a generated namespace object
     let mut needed_namespace_objects: IndexSet<ModuleIdentifier> = IndexSet::default();
@@ -850,7 +850,7 @@ impl Module for ConcatenatedModule {
       ) in info_params_list
       {
         let final_name = Self::get_final_name(
-          &compilation.get_module_graph(),
+          compilation.get_module_graph(),
           &referenced_info_id,
           export_name,
           &mut module_to_info_map,
@@ -899,7 +899,7 @@ impl Module for ConcatenatedModule {
       .get_exports_info(&root_module_id);
 
     for (_, export_info_id) in exports_info.exports.iter() {
-      let export_info = export_info_id.get_export_info(&compilation.get_module_graph());
+      let export_info = export_info_id.get_export_info(compilation.get_module_graph());
       let name = export_info.name.clone().unwrap_or("".into());
       if matches!(export_info.provided, Some(ExportInfoProvided::False)) {
         continue;
@@ -912,7 +912,7 @@ impl Module for ConcatenatedModule {
       };
       exports_map.insert(used_name, {
         let final_name = Self::get_final_name(
-          &compilation.get_module_graph(),
+          compilation.get_module_graph(),
           &root_module_id,
           [name.clone()].to_vec(),
           &mut module_to_info_map,
@@ -943,7 +943,7 @@ impl Module for ConcatenatedModule {
       .get_module_graph()
       .get_exports_info(&self.id())
       .other_exports_info
-      .get_used(&compilation.get_module_graph(), runtime)
+      .get_used(compilation.get_module_graph(), runtime)
       != UsageState::Unused
     {
       result.add(RawSource::from("// ESM COMPAT FLAG\n"));
@@ -1031,14 +1031,14 @@ impl Module for ConcatenatedModule {
           .get_module_graph()
           .get_exports_info(module_info_id);
         for (_name, export_info_id) in exports_info.exports.iter() {
-          let export_info = export_info_id.get_export_info(&compilation.get_module_graph());
+          let export_info = export_info_id.get_export_info(compilation.get_module_graph());
           if matches!(export_info.provided, Some(ExportInfoProvided::False)) {
             continue;
           }
 
           if let Some(used_name) = export_info.get_used_name(None, runtime) {
             let final_name = Self::get_final_name(
-              &compilation.get_module_graph(),
+              compilation.get_module_graph(),
               module_info_id,
               vec![export_info.name.clone().unwrap_or("".into())],
               &mut module_to_info_map,

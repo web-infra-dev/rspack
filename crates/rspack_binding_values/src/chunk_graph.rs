@@ -9,7 +9,7 @@ pub fn get_chunk_modules(js_chunk_ukey: u32, compilation: &JsCompilation) -> Vec
   let compilation = &compilation.inner;
   let modules = compilation.chunk_graph.get_chunk_modules(
     &ChunkUkey::from(js_chunk_ukey as usize),
-    &compilation.get_module_graph(),
+    compilation.get_module_graph(),
   );
 
   return modules
@@ -66,7 +66,7 @@ pub fn get_chunk_modules_iterable_by_source_type(
         &ChunkUkey::from(js_chunk_ukey as usize),
         SourceType::try_from(source_type.as_str())
           .map_err(|e| napi::Error::from_reason(e.to_string()))?,
-        &compilation.get_module_graph(),
+        compilation.get_module_graph(),
       )
       .filter_map(|module| module.to_js_module().ok())
       .collect(),

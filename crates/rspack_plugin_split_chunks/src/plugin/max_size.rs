@@ -83,7 +83,7 @@ fn deterministic_grouping_for_modules(
 
   let items = compilation
     .chunk_graph
-    .get_chunk_modules(chunk, &compilation.get_module_graph());
+    .get_chunk_modules(chunk, compilation.get_module_graph());
 
   let context = compilation.options.context.as_ref();
 

@@ -163,7 +163,7 @@ impl<'a> CodeSizeOptimizer<'a> {
 
     let inherit_export_ref_graph = get_inherit_export_ref_graph(
       &mut finalized_result_map,
-      &self.compilation.get_module_graph(),
+      self.compilation.get_module_graph(),
     );
     let mut errors = vec![];
     let mut used_symbol_ref = HashSet::default();
@@ -314,8 +314,7 @@ impl<'a> CodeSizeOptimizer<'a> {
             let normalized_symbols = p
               .into_iter()
               .map(|symbol| {
-                symbol
-                  .convert_module_identifier_to_module_path(&self.compilation.get_module_graph())
+                symbol.convert_module_identifier_to_module_path(self.compilation.get_module_graph())
               })
               .collect::<Vec<_>>();
             println!("{normalized_symbols:#?}",);
@@ -603,7 +602,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     for entry_module_ident in self.compilation.entry_module_identifiers.iter() {
       Self::normalize_side_effects(
         *entry_module_ident,
-        &self.compilation.get_module_graph(),
+        self.compilation.get_module_graph(),
         &mut IdentifierSet::default(),
         &mut side_effect_map,
       );
@@ -745,7 +744,7 @@ impl<'a> CodeSizeOptimizer<'a> {
   ) {
     current_symbol_ref_with_member_chain.0 = current_symbol_ref_with_member_chain
       .0
-      .update_src_from_dep_id(&self.compilation.get_module_graph());
+      .update_src_from_dep_id(self.compilation.get_module_graph());
     if visited_symbol_ref.contains(&current_symbol_ref_with_member_chain) {
       return;
     } else {

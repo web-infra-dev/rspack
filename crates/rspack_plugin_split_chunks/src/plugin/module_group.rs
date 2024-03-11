@@ -62,7 +62,7 @@ impl SplitChunksPlugin {
     // single_chunk_sets: chunkset of module that belongs to only one chunk
     // chunk_sets_by_count: use chunkset len as key
     let (chunk_sets_in_graph, chunk_sets_by_count) =
-      { Self::prepare_combination_maps(&compilation.get_module_graph(), &compilation.chunk_graph) };
+      { Self::prepare_combination_maps(compilation.get_module_graph(), &compilation.chunk_graph) };
 
     let combinations_cache = DashMap::<ChunksKey, Vec<FxHashSet<ChunkUkey>>>::default();
 

@@ -93,7 +93,7 @@ impl DependencyTemplate for HarmonyExportSpecifierDependency {
         .get_exports_info(&module.identifier())
         .id;
       let used_name = exports_info_id.get_used_name(
-        &compilation.get_module_graph(),
+        compilation.get_module_graph(),
         *runtime,
         UsedName::Str(self.name.clone()),
       );

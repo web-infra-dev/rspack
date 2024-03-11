@@ -53,7 +53,7 @@ impl RuntimeModule for RemoteRuntimeModule {
         .get_chunk_modules_iterable_by_source_type(
           &chunk,
           SourceType::Remote,
-          &compilation.get_module_graph(),
+          compilation.get_module_graph(),
         );
       let mut remotes = Vec::new();
       for m in modules {
