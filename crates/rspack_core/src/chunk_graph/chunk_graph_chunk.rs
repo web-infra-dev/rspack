@@ -91,7 +91,6 @@ impl ChunkGraph {
     // Using clone to avoid using mutable borrow and immutable borrow at the same time.
     for chunk in old_cgm.chunks.clone().into_iter() {
       let cgc = self.get_chunk_graph_chunk_mut(chunk);
-      dbg!(&cgc.modules);
       cgc.modules.remove(old_module_id);
       cgc.modules.insert(*new_module_id);
       let new_cgm = self.get_chunk_graph_module_mut(*new_module_id);

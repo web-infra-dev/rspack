@@ -1629,8 +1629,6 @@ impl ExportInfo {
   // https://github.com/webpack/webpack/blob/b9fb99c63ca433b24233e0bbc9ce336b47872c08/lib/ExportsInfo.js#L1208
   fn get_max_target(&mut self) -> &HashMap<Option<DependencyId>, ExportInfoTargetValue> {
     if self.max_target_is_set {
-      println!("fuck");
-      dbg!(&self.max_target);
       return &self.max_target;
     }
     self.max_target = self._get_max_target();
@@ -2143,15 +2141,12 @@ impl<'a> ModuleGraphAccessor<'a> for ImmutableModuleGraph<'a> {
     &mut self,
     export_info_id: &ExportInfoId,
   ) -> Arc<HashMap<Option<DependencyId>, ExportInfoTargetValue>> {
-    unreachable!();
     Arc::new({
       let export_info_id = self.inner.get_export_info_by_id(export_info_id);
 
       if export_info_id.max_target_is_set {
         export_info_id.get_max_target_readonly().to_owned()
       } else {
-        panic!();
-        println!("Fuck");
         // FIXME:
         // max target should be cached
         // but when moduleGraph is immutable and no cached max target
