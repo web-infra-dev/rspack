@@ -121,6 +121,8 @@ export function __chunk_inner_has_runtime(jsChunkUkey: number, compilation: JsCo
 
 export function __chunk_inner_is_only_initial(jsChunkUkey: number, compilation: JsCompilation): boolean
 
+export function __entrypoint_inner_get_runtime_chunk(ukey: number, compilation: JsCompilation): JsChunk
+
 export interface AfterResolveData {
   request: string
   context: string
@@ -287,6 +289,7 @@ export interface JsChunkAssetArgs {
 
 export interface JsChunkGroup {
   __inner_parents: Array<number>
+  __inner_ukey: number
   chunks: Array<JsChunk>
   index?: number
   name?: string

@@ -136,7 +136,7 @@ impl Plugin for ModuleChunkFormatPlugin {
         let runtime_chunk = compilation
           .chunk_group_by_ukey
           .expect_get(entry)
-          .get_runtime_chunk();
+          .get_runtime_chunk(&compilation.chunk_group_by_ukey);
         let chunks = get_all_chunks(
           entry,
           &runtime_chunk,

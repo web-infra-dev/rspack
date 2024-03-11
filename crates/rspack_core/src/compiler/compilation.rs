@@ -897,7 +897,10 @@ impl Compilation {
         .or(entrypoint.name().map(|n| n.to_string()));
       if let (Some(runtime), Some(chunk)) = (
         runtime,
-        get_chunk_from_ukey(&entrypoint.get_runtime_chunk(), chunk_by_ukey),
+        get_chunk_from_ukey(
+          &entrypoint.get_runtime_chunk(chunk_group_by_ukey),
+          chunk_by_ukey,
+        ),
       ) {
         chunk_graph.set_runtime_id(runtime, chunk.id.clone());
       }
@@ -923,11 +926,11 @@ impl Compilation {
   pub fn get_chunk_graph_entries(&self) -> HashSet<ChunkUkey> {
     let entries = self.entrypoints.values().map(|entrypoint_ukey| {
       let entrypoint = self.chunk_group_by_ukey.expect_get(entrypoint_ukey);
-      entrypoint.get_runtime_chunk()
+      entrypoint.get_runtime_chunk(&self.chunk_group_by_ukey)
     });
     let async_entries = self.async_entrypoints.iter().map(|entrypoint_ukey| {
       let entrypoint = self.chunk_group_by_ukey.expect_get(entrypoint_ukey);
-      entrypoint.get_runtime_chunk()
+      entrypoint.get_runtime_chunk(&self.chunk_group_by_ukey)
     });
     HashSet::from_iter(entries.chain(async_entries))
   }

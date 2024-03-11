@@ -276,7 +276,9 @@ impl Chunk {
       .groups
       .iter()
       .filter_map(|ukey| get_chunk_group_from_ukey(ukey, chunk_group_by_ukey))
-      .any(|group| group.kind.is_entrypoint() && group.get_runtime_chunk() == self.ukey)
+      .any(|group| {
+        group.kind.is_entrypoint() && group.get_runtime_chunk(chunk_group_by_ukey) == self.ukey
+      })
   }
 
   pub fn has_async_chunks(&self, chunk_group_by_ukey: &ChunkGroupByUkey) -> bool {
