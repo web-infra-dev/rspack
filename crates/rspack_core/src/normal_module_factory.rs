@@ -112,25 +112,30 @@ impl NormalModuleFactory {
   ) -> Result<Option<ModuleFactoryResult>> {
     let dependency = data
       .dependency
-      .as_module_dependency()
+      .as_module_dependency_mut()
       .expect("should be module dependency");
+
+    let mut after_resolve_args = NormalModuleAfterResolveArgs {
+      request: dependency.request().to_string(),
+      context: data.context.to_string(),
+      file_dependencies: &data.file_dependencies,
+      context_dependencies: &data.context_dependencies,
+      missing_dependencies: &data.missing_dependencies,
+      factory_meta: &factory_result.factory_meta,
+      diagnostics: &mut data.diagnostics,
+    };
+
     if let Ok(Some(false)) = self
       .plugin_driver
-      .after_resolve(&mut NormalModuleAfterResolveArgs {
-        request: dependency.request(),
-        context: data.context.as_ref(),
-        file_dependencies: &data.file_dependencies,
-        context_dependencies: &data.context_dependencies,
-        missing_dependencies: &data.missing_dependencies,
-        factory_meta: &factory_result.factory_meta,
-        diagnostics: &mut data.diagnostics,
-      })
+      .after_resolve(&mut after_resolve_args)
       .await
     {
       // ignored
       // See https://github.com/webpack/webpack/blob/6be4065ade1e252c1d8dcba4af0f43e32af1bdc1/lib/NormalModuleFactory.js#L301
       return Ok(Some(ModuleFactoryResult::default()));
     }
+    data.context = after_resolve_args.context.into();
+    dependency.set_request(after_resolve_args.request.into());
     Ok(None)
   }
 

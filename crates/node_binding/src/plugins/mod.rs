@@ -52,7 +52,7 @@ pub struct JsHooksAdapterInner {
   pub build_module_tsfn: ThreadsafeFunction<JsModule, ()>, // TODO
   pub chunk_asset_tsfn: ThreadsafeFunction<JsChunkAssetArgs, ()>,
   pub before_resolve: ThreadsafeFunction<BeforeResolveData, (Option<bool>, BeforeResolveData)>,
-  pub after_resolve: ThreadsafeFunction<AfterResolveData, Option<bool>>,
+  pub after_resolve: ThreadsafeFunction<AfterResolveData, (Option<bool>, AfterResolveData)>,
   pub context_module_factory_before_resolve: ThreadsafeFunction<BeforeResolveData, Option<bool>>,
   pub context_module_factory_after_resolve: ThreadsafeFunction<AfterResolveData, Option<bool>>,
   pub normal_module_factory_create_module: ThreadsafeFunction<CreateModuleData, ()>,
@@ -186,12 +186,20 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
     if self.is_hook_disabled(&Hook::AfterResolve) {
       return Ok(None);
     }
-    self
+    match self
       .after_resolve
       .call((&*args).into(), ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
       .unwrap_or_else(|err| panic!("Failed to call this_compilation: {err}"))
+    {
+      Ok((ret, resolve_data)) => {
+        args.request = resolve_data.request;
+        args.context = resolve_data.context;
+        Ok(ret)
+      }
+      Err(err) => Err(err),
+    }
   }
 
   async fn context_module_before_resolve(
@@ -706,7 +714,7 @@ impl JsHooksAdapterPlugin {
       js_fn_into_threadsafe_fn!(context_module_factory_after_resolve, env);
     let before_resolve: ThreadsafeFunction<BeforeResolveData, (Option<bool>, BeforeResolveData)> =
       js_fn_into_threadsafe_fn!(before_resolve, env);
-    let after_resolve: ThreadsafeFunction<AfterResolveData, Option<bool>> =
+    let after_resolve: ThreadsafeFunction<AfterResolveData, (Option<bool>, AfterResolveData)> =
       js_fn_into_threadsafe_fn!(after_resolve, env);
     let normal_module_factory_create_module: ThreadsafeFunction<CreateModuleData, ()> =
       js_fn_into_threadsafe_fn!(normal_module_factory_create_module, env);

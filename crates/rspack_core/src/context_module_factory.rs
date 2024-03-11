@@ -227,8 +227,8 @@ impl ContextModuleFactory {
     self
       .plugin_driver
       .context_module_after_resolve(&mut NormalModuleAfterResolveArgs {
-        request: dependency.request(),
-        context: data.context.as_ref(),
+        request: dependency.request().to_string(),
+        context: data.context.to_string(),
         file_dependencies: &data.file_dependencies,
         context_dependencies: &data.context_dependencies,
         missing_dependencies: &data.missing_dependencies,

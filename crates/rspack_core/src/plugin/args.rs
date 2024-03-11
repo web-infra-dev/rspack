@@ -89,8 +89,8 @@ pub struct NormalModuleBeforeResolveArgs {
 }
 #[derive(Debug)]
 pub struct NormalModuleAfterResolveArgs<'a> {
-  pub request: &'a str,
-  pub context: &'a str,
+  pub request: String,
+  pub context: String,
   pub file_dependencies: &'a HashSet<PathBuf>,
   pub context_dependencies: &'a HashSet<PathBuf>,
   pub missing_dependencies: &'a HashSet<PathBuf>,
