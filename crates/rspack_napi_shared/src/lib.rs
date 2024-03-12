@@ -1,12 +1,16 @@
 #![feature(try_blocks)]
 #![forbid(unsafe_op_in_unsafe_fn)]
 
+mod callback;
+pub(crate) use callback::JsCallback;
+
 mod errors;
 mod ext;
 mod js_values;
 mod utils;
 pub use errors::{NapiErrorExt, NapiResultExt};
 
+pub mod new_tsfn;
 pub mod threadsafe_function;
 
 thread_local! {
