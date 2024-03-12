@@ -1581,6 +1581,7 @@ impl ExportInfo {
   pub fn unset_target(&mut self, key: &DependencyId) -> bool {
     if self.target.is_empty() {
       self.max_target_is_set = false;
+      self.max_target.clear();
       false
     } else {
       match self.target.remove(&Some(*key)) {
