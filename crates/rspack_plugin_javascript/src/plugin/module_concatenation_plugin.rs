@@ -559,8 +559,8 @@ impl Plugin for ModuleConcatenationPlugin {
       .copied()
       .collect::<Vec<_>>();
     module_id_list.sort_by(|a, b| {
-      let ad = compilation.module_graph.get_depth(a);
-      let bd = compilation.module_graph.get_depth(b);
+      let ad = compilation.get_module_graph().get_depth(a);
+      let bd = compilation.get_module_graph().get_depth(b);
       ad.cmp(&bd)
     });
     for module_id in module_id_list {

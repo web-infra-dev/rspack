@@ -276,7 +276,7 @@ pub fn module_id(
   } else {
     dbg!(
       &compilation
-        .module_graph
+        .get_module_graph()
         .module_identifier_by_dependency_id(id),
       request
     );
