@@ -45,7 +45,7 @@ impl SplitChunksPlugin {
       .par_iter()
       .filter_map(|module_id| {
         let module = &**compilation
-          .module_graph
+          .get_module_graph()
           .module_by_identifier(module_id)
           .expect("Should have a module");
         let having_violating_source_type = violating_source_types

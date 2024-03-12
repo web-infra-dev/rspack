@@ -198,7 +198,7 @@ impl AsyncSeries<Compilation> for HotModuleReplacementPluginProcessAssetsHook {
 
         for module_identifier in new_modules.iter() {
           if let Some(module) = compilation
-            .module_graph
+            .get_module_graph()
             .module_by_identifier(module_identifier)
           {
             module.hash(&mut chunk_hash);

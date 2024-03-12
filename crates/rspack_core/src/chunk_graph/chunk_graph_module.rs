@@ -175,7 +175,7 @@ impl ChunkGraph {
   ) -> String {
     let mut hasher = DefaultHasher::new();
     let mut connection_hash_cache: HashMap<Identifier, u64> = HashMap::new();
-    let module_graph = &compilation.module_graph;
+    let module_graph = &compilation.get_module_graph();
 
     let process_module_graph_module = |module: &BoxModule, strict: Option<bool>| -> u64 {
       let mut hasher = DefaultHasher::new();

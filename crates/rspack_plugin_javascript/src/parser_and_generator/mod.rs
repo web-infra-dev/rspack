@@ -55,7 +55,7 @@ impl JavaScriptParserAndGenerator {
     context: &mut TemplateContext,
   ) {
     if let Some(dependency) = compilation
-      .module_graph
+      .get_module_graph()
       .dependency_by_id(dependency_id)
       .expect("should have dependency")
       .as_dependency_template()

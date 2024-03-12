@@ -20,7 +20,7 @@ pub fn update_hash_for_entry_startup(
 ) {
   for (module, entry) in entries {
     if let Some(module_id) = compilation
-      .module_graph
+      .get_module_graph()
       .module_graph_module_by_identifier(module)
       .map(|module| module.id(&compilation.chunk_graph))
     {
@@ -144,7 +144,7 @@ pub fn generate_entry_startup(
 
   for (module, entry) in entries {
     if let Some(module_id) = compilation
-      .module_graph
+      .get_module_graph()
       .module_graph_module_by_identifier(module)
       .map(|module| module.id(&compilation.chunk_graph))
     {

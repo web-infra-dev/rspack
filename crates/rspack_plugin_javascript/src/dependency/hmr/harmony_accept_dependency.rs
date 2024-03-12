@@ -41,9 +41,9 @@ impl DependencyTemplate for HarmonyAcceptDependency {
     let mut content = String::default();
 
     self.dependency_ids.iter().for_each(|id| {
-      let dependency = compilation.module_graph.dependency_by_id(id);
+      let dependency = compilation.get_module_graph().dependency_by_id(id);
       let runtime_condition =
-        match dependency.and_then(|dep| compilation.module_graph.get_module(dep.id())) {
+        match dependency.and_then(|dep| compilation.get_module_graph().get_module(dep.id())) {
           Some(ref_module) => {
             get_import_emitted_runtime(&module.identifier(), &ref_module.identifier())
           }

@@ -134,7 +134,7 @@ impl JsCompilation {
   pub fn get_modules(&self) -> Vec<JsModule> {
     self
       .inner
-      .module_graph
+      .get_module_graph()
       .modules()
       .values()
       .filter_map(|module| module.to_js_module().ok())
@@ -145,7 +145,7 @@ impl JsCompilation {
   pub fn get_optimization_bailout(&self) -> Vec<JsStatsOptimizationBailout> {
     self
       .inner
-      .module_graph
+      .get_module_graph()
       .module_graph_modules()
       .values()
       .flat_map(|item| item.optimization_bailout.clone())
@@ -182,7 +182,7 @@ impl JsCompilation {
   ) -> bool {
     match self
       .inner
-      .module_graph
+      .get_module_graph_mut()
       .module_by_identifier_mut(&Identifier::from(module_identifier.as_str()))
     {
       Some(module) => match module.as_normal_module_mut() {

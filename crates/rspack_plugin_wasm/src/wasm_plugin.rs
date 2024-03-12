@@ -89,7 +89,7 @@ impl Plugin for AsyncWasmPlugin {
   ) -> PluginRenderManifestHookOutput {
     let compilation = args.compilation;
     let chunk = args.chunk();
-    let module_graph = &compilation.module_graph;
+    let module_graph = &compilation.get_module_graph();
 
     let ordered_modules = compilation
       .chunk_graph

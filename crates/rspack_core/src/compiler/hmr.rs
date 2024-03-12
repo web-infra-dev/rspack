@@ -70,7 +70,7 @@ where
 
       let mut new_compilation = Compilation::new(
         self.options.clone(),
-        ModuleGraph::default().with_treeshaking(self.options.is_new_tree_shaking()),
+        ModuleGraph::default(),
         self.plugin_driver.clone(),
         self.resolver_factory.clone(),
         self.loader_resolver_factory.clone(),
@@ -89,7 +89,10 @@ where
       if is_incremental_rebuild_make {
         // copy field from old compilation
         // make stage used
-        new_compilation.module_graph = std::mem::take(&mut self.compilation.module_graph);
+        std::mem::swap(
+          self.compilation.get_module_graph_mut(),
+          new_compilation.get_module_graph_mut(),
+        );
         new_compilation.make_failed_dependencies =
           std::mem::take(&mut self.compilation.make_failed_dependencies);
         new_compilation.make_failed_module =

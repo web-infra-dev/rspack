@@ -87,14 +87,13 @@ where
       &mut compilation_hooks,
     );
     let cache = Arc::new(Cache::new(options.clone()));
-    let is_new_treeshaking = options.is_new_tree_shaking();
     assert!(!(options.is_new_tree_shaking() && options.builtins.tree_shaking.enable()), "Can't enable builtins.tree_shaking and `experiments.rspack_future.new_treeshaking` at the same time");
     Self {
       hooks: compiler_hooks,
       options: options.clone(),
       compilation: Compilation::new(
         options,
-        ModuleGraph::default().with_treeshaking(is_new_treeshaking),
+        ModuleGraph::default(),
         plugin_driver.clone(),
         resolver_factory.clone(),
         loader_resolver_factory.clone(),
@@ -128,7 +127,7 @@ where
       &mut self.compilation,
       Compilation::new(
         self.options.clone(),
-        ModuleGraph::default().with_treeshaking(self.options.is_new_tree_shaking()),
+        ModuleGraph::default(),
         self.plugin_driver.clone(),
         self.resolver_factory.clone(),
         self.loader_resolver_factory.clone(),
@@ -194,7 +193,7 @@ where
     // by default include all module in final chunk
     self.compilation.include_module_ids = self
       .compilation
-      .module_graph
+      .get_module_graph()
       .modules()
       .keys()
       .cloned()
@@ -253,33 +252,19 @@ where
         }
       });
       {
-        // take the ownership to avoid rustc complain can't use `&` and `&mut` at the same time
-        let mut mi_to_mgm = std::mem::take(
-          &mut self
-            .compilation
-            .module_graph
-            .module_identifier_to_module_graph_module,
-        );
-        let mut export_info_map =
-          std::mem::take(&mut self.compilation.module_graph.export_info_map);
-        for mgm in mi_to_mgm.values_mut() {
-          if let Some(exports_map) = exports_info_map.remove(&mgm.module_identifier) {
-            let exports = self
-              .compilation
-              .module_graph
-              .exports_info_map
-              .get_mut(*mgm.exports as usize);
+        let module_graph = self.compilation.get_module_graph_mut();
+        for (module_identifier, exports_map) in exports_info_map.into_iter() {
+          let mgm = module_graph.module_graph_module_by_identifier(&module_identifier);
+          if let Some(mgm) = mgm {
+            let exports = module_graph.exports_info_map.get_mut(*mgm.exports as usize);
             for (name, export_info) in exports_map {
               exports.exports.insert(name, export_info.id);
-              export_info_map.insert(*export_info.id as usize, export_info);
+              module_graph
+                .export_info_map
+                .insert(*export_info.id as usize, export_info);
             }
           }
         }
-        self.compilation.module_graph.export_info_map = export_info_map;
-        self
-          .compilation
-          .module_graph
-          .module_identifier_to_module_graph_module = mi_to_mgm;
       }
 
       self.compilation.bailout_module_identifiers = analyze_result.bail_out_module_identifiers;

@@ -253,7 +253,10 @@ impl SourceMapDevToolPluginInner {
           let module_or_source = if let Some(stripped) = source.strip_prefix("webpack://") {
             let source = make_paths_absolute(compilation.options.context.as_str(), stripped);
             let identifier = ModuleIdentifier::from(source.clone());
-            match compilation.module_graph.module_by_identifier(&identifier) {
+            match compilation
+              .get_module_graph()
+              .module_by_identifier(&identifier)
+            {
               Some(module) => ModuleOrSource::Module(module.identifier()),
               None => ModuleOrSource::Source(source),
             }
@@ -281,7 +284,10 @@ impl SourceMapDevToolPluginInner {
             let module_or_source = if let Some(stripped) = source.strip_prefix("webpack://") {
               let source = make_paths_absolute(compilation.options.context.as_str(), stripped);
               let identifier = ModuleIdentifier::from(source.clone());
-              match compilation.module_graph.module_by_identifier(&identifier) {
+              match compilation
+                .get_module_graph()
+                .module_by_identifier(&identifier)
+              {
                 Some(module) => ModuleOrSource::Module(module.identifier()),
                 None => ModuleOrSource::Source(source),
               }
@@ -611,7 +617,6 @@ impl ModuleFilenameHelpers {
   ) -> ModuleFilenameTemplateFnCtx {
     let Compilation {
       chunk_graph,
-      module_graph,
       options,
       ..
     } = compilation;
@@ -619,7 +624,8 @@ impl ModuleFilenameHelpers {
 
     match module_or_source {
       ModuleOrSource::Module(module_identifier) => {
-        let module = module_graph
+        let module = compilation
+          .get_module_graph()
           .module_by_identifier(module_identifier)
           .expect("failed to find a module for the given identifier");
 

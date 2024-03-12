@@ -265,7 +265,7 @@ impl AddTask {
         .expect("self module should have issuer");
 
       set_resolved_module(
-        &mut compilation.module_graph,
+        compilation.get_module_graph_mut(),
         self.original_module_identifier,
         self.dependencies,
         *issuer,
@@ -280,12 +280,12 @@ impl AddTask {
 
     if self.connect_origin
       && compilation
-        .module_graph
+        .get_module_graph()
         .module_graph_module_by_identifier(&module_identifier)
         .is_some()
     {
       set_resolved_module(
-        &mut compilation.module_graph,
+        compilation.get_module_graph_mut(),
         self.original_module_identifier,
         self.dependencies,
         module_identifier,
@@ -301,12 +301,12 @@ impl AddTask {
     }
 
     compilation
-      .module_graph
+      .get_module_graph_mut()
       .add_module_graph_module(*self.module_graph_module);
 
     if self.connect_origin {
       set_resolved_module(
-        &mut compilation.module_graph,
+        compilation.get_module_graph_mut(),
         self.original_module_identifier,
         self.dependencies,
         module_identifier,
@@ -500,7 +500,7 @@ impl CleanTask {
   pub fn run(self, compilation: &mut Compilation) -> CleanTaskResult {
     let module_identifier = self.module_identifier;
     let mgm = match compilation
-      .module_graph
+      .get_module_graph()
       .module_graph_module_by_identifier(&module_identifier)
     {
       Some(mgm) => mgm,
@@ -517,13 +517,15 @@ impl CleanTask {
     }
 
     let dependent_module_identifiers: Vec<ModuleIdentifier> = compilation
-      .module_graph
+      .get_module_graph()
       .get_module_all_depended_modules(&module_identifier)
       .expect("should have module")
       .into_iter()
       .copied()
       .collect();
-    compilation.module_graph.revoke_module(&module_identifier);
+    compilation
+      .get_module_graph_mut()
+      .revoke_module(&module_identifier);
     CleanTaskResult::ModuleIsCleaned {
       module_identifier,
       dependent_module_identifiers,

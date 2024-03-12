@@ -83,7 +83,7 @@ impl DependencyTemplate for ImportDependency {
   ) {
     let block = code_generatable_context
       .compilation
-      .module_graph
+      .get_module_graph()
       .get_parent_block(&self.id);
     source.replace(
       self.start,

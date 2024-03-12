@@ -20,7 +20,7 @@ impl Plugin for InferAsyncModulesPlugin {
     let mut uniques = HashSet::new();
 
     let mut modules: Vec<Identifier> = compilation
-      .module_graph
+      .get_module_graph()
       .modules()
       .values()
       .filter(|m| {
@@ -35,7 +35,7 @@ impl Plugin for InferAsyncModulesPlugin {
 
     modules.retain(|m| queue.insert(*m));
 
-    let module_graph = &mut compilation.module_graph;
+    let module_graph = compilation.get_module_graph_mut();
 
     while let Some(module) = queue.pop_front() {
       module_graph.set_async(&module);

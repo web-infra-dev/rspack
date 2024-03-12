@@ -66,7 +66,7 @@ pub struct Compilation {
   pub options: Arc<CompilerOptions>,
   pub entries: Entry,
   pub global_entry: EntryData,
-  pub module_graph: ModuleGraph,
+  module_graph: ModuleGraph,
   dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
   pub make_failed_dependencies: HashSet<BuildDependency>,
   pub make_failed_module: HashSet<ModuleIdentifier>,
@@ -146,6 +146,7 @@ impl Compilation {
     hooks: Arc<CompilationHooks>,
     cache: Arc<Cache>,
   ) -> Self {
+    let module_graph = module_graph.with_treeshaking(options.is_new_tree_shaking());
     Self {
       hot_index: 0,
       hooks,
@@ -203,6 +204,14 @@ impl Compilation {
     }
   }
 
+  pub fn get_module_graph(&self) -> &ModuleGraph {
+    &self.module_graph
+  }
+
+  pub fn get_module_graph_mut(&mut self) -> &mut ModuleGraph {
+    &mut self.module_graph
+  }
+
   pub fn get_entry_runtime(&self, name: &String, options: Option<&EntryOptions>) -> RuntimeSpec {
     let (_, runtime) = if let Some(options) = options {
       ((), options.runtime.as_ref())
@@ -221,7 +230,7 @@ impl Compilation {
 
   pub fn add_entry(&mut self, entry: BoxDependency, options: EntryOptions) -> Result<()> {
     let entry_id = *entry.id();
-    self.module_graph.add_dependency(entry);
+    self.get_module_graph_mut().add_dependency(entry);
     if let Some(name) = options.name.clone() {
       if let Some(data) = self.entries.get_mut(&name) {
         data.dependencies.push(entry_id);
@@ -242,7 +251,7 @@ impl Compilation {
 
   pub async fn add_include(&mut self, entry: BoxDependency, options: EntryOptions) -> Result<()> {
     let entry_id = *entry.id();
-    self.module_graph.add_dependency(entry);
+    self.get_module_graph_mut().add_dependency(entry);
     if let Some(name) = options.name.clone() {
       if let Some(data) = self.entries.get_mut(&name) {
         data.include_dependencies.push(entry_id);
@@ -496,10 +505,11 @@ impl Compilation {
       logger.time_end(start);
     }
 
+    let module_graph = self.get_module_graph();
     Ok(
       module_identifiers
         .into_iter()
-        .filter_map(|id| self.module_graph.module_by_identifier(&id))
+        .filter_map(|id| module_graph.module_by_identifier(&id))
         .collect::<Vec<_>>(),
     )
   }
@@ -525,7 +535,7 @@ impl Compilation {
         codegen_cache_counter,
         used_exports_optimization,
         compilation
-          .module_graph
+          .get_module_graph()
           .modules()
           .iter()
           .filter(filter_op)
@@ -548,7 +558,7 @@ impl Compilation {
     // and it is widely called after compilation.finish()
     // so add this method to trigger moduleGraph modification and
     // then make sure that moduleGraph is immutable
-    prepare_get_exports_type(&mut self.module_graph);
+    prepare_get_exports_type(self.get_module_graph_mut());
 
     run_iteration(self, &mut codegen_cache_counter, |(_, module)| {
       module.get_code_generation_dependencies().is_none()
@@ -581,7 +591,7 @@ impl Compilation {
         }
 
         let module = self
-          .module_graph
+          .get_module_graph()
           .module_by_identifier(&module_identifier)
           .expect("module should exist");
         let res = self
@@ -642,7 +652,8 @@ impl Compilation {
 
   #[instrument(name = "compilation::create_module_assets", skip_all)]
   async fn create_module_assets(&mut self, _plugin_driver: SharedPluginDriver) {
-    for (module_identifier, module) in self.module_graph.modules() {
+    let mut temp = vec![];
+    for (module_identifier, module) in self.get_module_graph().modules() {
       if let Some(build_info) = module.build_info() {
         for asset in build_info.asset_filenames.iter() {
           for chunk in self
@@ -650,12 +661,16 @@ impl Compilation {
             .get_module_chunks(*module_identifier)
             .iter()
           {
-            let chunk = self.chunk_by_ukey.expect_get_mut(chunk);
-            chunk.auxiliary_files.insert(asset.clone());
+            temp.push((*chunk, asset.clone()))
           }
           // already emitted asset by loader, so no need to re emit here
         }
       }
+    }
+
+    for (chunk, asset) in temp {
+      let chunk = self.chunk_by_ukey.expect_get_mut(&chunk);
+      chunk.auxiliary_files.insert(asset);
     }
   }
 
@@ -799,7 +814,7 @@ impl Compilation {
     logger.time_end(start);
 
     // if self.options.is_new_tree_shaking() {
-    //   debug_all_exports_info!(&self.module_graph);
+    //   debug_all_exports_info!(&self.get_module_graph());
     // }
     let start = logger.time("create chunks");
     use_code_splitting_cache(self, |compilation| async {
@@ -835,14 +850,14 @@ impl Compilation {
     self.code_generation()?;
     logger.time_end(start);
     // if self.options.is_new_tree_shaking() {
-    //   debug_all_exports_info!(&self.module_graph);
+    //   debug_all_exports_info!(&self.get_module_graph());
     // }
 
     let start = logger.time("runtime requirements");
     self
       .process_runtime_requirements(
         self
-          .module_graph
+          .get_module_graph()
           .modules()
           .keys()
           .copied()
@@ -1002,7 +1017,7 @@ impl Compilation {
       let mut set = RuntimeGlobals::default();
       for module in self
         .chunk_graph
-        .get_chunk_modules(&chunk_ukey, &self.module_graph)
+        .get_chunk_modules(&chunk_ukey, self.get_module_graph())
       {
         let chunk = self.chunk_by_ukey.expect_get(&chunk_ukey);
         if let Some(runtime_requirements) = self
@@ -1231,7 +1246,7 @@ impl Compilation {
   // #[instrument(name = "compilation:create_module_hash", skip_all)]
   // pub fn create_module_hash(&mut self) {
   //   let module_hash_map: HashMap<ModuleIdentifier, u64> = self
-  //     .module_graph
+  //     .get_module_graph()
   //     .module_identifier_to_module
   //     .par_iter()
   //     .map(|(identifier, module)| {

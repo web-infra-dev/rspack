@@ -66,7 +66,7 @@ impl DependencyTemplate for WebpackIsIncludedDependency {
     let TemplateContext { compilation, .. } = code_generatable_context;
 
     let included = compilation
-      .module_graph
+      .get_module_graph()
       .connection_by_dependency(&self.id)
       .map(|connection| {
         compilation

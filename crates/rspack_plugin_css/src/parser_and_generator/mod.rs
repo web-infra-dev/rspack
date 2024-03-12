@@ -284,7 +284,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
 
         module.get_dependencies().iter().for_each(|id| {
           if let Some(dependency) = compilation
-            .module_graph
+            .get_module_graph()
             .dependency_by_id(id)
             .expect("should have dependency")
             .as_dependency_template()
