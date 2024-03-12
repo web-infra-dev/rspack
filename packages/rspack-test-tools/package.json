@@ -1,6 +1,6 @@
 {
   "name": "@rspack/test-tools",
-  "version": "0.5.6",
+  "version": "0.5.7",
   "license": "MIT",
   "description": "Test tools for rspack",
   "main": "dist/index.js",
