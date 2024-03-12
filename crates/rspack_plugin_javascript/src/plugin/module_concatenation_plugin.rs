@@ -4,6 +4,7 @@ use std::collections::VecDeque;
 use std::hash::Hasher;
 
 use indexmap::IndexSet;
+use linked_hash_set::LinkedHashSet;
 use rspack_core::concatenated_module::{
   is_harmony_dep_like, ConcatenatedInnerModule, ConcatenatedModule, RootModuleContext,
 };
@@ -31,14 +32,14 @@ enum Warning {
 struct ConcatConfiguration {
   pub root_module: ModuleIdentifier,
   runtime: Option<RuntimeSpec>,
-  modules: HashSet<ModuleIdentifier>,
+  modules: LinkedHashSet<ModuleIdentifier>,
   warnings: HashMap<ModuleIdentifier, Warning>,
 }
 
 #[allow(unused)]
 impl ConcatConfiguration {
   fn new(root_module: ModuleIdentifier, runtime: Option<RuntimeSpec>) -> Self {
-    let mut modules = HashSet::default();
+    let mut modules = LinkedHashSet::default();
     modules.insert(root_module);
 
     ConcatConfiguration {
@@ -71,7 +72,7 @@ impl ConcatConfiguration {
     sorted_warnings.into_iter().collect()
   }
 
-  fn get_modules(&self) -> &HashSet<ModuleIdentifier> {
+  fn get_modules(&self) -> &LinkedHashSet<ModuleIdentifier> {
     &self.modules
   }
 
@@ -81,14 +82,14 @@ impl ConcatConfiguration {
 
   fn rollback(&mut self, mut snapshot: usize) {
     let modules = &mut self.modules;
-    modules.retain(|_| {
-      if snapshot == 0 {
-        false
-      } else {
-        snapshot -= 1;
-        true
+    let len = modules.len();
+    let mut i = 0;
+    while i < len {
+      if (i >= snapshot) {
+        modules.pop_back();
       }
-    });
+      i += 1;
+    }
   }
 }
 
@@ -336,19 +337,26 @@ impl ModuleConcatenationPlugin {
       }
     }
     //
-    let mut incoming_modules: Vec<_> = incoming_connections_from_modules.keys().cloned().collect();
-
-    let other_chunk_modules: Vec<_> = incoming_modules
+    let mut incoming_modules = incoming_connections_from_modules
+      .keys()
+      .cloned()
+      .collect::<Vec<_>>();
+    let other_chunk_modules = incoming_modules
       .iter()
       .filter(|&origin_module| {
-        !chunk_graph
+        chunk_graph
           .get_module_chunks(config.root_module)
           .iter()
-          .all(|&chunk_ukey| chunk_graph.is_module_in_chunk(origin_module, chunk_ukey))
+          .any(|&chunk_ukey| !chunk_graph.is_module_in_chunk(origin_module, chunk_ukey))
       })
       .cloned()
-      .collect();
+      .collect::<Vec<_>>();
 
+    // if (module_id.contains("colors/es/index.js")) {
+    //   dbg!(&incoming_modules);
+    //   dbg!(config.root_module);
+    //   dbg!(&other_chunk_modules);
+    // }
     if !other_chunk_modules.is_empty() {
       let problem = {
         let mut names: Vec<_> = other_chunk_modules
@@ -525,7 +533,7 @@ impl ModuleConcatenationPlugin {
         possible_modules,
         candidates,
         failure_cache,
-        avoid_mutate_on_failure,
+        false,
         statistics,
       ) {
         if let Some(backup) = &backup {
@@ -857,7 +865,7 @@ impl Plugin for ModuleConcatenationPlugin {
     let mut used_modules = HashSet::default();
 
     for config in concat_configurations {
-      dbg!(&config);
+      // dbg!(&config);
       let root_module_id = config.root_module;
       if used_modules.contains(&root_module_id) {
         continue;

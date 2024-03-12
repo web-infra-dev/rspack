@@ -253,8 +253,8 @@ impl ModuleInfo {
 
   pub fn set_interop_namespace_object2_used(&mut self, v: bool) {
     match self {
-      ModuleInfo::External(e) => e.interop_namespace_object_used = v,
-      ModuleInfo::Concatenated(c) => c.interop_namespace_object_used = v,
+      ModuleInfo::External(e) => e.interop_namespace_object2_used = v,
+      ModuleInfo::Concatenated(c) => c.interop_namespace_object2_used = v,
     }
   }
 
@@ -281,8 +281,8 @@ impl ModuleInfo {
 
   pub fn get_interop_namespace_object2_used(&self) -> bool {
     match self {
-      ModuleInfo::External(e) => e.interop_namespace_object_used,
-      ModuleInfo::Concatenated(c) => c.interop_namespace_object_used,
+      ModuleInfo::External(e) => e.interop_namespace_object2_used,
+      ModuleInfo::Concatenated(c) => c.interop_namespace_object2_used,
     }
   }
 
