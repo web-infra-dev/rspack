@@ -59,13 +59,13 @@ module.exports = {
 			}
 		]
 	},
-	// optimization: {
-	// 	sideEffects: true,
-	// 	usedExports: true,
-	// 	providedExports: true,
-	// 	mangleExports: true,
-	// 	moduleIds: 'named'
-	// },
+	optimization: {
+		sideEffects: "flag",
+		usedExports: true,
+		providedExports: true,
+		mangleExports: true,
+		moduleIds: "named"
+	},
 	experiments: {
 		rspackFuture: {
 			newTreeshaking: true
