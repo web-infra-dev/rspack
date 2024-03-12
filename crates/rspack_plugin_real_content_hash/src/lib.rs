@@ -27,7 +27,7 @@ pub static QUOTE_META: Lazy<Regex> =
 #[derive(Debug, Default)]
 pub struct RealContentHashPlugin;
 
-#[plugin_hook(AsyncSeries<Compilation> for RealContentHashPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE)]
+#[plugin_hook(AsyncSeries<Compilation> for RealContentHashPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_HASH)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   inner_impl(compilation)
 }

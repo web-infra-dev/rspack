@@ -3358,7 +3358,6 @@ name = "rspack_plugin_banner"
 version = "0.1.0"
 dependencies = [
  "async-recursion",
- "async-trait",
  "futures",
  "once_cell",
  "regex",
@@ -3373,7 +3372,6 @@ dependencies = [
 name = "rspack_plugin_copy"
 version = "0.1.0"
 dependencies = [
- "async-trait",
  "dashmap",
  "glob",
  "lazy_static",
@@ -3493,7 +3491,6 @@ name = "rspack_plugin_html"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "async-trait",
  "dojang",
  "itertools 0.12.1",
  "path-clean 1.0.1",
@@ -3629,7 +3626,6 @@ dependencies = [
 name = "rspack_plugin_real_content_hash"
 version = "0.1.0"
 dependencies = [
- "async-trait",
  "derivative",
  "indexmap 2.2.5",
  "once_cell",
@@ -3706,7 +3702,6 @@ dependencies = [
 name = "rspack_plugin_swc_css_minimizer"
 version = "0.1.0"
 dependencies = [
- "async-trait",
  "rayon",
  "rspack_core",
  "rspack_error",
@@ -3718,7 +3713,6 @@ dependencies = [
 name = "rspack_plugin_swc_js_minimizer"
 version = "0.1.0"
 dependencies = [
- "async-trait",
  "once_cell",
  "rayon",
  "regex",
@@ -3773,7 +3767,6 @@ dependencies = [
 name = "rspack_plugin_worker"
 version = "0.1.0"
 dependencies = [
- "async-trait",
  "rspack_core",
  "rspack_error",
  "rspack_hook",

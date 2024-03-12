@@ -20,19 +20,17 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hash::RspackHash;
+use rspack_hook::plugin;
 pub use side_effects_flag_plugin::*;
 
 use crate::runtime::{render_chunk_modules, render_iife, render_runtime_modules, stringify_array};
 use crate::utils::is_diff_mode;
 
-#[derive(Debug)]
+#[plugin]
+#[derive(Debug, Default)]
 pub struct JsPlugin;
 
 impl JsPlugin {
-  pub fn new() -> Self {
-    Self {}
-  }
-
   pub fn render_require(&self, chunk_ukey: &ChunkUkey, compilation: &Compilation) -> BoxSource {
     let runtime_requirements = compilation
       .chunk_graph
@@ -408,12 +406,6 @@ impl JsPlugin {
     let (header, startup) = self.render_bootstrap(chunk_ukey, compilation);
     header.hash(hasher);
     startup.hash(hasher);
-  }
-}
-
-impl Default for JsPlugin {
-  fn default() -> Self {
-    Self::new()
   }
 }
 

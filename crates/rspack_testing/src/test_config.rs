@@ -502,10 +502,10 @@ impl TestConfig {
     plugins.push(rspack_plugin_runtime::JsonpChunkLoadingPlugin {}.boxed());
     plugins.push(rspack_plugin_runtime::RuntimePlugin {}.boxed());
     if options.dev_server.hot {
-      plugins.push(rspack_plugin_hmr::HotModuleReplacementPlugin.boxed());
+      plugins.push(rspack_plugin_hmr::HotModuleReplacementPlugin::default().boxed());
     }
     // plugins.push(rspack_plugin_externals::ExternalPlugin::default().boxed());
-    plugins.push(rspack_plugin_javascript::JsPlugin::new().boxed());
+    plugins.push(rspack_plugin_javascript::JsPlugin::default().boxed());
 
     if self.devtool.contains("source-map") {
       let hidden = self.devtool.contains("hidden");
@@ -560,7 +560,7 @@ impl TestConfig {
     plugins.push(rspack_plugin_javascript::InferAsyncModulesPlugin {}.boxed());
     if self.experiments.async_web_assembly {
       plugins.push(rspack_plugin_wasm::FetchCompileAsyncWasmPlugin {}.boxed());
-      plugins.push(rspack_plugin_wasm::AsyncWasmPlugin::new().boxed());
+      plugins.push(rspack_plugin_wasm::AsyncWasmPlugin::default().boxed());
     }
     plugins.push(rspack_plugin_externals::http_externals_rspack_plugin(
       true, false,

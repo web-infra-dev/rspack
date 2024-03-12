@@ -7,7 +7,7 @@ use rspack_core::{
   PluginRuntimeRequirementsInTreeOutput, RuntimeGlobals, RuntimeRequirementsInTreeArgs,
 };
 use rspack_error::Result;
-use rspack_hook::AsyncSeries2;
+use rspack_hook::{plugin, plugin_hook, AsyncSeries2};
 
 use super::{
   fallback_module_factory::FallbackModuleFactory, remote_module::RemoteModule,
@@ -28,6 +28,7 @@ pub struct RemoteOptions {
   pub share_scope: String,
 }
 
+#[plugin]
 #[derive(Debug)]
 pub struct ContainerReferencePlugin {
   options: ContainerReferencePluginOptions,
@@ -35,29 +36,29 @@ pub struct ContainerReferencePlugin {
 
 impl ContainerReferencePlugin {
   pub fn new(options: ContainerReferencePluginOptions) -> Self {
-    Self { options }
+    Self::new_inner(options)
   }
 }
 
-struct ContainerReferencePluginCompilationHook;
-
-#[async_trait]
-impl AsyncSeries2<Compilation, CompilationParams> for ContainerReferencePluginCompilationHook {
-  async fn run(&self, compilation: &mut Compilation, params: &mut CompilationParams) -> Result<()> {
-    compilation.set_dependency_factory(
-      DependencyType::RemoteToExternal,
-      params.normal_module_factory.clone(),
-    );
-    compilation.set_dependency_factory(
-      DependencyType::RemoteToFallbackItem,
-      params.normal_module_factory.clone(),
-    );
-    compilation.set_dependency_factory(
-      DependencyType::RemoteToFallback,
-      Arc::new(FallbackModuleFactory),
-    );
-    Ok(())
-  }
+#[plugin_hook(AsyncSeries2<Compilation, CompilationParams> for ContainerReferencePlugin)]
+async fn compilation(
+  &self,
+  compilation: &mut Compilation,
+  params: &mut CompilationParams,
+) -> Result<()> {
+  compilation.set_dependency_factory(
+    DependencyType::RemoteToExternal,
+    params.normal_module_factory.clone(),
+  );
+  compilation.set_dependency_factory(
+    DependencyType::RemoteToFallbackItem,
+    params.normal_module_factory.clone(),
+  );
+  compilation.set_dependency_factory(
+    DependencyType::RemoteToFallback,
+    Arc::new(FallbackModuleFactory),
+  );
+  Ok(())
 }
 
 #[async_trait]
@@ -75,7 +76,7 @@ impl Plugin for ContainerReferencePlugin {
       .context
       .compiler_hooks
       .compilation
-      .tap(Box::new(ContainerReferencePluginCompilationHook));
+      .tap(compilation::new(self));
     Ok(())
   }
 
