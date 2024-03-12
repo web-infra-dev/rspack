@@ -28,8 +28,8 @@ use crate::tree_shaking::visitor::OptimizeAnalyzeResult;
 use crate::{
   build_chunk_graph::build_chunk_graph,
   cache::{use_code_splitting_cache, Cache, CodeSplittingCache},
-  debug_all_exports_info, get_chunk_from_ukey, get_mut_chunk_from_ukey, is_source_equal,
-  prepare_get_exports_type,
+  chunk_graph, debug_all_exports_info, get_chunk_from_ukey, get_mut_chunk_from_ukey,
+  is_source_equal, prepare_get_exports_type,
   tree_shaking::{optimizer, visitor::SymbolRef, BailoutFlag, OptimizeDependencyResult},
   AddQueueHandler, AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs,
   BoxDependency, BoxModule, BuildQueueHandler, BuildTimeExecutionQueueHandler, CacheCount,
@@ -831,11 +831,21 @@ impl Compilation {
     .await?;
     logger.time_end(start);
 
+    // dbg!(&self
+    //   .chunk_graph
+    //   .get_number_of_module_chunks(ModuleIdentifier::from("/home/victor/Documents/react/swing-line-bot/node_modules/.pnpm/@ant-design+colors@7.0.0/node_modules/@ant-design/colors/es/index.js")));
     let start = logger.time("optimize");
     plugin_driver.optimize_tree(self).await?;
     plugin_driver.optimize_chunk_modules(self).await?;
+    // dbg!(&self
+    //   .chunk_graph
+    //   .get_number_of_module_chunks(ModuleIdentifier::from("/home/victor/Documents/react/swing-line-bot/node_modules/.pnpm/@ant-design+colors@7.0.0/node_modules/@ant-design/colors/es/index.js")));
     logger.time_end(start);
-
+    // dbg!(&self
+    //   .chunk_graph
+    //   .chunk_graph_module_by_module_identifier
+    //   .keys()
+    //   .collect::<Vec<_>>());
     // if self.options.is_new_tree_shaking() {
     //   debug_all_exports_info!(&self.module_graph);
     // }

@@ -20,6 +20,7 @@ impl Plugin for NamedModuleIdsPlugin {
     let (mut used_ids, modules) = get_used_module_ids_and_modules(compilation, None);
     // dbg!(&modules);
     // dbg!(&modules);
+    println!("Module ids -----------------------------");
     let modules = modules
       .into_iter()
       .filter_map(|i| compilation.get_module_graph().module_by_identifier(&i))

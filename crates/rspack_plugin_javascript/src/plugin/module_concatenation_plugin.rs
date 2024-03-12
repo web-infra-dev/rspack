@@ -552,12 +552,17 @@ impl Plugin for ModuleConcatenationPlugin {
     let mut relevant_modules = vec![];
     let mut possible_inners = HashSet::default();
     let start = logger.time("select relevant modules");
-    let module_id_list = compilation
+    let mut module_id_list = compilation
       .get_module_graph()
       .module_graph_modules()
       .keys()
       .copied()
       .collect::<Vec<_>>();
+    module_id_list.sort_by(|a, b| {
+      let ad = compilation.module_graph.get_depth(a);
+      let bd = compilation.module_graph.get_depth(b);
+      ad.cmp(&bd)
+    });
     for module_id in module_id_list {
       let mut can_be_root = true;
       let mut can_be_inner = true;
@@ -852,6 +857,7 @@ impl Plugin for ModuleConcatenationPlugin {
     let mut used_modules = HashSet::default();
 
     for config in concat_configurations {
+      dbg!(&config);
       let root_module_id = config.root_module;
       if used_modules.contains(&root_module_id) {
         continue;
@@ -977,6 +983,7 @@ impl Plugin for ModuleConcatenationPlugin {
           let source_types = chunk_graph.get_chunk_module_source_types(&chunk_ukey, module);
 
           if source_types.len() == 1 {
+            // dbg!(&m);
             chunk_graph.disconnect_chunk_and_module(&chunk_ukey, *m);
           } else {
             let new_source_types = source_types

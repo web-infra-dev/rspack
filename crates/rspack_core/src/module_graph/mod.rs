@@ -267,6 +267,7 @@ impl ModuleGraph {
       .map(|cons| cons.copied().collect::<Vec<_>>());
 
     // Outgoing connections
+    let mut pairs = vec![];
     if let Ok(old_connections) = old_connections {
       for connection in old_connections.into_iter() {
         if filter_connection(&connection, &*self) {
@@ -279,7 +280,14 @@ impl ModuleGraph {
             .module_graph_module_by_identifier_mut(new_module)
             .expect("should have mgm");
           new_mgm.add_outgoing_connection(new_connection_id);
+          pairs.push((connection.module_identifier, new_connection_id));
         }
+      }
+      for (k, v) in pairs {
+        let old_mgm = self
+          .module_graph_module_by_identifier_mut(&k)
+          .expect("should have mgm");
+        old_mgm.add_incoming_connection(v);
       }
     }
   }
