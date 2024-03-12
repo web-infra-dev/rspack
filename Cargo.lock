@@ -294,6 +294,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "basic-toml"
+version = "0.1.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2db21524cad41c5591204d22d75e1970a2d1f71060214ca931dc7d5afe2c14e5"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "better_scoped_tls"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1034,6 +1043,12 @@ name = "discard"
 version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "212d0f5754cb6769937f4501cc0e67f4f4483c8d2c3e1e922ee9edbe4ab4c7c0"
+
+[[package]]
+name = "dissimilar"
+version = "1.0.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "86e3bdc80eee6e16b2b6b0f87fbc98c04bee3455e35174c0de1a125d0688c632"
 
 [[package]]
 name = "dojang"
@@ -3094,7 +3109,6 @@ dependencies = [
  "regex",
  "rkyv",
  "rspack_ast",
- "rspack_core_macros",
  "rspack_database",
  "rspack_error",
  "rspack_fs",
@@ -3103,6 +3117,7 @@ dependencies = [
  "rspack_hook",
  "rspack_identifier",
  "rspack_loader_runner",
+ "rspack_macros",
  "rspack_regex",
  "rspack_sources",
  "rspack_swc_visitors",
@@ -3117,14 +3132,6 @@ dependencies = [
  "tracing",
  "url",
  "ustr-fxhash",
-]
-
-[[package]]
-name = "rspack_core_macros"
-version = "0.1.0"
-dependencies = [
- "quote",
- "syn 2.0.52",
 ]
 
 [[package]]
@@ -3199,6 +3206,7 @@ dependencies = [
  "async-trait",
  "futures-concurrency",
  "rspack_error",
+ "rspack_macros",
  "rustc-hash",
 ]
 
@@ -3281,6 +3289,15 @@ dependencies = [
  "swc_core",
  "tokio",
  "xxhash-rust",
+]
+
+[[package]]
+name = "rspack_macros"
+version = "0.1.0"
+dependencies = [
+ "quote",
+ "syn 2.0.52",
+ "trybuild",
 ]
 
 [[package]]
@@ -6209,6 +6226,22 @@ dependencies = [
  "tracing",
  "tracing-core",
  "tracing-log",
+]
+
+[[package]]
+name = "trybuild"
+version = "1.0.89"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9a9d3ba662913483d6722303f619e75ea10b7855b0f8e0d72799cf8621bb488f"
+dependencies = [
+ "basic-toml",
+ "dissimilar",
+ "glob",
+ "once_cell",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "termcolor",
 ]
 
 [[package]]
