@@ -5,7 +5,6 @@ use std::{
   hash::{BuildHasherDefault, Hash},
 };
 
-use async_trait::async_trait;
 use derivative::Derivative;
 use once_cell::sync::{Lazy, OnceCell};
 use rayon::prelude::*;
@@ -16,7 +15,7 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hash::RspackHash;
-use rspack_hook::AsyncSeries;
+use rspack_hook::{plugin, plugin_hook, AsyncSeries};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 
 type IndexSet<T> = indexmap::IndexSet<T, BuildHasherDefault<FxHasher>>;
@@ -24,20 +23,13 @@ type IndexSet<T> = indexmap::IndexSet<T, BuildHasherDefault<FxHasher>>;
 pub static QUOTE_META: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"[-\[\]\\/{}()*+?.^$|]").expect("Invalid regex"));
 
-#[derive(Debug)]
+#[plugin]
+#[derive(Debug, Default)]
 pub struct RealContentHashPlugin;
 
-struct RealContentHashPluginProcessAssetsHook;
-
-#[async_trait]
-impl AsyncSeries<Compilation> for RealContentHashPluginProcessAssetsHook {
-  async fn run(&self, compilation: &mut Compilation) -> Result<()> {
-    inner_impl(compilation)
-  }
-
-  fn stage(&self) -> i32 {
-    Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_HASH
-  }
+#[plugin_hook(AsyncSeries<Compilation> for RealContentHashPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE)]
+async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+  inner_impl(compilation)
 }
 
 impl Plugin for RealContentHashPlugin {
@@ -54,7 +46,7 @@ impl Plugin for RealContentHashPlugin {
       .context
       .compilation_hooks
       .process_assets
-      .tap(Box::new(RealContentHashPluginProcessAssetsHook));
+      .tap(process_assets::new(self));
     Ok(())
   }
 }

@@ -8,9 +8,11 @@ pub fn expand_struct(mut input: syn::ItemStruct) -> proc_macro::TokenStream {
   let ident = &input.ident;
   let inner_ident = plugin_inner_ident(ident);
 
-  let inner_fields = input.fields;
-  if !matches!(&inner_fields, syn::Fields::Named(_)) {
-    return syn::Error::new_spanned(inner_fields, "expected named struct")
+  let inner_fields = input.fields.clone();
+  let is_named_struct = matches!(&inner_fields, syn::Fields::Named(_));
+  let is_unit_struct = matches!(&inner_fields, syn::Fields::Unit);
+  if !is_named_struct && !is_unit_struct {
+    return syn::Error::new_spanned(inner_fields, "expected named struct or unit struct")
       .to_compile_error()
       .into();
   }
@@ -21,24 +23,47 @@ pub fn expand_struct(mut input: syn::ItemStruct) -> proc_macro::TokenStream {
       .expect("Failed to parse"),
   );
 
-  let field_names: Vec<&syn::Ident> = inner_fields
-    .iter()
-    .map(|field| field.ident.as_ref().expect("expected named struct"))
-    .collect();
-  let field_tys: Vec<&syn::Type> = inner_fields.iter().map(|field| &field.ty).collect();
-
-  let attrs = &input.attrs;
-
-  let expanded = quote! {
-    #input
-
-    impl #ident {
+  let new_inner_fn = if is_named_struct {
+    let field_names: Vec<&syn::Ident> = inner_fields
+      .iter()
+      .map(|field| field.ident.as_ref().expect("expected named struct"))
+      .collect();
+    let field_tys: Vec<&syn::Type> = inner_fields.iter().map(|field| &field.ty).collect();
+    quote! {
       #[allow(clippy::too_many_arguments)]
       fn new_inner(#(#field_names: #field_tys,)*) -> Self {
         Self {
           inner: ::std::sync::Arc::new(#inner_ident { #(#field_names,)* }),
         }
       }
+    }
+  } else {
+    quote! {
+      fn new_inner() -> Self {
+        Self {
+          inner: ::std::sync::Arc::new(#inner_ident),
+        }
+      }
+    }
+  };
+
+  let attrs = &input.attrs;
+
+  let inner_struct = if is_named_struct {
+    quote! {
+      pub struct #inner_ident #inner_fields
+    }
+  } else {
+    quote! {
+      pub struct #inner_ident;
+    }
+  };
+
+  let expanded = quote! {
+    #input
+
+    impl #ident {
+      #new_inner_fn
 
       fn from_inner(inner: &::std::sync::Arc<#inner_ident>) -> Self {
         Self {
@@ -60,13 +85,13 @@ pub fn expand_struct(mut input: syn::ItemStruct) -> proc_macro::TokenStream {
 
     #[doc(hidden)]
     #(#attrs)*
-    pub struct #inner_ident #inner_fields
+    #inner_struct
   };
   expanded.into()
 }
 
 fn plugin_inner_ident(ident: &syn::Ident) -> syn::Ident {
-  let inner_name = format!("__{}Inner", ident);
+  let inner_name = format!("{}Inner", ident);
   syn::Ident::new(&inner_name, ident.span())
 }
 
@@ -134,7 +159,7 @@ pub fn expand_fn(args: HookArgs, input: syn::ItemFn) -> proc_macro::TokenStream 
   });
 
   let attr = if is_async {
-    Some(quote! { #[::async_trait::async_trait] })
+    Some(quote! { #[::rspack_hook::__macro_helper::async_trait] })
   } else {
     None
   };

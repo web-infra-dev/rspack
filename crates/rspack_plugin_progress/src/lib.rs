@@ -14,7 +14,7 @@ use rspack_core::{
   ProcessAssetsArgs, ThisCompilationArgs,
 };
 use rspack_error::Result;
-use rspack_hook::{hook, plugin, AsyncSeries, AsyncSeries2};
+use rspack_hook::{plugin, plugin_hook, AsyncSeries, AsyncSeries2};
 
 #[derive(Debug, Clone, Default)]
 pub struct ProgressPluginOptions {
@@ -193,7 +193,7 @@ impl ProgressPlugin {
   }
 }
 
-#[hook(AsyncSeries2<Compilation, CompilationParams> for ProgressPlugin)]
+#[plugin_hook(AsyncSeries2<Compilation, CompilationParams> for ProgressPlugin)]
 async fn compilation(
   &self,
   _compilation: &mut Compilation,
@@ -208,7 +208,7 @@ async fn compilation(
   Ok(())
 }
 
-#[hook(AsyncSeries2<Compilation, Vec<MakeParam>> for ProgressPlugin)]
+#[plugin_hook(AsyncSeries2<Compilation, Vec<MakeParam>> for ProgressPlugin)]
 async fn make(&self, _compilation: &mut Compilation, _params: &mut Vec<MakeParam>) -> Result<()> {
   if !self.options.profile {
     self.progress_bar.reset();
@@ -220,7 +220,7 @@ async fn make(&self, _compilation: &mut Compilation, _params: &mut Vec<MakeParam
   Ok(())
 }
 
-#[hook(AsyncSeries<Compilation> for ProgressPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONAL)]
+#[plugin_hook(AsyncSeries<Compilation> for ProgressPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONAL)]
 async fn process_assets(&self, _compilation: &mut Compilation) -> Result<()> {
   self.sealing_hooks_report("asset processing", 35);
   Ok(())

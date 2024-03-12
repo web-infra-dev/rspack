@@ -287,7 +287,9 @@ impl BuiltinPlugin {
       BuiltinPluginName::DeterministicChunkIdsPlugin => {
         plugins.push(DeterministicChunkIdsPlugin::default().boxed())
       }
-      BuiltinPluginName::RealContentHashPlugin => plugins.push(RealContentHashPlugin.boxed()),
+      BuiltinPluginName::RealContentHashPlugin => {
+        plugins.push(RealContentHashPlugin::default().boxed())
+      }
       BuiltinPluginName::RemoveEmptyChunksPlugin => plugins.push(RemoveEmptyChunksPlugin.boxed()),
       BuiltinPluginName::EnsureChunkConditionsPlugin => {
         plugins.push(EnsureChunkConditionsPlugin.boxed())
@@ -365,7 +367,7 @@ impl BuiltinPlugin {
         plugins.push(plugin);
       }
       BuiltinPluginName::SwcCssMinimizerRspackPlugin => {
-        plugins.push(SwcCssMinimizerRspackPlugin {}.boxed())
+        plugins.push(SwcCssMinimizerRspackPlugin::default().boxed())
       }
       BuiltinPluginName::CopyRspackPlugin => {
         let plugin = CopyRspackPlugin::new(
