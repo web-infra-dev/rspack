@@ -38,19 +38,19 @@ pub struct DependencyParents {
 #[derive(Debug, Default)]
 pub struct ModuleGraph {
   // TODO: removed when new treeshaking is stable
-  pub is_new_treeshaking: bool,
+  is_new_treeshaking: bool,
 
-  pub dependency_id_to_module_identifier: HashMap<DependencyId, ModuleIdentifier>,
+  dependency_id_to_module_identifier: HashMap<DependencyId, ModuleIdentifier>,
 
   /// Module identifier to its module
-  pub module_identifier_to_module: IdentifierMap<BoxModule>,
+  module_identifier_to_module: IdentifierMap<BoxModule>,
 
   /// Module identifier to its module graph module
   pub module_identifier_to_module_graph_module: IdentifierMap<ModuleGraphModule>,
 
   blocks: HashMap<AsyncDependenciesBlockIdentifier, AsyncDependenciesBlock>,
 
-  pub dependency_id_to_connection_id: HashMap<DependencyId, ConnectionId>,
+  dependency_id_to_connection_id: HashMap<DependencyId, ConnectionId>,
   connection_id_to_dependency_id: HashMap<ConnectionId, DependencyId>,
 
   /// Dependencies indexed by `DependencyId`
@@ -60,8 +60,9 @@ pub struct ModuleGraph {
   dependency_id_to_parents: HashMap<DependencyId, DependencyParents>,
 
   /// Dependencies indexed by `ConnectionId`
+
   /// None means the connection has been removed
-  pub connections: Vec<Option<ModuleGraphConnection>>,
+  connections: Vec<Option<ModuleGraphConnection>>,
 
   /// Module graph connections table index for `ConnectionId`
   connections_map: HashMap<ModuleGraphConnection, ConnectionId>,
@@ -85,6 +86,10 @@ impl ModuleGraph {
   pub fn with_treeshaking(mut self, new_treeshaking: bool) -> Self {
     self.is_new_treeshaking = new_treeshaking;
     self
+  }
+  // TODO: removed when new treeshaking is stable
+  pub fn is_new_treeshaking(&self) -> bool {
+    self.is_new_treeshaking
   }
 
   /// Return an unordered iterator of modules
