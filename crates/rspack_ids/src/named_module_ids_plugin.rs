@@ -1,4 +1,4 @@
-use rspack_core::{chunk_graph_chunk, compare_modules_by_identifier, Plugin};
+use rspack_core::{compare_modules_by_identifier, Plugin};
 use rspack_error::Result;
 
 use crate::id_helpers::{
@@ -19,8 +19,6 @@ impl Plugin for NamedModuleIdsPlugin {
     let context: &str = compilation.options.context.as_ref();
     let (mut used_ids, modules) = get_used_module_ids_and_modules(compilation, None);
     let mut chunk_graph = std::mem::take(&mut compilation.chunk_graph);
-    // dbg!(&modules);
-    // println!("Module ids -----------------------------");
     let modules = modules
       .into_iter()
       .filter_map(|i| compilation.get_module_graph().module_by_identifier(&i))

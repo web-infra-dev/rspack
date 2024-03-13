@@ -76,8 +76,6 @@ impl ChunkGraph {
     old_module_id: &ModuleIdentifier,
     new_module_id: &ModuleIdentifier,
   ) {
-    // dbg!(&old_module_id);
-    // dbg!(&new_module_id);
     if self
       .chunk_graph_module_by_module_identifier
       .get(new_module_id)

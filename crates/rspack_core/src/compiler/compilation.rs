@@ -813,10 +813,10 @@ impl Compilation {
     while plugin_driver.optimize_dependencies(self).await?.is_some() {}
     logger.time_end(start);
 
-    if self.options.is_new_tree_shaking() {
-      // let filter = |item: &str| ["config-provider"].iter().any(|pat| item.contains(pat));
-      // debug_all_exports_info!(&self.module_graph, filter);
-    }
+    // if self.options.is_new_tree_shaking() {
+    //   // let filter = |item: &str| ["config-provider"].iter().any(|pat| item.contains(pat));
+    //   // debug_all_exports_info!(&self.module_graph, filter);
+    // }
     let start = logger.time("create chunks");
     use_code_splitting_cache(self, |compilation| async {
       build_chunk_graph(compilation)?;
@@ -828,26 +828,12 @@ impl Compilation {
     .await?;
     logger.time_end(start);
 
-    // dbg!(&self
-    //   .chunk_graph
-    //   .get_number_of_module_chunks(ModuleIdentifier::from("/home/victor/Documents/react/swing-line-bot/node_modules/.pnpm/@ant-design+colors@7.0.0/node_modules/@ant-design/colors/es/index.js")));
     let start = logger.time("optimize");
     plugin_driver.optimize_tree(self).await?;
 
     plugin_driver.optimize_chunk_modules(self).await?;
 
-    // dbg!(&self
-    //   .chunk_graph
-    //   .get_number_of_module_chunks(ModuleIdentifier::from("/home/victor/Documents/react/swing-line-bot/node_modules/.pnpm/@ant-design+colors@7.0.0/node_modules/@ant-design/colors/es/index.js")));
     logger.time_end(start);
-    // dbg!(&self
-    //   .chunk_graph
-    //   .chunk_graph_module_by_module_identifier
-    //   .keys()
-    //   .collect::<Vec<_>>());
-    // if self.options.is_new_tree_shaking() {
-    //   debug_all_exports_info!(&self.module_graph);
-    // }
 
     let start = logger.time("module ids");
     plugin_driver.module_ids(self)?;
@@ -866,9 +852,6 @@ impl Compilation {
     let start = logger.time("code generation");
     self.code_generation()?;
     logger.time_end(start);
-    // if self.options.is_new_tree_shaking() {
-    //   debug_all_exports_info!(&self.get_module_graph());
-    // }
 
     let start = logger.time("runtime requirements");
     self

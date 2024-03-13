@@ -156,7 +156,6 @@ impl ModuleConcatenationPlugin {
   ) -> IndexSet<ModuleIdentifier> {
     let mut set = IndexSet::default();
     let module = mg.module_by_identifier(&mi).expect("should have module");
-    // let flag = mi.ends_with("node_modules/@ant-design/cssinjs/es/index.js");
     for d in module.get_dependencies() {
       let dep = d.get_dependency(mg);
       let is_harmony_import_like = is_harmony_dep_like(dep);
@@ -166,10 +165,6 @@ impl ModuleConcatenationPlugin {
       let Some(con) = mg.connection_by_dependency(d) else {
         continue;
       };
-      // if flag {
-      //   dbg!(&con);
-      //   dbg!(&con.is_target_active(mg, runtime));
-      // }
       if !con.is_target_active(mg, runtime) {
         continue;
       }
@@ -352,11 +347,6 @@ impl ModuleConcatenationPlugin {
       .cloned()
       .collect::<Vec<_>>();
 
-    // if (module_id.contains("colors/es/index.js")) {
-    //   dbg!(&incoming_modules);
-    //   dbg!(config.root_module);
-    //   dbg!(&other_chunk_modules);
-    // }
     if !other_chunk_modules.is_empty() {
       let problem = {
         let mut names: Vec<_> = other_chunk_modules
@@ -995,7 +985,6 @@ impl Plugin for ModuleConcatenationPlugin {
           let source_types = chunk_graph.get_chunk_module_source_types(&chunk_ukey, module);
 
           if source_types.len() == 1 {
-            // dbg!(&m);
             chunk_graph.disconnect_chunk_and_module(&chunk_ukey, *m);
           } else {
             let new_source_types = source_types
