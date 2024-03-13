@@ -118,7 +118,7 @@ impl ConnectionOrModuleIdent {
         let con = mg
           .connection_by_connection_id(c)
           .expect("should have connection");
-        con.module_identifier
+        *con.module_identifier()
       }
     }
   }
@@ -1454,14 +1454,14 @@ impl ConcatenatedModule {
     exists_entry: &mut HashMap<ModuleIdentifier, RuntimeCondition>,
     list: &mut Vec<ConcatenationEntry>,
   ) {
-    let module = con.module_identifier;
-    let exist_entry = match exists_entry.get(&module) {
+    let module = con.module_identifier();
+    let exist_entry = match exists_entry.get(module) {
       Some(RuntimeCondition::Boolean(true)) => return,
       None => None,
       Some(_condition) => Some(runtime_condition.clone()),
     };
-    if module_set.contains(&module) {
-      exists_entry.insert(module, RuntimeCondition::Boolean(true));
+    if module_set.contains(module) {
+      exists_entry.insert(*module, RuntimeCondition::Boolean(true));
       if !matches!(runtime_condition, RuntimeCondition::Boolean(true)) {
         panic!(
           "Cannot runtime-conditional concatenate a module ({}) in {}. This should not happen.",
@@ -1484,7 +1484,7 @@ impl ConcatenatedModule {
       list.push(ConcatenationEntry {
         ty: ConcatenationEntryType::Concatenated,
         runtime_condition,
-        connection_or_module_id: ConnectionOrModuleIdent::Module(con.module_identifier),
+        connection_or_module_id: ConnectionOrModuleIdent::Module(*con.module_identifier()),
       });
     } else {
       if let Some(cond) = exist_entry {
@@ -1493,13 +1493,13 @@ impl ConcatenatedModule {
         if matches!(reduced_runtime_condition, RuntimeCondition::Boolean(false)) {
           return;
         }
-        exists_entry.insert(con.module_identifier, reduced_runtime_condition);
+        exists_entry.insert(*con.module_identifier(), reduced_runtime_condition);
       } else {
-        exists_entry.insert(con.module_identifier, runtime_condition.clone());
+        exists_entry.insert(*con.module_identifier(), runtime_condition.clone());
       }
       if let Some(last) = list.last_mut() {
         if matches!(last.ty, ConcatenationEntryType::External)
-          && last.connection_or_module_id.get_module_id(mg) == con.module_identifier
+          && last.connection_or_module_id.get_module_id(mg) == *con.module_identifier()
         {
           last.runtime_condition =
             merge_runtime_condition(&last.runtime_condition, &runtime_condition, runtime);
@@ -1585,8 +1585,8 @@ impl ConcatenatedModule {
       if matches!(runtime_condition, RuntimeCondition::Boolean(false)) {
         continue;
       }
-      let module = reference.connection.module_identifier;
-      match references_map.entry(module) {
+      let module = reference.connection.module_identifier();
+      match references_map.entry(*module) {
         indexmap::map::Entry::Occupied(mut occ) => {
           let entry: &ConnectionWithRuntimeCondition = occ.get();
           let merged_condition = merge_runtime_condition_non_false(

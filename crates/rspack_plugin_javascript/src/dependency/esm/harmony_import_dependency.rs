@@ -392,7 +392,7 @@ impl ModuleDependency for HarmonyImportSideEffectDependency {
   fn get_condition(&self) -> Option<DependencyCondition> {
     Some(DependencyCondition::Fn(Arc::new(
       move |con, _, module_graph: &ModuleGraph| {
-        let id = con.module_identifier;
+        let id = *con.module_identifier();
         if let Some(module) = module_graph.module_by_identifier(&id) {
           module.get_side_effects_connection_state(module_graph, &mut HashSet::default())
         } else {

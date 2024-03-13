@@ -1030,7 +1030,7 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
             ..Default::default()
           })]),
           priority: Some(1),
-          dependencies: Some(vec![from.expect("should have module").module_identifier]),
+          dependencies: Some(vec![*from.expect("should have module").module_identifier()]),
           ..Default::default()
         })
       }
@@ -1044,7 +1044,7 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
             ..Default::default()
           })]),
           priority: Some(1),
-          dependencies: Some(vec![from.expect("should have module").module_identifier]),
+          dependencies: Some(vec![*from.expect("should have module").module_identifier()]),
           ..Default::default()
         })
       }
@@ -1058,7 +1058,7 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
             ..Default::default()
           })]),
           priority: Some(1),
-          dependencies: Some(vec![from.expect("should have module").module_identifier]),
+          dependencies: Some(vec![*from.expect("should have module").module_identifier()]),
           ..Default::default()
         })
       }
@@ -1079,7 +1079,7 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
             ..Default::default()
           })]),
           priority: Some(1),
-          dependencies: Some(vec![from.expect("should have module").module_identifier]),
+          dependencies: Some(vec![*from.expect("should have module").module_identifier()]),
           ..Default::default()
         })
       }
@@ -1115,7 +1115,7 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
               })
               .unwrap_or_default(),
           ),
-          dependencies: Some(vec![from.expect("should have module").module_identifier]),
+          dependencies: Some(vec![*from.expect("should have module").module_identifier()]),
           ..Default::default()
         })
       }
@@ -1143,7 +1143,7 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
           } else {
             Some(mode.ignored.into_iter().flatten().collect::<Vec<_>>())
           },
-          dependencies: Some(vec![from.expect("should have module").module_identifier]),
+          dependencies: Some(vec![*from.expect("should have module").module_identifier()]),
           ..Default::default()
         })
       }

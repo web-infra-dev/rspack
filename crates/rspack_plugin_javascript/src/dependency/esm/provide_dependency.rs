@@ -86,7 +86,7 @@ impl DependencyTemplate for ProvideDependency {
     };
     let exports_info = compilation
       .get_module_graph()
-      .get_exports_info(&con.module_identifier);
+      .get_exports_info(con.module_identifier());
     let used_name = exports_info.id.get_used_name(
       compilation.get_module_graph(),
       *runtime,

@@ -182,7 +182,7 @@ impl ModuleConcatenationPlugin {
         ExtendedReferencedExport::Export(export) => !export.name.is_empty(),
       }) || matches!(mg.get_provided_exports(mi), ProvidedExports::Vec(_))
       {
-        set.insert(con.module_identifier);
+        set.insert(*con.module_identifier());
       }
     }
     set
@@ -828,6 +828,7 @@ impl Plugin for ModuleConcatenationPlugin {
         }
       }
     }
+
     logger.time_end(start);
     if !concat_configurations.is_empty() {
       logger.debug(format!(
@@ -870,6 +871,17 @@ impl Plugin for ModuleConcatenationPlugin {
       if used_modules.contains(&root_module_id) {
         continue;
       }
+
+      // /home/victor/Documents/react/swing-line-bot/node_modules/.pnpm/antd@5.10.0_biqbaboplfbrettd7655fr4n2y/node_modules/antd/es/config-provider/index.j
+      if root_module_id == "/home/victor/Documents/react/swing-line-bot/node_modules/.pnpm/antd@5.10.0_biqbaboplfbrettd7655fr4n2y/node_modules/antd/es/tooltip/index.j" {
+
+      dbg!(
+        root_module_id,
+        &compilation
+          .get_module_graph()
+          .dependency_id_to_module_identifier
+      );
+            }
       let modules_set = config.get_modules();
       for m in modules_set {
         used_modules.insert(*m);
@@ -979,7 +991,7 @@ impl Plugin for ModuleConcatenationPlugin {
           .copy_outgoing_module_connections(m, &new_module.id(), |c, mg| {
             let dep = c.dependency_id.get_dependency(mg);
             c.original_module_identifier.as_ref() == Some(m)
-              && !(is_harmony_dep_like(dep) && modules_set.contains(&c.module_identifier))
+              && !(is_harmony_dep_like(dep) && modules_set.contains(c.module_identifier()))
           });
         // TODO: optimize asset module https://github.com/webpack/webpack/pull/15515/files
         for chunk_ukey in chunk_graph.get_module_chunks(root_module_id).clone() {
@@ -1017,10 +1029,10 @@ impl Plugin for ModuleConcatenationPlugin {
         &root_module_id,
         &new_module.id(),
         |c, mg| {
-          let other_module = if c.module_identifier == root_module_id {
+          let other_module = if *c.module_identifier() == root_module_id {
             c.original_module_identifier
           } else {
-            Some(c.module_identifier)
+            Some(*c.module_identifier())
           };
           let dep = c.dependency_id.get_dependency(mg);
           let inner_connection = is_harmony_dep_like(dep)

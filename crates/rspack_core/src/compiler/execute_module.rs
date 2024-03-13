@@ -50,8 +50,8 @@ impl Compilation {
         .expect("should have module");
       for m in self.get_module_graph().get_outgoing_connections(m) {
         // TODO: handle circle
-        if !modules.contains(&m.module_identifier) {
-          queue.push(m.module_identifier);
+        if !modules.contains(m.module_identifier()) {
+          queue.push(*m.module_identifier());
         }
       }
     }
@@ -378,7 +378,7 @@ impl Compilation {
                       .get_module_graph()
                       .get_outgoing_connections(m)
                       .into_iter()
-                      .map(|conn| conn.module_identifier)
+                      .map(|conn| *conn.module_identifier())
                       .collect(),
                   ),
                 ))

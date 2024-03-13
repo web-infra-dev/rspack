@@ -651,7 +651,7 @@ fn get_level_order_module_ids(
         continue;
       };
       for con in mg.get_outgoing_connections(m) {
-        let mi = con.module_identifier;
+        let mi = *con.module_identifier();
         q.push_back(mi);
       }
     }

@@ -1235,11 +1235,11 @@ impl ExportInfoId {
       return FindTargetRetEnum::Undefined;
     };
     let mut target = FindTargetRetValue {
-      module: raw_target
+      module: *raw_target
         .connection
         .and_then(|dep_id| mg.connection_by_dependency(&dep_id))
         .expect("should have connection")
-        .module_identifier,
+        .module_identifier(),
       export: raw_target.export,
     };
     loop {
@@ -1647,12 +1647,12 @@ impl ExportInfo {
   ) -> Option<ResolvedExportInfoTargetWithCircular> {
     if let Some(input_target) = input_target {
       let mut target = ResolvedExportInfoTarget {
-        module: input_target
+        module: *input_target
           .connection
           .as_ref()
           .and_then(|dep_id| mga.connection_by_dependency(*dep_id))
           .expect("should have connection")
-          .module_identifier,
+          .module_identifier(),
         export: input_target.export,
         connection: input_target.connection.expect("should have connection"),
       };

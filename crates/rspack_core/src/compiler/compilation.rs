@@ -815,13 +815,8 @@ impl Compilation {
     logger.time_end(start);
 
     if self.options.is_new_tree_shaking() {
-      let filter = |item: &str| {
-        true
-        // ["config-provider/config.js"]
-        //   .iter()
-        //   .any(|pat| item.contains(pat))
-      };
-      debug_all_exports_info!(&self.module_graph, filter);
+      // let filter = |item: &str| ["config-provider"].iter().any(|pat| item.contains(pat));
+      // debug_all_exports_info!(&self.module_graph, filter);
     }
     let start = logger.time("create chunks");
     use_code_splitting_cache(self, |compilation| async {
@@ -839,7 +834,9 @@ impl Compilation {
     //   .get_number_of_module_chunks(ModuleIdentifier::from("/home/victor/Documents/react/swing-line-bot/node_modules/.pnpm/@ant-design+colors@7.0.0/node_modules/@ant-design/colors/es/index.js")));
     let start = logger.time("optimize");
     plugin_driver.optimize_tree(self).await?;
+
     plugin_driver.optimize_chunk_modules(self).await?;
+
     // dbg!(&self
     //   .chunk_graph
     //   .get_number_of_module_chunks(ModuleIdentifier::from("/home/victor/Documents/react/swing-line-bot/node_modules/.pnpm/@ant-design+colors@7.0.0/node_modules/@ant-design/colors/es/index.js")));
@@ -1564,7 +1561,7 @@ pub fn assign_depths(
     };
     let m = mg.module_by_identifier(&id).expect("should have module");
     for con in mg.get_outgoing_connections(m) {
-      q.push_back((con.module_identifier, depth + 1));
+      q.push_back((*con.module_identifier(), depth + 1));
     }
   }
 }
@@ -1594,7 +1591,7 @@ pub fn assign_depth(
 
     let m = mg.module_by_identifier(&item).expect("should have module");
     for con in mg.get_outgoing_connections(m) {
-      process_module(con.module_identifier, depth, &mut q, assign_map);
+      process_module(*con.module_identifier(), depth, &mut q, assign_map);
     }
   }
 }
