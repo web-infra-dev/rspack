@@ -867,7 +867,7 @@ impl ModuleGraph {
     self
       .dependency_id_to_module_identifier
       .remove(&dependency_id);
-    self.connection_id_to_dependency_id.remove(&connection_id);
+    self.connection_id_to_dependency_id.remove(connection_id);
 
     // remove outgoing from original module graph module
     if let Some(original_module_identifier) = &original_module_identifier {

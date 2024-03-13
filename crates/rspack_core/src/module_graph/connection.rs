@@ -15,6 +15,11 @@ impl ConnectionId {
   }
 }
 
+impl Default for ConnectionId {
+  fn default() -> Self {
+    Self::new()
+  }
+}
 impl std::ops::Deref for ConnectionId {
   type Target = u32;
 
@@ -22,7 +27,6 @@ impl std::ops::Deref for ConnectionId {
     &self.0
   }
 }
-
 impl From<u32> for ConnectionId {
   fn from(id: u32) -> Self {
     Self(id)
