@@ -50,11 +50,7 @@ impl Plugin for MangleExportsPlugin {
     // TODO: should bailout if compilation.moduleMemCache is enable, https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/MangleExportsPlugin.js#L160-L164
     // We don't do that cause we don't have this option
     let mg = compilation.get_module_graph_mut();
-    let module_id_list = mg
-      .module_identifier_to_module
-      .keys()
-      .cloned()
-      .collect::<Vec<_>>();
+    let module_id_list = mg.modules().keys().cloned().collect::<Vec<_>>();
     for identifier in module_id_list {
       let (Some(mgm), Some(module)) = (
         mg.module_graph_module_by_identifier(&identifier),

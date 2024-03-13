@@ -25,7 +25,7 @@ impl WarnCaseSensitiveModulesPlugin {
       if let Some(boxed_m) = graph.module_by_identifier(&m.identifier()) {
         let mut module_msg = format!("  - {}\n", m.identifier());
         graph
-          .get_incoming_connections(boxed_m)
+          .get_incoming_connections(&boxed_m.identifier())
           .iter()
           .for_each(|c| {
             if let Some(original_identifier) = c.original_module_identifier {
