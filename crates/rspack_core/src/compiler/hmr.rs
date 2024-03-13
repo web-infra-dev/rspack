@@ -75,7 +75,6 @@ where
         self.resolver_factory.clone(),
         self.loader_resolver_factory.clone(),
         Some(records),
-        self.compilation.hooks.clone(),
         self.cache.clone(),
       );
 

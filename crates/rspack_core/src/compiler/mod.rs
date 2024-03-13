@@ -50,7 +50,6 @@ pub struct Compiler<T>
 where
   T: AsyncWritableFileSystem + Send + Sync,
 {
-  pub hooks: CompilerHooks,
   pub options: Arc<CompilerOptions>,
   pub output_filesystem: T,
   pub compilation: Compilation,
@@ -75,21 +74,12 @@ where
         debug_info.with_context(options.context.to_string());
       }
     }
-    let mut compiler_hooks = Default::default();
-    let mut compilation_hooks = Default::default();
     let resolver_factory = Arc::new(ResolverFactory::new(options.resolve.clone()));
     let loader_resolver_factory = Arc::new(ResolverFactory::new(options.resolve_loader.clone()));
-    let (plugin_driver, options) = PluginDriver::new(
-      options,
-      plugins,
-      resolver_factory.clone(),
-      &mut compiler_hooks,
-      &mut compilation_hooks,
-    );
+    let (plugin_driver, options) = PluginDriver::new(options, plugins, resolver_factory.clone());
     let cache = Arc::new(Cache::new(options.clone()));
     assert!(!(options.is_new_tree_shaking() && options.builtins.tree_shaking.enable()), "Can't enable builtins.tree_shaking and `experiments.rspack_future.new_treeshaking` at the same time");
     Self {
-      hooks: compiler_hooks,
       options: options.clone(),
       compilation: Compilation::new(
         options,
@@ -98,7 +88,6 @@ where
         resolver_factory.clone(),
         loader_resolver_factory.clone(),
         None,
-        Arc::new(compilation_hooks),
         cache.clone(),
       ),
       output_filesystem,
@@ -122,7 +111,6 @@ where
     // TODO: maybe it's better to use external entries.
     self.plugin_driver.resolver_factory.clear_cache();
 
-    let compilation_hooks = self.compilation.hooks.clone();
     fast_set(
       &mut self.compilation,
       Compilation::new(
@@ -132,7 +120,6 @@ where
         self.resolver_factory.clone(),
         self.loader_resolver_factory.clone(),
         None,
-        compilation_hooks,
         self.cache.clone(),
       ),
     );
@@ -158,7 +145,8 @@ where
       .this_compilation(&mut self.compilation, &compilation_params)
       .await?;
     self
-      .hooks
+      .plugin_driver
+      .compiler_hooks
       .compilation
       .call(&mut self.compilation, &mut compilation_params)
       .await?;
@@ -168,7 +156,8 @@ where
     let make_start = logger.time("make");
     let make_hook_start = logger.time("make hook");
     if let Some(e) = self
-      .hooks
+      .plugin_driver
+      .compiler_hooks
       .make
       .call(&mut self.compilation, &mut params)
       .await

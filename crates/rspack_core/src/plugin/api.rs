@@ -13,13 +13,18 @@ use crate::{
   CodeGenerationResults, Compilation, CompilationHooks, CompilationParams, CompilerHooks,
   CompilerOptions, ContentHashArgs, DependencyId, DoneArgs, FactorizeArgs, JsChunkHashArgs,
   LoaderRunnerContext, Module, ModuleFactoryResult, ModuleIdentifier, ModuleType, NormalModule,
-  NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs, NormalModuleCreateData,
+  NormalModuleAfterResolveArgs, NormalModuleCreateData, NormalModuleFactoryHooks,
   OptimizeChunksArgs, ParserAndGenerator, PluginContext, ProcessAssetsArgs, RenderArgs,
   RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, Resolver,
   RuntimeModule, RuntimeRequirementsInTreeArgs, SourceType, ThisCompilationArgs,
 };
 
-// use anyhow::{Context, Result};
+#[derive(Debug, Clone)]
+pub struct BeforeResolveArgs {
+  pub request: String,
+  pub context: String,
+}
+
 pub type PluginCompilationHookOutput = Result<()>;
 pub type PluginThisCompilationHookOutput = Result<()>;
 pub type PluginMakeHookOutput = Result<()>;
@@ -94,14 +99,6 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(None)
   }
 
-  async fn before_resolve(
-    &self,
-    _ctx: PluginContext,
-    _args: &mut NormalModuleBeforeResolveArgs,
-  ) -> PluginNormalModuleFactoryBeforeResolveOutput {
-    Ok(None)
-  }
-
   async fn after_resolve(
     &self,
     _ctx: PluginContext,
@@ -113,7 +110,7 @@ pub trait Plugin: Debug + Send + Sync {
   async fn context_module_before_resolve(
     &self,
     _ctx: PluginContext,
-    _args: &mut NormalModuleBeforeResolveArgs,
+    _args: &mut BeforeResolveArgs,
   ) -> PluginNormalModuleFactoryBeforeResolveOutput {
     Ok(None)
   }
@@ -489,6 +486,7 @@ pub struct ApplyContext<'c> {
     &'c mut FxHashMap<ModuleType, BoxedParserAndGeneratorBuilder>,
   pub compiler_hooks: &'c mut CompilerHooks,
   pub compilation_hooks: &'c mut CompilationHooks,
+  pub normal_module_factory_hooks: &'c mut NormalModuleFactoryHooks,
 }
 
 impl<'c> ApplyContext<'c> {

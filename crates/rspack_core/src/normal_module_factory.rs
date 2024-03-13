@@ -13,18 +13,20 @@ use crate::{
   diagnostics::EmptyDependency,
   module_rules_matcher, parse_resource, resolve, stringify_loaders_and_resource,
   tree_shaking::visitor::{get_side_effects_from_package_json, SideEffects},
-  BoxLoader, CompilerContext, CompilerOptions, DependencyCategory, FactorizeArgs, FactoryMeta,
-  FuncUseCtx, GeneratorOptions, ModuleExt, ModuleFactory, ModuleFactoryCreateData,
-  ModuleFactoryResult, ModuleIdentifier, ModuleRule, ModuleRuleEnforce, ModuleRuleUse,
-  ModuleRuleUseLoader, ModuleType, NormalModule, NormalModuleAfterResolveArgs,
-  NormalModuleBeforeResolveArgs, NormalModuleCreateData, ParserOptions, RawModule, Resolve,
-  ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory,
-  ResourceData, ResourceParsedData, SharedPluginDriver,
+  BeforeResolveArgs, BoxLoader, CompilerContext, CompilerOptions, DependencyCategory,
+  FactorizeArgs, FactoryMeta, FuncUseCtx, GeneratorOptions, ModuleExt, ModuleFactory,
+  ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleRule, ModuleRuleEnforce,
+  ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule, NormalModuleAfterResolveArgs,
+  NormalModuleCreateData, ParserOptions, RawModule, Resolve, ResolveArgs,
+  ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory, ResourceData,
+  ResourceParsedData, SharedPluginDriver,
 };
+
+pub type NormalModuleFactoryBeforeResolveHook = AsyncSeriesBailHook<BeforeResolveArgs, bool>;
 
 #[derive(Debug, Default)]
 pub struct NormalModuleFactoryHooks {
-  pub before_resolve: AsyncSeriesBailHook<NormalModuleBeforeResolveArgs, bool>,
+  pub before_resolve: NormalModuleFactoryBeforeResolveHook,
 }
 
 #[derive(Debug)]
@@ -86,13 +88,15 @@ impl NormalModuleFactory {
       .as_module_dependency_mut()
       .expect("should be module dependency");
     // allow javascript plugin to modify args
-    let mut before_resolve_args = NormalModuleBeforeResolveArgs {
+    let mut before_resolve_args = BeforeResolveArgs {
       request: dependency.request().to_string(),
       context: data.context.to_string(),
     };
     if let Some(false) = self
       .plugin_driver
-      .before_resolve(&mut before_resolve_args)
+      .normal_module_factory_hooks
+      .before_resolve
+      .call(&mut before_resolve_args)
       .await?
     {
       // ignored

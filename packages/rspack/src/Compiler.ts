@@ -253,7 +253,6 @@ class Compiler {
 				normalModuleFactoryResolveForScheme:
 					this.#normalModuleFactoryResolveForScheme.bind(this),
 				chunkAsset: this.#chunkAsset.bind(this),
-				beforeResolve: this.#beforeResolve.bind(this),
 				afterResolve: this.#afterResolve.bind(this),
 				contextModuleFactoryBeforeResolve:
 					this.#contextModuleFactoryBeforeResolve.bind(this),
@@ -270,7 +269,24 @@ class Compiler {
 					this.#registerCompilerCompilationTaps.bind(this),
 				registerCompilerMakeTaps: this.#registerCompilerMakeTaps.bind(this),
 				registerCompilationProcessAssetsTaps:
-					this.#registerCompilationProcessAssetsTaps.bind(this)
+					this.#registerCompilationProcessAssetsTaps.bind(this),
+				registerNormalModuleFactoryBeforeResovleTaps:
+					this.#registerNormalModuleFactoryBeforeResovleTaps.bind(this)
+				// this.#createRegisterTaps(() => this.compilation.normalModuleFactory!.hooks.beforeResolve, (queried) => {
+				// 	return async (resolveData: binding.JsBeforeResolveArgs) => {
+				// 		const normalizedResolveData = {
+				// 			request: resolveData.request,
+				// 			context: resolveData.context,
+				// 			fileDependencies: [],
+				// 			missingDependencies: [],
+				// 			contextDependencies: []
+				// 		};
+				// 		const ret = await queried.promise(normalizedResolveData);
+				// 		resolveData.request = normalizedResolveData.request;
+				// 		resolveData.context = normalizedResolveData.context;
+				// 		return [ret, resolveData];
+				// 	};
+				// }),
 			},
 			createThreadsafeNodeFSFromRaw(this.outputFileSystem),
 			runLoaders.bind(undefined, this)
@@ -506,7 +522,6 @@ class Compiler {
 			optimizeModules: this.compilation.hooks.optimizeModules,
 			afterOptimizeModules: this.compilation.hooks.afterOptimizeModules,
 			chunkAsset: this.compilation.hooks.chunkAsset,
-			beforeResolve: this.compilation.normalModuleFactory?.hooks.beforeResolve,
 			afterResolve: this.compilation.normalModuleFactory?.hooks.afterResolve,
 			succeedModule: this.compilation.hooks.succeedModule,
 			stillValidModule: this.compilation.hooks.stillValidModule,
@@ -580,25 +595,6 @@ class Compiler {
 		this.#updateDisabledHooks();
 	}
 
-	async #beforeResolve(resolveData: binding.BeforeResolveData) {
-		const normalizedResolveData = {
-			request: resolveData.request,
-			context: resolveData.context,
-			fileDependencies: [],
-			missingDependencies: [],
-			contextDependencies: []
-		};
-		let ret =
-			await this.compilation.normalModuleFactory?.hooks.beforeResolve.promise(
-				normalizedResolveData
-			);
-
-		this.#updateDisabledHooks();
-		resolveData.request = normalizedResolveData.request;
-		resolveData.context = normalizedResolveData.context;
-		return [ret, resolveData];
-	}
-
 	async #afterResolve(resolveData: binding.AfterResolveData) {
 		let res =
 			await this.compilation.normalModuleFactory?.hooks.afterResolve.promise(
@@ -620,7 +616,7 @@ class Compiler {
 	}
 
 	async #contextModuleFactoryBeforeResolve(
-		resourceData: binding.BeforeResolveData
+		resourceData: binding.JsBeforeResolveArgs
 	) {
 		let res =
 			await this.compilation.contextModuleFactory?.hooks.beforeResolve.promise(
@@ -842,11 +838,47 @@ class Compiler {
 		if (jsTaps.length > 0) {
 			const last = jsTaps[jsTaps.length - 1];
 			const old = last.function;
-			last.function = async () => {
-				await old();
+			last.function = (...args) => {
+				const result = old(...args);
+				if (result && typeof result.then === "function") {
+					return result.then((r: any) => {
+						this.#updateDisabledHooks();
+						return r;
+					});
+				}
 				this.#updateDisabledHooks();
+				return result;
 			};
 		}
+	}
+
+	#createRegisterTaps<T, R, A>(
+		getHook: () => liteTapable.Hook<T, R, A>,
+		createTap: (queried: liteTapable.QueriedHook<T, R, A>) => any
+	): (stages: number[]) => binding.JsTap[] {
+		return stages => {
+			const hook = getHook();
+			if (!hook.isUsed()) return [];
+			const breakpoints = [
+				liteTapable.minStage,
+				...stages,
+				liteTapable.maxStage
+			];
+			const jsTaps: binding.JsTap[] = [];
+			for (let i = 0; i < breakpoints.length - 1; i++) {
+				const from = breakpoints[i];
+				const to = breakpoints[i + 1];
+				const stageRange = [from, to] as const;
+				const queried = hook.queryStageRange(stageRange);
+				if (!queried.isUsed()) continue;
+				jsTaps.push({
+					function: createTap(queried),
+					stage: liteTapable.safeStage(from + 1)
+				});
+			}
+			this.#decorateUpdateDisabledHooks(jsTaps);
+			return jsTaps;
+		};
 	}
 
 	#registerCompilerCompilationTaps(stages: number[]): binding.JsTap[] {
@@ -907,6 +939,43 @@ class Compiler {
 			jsTaps.push({
 				function: async () => {
 					await queried.promise(this.compilation.assets);
+				},
+				stage: liteTapable.safeStage(from + 1)
+			});
+		}
+		this.#decorateUpdateDisabledHooks(jsTaps);
+		return jsTaps;
+	}
+
+	#registerNormalModuleFactoryBeforeResovleTaps(
+		stages: number[]
+	): binding.JsTap[] {
+		if (!this.compilation.normalModuleFactory?.hooks.beforeResolve.isUsed())
+			return [];
+		const breakpoints = [liteTapable.minStage, ...stages, liteTapable.maxStage];
+		const jsTaps = [];
+		for (let i = 0; i < breakpoints.length - 1; i++) {
+			const from = breakpoints[i];
+			const to = breakpoints[i + 1];
+			const stageRange = [from, to] as const;
+			const queried =
+				this.compilation.normalModuleFactory.hooks.beforeResolve.queryStageRange(
+					stageRange
+				);
+			if (!queried.isUsed()) continue;
+			jsTaps.push({
+				function: async (resolveData: binding.JsBeforeResolveArgs) => {
+					const normalizedResolveData = {
+						request: resolveData.request,
+						context: resolveData.context,
+						fileDependencies: [],
+						missingDependencies: [],
+						contextDependencies: []
+					};
+					const ret = await queried.promise(normalizedResolveData);
+					resolveData.request = normalizedResolveData.request;
+					resolveData.context = normalizedResolveData.context;
+					return [ret, resolveData];
 				},
 				stage: liteTapable.safeStage(from + 1)
 			});

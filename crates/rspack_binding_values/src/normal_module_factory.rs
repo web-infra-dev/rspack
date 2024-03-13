@@ -1,6 +1,6 @@
 use napi_derive::napi;
 use rspack_core::{
-  NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs, NormalModuleCreateData, ResourceData,
+  BeforeResolveArgs, NormalModuleAfterResolveArgs, NormalModuleCreateData, ResourceData,
 };
 
 #[napi(object)]
@@ -16,7 +16,7 @@ pub struct JsResolveForSchemeResult {
 }
 
 #[napi(object)]
-pub struct BeforeResolveData {
+pub struct JsBeforeResolveArgs {
   pub request: String,
   pub context: String,
 }
@@ -87,8 +87,8 @@ impl From<&mut NormalModuleCreateData<'_>> for CreateModuleData {
   }
 }
 
-impl From<NormalModuleBeforeResolveArgs> for BeforeResolveData {
-  fn from(value: NormalModuleBeforeResolveArgs) -> Self {
+impl From<BeforeResolveArgs> for JsBeforeResolveArgs {
+  fn from(value: BeforeResolveArgs) -> Self {
     Self {
       context: value.context,
       request: value.request,

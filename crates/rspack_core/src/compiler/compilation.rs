@@ -61,7 +61,6 @@ pub struct Compilation {
   // The status is different, should generate different hash for `.hot-update.js`
   // So use compilation hash update `hot_index` to fix it.
   pub hot_index: u32,
-  pub hooks: Arc<CompilationHooks>,
   pub records: Option<CompilationRecords>,
   pub options: Arc<CompilerOptions>,
   pub entries: Entry,
@@ -143,13 +142,11 @@ impl Compilation {
     resolver_factory: Arc<ResolverFactory>,
     loader_resolver_factory: Arc<ResolverFactory>,
     records: Option<CompilationRecords>,
-    hooks: Arc<CompilationHooks>,
     cache: Arc<Cache>,
   ) -> Self {
     let module_graph = module_graph.with_treeshaking(options.is_new_tree_shaking());
     Self {
       hot_index: 0,
-      hooks,
       records,
       options,
       module_graph,
@@ -887,7 +884,11 @@ impl Compilation {
     logger.time_end(start);
 
     let start = logger.time("process assets");
-    self.hooks.clone().process_assets.call(self).await?;
+    plugin_driver
+      .compilation_hooks
+      .process_assets
+      .call(self)
+      .await?;
     logger.time_end(start);
 
     let start = logger.time("after process assets");
