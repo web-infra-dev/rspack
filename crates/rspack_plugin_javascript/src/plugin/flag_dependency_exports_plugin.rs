@@ -250,7 +250,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
               .unwrap_or(global_export_info.terminal_binding),
             spec.exports.as_ref(),
             if spec.from.is_some() {
-              spec.from.clone()
+              spec.from
             } else {
               global_export_info.from.cloned()
             },
