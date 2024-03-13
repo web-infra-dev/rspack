@@ -1,4 +1,6 @@
-import {res} from './lib.js'
-import("./a.js")
+import('./lib.js').then(res => {
 
-console.log(`test(a): `, res(a))
+test()
+})
+// import {test} from './lib.js'
+

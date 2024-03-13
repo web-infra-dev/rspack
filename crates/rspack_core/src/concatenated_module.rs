@@ -1904,7 +1904,7 @@ impl ConcatenatedModule {
             let default_access_name = info
               .get_interop_default_access_name()
               .cloned()
-              .unwrap_or("undefined".into());
+              .expect("should have default access name");
             let default_export = if as_call {
               format!("{}()", default_access_name)
             } else if let Some(true) = asi_safe {

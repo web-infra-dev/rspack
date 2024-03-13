@@ -926,6 +926,7 @@ impl ExportInfoId {
     }
     new_exports_info_id
   }
+
   fn set_has_use_info(&self, mg: &mut ModuleGraph) {
     let export_info = mg.get_export_info_mut_by_id(self);
     if !export_info.has_use_in_runtime_info {
@@ -1959,16 +1960,19 @@ pub fn process_export_info(
 
 #[macro_export]
 macro_rules! debug_all_exports_info {
-  ($mg:expr) => {
+  ($mg:expr, $filter:expr) => {
     for mgm in $mg.module_graph_modules().values() {
-      $crate::debug_exports_info!(mgm, $mg);
+      $crate::debug_exports_info!(mgm, $mg, $filter);
     }
   };
 }
 
 #[macro_export]
 macro_rules! debug_exports_info {
-  ($mgm:expr, $mg:expr) => {
+  ($mgm:expr, $mg:expr, $filter:expr) => {
+    if !($filter(&$mgm.module_identifier)) {
+      continue;
+    }
     dbg!(&$mgm.module_identifier);
     let exports_info_id = $mgm.exports;
     let exports_info = $mg.get_exports_info_by_id(&exports_info_id);

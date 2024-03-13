@@ -195,6 +195,12 @@ pub fn export_from_import(
         };
         Cow::Owned(used)
       } else {
+        dbg!(&request, &runtime, &export_name);
+        let exports_info = exports_info_id.get_exports_info(compilation.get_module_graph());
+        for e in exports_info.exports.iter() {
+          dbg!(e.1.get_export_info(compilation.get_module_graph()));
+        }
+
         return format!(
           "{} undefined",
           to_normal_comment(&property_access(&export_name, 0))

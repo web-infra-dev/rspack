@@ -222,11 +222,22 @@ impl ModuleGraph {
         let connection = self
           .connection_by_connection_id_mut(&connection_id)
           .expect("should have connection");
+        dbg!(&connection.module_identifier, &new_module,);
         connection.module_identifier = *new_module;
+        // TODO: recover
         let dep_id = connection.dependency_id;
+        // dbg!(&dep_id.get_dependency(self).get_ids(self));
+        let dep = dep_id.get_dependency(self);
+        // dep.dependency_debug_name() != "HarmonyExportImportedSpecifierDependency"
+        // if dep.dependency_debug_name() != "HarmonyImportSpecifierDependency" {
         self
           .dependency_id_to_module_identifier
           .insert(dep_id, *new_module);
+        // }
+        //   .downcast_ref::<HarmonyExportImportedSpecifierDependency>()
+        //   .is_some();
+        // let is_valid_import_specifier_dep = dep
+        //   .downcast_ref::<HarmonyImportSpecifierDependency>()
         add_incoming_connection.push(connection_id);
         delete_incoming_connection.push(connection_id);
       }
