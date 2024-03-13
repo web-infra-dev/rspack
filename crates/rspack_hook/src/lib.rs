@@ -1,5 +1,3 @@
-#![feature(slice_group_by)]
-
 mod async_parallel;
 mod async_series;
 mod async_series_bail;

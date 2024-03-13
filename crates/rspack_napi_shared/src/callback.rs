@@ -17,6 +17,7 @@ pub struct JsCallback<Resolver: FnOnce(Env)> {
 }
 
 trait WithLock<T> {
+  #[allow(dead_code)]
   fn with_read<R>(&self, f: impl FnOnce(&T) -> R) -> R;
   fn with_write<R>(&self, f: impl FnOnce(&mut T) -> R) -> R;
 }

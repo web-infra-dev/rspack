@@ -30,6 +30,7 @@ rustflags = [
   "-Wclippy::same_name_method",
 
   "-Aclippy::default_constructed_unit_structs",
+  "-Aclippy::question_mark",
 ]
 
 # Fix napi breaking in test environment <https://github.com/napi-rs/napi-rs/issues/1005#issuecomment-1011034770>
