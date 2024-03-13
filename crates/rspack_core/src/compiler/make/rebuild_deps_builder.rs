@@ -38,7 +38,7 @@ impl RebuildDepsBuilder {
               // parent module id
               res.extend(
                 module_graph
-                  .get_incoming_connections(module)
+                  .get_incoming_connections(&module.identifier())
                   .iter()
                   .filter_map(|connect| connect.original_module_identifier),
               )

@@ -1,10 +1,9 @@
-use rspack_error::Result;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::ExportsInfoId;
 use crate::{
-  module_graph::ConnectionId, ChunkGraph, DependencyId, FactoryMeta, ModuleGraph,
-  ModuleGraphConnection, ModuleIdentifier, ModuleIssuer, ModuleProfile, ModuleSyntax, ModuleType,
+  module_graph::ConnectionId, ChunkGraph, DependencyId, FactoryMeta, ModuleIdentifier,
+  ModuleIssuer, ModuleProfile, ModuleSyntax, ModuleType,
 };
 
 #[derive(Debug)]
@@ -68,7 +67,7 @@ impl ModuleGraphModule {
     self.incoming_connections.insert(connection_id);
   }
 
-  pub fn remove_incoming_connection(&mut self, connection_id: ConnectionId) {
+  pub fn remove_incoming_connection(&mut self, connection_id: &ConnectionId) {
     self.incoming_connections.remove(&connection_id);
   }
 
@@ -76,8 +75,8 @@ impl ModuleGraphModule {
     self.outgoing_connections.insert(connection_id);
   }
 
-  pub fn remove_outgoing_connection(&mut self, connection_id: ConnectionId) {
-    self.outgoing_connections.remove(&connection_id);
+  pub fn remove_outgoing_connection(&mut self, connection_id: &ConnectionId) {
+    self.outgoing_connections.remove(connection_id);
   }
 
   pub fn incoming_connections(&self) -> &HashSet<ConnectionId> {
@@ -88,44 +87,12 @@ impl ModuleGraphModule {
     &self.outgoing_connections
   }
 
-  pub fn get_incoming_connections_unordered<'m>(
-    &self,
-    module_graph: &'m ModuleGraph,
-  ) -> Result<impl Iterator<Item = &'m ModuleGraphConnection>> {
-    let result = self
-      .incoming_connections
-      .iter()
-      .map(|connection_id| {
-        module_graph
-          .connection_by_connection_id(connection_id)
-          .unwrap_or_else(|| {
-            panic!("connection_id_to_connection does not have connection_id: {connection_id:?}")
-          })
-      })
-      .collect::<Vec<_>>()
-      .into_iter();
-
-    Ok(result)
+  pub fn get_incoming_connections_unordered(&self) -> &HashSet<ConnectionId> {
+    &self.incoming_connections
   }
 
-  pub fn get_outgoing_connections_unordered<'m>(
-    &self,
-    module_graph: &'m ModuleGraph,
-  ) -> Result<impl Iterator<Item = &'m ModuleGraphConnection>> {
-    let result = self
-      .outgoing_connections
-      .iter()
-      .map(|connection_id| {
-        module_graph
-          .connection_by_connection_id(connection_id)
-          .unwrap_or_else(|| {
-            panic!("connection_id_to_connection does not have connection_id: {connection_id:?}")
-          })
-      })
-      .collect::<Vec<_>>()
-      .into_iter();
-
-    Ok(result)
+  pub fn get_outgoing_connections_unordered(&self) -> &HashSet<ConnectionId> {
+    &self.outgoing_connections
   }
 
   pub fn set_profile(&mut self, profile: Box<ModuleProfile>) {
