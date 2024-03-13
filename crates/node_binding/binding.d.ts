@@ -603,8 +603,14 @@ export interface RawAliasOptionItem {
 }
 
 export interface RawAssetGeneratorDataUrl {
-  type: "options"
+  type: "options"| "function"
   options?: RawAssetGeneratorDataUrlOptions
+  function?: (options: { content: string, filename: string }) => string
+}
+
+export interface RawAssetGeneratorDataUrlFnArgs {
+  filename: string
+  content: string
 }
 
 export interface RawAssetGeneratorDataUrlOptions {

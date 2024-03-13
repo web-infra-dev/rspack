@@ -8,13 +8,13 @@ use napi::bindgen_prelude::Either3;
 use napi::Either;
 use napi_derive::napi;
 use rspack_core::{
-  AssetGeneratorDataUrl, AssetGeneratorDataUrlOptions, AssetGeneratorOptions,
-  AssetInlineGeneratorOptions, AssetParserDataUrl, AssetParserDataUrlOptions, AssetParserOptions,
-  AssetResourceGeneratorOptions, BoxLoader, DescriptionData, DynamicImportMode, FuncUseCtx,
-  GeneratorOptions, GeneratorOptionsByModuleType, JavascriptParserOptions, JavascriptParserOrder,
-  JavascriptParserUrl, ModuleNoParseRule, ModuleNoParseRules, ModuleNoParseTestFn, ModuleOptions,
-  ModuleRule, ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, ModuleType, ParserOptions,
-  ParserOptionsByModuleType,
+  AssetGeneratorDataUrl, AssetGeneratorDataUrlFnArgs, AssetGeneratorDataUrlOptions,
+  AssetGeneratorOptions, AssetInlineGeneratorOptions, AssetParserDataUrl,
+  AssetParserDataUrlOptions, AssetParserOptions, AssetResourceGeneratorOptions, BoxLoader,
+  DescriptionData, DynamicImportMode, FuncUseCtx, GeneratorOptions, GeneratorOptionsByModuleType,
+  JavascriptParserOptions, JavascriptParserOrder, JavascriptParserUrl, ModuleNoParseRule,
+  ModuleNoParseRules, ModuleNoParseTestFn, ModuleOptions, ModuleRule, ModuleRuleEnforce,
+  ModuleRuleUse, ModuleRuleUseLoader, ModuleType, ParserOptions, ParserOptionsByModuleType,
 };
 use rspack_error::error;
 use rspack_loader_react_refresh::REACT_REFRESH_LOADER_IDENTIFIER;
@@ -473,14 +473,42 @@ impl From<RawAssetResourceGeneratorOptions> for AssetResourceGeneratorOptions {
   }
 }
 
-#[derive(Debug, Deserialize, Default)]
+#[derive(Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawAssetGeneratorDataUrl {
-  #[napi(ts_type = r#""options""#)]
+  #[napi(ts_type = r#""options"| "function""#)]
   pub r#type: String,
   pub options: Option<RawAssetGeneratorDataUrlOptions>,
-  // TODO: pub function
+  #[serde(skip_deserializing)]
+  #[napi(ts_type = r#"(options: { content: string, filename: string }) => string"#)]
+  pub function: Option<JsFunction>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+#[napi(object)]
+pub struct RawAssetGeneratorDataUrlFnArgs {
+  pub filename: String,
+  pub content: String,
+}
+
+impl From<AssetGeneratorDataUrlFnArgs> for RawAssetGeneratorDataUrlFnArgs {
+  fn from(value: AssetGeneratorDataUrlFnArgs) -> Self {
+    Self {
+      filename: value.filename,
+      content: value.content,
+    }
+  }
+}
+impl Debug for RawAssetGeneratorDataUrl {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("RawAssetGeneratorDataUrl")
+      .field("r#type", &self.r#type)
+      .field("options", &self.options)
+      .field("function", &"...")
+      .finish()
+  }
 }
 
 impl From<RawAssetGeneratorDataUrl> for AssetGeneratorDataUrl {
@@ -492,6 +520,31 @@ impl From<RawAssetGeneratorDataUrl> for AssetGeneratorDataUrl {
           .expect("should have an \"options\" when RawAssetGeneratorDataUrl.type is \"options\"")
           .into(),
       ),
+      "function" => {
+        let func = value
+          .function
+          .expect("should have a function when RawAssetGeneratorDataUrl.type is \"function\"");
+
+        let env = get_napi_env();
+
+        let func: napi::Result<ThreadsafeFunction<RawAssetGeneratorDataUrlFnArgs, String>> =
+          try { rspack_binding_macros::js_fn_into_threadsafe_fn!(func, &Env::from(env)) };
+
+        Self::Func(Arc::new(move |value: AssetGeneratorDataUrlFnArgs| {
+          let func = func
+            .clone()
+            .expect("Can't clone RawAssetGeneratorDataUrl.type as function");
+          Ok(
+            func
+              .call(value.into(), ThreadsafeFunctionCallMode::NonBlocking)
+              .into_rspack_result()
+              .expect("The result of dataUrl function into rspack result failed")
+              .blocking_recv()
+              .unwrap_or_else(|err| panic!("Failed to call external function: {err}"))
+              .expect("call dataUrl function failed"),
+          )
+        }))
+      }
       _ => panic!(
         "Failed to resolve the RawAssetGeneratorDataUrl.type {}. Expected type is `options`.",
         value.r#type
