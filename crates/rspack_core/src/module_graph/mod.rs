@@ -152,6 +152,7 @@ impl ModuleGraph {
   ) where
     F: Fn(&ModuleGraphConnection, &ModuleGraph) -> bool,
   {
+    let flag = old_module.as_str() == "";
     if old_module == new_module {
       return;
     }
@@ -210,9 +211,9 @@ impl ModuleGraph {
     for connection_id in old_mgm.incoming_connections().clone().into_iter() {
       let connection = self
         .connection_by_connection_id(&connection_id)
-        .cloned()
         .expect("should have connection");
-      if filter_connection(&connection, &*self) {
+      // the inactive connection should not be updated
+      if filter_connection(connection, &*self) && (connection.conditional || connection.active) {
         // let new_connection_id = self.clone_module_graph_connection(
         //   &connection,
         //   connection.original_module_identifier,
@@ -222,6 +223,9 @@ impl ModuleGraph {
         let connection = self
           .connection_by_connection_id_mut(&connection_id)
           .expect("should have connection");
+        if flag {
+          dbg!(&connection);
+        }
         let dep_id = connection.dependency_id;
         // dbg!(&connection.module_identifier(), &new_module,);
         connection.set_module_identifier_only(*new_module);

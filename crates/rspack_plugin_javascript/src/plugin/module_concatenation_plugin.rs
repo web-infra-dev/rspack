@@ -872,16 +872,7 @@ impl Plugin for ModuleConcatenationPlugin {
         continue;
       }
 
-      // /home/victor/Documents/react/swing-line-bot/node_modules/.pnpm/antd@5.10.0_biqbaboplfbrettd7655fr4n2y/node_modules/antd/es/config-provider/index.j
-      if root_module_id == "/home/victor/Documents/react/swing-line-bot/node_modules/.pnpm/antd@5.10.0_biqbaboplfbrettd7655fr4n2y/node_modules/antd/es/tooltip/index.j" {
-
-      dbg!(
-        root_module_id,
-        &compilation
-          .get_module_graph()
-          .dependency_id_to_module_identifier
-      );
-            }
+      //
       let modules_set = config.get_modules();
       for m in modules_set {
         used_modules.insert(*m);
@@ -982,6 +973,7 @@ impl Plugin for ModuleConcatenationPlugin {
         .clone_module_attributes(&root_module_id, &new_module.id());
       // integrate
       let mut chunk_graph = std::mem::take(&mut compilation.chunk_graph);
+
       for m in modules_set {
         if m == &root_module_id {
           continue;
@@ -1044,6 +1036,7 @@ impl Plugin for ModuleConcatenationPlugin {
           !inner_connection
         },
       );
+
       compilation
         .get_module_graph_mut()
         .add_module(new_module.boxed());
