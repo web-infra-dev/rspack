@@ -2,47 +2,56 @@ use dashmap::DashMap;
 use futures::Future;
 use napi::bindgen_prelude::*;
 use napi::{Env, JsFunction, JsUnknown, NapiRaw, Result};
-use rspack_napi::legacy_threadsafe_function::{
-  ThreadSafeContext, ThreadsafeFunction, ThreadsafeFunctionCallMode,
-};
+use rspack_napi::napi::threadsafe_function::{ErrorStrategy, ThreadsafeFunction};
 
 pub fn callbackify<R, F>(env: Env, f: JsFunction, fut: F) -> Result<()>
 where
-  R: 'static + ToNapiValue,
+  R: 'static + ToNapiValue + Send,
   F: 'static + Send + Future<Output = Result<R>>,
 {
-  let ptr = unsafe { f.raw() };
-
-  let tsfn = ThreadsafeFunction::<Result<R>, ()>::create(env.raw(), ptr, 0, |ctx| {
-    let ThreadSafeContext {
-      value,
-      env,
-      callback,
-      ..
-    } = ctx;
-
-    let argv = match value {
-      Ok(value) => {
-        let val = unsafe { R::to_napi_value(env.raw(), value)? };
-        let js_value = unsafe { JsUnknown::from_napi_value(env.raw(), val)? };
-        vec![env.get_null()?.into_unknown(), js_value]
-      }
-      Err(err) => {
-        vec![JsError::from(err).into_unknown(env)]
-      }
-    };
-
-    callback.call(None, &argv)?;
-
-    Ok(())
-  })?;
+  let mut tsfn = unsafe {
+    ThreadsafeFunction::<R, ErrorStrategy::CalleeHandled>::from_napi_value(env.raw(), f.raw())
+  }?;
+  tsfn.refer(&env)?;
 
   napi::bindgen_prelude::spawn(async move {
     let res = fut.await;
     tsfn
-      .call(res, ThreadsafeFunctionCallMode::NonBlocking)
-      .expect("Failed to call JS callback");
+      .call_async(res)
+      .await
+      .expect("failed to call JS callback in callbackify")
   });
+
+  // let tsfn = ThreadsafeFunction::<Result<R>, ()>::create(env.raw(), ptr, 0, |ctx| {
+  //   let ThreadSafeContext {
+  //     value,
+  //     env,
+  //     callback,
+  //     ..
+  //   } = ctx;
+
+  //   let argv = match value {
+  //     Ok(value) => {
+  //       let val = unsafe { R::to_napi_value(env.raw(), value)? };
+  //       let js_value = unsafe { JsUnknown::from_napi_value(env.raw(), val)? };
+  //       vec![env.get_null()?.into_unknown(), js_value]
+  //     }
+  //     Err(err) => {
+  //       vec![JsError::from(err).into_unknown(env)]
+  //     }
+  //   };
+
+  //   callback.call(None, &argv)?;
+
+  //   Ok(())
+  // })?;
+
+  // napi::bindgen_prelude::spawn(async move {
+  //   let res = fut.await;
+  //   tsfn
+  //     .call(res, ThreadsafeFunctionCallMode::NonBlocking)
+  //     .expect("Failed to call JS callback");
+  // });
 
   Ok(())
 }
