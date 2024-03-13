@@ -45,9 +45,6 @@ impl ModuleFactory for NormalModuleFactory {
       return Ok(before_resolve_data);
     }
     let factory_result = self.factorize(data).await?;
-    if let Ok(Some(after_resolve_data)) = self.after_resolve(data, &factory_result).await {
-      return Ok(after_resolve_data);
-    }
 
     Ok(factory_result)
   }
@@ -106,35 +103,6 @@ impl NormalModuleFactory {
 
     data.context = before_resolve_args.context.into();
     dependency.set_request(before_resolve_args.request);
-    Ok(None)
-  }
-
-  async fn after_resolve(
-    &self,
-    data: &mut ModuleFactoryCreateData,
-    factory_result: &ModuleFactoryResult,
-  ) -> Result<Option<ModuleFactoryResult>> {
-    let dependency = data
-      .dependency
-      .as_module_dependency()
-      .expect("should be module dependency");
-    if let Ok(Some(false)) = self
-      .plugin_driver
-      .after_resolve(&mut NormalModuleAfterResolveArgs {
-        request: dependency.request(),
-        context: data.context.as_ref(),
-        file_dependencies: &data.file_dependencies,
-        context_dependencies: &data.context_dependencies,
-        missing_dependencies: &data.missing_dependencies,
-        factory_meta: &factory_result.factory_meta,
-        diagnostics: &mut data.diagnostics,
-      })
-      .await
-    {
-      // ignored
-      // See https://github.com/webpack/webpack/blob/6be4065ade1e252c1d8dcba4af0f43e32af1bdc1/lib/NormalModuleFactory.js#L301
-      return Ok(Some(ModuleFactoryResult::default()));
-    }
     Ok(None)
   }
 
@@ -579,10 +547,43 @@ impl NormalModuleFactory {
         )
       })?();
 
+    let after_resolve_create_data = {
+      let mut after_resolve_args = NormalModuleAfterResolveArgs {
+        request: dependency.request(),
+        context: data.context.as_ref(),
+        file_dependencies: &data.file_dependencies,
+        context_dependencies: &data.context_dependencies,
+        missing_dependencies: &data.missing_dependencies,
+        factory_meta: &factory_meta,
+        diagnostics: &mut data.diagnostics,
+        create_data: Some(NormalModuleAfterResolveCreateData {
+          request,
+          user_request,
+          resource: resource_data,
+        }),
+      };
+
+      if let Some(plugin_result) = self
+        .plugin_driver
+        .after_resolve(&mut after_resolve_args)
+        .await?
+      {
+        if !plugin_result {
+          // ignored
+          // See https://github.com/webpack/webpack/blob/6be4065ade1e252c1d8dcba4af0f43e32af1bdc1/lib/NormalModuleFactory.js#L301
+          return Ok(Some(ModuleFactoryResult::default()));
+        }
+      }
+
+      after_resolve_args
+        .create_data
+        .unwrap_or_else(|| unreachable!())
+    };
+
     let mut create_data = NormalModuleCreateData {
       dependency_type: data.dependency.dependency_type().clone(),
       resolve_data_request: dependency.request(),
-      resource_resolve_data: resource_data.clone(),
+      resource_resolve_data: after_resolve_create_data.resource.clone(),
       context: data.context.clone(),
       diagnostics: &mut data.diagnostics,
     };
@@ -594,15 +595,15 @@ impl NormalModuleFactory {
       module
     } else {
       let normal_module = NormalModule::new(
-        request,
-        user_request,
+        after_resolve_create_data.request,
+        after_resolve_create_data.user_request,
         dependency.request().to_owned(),
         resolved_module_type,
         resolved_parser_and_generator,
         resolved_parser_options,
         resolved_generator_options,
         match_resource_data,
-        resource_data,
+        after_resolve_create_data.resource,
         resolved_resolve_options,
         loaders,
         contains_inline,

@@ -621,7 +621,7 @@ class Compiler {
 			}
 		);
 		this.#updateDisabledHooks();
-		return res;
+		return [res, resolveData.createData];
 	}
 
 	async #contextModuleFactoryBeforeResolve(

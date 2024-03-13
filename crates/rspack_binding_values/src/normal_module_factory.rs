@@ -24,6 +24,13 @@ pub struct JsBeforeResolveArgs {
 pub type JsBeforeResolveOutput = (Option<bool>, JsBeforeResolveArgs);
 
 #[napi(object)]
+pub struct AfterResolveCreateData {
+  pub request: String,
+  pub user_request: String,
+  pub resource: String,
+}
+
+#[napi(object)]
 pub struct AfterResolveData {
   pub request: String,
   pub context: String,
@@ -31,6 +38,7 @@ pub struct AfterResolveData {
   pub context_dependencies: Vec<String>,
   pub missing_dependencies: Vec<String>,
   pub factory_meta: FactoryMeta,
+  pub create_data: Option<AfterResolveCreateData>,
 }
 
 #[napi(object)]
@@ -124,6 +132,17 @@ impl From<&NormalModuleAfterResolveArgs<'_>> for AfterResolveData {
       factory_meta: FactoryMeta {
         side_effect_free: value.factory_meta.side_effect_free,
       },
+      create_data: value.create_data.as_ref().map(AfterResolveCreateData::from),
+    }
+  }
+}
+
+impl From<&NormalModuleAfterResolveCreateData> for AfterResolveCreateData {
+  fn from(value: &NormalModuleAfterResolveCreateData) -> Self {
+    Self {
+      request: value.request.to_owned(),
+      user_request: value.user_request.to_owned(),
+      resource: value.resource.resource_path.to_string_lossy().to_string(),
     }
   }
 }

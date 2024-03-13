@@ -83,6 +83,18 @@ pub struct NormalModuleCreateData<'a> {
 }
 
 #[derive(Debug)]
+pub struct NormalModuleAfterResolveCreateData {
+  pub request: String,
+  pub user_request: String,
+  pub resource: ResourceData,
+}
+
+#[derive(Debug, Clone)]
+pub struct NormalModuleBeforeResolveArgs {
+  pub request: String,
+  pub context: String,
+}
+#[derive(Debug)]
 pub struct NormalModuleAfterResolveArgs<'a> {
   pub request: &'a str,
   pub context: &'a str,
@@ -91,6 +103,7 @@ pub struct NormalModuleAfterResolveArgs<'a> {
   pub missing_dependencies: &'a HashSet<PathBuf>,
   pub factory_meta: &'a FactoryMeta,
   pub diagnostics: &'a mut Vec<Diagnostic>,
+  pub create_data: Option<NormalModuleAfterResolveCreateData>,
 }
 
 #[derive(Debug)]
