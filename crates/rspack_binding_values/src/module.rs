@@ -1,6 +1,6 @@
-use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rspack_core::Module;
+use rspack_napi::napi::bindgen_prelude::*;
 
 use super::{JsCompatSource, ToJsCompatSource};
 use crate::{JsBuildTimeExecutionOption, JsChunk, JsCodegenerationResults};

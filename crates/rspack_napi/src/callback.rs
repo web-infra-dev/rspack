@@ -10,9 +10,14 @@ struct DeferredData<Resolver: FnOnce(Env)> {
   resolver: Resolver,
 }
 
+struct JsCallbackInfo {
+  ref_count: RwLock<u32>,
+  aborted: RwLock<bool>,
+}
+
 pub struct JsCallback<Resolver: FnOnce(Env)> {
   tsfn: sys::napi_threadsafe_function,
-  ref_count: Arc<RwLock<u32>>,
+  callback_info: Arc<JsCallbackInfo>,
   _resolver: PhantomData<Resolver>,
 }
 
@@ -45,7 +50,10 @@ impl<Resolver: FnOnce(Env)> JsCallback<Resolver> {
     )?;
 
     let mut tsfn = ptr::null_mut();
-    let ref_count: Arc<RwLock<u32>> = Arc::new(RwLock::new(1));
+    let callback_info = Arc::new(JsCallbackInfo {
+      ref_count: RwLock::new(1),
+      aborted: RwLock::new(false),
+    });
     check_status!(
       unsafe {
         sys::napi_create_threadsafe_function(
@@ -55,7 +63,7 @@ impl<Resolver: FnOnce(Env)> JsCallback<Resolver> {
           async_resource_name,
           0,
           1,
-          Arc::into_raw(ref_count.clone()) as _,
+          Arc::into_raw(callback_info.clone()) as _,
           Some(napi_js_finalize_cb),
           ptr::null_mut(),
           Some(napi_js_callback::<Resolver>),
@@ -69,7 +77,7 @@ impl<Resolver: FnOnce(Env)> JsCallback<Resolver> {
 
     let deferred = Self {
       tsfn,
-      ref_count,
+      callback_info,
       _resolver: PhantomData,
     };
 
@@ -101,14 +109,14 @@ impl<Resolver: FnOnce(Env)> JsCallback<Resolver> {
 
 impl<Resolver: FnOnce(Env)> Clone for JsCallback<Resolver> {
   fn clone(&self) -> Self {
-    self.ref_count.with_write(|count| {
+    self.callback_info.ref_count.with_write(|count| {
       if *count == 0 {
         panic!("JsCallback was destroyed and not able to clone");
       }
       *count += 1;
       Self {
         tsfn: self.tsfn,
-        ref_count: self.ref_count.clone(),
+        callback_info: self.callback_info.clone(),
         _resolver: self._resolver,
       }
     })
@@ -117,9 +125,11 @@ impl<Resolver: FnOnce(Env)> Clone for JsCallback<Resolver> {
 
 impl<Resolver: FnOnce(Env)> Drop for JsCallback<Resolver> {
   fn drop(&mut self) {
-    self.ref_count.with_write(|count| {
+    self.callback_info.ref_count.with_write(|count| {
       if *count > 0 {
-        if *count == 1 {
+        // napi finalize maybe called before drop, so we need to check if it's already aborted.
+        let aborted = self.callback_info.aborted.with_read(|aborted| *aborted);
+        if *count == 1 && !aborted {
           let status = unsafe {
             sys::napi_release_threadsafe_function(
               self.tsfn,
@@ -142,7 +152,8 @@ extern "C" fn napi_js_finalize_cb(
   finalize_data: *mut c_void,
   _finalize_hint: *mut c_void,
 ) {
-  unsafe { Arc::<RwLock<u32>>::from_raw(finalize_data.cast()) };
+  let callback_info = unsafe { Arc::<JsCallbackInfo>::from_raw(finalize_data.cast()) };
+  callback_info.aborted.with_write(|aborted| *aborted = true);
 }
 
 extern "C" fn napi_js_callback<Resolver: FnOnce(Env)>(

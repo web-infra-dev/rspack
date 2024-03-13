@@ -1,10 +1,10 @@
-use napi::bindgen_prelude::Buffer;
-use napi::{
+use napi_derive::napi;
+use rspack_core::{Stats, StatsUsedExports};
+use rspack_napi::napi::bindgen_prelude::Buffer;
+use rspack_napi::napi::{
   bindgen_prelude::{Result, SharedReference},
   Either,
 };
-use napi_derive::napi;
-use rspack_core::{Stats, StatsUsedExports};
 
 use super::{JsCompilation, ToJsCompatSource};
 
