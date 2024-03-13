@@ -3,7 +3,7 @@ members  = ["crates/*"]
 resolver = "2"          # See https://doc.rust-lang.org/cargo/reference/resolver.html#feature-resolver-version-2
 
 [workspace.dependencies]
-anyhow             = { version = "1.0.80", features = ["backtrace"] }
+anyhow             = { version = "1.0.81", features = ["backtrace"] }
 async-recursion    = { version = "1.0.5" }
 async-scoped       = { version = "0.9.0" }
 async-trait        = { version = "0.1.77" }
@@ -31,11 +31,10 @@ paste              = { version = "1.0" }
 path-clean         = { version = "1.0.1" }
 pathdiff           = { version = "0.2.1" }
 preset_env_base    = { version = "0.4.11" }
-proc-macro2        = { version = "1.0.78" }
+proc-macro2        = { version = "1.0.79" }
 quote              = { version = "1.0.35" }
 rayon              = { version = "1.9.0" }
 regex              = { version = "1.10.3" }
-rkyv               = { version = "=0.7.42" }
 rspack_sources     = { version = "=0.2.12" }
 rustc-hash         = { version = "1.1.0" }
 schemars           = { version = "0.8.16" }
@@ -71,6 +70,7 @@ swc_error_reporters = { version = "=0.17.14" }
 swc_html            = { version = "=0.136.7" }
 swc_html_minifier   = { version = "=0.133.7" }
 swc_node_comments   = { version = "=0.20.14" }
+rkyv                = { version = "=0.7.42" } # synced with swc wasm plugin
 
 [profile.dev]
 codegen-units = 16      # debug build will cause runtime panic if codegen-unints is default
