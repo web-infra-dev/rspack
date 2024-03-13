@@ -7,7 +7,7 @@ use crate::{DependencyCondition, DependencyId, ModuleGraph, ModuleIdentifier, Ru
 pub static CONNECTION_ID: AtomicU32 = AtomicU32::new(0);
 
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]
-pub struct ConnectionId(pub u32);
+pub struct ConnectionId(u32);
 
 impl ConnectionId {
   pub fn new() -> Self {
