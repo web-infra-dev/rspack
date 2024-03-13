@@ -31,7 +31,7 @@ use swc_node_comments::SwcComments;
 
 use crate::{
   define_es_module_flag_statement, filter_runtime, impl_source_map_config, merge_runtime_condition,
-  merge_runtime_condition_non_false, module_graph, property_access, property_name,
+  merge_runtime_condition_non_false, property_access, property_name,
   reserved_names::RESERVED_NAMES, returning_function, runtime_condition_expression,
   subtract_runtime_condition, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext,
   BuildInfo, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, BuildResult,
@@ -900,7 +900,7 @@ impl Module for ConcatenatedModule {
     // dbg!(&root_module_id);
     // dbg!(&exports_info);
 
-    for (name, export_info_id) in exports_info.exports.iter() {
+    for (_, export_info_id) in exports_info.exports.iter() {
       let export_info = export_info_id.get_export_info(compilation.get_module_graph());
       // dbg!(&name, export_info);
       let name = export_info.name.clone().unwrap_or("".into());
@@ -1468,7 +1468,7 @@ impl ConcatenatedModule {
           module, self.root_module_ctxt.id,
         );
       }
-      let imports = self.get_concatenated_imports(&module, &root_module, runtime, mg);
+      let imports = self.get_concatenated_imports(module, &root_module, runtime, mg);
       for import in imports {
         self.enter_module(
           root_module,
@@ -1534,8 +1534,7 @@ impl ConcatenatedModule {
         .module_by_identifier(&self.id)
         .expect("should have module");
       for c in mg.get_outgoing_connections(self_module) {
-        // dbg!(&c);
-        connections.push(c.clone());
+        connections.push(*c);
       }
     }
 
@@ -1994,7 +1993,6 @@ impl ConcatenatedModule {
         let export_id = export_name.first().cloned();
         let export_info = export_info_id.get_export_info(mg);
         if matches!(export_info.provided, Some(crate::ExportInfoProvided::False)) {
-          dbg!(&info.module);
           needed_namespace_objects.insert(info.module);
           return Binding::Raw(RawBinding {
             raw_name: info

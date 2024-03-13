@@ -252,7 +252,7 @@ impl ChunkGraph {
         } else {
           let connection_hash = process_module_graph_module(
             module_graph
-              .module_by_identifier(&connection.module_identifier())
+              .module_by_identifier(connection.module_identifier())
               .unwrap_or_else(|| {
                 panic!(
                   "Module({}) should be added before using",

@@ -176,7 +176,7 @@ impl ExportsInfoId {
       if let Some(target_key) = target_key {
         export_info.set_target(
           Some(target_key),
-          target_module.clone(),
+          target_module,
           export_info
             .name
             .clone()
@@ -193,7 +193,7 @@ impl ExportsInfoId {
         can_mangle,
         exclude_exports,
         target_key,
-        target_module.clone(),
+        target_module,
         priority,
       );
       if flag {
@@ -976,7 +976,7 @@ impl ExportInfoId {
       .get_max_target(self)
       .values()
       .map(|item| UnResolvedExportInfoTarget {
-        connection: item.connection.clone(),
+        connection: item.connection,
         export: item.export.clone(),
       })
       .collect::<Vec<_>>();

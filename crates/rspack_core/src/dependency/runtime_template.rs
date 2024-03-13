@@ -5,7 +5,6 @@ use rustc_hash::FxHashSet as HashSet;
 use serde_json::json;
 use swc_core::ecma::atoms::Atom;
 
-use crate::dependency::dependency_id;
 use crate::{
   compile_boolean_matcher_from_lists, get_import_var, property_access, to_comment,
   to_normal_comment, AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, DependenciesBlock,
@@ -196,17 +195,6 @@ pub fn export_from_import(
         };
         Cow::Owned(used)
       } else {
-        dbg!(&id);
-        let dep = id.get_dependency(compilation.get_module_graph());
-        dbg!(&request, &runtime, &export_name);
-        dbg!(compilation
-          .get_module_graph()
-          .module_identifier_by_dependency_id(&id));
-        // let exports_info = exports_info_id.get_exports_info(compilation.get_module_graph());
-        // for e in exports_info.exports.iter() {
-        //   dbg!(e.1.get_export_info(compilation.get_module_graph()));
-        // }
-
         return format!(
           "{} undefined",
           to_normal_comment(&property_access(&export_name, 0))
@@ -286,14 +274,6 @@ pub fn module_id(
   } else if weak {
     "null /* weak dependency, without id */".to_string()
   } else {
-    // dbg!(&compilation.options.context);
-    dbg!(
-      &compilation
-        .get_module_graph()
-        .module_identifier_by_dependency_id(id),
-      request
-    );
-    // dbg!(&compilation.module_graph.dependency_id_to_module_identifier);
     missing_module(request)
   }
 }
