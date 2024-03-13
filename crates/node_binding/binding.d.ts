@@ -1292,7 +1292,7 @@ export interface RegisterJsTaps {
   registerCompilerCompilationTaps: (stages: Array<number>) => Array<{ function: ((compilation: JsCompilation) => void); stage: number; }>
   registerCompilerMakeTaps: (stages: Array<number>) => Array<{ function: ((compilation: JsCompilation) => Promise<void>); stage: number; }>
   registerCompilationProcessAssetsTaps: (stages: Array<number>) => Array<{ function: ((compilation: JsCompilation) => Promise<void>); stage: number; }>
-  registerNormalModuleFactoryBeforeResovleTaps: (stages: Array<number>) => Array<{ function: ((compilation: JsBeforeResolveArgs) => Promise<void>); stage: number; }>
+  registerNormalModuleFactoryBeforeResolveTaps: (stages: Array<number>) => Array<{ function: ((compilation: JsBeforeResolveArgs) => Promise<void>); stage: number; }>
 }
 
 /** Builtin loader runner */

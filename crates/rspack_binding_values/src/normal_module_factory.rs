@@ -21,6 +21,8 @@ pub struct JsBeforeResolveArgs {
   pub context: String,
 }
 
+pub type JsBeforeResolveOutput = (Option<bool>, JsBeforeResolveArgs);
+
 #[napi(object)]
 pub struct AfterResolveData {
   pub request: String,

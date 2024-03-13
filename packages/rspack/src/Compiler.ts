@@ -280,7 +280,7 @@ class Compiler {
 					() => this.compilation.hooks.processAssets,
 					queried => async () => await queried.promise(this.compilation.assets)
 				),
-				registerNormalModuleFactoryBeforeResovleTaps: this.#createRegisterTaps(
+				registerNormalModuleFactoryBeforeResolveTaps: this.#createRegisterTaps(
 					() => this.compilation.normalModuleFactory!.hooks.beforeResolve,
 					queried => async (resolveData: binding.JsBeforeResolveArgs) => {
 						const normalizedResolveData = {

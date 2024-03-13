@@ -3,7 +3,7 @@ use napi::{
   bindgen_prelude::{FromNapiValue, Promise, ToNapiValue},
   Env, JsFunction, NapiRaw,
 };
-use rspack_binding_values::{JsBeforeResolveArgs, JsCompilation};
+use rspack_binding_values::{JsBeforeResolveArgs, JsBeforeResolveOutput, JsCompilation};
 use rspack_core::{
   BeforeResolveArgs, Compilation, CompilationParams, CompilationProcessAssetsHook,
   CompilerCompilationHook, CompilerMakeHook, MakeParam, NormalModuleFactoryBeforeResolveHook,
@@ -64,9 +64,9 @@ pub struct RegisterJsTaps {
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((compilation: JsBeforeResolveArgs) => Promise<void>); stage: number; }>"
   )]
-  pub register_normal_module_factory_before_resovle_taps: ThreadsafeFunction<
+  pub register_normal_module_factory_before_resolve_taps: ThreadsafeFunction<
     Vec<i32>,
-    Vec<ThreadsafeJsTap<JsBeforeResolveArgs, Promise<(Option<bool>, JsBeforeResolveArgs)>>>,
+    Vec<ThreadsafeJsTap<JsBeforeResolveArgs, Promise<JsBeforeResolveOutput>>>,
   >,
 }
 
@@ -279,7 +279,7 @@ impl Interceptor<NormalModuleFactoryBeforeResolveHook> for RegisterJsTaps {
     let mut used_stages = Vec::from_iter(hook.used_stages());
     used_stages.sort();
     let js_taps = self
-      .register_normal_module_factory_before_resovle_taps
+      .register_normal_module_factory_before_resolve_taps
       .call_with_sync(used_stages)
       .await?;
     let js_taps = js_taps
