@@ -132,11 +132,6 @@ export interface AfterResolveData {
   factoryMeta: FactoryMeta
 }
 
-export interface BeforeResolveData {
-  request: string
-  context: string
-}
-
 export interface BuiltinPlugin {
   name: BuiltinPluginName
   options: unknown
@@ -259,6 +254,11 @@ export interface JsAssetInfoRelated {
   sourceMap?: string
 }
 
+export interface JsBeforeResolveArgs {
+  request: string
+  context: string
+}
+
 export interface JsBuildTimeExecutionOption {
   publicPath?: string
   baseUri?: string
@@ -347,9 +347,8 @@ export interface JsHooks {
   finishMake: (compilation: JsCompilation) => void
   buildModule: (module: JsModule) => void
   chunkAsset: (asset: JsChunkAssetArgs) => void
-  beforeResolve: (data: BeforeResolveData) => Promise<(boolean | void | BeforeResolveData)[]>
   afterResolve: (data: AfterResolveData) => Promise<boolean | void>
-  contextModuleFactoryBeforeResolve: (data: BeforeResolveData) => Promise<boolean | void>
+  contextModuleFactoryBeforeResolve: (data: JsBeforeResolveArgs) => Promise<boolean | void>
   contextModuleFactoryAfterResolve: (data: AfterResolveData) => Promise<boolean | void>
   normalModuleFactoryCreateModule: (data: CreateModuleData) => void
   normalModuleFactoryResolveForScheme: (data: JsResolveForSchemeInput) => Promise<JsResolveForSchemeResult>
@@ -1290,9 +1289,10 @@ export interface RawTrustedTypes {
 export function registerGlobalTrace(filter: string, layer: "chrome" | "logger", output: string): void
 
 export interface RegisterJsTaps {
-  registerCompilerCompilationTaps: (arg: Array<number>) => any
-  registerCompilerMakeTaps: (arg: Array<number>) => any
-  registerCompilationProcessAssetsTaps: (arg: Array<number>) => any
+  registerCompilerCompilationTaps: (stages: Array<number>) => Array<{ function: ((compilation: JsCompilation) => void); stage: number; }>
+  registerCompilerMakeTaps: (stages: Array<number>) => Array<{ function: ((compilation: JsCompilation) => Promise<void>); stage: number; }>
+  registerCompilationProcessAssetsTaps: (stages: Array<number>) => Array<{ function: ((compilation: JsCompilation) => Promise<void>); stage: number; }>
+  registerNormalModuleFactoryBeforeResolveTaps: (stages: Array<number>) => Array<{ function: ((compilation: JsBeforeResolveArgs) => Promise<void>); stage: number; }>
 }
 
 /** Builtin loader runner */

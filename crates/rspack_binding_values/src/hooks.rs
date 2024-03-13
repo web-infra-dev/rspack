@@ -2,7 +2,7 @@ use napi_derive::napi;
 use rspack_napi_shared::new_tsfn::ThreadsafeFunction;
 
 use crate::{
-  AfterResolveData, BeforeResolveData, CreateModuleData, JsAssetEmittedArgs, JsChunkAssetArgs,
+  AfterResolveData, CreateModuleData, JsAssetEmittedArgs, JsBeforeResolveArgs, JsChunkAssetArgs,
   JsCompilation, JsExecuteModuleArg, JsModule, JsResolveForSchemeInput, JsResolveForSchemeResult,
   JsRuntimeModule, JsRuntimeModuleArg,
 };
@@ -41,12 +41,10 @@ pub struct JsHooks {
   pub build_module: ThreadsafeFunction<JsModule, ()>, // TODO
   #[napi(ts_type = "(asset: JsChunkAssetArgs) => void")]
   pub chunk_asset: ThreadsafeFunction<JsChunkAssetArgs, ()>,
-  #[napi(ts_type = "(data: BeforeResolveData) => Promise<(boolean | void | BeforeResolveData)[]>")]
-  pub before_resolve: ThreadsafeFunction<BeforeResolveData, (Option<bool>, BeforeResolveData)>,
   #[napi(ts_type = "(data: AfterResolveData) => Promise<boolean | void>")]
   pub after_resolve: ThreadsafeFunction<AfterResolveData, Option<bool>>,
-  #[napi(ts_type = "(data: BeforeResolveData) => Promise<boolean | void>")]
-  pub context_module_factory_before_resolve: ThreadsafeFunction<BeforeResolveData, Option<bool>>,
+  #[napi(ts_type = "(data: JsBeforeResolveArgs) => Promise<boolean | void>")]
+  pub context_module_factory_before_resolve: ThreadsafeFunction<JsBeforeResolveArgs, Option<bool>>,
   #[napi(ts_type = "(data: AfterResolveData) => Promise<boolean | void>")]
   pub context_module_factory_after_resolve: ThreadsafeFunction<AfterResolveData, Option<bool>>,
   #[napi(ts_type = "(data: CreateModuleData) => void")]
