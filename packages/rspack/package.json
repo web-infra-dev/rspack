@@ -43,7 +43,7 @@
     "@types/ws": "8.5.10",
     "babel-loader": "^9.1.0",
     "babel-plugin-import": "^1.13.5",
-    "copy-webpack-plugin": "5.1.2",
+    "copy-webpack-plugin": "5",
     "cross-env": "^7.0.3",
     "file-loader": "^6.2.0",
     "glob": "^10.3.10",

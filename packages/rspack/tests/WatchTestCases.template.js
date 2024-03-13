@@ -5,7 +5,7 @@ require("./helpers/warmup-webpack");
 const path = require("path");
 const fs = require("graceful-fs");
 const vm = require("vm");
-const rimraf = require("rimraf");
+const { rimraf } = require("rimraf");
 const checkArrayExpectation = require("./checkArrayExpectation");
 const createLazyTestEnv = require("./helpers/createLazyTestEnv");
 const { remove } = require("./helpers/remove");
@@ -109,7 +109,8 @@ const describeCases = config => {
 							.map(name => ({ name }));
 
 						beforeAll(done => {
-							rimraf(tempDirectory, done);
+							rimraf.sync(tempDirectory);
+							done();
 						});
 
 						it(

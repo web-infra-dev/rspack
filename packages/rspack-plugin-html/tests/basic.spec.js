@@ -3,7 +3,7 @@
 const path = require("path");
 const fs = require("fs");
 const { rspack } = require("@rspack/core");
-const rimraf = require("rimraf");
+const { rimraf } = require("rimraf");
 const _ = require("lodash");
 const { default: HtmlWebpackPlugin, defaultTemplateCompiler } = require("../");
 
@@ -158,7 +158,8 @@ describe("HtmlWebpackPlugin", () => {
 	jest.setTimeout(process.env.CI ? 120000 : 10000);
 
 	beforeEach(done => {
-		rimraf(OUTPUT_DIR, done);
+		rimraf.sync(OUTPUT_DIR);
+		done();
 	});
 
 	it("generates a default index.html file for a single entry point", done => {

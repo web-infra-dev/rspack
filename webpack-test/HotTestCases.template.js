@@ -5,7 +5,7 @@ require("./helpers/warmup-webpack");
 const path = require("path");
 const fs = require("graceful-fs");
 const vm = require("vm");
-const rimraf = require("rimraf");
+const { rimraf } = require("rimraf");
 const checkArrayExpectation = require("./checkArrayExpectation");
 const createLazyTestEnv = require("./helpers/createLazyTestEnv");
 const { normalizeFilteredTestName } = require("./lib/util/filterUtil");

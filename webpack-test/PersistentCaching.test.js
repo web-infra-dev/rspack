@@ -3,7 +3,7 @@
 const path = require("path");
 const util = require("util");
 const fs = require("fs");
-const rimraf = require("rimraf");
+const { rimraf } = require("rimraf");
 const vm = require("vm");
 
 const readdir = util.promisify(fs.readdir);

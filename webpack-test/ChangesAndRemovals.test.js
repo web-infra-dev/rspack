@@ -5,7 +5,7 @@
 const path = require("path");
 const { createFsFromVolume, Volume } = require("memfs");
 const fs = require("graceful-fs");
-const rimraf = require("rimraf");
+const { rimraf } = require("rimraf");
 
 const createCompiler = config => {
 	const webpack = require("@rspack/core").rspack;

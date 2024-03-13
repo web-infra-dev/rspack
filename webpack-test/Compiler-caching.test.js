@@ -4,7 +4,7 @@
 
 const path = require("path");
 const fs = require("graceful-fs");
-const rimraf = require("rimraf");
+const { rimraf } = require("rimraf");
 
 let fixtureCount = 0;
 

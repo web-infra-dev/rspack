@@ -3,7 +3,7 @@
 const path = require("path");
 const child_process = require("child_process");
 const fs = require("fs");
-const rimraf = require("rimraf");
+const { rimraf } = require("rimraf");
 
 const cacheDirectory = path.resolve(__dirname, "js/buildDepsCache");
 const outputDirectory = path.resolve(__dirname, "js/buildDeps");

@@ -58,7 +58,7 @@
       "matchManagers": ["npm"],
       "matchDepTypes": ["devDependencies"],
       "excludePackagePrefixes": ["webpack"],
-      "excludePackageNames": ["@playwright/test", "react", "react-dom", "typescript", "pnpm"]
+      "excludePackageNames": ["@playwright/test", "react", "react-dom", "typescript", "pnpm", "copy-webpack-plugin", "internal-ip", "execa", "sass-loader"]
     },
     {
       "groupName": "npm dependencies",
@@ -69,7 +69,7 @@
     {
       "groupName": "npm ignored dependencies",
       "matchManagers": ["npm"],
-      "matchPackageNames": ["@playwright/test", "react", "react-dom", "typescript", "pnpm"],
+      "matchPackageNames": ["@playwright/test", "react", "react-dom", "typescript", "pnpm", "copy-webpack-plugin", "internal-ip", "execa", "sass-loader"],
       "enabled": false
     },
     {
