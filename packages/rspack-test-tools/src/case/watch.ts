@@ -57,13 +57,13 @@ const creator = new WatchCaseCreator({
 						stepName: run.name,
 						tempDir: temp!,
 						runable: true
-				  })
+					})
 				: new RspackWatchStepProcessor({
 						name,
 						stepName: run.name,
 						tempDir: temp!,
 						runable: true
-				  })
+					})
 		);
 	}
 });
