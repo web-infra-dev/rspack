@@ -620,12 +620,6 @@ export interface RawAliasOptionItem {
   redirect: Array<string | false>
 }
 
-export interface RawAssetGeneratorDataUrl {
-  type: "options"| "function"
-  options?: RawAssetGeneratorDataUrlOptions
-  function?: (options: { content: string, filename: string }) => string
-}
-
 export interface RawAssetGeneratorDataUrlFnArgs {
   filename: string
   content: string
@@ -639,11 +633,11 @@ export interface RawAssetGeneratorDataUrlOptions {
 export interface RawAssetGeneratorOptions {
   filename?: string
   publicPath?: string
-  dataUrl?: RawAssetGeneratorDataUrl
+  dataUrl?: RawAssetGeneratorDataUrlOptions | ((arg: RawAssetGeneratorDataUrlFnArgs) => string)
 }
 
 export interface RawAssetInlineGeneratorOptions {
-  dataUrl?: RawAssetGeneratorDataUrl
+  dataUrl?: RawAssetGeneratorDataUrlOptions | ((arg: RawAssetGeneratorDataUrlFnArgs) => string)
 }
 
 export interface RawAssetParserDataUrl {

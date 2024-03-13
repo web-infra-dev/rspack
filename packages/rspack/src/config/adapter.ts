@@ -8,7 +8,6 @@ import type {
 	RawParserOptions,
 	RawAssetParserOptions,
 	RawAssetParserDataUrl,
-	RawAssetGeneratorDataUrl,
 	RawAssetInlineGeneratorOptions,
 	RawAssetResourceGeneratorOptions,
 	RawModuleRuleUses,
@@ -670,26 +669,19 @@ function getRawAssetResourceGeneratorOptions(
 	};
 }
 
-function getRawAssetGeneratorDataUrl(
-	dataUrl: AssetGeneratorDataUrl
-): RawAssetGeneratorDataUrl {
+function getRawAssetGeneratorDataUrl(dataUrl: AssetGeneratorDataUrl) {
 	if (typeof dataUrl === "object" && dataUrl !== null) {
+		const encoding = dataUrl.encoding === false ? "false" : dataUrl.encoding;
 		return {
-			type: "options",
-			options: {
-				encoding: dataUrl.encoding === false ? "false" : dataUrl.encoding,
-				mimetype: dataUrl.mimetype
-			}
-		};
+			encoding,
+			mimetype: dataUrl.mimetype
+		} as const;
 	}
 	if (typeof dataUrl === "function" && dataUrl !== null) {
-		return {
-			type: "function",
-			function: dataUrl
-		};
+		return dataUrl;
 	}
 	throw new Error(
-		`unreachable: AssetGeneratorDataUrl type should be one of "options", but got ${dataUrl}`
+		`unreachable: AssetGeneratorDataUrl type should be one of "options", "function", but got ${dataUrl}`
 	);
 }
 
