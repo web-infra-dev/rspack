@@ -556,8 +556,8 @@ class Compiler {
 				(hook.taps
 					? !hook.isUsed()
 					: hook._map
-					? /* hook map */ hook._map.size === 0
-					: false)
+						? /* hook map */ hook._map.size === 0
+						: false)
 			) {
 				disabledHooks.push(name);
 			}

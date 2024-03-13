@@ -2,8 +2,9 @@ use std::sync::Arc;
 
 use napi::{bindgen_prelude::Either3, JsString};
 use rspack_binding_values::JsChunk;
-use rspack_napi_shared::new_tsfn::ThreadsafeFunction;
-use rspack_napi_shared::{JsRegExp, JsRegExpExt, JsStringExt};
+use rspack_napi::regexp::{JsRegExp, JsRegExpExt};
+use rspack_napi::string::JsStringExt;
+use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use tokio::runtime::Handle;
 
 pub type Chunks = Either3<JsRegExp, JsString, ThreadsafeFunction<JsChunk, bool>>;

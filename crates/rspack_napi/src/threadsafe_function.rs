@@ -9,9 +9,10 @@ use napi::{
   threadsafe_function::{
     ErrorStrategy, ThreadsafeFunction as RawThreadsafeFunction, ThreadsafeFunctionCallMode,
   },
-  Either, Env, JsUnknown, NapiRaw, ValueType,
+  Either, Env, JsUnknown, NapiRaw, Status, ValueType,
 };
 use rspack_error::{miette::IntoDiagnostic, Error, Result};
+use tokio::sync::oneshot::Receiver;
 
 use crate::{JsCallback, NapiErrorExt};
 
@@ -65,7 +66,7 @@ impl<T: 'static, R> ThreadsafeFunction<T, R> {
     rx.await.expect("failed to resolve js error")
   }
 
-  async fn call_async<D: 'static + FromNapiValue>(&self, value: T) -> Result<D> {
+  fn call_with_return<D: 'static + FromNapiValue>(&self, value: T) -> Receiver<Result<D>> {
     let (tx, rx) = tokio::sync::oneshot::channel::<Result<D>>();
     let env = self.env;
     self
@@ -81,17 +82,40 @@ impl<T: 'static, R> ThreadsafeFunction<T, R> {
           Ok(())
         }
       });
+    rx
+  }
+
+  async fn call_async<D: 'static + FromNapiValue>(&self, value: T) -> Result<D> {
+    let rx = self.call_with_return(value);
     rx.await.expect("failed to receive tsfn value")
+  }
+
+  fn blocking_call<D: 'static + FromNapiValue>(&self, value: T) -> Result<D> {
+    let rx = self.call_with_return(value);
+    rx.blocking_recv().expect("failed to receive tsfn value")
+  }
+}
+
+impl<T: 'static, R> ThreadsafeFunction<T, R> {
+  /// Synchronously call JS function and report error as `uncaughtException`.
+  /// See: [napi_create_threadsafe_function](https://nodejs.org/dist/latest/docs/api/n-api.html#napi_create_threadsafe_function)
+  pub fn call_with_fatal(&self, value: T) {
+    let status = self
+      .inner
+      .call(value, ThreadsafeFunctionCallMode::NonBlocking);
+    debug_assert_eq!(status, Status::Ok, "failed to call tsfn with fatal")
   }
 }
 
 impl<T: 'static, R: 'static + FromNapiValue> ThreadsafeFunction<T, R> {
   /// Call the JS function.
   pub async fn call_with_sync(&self, value: T) -> Result<R> {
-    match self.call_async::<R>(value).await {
-      Ok(r) => Ok(r),
-      Err(err) => Err(err),
-    }
+    self.call_async::<R>(value).await
+  }
+
+  /// Call the JS function with blocking.
+  pub fn blocking_call_with_sync(&self, value: T) -> Result<R> {
+    self.blocking_call::<R>(value)
   }
 }
 
@@ -102,7 +126,7 @@ impl<T: 'static, R: 'static + FromNapiValue + ValidateNapiValue> ThreadsafeFunct
   /// Otherwise, if `T` is returned, it will be returned as-is.
   ///
   /// ## Warning
-  /// This method is *NOT* recommended to be used in most cases. It makes return value ambiguous.
+  /// This method is **NOT** recommended to be used in most cases. It makes return value ambiguous.
   pub async fn call(&self, value: T) -> Result<R> {
     match self.call_async::<Either<Promise<R>, R>>(value).await {
       Ok(Either::A(r)) => match r.await {
