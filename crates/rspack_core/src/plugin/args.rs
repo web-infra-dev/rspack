@@ -82,11 +82,6 @@ pub struct NormalModuleCreateData<'a> {
   pub diagnostics: &'a mut Vec<Diagnostic>,
 }
 
-#[derive(Debug, Clone)]
-pub struct NormalModuleBeforeResolveArgs {
-  pub request: String,
-  pub context: String,
-}
 #[derive(Debug)]
 pub struct NormalModuleAfterResolveArgs<'a> {
   pub request: &'a str,

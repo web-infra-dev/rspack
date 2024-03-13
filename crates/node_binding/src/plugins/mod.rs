@@ -18,7 +18,7 @@ use rspack_core::{
   ApplyContext, BuildTimeExecutionOption, Chunk, ChunkAssetArgs, CompilerOptions, ModuleIdentifier,
   NormalModuleAfterResolveArgs, PluginContext, RuntimeModule,
 };
-use rspack_core::{NormalModuleBeforeResolveArgs, PluginNormalModuleFactoryAfterResolveOutput};
+use rspack_core::{BeforeResolveArgs, PluginNormalModuleFactoryAfterResolveOutput};
 use rspack_core::{
   NormalModuleCreateData, PluginNormalModuleFactoryBeforeResolveOutput,
   PluginNormalModuleFactoryCreateModuleHookOutput, ResourceData,
@@ -81,6 +81,11 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
       .compilation_hooks
       .process_assets
       .intercept(self.interceptor.clone());
+    ctx
+      .context
+      .normal_module_factory_hooks
+      .before_resolve
+      .intercept(self.interceptor.clone());
     Ok(())
   }
 
@@ -114,24 +119,6 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
       .await
   }
 
-  async fn before_resolve(
-    &self,
-    _ctx: rspack_core::PluginContext,
-    args: &mut NormalModuleBeforeResolveArgs,
-  ) -> PluginNormalModuleFactoryBeforeResolveOutput {
-    if self.is_hook_disabled(&Hook::BeforeResolve) {
-      return Ok(None);
-    }
-    match self.hooks.before_resolve.call(args.clone().into()).await {
-      Ok((ret, resolve_data)) => {
-        args.request = resolve_data.request;
-        args.context = resolve_data.context;
-        Ok(ret)
-      }
-      Err(err) => Err(err),
-    }
-  }
-
   async fn after_resolve(
     &self,
     _ctx: rspack_core::PluginContext,
@@ -146,7 +133,7 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
   async fn context_module_before_resolve(
     &self,
     _ctx: rspack_core::PluginContext,
-    args: &mut NormalModuleBeforeResolveArgs,
+    args: &mut BeforeResolveArgs,
   ) -> PluginNormalModuleFactoryBeforeResolveOutput {
     if self.is_hook_disabled(&Hook::ContextModuleFactoryBeforeResolve) {
       return Ok(None);

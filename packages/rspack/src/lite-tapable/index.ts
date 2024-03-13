@@ -3,7 +3,7 @@ type FixedSizeArray<T extends number, U> = T extends 0
 	: ReadonlyArray<U> & {
 			0: U;
 			length: T;
-		};
+	  };
 type Measure<T extends number> = T extends 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8
 	? T
 	: never;
@@ -70,7 +70,7 @@ export interface HookInterceptor<
 
 type ArgumentNames<T extends any[]> = FixedSizeArray<T["length"], string>;
 
-class Hook<T, R, AdditionalOptions = UnsetAdditionalOptions> {
+export class Hook<T, R, AdditionalOptions = UnsetAdditionalOptions> {
 	args?: ArgumentNames<AsArray<T>>;
 	name?: string;
 	taps: (FullTap & IfSet<AdditionalOptions>)[];
@@ -134,6 +134,14 @@ class Hook<T, R, AdditionalOptions = UnsetAdditionalOptions> {
 		for (const interceptor of this.interceptors) {
 			if (interceptor.done) {
 				interceptor.done();
+			}
+		}
+	}
+
+	_runResultInterceptors(r: R) {
+		for (const interceptor of this.interceptors) {
+			if (interceptor.result) {
+				interceptor.result(r);
 			}
 		}
 	}
@@ -555,6 +563,120 @@ export class AsyncSeriesHook<
 				if (!hasError) {
 					index += 1;
 					if (index === tapsInRange.length) {
+						done();
+					} else {
+						next();
+					}
+				}
+			}
+			if (index === tapsInRange.length) return;
+		};
+		next();
+	}
+
+	tapAsync(
+		options: Options<AdditionalOptions>,
+		fn: FnWithCallback<T, void>
+	): void {
+		this._tap("async", options, fn);
+	}
+
+	tapPromise(options: Options<AdditionalOptions>, fn: Fn<T, void>): void {
+		this._tap("promise", options, fn);
+	}
+}
+
+export class AsyncSeriesBailHook<
+	T,
+	R,
+	AdditionalOptions = UnsetAdditionalOptions
+> extends Hook<T, R, AdditionalOptions> {
+	callAsyncStageRange(
+		queried: QueriedHook<T, R, AdditionalOptions>,
+		...args: Append<AsArray<T>, Callback<Error, R>>
+	) {
+		const {
+			stageRange: [from, to],
+			tapsInRange
+		} = queried;
+		const args2 = [...args];
+		const cb = args2.pop() as Callback<Error, R>;
+		if (from === minStage) {
+			this._runCallInterceptors(...args2);
+		}
+		const done = () => {
+			this._runDoneInterceptors();
+			cb(null);
+		};
+		const error = (e: Error) => {
+			this._runErrorInterceptors(e);
+			cb(e);
+		};
+		const result = (r: R) => {
+			this._runResultInterceptors(r);
+			cb(null, r);
+		};
+		if (tapsInRange.length === 0) return done();
+		let index = 0;
+		const next = () => {
+			const tap = tapsInRange[index];
+			this._runTapInterceptors(tap);
+			if (tap.type === "promise") {
+				const promise = tap.fn(...args2);
+				if (!promise || !promise.then) {
+					throw new Error(
+						"Tap function (tapPromise) did not return promise (returned " +
+							promise +
+							")"
+					);
+				}
+				promise.then(
+					(r: R) => {
+						index += 1;
+						if (r !== undefined) {
+							result(r);
+						} else if (index === tapsInRange.length) {
+							done();
+						} else {
+							next();
+						}
+					},
+					(e: Error) => {
+						index = tapsInRange.length;
+						error(e);
+					}
+				);
+			} else if (tap.type === "async") {
+				tap.fn(...args2, (e: Error, r: R) => {
+					if (e) {
+						index = tapsInRange.length;
+						error(e);
+					} else {
+						index += 1;
+						if (r !== undefined) {
+							result(r);
+						} else if (index === tapsInRange.length) {
+							done();
+						} else {
+							next();
+						}
+					}
+				});
+			} else {
+				let hasError = false;
+				let r = undefined;
+				try {
+					r = tap.fn(...args2);
+				} catch (e) {
+					hasError = true;
+					index = tapsInRange.length;
+					error(e as Error);
+				}
+				if (!hasError) {
+					index += 1;
+					if (r !== undefined) {
+						result(r);
+					} else if (index === tapsInRange.length) {
 						done();
 					} else {
 						next();

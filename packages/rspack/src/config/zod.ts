@@ -568,7 +568,22 @@ export type AssetGeneratorDataUrlOptions = z.infer<
 	typeof assetGeneratorDataUrlOptions
 >;
 
-const assetGeneratorDataUrl = assetGeneratorDataUrlOptions;
+const assetGeneratorDataUrlFunction = z
+	.function()
+	.args(
+		z.strictObject({
+			content: z.string(),
+			filename: z.string()
+		})
+	)
+	.returns(z.string());
+export type AssetGeneratorDataUrlFunction = z.infer<
+	typeof assetGeneratorDataUrlFunction
+>;
+
+const assetGeneratorDataUrl = assetGeneratorDataUrlOptions.or(
+	assetGeneratorDataUrlFunction
+);
 export type AssetGeneratorDataUrl = z.infer<typeof assetGeneratorDataUrl>;
 
 const assetInlineGeneratorOptions = z.strictObject({

@@ -4,11 +4,11 @@ use rspack_error::{error, Result};
 use tracing::instrument;
 
 use crate::{
-  cache::Cache, resolve, BoxModule, ContextModule, ContextModuleOptions, DependencyCategory,
-  ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier,
-  NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs,
-  PluginNormalModuleFactoryAfterResolveOutput, RawModule, ResolveArgs,
-  ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory, SharedPluginDriver,
+  cache::Cache, resolve, BeforeResolveArgs, BoxModule, ContextModule, ContextModuleOptions,
+  DependencyCategory, ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult,
+  ModuleIdentifier, NormalModuleAfterResolveArgs, PluginNormalModuleFactoryAfterResolveOutput,
+  RawModule, ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult, Resolver,
+  ResolverFactory, SharedPluginDriver,
 };
 
 #[derive(Debug)]
@@ -57,7 +57,7 @@ impl ContextModuleFactory {
       .dependency
       .as_context_dependency_mut()
       .expect("should be module dependency");
-    let mut before_resolve_args = NormalModuleBeforeResolveArgs {
+    let mut before_resolve_args = BeforeResolveArgs {
       request: dependency.request().to_string(),
       context: data.context.to_string(),
     };
