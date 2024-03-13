@@ -116,6 +116,7 @@ pub struct SourceMapDevToolPluginOptions {
   pub test: Option<TestFn>,
 }
 
+#[allow(dead_code)]
 enum SourceMappingUrlComment {
   String(String),
   Fn(AppendFn),

@@ -458,7 +458,7 @@ pub(crate) mod test {
 
     let c2 = Arc::new(Composed) as Arc<dyn Loader<()>>;
     let ident2 = c2.identifier();
-    let l = vec![l, c2.into()];
+    let l = [l, c2.into()];
     let ll = LoaderItemList(&l[..]);
     assert_eq!(ll.to_string(), ident1.to_string() + "!" + ident2.as_str());
   }
