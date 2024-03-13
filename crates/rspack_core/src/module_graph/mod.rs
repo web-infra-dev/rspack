@@ -168,21 +168,16 @@ impl ModuleGraph {
     let mut add_outgoing_connection = vec![];
     let mut delete_outgoing_connection = vec![];
     for connection_id in old_mgm.outgoing_connections().clone().into_iter() {
-      let connection = self
-        .connection_by_connection_id(&connection_id)
-        .cloned()
-        .expect("should have connection");
+      let connection = match self.connection_by_connection_id(&connection_id) {
+        Some(con) => con,
+        // removed
+        None => continue,
+      };
       if filter_connection(&connection, &*self) {
         let connection = self
           .connection_by_connection_id_mut(&connection_id)
           .expect("should have connection");
         connection.original_module_identifier = Some(*new_module);
-        // dbg!(&self.dependency_id_to_parents.get(&connection.dependency_id));
-        // let new_connection_id = self.clone_module_graph_connection(
-        //   &connection,
-        //   Some(*new_module),
-        //   connection.module_identifier,
-        // );
         add_outgoing_connection.push(connection_id);
         delete_outgoing_connection.push(connection_id);
       }
@@ -211,9 +206,10 @@ impl ModuleGraph {
     let mut add_incoming_connection = vec![];
     let mut delete_incoming_connection = vec![];
     for connection_id in old_mgm.incoming_connections().clone().into_iter() {
-      let connection = self
-        .connection_by_connection_id(&connection_id)
-        .expect("should have connection");
+      let connection = match self.connection_by_connection_id(&connection_id) {
+        Some(con) => con,
+        None => continue,
+      };
       // the inactive connection should not be updated
       if filter_connection(connection, &*self) && (connection.conditional || connection.active) {
         // let new_connection_id = self.clone_module_graph_connection(
@@ -235,17 +231,6 @@ impl ModuleGraph {
         self
           .dependency_id_to_module_identifier
           .insert(dep_id, *new_module);
-        // TODO: recover
-        // let dep_id = connection.dependency_id;
-        // // dbg!(&dep_id.get_dependency(self).get_ids(self));
-        // let dep = dep_id.get_dependency(self);
-        // dep.dependency_debug_name() != "HarmonyExportImportedSpecifierDependency"
-        // if dep.dependency_debug_name() != "HarmonyImportSpecifierDependency" {
-        // }
-        //   .downcast_ref::<HarmonyExportImportedSpecifierDependency>()
-        //   .is_some();
-        // let is_valid_import_specifier_dep = dep
-        //   .downcast_ref::<HarmonyImportSpecifierDependency>()
         add_incoming_connection.push(connection_id);
         delete_incoming_connection.push(connection_id);
       }
@@ -340,14 +325,12 @@ impl ModuleGraph {
         });
 
       mgm.add_incoming_connection(new_connection.id);
-      mgm.remove_incoming_connection(&old_con.id);
     }
 
     if let Some(identifier) = original_module_identifier
       && let Some(original_mgm) = self.module_graph_module_by_identifier_mut(&identifier)
     {
       original_mgm.add_outgoing_connection(new_connection.id);
-      original_mgm.remove_incoming_connection(&old_con.id);
     };
     new_connection.id
   }
