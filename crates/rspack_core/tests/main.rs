@@ -1,7 +1,7 @@
 use std::{marker::PhantomData, sync::Arc};
 
-use rspack_core_macros::impl_runtime_module;
 use rspack_identifier::Identifier;
+use rspack_macros::impl_runtime_module;
 use rspack_sources::Source;
 
 #[test]

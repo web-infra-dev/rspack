@@ -31,7 +31,6 @@ rayon = { workspace = true }
 regex = { workspace = true }
 rkyv = { workspace = true, features = ["indexmap", "validation"] }
 rspack_ast = { path = "../rspack_ast" }
-rspack_core_macros = { path = "../rspack_core_macros" }
 rspack_database = { path = "../rspack_database", features = ["rayon"] }
 rspack_error = { path = "../rspack_error" }
 rspack_fs = { path = "../rspack_fs", features = ["async", "rspack-error"] }
@@ -40,6 +39,7 @@ rspack_hash = { path = "../rspack_hash" }
 rspack_hook = { path = "../rspack_hook" }
 rspack_identifier = { path = "../rspack_identifier" }
 rspack_loader_runner = { path = "../rspack_loader_runner" }
+rspack_macros = { path = "../rspack_macros" }
 rspack_regex = { path = "../rspack_regex" }
 rspack_sources = { workspace = true }
 rspack_swc_visitors = { path = "../rspack_swc_visitors" }

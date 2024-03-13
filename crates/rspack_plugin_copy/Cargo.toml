@@ -12,7 +12,6 @@ rspack_testing = { path = "../rspack_testing" }
 testing_macros = { workspace = true }
 
 [dependencies]
-async-trait    = { workspace = true }
 dashmap        = { workspace = true }
 glob           = { workspace = true }
 lazy_static    = "1.4.0"

@@ -9,7 +9,6 @@ version    = "0.1.0"
 
 [dependencies]
 async-recursion = { workspace = true }
-async-trait     = { workspace = true }
 futures         = { workspace = true }
 once_cell       = { workspace = true }
 regex           = { workspace = true }

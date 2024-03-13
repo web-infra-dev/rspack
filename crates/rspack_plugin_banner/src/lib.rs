@@ -1,12 +1,8 @@
 #![feature(let_chains)]
 
-use std::{
-  fmt::{self, Debug},
-  sync::Arc,
-};
+use std::fmt::{self, Debug};
 
 use async_recursion::async_recursion;
-use async_trait::async_trait;
 use futures::future::BoxFuture;
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -15,7 +11,7 @@ use rspack_core::{
   to_comment, Chunk, Compilation, Filename, Logger, PathData, Plugin,
 };
 use rspack_error::Result;
-use rspack_hook::AsyncSeries;
+use rspack_hook::{plugin, plugin_hook, AsyncSeries};
 use rspack_regex::RspackRegex;
 use rspack_util::try_any_sync;
 
@@ -136,25 +132,17 @@ fn wrap_comment(str: &str) -> String {
   format!("/*!\n * {}\n */", result)
 }
 
+#[plugin]
 #[derive(Debug)]
 pub struct BannerPlugin {
-  inner: Arc<BannerPluginInner>,
+  config: BannerPluginOptions,
 }
 
 impl BannerPlugin {
   pub fn new(config: BannerPluginOptions) -> Self {
-    Self {
-      inner: Arc::new(BannerPluginInner { config }),
-    }
+    Self::new_inner(config)
   }
-}
 
-#[derive(Debug)]
-struct BannerPluginInner {
-  config: BannerPluginOptions,
-}
-
-impl BannerPluginInner {
   fn wrap_comment(&self, value: &str) -> String {
     if let Some(true) = self.config.raw {
       value.to_owned()
@@ -186,78 +174,67 @@ impl BannerPluginInner {
   }
 }
 
-struct BannerPluginProcessAssetsHook {
-  inner: Arc<BannerPluginInner>,
-}
+#[plugin_hook(AsyncSeries<Compilation> for BannerPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONS)]
+async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+  let logger = compilation.get_logger("rspack.BannerPlugin");
+  let start = logger.time("add banner");
+  let mut updates = vec![];
 
-#[async_trait]
-impl AsyncSeries<Compilation> for BannerPluginProcessAssetsHook {
-  async fn run(&self, compilation: &mut Compilation) -> Result<()> {
-    let inner = &self.inner;
-    let logger = compilation.get_logger("rspack.BannerPlugin");
-    let start = logger.time("add banner");
-    let mut updates = vec![];
+  // filter file
+  for chunk in compilation.chunk_by_ukey.values() {
+    let can_be_initial = chunk.can_be_initial(&compilation.chunk_group_by_ukey);
 
-    // filter file
-    for chunk in compilation.chunk_by_ukey.values() {
-      let can_be_initial = chunk.can_be_initial(&compilation.chunk_group_by_ukey);
+    if let Some(entry_only) = self.config.entry_only
+      && entry_only
+      && !can_be_initial
+    {
+      continue;
+    }
 
-      if let Some(entry_only) = inner.config.entry_only
-        && entry_only
-        && !can_be_initial
-      {
+    for file in &chunk.files {
+      let is_match = match_object(&self.config, file).await.unwrap_or(false);
+
+      if !is_match {
         continue;
       }
-
-      for file in &chunk.files {
-        let is_match = match_object(&inner.config, file).await.unwrap_or(false);
-
-        if !is_match {
-          continue;
+      // add comment to the matched file
+      let hash = compilation
+        .hash
+        .as_ref()
+        .expect("should have compilation.hash in process_assets hook")
+        .encoded()
+        .to_owned();
+      // todo: support placeholder, such as [fullhash]、[chunkhash]
+      let banner = match &self.config.banner {
+        BannerContent::String(content) => self.wrap_comment(content),
+        BannerContent::Fn(func) => {
+          let res = func(BannerContentFnCtx {
+            hash: &hash,
+            chunk,
+            filename: file,
+          })
+          .await?;
+          self.wrap_comment(&res)
         }
-        // add comment to the matched file
-        let hash = compilation
-          .hash
-          .as_ref()
-          .expect("should have compilation.hash in process_assets hook")
-          .encoded()
-          .to_owned();
-        // todo: support placeholder, such as [fullhash]、[chunkhash]
-        let banner = match &inner.config.banner {
-          BannerContent::String(content) => inner.wrap_comment(content),
-          BannerContent::Fn(func) => {
-            let res = func(BannerContentFnCtx {
-              hash: &hash,
-              chunk,
-              filename: file,
-            })
-            .await?;
-            inner.wrap_comment(&res)
-          }
-        };
-        let comment = compilation.get_path(
-          &Filename::from(banner),
-          PathData::default().chunk(chunk).hash(&hash).filename(file),
-        );
-        updates.push((file.clone(), comment));
-      }
+      };
+      let comment = compilation.get_path(
+        &Filename::from(banner),
+        PathData::default().chunk(chunk).hash(&hash).filename(file),
+      );
+      updates.push((file.clone(), comment));
     }
-
-    for (file, comment) in updates {
-      let _res = compilation.update_asset(file.as_str(), |old, info| {
-        let new = inner.update_source(comment, old, inner.config.footer);
-        Ok((new, info))
-      });
-    }
-
-    logger.time_end(start);
-
-    Ok(())
   }
 
-  fn stage(&self) -> i32 {
-    Compilation::PROCESS_ASSETS_STAGE_ADDITIONS
+  for (file, comment) in updates {
+    let _res = compilation.update_asset(file.as_str(), |old, info| {
+      let new = self.update_source(comment, old, self.config.footer);
+      Ok((new, info))
+    });
   }
+
+  logger.time_end(start);
+
+  Ok(())
 }
 
 impl Plugin for BannerPlugin {
@@ -274,9 +251,7 @@ impl Plugin for BannerPlugin {
       .context
       .compilation_hooks
       .process_assets
-      .tap(Box::new(BannerPluginProcessAssetsHook {
-        inner: self.inner.clone(),
-      }));
+      .tap(process_assets::new(self));
     Ok(())
   }
 }

@@ -2,7 +2,7 @@
 [package]
 edition    = "2021"
 license    = "MIT"
-name       = "rspack_core_macros"
+name       = "rspack_macros"
 repository = "https://github.com/web-infra-dev/rspack"
 version    = "0.1.0"
 
@@ -11,4 +11,7 @@ proc-macro = true
 
 [dependencies]
 quote = { workspace = true }
-syn   = { workspace = true }
+syn   = { workspace = true, features = ["full"] }
+
+[dev-dependencies]
+trybuild = { version = "1.0.89", features = ["diff"] }
