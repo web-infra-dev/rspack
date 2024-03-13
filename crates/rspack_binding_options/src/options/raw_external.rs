@@ -5,8 +5,8 @@ use napi::bindgen_prelude::Either4;
 use napi_derive::napi;
 use rspack_core::ExternalItemFnCtx;
 use rspack_core::{ExternalItem, ExternalItemFnResult, ExternalItemValue};
-use rspack_napi_shared::new_tsfn::ThreadsafeFunction;
-use rspack_napi_shared::{JsRegExp, JsRegExpExt};
+use rspack_napi::regexp::{JsRegExp, JsRegExpExt};
+use rspack_napi::threadsafe_function::ThreadsafeFunction;
 
 #[napi(object)]
 pub struct RawHttpExternalsRspackPluginOptions {

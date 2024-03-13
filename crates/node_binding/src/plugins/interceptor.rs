@@ -9,7 +9,7 @@ use rspack_core::{
   CompilerCompilationHook, CompilerMakeHook, MakeParam, NormalModuleFactoryBeforeResolveHook,
 };
 use rspack_hook::{AsyncSeries, AsyncSeries2, AsyncSeriesBail, Hook, Interceptor};
-use rspack_napi_shared::new_tsfn::ThreadsafeFunction;
+use rspack_napi::threadsafe_function::ThreadsafeFunction;
 
 #[napi(object)]
 pub struct JsTap {

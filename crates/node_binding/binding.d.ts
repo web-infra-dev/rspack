@@ -63,7 +63,7 @@ export class JsStats {
 }
 
 export class Rspack {
-  constructor(options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, jsHooks: JsHooks, registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, jsLoaderRunner: (...args: any[]) => any)
+  constructor(options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, jsHooks: JsHooks, registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, jsLoaderRunner: (ctx: JsLoaderContext) => Promise<JsLoaderResult | void>)
   unsafe_set_disabled_hooks(hooks: Array<string>): void
   /**
    * Build with the given option passed to the constructor
@@ -194,7 +194,8 @@ export enum BuiltinPluginName {
   HtmlRspackPlugin = 'HtmlRspackPlugin',
   SwcJsMinimizerRspackPlugin = 'SwcJsMinimizerRspackPlugin',
   SwcCssMinimizerRspackPlugin = 'SwcCssMinimizerRspackPlugin',
-  BundlerInfoRspackPlugin = 'BundlerInfoRspackPlugin'
+  BundlerInfoRspackPlugin = 'BundlerInfoRspackPlugin',
+  JsLoaderRunnerRspackPlugin = 'JsLoaderRunnerRspackPlugin'
 }
 
 export function cleanupGlobalTrace(): void
@@ -400,6 +401,23 @@ export interface JsLoaderContext {
   diagnosticsExternal: ExternalObject<'Diagnostic[]'>
   _moduleIdentifier: string
   hot: boolean
+}
+
+/** Only for dts generation */
+export interface JsLoaderResult {
+  /** Content in pitching stage can be empty */
+  content?: Buffer
+  fileDependencies: Array<string>
+  contextDependencies: Array<string>
+  missingDependencies: Array<string>
+  buildDependencies: Array<string>
+  assetFilenames: Array<string>
+  sourceMap?: Buffer
+  additionalData?: Buffer
+  additionalDataExternal: ExternalObject<'AdditionalData'>
+  cacheable: boolean
+  /** Used to instruct how rust loaders should execute */
+  isPitching: boolean
 }
 
 export interface JsModule {
@@ -1299,10 +1317,10 @@ export interface RegisterJsTaps {
 export function runBuiltinLoader(builtin: string, options: string | undefined | null, loaderContext: JsLoaderContext): Promise<JsLoaderContext>
 
 export interface ThreadsafeNodeFS {
-  writeFile: (...args: any[]) => any
-  removeFile: (...args: any[]) => any
-  mkdir: (...args: any[]) => any
-  mkdirp: (...args: any[]) => any
-  removeDirAll: (...args: any[]) => any
+  writeFile: (name: string, content: Buffer) => void
+  removeFile: (name: string) => void
+  mkdir: (name: string) => void
+  mkdirp: (name: string) => string | void
+  removeDirAll: (name: string) => string | void
 }
 

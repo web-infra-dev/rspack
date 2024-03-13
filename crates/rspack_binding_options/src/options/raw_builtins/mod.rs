@@ -16,7 +16,7 @@ use rspack_ids::{
   DeterministicChunkIdsPlugin, DeterministicModuleIdsPlugin, NamedChunkIdsPlugin,
   NamedModuleIdsPlugin,
 };
-use rspack_napi_shared::NapiResultExt;
+use rspack_napi::NapiResultExt;
 use rspack_plugin_asset::AssetPlugin;
 use rspack_plugin_banner::BannerPlugin;
 use rspack_plugin_copy::{CopyRspackPlugin, CopyRspackPluginOptions};
@@ -138,6 +138,10 @@ pub enum BuiltinPluginName {
   SwcJsMinimizerRspackPlugin,
   SwcCssMinimizerRspackPlugin,
   BundlerInfoRspackPlugin,
+
+  // rspack js adapter plugins
+  // naming format follow XxxRspackPlugin
+  JsLoaderRunnerRspackPlugin,
 }
 
 #[napi(object)]
@@ -393,13 +397,15 @@ impl BuiltinPlugin {
           .boxed(),
         )
       }
+      // rspack js adapter plugins
+      BuiltinPluginName::JsLoaderRunnerRspackPlugin => unreachable!(),
     }
     Ok(())
   }
 }
 
 fn downcast_into<T: FromNapiValue + 'static>(o: JsUnknown) -> Result<T> {
-  rspack_napi_shared::downcast_into(o).into_rspack_result()
+  rspack_napi::downcast_into(o).into_rspack_result()
 }
 
 // TO BE DEPRECATED

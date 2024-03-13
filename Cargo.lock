@@ -3021,10 +3021,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rspack_binding_macros"
-version = "0.1.0"
-
-[[package]]
 name = "rspack_binding_options"
 version = "0.1.0"
 dependencies = [
@@ -3034,7 +3030,6 @@ dependencies = [
  "glob",
  "napi",
  "napi-derive",
- "rspack_binding_macros",
  "rspack_binding_values",
  "rspack_core",
  "rspack_error",
@@ -3043,7 +3038,7 @@ dependencies = [
  "rspack_loader_react_refresh",
  "rspack_loader_runner",
  "rspack_loader_swc",
- "rspack_napi_shared",
+ "rspack_napi",
  "rspack_plugin_asset",
  "rspack_plugin_banner",
  "rspack_plugin_copy",
@@ -3091,12 +3086,10 @@ dependencies = [
  "futures",
  "napi",
  "napi-derive",
- "napi-sys",
- "rspack_binding_macros",
  "rspack_core",
  "rspack_error",
  "rspack_identifier",
- "rspack_napi_shared",
+ "rspack_napi",
  "rustc-hash",
 ]
 
@@ -3200,7 +3193,7 @@ dependencies = [
  "napi-build",
  "napi-derive",
  "rspack_fs",
- "rspack_napi_shared",
+ "rspack_napi",
 ]
 
 [[package]]
@@ -3322,7 +3315,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "rspack_napi_shared"
+name = "rspack_napi"
 version = "0.1.0"
 dependencies = [
  "napi",
@@ -3348,7 +3341,7 @@ dependencies = [
  "rspack_error",
  "rspack_fs_node",
  "rspack_hook",
- "rspack_napi_shared",
+ "rspack_napi",
  "rspack_tracing",
  "testing_macros",
  "tikv-jemallocator",

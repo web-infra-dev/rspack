@@ -19,8 +19,8 @@ use rspack_core::{
 use rspack_error::error;
 use rspack_loader_react_refresh::REACT_REFRESH_LOADER_IDENTIFIER;
 use rspack_loader_swc::SWC_LOADER_IDENTIFIER;
-use rspack_napi_shared::new_tsfn::ThreadsafeFunction;
-use rspack_napi_shared::{JsRegExp, JsRegExpExt};
+use rspack_napi::regexp::{JsRegExp, JsRegExpExt};
+use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use serde::Deserialize;
 
 pub use self::js_loader::JsLoaderAdapter;

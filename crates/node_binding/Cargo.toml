@@ -20,7 +20,7 @@ rspack_core            = { path = "../rspack_core" }
 rspack_error           = { path = "../rspack_error" }
 rspack_fs_node         = { path = "../rspack_fs_node" }
 rspack_hook            = { path = "../rspack_hook" }
-rspack_napi_shared     = { path = "../rspack_napi_shared" }
+rspack_napi            = { path = "../rspack_napi" }
 rspack_tracing         = { path = "../rspack_tracing" }
 tokio                  = { workspace = true, features = ["rt", "rt-multi-thread"] }
 

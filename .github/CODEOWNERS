@@ -31,7 +31,6 @@ pnpm-lock.yaml
 /crates/rspack @h-a-n-a
 /crates/rspack_ast_viewer @h-a-n-a
 /crates/rspack_base64 @h-a-n-a
-/crates/rspack_binding_macros @h-a-n-a
 /crates/rspack_binding_options @web-infra-dev/rspack-dx
 /crates/rspack_core @web-infra-dev/rspack-ux
 /crates/rspack_database @hyf0

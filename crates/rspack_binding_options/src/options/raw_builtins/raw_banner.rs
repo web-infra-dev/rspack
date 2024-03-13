@@ -3,7 +3,10 @@ use napi::Either;
 use napi_derive::napi;
 use rspack_binding_values::JsChunk;
 use rspack_error::Result;
-use rspack_napi_shared::{new_tsfn::ThreadsafeFunction, JsRegExp, JsRegExpExt};
+use rspack_napi::{
+  regexp::{JsRegExp, JsRegExpExt},
+  threadsafe_function::ThreadsafeFunction,
+};
 use rspack_plugin_banner::{
   BannerContent, BannerContentFnCtx, BannerPluginOptions, BannerRule, BannerRules,
 };
