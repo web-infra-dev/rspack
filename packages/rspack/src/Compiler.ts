@@ -11,8 +11,9 @@ import * as binding from "@rspack/binding";
 import { rspack } from "./index";
 import fs from "fs";
 import * as tapable from "tapable";
+import * as liteTapable from "./lite-tapable";
 import { Callback, SyncBailHook, SyncHook } from "tapable";
-import type { WatchOptions } from "watchpack";
+import { WatchOptions } from "./config";
 import {
 	EntryNormalized,
 	OutputNormalized,
@@ -25,7 +26,6 @@ import { Compilation, CompilationParams } from "./Compilation";
 import { ContextModuleFactory } from "./ContextModuleFactory";
 import ResolverFactory from "./ResolverFactory";
 import { getRawOptions } from "./config";
-import { LoaderContext, LoaderResult } from "./config/adapterRuleUse";
 import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
 import { createThreadsafeNodeFSFromRaw } from "./fileSystem";
 import Cache from "./lib/Cache";
@@ -34,7 +34,6 @@ import { runLoaders } from "./loader-runner";
 import { Logger } from "./logging/Logger";
 import { NormalModuleFactory } from "./NormalModuleFactory";
 import { WatchFileSystem } from "./util/fs";
-import { getScheme } from "./util/scheme";
 import { checkVersion } from "./util/bindingVersionCheck";
 import { Watching } from "./Watching";
 import { NormalModule } from "./NormalModule";
@@ -48,15 +47,13 @@ import { RuntimeGlobals } from "./RuntimeGlobals";
 import { tryRunOrWebpackError } from "./lib/HookWebpackError";
 import { CodeGenerationResult } from "./Module";
 import { canInherentFromParent } from "./builtin-plugin/base";
-import { CreateModuleData } from "@rspack/binding";
 import ExecuteModulePlugin from "./ExecuteModulePlugin";
 
 class Compiler {
 	#instance?: binding.Rspack;
 
 	webpack = rspack;
-	// @ts-expect-error
-	compilation: Compilation;
+	compilation!: Compilation;
 	// TODO: remove this after remove rebuild on the rust side.
 	first: boolean = true;
 	builtinPlugins: binding.BuiltinPlugin[];
@@ -71,11 +68,9 @@ class Compiler {
 	inputFileSystem: any;
 	outputFileSystem: typeof import("fs");
 	ruleSet: RuleSetCompiler;
-	// @ts-expect-error
-	watchFileSystem: WatchFileSystem;
+	watchFileSystem!: WatchFileSystem;
 	intermediateFileSystem: any;
-	// @ts-expect-error
-	watchMode: boolean;
+	watchMode?: boolean;
 	context: string;
 	modifiedFiles?: ReadonlySet<string>;
 	cache: Cache;
@@ -90,7 +85,7 @@ class Compiler {
 		done: tapable.AsyncSeriesHook<Stats>;
 		afterDone: tapable.SyncHook<Stats>;
 		// TODO: CompilationParams
-		compilation: tapable.SyncHook<[Compilation, CompilationParams]>;
+		compilation: liteTapable.SyncHook<[Compilation, CompilationParams]>;
 		// TODO: CompilationParams
 		thisCompilation: tapable.SyncHook<[Compilation, CompilationParams]>;
 		invalid: tapable.SyncHook<[string | null, number]>;
@@ -99,7 +94,7 @@ class Compiler {
 		contextModuleFactory: tapable.SyncHook<ContextModuleFactory>;
 		initialize: tapable.SyncHook<[]>;
 		shouldEmit: tapable.SyncBailHook<[Compilation], boolean>;
-		infrastructureLog: tapable.SyncBailHook<[string, string, any[]], true>;
+		infrastructureLog: tapable.SyncBailHook<[string, string, any[]?], true>;
 		beforeRun: tapable.AsyncSeriesHook<[Compiler]>;
 		run: tapable.AsyncSeriesHook<[Compiler]>;
 		emit: tapable.AsyncSeriesHook<[Compilation]>;
@@ -113,7 +108,7 @@ class Compiler {
 		afterEnvironment: tapable.SyncHook<[]>;
 		afterPlugins: tapable.SyncHook<[Compiler]>;
 		afterResolvers: tapable.SyncHook<[Compiler]>;
-		make: tapable.AsyncParallelHook<[Compilation]>;
+		make: liteTapable.AsyncParallelHook<[Compilation]>;
 		beforeCompile: tapable.AsyncSeriesHook<any>;
 		afterCompile: tapable.AsyncSeriesHook<[Compilation]>;
 		finishModules: tapable.AsyncSeriesHook<[any]>;
@@ -154,7 +149,7 @@ class Compiler {
 				"compilation",
 				"params"
 			]),
-			compilation: new tapable.SyncHook<[Compilation, CompilationParams]>([
+			compilation: new liteTapable.SyncHook<[Compilation, CompilationParams]>([
 				"compilation",
 				"params"
 			]),
@@ -175,7 +170,7 @@ class Compiler {
 			afterEnvironment: new tapable.SyncHook([]),
 			afterPlugins: new tapable.SyncHook(["compiler"]),
 			afterResolvers: new tapable.SyncHook(["compiler"]),
-			make: new tapable.AsyncParallelHook(["compilation"]),
+			make: new liteTapable.AsyncParallelHook(["compilation"]),
 			beforeCompile: new tapable.AsyncSeriesHook(["params"]),
 			afterCompile: new tapable.AsyncSeriesHook(["compilation"]),
 			finishMake: new tapable.AsyncSeriesHook(["compilation"]),
@@ -225,8 +220,7 @@ class Compiler {
 		// TODO: remove this when drop support for builtins options
 		options.builtins = deprecated_resolveBuiltins(
 			options.builtins,
-			options,
-			this
+			options
 		) as any;
 		const rawOptions = getRawOptions(options, this);
 
@@ -243,70 +237,6 @@ class Compiler {
 				emit: this.#emit.bind(this),
 				assetEmitted: this.#assetEmitted.bind(this),
 				afterEmit: this.#afterEmit.bind(this),
-				processAssetsStageAdditional: this.#processAssets.bind(
-					this,
-					Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL
-				),
-				processAssetsStagePreProcess: this.#processAssets.bind(
-					this,
-					Compilation.PROCESS_ASSETS_STAGE_PRE_PROCESS
-				),
-				processAssetsStageDerived: this.#processAssets.bind(
-					this,
-					Compilation.PROCESS_ASSETS_STAGE_DERIVED
-				),
-				processAssetsStageAdditions: this.#processAssets.bind(
-					this,
-					Compilation.PROCESS_ASSETS_STAGE_ADDITIONS
-				),
-				processAssetsStageNone: this.#processAssets.bind(
-					this,
-					Compilation.PROCESS_ASSETS_STAGE_NONE
-				),
-				processAssetsStageOptimize: this.#processAssets.bind(
-					this,
-					Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE
-				),
-				processAssetsStageOptimizeCount: this.#processAssets.bind(
-					this,
-					Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_COUNT
-				),
-				processAssetsStageOptimizeCompatibility: this.#processAssets.bind(
-					this,
-					Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_COMPATIBILITY
-				),
-				processAssetsStageOptimizeSize: this.#processAssets.bind(
-					this,
-					Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE
-				),
-				processAssetsStageDevTooling: this.#processAssets.bind(
-					this,
-					Compilation.PROCESS_ASSETS_STAGE_DEV_TOOLING
-				),
-				processAssetsStageOptimizeInline: this.#processAssets.bind(
-					this,
-					Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE
-				),
-				processAssetsStageSummarize: this.#processAssets.bind(
-					this,
-					Compilation.PROCESS_ASSETS_STAGE_SUMMARIZE
-				),
-				processAssetsStageOptimizeHash: this.#processAssets.bind(
-					this,
-					Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_HASH
-				),
-				processAssetsStageOptimizeTransfer: this.#processAssets.bind(
-					this,
-					Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_TRANSFER
-				),
-				processAssetsStageAnalyse: this.#processAssets.bind(
-					this,
-					Compilation.PROCESS_ASSETS_STAGE_ANALYSE
-				),
-				processAssetsStageReport: this.#processAssets.bind(
-					this,
-					Compilation.PROCESS_ASSETS_STAGE_REPORT
-				),
 				afterProcessAssets: this.#afterProcessAssets.bind(this),
 				// `Compilation` should be created with hook `thisCompilation`, and here is the reason:
 				// We know that the hook `thisCompilation` will not be called from a child compiler(it doesn't matter whether the child compiler is created on the Rust or the Node side).
@@ -327,13 +257,21 @@ class Compiler {
 				afterResolve: this.#afterResolve.bind(this),
 				contextModuleFactoryBeforeResolve:
 					this.#contextModuleFactoryBeforeResolve.bind(this),
+				contextModuleFactoryAfterResolve:
+					this.#contextModuleFactoryAfterResolve.bind(this),
 				succeedModule: this.#succeedModule.bind(this),
 				stillValidModule: this.#stillValidModule.bind(this),
 				buildModule: this.#buildModule.bind(this),
 				executeModule: this.#executeModule.bind(this),
 				runtimeModule: this.#runtimeModule.bind(this)
 			},
-			this.#collectCompilerHooks(),
+			{
+				registerCompilerCompilationTaps:
+					this.#registerCompilerCompilationTaps.bind(this),
+				registerCompilerMakeTaps: this.#registerCompilerMakeTaps.bind(this),
+				registerCompilationProcessAssetsTaps:
+					this.#registerCompilationProcessAssetsTaps.bind(this)
+			},
 			createThreadsafeNodeFSFromRaw(this.outputFileSystem),
 			runLoaders.bind(undefined, this)
 		);
@@ -487,7 +425,6 @@ class Compiler {
 					}
 				} else {
 					if (
-						// @ts-expect-error
 						this.hooks.infrastructureLog.call(name, type, args) === undefined
 					) {
 						if (this.infrastructureLogger !== undefined) {
@@ -499,8 +436,7 @@ class Compiler {
 			(childName): any => {
 				if (typeof name === "function") {
 					if (typeof childName === "function") {
-						// @ts-expect-error
-						return this.getInfrastructureLogger(_ => {
+						return this.getInfrastructureLogger(() => {
 							if (typeof name === "function") {
 								name = name();
 								if (!name) {
@@ -564,70 +500,6 @@ class Compiler {
 			emit: this.hooks.emit,
 			assetEmitted: this.hooks.assetEmitted,
 			afterEmit: this.hooks.afterEmit,
-			processAssetsStageAdditional:
-				this.compilation.__internal_getProcessAssetsHookByStage(
-					Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL
-				),
-			processAssetsStagePreProcess:
-				this.compilation.__internal_getProcessAssetsHookByStage(
-					Compilation.PROCESS_ASSETS_STAGE_PRE_PROCESS
-				),
-			processAssetsStageDerived:
-				this.compilation.__internal_getProcessAssetsHookByStage(
-					Compilation.PROCESS_ASSETS_STAGE_DERIVED
-				),
-			processAssetsStageAdditions:
-				this.compilation.__internal_getProcessAssetsHookByStage(
-					Compilation.PROCESS_ASSETS_STAGE_ADDITIONS
-				),
-			processAssetsStageNone:
-				this.compilation.__internal_getProcessAssetsHookByStage(
-					Compilation.PROCESS_ASSETS_STAGE_NONE
-				),
-			processAssetsStageOptimize:
-				this.compilation.__internal_getProcessAssetsHookByStage(
-					Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE
-				),
-			processAssetsStageOptimizeCount:
-				this.compilation.__internal_getProcessAssetsHookByStage(
-					Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_COUNT
-				),
-			processAssetsStageOptimizeCompatibility:
-				this.compilation.__internal_getProcessAssetsHookByStage(
-					Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_COMPATIBILITY
-				),
-			processAssetsStageOptimizeSize:
-				this.compilation.__internal_getProcessAssetsHookByStage(
-					Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE
-				),
-			processAssetsStageDevTooling:
-				this.compilation.__internal_getProcessAssetsHookByStage(
-					Compilation.PROCESS_ASSETS_STAGE_DEV_TOOLING
-				),
-			processAssetsStageOptimizeInline:
-				this.compilation.__internal_getProcessAssetsHookByStage(
-					Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE
-				),
-			processAssetsStageSummarize:
-				this.compilation.__internal_getProcessAssetsHookByStage(
-					Compilation.PROCESS_ASSETS_STAGE_SUMMARIZE
-				),
-			processAssetsStageOptimizeHash:
-				this.compilation.__internal_getProcessAssetsHookByStage(
-					Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_HASH
-				),
-			processAssetsStageOptimizeTransfer:
-				this.compilation.__internal_getProcessAssetsHookByStage(
-					Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_TRANSFER
-				),
-			processAssetsStageAnalyse:
-				this.compilation.__internal_getProcessAssetsHookByStage(
-					Compilation.PROCESS_ASSETS_STAGE_ANALYSE
-				),
-			processAssetsStageReport:
-				this.compilation.__internal_getProcessAssetsHookByStage(
-					Compilation.PROCESS_ASSETS_STAGE_REPORT
-				),
 			afterProcessAssets: this.compilation.hooks.afterProcessAssets,
 			optimizeTree: this.compilation.hooks.optimizeTree,
 			finishModules: this.compilation.hooks.finishModules,
@@ -645,6 +517,8 @@ class Compiler {
 			optimizeChunkModules: this.compilation.hooks.optimizeChunkModules,
 			contextModuleFactoryBeforeResolve:
 				this.compilation.contextModuleFactory?.hooks.beforeResolve,
+			contextModuleFactoryAfterResolve:
+				this.compilation.contextModuleFactory?.hooks.afterResolve,
 			normalModuleFactoryCreateModule:
 				this.compilation.normalModuleFactory?.hooks.createModule,
 			normalModuleFactoryResolveForScheme:
@@ -656,7 +530,7 @@ class Compiler {
 			if (
 				typeof hook !== "undefined" &&
 				(hook.taps
-					? hook.taps.length === 0
+					? !hook.isUsed()
 					: hook._map
 					? /* hook map */ hook._map.size === 0
 					: false)
@@ -696,13 +570,6 @@ class Compiler {
 	async #buildModule(module: binding.JsModule) {
 		const normalized = normalizeJsModule(module);
 		this.compilation.hooks.buildModule.call(normalized);
-		this.#updateDisabledHooks();
-	}
-
-	async #processAssets(stage: number) {
-		await this.compilation
-			.__internal_getProcessAssetsHookByStage(stage)
-			.promise(this.compilation.assets);
 		this.#updateDisabledHooks();
 	}
 
@@ -757,6 +624,18 @@ class Compiler {
 	) {
 		let res =
 			await this.compilation.contextModuleFactory?.hooks.beforeResolve.promise(
+				resourceData
+			);
+
+		this.#updateDisabledHooks();
+		return res;
+	}
+
+	async #contextModuleFactoryAfterResolve(
+		resourceData: binding.AfterResolveData
+	) {
+		let res =
+			await this.compilation.contextModuleFactory?.hooks.afterResolve.promise(
 				resourceData
 			);
 
@@ -959,39 +838,81 @@ class Compiler {
 		this.#moduleExecutionResultsMap.set(id, executeResult);
 	}
 
-	#collectCompilerHooks(): binding.JsHook[] {
-		return [
-			...this.#createCompilerCompilationHooks(),
-			...this.#createCompilerMakeHooks()
-		];
+	#decorateUpdateDisabledHooks(jsTaps: binding.JsTap[]) {
+		if (jsTaps.length > 0) {
+			const last = jsTaps[jsTaps.length - 1];
+			const old = last.function;
+			last.function = async () => {
+				await old();
+				this.#updateDisabledHooks();
+			};
+		}
 	}
 
-	#createCompilerCompilationHooks(): binding.JsHook[] {
+	#registerCompilerCompilationTaps(stages: number[]): binding.JsTap[] {
 		if (!this.hooks.compilation.isUsed()) return [];
-		return [
-			{
-				type: binding.JsHookType.CompilerCompilation,
-				function: (native: binding.JsCompilation) => {
-					this.hooks.compilation.call(this.compilation, {
+		const breakpoints = [liteTapable.minStage, ...stages, liteTapable.maxStage];
+		const jsTaps: binding.JsTap[] = [];
+		for (let i = 0; i < breakpoints.length - 1; i++) {
+			const from = breakpoints[i];
+			const to = breakpoints[i + 1];
+			const stageRange = [from, to] as const;
+			const queried = this.hooks.compilation.queryStageRange(stageRange);
+			if (!queried.isUsed()) continue;
+			jsTaps.push({
+				function: () => {
+					queried.call(this.compilation, {
 						normalModuleFactory: this.compilation.normalModuleFactory!
 					});
-					this.#updateDisabledHooks();
-				}
-			}
-		];
+				},
+				stage: liteTapable.safeStage(from + 1)
+			});
+		}
+		this.#decorateUpdateDisabledHooks(jsTaps);
+		return jsTaps;
 	}
 
-	#createCompilerMakeHooks(): binding.JsHook[] {
+	#registerCompilerMakeTaps(stages: number[]): binding.JsTap[] {
 		if (!this.hooks.make.isUsed()) return [];
-		return [
-			{
-				type: binding.JsHookType.CompilerMake,
-				function: (native: binding.JsCompilation) => {
-					this.hooks.make.promise(this.compilation);
-					this.#updateDisabledHooks();
-				}
-			}
-		];
+		const breakpoints = [liteTapable.minStage, ...stages, liteTapable.maxStage];
+		const jsTaps = [];
+		for (let i = 0; i < breakpoints.length - 1; i++) {
+			const from = breakpoints[i];
+			const to = breakpoints[i + 1];
+			const stageRange = [from, to] as const;
+			const queried = this.hooks.make.queryStageRange(stageRange);
+			if (!queried.isUsed()) continue;
+			jsTaps.push({
+				function: async () => {
+					await queried.promise(this.compilation);
+				},
+				stage: liteTapable.safeStage(from + 1)
+			});
+		}
+		this.#decorateUpdateDisabledHooks(jsTaps);
+		return jsTaps;
+	}
+
+	#registerCompilationProcessAssetsTaps(stages: number[]): binding.JsTap[] {
+		if (!this.compilation.hooks.processAssets.isUsed()) return [];
+		const breakpoints = [liteTapable.minStage, ...stages, liteTapable.maxStage];
+		const jsTaps = [];
+		for (let i = 0; i < breakpoints.length - 1; i++) {
+			const from = breakpoints[i];
+			const to = breakpoints[i + 1];
+			const stageRange = [from, to] as const;
+			const queried =
+				this.compilation.hooks.processAssets.queryStageRange(stageRange);
+			if (!queried.isUsed()) continue;
+			jsTaps.push({
+				function: async () => {
+					await queried.promise(this.compilation.assets);
+				},
+				stage: liteTapable.safeStage(from + 1)
+			});
+		}
+		this.#decorateUpdateDisabledHooks(jsTaps);
+		return jsTaps;
 	}
 
 	#newCompilation(native: binding.JsCompilation) {
@@ -1018,8 +939,7 @@ class Compiler {
 		const startTime = Date.now();
 		this.running = true;
 		const doRun = () => {
-			// @ts-expect-error
-			const finalCallback = (err, stats?) => {
+			const finalCallback = (err: Error | null, stats?: Stats) => {
 				this.idle = true;
 				this.cache.beginIdle();
 				this.idle = true;
@@ -1030,7 +950,7 @@ class Compiler {
 				if (callback) {
 					callback(err, stats);
 				}
-				this.hooks.afterDone.call(stats);
+				stats && this.hooks.afterDone.call(stats);
 			};
 			this.hooks.beforeRun.callAsync(this, err => {
 				if (err) {
@@ -1155,14 +1075,15 @@ class Compiler {
 		});
 	}
 
-	watch(watchOptions: WatchOptions, handler: Callback<Error, Stats>): Watching {
+	watch(
+		watchOptions: WatchOptions,
+		handler: (error?: Error, stats?: Stats) => void
+	): Watching | void {
 		if (this.running) {
-			// @ts-expect-error
 			return handler(new ConcurrentCompilationError());
 		}
 		this.running = true;
 		this.watchMode = true;
-		// @ts-expect-error
 		this.watching = new Watching(this, watchOptions, handler);
 		return this.watching;
 	}

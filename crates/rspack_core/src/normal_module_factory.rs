@@ -284,11 +284,18 @@ impl NormalModuleFactory {
         }));
       }
 
-      if request_without_match_resource.is_empty() {
-        (
-          ResourceData::new("".to_string(), Path::new("").to_path_buf()),
-          false,
-        )
+      if request_without_match_resource.is_empty()
+        || request_without_match_resource.starts_with('?')
+      {
+        let ResourceParsedData {
+          path,
+          query,
+          fragment,
+        } = parse_resource(request_without_match_resource).expect("Should parse resource");
+        let resource_data = ResourceData::new(request_without_match_resource.to_string(), path)
+          .query_optional(query)
+          .fragment_optional(fragment);
+        (resource_data, false)
       } else {
         let optional = dependency.get_optional();
 
@@ -329,8 +336,8 @@ impl NormalModuleFactory {
             let uri = resource.full_path().display().to_string();
             (
               ResourceData::new(uri, resource.path)
-                .query_optional(resource.query)
-                .fragment_optional(resource.fragment)
+                .query(resource.query)
+                .fragment(resource.fragment)
                 .description_optional(resource.description_data),
               from_cache,
             )
@@ -739,9 +746,8 @@ impl NormalModuleFactory {
 
 /// Using `u32` instead of `usize` to reduce memory usage,
 /// `u32` is 4 bytes on 64bit machine, comparing to `usize` which is 8 bytes.
-/// Rspan aka `Rspack span`, just avoiding conflict with span in other crate
 /// ## Warning
-/// RSpan is zero based, `Span` of `swc` is 1 based. see https://swc-css.netlify.app/?code=eJzLzC3ILypRSFRIK8rPVVAvSS0u0csqVgcAZaoIKg
+/// [ErrorSpan] start from zero, and `Span` of `swc` start from one. see https://swc-css.netlify.app/?code=eJzLzC3ILypRSFRIK8rPVVAvSS0u0csqVgcAZaoIKg
 #[derive(
   Debug,
   Hash,

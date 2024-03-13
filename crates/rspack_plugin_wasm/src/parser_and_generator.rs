@@ -94,6 +94,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
         presentational_dependencies: vec![],
         source,
         analyze_result: Default::default(),
+        side_effects_bailout: None,
       }
       .with_diagnostic(diagnostic),
     )
@@ -148,7 +149,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
         let mut wasm_deps_by_request = IndexMap::<&str, Vec<(Identifier, String, String)>>::new();
         let mut promises: Vec<String> = vec![];
 
-        let module_graph = &compilation.module_graph;
+        let module_graph = &compilation.get_module_graph();
         let chunk_graph = &compilation.chunk_graph;
 
         module

@@ -244,6 +244,8 @@ bitflags! {
 
     // rspack only
     const RSPACK_VERSION = 1 << 62;
+
+    const HAS_CSS_MODULES = 1 << 63;
   }
 }
 
@@ -327,6 +329,7 @@ impl RuntimeGlobals {
       R::PRELOAD_CHUNK_HANDLERS => "__webpack_require__.H",
       // rspack only
       R::RSPACK_VERSION => "__webpack_require__.rv",
+      R::HAS_CSS_MODULES => "has css modules",
       _ => unreachable!(),
     }
   }

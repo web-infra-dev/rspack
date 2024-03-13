@@ -224,7 +224,7 @@ module.exports = new Promise(function(resolve, reject) {{
       }
       "amd" | "amd-require" | "umd" | "umd2" | "system" | "jsonp" => {
         let id = compilation
-          .module_graph
+          .get_module_graph()
           .module_graph_module_by_identifier(&self.identifier())
           .map(|m| m.id(&compilation.chunk_graph))
           .unwrap_or_default();
@@ -243,7 +243,7 @@ module.exports = new Promise(function(resolve, reject) {{
       "module" if let Some(request) = request => {
         if compilation.options.output.module {
           let id = compilation
-            .module_graph
+            .get_module_graph()
             .module_graph_module_by_identifier(&self.identifier())
             .map(|m| m.id(&compilation.chunk_graph))
             .unwrap_or_default();
@@ -378,6 +378,7 @@ impl Module for ExternalModule {
       dependencies: Vec::new(),
       blocks: Vec::new(),
       analyze_result: Default::default(),
+      optimization_bailouts: vec![],
     };
     // TODO add exports_type for request
     match self.external_type.as_str() {

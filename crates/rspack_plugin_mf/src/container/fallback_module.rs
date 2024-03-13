@@ -140,6 +140,7 @@ impl Module for FallbackModule {
       dependencies,
       blocks: Vec::new(),
       analyze_result: Default::default(),
+      optimization_bailouts: vec![],
     })
   }
 
@@ -156,7 +157,7 @@ impl Module for FallbackModule {
     let ids: Vec<_> = self
       .get_dependencies()
       .iter()
-      .filter_map(|dep| compilation.module_graph.get_module(dep))
+      .filter_map(|dep| compilation.get_module_graph().get_module(dep))
       .filter_map(|module| {
         compilation
           .chunk_graph

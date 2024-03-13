@@ -2,7 +2,6 @@ mod compilation;
 mod execute_module;
 mod hmr;
 mod make;
-mod queue;
 
 use std::collections::hash_map::Entry;
 use std::ops::Deref;
@@ -20,8 +19,11 @@ use tracing::instrument;
 
 pub use self::compilation::*;
 pub use self::hmr::{collect_changed_modules, CompilationRecords};
-pub use self::make::MakeParam;
-pub use self::queue::*;
+pub use self::make::{
+  AddQueueHandler, BuildQueueHandler, BuildTimeExecutionOption, BuildTimeExecutionQueueHandler,
+  BuildTimeExecutionTask, FactorizeQueueHandler, FactorizeTask, MakeParam,
+  ProcessDependenciesQueueHandler,
+};
 use crate::cache::Cache;
 use crate::tree_shaking::symbol::{IndirectType, StarSymbolKind, DEFAULT_JS_WORD};
 use crate::tree_shaking::visitor::SymbolRef;
@@ -32,12 +34,15 @@ use crate::{
 use crate::{BoxPlugin, ExportInfo, UsageState};
 use crate::{CompilationParams, ContextModuleFactory, NormalModuleFactory};
 
+pub type CompilerCompilationHook = AsyncSeries2Hook<Compilation, CompilationParams>;
+pub type CompilerMakeHook = AsyncSeries2Hook<Compilation, Vec<MakeParam>>;
+
 #[derive(Debug, Default)]
 pub struct CompilerHooks {
   // should be SyncHook, but rspack need call js hook
-  pub compilation: AsyncSeries2Hook<Compilation, CompilationParams>,
+  pub compilation: CompilerCompilationHook,
   // should be AsyncParallelHook, but rspack need add MakeParam to incremental rebuild
-  pub make: AsyncSeries2Hook<Compilation, Vec<MakeParam>>,
+  pub make: CompilerMakeHook,
 }
 
 #[derive(Debug)]
@@ -70,24 +75,30 @@ where
         debug_info.with_context(options.context.to_string());
       }
     }
-    let mut hooks = Default::default();
+    let mut compiler_hooks = Default::default();
+    let mut compilation_hooks = Default::default();
     let resolver_factory = Arc::new(ResolverFactory::new(options.resolve.clone()));
     let loader_resolver_factory = Arc::new(ResolverFactory::new(options.resolve_loader.clone()));
-    let (plugin_driver, options) =
-      PluginDriver::new(options, plugins, resolver_factory.clone(), &mut hooks);
+    let (plugin_driver, options) = PluginDriver::new(
+      options,
+      plugins,
+      resolver_factory.clone(),
+      &mut compiler_hooks,
+      &mut compilation_hooks,
+    );
     let cache = Arc::new(Cache::new(options.clone()));
-    let is_new_treeshaking = options.is_new_tree_shaking();
     assert!(!(options.is_new_tree_shaking() && options.builtins.tree_shaking.enable()), "Can't enable builtins.tree_shaking and `experiments.rspack_future.new_treeshaking` at the same time");
     Self {
-      hooks,
+      hooks: compiler_hooks,
       options: options.clone(),
       compilation: Compilation::new(
         options,
-        ModuleGraph::default().with_treeshaking(is_new_treeshaking),
+        ModuleGraph::default(),
         plugin_driver.clone(),
         resolver_factory.clone(),
         loader_resolver_factory.clone(),
         None,
+        Arc::new(compilation_hooks),
         cache.clone(),
       ),
       output_filesystem,
@@ -111,15 +122,17 @@ where
     // TODO: maybe it's better to use external entries.
     self.plugin_driver.resolver_factory.clear_cache();
 
+    let compilation_hooks = self.compilation.hooks.clone();
     fast_set(
       &mut self.compilation,
       Compilation::new(
         self.options.clone(),
-        ModuleGraph::default().with_treeshaking(self.options.is_new_tree_shaking()),
+        ModuleGraph::default(),
         self.plugin_driver.clone(),
         self.resolver_factory.clone(),
         self.loader_resolver_factory.clone(),
         None,
+        compilation_hooks,
         self.cache.clone(),
       ),
     );
@@ -180,7 +193,7 @@ where
     // by default include all module in final chunk
     self.compilation.include_module_ids = self
       .compilation
-      .module_graph
+      .get_module_graph()
       .modules()
       .keys()
       .cloned()
@@ -239,33 +252,19 @@ where
         }
       });
       {
-        // take the ownership to avoid rustc complain can't use `&` and `&mut` at the same time
-        let mut mi_to_mgm = std::mem::take(
-          &mut self
-            .compilation
-            .module_graph
-            .module_identifier_to_module_graph_module,
-        );
-        let mut export_info_map =
-          std::mem::take(&mut self.compilation.module_graph.export_info_map);
-        for mgm in mi_to_mgm.values_mut() {
-          if let Some(exports_map) = exports_info_map.remove(&mgm.module_identifier) {
-            let exports = self
-              .compilation
-              .module_graph
-              .exports_info_map
-              .get_mut(*mgm.exports as usize);
+        let module_graph = self.compilation.get_module_graph_mut();
+        for (module_identifier, exports_map) in exports_info_map.into_iter() {
+          let mgm = module_graph.module_graph_module_by_identifier(&module_identifier);
+          if let Some(mgm) = mgm {
+            let exports = module_graph.exports_info_map.get_mut(*mgm.exports as usize);
             for (name, export_info) in exports_map {
               exports.exports.insert(name, export_info.id);
-              export_info_map.insert(*export_info.id as usize, export_info);
+              module_graph
+                .export_info_map
+                .insert(*export_info.id as usize, export_info);
             }
           }
         }
-        self.compilation.module_graph.export_info_map = export_info_map;
-        self
-          .compilation
-          .module_graph
-          .module_identifier_to_module_graph_module = mi_to_mgm;
       }
 
       self.compilation.bailout_module_identifiers = analyze_result.bail_out_module_identifiers;
@@ -429,6 +428,7 @@ where
         self.cache.clone(),
       )),
       context_module_factory: Arc::new(ContextModuleFactory::new(
+        self.loader_resolver_factory.clone(),
         self.plugin_driver.clone(),
         self.cache.clone(),
       )),

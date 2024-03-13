@@ -1,17 +1,17 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`Stats should have ids when ids is true 1`] = `
-{
-  "assets": [
-    {
-      "chunkNames": [
+Object {
+  "assets": Array [
+    Object {
+      "chunkNames": Array [
         "main",
       ],
-      "chunks": [
+      "chunks": Array [
         "909",
       ],
       "emitted": true,
-      "info": {
+      "info": Object {
         "development": false,
         "hotModuleReplacement": false,
       },
@@ -20,21 +20,21 @@ exports[`Stats should have ids when ids is true 1`] = `
       "type": "asset",
     },
   ],
-  "assetsByChunkName": {
-    "main": [
+  "assetsByChunkName": Object {
+    "main": Array [
       "main.js",
     ],
   },
-  "chunks": [
-    {
-      "auxiliaryFiles": [],
+  "chunks": Array [
+    Object {
+      "auxiliaryFiles": Array [],
       "entry": true,
-      "files": [
+      "files": Array [
         "main.js",
       ],
       "id": "909",
       "initial": true,
-      "names": [
+      "names": Array [
         "main",
       ],
       "size": 59,
@@ -42,9 +42,9 @@ exports[`Stats should have ids when ids is true 1`] = `
     },
   ],
   "filteredModules": undefined,
-  "modules": [
-    {
-      "chunks": [
+  "modules": Array [
+    Object {
+      "chunks": Array [
         "909",
       ],
       "id": "585",
@@ -52,7 +52,7 @@ exports[`Stats should have ids when ids is true 1`] = `
       "issuer": undefined,
       "issuerId": undefined,
       "issuerName": undefined,
-      "issuerPath": [],
+      "issuerPath": Array [],
       "moduleType": "javascript/auto",
       "name": "./fixtures/a.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
@@ -65,17 +65,17 @@ exports[`Stats should have ids when ids is true 1`] = `
 `;
 
 exports[`Stats should have stats 1`] = `
-{
-  "assets": [
-    {
-      "chunkNames": [
+Object {
+  "assets": Array [
+    Object {
+      "chunkNames": Array [
         "main",
       ],
-      "chunks": [
+      "chunks": Array [
         "909",
       ],
       "emitted": true,
-      "info": {
+      "info": Object {
         "development": false,
         "hotModuleReplacement": false,
       },
@@ -84,26 +84,26 @@ exports[`Stats should have stats 1`] = `
       "type": "asset",
     },
   ],
-  "assetsByChunkName": {
-    "main": [
+  "assetsByChunkName": Object {
+    "main": Array [
       "main.js",
     ],
   },
-  "children": [],
-  "chunks": [
-    {
-      "auxiliaryFiles": [],
-      "children": [],
+  "children": Array [],
+  "chunks": Array [
+    Object {
+      "auxiliaryFiles": Array [],
+      "children": Array [],
       "entry": true,
-      "files": [
+      "files": Array [
         "main.js",
       ],
       "id": "909",
       "initial": true,
-      "modules": [
-        {
-          "assets": [],
-          "chunks": [
+      "modules": Array [
+        Object {
+          "assets": Array [],
+          "chunks": Array [
             "909",
           ],
           "id": "585",
@@ -111,14 +111,15 @@ exports[`Stats should have stats 1`] = `
           "issuer": undefined,
           "issuerId": undefined,
           "issuerName": undefined,
-          "issuerPath": [],
+          "issuerPath": Array [],
           "moduleType": "javascript/auto",
           "name": "./fixtures/a.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
+          "optimizationBailout": Array [],
           "orphan": false,
-          "providedExports": [],
-          "reasons": [
-            {
+          "providedExports": Array [],
+          "reasons": Array [
+            Object {
               "moduleId": undefined,
               "moduleIdentifier": undefined,
               "moduleName": undefined,
@@ -128,46 +129,46 @@ exports[`Stats should have stats 1`] = `
           ],
           "size": 59,
           "source": "module.exports = function a() {
-    return "This is a";
+    return \\"This is a\\";
 };
 ",
           "type": "module",
           "usedExports": null,
         },
       ],
-      "names": [
+      "names": Array [
         "main",
       ],
-      "parents": [],
-      "siblings": [],
+      "parents": Array [],
+      "siblings": Array [],
       "size": 59,
       "type": "chunk",
     },
   ],
-  "entrypoints": {
-    "main": {
-      "assets": [
-        {
+  "entrypoints": Object {
+    "main": Object {
+      "assets": Array [
+        Object {
           "name": "main.js",
           "size": 211,
         },
       ],
       "assetsSize": 211,
-      "chunks": [
+      "chunks": Array [
         "909",
       ],
       "name": "main",
     },
   },
-  "errors": [],
+  "errors": Array [],
   "errorsCount": 0,
   "filteredModules": undefined,
   "hash": "57e46af248a1c1fe076f",
-  "logging": {},
-  "modules": [
-    {
-      "assets": [],
-      "chunks": [
+  "logging": Object {},
+  "modules": Array [
+    Object {
+      "assets": Array [],
+      "chunks": Array [
         "909",
       ],
       "id": "585",
@@ -175,14 +176,15 @@ exports[`Stats should have stats 1`] = `
       "issuer": undefined,
       "issuerId": undefined,
       "issuerName": undefined,
-      "issuerPath": [],
+      "issuerPath": Array [],
       "moduleType": "javascript/auto",
       "name": "./fixtures/a.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
+      "optimizationBailout": Array [],
       "orphan": false,
-      "providedExports": [],
-      "reasons": [
-        {
+      "providedExports": Array [],
+      "reasons": Array [
+        Object {
           "moduleId": undefined,
           "moduleIdentifier": undefined,
           "moduleName": undefined,
@@ -192,23 +194,23 @@ exports[`Stats should have stats 1`] = `
       ],
       "size": 59,
       "source": "module.exports = function a() {
-    return "This is a";
+    return \\"This is a\\";
 };
 ",
       "type": "module",
       "usedExports": null,
     },
   ],
-  "namedChunkGroups": {
-    "main": {
-      "assets": [
-        {
+  "namedChunkGroups": Object {
+    "main": Object {
+      "assets": Array [
+        Object {
           "name": "main.js",
           "size": 211,
         },
       ],
       "assetsSize": 211,
-      "chunks": [
+      "chunks": Array [
         "909",
       ],
       "name": "main",
@@ -216,23 +218,23 @@ exports[`Stats should have stats 1`] = `
   },
   "outputPath": "<PROJECT_ROOT>/dist",
   "publicPath": "auto",
-  "warnings": [],
+  "warnings": Array [],
   "warningsCount": 0,
 }
 `;
 
 exports[`Stats should have usedExports and providedExports stats 1`] = `
-{
-  "assets": [
-    {
-      "chunkNames": [
+Object {
+  "assets": Array [
+    Object {
+      "chunkNames": Array [
         "main",
       ],
-      "chunks": [
+      "chunks": Array [
         "909",
       ],
       "emitted": true,
-      "info": {
+      "info": Object {
         "development": false,
         "hotModuleReplacement": false,
       },
@@ -241,26 +243,26 @@ exports[`Stats should have usedExports and providedExports stats 1`] = `
       "type": "asset",
     },
   ],
-  "assetsByChunkName": {
-    "main": [
+  "assetsByChunkName": Object {
+    "main": Array [
       "main.js",
     ],
   },
-  "children": [],
-  "chunks": [
-    {
-      "auxiliaryFiles": [],
-      "children": [],
+  "children": Array [],
+  "chunks": Array [
+    Object {
+      "auxiliaryFiles": Array [],
+      "children": Array [],
       "entry": true,
-      "files": [
+      "files": Array [
         "main.js",
       ],
       "id": "909",
       "initial": true,
-      "modules": [
-        {
-          "assets": [],
-          "chunks": [
+      "modules": Array [
+        Object {
+          "assets": Array [],
+          "chunks": Array [
             "909",
           ],
           "id": "83",
@@ -268,8 +270,8 @@ exports[`Stats should have usedExports and providedExports stats 1`] = `
           "issuer": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
           "issuerId": "314",
           "issuerName": "./fixtures/esm/abc.js",
-          "issuerPath": [
-            {
+          "issuerPath": Array [
+            Object {
               "id": "314",
               "identifier": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
               "name": "./fixtures/esm/abc.js",
@@ -278,20 +280,21 @@ exports[`Stats should have usedExports and providedExports stats 1`] = `
           "moduleType": "javascript/auto",
           "name": "./fixtures/esm/a.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/esm/a.js",
+          "optimizationBailout": Array [],
           "orphan": false,
-          "providedExports": [
+          "providedExports": Array [
             "a",
             "default",
           ],
-          "reasons": [
-            {
+          "reasons": Array [
+            Object {
               "moduleId": "314",
               "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
               "moduleName": "./fixtures/esm/abc.js",
               "type": "esm import",
               "userRequest": "./a",
             },
-            {
+            Object {
               "moduleId": "314",
               "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
               "moduleName": "./fixtures/esm/abc.js",
@@ -301,13 +304,13 @@ exports[`Stats should have usedExports and providedExports stats 1`] = `
           ],
           "size": 38,
           "type": "module",
-          "usedExports": [
+          "usedExports": Array [
             "a",
           ],
         },
-        {
-          "assets": [],
-          "chunks": [
+        Object {
+          "assets": Array [],
+          "chunks": Array [
             "909",
           ],
           "id": "178",
@@ -315,8 +318,8 @@ exports[`Stats should have usedExports and providedExports stats 1`] = `
           "issuer": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
           "issuerId": "314",
           "issuerName": "./fixtures/esm/abc.js",
-          "issuerPath": [
-            {
+          "issuerPath": Array [
+            Object {
               "id": "314",
               "identifier": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
               "name": "./fixtures/esm/abc.js",
@@ -325,20 +328,21 @@ exports[`Stats should have usedExports and providedExports stats 1`] = `
           "moduleType": "javascript/auto",
           "name": "./fixtures/esm/b.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/esm/b.js",
+          "optimizationBailout": Array [],
           "orphan": false,
-          "providedExports": [
+          "providedExports": Array [
             "b",
             "default",
           ],
-          "reasons": [
-            {
+          "reasons": Array [
+            Object {
               "moduleId": "314",
               "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
               "moduleName": "./fixtures/esm/abc.js",
               "type": "esm import",
               "userRequest": "./b",
             },
-            {
+            Object {
               "moduleId": "314",
               "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
               "moduleName": "./fixtures/esm/abc.js",
@@ -348,13 +352,13 @@ exports[`Stats should have usedExports and providedExports stats 1`] = `
           ],
           "size": 38,
           "type": "module",
-          "usedExports": [
+          "usedExports": Array [
             "default",
           ],
         },
-        {
-          "assets": [],
-          "chunks": [
+        Object {
+          "assets": Array [],
+          "chunks": Array [
             "909",
           ],
           "id": "609",
@@ -362,8 +366,8 @@ exports[`Stats should have usedExports and providedExports stats 1`] = `
           "issuer": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
           "issuerId": "314",
           "issuerName": "./fixtures/esm/abc.js",
-          "issuerPath": [
-            {
+          "issuerPath": Array [
+            Object {
               "id": "314",
               "identifier": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
               "name": "./fixtures/esm/abc.js",
@@ -372,20 +376,21 @@ exports[`Stats should have usedExports and providedExports stats 1`] = `
           "moduleType": "javascript/auto",
           "name": "./fixtures/esm/c.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/esm/c.js",
+          "optimizationBailout": Array [],
           "orphan": false,
-          "providedExports": [
+          "providedExports": Array [
             "c",
             "default",
           ],
-          "reasons": [
-            {
+          "reasons": Array [
+            Object {
               "moduleId": "314",
               "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
               "moduleName": "./fixtures/esm/abc.js",
               "type": "esm import",
               "userRequest": "./c",
             },
-            {
+            Object {
               "moduleId": "314",
               "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
               "moduleName": "./fixtures/esm/abc.js",
@@ -397,9 +402,9 @@ exports[`Stats should have usedExports and providedExports stats 1`] = `
           "type": "module",
           "usedExports": true,
         },
-        {
-          "assets": [],
-          "chunks": [
+        Object {
+          "assets": Array [],
+          "chunks": Array [
             "909",
           ],
           "id": "314",
@@ -407,14 +412,15 @@ exports[`Stats should have usedExports and providedExports stats 1`] = `
           "issuer": undefined,
           "issuerId": undefined,
           "issuerName": undefined,
-          "issuerPath": [],
+          "issuerPath": Array [],
           "moduleType": "javascript/auto",
           "name": "./fixtures/esm/abc.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
+          "optimizationBailout": Array [],
           "orphan": false,
-          "providedExports": [],
-          "reasons": [
-            {
+          "providedExports": Array [],
+          "reasons": Array [
+            Object {
               "moduleId": undefined,
               "moduleIdentifier": undefined,
               "moduleName": undefined,
@@ -424,42 +430,42 @@ exports[`Stats should have usedExports and providedExports stats 1`] = `
           ],
           "size": 81,
           "type": "module",
-          "usedExports": [],
+          "usedExports": Array [],
         },
       ],
-      "names": [
+      "names": Array [
         "main",
       ],
-      "parents": [],
-      "siblings": [],
+      "parents": Array [],
+      "siblings": Array [],
       "size": 195,
       "type": "chunk",
     },
   ],
-  "entrypoints": {
-    "main": {
-      "assets": [
-        {
+  "entrypoints": Object {
+    "main": Object {
+      "assets": Array [
+        Object {
           "name": "main.js",
           "size": 784,
         },
       ],
       "assetsSize": 784,
-      "chunks": [
+      "chunks": Array [
         "909",
       ],
       "name": "main",
     },
   },
-  "errors": [],
+  "errors": Array [],
   "errorsCount": 0,
   "filteredModules": undefined,
   "hash": "90855ad020cd8866adbb",
-  "logging": {},
-  "modules": [
-    {
-      "assets": [],
-      "chunks": [
+  "logging": Object {},
+  "modules": Array [
+    Object {
+      "assets": Array [],
+      "chunks": Array [
         "909",
       ],
       "id": "83",
@@ -467,8 +473,8 @@ exports[`Stats should have usedExports and providedExports stats 1`] = `
       "issuer": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
       "issuerId": "314",
       "issuerName": "./fixtures/esm/abc.js",
-      "issuerPath": [
-        {
+      "issuerPath": Array [
+        Object {
           "id": "314",
           "identifier": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
           "name": "./fixtures/esm/abc.js",
@@ -477,20 +483,21 @@ exports[`Stats should have usedExports and providedExports stats 1`] = `
       "moduleType": "javascript/auto",
       "name": "./fixtures/esm/a.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/esm/a.js",
+      "optimizationBailout": Array [],
       "orphan": false,
-      "providedExports": [
+      "providedExports": Array [
         "a",
         "default",
       ],
-      "reasons": [
-        {
+      "reasons": Array [
+        Object {
           "moduleId": "314",
           "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
           "moduleName": "./fixtures/esm/abc.js",
           "type": "esm import",
           "userRequest": "./a",
         },
-        {
+        Object {
           "moduleId": "314",
           "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
           "moduleName": "./fixtures/esm/abc.js",
@@ -500,13 +507,13 @@ exports[`Stats should have usedExports and providedExports stats 1`] = `
       ],
       "size": 38,
       "type": "module",
-      "usedExports": [
+      "usedExports": Array [
         "a",
       ],
     },
-    {
-      "assets": [],
-      "chunks": [
+    Object {
+      "assets": Array [],
+      "chunks": Array [
         "909",
       ],
       "id": "178",
@@ -514,8 +521,8 @@ exports[`Stats should have usedExports and providedExports stats 1`] = `
       "issuer": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
       "issuerId": "314",
       "issuerName": "./fixtures/esm/abc.js",
-      "issuerPath": [
-        {
+      "issuerPath": Array [
+        Object {
           "id": "314",
           "identifier": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
           "name": "./fixtures/esm/abc.js",
@@ -524,20 +531,21 @@ exports[`Stats should have usedExports and providedExports stats 1`] = `
       "moduleType": "javascript/auto",
       "name": "./fixtures/esm/b.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/esm/b.js",
+      "optimizationBailout": Array [],
       "orphan": false,
-      "providedExports": [
+      "providedExports": Array [
         "b",
         "default",
       ],
-      "reasons": [
-        {
+      "reasons": Array [
+        Object {
           "moduleId": "314",
           "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
           "moduleName": "./fixtures/esm/abc.js",
           "type": "esm import",
           "userRequest": "./b",
         },
-        {
+        Object {
           "moduleId": "314",
           "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
           "moduleName": "./fixtures/esm/abc.js",
@@ -547,13 +555,13 @@ exports[`Stats should have usedExports and providedExports stats 1`] = `
       ],
       "size": 38,
       "type": "module",
-      "usedExports": [
+      "usedExports": Array [
         "default",
       ],
     },
-    {
-      "assets": [],
-      "chunks": [
+    Object {
+      "assets": Array [],
+      "chunks": Array [
         "909",
       ],
       "id": "609",
@@ -561,8 +569,8 @@ exports[`Stats should have usedExports and providedExports stats 1`] = `
       "issuer": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
       "issuerId": "314",
       "issuerName": "./fixtures/esm/abc.js",
-      "issuerPath": [
-        {
+      "issuerPath": Array [
+        Object {
           "id": "314",
           "identifier": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
           "name": "./fixtures/esm/abc.js",
@@ -571,20 +579,21 @@ exports[`Stats should have usedExports and providedExports stats 1`] = `
       "moduleType": "javascript/auto",
       "name": "./fixtures/esm/c.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/esm/c.js",
+      "optimizationBailout": Array [],
       "orphan": false,
-      "providedExports": [
+      "providedExports": Array [
         "c",
         "default",
       ],
-      "reasons": [
-        {
+      "reasons": Array [
+        Object {
           "moduleId": "314",
           "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
           "moduleName": "./fixtures/esm/abc.js",
           "type": "esm import",
           "userRequest": "./c",
         },
-        {
+        Object {
           "moduleId": "314",
           "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
           "moduleName": "./fixtures/esm/abc.js",
@@ -596,9 +605,9 @@ exports[`Stats should have usedExports and providedExports stats 1`] = `
       "type": "module",
       "usedExports": true,
     },
-    {
-      "assets": [],
-      "chunks": [
+    Object {
+      "assets": Array [],
+      "chunks": Array [
         "909",
       ],
       "id": "314",
@@ -606,14 +615,15 @@ exports[`Stats should have usedExports and providedExports stats 1`] = `
       "issuer": undefined,
       "issuerId": undefined,
       "issuerName": undefined,
-      "issuerPath": [],
+      "issuerPath": Array [],
       "moduleType": "javascript/auto",
       "name": "./fixtures/esm/abc.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
+      "optimizationBailout": Array [],
       "orphan": false,
-      "providedExports": [],
-      "reasons": [
-        {
+      "providedExports": Array [],
+      "reasons": Array [
+        Object {
           "moduleId": undefined,
           "moduleIdentifier": undefined,
           "moduleName": undefined,
@@ -623,11 +633,11 @@ exports[`Stats should have usedExports and providedExports stats 1`] = `
       ],
       "size": 81,
       "type": "module",
-      "usedExports": [],
+      "usedExports": Array [],
     },
-    {
-      "assets": [],
-      "chunks": [
+    Object {
+      "assets": Array [],
+      "chunks": Array [
         "909",
       ],
       "id": "",
@@ -635,20 +645,21 @@ exports[`Stats should have usedExports and providedExports stats 1`] = `
       "issuer": undefined,
       "issuerId": undefined,
       "issuerName": undefined,
-      "issuerPath": [],
+      "issuerPath": Array [],
       "moduleType": "runtime",
       "name": "webpack/runtime/has_own_property",
       "nameForCondition": undefined,
+      "optimizationBailout": Array [],
       "orphan": false,
-      "providedExports": [],
-      "reasons": [],
+      "providedExports": Array [],
+      "reasons": Array [],
       "size": 160,
       "type": "module",
       "usedExports": null,
     },
-    {
-      "assets": [],
-      "chunks": [
+    Object {
+      "assets": Array [],
+      "chunks": Array [
         "909",
       ],
       "id": "",
@@ -656,20 +667,21 @@ exports[`Stats should have usedExports and providedExports stats 1`] = `
       "issuer": undefined,
       "issuerId": undefined,
       "issuerName": undefined,
-      "issuerPath": [],
+      "issuerPath": Array [],
       "moduleType": "runtime",
       "name": "webpack/runtime/make_namespace_object",
       "nameForCondition": undefined,
+      "optimizationBailout": Array [],
       "orphan": false,
-      "providedExports": [],
-      "reasons": [],
+      "providedExports": Array [],
+      "reasons": Array [],
       "size": 160,
       "type": "module",
       "usedExports": null,
     },
-    {
-      "assets": [],
-      "chunks": [
+    Object {
+      "assets": Array [],
+      "chunks": Array [
         "909",
       ],
       "id": "",
@@ -677,28 +689,29 @@ exports[`Stats should have usedExports and providedExports stats 1`] = `
       "issuer": undefined,
       "issuerId": undefined,
       "issuerName": undefined,
-      "issuerPath": [],
+      "issuerPath": Array [],
       "moduleType": "runtime",
       "name": "webpack/runtime/define_property_getters",
       "nameForCondition": undefined,
+      "optimizationBailout": Array [],
       "orphan": false,
-      "providedExports": [],
-      "reasons": [],
+      "providedExports": Array [],
+      "reasons": Array [],
       "size": 160,
       "type": "module",
       "usedExports": null,
     },
   ],
-  "namedChunkGroups": {
-    "main": {
-      "assets": [
-        {
+  "namedChunkGroups": Object {
+    "main": Object {
+      "assets": Array [
+        Object {
           "name": "main.js",
           "size": 784,
         },
       ],
       "assetsSize": 784,
-      "chunks": [
+      "chunks": Array [
         "909",
       ],
       "name": "main",
@@ -706,23 +719,23 @@ exports[`Stats should have usedExports and providedExports stats 1`] = `
   },
   "outputPath": "<PROJECT_ROOT>/dist",
   "publicPath": "auto",
-  "warnings": [],
+  "warnings": Array [],
   "warningsCount": 0,
 }
 `;
 
 exports[`Stats should output stats with query 1`] = `
-{
-  "assets": [
-    {
-      "chunkNames": [
+Object {
+  "assets": Array [
+    Object {
+      "chunkNames": Array [
         "main",
       ],
-      "chunks": [
+      "chunks": Array [
         "909",
       ],
       "emitted": true,
-      "info": {
+      "info": Object {
         "development": false,
         "hotModuleReplacement": false,
       },
@@ -731,26 +744,26 @@ exports[`Stats should output stats with query 1`] = `
       "type": "asset",
     },
   ],
-  "assetsByChunkName": {
-    "main": [
+  "assetsByChunkName": Object {
+    "main": Array [
       "main.js",
     ],
   },
-  "children": [],
-  "chunks": [
-    {
-      "auxiliaryFiles": [],
-      "children": [],
+  "children": Array [],
+  "chunks": Array [
+    Object {
+      "auxiliaryFiles": Array [],
+      "children": Array [],
       "entry": true,
-      "files": [
+      "files": Array [
         "main.js",
       ],
       "id": "909",
       "initial": true,
-      "modules": [
-        {
-          "assets": [],
-          "chunks": [
+      "modules": Array [
+        Object {
+          "assets": Array [],
+          "chunks": Array [
             "909",
           ],
           "id": "585",
@@ -758,13 +771,13 @@ exports[`Stats should output stats with query 1`] = `
           "issuer": "<PROJECT_ROOT>/tests/fixtures/c.js?c=3",
           "issuerId": "432",
           "issuerName": "./fixtures/c.js?c=3",
-          "issuerPath": [
-            {
+          "issuerPath": Array [
+            Object {
               "id": "919",
               "identifier": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
               "name": "./fixtures/abc-query.js",
             },
-            {
+            Object {
               "id": "432",
               "identifier": "<PROJECT_ROOT>/tests/fixtures/c.js?c=3",
               "name": "./fixtures/c.js?c=3",
@@ -773,10 +786,11 @@ exports[`Stats should output stats with query 1`] = `
           "moduleType": "javascript/auto",
           "name": "./fixtures/a.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
+          "optimizationBailout": Array [],
           "orphan": false,
-          "providedExports": [],
-          "reasons": [
-            {
+          "providedExports": Array [],
+          "reasons": Array [
+            Object {
               "moduleId": "432",
               "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/c.js?c=3",
               "moduleName": "./fixtures/c.js?c=3",
@@ -786,15 +800,15 @@ exports[`Stats should output stats with query 1`] = `
           ],
           "size": 59,
           "source": "module.exports = function a() {
-    return "This is a";
+    return \\"This is a\\";
 };
 ",
           "type": "module",
           "usedExports": null,
         },
-        {
-          "assets": [],
-          "chunks": [
+        Object {
+          "assets": Array [],
+          "chunks": Array [
             "909",
           ],
           "id": "958",
@@ -802,8 +816,8 @@ exports[`Stats should output stats with query 1`] = `
           "issuer": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
           "issuerId": "919",
           "issuerName": "./fixtures/abc-query.js",
-          "issuerPath": [
-            {
+          "issuerPath": Array [
+            Object {
               "id": "919",
               "identifier": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
               "name": "./fixtures/abc-query.js",
@@ -812,10 +826,11 @@ exports[`Stats should output stats with query 1`] = `
           "moduleType": "javascript/auto",
           "name": "./fixtures/a.js?a=1",
           "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
+          "optimizationBailout": Array [],
           "orphan": false,
-          "providedExports": [],
-          "reasons": [
-            {
+          "providedExports": Array [],
+          "reasons": Array [
+            Object {
               "moduleId": "919",
               "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
               "moduleName": "./fixtures/abc-query.js",
@@ -825,15 +840,15 @@ exports[`Stats should output stats with query 1`] = `
           ],
           "size": 59,
           "source": "module.exports = function a() {
-    return "This is a";
+    return \\"This is a\\";
 };
 ",
           "type": "module",
           "usedExports": null,
         },
-        {
-          "assets": [],
-          "chunks": [
+        Object {
+          "assets": Array [],
+          "chunks": Array [
             "909",
           ],
           "id": "432",
@@ -841,8 +856,8 @@ exports[`Stats should output stats with query 1`] = `
           "issuer": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
           "issuerId": "919",
           "issuerName": "./fixtures/abc-query.js",
-          "issuerPath": [
-            {
+          "issuerPath": Array [
+            Object {
               "id": "919",
               "identifier": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
               "name": "./fixtures/abc-query.js",
@@ -851,10 +866,11 @@ exports[`Stats should output stats with query 1`] = `
           "moduleType": "javascript/auto",
           "name": "./fixtures/c.js?c=3",
           "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/c.js",
+          "optimizationBailout": Array [],
           "orphan": false,
-          "providedExports": [],
-          "reasons": [
-            {
+          "providedExports": Array [],
+          "reasons": Array [
+            Object {
               "moduleId": "919",
               "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
               "moduleName": "./fixtures/abc-query.js",
@@ -864,16 +880,16 @@ exports[`Stats should output stats with query 1`] = `
           ],
           "size": 79,
           "source": "module.exports = function b() {
-    require("./a");
-    return "This is c";
+    require(\\"./a\\");
+    return \\"This is c\\";
 };
 ",
           "type": "module",
           "usedExports": null,
         },
-        {
-          "assets": [],
-          "chunks": [
+        Object {
+          "assets": Array [],
+          "chunks": Array [
             "909",
           ],
           "id": "919",
@@ -881,14 +897,15 @@ exports[`Stats should output stats with query 1`] = `
           "issuer": undefined,
           "issuerId": undefined,
           "issuerName": undefined,
-          "issuerPath": [],
+          "issuerPath": Array [],
           "moduleType": "javascript/auto",
           "name": "./fixtures/abc-query.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
+          "optimizationBailout": Array [],
           "orphan": false,
-          "providedExports": [],
-          "reasons": [
-            {
+          "providedExports": Array [],
+          "reasons": Array [
+            Object {
               "moduleId": undefined,
               "moduleIdentifier": undefined,
               "moduleName": undefined,
@@ -897,47 +914,47 @@ exports[`Stats should output stats with query 1`] = `
             },
           ],
           "size": 99,
-          "source": "exports.a = require("./a?a=1");
-// exports.b = require("./b?b=2");
-exports.c = require("./c?c=3");
+          "source": "exports.a = require(\\"./a?a=1\\");
+// exports.b = require(\\"./b?b=2\\");
+exports.c = require(\\"./c?c=3\\");
 ",
           "type": "module",
           "usedExports": null,
         },
       ],
-      "names": [
+      "names": Array [
         "main",
       ],
-      "parents": [],
-      "siblings": [],
+      "parents": Array [],
+      "siblings": Array [],
       "size": 296,
       "type": "chunk",
     },
   ],
-  "entrypoints": {
-    "main": {
-      "assets": [
-        {
+  "entrypoints": Object {
+    "main": Object {
+      "assets": Array [
+        Object {
           "name": "main.js",
           "size": 386,
         },
       ],
       "assetsSize": 386,
-      "chunks": [
+      "chunks": Array [
         "909",
       ],
       "name": "main",
     },
   },
-  "errors": [],
+  "errors": Array [],
   "errorsCount": 0,
   "filteredModules": undefined,
   "hash": "d74b6e06f8e6041c6743",
-  "logging": {},
-  "modules": [
-    {
-      "assets": [],
-      "chunks": [
+  "logging": Object {},
+  "modules": Array [
+    Object {
+      "assets": Array [],
+      "chunks": Array [
         "909",
       ],
       "id": "585",
@@ -945,13 +962,13 @@ exports.c = require("./c?c=3");
       "issuer": "<PROJECT_ROOT>/tests/fixtures/c.js?c=3",
       "issuerId": "432",
       "issuerName": "./fixtures/c.js?c=3",
-      "issuerPath": [
-        {
+      "issuerPath": Array [
+        Object {
           "id": "919",
           "identifier": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
           "name": "./fixtures/abc-query.js",
         },
-        {
+        Object {
           "id": "432",
           "identifier": "<PROJECT_ROOT>/tests/fixtures/c.js?c=3",
           "name": "./fixtures/c.js?c=3",
@@ -960,10 +977,11 @@ exports.c = require("./c?c=3");
       "moduleType": "javascript/auto",
       "name": "./fixtures/a.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
+      "optimizationBailout": Array [],
       "orphan": false,
-      "providedExports": [],
-      "reasons": [
-        {
+      "providedExports": Array [],
+      "reasons": Array [
+        Object {
           "moduleId": "432",
           "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/c.js?c=3",
           "moduleName": "./fixtures/c.js?c=3",
@@ -973,15 +991,15 @@ exports.c = require("./c?c=3");
       ],
       "size": 59,
       "source": "module.exports = function a() {
-    return "This is a";
+    return \\"This is a\\";
 };
 ",
       "type": "module",
       "usedExports": null,
     },
-    {
-      "assets": [],
-      "chunks": [
+    Object {
+      "assets": Array [],
+      "chunks": Array [
         "909",
       ],
       "id": "958",
@@ -989,8 +1007,8 @@ exports.c = require("./c?c=3");
       "issuer": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
       "issuerId": "919",
       "issuerName": "./fixtures/abc-query.js",
-      "issuerPath": [
-        {
+      "issuerPath": Array [
+        Object {
           "id": "919",
           "identifier": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
           "name": "./fixtures/abc-query.js",
@@ -999,10 +1017,11 @@ exports.c = require("./c?c=3");
       "moduleType": "javascript/auto",
       "name": "./fixtures/a.js?a=1",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
+      "optimizationBailout": Array [],
       "orphan": false,
-      "providedExports": [],
-      "reasons": [
-        {
+      "providedExports": Array [],
+      "reasons": Array [
+        Object {
           "moduleId": "919",
           "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
           "moduleName": "./fixtures/abc-query.js",
@@ -1012,15 +1031,15 @@ exports.c = require("./c?c=3");
       ],
       "size": 59,
       "source": "module.exports = function a() {
-    return "This is a";
+    return \\"This is a\\";
 };
 ",
       "type": "module",
       "usedExports": null,
     },
-    {
-      "assets": [],
-      "chunks": [
+    Object {
+      "assets": Array [],
+      "chunks": Array [
         "909",
       ],
       "id": "432",
@@ -1028,8 +1047,8 @@ exports.c = require("./c?c=3");
       "issuer": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
       "issuerId": "919",
       "issuerName": "./fixtures/abc-query.js",
-      "issuerPath": [
-        {
+      "issuerPath": Array [
+        Object {
           "id": "919",
           "identifier": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
           "name": "./fixtures/abc-query.js",
@@ -1038,10 +1057,11 @@ exports.c = require("./c?c=3");
       "moduleType": "javascript/auto",
       "name": "./fixtures/c.js?c=3",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/c.js",
+      "optimizationBailout": Array [],
       "orphan": false,
-      "providedExports": [],
-      "reasons": [
-        {
+      "providedExports": Array [],
+      "reasons": Array [
+        Object {
           "moduleId": "919",
           "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
           "moduleName": "./fixtures/abc-query.js",
@@ -1051,16 +1071,16 @@ exports.c = require("./c?c=3");
       ],
       "size": 79,
       "source": "module.exports = function b() {
-    require("./a");
-    return "This is c";
+    require(\\"./a\\");
+    return \\"This is c\\";
 };
 ",
       "type": "module",
       "usedExports": null,
     },
-    {
-      "assets": [],
-      "chunks": [
+    Object {
+      "assets": Array [],
+      "chunks": Array [
         "909",
       ],
       "id": "919",
@@ -1068,14 +1088,15 @@ exports.c = require("./c?c=3");
       "issuer": undefined,
       "issuerId": undefined,
       "issuerName": undefined,
-      "issuerPath": [],
+      "issuerPath": Array [],
       "moduleType": "javascript/auto",
       "name": "./fixtures/abc-query.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
+      "optimizationBailout": Array [],
       "orphan": false,
-      "providedExports": [],
-      "reasons": [
-        {
+      "providedExports": Array [],
+      "reasons": Array [
+        Object {
           "moduleId": undefined,
           "moduleIdentifier": undefined,
           "moduleName": undefined,
@@ -1084,24 +1105,24 @@ exports.c = require("./c?c=3");
         },
       ],
       "size": 99,
-      "source": "exports.a = require("./a?a=1");
-// exports.b = require("./b?b=2");
-exports.c = require("./c?c=3");
+      "source": "exports.a = require(\\"./a?a=1\\");
+// exports.b = require(\\"./b?b=2\\");
+exports.c = require(\\"./c?c=3\\");
 ",
       "type": "module",
       "usedExports": null,
     },
   ],
-  "namedChunkGroups": {
-    "main": {
-      "assets": [
-        {
+  "namedChunkGroups": Object {
+    "main": Object {
+      "assets": Array [
+        Object {
           "name": "main.js",
           "size": 386,
         },
       ],
       "assetsSize": 386,
-      "chunks": [
+      "chunks": Array [
         "909",
       ],
       "name": "main",
@@ -1109,7 +1130,7 @@ exports.c = require("./c?c=3");
   },
   "outputPath": "<PROJECT_ROOT>/dist",
   "publicPath": "auto",
-  "warnings": [],
+  "warnings": Array [],
   "warningsCount": 0,
 }
 `;

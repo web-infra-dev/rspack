@@ -14,17 +14,17 @@ use crate::{
   AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, ApplyContext,
   AssetEmittedArgs, BoxLoader, BoxModule, BoxedParserAndGeneratorBuilder, BuildTimeExecutionOption,
   Chunk, ChunkAssetArgs, ChunkContentHash, ChunkHashArgs, CodeGenerationResults, Compilation,
-  CompilationParams, CompilerHooks, CompilerOptions, Content, ContentHashArgs, DependencyId,
-  DoneArgs, FactorizeArgs, JsChunkHashArgs, LoaderRunnerContext, Module, ModuleIdentifier,
-  ModuleType, NormalModule, NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs,
-  NormalModuleCreateData, OptimizeChunksArgs, Plugin,
+  CompilationHooks, CompilationParams, CompilerHooks, CompilerOptions, Content, ContentHashArgs,
+  DependencyId, DoneArgs, FactorizeArgs, JsChunkHashArgs, LoaderRunnerContext, Module,
+  ModuleIdentifier, ModuleType, NormalModule, NormalModuleAfterResolveArgs,
+  NormalModuleBeforeResolveArgs, NormalModuleCreateData, OptimizeChunksArgs, Plugin,
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginAdditionalModuleRequirementsOutput,
   PluginBuildEndHookOutput, PluginChunkHashHookOutput, PluginCompilationHookOutput, PluginContext,
   PluginFactorizeHookOutput, PluginJsChunkHashHookOutput,
   PluginNormalModuleFactoryAfterResolveOutput, PluginNormalModuleFactoryBeforeResolveOutput,
   PluginNormalModuleFactoryCreateModuleHookOutput, PluginNormalModuleFactoryModuleHookOutput,
-  PluginProcessAssetsOutput, PluginRenderChunkHookOutput, PluginRenderHookOutput,
-  PluginRenderManifestHookOutput, PluginRenderModuleContentOutput, PluginRenderStartupHookOutput,
+  PluginRenderChunkHookOutput, PluginRenderHookOutput, PluginRenderManifestHookOutput,
+  PluginRenderModuleContentOutput, PluginRenderStartupHookOutput,
   PluginRuntimeRequirementsInTreeOutput, PluginThisCompilationHookOutput, ProcessAssetsArgs,
   RenderArgs, RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs,
   Resolver, ResolverFactory, RuntimeModule, RuntimeRequirementsInTreeArgs, Stats,
@@ -59,11 +59,13 @@ impl PluginDriver {
     plugins: Vec<Box<dyn Plugin>>,
     resolver_factory: Arc<ResolverFactory>,
     compiler_hooks: &mut CompilerHooks,
+    compilation_hooks: &mut CompilationHooks,
   ) -> (Arc<Self>, Arc<CompilerOptions>) {
     let mut registered_parser_and_generator_builder = HashMap::default();
     let mut apply_context = ApplyContext {
       registered_parser_and_generator_builder: &mut registered_parser_and_generator_builder,
       compiler_hooks,
+      compilation_hooks,
     };
     for plugin in &plugins {
       plugin
@@ -372,6 +374,22 @@ impl PluginDriver {
     Ok(None)
   }
 
+  pub async fn context_module_after_resolve(
+    &self,
+    args: &mut NormalModuleAfterResolveArgs<'_>,
+  ) -> PluginNormalModuleFactoryAfterResolveOutput {
+    for plugin in &self.plugins {
+      tracing::trace!("running resolve for scheme:{}", plugin.name());
+      if let Some(data) = plugin
+        .context_module_after_resolve(PluginContext::new(), args)
+        .await?
+      {
+        return Ok(Some(data));
+      }
+    }
+    Ok(None)
+  }
+
   pub async fn normal_module_factory_resolve_for_scheme(
     &self,
     args: ResourceData,
@@ -437,41 +455,6 @@ impl PluginDriver {
         .runtime_requirements_in_tree(PluginContext::new(), args)
         .await?;
     }
-    Ok(())
-  }
-
-  #[instrument(name = "plugin:process_assets", skip_all)]
-  pub async fn process_assets(&self, args: ProcessAssetsArgs<'_>) -> PluginProcessAssetsOutput {
-    macro_rules! run_stage {
-      ($stage: ident) => {
-        for plugin in &self.plugins {
-          plugin
-            .$stage(
-              PluginContext::new(),
-              ProcessAssetsArgs {
-                compilation: args.compilation,
-              },
-            )
-            .await?;
-        }
-      };
-    }
-    run_stage!(process_assets_stage_additional);
-    run_stage!(process_assets_stage_pre_process);
-    run_stage!(process_assets_stage_derived);
-    run_stage!(process_assets_stage_additions);
-    run_stage!(process_assets_stage_none);
-    run_stage!(process_assets_stage_optimize);
-    run_stage!(process_assets_stage_optimize_count);
-    run_stage!(process_assets_stage_optimize_compatibility);
-    run_stage!(process_assets_stage_optimize_size);
-    run_stage!(process_assets_stage_dev_tooling);
-    run_stage!(process_assets_stage_optimize_inline);
-    run_stage!(process_assets_stage_summarize);
-    run_stage!(process_assets_stage_optimize_hash);
-    run_stage!(process_assets_stage_optimize_transfer);
-    run_stage!(process_assets_stage_analyse);
-    run_stage!(process_assets_stage_report);
     Ok(())
   }
 

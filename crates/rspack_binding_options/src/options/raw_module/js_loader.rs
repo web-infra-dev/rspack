@@ -223,7 +223,7 @@ fn sync_loader_context(
 #[napi(object)]
 pub struct JsLoaderContext {
   /// Content maybe empty in pitching stage
-  pub content: Option<Buffer>,
+  pub content: Either<Null, Buffer>,
   pub additional_data: Option<Buffer>,
   pub source_map: Option<Buffer>,
   pub resource: String,
@@ -273,10 +273,10 @@ impl TryFrom<&mut rspack_core::LoaderContext<'_, rspack_core::LoaderRunnerContex
     cx: &mut rspack_core::LoaderContext<'_, rspack_core::LoaderRunnerContext>,
   ) -> std::result::Result<Self, Self::Error> {
     Ok(JsLoaderContext {
-      content: cx
-        .content
-        .as_ref()
-        .map(|c| c.to_owned().into_bytes().into()),
+      content: match &cx.content {
+        Some(c) => Either::B(c.to_owned().into_bytes().into()),
+        None => Either::A(Null),
+      },
       additional_data: cx
         .additional_data
         .get::<String>()
@@ -351,9 +351,10 @@ pub async fn run_builtin_loader(
 
   let mut cx = LoaderContext {
     hot: loader_context.hot,
-    content: loader_context
-      .content
-      .map(|c| Content::from(c.as_ref().to_owned())),
+    content: match loader_context.content {
+      Either::A(_) => None,
+      Either::B(c) => Some(Content::from(c.as_ref().to_owned())),
+    },
     resource: &loader_context.resource,
     resource_path: Path::new(&loader_context.resource_path),
     resource_query: loader_context.resource_query.as_deref(),

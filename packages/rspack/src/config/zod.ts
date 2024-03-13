@@ -3,7 +3,7 @@ import { z } from "zod";
 import { Compilation, Compiler } from "..";
 import type * as oldBuiltins from "../builtin-plugin";
 import type * as webpackDevServer from "webpack-dev-server";
-import { deprecatedWarn, termlink } from "../util";
+import { deprecatedWarn } from "../util";
 import { Module } from "../Module";
 import { Chunk } from "../Chunk";
 
@@ -627,11 +627,19 @@ export type GeneratorOptionsByModuleType = z.infer<
 	typeof generatorOptionsByModuleType
 >;
 
+const noParseOptionSingle = z
+	.string()
+	.or(z.instanceof(RegExp))
+	.or(z.function().args(z.string()).returns(z.boolean()));
+const noParseOption = noParseOptionSingle.or(z.array(noParseOptionSingle));
+export type NoParseOption = z.infer<typeof noParseOption>;
+
 const moduleOptions = z.strictObject({
 	defaultRules: ruleSetRules.optional(),
 	rules: ruleSetRules.optional(),
 	parser: parserOptionsByModuleType.optional(),
-	generator: generatorOptionsByModuleType.optional()
+	generator: generatorOptionsByModuleType.optional(),
+	noParse: noParseOption.optional()
 });
 export type ModuleOptions = z.infer<typeof moduleOptions>;
 //#endregion
@@ -942,7 +950,8 @@ const statsOptions = z.strictObject({
 	runtimeModules: z.boolean().optional(),
 	children: z.boolean().optional(),
 	usedExports: z.boolean().optional(),
-	providedExports: z.boolean().optional()
+	providedExports: z.boolean().optional(),
+	optimizationBailout: z.boolean().optional()
 });
 export type StatsOptions = z.infer<typeof statsOptions>;
 
@@ -1109,10 +1118,7 @@ const experiments = z.strictObject({
 					`'experiments.newSplitChunks = ${JSON.stringify(
 						val
 					)}' has been deprecated, please switch to 'experiments.newSplitChunks = true' to use webpack's behavior.
- 	See the discussion ${termlink(
-		"here",
-		"https://github.com/web-infra-dev/rspack/discussions/4168"
-	)}`
+ 	See the discussion here (https://github.com/web-infra-dev/rspack/discussions/4168)`
 				);
 			}
 			return true;
@@ -1138,6 +1144,7 @@ const watchOptions = z.strictObject({
 		.array()
 		.or(z.instanceof(RegExp))
 		.or(z.string())
+		.or(z.function(z.tuple([z.string()])).returns(z.boolean()))
 		.optional(),
 	poll: z.number().or(z.boolean()).optional(),
 	stdin: z.boolean().optional()

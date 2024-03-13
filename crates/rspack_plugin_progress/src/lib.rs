@@ -14,7 +14,7 @@ use rspack_core::{
   ProcessAssetsArgs, ThisCompilationArgs,
 };
 use rspack_error::Result;
-use rspack_hook::AsyncSeries2;
+use rspack_hook::{AsyncSeries, AsyncSeries2};
 
 #[derive(Debug, Clone, Default)]
 pub struct ProgressPluginOptions {
@@ -239,6 +239,22 @@ impl AsyncSeries2<Compilation, Vec<MakeParam>> for ProgressPluginMakeHook {
   }
 }
 
+struct ProcessPluginProcessAssetsHook {
+  inner: Arc<ProgressPluginInner>,
+}
+
+#[async_trait]
+impl AsyncSeries<Compilation> for ProcessPluginProcessAssetsHook {
+  async fn run(&self, _: &mut Compilation) -> Result<()> {
+    self.inner.sealing_hooks_report("asset processing", 35);
+    Ok(())
+  }
+
+  fn stage(&self) -> i32 {
+    Compilation::PROCESS_ASSETS_STAGE_ADDITIONAL
+  }
+}
+
 #[async_trait]
 impl Plugin for ProgressPlugin {
   fn name(&self) -> &'static str {
@@ -410,15 +426,6 @@ impl Plugin for ProgressPlugin {
 
   fn chunk_ids(&self, _compilation: &mut Compilation) -> Result<()> {
     self.inner.sealing_hooks_report("chunk ids", 21);
-    Ok(())
-  }
-
-  async fn process_assets_stage_additional(
-    &self,
-    _ctx: PluginContext,
-    _args: ProcessAssetsArgs<'_>,
-  ) -> PluginProcessAssetsOutput {
-    self.inner.sealing_hooks_report("asset processing", 35);
     Ok(())
   }
 

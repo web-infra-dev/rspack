@@ -89,8 +89,6 @@ mod chunk_group;
 pub use chunk_group::*;
 mod ukey;
 pub use ukey::*;
-mod module_graph_module;
-pub use module_graph_module::*;
 pub mod resolver;
 pub use resolver::*;
 pub mod concatenated_module;

@@ -188,14 +188,14 @@ impl Module for ContainerEntryModule {
       let block = block_id.expect_get(compilation);
       let modules_iter = block.get_dependencies().iter().map(|dependency_id| {
         let dep = compilation
-          .module_graph
+          .get_module_graph()
           .dependency_by_id(dependency_id)
           .expect("should have dependency");
         let dep = dep
           .downcast_ref::<ContainerExposedDependency>()
           .expect("dependencies of ContainerEntryModule should be ContainerExposedDependency");
         let name = dep.exposed_name.as_str();
-        let module = compilation.module_graph.get_module(dependency_id);
+        let module = compilation.get_module_graph().get_module(dependency_id);
         let user_request = dep.user_request();
         (name, module, user_request, dependency_id)
       });

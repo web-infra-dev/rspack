@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use napi::bindgen_prelude::Either3;
+use napi::bindgen_prelude::{Either3, Null};
 use napi::{Either, Env, JsFunction};
 use napi_derive::napi;
 use rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
@@ -36,7 +36,7 @@ fn normalize_raw_append(raw: RawAppend) -> Append {
   }
 }
 
-type RawFilename = Either<bool, String>;
+type RawFilename = Either3<Null, bool, String>;
 
 type RawModuleFilenameTemplate = Either<String, JsFunction>;
 
@@ -148,8 +148,8 @@ impl From<RawSourceMapDevToolPluginOptions> for SourceMapDevToolPluginOptions {
     let append = opts.append.map(normalize_raw_append);
     let test = opts.test.map(normalize_raw_test);
     let filename = opts.filename.and_then(|raw| match raw {
-      Either::A(_) => None,
-      Either::B(s) => Some(s),
+      Either3::A(_) | Either3::B(_) => None,
+      Either3::C(s) => Some(s),
     });
 
     let module_filename_template = opts

@@ -30,6 +30,7 @@ import {
 	StatsValue,
 	RspackPluginInstance
 } from "./config";
+import * as liteTapable from "./lite-tapable";
 import { ContextModuleFactory } from "./ContextModuleFactory";
 import ResolverFactory from "./ResolverFactory";
 import { ChunkGroup } from "./ChunkGroup";
@@ -48,17 +49,14 @@ import { StatsFactory } from "./stats/StatsFactory";
 import { StatsPrinter } from "./stats/StatsPrinter";
 import { concatErrorMsgAndStack, isJsStatsError, toJsAssetInfo } from "./util";
 import { createRawFromSource, createSourceFromRaw } from "./util/createSource";
-import {
-	createFakeCompilationDependencies,
-	createFakeProcessAssetsHook,
-	createProcessAssetsHook
-} from "./util/fake";
+import { createFakeCompilationDependencies } from "./util/fake";
 import { NormalizedJsModule, normalizeJsModule } from "./util/normalization";
 import MergeCaller from "./util/MergeCaller";
 import { memoizeValue } from "./util/memoize";
 import { Chunk } from "./Chunk";
 import { CodeGenerationResult } from "./Module";
 import { ChunkGraph } from "./ChunkGraph";
+import { Entrypoint } from "./Entrypoint";
 
 export type AssetInfo = Partial<JsAssetInfo> & Record<string, any>;
 export type Assets = Record<string, Source>;
@@ -69,7 +67,7 @@ export interface Asset {
 }
 export interface LogEntry {
 	type: string;
-	args: any[];
+	args?: any[];
 	time?: number;
 	trace?: string[];
 }
@@ -103,7 +101,7 @@ export class Compilation {
 	#inner: JsCompilation;
 
 	hooks: {
-		processAssets: ReturnType<typeof createFakeProcessAssetsHook>;
+		processAssets: liteTapable.AsyncSeriesHook<Assets>;
 		afterProcessAssets: tapable.SyncHook<Assets>;
 		childCompiler: tapable.SyncHook<[Compiler, string, number]>;
 		log: tapable.SyncBailHook<[string, LogEntry], true>;
@@ -156,14 +154,60 @@ export class Compilation {
 		this.name = undefined;
 		this.startTime = undefined;
 		this.endTime = undefined;
-		const processAssetsHooks = createFakeProcessAssetsHook(this);
+
+		const processAssetsHook = new liteTapable.AsyncSeriesHook<Assets>([
+			"assets"
+		]);
+
+		const createProcessAssetsHook = <T>(
+			name: string,
+			stage: number,
+			getArgs: () => liteTapable.AsArray<T>,
+			code?: string
+		) => {
+			const errorMessage = (
+				reason: string
+			) => `Can't automatically convert plugin using Compilation.hooks.${name} to Compilation.hooks.processAssets because ${reason}.
+BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a single Compilation.hooks.processAssets hook.`;
+			const getOptions = (options: liteTapable.Options) => {
+				if (typeof options === "string") options = { name: options };
+				if (options.stage) {
+					throw new Error(errorMessage("it's using the 'stage' option"));
+				}
+				return { ...options, stage: stage };
+			};
+			return Object.freeze({
+				name,
+				intercept() {
+					throw new Error(errorMessage("it's using 'intercept'"));
+				},
+				tap: (options: liteTapable.Options, fn: liteTapable.Fn<T, void>) => {
+					processAssetsHook.tap(getOptions(options), () => fn(...getArgs()));
+				},
+				tapAsync: (
+					options: liteTapable.Options,
+					fn: liteTapable.FnWithCallback<T, void>
+				) => {
+					processAssetsHook.tapAsync(getOptions(options), (assets, callback) =>
+						(fn as any)(...getArgs(), callback)
+					);
+				},
+				tapPromise: (
+					options: liteTapable.Options,
+					fn: liteTapable.Fn<T, void>
+				) => {
+					processAssetsHook.tapPromise(getOptions(options), () =>
+						fn(...getArgs())
+					);
+				},
+				_fakeHook: true
+			});
+		};
 		this.hooks = {
-			processAssets: processAssetsHooks,
+			processAssets: processAssetsHook,
 			afterProcessAssets: new tapable.SyncHook(["assets"]),
-			// TODO: webpack 6 deprecate, keep it just for compatibility
 			/** @deprecated */
 			additionalAssets: createProcessAssetsHook(
-				processAssetsHooks,
 				"additionalAssets",
 				Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL,
 				() => []
@@ -267,11 +311,11 @@ export class Compilation {
 	/**
 	 * Get a map of all entrypoints.
 	 */
-	get entrypoints(): ReadonlyMap<string, ChunkGroup> {
+	get entrypoints(): ReadonlyMap<string, Entrypoint> {
 		return new Map(
 			Object.entries(this.#inner.entrypoints).map(([n, e]) => [
 				n,
-				ChunkGroup.__from_binding(e, this.#inner)
+				Entrypoint.__from_binding(e, this.#inner)
 			])
 		);
 	}
@@ -319,6 +363,10 @@ export class Compilation {
 		);
 		options.usedExports = optionOrLocalFallback(
 			options.usedExports,
+			!context.forToString
+		);
+		options.optimizationBailout = optionOrLocalFallback(
+			options.optimizationBailout,
 			!context.forToString
 		);
 		options.providedExports = optionOrLocalFallback(
@@ -461,6 +509,10 @@ export class Compilation {
 
 	deleteAsset(filename: string) {
 		this.#inner.deleteAsset(filename);
+	}
+
+	renameAsset(filename: string, newFilename: string) {
+		this.#inner.renameAsset(filename, newFilename);
 	}
 
 	/**
@@ -610,7 +662,7 @@ export class Compilation {
 						);
 					}
 				}
-				let trace: string[];
+				let trace: string[] | undefined;
 				switch (type) {
 					case LogType.warn:
 					case LogType.error:
@@ -623,14 +675,12 @@ export class Compilation {
 				const logEntry: LogEntry = {
 					time: Date.now(),
 					type,
-					// @ts-expect-error
 					args,
-					// @ts-expect-error
 					trace
 				};
 				if (this.hooks.log.call(name, logEntry) === undefined) {
 					if (logEntry.type === LogType.profileEnd) {
-						if (typeof console.profileEnd === "function") {
+						if (typeof console.profileEnd === "function" && logEntry.args) {
 							console.profileEnd(`[${name}] ${logEntry.args[0]}`);
 						}
 					}
@@ -643,7 +693,7 @@ export class Compilation {
 					}
 					logEntries.push(logEntry);
 					if (logEntry.type === LogType.profile) {
-						if (typeof console.profile === "function") {
+						if (typeof console.profile === "function" && logEntry.args) {
 							console.profile(`[${name}] ${logEntry.args[0]}`);
 						}
 					}
@@ -948,61 +998,4 @@ export class Compilation {
 	static PROCESS_ASSETS_STAGE_OPTIMIZE_TRANSFER = 3000;
 	static PROCESS_ASSETS_STAGE_ANALYSE = 4000;
 	static PROCESS_ASSETS_STAGE_REPORT = 5000;
-
-	__internal_getProcessAssetsHookByStage(stage: number) {
-		if (stage > Compilation.PROCESS_ASSETS_STAGE_REPORT) {
-			this.pushDiagnostic(
-				"warning",
-				"not supported process_assets_stage",
-				`custom stage for process_assets is not supported yet, so ${stage} is fallback to Compilation.PROCESS_ASSETS_STAGE_REPORT(${Compilation.PROCESS_ASSETS_STAGE_REPORT}) `
-			);
-			stage = Compilation.PROCESS_ASSETS_STAGE_REPORT;
-		}
-		if (stage < Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL) {
-			this.pushDiagnostic(
-				"warning",
-				"not supported process_assets_stage",
-				`custom stage for process_assets is not supported yet, so ${stage} is fallback to Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL(${Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL}) `
-			);
-			stage = Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL;
-		}
-		switch (stage) {
-			case Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL:
-				return this.hooks.processAssets.stageAdditional;
-			case Compilation.PROCESS_ASSETS_STAGE_PRE_PROCESS:
-				return this.hooks.processAssets.stagePreProcess;
-			case Compilation.PROCESS_ASSETS_STAGE_DERIVED:
-				return this.hooks.processAssets.stageDerived;
-			case Compilation.PROCESS_ASSETS_STAGE_ADDITIONS:
-				return this.hooks.processAssets.stageAdditions;
-			case Compilation.PROCESS_ASSETS_STAGE_NONE:
-				return this.hooks.processAssets.stageNone;
-			case Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE:
-				return this.hooks.processAssets.stageOptimize;
-			case Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_COUNT:
-				return this.hooks.processAssets.stageOptimizeCount;
-			case Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_COMPATIBILITY:
-				return this.hooks.processAssets.stageOptimizeCompatibility;
-			case Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE:
-				return this.hooks.processAssets.stageOptimizeSize;
-			case Compilation.PROCESS_ASSETS_STAGE_DEV_TOOLING:
-				return this.hooks.processAssets.stageDevTooling;
-			case Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE:
-				return this.hooks.processAssets.stageOptimizeInline;
-			case Compilation.PROCESS_ASSETS_STAGE_SUMMARIZE:
-				return this.hooks.processAssets.stageSummarize;
-			case Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_HASH:
-				return this.hooks.processAssets.stageOptimizeHash;
-			case Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_TRANSFER:
-				return this.hooks.processAssets.stageOptimizeTransfer;
-			case Compilation.PROCESS_ASSETS_STAGE_ANALYSE:
-				return this.hooks.processAssets.stageAnalyse;
-			case Compilation.PROCESS_ASSETS_STAGE_REPORT:
-				return this.hooks.processAssets.stageReport;
-			default:
-				throw new Error(
-					"processAssets hook uses custom stage number is not supported."
-				);
-		}
-	}
 }

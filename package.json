@@ -1,6 +1,6 @@
 {
   "name": "monorepo",
-  "version": "0.5.5",
+  "version": "0.5.7",
   "license": "MIT",
   "description": "A Fast Rust-based web bundler",
   "private": true,
@@ -9,7 +9,7 @@
     "x": "zx x.mjs",
     "dev": "pnpm --filter @rspack/cli run dev",
     "clean": "pnpm --filter @rspack/cli run clean",
-    "build:js": "pnpm --filter \"@rspack/core\" build && pnpm --filter \"@rspack/*\" --filter \"!@rspack/core\" build",
+    "build:js": "pnpm --filter \"@rspack/core\" build --force && pnpm --filter \"@rspack/*\" --filter \"!@rspack/core\" build --force",
     "build:cli:debug": "npm run build:binding:debug && npm run build:js",
     "build:cli:release": "npm run build:binding:release && npm run build:js",
     "build:cli:release:all": "pnpm --filter @rspack/binding build:release:all && npm run build:js",
@@ -30,8 +30,9 @@
     "prepare": "is-ci || husky",
     "test:diff": "pnpm --filter \"@rspack/*\" test:diff",
     "test:unit": "pnpm --filter \"@rspack/*\" test",
+    "test:ng": "pnpm --filter \"@rspack/test-tools\" test:ng",
     "test:e2e": "pnpm --filter \"@rspack-e2e/*\" test",
-    "test:ci": "cross-env NODE_OPTIONS=--max_old_space_size=8192 pnpm run build:js --force && pnpm run test:unit && pnpm test:webpack",
+    "test:ci": "cross-env NODE_OPTIONS=--max_old_space_size=8192 pnpm run build:js && pnpm run test:unit && pnpm test:webpack",
     "test:webpack": "pnpm --filter \"webpack-test\" test:metric"
   },
   "homepage": "https://rspack.dev",
@@ -64,7 +65,7 @@
     "rimraf": "3.0.2",
     "ts-jest": "29.1.2",
     "typescript": "5.0.2",
-    "webpack": "5.90.0",
+    "webpack": "5.90.1",
     "webpack-cli": "4.10.0",
     "why-is-node-running": "2.2.2"
   },

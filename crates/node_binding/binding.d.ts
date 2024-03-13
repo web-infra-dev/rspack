@@ -14,6 +14,7 @@ export class JsCompilation {
   getAsset(name: string): JsAsset | null
   getAssetSource(name: string): JsCompatSource | null
   getModules(): Array<JsModule>
+  getOptimizationBailout(): Array<JsStatsOptimizationBailout>
   getChunks(): Array<JsChunk>
   getNamedChunk(name: string): JsChunk | null
   /**
@@ -27,6 +28,7 @@ export class JsCompilation {
   hasAsset(name: string): boolean
   emitAsset(filename: string, source: JsCompatSource, assetInfo: JsAssetInfo): void
   deleteAsset(filename: string): void
+  renameAsset(filename: string, newName: string): void
   get entrypoints(): Record<string, JsChunkGroup>
   get hash(): string | null
   getFileDependencies(): Array<string>
@@ -61,7 +63,7 @@ export class JsStats {
 }
 
 export class Rspack {
-  constructor(options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, jsHooks: JsHooks, compilerHooks: Array<JsHook>, outputFilesystem: ThreadsafeNodeFS, jsLoaderRunner: (...args: any[]) => any)
+  constructor(options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, jsHooks: JsHooks, registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, jsLoaderRunner: (...args: any[]) => any)
   unsafe_set_disabled_hooks(hooks: Array<string>): void
   /**
    * Build with the given option passed to the constructor
@@ -118,6 +120,8 @@ export function __chunk_inner_get_all_referenced_chunks(jsChunkUkey: number, com
 export function __chunk_inner_has_runtime(jsChunkUkey: number, compilation: JsCompilation): boolean
 
 export function __chunk_inner_is_only_initial(jsChunkUkey: number, compilation: JsCompilation): boolean
+
+export function __entrypoint_inner_get_runtime_chunk(ukey: number, compilation: JsCompilation): JsChunk
 
 export interface AfterResolveData {
   request: string
@@ -285,6 +289,7 @@ export interface JsChunkAssetArgs {
 
 export interface JsChunkGroup {
   __inner_parents: Array<number>
+  __inner_ukey: number
   chunks: Array<JsChunk>
   index?: number
   name?: string
@@ -325,28 +330,7 @@ export interface JsExecuteModuleResult {
   id: number
 }
 
-export interface JsHook {
-  type: JsHookType
-  function: (...args: any[]) => any
-}
-
 export interface JsHooks {
-  processAssetsStageAdditional: (...args: any[]) => any
-  processAssetsStagePreProcess: (...args: any[]) => any
-  processAssetsStageDerived: (...args: any[]) => any
-  processAssetsStageAdditions: (...args: any[]) => any
-  processAssetsStageNone: (...args: any[]) => any
-  processAssetsStageOptimize: (...args: any[]) => any
-  processAssetsStageOptimizeCount: (...args: any[]) => any
-  processAssetsStageOptimizeCompatibility: (...args: any[]) => any
-  processAssetsStageOptimizeSize: (...args: any[]) => any
-  processAssetsStageDevTooling: (...args: any[]) => any
-  processAssetsStageOptimizeInline: (...args: any[]) => any
-  processAssetsStageSummarize: (...args: any[]) => any
-  processAssetsStageOptimizeHash: (...args: any[]) => any
-  processAssetsStageOptimizeTransfer: (...args: any[]) => any
-  processAssetsStageAnalyse: (...args: any[]) => any
-  processAssetsStageReport: (...args: any[]) => any
   afterProcessAssets: (...args: any[]) => any
   thisCompilation: (...args: any[]) => any
   emit: (...args: any[]) => any
@@ -365,6 +349,7 @@ export interface JsHooks {
   beforeResolve: (...args: any[]) => any
   afterResolve: (...args: any[]) => any
   contextModuleFactoryBeforeResolve: (...args: any[]) => any
+  contextModuleFactoryAfterResolve: (...args: any[]) => any
   normalModuleFactoryCreateModule: (...args: any[]) => any
   normalModuleFactoryResolveForScheme: (...args: any[]) => any
   chunkAsset: (...args: any[]) => any
@@ -374,14 +359,9 @@ export interface JsHooks {
   runtimeModule: (...args: any[]) => any
 }
 
-export enum JsHookType {
-  CompilerCompilation = 'CompilerCompilation',
-  CompilerMake = 'CompilerMake'
-}
-
 export interface JsLoaderContext {
   /** Content maybe empty in pitching stage */
-  content?: Buffer
+  content: null | Buffer
   additionalData?: Buffer
   sourceMap?: Buffer
   resource: string
@@ -557,6 +537,7 @@ export interface JsStatsModule {
   orphan: boolean
   providedExports?: Array<string>
   usedExports?: string | Array<string>
+  optimizationBailout?: Array<string>
 }
 
 export interface JsStatsModuleIssuer {
@@ -579,12 +560,21 @@ export interface JsStatsModuleReason {
   userRequest?: string
 }
 
+export interface JsStatsOptimizationBailout {
+  inner: string
+}
+
 export interface JsStatsWarning {
   message: string
   formatted: string
   moduleIdentifier?: string
   moduleName?: string
   moduleId?: string
+}
+
+export interface JsTap {
+  function: (...args: any[]) => any
+  stage: number
 }
 
 export interface NodeFS {
@@ -606,6 +596,11 @@ export interface PathData {
 export interface PathWithInfo {
   path: string
   info: JsAssetInfo
+}
+
+export interface RawAliasOptionItem {
+  path: string
+  redirect: Array<string | false>
 }
 
 export interface RawAssetGeneratorDataUrl {
@@ -979,6 +974,7 @@ export interface RawModuleOptions {
   rules: Array<RawModuleRule>
   parser?: Record<string, RawParserOptions>
   generator?: Record<string, RawGeneratorOptions>
+  noParse?: string | RegExp | ((request: string) => boolean) | (string | RegExp | ((request: string) => boolean))[]
 }
 
 export interface RawModuleRule {
@@ -1181,8 +1177,8 @@ export interface RawResolveOptions {
   mainFiles?: Array<string>
   mainFields?: Array<string>
   conditionNames?: Array<string>
-  alias?: Record<string, Array<string | false>>
-  fallback?: Record<string, Array<string | false>>
+  alias?: Array<RawAliasOptionItem>
+  fallback?: Array<RawAliasOptionItem>
   symlinks?: boolean
   tsconfig?: RawResolveTsconfigOptions
   modules?: Array<string>
@@ -1298,6 +1294,12 @@ export interface RawTrustedTypes {
  * Copyright (c)
  */
 export function registerGlobalTrace(filter: string, layer: "chrome" | "logger", output: string): void
+
+export interface RegisterJsTaps {
+  registerCompilerCompilationTaps: (arg: Array<number>) => any
+  registerCompilerMakeTaps: (arg: Array<number>) => any
+  registerCompilationProcessAssetsTaps: (arg: Array<number>) => any
+}
 
 /** Builtin loader runner */
 export function runBuiltinLoader(builtin: string, options: string | undefined | null, loaderContext: JsLoaderContext): Promise<JsLoaderContext>

@@ -286,10 +286,10 @@ impl DependencyTemplate for CommonJsExportRequireDependency {
       ..
     } = code_generatable_context;
 
-    let mg = &compilation.module_graph;
+    let mg = &compilation.get_module_graph();
 
     let module = compilation
-      .module_graph
+      .get_module_graph()
       .module_by_identifier(&module.identifier())
       .expect("should have mgm");
 

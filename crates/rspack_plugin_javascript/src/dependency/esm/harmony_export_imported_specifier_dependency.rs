@@ -466,7 +466,7 @@ impl HarmonyExportImportedSpecifierDependency {
       ..
     } = ctxt;
     let mut fragments = vec![];
-    let mg = &compilation.module_graph;
+    let mg = &compilation.get_module_graph();
     let imported_module = mg
       .module_identifier_by_dependency_id(&self.id)
       .expect("should have imported module identifier");
@@ -675,12 +675,12 @@ impl HarmonyExportImportedSpecifierDependency {
         runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
 
         let module = compilation
-          .module_graph
+          .get_module_graph()
           .module_by_identifier(&module.identifier())
           .expect("should have module graph module");
         let exports_name = module.get_exports_argument();
         let is_async = compilation
-          .module_graph
+          .get_module_graph()
           .is_async(&module.identifier())
           .unwrap_or_default();
         fragments.push(
@@ -729,7 +729,7 @@ impl HarmonyExportImportedSpecifierDependency {
       format!("/* {} */ {}", comment, return_value).into(),
     ));
     let module = compilation
-      .module_graph
+      .get_module_graph()
       .module_by_identifier(&module.identifier())
       .expect("should have module graph module");
     HarmonyExportInitFragment::new(module.get_exports_argument(), export_map)
@@ -750,7 +750,7 @@ impl HarmonyExportImportedSpecifierDependency {
     } = ctxt;
 
     let module = compilation
-      .module_graph
+      .get_module_graph()
       .module_by_identifier(&module.identifier())
       .expect("should have module graph module");
     runtime_requirements.insert(RuntimeGlobals::EXPORTS);
@@ -768,14 +768,17 @@ impl HarmonyExportImportedSpecifierDependency {
     );
     export_map.push((key.into(), value.into()));
     let frags = vec![
-      NormalInitFragment::new(
-        format!("var {name}_namespace_cache;\n"),
-        InitFragmentStage::StageConstants,
-        -1,
-        InitFragmentKey::unique(),
-        None,
-      )
-      .boxed(),
+      {
+        let name = format!("var {name}_namespace_cache;\n");
+        NormalInitFragment::new(
+          name.clone(),
+          InitFragmentStage::StageConstants,
+          -1,
+          InitFragmentKey::HarmonyFakeNamespaceObjectFragment(name),
+          None,
+        )
+        .boxed()
+      },
       HarmonyExportInitFragment::new(module.get_exports_argument(), export_map).boxed(),
     ];
     ctxt.init_fragments.extend_from_slice(&frags);
@@ -810,7 +813,7 @@ impl HarmonyExportImportedSpecifierDependency {
     } = ctxt;
     let return_value = Self::get_return_value(name.to_string(), value_key);
     let module = compilation
-      .module_graph
+      .get_module_graph()
       .module_by_identifier(&module.identifier())
       .expect("should have mgm");
     let exports_name = module.get_exports_argument();
@@ -854,7 +857,7 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
 
     let mode = self.get_mode(
       self.name.clone(),
-      &compilation.module_graph,
+      compilation.get_module_graph(),
       &self.id,
       *runtime,
     );
@@ -870,16 +873,16 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
     }
 
     let module = compilation
-      .module_graph
+      .get_module_graph()
       .module_by_identifier(&module.identifier())
       .expect("should have module graph module");
 
-    let import_var = get_import_var(&compilation.module_graph, self.id);
+    let import_var = get_import_var(compilation.get_module_graph(), self.id);
     let is_new_treeshaking = compilation.options.is_new_tree_shaking();
 
     let mut used_exports = if is_new_treeshaking {
       let exports_info_id = compilation
-        .module_graph
+        .get_module_graph()
         .get_exports_info(&module.identifier())
         .id;
       let res = self
@@ -888,7 +891,7 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
         .filter_map(|(local, _)| {
           exports_info_id
             .get_used_name(
-              &compilation.module_graph,
+              compilation.get_module_graph(),
               *runtime,
               UsedName::Str(local.clone()),
             )
@@ -902,7 +905,7 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
     } else if compilation.options.builtins.tree_shaking.is_true() {
       Some(
         compilation
-          .module_graph
+          .get_module_graph()
           .get_exports_info(&module.identifier())
           .old_get_used_exports()
           .into_iter()

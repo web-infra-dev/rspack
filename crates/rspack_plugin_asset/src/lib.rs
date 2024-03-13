@@ -315,6 +315,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
         source,
         presentational_dependencies: vec![],
         analyze_result,
+        side_effects_bailout: None,
       }
       .with_empty_diagnostic(),
     )
@@ -524,7 +525,7 @@ impl Plugin for AssetPlugin {
   ) -> PluginRenderManifestHookOutput {
     let compilation = args.compilation;
     let chunk = args.chunk();
-    let module_graph = &compilation.module_graph;
+    let module_graph = &compilation.get_module_graph();
 
     let ordered_modules = compilation
       .chunk_graph
@@ -534,7 +535,7 @@ impl Plugin for AssetPlugin {
       .par_iter()
       .filter(|m| {
         let module = compilation
-          .module_graph
+          .get_module_graph()
           .module_by_identifier(&m.identifier())
           // FIXME: use result
           .expect("Failed to get module");

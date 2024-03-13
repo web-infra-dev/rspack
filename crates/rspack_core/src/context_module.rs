@@ -137,6 +137,25 @@ pub struct ContextOptions {
   pub end: u32,
 }
 
+impl Display for ContextOptions {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(
+      f,
+      "ContextOptions|{:?}|{:?}|{:?}|{:?}|{:?}|{:?}|{:?}|{:?}|{:?}|{:?}",
+      self.mode,
+      self.recursive,
+      self.reg_exp,
+      self.reg_str,
+      self.include,
+      self.exclude,
+      self.category,
+      self.request,
+      self.namespace_object,
+      self.chunk_name
+    )
+  }
+}
+
 impl PartialEq for ContextOptions {
   fn eq(&self, other: &Self) -> bool {
     self.mode == other.mode
@@ -179,7 +198,7 @@ impl Display for ContextModuleOptions {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(
       f,
-      "{}|{:?}|{:?}|{:?}",
+      "{}|{:?}|{:?}|{}",
       self.resource, self.resource_query, self.resource_fragment, self.context_options
     )
   }
@@ -246,7 +265,7 @@ impl ContextModule {
     let sorted_modules = dependencies
       .filter_map(|dep_id| {
         compilation
-          .module_graph
+          .get_module_graph()
           .module_identifier_by_dependency_id(dep_id)
           .map(|m| (m, dep_id))
       })
@@ -260,7 +279,7 @@ impl ContextModule {
       .sorted_unstable_by_key(|(module_id, _)| module_id.to_string());
     for (module_id, dep) in sorted_modules {
       let exports_type = get_exports_type_with_strict(
-        &compilation.module_graph,
+        compilation.get_module_graph(),
         dep,
         matches!(
           self.options.context_options.namespace_object,
@@ -328,10 +347,10 @@ impl ContextModule {
     let mut map = HashMap::default();
     for dependency in dependencies {
       if let Some(module_identifier) = compilation
-        .module_graph
+        .get_module_graph()
         .module_identifier_by_dependency_id(dependency)
       {
-        if let Some(dependency) = compilation.module_graph.dependency_by_id(dependency) {
+        if let Some(dependency) = compilation.get_module_graph().dependency_by_id(dependency) {
           let request = if let Some(d) = dependency.as_module_dependency() {
             Some(d.user_request().to_string())
           } else {
@@ -367,7 +386,7 @@ impl ContextModule {
     let mut map = HashMap::default();
     for (block, dep_id) in blocks {
       if let Some(dependency) = compilation
-        .module_graph
+        .get_module_graph()
         .dependency_by_id(dep_id)
         .and_then(|d| d.as_module_dependency())
       {
@@ -395,7 +414,7 @@ impl ContextModule {
           .first()
           .expect("LazyOnce ContextModule should have first block");
         let block = compilation
-          .module_graph
+          .get_module_graph()
           .block_by_id(block)
           .expect("should have block");
         self.generate_source(block.get_dependencies(), compilation)
@@ -412,7 +431,7 @@ impl ContextModule {
     let blocks = self
       .get_blocks()
       .iter()
-      .filter_map(|b| compilation.module_graph.block_by_id(b));
+      .filter_map(|b| compilation.get_module_graph().block_by_id(b));
     let block_map = self.get_block_promise_map(blocks.clone(), compilation, runtime_requirements);
     let dependencies = blocks.filter_map(|b| b.get_dependencies().first());
     let fake_map = self.get_fake_map(dependencies.clone(), compilation);
@@ -667,7 +686,7 @@ impl Module for ContextModule {
     let mut all_deps = self.get_dependencies().to_vec();
     for block in self.get_blocks() {
       let block = compilation
-        .module_graph
+        .get_module_graph()
         .block_by_id(block)
         .expect("should have block in ContextModule code_generation");
       all_deps.extend(block.get_dependencies());
@@ -900,6 +919,7 @@ impl ContextModule {
       dependencies,
       blocks,
       analyze_result: Default::default(),
+      optimization_bailouts: vec![],
     })
   }
 }

@@ -1,5 +1,6 @@
 mod js_loader;
 
+use std::fmt::Formatter;
 use std::{collections::HashMap, fmt::Debug, sync::Arc};
 
 use derivative::Derivative;
@@ -10,15 +11,15 @@ use rspack_core::{
   AssetGeneratorOptions, AssetInlineGeneratorOptions, AssetParserDataUrl,
   AssetParserDataUrlOptions, AssetParserOptions, AssetResourceGeneratorOptions, BoxLoader,
   DescriptionData, DynamicImportMode, FuncUseCtx, GeneratorOptions, GeneratorOptionsByModuleType,
-  JavascriptParserOptions, JavascriptParserOrder, JavascriptParserUrl, ModuleOptions, ModuleRule,
-  ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, ModuleType, ParserOptions,
-  ParserOptionsByModuleType,
+  JavascriptParserOptions, JavascriptParserOrder, JavascriptParserUrl, ModuleNoParseRule,
+  ModuleNoParseRules, ModuleNoParseTestFn, ModuleOptions, ModuleRule, ModuleRuleEnforce,
+  ModuleRuleUse, ModuleRuleUseLoader, ModuleType, ParserOptions, ParserOptionsByModuleType,
 };
 use rspack_error::{error, miette::IntoDiagnostic};
 use rspack_loader_react_refresh::REACT_REFRESH_LOADER_IDENTIFIER;
 use rspack_loader_swc::SWC_LOADER_IDENTIFIER;
 use rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
-use rspack_napi_shared::{get_napi_env, NapiResultExt};
+use rspack_napi_shared::{get_napi_env, JsRegExp, JsRegExpExt, NapiResultExt};
 use serde::Deserialize;
 
 pub use self::js_loader::JsLoaderAdapter;
@@ -584,13 +585,29 @@ impl From<RawAssetGeneratorDataUrlOptions> for AssetGeneratorDataUrlOptions {
   }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawModuleOptions {
   pub rules: Vec<RawModuleRule>,
   pub parser: Option<HashMap<String, RawParserOptions>>,
   pub generator: Option<HashMap<String, RawGeneratorOptions>>,
+  #[napi(
+    ts_type = "string | RegExp | ((request: string) => boolean) | (string | RegExp | ((request: string) => boolean))[]"
+  )]
+  #[serde(skip_deserializing)]
+  pub no_parse: Option<RawModuleNoParseRules>,
+}
+
+impl Debug for RawModuleOptions {
+  fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("RawModuleOptions")
+      .field("rules", &self.rules)
+      .field("parser", &self.parser)
+      .field("generator", &self.generator)
+      .field("no_parse", &"...")
+      .finish()
+  }
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -772,6 +789,58 @@ impl TryFrom<RawModuleOptions> for ModuleOptions {
             .collect::<std::result::Result<GeneratorOptionsByModuleType, rspack_error::Error>>()
         })
         .transpose()?,
+      no_parse: value
+        .no_parse
+        .map(|x| RawModuleNoParseRulesWrapper(x).into()),
     })
+  }
+}
+
+type RawModuleNoParseRule = Either3<String, JsRegExp, JsFunction>;
+type RawModuleNoParseRules = Either<RawModuleNoParseRule, Vec<RawModuleNoParseRule>>;
+
+struct RawModuleNoParseRuleWrapper(RawModuleNoParseRule);
+
+struct RawModuleNoParseRulesWrapper(RawModuleNoParseRules);
+
+fn js_func_to_no_parse_test_func(v: &JsFunction) -> ModuleNoParseTestFn {
+  let fn_payload: Result<ThreadsafeFunction<String, Option<bool>>> = try {
+    let env = get_napi_env();
+    rspack_binding_macros::js_fn_into_threadsafe_fn!(v, &Env::from(env))
+  };
+  let fn_payload = Arc::new(fn_payload.expect("convert to threadsafe function failed"));
+  Box::new(move |s| {
+    let fn_payload = fn_payload.clone();
+    Box::pin(async move {
+      fn_payload
+        .call(s, ThreadsafeFunctionCallMode::NonBlocking)
+        .into_rspack_result()?
+        .await
+        .unwrap_or_else(|err| panic!("failed to call external function: {err}"))
+        .map(|s| s.unwrap_or_default())
+    })
+  })
+}
+
+impl From<RawModuleNoParseRuleWrapper> for ModuleNoParseRule {
+  fn from(x: RawModuleNoParseRuleWrapper) -> Self {
+    match x.0 {
+      Either3::A(v) => Self::AbsPathPrefix(v),
+      Either3::B(v) => Self::Regexp(v.to_rspack_regex()),
+      Either3::C(v) => Self::TestFn(js_func_to_no_parse_test_func(&v)),
+    }
+  }
+}
+
+impl From<RawModuleNoParseRulesWrapper> for ModuleNoParseRules {
+  fn from(x: RawModuleNoParseRulesWrapper) -> Self {
+    match x.0 {
+      Either::A(v) => Self::Rule(RawModuleNoParseRuleWrapper(v).into()),
+      Either::B(v) => Self::Rules(
+        v.into_iter()
+          .map(|r| RawModuleNoParseRuleWrapper(r).into())
+          .collect(),
+      ),
+    }
   }
 }

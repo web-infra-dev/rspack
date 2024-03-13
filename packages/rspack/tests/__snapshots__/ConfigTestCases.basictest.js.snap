@@ -1,20 +1,20 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`ConfigTestCases builtins css-auto exported tests css/auto can handle css module correctly 1`] = `
-{
+Object {
   "style": "_5c2d5551d80e7ce1ba5f",
 }
 `;
 
 exports[`ConfigTestCases builtins css-modules-composes exported tests css modules composes 1`] = `
-{
+Object {
   "simple-bar": "_0e180c50fc723d21893f e45545294690ac1f111b",
   "simple-foo": "_64c341554d21f0338d15 e45545294690ac1f111b",
 }
 `;
 
 exports[`ConfigTestCases builtins css-modules-composes-preprocessers exported tests css modules with css preprocessers 1`] = `
-{
+Object {
   "class": "df80f3b0f4e4a348c22a _4658e34db45b67e69001",
   "ghi": "b40af806355ae2a77e71",
   "other": "_5c221b4c6b52ae1c3f04 _64a6a8c8c9df5bc70d58",
@@ -23,27 +23,27 @@ exports[`ConfigTestCases builtins css-modules-composes-preprocessers exported te
 `;
 
 exports[`ConfigTestCases builtins css-modules-composes-sass exported tests css modules in scss 1`] = `
-{
+Object {
   "bar": "ced11c340af4be27ae9a df69808451aa79e0bb0e",
 }
 `;
 
 exports[`ConfigTestCases builtins css-modules-dedupe exported tests css modules dedupe 1`] = `
-{
+Object {
   "backButton": "e584739154dc3b504aac _7b415a244cf0005470b1 _4370a95c3b5bb2e782b3",
   "nextButton": "ef4e163a567c697d018d _2188a2bc321e703ef769 _4370a95c3b5bb2e782b3",
 }
 `;
 
 exports[`ConfigTestCases builtins css-modules-exports-only exported tests css modules exportsOnly 1`] = `
-{
+Object {
   "simple-bar": "_0e180c50fc723d21893f e45545294690ac1f111b",
   "simple-foo": "_64c341554d21f0338d15 e45545294690ac1f111b",
 }
 `;
 
 exports[`ConfigTestCases builtins css-modules-local-ident-name-hash exported tests css modules localIdentName with hash 1`] = `
-{
+Object {
   "#": "_2d1f13069a34dadb8112",
   "##": "ae8301fd6f3598539bfd",
   "#.#.#": "_1c997a569a07f2420708",
@@ -72,12 +72,12 @@ exports[`ConfigTestCases builtins css-modules-local-ident-name-hash exported tes
   "f*o*o": "bc01ebf6803f206edbdc",
   "f+o+o": "a330ce191c89fbe8ef59",
   "f/o/o": "a507c95c5be333d80af6",
-  "f\\o\\o": "_8ae0554ce544e3013a32",
+  "f\\\\o\\\\o": "_8ae0554ce544e3013a32",
   "foo.bar": "abed3de09fc05d3400f8",
   "foo/bar": "_57fbbed34c6039e5045b",
   "foo/bar/baz": "_66e03c108771225ae79a",
-  "foo\\bar": "_48beb53984c701be5645",
-  "foo\\bar\\baz": "f9e76b11c67b5115ebdb",
+  "foo\\\\bar": "_48beb53984c701be5645",
+  "foo\\\\bar\\\\baz": "f9e76b11c67b5115ebdb",
   "f~o~o": "_451cb3cda3d4bf8ea8f3",
   "m_x_@": "_9a7665e6cf83142e1b3c",
   "someId": "_9d834034f45a6a2c699b",
@@ -96,7 +96,7 @@ exports[`ConfigTestCases builtins css-modules-local-ident-name-hash exported tes
 `;
 
 exports[`ConfigTestCases builtins css-modules-local-ident-name-path exported tests css modules localIdentName with path 1`] = `
-{
+Object {
   "#": "src-index__#",
   "##": "src-index__##",
   "#.#.#": "src-index__#-#-#",
@@ -125,12 +125,12 @@ exports[`ConfigTestCases builtins css-modules-local-ident-name-path exported tes
   "f*o*o": "src-index__f-o-o",
   "f+o+o": "src-index__f+o+o",
   "f/o/o": "src-index__f-o-o",
-  "f\\o\\o": "src-index__f-o-o",
+  "f\\\\o\\\\o": "src-index__f-o-o",
   "foo.bar": "src-index__foo-bar",
   "foo/bar": "src-index__foo-bar",
   "foo/bar/baz": "src-index__foo-bar-baz",
-  "foo\\bar": "src-index__foo-bar",
-  "foo\\bar\\baz": "src-index__foo-bar-baz",
+  "foo\\\\bar": "src-index__foo-bar",
+  "foo\\\\bar\\\\baz": "src-index__foo-bar-baz",
   "f~o~o": "src-index__f~o~o",
   "m_x_@": "src-index__m_x_@",
   "someId": "src-index__someId",
@@ -149,7 +149,7 @@ exports[`ConfigTestCases builtins css-modules-local-ident-name-path exported tes
 `;
 
 exports[`ConfigTestCases builtins css-modules-locals-convention-camelCase exported tests css modules localsConvention with camelCase 1`] = `
-{
+Object {
   "btn--info_is-disabled_1": "be5d658eb22137a006e0",
   "btn-info_is-disabled": "_779fe26757a96701fe9b",
   "btnInfoIsDisabled": "_779fe26757a96701fe9b",
@@ -161,7 +161,7 @@ exports[`ConfigTestCases builtins css-modules-locals-convention-camelCase export
 `;
 
 exports[`ConfigTestCases builtins css-modules-locals-convention-camelCaseOnly exported tests css modules localsConvention with camelCaseOnly 1`] = `
-{
+Object {
   "btnInfoIsDisabled": "_779fe26757a96701fe9b",
   "btnInfoIsDisabled1": "be5d658eb22137a006e0",
   "fooBar": "f6ab18360b31088c39ba",
@@ -170,7 +170,7 @@ exports[`ConfigTestCases builtins css-modules-locals-convention-camelCaseOnly ex
 `;
 
 exports[`ConfigTestCases builtins css-modules-locals-convention-dashes exported tests css modules localsConvention with dashes 1`] = `
-{
+Object {
   "btn--info_is-disabled_1": "be5d658eb22137a006e0",
   "btn-info-is-disabled": "_779fe26757a96701fe9b",
   "btn-info-is-disabled-1": "be5d658eb22137a006e0",
@@ -182,7 +182,7 @@ exports[`ConfigTestCases builtins css-modules-locals-convention-dashes exported 
 `;
 
 exports[`ConfigTestCases builtins css-modules-pseudo exported tests css modules pseudo syntax 1`] = `
-{
+Object {
   "bar": "cacc1496e2b72da608be",
   "bav": "db3f1cc506f178423160",
   "foo": "e19c45648c68713ed25f",
@@ -194,7 +194,7 @@ exports[`ConfigTestCases builtins css-modules-pseudo exported tests css modules 
 `;
 
 exports[`ConfigTestCases builtins css-modules-simple exported tests css modules simple test 1`] = `
-{
+Object {
   "style": "_5c2d5551d80e7ce1ba5f",
 }
 `;
@@ -222,9 +222,9 @@ exports[`ConfigTestCases css rewrite-url-with-css-filename exported tests should
 exports[`ConfigTestCases css rewrite-url-with-css-filename exported tests should rewrite the css url() with publicPath when output.cssFilename is set 1`] = `"/image/logo.eb587e47.png"`;
 
 exports[`ConfigTestCases css urls exported tests css urls should works 1`] = `
-"/* @supports (background-image: url("unknown.png")) {
+"/* @supports (background-image: url(\\"unknown.png\\")) {
 	div {
-		a195: url("img.png");
+		a195: url(\\"img.png\\");
 	}
 } */
 
@@ -233,7 +233,7 @@ div {
 }
 
 div {
-	a14: url("data:image/svg+xml;charset=utf-8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 42 26' fill='%23007aff'><rect width='4' height='4'/><rect x='8' y='1' width='34' height='2'/><rect y='11' width='4' height='4'/><rect x='8' y='12' width='34' height='2'/><rect y='22' width='4' height='4'/><rect x='8' y='23' width='34' height='2'/></svg>");
+	a14: url(\\"data:image/svg+xml;charset=utf-8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 42 26' fill='%23007aff'><rect width='4' height='4'/><rect x='8' y='1' width='34' height='2'/><rect y='11' width='4' height='4'/><rect x='8' y='12' width='34' height='2'/><rect y='22' width='4' height='4'/><rect x='8' y='23' width='34' height='2'/></svg>\\");
 }
 
 div {
@@ -241,11 +241,11 @@ div {
 }
 
 div {
-	a16: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg"><filter id="filter"><feGaussianBlur in="SourceAlpha" stdDeviation="0" /><feOffset dx="1" dy="2" result="offsetblur" /><feFlood flood-color="rgba(255,255,255,1)" /><feComposite in2="offsetblur" operator="in" /><feMerge><feMergeNode /><feMergeNode in="SourceGraphic" /></feMerge></filter></svg>#filter');
+	a16: url('data:image/svg+xml;charset=utf-8,<svg xmlns=\\"http://www.w3.org/2000/svg\\"><filter id=\\"filter\\"><feGaussianBlur in=\\"SourceAlpha\\" stdDeviation=\\"0\\" /><feOffset dx=\\"1\\" dy=\\"2\\" result=\\"offsetblur\\" /><feFlood flood-color=\\"rgba(255,255,255,1)\\" /><feComposite in2=\\"offsetblur\\" operator=\\"in\\" /><feMerge><feMergeNode /><feMergeNode in=\\"SourceGraphic\\" /></feMerge></filter></svg>#filter');
 }
 
 div {
-	a17: url("data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%5C%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%5C%22%3E%3Cfilter%20id%3D%5C%22filter%5C%22%3E%3CfeGaussianBlur%20in%3D%5C%22SourceAlpha%5C%22%20stdDeviation%3D%5C%220%5C%22%20%2F%3E%3CfeOffset%20dx%3D%5C%221%5C%22%20dy%3D%5C%222%5C%22%20result%3D%5C%22offsetblur%5C%22%20%2F%3E%3CfeFlood%20flood-color%3D%5C%22rgba(255%2C255%2C255%2C1)%5C%22%20%2F%3E%3CfeComposite%20in2%3D%5C%22offsetblur%5C%22%20operator%3D%5C%22in%5C%22%20%2F%3E%3CfeMerge%3E%3CfeMergeNode%20%2F%3E%3CfeMergeNode%20in%3D%5C%22SourceGraphic%5C%22%20%2F%3E%3C%2FfeMerge%3E%3C%2Ffilter%3E%3C%2Fsvg%3E%23filter");
+	a17: url(\\"data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%5C%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%5C%22%3E%3Cfilter%20id%3D%5C%22filter%5C%22%3E%3CfeGaussianBlur%20in%3D%5C%22SourceAlpha%5C%22%20stdDeviation%3D%5C%220%5C%22%20%2F%3E%3CfeOffset%20dx%3D%5C%221%5C%22%20dy%3D%5C%222%5C%22%20result%3D%5C%22offsetblur%5C%22%20%2F%3E%3CfeFlood%20flood-color%3D%5C%22rgba(255%2C255%2C255%2C1)%5C%22%20%2F%3E%3CfeComposite%20in2%3D%5C%22offsetblur%5C%22%20operator%3D%5C%22in%5C%22%20%2F%3E%3CfeMerge%3E%3CfeMergeNode%20%2F%3E%3CfeMergeNode%20in%3D%5C%22SourceGraphic%5C%22%20%2F%3E%3C%2FfeMerge%3E%3C%2Ffilter%3E%3C%2Fsvg%3E%23filter\\");
 }
 
 div {
@@ -257,11 +257,11 @@ div {
 }
 
 div {
-	a148: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg"%3E%3Crect width="100%25" height="100%25" style="stroke: rgb(223,224,225); stroke-width: 2px; fill: none; stroke-dasharray: 6px 3px" /%3E%3C/svg%3E');
-	a149: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg"%3E%3Crect width="100%25" height="100%25" style="stroke: rgb(223,224,225); stroke-width: 2px; fill: none; stroke-dasharray: 6px 3px" /%3E%3C/svg%3E');
-	a150: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg"%3E%3Crect width="100%25" height="100%25" style="stroke: rgb(223,224,225); stroke-width: 2px; fill: none; stroke-dasharray: 6px 3px" /%3E%3C/svg%3E');
-	a151: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" style="stroke: rgb(223,224,225); stroke-width: 2px; fill: none; stroke-dasharray: 6px 3px" /></svg>');
-	a152: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" style="stroke: rgb(223,224,225); stroke-width: 2px; fill: none; stroke-dasharray: 6px 3px" /></svg>');
+	a148: url('data:image/svg+xml,%3Csvg xmlns=\\"http://www.w3.org/2000/svg\\"%3E%3Crect width=\\"100%25\\" height=\\"100%25\\" style=\\"stroke: rgb(223,224,225); stroke-width: 2px; fill: none; stroke-dasharray: 6px 3px\\" /%3E%3C/svg%3E');
+	a149: url('data:image/svg+xml,%3Csvg xmlns=\\"http://www.w3.org/2000/svg\\"%3E%3Crect width=\\"100%25\\" height=\\"100%25\\" style=\\"stroke: rgb(223,224,225); stroke-width: 2px; fill: none; stroke-dasharray: 6px 3px\\" /%3E%3C/svg%3E');
+	a150: url('data:image/svg+xml,%3Csvg xmlns=\\"http://www.w3.org/2000/svg\\"%3E%3Crect width=\\"100%25\\" height=\\"100%25\\" style=\\"stroke: rgb(223,224,225); stroke-width: 2px; fill: none; stroke-dasharray: 6px 3px\\" /%3E%3C/svg%3E');
+	a151: url('data:image/svg+xml;utf8,<svg xmlns=\\"http://www.w3.org/2000/svg\\"><rect width=\\"100%\\" height=\\"100%\\" style=\\"stroke: rgb(223,224,225); stroke-width: 2px; fill: none; stroke-dasharray: 6px 3px\\" /></svg>');
+	a152: url('data:image/svg+xml;utf8,<svg xmlns=\\"http://www.w3.org/2000/svg\\"><rect width=\\"100%\\" height=\\"100%\\" style=\\"stroke: rgb(223,224,225); stroke-width: 2px; fill: none; stroke-dasharray: 6px 3px\\" /></svg>');
 }
 
 div {
@@ -278,36 +278,36 @@ div {
 `;
 
 exports[`ConfigTestCases plugins chunk-modules exported tests chunk-modules 1`] = `
-{
-  "515": {
-    "entryModules": [],
-    "modules": [
-      {
+Object {
+  "515": Object {
+    "entryModules": Array [],
+    "modules": Array [
+      Object {
         "context": "<COMPILER_CONTEXT>",
         "identifier": "<COMPILER_CONTEXT>/async.js",
         "resource": "<COMPILER_CONTEXT>/async.js",
       },
     ],
   },
-  "909": {
-    "entryModules": [
-      {
+  "909": Object {
+    "entryModules": Array [
+      Object {
         "context": "<COMPILER_CONTEXT>",
         "identifier": "<COMPILER_CONTEXT>/index.js",
         "resource": "<COMPILER_CONTEXT>/index.js",
       },
     ],
-    "modules": [
-      {
+    "modules": Array [
+      Object {
         "context": "<COMPILER_CONTEXT>",
         "identifier": "<COMPILER_CONTEXT>/index.js",
         "resource": "<COMPILER_CONTEXT>/index.js",
       },
-      {
-        "identifier": "external node-commonjs Single(ExternalRequestValue { primary: "fs", rest: None })",
+      Object {
+        "identifier": "external node-commonjs Single(ExternalRequestValue { primary: \\"fs\\", rest: None })",
       },
-      {
-        "identifier": "external node-commonjs Single(ExternalRequestValue { primary: "path", rest: None })",
+      Object {
+        "identifier": "external node-commonjs Single(ExternalRequestValue { primary: \\"path\\", rest: None })",
       },
     ],
   },
@@ -321,7 +321,7 @@ exports[`ConfigTestCases schemes data-imports exported tests data imports 1`] = 
 
 .bad {
   a: url(data:text/bad-base64;base64,abcd?#iefix);
-  b: url("data:text/bad-base64;base64,    abcd?#iefix");
+  b: url(\\"data:text/bad-base64;base64,    abcd?#iefix\\");
 }
 
  /* .b{color: green} */

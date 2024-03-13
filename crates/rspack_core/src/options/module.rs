@@ -460,6 +460,50 @@ fn fmt_use(
   }
 }
 
+pub type ModuleNoParseTestFn =
+  Box<dyn Fn(String) -> BoxFuture<'static, Result<bool>> + Sync + Send>;
+
+pub enum ModuleNoParseRule {
+  AbsPathPrefix(String),
+  Regexp(RspackRegex),
+  TestFn(ModuleNoParseTestFn),
+}
+
+impl Debug for ModuleNoParseRule {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      Self::TestFn(_) => "Fn(...)".fmt(f),
+      _ => self.fmt(f),
+    }
+  }
+}
+
+impl ModuleNoParseRule {
+  pub async fn try_match(&self, request: &str) -> Result<bool> {
+    match self {
+      Self::AbsPathPrefix(s) => Ok(request.starts_with(s)),
+      Self::Regexp(reg) => Ok(reg.test(request)),
+      Self::TestFn(func) => func(request.to_string()).await,
+    }
+  }
+}
+
+#[derive(Debug)]
+pub enum ModuleNoParseRules {
+  Rule(ModuleNoParseRule),
+  Rules(Vec<ModuleNoParseRule>),
+}
+
+impl ModuleNoParseRules {
+  #[async_recursion]
+  pub async fn try_match(&self, request: &str) -> Result<bool> {
+    match self {
+      Self::Rule(r) => r.try_match(request).await,
+      Self::Rules(list) => try_any(list, |r| r.try_match(request)).await,
+    }
+  }
+}
+
 #[derive(Debug, Default)]
 pub enum ModuleRuleEnforce {
   Post,
@@ -473,4 +517,5 @@ pub struct ModuleOptions {
   pub rules: Vec<ModuleRule>,
   pub parser: Option<ParserOptionsByModuleType>,
   pub generator: Option<GeneratorOptionsByModuleType>,
+  pub no_parse: Option<ModuleNoParseRules>,
 }

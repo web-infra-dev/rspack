@@ -18,6 +18,7 @@ use rspack_napi_shared::NapiResultExt;
 use super::module::ToJsModule;
 use super::PathWithInfo;
 use crate::utils::callbackify;
+use crate::JsStatsOptimizationBailout;
 use crate::{
   chunk::JsChunk, module::JsModule, CompatSource, JsAsset, JsAssetInfo, JsChunkGroup,
   JsCompatSource, JsStats, PathData, ToJsCompatSource,
@@ -133,10 +134,22 @@ impl JsCompilation {
   pub fn get_modules(&self) -> Vec<JsModule> {
     self
       .inner
-      .module_graph
+      .get_module_graph()
       .modules()
       .values()
       .filter_map(|module| module.to_js_module().ok())
+      .collect::<Vec<_>>()
+  }
+
+  #[napi]
+  pub fn get_optimization_bailout(&self) -> Vec<JsStatsOptimizationBailout> {
+    self
+      .inner
+      .get_module_graph()
+      .module_graph_modules()
+      .values()
+      .flat_map(|item| item.optimization_bailout.clone())
+      .map(|item| JsStatsOptimizationBailout { inner: item })
       .collect::<Vec<_>>()
   }
 
@@ -169,7 +182,7 @@ impl JsCompilation {
   ) -> bool {
     match self
       .inner
-      .module_graph
+      .get_module_graph_mut()
       .module_by_identifier_mut(&Identifier::from(module_identifier.as_str()))
     {
       Some(module) => match module.as_normal_module_mut() {
@@ -242,6 +255,11 @@ impl JsCompilation {
   #[napi]
   pub fn delete_asset(&mut self, filename: String) {
     self.inner.delete_asset(&filename);
+  }
+
+  #[napi]
+  pub fn rename_asset(&mut self, filename: String, new_name: String) {
+    self.inner.rename_asset(&filename, new_name);
   }
 
   #[napi(getter)]

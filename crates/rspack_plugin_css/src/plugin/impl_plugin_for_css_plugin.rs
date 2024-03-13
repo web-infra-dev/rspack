@@ -180,7 +180,7 @@ impl Plugin for CssPlugin {
     let ordered_modules = Self::get_ordered_chunk_css_modules(
       chunk,
       &compilation.chunk_graph,
-      &compilation.module_graph,
+      compilation.get_module_graph(),
       compilation,
     );
     let mut hasher = RspackHash::from(&compilation.options.output);
@@ -222,7 +222,7 @@ impl Plugin for CssPlugin {
     let ordered_css_modules = Self::get_ordered_chunk_css_modules(
       chunk,
       &compilation.chunk_graph,
-      &compilation.module_graph,
+      compilation.get_module_graph(),
       compilation,
     );
 
@@ -290,7 +290,8 @@ impl Plugin for CssPlugin {
     let runtime_requirements = args.runtime_requirements;
     let runtime_requirements_mut = &mut args.runtime_requirements_mut;
 
-    if (runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
+    if (runtime_requirements.contains(RuntimeGlobals::HAS_CSS_MODULES)
+      || runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
       || runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS))
       && is_enabled_for_chunk
     {

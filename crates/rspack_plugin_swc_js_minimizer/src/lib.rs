@@ -5,7 +5,7 @@ mod minify;
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::path::Path;
-use std::sync::{mpsc, Mutex};
+use std::sync::{mpsc, Arc, Mutex};
 
 use async_trait::async_trait;
 use once_cell::sync::OnceCell;
@@ -14,11 +14,12 @@ use regex::Regex;
 use rspack_core::rspack_sources::{ConcatSource, MapOptions, RawSource, SourceExt, SourceMap};
 use rspack_core::rspack_sources::{Source, SourceMapSource, SourceMapSourceOptions};
 use rspack_core::{
-  AssetInfo, CompilationAsset, JsChunkHashArgs, Plugin, PluginContext, PluginJsChunkHashHookOutput,
-  PluginProcessAssetsOutput, ProcessAssetsArgs,
+  AssetInfo, Compilation, CompilationAsset, JsChunkHashArgs, Plugin, PluginContext,
+  PluginJsChunkHashHookOutput,
 };
 use rspack_error::miette::IntoDiagnostic;
 use rspack_error::{Diagnostic, Result};
+use rspack_hook::AsyncSeries;
 use rspack_regex::RspackRegex;
 use rspack_util::try_any_sync;
 use swc_config::config_types::BoolOrDataConfig;
@@ -139,27 +140,24 @@ struct NormalizedExtractComments<'a> {
 
 #[derive(Debug)]
 pub struct SwcJsMinimizerRspackPlugin {
-  options: SwcJsMinimizerRspackPluginOptions,
+  options: Arc<SwcJsMinimizerRspackPluginOptions>,
 }
 
 impl SwcJsMinimizerRspackPlugin {
   pub fn new(options: SwcJsMinimizerRspackPluginOptions) -> Self {
-    Self { options }
+    Self {
+      options: Arc::new(options),
+    }
   }
 }
 
-#[async_trait]
-impl Plugin for SwcJsMinimizerRspackPlugin {
-  fn name(&self) -> &'static str {
-    "rspack.SwcJsMinimizerRspackPlugin"
-  }
+struct SwcJsMinimizerRspackPluginProcessAssetsHook {
+  options: Arc<SwcJsMinimizerRspackPluginOptions>,
+}
 
-  async fn process_assets_stage_optimize_size(
-    &self,
-    _ctx: PluginContext,
-    args: ProcessAssetsArgs<'_>,
-  ) -> PluginProcessAssetsOutput {
-    let compilation = args.compilation;
+#[async_trait]
+impl AsyncSeries<Compilation> for SwcJsMinimizerRspackPluginProcessAssetsHook {
+  async fn run(&self, compilation: &mut Compilation) -> Result<()> {
     let minify_options = &self.options;
 
     let (tx, rx) = mpsc::channel::<Vec<Diagnostic>>();
@@ -298,6 +296,29 @@ impl Plugin for SwcJsMinimizerRspackPlugin {
         )
       });
 
+    Ok(())
+  }
+
+  fn stage(&self) -> i32 {
+    Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE
+  }
+}
+
+impl Plugin for SwcJsMinimizerRspackPlugin {
+  fn name(&self) -> &'static str {
+    "rspack.SwcJsMinimizerRspackPlugin"
+  }
+
+  fn apply(
+    &self,
+    ctx: PluginContext<&mut rspack_core::ApplyContext>,
+    _options: &mut rspack_core::CompilerOptions,
+  ) -> Result<()> {
+    ctx.context.compilation_hooks.process_assets.tap(Box::new(
+      SwcJsMinimizerRspackPluginProcessAssetsHook {
+        options: self.options.clone(),
+      },
+    ));
     Ok(())
   }
 

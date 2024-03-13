@@ -15,8 +15,9 @@ use rspack_core::{
   rspack_sources::RawSource, AssetInfo, AssetInfoRelated, Compilation, CompilationAsset,
   CompilationLogger, Filename, Logger, PathData, Plugin,
 };
-use rspack_error::{Diagnostic, DiagnosticError, Error, ErrorExt};
+use rspack_error::{Diagnostic, DiagnosticError, Error, ErrorExt, Result};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHashDigest};
+use rspack_hook::AsyncSeries;
 use sugar_path::{AsPath, SugarPath};
 
 #[derive(Debug, Clone)]
@@ -98,7 +99,7 @@ pub struct RunPatternResult {
 
 #[derive(Debug)]
 pub struct CopyRspackPlugin {
-  pub patterns: Vec<CopyPattern>,
+  pub patterns: Arc<[CopyPattern]>,
 }
 
 lazy_static::lazy_static! {
@@ -108,7 +109,9 @@ lazy_static::lazy_static! {
 
 impl CopyRspackPlugin {
   pub fn new(patterns: Vec<CopyPattern>) -> Self {
-    Self { patterns }
+    Self {
+      patterns: patterns.into(),
+    }
   }
 
   fn get_content_hash(
@@ -503,39 +506,33 @@ impl CopyRspackPlugin {
   }
 }
 
-#[async_trait]
-impl Plugin for CopyRspackPlugin {
-  fn name(&self) -> &'static str {
-    "rspack.CopyRspackPlugin"
-  }
+struct CopyRspackPluginProcessAssetsHook(Arc<[CopyPattern]>);
 
-  async fn process_assets_stage_additional(
-    &self,
-    _ctx: rspack_core::PluginContext,
-    mut args: rspack_core::ProcessAssetsArgs<'_>,
-  ) -> rspack_core::PluginProcessAssetsOutput {
-    let logger = args.compilation.get_logger(self.name());
+#[async_trait]
+impl AsyncSeries<Compilation> for CopyRspackPluginProcessAssetsHook {
+  async fn run(&self, compilation: &mut Compilation) -> Result<()> {
+    let logger = compilation.get_logger("rspack.CopyRspackPlugin");
     let start = logger.time("run pattern");
     let file_dependencies = DashSet::default();
     let context_dependencies = DashSet::default();
     let diagnostics = Mutex::new(Vec::new());
 
     let mut copied_result: Vec<(i32, RunPatternResult)> = self
-      .patterns
+      .0
       .iter()
       .enumerate()
       .map(|(index, pattern)| {
         let mut pattern = pattern.clone();
         if pattern.context.is_none() {
-          pattern.context = Some(args.compilation.options.context.as_path().into());
+          pattern.context = Some(compilation.options.context.as_path().into());
         } else if let Some(ctx) = pattern.context.clone()
           && !ctx.is_absolute()
         {
-          pattern.context = Some(args.compilation.options.context.as_path().join(ctx))
+          pattern.context = Some(compilation.options.context.as_path().join(ctx))
         };
 
-        Self::run_patter(
-          args.compilation,
+        CopyRspackPlugin::run_patter(
+          compilation,
           &pattern,
           index,
           &file_dependencies,
@@ -558,7 +555,6 @@ impl Plugin for CopyRspackPlugin {
     logger.time_end(start);
 
     let start = logger.time("emit assets");
-    let compilation = &mut args.compilation;
     compilation.file_dependencies.extend(file_dependencies);
     compilation
       .context_dependencies
@@ -573,7 +569,7 @@ impl Plugin for CopyRspackPlugin {
 
     copied_result.sort_unstable_by(|a, b| a.0.cmp(&b.0));
     copied_result.into_iter().for_each(|(_priority, result)| {
-      if let Some(exist_asset) = args.compilation.assets_mut().get_mut(&result.filename) {
+      if let Some(exist_asset) = compilation.assets_mut().get_mut(&result.filename) {
         if !result.force {
           return;
         }
@@ -588,7 +584,7 @@ impl Plugin for CopyRspackPlugin {
           set_info(&mut asset_info, info);
         }
 
-        args.compilation.emit_asset(
+        compilation.emit_asset(
           result.filename,
           CompilationAsset {
             source: Some(Arc::new(result.source)),
@@ -599,6 +595,27 @@ impl Plugin for CopyRspackPlugin {
     });
     logger.time_end(start);
 
+    Ok(())
+  }
+
+  fn stage(&self) -> i32 {
+    Compilation::PROCESS_ASSETS_STAGE_ADDITIONAL
+  }
+}
+
+impl Plugin for CopyRspackPlugin {
+  fn apply(
+    &self,
+    ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
+    _options: &mut rspack_core::CompilerOptions,
+  ) -> Result<()> {
+    ctx
+      .context
+      .compilation_hooks
+      .process_assets
+      .tap(Box::new(CopyRspackPluginProcessAssetsHook(
+        self.patterns.clone(),
+      )));
     Ok(())
   }
 }

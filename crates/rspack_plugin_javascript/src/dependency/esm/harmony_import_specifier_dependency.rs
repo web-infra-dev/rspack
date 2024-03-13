@@ -87,16 +87,30 @@ impl HarmonyImportSpecifierDependency {
     if !reference_mgm.module_type.is_js_like() {
       return true;
     }
+    let related_symbol = compilation
+      .get_module_graph()
+      .get_parent_module(&self.id)
+      .and_then(|parent_module| compilation.optimize_analyze_result_map.get(parent_module))
+      .and_then(|analyze_res| {
+        analyze_res
+          .harmony_import_specifier_dependency_alias_map
+          .get(&self.span_for_on_usage_search)
+      });
+    if let Some(related_symbol) = related_symbol
+      && !compilation.used_symbol_ref.contains(related_symbol)
+    {
+      return false;
+    }
 
     match &self.specifier {
       Specifier::Namespace(_) => true,
       Specifier::Default(_) => compilation
-        .module_graph
+        .get_module_graph()
         .get_exports_info(&reference_mgm.module_identifier)
         .old_get_used_exports()
         .contains(&DEFAULT_JS_WORD),
       Specifier::Named(local, imported) => compilation
-        .module_graph
+        .get_module_graph()
         .get_exports_info(&reference_mgm.module_identifier)
         .old_get_used_exports()
         .contains(imported.as_ref().unwrap_or(local)),
@@ -144,13 +158,15 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
 
     // Only available when module factorization is successful.
     let reference_mgm = compilation
-      .module_graph
+      .get_module_graph()
       .module_graph_module_by_dependency_id(&self.id);
     let is_new_treeshaking = compilation.options.is_new_tree_shaking();
     if is_new_treeshaking {
-      let connection = compilation.module_graph.connection_by_dependency(&self.id);
+      let connection = compilation
+        .get_module_graph()
+        .connection_by_dependency(&self.id);
       let is_target_active = if let Some(con) = connection {
-        con.is_target_active(&compilation.module_graph, *runtime)
+        con.is_target_active(compilation.get_module_graph(), *runtime)
       } else {
         true
       };
@@ -173,11 +189,13 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
       return;
     }
 
-    let ids = self.get_ids(&compilation.module_graph);
-    let import_var = get_import_var(&compilation.module_graph, self.id);
+    let ids = self.get_ids(compilation.get_module_graph());
+    let import_var = get_import_var(compilation.get_module_graph(), self.id);
 
     let export_expr = if let Some(scope) = concatenation_scope
-      && let Some(con) = compilation.module_graph.connection_by_dependency(&self.id)
+      && let Some(con) = compilation
+        .get_module_graph()
+        .connection_by_dependency(&self.id)
       && scope.is_module_in_scope(&con.module_identifier)
     {
       if ids.is_empty() {

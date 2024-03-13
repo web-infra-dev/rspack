@@ -13,8 +13,7 @@ impl Plugin for DeterministicModuleIdsPlugin {
   fn module_ids(&self, compilation: &mut Compilation) -> Result<()> {
     let (mut used_ids, modules) = get_used_module_ids_and_modules(compilation, None);
 
-    let module_graph = &compilation.module_graph;
-    let chunk_graph = &mut compilation.chunk_graph;
+    let mut chunk_graph = std::mem::take(&mut compilation.chunk_graph);
     let context = compilation.options.context.as_ref();
     let max_length = 3;
     let fail_on_conflict = false;
@@ -22,9 +21,10 @@ impl Plugin for DeterministicModuleIdsPlugin {
     let salt = 0;
     let mut conflicts = 0;
 
+    let module_graph = compilation.get_module_graph();
     let modules = modules
       .into_iter()
-      .filter_map(|i| compilation.module_graph.module_by_identifier(&i))
+      .filter_map(|i| module_graph.module_by_identifier(&i))
       .collect::<Vec<_>>();
     let used_ids_len = used_ids.len();
     assign_deterministic_ids(
@@ -46,6 +46,7 @@ impl Plugin for DeterministicModuleIdsPlugin {
       used_ids_len,
       salt,
     );
+    compilation.chunk_graph = chunk_graph;
     if fail_on_conflict && conflicts > 0 {
       // TODO: better error msg
       panic!("Assigning deterministic module ids has lead to conflicts {conflicts}");

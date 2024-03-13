@@ -6,14 +6,14 @@ use async_trait::async_trait;
 use once_cell::sync::Lazy;
 use rspack_core::{
   Compilation, ConnectionState, ModuleGraph, ModuleIdentifier, MutexModuleGraph, Plugin,
-  ResolvedExportInfoTarget,
+  ResolvedExportInfoTarget, SideEffectsBailoutItemWithSpan,
 };
 use rspack_error::Result;
 use rspack_identifier::IdentifierSet;
 use rustc_hash::FxHashSet as HashSet;
 // use rspack_core::Plugin;
 // use rspack_error::Result;
-use swc_core::common::{comments, Span, Spanned, SyntaxContext, GLOBALS};
+use swc_core::common::{comments, Spanned, SyntaxContext, GLOBALS};
 use swc_core::ecma::ast::*;
 use swc_core::ecma::utils::{ExprCtx, ExprExt};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
@@ -25,7 +25,7 @@ use crate::dependency::{
 
 pub struct SideEffectsFlagPluginVisitor<'a> {
   unresolved_ctxt: SyntaxContext,
-  pub side_effects_span: Option<Span>,
+  pub side_effects_item: Option<SideEffectsBailoutItemWithSpan>,
   is_top_level: bool,
   comments: Option<&'a SwcComments>,
 }
@@ -34,7 +34,7 @@ impl<'a> Debug for SideEffectsFlagPluginVisitor<'a> {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     f.debug_struct("SideEffectsFlagPluginVisitor")
       .field("unresolved_ctxt", &self.unresolved_ctxt)
-      .field("side_effects_span", &self.side_effects_span)
+      .field("side_effects_span", &self.side_effects_item)
       .field("is_top_level", &self.is_top_level)
       .finish()
   }
@@ -55,7 +55,7 @@ impl<'a> SideEffectsFlagPluginVisitor<'a> {
   pub fn new(mark_info: SyntaxContextInfo, comments: Option<&'a SwcComments>) -> Self {
     Self {
       unresolved_ctxt: mark_info.unresolved_ctxt,
-      side_effects_span: None,
+      side_effects_item: None,
       is_top_level: true,
       comments,
     }
@@ -83,7 +83,10 @@ impl<'a> Visit for SideEffectsFlagPluginVisitor<'a> {
           }
           ModuleDecl::ExportDefaultExpr(expr) => {
             if !is_pure_expression(&expr.expr, self.unresolved_ctxt, self.comments) {
-              self.side_effects_span = Some(node.span);
+              self.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
+                expr.span,
+                String::from("ExportDefaultExpr"),
+              ));
             }
           }
           // export * from './x'
@@ -113,7 +116,10 @@ impl<'a> Visit for SideEffectsFlagPluginVisitor<'a> {
 
   fn visit_export_decl(&mut self, node: &ExportDecl) {
     if !is_pure_decl(&node.decl, self.unresolved_ctxt, self.comments) {
-      self.side_effects_span = Some(node.decl.span());
+      self.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
+        node.decl.span(),
+        String::from("Decl"),
+      ));
     }
     node.visit_children_with(self);
   }
@@ -156,23 +162,32 @@ impl<'a> SideEffectsFlagPluginVisitor<'a> {
   /// If we find a stmt that has side effects, we will skip the rest of the stmts.
   /// And mark the module as having side effects.
   fn analyze_stmt_side_effects(&mut self, ele: &Stmt) {
-    if self.side_effects_span.is_some() {
+    if self.side_effects_item.is_some() {
       return;
     }
     match ele {
       Stmt::If(stmt) => {
         if !is_pure_expression(&stmt.test, self.unresolved_ctxt, self.comments) {
-          self.side_effects_span = Some(stmt.span);
+          self.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
+            stmt.span(),
+            String::from("Statement"),
+          ));
         }
       }
       Stmt::While(stmt) => {
         if !is_pure_expression(&stmt.test, self.unresolved_ctxt, self.comments) {
-          self.side_effects_span = Some(stmt.span);
+          self.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
+            stmt.span(),
+            String::from("Statement"),
+          ));
         }
       }
       Stmt::DoWhile(stmt) => {
         if !is_pure_expression(&stmt.test, self.unresolved_ctxt, self.comments) {
-          self.side_effects_span = Some(stmt.span);
+          self.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
+            stmt.span(),
+            String::from("Statement"),
+          ));
         }
       }
       Stmt::For(stmt) => {
@@ -189,7 +204,10 @@ impl<'a> SideEffectsFlagPluginVisitor<'a> {
         };
 
         if !pure_init {
-          self.side_effects_span = Some(stmt.span);
+          self.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
+            stmt.span(),
+            String::from("Statement"),
+          ));
           return;
         }
 
@@ -199,7 +217,10 @@ impl<'a> SideEffectsFlagPluginVisitor<'a> {
         };
 
         if !pure_test {
-          self.side_effects_span = Some(stmt.span);
+          self.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
+            stmt.span(),
+            String::from("Statement"),
+          ));
           return;
         }
 
@@ -209,28 +230,45 @@ impl<'a> SideEffectsFlagPluginVisitor<'a> {
         };
 
         if !pure_update {
-          self.side_effects_span = Some(stmt.span);
+          self.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
+            stmt.span(),
+            String::from("Statement"),
+          ));
         }
       }
       Stmt::Expr(stmt) => {
         if !is_pure_expression(&stmt.expr, self.unresolved_ctxt, self.comments) {
-          self.side_effects_span = Some(stmt.span);
+          self.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
+            stmt.span(),
+            String::from("Statement"),
+          ));
         }
       }
       Stmt::Switch(stmt) => {
         if !is_pure_expression(&stmt.discriminant, self.unresolved_ctxt, self.comments) {
-          self.side_effects_span = Some(stmt.span);
+          self.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
+            stmt.span(),
+            String::from("Statement"),
+          ));
         }
       }
       Stmt::Decl(stmt) => {
         if !is_pure_decl(stmt, self.unresolved_ctxt, self.comments) {
-          self.side_effects_span = Some(stmt.span());
+          self.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
+            stmt.span(),
+            String::from("Statement"),
+          ));
         }
       }
       Stmt::Empty(_) => {}
       Stmt::Labeled(_) => {}
       Stmt::Block(_) => {}
-      _ => self.side_effects_span = Some(ele.span()),
+      _ => {
+        self.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
+          ele.span(),
+          String::from("Statement"),
+        ))
+      }
     };
   }
 }
@@ -480,7 +518,7 @@ impl Plugin for SideEffectsFlagPlugin {
 
   async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<()>> {
     let entries = compilation.entry_modules().collect::<Vec<_>>();
-    let mg = &mut compilation.module_graph;
+    let mg = compilation.get_module_graph_mut();
     let level_order_module_identifier = get_level_order_module_ids(mg, entries);
     for module_identifier in level_order_module_identifier {
       let mut module_chain = HashSet::default();

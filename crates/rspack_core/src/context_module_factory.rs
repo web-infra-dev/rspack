@@ -1,16 +1,19 @@
 use std::sync::Arc;
 
-use rspack_error::Result;
+use rspack_error::{error, Result};
 use tracing::instrument;
 
 use crate::{
-  cache::Cache, resolve, BoxModule, ContextModule, ContextModuleOptions, ModuleExt, ModuleFactory,
-  ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, NormalModuleBeforeResolveArgs,
-  RawModule, ResolveArgs, ResolveResult, SharedPluginDriver,
+  cache::Cache, resolve, BoxModule, ContextModule, ContextModuleOptions, DependencyCategory,
+  ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier,
+  NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs,
+  PluginNormalModuleFactoryAfterResolveOutput, RawModule, ResolveArgs,
+  ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory, SharedPluginDriver,
 };
 
 #[derive(Debug)]
 pub struct ContextModuleFactory {
+  loader_resolver_factory: Arc<ResolverFactory>,
   plugin_driver: SharedPluginDriver,
   cache: Arc<Cache>,
 }
@@ -22,13 +25,25 @@ impl ModuleFactory for ContextModuleFactory {
     if let Ok(Some(before_resolve_result)) = self.before_resolve(data).await {
       return Ok(before_resolve_result);
     }
-    Ok(self.resolve(data).await?)
+
+    let factorize_result = self.resolve(data).await?;
+
+    if let Some(false) = self.after_resolve(data, &factorize_result).await? {
+      return Ok(ModuleFactoryResult::default());
+    }
+
+    Ok(factorize_result)
   }
 }
 
 impl ContextModuleFactory {
-  pub fn new(plugin_driver: SharedPluginDriver, cache: Arc<Cache>) -> Self {
+  pub fn new(
+    loader_resolver_factory: Arc<ResolverFactory>,
+    plugin_driver: SharedPluginDriver,
+    cache: Arc<Cache>,
+  ) -> Self {
     Self {
+      loader_resolver_factory,
       plugin_driver,
       cache,
     }
@@ -60,7 +75,18 @@ impl ContextModuleFactory {
     Ok(None)
   }
 
+  fn get_loader_resolver(&self) -> Arc<Resolver> {
+    self
+      .loader_resolver_factory
+      .get(ResolveOptionsWithDependencyType {
+        resolve_options: None,
+        resolve_to_context: false,
+        dependency_category: DependencyCategory::CommonJS,
+      })
+  }
+
   async fn resolve(&self, data: &mut ModuleFactoryCreateData) -> Result<ModuleFactoryResult> {
+    let plugin_driver = &self.plugin_driver;
     let dependency = data
       .dependency
       .as_context_dependency()
@@ -71,8 +97,56 @@ impl ContextModuleFactory {
     // let context_dependencies = Default::default();
     let request = dependency.request();
     let (loader_request, specifier) = match request.rfind('!') {
-      Some(idx) => request.split_at(idx + 1),
-      None => ("", request),
+      Some(idx) => {
+        let mut loaders_prefix = String::new();
+        let mut loaders_request = request[..idx + 1].to_string();
+        let mut i = 0;
+        while i < loaders_request.len() && loaders_request.chars().nth(i) == Some('!') {
+          loaders_prefix.push('!');
+          i += 1;
+        }
+        loaders_request = loaders_request[i..]
+          .trim_end_matches('!')
+          .replace("!!", "!");
+
+        let loaders = if loaders_request.is_empty() {
+          vec![]
+        } else {
+          loaders_request.split('!').collect()
+        };
+        let resource = &request[idx + 1..];
+
+        let mut loader_result = Vec::with_capacity(loaders.len());
+        let loader_resolver = self.get_loader_resolver();
+        for loader_request in loaders {
+          let resolve_result = loader_resolver
+            .resolve(data.context.as_ref(), loader_request)
+            .map_err(|err| {
+              let context = data.context.to_string();
+              error!("Failed to resolve loader: {loader_request} in {context} {err:?}")
+            })?;
+          match resolve_result {
+            ResolveResult::Resource(resource) => {
+              let resource = resource.full_path().to_string_lossy().to_string();
+              loader_result.push(resource);
+            }
+            ResolveResult::Ignored => {
+              let context = data.context.to_string();
+              return Err(error!(
+                "Failed to resolve loader: loader_request={loader_request}, context={context}"
+              ));
+            }
+          }
+        }
+        let request = format!(
+          "{}{}{}",
+          loaders_prefix,
+          loader_result.join("!"),
+          if loader_result.is_empty() { "" } else { "!" }
+        );
+        (request, resource)
+      }
+      None => ("".to_string(), request),
     };
 
     let resolve_args = ResolveArgs {
@@ -89,7 +163,6 @@ impl ContextModuleFactory {
       file_dependencies: &mut file_dependencies,
       missing_dependencies: &mut missing_dependencies,
     };
-    let plugin_driver = &self.plugin_driver;
 
     let (resource_data, from_cache) = match self
       .cache
@@ -106,8 +179,8 @@ impl ContextModuleFactory {
         ContextModuleOptions {
           addon: loader_request.to_string(),
           resource: resource.path.to_string_lossy().to_string(),
-          resource_query: resource.query,
-          resource_fragment: resource.fragment,
+          resource_query: Some(resource.query),
+          resource_fragment: Some(resource.fragment),
           resolve_options: data.resolve_options.clone(),
           context_options: dependency.options().clone(),
         },
@@ -139,5 +212,29 @@ impl ContextModuleFactory {
       factory_meta,
       from_cache,
     })
+  }
+
+  async fn after_resolve(
+    &self,
+    data: &mut ModuleFactoryCreateData,
+    factory_result: &ModuleFactoryResult,
+  ) -> PluginNormalModuleFactoryAfterResolveOutput {
+    let dependency = data
+      .dependency
+      .as_context_dependency()
+      .expect("should be module dependency");
+
+    self
+      .plugin_driver
+      .context_module_after_resolve(&mut NormalModuleAfterResolveArgs {
+        request: dependency.request(),
+        context: data.context.as_ref(),
+        file_dependencies: &data.file_dependencies,
+        context_dependencies: &data.context_dependencies,
+        missing_dependencies: &data.missing_dependencies,
+        diagnostics: &mut data.diagnostics,
+        factory_meta: &factory_result.factory_meta,
+      })
+      .await
   }
 }

@@ -6,6 +6,7 @@ use rspack_error::{Result, TWithDiagnosticArray};
 use rspack_loader_runner::{AdditionalData, ResourceData};
 use rspack_sources::BoxSource;
 use rspack_util::source_map::SourceMapKind;
+use swc_core::common::Span;
 
 use crate::ConcatenationScope;
 use crate::{
@@ -35,12 +36,39 @@ pub struct ParseContext<'a> {
 }
 
 #[derive(Debug)]
+pub struct SideEffectsBailoutItem {
+  pub msg: String,
+  /// The type of AstNode
+  pub ty: String,
+}
+
+impl SideEffectsBailoutItem {
+  pub fn new(msg: String, ty: String) -> Self {
+    Self { msg, ty }
+  }
+}
+
+#[derive(Debug)]
+pub struct SideEffectsBailoutItemWithSpan {
+  pub span: Span,
+  /// The type of AstNode
+  pub ty: String,
+}
+
+impl SideEffectsBailoutItemWithSpan {
+  pub fn new(span: Span, ty: String) -> Self {
+    Self { span, ty }
+  }
+}
+
+#[derive(Debug)]
 pub struct ParseResult {
   pub dependencies: Vec<BoxDependency>,
   pub blocks: Vec<AsyncDependenciesBlock>,
   pub presentational_dependencies: Vec<Box<dyn DependencyTemplate>>,
   pub source: BoxSource,
   pub analyze_result: OptimizeAnalyzeResult,
+  pub side_effects_bailout: Option<SideEffectsBailoutItem>,
 }
 
 #[derive(Debug)]

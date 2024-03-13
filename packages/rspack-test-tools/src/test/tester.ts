@@ -1,15 +1,23 @@
 import { TestContext } from "./context";
-import { ITester, ITesterConfig, ITestContext, ITestProcessor } from "../type";
+import {
+	ITester,
+	ITesterConfig,
+	ITestContext,
+	ITestProcessor,
+	ITestEnv
+} from "../type";
 
 export class Tester implements ITester {
 	private context: ITestContext;
 	private steps: ITestProcessor[] = [];
 	step: number = 0;
+	total: number = 0;
 
-	constructor(config: ITesterConfig) {
+	constructor(private config: ITesterConfig) {
 		this.context = new TestContext(config);
 		this.steps = config.steps || [];
 		this.step = 0;
+		this.total = config.steps?.length || 0;
 	}
 	async prepare() {
 		for (let i of this.steps) {
@@ -22,27 +30,29 @@ export class Tester implements ITester {
 		const currentStep = this.steps[this.step];
 		if (!currentStep) return;
 
-		await this.runStepMethods(currentStep, [
-			"before",
-			"config",
-			"compiler",
-			"build"
-		]);
-
-		if (this.context.hasError()) {
-			this.outputErrors();
-			throw new Error("build failed");
-		}
+		try {
+			await this.runStepMethods(currentStep, [
+				"before",
+				"config",
+				"compiler",
+				"build"
+			]);
+		} catch (e) {}
 	}
-	async check() {
+	async check(env: ITestEnv) {
 		const currentStep = this.steps[this.step];
 		if (!currentStep) return;
 
-		await this.runStepMethods(currentStep, ["run", "check", "after"]);
+		if (this.context.hasError()) {
+			await this.runCheckStepMethods(currentStep, env, ["check"]);
+		} else {
+			await this.runCheckStepMethods(currentStep, env, ["run", "check"]);
+		}
+		await this.runStepMethods(currentStep, ["after"], true);
 
 		if (this.context.hasError()) {
 			this.outputErrors();
-			throw new Error("check failed");
+			throw new Error(`Case "${this.config.name}" check failed`);
 		}
 	}
 
@@ -69,20 +79,46 @@ export class Tester implements ITester {
 
 	private async runStepMethods(
 		step: ITestProcessor,
-		methods: Array<keyof ITestProcessor>
+		methods: Array<"before" | "config" | "compiler" | "build" | "after">,
+		force: boolean = false
 	) {
 		for (let i of methods) {
-			if (this.context.hasError()) return;
+			if (!force && this.context.hasError()) return;
 			if (typeof step[i] === "function") {
-				await step[i]!(this.context);
+				try {
+					await step[i]!(this.context);
+				} catch (e) {
+					this.context.emitError(this.config.name, e as Error);
+				}
+			}
+		}
+	}
+
+	private async runCheckStepMethods(
+		step: ITestProcessor,
+		env: ITestEnv,
+		methods: Array<"run" | "check">
+	) {
+		for (let i of methods) {
+			if (typeof step[i] === "function") {
+				await step[i]!(env, this.context);
 			}
 		}
 	}
 
 	private outputErrors() {
-		console.error(`Errors occur in step ${this.step + 1}:`);
-		for (let error of this.context.errors) {
-			console.error(error);
+		console.error(
+			`Case "${this.config.name}" run failed: errors occur in step ${
+				this.step + 1
+			}:`
+		);
+		for (let key of this.context.getNames()) {
+			const errors = this.context.getError(key);
+			if (errors.length === 0) continue;
+			console.error(`Error index: ${key}:`);
+			for (let error of errors) {
+				console.error(error);
+			}
 		}
 	}
 }

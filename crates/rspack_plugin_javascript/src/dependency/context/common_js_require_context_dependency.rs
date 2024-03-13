@@ -102,7 +102,7 @@ impl DependencyTemplate for CommonJsRequireContextDependency {
     );
 
     if compilation
-      .module_graph
+      .get_module_graph()
       .module_graph_module_by_dependency_id(&self.id)
       .is_none()
     {

@@ -10,9 +10,9 @@ use tokio::sync::mpsc::UnboundedSender;
 use crate::{
   AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, AssetEmittedArgs,
   AssetInfo, BoxLoader, BoxModule, BuildTimeExecutionOption, Chunk, ChunkAssetArgs, ChunkHashArgs,
-  CodeGenerationResults, Compilation, CompilationParams, CompilerHooks, CompilerOptions,
-  ContentHashArgs, DependencyId, DoneArgs, FactorizeArgs, JsChunkHashArgs, LoaderRunnerContext,
-  Module, ModuleFactoryResult, ModuleIdentifier, ModuleType, NormalModule,
+  CodeGenerationResults, Compilation, CompilationHooks, CompilationParams, CompilerHooks,
+  CompilerOptions, ContentHashArgs, DependencyId, DoneArgs, FactorizeArgs, JsChunkHashArgs,
+  LoaderRunnerContext, Module, ModuleFactoryResult, ModuleIdentifier, ModuleType, NormalModule,
   NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs, NormalModuleCreateData,
   OptimizeChunksArgs, ParserAndGenerator, PluginContext, ProcessAssetsArgs, RenderArgs,
   RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, Resolver,
@@ -115,6 +115,14 @@ pub trait Plugin: Debug + Send + Sync {
     _ctx: PluginContext,
     _args: &mut NormalModuleBeforeResolveArgs,
   ) -> PluginNormalModuleFactoryBeforeResolveOutput {
+    Ok(None)
+  }
+
+  async fn context_module_after_resolve(
+    &self,
+    _ctx: PluginContext,
+    _args: &mut NormalModuleAfterResolveArgs<'_>,
+  ) -> PluginNormalModuleFactoryAfterResolveOutput {
     Ok(None)
   }
 
@@ -255,134 +263,6 @@ pub trait Plugin: Debug + Send + Sync {
     _ctx: PluginContext,
     _args: &mut RuntimeRequirementsInTreeArgs,
   ) -> PluginRuntimeRequirementsInTreeOutput {
-    Ok(())
-  }
-
-  async fn process_assets_stage_additional(
-    &self,
-    _ctx: PluginContext,
-    _args: ProcessAssetsArgs<'_>,
-  ) -> PluginProcessAssetsOutput {
-    Ok(())
-  }
-
-  async fn process_assets_stage_pre_process(
-    &self,
-    _ctx: PluginContext,
-    _args: ProcessAssetsArgs<'_>,
-  ) -> PluginProcessAssetsOutput {
-    Ok(())
-  }
-
-  async fn process_assets_stage_derived(
-    &self,
-    _ctx: PluginContext,
-    _args: ProcessAssetsArgs<'_>,
-  ) -> PluginProcessAssetsOutput {
-    Ok(())
-  }
-
-  async fn process_assets_stage_additions(
-    &self,
-    _ctx: PluginContext,
-    _args: ProcessAssetsArgs<'_>,
-  ) -> PluginProcessAssetsOutput {
-    Ok(())
-  }
-
-  async fn process_assets_stage_none(
-    &self,
-    _ctx: PluginContext,
-    _args: ProcessAssetsArgs<'_>,
-  ) -> PluginProcessAssetsOutput {
-    Ok(())
-  }
-
-  async fn process_assets_stage_optimize(
-    &self,
-    _ctx: PluginContext,
-    _args: ProcessAssetsArgs<'_>,
-  ) -> PluginProcessAssetsOutput {
-    Ok(())
-  }
-
-  async fn process_assets_stage_optimize_count(
-    &self,
-    _ctx: PluginContext,
-    _args: ProcessAssetsArgs<'_>,
-  ) -> PluginProcessAssetsOutput {
-    Ok(())
-  }
-
-  async fn process_assets_stage_optimize_compatibility(
-    &self,
-    _ctx: PluginContext,
-    _args: ProcessAssetsArgs<'_>,
-  ) -> PluginProcessAssetsOutput {
-    Ok(())
-  }
-
-  async fn process_assets_stage_optimize_size(
-    &self,
-    _ctx: PluginContext,
-    _args: ProcessAssetsArgs<'_>,
-  ) -> PluginProcessAssetsOutput {
-    Ok(())
-  }
-
-  async fn process_assets_stage_dev_tooling(
-    &self,
-    _ctx: PluginContext,
-    _args: ProcessAssetsArgs<'_>,
-  ) -> PluginProcessAssetsOutput {
-    Ok(())
-  }
-
-  async fn process_assets_stage_optimize_inline(
-    &self,
-    _ctx: PluginContext,
-    _args: ProcessAssetsArgs<'_>,
-  ) -> PluginProcessAssetsOutput {
-    Ok(())
-  }
-
-  async fn process_assets_stage_summarize(
-    &self,
-    _ctx: PluginContext,
-    _args: ProcessAssetsArgs<'_>,
-  ) -> PluginProcessAssetsOutput {
-    Ok(())
-  }
-
-  async fn process_assets_stage_optimize_hash(
-    &self,
-    _ctx: PluginContext,
-    _args: ProcessAssetsArgs<'_>,
-  ) -> PluginProcessAssetsOutput {
-    Ok(())
-  }
-
-  async fn process_assets_stage_optimize_transfer(
-    &self,
-    _ctx: PluginContext,
-    _args: ProcessAssetsArgs<'_>,
-  ) -> PluginProcessAssetsOutput {
-    Ok(())
-  }
-
-  async fn process_assets_stage_analyse(
-    &self,
-    _ctx: PluginContext,
-    _args: ProcessAssetsArgs<'_>,
-  ) -> PluginProcessAssetsOutput {
-    Ok(())
-  }
-
-  async fn process_assets_stage_report(
-    &self,
-    _ctx: PluginContext,
-    _args: ProcessAssetsArgs<'_>,
-  ) -> PluginProcessAssetsOutput {
     Ok(())
   }
 
@@ -608,6 +488,7 @@ pub struct ApplyContext<'c> {
   pub(crate) registered_parser_and_generator_builder:
     &'c mut FxHashMap<ModuleType, BoxedParserAndGeneratorBuilder>,
   pub compiler_hooks: &'c mut CompilerHooks,
+  pub compilation_hooks: &'c mut CompilationHooks,
 }
 
 impl<'c> ApplyContext<'c> {
