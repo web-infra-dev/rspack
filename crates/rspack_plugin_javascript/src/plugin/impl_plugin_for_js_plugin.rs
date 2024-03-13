@@ -13,110 +13,109 @@ use rspack_core::{
 };
 use rspack_error::{IntoTWithDiagnosticArray, Result};
 use rspack_hash::RspackHash;
-use rspack_hook::AsyncSeries2;
+use rspack_hook::{plugin_hook, AsyncSeries2};
 
 use crate::parser_and_generator::JavaScriptParserAndGenerator;
-use crate::JsPlugin;
+use crate::{JsPlugin, JsPluginInner};
 
-struct JsPluginCompilationHook;
-
-#[async_trait]
-impl AsyncSeries2<Compilation, CompilationParams> for JsPluginCompilationHook {
-  async fn run(&self, compilation: &mut Compilation, params: &mut CompilationParams) -> Result<()> {
-    // HarmonyModulesPlugin
-    compilation.set_dependency_factory(
-      DependencyType::EsmImport(ErrorSpan::default()),
-      params.normal_module_factory.clone(),
-    );
-    compilation.set_dependency_factory(
-      DependencyType::EsmImportSpecifier,
-      params.normal_module_factory.clone(),
-    );
-    compilation.set_dependency_factory(
-      DependencyType::EsmExport(ErrorSpan::default()),
-      params.normal_module_factory.clone(),
-    );
-    compilation.set_dependency_factory(
-      DependencyType::EsmExportImportedSpecifier,
-      params.normal_module_factory.clone(),
-    );
-    compilation.set_dependency_factory(
-      DependencyType::EsmExportSpecifier,
-      params.normal_module_factory.clone(),
-    );
-    // CommonJsPlugin
-    compilation.set_dependency_factory(
-      DependencyType::CjsRequire,
-      params.normal_module_factory.clone(),
-    );
-    compilation.set_dependency_factory(
-      DependencyType::CjsExports,
-      params.normal_module_factory.clone(),
-    );
-    compilation.set_dependency_factory(
-      DependencyType::CjsExportRequire,
-      params.normal_module_factory.clone(),
-    );
-    compilation.set_dependency_factory(
-      DependencyType::CommonJSRequireContext,
-      params.context_module_factory.clone(),
-    );
-    compilation.set_dependency_factory(
-      DependencyType::RequireResolve,
-      params.normal_module_factory.clone(),
-    );
-    // RequireContextPlugin
-    compilation.set_dependency_factory(
-      DependencyType::RequireContext,
-      params.context_module_factory.clone(),
-    );
-    compilation.set_dependency_factory(
-      DependencyType::ContextElement,
-      params.normal_module_factory.clone(),
-    );
-    // ImportMetaContextPlugin
-    compilation.set_dependency_factory(
-      DependencyType::ImportMetaContext,
-      params.context_module_factory.clone(),
-    );
-    compilation.set_dependency_factory(
-      DependencyType::ContextElement,
-      params.normal_module_factory.clone(),
-    );
-    // ImportPlugin
-    compilation.set_dependency_factory(
-      DependencyType::DynamicImport,
-      params.normal_module_factory.clone(),
-    );
-    compilation.set_dependency_factory(
-      DependencyType::DynamicImportEager,
-      params.normal_module_factory.clone(),
-    );
-    compilation.set_dependency_factory(
-      DependencyType::ImportContext,
-      params.context_module_factory.clone(),
-    );
-    // URLPlugin
-    compilation
-      .set_dependency_factory(DependencyType::NewUrl, params.normal_module_factory.clone());
-    // ProvidePlugin
-    compilation.set_dependency_factory(
-      DependencyType::Provided,
-      params.normal_module_factory.clone(),
-    );
-    // other
-    compilation.set_dependency_factory(
-      DependencyType::WebpackIsIncluded,
-      Arc::new(IgnoreErrorModuleFactory {
-        normal_module_factory: params.normal_module_factory.clone(),
-      }),
-    );
-    compilation.set_dependency_factory(
-      DependencyType::CjsSelfReference,
-      Arc::new(SelfModuleFactory {}),
-    );
-    Ok(())
-  }
+#[plugin_hook(AsyncSeries2<Compilation, CompilationParams> for JsPlugin)]
+async fn compilation(
+  &self,
+  compilation: &mut Compilation,
+  params: &mut CompilationParams,
+) -> Result<()> {
+  // HarmonyModulesPlugin
+  compilation.set_dependency_factory(
+    DependencyType::EsmImport(ErrorSpan::default()),
+    params.normal_module_factory.clone(),
+  );
+  compilation.set_dependency_factory(
+    DependencyType::EsmImportSpecifier,
+    params.normal_module_factory.clone(),
+  );
+  compilation.set_dependency_factory(
+    DependencyType::EsmExport(ErrorSpan::default()),
+    params.normal_module_factory.clone(),
+  );
+  compilation.set_dependency_factory(
+    DependencyType::EsmExportImportedSpecifier,
+    params.normal_module_factory.clone(),
+  );
+  compilation.set_dependency_factory(
+    DependencyType::EsmExportSpecifier,
+    params.normal_module_factory.clone(),
+  );
+  // CommonJsPlugin
+  compilation.set_dependency_factory(
+    DependencyType::CjsRequire,
+    params.normal_module_factory.clone(),
+  );
+  compilation.set_dependency_factory(
+    DependencyType::CjsExports,
+    params.normal_module_factory.clone(),
+  );
+  compilation.set_dependency_factory(
+    DependencyType::CjsExportRequire,
+    params.normal_module_factory.clone(),
+  );
+  compilation.set_dependency_factory(
+    DependencyType::CommonJSRequireContext,
+    params.context_module_factory.clone(),
+  );
+  compilation.set_dependency_factory(
+    DependencyType::RequireResolve,
+    params.normal_module_factory.clone(),
+  );
+  // RequireContextPlugin
+  compilation.set_dependency_factory(
+    DependencyType::RequireContext,
+    params.context_module_factory.clone(),
+  );
+  compilation.set_dependency_factory(
+    DependencyType::ContextElement,
+    params.normal_module_factory.clone(),
+  );
+  // ImportMetaContextPlugin
+  compilation.set_dependency_factory(
+    DependencyType::ImportMetaContext,
+    params.context_module_factory.clone(),
+  );
+  compilation.set_dependency_factory(
+    DependencyType::ContextElement,
+    params.normal_module_factory.clone(),
+  );
+  // ImportPlugin
+  compilation.set_dependency_factory(
+    DependencyType::DynamicImport,
+    params.normal_module_factory.clone(),
+  );
+  compilation.set_dependency_factory(
+    DependencyType::DynamicImportEager,
+    params.normal_module_factory.clone(),
+  );
+  compilation.set_dependency_factory(
+    DependencyType::ImportContext,
+    params.context_module_factory.clone(),
+  );
+  // URLPlugin
+  compilation.set_dependency_factory(DependencyType::NewUrl, params.normal_module_factory.clone());
+  // ProvidePlugin
+  compilation.set_dependency_factory(
+    DependencyType::Provided,
+    params.normal_module_factory.clone(),
+  );
+  // other
+  compilation.set_dependency_factory(
+    DependencyType::WebpackIsIncluded,
+    Arc::new(IgnoreErrorModuleFactory {
+      normal_module_factory: params.normal_module_factory.clone(),
+    }),
+  );
+  compilation.set_dependency_factory(
+    DependencyType::CjsSelfReference,
+    Arc::new(SelfModuleFactory {}),
+  );
+  Ok(())
 }
 
 #[async_trait]
@@ -133,7 +132,7 @@ impl Plugin for JsPlugin {
       .context
       .compiler_hooks
       .compilation
-      .tap(Box::new(JsPluginCompilationHook));
+      .tap(compilation::new(self));
 
     let create_parser_and_generator =
       move || Box::new(JavaScriptParserAndGenerator) as Box<dyn ParserAndGenerator>;

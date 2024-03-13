@@ -1,14 +1,12 @@
 use std::collections::HashMap;
 use std::fmt::Debug;
-use std::sync::Arc;
 
 use napi::bindgen_prelude::Either4;
-use napi::{Env, JsFunction};
 use napi_derive::napi;
 use rspack_core::ExternalItemFnCtx;
 use rspack_core::{ExternalItem, ExternalItemFnResult, ExternalItemValue};
-use rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
-use rspack_napi_shared::{get_napi_env, JsRegExp, JsRegExpExt, NapiResultExt};
+use rspack_napi_shared::new_tsfn::ThreadsafeFunction;
+use rspack_napi_shared::{JsRegExp, JsRegExpExt};
 
 #[napi(object)]
 pub struct RawHttpExternalsRspackPluginOptions {
@@ -16,7 +14,7 @@ pub struct RawHttpExternalsRspackPluginOptions {
   pub web_async: bool,
 }
 
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawExternalsPluginOptions {
   pub r#type: String,
   #[napi(
@@ -25,7 +23,12 @@ pub struct RawExternalsPluginOptions {
   pub externals: Vec<RawExternalItem>,
 }
 
-type RawExternalItem = Either4<String, JsRegExp, HashMap<String, RawExternalItemValue>, JsFunction>;
+type RawExternalItem = Either4<
+  String,
+  JsRegExp,
+  HashMap<String, RawExternalItemValue>,
+  ThreadsafeFunction<RawExternalItemFnCtx, RawExternalItemFnResult>,
+>;
 type RawExternalItemValue = Either4<String, bool, Vec<String>, HashMap<String, Vec<String>>>;
 pub(crate) struct RawExternalItemWrapper(pub(crate) RawExternalItem);
 struct RawExternalItemValueWrapper(RawExternalItemValue);
@@ -90,26 +93,10 @@ impl TryFrom<RawExternalItemWrapper> for ExternalItem {
           .map(|(k, v)| (k, RawExternalItemValueWrapper(v).into()))
           .collect(),
       )),
-      Either4::D(v) => {
-        let fn_payload: napi::Result<
-          ThreadsafeFunction<RawExternalItemFnCtx, RawExternalItemFnResult>,
-        > = try {
-          let env = get_napi_env();
-          rspack_binding_macros::js_fn_into_threadsafe_fn!(v, &Env::from(env))
-        };
-        let fn_payload = Arc::new(fn_payload.expect("convert to threadsafe function failed"));
-        Ok(Self::Fn(Box::new(move |ctx: ExternalItemFnCtx| {
-          let fn_payload = fn_payload.clone();
-          Box::pin(async move {
-            fn_payload
-              .call(ctx.into(), ThreadsafeFunctionCallMode::NonBlocking)
-              .into_rspack_result()?
-              .await
-              .unwrap_or_else(|err| panic!("Failed to call external function: {err}"))
-              .map(|r| r.into())
-          })
-        })))
-      }
+      Either4::D(v) => Ok(Self::Fn(Box::new(move |ctx: ExternalItemFnCtx| {
+        let v = v.clone();
+        Box::pin(async move { v.call(ctx.into()).await.map(|r| r.into()) })
+      }))),
     }
   }
 }

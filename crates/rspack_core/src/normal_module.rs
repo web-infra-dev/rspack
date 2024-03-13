@@ -11,11 +11,11 @@ use std::{
 use bitflags::bitflags;
 use dashmap::DashMap;
 use derivative::Derivative;
-use rspack_core_macros::impl_source_map_config;
 use rspack_error::{error, Diagnosable, Diagnostic, DiagnosticExt, MietteExt, Result, Severity};
 use rspack_hash::RspackHash;
 use rspack_identifier::Identifiable;
 use rspack_loader_runner::{run_loaders, AdditionalData, Content, ResourceData};
+use rspack_macros::impl_source_map_config;
 use rspack_sources::{
   BoxSource, CachedSource, OriginalSource, RawSource, Source, SourceExt, SourceMap,
   SourceMapSource, WithoutOriginalOptions,

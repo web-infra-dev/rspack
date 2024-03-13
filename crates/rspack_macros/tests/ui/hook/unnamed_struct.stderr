@@ -1,0 +1,5 @@
+error: expected named struct or unit struct
+ --> tests/ui/hook/unnamed_struct.rs:4:14
+  |
+4 | struct Plugin(String);
+  |              ^^^^^^^^

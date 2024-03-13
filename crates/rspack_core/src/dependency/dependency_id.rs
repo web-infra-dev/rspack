@@ -7,7 +7,7 @@ use swc_core::ecma::atoms::Atom;
 use crate::{BoxDependency, DependencyExtraMeta, ModuleGraph};
 
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize)]
-pub struct DependencyId(pub u32);
+pub struct DependencyId(u32);
 
 pub static DEPENDENCY_ID: AtomicU32 = AtomicU32::new(0);
 

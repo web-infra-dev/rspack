@@ -9,7 +9,7 @@ use napi::{
   threadsafe_function::{
     ErrorStrategy, ThreadsafeFunction as RawThreadsafeFunction, ThreadsafeFunctionCallMode,
   },
-  Either, Env, JsUnknown, NapiRaw,
+  Either, Env, JsUnknown, NapiRaw, ValueType,
 };
 use rspack_error::{miette::IntoDiagnostic, Error, Result};
 
@@ -336,5 +336,17 @@ impl<
       Either4::C(r) => Ok(Either3::B(r)),
       Either4::D(r) => Ok(Either3::C(r)),
     }
+  }
+}
+
+impl<T: 'static + JsValuesTupleIntoVec, R> ValidateNapiValue for ThreadsafeFunction<T, R> {}
+
+impl<T: 'static, R> TypeName for ThreadsafeFunction<T, R> {
+  fn type_name() -> &'static str {
+    "ThreadsafeFunction"
+  }
+
+  fn value_type() -> napi::ValueType {
+    ValueType::Function
   }
 }

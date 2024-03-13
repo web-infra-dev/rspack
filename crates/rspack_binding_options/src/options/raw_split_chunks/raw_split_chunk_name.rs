@@ -1,14 +1,14 @@
 use std::sync::Arc;
 
 use napi::bindgen_prelude::Either3;
-use napi::{Env, JsFunction};
 use napi_derive::napi;
 use rspack_binding_values::{JsModule, ToJsModule};
-use rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
-use rspack_napi_shared::{get_napi_env, NapiResultExt};
+use rspack_napi_shared::new_tsfn::ThreadsafeFunction;
 use rspack_plugin_split_chunks::{ChunkNameGetter, ChunkNameGetterFnCtx};
+use tokio::runtime::Handle;
 
-pub(super) type RawChunkOptionName = Either3<String, bool, JsFunction>;
+pub(super) type RawChunkOptionName =
+  Either3<String, bool, ThreadsafeFunction<RawChunkOptionNameCtx, Option<String>>>;
 
 #[inline]
 pub(super) fn default_chunk_option_name() -> ChunkNameGetter {
@@ -16,7 +16,7 @@ pub(super) fn default_chunk_option_name() -> ChunkNameGetter {
 }
 
 #[napi(object)]
-struct RawChunkOptionNameCtx {
+pub struct RawChunkOptionNameCtx {
   pub module: JsModule,
 }
 
@@ -32,25 +32,14 @@ impl<'a> From<ChunkNameGetterFnCtx<'a>> for RawChunkOptionNameCtx {
 }
 
 pub(super) fn normalize_raw_chunk_name(raw: RawChunkOptionName) -> ChunkNameGetter {
+  let handle = Handle::current();
   match raw {
     Either3::A(str) => ChunkNameGetter::String(str),
     Either3::B(_) => ChunkNameGetter::Disabled, // FIXME: when set bool is true?
-    Either3::C(v) => {
-      let fn_payload: napi::Result<ThreadsafeFunction<RawChunkOptionNameCtx, Option<String>>> = try {
-        let env = get_napi_env();
-        rspack_binding_macros::js_fn_into_threadsafe_fn!(v, &Env::from(env))
-      };
-      let fn_payload = Arc::new(fn_payload.expect("convert to threadsafe function failed"));
-      ChunkNameGetter::Fn(Arc::new(move |ctx| {
-        let fn_payload = fn_payload.clone();
-        fn_payload
-          .call(ctx.into(), ThreadsafeFunctionCallMode::NonBlocking)
-          .into_rspack_result()
-          .expect("into rspack result failed")
-          .blocking_recv()
-          .unwrap_or_else(|err| panic!("Failed to call external function: {err}"))
-          .expect("failed")
-      }))
-    }
+    Either3::C(v) => ChunkNameGetter::Fn(Arc::new(move |ctx| {
+      handle
+        .block_on(v.call(ctx.into()))
+        .expect("failed to retrieve chunk name")
+    })),
   }
 }

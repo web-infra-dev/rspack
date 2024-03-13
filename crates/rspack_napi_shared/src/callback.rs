@@ -12,8 +12,25 @@ struct DeferredData<Resolver: FnOnce(Env)> {
 
 pub struct JsCallback<Resolver: FnOnce(Env)> {
   tsfn: sys::napi_threadsafe_function,
-  aborted: Arc<RwLock<bool>>,
+  ref_count: Arc<RwLock<u32>>,
   _resolver: PhantomData<Resolver>,
+}
+
+trait WithLock<T> {
+  fn with_read<R>(&self, f: impl FnOnce(&T) -> R) -> R;
+  fn with_write<R>(&self, f: impl FnOnce(&mut T) -> R) -> R;
+}
+
+impl<T> WithLock<T> for RwLock<T> {
+  fn with_read<R>(&self, f: impl FnOnce(&T) -> R) -> R {
+    let lock = self.read().expect("failed to read lock");
+    f(&*lock)
+  }
+
+  fn with_write<R>(&self, f: impl FnOnce(&mut T) -> R) -> R {
+    let mut lock = self.write().expect("failed to write lock");
+    f(&mut lock)
+  }
 }
 
 unsafe impl<Resolver: FnOnce(Env)> Send for JsCallback<Resolver> {}
@@ -28,7 +45,7 @@ impl<Resolver: FnOnce(Env)> JsCallback<Resolver> {
     )?;
 
     let mut tsfn = ptr::null_mut();
-    let aborted: Arc<RwLock<bool>> = Arc::new(Default::default());
+    let ref_count: Arc<RwLock<u32>> = Arc::new(RwLock::new(1));
     check_status!(
       unsafe {
         sys::napi_create_threadsafe_function(
@@ -38,8 +55,8 @@ impl<Resolver: FnOnce(Env)> JsCallback<Resolver> {
           async_resource_name,
           0,
           1,
-          Arc::into_raw(aborted.clone()) as _,
-          Some(napi_js_finalize),
+          Arc::into_raw(ref_count.clone()) as _,
+          Some(napi_js_finalize_cb),
           ptr::null_mut(),
           Some(napi_js_callback::<Resolver>),
           &mut tsfn,
@@ -52,7 +69,7 @@ impl<Resolver: FnOnce(Env)> JsCallback<Resolver> {
 
     let deferred = Self {
       tsfn,
-      aborted,
+      ref_count,
       _resolver: PhantomData,
     };
 
@@ -80,22 +97,18 @@ impl<Resolver: FnOnce(Env)> JsCallback<Resolver> {
       "Call threadsafe function in JsCallback failed"
     );
   }
-
-  fn with_aborted_read<T>(&self, f: impl FnOnce(bool) -> T) -> T {
-    let aborted = self.aborted.read().expect("failed to lock aborted");
-    f(*aborted)
-  }
 }
 
 impl<Resolver: FnOnce(Env)> Clone for JsCallback<Resolver> {
   fn clone(&self) -> Self {
-    self.with_aborted_read(|aborted| {
-      if aborted {
-        panic!("JsCallback was aborted, can not clone it");
+    self.ref_count.with_write(|count| {
+      if *count == 0 {
+        panic!("JsCallback was destroyed and not able to clone");
       }
+      *count += 1;
       Self {
         tsfn: self.tsfn,
-        aborted: self.aborted.clone(),
+        ref_count: self.ref_count.clone(),
         _resolver: self._resolver,
       }
     })
@@ -104,33 +117,32 @@ impl<Resolver: FnOnce(Env)> Clone for JsCallback<Resolver> {
 
 impl<Resolver: FnOnce(Env)> Drop for JsCallback<Resolver> {
   fn drop(&mut self) {
-    self.with_aborted_read(|aborted| {
-      if !aborted {
-        let status = unsafe {
-          sys::napi_release_threadsafe_function(
-            self.tsfn,
-            sys::ThreadsafeFunctionReleaseMode::release,
-          )
-        };
-        debug_assert!(
-          status == sys::Status::napi_ok,
-          "Release threadsafe function in JsCallback failed"
-        );
+    self.ref_count.with_write(|count| {
+      if *count > 0 {
+        if *count == 1 {
+          let status = unsafe {
+            sys::napi_release_threadsafe_function(
+              self.tsfn,
+              sys::ThreadsafeFunctionReleaseMode::release,
+            )
+          };
+          debug_assert!(
+            status == sys::Status::napi_ok,
+            "Release ThreadsafeFunction in JsCallback failed"
+          );
+        }
+        *count -= 1;
       }
     })
   }
 }
 
-extern "C" fn napi_js_finalize(
+extern "C" fn napi_js_finalize_cb(
   _env: sys::napi_env,
   finalize_data: *mut c_void,
   _finalize_hint: *mut c_void,
 ) {
-  let aborted = unsafe { Arc::<RwLock<bool>>::from_raw(finalize_data.cast()) };
-  let mut aborted = aborted.write().expect("failed to lock aborted");
-  if !*aborted {
-    *aborted = true;
-  }
+  unsafe { Arc::<RwLock<u32>>::from_raw(finalize_data.cast()) };
 }
 
 extern "C" fn napi_js_callback<Resolver: FnOnce(Env)>(

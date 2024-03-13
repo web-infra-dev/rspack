@@ -524,7 +524,7 @@ export class MultiCompiler {
 				},
 				(compiler, watching, _done) => {
 					if (compiler.watching !== watching) return;
-					if (!watching.running) watching.invalidate();
+					if (!watching?.running) watching?.invalidate();
 				},
 				handler
 			);

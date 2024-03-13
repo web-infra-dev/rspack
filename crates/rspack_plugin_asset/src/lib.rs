@@ -517,7 +517,7 @@ impl Plugin for AssetPlugin {
           .expect("Failed to get module");
 
         let all_incoming_analyzed = module_graph
-          .get_incoming_connections(module)
+          .get_incoming_connections(&module.identifier())
           .iter()
           .all(|c| {
             if let Some(original_module_identifier) = c.original_module_identifier {

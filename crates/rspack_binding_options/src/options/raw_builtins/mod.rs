@@ -221,7 +221,7 @@ impl BuiltinPlugin {
         plugins.push(ModuleChunkFormatPlugin.boxed());
       }
       BuiltinPluginName::HotModuleReplacementPlugin => {
-        plugins.push(HotModuleReplacementPlugin.boxed());
+        plugins.push(HotModuleReplacementPlugin::default().boxed());
       }
       BuiltinPluginName::LimitChunkCountPlugin => {
         let plugin = LimitChunkCountPlugin::new(
@@ -231,7 +231,7 @@ impl BuiltinPlugin {
         plugins.push(plugin);
       }
       BuiltinPluginName::WorkerPlugin => {
-        plugins.push(WorkerPlugin.boxed());
+        plugins.push(WorkerPlugin::default().boxed());
       }
       BuiltinPluginName::WebWorkerTemplatePlugin => {
         web_worker_template_plugin(plugins);
@@ -287,7 +287,9 @@ impl BuiltinPlugin {
       BuiltinPluginName::DeterministicChunkIdsPlugin => {
         plugins.push(DeterministicChunkIdsPlugin::default().boxed())
       }
-      BuiltinPluginName::RealContentHashPlugin => plugins.push(RealContentHashPlugin.boxed()),
+      BuiltinPluginName::RealContentHashPlugin => {
+        plugins.push(RealContentHashPlugin::default().boxed())
+      }
       BuiltinPluginName::RemoveEmptyChunksPlugin => plugins.push(RemoveEmptyChunksPlugin.boxed()),
       BuiltinPluginName::EnsureChunkConditionsPlugin => {
         plugins.push(EnsureChunkConditionsPlugin.boxed())
@@ -300,9 +302,9 @@ impl BuiltinPlugin {
       BuiltinPluginName::RuntimePlugin => plugins.push(RuntimePlugin.boxed()),
       BuiltinPluginName::JsonModulesPlugin => plugins.push(JsonPlugin.boxed()),
       BuiltinPluginName::InferAsyncModulesPlugin => plugins.push(InferAsyncModulesPlugin.boxed()),
-      BuiltinPluginName::JavascriptModulesPlugin => plugins.push(JsPlugin::new().boxed()),
+      BuiltinPluginName::JavascriptModulesPlugin => plugins.push(JsPlugin::default().boxed()),
       BuiltinPluginName::AsyncWebAssemblyModulesPlugin => {
-        plugins.push(AsyncWasmPlugin::new().boxed())
+        plugins.push(AsyncWasmPlugin::default().boxed())
       }
       BuiltinPluginName::AssetModulesPlugin => plugins.push(AssetPlugin.boxed()),
       BuiltinPluginName::SourceMapDevToolPlugin => {
@@ -365,7 +367,7 @@ impl BuiltinPlugin {
         plugins.push(plugin);
       }
       BuiltinPluginName::SwcCssMinimizerRspackPlugin => {
-        plugins.push(SwcCssMinimizerRspackPlugin {}.boxed())
+        plugins.push(SwcCssMinimizerRspackPlugin::default().boxed())
       }
       BuiltinPluginName::CopyRspackPlugin => {
         let plugin = CopyRspackPlugin::new(

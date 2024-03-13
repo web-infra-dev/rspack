@@ -10,10 +10,10 @@ use std::{
 use itertools::Itertools;
 use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
-use rspack_core_macros::impl_source_map_config;
 use rspack_error::{impl_empty_diagnosable_trait, miette::IntoDiagnostic, Diagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
+use rspack_macros::impl_source_map_config;
 use rspack_regex::RspackRegex;
 use rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
 use rspack_util::source_map::SourceMapKind;
