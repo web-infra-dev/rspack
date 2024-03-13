@@ -30,7 +30,7 @@ impl<I> Default for AsyncParallelHook<I> {
 
 impl<I> AsyncParallelHook<I> {
   pub async fn call(&self, input: &I) -> Result<()> {
-    let groups = self.0.group_by(|a, b| a.stage() == b.stage());
+    let groups = self.0.slice().group_by(|a, b| a.stage() == b.stage());
     for group in groups {
       let futs: Vec<_> = group.iter().map(|hook| hook.run(input)).collect();
       futs.try_join().await?;
