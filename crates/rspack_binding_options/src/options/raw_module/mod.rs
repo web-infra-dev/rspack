@@ -4,7 +4,8 @@ use std::fmt::Formatter;
 use std::{collections::HashMap, fmt::Debug, sync::Arc};
 
 use derivative::Derivative;
-use napi::bindgen_prelude::*;
+use napi::bindgen_prelude::Either3;
+use napi::Either;
 use napi_derive::napi;
 use rspack_core::{
   AssetGeneratorDataUrl, AssetGeneratorDataUrlOptions, AssetGeneratorOptions,
@@ -15,11 +16,11 @@ use rspack_core::{
   ModuleRule, ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, ModuleType, ParserOptions,
   ParserOptionsByModuleType,
 };
-use rspack_error::{error, miette::IntoDiagnostic};
+use rspack_error::error;
 use rspack_loader_react_refresh::REACT_REFRESH_LOADER_IDENTIFIER;
 use rspack_loader_swc::SWC_LOADER_IDENTIFIER;
-use rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
-use rspack_napi_shared::{get_napi_env, JsRegExp, JsRegExpExt, NapiResultExt};
+use rspack_napi_shared::new_tsfn::ThreadsafeFunction;
+use rspack_napi_shared::{JsRegExp, JsRegExpExt};
 use serde::Deserialize;
 
 pub use self::js_loader::JsLoaderAdapter;
@@ -72,13 +73,14 @@ impl Debug for RawModuleRuleUse {
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawModuleRuleUses {
   #[napi(ts_type = r#""array" | "function""#)]
   pub r#type: String,
   pub array_use: Option<Vec<RawModuleRuleUse>>,
   #[serde(skip_deserializing)]
-  pub func_use: Option<JsFunction>,
+  #[napi(ts_type = "(arg: RawFuncUseCtx) => RawModuleRuleUse[]")]
+  pub func_use: Option<ThreadsafeFunction<RawFuncUseCtx, Vec<RawModuleRuleUse>>>,
 }
 
 impl Debug for RawModuleRuleUses {
@@ -101,7 +103,7 @@ pub struct RawRegexMatcher {
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawRuleSetCondition {
   #[napi(ts_type = r#""string" | "regexp" | "logical" | "array" | "function""#)]
   pub r#type: String,
@@ -111,7 +113,7 @@ pub struct RawRuleSetCondition {
   pub array_matcher: Option<Vec<RawRuleSetCondition>>,
   #[serde(skip_deserializing)]
   #[napi(ts_type = r#"(value: string) => boolean"#)]
-  pub func_matcher: Option<JsFunction>,
+  pub func_matcher: Option<ThreadsafeFunction<String, bool>>,
 }
 
 impl Debug for RawRuleSetCondition {
@@ -129,7 +131,7 @@ impl Debug for RawRuleSetCondition {
 
 #[derive(Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase")]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawRuleSetLogicalConditions {
   pub and: Option<Vec<RawRuleSetCondition>>,
   pub or: Option<Vec<RawRuleSetCondition>>,
@@ -213,26 +215,10 @@ impl TryFrom<RawRuleSetCondition> for rspack_core::RuleSetCondition {
             "should have a func_matcher when RawRuleSetCondition.type is \"function\""
           )
         })?;
-
-        let env = get_napi_env();
-
-        let func_matcher: napi::Result<ThreadsafeFunction<String, bool>> = try {
-            rspack_binding_macros::js_fn_into_threadsafe_fn!(func_matcher, &Env::from(env))
-        };
-        let func_matcher = Arc::new(func_matcher.expect("convert to threadsafe function failed"));
-
-        Self::Func(Box::new(move |data: &str| {
-          let func_matcher = func_matcher.clone();
+        Self::Func(Box::new(move|data: &str| {
           let data = data.to_string();
-          Box::pin(async move {
-            func_matcher
-              .call(data, ThreadsafeFunctionCallMode::NonBlocking)
-              .into_rspack_result()?
-              .await
-              .unwrap_or_else(|err| {
-                panic!("Failed to call RuleSetCondition func_matcher: {err}")
-              })
-          })
+          let func_matcher = func_matcher.clone();
+          Box::pin(async move { func_matcher.call(data).await })
         }))
       }
       _ => panic!(
@@ -248,7 +234,7 @@ impl TryFrom<RawRuleSetCondition> for rspack_core::RuleSetCondition {
 #[derive(Derivative, Deserialize)]
 #[derivative(Debug, Default)]
 #[serde(rename_all = "camelCase")]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawModuleRule {
   /// A conditional match matching an absolute path + query + fragment.
   /// Note:
@@ -534,7 +520,7 @@ impl From<RawAssetGeneratorDataUrlOptions> for AssetGeneratorDataUrlOptions {
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawModuleOptions {
   pub rules: Vec<RawModuleRule>,
   pub parser: Option<HashMap<String, RawParserOptions>>,
@@ -603,29 +589,19 @@ impl TryFrom<RawModuleRule> for ModuleRule {
         let func_use = raw.func_use.ok_or_else(|| {
           error!("should have a func_matcher when RawRuleSetCondition.type is \"function\"")
         })?;
-        let func_use: Result<ThreadsafeFunction<RawFuncUseCtx, Vec<RawModuleRuleUse>>> = try {
-          let env = get_napi_env();
-          rspack_binding_macros::js_fn_into_threadsafe_fn!(func_use, &Env::from(env))
-        };
-        let func_use = Arc::new(func_use.into_diagnostic()?);
         Ok::<ModuleRuleUse, rspack_error::Error>(ModuleRuleUse::Func(Box::new(
           move |ctx: FuncUseCtx| {
             let func_use = func_use.clone();
             Box::pin(async move {
-              func_use
-                .call(ctx.into(), ThreadsafeFunctionCallMode::NonBlocking)
-                .into_rspack_result()?
-                .await
-                .unwrap_or_else(|err| panic!("Failed to call rule.use function: {err}"))
-                .map(|uses| {
-                  uses
-                    .into_iter()
-                    .map(|rule_use| ModuleRuleUseLoader {
-                      loader: rule_use.loader,
-                      options: rule_use.options,
-                    })
-                    .collect::<Vec<_>>()
-                })
+              func_use.call(ctx.into()).await.map(|uses| {
+                uses
+                  .into_iter()
+                  .map(|rule_use| ModuleRuleUseLoader {
+                    loader: rule_use.loader,
+                    options: rule_use.options,
+                  })
+                  .collect::<Vec<_>>()
+              })
             })
           },
         )))
@@ -743,29 +719,19 @@ impl TryFrom<RawModuleOptions> for ModuleOptions {
   }
 }
 
-type RawModuleNoParseRule = Either3<String, JsRegExp, JsFunction>;
+type RawModuleNoParseRule = Either3<String, JsRegExp, ThreadsafeFunction<String, Option<bool>>>;
 type RawModuleNoParseRules = Either<RawModuleNoParseRule, Vec<RawModuleNoParseRule>>;
 
 struct RawModuleNoParseRuleWrapper(RawModuleNoParseRule);
 
 struct RawModuleNoParseRulesWrapper(RawModuleNoParseRules);
 
-fn js_func_to_no_parse_test_func(v: &JsFunction) -> ModuleNoParseTestFn {
-  let fn_payload: Result<ThreadsafeFunction<String, Option<bool>>> = try {
-    let env = get_napi_env();
-    rspack_binding_macros::js_fn_into_threadsafe_fn!(v, &Env::from(env))
-  };
-  let fn_payload = Arc::new(fn_payload.expect("convert to threadsafe function failed"));
+fn js_func_to_no_parse_test_func(
+  v: ThreadsafeFunction<String, Option<bool>>,
+) -> ModuleNoParseTestFn {
   Box::new(move |s| {
-    let fn_payload = fn_payload.clone();
-    Box::pin(async move {
-      fn_payload
-        .call(s, ThreadsafeFunctionCallMode::NonBlocking)
-        .into_rspack_result()?
-        .await
-        .unwrap_or_else(|err| panic!("failed to call external function: {err}"))
-        .map(|s| s.unwrap_or_default())
-    })
+    let v = v.clone();
+    Box::pin(async move { v.call(s).await.map(|v| v.unwrap_or_default()) })
   })
 }
 
@@ -774,7 +740,7 @@ impl From<RawModuleNoParseRuleWrapper> for ModuleNoParseRule {
     match x.0 {
       Either3::A(v) => Self::AbsPathPrefix(v),
       Either3::B(v) => Self::Regexp(v.to_rspack_regex()),
-      Either3::C(v) => Self::TestFn(js_func_to_no_parse_test_func(&v)),
+      Either3::C(v) => Self::TestFn(js_func_to_no_parse_test_func(v)),
     }
   }
 }

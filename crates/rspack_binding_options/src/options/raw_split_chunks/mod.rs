@@ -24,7 +24,7 @@ use self::raw_split_chunk_name::default_chunk_option_name;
 
 #[derive(Derivative, Deserialize)]
 #[serde(rename_all = "camelCase")]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 #[derivative(Debug)]
 pub struct RawSplitChunksOptions {
   pub fallback_cache_group: Option<RawFallbackCacheGroupOptions>,
@@ -56,7 +56,7 @@ pub struct RawSplitChunksOptions {
 
 #[derive(Derivative, Deserialize)]
 #[serde(rename_all = "camelCase")]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 #[derivative(Debug)]
 pub struct RawCacheGroupOptions {
   pub key: String,
@@ -254,7 +254,7 @@ impl From<RawSplitChunksOptions> for rspack_plugin_split_chunks::PluginOptions {
 
 #[derive(Deserialize, Default, Derivative)]
 #[serde(rename_all = "camelCase")]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 #[derivative(Debug)]
 pub struct RawFallbackCacheGroupOptions {
   #[serde(skip_deserializing)]

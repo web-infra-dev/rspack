@@ -14,7 +14,6 @@ default = []
 plugin  = ["rspack_binding_options/plugin"]
 
 [dependencies]
-rspack_binding_macros  = { path = "../rspack_binding_macros" }
 rspack_binding_options = { path = "../rspack_binding_options" }
 rspack_binding_values  = { path = "../rspack_binding_values" }
 rspack_core            = { path = "../rspack_core" }
@@ -23,6 +22,7 @@ rspack_fs_node         = { path = "../rspack_fs_node" }
 rspack_hook            = { path = "../rspack_hook" }
 rspack_napi_shared     = { path = "../rspack_napi_shared" }
 rspack_tracing         = { path = "../rspack_tracing" }
+tokio                  = { workspace = true, features = ["rt", "rt-multi-thread"] }
 
 async-trait = { workspace = true }
 once_cell   = { workspace = true }
