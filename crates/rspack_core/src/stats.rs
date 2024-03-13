@@ -436,12 +436,12 @@ impl Stats<'_> {
         let mut reasons: Vec<StatsModuleReason> = mgm
           .get_incoming_connections_unordered()
           .iter()
-          .map(|connection_id| {
+          .filter_map(|connection_id| {
+            // the connection is removed
             let connection = self
               .compilation
               .get_module_graph()
-              .connection_by_connection_id(connection_id)
-              .expect("should have connection");
+              .connection_by_connection_id(connection_id)?;
             let (module_name, module_id) = connection
               .original_module_identifier
               .and_then(|i| self.compilation.get_module_graph().module_by_identifier(&i))
@@ -465,13 +465,13 @@ impl Stats<'_> {
               } else {
                 (None, None)
               };
-            StatsModuleReason {
+            Some(StatsModuleReason {
               module_identifier: connection.original_module_identifier.map(|i| i.to_string()),
               module_name,
               module_id: module_id.and_then(|i| i),
               r#type,
               user_request,
-            }
+            })
           })
           .collect();
         reasons.sort_unstable();
