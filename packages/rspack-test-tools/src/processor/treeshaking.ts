@@ -8,6 +8,7 @@ import {
 import path from "path";
 import fs from "fs-extra";
 import { merge } from "webpack-merge";
+import { RuleSetRules, rspack } from "@rspack/core";
 
 export interface IRspackTreeShakingProcessorOptions {
 	name: string;
@@ -34,8 +35,9 @@ export class RspackTreeShakingProcessor extends BasicTaskProcessor<ECompilerType
 		if (!stats || !c) return;
 
 		if (stats.hasErrors()) {
-			console.error(stats.toJson({ errors: true, all: false }).errors);
-			throw new Error(`Failed to compile in fixture ${this._options.name}`);
+			throw new Error(
+				`Failed to compile in fixture ${this._options.name}, Errors: ${stats.toJson({ errors: true, all: false }).errors}`
+			);
 		}
 		const fileContents = Object.entries(c.compilation.assets)
 			.filter(([file]) => file.endsWith(".js") && !file.includes("runtime.js"))
@@ -63,7 +65,7 @@ export class RspackTreeShakingProcessor extends BasicTaskProcessor<ECompilerType
 	static defaultOptions(
 		context: ITestContext
 	): TCompilerOptions<ECompilerType.Rspack> {
-		const defaultOptions: TCompilerOptions<ECompilerType.Rspack> = {
+		let defaultOptions: TCompilerOptions<ECompilerType.Rspack> = {
 			entry: {
 				main: {
 					import: "./index",
@@ -88,6 +90,34 @@ export class RspackTreeShakingProcessor extends BasicTaskProcessor<ECompilerType
 				globalObject: "self",
 				importFunctionName: "import"
 			},
+			module: {
+				rules: [
+					{
+						test: /\.json$/,
+						type: "json"
+					},
+					{
+						test: /\.mjs$/,
+						type: "js/esm"
+					},
+					{
+						test: /\.cjs$/,
+						type: "js/dynamic"
+					},
+					{
+						test: /\.js$/,
+						type: "js/auto"
+					},
+					{
+						test: /\.css$/,
+						type: "css"
+					},
+					{
+						test: /\.wasm$/,
+						type: "webassembly/async"
+					}
+				]
+			},
 			node: {
 				__dirname: "mock",
 				__filename: "mock",
@@ -102,24 +132,54 @@ export class RspackTreeShakingProcessor extends BasicTaskProcessor<ECompilerType
 				sideEffects: false,
 				mangleExports: false,
 				usedExports: false,
-				concatenateModules: false
+				concatenateModules: false,
+				nodeEnv: false
 			},
 			devtool: false,
-			context: context.getSource()
+			context: context.getSource(),
+			plugins: []
 		};
 
 		const testConfigFile = context.getSource("test.config.js");
 		if (fs.existsSync(testConfigFile)) {
-			return merge(defaultOptions, require(testConfigFile));
+			defaultOptions = merge(defaultOptions, require(testConfigFile));
+		} else {
+			const testConfigJson = context.getSource("test.config.json");
+			if (fs.existsSync(testConfigJson)) {
+				const content = fs
+					.readFileSync(testConfigJson, "utf-8")
+					.split(`"true"`)
+					.join("true")
+					.split(`"false"`)
+					.join("false");
+				const json = JSON.parse(content);
+				defaultOptions = merge(defaultOptions, json);
+			}
 		}
-		const testConfigJson = context.getSource("test.config.json");
-		if (fs.existsSync(testConfigJson)) {
-			const content = fs
-				.readFileSync(testConfigJson, "utf-8")
-				.replace(`"true"`, "true")
-				.replace(`"false"`, "false");
-			return merge(defaultOptions, JSON.parse(content));
+
+		// TODO: remove these after modify all test.config.json
+		const defineOptions = (defaultOptions.builtins as any)?.define;
+		if (defineOptions) {
+			defaultOptions.plugins!.push(new rspack.DefinePlugin(defineOptions));
+			delete (defaultOptions.builtins as any)?.define;
 		}
+
+		const rules = defaultOptions.module?.rules;
+		if (rules) {
+			defaultOptions.module!.rules = rules.map<typeof rules>((rule: any) => {
+				if (typeof rule.test?.type === "string") {
+					if (rule.test.type === "regexp") {
+						rule.test = new RegExp(rule.test.matcher);
+					}
+				}
+				if (typeof rule.sideEffect === "boolean") {
+					rule.sideEffects = rule.sideEffect;
+					delete rule.sideEffect;
+				}
+				return rule;
+			}) as RuleSetRules;
+		}
+
 		return defaultOptions;
 	}
 
@@ -127,6 +187,7 @@ export class RspackTreeShakingProcessor extends BasicTaskProcessor<ECompilerType
 		context: ITestContext,
 		options: TCompilerOptions<ECompilerType.Rspack>
 	) {
+		options.target = options.target || ["web", "es2022"];
 		options.optimization ??= {};
 		options.optimization.providedExports = true;
 		options.optimization.innerGraph = true;
