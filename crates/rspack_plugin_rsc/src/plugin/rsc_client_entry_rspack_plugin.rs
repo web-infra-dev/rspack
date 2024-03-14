@@ -61,14 +61,18 @@ impl RSCClientEntryRspackPlugin {
 #[async_trait]
 impl Plugin for RSCClientEntryRspackPlugin {
   async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
-    let mut visited_modules: HashSet<String> = HashSet::new();
     let mut client_imports: HashMap<String, HashSet<String>> = HashMap::new();
     for (name, entry) in &compilation.entries {
+      // FIXME: if entry-b contain module already visited by entry-a
+      // visited_modules will prevent collected modules from entry-b
+      // if entry-a import entry-b, should stop if visit entry-b
       let mut collected_client_imports: HashSet<String> = HashSet::new();
+      let mut visited_modules: HashSet<String> = HashSet::new();
       let entry_module = compilation
         .module_graph
         .get_module(&entry.dependencies[0])
         .expect("should exist");
+      println!("name {}", name);
       self.filter_client_components(
         compilation,
         entry_module,
