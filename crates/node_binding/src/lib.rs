@@ -28,11 +28,17 @@ use rspack_binding_options::*;
 use rspack_binding_values::*;
 use rspack_tracing::chrome::FlushGuard;
 
-#[napi]
+#[napi(custom_finalize)]
 pub struct Rspack {
   js_plugin: JsHooksAdapterPlugin,
   compiler: Pin<Box<Compiler>>,
   running: bool,
+}
+
+impl ObjectFinalize for Rspack {
+  fn finalize(self, _env: Env) -> Result<()> {
+    Ok(())
+  }
 }
 
 #[napi]
