@@ -13,6 +13,7 @@ import { RuleSetRules, rspack } from "@rspack/core";
 export interface IRspackTreeShakingProcessorOptions {
 	name: string;
 	snapshot: string;
+	type: "new" | "builtin";
 }
 
 export class RspackTreeShakingProcessor extends BasicTaskProcessor<ECompilerType.Rspack> {
@@ -22,7 +23,9 @@ export class RspackTreeShakingProcessor extends BasicTaskProcessor<ECompilerType
 		super({
 			compilerType: ECompilerType.Rspack,
 			defaultOptions: RspackTreeShakingProcessor.defaultOptions,
-			overrideOptions: RspackTreeShakingProcessor.overrideOptions,
+			overrideOptions: RspackTreeShakingProcessor.overrideOptions(
+				_treeShakingOptions.type
+			),
 			name: _treeShakingOptions.name,
 			runable: false
 		});
@@ -183,21 +186,25 @@ export class RspackTreeShakingProcessor extends BasicTaskProcessor<ECompilerType
 		return defaultOptions;
 	}
 
-	static overrideOptions(
-		context: ITestContext,
-		options: TCompilerOptions<ECompilerType.Rspack>
-	) {
-		options.target = options.target || ["web", "es2022"];
-		options.optimization ??= {};
-		options.optimization.providedExports = true;
-		options.optimization.innerGraph = true;
-		options.optimization.usedExports = true;
+	static overrideOptions(type: IRspackTreeShakingProcessorOptions["type"]) {
+		return (
+			context: ITestContext,
+			options: TCompilerOptions<ECompilerType.Rspack>
+		) => {
+			options.target = options.target || ["web", "es2022"];
+			if (type === "new") {
+				options.optimization ??= {};
+				options.optimization.providedExports = true;
+				options.optimization.innerGraph = true;
+				options.optimization.usedExports = true;
 
-		options.experiments ??= {};
-		options.experiments.rspackFuture ??= {};
-		options.experiments.rspackFuture.newTreeshaking = true;
+				options.experiments ??= {};
+				options.experiments.rspackFuture ??= {};
+				options.experiments.rspackFuture.newTreeshaking = true;
 
-		options.builtins ??= {};
-		options.builtins.treeShaking = false;
+				options.builtins ??= {};
+				options.builtins.treeShaking = false;
+			}
+		};
 	}
 }
