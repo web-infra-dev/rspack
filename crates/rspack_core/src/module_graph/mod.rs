@@ -211,12 +211,6 @@ impl ModuleGraph {
       };
       // the inactive connection should not be updated
       if filter_connection(connection, &*self) && (connection.conditional || connection.active) {
-        // let new_connection_id = self.clone_module_graph_connection(
-        //   &connection,
-        //   connection.original_module_identifier,
-        //   *new_module,
-        // );
-
         let connection = self
           .connection_by_connection_id_mut(&connection_id)
           .expect("should have connection");
@@ -294,6 +288,9 @@ impl ModuleGraph {
     new_connection.id = ConnectionId::new();
     new_connection.original_module_identifier = original_module_identifier;
     new_connection.set_module_identifier(module_identifier, self);
+    self
+      .connections
+      .insert(new_connection.id, Some(new_connection.clone()));
 
     // clone condition
     if let Some(condition) = self.connection_to_condition.get(&old_con.id) {
