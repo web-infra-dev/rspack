@@ -21,6 +21,14 @@ pub struct AsyncSeriesHook<I1> {
 
 impl<I1> Hook for AsyncSeriesHook<I1> {
   type Tap = Box<dyn AsyncSeries<I1> + Send + Sync>;
+
+  fn used_stages(&self) -> FxHashSet<i32> {
+    FxHashSet::from_iter(self.taps.iter().map(|h| h.stage()))
+  }
+
+  fn intercept(&mut self, interceptor: impl Interceptor<Self> + Send + Sync + 'static) {
+    self.interceptors.push(Box::new(interceptor));
+  }
 }
 
 impl<I1> fmt::Debug for AsyncSeriesHook<I1> {
@@ -57,17 +65,6 @@ impl<I1> AsyncSeriesHook<I1> {
   pub fn tap(&mut self, tap: Box<dyn AsyncSeries<I1> + Send + Sync>) {
     self.taps.push(tap);
   }
-
-  pub fn intercept(
-    &mut self,
-    interceptor: Box<dyn Interceptor<AsyncSeriesHook<I1>> + Send + Sync>,
-  ) {
-    self.interceptors.push(interceptor);
-  }
-
-  pub fn used_stages(&self) -> FxHashSet<i32> {
-    FxHashSet::from_iter(self.taps.iter().map(|h| h.stage()))
-  }
 }
 
 #[async_trait]
@@ -85,6 +82,14 @@ pub struct AsyncSeries2Hook<I1, I2> {
 
 impl<I1, I2> Hook for AsyncSeries2Hook<I1, I2> {
   type Tap = Box<dyn AsyncSeries2<I1, I2> + Send + Sync>;
+
+  fn used_stages(&self) -> FxHashSet<i32> {
+    FxHashSet::from_iter(self.taps.iter().map(|h| h.stage()))
+  }
+
+  fn intercept(&mut self, interceptor: impl Interceptor<Self> + Send + Sync + 'static) {
+    self.interceptors.push(Box::new(interceptor));
+  }
 }
 
 impl<I1, I2> fmt::Debug for AsyncSeries2Hook<I1, I2> {
@@ -120,16 +125,5 @@ impl<I1, I2> AsyncSeries2Hook<I1, I2> {
 
   pub fn tap(&mut self, tap: Box<dyn AsyncSeries2<I1, I2> + Send + Sync>) {
     self.taps.push(tap);
-  }
-
-  pub fn intercept(
-    &mut self,
-    interceptor: Box<dyn Interceptor<AsyncSeries2Hook<I1, I2>> + Send + Sync>,
-  ) {
-    self.interceptors.push(interceptor);
-  }
-
-  pub fn used_stages(&self) -> FxHashSet<i32> {
-    FxHashSet::from_iter(self.taps.iter().map(|h| h.stage()))
   }
 }

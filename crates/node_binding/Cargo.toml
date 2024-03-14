@@ -26,6 +26,7 @@ rspack_tracing         = { path = "../rspack_tracing" }
 tokio                  = { workspace = true, features = ["rt", "rt-multi-thread"] }
 
 async-trait = { workspace = true }
+paste       = { workspace = true }
 tracing     = { workspace = true }
 
 napi        = { workspace = true }

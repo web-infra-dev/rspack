@@ -21,6 +21,14 @@ pub struct AsyncSeriesBailHook<I, O> {
 
 impl<I, O> Hook for AsyncSeriesBailHook<I, O> {
   type Tap = Box<dyn AsyncSeriesBail<I, O> + Send + Sync>;
+
+  fn used_stages(&self) -> FxHashSet<i32> {
+    FxHashSet::from_iter(self.taps.iter().map(|h| h.stage()))
+  }
+
+  fn intercept(&mut self, interceptor: impl Interceptor<Self> + Send + Sync + 'static) {
+    self.interceptors.push(Box::new(interceptor));
+  }
 }
 
 impl<I, O> fmt::Debug for AsyncSeriesBailHook<I, O> {
@@ -54,16 +62,5 @@ impl<I, O> AsyncSeriesBailHook<I, O> {
       }
     }
     Ok(None)
-  }
-
-  pub fn intercept(
-    &mut self,
-    interceptor: Box<dyn Interceptor<AsyncSeriesBailHook<I, O>> + Send + Sync>,
-  ) {
-    self.interceptors.push(interceptor);
-  }
-
-  pub fn used_stages(&self) -> FxHashSet<i32> {
-    FxHashSet::from_iter(self.taps.iter().map(|h| h.stage()))
   }
 }

@@ -36,7 +36,7 @@ pub struct JsHooksAdapterInner {
 #[derive(Clone)]
 pub struct JsHooksAdapterPlugin {
   inner: Arc<JsHooksAdapterInner>,
-  interceptor: Box<RegisterJsTaps>,
+  register_js_taps: RegisterJsTaps,
 }
 
 impl fmt::Debug for JsHooksAdapterPlugin {
@@ -66,26 +66,22 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
     ctx: PluginContext<&mut ApplyContext>,
     _options: &mut CompilerOptions,
   ) -> rspack_error::Result<()> {
-    ctx
-      .context
-      .compiler_hooks
-      .compilation
-      .intercept(self.interceptor.clone());
-    ctx
-      .context
-      .compiler_hooks
-      .make
-      .intercept(self.interceptor.clone());
-    ctx
-      .context
-      .compilation_hooks
-      .process_assets
-      .intercept(self.interceptor.clone());
-    ctx
-      .context
-      .normal_module_factory_hooks
-      .before_resolve
-      .intercept(self.interceptor.clone());
+    self
+      .register_js_taps
+      .intercept_register_compiler_compilation_taps(&mut ctx.context.compiler_hooks.compilation);
+    self
+      .register_js_taps
+      .intercept_register_compiler_make_taps(&mut ctx.context.compiler_hooks.make);
+    self
+      .register_js_taps
+      .intercept_register_compilation_process_assets_taps(
+        &mut ctx.context.compilation_hooks.process_assets,
+      );
+    self
+      .register_js_taps
+      .intercept_register_normal_module_factory_before_resolve_taps(
+        &mut ctx.context.normal_module_factory_hooks.before_resolve,
+      );
     Ok(())
   }
 
@@ -515,10 +511,10 @@ impl JsHooksAdapterPlugin {
     _env: Env,
     js_hooks: JsHooks,
     disabled_hooks: DisabledHooks,
-    interceptor: RegisterJsTaps,
+    register_js_taps: RegisterJsTaps,
   ) -> Result<Self> {
     Ok(JsHooksAdapterPlugin {
-      interceptor: Box::new(interceptor),
+      register_js_taps,
       inner: Arc::new(JsHooksAdapterInner {
         disabled_hooks,
         hooks: js_hooks,

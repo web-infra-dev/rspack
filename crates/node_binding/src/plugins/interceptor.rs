@@ -3,6 +3,7 @@ use napi::{
   bindgen_prelude::{FromNapiValue, Promise, ToNapiValue},
   Env, JsFunction, NapiRaw,
 };
+use paste::paste;
 use rspack_binding_values::{JsBeforeResolveArgs, JsBeforeResolveOutput, JsCompilation};
 use rspack_core::{
   BeforeResolveArgs, Compilation, CompilationParams, CompilationProcessAssetsHook,
@@ -10,6 +11,7 @@ use rspack_core::{
 };
 use rspack_hook::{AsyncSeries, AsyncSeries2, AsyncSeriesBail, Hook, Interceptor};
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
+use tokio::sync::Mutex;
 
 #[napi(object)]
 pub struct JsTap {
@@ -17,9 +19,18 @@ pub struct JsTap {
   pub stage: i32,
 }
 
-pub struct ThreadsafeJsTap<T: 'static + ToNapiValue, R> {
+pub struct ThreadsafeJsTap<T: 'static, R> {
   pub function: ThreadsafeFunction<T, R>,
   pub stage: i32,
+}
+
+impl<T: 'static, R> Clone for ThreadsafeJsTap<T, R> {
+  fn clone(&self) -> Self {
+    Self {
+      function: self.function.clone(),
+      stage: self.stage.clone(),
+    }
+  }
 }
 
 impl<T: 'static + ToNapiValue, R> ThreadsafeJsTap<T, R> {
@@ -43,6 +54,108 @@ impl<T: 'static + ToNapiValue, R> FromNapiValue for ThreadsafeJsTap<T, R> {
   }
 }
 
+struct RegisterJsTapsInner<T: 'static + ToNapiValue, R> {
+  register: ThreadsafeFunction<Vec<i32>, Vec<ThreadsafeJsTap<T, R>>>,
+  cache: Option<Mutex<Option<Vec<ThreadsafeJsTap<T, R>>>>>,
+}
+
+impl<T: 'static + ToNapiValue, R: 'static> RegisterJsTapsInner<T, R> {
+  pub fn new(
+    register: ThreadsafeFunction<Vec<i32>, Vec<ThreadsafeJsTap<T, R>>>,
+    cache: bool,
+  ) -> Self {
+    Self {
+      register,
+      cache: cache.then(|| Default::default()),
+    }
+  }
+
+  pub async fn call_register(
+    &self,
+    hook: &impl Hook,
+  ) -> rspack_error::Result<Vec<ThreadsafeJsTap<T, R>>> {
+    if let Some(cache) = &self.cache {
+      let mut cache = cache.lock().await;
+      if let Some(cache) = &*cache {
+        Ok(cache.clone())
+      } else {
+        let js_taps = self.call_register_impl(hook).await?;
+        cache.replace(js_taps.clone());
+        Ok(js_taps)
+      }
+    } else {
+      self.call_register_impl(hook).await
+    }
+  }
+
+  async fn call_register_impl(
+    &self,
+    hook: &impl Hook,
+  ) -> rspack_error::Result<Vec<ThreadsafeJsTap<T, R>>> {
+    let mut used_stages = Vec::from_iter(hook.used_stages());
+    used_stages.sort();
+    self.register.call_with_sync(used_stages).await
+  }
+}
+
+macro_rules! define_register {
+  ($name:ident, tap = $tap_name:ident<$arg:ty, $ret:ty> @ $tap_hook:ty, cache = $cache:expr,) => {
+    paste! {
+      impl RegisterJsTaps {
+        pub fn [<intercept_ $name>](&self, hooks: &mut $tap_hook) {
+          hooks.intercept([<Register $tap_name s>]::new(self.$name.clone()))
+        }
+      }
+
+      struct [<Register $tap_name s>] {
+        inner: RegisterJsTapsInner<$arg, $ret>,
+      }
+
+      impl [<Register $tap_name s>] {
+        pub fn new(
+          register: ThreadsafeFunction<Vec<i32>, Vec<ThreadsafeJsTap<$arg, $ret>>>,
+        ) -> Self {
+          Self {
+            inner: RegisterJsTapsInner::new(register, $cache),
+          }
+        }
+      }
+
+      #[derive(Clone)]
+      struct $tap_name {
+        function: ThreadsafeFunction<$arg, $ret>,
+        stage: i32,
+      }
+
+      impl $tap_name {
+        pub fn new(tap: ThreadsafeJsTap<$arg, $ret>) -> Self {
+          Self {
+            function: tap.function,
+            stage: tap.stage,
+          }
+        }
+      }
+
+      #[async_trait]
+      impl Interceptor<$tap_hook> for [<Register $tap_name s>] {
+        async fn call(
+          &self,
+          hook: &$tap_hook,
+        ) -> rspack_error::Result<Vec<<$tap_hook as Hook>::Tap>> {
+          let js_taps = self.inner.call_register(hook).await?;
+          let js_taps = js_taps
+            .into_iter()
+            .map(|t| {
+              Box::new($tap_name::new(t)) as <$tap_hook as Hook>::Tap
+            })
+            .collect();
+          Ok(js_taps)
+        }
+      }
+    }
+  };
+}
+
 #[derive(Clone)]
 #[napi(object, object_to_js = false)]
 pub struct RegisterJsTaps {
@@ -62,7 +175,7 @@ pub struct RegisterJsTaps {
   pub register_compilation_process_assets_taps:
     ThreadsafeFunction<Vec<i32>, Vec<ThreadsafeJsTap<JsCompilation, Promise<()>>>>,
   #[napi(
-    ts_type = "(stages: Array<number>) => Array<{ function: ((compilation: JsBeforeResolveArgs) => Promise<void>); stage: number; }>"
+    ts_type = "(stages: Array<number>) => Array<{ function: ((compilation: JsBeforeResolveArgs) => Promise<[boolean | undefined, JsBeforeResolveArgs]>); stage: number; }>"
   )]
   pub register_normal_module_factory_before_resolve_taps: ThreadsafeFunction<
     Vec<i32>,
@@ -70,20 +183,26 @@ pub struct RegisterJsTaps {
   >,
 }
 
-#[derive(Clone)]
-struct CompilerCompilationTap {
-  function: ThreadsafeFunction<JsCompilation, ()>,
-  stage: i32,
-}
-
-impl CompilerCompilationTap {
-  pub fn new(tap: ThreadsafeJsTap<JsCompilation, ()>) -> Self {
-    Self {
-      function: tap.function,
-      stage: tap.stage,
-    }
-  }
-}
+define_register!(
+  register_compiler_compilation_taps,
+  tap = CompilerCompilationTap<JsCompilation, ()> @ CompilerCompilationHook,
+  cache = false,
+);
+define_register!(
+  register_compiler_make_taps,
+  tap = CompilerMakeTap<JsCompilation, Promise<()>> @ CompilerMakeHook,
+  cache = false,
+);
+define_register!(
+  register_compilation_process_assets_taps,
+  tap = CompilationProcessAssetsTap<JsCompilation, Promise<()>> @ CompilationProcessAssetsHook,
+  cache = false,
+);
+define_register!(
+  register_normal_module_factory_before_resolve_taps,
+  tap = NormalModuleFactoryBeforeResolveTap<JsBeforeResolveArgs, Promise<JsBeforeResolveOutput>> @ NormalModuleFactoryBeforeResolveHook,
+  cache = true,
+);
 
 #[async_trait]
 impl AsyncSeries2<Compilation, CompilationParams> for CompilerCompilationTap {
@@ -102,41 +221,6 @@ impl AsyncSeries2<Compilation, CompilationParams> for CompilerCompilationTap {
 
   fn stage(&self) -> i32 {
     self.stage
-  }
-}
-
-#[async_trait]
-impl Interceptor<CompilerCompilationHook> for RegisterJsTaps {
-  async fn call(
-    &self,
-    hook: &CompilerCompilationHook,
-  ) -> rspack_error::Result<Vec<<CompilerCompilationHook as Hook>::Tap>> {
-    let mut used_stages = Vec::from_iter(hook.used_stages());
-    used_stages.sort();
-    let js_taps = self
-      .register_compiler_compilation_taps
-      .call_with_sync(used_stages)
-      .await?;
-    let js_taps = js_taps
-      .into_iter()
-      .map(|t| Box::new(CompilerCompilationTap::new(t)) as <CompilerCompilationHook as Hook>::Tap)
-      .collect();
-    Ok(js_taps)
-  }
-}
-
-#[derive(Clone)]
-struct CompilerMakeTap {
-  function: ThreadsafeFunction<JsCompilation, Promise<()>>,
-  stage: i32,
-}
-
-impl CompilerMakeTap {
-  pub fn new(tap: ThreadsafeJsTap<JsCompilation, Promise<()>>) -> Self {
-    Self {
-      function: tap.function,
-      stage: tap.stage,
-    }
   }
 }
 
@@ -162,41 +246,6 @@ impl AsyncSeries2<Compilation, Vec<MakeParam>> for CompilerMakeTap {
 }
 
 #[async_trait]
-impl Interceptor<CompilerMakeHook> for RegisterJsTaps {
-  async fn call(
-    &self,
-    hook: &CompilerMakeHook,
-  ) -> rspack_error::Result<Vec<<CompilerMakeHook as Hook>::Tap>> {
-    let mut used_stages = Vec::from_iter(hook.used_stages());
-    used_stages.sort();
-    let js_taps = self
-      .register_compiler_make_taps
-      .call_with_sync(used_stages)
-      .await?;
-    let js_taps = js_taps
-      .into_iter()
-      .map(|t| Box::new(CompilerMakeTap::new(t)) as <CompilerMakeHook as Hook>::Tap)
-      .collect();
-    Ok(js_taps)
-  }
-}
-
-#[derive(Clone)]
-struct CompilationProcessAssetsTap {
-  function: ThreadsafeFunction<JsCompilation, Promise<()>>,
-  stage: i32,
-}
-
-impl CompilationProcessAssetsTap {
-  pub fn new(tap: ThreadsafeJsTap<JsCompilation, Promise<()>>) -> Self {
-    Self {
-      function: tap.function,
-      stage: tap.stage,
-    }
-  }
-}
-
-#[async_trait]
 impl AsyncSeries<Compilation> for CompilationProcessAssetsTap {
   async fn run(&self, compilation: &mut Compilation) -> rspack_error::Result<()> {
     // SAFETY: `Compiler` will not be moved, as it's stored on the heap.
@@ -210,45 +259,6 @@ impl AsyncSeries<Compilation> for CompilationProcessAssetsTap {
 
   fn stage(&self) -> i32 {
     self.stage
-  }
-}
-
-#[async_trait]
-impl Interceptor<CompilationProcessAssetsHook> for RegisterJsTaps {
-  async fn call(
-    &self,
-    hook: &CompilationProcessAssetsHook,
-  ) -> rspack_error::Result<Vec<<CompilationProcessAssetsHook as Hook>::Tap>> {
-    let mut used_stages = Vec::from_iter(hook.used_stages());
-    used_stages.sort();
-    let js_taps = self
-      .register_compilation_process_assets_taps
-      .call_with_sync(used_stages)
-      .await?;
-    let js_taps = js_taps
-      .into_iter()
-      .map(|t| {
-        Box::new(CompilationProcessAssetsTap::new(t)) as <CompilationProcessAssetsHook as Hook>::Tap
-      })
-      .collect();
-    Ok(js_taps)
-  }
-}
-
-#[derive(Clone)]
-struct NormalModuleFactoryBeforeResolveTap {
-  function: ThreadsafeFunction<JsBeforeResolveArgs, Promise<(Option<bool>, JsBeforeResolveArgs)>>,
-  stage: i32,
-}
-
-impl NormalModuleFactoryBeforeResolveTap {
-  pub fn new(
-    tap: ThreadsafeJsTap<JsBeforeResolveArgs, Promise<(Option<bool>, JsBeforeResolveArgs)>>,
-  ) -> Self {
-    Self {
-      function: tap.function,
-      stage: tap.stage,
-    }
   }
 }
 
@@ -267,28 +277,5 @@ impl AsyncSeriesBail<BeforeResolveArgs, bool> for NormalModuleFactoryBeforeResol
 
   fn stage(&self) -> i32 {
     self.stage
-  }
-}
-
-#[async_trait]
-impl Interceptor<NormalModuleFactoryBeforeResolveHook> for RegisterJsTaps {
-  async fn call(
-    &self,
-    hook: &NormalModuleFactoryBeforeResolveHook,
-  ) -> rspack_error::Result<Vec<<NormalModuleFactoryBeforeResolveHook as Hook>::Tap>> {
-    let mut used_stages = Vec::from_iter(hook.used_stages());
-    used_stages.sort();
-    let js_taps = self
-      .register_normal_module_factory_before_resolve_taps
-      .call_with_sync(used_stages)
-      .await?;
-    let js_taps = js_taps
-      .into_iter()
-      .map(|t| {
-        Box::new(NormalModuleFactoryBeforeResolveTap::new(t))
-          as <NormalModuleFactoryBeforeResolveHook as Hook>::Tap
-      })
-      .collect();
-    Ok(js_taps)
   }
 }
