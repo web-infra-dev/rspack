@@ -123,6 +123,12 @@ export function __chunk_inner_is_only_initial(jsChunkUkey: number, compilation: 
 
 export function __entrypoint_inner_get_runtime_chunk(ukey: number, compilation: JsCompilation): JsChunk
 
+export interface AfterResolveCreateData {
+  request: string
+  userRequest: string
+  resource: string
+}
+
 export interface AfterResolveData {
   request: string
   context: string
@@ -130,6 +136,7 @@ export interface AfterResolveData {
   contextDependencies: Array<string>
   missingDependencies: Array<string>
   factoryMeta: FactoryMeta
+  createData?: AfterResolveCreateData
 }
 
 export interface BuiltinPlugin {
@@ -348,7 +355,7 @@ export interface JsHooks {
   finishMake: (compilation: JsCompilation) => void
   buildModule: (module: JsModule) => void
   chunkAsset: (asset: JsChunkAssetArgs) => void
-  afterResolve: (data: AfterResolveData) => Promise<boolean | void>
+  afterResolve: (data: AfterResolveData) => Promise<(boolean | void | AfterResolveCreateData)[]>
   contextModuleFactoryBeforeResolve: (data: JsBeforeResolveArgs) => Promise<boolean | void>
   contextModuleFactoryAfterResolve: (data: AfterResolveData) => Promise<boolean | void>
   normalModuleFactoryCreateModule: (data: CreateModuleData) => void
