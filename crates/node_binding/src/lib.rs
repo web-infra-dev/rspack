@@ -5,8 +5,8 @@
 extern crate napi_derive;
 // extern crate rspack_allocator;
 
-use std::pin::Pin;
 use std::sync::Mutex;
+use std::{mem::ManuallyDrop, pin::Pin};
 
 use compiler::Compiler;
 use napi::bindgen_prelude::*;
@@ -43,7 +43,7 @@ static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
 #[napi(custom_finalize)]
 pub struct Rspack {
   js_plugin: JsHooksAdapterPlugin,
-  compiler: Pin<Box<Compiler>>,
+  compiler: ManuallyDrop<Pin<Box<Compiler>>>,
   running: bool,
 }
 
@@ -95,7 +95,7 @@ impl Rspack {
     );
 
     Ok(Self {
-      compiler: Box::pin(Compiler::from(rspack)),
+      compiler: ManuallyDrop::new(Box::pin(Compiler::from(rspack))),
       running: false,
       js_plugin,
     })
