@@ -90,20 +90,28 @@ impl Rspack {
 
   /// Build with the given option passed to the constructor
   #[napi(ts_args_type = "callback: (err: null | Error) => void")]
-  pub fn build(&mut self, env: Env, reference: Reference<Rspack>, f: JsFunction) -> Result<()> {
+  pub fn build(
+    &mut self,
+    env: Env,
+    // reference: Reference<Rspack>,
+    f: JsFunction,
+  ) -> Result<()> {
     unsafe {
-      self.run(env, reference, |compiler| {
-        callbackify(env, f, async {
-          compiler.build().await.map_err(|e| {
-            Error::new(
-              napi::Status::GenericFailure,
-              print_error_diagnostic(e, compiler.options.stats.colors),
-            )
-          })?;
-          tracing::info!("build ok");
-          Ok(())
-        })
-      })
+      self.run(
+        // env, reference,
+        |compiler| {
+          callbackify(env, f, async {
+            compiler.build().await.map_err(|e| {
+              Error::new(
+                napi::Status::GenericFailure,
+                print_error_diagnostic(e, compiler.options.stats.colors),
+              )
+            })?;
+            tracing::info!("build ok");
+            Ok(())
+          })
+        },
+      )
     }
   }
 
@@ -114,7 +122,7 @@ impl Rspack {
   pub fn rebuild(
     &mut self,
     env: Env,
-    reference: Reference<Rspack>,
+    // reference: Reference<Rspack>,
     changed_files: Vec<String>,
     removed_files: Vec<String>,
     f: JsFunction,
@@ -122,24 +130,27 @@ impl Rspack {
     use std::collections::HashSet;
 
     unsafe {
-      self.run(env, reference, |compiler| {
-        callbackify(env, f, async {
-          compiler
-            .rebuild(
-              HashSet::from_iter(changed_files.into_iter()),
-              HashSet::from_iter(removed_files.into_iter()),
-            )
-            .await
-            .map_err(|e| {
-              Error::new(
-                napi::Status::GenericFailure,
-                print_error_diagnostic(e, compiler.options.stats.colors),
+      self.run(
+        // env, reference,
+        |compiler| {
+          callbackify(env, f, async {
+            compiler
+              .rebuild(
+                HashSet::from_iter(changed_files.into_iter()),
+                HashSet::from_iter(removed_files.into_iter()),
               )
-            })?;
-          tracing::info!("rebuild ok");
-          Ok(())
-        })
-      })
+              .await
+              .map_err(|e| {
+                Error::new(
+                  napi::Status::GenericFailure,
+                  print_error_diagnostic(e, compiler.options.stats.colors),
+                )
+              })?;
+            tracing::info!("rebuild ok");
+            Ok(())
+          })
+        },
+      )
     }
   }
 }
@@ -154,8 +165,8 @@ impl Rspack {
   ///    especially when `build` or `rebuild` was called on JS side and its previous `build` or `rebuild` was yet to finish.
   unsafe fn run<R>(
     &mut self,
-    env: Env,
-    reference: Reference<Rspack>,
+    // env: Env,
+    // reference: Reference<Rspack>,
     f: impl FnOnce(&'static mut Compiler) -> Result<R>,
   ) -> Result<R> {
     if self.running {
@@ -163,10 +174,11 @@ impl Rspack {
     }
     self.running = true;
 
-    let mut compiler = reference.share_with(env, |s| {
-      // SAFETY: The mutable reference to `Compiler` is exclusive. It's guaranteed by the running state guard.
-      Ok(unsafe { s.compiler.as_mut().get_unchecked_mut() })
-    })?;
+    // let mut compiler = reference.share_with(env, |s| {
+    //   // SAFETY: The mutable reference to `Compiler` is exclusive. It's guaranteed by the running state guard.
+    //   Ok(unsafe { s.compiler.as_mut().get_unchecked_mut() })
+    // })?;
+    let compiler = &mut self.compiler.as_mut().get_unchecked_mut();
     // SAFETY: `Compiler` will not be moved, as it's stored on the heap.
     // `Compiler` is valid through the lifetime before it's closed by calling `Compiler.close()` or gc-ed.
     let result =
