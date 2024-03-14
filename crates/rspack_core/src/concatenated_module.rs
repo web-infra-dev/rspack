@@ -118,7 +118,7 @@ impl ConnectionOrModuleIdent {
         let con = mg
           .connection_by_connection_id(c)
           .expect("should have connection");
-        con.module_identifier
+        *con.module_identifier()
       }
     }
   }
@@ -253,8 +253,8 @@ impl ModuleInfo {
 
   pub fn set_interop_namespace_object2_used(&mut self, v: bool) {
     match self {
-      ModuleInfo::External(e) => e.interop_namespace_object_used = v,
-      ModuleInfo::Concatenated(c) => c.interop_namespace_object_used = v,
+      ModuleInfo::External(e) => e.interop_namespace_object2_used = v,
+      ModuleInfo::Concatenated(c) => c.interop_namespace_object2_used = v,
     }
   }
 
@@ -281,8 +281,8 @@ impl ModuleInfo {
 
   pub fn get_interop_namespace_object2_used(&self) -> bool {
     match self {
-      ModuleInfo::External(e) => e.interop_namespace_object_used,
-      ModuleInfo::Concatenated(c) => c.interop_namespace_object_used,
+      ModuleInfo::External(e) => e.interop_namespace_object2_used,
+      ModuleInfo::Concatenated(c) => c.interop_namespace_object2_used,
     }
   }
 
@@ -960,6 +960,7 @@ impl Module for ConcatenatedModule {
       runtime_requirements.insert(RuntimeGlobals::EXPORTS);
       runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
       let mut definitions = Vec::new();
+      // dbg!(&exports_map);
       for (key, value) in exports_map.iter() {
         definitions.push(format!(
           "\n  {}: {}",
@@ -1443,21 +1444,21 @@ impl ConcatenatedModule {
     exists_entry: &mut HashMap<ModuleIdentifier, RuntimeCondition>,
     list: &mut Vec<ConcatenationEntry>,
   ) {
-    let module = con.module_identifier;
-    let exist_entry = match exists_entry.get(&module) {
+    let module = con.module_identifier();
+    let exist_entry = match exists_entry.get(module) {
       Some(RuntimeCondition::Boolean(true)) => return,
       None => None,
       Some(_condition) => Some(runtime_condition.clone()),
     };
-    if module_set.contains(&module) {
-      exists_entry.insert(module, RuntimeCondition::Boolean(true));
+    if module_set.contains(module) {
+      exists_entry.insert(*module, RuntimeCondition::Boolean(true));
       if !matches!(runtime_condition, RuntimeCondition::Boolean(true)) {
         panic!(
           "Cannot runtime-conditional concatenate a module ({}) in {}. This should not happen.",
           module, self.root_module_ctxt.id,
         );
       }
-      let imports = self.get_concatenated_imports(&module, &root_module, runtime, mg);
+      let imports = self.get_concatenated_imports(module, &root_module, runtime, mg);
       for import in imports {
         self.enter_module(
           root_module,
@@ -1473,7 +1474,7 @@ impl ConcatenatedModule {
       list.push(ConcatenationEntry {
         ty: ConcatenationEntryType::Concatenated,
         runtime_condition,
-        connection_or_module_id: ConnectionOrModuleIdent::Module(con.module_identifier),
+        connection_or_module_id: ConnectionOrModuleIdent::Module(*con.module_identifier()),
       });
     } else {
       if let Some(cond) = exist_entry {
@@ -1482,13 +1483,13 @@ impl ConcatenatedModule {
         if matches!(reduced_runtime_condition, RuntimeCondition::Boolean(false)) {
           return;
         }
-        exists_entry.insert(con.module_identifier, reduced_runtime_condition);
+        exists_entry.insert(*con.module_identifier(), reduced_runtime_condition);
       } else {
-        exists_entry.insert(con.module_identifier, runtime_condition.clone());
+        exists_entry.insert(*con.module_identifier(), runtime_condition.clone());
       }
       if let Some(last) = list.last_mut() {
         if matches!(last.ty, ConcatenationEntryType::External)
-          && last.connection_or_module_id.get_module_id(mg) == con.module_identifier
+          && last.connection_or_module_id.get_module_id(mg) == *con.module_identifier()
         {
           last.runtime_condition =
             merge_runtime_condition(&last.runtime_condition, &runtime_condition, runtime);
@@ -1573,8 +1574,8 @@ impl ConcatenatedModule {
       if matches!(runtime_condition, RuntimeCondition::Boolean(false)) {
         continue;
       }
-      let module = reference.connection.module_identifier;
-      match references_map.entry(module) {
+      let module = reference.connection.module_identifier();
+      match references_map.entry(*module) {
         indexmap::map::Entry::Occupied(mut occ) => {
           let entry: &ConnectionWithRuntimeCondition = occ.get();
           let merged_condition = merge_runtime_condition_non_false(
@@ -1797,6 +1798,7 @@ impl ConcatenatedModule {
     let info = module_to_info_map
       .get(info_id)
       .expect("should have module info");
+
     let module = mg
       .module_by_identifier(&info.id())
       .expect("should have module");
@@ -1890,7 +1892,7 @@ impl ConcatenatedModule {
             let default_access_name = info
               .get_interop_default_access_name()
               .cloned()
-              .unwrap_or("undefined".into());
+              .expect("should have default access name");
             let default_export = if as_call {
               format!("{}()", default_access_name)
             } else if let Some(true) = asi_safe {

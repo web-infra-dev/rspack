@@ -581,7 +581,7 @@ impl Plugin for SideEffectsFlagPlugin {
                   })
                   .unwrap_or_else(|| ids.get(1..).unwrap_or_default().to_vec());
                 dep_id.set_ids(processed_ids, mg);
-                mg.connection_by_dependency(&dep_id).cloned()
+                mg.connection_by_dependency(&dep_id).map(|_| dep_id)
               },
             ),
           );
@@ -650,10 +650,16 @@ fn get_level_order_module_ids(
         continue;
       };
       for con in mg.get_outgoing_connections(m) {
-        let mi = con.module_identifier;
+        let mi = *con.module_identifier();
         q.push_back(mi);
       }
     }
   }
+
+  res.sort_by(|a, b| {
+    let ad = mg.get_depth(a);
+    let bd = mg.get_depth(b);
+    ad.cmp(&bd)
+  });
   res
 }

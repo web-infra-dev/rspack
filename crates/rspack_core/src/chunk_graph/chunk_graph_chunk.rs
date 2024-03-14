@@ -460,12 +460,12 @@ impl ChunkGraph {
               continue;
             }
             crate::ConnectionState::TransitiveOnly => {
-              add_dependencies(connection.module_identifier, set, module_graph);
+              add_dependencies(*connection.module_identifier(), set, module_graph);
               continue;
             }
             _ => {}
           }
-          set.insert(connection.module_identifier);
+          set.insert(*connection.module_identifier());
         }
       }
 

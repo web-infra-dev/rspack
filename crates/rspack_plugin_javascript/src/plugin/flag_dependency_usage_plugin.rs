@@ -183,7 +183,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
           }
           ConnectionState::TransitiveOnly => {
             self.process_module(
-              ModuleOrAsyncDependenciesBlock::Module(connection.module_identifier),
+              ModuleOrAsyncDependenciesBlock::Module(*connection.module_identifier()),
               runtime.clone(),
               false,
               q,
@@ -192,7 +192,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
           }
           _ => {}
         }
-        let old_referenced_exports = map.remove(&connection.module_identifier);
+        let old_referenced_exports = map.remove(connection.module_identifier());
         let dep = self
           .compilation
           .get_module_graph()
@@ -218,12 +218,15 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
           || is_exports_object_referenced(&referenced_exports)
         {
           map.insert(
-            connection.module_identifier,
+            *connection.module_identifier(),
             ProcessModuleReferencedExports::ExtendRef(referenced_exports),
           );
         } else if let Some(old_referenced_exports) = old_referenced_exports {
           if is_no_exports_referenced(&referenced_exports) {
-            map.insert(connection.module_identifier, old_referenced_exports.clone());
+            map.insert(
+              *connection.module_identifier(),
+              old_referenced_exports.clone(),
+            );
             continue;
           }
 
@@ -277,7 +280,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
           }
           // dbg!(&exports_map);
           map.insert(
-            connection.module_identifier,
+            *connection.module_identifier(),
             ProcessModuleReferencedExports::Map(exports_map),
           );
         }

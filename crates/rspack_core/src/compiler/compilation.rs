@@ -811,7 +811,8 @@ impl Compilation {
     logger.time_end(start);
 
     // if self.options.is_new_tree_shaking() {
-    //   debug_all_exports_info!(&self.get_module_graph());
+    //   // let filter = |item: &str| ["config-provider"].iter().any(|pat| item.contains(pat));
+    //   // debug_all_exports_info!(&self.module_graph, filter);
     // }
     let start = logger.time("create chunks");
     use_code_splitting_cache(self, |compilation| async {
@@ -826,7 +827,9 @@ impl Compilation {
 
     let start = logger.time("optimize");
     plugin_driver.optimize_tree(self).await?;
+
     plugin_driver.optimize_chunk_modules(self).await?;
+
     logger.time_end(start);
 
     let start = logger.time("module ids");
@@ -846,9 +849,6 @@ impl Compilation {
     let start = logger.time("code generation");
     self.code_generation()?;
     logger.time_end(start);
-    // if self.options.is_new_tree_shaking() {
-    //   debug_all_exports_info!(&self.get_module_graph());
-    // }
 
     let start = logger.time("runtime requirements");
     self
@@ -1544,7 +1544,7 @@ pub fn assign_depths(
     };
     let m = mg.module_by_identifier(&id).expect("should have module");
     for con in mg.get_outgoing_connections(m) {
-      q.push_back((con.module_identifier, depth + 1));
+      q.push_back((*con.module_identifier(), depth + 1));
     }
   }
 }
@@ -1574,7 +1574,7 @@ pub fn assign_depth(
 
     let m = mg.module_by_identifier(&item).expect("should have module");
     for con in mg.get_outgoing_connections(m) {
-      process_module(con.module_identifier, depth, &mut q, assign_map);
+      process_module(*con.module_identifier(), depth, &mut q, assign_map);
     }
   }
 }

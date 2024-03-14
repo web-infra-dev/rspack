@@ -242,26 +242,26 @@ impl ChunkGraph {
         .into_iter()
         .collect::<Vec<_>>();
 
-      connections.sort_by(|a, b| a.module_identifier.cmp(&b.module_identifier));
+      connections.sort_by(|a, b| a.module_identifier().cmp(b.module_identifier()));
 
       // hash connection module graph modules
       for connection in connections {
-        if let Some(connection_hash) = connection_hash_cache.get(&connection.module_identifier) {
+        if let Some(connection_hash) = connection_hash_cache.get(connection.module_identifier()) {
           connection_hash.dyn_hash(&mut hasher)
         } else {
           let connection_hash = process_module_graph_module(
             module_graph
-              .module_by_identifier(&connection.module_identifier)
+              .module_by_identifier(connection.module_identifier())
               .unwrap_or_else(|| {
                 panic!(
                   "Module({}) should be added before using",
-                  connection.module_identifier
+                  connection.module_identifier()
                 )
               }),
             Some(strict),
           );
           connection_hash.dyn_hash(&mut hasher);
-          connection_hash_cache.insert(connection.module_identifier, connection_hash);
+          connection_hash_cache.insert(*connection.module_identifier(), connection_hash);
         }
       }
     }

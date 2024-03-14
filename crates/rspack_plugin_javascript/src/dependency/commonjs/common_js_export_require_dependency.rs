@@ -208,14 +208,14 @@ impl Dependency for CommonJsExportRequireDependency {
           }),
           ..Default::default()
         })]),
-        dependencies: Some(vec![from.module_identifier]),
+        dependencies: Some(vec![*from.module_identifier()]),
         ..Default::default()
       })
     } else if self.names.is_empty() {
       let Some(from) = mg.connection_by_dependency(&self.id) else {
         return None;
       };
-      if let Some(reexport_info) = self.get_star_reexports(mg, None, &from.module_identifier) {
+      if let Some(reexport_info) = self.get_star_reexports(mg, None, from.module_identifier()) {
         Some(ExportsSpec {
           exports: ExportsOfExportsSpec::Array(
             reexport_info
@@ -233,7 +233,7 @@ impl Dependency for CommonJsExportRequireDependency {
               })
               .collect_vec(),
           ),
-          dependencies: Some(vec![from.module_identifier]),
+          dependencies: Some(vec![*from.module_identifier()]),
           ..Default::default()
         })
       } else {
@@ -245,7 +245,7 @@ impl Dependency for CommonJsExportRequireDependency {
             None
           },
           can_mangle: Some(false),
-          dependencies: Some(vec![from.module_identifier]),
+          dependencies: Some(vec![*from.module_identifier()]),
           ..Default::default()
         })
       }

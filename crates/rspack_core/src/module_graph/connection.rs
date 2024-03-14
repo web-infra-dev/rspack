@@ -41,7 +41,7 @@ pub struct ModuleGraphConnection {
   pub resolved_original_module_identifier: Option<ModuleIdentifier>,
 
   /// The referenced module identifier
-  pub module_identifier: ModuleIdentifier,
+  module_identifier: ModuleIdentifier,
 
   /// The referencing dependency id
   pub dependency_id: DependencyId,
@@ -134,6 +134,23 @@ impl ModuleGraphConnection {
       DependencyCondition::False => ConnectionState::Bool(false),
       DependencyCondition::Fn(f) => f(self, runtime, module_graph),
     }
+  }
+
+  pub fn module_identifier(&self) -> &ModuleIdentifier {
+    &self.module_identifier
+  }
+
+  /// used for set module identifier after clone the [ModuleGraphConnection]
+  pub fn set_module_identifier(&mut self, mi: ModuleIdentifier, mg: &mut ModuleGraph) {
+    self.module_identifier = mi;
+    mg.dependency_id_to_module_identifier
+      .insert(self.dependency_id, mi);
+  }
+
+  /// used for mutate module identifier, don't forget also set the module identifier of the
+  /// related dependency_id
+  pub fn set_module_identifier_only(&mut self, mi: ModuleIdentifier) {
+    self.module_identifier = mi;
   }
 }
 

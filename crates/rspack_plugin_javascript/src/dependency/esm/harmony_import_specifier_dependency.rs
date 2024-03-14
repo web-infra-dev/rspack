@@ -196,11 +196,11 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
       && let Some(con) = compilation
         .get_module_graph()
         .connection_by_dependency(&self.id)
-      && scope.is_module_in_scope(&con.module_identifier)
+      && scope.is_module_in_scope(con.module_identifier())
     {
       if ids.is_empty() {
         scope.create_module_reference(
-          &con.module_identifier,
+          con.module_identifier(),
           &ModuleReferenceOptions {
             // TODO: should add asi safe
             asi_safe: Some(false),
@@ -210,7 +210,7 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
       } else if self.namespace_object_as_context && ids.len() == 1 {
         // ConcatenationScope::create_module_reference(&self, module, options)
         scope.create_module_reference(
-          &con.module_identifier,
+          con.module_identifier(),
           &ModuleReferenceOptions {
             // TODO: align asi_safe when we have it
             asi_safe: Some(false),
@@ -219,7 +219,7 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
         ) + property_access(ids, 0).as_str()
       } else {
         scope.create_module_reference(
-          &con.module_identifier,
+          con.module_identifier(),
           &ModuleReferenceOptions {
             // TODO: should add asi safe
             asi_safe: Some(true),

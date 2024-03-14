@@ -71,7 +71,7 @@ impl DependencyTemplate for WebpackIsIncludedDependency {
       .map(|connection| {
         compilation
           .chunk_graph
-          .get_number_of_module_chunks(connection.module_identifier)
+          .get_number_of_module_chunks(*connection.module_identifier())
           > 0
       })
       .unwrap_or(false);
