@@ -24,7 +24,12 @@ use rspack_core::{
   PluginNormalModuleFactoryCreateModuleHookOutput, ResourceData,
 };
 use rspack_core::{PluginNormalModuleFactoryResolveForSchemeOutput, PluginShouldEmitHookOutput};
+use rspack_hook::Hook as _;
 
+use self::interceptor::{
+  RegisterCompilationProcessAssetsTaps, RegisterCompilerCompilationTaps, RegisterCompilerMakeTaps,
+  RegisterNormalModuleFactoryBeforeResolveTaps,
+};
 pub use self::loader::JsLoaderResolver;
 use crate::{DisabledHooks, Hook, JsCompilation, JsHooks};
 
@@ -36,7 +41,10 @@ pub struct JsHooksAdapterInner {
 #[derive(Clone)]
 pub struct JsHooksAdapterPlugin {
   inner: Arc<JsHooksAdapterInner>,
-  register_js_taps: RegisterJsTaps,
+  register_compiler_compilation_taps: RegisterCompilerCompilationTaps,
+  register_compiler_make_taps: RegisterCompilerMakeTaps,
+  register_compilation_process_assets_taps: RegisterCompilationProcessAssetsTaps,
+  register_normal_module_factory_before_resolve_taps: RegisterNormalModuleFactoryBeforeResolveTaps,
 }
 
 impl fmt::Debug for JsHooksAdapterPlugin {
@@ -66,21 +74,29 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
     ctx: PluginContext<&mut ApplyContext>,
     _options: &mut CompilerOptions,
   ) -> rspack_error::Result<()> {
-    self
-      .register_js_taps
-      .intercept_register_compiler_compilation_taps(&mut ctx.context.compiler_hooks.compilation);
-    self
-      .register_js_taps
-      .intercept_register_compiler_make_taps(&mut ctx.context.compiler_hooks.make);
-    self
-      .register_js_taps
-      .intercept_register_compilation_process_assets_taps(
-        &mut ctx.context.compilation_hooks.process_assets,
-      );
-    self
-      .register_js_taps
-      .intercept_register_normal_module_factory_before_resolve_taps(
-        &mut ctx.context.normal_module_factory_hooks.before_resolve,
+    ctx
+      .context
+      .compiler_hooks
+      .compilation
+      .intercept(self.register_compiler_compilation_taps.clone());
+    ctx
+      .context
+      .compiler_hooks
+      .make
+      .intercept(self.register_compiler_make_taps.clone());
+    ctx
+      .context
+      .compilation_hooks
+      .process_assets
+      .intercept(self.register_compilation_process_assets_taps.clone());
+    ctx
+      .context
+      .normal_module_factory_hooks
+      .before_resolve
+      .intercept(
+        self
+          .register_normal_module_factory_before_resolve_taps
+          .clone(),
       );
     Ok(())
   }
@@ -514,7 +530,19 @@ impl JsHooksAdapterPlugin {
     register_js_taps: RegisterJsTaps,
   ) -> Result<Self> {
     Ok(JsHooksAdapterPlugin {
-      register_js_taps,
+      register_compiler_compilation_taps: RegisterCompilerCompilationTaps::new(
+        register_js_taps.register_compiler_compilation_taps,
+      ),
+      register_compiler_make_taps: RegisterCompilerMakeTaps::new(
+        register_js_taps.register_compiler_make_taps,
+      ),
+      register_compilation_process_assets_taps: RegisterCompilationProcessAssetsTaps::new(
+        register_js_taps.register_compilation_process_assets_taps,
+      ),
+      register_normal_module_factory_before_resolve_taps:
+        RegisterNormalModuleFactoryBeforeResolveTaps::new(
+          register_js_taps.register_normal_module_factory_before_resolve_taps,
+        ),
       inner: Arc::new(JsHooksAdapterInner {
         disabled_hooks,
         hooks: js_hooks,

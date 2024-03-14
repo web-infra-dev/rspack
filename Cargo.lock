@@ -3339,7 +3339,6 @@ dependencies = [
  "napi",
  "napi-build",
  "napi-derive",
- "paste",
  "rspack_allocator",
  "rspack_binding_options",
  "rspack_binding_values",

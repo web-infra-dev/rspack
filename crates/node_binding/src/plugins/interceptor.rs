@@ -1,9 +1,10 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use napi::{
   bindgen_prelude::{FromNapiValue, Promise, ToNapiValue},
   Env, JsFunction, NapiRaw,
 };
-use paste::paste;
 use rspack_binding_values::{JsBeforeResolveArgs, JsBeforeResolveOutput, JsCompilation};
 use rspack_core::{
   BeforeResolveArgs, Compilation, CompilationParams, CompilationProcessAssetsHook,
@@ -20,14 +21,14 @@ pub struct JsTap {
 }
 
 pub struct ThreadsafeJsTap<T: 'static, R> {
-  pub function: ThreadsafeFunction<T, R>,
+  pub function: Arc<ThreadsafeFunction<T, R>>,
   pub stage: i32,
 }
 
 impl<T: 'static, R> Clone for ThreadsafeJsTap<T, R> {
   fn clone(&self) -> Self {
     Self {
-      function: self.function.clone(),
+      function: Arc::clone(&self.function),
       stage: self.stage,
     }
   }
@@ -38,7 +39,7 @@ impl<T: 'static + ToNapiValue, R> ThreadsafeJsTap<T, R> {
     let function =
       unsafe { ThreadsafeFunction::from_napi_value(env.raw(), js_tap.function.raw()) }?;
     Ok(Self {
-      function,
+      function: Arc::new(function),
       stage: js_tap.stage,
     })
   }
@@ -54,14 +55,35 @@ impl<T: 'static + ToNapiValue, R> FromNapiValue for ThreadsafeJsTap<T, R> {
   }
 }
 
+type RegisterFunctionOutput<T, R> = Vec<ThreadsafeJsTap<T, R>>;
+type RegisterFunction<T, R> = ThreadsafeFunction<Vec<i32>, RegisterFunctionOutput<T, R>>;
+
 struct RegisterJsTapsInner<T: 'static, R> {
-  register: ThreadsafeFunction<Vec<i32>, Vec<ThreadsafeJsTap<T, R>>>,
+  register: Arc<RegisterFunction<T, R>>,
   cache: RegisterJsTapsCache<T, R>,
+}
+
+impl<T: 'static, R> Clone for RegisterJsTapsInner<T, R> {
+  fn clone(&self) -> Self {
+    Self {
+      register: self.register.clone(),
+      cache: self.cache.clone(),
+    }
+  }
 }
 
 enum RegisterJsTapsCache<T: 'static, R> {
   NoCache,
-  Cache(Mutex<Option<Vec<ThreadsafeJsTap<T, R>>>>),
+  Cache(Arc<Mutex<Option<RegisterFunctionOutput<T, R>>>>),
+}
+
+impl<T: 'static, R> Clone for RegisterJsTapsCache<T, R> {
+  fn clone(&self) -> Self {
+    match self {
+      Self::NoCache => Self::NoCache,
+      Self::Cache(c) => Self::Cache(c.clone()),
+    }
+  }
 }
 
 impl<T: 'static, R> RegisterJsTapsCache<T, R> {
@@ -75,12 +97,9 @@ impl<T: 'static, R> RegisterJsTapsCache<T, R> {
 }
 
 impl<T: 'static + ToNapiValue, R: 'static> RegisterJsTapsInner<T, R> {
-  pub fn new(
-    register: ThreadsafeFunction<Vec<i32>, Vec<ThreadsafeJsTap<T, R>>>,
-    cache: bool,
-  ) -> Self {
+  pub fn new(register: RegisterFunction<T, R>, cache: bool) -> Self {
     Self {
-      register,
+      register: Arc::new(register),
       cache: RegisterJsTapsCache::new(cache),
     }
   }
@@ -88,7 +107,7 @@ impl<T: 'static + ToNapiValue, R: 'static> RegisterJsTapsInner<T, R> {
   pub async fn call_register(
     &self,
     hook: &impl Hook,
-  ) -> rspack_error::Result<Vec<ThreadsafeJsTap<T, R>>> {
+  ) -> rspack_error::Result<RegisterFunctionOutput<T, R>> {
     if let RegisterJsTapsCache::Cache(cache) = &self.cache {
       let mut cache = cache.lock().await;
       if let Some(cache) = &*cache {
@@ -106,7 +125,7 @@ impl<T: 'static + ToNapiValue, R: 'static> RegisterJsTapsInner<T, R> {
   async fn call_register_impl(
     &self,
     hook: &impl Hook,
-  ) -> rspack_error::Result<Vec<ThreadsafeJsTap<T, R>>> {
+  ) -> rspack_error::Result<RegisterFunctionOutput<T, R>> {
     let mut used_stages = Vec::from_iter(hook.used_stages());
     used_stages.sort();
     self.register.call_with_sync(used_stages).await
@@ -115,57 +134,46 @@ impl<T: 'static + ToNapiValue, R: 'static> RegisterJsTapsInner<T, R> {
 
 macro_rules! define_register {
   ($name:ident, tap = $tap_name:ident<$arg:ty, $ret:ty> @ $tap_hook:ty, cache = $cache:expr,) => {
-    paste! {
-      impl RegisterJsTaps {
-        pub fn [<intercept_ $name>](&self, hooks: &mut $tap_hook) {
-          hooks.intercept([<Register $tap_name s>]::new(self.$name.clone()))
+    #[derive(Clone)]
+    pub struct $name {
+      inner: RegisterJsTapsInner<$arg, $ret>,
+    }
+
+    impl $name {
+      pub fn new(register: RegisterFunction<$arg, $ret>) -> Self {
+        Self {
+          inner: RegisterJsTapsInner::new(register, $cache),
         }
       }
+    }
 
-      struct [<Register $tap_name s>] {
-        inner: RegisterJsTapsInner<$arg, $ret>,
-      }
+    #[derive(Clone)]
+    struct $tap_name {
+      function: Arc<ThreadsafeFunction<$arg, $ret>>,
+      stage: i32,
+    }
 
-      impl [<Register $tap_name s>] {
-        pub fn new(
-          register: ThreadsafeFunction<Vec<i32>, Vec<ThreadsafeJsTap<$arg, $ret>>>,
-        ) -> Self {
-          Self {
-            inner: RegisterJsTapsInner::new(register, $cache),
-          }
+    impl $tap_name {
+      pub fn new(tap: ThreadsafeJsTap<$arg, $ret>) -> Self {
+        Self {
+          function: tap.function,
+          stage: tap.stage,
         }
       }
+    }
 
-      #[derive(Clone)]
-      struct $tap_name {
-        function: ThreadsafeFunction<$arg, $ret>,
-        stage: i32,
-      }
-
-      impl $tap_name {
-        pub fn new(tap: ThreadsafeJsTap<$arg, $ret>) -> Self {
-          Self {
-            function: tap.function,
-            stage: tap.stage,
-          }
-        }
-      }
-
-      #[async_trait]
-      impl Interceptor<$tap_hook> for [<Register $tap_name s>] {
-        async fn call(
-          &self,
-          hook: &$tap_hook,
-        ) -> rspack_error::Result<Vec<<$tap_hook as Hook>::Tap>> {
-          let js_taps = self.inner.call_register(hook).await?;
-          let js_taps = js_taps
-            .into_iter()
-            .map(|t| {
-              Box::new($tap_name::new(t)) as <$tap_hook as Hook>::Tap
-            })
-            .collect();
-          Ok(js_taps)
-        }
+    #[async_trait]
+    impl Interceptor<$tap_hook> for $name {
+      async fn call(
+        &self,
+        hook: &$tap_hook,
+      ) -> rspack_error::Result<Vec<<$tap_hook as Hook>::Tap>> {
+        let js_taps = self.inner.call_register(hook).await?;
+        let js_taps = js_taps
+          .into_iter()
+          .map(|t| Box::new($tap_name::new(t)) as <$tap_hook as Hook>::Tap)
+          .collect();
+        Ok(js_taps)
       }
     }
   };
@@ -177,44 +185,39 @@ pub struct RegisterJsTaps {
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((compilation: JsCompilation) => void); stage: number; }>"
   )]
-  pub register_compiler_compilation_taps:
-    ThreadsafeFunction<Vec<i32>, Vec<ThreadsafeJsTap<JsCompilation, ()>>>,
+  pub register_compiler_compilation_taps: RegisterFunction<JsCompilation, ()>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((compilation: JsCompilation) => Promise<void>); stage: number; }>"
   )]
-  pub register_compiler_make_taps:
-    ThreadsafeFunction<Vec<i32>, Vec<ThreadsafeJsTap<JsCompilation, Promise<()>>>>,
+  pub register_compiler_make_taps: RegisterFunction<JsCompilation, Promise<()>>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((compilation: JsCompilation) => Promise<void>); stage: number; }>"
   )]
-  pub register_compilation_process_assets_taps:
-    ThreadsafeFunction<Vec<i32>, Vec<ThreadsafeJsTap<JsCompilation, Promise<()>>>>,
+  pub register_compilation_process_assets_taps: RegisterFunction<JsCompilation, Promise<()>>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((compilation: JsBeforeResolveArgs) => Promise<[boolean | undefined, JsBeforeResolveArgs]>); stage: number; }>"
   )]
-  pub register_normal_module_factory_before_resolve_taps: ThreadsafeFunction<
-    Vec<i32>,
-    Vec<ThreadsafeJsTap<JsBeforeResolveArgs, Promise<JsBeforeResolveOutput>>>,
-  >,
+  pub register_normal_module_factory_before_resolve_taps:
+    RegisterFunction<JsBeforeResolveArgs, Promise<JsBeforeResolveOutput>>,
 }
 
 define_register!(
-  register_compiler_compilation_taps,
+  RegisterCompilerCompilationTaps,
   tap = CompilerCompilationTap<JsCompilation, ()> @ CompilerCompilationHook,
   cache = false,
 );
 define_register!(
-  register_compiler_make_taps,
+  RegisterCompilerMakeTaps,
   tap = CompilerMakeTap<JsCompilation, Promise<()>> @ CompilerMakeHook,
   cache = false,
 );
 define_register!(
-  register_compilation_process_assets_taps,
+  RegisterCompilationProcessAssetsTaps,
   tap = CompilationProcessAssetsTap<JsCompilation, Promise<()>> @ CompilationProcessAssetsHook,
   cache = false,
 );
 define_register!(
-  register_normal_module_factory_before_resolve_taps,
+  RegisterNormalModuleFactoryBeforeResolveTaps,
   tap = NormalModuleFactoryBeforeResolveTap<JsBeforeResolveArgs, Promise<JsBeforeResolveOutput>> @ NormalModuleFactoryBeforeResolveHook,
   cache = true,
 );
