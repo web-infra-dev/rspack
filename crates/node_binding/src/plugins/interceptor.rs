@@ -28,7 +28,7 @@ impl<T: 'static, R> Clone for ThreadsafeJsTap<T, R> {
   fn clone(&self) -> Self {
     Self {
       function: self.function.clone(),
-      stage: self.stage.clone(),
+      stage: self.stage,
     }
   }
 }
@@ -54,9 +54,24 @@ impl<T: 'static + ToNapiValue, R> FromNapiValue for ThreadsafeJsTap<T, R> {
   }
 }
 
-struct RegisterJsTapsInner<T: 'static + ToNapiValue, R> {
+struct RegisterJsTapsInner<T: 'static, R> {
   register: ThreadsafeFunction<Vec<i32>, Vec<ThreadsafeJsTap<T, R>>>,
-  cache: Option<Mutex<Option<Vec<ThreadsafeJsTap<T, R>>>>>,
+  cache: RegisterJsTapsCache<T, R>,
+}
+
+enum RegisterJsTapsCache<T: 'static, R> {
+  NoCache,
+  Cache(Mutex<Option<Vec<ThreadsafeJsTap<T, R>>>>),
+}
+
+impl<T: 'static, R> RegisterJsTapsCache<T, R> {
+  pub fn new(cache: bool) -> Self {
+    if cache {
+      Self::Cache(Default::default())
+    } else {
+      Self::NoCache
+    }
+  }
 }
 
 impl<T: 'static + ToNapiValue, R: 'static> RegisterJsTapsInner<T, R> {
@@ -66,7 +81,7 @@ impl<T: 'static + ToNapiValue, R: 'static> RegisterJsTapsInner<T, R> {
   ) -> Self {
     Self {
       register,
-      cache: cache.then(|| Default::default()),
+      cache: RegisterJsTapsCache::new(cache),
     }
   }
 
@@ -74,7 +89,7 @@ impl<T: 'static + ToNapiValue, R: 'static> RegisterJsTapsInner<T, R> {
     &self,
     hook: &impl Hook,
   ) -> rspack_error::Result<Vec<ThreadsafeJsTap<T, R>>> {
-    if let Some(cache) = &self.cache {
+    if let RegisterJsTapsCache::Cache(cache) = &self.cache {
       let mut cache = cache.lock().await;
       if let Some(cache) = &*cache {
         Ok(cache.clone())
