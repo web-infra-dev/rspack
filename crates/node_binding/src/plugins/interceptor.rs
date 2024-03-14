@@ -21,14 +21,14 @@ pub struct JsTap {
 }
 
 pub struct ThreadsafeJsTap<T: 'static, R> {
-  pub function: Arc<ThreadsafeFunction<T, R>>,
+  pub function: ThreadsafeFunction<T, R>,
   pub stage: i32,
 }
 
 impl<T: 'static, R> Clone for ThreadsafeJsTap<T, R> {
   fn clone(&self) -> Self {
     Self {
-      function: Arc::clone(&self.function),
+      function: self.function.clone(),
       stage: self.stage,
     }
   }
@@ -39,7 +39,7 @@ impl<T: 'static + ToNapiValue, R> ThreadsafeJsTap<T, R> {
     let function =
       unsafe { ThreadsafeFunction::from_napi_value(env.raw(), js_tap.function.raw()) }?;
     Ok(Self {
-      function: Arc::new(function),
+      function,
       stage: js_tap.stage,
     })
   }
@@ -59,7 +59,7 @@ type RegisterFunctionOutput<T, R> = Vec<ThreadsafeJsTap<T, R>>;
 type RegisterFunction<T, R> = ThreadsafeFunction<Vec<i32>, RegisterFunctionOutput<T, R>>;
 
 struct RegisterJsTapsInner<T: 'static, R> {
-  register: Arc<RegisterFunction<T, R>>,
+  register: RegisterFunction<T, R>,
   cache: RegisterJsTapsCache<T, R>,
 }
 
@@ -99,7 +99,7 @@ impl<T: 'static, R> RegisterJsTapsCache<T, R> {
 impl<T: 'static + ToNapiValue, R: 'static> RegisterJsTapsInner<T, R> {
   pub fn new(register: RegisterFunction<T, R>, cache: bool) -> Self {
     Self {
-      register: Arc::new(register),
+      register,
       cache: RegisterJsTapsCache::new(cache),
     }
   }
@@ -146,7 +146,7 @@ macro_rules! define_register {
 
     #[derive(Clone)]
     struct $tap_name {
-      function: Arc<ThreadsafeFunction<$arg, $ret>>,
+      function: ThreadsafeFunction<$arg, $ret>,
       stage: i32,
     }
 
