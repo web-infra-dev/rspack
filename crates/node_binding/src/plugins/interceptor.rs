@@ -92,11 +92,11 @@ impl AsyncSeries2<Compilation, CompilationParams> for CompilerCompilationTap {
     compilation: &mut Compilation,
     _: &mut CompilationParams,
   ) -> rspack_error::Result<()> {
-    let compilation = JsCompilation::from_compilation(unsafe {
-      std::mem::transmute::<&'_ mut rspack_core::Compilation, &'static mut rspack_core::Compilation>(
-        compilation,
-      )
-    });
+    // SAFETY: `Compiler` will not be moved, as it's stored on the heap.
+    // The pointer to `Compilation` is valid for the lifetime of `Compiler`.
+    // `Compiler` is valid through the lifetime before it's closed by calling `Compiler.close()` or gc-ed.
+    // `JsCompilation` is valid through the entire lifetime of `Compilation`.
+    let compilation = unsafe { JsCompilation::from_compilation(compilation) };
     self.function.call_with_sync(compilation).await
   }
 
@@ -147,11 +147,11 @@ impl AsyncSeries2<Compilation, Vec<MakeParam>> for CompilerMakeTap {
     compilation: &mut Compilation,
     _: &mut Vec<MakeParam>,
   ) -> rspack_error::Result<()> {
-    let compilation = JsCompilation::from_compilation(unsafe {
-      std::mem::transmute::<&'_ mut rspack_core::Compilation, &'static mut rspack_core::Compilation>(
-        compilation,
-      )
-    });
+    // SAFETY: `Compiler` will not be moved, as it's stored on the heap.
+    // The pointer to `Compilation` is valid for the lifetime of `Compiler`.
+    // `Compiler` is valid through the lifetime before it's closed by calling `Compiler.close()` or gc-ed.
+    // `JsCompilation` is valid through the entire lifetime of `Compilation`.
+    let compilation = unsafe { JsCompilation::from_compilation(compilation) };
 
     self.function.call_with_promise(compilation).await
   }
@@ -199,11 +199,11 @@ impl CompilationProcessAssetsTap {
 #[async_trait]
 impl AsyncSeries<Compilation> for CompilationProcessAssetsTap {
   async fn run(&self, compilation: &mut Compilation) -> rspack_error::Result<()> {
-    let compilation = JsCompilation::from_compilation(unsafe {
-      std::mem::transmute::<&'_ mut rspack_core::Compilation, &'static mut rspack_core::Compilation>(
-        compilation,
-      )
-    });
+    // SAFETY: `Compiler` will not be moved, as it's stored on the heap.
+    // The pointer to `Compilation` is valid for the lifetime of `Compiler`.
+    // `Compiler` is valid through the lifetime before it's closed by calling `Compiler.close()` or gc-ed.
+    // `JsCompilation` is valid through the entire lifetime of `Compilation`.
+    let compilation = unsafe { JsCompilation::from_compilation(compilation) };
 
     self.function.call_with_promise(compilation).await
   }

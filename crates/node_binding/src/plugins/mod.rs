@@ -98,11 +98,11 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
       return Ok(());
     }
 
-    let compilation = JsCompilation::from_compilation(unsafe {
-      std::mem::transmute::<&'_ mut rspack_core::Compilation, &'static mut rspack_core::Compilation>(
-        args.this_compilation,
-      )
-    });
+    // SAFETY: `Compiler` will not be moved, as it's stored on the heap.
+    // The pointer to `Compilation` is valid for the lifetime of `Compiler`.
+    // `Compiler` is valid through the lifetime before it's closed by calling `Compiler.close()` or gc-ed.
+    // `JsCompilation` is valid through the entire lifetime of `Compilation`.
+    let compilation = unsafe { JsCompilation::from_compilation(args.this_compilation) };
 
     self.hooks.this_compilation.call(compilation).await
   }
@@ -251,11 +251,11 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
     if self.is_hook_disabled(&Hook::OptimizeModules) {
       return Ok(());
     }
-    let compilation = JsCompilation::from_compilation(unsafe {
-      std::mem::transmute::<&'_ mut rspack_core::Compilation, &'static mut rspack_core::Compilation>(
-        compilation,
-      )
-    });
+    // SAFETY: `Compiler` will not be moved, as it's stored on the heap.
+    // The pointer to `Compilation` is valid for the lifetime of `Compiler`.
+    // `Compiler` is valid through the lifetime before it's closed by calling `Compiler.close()` or gc-ed.
+    // `JsCompilation` is valid through the entire lifetime of `Compilation`.
+    let compilation = unsafe { JsCompilation::from_compilation(compilation) };
     self.hooks.optimize_modules.call(compilation).await
   }
 
@@ -266,11 +266,11 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
     if self.is_hook_disabled(&Hook::AfterOptimizeModules) {
       return Ok(());
     }
-    let compilation = JsCompilation::from_compilation(unsafe {
-      std::mem::transmute::<&'_ mut rspack_core::Compilation, &'static mut rspack_core::Compilation>(
-        compilation,
-      )
-    });
+    // SAFETY: `Compiler` will not be moved, as it's stored on the heap.
+    // The pointer to `Compilation` is valid for the lifetime of `Compiler`.
+    // `Compiler` is valid through the lifetime before it's closed by calling `Compiler.close()` or gc-ed.
+    // `JsCompilation` is valid through the entire lifetime of `Compilation`.
+    let compilation = unsafe { JsCompilation::from_compilation(compilation) };
     self.hooks.after_optimize_modules.call(compilation).await
   }
 
@@ -292,11 +292,11 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
       return Ok(());
     }
 
-    let compilation = JsCompilation::from_compilation(unsafe {
-      std::mem::transmute::<&'_ mut rspack_core::Compilation, &'static mut rspack_core::Compilation>(
-        args.compilation,
-      )
-    });
+    // SAFETY: `Compiler` will not be moved, as it's stored on the heap.
+    // The pointer to `Compilation` is valid for the lifetime of `Compiler`.
+    // `Compiler` is valid through the lifetime before it's closed by calling `Compiler.close()` or gc-ed.
+    // `JsCompilation` is valid through the entire lifetime of `Compilation`.
+    let compilation = unsafe { JsCompilation::from_compilation(args.compilation) };
 
     self.hooks.optimize_chunk_modules.call(compilation).await
   }
@@ -320,11 +320,11 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
       return Ok(());
     }
 
-    let compilation = JsCompilation::from_compilation(unsafe {
-      std::mem::transmute::<&'_ mut rspack_core::Compilation, &'static mut rspack_core::Compilation>(
-        compilation,
-      )
-    });
+    // SAFETY: `Compiler` will not be moved, as it's stored on the heap.
+    // The pointer to `Compilation` is valid for the lifetime of `Compiler`.
+    // `Compiler` is valid through the lifetime before it's closed by calling `Compiler.close()` or gc-ed.
+    // `JsCompilation` is valid through the entire lifetime of `Compilation`.
+    let compilation = unsafe { JsCompilation::from_compilation(compilation) };
 
     self.hooks.after_compile.call(compilation).await
   }
@@ -337,11 +337,11 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
       return Ok(());
     }
 
-    let compilation = JsCompilation::from_compilation(unsafe {
-      std::mem::transmute::<&'_ mut rspack_core::Compilation, &'static mut rspack_core::Compilation>(
-        compilation,
-      )
-    });
+    // SAFETY: `Compiler` will not be moved, as it's stored on the heap.
+    // The pointer to `Compilation` is valid for the lifetime of `Compiler`.
+    // `Compiler` is valid through the lifetime before it's closed by calling `Compiler.close()` or gc-ed.
+    // `JsCompilation` is valid through the entire lifetime of `Compilation`.
+    let compilation = unsafe { JsCompilation::from_compilation(compilation) };
 
     self.hooks.finish_make.call(compilation).await
   }
@@ -366,11 +366,11 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
       return Ok(());
     }
 
-    let compilation = JsCompilation::from_compilation(unsafe {
-      std::mem::transmute::<&'_ mut rspack_core::Compilation, &'static mut rspack_core::Compilation>(
-        compilation,
-      )
-    });
+    // SAFETY: `Compiler` will not be moved, as it's stored on the heap.
+    // The pointer to `Compilation` is valid for the lifetime of `Compiler`.
+    // `Compiler` is valid through the lifetime before it's closed by calling `Compiler.close()` or gc-ed.
+    // `JsCompilation` is valid through the entire lifetime of `Compilation`.
+    let compilation = unsafe { JsCompilation::from_compilation(compilation) };
 
     self.hooks.finish_modules.call(compilation).await
   }
@@ -400,11 +400,11 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
       return Ok(None);
     }
 
-    let compilation = JsCompilation::from_compilation(unsafe {
-      std::mem::transmute::<&'_ mut rspack_core::Compilation, &'static mut rspack_core::Compilation>(
-        compilation,
-      )
-    });
+    // SAFETY: `Compiler` will not be moved, as it's stored on the heap.
+    // The pointer to `Compilation` is valid for the lifetime of `Compiler`.
+    // `Compiler` is valid through the lifetime before it's closed by calling `Compiler.close()` or gc-ed.
+    // `JsCompilation` is valid through the entire lifetime of `Compilation`.
+    let compilation = unsafe { JsCompilation::from_compilation(compilation) };
 
     self.hooks.should_emit.call(compilation).await
   }

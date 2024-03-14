@@ -1,7 +1,8 @@
 use std::collections::HashMap;
+use std::ops::Deref;
+use std::ops::DerefMut;
 use std::path::PathBuf;
 
-use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rspack_core::get_chunk_from_ukey;
 use rspack_core::rspack_sources::BoxSource;
@@ -10,6 +11,7 @@ use rspack_core::ModuleIdentifier;
 use rspack_core::{rspack_sources::SourceExt, NormalModuleSource};
 use rspack_error::Diagnostic;
 use rspack_identifier::Identifier;
+use rspack_napi::napi::bindgen_prelude::*;
 use rspack_napi::NapiResultExt;
 
 use super::module::ToJsModule;
@@ -21,9 +23,42 @@ use crate::{
   JsCompatSource, JsStats, PathData, ToJsCompatSource,
 };
 
-#[napi]
-pub struct JsCompilation {
-  pub(crate) inner: &'static mut rspack_core::Compilation,
+#[napi(object_from_js = false)]
+pub struct JsCompilation(pub(crate) &'static mut rspack_core::Compilation);
+
+impl JsCompilation {
+  /// Convert Rust `Compilation` to `JsCompilation`.
+  ///
+  /// ## JS Interoperable
+  /// `JsCompilation` implements [napi::bindgen_prelude::ToNapiValue].
+  /// It can be send to JavaScript.
+  ///
+  /// ## Safety
+  /// Safety is guaranteed by the following contracts:
+  /// 1. `Compiler` should not be moved. For example: store it on the heap.
+  /// 2. The pointer should be valid for the entire lifetime of `JsCompilation`.
+  /// 3. Caching old `Compilation` will result the program to undefined behavior and it's likely to crash.
+  pub unsafe fn from_compilation(inner: &mut rspack_core::Compilation) -> Self {
+    Self(unsafe {
+      std::mem::transmute::<&'_ mut rspack_core::Compilation, &'static mut rspack_core::Compilation>(
+        inner,
+      )
+    })
+  }
+}
+
+impl Deref for JsCompilation {
+  type Target = rspack_core::Compilation;
+
+  fn deref(&self) -> &Self::Target {
+    self.0
+  }
+}
+
+impl DerefMut for JsCompilation {
+  fn deref_mut(&mut self) -> &mut Self::Target {
+    self.0
+  }
 }
 
 #[napi]
@@ -38,7 +73,7 @@ impl JsCompilation {
     asset_info_update_or_function: Option<Either<JsAssetInfo, JsFunction>>,
   ) -> Result<()> {
     self
-      .inner
+      .0
       .update_asset(&filename, |original_source, original_info| {
         let new_source: napi::Result<BoxSource> = try {
           let new_source = match new_source_or_function {
@@ -73,9 +108,9 @@ impl JsCompilation {
 
   #[napi(ts_return_type = "Readonly<JsAsset>[]")]
   pub fn get_assets(&self) -> Result<Vec<JsAsset>> {
-    let mut assets = Vec::<JsAsset>::with_capacity(self.inner.assets().len());
+    let mut assets = Vec::<JsAsset>::with_capacity(self.0.assets().len());
 
-    for (filename, asset) in self.inner.assets() {
+    for (filename, asset) in self.0.assets() {
       assets.push(JsAsset {
         name: filename.clone(),
         info: asset.info.clone().into(),
@@ -87,7 +122,7 @@ impl JsCompilation {
 
   #[napi]
   pub fn get_asset(&self, name: String) -> Result<Option<JsAsset>> {
-    match self.inner.assets().get(&name) {
+    match self.0.assets().get(&name) {
       Some(asset) => Ok(Some(JsAsset {
         name,
         info: asset.info.clone().into(),
@@ -99,7 +134,7 @@ impl JsCompilation {
   #[napi]
   pub fn get_asset_source(&self, name: String) -> Result<Option<JsCompatSource>> {
     self
-      .inner
+      .0
       .assets()
       .get(&name)
       .and_then(|v| v.source.as_ref().map(|s| s.to_js_compat_source()))
@@ -109,7 +144,7 @@ impl JsCompilation {
   #[napi]
   pub fn get_modules(&self) -> Vec<JsModule> {
     self
-      .inner
+      .0
       .get_module_graph()
       .modules()
       .values()
@@ -120,7 +155,7 @@ impl JsCompilation {
   #[napi]
   pub fn get_optimization_bailout(&self) -> Vec<JsStatsOptimizationBailout> {
     self
-      .inner
+      .0
       .get_module_graph()
       .module_graph_modules()
       .values()
@@ -132,7 +167,7 @@ impl JsCompilation {
   #[napi]
   pub fn get_chunks(&self) -> Vec<JsChunk> {
     self
-      .inner
+      .0
       .chunk_by_ukey
       .values()
       .map(JsChunk::from)
@@ -142,10 +177,10 @@ impl JsCompilation {
   #[napi]
   pub fn get_named_chunk(&self, name: String) -> Option<JsChunk> {
     self
-      .inner
+      .0
       .named_chunks
       .get(&name)
-      .and_then(|c| get_chunk_from_ukey(c, &self.inner.chunk_by_ukey).map(JsChunk::from))
+      .and_then(|c| get_chunk_from_ukey(c, &self.0.chunk_by_ukey).map(JsChunk::from))
   }
 
   #[napi]
@@ -157,7 +192,7 @@ impl JsCompilation {
     source: JsCompatSource,
   ) -> bool {
     match self
-      .inner
+      .0
       .get_module_graph_mut()
       .module_by_identifier_mut(&Identifier::from(module_identifier.as_str()))
     {
@@ -176,7 +211,7 @@ impl JsCompilation {
   #[napi]
   pub fn set_asset_source(&mut self, name: String, source: JsCompatSource) {
     let source = CompatSource::from(source).boxed();
-    match self.inner.assets_mut().entry(name) {
+    match self.0.assets_mut().entry(name) {
       std::collections::hash_map::Entry::Occupied(mut e) => e.get_mut().set_source(Some(source)),
       std::collections::hash_map::Entry::Vacant(e) => {
         e.insert(rspack_core::CompilationAsset::from(source));
@@ -187,7 +222,7 @@ impl JsCompilation {
   #[napi]
   pub fn delete_asset_source(&mut self, name: String) {
     self
-      .inner
+      .0
       .assets_mut()
       .entry(name)
       .and_modify(|a| a.set_source(None));
@@ -196,7 +231,7 @@ impl JsCompilation {
   #[napi]
   pub fn get_asset_filenames(&self) -> Result<Vec<String>> {
     let filenames = self
-      .inner
+      .0
       .assets()
       .iter()
       .filter(|(_, asset)| asset.get_source().is_some())
@@ -208,7 +243,7 @@ impl JsCompilation {
 
   #[napi]
   pub fn has_asset(&self, name: String) -> Result<bool> {
-    Ok(self.inner.assets().contains_key(&name))
+    Ok(self.0.assets().contains_key(&name))
   }
 
   #[napi]
@@ -220,7 +255,7 @@ impl JsCompilation {
   ) -> Result<()> {
     let compat_source: CompatSource = source.into();
 
-    self.inner.emit_asset(
+    self.0.emit_asset(
       filename,
       rspack_core::CompilationAsset::new(Some(compat_source.boxed()), asset_info.into()),
     );
@@ -230,23 +265,23 @@ impl JsCompilation {
 
   #[napi]
   pub fn delete_asset(&mut self, filename: String) {
-    self.inner.delete_asset(&filename);
+    self.0.delete_asset(&filename);
   }
 
   #[napi]
   pub fn rename_asset(&mut self, filename: String, new_name: String) {
-    self.inner.rename_asset(&filename, new_name);
+    self.0.rename_asset(&filename, new_name);
   }
 
   #[napi(getter)]
   pub fn entrypoints(&self) -> HashMap<String, JsChunkGroup> {
-    let entrypoints = self.inner.entrypoints();
+    let entrypoints = self.0.entrypoints();
     entrypoints
       .iter()
       .map(|(n, _)| {
         (
           n.clone(),
-          JsChunkGroup::from_chunk_group(self.inner.entrypoint_by_name(n), self.inner),
+          JsChunkGroup::from_chunk_group(self.0.entrypoint_by_name(n), self.0),
         )
       })
       .collect()
@@ -254,13 +289,13 @@ impl JsCompilation {
 
   #[napi(getter)]
   pub fn hash(&self) -> Option<String> {
-    self.inner.get_hash().map(|hash| hash.to_owned())
+    self.0.get_hash().map(|hash| hash.to_owned())
   }
 
   #[napi]
   pub fn get_file_dependencies(&self) -> Vec<String> {
     self
-      .inner
+      .0
       .file_dependencies
       .iter()
       .map(|i| i.to_string_lossy().to_string())
@@ -270,7 +305,7 @@ impl JsCompilation {
   #[napi]
   pub fn get_context_dependencies(&self) -> Vec<String> {
     self
-      .inner
+      .0
       .context_dependencies
       .iter()
       .map(|i| i.to_string_lossy().to_string())
@@ -280,7 +315,7 @@ impl JsCompilation {
   #[napi]
   pub fn get_missing_dependencies(&self) -> Vec<String> {
     self
-      .inner
+      .0
       .missing_dependencies
       .iter()
       .map(|i| i.to_string_lossy().to_string())
@@ -290,7 +325,7 @@ impl JsCompilation {
   #[napi]
   pub fn get_build_dependencies(&self) -> Vec<String> {
     self
-      .inner
+      .0
       .build_dependencies
       .iter()
       .map(|i| i.to_string_lossy().to_string())
@@ -303,26 +338,26 @@ impl JsCompilation {
       "warning" => rspack_error::Diagnostic::warn(title, message),
       _ => rspack_error::Diagnostic::error(title, message),
     };
-    self.inner.push_diagnostic(diagnostic);
+    self.0.push_diagnostic(diagnostic);
   }
 
   #[napi(ts_args_type = r#"diagnostics: ExternalObject<'Diagnostic[]'>"#)]
   pub fn push_native_diagnostics(&mut self, mut diagnostics: External<Vec<Diagnostic>>) {
     while let Some(diagnostic) = diagnostics.pop() {
-      self.inner.push_diagnostic(diagnostic);
+      self.0.push_diagnostic(diagnostic);
     }
   }
 
   #[napi]
   pub fn get_stats(&self, reference: Reference<JsCompilation>, env: Env) -> Result<JsStats> {
     Ok(JsStats::new(reference.share_with(env, |compilation| {
-      Ok(compilation.inner.get_stats())
+      Ok(compilation.0.get_stats())
     })?))
   }
 
   #[napi]
   pub fn get_asset_path(&self, filename: String, data: PathData) -> String {
-    self.inner.get_asset_path(
+    self.0.get_asset_path(
       &rspack_core::Filename::from(filename),
       data.as_core_path_data(),
     )
@@ -331,7 +366,7 @@ impl JsCompilation {
   #[napi]
   pub fn get_asset_path_with_info(&self, filename: String, data: PathData) -> PathWithInfo {
     self
-      .inner
+      .0
       .get_asset_path_with_info(
         &rspack_core::Filename::from(filename),
         data.as_core_path_data(),
@@ -341,7 +376,7 @@ impl JsCompilation {
 
   #[napi]
   pub fn get_path(&self, filename: String, data: PathData) -> String {
-    self.inner.get_path(
+    self.0.get_path(
       &rspack_core::Filename::from(filename),
       data.as_core_path_data(),
     )
@@ -350,7 +385,7 @@ impl JsCompilation {
   #[napi]
   pub fn get_path_with_info(&self, filename: String, data: PathData) -> PathWithInfo {
     self
-      .inner
+      .0
       .get_path_with_info(
         &rspack_core::Filename::from(filename),
         data.as_core_path_data(),
@@ -361,7 +396,7 @@ impl JsCompilation {
   #[napi]
   pub fn add_file_dependencies(&mut self, deps: Vec<String>) {
     self
-      .inner
+      .0
       .file_dependencies
       .extend(deps.into_iter().map(PathBuf::from))
   }
@@ -369,7 +404,7 @@ impl JsCompilation {
   #[napi]
   pub fn add_context_dependencies(&mut self, deps: Vec<String>) {
     self
-      .inner
+      .0
       .context_dependencies
       .extend(deps.into_iter().map(PathBuf::from))
   }
@@ -377,7 +412,7 @@ impl JsCompilation {
   #[napi]
   pub fn add_missing_dependencies(&mut self, deps: Vec<String>) {
     self
-      .inner
+      .0
       .missing_dependencies
       .extend(deps.into_iter().map(PathBuf::from))
   }
@@ -385,7 +420,7 @@ impl JsCompilation {
   #[napi]
   pub fn add_build_dependencies(&mut self, deps: Vec<String>) {
     self
-      .inner
+      .0
       .build_dependencies
       .extend(deps.into_iter().map(PathBuf::from))
   }
@@ -399,7 +434,7 @@ impl JsCompilation {
   ) -> Result<()> {
     callbackify(env, f, async {
       let modules = self
-        .inner
+        .0
         .rebuild_module(rustc_hash::FxHashSet::from_iter(
           module_identifiers.into_iter().map(ModuleIdentifier::from),
         ))
@@ -428,7 +463,7 @@ impl JsCompilation {
   ) -> Result<()> {
     callbackify(env, callback, async {
       self
-        .inner
+        .0
         .import_module(
           request,
           public_path,
@@ -474,12 +509,6 @@ pub struct JsExecuteModuleResult {
   pub missing_dependencies: Vec<String>,
   pub assets: Vec<String>,
   pub id: u32,
-}
-
-impl JsCompilation {
-  pub fn from_compilation(inner: &'static mut rspack_core::Compilation) -> Self {
-    Self { inner }
-  }
 }
 
 #[napi(object)]

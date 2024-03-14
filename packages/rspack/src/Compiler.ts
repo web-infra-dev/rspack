@@ -574,7 +574,7 @@ class Compiler {
 				if (error) {
 					return callback?.(error);
 				}
-				instance!.unsafe_set_disabled_hooks(disabledHooks);
+				instance!.setDisabledHooks(disabledHooks);
 				this.#disabledHooks = disabledHooks;
 			});
 		}
@@ -981,8 +981,7 @@ class Compiler {
 				return callback?.(error);
 			}
 			if (!this.first) {
-				const rebuild = instance!.unsafe_rebuild.bind(instance);
-				rebuild(
+				instance!.rebuild(
 					Array.from(this.modifiedFiles || []),
 					Array.from(this.removedFiles || []),
 					error => {
@@ -995,8 +994,7 @@ class Compiler {
 				return;
 			}
 			this.first = false;
-			const build = instance!.unsafe_build.bind(instance);
-			build(error => {
+			instance!.build(error => {
 				if (error) {
 					return callback?.(error);
 				}
@@ -1018,8 +1016,7 @@ class Compiler {
 			if (error) {
 				return callback?.(error);
 			}
-			const rebuild = instance!.unsafe_rebuild.bind(instance);
-			rebuild(
+			instance!.rebuild(
 				Array.from(modifiedFiles || []),
 				Array.from(removedFiles || []),
 				error => {
@@ -1075,15 +1072,6 @@ class Compiler {
 	}
 
 	close(callback: (error?: Error | null) => void) {
-		// WARNING: Arbitrarily dropping the instance is not safe, as it may still be in use by the background thread.
-		// A hint is necessary for the compiler to know when it is safe to drop the instance.
-		// For example: register a callback to the background thread, and drop the instance when the callback is called (calling the `close` method queues the signal)
-		// See: https://github.com/webpack/webpack/blob/4ba225225b1348c8776ca5b5fe53468519413bc0/lib/Compiler.js#L1218
-		if (!this.running) {
-			// Manually drop the instance.
-			// this.#instance = undefined;
-		}
-
 		if (this.watching) {
 			// When there is still an active watching, close this first
 			this.watching.close(() => {

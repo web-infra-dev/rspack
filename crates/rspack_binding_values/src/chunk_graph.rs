@@ -1,12 +1,12 @@
-use napi::Result;
 use napi_derive::napi;
 use rspack_core::{ChunkUkey, SourceType};
+use rspack_napi::napi::Result;
 
 use crate::{JsChunk, JsCompilation, JsModule, ToJsModule};
 
 #[napi(js_name = "__chunk_graph_inner_get_chunk_modules")]
 pub fn get_chunk_modules(js_chunk_ukey: u32, compilation: &JsCompilation) -> Vec<JsModule> {
-  let compilation = &compilation.inner;
+  let compilation = &compilation.0;
   let modules = compilation.chunk_graph.get_chunk_modules(
     &ChunkUkey::from(js_chunk_ukey as usize),
     compilation.get_module_graph(),
@@ -20,7 +20,7 @@ pub fn get_chunk_modules(js_chunk_ukey: u32, compilation: &JsCompilation) -> Vec
 
 #[napi(js_name = "__chunk_graph_inner_get_chunk_entry_modules")]
 pub fn get_chunk_entry_modules(js_chunk_ukey: u32, compilation: &JsCompilation) -> Vec<JsModule> {
-  let compilation = &compilation.inner;
+  let compilation = &compilation.0;
   let modules = compilation
     .chunk_graph
     .get_chunk_entry_modules(&ChunkUkey::from(js_chunk_ukey as usize));
@@ -37,7 +37,7 @@ pub fn get_chunk_entry_dependent_chunks_iterable(
   js_chunk_ukey: u32,
   compilation: &JsCompilation,
 ) -> Vec<JsChunk> {
-  let compilation = &compilation.inner;
+  let compilation = &compilation.0;
   let chunks = compilation
     .chunk_graph
     .get_chunk_entry_dependent_chunks_iterable(
@@ -58,7 +58,7 @@ pub fn get_chunk_modules_iterable_by_source_type(
   source_type: String,
   compilation: &JsCompilation,
 ) -> Result<Vec<JsModule>> {
-  let compilation = &compilation.inner;
+  let compilation = &compilation.0;
   Ok(
     compilation
       .chunk_graph

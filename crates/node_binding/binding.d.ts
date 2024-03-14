@@ -64,39 +64,11 @@ export class JsStats {
 
 export class Rspack {
   constructor(options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, jsHooks: JsHooks, registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, jsLoaderRunner: (ctx: JsLoaderContext) => Promise<JsLoaderResult | void>)
-  unsafe_set_disabled_hooks(hooks: Array<string>): void
-  /**
-   * Build with the given option passed to the constructor
-   *
-   * Warning:
-   * Calling this method recursively might cause a deadlock.
-   */
-  unsafe_build(callback: (err: null | Error) => void): void
-  /**
-   * Rebuild with the given option passed to the constructor
-   *
-   * Warning:
-   * Calling this method recursively will cause a deadlock.
-   */
-  unsafe_rebuild(changed_files: string[], removed_files: string[], callback: (err: null | Error) => void): void
-  /**
-   * Get the last compilation
-   *
-   * Warning:
-   *
-   * Calling this method under the build or rebuild method might cause a deadlock.
-   *
-   * **Note** that this method is not safe if you cache the _JsCompilation_ on the Node side, as it will be invalidated by the next build and accessing a dangling ptr is a UB.
-   */
-  unsafe_last_compilation(f: (arg0: JsCompilation) => void): void
-  /**
-   * Destroy the compiler
-   *
-   * Warning:
-   *
-   * Anything related to this compiler will be invalidated after this method is called.
-   */
-  unsafe_drop(): void
+  setDisabledHooks(hooks: Array<string>): void
+  /** Build with the given option passed to the constructor */
+  build(callback: (err: null | Error) => void): void
+  /** Rebuild with the given option passed to the constructor */
+  rebuild(changed_files: string[], removed_files: string[], callback: (err: null | Error) => void): void
 }
 
 export function __chunk_graph_inner_get_chunk_entry_dependent_chunks_iterable(jsChunkUkey: number, compilation: JsCompilation): Array<JsChunk>
