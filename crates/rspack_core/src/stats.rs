@@ -414,7 +414,10 @@ impl Stats<'_> {
       .module_graph_module_by_identifier(&identifier)
       .unwrap_or_else(|| panic!("Could not find ModuleGraphModule by identifier: {identifier:?}"));
 
-    let issuer = self.compilation.get_module_graph().get_issuer(module);
+    let issuer = self
+      .compilation
+      .get_module_graph()
+      .get_issuer(&module.identifier());
     let (issuer_name, issuer_id) = issuer
       .map(|i| get_stats_module_name_and_id(i, self.compilation))
       .unzip();
@@ -427,7 +430,10 @@ impl Stats<'_> {
         name,
         id,
       });
-      current_issuer = self.compilation.get_module_graph().get_issuer(i);
+      current_issuer = self
+        .compilation
+        .get_module_graph()
+        .get_issuer(&i.identifier());
     }
     issuer_path.reverse();
 
@@ -540,7 +546,7 @@ impl Stats<'_> {
       match self
         .compilation
         .get_module_graph()
-        .get_used_exports(module.identifier(), None)
+        .get_used_exports(&module.identifier(), None)
       {
         UsedExports::Null => Some(StatsUsedExports::Null),
         UsedExports::Vec(v) => Some(StatsUsedExports::Vec(

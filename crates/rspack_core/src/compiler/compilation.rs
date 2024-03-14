@@ -1542,8 +1542,7 @@ pub fn assign_depths(
         vac.insert(depth);
       }
     };
-    let m = mg.module_by_identifier(&id).expect("should have module");
-    for con in mg.get_outgoing_connections(m) {
+    for con in mg.get_outgoing_connections(&id) {
       q.push_back((*con.module_identifier(), depth + 1));
     }
   }
@@ -1572,8 +1571,7 @@ pub fn assign_depth(
   while let Some(item) = q.pop_front() {
     depth = assign_map.get(&item).expect("should have depth") + 1;
 
-    let m = mg.module_by_identifier(&item).expect("should have module");
-    for con in mg.get_outgoing_connections(m) {
+    for con in mg.get_outgoing_connections(&item) {
       process_module(*con.module_identifier(), depth, &mut q, assign_map);
     }
   }

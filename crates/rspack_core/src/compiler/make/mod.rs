@@ -287,7 +287,10 @@ impl UpdateModuleGraph {
         let mut sorted_dependencies = HashMap::default();
 
         task.dependencies.into_iter().for_each(|dependency_id| {
-          let dependency = dependency_id.get_dependency(compilation.get_module_graph());
+          let dependency = compilation
+            .get_module_graph()
+            .dependency_by_id(&dependency_id)
+            .expect("should have dependency");
           // FIXME: now only module/context dependency can put into resolve queue.
           // FIXME: should align webpack
           let resource_identifier =
@@ -495,16 +498,16 @@ impl UpdateModuleGraph {
                   mgm.factory_meta = Some(factory_result.factory_meta);
 
                   let module_graph = compilation.get_module_graph_mut();
-                  module_graph.exports_info_map.insert(
-                    *exports_info_related.exports_info.id as usize,
+                  module_graph.set_exports_info(
+                    exports_info_related.exports_info.id,
                     exports_info_related.exports_info,
                   );
-                  module_graph.export_info_map.insert(
-                    *exports_info_related.side_effects_info.id as usize,
+                  module_graph.set_export_info(
+                    exports_info_related.side_effects_info.id,
                     exports_info_related.side_effects_info,
                   );
-                  module_graph.export_info_map.insert(
-                    *exports_info_related.other_exports_info.id as usize,
+                  module_graph.set_export_info(
+                    exports_info_related.other_exports_info.id,
                     exports_info_related.other_exports_info,
                   );
 
@@ -589,7 +592,7 @@ impl UpdateModuleGraph {
               compilation.push_batch_diagnostic(diagnostics);
               compilation
                 .get_module_graph_mut()
-                .get_optimization_bailout_mut(module.identifier())
+                .get_optimization_bailout_mut(&module.identifier())
                 .extend(build_result.optimization_bailouts);
               compilation
                 .file_dependencies
@@ -817,7 +820,9 @@ impl UpdateModuleGraph {
         .par_bridge()
         .filter_map(|dep| {
           if dep.as_context_dependency().is_some()
-            && let Some(module) = compilation.get_module_graph().get_module(dep.id())
+            && let Some(module) = compilation
+              .get_module_graph()
+              .get_module_by_dependency_id(dep.id())
           {
             let mut values = vec![(module.identifier(), BailoutFlag::CONTEXT_MODULE)];
             if let Some(dependencies) = compilation
@@ -838,7 +843,9 @@ impl UpdateModuleGraph {
           } else if matches!(
             dep.dependency_type(),
             DependencyType::ContainerExposed | DependencyType::ProvideModuleForShared
-          ) && let Some(module) = compilation.get_module_graph().get_module(dep.id())
+          ) && let Some(module) = compilation
+            .get_module_graph()
+            .get_module_by_dependency_id(dep.id())
           {
             Some(vec![(module.identifier(), BailoutFlag::CONTAINER_EXPOSED)])
           } else {
@@ -874,8 +881,10 @@ impl UpdateModuleGraph {
       .options
       .profile
       .then(Box::<ModuleProfile>::default);
-    let dependency = dependencies[0]
-      .get_dependency(compilation.get_module_graph())
+    let dependency = compilation
+      .get_module_graph()
+      .dependency_by_id(&dependencies[0])
+      .expect("should have dependency")
       .clone();
     let original_module_source = original_module_identifier
       .and_then(|i| compilation.get_module_graph().module_by_identifier(&i))

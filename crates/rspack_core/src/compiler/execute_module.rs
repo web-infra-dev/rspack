@@ -48,7 +48,10 @@ impl Compilation {
         .get_module_graph()
         .module_by_identifier(&m)
         .expect("should have module");
-      for m in self.get_module_graph().get_outgoing_connections(m) {
+      for m in self
+        .get_module_graph()
+        .get_outgoing_connections(&m.identifier())
+      {
         // TODO: handle circle
         if !modules.contains(m.module_identifier()) {
           queue.push(*m.module_identifier());
@@ -364,18 +367,13 @@ impl Compilation {
           process_dependencies_queue.wait_for(
             module,
             Box::new(move |module, compilation| {
-              let m = compilation
-                .get_module_graph()
-                .module_by_identifier(&module)
-                .expect("todo");
-
               tx_clone
                 .send((
                   module,
                   Some(
                     compilation
                       .get_module_graph()
-                      .get_outgoing_connections(m)
+                      .get_outgoing_connections(&module)
                       .into_iter()
                       .map(|conn| *conn.module_identifier())
                       .collect(),

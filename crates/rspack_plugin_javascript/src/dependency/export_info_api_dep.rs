@@ -68,8 +68,7 @@ impl ExportInfoApiDependency {
           let info_id = exports_info.exports.get(export_name)?;
           let export_info = compilation
             .get_module_graph()
-            .export_info_map
-            .try_get(**info_id as usize)?;
+            .try_get_export_info_by_id(info_id)?;
           if compilation.options.is_new_tree_shaking() {
             Some(exports_info.get_used(
               rspack_core::UsedName::Str(export_name.clone()),

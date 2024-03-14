@@ -532,7 +532,7 @@ impl Plugin for SideEffectsFlagPlugin {
       }
       let cur_exports_info_id = mg.get_exports_info(&module_identifier).id;
 
-      let incoming_connections = mg.get_incoming_connections_cloned(module);
+      let incoming_connections = mg.get_incoming_connections_cloned(&module_identifier);
       for con in incoming_connections {
         let Some(dep) = mg.dependency_by_id(&con.dependency_id) else {
           continue;
@@ -646,10 +646,7 @@ fn get_level_order_module_ids(
         visited.insert(mi);
         res.push(mi);
       }
-      let Some(m) = mg.module_by_identifier(&mi) else {
-        continue;
-      };
-      for con in mg.get_outgoing_connections(m) {
+      for con in mg.get_outgoing_connections(&mi) {
         let mi = *con.module_identifier();
         q.push_back(mi);
       }

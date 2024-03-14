@@ -39,7 +39,7 @@ impl<T: Debug> VecMap<T> {
     self.inner.get(index).and_then(|item| item.as_ref())
   }
 
-  pub fn try_get_mut(&mut self, index: usize) -> Option<&mut T> {
-    self.inner.get_mut(index).and_then(|item| item.as_mut())
-  }
+  //  pub fn try_get_mut(&mut self, index: usize) -> Option<&mut T> {
+  //    self.inner.get_mut(index).and_then(|item| item.as_mut())
+  //  }
 }

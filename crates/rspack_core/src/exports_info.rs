@@ -45,7 +45,7 @@ impl ExportsHash for ExportsInfoId {
     module_graph: &ModuleGraph,
     already_visited: &mut HashSet<ExportInfoId>,
   ) {
-    if let Some(exports_info) = module_graph.exports_info_map.try_get(**self as usize) {
+    if let Some(exports_info) = module_graph.try_get_exports_info_by_id(self) {
       exports_info.export_info_hash(hasher, module_graph, already_visited);
     }
   }
@@ -153,7 +153,7 @@ impl ExportsInfoId {
     let other_exports_info = exports_info.other_exports_info;
     let exports_id_list = exports_info.exports.values().cloned().collect::<Vec<_>>();
     for export_info_id in exports_id_list {
-      let export_info = mg.export_info_map.get_mut(*export_info_id as usize);
+      let export_info = mg.get_export_info_mut_by_id(&export_info_id);
 
       if !can_mangle && export_info.can_mangle_provide != Some(false) {
         export_info.can_mangle_provide = Some(false);
@@ -200,7 +200,7 @@ impl ExportsInfoId {
         changed = true;
       }
     } else {
-      let other_exports_info = mg.export_info_map.get_mut(*other_exports_info as usize);
+      let other_exports_info = mg.get_export_info_mut_by_id(&other_exports_info);
       if !matches!(
         other_exports_info.provided,
         Some(ExportInfoProvided::True | ExportInfoProvided::Null)
@@ -255,7 +255,7 @@ impl ExportsInfoId {
       Some(other_export_info),
     );
     let new_info_id = new_info.id;
-    mg.export_info_map.insert(*new_info_id as usize, new_info);
+    mg.set_export_info(new_info_id, new_info);
 
     let exports_info = mg.get_exports_info_mut_by_id(self);
     exports_info._exports_are_ordered = false;
@@ -472,7 +472,7 @@ impl ExportsHash for ExportsInfo {
     module_graph: &ModuleGraph,
     already_visited: &mut HashSet<ExportInfoId>,
   ) {
-    if let Some(hash) = module_graph.exports_info_hash.get(&self.id) {
+    if let Some(hash) = module_graph.get_exports_info_hash(&self.id) {
       hash.dyn_hash(hasher);
       return;
     };
@@ -493,7 +493,7 @@ impl ExportsHash for ExportsInfo {
       redirect_to.export_info_hash(&mut default_hash, module_graph, already_visited);
     }
     let hash = default_hash.finish();
-    module_graph.exports_info_hash.insert(self.id, hash);
+    module_graph.set_exports_info_hash(self.id, hash);
     hash.dyn_hash(hasher);
   }
 }
@@ -739,7 +739,7 @@ impl ExportsInfo {
 
   pub fn set_has_provide_info(&mut self, mg: &mut ModuleGraph) {
     for export_info_id in self.exports.values() {
-      let export_info = mg.export_info_map.get_mut(**export_info_id as usize);
+      let export_info = mg.get_export_info_mut_by_id(export_info_id);
       if export_info.provided.is_none() {
         export_info.provided = Some(ExportInfoProvided::False);
       }
@@ -750,9 +750,7 @@ impl ExportsInfo {
     if let Some(ref mut redirect_to) = self.redirect_to {
       redirect_to.set_has_provide_info(mg);
     } else {
-      let other_export_info = mg
-        .export_info_map
-        .get_mut(*self.other_exports_info as usize);
+      let other_export_info = mg.get_export_info_mut_by_id(&self.other_exports_info);
       if other_export_info.provided.is_none() {
         other_export_info.provided = Some(ExportInfoProvided::False);
       }
@@ -812,7 +810,7 @@ impl ExportsHash for ExportInfoId {
     }
     already_visited.insert(*self);
 
-    if let Some(export_info) = module_graph.export_info_map.try_get(**self as usize) {
+    if let Some(export_info) = module_graph.try_get_export_info_by_id(self) {
       export_info.export_info_hash(hasher, module_graph, already_visited);
     }
   }
@@ -913,12 +911,9 @@ impl ExportInfoId {
     export_info_mut.exports_info_owned = true;
     export_info_mut.exports_info = Some(new_exports_info_id);
 
-    mg.exports_info_map
-      .insert(*new_exports_info_id as usize, new_exports_info);
-    mg.export_info_map
-      .insert(*other_exports_info.id as usize, other_exports_info);
-    mg.export_info_map
-      .insert(*side_effects_only_info.id as usize, side_effects_only_info);
+    mg.set_exports_info(new_exports_info_id, new_exports_info);
+    mg.set_export_info(other_exports_info.id, other_exports_info);
+    mg.set_export_info(side_effects_only_info.id, side_effects_only_info);
 
     new_exports_info_id.set_has_provide_info(mg);
     if let Some(exports_info) = old_exports_info {
@@ -1922,8 +1917,7 @@ pub fn process_export_info(
       return;
     }
     if let Some(exports_info) = module_graph
-      .exports_info_map
-      .try_get(*export_info.exports_info.expect("should have exports info") as usize)
+      .try_get_exports_info_by_id(&export_info.exports_info.expect("should have exports info"))
     {
       for export_info_id in exports_info.get_ordered_exports() {
         let export_info = module_graph.get_export_info_by_id(export_info_id);

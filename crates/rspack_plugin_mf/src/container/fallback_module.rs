@@ -157,7 +157,11 @@ impl Module for FallbackModule {
     let ids: Vec<_> = self
       .get_dependencies()
       .iter()
-      .filter_map(|dep| compilation.get_module_graph().get_module(dep))
+      .filter_map(|dep| {
+        compilation
+          .get_module_graph()
+          .get_module_by_dependency_id(dep)
+      })
       .filter_map(|module| {
         compilation
           .chunk_graph

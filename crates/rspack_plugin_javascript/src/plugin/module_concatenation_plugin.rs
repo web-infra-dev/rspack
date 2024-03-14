@@ -127,7 +127,7 @@ impl ModuleConcatenationPlugin {
 
   fn set_bailout_reason(&self, module: &ModuleIdentifier, reason: String, mg: &mut ModuleGraph) {
     self.set_inner_bailout_reason(module, reason.clone());
-    mg.get_optimization_bailout_mut(*module)
+    mg.get_optimization_bailout_mut(module)
       .push(format_bailout_reason(&reason));
   }
 
@@ -157,7 +157,7 @@ impl ModuleConcatenationPlugin {
     let mut set = IndexSet::default();
     let module = mg.module_by_identifier(&mi).expect("should have module");
     for d in module.get_dependencies() {
-      let dep = d.get_dependency(mg);
+      let dep = mg.dependency_by_id(d).expect("should have dependency");
       let is_harmony_import_like = is_harmony_dep_like(dep);
       if !is_harmony_import_like {
         continue;
@@ -812,7 +812,7 @@ impl Plugin for ModuleConcatenationPlugin {
         stats_empty_configurations += 1;
         let optimization_bailouts = compilation
           .get_module_graph_mut()
-          .get_optimization_bailout_mut(*current_root);
+          .get_optimization_bailout_mut(current_root);
         for warning in current_configuration.get_warnings_sorted() {
           optimization_bailouts.push(self.format_bailout_warning(warning.0, &warning.1));
         }
@@ -971,7 +971,9 @@ impl Plugin for ModuleConcatenationPlugin {
         compilation
           .get_module_graph_mut()
           .copy_outgoing_module_connections(m, &new_module.id(), |c, mg| {
-            let dep = c.dependency_id.get_dependency(mg);
+            let dep = mg
+              .dependency_by_id(&c.dependency_id)
+              .expect("should have dependency");
             c.original_module_identifier.as_ref() == Some(m)
               && !(is_harmony_dep_like(dep) && modules_set.contains(c.module_identifier()))
           });
@@ -1015,7 +1017,9 @@ impl Plugin for ModuleConcatenationPlugin {
           } else {
             Some(*c.module_identifier())
           };
-          let dep = c.dependency_id.get_dependency(mg);
+          let dep = mg
+            .dependency_by_id(&c.dependency_id)
+            .expect("should have dependency");
           let inner_connection = is_harmony_dep_like(dep)
             && if let Some(other_module) = other_module {
               modules_set.contains(&other_module)
