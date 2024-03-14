@@ -10,6 +10,8 @@ import {
 } from "../type";
 import path from "path";
 
+export type TTestContextOptions = Omit<ITesterConfig, "name" | "steps">;
+
 export class TestContext implements ITestContext {
 	protected errors: Map<string, Error[]> = new Map();
 	protected compilers: Map<string, ITestCompilerManager<ECompilerType>> =
@@ -18,7 +20,7 @@ export class TestContext implements ITestContext {
 	protected runners: Map<string, ITestRunner> = new Map();
 	protected runnerFactory: TRunnerFactory<ECompilerType> | null = null;
 
-	constructor(private config: ITesterConfig) {}
+	constructor(private config: TTestContextOptions) {}
 
 	getSource(sub?: string): string {
 		if (sub) {
