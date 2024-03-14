@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{borrow::Cow, sync::Arc};
 
 use async_trait::async_trait;
 use napi::{
@@ -12,7 +12,7 @@ use rspack_core::{
 };
 use rspack_hook::{AsyncSeries, AsyncSeries2, AsyncSeriesBail, Hook, Interceptor};
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
-use tokio::sync::Mutex;
+use tokio::sync::OnceCell;
 
 #[napi(object)]
 pub struct JsTap {
@@ -74,7 +74,7 @@ impl<T: 'static, R> Clone for RegisterJsTapsInner<T, R> {
 
 enum RegisterJsTapsCache<T: 'static, R> {
   NoCache,
-  Cache(Arc<Mutex<Option<RegisterFunctionOutput<T, R>>>>),
+  Cache(Arc<OnceCell<RegisterFunctionOutput<T, R>>>),
 }
 
 impl<T: 'static, R> Clone for RegisterJsTapsCache<T, R> {
@@ -107,18 +107,15 @@ impl<T: 'static + ToNapiValue, R: 'static> RegisterJsTapsInner<T, R> {
   pub async fn call_register(
     &self,
     hook: &impl Hook,
-  ) -> rspack_error::Result<RegisterFunctionOutput<T, R>> {
+  ) -> rspack_error::Result<Cow<RegisterFunctionOutput<T, R>>> {
     if let RegisterJsTapsCache::Cache(cache) = &self.cache {
-      let mut cache = cache.lock().await;
-      if let Some(cache) = &*cache {
-        Ok(cache.clone())
-      } else {
-        let js_taps = self.call_register_impl(hook).await?;
-        cache.replace(js_taps.clone());
-        Ok(js_taps)
-      }
+      let js_taps = cache
+        .get_or_try_init(|| self.call_register_impl(hook))
+        .await?;
+      Ok(Cow::Borrowed(js_taps))
     } else {
-      self.call_register_impl(hook).await
+      let js_taps = self.call_register_impl(hook).await?;
+      Ok(Cow::Owned(js_taps))
     }
   }
 
@@ -170,8 +167,8 @@ macro_rules! define_register {
       ) -> rspack_error::Result<Vec<<$tap_hook as Hook>::Tap>> {
         let js_taps = self.inner.call_register(hook).await?;
         let js_taps = js_taps
-          .into_iter()
-          .map(|t| Box::new($tap_name::new(t)) as <$tap_hook as Hook>::Tap)
+          .iter()
+          .map(|t| Box::new($tap_name::new(t.clone())) as <$tap_hook as Hook>::Tap)
           .collect();
         Ok(js_taps)
       }
