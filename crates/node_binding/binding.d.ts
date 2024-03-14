@@ -355,8 +355,8 @@ export interface JsHooks {
   finishMake: (compilation: JsCompilation) => void
   buildModule: (module: JsModule) => void
   chunkAsset: (asset: JsChunkAssetArgs) => void
-  contextModuleFactoryBeforeResolve: (data: JsBeforeResolveArgs) => Promise<boolean | void>
   afterResolve: (data: AfterResolveData) => Promise<(boolean | void | AfterResolveCreateData)[]>
+  contextModuleFactoryBeforeResolve: (data: JsBeforeResolveArgs) => Promise<boolean | void>
   contextModuleFactoryAfterResolve: (data: AfterResolveData) => Promise<boolean | void>
   normalModuleFactoryCreateModule: (data: CreateModuleData) => void
   normalModuleFactoryResolveForScheme: (data: JsResolveForSchemeInput) => Promise<JsResolveForSchemeResult>

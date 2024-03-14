@@ -1,6 +1,7 @@
 use napi_derive::napi;
 use rspack_core::{
-  BeforeResolveArgs, NormalModuleAfterResolveArgs, NormalModuleCreateData, ResourceData,
+  BeforeResolveArgs, NormalModuleAfterResolveArgs, NormalModuleAfterResolveCreateData,
+  NormalModuleCreateData, ResourceData,
 };
 
 #[napi(object)]

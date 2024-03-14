@@ -17,9 +17,9 @@ use crate::{
   FactorizeArgs, FactoryMeta, FuncUseCtx, GeneratorOptions, ModuleExt, ModuleFactory,
   ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleRule, ModuleRuleEnforce,
   ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule, NormalModuleAfterResolveArgs,
-  NormalModuleCreateData, ParserOptions, RawModule, Resolve, ResolveArgs,
-  ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory, ResourceData,
-  ResourceParsedData, SharedPluginDriver,
+  NormalModuleAfterResolveCreateData, NormalModuleCreateData, ParserOptions, RawModule, Resolve,
+  ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory,
+  ResourceData, ResourceParsedData, SharedPluginDriver,
 };
 
 pub type NormalModuleFactoryBeforeResolveHook = AsyncSeriesBailHook<BeforeResolveArgs, bool>;
