@@ -27,6 +27,12 @@ pub struct CompatSource {
   pub map: Option<Vec<u8>>,
 }
 
+impl FromNapiValue for CompatSource {
+  unsafe fn from_napi_value(env: sys::napi_env, napi_val: sys::napi_value) -> Result<Self> {
+    Ok(unsafe { JsCompatSource::from_napi_value(env, napi_val) }?.into())
+  }
+}
+
 impl std::hash::Hash for CompatSource {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
     "__CompatSource".hash(state);

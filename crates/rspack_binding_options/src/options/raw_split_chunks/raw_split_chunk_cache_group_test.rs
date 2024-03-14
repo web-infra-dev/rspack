@@ -3,8 +3,8 @@ use std::sync::Arc;
 use napi::bindgen_prelude::Either3;
 use napi_derive::napi;
 use rspack_binding_values::{JsModule, ToJsModule};
-use rspack_napi_shared::new_tsfn::ThreadsafeFunction;
-use rspack_napi_shared::{JsRegExp, JsRegExpExt};
+use rspack_napi::regexp::{JsRegExp, JsRegExpExt};
+use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_split_chunks::{CacheGroupTest, CacheGroupTestFnCtx};
 use tokio::runtime::Handle;
 

@@ -3,7 +3,7 @@ use std::sync::Arc;
 use napi::bindgen_prelude::{Either3, Null};
 use napi::Either;
 use napi_derive::napi;
-use rspack_napi_shared::new_tsfn::ThreadsafeFunction;
+use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_devtool::{
   Append, EvalDevToolModulePluginOptions, ModuleFilenameTemplate, ModuleFilenameTemplateFnCtx,
   SourceMapDevToolPluginOptions, TestFn,

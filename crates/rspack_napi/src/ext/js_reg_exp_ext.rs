@@ -1,4 +1,4 @@
-use crate::JsRegExp;
+use crate::regexp::JsRegExp;
 
 pub trait JsRegExpExt {
   fn to_rspack_regex(&self) -> rspack_regex::RspackRegex;

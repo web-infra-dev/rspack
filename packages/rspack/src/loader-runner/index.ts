@@ -8,7 +8,7 @@
  * https://github.com/webpack/loader-runner/blob/main/LICENSE
  */
 
-import type { JsLoaderContext } from "@rspack/binding";
+import type { JsLoaderContext, JsLoaderResult } from "@rspack/binding";
 import {
 	OriginalSource,
 	RawSource,
@@ -152,7 +152,7 @@ function getCurrentLoader(
 export async function runLoaders(
 	compiler: Compiler,
 	rawContext: JsLoaderContext
-) {
+): Promise<JsLoaderResult> {
 	const resource = rawContext.resource;
 	const loaderContext: LoaderContext = {} as LoaderContext;
 

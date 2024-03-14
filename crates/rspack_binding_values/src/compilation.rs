@@ -2,10 +2,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 
 use napi::bindgen_prelude::*;
-use napi::NapiRaw;
 use napi_derive::napi;
-use rspack_binding_macros::call_js_function_with_napi_objects;
-use rspack_binding_macros::convert_raw_napi_value_to_napi_value;
 use rspack_core::get_chunk_from_ukey;
 use rspack_core::rspack_sources::BoxSource;
 use rspack_core::AssetInfo;
@@ -13,7 +10,7 @@ use rspack_core::ModuleIdentifier;
 use rspack_core::{rspack_sources::SourceExt, NormalModuleSource};
 use rspack_error::Diagnostic;
 use rspack_identifier::Identifier;
-use rspack_napi_shared::NapiResultExt;
+use rspack_napi::NapiResultExt;
 
 use super::module::ToJsModule;
 use super::PathWithInfo;
@@ -36,7 +33,6 @@ impl JsCompilation {
   )]
   pub fn update_asset(
     &mut self,
-    env: Env,
     filename: String,
     new_source_or_function: Either<JsCompatSource, JsFunction>,
     asset_info_update_or_function: Option<Either<JsAssetInfo, JsFunction>>,
@@ -48,19 +44,8 @@ impl JsCompilation {
           let new_source = match new_source_or_function {
             Either::A(new_source) => Into::<CompatSource>::into(new_source).boxed(),
             Either::B(new_source_fn) => {
-              let js_source = unsafe {
-                call_js_function_with_napi_objects!(
-                  env,
-                  new_source_fn,
-                  original_source.to_js_compat_source()
-                )
-              }?;
-
-              let compat_source: CompatSource = unsafe {
-                convert_raw_napi_value_to_napi_value!(env, JsCompatSource, js_source.raw())
-              }?
-              .into();
-
+              let compat_source: CompatSource =
+                new_source_fn.call1(original_source.to_js_compat_source())?;
               compat_source.boxed()
             }
           };
@@ -72,20 +57,11 @@ impl JsCompilation {
           .map(
             |asset_info_update_or_function| match asset_info_update_or_function {
               Either::A(asset_info) => Ok(asset_info.into()),
-              Either::B(asset_info_fn) => {
-                let asset_info = unsafe {
-                  call_js_function_with_napi_objects!(
-                    env,
-                    asset_info_fn,
-                    Into::<JsAssetInfo>::into(original_info.clone())
-                  )
-                }?;
-
-                let js_asset_info = unsafe {
-                  convert_raw_napi_value_to_napi_value!(env, JsAssetInfo, asset_info.raw())
-                }?;
-                Ok(js_asset_info.into())
-              }
+              Either::B(asset_info_fn) => Ok(
+                asset_info_fn
+                  .call1::<JsAssetInfo, JsAssetInfo>(original_info.clone().into())?
+                  .into(),
+              ),
             },
           )
           .transpose();

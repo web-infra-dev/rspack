@@ -1,5 +1,5 @@
 use napi_derive::napi;
-use rspack_napi_shared::new_tsfn::ThreadsafeFunction;
+use rspack_napi::threadsafe_function::ThreadsafeFunction;
 
 use crate::{
   AfterResolveData, CreateModuleData, JsAssetEmittedArgs, JsBeforeResolveArgs, JsChunkAssetArgs,

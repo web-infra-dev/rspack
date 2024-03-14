@@ -29,7 +29,6 @@ use loader::run_builtin_loader;
 use plugins::*;
 use rspack_binding_options::*;
 use rspack_binding_values::*;
-use rspack_napi_shared::set_napi_env;
 use rspack_tracing::chrome::FlushGuard;
 
 #[cfg(not(target_os = "linux"))]
@@ -60,7 +59,10 @@ pub struct Rspack {
 
 #[napi]
 impl Rspack {
-  #[napi(constructor)]
+  #[napi(
+    constructor,
+    ts_args_type = "options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, jsHooks: JsHooks, registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, jsLoaderRunner: (ctx: JsLoaderContext) => Promise<JsLoaderResult | void>"
+  )]
   pub fn new(
     env: Env,
     options: RawOptions,
@@ -68,9 +70,8 @@ impl Rspack {
     js_hooks: JsHooks,
     register_js_taps: RegisterJsTaps,
     output_filesystem: ThreadsafeNodeFS,
-    js_loader_runner: JsFunction,
+    js_loader_runner: JsLoaderRunner,
   ) -> Result<Self> {
-    Self::prepare_environment(&env);
     tracing::info!("raw_options: {:#?}", &options);
 
     let disabled_hooks: DisabledHooks = Default::default();
@@ -82,8 +83,6 @@ impl Rspack {
       bp.append_to(&mut plugins)
         .map_err(|e| Error::from_reason(format!("{e}")))?;
     }
-
-    let js_loader_runner: JsLoaderRunner = JsLoaderRunner::try_from(js_loader_runner)?;
     plugins.push(JsLoaderResolver { js_loader_runner }.boxed());
 
     let compiler_options = options
@@ -95,7 +94,7 @@ impl Rspack {
     let rspack = rspack_core::Compiler::new(
       compiler_options,
       plugins,
-      AsyncNodeWritableFileSystem::new(env, output_filesystem)
+      AsyncNodeWritableFileSystem::new(output_filesystem)
         .map_err(|e| Error::from_reason(format!("Failed to create writable filesystem: {e}",)))?,
     );
 
@@ -225,12 +224,6 @@ impl ObjectFinalize for Rspack {
   fn finalize(self, _env: Env) -> Result<()> {
     // WARNING: Don't try to destroy the compiler from the finalize method. The background thread may still be working and it's a COMPLETELY unsafe way.
     Ok(())
-  }
-}
-
-impl Rspack {
-  fn prepare_environment(env: &Env) {
-    set_napi_env(env.raw());
   }
 }
 

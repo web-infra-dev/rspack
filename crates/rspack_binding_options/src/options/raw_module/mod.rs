@@ -19,9 +19,10 @@ use rspack_core::{
 use rspack_error::error;
 use rspack_loader_react_refresh::REACT_REFRESH_LOADER_IDENTIFIER;
 use rspack_loader_swc::SWC_LOADER_IDENTIFIER;
-use rspack_napi_shared::new_tsfn::ThreadsafeFunction;
-use rspack_napi_shared::{JsRegExp, JsRegExpExt};
+use rspack_napi::regexp::{JsRegExp, JsRegExpExt};
+use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use serde::Deserialize;
+use tokio::runtime::Handle;
 
 pub use self::js_loader::JsLoaderAdapter;
 pub use self::js_loader::*;
@@ -379,7 +380,7 @@ impl From<RawAssetParserDataUrlOptions> for AssetParserDataUrlOptions {
 
 #[derive(Debug, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawGeneratorOptions {
   #[napi(ts_type = r#""asset" | "asset/inline" | "asset/resource" | "unknown""#)]
   pub r#type: String,
@@ -422,12 +423,18 @@ impl From<RawGeneratorOptions> for GeneratorOptions {
   }
 }
 
-#[derive(Debug, Deserialize, Default)]
+#[derive(Derivative, Deserialize, Default)]
+#[derivative(Debug)]
 #[serde(rename_all = "camelCase")]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawAssetGeneratorOptions {
   pub filename: Option<String>,
   pub public_path: Option<String>,
+  #[derivative(Debug = "ignore")]
+  #[serde(skip_deserializing)]
+  #[napi(
+    ts_type = "RawAssetGeneratorDataUrlOptions | ((arg: RawAssetGeneratorDataUrlFnArgs) => string)"
+  )]
   pub data_url: Option<RawAssetGeneratorDataUrl>,
 }
 
@@ -436,22 +443,32 @@ impl From<RawAssetGeneratorOptions> for AssetGeneratorOptions {
     Self {
       filename: value.filename.map(|i| i.into()),
       public_path: value.public_path.map(|i| i.into()),
-      data_url: value.data_url.map(|i| i.into()),
+      data_url: value
+        .data_url
+        .map(|i| RawAssetGeneratorDataUrlWrapper(i).into()),
     }
   }
 }
 
-#[derive(Debug, Deserialize, Default)]
+#[derive(Derivative, Deserialize, Default)]
+#[derivative(Debug)]
 #[serde(rename_all = "camelCase")]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawAssetInlineGeneratorOptions {
+  #[derivative(Debug = "ignore")]
+  #[serde(skip_deserializing)]
+  #[napi(
+    ts_type = "RawAssetGeneratorDataUrlOptions | ((arg: RawAssetGeneratorDataUrlFnArgs) => string)"
+  )]
   pub data_url: Option<RawAssetGeneratorDataUrl>,
 }
 
 impl From<RawAssetInlineGeneratorOptions> for AssetInlineGeneratorOptions {
   fn from(value: RawAssetInlineGeneratorOptions) -> Self {
     Self {
-      data_url: value.data_url.map(|i| i.into()),
+      data_url: value
+        .data_url
+        .map(|i| RawAssetGeneratorDataUrlWrapper(i).into()),
     }
   }
 }
@@ -473,17 +490,11 @@ impl From<RawAssetResourceGeneratorOptions> for AssetResourceGeneratorOptions {
   }
 }
 
-#[derive(Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
-#[napi(object)]
-pub struct RawAssetGeneratorDataUrl {
-  #[napi(ts_type = r#""options"| "function""#)]
-  pub r#type: String,
-  pub options: Option<RawAssetGeneratorDataUrlOptions>,
-  #[serde(skip_deserializing)]
-  #[napi(ts_type = r#"(options: { content: string, filename: string }) => string"#)]
-  pub function: Option<JsFunction>,
-}
+type RawAssetGeneratorDataUrl = Either<
+  RawAssetGeneratorDataUrlOptions,
+  ThreadsafeFunction<RawAssetGeneratorDataUrlFnArgs, String>,
+>;
+struct RawAssetGeneratorDataUrlWrapper(RawAssetGeneratorDataUrl);
 
 #[derive(Debug, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -501,54 +512,13 @@ impl From<AssetGeneratorDataUrlFnArgs> for RawAssetGeneratorDataUrlFnArgs {
     }
   }
 }
-impl Debug for RawAssetGeneratorDataUrl {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    f.debug_struct("RawAssetGeneratorDataUrl")
-      .field("r#type", &self.r#type)
-      .field("options", &self.options)
-      .field("function", &"...")
-      .finish()
-  }
-}
 
-impl From<RawAssetGeneratorDataUrl> for AssetGeneratorDataUrl {
-  fn from(value: RawAssetGeneratorDataUrl) -> Self {
-    match value.r#type.as_str() {
-      "options" => Self::Options(
-        value
-          .options
-          .expect("should have an \"options\" when RawAssetGeneratorDataUrl.type is \"options\"")
-          .into(),
-      ),
-      "function" => {
-        let func = value
-          .function
-          .expect("should have a function when RawAssetGeneratorDataUrl.type is \"function\"");
-
-        let env = get_napi_env();
-
-        let func: napi::Result<ThreadsafeFunction<RawAssetGeneratorDataUrlFnArgs, String>> =
-          try { rspack_binding_macros::js_fn_into_threadsafe_fn!(func, &Env::from(env)) };
-
-        Self::Func(Arc::new(move |value: AssetGeneratorDataUrlFnArgs| {
-          let func = func
-            .clone()
-            .expect("Can't clone RawAssetGeneratorDataUrl.type as function");
-          Ok(
-            func
-              .call(value.into(), ThreadsafeFunctionCallMode::NonBlocking)
-              .into_rspack_result()
-              .expect("The result of dataUrl function into rspack result failed")
-              .blocking_recv()
-              .unwrap_or_else(|err| panic!("Failed to call external function: {err}"))
-              .expect("call dataUrl function failed"),
-          )
-        }))
-      }
-      _ => panic!(
-        "Failed to resolve the RawAssetGeneratorDataUrl.type {}. Expected type is `options`.",
-        value.r#type
-      ),
+impl From<RawAssetGeneratorDataUrlWrapper> for AssetGeneratorDataUrl {
+  fn from(value: RawAssetGeneratorDataUrlWrapper) -> Self {
+    let handle = Handle::current();
+    match value.0 {
+      Either::A(a) => Self::Options(a.into()),
+      Either::B(b) => Self::Func(Arc::new(move |ctx| handle.block_on(b.call(ctx.into())))),
     }
   }
 }

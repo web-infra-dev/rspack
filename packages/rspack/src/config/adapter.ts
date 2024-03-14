@@ -8,7 +8,6 @@ import type {
 	RawParserOptions,
 	RawAssetParserOptions,
 	RawAssetParserDataUrl,
-	RawAssetGeneratorDataUrl,
 	RawAssetInlineGeneratorOptions,
 	RawAssetResourceGeneratorOptions,
 	RawModuleRuleUses,
@@ -175,7 +174,7 @@ function getRawResolve(resolve: Resolve): RawOptions["resolve"] {
 					referencesType:
 						references == "auto" ? "auto" : references ? "manual" : "disabled",
 					references: references == "auto" ? undefined : references
-			  }
+				}
 			: undefined,
 		byDependency: getRawResolveByDependency(resolve.byDependency)
 	};
@@ -256,7 +255,7 @@ export function getRawLibrary(library: LibraryOptions): RawLibraryOptions {
 						commonjs2: auxiliaryComment,
 						amd: auxiliaryComment,
 						root: auxiliaryComment
-				  }
+					}
 				: auxiliaryComment,
 		libraryType: type,
 		name: isNil(name) ? name : getRawLibraryName(name),
@@ -399,7 +398,7 @@ const getRawModuleRule = (
 						k,
 						getRawRuleSetCondition(v)
 					])
-			  )
+				)
 			: undefined,
 		resource: rule.resource ? getRawRuleSetCondition(rule.resource) : undefined,
 		resourceQuery: rule.resourceQuery
@@ -421,7 +420,7 @@ const getRawModuleRule = (
 							`${path}.use`,
 							options
 						)
-				  },
+					},
 		type: rule.type,
 		parser: rule.parser
 			? getRawParserOptions(rule.parser, rule.type ?? "javascript/auto")
@@ -433,12 +432,12 @@ const getRawModuleRule = (
 		oneOf: rule.oneOf
 			? rule.oneOf.map((rule, index) =>
 					getRawModuleRule(rule, `${path}.oneOf[${index}]`, options)
-			  )
+				)
 			: undefined,
 		rules: rule.rules
 			? rule.rules.map((rule, index) =>
 					getRawModuleRule(rule, `${path}.rules[${index}]`, options)
-			  )
+				)
 			: undefined,
 		enforce: rule.enforce
 	};
@@ -457,27 +456,30 @@ const getRawModuleRule = (
 		delete rawModuleRule.resourceQuery;
 		delete rawModuleRule.resourceFragment;
 
-		rawModuleRule.rspackResource = getRawRuleSetCondition(function (
-			resourceQueryFragment
-		) {
-			const { path, query, fragment } = parseResource(resourceQueryFragment);
+		rawModuleRule.rspackResource = getRawRuleSetCondition(
+			function (resourceQueryFragment) {
+				const { path, query, fragment } = parseResource(resourceQueryFragment);
 
-			if (rule.test && !tryMatch(path, rule.test)) {
-				return false;
-			} else if (rule.resource && !tryMatch(path, rule.resource)) {
-				return false;
+				if (rule.test && !tryMatch(path, rule.test)) {
+					return false;
+				} else if (rule.resource && !tryMatch(path, rule.resource)) {
+					return false;
+				}
+
+				if (rule.resourceQuery && !tryMatch(query, rule.resourceQuery)) {
+					return false;
+				}
+
+				if (
+					rule.resourceFragment &&
+					!tryMatch(fragment, rule.resourceFragment)
+				) {
+					return false;
+				}
+
+				return true;
 			}
-
-			if (rule.resourceQuery && !tryMatch(query, rule.resourceQuery)) {
-				return false;
-			}
-
-			if (rule.resourceFragment && !tryMatch(fragment, rule.resourceFragment)) {
-				return false;
-			}
-
-			return true;
-		});
+		);
 	}
 	return rawModuleRule;
 };
@@ -580,8 +582,8 @@ function getRawJavascriptParserOptions(parser: JavascriptParserOptions) {
 			parser.url === false
 				? "false"
 				: parser.url === "relative"
-				? parser.url
-				: "true"
+					? parser.url
+					: "true"
 	};
 }
 
@@ -670,26 +672,19 @@ function getRawAssetResourceGeneratorOptions(
 	};
 }
 
-function getRawAssetGeneratorDataUrl(
-	dataUrl: AssetGeneratorDataUrl
-): RawAssetGeneratorDataUrl {
+function getRawAssetGeneratorDataUrl(dataUrl: AssetGeneratorDataUrl) {
 	if (typeof dataUrl === "object" && dataUrl !== null) {
+		const encoding = dataUrl.encoding === false ? "false" : dataUrl.encoding;
 		return {
-			type: "options",
-			options: {
-				encoding: dataUrl.encoding === false ? "false" : dataUrl.encoding,
-				mimetype: dataUrl.mimetype
-			}
-		};
+			encoding,
+			mimetype: dataUrl.mimetype
+		} as const;
 	}
 	if (typeof dataUrl === "function" && dataUrl !== null) {
-		return {
-			type: "function",
-			function: dataUrl
-		};
+		return dataUrl;
 	}
 	throw new Error(
-		`unreachable: AssetGeneratorDataUrl type should be one of "options", but got ${dataUrl}`
+		`unreachable: AssetGeneratorDataUrl type should be one of "options", "function", but got ${dataUrl}`
 	);
 }
 
