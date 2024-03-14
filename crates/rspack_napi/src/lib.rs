@@ -11,7 +11,6 @@ pub use errors::{NapiErrorExt, NapiResultExt};
 mod callback;
 pub(crate) use callback::JsCallback;
 
-pub mod legacy_threadsafe_function;
 pub mod threadsafe_function;
 
 pub mod regexp {
