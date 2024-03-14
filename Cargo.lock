@@ -3336,6 +3336,7 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "color-backtrace",
+ "mimalloc-rust",
  "napi",
  "napi-build",
  "napi-derive",
@@ -3349,6 +3350,7 @@ dependencies = [
  "rspack_napi",
  "rspack_tracing",
  "testing_macros",
+ "tikv-jemallocator",
  "tokio",
  "tracing",
 ]

@@ -33,6 +33,12 @@ napi-derive = { workspace = true }
 
 color-backtrace = "0.6"
 
+[target.'cfg(not(target_os = "linux"))'.dependencies]
+mimalloc-rust = { workspace = true }
+
+[target.'cfg(all(target_os = "linux", target_env = "gnu", any(target_arch = "x86_64", target_arch = "aarch64")))'.dependencies]
+tikv-jemallocator = { workspace = true }
+
 
 [build-dependencies]
 napi-build = { workspace = true }

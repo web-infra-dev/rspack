@@ -3,7 +3,7 @@
 #![feature(try_blocks)]
 #[macro_use]
 extern crate napi_derive;
-extern crate rspack_allocator;
+// extern crate rspack_allocator;
 
 use std::pin::Pin;
 use std::sync::Mutex;
@@ -27,6 +27,18 @@ use plugins::*;
 use rspack_binding_options::*;
 use rspack_binding_values::*;
 use rspack_tracing::chrome::FlushGuard;
+
+#[cfg(not(target_os = "linux"))]
+#[global_allocator]
+static GLOBAL: mimalloc_rust::GlobalMiMalloc = mimalloc_rust::GlobalMiMalloc;
+
+#[cfg(all(
+  target_os = "linux",
+  target_env = "gnu",
+  any(target_arch = "x86_64", target_arch = "aarch64")
+))]
+#[global_allocator]
+static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
 
 #[napi(custom_finalize)]
 pub struct Rspack {
