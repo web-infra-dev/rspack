@@ -24,7 +24,7 @@ export interface IBasicCaseCreatorOptions<T extends ECompilerType> {
 			temp: string | void;
 		}
 	) => ITestProcessor[];
-	description?: (name: string) => string;
+	description?: (name: string, step: number) => string;
 	runner?: new (
 		name: string,
 		context: ITestContext
@@ -64,24 +64,27 @@ export class BasicCaseCreator<T extends ECompilerType> {
 		beforeAll(async () => {
 			await tester.prepare();
 		});
-		const description =
-			typeof this._options.description === "function"
-				? this._options.description(name)
-				: `${name} should compile`;
-		it(
-			description,
-			async () => {
-				await tester.compile();
-				await tester.check(env);
-			},
-			this._options.timeout || 30000
-		);
+
+		for (let index = 0; index < tester.total; index++) {
+			const description =
+				typeof this._options.description === "function"
+					? this._options.description(name, index)
+					: `${name}${index ? `[${index}]` : ""} should compile`;
+			it(
+				description,
+				async () => {
+					await tester.compile();
+					await tester.check(env);
+					tester.next();
+				},
+				this._options.timeout || 30000
+			);
+			const env = this.createEnv(testConfig);
+		}
 
 		afterAll(async () => {
 			await tester.resume();
 		});
-
-		const env = this.createEnv(testConfig);
 	}
 
 	protected createEnv(testConfig: TTestConfig<T>) {
