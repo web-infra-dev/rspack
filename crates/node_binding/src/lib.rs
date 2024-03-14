@@ -6,7 +6,7 @@ extern crate napi_derive;
 extern crate rspack_allocator;
 
 use std::pin::Pin;
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::Mutex;
 
 use compiler::Compiler;
 use napi::bindgen_prelude::*;
@@ -32,7 +32,7 @@ use rspack_tracing::chrome::FlushGuard;
 pub struct Rspack {
   js_plugin: JsHooksAdapterPlugin,
   compiler: Pin<Box<Compiler>>,
-  running: Arc<RwLock<bool>>,
+  running: bool,
 }
 
 #[napi]
@@ -69,7 +69,6 @@ impl Rspack {
 
     tracing::info!("normalized_options: {:#?}", &compiler_options);
 
-    let running = Arc::new(RwLock::new(false));
     let rspack = rspack_core::Compiler::new(
       compiler_options,
       plugins,
@@ -79,7 +78,7 @@ impl Rspack {
 
     Ok(Self {
       compiler: Box::pin(Compiler::from(rspack)),
-      running,
+      running: false,
       js_plugin,
     })
   }
@@ -149,32 +148,31 @@ impl Rspack {
   /// Run the given function with the compiler.
   ///
   /// ## Safety
-  /// The caller must ensure that the compiler is not moved or dropped during the lifetime of the function.
-  /// Otherwise, this will break the guarantee of acquiring and using the pointer to `JsCompilation` in the future.
+  /// 1. The caller must ensure that the `Compiler` is not moved or dropped during the lifetime of the function.
+  /// 2. The mutable reference to `self.running` should never been exposed to the callback.
+  ///    Otherwise, this would lead to potential race condition for `Compiler`,
+  ///    especially when `build` or `rebuild` was called on JS side and its previous `build` or `rebuild` was yet to finish.
   unsafe fn run<R>(
     &mut self,
     env: Env,
     reference: Reference<Rspack>,
     f: impl FnOnce(&'static mut Compiler) -> Result<R>,
   ) -> Result<R> {
-    self.running.with_write(|running| {
-      if *running {
-        return Err(concurrent_compiler_error());
-      }
-      *running = true;
-      Ok(())
-    })?;
+    if self.running {
+      return Err(concurrent_compiler_error());
+    }
+    self.running = true;
+
     let mut compiler = reference.share_with(env, |s| {
+      // SAFETY: The mutable reference to `Compiler` is exclusive. It's guaranteed by the running state guard.
       Ok(unsafe { s.compiler.as_mut().get_unchecked_mut() })
     })?;
-
     // SAFETY: `Compiler` will not be moved, as it's stored on the heap.
     // `Compiler` is valid through the lifetime before it's closed by calling `Compiler.close()` or gc-ed.
     let result =
       f(unsafe { std::mem::transmute::<&mut Compiler, &'static mut Compiler>(*compiler) });
-    self.running.with_write(|running| {
-      *running = false;
-    });
+
+    self.running = false;
     result
   }
 }
@@ -184,23 +182,6 @@ fn concurrent_compiler_error() -> Error {
     napi::Status::GenericFailure,
     "ConcurrentCompilationError: You ran rspack twice. Each instance only supports a single concurrent compilation at a time.",
   )
-}
-
-trait WithLock<T> {
-  fn with_read<R>(&self, f: impl FnOnce(&T) -> R) -> R;
-  fn with_write<R>(&self, f: impl FnOnce(&mut T) -> R) -> R;
-}
-
-impl<T> WithLock<T> for RwLock<T> {
-  fn with_read<R>(&self, f: impl FnOnce(&T) -> R) -> R {
-    let lock = self.try_read().expect("failed to read lock");
-    f(&*lock)
-  }
-
-  fn with_write<R>(&self, f: impl FnOnce(&mut T) -> R) -> R {
-    let mut lock = self.try_write().expect("failed to write lock");
-    f(&mut lock)
-  }
 }
 
 #[derive(Default)]
