@@ -300,8 +300,7 @@ class Compiler {
 					}
 				)
 			},
-			createThreadsafeNodeFSFromRaw(this.outputFileSystem),
-			runLoaders.bind(undefined, this)
+			createThreadsafeNodeFSFromRaw(this.outputFileSystem)
 		);
 
 		callback(null, this.#instance);

@@ -1,25 +1,32 @@
 use std::{fmt::Debug, path::Path, sync::Arc};
 
-use rspack_binding_options::{get_builtin_loader, JsLoaderAdapter, JsLoaderRunner};
 use rspack_core::{
   BoxLoader, CompilerOptions, NormalModule, Plugin, ResolveResult, Resolver, BUILTIN_LOADER_PREFIX,
 };
 use rspack_error::{error, Result};
 
-pub struct JsLoaderResolver {
-  pub js_loader_runner: JsLoaderRunner,
+use crate::{get_builtin_loader, JsLoaderAdapter, JsLoaderRunner};
+
+pub(crate) struct JsLoaderResolverPlugin(JsLoaderRunner);
+
+impl JsLoaderResolverPlugin {
+  pub fn new(runner: JsLoaderRunner) -> Self {
+    Self(runner)
+  }
 }
 
-impl Debug for JsLoaderResolver {
+impl Debug for JsLoaderResolverPlugin {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    f.debug_struct("JsLoaderResolver")
-      .field("js_loader_runner", &"..")
-      .finish()
+    f.debug_tuple("JsLoaderResolver").finish()
   }
 }
 
 #[async_trait::async_trait]
-impl Plugin for JsLoaderResolver {
+impl Plugin for JsLoaderResolverPlugin {
+  fn name(&self) -> &'static str {
+    "JsLoaderResolverPlugin"
+  }
+
   async fn before_loaders(&self, module: &mut NormalModule) -> Result<()> {
     let contains_inline = module.contains_inline_loader();
     let contains_js_loader = module
@@ -33,7 +40,7 @@ impl Plugin for JsLoaderResolver {
     // fallback to JS loader runner for passing builtin options(reuse `Compiler.ruleSet`).
     if contains_inline || contains_js_loader {
       *module.loaders_mut_vec() = vec![Arc::new(JsLoaderAdapter {
-        runner: self.js_loader_runner.clone(),
+        runner: self.0.clone(),
         identifier: module
           .loaders()
           .iter()
@@ -81,7 +88,7 @@ impl Plugin for JsLoaderResolver {
         let resource = resource.path.to_string_lossy().to_string() + rest.unwrap_or_default();
         Ok(Some(Arc::new(JsLoaderAdapter {
           identifier: resource.into(),
-          runner: self.js_loader_runner.clone(),
+          runner: self.0.clone(),
         })))
       }
       ResolveResult::Ignored => {

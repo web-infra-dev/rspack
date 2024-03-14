@@ -68,10 +68,9 @@ impl From<String> for Hook {
 pub struct DisabledHooks(RwLock<Vec<Hook>>);
 
 impl DisabledHooks {
-  pub fn set_disabled_hooks(&self, hooks: Vec<String>) -> napi::Result<()> {
+  pub fn set_disabled_hooks(&self, hooks: Vec<String>) {
     let mut disabled_hooks = self.0.write().expect("failed to write lock");
     *disabled_hooks = hooks.into_iter().map(Into::into).collect::<Vec<Hook>>();
-    Ok(())
   }
 
   pub fn is_hook_disabled(&self, hook: &Hook) -> bool {

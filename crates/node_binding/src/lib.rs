@@ -37,10 +37,7 @@ pub struct Rspack {
 
 #[napi]
 impl Rspack {
-  #[napi(
-    constructor,
-    ts_args_type = "options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, jsHooks: JsHooks, registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, jsLoaderRunner: (ctx: JsLoaderContext) => Promise<JsLoaderResult | void>"
-  )]
+  #[napi(constructor)]
   pub fn new(
     env: Env,
     options: RawOptions,
@@ -48,7 +45,6 @@ impl Rspack {
     js_hooks: JsHooks,
     register_js_taps: RegisterJsTaps,
     output_filesystem: ThreadsafeNodeFS,
-    js_loader_runner: JsLoaderRunner,
   ) -> Result<Self> {
     tracing::info!("raw_options: {:#?}", &options);
 
@@ -61,7 +57,6 @@ impl Rspack {
       bp.append_to(&mut plugins)
         .map_err(|e| Error::from_reason(format!("{e}")))?;
     }
-    plugins.push(JsLoaderResolver { js_loader_runner }.boxed());
 
     let compiler_options = options
       .apply(&mut plugins)
@@ -83,8 +78,8 @@ impl Rspack {
     })
   }
 
-  #[napi(ts_args_type = "hooks: Array<string>")]
-  pub fn set_disabled_hooks(&self, _env: Env, hooks: Vec<String>) -> Result<()> {
+  #[napi]
+  pub fn set_disabled_hooks(&self, hooks: Vec<String>) {
     self.js_plugin.set_disabled_hooks(hooks)
   }
 

@@ -70,9 +70,9 @@ use self::{
   raw_mf::{RawConsumeSharedPluginOptions, RawContainerReferencePluginOptions, RawProvideOptions},
 };
 use crate::{
-  RawEntryPluginOptions, RawEvalDevToolModulePluginOptions, RawExternalItemWrapper,
-  RawExternalsPluginOptions, RawHttpExternalsRspackPluginOptions, RawSourceMapDevToolPluginOptions,
-  RawSplitChunksOptions,
+  plugins::JsLoaderResolverPlugin, JsLoaderRunner, RawEntryPluginOptions,
+  RawEvalDevToolModulePluginOptions, RawExternalItemWrapper, RawExternalsPluginOptions,
+  RawHttpExternalsRspackPluginOptions, RawSourceMapDevToolPluginOptions, RawSplitChunksOptions,
 };
 
 #[napi(string_enum)]
@@ -141,7 +141,7 @@ pub enum BuiltinPluginName {
 
   // rspack js adapter plugins
   // naming format follow XxxRspackPlugin
-  JsLoaderRunnerRspackPlugin,
+  JsLoaderRspackPlugin,
 }
 
 #[napi(object)]
@@ -398,7 +398,11 @@ impl BuiltinPlugin {
         )
       }
       // rspack js adapter plugins
-      BuiltinPluginName::JsLoaderRunnerRspackPlugin => unreachable!(),
+      BuiltinPluginName::JsLoaderRspackPlugin => {
+        plugins.push(
+          JsLoaderResolverPlugin::new(downcast_into::<JsLoaderRunner>(self.options)?).boxed(),
+        );
+      }
     }
     Ok(())
   }
