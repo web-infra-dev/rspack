@@ -1,8 +1,9 @@
+use std::ffi::CStr;
 use std::marker::PhantomData;
 use std::os::raw::c_void;
 use std::ptr;
+use std::sync::atomic::{AtomicBool, AtomicPtr, Ordering};
 use std::sync::Arc;
-use std::{ffi::CStr, sync::RwLock};
 
 use napi::{check_status, sys, Env, Result};
 
@@ -11,31 +12,31 @@ struct DeferredData<Resolver: FnOnce(Env)> {
 }
 
 struct JsCallbackInfo {
-  ref_count: RwLock<u32>,
-  aborted: RwLock<bool>,
+  tsfn: AtomicPtr<sys::napi_threadsafe_function__>,
+  aborted: AtomicBool,
+}
+
+impl Drop for JsCallbackInfo {
+  fn drop(&mut self) {
+    if self.aborted.load(Ordering::Relaxed) {
+      return;
+    }
+    let status = unsafe {
+      sys::napi_release_threadsafe_function(
+        self.tsfn.load(Ordering::Acquire),
+        sys::ThreadsafeFunctionReleaseMode::release,
+      )
+    };
+    debug_assert!(
+      status == sys::Status::napi_ok,
+      "Release ThreadsafeFunction in JsCallback failed"
+    );
+  }
 }
 
 pub struct JsCallback<Resolver: FnOnce(Env)> {
-  tsfn: sys::napi_threadsafe_function,
   callback_info: Arc<JsCallbackInfo>,
   _resolver: PhantomData<Resolver>,
-}
-
-trait WithLock<T> {
-  fn with_read<R>(&self, f: impl FnOnce(&T) -> R) -> R;
-  fn with_write<R>(&self, f: impl FnOnce(&mut T) -> R) -> R;
-}
-
-impl<T> WithLock<T> for RwLock<T> {
-  fn with_read<R>(&self, f: impl FnOnce(&T) -> R) -> R {
-    let lock = self.read().expect("failed to read lock");
-    f(&*lock)
-  }
-
-  fn with_write<R>(&self, f: impl FnOnce(&mut T) -> R) -> R {
-    let mut lock = self.write().expect("failed to write lock");
-    f(&mut lock)
-  }
 }
 
 unsafe impl<Resolver: FnOnce(Env)> Send for JsCallback<Resolver> {}
@@ -51,8 +52,8 @@ impl<Resolver: FnOnce(Env)> JsCallback<Resolver> {
 
     let mut tsfn = ptr::null_mut();
     let callback_info = Arc::new(JsCallbackInfo {
-      ref_count: RwLock::new(1),
-      aborted: RwLock::new(false),
+      aborted: AtomicBool::new(false),
+      tsfn: AtomicPtr::new(ptr::null_mut()),
     });
     check_status!(
       unsafe {
@@ -72,11 +73,10 @@ impl<Resolver: FnOnce(Env)> JsCallback<Resolver> {
       },
       "Create threadsafe function in JsCallback failed"
     )?;
-
+    callback_info.tsfn.store(tsfn, Ordering::Release);
     check_status!(unsafe { sys::napi_unref_threadsafe_function(env, tsfn) })?;
 
     let deferred = Self {
-      tsfn,
       callback_info,
       _resolver: PhantomData,
     };
@@ -95,7 +95,7 @@ impl<Resolver: FnOnce(Env)> JsCallback<Resolver> {
     // Call back into the JS thread via a threadsafe function. This results in napi_js_callback being called.
     let status = unsafe {
       sys::napi_call_threadsafe_function(
-        self.tsfn,
+        self.callback_info.tsfn.load(Ordering::Acquire),
         Box::into_raw(Box::from(data)).cast(),
         sys::ThreadsafeFunctionCallMode::blocking,
       )
@@ -109,41 +109,13 @@ impl<Resolver: FnOnce(Env)> JsCallback<Resolver> {
 
 impl<Resolver: FnOnce(Env)> Clone for JsCallback<Resolver> {
   fn clone(&self) -> Self {
-    self.callback_info.ref_count.with_write(|count| {
-      if *count == 0 {
-        panic!("JsCallback was destroyed and not able to clone");
-      }
-      *count += 1;
-      Self {
-        tsfn: self.tsfn,
-        callback_info: self.callback_info.clone(),
-        _resolver: self._resolver,
-      }
-    })
-  }
-}
-
-impl<Resolver: FnOnce(Env)> Drop for JsCallback<Resolver> {
-  fn drop(&mut self) {
-    self.callback_info.ref_count.with_write(|count| {
-      if *count > 0 {
-        // napi finalize maybe called before drop, so we need to check if it's already aborted.
-        let aborted = self.callback_info.aborted.with_read(|aborted| *aborted);
-        if *count == 1 && !aborted {
-          let status = unsafe {
-            sys::napi_release_threadsafe_function(
-              self.tsfn,
-              sys::ThreadsafeFunctionReleaseMode::release,
-            )
-          };
-          debug_assert!(
-            status == sys::Status::napi_ok,
-            "Release ThreadsafeFunction in JsCallback failed"
-          );
-        }
-        *count -= 1;
-      }
-    })
+    if self.callback_info.aborted.load(Ordering::Relaxed) {
+      panic!("JsCallback was aborted, can not clone it");
+    }
+    Self {
+      callback_info: self.callback_info.clone(),
+      _resolver: PhantomData,
+    }
   }
 }
 
@@ -153,7 +125,7 @@ extern "C" fn napi_js_finalize_cb(
   _finalize_hint: *mut c_void,
 ) {
   let callback_info = unsafe { Arc::<JsCallbackInfo>::from_raw(finalize_data.cast()) };
-  callback_info.aborted.with_write(|aborted| *aborted = true);
+  callback_info.aborted.store(true, Ordering::Relaxed);
 }
 
 extern "C" fn napi_js_callback<Resolver: FnOnce(Env)>(
