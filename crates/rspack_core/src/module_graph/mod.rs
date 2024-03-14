@@ -266,9 +266,10 @@ impl ModuleGraph {
 
     // Outgoing connections
     for connection_id in old_mgm_connections {
-      let connection = *self
+      let connection = self
         .connection_by_connection_id(&connection_id)
-        .expect("should have connection");
+        .expect("should have connection")
+        .clone();
       if filter_connection(&connection, &*self) {
         let new_connection_id = self.clone_module_graph_connection(
           &connection,
@@ -289,7 +290,7 @@ impl ModuleGraph {
     original_module_identifier: Option<ModuleIdentifier>,
     module_identifier: ModuleIdentifier,
   ) -> ConnectionId {
-    let mut new_connection = *old_con;
+    let mut new_connection = old_con.clone();
     new_connection.id = ConnectionId::new();
     new_connection.original_module_identifier = original_module_identifier;
     new_connection.set_module_identifier(module_identifier, self);
@@ -984,7 +985,7 @@ impl ModuleGraph {
     }
 
     // clone connection
-    let mut new_connection = *connection;
+    let mut new_connection = connection.clone();
     new_connection.id = ConnectionId::new();
     let new_connection_id = new_connection.id;
 
@@ -998,7 +999,7 @@ impl ModuleGraph {
     // add new connection
     self
       .connections
-      .insert(new_connection_id, Some(new_connection));
+      .insert(new_connection_id, Some(new_connection.clone()));
 
     self
       .dependency_id_to_connection_id
@@ -1008,7 +1009,7 @@ impl ModuleGraph {
       .insert(new_connection_id, old_connection_dependency_id);
 
     // add new connection to original_module outgoing connections
-    if let Some(original_module_identifier) = &new_connection.original_module_identifier {
+    if let Some(ref original_module_identifier) = new_connection.original_module_identifier {
       if let Some(mgm) = self.module_graph_module_by_identifier_mut(original_module_identifier) {
         mgm.add_outgoing_connection(new_connection_id);
         mgm.remove_outgoing_connection(&connection_id);
@@ -1114,10 +1115,10 @@ fn get_connections_by_origin_module(
       .expect("should have connection");
     match map.entry(con.original_module_identifier) {
       Entry::Occupied(mut occ) => {
-        occ.get_mut().push(*con);
+        occ.get_mut().push(con.clone());
       }
       Entry::Vacant(vac) => {
-        vac.insert(vec![*con]);
+        vac.insert(vec![con.clone()]);
       }
     }
   }

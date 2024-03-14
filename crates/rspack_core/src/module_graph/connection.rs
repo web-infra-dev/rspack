@@ -33,7 +33,7 @@ impl From<u32> for ConnectionId {
   }
 }
 
-#[derive(Debug, Clone, Copy, Eq)]
+#[derive(Debug, Clone, Eq)]
 pub struct ModuleGraphConnection {
   pub id: ConnectionId,
   /// The referencing module identifier

@@ -1524,7 +1524,7 @@ impl ConcatenatedModule {
         .module_by_identifier(&self.id)
         .expect("should have module");
       for c in mg.get_outgoing_connections(self_module) {
-        connections.push(*c);
+        connections.push(c.clone());
       }
     }
 
