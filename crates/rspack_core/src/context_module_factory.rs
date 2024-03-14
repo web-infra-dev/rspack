@@ -234,6 +234,7 @@ impl ContextModuleFactory {
         missing_dependencies: &data.missing_dependencies,
         diagnostics: &mut data.diagnostics,
         factory_meta: &factory_result.factory_meta,
+        create_data: None,
       })
       .await
   }

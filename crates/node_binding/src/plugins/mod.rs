@@ -16,7 +16,7 @@ use rspack_binding_values::{
 use rspack_core::rspack_sources::Source;
 use rspack_core::{
   ApplyContext, BuildTimeExecutionOption, Chunk, ChunkAssetArgs, CompilerOptions, ModuleIdentifier,
-  NormalModuleAfterResolveArgs, PluginContext, RuntimeModule,
+  NormalModuleAfterResolveArgs, NormalModuleAfterResolveCreateData, PluginContext, RuntimeModule,
 };
 use rspack_core::{BeforeResolveArgs, PluginNormalModuleFactoryAfterResolveOutput};
 use rspack_core::{
@@ -127,7 +127,36 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
     if self.is_hook_disabled(&Hook::AfterResolve) {
       return Ok(None);
     }
-    self.hooks.after_resolve.call((&*args).into()).await
+
+    match self.hooks.after_resolve.call((&*args).into()).await {
+      Ok((ret, resolve_data)) => {
+        if let (Some(resolve_data), Some(create_data)) = (resolve_data, &args.create_data) {
+          fn override_resource(origin_data: &ResourceData, new_resource: String) -> ResourceData {
+            let mut resource_data = origin_data.clone();
+            let origin_resource_path = origin_data.resource_path.to_string_lossy().to_string();
+            resource_data.resource_path = new_resource.clone().into();
+            resource_data.resource = resource_data
+              .resource
+              .replace(&origin_resource_path, &new_resource);
+
+            resource_data
+          }
+
+          let request = resolve_data.request;
+          let user_request = resolve_data.user_request;
+          let resource = override_resource(&create_data.resource, resolve_data.resource);
+
+          args.create_data = Some(NormalModuleAfterResolveCreateData {
+            request,
+            user_request,
+            resource,
+          });
+        }
+
+        Ok(ret)
+      }
+      Err(err) => Err(err),
+    }
   }
 
   async fn context_module_before_resolve(
