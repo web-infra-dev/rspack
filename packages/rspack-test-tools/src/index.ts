@@ -1,5 +1,6 @@
 export * from "./type";
 export * from "./test/tester";
+export * from "./test/context";
 export * from "./processor";
 export * from "./reporter";
 export * from "./compare";

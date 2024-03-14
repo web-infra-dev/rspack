@@ -48,6 +48,7 @@
     "glob": "^10.3.10",
     "jest-diff": "^29.7.0",
     "jest-serializer-path": "^0.1.15",
+    "memfs": "4.7.7",
     "webpack": "^5.90.1",
     "webpack-merge": "5.9.0",
     "webpack-sources": "3.2.3",
