@@ -14,7 +14,8 @@ const tests = fs
 	.filter(
 		testName =>
 			!testName.startsWith(".") &&
-			fs.existsSync(path.join(caseDir, testName, "test.config.json"))
+			(fs.existsSync(path.join(caseDir, testName, "test.config.json")) ||
+				fs.existsSync(path.join(caseDir, testName, "test.config.js")))
 	);
 
 describe(NAME, () => {
