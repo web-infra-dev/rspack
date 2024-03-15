@@ -315,7 +315,6 @@ export interface JsHooks {
   afterProcessAssets: () => void
   emit: () => void
   assetEmitted: (asset: JsAssetEmittedArgs) => void
-  shouldEmit: (compilation: JsCompilation) => void
   afterEmit: () => void
   optimizeModules: (compilation: JsCompilation) => void
   afterOptimizeModules: (compilation: JsCompilation) => void
@@ -1288,6 +1287,7 @@ export function registerGlobalTrace(filter: string, layer: "chrome" | "logger", 
 export interface RegisterJsTaps {
   registerCompilerCompilationTaps: (stages: Array<number>) => Array<{ function: ((compilation: JsCompilation) => void); stage: number; }>
   registerCompilerMakeTaps: (stages: Array<number>) => Array<{ function: ((compilation: JsCompilation) => Promise<void>); stage: number; }>
+  registerCompilerShouldEmitTaps: (stages: Array<number>) => Array<{ function: ((compilation: JsCompilation) => boolean | undefined); stage: number; }>
   registerCompilationProcessAssetsTaps: (stages: Array<number>) => Array<{ function: ((compilation: JsCompilation) => Promise<void>); stage: number; }>
   registerNormalModuleFactoryBeforeResolveTaps: (stages: Array<number>) => Array<{ function: ((compilation: JsBeforeResolveArgs) => Promise<[boolean | undefined, JsBeforeResolveArgs]>); stage: number; }>
 }

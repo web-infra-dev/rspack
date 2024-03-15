@@ -8,7 +8,8 @@ use napi::{
 use rspack_binding_values::{JsBeforeResolveArgs, JsBeforeResolveOutput, JsCompilation};
 use rspack_core::{
   BeforeResolveArgs, Compilation, CompilationParams, CompilationProcessAssetsHook,
-  CompilerCompilationHook, CompilerMakeHook, MakeParam, NormalModuleFactoryBeforeResolveHook,
+  CompilerCompilationHook, CompilerMakeHook, CompilerShouldEmitHook, MakeParam,
+  NormalModuleFactoryBeforeResolveHook,
 };
 use rspack_hook::{AsyncSeries, AsyncSeries2, AsyncSeriesBail, Hook, Interceptor};
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
@@ -188,6 +189,10 @@ pub struct RegisterJsTaps {
   )]
   pub register_compiler_make_taps: RegisterFunction<JsCompilation, Promise<()>>,
   #[napi(
+    ts_type = "(stages: Array<number>) => Array<{ function: ((compilation: JsCompilation) => boolean | undefined); stage: number; }>"
+  )]
+  pub register_compiler_should_emit_taps: RegisterFunction<JsCompilation, Option<bool>>,
+  #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((compilation: JsCompilation) => Promise<void>); stage: number; }>"
   )]
   pub register_compilation_process_assets_taps: RegisterFunction<JsCompilation, Promise<()>>,
@@ -209,10 +214,17 @@ define_register!(
   cache = false,
 );
 define_register!(
+  RegisterCompilerShouldEmitTaps,
+  tap = CompilerShouldEmitTap<JsCompilation, Option<bool>> @ CompilerShouldEmitHook,
+  cache = false,
+);
+
+define_register!(
   RegisterCompilationProcessAssetsTaps,
   tap = CompilationProcessAssetsTap<JsCompilation, Promise<()>> @ CompilationProcessAssetsHook,
   cache = false,
 );
+
 define_register!(
   RegisterNormalModuleFactoryBeforeResolveTaps,
   tap = NormalModuleFactoryBeforeResolveTap<JsBeforeResolveArgs, Promise<JsBeforeResolveOutput>> @ NormalModuleFactoryBeforeResolveHook,
@@ -253,6 +265,23 @@ impl AsyncSeries2<Compilation, Vec<MakeParam>> for CompilerMakeTap {
     let compilation = unsafe { JsCompilation::from_compilation(compilation) };
 
     self.function.call_with_promise(compilation).await
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
+
+#[async_trait]
+impl AsyncSeriesBail<Compilation, bool> for CompilerShouldEmitTap {
+  async fn run(&self, compilation: &mut Compilation) -> rspack_error::Result<Option<bool>> {
+    // SAFETY: `Compiler` will not be moved, as it's stored on the heap.
+    // The pointer to `Compilation` is valid for the lifetime of `Compiler`.
+    // `Compiler` is valid through the lifetime before it's closed by calling `Compiler.close()` or gc-ed.
+    // `JsCompilation` is valid through the entire lifetime of `Compilation`.
+    let compilation = unsafe { JsCompilation::from_compilation(compilation) };
+
+    self.function.call_with_sync(compilation).await
   }
 
   fn stage(&self) -> i32 {

@@ -96,7 +96,7 @@ class Compiler {
 		normalModuleFactory: tapable.SyncHook<NormalModuleFactory>;
 		contextModuleFactory: tapable.SyncHook<ContextModuleFactory>;
 		initialize: tapable.SyncHook<[]>;
-		shouldEmit: tapable.SyncBailHook<[Compilation], boolean>;
+		shouldEmit: liteTapable.SyncBailHook<[Compilation], boolean>;
 		infrastructureLog: tapable.SyncBailHook<[string, string, any[]], true>;
 		beforeRun: tapable.AsyncSeriesHook<[Compiler]>;
 		run: tapable.AsyncSeriesHook<[Compiler]>;
@@ -140,7 +140,7 @@ class Compiler {
 		this.removedFiles = undefined;
 		this.hooks = {
 			initialize: new SyncHook([]),
-			shouldEmit: new tapable.SyncBailHook(["compilation"]),
+			shouldEmit: new liteTapable.SyncBailHook(["compilation"]),
 			done: new tapable.AsyncSeriesHook<Stats>(["stats"]),
 			afterDone: new tapable.SyncHook<Stats>(["stats"]),
 			beforeRun: new tapable.AsyncSeriesHook(["compiler"]),
@@ -236,7 +236,6 @@ class Compiler {
 				beforeCompile: this.#beforeCompile.bind(this),
 				afterCompile: this.#afterCompile.bind(this),
 				finishMake: this.#finishMake.bind(this),
-				shouldEmit: this.#shouldEmit.bind(this),
 				emit: this.#emit.bind(this),
 				assetEmitted: this.#assetEmitted.bind(this),
 				afterEmit: this.#afterEmit.bind(this),
@@ -278,6 +277,10 @@ class Compiler {
 				registerCompilerMakeTaps: this.#createRegisterTaps(
 					() => this.hooks.make,
 					queried => async () => await queried.promise(this.compilation)
+				),
+				registerCompilerShouldEmitTaps: this.#createRegisterTaps(
+					() => this.hooks.shouldEmit,
+					queried => () => queried.call(this.compilation)
 				),
 				registerCompilationProcessAssetsTaps: this.#createRegisterTaps(
 					() => this.compilation.hooks.processAssets,
@@ -525,7 +528,6 @@ class Compiler {
 			beforeCompile: this.hooks.beforeCompile,
 			afterCompile: this.hooks.afterCompile,
 			finishMake: this.hooks.finishMake,
-			shouldEmit: this.hooks.shouldEmit,
 			emit: this.hooks.emit,
 			assetEmitted: this.hooks.assetEmitted,
 			afterEmit: this.hooks.afterEmit,
@@ -718,11 +720,6 @@ class Compiler {
 		this.#updateDisabledHooks();
 	}
 
-	async #shouldEmit(): Promise<boolean | undefined> {
-		const res = this.hooks.shouldEmit.call(this.compilation);
-		this.#updateDisabledHooks();
-		return Promise.resolve(res);
-	}
 	async #emit() {
 		await this.hooks.emit.promise(this.compilation);
 		this.#updateDisabledHooks();

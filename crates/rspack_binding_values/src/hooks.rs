@@ -17,8 +17,6 @@ pub struct JsHooks {
   pub emit: ThreadsafeFunction<(), ()>,
   #[napi(ts_type = "(asset: JsAssetEmittedArgs) => void")]
   pub asset_emitted: ThreadsafeFunction<JsAssetEmittedArgs, ()>,
-  #[napi(ts_type = "(compilation: JsCompilation) => void")]
-  pub should_emit: ThreadsafeFunction<JsCompilation, Option<bool>>,
   #[napi(ts_type = "() => void")]
   pub after_emit: ThreadsafeFunction<(), ()>,
   #[napi(ts_type = "(compilation: JsCompilation) => void")]
