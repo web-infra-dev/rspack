@@ -11,7 +11,7 @@ use std::sync::Arc;
 use rspack_error::Result;
 use rspack_fs::AsyncWritableFileSystem;
 use rspack_futures::FuturesResults;
-use rspack_hook::AsyncSeries2Hook;
+use rspack_hook::{AsyncSeries2Hook, AsyncSeriesBailHook};
 use rspack_identifier::{IdentifierMap, IdentifierSet};
 use rustc_hash::FxHashMap as HashMap;
 use swc_core::ecma::atoms::Atom;
@@ -34,15 +34,18 @@ use crate::{
 use crate::{BoxPlugin, ExportInfo, UsageState};
 use crate::{CompilationParams, ContextModuleFactory, NormalModuleFactory};
 
+// should be SyncHook, but rspack need call js hook
 pub type CompilerCompilationHook = AsyncSeries2Hook<Compilation, CompilationParams>;
+// should be AsyncParallelHook, but rspack need add MakeParam to incremental rebuild
 pub type CompilerMakeHook = AsyncSeries2Hook<Compilation, Vec<MakeParam>>;
+// should be SyncBailHook, but rspack need call js hook
+pub type CompilerShouldEmitHook = AsyncSeriesBailHook<Compilation, bool>;
 
 #[derive(Debug, Default)]
 pub struct CompilerHooks {
-  // should be SyncHook, but rspack need call js hook
   pub compilation: CompilerCompilationHook,
-  // should be AsyncParallelHook, but rspack need add MakeParam to incremental rebuild
   pub make: CompilerMakeHook,
+  pub should_emit: CompilerShouldEmitHook,
 }
 
 #[derive(Debug)]
@@ -290,11 +293,15 @@ where
   async fn compile_done(&mut self) -> Result<()> {
     let logger = self.compilation.get_logger("rspack.Compiler");
 
-    if !self
-      .plugin_driver
-      .should_emit(&mut self.compilation)
-      .await?
-    {
+    if matches!(
+      self
+        .plugin_driver
+        .compiler_hooks
+        .should_emit
+        .call(&mut self.compilation)
+        .await?,
+      Some(false)
+    ) {
       return self.compilation.done(self.plugin_driver.clone()).await;
     }
 

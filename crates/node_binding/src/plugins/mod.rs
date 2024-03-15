@@ -14,6 +14,7 @@ use rspack_binding_values::{
   JsChunk, JsChunkAssetArgs, JsRuntimeModule, JsRuntimeModuleArg, ToJsCompatSource,
 };
 use rspack_core::rspack_sources::Source;
+use rspack_core::PluginNormalModuleFactoryResolveForSchemeOutput;
 use rspack_core::{
   ApplyContext, BuildTimeExecutionOption, Chunk, ChunkAssetArgs, CompilerOptions, ModuleIdentifier,
   NormalModuleAfterResolveArgs, NormalModuleAfterResolveCreateData, PluginContext, RuntimeModule,
@@ -23,12 +24,11 @@ use rspack_core::{
   NormalModuleCreateData, PluginNormalModuleFactoryBeforeResolveOutput,
   PluginNormalModuleFactoryCreateModuleHookOutput, ResourceData,
 };
-use rspack_core::{PluginNormalModuleFactoryResolveForSchemeOutput, PluginShouldEmitHookOutput};
 use rspack_hook::Hook as _;
 
 use self::interceptor::{
   RegisterCompilationProcessAssetsTaps, RegisterCompilerCompilationTaps, RegisterCompilerMakeTaps,
-  RegisterNormalModuleFactoryBeforeResolveTaps,
+  RegisterCompilerShouldEmitTaps, RegisterNormalModuleFactoryBeforeResolveTaps,
 };
 pub use self::loader::JsLoaderResolver;
 use crate::{DisabledHooks, Hook, JsCompilation, JsHooks};
@@ -43,6 +43,7 @@ pub struct JsHooksAdapterPlugin {
   inner: Arc<JsHooksAdapterInner>,
   register_compiler_compilation_taps: RegisterCompilerCompilationTaps,
   register_compiler_make_taps: RegisterCompilerMakeTaps,
+  register_compiler_should_emit_taps: RegisterCompilerShouldEmitTaps,
   register_compilation_process_assets_taps: RegisterCompilationProcessAssetsTaps,
   register_normal_module_factory_before_resolve_taps: RegisterNormalModuleFactoryBeforeResolveTaps,
 }
@@ -84,6 +85,11 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
       .compiler_hooks
       .make
       .intercept(self.register_compiler_make_taps.clone());
+    ctx
+      .context
+      .compiler_hooks
+      .should_emit
+      .intercept(self.register_compiler_should_emit_taps.clone());
     ctx
       .context
       .compilation_hooks
@@ -404,23 +410,6 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
     self.hooks.asset_emitted.call(args).await
   }
 
-  async fn should_emit(
-    &self,
-    compilation: &mut rspack_core::Compilation,
-  ) -> PluginShouldEmitHookOutput {
-    if self.is_hook_disabled(&Hook::ShouldEmit) {
-      return Ok(None);
-    }
-
-    // SAFETY: `Compiler` will not be moved, as it's stored on the heap.
-    // The pointer to `Compilation` is valid for the lifetime of `Compiler`.
-    // `Compiler` is valid through the lifetime before it's closed by calling `Compiler.close()` or gc-ed.
-    // `JsCompilation` is valid through the entire lifetime of `Compilation`.
-    let compilation = unsafe { JsCompilation::from_compilation(compilation) };
-
-    self.hooks.should_emit.call(compilation).await
-  }
-
   async fn after_emit(&self, _: &mut rspack_core::Compilation) -> rspack_error::Result<()> {
     if self.is_hook_disabled(&Hook::AfterEmit) {
       return Ok(());
@@ -535,6 +524,9 @@ impl JsHooksAdapterPlugin {
       ),
       register_compiler_make_taps: RegisterCompilerMakeTaps::new(
         register_js_taps.register_compiler_make_taps,
+      ),
+      register_compiler_should_emit_taps: RegisterCompilerShouldEmitTaps::new(
+        register_js_taps.register_compiler_should_emit_taps,
       ),
       register_compilation_process_assets_taps: RegisterCompilationProcessAssetsTaps::new(
         register_js_taps.register_compilation_process_assets_taps,

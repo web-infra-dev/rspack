@@ -393,6 +393,78 @@ export class SyncHook<
 	}
 }
 
+export class SyncBailHook<
+	T,
+	R,
+	AdditionalOptions = UnsetAdditionalOptions
+> extends Hook<T, R, AdditionalOptions> {
+	callAsyncStageRange(
+		queried: QueriedHook<T, R, AdditionalOptions>,
+		...args: Append<AsArray<T>, Callback<Error, R>>
+	) {
+		const {
+			stageRange: [from, to],
+			tapsInRange
+		} = queried;
+		const args2 = [...args];
+		const cb = args2.pop() as Callback<Error, R>;
+		if (from === minStage) {
+			this._runCallInterceptors(...args2);
+		}
+		for (let tap of tapsInRange) {
+			this._runTapInterceptors(tap);
+			let r = undefined;
+			try {
+				r = tap.fn(...args2);
+			} catch (e) {
+				const err = e as Error;
+				this._runErrorInterceptors(err);
+				return cb(err);
+			}
+			if (r !== undefined) {
+				this._runResultInterceptors(r);
+				return cb(null, r);
+			}
+		}
+		if (to === maxStage) {
+			this._runDoneInterceptors();
+			cb(null);
+		}
+	}
+
+	call(...args: AsArray<T>): R {
+		return this.callStageRange(this.queryStageRange(allStageRange), ...args);
+	}
+
+	callStageRange(
+		queried: QueriedHook<T, R, AdditionalOptions>,
+		...args: AsArray<T>
+	): R {
+		let result, error;
+		this.callAsyncStageRange(
+			queried,
+			// @ts-expect-error
+			...args,
+			(e: Error, r: R): void => {
+				error = e;
+				result = r;
+			}
+		);
+		if (error) {
+			throw error;
+		}
+		return result as R;
+	}
+
+	tapAsync(): never {
+		throw new Error("tapAsync is not supported on a SyncBailHook");
+	}
+
+	tapPromise(): never {
+		throw new Error("tapPromise is not supported on a SyncBailHook");
+	}
+}
+
 export class AsyncParallelHook<
 	T,
 	AdditionalOptions = UnsetAdditionalOptions

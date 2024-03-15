@@ -374,10 +374,6 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
-  async fn should_emit(&self, _compilation: &mut Compilation) -> PluginShouldEmitHookOutput {
-    Ok(None)
-  }
-
   async fn after_emit(&self, _compilation: &mut Compilation) -> Result<()> {
     Ok(())
   }
