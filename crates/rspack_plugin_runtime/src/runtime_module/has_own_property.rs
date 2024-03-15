@@ -27,7 +27,7 @@ impl RuntimeModule for HasOwnPropertyRuntimeModule {
     self.id
   }
 
-  fn generate(&self, _compilation: &Compilation) -> BoxSource {
-    RawSource::from(include_str!("runtime/has_own_property.js")).boxed()
+  fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+    Ok(RawSource::from(include_str!("runtime/has_own_property.js")).boxed())
   }
 }

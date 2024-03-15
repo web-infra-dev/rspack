@@ -6,6 +6,7 @@ packages:
   - "npm/*"
   - "crates/node_binding"
   - "crates/rspack_fs_node"
+  - "crates/rspack_napi"
   - "examples/**"
   - "!examples/three"
   - "webpack-examples"

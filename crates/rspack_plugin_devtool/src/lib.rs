@@ -23,12 +23,13 @@ use rspack_core::{
   SourceType,
 };
 use rspack_core::{
-  Chunk, Filename, Logger, Module, ModuleIdentifier, OutputOptions, RuntimeModule,
+  Chunk, FilenameTemplate, Logger, Module, ModuleIdentifier, OutputOptions, RuntimeModule,
 };
 use rspack_error::{miette::IntoDiagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook, AsyncSeries};
 use rspack_util::identifier::make_paths_absolute;
+use rspack_util::infallible::ResultInfallibleExt as _;
 use rspack_util::source_map::SourceMapKind;
 use rspack_util::{path::relative, swc::normalize_custom_filename};
 use rustc_hash::FxHashSet as HashSet;
@@ -136,7 +137,7 @@ struct MappedAsset {
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct SourceMapDevToolPlugin {
-  source_map_filename: Option<Filename>,
+  source_map_filename: Option<FilenameTemplate>,
   #[derivative(Debug = "ignore")]
   source_mapping_url_comment: Option<SourceMappingUrlComment>,
   file_context: Option<String>,
@@ -183,7 +184,7 @@ impl SourceMapDevToolPlugin {
         ));
 
     Self::new_inner(
-      options.filename.map(Filename::from),
+      options.filename.map(FilenameTemplate::from),
       source_mapping_url_comment,
       options.file_context,
       module_filename_template,
@@ -433,13 +434,17 @@ impl SourceMapDevToolPlugin {
                   .to_string(),
                 None => filename.clone(),
               };
-              source_map_filename = compilation.get_asset_path(
-                source_map_filename_config,
-                PathData::default()
-                  .chunk(chunk)
-                  .filename(&filename)
-                  .content_hash_optional(chunk.content_hash.get(source_type).map(|i| i.encoded())),
-              );
+              source_map_filename = compilation
+                .get_asset_path(
+                  source_map_filename_config,
+                  PathData::default()
+                    .chunk(chunk)
+                    .filename(&filename)
+                    .content_hash_optional(
+                      chunk.content_hash.get(source_type).map(|i| i.encoded()),
+                    ),
+                )
+                .always_ok();
               break;
             }
           }

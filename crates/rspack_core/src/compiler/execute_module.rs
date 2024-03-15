@@ -163,7 +163,7 @@ impl Compilation {
         .get(runtime_id)
         .expect("runtime module exist");
 
-      let result = CodeGenerationResult::default().with_javascript(runtime_module.generate(self));
+      let result = CodeGenerationResult::default().with_javascript(runtime_module.generate(self)?);
       let result_id = result.id;
 
       self

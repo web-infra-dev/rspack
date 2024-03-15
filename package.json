@@ -9,7 +9,7 @@
     "x": "zx x.mjs",
     "dev": "pnpm --filter @rspack/cli run dev",
     "clean": "pnpm --filter @rspack/cli run clean",
-    "build:js": "pnpm --filter \"@rspack/core\" build --force && pnpm --filter \"@rspack/*\" --filter \"!@rspack/core\" build --force",
+    "build:js": "pnpm --filter \"@rspack/core\" build --force && pnpm --filter \"@rspack/*\" --filter \"!@rspack/core\" build --force && pnpm --filter rspack_napi build:test",
     "build:cli:debug": "npm run build:binding:debug && npm run build:js",
     "build:cli:release": "npm run build:binding:release && npm run build:js",
     "build:cli:release:all": "pnpm --filter @rspack/binding build:release:all && npm run build:js",

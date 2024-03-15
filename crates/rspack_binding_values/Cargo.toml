@@ -14,3 +14,4 @@ rspack_error      = { path = "../rspack_error" }
 rspack_identifier = { path = "../rspack_identifier" }
 rspack_napi       = { path = "../rspack_napi" }
 rustc-hash        = { workspace = true }
+serde             = { workspace = true }

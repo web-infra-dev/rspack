@@ -70,10 +70,10 @@ impl JsChunk {
       id_name_hints: Vec::from_iter(id_name_hints.clone()),
       filename_template: filename_template
         .as_ref()
-        .map(|tpl| tpl.template().to_string()),
+        .and_then(|f| Some(f.template()?.to_string())),
       css_filename_template: css_filename_template
         .as_ref()
-        .map(|tpl| tpl.template().to_string()),
+        .and_then(|f| Some(f.template()?.to_string())),
       files,
       runtime,
       hash: hash.as_ref().map(|d| d.encoded().to_string()),

@@ -121,6 +121,12 @@ importers:
         specifier: 4.7.7
         version: 4.7.7
 
+  crates/rspack_napi:
+    devDependencies:
+      '@napi-rs/cli':
+        specifier: 2.18.0
+        version: 2.18.0
+
   diffcases/arco-pro:
     dependencies:
       '@antv/data-set':

@@ -82,7 +82,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
     false
   }
 
-  fn generate(&self, compilation: &Compilation) -> BoxSource {
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let chunks = self
       .chunk
       .and_then(|chunk_ukey| get_chunk_from_ukey(&chunk_ukey, &compilation.chunk_by_ukey))
@@ -117,9 +117,9 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
         }
       });
 
-    let mut dynamic_filename: Option<&Filename> = None;
+    let mut dynamic_filename: Option<&str> = None;
     let mut max_chunk_set_size = 0;
-    let mut chunk_filenames = IndexMap::new();
+    let mut chunk_filenames = IndexMap::<&Filename, IndexSet<&ChunkUkey>>::new();
     let mut chunk_map = IndexMap::new();
 
     if let Some(chunks) = chunks {
@@ -127,54 +127,47 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
         .iter()
         .filter_map(|chunk_ukey| get_chunk_from_ukey(chunk_ukey, &compilation.chunk_by_ukey))
         .for_each(|chunk| {
-          let filename_template = (self.filename_for_chunk)(chunk, compilation);
+          let filename = (self.filename_for_chunk)(chunk, compilation);
 
-          if let Some(filename_template) = filename_template {
+          if let Some(filename) = filename {
             chunk_map.insert(&chunk.ukey, chunk);
 
-            let chunk_set = chunk_filenames
-              .entry(filename_template.clone())
-              .or_insert(IndexSet::new());
+            let chunk_set = chunk_filenames.entry(filename).or_insert(IndexSet::new());
 
             chunk_set.insert(&chunk.ukey);
-
-            let should_update = match dynamic_filename {
-              Some(dynamic_filename) => match chunk_set.len().cmp(&max_chunk_set_size) {
-                Ordering::Less => false,
-                Ordering::Greater => true,
-                Ordering::Equal => match filename_template
-                  .template()
-                  .len()
-                  .cmp(&dynamic_filename.template().len())
-                {
+            if let Some(filename_template) = filename.template() {
+              let should_update = match dynamic_filename {
+                Some(dynamic_filename) => match chunk_set.len().cmp(&max_chunk_set_size) {
                   Ordering::Less => false,
                   Ordering::Greater => true,
-                  Ordering::Equal => !matches!(
-                    filename_template
-                      .template()
-                      .cmp(dynamic_filename.template()),
-                    Ordering::Less,
-                  ),
+                  Ordering::Equal => match filename_template.len().cmp(&dynamic_filename.len()) {
+                    Ordering::Less => false,
+                    Ordering::Greater => true,
+                    Ordering::Equal => {
+                      !matches!(filename_template.cmp(dynamic_filename), Ordering::Less)
+                    }
+                  },
                 },
-              },
-              None => true,
+                None => true,
+              };
+              if should_update {
+                max_chunk_set_size = chunk_set.len();
+                dynamic_filename = Some(filename_template);
+              }
             };
-            if should_update {
-              max_chunk_set_size = chunk_set.len();
-              dynamic_filename = Some(filename_template);
-            }
           }
         });
     }
 
     let dynamic_url = dynamic_filename
-      .and_then(|filename| {
+      .and_then(|template| {
+        let filename = Filename::from(template.to_owned());
         chunk_filenames
-          .get(filename)
-          .map(|chunks| (filename, chunks))
+          .get(&filename)
+          .map(move |chunks| (filename, chunks))
       })
-      .map(|(filename, chunks)| {
-        let (fake_filename, hash_len_map) = get_filename_without_hash_length(filename);
+      .map(|(filename, chunks)| -> rspack_error::Result<String> {
+        let (fake_filename, hash_len_map) = get_filename_without_hash_length(&filename);
         let fake_chunk = create_fake_chunk(
           Some("\" + chunkId + \"".to_string()),
           Some(stringify_dynamic_chunk_map(
@@ -226,7 +219,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
           None => format!("\" + {}() + \"", RuntimeGlobals::GET_FULL_HASH),
         };
 
-        format!(
+        Ok(format!(
           "\"{}\"",
           compilation.get_path(
             &fake_filename,
@@ -234,9 +227,10 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
               .chunk(&fake_chunk)
               .hash_optional(Some(full_hash.as_str()))
               .content_hash_optional(content_hash.as_deref()),
-          )
-        )
-      });
+          )?
+        ))
+      })
+      .transpose()?;
 
     let mut static_urls = IndexMap::new();
     for (filename_template, chunks) in
@@ -244,7 +238,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
         .iter()
         .filter(|(filename, _)| match dynamic_filename {
           None => true,
-          Some(dynamic_filename) => dynamic_filename != *filename,
+          Some(dynamic_filename) => filename.template() != Some(dynamic_filename),
         })
     {
       for chunk_ukey in chunks.iter() {
@@ -304,7 +298,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
                 .chunk(&fake_chunk)
                 .hash_optional(Some(full_hash.as_str()))
                 .content_hash_optional(content_hash.as_deref())
-            ),
+            )?,
           );
 
           if let Some(chunk_id) = &chunk.id {
@@ -317,8 +311,9 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
       }
     }
 
-    RawSource::from(format!(
-      "// This function allow to reference chunks
+    Ok(
+      RawSource::from(format!(
+        "// This function allow to reference chunks
         {} = function (chunkId) {{
           // return url for filenames not based on template
           {}
@@ -326,14 +321,15 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
           return {};
         }};
       ",
-      self.global,
-      static_urls
-        .iter()
-        .map(|(filename, chunk_ids)| stringify_static_chunk_map(filename, chunk_ids))
-        .join("\n"),
-      dynamic_url.unwrap_or_else(|| format!("\"\" + chunkId + \".{}\"", self.content_type))
-    ))
-    .boxed()
+        self.global,
+        static_urls
+          .iter()
+          .map(|(filename, chunk_ids)| stringify_static_chunk_map(filename, chunk_ids))
+          .join("\n"),
+        dynamic_url.unwrap_or_else(|| format!("\"\" + chunkId + \".{}\"", self.content_type))
+      ))
+      .boxed(),
+    )
   }
 
   fn attach(&mut self, chunk: ChunkUkey) {

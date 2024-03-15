@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use napi_derive::napi;
 
 use super::JsAssetInfo;
@@ -10,6 +12,47 @@ pub struct PathData {
   pub runtime: Option<String>,
   pub url: Option<String>,
   pub id: Option<String>,
+  pub chunk: Option<ChunkPathData>,
+}
+
+impl TryFrom<rspack_core::PathData<'_>> for PathData {
+  type Error = napi::Error;
+  fn try_from(path_data: rspack_core::PathData<'_>) -> Result<Self, Self::Error> {
+    Ok(Self {
+      filename: path_data.filename.map(|s| s.to_string()),
+      hash: path_data.hash.map(|s| s.to_string()),
+      content_hash: path_data.content_hash.map(|s| s.to_string()),
+      runtime: path_data.runtime.map(|s| s.to_string()),
+      url: path_data.url.map(|s| s.to_string()),
+      id: path_data.id.map(|s| s.to_string()),
+      chunk: path_data.chunk.map(ChunkPathData::from),
+    })
+  }
+}
+
+#[napi(object)]
+pub struct ChunkPathData {
+  pub id: Option<String>,
+  pub name: Option<String>,
+  pub hash: Option<String>,
+  pub content_hash: Option<HashMap<String, String>>,
+}
+
+impl<'a> From<&'a rspack_core::Chunk> for ChunkPathData {
+  fn from(chunk: &'a rspack_core::Chunk) -> Self {
+    Self {
+      id: chunk.id.clone(),
+      name: chunk.name.clone(),
+      hash: chunk.hash.as_ref().map(|d| d.encoded().to_string()),
+      content_hash: Some(
+        chunk
+          .content_hash
+          .iter()
+          .map(|(key, v)| (key.to_string(), v.encoded().to_string()))
+          .collect(),
+      ),
+    }
+  }
 }
 
 impl PathData {

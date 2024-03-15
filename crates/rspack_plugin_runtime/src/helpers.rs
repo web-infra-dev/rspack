@@ -130,7 +130,7 @@ pub fn get_runtime_chunk_output_name(args: &RenderChunkArgs) -> Result<String> {
     .chunk_by_ukey
     .expect_get(&entry_point.get_runtime_chunk(&args.compilation.chunk_group_by_ukey));
 
-  Ok(get_chunk_output_name(runtime_chunk, args.compilation))
+  get_chunk_output_name(runtime_chunk, args.compilation)
 }
 
 pub fn generate_entry_startup(
@@ -237,7 +237,7 @@ pub fn get_relative_path(base_chunk_output_name: &str, other_chunk_output_name: 
   format!("{path}{}", other_chunk_output_name_arr.join("/"))
 }
 
-pub fn get_chunk_output_name(chunk: &Chunk, compilation: &Compilation) -> String {
+pub fn get_chunk_output_name(chunk: &Chunk, compilation: &Compilation) -> Result<String> {
   let hash = chunk.get_render_hash(compilation.options.output.hash_digest_length);
   let filename = get_js_chunk_filename_template(
     chunk,

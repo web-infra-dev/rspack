@@ -124,7 +124,7 @@ pub fn impl_runtime_module(
         _: Option<::rspack_core::ConcatenationScope>,
       ) -> rspack_error::Result<::rspack_core::CodeGenerationResult> {
         let mut result = ::rspack_core::CodeGenerationResult::default();
-        result.add(::rspack_core::SourceType::JavaScript, self.generate_with_custom(compilation));
+        result.add(::rspack_core::SourceType::JavaScript, self.generate_with_custom(compilation)?);
         result.set_hash(
           &compilation.options.output.hash_function,
           &compilation.options.output.hash_digest,

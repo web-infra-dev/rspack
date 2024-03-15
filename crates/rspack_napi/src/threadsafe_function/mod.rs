@@ -1,4 +1,6 @@
-use std::marker::PhantomData;
+mod with_ref;
+
+use std::{fmt::Debug, marker::PhantomData};
 
 use napi::{
   bindgen_prelude::{
@@ -11,8 +13,9 @@ use napi::{
   },
   Either, Env, JsUnknown, NapiRaw, Status, ValueType,
 };
+use oneshot::Receiver;
 use rspack_error::{miette::IntoDiagnostic, Error, Result};
-use tokio::sync::oneshot::Receiver;
+pub use with_ref::ThreadSafeFunctionWithRef;
 
 use crate::{JsCallback, NapiErrorExt};
 
@@ -23,6 +26,16 @@ pub struct ThreadsafeFunction<T: 'static, R> {
   env: napi_env,
   resolver: JsCallback<Box<ErrorResolver>>,
   _data: PhantomData<R>,
+}
+
+impl<T, R> Debug for ThreadsafeFunction<T, R> {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("ThreadsafeFunction")
+      .field("inner", &self.inner.raw())
+      .field("env", &self.env)
+      .field("_data", &self._data)
+      .finish()
+  }
 }
 
 impl<T: 'static, R> Clone for ThreadsafeFunction<T, R> {
@@ -67,7 +80,7 @@ impl<T: 'static, R> ThreadsafeFunction<T, R> {
   }
 
   fn call_with_return<D: 'static + FromNapiValue>(&self, value: T) -> Receiver<Result<D>> {
-    let (tx, rx) = tokio::sync::oneshot::channel::<Result<D>>();
+    let (tx, rx) = oneshot::channel::<Result<D>>();
     let env = self.env;
     self
       .inner
@@ -92,7 +105,7 @@ impl<T: 'static, R> ThreadsafeFunction<T, R> {
 
   fn blocking_call<D: 'static + FromNapiValue>(&self, value: T) -> Result<D> {
     let rx = self.call_with_return(value);
-    rx.blocking_recv().expect("failed to receive tsfn value")
+    rx.recv().expect("failed to receive tsfn value")
   }
 }
 

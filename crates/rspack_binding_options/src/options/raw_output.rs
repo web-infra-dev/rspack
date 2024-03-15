@@ -1,4 +1,5 @@
 use napi_derive::napi;
+use rspack_binding_values::JsFilename;
 use rspack_core::{
   CrossOriginLoading, LibraryCustomUmdObject, LibraryName, LibraryNonUmdObject, LibraryOptions,
 };
@@ -156,11 +157,15 @@ pub struct RawOutputOptions {
   pub wasm_loading: String,
   pub enabled_wasm_loading_types: Vec<String>,
   pub webassembly_module_filename: String,
-  pub filename: String,
-  pub chunk_filename: String,
+  #[napi(ts_type = "string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string)")]
+  pub filename: JsFilename,
+  #[napi(ts_type = "string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string)")]
+  pub chunk_filename: JsFilename,
   pub cross_origin_loading: RawCrossOriginLoading,
-  pub css_filename: String,
-  pub css_chunk_filename: String,
+  #[napi(ts_type = "string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string)")]
+  pub css_filename: JsFilename,
+  #[napi(ts_type = "string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string)")]
+  pub css_chunk_filename: JsFilename,
   pub hot_update_main_filename: String,
   pub hot_update_chunk_filename: String,
   pub hot_update_global: String,

@@ -1,9 +1,15 @@
 #![feature(try_blocks)]
 #![forbid(unsafe_op_in_unsafe_fn)]
 
+mod by_ref;
+pub use by_ref::ByRef;
+
 mod ext;
 mod js_values;
 mod utils;
+
+#[cfg(feature = "node_test")]
+pub mod node_test;
 
 mod errors;
 pub use errors::{NapiErrorExt, NapiResultExt};

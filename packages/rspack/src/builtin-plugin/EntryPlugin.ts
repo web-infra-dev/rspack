@@ -7,7 +7,7 @@ import { create } from "./base";
 import {
 	ChunkLoading,
 	EntryRuntime,
-	Filename,
+	FilenameTemplate,
 	LibraryOptions,
 	PublicPath,
 	getRawChunkLoading,
@@ -23,7 +23,7 @@ export type EntryOptions = {
 	asyncChunks?: boolean;
 	publicPath?: PublicPath;
 	baseUri?: string;
-	filename?: Filename;
+	filename?: FilenameTemplate;
 	library?: LibraryOptions;
 };
 export const EntryPlugin = create(

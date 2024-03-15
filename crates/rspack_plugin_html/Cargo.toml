@@ -23,6 +23,7 @@ rspack_base64     = { path = "../rspack_base64" }
 rspack_core       = { path = "../rspack_core" }
 rspack_error      = { path = "../rspack_error" }
 rspack_hook       = { path = "../rspack_hook" }
+rspack_util       = { path = "../rspack_util" }
 schemars          = { workspace = true, optional = true }
 serde             = { workspace = true, features = ["derive"] }
 serde_json        = { workspace = true }
