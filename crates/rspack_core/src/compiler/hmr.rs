@@ -154,12 +154,11 @@ pub struct CompilationRecords {
   pub old_hash: Option<RspackHashDigest>,
 }
 
-pub fn collect_changed_modules(
-  compilation: &Compilation,
-) -> Result<(
+pub type ChangedModules = (
   IdentifierMap<(RspackHashDigest, String)>,
   IdentifierMap<String>,
-)> {
+);
+pub fn collect_changed_modules(compilation: &Compilation) -> Result<ChangedModules> {
   let modules_map = compilation
     .chunk_graph
     .chunk_graph_module_by_module_identifier

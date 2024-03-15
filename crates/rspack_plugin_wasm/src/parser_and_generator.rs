@@ -292,7 +292,7 @@ fn render_wasm_name(
 ) -> (String, AssetInfo) {
   compilation
     .get_asset_path_with_info(
-      &wasm_filename_template,
+      wasm_filename_template,
       PathData::default()
         .filename(&normal_module.resource_resolved_data().resource)
         .content_hash(hash)

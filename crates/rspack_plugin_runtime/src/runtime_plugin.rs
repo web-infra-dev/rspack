@@ -206,7 +206,7 @@ impl Plugin for RuntimePlugin {
           .as_str(),
       ))
       || (runtime_requirements.contains(RuntimeGlobals::GET_UPDATE_MANIFEST_FILENAME)
-        && has_hash_placeholder(&compilation.options.output.hot_update_main_filename.as_str()))
+        && has_hash_placeholder(compilation.options.output.hot_update_main_filename.as_str()))
     {
       runtime_requirements_mut.insert(RuntimeGlobals::GET_FULL_HASH);
     }
@@ -232,18 +232,16 @@ impl Plugin for RuntimePlugin {
       runtime_requirements_mut.insert(RuntimeGlobals::GLOBAL);
     }
 
-    if runtime_requirements.contains(RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME) {
-      if matches!(compilation.options.output.chunk_filename.template(), Some(template) if has_hash_placeholder(template))
-      {
-        runtime_requirements_mut.insert(RuntimeGlobals::GET_FULL_HASH);
-      }
+    if runtime_requirements.contains(RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME)
+      && matches!(compilation.options.output.chunk_filename.template(), Some(template) if has_hash_placeholder(template))
+    {
+      runtime_requirements_mut.insert(RuntimeGlobals::GET_FULL_HASH);
     }
 
-    if runtime_requirements.contains(RuntimeGlobals::GET_CHUNK_CSS_FILENAME) {
-      if matches!(compilation.options.output.css_chunk_filename.template(), Some(template) if has_hash_placeholder(template))
-      {
-        runtime_requirements_mut.insert(RuntimeGlobals::GET_FULL_HASH);
-      }
+    if runtime_requirements.contains(RuntimeGlobals::GET_CHUNK_CSS_FILENAME)
+      && matches!(compilation.options.output.css_chunk_filename.template(), Some(template) if has_hash_placeholder(template))
+    {
+      runtime_requirements_mut.insert(RuntimeGlobals::GET_FULL_HASH);
     }
 
     if runtime_requirements.contains(RuntimeGlobals::PREFETCH_CHUNK) {

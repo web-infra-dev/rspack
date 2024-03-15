@@ -68,7 +68,7 @@ pub type FilenameTemplate = Filename<NoFilenameFn>;
 impl FilenameTemplate {
   pub fn as_str(&self) -> &str {
     match &self.0 {
-      FilenameKind::Template(template) => &template,
+      FilenameKind::Template(template) => template.as_str(),
       FilenameKind::Fn(no_fn) => match no_fn.0 {},
     }
   }
@@ -162,7 +162,7 @@ pub fn has_hash_placeholder(template: &str) -> bool {
 impl<F> Filename<F> {
   pub fn template(&self) -> Option<&str> {
     match &self.0 {
-      FilenameKind::Template(template) => Some(&template),
+      FilenameKind::Template(template) => Some(template.as_str()),
       _ => None,
     }
   }
