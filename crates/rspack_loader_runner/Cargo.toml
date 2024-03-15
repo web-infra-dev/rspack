@@ -5,11 +5,6 @@ name       = "rspack_loader_runner"
 repository = "https://github.com/web-infra-dev/rspack"
 version    = "0.1.0"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dev-dependencies]
-similar-asserts = "1.5.0"
-
 [dependencies]
 anymap          = "1.0.0-beta.2"
 async-recursion = { workspace = true }

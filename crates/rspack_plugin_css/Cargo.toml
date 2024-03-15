@@ -40,6 +40,4 @@ tracing = { workspace = true }
 urlencoding = { workspace = true }
 
 [dev-dependencies]
-hrx-parser     = "0.1.1"
-insta          = { workspace = true }
 rspack_testing = { path = "../rspack_testing" }
