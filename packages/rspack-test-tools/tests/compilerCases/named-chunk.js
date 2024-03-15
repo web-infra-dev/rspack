@@ -1,4 +1,3 @@
-const { ECompilerType } = require("../..");
 const mockFn = jest.fn();
 
 class MyPlugin {
@@ -13,8 +12,6 @@ class MyPlugin {
 
 module.exports = {
 	description: "should work with `namedChunks`",
-	name: __filename,
-	compilerType: ECompilerType.Rspack,
 	options(context) {
 		return {
 			context: context.getSource(),

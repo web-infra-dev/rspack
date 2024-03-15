@@ -1,4 +1,3 @@
-const { ECompilerType } = require("../..");
 const { createFsFromVolume, Volume } = require("memfs");
 
 class MyPlugin {
@@ -27,8 +26,6 @@ class MyPlugin {
 const outputFileSystem = createFsFromVolume(new Volume());
 module.exports = {
 	description: "should emit assets correctly",
-	name: __filename,
-	compilerType: ECompilerType.Rspack,
 	options(context) {
 		return {
 			context: context.getSource(),

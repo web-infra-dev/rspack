@@ -1,14 +1,14 @@
 const path = require("path");
 const fs = require("fs");
-const srcDir = path.resolve(__dirname, "../../rspack/tests/fixtures");
-const distDir = path.resolve(__dirname, "../../rspack/tests/js/compiler");
-const caseDir = path.resolve(__dirname, "./compilerCases");
-const { SimpleTaskProcessor, TestContext, ECompilerType } = require("..");
+const srcDir = path.resolve(__dirname, "../../rspack/tests");
+const caseDir = path.resolve(__dirname, "./statsAPICases");
+const { StatsAPITaskProcessor, TestContext, ECompilerType } = require("..");
 
-describe("Compiler", () => {
+describe("Stats", () => {
+	StatsAPITaskProcessor.addSnapshotSerializer();
 	const context = new TestContext({
 		src: srcDir,
-		dist: distDir
+		dist: "none"
 	});
 
 	async function run(name, processor) {
@@ -31,7 +31,7 @@ describe("Compiler", () => {
 		it(caseConfig.description, async () => {
 			await run(
 				file,
-				new SimpleTaskProcessor({
+				new StatsAPITaskProcessor({
 					name: file,
 					compilerType: ECompilerType.Rspack,
 					...caseConfig

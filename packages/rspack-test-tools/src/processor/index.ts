@@ -9,3 +9,4 @@ export * from "./stats";
 export * from "./watch";
 export * from "./simple";
 export * from "./defaults";
+export * from "./stats-api";
