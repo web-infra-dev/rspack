@@ -8,7 +8,7 @@ extern crate rspack_allocator;
 use std::pin::Pin;
 use std::sync::Mutex;
 
-use compiler::Compiler;
+use compiler::{Compiler, CompilerState, CompilerStateGuard};
 use napi::bindgen_prelude::*;
 use rspack_binding_options::BuiltinPlugin;
 use rspack_core::PluginExt;
@@ -32,7 +32,7 @@ use rspack_tracing::chrome::FlushGuard;
 pub struct Rspack {
   js_plugin: JsHooksAdapterPlugin,
   compiler: Pin<Box<Compiler>>,
-  running: bool,
+  state: CompilerState,
 }
 
 #[napi]
@@ -73,7 +73,7 @@ impl Rspack {
 
     Ok(Self {
       compiler: Box::pin(Compiler::from(rspack)),
-      running: false,
+      state: CompilerState::init(),
       js_plugin,
     })
   }
@@ -87,8 +87,8 @@ impl Rspack {
   #[napi(ts_args_type = "callback: (err: null | Error) => void")]
   pub fn build(&mut self, env: Env, reference: Reference<Rspack>, f: JsFunction) -> Result<()> {
     unsafe {
-      self.run(env, reference, |compiler| {
-        callbackify(env, f, async {
+      self.run(env, reference, |compiler, _guard| {
+        callbackify(env, f, async move {
           compiler.build().await.map_err(|e| {
             Error::new(
               napi::Status::GenericFailure,
@@ -96,6 +96,7 @@ impl Rspack {
             )
           })?;
           tracing::info!("build ok");
+          drop(_guard);
           Ok(())
         })
       })
@@ -117,8 +118,8 @@ impl Rspack {
     use std::collections::HashSet;
 
     unsafe {
-      self.run(env, reference, |compiler| {
-        callbackify(env, f, async {
+      self.run(env, reference, |compiler, _guard| {
+        callbackify(env, f, async move {
           compiler
             .rebuild(
               HashSet::from_iter(changed_files.into_iter()),
@@ -132,6 +133,7 @@ impl Rspack {
               )
             })?;
           tracing::info!("rebuild ok");
+          drop(_guard);
           Ok(())
         })
       })
@@ -144,31 +146,29 @@ impl Rspack {
   ///
   /// ## Safety
   /// 1. The caller must ensure that the `Compiler` is not moved or dropped during the lifetime of the function.
-  /// 2. The mutable reference to `self.running` should never been exposed to the callback.
-  ///    Otherwise, this would lead to potential race condition for `Compiler`,
-  ///    especially when `build` or `rebuild` was called on JS side and its previous `build` or `rebuild` was yet to finish.
+  /// 2. `CompilerStateGuard` should only be dropped so soon as each `build` or `rebuild` session is finished.
+  ///    Otherwise, this would lead to potential race condition for `Compiler`, especially when `build` or `rebuild`
+  ///    was called on JS side and its previous `build` or `rebuild` was yet to finish.
   unsafe fn run<R>(
     &mut self,
     env: Env,
     reference: Reference<Rspack>,
-    f: impl FnOnce(&'static mut Compiler) -> Result<R>,
+    f: impl FnOnce(&'static mut Compiler, CompilerStateGuard) -> Result<R>,
   ) -> Result<R> {
-    if self.running {
+    if self.state.running() {
       return Err(concurrent_compiler_error());
     }
-    self.running = true;
-
+    let _guard = self.state.enter();
     let mut compiler = reference.share_with(env, |s| {
       // SAFETY: The mutable reference to `Compiler` is exclusive. It's guaranteed by the running state guard.
       Ok(unsafe { s.compiler.as_mut().get_unchecked_mut() })
     })?;
     // SAFETY: `Compiler` will not be moved, as it's stored on the heap.
     // `Compiler` is valid through the lifetime before it's closed by calling `Compiler.close()` or gc-ed.
-    let result =
-      f(unsafe { std::mem::transmute::<&mut Compiler, &'static mut Compiler>(*compiler) });
-
-    self.running = false;
-    result
+    f(
+      unsafe { std::mem::transmute::<&mut Compiler, &'static mut Compiler>(*compiler) },
+      _guard,
+    )
   }
 }
 
