@@ -1,11 +1,7 @@
-const { ECompilerType } = require("../..");
-
 let error;
 module.exports = {
 	description:
 		"should bubble up errors when wrapped in a promise and bail is true (empty dependency)",
-	name: __filename,
-	compilerType: ECompilerType.Rspack,
 	options(context) {
 		return {
 			context: context.getSource(),

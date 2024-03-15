@@ -1,5 +1,3 @@
-const { ECompilerType } = require("../..");
-
 class MyPlugin {
 	apply(compiler) {
 		compiler.hooks.compilation.tap("MyPlugin", compilation => {
@@ -11,8 +9,6 @@ class MyPlugin {
 let error;
 module.exports = {
 	description: "should print error with stack information with sync callback",
-	name: __filename,
-	compilerType: ECompilerType.Rspack,
 	options(context) {
 		return {
 			context: context.getSource(),

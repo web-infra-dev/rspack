@@ -1,5 +1,3 @@
-const { ECompilerType } = require("../..");
-
 class MyPlugin {
 	apply(compiler) {
 		let a = 1;
@@ -19,8 +17,6 @@ class MyPlugin {
 
 module.exports = {
 	description: "should call afterOptimizeModules hook correctly",
-	name: __filename,
-	compilerType: ECompilerType.Rspack,
 	options(context) {
 		return {
 			context: context.getSource(),

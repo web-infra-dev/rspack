@@ -1,9 +1,6 @@
-const { ECompilerType } = require("../..");
-
+const path = require("path");
 module.exports = {
 	description: "splitChunks.minChunks equals 0",
-	name: __filename,
-	compilerType: ECompilerType.Rspack,
 	options(context) {
 		return {
 			context: context.getSource(),
@@ -25,7 +22,7 @@ module.exports = {
 		});
 	},
 	async check(context) {
-		const errors = context.getError(__filename);
+		const errors = context.getError(path.basename(__filename));
 		expect(Array.isArray(errors)).toBeTruthy();
 		expect(errors.length).toBe(1);
 		expect(errors[0].toString()).toContain(

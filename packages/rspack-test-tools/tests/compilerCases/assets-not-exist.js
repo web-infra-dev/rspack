@@ -1,4 +1,3 @@
-const { ECompilerType } = require("../..");
 const mockFn = jest.fn();
 
 class MyPlugin {
@@ -30,8 +29,6 @@ class MyPlugin {
 
 module.exports = {
 	description: "should throw if the asset to be updated is not exist",
-	name: __filename,
-	compilerType: ECompilerType.Rspack,
 	options(context) {
 		return {
 			context: context.getSource(),

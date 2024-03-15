@@ -1,4 +1,3 @@
-const { ECompilerType } = require("../..");
 const store = {
 	mkdir: [],
 	writeFile: [],
@@ -7,8 +6,6 @@ const store = {
 
 module.exports = {
 	description: "should compile a single file",
-	name: __filename,
-	compilerType: ECompilerType.Rspack,
 	options(context) {
 		return {
 			mode: "production",
