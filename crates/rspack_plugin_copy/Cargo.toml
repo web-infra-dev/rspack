@@ -5,12 +5,6 @@ name       = "rspack_plugin_copy"
 repository = "https://github.com/web-infra-dev/rspack"
 version    = "0.1.0"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dev-dependencies]
-rspack_testing = { path = "../rspack_testing" }
-testing_macros = { workspace = true }
-
 [dependencies]
 dashmap        = { workspace = true }
 glob           = { workspace = true }

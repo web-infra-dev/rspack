@@ -36,6 +36,3 @@ color-backtrace = "0.6"
 
 [build-dependencies]
 napi-build = { workspace = true }
-
-[dev-dependencies]
-testing_macros = { workspace = true }

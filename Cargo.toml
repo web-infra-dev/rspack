@@ -7,7 +7,6 @@ anyhow             = { version = "1.0.81", features = ["backtrace"] }
 async-recursion    = { version = "1.0.5" }
 async-scoped       = { version = "0.9.0" }
 async-trait        = { version = "0.1.77" }
-backtrace          = "0.3"
 better_scoped_tls  = { version = "0.1.1" }
 bitflags           = { version = "2.4.2" }
 colored            = { version = "2.1.0" }
@@ -16,7 +15,6 @@ dashmap            = { version = "5.5.3" }
 derivative         = { version = "2.2.0" }
 derive_builder     = { version = "0.20.0" }
 futures            = { version = "0.3.30" }
-futures-util       = { version = "0.3.30" }
 glob               = { version = "0.3.1" }
 hashlink           = { version = "0.9.0" }
 indexmap           = { version = "2.2.5" }
@@ -30,8 +28,6 @@ once_cell          = { version = "1.19.0" }
 paste              = { version = "1.0" }
 path-clean         = { version = "1.0.1" }
 pathdiff           = { version = "0.2.1" }
-preset_env_base    = { version = "0.4.11" }
-proc-macro2        = { version = "1.0.79" }
 quote              = { version = "1.0.35" }
 rayon              = { version = "1.9.0" }
 regex              = { version = "1.10.3" }
@@ -56,21 +52,19 @@ xxhash-rust        = { version = "0.8.10" }
 napi              = { git = "https://github.com/h-a-n-a/napi-rs", branch = "rspack" }
 napi-build        = { git = "https://github.com/h-a-n-a/napi-rs", branch = "rspack" }
 napi-derive       = { git = "https://github.com/h-a-n-a/napi-rs", branch = "rspack" }
-napi-sys          = { git = "https://github.com/h-a-n-a/napi-rs", branch = "rspack" }
 tikv-jemallocator = { version = "=0.5.4", features = ["disable_initial_exec_tls"] }
 
 # Must be pinned with the same swc versions
+rkyv                = { version = "=0.7.42" }                            # synced with swc wasm plugin
 styled_components   = { version = "=0.96.3" }
 swc_config          = { version = "=0.1.10" }
 swc_core            = { version = "=0.89.6", default-features = false }
-swc_css             = { version = "=0.157.32" }
 swc_ecma_minifier   = { version = "=0.191.7", default-features = false }
 swc_emotion         = { version = "=0.72.2" }
 swc_error_reporters = { version = "=0.17.14" }
 swc_html            = { version = "=0.136.7" }
 swc_html_minifier   = { version = "=0.133.7" }
 swc_node_comments   = { version = "=0.20.14" }
-rkyv                = { version = "=0.7.42" } # synced with swc wasm plugin
 
 [profile.dev]
 codegen-units = 16      # debug build will cause runtime panic if codegen-unints is default

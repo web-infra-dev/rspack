@@ -394,9 +394,7 @@ version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ba3569f383e8f1598449f1a423e72e99569137b47740b1da11ef19af3d5c3223"
 dependencies = [
- "lazy_static",
  "memchr",
- "regex-automata 0.1.10",
 ]
 
 [[package]]
@@ -453,7 +451,6 @@ dependencies = [
  "serde",
  "serde_json",
  "similar",
- "testing_macros",
 ]
 
 [[package]]
@@ -1525,12 +1522,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 
 [[package]]
-name = "hrx-parser"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eb741d1d6fce95c065abb032a5f302299520a23928a95e96ab64799b5fd97f3a"
-
-[[package]]
 name = "hstr"
 version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2378,9 +2369,9 @@ dependencies = [
 
 [[package]]
 name = "paste"
-version = "1.0.13"
+version = "1.0.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b4b27ab7be369122c218afc2079489cdcb4b517c0a3fc386ff11e1fedfcc2b35"
+checksum = "de3145af08024dea9fa9914f381a17b8fc6034dfb00f3a84013f7ff43f29ed4c"
 
 [[package]]
 name = "path-clean"
@@ -3280,7 +3271,6 @@ dependencies = [
  "rspack_sources",
  "rustc-hash",
  "serde_json",
- "similar-asserts",
  "tokio",
 ]
 
@@ -3292,7 +3282,6 @@ dependencies = [
  "async-trait",
  "dashmap",
  "either",
- "indexmap 2.2.5",
  "jsonc-parser 0.23.0",
  "once_cell",
  "rspack_ast",
@@ -3307,7 +3296,6 @@ dependencies = [
  "serde_json",
  "swc_config",
  "swc_core",
- "tokio",
  "xxhash-rust",
 ]
 
@@ -3348,7 +3336,6 @@ dependencies = [
  "rspack_hook",
  "rspack_napi",
  "rspack_tracing",
- "testing_macros",
  "tokio",
  "tracing",
 ]
@@ -3400,10 +3387,8 @@ dependencies = [
  "rspack_futures",
  "rspack_hash",
  "rspack_hook",
- "rspack_testing",
  "rustc-hash",
  "sugar_path",
- "testing_macros",
  "tokio",
 ]
 
@@ -3414,9 +3399,7 @@ dependencies = [
  "async-trait",
  "bitflags 2.4.2",
  "heck 0.5.0",
- "hrx-parser",
  "indexmap 1.9.3",
- "insta",
  "once_cell",
  "rayon",
  "regex",
@@ -4202,17 +4185,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32fea41aca09ee824cc9724996433064c89f7777e60762749a4170a14abbfa21"
 dependencies = [
  "bstr",
- "unicode-segmentation",
-]
-
-[[package]]
-name = "similar-asserts"
-version = "1.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e041bb827d1bfca18f213411d51b665309f1afb37a04a5d1464530e13779fc0f"
-dependencies = [
- "console",
- "similar",
 ]
 
 [[package]]
