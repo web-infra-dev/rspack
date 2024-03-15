@@ -467,9 +467,6 @@ impl HarmonyExportImportedSpecifierDependency {
     } = ctxt;
     let mut fragments = vec![];
     let mg = &compilation.get_module_graph();
-    let imported_module = mg
-      .module_identifier_by_dependency_id(&self.id)
-      .expect("should have imported module identifier");
     let module_identifier = module.identifier();
     let import_var = mg.get_import_var(&self.id);
     match mode.ty {
@@ -584,6 +581,9 @@ impl HarmonyExportImportedSpecifierDependency {
         fragments.push(init_fragment);
       }
       ExportModeType::NormalReexport => {
+        let imported_module = mg
+          .module_identifier_by_dependency_id(&self.id)
+          .expect("should have imported module identifier");
         for item in mode.items.into_iter().flatten() {
           let NormalReexportItem {
             name,
