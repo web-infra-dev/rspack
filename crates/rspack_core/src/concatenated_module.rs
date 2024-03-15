@@ -559,7 +559,10 @@ impl Module for ConcatenatedModule {
 
       // populate dependencies
       for dep_id in module.get_dependencies() {
-        let dep = dep_id.get_dependency(compilation.get_module_graph());
+        let dep = compilation
+          .get_module_graph()
+          .dependency_by_id(dep_id)
+          .expect("should have dependency");
         let module_id_of_dep = compilation
           .get_module_graph()
           .module_identifier_by_dependency_id(dep_id);
@@ -1520,10 +1523,7 @@ impl ConcatenatedModule {
       .cloned()
       .collect::<Vec<_>>();
     if module_id == root_module_id {
-      let self_module = mg
-        .module_by_identifier(&self.id)
-        .expect("should have module");
-      for c in mg.get_outgoing_connections(self_module) {
+      for c in mg.get_outgoing_connections(&self.id) {
         connections.push(c.clone());
       }
     }
@@ -1531,7 +1531,9 @@ impl ConcatenatedModule {
     let mut references = connections
       .into_iter()
       .filter_map(|connection| {
-        let dep = connection.dependency_id.get_dependency(mg);
+        let dep = mg
+          .dependency_by_id(&connection.dependency_id)
+          .expect("should have dependency");
         if !is_harmony_dep_like(dep) {
           return None;
         }

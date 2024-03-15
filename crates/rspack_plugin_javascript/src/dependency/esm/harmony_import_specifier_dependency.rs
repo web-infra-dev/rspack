@@ -6,7 +6,7 @@ use rspack_core::{
   ModuleGraph, ModuleGraphModule, ModuleIdentifier, ReferencedExport, RuntimeSpec, TemplateContext,
   TemplateReplaceSource, UsedByExports,
 };
-use rspack_core::{get_import_var, property_access, ModuleReferenceOptions};
+use rspack_core::{property_access, ModuleReferenceOptions};
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::{common::Span, ecma::atoms::Atom};
 
@@ -190,7 +190,7 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
     }
 
     let ids = self.get_ids(compilation.get_module_graph());
-    let import_var = get_import_var(compilation.get_module_graph(), self.id);
+    let import_var = compilation.get_module_graph().get_import_var(&self.id);
 
     let export_expr = if let Some(scope) = concatenation_scope
       && let Some(con) = compilation

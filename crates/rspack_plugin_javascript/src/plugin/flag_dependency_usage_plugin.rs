@@ -172,8 +172,11 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
 
         // dbg!(
         //   &connection,
-        //   dep_id
-        //     .get_dependency(&self.compilation.get_module_graph())
+        //   self
+        //     .compilation
+        //     .get_module_graph()
+        //     .dependency_by_id(&dep_id)
+        //     .expect("should have dependency")
         //     .dependency_debug_name(),
         //   active_state
         // );

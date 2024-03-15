@@ -5,7 +5,7 @@ use once_cell::sync::Lazy;
 use rspack_core::tree_shaking::symbol::{self, IndirectTopLevelSymbol};
 use rspack_core::tree_shaking::visitor::SymbolRef;
 use rspack_core::{
-  filter_runtime, get_import_var, import_statement, merge_runtime, AsContextDependency,
+  filter_runtime, import_statement, merge_runtime, AsContextDependency,
   AwaitDependenciesInitFragment, ConditionalInitFragment, ConnectionState, Dependency,
   DependencyCategory, DependencyCondition, DependencyId, DependencyTemplate, DependencyType,
   ErrorSpan, ExtendedReferencedExport, InitFragmentExt, InitFragmentKey, InitFragmentStage,
@@ -219,7 +219,9 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
   let ref_module = compilation
     .get_module_graph()
     .module_identifier_by_dependency_id(module_dependency.id());
-  let import_var = get_import_var(compilation.get_module_graph(), *module_dependency.id());
+  let import_var = compilation
+    .get_module_graph()
+    .get_import_var(module_dependency.id());
   //
   // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/dependencies/HarmonyImportDependency.js#L282-L285
   let module_key = ref_module
@@ -419,7 +421,7 @@ impl DependencyTemplate for HarmonyImportSideEffectDependency {
     if let Some(scope) = concatenation_scope {
       let module = compilation
         .get_module_graph()
-        .get_module(&self.id)
+        .get_module_by_dependency_id(&self.id)
         .expect("should have module");
       if scope.is_module_in_scope(&module.identifier()) {
         return;

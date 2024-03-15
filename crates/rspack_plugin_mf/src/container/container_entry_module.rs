@@ -195,7 +195,9 @@ impl Module for ContainerEntryModule {
           .downcast_ref::<ContainerExposedDependency>()
           .expect("dependencies of ContainerEntryModule should be ContainerExposedDependency");
         let name = dep.exposed_name.as_str();
-        let module = compilation.get_module_graph().get_module(dependency_id);
+        let module = compilation
+          .get_module_graph()
+          .get_module_by_dependency_id(dependency_id);
         let user_request = dep.user_request();
         (name, module, user_request, dependency_id)
       });

@@ -89,9 +89,11 @@ impl Plugin for ExportPropertyLibraryPlugin {
         .library
         .as_ref()
         .or_else(|| compilation.options.output.library.as_ref());
-      let module_of_last_dep = dependencies
-        .last()
-        .and_then(|dep| compilation.get_module_graph().get_module(dep));
+      let module_of_last_dep = dependencies.last().and_then(|dep| {
+        compilation
+          .get_module_graph()
+          .get_module_by_dependency_id(dep)
+      });
       let Some(module_of_last_dep) = module_of_last_dep else {
         continue;
       };

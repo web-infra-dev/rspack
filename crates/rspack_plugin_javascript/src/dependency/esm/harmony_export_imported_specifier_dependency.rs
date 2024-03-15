@@ -4,14 +4,14 @@ use std::{collections::HashMap, sync::Arc};
 use indexmap::IndexSet;
 use rspack_core::{
   create_exports_object_referenced, create_no_exports_referenced, export_from_import,
-  get_exports_type, get_import_var, process_export_info, property_access, property_name,
-  string_of_used_name, AsContextDependency, ConnectionState, Dependency, DependencyCategory,
-  DependencyCondition, DependencyId, DependencyTemplate, DependencyType, ExportInfoId,
-  ExportInfoProvided, ExportNameOrSpec, ExportSpec, ExportsInfoId, ExportsOfExportsSpec,
-  ExportsSpec, ExportsType, ExtendedReferencedExport, HarmonyExportInitFragment, InitFragmentExt,
-  InitFragmentKey, InitFragmentStage, ModuleDependency, ModuleGraph, ModuleIdentifier,
-  NormalInitFragment, RuntimeGlobals, RuntimeSpec, Template, TemplateContext,
-  TemplateReplaceSource, UsageState, UsedName,
+  get_exports_type, process_export_info, property_access, property_name, string_of_used_name,
+  AsContextDependency, ConnectionState, Dependency, DependencyCategory, DependencyCondition,
+  DependencyId, DependencyTemplate, DependencyType, ExportInfoId, ExportInfoProvided,
+  ExportNameOrSpec, ExportSpec, ExportsInfoId, ExportsOfExportsSpec, ExportsSpec, ExportsType,
+  ExtendedReferencedExport, HarmonyExportInitFragment, InitFragmentExt, InitFragmentKey,
+  InitFragmentStage, ModuleDependency, ModuleGraph, ModuleIdentifier, NormalInitFragment,
+  RuntimeGlobals, RuntimeSpec, Template, TemplateContext, TemplateReplaceSource, UsageState,
+  UsedName,
 };
 use rustc_hash::{FxHashSet as HashSet, FxHasher};
 use swc_core::ecma::atoms::Atom;
@@ -471,7 +471,7 @@ impl HarmonyExportImportedSpecifierDependency {
       .module_identifier_by_dependency_id(&self.id)
       .expect("should have imported module identifier");
     let module_identifier = module.identifier();
-    let import_var = get_import_var(mg, self.id);
+    let import_var = mg.get_import_var(&self.id);
     match mode.ty {
       ExportModeType::Missing | ExportModeType::EmptyStar => {
         fragments.push(
@@ -877,7 +877,7 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
       .module_by_identifier(&module.identifier())
       .expect("should have module graph module");
 
-    let import_var = get_import_var(compilation.get_module_graph(), self.id);
+    let import_var = compilation.get_module_graph().get_import_var(&self.id);
     let is_new_treeshaking = compilation.options.is_new_tree_shaking();
 
     let mut used_exports = if is_new_treeshaking {

@@ -243,14 +243,15 @@ where
       {
         let module_graph = self.compilation.get_module_graph_mut();
         for (module_identifier, exports_map) in exports_info_map.into_iter() {
-          let mgm = module_graph.module_graph_module_by_identifier(&module_identifier);
-          if let Some(mgm) = mgm {
-            let exports = module_graph.exports_info_map.get_mut(*mgm.exports as usize);
+          let exports_id = module_graph
+            .module_graph_module_by_identifier(&module_identifier)
+            .map(|mgm| mgm.exports);
+          if let Some(exports_id) = &exports_id {
             for (name, export_info) in exports_map {
-              exports.exports.insert(name, export_info.id);
-              module_graph
-                .export_info_map
-                .insert(*export_info.id as usize, export_info);
+              let exports = module_graph.get_exports_info_mut_by_id(exports_id);
+              let export_id = export_info.id;
+              exports.exports.insert(name, export_id);
+              module_graph.set_export_info(export_id, export_info);
             }
           }
         }

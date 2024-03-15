@@ -323,7 +323,7 @@ impl DependencyTemplate for CommonJsExportRequireDependency {
       false,
     );
 
-    if let Some(imported_module) = mg.get_module(&self.id) {
+    if let Some(imported_module) = mg.get_module_by_dependency_id(&self.id) {
       let ids = self.get_ids(mg);
       if let Some(used_imported) = mg
         .get_exports_info(&imported_module.identifier())

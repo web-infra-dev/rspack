@@ -238,7 +238,7 @@ impl ChunkGraph {
 
     if with_connections {
       let mut connections = module_graph
-        .get_outgoing_connections(module)
+        .get_outgoing_connections(&module.identifier())
         .into_iter()
         .collect::<Vec<_>>();
 

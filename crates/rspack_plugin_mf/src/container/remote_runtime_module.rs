@@ -70,7 +70,7 @@ impl RuntimeModule for RemoteRuntimeModule {
         let dep = m.get_dependencies()[0];
         let external_module = compilation
           .get_module_graph()
-          .get_module(&dep)
+          .get_module_by_dependency_id(&dep)
           .expect("should have module");
         let external_module_id = compilation
           .chunk_graph
