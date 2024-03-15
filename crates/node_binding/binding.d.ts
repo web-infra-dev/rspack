@@ -63,7 +63,7 @@ export class JsStats {
 }
 
 export class Rspack {
-  constructor(options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, jsHooks: JsHooks, registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, jsLoaderRunner: (ctx: JsLoaderContext) => Promise<JsLoaderResult | void>)
+  constructor(options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, jsHooks: JsHooks, registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS)
   setDisabledHooks(hooks: Array<string>): void
   /** Build with the given option passed to the constructor */
   build(callback: (err: null | Error) => void): void
@@ -174,7 +174,7 @@ export enum BuiltinPluginName {
   SwcJsMinimizerRspackPlugin = 'SwcJsMinimizerRspackPlugin',
   SwcCssMinimizerRspackPlugin = 'SwcCssMinimizerRspackPlugin',
   BundlerInfoRspackPlugin = 'BundlerInfoRspackPlugin',
-  JsLoaderRunnerRspackPlugin = 'JsLoaderRunnerRspackPlugin'
+  JsLoaderRspackPlugin = 'JsLoaderRspackPlugin'
 }
 
 export function cleanupGlobalTrace(): void

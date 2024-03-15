@@ -53,6 +53,8 @@ export * from "./CopyRspackPlugin";
 export * from "./SwcJsMinimizerPlugin";
 export * from "./SwcCssMinimizerPlugin";
 
+export * from "./JsLoaderRspackPlugin";
+
 ///// DEPRECATED /////
 import { RawBuiltins, RawCssModulesConfig } from "@rspack/binding";
 import { RspackOptionsNormalized } from "..";

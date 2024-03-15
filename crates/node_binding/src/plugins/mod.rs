@@ -1,5 +1,4 @@
 mod interceptor;
-mod loader;
 use std::fmt;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -30,7 +29,6 @@ use self::interceptor::{
   RegisterCompilationProcessAssetsTaps, RegisterCompilerCompilationTaps, RegisterCompilerMakeTaps,
   RegisterNormalModuleFactoryBeforeResolveTaps,
 };
-pub use self::loader::JsLoaderResolver;
 use crate::{DisabledHooks, Hook, JsCompilation, JsHooks};
 
 pub struct JsHooksAdapterInner {
@@ -554,7 +552,7 @@ impl JsHooksAdapterPlugin {
     self.disabled_hooks.is_hook_disabled(hook)
   }
 
-  pub fn set_disabled_hooks(&self, hooks: Vec<String>) -> Result<()> {
+  pub fn set_disabled_hooks(&self, hooks: Vec<String>) {
     self.disabled_hooks.set_disabled_hooks(hooks)
   }
 }
