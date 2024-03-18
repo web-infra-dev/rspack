@@ -14,7 +14,6 @@ rspack_testing = { path = "../rspack_testing" }
 
 [dependencies]
 anyhow            = { workspace = true }
-async-trait       = { workspace = true }
 dojang            = "0.1.6"
 itertools         = { workspace = true }
 path-clean        = { workspace = true }

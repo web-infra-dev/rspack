@@ -4,11 +4,11 @@ use rspack_error::{error, Result};
 use tracing::instrument;
 
 use crate::{
-  cache::Cache, resolve, BoxModule, ContextModule, ContextModuleOptions, DependencyCategory,
-  ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier,
-  NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs,
-  PluginNormalModuleFactoryAfterResolveOutput, RawModule, ResolveArgs,
-  ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory, SharedPluginDriver,
+  cache::Cache, resolve, BeforeResolveArgs, BoxModule, ContextModule, ContextModuleOptions,
+  DependencyCategory, ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult,
+  ModuleIdentifier, NormalModuleAfterResolveArgs, PluginNormalModuleFactoryAfterResolveOutput,
+  RawModule, ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult, Resolver,
+  ResolverFactory, SharedPluginDriver,
 };
 
 #[derive(Debug)]
@@ -57,7 +57,7 @@ impl ContextModuleFactory {
       .dependency
       .as_context_dependency_mut()
       .expect("should be module dependency");
-    let mut before_resolve_args = NormalModuleBeforeResolveArgs {
+    let mut before_resolve_args = BeforeResolveArgs {
       request: dependency.request().to_string(),
       context: data.context.to_string(),
     };
@@ -179,8 +179,8 @@ impl ContextModuleFactory {
         ContextModuleOptions {
           addon: loader_request.to_string(),
           resource: resource.path.to_string_lossy().to_string(),
-          resource_query: resource.query,
-          resource_fragment: resource.fragment,
+          resource_query: Some(resource.query),
+          resource_fragment: Some(resource.fragment),
           resolve_options: data.resolve_options.clone(),
           context_options: dependency.options().clone(),
         },
@@ -234,6 +234,7 @@ impl ContextModuleFactory {
         missing_dependencies: &data.missing_dependencies,
         diagnostics: &mut data.diagnostics,
         factory_meta: &factory_result.factory_meta,
+        create_data: None,
       })
       .await
   }

@@ -1,4 +1,6 @@
 #![recursion_limit = "256"]
+extern crate rspack_allocator;
+
 use std::{hint::black_box, path::PathBuf};
 
 use criterion::{criterion_group, criterion_main, Criterion};
@@ -6,18 +8,6 @@ use rspack_core::Compiler;
 use rspack_fs::AsyncNativeFileSystem;
 use rspack_testing::apply_from_fixture;
 use xshell::{cmd, Shell};
-
-#[cfg(not(target_os = "linux"))]
-#[global_allocator]
-static GLOBAL: mimalloc_rust::GlobalMiMalloc = mimalloc_rust::GlobalMiMalloc;
-
-#[cfg(all(
-  target_os = "linux",
-  target_env = "gnu",
-  any(target_arch = "x86_64", target_arch = "aarch64")
-))]
-#[global_allocator]
-static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
 
 async fn bench(cur_dir: &PathBuf) {
   let (options, plugins) = apply_from_fixture(cur_dir);

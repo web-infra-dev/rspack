@@ -61,12 +61,11 @@ pub struct Compilation {
   // The status is different, should generate different hash for `.hot-update.js`
   // So use compilation hash update `hot_index` to fix it.
   pub hot_index: u32,
-  pub hooks: Arc<CompilationHooks>,
   pub records: Option<CompilationRecords>,
   pub options: Arc<CompilerOptions>,
   pub entries: Entry,
   pub global_entry: EntryData,
-  pub module_graph: ModuleGraph,
+  module_graph: ModuleGraph,
   dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
   pub make_failed_dependencies: HashSet<BuildDependency>,
   pub make_failed_module: HashSet<ModuleIdentifier>,
@@ -143,12 +142,11 @@ impl Compilation {
     resolver_factory: Arc<ResolverFactory>,
     loader_resolver_factory: Arc<ResolverFactory>,
     records: Option<CompilationRecords>,
-    hooks: Arc<CompilationHooks>,
     cache: Arc<Cache>,
   ) -> Self {
+    let module_graph = module_graph.with_treeshaking(options.is_new_tree_shaking());
     Self {
       hot_index: 0,
-      hooks,
       records,
       options,
       module_graph,
@@ -203,6 +201,14 @@ impl Compilation {
     }
   }
 
+  pub fn get_module_graph(&self) -> &ModuleGraph {
+    &self.module_graph
+  }
+
+  pub fn get_module_graph_mut(&mut self) -> &mut ModuleGraph {
+    &mut self.module_graph
+  }
+
   pub fn get_entry_runtime(&self, name: &String, options: Option<&EntryOptions>) -> RuntimeSpec {
     let (_, runtime) = if let Some(options) = options {
       ((), options.runtime.as_ref())
@@ -221,7 +227,7 @@ impl Compilation {
 
   pub fn add_entry(&mut self, entry: BoxDependency, options: EntryOptions) -> Result<()> {
     let entry_id = *entry.id();
-    self.module_graph.add_dependency(entry);
+    self.get_module_graph_mut().add_dependency(entry);
     if let Some(name) = options.name.clone() {
       if let Some(data) = self.entries.get_mut(&name) {
         data.dependencies.push(entry_id);
@@ -242,7 +248,7 @@ impl Compilation {
 
   pub async fn add_include(&mut self, entry: BoxDependency, options: EntryOptions) -> Result<()> {
     let entry_id = *entry.id();
-    self.module_graph.add_dependency(entry);
+    self.get_module_graph_mut().add_dependency(entry);
     if let Some(name) = options.name.clone() {
       if let Some(data) = self.entries.get_mut(&name) {
         data.include_dependencies.push(entry_id);
@@ -496,10 +502,11 @@ impl Compilation {
       logger.time_end(start);
     }
 
+    let module_graph = self.get_module_graph();
     Ok(
       module_identifiers
         .into_iter()
-        .filter_map(|id| self.module_graph.module_by_identifier(&id))
+        .filter_map(|id| module_graph.module_by_identifier(&id))
         .collect::<Vec<_>>(),
     )
   }
@@ -525,7 +532,7 @@ impl Compilation {
         codegen_cache_counter,
         used_exports_optimization,
         compilation
-          .module_graph
+          .get_module_graph()
           .modules()
           .iter()
           .filter(filter_op)
@@ -548,7 +555,7 @@ impl Compilation {
     // and it is widely called after compilation.finish()
     // so add this method to trigger moduleGraph modification and
     // then make sure that moduleGraph is immutable
-    prepare_get_exports_type(&mut self.module_graph);
+    prepare_get_exports_type(self.get_module_graph_mut());
 
     run_iteration(self, &mut codegen_cache_counter, |(_, module)| {
       module.get_code_generation_dependencies().is_none()
@@ -581,7 +588,7 @@ impl Compilation {
         }
 
         let module = self
-          .module_graph
+          .get_module_graph()
           .module_by_identifier(&module_identifier)
           .expect("module should exist");
         let res = self
@@ -642,7 +649,8 @@ impl Compilation {
 
   #[instrument(name = "compilation::create_module_assets", skip_all)]
   async fn create_module_assets(&mut self, _plugin_driver: SharedPluginDriver) {
-    for (module_identifier, module) in self.module_graph.modules() {
+    let mut temp = vec![];
+    for (module_identifier, module) in self.get_module_graph().modules() {
       if let Some(build_info) = module.build_info() {
         for asset in build_info.asset_filenames.iter() {
           for chunk in self
@@ -650,12 +658,16 @@ impl Compilation {
             .get_module_chunks(*module_identifier)
             .iter()
           {
-            let chunk = self.chunk_by_ukey.expect_get_mut(chunk);
-            chunk.auxiliary_files.insert(asset.clone());
+            temp.push((*chunk, asset.clone()))
           }
           // already emitted asset by loader, so no need to re emit here
         }
       }
+    }
+
+    for (chunk, asset) in temp {
+      let chunk = self.chunk_by_ukey.expect_get_mut(&chunk);
+      chunk.auxiliary_files.insert(asset);
     }
   }
 
@@ -799,7 +811,8 @@ impl Compilation {
     logger.time_end(start);
 
     // if self.options.is_new_tree_shaking() {
-    //   debug_all_exports_info!(&self.module_graph);
+    //   // let filter = |item: &str| ["config-provider"].iter().any(|pat| item.contains(pat));
+    //   // debug_all_exports_info!(&self.module_graph, filter);
     // }
     let start = logger.time("create chunks");
     use_code_splitting_cache(self, |compilation| async {
@@ -814,7 +827,9 @@ impl Compilation {
 
     let start = logger.time("optimize");
     plugin_driver.optimize_tree(self).await?;
+
     plugin_driver.optimize_chunk_modules(self).await?;
+
     logger.time_end(start);
 
     let start = logger.time("module ids");
@@ -834,15 +849,12 @@ impl Compilation {
     let start = logger.time("code generation");
     self.code_generation()?;
     logger.time_end(start);
-    // if self.options.is_new_tree_shaking() {
-    //   debug_all_exports_info!(&self.module_graph);
-    // }
 
     let start = logger.time("runtime requirements");
     self
       .process_runtime_requirements(
         self
-          .module_graph
+          .get_module_graph()
           .modules()
           .keys()
           .copied()
@@ -872,7 +884,11 @@ impl Compilation {
     logger.time_end(start);
 
     let start = logger.time("process assets");
-    self.hooks.clone().process_assets.call(self).await?;
+    plugin_driver
+      .compilation_hooks
+      .process_assets
+      .call(self)
+      .await?;
     logger.time_end(start);
 
     let start = logger.time("after process assets");
@@ -897,7 +913,10 @@ impl Compilation {
         .or(entrypoint.name().map(|n| n.to_string()));
       if let (Some(runtime), Some(chunk)) = (
         runtime,
-        get_chunk_from_ukey(&entrypoint.get_runtime_chunk(), chunk_by_ukey),
+        get_chunk_from_ukey(
+          &entrypoint.get_runtime_chunk(chunk_group_by_ukey),
+          chunk_by_ukey,
+        ),
       ) {
         chunk_graph.set_runtime_id(runtime, chunk.id.clone());
       }
@@ -923,11 +942,11 @@ impl Compilation {
   pub fn get_chunk_graph_entries(&self) -> HashSet<ChunkUkey> {
     let entries = self.entrypoints.values().map(|entrypoint_ukey| {
       let entrypoint = self.chunk_group_by_ukey.expect_get(entrypoint_ukey);
-      entrypoint.get_runtime_chunk()
+      entrypoint.get_runtime_chunk(&self.chunk_group_by_ukey)
     });
     let async_entries = self.async_entrypoints.iter().map(|entrypoint_ukey| {
       let entrypoint = self.chunk_group_by_ukey.expect_get(entrypoint_ukey);
-      entrypoint.get_runtime_chunk()
+      entrypoint.get_runtime_chunk(&self.chunk_group_by_ukey)
     });
     HashSet::from_iter(entries.chain(async_entries))
   }
@@ -999,7 +1018,7 @@ impl Compilation {
       let mut set = RuntimeGlobals::default();
       for module in self
         .chunk_graph
-        .get_chunk_modules(&chunk_ukey, &self.module_graph)
+        .get_chunk_modules(&chunk_ukey, self.get_module_graph())
       {
         let chunk = self.chunk_by_ukey.expect_get(&chunk_ukey);
         if let Some(runtime_requirements) = self
@@ -1228,7 +1247,7 @@ impl Compilation {
   // #[instrument(name = "compilation:create_module_hash", skip_all)]
   // pub fn create_module_hash(&mut self) {
   //   let module_hash_map: HashMap<ModuleIdentifier, u64> = self
-  //     .module_graph
+  //     .get_module_graph()
   //     .module_identifier_to_module
   //     .par_iter()
   //     .map(|(identifier, module)| {
@@ -1523,9 +1542,8 @@ pub fn assign_depths(
         vac.insert(depth);
       }
     };
-    let m = mg.module_by_identifier(&id).expect("should have module");
-    for con in mg.get_outgoing_connections(m) {
-      q.push_back((con.module_identifier, depth + 1));
+    for con in mg.get_outgoing_connections(&id) {
+      q.push_back((*con.module_identifier(), depth + 1));
     }
   }
 }
@@ -1553,9 +1571,8 @@ pub fn assign_depth(
   while let Some(item) = q.pop_front() {
     depth = assign_map.get(&item).expect("should have depth") + 1;
 
-    let m = mg.module_by_identifier(&item).expect("should have module");
-    for con in mg.get_outgoing_connections(m) {
-      process_module(con.module_identifier, depth, &mut q, assign_map);
+    for con in mg.get_outgoing_connections(&item) {
+      process_module(*con.module_identifier(), depth, &mut q, assign_map);
     }
   }
 }

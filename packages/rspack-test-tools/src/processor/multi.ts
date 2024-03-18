@@ -59,10 +59,13 @@ export class MultiTaskProcessor<T extends ECompilerType = ECompilerType.Rspack>
 								? [curBundles]
 								: [];
 
-						const multiFileIndexMap: Record<string, number> =
+						const multiFileIndexMap: Record<string, number[]> =
 							context.getValue(_multiOptions.name, "multiFileIndexMap") || {};
 						for (const bundle of bundles) {
-							multiFileIndexMap[bundle] = index;
+							multiFileIndexMap[bundle] = [
+								...(multiFileIndexMap[bundle] || []),
+								index
+							];
 						}
 						context.setValue(
 							_multiOptions.name,

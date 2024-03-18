@@ -53,6 +53,8 @@ export * from "./CopyRspackPlugin";
 export * from "./SwcJsMinimizerPlugin";
 export * from "./SwcCssMinimizerPlugin";
 
+export * from "./JsLoaderRspackPlugin";
+
 ///// DEPRECATED /////
 import { RawBuiltins, RawCssModulesConfig } from "@rspack/binding";
 import { RspackOptionsNormalized } from "..";
@@ -69,8 +71,8 @@ function resolveTreeShaking(
 	return treeShaking !== undefined
 		? treeShaking.toString()
 		: production
-		? "true"
-		: "false";
+			? "true"
+			: "false";
 }
 
 export interface Builtins {
@@ -97,7 +99,7 @@ export function deprecated_resolveBuiltins(
 						...builtins.css?.modules
 					},
 					namedExports: builtins.css?.namedExports
-			  }
+				}
 			: undefined,
 		treeShaking: resolveTreeShaking(builtins.treeShaking, production)
 	};

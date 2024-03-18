@@ -5,41 +5,16 @@ import {
 	RspackWatchStepProcessor
 } from "../processor/watch";
 import { BasicCaseCreator } from "../test/creator";
-import { ECompilerType, ITester, TTestConfig } from "../type";
 import { WatchRunnerFactory } from "../runner";
 
-class WatchCaseCreator<T extends ECompilerType> extends BasicCaseCreator<T> {
-	protected describe(
-		name: string,
-		tester: ITester,
-		testConfig: TTestConfig<T>
-	) {
-		beforeAll(async () => {
-			await tester.prepare();
-		});
-
-		for (let index = 0; index < tester.total; index++) {
-			it(
-				index === 0 ? `${name} should compile` : "should compile the next step",
-				async () => {
-					await tester.compile();
-					await tester.check(env);
-					tester.next();
-				},
-				5000
-			);
-			const env = this.createEnv(testConfig);
-		}
-
-		afterAll(async () => {
-			await tester.resume();
-		});
-	}
-}
-
-const creator = new WatchCaseCreator({
+const creator = new BasicCaseCreator({
 	clean: true,
 	runner: WatchRunnerFactory,
+	description: (name, index) => {
+		return index === 0
+			? `${name} should compile`
+			: "should compile the next step";
+	},
 	describe: false,
 	steps: ({ name, src, temp }) => {
 		const runs = fs

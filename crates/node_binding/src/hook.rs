@@ -9,11 +9,8 @@ pub enum Hook {
   AfterProcessAssets,
   Emit,
   AssetEmitted,
-  ShouldEmit,
   AfterEmit,
   OptimizeChunkModules,
-  BeforeCompile,
-  AfterCompile,
   FinishModules,
   OptimizeModules,
   AfterOptimizeModules,
@@ -25,7 +22,6 @@ pub enum Hook {
   NormalModuleFactoryResolveForScheme,
   NormalModuleFactoryCreateModule,
   AfterResolve,
-  BeforeResolve,
   SucceedModule,
   StillValidModule,
   ExecuteModule,
@@ -41,11 +37,8 @@ impl From<String> for Hook {
       "afterProcessAssets" => Hook::AfterProcessAssets,
       "emit" => Hook::Emit,
       "assetEmitted" => Hook::AssetEmitted,
-      "shouldEmit" => Hook::ShouldEmit,
       "afterEmit" => Hook::AfterEmit,
       "optimizeChunkModules" => Hook::OptimizeChunkModules,
-      "beforeCompile" => Hook::BeforeCompile,
-      "afterCompile" => Hook::AfterCompile,
       "finishModules" => Hook::FinishModules,
       "optimizeModules" => Hook::OptimizeModules,
       "afterOptimizeModules" => Hook::AfterOptimizeModules,
@@ -56,7 +49,6 @@ impl From<String> for Hook {
       "normalModuleFactoryCreateModule" => Hook::NormalModuleFactoryCreateModule,
       "normalModuleFactoryResolveForScheme" => Hook::NormalModuleFactoryResolveForScheme,
       "afterResolve" => Hook::AfterResolve,
-      "beforeResolve" => Hook::BeforeResolve,
       "succeedModule" => Hook::SucceedModule,
       "stillValidModule" => Hook::StillValidModule,
       "executeModule" => Hook::ExecuteModule,
@@ -70,10 +62,9 @@ impl From<String> for Hook {
 pub struct DisabledHooks(RwLock<Vec<Hook>>);
 
 impl DisabledHooks {
-  pub fn set_disabled_hooks(&self, hooks: Vec<String>) -> napi::Result<()> {
+  pub fn set_disabled_hooks(&self, hooks: Vec<String>) {
     let mut disabled_hooks = self.0.write().expect("failed to write lock");
     *disabled_hooks = hooks.into_iter().map(Into::into).collect::<Vec<Hook>>();
-    Ok(())
   }
 
   pub fn is_hook_disabled(&self, hook: &Hook) -> bool {

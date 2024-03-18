@@ -2,10 +2,10 @@ use std::borrow::Cow;
 use std::hash::Hash;
 use std::iter;
 
-use rspack_core_macros::impl_source_map_config;
 use rspack_error::{error, impl_empty_diagnosable_trait, Diagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
+use rspack_macros::impl_source_map_config;
 use rspack_util::source_map::SourceMapKind;
 use rustc_hash::FxHashMap as HashMap;
 use serde::Serialize;
@@ -224,7 +224,7 @@ module.exports = new Promise(function(resolve, reject) {{
       }
       "amd" | "amd-require" | "umd" | "umd2" | "system" | "jsonp" => {
         let id = compilation
-          .module_graph
+          .get_module_graph()
           .module_graph_module_by_identifier(&self.identifier())
           .map(|m| m.id(&compilation.chunk_graph))
           .unwrap_or_default();
@@ -243,7 +243,7 @@ module.exports = new Promise(function(resolve, reject) {{
       "module" if let Some(request) = request => {
         if compilation.options.output.module {
           let id = compilation
-            .module_graph
+            .get_module_graph()
             .module_graph_module_by_identifier(&self.identifier())
             .map(|m| m.id(&compilation.chunk_graph))
             .unwrap_or_default();

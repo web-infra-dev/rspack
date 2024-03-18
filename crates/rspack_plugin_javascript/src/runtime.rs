@@ -13,7 +13,7 @@ pub fn render_chunk_modules(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
 ) -> Result<(BoxSource, ChunkInitFragments)> {
-  let module_graph = &compilation.module_graph;
+  let module_graph = &compilation.get_module_graph();
   let ordered_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
     chunk_ukey,
     SourceType::JavaScript,
@@ -28,7 +28,7 @@ pub fn render_chunk_modules(
   let mut module_code_array = ordered_modules
     .par_iter()
     .filter(|module| {
-      compilation.module_graph.is_new_treeshaking
+      compilation.get_module_graph().is_new_treeshaking()
         || include_module_ids.contains(&module.identifier())
     })
     .filter_map(|module| {

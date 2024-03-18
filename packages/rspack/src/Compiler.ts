@@ -96,7 +96,7 @@ class Compiler {
 		normalModuleFactory: tapable.SyncHook<NormalModuleFactory>;
 		contextModuleFactory: tapable.SyncHook<ContextModuleFactory>;
 		initialize: tapable.SyncHook<[]>;
-		shouldEmit: tapable.SyncBailHook<[Compilation], boolean>;
+		shouldEmit: liteTapable.SyncBailHook<[Compilation], boolean>;
 		infrastructureLog: tapable.SyncBailHook<[string, string, any[]], true>;
 		beforeRun: tapable.AsyncSeriesHook<[Compiler]>;
 		run: tapable.AsyncSeriesHook<[Compiler]>;
@@ -140,7 +140,7 @@ class Compiler {
 		this.removedFiles = undefined;
 		this.hooks = {
 			initialize: new SyncHook([]),
-			shouldEmit: new tapable.SyncBailHook(["compilation"]),
+			shouldEmit: new liteTapable.SyncBailHook(["compilation"]),
 			done: new tapable.AsyncSeriesHook<Stats>(["stats"]),
 			afterDone: new tapable.SyncHook<Stats>(["stats"]),
 			beforeRun: new tapable.AsyncSeriesHook(["compiler"]),
@@ -233,10 +233,7 @@ class Compiler {
 			rawOptions,
 			this.builtinPlugins,
 			{
-				beforeCompile: this.#beforeCompile.bind(this),
-				afterCompile: this.#afterCompile.bind(this),
 				finishMake: this.#finishMake.bind(this),
-				shouldEmit: this.#shouldEmit.bind(this),
 				emit: this.#emit.bind(this),
 				assetEmitted: this.#assetEmitted.bind(this),
 				afterEmit: this.#afterEmit.bind(this),
@@ -256,7 +253,6 @@ class Compiler {
 				normalModuleFactoryResolveForScheme:
 					this.#normalModuleFactoryResolveForScheme.bind(this),
 				chunkAsset: this.#chunkAsset.bind(this),
-				beforeResolve: this.#beforeResolve.bind(this),
 				afterResolve: this.#afterResolve.bind(this),
 				contextModuleFactoryBeforeResolve:
 					this.#contextModuleFactoryBeforeResolve.bind(this),
@@ -269,14 +265,43 @@ class Compiler {
 				runtimeModule: this.#runtimeModule.bind(this)
 			},
 			{
-				registerCompilerCompilationTaps:
-					this.#registerCompilerCompilationTaps.bind(this),
-				registerCompilerMakeTaps: this.#registerCompilerMakeTaps.bind(this),
-				registerCompilationProcessAssetsTaps:
-					this.#registerCompilationProcessAssetsTaps.bind(this)
+				registerCompilerCompilationTaps: this.#createRegisterTaps(
+					() => this.hooks.compilation,
+					queried => () =>
+						queried.call(this.compilation, {
+							normalModuleFactory: this.compilation.normalModuleFactory!
+						})
+				),
+				registerCompilerMakeTaps: this.#createRegisterTaps(
+					() => this.hooks.make,
+					queried => async () => await queried.promise(this.compilation)
+				),
+				registerCompilerShouldEmitTaps: this.#createRegisterTaps(
+					() => this.hooks.shouldEmit,
+					queried => () => queried.call(this.compilation)
+				),
+				registerCompilationProcessAssetsTaps: this.#createRegisterTaps(
+					() => this.compilation.hooks.processAssets,
+					queried => async () => await queried.promise(this.compilation.assets)
+				),
+				registerNormalModuleFactoryBeforeResolveTaps: this.#createRegisterTaps(
+					() => this.compilation.normalModuleFactory!.hooks.beforeResolve,
+					queried => async (resolveData: binding.JsBeforeResolveArgs) => {
+						const normalizedResolveData = {
+							request: resolveData.request,
+							context: resolveData.context,
+							fileDependencies: [],
+							missingDependencies: [],
+							contextDependencies: []
+						};
+						const ret = await queried.promise(normalizedResolveData);
+						resolveData.request = normalizedResolveData.request;
+						resolveData.context = normalizedResolveData.context;
+						return [ret, resolveData];
+					}
+				)
 			},
-			createThreadsafeNodeFSFromRaw(this.outputFileSystem),
-			runLoaders.bind(undefined, this)
+			createThreadsafeNodeFSFromRaw(this.outputFileSystem)
 		);
 
 		callback(null, this.#instance);
@@ -498,10 +523,7 @@ class Compiler {
 		const disabledHooks: string[] = [];
 		type HookMap = Record<keyof binding.JsHooks, any>;
 		const hookMap: HookMap = {
-			beforeCompile: this.hooks.beforeCompile,
-			afterCompile: this.hooks.afterCompile,
 			finishMake: this.hooks.finishMake,
-			shouldEmit: this.hooks.shouldEmit,
 			emit: this.hooks.emit,
 			assetEmitted: this.hooks.assetEmitted,
 			afterEmit: this.hooks.afterEmit,
@@ -511,7 +533,6 @@ class Compiler {
 			optimizeModules: this.compilation.hooks.optimizeModules,
 			afterOptimizeModules: this.compilation.hooks.afterOptimizeModules,
 			chunkAsset: this.compilation.hooks.chunkAsset,
-			beforeResolve: this.compilation.normalModuleFactory?.hooks.beforeResolve,
 			afterResolve: this.compilation.normalModuleFactory?.hooks.afterResolve,
 			succeedModule: this.compilation.hooks.succeedModule,
 			stillValidModule: this.compilation.hooks.stillValidModule,
@@ -537,8 +558,8 @@ class Compiler {
 				(hook.taps
 					? !hook.isUsed()
 					: hook._map
-					? /* hook map */ hook._map.size === 0
-					: false)
+						? /* hook map */ hook._map.size === 0
+						: false)
 			) {
 				disabledHooks.push(name);
 			}
@@ -550,21 +571,10 @@ class Compiler {
 				if (error) {
 					return callback?.(error);
 				}
-				instance!.unsafe_set_disabled_hooks(disabledHooks);
+				instance!.setDisabledHooks(disabledHooks);
 				this.#disabledHooks = disabledHooks;
 			});
 		}
-	}
-
-	async #beforeCompile() {
-		await this.hooks.beforeCompile.promise();
-		// compilation is not created yet, so this will fail
-		// this.#updateDisabledHooks();
-	}
-
-	async #afterCompile() {
-		await this.hooks.afterCompile.promise(this.compilation);
-		this.#updateDisabledHooks();
 	}
 
 	async #finishMake() {
@@ -585,25 +595,6 @@ class Compiler {
 		this.#updateDisabledHooks();
 	}
 
-	async #beforeResolve(resolveData: binding.BeforeResolveData) {
-		const normalizedResolveData = {
-			request: resolveData.request,
-			context: resolveData.context,
-			fileDependencies: [],
-			missingDependencies: [],
-			contextDependencies: []
-		};
-		let ret =
-			await this.compilation.normalModuleFactory?.hooks.beforeResolve.promise(
-				normalizedResolveData
-			);
-
-		this.#updateDisabledHooks();
-		resolveData.request = normalizedResolveData.request;
-		resolveData.context = normalizedResolveData.context;
-		return [ret, resolveData];
-	}
-
 	async #afterResolve(resolveData: binding.AfterResolveData) {
 		let res =
 			await this.compilation.normalModuleFactory?.hooks.afterResolve.promise(
@@ -621,11 +612,11 @@ class Compiler {
 			}
 		);
 		this.#updateDisabledHooks();
-		return res;
+		return [res, resolveData.createData];
 	}
 
 	async #contextModuleFactoryBeforeResolve(
-		resourceData: binding.BeforeResolveData
+		resourceData: binding.JsBeforeResolveArgs
 	) {
 		let res =
 			await this.compilation.contextModuleFactory?.hooks.beforeResolve.promise(
@@ -714,11 +705,6 @@ class Compiler {
 		this.#updateDisabledHooks();
 	}
 
-	async #shouldEmit(): Promise<boolean | undefined> {
-		const res = this.hooks.shouldEmit.call(this.compilation);
-		this.#updateDisabledHooks();
-		return Promise.resolve(res);
-	}
 	async #emit() {
 		await this.hooks.emit.promise(this.compilation);
 		this.#updateDisabledHooks();
@@ -843,69 +829,51 @@ class Compiler {
 		this.#moduleExecutionResultsMap.set(id, executeResult);
 	}
 
-	#registerCompilerCompilationTaps(stages: number[]): binding.JsTap[] {
-		if (!this.hooks.compilation.isUsed()) return [];
-		const breakpoints = [-Infinity, ...stages, Infinity];
-		const jsTaps = [];
-		for (let i = 0; i < breakpoints.length - 1; i++) {
-			const stageRange = liteTapable.StageRange.from(
-				breakpoints[i],
-				breakpoints[i + 1]
-			);
-			jsTaps.push({
-				function: (native: binding.JsCompilation) => {
-					this.hooks.compilation.callStageRange(stageRange, this.compilation, {
-						normalModuleFactory: this.compilation.normalModuleFactory!
+	#decorateUpdateDisabledHooks(jsTaps: binding.JsTap[]) {
+		if (jsTaps.length > 0) {
+			const last = jsTaps[jsTaps.length - 1];
+			const old = last.function;
+			last.function = (...args) => {
+				const result = old(...args);
+				if (result && typeof result.then === "function") {
+					return result.then((r: any) => {
+						this.#updateDisabledHooks();
+						return r;
 					});
-					if (i + 1 >= breakpoints.length - 1) this.#updateDisabledHooks();
-				},
-				stage: stageRange.from + 1
-			});
+				}
+				this.#updateDisabledHooks();
+				return result;
+			};
 		}
-		return jsTaps;
 	}
 
-	#registerCompilerMakeTaps(stages: number[]): binding.JsTap[] {
-		if (!this.hooks.make.isUsed()) return [];
-		const breakpoints = [-Infinity, ...stages, Infinity];
-		const jsTaps = [];
-		for (let i = 0; i < breakpoints.length - 1; i++) {
-			const stageRange = liteTapable.StageRange.from(
-				breakpoints[i],
-				breakpoints[i + 1]
-			);
-			jsTaps.push({
-				function: async (native: binding.JsCompilation) => {
-					await this.hooks.make.promiseStageRange(stageRange, this.compilation);
-					if (i + 1 >= breakpoints.length - 1) this.#updateDisabledHooks();
-				},
-				stage: stageRange.from + 1
-			});
-		}
-		return jsTaps;
-	}
-
-	#registerCompilationProcessAssetsTaps(stages: number[]): binding.JsTap[] {
-		if (!this.compilation.hooks.processAssets.isUsed()) return [];
-		const breakpoints = [-Infinity, ...stages, Infinity];
-		const jsTaps = [];
-		for (let i = 0; i < breakpoints.length - 1; i++) {
-			const stageRange = liteTapable.StageRange.from(
-				breakpoints[i],
-				breakpoints[i + 1]
-			);
-			jsTaps.push({
-				function: async () => {
-					await this.compilation.hooks.processAssets.promiseStageRange(
-						stageRange,
-						this.compilation.assets
-					);
-					if (i + 1 >= breakpoints.length - 1) this.#updateDisabledHooks();
-				},
-				stage: stageRange.from + 1
-			});
-		}
-		return jsTaps;
+	#createRegisterTaps<T, R, A>(
+		getHook: () => liteTapable.Hook<T, R, A>,
+		createTap: (queried: liteTapable.QueriedHook<T, R, A>) => any
+	): (stages: number[]) => binding.JsTap[] {
+		return stages => {
+			const hook = getHook();
+			if (!hook.isUsed()) return [];
+			const breakpoints = [
+				liteTapable.minStage,
+				...stages,
+				liteTapable.maxStage
+			];
+			const jsTaps: binding.JsTap[] = [];
+			for (let i = 0; i < breakpoints.length - 1; i++) {
+				const from = breakpoints[i];
+				const to = breakpoints[i + 1];
+				const stageRange = [from, to] as const;
+				const queried = hook.queryStageRange(stageRange);
+				if (!queried.isUsed()) continue;
+				jsTaps.push({
+					function: createTap(queried),
+					stage: liteTapable.safeStage(from + 1)
+				});
+			}
+			this.#decorateUpdateDisabledHooks(jsTaps);
+			return jsTaps;
+		};
 	}
 
 	#newCompilation(native: binding.JsCompilation) {
@@ -955,7 +923,7 @@ class Compiler {
 						return finalCallback(err);
 					}
 
-					this.build(err => {
+					this.compile(err => {
 						if (err) {
 							return finalCallback(err);
 						}
@@ -994,8 +962,7 @@ class Compiler {
 				return callback?.(error);
 			}
 			if (!this.first) {
-				const rebuild = instance!.unsafe_rebuild.bind(instance);
-				rebuild(
+				instance!.rebuild(
 					Array.from(this.modifiedFiles || []),
 					Array.from(this.removedFiles || []),
 					error => {
@@ -1008,8 +975,7 @@ class Compiler {
 				return;
 			}
 			this.first = false;
-			const build = instance!.unsafe_build.bind(instance);
-			build(error => {
+			instance!.build(error => {
 				if (error) {
 					return callback?.(error);
 				}
@@ -1031,8 +997,7 @@ class Compiler {
 			if (error) {
 				return callback?.(error);
 			}
-			const rebuild = instance!.unsafe_rebuild.bind(instance);
-			rebuild(
+			instance!.rebuild(
 				Array.from(modifiedFiles || []),
 				Array.from(removedFiles || []),
 				error => {
@@ -1088,15 +1053,6 @@ class Compiler {
 	}
 
 	close(callback: (error?: Error | null) => void) {
-		// WARNING: Arbitrarily dropping the instance is not safe, as it may still be in use by the background thread.
-		// A hint is necessary for the compiler to know when it is safe to drop the instance.
-		// For example: register a callback to the background thread, and drop the instance when the callback is called (calling the `close` method queues the signal)
-		// See: https://github.com/webpack/webpack/blob/4ba225225b1348c8776ca5b5fe53468519413bc0/lib/Compiler.js#L1218
-		if (!this.running) {
-			// Manually drop the instance.
-			// this.#instance = undefined;
-		}
-
 		if (this.watching) {
 			// When there is still an active watching, close this first
 			this.watching.close(() => {

@@ -13,5 +13,4 @@ rspack_error      = { path = "../rspack_error" }
 rspack_hook       = { path = "../rspack_hook" }
 rspack_plugin_css = { path = "../rspack_plugin_css" }
 
-async-trait = { workspace = true }
-rayon       = { workspace = true }
+rayon = { workspace = true }

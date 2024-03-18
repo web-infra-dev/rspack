@@ -518,7 +518,7 @@ impl Plugin for SideEffectsFlagPlugin {
 
   async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<()>> {
     let entries = compilation.entry_modules().collect::<Vec<_>>();
-    let mg = &mut compilation.module_graph;
+    let mg = compilation.get_module_graph_mut();
     let level_order_module_identifier = get_level_order_module_ids(mg, entries);
     for module_identifier in level_order_module_identifier {
       let mut module_chain = HashSet::default();
@@ -532,7 +532,7 @@ impl Plugin for SideEffectsFlagPlugin {
       }
       let cur_exports_info_id = mg.get_exports_info(&module_identifier).id;
 
-      let incoming_connections = mg.get_incoming_connections_cloned(module);
+      let incoming_connections = mg.get_incoming_connections_cloned(&module_identifier);
       for con in incoming_connections {
         let Some(dep) = mg.dependency_by_id(&con.dependency_id) else {
           continue;
@@ -581,7 +581,7 @@ impl Plugin for SideEffectsFlagPlugin {
                   })
                   .unwrap_or_else(|| ids.get(1..).unwrap_or_default().to_vec());
                 dep_id.set_ids(processed_ids, mg);
-                mg.connection_by_dependency(&dep_id).cloned()
+                mg.connection_by_dependency(&dep_id).map(|_| dep_id)
               },
             ),
           );
@@ -646,14 +646,17 @@ fn get_level_order_module_ids(
         visited.insert(mi);
         res.push(mi);
       }
-      let Some(m) = mg.module_by_identifier(&mi) else {
-        continue;
-      };
-      for con in mg.get_outgoing_connections(m) {
-        let mi = con.module_identifier;
+      for con in mg.get_outgoing_connections(&mi) {
+        let mi = *con.module_identifier();
         q.push_back(mi);
       }
     }
   }
+
+  res.sort_by(|a, b| {
+    let ad = mg.get_depth(a);
+    let bd = mg.get_depth(b);
+    ad.cmp(&bd)
+  });
   res
 }

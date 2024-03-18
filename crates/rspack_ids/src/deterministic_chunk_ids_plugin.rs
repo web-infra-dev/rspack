@@ -26,8 +26,8 @@ impl Plugin for DeterministicChunkIdsPlugin {
     let mut used_ids = get_used_chunk_ids(compilation);
     let used_ids_len = used_ids.len();
 
-    let chunk_graph = &mut compilation.chunk_graph;
-    let module_graph = &compilation.module_graph;
+    let chunk_graph = &compilation.chunk_graph;
+    let module_graph = compilation.get_module_graph();
     let context = self
       .context
       .clone()

@@ -17,7 +17,7 @@ pub struct EntryDescription {
   pub filename: Option<Filename>,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct EntryData {
   pub dependencies: Vec<DependencyId>,
   pub include_dependencies: Vec<DependencyId>,

@@ -5,6 +5,9 @@ it("compiler.hooks.compilation stage should works", () => {
 	expect(
 		mainFile.startsWith(
 `
+/* sync banner5 */
+/* async banner5 */
+/* promise banner5 */
 /* sync banner3 */
 /* async banner3 */
 /* promise banner3 */
@@ -17,6 +20,9 @@ it("compiler.hooks.compilation stage should works", () => {
 /* sync banner1 */
 /* async banner1 */
 /* promise banner1 */
+/* sync banner6 */
+/* async banner6 */
+/* promise banner6 */
 `.trim()
 		)
 	).toBeTruthy();

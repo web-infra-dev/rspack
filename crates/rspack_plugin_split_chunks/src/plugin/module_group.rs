@@ -62,7 +62,7 @@ impl SplitChunksPlugin {
     // single_chunk_sets: chunkset of module that belongs to only one chunk
     // chunk_sets_by_count: use chunkset len as key
     let (chunk_sets_in_graph, chunk_sets_by_count) =
-      { Self::prepare_combination_maps(&compilation.module_graph, &compilation.chunk_graph) };
+      { Self::prepare_combination_maps(compilation.get_module_graph(), &compilation.chunk_graph) };
 
     let combinations_cache = DashMap::<ChunksKey, Vec<FxHashSet<ChunkUkey>>>::default();
 
@@ -89,7 +89,7 @@ impl SplitChunksPlugin {
       result
     };
 
-    compilation.module_graph.modules().values().par_bridge().for_each(|module| {
+    compilation.get_module_graph().modules().values().par_bridge().for_each(|module| {
       let module = &**module;
 
       let belong_to_chunks = compilation
@@ -282,7 +282,7 @@ impl SplitChunksPlugin {
           if other_module_group.modules.contains(module) {
             tracing::trace!("remove module({module}) from {key}");
             let module = compilation
-              .module_graph
+              .get_module_graph()
               .module_by_identifier(module)
               .unwrap_or_else(|| panic!("Module({module}) not found"));
             other_module_group.remove_module(&**module);

@@ -158,6 +158,7 @@ Object {
       },
     ],
     "generator": Object {},
+    "noParse": undefined,
     "parser": Object {
       "asset": Object {
         "dataUrlCondition": Object {

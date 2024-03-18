@@ -449,10 +449,7 @@ impl ChunkGraph {
         set: &mut IdentifierSet,
         module_graph: &ModuleGraph,
       ) {
-        let module = module_graph
-          .module_by_identifier(&module)
-          .expect("should exist");
-        for connection in module_graph.get_outgoing_connections(module) {
+        for connection in module_graph.get_outgoing_connections(&module) {
           // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/ChunkGraph.js#L290
           let active_state = connection.get_active_state(module_graph, None);
           match active_state {
@@ -460,12 +457,12 @@ impl ChunkGraph {
               continue;
             }
             crate::ConnectionState::TransitiveOnly => {
-              add_dependencies(connection.module_identifier, set, module_graph);
+              add_dependencies(*connection.module_identifier(), set, module_graph);
               continue;
             }
             _ => {}
           }
-          set.insert(connection.module_identifier);
+          set.insert(*connection.module_identifier());
         }
       }
 

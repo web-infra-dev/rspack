@@ -8,40 +8,33 @@ use rspack_core::{
   RenderManifestEntry, SourceType,
 };
 use rspack_error::{IntoTWithDiagnosticArray, Result};
-use rspack_hook::AsyncSeries2;
+use rspack_hook::{plugin, plugin_hook, AsyncSeries2};
 
 use crate::{AsyncWasmParserAndGenerator, ModuleIdToFileName};
 
 pub struct EnableWasmLoadingPlugin;
 
+#[plugin]
 #[derive(Debug, Default)]
 pub struct AsyncWasmPlugin {
   pub module_id_to_filename_without_ext: ModuleIdToFileName,
 }
 
-impl AsyncWasmPlugin {
-  pub fn new() -> AsyncWasmPlugin {
-    Self {
-      module_id_to_filename_without_ext: Default::default(),
-    }
-  }
-}
-
-struct AsyncWasmPluginCompilationHook;
-
-#[async_trait]
-impl AsyncSeries2<Compilation, CompilationParams> for AsyncWasmPluginCompilationHook {
-  async fn run(&self, compilation: &mut Compilation, params: &mut CompilationParams) -> Result<()> {
-    compilation.set_dependency_factory(
-      DependencyType::WasmImport,
-      params.normal_module_factory.clone(),
-    );
-    compilation.set_dependency_factory(
-      DependencyType::WasmExportImported,
-      params.normal_module_factory.clone(),
-    );
-    Ok(())
-  }
+#[plugin_hook(AsyncSeries2<Compilation, CompilationParams> for AsyncWasmPlugin)]
+async fn compilation(
+  &self,
+  compilation: &mut Compilation,
+  params: &mut CompilationParams,
+) -> Result<()> {
+  compilation.set_dependency_factory(
+    DependencyType::WasmImport,
+    params.normal_module_factory.clone(),
+  );
+  compilation.set_dependency_factory(
+    DependencyType::WasmExportImported,
+    params.normal_module_factory.clone(),
+  );
+  Ok(())
 }
 
 #[async_trait]
@@ -59,7 +52,7 @@ impl Plugin for AsyncWasmPlugin {
       .context
       .compiler_hooks
       .compilation
-      .tap(Box::new(AsyncWasmPluginCompilationHook));
+      .tap(compilation::new(self));
 
     let module_id_to_filename_without_ext = self.module_id_to_filename_without_ext.clone();
 
@@ -89,7 +82,7 @@ impl Plugin for AsyncWasmPlugin {
   ) -> PluginRenderManifestHookOutput {
     let compilation = args.compilation;
     let chunk = args.chunk();
-    let module_graph = &compilation.module_graph;
+    let module_graph = &compilation.get_module_graph();
 
     let ordered_modules = compilation
       .chunk_graph

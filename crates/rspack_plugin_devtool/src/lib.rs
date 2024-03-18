@@ -7,7 +7,6 @@ use std::hash::Hasher;
 use std::sync::Arc;
 use std::{hash::Hash, path::Path};
 
-use async_trait::async_trait;
 use dashmap::DashMap;
 use derivative::Derivative;
 use futures::future::{join_all, BoxFuture};
@@ -29,7 +28,7 @@ use rspack_core::{
 use rspack_error::error;
 use rspack_error::{miette::IntoDiagnostic, Result};
 use rspack_hash::RspackHash;
-use rspack_hook::AsyncSeries;
+use rspack_hook::{plugin, plugin_hook, AsyncSeries};
 use rspack_util::identifier::make_paths_absolute;
 use rspack_util::source_map::SourceMapKind;
 use rspack_util::{path::relative, swc::normalize_custom_filename};
@@ -139,22 +138,10 @@ struct MappedAsset {
   source_map: Option<(String, CompilationAsset)>,
 }
 
-#[derive(Debug)]
-pub struct SourceMapDevToolPlugin {
-  inner: Arc<SourceMapDevToolPluginInner>,
-}
-
-impl SourceMapDevToolPlugin {
-  pub fn new(options: SourceMapDevToolPluginOptions) -> Self {
-    Self {
-      inner: Arc::new(SourceMapDevToolPluginInner::new(options)),
-    }
-  }
-}
-
+#[plugin]
 #[derive(Derivative)]
 #[derivative(Debug)]
-struct SourceMapDevToolPluginInner {
+pub struct SourceMapDevToolPlugin {
   source_map_filename: Option<Filename>,
   #[derivative(Debug = "ignore")]
   source_mapping_url_comment: Option<SourceMappingUrlComment>,
@@ -174,8 +161,8 @@ struct SourceMapDevToolPluginInner {
   mapped_assets_cache: MappedAssetsCache,
 }
 
-impl SourceMapDevToolPluginInner {
-  fn new(options: SourceMapDevToolPluginOptions) -> Self {
+impl SourceMapDevToolPlugin {
+  pub fn new(options: SourceMapDevToolPluginOptions) -> Self {
     let source_mapping_url_comment = match options.append {
       Some(append) => match append {
         Append::String(s) => Some(SourceMappingUrlComment::String(s)),
@@ -201,21 +188,21 @@ impl SourceMapDevToolPluginInner {
           "webpack://[namespace]/[resourcePath]".to_string(),
         ));
 
-    Self {
-      source_map_filename: options.filename.map(Filename::from),
+    Self::new_inner(
+      options.filename.map(Filename::from),
       source_mapping_url_comment,
-      fallback_module_filename_template,
-      file_context: options.file_context,
+      options.file_context,
       module_filename_template,
-      namespace: options.namespace.unwrap_or("".to_string()),
-      columns: options.columns,
-      no_sources: options.no_sources,
-      public_path: options.public_path,
-      module: options.module,
-      source_root: options.source_root,
-      test: options.test,
-      mapped_assets_cache: MappedAssetsCache::new(),
-    }
+      fallback_module_filename_template,
+      options.namespace.unwrap_or("".to_string()),
+      options.columns,
+      options.no_sources,
+      options.public_path,
+      options.module,
+      options.source_root,
+      options.test,
+      MappedAssetsCache::new(),
+    )
   }
 
   async fn map_assets(
@@ -259,7 +246,10 @@ impl SourceMapDevToolPluginInner {
           let module_or_source = if let Some(stripped) = source.strip_prefix("webpack://") {
             let source = make_paths_absolute(compilation.options.context.as_str(), stripped);
             let identifier = ModuleIdentifier::from(source.clone());
-            match compilation.module_graph.module_by_identifier(&identifier) {
+            match compilation
+              .get_module_graph()
+              .module_by_identifier(&identifier)
+            {
               Some(module) => ModuleOrSource::Module(module.identifier()),
               None => ModuleOrSource::Source(source),
             }
@@ -287,7 +277,10 @@ impl SourceMapDevToolPluginInner {
             let module_or_source = if let Some(stripped) = source.strip_prefix("webpack://") {
               let source = make_paths_absolute(compilation.options.context.as_str(), stripped);
               let identifier = ModuleIdentifier::from(source.clone());
-              match compilation.module_graph.module_by_identifier(&identifier) {
+              match compilation
+                .get_module_graph()
+                .module_by_identifier(&identifier)
+              {
                 Some(module) => ModuleOrSource::Module(module.identifier()),
                 None => ModuleOrSource::Source(source),
               }
@@ -549,49 +542,38 @@ impl SourceMapDevToolPluginInner {
   }
 }
 
-struct SourceMapDevToolPluginProcessAssetsHook {
-  inner: Arc<SourceMapDevToolPluginInner>,
-}
+#[plugin_hook(AsyncSeries<Compilation> for SourceMapDevToolPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_DEV_TOOLING)]
+async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+  let logger = compilation.get_logger("rspack.SourceMapDevToolPlugin");
+  let start = logger.time("collect source maps");
 
-#[async_trait]
-impl AsyncSeries<Compilation> for SourceMapDevToolPluginProcessAssetsHook {
-  async fn run(&self, compilation: &mut Compilation) -> Result<()> {
-    let inner = &self.inner;
-    let logger = compilation.get_logger("rspack.SourceMapDevToolPlugin");
-    let start = logger.time("collect source maps");
+  let mapped_asstes = self
+    .mapped_assets_cache
+    .use_cache(compilation.assets(), |assets| {
+      self.map_assets(compilation, assets)
+    })
+    .await?;
 
-    let mapped_asstes = inner
-      .mapped_assets_cache
-      .use_cache(compilation.assets(), |assets| {
-        inner.map_assets(compilation, assets)
-      })
-      .await?;
+  logger.time_end(start);
 
-    logger.time_end(start);
+  let start = logger.time("emit source map assets");
 
-    let start = logger.time("emit source map assets");
-
-    for mapped_asset in mapped_asstes {
-      let MappedAsset {
-        asset: (source_filename, mut source_asset),
-        source_map,
-      } = mapped_asset.clone();
-      if let Some(asset) = compilation.assets_mut().remove(&source_filename) {
-        source_asset.info = asset.info;
-      }
-      compilation.emit_asset(source_filename.to_owned(), source_asset.clone());
-      if let Some((source_map_filename, source_map_asset)) = source_map {
-        compilation.emit_asset(source_map_filename.to_owned(), source_map_asset.clone());
-      }
+  for mapped_asset in mapped_asstes {
+    let MappedAsset {
+      asset: (source_filename, mut source_asset),
+      source_map,
+    } = mapped_asset.clone();
+    if let Some(asset) = compilation.assets_mut().remove(&source_filename) {
+      source_asset.info = asset.info;
     }
-
-    logger.time_end(start);
-    Ok(())
+    compilation.emit_asset(source_filename.to_owned(), source_asset.clone());
+    if let Some((source_map_filename, source_map_asset)) = source_map {
+      compilation.emit_asset(source_map_filename.to_owned(), source_map_asset.clone());
+    }
   }
 
-  fn stage(&self) -> i32 {
-    Compilation::PROCESS_ASSETS_STAGE_DEV_TOOLING
-  }
+  logger.time_end(start);
+  Ok(())
 }
 
 impl Plugin for SourceMapDevToolPlugin {
@@ -604,11 +586,11 @@ impl Plugin for SourceMapDevToolPlugin {
     ctx: PluginContext<&mut rspack_core::ApplyContext>,
     _options: &mut rspack_core::CompilerOptions,
   ) -> Result<()> {
-    ctx.context.compilation_hooks.process_assets.tap(Box::new(
-      SourceMapDevToolPluginProcessAssetsHook {
-        inner: self.inner.clone(),
-      },
-    ));
+    ctx
+      .context
+      .compilation_hooks
+      .process_assets
+      .tap(process_assets::new(self));
     Ok(())
   }
 }
@@ -646,7 +628,6 @@ impl ModuleFilenameHelpers {
   ) -> ModuleFilenameTemplateFnCtx {
     let Compilation {
       chunk_graph,
-      module_graph,
       options,
       ..
     } = compilation;
@@ -654,7 +635,8 @@ impl ModuleFilenameHelpers {
 
     match module_or_source {
       ModuleOrSource::Module(module_identifier) => {
-        let module = module_graph
+        let module = compilation
+          .get_module_graph()
           .module_by_identifier(module_identifier)
           .expect("failed to find a module for the given identifier");
 

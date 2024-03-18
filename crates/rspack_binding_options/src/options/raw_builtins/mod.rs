@@ -16,7 +16,7 @@ use rspack_ids::{
   DeterministicChunkIdsPlugin, DeterministicModuleIdsPlugin, NamedChunkIdsPlugin,
   NamedModuleIdsPlugin,
 };
-use rspack_napi_shared::NapiResultExt;
+use rspack_napi::NapiResultExt;
 use rspack_plugin_asset::AssetPlugin;
 use rspack_plugin_banner::BannerPlugin;
 use rspack_plugin_copy::{CopyRspackPlugin, CopyRspackPluginOptions};
@@ -70,9 +70,9 @@ use self::{
   raw_mf::{RawConsumeSharedPluginOptions, RawContainerReferencePluginOptions, RawProvideOptions},
 };
 use crate::{
-  RawEntryPluginOptions, RawEvalDevToolModulePluginOptions, RawExternalItemWrapper,
-  RawExternalsPluginOptions, RawHttpExternalsRspackPluginOptions, RawSourceMapDevToolPluginOptions,
-  RawSplitChunksOptions,
+  plugins::JsLoaderResolverPlugin, JsLoaderRunner, RawEntryPluginOptions,
+  RawEvalDevToolModulePluginOptions, RawExternalItemWrapper, RawExternalsPluginOptions,
+  RawHttpExternalsRspackPluginOptions, RawSourceMapDevToolPluginOptions, RawSplitChunksOptions,
 };
 
 #[napi(string_enum)]
@@ -138,6 +138,10 @@ pub enum BuiltinPluginName {
   SwcJsMinimizerRspackPlugin,
   SwcCssMinimizerRspackPlugin,
   BundlerInfoRspackPlugin,
+
+  // rspack js adapter plugins
+  // naming format follow XxxRspackPlugin
+  JsLoaderRspackPlugin,
 }
 
 #[napi(object)]
@@ -221,7 +225,7 @@ impl BuiltinPlugin {
         plugins.push(ModuleChunkFormatPlugin.boxed());
       }
       BuiltinPluginName::HotModuleReplacementPlugin => {
-        plugins.push(HotModuleReplacementPlugin.boxed());
+        plugins.push(HotModuleReplacementPlugin::default().boxed());
       }
       BuiltinPluginName::LimitChunkCountPlugin => {
         let plugin = LimitChunkCountPlugin::new(
@@ -231,7 +235,7 @@ impl BuiltinPlugin {
         plugins.push(plugin);
       }
       BuiltinPluginName::WorkerPlugin => {
-        plugins.push(WorkerPlugin.boxed());
+        plugins.push(WorkerPlugin::default().boxed());
       }
       BuiltinPluginName::WebWorkerTemplatePlugin => {
         web_worker_template_plugin(plugins);
@@ -287,7 +291,9 @@ impl BuiltinPlugin {
       BuiltinPluginName::DeterministicChunkIdsPlugin => {
         plugins.push(DeterministicChunkIdsPlugin::default().boxed())
       }
-      BuiltinPluginName::RealContentHashPlugin => plugins.push(RealContentHashPlugin.boxed()),
+      BuiltinPluginName::RealContentHashPlugin => {
+        plugins.push(RealContentHashPlugin::default().boxed())
+      }
       BuiltinPluginName::RemoveEmptyChunksPlugin => plugins.push(RemoveEmptyChunksPlugin.boxed()),
       BuiltinPluginName::EnsureChunkConditionsPlugin => {
         plugins.push(EnsureChunkConditionsPlugin.boxed())
@@ -300,9 +306,9 @@ impl BuiltinPlugin {
       BuiltinPluginName::RuntimePlugin => plugins.push(RuntimePlugin.boxed()),
       BuiltinPluginName::JsonModulesPlugin => plugins.push(JsonPlugin.boxed()),
       BuiltinPluginName::InferAsyncModulesPlugin => plugins.push(InferAsyncModulesPlugin.boxed()),
-      BuiltinPluginName::JavascriptModulesPlugin => plugins.push(JsPlugin::new().boxed()),
+      BuiltinPluginName::JavascriptModulesPlugin => plugins.push(JsPlugin::default().boxed()),
       BuiltinPluginName::AsyncWebAssemblyModulesPlugin => {
-        plugins.push(AsyncWasmPlugin::new().boxed())
+        plugins.push(AsyncWasmPlugin::default().boxed())
       }
       BuiltinPluginName::AssetModulesPlugin => plugins.push(AssetPlugin.boxed()),
       BuiltinPluginName::SourceMapDevToolPlugin => {
@@ -365,7 +371,7 @@ impl BuiltinPlugin {
         plugins.push(plugin);
       }
       BuiltinPluginName::SwcCssMinimizerRspackPlugin => {
-        plugins.push(SwcCssMinimizerRspackPlugin {}.boxed())
+        plugins.push(SwcCssMinimizerRspackPlugin::default().boxed())
       }
       BuiltinPluginName::CopyRspackPlugin => {
         let plugin = CopyRspackPlugin::new(
@@ -391,13 +397,19 @@ impl BuiltinPlugin {
           .boxed(),
         )
       }
+      // rspack js adapter plugins
+      BuiltinPluginName::JsLoaderRspackPlugin => {
+        plugins.push(
+          JsLoaderResolverPlugin::new(downcast_into::<JsLoaderRunner>(self.options)?).boxed(),
+        );
+      }
     }
     Ok(())
   }
 }
 
 fn downcast_into<T: FromNapiValue + 'static>(o: JsUnknown) -> Result<T> {
-  rspack_napi_shared::downcast_into(o).into_rspack_result()
+  rspack_napi::downcast_into(o).into_rspack_result()
 }
 
 // TO BE DEPRECATED

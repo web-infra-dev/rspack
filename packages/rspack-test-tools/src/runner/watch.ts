@@ -10,12 +10,12 @@ import { BasicRunnerFactory } from "./basic";
 export class WatchRunnerFactory<
 	T extends ECompilerType
 > extends BasicRunnerFactory<T> {
-	protected getRunnerKey(name: string, file: string): string {
+	protected getRunnerKey(file: string): string {
 		const stepName: string | void = this.context.getValue(
 			this.name,
 			"watchStepName"
 		);
-		return `${name}-${stepName}`;
+		return `${this.name}-${stepName}`;
 	}
 	protected createRunner(
 		file: string,

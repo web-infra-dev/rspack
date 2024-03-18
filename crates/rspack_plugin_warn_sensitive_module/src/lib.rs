@@ -25,7 +25,7 @@ impl WarnCaseSensitiveModulesPlugin {
       if let Some(boxed_m) = graph.module_by_identifier(&m.identifier()) {
         let mut module_msg = format!("  - {}\n", m.identifier());
         graph
-          .get_incoming_connections(boxed_m)
+          .get_incoming_connections(&boxed_m.identifier())
           .iter()
           .for_each(|c| {
             if let Some(original_identifier) = c.original_module_identifier {
@@ -54,7 +54,7 @@ impl Plugin for WarnCaseSensitiveModulesPlugin {
     let start = logger.time("check case sensitive modules");
     let mut diagnostics: Vec<Diagnostic> = vec![];
     let modules = compilation
-      .module_graph
+      .get_module_graph()
       .modules()
       .values()
       .collect::<Vec<_>>();
@@ -89,7 +89,7 @@ impl Plugin for WarnCaseSensitiveModulesPlugin {
         case_modules.sort_by_key(|m| m.identifier());
         diagnostics.push(Diagnostic::warn(
           "Sensitive Modules Warn".to_string(),
-          self.create_sensitive_modules_warning(&case_modules, &compilation.module_graph),
+          self.create_sensitive_modules_warning(&case_modules, compilation.get_module_graph()),
         ));
       }
     }

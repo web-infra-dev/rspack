@@ -135,7 +135,7 @@ pub fn css_modules_exports_to_string(
             .get_dependencies()
             .iter()
             .find_map(|id| {
-              let dependency = compilation.module_graph.dependency_by_id(id);
+              let dependency = compilation.get_module_graph().dependency_by_id(id);
               let request = if let Some(d) = dependency.and_then(|d| d.as_module_dependency()) {
                 Some(d.request())
               } else {
@@ -147,7 +147,7 @@ pub fn css_modules_exports_to_string(
                 && request == from_name
               {
                 return compilation
-                  .module_graph
+                  .get_module_graph()
                   .module_graph_module_by_dependency_id(id);
               }
               None
@@ -194,7 +194,7 @@ pub fn css_modules_exports_to_concatenate_module_string(
             .get_dependencies()
             .iter()
             .find_map(|id| {
-              let dependency = compilation.module_graph.dependency_by_id(id);
+              let dependency = compilation.get_module_graph().dependency_by_id(id);
               let request = if let Some(d) = dependency.and_then(|d| d.as_module_dependency()) {
                 Some(d.request())
               } else {
@@ -206,7 +206,7 @@ pub fn css_modules_exports_to_concatenate_module_string(
                 && request == from_name
               {
                 return compilation
-                  .module_graph
+                  .get_module_graph()
                   .module_graph_module_by_dependency_id(id);
               }
               None

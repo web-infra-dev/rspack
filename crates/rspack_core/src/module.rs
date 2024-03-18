@@ -329,6 +329,26 @@ pub trait Module:
   ) -> ConnectionState {
     ConnectionState::Bool(true)
   }
+
+  fn is_available(&self, modified_file: &HashSet<PathBuf>) -> bool {
+    if let Some(build_info) = self.build_info() {
+      if !build_info.cacheable {
+        return false;
+      }
+
+      for item in modified_file {
+        if build_info.file_dependencies.contains(item)
+          || build_info.build_dependencies.contains(item)
+          || build_info.context_dependencies.contains(item)
+          || build_info.missing_dependencies.contains(item)
+        {
+          return false;
+        }
+      }
+    }
+
+    true
+  }
 }
 
 fn get_exports_type_impl(

@@ -61,7 +61,8 @@ import {
 	SideEffectsFlagPlugin,
 	BundlerInfoRspackPlugin,
 	ModuleConcatenationPlugin,
-	EvalDevToolModulePlugin
+	EvalDevToolModulePlugin,
+	JsLoaderRspackPlugin
 } from "./builtin-plugin";
 import { deprecatedWarn } from "./util";
 
@@ -226,6 +227,8 @@ export class RspackOptionsApply {
 		if (options.experiments.asyncWebAssembly) {
 			new AsyncWebAssemblyModulesPlugin().apply(compiler);
 		}
+
+		new JsLoaderRspackPlugin(compiler).apply(compiler);
 
 		if (options.experiments.rspackFuture!.disableApplyEntryLazily) {
 			applyEntryOptions(compiler, options);

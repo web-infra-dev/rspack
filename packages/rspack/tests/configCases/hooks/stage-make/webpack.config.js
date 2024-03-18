@@ -21,5 +21,7 @@ module.exports = {
 		});
 		pushBanner(compiler, "banner3", { name: "banner3", stage: -100 });
 		pushBanner(compiler, "banner4", { name: "banner4" });
+		pushBanner(compiler, "banner5", { name: "banner5", stage: -Infinity });
+		pushBanner(compiler, "banner6", { name: "banner6", stage: Infinity });
 	})]
 };
