@@ -14,21 +14,20 @@ use crate::{
   AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, ApplyContext,
   AssetEmittedArgs, BeforeResolveArgs, BoxLoader, BoxModule, BoxedParserAndGeneratorBuilder,
   BuildTimeExecutionOption, Chunk, ChunkAssetArgs, ChunkContentHash, ChunkHashArgs,
-  CodeGenerationResults, Compilation, CompilationHooks, CompilationParams, CompilerHooks,
-  CompilerOptions, Content, ContentHashArgs, DependencyId, DoneArgs, FactorizeArgs,
-  JsChunkHashArgs, LoaderRunnerContext, Module, ModuleIdentifier, ModuleType, NormalModule,
-  NormalModuleAfterResolveArgs, NormalModuleCreateData, NormalModuleFactoryHooks,
-  OptimizeChunksArgs, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput,
-  PluginAdditionalModuleRequirementsOutput, PluginBuildEndHookOutput, PluginChunkHashHookOutput,
-  PluginCompilationHookOutput, PluginContext, PluginFactorizeHookOutput,
-  PluginJsChunkHashHookOutput, PluginNormalModuleFactoryAfterResolveOutput,
-  PluginNormalModuleFactoryBeforeResolveOutput, PluginNormalModuleFactoryCreateModuleHookOutput,
-  PluginNormalModuleFactoryModuleHookOutput, PluginRenderChunkHookOutput, PluginRenderHookOutput,
-  PluginRenderManifestHookOutput, PluginRenderModuleContentOutput, PluginRenderStartupHookOutput,
-  PluginRuntimeRequirementsInTreeOutput, PluginThisCompilationHookOutput, ProcessAssetsArgs,
-  RenderArgs, RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs,
-  Resolver, ResolverFactory, RuntimeModule, RuntimeRequirementsInTreeArgs, Stats,
-  ThisCompilationArgs,
+  CodeGenerationResults, Compilation, CompilationHooks, CompilerHooks, CompilerOptions, Content,
+  ContentHashArgs, DependencyId, DoneArgs, FactorizeArgs, JsChunkHashArgs, LoaderRunnerContext,
+  Module, ModuleIdentifier, ModuleType, NormalModule, NormalModuleAfterResolveArgs,
+  NormalModuleCreateData, NormalModuleFactoryHooks, OptimizeChunksArgs, Plugin,
+  PluginAdditionalChunkRuntimeRequirementsOutput, PluginAdditionalModuleRequirementsOutput,
+  PluginBuildEndHookOutput, PluginChunkHashHookOutput, PluginCompilationHookOutput, PluginContext,
+  PluginFactorizeHookOutput, PluginJsChunkHashHookOutput,
+  PluginNormalModuleFactoryAfterResolveOutput, PluginNormalModuleFactoryBeforeResolveOutput,
+  PluginNormalModuleFactoryCreateModuleHookOutput, PluginNormalModuleFactoryModuleHookOutput,
+  PluginRenderChunkHookOutput, PluginRenderHookOutput, PluginRenderManifestHookOutput,
+  PluginRenderModuleContentOutput, PluginRenderStartupHookOutput,
+  PluginRuntimeRequirementsInTreeOutput, ProcessAssetsArgs, RenderArgs, RenderChunkArgs,
+  RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, Resolver, ResolverFactory,
+  RuntimeModule, RuntimeRequirementsInTreeArgs, Stats,
 };
 
 pub struct PluginDriver {
@@ -145,27 +144,6 @@ impl PluginDriver {
   pub async fn finish_make(&self, compilation: &mut Compilation) -> PluginCompilationHookOutput {
     for plugin in &self.plugins {
       plugin.finish_make(compilation).await?;
-    }
-
-    Ok(())
-  }
-  /// Executed while initializing the compilation, right before emitting the compilation event. This hook is not copied to child compilers.
-  ///
-  /// See: https://webpack.js.org/api/compiler-hooks/#thiscompilation
-  pub async fn this_compilation(
-    &self,
-    compilation: &mut Compilation,
-    params: &CompilationParams,
-  ) -> PluginThisCompilationHookOutput {
-    for plugin in &self.plugins {
-      plugin
-        .this_compilation(
-          ThisCompilationArgs {
-            this_compilation: compilation,
-          },
-          params,
-        )
-        .await?;
     }
 
     Ok(())

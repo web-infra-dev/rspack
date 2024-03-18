@@ -74,6 +74,7 @@ export interface LogEntry {
 
 export interface CompilationParams {
 	normalModuleFactory: NormalModuleFactory;
+	contextModuleFactory: ContextModuleFactory;
 }
 
 export interface KnownCreateStatsOptionsContext {
@@ -139,9 +140,7 @@ export class Compilation {
 	childrenCounters: Record<string, number> = {};
 	startTime?: number;
 	endTime?: number;
-	normalModuleFactory?: NormalModuleFactory;
 	children: Compilation[] = [];
-	contextModuleFactory?: ContextModuleFactory;
 	chunkGraph: ChunkGraph;
 	fileSystemInfo = {
 		createSnapshot() {

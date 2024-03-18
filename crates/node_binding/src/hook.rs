@@ -5,7 +5,6 @@ use std::sync::RwLock;
 pub enum Hook {
   FinishMake,
   BuildModule,
-  ThisCompilation,
   AfterProcessAssets,
   Emit,
   AssetEmitted,
@@ -33,7 +32,6 @@ impl From<String> for Hook {
     match s.as_str() {
       "finishMake" => Hook::FinishMake,
       "buildModule" => Hook::BuildModule,
-      "thisCompilation" => Hook::ThisCompilation,
       "afterProcessAssets" => Hook::AfterProcessAssets,
       "emit" => Hook::Emit,
       "assetEmitted" => Hook::AssetEmitted,
