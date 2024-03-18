@@ -177,13 +177,6 @@ export enum BuiltinPluginName {
   JsLoaderRspackPlugin = 'JsLoaderRspackPlugin'
 }
 
-export interface ChunkPathData {
-  id?: string
-  name?: string
-  hash?: string
-  contentHash?: Record<string, string>
-}
-
 export function cleanupGlobalTrace(): void
 
 export interface CreateModuleData {
@@ -280,6 +273,13 @@ export interface JsChunkGroup {
   chunks: Array<JsChunk>
   index?: number
   name?: string
+}
+
+export interface JsChunkPathData {
+  id?: string
+  name?: string
+  hash?: string
+  contentHash?: Record<string, string>
 }
 
 export interface JsCodegenerationResult {
@@ -590,7 +590,7 @@ export interface PathData {
   runtime?: string
   url?: string
   id?: string
-  chunk?: ChunkPathData
+  chunk?: JsChunkPathData
 }
 
 export interface PathWithInfo {

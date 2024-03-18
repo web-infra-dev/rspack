@@ -12,7 +12,7 @@ pub struct PathData {
   pub runtime: Option<String>,
   pub url: Option<String>,
   pub id: Option<String>,
-  pub chunk: Option<ChunkPathData>,
+  pub chunk: Option<JsChunkPathData>,
 }
 
 impl TryFrom<rspack_core::PathData<'_>> for PathData {
@@ -25,20 +25,20 @@ impl TryFrom<rspack_core::PathData<'_>> for PathData {
       runtime: path_data.runtime.map(|s| s.to_string()),
       url: path_data.url.map(|s| s.to_string()),
       id: path_data.id.map(|s| s.to_string()),
-      chunk: path_data.chunk.map(ChunkPathData::from),
+      chunk: path_data.chunk.map(JsChunkPathData::from),
     })
   }
 }
 
 #[napi(object)]
-pub struct ChunkPathData {
+pub struct JsChunkPathData {
   pub id: Option<String>,
   pub name: Option<String>,
   pub hash: Option<String>,
   pub content_hash: Option<HashMap<String, String>>,
 }
 
-impl<'a> From<&'a rspack_core::Chunk> for ChunkPathData {
+impl<'a> From<&'a rspack_core::Chunk> for JsChunkPathData {
   fn from(chunk: &'a rspack_core::Chunk) -> Self {
     Self {
       id: chunk.id.clone(),
