@@ -142,6 +142,7 @@ impl<T: 'static, R: 'static + FromNapiValue + ValidateNapiValue> ThreadsafeFunct
 impl<T: 'static, R: 'static + FromNapiValue> ThreadsafeFunction<T, Promise<R>> {
   /// Call the JS function.
   /// If `Promise<T>` is returned, it will be awaited and its value `T` will be returned.
+  /// Otherwise, an [napi::Error] is returned.
   pub async fn call_with_promise(&self, value: T) -> Result<R> {
     match self.call_async::<Promise<R>>(value).await {
       Ok(r) => match r.await {

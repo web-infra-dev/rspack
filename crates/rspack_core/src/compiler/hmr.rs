@@ -123,10 +123,6 @@ where
         new_compilation.has_module_import_export_change = false;
       }
 
-      fast_set(&mut self.compilation, new_compilation);
-
-      self.compilation.lazy_visit_modules = changed_files.clone();
-
       let setup_make_params = if is_incremental_rebuild_make {
         vec![
           MakeParam::ModifiedFiles(modified_files),
@@ -135,7 +131,15 @@ where
       } else {
         vec![MakeParam::ForceBuildDeps(Default::default())]
       };
+
+      new_compilation.lazy_visit_modules = changed_files.clone();
+
+      // FOR BINDING SAFETY:
+      // Update `compilation` for each rebuild.
+      // Make sure `thisCompilation` hook was called before any other hooks that leverage `JsCompilation`.
+      fast_set(&mut self.compilation, new_compilation);
       self.compile(setup_make_params).await?;
+
       self.cache.begin_idle();
     }
 
