@@ -1,8 +1,7 @@
-use std::sync::Arc;
-
 use napi::bindgen_prelude::{Either3, Null};
 use napi::{Either, Env, JsFunction};
 use napi_derive::napi;
+use rspack_core::PathData;
 use rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use rspack_napi_shared::{get_napi_env, NapiResultExt};
 use rspack_plugin_devtool::{
@@ -13,24 +12,44 @@ use serde::Deserialize;
 
 type RawAppend = Either3<String, bool, JsFunction>;
 
+#[derive(Debug, Clone)]
+#[napi(object)]
+pub struct RawPathData {
+  pub filename: Option<String>,
+  pub content_hash: Option<String>,
+  pub url: Option<String>,
+}
+
+impl From<PathData<'_>> for RawPathData {
+  fn from(ctx: PathData) -> Self {
+    RawPathData {
+      filename: ctx.filename.map(|s| s.to_string()),
+      content_hash: ctx.content_hash.map(|s| s.to_string()),
+      url: ctx.url.map(|s| s.to_string()),
+    }
+  }
+}
+
 fn normalize_raw_append(raw: RawAppend) -> Append {
   match raw {
     Either3::A(str) => Append::String(str),
     Either3::B(_) => Append::Disabled,
     Either3::C(v) => {
-      let fn_payload: napi::Result<ThreadsafeFunction<(), Option<String>>> = try {
+      let fn_payload: napi::Result<ThreadsafeFunction<RawPathData, String>> = try {
         let env = get_napi_env();
         rspack_binding_macros::js_fn_into_threadsafe_fn!(v, &Env::from(env))
       };
       let fn_payload = fn_payload.expect("convert to threadsafe function failed");
-      Append::Fn(Arc::new(move || {
-        fn_payload
-          .call((), ThreadsafeFunctionCallMode::NonBlocking)
-          .into_rspack_result()
-          .expect("into rspack result failed")
-          .blocking_recv()
-          .unwrap_or_else(|err| panic!("failed to call external function: {err}"))
-          .expect("failed")
+      Append::Fn(Box::new(move |ctx| {
+        let fn_payload = fn_payload.clone();
+        let value = ctx.into();
+        Box::pin(async move {
+          fn_payload
+            .call(value, ThreadsafeFunctionCallMode::NonBlocking)
+            .into_rspack_result()?
+            .await
+            .unwrap_or_else(|err| panic!("Failed to call append function: {err}"))
+        })
       }))
     }
   }
