@@ -278,7 +278,7 @@ export class Watching {
 				this._done(null, this.compiler.compilation);
 			};
 
-			this.compiler.build(onBuild);
+			this.compiler.compile(onBuild);
 			if (!canRebuild) {
 				this.#initial = false;
 			}

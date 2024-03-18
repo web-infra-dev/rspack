@@ -142,22 +142,6 @@ impl PluginDriver {
     Ok(())
   }
 
-  pub async fn before_compile(&self, params: &CompilationParams) -> PluginCompilationHookOutput {
-    for plugin in &self.plugins {
-      plugin.before_compile(params).await?;
-    }
-
-    Ok(())
-  }
-
-  pub async fn after_compile(&self, compilation: &mut Compilation) -> PluginCompilationHookOutput {
-    for plugin in &self.plugins {
-      plugin.after_compile(compilation).await?;
-    }
-
-    Ok(())
-  }
-
   pub async fn finish_make(&self, compilation: &mut Compilation) -> PluginCompilationHookOutput {
     for plugin in &self.plugins {
       plugin.finish_make(compilation).await?;

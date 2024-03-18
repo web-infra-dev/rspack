@@ -262,8 +262,8 @@ describe("Compiler", () => {
 				plugins: [new MyPlugin()]
 			});
 
-			compiler.build(() => {
-				compiler.build(() => {
+			compiler.run(() => {
+				compiler.run(() => {
 					expect(mockFn).toBeCalledTimes(2);
 					done();
 				});
@@ -290,7 +290,7 @@ describe("Compiler", () => {
 				plugins: [new MyPlugin()]
 			});
 
-			compiler.build(error => {
+			compiler.run(error => {
 				expect(error).toBeFalsy();
 				expect(mockFn).toBeCalled();
 				done();
@@ -322,7 +322,7 @@ describe("Compiler", () => {
 				plugins: [new MyPlugin()]
 			});
 
-			compiler.build((err, stats) => {
+			compiler.run((err, stats) => {
 				done(err);
 			});
 		});
@@ -362,7 +362,7 @@ describe("Compiler", () => {
 				plugins: [new MyPlugin()]
 			});
 
-			compiler.build((err, stats) => {
+			compiler.run((err, stats) => {
 				done(err);
 			});
 		});
@@ -403,7 +403,7 @@ describe("Compiler", () => {
 				plugins: [new MyPlugin()]
 			});
 
-			compiler.build((err, stats) => {
+			compiler.run((err, stats) => {
 				expect(mockFn).toHaveBeenCalled();
 
 				done(err);
@@ -446,7 +446,7 @@ describe("Compiler", () => {
 			const outputFileSystem = createFsFromVolume(new Volume());
 			compiler.outputFileSystem = outputFileSystem;
 
-			compiler.build((err, stats) => {
+			compiler.run((err, stats) => {
 				if (err) {
 					return done(err);
 				}
@@ -489,7 +489,7 @@ describe("Compiler", () => {
 				plugins: [new MyPlugin()]
 			});
 
-			compiler.build(err => {
+			compiler.run(err => {
 				const stats = new Stats(compiler.compilation);
 				expect(stats.toJson().errors[0].message).toMatchInlineSnapshot(`
 			"  × Conflict: Multiple assets emit different content to the same filename main.js
@@ -517,7 +517,7 @@ describe("Compiler", () => {
 				plugins: [new MyPlugin()]
 			});
 
-			compiler.build(err => {
+			compiler.run(err => {
 				done(err);
 			});
 		});
@@ -546,7 +546,7 @@ describe("Compiler", () => {
 				plugins: [new MyPlugin()]
 			});
 
-			compiler.build(err => {
+			compiler.run(err => {
 				done(err);
 			});
 		});
@@ -567,7 +567,7 @@ describe("Compiler", () => {
 				plugins: [new MyPlugin()]
 			});
 
-			compiler.build(err => {
+			compiler.run(err => {
 				done(err);
 			});
 		});

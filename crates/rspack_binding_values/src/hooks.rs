@@ -27,10 +27,6 @@ pub struct JsHooks {
   pub optimize_tree: ThreadsafeFunction<(), ()>,
   #[napi(ts_type = "(compilation: JsCompilation) => void")]
   pub optimize_chunk_modules: ThreadsafeFunction<JsCompilation, ()>,
-  #[napi(ts_type = "() => void")]
-  pub before_compile: ThreadsafeFunction<(), ()>,
-  #[napi(ts_type = "(compilation: JsCompilation) => void")]
-  pub after_compile: ThreadsafeFunction<JsCompilation, ()>,
   #[napi(ts_type = "(compilation: JsCompilation) => void")]
   pub finish_modules: ThreadsafeFunction<JsCompilation, ()>,
   #[napi(ts_type = "(compilation: JsCompilation) => void")]

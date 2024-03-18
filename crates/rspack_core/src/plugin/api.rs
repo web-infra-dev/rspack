@@ -303,14 +303,6 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
-  async fn before_compile(&self, _params: &CompilationParams) -> Result<()> {
-    Ok(())
-  }
-
-  async fn after_compile(&self, _compilation: &mut Compilation) -> Result<()> {
-    Ok(())
-  }
-
   async fn finish_make(&self, _compilation: &mut Compilation) -> Result<()> {
     Ok(())
   }

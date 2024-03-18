@@ -138,10 +138,6 @@ where
   #[instrument(name = "compile", skip_all)]
   async fn compile(&mut self, mut params: Vec<MakeParam>) -> Result<()> {
     let mut compilation_params = self.new_compilation_params();
-    self
-      .plugin_driver
-      .before_compile(&compilation_params)
-      .await?;
     // Fake this compilation as *currently* rebuilding does not create a new compilation
     self
       .plugin_driver
@@ -272,13 +268,6 @@ where
     }
     let start = logger.time("seal compilation");
     self.compilation.seal(self.plugin_driver.clone()).await?;
-    logger.time_end(start);
-
-    let start = logger.time("afterCompile hook");
-    self
-      .plugin_driver
-      .after_compile(&mut self.compilation)
-      .await?;
     logger.time_end(start);
 
     // Consume plugin driver diagnostic

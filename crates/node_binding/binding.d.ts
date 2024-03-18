@@ -320,8 +320,6 @@ export interface JsHooks {
   afterOptimizeModules: (compilation: JsCompilation) => void
   optimizeTree: () => void
   optimizeChunkModules: (compilation: JsCompilation) => void
-  beforeCompile: () => void
-  afterCompile: (compilation: JsCompilation) => void
   finishModules: (compilation: JsCompilation) => void
   finishMake: (compilation: JsCompilation) => void
   buildModule: (module: JsModule) => void
