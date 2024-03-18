@@ -27,7 +27,8 @@ use rspack_hook::Hook as _;
 
 use self::interceptor::{
   RegisterCompilationProcessAssetsTaps, RegisterCompilerCompilationTaps, RegisterCompilerMakeTaps,
-  RegisterCompilerShouldEmitTaps, RegisterNormalModuleFactoryBeforeResolveTaps,
+  RegisterCompilerShouldEmitTaps, RegisterCompilerThisCompilationTaps,
+  RegisterNormalModuleFactoryBeforeResolveTaps,
 };
 use crate::{DisabledHooks, Hook, JsCompilation, JsHooks};
 
@@ -39,6 +40,7 @@ pub struct JsHooksAdapterInner {
 #[derive(Clone)]
 pub struct JsHooksAdapterPlugin {
   inner: Arc<JsHooksAdapterInner>,
+  register_compiler_this_compilation_taps: RegisterCompilerThisCompilationTaps,
   register_compiler_compilation_taps: RegisterCompilerCompilationTaps,
   register_compiler_make_taps: RegisterCompilerMakeTaps,
   register_compiler_should_emit_taps: RegisterCompilerShouldEmitTaps,
@@ -76,6 +78,11 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
     ctx
       .context
       .compiler_hooks
+      .this_compilation
+      .intercept(self.register_compiler_this_compilation_taps.clone());
+    ctx
+      .context
+      .compiler_hooks
       .compilation
       .intercept(self.register_compiler_compilation_taps.clone());
     ctx
@@ -103,24 +110,6 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
           .clone(),
       );
     Ok(())
-  }
-
-  async fn this_compilation(
-    &self,
-    args: rspack_core::ThisCompilationArgs<'_>,
-    _params: &rspack_core::CompilationParams,
-  ) -> rspack_core::PluginThisCompilationHookOutput {
-    if self.is_hook_disabled(&Hook::ThisCompilation) {
-      return Ok(());
-    }
-
-    // SAFETY: `Compiler` will not be moved, as it's stored on the heap.
-    // The pointer to `Compilation` is valid for the lifetime of `Compiler`.
-    // `Compiler` is valid through the lifetime before it's closed by calling `Compiler.close()` or gc-ed.
-    // `JsCompilation` is valid through the entire lifetime of `Compilation`.
-    let compilation = unsafe { JsCompilation::from_compilation(args.this_compilation) };
-
-    self.hooks.this_compilation.call(compilation).await
   }
 
   async fn chunk_asset(&self, args: &ChunkAssetArgs) -> rspack_error::Result<()> {
@@ -267,10 +256,10 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
     if self.is_hook_disabled(&Hook::OptimizeModules) {
       return Ok(());
     }
-    // SAFETY: `Compiler` will not be moved, as it's stored on the heap.
-    // The pointer to `Compilation` is valid for the lifetime of `Compiler`.
-    // `Compiler` is valid through the lifetime before it's closed by calling `Compiler.close()` or gc-ed.
-    // `JsCompilation` is valid through the entire lifetime of `Compilation`.
+    // SAFETY:
+    // 1. `Compiler` is stored on the heap and pinned in binding crate.
+    // 2. `Compilation` outlives `JsCompilation` and `Compiler` outlives `Compilation`.
+    // 3. `JsCompilation` was replaced everytime a new `Compilation` was created before getting accessed.
     let compilation = unsafe { JsCompilation::from_compilation(compilation) };
     self.hooks.optimize_modules.call(compilation).await
   }
@@ -282,10 +271,10 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
     if self.is_hook_disabled(&Hook::AfterOptimizeModules) {
       return Ok(());
     }
-    // SAFETY: `Compiler` will not be moved, as it's stored on the heap.
-    // The pointer to `Compilation` is valid for the lifetime of `Compiler`.
-    // `Compiler` is valid through the lifetime before it's closed by calling `Compiler.close()` or gc-ed.
-    // `JsCompilation` is valid through the entire lifetime of `Compilation`.
+    // SAFETY:
+    // 1. `Compiler` is stored on the heap and pinned in binding crate.
+    // 2. `Compilation` outlives `JsCompilation` and `Compiler` outlives `Compilation`.
+    // 3. `JsCompilation` was replaced everytime a new `Compilation` was created before getting accessed.
     let compilation = unsafe { JsCompilation::from_compilation(compilation) };
     self.hooks.after_optimize_modules.call(compilation).await
   }
@@ -308,41 +297,13 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
       return Ok(());
     }
 
-    // SAFETY: `Compiler` will not be moved, as it's stored on the heap.
-    // The pointer to `Compilation` is valid for the lifetime of `Compiler`.
-    // `Compiler` is valid through the lifetime before it's closed by calling `Compiler.close()` or gc-ed.
-    // `JsCompilation` is valid through the entire lifetime of `Compilation`.
+    // SAFETY:
+    // 1. `Compiler` is stored on the heap and pinned in binding crate.
+    // 2. `Compilation` outlives `JsCompilation` and `Compiler` outlives `Compilation`.
+    // 3. `JsCompilation` was replaced everytime a new `Compilation` was created before getting accessed.
     let compilation = unsafe { JsCompilation::from_compilation(args.compilation) };
 
     self.hooks.optimize_chunk_modules.call(compilation).await
-  }
-
-  async fn before_compile(
-    &self,
-    _params: &rspack_core::CompilationParams,
-  ) -> rspack_error::Result<()> {
-    if self.is_hook_disabled(&Hook::BeforeCompile) {
-      return Ok(());
-    }
-
-    self.hooks.before_compile.call({}).await
-  }
-
-  async fn after_compile(
-    &self,
-    compilation: &mut rspack_core::Compilation,
-  ) -> rspack_error::Result<()> {
-    if self.is_hook_disabled(&Hook::AfterCompile) {
-      return Ok(());
-    }
-
-    // SAFETY: `Compiler` will not be moved, as it's stored on the heap.
-    // The pointer to `Compilation` is valid for the lifetime of `Compiler`.
-    // `Compiler` is valid through the lifetime before it's closed by calling `Compiler.close()` or gc-ed.
-    // `JsCompilation` is valid through the entire lifetime of `Compilation`.
-    let compilation = unsafe { JsCompilation::from_compilation(compilation) };
-
-    self.hooks.after_compile.call(compilation).await
   }
 
   async fn finish_make(
@@ -353,10 +314,10 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
       return Ok(());
     }
 
-    // SAFETY: `Compiler` will not be moved, as it's stored on the heap.
-    // The pointer to `Compilation` is valid for the lifetime of `Compiler`.
-    // `Compiler` is valid through the lifetime before it's closed by calling `Compiler.close()` or gc-ed.
-    // `JsCompilation` is valid through the entire lifetime of `Compilation`.
+    // SAFETY:
+    // 1. `Compiler` is stored on the heap and pinned in binding crate.
+    // 2. `Compilation` outlives `JsCompilation` and `Compiler` outlives `Compilation`.
+    // 3. `JsCompilation` was replaced everytime a new `Compilation` was created before getting accessed.
     let compilation = unsafe { JsCompilation::from_compilation(compilation) };
 
     self.hooks.finish_make.call(compilation).await
@@ -382,10 +343,10 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
       return Ok(());
     }
 
-    // SAFETY: `Compiler` will not be moved, as it's stored on the heap.
-    // The pointer to `Compilation` is valid for the lifetime of `Compiler`.
-    // `Compiler` is valid through the lifetime before it's closed by calling `Compiler.close()` or gc-ed.
-    // `JsCompilation` is valid through the entire lifetime of `Compilation`.
+    // SAFETY:
+    // 1. `Compiler` is stored on the heap and pinned in binding crate.
+    // 2. `Compilation` outlives `JsCompilation` and `Compiler` outlives `Compilation`.
+    // 3. `JsCompilation` was replaced everytime a new `Compilation` was created before getting accessed.
     let compilation = unsafe { JsCompilation::from_compilation(compilation) };
 
     self.hooks.finish_modules.call(compilation).await
@@ -517,6 +478,9 @@ impl JsHooksAdapterPlugin {
     register_js_taps: RegisterJsTaps,
   ) -> Result<Self> {
     Ok(JsHooksAdapterPlugin {
+      register_compiler_this_compilation_taps: RegisterCompilerThisCompilationTaps::new(
+        register_js_taps.register_compiler_this_compilation_taps,
+      ),
       register_compiler_compilation_taps: RegisterCompilerCompilationTaps::new(
         register_js_taps.register_compiler_compilation_taps,
       ),

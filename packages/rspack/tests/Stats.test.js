@@ -176,7 +176,6 @@ describe("Stats", () => {
 		<t> finish make hook: X ms
 		<t> finish compilation: X ms
 		<t> seal compilation: X ms
-		<t> afterCompile hook: X ms
 		<t> emitAssets: X ms
 		<t> done hook: X ms
 
@@ -233,28 +232,26 @@ describe("Stats", () => {
 			cache: false
 		});
 		await new Promise((resolve, reject) => {
-			compiler.build(err => {
+			compiler.run(err => {
 				if (err) {
 					return reject(err);
 				}
 				resolve();
 			});
 		});
+		compiler.modifiedFiles = new Set([path.join(__dirname, "./fixtures/a")]);
+		compiler.removedFiles = new Set();
 		const stats = await new Promise((resolve, reject) => {
-			compiler.rebuild(
-				new Set([path.join(__dirname, "./fixtures/a")]),
-				new Set(),
-				err => {
-					if (err) {
-						return reject(err);
-					}
-					const stats = new Stats(compiler.compilation).toString({
-						all: false,
-						logging: "verbose"
-					});
-					resolve(stats);
+			compiler.run(err => {
+				if (err) {
+					return reject(err);
 				}
-			);
+				const stats = new Stats(compiler.compilation).toString({
+					all: false,
+					logging: "verbose"
+				});
+				resolve(stats);
+			});
 		});
 		expect(stats).not.toContain("module build cache");
 		expect(stats).not.toContain("module factorize cache");
@@ -268,28 +265,26 @@ describe("Stats", () => {
 			cache: true
 		});
 		await new Promise((resolve, reject) => {
-			compiler.build(err => {
+			compiler.run(err => {
 				if (err) {
 					return reject(err);
 				}
 				resolve();
 			});
 		});
+		compiler.modifiedFiles = new Set([path.join(__dirname, "./fixtures/a")]);
+		compiler.removedFiles = new Set();
 		const stats = await new Promise((resolve, reject) => {
-			compiler.rebuild(
-				new Set([path.join(__dirname, "./fixtures/a")]),
-				new Set(),
-				err => {
-					if (err) {
-						return reject(err);
-					}
-					const stats = new Stats(compiler.compilation).toString({
-						all: false,
-						logging: "verbose"
-					});
-					resolve(stats);
+			compiler.run(err => {
+				if (err) {
+					return reject(err);
 				}
-			);
+				const stats = new Stats(compiler.compilation).toString({
+					all: false,
+					logging: "verbose"
+				});
+				resolve(stats);
+			});
 		});
 		expect(stats).toContain("module build cache: 100.0% (1/1)");
 		expect(stats).toContain("module factorize cache: 100.0% (1/1)");

@@ -249,8 +249,8 @@ export async function runLoaders(
 	) {
 		if (!callback) {
 			return new Promise((resolve, reject) => {
-				compiler.compilation
-					.__internal_getInner()
+				compiler
+					.compilation!.__internal_getInner()
 					.importModule(
 						request,
 						options.publicPath,
@@ -280,8 +280,8 @@ export async function runLoaders(
 					);
 			});
 		}
-		return compiler.compilation
-			.__internal_getInner()
+		return compiler
+			.compilation!.__internal_getInner()
 			.importModule(
 				request,
 				options.publicPath,
@@ -461,7 +461,7 @@ export async function runLoaders(
 		};
 	};
 	loaderContext.getLogger = function getLogger(name) {
-		return compiler.compilation.getLogger(
+		return compiler.compilation!.getLogger(
 			[name, resource].filter(Boolean).join("|")
 		);
 	};
@@ -470,7 +470,7 @@ export async function runLoaders(
 		const title = "Module Error";
 		const message =
 			error instanceof Error ? concatErrorMsgAndStack(error) : error;
-		compiler.compilation.pushDiagnostic(
+		compiler.compilation!.pushDiagnostic(
 			"error",
 			title,
 			`${message}\n(from: ${stringifyLoaderObject(
@@ -482,7 +482,7 @@ export async function runLoaders(
 		const title = "Module Warning";
 		const message =
 			warning instanceof Error ? concatErrorMsgAndStack(warning) : warning;
-		compiler.compilation.pushDiagnostic(
+		compiler.compilation!.pushDiagnostic(
 			"warning",
 			title,
 			`${message}\n(from: ${stringifyLoaderObject(
@@ -492,7 +492,7 @@ export async function runLoaders(
 	};
 	loaderContext.__internal__pushNativeDiagnostics =
 		function __internal__pushNativeDiagnostics(diagnostics) {
-			compiler.compilation.__internal__pushNativeDiagnostics(diagnostics);
+			compiler.compilation!.__internal__pushNativeDiagnostics(diagnostics);
 		};
 	loaderContext.emitFile = function emitFile(
 		name,
@@ -556,7 +556,7 @@ export async function runLoaders(
 		},
 		createHash: type => {
 			return createHash(
-				type || compiler.compilation.outputOptions.hashFunction
+				type || compiler.compilation!.outputOptions.hashFunction
 			);
 		}
 	};

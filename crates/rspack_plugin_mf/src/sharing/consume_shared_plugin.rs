@@ -6,14 +6,15 @@ use async_trait::async_trait;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
-  AdditionalChunkRuntimeRequirementsArgs, Compilation, CompilationParams, Context,
-  DependencyCategory, DependencyType, FactorizeArgs, ModuleExt, ModuleFactoryResult,
-  NormalModuleCreateData, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext,
-  PluginFactorizeHookOutput, PluginNormalModuleFactoryCreateModuleHookOutput,
-  PluginThisCompilationHookOutput, ResolveOptionsWithDependencyType, ResolveResult, Resolver,
-  RuntimeGlobals, ThisCompilationArgs,
+  AdditionalChunkRuntimeRequirementsArgs, ApplyContext, Compilation, CompilationParams,
+  CompilerOptions, Context, DependencyCategory, DependencyType, FactorizeArgs, ModuleExt,
+  ModuleFactoryResult, NormalModuleCreateData, Plugin,
+  PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, PluginFactorizeHookOutput,
+  PluginNormalModuleFactoryCreateModuleHookOutput, ResolveOptionsWithDependencyType, ResolveResult,
+  Resolver, RuntimeGlobals,
 };
-use rspack_error::{error, Diagnostic};
+use rspack_error::{error, Diagnostic, Result};
+use rspack_hook::{plugin, plugin_hook, AsyncSeries2};
 use rustc_hash::FxHashMap;
 
 use super::{
@@ -140,6 +141,7 @@ pub struct ConsumeSharedPluginOptions {
   pub enhanced: bool,
 }
 
+#[plugin]
 #[derive(Debug)]
 pub struct ConsumeSharedPlugin {
   options: ConsumeSharedPluginOptions,
@@ -150,12 +152,12 @@ pub struct ConsumeSharedPlugin {
 
 impl ConsumeSharedPlugin {
   pub fn new(options: ConsumeSharedPluginOptions) -> Self {
-    Self {
+    Self::new_inner(
       options,
-      resolver: Default::default(),
-      compiler_context: Default::default(),
-      matched_consumes: Default::default(),
-    }
+      Default::default(),
+      Default::default(),
+      Default::default(),
+    )
   }
 
   fn init_context(&self, compilation: &Compilation) {
@@ -313,24 +315,38 @@ impl ConsumeSharedPlugin {
   }
 }
 
+#[plugin_hook(AsyncSeries2<Compilation, CompilationParams> for ConsumeSharedPlugin)]
+async fn this_compilation(
+  &self,
+  compilation: &mut Compilation,
+  params: &mut CompilationParams,
+) -> Result<()> {
+  compilation.set_dependency_factory(
+    DependencyType::ConsumeSharedFallback,
+    params.normal_module_factory.clone(),
+  );
+  self.init_context(compilation);
+  self.init_resolver(compilation);
+  self.init_matched_consumes(compilation, self.get_resolver());
+  Ok(())
+}
+
 #[async_trait]
 impl Plugin for ConsumeSharedPlugin {
   fn name(&self) -> &'static str {
     "rspack.ConsumeSharedPlugin"
   }
 
-  async fn this_compilation(
+  fn apply(
     &self,
-    args: ThisCompilationArgs<'_>,
-    params: &CompilationParams,
-  ) -> PluginThisCompilationHookOutput {
-    args.this_compilation.set_dependency_factory(
-      DependencyType::ConsumeSharedFallback,
-      params.normal_module_factory.clone(),
-    );
-    self.init_context(args.this_compilation);
-    self.init_resolver(args.this_compilation);
-    self.init_matched_consumes(args.this_compilation, self.get_resolver());
+    ctx: PluginContext<&mut ApplyContext>,
+    _options: &mut CompilerOptions,
+  ) -> Result<()> {
+    ctx
+      .context
+      .compiler_hooks
+      .this_compilation
+      .tap(this_compilation::new(self));
     Ok(())
   }
 

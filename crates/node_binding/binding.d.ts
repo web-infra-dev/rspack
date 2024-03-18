@@ -318,7 +318,6 @@ export interface JsExecuteModuleResult {
 }
 
 export interface JsHooks {
-  thisCompilation: (compilation: JsCompilation) => void
   afterProcessAssets: () => void
   emit: () => void
   assetEmitted: (asset: JsAssetEmittedArgs) => void
@@ -327,8 +326,6 @@ export interface JsHooks {
   afterOptimizeModules: (compilation: JsCompilation) => void
   optimizeTree: () => void
   optimizeChunkModules: (compilation: JsCompilation) => void
-  beforeCompile: () => void
-  afterCompile: (compilation: JsCompilation) => void
   finishModules: (compilation: JsCompilation) => void
   finishMake: (compilation: JsCompilation) => void
   buildModule: (module: JsModule) => void
@@ -1110,6 +1107,12 @@ export interface RawParserOptions {
   javascript?: RawJavascriptParserOptions
 }
 
+export interface RawPathData {
+  filename?: string
+  contentHash?: string
+  url?: string
+}
+
 export interface RawPluginImportConfig {
   libraryName: string
   libraryDirectory?: string
@@ -1293,6 +1296,7 @@ export interface RawTrustedTypes {
 export function registerGlobalTrace(filter: string, layer: "chrome" | "logger", output: string): void
 
 export interface RegisterJsTaps {
+  registerCompilerThisCompilationTaps: (stages: Array<number>) => Array<{ function: ((compilation: JsCompilation) => void); stage: number; }>
   registerCompilerCompilationTaps: (stages: Array<number>) => Array<{ function: ((compilation: JsCompilation) => void); stage: number; }>
   registerCompilerMakeTaps: (stages: Array<number>) => Array<{ function: ((compilation: JsCompilation) => Promise<void>); stage: number; }>
   registerCompilerShouldEmitTaps: (stages: Array<number>) => Array<{ function: ((compilation: JsCompilation) => boolean | undefined); stage: number; }>

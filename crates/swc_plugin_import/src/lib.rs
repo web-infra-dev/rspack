@@ -4,7 +4,7 @@ mod visit;
 use std::fmt::Debug;
 
 use handlebars::{Context, Helper, HelperResult, Output, RenderContext, Template};
-use inflector::Inflector;
+use heck::{ToKebabCase, ToLowerCamelCase, ToSnakeCase};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde::Deserialize;
 use swc_core::{
@@ -115,7 +115,7 @@ pub fn plugin_import(config: &Vec<PluginImportConfig>) -> impl Fold + '_ {
           .param(0)
           .and_then(|v| v.value().as_str())
           .unwrap_or("");
-        out.write(param.to_camel_case().as_ref())?;
+        out.write(param.to_lower_camel_case().as_ref())?;
         Ok(())
       },
     ),

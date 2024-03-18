@@ -35,6 +35,8 @@ use crate::{BoxPlugin, ExportInfo, UsageState};
 use crate::{CompilationParams, ContextModuleFactory, NormalModuleFactory};
 
 // should be SyncHook, but rspack need call js hook
+pub type CompilerThisCompilationHook = AsyncSeries2Hook<Compilation, CompilationParams>;
+// should be SyncHook, but rspack need call js hook
 pub type CompilerCompilationHook = AsyncSeries2Hook<Compilation, CompilationParams>;
 // should be AsyncParallelHook, but rspack need add MakeParam to incremental rebuild
 pub type CompilerMakeHook = AsyncSeries2Hook<Compilation, Vec<MakeParam>>;
@@ -43,6 +45,7 @@ pub type CompilerShouldEmitHook = AsyncSeriesBailHook<Compilation, bool>;
 
 #[derive(Debug, Default)]
 pub struct CompilerHooks {
+  pub this_compilation: CompilerThisCompilationHook,
   pub compilation: CompilerCompilationHook,
   pub make: CompilerMakeHook,
   pub should_emit: CompilerShouldEmitHook,
@@ -138,14 +141,16 @@ where
   #[instrument(name = "compile", skip_all)]
   async fn compile(&mut self, mut params: Vec<MakeParam>) -> Result<()> {
     let mut compilation_params = self.new_compilation_params();
+    // FOR BINDING SAFETY:
+    // Make sure `thisCompilation` hook was called for each `JsCompilation` update before any access to it.
+    // `JsCompiler` tapped `thisCompilation` to update the `JsCompilation` on the JavaScript side.
+    // Otherwise, trying to access the old native `JsCompilation` would cause undefined behavior
+    // as the previous instance might get dropped.
     self
       .plugin_driver
-      .before_compile(&compilation_params)
-      .await?;
-    // Fake this compilation as *currently* rebuilding does not create a new compilation
-    self
-      .plugin_driver
-      .this_compilation(&mut self.compilation, &compilation_params)
+      .compiler_hooks
+      .this_compilation
+      .call(&mut self.compilation, &mut compilation_params)
       .await?;
     self
       .plugin_driver
@@ -272,13 +277,6 @@ where
     }
     let start = logger.time("seal compilation");
     self.compilation.seal(self.plugin_driver.clone()).await?;
-    logger.time_end(start);
-
-    let start = logger.time("afterCompile hook");
-    self
-      .plugin_driver
-      .after_compile(&mut self.compilation)
-      .await?;
     logger.time_end(start);
 
     // Consume plugin driver diagnostic

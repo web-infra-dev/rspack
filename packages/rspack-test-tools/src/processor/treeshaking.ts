@@ -42,7 +42,7 @@ export class RspackTreeShakingProcessor extends BasicTaskProcessor<ECompilerType
 				`Failed to compile in fixture ${this._options.name}, Errors: ${stats.toJson({ errors: true, all: false }).errors}`
 			);
 		}
-		const fileContents = Object.entries(c.compilation.assets)
+		const fileContents = Object.entries(c.compilation!.assets)
 			.filter(([file]) => file.endsWith(".js") && !file.includes("runtime.js"))
 			.map(([file, source]) => {
 				const tag = path.extname(file).slice(1) || "txt";

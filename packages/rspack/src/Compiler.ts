@@ -53,8 +53,8 @@ class Compiler {
 	#instance?: binding.Rspack;
 
 	webpack = rspack;
-	// @ts-expect-error
-	compilation: Compilation;
+	compilation?: Compilation;
+	compilationParams?: CompilationParams;
 	// TODO: remove this after remove rebuild on the rust side.
 	first: boolean = true;
 	builtinPlugins: binding.BuiltinPlugin[];
@@ -75,9 +75,9 @@ class Compiler {
 	// @ts-expect-error
 	watchMode: boolean;
 	context: string;
-	modifiedFiles?: ReadonlySet<string>;
 	cache: Cache;
 	compilerPath: string;
+	modifiedFiles?: ReadonlySet<string>;
 	removedFiles?: ReadonlySet<string>;
 	fileTimestamps?: ReadonlyMap<string, FileSystemInfoEntry | "ignore" | null>;
 	contextTimestamps?: ReadonlyMap<
@@ -87,12 +87,10 @@ class Compiler {
 	hooks: {
 		done: tapable.AsyncSeriesHook<Stats>;
 		afterDone: tapable.SyncHook<Stats>;
-		// TODO: CompilationParams
+		thisCompilation: liteTapable.SyncHook<[Compilation, CompilationParams]>;
 		compilation: liteTapable.SyncHook<[Compilation, CompilationParams]>;
-		// TODO: CompilationParams
-		thisCompilation: tapable.SyncHook<[Compilation, CompilationParams]>;
 		invalid: tapable.SyncHook<[string | null, number]>;
-		compile: tapable.SyncHook<[any]>;
+		compile: tapable.SyncHook<[CompilationParams]>;
 		normalModuleFactory: tapable.SyncHook<NormalModuleFactory>;
 		contextModuleFactory: tapable.SyncHook<ContextModuleFactory>;
 		initialize: tapable.SyncHook<[]>;
@@ -112,7 +110,7 @@ class Compiler {
 		afterPlugins: tapable.SyncHook<[Compiler]>;
 		afterResolvers: tapable.SyncHook<[Compiler]>;
 		make: liteTapable.AsyncParallelHook<[Compilation]>;
-		beforeCompile: tapable.AsyncSeriesHook<any>;
+		beforeCompile: tapable.AsyncSeriesHook<[CompilationParams]>;
 		afterCompile: tapable.AsyncSeriesHook<[Compilation]>;
 		finishModules: tapable.AsyncSeriesHook<[any]>;
 		finishMake: tapable.AsyncSeriesHook<[Compilation]>;
@@ -148,10 +146,9 @@ class Compiler {
 			emit: new tapable.AsyncSeriesHook(["compilation"]),
 			assetEmitted: new tapable.AsyncSeriesHook(["file", "info"]),
 			afterEmit: new tapable.AsyncSeriesHook(["compilation"]),
-			thisCompilation: new tapable.SyncHook<[Compilation, CompilationParams]>([
-				"compilation",
-				"params"
-			]),
+			thisCompilation: new liteTapable.SyncHook<
+				[Compilation, CompilationParams]
+			>(["compilation", "params"]),
 			compilation: new liteTapable.SyncHook<[Compilation, CompilationParams]>([
 				"compilation",
 				"params"
@@ -233,18 +230,11 @@ class Compiler {
 			rawOptions,
 			this.builtinPlugins,
 			{
-				beforeCompile: this.#beforeCompile.bind(this),
-				afterCompile: this.#afterCompile.bind(this),
 				finishMake: this.#finishMake.bind(this),
 				emit: this.#emit.bind(this),
 				assetEmitted: this.#assetEmitted.bind(this),
 				afterEmit: this.#afterEmit.bind(this),
 				afterProcessAssets: this.#afterProcessAssets.bind(this),
-				// `Compilation` should be created with hook `thisCompilation`, and here is the reason:
-				// We know that the hook `thisCompilation` will not be called from a child compiler(it doesn't matter whether the child compiler is created on the Rust or the Node side).
-				// See webpack's API: https://webpack.js.org/api/compiler-hooks/#thiscompilation
-				// So it is safe to create a new compilation here.
-				thisCompilation: this.#newCompilation.bind(this),
 				optimizeModules: this.#optimizeModules.bind(this),
 				afterOptimizeModules: this.#afterOptimizeModules.bind(this),
 				optimizeTree: this.#optimizeTree.bind(this),
@@ -267,27 +257,34 @@ class Compiler {
 				runtimeModule: this.#runtimeModule.bind(this)
 			},
 			{
+				registerCompilerThisCompilationTaps: this.#createRegisterTaps(
+					() => this.hooks.thisCompilation,
+					queried => (native: binding.JsCompilation) => {
+						if (this.compilation === undefined) {
+							this.#createCompilation(native);
+						}
+						queried.call(this.compilation!, this.compilationParams!);
+					}
+				),
 				registerCompilerCompilationTaps: this.#createRegisterTaps(
 					() => this.hooks.compilation,
 					queried => () =>
-						queried.call(this.compilation, {
-							normalModuleFactory: this.compilation.normalModuleFactory!
-						})
+						queried.call(this.compilation!, this.compilationParams!)
 				),
 				registerCompilerMakeTaps: this.#createRegisterTaps(
 					() => this.hooks.make,
-					queried => async () => await queried.promise(this.compilation)
+					queried => async () => await queried.promise(this.compilation!)
 				),
 				registerCompilerShouldEmitTaps: this.#createRegisterTaps(
 					() => this.hooks.shouldEmit,
-					queried => () => queried.call(this.compilation)
+					queried => () => queried.call(this.compilation!)
 				),
 				registerCompilationProcessAssetsTaps: this.#createRegisterTaps(
-					() => this.compilation.hooks.processAssets,
-					queried => async () => await queried.promise(this.compilation.assets)
+					() => this.compilation!.hooks.processAssets,
+					queried => async () => await queried.promise(this.compilation!.assets)
 				),
 				registerNormalModuleFactoryBeforeResolveTaps: this.#createRegisterTaps(
-					() => this.compilation.normalModuleFactory!.hooks.beforeResolve,
+					() => this.compilationParams!.normalModuleFactory.hooks.beforeResolve,
 					queried => async (resolveData: binding.JsBeforeResolveArgs) => {
 						const normalizedResolveData = {
 							request: resolveData.request,
@@ -525,36 +522,32 @@ class Compiler {
 		const disabledHooks: string[] = [];
 		type HookMap = Record<keyof binding.JsHooks, any>;
 		const hookMap: HookMap = {
-			beforeCompile: this.hooks.beforeCompile,
-			afterCompile: this.hooks.afterCompile,
 			finishMake: this.hooks.finishMake,
 			emit: this.hooks.emit,
 			assetEmitted: this.hooks.assetEmitted,
 			afterEmit: this.hooks.afterEmit,
-			afterProcessAssets: this.compilation.hooks.afterProcessAssets,
-			optimizeTree: this.compilation.hooks.optimizeTree,
-			finishModules: this.compilation.hooks.finishModules,
-			optimizeModules: this.compilation.hooks.optimizeModules,
-			afterOptimizeModules: this.compilation.hooks.afterOptimizeModules,
-			chunkAsset: this.compilation.hooks.chunkAsset,
-			afterResolve: this.compilation.normalModuleFactory?.hooks.afterResolve,
-			succeedModule: this.compilation.hooks.succeedModule,
-			stillValidModule: this.compilation.hooks.stillValidModule,
-			buildModule: this.compilation.hooks.buildModule,
-			// various of hooks are called inside `#newCompilation`, we shouldn't prevent `#newCompilation` from calling even when `thisCompilation` is not tapped.
-			// issue: https://github.com/web-infra-dev/rspack/issues/5398
-			thisCompilation: undefined,
-			optimizeChunkModules: this.compilation.hooks.optimizeChunkModules,
+			afterProcessAssets: this.compilation!.hooks.afterProcessAssets,
+			optimizeTree: this.compilation!.hooks.optimizeTree,
+			finishModules: this.compilation!.hooks.finishModules,
+			optimizeModules: this.compilation!.hooks.optimizeModules,
+			afterOptimizeModules: this.compilation!.hooks.afterOptimizeModules,
+			chunkAsset: this.compilation!.hooks.chunkAsset,
+			afterResolve:
+				this.compilationParams?.normalModuleFactory.hooks.afterResolve,
+			succeedModule: this.compilation!.hooks.succeedModule,
+			stillValidModule: this.compilation!.hooks.stillValidModule,
+			buildModule: this.compilation!.hooks.buildModule,
+			optimizeChunkModules: this.compilation!.hooks.optimizeChunkModules,
 			contextModuleFactoryBeforeResolve:
-				this.compilation.contextModuleFactory?.hooks.beforeResolve,
+				this.compilationParams?.contextModuleFactory.hooks.beforeResolve,
 			contextModuleFactoryAfterResolve:
-				this.compilation.contextModuleFactory?.hooks.afterResolve,
+				this.compilationParams?.contextModuleFactory.hooks.afterResolve,
 			normalModuleFactoryCreateModule:
-				this.compilation.normalModuleFactory?.hooks.createModule,
+				this.compilationParams?.normalModuleFactory.hooks.createModule,
 			normalModuleFactoryResolveForScheme:
-				this.compilation.normalModuleFactory?.hooks.resolveForScheme,
+				this.compilationParams?.normalModuleFactory.hooks.resolveForScheme,
 			executeModule: undefined,
-			runtimeModule: this.compilation.hooks.runtimeModule
+			runtimeModule: this.compilation!.hooks.runtimeModule
 		};
 		for (const [name, hook] of Object.entries(hookMap)) {
 			if (
@@ -581,42 +574,31 @@ class Compiler {
 		}
 	}
 
-	async #beforeCompile() {
-		await this.hooks.beforeCompile.promise();
-		// compilation is not created yet, so this will fail
-		// this.#updateDisabledHooks();
-	}
-
-	async #afterCompile() {
-		await this.hooks.afterCompile.promise(this.compilation);
-		this.#updateDisabledHooks();
-	}
-
 	async #finishMake() {
-		await this.hooks.finishMake.promise(this.compilation);
+		await this.hooks.finishMake.promise(this.compilation!);
 		this.#updateDisabledHooks();
 	}
 
 	async #buildModule(module: binding.JsModule) {
 		const normalized = normalizeJsModule(module);
-		this.compilation.hooks.buildModule.call(normalized);
+		this.compilation!.hooks.buildModule.call(normalized);
 		this.#updateDisabledHooks();
 	}
 
 	async #afterProcessAssets() {
-		await this.compilation.hooks.afterProcessAssets.promise(
-			this.compilation.assets
+		await this.compilation!.hooks.afterProcessAssets.promise(
+			this.compilation!.assets
 		);
 		this.#updateDisabledHooks();
 	}
 
 	async #afterResolve(resolveData: binding.AfterResolveData) {
 		let res =
-			await this.compilation.normalModuleFactory?.hooks.afterResolve.promise(
+			await this.compilationParams!.normalModuleFactory.hooks.afterResolve.promise(
 				resolveData
 			);
 
-		NormalModule.getCompilationHooks(this.compilation).loader.tap(
+		NormalModule.getCompilationHooks(this.compilation!).loader.tap(
 			"sideEffectFreePropPlugin",
 			(loaderContext: any) => {
 				loaderContext._module = {
@@ -634,7 +616,7 @@ class Compiler {
 		resourceData: binding.JsBeforeResolveArgs
 	) {
 		let res =
-			await this.compilation.contextModuleFactory?.hooks.beforeResolve.promise(
+			await this.compilationParams!.contextModuleFactory.hooks.beforeResolve.promise(
 				resourceData
 			);
 
@@ -646,7 +628,7 @@ class Compiler {
 		resourceData: binding.AfterResolveData
 	) {
 		let res =
-			await this.compilation.contextModuleFactory?.hooks.afterResolve.promise(
+			await this.compilationParams!.contextModuleFactory.hooks.afterResolve.promise(
 				resourceData
 			);
 
@@ -659,7 +641,7 @@ class Compiler {
 			settings: {},
 			matchResource: createData.resourceResolveData.resource
 		});
-		const nmfHooks = this.compilation.normalModuleFactory?.hooks;
+		const nmfHooks = this.compilationParams!.normalModuleFactory.hooks;
 		await nmfHooks?.createModule.promise(data, {});
 		this.#updateDisabledHooks();
 	}
@@ -668,9 +650,9 @@ class Compiler {
 		input: binding.JsResolveForSchemeInput
 	): Promise<binding.JsResolveForSchemeResult> {
 		let stop =
-			await this.compilation.normalModuleFactory?.hooks.resolveForScheme
-				.for(input.scheme)
-				.promise(input.resourceData);
+			await this.compilationParams!.normalModuleFactory.hooks.resolveForScheme.for(
+				input.scheme
+			).promise(input.resourceData);
 		this.#updateDisabledHooks();
 		return {
 			resourceData: input.resourceData,
@@ -679,49 +661,49 @@ class Compiler {
 	}
 
 	async #optimizeChunkModules() {
-		await this.compilation.hooks.optimizeChunkModules.promise(
-			this.compilation.chunks,
-			this.compilation.modules
+		await this.compilation!.hooks.optimizeChunkModules.promise(
+			this.compilation!.chunks,
+			this.compilation!.modules
 		);
 		this.#updateDisabledHooks();
 	}
 
 	async #optimizeTree() {
-		await this.compilation.hooks.optimizeTree.promise(
-			this.compilation.chunks,
-			this.compilation.modules
+		await this.compilation!.hooks.optimizeTree.promise(
+			this.compilation!.chunks,
+			this.compilation!.modules
 		);
 		this.#updateDisabledHooks();
 	}
 
 	async #optimizeModules() {
-		await this.compilation.hooks.optimizeModules.promise(
-			this.compilation.modules
+		await this.compilation!.hooks.optimizeModules.promise(
+			this.compilation!.modules
 		);
 		this.#updateDisabledHooks();
 	}
 
 	async #afterOptimizeModules() {
-		await this.compilation.hooks.afterOptimizeModules.promise(
-			this.compilation.modules
+		await this.compilation!.hooks.afterOptimizeModules.promise(
+			this.compilation!.modules
 		);
 		this.#updateDisabledHooks();
 	}
 
 	#chunkAsset(assetArg: binding.JsChunkAssetArgs) {
-		this.compilation.hooks.chunkAsset.call(assetArg.chunk, assetArg.filename);
+		this.compilation!.hooks.chunkAsset.call(assetArg.chunk, assetArg.filename);
 		this.#updateDisabledHooks();
 	}
 
 	async #finishModules() {
-		await this.compilation.hooks.finishModules.promise(
-			this.compilation.modules
+		await this.compilation!.hooks.finishModules.promise(
+			this.compilation!.modules
 		);
 		this.#updateDisabledHooks();
 	}
 
 	async #emit() {
-		await this.hooks.emit.promise(this.compilation);
+		await this.hooks.emit.promise(this.compilation!);
 		this.#updateDisabledHooks();
 	}
 	async #assetEmitted(args: binding.JsAssetEmittedArgs) {
@@ -731,7 +713,7 @@ class Compiler {
 			outputPath: args.outputPath,
 			targetPath: args.targetPath,
 			get source() {
-				return this.compilation.getAsset(args.filename)?.source;
+				return this.compilation!.getAsset(args.filename)?.source;
 			},
 			get content() {
 				return this.source?.buffer();
@@ -742,24 +724,24 @@ class Compiler {
 	}
 
 	async #afterEmit() {
-		await this.hooks.afterEmit.promise(this.compilation);
+		await this.hooks.afterEmit.promise(this.compilation!);
 		this.#updateDisabledHooks();
 	}
 
 	#succeedModule(module: binding.JsModule) {
-		this.compilation.hooks.succeedModule.call(module);
+		this.compilation!.hooks.succeedModule.call(module);
 		this.#updateDisabledHooks();
 	}
 
 	#stillValidModule(module: binding.JsModule) {
-		this.compilation.hooks.stillValidModule.call(module);
+		this.compilation!.hooks.stillValidModule.call(module);
 		this.#updateDisabledHooks();
 	}
 
 	#runtimeModule(arg: binding.JsRuntimeModuleArg) {
 		let { module, chunk } = arg;
 		const originSource = module.source?.source;
-		this.compilation.hooks.runtimeModule.call(module, chunk);
+		this.compilation!.hooks.runtimeModule.call(module, chunk);
 		this.#updateDisabledHooks();
 		const newSource = module.source?.source;
 		if (newSource && newSource !== originSource) {
@@ -812,7 +794,7 @@ class Compiler {
 
 			tryRunOrWebpackError(
 				() =>
-					this.compilation.hooks.executeModule.call(
+					this.compilation!.hooks.executeModule.call(
 						{
 							codeGenerationResult: new CodeGenerationResult(result),
 							moduleObject
@@ -891,23 +873,6 @@ class Compiler {
 		};
 	}
 
-	#newCompilation(native: binding.JsCompilation) {
-		const compilation = new Compilation(this, native);
-		compilation.name = this.name;
-		this.compilation = compilation;
-		// reset normalModuleFactory when create new compilation
-		let normalModuleFactory = new NormalModuleFactory();
-		let contextModuleFactory = new ContextModuleFactory();
-		this.compilation.normalModuleFactory = normalModuleFactory;
-		this.hooks.normalModuleFactory.call(normalModuleFactory);
-		this.compilation.contextModuleFactory = contextModuleFactory;
-		this.hooks.contextModuleFactory.call(contextModuleFactory);
-		this.hooks.thisCompilation.call(this.compilation, {
-			normalModuleFactory: normalModuleFactory
-		});
-		this.#updateDisabledHooks();
-	}
-
 	run(callback: Callback<Error, Stats>) {
 		if (this.running) {
 			return callback(new ConcurrentCompilationError());
@@ -938,13 +903,13 @@ class Compiler {
 						return finalCallback(err);
 					}
 
-					this.build(err => {
+					this.compile(err => {
 						if (err) {
 							return finalCallback(err);
 						}
-						this.compilation.startTime = startTime;
-						this.compilation.endTime = Date.now();
-						const stats = new Stats(this.compilation);
+						this.compilation!.startTime = startTime;
+						this.compilation!.endTime = Date.now();
+						const stats = new Stats(this.compilation!);
 						this.hooks.done.callAsync(stats, err => {
 							if (err) {
 								return finalCallback(err);
@@ -1025,21 +990,52 @@ class Compiler {
 		});
 	}
 
+	#createCompilation(native: binding.JsCompilation): Compilation {
+		const compilation = new Compilation(this, native);
+		compilation.name = this.name;
+		this.compilation = compilation;
+		return compilation;
+	}
+
+	#resetThisCompilation() {
+		// reassign new compilation in thisCompilation
+		this.compilation = undefined;
+		// ensure thisCompilation must call
+		this.hooks.thisCompilation.intercept({
+			call: () => {}
+		});
+	}
+
+	#newCompilationParams(): CompilationParams {
+		const normalModuleFactory = new NormalModuleFactory();
+		this.hooks.normalModuleFactory.call(normalModuleFactory);
+		const contextModuleFactory = new ContextModuleFactory();
+		this.hooks.contextModuleFactory.call(contextModuleFactory);
+		const params = {
+			normalModuleFactory,
+			contextModuleFactory
+		};
+		this.compilationParams = params;
+		return params;
+	}
+
 	compile(callback: Callback<Error, Compilation>) {
 		const startTime = Date.now();
-		this.hooks.beforeCompile.callAsync(void 0, (err: any) => {
+		const params = this.#newCompilationParams();
+		this.hooks.beforeCompile.callAsync(params, (err: any) => {
 			if (err) {
 				return callback(err);
 			}
-			this.hooks.compile.call([]);
+			this.hooks.compile.call(params);
+			this.#resetThisCompilation();
 
 			this.build(err => {
 				if (err) {
 					return callback(err);
 				}
-				this.compilation.startTime = startTime;
-				this.compilation.endTime = Date.now();
-				this.hooks.afterCompile.callAsync(this.compilation, err => {
+				this.compilation!.startTime = startTime;
+				this.compilation!.endTime = Date.now();
+				this.hooks.afterCompile.callAsync(this.compilation!, err => {
 					if (err) {
 						return callback(err);
 					}
@@ -1082,7 +1078,7 @@ class Compiler {
 	}
 
 	getAsset(name: string) {
-		let source = this.compilation.__internal__getAssetSource(name);
+		let source = this.compilation!.__internal__getAssetSource(name);
 		if (!source) {
 			return null;
 		}
