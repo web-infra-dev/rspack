@@ -101,7 +101,6 @@ describe("build command", () => {
 	it.each(["-d", "--devtool"])("devtool option %p should have higher priority than config", async (command) => {
 		const { exitCode, stderr, stdout } = await run(__dirname, [
 			command,
-			"source-map",
 			"--config",
 			"./entry.config.js"
 		]);
