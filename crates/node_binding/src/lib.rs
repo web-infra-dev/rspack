@@ -145,10 +145,9 @@ impl Rspack {
   /// Run the given function with the compiler.
   ///
   /// ## Safety
-  /// 1. The caller must ensure that the `Compiler` is not moved or dropped during the lifetime of the function.
-  /// 2. `CompilerStateGuard` should only be dropped so soon as each `build` or `rebuild` session is finished.
-  ///    Otherwise, this would lead to potential race condition for `Compiler`, especially when `build` or `rebuild`
-  ///    was called on JS side and its previous `build` or `rebuild` was yet to finish.
+  /// 1. The caller must ensure that the `Compiler` is not moved or dropped during the lifetime of the callback.
+  /// 2. `CompilerStateGuard` should and only be dropped so soon as each `Compiler` is free of use.
+  ///    Accessing `Compiler` beyond the lifetime of `CompilerStateGuard` would lead to potential race condition.
   unsafe fn run<R>(
     &mut self,
     env: Env,
@@ -163,8 +162,9 @@ impl Rspack {
       // SAFETY: The mutable reference to `Compiler` is exclusive. It's guaranteed by the running state guard.
       Ok(unsafe { s.compiler.as_mut().get_unchecked_mut() })
     })?;
-    // SAFETY: `Compiler` will not be moved, as it's stored on the heap.
-    // `Compiler` is valid through the lifetime before it's closed by calling `Compiler.close()` or gc-ed.
+    // SAFETY:
+    // 1. `Compiler` is pinned and stored on the heap.
+    // 2. `JsReference` (NAPI internal mechanism) keeps `Compiler` alive until its instance getting garbage collected.
     f(
       unsafe { std::mem::transmute::<&mut Compiler, &'static mut Compiler>(*compiler) },
       _guard,

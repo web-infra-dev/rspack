@@ -250,10 +250,10 @@ impl AsyncSeries2<Compilation, CompilationParams> for CompilerThisCompilationTap
     compilation: &mut Compilation,
     _: &mut CompilationParams,
   ) -> rspack_error::Result<()> {
-    // SAFETY: `Compiler` will not be moved, as it's stored on the heap.
-    // The pointer to `Compilation` is valid for the lifetime of `Compiler`.
-    // `Compiler` is valid through the lifetime before it's closed by calling `Compiler.close()` or gc-ed.
-    // `JsCompilation` is valid through the entire lifetime of `Compilation`.
+    // SAFETY:
+    // 1. `Compiler` is stored on the heap and pinned in binding crate.
+    // 2. `Compilation` outlives `JsCompilation` and `Compiler` outlives `Compilation`.
+    // 3. `JsCompilation` was replaced everytime a new `Compilation` was created before getting accessed.
     let compilation = unsafe { JsCompilation::from_compilation(compilation) };
     self.function.call_with_sync(compilation).await
   }
@@ -270,10 +270,10 @@ impl AsyncSeries2<Compilation, CompilationParams> for CompilerCompilationTap {
     compilation: &mut Compilation,
     _: &mut CompilationParams,
   ) -> rspack_error::Result<()> {
-    // SAFETY: `Compiler` will not be moved, as it's stored on the heap.
-    // The pointer to `Compilation` is valid for the lifetime of `Compiler`.
-    // `Compiler` is valid through the lifetime before it's closed by calling `Compiler.close()` or gc-ed.
-    // `JsCompilation` is valid through the entire lifetime of `Compilation`.
+    // SAFETY:
+    // 1. `Compiler` is stored on the heap and pinned in binding crate.
+    // 2. `Compilation` outlives `JsCompilation` and `Compiler` outlives `Compilation`.
+    // 3. `JsCompilation` was replaced everytime a new `Compilation` was created before getting accessed.
     let compilation = unsafe { JsCompilation::from_compilation(compilation) };
     self.function.call_with_sync(compilation).await
   }
@@ -290,10 +290,10 @@ impl AsyncSeries2<Compilation, Vec<MakeParam>> for CompilerMakeTap {
     compilation: &mut Compilation,
     _: &mut Vec<MakeParam>,
   ) -> rspack_error::Result<()> {
-    // SAFETY: `Compiler` will not be moved, as it's stored on the heap.
-    // The pointer to `Compilation` is valid for the lifetime of `Compiler`.
-    // `Compiler` is valid through the lifetime before it's closed by calling `Compiler.close()` or gc-ed.
-    // `JsCompilation` is valid through the entire lifetime of `Compilation`.
+    // SAFETY:
+    // 1. `Compiler` is stored on the heap and pinned in binding crate.
+    // 2. `Compilation` outlives `JsCompilation` and `Compiler` outlives `Compilation`.
+    // 3. `JsCompilation` was replaced everytime a new `Compilation` was created before getting accessed.
     let compilation = unsafe { JsCompilation::from_compilation(compilation) };
 
     self.function.call_with_promise(compilation).await
@@ -307,10 +307,10 @@ impl AsyncSeries2<Compilation, Vec<MakeParam>> for CompilerMakeTap {
 #[async_trait]
 impl AsyncSeriesBail<Compilation, bool> for CompilerShouldEmitTap {
   async fn run(&self, compilation: &mut Compilation) -> rspack_error::Result<Option<bool>> {
-    // SAFETY: `Compiler` will not be moved, as it's stored on the heap.
-    // The pointer to `Compilation` is valid for the lifetime of `Compiler`.
-    // `Compiler` is valid through the lifetime before it's closed by calling `Compiler.close()` or gc-ed.
-    // `JsCompilation` is valid through the entire lifetime of `Compilation`.
+    // SAFETY:
+    // 1. `Compiler` is stored on the heap and pinned in binding crate.
+    // 2. `Compilation` outlives `JsCompilation` and `Compiler` outlives `Compilation`.
+    // 3. `JsCompilation` was replaced everytime a new `Compilation` was created before getting accessed.
     let compilation = unsafe { JsCompilation::from_compilation(compilation) };
 
     self.function.call_with_sync(compilation).await
@@ -324,10 +324,10 @@ impl AsyncSeriesBail<Compilation, bool> for CompilerShouldEmitTap {
 #[async_trait]
 impl AsyncSeries<Compilation> for CompilationProcessAssetsTap {
   async fn run(&self, compilation: &mut Compilation) -> rspack_error::Result<()> {
-    // SAFETY: `Compiler` will not be moved, as it's stored on the heap.
-    // The pointer to `Compilation` is valid for the lifetime of `Compiler`.
-    // `Compiler` is valid through the lifetime before it's closed by calling `Compiler.close()` or gc-ed.
-    // `JsCompilation` is valid through the entire lifetime of `Compilation`.
+    // SAFETY:
+    // 1. `Compiler` is stored on the heap and pinned in binding crate.
+    // 2. `Compilation` outlives `JsCompilation` and `Compiler` outlives `Compilation`.
+    // 3. `JsCompilation` was replaced everytime a new `Compilation` was created before getting accessed.
     let compilation = unsafe { JsCompilation::from_compilation(compilation) };
 
     self.function.call_with_promise(compilation).await

@@ -141,7 +141,11 @@ where
   #[instrument(name = "compile", skip_all)]
   async fn compile(&mut self, mut params: Vec<MakeParam>) -> Result<()> {
     let mut compilation_params = self.new_compilation_params();
-    // Fake this compilation as *currently* rebuilding does not create a new compilation
+    // FOR BINDING SAFETY:
+    // Make sure `thisCompilation` hook was called for each `JsCompilation` update before any access to it.
+    // `JsCompiler` tapped `thisCompilation` to update the `JsCompilation` on the JavaScript side.
+    // Otherwise, trying to access the old native `JsCompilation` would cause undefined behavior
+    // as the previous instance might get dropped.
     self
       .plugin_driver
       .compiler_hooks
