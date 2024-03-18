@@ -523,7 +523,7 @@ impl SourceMapDevToolPlugin {
           ConcatSource::new([
             raw_source,
             RawSource::from(current_source_mapping_url_comment.replace(
-              "[map]",
+              "[url]",
               &format!("data:application/json;charset=utf-8;base64,{base64}"),
             ))
             .boxed(),
