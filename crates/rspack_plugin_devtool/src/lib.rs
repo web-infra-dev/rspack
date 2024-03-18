@@ -479,7 +479,8 @@ impl SourceMapDevToolPlugin {
                 .filename(&filename)
                 .content_hash_optional(chunk.content_hash.get(source_type).map(|i| i.encoded()))
                 .url(&source_map_url);
-              f(data).await?
+              let comment = f(data).await?;
+              Filename::from(comment).render(data, None)
             }
           };
           asset.source = Some(
