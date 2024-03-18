@@ -75,9 +75,9 @@ class Compiler {
 	// @ts-expect-error
 	watchMode: boolean;
 	context: string;
-	modifiedFiles?: ReadonlySet<string>;
 	cache: Cache;
 	compilerPath: string;
+	modifiedFiles?: ReadonlySet<string>;
 	removedFiles?: ReadonlySet<string>;
 	fileTimestamps?: ReadonlyMap<string, FileSystemInfoEntry | "ignore" | null>;
 	contextTimestamps?: ReadonlyMap<
@@ -594,7 +594,7 @@ class Compiler {
 
 	async #afterResolve(resolveData: binding.AfterResolveData) {
 		let res =
-			await this.compilationParams?.normalModuleFactory.hooks.afterResolve.promise(
+			await this.compilationParams!.normalModuleFactory.hooks.afterResolve.promise(
 				resolveData
 			);
 
@@ -616,7 +616,7 @@ class Compiler {
 		resourceData: binding.JsBeforeResolveArgs
 	) {
 		let res =
-			await this.compilationParams?.contextModuleFactory.hooks.beforeResolve.promise(
+			await this.compilationParams!.contextModuleFactory.hooks.beforeResolve.promise(
 				resourceData
 			);
 
@@ -628,7 +628,7 @@ class Compiler {
 		resourceData: binding.AfterResolveData
 	) {
 		let res =
-			await this.compilationParams?.contextModuleFactory.hooks.afterResolve.promise(
+			await this.compilationParams!.contextModuleFactory.hooks.afterResolve.promise(
 				resourceData
 			);
 
@@ -641,7 +641,7 @@ class Compiler {
 			settings: {},
 			matchResource: createData.resourceResolveData.resource
 		});
-		const nmfHooks = this.compilationParams?.normalModuleFactory.hooks;
+		const nmfHooks = this.compilationParams!.normalModuleFactory.hooks;
 		await nmfHooks?.createModule.promise(data, {});
 		this.#updateDisabledHooks();
 	}
@@ -650,9 +650,9 @@ class Compiler {
 		input: binding.JsResolveForSchemeInput
 	): Promise<binding.JsResolveForSchemeResult> {
 		let stop =
-			await this.compilationParams?.normalModuleFactory.hooks.resolveForScheme
-				.for(input.scheme)
-				.promise(input.resourceData);
+			await this.compilationParams!.normalModuleFactory.hooks.resolveForScheme.for(
+				input.scheme
+			).promise(input.resourceData);
 		this.#updateDisabledHooks();
 		return {
 			resourceData: input.resourceData,
@@ -997,7 +997,10 @@ class Compiler {
 		return compilation;
 	}
 
-	#mustCallThisCompilation() {
+	#resetThisCompilation() {
+		// reassign new compilation in thisCompilation
+		this.compilation = undefined;
+		// ensure thisCompilation must call
 		this.hooks.thisCompilation.intercept({
 			call: () => {}
 		});
@@ -1024,7 +1027,7 @@ class Compiler {
 				return callback(err);
 			}
 			this.hooks.compile.call(params);
-			this.#mustCallThisCompilation();
+			this.#resetThisCompilation();
 
 			this.build(err => {
 				if (err) {
