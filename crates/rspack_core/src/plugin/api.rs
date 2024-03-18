@@ -10,13 +10,13 @@ use tokio::sync::mpsc::UnboundedSender;
 use crate::{
   AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, AssetEmittedArgs,
   AssetInfo, BoxLoader, BoxModule, BuildTimeExecutionOption, Chunk, ChunkAssetArgs, ChunkHashArgs,
-  CodeGenerationResults, Compilation, CompilationHooks, CompilationParams, CompilerHooks,
-  CompilerOptions, ContentHashArgs, DependencyId, DoneArgs, FactorizeArgs, JsChunkHashArgs,
-  LoaderRunnerContext, Module, ModuleFactoryResult, ModuleIdentifier, ModuleType, NormalModule,
+  CodeGenerationResults, Compilation, CompilationHooks, CompilerHooks, CompilerOptions,
+  ContentHashArgs, DependencyId, DoneArgs, FactorizeArgs, JsChunkHashArgs, LoaderRunnerContext,
+  Module, ModuleFactoryResult, ModuleIdentifier, ModuleType, NormalModule,
   NormalModuleAfterResolveArgs, NormalModuleCreateData, NormalModuleFactoryHooks,
   OptimizeChunksArgs, ParserAndGenerator, PluginContext, ProcessAssetsArgs, RenderArgs,
   RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, Resolver,
-  RuntimeModule, RuntimeRequirementsInTreeArgs, SourceType, ThisCompilationArgs,
+  RuntimeModule, RuntimeRequirementsInTreeArgs, SourceType,
 };
 
 #[derive(Debug, Clone)]
@@ -26,8 +26,6 @@ pub struct BeforeResolveArgs {
 }
 
 pub type PluginCompilationHookOutput = Result<()>;
-pub type PluginThisCompilationHookOutput = Result<()>;
-pub type PluginMakeHookOutput = Result<()>;
 pub type PluginBuildEndHookOutput = Result<()>;
 pub type PluginProcessAssetsHookOutput = Result<()>;
 pub type PluginReadResourceOutput = Result<Option<Content>>;
@@ -50,7 +48,6 @@ pub type PluginRenderModuleContentOutput<'a> = Result<RenderModuleContentArgs<'a
 pub type PluginRenderStartupHookOutput = Result<Option<BoxSource>>;
 pub type PluginRenderHookOutput = Result<Option<BoxSource>>;
 pub type PluginJsChunkHashHookOutput = Result<()>;
-pub type PluginShouldEmitHookOutput = Result<Option<bool>>;
 
 #[async_trait::async_trait]
 pub trait Plugin: Debug + Send + Sync {
@@ -63,14 +60,6 @@ pub trait Plugin: Debug + Send + Sync {
     _ctx: PluginContext<&mut ApplyContext>,
     _options: &mut CompilerOptions,
   ) -> Result<()> {
-    Ok(())
-  }
-
-  async fn this_compilation(
-    &self,
-    _args: ThisCompilationArgs<'_>,
-    _params: &CompilationParams,
-  ) -> PluginThisCompilationHookOutput {
     Ok(())
   }
 

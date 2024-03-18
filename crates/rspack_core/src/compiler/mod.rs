@@ -35,6 +35,8 @@ use crate::{BoxPlugin, ExportInfo, UsageState};
 use crate::{CompilationParams, ContextModuleFactory, NormalModuleFactory};
 
 // should be SyncHook, but rspack need call js hook
+pub type CompilerThisCompilationHook = AsyncSeries2Hook<Compilation, CompilationParams>;
+// should be SyncHook, but rspack need call js hook
 pub type CompilerCompilationHook = AsyncSeries2Hook<Compilation, CompilationParams>;
 // should be AsyncParallelHook, but rspack need add MakeParam to incremental rebuild
 pub type CompilerMakeHook = AsyncSeries2Hook<Compilation, Vec<MakeParam>>;
@@ -43,6 +45,7 @@ pub type CompilerShouldEmitHook = AsyncSeriesBailHook<Compilation, bool>;
 
 #[derive(Debug, Default)]
 pub struct CompilerHooks {
+  pub this_compilation: CompilerThisCompilationHook,
   pub compilation: CompilerCompilationHook,
   pub make: CompilerMakeHook,
   pub should_emit: CompilerShouldEmitHook,
@@ -141,7 +144,9 @@ where
     // Fake this compilation as *currently* rebuilding does not create a new compilation
     self
       .plugin_driver
-      .this_compilation(&mut self.compilation, &compilation_params)
+      .compiler_hooks
+      .this_compilation
+      .call(&mut self.compilation, &mut compilation_params)
       .await?;
     self
       .plugin_driver

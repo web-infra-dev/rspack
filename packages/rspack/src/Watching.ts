@@ -272,13 +272,13 @@ export class Watching {
 			const canRebuild =
 				!this.#initial && (modifiedFiles?.size || deleteFiles?.size);
 
-			const onBuild = (err: Error | null) => {
+			const onCompile = (err: Error | null) => {
 				if (err) return this._done(err, null);
 				// if (this.invalid) return this._done(null);
-				this._done(null, this.compiler.compilation);
+				this._done(null, this.compiler.compilation!);
 			};
 
-			this.compiler.compile(onBuild);
+			this.compiler.compile(onCompile);
 			if (!canRebuild) {
 				this.#initial = false;
 			}

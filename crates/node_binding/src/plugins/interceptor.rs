@@ -8,8 +8,8 @@ use napi::{
 use rspack_binding_values::{JsBeforeResolveArgs, JsBeforeResolveOutput, JsCompilation};
 use rspack_core::{
   BeforeResolveArgs, Compilation, CompilationParams, CompilationProcessAssetsHook,
-  CompilerCompilationHook, CompilerMakeHook, CompilerShouldEmitHook, MakeParam,
-  NormalModuleFactoryBeforeResolveHook,
+  CompilerCompilationHook, CompilerMakeHook, CompilerShouldEmitHook, CompilerThisCompilationHook,
+  MakeParam, NormalModuleFactoryBeforeResolveHook,
 };
 use rspack_hook::{AsyncSeries, AsyncSeries2, AsyncSeriesBail, Hook, Interceptor};
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
@@ -183,6 +183,10 @@ pub struct RegisterJsTaps {
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((compilation: JsCompilation) => void); stage: number; }>"
   )]
+  pub register_compiler_this_compilation_taps: RegisterFunction<JsCompilation, ()>,
+  #[napi(
+    ts_type = "(stages: Array<number>) => Array<{ function: ((compilation: JsCompilation) => void); stage: number; }>"
+  )]
   pub register_compiler_compilation_taps: RegisterFunction<JsCompilation, ()>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((compilation: JsCompilation) => Promise<void>); stage: number; }>"
@@ -203,6 +207,12 @@ pub struct RegisterJsTaps {
     RegisterFunction<JsBeforeResolveArgs, Promise<JsBeforeResolveOutput>>,
 }
 
+/* Compiler Hooks */
+define_register!(
+  RegisterCompilerThisCompilationTaps,
+  tap = CompilerThisCompilationTap<JsCompilation, ()> @ CompilerThisCompilationHook,
+  cache = false,
+);
 define_register!(
   RegisterCompilerCompilationTaps,
   tap = CompilerCompilationTap<JsCompilation, ()> @ CompilerCompilationHook,
@@ -219,17 +229,39 @@ define_register!(
   cache = false,
 );
 
+/* Compilation Hooks */
 define_register!(
   RegisterCompilationProcessAssetsTaps,
   tap = CompilationProcessAssetsTap<JsCompilation, Promise<()>> @ CompilationProcessAssetsHook,
   cache = false,
 );
 
+/* NormalModuleFactory Hooks */
 define_register!(
   RegisterNormalModuleFactoryBeforeResolveTaps,
   tap = NormalModuleFactoryBeforeResolveTap<JsBeforeResolveArgs, Promise<JsBeforeResolveOutput>> @ NormalModuleFactoryBeforeResolveHook,
   cache = true,
 );
+
+#[async_trait]
+impl AsyncSeries2<Compilation, CompilationParams> for CompilerThisCompilationTap {
+  async fn run(
+    &self,
+    compilation: &mut Compilation,
+    _: &mut CompilationParams,
+  ) -> rspack_error::Result<()> {
+    // SAFETY: `Compiler` will not be moved, as it's stored on the heap.
+    // The pointer to `Compilation` is valid for the lifetime of `Compiler`.
+    // `Compiler` is valid through the lifetime before it's closed by calling `Compiler.close()` or gc-ed.
+    // `JsCompilation` is valid through the entire lifetime of `Compilation`.
+    let compilation = unsafe { JsCompilation::from_compilation(compilation) };
+    self.function.call_with_sync(compilation).await
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
 
 #[async_trait]
 impl AsyncSeries2<Compilation, CompilationParams> for CompilerCompilationTap {

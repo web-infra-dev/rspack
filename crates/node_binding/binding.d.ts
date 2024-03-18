@@ -311,7 +311,6 @@ export interface JsExecuteModuleResult {
 }
 
 export interface JsHooks {
-  thisCompilation: (compilation: JsCompilation) => void
   afterProcessAssets: () => void
   emit: () => void
   assetEmitted: (asset: JsAssetEmittedArgs) => void
@@ -1283,6 +1282,7 @@ export interface RawTrustedTypes {
 export function registerGlobalTrace(filter: string, layer: "chrome" | "logger", output: string): void
 
 export interface RegisterJsTaps {
+  registerCompilerThisCompilationTaps: (stages: Array<number>) => Array<{ function: ((compilation: JsCompilation) => void); stage: number; }>
   registerCompilerCompilationTaps: (stages: Array<number>) => Array<{ function: ((compilation: JsCompilation) => void); stage: number; }>
   registerCompilerMakeTaps: (stages: Array<number>) => Array<{ function: ((compilation: JsCompilation) => Promise<void>); stage: number; }>
   registerCompilerShouldEmitTaps: (stages: Array<number>) => Array<{ function: ((compilation: JsCompilation) => boolean | undefined); stage: number; }>

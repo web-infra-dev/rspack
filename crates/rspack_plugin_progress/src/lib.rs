@@ -10,8 +10,7 @@ use linked_hash_map::LinkedHashMap as HashMap;
 use rspack_core::{
   ApplyContext, Compilation, CompilationParams, CompilerOptions, DoneArgs, MakeParam, Module,
   ModuleIdentifier, OptimizeChunksArgs, Plugin, PluginBuildEndHookOutput, PluginContext,
-  PluginOptimizeChunksOutput, PluginProcessAssetsOutput, PluginThisCompilationHookOutput,
-  ProcessAssetsArgs, ThisCompilationArgs,
+  PluginOptimizeChunksOutput, PluginProcessAssetsOutput, ProcessAssetsArgs,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook, AsyncSeries, AsyncSeries2};
@@ -194,6 +193,21 @@ impl ProgressPlugin {
 }
 
 #[plugin_hook(AsyncSeries2<Compilation, CompilationParams> for ProgressPlugin)]
+async fn this_compilation(
+  &self,
+  _compilation: &mut Compilation,
+  _params: &mut CompilationParams,
+) -> Result<()> {
+  self.handler(
+    0.08,
+    "setup".to_string(),
+    vec!["compilation".to_string()],
+    None,
+  );
+  Ok(())
+}
+
+#[plugin_hook(AsyncSeries2<Compilation, CompilationParams> for ProgressPlugin)]
 async fn compilation(
   &self,
   _compilation: &mut Compilation,
@@ -240,6 +254,11 @@ impl Plugin for ProgressPlugin {
     ctx
       .context
       .compiler_hooks
+      .this_compilation
+      .tap(this_compilation::new(self));
+    ctx
+      .context
+      .compiler_hooks
       .compilation
       .tap(compilation::new(self));
     ctx.context.compiler_hooks.make.tap(make::new(self));
@@ -248,20 +267,6 @@ impl Plugin for ProgressPlugin {
       .compilation_hooks
       .process_assets
       .tap(process_assets::new(self));
-    Ok(())
-  }
-
-  async fn this_compilation(
-    &self,
-    _args: ThisCompilationArgs<'_>,
-    _params: &CompilationParams,
-  ) -> PluginThisCompilationHookOutput {
-    self.handler(
-      0.08,
-      "setup".to_string(),
-      vec!["compilation".to_string()],
-      None,
-    );
     Ok(())
   }
 

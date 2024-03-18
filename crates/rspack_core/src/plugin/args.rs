@@ -138,11 +138,6 @@ pub struct DoneArgs<'s, 'c: 's> {
 }
 
 #[derive(Debug)]
-pub struct ThisCompilationArgs<'c> {
-  pub this_compilation: &'c mut Compilation,
-}
-
-#[derive(Debug)]
 pub struct AdditionalChunkRuntimeRequirementsArgs<'a> {
   pub compilation: &'a mut Compilation,
   pub chunk: &'a ChunkUkey,
