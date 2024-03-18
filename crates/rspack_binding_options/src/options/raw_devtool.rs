@@ -3,7 +3,6 @@ use napi::Either;
 use napi_derive::napi;
 use rspack_core::PathData;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
-use rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use rspack_plugin_devtool::{
   Append, EvalDevToolModulePluginOptions, ModuleFilenameTemplate, ModuleFilenameTemplateFnCtx,
   SourceMapDevToolPluginOptions, TestFn,
@@ -32,7 +31,6 @@ impl From<PathData<'_>> for RawPathData {
 }
 
 fn normalize_raw_append(raw: RawAppend) -> Append {
-  let handle = Handle::current();
   match raw {
     Either3::A(str) => Append::String(str),
     Either3::B(_) => Append::Disabled,
