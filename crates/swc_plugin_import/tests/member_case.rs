@@ -1,4 +1,4 @@
-use inflector::Inflector;
+use heck::{ToKebabCase, ToLowerCamelCase, ToSnakeCase};
 
 #[test]
 fn test_kebab_case() {
@@ -14,6 +14,7 @@ fn test_kebab_case() {
   assert_eq!("snake_case".to_kebab_case(), "snake-case");
   assert_eq!("Title Case".to_kebab_case(), "title-case");
   assert_eq!("Train-Case".to_kebab_case(), "train-case");
+  assert_eq!("WithNumber3d".to_kebab_case(), "with-number3d");
 }
 
 #[test]
@@ -34,13 +35,16 @@ fn test_snack_case() {
 
 #[test]
 fn test_camel_case() {
-  assert_eq!("camelCase".to_camel_case(), "camelCase");
-  assert_eq!("kebab-case".to_camel_case(), "kebabCase");
-  assert_eq!("lower case".to_camel_case(), "lowerCase");
-  assert_eq!("PascalCase".to_camel_case(), "pascalCase");
-  assert_eq!("SCREAMING_SNAKE_CASE".to_camel_case(), "screamingSnakeCase");
-  assert_eq!("Sentence case".to_camel_case(), "sentenceCase");
-  assert_eq!("snake_case".to_camel_case(), "snakeCase");
-  assert_eq!("Title Case".to_camel_case(), "titleCase");
-  assert_eq!("Train-Case".to_camel_case(), "trainCase");
+  assert_eq!("camelCase".to_lower_camel_case(), "camelCase");
+  assert_eq!("kebab-case".to_lower_camel_case(), "kebabCase");
+  assert_eq!("lower case".to_lower_camel_case(), "lowerCase");
+  assert_eq!("PascalCase".to_lower_camel_case(), "pascalCase");
+  assert_eq!(
+    "SCREAMING_SNAKE_CASE".to_lower_camel_case(),
+    "screamingSnakeCase"
+  );
+  assert_eq!("Sentence case".to_lower_camel_case(), "sentenceCase");
+  assert_eq!("snake_case".to_lower_camel_case(), "snakeCase");
+  assert_eq!("Title Case".to_lower_camel_case(), "titleCase");
+  assert_eq!("Train-Case".to_lower_camel_case(), "trainCase");
 }
