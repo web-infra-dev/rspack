@@ -70,7 +70,7 @@ where
 
       let mut new_compilation = Compilation::new(
         self.options.clone(),
-        ModuleGraph::default().with_treeshaking(self.options.is_new_tree_shaking()),
+        ModuleGraph::default(),
         self.plugin_driver.clone(),
         self.resolver_factory.clone(),
         self.loader_resolver_factory.clone(),
@@ -88,7 +88,10 @@ where
       if is_incremental_rebuild_make {
         // copy field from old compilation
         // make stage used
-        new_compilation.module_graph = std::mem::take(&mut self.compilation.module_graph);
+        std::mem::swap(
+          self.compilation.get_module_graph_mut(),
+          new_compilation.get_module_graph_mut(),
+        );
         new_compilation.make_failed_dependencies =
           std::mem::take(&mut self.compilation.make_failed_dependencies);
         new_compilation.make_failed_module =
@@ -120,10 +123,6 @@ where
         new_compilation.has_module_import_export_change = false;
       }
 
-      fast_set(&mut self.compilation, new_compilation);
-
-      self.compilation.lazy_visit_modules = changed_files.clone();
-
       let setup_make_params = if is_incremental_rebuild_make {
         vec![
           MakeParam::ModifiedFiles(modified_files),
@@ -132,7 +131,15 @@ where
       } else {
         vec![MakeParam::ForceBuildDeps(Default::default())]
       };
+
+      new_compilation.lazy_visit_modules = changed_files.clone();
+
+      // FOR BINDING SAFETY:
+      // Update `compilation` for each rebuild.
+      // Make sure `thisCompilation` hook was called before any other hooks that leverage `JsCompilation`.
+      fast_set(&mut self.compilation, new_compilation);
       self.compile(setup_make_params).await?;
+
       self.cache.begin_idle();
     }
 

@@ -8,7 +8,7 @@ const { Stats } = require("..");
 const { createFsFromVolume, Volume } = require("memfs");
 const captureStdio = require("./helpers/captureStdio");
 const deprecationTracking = require("./helpers/deprecationTracking");
-const { normalizeFilteredTestName } = require("./lib/util/filterUtil");
+const { normalizeFilteredTestName, FilteredStatus } = require("./lib/util/filterUtil");
 
 describe("Compiler", () => {
 	jest.setTimeout(20000);
@@ -96,8 +96,7 @@ describe("Compiler", () => {
 		}
 	});
 
-	// CHANGE: skip due to Rspack defaults to numerical module ids, unlike webpack's string-based ids
-	it.skip(normalizeFilteredTestName("TODO", "should compile a single file to deep output"), done => {
+	it("should compile a single file to deep output", done => {
 		compile(
 			"./c",
 			{
@@ -118,7 +117,7 @@ describe("Compiler", () => {
 	});
 
 	// CHANGE: skip due to Rspack defaults to numerical module ids, unlike webpack's string-based ids
-	it.skip(normalizeFilteredTestName("TODO", "should compile a single file"), done => {
+	it.skip(normalizeFilteredTestName(FilteredStatus.TODO, "should compile a single file"), done => {
 		compile("./c", {}, (stats, files) => {
 			expect(Object.keys(files)).toEqual(["/main.js"]);
 			const bundle = files["/main.js"];
@@ -137,7 +136,7 @@ describe("Compiler", () => {
 	});
 
 	// CHANGE: skip with custom test name for tracking alignment status
-	it.skip(normalizeFilteredTestName("TODO", "should compile a complex file"), done => {
+	it.skip(normalizeFilteredTestName(FilteredStatus.TODO, "should compile a complex file"), done => {
 		compile("./main1", {}, (stats, files) => {
 			expect(Object.keys(files)).toEqual(["/main.js"]);
 			const bundle = files["/main.js"];
@@ -159,7 +158,7 @@ describe("Compiler", () => {
 	});
 
 	// CHANGE: skip with custom test name for tracking alignment status
-	it.skip(normalizeFilteredTestName("TODO", "should compile a file with transitive dependencies"), done => {
+	it.skip(normalizeFilteredTestName(FilteredStatus.TODO, "should compile a file with transitive dependencies"), done => {
 		compile("./abc", {}, (stats, files) => {
 			expect(Object.keys(files)).toEqual(["/main.js"]);
 			const bundle = files["/main.js"];
@@ -183,7 +182,7 @@ describe("Compiler", () => {
 	});
 
 	// CHANGE: skip with custom test name for tracking alignment status
-	it.skip(normalizeFilteredTestName("TODO", "should compile a file with multiple chunks"), done => {
+	it.skip(normalizeFilteredTestName(FilteredStatus.TODO, "should compile a file with multiple chunks"), done => {
 		compile("./chunks", {}, (stats, files) => {
 			expect(stats.chunks).toHaveLength(2);
 			expect(Object.keys(files)).toEqual(["/main.js", "/394.js"]);
@@ -210,7 +209,7 @@ describe("Compiler", () => {
 
 	// CHANGE: skip with custom test name for tracking alignment status
 	// cspell:word asmjs
-	it.skip(normalizeFilteredTestName("TODO", "should not evaluate constants in asm.js"), done => {
+	it.skip(normalizeFilteredTestName(FilteredStatus.TODO, "should not evaluate constants in asm.js"), done => {
 		compile("./asmjs", {}, (stats, files) => {
 			expect(Object.keys(files)).toEqual(["/main.js"]);
 			const bundle = files["/main.js"];
@@ -271,7 +270,7 @@ describe("Compiler", () => {
 		});
 		describe("isChild", () => {
 			// CHANGE: skip with custom test name for tracking alignment status
-			it.skip(normalizeFilteredTestName("TODO", "returns booleanized this.parentCompilation"), done => {
+			it.skip(normalizeFilteredTestName(FilteredStatus.TODO, "returns booleanized this.parentCompilation"), done => {
 				compiler.parentCompilation = "stringyStringString";
 				const response1 = compiler.isChild();
 				expect(response1).toBe(true);
@@ -555,7 +554,7 @@ describe("Compiler", () => {
 	});
 	// CHANGE: skip with custom test name for tracking alignment status
 	// CHANGE: skip due to panic occurred at runtime
-	it.skip(normalizeFilteredTestName("TODO", "should run again correctly after first closed watch"), done => {
+	it.skip(normalizeFilteredTestName(FilteredStatus.TODO, "should run again correctly after first closed watch"), done => {
 		const webpack = require("..");
 		compiler = webpack({
 			context: __dirname,
@@ -598,7 +597,7 @@ describe("Compiler", () => {
 
 	// CHANGE: skip with custom test name for tracking alignment status
 	// CHANGE: skip due to panic occurred at runtime
-	it.skip(normalizeFilteredTestName("TODO", "should watch again correctly after first closed watch"), done => {
+	it.skip(normalizeFilteredTestName(FilteredStatus.TODO, "should watch again correctly after first closed watch"), done => {
 		const webpack = require("..");
 		compiler = webpack({
 			context: __dirname,
@@ -700,7 +699,7 @@ describe("Compiler", () => {
 	});
 	// CHANGE: skip with custom test name for tracking alignment status
 	// CHANGE: skip due to panic occurred at runtime
-	it.skip(normalizeFilteredTestName("TODO", "should call afterDone hook after other callbacks (watch)"), done => {
+	it.skip(normalizeFilteredTestName(FilteredStatus.TODO, "should call afterDone hook after other callbacks (watch)"), done => {
 		const webpack = require("..");
 		compiler = webpack({
 			context: __dirname,
@@ -791,7 +790,7 @@ describe("Compiler", () => {
 	});
 	// CHANGE: skip with custom test name for tracking alignment status
 	// CHANGE: skip due to panic occurred at runtime
-	it.skip(normalizeFilteredTestName("TODO", "should use cache on second run call"), done => {
+	it.skip(normalizeFilteredTestName(FilteredStatus.TODO, "should use cache on second run call"), done => {
 		const webpack = require("..");
 		compiler = webpack({
 			context: __dirname,
@@ -838,7 +837,7 @@ describe("Compiler", () => {
 	});
 	// CHANGE: skip with custom test name for tracking alignment status
 	// CHANGE: skip as rspack does not currently emit correct error code
-	it.skip(normalizeFilteredTestName("TODO", "should deprecate when watch option is used without callback"), () => {
+	it.skip(normalizeFilteredTestName(FilteredStatus.TODO, "should deprecate when watch option is used without callback"), () => {
 		const tracker = deprecationTracking.start();
 		const webpack = require("..");
 		compiler = webpack({

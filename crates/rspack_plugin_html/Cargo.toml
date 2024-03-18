@@ -14,7 +14,6 @@ rspack_testing = { path = "../rspack_testing" }
 
 [dependencies]
 anyhow            = { workspace = true }
-async-trait       = { workspace = true }
 dojang            = "0.1.6"
 itertools         = { workspace = true }
 path-clean        = { workspace = true }
@@ -23,6 +22,7 @@ regex             = { workspace = true }
 rspack_base64     = { path = "../rspack_base64" }
 rspack_core       = { path = "../rspack_core" }
 rspack_error      = { path = "../rspack_error" }
+rspack_hook       = { path = "../rspack_hook" }
 schemars          = { workspace = true, optional = true }
 serde             = { workspace = true, features = ["derive"] }
 serde_json        = { workspace = true }

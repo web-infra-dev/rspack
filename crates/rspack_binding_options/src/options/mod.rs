@@ -44,7 +44,7 @@ pub trait RawOptionsApply {
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawOptions {
   #[napi(ts_type = "undefined | 'production' | 'development' | 'none'")]
   pub mode: Option<RawMode>,

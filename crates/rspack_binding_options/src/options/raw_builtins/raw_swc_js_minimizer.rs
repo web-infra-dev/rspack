@@ -1,7 +1,7 @@
 use napi::{bindgen_prelude::Either3, Either};
 use napi_derive::napi;
 use rspack_error::{miette::IntoDiagnostic, Result};
-use rspack_napi_shared::{JsRegExp, JsRegExpExt};
+use rspack_napi::regexp::{JsRegExp, JsRegExpExt};
 use rspack_plugin_swc_js_minimizer::{
   ExtractComments, OptionWrapper, SwcJsMinimizerRspackPluginOptions, SwcJsMinimizerRule,
   SwcJsMinimizerRules,

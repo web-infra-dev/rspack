@@ -36,8 +36,8 @@ pub enum ResolveResult {
 #[derive(Clone)]
 pub struct Resource {
   pub path: PathBuf,
-  pub query: Option<String>,
-  pub fragment: Option<String>,
+  pub query: String,
+  pub fragment: String,
   pub description_data: Option<DescriptionData>,
 }
 
@@ -58,12 +58,8 @@ impl Resource {
   /// Get the full path with query and fragment attached.
   pub fn full_path(&self) -> PathBuf {
     let mut buf = format!("{}", self.path.display());
-    if let Some(query) = self.query.as_ref() {
-      buf.push_str(query);
-    }
-    if let Some(fragment) = self.fragment.as_ref() {
-      buf.push_str(fragment);
-    }
+    buf.push_str(&self.query);
+    buf.push_str(&self.fragment);
     PathBuf::from(buf)
   }
 }
@@ -251,7 +247,8 @@ which tries to resolve these kind of requests in the current directory too.",
             let specifier = args.specifier;
 
             hint.push(format!(
-          "Found the module '{suggestion_path}' exists, but its extension is not listed in the `resolve.extensions`. Here are some possible solutions:
+          "Found module '{suggestion_path}'. However, it's not possible to request this module without the extension 
+if its extension was not listed in the `resolve.extensions`. Here're some possible solutions:
 
 1. add the extension `\".{suggestion_ext}\"` to `resolve.extensions` in your rspack configuration
 2. use '{suggestion_path}' instead of '{specifier}'

@@ -9,7 +9,7 @@ version    = "0.1.0"
 
 [dependencies]
 regex-syntax = { version = "0.8.2", default-features = false, features = ["std"] }
-regress      = "0.8.0"
+regress      = "0.9.0"
 rspack_error = { path = "../rspack_error" }
 swc_core     = { workspace = true, features = ["ecma_ast"] }
 

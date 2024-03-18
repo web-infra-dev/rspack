@@ -8,7 +8,7 @@ use rspack_core::{
   RuntimeGlobals, RuntimeRequirementsInTreeArgs,
 };
 use rspack_error::Result;
-use rspack_hook::AsyncSeries2;
+use rspack_hook::{plugin, plugin_hook, AsyncSeries2};
 use serde::Serialize;
 
 use super::{
@@ -34,63 +34,56 @@ pub struct ExposeOptions {
   pub import: Vec<String>,
 }
 
+#[plugin]
 #[derive(Debug)]
 pub struct ContainerPlugin {
-  options: Arc<ContainerPluginOptions>,
+  options: ContainerPluginOptions,
 }
 
 impl ContainerPlugin {
   pub fn new(options: ContainerPluginOptions) -> Self {
-    Self {
-      options: Arc::new(options),
-    }
+    Self::new_inner(options)
   }
 }
 
-struct ContainerPluginCompilationHook;
-
-#[async_trait]
-impl AsyncSeries2<Compilation, CompilationParams> for ContainerPluginCompilationHook {
-  async fn run(&self, compilation: &mut Compilation, params: &mut CompilationParams) -> Result<()> {
-    compilation.set_dependency_factory(
-      DependencyType::ContainerEntry,
-      Arc::new(ContainerEntryModuleFactory),
-    );
-    compilation.set_dependency_factory(
-      DependencyType::ContainerExposed,
-      params.normal_module_factory.clone(),
-    );
-    Ok(())
-  }
+#[plugin_hook(AsyncSeries2<Compilation, CompilationParams> for ContainerPlugin)]
+async fn compilation(
+  &self,
+  compilation: &mut Compilation,
+  params: &mut CompilationParams,
+) -> Result<()> {
+  compilation.set_dependency_factory(
+    DependencyType::ContainerEntry,
+    Arc::new(ContainerEntryModuleFactory),
+  );
+  compilation.set_dependency_factory(
+    DependencyType::ContainerExposed,
+    params.normal_module_factory.clone(),
+  );
+  Ok(())
 }
 
-struct ContainerPluginMakeHook {
-  options: Arc<ContainerPluginOptions>,
-}
+#[plugin_hook(AsyncSeries2<Compilation, Vec<MakeParam>> for ContainerPlugin)]
+async fn make(&self, compilation: &mut Compilation, params: &mut Vec<MakeParam>) -> Result<()> {
+  let dep = ContainerEntryDependency::new(
+    self.options.name.clone(),
+    self.options.exposes.clone(),
+    self.options.share_scope.clone(),
+  );
+  let dependency_id = *dep.id();
+  compilation.add_entry(
+    Box::new(dep),
+    EntryOptions {
+      name: Some(self.options.name.clone()),
+      runtime: self.options.runtime.clone(),
+      filename: self.options.filename.clone(),
+      library: Some(self.options.library.clone()),
+      ..Default::default()
+    },
+  )?;
 
-#[async_trait]
-impl AsyncSeries2<Compilation, Vec<MakeParam>> for ContainerPluginMakeHook {
-  async fn run(&self, compilation: &mut Compilation, params: &mut Vec<MakeParam>) -> Result<()> {
-    let dep = ContainerEntryDependency::new(
-      self.options.name.clone(),
-      self.options.exposes.clone(),
-      self.options.share_scope.clone(),
-    );
-    let dependency_id = *dep.id();
-    compilation.add_entry(
-      Box::new(dep),
-      EntryOptions {
-        name: Some(self.options.name.clone()),
-        runtime: self.options.runtime.clone(),
-        filename: self.options.filename.clone(),
-        library: Some(self.options.library.clone()),
-        ..Default::default()
-      },
-    )?;
-
-    params.push(MakeParam::new_force_build_dep_param(dependency_id, None));
-    Ok(())
-  }
+  params.push(MakeParam::new_force_build_dep_param(dependency_id, None));
+  Ok(())
 }
 
 #[async_trait]
@@ -108,14 +101,8 @@ impl Plugin for ContainerPlugin {
       .context
       .compiler_hooks
       .compilation
-      .tap(Box::new(ContainerPluginCompilationHook));
-    ctx
-      .context
-      .compiler_hooks
-      .make
-      .tap(Box::new(ContainerPluginMakeHook {
-        options: self.options.clone(),
-      }));
+      .tap(compilation::new(self));
+    ctx.context.compiler_hooks.make.tap(make::new(self));
     Ok(())
   }
 

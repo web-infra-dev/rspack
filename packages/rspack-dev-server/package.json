@@ -1,6 +1,6 @@
 {
   "name": "@rspack/dev-server",
-  "version": "0.5.4",
+  "version": "0.5.7",
   "license": "MIT",
   "description": "Development server for rspack",
   "main": "./dist/index.js",
@@ -14,8 +14,8 @@
     "./package.json": "./package.json"
   },
   "scripts": {
-    "build": "tsc -b tsconfig.build.json",
-    "dev": "tsc -w -b tsconfig.build.json",
+    "build": "tsc -b ./tsconfig.build.json",
+    "dev": "tsc -w -b ./tsconfig.build.json",
     "test": "rimraf .test-temp && jest --runInBand"
   },
   "files": [

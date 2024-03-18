@@ -53,7 +53,7 @@ impl RuntimeModule for ShareRuntimeModule {
         .get_chunk_modules_iterable_by_source_type(
           &c,
           SourceType::ShareInit,
-          &compilation.module_graph,
+          compilation.get_module_graph(),
         )
         .sorted_unstable_by_key(|m| m.identifier());
       for m in modules {

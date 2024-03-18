@@ -11,7 +11,8 @@ packages/rspack/src/config/schema.check.js
 
 packages/rspack/tests/fixtures/**/*
 packages/rspack/tests/statsCases/**/*
-packages/rspack/tests/configCases/errors/**/*
+packages/rspack/tests/cases/**/*
+packages/rspack/tests/configCases/**/*
 packages/rspack/tests/hotCases/**/*
 packages/rspack/tests/diagnostics/**/*
 packages/rspack/tests/js/**/*

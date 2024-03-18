@@ -12,7 +12,7 @@ async-trait = { workspace = true }
 bitflags = { workspace = true }
 dashmap = { workspace = true }
 derivative = { workspace = true }
-dyn-clone = "1.0.16"
+dyn-clone = "1.0.17"
 either = "1"
 futures = { workspace = true }
 glob-match = "0.2.1"
@@ -24,14 +24,13 @@ json = { workspace = true }
 mime_guess = { workspace = true }
 num-bigint = "0.4.4"
 once_cell = { workspace = true }
-oxc_resolver = { version = "1.5.3" }
+oxc_resolver = { version = "1.6.1", features = ["package_json_raw_json_api"] }
 paste = { workspace = true }
 petgraph = { version = "0.6.4", features = ["serde-1"] }
 rayon = { workspace = true }
 regex = { workspace = true }
 rkyv = { workspace = true, features = ["indexmap", "validation"] }
 rspack_ast = { path = "../rspack_ast" }
-rspack_core_macros = { path = "../rspack_core_macros" }
 rspack_database = { path = "../rspack_database", features = ["rayon"] }
 rspack_error = { path = "../rspack_error" }
 rspack_fs = { path = "../rspack_fs", features = ["async", "rspack-error"] }
@@ -40,6 +39,7 @@ rspack_hash = { path = "../rspack_hash" }
 rspack_hook = { path = "../rspack_hook" }
 rspack_identifier = { path = "../rspack_identifier" }
 rspack_loader_runner = { path = "../rspack_loader_runner" }
+rspack_macros = { path = "../rspack_macros" }
 rspack_regex = { path = "../rspack_regex" }
 rspack_sources = { workspace = true }
 rspack_swc_visitors = { path = "../rspack_swc_visitors" }

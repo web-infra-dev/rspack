@@ -1,4 +1,5 @@
 use std::{
+  ops::Deref,
   path::{Path, PathBuf},
   str::FromStr,
 };
@@ -7,96 +8,38 @@ use napi_derive::napi;
 use rspack_core::{rspack_sources::SourceMap, Content, ResourceData};
 use rspack_error::Diagnostic;
 use rspack_loader_runner::AdditionalData;
-use rspack_napi_shared::get_napi_env;
 use rustc_hash::FxHashSet as HashSet;
-use tracing::{span_enabled, Level};
 use {
   napi::bindgen_prelude::*,
-  napi::NapiRaw,
-  rspack_binding_macros::call_js_function_with_napi_objects,
   rspack_core::{Loader, LoaderContext, LoaderRunnerContext},
   rspack_error::error,
   rspack_identifier::{Identifiable, Identifier},
-  rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},
-  rspack_napi_shared::NapiResultExt,
+  rspack_napi::threadsafe_function::ThreadsafeFunction,
 };
 
 use crate::get_builtin_loader;
 
+type ThreadsafeLoaderRunner =
+  ThreadsafeFunction<JsLoaderContext, Promise<LoaderThreadsafeLoaderResult>>;
+
 /// Loader Runner for JavaScript environment
 #[derive(Clone)]
-pub enum JsLoaderRunner {
-  ThreadsafeFunction(ThreadsafeFunction<JsLoaderContext, LoaderThreadsafeLoaderResult>),
-  /// Used for non-JavaScript environment such as calling from the Rust side for testing purposes
-  Noop,
-}
+pub struct JsLoaderRunner(ThreadsafeLoaderRunner);
 
-impl JsLoaderRunner {
-  pub fn noop() -> Self {
-    Self::Noop
-  }
+impl Deref for JsLoaderRunner {
+  type Target = ThreadsafeLoaderRunner;
 
-  pub fn call(
-    &self,
-    value: JsLoaderContext,
-    mode: ThreadsafeFunctionCallMode,
-  ) -> Result<tokio::sync::oneshot::Receiver<rspack_error::Result<LoaderThreadsafeLoaderResult>>>
-  {
-    match self {
-      Self::ThreadsafeFunction(func) => func.call(value, mode),
-      Self::Noop => unreachable!(),
-    }
+  fn deref(&self) -> &Self::Target {
+    &self.0
   }
 }
 
-impl TryFrom<JsFunction> for JsLoaderRunner {
-  type Error = napi::Error;
-
-  fn try_from(value: JsFunction) -> std::result::Result<Self, Self::Error> {
-    let loader_runner = unsafe { value.raw() };
-    let env = get_napi_env();
-    let mut func = ThreadsafeFunction::<JsLoaderContext, LoaderThreadsafeLoaderResult>::create(
-      env,
-      loader_runner,
-      0,
-      |ctx| {
-        let (ctx, resolver) = ctx.split_into_parts();
-
-        let env = ctx.env;
-        let cb = ctx.callback;
-        let resource = ctx.value.resource.clone();
-
-        let loader_name = if span_enabled!(Level::TRACE) {
-          let loader_path = &ctx.value.current_loader;
-          // try to remove the previous node_modules parts from path for better display
-
-          let parts = loader_path.split("node_modules/");
-          let loader_name: &str = parts.last().unwrap_or(loader_path.as_str());
-          String::from(loader_name)
-        } else {
-          String::from("unknown")
-        };
-        let result = tracing::span!(
-          tracing::Level::INFO,
-          "loader_sync_call",
-          resource = &resource,
-          loader_name = &loader_name
-        )
-        .in_scope(|| unsafe { call_js_function_with_napi_objects!(env, cb, ctx.value) });
-
-        let resolve_start = std::time::Instant::now();
-        resolver.resolve::<Option<JsLoaderResult>>(result, move |_, r| {
-          tracing::trace!(
-            "Finish resolving loader result for {}, took {}ms",
-            resource,
-            resolve_start.elapsed().as_millis()
-          );
-          Ok(r)
-        })
-      },
-    )?;
-    func.unref(&Env::from(env))?;
-    Ok(Self::ThreadsafeFunction(func))
+impl FromNapiValue for JsLoaderRunner {
+  unsafe fn from_napi_value(env: sys::napi_env, napi_val: sys::napi_value) -> Result<Self> {
+    unsafe { <JsFunction as ValidateNapiValue>::validate(env, napi_val) }?;
+    Ok(Self(unsafe {
+      FromNapiValue::from_napi_value(env, napi_val)
+    }?))
   }
 }
 
@@ -109,7 +52,7 @@ impl std::fmt::Debug for JsLoaderAdapter {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     f.debug_struct("JsLoaderAdapter")
       .field("loaders", &self.identifier)
-      .finish()
+      .finish_non_exhaustive()
   }
 }
 
@@ -128,12 +71,7 @@ impl Loader<LoaderRunnerContext> for JsLoaderAdapter {
     let mut js_loader_context: JsLoaderContext = loader_context.try_into()?;
     js_loader_context.is_pitching = true;
 
-    let loader_result = self
-      .runner
-      .call(js_loader_context, ThreadsafeFunctionCallMode::NonBlocking)
-      .into_rspack_result()?
-      .await
-      .unwrap_or_else(|err| panic!("Failed to call loader: {err}"))?;
+    let loader_result = self.runner.call_with_promise(js_loader_context).await?;
 
     if let Some(loader_result) = loader_result {
       // This indicate that the JS loaders pitched(return something) successfully
@@ -158,12 +96,7 @@ impl Loader<LoaderRunnerContext> for JsLoaderAdapter {
     // Instruct the JS loader-runner to execute loaders in backwards.
     js_loader_context.is_pitching = false;
 
-    let loader_result = self
-      .runner
-      .call(js_loader_context, ThreadsafeFunctionCallMode::NonBlocking)
-      .into_rspack_result()?
-      .await
-      .unwrap_or_else(|err| panic!("Failed to call loader: {err}"))?;
+    let loader_result = self.runner.call_with_promise(js_loader_context).await?;
 
     if let Some(loader_result) = loader_result {
       sync_loader_context(loader_result, loader_context)?;
@@ -223,7 +156,7 @@ fn sync_loader_context(
 #[napi(object)]
 pub struct JsLoaderContext {
   /// Content maybe empty in pitching stage
-  pub content: Option<Buffer>,
+  pub content: Either<Null, Buffer>,
   pub additional_data: Option<Buffer>,
   pub source_map: Option<Buffer>,
   pub resource: String,
@@ -273,10 +206,10 @@ impl TryFrom<&mut rspack_core::LoaderContext<'_, rspack_core::LoaderRunnerContex
     cx: &mut rspack_core::LoaderContext<'_, rspack_core::LoaderRunnerContext>,
   ) -> std::result::Result<Self, Self::Error> {
     Ok(JsLoaderContext {
-      content: cx
-        .content
-        .as_ref()
-        .map(|c| c.to_owned().into_bytes().into()),
+      content: match &cx.content {
+        Some(c) => Either::B(c.to_owned().into_bytes().into()),
+        None => Either::A(Null),
+      },
       additional_data: cx
         .additional_data
         .get::<String>()
@@ -351,9 +284,10 @@ pub async fn run_builtin_loader(
 
   let mut cx = LoaderContext {
     hot: loader_context.hot,
-    content: loader_context
-      .content
-      .map(|c| Content::from(c.as_ref().to_owned())),
+    content: match loader_context.content {
+      Either::A(_) => None,
+      Either::B(c) => Some(Content::from(c.as_ref().to_owned())),
+    },
     resource: &loader_context.resource,
     resource_path: Path::new(&loader_context.resource_path),
     resource_query: loader_context.resource_query.as_deref(),
@@ -426,6 +360,25 @@ pub struct JsLoaderResult {
   pub asset_filenames: Vec<String>,
   pub source_map: Option<Buffer>,
   pub additional_data: Option<Buffer>,
+  pub additional_data_external: External<AdditionalData>,
+  pub cacheable: bool,
+  /// Used to instruct how rust loaders should execute
+  pub is_pitching: bool,
+}
+
+/// Only for dts generation
+#[napi(object, object_to_js = false, js_name = "JsLoaderResult")]
+pub struct JsLoaderResult_ {
+  /// Content in pitching stage can be empty
+  pub content: Option<Buffer>,
+  pub file_dependencies: Vec<String>,
+  pub context_dependencies: Vec<String>,
+  pub missing_dependencies: Vec<String>,
+  pub build_dependencies: Vec<String>,
+  pub asset_filenames: Vec<String>,
+  pub source_map: Option<Buffer>,
+  pub additional_data: Option<Buffer>,
+  #[napi(ts_type = "ExternalObject<'AdditionalData'>")]
   pub additional_data_external: External<AdditionalData>,
   pub cacheable: bool,
   /// Used to instruct how rust loaders should execute
@@ -519,6 +472,6 @@ impl napi::bindgen_prelude::FromNapiValue for JsLoaderResult {
     Ok(val)
   }
 }
-impl napi::bindgen_prelude::ValidateNapiValue for JsLoaderResult {}
+impl ValidateNapiValue for JsLoaderResult {}
 
 pub type LoaderThreadsafeLoaderResult = Option<JsLoaderResult>;

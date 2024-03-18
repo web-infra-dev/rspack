@@ -13,18 +13,20 @@ use crate::{
   diagnostics::EmptyDependency,
   module_rules_matcher, parse_resource, resolve, stringify_loaders_and_resource,
   tree_shaking::visitor::{get_side_effects_from_package_json, SideEffects},
-  BoxLoader, CompilerContext, CompilerOptions, DependencyCategory, FactorizeArgs, FactoryMeta,
-  FuncUseCtx, GeneratorOptions, ModuleExt, ModuleFactory, ModuleFactoryCreateData,
-  ModuleFactoryResult, ModuleIdentifier, ModuleRule, ModuleRuleEnforce, ModuleRuleUse,
-  ModuleRuleUseLoader, ModuleType, NormalModule, NormalModuleAfterResolveArgs,
-  NormalModuleBeforeResolveArgs, NormalModuleCreateData, ParserOptions, RawModule, Resolve,
+  BeforeResolveArgs, BoxLoader, CompilerContext, CompilerOptions, DependencyCategory,
+  FactorizeArgs, FactoryMeta, FuncUseCtx, GeneratorOptions, ModuleExt, ModuleFactory,
+  ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleRule, ModuleRuleEnforce,
+  ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule, NormalModuleAfterResolveArgs,
+  NormalModuleAfterResolveCreateData, NormalModuleCreateData, ParserOptions, RawModule, Resolve,
   ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory,
   ResourceData, ResourceParsedData, SharedPluginDriver,
 };
 
+pub type NormalModuleFactoryBeforeResolveHook = AsyncSeriesBailHook<BeforeResolveArgs, bool>;
+
 #[derive(Debug, Default)]
 pub struct NormalModuleFactoryHooks {
-  pub before_resolve: AsyncSeriesBailHook<NormalModuleBeforeResolveArgs, bool>,
+  pub before_resolve: NormalModuleFactoryBeforeResolveHook,
 }
 
 #[derive(Debug)]
@@ -43,9 +45,6 @@ impl ModuleFactory for NormalModuleFactory {
       return Ok(before_resolve_data);
     }
     let factory_result = self.factorize(data).await?;
-    if let Ok(Some(after_resolve_data)) = self.after_resolve(data, &factory_result).await {
-      return Ok(after_resolve_data);
-    }
 
     Ok(factory_result)
   }
@@ -86,13 +85,15 @@ impl NormalModuleFactory {
       .as_module_dependency_mut()
       .expect("should be module dependency");
     // allow javascript plugin to modify args
-    let mut before_resolve_args = NormalModuleBeforeResolveArgs {
+    let mut before_resolve_args = BeforeResolveArgs {
       request: dependency.request().to_string(),
       context: data.context.to_string(),
     };
     if let Some(false) = self
       .plugin_driver
-      .before_resolve(&mut before_resolve_args)
+      .normal_module_factory_hooks
+      .before_resolve
+      .call(&mut before_resolve_args)
       .await?
     {
       // ignored
@@ -102,35 +103,6 @@ impl NormalModuleFactory {
 
     data.context = before_resolve_args.context.into();
     dependency.set_request(before_resolve_args.request);
-    Ok(None)
-  }
-
-  async fn after_resolve(
-    &self,
-    data: &mut ModuleFactoryCreateData,
-    factory_result: &ModuleFactoryResult,
-  ) -> Result<Option<ModuleFactoryResult>> {
-    let dependency = data
-      .dependency
-      .as_module_dependency()
-      .expect("should be module dependency");
-    if let Ok(Some(false)) = self
-      .plugin_driver
-      .after_resolve(&mut NormalModuleAfterResolveArgs {
-        request: dependency.request(),
-        context: data.context.as_ref(),
-        file_dependencies: &data.file_dependencies,
-        context_dependencies: &data.context_dependencies,
-        missing_dependencies: &data.missing_dependencies,
-        factory_meta: &factory_result.factory_meta,
-        diagnostics: &mut data.diagnostics,
-      })
-      .await
-    {
-      // ignored
-      // See https://github.com/webpack/webpack/blob/6be4065ade1e252c1d8dcba4af0f43e32af1bdc1/lib/NormalModuleFactory.js#L301
-      return Ok(Some(ModuleFactoryResult::default()));
-    }
     Ok(None)
   }
 
@@ -284,11 +256,18 @@ impl NormalModuleFactory {
         }));
       }
 
-      if request_without_match_resource.is_empty() {
-        (
-          ResourceData::new("".to_string(), Path::new("").to_path_buf()),
-          false,
-        )
+      if request_without_match_resource.is_empty()
+        || request_without_match_resource.starts_with('?')
+      {
+        let ResourceParsedData {
+          path,
+          query,
+          fragment,
+        } = parse_resource(request_without_match_resource).expect("Should parse resource");
+        let resource_data = ResourceData::new(request_without_match_resource.to_string(), path)
+          .query_optional(query)
+          .fragment_optional(fragment);
+        (resource_data, false)
       } else {
         let optional = dependency.get_optional();
 
@@ -329,8 +308,8 @@ impl NormalModuleFactory {
             let uri = resource.full_path().display().to_string();
             (
               ResourceData::new(uri, resource.path)
-                .query_optional(resource.query)
-                .fragment_optional(resource.fragment)
+                .query(resource.query)
+                .fragment(resource.fragment)
                 .description_optional(resource.description_data),
               from_cache,
             )
@@ -568,10 +547,43 @@ impl NormalModuleFactory {
         )
       })?();
 
+    let after_resolve_create_data = {
+      let mut after_resolve_args = NormalModuleAfterResolveArgs {
+        request: dependency.request(),
+        context: data.context.as_ref(),
+        file_dependencies: &data.file_dependencies,
+        context_dependencies: &data.context_dependencies,
+        missing_dependencies: &data.missing_dependencies,
+        factory_meta: &factory_meta,
+        diagnostics: &mut data.diagnostics,
+        create_data: Some(NormalModuleAfterResolveCreateData {
+          request,
+          user_request,
+          resource: resource_data,
+        }),
+      };
+
+      if let Some(plugin_result) = self
+        .plugin_driver
+        .after_resolve(&mut after_resolve_args)
+        .await?
+      {
+        if !plugin_result {
+          // ignored
+          // See https://github.com/webpack/webpack/blob/6be4065ade1e252c1d8dcba4af0f43e32af1bdc1/lib/NormalModuleFactory.js#L301
+          return Ok(Some(ModuleFactoryResult::default()));
+        }
+      }
+
+      after_resolve_args
+        .create_data
+        .unwrap_or_else(|| unreachable!())
+    };
+
     let mut create_data = NormalModuleCreateData {
       dependency_type: data.dependency.dependency_type().clone(),
       resolve_data_request: dependency.request(),
-      resource_resolve_data: resource_data.clone(),
+      resource_resolve_data: after_resolve_create_data.resource.clone(),
       context: data.context.clone(),
       diagnostics: &mut data.diagnostics,
     };
@@ -583,15 +595,15 @@ impl NormalModuleFactory {
       module
     } else {
       let normal_module = NormalModule::new(
-        request,
-        user_request,
+        after_resolve_create_data.request,
+        after_resolve_create_data.user_request,
         dependency.request().to_owned(),
         resolved_module_type,
         resolved_parser_and_generator,
         resolved_parser_options,
         resolved_generator_options,
         match_resource_data,
-        resource_data,
+        after_resolve_create_data.resource,
         resolved_resolve_options,
         loaders,
         contains_inline,
@@ -739,9 +751,8 @@ impl NormalModuleFactory {
 
 /// Using `u32` instead of `usize` to reduce memory usage,
 /// `u32` is 4 bytes on 64bit machine, comparing to `usize` which is 8 bytes.
-/// Rspan aka `Rspack span`, just avoiding conflict with span in other crate
 /// ## Warning
-/// RSpan is zero based, `Span` of `swc` is 1 based. see https://swc-css.netlify.app/?code=eJzLzC3ILypRSFRIK8rPVVAvSS0u0csqVgcAZaoIKg
+/// [ErrorSpan] start from zero, and `Span` of `swc` start from one. see https://swc-css.netlify.app/?code=eJzLzC3ILypRSFRIK8rPVVAvSS0u0csqVgcAZaoIKg
 #[derive(
   Debug,
   Hash,

@@ -95,28 +95,28 @@ fn chunk(ukey: u32, compilation: &Compilation) -> &Chunk {
 
 #[napi(js_name = "__chunk_inner_is_only_initial")]
 pub fn is_only_initial(js_chunk_ukey: u32, compilation: &JsCompilation) -> bool {
-  let compilation = &compilation.inner;
+  let compilation = &compilation.0;
   let chunk = chunk(js_chunk_ukey, compilation);
   chunk.is_only_initial(&compilation.chunk_group_by_ukey)
 }
 
 #[napi(js_name = "__chunk_inner_can_be_initial")]
 pub fn can_be_initial(js_chunk_ukey: u32, compilation: &JsCompilation) -> bool {
-  let compilation = &compilation.inner;
+  let compilation = &compilation.0;
   let chunk = chunk(js_chunk_ukey, compilation);
   chunk.can_be_initial(&compilation.chunk_group_by_ukey)
 }
 
 #[napi(js_name = "__chunk_inner_has_runtime")]
 pub fn has_runtime(js_chunk_ukey: u32, compilation: &JsCompilation) -> bool {
-  let compilation = &compilation.inner;
+  let compilation = &compilation.0;
   let chunk = chunk(js_chunk_ukey, compilation);
   chunk.has_runtime(&compilation.chunk_group_by_ukey)
 }
 
 #[napi(js_name = "__chunk_inner_get_all_async_chunks")]
 pub fn get_all_async_chunks(js_chunk_ukey: u32, compilation: &JsCompilation) -> Vec<JsChunk> {
-  let compilation = &compilation.inner;
+  let compilation = &compilation.0;
   let chunk = chunk(js_chunk_ukey, compilation);
   chunk
     .get_all_async_chunks(&compilation.chunk_group_by_ukey)
@@ -127,7 +127,7 @@ pub fn get_all_async_chunks(js_chunk_ukey: u32, compilation: &JsCompilation) -> 
 
 #[napi(js_name = "__chunk_inner_get_all_initial_chunks")]
 pub fn get_all_initial_chunks(js_chunk_ukey: u32, compilation: &JsCompilation) -> Vec<JsChunk> {
-  let compilation = &compilation.inner;
+  let compilation = &compilation.0;
   let chunk = chunk(js_chunk_ukey, compilation);
   chunk
     .get_all_initial_chunks(&compilation.chunk_group_by_ukey)
@@ -138,7 +138,7 @@ pub fn get_all_initial_chunks(js_chunk_ukey: u32, compilation: &JsCompilation) -
 
 #[napi(js_name = "__chunk_inner_get_all_referenced_chunks")]
 pub fn get_all_referenced_chunks(js_chunk_ukey: u32, compilation: &JsCompilation) -> Vec<JsChunk> {
-  let compilation = &compilation.inner;
+  let compilation = &compilation.0;
   let chunk = chunk(js_chunk_ukey, compilation);
   chunk
     .get_all_referenced_chunks(&compilation.chunk_group_by_ukey)

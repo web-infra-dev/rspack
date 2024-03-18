@@ -1,12 +1,12 @@
 use std::{borrow::Cow, hash::Hash, sync::Arc};
 
-use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rspack_core::rspack_sources::{
   stream_chunks::{stream_chunks_default, GeneratedInfo, OnChunk, OnName, OnSource, StreamChunks},
   CachedSource, ConcatSource, MapOptions, OriginalSource, RawSource, ReplaceSource, Source,
   SourceMap, SourceMapSource,
 };
+use rspack_napi::napi::bindgen_prelude::*;
 
 #[napi(object)]
 #[derive(Clone)]
@@ -25,6 +25,12 @@ pub struct CompatSource {
   pub is_buffer: bool,
   pub source: Vec<u8>,
   pub map: Option<Vec<u8>>,
+}
+
+impl FromNapiValue for CompatSource {
+  unsafe fn from_napi_value(env: sys::napi_env, napi_val: sys::napi_value) -> Result<Self> {
+    Ok(unsafe { JsCompatSource::from_napi_value(env, napi_val) }?.into())
+  }
 }
 
 impl std::hash::Hash for CompatSource {

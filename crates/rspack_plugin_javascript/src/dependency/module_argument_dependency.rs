@@ -31,7 +31,7 @@ impl DependencyTemplate for ModuleArgumentDependency {
     runtime_requirements.insert(RuntimeGlobals::MODULE);
 
     let module_argument = compilation
-      .module_graph
+      .get_module_graph()
       .module_by_identifier(&module.identifier())
       .expect("should have mgm")
       .get_module_argument();

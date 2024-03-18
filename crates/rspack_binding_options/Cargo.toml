@@ -5,6 +5,10 @@ name       = "rspack_binding_options"
 repository = "https://github.com/web-infra-dev/rspack"
 version    = "0.1.0"
 
+[features]
+default = []
+plugin  = ["rspack_loader_swc/plugin"]
+
 [dependencies]
 async-trait                           = { workspace = true }
 better_scoped_tls                     = { workspace = true }
@@ -12,7 +16,6 @@ derivative                            = { workspace = true }
 glob                                  = { workspace = true }
 napi                                  = { workspace = true, features = ["async", "tokio_rt", "serde-json", "anyhow"] }
 napi-derive                           = { workspace = true }
-rspack_binding_macros                 = { path = "../rspack_binding_macros" }
 rspack_binding_values                 = { path = "../rspack_binding_values" }
 rspack_core                           = { path = "../rspack_core" }
 rspack_error                          = { path = "../rspack_error" }
@@ -21,7 +24,7 @@ rspack_ids                            = { path = "../rspack_ids" }
 rspack_loader_react_refresh           = { path = "../rspack_loader_react_refresh" }
 rspack_loader_runner                  = { path = "../rspack_loader_runner" }
 rspack_loader_swc                     = { path = "../rspack_loader_swc" }
-rspack_napi_shared                    = { path = "../rspack_napi_shared" }
+rspack_napi                           = { path = "../rspack_napi" }
 rspack_plugin_asset                   = { path = "../rspack_plugin_asset" }
 rspack_plugin_banner                  = { path = "../rspack_plugin_banner" }
 rspack_plugin_copy                    = { path = "../rspack_plugin_copy" }

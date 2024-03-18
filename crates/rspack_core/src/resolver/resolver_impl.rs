@@ -130,8 +130,8 @@ impl Resolver {
       Self::OxcResolver(resolver) => match resolver.resolve(path, request) {
         Ok(r) => Ok(ResolveResult::Resource(Resource {
           path: r.path().to_path_buf(),
-          query: r.query().map(ToString::to_string),
-          fragment: r.fragment().map(ToString::to_string),
+          query: r.query().unwrap_or_default().to_string(),
+          fragment: r.fragment().unwrap_or_default().to_string(),
           description_data: r
             .package_json()
             .map(|d| DescriptionData::new(d.directory().to_path_buf(), Arc::clone(d.raw_json()))),
@@ -162,8 +162,8 @@ impl Resolver {
         match result {
           Ok(r) => Ok(ResolveResult::Resource(Resource {
             path: r.path().to_path_buf(),
-            query: r.query().map(ToString::to_string),
-            fragment: r.fragment().map(ToString::to_string),
+            query: r.query().unwrap_or_default().to_string(),
+            fragment: r.fragment().unwrap_or_default().to_string(),
             description_data: r
               .package_json()
               .map(|d| DescriptionData::new(d.directory().to_path_buf(), Arc::clone(d.raw_json()))),

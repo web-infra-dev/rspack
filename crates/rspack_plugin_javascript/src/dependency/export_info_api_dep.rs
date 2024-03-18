@@ -60,21 +60,20 @@ impl ExportInfoApiDependency {
         "used" => {
           let id = module.identifier();
           let mgm = compilation
-            .module_graph
+            .get_module_graph()
             .module_graph_module_by_identifier(&id)?;
           let exports_info = compilation
-            .module_graph
+            .get_module_graph()
             .get_exports_info_by_id(&mgm.exports);
           let info_id = exports_info.exports.get(export_name)?;
           let export_info = compilation
-            .module_graph
-            .export_info_map
-            .try_get(**info_id as usize)?;
+            .get_module_graph()
+            .try_get_export_info_by_id(info_id)?;
           if compilation.options.is_new_tree_shaking() {
             Some(exports_info.get_used(
               rspack_core::UsedName::Str(export_name.clone()),
               *runtime,
-              &compilation.module_graph,
+              compilation.get_module_graph(),
             ))
           } else {
             Some(export_info.usage_state)

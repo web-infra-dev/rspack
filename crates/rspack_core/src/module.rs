@@ -151,6 +151,7 @@ pub struct BuildResult {
   pub analyze_result: OptimizeAnalyzeResult,
   pub dependencies: Vec<BoxDependency>,
   pub blocks: Vec<AsyncDependenciesBlock>,
+  pub optimization_bailouts: Vec<String>,
 }
 
 #[derive(Debug, Default, Clone)]
@@ -209,6 +210,7 @@ pub trait Module:
       dependencies: Vec::new(),
       blocks: Vec::new(),
       analyze_result: Default::default(),
+      optimization_bailouts: vec![],
     })
   }
 
@@ -326,6 +328,26 @@ pub trait Module:
     _module_chain: &mut HashSet<ModuleIdentifier>,
   ) -> ConnectionState {
     ConnectionState::Bool(true)
+  }
+
+  fn is_available(&self, modified_file: &HashSet<PathBuf>) -> bool {
+    if let Some(build_info) = self.build_info() {
+      if !build_info.cacheable {
+        return false;
+      }
+
+      for item in modified_file {
+        if build_info.file_dependencies.contains(item)
+          || build_info.build_dependencies.contains(item)
+          || build_info.context_dependencies.contains(item)
+          || build_info.missing_dependencies.contains(item)
+        {
+          return false;
+        }
+      }
+    }
+
+    true
   }
 }
 

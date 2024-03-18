@@ -3,7 +3,6 @@ use rspack_binding_options::JsLoaderContext;
 
 /// Builtin loader runner
 #[napi]
-#[allow(unused)]
 pub async fn run_builtin_loader(
   builtin: String,
   options: Option<String>,

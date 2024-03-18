@@ -10,12 +10,12 @@ use rspack_core::{
   tree_shaking::{
     analyzer::OptimizeAnalyzer, asset_module::AssetModule, visitor::OptimizeAnalyzeResult,
   },
-  AssetGeneratorDataUrl, AssetParserDataUrl, BuildExtraDataType, BuildMetaDefaultObject,
-  BuildMetaExportsType, CodeGenerationDataAssetInfo, CodeGenerationDataFilename,
-  CodeGenerationDataUrl, Compilation, CompilerOptions, GenerateContext, Module, ModuleType,
-  NormalModule, ParseContext, ParserAndGenerator, PathData, Plugin, PluginContext,
-  PluginRenderManifestHookOutput, RenderManifestArgs, RenderManifestEntry, ResourceData,
-  RuntimeGlobals, SourceType, NAMESPACE_OBJECT_EXPORT,
+  AssetGeneratorDataUrl, AssetGeneratorDataUrlFnArgs, AssetParserDataUrl, BuildExtraDataType,
+  BuildMetaDefaultObject, BuildMetaExportsType, CodeGenerationDataAssetInfo,
+  CodeGenerationDataFilename, CodeGenerationDataUrl, Compilation, CompilerOptions, GenerateContext,
+  Module, ModuleType, NormalModule, ParseContext, ParserAndGenerator, PathData, Plugin,
+  PluginContext, PluginRenderManifestHookOutput, RenderManifestArgs, RenderManifestEntry,
+  ResourceData, RuntimeGlobals, SourceType, NAMESPACE_OBJECT_EXPORT,
 };
 use rspack_error::{error, IntoTWithDiagnosticArray, Result};
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -107,6 +107,23 @@ impl AssetParserAndGenerator {
     let mut hasher = RspackHash::from(&compiler_options.output);
     source.hash(&mut hasher);
     hasher.digest(&compiler_options.output.hash_digest)
+  }
+
+  fn get_data_url(
+    &self,
+    resource_data: &ResourceData,
+    data_url: Option<&AssetGeneratorDataUrl>,
+    source: &BoxSource,
+  ) -> Option<String> {
+    let func_args = AssetGeneratorDataUrlFnArgs {
+      filename: resource_data.resource_path.to_string_lossy().to_string(),
+      content: source.source().into_owned().to_string(),
+    };
+
+    if let Some(AssetGeneratorDataUrl::Func(data_url)) = data_url {
+      return Some(data_url(func_args).expect("call data_url function failed"));
+    }
+    None
   }
 
   fn get_mimetype(
@@ -298,6 +315,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
         source,
         presentational_dependencies: vec![],
         analyze_result,
+        side_effects_bailout: None,
       }
       .with_empty_diagnostic(),
     )
@@ -324,21 +342,28 @@ impl ParserAndGenerator for AssetParserAndGenerator {
     let result = match generate_context.requested_source_type {
       SourceType::JavaScript => {
         let exported_content = if parsed_asset_config.is_inline() {
-          let resource_data = normal_module.resource_resolved_data();
+          let resource_data: &ResourceData = normal_module.resource_resolved_data();
           let data_url = generate_context
             .module_generator_options
             .and_then(|x| x.asset_data_url(module_type));
-          let mimetype = self.get_mimetype(resource_data, data_url)?;
-          let encoding = self.get_encoding(resource_data, data_url);
-          let encoded_content = self.get_encoded_content(resource_data, &encoding, source)?;
-          let encoded_source = format!(
-            r#"data:{mimetype}{},{encoded_content}"#,
-            if encoding.is_empty() {
-              String::new()
-            } else {
-              format!(";{encoding}")
-            }
-          );
+
+          let encoded_source: String;
+
+          if let Some(custom_data_url) = self.get_data_url(resource_data, data_url, source) {
+            encoded_source = custom_data_url;
+          } else {
+            let mimetype = self.get_mimetype(resource_data, data_url)?;
+            let encoding = self.get_encoding(resource_data, data_url);
+            let encoded_content = self.get_encoded_content(resource_data, &encoding, source)?;
+            encoded_source = format!(
+              r#"data:{mimetype}{},{encoded_content}"#,
+              if encoding.is_empty() {
+                String::new()
+              } else {
+                format!(";{encoding}")
+              }
+            );
+          }
 
           generate_context
             .data
@@ -500,7 +525,7 @@ impl Plugin for AssetPlugin {
   ) -> PluginRenderManifestHookOutput {
     let compilation = args.compilation;
     let chunk = args.chunk();
-    let module_graph = &compilation.module_graph;
+    let module_graph = &compilation.get_module_graph();
 
     let ordered_modules = compilation
       .chunk_graph
@@ -510,13 +535,13 @@ impl Plugin for AssetPlugin {
       .par_iter()
       .filter(|m| {
         let module = compilation
-          .module_graph
+          .get_module_graph()
           .module_by_identifier(&m.identifier())
           // FIXME: use result
           .expect("Failed to get module");
 
         let all_incoming_analyzed = module_graph
-          .get_incoming_connections(module)
+          .get_incoming_connections(&module.identifier())
           .iter()
           .all(|c| {
             if let Some(original_module_identifier) = c.original_module_identifier {
