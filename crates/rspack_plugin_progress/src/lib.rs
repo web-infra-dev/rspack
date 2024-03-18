@@ -251,16 +251,6 @@ impl Plugin for ProgressPlugin {
     Ok(())
   }
 
-  async fn before_compile(&self, _params: &CompilationParams) -> Result<()> {
-    self.handler(
-      0.06,
-      "setup".to_string(),
-      vec!["before compile".to_string()],
-      None,
-    );
-    Ok(())
-  }
-
   async fn this_compilation(
     &self,
     _args: ThisCompilationArgs<'_>,

@@ -317,34 +317,6 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
     self.hooks.optimize_chunk_modules.call(compilation).await
   }
 
-  async fn before_compile(
-    &self,
-    _params: &rspack_core::CompilationParams,
-  ) -> rspack_error::Result<()> {
-    if self.is_hook_disabled(&Hook::BeforeCompile) {
-      return Ok(());
-    }
-
-    self.hooks.before_compile.call({}).await
-  }
-
-  async fn after_compile(
-    &self,
-    compilation: &mut rspack_core::Compilation,
-  ) -> rspack_error::Result<()> {
-    if self.is_hook_disabled(&Hook::AfterCompile) {
-      return Ok(());
-    }
-
-    // SAFETY: `Compiler` will not be moved, as it's stored on the heap.
-    // The pointer to `Compilation` is valid for the lifetime of `Compiler`.
-    // `Compiler` is valid through the lifetime before it's closed by calling `Compiler.close()` or gc-ed.
-    // `JsCompilation` is valid through the entire lifetime of `Compilation`.
-    let compilation = unsafe { JsCompilation::from_compilation(compilation) };
-
-    self.hooks.after_compile.call(compilation).await
-  }
-
   async fn finish_make(
     &self,
     compilation: &mut rspack_core::Compilation,

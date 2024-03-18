@@ -8,6 +8,11 @@ class InterceptPlugin {
 				content.push("compiler.hooks.beforeCompile.intercept.call")
 			}
 		})
+		compiler.hooks.compile.intercept({
+			call() {
+				content.push("compiler.hooks.compile.intercept.call")
+			}
+		})
 		compiler.hooks.finishMake.intercept({
 			call() {
 				content.push("compiler.hooks.finishMake.intercept.call")
@@ -21,6 +26,7 @@ class InterceptPlugin {
 		compiler.hooks.done.tap(InterceptPlugin.name, () => {
 			deepEqual(content, [
 				"compiler.hooks.beforeCompile.intercept.call",
+				"compiler.hooks.compile.intercept.call",
 				"compiler.hooks.finishMake.intercept.call",
 				"compiler.hooks.afterCompile.intercept.call",
 			]);

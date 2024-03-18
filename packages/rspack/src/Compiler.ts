@@ -233,8 +233,6 @@ class Compiler {
 			rawOptions,
 			this.builtinPlugins,
 			{
-				beforeCompile: this.#beforeCompile.bind(this),
-				afterCompile: this.#afterCompile.bind(this),
 				finishMake: this.#finishMake.bind(this),
 				emit: this.#emit.bind(this),
 				assetEmitted: this.#assetEmitted.bind(this),
@@ -525,8 +523,6 @@ class Compiler {
 		const disabledHooks: string[] = [];
 		type HookMap = Record<keyof binding.JsHooks, any>;
 		const hookMap: HookMap = {
-			beforeCompile: this.hooks.beforeCompile,
-			afterCompile: this.hooks.afterCompile,
 			finishMake: this.hooks.finishMake,
 			emit: this.hooks.emit,
 			assetEmitted: this.hooks.assetEmitted,
@@ -579,17 +575,6 @@ class Compiler {
 				this.#disabledHooks = disabledHooks;
 			});
 		}
-	}
-
-	async #beforeCompile() {
-		await this.hooks.beforeCompile.promise();
-		// compilation is not created yet, so this will fail
-		// this.#updateDisabledHooks();
-	}
-
-	async #afterCompile() {
-		await this.hooks.afterCompile.promise(this.compilation);
-		this.#updateDisabledHooks();
 	}
 
 	async #finishMake() {
@@ -938,7 +923,7 @@ class Compiler {
 						return finalCallback(err);
 					}
 
-					this.build(err => {
+					this.compile(err => {
 						if (err) {
 							return finalCallback(err);
 						}
