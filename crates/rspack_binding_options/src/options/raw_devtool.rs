@@ -1,8 +1,7 @@
-use std::sync::Arc;
-
 use napi::bindgen_prelude::{Either3, Null};
 use napi::Either;
 use napi_derive::napi;
+use rspack_core::PathData;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_devtool::{
   Append, EvalDevToolModulePluginOptions, ModuleFilenameTemplate, ModuleFilenameTemplateFnCtx,
@@ -11,17 +10,34 @@ use rspack_plugin_devtool::{
 use serde::Deserialize;
 use tokio::runtime::Handle;
 
-type RawAppend = Either3<String, bool, ThreadsafeFunction<(), Option<String>>>;
+type RawAppend = Either3<String, bool, ThreadsafeFunction<RawPathData, String>>;
+
+#[derive(Debug, Clone)]
+#[napi(object)]
+pub struct RawPathData {
+  pub filename: Option<String>,
+  pub content_hash: Option<String>,
+  pub url: Option<String>,
+}
+
+impl From<PathData<'_>> for RawPathData {
+  fn from(ctx: PathData) -> Self {
+    RawPathData {
+      filename: ctx.filename.map(|s| s.to_string()),
+      content_hash: ctx.content_hash.map(|s| s.to_string()),
+      url: ctx.url.map(|s| s.to_string()),
+    }
+  }
+}
 
 fn normalize_raw_append(raw: RawAppend) -> Append {
-  let handle = Handle::current();
   match raw {
     Either3::A(str) => Append::String(str),
     Either3::B(_) => Append::Disabled,
-    Either3::C(v) => Append::Fn(Arc::new(move || {
-      handle
-        .block_on(v.call(()))
-        .expect("failed to block raw append")
+    Either3::C(v) => Append::Fn(Box::new(move |ctx| {
+      let v = v.clone();
+      let value = ctx.into();
+      Box::pin(async move { v.call(value).await })
     })),
   }
 }

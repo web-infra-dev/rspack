@@ -25,13 +25,14 @@ use rspack_core::{
 use rspack_core::{
   Chunk, Filename, Logger, Module, ModuleIdentifier, OutputOptions, RuntimeModule,
 };
+use rspack_error::error;
 use rspack_error::{miette::IntoDiagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook, AsyncSeries};
 use rspack_util::identifier::make_paths_absolute;
 use rspack_util::source_map::SourceMapKind;
 use rspack_util::{path::relative, swc::normalize_custom_filename};
-use rustc_hash::FxHashSet as HashSet;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde_json::json;
 
 static CSS_EXTENSION_DETECT_REGEXP: Lazy<Regex> =
@@ -73,7 +74,7 @@ pub enum ModuleFilenameTemplate {
 
 pub struct ModuleFilenameHelpers;
 
-type AppendFn = Arc<dyn for<'a> Fn() -> Option<String> + Send + Sync>;
+type AppendFn = Box<dyn for<'a> Fn(PathData) -> BoxFuture<'static, Result<String>> + Sync + Send>;
 
 pub enum Append {
   String(String),
@@ -119,6 +120,11 @@ pub struct SourceMapDevToolPluginOptions {
 enum SourceMappingUrlComment {
   String(String),
   Fn(AppendFn),
+}
+
+enum SourceMappingUrlCommentRef<'a> {
+  String(String),
+  Fn(&'a AppendFn),
 }
 
 pub enum ModuleOrSource {
@@ -384,6 +390,16 @@ impl SourceMapDevToolPlugin {
       mapped_buffer.push((filename.to_owned(), code_buffer, source_map_buffer));
     }
 
+    let mut file_to_chunk: HashMap<String, &Chunk> = HashMap::default();
+    for chunk in compilation.chunk_by_ukey.values() {
+      for file in &chunk.files {
+        file_to_chunk.insert(file.clone(), chunk);
+      }
+      for file in &chunk.auxiliary_files {
+        file_to_chunk.insert(file.clone(), chunk);
+      }
+    }
+
     let mut mapped_asstes: Vec<MappedAsset> = Vec::with_capacity(raw_assets.len());
     for (filename, code_buffer, source_map_buffer) in mapped_buffer {
       let mut asset = compilation
@@ -402,48 +418,41 @@ impl SourceMapDevToolPlugin {
         continue;
       };
       let css_extension_detected = CSS_EXTENSION_DETECT_REGEXP.is_match(&filename);
-      let current_source_mapping_url_comment =
-        if let Some(SourceMappingUrlComment::String(s)) = &self.source_mapping_url_comment {
+      let current_source_mapping_url_comment = match &self.source_mapping_url_comment {
+        Some(SourceMappingUrlComment::String(s)) => {
           let s = if css_extension_detected {
             URL_FORMATTING_REGEXP.replace_all(s, "\n/*$1*/")
           } else {
             Cow::from(s)
           };
-          Some(s)
-        } else {
-          None
-        };
+          Some(SourceMappingUrlCommentRef::String(s.to_string()))
+        }
+        Some(SourceMappingUrlComment::Fn(f)) => Some(SourceMappingUrlCommentRef::Fn(f)),
+        None => None,
+      };
 
       if let Some(source_map_filename_config) = &self.source_map_filename {
-        let mut source_map_filename = filename.to_owned() + ".map";
-        // TODO(ahabhgk): refactor remove the for loop
-        for chunk in compilation.chunk_by_ukey.values() {
-          let files: HashSet<String> = chunk.files.union(&chunk.auxiliary_files).cloned().collect();
-
-          for file in &files {
-            if file == &filename {
-              let source_type = if css_extension_detected {
-                &SourceType::Css
-              } else {
-                &SourceType::JavaScript
-              };
-              let filename = match &self.file_context {
-                Some(file_context) => relative(Path::new(file_context), Path::new(&filename))
-                  .to_string_lossy()
-                  .to_string(),
-                None => filename.clone(),
-              };
-              source_map_filename = compilation.get_asset_path(
-                source_map_filename_config,
-                PathData::default()
-                  .chunk(chunk)
-                  .filename(&filename)
-                  .content_hash_optional(chunk.content_hash.get(source_type).map(|i| i.encoded())),
-              );
-              break;
-            }
-          }
-        }
+        let chunk = file_to_chunk
+          .get(&filename)
+          .expect("the filename should always have an associated chunk");
+        let source_type = if css_extension_detected {
+          &SourceType::Css
+        } else {
+          &SourceType::JavaScript
+        };
+        let filename = match &self.file_context {
+          Some(file_context) => relative(Path::new(file_context), Path::new(&filename))
+            .to_string_lossy()
+            .to_string(),
+          None => filename.clone(),
+        };
+        let source_map_filename = compilation.get_asset_path(
+          source_map_filename_config,
+          PathData::default()
+            .chunk(chunk)
+            .filename(&filename)
+            .content_hash_optional(chunk.content_hash.get(source_type).map(|i| i.encoded())),
+        );
 
         if let Some(current_source_mapping_url_comment) = current_source_mapping_url_comment {
           let source_map_url = if let Some(public_path) = &self.public_path {
@@ -454,6 +463,25 @@ impl SourceMapDevToolPlugin {
             relative.to_string_lossy().into_owned()
           } else {
             source_map_filename.clone()
+          };
+          let current_source_mapping_url_comment = match &current_source_mapping_url_comment {
+            SourceMappingUrlCommentRef::String(s) => compilation.get_asset_path(
+              &Filename::from(s.to_string()),
+              PathData::default()
+                .chunk(chunk)
+                .filename(&filename)
+                .content_hash_optional(chunk.content_hash.get(source_type).map(|i| i.encoded()))
+                .url(&source_map_url),
+            ),
+            SourceMappingUrlCommentRef::Fn(f) => {
+              let data = PathData::default()
+                .chunk(chunk)
+                .filename(&filename)
+                .content_hash_optional(chunk.content_hash.get(source_type).map(|i| i.encoded()))
+                .url(&source_map_url);
+              let comment = f(data).await?;
+              Filename::from(comment).render(data, None)
+            }
           };
           asset.source = Some(
             ConcatSource::new([
@@ -483,6 +511,14 @@ impl SourceMapDevToolPlugin {
       } else {
         let current_source_mapping_url_comment = current_source_mapping_url_comment
           .expect("SourceMapDevToolPlugin: append can't be false when no filename is provided.");
+        let current_source_mapping_url_comment = match &current_source_mapping_url_comment {
+          SourceMappingUrlCommentRef::String(s) => s,
+          SourceMappingUrlCommentRef::Fn(_) => {
+            return Err(error!(
+              "SourceMapDevToolPlugin: append can't be a function when no filename is provided"
+            ))
+          }
+        };
         let base64 = rspack_base64::encode_to_string(&source_map_buffer);
         asset.source = Some(
           ConcatSource::new([

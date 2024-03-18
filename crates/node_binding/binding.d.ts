@@ -1099,6 +1099,12 @@ export interface RawParserOptions {
   javascript?: RawJavascriptParserOptions
 }
 
+export interface RawPathData {
+  filename?: string
+  contentHash?: string
+  url?: string
+}
+
 export interface RawPluginImportConfig {
   libraryName: string
   libraryDirectory?: string
