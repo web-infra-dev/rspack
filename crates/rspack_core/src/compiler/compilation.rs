@@ -24,7 +24,6 @@ use super::{
   hmr::CompilationRecords,
   make::{update_module_graph, MakeParam},
 };
-use crate::tree_shaking::visitor::OptimizeAnalyzeResult;
 use crate::{
   build_chunk_graph::build_chunk_graph,
   cache::{use_code_splitting_cache, Cache, CodeSplittingCache},
@@ -40,6 +39,7 @@ use crate::{
   ProcessDependenciesQueueHandler, RenderManifestArgs, ResolverFactory, RuntimeGlobals,
   RuntimeModule, RuntimeRequirementsInTreeArgs, RuntimeSpec, SharedPluginDriver, SourceType, Stats,
 };
+use crate::{debug_all_exports_info, tree_shaking::visitor::OptimizeAnalyzeResult};
 
 pub type BuildDependency = (
   DependencyId,
@@ -802,6 +802,10 @@ impl Compilation {
   pub async fn seal(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     let logger = self.get_logger("rspack.Compilation");
 
+    if self.options.is_new_tree_shaking() {
+      let filter = |item: &str| [".scss"].iter().any(|pat| item.contains(pat));
+      debug_all_exports_info!(&self.module_graph, filter);
+    }
     // https://github.com/webpack/webpack/blob/main/lib/Compilation.js#L2809
     plugin_driver.seal(self)?;
 
@@ -810,10 +814,10 @@ impl Compilation {
     while plugin_driver.optimize_dependencies(self).await?.is_some() {}
     logger.time_end(start);
 
-    // if self.options.is_new_tree_shaking() {
-    //   // let filter = |item: &str| ["config-provider"].iter().any(|pat| item.contains(pat));
-    //   // debug_all_exports_info!(&self.module_graph, filter);
-    // }
+    if self.options.is_new_tree_shaking() {
+      let filter = |item: &str| [".scss"].iter().any(|pat| item.contains(pat));
+      debug_all_exports_info!(&self.module_graph, filter);
+    }
     let start = logger.time("create chunks");
     use_code_splitting_cache(self, |compilation| async {
       build_chunk_graph(compilation)?;

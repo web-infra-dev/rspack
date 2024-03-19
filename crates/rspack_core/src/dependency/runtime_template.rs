@@ -104,6 +104,7 @@ pub fn export_from_import(
   is_call: bool,
   call_context: bool,
 ) -> String {
+  let is_scss = request.contains("scss");
   let TemplateContext {
     runtime_requirements,
     compilation,
@@ -183,6 +184,10 @@ pub fn export_from_import(
         .get_module_graph()
         .get_exports_info(&module_identifier)
         .id;
+      if is_scss {
+        dbg!(&request);
+        dbg!(&exports_info_id.get_exports_info(compilation.get_module_graph()));
+      }
       let used = exports_info_id.get_used_name(
         compilation.get_module_graph(),
         *runtime,
