@@ -16,7 +16,7 @@ pub trait AsyncSeries<I1> {
 
 pub struct AsyncSeriesHook<I1> {
   taps: Vec<Box<dyn AsyncSeries<I1> + Send + Sync>>,
-  interceptors: Vec<Box<dyn Interceptor<AsyncSeriesHook<I1>> + Send + Sync>>,
+  interceptors: Vec<Box<dyn Interceptor<Self> + Send + Sync>>,
 }
 
 impl<I1> Hook for AsyncSeriesHook<I1> {
@@ -77,7 +77,7 @@ pub trait AsyncSeries2<I1, I2> {
 
 pub struct AsyncSeries2Hook<I1, I2> {
   taps: Vec<Box<dyn AsyncSeries2<I1, I2> + Send + Sync>>,
-  interceptors: Vec<Box<dyn Interceptor<AsyncSeries2Hook<I1, I2>> + Send + Sync>>,
+  interceptors: Vec<Box<dyn Interceptor<Self> + Send + Sync>>,
 }
 
 impl<I1, I2> Hook for AsyncSeries2Hook<I1, I2> {

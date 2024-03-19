@@ -294,8 +294,6 @@ export interface JsCompatSource {
 
 export interface JsExecuteModuleArg {
   entry: string
-  request: string
-  options: JsBuildTimeExecutionOption
   runtimeModules: Array<string>
   codegenResults: JsCodegenerationResults
   id: number
@@ -330,7 +328,6 @@ export interface JsHooks {
   normalModuleFactoryResolveForScheme: (data: JsResolveForSchemeInput) => Promise<JsResolveForSchemeResult>
   succeedModule: (module: JsModule) => void
   stillValidModule: (module: JsModule) => void
-  executeModule: (arg: JsExecuteModuleArg) => void
   runtimeModule: (arg: JsRuntimeModuleArg) => JsRuntimeModule | void
 }
 
@@ -1293,6 +1290,7 @@ export interface RegisterJsTaps {
   registerCompilerMakeTaps: (stages: Array<number>) => Array<{ function: ((compilation: JsCompilation) => Promise<void>); stage: number; }>
   registerCompilerShouldEmitTaps: (stages: Array<number>) => Array<{ function: ((compilation: JsCompilation) => boolean | undefined); stage: number; }>
   registerCompilationProcessAssetsTaps: (stages: Array<number>) => Array<{ function: ((compilation: JsCompilation) => Promise<void>); stage: number; }>
+  registerCompilationExecuteModuleTaps: (stages: Array<number>) => Array<{ function: ((compilation: JsExecuteModuleArg) => void); stage: number; }>
   registerNormalModuleFactoryBeforeResolveTaps: (stages: Array<number>) => Array<{ function: ((compilation: JsBeforeResolveArgs) => Promise<[boolean | undefined, JsBeforeResolveArgs]>); stage: number; }>
 }
 

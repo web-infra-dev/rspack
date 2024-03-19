@@ -3,8 +3,8 @@ use rspack_napi::threadsafe_function::ThreadsafeFunction;
 
 use crate::{
   AfterResolveCreateData, AfterResolveData, CreateModuleData, JsAssetEmittedArgs,
-  JsBeforeResolveArgs, JsChunkAssetArgs, JsCompilation, JsExecuteModuleArg, JsModule,
-  JsResolveForSchemeInput, JsResolveForSchemeResult, JsRuntimeModule, JsRuntimeModuleArg,
+  JsBeforeResolveArgs, JsChunkAssetArgs, JsCompilation, JsModule, JsResolveForSchemeInput,
+  JsResolveForSchemeResult, JsRuntimeModule, JsRuntimeModuleArg,
 };
 
 #[napi(object, object_to_js = false)]
@@ -51,8 +51,6 @@ pub struct JsHooks {
   pub succeed_module: ThreadsafeFunction<JsModule, ()>,
   #[napi(ts_type = "(module: JsModule) => void")]
   pub still_valid_module: ThreadsafeFunction<JsModule, ()>,
-  #[napi(ts_type = "(arg: JsExecuteModuleArg) => void")]
-  pub execute_module: ThreadsafeFunction<JsExecuteModuleArg, ()>,
   #[napi(ts_type = "(arg: JsRuntimeModuleArg) => JsRuntimeModule | void")]
   pub runtime_module: ThreadsafeFunction<JsRuntimeModuleArg, Option<JsRuntimeModule>>,
 }

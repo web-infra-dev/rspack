@@ -13,7 +13,7 @@ use rayon::prelude::*;
 use rspack_error::{error, Diagnostic, Result, Severity, TWithDiagnosticArray};
 use rspack_futures::FuturesResults;
 use rspack_hash::{RspackHash, RspackHashDigest};
-use rspack_hook::AsyncSeriesHook;
+use rspack_hook::{AsyncSeriesHook, SyncSeries4Hook};
 use rspack_identifier::{Identifiable, IdentifierMap, IdentifierSet};
 use rspack_sources::{BoxSource, CachedSource, OriginalSource, SourceExt};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
@@ -24,7 +24,6 @@ use super::{
   hmr::CompilationRecords,
   make::{update_module_graph, MakeParam},
 };
-use crate::tree_shaking::visitor::OptimizeAnalyzeResult;
 use crate::{
   build_chunk_graph::build_chunk_graph,
   cache::{use_code_splitting_cache, Cache, CodeSplittingCache},
@@ -40,6 +39,7 @@ use crate::{
   ProcessDependenciesQueueHandler, RenderManifestArgs, ResolverFactory, RuntimeGlobals,
   RuntimeModule, RuntimeRequirementsInTreeArgs, RuntimeSpec, SharedPluginDriver, SourceType, Stats,
 };
+use crate::{tree_shaking::visitor::OptimizeAnalyzeResult, ExecuteModuleId};
 
 pub type BuildDependency = (
   DependencyId,
@@ -47,10 +47,13 @@ pub type BuildDependency = (
 );
 
 pub type CompilationProcessAssetsHook = AsyncSeriesHook<Compilation>;
+pub type CompilationExecuteModuleHook =
+  SyncSeries4Hook<ModuleIdentifier, IdentifierSet, CodeGenerationResults, ExecuteModuleId>;
 
 #[derive(Debug, Default)]
 pub struct CompilationHooks {
   pub process_assets: CompilationProcessAssetsHook,
+  pub execute_module: CompilationExecuteModuleHook,
 }
 
 #[derive(Debug)]

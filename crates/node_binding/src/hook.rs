@@ -23,7 +23,6 @@ pub enum Hook {
   AfterResolve,
   SucceedModule,
   StillValidModule,
-  ExecuteModule,
   RuntimeModule,
 }
 
@@ -49,7 +48,6 @@ impl From<String> for Hook {
       "afterResolve" => Hook::AfterResolve,
       "succeedModule" => Hook::SucceedModule,
       "stillValidModule" => Hook::StillValidModule,
-      "executeModule" => Hook::ExecuteModule,
       "runtimeModule" => Hook::RuntimeModule,
       hook_name => panic!("{hook_name} is an invalid hook name"),
     }
