@@ -50,9 +50,9 @@ ustr               = { package = "ustr-fxhash", version = "1.0.0" }
 xxhash-rust        = { version = "0.8.10" }
 
 # Pinned
-napi              = { git = "https://github.com/h-a-n-a/napi-rs", branch = "rspack" }
-napi-build        = { git = "https://github.com/h-a-n-a/napi-rs", branch = "rspack" }
-napi-derive       = { git = "https://github.com/h-a-n-a/napi-rs", branch = "rspack" }
+napi              = { package = "napi-h", version = "=2.16.1" }
+napi-build        = { version = "2" }
+napi-derive       = { version = "2" }
 tikv-jemallocator = { version = "=0.5.4", features = ["disable_initial_exec_tls"] }
 
 # Must be pinned with the same swc versions
