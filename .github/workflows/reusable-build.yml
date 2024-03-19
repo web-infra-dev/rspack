@@ -54,9 +54,6 @@ on:
         required: false
         type: string
 
-env:
-  CARGO_NET_GIT_FETCH_WITH_CLI: true
-
 jobs:
   build:
     name: Build
