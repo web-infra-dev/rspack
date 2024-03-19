@@ -1063,6 +1063,7 @@ export interface RawOptions {
 
 export interface RawOutputOptions {
   path: string
+  pathinfo: boolean | "verbose"
   clean: boolean
   publicPath: string
   assetModuleFilename: string

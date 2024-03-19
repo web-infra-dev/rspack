@@ -189,7 +189,7 @@ where
 pub struct RawOutputOptions {
   pub path: String,
   #[serde(deserialize_with = "deserialize_pathinfo")]
-  #[napi(ts_type = "bool | \"verbose\"")]
+  #[napi(ts_type = "boolean | \"verbose\"")]
   pub pathinfo: Either<bool, String>,
   pub clean: bool,
   pub public_path: String,
@@ -235,8 +235,8 @@ impl TryFrom<RawOutputOptions> for OutputOptions {
 
   fn try_from(value: RawOutputOptions) -> rspack_error::Result<Self> {
     let pathinfo = match value.pathinfo {
-      Either::A(value) => PathInfo::Bool(value),
-      Either::B(value) => PathInfo::String(value),
+      Either::A(b) => PathInfo::Bool(b),
+      Either::B(s) => PathInfo::String(s),
     };
 
     Ok(OutputOptions {
