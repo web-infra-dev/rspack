@@ -46,10 +46,10 @@ impl RSCClientEntryRspackPlugin {
       if is_client_components || is_css {
         collect_client_imports.insert(String::from(resource_path_str));
       } else {
-        for connection in compilation.module_graph.get_outgoing_connections(module) {
-          let m = compilation
-            .module_graph
-            .get_module(&connection.dependency_id)
+        let mg = compilation.get_module_graph();
+        for connection in mg.get_outgoing_connections(&module.identifier()) {
+          let m = mg
+            .get_module_by_dependency_id(&connection.dependency_id)
             .expect("should exist");
           self.filter_client_components(compilation, m, visited_modules, collect_client_imports);
         }
@@ -68,9 +68,9 @@ impl Plugin for RSCClientEntryRspackPlugin {
       // if entry-a import entry-b, should stop if visit entry-b
       let mut collected_client_imports: HashSet<String> = HashSet::new();
       let mut visited_modules: HashSet<String> = HashSet::new();
-      let entry_module = compilation
-        .module_graph
-        .get_module(&entry.dependencies[0])
+      let mg = compilation.get_module_graph();
+      let entry_module = mg
+        .get_module_by_dependency_id(&entry.dependencies[0])
         .expect("should exist");
       println!("name {}", name);
       self.filter_client_components(

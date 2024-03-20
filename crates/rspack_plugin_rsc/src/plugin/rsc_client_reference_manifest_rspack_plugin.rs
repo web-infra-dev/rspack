@@ -2,14 +2,18 @@ use std::collections::HashMap;
 
 use rspack_core::rspack_sources::{RawSource, SourceExt};
 use rspack_core::{
-  AssetInfo, CompilationAsset, ExportInfoProvided, Plugin, PluginContext,
-  PluginProcessAssetsOutput, ProcessAssetsArgs,
+  AssetInfo, Compilation, CompilationAsset, ExportInfoProvided, Plugin, PluginContext,
 };
+use rspack_error::Result;
+use rspack_hook::{plugin, plugin_hook, AsyncSeries};
 use serde::Serialize;
 use serde_json::to_string;
 
+#[plugin]
 #[derive(Debug, Default, Clone)]
-pub struct RSCClientReferenceManifestRspackPlugin {}
+pub struct RSCClientReferenceManifestRspackPlugin;
+#[derive(Debug, Default, Clone)]
+pub struct RSCClientReferenceManifest;
 
 #[derive(Debug, Default, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -24,10 +28,13 @@ pub struct ClientRef {
   pub chunks: Vec<String>,
 }
 
-impl RSCClientReferenceManifestRspackPlugin {
-  pub fn new() -> Self {
-    Self {}
-  }
+#[plugin_hook(AsyncSeries<Compilation> for RSCClientReferenceManifestRspackPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_HASH)]
+async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+  let plugin = RSCClientReferenceManifest {};
+  plugin.process_assets_stage_optimize_hash(compilation)
+}
+
+impl RSCClientReferenceManifest {
   fn get_client_ref_module_key(&self, filepath: &str, name: &str) -> String {
     if name == "*" {
       String::from(filepath)
@@ -53,20 +60,12 @@ impl RSCClientReferenceManifestRspackPlugin {
       },
     );
   }
-}
-
-#[async_trait::async_trait]
-impl Plugin for RSCClientReferenceManifestRspackPlugin {
-  async fn process_assets_stage_optimize_hash(
-    &self,
-    _ctx: PluginContext,
-    args: ProcessAssetsArgs<'_>,
-  ) -> PluginProcessAssetsOutput {
-    let compilation = args.compilation;
+  fn process_assets_stage_optimize_hash(&self, compilation: &mut Compilation) -> Result<()> {
     let mut client_manifest = ClientReferenceManifest {
       client_modules: HashMap::default(),
     };
     let use_client = String::from("use client");
+    let mg = compilation.get_module_graph();
 
     for chunk_group in compilation.chunk_group_by_ukey.values() {
       let chunks = chunk_group
@@ -80,9 +79,7 @@ impl Plugin for RSCClientReferenceManifestRspackPlugin {
         })
         .collect::<Vec<_>>();
       for chunk in &chunk_group.chunks {
-        let chunk_modules = compilation
-          .chunk_graph
-          .get_chunk_modules(chunk, &compilation.module_graph);
+        let chunk_modules = compilation.chunk_graph.get_chunk_modules(chunk, mg);
         for module in chunk_modules {
           let module_id = compilation.chunk_graph.get_module_id(module.identifier());
           let resolved_data = module
@@ -100,11 +97,9 @@ impl Plugin for RSCClientReferenceManifestRspackPlugin {
           }
           let resource = &resolved_data.unwrap().resource;
           if let Some(module_id) = module_id {
-            let exports_info = compilation
-              .module_graph
-              .get_exports_info(&module.identifier());
+            let exports_info = mg.get_exports_info(&module.identifier());
             let module_exported_keys = exports_info.get_ordered_exports().filter_map(|id| {
-              let info = id.get_export_info(&compilation.module_graph);
+              let info = id.get_export_info(mg);
               if let Some(provided) = info.provided {
                 match provided {
                   ExportInfoProvided::True => Some(info.name.clone()),
@@ -159,6 +154,22 @@ impl Plugin for RSCClientReferenceManifestRspackPlugin {
       }
       Err(_) => (),
     }
+    Ok(())
+  }
+}
+
+#[async_trait::async_trait]
+impl Plugin for RSCClientReferenceManifestRspackPlugin {
+  fn apply(
+    &self,
+    ctx: PluginContext<&mut rspack_core::ApplyContext>,
+    _options: &mut rspack_core::CompilerOptions,
+  ) -> Result<()> {
+    ctx
+      .context
+      .compilation_hooks
+      .process_assets
+      .tap(process_assets::new(self));
     Ok(())
   }
 }
