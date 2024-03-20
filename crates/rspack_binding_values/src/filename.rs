@@ -7,7 +7,7 @@ use napi::{
 };
 use rspack_core::{AssetInfo, LocalFilenameFn, PathData};
 use rspack_core::{Filename, FilenameFn};
-use rspack_napi::{threadsafe_function::ThreadSafeFunctionWithRef, ByRef, NapiResultExt};
+use rspack_napi::{threadsafe_function::ThreadSafeFunctionWithRef, NapiResultExt};
 use serde::Deserialize;
 
 use crate::{JsAssetInfo, PathData as JsPathData};
@@ -16,9 +16,9 @@ use crate::{JsAssetInfo, PathData as JsPathData};
 ///
 /// The function type is generic. By default the function type is thread-safe and implements `Hash` and `Eq` by reference.
 #[derive(Debug)]
-pub struct JsFilename<
-  F = ByRef<ThreadSafeFunctionWithRef<(JsPathData, Option<JsAssetInfo>), String>>,
->(Either<String, F>);
+pub struct JsFilename<F = ThreadSafeFunctionWithRef<(JsPathData, Option<JsAssetInfo>), String>>(
+  Either<String, F>,
+);
 
 /// A local js filename value. Only valid in the current native call.
 ///
@@ -72,10 +72,8 @@ impl<'de> Deserialize<'de> for JsFilename {
 }
 
 /// Wrapper of a thread-safe filename js function. Implements `FilenameFn`
-#[derive(Debug, PartialEq, Eq, Hash)]
-struct ThreadSafeFilenameFn(
-  ByRef<ThreadSafeFunctionWithRef<(JsPathData, Option<JsAssetInfo>), String>>,
-);
+#[derive(Debug)]
+struct ThreadSafeFilenameFn(ThreadSafeFunctionWithRef<(JsPathData, Option<JsAssetInfo>), String>);
 impl LocalFilenameFn for ThreadSafeFilenameFn {
   type Error = rspack_error::Error;
   fn call(

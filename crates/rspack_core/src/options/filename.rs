@@ -7,7 +7,6 @@ use std::{borrow::Cow, convert::Infallible};
 
 use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
-use rspack_util::ext::{AsAny, DynEq, DynHash};
 
 use crate::{parse_resource, AssetInfo, PathData, ResourceParsedData};
 
@@ -105,10 +104,7 @@ pub trait LocalFilenameFn {
 }
 
 /// The default filename fn trait.
-pub trait FilenameFn:
-  LocalFilenameFn<Error = rspack_error::Error> + Debug + Send + Sync + AsAny + DynEq + DynHash
-{
-}
+pub trait FilenameFn: LocalFilenameFn<Error = rspack_error::Error> + Debug + Send + Sync {}
 
 impl LocalFilenameFn for Arc<dyn FilenameFn> {
   type Error = rspack_error::Error;
@@ -118,18 +114,6 @@ impl LocalFilenameFn for Arc<dyn FilenameFn> {
     asset_info: Option<&AssetInfo>,
   ) -> Result<String, Self::Error> {
     self.deref().call(path_data, asset_info)
-  }
-}
-
-impl PartialEq<dyn FilenameFn> for dyn FilenameFn {
-  fn eq(&self, other: &dyn FilenameFn) -> bool {
-    self.dyn_eq(other.as_any())
-  }
-}
-impl Eq for dyn FilenameFn {}
-impl Hash for dyn FilenameFn {
-  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-    self.dyn_hash(state)
   }
 }
 

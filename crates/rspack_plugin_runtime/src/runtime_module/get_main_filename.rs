@@ -7,13 +7,15 @@ use rspack_identifier::Identifier;
 use rspack_util::source_map::SourceMapKind;
 
 #[impl_runtime_module]
-#[derive(Debug, Eq)]
+#[derive(Debug)]
 pub struct GetMainFilenameRuntimeModule {
   chunk: Option<ChunkUkey>,
   id: Identifier,
   global: RuntimeGlobals,
   filename: Filename,
 }
+
+impl Eq for GetMainFilenameRuntimeModule {}
 
 impl GetMainFilenameRuntimeModule {
   pub fn new(content_type: &'static str, global: RuntimeGlobals, filename: Filename) -> Self {
