@@ -906,7 +906,7 @@ async fn runtime_module(
   module: &mut ModuleIdentifier,
   _chunk: &mut ChunkUkey,
 ) -> Result<()> {
-  let Some(module) = compilation.runtime_modules.get_mut(&module) else {
+  let Some(module) = compilation.runtime_modules.get_mut(module) else {
     return Ok(());
   };
   if self.module {

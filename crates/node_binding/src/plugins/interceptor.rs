@@ -435,10 +435,10 @@ impl AsyncSeries3<Compilation, ModuleIdentifier, ChunkUkey> for CompilationRunti
     m: &mut ModuleIdentifier,
     c: &mut ChunkUkey,
   ) -> rspack_error::Result<()> {
-    let Some(module) = compilation.runtime_modules.get(&m) else {
+    let Some(module) = compilation.runtime_modules.get(m) else {
       return Ok(());
     };
-    let chunk = compilation.chunk_by_ukey.expect_get(&c);
+    let chunk = compilation.chunk_by_ukey.expect_get(c);
     let arg = JsRuntimeModuleArg {
       module: JsRuntimeModule {
         source: Some(
@@ -458,7 +458,7 @@ impl AsyncSeries3<Compilation, ModuleIdentifier, ChunkUkey> for CompilationRunti
     {
       let module = compilation
         .runtime_modules
-        .get_mut(&m)
+        .get_mut(m)
         .expect("should have module");
       module.set_custom_source(CompatSource::from(source).boxed())
     }
