@@ -3,13 +3,13 @@ use std::sync::Arc;
 use rayon::prelude::*;
 use rspack_core::rspack_sources::{BoxSource, ConcatSource, RawSource, Source, SourceExt};
 use rspack_core::{
-  BoxModule, ChunkInitFragments, ChunkUkey, Compilation, Context, PathInfo,
+  BoxModule, ChunkInitFragments, ChunkUkey, Compilation, Context, ModuleGraph, PathInfo,
   RenderModuleContentArgs, RuntimeGlobals, SourceType,
 };
 use rspack_error::{error, Result};
 use rustc_hash::FxHashSet as HashSet;
 
-use crate::module_info_header::render_module_package;
+use crate::module_info_header::ModuleInfoHeaderPlugin;
 use crate::utils::is_diff_mode;
 
 pub fn render_chunk_modules(
@@ -65,6 +65,7 @@ pub fn render_chunk_modules(
               .expect("should have module id"),
             &compilation.options.output.pathinfo,
             &compilation.options.context,
+            &compilation.module_graph,
           ),
           &code_gen_result.chunk_init_fragments,
           render_module_result.chunk_init_fragments,
@@ -113,6 +114,7 @@ fn render_module(
   module_id: &str,
   pathinfo: &PathInfo,
   context: &Context,
+  module_graph: &ModuleGraph,
 ) -> Result<BoxSource> {
   let need_module = runtime_requirements.is_some_and(|r| r.contains(RuntimeGlobals::MODULE));
   let need_exports = runtime_requirements.is_some_and(|r| r.contains(RuntimeGlobals::EXPORTS));
@@ -165,15 +167,30 @@ fn render_module(
   sources.add(RawSource::from(",\n"));
 
   let sources = match pathinfo {
-    PathInfo::Bool(pathinfo) => {
-      if *pathinfo {
-        render_module_package(Arc::new(sources), module.as_ref(), context)?
+    PathInfo::Bool(bool) => {
+      if *bool {
+        let module_info_header_plugin = ModuleInfoHeaderPlugin::new(false);
+        module_info_header_plugin.render_module_package(
+          Arc::new(sources),
+          module.as_ref(),
+          context,
+          module_graph,
+        )?
       } else {
         sources.boxed()
       }
     }
-    PathInfo::String(_) => render_module_package(Arc::new(sources), module.as_ref(), context)?,
+    PathInfo::String(_) => {
+      let module_info_header_plugin = ModuleInfoHeaderPlugin::new(true);
+      module_info_header_plugin.render_module_package(
+        Arc::new(sources),
+        module.as_ref(),
+        context,
+        module_graph,
+      )?
+    }
   };
+
   Ok(sources)
 }
 

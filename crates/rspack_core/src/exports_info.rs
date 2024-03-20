@@ -1766,6 +1766,105 @@ impl ExportInfo {
   pub fn set_used_name(&mut self, name: Atom) {
     self.used_name = Some(name);
   }
+
+  pub fn get_provided_info(&self) -> String {
+    match self.provided {
+      Some(provided) => match provided {
+        ExportInfoProvided::True => "provided".to_string(),
+        ExportInfoProvided::False => "not provided".to_string(),
+        ExportInfoProvided::Null => "maybe provided (runtime-defined)".to_string(),
+      },
+      None => "no provided info".to_string(),
+    }
+  }
+
+  pub fn get_used_info(&self) -> String {
+    if let Some(global_used) = &self.global_used {
+      return match global_used {
+        UsageState::Unused => "unused".to_string(),
+        UsageState::OnlyPropertiesUsed => "only properties used".to_string(),
+        UsageState::NoInfo => "no usage info".to_string(),
+        UsageState::Unknown => "maybe used (runtime-defined)".to_string(),
+        UsageState::Used => "used".to_string(),
+      };
+    }
+    if let Some(used_in_runtime) = &self.used_in_runtime {
+      let mut map: HashMap<UsageState, Vec<String>> = HashMap::default();
+      for (runtime, used) in used_in_runtime {
+        map.entry(*used).or_default().push(runtime.to_string());
+      }
+      let mut specific_info = Vec::new();
+      for (used, runtimes) in map {
+        match used {
+          UsageState::NoInfo => {
+            specific_info.push(format!("no usage info in {}", runtimes.join(", ")))
+          }
+          UsageState::Unknown => specific_info.push(format!(
+            "maybe used in {} (runtime-defined)",
+            runtimes.join(", ")
+          )),
+          UsageState::Used => specific_info.push(format!("used in {}", runtimes.join(", "))),
+          UsageState::OnlyPropertiesUsed => {
+            specific_info.push(format!("only properties used in  {}", runtimes.join(", ")))
+          }
+          UsageState::Unused => {}
+        }
+      }
+      if !specific_info.is_empty() {
+        return specific_info.join("; ");
+      }
+    }
+    if self.has_use_in_runtime_info {
+      "unused".to_string()
+    } else {
+      "no usage info".to_string()
+    }
+  }
+
+  pub fn get_rename_info(&self) -> String {
+    if let Some(used_name) = &self.used_name
+      && self.used_name != self.name
+    {
+      return format!("renamed to {}", used_name.as_str());
+    }
+    match self.can_mangle_provide {
+      Some(can_mangle_provide) => {
+        if can_mangle_provide {
+          match self.can_mangle_use {
+            Some(can_mangle_use) => {
+              if can_mangle_use {
+                "could be renamed".to_string()
+              } else {
+                "usage prevents renaming".to_string()
+              }
+            }
+            None => "missing usage info prevents renaming".to_string(),
+          }
+        } else {
+          match self.can_mangle_use {
+            Some(can_mangle_use) => {
+              if can_mangle_use {
+                "provision prevents renaming".to_string()
+              } else {
+                "usage and provision prevents renaming".to_string()
+              }
+            }
+            None => "provision prevents renaming (no use info)".to_string(),
+          }
+        }
+      }
+      None => match self.can_mangle_use {
+        Some(can_mangle_use) => {
+          if can_mangle_use {
+            "missing provision info prevents renaming".to_string()
+          } else {
+            "usage prevents renaming (no provision info)".to_string()
+          }
+        }
+        None => "missing provision and use info prevents renaming".to_string(),
+      },
+    }
+  }
 }
 
 #[derive(Debug, PartialEq, Copy, Clone, Default, Hash, PartialOrd, Ord, Eq)]
