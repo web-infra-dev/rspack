@@ -30,11 +30,7 @@ pub struct ThreadsafeFunction<T: 'static, R> {
 
 impl<T, R> Debug for ThreadsafeFunction<T, R> {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    f.debug_struct("ThreadsafeFunction")
-      .field("inner", &self.inner.raw())
-      .field("env", &self.env)
-      .field("_data", &self._data)
-      .finish()
+    f.debug_struct("ThreadsafeFunction").finish_non_exhaustive()
   }
 }
 
