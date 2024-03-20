@@ -20,8 +20,8 @@ use crate::{
   CompilerContext, CompilerOptions, ConcatenationScope, ConnectionState, Context, ContextModule,
   DependenciesBlock, DependencyId, DependencyTemplate, ExportInfoProvided, ExternalModule,
   ImmutableModuleGraph, ModuleDependency, ModuleGraph, ModuleGraphAccessor, ModuleType,
-  MutexModuleGraph, NormalModule, RawModule, Resolve, RuntimeSpec, SelfModule, SharedPluginDriver,
-  SourceType,
+  MutableModuleGraph, NormalModule, RawModule, Resolve, RuntimeSpec, SelfModule,
+  SharedPluginDriver, SourceType,
 };
 pub struct BuildContext<'a> {
   pub compiler_context: CompilerContext,
@@ -242,9 +242,8 @@ pub trait Module:
   }
 
   fn get_exports_type(&self, module_graph: &mut ModuleGraph, strict: bool) -> ExportsType {
-    MutexModuleGraph::new(module_graph).with_lock(|mut mga| {
-      get_exports_type_impl(self.identifier(), self.build_meta(), &mut mga, strict)
-    })
+    let mut mga = MutableModuleGraph::new(module_graph);
+    get_exports_type_impl(self.identifier(), self.build_meta(), &mut mga, strict)
   }
 
   fn get_strict_harmony_module(&self) -> bool {
