@@ -6,16 +6,13 @@ use std::sync::Arc;
 use async_trait::async_trait;
 pub use interceptor::RegisterJsTaps;
 use napi::{Env, Result};
+use rspack_binding_values::JsChunkAssetArgs;
 use rspack_binding_values::JsResolveForSchemeResult;
 use rspack_binding_values::{JsAssetEmittedArgs, ToJsModule};
-use rspack_binding_values::{
-  JsChunk, JsChunkAssetArgs, JsRuntimeModule, JsRuntimeModuleArg, ToJsCompatSource,
-};
-use rspack_core::rspack_sources::Source;
 use rspack_core::PluginNormalModuleFactoryResolveForSchemeOutput;
 use rspack_core::{
-  ApplyContext, Chunk, ChunkAssetArgs, CompilerOptions, NormalModuleAfterResolveArgs,
-  NormalModuleAfterResolveCreateData, PluginContext, RuntimeModule,
+  ApplyContext, ChunkAssetArgs, CompilerOptions, NormalModuleAfterResolveArgs,
+  NormalModuleAfterResolveCreateData, PluginContext,
 };
 use rspack_core::{BeforeResolveArgs, PluginNormalModuleFactoryAfterResolveOutput};
 use rspack_core::{
@@ -26,8 +23,9 @@ use rspack_hook::Hook as _;
 
 use self::interceptor::{
   RegisterCompilationExecuteModuleTaps, RegisterCompilationProcessAssetsTaps,
-  RegisterCompilerCompilationTaps, RegisterCompilerMakeTaps, RegisterCompilerShouldEmitTaps,
-  RegisterCompilerThisCompilationTaps, RegisterNormalModuleFactoryBeforeResolveTaps,
+  RegisterCompilationRuntimeModuleTaps, RegisterCompilerCompilationTaps, RegisterCompilerMakeTaps,
+  RegisterCompilerShouldEmitTaps, RegisterCompilerThisCompilationTaps,
+  RegisterNormalModuleFactoryBeforeResolveTaps,
 };
 use crate::{DisabledHooks, Hook, JsCompilation, JsHooks};
 
@@ -43,8 +41,9 @@ pub struct JsHooksAdapterPlugin {
   register_compiler_compilation_taps: RegisterCompilerCompilationTaps,
   register_compiler_make_taps: RegisterCompilerMakeTaps,
   register_compiler_should_emit_taps: RegisterCompilerShouldEmitTaps,
-  register_compilation_process_assets_taps: RegisterCompilationProcessAssetsTaps,
   register_compilation_execute_module_taps: RegisterCompilationExecuteModuleTaps,
+  register_compilation_runtime_module_taps: RegisterCompilationRuntimeModuleTaps,
+  register_compilation_process_assets_taps: RegisterCompilationProcessAssetsTaps,
   register_normal_module_factory_before_resolve_taps: RegisterNormalModuleFactoryBeforeResolveTaps,
 }
 
@@ -98,13 +97,18 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
     ctx
       .context
       .compilation_hooks
-      .process_assets
-      .intercept(self.register_compilation_process_assets_taps.clone());
+      .execute_module
+      .intercept(self.register_compilation_execute_module_taps.clone());
     ctx
       .context
       .compilation_hooks
-      .execute_module
-      .intercept(self.register_compilation_execute_module_taps.clone());
+      .runtime_module
+      .intercept(self.register_compilation_runtime_module_taps.clone());
+    ctx
+      .context
+      .compilation_hooks
+      .process_assets
+      .intercept(self.register_compilation_process_assets_taps.clone());
     ctx
       .context
       .normal_module_factory_hooks
@@ -403,45 +407,6 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
       .call(args.to_js_module().expect("Convert to js_module failed."))
       .await
   }
-
-  async fn runtime_module(
-    &self,
-    module: &mut dyn RuntimeModule,
-    source: Arc<dyn Source>,
-    chunk: &Chunk,
-  ) -> rspack_error::Result<Option<String>> {
-    if self.is_hook_disabled(&Hook::RuntimeModule) {
-      return Ok(None);
-    }
-
-    self
-      .hooks
-      .runtime_module
-      .call(JsRuntimeModuleArg {
-        module: JsRuntimeModule {
-          source: Some(
-            source
-              .to_js_compat_source()
-              .unwrap_or_else(|err| panic!("Failed to generate runtime module source: {err}")),
-          ),
-          module_identifier: module.identifier().to_string(),
-          constructor_name: module.get_constructor_name(),
-          name: module
-            .identifier()
-            .to_string()
-            .replace("webpack/runtime/", ""),
-        },
-        chunk: JsChunk::from(chunk),
-      })
-      .await
-      .map(|r| {
-        r.and_then(|s| s.source).map(|s| {
-          std::str::from_utf8(&s.source)
-            .unwrap_or_else(|err| panic!("Failed to covert buffer to utf-8 string: {err}"))
-            .to_string()
-        })
-      })
-  }
 }
 
 impl JsHooksAdapterPlugin {
@@ -464,11 +429,14 @@ impl JsHooksAdapterPlugin {
       register_compiler_should_emit_taps: RegisterCompilerShouldEmitTaps::new(
         register_js_taps.register_compiler_should_emit_taps,
       ),
-      register_compilation_process_assets_taps: RegisterCompilationProcessAssetsTaps::new(
-        register_js_taps.register_compilation_process_assets_taps,
-      ),
       register_compilation_execute_module_taps: RegisterCompilationExecuteModuleTaps::new(
         register_js_taps.register_compilation_execute_module_taps,
+      ),
+      register_compilation_runtime_module_taps: RegisterCompilationRuntimeModuleTaps::new(
+        register_js_taps.register_compilation_runtime_module_taps,
+      ),
+      register_compilation_process_assets_taps: RegisterCompilationProcessAssetsTaps::new(
+        register_js_taps.register_compilation_process_assets_taps,
       ),
       register_normal_module_factory_before_resolve_taps:
         RegisterNormalModuleFactoryBeforeResolveTaps::new(

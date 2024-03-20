@@ -328,7 +328,6 @@ export interface JsHooks {
   normalModuleFactoryResolveForScheme: (data: JsResolveForSchemeInput) => Promise<JsResolveForSchemeResult>
   succeedModule: (module: JsModule) => void
   stillValidModule: (module: JsModule) => void
-  runtimeModule: (arg: JsRuntimeModuleArg) => JsRuntimeModule | void
 }
 
 export interface JsLoaderContext {
@@ -1289,8 +1288,9 @@ export interface RegisterJsTaps {
   registerCompilerCompilationTaps: (stages: Array<number>) => Array<{ function: ((compilation: JsCompilation) => void); stage: number; }>
   registerCompilerMakeTaps: (stages: Array<number>) => Array<{ function: ((compilation: JsCompilation) => Promise<void>); stage: number; }>
   registerCompilerShouldEmitTaps: (stages: Array<number>) => Array<{ function: ((compilation: JsCompilation) => boolean | undefined); stage: number; }>
-  registerCompilationProcessAssetsTaps: (stages: Array<number>) => Array<{ function: ((compilation: JsCompilation) => Promise<void>); stage: number; }>
   registerCompilationExecuteModuleTaps: (stages: Array<number>) => Array<{ function: ((compilation: JsExecuteModuleArg) => void); stage: number; }>
+  registerCompilationRuntimeModuleTaps: (stages: Array<number>) => Array<{ function: ((compilation: JsRuntimeModuleArg) => JsRuntimeModule | undefined); stage: number; }>
+  registerCompilationProcessAssetsTaps: (stages: Array<number>) => Array<{ function: ((compilation: JsCompilation) => Promise<void>); stage: number; }>
   registerNormalModuleFactoryBeforeResolveTaps: (stages: Array<number>) => Array<{ function: ((compilation: JsBeforeResolveArgs) => Promise<[boolean | undefined, JsBeforeResolveArgs]>); stage: number; }>
 }
 

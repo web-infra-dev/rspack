@@ -9,7 +9,9 @@ mod sync_series;
 mod util;
 
 pub use async_parallel::{AsyncParallel, AsyncParallelHook};
-pub use async_series::{AsyncSeries, AsyncSeries2, AsyncSeries2Hook, AsyncSeriesHook};
+pub use async_series::{
+  AsyncSeries, AsyncSeries2, AsyncSeries2Hook, AsyncSeries3, AsyncSeries3Hook, AsyncSeriesHook,
+};
 pub use async_series_bail::{AsyncSeriesBail, AsyncSeriesBailHook};
 pub use interceptor::{Hook, Interceptor};
 pub use rspack_macros::{plugin, plugin_hook};

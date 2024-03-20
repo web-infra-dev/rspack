@@ -5,7 +5,6 @@ use std::{
 
 use rspack_error::{Diagnostic, Result, TWithDiagnosticArray};
 use rspack_loader_runner::{LoaderContext, ResourceData};
-use rspack_sources::Source;
 use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
 
@@ -25,7 +24,7 @@ use crate::{
   PluginRenderManifestHookOutput, PluginRenderModuleContentOutput, PluginRenderStartupHookOutput,
   PluginRuntimeRequirementsInTreeOutput, ProcessAssetsArgs, RenderArgs, RenderChunkArgs,
   RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, Resolver, ResolverFactory,
-  RuntimeModule, RuntimeRequirementsInTreeArgs, Stats,
+  RuntimeRequirementsInTreeArgs, Stats,
 };
 
 pub struct PluginDriver {
@@ -552,21 +551,6 @@ impl PluginDriver {
       plugin.build_module(module).await?;
     }
     Ok(())
-  }
-
-  #[instrument(name = "plugin:runtime_module", skip_all)]
-  pub async fn runtime_module(
-    &self,
-    module: &mut dyn RuntimeModule,
-    source: Arc<dyn Source>,
-    chunk: &Chunk,
-  ) -> Result<Option<String>> {
-    for plugin in &self.plugins {
-      if let Some(t) = plugin.runtime_module(module, source.clone(), chunk).await? {
-        return Ok(Some(t));
-      };
-    }
-    Ok(None)
   }
 
   #[instrument(name = "plugin:succeed_module", skip_all)]
