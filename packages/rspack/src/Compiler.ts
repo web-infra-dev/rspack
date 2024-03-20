@@ -248,8 +248,7 @@ class Compiler {
 					this.#contextModuleFactoryBeforeResolve.bind(this),
 				contextModuleFactoryAfterResolve:
 					this.#contextModuleFactoryAfterResolve.bind(this),
-				succeedModule: this.#succeedModule.bind(this),
-				stillValidModule: this.#stillValidModule.bind(this)
+				succeedModule: this.#succeedModule.bind(this)
 			},
 			{
 				registerCompilerThisCompilationTaps: this.#createRegisterTaps(
@@ -289,6 +288,11 @@ class Compiler {
 				),
 				registerCompilationBuildModuleTaps: this.#createRegisterTaps(
 					() => this.compilation!.hooks.buildModule,
+					queired => (m: binding.JsModule) =>
+						queired.call(Module.__from_binding(m))
+				),
+				registerCompilationStillValidModuleTaps: this.#createRegisterTaps(
+					() => this.compilation!.hooks.stillValidModule,
 					queired => (m: binding.JsModule) =>
 						queired.call(Module.__from_binding(m))
 				),
@@ -621,7 +625,6 @@ class Compiler {
 			afterResolve:
 				this.compilationParams?.normalModuleFactory.hooks.afterResolve,
 			succeedModule: this.compilation!.hooks.succeedModule,
-			stillValidModule: this.compilation!.hooks.stillValidModule,
 			optimizeChunkModules: this.compilation!.hooks.optimizeChunkModules,
 			contextModuleFactoryBeforeResolve:
 				this.compilationParams?.contextModuleFactory.hooks.beforeResolve,
@@ -807,11 +810,6 @@ class Compiler {
 
 	#succeedModule(module: binding.JsModule) {
 		this.compilation!.hooks.succeedModule.call(module);
-		this.#updateDisabledHooks();
-	}
-
-	#stillValidModule(module: binding.JsModule) {
-		this.compilation!.hooks.stillValidModule.call(module);
 		this.#updateDisabledHooks();
 	}
 

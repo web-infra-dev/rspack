@@ -432,7 +432,11 @@ impl WorkerTask for BuildTask {
       .await?;
 
     if is_cache_valid {
-      plugin_driver.still_valid_module(module.as_ref()).await?;
+      plugin_driver
+        .compilation_hooks
+        .still_valid_module
+        .call(&mut module)
+        .await?;
     }
 
     if let Some(current_profile) = &self.current_profile {

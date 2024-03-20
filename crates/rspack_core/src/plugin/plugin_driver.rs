@@ -553,14 +553,6 @@ impl PluginDriver {
     Ok(())
   }
 
-  #[instrument(name = "plugin:still_valid_module", skip_all)]
-  pub async fn still_valid_module(&self, module: &dyn Module) -> Result<()> {
-    for plugin in &self.plugins {
-      plugin.still_valid_module(module).await?;
-    }
-    Ok(())
-  }
-
   #[instrument(name = "plugin:module_ids", skip_all)]
   pub fn module_ids(&self, compilation: &mut Compilation) -> Result<()> {
     for plugin in &self.plugins {
