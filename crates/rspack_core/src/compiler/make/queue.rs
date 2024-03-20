@@ -418,7 +418,11 @@ impl WorkerTask for BuildTask {
           )
           .await;
 
-        plugin_driver.succeed_module(&**module).await?;
+        plugin_driver
+          .compilation_hooks
+          .succeed_module
+          .call(module)
+          .await?;
 
         result.map(|t| {
           let diagnostics = module
