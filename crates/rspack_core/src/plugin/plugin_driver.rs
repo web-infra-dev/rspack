@@ -10,18 +10,18 @@ use tracing::instrument;
 
 use crate::{
   AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, ApplyContext,
-  AssetEmittedArgs, BeforeResolveArgs, BoxLoader, BoxModule, BoxedParserAndGeneratorBuilder, Chunk,
-  ChunkAssetArgs, ChunkContentHash, ChunkHashArgs, Compilation, CompilationHooks, CompilerHooks,
-  CompilerOptions, Content, ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs,
-  LoaderRunnerContext, Module, ModuleIdentifier, ModuleType, NormalModule,
-  NormalModuleAfterResolveArgs, NormalModuleCreateData, NormalModuleFactoryHooks,
-  OptimizeChunksArgs, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput,
-  PluginAdditionalModuleRequirementsOutput, PluginBuildEndHookOutput, PluginChunkHashHookOutput,
-  PluginCompilationHookOutput, PluginContext, PluginFactorizeHookOutput,
-  PluginJsChunkHashHookOutput, PluginNormalModuleFactoryAfterResolveOutput,
-  PluginNormalModuleFactoryBeforeResolveOutput, PluginNormalModuleFactoryCreateModuleHookOutput,
-  PluginNormalModuleFactoryModuleHookOutput, PluginRenderChunkHookOutput, PluginRenderHookOutput,
-  PluginRenderManifestHookOutput, PluginRenderModuleContentOutput, PluginRenderStartupHookOutput,
+  AssetEmittedArgs, BeforeResolveArgs, BoxLoader, BoxModule, BoxedParserAndGeneratorBuilder,
+  ChunkContentHash, ChunkHashArgs, Compilation, CompilationHooks, CompilerHooks, CompilerOptions,
+  Content, ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs, LoaderRunnerContext,
+  ModuleIdentifier, ModuleType, NormalModule, NormalModuleAfterResolveArgs, NormalModuleCreateData,
+  NormalModuleFactoryHooks, OptimizeChunksArgs, Plugin,
+  PluginAdditionalChunkRuntimeRequirementsOutput, PluginAdditionalModuleRequirementsOutput,
+  PluginBuildEndHookOutput, PluginChunkHashHookOutput, PluginCompilationHookOutput, PluginContext,
+  PluginFactorizeHookOutput, PluginJsChunkHashHookOutput,
+  PluginNormalModuleFactoryAfterResolveOutput, PluginNormalModuleFactoryBeforeResolveOutput,
+  PluginNormalModuleFactoryCreateModuleHookOutput, PluginNormalModuleFactoryModuleHookOutput,
+  PluginRenderChunkHookOutput, PluginRenderHookOutput, PluginRenderManifestHookOutput,
+  PluginRenderModuleContentOutput, PluginRenderStartupHookOutput,
   PluginRuntimeRequirementsInTreeOutput, ProcessAssetsArgs, RenderArgs, RenderChunkArgs,
   RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, Resolver, ResolverFactory,
   RuntimeRequirementsInTreeArgs, Stats,
@@ -119,20 +119,6 @@ impl PluginDriver {
   pub async fn module_asset(&self, module: ModuleIdentifier, asset_name: String) -> Result<()> {
     for plugin in &self.plugins {
       plugin.module_asset(module, asset_name.clone()).await?;
-    }
-
-    Ok(())
-  }
-
-  #[instrument(name = "plugin:chunk_asset", skip_all)]
-  pub async fn chunk_asset(&self, chunk: &Chunk, filename: String) -> PluginCompilationHookOutput {
-    for plugin in &self.plugins {
-      plugin
-        .chunk_asset(&ChunkAssetArgs {
-          chunk,
-          filename: &filename,
-        })
-        .await?;
     }
 
     Ok(())
@@ -541,22 +527,6 @@ impl PluginDriver {
   pub async fn before_loaders(&self, module: &mut NormalModule) -> Result<()> {
     for plugin in &self.plugins {
       plugin.before_loaders(module).await?;
-    }
-    Ok(())
-  }
-
-  #[instrument(name = "plugin:succeed_module", skip_all)]
-  pub async fn succeed_module(&self, module: &dyn Module) -> Result<()> {
-    for plugin in &self.plugins {
-      plugin.succeed_module(module).await?;
-    }
-    Ok(())
-  }
-
-  #[instrument(name = "plugin:still_valid_module", skip_all)]
-  pub async fn still_valid_module(&self, module: &dyn Module) -> Result<()> {
-    for plugin in &self.plugins {
-      plugin.still_valid_module(module).await?;
     }
     Ok(())
   }

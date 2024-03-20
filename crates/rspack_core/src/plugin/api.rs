@@ -8,13 +8,12 @@ use rustc_hash::FxHashMap;
 
 use crate::{
   AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, AssetEmittedArgs,
-  AssetInfo, BoxLoader, BoxModule, ChunkAssetArgs, ChunkHashArgs, Compilation, CompilationHooks,
-  CompilerHooks, CompilerOptions, ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs,
-  LoaderRunnerContext, Module, ModuleFactoryResult, ModuleIdentifier, ModuleType, NormalModule,
-  NormalModuleAfterResolveArgs, NormalModuleCreateData, NormalModuleFactoryHooks,
-  OptimizeChunksArgs, ParserAndGenerator, PluginContext, ProcessAssetsArgs, RenderArgs,
-  RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, Resolver,
-  RuntimeRequirementsInTreeArgs, SourceType,
+  AssetInfo, BoxLoader, BoxModule, ChunkHashArgs, Compilation, CompilationHooks, CompilerHooks,
+  CompilerOptions, ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs, LoaderRunnerContext,
+  ModuleFactoryResult, ModuleIdentifier, ModuleType, NormalModule, NormalModuleAfterResolveArgs,
+  NormalModuleCreateData, NormalModuleFactoryHooks, OptimizeChunksArgs, ParserAndGenerator,
+  PluginContext, ProcessAssetsArgs, RenderArgs, RenderChunkArgs, RenderManifestArgs,
+  RenderModuleContentArgs, RenderStartupArgs, Resolver, RuntimeRequirementsInTreeArgs, SourceType,
 };
 
 #[derive(Debug, Clone)]
@@ -181,11 +180,6 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
-  /// webpack `compilation.hooks.chunkAsset`
-  async fn chunk_asset(&self, _args: &ChunkAssetArgs) -> Result<()> {
-    Ok(())
-  }
-
   // JavascriptModulesPlugin hook
   fn render(&self, _ctx: PluginContext, _args: &RenderArgs) -> PluginRenderStartupHookOutput {
     Ok(None)
@@ -313,14 +307,6 @@ pub trait Plugin: Debug + Send + Sync {
   }
 
   async fn before_loaders(&self, _module: &mut NormalModule) -> Result<()> {
-    Ok(())
-  }
-
-  async fn succeed_module(&self, _module: &dyn Module) -> Result<()> {
-    Ok(())
-  }
-
-  async fn still_valid_module(&self, _module: &dyn Module) -> Result<()> {
     Ok(())
   }
 

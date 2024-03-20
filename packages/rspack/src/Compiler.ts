@@ -46,6 +46,7 @@ import { tryRunOrWebpackError } from "./lib/HookWebpackError";
 import { CodeGenerationResult, Module } from "./Module";
 import { canInherentFromParent } from "./builtin-plugin/base";
 import ExecuteModulePlugin from "./ExecuteModulePlugin";
+import { Chunk } from "./Chunk";
 
 class Compiler {
 	#instance?: binding.Rspack;
@@ -242,14 +243,11 @@ class Compiler {
 					this.#normalModuleFactoryCreateModule.bind(this),
 				normalModuleFactoryResolveForScheme:
 					this.#normalModuleFactoryResolveForScheme.bind(this),
-				chunkAsset: this.#chunkAsset.bind(this),
 				afterResolve: this.#afterResolve.bind(this),
 				contextModuleFactoryBeforeResolve:
 					this.#contextModuleFactoryBeforeResolve.bind(this),
 				contextModuleFactoryAfterResolve:
-					this.#contextModuleFactoryAfterResolve.bind(this),
-				succeedModule: this.#succeedModule.bind(this),
-				stillValidModule: this.#stillValidModule.bind(this)
+					this.#contextModuleFactoryAfterResolve.bind(this)
 			},
 			{
 				registerCompilerThisCompilationTaps: this.#createRegisterTaps(
@@ -279,7 +277,10 @@ class Compiler {
 					queried =>
 						({ module, chunk }: binding.JsRuntimeModuleArg) => {
 							const originSource = module.source?.source;
-							queried.call(module, chunk);
+							queried.call(
+								module,
+								Chunk.__from_binding(chunk, this.compilation!)
+							);
 							const newSource = module.source?.source;
 							if (newSource && newSource !== originSource) {
 								return module;
@@ -289,6 +290,16 @@ class Compiler {
 				),
 				registerCompilationBuildModuleTaps: this.#createRegisterTaps(
 					() => this.compilation!.hooks.buildModule,
+					queired => (m: binding.JsModule) =>
+						queired.call(Module.__from_binding(m))
+				),
+				registerCompilationStillValidModuleTaps: this.#createRegisterTaps(
+					() => this.compilation!.hooks.stillValidModule,
+					queired => (m: binding.JsModule) =>
+						queired.call(Module.__from_binding(m))
+				),
+				registerCompilationSucceedModuleTaps: this.#createRegisterTaps(
+					() => this.compilation!.hooks.succeedModule,
 					queired => (m: binding.JsModule) =>
 						queired.call(Module.__from_binding(m))
 				),
@@ -364,6 +375,15 @@ class Compiler {
 
 							this.#moduleExecutionResultsMap.set(id, executeResult);
 						}
+				),
+				registerCompilationChunkAssetTaps: this.#createRegisterTaps(
+					() => this.compilation!.hooks.chunkAsset,
+					queried =>
+						({ chunk, filename }: binding.JsChunkAssetArgs) =>
+							queried.call(
+								Chunk.__from_binding(chunk, this.compilation!),
+								filename
+							)
 				),
 				registerCompilationProcessAssetsTaps: this.#createRegisterTaps(
 					() => this.compilation!.hooks.processAssets,
@@ -617,11 +637,8 @@ class Compiler {
 			finishModules: this.compilation!.hooks.finishModules,
 			optimizeModules: this.compilation!.hooks.optimizeModules,
 			afterOptimizeModules: this.compilation!.hooks.afterOptimizeModules,
-			chunkAsset: this.compilation!.hooks.chunkAsset,
 			afterResolve:
 				this.compilationParams?.normalModuleFactory.hooks.afterResolve,
-			succeedModule: this.compilation!.hooks.succeedModule,
-			stillValidModule: this.compilation!.hooks.stillValidModule,
 			optimizeChunkModules: this.compilation!.hooks.optimizeChunkModules,
 			contextModuleFactoryBeforeResolve:
 				this.compilationParams?.contextModuleFactory.hooks.beforeResolve,
@@ -767,11 +784,6 @@ class Compiler {
 		this.#updateDisabledHooks();
 	}
 
-	#chunkAsset(assetArg: binding.JsChunkAssetArgs) {
-		this.compilation!.hooks.chunkAsset.call(assetArg.chunk, assetArg.filename);
-		this.#updateDisabledHooks();
-	}
-
 	async #finishModules() {
 		await this.compilation!.hooks.finishModules.promise(
 			this.compilation!.modules
@@ -802,16 +814,6 @@ class Compiler {
 
 	async #afterEmit() {
 		await this.hooks.afterEmit.promise(this.compilation!);
-		this.#updateDisabledHooks();
-	}
-
-	#succeedModule(module: binding.JsModule) {
-		this.compilation!.hooks.succeedModule.call(module);
-		this.#updateDisabledHooks();
-	}
-
-	#stillValidModule(module: binding.JsModule) {
-		this.compilation!.hooks.stillValidModule.call(module);
 		this.#updateDisabledHooks();
 	}
 

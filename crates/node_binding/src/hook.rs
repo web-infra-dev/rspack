@@ -13,15 +13,11 @@ pub enum Hook {
   OptimizeModules,
   AfterOptimizeModules,
   OptimizeTree,
-  /// webpack `compilation.hooks.chunkAsset`
-  ChunkAsset,
   ContextModuleFactoryBeforeResolve,
   ContextModuleFactoryAfterResolve,
   NormalModuleFactoryResolveForScheme,
   NormalModuleFactoryCreateModule,
   AfterResolve,
-  SucceedModule,
-  StillValidModule,
 }
 
 impl From<String> for Hook {
@@ -37,14 +33,11 @@ impl From<String> for Hook {
       "optimizeModules" => Hook::OptimizeModules,
       "afterOptimizeModules" => Hook::AfterOptimizeModules,
       "optimizeTree" => Hook::OptimizeTree,
-      "chunkAsset" => Hook::ChunkAsset,
       "contextModuleFactoryBeforeResolve" => Hook::ContextModuleFactoryBeforeResolve,
       "contextModuleFactoryAfterResolve" => Hook::ContextModuleFactoryAfterResolve,
       "normalModuleFactoryCreateModule" => Hook::NormalModuleFactoryCreateModule,
       "normalModuleFactoryResolveForScheme" => Hook::NormalModuleFactoryResolveForScheme,
       "afterResolve" => Hook::AfterResolve,
-      "succeedModule" => Hook::SucceedModule,
-      "stillValidModule" => Hook::StillValidModule,
       hook_name => panic!("{hook_name} is an invalid hook name"),
     }
   }

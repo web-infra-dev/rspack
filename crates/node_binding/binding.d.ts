@@ -326,14 +326,11 @@ export interface JsHooks {
   optimizeChunkModules: (compilation: JsCompilation) => void
   finishModules: (compilation: JsCompilation) => void
   finishMake: (compilation: JsCompilation) => void
-  chunkAsset: (asset: JsChunkAssetArgs) => void
   afterResolve: (data: AfterResolveData) => Promise<(boolean | void | AfterResolveCreateData)[]>
   contextModuleFactoryBeforeResolve: (data: JsBeforeResolveArgs) => Promise<boolean | void>
   contextModuleFactoryAfterResolve: (data: AfterResolveData) => Promise<boolean | void>
   normalModuleFactoryCreateModule: (data: CreateModuleData) => void
   normalModuleFactoryResolveForScheme: (data: JsResolveForSchemeInput) => Promise<JsResolveForSchemeResult>
-  succeedModule: (module: JsModule) => void
-  stillValidModule: (module: JsModule) => void
 }
 
 export interface JsLoaderContext {
@@ -1296,8 +1293,11 @@ export interface RegisterJsTaps {
   registerCompilerMakeTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => Promise<void>); stage: number; }>
   registerCompilerShouldEmitTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => boolean | undefined); stage: number; }>
   registerCompilationBuildModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsModule) => void); stage: number; }>
+  registerCompilationStillValidModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsModule) => void); stage: number; }>
+  registerCompilationSucceedModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsModule) => void); stage: number; }>
   registerCompilationExecuteModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsExecuteModuleArg) => void); stage: number; }>
   registerCompilationRuntimeModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRuntimeModuleArg) => JsRuntimeModule | undefined); stage: number; }>
+  registerCompilationChunkAssetTaps: (stages: Array<number>) => Array<{ function: ((arg: JsChunkAssetArgs) => void); stage: number; }>
   registerCompilationProcessAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => Promise<void>); stage: number; }>
   registerNormalModuleFactoryBeforeResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsBeforeResolveArgs) => Promise<[boolean | undefined, JsBeforeResolveArgs]>); stage: number; }>
 }
