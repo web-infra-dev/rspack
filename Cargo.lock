@@ -3345,8 +3345,6 @@ dependencies = [
 name = "rspack_napi"
 version = "0.1.0"
 dependencies = [
- "derivative",
- "napi-derive",
  "napi-h",
  "oneshot",
  "rspack_error",

@@ -5,18 +5,10 @@ name       = "rspack_napi"
 repository = "https://github.com/web-infra-dev/rspack"
 version    = "0.1.0"
 
-[features]
-node_test = ["napi-derive"]
-
-[lib]
-crate-type = ["cdylib", "rlib"]
-
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-derivative   = { workspace = true }
 napi         = { workspace = true, features = ["async", "tokio_rt", "serde-json", "napi4", "anyhow"] }
-napi-derive  = { workspace = true, optional = true }
 oneshot      = "0.1.6"
 rspack_error = { path = "../rspack_error" }
 rspack_regex = { path = "../rspack_regex" }

@@ -5,9 +5,6 @@ mod ext;
 mod js_values;
 mod utils;
 
-#[cfg(feature = "node_test")]
-pub mod node_test;
-
 mod errors;
 pub use errors::{NapiErrorExt, NapiResultExt};
 
