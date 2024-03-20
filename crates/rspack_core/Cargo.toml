@@ -24,7 +24,7 @@ json = { workspace = true }
 mime_guess = { workspace = true }
 num-bigint = "0.4.4"
 once_cell = { workspace = true }
-oxc_resolver = { version = "1.6.1", features = ["package_json_raw_json_api"] }
+oxc_resolver = { version = "1.6.2", features = ["package_json_raw_json_api"] }
 paste = { workspace = true }
 petgraph = { version = "0.6.4", features = ["serde-1"] }
 rayon = { workspace = true }
