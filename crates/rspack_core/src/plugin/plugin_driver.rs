@@ -7,24 +7,22 @@ use rspack_error::{Diagnostic, Result, TWithDiagnosticArray};
 use rspack_loader_runner::{LoaderContext, ResourceData};
 use rspack_sources::Source;
 use rustc_hash::FxHashMap as HashMap;
-use tokio::sync::mpsc::UnboundedSender;
 use tracing::instrument;
 
 use crate::{
   AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, ApplyContext,
-  AssetEmittedArgs, BeforeResolveArgs, BoxLoader, BoxModule, BoxedParserAndGeneratorBuilder,
-  BuildTimeExecutionOption, Chunk, ChunkAssetArgs, ChunkContentHash, ChunkHashArgs,
-  CodeGenerationResults, Compilation, CompilationHooks, CompilerHooks, CompilerOptions, Content,
-  ContentHashArgs, DependencyId, DoneArgs, FactorizeArgs, JsChunkHashArgs, LoaderRunnerContext,
-  Module, ModuleIdentifier, ModuleType, NormalModule, NormalModuleAfterResolveArgs,
-  NormalModuleCreateData, NormalModuleFactoryHooks, OptimizeChunksArgs, Plugin,
-  PluginAdditionalChunkRuntimeRequirementsOutput, PluginAdditionalModuleRequirementsOutput,
-  PluginBuildEndHookOutput, PluginChunkHashHookOutput, PluginCompilationHookOutput, PluginContext,
-  PluginFactorizeHookOutput, PluginJsChunkHashHookOutput,
-  PluginNormalModuleFactoryAfterResolveOutput, PluginNormalModuleFactoryBeforeResolveOutput,
-  PluginNormalModuleFactoryCreateModuleHookOutput, PluginNormalModuleFactoryModuleHookOutput,
-  PluginRenderChunkHookOutput, PluginRenderHookOutput, PluginRenderManifestHookOutput,
-  PluginRenderModuleContentOutput, PluginRenderStartupHookOutput,
+  AssetEmittedArgs, BeforeResolveArgs, BoxLoader, BoxModule, BoxedParserAndGeneratorBuilder, Chunk,
+  ChunkAssetArgs, ChunkContentHash, ChunkHashArgs, Compilation, CompilationHooks, CompilerHooks,
+  CompilerOptions, Content, ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs,
+  LoaderRunnerContext, Module, ModuleIdentifier, ModuleType, NormalModule,
+  NormalModuleAfterResolveArgs, NormalModuleCreateData, NormalModuleFactoryHooks,
+  OptimizeChunksArgs, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput,
+  PluginAdditionalModuleRequirementsOutput, PluginBuildEndHookOutput, PluginChunkHashHookOutput,
+  PluginCompilationHookOutput, PluginContext, PluginFactorizeHookOutput,
+  PluginJsChunkHashHookOutput, PluginNormalModuleFactoryAfterResolveOutput,
+  PluginNormalModuleFactoryBeforeResolveOutput, PluginNormalModuleFactoryCreateModuleHookOutput,
+  PluginNormalModuleFactoryModuleHookOutput, PluginRenderChunkHookOutput, PluginRenderHookOutput,
+  PluginRenderManifestHookOutput, PluginRenderModuleContentOutput, PluginRenderStartupHookOutput,
   PluginRuntimeRequirementsInTreeOutput, ProcessAssetsArgs, RenderArgs, RenderChunkArgs,
   RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, Resolver, ResolverFactory,
   RuntimeModule, RuntimeRequirementsInTreeArgs, Stats,
@@ -632,43 +630,6 @@ impl PluginDriver {
     for plugin in &self.plugins {
       plugin.seal(compilation)?;
     }
-    Ok(())
-  }
-
-  pub fn prepare_execute_module(
-    &self,
-    dep: DependencyId,
-    options: &BuildTimeExecutionOption,
-    import_module_informer: UnboundedSender<Result<String>>,
-  ) -> Result<()> {
-    for plugin in &self.plugins {
-      plugin.prepare_execute_module(dep, options, import_module_informer.clone())?;
-    }
-
-    Ok(())
-  }
-
-  #[instrument(name = "plugin:execute_module", skip_all)]
-  pub fn execute_module(
-    &self,
-    entry: ModuleIdentifier,
-    request: &str,
-    options: &BuildTimeExecutionOption,
-    runtime_modules: Vec<ModuleIdentifier>,
-    codegen_results: &CodeGenerationResults,
-    id: u32,
-  ) -> Result<()> {
-    for plugin in &self.plugins {
-      plugin.execute_module(
-        entry,
-        request,
-        options,
-        runtime_modules.clone(),
-        codegen_results,
-        id,
-      )?
-    }
-
     Ok(())
   }
 }

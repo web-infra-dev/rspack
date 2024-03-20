@@ -18,6 +18,7 @@ use swc_core::ecma::atoms::Atom;
 use tracing::instrument;
 
 pub use self::compilation::*;
+pub use self::execute_module::ExecuteModuleId;
 pub use self::hmr::{collect_changed_modules, CompilationRecords};
 pub use self::make::{
   AddQueueHandler, BuildQueueHandler, BuildTimeExecutionOption, BuildTimeExecutionQueueHandler,

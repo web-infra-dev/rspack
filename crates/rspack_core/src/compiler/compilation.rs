@@ -13,7 +13,7 @@ use rayon::prelude::*;
 use rspack_error::{error, Diagnostic, Result, Severity, TWithDiagnosticArray};
 use rspack_futures::FuturesResults;
 use rspack_hash::{RspackHash, RspackHashDigest};
-use rspack_hook::AsyncSeriesHook;
+use rspack_hook::{AsyncSeriesHook, SyncSeries4Hook};
 use rspack_identifier::{Identifiable, Identifier, IdentifierMap, IdentifierSet};
 use rspack_sources::{BoxSource, CachedSource, OriginalSource, SourceExt};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
@@ -34,12 +34,12 @@ use crate::{
   CacheOptions, Chunk, ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey,
   ChunkHashArgs, ChunkKind, ChunkUkey, CodeGenerationResults, CompilationLogger,
   CompilationLogging, CompilerOptions, ContentHashArgs, DependencyId, DependencyType, Entry,
-  EntryData, EntryOptions, Entrypoint, ErrorSpan, FactorizeQueueHandler, Filename, Logger, Module,
-  ModuleFactory, ModuleGraph, ModuleIdentifier, PathData, ProcessAssetsArgs,
+  EntryData, EntryOptions, Entrypoint, ErrorSpan, FactorizeQueueHandler, Filename, LocalFilenameFn,
+  Logger, Module, ModuleFactory, ModuleGraph, ModuleIdentifier, PathData, ProcessAssetsArgs,
   ProcessDependenciesQueueHandler, RenderManifestArgs, ResolverFactory, RuntimeGlobals,
   RuntimeModule, RuntimeRequirementsInTreeArgs, RuntimeSpec, SharedPluginDriver, SourceType, Stats,
 };
-use crate::{tree_shaking::visitor::OptimizeAnalyzeResult, LocalFilenameFn};
+use crate::{tree_shaking::visitor::OptimizeAnalyzeResult, ExecuteModuleId};
 
 pub type BuildDependency = (
   DependencyId,
@@ -47,10 +47,13 @@ pub type BuildDependency = (
 );
 
 pub type CompilationProcessAssetsHook = AsyncSeriesHook<Compilation>;
+pub type CompilationExecuteModuleHook =
+  SyncSeries4Hook<ModuleIdentifier, IdentifierSet, CodeGenerationResults, ExecuteModuleId>;
 
 #[derive(Debug, Default)]
 pub struct CompilationHooks {
   pub process_assets: CompilationProcessAssetsHook,
+  pub execute_module: CompilationExecuteModuleHook,
 }
 
 #[derive(Debug)]
