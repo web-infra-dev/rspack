@@ -20,7 +20,6 @@ pub enum Hook {
   NormalModuleFactoryResolveForScheme,
   NormalModuleFactoryCreateModule,
   AfterResolve,
-  SucceedModule,
 }
 
 impl From<String> for Hook {
@@ -42,7 +41,6 @@ impl From<String> for Hook {
       "normalModuleFactoryCreateModule" => Hook::NormalModuleFactoryCreateModule,
       "normalModuleFactoryResolveForScheme" => Hook::NormalModuleFactoryResolveForScheme,
       "afterResolve" => Hook::AfterResolve,
-      "succeedModule" => Hook::SucceedModule,
       hook_name => panic!("{hook_name} is an invalid hook name"),
     }
   }

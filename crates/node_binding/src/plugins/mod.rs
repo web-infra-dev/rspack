@@ -6,9 +6,9 @@ use std::sync::Arc;
 use async_trait::async_trait;
 pub use interceptor::RegisterJsTaps;
 use napi::{Env, Result};
+use rspack_binding_values::JsAssetEmittedArgs;
 use rspack_binding_values::JsChunkAssetArgs;
 use rspack_binding_values::JsResolveForSchemeResult;
-use rspack_binding_values::{JsAssetEmittedArgs, ToJsModule};
 use rspack_core::PluginNormalModuleFactoryResolveForSchemeOutput;
 use rspack_core::{
   ApplyContext, ChunkAssetArgs, CompilerOptions, NormalModuleAfterResolveArgs,
@@ -23,6 +23,7 @@ use rspack_hook::Hook as _;
 
 use self::interceptor::RegisterCompilationBuildModuleTaps;
 use self::interceptor::RegisterCompilationStillValidModuleTaps;
+use self::interceptor::RegisterCompilationSucceedModuleTaps;
 use self::interceptor::{
   RegisterCompilationExecuteModuleTaps, RegisterCompilationProcessAssetsTaps,
   RegisterCompilationRuntimeModuleTaps, RegisterCompilerCompilationTaps, RegisterCompilerMakeTaps,
@@ -45,6 +46,7 @@ pub struct JsHooksAdapterPlugin {
   register_compiler_should_emit_taps: RegisterCompilerShouldEmitTaps,
   register_compilation_build_module_taps: RegisterCompilationBuildModuleTaps,
   register_compilation_still_valid_module_taps: RegisterCompilationStillValidModuleTaps,
+  register_compilation_succeed_module_taps: RegisterCompilationSucceedModuleTaps,
   register_compilation_execute_module_taps: RegisterCompilationExecuteModuleTaps,
   register_compilation_runtime_module_taps: RegisterCompilationRuntimeModuleTaps,
   register_compilation_process_assets_taps: RegisterCompilationProcessAssetsTaps,
@@ -108,6 +110,11 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
       .compilation_hooks
       .still_valid_module
       .intercept(self.register_compilation_still_valid_module_taps.clone());
+    ctx
+      .context
+      .compilation_hooks
+      .succeed_module
+      .intercept(self.register_compilation_succeed_module_taps.clone());
     ctx
       .context
       .compilation_hooks
@@ -387,16 +394,6 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
 
     self.hooks.after_emit.call(()).await
   }
-
-  async fn succeed_module(&self, args: &dyn rspack_core::Module) -> rspack_error::Result<()> {
-    if self.is_hook_disabled(&Hook::SucceedModule) {
-      return Ok(());
-    }
-    let js_module = args
-      .to_js_module()
-      .expect("Failed to convert module to JsModule");
-    self.hooks.succeed_module.call(js_module).await
-  }
 }
 
 impl JsHooksAdapterPlugin {
@@ -424,6 +421,9 @@ impl JsHooksAdapterPlugin {
       ),
       register_compilation_still_valid_module_taps: RegisterCompilationStillValidModuleTaps::new(
         register_js_taps.register_compilation_still_valid_module_taps,
+      ),
+      register_compilation_succeed_module_taps: RegisterCompilationSucceedModuleTaps::new(
+        register_js_taps.register_compilation_succeed_module_taps,
       ),
       register_compilation_execute_module_taps: RegisterCompilationExecuteModuleTaps::new(
         register_js_taps.register_compilation_execute_module_taps,

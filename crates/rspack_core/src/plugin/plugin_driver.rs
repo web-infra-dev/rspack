@@ -13,15 +13,15 @@ use crate::{
   AssetEmittedArgs, BeforeResolveArgs, BoxLoader, BoxModule, BoxedParserAndGeneratorBuilder, Chunk,
   ChunkAssetArgs, ChunkContentHash, ChunkHashArgs, Compilation, CompilationHooks, CompilerHooks,
   CompilerOptions, Content, ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs,
-  LoaderRunnerContext, Module, ModuleIdentifier, ModuleType, NormalModule,
-  NormalModuleAfterResolveArgs, NormalModuleCreateData, NormalModuleFactoryHooks,
-  OptimizeChunksArgs, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput,
-  PluginAdditionalModuleRequirementsOutput, PluginBuildEndHookOutput, PluginChunkHashHookOutput,
-  PluginCompilationHookOutput, PluginContext, PluginFactorizeHookOutput,
-  PluginJsChunkHashHookOutput, PluginNormalModuleFactoryAfterResolveOutput,
-  PluginNormalModuleFactoryBeforeResolveOutput, PluginNormalModuleFactoryCreateModuleHookOutput,
-  PluginNormalModuleFactoryModuleHookOutput, PluginRenderChunkHookOutput, PluginRenderHookOutput,
-  PluginRenderManifestHookOutput, PluginRenderModuleContentOutput, PluginRenderStartupHookOutput,
+  LoaderRunnerContext, ModuleIdentifier, ModuleType, NormalModule, NormalModuleAfterResolveArgs,
+  NormalModuleCreateData, NormalModuleFactoryHooks, OptimizeChunksArgs, Plugin,
+  PluginAdditionalChunkRuntimeRequirementsOutput, PluginAdditionalModuleRequirementsOutput,
+  PluginBuildEndHookOutput, PluginChunkHashHookOutput, PluginCompilationHookOutput, PluginContext,
+  PluginFactorizeHookOutput, PluginJsChunkHashHookOutput,
+  PluginNormalModuleFactoryAfterResolveOutput, PluginNormalModuleFactoryBeforeResolveOutput,
+  PluginNormalModuleFactoryCreateModuleHookOutput, PluginNormalModuleFactoryModuleHookOutput,
+  PluginRenderChunkHookOutput, PluginRenderHookOutput, PluginRenderManifestHookOutput,
+  PluginRenderModuleContentOutput, PluginRenderStartupHookOutput,
   PluginRuntimeRequirementsInTreeOutput, ProcessAssetsArgs, RenderArgs, RenderChunkArgs,
   RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, Resolver, ResolverFactory,
   RuntimeRequirementsInTreeArgs, Stats,
@@ -541,14 +541,6 @@ impl PluginDriver {
   pub async fn before_loaders(&self, module: &mut NormalModule) -> Result<()> {
     for plugin in &self.plugins {
       plugin.before_loaders(module).await?;
-    }
-    Ok(())
-  }
-
-  #[instrument(name = "plugin:succeed_module", skip_all)]
-  pub async fn succeed_module(&self, module: &dyn Module) -> Result<()> {
-    for plugin in &self.plugins {
-      plugin.succeed_module(module).await?;
     }
     Ok(())
   }

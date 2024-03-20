@@ -10,7 +10,7 @@ use crate::{
   AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, AssetEmittedArgs,
   AssetInfo, BoxLoader, BoxModule, ChunkAssetArgs, ChunkHashArgs, Compilation, CompilationHooks,
   CompilerHooks, CompilerOptions, ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs,
-  LoaderRunnerContext, Module, ModuleFactoryResult, ModuleIdentifier, ModuleType, NormalModule,
+  LoaderRunnerContext, ModuleFactoryResult, ModuleIdentifier, ModuleType, NormalModule,
   NormalModuleAfterResolveArgs, NormalModuleCreateData, NormalModuleFactoryHooks,
   OptimizeChunksArgs, ParserAndGenerator, PluginContext, ProcessAssetsArgs, RenderArgs,
   RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, Resolver,
@@ -313,10 +313,6 @@ pub trait Plugin: Debug + Send + Sync {
   }
 
   async fn before_loaders(&self, _module: &mut NormalModule) -> Result<()> {
-    Ok(())
-  }
-
-  async fn succeed_module(&self, _module: &dyn Module) -> Result<()> {
     Ok(())
   }
 
