@@ -6,8 +6,6 @@ use std::ops::Deref;
 use std::sync::atomic::AtomicU32;
 use std::sync::atomic::Ordering::Relaxed;
 use std::sync::Arc;
-use std::sync::Mutex;
-use std::sync::MutexGuard;
 
 use itertools::Itertools;
 use rspack_util::ext::DynHash;
@@ -1078,10 +1076,8 @@ impl ExportInfoId {
     resolve_filter: ResolveFilterFnTy,
     update_original_connection: UpdateOriginalFunctionTy,
   ) -> Option<ResolvedExportInfoTarget> {
-    let target = {
-      MutexModuleGraph::new(mg)
-        .with_lock(|mut mga| self._get_target(&mut mga, resolve_filter, &mut HashSet::default()))
-    };
+    let mut mga = MutableModuleGraph::new(mg);
+    let target = self._get_target(&mut mga, resolve_filter, &mut HashSet::default());
 
     let target = match target {
       Some(ResolvedExportInfoTargetWithCircular::Circular) => return None,
@@ -2007,37 +2003,12 @@ pub trait ModuleGraphAccessor<'a> {
   ) -> Option<Arc<ExportInfo>>;
 }
 
-pub struct MutexModuleGraph<'a> {
-  pub inner: Mutex<&'a mut ModuleGraph>,
-}
-
-impl<'a> MutexModuleGraph<'a> {
-  pub fn new(mg: &'a mut ModuleGraph) -> Self {
-    Self {
-      inner: Mutex::new(mg),
-    }
-  }
-
-  pub fn with_lock<'b: 'a, G, F>(&'a self, function: F) -> G
-  where
-    F: FnOnce(MutableModuleGraph) -> G,
-  {
-    let mg = self.inner.lock().expect("Should lock module graph");
-    function(MutableModuleGraph::new(mg))
-  }
-
-  pub fn get_accessor(&'a self) -> MutableModuleGraph<'a> {
-    let mg = self.inner.lock().expect("Should lock module graph");
-    MutableModuleGraph::new(mg)
-  }
-}
-
 pub struct MutableModuleGraph<'a> {
-  inner: MutexGuard<'a, &'a mut ModuleGraph>,
+  inner: &'a mut ModuleGraph,
 }
 
 impl<'a> MutableModuleGraph<'a> {
-  pub fn new(mg: MutexGuard<'a, &'a mut ModuleGraph>) -> Self {
+  pub fn new(mg: &'a mut ModuleGraph) -> Self {
     Self { inner: mg }
   }
 }
@@ -2053,7 +2024,7 @@ impl<'a> ModuleGraphAccessor<'a> for MutableModuleGraph<'a> {
       .module_graph_module_by_identifier(module_identifier)
       .expect("should have mgm")
       .exports;
-    exports.get_export_info(name, &mut self.inner)
+    exports.get_export_info(name, self.inner)
   }
 
   fn get_max_target(
@@ -2074,7 +2045,7 @@ impl<'a> ModuleGraphAccessor<'a> for MutableModuleGraph<'a> {
     target: &ResolvedExportInfoTarget,
     resolve_filter: &ResolveFilterFnTy,
   ) -> bool {
-    resolve_filter(target, &self.inner)
+    resolve_filter(target, self.inner)
   }
 
   fn get_export_info(&mut self, export_info_id: &ExportInfoId) -> Arc<ExportInfo> {
@@ -2223,9 +2194,8 @@ pub fn prepare_get_exports_type(mg: &mut ModuleGraph) {
     })
     .collect_vec();
 
-  MutexModuleGraph::new(mg).with_lock(|mut mga| {
-    for export_info_id in &export_info_ids {
-      let _ = export_info_id.get_target(&mut mga, None);
-    }
-  })
+  let mut mga = MutableModuleGraph::new(mg);
+  for export_info_id in &export_info_ids {
+    let _ = export_info_id.get_target(&mut mga, None);
+  }
 }
