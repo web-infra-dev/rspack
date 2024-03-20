@@ -12,9 +12,9 @@ use rspack_binding_values::{
 use rspack_core::{
   rspack_sources::SourceExt, BeforeResolveArgs, BoxModule, ChunkUkey, CodeGenerationResults,
   Compilation, CompilationBuildModuleHook, CompilationExecuteModuleHook, CompilationParams,
-  CompilationProcessAssetsHook, CompilationRuntimeModuleHook, CompilerCompilationHook,
-  CompilerMakeHook, CompilerShouldEmitHook, CompilerThisCompilationHook, ExecuteModuleId,
-  MakeParam, ModuleIdentifier, NormalModuleFactoryBeforeResolveHook,
+  CompilationProcessAssetsHook, CompilationRuntimeModuleHook, CompilationStillValidModuleHook,
+  CompilerCompilationHook, CompilerMakeHook, CompilerShouldEmitHook, CompilerThisCompilationHook,
+  ExecuteModuleId, MakeParam, ModuleIdentifier, NormalModuleFactoryBeforeResolveHook,
 };
 use rspack_hook::{
   AsyncSeries, AsyncSeries2, AsyncSeries3, AsyncSeriesBail, Hook, Interceptor, SyncSeries4,
@@ -256,6 +256,10 @@ pub struct RegisterJsTaps {
   )]
   pub register_compilation_build_module_taps: RegisterFunction<JsModule, ()>,
   #[napi(
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsModule) => void); stage: number; }>"
+  )]
+  pub register_compilation_still_valid_module_taps: RegisterFunction<JsModule, ()>,
+  #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsExecuteModuleArg) => void); stage: number; }>"
   )]
   pub register_compilation_execute_module_taps: RegisterFunction<JsExecuteModuleArg, ()>,
@@ -305,6 +309,12 @@ define_register!(
 define_register!(
   RegisterCompilationBuildModuleTaps,
   tap = CompilationBuildModuleTap<JsModule, ()> @ CompilationBuildModuleHook,
+  cache = true,
+  sync = false,
+);
+define_register!(
+  RegisterCompilationStillValidModuleTaps,
+  tap = CompilationStillValidModuleTap<JsModule, ()> @ CompilationStillValidModuleHook,
   cache = true,
   sync = false,
 );
@@ -415,6 +425,20 @@ impl AsyncSeriesBail<Compilation, bool> for CompilerShouldEmitTap {
 
 #[async_trait]
 impl AsyncSeries<BoxModule> for CompilationBuildModuleTap {
+  async fn run(&self, module: &mut BoxModule) -> rspack_error::Result<()> {
+    self
+      .function
+      .call(module.to_js_module().expect("Convert to js_module failed."))
+      .await
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
+
+#[async_trait]
+impl AsyncSeries<BoxModule> for CompilationStillValidModuleTap {
   async fn run(&self, module: &mut BoxModule) -> rspack_error::Result<()> {
     self
       .function

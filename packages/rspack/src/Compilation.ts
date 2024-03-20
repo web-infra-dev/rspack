@@ -120,7 +120,7 @@ export class Compilation {
 		chunkAsset: tapable.SyncHook<[JsChunk, string], void>;
 		processWarnings: tapable.SyncWaterfallHook<[Error[]]>;
 		succeedModule: tapable.SyncHook<[JsModule], void>;
-		stillValidModule: tapable.SyncHook<[JsModule], void>;
+		stillValidModule: liteTapable.SyncHook<[Module], void>;
 		statsFactory: tapable.SyncHook<[StatsFactory, StatsOptions], void>;
 		statsPrinter: tapable.SyncHook<[StatsPrinter, StatsOptions], void>;
 		buildModule: liteTapable.SyncHook<[Module]>;
@@ -227,7 +227,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			chunkAsset: new tapable.SyncHook(["chunk", "filename"]),
 			processWarnings: new tapable.SyncWaterfallHook(["warnings"]),
 			succeedModule: new tapable.SyncHook(["module"]),
-			stillValidModule: new tapable.SyncHook(["module"]),
+			stillValidModule: new liteTapable.SyncHook(["module"]),
 			statsFactory: new tapable.SyncHook(["statsFactory", "options"]),
 			statsPrinter: new tapable.SyncHook(["statsPrinter", "options"]),
 			buildModule: new liteTapable.SyncHook(["module"]),

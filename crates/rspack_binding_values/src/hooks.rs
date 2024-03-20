@@ -47,6 +47,4 @@ pub struct JsHooks {
     ThreadsafeFunction<JsResolveForSchemeInput, JsResolveForSchemeResult>,
   #[napi(ts_type = "(module: JsModule) => void")]
   pub succeed_module: ThreadsafeFunction<JsModule, ()>,
-  #[napi(ts_type = "(module: JsModule) => void")]
-  pub still_valid_module: ThreadsafeFunction<JsModule, ()>,
 }
