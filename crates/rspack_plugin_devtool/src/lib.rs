@@ -22,7 +22,7 @@ use rspack_core::{
   SourceType,
 };
 use rspack_core::{
-  ApplyContext, Chunk, ChunkUkey, CompilerOptions, FilenameTemplate, Logger, Module,
+  ApplyContext, BoxModule, Chunk, ChunkUkey, CompilerOptions, FilenameTemplate, Logger,
   ModuleIdentifier, OutputOptions,
 };
 use rspack_error::error;
@@ -906,6 +906,16 @@ impl SourceMapDevToolModuleOptionsPlugin {
   }
 }
 
+#[plugin_hook(AsyncSeries<BoxModule> for SourceMapDevToolModuleOptionsPlugin)]
+async fn build_module(&self, module: &mut BoxModule) -> Result<()> {
+  if self.module {
+    module.set_source_map_kind(SourceMapKind::SourceMap);
+  } else {
+    module.set_source_map_kind(SourceMapKind::SimpleSourceMap);
+  }
+  Ok(())
+}
+
 #[plugin_hook(AsyncSeries3<Compilation, ModuleIdentifier, ChunkUkey> for SourceMapDevToolModuleOptionsPlugin)]
 async fn runtime_module(
   &self,
@@ -938,17 +948,13 @@ impl Plugin for SourceMapDevToolModuleOptionsPlugin {
     ctx
       .context
       .compilation_hooks
+      .build_module
+      .tap(build_module::new(self));
+    ctx
+      .context
+      .compilation_hooks
       .runtime_module
       .tap(runtime_module::new(self));
-    Ok(())
-  }
-
-  async fn build_module(&self, module: &mut dyn Module) -> Result<()> {
-    if self.module {
-      module.set_source_map_kind(SourceMapKind::SourceMap);
-    } else {
-      module.set_source_map_kind(SourceMapKind::SimpleSourceMap);
-    }
     Ok(())
   }
 }
