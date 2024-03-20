@@ -10,11 +10,11 @@ use tracing::instrument;
 
 use crate::{
   AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, ApplyContext,
-  AssetEmittedArgs, BeforeResolveArgs, BoxLoader, BoxModule, BoxedParserAndGeneratorBuilder, Chunk,
-  ChunkAssetArgs, ChunkContentHash, ChunkHashArgs, Compilation, CompilationHooks, CompilerHooks,
-  CompilerOptions, Content, ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs,
-  LoaderRunnerContext, ModuleIdentifier, ModuleType, NormalModule, NormalModuleAfterResolveArgs,
-  NormalModuleCreateData, NormalModuleFactoryHooks, OptimizeChunksArgs, Plugin,
+  AssetEmittedArgs, BeforeResolveArgs, BoxLoader, BoxModule, BoxedParserAndGeneratorBuilder,
+  ChunkContentHash, ChunkHashArgs, Compilation, CompilationHooks, CompilerHooks, CompilerOptions,
+  Content, ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs, LoaderRunnerContext,
+  ModuleIdentifier, ModuleType, NormalModule, NormalModuleAfterResolveArgs, NormalModuleCreateData,
+  NormalModuleFactoryHooks, OptimizeChunksArgs, Plugin,
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginAdditionalModuleRequirementsOutput,
   PluginBuildEndHookOutput, PluginChunkHashHookOutput, PluginCompilationHookOutput, PluginContext,
   PluginFactorizeHookOutput, PluginJsChunkHashHookOutput,
@@ -119,20 +119,6 @@ impl PluginDriver {
   pub async fn module_asset(&self, module: ModuleIdentifier, asset_name: String) -> Result<()> {
     for plugin in &self.plugins {
       plugin.module_asset(module, asset_name.clone()).await?;
-    }
-
-    Ok(())
-  }
-
-  #[instrument(name = "plugin:chunk_asset", skip_all)]
-  pub async fn chunk_asset(&self, chunk: &Chunk, filename: String) -> PluginCompilationHookOutput {
-    for plugin in &self.plugins {
-      plugin
-        .chunk_asset(&ChunkAssetArgs {
-          chunk,
-          filename: &filename,
-        })
-        .await?;
     }
 
     Ok(())

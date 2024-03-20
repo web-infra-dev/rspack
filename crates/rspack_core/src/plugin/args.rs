@@ -173,12 +173,6 @@ pub struct RenderChunkArgs<'a> {
   pub module_source: BoxSource,
 }
 
-#[derive(Debug)]
-pub struct ChunkAssetArgs<'a> {
-  pub chunk: &'a Chunk,
-  pub filename: &'a str,
-}
-
 impl<'me> RenderChunkArgs<'me> {
   pub fn chunk(&self) -> &Chunk {
     self.compilation.chunk_by_ukey.expect_get(self.chunk_ukey)

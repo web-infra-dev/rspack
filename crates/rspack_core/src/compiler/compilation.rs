@@ -13,7 +13,7 @@ use rayon::prelude::*;
 use rspack_error::{error, Diagnostic, Result, Severity, TWithDiagnosticArray};
 use rspack_futures::FuturesResults;
 use rspack_hash::{RspackHash, RspackHashDigest};
-use rspack_hook::{AsyncSeries3Hook, AsyncSeriesHook, SyncSeries4Hook};
+use rspack_hook::{AsyncSeries2Hook, AsyncSeries3Hook, AsyncSeriesHook, SyncSeries4Hook};
 use rspack_identifier::{Identifiable, IdentifierMap, IdentifierSet};
 use rspack_sources::{BoxSource, CachedSource, SourceExt};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
@@ -51,8 +51,9 @@ pub type CompilationStillValidModuleHook = AsyncSeriesHook<BoxModule>;
 pub type CompilationSucceedModuleHook = AsyncSeriesHook<BoxModule>;
 pub type CompilationExecuteModuleHook =
   SyncSeries4Hook<ModuleIdentifier, IdentifierSet, CodeGenerationResults, ExecuteModuleId>;
-pub type CompilationProcessAssetsHook = AsyncSeriesHook<Compilation>;
 pub type CompilationRuntimeModuleHook = AsyncSeries3Hook<Compilation, ModuleIdentifier, ChunkUkey>;
+pub type CompilationChunkAssetHook = AsyncSeries2Hook<Chunk, String>;
+pub type CompilationProcessAssetsHook = AsyncSeriesHook<Compilation>;
 
 #[derive(Debug, Default)]
 pub struct CompilationHooks {
@@ -61,6 +62,7 @@ pub struct CompilationHooks {
   pub succeed_module: CompilationSucceedModuleHook,
   pub execute_module: CompilationExecuteModuleHook,
   pub runtime_module: CompilationRuntimeModuleHook,
+  pub chunk_asset: CompilationChunkAssetHook,
   pub process_assets: CompilationProcessAssetsHook,
 }
 
@@ -766,11 +768,15 @@ impl Compilation {
   async fn chunk_asset(
     &mut self,
     chunk_ukey: ChunkUkey,
-    filename: String,
+    mut filename: String,
     plugin_driver: SharedPluginDriver,
   ) -> Result<()> {
-    let current_chunk = self.chunk_by_ukey.expect_get(&chunk_ukey);
-    _ = plugin_driver.chunk_asset(current_chunk, filename).await;
+    let current_chunk = self.chunk_by_ukey.expect_get_mut(&chunk_ukey);
+    plugin_driver
+      .compilation_hooks
+      .chunk_asset
+      .call(current_chunk, &mut filename)
+      .await?;
     Ok(())
   }
 
