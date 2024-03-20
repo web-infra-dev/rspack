@@ -46,6 +46,7 @@ import { tryRunOrWebpackError } from "./lib/HookWebpackError";
 import { CodeGenerationResult, Module } from "./Module";
 import { canInherentFromParent } from "./builtin-plugin/base";
 import ExecuteModulePlugin from "./ExecuteModulePlugin";
+import { Chunk } from "./Chunk";
 
 class Compiler {
 	#instance?: binding.Rspack;
@@ -242,7 +243,6 @@ class Compiler {
 					this.#normalModuleFactoryCreateModule.bind(this),
 				normalModuleFactoryResolveForScheme:
 					this.#normalModuleFactoryResolveForScheme.bind(this),
-				chunkAsset: this.#chunkAsset.bind(this),
 				afterResolve: this.#afterResolve.bind(this),
 				contextModuleFactoryBeforeResolve:
 					this.#contextModuleFactoryBeforeResolve.bind(this),
@@ -277,7 +277,10 @@ class Compiler {
 					queried =>
 						({ module, chunk }: binding.JsRuntimeModuleArg) => {
 							const originSource = module.source?.source;
-							queried.call(module, chunk);
+							queried.call(
+								module,
+								Chunk.__from_binding(chunk, this.compilation!)
+							);
 							const newSource = module.source?.source;
 							if (newSource && newSource !== originSource) {
 								return module;
@@ -372,6 +375,15 @@ class Compiler {
 
 							this.#moduleExecutionResultsMap.set(id, executeResult);
 						}
+				),
+				registerCompilationChunkAssetTaps: this.#createRegisterTaps(
+					() => this.compilation!.hooks.chunkAsset,
+					queried =>
+						({ chunk, filename }: binding.JsChunkAssetArgs) =>
+							queried.call(
+								Chunk.__from_binding(chunk, this.compilation!),
+								filename
+							)
 				),
 				registerCompilationProcessAssetsTaps: this.#createRegisterTaps(
 					() => this.compilation!.hooks.processAssets,
@@ -625,7 +637,6 @@ class Compiler {
 			finishModules: this.compilation!.hooks.finishModules,
 			optimizeModules: this.compilation!.hooks.optimizeModules,
 			afterOptimizeModules: this.compilation!.hooks.afterOptimizeModules,
-			chunkAsset: this.compilation!.hooks.chunkAsset,
 			afterResolve:
 				this.compilationParams?.normalModuleFactory.hooks.afterResolve,
 			optimizeChunkModules: this.compilation!.hooks.optimizeChunkModules,
@@ -770,11 +781,6 @@ class Compiler {
 		await this.compilation!.hooks.afterOptimizeModules.promise(
 			this.compilation!.modules
 		);
-		this.#updateDisabledHooks();
-	}
-
-	#chunkAsset(assetArg: binding.JsChunkAssetArgs) {
-		this.compilation!.hooks.chunkAsset.call(assetArg.chunk, assetArg.filename);
 		this.#updateDisabledHooks();
 	}
 

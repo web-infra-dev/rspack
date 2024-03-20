@@ -7,12 +7,11 @@ use async_trait::async_trait;
 pub use interceptor::RegisterJsTaps;
 use napi::{Env, Result};
 use rspack_binding_values::JsAssetEmittedArgs;
-use rspack_binding_values::JsChunkAssetArgs;
 use rspack_binding_values::JsResolveForSchemeResult;
 use rspack_core::PluginNormalModuleFactoryResolveForSchemeOutput;
 use rspack_core::{
-  ApplyContext, ChunkAssetArgs, CompilerOptions, NormalModuleAfterResolveArgs,
-  NormalModuleAfterResolveCreateData, PluginContext,
+  ApplyContext, CompilerOptions, NormalModuleAfterResolveArgs, NormalModuleAfterResolveCreateData,
+  PluginContext,
 };
 use rspack_core::{BeforeResolveArgs, PluginNormalModuleFactoryAfterResolveOutput};
 use rspack_core::{
@@ -22,6 +21,7 @@ use rspack_core::{
 use rspack_hook::Hook as _;
 
 use self::interceptor::RegisterCompilationBuildModuleTaps;
+use self::interceptor::RegisterCompilationChunkAssetTaps;
 use self::interceptor::RegisterCompilationStillValidModuleTaps;
 use self::interceptor::RegisterCompilationSucceedModuleTaps;
 use self::interceptor::{
@@ -49,6 +49,7 @@ pub struct JsHooksAdapterPlugin {
   register_compilation_succeed_module_taps: RegisterCompilationSucceedModuleTaps,
   register_compilation_execute_module_taps: RegisterCompilationExecuteModuleTaps,
   register_compilation_runtime_module_taps: RegisterCompilationRuntimeModuleTaps,
+  register_compilation_chunk_asset_taps: RegisterCompilationChunkAssetTaps,
   register_compilation_process_assets_taps: RegisterCompilationProcessAssetsTaps,
   register_normal_module_factory_before_resolve_taps: RegisterNormalModuleFactoryBeforeResolveTaps,
 }
@@ -128,6 +129,11 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
     ctx
       .context
       .compilation_hooks
+      .chunk_asset
+      .intercept(self.register_compilation_chunk_asset_taps.clone());
+    ctx
+      .context
+      .compilation_hooks
       .process_assets
       .intercept(self.register_compilation_process_assets_taps.clone());
     ctx
@@ -140,18 +146,6 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
           .clone(),
       );
     Ok(())
-  }
-
-  async fn chunk_asset(&self, args: &ChunkAssetArgs) -> rspack_error::Result<()> {
-    if self.is_hook_disabled(&Hook::ChunkAsset) {
-      return Ok(());
-    }
-
-    self
-      .hooks
-      .chunk_asset
-      .call(JsChunkAssetArgs::from(args))
-      .await
   }
 
   async fn after_resolve(
@@ -430,6 +424,9 @@ impl JsHooksAdapterPlugin {
       ),
       register_compilation_runtime_module_taps: RegisterCompilationRuntimeModuleTaps::new(
         register_js_taps.register_compilation_runtime_module_taps,
+      ),
+      register_compilation_chunk_asset_taps: RegisterCompilationChunkAssetTaps::new(
+        register_js_taps.register_compilation_chunk_asset_taps,
       ),
       register_compilation_process_assets_taps: RegisterCompilationProcessAssetsTaps::new(
         register_js_taps.register_compilation_process_assets_taps,

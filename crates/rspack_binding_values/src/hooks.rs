@@ -3,8 +3,7 @@ use rspack_napi::threadsafe_function::ThreadsafeFunction;
 
 use crate::{
   AfterResolveCreateData, AfterResolveData, CreateModuleData, JsAssetEmittedArgs,
-  JsBeforeResolveArgs, JsChunkAssetArgs, JsCompilation, JsResolveForSchemeInput,
-  JsResolveForSchemeResult,
+  JsBeforeResolveArgs, JsCompilation, JsResolveForSchemeInput, JsResolveForSchemeResult,
 };
 
 #[napi(object, object_to_js = false)]
@@ -29,8 +28,6 @@ pub struct JsHooks {
   pub finish_modules: ThreadsafeFunction<JsCompilation, ()>,
   #[napi(ts_type = "(compilation: JsCompilation) => void")]
   pub finish_make: ThreadsafeFunction<JsCompilation, ()>,
-  #[napi(ts_type = "(asset: JsChunkAssetArgs) => void")]
-  pub chunk_asset: ThreadsafeFunction<JsChunkAssetArgs, ()>,
   #[napi(
     ts_type = "(data: AfterResolveData) => Promise<(boolean | void | AfterResolveCreateData)[]>"
   )]
