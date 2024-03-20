@@ -16,7 +16,7 @@ pub trait AsyncSeriesBail<Input, Output> {
 
 pub struct AsyncSeriesBailHook<I, O> {
   taps: Vec<Box<dyn AsyncSeriesBail<I, O> + Send + Sync>>,
-  interceptors: Vec<Box<dyn Interceptor<AsyncSeriesBailHook<I, O>> + Send + Sync>>,
+  interceptors: Vec<Box<dyn Interceptor<Self> + Send + Sync>>,
 }
 
 impl<I, O> Hook for AsyncSeriesBailHook<I, O> {
@@ -62,5 +62,9 @@ impl<I, O> AsyncSeriesBailHook<I, O> {
       }
     }
     Ok(None)
+  }
+
+  pub fn tap(&mut self, tap: Box<dyn AsyncSeriesBail<I, O> + Send + Sync>) {
+    self.taps.push(tap);
   }
 }

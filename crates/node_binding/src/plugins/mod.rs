@@ -8,15 +8,14 @@ pub use interceptor::RegisterJsTaps;
 use napi::{Env, Result};
 use rspack_binding_values::JsResolveForSchemeResult;
 use rspack_binding_values::{JsAssetEmittedArgs, ToJsModule};
-use rspack_binding_values::{JsBuildTimeExecutionOption, JsExecuteModuleArg};
 use rspack_binding_values::{
   JsChunk, JsChunkAssetArgs, JsRuntimeModule, JsRuntimeModuleArg, ToJsCompatSource,
 };
 use rspack_core::rspack_sources::Source;
 use rspack_core::PluginNormalModuleFactoryResolveForSchemeOutput;
 use rspack_core::{
-  ApplyContext, BuildTimeExecutionOption, Chunk, ChunkAssetArgs, CompilerOptions, ModuleIdentifier,
-  NormalModuleAfterResolveArgs, NormalModuleAfterResolveCreateData, PluginContext, RuntimeModule,
+  ApplyContext, Chunk, ChunkAssetArgs, CompilerOptions, NormalModuleAfterResolveArgs,
+  NormalModuleAfterResolveCreateData, PluginContext, RuntimeModule,
 };
 use rspack_core::{BeforeResolveArgs, PluginNormalModuleFactoryAfterResolveOutput};
 use rspack_core::{
@@ -26,9 +25,9 @@ use rspack_core::{
 use rspack_hook::Hook as _;
 
 use self::interceptor::{
-  RegisterCompilationProcessAssetsTaps, RegisterCompilerCompilationTaps, RegisterCompilerMakeTaps,
-  RegisterCompilerShouldEmitTaps, RegisterCompilerThisCompilationTaps,
-  RegisterNormalModuleFactoryBeforeResolveTaps,
+  RegisterCompilationExecuteModuleTaps, RegisterCompilationProcessAssetsTaps,
+  RegisterCompilerCompilationTaps, RegisterCompilerMakeTaps, RegisterCompilerShouldEmitTaps,
+  RegisterCompilerThisCompilationTaps, RegisterNormalModuleFactoryBeforeResolveTaps,
 };
 use crate::{DisabledHooks, Hook, JsCompilation, JsHooks};
 
@@ -45,6 +44,7 @@ pub struct JsHooksAdapterPlugin {
   register_compiler_make_taps: RegisterCompilerMakeTaps,
   register_compiler_should_emit_taps: RegisterCompilerShouldEmitTaps,
   register_compilation_process_assets_taps: RegisterCompilationProcessAssetsTaps,
+  register_compilation_execute_module_taps: RegisterCompilationExecuteModuleTaps,
   register_normal_module_factory_before_resolve_taps: RegisterNormalModuleFactoryBeforeResolveTaps,
 }
 
@@ -100,6 +100,11 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
       .compilation_hooks
       .process_assets
       .intercept(self.register_compilation_process_assets_taps.clone());
+    ctx
+      .context
+      .compilation_hooks
+      .execute_module
+      .intercept(self.register_compilation_execute_module_taps.clone());
     ctx
       .context
       .normal_module_factory_hooks
@@ -399,37 +404,6 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
       .await
   }
 
-  fn execute_module(
-    &self,
-    entry: ModuleIdentifier,
-    request: &str,
-    options: &BuildTimeExecutionOption,
-    runtime_modules: Vec<ModuleIdentifier>,
-    codegen_results: &rspack_core::CodeGenerationResults,
-    id: u32,
-  ) -> rspack_error::Result<()> {
-    if self.is_hook_disabled(&Hook::ExecuteModule) {
-      return Ok(());
-    }
-
-    tokio::runtime::Handle::current().block_on(
-      self.hooks.execute_module.call(JsExecuteModuleArg {
-        entry: entry.to_string(),
-        request: request.into(),
-        options: JsBuildTimeExecutionOption {
-          public_path: options.public_path.clone(),
-          base_uri: options.base_uri.clone(),
-        },
-        runtime_modules: runtime_modules
-          .into_iter()
-          .map(|id| id.to_string())
-          .collect(),
-        codegen_results: codegen_results.clone().into(),
-        id,
-      }),
-    )
-  }
-
   async fn runtime_module(
     &self,
     module: &mut dyn RuntimeModule,
@@ -492,6 +466,9 @@ impl JsHooksAdapterPlugin {
       ),
       register_compilation_process_assets_taps: RegisterCompilationProcessAssetsTaps::new(
         register_js_taps.register_compilation_process_assets_taps,
+      ),
+      register_compilation_execute_module_taps: RegisterCompilationExecuteModuleTaps::new(
+        register_js_taps.register_compilation_execute_module_taps,
       ),
       register_normal_module_factory_before_resolve_taps:
         RegisterNormalModuleFactoryBeforeResolveTaps::new(

@@ -125,7 +125,7 @@ export class Compilation {
 		statsFactory: tapable.SyncHook<[StatsFactory, StatsOptions], void>;
 		statsPrinter: tapable.SyncHook<[StatsPrinter, StatsOptions], void>;
 		buildModule: tapable.SyncHook<[NormalizedJsModule]>;
-		executeModule: tapable.SyncHook<
+		executeModule: liteTapable.SyncHook<
 			[ExecuteModuleArgument, ExecuteModuleContext]
 		>;
 		runtimeModule: tapable.SyncHook<[JsRuntimeModule, JsChunk], void>;
@@ -232,7 +232,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			statsFactory: new tapable.SyncHook(["statsFactory", "options"]),
 			statsPrinter: new tapable.SyncHook(["statsPrinter", "options"]),
 			buildModule: new tapable.SyncHook(["module"]),
-			executeModule: new tapable.SyncHook(["options", "context"]),
+			executeModule: new liteTapable.SyncHook(["options", "context"]),
 			runtimeModule: new tapable.SyncHook(["module", "chunk"])
 		};
 		this.compiler = compiler;

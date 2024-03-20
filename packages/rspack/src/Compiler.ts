@@ -253,7 +253,6 @@ class Compiler {
 				succeedModule: this.#succeedModule.bind(this),
 				stillValidModule: this.#stillValidModule.bind(this),
 				buildModule: this.#buildModule.bind(this),
-				executeModule: this.#executeModule.bind(this),
 				runtimeModule: this.#runtimeModule.bind(this)
 			},
 			{
@@ -282,6 +281,79 @@ class Compiler {
 				registerCompilationProcessAssetsTaps: this.#createRegisterTaps(
 					() => this.compilation!.hooks.processAssets,
 					queried => async () => await queried.promise(this.compilation!.assets)
+				),
+				registerCompilationExecuteModuleTaps: this.#createRegisterTaps(
+					() => this.compilation!.hooks.executeModule,
+					queried =>
+						({
+							entry,
+							id,
+							codegenResults,
+							runtimeModules
+						}: binding.JsExecuteModuleArg) => {
+							const __webpack_require__: any = (id: string) => {
+								const cached = moduleCache[id];
+								if (cached !== undefined) {
+									if (cached.error) throw cached.error;
+									return cached.exports;
+								}
+
+								var execOptions = {
+									id,
+									module: {
+										id,
+										exports: {},
+										loaded: false,
+										error: undefined
+									},
+									require: __webpack_require__
+								};
+
+								interceptModuleExecution.forEach(
+									(handler: (execOptions: any) => void) => handler(execOptions)
+								);
+
+								const result = codegenResults.map[id]["build time"];
+								const moduleObject = execOptions.module;
+
+								if (id) moduleCache[id] = moduleObject;
+
+								tryRunOrWebpackError(
+									() =>
+										queried.call(
+											{
+												codeGenerationResult: new CodeGenerationResult(result),
+												moduleObject
+											},
+											{ __webpack_require__ }
+										),
+									"Compilation.hooks.executeModule"
+								);
+								moduleObject.loaded = true;
+								return moduleObject.exports;
+							};
+
+							const moduleCache: Record<string, any> = (__webpack_require__[
+								RuntimeGlobals.moduleCache.replace(
+									`${RuntimeGlobals.require}.`,
+									""
+								)
+							] = {});
+							const interceptModuleExecution = (__webpack_require__[
+								RuntimeGlobals.interceptModuleExecution.replace(
+									`${RuntimeGlobals.require}.`,
+									""
+								)
+							] = []);
+
+							for (const runtimeModule of runtimeModules) {
+								__webpack_require__(runtimeModule);
+							}
+
+							const executeResult = __webpack_require__(entry);
+
+							this.#moduleExecutionResultsMap.set(id, executeResult);
+						}
 				),
 				registerNormalModuleFactoryBeforeResolveTaps: this.#createRegisterTaps(
 					() => this.compilationParams!.normalModuleFactory.hooks.beforeResolve,
@@ -546,7 +618,6 @@ class Compiler {
 				this.compilationParams?.normalModuleFactory.hooks.createModule,
 			normalModuleFactoryResolveForScheme:
 				this.compilationParams?.normalModuleFactory.hooks.resolveForScheme,
-			executeModule: undefined,
 			runtimeModule: this.compilation!.hooks.runtimeModule
 		};
 		for (const [name, hook] of Object.entries(hookMap)) {
@@ -748,82 +819,6 @@ class Compiler {
 			return module;
 		}
 		return;
-	}
-
-	async #executeModule({
-		entry,
-		request,
-		options,
-		runtimeModules,
-		codegenResults,
-		id
-	}: {
-		entry: string;
-		request: string;
-		options: { publicPath?: string; baseUri?: string };
-		runtimeModules: string[];
-		codegenResults: binding.JsCodegenerationResults;
-		id: number;
-	}) {
-		const __webpack_require__: any = (id: string) => {
-			const cached = moduleCache[id];
-			if (cached !== undefined) {
-				if (cached.error) throw cached.error;
-				return cached.exports;
-			}
-
-			var execOptions = {
-				id,
-				module: {
-					id,
-					exports: {},
-					loaded: false,
-					error: undefined
-				},
-				require: __webpack_require__
-			};
-
-			interceptModuleExecution.forEach((handler: (execOptions: any) => void) =>
-				handler(execOptions)
-			);
-
-			const result = codegenResults.map[id]["build time"];
-			const moduleObject = execOptions.module;
-
-			if (id) moduleCache[id] = moduleObject;
-
-			tryRunOrWebpackError(
-				() =>
-					this.compilation!.hooks.executeModule.call(
-						{
-							codeGenerationResult: new CodeGenerationResult(result),
-							moduleObject
-						},
-						{ __webpack_require__ }
-					),
-				"Compilation.hooks.executeModule"
-			);
-			moduleObject.loaded = true;
-			return moduleObject.exports;
-		};
-
-		const moduleCache: Record<string, any> = (__webpack_require__[
-			RuntimeGlobals.moduleCache.replace(`${RuntimeGlobals.require}.`, "")
-		] = {});
-		const interceptModuleExecution = (__webpack_require__[
-			RuntimeGlobals.interceptModuleExecution.replace(
-				`${RuntimeGlobals.require}.`,
-				""
-			)
-		] = []);
-
-		for (const runtimeModule of runtimeModules) {
-			__webpack_require__(runtimeModule);
-		}
-
-		const executeResult = __webpack_require__(entry);
-
-		this.#moduleExecutionResultsMap.set(id, executeResult);
 	}
 
 	#decorateUpdateDisabledHooks(jsTaps: binding.JsTap[]) {

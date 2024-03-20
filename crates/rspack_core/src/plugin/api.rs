@@ -5,15 +5,13 @@ use rspack_hash::RspackHashDigest;
 use rspack_loader_runner::{Content, LoaderContext, ResourceData};
 use rspack_sources::{BoxSource, Source};
 use rustc_hash::FxHashMap;
-use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
   AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, AssetEmittedArgs,
-  AssetInfo, BoxLoader, BoxModule, BuildTimeExecutionOption, Chunk, ChunkAssetArgs, ChunkHashArgs,
-  CodeGenerationResults, Compilation, CompilationHooks, CompilerHooks, CompilerOptions,
-  ContentHashArgs, DependencyId, DoneArgs, FactorizeArgs, JsChunkHashArgs, LoaderRunnerContext,
-  Module, ModuleFactoryResult, ModuleIdentifier, ModuleType, NormalModule,
-  NormalModuleAfterResolveArgs, NormalModuleCreateData, NormalModuleFactoryHooks,
+  AssetInfo, BoxLoader, BoxModule, Chunk, ChunkAssetArgs, ChunkHashArgs, Compilation,
+  CompilationHooks, CompilerHooks, CompilerOptions, ContentHashArgs, DoneArgs, FactorizeArgs,
+  JsChunkHashArgs, LoaderRunnerContext, Module, ModuleFactoryResult, ModuleIdentifier, ModuleType,
+  NormalModule, NormalModuleAfterResolveArgs, NormalModuleCreateData, NormalModuleFactoryHooks,
   OptimizeChunksArgs, ParserAndGenerator, PluginContext, ProcessAssetsArgs, RenderArgs,
   RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, Resolver,
   RuntimeModule, RuntimeRequirementsInTreeArgs, SourceType,
@@ -360,27 +358,6 @@ pub trait Plugin: Debug + Send + Sync {
   }
 
   fn seal(&self, _compilation: &mut Compilation) -> Result<()> {
-    Ok(())
-  }
-
-  fn prepare_execute_module(
-    &self,
-    _id: DependencyId,
-    _options: &BuildTimeExecutionOption,
-    _import_module_informer: UnboundedSender<Result<String>>,
-  ) -> Result<()> {
-    Ok(())
-  }
-
-  fn execute_module(
-    &self,
-    _entry: ModuleIdentifier,
-    _request: &str,
-    _options: &BuildTimeExecutionOption,
-    _runtime_modules: Vec<ModuleIdentifier>,
-    _codegen_results: &CodeGenerationResults,
-    _id: u32,
-  ) -> Result<()> {
     Ok(())
   }
 }
