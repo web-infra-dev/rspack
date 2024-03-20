@@ -573,13 +573,6 @@ export interface JsTap {
   stage: number
 }
 
-export interface NodeFS {
-  writeFile: (...args: any[]) => any
-  removeFile: (...args: any[]) => any
-  mkdir: (...args: any[]) => any
-  mkdirp: (...args: any[]) => any
-}
-
 export interface PathData {
   filename?: string
   hash?: string
@@ -1294,12 +1287,4 @@ export interface RegisterJsTaps {
 
 /** Builtin loader runner */
 export function runBuiltinLoader(builtin: string, options: string | undefined | null, loaderContext: JsLoaderContext): Promise<JsLoaderContext>
-
-export interface ThreadsafeNodeFS {
-  writeFile: (name: string, content: Buffer) => void
-  removeFile: (name: string) => void
-  mkdir: (name: string) => void
-  mkdirp: (name: string) => string | void
-  removeDirAll: (name: string) => string | void
-}
 

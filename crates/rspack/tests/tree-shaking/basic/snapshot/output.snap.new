@@ -1,10 +1,11 @@
 ---
 source: crates/rspack_testing/src/run_fixture.rs
+assertion_line: 146
 ---
 ```js title=main.js
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./app.ts": (function () {
-throw new Error("  × Module parse failed:\n  ╰─▶   × JavaScript parsing error: Expected '{', got 'implements'\n         ╭─[1:1]\n       1 │ import {answer} from './answer'\n       2 │ export class Test implements Something {\n         ·                   ──────────\n       3 │   modules: {\n       4 │     [answer]: \"test\"\n         ╰────\n      \n  help: \n        You may need an appropriate loader to handle this file type.\n");
+throw new Error("  × Module parse failed:\n  ╰─▶   × JavaScript parsing error: Unexpected token `:`. Expected * for generator, private key, identifier or async\n         ╭─[1:1]\n       1 │ import {answer} from './answer'\n       2 │ export class Test {\n       3 │   modules: {\n         ·          ─\n       4 │     [answer]: \"test\"\n       5 │   }\n         ╰────\n      \n  help: \n        You may need an appropriate loader to handle this file type.\n");
 }),
 "./index.ts": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";

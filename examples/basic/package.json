@@ -1,0 +1,8 @@
+{
+"scripts": {
+  "build": "rspack build"
+},
+"devDependencies": {
+  "@rspack/cli": "workspace:^"
+}
+}
