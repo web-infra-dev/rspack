@@ -21,6 +21,7 @@ use rspack_core::{
 };
 use rspack_hook::Hook as _;
 
+use self::interceptor::RegisterCompilationBuildModuleTaps;
 use self::interceptor::{
   RegisterCompilationExecuteModuleTaps, RegisterCompilationProcessAssetsTaps,
   RegisterCompilationRuntimeModuleTaps, RegisterCompilerCompilationTaps, RegisterCompilerMakeTaps,
@@ -41,6 +42,7 @@ pub struct JsHooksAdapterPlugin {
   register_compiler_compilation_taps: RegisterCompilerCompilationTaps,
   register_compiler_make_taps: RegisterCompilerMakeTaps,
   register_compiler_should_emit_taps: RegisterCompilerShouldEmitTaps,
+  register_compilation_build_module_taps: RegisterCompilationBuildModuleTaps,
   register_compilation_execute_module_taps: RegisterCompilationExecuteModuleTaps,
   register_compilation_runtime_module_taps: RegisterCompilationRuntimeModuleTaps,
   register_compilation_process_assets_taps: RegisterCompilationProcessAssetsTaps,
@@ -94,6 +96,11 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
       .compiler_hooks
       .should_emit
       .intercept(self.register_compiler_should_emit_taps.clone());
+    ctx
+      .context
+      .compilation_hooks
+      .build_module
+      .intercept(self.register_compilation_build_module_taps.clone());
     ctx
       .context
       .compilation_hooks
@@ -332,18 +339,6 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
     self.hooks.finish_make.call(compilation).await
   }
 
-  async fn build_module(&self, module: &mut dyn rspack_core::Module) -> rspack_error::Result<()> {
-    if self.is_hook_disabled(&Hook::BuildModule) {
-      return Ok(());
-    }
-
-    self
-      .hooks
-      .build_module
-      .call(module.to_js_module().expect("Convert to js_module failed."))
-      .await
-  }
-
   async fn finish_modules(
     &self,
     compilation: &mut rspack_core::Compilation,
@@ -428,6 +423,9 @@ impl JsHooksAdapterPlugin {
       ),
       register_compiler_should_emit_taps: RegisterCompilerShouldEmitTaps::new(
         register_js_taps.register_compiler_should_emit_taps,
+      ),
+      register_compilation_build_module_taps: RegisterCompilationBuildModuleTaps::new(
+        register_js_taps.register_compilation_build_module_taps,
       ),
       register_compilation_execute_module_taps: RegisterCompilationExecuteModuleTaps::new(
         register_js_taps.register_compilation_execute_module_taps,

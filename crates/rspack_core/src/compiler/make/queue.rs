@@ -388,7 +388,11 @@ impl WorkerTask for BuildTask {
     let (build_result, is_cache_valid) = cache
       .build_module_occasion
       .use_cache(&mut module, |module| async {
-        plugin_driver.build_module(module.as_mut()).await?;
+        plugin_driver
+          .compilation_hooks
+          .build_module
+          .call(module)
+          .await?;
 
         let result = module
           .build(

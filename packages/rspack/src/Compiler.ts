@@ -36,7 +36,6 @@ import { WatchFileSystem } from "./util/fs";
 import { checkVersion } from "./util/bindingVersionCheck";
 import { Watching } from "./Watching";
 import { NormalModule } from "./NormalModule";
-import { normalizeJsModule } from "./util/normalization";
 import { deprecated_resolveBuiltins } from "./builtin-plugin";
 import { applyEntryOptions } from "./rspackOptionsApply";
 import { applyRspackOptionsDefaults } from "./config/defaults";
@@ -44,7 +43,7 @@ import { assertNotNill } from "./util/assertNotNil";
 import { FileSystemInfoEntry } from "./FileSystemInfo";
 import { RuntimeGlobals } from "./RuntimeGlobals";
 import { tryRunOrWebpackError } from "./lib/HookWebpackError";
-import { CodeGenerationResult } from "./Module";
+import { CodeGenerationResult, Module } from "./Module";
 import { canInherentFromParent } from "./builtin-plugin/base";
 import ExecuteModulePlugin from "./ExecuteModulePlugin";
 
@@ -250,8 +249,7 @@ class Compiler {
 				contextModuleFactoryAfterResolve:
 					this.#contextModuleFactoryAfterResolve.bind(this),
 				succeedModule: this.#succeedModule.bind(this),
-				stillValidModule: this.#stillValidModule.bind(this),
-				buildModule: this.#buildModule.bind(this)
+				stillValidModule: this.#stillValidModule.bind(this)
 			},
 			{
 				registerCompilerThisCompilationTaps: this.#createRegisterTaps(
@@ -288,6 +286,11 @@ class Compiler {
 							}
 							return;
 						}
+				),
+				registerCompilationBuildModuleTaps: this.#createRegisterTaps(
+					() => this.compilation!.hooks.buildModule,
+					queired => (m: binding.JsModule) =>
+						queired.call(Module.__from_binding(m))
 				),
 				registerCompilationExecuteModuleTaps: this.#createRegisterTaps(
 					() => this.compilation!.hooks.executeModule,
@@ -619,7 +622,6 @@ class Compiler {
 				this.compilationParams?.normalModuleFactory.hooks.afterResolve,
 			succeedModule: this.compilation!.hooks.succeedModule,
 			stillValidModule: this.compilation!.hooks.stillValidModule,
-			buildModule: this.compilation!.hooks.buildModule,
 			optimizeChunkModules: this.compilation!.hooks.optimizeChunkModules,
 			contextModuleFactoryBeforeResolve:
 				this.compilationParams?.contextModuleFactory.hooks.beforeResolve,
@@ -657,12 +659,6 @@ class Compiler {
 
 	async #finishMake() {
 		await this.hooks.finishMake.promise(this.compilation!);
-		this.#updateDisabledHooks();
-	}
-
-	async #buildModule(module: binding.JsModule) {
-		const normalized = normalizeJsModule(module);
-		this.compilation!.hooks.buildModule.call(normalized);
 		this.#updateDisabledHooks();
 	}
 
