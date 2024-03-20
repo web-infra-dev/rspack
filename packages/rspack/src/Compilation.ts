@@ -50,11 +50,10 @@ import { StatsPrinter } from "./stats/StatsPrinter";
 import { concatErrorMsgAndStack, isJsStatsError, toJsAssetInfo } from "./util";
 import { createRawFromSource, createSourceFromRaw } from "./util/createSource";
 import { createFakeCompilationDependencies } from "./util/fake";
-import { NormalizedJsModule, normalizeJsModule } from "./util/normalization";
 import MergeCaller from "./util/MergeCaller";
 import { memoizeValue } from "./util/memoize";
 import { Chunk } from "./Chunk";
-import { CodeGenerationResult } from "./Module";
+import { CodeGenerationResult, Module } from "./Module";
 import { ChunkGraph } from "./ChunkGraph";
 import { Entrypoint } from "./Entrypoint";
 
@@ -107,24 +106,24 @@ export class Compilation {
 		childCompiler: tapable.SyncHook<[Compiler, string, number]>;
 		log: tapable.SyncBailHook<[string, LogEntry], true>;
 		additionalAssets: any;
-		optimizeModules: tapable.SyncBailHook<Iterable<JsModule>, void>;
-		afterOptimizeModules: tapable.SyncHook<Iterable<JsModule>, void>;
+		optimizeModules: tapable.SyncBailHook<Iterable<Module>, void>;
+		afterOptimizeModules: tapable.SyncHook<Iterable<Module>, void>;
 		optimizeTree: tapable.AsyncSeriesBailHook<
-			[Iterable<Chunk>, Iterable<JsModule>],
+			[Iterable<Chunk>, Iterable<Module>],
 			void
 		>;
 		optimizeChunkModules: tapable.AsyncSeriesBailHook<
-			[Iterable<Chunk>, Iterable<JsModule>],
+			[Iterable<Chunk>, Iterable<Module>],
 			void
 		>;
-		finishModules: tapable.AsyncSeriesHook<[Iterable<JsModule>], void>;
+		finishModules: tapable.AsyncSeriesHook<[Iterable<Module>], void>;
 		chunkAsset: tapable.SyncHook<[JsChunk, string], void>;
 		processWarnings: tapable.SyncWaterfallHook<[Error[]]>;
 		succeedModule: tapable.SyncHook<[JsModule], void>;
 		stillValidModule: tapable.SyncHook<[JsModule], void>;
 		statsFactory: tapable.SyncHook<[StatsFactory, StatsOptions], void>;
 		statsPrinter: tapable.SyncHook<[StatsPrinter, StatsOptions], void>;
-		buildModule: tapable.SyncHook<[NormalizedJsModule]>;
+		buildModule: liteTapable.SyncHook<[Module]>;
 		executeModule: liteTapable.SyncHook<
 			[ExecuteModuleArgument, ExecuteModuleContext]
 		>;
@@ -231,7 +230,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			stillValidModule: new tapable.SyncHook(["module"]),
 			statsFactory: new tapable.SyncHook(["statsFactory", "options"]),
 			statsPrinter: new tapable.SyncHook(["statsPrinter", "options"]),
-			buildModule: new tapable.SyncHook(["module"]),
+			buildModule: new liteTapable.SyncHook(["module"]),
 			executeModule: new liteTapable.SyncHook(["options", "context"]),
 			runtimeModule: new liteTapable.SyncHook(["module", "chunk"])
 		};
@@ -778,7 +777,9 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 
 	get modules() {
 		return memoizeValue(() => {
-			return this.__internal__getModules().map(item => normalizeJsModule(item));
+			return this.__internal__getModules().map(item =>
+				Module.__from_binding(item)
+			);
 		});
 	}
 
@@ -896,14 +897,14 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	}
 
 	_rebuildModuleCaller = new MergeCaller(
-		(args: Array<[string, (err: any, m: JsModule) => void]>) => {
+		(args: Array<[string, (err: Error, m: Module) => void]>) => {
 			this.#inner.rebuildModule(
 				args.map(item => item[0]),
-				function (err: any, modules: JsModule[]) {
+				function (err: Error, modules: JsModule[]) {
 					for (const [id, callback] of args) {
 						const m = modules.find(item => item.moduleIdentifier === id);
 						if (m) {
-							callback(err, m);
+							callback(err, Module.__from_binding(m));
 						} else {
 							callback(err || new Error("module no found"), null as any);
 						}
@@ -913,8 +914,8 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		},
 		10
 	);
-	rebuildModule(m: JsModule, f: (err: any, m: JsModule) => void) {
-		this._rebuildModuleCaller.push([m.moduleIdentifier, f]);
+	rebuildModule(m: Module, f: (err: Error, m: Module) => void) {
+		this._rebuildModuleCaller.push([m.identifier(), f]);
 	}
 
 	/**

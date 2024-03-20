@@ -46,6 +46,7 @@ pub type BuildDependency = (
   Option<ModuleIdentifier>, /* parent module */
 );
 
+pub type CompilationBuildModuleHook = AsyncSeriesHook<BoxModule>;
 pub type CompilationExecuteModuleHook =
   SyncSeries4Hook<ModuleIdentifier, IdentifierSet, CodeGenerationResults, ExecuteModuleId>;
 pub type CompilationProcessAssetsHook = AsyncSeriesHook<Compilation>;
@@ -53,6 +54,7 @@ pub type CompilationRuntimeModuleHook = AsyncSeries3Hook<Compilation, ModuleIden
 
 #[derive(Debug, Default)]
 pub struct CompilationHooks {
+  pub build_module: CompilationBuildModuleHook,
   pub execute_module: CompilationExecuteModuleHook,
   pub runtime_module: CompilationRuntimeModuleHook,
   pub process_assets: CompilationProcessAssetsHook,

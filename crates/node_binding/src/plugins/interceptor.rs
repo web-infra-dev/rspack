@@ -7,14 +7,14 @@ use napi::{
 };
 use rspack_binding_values::{
   CompatSource, JsBeforeResolveArgs, JsBeforeResolveOutput, JsChunk, JsCompilation,
-  JsExecuteModuleArg, JsRuntimeModule, JsRuntimeModuleArg, ToJsCompatSource,
+  JsExecuteModuleArg, JsModule, JsRuntimeModule, JsRuntimeModuleArg, ToJsCompatSource, ToJsModule,
 };
 use rspack_core::{
-  rspack_sources::SourceExt, BeforeResolveArgs, ChunkUkey, CodeGenerationResults, Compilation,
-  CompilationExecuteModuleHook, CompilationParams, CompilationProcessAssetsHook,
-  CompilationRuntimeModuleHook, CompilerCompilationHook, CompilerMakeHook, CompilerShouldEmitHook,
-  CompilerThisCompilationHook, ExecuteModuleId, MakeParam, ModuleIdentifier,
-  NormalModuleFactoryBeforeResolveHook,
+  rspack_sources::SourceExt, BeforeResolveArgs, BoxModule, ChunkUkey, CodeGenerationResults,
+  Compilation, CompilationBuildModuleHook, CompilationExecuteModuleHook, CompilationParams,
+  CompilationProcessAssetsHook, CompilationRuntimeModuleHook, CompilerCompilationHook,
+  CompilerMakeHook, CompilerShouldEmitHook, CompilerThisCompilationHook, ExecuteModuleId,
+  MakeParam, ModuleIdentifier, NormalModuleFactoryBeforeResolveHook,
 };
 use rspack_hook::{
   AsyncSeries, AsyncSeries2, AsyncSeries3, AsyncSeriesBail, Hook, Interceptor, SyncSeries4,
@@ -236,36 +236,40 @@ macro_rules! define_register {
 #[napi(object, object_to_js = false)]
 pub struct RegisterJsTaps {
   #[napi(
-    ts_type = "(stages: Array<number>) => Array<{ function: ((compilation: JsCompilation) => void); stage: number; }>"
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>"
   )]
   pub register_compiler_this_compilation_taps: RegisterFunction<JsCompilation, ()>,
   #[napi(
-    ts_type = "(stages: Array<number>) => Array<{ function: ((compilation: JsCompilation) => void); stage: number; }>"
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>"
   )]
   pub register_compiler_compilation_taps: RegisterFunction<JsCompilation, ()>,
   #[napi(
-    ts_type = "(stages: Array<number>) => Array<{ function: ((compilation: JsCompilation) => Promise<void>); stage: number; }>"
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => Promise<void>); stage: number; }>"
   )]
   pub register_compiler_make_taps: RegisterFunction<JsCompilation, Promise<()>>,
   #[napi(
-    ts_type = "(stages: Array<number>) => Array<{ function: ((compilation: JsCompilation) => boolean | undefined); stage: number; }>"
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => boolean | undefined); stage: number; }>"
   )]
   pub register_compiler_should_emit_taps: RegisterFunction<JsCompilation, Option<bool>>,
   #[napi(
-    ts_type = "(stages: Array<number>) => Array<{ function: ((compilation: JsExecuteModuleArg) => void); stage: number; }>"
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsModule) => void); stage: number; }>"
+  )]
+  pub register_compilation_build_module_taps: RegisterFunction<JsModule, ()>,
+  #[napi(
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsExecuteModuleArg) => void); stage: number; }>"
   )]
   pub register_compilation_execute_module_taps: RegisterFunction<JsExecuteModuleArg, ()>,
   #[napi(
-    ts_type = "(stages: Array<number>) => Array<{ function: ((compilation: JsRuntimeModuleArg) => JsRuntimeModule | undefined); stage: number; }>"
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsRuntimeModuleArg) => JsRuntimeModule | undefined); stage: number; }>"
   )]
   pub register_compilation_runtime_module_taps:
     RegisterFunction<JsRuntimeModuleArg, Option<JsRuntimeModule>>,
   #[napi(
-    ts_type = "(stages: Array<number>) => Array<{ function: ((compilation: JsCompilation) => Promise<void>); stage: number; }>"
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => Promise<void>); stage: number; }>"
   )]
   pub register_compilation_process_assets_taps: RegisterFunction<JsCompilation, Promise<()>>,
   #[napi(
-    ts_type = "(stages: Array<number>) => Array<{ function: ((compilation: JsBeforeResolveArgs) => Promise<[boolean | undefined, JsBeforeResolveArgs]>); stage: number; }>"
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsBeforeResolveArgs) => Promise<[boolean | undefined, JsBeforeResolveArgs]>); stage: number; }>"
   )]
   pub register_normal_module_factory_before_resolve_taps:
     RegisterFunction<JsBeforeResolveArgs, Promise<JsBeforeResolveOutput>>,
@@ -298,6 +302,12 @@ define_register!(
 );
 
 /* Compilation Hooks */
+define_register!(
+  RegisterCompilationBuildModuleTaps,
+  tap = CompilationBuildModuleTap<JsModule, ()> @ CompilationBuildModuleHook,
+  cache = true,
+  sync = false,
+);
 define_register!(
   RegisterCompilationExecuteModuleTaps,
   tap = CompilationExecuteModuleTap<JsExecuteModuleArg, ()> @ CompilationExecuteModuleHook,
@@ -396,6 +406,20 @@ impl AsyncSeriesBail<Compilation, bool> for CompilerShouldEmitTap {
     let compilation = unsafe { JsCompilation::from_compilation(compilation) };
 
     self.function.call_with_sync(compilation).await
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
+
+#[async_trait]
+impl AsyncSeries<BoxModule> for CompilationBuildModuleTap {
+  async fn run(&self, module: &mut BoxModule) -> rspack_error::Result<()> {
+    self
+      .function
+      .call(module.to_js_module().expect("Convert to js_module failed."))
+      .await
   }
 
   fn stage(&self) -> i32 {

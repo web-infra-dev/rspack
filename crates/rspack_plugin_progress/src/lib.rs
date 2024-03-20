@@ -8,8 +8,8 @@ use async_trait::async_trait;
 use indicatif::{ProgressBar, ProgressDrawTarget, ProgressStyle};
 use linked_hash_map::LinkedHashMap as HashMap;
 use rspack_core::{
-  ApplyContext, Compilation, CompilationParams, CompilerOptions, DoneArgs, MakeParam, Module,
-  ModuleIdentifier, OptimizeChunksArgs, Plugin, PluginBuildEndHookOutput, PluginContext,
+  ApplyContext, BoxModule, Compilation, CompilationParams, CompilerOptions, DoneArgs, MakeParam,
+  Module, ModuleIdentifier, OptimizeChunksArgs, Plugin, PluginBuildEndHookOutput, PluginContext,
   PluginOptimizeChunksOutput, PluginProcessAssetsOutput, ProcessAssetsArgs,
 };
 use rspack_error::Result;
@@ -234,6 +234,25 @@ async fn make(&self, _compilation: &mut Compilation, _params: &mut Vec<MakeParam
   Ok(())
 }
 
+#[plugin_hook(AsyncSeries<BoxModule> for ProgressPlugin)]
+async fn build_module(&self, module: &mut BoxModule) -> Result<()> {
+  self
+    .active_modules
+    .write()
+    .expect("TODO:")
+    .insert(module.identifier(), Instant::now());
+  self.modules_count.fetch_add(1, SeqCst);
+  self
+    .last_active_module
+    .write()
+    .expect("TODO:")
+    .replace(module.identifier());
+  if !self.options.profile {
+    self.update();
+  }
+  Ok(())
+}
+
 #[plugin_hook(AsyncSeries<Compilation> for ProgressPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONAL)]
 async fn process_assets(&self, _compilation: &mut Compilation) -> Result<()> {
   self.sealing_hooks_report("asset processing", 35);
@@ -265,26 +284,13 @@ impl Plugin for ProgressPlugin {
     ctx
       .context
       .compilation_hooks
+      .build_module
+      .tap(build_module::new(self));
+    ctx
+      .context
+      .compilation_hooks
       .process_assets
       .tap(process_assets::new(self));
-    Ok(())
-  }
-
-  async fn build_module(&self, module: &mut dyn Module) -> Result<()> {
-    self
-      .active_modules
-      .write()
-      .expect("TODO:")
-      .insert(module.identifier(), Instant::now());
-    self.modules_count.fetch_add(1, SeqCst);
-    self
-      .last_active_module
-      .write()
-      .expect("TODO:")
-      .replace(module.identifier());
-    if !self.options.profile {
-      self.update();
-    }
     Ok(())
   }
 

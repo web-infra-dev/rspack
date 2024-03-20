@@ -29,8 +29,6 @@ pub struct JsHooks {
   pub finish_modules: ThreadsafeFunction<JsCompilation, ()>,
   #[napi(ts_type = "(compilation: JsCompilation) => void")]
   pub finish_make: ThreadsafeFunction<JsCompilation, ()>,
-  #[napi(ts_type = "(module: JsModule) => void")]
-  pub build_module: ThreadsafeFunction<JsModule, ()>, // TODO
   #[napi(ts_type = "(asset: JsChunkAssetArgs) => void")]
   pub chunk_asset: ThreadsafeFunction<JsChunkAssetArgs, ()>,
   #[napi(
