@@ -45,7 +45,6 @@ module.exports = {
 		<t> finish make hook: X ms
 		<t> finish compilation: X ms
 		<t> seal compilation: X ms
-		<t> afterCompile hook: X ms
 		<t> emitAssets: X ms
 		<t> done hook: X ms
 
