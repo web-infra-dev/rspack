@@ -15,6 +15,7 @@ import * as liteTapable from "./lite-tapable";
 import { Callback, SyncBailHook, SyncHook } from "tapable";
 import type { WatchOptions } from "watchpack";
 import {
+	getRawOptions,
 	EntryNormalized,
 	OutputNormalized,
 	RspackOptionsNormalized,
@@ -25,12 +26,10 @@ import { Stats } from "./Stats";
 import { Compilation, CompilationParams } from "./Compilation";
 import { ContextModuleFactory } from "./ContextModuleFactory";
 import ResolverFactory from "./ResolverFactory";
-import { getRawOptions } from "./config";
 import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
 import { createThreadsafeNodeFSFromRaw } from "./fileSystem";
 import Cache from "./lib/Cache";
 import CacheFacade from "./lib/CacheFacade";
-import { runLoaders } from "./loader-runner";
 import { Logger } from "./logging/Logger";
 import { NormalModuleFactory } from "./NormalModuleFactory";
 import { WatchFileSystem } from "./util/fs";
@@ -252,8 +251,7 @@ class Compiler {
 					this.#contextModuleFactoryAfterResolve.bind(this),
 				succeedModule: this.#succeedModule.bind(this),
 				stillValidModule: this.#stillValidModule.bind(this),
-				buildModule: this.#buildModule.bind(this),
-				runtimeModule: this.#runtimeModule.bind(this)
+				buildModule: this.#buildModule.bind(this)
 			},
 			{
 				registerCompilerThisCompilationTaps: this.#createRegisterTaps(
@@ -278,9 +276,18 @@ class Compiler {
 					() => this.hooks.shouldEmit,
 					queried => () => queried.call(this.compilation!)
 				),
-				registerCompilationProcessAssetsTaps: this.#createRegisterTaps(
-					() => this.compilation!.hooks.processAssets,
-					queried => async () => await queried.promise(this.compilation!.assets)
+				registerCompilationRuntimeModuleTaps: this.#createRegisterTaps(
+					() => this.compilation!.hooks.runtimeModule,
+					queried =>
+						({ module, chunk }: binding.JsRuntimeModuleArg) => {
+							const originSource = module.source?.source;
+							queried.call(module, chunk);
+							const newSource = module.source?.source;
+							if (newSource && newSource !== originSource) {
+								return module;
+							}
+							return;
+						}
 				),
 				registerCompilationExecuteModuleTaps: this.#createRegisterTaps(
 					() => this.compilation!.hooks.executeModule,
@@ -354,6 +361,10 @@ class Compiler {
 
 							this.#moduleExecutionResultsMap.set(id, executeResult);
 						}
+				),
+				registerCompilationProcessAssetsTaps: this.#createRegisterTaps(
+					() => this.compilation!.hooks.processAssets,
+					queried => async () => await queried.promise(this.compilation!.assets)
 				),
 				registerNormalModuleFactoryBeforeResolveTaps: this.#createRegisterTaps(
 					() => this.compilationParams!.normalModuleFactory.hooks.beforeResolve,
@@ -617,8 +628,7 @@ class Compiler {
 			normalModuleFactoryCreateModule:
 				this.compilationParams?.normalModuleFactory.hooks.createModule,
 			normalModuleFactoryResolveForScheme:
-				this.compilationParams?.normalModuleFactory.hooks.resolveForScheme,
-			runtimeModule: this.compilation!.hooks.runtimeModule
+				this.compilationParams?.normalModuleFactory.hooks.resolveForScheme
 		};
 		for (const [name, hook] of Object.entries(hookMap)) {
 			if (
@@ -807,18 +817,6 @@ class Compiler {
 	#stillValidModule(module: binding.JsModule) {
 		this.compilation!.hooks.stillValidModule.call(module);
 		this.#updateDisabledHooks();
-	}
-
-	#runtimeModule(arg: binding.JsRuntimeModuleArg) {
-		let { module, chunk } = arg;
-		const originSource = module.source?.source;
-		this.compilation!.hooks.runtimeModule.call(module, chunk);
-		this.#updateDisabledHooks();
-		const newSource = module.source?.source;
-		if (newSource && newSource !== originSource) {
-			return module;
-		}
-		return;
 	}
 
 	#decorateUpdateDisabledHooks(jsTaps: binding.JsTap[]) {

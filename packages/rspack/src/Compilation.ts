@@ -129,7 +129,7 @@ export class Compilation {
 		executeModule: liteTapable.SyncHook<
 			[ExecuteModuleArgument, ExecuteModuleContext]
 		>;
-		runtimeModule: tapable.SyncHook<[JsRuntimeModule, JsChunk], void>;
+		runtimeModule: liteTapable.SyncHook<[JsRuntimeModule, JsChunk], void>;
 	};
 	options: RspackOptionsNormalized;
 	outputOptions: OutputNormalized;
@@ -234,7 +234,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			statsPrinter: new tapable.SyncHook(["statsPrinter", "options"]),
 			buildModule: new tapable.SyncHook(["module"]),
 			executeModule: new liteTapable.SyncHook(["options", "context"]),
-			runtimeModule: new tapable.SyncHook(["module", "chunk"])
+			runtimeModule: new liteTapable.SyncHook(["module", "chunk"])
 		};
 		this.compiler = compiler;
 		this.resolverFactory = compiler.resolverFactory;

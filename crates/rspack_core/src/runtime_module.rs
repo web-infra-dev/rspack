@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use rspack_identifier::Identifier;
-use rspack_sources::{BoxSource, OriginalSource, Source};
+use rspack_sources::{BoxSource, Source};
 
 use crate::{ChunkUkey, Compilation, Module};
 
@@ -34,8 +34,8 @@ pub trait RuntimeModule: Module + CustomSourceRuntimeModule {
 }
 
 pub trait CustomSourceRuntimeModule {
-  fn set_custom_source(&mut self, source: OriginalSource);
-  fn get_custom_source(&self) -> Option<Arc<OriginalSource>>;
+  fn set_custom_source(&mut self, source: BoxSource);
+  fn get_custom_source(&self) -> Option<BoxSource>;
   fn get_constructor_name(&self) -> String;
 }
 

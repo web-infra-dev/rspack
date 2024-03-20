@@ -1,20 +1,20 @@
-use std::{fmt::Debug, path::Path, sync::Arc};
+use std::{fmt::Debug, path::Path};
 
 use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_hash::RspackHashDigest;
 use rspack_loader_runner::{Content, LoaderContext, ResourceData};
-use rspack_sources::{BoxSource, Source};
+use rspack_sources::BoxSource;
 use rustc_hash::FxHashMap;
 
 use crate::{
   AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, AssetEmittedArgs,
-  AssetInfo, BoxLoader, BoxModule, Chunk, ChunkAssetArgs, ChunkHashArgs, Compilation,
-  CompilationHooks, CompilerHooks, CompilerOptions, ContentHashArgs, DoneArgs, FactorizeArgs,
-  JsChunkHashArgs, LoaderRunnerContext, Module, ModuleFactoryResult, ModuleIdentifier, ModuleType,
-  NormalModule, NormalModuleAfterResolveArgs, NormalModuleCreateData, NormalModuleFactoryHooks,
+  AssetInfo, BoxLoader, BoxModule, ChunkAssetArgs, ChunkHashArgs, Compilation, CompilationHooks,
+  CompilerHooks, CompilerOptions, ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs,
+  LoaderRunnerContext, Module, ModuleFactoryResult, ModuleIdentifier, ModuleType, NormalModule,
+  NormalModuleAfterResolveArgs, NormalModuleCreateData, NormalModuleFactoryHooks,
   OptimizeChunksArgs, ParserAndGenerator, PluginContext, ProcessAssetsArgs, RenderArgs,
   RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, Resolver,
-  RuntimeModule, RuntimeRequirementsInTreeArgs, SourceType,
+  RuntimeRequirementsInTreeArgs, SourceType,
 };
 
 #[derive(Debug, Clone)]
@@ -326,15 +326,6 @@ pub trait Plugin: Debug + Send + Sync {
 
   async fn still_valid_module(&self, _module: &dyn Module) -> Result<()> {
     Ok(())
-  }
-
-  async fn runtime_module(
-    &self,
-    _module: &mut dyn RuntimeModule,
-    _source: Arc<dyn Source>,
-    _chunk: &Chunk,
-  ) -> Result<Option<String>> {
-    Ok(None)
   }
 
   fn module_ids(&self, _modules: &mut Compilation) -> Result<()> {

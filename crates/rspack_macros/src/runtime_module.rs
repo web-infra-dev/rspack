@@ -18,10 +18,8 @@ pub fn impl_runtime_module(
     );
     fields.named.push(
       syn::Field::parse_named
-        .parse2(
-          quote! { pub custom_source: Option<::std::sync::Arc<::rspack_core::rspack_sources::OriginalSource>> },
-        )
-        .expect("Failed to parse new field for original_source"),
+        .parse2(quote! { pub custom_source: Option<::rspack_core::rspack_sources::BoxSource> })
+        .expect("Failed to parse new field for custom_source"),
     );
   }
 
@@ -29,10 +27,10 @@ pub fn impl_runtime_module(
     #input
 
     impl #impl_generics ::rspack_core::CustomSourceRuntimeModule for #name #ty_generics #where_clause {
-      fn set_custom_source(&mut self, source: ::rspack_core::rspack_sources::OriginalSource) -> () {
-        self.custom_source = Some(::std::sync::Arc::new(source));
+      fn set_custom_source(&mut self, source: ::rspack_core::rspack_sources::BoxSource) -> () {
+        self.custom_source = Some(source);
       }
-      fn get_custom_source(&self) -> Option<::std::sync::Arc<::rspack_core::rspack_sources::OriginalSource>> {
+      fn get_custom_source(&self) -> Option<::rspack_core::rspack_sources::BoxSource> {
         self.custom_source.clone()
       }
       fn get_constructor_name(&self) -> String {

@@ -6,15 +6,19 @@ use napi::{
   Env, JsFunction, NapiRaw,
 };
 use rspack_binding_values::{
-  JsBeforeResolveArgs, JsBeforeResolveOutput, JsCompilation, JsExecuteModuleArg,
+  CompatSource, JsBeforeResolveArgs, JsBeforeResolveOutput, JsChunk, JsCompilation,
+  JsExecuteModuleArg, JsRuntimeModule, JsRuntimeModuleArg, ToJsCompatSource,
 };
 use rspack_core::{
-  BeforeResolveArgs, CodeGenerationResults, Compilation, CompilationExecuteModuleHook,
-  CompilationParams, CompilationProcessAssetsHook, CompilerCompilationHook, CompilerMakeHook,
-  CompilerShouldEmitHook, CompilerThisCompilationHook, ExecuteModuleId, MakeParam,
-  ModuleIdentifier, NormalModuleFactoryBeforeResolveHook,
+  rspack_sources::SourceExt, BeforeResolveArgs, ChunkUkey, CodeGenerationResults, Compilation,
+  CompilationExecuteModuleHook, CompilationParams, CompilationProcessAssetsHook,
+  CompilationRuntimeModuleHook, CompilerCompilationHook, CompilerMakeHook, CompilerShouldEmitHook,
+  CompilerThisCompilationHook, ExecuteModuleId, MakeParam, ModuleIdentifier,
+  NormalModuleFactoryBeforeResolveHook,
 };
-use rspack_hook::{AsyncSeries, AsyncSeries2, AsyncSeriesBail, Hook, Interceptor, SyncSeries4};
+use rspack_hook::{
+  AsyncSeries, AsyncSeries2, AsyncSeries3, AsyncSeriesBail, Hook, Interceptor, SyncSeries4,
+};
 use rspack_identifier::IdentifierSet;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 
@@ -248,13 +252,18 @@ pub struct RegisterJsTaps {
   )]
   pub register_compiler_should_emit_taps: RegisterFunction<JsCompilation, Option<bool>>,
   #[napi(
-    ts_type = "(stages: Array<number>) => Array<{ function: ((compilation: JsCompilation) => Promise<void>); stage: number; }>"
-  )]
-  pub register_compilation_process_assets_taps: RegisterFunction<JsCompilation, Promise<()>>,
-  #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((compilation: JsExecuteModuleArg) => void); stage: number; }>"
   )]
   pub register_compilation_execute_module_taps: RegisterFunction<JsExecuteModuleArg, ()>,
+  #[napi(
+    ts_type = "(stages: Array<number>) => Array<{ function: ((compilation: JsRuntimeModuleArg) => JsRuntimeModule | undefined); stage: number; }>"
+  )]
+  pub register_compilation_runtime_module_taps:
+    RegisterFunction<JsRuntimeModuleArg, Option<JsRuntimeModule>>,
+  #[napi(
+    ts_type = "(stages: Array<number>) => Array<{ function: ((compilation: JsCompilation) => Promise<void>); stage: number; }>"
+  )]
+  pub register_compilation_process_assets_taps: RegisterFunction<JsCompilation, Promise<()>>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((compilation: JsBeforeResolveArgs) => Promise<[boolean | undefined, JsBeforeResolveArgs]>); stage: number; }>"
   )]
@@ -290,16 +299,22 @@ define_register!(
 
 /* Compilation Hooks */
 define_register!(
-  RegisterCompilationProcessAssetsTaps,
-  tap = CompilationProcessAssetsTap<JsCompilation, Promise<()>> @ CompilationProcessAssetsHook,
-  cache = false,
-  sync = false,
-);
-define_register!(
   RegisterCompilationExecuteModuleTaps,
   tap = CompilationExecuteModuleTap<JsExecuteModuleArg, ()> @ CompilationExecuteModuleHook,
   cache = false,
   sync = true,
+);
+define_register!(
+  RegisterCompilationRuntimeModuleTaps,
+  tap = CompilationRuntimeModuleTap<JsRuntimeModuleArg, Option<JsRuntimeModule>> @ CompilationRuntimeModuleHook,
+  cache = true,
+  sync = false,
+);
+define_register!(
+  RegisterCompilationProcessAssetsTaps,
+  tap = CompilationProcessAssetsTap<JsCompilation, Promise<()>> @ CompilationProcessAssetsHook,
+  cache = false,
+  sync = false,
 );
 
 /* NormalModuleFactory Hooks */
@@ -389,23 +404,6 @@ impl AsyncSeriesBail<Compilation, bool> for CompilerShouldEmitTap {
 }
 
 #[async_trait]
-impl AsyncSeries<Compilation> for CompilationProcessAssetsTap {
-  async fn run(&self, compilation: &mut Compilation) -> rspack_error::Result<()> {
-    // SAFETY:
-    // 1. `Compiler` is stored on the heap and pinned in binding crate.
-    // 2. `Compilation` outlives `JsCompilation` and `Compiler` outlives `Compilation`.
-    // 3. `JsCompilation` was replaced everytime a new `Compilation` was created before getting accessed.
-    let compilation = unsafe { JsCompilation::from_compilation(compilation) };
-
-    self.function.call_with_promise(compilation).await
-  }
-
-  fn stage(&self) -> i32 {
-    self.stage
-  }
-}
-
-#[async_trait]
 impl SyncSeries4<ModuleIdentifier, IdentifierSet, CodeGenerationResults, ExecuteModuleId>
   for CompilationExecuteModuleTap
 {
@@ -422,6 +420,66 @@ impl SyncSeries4<ModuleIdentifier, IdentifierSet, CodeGenerationResults, Execute
       codegen_results: codegen_results.clone().into(),
       id: *id,
     }))
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
+
+#[async_trait]
+impl AsyncSeries3<Compilation, ModuleIdentifier, ChunkUkey> for CompilationRuntimeModuleTap {
+  async fn run(
+    &self,
+    compilation: &mut Compilation,
+    m: &mut ModuleIdentifier,
+    c: &mut ChunkUkey,
+  ) -> rspack_error::Result<()> {
+    let Some(module) = compilation.runtime_modules.get(m) else {
+      return Ok(());
+    };
+    let chunk = compilation.chunk_by_ukey.expect_get(c);
+    let arg = JsRuntimeModuleArg {
+      module: JsRuntimeModule {
+        source: Some(
+          module
+            .generate(compilation)?
+            .to_js_compat_source()
+            .unwrap_or_else(|err| panic!("Failed to generate runtime module source: {err}")),
+        ),
+        module_identifier: module.identifier().to_string(),
+        constructor_name: module.get_constructor_name(),
+        name: module.name().to_string().replace("webpack/runtime/", ""),
+      },
+      chunk: JsChunk::from(chunk),
+    };
+    if let Some(module) = self.function.call(arg).await?
+      && let Some(source) = module.source
+    {
+      let module = compilation
+        .runtime_modules
+        .get_mut(m)
+        .expect("should have module");
+      module.set_custom_source(CompatSource::from(source).boxed())
+    }
+    Ok(())
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
+
+#[async_trait]
+impl AsyncSeries<Compilation> for CompilationProcessAssetsTap {
+  async fn run(&self, compilation: &mut Compilation) -> rspack_error::Result<()> {
+    // SAFETY:
+    // 1. `Compiler` is stored on the heap and pinned in binding crate.
+    // 2. `Compilation` outlives `JsCompilation` and `Compiler` outlives `Compilation`.
+    // 3. `JsCompilation` was replaced everytime a new `Compilation` was created before getting accessed.
+    let compilation = unsafe { JsCompilation::from_compilation(compilation) };
+
+    self.function.call_with_promise(compilation).await
   }
 
   fn stage(&self) -> i32 {
