@@ -19,8 +19,8 @@ module.exports = {
 	},
 	async build(_, compiler) {
 		await new Promise(resolve => {
-			compiler.build(() => {
-				compiler.build(() => {
+			compiler.run(() => {
+				compiler.run(() => {
 					resolve();
 				});
 			});
