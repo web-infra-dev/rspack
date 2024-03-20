@@ -397,19 +397,17 @@ impl BuiltinPlugin {
           .boxed(),
         )
       }
-<<<<<<< HEAD
       // rspack js adapter plugins
       BuiltinPluginName::JsLoaderRspackPlugin => {
         plugins.push(
           JsLoaderResolverPlugin::new(downcast_into::<JsLoaderRunner>(self.options)?).boxed(),
         );
-=======
+      }
       BuiltinPluginName::RSCClientEntryRspackPlugin => {
-        plugins.push(RSCClientEntryRspackPlugin {}.boxed())
->>>>>>> c013a9ab6 (feat: client entry plugin)
+        plugins.push(RSCClientEntryRspackPlugin::default().boxed())
       }
       BuiltinPluginName::RSCClientReferenceManifestRspackPlugin => {
-        plugins.push(RSCClientReferenceManifestRspackPlugin {}.boxed())
+        plugins.push(RSCClientReferenceManifestRspackPlugin::default().boxed())
       }
     }
     Ok(())
