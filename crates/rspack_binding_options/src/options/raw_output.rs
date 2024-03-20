@@ -148,7 +148,7 @@ impl From<RawCrossOriginLoading> for CrossOriginLoading {
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawOutputOptions {
   pub path: String,
   pub clean: bool,

@@ -1,5 +1,3 @@
-mod with_ref;
-
 use std::{fmt::Debug, marker::PhantomData};
 
 use napi::{
@@ -15,7 +13,6 @@ use napi::{
 };
 use oneshot::Receiver;
 use rspack_error::{miette::IntoDiagnostic, Error, Result};
-pub use with_ref::ThreadSafeFunctionWithRef;
 
 use crate::{JsCallback, NapiErrorExt};
 
