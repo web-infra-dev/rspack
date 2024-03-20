@@ -508,10 +508,10 @@ impl BuiltinPlugin {
         ) as Box<dyn Plugin>)
       }
       BuiltinPluginName::RSCClientEntryRspackPlugin => {
-        plugins.push(RSCClientEntryRspackPlugin {}.boxed())
+        plugins.push(RSCClientEntryRspackPlugin::default().boxed())
       }
       BuiltinPluginName::RSCClientReferenceManifestRspackPlugin => {
-        plugins.push(RSCClientReferenceManifestRspackPlugin {}.boxed())
+        plugins.push(RSCClientReferenceManifestRspackPlugin::default().boxed())
       }
     }
     Ok(())
