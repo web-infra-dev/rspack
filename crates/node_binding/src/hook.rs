@@ -4,8 +4,6 @@ use std::sync::RwLock;
 #[derive(PartialEq)]
 pub enum Hook {
   OptimizeChunkModules,
-  OptimizeModules,
-  AfterOptimizeModules,
   OptimizeTree,
   ContextModuleFactoryBeforeResolve,
   ContextModuleFactoryAfterResolve,
@@ -18,8 +16,6 @@ impl From<String> for Hook {
   fn from(s: String) -> Self {
     match s.as_str() {
       "optimizeChunkModules" => Hook::OptimizeChunkModules,
-      "optimizeModules" => Hook::OptimizeModules,
-      "afterOptimizeModules" => Hook::AfterOptimizeModules,
       "optimizeTree" => Hook::OptimizeTree,
       "contextModuleFactoryBeforeResolve" => Hook::ContextModuleFactoryBeforeResolve,
       "contextModuleFactoryAfterResolve" => Hook::ContextModuleFactoryAfterResolve,

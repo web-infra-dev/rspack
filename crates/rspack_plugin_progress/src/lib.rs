@@ -13,7 +13,7 @@ use rspack_core::{
   PluginOptimizeChunksOutput,
 };
 use rspack_error::Result;
-use rspack_hook::{plugin, plugin_hook, AsyncSeries, AsyncSeries2};
+use rspack_hook::{plugin, plugin_hook, AsyncSeries, AsyncSeries2, AsyncSeriesBail};
 
 #[derive(Debug, Clone, Default)]
 pub struct ProgressPluginOptions {
@@ -308,6 +308,18 @@ async fn finish_modules(&self, _compilation: &mut Compilation) -> Result<()> {
   Ok(())
 }
 
+#[plugin_hook(AsyncSeriesBail<Compilation, bool> for ProgressPlugin)]
+async fn optimize_modules(&self, _compilation: &mut Compilation) -> Result<Option<bool>> {
+  self.sealing_hooks_report("module optimization", 7);
+  Ok(None)
+}
+
+#[plugin_hook(AsyncSeries<Compilation> for ProgressPlugin)]
+async fn after_optimize_modules(&self, _compilation: &mut Compilation) -> Result<()> {
+  self.sealing_hooks_report("after module optimization", 8);
+  Ok(())
+}
+
 #[plugin_hook(AsyncSeries<Compilation> for ProgressPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONAL)]
 async fn process_assets(&self, _compilation: &mut Compilation) -> Result<()> {
   self.sealing_hooks_report("asset processing", 35);
@@ -382,6 +394,16 @@ impl Plugin for ProgressPlugin {
     ctx
       .context
       .compilation_hooks
+      .optimize_modules
+      .tap(optimize_modules::new(self));
+    ctx
+      .context
+      .compilation_hooks
+      .after_optimize_modules
+      .tap(after_optimize_modules::new(self));
+    ctx
+      .context
+      .compilation_hooks
       .process_assets
       .tap(process_assets::new(self));
     ctx
@@ -406,16 +428,6 @@ impl Plugin for ProgressPlugin {
   async fn optimize_dependencies(&self, _compilation: &mut Compilation) -> Result<Option<()>> {
     self.sealing_hooks_report("dependencies", 2);
     Ok(None)
-  }
-
-  async fn optimize_modules(&self, _compilation: &mut Compilation) -> Result<()> {
-    self.sealing_hooks_report("module optimization", 7);
-    Ok(())
-  }
-
-  async fn after_optimize_modules(&self, _compilation: &mut Compilation) -> Result<()> {
-    self.sealing_hooks_report("after module optimization", 8);
-    Ok(())
   }
 
   async fn optimize_chunks(

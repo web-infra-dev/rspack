@@ -107,8 +107,8 @@ export class Compilation {
 		childCompiler: tapable.SyncHook<[Compiler, string, number]>;
 		log: tapable.SyncBailHook<[string, LogEntry], true>;
 		additionalAssets: any;
-		optimizeModules: tapable.SyncBailHook<Iterable<Module>, void>;
-		afterOptimizeModules: tapable.SyncHook<Iterable<Module>, void>;
+		optimizeModules: liteTapable.SyncBailHook<Iterable<Module>, void>;
+		afterOptimizeModules: liteTapable.SyncHook<Iterable<Module>, void>;
 		optimizeTree: tapable.AsyncSeriesBailHook<
 			[Iterable<Chunk>, Iterable<Module>],
 			void
@@ -217,8 +217,8 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 				"compilerIndex"
 			]),
 			log: new tapable.SyncBailHook(["origin", "logEntry"]),
-			optimizeModules: new tapable.SyncBailHook(["modules"]),
-			afterOptimizeModules: new tapable.SyncBailHook(["modules"]),
+			optimizeModules: new liteTapable.SyncBailHook(["modules"]),
+			afterOptimizeModules: new liteTapable.SyncBailHook(["modules"]),
 			optimizeTree: new tapable.AsyncSeriesBailHook(["chunks", "modules"]),
 			optimizeChunkModules: new tapable.AsyncSeriesBailHook([
 				"chunks",

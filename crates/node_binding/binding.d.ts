@@ -316,8 +316,6 @@ export interface JsExecuteModuleResult {
 }
 
 export interface JsHooks {
-  optimizeModules: (compilation: JsCompilation) => void
-  afterOptimizeModules: (compilation: JsCompilation) => void
   optimizeTree: () => void
   optimizeChunkModules: (compilation: JsCompilation) => void
   afterResolve: (data: AfterResolveData) => Promise<(boolean | void | AfterResolveCreateData)[]>
@@ -1296,6 +1294,8 @@ export interface RegisterJsTaps {
   registerCompilationExecuteModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsExecuteModuleArg) => void); stage: number; }>
   registerCompilationRuntimeModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRuntimeModuleArg) => JsRuntimeModule | undefined); stage: number; }>
   registerCompilationFinishModulesTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => Promise<void>); stage: number; }>
+  registerCompilationOptimizeModulesTaps: (stages: Array<number>) => Array<{ function: (() => boolean | undefined); stage: number; }>
+  registerCompilationAfterOptimizeModulesTaps: (stages: Array<number>) => Array<{ function: (() => void); stage: number; }>
   registerCompilationChunkAssetTaps: (stages: Array<number>) => Array<{ function: ((arg: JsChunkAssetArgs) => void); stage: number; }>
   registerCompilationProcessAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => Promise<void>); stage: number; }>
   registerCompilationAfterProcessAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>

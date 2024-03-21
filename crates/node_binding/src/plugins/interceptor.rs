@@ -12,13 +12,14 @@ use rspack_binding_values::{
 };
 use rspack_core::{
   rspack_sources::SourceExt, AssetEmittedInfo, BeforeResolveArgs, BoxModule, Chunk, ChunkUkey,
-  CodeGenerationResults, Compilation, CompilationAfterProcessAssetsHook,
-  CompilationBuildModuleHook, CompilationChunkAssetHook, CompilationExecuteModuleHook,
-  CompilationFinishModulesHook, CompilationParams, CompilationProcessAssetsHook,
-  CompilationRuntimeModuleHook, CompilationStillValidModuleHook, CompilationSucceedModuleHook,
-  CompilerAfterEmitHook, CompilerAssetEmittedHook, CompilerCompilationHook, CompilerEmitHook,
-  CompilerFinishMakeHook, CompilerMakeHook, CompilerShouldEmitHook, CompilerThisCompilationHook,
-  ExecuteModuleId, MakeParam, ModuleIdentifier, NormalModuleFactoryBeforeResolveHook,
+  CodeGenerationResults, Compilation, CompilationAfterOptimizeModulesHook,
+  CompilationAfterProcessAssetsHook, CompilationBuildModuleHook, CompilationChunkAssetHook,
+  CompilationExecuteModuleHook, CompilationFinishModulesHook, CompilationOptimizeModulesHook,
+  CompilationParams, CompilationProcessAssetsHook, CompilationRuntimeModuleHook,
+  CompilationStillValidModuleHook, CompilationSucceedModuleHook, CompilerAfterEmitHook,
+  CompilerAssetEmittedHook, CompilerCompilationHook, CompilerEmitHook, CompilerFinishMakeHook,
+  CompilerMakeHook, CompilerShouldEmitHook, CompilerThisCompilationHook, ExecuteModuleId,
+  MakeParam, ModuleIdentifier, NormalModuleFactoryBeforeResolveHook,
 };
 use rspack_hook::{
   AsyncParallel3, AsyncSeries, AsyncSeries2, AsyncSeries3, AsyncSeriesBail, Hook, Interceptor,
@@ -305,6 +306,12 @@ pub struct RegisterJsTaps {
   )]
   pub register_compilation_finish_modules_taps: RegisterFunction<JsCompilation, Promise<()>>,
   #[napi(
+    ts_type = "(stages: Array<number>) => Array<{ function: (() => boolean | undefined); stage: number; }>"
+  )]
+  pub register_compilation_optimize_modules_taps: RegisterFunction<(), Option<bool>>,
+  #[napi(ts_type = "(stages: Array<number>) => Array<{ function: (() => void); stage: number; }>")]
+  pub register_compilation_after_optimize_modules_taps: RegisterFunction<(), ()>,
+  #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsChunkAssetArgs) => void); stage: number; }>"
   )]
   pub register_compilation_chunk_asset_taps: RegisterFunction<JsChunkAssetArgs, ()>,
@@ -401,6 +408,18 @@ define_register!(
 define_register!(
   RegisterCompilationFinishModulesTaps,
   tap = CompilationFinishModulesTap<JsCompilation, Promise<()>> @ CompilationFinishModulesHook,
+  cache = false,
+  sync = false,
+);
+define_register!(
+  RegisterCompilationOptimizeModulesTaps,
+  tap = CompilationOptimizeModulesTap<(), Option<bool>> @ CompilationOptimizeModulesHook,
+  cache = true,
+  sync = false,
+);
+define_register!(
+  RegisterCompilationAfterOptimizeModulesTaps,
+  tap = CompilationAfterOptimizeModulesTap<(), ()> @ CompilationAfterOptimizeModulesHook,
   cache = false,
   sync = false,
 );
@@ -653,6 +672,28 @@ impl AsyncSeries<Compilation> for CompilationFinishModulesTap {
     let compilation = unsafe { JsCompilation::from_compilation(compilation) };
 
     self.function.call_with_promise(compilation).await
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
+
+#[async_trait]
+impl AsyncSeriesBail<Compilation, bool> for CompilationOptimizeModulesTap {
+  async fn run(&self, _compilation: &mut Compilation) -> rspack_error::Result<Option<bool>> {
+    self.function.call(()).await
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
+
+#[async_trait]
+impl AsyncSeries<Compilation> for CompilationAfterOptimizeModulesTap {
+  async fn run(&self, _compilation: &mut Compilation) -> rspack_error::Result<()> {
+    self.function.call(()).await
   }
 
   fn stage(&self) -> i32 {
