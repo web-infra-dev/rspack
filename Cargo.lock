@@ -3818,6 +3818,7 @@ dependencies = [
  "sugar_path",
  "swc_core",
  "swc_node_comments",
+ "tracing",
  "url",
 ]
 
