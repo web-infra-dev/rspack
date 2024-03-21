@@ -28,24 +28,24 @@ impl Plugin for NamedChunkIdsPlugin {
   }
 
   fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_error::Result<()> {
+    // set default value
+    for chunk in compilation.chunk_by_ukey.values_mut() {
+      if let Some(name) = &chunk.name {
+        chunk.id = Some(name.clone());
+        chunk.ids = vec![name.clone()];
+      }
+    }
+
     let mut used_ids = get_used_chunk_ids(compilation);
     let chunk_graph = &compilation.chunk_graph;
-    let module_graph = &compilation.module_graph;
+    let module_graph = compilation.get_module_graph();
     let context = self
       .context
       .clone()
       .unwrap_or_else(|| compilation.options.context.to_string());
-
     let chunks = compilation
       .chunk_by_ukey
-      .values_mut()
-      .map(|chunk| {
-        if let Some(name) = &chunk.name {
-          chunk.id = Some(name.clone());
-          chunk.ids = vec![name.clone()];
-        }
-        chunk
-      })
+      .values()
       .filter(|chunk| chunk.id.is_none())
       .map(|chunk| chunk as &Chunk)
       .collect::<Vec<_>>();

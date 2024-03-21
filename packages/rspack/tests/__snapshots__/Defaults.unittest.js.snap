@@ -1,28 +1,28 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`snapshots should have the correct base config 1`] = `
-{
+Object {
   "bail": false,
-  "builtins": {},
+  "builtins": Object {},
   "cache": false,
   "context": "<cwd>",
   "dependencies": undefined,
   "devServer": undefined,
   "devtool": false,
-  "entry": {
-    "main": {
-      "import": [
+  "entry": Object {
+    "main": Object {
+      "import": Array [
         "./src",
       ],
     },
   },
-  "experiments": {
+  "experiments": Object {
     "asyncWebAssembly": false,
     "css": true,
     "lazyCompilation": false,
     "newSplitChunks": true,
-    "rspackFuture": {
-      "bundlerInfo": {
+    "rspackFuture": Object {
+      "bundlerInfo": Object {
         "force": false,
         "version": "$version$",
       },
@@ -32,7 +32,7 @@ exports[`snapshots should have the correct base config 1`] = `
     "topLevelAwait": true,
   },
   "externals": undefined,
-  "externalsPresets": {
+  "externalsPresets": Object {
     "electron": false,
     "electronMain": false,
     "electronPreload": false,
@@ -42,26 +42,26 @@ exports[`snapshots should have the correct base config 1`] = `
   },
   "externalsType": "var",
   "ignoreWarnings": undefined,
-  "infrastructureLogging": {},
+  "infrastructureLogging": Object {},
   "mode": "none",
-  "module": {
-    "defaultRules": [
-      {
+  "module": Object {
+    "defaultRules": Array [
+      Object {
         "mimetype": "application/node",
         "type": "javascript/auto",
       },
-      {
+      Object {
         "test": /\\\\\\.json\\$/i,
         "type": "json",
       },
-      {
+      Object {
         "mimetype": "application/json",
         "type": "json",
       },
-      {
-        "resolve": {
-          "byDependency": {
-            "esm": {
+      Object {
+        "resolve": Object {
+          "byDependency": Object {
+            "esm": Object {
               "fullySpecified": true,
             },
           },
@@ -69,13 +69,13 @@ exports[`snapshots should have the correct base config 1`] = `
         "test": /\\\\\\.mjs\\$/i,
         "type": "javascript/esm",
       },
-      {
-        "descriptionData": {
+      Object {
+        "descriptionData": Object {
           "type": "module",
         },
-        "resolve": {
-          "byDependency": {
-            "esm": {
+        "resolve": Object {
+          "byDependency": Object {
+            "esm": Object {
               "fullySpecified": true,
             },
           },
@@ -83,44 +83,44 @@ exports[`snapshots should have the correct base config 1`] = `
         "test": /\\\\\\.js\\$/i,
         "type": "javascript/esm",
       },
-      {
+      Object {
         "test": /\\\\\\.cjs\\$/i,
         "type": "javascript/dynamic",
       },
-      {
-        "descriptionData": {
+      Object {
+        "descriptionData": Object {
           "type": "commonjs",
         },
         "test": /\\\\\\.js\\$/i,
         "type": "javascript/dynamic",
       },
-      {
-        "mimetype": {
-          "or": [
+      Object {
+        "mimetype": Object {
+          "or": Array [
             "text/javascript",
             "application/javascript",
           ],
         },
-        "resolve": {
-          "byDependency": {
-            "esm": {
+        "resolve": Object {
+          "byDependency": Object {
+            "esm": Object {
               "fullySpecified": true,
             },
           },
         },
         "type": "javascript/esm",
       },
-      {
-        "oneOf": [
-          {
-            "resolve": {
+      Object {
+        "oneOf": Array [
+          Object {
+            "resolve": Object {
               "fullySpecified": true,
             },
             "test": /\\\\\\.module\\\\\\.css\\$/i,
             "type": "css/module",
           },
-          {
-            "resolve": {
+          Object {
+            "resolve": Object {
               "fullySpecified": true,
               "preferRelative": true,
             },
@@ -129,63 +129,64 @@ exports[`snapshots should have the correct base config 1`] = `
         ],
         "test": /\\\\\\.css\\$/i,
       },
-      {
+      Object {
         "mimetype": "text/css+module",
-        "resolve": {
+        "resolve": Object {
           "fullySpecified": true,
         },
         "type": "css/module",
       },
-      {
+      Object {
         "mimetype": "text/css",
-        "resolve": {
+        "resolve": Object {
           "fullySpecified": true,
           "preferRelative": true,
         },
         "type": "css",
       },
-      {
+      Object {
         "dependency": "url",
-        "oneOf": [
-          {
+        "oneOf": Array [
+          Object {
             "scheme": /\\^data\\$/,
             "type": "asset/inline",
           },
-          {
+          Object {
             "type": "asset/resource",
           },
         ],
       },
     ],
-    "generator": {},
-    "parser": {
-      "asset": {
-        "dataUrlCondition": {
+    "generator": Object {},
+    "noParse": undefined,
+    "parser": Object {
+      "asset": Object {
+        "dataUrlCondition": Object {
           "maxSize": 8096,
         },
       },
-      "javascript": {
+      "javascript": Object {
         "dynamicImportMode": "lazy",
       },
     },
-    "rules": [],
+    "rules": Array [],
   },
   "name": undefined,
-  "node": {
+  "node": Object {
     "__dirname": "warn-mock",
     "__filename": "warn-mock",
     "global": "warn",
   },
-  "optimization": {
+  "optimization": Object {
     "chunkIds": "named",
     "concatenateModules": false,
     "innerGraph": false,
     "mangleExports": false,
     "mergeDuplicateChunks": true,
     "minimize": false,
-    "minimizer": [
+    "minimizer": Array [
       SwcJsMinimizerRspackPlugin {
-        "_options": {
+        "_options": Object {
           "compress": "{\\"passes\\":1,\\"pure_funcs\\":[],\\"drop_console\\":false}",
           "exclude": undefined,
           "extractComments": undefined,
@@ -212,16 +213,16 @@ exports[`snapshots should have the correct base config 1`] = `
     "removeEmptyChunks": true,
     "runtimeChunk": false,
     "sideEffects": "flag",
-    "splitChunks": {
+    "splitChunks": Object {
       "automaticNameDelimiter": "-",
-      "cacheGroups": {
-        "default": {
+      "cacheGroups": Object {
+        "default": Object {
           "idHint": "",
           "minChunks": 2,
           "priority": -20,
           "reuseExistingChunk": true,
         },
-        "defaultVendors": {
+        "defaultVendors": Object {
           "idHint": "vendors",
           "priority": -10,
           "reuseExistingChunk": true,
@@ -237,7 +238,7 @@ exports[`snapshots should have the correct base config 1`] = `
     },
     "usedExports": false,
   },
-  "output": {
+  "output": Object {
     "assetModuleFilename": "[hash][ext][query]",
     "asyncChunks": true,
     "chunkFilename": "[name].js",
@@ -251,12 +252,12 @@ exports[`snapshots should have the correct base config 1`] = `
     "devtoolFallbackModuleFilenameTemplate": undefined,
     "devtoolModuleFilenameTemplate": undefined,
     "devtoolNamespace": "@rspack/core",
-    "enabledChunkLoadingTypes": [
+    "enabledChunkLoadingTypes": Array [
       "jsonp",
       "import-scripts",
     ],
-    "enabledLibraryTypes": [],
-    "enabledWasmLoadingTypes": [
+    "enabledLibraryTypes": Array [],
+    "enabledWasmLoadingTypes": Array [
       "fetch",
     ],
     "filename": "[name].js",
@@ -285,109 +286,109 @@ exports[`snapshots should have the correct base config 1`] = `
     "workerPublicPath": "",
     "workerWasmLoading": "fetch",
   },
-  "plugins": [],
+  "plugins": Array [],
   "profile": false,
-  "resolve": {
-    "aliasFields": [],
-    "byDependency": {
-      "commonjs": {
-        "aliasFields": [
+  "resolve": Object {
+    "aliasFields": Array [],
+    "byDependency": Object {
+      "commonjs": Object {
+        "aliasFields": Array [
           "browser",
         ],
-        "conditionNames": [
+        "conditionNames": Array [
           "require",
           "module",
           "...",
         ],
-        "extensions": [
+        "extensions": Array [
           ".js",
           ".json",
           ".wasm",
         ],
-        "mainFields": [
+        "mainFields": Array [
           "browser",
           "module",
           "...",
         ],
       },
-      "esm": {
-        "aliasFields": [
+      "esm": Object {
+        "aliasFields": Array [
           "browser",
         ],
-        "conditionNames": [
+        "conditionNames": Array [
           "import",
           "module",
           "...",
         ],
-        "extensions": [
+        "extensions": Array [
           ".js",
           ".json",
           ".wasm",
         ],
-        "mainFields": [
+        "mainFields": Array [
           "browser",
           "module",
           "...",
         ],
       },
-      "unknown": {
-        "aliasFields": [
+      "unknown": Object {
+        "aliasFields": Array [
           "browser",
         ],
-        "conditionNames": [
+        "conditionNames": Array [
           "require",
           "module",
           "...",
         ],
-        "extensions": [
+        "extensions": Array [
           ".js",
           ".json",
           ".wasm",
         ],
-        "mainFields": [
+        "mainFields": Array [
           "browser",
           "module",
           "...",
         ],
       },
-      "url": {
+      "url": Object {
         "preferRelative": true,
       },
-      "wasm": {
-        "aliasFields": [
+      "wasm": Object {
+        "aliasFields": Array [
           "browser",
         ],
-        "conditionNames": [
+        "conditionNames": Array [
           "import",
           "module",
           "...",
         ],
-        "extensions": [
+        "extensions": Array [
           ".js",
           ".json",
           ".wasm",
         ],
-        "mainFields": [
+        "mainFields": Array [
           "browser",
           "module",
           "...",
         ],
       },
-      "worker": {
-        "aliasFields": [
+      "worker": Object {
+        "aliasFields": Array [
           "browser",
         ],
-        "conditionNames": [
+        "conditionNames": Array [
           "import",
           "module",
           "...",
         ],
-        "extensions": [
+        "extensions": Array [
           ".js",
           ".json",
           ".wasm",
         ],
-        "mainFields": [
+        "mainFields": Array [
           "browser",
           "module",
           "...",
@@ -395,58 +396,58 @@ exports[`snapshots should have the correct base config 1`] = `
         "preferRelative": true,
       },
     },
-    "conditionNames": [
+    "conditionNames": Array [
       "webpack",
       "production",
       "browser",
     ],
-    "exportsFields": [
+    "exportsFields": Array [
       "exports",
     ],
-    "extensions": [],
-    "mainFields": [
+    "extensions": Array [],
+    "mainFields": Array [
       "main",
     ],
-    "mainFiles": [
+    "mainFiles": Array [
       "index",
     ],
-    "modules": [
+    "modules": Array [
       "node_modules",
     ],
   },
-  "resolveLoader": {
-    "conditionNames": [
+  "resolveLoader": Object {
+    "conditionNames": Array [
       "loader",
       "require",
       "node",
     ],
-    "exportsFields": [
+    "exportsFields": Array [
       "exports",
     ],
-    "extensions": [
+    "extensions": Array [
       ".js",
     ],
-    "mainFields": [
+    "mainFields": Array [
       "loader",
       "main",
     ],
-    "mainFiles": [
+    "mainFiles": Array [
       "index",
     ],
   },
-  "snapshot": {
-    "module": {
+  "snapshot": Object {
+    "module": Object {
       "hash": false,
       "timestamp": true,
     },
-    "resolve": {
+    "resolve": Object {
       "hash": false,
       "timestamp": true,
     },
   },
-  "stats": {},
+  "stats": Object {},
   "target": "web",
   "watch": false,
-  "watchOptions": {},
+  "watchOptions": Object {},
 }
 `;

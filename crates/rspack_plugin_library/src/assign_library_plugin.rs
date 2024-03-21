@@ -190,6 +190,7 @@ impl Plugin for AssignLibraryPlugin {
   }
 
   async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
+    let mut runtime_info = Vec::with_capacity(compilation.entries.len());
     for (entry_name, entry) in compilation.entries.iter() {
       let EntryData {
         dependencies,
@@ -201,9 +202,11 @@ impl Plugin for AssignLibraryPlugin {
         .library
         .as_ref()
         .or_else(|| compilation.options.output.library.as_ref());
-      let module_of_last_dep = dependencies
-        .last()
-        .and_then(|dep| compilation.module_graph.get_module(dep));
+      let module_of_last_dep = dependencies.last().and_then(|dep| {
+        compilation
+          .get_module_graph()
+          .get_module_by_dependency_id(dep)
+      });
       let Some(module_of_last_dep) = module_of_last_dep else {
         continue;
       };
@@ -215,20 +218,32 @@ impl Plugin for AssignLibraryPlugin {
         .as_ref()
         .and_then(|item| item.first())
       {
+        runtime_info.push((
+          runtime,
+          Some(export.clone()),
+          module_of_last_dep.identifier(),
+        ));
+      } else {
+        runtime_info.push((runtime, None, module_of_last_dep.identifier()));
+      }
+    }
+
+    for (runtime, export, module_identifier) in runtime_info {
+      if let Some(export) = export {
         let exports_info = compilation
-          .module_graph
-          .get_export_info(module_of_last_dep.identifier(), &(export.as_str()).into());
+          .get_module_graph_mut()
+          .get_export_info(module_identifier, &(export.as_str()).into());
         exports_info.set_used(
-          &mut compilation.module_graph,
+          compilation.get_module_graph_mut(),
           UsageState::Used,
           Some(&runtime),
         );
       } else {
         let exports_info_id = compilation
-          .module_graph
-          .get_exports_info(&module_of_last_dep.identifier())
+          .get_module_graph()
+          .get_exports_info(&module_identifier)
           .id;
-        exports_info_id.set_used_in_unknown_way(&mut compilation.module_graph, Some(&runtime));
+        exports_info_id.set_used_in_unknown_way(compilation.get_module_graph_mut(), Some(&runtime));
       }
     }
     Ok(())

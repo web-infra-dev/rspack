@@ -1,3 +1,5 @@
+const root = require("path").resolve(__dirname, "../");
+
 module.exports = {
 	"forceExit": false,
 	"setupFiles": [
@@ -132,7 +134,7 @@ module.exports = {
 		"<rootDir>/.eslintcache"
 	],
 	"transformIgnorePatterns": [
-		"<rootDir>"
+		root
 	],
 	"coverageDirectory": "<rootDir>/coverage",
 	"coveragePathIgnorePatterns": [

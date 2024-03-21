@@ -208,14 +208,14 @@ impl Dependency for CommonJsExportRequireDependency {
           }),
           ..Default::default()
         })]),
-        dependencies: Some(vec![from.module_identifier]),
+        dependencies: Some(vec![*from.module_identifier()]),
         ..Default::default()
       })
     } else if self.names.is_empty() {
       let Some(from) = mg.connection_by_dependency(&self.id) else {
         return None;
       };
-      if let Some(reexport_info) = self.get_star_reexports(mg, None, &from.module_identifier) {
+      if let Some(reexport_info) = self.get_star_reexports(mg, None, from.module_identifier()) {
         Some(ExportsSpec {
           exports: ExportsOfExportsSpec::Array(
             reexport_info
@@ -233,7 +233,7 @@ impl Dependency for CommonJsExportRequireDependency {
               })
               .collect_vec(),
           ),
-          dependencies: Some(vec![from.module_identifier]),
+          dependencies: Some(vec![*from.module_identifier()]),
           ..Default::default()
         })
       } else {
@@ -245,7 +245,7 @@ impl Dependency for CommonJsExportRequireDependency {
             None
           },
           can_mangle: Some(false),
-          dependencies: Some(vec![from.module_identifier]),
+          dependencies: Some(vec![*from.module_identifier()]),
           ..Default::default()
         })
       }
@@ -286,10 +286,10 @@ impl DependencyTemplate for CommonJsExportRequireDependency {
       ..
     } = code_generatable_context;
 
-    let mg = &compilation.module_graph;
+    let mg = &compilation.get_module_graph();
 
     let module = compilation
-      .module_graph
+      .get_module_graph()
       .module_by_identifier(&module.identifier())
       .expect("should have mgm");
 
@@ -323,7 +323,7 @@ impl DependencyTemplate for CommonJsExportRequireDependency {
       false,
     );
 
-    if let Some(imported_module) = mg.get_module(&self.id) {
+    if let Some(imported_module) = mg.get_module_by_dependency_id(&self.id) {
       let ids = self.get_ids(mg);
       if let Some(used_imported) = mg
         .get_exports_info(&imported_module.identifier())

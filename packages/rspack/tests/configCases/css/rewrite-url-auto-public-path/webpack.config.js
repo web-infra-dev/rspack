@@ -35,7 +35,7 @@ module.exports = {
 								"bundle0.js",
 								new ConcatSource(
 									new RawSource(
-										`globalThis = { document: { currentScript: { src: "/" } } };\n`
+										`Object.assign(globalThis, { document: { currentScript: { src: "/" } } });\n`
 									),
 									assets["bundle0.js"]
 								)

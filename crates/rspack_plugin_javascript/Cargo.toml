@@ -19,6 +19,7 @@ num-bigint = { version = "0.4.4" }
 once_cell = { workspace = true }
 rayon = { workspace = true }
 regex = { workspace = true }
+ropey = "1.6.1"
 rspack_ast = { path = "../rspack_ast" }
 rspack_core = { path = "../rspack_core" }
 rspack_error = { path = "../rspack_error" }

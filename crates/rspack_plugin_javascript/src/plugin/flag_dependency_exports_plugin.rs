@@ -1,6 +1,7 @@
 use std::collections::hash_map::Entry;
 use std::collections::VecDeque;
 
+use itertools::Itertools;
 use rspack_core::{
   BuildMetaExportsType, Compilation, DependenciesBlock, DependencyId, ExportInfoProvided,
   ExportNameOrSpec, ExportsInfoId, ExportsOfExportsSpec, ExportsSpec, ModuleGraph,
@@ -30,11 +31,12 @@ impl<'a> FlagDependencyExportsProxy<'a> {
   pub fn apply(&mut self) {
     let mut q = VecDeque::new();
 
-    // take the ownership of module_identifier_to_module_graph_module to avoid borrow ref and
-    // mut ref of `ModuleGraph` at the same time
-    let module_graph_modules =
-      std::mem::take(&mut self.mg.module_identifier_to_module_graph_module);
-    for mgm in module_graph_modules.values() {
+    let module_ids = self.mg.modules().keys().cloned().collect_vec();
+    for module_id in module_ids {
+      let mgm = self
+        .mg
+        .module_graph_module_by_identifier(&module_id)
+        .expect("mgm should exist");
       let exports_id = mgm.exports;
 
       let module = self
@@ -64,15 +66,15 @@ impl<'a> FlagDependencyExportsProxy<'a> {
         .unwrap_or_default()
       {
         exports_id.set_has_provide_info(self.mg);
-        q.push_back(mgm.module_identifier);
+        q.push_back(module_id);
         continue;
       }
 
       exports_id.set_has_provide_info(self.mg);
-      q.push_back(mgm.module_identifier);
+      q.push_back(module_id);
       // TODO: mem cache
     }
-    self.mg.module_identifier_to_module_graph_module = module_graph_modules;
+
     while let Some(module_id) = q.pop_front() {
       self.changed = false;
       self.current_module_id = module_id;
@@ -169,10 +171,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
     if let Some(hide_export) = export_desc.hide_export {
       for name in hide_export.iter() {
         let from_exports_info_id = exports_info_id.get_export_info(name, self.mg);
-        let export_info = self
-          .mg
-          .export_info_map
-          .get_mut(*from_exports_info_id as usize);
+        let export_info = self.mg.get_export_info_mut_by_id(&from_exports_info_id);
         export_info.unset_target(&dep_id);
       }
     }
@@ -183,7 +182,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
           global_can_mangle.unwrap_or_default(),
           export_desc.exclude_exports,
           global_from.map(|_| dep_id),
-          global_from.cloned(),
+          global_from.map(|_| dep_id),
           *global_priority,
         ) {
           self.changed = true;
@@ -250,7 +249,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
               .unwrap_or(global_export_info.terminal_binding),
             spec.exports.as_ref(),
             if spec.from.is_some() {
-              spec.from
+              spec.from.clone()
             } else {
               global_export_info.from.cloned()
             },
@@ -308,7 +307,12 @@ impl<'a> FlagDependencyExportsProxy<'a> {
           } else {
             Some(&fallback)
           };
-          export_info_mut.set_target(Some(dep_id), Some(from), export_name, priority)
+          export_info_mut.set_target(
+            Some(dep_id),
+            Some(from.dependency_id),
+            export_name,
+            priority,
+          )
         };
         self.changed |= changed;
       }
@@ -333,7 +337,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
         }
       }
 
-      let export_info = self.mg.export_info_map.get_mut(*export_info_id as usize);
+      let export_info = self.mg.get_export_info_mut_by_id(&export_info_id);
       if export_info.exports_info_owned {
         let changed = export_info
           .exports_info
@@ -369,7 +373,7 @@ impl Plugin for FlagDependencyExportsPlugin {
   }
 
   async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
-    let mut proxy = FlagDependencyExportsProxy::new(&mut compilation.module_graph);
+    let mut proxy = FlagDependencyExportsProxy::new(compilation.get_module_graph_mut());
     proxy.apply();
     Ok(())
   }

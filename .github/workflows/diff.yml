@@ -25,7 +25,7 @@ jobs:
     uses: ./.github/workflows/reusable-build.yml
     with:
       profile: "debug"
-      ref: refs/pull/${{ github.event.issue.number || github.event.pull_request.number }}/head
+      ref: refs/pull/${{ github.event.issue.number || github.event.pull_request.number }}/merge
       target: ${{ matrix.array.target }}
       runner: ${{ matrix.array.runner }}
       test: false
@@ -39,7 +39,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
-          ref: refs/pull/${{ github.event.issue.number || github.event.pull_request.number }}/head
+          ref: refs/pull/${{ github.event.issue.number || github.event.pull_request.number }}/merge
 
       - name: Pnpm Cache
         uses: ./.github/actions/pnpm-cache

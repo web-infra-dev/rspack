@@ -35,8 +35,12 @@ runs:
       id: pnpm-cache
       shell: bash
       run: |
-        # set cache-dir to .cache
-        pnpm config set store-dir ~/.cache/pnpm/$(pnpm -v) --location project
+        # set store-dir to $(pnpm config get store-dir)/$(pnpm -v)
+        global_store_path=$(pnpm config get store-dir)
+        if [ -z $global_store_path ]; then
+          global_store_path=~/.cache/pnpm
+        fi
+        pnpm config set store-dir $global_store_path/$(pnpm -v) --location project
         echo "STORE_PATH is $(pnpm store path)"
         echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
 

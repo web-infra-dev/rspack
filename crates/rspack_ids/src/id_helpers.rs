@@ -40,7 +40,7 @@ pub fn get_used_module_ids_and_modules(
   //   }
 
   compilation
-    .module_graph
+    .get_module_graph()
     .modules()
     .values()
     .for_each(|module| {

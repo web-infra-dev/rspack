@@ -230,6 +230,7 @@ impl<'parser> JavascriptParser<'parser> {
       rspack_core::needs_refactor::DEFAULT_WORKER_SYNTAX,
       worker_syntax_list,
     )));
+    plugins.push(Box::new(parser_plugin::CompatibilityPlugin));
 
     if module_type.is_js_auto() || module_type.is_js_dynamic() {
       plugins.push(Box::new(parser_plugin::CommonJsImportsParserPlugin));
@@ -265,7 +266,6 @@ impl<'parser> JavascriptParser<'parser> {
       }
       plugins.push(Box::new(parser_plugin::WebpackIsIncludedPlugin));
       plugins.push(Box::new(parser_plugin::ExportsInfoApiPlugin));
-      plugins.push(Box::new(parser_plugin::CompatibilityPlugin));
       plugins.push(Box::new(parser_plugin::APIPlugin::new(
         compiler_options.output.module,
       )));

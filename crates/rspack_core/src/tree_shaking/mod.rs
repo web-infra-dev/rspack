@@ -75,6 +75,7 @@ bitflags::bitflags! {
 }
 
 bitflags::bitflags! {
+  #[derive(Debug)]
   pub struct ModuleUsedType: u8 {
     const DIRECT = 1 << 0;
     const REEXPORT = 1 << 1;

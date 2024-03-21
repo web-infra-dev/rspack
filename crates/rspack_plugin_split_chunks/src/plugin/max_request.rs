@@ -38,9 +38,9 @@ impl SplitChunksPlugin {
         // the chunk is 1.
 
         // If the code-splitting chunks is split by `SplitChunksPlugin`, to load the code-splitting chunk
-        // with correct semantics, we need to also load the chunks derive from the the code-splitting chunk.
+        // with correct semantics, we need to also load the chunks derive from the code-splitting chunk.
 
-        // Chunks derive from the the code-splitting chunk is in the same ChunkGroup with the split chunk.
+        // Chunks derive from the code-splitting chunk is in the same ChunkGroup with the split chunk.
 
         // So the number of requests is the length of `ChunkGroup#chunks` which belong to the split code-splitting
         // chunk.

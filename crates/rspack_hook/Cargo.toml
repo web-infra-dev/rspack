@@ -9,6 +9,7 @@ version    = "0.1.0"
 
 [dependencies]
 async-trait         = { workspace = true }
-futures-concurrency = "7.4.3"
+futures-concurrency = "7.5.0"
 rspack_error        = { path = "../rspack_error" }
+rspack_macros       = { path = "../rspack_macros" }
 rustc-hash          = { workspace = true }

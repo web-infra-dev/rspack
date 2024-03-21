@@ -7,7 +7,6 @@ use std::{
   sync::{Arc, Mutex},
 };
 
-use async_trait::async_trait;
 use dashmap::DashSet;
 use glob::{MatchOptions, Pattern as GlobPattern};
 use regex::Regex;
@@ -15,8 +14,9 @@ use rspack_core::{
   rspack_sources::RawSource, AssetInfo, AssetInfoRelated, Compilation, CompilationAsset,
   CompilationLogger, Filename, Logger, PathData, Plugin,
 };
-use rspack_error::{Diagnostic, DiagnosticError, Error, ErrorExt};
+use rspack_error::{Diagnostic, DiagnosticError, Error, ErrorExt, Result};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHashDigest};
+use rspack_hook::{plugin, plugin_hook, AsyncSeries};
 use sugar_path::{AsPath, SugarPath};
 
 #[derive(Debug, Clone)]
@@ -96,6 +96,7 @@ pub struct RunPatternResult {
   pub priority: i32,
 }
 
+#[plugin]
 #[derive(Debug)]
 pub struct CopyRspackPlugin {
   pub patterns: Vec<CopyPattern>,
@@ -108,7 +109,7 @@ lazy_static::lazy_static! {
 
 impl CopyRspackPlugin {
   pub fn new(patterns: Vec<CopyPattern>) -> Self {
-    Self { patterns }
+    Self::new_inner(patterns)
   }
 
   fn get_content_hash(
@@ -503,102 +504,106 @@ impl CopyRspackPlugin {
   }
 }
 
-#[async_trait]
-impl Plugin for CopyRspackPlugin {
-  fn name(&self) -> &'static str {
-    "rspack.CopyRspackPlugin"
-  }
+#[plugin_hook(AsyncSeries<Compilation> for CopyRspackPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONAL)]
+async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+  let logger = compilation.get_logger("rspack.CopyRspackPlugin");
+  let start = logger.time("run pattern");
+  let file_dependencies = DashSet::default();
+  let context_dependencies = DashSet::default();
+  let diagnostics = Mutex::new(Vec::new());
 
-  async fn process_assets_stage_additional(
-    &self,
-    _ctx: rspack_core::PluginContext,
-    mut args: rspack_core::ProcessAssetsArgs<'_>,
-  ) -> rspack_core::PluginProcessAssetsOutput {
-    let logger = args.compilation.get_logger(self.name());
-    let start = logger.time("run pattern");
-    let file_dependencies = DashSet::default();
-    let context_dependencies = DashSet::default();
-    let diagnostics = Mutex::new(Vec::new());
+  let mut copied_result: Vec<(i32, RunPatternResult)> = self
+    .patterns
+    .iter()
+    .enumerate()
+    .map(|(index, pattern)| {
+      let mut pattern = pattern.clone();
+      if pattern.context.is_none() {
+        pattern.context = Some(compilation.options.context.as_path().into());
+      } else if let Some(ctx) = pattern.context.clone()
+        && !ctx.is_absolute()
+      {
+        pattern.context = Some(compilation.options.context.as_path().join(ctx))
+      };
 
-    let mut copied_result: Vec<(i32, RunPatternResult)> = self
-      .patterns
-      .iter()
-      .enumerate()
-      .map(|(index, pattern)| {
-        let mut pattern = pattern.clone();
-        if pattern.context.is_none() {
-          pattern.context = Some(args.compilation.options.context.as_path().into());
-        } else if let Some(ctx) = pattern.context.clone()
-          && !ctx.is_absolute()
-        {
-          pattern.context = Some(args.compilation.options.context.as_path().join(ctx))
-        };
+      CopyRspackPlugin::run_patter(
+        compilation,
+        &pattern,
+        index,
+        &file_dependencies,
+        &context_dependencies,
+        &diagnostics,
+        &logger,
+      )
+    })
+    .collect::<Vec<_>>()
+    .into_iter()
+    .flatten()
+    .flat_map(|item| {
+      item
+        .into_iter()
+        .flatten()
+        .map(|item| (item.priority, item))
+        .collect::<Vec<_>>()
+    })
+    .collect();
+  logger.time_end(start);
 
-        Self::run_patter(
-          args.compilation,
-          &pattern,
-          index,
-          &file_dependencies,
-          &context_dependencies,
-          &diagnostics,
-          &logger,
-        )
-      })
-      .collect::<Vec<_>>()
-      .into_iter()
-      .flatten()
-      .flat_map(|item| {
-        item
-          .into_iter()
-          .flatten()
-          .map(|item| (item.priority, item))
-          .collect::<Vec<_>>()
-      })
-      .collect();
-    logger.time_end(start);
+  let start = logger.time("emit assets");
+  compilation.file_dependencies.extend(file_dependencies);
+  compilation
+    .context_dependencies
+    .extend(context_dependencies);
+  compilation.push_batch_diagnostic(
+    diagnostics
+      .lock()
+      .expect("failed to obtain lock of `diagnostics`")
+      .drain(..)
+      .collect(),
+  );
 
-    let start = logger.time("emit assets");
-    let compilation = &mut args.compilation;
-    compilation.file_dependencies.extend(file_dependencies);
-    compilation
-      .context_dependencies
-      .extend(context_dependencies);
-    compilation.push_batch_diagnostic(
-      diagnostics
-        .lock()
-        .expect("failed to obtain lock of `diagnostics`")
-        .drain(..)
-        .collect(),
-    );
-
-    copied_result.sort_unstable_by(|a, b| a.0.cmp(&b.0));
-    copied_result.into_iter().for_each(|(_priority, result)| {
-      if let Some(exist_asset) = args.compilation.assets_mut().get_mut(&result.filename) {
-        if !result.force {
-          return;
-        }
-        exist_asset.set_source(Some(Arc::new(result.source)));
-        if let Some(info) = result.info {
-          set_info(&mut exist_asset.info, info);
-        }
-        // TODO set info { copied: true, sourceFilename }
-      } else {
-        let mut asset_info = Default::default();
-        if let Some(info) = result.info {
-          set_info(&mut asset_info, info);
-        }
-
-        args.compilation.emit_asset(
-          result.filename,
-          CompilationAsset {
-            source: Some(Arc::new(result.source)),
-            info: asset_info,
-          },
-        )
+  copied_result.sort_unstable_by(|a, b| a.0.cmp(&b.0));
+  copied_result.into_iter().for_each(|(_priority, result)| {
+    if let Some(exist_asset) = compilation.assets_mut().get_mut(&result.filename) {
+      if !result.force {
+        return;
       }
-    });
-    logger.time_end(start);
+      exist_asset.set_source(Some(Arc::new(result.source)));
+      if let Some(info) = result.info {
+        set_info(&mut exist_asset.info, info);
+      }
+      // TODO set info { copied: true, sourceFilename }
+    } else {
+      let mut asset_info = Default::default();
+      if let Some(info) = result.info {
+        set_info(&mut asset_info, info);
+      }
 
+      compilation.emit_asset(
+        result.filename,
+        CompilationAsset {
+          source: Some(Arc::new(result.source)),
+          info: asset_info,
+        },
+      )
+    }
+  });
+  logger.time_end(start);
+
+  Ok(())
+}
+
+impl Plugin for CopyRspackPlugin {
+  fn apply(
+    &self,
+    ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
+    _options: &mut rspack_core::CompilerOptions,
+  ) -> Result<()> {
+    ctx
+      .context
+      .compilation_hooks
+      .process_assets
+      .tap(process_assets::new(self));
     Ok(())
   }
 }

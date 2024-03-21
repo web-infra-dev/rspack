@@ -1,32 +1,47 @@
 use std::hash::Hash;
+use std::sync::atomic::AtomicU32;
+use std::sync::atomic::Ordering::Relaxed;
 
 use crate::{DependencyCondition, DependencyId, ModuleGraph, ModuleIdentifier, RuntimeSpec};
 
-#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]
-pub struct ConnectionId(usize);
+pub static CONNECTION_ID: AtomicU32 = AtomicU32::new(0);
 
+#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]
+pub struct ConnectionId(u32);
+
+impl ConnectionId {
+  pub fn new() -> Self {
+    Self(CONNECTION_ID.fetch_add(1, Relaxed))
+  }
+}
+
+impl Default for ConnectionId {
+  fn default() -> Self {
+    Self::new()
+  }
+}
 impl std::ops::Deref for ConnectionId {
-  type Target = usize;
+  type Target = u32;
 
   fn deref(&self) -> &Self::Target {
     &self.0
   }
 }
-
-impl From<usize> for ConnectionId {
-  fn from(id: usize) -> Self {
+impl From<u32> for ConnectionId {
+  fn from(id: u32) -> Self {
     Self(id)
   }
 }
 
-#[derive(Debug, Clone, Copy, Eq)]
+#[derive(Debug, Clone, Eq)]
 pub struct ModuleGraphConnection {
+  pub id: ConnectionId,
   /// The referencing module identifier
   pub original_module_identifier: Option<ModuleIdentifier>,
   pub resolved_original_module_identifier: Option<ModuleIdentifier>,
 
   /// The referenced module identifier
-  pub module_identifier: ModuleIdentifier,
+  module_identifier: ModuleIdentifier,
 
   /// The referencing dependency id
   pub dependency_id: DependencyId,
@@ -36,16 +51,13 @@ pub struct ModuleGraphConnection {
 
 impl Hash for ModuleGraphConnection {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-    self.original_module_identifier.hash(state);
-    self.module_identifier.hash(state);
-    self.dependency_id.hash(state);
+    self.id.hash(state);
   }
 }
+
 impl PartialEq for ModuleGraphConnection {
   fn eq(&self, other: &Self) -> bool {
-    self.original_module_identifier == other.original_module_identifier
-      && self.module_identifier == other.module_identifier
-      && self.dependency_id == other.dependency_id
+    self.id == other.id
   }
 }
 
@@ -58,6 +70,7 @@ impl ModuleGraphConnection {
     conditional: bool,
   ) -> Self {
     Self {
+      id: ConnectionId::new(),
       original_module_identifier,
       module_identifier,
       dependency_id,
@@ -115,12 +128,29 @@ impl ModuleGraphConnection {
   ) -> ConnectionState {
     match module_graph
       .connection_to_condition
-      .get(self)
+      .get(&self.id)
       .unwrap_or_else(|| panic!("{:#?}", self))
     {
       DependencyCondition::False => ConnectionState::Bool(false),
       DependencyCondition::Fn(f) => f(self, runtime, module_graph),
     }
+  }
+
+  pub fn module_identifier(&self) -> &ModuleIdentifier {
+    &self.module_identifier
+  }
+
+  /// used for set module identifier after clone the [ModuleGraphConnection]
+  pub fn set_module_identifier(&mut self, mi: ModuleIdentifier, mg: &mut ModuleGraph) {
+    self.module_identifier = mi;
+    mg.dependency_id_to_module_identifier
+      .insert(self.dependency_id, mi);
+  }
+
+  /// used for mutate module identifier, don't forget also set the module identifier of the
+  /// related dependency_id
+  pub fn set_module_identifier_only(&mut self, mi: ModuleIdentifier) {
+    self.module_identifier = mi;
   }
 }
 

@@ -1,18 +1,13 @@
 use futures::future::BoxFuture;
-use napi::Env;
 use rspack_fs::r#async::AsyncWritableFileSystem;
-use rspack_napi_shared::threadsafe_function::ThreadsafeFunctionCallMode;
 
-use crate::node::{ThreadsafeFunctionRef, ThreadsafeNodeFS, TryIntoThreadsafeFunctionRef};
+use crate::node::ThreadsafeNodeFS;
 
-pub struct AsyncNodeWritableFileSystem {
-  fs_ts: ThreadsafeFunctionRef,
-}
+pub struct AsyncNodeWritableFileSystem(ThreadsafeNodeFS);
 
 impl AsyncNodeWritableFileSystem {
-  pub fn new(env: Env, fs_ts: ThreadsafeNodeFS) -> napi::Result<Self> {
-    let fs_ts = fs_ts.try_into_tsfn_ref(&env)?;
-    Ok(Self { fs_ts })
+  pub fn new(tsfs: ThreadsafeNodeFS) -> napi::Result<Self> {
+    Ok(Self(tsfs))
   }
 }
 
@@ -20,19 +15,12 @@ impl AsyncWritableFileSystem for AsyncNodeWritableFileSystem {
   fn create_dir<P: AsRef<std::path::Path>>(&self, dir: P) -> BoxFuture<'_, rspack_fs::Result<()>> {
     let dir = dir.as_ref().to_string_lossy().to_string();
     let fut = async move {
-      self
-        .fs_ts
-        .mkdir
-        .call(dir, ThreadsafeFunctionCallMode::NonBlocking)
-        .expect("Failed to call tsfn")
-        .await
-        .expect("Failed to poll")
-        .map_err(|e| {
-          rspack_fs::Error::Io(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            e.to_string(),
-          ))
-        })
+      self.0.mkdir.call(dir).await.map_err(|e| {
+        rspack_fs::Error::Io(std::io::Error::new(
+          std::io::ErrorKind::Other,
+          e.to_string(),
+        ))
+      })
     };
 
     Box::pin(fut)
@@ -45,12 +33,10 @@ impl AsyncWritableFileSystem for AsyncNodeWritableFileSystem {
     let dir = dir.as_ref().to_string_lossy().to_string();
     let fut = async move {
       self
-        .fs_ts
+        .0
         .mkdirp
-        .call(dir, ThreadsafeFunctionCallMode::NonBlocking)
-        .expect("Failed to call tsfn")
+        .call(dir)
         .await
-        .expect("Failed to poll")
         .map_err(|e| {
           rspack_fs::Error::Io(std::io::Error::new(
             std::io::ErrorKind::Other,
@@ -71,12 +57,10 @@ impl AsyncWritableFileSystem for AsyncNodeWritableFileSystem {
     let data = data.as_ref().to_vec();
     let fut = async move {
       self
-        .fs_ts
+        .0
         .write_file
-        .call((file, data), ThreadsafeFunctionCallMode::NonBlocking)
-        .expect("Failed to call tsfn")
+        .call((file, data.into()))
         .await
-        .expect("Failed to poll")
         .map_err(|e| {
           rspack_fs::Error::Io(std::io::Error::new(
             std::io::ErrorKind::Other,
@@ -94,12 +78,10 @@ impl AsyncWritableFileSystem for AsyncNodeWritableFileSystem {
     let file = file.as_ref().to_string_lossy().to_string();
     let fut = async move {
       self
-        .fs_ts
+        .0
         .remove_file
-        .call(file, ThreadsafeFunctionCallMode::NonBlocking)
-        .expect("Failed to call tsfn")
+        .call(file)
         .await
-        .expect("Failed to poll")
         .map_err(|e| {
           rspack_fs::Error::Io(std::io::Error::new(
             std::io::ErrorKind::Other,
@@ -118,12 +100,10 @@ impl AsyncWritableFileSystem for AsyncNodeWritableFileSystem {
     let dir = dir.as_ref().to_string_lossy().to_string();
     let fut = async move {
       self
-        .fs_ts
+        .0
         .remove_dir_all
-        .call(dir, ThreadsafeFunctionCallMode::NonBlocking)
-        .expect("Failed to call tsfn")
+        .call(dir)
         .await
-        .expect("Failed to poll")
         .map_err(|e| {
           rspack_fs::Error::Io(std::io::Error::new(
             std::io::ErrorKind::Other,

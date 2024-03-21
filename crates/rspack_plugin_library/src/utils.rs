@@ -25,7 +25,7 @@ fn inner_external_arguments(modules: &[&ExternalModule], compilation: &Compilati
         "__WEBPACK_EXTERNAL_MODULE_{}__",
         to_identifier(
           compilation
-            .module_graph
+            .get_module_graph()
             .module_graph_module_by_identifier(&m.identifier())
             .expect("Module not found")
             .id(&compilation.chunk_graph)

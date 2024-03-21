@@ -1,8 +1,13 @@
-use rspack_core::{ConstDependency, DependencyLocation, RuntimeGlobals, SpanExt};
-use swc_core::common::Spanned;
+use rspack_core::{
+  ConstDependency, ContextDependency, DependencyLocation, RuntimeGlobals, SpanExt,
+};
+use swc_core::{common::Spanned, ecma::ast::CallExpr};
 
 use super::JavascriptParserPlugin;
-use crate::visitors::{JavascriptParser, TagInfoData};
+use crate::{
+  dependency::CommonJsRequireContextDependency,
+  visitors::{expr_name, JavascriptParser, TagInfoData},
+};
 
 const NESTED_WEBPACK_IDENTIFIER_TAG: &str = "_identifier__nested_webpack_identifier__";
 
@@ -24,6 +29,40 @@ impl TagInfoData for NestedRequireData {
 }
 
 pub struct CompatibilityPlugin;
+
+impl CompatibilityPlugin {
+  pub fn browserify_require_handler(
+    &self,
+    parser: &mut JavascriptParser,
+    expr: &CallExpr,
+  ) -> Option<bool> {
+    if expr.args.len() != 2 {
+      return None;
+    }
+    let second = parser.evaluate_expression(&expr.args[1].expr);
+    if !second.is_bool() || !matches!(second.as_bool(), Some(true)) {
+      return None;
+    }
+    let dep = ConstDependency::new(
+      expr.callee.span().real_lo(),
+      expr.callee.span().real_hi(),
+      "require".into(),
+      None,
+    );
+    if let Some(last) = parser.dependencies.last()
+      && let Some(last) = last.downcast_ref::<CommonJsRequireContextDependency>()
+      && let options = last.options()
+      && options.recursive
+      && options.request == "."
+    {
+      parser.dependencies.pop();
+      // TODO: dependency getWarnings getErrors
+      parser.warning_diagnostics.pop();
+    }
+    parser.presentational_dependencies.push(Box::new(dep));
+    Some(true)
+  }
+}
 
 impl JavascriptParserPlugin for CompatibilityPlugin {
   fn pre_statement(
@@ -103,5 +142,17 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
       parser.presentational_dependencies.push(Box::new(dep));
     }
     Some(true)
+  }
+
+  fn call(
+    &self,
+    parser: &mut JavascriptParser,
+    expr: &swc_core::ecma::ast::CallExpr,
+    for_name: &str,
+  ) -> Option<bool> {
+    if for_name == expr_name::REQUIRE {
+      return self.browserify_require_handler(parser, expr);
+    }
+    None
   }
 }

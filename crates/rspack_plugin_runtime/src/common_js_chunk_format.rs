@@ -92,11 +92,10 @@ impl Plugin for CommonJsChunkFormatPlugin {
     sources.add(RawSource::from("exports.modules = "));
     sources.add(args.module_source.clone());
     sources.add(RawSource::from(";\n"));
-    if !args
+    if args
       .compilation
       .chunk_graph
-      .get_chunk_runtime_modules_in_order(args.chunk_ukey)
-      .is_empty()
+      .has_chunk_runtime_modules(args.chunk_ukey)
     {
       sources.add(RawSource::from("exports.runtime = "));
       sources.add(render_chunk_runtime_modules(

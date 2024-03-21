@@ -40,7 +40,7 @@ impl CreateChunkAssetsOccasion {
     let is_cache_valid = modules.iter().all(|module_id| {
       matches!(
         compilation
-          .module_graph
+          .get_module_graph()
           .module_by_identifier(module_id)
           .and_then(|m| m.as_normal_module())
           .map(|m| matches!(m.source(), NormalModuleSource::Unbuild)),

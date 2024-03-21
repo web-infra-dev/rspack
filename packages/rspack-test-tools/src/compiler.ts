@@ -1,89 +1,118 @@
+import EventEmitter from "events";
 import {
 	ECompilerType,
 	ITestCompilerManager,
-	ITestContext,
 	TCompiler,
+	TCompilerFactory,
 	TCompilerOptions,
 	TCompilerStats
 } from "./type";
+import merge from "webpack-merge";
 
+export const enum ECompilerEvent {
+	Build = "build",
+	Option = "option",
+	Create = "create",
+	Close = "close"
+}
+
+export const COMPILER_FACTORIES: Record<
+	ECompilerType,
+	TCompilerFactory<ECompilerType>
+> = {
+	[ECompilerType.Rspack]: ((options: TCompilerOptions<ECompilerType.Rspack>) =>
+		require("@rspack/core")(options)) as TCompilerFactory<ECompilerType>,
+	[ECompilerType.Webpack]: ((
+		options: TCompilerOptions<ECompilerType.Webpack>
+	) => require("webpack")(options)) as TCompilerFactory<ECompilerType>
+};
 export class TestCompilerManager<T extends ECompilerType>
 	implements ITestCompilerManager<T>
 {
-	private compilerOptions: TCompilerOptions<T> = {} as TCompilerOptions<T>;
-	private compilerInstance: TCompiler<T> | null = null;
-	private compilerStats: TCompilerStats<T> | null = null;
-	private runResult: unknown;
+	protected compilerOptions: TCompilerOptions<T> = {} as TCompilerOptions<T>;
+	protected compilerInstance: TCompiler<T> | null = null;
+	protected compilerStats: TCompilerStats<T> | null = null;
+	protected emitter: EventEmitter = new EventEmitter();
 
-	options(
-		context: ITestContext,
-		fn: (options: TCompilerOptions<T>) => TCompilerOptions<T>
-	) {
-		try {
-			const newOptions = fn(this.compilerOptions);
-			if (newOptions) {
-				this.compilerOptions = newOptions;
-			}
-		} catch (e) {
-			context.emitError(e as Error);
-		}
+	constructor(protected type: T) {}
+
+	getOptions(): TCompilerOptions<T> {
+		return this.compilerOptions;
 	}
-	compiler(
-		context: ITestContext,
-		fn: (
-			options: TCompilerOptions<T>,
-			compiler: TCompiler<T> | null
-		) => TCompiler<T> | null
-	) {
-		try {
-			const newCompiler = fn(this.compilerOptions, this.compilerInstance);
-			if (newCompiler) {
-				this.compilerInstance = newCompiler;
-			}
-		} catch (e) {
-			context.emitError(e as Error);
-		}
+
+	setOptions(newOptions: TCompilerOptions<T>): TCompilerOptions<T> {
+		this.compilerOptions = newOptions;
+		this.emitter.emit(ECompilerEvent.Option, this.compilerOptions);
+		return this.compilerOptions;
 	}
-	stats(
-		context: ITestContext,
-		fn: (
-			compiler: TCompiler<T> | null,
-			stats: TCompilerStats<T> | null
-		) => TCompilerStats<T> | null
-	) {
-		try {
-			const newStats = fn(this.compilerInstance, this.compilerStats);
-			if (newStats) {
-				this.compilerStats = newStats;
-			}
-		} catch (e) {
-			context.emitError(e as Error);
-		}
+
+	mergeOptions(newOptions: TCompilerOptions<T>): TCompilerOptions<T> {
+		this.compilerOptions = merge(this.compilerOptions, newOptions);
+		this.emitter.emit(ECompilerEvent.Option, this.compilerOptions);
+		return this.compilerOptions;
 	}
-	result(
-		context: ITestContext,
-		fn: <R>(compiler: TCompiler<T> | null, result: R) => R
-	) {
-		try {
-			const newResult = fn(this.compilerInstance, this.runResult);
-			if (newResult) {
-				this.runResult = newResult;
-			}
-		} catch (e) {
-			context.emitError(e as Error);
-		}
+
+	getCompiler(): TCompiler<T> | null {
+		return this.compilerInstance;
 	}
-	async build(
-		context: ITestContext,
-		fn: (compiler: TCompiler<T>) => Promise<void>
-	) {
-		if (!this.compilerInstance) {
-			context.emitError(new Error("Build failed: compiler not exists"));
-		}
-		try {
-			await fn(this.compilerInstance!);
-		} catch (e) {
-			context.emitError(e as Error);
-		}
+
+	createCompiler(): TCompiler<T> {
+		this.compilerInstance = COMPILER_FACTORIES[this.type](
+			this.compilerOptions
+		) as TCompiler<T>;
+		this.emitter.emit(ECompilerEvent.Create, this.compilerInstance);
+		return this.compilerInstance;
+	}
+
+	build(): Promise<TCompilerStats<T>> {
+		if (!this.compilerInstance)
+			throw new Error("Compiler should be created before build");
+		return new Promise<TCompilerStats<T>>((resolve, reject) => {
+			this.compilerInstance!.run((error, newStats) => {
+				this.emitter.emit(ECompilerEvent.Build, error, newStats);
+				if (error) return reject(error);
+				this.compilerStats = newStats as TCompilerStats<T>;
+				resolve(newStats as TCompilerStats<T>);
+			});
+		});
+	}
+
+	watch(timeout: number = 1000) {
+		if (!this.compilerInstance)
+			throw new Error("Compiler should be created before watch");
+		this.compilerInstance!.watch(
+			{
+				aggregateTimeout: timeout
+			},
+			(error, newStats) => {
+				this.emitter.emit(ECompilerEvent.Build, error, newStats);
+				if (error) return error;
+				if (newStats) {
+					this.compilerStats = newStats as TCompilerStats<T>;
+				}
+				return newStats;
+			}
+		);
+	}
+
+	getStats() {
+		return this.compilerStats;
+	}
+
+	getEmitter() {
+		return this.emitter;
+	}
+
+	close(): Promise<void> {
+		return new Promise<void>((resolve, reject) => {
+			if (this.compilerInstance) {
+				this.compilerInstance.close(e => {
+					this.emitter.emit(ECompilerEvent.Close, e);
+					e ? reject(e) : resolve();
+				});
+			} else {
+				resolve();
+			}
+		});
 	}
 }

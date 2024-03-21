@@ -78,7 +78,7 @@ Entrypoint main 8.74 KiB = 909.xxxx.js
 runtime modules 11 modules
 ./index.js
 ./dynamic.js
-Rspack x.x.x compiled successfully in X s (3e05cd9368122937eddd)"
+Rspack x.x.x compiled successfully in X s (151f016c2efdfe82334f)"
 `;
 
 exports[`StatsTestCases should print correct stats for hot+production 1`] = `
@@ -87,14 +87,14 @@ asset main.js 32.3 KiB [emitted] (name: main)
 Entrypoint main 32.3 KiB = main.js
 runtime modules 11 modules
 ./index.js
-Rspack x.x.x compiled successfully in X s (30a302845ffd45f6b1aa)"
+Rspack x.x.x compiled successfully in X s (71aa1be8a8c1afa978eb)"
 `;
 
 exports[`StatsTestCases should print correct stats for ignore-plugin 1`] = `
 "runtime modules 1 module
 ./index.js
 ./locals/en.js
-Xdir/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^\\\\.\\\\/.*$")), reg_str: "^\\\\.\\\\/.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None, start: 52, end: 59 }"
+Xdir/ignore-plugin/locals|Some(\\"\\")|Some(\\"\\")|ContextOptions|Sync|true|Some(RspackRegex(\\"^\\\\\\\\.\\\\\\\\/.*$\\"))|\\"^\\\\\\\\.\\\\\\\\/.*$\\"|None|None|CommonJS|\\"./locals\\"|Unset|None"
 `;
 
 exports[`StatsTestCases should print correct stats for ignore-warning 1`] = `"Rspack compiled successfully"`;
@@ -154,7 +154,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   chunk bundle2.js (main) >{76}< [entry]
     ./b.js
     ./index.js
-  2 chunks (Rspack x.x.x) compiled successfully in X s (168e72010bebe4658596)
+  2 chunks (Rspack x.x.x) compiled successfully in X s (85443fd14e9de41ace48)
 
 3 chunks:
   PublicPath: auto
@@ -170,7 +170,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   chunk bundle3.js (main) >{76}< [entry]
     ./b.js
     ./index.js
-  3 chunks (Rspack x.x.x) compiled successfully in X s (7fd90c80752b52cbaf04)
+  3 chunks (Rspack x.x.x) compiled successfully in X s (0535ccf91c4cf25cec90)
 
 4 chunks:
   PublicPath: auto
@@ -188,14 +188,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   chunk bundle4.js (main) >{76}< [entry]
     ./b.js
     ./index.js
-  4 chunks (Rspack x.x.x) compiled successfully in X s (548e146544e55a805a9d)"
-`;
-
-exports[`StatsTestCases should print correct stats for loader-builtin-swc-plugin-warn 1`] = `
-"WARNING in ./index.js
-  ⚠ Experimental plugins are not currently supported.
-
-Rspack compiled with 1 warning"
+  4 chunks (Rspack x.x.x) compiled successfully in X s (a4de92f5f4e040cb2380)"
 `;
 
 exports[`StatsTestCases should print correct stats for logging-loader 1`] = `
@@ -228,7 +221,7 @@ exports[`StatsTestCases should print correct stats for nonexistent-import-source
 "ERROR in ./index.js
   × Resolve error: Can't resolve 'not-exist' in 'Xdir/nonexistent-import-source-error'
    ╭────
- 1 │ import "not-exist";
+ 1 │ import \\"not-exist\\";
    ·        ───────────
    ╰────
 
@@ -306,7 +299,7 @@ runtime modules 1 module
 ERROR in ./index.js
   × Resolve error: Can't resolve 'cycle-alias/a' in 'Xdir/resolve-overflow-error'
    ╭─[1:1]
- 1 │ import { a } from "cycle-alias/a";
+ 1 │ import { a } from \\"cycle-alias/a\\";
    ·                   ───────────────
  2 │ console.log(a);
    ╰────
@@ -323,7 +316,7 @@ runtime modules 1 module
 ./index.js
 
 ERROR in ./index.js
-  × Invalid "exports" target "../../index.js" defined for '.' in the package config Xdir/resolve-unexpected-exports-in-pkg-error/node_modules/pkg-a/package.json
+  × Invalid \\"exports\\" target \\"../../index.js\\" defined for '.' in the package config Xdir/resolve-unexpected-exports-in-pkg-error/node_modules/pkg-a/package.json
 
 Rspack x.x.x compiled with 1 error in X s (c1888f6bacf659a49dc3)"
 `;
@@ -349,6 +342,41 @@ Entrypoint main 1.69 KiB = main.js
   [exports: decrement, increment, incrementBy2]
   [only some exports used: increment]
 Rspack x.x.x compiled successfully in X s (781b6a11a8ec452188ee)"
+`;
+
+exports[`StatsTestCases should print correct stats for side-effects-bailouts 1`] = `
+"PublicPath: auto
+asset main.js 1.69 KiB {909} [emitted] (name: main)
+Entrypoint main 1.69 KiB = main.js
+chunk {909} main.js (main) [entry]
+  ./lib.js [467] {909}
+    [exports: test]
+    [all exports used]
+    Statement with side_effects in source code at ./lib.js:3:0-9
+    esm import ./lib.js [10]
+    esm import specifier ./lib.js [10]
+  ./index.js [10] {909}
+    [no exports]
+    [no exports used]
+    entry ./index.js
+./lib.js [467] {909}
+  [exports: test]
+  [all exports used]
+  Statement with side_effects in source code at ./lib.js:3:0-9
+  esm import ./lib.js [10]
+  esm import specifier ./lib.js [10]
+./index.js [10] {909}
+  [no exports]
+  [no exports used]
+  entry ./index.js
+webpack/runtime/has_own_property {909}
+  [no exports]
+  [used exports unknown]
+webpack/runtime/define_property_getters {909}
+  [no exports]
+  [used exports unknown]
+  
+1970-04-20 12:42:42: Rspack x.x.x compiled successfully in X s (aa839c2ab732086cca33)"
 `;
 
 exports[`StatsTestCases should print correct stats for simple-export 1`] = `

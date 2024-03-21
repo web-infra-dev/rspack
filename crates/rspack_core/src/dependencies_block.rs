@@ -67,12 +67,12 @@ impl From<String> for AsyncDependenciesBlockIdentifier {
 
 impl AsyncDependenciesBlockIdentifier {
   pub fn get<'c>(&self, compilation: &'c Compilation) -> Option<&'c AsyncDependenciesBlock> {
-    compilation.module_graph.block_by_id(self)
+    compilation.get_module_graph().block_by_id(self)
   }
 
   pub fn expect_get<'c>(&self, compilation: &'c Compilation) -> &'c AsyncDependenciesBlock {
     compilation
-      .module_graph
+      .get_module_graph()
       .block_by_id(self)
       .expect("should have block")
   }

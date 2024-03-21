@@ -30,7 +30,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
     if dyn_imported.spread.is_some() {
       return None;
     }
-    let mode = parser
+    let dynamic_import_mode = parser
       .javascript_options
       .map(|o| o.dynamic_import_mode)
       .unwrap_or_default();
@@ -47,18 +47,6 @@ impl JavascriptParserPlugin for ImportParserPlugin {
 
     match dyn_imported.expr.as_ref() {
       Expr::Lit(Lit::Str(imported)) => {
-        if matches!(mode, DynamicImportMode::Eager) {
-          let dep = ImportEagerDependency::new(
-            node.span.real_lo(),
-            node.span.real_hi(),
-            imported.value.clone(),
-            Some(node.span.into()),
-            // TODO scan dynamic import referenced exports
-            None,
-          );
-          parser.dependencies.push(Box::new(dep));
-          return None;
-        }
         let magic_comment_options = try_extract_webpack_magic_comment(
           parser.source_file,
           &parser.comments,
@@ -72,6 +60,9 @@ impl JavascriptParserPlugin for ImportParserPlugin {
         {
           return None;
         }
+        let mode = magic_comment_options
+          .get_webpack_mode()
+          .map(|x| DynamicImportMode::from(x.as_str()));
         let chunk_name = magic_comment_options
           .get_webpack_chunk_name()
           .map(|x| x.to_owned());
@@ -82,6 +73,21 @@ impl JavascriptParserPlugin for ImportParserPlugin {
           .get_webpack_preload()
           .and_then(|x| parse_order_string(x.as_str()));
         let span = ErrorSpan::from(node.span);
+        if matches!(
+          mode.unwrap_or(dynamic_import_mode),
+          DynamicImportMode::Eager
+        ) {
+          let dep = ImportEagerDependency::new(
+            node.span.real_lo(),
+            node.span.real_hi(),
+            imported.value.clone(),
+            Some(span),
+            // TODO scan dynamic import referenced exports
+            None,
+          );
+          parser.dependencies.push(Box::new(dep));
+          return Some(true);
+        }
         let dep = Box::new(ImportDependency::new(
           node.span.real_lo(),
           node.span.real_hi(),
@@ -112,6 +118,9 @@ impl JavascriptParserPlugin for ImportParserPlugin {
           tpl.span,
           &mut parser.warning_diagnostics,
         );
+        let mode = magic_comment_options
+          .get_webpack_mode()
+          .map(|x| DynamicImportMode::from(x.as_str()));
         let chunk_name = magic_comment_options
           .get_webpack_chunk_name()
           .map(|x| x.to_owned());
@@ -130,6 +139,21 @@ impl JavascriptParserPlugin for ImportParserPlugin {
             .to_string(),
         );
         let span = ErrorSpan::from(node.span);
+        if matches!(
+          mode.unwrap_or(dynamic_import_mode),
+          DynamicImportMode::Eager
+        ) {
+          let dep = ImportEagerDependency::new(
+            node.span.real_lo(),
+            node.span.real_hi(),
+            request,
+            Some(span),
+            // TODO scan dynamic import referenced exports
+            None,
+          );
+          parser.dependencies.push(Box::new(dep));
+          return Some(true);
+        }
         let dep = Box::new(ImportDependency::new(
           node.span.real_lo(),
           node.span.real_hi(),

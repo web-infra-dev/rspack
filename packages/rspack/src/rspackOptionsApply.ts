@@ -61,9 +61,10 @@ import {
 	SideEffectsFlagPlugin,
 	BundlerInfoRspackPlugin,
 	ModuleConcatenationPlugin,
-	EvalDevToolModulePlugin
+	EvalDevToolModulePlugin,
+	JsLoaderRspackPlugin
 } from "./builtin-plugin";
-import { deprecatedWarn, termlink } from "./util";
+import { deprecatedWarn } from "./util";
 
 export function applyEntryOptions(
 	compiler: Compiler,
@@ -71,10 +72,7 @@ export function applyEntryOptions(
 ) {
 	if (!options.experiments.rspackFuture!.disableApplyEntryLazily) {
 		deprecatedWarn(
-			`You are depending on ${termlink(
-				"apply entry lazily",
-				"https://rspack.dev/config/experiments.html#experimentsrspackfuturedisableapplyentrylazily"
-			)}, this behavior has been deprecated, you can setup 'experiments.rspackFuture.disableApplyEntryLazily = true' to disable this behavior, and this will be enabled by default in v0.5`
+			`You are depending on apply entry lazily (https://rspack.dev/config/experiments.html#experimentsrspackfuturedisableapplyentrylazily), this behavior has been deprecated, you can setup 'experiments.rspackFuture.disableApplyEntryLazily = true' to disable this behavior, and this will be enabled by default in v0.5`
 		);
 	}
 	if (compiler.parentCompilation === undefined) {
@@ -205,7 +203,7 @@ export class RspackOptionsApply {
 					? EvalSourceMapDevToolPlugin
 					: SourceMapDevToolPlugin;
 				new Plugin({
-					filename: inline ? undefined : options.output.sourceMapFilename,
+					filename: inline ? null : options.output.sourceMapFilename,
 					moduleFilenameTemplate: options.output.devtoolModuleFilenameTemplate,
 					fallbackModuleFilenameTemplate:
 						options.output.devtoolFallbackModuleFilenameTemplate,
@@ -229,6 +227,8 @@ export class RspackOptionsApply {
 		if (options.experiments.asyncWebAssembly) {
 			new AsyncWebAssemblyModulesPlugin().apply(compiler);
 		}
+
+		new JsLoaderRspackPlugin(compiler).apply(compiler);
 
 		if (options.experiments.rspackFuture!.disableApplyEntryLazily) {
 			applyEntryOptions(compiler, options);

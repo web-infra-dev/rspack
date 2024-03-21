@@ -1,4 +1,5 @@
 use rspack_core::SpanExt;
+use swc_core::common::Spanned;
 use swc_core::ecma::ast::{UnaryExpr, UnaryOp};
 
 use super::BasicEvaluatedExpression;
@@ -46,6 +47,16 @@ pub fn eval_unary_expression(
 ) -> Option<BasicEvaluatedExpression> {
   match expr.op {
     UnaryOp::TypeOf => eval_typeof(scanner, expr),
+    UnaryOp::Bang => {
+      let arg = scanner.evaluate_expression(&expr.arg);
+      let Some(boolean) = arg.as_bool() else {
+        return None;
+      };
+      let mut eval = BasicEvaluatedExpression::with_range(expr.span().real_lo(), expr.span_hi().0);
+      eval.set_bool(!boolean);
+      eval.set_side_effects(arg.could_have_side_effects());
+      Some(eval)
+    }
     _ => None,
   }
 }

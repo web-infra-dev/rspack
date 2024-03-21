@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "sourceMap": false,
+    "declarationMap": false,
+  },
+  "references": [
+    {
+      "path": "../rspack/tsconfig.build.json"
+    }
+  ]
+}

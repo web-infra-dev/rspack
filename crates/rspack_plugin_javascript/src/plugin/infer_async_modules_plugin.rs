@@ -20,7 +20,7 @@ impl Plugin for InferAsyncModulesPlugin {
     let mut uniques = HashSet::new();
 
     let mut modules: Vec<Identifier> = compilation
-      .module_graph
+      .get_module_graph()
       .modules()
       .values()
       .filter(|m| {
@@ -35,31 +35,30 @@ impl Plugin for InferAsyncModulesPlugin {
 
     modules.retain(|m| queue.insert(*m));
 
-    let module_graph = &mut compilation.module_graph;
+    let module_graph = compilation.get_module_graph_mut();
 
     while let Some(module) = queue.pop_front() {
       module_graph.set_async(&module);
-      if let Some(mgm) = module_graph.module_graph_module_by_identifier(&module) {
-        mgm
-          .get_incoming_connections_unordered(module_graph)?
-          .filter(|con| {
-            if let Some(dep) = module_graph.dependency_by_id(&con.dependency_id) {
-              matches!(
-                dep.dependency_type(),
-                DependencyType::EsmImport(_) | DependencyType::EsmExport(_)
-              )
-            } else {
-              false
+      module_graph
+        .get_incoming_connections(&module)
+        .iter()
+        .filter(|con| {
+          if let Some(dep) = module_graph.dependency_by_id(&con.dependency_id) {
+            matches!(
+              dep.dependency_type(),
+              DependencyType::EsmImport(_) | DependencyType::EsmExport(_)
+            )
+          } else {
+            false
+          }
+        })
+        .for_each(|con| {
+          if let Some(id) = &con.original_module_identifier {
+            if uniques.insert(*id) {
+              queue.insert(*id);
             }
-          })
-          .for_each(|con| {
-            if let Some(id) = &con.original_module_identifier {
-              if uniques.insert(*id) {
-                queue.insert(*id);
-              }
-            }
-          });
-      }
+          }
+        });
     }
     Ok(())
   }

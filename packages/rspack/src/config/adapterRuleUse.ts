@@ -11,7 +11,7 @@ import { Logger } from "../logging/Logger";
 import Hash from "../util/hash";
 import { Mode, Resolve, RuleSetUseItem, RuleSetLoaderWithOptions } from "./zod";
 import { parsePathQueryFragment } from "../loader-runner";
-import { deprecatedWarn, isNil, termlink } from "../util";
+import { isNil } from "../util";
 import {
 	resolveEmotion,
 	resolvePluginImport,
@@ -79,7 +79,7 @@ export interface LoaderContext<OptionsType = {}> {
 	cacheable(cacheable?: boolean): void;
 	sourceMap: boolean;
 	rootContext: string;
-	context: string;
+	context: string | null;
 	loaderIndex: number;
 	remainingRequest: string;
 	currentRequest: string;

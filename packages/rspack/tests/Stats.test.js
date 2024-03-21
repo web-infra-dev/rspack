@@ -335,11 +335,11 @@ describe("Stats", () => {
 		});
 
 		expect(stats.entrypoints).toMatchInlineSnapshot(`
-		{
-		  "main": {
-		    "assets": [],
+		Object {
+		  "main": Object {
+		    "assets": Array [],
 		    "assetsSize": 0,
-		    "chunks": [
+		    "chunks": Array [
 		      null,
 		    ],
 		    "name": "main",
@@ -390,12 +390,12 @@ describe("Stats", () => {
 		});
 
 		expect(statsJson).toMatchInlineSnapshot(`
-		{
-		  "assets": [
-		    {
-		      "chunkNames": [],
+		Object {
+		  "assets": Array [
+		    Object {
+		      "chunkNames": Array [],
 		      "emitted": true,
-		      "info": {
+		      "info": Object {
 		        "development": false,
 		        "hotModuleReplacement": false,
 		      },
@@ -403,12 +403,12 @@ describe("Stats", () => {
 		      "size": 738,
 		      "type": "asset",
 		    },
-		    {
-		      "chunkNames": [
+		    Object {
+		      "chunkNames": Array [
 		        "main",
 		      ],
 		      "emitted": true,
-		      "info": {
+		      "info": Object {
 		        "development": false,
 		        "hotModuleReplacement": false,
 		      },
@@ -417,20 +417,20 @@ describe("Stats", () => {
 		      "type": "asset",
 		    },
 		  ],
-		  "assetsByChunkName": {
-		    "main": [
+		  "assetsByChunkName": Object {
+		    "main": Array [
 		      "main.js",
 		    ],
 		  },
-		  "children": [
-		    {
-		      "assets": [
-		        {
-		          "chunkNames": [
+		  "children": Array [
+		    Object {
+		      "assets": Array [
+		        Object {
+		          "chunkNames": Array [
 		            "TestChild",
 		          ],
 		          "emitted": true,
-		          "info": {
+		          "info": Object {
 		            "development": false,
 		            "hotModuleReplacement": false,
 		          },
@@ -439,12 +439,12 @@ describe("Stats", () => {
 		          "type": "asset",
 		        },
 		      ],
-		      "assetsByChunkName": {
-		        "TestChild": [
+		      "assetsByChunkName": Object {
+		        "TestChild": Array [
 		          "TestChild.js",
 		        ],
 		      },
-		      "children": [],
+		      "children": Array [],
 		      "name": "TestChild",
 		    },
 		  ],

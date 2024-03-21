@@ -5,7 +5,7 @@ use once_cell::sync::Lazy;
 use rspack_core::tree_shaking::symbol::{self, IndirectTopLevelSymbol};
 use rspack_core::tree_shaking::visitor::SymbolRef;
 use rspack_core::{
-  filter_runtime, get_import_var, import_statement, merge_runtime, AsContextDependency,
+  filter_runtime, import_statement, merge_runtime, AsContextDependency,
   AwaitDependenciesInitFragment, ConditionalInitFragment, ConnectionState, Dependency,
   DependencyCategory, DependencyCondition, DependencyId, DependencyTemplate, DependencyType,
   ErrorSpan, ExtendedReferencedExport, InitFragmentExt, InitFragmentKey, InitFragmentStage,
@@ -100,14 +100,14 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
   } = code_generatable_context;
   // Only available when module factorization is successful.
   let ref_mgm = compilation
-    .module_graph
+    .get_module_graph()
     .module_graph_module_by_dependency_id(module_dependency.id());
   let is_target_active = if compilation.options.is_new_tree_shaking() {
     let connection = compilation
-      .module_graph
+      .get_module_graph()
       .connection_by_dependency(module_dependency.id());
     if let Some(con) = connection {
-      Some(con.is_target_active(&compilation.module_graph, *runtime))
+      Some(con.is_target_active(compilation.get_module_graph(), *runtime))
     } else {
       Some(true)
     }
@@ -191,11 +191,11 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
   }
 
   let runtime_condition = if let Some(connection) = compilation
-    .module_graph
+    .get_module_graph()
     .connection_by_dependency(module_dependency.id())
   {
     filter_runtime(*runtime, |r| {
-      connection.is_target_active(&compilation.module_graph, r)
+      connection.is_target_active(compilation.get_module_graph(), r)
     })
   } else {
     RuntimeCondition::Boolean(true)
@@ -217,9 +217,11 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
     ..
   } = code_generatable_context;
   let ref_module = compilation
-    .module_graph
+    .get_module_graph()
     .module_identifier_by_dependency_id(module_dependency.id());
-  let import_var = get_import_var(&compilation.module_graph, *module_dependency.id());
+  let import_var = compilation
+    .get_module_graph()
+    .get_import_var(module_dependency.id());
   //
   // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/dependencies/HarmonyImportDependency.js#L282-L285
   let module_key = ref_module
@@ -257,7 +259,7 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
     }
   }
 
-  let is_async_module = matches!(ref_module, Some(ref_module) if compilation.module_graph.is_async(ref_module) == Some(true));
+  let is_async_module = matches!(ref_module, Some(ref_module) if compilation.get_module_graph().is_async(ref_module) == Some(true));
   if is_async_module {
     init_fragments.push(Box::new(ConditionalInitFragment::new(
       content.0,
@@ -292,7 +294,7 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
     runtime_requirements.insert(RuntimeGlobals::EXPORT_STAR);
     runtime_requirements.insert(RuntimeGlobals::REQUIRE);
     let exports_argument = compilation
-      .module_graph
+      .get_module_graph()
       .module_by_identifier(&module.identifier())
       .expect("should have mgm")
       .get_exports_argument();
@@ -392,7 +394,7 @@ impl ModuleDependency for HarmonyImportSideEffectDependency {
   fn get_condition(&self) -> Option<DependencyCondition> {
     Some(DependencyCondition::Fn(Arc::new(
       move |con, _, module_graph: &ModuleGraph| {
-        let id = con.module_identifier;
+        let id = *con.module_identifier();
         if let Some(module) = module_graph.module_by_identifier(&id) {
           module.get_side_effects_connection_state(module_graph, &mut HashSet::default())
         } else {
@@ -418,8 +420,8 @@ impl DependencyTemplate for HarmonyImportSideEffectDependency {
     } = code_generatable_context;
     if let Some(scope) = concatenation_scope {
       let module = compilation
-        .module_graph
-        .get_module(&self.id)
+        .get_module_graph()
+        .get_module_by_dependency_id(&self.id)
         .expect("should have module");
       if scope.is_module_in_scope(&module.identifier()) {
         return;

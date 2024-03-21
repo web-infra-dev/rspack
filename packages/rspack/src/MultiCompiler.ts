@@ -12,13 +12,7 @@ import { Compiler, RspackOptions, Stats } from ".";
 import ResolverFactory from "./ResolverFactory";
 import { WatchFileSystem } from "./util/fs";
 import { Watching } from "./Watching";
-import {
-	AsyncSeriesHook,
-	Callback,
-	MultiHook,
-	SyncHook,
-	SyncBailHook
-} from "tapable";
+import { AsyncSeriesHook, Callback, MultiHook, SyncHook } from "tapable";
 import MultiStats from "./MultiStats";
 import asyncLib from "neo-async";
 import ArrayQueue from "./util/ArrayQueue";

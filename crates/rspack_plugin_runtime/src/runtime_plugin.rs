@@ -4,8 +4,7 @@ use async_trait::async_trait;
 use once_cell::sync::Lazy;
 use rspack_core::{
   get_css_chunk_filename_template, get_js_chunk_filename_template,
-  AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, ChunkLoading,
-  JsChunkHashArgs, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput,
+  AdditionalModuleRequirementsArgs, ChunkLoading, JsChunkHashArgs, Plugin,
   PluginAdditionalModuleRequirementsOutput, PluginContext, PluginJsChunkHashHookOutput,
   PluginRuntimeRequirementsInTreeOutput, PublicPath, RuntimeGlobals, RuntimeModuleExt,
   RuntimeRequirementsInTreeArgs, SourceType, FULL_HASH_PLACEHOLDER, HASH_PLACEHOLDER,
@@ -142,31 +141,6 @@ pub struct RuntimePlugin;
 impl Plugin for RuntimePlugin {
   fn name(&self) -> &'static str {
     "rspack.RuntimePlugin"
-  }
-
-  async fn additional_tree_runtime_requirements(
-    &self,
-    _ctx: PluginContext,
-    args: &mut AdditionalChunkRuntimeRequirementsArgs,
-  ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
-    let compilation = &args.compilation;
-    let chunk = args.chunk();
-    if args
-      .runtime_requirements
-      .contains(RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES)
-      || (args
-        .runtime_requirements
-        .contains(RuntimeGlobals::ENSURE_CHUNK)
-        && !chunk
-          .get_all_async_chunks(&compilation.chunk_group_by_ukey)
-          .is_empty())
-    {
-      args
-        .runtime_requirements
-        .insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
-    }
-
-    Ok(())
   }
 
   #[allow(clippy::unwrap_in_result)]

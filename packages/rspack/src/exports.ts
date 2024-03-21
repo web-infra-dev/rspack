@@ -51,8 +51,7 @@ export { sources };
 
 import {
 	getNormalizedRspackOptions,
-	applyRspackOptionsDefaults,
-	getRawOptions
+	applyRspackOptionsDefaults
 } from "./config";
 export const config = {
 	getNormalizedRspackOptions,
@@ -199,3 +198,6 @@ export type { SourceMapDevToolPluginOptions } from "./builtin-plugin";
 
 export { EvalDevToolModulePlugin } from "./builtin-plugin";
 export type { EvalDevToolModulePluginOptions } from "./builtin-plugin";
+
+export { RSCClientEntryPlugin } from "./builtin-plugin";
+export { RSCClientReferenceManifestRspackPlugin } from "./builtin-plugin";

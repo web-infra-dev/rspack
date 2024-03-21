@@ -10,11 +10,13 @@ use regex::Regex;
 use rspack_core::Filename;
 use rspack_core::{Chunk, ChunkGraph, Compilation, Module, ModuleGraph, PathData, SourceType};
 use rspack_error::error_bail;
+use rspack_hook::plugin;
 use rspack_identifier::IdentifierSet;
 
 static ESCAPE_LOCAL_IDENT_REGEX: Lazy<Regex> =
   Lazy::new(|| Regex::new(r#"[<>:"/\\|?*\.]"#).expect("Invalid regex"));
 
+#[plugin]
 #[derive(Debug)]
 pub struct CssPlugin {
   config: CssConfig,
@@ -108,7 +110,7 @@ pub struct CssConfig {
 
 impl CssPlugin {
   pub fn new(config: CssConfig) -> Self {
-    Self { config }
+    Self::new_inner(config)
   }
 
   pub(crate) fn get_ordered_chunk_css_modules<'chunk_graph>(

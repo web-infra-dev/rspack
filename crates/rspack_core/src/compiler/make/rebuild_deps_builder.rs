@@ -20,7 +20,7 @@ impl RebuildDepsBuilder {
         MakeParam::ModifiedFiles(files) => {
           builder.extend_force_build_modules(module_graph.modules().values().filter_map(|module| {
             // check has dependencies modified
-            if module_graph.is_module_invalidated(&module.identifier(), &files) {
+            if !module.is_available(&files) {
               Some(module.identifier())
             } else {
               None
@@ -32,13 +32,13 @@ impl RebuildDepsBuilder {
             let mut res: Vec<ModuleIdentifier> = vec![];
 
             // check has dependencies modified
-            if module_graph.is_module_invalidated(&module.identifier(), &files) {
+            if !module.is_available(&files) {
               // module id
               res.push(module.identifier());
               // parent module id
               res.extend(
                 module_graph
-                  .get_incoming_connections(module)
+                  .get_incoming_connections(&module.identifier())
                   .iter()
                   .filter_map(|connect| connect.original_module_identifier),
               )

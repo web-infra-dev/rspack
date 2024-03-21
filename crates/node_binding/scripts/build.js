@@ -30,13 +30,15 @@ async function build() {
 		if (watch) {
 			args.push("--watch");
 		}
-
 		if (process.env.USE_ZIG) {
 			args.push("--cross-compile");
 		}
-
 		if (process.env.RUST_TARGET) {
 			args.push("--target", process.env.RUST_TARGET);
+		}
+		if (!process.env.DISABLE_PLUGIN) {
+			args.push("--no-default-features");
+			args.push("--features plugin");
 		}
 
 		let cp = spawn("napi", args, {

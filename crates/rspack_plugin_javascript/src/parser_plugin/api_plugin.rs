@@ -302,7 +302,7 @@ impl JavascriptParserPlugin for APIPlugin {
           RuntimeGlobals::MODULE_CACHE.name().into(),
           Some(RuntimeGlobals::MODULE_CACHE),
         )));
-      Some(false)
+      Some(true)
     } else if expr_matcher::is_require_main(expr) {
       let mut runtime_requirements = RuntimeGlobals::default();
       runtime_requirements.insert(RuntimeGlobals::MODULE_CACHE);
@@ -320,7 +320,7 @@ impl JavascriptParserPlugin for APIPlugin {
           .into(),
           Some(runtime_requirements),
         )));
-      Some(false)
+      Some(true)
     } else if expr_matcher::is_webpack_module_id(expr) {
       parser
         .presentational_dependencies

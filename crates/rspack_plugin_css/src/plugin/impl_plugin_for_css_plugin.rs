@@ -18,13 +18,13 @@ use rspack_core::{
 };
 use rspack_error::{IntoTWithDiagnosticArray, Result};
 use rspack_hash::RspackHash;
-use rspack_hook::AsyncSeries2;
+use rspack_hook::{plugin_hook, AsyncSeries2};
 use rspack_plugin_runtime::is_enabled_for_chunk;
 
 use crate::parser_and_generator::CssParserAndGenerator;
 use crate::runtime::CssLoadingRuntimeModule;
 use crate::utils::AUTO_PUBLIC_PATH_PLACEHOLDER_REGEX;
-use crate::CssPlugin;
+use crate::{plugin::CssPluginInner, CssPlugin};
 
 struct CssModuleDebugInfo<'a> {
   pub module: &'a dyn Module,
@@ -113,23 +113,22 @@ impl CssPlugin {
   }
 }
 
-struct CssPluginCompilationHook;
-
-#[async_trait]
-impl AsyncSeries2<Compilation, CompilationParams> for CssPluginCompilationHook {
-  async fn run(&self, compilation: &mut Compilation, params: &mut CompilationParams) -> Result<()> {
-    compilation
-      .set_dependency_factory(DependencyType::CssUrl, params.normal_module_factory.clone());
-    compilation.set_dependency_factory(
-      DependencyType::CssImport,
-      params.normal_module_factory.clone(),
-    );
-    compilation.set_dependency_factory(
-      DependencyType::CssCompose,
-      params.normal_module_factory.clone(),
-    );
-    Ok(())
-  }
+#[plugin_hook(AsyncSeries2<Compilation, CompilationParams> for CssPlugin)]
+async fn compilation(
+  &self,
+  compilation: &mut Compilation,
+  params: &mut CompilationParams,
+) -> Result<()> {
+  compilation.set_dependency_factory(DependencyType::CssUrl, params.normal_module_factory.clone());
+  compilation.set_dependency_factory(
+    DependencyType::CssImport,
+    params.normal_module_factory.clone(),
+  );
+  compilation.set_dependency_factory(
+    DependencyType::CssCompose,
+    params.normal_module_factory.clone(),
+  );
+  Ok(())
 }
 
 #[async_trait]
@@ -147,7 +146,7 @@ impl Plugin for CssPlugin {
       .context
       .compiler_hooks
       .compilation
-      .tap(Box::new(CssPluginCompilationHook));
+      .tap(compilation::new(self));
 
     let config = self.config.clone();
     let builder = move || {
@@ -180,7 +179,7 @@ impl Plugin for CssPlugin {
     let ordered_modules = Self::get_ordered_chunk_css_modules(
       chunk,
       &compilation.chunk_graph,
-      &compilation.module_graph,
+      compilation.get_module_graph(),
       compilation,
     );
     let mut hasher = RspackHash::from(&compilation.options.output);
@@ -222,7 +221,7 @@ impl Plugin for CssPlugin {
     let ordered_css_modules = Self::get_ordered_chunk_css_modules(
       chunk,
       &compilation.chunk_graph,
-      &compilation.module_graph,
+      compilation.get_module_graph(),
       compilation,
     );
 
@@ -290,7 +289,8 @@ impl Plugin for CssPlugin {
     let runtime_requirements = args.runtime_requirements;
     let runtime_requirements_mut = &mut args.runtime_requirements_mut;
 
-    if (runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
+    if (runtime_requirements.contains(RuntimeGlobals::HAS_CSS_MODULES)
+      || runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
       || runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS))
       && is_enabled_for_chunk
     {

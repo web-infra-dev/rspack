@@ -220,8 +220,14 @@ impl BasicEvaluatedExpression {
       Some(true)
     } else if self.falsy || self.nullish == Some(true) || self.is_null() || self.is_undefined() {
       Some(false)
-    } else {
+    } else if self.is_bool() {
       self.boolean
+    } else if self.is_string() {
+      Some(!self.string().is_empty())
+    } else if self.is_number() {
+      Some(self.number() != 0.0)
+    } else {
+      None
     }
   }
 

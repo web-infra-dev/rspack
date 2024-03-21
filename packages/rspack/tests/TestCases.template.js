@@ -101,7 +101,6 @@ const describeCases = config => {
 								parallel: false
 							});
 							let options = {
-								...testConfig,
 								context: casesPath,
 								entry: "./" + category.name + "/" + testName + "/",
 								target: config.target || "async-node",
@@ -112,7 +111,7 @@ const describeCases = config => {
 											emitOnErrors: true,
 											minimizer: [terserForTesting],
 											...testConfig.optimization
-									  }
+										}
 									: {
 											removeAvailableModules: true,
 											removeEmptyChunks: true,
@@ -135,7 +134,7 @@ const describeCases = config => {
 											chunkIds: "named",
 											minimizer: [terserForTesting],
 											...config.optimization
-									  },
+										},
 								// CHANGE: rspack does not support `performance` yet.
 								// performance: {
 								// 	hints: false

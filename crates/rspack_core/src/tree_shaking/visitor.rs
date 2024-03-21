@@ -5,8 +5,8 @@ use bitflags::bitflags;
 use hashlink::{LinkedHashMap, LinkedHashSet};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde::Serialize;
-use swc_core::common::SyntaxContext;
 use swc_core::common::{util::take::Take, GLOBALS};
+use swc_core::common::{Span, Spanned, SyntaxContext};
 use swc_core::ecma::ast::*;
 use swc_core::ecma::atoms::Atom;
 use swc_core::ecma::utils::{ExprCtx, ExprExt};
@@ -194,6 +194,8 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   pub(crate) has_side_effects_stmt: bool,
   pub(crate) potential_top_level_ctxt: HashSet<SyntaxContext>,
   worker_syntax_list: &'a WorkerSyntaxList,
+  /// record harmony_import_specifier_dependency_id -> related SymbolRef
+  pub harmony_import_specifier_dependency_alias_map: HashMap<Span, SymbolRef>,
 }
 
 impl<'a> std::fmt::Debug for ModuleRefAnalyze<'a> {
@@ -285,6 +287,7 @@ impl<'a> ModuleRefAnalyze<'a> {
       potential_top_level_ctxt: HashSet::from_iter([mark_info.top_level_ctxt]),
       worker_syntax_list,
       export_all_dep_id: LinkedHashSet::default(),
+      harmony_import_specifier_dependency_alias_map: Default::default(),
     }
   }
 
@@ -908,16 +911,6 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
   fn visit_export_default_expr(&mut self, node: &ExportDefaultExpr) {
     let before_owner_extend_symbol = self.current_body_owner_symbol_ext.clone();
     let default_ident: BetterId = self.generate_default_ident().to_id().into();
-
-    self.add_export(
-      default_ident.atom.clone(),
-      SymbolRef::Declaration(Symbol::new(
-        self.module_identifier,
-        default_ident.clone(),
-        SymbolType::Define,
-        None,
-      )),
-    );
     match self.export_default_name {
       Some(_) => {
         // TODO: Better diagnostic
@@ -930,7 +923,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         self.export_default_name = Some("default".into());
       }
     }
-    let mut symbol_ext: SymbolExt = default_ident.atom.into();
+    let mut symbol_ext: SymbolExt = default_ident.atom.clone().into();
     symbol_ext.flag.insert(SymbolFlag::EXPORT_DEFAULT);
     match node.expr {
       box Expr::Fn(_) => symbol_ext.flag.insert(SymbolFlag::FUNCTION_EXPR),
@@ -938,6 +931,20 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       box Expr::Ident(_) => symbol_ext.flag.insert(SymbolFlag::ALIAS),
       _ => {}
     };
+
+    let export_symbol = SymbolRef::Declaration(Symbol::new(
+      self.module_identifier,
+      default_ident.clone(),
+      SymbolType::Define,
+      None,
+    ));
+    if symbol_ext.flag.contains(SymbolFlag::ALIAS) {
+      self
+        .harmony_import_specifier_dependency_alias_map
+        .insert(node.expr.span(), export_symbol.clone());
+    };
+
+    self.add_export(default_ident.atom.clone(), export_symbol);
     self.current_body_owner_symbol_ext = Some(symbol_ext);
     node.visit_children_with(self);
     self.current_body_owner_symbol_ext = before_owner_extend_symbol;
@@ -1693,6 +1700,7 @@ pub struct OptimizeAnalyzeResult {
   pub(crate) bail_out_module_identifiers: HashMap<ModuleIdOrDepId, BailoutFlag>,
   pub(crate) side_effects: SideEffectType,
   pub(crate) module_syntax: ModuleSyntax,
+  pub harmony_import_specifier_dependency_alias_map: HashMap<Span, SymbolRef>,
 }
 
 impl From<ModuleRefAnalyze<'_>> for OptimizeAnalyzeResult {
@@ -1713,6 +1721,8 @@ impl From<ModuleRefAnalyze<'_>> for OptimizeAnalyzeResult {
       side_effects: analyze.side_effects,
       module_syntax: analyze.module_syntax,
       export_all_dep_id: analyze.export_all_dep_id,
+      harmony_import_specifier_dependency_alias_map: analyze
+        .harmony_import_specifier_dependency_alias_map,
     }
   }
 }

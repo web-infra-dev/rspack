@@ -54,10 +54,6 @@ module.exports = class RspackMinifyPlugin {
 					name: "RspackMinifyPlugin"
 				},
 				async _ => {
-					const {
-						options: { devtool }
-					} = compilation.compiler;
-					const sourcemap = !!devtool;
 					const assets = compilation.getAssets().filter(asset => {
 						return (
 							// Don't double minimize assets
@@ -72,13 +68,13 @@ module.exports = class RspackMinifyPlugin {
 							const { source, map } = asset.source.sourceAndMap();
 							const sourceAsString = source.toString();
 							const result = await this.transform(sourceAsString, {
-								sourcemap,
+								sourcemap: !!map,
 								css: isCssFile.test(asset.name),
 								sourcefile: asset.name
 							});
 							compilation.updateAsset(
 								asset.name,
-								sourcemap
+								map
 									? new SourceMapSource(
 											result.code,
 											asset.name,

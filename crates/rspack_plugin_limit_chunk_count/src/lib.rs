@@ -67,9 +67,6 @@ impl Plugin for LimitChunkCountPlugin {
       return Ok(());
     }
 
-    let chunk_by_ukey = compilation.chunk_by_ukey.clone();
-    let chunk_group_by_ukey = compilation.chunk_group_by_ukey.clone();
-
     let mut chunks_ukeys = compilation
       .chunk_by_ukey
       .keys()
@@ -79,8 +76,15 @@ impl Plugin for LimitChunkCountPlugin {
       return Ok(());
     }
 
+    let chunk_by_ukey = &compilation.chunk_by_ukey.clone();
+    let chunk_group_by_ukey = &compilation.chunk_group_by_ukey.clone();
     let chunk_graph = &compilation.chunk_graph.clone();
-    let module_graph = &compilation.module_graph;
+    let mut new_chunk_by_ukey = std::mem::take(&mut compilation.chunk_by_ukey);
+    let mut new_chunk_group_by_ukey = std::mem::take(&mut compilation.chunk_group_by_ukey);
+    let mut new_chunk_graph = std::mem::take(&mut compilation.chunk_graph);
+
+    //    let chunk_graph = &compilation.chunk_graph.clone();
+    let module_graph = compilation.get_module_graph();
     let mut remaining_chunks_to_merge = (chunks_ukeys.len() - max_chunks) as i64;
 
     // order chunks in a deterministic way
@@ -105,7 +109,7 @@ impl Plugin for LimitChunkCountPlugin {
 
     for (b_idx, b) in chunks_ukeys.iter().enumerate() {
       for (a_idx, a) in chunks_ukeys.iter().enumerate().take(b_idx) {
-        if !chunk_graph.can_chunks_be_integrated(a, b, &chunk_by_ukey, &chunk_group_by_ukey) {
+        if !chunk_graph.can_chunks_be_integrated(a, b, chunk_by_ukey, chunk_group_by_ukey) {
           continue;
         }
 
@@ -113,22 +117,22 @@ impl Plugin for LimitChunkCountPlugin {
           a,
           b,
           &chunk_size_option,
-          &chunk_by_ukey,
-          &chunk_group_by_ukey,
+          chunk_by_ukey,
+          chunk_group_by_ukey,
           module_graph,
         );
         let a_size = chunk_graph.get_chunk_size(
           a,
           &chunk_size_option,
-          &chunk_by_ukey,
-          &chunk_group_by_ukey,
+          chunk_by_ukey,
+          chunk_group_by_ukey,
           module_graph,
         );
         let b_size = chunk_graph.get_chunk_size(
           b,
           &chunk_size_option,
-          &chunk_by_ukey,
-          &chunk_group_by_ukey,
+          chunk_by_ukey,
+          chunk_group_by_ukey,
           module_graph,
         );
 
@@ -174,7 +178,7 @@ impl Plugin for LimitChunkCountPlugin {
         }
         for group_ukey in queue.clone() {
           for modified_chunk_ukey in modified_chunks.clone() {
-            if let Some(m_chunk) = get_chunk_from_ukey(&modified_chunk_ukey, &chunk_by_ukey) {
+            if let Some(m_chunk) = get_chunk_from_ukey(&modified_chunk_ukey, chunk_by_ukey) {
               if modified_chunk_ukey != a
                 && modified_chunk_ukey != b
                 && m_chunk.is_in_group(&group_ukey)
@@ -189,7 +193,7 @@ impl Plugin for LimitChunkCountPlugin {
               }
             }
           }
-          if let Some(group) = get_chunk_group_from_ukey(&group_ukey, &chunk_group_by_ukey) {
+          if let Some(group) = get_chunk_group_from_ukey(&group_ukey, chunk_group_by_ukey) {
             for parent in group.parents_iterable() {
               queue.insert(*parent);
             }
@@ -197,15 +201,15 @@ impl Plugin for LimitChunkCountPlugin {
         }
       }
 
-      if chunk_graph.can_chunks_be_integrated(&a, &b, &chunk_by_ukey, &chunk_group_by_ukey) {
-        compilation.chunk_graph.integrate_chunks(
+      if chunk_graph.can_chunks_be_integrated(&a, &b, chunk_by_ukey, chunk_group_by_ukey) {
+        new_chunk_graph.integrate_chunks(
           &a,
           &b,
-          &mut compilation.chunk_by_ukey,
-          &mut compilation.chunk_group_by_ukey,
+          &mut new_chunk_by_ukey,
+          &mut new_chunk_group_by_ukey,
           module_graph,
         );
-        compilation.chunk_by_ukey.remove(&b);
+        new_chunk_by_ukey.remove(&b);
 
         // flag chunk a as modified as further optimization are possible for all children here
         modified_chunks.insert(a);
@@ -239,8 +243,7 @@ impl Plugin for LimitChunkCountPlugin {
               continue;
             }
             if combination.a == b {
-              if !chunk_graph.can_chunks_be_integrated(&a, &b, &chunk_by_ukey, &chunk_group_by_ukey)
-              {
+              if !chunk_graph.can_chunks_be_integrated(&a, &b, chunk_by_ukey, chunk_group_by_ukey) {
                 combination.deleted = true;
                 combinations.delete(ukey);
                 continue;
@@ -250,8 +253,8 @@ impl Plugin for LimitChunkCountPlugin {
                 &a,
                 &combination.b,
                 &chunk_size_option,
-                &chunk_by_ukey,
-                &chunk_group_by_ukey,
+                chunk_by_ukey,
+                chunk_group_by_ukey,
                 module_graph,
               );
               combination.a = a;
@@ -260,8 +263,7 @@ impl Plugin for LimitChunkCountPlugin {
               combination.size_diff = combination.b_size + integrated_size - new_integrated_size;
               combinations.update();
             } else if combination.b == b {
-              if !chunk_graph.can_chunks_be_integrated(&b, &a, &chunk_by_ukey, &chunk_group_by_ukey)
-              {
+              if !chunk_graph.can_chunks_be_integrated(&b, &a, chunk_by_ukey, chunk_group_by_ukey) {
                 combination.deleted = true;
                 combinations.delete(ukey);
                 continue;
@@ -271,8 +273,8 @@ impl Plugin for LimitChunkCountPlugin {
                 &combination.a,
                 &a,
                 &chunk_size_option,
-                &chunk_by_ukey,
-                &chunk_group_by_ukey,
+                chunk_by_ukey,
+                chunk_group_by_ukey,
                 module_graph,
               );
               combination.b = a;
@@ -290,6 +292,10 @@ impl Plugin for LimitChunkCountPlugin {
         combinations_by_chunk.remove(&b);
       }
     }
+
+    compilation.chunk_by_ukey = new_chunk_by_ukey;
+    compilation.chunk_group_by_ukey = new_chunk_group_by_ukey;
+    compilation.chunk_graph = new_chunk_graph;
 
     Ok(())
   }

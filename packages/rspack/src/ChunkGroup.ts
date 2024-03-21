@@ -12,7 +12,7 @@ export class ChunkGroup {
 		return new ChunkGroup(chunk, compilation);
 	}
 
-	private constructor(inner: JsChunkGroup, compilation: JsCompilation) {
+	protected constructor(inner: JsChunkGroup, compilation: JsCompilation) {
 		this.#inner = inner;
 		this.#inner_compilation = compilation;
 	}
@@ -45,5 +45,13 @@ export class ChunkGroup {
 
 	get name(): string | undefined {
 		return this.#inner.name;
+	}
+
+	__internal_inner_ukey() {
+		return this.#inner.__inner_ukey;
+	}
+
+	__internal_inner_compilation() {
+		return this.#inner_compilation;
 	}
 }

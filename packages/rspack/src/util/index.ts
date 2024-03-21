@@ -1,5 +1,3 @@
-import terminalLink from "terminal-link";
-
 import type { JsAssetInfo, JsStatsError } from "@rspack/binding";
 
 import { AssetInfo } from "../Compilation";
@@ -142,4 +140,3 @@ export const deprecatedWarn = (
 		);
 	}
 };
-export const termlink = terminalLink;

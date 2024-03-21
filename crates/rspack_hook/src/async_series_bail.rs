@@ -1,9 +1,10 @@
-use std::{fmt, future::Future};
+use std::fmt;
 
 use async_trait::async_trait;
 use rspack_error::Result;
+use rustc_hash::FxHashSet;
 
-use crate::util::sort_push;
+use crate::{Hook, Interceptor};
 
 #[async_trait]
 pub trait AsyncSeriesBail<Input, Output> {
@@ -13,34 +14,22 @@ pub trait AsyncSeriesBail<Input, Output> {
   }
 }
 
-#[async_trait]
-impl<I, O, F, T> AsyncSeriesBail<I, O> for T
-where
-  I: Send,
-  F: Future<Output = Result<Option<O>>> + Send,
-  T: Fn(&mut I) -> F + Sync,
-{
-  async fn run(&self, input: &mut I) -> Result<Option<O>> {
-    self(input).await
-  }
+pub struct AsyncSeriesBailHook<I, O> {
+  taps: Vec<Box<dyn AsyncSeriesBail<I, O> + Send + Sync>>,
+  interceptors: Vec<Box<dyn Interceptor<AsyncSeriesBailHook<I, O>> + Send + Sync>>,
 }
 
-#[async_trait]
-impl<I, O, F, T> AsyncSeriesBail<I, O> for (T, i32)
-where
-  I: Send,
-  F: Future<Output = Result<Option<O>>> + Send,
-  T: Fn(&mut I) -> F + Sync,
-{
-  async fn run(&self, input: &mut I) -> Result<Option<O>> {
-    self.0(input).await
+impl<I, O> Hook for AsyncSeriesBailHook<I, O> {
+  type Tap = Box<dyn AsyncSeriesBail<I, O> + Send + Sync>;
+
+  fn used_stages(&self) -> FxHashSet<i32> {
+    FxHashSet::from_iter(self.taps.iter().map(|h| h.stage()))
   }
-  fn stage(&self) -> i32 {
-    self.1
+
+  fn intercept(&mut self, interceptor: impl Interceptor<Self> + Send + Sync + 'static) {
+    self.interceptors.push(Box::new(interceptor));
   }
 }
-
-pub struct AsyncSeriesBailHook<I, O>(Vec<Box<dyn AsyncSeriesBail<I, O> + Send + Sync>>);
 
 impl<I, O> fmt::Debug for AsyncSeriesBailHook<I, O> {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -50,21 +39,28 @@ impl<I, O> fmt::Debug for AsyncSeriesBailHook<I, O> {
 
 impl<I, O> Default for AsyncSeriesBailHook<I, O> {
   fn default() -> Self {
-    Self(Vec::default())
+    Self {
+      taps: Default::default(),
+      interceptors: Default::default(),
+    }
   }
 }
 
 impl<I, O> AsyncSeriesBailHook<I, O> {
   pub async fn call(&self, input: &mut I) -> Result<Option<O>> {
-    for hook in &self.0 {
+    let mut additional_taps = Vec::new();
+    for interceptor in self.interceptors.iter() {
+      additional_taps.extend(interceptor.call(self).await?);
+    }
+    let mut all_taps = Vec::new();
+    all_taps.extend(&additional_taps);
+    all_taps.extend(&self.taps);
+    all_taps.sort_by_key(|hook| hook.stage());
+    for hook in all_taps {
       if let Some(res) = hook.run(input).await? {
         return Ok(Some(res));
       }
     }
     Ok(None)
-  }
-
-  pub fn tap(&mut self, hook: impl AsyncSeriesBail<I, O> + 'static + Send + Sync) {
-    sort_push(&mut self.0, Box::new(hook), |e| e.stage());
   }
 }

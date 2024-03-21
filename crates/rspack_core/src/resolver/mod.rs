@@ -36,8 +36,8 @@ pub enum ResolveResult {
 #[derive(Clone)]
 pub struct Resource {
   pub path: PathBuf,
-  pub query: Option<String>,
-  pub fragment: Option<String>,
+  pub query: String,
+  pub fragment: String,
   pub description_data: Option<DescriptionData>,
 }
 
@@ -58,12 +58,8 @@ impl Resource {
   /// Get the full path with query and fragment attached.
   pub fn full_path(&self) -> PathBuf {
     let mut buf = format!("{}", self.path.display());
-    if let Some(query) = self.query.as_ref() {
-      buf.push_str(query);
-    }
-    if let Some(fragment) = self.fragment.as_ref() {
-      buf.push_str(fragment);
-    }
+    buf.push_str(&self.query);
+    buf.push_str(&self.fragment);
     PathBuf::from(buf)
   }
 }

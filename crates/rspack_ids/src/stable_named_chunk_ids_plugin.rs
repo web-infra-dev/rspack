@@ -39,8 +39,8 @@ impl Plugin for StableNamedChunkIdsPlugin {
 
     let mut used_code_splitting_chunk_name: FxHashSet<String> = FxHashSet::default();
 
-    let chunks_to_be_named = compilation
-      .chunk_by_ukey
+    let mut chunk_by_ukey = std::mem::take(&mut compilation.chunk_by_ukey);
+    let chunks_to_be_named = chunk_by_ukey
       .values_mut()
       .filter_map(|chunk| {
         // If the chunk has a name already, use it as the id
@@ -51,7 +51,7 @@ impl Plugin for StableNamedChunkIdsPlugin {
         } else if let Some(root_id) = code_splitting_chunk_to_root_module.get(&chunk.ukey) {
           // Make sure all chunks create in code splitting must have a name
           let root_module = compilation
-            .module_graph
+            .get_module_graph()
             .module_by_identifier(root_id)
             .expect("Module should exist");
           let root_module_name = request_to_id(&get_short_module_name(root_module, &context));
@@ -85,7 +85,7 @@ impl Plugin for StableNamedChunkIdsPlugin {
         }
       })
       .collect::<Vec<_>>();
-
+    compilation.chunk_by_ukey = chunk_by_ukey;
     let name_to_chunks: DashMap<String, FxHashSet<ChunkUkey>> = Default::default();
 
     let chunks_has_no_name = chunks_to_be_named
