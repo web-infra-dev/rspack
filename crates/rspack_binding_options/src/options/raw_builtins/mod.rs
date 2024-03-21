@@ -305,7 +305,9 @@ impl BuiltinPlugin {
       BuiltinPluginName::FileUriPlugin => plugins.push(FileUriPlugin.boxed()),
       BuiltinPluginName::RuntimePlugin => plugins.push(RuntimePlugin.boxed()),
       BuiltinPluginName::JsonModulesPlugin => plugins.push(JsonPlugin.boxed()),
-      BuiltinPluginName::InferAsyncModulesPlugin => plugins.push(InferAsyncModulesPlugin.boxed()),
+      BuiltinPluginName::InferAsyncModulesPlugin => {
+        plugins.push(InferAsyncModulesPlugin::default().boxed())
+      }
       BuiltinPluginName::JavascriptModulesPlugin => plugins.push(JsPlugin::default().boxed()),
       BuiltinPluginName::AsyncWebAssemblyModulesPlugin => {
         plugins.push(AsyncWasmPlugin::default().boxed())

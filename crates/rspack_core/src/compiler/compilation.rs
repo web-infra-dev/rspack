@@ -51,6 +51,7 @@ pub type CompilationStillValidModuleHook = AsyncSeriesHook<BoxModule>;
 pub type CompilationSucceedModuleHook = AsyncSeriesHook<BoxModule>;
 pub type CompilationExecuteModuleHook =
   SyncSeries4Hook<ModuleIdentifier, IdentifierSet, CodeGenerationResults, ExecuteModuleId>;
+pub type CompilationFinishModulesHook = AsyncSeriesHook<Compilation>;
 pub type CompilationRuntimeModuleHook = AsyncSeries3Hook<Compilation, ModuleIdentifier, ChunkUkey>;
 pub type CompilationChunkAssetHook = AsyncSeries2Hook<Chunk, String>;
 pub type CompilationProcessAssetsHook = AsyncSeriesHook<Compilation>;
@@ -61,6 +62,7 @@ pub struct CompilationHooks {
   pub still_valid_module: CompilationStillValidModuleHook,
   pub succeed_module: CompilationSucceedModuleHook,
   pub execute_module: CompilationExecuteModuleHook,
+  pub finish_modules: CompilationFinishModulesHook,
   pub runtime_module: CompilationRuntimeModuleHook,
   pub chunk_asset: CompilationChunkAssetHook,
   pub process_assets: CompilationProcessAssetsHook,
@@ -809,7 +811,11 @@ impl Compilation {
   pub async fn finish(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     let logger = self.get_logger("rspack.Compilation");
     let start = logger.time("finish modules");
-    plugin_driver.finish_modules(self).await?;
+    plugin_driver
+      .compilation_hooks
+      .finish_modules
+      .call(self)
+      .await?;
     logger.time_end(start);
 
     Ok(())
