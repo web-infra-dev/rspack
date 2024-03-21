@@ -284,14 +284,6 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
-  async fn finish_make(&self, _compilation: &mut Compilation) -> Result<()> {
-    Ok(())
-  }
-
-  async fn finish_modules(&self, _modules: &mut Compilation) -> Result<()> {
-    Ok(())
-  }
-
   /// Webpack resolves loaders in `NormalModuleFactory`,
   /// Rspack resolves it when normalizing configuration.
   /// So this hook is used to resolve inline loader (inline loader requests).

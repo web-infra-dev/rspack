@@ -117,7 +117,7 @@ export class Compilation {
 			[Iterable<Chunk>, Iterable<Module>],
 			void
 		>;
-		finishModules: tapable.AsyncSeriesHook<[Iterable<Module>], void>;
+		finishModules: liteTapable.AsyncSeriesHook<[Iterable<Module>], void>;
 		chunkAsset: liteTapable.SyncHook<[Chunk, string], void>;
 		processWarnings: tapable.SyncWaterfallHook<[Error[]]>;
 		succeedModule: liteTapable.SyncHook<[Module], void>;
@@ -224,7 +224,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 				"chunks",
 				"modules"
 			]),
-			finishModules: new tapable.AsyncSeriesHook(["modules"]),
+			finishModules: new liteTapable.AsyncSeriesHook(["modules"]),
 			chunkAsset: new liteTapable.SyncHook(["chunk", "filename"]),
 			processWarnings: new tapable.SyncWaterfallHook(["warnings"]),
 			succeedModule: new liteTapable.SyncHook(["module"]),

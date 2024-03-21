@@ -553,7 +553,7 @@ impl TestConfig {
 
     plugins.push(rspack_plugin_warn_sensitive_module::WarnCaseSensitiveModulesPlugin.boxed());
 
-    plugins.push(rspack_plugin_javascript::InferAsyncModulesPlugin {}.boxed());
+    plugins.push(rspack_plugin_javascript::InferAsyncModulesPlugin::default().boxed());
     if self.experiments.async_web_assembly {
       plugins.push(rspack_plugin_wasm::FetchCompileAsyncWasmPlugin {}.boxed());
       plugins.push(rspack_plugin_wasm::AsyncWasmPlugin::default().boxed());

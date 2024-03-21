@@ -13,10 +13,11 @@ use rspack_binding_values::{
 use rspack_core::{
   rspack_sources::SourceExt, BeforeResolveArgs, BoxModule, Chunk, ChunkUkey, CodeGenerationResults,
   Compilation, CompilationBuildModuleHook, CompilationChunkAssetHook, CompilationExecuteModuleHook,
-  CompilationParams, CompilationProcessAssetsHook, CompilationRuntimeModuleHook,
-  CompilationStillValidModuleHook, CompilationSucceedModuleHook, CompilerCompilationHook,
-  CompilerMakeHook, CompilerShouldEmitHook, CompilerThisCompilationHook, ExecuteModuleId,
-  MakeParam, ModuleIdentifier, NormalModuleFactoryBeforeResolveHook,
+  CompilationFinishModulesHook, CompilationParams, CompilationProcessAssetsHook,
+  CompilationRuntimeModuleHook, CompilationStillValidModuleHook, CompilationSucceedModuleHook,
+  CompilerCompilationHook, CompilerFinishMakeHook, CompilerMakeHook, CompilerShouldEmitHook,
+  CompilerThisCompilationHook, ExecuteModuleId, MakeParam, ModuleIdentifier,
+  NormalModuleFactoryBeforeResolveHook,
 };
 use rspack_hook::{
   AsyncSeries, AsyncSeries2, AsyncSeries3, AsyncSeriesBail, Hook, Interceptor, SyncSeries4,
@@ -167,6 +168,13 @@ impl<T: 'static + ToNapiValue, R: 'static> RegisterJsTapsInner<T, R> {
   }
 }
 
+/// define js taps register
+/// cache: add cache for register function, used for `before_resolve` or `build_module`
+///        which run register function multiple times for every module, cache will ensure
+///        it only run once.
+/// sync: synchronously/blocking call the register function, most of the register shouldn't
+///       be sync since calling a ThreadsafeFunction is async, for now it's only used by
+///       execute_module, which strongly required sync call.
 macro_rules! define_register {
   ($name:ident, tap = $tap_name:ident<$arg:ty, $ret:ty> @ $tap_hook:ty, cache = $cache:literal, sync = $sync:tt,) => {
     define_register!(@BASE $name, $tap_name<$arg, $ret> @ $tap_hook, $cache, $sync);
@@ -250,6 +258,10 @@ pub struct RegisterJsTaps {
   )]
   pub register_compiler_make_taps: RegisterFunction<JsCompilation, Promise<()>>,
   #[napi(
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>"
+  )]
+  pub register_compiler_finish_make_taps: RegisterFunction<JsCompilation, Promise<()>>,
+  #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => boolean | undefined); stage: number; }>"
   )]
   pub register_compiler_should_emit_taps: RegisterFunction<JsCompilation, Option<bool>>,
@@ -274,6 +286,10 @@ pub struct RegisterJsTaps {
   )]
   pub register_compilation_runtime_module_taps:
     RegisterFunction<JsRuntimeModuleArg, Option<JsRuntimeModule>>,
+  #[napi(
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => Promise<void>); stage: number; }>"
+  )]
+  pub register_compilation_finish_modules_taps: RegisterFunction<JsCompilation, Promise<()>>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsChunkAssetArgs) => void); stage: number; }>"
   )]
@@ -309,6 +325,12 @@ define_register!(
   sync = false,
 );
 define_register!(
+  RegisterCompilerFinishMakeTaps,
+  tap = CompilerFinishMakeTap<JsCompilation, Promise<()>> @ CompilerFinishMakeHook,
+  cache = false,
+  sync = false,
+);
+define_register!(
   RegisterCompilerShouldEmitTaps,
   tap = CompilerShouldEmitTap<JsCompilation, Option<bool>> @ CompilerShouldEmitHook,
   cache = false,
@@ -339,6 +361,12 @@ define_register!(
   tap = CompilationExecuteModuleTap<JsExecuteModuleArg, ()> @ CompilationExecuteModuleHook,
   cache = false,
   sync = true,
+);
+define_register!(
+  RegisterCompilationFinishModulesTaps,
+  tap = CompilationFinishModulesTap<JsCompilation, Promise<()>> @ CompilationFinishModulesHook,
+  cache = false,
+  sync = false,
 );
 define_register!(
   RegisterCompilationRuntimeModuleTaps,
@@ -429,6 +457,23 @@ impl AsyncSeries2<Compilation, Vec<MakeParam>> for CompilerMakeTap {
 }
 
 #[async_trait]
+impl AsyncSeries<Compilation> for CompilerFinishMakeTap {
+  async fn run(&self, compilation: &mut Compilation) -> rspack_error::Result<()> {
+    // SAFETY:
+    // 1. `Compiler` is stored on the heap and pinned in binding crate.
+    // 2. `Compilation` outlives `JsCompilation` and `Compiler` outlives `Compilation`.
+    // 3. `JsCompilation` was replaced everytime a new `Compilation` was created before getting accessed.
+    let compilation = unsafe { JsCompilation::from_compilation(compilation) };
+
+    self.function.call_with_promise(compilation).await
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
+
+#[async_trait]
 impl AsyncSeriesBail<Compilation, bool> for CompilerShouldEmitTap {
   async fn run(&self, compilation: &mut Compilation) -> rspack_error::Result<Option<bool>> {
     // SAFETY:
@@ -504,6 +549,23 @@ impl SyncSeries4<ModuleIdentifier, IdentifierSet, CodeGenerationResults, Execute
       codegen_results: codegen_results.clone().into(),
       id: *id,
     }))
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
+
+#[async_trait]
+impl AsyncSeries<Compilation> for CompilationFinishModulesTap {
+  async fn run(&self, compilation: &mut Compilation) -> rspack_error::Result<()> {
+    // SAFETY:
+    // 1. `Compiler` is stored on the heap and pinned in binding crate.
+    // 2. `Compilation` outlives `JsCompilation` and `Compiler` outlives `Compilation`.
+    // 3. `JsCompilation` was replaced everytime a new `Compilation` was created before getting accessed.
+    let compilation = unsafe { JsCompilation::from_compilation(compilation) };
+
+    self.function.call_with_promise(compilation).await
   }
 
   fn stage(&self) -> i32 {

@@ -111,8 +111,7 @@ class Compiler {
 		make: liteTapable.AsyncParallelHook<[Compilation]>;
 		beforeCompile: tapable.AsyncSeriesHook<[CompilationParams]>;
 		afterCompile: tapable.AsyncSeriesHook<[Compilation]>;
-		finishModules: tapable.AsyncSeriesHook<[any]>;
-		finishMake: tapable.AsyncSeriesHook<[Compilation]>;
+		finishMake: liteTapable.AsyncSeriesHook<[Compilation]>;
 		entryOption: tapable.SyncBailHook<[string, EntryNormalized], any>;
 	};
 	options: RspackOptionsNormalized;
@@ -172,8 +171,7 @@ class Compiler {
 			make: new liteTapable.AsyncParallelHook(["compilation"]),
 			beforeCompile: new tapable.AsyncSeriesHook(["params"]),
 			afterCompile: new tapable.AsyncSeriesHook(["compilation"]),
-			finishMake: new tapable.AsyncSeriesHook(["compilation"]),
-			finishModules: new tapable.AsyncSeriesHook(["modules"]),
+			finishMake: new liteTapable.AsyncSeriesHook(["compilation"]),
 			entryOption: new tapable.SyncBailHook(["context", "entry"])
 		};
 		this.modifiedFiles = undefined;
@@ -229,7 +227,6 @@ class Compiler {
 			rawOptions,
 			this.builtinPlugins,
 			{
-				finishMake: this.#finishMake.bind(this),
 				emit: this.#emit.bind(this),
 				assetEmitted: this.#assetEmitted.bind(this),
 				afterEmit: this.#afterEmit.bind(this),
@@ -238,7 +235,6 @@ class Compiler {
 				afterOptimizeModules: this.#afterOptimizeModules.bind(this),
 				optimizeTree: this.#optimizeTree.bind(this),
 				optimizeChunkModules: this.#optimizeChunkModules.bind(this),
-				finishModules: this.#finishModules.bind(this),
 				normalModuleFactoryCreateModule:
 					this.#normalModuleFactoryCreateModule.bind(this),
 				normalModuleFactoryResolveForScheme:
@@ -266,6 +262,10 @@ class Compiler {
 				),
 				registerCompilerMakeTaps: this.#createRegisterTaps(
 					() => this.hooks.make,
+					queried => async () => await queried.promise(this.compilation!)
+				),
+				registerCompilerFinishMakeTaps: this.#createRegisterTaps(
+					() => this.hooks.finishMake,
 					queried => async () => await queried.promise(this.compilation!)
 				),
 				registerCompilerShouldEmitTaps: this.#createRegisterTaps(
@@ -375,6 +375,11 @@ class Compiler {
 
 							this.#moduleExecutionResultsMap.set(id, executeResult);
 						}
+				),
+				registerCompilationFinishModulesTaps: this.#createRegisterTaps(
+					() => this.compilation!.hooks.finishModules,
+					queried => async () =>
+						await queried.promise(this.compilation!.modules)
 				),
 				registerCompilationChunkAssetTaps: this.#createRegisterTaps(
 					() => this.compilation!.hooks.chunkAsset,
@@ -628,13 +633,11 @@ class Compiler {
 		const disabledHooks: string[] = [];
 		type HookMap = Record<keyof binding.JsHooks, any>;
 		const hookMap: HookMap = {
-			finishMake: this.hooks.finishMake,
 			emit: this.hooks.emit,
 			assetEmitted: this.hooks.assetEmitted,
 			afterEmit: this.hooks.afterEmit,
 			afterProcessAssets: this.compilation!.hooks.afterProcessAssets,
 			optimizeTree: this.compilation!.hooks.optimizeTree,
-			finishModules: this.compilation!.hooks.finishModules,
 			optimizeModules: this.compilation!.hooks.optimizeModules,
 			afterOptimizeModules: this.compilation!.hooks.afterOptimizeModules,
 			afterResolve:
@@ -672,11 +675,6 @@ class Compiler {
 				this.#disabledHooks = disabledHooks;
 			});
 		}
-	}
-
-	async #finishMake() {
-		await this.hooks.finishMake.promise(this.compilation!);
-		this.#updateDisabledHooks();
 	}
 
 	async #afterProcessAssets() {
@@ -779,13 +777,6 @@ class Compiler {
 
 	async #afterOptimizeModules() {
 		await this.compilation!.hooks.afterOptimizeModules.promise(
-			this.compilation!.modules
-		);
-		this.#updateDisabledHooks();
-	}
-
-	async #finishModules() {
-		await this.compilation!.hooks.finishModules.promise(
 			this.compilation!.modules
 		);
 		this.#updateDisabledHooks();
