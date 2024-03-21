@@ -8,7 +8,6 @@ import type {
 	RawParserOptions,
 	RawAssetParserOptions,
 	RawAssetParserDataUrl,
-	RawAssetGeneratorDataUrl,
 	RawAssetInlineGeneratorOptions,
 	RawAssetResourceGeneratorOptions,
 	RawModuleRuleUses,
@@ -21,7 +20,7 @@ import type {
 import assert from "assert";
 import { Compiler } from "../Compiler";
 import { normalizeStatsPreset } from "../Stats";
-import { deprecatedWarn, isNil } from "../util";
+import { isNil } from "../util";
 import { parseResource } from "../util/identifier";
 import {
 	ComposeJsUseOptions,
@@ -127,9 +126,9 @@ function getRawTarget(target: Target | undefined): RawOptions["target"] {
 	return target;
 }
 
-function getRawAlias(
-	alias: Resolve["alias"] = {}
-): RawOptions["resolve"]["alias"] {
+function getRawExtensionAlias(
+	alias: Resolve["extensionAlias"] = {}
+): RawOptions["resolve"]["extensionAlias"] {
 	const entries = Object.entries(alias).map(([key, value]) => {
 		if (Array.isArray(value)) {
 			return [key, value];
@@ -138,6 +137,15 @@ function getRawAlias(
 		}
 	});
 	return Object.fromEntries(entries);
+}
+
+function getRawAlias(
+	alias: Resolve["alias"] = {}
+): RawOptions["resolve"]["alias"] {
+	return Object.entries(alias).map(([key, value]) => ({
+		path: key,
+		redirect: Array.isArray(value) ? value : [value]
+	}));
 }
 
 function getRawResolveByDependency(
@@ -156,7 +164,7 @@ function getRawResolve(resolve: Resolve): RawOptions["resolve"] {
 		...resolve,
 		alias: getRawAlias(resolve.alias),
 		fallback: getRawAlias(resolve.fallback),
-		extensionAlias: getRawAlias(resolve.extensionAlias) as Record<
+		extensionAlias: getRawExtensionAlias(resolve.extensionAlias) as Record<
 			string,
 			Array<string>
 		>,
@@ -308,7 +316,8 @@ function getRawModule(
 	return {
 		rules,
 		parser: getRawParserOptionsByModuleType(module.parser),
-		generator: getRawGeneratorOptionsByModuleType(module.generator)
+		generator: getRawGeneratorOptionsByModuleType(module.generator),
+		noParse: module.noParse
 	};
 }
 
@@ -647,7 +656,7 @@ function getRawAssetInlineGeneratorOptions(
 ): RawAssetInlineGeneratorOptions {
 	return {
 		dataUrl: options.dataUrl
-			? getRawAssetGeneratorDaraUrl(options.dataUrl)
+			? getRawAssetGeneratorDataUrl(options.dataUrl)
 			: undefined
 	};
 }
@@ -661,20 +670,19 @@ function getRawAssetResourceGeneratorOptions(
 	};
 }
 
-function getRawAssetGeneratorDaraUrl(
-	dataUrl: AssetGeneratorDataUrl
-): RawAssetGeneratorDataUrl {
+function getRawAssetGeneratorDataUrl(dataUrl: AssetGeneratorDataUrl) {
 	if (typeof dataUrl === "object" && dataUrl !== null) {
+		const encoding = dataUrl.encoding === false ? "false" : dataUrl.encoding;
 		return {
-			type: "options",
-			options: {
-				encoding: dataUrl.encoding === false ? "false" : dataUrl.encoding,
-				mimetype: dataUrl.mimetype
-			}
-		};
+			encoding,
+			mimetype: dataUrl.mimetype
+		} as const;
+	}
+	if (typeof dataUrl === "function" && dataUrl !== null) {
+		return dataUrl;
 	}
 	throw new Error(
-		`unreachable: AssetGeneratorDataUrl type should be one of "options", but got ${dataUrl}`
+		`unreachable: AssetGeneratorDataUrl type should be one of "options", "function", but got ${dataUrl}`
 	);
 }
 

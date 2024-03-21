@@ -3,7 +3,7 @@ use std::{hash::BuildHasherDefault, iter::once, sync::Arc};
 
 use rayon::prelude::*;
 use rspack_error::Result;
-use rspack_identifier::{Identifiable, IdentifierMap};
+use rspack_identifier::{Identifiable, IdentifierMap, IdentifierSet};
 use rustc_hash::{FxHashSet as HashSet, FxHasher};
 use tokio::runtime::Handle;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedSender};
@@ -23,18 +23,19 @@ use crate::{
 use crate::{Context, RuntimeModule};
 
 static EXECUTE_MODULE_ID: AtomicU32 = AtomicU32::new(0);
+pub type ExecuteModuleId = u32;
 
 impl Compilation {
   #[allow(clippy::unwrap_in_result)]
   #[instrument(name = "compilation:execute_module")]
   pub fn execute_module(
     &mut self,
-    module: ModuleIdentifier,
+    mut module: ModuleIdentifier,
     request: &str,
     options: BuildTimeExecutionOption,
     result_tx: UnboundedSender<Result<ExecuteModuleResult>>,
   ) -> Result<()> {
-    let id = EXECUTE_MODULE_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let mut id = EXECUTE_MODULE_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
 
     let mut modules: std::collections::HashSet<
       rspack_identifier::Identifier,
@@ -45,13 +46,16 @@ impl Compilation {
     while let Some(m) = queue.pop() {
       modules.insert(m);
       let m = self
-        .module_graph
+        .get_module_graph()
         .module_by_identifier(&m)
         .expect("should have module");
-      for m in self.module_graph.get_outgoing_connections(m) {
+      for m in self
+        .get_module_graph()
+        .get_outgoing_connections(&m.identifier())
+      {
         // TODO: handle circle
-        if !modules.contains(&m.module_identifier) {
-          queue.push(m.module_identifier);
+        if !modules.contains(m.module_identifier()) {
+          queue.push(*m.module_identifier());
         }
       }
     }
@@ -107,7 +111,7 @@ impl Compilation {
     // Assign ids to modules and modules to the chunk
     for m in &modules {
       let module = self
-        .module_graph
+        .get_module_graph()
         .module_by_identifier(m)
         .expect("should have module");
 
@@ -140,11 +144,11 @@ impl Compilation {
         .await
     })?;
 
-    let runtime_modules = self
+    let mut runtime_modules = self
       .chunk_graph
       .get_chunk_runtime_modules_iterable(&chunk_ukey)
       .copied()
-      .collect::<HashSet<ModuleIdentifier>>();
+      .collect::<IdentifierSet>();
 
     tracing::info!(
       "runtime modules: {:?}",
@@ -172,14 +176,12 @@ impl Compilation {
         .add(*runtime_id, runtime.clone(), result_id);
     }
 
-    let codegen_results = self.code_generation_results.clone();
-    let exports = self.plugin_driver.execute_module(
-      module,
-      request,
-      &options,
-      runtime_modules.iter().cloned().collect(),
-      &codegen_results,
-      id,
+    let mut codegen_results = self.code_generation_results.clone();
+    let exports = self.plugin_driver.compilation_hooks.execute_module.call(
+      &mut module,
+      &mut runtime_modules,
+      &mut codegen_results,
+      &mut id,
     );
 
     let execute_result = match exports {
@@ -188,7 +190,7 @@ impl Compilation {
           .iter()
           .fold(ExecuteModuleResult::default(), |mut res, m| {
             let module = self
-              .module_graph
+              .get_module_graph()
               .module_by_identifier(m)
               .expect("unreachable");
 
@@ -364,20 +366,15 @@ impl Compilation {
           process_dependencies_queue.wait_for(
             module,
             Box::new(move |module, compilation| {
-              let m = compilation
-                .module_graph
-                .module_by_identifier(&module)
-                .expect("todo");
-
               tx_clone
                 .send((
                   module,
                   Some(
                     compilation
-                      .module_graph
-                      .get_outgoing_connections(m)
+                      .get_module_graph()
+                      .get_outgoing_connections(&module)
                       .into_iter()
-                      .map(|conn| conn.module_identifier)
+                      .map(|conn| *conn.module_identifier())
                       .collect(),
                   ),
                 ))

@@ -61,7 +61,8 @@ import {
 	SideEffectsFlagPlugin,
 	BundlerInfoRspackPlugin,
 	ModuleConcatenationPlugin,
-	EvalDevToolModulePlugin
+	EvalDevToolModulePlugin,
+	JsLoaderRspackPlugin
 } from "./builtin-plugin";
 import { deprecatedWarn } from "./util";
 
@@ -202,7 +203,7 @@ export class RspackOptionsApply {
 					? EvalSourceMapDevToolPlugin
 					: SourceMapDevToolPlugin;
 				new Plugin({
-					filename: inline ? undefined : options.output.sourceMapFilename,
+					filename: inline ? null : options.output.sourceMapFilename,
 					moduleFilenameTemplate: options.output.devtoolModuleFilenameTemplate,
 					fallbackModuleFilenameTemplate:
 						options.output.devtoolFallbackModuleFilenameTemplate,
@@ -226,6 +227,8 @@ export class RspackOptionsApply {
 		if (options.experiments.asyncWebAssembly) {
 			new AsyncWebAssemblyModulesPlugin().apply(compiler);
 		}
+
+		new JsLoaderRspackPlugin(compiler).apply(compiler);
 
 		if (options.experiments.rspackFuture!.disableApplyEntryLazily) {
 			applyEntryOptions(compiler, options);

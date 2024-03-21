@@ -14,6 +14,7 @@ export class JsCompilation {
   getAsset(name: string): JsAsset | null
   getAssetSource(name: string): JsCompatSource | null
   getModules(): Array<JsModule>
+  getOptimizationBailout(): Array<JsStatsOptimizationBailout>
   getChunks(): Array<JsChunk>
   getNamedChunk(name: string): JsChunk | null
   /**
@@ -27,6 +28,7 @@ export class JsCompilation {
   hasAsset(name: string): boolean
   emitAsset(filename: string, source: JsCompatSource, assetInfo: JsAssetInfo): void
   deleteAsset(filename: string): void
+  renameAsset(filename: string, newName: string): void
   get entrypoints(): Record<string, JsChunkGroup>
   get hash(): string | null
   getFileDependencies(): Array<string>
@@ -61,40 +63,12 @@ export class JsStats {
 }
 
 export class Rspack {
-  constructor(options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, jsHooks: JsHooks, registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, jsLoaderRunner: (...args: any[]) => any)
-  unsafe_set_disabled_hooks(hooks: Array<string>): void
-  /**
-   * Build with the given option passed to the constructor
-   *
-   * Warning:
-   * Calling this method recursively might cause a deadlock.
-   */
-  unsafe_build(callback: (err: null | Error) => void): void
-  /**
-   * Rebuild with the given option passed to the constructor
-   *
-   * Warning:
-   * Calling this method recursively will cause a deadlock.
-   */
-  unsafe_rebuild(changed_files: string[], removed_files: string[], callback: (err: null | Error) => void): void
-  /**
-   * Get the last compilation
-   *
-   * Warning:
-   *
-   * Calling this method under the build or rebuild method might cause a deadlock.
-   *
-   * **Note** that this method is not safe if you cache the _JsCompilation_ on the Node side, as it will be invalidated by the next build and accessing a dangling ptr is a UB.
-   */
-  unsafe_last_compilation(f: (arg0: JsCompilation) => void): void
-  /**
-   * Destroy the compiler
-   *
-   * Warning:
-   *
-   * Anything related to this compiler will be invalidated after this method is called.
-   */
-  unsafe_drop(): void
+  constructor(options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, jsHooks: JsHooks, registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS)
+  setDisabledHooks(hooks: Array<string>): void
+  /** Build with the given option passed to the constructor */
+  build(callback: (err: null | Error) => void): void
+  /** Rebuild with the given option passed to the constructor */
+  rebuild(changed_files: string[], removed_files: string[], callback: (err: null | Error) => void): void
 }
 
 export function __chunk_graph_inner_get_chunk_entry_dependent_chunks_iterable(jsChunkUkey: number, compilation: JsCompilation): Array<JsChunk>
@@ -119,6 +93,14 @@ export function __chunk_inner_has_runtime(jsChunkUkey: number, compilation: JsCo
 
 export function __chunk_inner_is_only_initial(jsChunkUkey: number, compilation: JsCompilation): boolean
 
+export function __entrypoint_inner_get_runtime_chunk(ukey: number, compilation: JsCompilation): JsChunk
+
+export interface AfterResolveCreateData {
+  request: string
+  userRequest: string
+  resource: string
+}
+
 export interface AfterResolveData {
   request: string
   context: string
@@ -126,11 +108,7 @@ export interface AfterResolveData {
   contextDependencies: Array<string>
   missingDependencies: Array<string>
   factoryMeta: FactoryMeta
-}
-
-export interface BeforeResolveData {
-  request: string
-  context: string
+  createData?: AfterResolveCreateData
 }
 
 export interface BuiltinPlugin {
@@ -195,7 +173,8 @@ export enum BuiltinPluginName {
   HtmlRspackPlugin = 'HtmlRspackPlugin',
   SwcJsMinimizerRspackPlugin = 'SwcJsMinimizerRspackPlugin',
   SwcCssMinimizerRspackPlugin = 'SwcCssMinimizerRspackPlugin',
-  BundlerInfoRspackPlugin = 'BundlerInfoRspackPlugin'
+  BundlerInfoRspackPlugin = 'BundlerInfoRspackPlugin',
+  JsLoaderRspackPlugin = 'JsLoaderRspackPlugin'
 }
 
 export function cleanupGlobalTrace(): void
@@ -255,6 +234,11 @@ export interface JsAssetInfoRelated {
   sourceMap?: string
 }
 
+export interface JsBeforeResolveArgs {
+  request: string
+  context: string
+}
+
 export interface JsBuildTimeExecutionOption {
   publicPath?: string
   baseUri?: string
@@ -285,6 +269,7 @@ export interface JsChunkAssetArgs {
 
 export interface JsChunkGroup {
   __inner_parents: Array<number>
+  __inner_ukey: number
   chunks: Array<JsChunk>
   index?: number
   name?: string
@@ -309,8 +294,6 @@ export interface JsCompatSource {
 
 export interface JsExecuteModuleArg {
   entry: string
-  request: string
-  options: JsBuildTimeExecutionOption
   runtimeModules: Array<string>
   codegenResults: JsCodegenerationResults
   id: number
@@ -326,53 +309,26 @@ export interface JsExecuteModuleResult {
 }
 
 export interface JsHooks {
-  processAssetsStageAdditional: (...args: any[]) => any
-  processAssetsStagePreProcess: (...args: any[]) => any
-  processAssetsStageDerived: (...args: any[]) => any
-  processAssetsStageAdditions: (...args: any[]) => any
-  processAssetsStageNone: (...args: any[]) => any
-  processAssetsStageOptimize: (...args: any[]) => any
-  processAssetsStageOptimizeCount: (...args: any[]) => any
-  processAssetsStageOptimizeCompatibility: (...args: any[]) => any
-  processAssetsStageOptimizeSize: (...args: any[]) => any
-  processAssetsStageDevTooling: (...args: any[]) => any
-  processAssetsStageOptimizeInline: (...args: any[]) => any
-  processAssetsStageSummarize: (...args: any[]) => any
-  processAssetsStageOptimizeHash: (...args: any[]) => any
-  processAssetsStageOptimizeTransfer: (...args: any[]) => any
-  processAssetsStageAnalyse: (...args: any[]) => any
-  processAssetsStageReport: (...args: any[]) => any
-  afterProcessAssets: (...args: any[]) => any
-  thisCompilation: (...args: any[]) => any
-  emit: (...args: any[]) => any
-  assetEmitted: (...args: any[]) => any
-  shouldEmit: (...args: any[]) => any
-  afterEmit: (...args: any[]) => any
-  optimizeModules: (...args: any[]) => any
-  afterOptimizeModules: (...args: any[]) => any
-  optimizeTree: (...args: any[]) => any
-  optimizeChunkModules: (...args: any[]) => any
-  beforeCompile: (...args: any[]) => any
-  afterCompile: (...args: any[]) => any
-  finishModules: (...args: any[]) => any
-  finishMake: (...args: any[]) => any
-  buildModule: (...args: any[]) => any
-  beforeResolve: (...args: any[]) => any
-  afterResolve: (...args: any[]) => any
-  contextModuleFactoryBeforeResolve: (...args: any[]) => any
-  contextModuleFactoryAfterResolve: (...args: any[]) => any
-  normalModuleFactoryCreateModule: (...args: any[]) => any
-  normalModuleFactoryResolveForScheme: (...args: any[]) => any
-  chunkAsset: (...args: any[]) => any
-  succeedModule: (...args: any[]) => any
-  stillValidModule: (...args: any[]) => any
-  executeModule: (...args: any[]) => any
-  runtimeModule: (...args: any[]) => any
+  afterProcessAssets: () => void
+  emit: () => void
+  assetEmitted: (asset: JsAssetEmittedArgs) => void
+  afterEmit: () => void
+  optimizeModules: (compilation: JsCompilation) => void
+  afterOptimizeModules: (compilation: JsCompilation) => void
+  optimizeTree: () => void
+  optimizeChunkModules: (compilation: JsCompilation) => void
+  finishModules: (compilation: JsCompilation) => void
+  finishMake: (compilation: JsCompilation) => void
+  afterResolve: (data: AfterResolveData) => Promise<(boolean | void | AfterResolveCreateData)[]>
+  contextModuleFactoryBeforeResolve: (data: JsBeforeResolveArgs) => Promise<boolean | void>
+  contextModuleFactoryAfterResolve: (data: AfterResolveData) => Promise<boolean | void>
+  normalModuleFactoryCreateModule: (data: CreateModuleData) => void
+  normalModuleFactoryResolveForScheme: (data: JsResolveForSchemeInput) => Promise<JsResolveForSchemeResult>
 }
 
 export interface JsLoaderContext {
   /** Content maybe empty in pitching stage */
-  content?: Buffer
+  content: null | Buffer
   additionalData?: Buffer
   sourceMap?: Buffer
   resource: string
@@ -412,6 +368,23 @@ export interface JsLoaderContext {
   diagnosticsExternal: ExternalObject<'Diagnostic[]'>
   _moduleIdentifier: string
   hot: boolean
+}
+
+/** Only for dts generation */
+export interface JsLoaderResult {
+  /** Content in pitching stage can be empty */
+  content?: Buffer
+  fileDependencies: Array<string>
+  contextDependencies: Array<string>
+  missingDependencies: Array<string>
+  buildDependencies: Array<string>
+  assetFilenames: Array<string>
+  sourceMap?: Buffer
+  additionalData?: Buffer
+  additionalDataExternal: ExternalObject<'AdditionalData'>
+  cacheable: boolean
+  /** Used to instruct how rust loaders should execute */
+  isPitching: boolean
 }
 
 export interface JsModule {
@@ -548,6 +521,7 @@ export interface JsStatsModule {
   orphan: boolean
   providedExports?: Array<string>
   usedExports?: string | Array<string>
+  optimizationBailout?: Array<string>
 }
 
 export interface JsStatsModuleIssuer {
@@ -568,6 +542,10 @@ export interface JsStatsModuleReason {
   moduleId?: string
   type?: string
   userRequest?: string
+}
+
+export interface JsStatsOptimizationBailout {
+  inner: string
 }
 
 export interface JsStatsWarning {
@@ -604,9 +582,14 @@ export interface PathWithInfo {
   info: JsAssetInfo
 }
 
-export interface RawAssetGeneratorDataUrl {
-  type: "options"
-  options?: RawAssetGeneratorDataUrlOptions
+export interface RawAliasOptionItem {
+  path: string
+  redirect: Array<string | false>
+}
+
+export interface RawAssetGeneratorDataUrlFnArgs {
+  filename: string
+  content: string
 }
 
 export interface RawAssetGeneratorDataUrlOptions {
@@ -617,11 +600,11 @@ export interface RawAssetGeneratorDataUrlOptions {
 export interface RawAssetGeneratorOptions {
   filename?: string
   publicPath?: string
-  dataUrl?: RawAssetGeneratorDataUrl
+  dataUrl?: RawAssetGeneratorDataUrlOptions | ((arg: RawAssetGeneratorDataUrlFnArgs) => string)
 }
 
 export interface RawAssetInlineGeneratorOptions {
-  dataUrl?: RawAssetGeneratorDataUrl
+  dataUrl?: RawAssetGeneratorDataUrlOptions | ((arg: RawAssetGeneratorDataUrlFnArgs) => string)
 }
 
 export interface RawAssetParserDataUrl {
@@ -969,6 +952,7 @@ export interface RawModuleOptions {
   rules: Array<RawModuleRule>
   parser?: Record<string, RawParserOptions>
   generator?: Record<string, RawGeneratorOptions>
+  noParse?: string | RegExp | ((request: string) => boolean) | (string | RegExp | ((request: string) => boolean))[]
 }
 
 export interface RawModuleRule {
@@ -1022,7 +1006,7 @@ export interface RawModuleRuleUse {
 export interface RawModuleRuleUses {
   type: "array" | "function"
   arrayUse?: Array<RawModuleRuleUse>
-  funcUse?: (...args: any[]) => any
+  funcUse?: (arg: RawFuncUseCtx) => RawModuleRuleUse[]
 }
 
 export interface RawNodeOption {
@@ -1108,6 +1092,12 @@ export interface RawParserOptions {
   javascript?: RawJavascriptParserOptions
 }
 
+export interface RawPathData {
+  filename?: string
+  contentHash?: string
+  url?: string
+}
+
 export interface RawPluginImportConfig {
   libraryName: string
   libraryDirectory?: string
@@ -1172,8 +1162,8 @@ export interface RawResolveOptions {
   mainFiles?: Array<string>
   mainFields?: Array<string>
   conditionNames?: Array<string>
-  alias?: Record<string, Array<string | false>>
-  fallback?: Record<string, Array<string | false>>
+  alias?: Array<RawAliasOptionItem>
+  fallback?: Array<RawAliasOptionItem>
   symlinks?: boolean
   tsconfig?: RawResolveTsconfigOptions
   modules?: Array<string>
@@ -1291,18 +1281,28 @@ export interface RawTrustedTypes {
 export function registerGlobalTrace(filter: string, layer: "chrome" | "logger", output: string): void
 
 export interface RegisterJsTaps {
-  registerCompilerCompilationTaps: (...args: any[]) => any
-  registerCompilerMakeTaps: (...args: any[]) => any
+  registerCompilerThisCompilationTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>
+  registerCompilerCompilationTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>
+  registerCompilerMakeTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => Promise<void>); stage: number; }>
+  registerCompilerShouldEmitTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => boolean | undefined); stage: number; }>
+  registerCompilationBuildModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsModule) => void); stage: number; }>
+  registerCompilationStillValidModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsModule) => void); stage: number; }>
+  registerCompilationSucceedModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsModule) => void); stage: number; }>
+  registerCompilationExecuteModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsExecuteModuleArg) => void); stage: number; }>
+  registerCompilationRuntimeModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRuntimeModuleArg) => JsRuntimeModule | undefined); stage: number; }>
+  registerCompilationChunkAssetTaps: (stages: Array<number>) => Array<{ function: ((arg: JsChunkAssetArgs) => void); stage: number; }>
+  registerCompilationProcessAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => Promise<void>); stage: number; }>
+  registerNormalModuleFactoryBeforeResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsBeforeResolveArgs) => Promise<[boolean | undefined, JsBeforeResolveArgs]>); stage: number; }>
 }
 
 /** Builtin loader runner */
 export function runBuiltinLoader(builtin: string, options: string | undefined | null, loaderContext: JsLoaderContext): Promise<JsLoaderContext>
 
 export interface ThreadsafeNodeFS {
-  writeFile: (...args: any[]) => any
-  removeFile: (...args: any[]) => any
-  mkdir: (...args: any[]) => any
-  mkdirp: (...args: any[]) => any
-  removeDirAll: (...args: any[]) => any
+  writeFile: (name: string, content: Buffer) => void
+  removeFile: (name: string) => void
+  mkdir: (name: string) => void
+  mkdirp: (name: string) => string | void
+  removeDirAll: (name: string) => string | void
 }
 

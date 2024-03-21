@@ -1,28 +1,28 @@
-use std::{fmt::Debug, path::Path, sync::Arc};
+use std::{fmt::Debug, path::Path};
 
 use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_hash::RspackHashDigest;
 use rspack_loader_runner::{Content, LoaderContext, ResourceData};
-use rspack_sources::{BoxSource, Source};
+use rspack_sources::BoxSource;
 use rustc_hash::FxHashMap;
-use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
   AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, AssetEmittedArgs,
-  AssetInfo, BoxLoader, BoxModule, BuildTimeExecutionOption, Chunk, ChunkAssetArgs, ChunkHashArgs,
-  CodeGenerationResults, Compilation, CompilationParams, CompilerHooks, CompilerOptions,
-  ContentHashArgs, DependencyId, DoneArgs, FactorizeArgs, JsChunkHashArgs, LoaderRunnerContext,
-  Module, ModuleFactoryResult, ModuleIdentifier, ModuleType, NormalModule,
-  NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs, NormalModuleCreateData,
-  OptimizeChunksArgs, ParserAndGenerator, PluginContext, ProcessAssetsArgs, RenderArgs,
-  RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, Resolver,
-  RuntimeModule, RuntimeRequirementsInTreeArgs, SourceType, ThisCompilationArgs,
+  AssetInfo, BoxLoader, BoxModule, ChunkHashArgs, Compilation, CompilationHooks, CompilerHooks,
+  CompilerOptions, ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs, LoaderRunnerContext,
+  ModuleFactoryResult, ModuleIdentifier, ModuleType, NormalModule, NormalModuleAfterResolveArgs,
+  NormalModuleCreateData, NormalModuleFactoryHooks, OptimizeChunksArgs, ParserAndGenerator,
+  PluginContext, ProcessAssetsArgs, RenderArgs, RenderChunkArgs, RenderManifestArgs,
+  RenderModuleContentArgs, RenderStartupArgs, Resolver, RuntimeRequirementsInTreeArgs, SourceType,
 };
 
-// use anyhow::{Context, Result};
+#[derive(Debug, Clone)]
+pub struct BeforeResolveArgs {
+  pub request: String,
+  pub context: String,
+}
+
 pub type PluginCompilationHookOutput = Result<()>;
-pub type PluginThisCompilationHookOutput = Result<()>;
-pub type PluginMakeHookOutput = Result<()>;
 pub type PluginBuildEndHookOutput = Result<()>;
 pub type PluginProcessAssetsHookOutput = Result<()>;
 pub type PluginReadResourceOutput = Result<Option<Content>>;
@@ -45,7 +45,6 @@ pub type PluginRenderModuleContentOutput<'a> = Result<RenderModuleContentArgs<'a
 pub type PluginRenderStartupHookOutput = Result<Option<BoxSource>>;
 pub type PluginRenderHookOutput = Result<Option<BoxSource>>;
 pub type PluginJsChunkHashHookOutput = Result<()>;
-pub type PluginShouldEmitHookOutput = Result<Option<bool>>;
 
 #[async_trait::async_trait]
 pub trait Plugin: Debug + Send + Sync {
@@ -58,14 +57,6 @@ pub trait Plugin: Debug + Send + Sync {
     _ctx: PluginContext<&mut ApplyContext>,
     _options: &mut CompilerOptions,
   ) -> Result<()> {
-    Ok(())
-  }
-
-  async fn this_compilation(
-    &self,
-    _args: ThisCompilationArgs<'_>,
-    _params: &CompilationParams,
-  ) -> PluginThisCompilationHookOutput {
     Ok(())
   }
 
@@ -94,14 +85,6 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(None)
   }
 
-  async fn before_resolve(
-    &self,
-    _ctx: PluginContext,
-    _args: &mut NormalModuleBeforeResolveArgs,
-  ) -> PluginNormalModuleFactoryBeforeResolveOutput {
-    Ok(None)
-  }
-
   async fn after_resolve(
     &self,
     _ctx: PluginContext,
@@ -113,7 +96,7 @@ pub trait Plugin: Debug + Send + Sync {
   async fn context_module_before_resolve(
     &self,
     _ctx: PluginContext,
-    _args: &mut NormalModuleBeforeResolveArgs,
+    _args: &mut BeforeResolveArgs,
   ) -> PluginNormalModuleFactoryBeforeResolveOutput {
     Ok(None)
   }
@@ -197,11 +180,6 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
-  /// webpack `compilation.hooks.chunkAsset`
-  async fn chunk_asset(&self, _args: &ChunkAssetArgs) -> Result<()> {
-    Ok(())
-  }
-
   // JavascriptModulesPlugin hook
   fn render(&self, _ctx: PluginContext, _args: &RenderArgs) -> PluginRenderStartupHookOutput {
     Ok(None)
@@ -266,134 +244,6 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
-  async fn process_assets_stage_additional(
-    &self,
-    _ctx: PluginContext,
-    _args: ProcessAssetsArgs<'_>,
-  ) -> PluginProcessAssetsOutput {
-    Ok(())
-  }
-
-  async fn process_assets_stage_pre_process(
-    &self,
-    _ctx: PluginContext,
-    _args: ProcessAssetsArgs<'_>,
-  ) -> PluginProcessAssetsOutput {
-    Ok(())
-  }
-
-  async fn process_assets_stage_derived(
-    &self,
-    _ctx: PluginContext,
-    _args: ProcessAssetsArgs<'_>,
-  ) -> PluginProcessAssetsOutput {
-    Ok(())
-  }
-
-  async fn process_assets_stage_additions(
-    &self,
-    _ctx: PluginContext,
-    _args: ProcessAssetsArgs<'_>,
-  ) -> PluginProcessAssetsOutput {
-    Ok(())
-  }
-
-  async fn process_assets_stage_none(
-    &self,
-    _ctx: PluginContext,
-    _args: ProcessAssetsArgs<'_>,
-  ) -> PluginProcessAssetsOutput {
-    Ok(())
-  }
-
-  async fn process_assets_stage_optimize(
-    &self,
-    _ctx: PluginContext,
-    _args: ProcessAssetsArgs<'_>,
-  ) -> PluginProcessAssetsOutput {
-    Ok(())
-  }
-
-  async fn process_assets_stage_optimize_count(
-    &self,
-    _ctx: PluginContext,
-    _args: ProcessAssetsArgs<'_>,
-  ) -> PluginProcessAssetsOutput {
-    Ok(())
-  }
-
-  async fn process_assets_stage_optimize_compatibility(
-    &self,
-    _ctx: PluginContext,
-    _args: ProcessAssetsArgs<'_>,
-  ) -> PluginProcessAssetsOutput {
-    Ok(())
-  }
-
-  async fn process_assets_stage_optimize_size(
-    &self,
-    _ctx: PluginContext,
-    _args: ProcessAssetsArgs<'_>,
-  ) -> PluginProcessAssetsOutput {
-    Ok(())
-  }
-
-  async fn process_assets_stage_dev_tooling(
-    &self,
-    _ctx: PluginContext,
-    _args: ProcessAssetsArgs<'_>,
-  ) -> PluginProcessAssetsOutput {
-    Ok(())
-  }
-
-  async fn process_assets_stage_optimize_inline(
-    &self,
-    _ctx: PluginContext,
-    _args: ProcessAssetsArgs<'_>,
-  ) -> PluginProcessAssetsOutput {
-    Ok(())
-  }
-
-  async fn process_assets_stage_summarize(
-    &self,
-    _ctx: PluginContext,
-    _args: ProcessAssetsArgs<'_>,
-  ) -> PluginProcessAssetsOutput {
-    Ok(())
-  }
-
-  async fn process_assets_stage_optimize_hash(
-    &self,
-    _ctx: PluginContext,
-    _args: ProcessAssetsArgs<'_>,
-  ) -> PluginProcessAssetsOutput {
-    Ok(())
-  }
-
-  async fn process_assets_stage_optimize_transfer(
-    &self,
-    _ctx: PluginContext,
-    _args: ProcessAssetsArgs<'_>,
-  ) -> PluginProcessAssetsOutput {
-    Ok(())
-  }
-
-  async fn process_assets_stage_analyse(
-    &self,
-    _ctx: PluginContext,
-    _args: ProcessAssetsArgs<'_>,
-  ) -> PluginProcessAssetsOutput {
-    Ok(())
-  }
-
-  async fn process_assets_stage_report(
-    &self,
-    _ctx: PluginContext,
-    _args: ProcessAssetsArgs<'_>,
-  ) -> PluginProcessAssetsOutput {
-    Ok(())
-  }
-
   async fn after_process_assets(
     &self,
     _ctx: PluginContext,
@@ -434,14 +284,6 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
-  async fn before_compile(&self, _params: &CompilationParams) -> Result<()> {
-    Ok(())
-  }
-
-  async fn after_compile(&self, _compilation: &mut Compilation) -> Result<()> {
-    Ok(())
-  }
-
   async fn finish_make(&self, _compilation: &mut Compilation) -> Result<()> {
     Ok(())
   }
@@ -468,27 +310,6 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
-  async fn build_module(&self, _module: &mut dyn Module) -> Result<()> {
-    Ok(())
-  }
-
-  async fn succeed_module(&self, _module: &dyn Module) -> Result<()> {
-    Ok(())
-  }
-
-  async fn still_valid_module(&self, _module: &dyn Module) -> Result<()> {
-    Ok(())
-  }
-
-  async fn runtime_module(
-    &self,
-    _module: &mut dyn RuntimeModule,
-    _source: Arc<dyn Source>,
-    _chunk: &Chunk,
-  ) -> Result<Option<String>> {
-    Ok(None)
-  }
-
   fn module_ids(&self, _modules: &mut Compilation) -> Result<()> {
     Ok(())
   }
@@ -505,36 +326,11 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
-  async fn should_emit(&self, _compilation: &mut Compilation) -> PluginShouldEmitHookOutput {
-    Ok(None)
-  }
-
   async fn after_emit(&self, _compilation: &mut Compilation) -> Result<()> {
     Ok(())
   }
 
   fn seal(&self, _compilation: &mut Compilation) -> Result<()> {
-    Ok(())
-  }
-
-  fn prepare_execute_module(
-    &self,
-    _id: DependencyId,
-    _options: &BuildTimeExecutionOption,
-    _import_module_informer: UnboundedSender<Result<String>>,
-  ) -> Result<()> {
-    Ok(())
-  }
-
-  fn execute_module(
-    &self,
-    _entry: ModuleIdentifier,
-    _request: &str,
-    _options: &BuildTimeExecutionOption,
-    _runtime_modules: Vec<ModuleIdentifier>,
-    _codegen_results: &CodeGenerationResults,
-    _id: u32,
-  ) -> Result<()> {
     Ok(())
   }
 }
@@ -616,6 +412,8 @@ pub struct ApplyContext<'c> {
   pub(crate) registered_parser_and_generator_builder:
     &'c mut FxHashMap<ModuleType, BoxedParserAndGeneratorBuilder>,
   pub compiler_hooks: &'c mut CompilerHooks,
+  pub compilation_hooks: &'c mut CompilationHooks,
+  pub normal_module_factory_hooks: &'c mut NormalModuleFactoryHooks,
 }
 
 impl<'c> ApplyContext<'c> {

@@ -95,12 +95,8 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
     profile: false,
   };
 
-  let (plugin_driver, compiler_options) = PluginDriver::new(
-    compiler_options,
-    vec![],
-    Default::default(),
-    &mut Default::default(),
-  );
+  let (plugin_driver, compiler_options) =
+    PluginDriver::new(compiler_options, vec![], Default::default());
 
   let (result, _) = run_loaders(
     &[Arc::new(SwcLoader::new(options)) as Arc<dyn Loader<LoaderRunnerContext>>],
@@ -185,6 +181,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
       plugin_driver,
       cache: Arc::new(rspack_core::cache::Cache::new(compiler_options)),
     },
+    Default::default(),
   )
   .await
   .expect("TODO:")

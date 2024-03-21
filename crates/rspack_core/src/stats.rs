@@ -136,7 +136,7 @@ impl Stats<'_> {
   ) -> Result<Vec<StatsModule>> {
     let mut modules: Vec<StatsModule> = self
       .compilation
-      .module_graph
+      .get_module_graph()
       .modules()
       .values()
       .map(|module| {
@@ -191,7 +191,7 @@ impl Stats<'_> {
           let chunk_modules = self
             .compilation
             .chunk_graph
-            .get_chunk_modules(&c.ukey, &self.compilation.module_graph);
+            .get_chunk_modules(&c.ukey, self.compilation.get_module_graph());
           let mut chunk_modules = chunk_modules
             .into_iter()
             .map(|m| {
@@ -229,7 +229,7 @@ impl Stats<'_> {
           size: self
             .compilation
             .chunk_graph
-            .get_chunk_modules_size(&c.ukey, &self.compilation.module_graph),
+            .get_chunk_modules_size(&c.ukey, self.compilation.get_module_graph()),
           modules: chunk_modules,
           parents,
           children,
@@ -314,7 +314,7 @@ impl Stats<'_> {
           .and_then(|identifier| {
             let module = self
               .compilation
-              .module_graph
+              .get_module_graph()
               .module_by_identifier(&identifier)?;
             Some(get_stats_module_name_and_id(module, self.compilation))
           })
@@ -346,7 +346,7 @@ impl Stats<'_> {
           .and_then(|identifier| {
             let module = self
               .compilation
-              .module_graph
+              .get_module_graph()
               .module_by_identifier(&identifier)?;
             Some(get_stats_module_name_and_id(module, self.compilation))
           })
@@ -410,11 +410,14 @@ impl Stats<'_> {
     let identifier = module.identifier();
     let mgm = self
       .compilation
-      .module_graph
+      .get_module_graph()
       .module_graph_module_by_identifier(&identifier)
       .unwrap_or_else(|| panic!("Could not find ModuleGraphModule by identifier: {identifier:?}"));
 
-    let issuer = self.compilation.module_graph.get_issuer(module);
+    let issuer = self
+      .compilation
+      .get_module_graph()
+      .get_issuer(&module.identifier());
     let (issuer_name, issuer_id) = issuer
       .map(|i| get_stats_module_name_and_id(i, self.compilation))
       .unzip();
@@ -427,23 +430,32 @@ impl Stats<'_> {
         name,
         id,
       });
-      current_issuer = self.compilation.module_graph.get_issuer(i);
+      current_issuer = self
+        .compilation
+        .get_module_graph()
+        .get_issuer(&i.identifier());
     }
     issuer_path.reverse();
 
     let reasons = reasons
       .then(|| -> Result<_> {
         let mut reasons: Vec<StatsModuleReason> = mgm
-          .get_incoming_connections_unordered(&self.compilation.module_graph)?
-          .map(|connection| {
+          .get_incoming_connections_unordered()
+          .iter()
+          .filter_map(|connection_id| {
+            // the connection is removed
+            let connection = self
+              .compilation
+              .get_module_graph()
+              .connection_by_connection_id(connection_id)?;
             let (module_name, module_id) = connection
               .original_module_identifier
-              .and_then(|i| self.compilation.module_graph.module_by_identifier(&i))
+              .and_then(|i| self.compilation.get_module_graph().module_by_identifier(&i))
               .map(|m| get_stats_module_name_and_id(m, self.compilation))
               .unzip();
             let dependency = self
               .compilation
-              .module_graph
+              .get_module_graph()
               .dependency_by_id(&connection.dependency_id);
             let (r#type, user_request) =
               if let Some(d) = dependency.and_then(|d| d.as_module_dependency()) {
@@ -459,13 +471,13 @@ impl Stats<'_> {
               } else {
                 (None, None)
               };
-            StatsModuleReason {
+            Some(StatsModuleReason {
               module_identifier: connection.original_module_identifier.map(|i| i.to_string()),
               module_name,
               module_id: module_id.and_then(|i| i),
               r#type,
               user_request,
-            }
+            })
           })
           .collect();
         reasons.sort_unstable();
@@ -513,7 +525,7 @@ impl Stats<'_> {
       if provided_exports && self.compilation.options.optimization.provided_exports {
         match self
           .compilation
-          .module_graph
+          .get_module_graph()
           .get_provided_exports(module.identifier())
         {
           ProvidedExports::Vec(v) => Some(v.iter().map(|i| i.to_string()).collect_vec()),
@@ -533,8 +545,8 @@ impl Stats<'_> {
     {
       match self
         .compilation
-        .module_graph
-        .get_used_exports(module.identifier(), None)
+        .get_module_graph()
+        .get_used_exports(&module.identifier(), None)
       {
         UsedExports::Null => Some(StatsUsedExports::Null),
         UsedExports::Vec(v) => Some(StatsUsedExports::Vec(
@@ -577,6 +589,7 @@ impl Stats<'_> {
         == 0,
       provided_exports,
       used_exports,
+      optimization_bailout: mgm.optimization_bailout.clone(),
     })
   }
 
@@ -622,6 +635,7 @@ impl Stats<'_> {
         == 0,
       provided_exports: Some(vec![]),
       used_exports: None,
+      optimization_bailout: vec![],
     })
   }
   fn get_chunk_relations(&self, chunk: &Chunk) -> (Vec<String>, Vec<String>, Vec<String>) {
@@ -750,6 +764,7 @@ pub struct StatsModule<'a> {
   pub orphan: bool,
   pub provided_exports: Option<Vec<String>>,
   pub used_exports: Option<StatsUsedExports>,
+  pub optimization_bailout: Vec<String>,
 }
 
 #[derive(Debug)]

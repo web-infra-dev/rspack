@@ -79,7 +79,7 @@ export interface LoaderContext<OptionsType = {}> {
 	cacheable(cacheable?: boolean): void;
 	sourceMap: boolean;
 	rootContext: string;
-	context: string;
+	context: string | null;
 	loaderIndex: number;
 	remainingRequest: string;
 	currentRequest: string;

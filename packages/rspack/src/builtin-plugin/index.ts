@@ -53,9 +53,11 @@ export * from "./CopyRspackPlugin";
 export * from "./SwcJsMinimizerPlugin";
 export * from "./SwcCssMinimizerPlugin";
 
+export * from "./JsLoaderRspackPlugin";
+
 ///// DEPRECATED /////
 import { RawBuiltins, RawCssModulesConfig } from "@rspack/binding";
-import { Compiler, RspackOptionsNormalized } from "..";
+import { RspackOptionsNormalized } from "..";
 
 type BuiltinsCssConfig = {
 	modules?: Partial<RawCssModulesConfig>;
@@ -80,12 +82,9 @@ export interface Builtins {
 
 export function deprecated_resolveBuiltins(
 	builtins: Builtins,
-	options: RspackOptionsNormalized,
-	compiler: Compiler
+	options: RspackOptionsNormalized
 ): RawBuiltins {
-	const contextPath = options.context!;
 	const production = options.mode === "production" || !options.mode;
-	const isRoot = !compiler.isChild();
 
 	return {
 		// TODO: discuss with webpack, this should move to css generator options

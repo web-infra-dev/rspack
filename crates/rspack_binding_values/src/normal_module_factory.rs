@@ -1,6 +1,7 @@
 use napi_derive::napi;
 use rspack_core::{
-  NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs, NormalModuleCreateData, ResourceData,
+  BeforeResolveArgs, NormalModuleAfterResolveArgs, NormalModuleAfterResolveCreateData,
+  NormalModuleCreateData, ResourceData,
 };
 
 #[napi(object)]
@@ -16,9 +17,18 @@ pub struct JsResolveForSchemeResult {
 }
 
 #[napi(object)]
-pub struct BeforeResolveData {
+pub struct JsBeforeResolveArgs {
   pub request: String,
   pub context: String,
+}
+
+pub type JsBeforeResolveOutput = (Option<bool>, JsBeforeResolveArgs);
+
+#[napi(object)]
+pub struct AfterResolveCreateData {
+  pub request: String,
+  pub user_request: String,
+  pub resource: String,
 }
 
 #[napi(object)]
@@ -29,6 +39,7 @@ pub struct AfterResolveData {
   pub context_dependencies: Vec<String>,
   pub missing_dependencies: Vec<String>,
   pub factory_meta: FactoryMeta,
+  pub create_data: Option<AfterResolveCreateData>,
 }
 
 #[napi(object)]
@@ -87,8 +98,8 @@ impl From<&mut NormalModuleCreateData<'_>> for CreateModuleData {
   }
 }
 
-impl From<NormalModuleBeforeResolveArgs> for BeforeResolveData {
-  fn from(value: NormalModuleBeforeResolveArgs) -> Self {
+impl From<BeforeResolveArgs> for JsBeforeResolveArgs {
+  fn from(value: BeforeResolveArgs) -> Self {
     Self {
       context: value.context,
       request: value.request,
@@ -122,6 +133,17 @@ impl From<&NormalModuleAfterResolveArgs<'_>> for AfterResolveData {
       factory_meta: FactoryMeta {
         side_effect_free: value.factory_meta.side_effect_free,
       },
+      create_data: value.create_data.as_ref().map(AfterResolveCreateData::from),
+    }
+  }
+}
+
+impl From<&NormalModuleAfterResolveCreateData> for AfterResolveCreateData {
+  fn from(value: &NormalModuleAfterResolveCreateData) -> Self {
+    Self {
+      request: value.request.to_owned(),
+      user_request: value.user_request.to_owned(),
+      resource: value.resource.resource_path.to_string_lossy().to_string(),
     }
   }
 }

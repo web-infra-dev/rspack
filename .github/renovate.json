@@ -27,7 +27,7 @@
       "groupName": "crates",
       "matchManagers": ["cargo"],
       "excludePackagePrefixes": ["swc", "napi"],
-      "excludePackageNames": ["ustr", "textwrap", "styled_components", "owo-colors", "miette"]
+      "excludePackageNames": ["ustr", "textwrap", "styled_components", "owo-colors", "miette", "rkyv"]
     },
     {
       "groupName": "swc",
@@ -43,7 +43,7 @@
     {
       "groupName": "ignored crates",
       "matchManagers": ["cargo"],
-      "matchPackageNames": ["ustr", "textwrap", "owo-colors", "miette"],
+      "matchPackageNames": ["ustr", "textwrap", "owo-colors", "miette", "rkyv"],
       "enabled": false
     },
     {

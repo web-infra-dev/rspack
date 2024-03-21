@@ -83,17 +83,17 @@ impl DependencyTemplate for HarmonyExportSpecifierDependency {
       return;
     }
     let module = compilation
-      .module_graph
+      .get_module_graph()
       .module_by_identifier(&module.identifier())
       .expect("should have module graph module");
 
     let used_name = if compilation.options.is_new_tree_shaking() {
       let exports_info_id = compilation
-        .module_graph
+        .get_module_graph()
         .get_exports_info(&module.identifier())
         .id;
       let used_name = exports_info_id.get_used_name(
-        &compilation.module_graph,
+        compilation.get_module_graph(),
         *runtime,
         UsedName::Str(self.name.clone()),
       );
@@ -107,7 +107,7 @@ impl DependencyTemplate for HarmonyExportSpecifierDependency {
       })
     } else if compilation.options.builtins.tree_shaking.is_true() {
       compilation
-        .module_graph
+        .get_module_graph()
         .get_exports_info(&module.identifier())
         .old_get_used_exports()
         .contains(&self.name)

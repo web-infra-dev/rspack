@@ -106,11 +106,17 @@ impl ChunkGroup {
     self.runtime_chunk = Some(chunk_ukey);
   }
 
-  pub fn get_runtime_chunk(&self) -> ChunkUkey {
+  pub fn get_runtime_chunk(&self, chunk_group_by_ukey: &ChunkGroupByUkey) -> ChunkUkey {
     match self.kind {
-      ChunkGroupKind::Entrypoint { .. } => self
-        .runtime_chunk
-        .expect("EntryPoint runtime chunk not set"),
+      ChunkGroupKind::Entrypoint { .. } => self.runtime_chunk.unwrap_or_else(|| {
+        for parent in self.parents_iterable() {
+          let parent = chunk_group_by_ukey.expect_get(parent);
+          if matches!(parent.kind, ChunkGroupKind::Entrypoint { .. }) {
+            return parent.get_runtime_chunk(chunk_group_by_ukey);
+          }
+        }
+        panic!("Entrypoint should set_runtime_chunk at build_chunk_graph before get_runtime_chunk")
+      }),
       ChunkGroupKind::Normal { .. } => {
         unreachable!("Normal chunk group doesn't have runtime chunk")
       }

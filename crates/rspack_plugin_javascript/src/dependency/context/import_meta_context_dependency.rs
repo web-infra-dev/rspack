@@ -86,7 +86,7 @@ impl DependencyTemplate for ImportMetaContextDependency {
     } = code_generatable_context;
 
     let module_id = compilation
-      .module_graph
+      .get_module_graph()
       .module_graph_module_by_dependency_id(&self.id)
       .map(|m| m.id(&compilation.chunk_graph))
       .expect("should have dependency id");
