@@ -1,0 +1,1295 @@
+import PropertyType from '../../../components/property-type.tsx';
+import { ApiMeta, Stability } from '../../../components/ApiMeta.tsx';
+import { Table } from '@builtIns';
+
+# Builtins
+
+<ApiMeta stability={Stability.Experimental} />
+
+内置功能：该选项用于设置 Rspack 提供的内置功能。
+
+- **类型：** `Record<string, any>`
+- **默认值：** `{}`
+
+:::warning 稳定性警告
+
+_Builtins_ 提供的内置功能在未来可能会发生变化，或被更好的方式取代，请在升级时注意 builtins 的变化，我们会在 [Release Notes](https://github.com/web-infra-dev/rspack/releases) 中着重标注。
+
+:::
+
+## builtins.banner
+
+<ApiMeta deprecatedVersion="0.3.10" />
+
+<ApiMeta removedVersion="0.5.0" stability={Stability.Removed} />
+
+:::warning
+请迁移至 [`BannerPlugin`](/config/plugins.html#bannerplugin)。
+:::
+
+- **类型：**
+
+```ts
+type BannerCondition = string | RegExp | Array<string | RegExp>;
+
+type BannerConfig =
+  | string
+  | {
+      banner: string;
+      entryOnly?: boolean;
+      footer?: boolean;
+      raw?: boolean;
+      test?: BannerCondition;
+      include?: BannerCondition;
+      exclude?: BannerCondition;
+    };
+
+export type BannerConfigs = BannerConfig | BannerConfig[];
+```
+
+- **默认值：** `undefined`
+
+<Table
+  header={[
+    {
+      name: '名称',
+      key: 'name',
+    },
+    {
+      name: '类型',
+      key: 'type',
+    },
+    {
+      name: '默认值',
+      key: 'default',
+    },
+    {
+      name: '描述',
+      key: 'description',
+    },
+  ]}
+  body={[
+    {
+      name: '`banner`',
+      type: '`string`',
+      default: 'undefined',
+      description: '指定 banner 内容（会被包裹成注释）',
+    },
+    {
+      name: '`entryOnly`',
+      type: '`boolean|undefined`',
+      default: 'undefined',
+      description: '如果值为 true，将只在入口 chunks 文件中添加',
+    },
+    {
+      name: '`footer`',
+      type: '`boolean|undefined`',
+      default: 'undefined',
+      description: '如果值为 true，banner 将会位于编译结果的最下方',
+    },
+    {
+      name: '`raw`',
+      type: '`boolean|undefined`',
+      default: 'undefined',
+      description: '如果值为 true，将直接输出，不会被作为注释',
+    },
+    {
+      name: '`test`',
+      type: '`BannerConditions|undefined`',
+      default: 'undefined',
+      description: '包含所有匹配的模块',
+    },
+    {
+      name: '`include`',
+      type: '`BannerConditions|undefined`',
+      default: 'undefined',
+      description: '根据条件匹配指定的模块',
+    },
+    {
+      name: '`exclude`',
+      type: '`BannerConditions|undefined`',
+      default: 'undefined',
+      description: '根据条件排除指定的模块',
+    },
+  ]}
+/>
+
+为每个 chunk 文件头部或底部添加 banner。
+
+```ts title="rspack.config.js"
+module.exports = {
+  builtins: {
+    banner: [
+      {
+        banner: 'hello world',
+        footer: true,
+      },
+    ],
+  },
+};
+```
+
+## builtins.emotion
+
+<ApiMeta deprecatedVersion="0.3.10" />
+
+<ApiMeta removedVersion="0.5.0" stability={Stability.Removed} />
+
+:::warning
+请迁移至 [builtin:swc-loader 配置](https://www.rspack.dev/guide/loader.html#builtinswc-loader)。
+:::
+
+用于设置对 emotion 的编译优化。
+
+- **类型：**
+
+```ts
+type EmotionOptions =
+  | boolean
+  | {
+      sourceMap?: boolean;
+      autoLabel?: 'never' | 'dev-only' | 'always';
+      labelFormat?: string;
+      importMap?: {
+        [packageName: string]: {
+          [exportName: string]: {
+            canonicalImport?: [string, string];
+          };
+        };
+      };
+    };
+```
+
+- **默认值：** `false`
+
+若你在项目中使用了 `emotion`，并且想要类似 [@emotion/babel-plugin](https://emotion.sh/docs/@emotion/babel-plugin) 的能力，你可以开启 builtins.emotion 配置，启用该配置后，Rspack 会使用 `swc_emotion` 插件对 `emotion` 代码进行转译。
+
+你可以直接使用默认配置，直接将 `builtins.emotion` 设置为 `true` 即可。
+
+```ts title="rspack.config.js"
+module.exports = {
+  context: __dirname,
+  entry: {
+    main: './src/index.js',
+  },
+  builtins: {
+    emotion: true,
+  },
+};
+```
+
+各字段与 [@emotion/babel-plugin](https://emotion.sh/docs/@emotion/babel-plugin) 保持一致，详细解释（下列内容部分取自 [@emotion/babel-plugin](https://emotion.sh/docs/@emotion/babel-plugin) 官方文档）：
+
+### autoLabel
+
+- **类型：** `'never' | 'dev-only' | 'always'`
+- **默认值：** `'dev-only'`
+
+这个配置项用于：
+
+- 生成 label 值，这样由 `css` 或者 `styled` 生成的样式中会包含原来的名字，方便调试。
+- 注意样式名中非单词字符将被删除。比如 `iconStyles$1` 会变成 `iconStyles1`，因为 `$` 不是合法的 [CSS 类名选择器](https://stackoverflow.com/questions/448981/which-characters-are-valid-in-css-class-names-selectors#449000)。
+
+不同的配置项会产生不同的产物代码：
+
+- `'dev-only'`：只在 Rspack 的 development 模式下开启，在 production 模式下关闭以减小存储占用。
+- `'always'`：无论什么模式下都开启该特效。
+- `'never'`：无论什么模式下都禁用该特性。
+
+### labelFormat
+
+- **类型：** `string`
+- **默认值：** `'[local]'`
+
+此选项仅在 `'autoLabel'` 设置为 `'dev-only'` 或 `'always'` 时有效。允许你自定义添加的 `label` 的结构。通过字符串定义，其中可变部分用方括号 `'[]'` 括起来。例如对于标签：`'my-classname——[local]'`，其中 `'[local]'` 将被替换为样式变量的名称。
+
+允许的值:
+
+- `'[local]'`——CSS 或样式表达式所在的文件名称
+- `'[filename]'`——CSS 或样式表达式所在的文件名称(不带扩展名)。
+- `'[dirname]'`——包含 CSS 或样式表达式所在文件的目录名。
+
+该配置只会影响表达式中的 `label`，这意味着 CSS 前缀和 hash 会自动被添加。
+
+### sourceMap
+
+- **类型：** `boolean`
+
+该配置决定是否注入 source maps。production 模式下默认关闭，development 模式下默认开启。
+
+### importMap
+
+- **类型：**
+
+```ts
+export type ImportMap =
+  | undefined
+  | {
+      [packageName: string]: {
+        [exportName: string]: {
+          canonicalImport?: [string, string];
+        };
+      };
+    };
+```
+
+- **默认值：** `undefined`
+
+此选项允许你告诉 Rspack 它应该查看哪些 import 语句，确定应该转换什么，因此如果你重导出 emotion 的方法，仍然可以转换。
+
+## builtins.presetEnv
+
+<ApiMeta deprecatedVersion="0.3.10" />
+
+<ApiMeta removedVersion="0.5.0" stability={Stability.Removed} />
+
+:::warning
+请迁移至 [builtin:swc-loader 配置](https://www.rspack.dev/guide/loader.html#builtinswc-loader)。
+:::
+
+该配置可以让你的代码运行在更老版本的浏览器上，你可以通过 [browserslist](https://github.com/browserslist/browserslist#queries) 来指定需要支持的所有浏览器。
+当源代码中使用了这些浏览器中不支持的 API，则可以通过全局注入 [core-js](https://github.com/zloirock/core-js) 来为这些浏览器提供同样的 API。
+如果源代码中使用了这些浏览器中不支持的语法，也会将这些语法转换成浏览器支持的语法。
+
+当该配置项中的 `mode` 不为 undefined 时，请确保项目中依赖了 [core-js](https://github.com/zloirock/core-js)。
+
+- **类型：**
+
+```ts
+type PresetEnv =
+  | undefined
+  | {
+      mode?: 'entry'; // 在不久的将来会支持 `usage` 模式
+      targets?: string[];
+      coreJs?: string;
+    };
+```
+
+- **默认值：** `undefined`
+
+<Table
+  header={[
+    {
+      name: '名称',
+      key: 'name',
+    },
+    {
+      name: '类型',
+      key: 'type',
+    },
+    {
+      name: '默认值',
+      key: 'default',
+    },
+    {
+      name: '描述',
+      key: 'description',
+    },
+  ]}
+  body={[
+    {
+      name: '`targets`',
+      type: '`string[]|undefined`',
+      default: 'undefined',
+      description:
+        '通过该配置可以使用 [browserslist query](https://github.com/browserslist/browserslist#queries) 来控制用户代码中 js 和 css 语法的降级，当此值为 undefined 时，rspack 将尝试使用[基础目录](config/context) 下的 [browserslist](https://github.com/browserslist/browserslist) 配置来进行转换。',
+    },
+    {
+      name: '`mode`',
+      type: "`'entry'|undefined`",
+      default: 'undefined',
+      description:
+        "该配置决定怎样注入 polyfill，`'entry'` 表示根据 [browserslist](https://github.com/browserslist/browserslist#queries) 查询的浏览器，注入所有这些浏览器中缺失的 polyfill，当此值为 `undefined` 时则不会注入 polyfill。",
+    },
+    {
+      name: '`coreJs`',
+      type: '`string`',
+      default: 'undefined',
+      description: '该配置指定注入的 core-js 的版本',
+    },
+  ]}
+/>
+
+:::warning core-js 使用注意
+当你使用 mode = `entry` 或者 mode = `usage` 来注入`core-js`的时候, 你需要手动的安装 `core-js`, 如果编译时还碰到了 failed to resolve `core-js` 的问题，
+同时你还应该配置 resolve.alias 来将 `core-js` 路径指向本地的`core-js`
+
+```ts
+module.exports = {
+  resolve: {
+    alias: {
+      'core-js': require('path').dirname(require.resolve('core-js')),
+    },
+  },
+};
+```
+
+:::
+
+## builtins.html
+
+<ApiMeta deprecatedVersion="0.3.10" />
+
+<ApiMeta removedVersion="0.5.0" stability={Stability.Removed} />
+
+:::warning
+请迁移至 [`HtmlRspackPlugin`](/config/plugins.html#htmlrspackplugin)。
+:::
+
+该配置可以快速创建与 Rspack 产物关联的 html 文件。
+
+- **类型：**
+
+```ts
+type BuiltinsHtml = Array<{
+  title?: string;
+  filename?: string;
+  template?: string;
+  templateContent?: string;
+  templateParameters?: Record<string, string>;
+  inject?: 'head' | 'body';
+  publicPath?: string;
+  scriptLoading?: 'blocking' | 'defer' | 'module';
+  chunks?: string[];
+  excludedChunks?: string[];
+  sri?: 'sha256' | 'sha384' | 'sha512';
+  minify?: boolean;
+  favicon?: string;
+  meta?: Record<string, string | Record<string, string>>;
+}>;
+```
+
+- **默认值：** `[]`
+
+<Table
+  header={[
+    {
+      name: '名称',
+      key: 'name',
+    },
+    {
+      name: '类型',
+      key: 'type',
+    },
+    {
+      name: '默认值',
+      key: 'default',
+    },
+    {
+      name: '描述',
+      key: 'description',
+    },
+  ]}
+  body={[
+    {
+      name: '`title`',
+      type: '`string|undefined`',
+      default: 'undefined',
+      description: '构建 html 的标题',
+    },
+    {
+      name: '`filename`',
+      type: '`string`',
+      default: "'index.html'",
+      description: '输出的文件名，可以指定子目录，例如 `pages/index.html`',
+    },
+    {
+      name: '`template`',
+      type: '`string|undefined`',
+      default: 'undefined',
+      description: '模版文件路径，支持 ejs',
+    },
+    {
+      name: '`templateContent`',
+      type: '`string|undefined`',
+      default: 'undefined',
+      description: '模版文件内容，优先级大于 template',
+    },
+    {
+      name: '`templateParameters`',
+      type: '`Record<string, string>`',
+      default: '{}',
+      description: '传递给模版的参数',
+    },
+    {
+      name: '`inject`',
+      type: "`'head'|'body'|undefined`",
+      default: 'undefined',
+      description: '产物注入位置',
+    },
+    {
+      name: '`publicPath`',
+      type: '`string`',
+      default: "''",
+      description: 'script 和 link 标签的 publicPath',
+    },
+    {
+      name: '`scriptLoading`',
+      type: "`'blocking'|'defer'|'module'`",
+      default: "'defer'",
+      description:
+        '现代浏览器支持使用 defer 来异步加载 js，设置为 module 则会添加 `type="module"` 同时使用 defer',
+    },
+    {
+      name: '`chunks`',
+      type: '`string[]|undefined`',
+      default: 'undefined',
+      description: '配置需要注入的 chunk，默认注入所有 chunk',
+    },
+    {
+      name: '`excludedChunks`',
+      type: '`string[]|undefined`',
+      default: 'undefined',
+      description: '配置需要跳过注入的 chunk',
+    },
+    {
+      name: '`sri`',
+      type: "`'sha256'|'sha384'|'sha512'|undefined`",
+      default: 'undefined',
+      description: 'sri hash 算法，默认不开启 sri',
+    },
+    {
+      name: '`minify`',
+      type: '`boolean`',
+      default: 'false',
+      description: '是否启用压缩',
+    },
+    {
+      name: '`favicon`',
+      type: '`string|undefined`',
+      default: 'undefined',
+      description: '配置 html 图标',
+    },
+    {
+      name: '`meta`',
+      type: '`Record<string, string|Record<string, string>>` ',
+      default: '{}',
+      description: '配置需要注入 html 的 meta',
+    },
+  ]}
+/>
+
+:::info
+
+对于复杂的 HTML 配置需求，可使用 [html-webpack-plugin](https://www.npmjs.com/package/html-webpack-plugin) 或 [@rspack/plugin-html](https://www.npmjs.com/package/@rspack/plugin-html)。
+
+:::
+
+## builtins.minifyOptions
+
+<ApiMeta deprecatedVersion="0.3.10" />
+
+<ApiMeta removedVersion="0.5.0" stability={Stability.Removed} />
+
+:::warning
+请迁移至 [`SwcJsMinimizerRspackPlugin`](/config/plugins.html#swcjsminimizerrspackplugin)。
+:::
+
+设置内置压缩器配置。
+
+- **类型：**
+
+```ts
+type BuiltinsMinifyOptions = {
+  passes?: number;
+  dropConsole?: boolean;
+  keepClassNames?: boolean;
+  keepFnNames?: boolean;
+  pureFuncs?: Array<string>;
+  extractComments: boolean | RegExp;
+  asciiOnly?: boolean;
+  comments?: false | 'all' | 'some';
+};
+```
+
+<Table
+  header={[
+    {
+      name: '名称',
+      key: 'name',
+    },
+    {
+      name: '类型',
+      key: 'type',
+    },
+    {
+      name: '默认值',
+      key: 'default',
+    },
+    {
+      name: '描述',
+      key: 'description',
+    },
+  ]}
+  body={[
+    {
+      name: '`passes`',
+      type: '`number`',
+      default: '1',
+      description: '运行压缩的最大次数',
+    },
+    {
+      name: '`dropConsole`',
+      type: '`boolean`',
+      default: 'false',
+      description: '是否移除对 console.* 函数的调用',
+    },
+    {
+      name: '`keepClassNames`',
+      type: '`boolean`',
+      default: 'false',
+      description: '是否保留原 class 名称',
+    },
+    {
+      name: '`keepFnNames`',
+      type: '`boolean`',
+      default: 'false',
+      description: '是否保留原 function 名称',
+    },
+    {
+      name: '`pureFuncs`',
+      type: '`Array<string>`',
+      default: '[]',
+      description: '指定无副作用的函数名称，压缩时会丢弃相关语句',
+    },
+    {
+      name: '`extractComments`',
+      type: '`boolean|RegExp`',
+      default: 'false',
+      description:
+        '提取符合配置注释到一个单独的文件 (fileName: `{assetName}.LICENSE.txt`), 如果设置该选项为 `true`, 使用正则表达式`/@preserve|@lic|@cc_on|^**!/`。',
+    },
+    {
+      name: '`asciiOnly`',
+      type: '`boolean`',
+      default: 'false',
+      description:
+        '转义字符串和正则表达式中的 Unicode 字符（会影响包含非ASCII字符的指令，使其无效）。',
+    },
+    {
+      name: '`comments`',
+      type: '`false | "all" | "some"`',
+      default: 'false',
+      description:
+        '默认情况下将省略输出中的注释、正则表达式字符串（例如 /^!/）或函数，传递 `"some"` 以保留包含 "@license"、"@copyright"、"@preserve" 或以 ! 开头的注释，传递 `"all"` 以保留所有注释。',
+    },
+  ]}
+/>
+
+## builtins.define
+
+<ApiMeta deprecatedVersion="0.3.10" />
+
+<ApiMeta removedVersion="0.5.0" stability={Stability.Removed} />
+
+:::warning
+请迁移至 [`DefinePlugin`](/config/plugins.html#defineplugin)。
+:::
+
+此选项将会在编译时将代码中的变量替换为其他值或表达式。
+
+- **类型：** `Record<string, string | boolean | undefined>`
+- **默认值：** `{}`
+
+当使用以下配置时
+
+```ts title="rspack.config.js"
+module.exports = {
+  builtins: {
+    define: {
+      'process.env.NODE_ENV': "'development'",
+      TRUE: true,
+      TRUE_STRING: 'true',
+      UNDEFINED: undefined,
+      UNDEFINED_STRING: 'undefined',
+    },
+  },
+};
+```
+
+输入代码：
+
+```ts
+if (process.env.NODE_ENV === 'development') {
+  console.log('run in development mode');
+}
+
+console.log(TRUE === TRUE_STRING);
+console.log(UNDEFINED === UNDEFINED_STRING);
+```
+
+输出代码：
+
+```ts
+if ('development' === 'development') {
+  console.log('run in development mode');
+}
+
+fetch('/api/test');
+
+console.log(true === true);
+console.log(undefined === undefined);
+```
+
+## builtins.react
+
+<ApiMeta deprecatedVersion="0.3.10" />
+
+<ApiMeta removedVersion="0.5.0" stability={Stability.Removed} />
+
+:::warning
+请迁移至 [builtin:swc-loader 配置](https://www.rspack.dev/guide/loader.html#builtinswc-loader)。
+:::
+
+此选项可以用来配置 react 相关代码的转换。
+
+- **类型：**
+
+```ts
+type ReactOptions = {
+  runtime?: 'automatic' | 'classic';
+  importSource?: string;
+  pragma?: string;
+  pragmaFrag?: string;
+  throwIfNamespace?: boolean;
+  development?: boolean;
+  useBuiltins?: boolean;
+  useSpread?: boolean;
+  refresh?: boolean;
+};
+```
+
+- **默认值：** `{}`
+
+<Table
+  header={[
+    {
+      name: 'Name',
+      key: 'name',
+    },
+    {
+      name: 'Type',
+      key: 'type',
+    },
+    {
+      name: 'Default',
+      key: 'default',
+    },
+    {
+      name: 'Description',
+      key: 'description',
+    },
+  ]}
+  body={[
+    {
+      name: '`runtime`',
+      type: "`'automatic'|'classic'`",
+      default: "'automatic'",
+      description:
+        'automatic 会自动导入 JSX 运行时模块，classic 会使用 `React.createElement` 来进行转换',
+    },
+    {
+      name: '`importSource`',
+      type: '`string`',
+      default: "'react'",
+      description: '当 runtime 为 automatic 时，自动导入的库名称',
+    },
+    {
+      name: '`pragma`',
+      type: '`string`',
+      default: "'React.createElement'",
+      description: '当 runtime 为 classic 时，编译 JSX 表达式时所替换的函数名',
+    },
+    {
+      name: '`pragmaFrag`',
+      type: '`string`',
+      default: "'React.Fragment'",
+      description: '编译 JSX fragments 时所使用的组件名',
+    },
+    {
+      name: '`throwIfNamespace`',
+      type: '`boolean`',
+      default: 'true',
+      description: '当使用 xml 命名空间（例如 <f:image />）时是否抛出错误',
+    },
+    {
+      name: '`development`',
+      type: '`boolean`',
+      default: 'false',
+      description:
+        '是否为开发者模式，开发者模式将会在 JSX 元素上导出 `__self` 和 `__source` 以供类似于 React Developer Tools 这类工具使用',
+    },
+    {
+      name: '`useBuiltins`',
+      type: '`boolean`',
+      default: 'false',
+      description: '是否使用 `Object.assign()` 代替 `_extends`',
+    },
+    {
+      name: '`useSpread`',
+      type: '`boolean`',
+      default: 'false',
+      description: '是否使用 `Object.assign()` 代替扩展操作符',
+    },
+    {
+      name: '`refresh`',
+      type: '`boolean`',
+      default: 'false',
+      description: '是否启动 react-refresh 相关转换',
+    },
+  ]}
+/>
+
+## builtins.decorator
+
+<ApiMeta deprecatedVersion="0.3.10" />
+
+<ApiMeta removedVersion="0.5.0" stability={Stability.Removed} />
+
+:::warning
+请迁移至 [builtin:swc-loader 配置](https://www.rspack.dev/guide/loader.html#builtinswc-loader)。
+:::
+
+此选项可以用来配置装饰器的转换行为，false 表示关闭装饰器转换。
+
+- **类型：**
+
+```ts
+type BuiltinsDecorator =
+  | boolean
+  | {
+      legacy?: boolean;
+      emitMetadata?: boolean;
+    };
+```
+
+- **默认值：** `true`
+
+<Table
+  header={[
+    {
+      name: '名称',
+      key: 'name',
+    },
+    {
+      name: '类型',
+      key: 'type',
+    },
+    {
+      name: '默认值',
+      key: 'default',
+    },
+    {
+      name: '描述',
+      key: 'description',
+    },
+  ]}
+  body={[
+    {
+      name: '`legacy`',
+      type: '`boolean`',
+      default: 'true',
+      description:
+        '是否使用[历史（第 1 阶段）](https://github.com/tc39/proposal-decorators)类装饰器的语法和行为',
+    },
+    {
+      name: '`emitMetadata`',
+      type: '`boolean`',
+      default: 'true',
+      description: '是否保留 metadata 信息',
+    },
+  ]}
+/>
+
+## builtins.css
+
+此选项可以用来配置默认 css 打包策略。
+
+- **类型：**
+
+```ts
+type BuiltinsCss = {
+  modules?: BuiltinsCssModules;
+};
+```
+
+### builtins.css.modules
+
+css modules 配置
+
+- **类型：**
+
+```ts
+type BuiltinsCssModules = {
+  localsConvention?:
+    | 'asIs'
+    | 'camelCase'
+    | 'camelCaseOnly'
+    | 'dashes'
+    | 'dashesOnly';
+  localIdentName?: string;
+  exportsOnly?: boolean;
+};
+```
+
+<Table
+  header={[
+    {
+      name: '名称',
+      key: 'name',
+    },
+    {
+      name: '类型',
+      key: 'type',
+    },
+    {
+      name: '默认值',
+      key: 'default',
+    },
+    {
+      name: '描述',
+      key: 'description',
+    },
+  ]}
+  body={[
+    {
+      name: '`localsConvention`',
+      type: "`'asIs' | 'camelCase' | 'camelCaseOnly' | 'dashes' | 'dashesOnly'`",
+      default: '`asIs`',
+      description:
+        '`asIs` 类名将按原样导出。<br/> `camelCase` 类名将被驼峰化，原始类名仍然可用。<br/> `camelCaseOnly` 类名将被驼峰化，原始类名不可用。<br/> `dashes` 只有类名中的破折号会被驼峰化，原始类名仍然可用。<br/> `dashesOnly` 只有类名中的破折号会被驼峰化，原始类名不可用。',
+    },
+    {
+      name: '`localIdentName`',
+      type: '`string`',
+      default: "生产环境: '[hash]'<br/>开发环境: '[path][name][ext]__[local]\"",
+      description:
+        '最终产物里的类名生成规则，支持以下模版字符：<br/>`hash` 字符串 hash<br/>`hash:<length>` 截取一定长度的 hash<br/>`path` 文件与基础目录的相对路径<br/>`name` 文件名称<br/>`ext` 文件后缀名<br/>`local` 原始类名',
+    },
+    {
+      name: '`exportsOnly`',
+      type: '`boolean`',
+      default: 'false',
+      description: '只输出 js 对象，不输出 css 文件。常在 SSR 场景下使用',
+    },
+  ]}
+/>
+
+{/* ## builtins.postcss */}
+
+{/* ## builtins.treeShaking */}
+
+## builtins.progress
+
+<ApiMeta deprecatedVersion="0.3.10" />
+
+<ApiMeta removedVersion="0.5.0" stability={Stability.Removed} />
+
+:::warning
+请迁移至 [`ProgressPlugin`](/config/plugins.html#progressplugin)。
+:::
+
+此选项可以用来配置进度条，false 表示不显示进度条。
+
+<PropertyType.CN
+  type="boolean | { prefix?: string }"
+  defaultValueList={[
+    { defaultValue: 'false', mode: 'production' },
+    { defaultValue: 'true', mode: 'development' },
+  ]}
+/>
+
+<Table
+  header={[
+    {
+      name: '名称',
+      key: 'name',
+    },
+    {
+      name: '类型',
+      key: 'type',
+    },
+    {
+      name: '默认值',
+      key: 'default',
+    },
+    {
+      name: '描述',
+      key: 'description',
+    },
+  ]}
+  body={[
+    {
+      name: '`prefix`',
+      type: '`string`',
+      default: "'Rspack'",
+      description: '进度条前显示文案',
+    },
+  ]}
+/>
+
+{/* ## builtins.noEmitAssets */}
+
+## builtins.devFriendlySplitChunks
+
+<ApiMeta deprecatedVersion="0.3.12" />
+
+<ApiMeta removedVersion="0.5.0" stability={Stability.Removed} />
+
+是否开启对开发友好的分包算法。
+
+- **类型：** `boolean`
+
+- **默认值：** `false`
+
+## builtins.copy
+
+<ApiMeta deprecatedVersion="0.3.10" />
+
+<ApiMeta removedVersion="0.5.0" stability={Stability.Removed} />
+
+:::warning
+请迁移至 [`CopyRspackPlugin`](/config/plugins.html#copyrspackplugin)。
+:::
+
+import WebpackLicense from '../../../components/webpack-license';
+
+<WebpackLicense from="https://webpack.js.org/plugins/copy-webpack-plugin/#root" />
+
+将已存在的单个文件或整个目录复制到产物目录。
+
+- **类型：**
+
+```ts
+export type CopyConfig = {
+  patterns: (
+    | string // 如果传入字符串，会被视作 { from: `你传入的字符串` }
+    | {
+        from: string;
+        to?: string; // 默认根据 from 推断
+        context?: string; // 默认 Rspack 配置中的 context
+        toType?: 'dir' | 'file' | 'template'; // 默认根据 from 推断
+        noErrorOnMissing?: boolean; // 默认 false
+        force?: boolean; // 默认 false
+        priority?: number; // 默认 0
+        globOptions?: {
+          caseSensitiveMatch?: boolean; // 默认 true
+          dot?: boolean; // 默认 true
+          ignore?: string[]; // 忽略特定路径
+        };
+      }
+  )[];
+};
+```
+
+- **默认值：** `undefined`
+
+<Table
+  header={[
+    {
+      name: '名称',
+      key: 'name',
+    },
+    {
+      name: '类型',
+      key: 'type',
+    },
+    {
+      name: '默认值',
+      key: 'default',
+    },
+    {
+      name: '描述',
+      key: 'description',
+    },
+  ]}
+  body={[
+    {
+      name: '`from`',
+      type: '`string`',
+      default: 'undefined',
+      description:
+        '复制的源路径，可以是绝对路径、相对路径、glob 查询字符串，可以是文件或目录。若传入相对路径，则是相对于 `context` 配置。',
+    },
+    {
+      name: '`to`',
+      type: '`string`',
+      default: 'undefined',
+      description:
+        "复制的目的地，可以是绝对路径、相对路径或者是 Rspack 的模版字符串，例如 `'[name].[hash][ext]'`。当不指定 `to` 时，则相当于是产物目录。",
+    },
+    {
+      name: '`context`',
+      type: '`string`',
+      default: 'undefined',
+      description: '该配置决定怎样匹配 `from` 路径，以及复制后的结构。',
+    },
+    {
+      name: '`toType`',
+      type: "`'dir'|'file'|'template'`",
+      default: 'undefined',
+      description:
+        '指定 `to` 的类型，可以是目录，文件或 Rspack 的模版名，若不指定则会自动推断。',
+    },
+    {
+      name: '`noErrorOnMissing`',
+      type: '`boolean`',
+      default: 'false',
+      description: '当没有找到对应的文件或目录时，忽略错误。',
+    },
+    {
+      name: '`force`',
+      type: '`boolean`',
+      default: 'false',
+      description: '当产物中已经有相应的文件时，是否覆写。',
+    },
+    {
+      name: '`priority`',
+      type: '`number`',
+      default: '0',
+      description:
+        '当设置 `force` 为 `true` 时，如果匹配到同样的文件，优先级高的会覆写优先级的。',
+    },
+    {
+      name: '`globOptions`',
+      type: '`object`',
+      default: 'undefined',
+      description:
+        'glob 查询选项，`caseSensitiveMatch` 决定是否大小写敏感，`dot` 决定是否匹配以 `.` 开头的文件，`ignore` 是 glob 形式的字符串数组，可以使用该配置忽略部分特定路径。',
+    },
+  ]}
+/>
+
+示例：
+
+```ts title="rspack.config.js"
+module.exports = {
+  entry: './src/index.js',
+  builtins: {
+    copy: {
+      patterns: [
+        {
+          from: 'file.txt',
+        },
+      ],
+    },
+  },
+};
+```
+
+以上面的配置运行结果会是：`"dist/file.txt"`。
+
+```ts title="rspack.config.js"
+module.exports = {
+  entry: './src/index.js',
+  builtins: {
+    copy: {
+      patterns: [
+        {
+          from: 'directory',
+        },
+      ],
+    },
+  },
+};
+```
+
+以上面的配置运行结果会是 `directory` 目录下的所有文件平铺在产物目录中。
+
+```ts title="rspack.config.js"
+module.exports = {
+  entry: './src/index.js',
+  builtins: {
+    copy: {
+      patterns: [
+        {
+          from: 'directory/**/*',
+          to: 'newdirectory',
+        },
+      ],
+    },
+  },
+};
+```
+
+以上面的配置运行结果会是 `directory` 目录被移动到产物目录中的 `newdirectory` 目录，例如 `dist/newdirectory/directory/foo`。
+
+## builtins.relay
+
+<ApiMeta deprecatedVersion="0.3.10" />
+
+<ApiMeta removedVersion="0.5.0" stability={Stability.Removed} />
+
+:::warning
+请迁移至 [builtin:swc-loader 配置](https://www.rspack.dev/guide/loader.html#builtinswc-loader)。
+:::
+
+将项目中的 `graphql` 调用转换成相对应的 `require`。
+
+- **类型：**
+
+```ts
+type RelayOptions =
+  | undefined
+  | boolean
+  | {
+      artifactDirectory?: string;
+      language: 'javascript' | 'typescript' | 'flow'; // 默认 'javascript'
+    };
+```
+
+- **默认值：** `undefined`
+
+当该配置为 `true` 时，Rspack 会从依次尝试寻找 [context](/config/context) 目录下的 `relay.config.json`，`relay.config.js` 以及 `package.json`，详情可以参考 [relay-compiler](https://github.com/facebook/relay/tree/main/packages/relay-compiler) 文档，如果没找到则会使用默认配置。
+如果传入具体的配置则不会尝试查找任何 `relay` 配置文件，而是直接使用传入的配置。
+
+## builtins.pluginImport
+
+<ApiMeta deprecatedVersion="0.3.10" />
+
+<ApiMeta removedVersion="0.5.0" stability={Stability.Removed} />
+
+:::warning
+请迁移至 [builtin:swc-loader 配置](https://www.rspack.dev/guide/loader.html#builtinswc-loader)。
+:::
+
+移植自 [babel-plugin-import](https://github.com/umijs/babel-plugin-import)，配置基本保持一致。
+
+但不能使用函数进行配置，例如 `customName`，`customStyleName` 等，这是因为这些函数必须由 Rust 调用，这种调用会造成一些性能劣化，受到 [modularize_imports](https://crates.io/crates/modularize_imports) 的启发，简单的函数逻辑其实可以通过模版来代替，因此 `customName`，`customStyleName` ，这些配置可以传入字符串作为模版来代替函数，提高性能。
+
+我们以下面代码为例说明:
+
+```ts
+import { MyButton as Btn } from 'foo';
+```
+
+添加以下配置：
+
+```ts title="rspack.config.js"
+module.exports = {
+  builtins: {
+    pluginImport: [
+      {
+        libraryName: 'foo',
+        customName: 'foo/es/{{ member }}',
+      },
+    ],
+  },
+};
+```
+
+其中的 `{{ member }}` 会被替换为相应的引入成员，转换后:
+
+```ts
+import Btn from 'foo/es/MyButton';
+```
+
+可以看出配置 `customName: "foo/es/{{ member }}"` 的效果等同于配置 `` customName: (member) => `foo/es/${member}` ``，但是不会有 Node-API 的调用开销。
+
+这里使用到的模版是 [handlebars](https://handlebarsjs.com)，模版配置中还内置了一些有用的辅助函数，还是以上面的导入语句为例：
+
+配置如下：
+
+```ts title="rspack.config.js"
+module.exports = {
+  builtins: {
+    pluginImport: [
+      {
+        libraryName: 'foo',
+        customName: 'foo/es/{{ kebabCase member }}',
+      },
+    ],
+  },
+};
+```
+
+会转换成下面的结果:
+
+```ts
+import Btn from 'foo/es/my-button';
+```
+
+除了 `kebabCase` 以外还有 `camelCase`、`snakeCase`、`upperCase` 和 `lowerCase` 可以使用。
+
+其他配置可以直接查看 [babel-plugin-import](https://www.npmjs.com/package/babel-plugin-import)。
+
+再以经典的 4 版本的 [ant-design](https://4x.ant.design/) 为例，我们只需要如下配置：
+
+```ts title="rspack.config.js"
+module.exports = {
+  builtins: {
+    pluginImport: [
+      {
+        libraryName: 'antd',
+        style: '{{member}}/style/index.css',
+      },
+    ],
+  },
+};
+```
+
+上面的配置会将 `import { Button } from 'antd';` 转换成
+
+```ts
+import Button from 'antd/es/button';
+import 'antd/es/button/style/index.css';
+```
+
+然后就可以在页面中看到样式文件自动被引入并且生效了。
+
+当然如果你已经配置了对 `less` 的支持，也可以直接使用如下配置：
+
+```ts title="rspack.config.js"
+module.exports = {
+  builtins: {
+    pluginImport: [
+      {
+        libraryName: 'antd',
+        style: true,
+      },
+    ],
+  },
+};
+```
+
+上面的配置会将 `import { Button } from 'antd';` 转换成：
+
+```ts
+import Button from 'antd/es/button';
+import 'antd/es/button/style';
+```
+
+## builtins.provide
+
+<ApiMeta deprecatedVersion="0.3.10" />
+
+<ApiMeta removedVersion="0.5.0" stability={Stability.Removed} />
+
+:::warning
+请迁移至 [`ProvidePlugin`](/config/plugins.html#provideplugin)。
+:::
+
+自动的将全局变量转换为模块导入，如下配置：
+
+```js
+module.exports = {
+  builtins: {
+    provide: {
+      process: [require.resolve('process/browser')],
+    },
+  },
+};
+```
+
+将如下代码：
+
+```js
+console.log(process.version);
+```
+
+转换为：
+
+```js
+import process from 'process/browser';
+console.log(process.version);
+```

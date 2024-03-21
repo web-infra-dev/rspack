@@ -1,0 +1,51 @@
+import WebpackLicense from '../../../components/webpack-license';
+import { ApiMeta, Stability } from '../../../components/ApiMeta.tsx';
+
+<WebpackLicense from="https://webpack.js.org/guides/web-workers/" />
+
+# Web Workers
+
+<ApiMeta addedVersion={'0.2.6'} stability={Stability.Stable} />
+
+[Web Workers](https://developer.mozilla.org/zh-CN/docs/Web/API/Web_Workers_API/Using_web_workers) 是 Rspack 的一等公民，这意味着你不需要任何的 Loader 就可以直接使用 Web Workers。
+
+## 使用方式
+
+```js
+new Worker(new URL('./worker.js', import.meta.url));
+```
+
+```js
+new Worker(new URL('./worker.js', import.meta.url), {
+  name: 'my-worker', // <-- 在可静态分析 name 属性的值时，可通过该属性自定义 worker 的 chunk name，用于替换最终 chunk 文件生成时 [name] 占位符
+});
+```
+
+使用示例可参考：
+
+- [examples/worker](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/worker)
+- [examples/monaco-editor-js](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/monaco-editor-js)
+- [examples/monaco-editor-ts-react](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/monaco-editor-ts-react)
+
+:::info
+选择该语法是因为该语法在不使用打包工具时也能运行代码，它可以直接运行在支持 ESModule 的浏览器上运行，是符合标准的 ECMAScript 语法。
+:::
+
+:::warning
+
+1. 需要注意的是 `new Worker` 也可以接受一个 URL 的字符串表示，但在 Rspack 中只支持传入 URL。
+2. Rspack 不支持在 `new Worker` 中使用变量。例如，以下代码将不起作用：
+
+   ```js
+   const url = new URL('./path/to/worker.js', import.meta.url);
+   const worker = new Worker(url);
+   ```
+
+   这是因为 Rspack 无法静态分析该语法。在 Rspack 中使用 Worker 语法时，请务必注意此限制。
+
+3. 目前的实现支持了大部分常见的使用场景，目前仍不支持以下不常见场景
+   - 不支持通过 `module.parser.javascript.worker` 来自定义 Worker 语法
+   - 不支持 `navigator.serviceWorker.register()` 等函数调用的 Worker 语法
+   - 不支持 `/* webpackEntryOptions: { filename: "workers/[name].js" } */` 魔法注释
+
+:::

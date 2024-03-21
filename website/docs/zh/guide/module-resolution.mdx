@@ -1,0 +1,31 @@
+# 模块解析
+
+模块解析指的是将模块标识符转换为模块的文件路径的过程。Rspack 使用 [nodejs_resolver](https://github.com/web-infra-dev/nodejs_resolver) 来进行模块路径解析，它是对 [node 模块解析算法](https://nodejs.org/api/modules.html#modules_all_together)的一个扩展，其接口和 [enhanced-resolve](https://github.com/webpack/enhanced-resolve) 保持一致，更多关于模块解析配置见 [解析配置](/config/resolve)。
+
+## Rspack 中的解析规则
+
+Rspack 支持如下三种文件路径：
+
+### 绝对路径
+
+```js
+import '/home/me/file';
+```
+
+因为该路径已经是绝对路径，因此一般不需要再做进一步解析，直接返回该路径即可。
+
+### 相对路径
+
+```js
+import './src/answer';
+```
+
+在这种情况下，使用 import 和 require 的资源文件所处的目录，被认为是上下文目录。在 import/require 中给定的相对路径，会拼上该上下文目录路径，来生成模块的绝对路径。
+
+### 模块路径
+
+```js
+import 'lodash';
+```
+
+模块路径指那些没有以 `'./'`、`'../'`、`'/'` 开头的路径。在这种情况下，Rspack 会根据模块解析规则，来解析模块的绝对路径。[node 模块解析算法](https://nodejs.org/api/modules.html#modules_all_together)有关于解析模块规则的详细说明。
