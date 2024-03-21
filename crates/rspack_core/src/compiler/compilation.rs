@@ -13,9 +13,9 @@ use rayon::prelude::*;
 use rspack_error::{error, Diagnostic, Result, Severity, TWithDiagnosticArray};
 use rspack_futures::FuturesResults;
 use rspack_hash::{RspackHash, RspackHashDigest};
-use rspack_hook::{AsyncSeries2Hook, AsyncSeries3Hook, AsyncSeriesHook, SyncSeries4Hook};
+use rspack_hook::AsyncSeriesHook;
 use rspack_identifier::{Identifiable, IdentifierMap, IdentifierSet};
-use rspack_sources::{BoxSource, CachedSource, SourceExt};
+use rspack_sources::{BoxSource, CachedSource, OriginalSource, SourceExt};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use swc_core::ecma::ast::ModuleItem;
 use tracing::instrument;
@@ -24,6 +24,7 @@ use super::{
   hmr::CompilationRecords,
   make::{update_module_graph, MakeParam},
 };
+use crate::tree_shaking::visitor::OptimizeAnalyzeResult;
 use crate::{
   build_chunk_graph::build_chunk_graph,
   cache::{use_code_splitting_cache, Cache, CodeSplittingCache},
@@ -39,30 +40,16 @@ use crate::{
   ProcessDependenciesQueueHandler, RenderManifestArgs, ResolverFactory, RuntimeGlobals,
   RuntimeModule, RuntimeRequirementsInTreeArgs, RuntimeSpec, SharedPluginDriver, SourceType, Stats,
 };
-use crate::{tree_shaking::visitor::OptimizeAnalyzeResult, ExecuteModuleId};
 
 pub type BuildDependency = (
   DependencyId,
   Option<ModuleIdentifier>, /* parent module */
 );
 
-pub type CompilationBuildModuleHook = AsyncSeriesHook<BoxModule>;
-pub type CompilationStillValidModuleHook = AsyncSeriesHook<BoxModule>;
-pub type CompilationSucceedModuleHook = AsyncSeriesHook<BoxModule>;
-pub type CompilationExecuteModuleHook =
-  SyncSeries4Hook<ModuleIdentifier, IdentifierSet, CodeGenerationResults, ExecuteModuleId>;
-pub type CompilationRuntimeModuleHook = AsyncSeries3Hook<Compilation, ModuleIdentifier, ChunkUkey>;
-pub type CompilationChunkAssetHook = AsyncSeries2Hook<Chunk, String>;
 pub type CompilationProcessAssetsHook = AsyncSeriesHook<Compilation>;
 
 #[derive(Debug, Default)]
 pub struct CompilationHooks {
-  pub build_module: CompilationBuildModuleHook,
-  pub still_valid_module: CompilationStillValidModuleHook,
-  pub succeed_module: CompilationSucceedModuleHook,
-  pub execute_module: CompilationExecuteModuleHook,
-  pub runtime_module: CompilationRuntimeModuleHook,
-  pub chunk_asset: CompilationChunkAssetHook,
   pub process_assets: CompilationProcessAssetsHook,
 }
 
@@ -768,15 +755,11 @@ impl Compilation {
   async fn chunk_asset(
     &mut self,
     chunk_ukey: ChunkUkey,
-    mut filename: String,
+    filename: String,
     plugin_driver: SharedPluginDriver,
   ) -> Result<()> {
-    let current_chunk = self.chunk_by_ukey.expect_get_mut(&chunk_ukey);
-    plugin_driver
-      .compilation_hooks
-      .chunk_asset
-      .call(current_chunk, &mut filename)
-      .await?;
+    let current_chunk = self.chunk_by_ukey.expect_get(&chunk_ukey);
+    _ = plugin_driver.chunk_asset(current_chunk, filename).await;
     Ok(())
   }
 
@@ -1109,20 +1092,27 @@ impl Compilation {
     // NOTE: webpack runs hooks.runtime_module in compilation.add_runtime_module
     // and overwrite the runtime_module.generate() to get new source in create_chunk_assets
     // this needs full runtime requirements, so run hooks.runtime_module after runtime_requirements_in_tree
-    for mut entry_ukey in self.get_chunk_graph_entries() {
-      let runtime_module_ids: Vec<_> = self
+    for entry_ukey in self.get_chunk_graph_entries() {
+      let chunk = self.chunk_by_ukey.expect_get(&entry_ukey);
+      for runtime_module_id in self
         .chunk_graph
         .get_chunk_runtime_modules_iterable(&entry_ukey)
-        .copied()
-        .collect();
-      for mut runtime_module_id in runtime_module_ids {
-        self
-          .plugin_driver
-          .clone()
-          .compilation_hooks
-          .runtime_module
-          .call(self, &mut runtime_module_id, &mut entry_ukey)
-          .await?;
+      {
+        let Some((origin_source, name)) = self
+          .runtime_modules
+          .get(runtime_module_id)
+          .map(|m| (m.generate(self), m.name().to_string()))
+        else {
+          continue;
+        };
+        if let Some(runtime_module) = self.runtime_modules.get_mut(runtime_module_id)
+          && let Some(new_source) = self
+            .plugin_driver
+            .runtime_module(runtime_module.as_mut(), origin_source, chunk)
+            .await?
+        {
+          runtime_module.set_custom_source(OriginalSource::new(new_source, name));
+        }
       }
     }
 
