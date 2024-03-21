@@ -1,6 +1,6 @@
 {
   "name": "@rspack/core",
-  "version": "0.5.7",
+  "version": "0.5.8",
   "webpackVersion": "5.75.0",
   "license": "MIT",
   "description": "A Fast Rust-based Web Bundler",
@@ -36,7 +36,7 @@
   "devDependencies": {
     "@rspack/core": "workspace:*",
     "@rspack/plugin-minify": "workspace:^",
-    "@rspack/plugin-node-polyfill": "workspace:^",
+    "node-polyfill-webpack-plugin": "3.0.0",
     "@swc/plugin-remove-console": "^1.5.114",
     "@types/watchpack": "^2.4.0",
     "@types/webpack-sources": "3.2.3",

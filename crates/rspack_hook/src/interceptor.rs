@@ -4,16 +4,12 @@ use rustc_hash::FxHashSet;
 
 #[async_trait]
 pub trait Interceptor<H: Hook> {
-  async fn call(&self, hook: &H) -> Result<Vec<<H as Hook>::Tap>>;
-}
+  async fn call(&self, _hook: &H) -> Result<Vec<<H as Hook>::Tap>> {
+    unreachable!("Interceptor::call should only used in async hook")
+  }
 
-pub trait InterceptorExt<H: Hook> {
-  fn boxed(self) -> Box<dyn Interceptor<H>>;
-}
-
-impl<H: Hook, T: Interceptor<H> + 'static> InterceptorExt<H> for T {
-  fn boxed(self) -> Box<dyn Interceptor<H>> {
-    Box::new(self)
+  fn call_blocking(&self, _hook: &H) -> Result<Vec<<H as Hook>::Tap>> {
+    unreachable!("Interceptor::call_blocking should only used in sync hook")
   }
 }
 

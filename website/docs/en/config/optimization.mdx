@@ -1,0 +1,304 @@
+import PropertyType from '../../../components/property-type.tsx';
+
+import WebpackLicense from '../../../components/webpack-license';
+
+<WebpackLicense from="https://webpack.js.org/configuration/optimization/" />
+
+# Optimization
+
+Rspack will select appropriate optimization configuration based on the [`mode`](/config/mode). You can also customize the configuration via [`optimization`](/config/optimization).
+
+## optimization.removeAvailableModules
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+A module can be removed from a Chunk if the module have been included in all of its parent Chunks.
+
+```
+EntryChunk(index.js, a.js, b.js)
+                                  \
+                                  ChunkFoo(b.js, c.js)
+                                  /
+EntryChunk2(index.js, a.js, b.js)
+```
+
+In the above example, `b.js` has already been included in `EntryChunk` and `EntryChunk2`, so `b.js` can be removed from `ChunkFoo`.
+
+:::info Inconsistent behaviors with Webpack
+
+- [Webpack](https://webpack.js.org/configuration/optimization/#optimizationremoveavailablemodules) only enable this optimization in `production` mode.
+
+:::
+
+## optimization.moduleIds
+
+<PropertyType type="'named' | 'deterministic'" />
+
+| option          | description                                                                                                                         |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `named`         | Use meaningful, easy-to-debug content as id. This option is enabled by default in development mode.                                 |
+| `deterministic` | Use the hashed module identifier as the id to benefit from long-term caching. This option is enabled by default in production mode. |
+
+## optimization.chunkIds
+
+<PropertyType type="'named' | 'deterministic'" />
+
+| option            | description                                                                                                                                         |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `'named'`         | Readable ids for better debugging. This option is enabled by default in development mode                                                            |
+| `'deterministic'` | Short numeric ids which will not be changing between compilation. Good for long term caching. This option is enabled by default in production mode. |
+
+## optimization.minimize
+
+<PropertyType
+  type="boolean"
+  defaultValueList={[
+    { defaultValue: 'true', mode: 'production' },
+    { defaultValue: 'false', mode: 'development' },
+  ]}
+/>
+Whether to minimize the bundle.
+
+## optimization.mergeDuplicateChunks
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+Whether to merge chunks which contain the same modules. Setting optimization.mergeDuplicateChunks
+to false will disable this optimization.
+
+:::info
+This optimization currently has the potential to significantly impact performance.
+If you are encountering performance issue, and you are using `optimization.splitChunks`, also have set `optimization.splitChunks.chunks` to 'all', you can disable `optimization.mergeDuplicateChunks`.
+:::
+
+## optimization.minimizer
+
+<PropertyType
+  type="Array<Plugin>"
+  defaultValueList={[
+    {
+      defaultValue:
+        '[new SwcJsMinimizerRspackPlugin(), new SwcCssMinimizerRspackPlugin()]',
+    },
+  ]}
+/>
+
+Customize the minimizer. By default, [`rspack.SwcJsMinimizerRspackPlugin`](/config/plugins.html#swcjsminimizerrspackplugin)
+and [`rspack.SwcCssMinimizerRspackPlugin`](/config/plugins.html#swccssminimizerrspackplugin) are used.
+When `optimization.minimizer` is specified, the default minimizers will be disabled.
+
+```js title=rspack.config.js
+const minifyPlugin = require('@rspack/plugin-minify');
+module.exports = {
+  context: __dirname,
+  target: 'node',
+  entry: {
+    main: './index.js',
+  },
+  optimization: {
+    minimize: true,
+    minimizer: [
+      new minifyPlugin({
+        minifier: 'terser',
+      }),
+    ],
+  },
+};
+```
+
+Use the built-in minimizer with custom options:
+
+```js title=rspack.config.js
+const rspack = require('@rspack/core');
+module.exports = {
+  // ...
+  optimization: {
+    minimize: process.env.NODE_ENV === 'production',
+    // when `optimization.minimizer` is specified, the default minimizers are disabled by default
+    // but you can use '...', it represents the default minimizers
+    minimizer: [
+      new rspack.SwcJsMinimizerRspackPlugin({
+        format: {
+          comments: false,
+        },
+      }),
+      new rspack.SwcCssMinimizerRspackPlugin(),
+    ],
+  },
+};
+```
+
+## optimization.removeEmptyChunks
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+Remove empty chunks generated in the compilation.
+
+## optimization.runtimeChunk
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+## optimization.sideEffects
+
+<PropertyType
+  type="boolean | 'flag'"
+  defaultValueList={[
+    { defaultValue: 'true', mode: 'production' },
+    { defaultValue: 'false', mode: 'development' },
+  ]}
+/>
+
+```json
+{
+  "name": "npm module",
+  "version": "1.0.0",
+  "sideEffects": ["**/src/*.js"]
+}
+```
+
+Tells Rspack to recognise the sideEffects flag in package.json or rules to skip over modules which are flagged to contain no side effects when exports are not used.
+
+`optimization.sideEffects` depended on `builtins.treeShaking` to be enabled.
+This configuration has a build time cost, but eliminating modules has positive impact on performance because of less code generation. Effect of this optimization depends on your codebase.
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  optimization: {
+    sideEffects: true,
+  },
+};
+```
+
+If you only want Rspack use the manual `sideEffects` flag via (package.json and module.rule.sideEffects) and don't analyse code:
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  optimization: {
+    sideEffects: 'flag',
+  },
+};
+```
+
+:::info Tip
+When `optimization.sideEffects` is true , Rspack will also flag modules as side effect free when they contain only side effect free statements.
+:::
+
+## optimization.realContentHash
+
+Adds an additional hash compilation pass after the assets have been processed to get the correct asset content hashes. This feature will enable by default in production mode.
+
+If realContentHash is set to false, internal data is used to calculate the hash and it can change when assets are identical in some cases.
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  optimization: {
+    realContentHash: true,
+  },
+};
+```
+
+## optimization.splitChunks
+
+<PropertyType type="false | object" />
+
+Rspack supports splitting chunks with the `optimization.splitChunks` configuration item.
+
+It is enabled by default for dynamically imported modules.
+
+To turn it off, set it to `false`.
+
+See details at [SplitChunksPlugin](/config/optimization-split-chunks).
+
+## optimization.usedExports
+
+<PropertyType
+  type="boolean | 'global'"
+  defaultValueList={[
+    { defaultValue: 'true', mode: 'production' },
+    { defaultValue: 'false', mode: 'development' },
+  ]}
+/>
+
+Tells rspack to determine used exports for each module. This depends on `optimization.providedExports`.
+Information collected by `optimization.usedExports` is used by other optimizations or code generation i.e.
+Exports are not generated for unused exports, export names are mangled to single char identifiers when all usages are compatible. Dead code elimination in minimizers will benefit from this and can remove unused exports.
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  optimization: {
+    usedExports: false,
+  },
+};
+```
+
+To opt-out from used exports analysis per runtime:
+
+```js
+module.exports = {
+  //...
+  optimization: {
+    usedExports: 'global',
+  },
+};
+```
+
+## optimization.innerGraph
+
+<PropertyType
+  type="boolean"
+  defaultValueList={[
+    { defaultValue: 'true', mode: 'production' },
+    { defaultValue: 'false', mode: 'development' },
+  ]}
+/>
+`optimization.innerGraph` tells rspack whether to conduct inner graph analysis for unused exports.
+```js title=rspack.config.js
+module.exports = {
+  //...
+  optimization: {
+    innerGraph: false,
+  },
+};
+```
+
+## optimization.providedExports
+
+<PropertyType
+  type="boolean"
+  defaultValueList={[
+    { defaultValue: 'true'},
+  ]}
+/>
+Tells rspack to figure out which exports are provided by modules to generate more efficient code for `export * from ....` By default `optimization.providedExports` is enabled.
+```js title=rspack.config.js
+module.exports = {
+  //...
+  optimization: {
+    providedExports: false,
+  },
+};
+```
+
+## optimization.mangleExports
+
+<PropertyType
+  type="boolean | 'deterministic' | 'size' "
+  defaultValueList={[
+    { defaultValue: 'deterministic', mode: 'production' },
+    { defaultValue: 'false', mode: 'development' },
+  ]}
+/>
+
+`optimization.mangleExports` allows to control export mangling.
+The following values are supported:
+
+| option          | description                                                                                                                        |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| 'named'         | Use meaningful, easy-to-debug content as id. This option is enabled by default in development mode                                 |
+| 'deterministic' | Use the hashed module identifier as the id to benefit from long-term caching. This option is enabled by default in production mode |
+| true            | Same as 'deterministic'                                                                                                            |
+| false           | Keep original name. Good for readability and debugging.                                                                            |

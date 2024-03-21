@@ -3,7 +3,7 @@ use rspack_core::Module;
 use rspack_napi::napi::bindgen_prelude::*;
 
 use super::{JsCompatSource, ToJsCompatSource};
-use crate::{JsBuildTimeExecutionOption, JsChunk, JsCodegenerationResults};
+use crate::{JsChunk, JsCodegenerationResults};
 
 #[derive(Default)]
 #[napi(object)]
@@ -86,8 +86,6 @@ impl ToJsModule for dyn Module + '_ {
 #[napi(object)]
 pub struct JsExecuteModuleArg {
   pub entry: String,
-  pub request: String,
-  pub options: JsBuildTimeExecutionOption,
   pub runtime_modules: Vec<String>,
   pub codegen_results: JsCodegenerationResults,
   pub id: u32,

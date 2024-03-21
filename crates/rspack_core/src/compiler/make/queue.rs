@@ -388,7 +388,11 @@ impl WorkerTask for BuildTask {
     let (build_result, is_cache_valid) = cache
       .build_module_occasion
       .use_cache(&mut module, |module| async {
-        plugin_driver.build_module(module.as_mut()).await?;
+        plugin_driver
+          .compilation_hooks
+          .build_module
+          .call(module)
+          .await?;
 
         let result = module
           .build(
@@ -414,7 +418,11 @@ impl WorkerTask for BuildTask {
           )
           .await;
 
-        plugin_driver.succeed_module(&**module).await?;
+        plugin_driver
+          .compilation_hooks
+          .succeed_module
+          .call(module)
+          .await?;
 
         result.map(|t| {
           let diagnostics = module
@@ -428,7 +436,11 @@ impl WorkerTask for BuildTask {
       .await?;
 
     if is_cache_valid {
-      plugin_driver.still_valid_module(module.as_ref()).await?;
+      plugin_driver
+        .compilation_hooks
+        .still_valid_module
+        .call(&mut module)
+        .await?;
     }
 
     if let Some(current_profile) = &self.current_profile {

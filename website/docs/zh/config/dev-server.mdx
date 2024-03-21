@@ -1,0 +1,181 @@
+import WebpackLicense from '../../../components/webpack-license';
+
+<WebpackLicense from="https://webpack.js.org/configuration/dev-server/" />
+
+# devServer
+
+开发服务器：该选项用于配置 `@rspack/dev-server` 的行为。
+
+- **类型：** `Object`
+
+:::tip
+如果当前应用没有依赖 `@rspack/dev-server`，那么 devServer 配置将不会生效。
+
+比如，Rspack CLI 默认依赖了 `@rspack/dev-server`，因此在 Rspack CLI 项目里可以使用 devServer 配置。而 Rsbuild 自行实现了 dev server，并提供了单独的 "server" 配置，所以 Rsbuild 项目不能使用 devServer 配置。
+:::
+
+## devServer.allowedHosts
+
+- **类型：** `string | string[] | 'all' | 'auto'`
+- **默认值：** `'auto'`
+
+允许访问 devServer 的白名单。
+
+## devServer.client
+
+- **类型：** `Object`
+
+### logging
+
+- **类型：** `'log' | 'info' | 'warn' | 'error' | 'none' | 'verbose'`
+- **默认值：** `'info'`
+
+客户端的日志等级。
+
+### overlay
+
+- **类型：** `boolean | Object`
+- **默认值：** `true`
+
+当发生编译错误时是否在客户端的屏幕上报错。
+
+### progress
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+是否在客户端上显示编译进度。
+
+### reconnect
+
+- **类型：** `boolean | number`
+- **默认值：** `true`
+
+开发服务器重新连接客户端的次数。`true` 表示不限次数。
+
+### webSocketTransport
+
+- **类型：** `'ws' | 'sockjs'`
+- **默认值：** `ws`
+
+客户端与开发服务器的传输方式。
+
+### webSocketURL
+
+- **类型：** `string | object`
+- **默认值：** `{}`
+
+ws 服务器的 URL.
+
+## devServer.compress
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+是否启用 gzip 压缩。
+
+## devServer.devMiddleware
+
+- **类型：** `object`
+- **默认值：** `{}`
+
+控制 rspack-dev-middleware 的行为。
+
+## devServer.headers
+
+- **类型：** `array | function | object`
+- **默认值：** `undefined`
+
+增加响应头。
+
+## devServer.historyApiFallback
+
+- **类型：** `boolean | object`
+- **默认值：** `false`
+
+当请求 404 页面时的兜底逻辑。
+
+## devServer.host
+
+- **类型：** `'local-ip' | 'local-ipv4' | 'local-ipv6' | string`
+- **默认值：** `'local-ip'`
+
+开发服务器的地址。
+
+## devServer.hot
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+是否开启热更新。
+
+## devServer.liveReload
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+是否重新加载页面。当开启 hot 时候该配置项会被关闭。
+
+## devSever.magicHtml
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+路径是否和产物一一对应。
+
+## devServer.onListening
+
+- **类型：** `function`
+
+当 devServer 与端口建立连接时的回调。
+
+## devServer.open
+
+- **类型：** `boolean | string | object | [string, object]`
+- **默认值：** `true`
+
+当 devServer 启动时是否打开浏览器。
+
+## devServer.port
+
+- **类型：** `'auto' | string | number`
+- **默认值：** `[]`
+
+用于配置端口号。
+
+## devServer.proxy
+
+- **类型：** `object | [object, function]`
+
+配置代理，可用于解决跨域问题等。
+
+## devServer.server
+
+- **类型：** `'http' | 'https' | 'spdy' | string | object`
+- **默认值：** `'http'`
+
+服务器的配置项。
+
+## devServer.setupMiddlewares
+
+- **类型：** `function (middlewares, devServer)`
+
+自定义中间件。
+
+## devServer.static
+
+- **类型：** `boolean | string | object | [string, object]`
+
+用于配置是否从一些目录（默认为 'public'）启用静态服务器。
+
+## devServer.watchFiles
+
+- **类型：** `string | object | [string, object]`
+
+监听一系列文件的变化。
+
+## devServer.webSocketServer
+
+- **类型：** `false | 'sockjs' | 'ws'`
+
+用于配置 Web Socket 服务器的类型。

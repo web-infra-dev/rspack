@@ -1,0 +1,13 @@
+# 包分析
+
+Rspack CLI 支持使用 `--analyze` 选项进行包体积分析，我们在内部使用 [webpack-bundle-analyzer](https://www.npmjs.com/package/webpack-bundle-analyzer) 实现该功能。
+
+```sh
+$ rspack build --analyze
+```
+
+你也可以生成 stats.json 文件，用其他包解析工具进一步分析，如 [bundle-stats](https://github.com/relative-ci/bundle-stats) 或 [statoscope](https://statoscope.tech/)。
+
+```sh
+$ rspack build --json stats.json
+```

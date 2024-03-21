@@ -6,17 +6,12 @@ use std::sync::Arc;
 use async_trait::async_trait;
 pub use interceptor::RegisterJsTaps;
 use napi::{Env, Result};
+use rspack_binding_values::JsAssetEmittedArgs;
 use rspack_binding_values::JsResolveForSchemeResult;
-use rspack_binding_values::{JsAssetEmittedArgs, ToJsModule};
-use rspack_binding_values::{JsBuildTimeExecutionOption, JsExecuteModuleArg};
-use rspack_binding_values::{
-  JsChunk, JsChunkAssetArgs, JsRuntimeModule, JsRuntimeModuleArg, ToJsCompatSource,
-};
-use rspack_core::rspack_sources::Source;
 use rspack_core::PluginNormalModuleFactoryResolveForSchemeOutput;
 use rspack_core::{
-  ApplyContext, BuildTimeExecutionOption, Chunk, ChunkAssetArgs, CompilerOptions, ModuleIdentifier,
-  NormalModuleAfterResolveArgs, NormalModuleAfterResolveCreateData, PluginContext, RuntimeModule,
+  ApplyContext, CompilerOptions, NormalModuleAfterResolveArgs, NormalModuleAfterResolveCreateData,
+  PluginContext,
 };
 use rspack_core::{BeforeResolveArgs, PluginNormalModuleFactoryAfterResolveOutput};
 use rspack_core::{
@@ -25,8 +20,13 @@ use rspack_core::{
 };
 use rspack_hook::Hook as _;
 
+use self::interceptor::RegisterCompilationBuildModuleTaps;
+use self::interceptor::RegisterCompilationChunkAssetTaps;
+use self::interceptor::RegisterCompilationStillValidModuleTaps;
+use self::interceptor::RegisterCompilationSucceedModuleTaps;
 use self::interceptor::{
-  RegisterCompilationProcessAssetsTaps, RegisterCompilerCompilationTaps, RegisterCompilerMakeTaps,
+  RegisterCompilationExecuteModuleTaps, RegisterCompilationProcessAssetsTaps,
+  RegisterCompilationRuntimeModuleTaps, RegisterCompilerCompilationTaps, RegisterCompilerMakeTaps,
   RegisterCompilerShouldEmitTaps, RegisterCompilerThisCompilationTaps,
   RegisterNormalModuleFactoryBeforeResolveTaps,
 };
@@ -44,6 +44,12 @@ pub struct JsHooksAdapterPlugin {
   register_compiler_compilation_taps: RegisterCompilerCompilationTaps,
   register_compiler_make_taps: RegisterCompilerMakeTaps,
   register_compiler_should_emit_taps: RegisterCompilerShouldEmitTaps,
+  register_compilation_build_module_taps: RegisterCompilationBuildModuleTaps,
+  register_compilation_still_valid_module_taps: RegisterCompilationStillValidModuleTaps,
+  register_compilation_succeed_module_taps: RegisterCompilationSucceedModuleTaps,
+  register_compilation_execute_module_taps: RegisterCompilationExecuteModuleTaps,
+  register_compilation_runtime_module_taps: RegisterCompilationRuntimeModuleTaps,
+  register_compilation_chunk_asset_taps: RegisterCompilationChunkAssetTaps,
   register_compilation_process_assets_taps: RegisterCompilationProcessAssetsTaps,
   register_normal_module_factory_before_resolve_taps: RegisterNormalModuleFactoryBeforeResolveTaps,
 }
@@ -98,6 +104,36 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
     ctx
       .context
       .compilation_hooks
+      .build_module
+      .intercept(self.register_compilation_build_module_taps.clone());
+    ctx
+      .context
+      .compilation_hooks
+      .still_valid_module
+      .intercept(self.register_compilation_still_valid_module_taps.clone());
+    ctx
+      .context
+      .compilation_hooks
+      .succeed_module
+      .intercept(self.register_compilation_succeed_module_taps.clone());
+    ctx
+      .context
+      .compilation_hooks
+      .execute_module
+      .intercept(self.register_compilation_execute_module_taps.clone());
+    ctx
+      .context
+      .compilation_hooks
+      .runtime_module
+      .intercept(self.register_compilation_runtime_module_taps.clone());
+    ctx
+      .context
+      .compilation_hooks
+      .chunk_asset
+      .intercept(self.register_compilation_chunk_asset_taps.clone());
+    ctx
+      .context
+      .compilation_hooks
       .process_assets
       .intercept(self.register_compilation_process_assets_taps.clone());
     ctx
@@ -110,18 +146,6 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
           .clone(),
       );
     Ok(())
-  }
-
-  async fn chunk_asset(&self, args: &ChunkAssetArgs) -> rspack_error::Result<()> {
-    if self.is_hook_disabled(&Hook::ChunkAsset) {
-      return Ok(());
-    }
-
-    self
-      .hooks
-      .chunk_asset
-      .call(JsChunkAssetArgs::from(args))
-      .await
   }
 
   async fn after_resolve(
@@ -323,18 +347,6 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
     self.hooks.finish_make.call(compilation).await
   }
 
-  async fn build_module(&self, module: &mut dyn rspack_core::Module) -> rspack_error::Result<()> {
-    if self.is_hook_disabled(&Hook::BuildModule) {
-      return Ok(());
-    }
-
-    self
-      .hooks
-      .build_module
-      .call(module.to_js_module().expect("Convert to js_module failed."))
-      .await
-  }
-
   async fn finish_modules(
     &self,
     compilation: &mut rspack_core::Compilation,
@@ -376,98 +388,6 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
 
     self.hooks.after_emit.call(()).await
   }
-
-  async fn succeed_module(&self, args: &dyn rspack_core::Module) -> rspack_error::Result<()> {
-    if self.is_hook_disabled(&Hook::SucceedModule) {
-      return Ok(());
-    }
-    let js_module = args
-      .to_js_module()
-      .expect("Failed to convert module to JsModule");
-    self.hooks.succeed_module.call(js_module).await
-  }
-
-  async fn still_valid_module(&self, args: &dyn rspack_core::Module) -> rspack_error::Result<()> {
-    if self.is_hook_disabled(&Hook::StillValidModule) {
-      return Ok(());
-    }
-
-    self
-      .hooks
-      .still_valid_module
-      .call(args.to_js_module().expect("Convert to js_module failed."))
-      .await
-  }
-
-  fn execute_module(
-    &self,
-    entry: ModuleIdentifier,
-    request: &str,
-    options: &BuildTimeExecutionOption,
-    runtime_modules: Vec<ModuleIdentifier>,
-    codegen_results: &rspack_core::CodeGenerationResults,
-    id: u32,
-  ) -> rspack_error::Result<()> {
-    if self.is_hook_disabled(&Hook::ExecuteModule) {
-      return Ok(());
-    }
-
-    tokio::runtime::Handle::current().block_on(
-      self.hooks.execute_module.call(JsExecuteModuleArg {
-        entry: entry.to_string(),
-        request: request.into(),
-        options: JsBuildTimeExecutionOption {
-          public_path: options.public_path.clone(),
-          base_uri: options.base_uri.clone(),
-        },
-        runtime_modules: runtime_modules
-          .into_iter()
-          .map(|id| id.to_string())
-          .collect(),
-        codegen_results: codegen_results.clone().into(),
-        id,
-      }),
-    )
-  }
-
-  async fn runtime_module(
-    &self,
-    module: &mut dyn RuntimeModule,
-    source: Arc<dyn Source>,
-    chunk: &Chunk,
-  ) -> rspack_error::Result<Option<String>> {
-    if self.is_hook_disabled(&Hook::RuntimeModule) {
-      return Ok(None);
-    }
-
-    self
-      .hooks
-      .runtime_module
-      .call(JsRuntimeModuleArg {
-        module: JsRuntimeModule {
-          source: Some(
-            source
-              .to_js_compat_source()
-              .unwrap_or_else(|err| panic!("Failed to generate runtime module source: {err}")),
-          ),
-          module_identifier: module.identifier().to_string(),
-          constructor_name: module.get_constructor_name(),
-          name: module
-            .identifier()
-            .to_string()
-            .replace("webpack/runtime/", ""),
-        },
-        chunk: JsChunk::from(chunk),
-      })
-      .await
-      .map(|r| {
-        r.and_then(|s| s.source).map(|s| {
-          std::str::from_utf8(&s.source)
-            .unwrap_or_else(|err| panic!("Failed to covert buffer to utf-8 string: {err}"))
-            .to_string()
-        })
-      })
-  }
 }
 
 impl JsHooksAdapterPlugin {
@@ -489,6 +409,24 @@ impl JsHooksAdapterPlugin {
       ),
       register_compiler_should_emit_taps: RegisterCompilerShouldEmitTaps::new(
         register_js_taps.register_compiler_should_emit_taps,
+      ),
+      register_compilation_build_module_taps: RegisterCompilationBuildModuleTaps::new(
+        register_js_taps.register_compilation_build_module_taps,
+      ),
+      register_compilation_still_valid_module_taps: RegisterCompilationStillValidModuleTaps::new(
+        register_js_taps.register_compilation_still_valid_module_taps,
+      ),
+      register_compilation_succeed_module_taps: RegisterCompilationSucceedModuleTaps::new(
+        register_js_taps.register_compilation_succeed_module_taps,
+      ),
+      register_compilation_execute_module_taps: RegisterCompilationExecuteModuleTaps::new(
+        register_js_taps.register_compilation_execute_module_taps,
+      ),
+      register_compilation_runtime_module_taps: RegisterCompilationRuntimeModuleTaps::new(
+        register_js_taps.register_compilation_runtime_module_taps,
+      ),
+      register_compilation_chunk_asset_taps: RegisterCompilationChunkAssetTaps::new(
+        register_js_taps.register_compilation_chunk_asset_taps,
       ),
       register_compilation_process_assets_taps: RegisterCompilationProcessAssetsTaps::new(
         register_js_taps.register_compilation_process_assets_taps,

@@ -10,7 +10,7 @@ module.exports = {
 	},
 	async build(context, compiler) {
 		await new Promise((resolve, reject) => {
-			compiler.build(err => {
+			compiler.run(err => {
 				if (err) {
 					return reject(err);
 				}
