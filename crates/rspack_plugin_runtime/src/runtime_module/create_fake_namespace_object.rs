@@ -27,7 +27,7 @@ impl RuntimeModule for CreateFakeNamespaceObjectRuntimeModule {
     self.id
   }
 
-  fn generate(&self, _compilation: &Compilation) -> BoxSource {
-    RawSource::from(include_str!("runtime/create_fake_namespace_object.js")).boxed()
+  fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+    Ok(RawSource::from(include_str!("runtime/create_fake_namespace_object.js")).boxed())
   }
 }

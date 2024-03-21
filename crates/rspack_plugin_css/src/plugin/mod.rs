@@ -7,11 +7,12 @@ use std::str::FromStr;
 use bitflags::bitflags;
 use once_cell::sync::Lazy;
 use regex::Regex;
-use rspack_core::Filename;
+use rspack_core::FilenameTemplate;
 use rspack_core::{Chunk, ChunkGraph, Compilation, Module, ModuleGraph, PathData, SourceType};
 use rspack_error::error_bail;
 use rspack_hook::plugin;
 use rspack_identifier::IdentifierSet;
+use rspack_util::infallible::ResultInfallibleExt as _;
 
 static ESCAPE_LOCAL_IDENT_REGEX: Lazy<Regex> =
   Lazy::new(|| Regex::new(r#"[<>:"/\\|?*\.]"#).expect("Invalid regex"));
@@ -30,11 +31,11 @@ pub struct ModulesConfig {
 }
 
 #[derive(Debug, Clone)]
-pub struct LocalIdentName(Filename);
+pub struct LocalIdentName(FilenameTemplate);
 
 impl LocalIdentName {
   pub fn render(&self, options: LocalIdentNameRenderOptions) -> String {
-    let mut s = self.0.render(options.path_data, None);
+    let mut s = self.0.render(options.path_data, None).always_ok();
     if let Some(local) = options.local {
       s = s.replace("[local]", local);
     }
@@ -45,7 +46,7 @@ impl LocalIdentName {
 
 impl From<String> for LocalIdentName {
   fn from(value: String) -> Self {
-    Self(Filename::from(value))
+    Self(value.into())
   }
 }
 

@@ -29,8 +29,10 @@ impl RuntimeModule for RspackVersionRuntimeModule {
     self.id
   }
 
-  fn generate(&self, _: &Compilation) -> BoxSource {
-    RawSource::from(include_str!("runtime/get_version.js").replace("$VERSION$", &self.version))
-      .boxed()
+  fn generate(&self, _: &Compilation) -> rspack_error::Result<BoxSource> {
+    Ok(
+      RawSource::from(include_str!("runtime/get_version.js").replace("$VERSION$", &self.version))
+        .boxed(),
+    )
   }
 }

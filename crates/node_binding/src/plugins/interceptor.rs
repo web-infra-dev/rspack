@@ -589,7 +589,7 @@ impl AsyncSeries3<Compilation, ModuleIdentifier, ChunkUkey> for CompilationRunti
       module: JsRuntimeModule {
         source: Some(
           module
-            .generate(compilation)
+            .generate(compilation)?
             .to_js_compat_source()
             .unwrap_or_else(|err| panic!("Failed to generate runtime module source: {err}")),
         ),

@@ -31,24 +31,30 @@ impl ImportScriptsChunkLoadingRuntimeModule {
     }
   }
 
-  fn generate_base_uri(&self, chunk: &Chunk, compilation: &Compilation) -> BoxSource {
-    let base_uri = chunk
+  fn generate_base_uri(
+    &self,
+    chunk: &Chunk,
+    compilation: &Compilation,
+  ) -> rspack_error::Result<BoxSource> {
+    let base_uri = if let Some(base_uri) = chunk
       .get_entry_options(&compilation.chunk_group_by_ukey)
       .and_then(|options| options.base_uri.as_ref())
       .and_then(|base_uri| serde_json::to_string(base_uri).ok())
-      .unwrap_or_else(|| {
-        let root_output_dir = get_output_dir(chunk, compilation, false);
-        format!(
-          "self.location + {}",
-          serde_json::to_string(&if root_output_dir.is_empty() {
-            "".to_string()
-          } else {
-            format!("/../{root_output_dir}")
-          })
-          .expect("should able to be serde_json::to_string")
-        )
-      });
-    RawSource::from(format!("{} = {};\n", RuntimeGlobals::BASE_URI, base_uri)).boxed()
+    {
+      base_uri
+    } else {
+      let root_output_dir = get_output_dir(chunk, compilation, false)?;
+      format!(
+        "self.location + {}",
+        serde_json::to_string(&if root_output_dir.is_empty() {
+          "".to_string()
+        } else {
+          format!("/../{root_output_dir}")
+        })
+        .expect("should able to be serde_json::to_string")
+      )
+    };
+    Ok(RawSource::from(format!("{} = {};\n", RuntimeGlobals::BASE_URI, base_uri)).boxed())
   }
 }
 
@@ -57,7 +63,7 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
     self.id
   }
 
-  fn generate(&self, compilation: &Compilation) -> BoxSource {
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let chunk = compilation
       .chunk_by_ukey
       .expect_get(&self.chunk.expect("The chunk should be attached."));
@@ -79,7 +85,7 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
     let mut source = ConcatSource::default();
 
     if with_base_uri {
-      source.add(self.generate_base_uri(chunk, compilation));
+      source.add(self.generate_base_uri(chunk, compilation)?);
     }
 
     // object to store loaded chunks
@@ -182,7 +188,7 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
       )));
     }
 
-    source.boxed()
+    Ok(source.boxed())
   }
 
   fn attach(&mut self, chunk: ChunkUkey) {

@@ -22,14 +22,15 @@ use rspack_core::{
   SourceType,
 };
 use rspack_core::{
-  ApplyContext, BoxModule, Chunk, ChunkUkey, CompilerOptions, Filename, Logger, ModuleIdentifier,
-  OutputOptions,
+  ApplyContext, BoxModule, Chunk, ChunkUkey, CompilerOptions, FilenameTemplate, Logger,
+  ModuleIdentifier, OutputOptions,
 };
 use rspack_error::error;
 use rspack_error::{miette::IntoDiagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook, AsyncSeries, AsyncSeries3};
 use rspack_util::identifier::make_paths_absolute;
+use rspack_util::infallible::ResultInfallibleExt as _;
 use rspack_util::source_map::SourceMapKind;
 use rspack_util::{path::relative, swc::normalize_custom_filename};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
@@ -142,7 +143,7 @@ struct MappedAsset {
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct SourceMapDevToolPlugin {
-  source_map_filename: Option<Filename>,
+  source_map_filename: Option<FilenameTemplate>,
   #[derivative(Debug = "ignore")]
   source_mapping_url_comment: Option<SourceMappingUrlComment>,
   file_context: Option<String>,
@@ -189,7 +190,7 @@ impl SourceMapDevToolPlugin {
         ));
 
     Self::new_inner(
-      options.filename.map(Filename::from),
+      options.filename.map(FilenameTemplate::from),
       source_mapping_url_comment,
       options.file_context,
       module_filename_template,
@@ -446,13 +447,15 @@ impl SourceMapDevToolPlugin {
             .to_string(),
           None => filename.clone(),
         };
-        let source_map_filename = compilation.get_asset_path(
-          source_map_filename_config,
-          PathData::default()
-            .chunk(chunk)
-            .filename(&filename)
-            .content_hash_optional(chunk.content_hash.get(source_type).map(|i| i.encoded())),
-        );
+        let source_map_filename = compilation
+          .get_asset_path(
+            source_map_filename_config,
+            PathData::default()
+              .chunk(chunk)
+              .filename(&filename)
+              .content_hash_optional(chunk.content_hash.get(source_type).map(|i| i.encoded())),
+          )
+          .always_ok();
 
         if let Some(current_source_mapping_url_comment) = current_source_mapping_url_comment {
           let source_map_url = if let Some(public_path) = &self.public_path {
@@ -465,14 +468,16 @@ impl SourceMapDevToolPlugin {
             source_map_filename.clone()
           };
           let current_source_mapping_url_comment = match &current_source_mapping_url_comment {
-            SourceMappingUrlCommentRef::String(s) => compilation.get_asset_path(
-              &Filename::from(s.to_string()),
-              PathData::default()
-                .chunk(chunk)
-                .filename(&filename)
-                .content_hash_optional(chunk.content_hash.get(source_type).map(|i| i.encoded()))
-                .url(&source_map_url),
-            ),
+            SourceMappingUrlCommentRef::String(s) => compilation
+              .get_asset_path(
+                &FilenameTemplate::from(s.to_string()),
+                PathData::default()
+                  .chunk(chunk)
+                  .filename(&filename)
+                  .content_hash_optional(chunk.content_hash.get(source_type).map(|i| i.encoded()))
+                  .url(&source_map_url),
+              )
+              .always_ok(),
             SourceMappingUrlCommentRef::Fn(f) => {
               let data = PathData::default()
                 .chunk(chunk)
@@ -480,7 +485,9 @@ impl SourceMapDevToolPlugin {
                 .content_hash_optional(chunk.content_hash.get(source_type).map(|i| i.encoded()))
                 .url(&source_map_url);
               let comment = f(data).await?;
-              Filename::from(comment).render(data, None)
+              FilenameTemplate::from(comment)
+                .render(data, None)
+                .always_ok()
             }
           };
           asset.source = Some(

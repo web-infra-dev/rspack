@@ -46,7 +46,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     self.id
   }
 
-  fn generate(&self, compilation: &Compilation) -> BoxSource {
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let chunk = compilation
       .chunk_by_ukey
       .expect_get(&self.chunk.expect("The chunk should be attached"));
@@ -224,7 +224,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
       ));
     }
 
-    source.boxed()
+    Ok(source.boxed())
   }
 
   fn attach(&mut self, chunk: ChunkUkey) {

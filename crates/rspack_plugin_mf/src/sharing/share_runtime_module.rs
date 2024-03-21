@@ -37,7 +37,7 @@ impl RuntimeModule for ShareRuntimeModule {
     self.id
   }
 
-  fn generate(&self, compilation: &Compilation) -> BoxSource {
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let chunk_ukey = self
       .chunk
       .expect("should have chunk in <ShareRuntimeModule as RuntimeModule>::generate");
@@ -106,7 +106,7 @@ impl RuntimeModule for ShareRuntimeModule {
     } else {
       include_str!("./initializeSharing.js")
     };
-    RawSource::from(format!(
+    Ok(RawSource::from(format!(
       r#"
 {share_scope_map} = {{}};
 __webpack_require__.initializeSharingData = {{ scopeToSharingDataMapping: {{ {scope_to_data_init} }}, uniqueName: {unique_name} }};
@@ -117,7 +117,7 @@ __webpack_require__.initializeSharingData = {{ scopeToSharingDataMapping: {{ {sc
       unique_name = json_stringify(&compilation.options.output.unique_name),
       initialize_sharing_impl = initialize_sharing_impl,
     ))
-    .boxed()
+    .boxed())
   }
 
   fn attach(&mut self, chunk: ChunkUkey) {
