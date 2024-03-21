@@ -320,6 +320,23 @@ async fn after_process_assets(&self, _compilation: &mut Compilation) -> Result<(
   Ok(())
 }
 
+#[plugin_hook(AsyncSeries<Compilation> for ProgressPlugin)]
+async fn emit(&self, _compilation: &mut Compilation) -> Result<()> {
+  self.handler(0.98, "emitting".to_string(), vec!["emit".to_string()], None);
+  Ok(())
+}
+
+#[plugin_hook(AsyncSeries<Compilation> for ProgressPlugin)]
+async fn after_emit(&self, _compilation: &mut Compilation) -> Result<()> {
+  self.handler(
+    0.98,
+    "emitting".to_string(),
+    vec!["after emit".to_string()],
+    None,
+  );
+  Ok(())
+}
+
 #[async_trait]
 impl Plugin for ProgressPlugin {
   fn name(&self) -> &'static str {
@@ -372,6 +389,12 @@ impl Plugin for ProgressPlugin {
       .compilation_hooks
       .after_process_assets
       .tap(after_process_assets::new(self));
+    ctx.context.compiler_hooks.emit.tap(emit::new(self));
+    ctx
+      .context
+      .compiler_hooks
+      .after_emit
+      .tap(after_emit::new(self));
     Ok(())
   }
 
@@ -421,21 +444,6 @@ impl Plugin for ProgressPlugin {
 
   fn chunk_ids(&self, _compilation: &mut Compilation) -> Result<()> {
     self.sealing_hooks_report("chunk ids", 21);
-    Ok(())
-  }
-
-  async fn emit(&self, _compilation: &mut Compilation) -> Result<()> {
-    self.handler(0.98, "emitting".to_string(), vec!["emit".to_string()], None);
-    Ok(())
-  }
-
-  async fn after_emit(&self, _compilation: &mut Compilation) -> Result<()> {
-    self.handler(
-      0.98,
-      "emitting".to_string(),
-      vec!["after emit".to_string()],
-      None,
-    );
     Ok(())
   }
 

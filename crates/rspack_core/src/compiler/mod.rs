@@ -44,6 +44,8 @@ pub type CompilerMakeHook = AsyncSeries2Hook<Compilation, Vec<MakeParam>>;
 pub type CompilerFinishMakeHook = AsyncSeriesHook<Compilation>;
 // should be SyncBailHook, but rspack need call js hook
 pub type CompilerShouldEmitHook = AsyncSeriesBailHook<Compilation, bool>;
+pub type CompilerEmitHook = AsyncSeriesHook<Compilation>;
+pub type CompilerAfterEmitHook = AsyncSeriesHook<Compilation>;
 // should be AsyncSeriesHook, but rspack parallel emit asset, only accept immutable params,
 // and it has no effect about mutate the params in webpack
 pub type CompilerAssetEmittedHook = AsyncParallel3Hook<Compilation, String, AssetEmittedInfo>;
@@ -55,6 +57,8 @@ pub struct CompilerHooks {
   pub make: CompilerMakeHook,
   pub finish_make: CompilerFinishMakeHook,
   pub should_emit: CompilerShouldEmitHook,
+  pub emit: CompilerEmitHook,
+  pub after_emit: CompilerAfterEmitHook,
   pub asset_emitted: CompilerAssetEmittedHook,
 }
 
@@ -349,7 +353,12 @@ where
       }
     }
 
-    self.plugin_driver.emit(&mut self.compilation).await?;
+    self
+      .plugin_driver
+      .compiler_hooks
+      .emit
+      .call(&mut self.compilation)
+      .await?;
 
     let mut new_emitted_asset_versions = HashMap::default();
     let results = self
@@ -378,7 +387,12 @@ where
       item?;
     }
 
-    self.plugin_driver.after_emit(&mut self.compilation).await
+    self
+      .plugin_driver
+      .compiler_hooks
+      .after_emit
+      .call(&mut self.compilation)
+      .await
   }
 
   async fn emit_asset(
