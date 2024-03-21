@@ -1,4 +1,4 @@
-const NodePolyfillPlugin = require("@rspack/plugin-node-polyfill");
+const NodePolyfillPlugin = require("node-polyfill-webpack-plugin");
 const path = require("path");
 
 function config(subpath, realContentHash = false) {
