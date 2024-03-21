@@ -6,11 +6,11 @@ use serde_json::json;
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
-  compile_boolean_matcher_from_lists, property_access, to_comment, to_normal_comment,
-  AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, DependenciesBlock, DependencyId,
-  ExportsArgument, ExportsType, FakeNamespaceObjectMode, InitFragmentExt, InitFragmentKey,
-  InitFragmentStage, Module, ModuleGraph, ModuleIdentifier, NormalInitFragment, RuntimeCondition,
-  RuntimeGlobals, RuntimeSpec, TemplateContext,
+  compile_boolean_matcher_from_lists, get_import_var, property_access, to_comment,
+  to_normal_comment, AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, DependenciesBlock,
+  DependencyId, ExportsArgument, ExportsType, FakeNamespaceObjectMode, InitFragmentExt,
+  InitFragmentKey, InitFragmentStage, Module, ModuleGraph, ModuleIdentifier, NormalInitFragment,
+  RuntimeCondition, RuntimeGlobals, RuntimeSpec, TemplateContext,
 };
 
 pub fn runtime_condition_expression(
@@ -104,7 +104,6 @@ pub fn export_from_import(
   is_call: bool,
   call_context: bool,
 ) -> String {
-  let is_scss = request.contains("scss");
   let TemplateContext {
     runtime_requirements,
     compilation,
@@ -184,10 +183,6 @@ pub fn export_from_import(
         .get_module_graph()
         .get_exports_info(&module_identifier)
         .id;
-      if is_scss {
-        dbg!(&request);
-        dbg!(&exports_info_id.get_exports_info(compilation.get_module_graph()));
-      }
       let used = exports_info_id.get_used_name(
         compilation.get_module_graph(),
         *runtime,
@@ -303,7 +298,7 @@ pub fn import_statement(
 
   runtime_requirements.insert(RuntimeGlobals::REQUIRE);
 
-  let import_var = compilation.get_module_graph().get_import_var(id);
+  let import_var = get_import_var(compilation.get_module_graph(), *id);
 
   let opt_declaration = if update { "" } else { "var " };
 

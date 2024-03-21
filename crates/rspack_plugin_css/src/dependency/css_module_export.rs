@@ -43,10 +43,9 @@ impl Dependency for CssModuleExportDependency {
     Some(ExportsSpec {
       exports: ExportsOfExportsSpec::Array(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
         name: self.name.as_str().into(),
-        can_mangle: Some(true),
+        can_mangle: Some(false),
         ..Default::default()
       })]),
-      // can_mangle: Some(false),
       ..Default::default()
     })
   }
