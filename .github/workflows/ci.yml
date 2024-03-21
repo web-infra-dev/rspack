@@ -14,6 +14,7 @@ on:
     types: [opened, synchronize]
     paths-ignore:
       - "**/*.md"
+      - "website/**/*"
       - '!.github/workflows/ci.yml'
   push:
     branches:
