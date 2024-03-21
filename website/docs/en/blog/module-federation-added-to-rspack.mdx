@@ -1,0 +1,154 @@
+---
+date: 2024-01-09 13:21:00
+---
+
+# Module Federation added to Rspack
+
+> January 09, 2024
+
+## Introducing Rspack 0.5.0
+
+The latest Rspack 0.5.0 introduces the highly anticipated Module Federation along with the new "v1.5" federation APIs. It marks the most substantial revamp of federation since its inception. The v1.5 offers extra capabilities for end users and framework authors, a feat unattainable with the original design.
+
+<div align="center">
+  <img
+    src="https://lf3-static.bytednsdoc.com/obj/eden-cn/ihoheh7ubrnulnlo/rspack-federation.png"
+    width="50%"
+    height="50%"
+    alt="Rspack with Infinity Gauntlet"
+  />
+</div>
+
+## Webpack Federation gets some love!
+
+Federation API has been opened up for users to enrich, expand, or manage the lifecycle. While v1.5 comes with several new capabilities, it doesn't introduce breaking changes to the API regarding the original Module Federation.
+
+v1.5 is also accessible to webpack via [@module-federation/enhanced](https://www.npmjs.com/package/@module-federation/enhanced) with the upper plugin ecosystem, such as the next.js federation or node.js federation plugins, already utilizing v1.5 in their canary releases.
+
+In Rspack, Module Federation v1.5 can be used through `rspack.container.ModuleFederationPlugin`, and the original Module Federation can be used through `rspack.container.ModuleFederationPluginV1`.
+
+## Migration Opportunities
+
+The support of Module Federation in Rspack opens up a several of creative migration options to speed up bundler tools by sharing code at runtime. Both Webpack and Rspack can share code, relying on the same centralized runtime that the Module Federation Group introduced in v1.5. This ensures maintaining feature parity is manageable, and no additional forks of Module Federation are necessary to customize it.
+
+**Progressive migration** to rspack can be achieved via federation. If you have webpack locked plugins or cannot perform a full cut over to rspack, via module federation you can allow rspack and webpack to share dependencies and code, meaning more code could be built via rspack while the webpack host does less work but still gets the same result. [example: Webpack Rspack interop](https://github.com/module-federation/module-federation-examples/pull/3490)
+
+**Speed up builds by sharing the node_modules via federation**. One could tell webpack to `import: false` them, and rspack could compile all the shared modules, reducing the parse overhead and amount of code the webpack part has to do, by delegating it to rspack where similar workloads take only a few milliseconds to perform. [example: Rspack Vendor Offload to Webpack apps](https://github.com/module-federation/module-federation-examples/pull/3491)
+
+**Migrate one at a time**. Since the interfaces between webpack ([@module-federation/enhanced](https://www.npmjs.com/package/@module-federation/enhanced)) and rspack are shared, users can switch over any existing federation build or remote to rspack. We recommend any remaining webpack builds using `@module-federation/enhanced` which leverages our new design and exports ModuleFederationPlugin. You can, however, still use the stock plugin that ships in webpack core. Rspack should slot in seamlessly with existing federated applications.
+
+## Speed comparison to webpack federation
+
+In a simple comparison, using a module federation [example](https://github.com/module-federation/module-federation-examples/tree/master/comprehensive-demo-react16)
+
+- Apps: 5
+- Webpack: 500-3000ms per build - production
+- Rspack: 130-350ms per build - production
+
+Generally, we have observed 5-10x gains in build speeds of federated applications, roughly in line with typical performance gains we see with rspack. Most builds in module federation examples. Development builds we have converted typically take less than 150ms to cold start.
+
+## Rsbuild support
+
+Rsbuild continues to offer a simplified approach to build configurations. It makes working with rspack feel less like handling a webpack-based build system. Although it's compatible with module federation, rsbuild will be utilized to offer a more streamlined experience with module federation. For instance, rsbuild plugins for react could automatically share defaults, or rsbuild could provide convenient presets and patterns.
+
+We have already initiated the migration of some [module federation examples](https://github.com/module-federation/module-federation-examples) to rspack and rsbuild. One notable example is the CRA migration, which was seamless and took minutes to switch from CRA to Rsbuild [here](https://github.com/module-federation/module-federation-examples/tree/master/cra). This guide is also beneficial for CRA users seeking an easy performance boost for aging builds: [Rsbuild Migration Guide](https://www.rspack.dev/guide/migrate-from-cra). Rsbuild has also been fantastic for [migrating Vue examples off vue-cli](https://rsbuild.dev/guide/migration/vue-cli) and onto something faster, easier, and federation friendly.
+
+## The difference between federation v1 and v1.5
+
+Originally Federation was quite bare. RemoteEntry exposed `{get, init}` interface and not much else. This ended up being very limiting, but was simple. As complex uses grew and more capabilities were discovered, it became clear we needed more control beyond the initial idea of just sharing code between builds and loading it.
+
+v1.5 introduces runtimePlugins. These can be added to compile time via `runtimePlugins` options. But you can also dynamically register them in javascript files at runtime too.
+
+In Rspack:
+
+```js
+const rspack = require('@rspack/core');
+
+new rspack.container.ModuleFederationPlugin({
+  name: 'app1',
+  filename: 'static/js/remoteEntry.js',
+  exposes: {
+    './Button': './src/components/button.js',
+  },
+  runtimePlugins: [require.resolve('./my-custom-plugin')]
+  remotes: {
+    app2: 'app2@http://localhost:3002/static/js/remoteEntry.js',
+  },
+  shared: {
+    react: { singleton: true },
+    'react-dom': { singleton: true },
+  },
+})
+```
+
+And For Webpack:
+
+```js
+const { ModuleFederationPlugin } = require('@module-federation/enhanced');
+
+new ModuleFederationPlugin({
+  name: 'app1',
+  filename: 'static/js/remoteEntry.js',
+  exposes: {
+    './Button': './src/components/button.js',
+  },
+  runtimePlugins: [require.resolve('./my-custom-plugin')]
+  remotes: {
+    app2: 'app2@http://localhost:3002/static/js/remoteEntry.js',
+  },
+  shared: {
+    react: { singleton: true },
+    'react-dom': { singleton: true },
+  },
+})
+```
+
+Federation can also be used in a dynamic manner, without a compile-time plugin. You can read more about v1.5 runtime [here](https://github.com/module-federation/universe/tree/feat/async-boundary-option/packages/runtime)
+
+```js
+// Can load modules using only the runtime SDK without relying on build plugins
+// When not using build plugins, shared dependencies cannot be automatically reused
+import { init, loadRemote } from '@module-federation/runtime-tools';
+import customPlugin from './runtimePlugin';
+
+init({
+  name: 'app1',
+  remotes: [
+    {
+      name: 'runtime_remote1',
+      alias: 'app2',
+      entry: 'http://localhost:3006/remoteEntry.js',
+    },
+  ],
+  shared: {
+    react: {
+      version: '18.2.0',
+      scope: 'default',
+      lib: () => React,
+      shareConfig: {
+        singleton: true,
+        requiredVersion: '>17',
+      },
+    },
+    'react-dom': {
+      version: '18.2.0',
+      scope: 'default',
+      lib: () => ReactDOM,
+      shareConfig: {
+        singleton: true,
+        requiredVersion: '>17',
+      },
+    },
+  },
+  plugins: [customPlugin()],
+});
+
+// Load by alias
+loadRemote <
+  { add: (...args: Array<number>) => number } >
+  'app2/util'.then((md) => {
+    md.add(1, 2, 3);
+  });
+```
+
+Read more about Federation 1.5 Update: [Module Federation 1.5](https://github.com/module-federation/universe/discussions/1936)

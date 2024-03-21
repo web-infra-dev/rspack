@@ -1,0 +1,334 @@
+import WebpackLicense from '../../../components/webpack-license';
+
+<WebpackLicense from="https://webpack.js.org/api/loaders/" />
+
+# Loader 接口
+
+Rspack Loader 在设计时就是为了复用 Webpack Loader，我们已兼容了大部分 Webpack Loader 的 API，其余部分 API 仍在实现中，所以目前大部分 Webpack Loader 已经能够在 Rspack 中运行。
+
+::: info Webpack Loader 接口支持情况
+你可以查看 [这个](https://github.com/orgs/web-infra-dev/projects/10) 页面来了解目前 Webpack Loader 接口的支持情况。
+:::
+
+## 同步 Loader
+
+`return` 或 `this.callback` 都可以用来同步返回转换后的内容：
+
+```js title="sync-loader.js"
+module.exports = function (content, map, meta) {
+  return someSyncOperation(content);
+};
+```
+
+`this.callback` 方法更灵活，因为它允许传递多个参数，而不是只有 `content`。
+
+```js title="sync-loader-with-multiple-results.js"
+module.exports = function (content, map, meta) {
+  this.callback(null, someSyncOperation(content), map, meta);
+  return; // 调用 callback()时总是返回未定义的结果
+};
+```
+
+::: info
+出于技术和性能方面的考虑，Rspack 内部会将所有 Loader 转换为异步 Loader。
+:::
+
+## 异步 Loader
+
+对于异步 Loader，`this.async` 被用来获取回调函数：
+
+```js title="async-loader.js"
+module.exports = function (content, map, meta) {
+  var callback = this.async();
+  someAsyncOperation(content, function (err, result) {
+    if (err) return callback(err);
+    callback(null, result, map, meta);
+  });
+};
+```
+
+```js title="async-loader-with-multiple-results.js"
+module.exports = function (content, map, meta) {
+  var callback = this.async();
+  someAsyncOperation(content, function (err, result, sourceMaps, meta) {
+    if (err) return callback(err);
+    callback(null, result, sourceMaps, meta);
+  });
+};
+```
+
+## 内联 loader(Inline loaders)
+
+可以在 `import` 语句中指定 Loader，或者任何同等的 "导入"方法。用 `!` 将 Loader 从资源中分离出来。每个部分都是相对于当前目录来解析的。
+
+```js
+import Styles from 'style-loader!css-loader?modules!./styles.css';
+```
+
+通过在 inline import 语句中加前缀，可以覆盖配置中的任何 Loader、preLoaders 和 postLoaders：
+
+前缀为 `!` 时将禁用所有配置的 Normal Loader
+
+```js
+import Styles from '!style-loader!css-loader?modules!./styles.css';
+```
+
+前缀为 `!!` 时将禁用所有配置的 Loader（preLoaders、loaders、postLoaders）。
+
+```js
+import Styles from '!!style-loader!css-loader?modules!./styles.css';
+```
+
+前缀为 `-!` 时将禁用所有配置的 preLoaders 和 loaders，但不包括 postLoaders
+
+```js
+import Styles from '-!style-loader!css-loader?modules!./styles.css';
+```
+
+选项可以用查询参数来传递，例如`?key=value&foo=bar`，或者是 JSON 对象，例如`?{"key": "value", "foo": "bar"}`。
+
+## Pitching loader
+
+每个 Loader 都有两个阶段： `normal` 和 `pitching`。
+在某些情况下，Loader 只关心一个请求背后的**metadata**，并可以忽略前一个 Loader 的返回结果。
+在 Loader 实际执行之前（从右到左），Loader 上的 `pitch` 方法从**左到右**调用。
+
+对于以下使用的配置：
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  module: {
+    rules: [
+      {
+        //...
+        use: ['a-loader', 'b-loader', 'c-loader'] 、
+      },
+    ],
+  },
+};
+```
+
+会得到这些步骤：
+
+```
+|-a-loader `pitch
+  |- b-loader `pitch `.
+    |-c-loader `pitch`
+      |- 所请求的模块被作为依赖收集起来
+    |- c-loader正常执行
+  |-b-loader正常执行
+|- a-loader 正常执行
+```
+
+通常情况下，如果 Loader 足够简单以至于只导出了 normal 阶段的钩子：
+
+```js
+module.exports = function (source) {};
+```
+
+那么其 pitching 阶段将被跳过。
+
+那么，"pitching" 阶段对于 Loader 来说有哪些优势呢？
+
+首先，传递给 `pitch` 方法的数据在执行阶段也暴露在 `this.data` 下，可以用来捕获和共享 loader 生命周期中早期的信息。
+
+```js
+module.exports = function (content) {
+  return someSyncOperation(content, this.data.value);
+};
+
+module.exports.pitch = function (remainRequest, precedingRequest, data) {
+  data.value = 42;
+};
+```
+
+第二，如果一个 Loader 在 `pitch` 方法中提供了一个结果，整个 Loader 链路就会翻转过来，跳过其余的 normal 阶段的 Loader 。
+在我们上面的例子中，如果 b-loaders 的 `pitch` 方法返回了一些内容：
+
+```js
+module.exports = function (content) {
+  return someSyncOperation(content);
+};
+
+module.exports.pitch = function (remainingRequest, precedingRequest, data) {
+  if (someCondition()) {
+    return (
+      'module.exports = require(' +
+      JSON.stringify('-!' + remainingRequest) +
+      ');'
+    );
+  }
+};
+```
+
+上面的步骤将被缩短为：
+
+```
+|- a-loader `pitch`
+  |- b-loader `pitch`返回一个模块
+|- a-loader 正常执行
+```
+
+举一个现实世界的例子，`style-loader`利用第二个优点来做请求的调度。
+请访问 [style-loader](https://github.com/webpack-contrib/style-loader/blob/eb06baeb3ac4e3107732a21170b0a7f358c5423f/src/index.js#L39) 了解详情。
+
+## Inline match resource
+
+webpack v4 中引入了一种新的内联请求语法。 在一个请求前缀 `<match-resource>!=!` 将为这个请求设置匹配资源。
+当`matchResource`被设置时，它将被用来与 `module.rules` 而不是原始 resource 进行匹配。当如果有更多的 Loader 应该应用到 resource 上，或者需要改变模块的类型，这可能很有用。
+
+例子：
+
+```js title="file.js"
+/*STYLE: body { background: red; } */
+console.log('yep')；
+```
+
+Loader 可以将该文件转化为以下文件，并使用 matchResource 来应用用户指定的 CSS 处理规则：
+
+```js title="file.js (transformed by loader)"
+import './file.js.css!=! extract-style-loader/getStyles!./file.js'；
+console.log('yep')；
+```
+
+这会将 `extract-style-loader/getStyles!./file.js` 作为一个依赖添加到编译流程中，并将结果作为 `file.js.css`。
+当 `module.rules` 有一个匹配 `/\.css$/` 的规则时，将会被这个 resource 命中。
+
+Loader 可以是这样的：
+
+```js title="extract-style-loader/index.js"
+const getStylesLoader = require.resolve('./getStyles');
+
+module.exports = function (source) {
+  if (STYLES_REGEXP.test(source)) {
+    source = source.replace(STYLES_REGEXP, '');
+    return `import ${JSON.stringify(
+      this.utils.contextify(
+        this.context || this.rootContext,
+        `${this.resource}.css!=!${getStylesLoader}!${this.remainingRequest}`
+      )
+    )};${source}`;
+  }
+  return source;
+};
+```
+
+```js title="extract-style-loader/getStyles.js"
+module.exports = function (source) {
+  const match = source.match(STYLES_REGEXP);
+  return match[0];
+};
+```
+
+## 'Raw' Loader
+
+默认情况下，资源文件会被转化为 UTF-8 字符串，然后传给 loader。通过设置 `raw` 为 `true`，loader 可以接收原始的 `Buffer`。每一个 loader 都可以用 `String` 或者 `Buffer` 的形式传递它的处理结果。Compiler 将会把它们在 loader 之间相互转换。
+
+```js
+module.exports = function (content) {
+  assert(content instanceof Buffer);
+  // ...
+};
+module.exports.raw = true;
+```
+
+## `this.addContextDependency(directory: string)`
+
+添加目录作为 loader 结果的依赖，使目录中文件的任何变化可以被监听到。
+
+## `this.addDependency(file: string)`
+
+添加一个文件作为 loader 结果的依赖，使它们的任何变化可以被监听到。例如，`sass-loader`、`less-loader` 就使用了这个技巧，当导入的样式文件发生变化时就会重新编译。
+
+## `this.dependency(file: string)`
+
+`this.addDependency(file: string)` 的别名。
+
+## `this.addMissingDependency(file: string)`
+
+添加一个不存在的文件作为 loader 结果的依赖项，以使它们可监听。
+
+## `this.clearDependencies()`
+
+移除 loader 结果的所有依赖。
+
+## `this.async()`
+
+告诉 Rspack 这个 loader 将会异步被调用。返回 `this.callback`。
+
+## `this.callback(err: Error | null, content: string | Buffer, sourceMap?: SourceMap, meta?: any)`
+
+将 Loader 处理后的结果告诉 Rspack。
+
+第一个参数必须是 `Error` 或者 `null`，会标记当前模块为编译失败，第二个参数是一个 `string` 或者 `Buffer`，表示模块被该 Loader 处理后的文件内容，第三个参数是一个可以该 Loader 处理后的 source map，第四个参数会被 Rspack 忽略，可以是任何东西（例如一些元数据）。
+
+## `this.cacheable(flag: boolean = true)`
+
+默认情况下，loader 的处理结果会被标记为可缓存。调用这个方法然后传入 `false`，可以关闭 loader 处理结果的缓存能力。
+
+## `this.context`
+
+当前模块所在的目录。
+
+## `this.rootContext`
+
+config 中配置的项目所在的目录
+
+## `this.emitError(err: Error)`
+
+发出一个错误，与在 loader 中 `throw` 和 `this.callback(err)` 不同，它不会标记当前模块为编译失败，只会在 Rspack 的 Compilation 上添加一个错误，并在此次编译结束后显示在命令行中。
+
+## `this.emitWarning(warning: Error)`
+
+发出一个警告。
+
+## `this.emitFile(name: string, content: Buffer | string, sourceMap: SourceMap)`
+
+产生一个文件。
+
+## `this.getOptions(schema)`
+
+提取给定的 loader 选项，接受一个可选的 JSON schema 作为参数。
+
+## `this.getResolve(options: ResolveOptions): resolve`
+
+创建一个类似于 `this.resolve` 的解析函数。
+
+## `this.resolve(context: string, request: string, callback: (err: Error | null, result: string) => void)`
+
+解析一个 request。
+
+- `context` 必须是一个目录的绝对路径。此目录用作解析的起始位置。
+- `request` 是要被解析的 request。
+- `callback` 是一个处理解析路径的回调函数。
+
+## `this.mode`
+
+当 webpack 运行时读取 [mode](/config/mode) 的值
+
+可能的值为：`'production'`、`'development'`、`'none'`
+
+## `this.resource`
+
+当前模块的路径字符串。比如 `'/abc/resource.js?query#hash'`。
+
+## `this.resourcePath`
+
+当前模块的路径字符串，不包括 query 和 fragment 参数。比如 `'/abc/resource.js?query#hash'` 中的 `'/abc/resource.js'`。
+
+## `this.resourceQuery`
+
+当前模块的路径字符串的 query 参数。比如 `'/abc/resource.js?query#hash'` 中的 `'?query'`。
+
+## `this.resourceFragment`
+
+当前模块的路径字符串的 fragment 参数。比如 `'/abc/resource.js?query#hash'` 中的 `'#hash'`。
+
+## `this.sourceMap`
+
+是否应该生成一个 source map。
+
+## `this.getLogger(name?: string)`
+
+获取此次编译过程的 logger，可通过该 logger 记录消息。

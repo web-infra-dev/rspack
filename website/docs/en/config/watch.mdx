@@ -1,0 +1,54 @@
+import WebpackLicense from '../../../components/webpack-license';
+
+<WebpackLicense from="https://webpack.js.org/configuration/watch" />
+
+# Watch
+
+Rspack can watch files and recompile whenever they change.
+
+## watch
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+Turn on watch mode. This means that after the initial build, Rspack will continue to watch for changes in any of the resolved files.
+
+```js title=rspack.config.js
+module.exports = {
+  // ...
+  watch: true,
+};
+```
+
+:::info Tip
+In `@rspack/dev-server` watch mode is enabled by default.
+:::
+
+## watchOptions
+
+- **Type:** `object`
+
+A set of options used to customize watch mode.
+
+```js title=rspack.config.js
+module.exports = {
+  // ...
+  watchOptions: {
+    ignored: /node_modules/,
+    poll: true,
+  },
+};
+```
+
+### watchOptions.ignored
+
+- **Type:** `RegExp`, `string`, `string[]`
+
+The path that matches is excluded while watching.
+
+### watchOptions.poll
+
+- **Type:** `boolean`, `number`
+- **Default:** `false`
+
+Whether to watch by polling, the default polling interval for `true` is 5007 milliseconds.

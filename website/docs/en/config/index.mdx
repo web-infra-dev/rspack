@@ -1,0 +1,136 @@
+# Configure Rspack
+
+Rspack provides configurations similar to webpack. This chapter will show you how to use the Rspack configuration.
+
+## Configuration File
+
+When you run the Rspack CLI, Rspack automatically reads the `rspack.config.js` file in the current working directory.
+
+A basic Rspack configuration file looks like this:
+
+```ts title="rspack.config.js"
+module.exports = {
+  entry: {
+    main: './src/index.js',
+  },
+};
+```
+
+### Supported configuration file formats
+
+Rspack supports four types of configuration files, `.js`, `.ts`, `.cjs` and `.mjs` formats.
+
+- `rspack.config.js`: defaults to `CommonJS` format, or `ES Module` format if the type of the package.json is module.
+- `rspack.config.ts`: `TypeScript` format, which is compiled internally to `.js` format using `ts-node`.
+- `rspack.config.cjs`: Forced to `CommonJS` format.
+- `rspack.config.mjs`: Forced to `ES module` format.
+
+See [ES Module](https://nodejs.org/api/esm.html#modules-ecmascript-modules) and [CommonJS](https://nodejs.org/api/modules.html) for the difference between `CommonJS` and `ES Module`
+
+### Type Checking
+
+`rspack.config.js` is a JavaScript file, you can use JSDoc to enable the IDE's Intellisense and TypeScript type checking.
+
+```js title="rspack.config.js"
+// @ts-check
+
+/** @type {import('@rspack/cli').Configuration} */
+const config = {
+  entry: {
+    main: './src/index.js',
+  },
+};
+module.exports = config;
+```
+
+Alternatively, you can use the `defineConfig` helper, which provides auto-completion of the configuration:
+
+```js title="rspack.config.js"
+// @ts-check
+
+const { defineConfig } = require('@rspack/cli');
+
+const config = defineConfig({
+  entry: {
+    main: './src/index.js',
+  },
+});
+module.exports = config;
+```
+
+Alternatively, you can use TypeScript as configuration file. The default TypeScript configuration file name is `rspack.config.ts`.
+
+```ts title="rspack.config.ts"
+import { Configuration } from '@rspack/cli';
+
+const config: Configuration = {
+  entry: {
+    main: './src/index.js',
+  },
+};
+
+export = config;
+```
+
+You need to install `ts-node` as `devDependencies` so that rspack can resolve the `ts` extension.
+
+```json title="package.json"
+{
+  "devDependencies": {
+    "ts-node": "^10.9.1"
+  }
+}
+```
+
+Note that rspack will first search JavaScript and then TypeScript if the JS file does not exist.
+
+## Specify the Configuration File
+
+You can specify the name of the configuration file using the `--config` option.
+
+For example, if you need to use the `rspack.prod.config.js` file when running build, you can add the following scripts to `package.json`:
+
+```json title="package.json"
+{
+  "scripts": {
+    "dev": "rspack serve",
+    "build": "rspack build --config rspack.prod.config.js"
+  }
+}
+```
+
+You can also abbreviate the `--config` option to `-c`:
+
+```bash
+$ rspack build -c rspack.prod.config.js
+```
+
+## Exporting a Configuration Function
+
+Rspack supports exporting a function in `rspack.config.js`, you can dynamically compute the configuration in the function and return it to Rspack.
+
+```js title="rspack.config.js"
+module.exports = function (env, argv) {
+  return {
+    devtool: env.production ? 'source-map' : 'eval',
+  };
+};
+```
+
+As you can see from the example above, the function takes two input parameters:
+
+- The first argument is `env`, which corresponds to the value of the `--env` option when running the CLI command.
+- The second argument is `argv`, which contains all the options passed to the CLI.
+
+### Determine the Current Environment
+
+In addition to passing the `env` parameter, it is more common to use `process.env.NODE_ENV` to determine the current environment:
+
+```js title="rspack.config.js"
+module.exports = function (env, argv) {
+  const isProduction = process.env.NODE_ENV === 'production';
+  return {
+    devtool: isProduction ? 'source-map' : 'eval',
+  };
+};
+```
