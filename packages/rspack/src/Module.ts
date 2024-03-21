@@ -3,9 +3,12 @@ import {
 	JsCodegenerationResults,
 	JsModule
 } from "@rspack/binding";
+import { Source } from "webpack-sources";
+import { createSourceFromRaw } from "./util/createSource";
 
 export class Module {
 	#inner: JsModule;
+	_originalSource?: Source;
 
 	static __from_binding(module: JsModule) {
 		return new Module(module);
@@ -21,6 +24,16 @@ export class Module {
 
 	get resource(): string | undefined {
 		return this.#inner.resource;
+	}
+
+	get originalSource(): Source | null {
+		if (this._originalSource) return this._originalSource;
+		if (this.#inner.originalSource) {
+			this._originalSource = createSourceFromRaw(this.#inner.originalSource);
+			return this._originalSource;
+		} else {
+			return null;
+		}
 	}
 
 	identifier(): string {

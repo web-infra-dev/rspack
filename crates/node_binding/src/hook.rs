@@ -4,7 +4,6 @@ use std::sync::RwLock;
 #[derive(PartialEq)]
 pub enum Hook {
   FinishMake,
-  BuildModule,
   AfterProcessAssets,
   Emit,
   AssetEmitted,
@@ -14,24 +13,17 @@ pub enum Hook {
   OptimizeModules,
   AfterOptimizeModules,
   OptimizeTree,
-  /// webpack `compilation.hooks.chunkAsset`
-  ChunkAsset,
   ContextModuleFactoryBeforeResolve,
   ContextModuleFactoryAfterResolve,
   NormalModuleFactoryResolveForScheme,
   NormalModuleFactoryCreateModule,
   AfterResolve,
-  SucceedModule,
-  StillValidModule,
-  ExecuteModule,
-  RuntimeModule,
 }
 
 impl From<String> for Hook {
   fn from(s: String) -> Self {
     match s.as_str() {
       "finishMake" => Hook::FinishMake,
-      "buildModule" => Hook::BuildModule,
       "afterProcessAssets" => Hook::AfterProcessAssets,
       "emit" => Hook::Emit,
       "assetEmitted" => Hook::AssetEmitted,
@@ -41,16 +33,11 @@ impl From<String> for Hook {
       "optimizeModules" => Hook::OptimizeModules,
       "afterOptimizeModules" => Hook::AfterOptimizeModules,
       "optimizeTree" => Hook::OptimizeTree,
-      "chunkAsset" => Hook::ChunkAsset,
       "contextModuleFactoryBeforeResolve" => Hook::ContextModuleFactoryBeforeResolve,
       "contextModuleFactoryAfterResolve" => Hook::ContextModuleFactoryAfterResolve,
       "normalModuleFactoryCreateModule" => Hook::NormalModuleFactoryCreateModule,
       "normalModuleFactoryResolveForScheme" => Hook::NormalModuleFactoryResolveForScheme,
       "afterResolve" => Hook::AfterResolve,
-      "succeedModule" => Hook::SucceedModule,
-      "stillValidModule" => Hook::StillValidModule,
-      "executeModule" => Hook::ExecuteModule,
-      "runtimeModule" => Hook::RuntimeModule,
       hook_name => panic!("{hook_name} is an invalid hook name"),
     }
   }

@@ -13,7 +13,7 @@ class Plugin {
 					initial = false;
 
 					expect(
-						oldModule.originalSource.source.toString().includes("a = 1")
+						oldModule.originalSource.source().includes("a = 1")
 					).toBe(true);
 
 					const newModule = await new Promise((res, rej) => {
@@ -27,7 +27,7 @@ class Plugin {
 					});
 
 					expect(
-						newModule.originalSource.source.toString().includes("a = 2")
+						newModule.originalSource.source().includes("a = 2")
 					).toBe(true);
 				}
 			});

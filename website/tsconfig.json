@@ -1,0 +1,20 @@
+{
+  "extends": "@modern-js/tsconfig/base",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "paths": {
+      "@hooks/*": ["./hooks/*"],
+      "@components/*": ["./components/*"],
+      "@builtIns/*": ["./components/builtIns/*"]
+    }
+  },
+  "include": [
+    "src",
+    "./rspress.config.ts",
+    "./docs/**/*.tsx",
+    "./docs/**/*.ts",
+    "./components/**/*.ts",
+    "./components/**/*.tsx",
+    "./theme/**/*"
+  ]
+}

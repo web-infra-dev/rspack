@@ -1,0 +1,154 @@
+---
+date: 2024-01-09 13:21:00
+---
+
+# Rspack 支持 Module Federation
+
+> 2024 年 1 月 9 日
+
+## 介绍 Rspack 0.5.0
+
+最新的 Rspack 0.5.0 引入了备受期待的模块联邦功能，以及新的 “v1.5” 模块联邦 API。这是模块联邦创建以来最重大的改进。v1.5 为用户和框架作者提供了额外的功能，这是原始设计所无法实现的。
+
+<div align="center">
+  <img
+    src="https://lf3-static.bytednsdoc.com/obj/eden-cn/ihoheh7ubrnulnlo/rspack-federation.png"
+    width="50%"
+    height="50%"
+    alt="Rspack 和无限手套"
+  />
+</div>
+
+## 给 Webpack 模块联邦一些爱！
+
+模块联邦 API 已经向用户开放，以丰富、扩展或管理模块联邦的生命周期。虽然 v1.5 具有几个新功能，但它不会对原始模块联邦 API 引入破坏性更改。
+
+v1.5 可通过 [@module-federation/enhanced](https://www.npmjs.com/package/@module-federation/enhanced) 与上游插件生态系统（如 next.js 模块联邦或 node.js 模块联邦）一起使用，你已经可以在它们的 canary 版本中使用模块联邦 v1.5。
+
+在 Rspack 中，可通过 `rspack.container.ModuleFederationPlugin` 使用模块联邦 v1.5，也可通过 `rspack.container.ModuleFederationPluginV1` 使用原始模块联邦。
+
+## 迁移机会
+
+Rspack 中的模块联邦为加速打包工具的代码共享提供了多种创意的迁移方式。Webpack 和 Rspack 都可以共享代码，依赖于模块联邦在 v1.5 中引入的相同的集中式运行时。这确保了维护功能平衡的可管理性，并且不需要额外 fork 模块联邦来自定义它。
+
+**渐进式迁移**到 Rspack 可以通过模块联邦来实现。如果您有锁定在 webpack 的插件或无法完全切换到 Rspack，通过模块联邦，您可以允许 Rspack 和 webpack 共享依赖和代码，这意味着更多的代码可以通过 Rspack 构建，而使用 webpack 的 Host 则做更少的工作，但仍然获得相同的结果。[示例：Webpack 和 Rspack 交互](https://github.com/module-federation/module-federation-examples/pull/3490)
+
+**通过模块联邦共享 node_modules 加速构建速度**。可以告诉 webpack 将共享依赖设置为 `import: false`，然后 Rspack 可以编译所有共享模块，减少解析开销和 webpack 构建部分需要执行的代码量，通过将其委托给 Rspack，使共享模块的编译只需要几毫秒即可完成。[示例：将 Rspack 打包的 Vendor 提供给 Webpack 应用](https://github.com/module-federation/module-federation-examples/pull/3491)
+
+**一次性进行迁移**。由于 webpack 模块联邦（[@module-federation/enhanced](https://www.npmjs.com/package/@module-federation/enhanced)）和 Rspack 模块联邦之间的接口是一致的，因此用户可以切换到任何现有的模块联邦的构建到 Rspack。我们建议使用 `@module-federation/enhanced` 来构建遗留的 webpack 应用，该插件利用我们的新设计并导出的 ModuleFederationPlugin。但是，您仍然可以使用 webpack 中提供的原始的模块联邦插件。Rspack 能够与现有的模块联邦应用进行无缝衔接。
+
+## 与 Webpack 模块联邦的性能比较
+
+在一个简单的比较中，使用[该模块联邦示例](https://github.com/module-federation/module-federation-examples/tree/master/comprehensive-demo-react16)。
+
+- 应用：5
+- Webpack：500-3000ms 生产环境构建
+- Rspack：130-350ms 生产环境构建
+
+通常情况下，我们观察到模块联邦应用的构建速度提高了 5-10 倍，大致与 Rspack 的典型性能提升相一致。在模块联邦示例中，大多数构建都能得到这样的提升。我们迁移后的开发模式构建通常需要不到 150 毫秒的冷启动时间。
+
+## Rsbuild 支持
+
+Rsbuild 提供简化的构建配置方法。它使得使用 Rspack 感觉不像处理基于 webpack 的构建系统。虽然它与模块联邦兼容，但 Rsbuild 将会提供更流畅的模块联邦体验。例如，Rsbuild 插件可以自动共享 react 的默认值，或者 Rsbuild 可以提供方便的预设和常见的模式。
+
+我们已经开始将一些[模块联邦示例](https://github.com/module-federation/module-federation-examples)迁移到 Rspack 和 Rsbuild。其中一个值得注意的例子是 CRA 迁移，这是无缝的，只需几分钟即可[从 CRA 切换到 Rsbuild](https://github.com/module-federation/module-federation-examples/tree/master/cra)。这个指南对于 CRA 用户寻求易于使用的性能提升也非常有益：[Rsbuild 迁移指南](https://www.rspack.dev/guide/migrate-from-cra)。将 Rsbuild 作为 [Vue 项目从 vue-cli 迁移](https://rsbuild.dev/guide/migration/vue-cli)到更快、更易用和更适合模块联邦的东西也非常合适。
+
+## 模块联邦 v1 和 v1.5 之间的区别
+
+原始的模块联邦很简单。远程模块的入口暴露了 `{get, init}` 接口，仅此而已。这种方式比较受限，但也很简单。随着复杂的使用场景的增多和更多的功能和需求被发现，我们意识到需要更多的控制，超出了仅仅在构建之间共享代码并进行加载的初始想法。
+
+v1.5 引入了运行时插件。这些插件可以通过 `runtimePlugins` 配置在编译时添加。但你也可以在运行时的 javascript 文件中动态地注册它们。
+
+在 Rspack 中：
+
+```js
+const rspack = require('@rspack/core');
+
+new rspack.container.ModuleFederationPlugin({
+  name: 'app1',
+  filename: 'static/js/remoteEntry.js',
+  exposes: {
+    './Button': './src/components/button.js',
+  },
+  runtimePlugins: [require.resolve('./my-custom-plugin')]
+  remotes: {
+    app2: 'app2@http://localhost:3002/static/js/remoteEntry.js',
+  },
+  shared: {
+    react: { singleton: true },
+    'react-dom': { singleton: true },
+  },
+})
+```
+
+在 Webpack 中：
+
+```js
+const { ModuleFederationPlugin } = require('@module-federation/enhanced');
+
+new ModuleFederationPlugin({
+  name: 'app1',
+  filename: 'static/js/remoteEntry.js',
+  exposes: {
+    './Button': './src/components/button.js',
+  },
+  runtimePlugins: [require.resolve('./my-custom-plugin')]
+  remotes: {
+    app2: 'app2@http://localhost:3002/static/js/remoteEntry.js',
+  },
+  shared: {
+    react: { singleton: true },
+    'react-dom': { singleton: true },
+  },
+})
+```
+
+模块联邦也可以以动态的方式使用，不需要任何构建时插件。您可以在此处阅读[更多有关 v1.5 运行时的信息](https://github.com/module-federation/universe/tree/feat/async-boundary-option/packages/runtime)。
+
+```js
+// 可以使用运行时 SDK 加载模块，而无需依赖构建插件。
+// 当不使用构建插件时，无法自动复用共享模块。
+import { init, loadRemote } from '@module-federation/runtime-tools';
+import customPlugin from './runtimePlugin';
+
+init({
+  name: 'app1',
+  remotes: [
+    {
+      name: 'runtime_remote1',
+      alias: 'app2',
+      entry: 'http://localhost:3006/remoteEntry.js',
+    },
+  ],
+  shared: {
+    react: {
+      version: '18.2.0',
+      scope: 'default',
+      lib: () => React,
+      shareConfig: {
+        singleton: true,
+        requiredVersion: '>17',
+      },
+    },
+    'react-dom': {
+      version: '18.2.0',
+      scope: 'default',
+      lib: () => ReactDOM,
+      shareConfig: {
+        singleton: true,
+        requiredVersion: '>17',
+      },
+    },
+  },
+  plugins: [customPlugin()],
+});
+
+// 通过远程模块的名称加载
+loadRemote <
+  { add: (...args: Array<number>) => number } >
+  'app2/util'.then((md) => {
+    md.add(1, 2, 3);
+  });
+```
+
+了解更多有关模块联邦 1.5 更新的信息：[模块联邦 1.5](https://github.com/module-federation/universe/discussions/1936)。

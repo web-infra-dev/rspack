@@ -4,7 +4,6 @@ mod mapped_assets_cache;
 
 use std::borrow::Cow;
 use std::hash::Hasher;
-use std::sync::Arc;
 use std::{hash::Hash, path::Path};
 
 use dashmap::DashMap;
@@ -23,12 +22,13 @@ use rspack_core::{
   SourceType,
 };
 use rspack_core::{
-  Chunk, Filename, Logger, Module, ModuleIdentifier, OutputOptions, RuntimeModule,
+  ApplyContext, BoxModule, Chunk, ChunkUkey, CompilerOptions, Filename, Logger, ModuleIdentifier,
+  OutputOptions,
 };
 use rspack_error::error;
 use rspack_error::{miette::IntoDiagnostic, Result};
 use rspack_hash::RspackHash;
-use rspack_hook::{plugin, plugin_hook, AsyncSeries};
+use rspack_hook::{plugin, plugin_hook, AsyncSeries, AsyncSeries3};
 use rspack_util::identifier::make_paths_absolute;
 use rspack_util::source_map::SourceMapKind;
 use rspack_util::{path::relative, swc::normalize_custom_filename};
@@ -887,6 +887,7 @@ pub struct SourceMapDevToolModuleOptionsPluginOptions {
   pub module: bool,
 }
 
+#[plugin]
 #[derive(Debug)]
 pub struct SourceMapDevToolModuleOptionsPlugin {
   module: bool,
@@ -894,10 +895,36 @@ pub struct SourceMapDevToolModuleOptionsPlugin {
 
 impl SourceMapDevToolModuleOptionsPlugin {
   pub fn new(options: SourceMapDevToolModuleOptionsPluginOptions) -> Self {
-    Self {
-      module: options.module,
-    }
+    Self::new_inner(options.module)
   }
+}
+
+#[plugin_hook(AsyncSeries<BoxModule> for SourceMapDevToolModuleOptionsPlugin)]
+async fn build_module(&self, module: &mut BoxModule) -> Result<()> {
+  if self.module {
+    module.set_source_map_kind(SourceMapKind::SourceMap);
+  } else {
+    module.set_source_map_kind(SourceMapKind::SimpleSourceMap);
+  }
+  Ok(())
+}
+
+#[plugin_hook(AsyncSeries3<Compilation, ModuleIdentifier, ChunkUkey> for SourceMapDevToolModuleOptionsPlugin)]
+async fn runtime_module(
+  &self,
+  compilation: &mut Compilation,
+  module: &mut ModuleIdentifier,
+  _chunk: &mut ChunkUkey,
+) -> Result<()> {
+  let Some(module) = compilation.runtime_modules.get_mut(module) else {
+    return Ok(());
+  };
+  if self.module {
+    module.set_source_map_kind(SourceMapKind::SourceMap);
+  } else {
+    module.set_source_map_kind(SourceMapKind::SimpleSourceMap);
+  }
+  Ok(())
 }
 
 #[async_trait::async_trait]
@@ -906,27 +933,22 @@ impl Plugin for SourceMapDevToolModuleOptionsPlugin {
     "SourceMapDevToolModuleOptionsPlugin"
   }
 
-  async fn build_module(&self, module: &mut dyn Module) -> Result<()> {
-    if self.module {
-      module.set_source_map_kind(SourceMapKind::SourceMap);
-    } else {
-      module.set_source_map_kind(SourceMapKind::SimpleSourceMap);
-    }
-    Ok(())
-  }
-
-  async fn runtime_module(
+  fn apply(
     &self,
-    module: &mut dyn RuntimeModule,
-    _source: Arc<dyn Source>,
-    _chunk: &Chunk,
-  ) -> Result<Option<String>> {
-    if self.module {
-      module.set_source_map_kind(SourceMapKind::SourceMap);
-    } else {
-      module.set_source_map_kind(SourceMapKind::SimpleSourceMap);
-    }
-    Ok(None)
+    ctx: PluginContext<&mut ApplyContext>,
+    _options: &mut CompilerOptions,
+  ) -> Result<()> {
+    ctx
+      .context
+      .compilation_hooks
+      .build_module
+      .tap(build_module::new(self));
+    ctx
+      .context
+      .compilation_hooks
+      .runtime_module
+      .tap(runtime_module::new(self));
+    Ok(())
   }
 }
 

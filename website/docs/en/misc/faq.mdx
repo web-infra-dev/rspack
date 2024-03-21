@@ -1,0 +1,37 @@
+# FAQ
+
+## What will be the relationship between Rspack and Webpack in the future?
+
+We have also established a partnership with the webpack team. Rspack is an attempt to optimize webpack performance using Rust, and in the future, we will explore more possibilities for optimizing webpack together with the webpack team. When Rspack reaches a certain level of maturity, webpack will attempt to integrate Rspack into webpack with experiments flag.
+
+## Will compatibility with JavaScript or webpack ecosystem cause performance loss?
+
+There will be some performance loss, but according to our business landing situation, this loss is within an acceptable range. We will not blindly pursue benchmark indicators and ignore the migration cost of the business.
+
+## How to achieve compatibility fallback compilation without using babel-loader?
+
+Rspack internally uses SWC to perform code downgrade compilation which you can configure by [builtin:swc-loader](/guide/builtin-swc-loader.html), so there is no need to use babel-loader to perform code downgrade compilation.
+
+## Is Rspack 100% compatible with Webpack API?
+
+No, Rspack's goal is **not** to be fully compatible with 100% of Webpack API. According to the Pareto principle, we will prioritize the implementation of those APIs that are frequently used in the community and business.
+
+## Does Rspack plan to support wasm solution for browser-side build?
+
+We plan to support it. We are exploring the wasm solution together with the NAPI-RS team, and it is still in the exploration stage. There will be more progress in the future.
+
+## What are the advantages of Rspack compared to Webpack + SWC-loader?
+
+Even if webpack + SWC-loader solves the performance problem of babel-loader, webpack itself still has many performance bottlenecks, such as the make and seal stages, which are single-threaded. However, Rspack breaks through these limitations, so Rspack has better performance than webpack + SWC-loader, especially in multi-core scenarios.
+
+## Do custom plugins and custom loaders need to be developed using Rust?
+
+No, currently, plugins and loaders can be developed using JavaScript, just like developing webpack plugins and loaders. At the same time, we are also exploring how to support business development of custom plugins and loaders using Rust.
+
+## Does Rspack plan to support React Server Component?
+
+There is currently no plan, and it depends on the needs of the community and the development of React Server Component itself whether to support it in Rspack.
+
+## Can Rspack be used in production environments now? What are the differences between production artifacts and webpack?
+
+Yes, it can. Currently, it has been used in production environments in multiple internal projects. Our target runtime is fully aligned with webpack (which means it is difficult to judge whether the artifacts are produced by Webpack or Rspack), but there are still some differences from full alignment. We will complete the full alignment of the runtime in the next future.

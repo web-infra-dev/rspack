@@ -11,6 +11,7 @@ import {
 } from "@rspack/binding";
 import { ChunkGroup } from "./ChunkGroup";
 import { compareChunkGroupsByIndex } from "./util/comparators";
+import { Compilation } from ".";
 
 export class Chunk {
 	#inner: JsChunk;
@@ -30,7 +31,15 @@ export class Chunk {
 	chunkReasons: Array<string>;
 	auxiliaryFiles: Array<string>;
 
-	static __from_binding(chunk: JsChunk, compilation: JsCompilation) {
+	static __from_binding(chunk: JsChunk, compilation: Compilation): Chunk;
+	static __from_binding(chunk: JsChunk, compilation: JsCompilation): Chunk;
+	static __from_binding(
+		chunk: JsChunk,
+		compilation: Compilation | JsCompilation
+	) {
+		if (compilation instanceof Compilation) {
+			return new Chunk(chunk, compilation.__internal_getInner());
+		}
 		return new Chunk(chunk, compilation);
 	}
 

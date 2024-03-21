@@ -15,6 +15,7 @@ import * as liteTapable from "./lite-tapable";
 import { Callback, SyncBailHook, SyncHook } from "tapable";
 import type { WatchOptions } from "watchpack";
 import {
+	getRawOptions,
 	EntryNormalized,
 	OutputNormalized,
 	RspackOptionsNormalized,
@@ -25,19 +26,16 @@ import { Stats } from "./Stats";
 import { Compilation, CompilationParams } from "./Compilation";
 import { ContextModuleFactory } from "./ContextModuleFactory";
 import ResolverFactory from "./ResolverFactory";
-import { getRawOptions } from "./config";
 import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
 import { createThreadsafeNodeFSFromRaw } from "./fileSystem";
 import Cache from "./lib/Cache";
 import CacheFacade from "./lib/CacheFacade";
-import { runLoaders } from "./loader-runner";
 import { Logger } from "./logging/Logger";
 import { NormalModuleFactory } from "./NormalModuleFactory";
 import { WatchFileSystem } from "./util/fs";
 import { checkVersion } from "./util/bindingVersionCheck";
 import { Watching } from "./Watching";
 import { NormalModule } from "./NormalModule";
-import { normalizeJsModule } from "./util/normalization";
 import { deprecated_resolveBuiltins } from "./builtin-plugin";
 import { applyEntryOptions } from "./rspackOptionsApply";
 import { applyRspackOptionsDefaults } from "./config/defaults";
@@ -45,9 +43,10 @@ import { assertNotNill } from "./util/assertNotNil";
 import { FileSystemInfoEntry } from "./FileSystemInfo";
 import { RuntimeGlobals } from "./RuntimeGlobals";
 import { tryRunOrWebpackError } from "./lib/HookWebpackError";
-import { CodeGenerationResult } from "./Module";
+import { CodeGenerationResult, Module } from "./Module";
 import { canInherentFromParent } from "./builtin-plugin/base";
 import ExecuteModulePlugin from "./ExecuteModulePlugin";
+import { Chunk } from "./Chunk";
 
 class Compiler {
 	#instance?: binding.Rspack;
@@ -244,17 +243,11 @@ class Compiler {
 					this.#normalModuleFactoryCreateModule.bind(this),
 				normalModuleFactoryResolveForScheme:
 					this.#normalModuleFactoryResolveForScheme.bind(this),
-				chunkAsset: this.#chunkAsset.bind(this),
 				afterResolve: this.#afterResolve.bind(this),
 				contextModuleFactoryBeforeResolve:
 					this.#contextModuleFactoryBeforeResolve.bind(this),
 				contextModuleFactoryAfterResolve:
-					this.#contextModuleFactoryAfterResolve.bind(this),
-				succeedModule: this.#succeedModule.bind(this),
-				stillValidModule: this.#stillValidModule.bind(this),
-				buildModule: this.#buildModule.bind(this),
-				executeModule: this.#executeModule.bind(this),
-				runtimeModule: this.#runtimeModule.bind(this)
+					this.#contextModuleFactoryAfterResolve.bind(this)
 			},
 			{
 				registerCompilerThisCompilationTaps: this.#createRegisterTaps(
@@ -278,6 +271,119 @@ class Compiler {
 				registerCompilerShouldEmitTaps: this.#createRegisterTaps(
 					() => this.hooks.shouldEmit,
 					queried => () => queried.call(this.compilation!)
+				),
+				registerCompilationRuntimeModuleTaps: this.#createRegisterTaps(
+					() => this.compilation!.hooks.runtimeModule,
+					queried =>
+						({ module, chunk }: binding.JsRuntimeModuleArg) => {
+							const originSource = module.source?.source;
+							queried.call(
+								module,
+								Chunk.__from_binding(chunk, this.compilation!)
+							);
+							const newSource = module.source?.source;
+							if (newSource && newSource !== originSource) {
+								return module;
+							}
+							return;
+						}
+				),
+				registerCompilationBuildModuleTaps: this.#createRegisterTaps(
+					() => this.compilation!.hooks.buildModule,
+					queired => (m: binding.JsModule) =>
+						queired.call(Module.__from_binding(m))
+				),
+				registerCompilationStillValidModuleTaps: this.#createRegisterTaps(
+					() => this.compilation!.hooks.stillValidModule,
+					queired => (m: binding.JsModule) =>
+						queired.call(Module.__from_binding(m))
+				),
+				registerCompilationSucceedModuleTaps: this.#createRegisterTaps(
+					() => this.compilation!.hooks.succeedModule,
+					queired => (m: binding.JsModule) =>
+						queired.call(Module.__from_binding(m))
+				),
+				registerCompilationExecuteModuleTaps: this.#createRegisterTaps(
+					() => this.compilation!.hooks.executeModule,
+					queried =>
+						({
+							entry,
+							id,
+							codegenResults,
+							runtimeModules
+						}: binding.JsExecuteModuleArg) => {
+							const __webpack_require__: any = (id: string) => {
+								const cached = moduleCache[id];
+								if (cached !== undefined) {
+									if (cached.error) throw cached.error;
+									return cached.exports;
+								}
+
+								var execOptions = {
+									id,
+									module: {
+										id,
+										exports: {},
+										loaded: false,
+										error: undefined
+									},
+									require: __webpack_require__
+								};
+
+								interceptModuleExecution.forEach(
+									(handler: (execOptions: any) => void) => handler(execOptions)
+								);
+
+								const result = codegenResults.map[id]["build time"];
+								const moduleObject = execOptions.module;
+
+								if (id) moduleCache[id] = moduleObject;
+
+								tryRunOrWebpackError(
+									() =>
+										queried.call(
+											{
+												codeGenerationResult: new CodeGenerationResult(result),
+												moduleObject
+											},
+											{ __webpack_require__ }
+										),
+									"Compilation.hooks.executeModule"
+								);
+								moduleObject.loaded = true;
+								return moduleObject.exports;
+							};
+
+							const moduleCache: Record<string, any> = (__webpack_require__[
+								RuntimeGlobals.moduleCache.replace(
+									`${RuntimeGlobals.require}.`,
+									""
+								)
+							] = {});
+							const interceptModuleExecution = (__webpack_require__[
+								RuntimeGlobals.interceptModuleExecution.replace(
+									`${RuntimeGlobals.require}.`,
+									""
+								)
+							] = []);
+
+							for (const runtimeModule of runtimeModules) {
+								__webpack_require__(runtimeModule);
+							}
+
+							const executeResult = __webpack_require__(entry);
+
+							this.#moduleExecutionResultsMap.set(id, executeResult);
+						}
+				),
+				registerCompilationChunkAssetTaps: this.#createRegisterTaps(
+					() => this.compilation!.hooks.chunkAsset,
+					queried =>
+						({ chunk, filename }: binding.JsChunkAssetArgs) =>
+							queried.call(
+								Chunk.__from_binding(chunk, this.compilation!),
+								filename
+							)
 				),
 				registerCompilationProcessAssetsTaps: this.#createRegisterTaps(
 					() => this.compilation!.hooks.processAssets,
@@ -531,12 +637,8 @@ class Compiler {
 			finishModules: this.compilation!.hooks.finishModules,
 			optimizeModules: this.compilation!.hooks.optimizeModules,
 			afterOptimizeModules: this.compilation!.hooks.afterOptimizeModules,
-			chunkAsset: this.compilation!.hooks.chunkAsset,
 			afterResolve:
 				this.compilationParams?.normalModuleFactory.hooks.afterResolve,
-			succeedModule: this.compilation!.hooks.succeedModule,
-			stillValidModule: this.compilation!.hooks.stillValidModule,
-			buildModule: this.compilation!.hooks.buildModule,
 			optimizeChunkModules: this.compilation!.hooks.optimizeChunkModules,
 			contextModuleFactoryBeforeResolve:
 				this.compilationParams?.contextModuleFactory.hooks.beforeResolve,
@@ -545,9 +647,7 @@ class Compiler {
 			normalModuleFactoryCreateModule:
 				this.compilationParams?.normalModuleFactory.hooks.createModule,
 			normalModuleFactoryResolveForScheme:
-				this.compilationParams?.normalModuleFactory.hooks.resolveForScheme,
-			executeModule: undefined,
-			runtimeModule: this.compilation!.hooks.runtimeModule
+				this.compilationParams?.normalModuleFactory.hooks.resolveForScheme
 		};
 		for (const [name, hook] of Object.entries(hookMap)) {
 			if (
@@ -576,12 +676,6 @@ class Compiler {
 
 	async #finishMake() {
 		await this.hooks.finishMake.promise(this.compilation!);
-		this.#updateDisabledHooks();
-	}
-
-	async #buildModule(module: binding.JsModule) {
-		const normalized = normalizeJsModule(module);
-		this.compilation!.hooks.buildModule.call(normalized);
 		this.#updateDisabledHooks();
 	}
 
@@ -690,11 +784,6 @@ class Compiler {
 		this.#updateDisabledHooks();
 	}
 
-	#chunkAsset(assetArg: binding.JsChunkAssetArgs) {
-		this.compilation!.hooks.chunkAsset.call(assetArg.chunk, assetArg.filename);
-		this.#updateDisabledHooks();
-	}
-
 	async #finishModules() {
 		await this.compilation!.hooks.finishModules.promise(
 			this.compilation!.modules
@@ -726,104 +815,6 @@ class Compiler {
 	async #afterEmit() {
 		await this.hooks.afterEmit.promise(this.compilation!);
 		this.#updateDisabledHooks();
-	}
-
-	#succeedModule(module: binding.JsModule) {
-		this.compilation!.hooks.succeedModule.call(module);
-		this.#updateDisabledHooks();
-	}
-
-	#stillValidModule(module: binding.JsModule) {
-		this.compilation!.hooks.stillValidModule.call(module);
-		this.#updateDisabledHooks();
-	}
-
-	#runtimeModule(arg: binding.JsRuntimeModuleArg) {
-		let { module, chunk } = arg;
-		const originSource = module.source?.source;
-		this.compilation!.hooks.runtimeModule.call(module, chunk);
-		this.#updateDisabledHooks();
-		const newSource = module.source?.source;
-		if (newSource && newSource !== originSource) {
-			return module;
-		}
-		return;
-	}
-
-	async #executeModule({
-		entry,
-		request,
-		options,
-		runtimeModules,
-		codegenResults,
-		id
-	}: {
-		entry: string;
-		request: string;
-		options: { publicPath?: string; baseUri?: string };
-		runtimeModules: string[];
-		codegenResults: binding.JsCodegenerationResults;
-		id: number;
-	}) {
-		const __webpack_require__: any = (id: string) => {
-			const cached = moduleCache[id];
-			if (cached !== undefined) {
-				if (cached.error) throw cached.error;
-				return cached.exports;
-			}
-
-			var execOptions = {
-				id,
-				module: {
-					id,
-					exports: {},
-					loaded: false,
-					error: undefined
-				},
-				require: __webpack_require__
-			};
-
-			interceptModuleExecution.forEach((handler: (execOptions: any) => void) =>
-				handler(execOptions)
-			);
-
-			const result = codegenResults.map[id]["build time"];
-			const moduleObject = execOptions.module;
-
-			if (id) moduleCache[id] = moduleObject;
-
-			tryRunOrWebpackError(
-				() =>
-					this.compilation!.hooks.executeModule.call(
-						{
-							codeGenerationResult: new CodeGenerationResult(result),
-							moduleObject
-						},
-						{ __webpack_require__ }
-					),
-				"Compilation.hooks.executeModule"
-			);
-			moduleObject.loaded = true;
-			return moduleObject.exports;
-		};
-
-		const moduleCache: Record<string, any> = (__webpack_require__[
-			RuntimeGlobals.moduleCache.replace(`${RuntimeGlobals.require}.`, "")
-		] = {});
-		const interceptModuleExecution = (__webpack_require__[
-			RuntimeGlobals.interceptModuleExecution.replace(
-				`${RuntimeGlobals.require}.`,
-				""
-			)
-		] = []);
-
-		for (const runtimeModule of runtimeModules) {
-			__webpack_require__(runtimeModule);
-		}
-
-		const executeResult = __webpack_require__(entry);
-
-		this.#moduleExecutionResultsMap.set(id, executeResult);
 	}
 
 	#decorateUpdateDisabledHooks(jsTaps: binding.JsTap[]) {

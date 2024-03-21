@@ -5,7 +5,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use once_cell::sync::Lazy;
 use rspack_core::{
-  Compilation, ConnectionState, ModuleGraph, ModuleIdentifier, MutexModuleGraph, Plugin,
+  Compilation, ConnectionState, ModuleGraph, ModuleIdentifier, MutableModuleGraph, Plugin,
   ResolvedExportInfoTarget, SideEffectsBailoutItemWithSpan,
 };
 use rspack_error::Result;
@@ -594,19 +594,18 @@ impl Plugin for SideEffectsFlagPlugin {
         if !ids.is_empty() {
           let export_info_id = cur_exports_info_id.get_export_info(&ids[0], mg);
 
-          let target = MutexModuleGraph::new(mg).with_lock(|mut mga| {
-            export_info_id.get_target(
-              &mut mga,
-              Some(Arc::new(
-                |target: &ResolvedExportInfoTarget, mg: &ModuleGraph| {
-                  mg.module_by_identifier(&target.module)
-                    .expect("should have module graph")
-                    .get_side_effects_connection_state(mg, &mut HashSet::default())
-                    == ConnectionState::Bool(false)
-                },
-              )),
-            )
-          });
+          let mut mga = MutableModuleGraph::new(mg);
+          let target = export_info_id.get_target(
+            &mut mga,
+            Some(Arc::new(
+              |target: &ResolvedExportInfoTarget, mg: &ModuleGraph| {
+                mg.module_by_identifier(&target.module)
+                  .expect("should have module graph")
+                  .get_side_effects_connection_state(mg, &mut HashSet::default())
+                  == ConnectionState::Bool(false)
+              },
+            )),
+          );
           let Some(target) = target else {
             continue;
           };

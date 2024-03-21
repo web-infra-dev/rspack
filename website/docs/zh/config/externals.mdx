@@ -1,0 +1,381 @@
+import WebpackLicense from '../../../components/webpack-license';
+import { ApiMeta, Stability } from '../../../components/ApiMeta';
+
+<WebpackLicense from="https://webpack.docschina.org/configuration/externals/" />
+
+# Externals
+
+外部依赖：该选项提供了「从输出的 bundle 中排除依赖」的方法。相反，所创建的 bundle 依赖于那些存在于用户环境（consumer's environment）中的依赖。此功能通常对**库开发人员**来说是最有用的，然而也会有各种各样的应用程序用到它。
+
+## externals
+
+- **类型：** `string | object | function | RegExp | Array<string | object | function | RegExp>`
+
+**防止**将某些 `import` 的包（package）**打包**到 bundle 中，而是在运行时（runtime）再去从外部获取这些*扩展依赖*（external dependencies）。
+
+例如，从 CDN 引入 [jQuery](https://jquery.com/)，而不是把它打包：
+
+**index.html**
+
+```html
+<script
+  src="https://code.jquery.com/jquery-3.1.0.js"
+  integrity="sha256-slogkvB1K3VOkzAI8QITxV3VzpOnkeNVsKvtkYLMjfk="
+  crossorigin="anonymous"
+></script>
+```
+
+**rspack.config.js**
+
+```javascript
+module.exports = {
+  //...
+  externals: {
+    jquery: 'jQuery',
+  },
+};
+```
+
+这样就剥离了那些不需要改动的依赖模块，换句话，下面展示的代码还可以正常运行：
+
+```javascript
+import $ from 'jquery';
+
+$('.my-element').animate(/* ... */);
+```
+
+上面 `rspack.config.js` 中 `externals` 下指定的属性名称 `jquery` 表示 `import $ from 'jquery'` 中的模块 `jquery` 应该从打包产物中排除。为了替换这个模块，`jQuery` 值将用于检索全局 `jQuery` 变量，因为默认的外部库类型是 `var`，请参阅 [externalsType](#externalstype)。
+
+虽然我们在上面展示了一个使用外部全局变量的示例，但实际上可以以以下任何形式使用外部变量：全局变量、CommonJS、AMD、ES2015 模块，在 [externalsType](#externalstype) 中查看更多信息。
+
+### 字符串
+
+根据 [externalsType](#externalstype)，这可能是全局变量的名称（参见 [`'global'`](#externalstypeglobal)、[`'this'`](#externalstypethis)、[`'var '`](#externalstypevar)、[`'window'`](#externalstypewindow)）或模块的名称（参见 `amd`、[`commonjs`](#externalstypecommonjs)、[`module`](#externalstypemodule)、`umd`）。
+
+如果你只定义 1 个 external，您也可以使用快捷语法：
+
+```javascript
+module.exports = {
+  //...
+  externals: 'jquery',
+};
+```
+
+equals to
+
+```javascript
+module.exports = {
+  //...
+  externals: {
+    jquery: 'jquery',
+  },
+};
+```
+
+您可以使用 `${externalsType} ${libraryName}` 语法为外部指定[外部库类型](#externalstype)。它将覆盖 [externalsType](#externalstype) 选项中指定的默认外部库类型。
+
+例如，如果外部库是一个 [CommonJS 模块](#externalstypecommonjs)，你可以指定
+
+```javascript
+module.exports = {
+  //...
+  externals: {
+    jquery: 'commonjs jquery',
+  },
+};
+```
+
+### 对象
+
+<ApiMeta addedVersion={'0.3.5'} />
+
+带有 `{ root, amd, commonjs, ... }` 的对象只允许用于 [`libraryTarget: 'umd'`](/config/output.html#outputlibrarytarget) 和 [`externalsType: 'umd'`](#externalstype)。其他库的 target 不允许这样做。
+
+```javascript
+module.exports = {
+  //...
+  externals: {
+    react: 'react',
+  },
+
+  // 或者
+
+  externals: {
+    lodash: {
+      commonjs: 'lodash',
+      amd: 'lodash',
+      root: '_', // 指向全局变量
+    },
+  },
+};
+```
+
+此语法用于描述外部 library 所有可用的访问方式。这里 `lodash` 这个外部 library 可以在 AMD 和 CommonJS 模块系统中通过 `lodash` 访问，但在全局变量形式下用 `_` 访问。`subtract` 可以通过全局 `math` 对象下的属性 `subtract` 访问（例如 `window['math']['subtract']`）。
+
+## externalsType
+
+- **类型：** `string`
+- **默认值：** `var`
+
+指定 externals 的默认类型。当 external 被设置为 `amd`，`umd`，`system` 以及 `jsonp` 时，[`output.libraryTarget`](/config/output.html#outputlibrarytarget) 的值也应相同。例如，你只能在 `amd` 库中使用 `amd` 的 externals。
+
+支持的类型如下：
+
+- `'amd'`
+- `'amd-require'`
+- `'assign'` - same as `'var'`
+- [`'commonjs'`](#externalstypecommonjs)
+- `'commonjs-module'`
+- [`'global'`](#externalstypeglobal)
+- `'import'` - uses `import()` to load a native EcmaScript module (async module)
+- `'jsonp'`
+- [`'node-commonjs'`](#externalstypenode-commonjs)
+- [`'self'`](#externalstypeself)
+- `'system'`
+- [`'this'`](#externalstypethis)
+- `'umd'`
+- `'umd2'`
+- [`'var'`](#externalstypevar)
+- [`'window'`](#externalstypewindow)
+
+### externalsType.commonjs
+
+将外部的默认类型指定为“commonjs”。Webpack 将为模块中使用的外部生成类似 `const X = require('...')` 的代码。
+
+```javascript
+import fs from 'fs-extra';
+```
+
+**rspack.config.js**
+
+```javascript
+module.exports = {
+  // ...
+  externalsType: 'commonjs',
+  externals: {
+    'fs-extra': 'fs-extra',
+  },
+};
+```
+
+将会转换为类似下面的代码：
+
+```javascript
+const fs = require('fs-extra');
+```
+
+请注意，输出产物中会有一个 `require()`。
+
+### externalsType.global
+
+将外部的默认类型指定为 `'global'`。Webpack 会将 external 作为全局变量读取到 [`globalObject`](/config/output.html#outputglobalobject)。
+
+```javascript
+import jq from 'jquery';
+jq('.my-element').animate(/* ... */);
+```
+
+**rspack.config.js**
+
+```javascript
+module.exports = {
+  // ...
+  externalsType: 'global',
+  externals: {
+    jquery: '$',
+  },
+  output: {
+    globalObject: 'global',
+  },
+};
+```
+
+将会转换为类似下面的代码：
+
+```javascript
+const jq = global['$'];
+jq('.my-element').animate(/* ... */);
+```
+
+### externalsType.node-commonjs
+
+将 externals 类型设置为 `'node-commonjs'`，webpack 将从 `module` 中导入 `createRequire` 来构造一个 require 函数，用于加载模块中使用的外部对象。
+
+```javascript
+import jq from 'jquery';
+jq('.my-element').animate(/* ... */);
+```
+
+**rspack.config.js**
+
+```js
+module.export = {
+  externalsType: 'node-commonjs',
+  externals: {
+    jquery: 'jquery',
+  },
+};
+```
+
+将会转换为类似下面的代码：
+
+```javascript
+import { createRequire } from 'module';
+
+const jq = createRequire(import.meta.url)('jquery');
+jq('.my-element').animate(/* ... */);
+```
+
+请注意，输出包中会有一个 `import` 语句。
+
+### externalsType.self
+
+将外部的默认类型指定为 `'self'`。 Webpack 会将 external 作为 `self` 对象上的全局变量读取。
+
+```javascript
+import jq from 'jquery';
+jq('.my-element').animate(/* ... */);
+```
+
+**rspack.config.js**
+
+```javascript
+module.exports = {
+  // ...
+  externalsType: 'self',
+  externals: {
+    jquery: '$',
+  },
+};
+```
+
+将会转换为类似下面的代码：
+
+```javascript
+const jq = self['$'];
+jq('.my-element').animate(/* ... */);
+```
+
+### externalsType.this
+
+将 external 的默认类型指定为 `'this'`。Webpack 会将 external 作为 `this` 对象上的全局变量读取。
+
+示例
+
+```javascript
+import jq from 'jquery';
+jq('.my-element').animate(/* ... */);
+```
+
+**rspack.config.js**
+
+```javascript
+module.exports = {
+  // ...
+  externalsType: 'this',
+  externals: {
+    jquery: '$',
+  },
+};
+```
+
+将会转换为类似下面的代码：
+
+```javascript
+const jq = this['$'];
+jq('.my-element').animate(/* ... */);
+```
+
+### externalsType.var
+
+将 external 的默认类型指定为 `'var'`。Webpack 会将 external 作为全局变量读取。
+
+示例
+
+```javascript
+import jq from 'jquery';
+jq('.my-element').animate(/* ... */);
+```
+
+**rspack.config.js**
+
+```javascript
+module.exports = {
+  // ...
+  externalsType: 'var',
+  externals: {
+    jquery: '$',
+  },
+};
+```
+
+将会转换为类似下面的代码：
+
+```javascript
+const jq = $;
+jq('.my-element').animate(/* ... */);
+```
+
+### externalsType.window
+
+将 external 的默认类型指定为 `'window'`。Webpack 会将 external 作为 `window` 对象上的全局变量读取。
+
+示例
+
+```javascript
+import jq from 'jquery';
+jq('.my-element').animate(/* ... */);
+```
+
+**rspack.config.js**
+
+```javascript
+module.exports = {
+  // ...
+  externalsType: 'window',
+  externals: {
+    jquery: '$',
+  },
+};
+```
+
+将会转换为类似下面的代码：
+
+```javascript
+const jq = window['$'];
+jq('.my-element').animate(/* ... */);
+```
+
+## externalsPresets
+
+为特定的目标环境启用外部模块的预设值。
+
+### node
+
+将 node.js 的内置模块（如 `fs`、`path` 或 `vm`）视为外部模块，并在使用时通过 `require()` 加载它们。
+
+### web
+
+将对 `http(s)://...` 和 `std:...` 引入的模块视为外部模块，并在使用时通过 `import` (`externalType: "module"`) 来加载它们（请注意，这会改变执行顺序，因为外部模块的代码会在 Chunk 中的任何其他模块的代码之前执行）。
+
+### webAsync
+
+<ApiMeta addedVersion="0.3.5" />
+
+将对 `http(s)://...` 和 `std:...` 引入的模块视为外部模块，并在使用时通过 `import()` (`externalType: "import"`) 来加载它们（请注意，此 external 类型为 async 模块，它对执行会产生各种副作用）。
+
+### electron
+
+将 Electron 主进程和预加载脚本中常见的 Electron 内置模块如 `electron`、`ipc` 或 `shell` 视为外部模块，并在使用时通过 `require()` 加载它们。
+
+### electronMain
+
+将 Electron 主进程中常见的 Electron 内置模块如 `app`、`ipc-main` 或 `shell` 视为外部模块，并在使用时通过 `require()` 加载它们。
+
+### electronRenderer
+
+将 Electron 渲染进程中常见的 Electron 内置模块如 `web-frame`、`ipc-renderer` 或 `shell` 视为外部模块，并在使用时通过 `require()` 加载它们。
+
+### electronPreload
+
+将 Electron 预加载脚本中常见的 Electron 内置模块如 `web-frame`、`ipc-renderer` 或 `shell` 视为外部模块，并在使用时通过 `require()` 加载它们。

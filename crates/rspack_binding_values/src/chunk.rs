@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use napi_derive::napi;
-use rspack_core::{Chunk, ChunkAssetArgs, ChunkUkey, Compilation};
+use rspack_core::{Chunk, ChunkUkey, Compilation};
 
 use crate::JsCompilation;
 
@@ -151,13 +151,4 @@ pub fn get_all_referenced_chunks(js_chunk_ukey: u32, compilation: &JsCompilation
 pub struct JsChunkAssetArgs {
   pub chunk: JsChunk,
   pub filename: String,
-}
-
-impl From<&ChunkAssetArgs<'_>> for JsChunkAssetArgs {
-  fn from(value: &ChunkAssetArgs) -> Self {
-    Self {
-      chunk: JsChunk::from(value.chunk),
-      filename: value.filename.to_string(),
-    }
-  }
 }

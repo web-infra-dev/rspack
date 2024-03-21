@@ -6,7 +6,7 @@ use rustc_hash::FxHashSet;
 
 use crate::{
   cache::Cache, AddQueueHandler, BuildQueueHandler, BuildTimeExecutionQueueHandler, Compilation,
-  CompilerOptions, Context, FactorizeQueueHandler, ModuleIdentifier,
+  CompilerOptions, Context, ExecuteModuleId, FactorizeQueueHandler, ModuleIdentifier,
   ProcessDependenciesQueueHandler, ResolverFactory, SharedPluginDriver,
 };
 
@@ -34,7 +34,7 @@ pub struct ExecuteModuleResult {
   pub missing_dependencies: FxHashSet<std::path::PathBuf>,
   pub build_dependencies: FxHashSet<std::path::PathBuf>,
   pub assets: FxHashSet<String>,
-  pub id: u32,
+  pub id: ExecuteModuleId,
 }
 
 impl CompilerContext {

@@ -1,22 +1,19 @@
-use std::{fmt::Debug, path::Path, sync::Arc};
+use std::{fmt::Debug, path::Path};
 
 use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_hash::RspackHashDigest;
 use rspack_loader_runner::{Content, LoaderContext, ResourceData};
-use rspack_sources::{BoxSource, Source};
+use rspack_sources::BoxSource;
 use rustc_hash::FxHashMap;
-use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
   AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, AssetEmittedArgs,
-  AssetInfo, BoxLoader, BoxModule, BuildTimeExecutionOption, Chunk, ChunkAssetArgs, ChunkHashArgs,
-  CodeGenerationResults, Compilation, CompilationHooks, CompilerHooks, CompilerOptions,
-  ContentHashArgs, DependencyId, DoneArgs, FactorizeArgs, JsChunkHashArgs, LoaderRunnerContext,
-  Module, ModuleFactoryResult, ModuleIdentifier, ModuleType, NormalModule,
-  NormalModuleAfterResolveArgs, NormalModuleCreateData, NormalModuleFactoryHooks,
-  OptimizeChunksArgs, ParserAndGenerator, PluginContext, ProcessAssetsArgs, RenderArgs,
-  RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, Resolver,
-  RuntimeModule, RuntimeRequirementsInTreeArgs, SourceType,
+  AssetInfo, BoxLoader, BoxModule, ChunkHashArgs, Compilation, CompilationHooks, CompilerHooks,
+  CompilerOptions, ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs, LoaderRunnerContext,
+  ModuleFactoryResult, ModuleIdentifier, ModuleType, NormalModule, NormalModuleAfterResolveArgs,
+  NormalModuleCreateData, NormalModuleFactoryHooks, OptimizeChunksArgs, ParserAndGenerator,
+  PluginContext, ProcessAssetsArgs, RenderArgs, RenderChunkArgs, RenderManifestArgs,
+  RenderModuleContentArgs, RenderStartupArgs, Resolver, RuntimeRequirementsInTreeArgs, SourceType,
 };
 
 #[derive(Debug, Clone)]
@@ -183,11 +180,6 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
-  /// webpack `compilation.hooks.chunkAsset`
-  async fn chunk_asset(&self, _args: &ChunkAssetArgs) -> Result<()> {
-    Ok(())
-  }
-
   // JavascriptModulesPlugin hook
   fn render(&self, _ctx: PluginContext, _args: &RenderArgs) -> PluginRenderStartupHookOutput {
     Ok(None)
@@ -318,27 +310,6 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
-  async fn build_module(&self, _module: &mut dyn Module) -> Result<()> {
-    Ok(())
-  }
-
-  async fn succeed_module(&self, _module: &dyn Module) -> Result<()> {
-    Ok(())
-  }
-
-  async fn still_valid_module(&self, _module: &dyn Module) -> Result<()> {
-    Ok(())
-  }
-
-  async fn runtime_module(
-    &self,
-    _module: &mut dyn RuntimeModule,
-    _source: Arc<dyn Source>,
-    _chunk: &Chunk,
-  ) -> Result<Option<String>> {
-    Ok(None)
-  }
-
   fn module_ids(&self, _modules: &mut Compilation) -> Result<()> {
     Ok(())
   }
@@ -360,27 +331,6 @@ pub trait Plugin: Debug + Send + Sync {
   }
 
   fn seal(&self, _compilation: &mut Compilation) -> Result<()> {
-    Ok(())
-  }
-
-  fn prepare_execute_module(
-    &self,
-    _id: DependencyId,
-    _options: &BuildTimeExecutionOption,
-    _import_module_informer: UnboundedSender<Result<String>>,
-  ) -> Result<()> {
-    Ok(())
-  }
-
-  fn execute_module(
-    &self,
-    _entry: ModuleIdentifier,
-    _request: &str,
-    _options: &BuildTimeExecutionOption,
-    _runtime_modules: Vec<ModuleIdentifier>,
-    _codegen_results: &CodeGenerationResults,
-    _id: u32,
-  ) -> Result<()> {
     Ok(())
   }
 }

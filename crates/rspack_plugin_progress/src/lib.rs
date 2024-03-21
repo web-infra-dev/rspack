@@ -8,7 +8,7 @@ use async_trait::async_trait;
 use indicatif::{ProgressBar, ProgressDrawTarget, ProgressStyle};
 use linked_hash_map::LinkedHashMap as HashMap;
 use rspack_core::{
-  ApplyContext, Compilation, CompilationParams, CompilerOptions, DoneArgs, MakeParam, Module,
+  ApplyContext, BoxModule, Compilation, CompilationParams, CompilerOptions, DoneArgs, MakeParam,
   ModuleIdentifier, OptimizeChunksArgs, Plugin, PluginBuildEndHookOutput, PluginContext,
   PluginOptimizeChunksOutput, PluginProcessAssetsOutput, ProcessAssetsArgs,
 };
@@ -234,6 +234,63 @@ async fn make(&self, _compilation: &mut Compilation, _params: &mut Vec<MakeParam
   Ok(())
 }
 
+#[plugin_hook(AsyncSeries<BoxModule> for ProgressPlugin)]
+async fn build_module(&self, module: &mut BoxModule) -> Result<()> {
+  self
+    .active_modules
+    .write()
+    .expect("TODO:")
+    .insert(module.identifier(), Instant::now());
+  self.modules_count.fetch_add(1, SeqCst);
+  self
+    .last_active_module
+    .write()
+    .expect("TODO:")
+    .replace(module.identifier());
+  if !self.options.profile {
+    self.update();
+  }
+  Ok(())
+}
+
+#[plugin_hook(AsyncSeries<BoxModule> for ProgressPlugin)]
+async fn succeed_module(&self, module: &mut BoxModule) -> Result<()> {
+  self.modules_done.fetch_add(1, SeqCst);
+  self
+    .last_active_module
+    .write()
+    .expect("TODO:")
+    .replace(module.identifier());
+
+  // only profile mode should update at succeed module
+  if self.options.profile {
+    self.update();
+  }
+  let mut last_active_module = Default::default();
+  {
+    let mut active_modules = self.active_modules.write().expect("TODO:");
+    active_modules.remove(&module.identifier());
+
+    // get the last active module
+    if !self.options.profile {
+      active_modules.iter().for_each(|(module, _)| {
+        last_active_module = *module;
+      });
+    }
+  }
+  if !self.options.profile {
+    self
+      .last_active_module
+      .write()
+      .expect("TODO:")
+      .replace(last_active_module);
+    if !last_active_module.is_empty() {
+      self.update();
+    }
+  }
+  Ok(())
+}
+
 #[plugin_hook(AsyncSeries<Compilation> for ProgressPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONAL)]
 async fn process_assets(&self, _compilation: &mut Compilation) -> Result<()> {
   self.sealing_hooks_report("asset processing", 35);
@@ -265,63 +322,18 @@ impl Plugin for ProgressPlugin {
     ctx
       .context
       .compilation_hooks
+      .build_module
+      .tap(build_module::new(self));
+    ctx
+      .context
+      .compilation_hooks
+      .succeed_module
+      .tap(succeed_module::new(self));
+    ctx
+      .context
+      .compilation_hooks
       .process_assets
       .tap(process_assets::new(self));
-    Ok(())
-  }
-
-  async fn build_module(&self, module: &mut dyn Module) -> Result<()> {
-    self
-      .active_modules
-      .write()
-      .expect("TODO:")
-      .insert(module.identifier(), Instant::now());
-    self.modules_count.fetch_add(1, SeqCst);
-    self
-      .last_active_module
-      .write()
-      .expect("TODO:")
-      .replace(module.identifier());
-    if !self.options.profile {
-      self.update();
-    }
-    Ok(())
-  }
-
-  async fn succeed_module(&self, module: &dyn Module) -> Result<()> {
-    self.modules_done.fetch_add(1, SeqCst);
-    self
-      .last_active_module
-      .write()
-      .expect("TODO:")
-      .replace(module.identifier());
-
-    // only profile mode should update at succeed module
-    if self.options.profile {
-      self.update();
-    }
-    let mut last_active_module = Default::default();
-    {
-      let mut active_modules = self.active_modules.write().expect("TODO:");
-      active_modules.remove(&module.identifier());
-
-      // get the last active module
-      if !self.options.profile {
-        active_modules.iter().for_each(|(module, _)| {
-          last_active_module = *module;
-        });
-      }
-    }
-    if !self.options.profile {
-      self
-        .last_active_module
-        .write()
-        .expect("TODO:")
-        .replace(last_active_module);
-      if !last_active_module.is_empty() {
-        self.update();
-      }
-    }
     Ok(())
   }
 
