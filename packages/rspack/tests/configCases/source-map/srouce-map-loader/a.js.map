@@ -1,0 +1,1 @@
+{"version":3,"file":"a.js","names":["a"],"sources":["a.ts"],"sourcesContent":["type A = string;\nexport const a: A = 'a';"],"mappings":"AACA,OAAO,MAAMA,CAAI,GAAG,GAAG"}
