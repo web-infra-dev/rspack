@@ -42,7 +42,7 @@ impl Plugin for MergeDuplicateChunksPlugin {
       let mut possible_duplicates: Option<HashSet<ChunkUkey>> = None;
       for module in compilation
         .chunk_graph
-        .get_chunk_modules(&chunk_ukey, compilation.get_module_graph())
+        .get_chunk_modules(&chunk_ukey, &compilation.get_module_graph())
       {
         if let Some(ref mut possible_duplicates) = possible_duplicates {
           possible_duplicates.retain(|dup| {
@@ -100,18 +100,14 @@ impl Plugin for MergeDuplicateChunksPlugin {
             continue;
           }
           if !is_runtime_equal(&chunk.runtime, &other_chunk.runtime) {
+            let module_graph = compilation.get_module_graph();
             for module in compilation
               .chunk_graph
-              .get_chunk_modules(&chunk_ukey, compilation.get_module_graph())
+              .get_chunk_modules(&chunk_ukey, &compilation.get_module_graph())
             {
-              let exports_info = compilation
-                .get_module_graph()
-                .get_exports_info(&module.identifier());
-              if !exports_info.is_equally_used(
-                &chunk.runtime,
-                &other_chunk.runtime,
-                compilation.get_module_graph(),
-              ) {
+              let exports_info = module_graph.get_exports_info(&module.identifier());
+              if !exports_info.is_equally_used(&chunk.runtime, &other_chunk.runtime, &module_graph)
+              {
                 continue 'outer;
               }
             }
@@ -130,7 +126,7 @@ impl Plugin for MergeDuplicateChunksPlugin {
               &other_chunk_ukey,
               &mut chunk_by_ukey,
               &mut chunk_group_by_ukey,
-              compilation.get_module_graph(),
+              &compilation.get_module_graph(),
             );
             chunk_by_ukey.remove(&other_chunk_ukey);
             compilation.chunk_graph = chunk_graph;

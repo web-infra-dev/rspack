@@ -183,11 +183,10 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
       .library
       .as_ref()
       .or_else(|| compilation.options.output.library.as_ref());
-    let module_of_last_dep = dependencies.last().and_then(|dep| {
-      compilation
-        .get_module_graph()
-        .get_module_by_dependency_id(dep)
-    });
+    let module_graph = compilation.get_module_graph();
+    let module_of_last_dep = dependencies
+      .last()
+      .and_then(|dep| module_graph.get_module_by_dependency_id(dep));
     let Some(module_of_last_dep) = module_of_last_dep else {
       continue;
     };
@@ -215,7 +214,7 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
         .get_module_graph_mut()
         .get_export_info(module_identifier, &(export.as_str()).into());
       exports_info.set_used(
-        compilation.get_module_graph_mut(),
+        &mut compilation.get_module_graph_mut(),
         UsageState::Used,
         Some(&runtime),
       );
@@ -224,7 +223,8 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
         .get_module_graph()
         .get_exports_info(&module_identifier)
         .id;
-      exports_info_id.set_used_in_unknown_way(compilation.get_module_graph_mut(), Some(&runtime));
+      exports_info_id
+        .set_used_in_unknown_way(&mut compilation.get_module_graph_mut(), Some(&runtime));
     }
   }
   Ok(())

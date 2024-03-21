@@ -9,9 +9,7 @@ use rspack_sources::Source;
 use rustc_hash::FxHashSet as HashSet;
 
 use super::MakeParam;
-use crate::{
-  fast_set, get_chunk_from_ukey, ChunkKind, Compilation, Compiler, ModuleGraph, RuntimeSpec,
-};
+use crate::{fast_set, get_chunk_from_ukey, ChunkKind, Compilation, Compiler, RuntimeSpec};
 
 impl<T> Compiler<T>
 where
@@ -70,7 +68,6 @@ where
 
       let mut new_compilation = Compilation::new(
         self.options.clone(),
-        ModuleGraph::default(),
         self.plugin_driver.clone(),
         self.resolver_factory.clone(),
         self.loader_resolver_factory.clone(),
@@ -88,10 +85,9 @@ where
       if is_incremental_rebuild_make {
         // copy field from old compilation
         // make stage used
-        std::mem::swap(
-          self.compilation.get_module_graph_mut(),
-          new_compilation.get_module_graph_mut(),
-        );
+        self
+          .compilation
+          .swap_make_module_graph(&mut new_compilation);
         new_compilation.make_failed_dependencies =
           std::mem::take(&mut self.compilation.make_failed_dependencies);
         new_compilation.make_failed_module =

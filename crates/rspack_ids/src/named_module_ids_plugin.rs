@@ -19,9 +19,10 @@ impl Plugin for NamedModuleIdsPlugin {
     let context: &str = compilation.options.context.as_ref();
     let (mut used_ids, modules) = get_used_module_ids_and_modules(compilation, None);
     let mut chunk_graph = std::mem::take(&mut compilation.chunk_graph);
+    let module_graph = compilation.get_module_graph();
     let modules = modules
       .into_iter()
-      .filter_map(|i| compilation.get_module_graph().module_by_identifier(&i))
+      .filter_map(|i| module_graph.module_by_identifier(&i))
       .collect::<Vec<_>>();
 
     let unnamed_modules = assign_names_par(

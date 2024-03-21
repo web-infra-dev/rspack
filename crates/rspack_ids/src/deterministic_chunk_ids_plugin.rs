@@ -46,8 +46,8 @@ impl Plugin for DeterministicChunkIdsPlugin {
 
     assign_deterministic_ids(
       chunks,
-      |chunk| get_full_chunk_name(chunk, chunk_graph, module_graph, &context),
-      |a, b| compare_chunks_natural(chunk_graph, module_graph, a, b),
+      |chunk| get_full_chunk_name(chunk, chunk_graph, &module_graph, &context),
+      |a, b| compare_chunks_natural(chunk_graph, &module_graph, a, b),
       |chunk, id| {
         let size = used_ids.len();
         used_ids.insert(id.to_string());

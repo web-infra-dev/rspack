@@ -52,9 +52,9 @@ impl Plugin for NamedChunkIdsPlugin {
     let mut chunk_id_to_name = HashMap::with_capacity(chunks.len());
     let unnamed_chunks = assign_names_par(
       chunks,
-      |chunk| get_short_chunk_name(chunk, chunk_graph, &context, &self.delimiter, module_graph),
-      |chunk, _| get_long_chunk_name(chunk, chunk_graph, &context, &self.delimiter, module_graph),
-      |a, b| compare_chunks_natural(chunk_graph, module_graph, a, b),
+      |chunk| get_short_chunk_name(chunk, chunk_graph, &context, &self.delimiter, &module_graph),
+      |chunk, _| get_long_chunk_name(chunk, chunk_graph, &context, &self.delimiter, &module_graph),
+      |a, b| compare_chunks_natural(chunk_graph, &module_graph, a, b),
       &mut used_ids,
       |chunk, name| {
         chunk_id_to_name.insert(chunk.ukey, name);

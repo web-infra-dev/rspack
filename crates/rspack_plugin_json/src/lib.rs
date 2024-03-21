@@ -140,13 +140,13 @@ impl ParserAndGenerator for JsonParserAndGenerator {
       concatenation_scope,
       ..
     } = generate_context;
+    let module_graph = compilation.get_module_graph();
     match generate_context.requested_source_type {
       SourceType::JavaScript => {
         generate_context
           .runtime_requirements
           .insert(RuntimeGlobals::MODULE);
-        let module = compilation
-          .get_module_graph()
+        let module = module_graph
           .module_by_identifier(&module.identifier())
           .expect("should have module identifier");
         let json_data = module
@@ -154,24 +154,17 @@ impl ParserAndGenerator for JsonParserAndGenerator {
           .as_ref()
           .and_then(|info| info.json_data.as_ref())
           .expect("should have json data");
-        let exports_info = compilation
-          .get_module_graph()
-          .get_exports_info(&module.identifier());
+        let exports_info = module_graph.get_exports_info(&module.identifier());
 
         let final_json = match json_data {
           json::JsonValue::Object(_) | json::JsonValue::Array(_)
             if exports_info
               .other_exports_info
-              .get_export_info(compilation.get_module_graph())
+              .get_export_info(&module_graph)
               .get_used(*runtime)
               == UsageState::Unused =>
           {
-            create_object_for_exports_info(
-              json_data.clone(),
-              exports_info,
-              *runtime,
-              compilation.get_module_graph(),
-            )
+            create_object_for_exports_info(json_data.clone(), exports_info, *runtime, &module_graph)
           }
           _ => json_data.clone(),
         };

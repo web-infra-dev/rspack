@@ -241,7 +241,11 @@ pub trait Module:
     get_exports_type_impl(self.identifier(), self.build_meta(), &mut mga, strict)
   }
 
-  fn get_exports_type(&self, module_graph: &mut ModuleGraph, strict: bool) -> ExportsType {
+  fn get_exports_type<'a>(
+    &self,
+    module_graph: &'a mut ModuleGraph<'a>,
+    strict: bool,
+  ) -> ExportsType {
     let mut mga = MutableModuleGraph::new(module_graph);
     get_exports_type_impl(self.identifier(), self.build_meta(), &mut mga, strict)
   }

@@ -525,17 +525,16 @@ impl Plugin for AssetPlugin {
   ) -> PluginRenderManifestHookOutput {
     let compilation = args.compilation;
     let chunk = args.chunk();
-    let module_graph = &compilation.get_module_graph();
+    let module_graph = compilation.get_module_graph();
 
     let ordered_modules = compilation
       .chunk_graph
-      .get_chunk_modules(&args.chunk_ukey, module_graph);
+      .get_chunk_modules(&args.chunk_ukey, &module_graph);
 
     let assets = ordered_modules
       .par_iter()
       .filter(|m| {
-        let module = compilation
-          .get_module_graph()
+        let module = module_graph
           .module_by_identifier(&m.identifier())
           // FIXME: use result
           .expect("Failed to get module");
