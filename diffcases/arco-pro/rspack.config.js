@@ -1,6 +1,6 @@
 const path = require("path");
 const rspack = require("@rspack/core");
-const { default: HtmlPlugin } = require("@rspack/plugin-html");
+const HtmlPlugin = require("html-webpack-plugin");
 
 /** @type {import('@rspack/cli').Configuration} */
 const config = {
