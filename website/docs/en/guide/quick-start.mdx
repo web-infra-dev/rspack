@@ -1,0 +1,144 @@
+import { Tabs, Tab, PackageManagerTabs } from '@theme';
+
+# Quick start
+
+Get up to speed quickly with a new Rspack based project.
+
+---
+
+## Creating project using scaffolding
+
+### Using Rsbuild
+
+You can scaffold a simple project setup using [Rsbuild](#rsbuild) directly. Invoke the following command:
+
+<PackageManagerTabs command="create rsbuild@latest" />
+
+Then follow the input prompts in your terminal.
+
+### Using the Rspack CLI
+
+You can scaffold a simple project setup using the Rspack CLI directly. Invoke the following command:
+
+<PackageManagerTabs command="create rspack@latest" />
+
+Then follow the input prompts in your terminal.
+
+---
+
+## Community Toolchain
+
+There are already some Rspack-based toolchains in the community:
+
+- If you want to build a web application, we recommend using [Rsbuild](https://rsbuild.dev/).
+- If you want to build a static site, you can try [Rspress](https://rspress.dev).
+- If you want to analyze the build process and build artifacts, you can try [Rsdoctor](https://rsdoctor.dev).
+- If you're looking for a full-stack React framework, you can try [Modern.js](https://modernjs.dev/en/).
+- If you want a fast and production-ready setup that works in a monorepo, you can try [Nx](https://nx.dev).
+
+### Rsbuild
+
+**[Rsbuild](https://github.com/web-infra-dev/rsbuild) is an Rspack-based build tool for the web.** The main goal of Rsbuild is to provide out-of-the-box build capabilities for Rspack users, allowing developers to start a web project with zero configuration.
+
+Rsbuild integrates high-performance Rust-based tools from the community, including Rspack and SWC, to provide first-class build speed and development experience.
+
+Learn more about Rsbuild in the [official documentation](https://rsbuild.dev/).
+
+> If you need to migrate a Create React App (CRA) application to Rspack, you can follow the [CRA migration guide](/guide/migrate-from-cra) and use Rsbuild for a quick migration.
+
+### Rspress
+
+Rspress is a static site generator based on Rspack. It provides a complete solution for building static sites and includes the following features:
+
+- 🚀 Fast Startup: Based on Rust-based build tool and markdown/mdx compiler, the build speed is extremely fast, bringing you the ultimate development experience.
+- 📚 MDX Support: MDX is a powerful way to write content, allowing you to use React components in Markdown.
+- 📦 Built-in Full Text Search: Automatically generates a full-text search index for you during building process, providing out-of-the-box full-text search capabilities.
+- 🌈 Static Site Generation: In production, it automatically builds into static HTML files, which can be easily deployed anywhere.
+- 🔌 Providing Plugin System: Providing a plugin system, you can customize the build process and theme according to your needs.
+
+Learn more about Rspress in the [official documentation](https://rspress.dev).
+
+### Modern.js
+
+[Modern.js Framework](https://modernjs.dev/en/) is a Rspack-based progressive React framework that provides a complete solution for building web applications. It supports nested routes, server-side rendering, and provides out-of-the-box CSS solutions such as styled components and Tailwind CSS.
+
+Learn more about Modern.js in the [official documentation](https://modernjs.dev/en/guides/get-started/introduction).
+
+### Using Nx
+
+The fastest way to get up to speed quickly and leverage Rspack and React in a production-ready setting is to use the dedicated [Rspack Nx plugin](https://www.npmjs.com/package/@nx/rspack). This gives you a pre-configured setup, integrating Rspack with React, TypeScript, ESLint, Jest, and Cypress for e2e testing.
+
+Run the following command to set up a new Nx workspace with React and Rspack:
+
+<Tabs values={[{ label: 'npm' }, { label: 'yarn' }, { label: 'pnpm' }]}>
+  <Tab>
+
+```sh
+npx create-nx-workspace myrspackapp --preset=@nx/rspack
+```
+
+  </Tab>
+
+  <Tab>
+
+```sh
+yarn create nx-workspace myrspackapp --preset=@nx/rspack --pm=yarn
+```
+
+  </Tab>
+
+  <Tab>
+
+```sh
+pnpm create nx-workspace myrspackapp --preset=@nx/rspack  --pm=pnpm
+```
+
+  </Tab>
+</Tabs>
+
+The pre-configured setup is already ready to work with Rspack, TypeScript, TSX and React. In addition it also comes with Jest and Cypress for testing and ESLint for linting.
+
+Once created you can simply `npm start` (or `pnpm start` or `yarn start`) to start the development server. You can also run `npm run build` (or `pnpm run build` or `yarn run build`) to build the application for production and similarly run `npm run test` (or `pnpm run test` or `yarn run test`) to run the unit tests.
+
+You can learn more about Nx at [https://nx.dev](https://nx.dev).
+
+## Manual installation
+
+### Installation
+
+We'll start by creating a project directory, generating an NPM `package.json`, and then installing `@rspack/cli` locally:
+
+<Tabs values={[{ label: 'npm' }, { label: 'yarn' }, { label: 'pnpm' }]}>
+  <Tab>
+
+```sh
+mkdir rspack-demo
+cd rspack-demo
+npm init -y
+npm install -D @rspack/cli
+```
+
+  </Tab>
+
+  <Tab>
+
+```sh
+mkdir rspack-demo
+cd rspack-demo
+npm init -y
+yarn add -D @rspack/cli
+```
+
+  </Tab>
+
+  <Tab>
+
+```sh
+mkdir rspack-demo
+cd rspack-demo
+npm init -y
+pnpm install -D @rspack/cli
+```
+
+  </Tab>
+</Tabs>

@@ -1,0 +1,341 @@
+import { ApiMeta, Stability } from '../../../components/ApiMeta';
+
+# Experiments
+
+实验性功能：该选项通过此配置项可以开启并试用一些实验的功能。
+
+- **类型：** `object`
+
+## experiments.incrementalRebuild
+
+<ApiMeta deprecatedVersion="0.4.0" />
+
+<ApiMeta removedVersion="0.5.0" stability={Stability.Removed} />
+
+启用增量重新编译。当启用此选项，Rspack 在重新编译时会尝试复用上次构建的结果来提升构建速度，支持对不同阶段进行配置，默认为开启状态。
+
+0.5 版本移除该配置并内置开启该功能。
+
+- **类型：** `boolean | { make?: boolean, emitAsset?: boolean }`
+- **默认值：** `true`
+
+## experiments.outputModule
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+开启之后，将尽可能输出符合 ECMAScript 语法的代码。例如，使用 `import()` 加载 chunk，使用 ESM exports 等等。
+
+```js
+module.exports = {
+  experiments: {
+    outputModule: true,
+  },
+};
+```
+
+## experiments.css
+
+启用原生 CSS 支持，请注意如果你在使用 `style-loader` 和 `css-loader` 请关闭该配置，因为 `style-loader` 和 `css-loader` 和原生 CSS 功能冲突。
+
+## experiments.topLevelAwait
+
+<ApiMeta addedVersion="0.3.8" />
+
+开启打包 [top level await](https://github.com/tc39/proposal-top-level-await) 的支持，`top level await` 仅能在 [ModuleType](/config/module.html#ruletype) 为 `javascript/esm` 的模块中使用。
+
+默认开启，可通过该配置关闭。
+
+## experiments.rspackFuture
+
+<ApiMeta addedVersion="0.3.2" />
+
+- **类型：** `object`
+
+- **默认值：** 参考下方各项配置
+
+用于控制是否开启 Rspack 未来的默认行为，详情请参考[这里](https://github.com/web-infra-dev/rspack/pull/4107)。
+
+### experiments.rspackFuture.disableTransformByDefault
+
+- **类型：** `boolean`
+
+- **引入版本：** v0.3.5
+
+- **默认开启版本：** v0.4.0
+
+- **移除版本：** v0.5.0
+
+- **说明：**
+
+  该功能主要对于三类问题进行处理：[builtins](/config/builtins) 代码转换功能，[target](/config/target)，自定义 [Rule.type](/config/module#ruletype)
+
+  1. **移除对部分 [builtins](/config/builtins) 功能的支持：**
+
+  - [builtins.relay](/config/builtins#builtinsrelay)
+  - [builtins.react](/config/builtins#builtinsreact)
+  - [builtins.emotion](/config/builtins#builtinsemotion)
+  - [builtins.pluginImport](/config/builtins#builtinspluginimport)
+  - [builtins.decorator](/config/builtins#builtinsdecorator)
+  - [builtins.presetEnv](/config/builtins#builtinspresetenv)
+
+  这部分配置项应当作用于被选中的相应模块，而使用 `builtins.(relay|react|emotion|pluginImport|decorator)` 则等于是全局开启，这种方案不被推崇，因此将被废弃。
+
+  在开启 `disableTransformByDefault` 后，上述配置项将失效，迁移指南可以参考 [builtin:swc-loader/options.rspackExperiments](/guide/loader#optionsrspackexperiments)。
+
+  例如我们希望 `emotion` 的转换被应用于所有 `jsx` 文件：
+
+  ```js title="rspack.config.js"
+  module.exports = {
+    module: {
+      rules: [
+        {
+          test: /\.jsx$/,
+          loader: 'builtin:swc-loader',
+          options: {
+            jsc: {
+              parser: {
+                syntax: "ecmascript",
+                jsx: true
+              }
+            },
+            rspackExperiments: {
+              emotion: true // 配置项和原 builtins 保持一致
+            }
+          }
+          type: 'javascript/auto',
+        },
+      ],
+    },
+    experiments: {
+      rspackFuture: {
+        disableTransformByDefault: true
+      }
+    }
+  };
+  ```
+
+  对于 decorator 的配置项可以在，swc 代码中找到并替换，如 [legacyDecorator](https://swc.rs/docs/configuration/compilation#jsctransformlegacydecorator)，[decoratorMetadata](https://swc.rs/docs/configuration/compilation#jsctransformlegacydecorator)。
+
+  2. **[target](/config/target) 将不会对用户侧代码做降级**
+
+  在**以往**的版本中，我们通常会配置 `target: ["web", "es5"]` 来生成适用于 web 和降级后的代码。
+
+  现在，当用户开启了 `disableTransformByDefault` 配置项后，`target` 仅会被用于控制 runtime 代码（除了用户编写、node_modules 内的 rspack 生成的代码，例如 chunk 加载等等）
+
+  这和 webpack 的插件化设计思维完成了对齐，你可以使用 `builtin:swc-loader` 的 [`env`](https://swc.rs/docs/configuration/compilation#env) 或 [`target`](https://swc.rs/docs/configuration/compilation#jsctarget) 进行迁移，
+  并精确控制需要转译的模块：
+
+  ```js title="rspack.config.js"
+  module.exports = {
+    module: {
+      rules: [
+        {
+          test: /\.js$/,
+          exclude: /node_modules/,
+          loader: 'builtin:swc-loader',
+          options: {
+            jsc: {
+              parser: {
+                syntax: "ecmascript"
+              },
+              target: "es5" // 注意，env 和 jsc.target 不能同时设置
+            },
+            env: { // 注意，env 和 jsc.target 不能同时设置
+              targets: "chrome >= 48"
+            }
+          }
+          type: 'javascript/auto',
+        },
+      ],
+    },
+    experiments: {
+      rspackFuture: {
+        disableTransformByDefault: true
+      }
+    }
+  };
+  ```
+
+  **注意**：在未开启 `disableTransformByDefault` 时，rspack 内置的转译器会对 `node_modules` 下的所有内容进行转译。
+  因此在开启了 `disableTransformByDefault` 后，`builtin:swc-loader` 配合 `exclude: /node_modules/` 需要确保 `node_modules` 下代码已经完成了降级，否则可能会存在兼容性问题。
+
+  3. **移除了非 webpack 兼容的 [Rule.type](/config/module#ruletype)**
+
+  这些类型被移除：
+
+  - `"typescript"`
+  - `"jsx"`
+  - `"tsx"`
+
+  对于 JS 相关的类型仅会保留：
+
+  - `"javascript/auto"`
+  - `"javascript/esm"`
+  - `"javascript/dynamic"`
+
+  在开启 `disableTransformByDefault` 后，rspack 仅支持符合 web 标准的输入，对齐 webpack 的设计理念。
+
+  在我们完成和 webpack 的讨论后，webpack 和 rspack 将会提供更加开箱即用的配置，以支持非标准的输入，如 TypeScript 等。
+
+  由于目前对于 `jsx`, `tsx`, `ts` 后缀名的文件会隐式地开启转译，因此在开启 `disableTransformByDefault` 后会提示编译报错，你可以这样完成迁移：
+
+  ```js title="rspack.config.js"
+  module.exports = {
+    module: {
+      rules: [
+        {
+          test: /\.ts$/,
+          exclude: /node_modules/,
+          loader: 'builtin:swc-loader',
+          options: {
+            jsc: {
+              parser: {
+                syntax: "typescript"
+              }
+            }
+          }
+          type: 'javascript/auto',
+        },
+      ],
+      {
+        test: /\.tsx$/,
+        exclude: /node_modules/,
+        loader: 'builtin:swc-loader',
+        options: {
+          jsc: {
+            parser: {
+              syntax: "typescript",
+              tsx: true
+            }
+          }
+        }
+        type: 'javascript/auto',
+      },
+      {
+        test: /\.jsx$/,
+        exclude: /node_modules/,
+        loader: 'builtin:swc-loader',
+        options: {
+          jsc: {
+            parser: {
+              syntax: "ecmascript",
+              jsx: true
+            }
+          }
+        }
+      }
+    },
+    experiments: {
+      rspackFuture: {
+        disableTransformByDefault: true
+      }
+    }
+  };
+  ```
+
+### experiments.rspackFuture.newResolver
+
+- **类型：** `boolean`
+
+- **引入版本：** v0.3.5
+
+- **默认开启版本：** v0.4.0
+
+- **移除版本：** v0.5.0
+
+该功能将会开启 [oxc](https://github.com/web-infra-dev/oxc) 提供的 resolver，新的实现比旧版的 resolver 快了 5 倍。
+
+```js title="rspack.config.js"
+module.exports = {
+  experiments: {
+    rspackFuture: {
+      newResolver: true,
+    },
+  },
+};
+```
+
+新的 resolver 同时提供了在 [tsconfig-paths-webpack-plugin](https://github.com/dividab/tsconfig-paths-webpack-plugin#references-_string-defaultundefined) 中定义的[tsconfig project references](https://www.typescriptlang.org/docs/handbook/project-references.html) 功能。
+具体请参考 [resolve API](/config/resolve.html#resolvetsconfig).
+
+```js title="rspack.config.js"
+module.exports = {
+  resolve: {
+    tsconfig: {
+      configFile: path.resolve(__dirname, './tsconfig.json'),
+      references: 'auto'
+    },
+  }
+  experiments: {
+    rspackFuture: {
+      newResolver: true
+    }
+  }
+}
+```
+
+### experiments.rspackFuture.newTreeshaking
+
+<ApiMeta addedVersion="0.4.2" />
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+该功能启用了与 webpack 相同的新摇树优化实现，可以生成更高效和更小的代码。
+
+```js title="rspack.config.js"
+module.exports = {
+  experiments: {
+    rspackFuture: {
+      newTreeshaking: true,
+    },
+  },
+};
+```
+
+### experiments.rspackFuture.disableApplyEntryLazily
+
+<ApiMeta addedVersion="0.4.5" />
+
+- **类型：** `boolean`
+- **引入版本：** v0.4.5
+- **默认开启版本：** v0.5.0
+- **移除版本：** v0.6.0
+
+在未开启该功能时，在 `compiler.hooks.afterEnvironment` 调用之后仍然可以对 `options.entry` 进行有效的修改。
+
+而在开启该功能后，在 `compiler.hooks.afterEnvironment` 调用之后不会再进行 `options.entry` 的有效修改。该行为与 Webpack 一致，所以该配置对于使用 Rspack 开发应用的用户来说基本没有影响，而对于 Rspack 的插件或上层框架开发者需要注意。
+
+一个常见的场景就是在[创建 Compiler 之后增加一些入口](https://github.com/webpack/webpack-dev-server/blob/540c43852ea33f9cb18820e1cef05d5ddb86cc3e/lib/Server.js#L719-L783)：
+
+```js
+const rspack = require('@rspack/core');
+const compiler = rspack(options);
+
+function prependEntry(compiler, additionalEntry) {
+  for (const key in compiler.options.entry) {
+    compiler.options.entry[key].import = [
+      additionalEntry,
+      ...(compiler.options.entry[key].import || []),
+    ];
+  }
+}
+
+prependEntry(compiler, 'dev-client.js');
+```
+
+在开启该功能后修改将不生效，需要进行如下修改：
+
+```js
+const rspack = require('@rspack/core');
+const compiler = rspack(options);
+
+function prependEntry(compiler, additionalEntry) {
+  new compiler.webpack.EntryPlugin(compiler.context, additionalEntry, {
+    name: undefined,
+  }).apply(compiler);
+}
+
+prependEntry(compiler, 'dev-client.js');
+```

@@ -1,0 +1,131 @@
+# 资源模块（Asset Module）
+
+资源（如：图片、字体、视频等）是 Rspack 的一等公民，这意味着你不需要任何的 Loader 来处理这些内容。
+资源和其他的模块类型不同，它们通常是独立存在的，因此资源会以模块的粒度做最终的生成。
+
+:::tip Module 与 Chunk
+
+其他模块类型例如 JavaScript 模块，它们通常会合并成一个 Chunk 做最后的生成。而对于资源模块来说，它几乎无法被 Bundle，因此资源模块通常是独立存在的。这也是为什么叫“资源模块”的一个最直接的原因。
+
+:::
+
+## 支持的 Asset Module 类型
+
+- **`'asset/inline'`**: 将资源转换为 DataURI，使用 Base64 编码，暂不支持编码配置。
+- **`'asset/resource'`**: 将资源转换为单独的文件，并且导出产物地址。
+- **`'asset'`**:
+  - 根据条件（如：资源的体积）自动选择 `'asset/inline'` 或 `'asset/resource'`。
+  - 默认如果资源体积小于等于 8096 bytes，则使用 `'asset/inline'` 策略，否则使用 `'asset/resource'` 策略。
+- **`'asset/source'`**: 将资源文件转为字符串导出。
+
+## 示例
+
+### 使用 `type: 'asset'` 根据条件自动选择策略
+
+```js title="rspack.config.js"
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.png$/,
+        type: 'asset',
+      },
+    ],
+  },
+};
+```
+
+默认情况下，如果资源体积小于等于 8096 bytes，则使用 `'asset/inline'` 策略，否则使用 `'asset/resource'` 策略。
+
+如果你希望修改这个行为，可以使用 [module.parser.asset.dataUrlCondition](/config/module#moduleparserasset) 来修改全局的配置，或使用 [Rule.parser.dataUrlCondition](/config/module#ruleparserdataurlcondition) 对特定符合条件的模块单独配置。
+
+### 使用 `type: 'asset/inline'` 替换 `url-loader`
+
+```diff title="rspack.config.js"
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.png$/,
+-       use: [
+-         {
+-           loader: 'url-loader',
+-         },
+-       ],
++       type: 'asset/inline'
+      },
+    ],
+  },
+};
+```
+
+### 使用 `type: 'asset/resource'` 替换 `file-loader`
+
+```diff title="rspack.config.js"
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.png$/,
+-       use: [
+-         {
+-           loader: 'file-loader',
+-         },
+-       ],
++       type: 'asset/resource'
+      },
+    ],
+  },
+};
+```
+
+### 使用 `type: 'asset/source'` 替换 `raw-loader`
+
+```diff title="rspack.config.js"
+module.exports = {
+  module: {
+    rules: [
+      {
+        resourceQuery: /raw/,
+-       use: [
+-         {
+-           loader: 'raw-loader',
+-         },
+-       ],
++       type: 'asset/source'
+      },
+    ],
+  },
+};
+```
+
+### 使用 Optimizer Loader
+
+有些时候我们希望对特定的图片进行优化，比如压缩图片的体积。我们仍旧可以使用这些 Loader。
+
+例如对所有 `.png` 结尾的文件使用 [image-minimizer-webpack-plugin](https://github.com/webpack-contrib/image-minimizer-webpack-plugin) 进行优化：
+
+```js title="rspack.config.js"
+const ImageMinimizerPlugin = require("image-minimizer-webpack-plugin");
+
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.png$/,
+        use: [
+          {
+            loader: ImageMinimizerPlugin.loader,
+            options: {
+              // ...
+            },
+          },
+        ],
+        type: 'asset',
+      },
+    ],
+  },
+};
+```
+
+上述条件中使用了 `type: 'asset/resource'`，这会引导 Rspack 对所有匹配的文件完成单独的文件生成，并返回最终的产物地址。
