@@ -168,6 +168,7 @@ export enum BuiltinPluginName {
   FlagDependencyUsagePlugin = 'FlagDependencyUsagePlugin',
   MangleExportsPlugin = 'MangleExportsPlugin',
   ModuleConcatenationPlugin = 'ModuleConcatenationPlugin',
+  ModuleInfoHeaderPlugin = 'ModuleInfoHeaderPlugin',
   HttpExternalsRspackPlugin = 'HttpExternalsRspackPlugin',
   CopyRspackPlugin = 'CopyRspackPlugin',
   HtmlRspackPlugin = 'HtmlRspackPlugin',

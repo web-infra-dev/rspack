@@ -47,6 +47,7 @@ export * from "./FlagDependencyUsagePlugin";
 export * from "./MangleExportsPlugin";
 export * from "./BundlerInfoRspackPlugin";
 export * from "./ModuleConcatenationPlugin";
+export * from "./ModuleInfoHeaderPlugin";
 
 export * from "./HtmlRspackPlugin";
 export * from "./CopyRspackPlugin";
