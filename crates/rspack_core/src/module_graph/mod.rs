@@ -1108,6 +1108,13 @@ impl ModuleGraph {
     mgm.optimization_bailout_mut()
   }
 
+  pub fn get_optimization_bailout(&self, id: &ModuleIdentifier) -> &Vec<String> {
+    let mgm = self
+      .module_graph_module_by_identifier(id)
+      .expect("should have module graph module");
+    mgm.optimization_bailout()
+  }
+
   pub fn get_read_only_export_info(
     &self,
     id: &ModuleIdentifier,

@@ -120,4 +120,8 @@ impl ModuleGraphModule {
   pub(crate) fn optimization_bailout_mut(&mut self) -> &mut Vec<String> {
     &mut self.optimization_bailout
   }
+
+  pub(crate) fn optimization_bailout(&self) -> &Vec<String> {
+    &self.optimization_bailout
+  }
 }

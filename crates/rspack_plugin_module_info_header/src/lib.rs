@@ -1,8 +1,10 @@
+use std::hash::Hasher;
+
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
-  to_comment, ExportInfoId, ExportsInfo, Module, ModuleGraph, Plugin, RenderModulePackageContext,
-  UsageState,
+  to_comment, ChunkHashArgs, ExportInfoId, ExportsInfo, Module, ModuleGraph, Plugin,
+  PluginChunkHashHookOutput, PluginContext, RenderModulePackageContext, UsageState,
 };
 use rspack_error::Result;
 use rspack_sources::{ConcatSource, RawSource};
@@ -142,6 +144,7 @@ impl Plugin for ModuleInfoHeaderPlugin {
       chunk,
       context,
       module_graph,
+      chunk_graph,
     } = args;
 
     let mut source = ConcatSource::default();
@@ -177,10 +180,43 @@ impl Plugin for ModuleInfoHeaderPlugin {
           &mut HashSet::default(),
         )
       }
-      // TODO
+      let runtime_requirements_details = chunk_graph
+        .get_module_runtime_requirements(module.identifier(), &chunk.runtime)
+        .map(|runtime_requirements| {
+          runtime_requirements
+            .iter()
+            .map(|runtime_requirement| runtime_requirement.name())
+            .collect::<Vec<_>>()
+            .join(", ")
+        })
+        .unwrap_or_default();
+      source.add(RawSource::from(to_comment(&format!(
+        "runtime requirements: {}\n",
+        runtime_requirements_details
+      ))));
+      let optimization_bailout = module_graph.get_optimization_bailout(&module.identifier());
+      for text in optimization_bailout {
+        source.add(RawSource::from(to_comment(&format!("{}\n", text))));
+      }
+      source.add(module_source);
+      return Ok(source);
     }
 
     source.add(module_source);
+    // TODO: wrap with CachedSource
+    // let cached_source = CachedSource::new(source);
+    // Ok(cached_source)
     Ok(source)
+  }
+
+  async fn chunk_hash(
+    &self,
+    _ctx: PluginContext,
+    args: &mut ChunkHashArgs<'_>,
+  ) -> PluginChunkHashHookOutput {
+    let hasher = &mut args.hasher;
+    hasher.write(&"ModuleInfoHeaderPlugin".as_bytes());
+    hasher.write("1".as_bytes());
+    Ok(())
   }
 }

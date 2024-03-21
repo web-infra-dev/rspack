@@ -1,8 +1,8 @@
 use rayon::prelude::*;
 use rspack_core::rspack_sources::{BoxSource, ConcatSource, RawSource, Source, SourceExt};
 use rspack_core::{
-  BoxModule, Chunk, ChunkInitFragments, ChunkUkey, Compilation, Context, ModuleGraph, PluginDriver,
-  RenderModuleContentArgs, RenderModulePackageContext, RuntimeGlobals, SourceType,
+  BoxModule, Chunk, ChunkGraph, ChunkInitFragments, ChunkUkey, Compilation, Context, ModuleGraph,
+  PluginDriver, RenderModuleContentArgs, RenderModulePackageContext, RuntimeGlobals, SourceType,
 };
 use rspack_error::{error, Result};
 use rustc_hash::FxHashSet as HashSet;
@@ -63,6 +63,7 @@ pub fn render_chunk_modules(
               .expect("should have module id"),
             &compilation.options.context,
             compilation.get_module_graph(),
+            &compilation.chunk_graph,
             &compilation.plugin_driver,
           ),
           &code_gen_result.chunk_init_fragments,
@@ -113,6 +114,7 @@ fn render_module(
   module_id: &str,
   context: &Context,
   module_graph: &ModuleGraph,
+  chunk_graph: &ChunkGraph,
   plugin_driver: &PluginDriver,
 ) -> Result<BoxSource> {
   let need_module = runtime_requirements.is_some_and(|r| r.contains(RuntimeGlobals::MODULE));
@@ -169,6 +171,7 @@ fn render_module(
     chunk,
     context,
     module_graph,
+    chunk_graph,
   };
   plugin_driver
     .render_module_package(sources, module.as_ref(), &render_module_package_args)
