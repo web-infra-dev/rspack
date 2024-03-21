@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::time::Instant;
 
 use rspack_core::rspack_sources::{RawSource, SourceExt};
 use rspack_core::{
@@ -61,6 +62,7 @@ impl RSCClientReferenceManifest {
     );
   }
   fn process_assets_stage_optimize_hash(&self, compilation: &mut Compilation) -> Result<()> {
+    let now = Instant::now();
     let mut client_manifest = ClientReferenceManifest {
       client_modules: HashMap::default(),
     };
@@ -154,6 +156,10 @@ impl RSCClientReferenceManifest {
       }
       Err(_) => (),
     }
+    tracing::debug!(
+      "make client-reference-manifest took {} ms.",
+      now.elapsed().as_millis()
+    );
     Ok(())
   }
 }

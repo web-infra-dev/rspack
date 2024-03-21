@@ -46,4 +46,5 @@ swc_core = { workspace = true, features = [
   "ecma_quote",
 ] }
 swc_node_comments = { workspace = true }
+tracing = { workspace = true }
 url = { workspace = true }
