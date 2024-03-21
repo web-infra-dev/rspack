@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, collections::HashMap, fmt};
+use std::{cmp::Ordering, fmt};
 
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
@@ -10,6 +10,7 @@ use rspack_core::{
 };
 use rspack_identifier::Identifier;
 use rspack_util::{infallible::ResultInfallibleExt, source_map::SourceMapKind};
+use rustc_hash::FxHashMap as HashMap;
 
 use super::create_fake_chunk;
 use super::stringify_dynamic_chunk_map;
@@ -121,7 +122,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
     let mut dynamic_filename: Option<&str> = None;
     let mut max_chunk_set_size = 0;
     let mut chunk_filenames = Vec::<(&Filename, &ChunkUkey)>::new();
-    let mut chunk_set_sizes_by_filenames = HashMap::<&str, usize>::new();
+    let mut chunk_set_sizes_by_filenames = HashMap::<&str, usize>::default();
     let mut chunk_map = IndexMap::new();
 
     if let Some(chunks) = chunks {
