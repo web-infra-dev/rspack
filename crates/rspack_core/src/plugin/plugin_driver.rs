@@ -10,10 +10,10 @@ use tracing::instrument;
 
 use crate::{
   AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, ApplyContext,
-  AssetEmittedArgs, BeforeResolveArgs, BoxLoader, BoxModule, BoxedParserAndGeneratorBuilder,
-  ChunkContentHash, ChunkHashArgs, Compilation, CompilationHooks, CompilerHooks, CompilerOptions,
-  Content, ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs, LoaderRunnerContext,
-  ModuleIdentifier, ModuleType, NormalModule, NormalModuleAfterResolveArgs, NormalModuleCreateData,
+  BeforeResolveArgs, BoxLoader, BoxModule, BoxedParserAndGeneratorBuilder, ChunkContentHash,
+  ChunkHashArgs, Compilation, CompilationHooks, CompilerHooks, CompilerOptions, Content,
+  ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs, LoaderRunnerContext, ModuleIdentifier,
+  ModuleType, NormalModule, NormalModuleAfterResolveArgs, NormalModuleCreateData,
   NormalModuleFactoryHooks, OptimizeChunksArgs, Plugin,
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginAdditionalModuleRequirementsOutput,
   PluginBuildEndHookOutput, PluginChunkHashHookOutput, PluginContext, PluginFactorizeHookOutput,
@@ -21,8 +21,8 @@ use crate::{
   PluginNormalModuleFactoryBeforeResolveOutput, PluginNormalModuleFactoryCreateModuleHookOutput,
   PluginNormalModuleFactoryModuleHookOutput, PluginRenderChunkHookOutput, PluginRenderHookOutput,
   PluginRenderManifestHookOutput, PluginRenderModuleContentOutput, PluginRenderStartupHookOutput,
-  PluginRuntimeRequirementsInTreeOutput, ProcessAssetsArgs, RenderArgs, RenderChunkArgs,
-  RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, Resolver, ResolverFactory,
+  PluginRuntimeRequirementsInTreeOutput, RenderArgs, RenderChunkArgs, RenderManifestArgs,
+  RenderModuleContentArgs, RenderStartupArgs, Resolver, ResolverFactory,
   RuntimeRequirementsInTreeArgs, Stats,
 };
 
@@ -389,21 +389,6 @@ impl PluginDriver {
     Ok(())
   }
 
-  #[instrument(name = "plugin:after_process_assets", skip_all)]
-  pub async fn after_process_assets(&self, args: ProcessAssetsArgs<'_>) -> Result<()> {
-    for plugin in &self.plugins {
-      plugin
-        .after_process_assets(
-          PluginContext::new(),
-          ProcessAssetsArgs {
-            compilation: args.compilation,
-          },
-        )
-        .await?
-    }
-    Ok(())
-  }
-
   #[instrument(name = "plugin:done", skip_all)]
   pub async fn done<'s, 'c>(&self, stats: &'s mut Stats<'c>) -> PluginBuildEndHookOutput {
     for plugin in &self.plugins {
@@ -534,14 +519,6 @@ impl PluginDriver {
   pub async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
     for plugin in &self.plugins {
       plugin.emit(compilation).await?;
-    }
-    Ok(())
-  }
-
-  #[instrument(name = "plugin:asset_emitted", skip_all)]
-  pub async fn asset_emitted(&self, args: &AssetEmittedArgs<'_>) -> Result<()> {
-    for plugin in &self.plugins {
-      plugin.asset_emitted(args).await?;
     }
     Ok(())
   }

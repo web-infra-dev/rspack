@@ -6,7 +6,6 @@ use std::sync::Arc;
 use async_trait::async_trait;
 pub use interceptor::RegisterJsTaps;
 use napi::{Env, Result};
-use rspack_binding_values::JsAssetEmittedArgs;
 use rspack_binding_values::JsResolveForSchemeResult;
 use rspack_core::PluginNormalModuleFactoryResolveForSchemeOutput;
 use rspack_core::{
@@ -26,6 +25,9 @@ use self::interceptor::RegisterCompilationFinishModulesTaps;
 use self::interceptor::RegisterCompilationStillValidModuleTaps;
 use self::interceptor::RegisterCompilationSucceedModuleTaps;
 use self::interceptor::RegisterCompilerFinishMakeTaps;
+use self::interceptor::{
+  RegisterCompilationAfterProcessAssetsTaps, RegisterCompilerAssetEmittedTaps,
+};
 use self::interceptor::{
   RegisterCompilationExecuteModuleTaps, RegisterCompilationProcessAssetsTaps,
   RegisterCompilationRuntimeModuleTaps, RegisterCompilerCompilationTaps, RegisterCompilerMakeTaps,
@@ -47,6 +49,7 @@ pub struct JsHooksAdapterPlugin {
   register_compiler_make_taps: RegisterCompilerMakeTaps,
   register_compiler_finish_make_taps: RegisterCompilerFinishMakeTaps,
   register_compiler_should_emit_taps: RegisterCompilerShouldEmitTaps,
+  register_compiler_asset_emitted_taps: RegisterCompilerAssetEmittedTaps,
   register_compilation_build_module_taps: RegisterCompilationBuildModuleTaps,
   register_compilation_still_valid_module_taps: RegisterCompilationStillValidModuleTaps,
   register_compilation_succeed_module_taps: RegisterCompilationSucceedModuleTaps,
@@ -55,6 +58,7 @@ pub struct JsHooksAdapterPlugin {
   register_compilation_runtime_module_taps: RegisterCompilationRuntimeModuleTaps,
   register_compilation_chunk_asset_taps: RegisterCompilationChunkAssetTaps,
   register_compilation_process_assets_taps: RegisterCompilationProcessAssetsTaps,
+  register_compilation_after_process_assets_taps: RegisterCompilationAfterProcessAssetsTaps,
   register_normal_module_factory_before_resolve_taps: RegisterNormalModuleFactoryBeforeResolveTaps,
 }
 
@@ -112,6 +116,11 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
       .intercept(self.register_compiler_should_emit_taps.clone());
     ctx
       .context
+      .compiler_hooks
+      .asset_emitted
+      .intercept(self.register_compiler_asset_emitted_taps.clone());
+    ctx
+      .context
       .compilation_hooks
       .build_module
       .intercept(self.register_compilation_build_module_taps.clone());
@@ -150,6 +159,11 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
       .compilation_hooks
       .process_assets
       .intercept(self.register_compilation_process_assets_taps.clone());
+    ctx
+      .context
+      .compilation_hooks
+      .after_process_assets
+      .intercept(self.register_compilation_after_process_assets_taps.clone());
     ctx
       .context
       .normal_module_factory_hooks
@@ -276,17 +290,6 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
     })
   }
 
-  async fn after_process_assets(
-    &self,
-    _ctx: rspack_core::PluginContext,
-    _args: rspack_core::ProcessAssetsArgs<'_>,
-  ) -> rspack_core::PluginProcessAssetsHookOutput {
-    if self.is_hook_disabled(&Hook::AfterProcessAssets) {
-      return Ok(());
-    }
-    self.hooks.after_process_assets.call(()).await
-  }
-
   async fn optimize_modules(
     &self,
     compilation: &mut rspack_core::Compilation,
@@ -352,15 +355,6 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
     self.hooks.emit.call(()).await
   }
 
-  async fn asset_emitted(&self, args: &rspack_core::AssetEmittedArgs) -> rspack_error::Result<()> {
-    if self.is_hook_disabled(&Hook::AssetEmitted) {
-      return Ok(());
-    }
-
-    let args: JsAssetEmittedArgs = args.into();
-    self.hooks.asset_emitted.call(args).await
-  }
-
   async fn after_emit(&self, _: &mut rspack_core::Compilation) -> rspack_error::Result<()> {
     if self.is_hook_disabled(&Hook::AfterEmit) {
       return Ok(());
@@ -393,6 +387,9 @@ impl JsHooksAdapterPlugin {
       register_compiler_should_emit_taps: RegisterCompilerShouldEmitTaps::new(
         register_js_taps.register_compiler_should_emit_taps,
       ),
+      register_compiler_asset_emitted_taps: RegisterCompilerAssetEmittedTaps::new(
+        register_js_taps.register_compiler_asset_emitted_taps,
+      ),
       register_compilation_build_module_taps: RegisterCompilationBuildModuleTaps::new(
         register_js_taps.register_compilation_build_module_taps,
       ),
@@ -417,6 +414,10 @@ impl JsHooksAdapterPlugin {
       register_compilation_process_assets_taps: RegisterCompilationProcessAssetsTaps::new(
         register_js_taps.register_compilation_process_assets_taps,
       ),
+      register_compilation_after_process_assets_taps:
+        RegisterCompilationAfterProcessAssetsTaps::new(
+          register_js_taps.register_compilation_after_process_assets_taps,
+        ),
       register_normal_module_factory_before_resolve_taps:
         RegisterNormalModuleFactoryBeforeResolveTaps::new(
           register_js_taps.register_normal_module_factory_before_resolve_taps,

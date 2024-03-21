@@ -11,7 +11,7 @@ use std::sync::Arc;
 use rspack_error::Result;
 use rspack_fs::AsyncWritableFileSystem;
 use rspack_futures::FuturesResults;
-use rspack_hook::{AsyncSeries2Hook, AsyncSeriesBailHook, AsyncSeriesHook};
+use rspack_hook::{AsyncParallel3Hook, AsyncSeries2Hook, AsyncSeriesBailHook, AsyncSeriesHook};
 use rspack_identifier::{IdentifierMap, IdentifierSet};
 use rustc_hash::FxHashMap as HashMap;
 use swc_core::ecma::atoms::Atom;
@@ -29,7 +29,7 @@ use crate::cache::Cache;
 use crate::tree_shaking::symbol::{IndirectType, StarSymbolKind, DEFAULT_JS_WORD};
 use crate::tree_shaking::visitor::SymbolRef;
 use crate::{
-  fast_set, AssetEmittedArgs, CompilerOptions, Logger, ModuleGraph, PluginDriver, ResolverFactory,
+  fast_set, AssetEmittedInfo, CompilerOptions, Logger, ModuleGraph, PluginDriver, ResolverFactory,
   SharedPluginDriver,
 };
 use crate::{BoxPlugin, ExportInfo, UsageState};
@@ -44,6 +44,9 @@ pub type CompilerMakeHook = AsyncSeries2Hook<Compilation, Vec<MakeParam>>;
 pub type CompilerFinishMakeHook = AsyncSeriesHook<Compilation>;
 // should be SyncBailHook, but rspack need call js hook
 pub type CompilerShouldEmitHook = AsyncSeriesBailHook<Compilation, bool>;
+// should be AsyncSeriesHook, but rspack parallel emit asset, only accept immutable params,
+// and it has no effect about mutate the params in webpack
+pub type CompilerAssetEmittedHook = AsyncParallel3Hook<Compilation, String, AssetEmittedInfo>;
 
 #[derive(Debug, Default)]
 pub struct CompilerHooks {
@@ -52,6 +55,7 @@ pub struct CompilerHooks {
   pub make: CompilerMakeHook,
   pub finish_make: CompilerFinishMakeHook,
   pub should_emit: CompilerShouldEmitHook,
+  pub asset_emitted: CompilerAssetEmittedHook,
 }
 
 #[derive(Debug)]
@@ -404,16 +408,16 @@ where
 
       self.compilation.emitted_assets.insert(filename.to_string());
 
-      let asset_emitted_args = AssetEmittedArgs {
-        filename,
-        output_path,
+      let info = AssetEmittedInfo {
+        output_path: output_path.to_owned(),
         source: source.clone(),
-        target_path: file_path.as_path(),
-        compilation: &self.compilation,
+        target_path: file_path,
       };
       self
         .plugin_driver
-        .asset_emitted(&asset_emitted_args)
+        .compiler_hooks
+        .asset_emitted
+        .call(&self.compilation, &filename.to_owned(), &info)
         .await?;
     }
     Ok(())

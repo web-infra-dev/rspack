@@ -47,6 +47,15 @@ import { CodeGenerationResult, Module } from "./Module";
 import { canInherentFromParent } from "./builtin-plugin/base";
 import ExecuteModulePlugin from "./ExecuteModulePlugin";
 import { Chunk } from "./Chunk";
+import { Source } from "webpack-sources";
+
+export interface AssetEmittedInfo {
+	content: Buffer;
+	source: Source;
+	outputPath: string;
+	targetPath: string;
+	compilation: Compilation;
+}
 
 class Compiler {
 	#instance?: binding.Rspack;
@@ -98,7 +107,7 @@ class Compiler {
 		beforeRun: tapable.AsyncSeriesHook<[Compiler]>;
 		run: tapable.AsyncSeriesHook<[Compiler]>;
 		emit: tapable.AsyncSeriesHook<[Compilation]>;
-		assetEmitted: tapable.AsyncSeriesHook<[string, any]>;
+		assetEmitted: liteTapable.AsyncSeriesHook<[string, AssetEmittedInfo]>;
 		afterEmit: tapable.AsyncSeriesHook<[Compilation]>;
 		failed: tapable.SyncHook<[Error]>;
 		shutdown: tapable.AsyncSeriesHook<[]>;
@@ -142,7 +151,7 @@ class Compiler {
 			beforeRun: new tapable.AsyncSeriesHook(["compiler"]),
 			run: new tapable.AsyncSeriesHook(["compiler"]),
 			emit: new tapable.AsyncSeriesHook(["compilation"]),
-			assetEmitted: new tapable.AsyncSeriesHook(["file", "info"]),
+			assetEmitted: new liteTapable.AsyncSeriesHook(["file", "info"]),
 			afterEmit: new tapable.AsyncSeriesHook(["compilation"]),
 			thisCompilation: new liteTapable.SyncHook<
 				[Compilation, CompilationParams]
@@ -228,9 +237,7 @@ class Compiler {
 			this.builtinPlugins,
 			{
 				emit: this.#emit.bind(this),
-				assetEmitted: this.#assetEmitted.bind(this),
 				afterEmit: this.#afterEmit.bind(this),
-				afterProcessAssets: this.#afterProcessAssets.bind(this),
 				optimizeModules: this.#optimizeModules.bind(this),
 				afterOptimizeModules: this.#afterOptimizeModules.bind(this),
 				optimizeTree: this.#optimizeTree.bind(this),
@@ -271,6 +278,26 @@ class Compiler {
 				registerCompilerShouldEmitTaps: this.#createRegisterTaps(
 					() => this.hooks.shouldEmit,
 					queried => () => queried.call(this.compilation!)
+				),
+				registerCompilerAssetEmittedTaps: this.#createRegisterTaps(
+					() => this.hooks.assetEmitted,
+					queried =>
+						async ({
+							filename,
+							targetPath,
+							outputPath
+						}: binding.JsAssetEmittedArgs) =>
+							await queried.promise(filename, {
+								compilation: this.compilation!,
+								targetPath,
+								outputPath,
+								get source() {
+									return this.compilation!.getAsset(filename)?.source;
+								},
+								get content() {
+									return this.source?.buffer();
+								}
+							})
 				),
 				registerCompilationRuntimeModuleTaps: this.#createRegisterTaps(
 					() => this.compilation!.hooks.runtimeModule,
@@ -393,6 +420,10 @@ class Compiler {
 				registerCompilationProcessAssetsTaps: this.#createRegisterTaps(
 					() => this.compilation!.hooks.processAssets,
 					queried => async () => await queried.promise(this.compilation!.assets)
+				),
+				registerCompilationAfterProcessAssetsTaps: this.#createRegisterTaps(
+					() => this.compilation!.hooks.afterProcessAssets,
+					queried => () => queried.call(this.compilation!.assets)
 				),
 				registerNormalModuleFactoryBeforeResolveTaps: this.#createRegisterTaps(
 					() => this.compilationParams!.normalModuleFactory.hooks.beforeResolve,
@@ -634,9 +665,7 @@ class Compiler {
 		type HookMap = Record<keyof binding.JsHooks, any>;
 		const hookMap: HookMap = {
 			emit: this.hooks.emit,
-			assetEmitted: this.hooks.assetEmitted,
 			afterEmit: this.hooks.afterEmit,
-			afterProcessAssets: this.compilation!.hooks.afterProcessAssets,
 			optimizeTree: this.compilation!.hooks.optimizeTree,
 			optimizeModules: this.compilation!.hooks.optimizeModules,
 			afterOptimizeModules: this.compilation!.hooks.afterOptimizeModules,
@@ -784,22 +813,6 @@ class Compiler {
 
 	async #emit() {
 		await this.hooks.emit.promise(this.compilation!);
-		this.#updateDisabledHooks();
-	}
-	async #assetEmitted(args: binding.JsAssetEmittedArgs) {
-		const filename = args.filename;
-		const info = {
-			compilation: this.compilation,
-			outputPath: args.outputPath,
-			targetPath: args.targetPath,
-			get source() {
-				return this.compilation!.getAsset(args.filename)?.source;
-			},
-			get content() {
-				return this.source?.buffer();
-			}
-		};
-		await this.hooks.assetEmitted.promise(filename, info);
 		this.#updateDisabledHooks();
 	}
 

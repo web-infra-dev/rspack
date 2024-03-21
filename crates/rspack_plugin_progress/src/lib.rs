@@ -10,7 +10,7 @@ use linked_hash_map::LinkedHashMap as HashMap;
 use rspack_core::{
   ApplyContext, BoxModule, Compilation, CompilationParams, CompilerOptions, DoneArgs, MakeParam,
   ModuleIdentifier, OptimizeChunksArgs, Plugin, PluginBuildEndHookOutput, PluginContext,
-  PluginOptimizeChunksOutput, PluginProcessAssetsOutput, ProcessAssetsArgs,
+  PluginOptimizeChunksOutput,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook, AsyncSeries, AsyncSeries2};
@@ -314,6 +314,12 @@ async fn process_assets(&self, _compilation: &mut Compilation) -> Result<()> {
   Ok(())
 }
 
+#[plugin_hook(AsyncSeries<Compilation> for ProgressPlugin)]
+async fn after_process_assets(&self, _compilation: &mut Compilation) -> Result<()> {
+  self.sealing_hooks_report("after asset optimization", 36);
+  Ok(())
+}
+
 #[async_trait]
 impl Plugin for ProgressPlugin {
   fn name(&self) -> &'static str {
@@ -361,6 +367,11 @@ impl Plugin for ProgressPlugin {
       .compilation_hooks
       .process_assets
       .tap(process_assets::new(self));
+    ctx
+      .context
+      .compilation_hooks
+      .after_process_assets
+      .tap(after_process_assets::new(self));
     Ok(())
   }
 
@@ -410,15 +421,6 @@ impl Plugin for ProgressPlugin {
 
   fn chunk_ids(&self, _compilation: &mut Compilation) -> Result<()> {
     self.sealing_hooks_report("chunk ids", 21);
-    Ok(())
-  }
-
-  async fn after_process_assets(
-    &self,
-    _ctx: PluginContext,
-    _args: ProcessAssetsArgs<'_>,
-  ) -> PluginProcessAssetsOutput {
-    self.sealing_hooks_report("after asset optimization", 36);
     Ok(())
   }
 

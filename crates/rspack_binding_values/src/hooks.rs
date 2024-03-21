@@ -2,18 +2,14 @@ use napi_derive::napi;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 
 use crate::{
-  AfterResolveCreateData, AfterResolveData, CreateModuleData, JsAssetEmittedArgs,
-  JsBeforeResolveArgs, JsCompilation, JsResolveForSchemeInput, JsResolveForSchemeResult,
+  AfterResolveCreateData, AfterResolveData, CreateModuleData, JsBeforeResolveArgs, JsCompilation,
+  JsResolveForSchemeInput, JsResolveForSchemeResult,
 };
 
 #[napi(object, object_to_js = false)]
 pub struct JsHooks {
   #[napi(ts_type = "() => void")]
-  pub after_process_assets: ThreadsafeFunction<(), ()>,
-  #[napi(ts_type = "() => void")]
   pub emit: ThreadsafeFunction<(), ()>,
-  #[napi(ts_type = "(asset: JsAssetEmittedArgs) => void")]
-  pub asset_emitted: ThreadsafeFunction<JsAssetEmittedArgs, ()>,
   #[napi(ts_type = "() => void")]
   pub after_emit: ThreadsafeFunction<(), ()>,
   #[napi(ts_type = "(compilation: JsCompilation) => void")]

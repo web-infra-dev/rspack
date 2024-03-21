@@ -103,7 +103,7 @@ export class Compilation {
 
 	hooks: {
 		processAssets: liteTapable.AsyncSeriesHook<Assets>;
-		afterProcessAssets: tapable.SyncHook<Assets>;
+		afterProcessAssets: liteTapable.SyncHook<Assets>;
 		childCompiler: tapable.SyncHook<[Compiler, string, number]>;
 		log: tapable.SyncBailHook<[string, LogEntry], true>;
 		additionalAssets: any;
@@ -204,7 +204,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		};
 		this.hooks = {
 			processAssets: processAssetsHook,
-			afterProcessAssets: new tapable.SyncHook(["assets"]),
+			afterProcessAssets: new liteTapable.SyncHook(["assets"]),
 			/** @deprecated */
 			additionalAssets: createProcessAssetsHook(
 				"additionalAssets",

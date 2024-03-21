@@ -1,5 +1,5 @@
 use std::fmt::Debug;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use rspack_error::Diagnostic;
@@ -20,12 +20,10 @@ pub struct ProcessAssetsArgs<'me> {
 }
 
 #[derive(Debug)]
-pub struct AssetEmittedArgs<'me> {
-  pub filename: &'me str,
+pub struct AssetEmittedInfo {
   pub source: BoxSource,
-  pub output_path: &'me Path,
-  pub compilation: &'me Compilation,
-  pub target_path: &'me Path,
+  pub output_path: PathBuf,
+  pub target_path: PathBuf,
 }
 
 #[derive(Debug)]
