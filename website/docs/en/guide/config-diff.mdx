@@ -1,0 +1,14 @@
+# Webpack Configuration Compatibility
+
+:::tip
+
+Rspack currently does not support all webpack configurations, and some configurations may affect the build output. To ensure the correctness of the build output, Rspack enables strict validation of the configurations by default. However, it also provides a loose mode for easy progressive migration. You can enable it by setting the `RSPACK_CONFIG_VALIDATE` environment variable:
+
+```bash
+# Enable loose validation mode will print out erroneous configurations but will not throw error.
+RSPACK_CONFIG_VALIDATE=loose rspack build
+# Enable loose validation mode, without printing errors or throwing error.
+RSPACK_CONFIG_VALIDATE=loose-silent rspack build
+```
+
+:::

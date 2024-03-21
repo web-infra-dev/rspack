@@ -17,12 +17,11 @@ use crate::{
   ModuleIdentifier, ModuleType, NormalModule, NormalModuleAfterResolveArgs, NormalModuleCreateData,
   NormalModuleFactoryHooks, OptimizeChunksArgs, Plugin,
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginAdditionalModuleRequirementsOutput,
-  PluginBuildEndHookOutput, PluginChunkHashHookOutput, PluginCompilationHookOutput, PluginContext,
-  PluginFactorizeHookOutput, PluginJsChunkHashHookOutput,
-  PluginNormalModuleFactoryAfterResolveOutput, PluginNormalModuleFactoryBeforeResolveOutput,
-  PluginNormalModuleFactoryCreateModuleHookOutput, PluginNormalModuleFactoryModuleHookOutput,
-  PluginRenderChunkHookOutput, PluginRenderHookOutput, PluginRenderManifestHookOutput,
-  PluginRenderModuleContentOutput, PluginRenderStartupHookOutput,
+  PluginBuildEndHookOutput, PluginChunkHashHookOutput, PluginContext, PluginFactorizeHookOutput,
+  PluginJsChunkHashHookOutput, PluginNormalModuleFactoryAfterResolveOutput,
+  PluginNormalModuleFactoryBeforeResolveOutput, PluginNormalModuleFactoryCreateModuleHookOutput,
+  PluginNormalModuleFactoryModuleHookOutput, PluginRenderChunkHookOutput, PluginRenderHookOutput,
+  PluginRenderManifestHookOutput, PluginRenderModuleContentOutput, PluginRenderStartupHookOutput,
   PluginRuntimeRequirementsInTreeOutput, ProcessAssetsArgs, RenderArgs, RenderChunkArgs,
   RenderManifestArgs, RenderModuleContentArgs, RenderModulePackageContext, RenderStartupArgs,
   Resolver, ResolverFactory, RuntimeRequirementsInTreeArgs, Stats,
@@ -120,14 +119,6 @@ impl PluginDriver {
   pub async fn module_asset(&self, module: ModuleIdentifier, asset_name: String) -> Result<()> {
     for plugin in &self.plugins {
       plugin.module_asset(module, asset_name.clone()).await?;
-    }
-
-    Ok(())
-  }
-
-  pub async fn finish_make(&self, compilation: &mut Compilation) -> PluginCompilationHookOutput {
-    for plugin in &self.plugins {
-      plugin.finish_make(compilation).await?;
     }
 
     Ok(())
@@ -487,14 +478,6 @@ impl PluginDriver {
       plugin
         .optimize_chunk_modules(OptimizeChunksArgs { compilation })
         .await?;
-    }
-    Ok(())
-  }
-
-  #[instrument(name = "plugin:finish_modules", skip_all)]
-  pub async fn finish_modules(&self, modules: &mut Compilation) -> Result<()> {
-    for plugin in &self.plugins {
-      plugin.finish_modules(modules).await?;
     }
     Ok(())
   }

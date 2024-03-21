@@ -1,0 +1,54 @@
+import WebpackLicense from '../../../components/webpack-license';
+
+<WebpackLicense from="https://webpack.js.org/configuration/watch" />
+
+# Watch
+
+监听：该选项用于监听文件变更并在变更时触发重新编译。
+
+## watch
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+开启监听模式，使 Rspack 在第一次构建完后不会退出，而是继续监听文件变更，并在变更时触发重新编译。
+
+```js title=rspack.config.js
+module.exports = {
+  // ...
+  watch: true,
+};
+```
+
+:::info Tip
+在使用 `@rspack/dev-server` 时，watch 默认为 true。
+:::
+
+## watchOptions
+
+- **类型：** `object`
+
+监听模式相关的配置项。
+
+```js title=rspack.config.js
+module.exports = {
+  // ...
+  watchOptions: {
+    ignored: /node_modules/,
+    poll: true,
+  },
+};
+```
+
+### watchOptions.ignored
+
+- **类型：** `RegExp`, `string`, `string[]`
+
+监听时排除匹配到的路径。
+
+### watchOptions.poll
+
+- **类型：** `boolean`, `number`
+- **默认值：** `false`
+
+是否通过轮询进行监听，`true` 时默认的轮询间隔为 5007 毫秒。

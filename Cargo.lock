@@ -3567,6 +3567,7 @@ dependencies = [
  "regex",
  "rspack_core",
  "rspack_error",
+ "rspack_hook",
  "rspack_identifier",
  "serde_json",
 ]

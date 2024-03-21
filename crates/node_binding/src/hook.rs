@@ -3,13 +3,11 @@ use std::sync::RwLock;
 /// rust support hooks
 #[derive(PartialEq)]
 pub enum Hook {
-  FinishMake,
   AfterProcessAssets,
   Emit,
   AssetEmitted,
   AfterEmit,
   OptimizeChunkModules,
-  FinishModules,
   OptimizeModules,
   AfterOptimizeModules,
   OptimizeTree,
@@ -23,13 +21,11 @@ pub enum Hook {
 impl From<String> for Hook {
   fn from(s: String) -> Self {
     match s.as_str() {
-      "finishMake" => Hook::FinishMake,
       "afterProcessAssets" => Hook::AfterProcessAssets,
       "emit" => Hook::Emit,
       "assetEmitted" => Hook::AssetEmitted,
       "afterEmit" => Hook::AfterEmit,
       "optimizeChunkModules" => Hook::OptimizeChunkModules,
-      "finishModules" => Hook::FinishModules,
       "optimizeModules" => Hook::OptimizeModules,
       "afterOptimizeModules" => Hook::AfterOptimizeModules,
       "optimizeTree" => Hook::OptimizeTree,

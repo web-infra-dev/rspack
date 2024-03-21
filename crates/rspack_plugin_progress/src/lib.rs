@@ -291,6 +291,23 @@ async fn succeed_module(&self, module: &mut BoxModule) -> Result<()> {
   Ok(())
 }
 
+#[plugin_hook(AsyncSeries<Compilation> for ProgressPlugin)]
+async fn finish_make(&self, _compilation: &mut Compilation) -> Result<()> {
+  self.handler(
+    0.69,
+    "building".to_string(),
+    vec!["finish make".to_string()],
+    None,
+  );
+  Ok(())
+}
+
+#[plugin_hook(AsyncSeries<Compilation> for ProgressPlugin)]
+async fn finish_modules(&self, _compilation: &mut Compilation) -> Result<()> {
+  self.sealing_hooks_report("finish modules", 0);
+  Ok(())
+}
+
 #[plugin_hook(AsyncSeries<Compilation> for ProgressPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONAL)]
 async fn process_assets(&self, _compilation: &mut Compilation) -> Result<()> {
   self.sealing_hooks_report("asset processing", 35);
@@ -331,24 +348,19 @@ impl Plugin for ProgressPlugin {
       .tap(succeed_module::new(self));
     ctx
       .context
+      .compiler_hooks
+      .finish_make
+      .tap(finish_make::new(self));
+    ctx
+      .context
+      .compilation_hooks
+      .finish_modules
+      .tap(finish_modules::new(self));
+    ctx
+      .context
       .compilation_hooks
       .process_assets
       .tap(process_assets::new(self));
-    Ok(())
-  }
-
-  async fn finish_make(&self, _compilation: &mut Compilation) -> Result<()> {
-    self.handler(
-      0.69,
-      "building".to_string(),
-      vec!["finish make".to_string()],
-      None,
-    );
-    Ok(())
-  }
-
-  async fn finish_modules(&self, _modules: &mut Compilation) -> Result<()> {
-    self.sealing_hooks_report("finish modules", 0);
     Ok(())
   }
 

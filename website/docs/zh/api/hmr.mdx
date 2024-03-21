@@ -1,0 +1,356 @@
+import WebpackLicense from '../../../components/webpack-license';
+
+<WebpackLicense from="https://webpack.docschina.org/api/hot-module-replacement/" />
+
+# Hot Module Replacement
+
+通常，用户先要检查这个接口是否可访问，再使用它。你可以这样使用 `accept` 操作一个更新的模块：
+
+```js
+if (module.hot) {
+  module.hot.accept('./library.js', function () {
+    // 对更新过的 library 模块做些事情...
+  });
+}
+
+// or
+if (import.meta.webpackHot) {
+  import.meta.webpackHot.accept('./library.js', function () {
+    // Do something with the updated library module…
+  });
+}
+```
+
+支持以下方法：
+
+## 模块 API
+
+### accept
+
+接受（`accept`）给定依赖模块（`dependencies`）的更新，并触发回调函数（`callback`）来响应更新，除此之外，你可以附加一个可选的 error 处理程序：
+
+```js
+module.hot.accept(
+  dependencies, // 可以是一个字符串或字符串数组
+  callback // 用于在模块更新后触发的函数
+  errorHandler // (err, {moduleId, dependencyId}) => {}
+);
+
+// or
+import.meta.webpackHot.accept(
+  dependencies, // 可以是一个字符串或字符串数组
+  callback, // 用于在模块更新后触发的函数
+  errorHandler // (err, {moduleId, dependencyId}) => {}
+);
+```
+
+当使用 ESM `import` 时，所有从 `dependencies` 中导入的符号都会自动更新。注意：依赖项字符串必须与 `import` 中的 `from` 字符串完全匹配。在某些情况下，甚至可以省略 `callback`。在 `callback` 中使用的 `require()` 在这里没有任何意义。
+
+在使用 CommonJS 时，你应该通过 `callback` 中的 `require()` 手动更新依赖模块。省略 `callback` 在这里没有任何意义。
+
+#### 为 accept 设置错误处理程序
+
+`(err, {moduleId, dependencyId}) => {}`
+
+- `err`：当使用 ESM 依赖项时，回调函数在第二个参数中或在依赖项执行期间抛出的错误。
+- `moduleId`：当前模块 id。
+- `dependencyId`：（第一个）被更改依赖项的模块 id。
+
+### accept（self）
+
+接受自身更新。
+
+```js
+module.hot.accept(
+  errorHandler // 在计算新版本时处理错误的函数
+);
+
+// or
+import.meta.webpackHot.accept(
+  errorHandler // Function to handle errors when evaluating the new version
+);
+```
+
+在此模块或依赖模块更新时，可以在不通知父依赖的情况下，对此模块处理和重新取值。如果此模块没有导出（或以其他方式更新的导出），这是有意义的。
+
+当执行此模块（或依赖模块）抛出异常时，会触发 `errorHandler`。
+
+#### 为 accept 自身设置错误处理程序
+
+`(err, {moduleId, module}) => {}`
+
+- `err`：计算新版本时的错误。
+- `moduleId`：当前模块 id。
+- `module`：当前模块实例。
+  - `module.hot`：允许访问出错模块实例的 HMR API。一个常见的场景是再次自我接收（accept）。添加一个 dispose 处理程序来传递数据也是有意义的。注意，错误的模块可能已经部分执行，所以请确保不要进入不一致的状态。你可以使用 `module.hot.data` 存储部分状态。
+  - `module.exports`：可以被重载，但是要小心，因为属性名在生产模式下可能会被破坏。
+
+### decline
+
+拒绝给定依赖模块（`dependencies`）的更新，使用 `'decline'` 方法强制更新失败。
+
+```js
+module.hot.decline(
+  dependencies // 可以是一个字符串或字符串数组
+);
+
+// or
+import.meta.webpackHot.decline(
+  dependencies // Either a string or an array of strings
+);
+```
+
+将依赖模块标记为不可更新(not-update-able)。在处理「依赖的导出正在更新」或「尚未实现处理」时，这是有意义的。取决于你的 HMR 管理代码，此依赖模块（或其未接受的依赖模块）更新，通常会导致页面被完全重新加载。
+
+### decline（self）
+
+拒绝自身更新。
+
+```js
+module.hot.decline();
+
+// or
+import.meta.webpackHot.decline();
+```
+
+将依赖模块标记为不可更新（not-update-able）。当此模块具有无法避免的副作用（side-effect），或者尚未对此模块进行 HMR 处理时，这是有意义的。取决于你的 HMR 管理代码，此依赖模块（或其未接受的依赖模块）更新，通常会导致页面被完全重新加载。
+
+### dispose（或 addDisposeHandler）
+
+添加一个处理函数，在当前模块代码被替换时执行。此函数应该用于移除你声明或创建的任何持久资源。如果要将状态传入到更新过的模块，请添加给定 `data` 参数。更新后，此对象在更新之后可通过 `module.hot.data` 调用。
+
+```js
+module.hot.dispose((data) => {
+  // 清理并将 data 传递到更新后的模块...
+});
+
+// or
+import.meta.webpackHot.dispose((data) => {
+  // 清理并将 data 传递到更新后的模块...
+});
+```
+
+### invalidate
+
+调用此方法将使当前模块无效，而当前模块将在应用 HMR 更新时进行部署并重新创建。这个模块的更新像冒泡一样，拒绝自身更新。
+
+在 `idle` 状态下调用时，将创建一个包含此模块的新 HMR 更新。HMR 将进入 `ready` 状态。
+
+在 `ready` 或 `prepare` 状态下调用时，此模块将添加到当前 HMR 的更新中。
+
+在 `check` 状态期间被调用时，如果有可用更新，则此模块将添加到更新中。如果没有可用的更新，它将创建一个新更新。HMR 将进入 `ready` 状态。
+
+在 `dispose` 或 `apply` 状态下调用时，HMR 将在退出这些状态后将其拾取。
+
+#### 用例
+
+**Conditional Accepting**
+
+一个模块可以接受一个依赖，但是当依赖的改变无法处理时，可以调用 `invalidate`：
+
+```js
+import { x, y } from './dep';
+import { processX, processY } from 'anotherDep';
+
+const oldY = y;
+
+processX(x);
+export default processY(y);
+
+module.hot.accept('./dep', () => {
+  if (y !== oldY) {
+    // 无法处理，冒泡给父级
+    module.hot.invalidate();
+    return;
+  }
+  // 可以处理
+  processX(x);
+});
+```
+
+**Conditional self accept**
+
+模块可以自我接受，但是当更改无法处理时可以使自身失效：
+
+```javascript
+const VALUE = 'constant';
+
+export default VALUE;
+
+if (
+  module.hot.data &&
+  module.hot.data.value &&
+  module.hot.data.value !== VALUE
+) {
+  module.hot.invalidate();
+} else {
+  module.hot.dispose((data) => {
+    data.value = VALUE;
+  });
+  module.hot.accept();
+}
+```
+
+**Triggering custom HMR updates**
+
+```javascript
+const moduleId = chooseAModule();
+const code = __webpack_modules__[moduleId].toString();
+__webpack_modules__[moduleId] = eval(`(${makeChanges(code)})`);
+if (require.cache[moduleId]) {
+  require.cache[moduleId].hot.invalidate();
+  module.hot.apply();
+}
+```
+
+T> 当调用 `invalidate` 时，将最终调用 [`dispose`](#dispose-or-adddisposehandler) 处理函数并填充 `module.hot.data`。如果未注册 [`dispose`](#dispose-or-adddisposehandler) 处理程序，则将空对象提供给 `module.hot.data`.
+
+W> 通过一次次的调用 `invalidate`，不要陷入 `invalidate` 循环。这将导致栈溢出并且 HMR 进入 `fail` 状态。
+
+### removeDisposeHandler
+
+删除由 `dispose` 或 `addDisposeHandler` 添加的回调函数。
+
+```js
+module.hot.removeDisposeHandler(callback);
+
+// or
+import.meta.webpackHot.removeDisposeHandler(callback);
+```
+
+## API 管理
+
+### status
+
+获取当前模块热替换进程的状态。
+
+```js
+module.hot.status(); // 返回以下字符串之一...
+
+// 或者
+import.meta.webpackHot.status();
+```
+
+| Status      | Description                                                               |
+| ----------- | ------------------------------------------------------------------------- |
+| idle        | 该进程正在等待调用 `check`（见下文）                                      |
+| check       | 该进程正在检查以更新                                                      |
+| prepare     | 该进程正在准备更新（例如，下载已更新的模块）                              |
+| ready       | 此更新已准备并可用                                                        |
+| dispose     | 该进程正在调用将被替换模块的 `dispose` 处理函数                           |
+| apply       | 该进程正在调用 `accept` 处理函数，并重新执行自我接受（self-accepted）的模块 |
+| abort       | 更新已中止，但系统仍处于之前的状态                                        |
+| fail        | 更新已抛出异常，系统状态已被破坏                                          |
+
+### check
+
+测试所有加载的模块以进行更新，如果有更新，则 `apply` 它们。
+
+```js
+module.hot
+  .check(autoApply)
+  .then((outdatedModules) => {
+    // 超时的模块...
+  })
+  .catch((error) => {
+    // 捕获错误
+  });
+
+// or
+import.meta.webpackHot
+  .check(autoApply)
+  .then((outdatedModules) => {
+    // outdated modules...
+  })
+  .catch((error) => {
+    // catch errors
+  });
+```
+
+当被调用时，传递给 `apply` 方法的 `autoApply` 参数可以是布尔值，也可以是 `options`，
+
+### apply
+
+继续更新进程（当 `module.hot.status() === 'ready'` 时）。
+
+```js
+module.hot
+  .apply(options)
+  .then((outdatedModules) => {
+    // 超时的模块...
+  })
+  .catch((error) => {
+    // 捕获错误
+  });
+
+// or
+import.meta.webpackHot
+  .apply(options)
+  .then((outdatedModules) => {
+    // outdated modules...
+  })
+  .catch((error) => {
+    // catch errors
+  });
+```
+
+可选的 `options` 对象可以包含以下属性：
+
+- `ignoreUnaccepted`（boolean）：忽略对不可接受的模块所做的更改。
+- `ignoreDeclined`（boolean）：忽略对已拒绝的模块所做的更改。
+- `ignoreErrored`（boolean）：忽略在接受处理程序、错误处理程序以及重新评估模块时抛出的错误。
+- `onDeclined`（function(info)）：拒绝模块的通知者。
+- `onUnaccepted`（function(info)）：不可接受的模块的通知程序。
+- `onAccepted`（function(info)）：可接受模块的通知者。
+- `onDisposed`（function(info)）：废弃模块的通知者。
+- `onErrored`（function(info)）：错误通知者。
+
+`info` 参数将是一个包含以下某些值的对象：
+
+```ts
+{
+  type: 'self-declined' | 'declined' |
+        'unaccepted' | 'accepted' |
+        'disposed' | 'accept-errored' |
+        'self-accept-errored' | 'self-accept-error-handler-errored',
+  moduleId: 4, // 有问题的模块。
+  dependencyId: 3, // 对于错误：拥有接受处理程序的模块 ID。
+  chain: [1, 2, 3, 4], // 对于拒绝/接受/不接受：传播更新的 `chain`。
+  parentId: 5, // 对于拒绝：下降的父模块 ID。
+  outdatedModules: [1, 2, 3, 4], // 对于接受：已过时且将被处置的模块。
+  outdatedDependencies: { // 对于接受：将处理更新的接受处理程序的位置。
+    5: [4]
+  },
+  error: new Error(...), // 对于错误：抛出错误
+  originalError: new Error(...) // 对于自我接受错误处理程序错误：
+                                // 在错误处理程序尝试处理该模块之前，该模块引发的错误。
+}
+```
+
+### addStatusHandler
+
+注册一个函数来监听 `status` 的变化。
+
+```js
+module.hot.addStatusHandler((status) => {
+  // 响应当前状态...
+});
+
+// 或者
+import.meta.webpackHot.addStatusHandler((status) => {
+  // 响应当前状态...
+});
+```
+
+请记住，当 status 处理函数返回一个 `Promise` 时，直到 `Promise` 完成兑现，HMR 系统都将继续等待。
+
+### removeStatusHandler
+
+移除一个注册的状态处理函数。
+
+```js
+module.hot.removeStatusHandler(callback);
+
+// or
+import.meta.webpackHot.removeStatusHandler(callback);
+```

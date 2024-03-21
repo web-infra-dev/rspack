@@ -11,7 +11,7 @@ use std::sync::Arc;
 use rspack_error::Result;
 use rspack_fs::AsyncWritableFileSystem;
 use rspack_futures::FuturesResults;
-use rspack_hook::{AsyncSeries2Hook, AsyncSeriesBailHook};
+use rspack_hook::{AsyncSeries2Hook, AsyncSeriesBailHook, AsyncSeriesHook};
 use rspack_identifier::{IdentifierMap, IdentifierSet};
 use rustc_hash::FxHashMap as HashMap;
 use swc_core::ecma::atoms::Atom;
@@ -41,6 +41,7 @@ pub type CompilerThisCompilationHook = AsyncSeries2Hook<Compilation, Compilation
 pub type CompilerCompilationHook = AsyncSeries2Hook<Compilation, CompilationParams>;
 // should be AsyncParallelHook, but rspack need add MakeParam to incremental rebuild
 pub type CompilerMakeHook = AsyncSeries2Hook<Compilation, Vec<MakeParam>>;
+pub type CompilerFinishMakeHook = AsyncSeriesHook<Compilation>;
 // should be SyncBailHook, but rspack need call js hook
 pub type CompilerShouldEmitHook = AsyncSeriesBailHook<Compilation, bool>;
 
@@ -49,6 +50,7 @@ pub struct CompilerHooks {
   pub this_compilation: CompilerThisCompilationHook,
   pub compilation: CompilerCompilationHook,
   pub make: CompilerMakeHook,
+  pub finish_make: CompilerFinishMakeHook,
   pub should_emit: CompilerShouldEmitHook,
 }
 
@@ -181,7 +183,9 @@ where
     let start = logger.time("finish make hook");
     self
       .plugin_driver
-      .finish_make(&mut self.compilation)
+      .compiler_hooks
+      .finish_make
+      .call(&mut self.compilation)
       .await?;
     logger.time_end(start);
 
