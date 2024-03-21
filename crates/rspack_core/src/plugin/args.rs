@@ -10,8 +10,8 @@ use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
   BoxModule, Chunk, ChunkInitFragments, ChunkUkey, Compilation, Context, ContextModuleFactory,
-  DependencyCategory, DependencyType, ErrorSpan, FactoryMeta, ModuleDependency, ModuleIdentifier,
-  NormalModuleFactory, Resolve, RuntimeGlobals, SharedPluginDriver, Stats,
+  DependencyCategory, DependencyType, ErrorSpan, FactoryMeta, ModuleDependency, ModuleGraph,
+  ModuleIdentifier, NormalModuleFactory, Resolve, RuntimeGlobals, SharedPluginDriver, Stats,
 };
 
 #[derive(Debug)]
@@ -231,4 +231,10 @@ impl<'me> JsChunkHashArgs<'me> {
 pub struct CompilationParams {
   pub normal_module_factory: Arc<NormalModuleFactory>,
   pub context_module_factory: Arc<ContextModuleFactory>,
+}
+
+pub struct RenderModulePackageContext<'a> {
+  pub chunk: &'a Chunk,
+  pub context: &'a Context,
+  pub module_graph: &'a ModuleGraph,
 }

@@ -44,6 +44,7 @@ use rspack_plugin_mf::{
   ConsumeSharedPlugin, ContainerPlugin, ContainerReferencePlugin, ProvideSharedPlugin,
   ShareRuntimePlugin,
 };
+use rspack_plugin_module_info_header::ModuleInfoHeaderPlugin;
 use rspack_plugin_progress::ProgressPlugin;
 use rspack_plugin_real_content_hash::RealContentHashPlugin;
 use rspack_plugin_remove_empty_chunks::RemoveEmptyChunksPlugin;
@@ -129,6 +130,7 @@ pub enum BuiltinPluginName {
   FlagDependencyUsagePlugin,
   MangleExportsPlugin,
   ModuleConcatenationPlugin,
+  ModuleInfoHeaderPlugin,
 
   // rspack specific plugins
   // naming format follow XxxRspackPlugin
@@ -402,6 +404,11 @@ impl BuiltinPlugin {
         plugins.push(
           JsLoaderResolverPlugin::new(downcast_into::<JsLoaderRunner>(self.options)?).boxed(),
         );
+      }
+      BuiltinPluginName::ModuleInfoHeaderPlugin => {
+        let plugin =
+          ModuleInfoHeaderPlugin::new(downcast_into::<bool>(self.options)?.into()).boxed();
+        plugins.push(plugin);
       }
     }
     Ok(())

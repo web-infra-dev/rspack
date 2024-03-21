@@ -1,12 +1,11 @@
-use std::sync::Arc;
-
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
-  to_comment, Context, ExportInfoId, ExportsInfo, Module, ModuleGraph, UsageState,
+  to_comment, ExportInfoId, ExportsInfo, Module, ModuleGraph, Plugin, RenderModulePackageContext,
+  UsageState,
 };
 use rspack_error::Result;
-use rspack_sources::{BoxSource, ConcatSource, RawSource};
+use rspack_sources::{ConcatSource, RawSource};
 use rustc_hash::FxHashSet as HashSet;
 
 static COMMENT_END_REGEX: Lazy<Regex> =
@@ -116,22 +115,35 @@ pub fn print_exports_info_to_source(
   }
 }
 
+#[derive(Debug)]
 pub struct ModuleInfoHeaderPlugin {
   verbose: bool,
 }
 
 impl ModuleInfoHeaderPlugin {
   pub fn new(verbose: bool) -> Self {
-    Self { verbose }
+    ModuleInfoHeaderPlugin { verbose }
+  }
+}
+
+#[async_trait::async_trait]
+impl Plugin for ModuleInfoHeaderPlugin {
+  fn name(&self) -> &'static str {
+    "ModuleInfoHeaderPlugin"
   }
 
-  pub fn render_module_package(
+  fn render_module_package(
     &self,
-    module_source: BoxSource,
+    module_source: ConcatSource,
     module: &dyn Module,
-    context: &Context,
-    module_graph: &ModuleGraph,
-  ) -> Result<BoxSource> {
+    args: &RenderModulePackageContext,
+  ) -> Result<ConcatSource> {
+    let RenderModulePackageContext {
+      chunk,
+      context,
+      module_graph,
+    } = args;
+
     let mut source = ConcatSource::default();
     let req = module.readable_identifier(context);
     let req_str = COMMENT_END_REGEX.replace_all(&req, "*_/");
@@ -169,6 +181,6 @@ impl ModuleInfoHeaderPlugin {
     }
 
     source.add(module_source);
-    Ok(Arc::new(source))
+    Ok(source)
   }
 }

@@ -5,6 +5,7 @@ use std::{
 
 use rspack_error::{Diagnostic, Result, TWithDiagnosticArray};
 use rspack_loader_runner::{LoaderContext, ResourceData};
+use rspack_sources::ConcatSource;
 use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
 
@@ -12,7 +13,7 @@ use crate::{
   AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, ApplyContext,
   AssetEmittedArgs, BeforeResolveArgs, BoxLoader, BoxModule, BoxedParserAndGeneratorBuilder,
   ChunkContentHash, ChunkHashArgs, Compilation, CompilationHooks, CompilerHooks, CompilerOptions,
-  Content, ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs, LoaderRunnerContext,
+  Content, ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs, LoaderRunnerContext, Module,
   ModuleIdentifier, ModuleType, NormalModule, NormalModuleAfterResolveArgs, NormalModuleCreateData,
   NormalModuleFactoryHooks, OptimizeChunksArgs, Plugin,
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginAdditionalModuleRequirementsOutput,
@@ -23,8 +24,8 @@ use crate::{
   PluginRenderChunkHookOutput, PluginRenderHookOutput, PluginRenderManifestHookOutput,
   PluginRenderModuleContentOutput, PluginRenderStartupHookOutput,
   PluginRuntimeRequirementsInTreeOutput, ProcessAssetsArgs, RenderArgs, RenderChunkArgs,
-  RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, Resolver, ResolverFactory,
-  RuntimeRequirementsInTreeArgs, Stats,
+  RenderManifestArgs, RenderModuleContentArgs, RenderModulePackageContext, RenderStartupArgs,
+  Resolver, ResolverFactory, RuntimeRequirementsInTreeArgs, Stats,
 };
 
 pub struct PluginDriver {
@@ -577,5 +578,19 @@ impl PluginDriver {
       plugin.seal(compilation)?;
     }
     Ok(())
+  }
+
+  #[instrument(name = "plugin:render_module_package", skip_all)]
+  pub fn render_module_package(
+    &self,
+    module_source: ConcatSource,
+    module: &dyn Module,
+    args: &RenderModulePackageContext,
+  ) -> Result<ConcatSource> {
+    let mut module_source = module_source;
+    for plugin in &self.plugins {
+      module_source = plugin.render_module_package(module_source, module, args)?;
+    }
+    Ok(module_source)
   }
 }

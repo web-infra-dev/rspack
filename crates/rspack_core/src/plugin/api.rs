@@ -3,17 +3,18 @@ use std::{fmt::Debug, path::Path};
 use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_hash::RspackHashDigest;
 use rspack_loader_runner::{Content, LoaderContext, ResourceData};
-use rspack_sources::BoxSource;
+use rspack_sources::{BoxSource, ConcatSource};
 use rustc_hash::FxHashMap;
 
 use crate::{
   AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, AssetEmittedArgs,
   AssetInfo, BoxLoader, BoxModule, ChunkHashArgs, Compilation, CompilationHooks, CompilerHooks,
   CompilerOptions, ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs, LoaderRunnerContext,
-  ModuleFactoryResult, ModuleIdentifier, ModuleType, NormalModule, NormalModuleAfterResolveArgs,
-  NormalModuleCreateData, NormalModuleFactoryHooks, OptimizeChunksArgs, ParserAndGenerator,
-  PluginContext, ProcessAssetsArgs, RenderArgs, RenderChunkArgs, RenderManifestArgs,
-  RenderModuleContentArgs, RenderStartupArgs, Resolver, RuntimeRequirementsInTreeArgs, SourceType,
+  Module, ModuleFactoryResult, ModuleIdentifier, ModuleType, NormalModule,
+  NormalModuleAfterResolveArgs, NormalModuleCreateData, NormalModuleFactoryHooks,
+  OptimizeChunksArgs, ParserAndGenerator, PluginContext, ProcessAssetsArgs, RenderArgs,
+  RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs, RenderModulePackageContext,
+  RenderStartupArgs, Resolver, RuntimeRequirementsInTreeArgs, SourceType,
 };
 
 #[derive(Debug, Clone)]
@@ -332,6 +333,15 @@ pub trait Plugin: Debug + Send + Sync {
 
   fn seal(&self, _compilation: &mut Compilation) -> Result<()> {
     Ok(())
+  }
+
+  fn render_module_package(
+    &self,
+    module_source: ConcatSource,
+    _module: &dyn Module,
+    _args: &RenderModulePackageContext,
+  ) -> Result<ConcatSource> {
+    Ok(module_source)
   }
 }
 
