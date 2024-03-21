@@ -6,11 +6,11 @@ use serde_json::json;
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
-  compile_boolean_matcher_from_lists, get_import_var, property_access, to_comment,
-  to_normal_comment, AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, DependenciesBlock,
-  DependencyId, ExportsArgument, ExportsType, FakeNamespaceObjectMode, InitFragmentExt,
-  InitFragmentKey, InitFragmentStage, Module, ModuleGraph, ModuleIdentifier, NormalInitFragment,
-  RuntimeCondition, RuntimeGlobals, RuntimeSpec, TemplateContext,
+  compile_boolean_matcher_from_lists, property_access, to_comment, to_normal_comment,
+  AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, DependenciesBlock, DependencyId,
+  ExportsArgument, ExportsType, FakeNamespaceObjectMode, InitFragmentExt, InitFragmentKey,
+  InitFragmentStage, Module, ModuleGraph, ModuleIdentifier, NormalInitFragment, RuntimeCondition,
+  RuntimeGlobals, RuntimeSpec, TemplateContext,
 };
 
 pub fn runtime_condition_expression(
@@ -298,7 +298,7 @@ pub fn import_statement(
 
   runtime_requirements.insert(RuntimeGlobals::REQUIRE);
 
-  let import_var = get_import_var(compilation.get_module_graph(), *id);
+  let import_var = compilation.get_module_graph().get_import_var(id);
 
   let opt_declaration = if update { "" } else { "var " };
 
