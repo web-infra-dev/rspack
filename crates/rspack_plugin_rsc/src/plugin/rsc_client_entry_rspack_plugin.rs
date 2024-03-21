@@ -64,30 +64,9 @@ impl Plugin for RSCClientEntryRspackPlugin {
   async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
     let now = Instant::now();
     let mut client_imports: HashMap<String, HashSet<String>> = HashMap::new();
-    let mut entrypoints: HashMap<String, String> = HashMap::new();
-    for (name, entry) in &compilation.entries {
-      let mg = compilation.get_module_graph();
-      let entry_module = mg
-        .get_module_by_dependency_id(&entry.dependencies[0])
-        .expect("should exist");
-      let data = entry_module
-        .as_normal_module()
-        .and_then(|m| Some(m.resource_resolved_data()));
-      if let Some(data) = data {
-        let resource_path = &data.resource_path;
-        let resource_path_str = resource_path.to_str().expect("Should exits");
-        entrypoints.insert(name.clone(), String::from(resource_path_str));
-      }
-    }
     for (name, entry) in &compilation.entries {
       let mut collected_client_imports: HashSet<String> = HashSet::new();
       let mut visited_modules: HashSet<String> = HashSet::new();
-      // TODO: should only controlled by spa mod
-      for (other_name, other_entry) in &entrypoints {
-        if other_name.clone() != name.clone() {
-          visited_modules.insert(other_entry.clone());
-        }
-      }
       let mg = compilation.get_module_graph();
       let entry_module = mg
         .get_module_by_dependency_id(&entry.dependencies[0])
@@ -100,7 +79,16 @@ impl Plugin for RSCClientEntryRspackPlugin {
       );
       client_imports.insert(String::from(name), collected_client_imports);
     }
-    for (name, value) in client_imports {
+    // all other entries depend on this entry
+    let main_name = "server-entry";
+    let cc = client_imports.clone();
+    let main = cc.get(main_name).unwrap();
+    for (name, value) in client_imports.iter_mut() {
+      if name != main_name {
+        for import in main {
+          value.remove(import.as_str());
+        }
+      }
       let content = to_string(&value);
       match content {
         Ok(content) => {
