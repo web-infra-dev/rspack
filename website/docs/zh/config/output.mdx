@@ -28,7 +28,7 @@ Asset module 输出的文件名称。这个值可以被 [Rule.generator.filename
 
 ## output.filename
 
-- **类型：** `string`
+- **类型：** `string | (pathData: PathData, assetInfo?: JsAssetInfo) => string`
 - **默认值：** `'[name].js'`
 
 这个选项决定了输出的 JavaScript bundle 文件名称。这些 bundle 将会被写入 `output.path` 指定的目录下。
@@ -96,11 +96,23 @@ module.exports = {
 };
 ```
 
+使用函数来返回文件名：
+
+```ts title="rspack.config.js"
+module.exports = {
+  output: {
+    filename: (pathData) => {
+      return pathData.chunk.name === 'main' ? '[name].js' : '[name]/[name].js';
+    },
+  },
+};
+```
+
 更多可以参考 [Template String](/config/output.html#template-string)。
 
 ## output.chunkFilename
 
-- **类型：** `string`
+- **类型：** `string | (pathData: PathData, assetInfo?: JsAssetInfo) => string`
 - **默认值：** 根据 [`output.filename`](/config/output.html#outputfilename) 推断
 - **支持的 Template String：**
   - [Compilation Context](/config/output.html#compilation-context)
@@ -229,14 +241,14 @@ module.exports = {
 
 ## output.cssFilename
 
-- **类型：** `string`
+- **类型：** `string | (pathData: PathData, assetInfo?: JsAssetInfo) => string`
 - **默认值：** 根据 [`output.filename`](/config/output.html#outputfilename) 推断
 
 此选项决定了 CSS 文件的名称。
 
 ## output.cssChunkFilename
 
-- **类型：** `string`
+- **类型：** `string | (pathData: PathData, assetInfo?: JsAssetInfo) => string`
 - **默认值：** 根据 [`output.chunkFilename`](/config/output.html#outputchunkfilename) 推断
 - **支持的 Template String：**
   - [Compilation Context](/config/output.html#compilation-context)

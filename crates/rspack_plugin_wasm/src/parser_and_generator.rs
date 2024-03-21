@@ -5,12 +5,14 @@ use indexmap::IndexMap;
 use rspack_core::rspack_sources::{BoxSource, RawSource, Source, SourceExt};
 use rspack_core::DependencyType::WasmImport;
 use rspack_core::{
-  AssetInfo, BoxDependency, BuildMetaExportsType, Compilation, Filename, GenerateContext, Module,
-  ModuleDependency, ModuleIdentifier, NormalModule, ParseContext, ParseResult, ParserAndGenerator,
-  PathData, RuntimeGlobals, SourceType, StaticExportsDependency, StaticExportsSpec, UsedName,
+  AssetInfo, BoxDependency, BuildMetaExportsType, Compilation, FilenameTemplate, GenerateContext,
+  Module, ModuleDependency, ModuleIdentifier, NormalModule, ParseContext, ParseResult,
+  ParserAndGenerator, PathData, RuntimeGlobals, SourceType, StaticExportsDependency,
+  StaticExportsSpec, UsedName,
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_identifier::Identifier;
+use rspack_util::infallible::ResultInfallibleExt as _;
 use swc_core::atoms::Atom;
 use wasmparser::{Import, Parser, Payload};
 
@@ -285,16 +287,18 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
 fn render_wasm_name(
   compilation: &Compilation,
   normal_module: &NormalModule,
-  wasm_filename_template: &Filename,
+  wasm_filename_template: &FilenameTemplate,
   hash: &str,
 ) -> (String, AssetInfo) {
-  compilation.get_asset_path_with_info(
-    wasm_filename_template,
-    PathData::default()
-      .filename(&normal_module.resource_resolved_data().resource)
-      .content_hash(hash)
-      .hash(hash),
-  )
+  compilation
+    .get_asset_path_with_info(
+      wasm_filename_template,
+      PathData::default()
+        .filename(&normal_module.resource_resolved_data().resource)
+        .content_hash(hash)
+        .hash(hash),
+    )
+    .always_ok()
 }
 
 fn render_import_stmt(import_var: &str, module_id: &str) -> String {

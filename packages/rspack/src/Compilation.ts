@@ -28,7 +28,8 @@ import {
 	StatsOptions,
 	OutputNormalized,
 	StatsValue,
-	RspackPluginInstance
+	RspackPluginInstance,
+	Filename
 } from "./config";
 import * as liteTapable from "./lite-tapable";
 import { ContextModuleFactory } from "./ContextModuleFactory";
@@ -629,19 +630,19 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		};
 	}
 
-	getPath(filename: string, data: PathData = {}) {
+	getPath(filename: Filename, data: PathData = {}) {
 		return this.#inner.getPath(filename, data);
 	}
 
-	getPathWithInfo(filename: string, data: PathData = {}) {
+	getPathWithInfo(filename: Filename, data: PathData = {}) {
 		return this.#inner.getPathWithInfo(filename, data);
 	}
 
-	getAssetPath(filename: string, data: PathData = {}) {
+	getAssetPath(filename: Filename, data: PathData = {}) {
 		return this.#inner.getAssetPath(filename, data);
 	}
 
-	getAssetPathWithInfo(filename: string, data: PathData = {}) {
+	getAssetPathWithInfo(filename: Filename, data: PathData = {}) {
 		return this.#inner.getAssetPathWithInfo(filename, data);
 	}
 

@@ -16,6 +16,7 @@ rspack_error   = { path = "../rspack_error" }
 rspack_futures = { path = "../rspack_futures" }
 rspack_hash    = { path = "../rspack_hash" }
 rspack_hook    = { path = "../rspack_hook" }
+rspack_util    = { path = "../rspack_util" }
 rustc-hash     = { workspace = true }
 sugar_path     = { workspace = true }
 tokio          = { workspace = true, features = ["fs"] }

@@ -31,7 +31,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
     self.id
   }
 
-  fn generate(&self, compilation: &Compilation) -> BoxSource {
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     if let Some(chunk_ukey) = self.chunk {
       let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
       let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk_ukey);
@@ -65,7 +65,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
       }
 
       if !with_hmr && !with_loading && initial_chunk_ids_with_css.is_empty() {
-        return RawSource::from("").boxed();
+        return Ok(RawSource::from("").boxed());
       }
 
       let mut source = ConcatSource::default();
@@ -106,7 +106,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         source.add(RawSource::from(include_str!("./css_loading_with_hmr.js")));
       }
 
-      source.boxed()
+      Ok(source.boxed())
     } else {
       unreachable!("should attach chunk for css_loading")
     }

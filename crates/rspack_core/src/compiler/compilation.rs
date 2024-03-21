@@ -14,7 +14,7 @@ use rspack_error::{error, Diagnostic, Result, Severity, TWithDiagnosticArray};
 use rspack_futures::FuturesResults;
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_hook::{AsyncSeries2Hook, AsyncSeries3Hook, AsyncSeriesHook, SyncSeries4Hook};
-use rspack_identifier::{Identifiable, IdentifierMap, IdentifierSet};
+use rspack_identifier::{Identifiable, Identifier, IdentifierMap, IdentifierSet};
 use rspack_sources::{BoxSource, CachedSource, SourceExt};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use swc_core::ecma::ast::ModuleItem;
@@ -34,8 +34,8 @@ use crate::{
   CacheOptions, Chunk, ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey,
   ChunkHashArgs, ChunkKind, ChunkUkey, CodeGenerationResults, CompilationLogger,
   CompilationLogging, CompilerOptions, ContentHashArgs, DependencyId, DependencyType, Entry,
-  EntryData, EntryOptions, Entrypoint, ErrorSpan, FactorizeQueueHandler, Filename, Logger, Module,
-  ModuleFactory, ModuleGraph, ModuleIdentifier, PathData, ProcessAssetsArgs,
+  EntryData, EntryOptions, Entrypoint, ErrorSpan, FactorizeQueueHandler, Filename, LocalFilenameFn,
+  Logger, Module, ModuleFactory, ModuleGraph, ModuleIdentifier, PathData, ProcessAssetsArgs,
   ProcessDependenciesQueueHandler, RenderManifestArgs, ResolverFactory, RuntimeGlobals,
   RuntimeModule, RuntimeRequirementsInTreeArgs, RuntimeSpec, SharedPluginDriver, SourceType, Stats,
 };
@@ -1180,7 +1180,7 @@ impl Compilation {
 
     // runtime chunks should be hashed after all other chunks
     let start = logger.time("hashing: hash runtime chunks");
-    self.create_runtime_module_hash();
+    self.create_runtime_module_hash()?;
 
     let runtime_chunk_hash_results: Vec<Result<(ChunkUkey, (RspackHashDigest, ChunkContentHash))>> =
       runtime_chunk_ukeys
@@ -1287,21 +1287,24 @@ impl Compilation {
   // }
 
   #[instrument(name = "compilation:create_runtime_module_hash", skip_all)]
-  pub fn create_runtime_module_hash(&mut self) {
+  pub fn create_runtime_module_hash(&mut self) -> Result<()> {
     self.runtime_module_code_generation_results = self
       .runtime_modules
       .par_iter()
-      .map(|(identifier, module)| {
-        let source = module.generate_with_custom(self);
-        let mut hasher = RspackHash::from(&self.options.output);
-        module.identifier().hash(&mut hasher);
-        source.source().hash(&mut hasher);
-        (
-          *identifier,
-          (hasher.digest(&self.options.output.hash_digest), source),
-        )
-      })
-      .collect();
+      .map(
+        |(identifier, module)| -> Result<(Identifier, (RspackHashDigest, BoxSource))> {
+          let source = module.generate_with_custom(self)?;
+          let mut hasher = RspackHash::from(&self.options.output);
+          module.identifier().hash(&mut hasher);
+          source.source().hash(&mut hasher);
+          Ok((
+            *identifier,
+            (hasher.digest(&self.options.output.hash_digest), source),
+          ))
+        },
+      )
+      .collect::<Result<IdentifierMap<(RspackHashDigest, BoxSource)>>>()?;
+    Ok(())
   }
 
   pub async fn add_runtime_module(
@@ -1336,38 +1339,46 @@ impl Compilation {
       .map(|hash| hash.rendered(self.options.output.hash_digest_length))
   }
 
-  pub fn get_path<'b, 'a: 'b>(&'a self, filename: &Filename, mut data: PathData<'b>) -> String {
-    if data.hash.is_none() {
-      data.hash = self.get_hash();
-    }
-    filename.render(data, None)
-  }
-
-  pub fn get_path_with_info<'b, 'a: 'b>(
+  pub fn get_path<'b, 'a: 'b, F: LocalFilenameFn>(
     &'a self,
-    filename: &Filename,
+    filename: &Filename<F>,
     mut data: PathData<'b>,
-  ) -> (String, AssetInfo) {
+  ) -> Result<String, F::Error> {
+    if data.hash.is_none() {
+      data.hash = self.get_hash();
+    }
+    filename.render(data, None)
+  }
+
+  pub fn get_path_with_info<'b, 'a: 'b, F: LocalFilenameFn>(
+    &'a self,
+    filename: &Filename<F>,
+    mut data: PathData<'b>,
+  ) -> Result<(String, AssetInfo), F::Error> {
     let mut info = AssetInfo::default();
     if data.hash.is_none() {
       data.hash = self.get_hash();
     }
-    let path = filename.render(data, Some(&mut info));
-    (path, info)
+    let path = filename.render(data, Some(&mut info))?;
+    Ok((path, info))
   }
 
-  pub fn get_asset_path(&self, filename: &Filename, data: PathData) -> String {
+  pub fn get_asset_path<F: LocalFilenameFn>(
+    &self,
+    filename: &Filename<F>,
+    data: PathData,
+  ) -> Result<String, F::Error> {
     filename.render(data, None)
   }
 
-  pub fn get_asset_path_with_info(
+  pub fn get_asset_path_with_info<F: LocalFilenameFn>(
     &self,
-    filename: &Filename,
+    filename: &Filename<F>,
     data: PathData,
-  ) -> (String, AssetInfo) {
+  ) -> Result<(String, AssetInfo), F::Error> {
     let mut info = AssetInfo::default();
-    let path = filename.render(data, Some(&mut info));
-    (path, info)
+    let path = filename.render(data, Some(&mut info))?;
+    Ok((path, info))
   }
 
   pub fn get_logger(&self, name: impl Into<String>) -> CompilationLogger {

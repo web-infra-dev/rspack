@@ -4,17 +4,18 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::tree_shaking::webpack_ext::ExportInfoExt;
 use rspack_core::{
-  property_access, ApplyContext, ChunkUkey, CompilerOptions, EntryData, LibraryExport, LibraryName,
-  LibraryNonUmdObject, UsageState,
+  property_access, ApplyContext, ChunkUkey, CompilerOptions, EntryData, FilenameTemplate,
+  LibraryExport, LibraryName, LibraryNonUmdObject, UsageState,
 };
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceExt},
-  to_identifier, Chunk, Compilation, Filename, JsChunkHashArgs, LibraryOptions, PathData, Plugin,
+  to_identifier, Chunk, Compilation, JsChunkHashArgs, LibraryOptions, PathData, Plugin,
   PluginContext, PluginJsChunkHashHookOutput, PluginRenderHookOutput,
   PluginRenderStartupHookOutput, RenderArgs, RenderStartupArgs, SourceType,
 };
 use rspack_error::{error, error_bail, Result};
 use rspack_hook::{plugin, plugin_hook, AsyncSeries};
+use rspack_util::infallible::ResultInfallibleExt as _;
 
 use crate::utils::{get_options_for_chunk, COMMON_LIBRARY_NAME_MESSAGE};
 
@@ -144,15 +145,17 @@ impl AssignLibraryPlugin {
     if let Some(name) = options.name {
       let mut prefix = self.options.prefix.value(compilation);
       let get_path = |v: &str| {
-        compilation.get_path(
-          &Filename::from(v.to_owned()),
-          PathData::default().chunk(chunk).content_hash_optional(
-            chunk
-              .content_hash
-              .get(&SourceType::JavaScript)
-              .map(|i| i.rendered(compilation.options.output.hash_digest_length)),
-          ),
-        )
+        compilation
+          .get_path(
+            &FilenameTemplate::from(v.to_owned()),
+            PathData::default().chunk(chunk).content_hash_optional(
+              chunk
+                .content_hash
+                .get(&SourceType::JavaScript)
+                .map(|i| i.rendered(compilation.options.output.hash_digest_length)),
+            ),
+          )
+          .always_ok()
       };
       match name {
         LibraryNonUmdObject::Array(arr) => {

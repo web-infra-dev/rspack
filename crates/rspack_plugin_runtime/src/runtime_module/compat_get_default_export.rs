@@ -27,7 +27,7 @@ impl RuntimeModule for CompatGetDefaultExportRuntimeModule {
     self.id
   }
 
-  fn generate(&self, _compilation: &Compilation) -> BoxSource {
-    RawSource::from(include_str!("runtime/compat_get_default_export.js")).boxed()
+  fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+    Ok(RawSource::from(include_str!("runtime/compat_get_default_export.js")).boxed())
   }
 }
