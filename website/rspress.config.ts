@@ -2,6 +2,7 @@ import path from 'node:path';
 import { defineConfig } from 'rspress/config';
 import type { NavItem, Sidebar } from '@rspress/shared';
 import { pluginRss, type PluginRssOption } from './rspress/plugin-rss';
+import { pluginFontOpenSans } from 'rspress-plugin-font-open-sans';
 import { toArray } from './rspress/plugin-rss/utils';
 
 const PUBLISH_URL = 'https://rspack.dev';
@@ -426,6 +427,7 @@ export default defineConfig({
 			},
 			toFeedItem,
 		}),
+		pluginFontOpenSans(),
 	],
 	themeConfig: {
 		footer: {
