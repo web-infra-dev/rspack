@@ -107,7 +107,7 @@ var parseRange = function(str) {
     if (items.length === 1) {
       const items = str
         .trim()
-        .split(/(?<=[-0-9A-Za-z])\s+/g)
+        .split(/([-0-9A-Za-z])\s+/g)
         .map(parseSimple);
       return combine(items, 2);
     }
