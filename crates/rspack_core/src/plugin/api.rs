@@ -3,7 +3,7 @@ use std::{fmt::Debug, path::Path};
 use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_hash::RspackHashDigest;
 use rspack_loader_runner::{Content, LoaderContext, ResourceData};
-use rspack_sources::{BoxSource, ConcatSource};
+use rspack_sources::BoxSource;
 use rustc_hash::FxHashMap;
 
 use crate::{
@@ -329,10 +329,10 @@ pub trait Plugin: Debug + Send + Sync {
 
   fn render_module_package(
     &self,
-    module_source: ConcatSource,
+    module_source: BoxSource,
     _module: &dyn Module,
     _args: &RenderModulePackageContext,
-  ) -> Result<ConcatSource> {
+  ) -> Result<BoxSource> {
     Ok(module_source)
   }
 }

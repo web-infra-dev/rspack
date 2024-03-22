@@ -174,7 +174,11 @@ fn render_module(
     chunk_graph,
   };
   plugin_driver
-    .render_module_package(sources, module.as_ref(), &render_module_package_args)
+    .render_module_package(
+      sources.boxed(),
+      module.as_ref(),
+      &render_module_package_args,
+    )
     .map(|source| source.boxed())
 }
 

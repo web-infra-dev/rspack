@@ -5,7 +5,7 @@ use std::{
 
 use rspack_error::{Diagnostic, Result, TWithDiagnosticArray};
 use rspack_loader_runner::{LoaderContext, ResourceData};
-use rspack_sources::ConcatSource;
+use rspack_sources::BoxSource;
 use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
 
@@ -566,10 +566,10 @@ impl PluginDriver {
   #[instrument(name = "plugin:render_module_package", skip_all)]
   pub fn render_module_package(
     &self,
-    module_source: ConcatSource,
+    module_source: BoxSource,
     module: &dyn Module,
     args: &RenderModulePackageContext,
-  ) -> Result<ConcatSource> {
+  ) -> Result<BoxSource> {
     let mut module_source = module_source;
     for plugin in &self.plugins {
       module_source = plugin.render_module_package(module_source, module, args)?;

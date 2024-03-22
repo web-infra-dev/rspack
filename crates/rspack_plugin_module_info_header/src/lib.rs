@@ -7,7 +7,7 @@ use rspack_core::{
   PluginChunkHashHookOutput, PluginContext, RenderModulePackageContext, UsageState,
 };
 use rspack_error::Result;
-use rspack_sources::{ConcatSource, RawSource};
+use rspack_sources::{BoxSource, CachedSource, ConcatSource, RawSource, SourceExt};
 use rustc_hash::FxHashSet as HashSet;
 
 static COMMENT_END_REGEX: Lazy<Regex> =
@@ -136,10 +136,15 @@ impl Plugin for ModuleInfoHeaderPlugin {
 
   fn render_module_package(
     &self,
-    module_source: ConcatSource,
+    module_source: BoxSource,
     module: &dyn Module,
     args: &RenderModulePackageContext,
-  ) -> Result<ConcatSource> {
+  ) -> Result<BoxSource> {
+    let module_source = match module_source.as_any().downcast_ref::<ConcatSource>() {
+      Some(s) => s.clone(),
+      None => ConcatSource::new([module_source]),
+    };
+
     let RenderModulePackageContext {
       chunk,
       context,
@@ -199,14 +204,12 @@ impl Plugin for ModuleInfoHeaderPlugin {
         source.add(RawSource::from(to_comment(&format!("{}\n", text))));
       }
       source.add(module_source);
-      return Ok(source);
+      return Ok(source.boxed());
     }
 
     source.add(module_source);
-    // TODO: wrap with CachedSource
-    // let cached_source = CachedSource::new(source);
-    // Ok(cached_source)
-    Ok(source)
+    let cached_source = CachedSource::new(source);
+    Ok(cached_source.boxed())
   }
 
   async fn chunk_hash(
