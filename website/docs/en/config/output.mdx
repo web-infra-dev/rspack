@@ -1,0 +1,1326 @@
+import WebpackLicense from '../../../components/webpack-license';
+import { ApiMeta, Stability } from '../../../components/ApiMeta';
+
+<WebpackLicense from="https://webpack.js.org/configuration/output/" />
+
+# Output
+
+Used to indicate how and where Rspack outputs the contents of the generated file.
+
+- **Type:** `Object`
+
+## output.assetModuleFilename
+
+- **Type:** `string`
+- **Default:** `'[hash][ext][query]'`
+- **Supported Template String:**
+  - [Module Context](/config/output.html#module-context)
+  - [File Context](/config/output.html#file-context)
+
+The name of the file to be output by the Asset module. This value can be overridden by [Rule.generator.filename](/config/module.html#rulegeneratorfilename).
+
+:::info Asset module output as a separate file
+
+- Module type is `'asset'` and asset is set to satisfy [Rule.parser.dataUrlCondition](/config/module.html#ruleparserdataurlcondition)
+- Module type is `'asset/resource'`
+
+:::
+
+## output.filename
+
+- **Type:** `string | (pathData: PathData, assetInfo?: JsAssetInfo) => string`
+- **Default:** `'[name].js'`
+
+This option determines the name of the JavaScript bundle file to be output. These bundles will be written to the directory specified by `output.path`.
+
+For a single [Entry](/config/entry.html), you can use a static name such as:
+
+```ts title="rspack.config.js"
+module.exports = {
+  output: {
+    filename: 'bundle.js',
+  },
+};
+```
+
+For multiple [Entry](/config/entry.html), or other cases where multiple bundles can be split, you need to dynamically generate the filename of the bundle in the following way:
+
+:::info Description of other cases where multiple bundles can be split
+
+Rspack performs code splitting optimizations on user input code, which may include, but are not limited to, code splitting, bundle splitting, or splitting implemented through other plugins.
+These splitting actions can result in multiple bundles being generated, so the filenames of the bundles need to be generated dynamically.
+
+{
+// TODO: Add Glossary link
+}
+
+:::
+
+Use [Entry](/config/entry.html) name.
+
+```ts title="rspack.config.js"
+module.exports = {
+  output: {
+    filename: '[name].bundle.js',
+  },
+};
+```
+
+Using the internally generated chunk id.
+
+```ts title="rspack.config.js"
+module.exports = {
+  output: {
+    filename: '[id].bundle.js',
+  },
+};
+```
+
+Using hash generated from file content.
+
+```ts title="rspack.config.js"
+module.exports = {
+  output: {
+    filename: '[contenthash].bundle.js',
+  },
+};
+```
+
+Of course you can also use a combination of each.
+
+```ts title="rspack.config.js"
+module.exports = {
+  output: {
+    filename: '[name].[contenthash].bundle.js',
+  },
+};
+```
+
+Using the function to return the filename.
+
+```ts title="rspack.config.js"
+module.exports = {
+  output: {
+    filename: (pathData) => {
+      return pathData.chunk.name === 'main' ? '[name].js' : '[name]/[name].js';
+    },
+  },
+};
+```
+
+More can be found in [Template String](/config/output.html#template-string).
+
+## output.chunkFilename
+
+- **Type:** `string | (pathData: PathData, assetInfo?: JsAssetInfo) => string`
+- **Default:** inferred from [`output.filename`](/config/output.html#outputfilename)
+- **Supported Template String:**
+  - [Compilation Context](/config/output.html#compilation-context)
+  - [Chunk Context](/config/output.html#chunk-context)
+
+This option determines the name of the non-initial JavaScript chunk file.
+
+## output.chunkFormat
+
+- **Type:** `false | 'array-push' | 'commonjs' | 'module'`
+
+The format of chunks, The default value of this option depends on the [`target`](/en/config/target.html) and [`output.module`](#outputmodule) setting. In general, the `'array-push'` format is used when the target is web or webworker, the `'module'` format is used when it is ESM, and the `'commonjs'` format is used when it is node.js.
+
+```ts title="rspack.config.js"
+module.exports = {
+  output: {
+    chunkFormat: 'commonjs',
+  },
+};
+```
+
+## output.chunkLoading
+
+- **Type:** `false | 'jsonp' | 'import-scripts' | 'require' | 'async-node' | 'import'`
+
+The method to load chunks, The default value of this option depends on the [`target`](/config/target.html) and [`chunkFormat`](#outputchunkformat) setting. In general, `'jsonp'` is used to load chunks when target is web; `'import'` is used to load chunks when ESM; `'import-scripts'` is used to load chunks when webworker; `'require'` is used to load chunks when node.js; `'async-node'` (`fs.readFile` + `vm.runInThisContext`) is used to load chunks when async node.js.
+
+```ts title="rspack.config.js"
+module.exports = {
+  output: {
+    chunkLoading: 'async-node',
+  },
+};
+```
+
+## output.chunkLoadingGlobal
+
+- **Type:** `string`
+- **Default:** inferred from [`output.uniqueName`](/config/output.html#outputuniquename)
+  - `webpackChunk${output.uniqueName}`
+
+This option determines the global variable is used by Rspack for loading chunks.
+
+```ts title="rspack.config.js"
+module.exports = {
+  output: {
+    chunkLoadingGlobal: 'myCustomFunc',
+  },
+};
+```
+
+## output.devtoolFallbackModuleFilenameTemplate
+
+- **Type:** `string` | `function (info)`
+
+A fallback is used when the template string or function above yields duplicates.
+
+See [`output.devtoolModuleFilenameTemplate`](/en/config/output.html#outputdevtoolmodulefilenametemplate).
+
+## output.devtoolModuleFilenameTemplate
+
+- **Type:** `string = 'webpack://[namespace]/[resource-path]?[loaders]'` | `function (info) => string`
+
+This option is only used when [`devtool`](/en/config/devtool.html) uses an option that requires module names.
+
+Customize the names used in each source map's `sources` array. This can be done by passing a template string or function. For example, when using `devtool: 'eval'`.
+
+```js
+module.exports = {
+  //...
+  output: {
+    devtoolModuleFilenameTemplate:
+      'webpack://[namespace]/[resource-path]?[loaders]',
+  },
+};
+```
+
+The following substitutions are available in template strings:
+
+| Template                 | Description                                                                                         |
+| ------------------------ | --------------------------------------------------------------------------------------------------- |
+| [absolute-resource-path] | The absolute filename                                                                               |
+| [all-loaders]            | Automatic and explicit loaders and params up to the name of the first loader                        |
+| [hash]                   | The hash of the module identifier                                                                   |
+| [id]                     | The module identifier                                                                               |
+| [loaders]                | Explicit loaders and params up to the name of the first loader                                      |
+| [resource]               | The path used to resolve the file and any query params used on the first loader                     |
+| [resource-path]          | The path used to resolve the file without any query params                                          |
+| [namespace]              | The modules namespace. This is usually the library name when building as a library, empty otherwise |
+
+When using a function, the same options are available camel-cased via the `info` parameter:
+
+```js
+module.exports = {
+  //...
+  output: {
+    devtoolModuleFilenameTemplate: (info) => {
+      return `webpack:///${info.resourcePath}?${info.loaders}`;
+    },
+  },
+};
+```
+
+If multiple modules would result in the same name, [`output.devtoolFallbackModuleFilenameTemplate`](/en/config/output.html#outputdevtoolfallbackmodulefilenametemplate) is used instead for these modules.
+
+## output.devtoolNamespace
+
+This option determines the module's namespace used with the [`output.devtoolModuleFilenameTemplate`](/en/config/output.html#outputdevtoolmodulefilenametemplate). When not specified, it will default to the value of: [`output.uniqueName`](/en/config/output.html#outputuniquename). It's used to prevent source file path collisions in sourcemaps when loading multiple libraries built with Rspack.
+
+For example, if you have 2 libraries, with namespaces `library1` and `library2`, which both have a file `./src/index.js` (with potentially different contents), they will expose these files as `webpack://library1/./src/index.js` and `webpack://library2/./src/index.js`.
+
+## output.enabledChunkLoadingTypes
+
+- **Type:** `string[]`
+
+Enables available runtime module bundling of chunkLoadingType.
+
+```javascript
+module.exports = {
+  //...
+  output: {
+    enabledChunkLoadingTypes: ['import'],
+  },
+};
+```
+
+## output.cssFilename
+
+- **Type:** `string | (pathData: PathData, assetInfo?: JsAssetInfo) => string`
+- **Default:** inferred from [`output.filename`](/config/output.html#outputfilename)
+
+This option determines the name of the CSS file.
+
+## output.cssChunkFilename
+
+- **Type:** `string | (pathData: PathData, assetInfo?: JsAssetInfo) => string`
+- **Default:** inferred from [`output.chunkFilename`](/config/output.html#outputchunkfilename)
+- **Supported Template String:**
+  - [Compilation Context](/config/output.html#compilation-context)
+  - [Chunk Context](/config/output.html#chunk-context)
+
+This option determines the name of the non-initial CSS chunk file.
+
+## output.crossOriginLoading
+
+- **Type:** `false | 'anonymous' | 'use-credentials'`
+- **Default:** `false`
+
+The `crossOriginLoading` config allows you to set the [crossorigin attribute](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/script#attr-crossorigin) for dynamically loaded chunks.
+
+If `target` is `'web'`, Rspack will dynamically create `<script>` and `<link>` tags to load asynchronous JavaScript and CSS resources. Rspack will add the `crossorigin` attribute to the `<script>` and `<link>` tags if the URLs of these resources are on other domains and `crossOriginLoading` is not `false`.
+
+### Optional values
+
+`crossOriginLoading` has the following optional values:
+
+- `false`: Do not set the [crossorigin attribute](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/script#attr-crossorigin).
+- `'anonymous'`: Set `crossorigin` to `'anonymous'` to enable cross-origin without user credentials.
+- `'use-credentials'`: Set `crossorigin` to `'use-credentials'` enable cross-origin with user credentials.
+
+### Example
+
+For example, set `output.publicPath` to `https://example.com/` and `output.crossOriginLoading` to `'anonymous'`:
+
+```ts title="rspack.config.js"
+const path = require('path');
+
+module.exports = {
+  output: {
+    publicPath: 'https://example.com/',
+    crossOriginLoading: 'anonymous',
+  },
+};
+```
+
+When Rspack dynamically loads JavaScript resources, it will generate the following HTML:
+
+```html
+<script src="https://example.com/foo.js" crossorigin="anonymous"></script>
+```
+
+## output.path
+
+- **Type:** `string`
+- **Default:** `path.resolve(process.cwd(), 'dist')`
+
+Output the absolute path to the file directory.
+
+```ts title="rspack.config.js"
+const path = require('path');
+
+module.exports = {
+  output: {
+    path: path.resolve(__dirname, 'dist/assets'),
+  },
+};
+```
+
+## output.publicPath
+
+- **Type:** `string`
+- **Default:** targets are `'web'` or `'web-worker'` when it is `'auto'`
+
+This option determines the URL prefix of the referenced resource, such as: image, file, etc.
+
+For example, given a configuration file.
+
+```ts title="rspack.config.js"
+module.exports = {
+  output: {
+    publicPath: '/assets/',
+    chunkFilename: '[id].chunk.js',
+    assetModuleFilename: '[name][ext]',
+  },
+};
+```
+
+For a non-initial chunk file, its request URL looks like this: `/assets/1.chunk.js`.
+
+For a reference to an image, the request URL looks like this: `/assets/logo.png`.
+
+Also, it is useful when you deploy the product using a CDN
+
+```ts title="rspack.config.js"
+module.exports = {
+  output: {
+    publicPath: 'https://cdn.example.com/assets/',
+    assetModuleFilename: '[name][ext]',
+  },
+};
+```
+
+For all asset resources, their request URLs look like this: `https://cdn.example.com/assets/logo.png`.
+
+### Dynamically set publicPath
+
+You can set `publicPath` dynamically using `__webpack_public_path__` in the runtime code, and the `__webpack_public_path__` will override the `publicPath` in the Rspack config, but it will only take effect for dynamically loaded resources.
+
+First create a `publicPath.js`:
+
+```js title="publicPath.js"
+__webpack_public_path__ = 'https://cdn.example.com/assets/';
+```
+
+Then import it into the first line of the entry file:
+
+```js title="entry.js"
+import './publicPath.js';
+import './others.js';
+```
+
+## output.strictModuleErrorHandling
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+Handle module loading errors according to the ES Module specification, with performance loss.
+
+## Template String
+
+The template string below can be used to replace the corresponding file name. Different contexts correspond to different replaceable content, e.g. [output.assetModuleFilename](/config/output.html#outputassetmodulefilename) supports the use of [File Context](/config/output.html#file-context) and [Module Context](/config/output.html#module-context).
+
+### Compilation Context
+
+Content that can be replaced at the compilation level.
+
+| Template   | Description              |
+| ---------- | ------------------------ |
+| [fullhash] | full hash of compilation |
+
+### Chunk Context
+
+Content that can be replaced at the chunk level.
+
+| template      | description                                                                                                                                                                                                                               |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [id]          | The current chunk id                                                                                                                                                                                                                      |
+| [name]        | Use name when chunk name exists, otherwise use chunk id                                                                                                                                                                                   |
+| [chunkhash]   | The hash value of the chunk, computed from all elements of type in the current chunk                                                                                                                                                      |
+| [contenthash] | The hash value of the chunk, computed from the elements that contain only the content of that type. For example, if a module of type JavaScript is generated, only the hash of all JavaScript-typed modules in the current chunk is used. |
+
+### Module Context
+
+Content that can be replaced at the module level.
+
+| Template      | Description            |
+| ------------- | ---------------------- |
+| [id]          | The id of the module   |
+| [hash]        | The hash of the module |
+| [contenthash] | hash of module content |
+
+### File Context
+
+Content that can be replaced at the file level.
+
+| template | description                                                                                           |
+| -------- | ----------------------------------------------------------------------------------------------------- |
+| [query]  | The file query, containing `? `                                                                       |
+| [path]   | The path to the file, without the filename                                                            |
+| [name]   | file name, without extension and file path                                                            |
+| [ext]    | extension, contains `. ` (only available in [output.assetModuleFilename](#outputassetmodulefilename)) |
+
+## output.auxiliaryComment
+
+Prefer to use [`output.library.auxiliaryComment`](#outputlibraryauxiliarycomment) instead.
+
+- **Type:** `string` | `object`
+
+When used in tandem with [`output.library`](#outputlibrary) and [`output.libraryTarget`](#outputlibrarytarget), this option allows users to insert comments within the export wrapper. To insert the same comment for each `libraryTarget` type, set `auxiliaryComment` to a string:
+
+**rspack.config.js**
+
+```javascript
+module.exports = {
+  //...
+  output: {
+    library: 'someLibName',
+    libraryTarget: 'umd',
+    filename: 'someLibName.js',
+    auxiliaryComment: 'Test Comment',
+  },
+};
+```
+
+which will yield the following:
+
+**someLibName.js**
+
+```javascript
+(function webpackUniversalModuleDefinition(root, factory) {
+  // Test Comment
+  if (typeof exports === 'object' && typeof module === 'object')
+    module.exports = factory(require('lodash'));
+  // Test Comment
+  else if (typeof define === 'function' && define.amd)
+    define(['lodash'], factory);
+  // Test Comment
+  else if (typeof exports === 'object')
+    exports['someLibName'] = factory(require('lodash'));
+  // Test Comment
+  else root['someLibName'] = factory(root['_']);
+})(this, function (__WEBPACK_EXTERNAL_MODULE_1__) {
+  // ...
+});
+```
+
+For fine-grained control over each `libraryTarget` comment, pass an object:
+
+**rspack.config.js**
+
+```javascript
+module.exports = {
+  //...
+  output: {
+    //...
+    auxiliaryComment: {
+      root: 'Root Comment',
+      commonjs: 'CommonJS Comment',
+      commonjs2: 'CommonJS2 Comment',
+      amd: 'AMD Comment',
+    },
+  },
+};
+```
+
+## output.enabledLibraryTypes
+
+- **Type:** `[string]`
+
+List of library types enabled for use by entry points.
+
+```javascript
+module.exports = {
+  //...
+  output: {
+    enabledLibraryTypes: ['module'],
+  },
+};
+```
+
+## output.globalObject
+
+- **Type:** `string`
+- **Default:** `self`
+
+When targeting a library, especially when `libraryTarget` is `'umd'`, this option indicates what global object will be used to mount the library. To make UMD build available on both browsers and Node.js, set `output.globalObject` option to `'this'`. Defaults to `self` for Web-like targets.
+
+The return value of your entry point will be assigned to the global object using the value of `output.library.name`. Depending on the value of the `target` option, the global object could change respectively, e.g., `self`, `global`, or `globalThis`.
+
+For example:
+
+**rspack.config.js**
+
+```javascript
+module.exports = {
+  // ...
+  output: {
+    library: 'myLib',
+    libraryTarget: 'umd',
+    filename: 'myLib.js',
+    globalObject: 'this',
+  },
+};
+```
+
+## output.importFunctionName
+
+- **Type:** `string`
+- **Default:** `import`
+
+The name of the native `import()` function. Can be used for polyfilling, e.g. with [`dynamic-import-polyfill`](https://github.com/GoogleChromeLabs/dynamic-import-polyfill).
+
+**rspack.config.js**
+
+```javascript
+module.exports = {
+  //...
+  output: {
+    importFunctionName: '__import__',
+  },
+};
+```
+
+## output.library
+
+Output a library exposing the exports of your entry point.
+
+- **Type:** `string | string[] | object`
+
+Let's take a look at an example.
+
+**rspack.config.js**
+
+```js
+module.exports = {
+  // …
+  entry: './src/index.js',
+  output: {
+    library: 'MyLibrary',
+  },
+};
+```
+
+Say you have exported a function in your `src/index.js` entry:
+
+```js
+export function hello(name) {
+  console.log(`hello ${name}`);
+}
+```
+
+Now the variable `MyLibrary` will be bound with the exports of your entry file, and here's how to consume the rspack bundled library:
+
+```html
+<script src="https://example.org/path/to/my-library.js"></script>
+<script>
+  MyLibrary.hello('rspack');
+</script>
+```
+
+In the above example, we're passing a single entry file to `entry`, however, rspack can accept [many kinds of entry point](/config/entry), e.g., an `array`, or an `object`.
+
+1. If you provide an `array` as the `entry` point, only the last one in the array will be exposed.
+
+   ```js
+   module.exports = {
+     // …
+     entry: ['./src/a.js', './src/b.js'], // only exports in b.js will be exposed
+     output: {
+       library: 'MyLibrary',
+     },
+   };
+   ```
+
+2. If an `object` is provided as the `entry` point, all entries can be exposed using the `array` syntax of `library`:
+
+   ```js
+   module.exports = {
+     // …
+     entry: {
+       a: './src/a.js',
+       b: './src/b.js',
+     },
+     output: {
+       filename: '[name].js',
+       library: ['MyLibrary', '[name]'], // name is a placeholder here
+     },
+   };
+   ```
+
+   Assuming that both `a.js` and `b.js` export a function `hello`, here's how to consume the libraries:
+
+   ```html
+   <script src="https://example.org/path/to/a.js"></script>
+   <script src="https://example.org/path/to/b.js"></script>
+   <script>
+     MyLibrary.a.hello('rspack');
+     MyLibrary.b.hello('rspack');
+   </script>
+   ```
+
+### output.library.name
+
+```js
+module.exports = {
+  // …
+  output: {
+    library: {
+      name: 'MyLibrary',
+    },
+  },
+};
+```
+
+Specify a name for the library.
+
+- **Type:**
+
+  ```ts
+  string | string[] | {amd?: string, commonjs?: string, root?: string | string[]}
+  ```
+
+### output.library.type
+
+Configure how the library will be exposed.
+
+- **Type:** `string`
+
+  Types included by default are `'var'`, `'module'`, `'system'`, `'assign'`, `'assign-properties'`, `'this'`, `'window'`, `'self'`, `'global'`, `'commonjs'`, `'commonjs2'`, `'commonjs-module'`, `'commonjs-static'`, `'amd'`, `'amd-require'`, `'umd'`, `'umd2'`, but others might be added by plugins.
+
+For the following examples, we'll use `_entry_return_` to indicate the values returned by the entry point.
+
+#### Expose a Variable
+
+These options assign the return value of the entry point (e.g. whatever the entry point exported) to the name provided by [`output.library.name`](#outputlibraryname) at whatever scope the bundle was included at.
+
+##### type: 'var'
+
+```js
+module.exports = {
+  // …
+  output: {
+    library: {
+      name: 'MyLibrary',
+      type: 'var',
+    },
+  },
+};
+```
+
+When your library is loaded, the **return value of your entry point** will be assigned to a variable:
+
+```javascript
+var MyLibrary = _entry_return_;
+
+// In a separate script with `MyLibrary` loaded…
+MyLibrary.doSomething();
+```
+
+##### type: 'assign'
+
+```js
+module.exports = {
+  // …
+  output: {
+    library: {
+      name: 'MyLibrary',
+      type: 'assign',
+    },
+  },
+};
+```
+
+This will generate an implied global which has the potential to reassign an existing value (use with caution):
+
+```javascript
+MyLibrary = _entry_return_;
+```
+
+Be aware that if `MyLibrary` isn't defined earlier your library will be set in global scope.
+
+##### type: 'assign-properties'
+
+```js
+module.exports = {
+  // …
+  output: {
+    library: {
+      name: 'MyLibrary',
+      type: 'assign-properties',
+    },
+  },
+};
+```
+
+Similar to [`type: 'assign'`](#type-assign) but a safer option as it will reuse `MyLibrary` if it already exists:
+
+```js
+// only create MyLibrary if it doesn't exist
+MyLibrary = typeof MyLibrary === 'undefined' ? {} : MyLibrary;
+// then copy the return value to MyLibrary
+// similarly to what Object.assign does
+
+// for instance, you export a `hello` function in your entry as follow
+export function hello(name) {
+  console.log(`Hello ${name}`);
+}
+
+// In another script with MyLibrary loaded
+// you can run `hello` function like so
+MyLibrary.hello('World');
+```
+
+#### Expose Via Object Assignment
+
+These options assign the return value of the entry point (e.g. whatever the entry point exported) to a specific object under the name defined by [`output.library.name`](#outputlibraryname).
+
+##### type: 'this'
+
+```js
+module.exports = {
+  // …
+  output: {
+    library: {
+      name: 'MyLibrary',
+      type: 'this',
+    },
+  },
+};
+```
+
+The **return value of your entry point** will be assigned to `this` under the property named by `output.library.name`. The meaning of `this` is up to you:
+
+```javascript
+this['MyLibrary'] = _entry_return_;
+
+// In a separate script...
+this.MyLibrary.doSomething();
+MyLibrary.doSomething(); // if `this` is window
+```
+
+##### type: 'window'
+
+```js
+module.exports = {
+  // …
+  output: {
+    library: {
+      name: 'MyLibrary',
+      type: 'window',
+    },
+  },
+};
+```
+
+The **return value of your entry point** will be assigned to the `window` object using the `output.library.name` value.
+
+```javascript
+window['MyLibrary'] = _entry_return_;
+
+window.MyLibrary.doSomething();
+```
+
+##### type: 'global'
+
+```js
+module.exports = {
+  // …
+  output: {
+    library: {
+      name: 'MyLibrary',
+      type: 'global',
+    },
+  },
+};
+```
+
+The **return value of your entry point** will be assigned to the global object using the `output.library.name` value. Depending on the [`target`](/config/target.html) value, the global object could change respectively, e.g., `self`, `global` or `globalThis`.
+
+```javascript
+global['MyLibrary'] = _entry_return_;
+
+global.MyLibrary.doSomething();
+```
+
+##### type: 'commonjs'
+
+```js
+module.exports = {
+  // …
+  output: {
+    library: {
+      name: 'MyLibrary',
+      type: 'commonjs',
+    },
+  },
+};
+```
+
+The **return value of your entry point** will be assigned to the `exports` object using the `output.library.name` value. As the name implies, this is used in CommonJS environments.
+
+```javascript
+exports['MyLibrary'] = _entry_return_;
+
+require('MyLibrary').doSomething();
+```
+
+Note that not setting a `output.library.name` will cause all properties returned by the entry point to be assigned to the given object; there are no checks against existing property names.
+
+#### Module Definition Systems
+
+These options will result in a bundle that comes with a complete header to ensure compatibility with various module systems. The `output.library.name` option will take on a different meaning under the following `output.library.type` options.
+
+##### type: 'commonjs2'
+
+```js
+module.exports = {
+  // …
+  output: {
+    library: {
+      // note there's no `name` here
+      type: 'commonjs2',
+    },
+  },
+};
+```
+
+The **return value of your entry point** will be assigned to the `module.exports`. As the name implies, this is used in Node.js (CommonJS) environments:
+
+```javascript
+module.exports = _entry_return_;
+
+require('MyLibrary').doSomething();
+```
+
+If we specify `output.library.name` with `type: commmonjs2`, the return value of your entry point will be assigned to the `module.exports.[output.library.name]`.
+
+Wondering the difference between CommonJS and CommonJS2 is? While they are similar, there are some subtle differences between them that are not usually relevant in the context of rspack. (For further details, please [read this issue](https://github.com/webpack/webpack/issues/1114).)
+
+##### type: 'commonjs-static'
+
+```js
+module.exports = {
+  // …
+  output: {
+    library: {
+      // note there's no `name` here
+      type: 'commonjs-static',
+    },
+  },
+};
+```
+
+Individual exports will be set as properties on `module.exports`. The "static" in the name refers to the output being statically analysable, and thus named exports are importable into ESM via Node.js:
+
+Input:
+
+```javascript
+export function doSomething() {}
+```
+
+Output:
+
+```javascript
+function doSomething() {}
+
+// …
+
+exports.doSomething = __webpack_exports__.doSomething;
+```
+
+Consumption (CommonJS):
+
+```javascript
+const { doSomething } = require('./output.cjs'); // doSomething => [Function: doSomething]
+```
+
+Consumption (ESM):
+
+```javascript
+import { doSomething } from './output.cjs'; // doSomething => [Function: doSomething]
+```
+
+This is useful when source code is written in ESM and the output should be compatible with both CJS and ESM. For further details, please [read this issue](https://github.com/webpack/webpack/issues/14998) or [this article](https://dev.to/jakobjingleheimer/configuring-commonjs-es-modules-for-nodejs-12ed) (specifically, [this section](https://dev.to/jakobjingleheimer/configuring-commonjs-es-modules-for-nodejs-12ed#publish-only-a-cjs-distribution-with-property-exports)).
+
+##### type: 'umd'
+
+This exposes your library under all the module definitions, allowing it to work with CommonJS, AMD, and as global variable. Take a look at the [UMD Repository](https://github.com/umdjs/umd) to learn more.
+
+In this case, you need the `library.name` property to name your module:
+
+```javascript
+module.exports = {
+  //...
+  output: {
+    library: {
+      name: 'MyLibrary',
+      type: 'umd',
+    },
+  },
+};
+```
+
+And finally the output is:
+
+```javascript
+(function webpackUniversalModuleDefinition(root, factory) {
+  if (typeof exports === 'object' && typeof module === 'object')
+    module.exports = factory();
+  else if (typeof define === 'function' && define.amd) define([], factory);
+  else if (typeof exports === 'object') exports['MyLibrary'] = factory();
+  else root['MyLibrary'] = factory();
+})(global, function () {
+  return _entry_return_;
+});
+```
+
+Note that omitting `library.name` will result in the assignment of all properties returned by the entry point be assigned directly to the root object, as documented under the [object assignment section](#expose-via-object-assignment). Example:
+
+```javascript
+module.exports = {
+  //...
+  output: {
+    libraryTarget: 'umd',
+  },
+};
+```
+
+The output will be:
+
+```javascript
+(function webpackUniversalModuleDefinition(root, factory) {
+  if (typeof exports === 'object' && typeof module === 'object')
+    module.exports = factory();
+  else if (typeof define === 'function' && define.amd) define([], factory);
+  else {
+    var a = factory();
+    for (var i in a) (typeof exports === 'object' ? exports : root)[i] = a[i];
+  }
+})(global, function () {
+  return _entry_return_;
+});
+```
+
+You may specify an object for `library.name` for differing names per targets:
+
+```javascript
+module.exports = {
+  //...
+  output: {
+    library: {
+      name: {
+        root: 'MyLibrary',
+        amd: 'my-library',
+        commonjs: 'my-common-library',
+      },
+      type: 'umd',
+    },
+  },
+};
+```
+
+##### type: 'system'
+
+This will expose your library as a [`System.register`](https://github.com/systemjs/systemjs/blob/master/docs/system-register.md) module.
+
+System modules require that a global variable `System` is present in the browser when the bundle is executed. Compiling to `System.register` format allows you to `System.import('/bundle.js')` without additional configuration and has your bundle loaded into the System module registry.
+
+```javascript
+module.exports = {
+  //...
+  output: {
+    library: {
+      type: 'system',
+    },
+  },
+};
+```
+
+Output:
+
+```javascript
+System.register([], function (__WEBPACK_DYNAMIC_EXPORT__, __system_context__) {
+  return {
+    execute: function () {
+      // ...
+    },
+  };
+});
+```
+
+By adding `output.library.name` to configuration in addition to having `output.library.type` set to `system`, the output bundle will have the library name as an argument to `System.register`:
+
+```javascript
+System.register(
+  'MyLibrary',
+  [],
+  function (__WEBPACK_DYNAMIC_EXPORT__, __system_context__) {
+    return {
+      execute: function () {
+        // ...
+      },
+    };
+  }
+);
+```
+
+##### type: 'module'
+
+```js
+module.exports = {
+  // …
+  experiments: {
+    outputModule: true,
+  },
+  output: {
+    chunkFormat: 'module',
+    library: {
+      // do not specify a `name` here
+      type: 'module',
+    },
+  },
+};
+```
+
+Output ES Module.
+
+However this feature is still experimental and not fully supported yet, so make sure to enable [experiments.outputModule](/config/experiments.html) beforehand.
+
+### output.library.auxiliaryComment
+
+Add a comment in the UMD wrapper.
+
+- **Type:** `string | { amd?: string, commonjs?: string, commonjs2?: string, root?: string }`
+
+To insert the same comment for each `umd` type, set `auxiliaryComment` to a string:
+
+```js
+module.exports = {
+  // …
+  mode: 'development',
+  output: {
+    library: {
+      name: 'MyLibrary',
+      type: 'umd',
+      auxiliaryComment: 'Test Comment',
+    },
+  },
+};
+```
+
+which will yield the following:
+
+```js
+(function webpackUniversalModuleDefinition(root, factory) {
+  //Test Comment
+  if (typeof exports === 'object' && typeof module === 'object')
+    module.exports = factory();
+  //Test Comment
+  else if (typeof define === 'function' && define.amd) define([], factory);
+  //Test Comment
+  else if (typeof exports === 'object') exports['MyLibrary'] = factory();
+  //Test Comment
+  else root['MyLibrary'] = factory();
+})(self, function () {
+  return _entry_return_;
+});
+```
+
+For fine-grained control, pass an object:
+
+```js
+module.exports = {
+  // …
+  mode: 'development',
+  output: {
+    library: {
+      name: 'MyLibrary',
+      type: 'umd',
+      auxiliaryComment: {
+        root: 'Root Comment',
+        commonjs: 'CommonJS Comment',
+        commonjs2: 'CommonJS2 Comment',
+        amd: 'AMD Comment',
+      },
+    },
+  },
+};
+```
+
+### output.library.export
+
+Specify which export should be exposed as a library.
+
+- **Type:** `string | string[]`
+
+It is `undefined` by default, which will export the whole (namespace) object. The examples below demonstrate the effect of this configuration when using [`output.library.type: 'var'`](#type-var).
+
+```js
+module.exports = {
+  output: {
+    library: {
+      name: 'MyLibrary',
+      type: 'var',
+      export: 'default',
+    },
+  },
+};
+```
+
+The default export of your entry point will be assigned to the library name:
+
+```js
+// if your entry has a default export
+var MyLibrary = _entry_return_.default;
+```
+
+You can pass an array to `output.library.export` as well, it will be interpreted as a path to a module to be assigned to the library name:
+
+```js
+module.exports = {
+  output: {
+    library: {
+      name: 'MyLibrary',
+      type: 'var',
+      export: ['default', 'subModule'],
+    },
+  },
+};
+```
+
+And here's the library code:
+
+```js
+var MyLibrary = _entry_return_.default.subModule;
+```
+
+## output.library.umdNamedDefine
+
+- **Type:** `boolean`
+
+When using `output.library.type: "umd"`, setting `output.library.umdNamedDefine` to `true` will name the AMD module of the UMD build. Otherwise, an anonymous `define` is used.
+
+```javascript
+module.exports = {
+  //...
+  output: {
+    library: {
+      name: 'MyLibrary',
+      type: 'umd',
+      umdNamedDefine: true,
+    },
+  },
+};
+```
+
+The AMD module will be:
+
+```js
+define('MyLibrary', [], factory);
+```
+
+## output.libraryExport
+
+We might drop support for this, so prefer to use [output.library.export](#outputlibraryexport) which works the same as `libraryExport`.
+
+- **Type:** `string` | `string[]`
+
+Configure which module or modules will be exposed via the `libraryTarget`. It is `undefined` by default, same behaviour will be applied if you set `libraryTarget` to an empty string e.g. `''` it will export the whole (namespace) object. The examples below demonstrate the effect of this configuration when using `libraryTarget: 'var'`.
+
+The following configurations are supported:
+
+`libraryExport: 'default'` - The **default export of your entry point** will be assigned to the library target:
+
+```javascript
+// if your entry has a default export of `MyDefaultModule`
+var MyDefaultModule = _entry_return_.default;
+```
+
+`libraryExport: 'MyModule'` - The **specified module** will be assigned to the library target:
+
+```javascript
+var MyModule = _entry_return_.MyModule;
+```
+
+`libraryExport: ['MyModule', 'MySubModule']` - The array is interpreted as a **path to a module** to be assigned to the library target:
+
+```javascript
+var MySubModule = _entry_return_.MyModule.MySubModule;
+```
+
+With the `libraryExport` configurations specified above, the resulting libraries could be utilized as such:
+
+```javascript
+MyDefaultModule.doSomething();
+MyModule.doSomething();
+MySubModule.doSomething();
+```
+
+## output.libraryTarget
+
+- **Type:** `string`
+- **Default:** `var`
+
+Please use [`output.library.type`](#outputlibrarytype) instead as we might drop support for `output.libraryTarget` in the future.
+
+## output.umdNamedDefine
+
+Prefer to use [`output.library.umdNamedDefine`](#outputlibraryumdnameddefine) instead.
+
+- **Type:** `boolean`
+
+When using `libraryTarget: "umd"`, setting `output.umdNamedDefine` to `true` will name the AMD module of the UMD build. Otherwise an anonymous `define` is used.
+
+```javascript
+module.exports = {
+  //...
+  output: {
+    umdNamedDefine: true,
+  },
+};
+```
+
+## output.uniqueName
+
+- **Type:** `string`
+- **Default:** It defaults to [`output.library`](/config/output.html#outputlibrary) name or the package name from package.json in the context, if both aren't found, it is set to an ''.
+
+This option determines the unique name of the Rspack build to avoid multiple Rspack runtimes to conflict when using globals.
+
+`output.uniqueName` will be used to generate unique globals for:
+
+- [`output.chunkLoadingGlobal`](/config/output.html#outputchunkloadingglobal)
+
+```ts title="rspack.config.js"
+module.exports = {
+  output: {
+    uniqueName: 'my-package-xyz',
+  },
+};
+```
+
+## output.clean
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+Clean the output directory before emit.
+
+## output.module
+
+<ApiMeta stability={Stability.Experimental} />
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+Output JavaScript files as module type. Disabled by default as it's an experimental feature. `output.module` is an experimental feature and can only be enabled by setting [`experiments.outputModule`](/en/config/experiments.html#experimentsoutputmodule) to true.
+
+## output.wasmLoading
+
+- **Type:** `false | 'fetch', 'async-node'`
+- **Default:** `'fetch'`
+
+Option to set the method of loading WebAssembly Modules. Methods included by default are `'fetch'` (web/webworker), `'async-node'` (Node.js).
+
+The default value can be affected by different target:
+
+- Defaults to `'fetch'` if target is set to `'web'`, `'webworker'`, `'electron-renderer'` or `'node-webkit'`.
+- Defaults to `'async-node'` if target is set to `'node'`, `'async-node'`, `'electron-main'` or `'electron-preload'`.
+
+## output.enabledWasmLoadingTypes
+
+Enables available runtime module bundling of wasmLoadingType.
+
+- **Type:** `false | 'fetch', 'async-node'`
+
+## output.asyncChunks
+
+<ApiMeta addedVersion={'0.2.6'} />
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+Create async chunks that are loaded on demand.
+
+## output.hotUpdateChunkFilename
+
+<ApiMeta addedVersion={'0.3.5'} />
+
+- **Type:** `string`
+- **Default:** `"[id].[fullhash].hot-update.js"`
+
+Customize the filenames of hot update chunks, only placeholders allowed here are `[id]` and `[fullhash]`.
+
+## output.hotUpdateMainFilename
+
+<ApiMeta addedVersion={'0.3.5'} />
+
+- **Type:** `string`
+- **Default:** `"[runtime].[fullhash].hot-update.json"`
+
+Customize the main hot update filename. `[fullhash]` and `[runtime]` are available as placeholder.
+
+## output.hotUpdateGlobal
+
+<ApiMeta addedVersion={'0.3.5'} />
+
+- **Type:** `string`
+- **Default:** `"webpackHotUpdate" + output.uniqueName`
+
+Only used when [chunkLoading](/config/output.html#outputchunkloading) is `"jsonp"` or `"import-scripts"`. This global variable is used for loading hot update chunks.

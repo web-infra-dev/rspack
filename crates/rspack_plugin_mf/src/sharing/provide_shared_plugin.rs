@@ -9,7 +9,7 @@ use rspack_core::{
   PluginNormalModuleFactoryModuleHookOutput,
 };
 use rspack_error::{Diagnostic, Result};
-use rspack_hook::{plugin, plugin_hook, AsyncSeries2};
+use rspack_hook::{plugin, plugin_hook, AsyncSeries, AsyncSeries2};
 use rspack_loader_runner::ResourceData;
 use rustc_hash::FxHashMap;
 use tokio::sync::RwLock;
@@ -163,6 +163,31 @@ async fn compilation(
   Ok(())
 }
 
+#[plugin_hook(AsyncSeries<Compilation> for ProvideSharedPlugin)]
+async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
+  for (resource, config) in self.resolved_provide_map.read().await.iter() {
+    compilation
+      .add_include(
+        Box::new(ProvideSharedDependency::new(
+          config.share_scope.to_string(),
+          config.share_key.to_string(),
+          config.version.clone(),
+          resource.to_string(),
+          config.eager,
+        )),
+        EntryOptions {
+          name: None,
+          ..Default::default()
+        },
+      )
+      .await?;
+  }
+  self.resolved_provide_map.write().await.clear();
+  self.match_provides.write().await.clear();
+  self.prefix_match_provides.write().await.clear();
+  Ok(())
+}
+
 #[async_trait]
 impl Plugin for ProvideSharedPlugin {
   fn name(&self) -> &'static str {
@@ -179,6 +204,11 @@ impl Plugin for ProvideSharedPlugin {
       .compiler_hooks
       .compilation
       .tap(compilation::new(self));
+    ctx
+      .context
+      .compiler_hooks
+      .finish_make
+      .tap(finish_make::new(self));
     Ok(())
   }
 
@@ -234,29 +264,5 @@ impl Plugin for ProvideSharedPlugin {
       }
     }
     Ok(module)
-  }
-
-  async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
-    for (resource, config) in self.resolved_provide_map.read().await.iter() {
-      compilation
-        .add_include(
-          Box::new(ProvideSharedDependency::new(
-            config.share_scope.to_string(),
-            config.share_key.to_string(),
-            config.version.clone(),
-            resource.to_string(),
-            config.eager,
-          )),
-          EntryOptions {
-            name: None,
-            ..Default::default()
-          },
-        )
-        .await?;
-    }
-    self.resolved_provide_map.write().await.clear();
-    self.match_provides.write().await.clear();
-    self.prefix_match_provides.write().await.clear();
-    Ok(())
   }
 }

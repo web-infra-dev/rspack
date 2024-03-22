@@ -1,0 +1,78 @@
+.api-meta-version,
+.api-meta-stability {
+  margin-top: 16px;
+  margin-right: 8px;
+  padding: 6px 12px;
+  font-size: 13px;
+  background-color: #3eaf7c;
+  color: white;
+  display: inline-flex;
+  border-radius: 0.2rem;
+}
+
+.api-meta-version {
+  padding: 6px 16px;
+  position: relative;
+  margin-right: 28px;
+}
+// Add a new tag in .api-meta-version
+.api-meta-version-added::before {
+  position: absolute;
+  right: -15px;
+  top: -10px;
+  content: 'new';
+  color: white;
+  padding: 0 4px;
+  height: 20px;
+  min-width: 20px;
+  font-weight: 500;
+  font-size: 12px;
+  background-color: rgb(245, 63, 63);
+  border-radius: 5px;
+}
+
+.api-meta-version-deprecated::before {
+  position: absolute;
+  right: -26px;
+  top: -10px;
+  content: 'deprecated';
+  color: white;
+  padding: 0 4px;
+  height: 20px;
+  min-width: 20px;
+  font-weight: 500;
+  font-size: 12px;
+  background-color: var(--rp-c-gray);
+  border-radius: 5px;
+}
+
+.api-meta-version-removed::before {
+  position: absolute;
+  right: -26px;
+  top: -10px;
+  content: 'removed';
+  color: white;
+  padding: 0 4px;
+  height: 20px;
+  min-width: 20px;
+  font-weight: 500;
+  font-size: 12px;
+  background-color: rgb(90, 0, 0);
+  border-radius: 5px;
+}
+
+.api-meta-stability-Stable {
+  background-color: #5a8147;
+}
+.api-meta-stability-Experimental {
+  background-color: #ca5010;
+}
+.api-meta-stability-Deprecated {
+  background-color: #d60027;
+}
+.api-meta-stability-Removed {
+  background-color: #7e7e7e;
+}
+.api-meta-stability-Legacy {
+  background-color: #0a56b2;
+}

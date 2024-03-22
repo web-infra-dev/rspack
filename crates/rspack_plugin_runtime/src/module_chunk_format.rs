@@ -85,7 +85,7 @@ impl Plugin for ModuleChunkFormatPlugin {
   ) -> PluginRenderChunkHookOutput {
     let compilation = args.compilation;
     let chunk = args.chunk();
-    let base_chunk_output_name = get_chunk_output_name(chunk, compilation);
+    let base_chunk_output_name = get_chunk_output_name(chunk, compilation)?;
     if matches!(chunk.kind, ChunkKind::HotUpdate) {
       unreachable!("HMR is not implemented for module chunk format yet");
     }
@@ -151,7 +151,7 @@ impl Plugin for ModuleChunkFormatPlugin {
           loaded_chunks.insert(*chunk_ukey);
           let index = loaded_chunks.len();
           let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-          let other_chunk_output_name = get_chunk_output_name(chunk, compilation);
+          let other_chunk_output_name = get_chunk_output_name(chunk, compilation)?;
           startup_source.push(format!(
             "import * as __webpack_chunk_${index}__ from '{}';",
             get_relative_path(&base_chunk_output_name, &other_chunk_output_name)

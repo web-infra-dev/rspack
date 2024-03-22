@@ -5,10 +5,12 @@ use itertools::Itertools;
 use rspack_core::{
   get_chunk_from_ukey, get_filename_without_hash_length, impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  Chunk, ChunkUkey, Compilation, Filename, PathData, RuntimeGlobals, RuntimeModule, SourceType,
+  Chunk, ChunkUkey, Compilation, Filename, FilenameTemplate, PathData, RuntimeGlobals,
+  RuntimeModule, SourceType,
 };
 use rspack_identifier::Identifier;
-use rspack_util::source_map::SourceMapKind;
+use rspack_util::{infallible::ResultInfallibleExt, source_map::SourceMapKind};
+use rustc_hash::FxHashMap as HashMap;
 
 use super::create_fake_chunk;
 use super::stringify_dynamic_chunk_map;
@@ -82,7 +84,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
     false
   }
 
-  fn generate(&self, compilation: &Compilation) -> BoxSource {
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let chunks = self
       .chunk
       .and_then(|chunk_ukey| get_chunk_from_ukey(&chunk_ukey, &compilation.chunk_by_ukey))
@@ -117,9 +119,10 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
         }
       });
 
-    let mut dynamic_filename: Option<&Filename> = None;
+    let mut dynamic_filename: Option<&str> = None;
     let mut max_chunk_set_size = 0;
-    let mut chunk_filenames = IndexMap::new();
+    let mut chunk_filenames = Vec::<(&Filename, &ChunkUkey)>::new();
+    let mut chunk_set_sizes_by_filenames = HashMap::<&str, usize>::default();
     let mut chunk_map = IndexMap::new();
 
     if let Some(chunks) = chunks {
@@ -127,92 +130,164 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
         .iter()
         .filter_map(|chunk_ukey| get_chunk_from_ukey(chunk_ukey, &compilation.chunk_by_ukey))
         .for_each(|chunk| {
-          let filename_template = (self.filename_for_chunk)(chunk, compilation);
+          let filename = (self.filename_for_chunk)(chunk, compilation);
 
-          if let Some(filename_template) = filename_template {
+          if let Some(filename) = filename {
             chunk_map.insert(&chunk.ukey, chunk);
 
-            let chunk_set = chunk_filenames
-              .entry(filename_template.clone())
-              .or_insert(IndexSet::new());
+            chunk_filenames.push((filename, &chunk.ukey));
 
-            chunk_set.insert(&chunk.ukey);
-
-            let should_update = match dynamic_filename {
-              Some(dynamic_filename) => match chunk_set.len().cmp(&max_chunk_set_size) {
-                Ordering::Less => false,
-                Ordering::Greater => true,
-                Ordering::Equal => match filename_template
-                  .template()
-                  .len()
-                  .cmp(&dynamic_filename.template().len())
-                {
+            if let Some(filename_template) = filename.template() {
+              let chunk_set_size = chunk_set_sizes_by_filenames
+                .entry(filename_template)
+                .or_insert(0);
+              *chunk_set_size += 1;
+              let chunk_set_size = *chunk_set_size;
+              let should_update = match dynamic_filename {
+                Some(dynamic_filename) => match chunk_set_size.cmp(&max_chunk_set_size) {
                   Ordering::Less => false,
                   Ordering::Greater => true,
-                  Ordering::Equal => !matches!(
-                    filename_template
-                      .template()
-                      .cmp(dynamic_filename.template()),
-                    Ordering::Less,
-                  ),
+                  Ordering::Equal => match filename_template.len().cmp(&dynamic_filename.len()) {
+                    Ordering::Less => false,
+                    Ordering::Greater => true,
+                    Ordering::Equal => {
+                      !matches!(filename_template.cmp(dynamic_filename), Ordering::Less)
+                    }
+                  },
                 },
-              },
-              None => true,
+                None => true,
+              };
+              if should_update {
+                max_chunk_set_size = chunk_set_size;
+                dynamic_filename = Some(filename_template);
+              }
             };
-            if should_update {
-              max_chunk_set_size = chunk_set.len();
-              dynamic_filename = Some(filename_template);
-            }
           }
         });
     }
 
-    let dynamic_url = dynamic_filename
-      .and_then(|filename| {
-        chunk_filenames
-          .get(filename)
-          .map(|chunks| (filename, chunks))
-      })
-      .map(|(filename, chunks)| {
-        let (fake_filename, hash_len_map) = get_filename_without_hash_length(filename);
+    let dynamic_url = dynamic_filename.map(|dynamic_filename| {
+      let chunks = chunk_filenames
+        .iter()
+        .filter_map(|(filename, chunk)| {
+          if filename.template() == Some(dynamic_filename) {
+            Some(*chunk)
+          } else {
+            None
+          }
+        })
+        .collect::<IndexSet<&ChunkUkey>>();
+      let (fake_filename, hash_len_map) =
+        get_filename_without_hash_length(&FilenameTemplate::from(dynamic_filename.to_string()));
+      let fake_chunk = create_fake_chunk(
+        Some("\" + chunkId + \"".to_string()),
+        Some(stringify_dynamic_chunk_map(
+          |c| match &c.name {
+            Some(name) => Some(name.to_string()),
+            None => c.id.clone().map(|id| id.to_string()),
+          },
+          &chunks,
+          &chunk_map,
+        )),
+        Some(stringify_dynamic_chunk_map(
+          |c| {
+            let hash = c.rendered_hash.as_ref().map(|hash| hash.to_string());
+            match hash_len_map.get("[chunkhash]") {
+              Some(hash_len) => hash.map(|s| s[..*hash_len].to_string()),
+              None => hash,
+            }
+          },
+          &chunks,
+          &chunk_map,
+        )),
+      );
+
+      let content_hash = Some(stringify_dynamic_chunk_map(
+        |c| {
+          c.content_hash.get(&self.source_type).map(|i| {
+            let hash = i
+              .rendered(compilation.options.output.hash_digest_length)
+              .to_string();
+            match hash_len_map.get("[contenthash]") {
+              Some(hash_len) => hash[..*hash_len].to_string(),
+              None => hash,
+            }
+          })
+        },
+        &chunks,
+        &chunk_map,
+      ));
+
+      let full_hash = match hash_len_map
+        .get("[fullhash]")
+        .or(hash_len_map.get("[hash]"))
+      {
+        Some(hash_len) => format!(
+          "\" + {}().slice(0, {}) + \"",
+          RuntimeGlobals::GET_FULL_HASH,
+          hash_len
+        ),
+        None => format!("\" + {}() + \"", RuntimeGlobals::GET_FULL_HASH),
+      };
+
+      format!(
+        "\"{}\"",
+        compilation
+          .get_path(
+            &fake_filename,
+            PathData::default()
+              .chunk(&fake_chunk)
+              .hash_optional(Some(full_hash.as_str()))
+              .content_hash_optional(content_hash.as_deref()),
+          )
+          .always_ok()
+      )
+    });
+
+    let mut static_urls = IndexMap::new();
+    for (filename_template, chunk_ukey) in
+      chunk_filenames
+        .iter()
+        .filter(|(filename, _)| match dynamic_filename {
+          None => true,
+          Some(dynamic_filename) => filename.template() != Some(dynamic_filename),
+        })
+    {
+      if let Some(chunk) = chunk_map.get(chunk_ukey) {
+        let (fake_filename, hash_len_map) = get_filename_without_hash_length(filename_template);
+
         let fake_chunk = create_fake_chunk(
-          Some("\" + chunkId + \"".to_string()),
-          Some(stringify_dynamic_chunk_map(
-            |c| match &c.name {
-              Some(name) => Some(name.to_string()),
-              None => c.id.clone().map(|id| id.to_string()),
-            },
-            chunks,
-            &chunk_map,
-          )),
-          Some(stringify_dynamic_chunk_map(
-            |c| {
-              let hash = c.rendered_hash.as_ref().map(|hash| hash.to_string());
-              match hash_len_map.get("[chunkhash]") {
-                Some(hash_len) => hash.map(|s| s[..*hash_len].to_string()),
-                None => hash,
-              }
-            },
-            chunks,
-            &chunk_map,
-          )),
+          chunk
+            .id
+            .as_ref()
+            .map(|chunk_id| unquoted_stringify(chunk, chunk_id)),
+          match &chunk.name {
+            Some(chunk_name) => Some(unquoted_stringify(chunk, chunk_name)),
+            None => chunk
+              .id
+              .as_ref()
+              .map(|chunk_id| unquoted_stringify(chunk, chunk_id)),
+          },
+          chunk.rendered_hash.as_ref().map(|chunk_hash| {
+            let hash = unquoted_stringify(chunk, &chunk_hash.as_ref().to_string());
+            match hash_len_map.get("[chunkhash]") {
+              Some(hash_len) => hash[..*hash_len].to_string(),
+              None => hash,
+            }
+          }),
         );
 
-        let content_hash = Some(stringify_dynamic_chunk_map(
-          |c| {
-            c.content_hash.get(&self.source_type).map(|i| {
-              let hash = i
-                .rendered(compilation.options.output.hash_digest_length)
-                .to_string();
-              match hash_len_map.get("[contenthash]") {
-                Some(hash_len) => hash[..*hash_len].to_string(),
-                None => hash,
-              }
-            })
-          },
-          chunks,
-          &chunk_map,
-        ));
+        let content_hash = chunk.content_hash.get(&self.source_type).map(|i| {
+          let hash = unquoted_stringify(
+            chunk,
+            &i.rendered(compilation.options.output.hash_digest_length)
+              .to_string(),
+          );
+          match hash_len_map.get("[contenthash]") {
+            Some(hash_len) => hash[..*hash_len].to_string(),
+            None => hash,
+          }
+        });
 
         let full_hash = match hash_len_map
           .get("[fullhash]")
@@ -226,99 +301,29 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
           None => format!("\" + {}() + \"", RuntimeGlobals::GET_FULL_HASH),
         };
 
-        format!(
+        let filename = format!(
           "\"{}\"",
           compilation.get_path(
             &fake_filename,
             PathData::default()
               .chunk(&fake_chunk)
               .hash_optional(Some(full_hash.as_str()))
-              .content_hash_optional(content_hash.as_deref()),
-          )
-        )
-      });
+              .content_hash_optional(content_hash.as_deref())
+          )?,
+        );
 
-    let mut static_urls = IndexMap::new();
-    for (filename_template, chunks) in
-      chunk_filenames
-        .iter()
-        .filter(|(filename, _)| match dynamic_filename {
-          None => true,
-          Some(dynamic_filename) => dynamic_filename != *filename,
-        })
-    {
-      for chunk_ukey in chunks.iter() {
-        if let Some(chunk) = chunk_map.get(chunk_ukey) {
-          let (fake_filename, hash_len_map) = get_filename_without_hash_length(filename_template);
-
-          let fake_chunk = create_fake_chunk(
-            chunk
-              .id
-              .as_ref()
-              .map(|chunk_id| unquoted_stringify(chunk, chunk_id)),
-            match &chunk.name {
-              Some(chunk_name) => Some(unquoted_stringify(chunk, chunk_name)),
-              None => chunk
-                .id
-                .as_ref()
-                .map(|chunk_id| unquoted_stringify(chunk, chunk_id)),
-            },
-            chunk.rendered_hash.as_ref().map(|chunk_hash| {
-              let hash = unquoted_stringify(chunk, &chunk_hash.as_ref().to_string());
-              match hash_len_map.get("[chunkhash]") {
-                Some(hash_len) => hash[..*hash_len].to_string(),
-                None => hash,
-              }
-            }),
-          );
-
-          let content_hash = chunk.content_hash.get(&self.source_type).map(|i| {
-            let hash = unquoted_stringify(
-              chunk,
-              &i.rendered(compilation.options.output.hash_digest_length)
-                .to_string(),
-            );
-            match hash_len_map.get("[contenthash]") {
-              Some(hash_len) => hash[..*hash_len].to_string(),
-              None => hash,
-            }
-          });
-
-          let full_hash = match hash_len_map
-            .get("[fullhash]")
-            .or(hash_len_map.get("[hash]"))
-          {
-            Some(hash_len) => format!(
-              "\" + {}().slice(0, {}) + \"",
-              RuntimeGlobals::GET_FULL_HASH,
-              hash_len
-            ),
-            None => format!("\" + {}() + \"", RuntimeGlobals::GET_FULL_HASH),
-          };
-
-          let filename = format!(
-            "\"{}\"",
-            compilation.get_path(
-              &fake_filename,
-              PathData::default()
-                .chunk(&fake_chunk)
-                .hash_optional(Some(full_hash.as_str()))
-                .content_hash_optional(content_hash.as_deref())
-            ),
-          );
-
-          if let Some(chunk_id) = &chunk.id {
-            static_urls
-              .entry(filename)
-              .or_insert(Vec::new())
-              .push(chunk_id);
-          }
+        if let Some(chunk_id) = &chunk.id {
+          static_urls
+            .entry(filename)
+            .or_insert(Vec::new())
+            .push(chunk_id);
         }
       }
     }
 
-    RawSource::from(format!(
-      "// This function allow to reference chunks
+    Ok(
+      RawSource::from(format!(
+        "// This function allow to reference chunks
         {} = function (chunkId) {{
           // return url for filenames not based on template
           {}
@@ -326,14 +331,15 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
           return {};
         }};
       ",
-      self.global,
-      static_urls
-        .iter()
-        .map(|(filename, chunk_ids)| stringify_static_chunk_map(filename, chunk_ids))
-        .join("\n"),
-      dynamic_url.unwrap_or_else(|| format!("\"\" + chunkId + \".{}\"", self.content_type))
-    ))
-    .boxed()
+        self.global,
+        static_urls
+          .iter()
+          .map(|(filename, chunk_ids)| stringify_static_chunk_map(filename, chunk_ids))
+          .join("\n"),
+        dynamic_url.unwrap_or_else(|| format!("\"\" + chunkId + \".{}\"", self.content_type))
+      ))
+      .boxed(),
+    )
   }
 
   fn attach(&mut self, chunk: ChunkUkey) {

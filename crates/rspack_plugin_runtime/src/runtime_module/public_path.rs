@@ -29,11 +29,13 @@ impl RuntimeModule for PublicPathRuntimeModule {
     self.id
   }
 
-  fn generate(&self, _compilation: &Compilation) -> BoxSource {
-    RawSource::from(
-      include_str!("runtime/public_path.js")
-        .replace("__PUBLIC_PATH_PLACEHOLDER__", &self.public_path),
+  fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+    Ok(
+      RawSource::from(
+        include_str!("runtime/public_path.js")
+          .replace("__PUBLIC_PATH_PLACEHOLDER__", &self.public_path),
+      )
+      .boxed(),
     )
-    .boxed()
   }
 }

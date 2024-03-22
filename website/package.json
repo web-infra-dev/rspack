@@ -1,0 +1,44 @@
+{
+  "name": "@modern-js/rspack-doc",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "rspress dev",
+    "build": "rspress build",
+    "format": "prettier docs/**/*.{md,mdx} --write",
+    "spell": "npx cspell docs/**/*.{ts,tsx,js,jsx,md,mdx}",
+    "caseCheck": "npx case-police docs/**/*.{md,mdx}",
+    "preview": "rspress preview"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@8.14.3",
+  "dependencies": {
+    "axios": "^1.6.1",
+    "date-fns": "^2.29.3",
+    "feed": "^4.2.2",
+    "framer-motion": "^10.0.0",
+    "markdown-to-jsx": "^7.2.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-intersection-observer": "^9.4.3",
+    "rsfamily-nav-icon": "^1.0.1",
+    "semver": "^7.5.4",
+    "tailwindcss": "^3.2.7"
+  },
+  "devDependencies": {
+    "@modern-js/tsconfig": "^2.46.1",
+    "@rspress/shared": "1.11.0",
+    "@types/node": "^18.11.18",
+    "@types/react": "^18.0.27",
+    "@types/semver": "^7.5.2",
+    "case-police": "0.5.10",
+    "husky": "^8.0.3",
+    "nano-staged": "^0.8.0",
+    "prettier": "^2.8.3",
+    "rspress": "1.11.0",
+    "typescript": "^5.0.4"
+  }
+}

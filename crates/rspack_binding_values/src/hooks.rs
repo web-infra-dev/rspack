@@ -24,10 +24,6 @@ pub struct JsHooks {
   pub optimize_tree: ThreadsafeFunction<(), ()>,
   #[napi(ts_type = "(compilation: JsCompilation) => void")]
   pub optimize_chunk_modules: ThreadsafeFunction<JsCompilation, ()>,
-  #[napi(ts_type = "(compilation: JsCompilation) => void")]
-  pub finish_modules: ThreadsafeFunction<JsCompilation, ()>,
-  #[napi(ts_type = "(compilation: JsCompilation) => void")]
-  pub finish_make: ThreadsafeFunction<JsCompilation, ()>,
   #[napi(
     ts_type = "(data: AfterResolveData) => Promise<(boolean | void | AfterResolveCreateData)[]>"
   )]

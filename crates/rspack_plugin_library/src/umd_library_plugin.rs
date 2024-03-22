@@ -3,12 +3,13 @@ use std::{borrow::Cow, hash::Hash};
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceExt},
   AdditionalChunkRuntimeRequirementsArgs, Chunk, ChunkUkey, Compilation, ExternalModule,
-  ExternalRequest, Filename, JsChunkHashArgs, LibraryAuxiliaryComment, LibraryCustomUmdObject,
-  LibraryName, LibraryNonUmdObject, LibraryOptions, LibraryType, PathData, Plugin,
-  PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, PluginJsChunkHashHookOutput,
-  PluginRenderHookOutput, RenderArgs, RuntimeGlobals, SourceType,
+  ExternalRequest, FilenameTemplate, JsChunkHashArgs, LibraryAuxiliaryComment,
+  LibraryCustomUmdObject, LibraryName, LibraryNonUmdObject, LibraryOptions, LibraryType, PathData,
+  Plugin, PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext,
+  PluginJsChunkHashHookOutput, PluginRenderHookOutput, RenderArgs, RuntimeGlobals, SourceType,
 };
 use rspack_error::{error, Result};
+use rspack_util::infallible::ResultInfallibleExt as _;
 
 use crate::utils::{external_arguments, externals_dep_array, get_options_for_chunk};
 
@@ -258,15 +259,17 @@ fn library_name(v: &[String], chunk: &Chunk, compilation: &Compilation) -> Strin
 }
 
 fn replace_keys(v: String, chunk: &Chunk, compilation: &Compilation) -> String {
-  compilation.get_path(
-    &Filename::from(v),
-    PathData::default().chunk(chunk).content_hash_optional(
-      chunk
-        .content_hash
-        .get(&SourceType::JavaScript)
-        .map(|i| i.rendered(compilation.options.output.hash_digest_length)),
-    ),
-  )
+  compilation
+    .get_path(
+      &FilenameTemplate::from(v),
+      PathData::default().chunk(chunk).content_hash_optional(
+        chunk
+          .content_hash
+          .get(&SourceType::JavaScript)
+          .map(|i| i.rendered(compilation.options.output.hash_digest_length)),
+      ),
+    )
+    .always_ok()
 }
 
 fn externals_require_array(typ: &str, externals: &[&ExternalModule]) -> Result<String> {
