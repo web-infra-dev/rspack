@@ -35,7 +35,7 @@ use crate::{
   ChunkHashArgs, ChunkKind, ChunkUkey, CodeGenerationResults, CompilationLogger,
   CompilationLogging, CompilerOptions, ContentHashArgs, DependencyId, DependencyType, Entry,
   EntryData, EntryOptions, Entrypoint, ErrorSpan, FactorizeQueueHandler, Filename, LocalFilenameFn,
-  Logger, Module, ModuleFactory, ModuleGraph, ModuleIdentifier, PathData, ProcessAssetsArgs,
+  Logger, Module, ModuleFactory, ModuleGraph, ModuleIdentifier, PathData,
   ProcessDependenciesQueueHandler, RenderManifestArgs, ResolverFactory, RuntimeGlobals,
   RuntimeModule, RuntimeRequirementsInTreeArgs, RuntimeSpec, SharedPluginDriver, SourceType, Stats,
 };
@@ -55,6 +55,7 @@ pub type CompilationFinishModulesHook = AsyncSeriesHook<Compilation>;
 pub type CompilationRuntimeModuleHook = AsyncSeries3Hook<Compilation, ModuleIdentifier, ChunkUkey>;
 pub type CompilationChunkAssetHook = AsyncSeries2Hook<Chunk, String>;
 pub type CompilationProcessAssetsHook = AsyncSeriesHook<Compilation>;
+pub type CompilationAfterProcessAssetsHook = AsyncSeriesHook<Compilation>;
 
 #[derive(Debug, Default)]
 pub struct CompilationHooks {
@@ -66,6 +67,7 @@ pub struct CompilationHooks {
   pub runtime_module: CompilationRuntimeModuleHook,
   pub chunk_asset: CompilationChunkAssetHook,
   pub process_assets: CompilationProcessAssetsHook,
+  pub after_process_assets: CompilationAfterProcessAssetsHook,
 }
 
 #[derive(Debug)]
@@ -759,7 +761,9 @@ impl Compilation {
   #[instrument(name = "compilation:after_process_asssets", skip_all)]
   async fn after_process_assets(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     plugin_driver
-      .after_process_assets(ProcessAssetsArgs { compilation: self })
+      .compilation_hooks
+      .after_process_assets
+      .call(self)
       .await
   }
 
