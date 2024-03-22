@@ -236,8 +236,6 @@ class Compiler {
 			rawOptions,
 			this.builtinPlugins,
 			{
-				optimizeTree: this.#optimizeTree.bind(this),
-				optimizeChunkModules: this.#optimizeChunkModules.bind(this),
 				normalModuleFactoryCreateModule:
 					this.#normalModuleFactoryCreateModule.bind(this),
 				normalModuleFactoryResolveForScheme:
@@ -419,6 +417,22 @@ class Compiler {
 				registerCompilationAfterOptimizeModulesTaps: this.#createRegisterTaps(
 					() => this.compilation!.hooks.afterOptimizeModules,
 					queried => () => queried.call(this.compilation!.modules)
+				),
+				registerCompilationOptimizeTreeTaps: this.#createRegisterTaps(
+					() => this.compilation!.hooks.optimizeTree,
+					queried => async () =>
+						await queried.promise(
+							this.compilation!.chunks,
+							this.compilation!.modules
+						)
+				),
+				registerCompilationOptimizeChunkModulesTaps: this.#createRegisterTaps(
+					() => this.compilation!.hooks.optimizeChunkModules,
+					queried => async () =>
+						await queried.promise(
+							this.compilation!.chunks,
+							this.compilation!.modules
+						)
 				),
 				registerCompilationChunkAssetTaps: this.#createRegisterTaps(
 					() => this.compilation!.hooks.chunkAsset,
@@ -676,10 +690,8 @@ class Compiler {
 		const disabledHooks: string[] = [];
 		type HookMap = Record<keyof binding.JsHooks, any>;
 		const hookMap: HookMap = {
-			optimizeTree: this.compilation!.hooks.optimizeTree,
 			afterResolve:
 				this.compilationParams?.normalModuleFactory.hooks.afterResolve,
-			optimizeChunkModules: this.compilation!.hooks.optimizeChunkModules,
 			contextModuleFactoryBeforeResolve:
 				this.compilationParams?.contextModuleFactory.hooks.beforeResolve,
 			contextModuleFactoryAfterResolve:

@@ -56,6 +56,8 @@ pub type CompilationExecuteModuleHook =
 pub type CompilationFinishModulesHook = AsyncSeriesHook<Compilation>;
 pub type CompilationOptimizeModulesHook = AsyncSeriesBailHook<Compilation, bool>;
 pub type CompilationAfterOptimizeModulesHook = AsyncSeriesHook<Compilation>;
+pub type CompilationOptimizeTreeHook = AsyncSeriesHook<Compilation>;
+pub type CompilationOptimizeChunkModulesHook = AsyncSeriesBailHook<Compilation, bool>;
 pub type CompilationRuntimeModuleHook = AsyncSeries3Hook<Compilation, ModuleIdentifier, ChunkUkey>;
 pub type CompilationChunkAssetHook = AsyncSeries2Hook<Chunk, String>;
 pub type CompilationProcessAssetsHook = AsyncSeriesHook<Compilation>;
@@ -70,6 +72,8 @@ pub struct CompilationHooks {
   pub finish_modules: CompilationFinishModulesHook,
   pub optimize_modules: CompilationOptimizeModulesHook,
   pub after_optimize_modules: CompilationAfterOptimizeModulesHook,
+  pub optimize_tree: CompilationOptimizeTreeHook,
+  pub optimize_chunk_modules: CompilationOptimizeChunkModulesHook,
   pub runtime_module: CompilationRuntimeModuleHook,
   pub chunk_asset: CompilationChunkAssetHook,
   pub process_assets: CompilationProcessAssetsHook,
@@ -870,9 +874,17 @@ impl Compilation {
     logger.time_end(start);
 
     let start = logger.time("optimize");
-    plugin_driver.optimize_tree(self).await?;
+    plugin_driver
+      .compilation_hooks
+      .optimize_tree
+      .call(self)
+      .await?;
 
-    plugin_driver.optimize_chunk_modules(self).await?;
+    plugin_driver
+      .compilation_hooks
+      .optimize_chunk_modules
+      .call(self)
+      .await?;
 
     logger.time_end(start);
 

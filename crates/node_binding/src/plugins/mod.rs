@@ -19,7 +19,6 @@ use rspack_core::{
 };
 use rspack_hook::Hook as _;
 
-use self::interceptor::RegisterCompilationFinishModulesTaps;
 use self::interceptor::RegisterCompilationStillValidModuleTaps;
 use self::interceptor::RegisterCompilationSucceedModuleTaps;
 use self::interceptor::RegisterCompilerFinishMakeTaps;
@@ -39,7 +38,11 @@ use self::interceptor::{
   RegisterCompilerShouldEmitTaps, RegisterCompilerThisCompilationTaps,
   RegisterNormalModuleFactoryBeforeResolveTaps,
 };
-use crate::{DisabledHooks, Hook, JsCompilation, JsHooks};
+use self::interceptor::{
+  RegisterCompilationFinishModulesTaps, RegisterCompilationOptimizeChunkModulesTaps,
+  RegisterCompilationOptimizeTreeTaps,
+};
+use crate::{DisabledHooks, Hook, JsHooks};
 
 pub struct JsHooksAdapterInner {
   pub disabled_hooks: DisabledHooks,
@@ -64,6 +67,8 @@ pub struct JsHooksAdapterPlugin {
   register_compilation_finish_modules_taps: RegisterCompilationFinishModulesTaps,
   register_compilation_optimize_modules_taps: RegisterCompilationOptimizeModulesTaps,
   register_compilation_after_optimize_modules_taps: RegisterCompilationAfterOptimizeModulesTaps,
+  register_compilation_optimize_tree_taps: RegisterCompilationOptimizeTreeTaps,
+  register_compilation_optimize_chunk_modules_taps: RegisterCompilationOptimizeChunkModulesTaps,
   register_compilation_runtime_module_taps: RegisterCompilationRuntimeModuleTaps,
   register_compilation_chunk_asset_taps: RegisterCompilationChunkAssetTaps,
   register_compilation_process_assets_taps: RegisterCompilationProcessAssetsTaps,
@@ -175,6 +180,20 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
       .intercept(
         self
           .register_compilation_after_optimize_modules_taps
+          .clone(),
+      );
+    ctx
+      .context
+      .compilation_hooks
+      .optimize_tree
+      .intercept(self.register_compilation_optimize_tree_taps.clone());
+    ctx
+      .context
+      .compilation_hooks
+      .optimize_chunk_modules
+      .intercept(
+        self
+          .register_compilation_optimize_chunk_modules_taps
           .clone(),
       );
     ctx
@@ -322,33 +341,6 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
       )
     })
   }
-
-  async fn optimize_tree(
-    &self,
-    _compilation: &mut rspack_core::Compilation,
-  ) -> rspack_error::Result<()> {
-    if self.is_hook_disabled(&Hook::OptimizeTree) {
-      return Ok(());
-    }
-    self.hooks.optimize_tree.call(()).await
-  }
-
-  async fn optimize_chunk_modules(
-    &self,
-    args: rspack_core::OptimizeChunksArgs<'_>,
-  ) -> rspack_error::Result<()> {
-    if self.is_hook_disabled(&Hook::OptimizeChunkModules) {
-      return Ok(());
-    }
-
-    // SAFETY:
-    // 1. `Compiler` is stored on the heap and pinned in binding crate.
-    // 2. `Compilation` outlives `JsCompilation` and `Compiler` outlives `Compilation`.
-    // 3. `JsCompilation` was replaced everytime a new `Compilation` was created before getting accessed.
-    let compilation = unsafe { JsCompilation::from_compilation(args.compilation) };
-
-    self.hooks.optimize_chunk_modules.call(compilation).await
-  }
 }
 
 impl JsHooksAdapterPlugin {
@@ -404,6 +396,13 @@ impl JsHooksAdapterPlugin {
       register_compilation_after_optimize_modules_taps:
         RegisterCompilationAfterOptimizeModulesTaps::new(
           register_js_taps.register_compilation_after_optimize_modules_taps,
+        ),
+      register_compilation_optimize_tree_taps: RegisterCompilationOptimizeTreeTaps::new(
+        register_js_taps.register_compilation_optimize_tree_taps,
+      ),
+      register_compilation_optimize_chunk_modules_taps:
+        RegisterCompilationOptimizeChunkModulesTaps::new(
+          register_js_taps.register_compilation_optimize_chunk_modules_taps,
         ),
       register_compilation_runtime_module_taps: RegisterCompilationRuntimeModuleTaps::new(
         register_js_taps.register_compilation_runtime_module_taps,
