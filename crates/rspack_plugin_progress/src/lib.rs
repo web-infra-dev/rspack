@@ -1,5 +1,5 @@
 use std::cmp::Ordering;
-use std::sync::atomic::Ordering::SeqCst;
+use std::sync::atomic::Ordering::Relaxed;
 use std::sync::RwLock;
 use std::time::Duration;
 use std::{cmp, sync::atomic::AtomicU32, time::Instant};
@@ -66,11 +66,11 @@ impl ProgressPlugin {
   }
 
   fn update(&self) {
-    let modules_done = self.modules_done.load(SeqCst);
+    let modules_done = self.modules_done.load(Relaxed);
     let percent_by_module = (modules_done as f32)
       / (cmp::max(
         self.last_modules_count.read().expect("TODO:").unwrap_or(1),
-        self.modules_count.load(SeqCst),
+        self.modules_count.load(Relaxed),
       ) as f32);
 
     let mut items = vec![];
@@ -229,8 +229,8 @@ async fn make(&self, _compilation: &mut Compilation, _params: &mut Vec<MakeParam
     self.progress_bar.set_prefix(self.options.prefix.clone());
   }
   self.handler(0.01, String::from("make"), vec![], None);
-  self.modules_count.store(0, SeqCst);
-  self.modules_done.store(0, SeqCst);
+  self.modules_count.store(0, Relaxed);
+  self.modules_done.store(0, Relaxed);
   Ok(())
 }
 
@@ -241,7 +241,7 @@ async fn build_module(&self, module: &mut BoxModule) -> Result<()> {
     .write()
     .expect("TODO:")
     .insert(module.identifier(), Instant::now());
-  self.modules_count.fetch_add(1, SeqCst);
+  self.modules_count.fetch_add(1, Relaxed);
   self
     .last_active_module
     .write()
@@ -255,7 +255,7 @@ async fn build_module(&self, module: &mut BoxModule) -> Result<()> {
 
 #[plugin_hook(AsyncSeries<BoxModule> for ProgressPlugin)]
 async fn succeed_module(&self, module: &mut BoxModule) -> Result<()> {
-  self.modules_done.fetch_add(1, SeqCst);
+  self.modules_done.fetch_add(1, Relaxed);
   self
     .last_active_module
     .write()
@@ -446,7 +446,7 @@ impl Plugin for ProgressPlugin {
     if !self.options.profile {
       self.progress_bar.finish();
     }
-    *self.last_modules_count.write().expect("TODO:") = Some(self.modules_count.load(SeqCst));
+    *self.last_modules_count.write().expect("TODO:") = Some(self.modules_count.load(Relaxed));
     Ok(())
   }
 }
