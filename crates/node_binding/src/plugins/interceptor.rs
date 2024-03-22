@@ -622,7 +622,7 @@ impl AsyncSeries<BoxModule> for CompilationBuildModuleTap {
   async fn run(&self, module: &mut BoxModule) -> rspack_error::Result<()> {
     self
       .function
-      .call(module.to_js_module().expect("Convert to js_module failed."))
+      .call_with_sync(module.to_js_module().expect("Convert to js_module failed."))
       .await
   }
 
@@ -636,7 +636,7 @@ impl AsyncSeries<BoxModule> for CompilationStillValidModuleTap {
   async fn run(&self, module: &mut BoxModule) -> rspack_error::Result<()> {
     self
       .function
-      .call(module.to_js_module().expect("Convert to js_module failed."))
+      .call_with_sync(module.to_js_module().expect("Convert to js_module failed."))
       .await
   }
 
@@ -650,7 +650,7 @@ impl AsyncSeries<BoxModule> for CompilationSucceedModuleTap {
   async fn run(&self, module: &mut BoxModule) -> rspack_error::Result<()> {
     self
       .function
-      .call(module.to_js_module().expect("Convert to js_module failed."))
+      .call_with_sync(module.to_js_module().expect("Convert to js_module failed."))
       .await
   }
 
@@ -670,12 +670,12 @@ impl SyncSeries4<ModuleIdentifier, IdentifierSet, CodeGenerationResults, Execute
     codegen_results: &mut CodeGenerationResults,
     id: &mut ExecuteModuleId,
   ) -> rspack_error::Result<()> {
-    tokio::runtime::Handle::current().block_on(self.function.call(JsExecuteModuleArg {
+    self.function.blocking_call_with_sync(JsExecuteModuleArg {
       entry: entry.to_string(),
       runtime_modules: runtime_modules.iter().map(|id| id.to_string()).collect(),
       codegen_results: codegen_results.clone().into(),
       id: *id,
-    }))
+    })
   }
 
   fn stage(&self) -> i32 {
@@ -703,7 +703,7 @@ impl AsyncSeries<Compilation> for CompilationFinishModulesTap {
 #[async_trait]
 impl AsyncSeriesBail<Compilation, bool> for CompilationOptimizeModulesTap {
   async fn run(&self, _compilation: &mut Compilation) -> rspack_error::Result<Option<bool>> {
-    self.function.call(()).await
+    self.function.call_with_sync(()).await
   }
 
   fn stage(&self) -> i32 {
@@ -714,7 +714,7 @@ impl AsyncSeriesBail<Compilation, bool> for CompilationOptimizeModulesTap {
 #[async_trait]
 impl AsyncSeries<Compilation> for CompilationAfterOptimizeModulesTap {
   async fn run(&self, _compilation: &mut Compilation) -> rspack_error::Result<()> {
-    self.function.call(()).await
+    self.function.call_with_sync(()).await
   }
 
   fn stage(&self) -> i32 {
@@ -770,7 +770,7 @@ impl AsyncSeries3<Compilation, ModuleIdentifier, ChunkUkey> for CompilationRunti
       },
       chunk: JsChunk::from(chunk),
     };
-    if let Some(module) = self.function.call(arg).await?
+    if let Some(module) = self.function.call_with_sync(arg).await?
       && let Some(source) = module.source
     {
       let module = compilation
@@ -792,7 +792,7 @@ impl AsyncSeries2<Chunk, String> for CompilationChunkAssetTap {
   async fn run(&self, chunk: &mut Chunk, file: &mut String) -> rspack_error::Result<()> {
     self
       .function
-      .call(JsChunkAssetArgs {
+      .call_with_sync(JsChunkAssetArgs {
         chunk: JsChunk::from(chunk),
         filename: file.to_string(),
       })
@@ -830,7 +830,7 @@ impl AsyncSeries<Compilation> for CompilationAfterProcessAssetsTap {
     // 3. `JsCompilation` was replaced everytime a new `Compilation` was created before getting accessed.
     let compilation = unsafe { JsCompilation::from_compilation(compilation) };
 
-    self.function.call(compilation).await
+    self.function.call_with_sync(compilation).await
   }
 
   fn stage(&self) -> i32 {
