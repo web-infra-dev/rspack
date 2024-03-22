@@ -1,0 +1,266 @@
+import PropertyType from '../../../components/property-type.tsx';
+import WebpackLicense from '../../../components/webpack-license';
+
+<WebpackLicense from="https://webpack.js.org/configuration/stats/" />
+
+# Stats
+
+打包信息：该选项可用于生成分析模块的依赖关系图，以及优化编译速度的打包信息。
+
+:::info 输出打包信息的 JSON 文件
+
+- 使用 `@rspack/cli`，`rspack build --json stats.json`。
+- 通过 Rspack 的 Node.js API，`stats.toJson(options)`、`stats.toString(options)`。
+
+:::
+
+<PropertyType.CN
+  type="boolean | string | Object"
+  defaultValueList={[
+    {
+      defaultValue: `{"preset":"errors-warnings","timings":true}`,
+    },
+  ]}
+/>
+
+## 预设（Stats Presets）
+
+| 预设                | 描述                            |
+| ------------------- | ------------------------------- |
+| `'normal'` (`true`) | 按照 stats options 的默认值输出 |
+| `'none'` (`false`)  | 不输出任何信息                  |
+| `'verbose'`         | 输出所有信息                    |
+| `'errors-only'`     | 只输出错误相关信息              |
+| `'errors-warnings'` | 只输出错误和警告相关信息        |
+
+## 详细选项（Stats Options）
+
+可以指定具体哪些打包信息进行输出，以下所有字段都是可选（optional）的。
+
+### stats.assets
+
+<PropertyType.CN type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+是否输出产物相关信息。
+
+### stats.chunks
+
+<PropertyType.CN type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+是否输出 Chunk 相关信息。
+
+### stats.modules
+
+<PropertyType.CN type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+是否输出模块相关信息
+
+### stats.entrypoints
+
+<PropertyType.CN type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+是否输出入口 Entrypoint 相关信息。
+
+### stats.chunkGroups
+
+<PropertyType.CN type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+是否输出 ChunkGroup 相关信息。
+
+### stats.reasons
+
+<PropertyType.CN type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+是否输出模块被引入的原因。
+
+### stats.hash
+
+<PropertyType.CN type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+是否输出本次构建的 hash。
+
+### stats.errors
+
+<PropertyType.CN type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+是否输出本次构建产生的错误。
+
+### stats.errorsCount
+
+<PropertyType.CN type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+是否输出本次构建产生的错误的数量。
+
+### stats.warnings
+
+<PropertyType.CN type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+是否输出本次构建产生的警告。
+
+### stats.warningsCount
+
+<PropertyType.CN type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+是否输出本次构建产生的警告的数量。
+
+### stats.colors
+
+<PropertyType.CN
+  type="boolean"
+  defaultValueList={[{ defaultValue: 'false' }]}
+/>
+
+输出是否需要带有颜色。
+
+在支持颜色输出的环境中执行 `rspack build` 时，它被默认设置为 `true`。
+
+### stats.version
+
+<PropertyType.CN type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+是否输出 Rspack 的版本号。
+
+### stats.publicPath
+
+<PropertyType.CN type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+是否输出 publicPath。
+
+### stats.outputPath
+
+<PropertyType.CN type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+是否输出产物路径。
+
+### stats.chunkModules
+
+<PropertyType.CN type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+是否输出 chunk 所包含的模块信息。
+
+### stats.chunkRelations
+
+<PropertyType.CN
+  type="boolean"
+  defaultValueList={[{ defaultValue: 'false' }]}
+/>
+
+是否输出 chunk 的子 chunk、父 chunk、和兄弟 chunk。
+
+### stats.ids
+
+<PropertyType.CN
+  type="boolean"
+  defaultValueList={[{ defaultValue: 'false' }]}
+/>
+
+是否输出模块 id、chunk id 信息。
+
+### stats.timings
+
+<PropertyType.CN type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+是否输出构建的时间。
+
+### stats.builtAt
+
+<PropertyType.CN type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+是否输出构建的开始时间点。
+
+### stats.moduleAssets
+
+<PropertyType.CN type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+是否输出模块所包含的 assets 信息。
+
+### stats.modulesSpace
+
+<PropertyType.CN type="number" defaultValueList={[{ defaultValue: '15' }]} />
+
+展示出的模块的数量。
+
+### stats.nestedModules
+
+<PropertyType.CN type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+是否输出模块所包含的模块信息。
+
+### stats.source
+
+<PropertyType.CN
+  type="boolean"
+  defaultValueList={[{ defaultValue: 'false' }]}
+/>
+
+是否输出模块的源代码。
+
+### stats.logging
+
+<PropertyType.CN type="'info' | 'none' | 'error' | 'warn' | 'log' | 'verbose' | boolean" />
+
+是否输出 compilation.logger 的日志信息。
+
+### stats.loggingDebug
+
+<PropertyType.CN type="Array<string | RegExp | function (name) => boolean>" />
+
+只输出指定部分的 compilation.logger 的日志信息。
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  stats: {
+    loggingDebug: [
+      'MyPlugin',
+      /rspack/, // 获取 Rspack 内部的日志
+    ],
+  },
+};
+```
+
+### stats.loggingTrace
+
+<PropertyType.CN type="boolean" />
+
+是否输出 compilation.logger 所带有 stack trace 信息。
+
+### stats.children
+
+<PropertyType.CN type="boolean" />
+
+是否输出 childCompiler 的 stats 信息。
+
+### stats.all
+
+<PropertyType.CN
+  type="boolean"
+  defaultValueList={[{ defaultValue: 'undefined' }]}
+/>
+
+控制所有 stats options 是否输出。
+
+### stats.preset
+
+<PropertyType.CN
+  type="boolean"
+  defaultValueList={[{ defaultValue: 'undefined' }]}
+/>
+
+按照预设值进行输出。
+
+## 扩展打包信息输出行为
+
+如果你想使用预设的输出行为，但又想多输出或少输出个别字段，可以在指定 preset 或 all 之后对字段的输出行为进行自定义。
+
+举例来说，只输出错误和模块被引入的原因：
+
+```js title=rspack.config.js
+module.exports = {
+  // ...
+  stats: {
+    preset: 'errors-only',
+    reasons: true,
+  },
+};
+```

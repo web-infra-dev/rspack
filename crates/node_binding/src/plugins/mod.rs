@@ -22,8 +22,10 @@ use rspack_hook::Hook as _;
 
 use self::interceptor::RegisterCompilationBuildModuleTaps;
 use self::interceptor::RegisterCompilationChunkAssetTaps;
+use self::interceptor::RegisterCompilationFinishModulesTaps;
 use self::interceptor::RegisterCompilationStillValidModuleTaps;
 use self::interceptor::RegisterCompilationSucceedModuleTaps;
+use self::interceptor::RegisterCompilerFinishMakeTaps;
 use self::interceptor::{
   RegisterCompilationExecuteModuleTaps, RegisterCompilationProcessAssetsTaps,
   RegisterCompilationRuntimeModuleTaps, RegisterCompilerCompilationTaps, RegisterCompilerMakeTaps,
@@ -43,11 +45,13 @@ pub struct JsHooksAdapterPlugin {
   register_compiler_this_compilation_taps: RegisterCompilerThisCompilationTaps,
   register_compiler_compilation_taps: RegisterCompilerCompilationTaps,
   register_compiler_make_taps: RegisterCompilerMakeTaps,
+  register_compiler_finish_make_taps: RegisterCompilerFinishMakeTaps,
   register_compiler_should_emit_taps: RegisterCompilerShouldEmitTaps,
   register_compilation_build_module_taps: RegisterCompilationBuildModuleTaps,
   register_compilation_still_valid_module_taps: RegisterCompilationStillValidModuleTaps,
   register_compilation_succeed_module_taps: RegisterCompilationSucceedModuleTaps,
   register_compilation_execute_module_taps: RegisterCompilationExecuteModuleTaps,
+  register_compilation_finish_modules_taps: RegisterCompilationFinishModulesTaps,
   register_compilation_runtime_module_taps: RegisterCompilationRuntimeModuleTaps,
   register_compilation_chunk_asset_taps: RegisterCompilationChunkAssetTaps,
   register_compilation_process_assets_taps: RegisterCompilationProcessAssetsTaps,
@@ -99,6 +103,11 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
     ctx
       .context
       .compiler_hooks
+      .finish_make
+      .intercept(self.register_compiler_finish_make_taps.clone());
+    ctx
+      .context
+      .compiler_hooks
       .should_emit
       .intercept(self.register_compiler_should_emit_taps.clone());
     ctx
@@ -121,6 +130,11 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
       .compilation_hooks
       .execute_module
       .intercept(self.register_compilation_execute_module_taps.clone());
+    ctx
+      .context
+      .compilation_hooks
+      .finish_modules
+      .intercept(self.register_compilation_finish_modules_taps.clone());
     ctx
       .context
       .compilation_hooks
@@ -330,40 +344,6 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
     self.hooks.optimize_chunk_modules.call(compilation).await
   }
 
-  async fn finish_make(
-    &self,
-    compilation: &mut rspack_core::Compilation,
-  ) -> rspack_error::Result<()> {
-    if self.is_hook_disabled(&Hook::FinishMake) {
-      return Ok(());
-    }
-
-    // SAFETY:
-    // 1. `Compiler` is stored on the heap and pinned in binding crate.
-    // 2. `Compilation` outlives `JsCompilation` and `Compiler` outlives `Compilation`.
-    // 3. `JsCompilation` was replaced everytime a new `Compilation` was created before getting accessed.
-    let compilation = unsafe { JsCompilation::from_compilation(compilation) };
-
-    self.hooks.finish_make.call(compilation).await
-  }
-
-  async fn finish_modules(
-    &self,
-    compilation: &mut rspack_core::Compilation,
-  ) -> rspack_error::Result<()> {
-    if self.is_hook_disabled(&Hook::FinishModules) {
-      return Ok(());
-    }
-
-    // SAFETY:
-    // 1. `Compiler` is stored on the heap and pinned in binding crate.
-    // 2. `Compilation` outlives `JsCompilation` and `Compiler` outlives `Compilation`.
-    // 3. `JsCompilation` was replaced everytime a new `Compilation` was created before getting accessed.
-    let compilation = unsafe { JsCompilation::from_compilation(compilation) };
-
-    self.hooks.finish_modules.call(compilation).await
-  }
-
   async fn emit(&self, _: &mut rspack_core::Compilation) -> rspack_error::Result<()> {
     if self.is_hook_disabled(&Hook::Emit) {
       return Ok(());
@@ -407,6 +387,9 @@ impl JsHooksAdapterPlugin {
       register_compiler_make_taps: RegisterCompilerMakeTaps::new(
         register_js_taps.register_compiler_make_taps,
       ),
+      register_compiler_finish_make_taps: RegisterCompilerFinishMakeTaps::new(
+        register_js_taps.register_compiler_finish_make_taps,
+      ),
       register_compiler_should_emit_taps: RegisterCompilerShouldEmitTaps::new(
         register_js_taps.register_compiler_should_emit_taps,
       ),
@@ -421,6 +404,9 @@ impl JsHooksAdapterPlugin {
       ),
       register_compilation_execute_module_taps: RegisterCompilationExecuteModuleTaps::new(
         register_js_taps.register_compilation_execute_module_taps,
+      ),
+      register_compilation_finish_modules_taps: RegisterCompilationFinishModulesTaps::new(
+        register_js_taps.register_compilation_finish_modules_taps,
       ),
       register_compilation_runtime_module_taps: RegisterCompilationRuntimeModuleTaps::new(
         register_js_taps.register_compilation_runtime_module_taps,

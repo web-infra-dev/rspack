@@ -18,6 +18,8 @@ extend-exclude = [
   "pnpm-lock.yaml",
   "scripts/test/diff.cjs",
   "scripts/test/binary-path.cjs",
+  # temporarily disable typos for website
+  "website/**/*" 
 ]
 
 [default.extend-words]
