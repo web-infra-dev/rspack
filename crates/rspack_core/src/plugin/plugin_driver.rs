@@ -191,10 +191,8 @@ impl PluginDriver {
   }
 
   pub fn render_startup(&self, args: RenderStartupArgs) -> PluginRenderStartupHookOutput {
-    dbg!("render_startup------------");
     let mut source = args.source;
     for plugin in &self.plugins {
-      dbg!(plugin.name());
       if let Some(s) = plugin.render_startup(
         PluginContext::new(),
         &RenderStartupArgs {
