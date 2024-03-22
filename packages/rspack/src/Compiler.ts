@@ -106,9 +106,9 @@ class Compiler {
 		infrastructureLog: tapable.SyncBailHook<[string, string, any[]], true>;
 		beforeRun: tapable.AsyncSeriesHook<[Compiler]>;
 		run: tapable.AsyncSeriesHook<[Compiler]>;
-		emit: tapable.AsyncSeriesHook<[Compilation]>;
+		emit: liteTapable.AsyncSeriesHook<[Compilation]>;
 		assetEmitted: liteTapable.AsyncSeriesHook<[string, AssetEmittedInfo]>;
-		afterEmit: tapable.AsyncSeriesHook<[Compilation]>;
+		afterEmit: liteTapable.AsyncSeriesHook<[Compilation]>;
 		failed: tapable.SyncHook<[Error]>;
 		shutdown: tapable.AsyncSeriesHook<[]>;
 		watchRun: tapable.AsyncSeriesHook<[Compiler]>;
@@ -150,9 +150,9 @@ class Compiler {
 			afterDone: new tapable.SyncHook<Stats>(["stats"]),
 			beforeRun: new tapable.AsyncSeriesHook(["compiler"]),
 			run: new tapable.AsyncSeriesHook(["compiler"]),
-			emit: new tapable.AsyncSeriesHook(["compilation"]),
+			emit: new liteTapable.AsyncSeriesHook(["compilation"]),
 			assetEmitted: new liteTapable.AsyncSeriesHook(["file", "info"]),
-			afterEmit: new tapable.AsyncSeriesHook(["compilation"]),
+			afterEmit: new liteTapable.AsyncSeriesHook(["compilation"]),
 			thisCompilation: new liteTapable.SyncHook<
 				[Compilation, CompilationParams]
 			>(["compilation", "params"]),
@@ -236,8 +236,6 @@ class Compiler {
 			rawOptions,
 			this.builtinPlugins,
 			{
-				emit: this.#emit.bind(this),
-				afterEmit: this.#afterEmit.bind(this),
 				optimizeModules: this.#optimizeModules.bind(this),
 				afterOptimizeModules: this.#afterOptimizeModules.bind(this),
 				optimizeTree: this.#optimizeTree.bind(this),
@@ -278,6 +276,14 @@ class Compiler {
 				registerCompilerShouldEmitTaps: this.#createRegisterTaps(
 					() => this.hooks.shouldEmit,
 					queried => () => queried.call(this.compilation!)
+				),
+				registerCompilerEmitTaps: this.#createRegisterTaps(
+					() => this.hooks.emit,
+					queried => async () => await queried.promise(this.compilation!)
+				),
+				registerCompilerAfterEmitTaps: this.#createRegisterTaps(
+					() => this.hooks.afterEmit,
+					queried => async () => await queried.promise(this.compilation!)
 				),
 				registerCompilerAssetEmittedTaps: this.#createRegisterTaps(
 					() => this.hooks.assetEmitted,
@@ -664,8 +670,6 @@ class Compiler {
 		const disabledHooks: string[] = [];
 		type HookMap = Record<keyof binding.JsHooks, any>;
 		const hookMap: HookMap = {
-			emit: this.hooks.emit,
-			afterEmit: this.hooks.afterEmit,
 			optimizeTree: this.compilation!.hooks.optimizeTree,
 			optimizeModules: this.compilation!.hooks.optimizeModules,
 			afterOptimizeModules: this.compilation!.hooks.afterOptimizeModules,

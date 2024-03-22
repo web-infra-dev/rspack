@@ -515,22 +515,6 @@ impl PluginDriver {
     Ok(())
   }
 
-  #[instrument(name = "plugin:emit", skip_all)]
-  pub async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
-    for plugin in &self.plugins {
-      plugin.emit(compilation).await?;
-    }
-    Ok(())
-  }
-
-  #[instrument(name = "plugin:after_emit", skip_all)]
-  pub async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
-    for plugin in &self.plugins {
-      plugin.after_emit(compilation).await?;
-    }
-    Ok(())
-  }
-
   #[instrument(name = "plugin:seal", skip_all)]
   pub fn seal(&self, compilation: &mut Compilation) -> Result<()> {
     for plugin in &self.plugins {

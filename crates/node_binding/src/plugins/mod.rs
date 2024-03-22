@@ -19,7 +19,6 @@ use rspack_core::{
 };
 use rspack_hook::Hook as _;
 
-use self::interceptor::RegisterCompilationBuildModuleTaps;
 use self::interceptor::RegisterCompilationChunkAssetTaps;
 use self::interceptor::RegisterCompilationFinishModulesTaps;
 use self::interceptor::RegisterCompilationStillValidModuleTaps;
@@ -27,6 +26,9 @@ use self::interceptor::RegisterCompilationSucceedModuleTaps;
 use self::interceptor::RegisterCompilerFinishMakeTaps;
 use self::interceptor::{
   RegisterCompilationAfterProcessAssetsTaps, RegisterCompilerAssetEmittedTaps,
+};
+use self::interceptor::{
+  RegisterCompilationBuildModuleTaps, RegisterCompilerAfterEmitTaps, RegisterCompilerEmitTaps,
 };
 use self::interceptor::{
   RegisterCompilationExecuteModuleTaps, RegisterCompilationProcessAssetsTaps,
@@ -49,6 +51,8 @@ pub struct JsHooksAdapterPlugin {
   register_compiler_make_taps: RegisterCompilerMakeTaps,
   register_compiler_finish_make_taps: RegisterCompilerFinishMakeTaps,
   register_compiler_should_emit_taps: RegisterCompilerShouldEmitTaps,
+  register_compiler_emit_taps: RegisterCompilerEmitTaps,
+  register_compiler_after_emit_taps: RegisterCompilerAfterEmitTaps,
   register_compiler_asset_emitted_taps: RegisterCompilerAssetEmittedTaps,
   register_compilation_build_module_taps: RegisterCompilationBuildModuleTaps,
   register_compilation_still_valid_module_taps: RegisterCompilationStillValidModuleTaps,
@@ -114,6 +118,16 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
       .compiler_hooks
       .should_emit
       .intercept(self.register_compiler_should_emit_taps.clone());
+    ctx
+      .context
+      .compiler_hooks
+      .emit
+      .intercept(self.register_compiler_emit_taps.clone());
+    ctx
+      .context
+      .compiler_hooks
+      .after_emit
+      .intercept(self.register_compiler_after_emit_taps.clone());
     ctx
       .context
       .compiler_hooks
@@ -346,22 +360,6 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
 
     self.hooks.optimize_chunk_modules.call(compilation).await
   }
-
-  async fn emit(&self, _: &mut rspack_core::Compilation) -> rspack_error::Result<()> {
-    if self.is_hook_disabled(&Hook::Emit) {
-      return Ok(());
-    }
-
-    self.hooks.emit.call(()).await
-  }
-
-  async fn after_emit(&self, _: &mut rspack_core::Compilation) -> rspack_error::Result<()> {
-    if self.is_hook_disabled(&Hook::AfterEmit) {
-      return Ok(());
-    }
-
-    self.hooks.after_emit.call(()).await
-  }
 }
 
 impl JsHooksAdapterPlugin {
@@ -386,6 +384,12 @@ impl JsHooksAdapterPlugin {
       ),
       register_compiler_should_emit_taps: RegisterCompilerShouldEmitTaps::new(
         register_js_taps.register_compiler_should_emit_taps,
+      ),
+      register_compiler_emit_taps: RegisterCompilerEmitTaps::new(
+        register_js_taps.register_compiler_emit_taps,
+      ),
+      register_compiler_after_emit_taps: RegisterCompilerAfterEmitTaps::new(
+        register_js_taps.register_compiler_after_emit_taps,
       ),
       register_compiler_asset_emitted_taps: RegisterCompilerAssetEmittedTaps::new(
         register_js_taps.register_compiler_asset_emitted_taps,

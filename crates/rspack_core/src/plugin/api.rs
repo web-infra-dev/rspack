@@ -302,14 +302,6 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
-  async fn emit(&self, _compilation: &mut Compilation) -> Result<()> {
-    Ok(())
-  }
-
-  async fn after_emit(&self, _compilation: &mut Compilation) -> Result<()> {
-    Ok(())
-  }
-
   fn seal(&self, _compilation: &mut Compilation) -> Result<()> {
     Ok(())
   }

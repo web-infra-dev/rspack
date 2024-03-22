@@ -16,9 +16,9 @@ use rspack_core::{
   CompilationBuildModuleHook, CompilationChunkAssetHook, CompilationExecuteModuleHook,
   CompilationFinishModulesHook, CompilationParams, CompilationProcessAssetsHook,
   CompilationRuntimeModuleHook, CompilationStillValidModuleHook, CompilationSucceedModuleHook,
-  CompilerAssetEmittedHook, CompilerCompilationHook, CompilerFinishMakeHook, CompilerMakeHook,
-  CompilerShouldEmitHook, CompilerThisCompilationHook, ExecuteModuleId, MakeParam,
-  ModuleIdentifier, NormalModuleFactoryBeforeResolveHook,
+  CompilerAfterEmitHook, CompilerAssetEmittedHook, CompilerCompilationHook, CompilerEmitHook,
+  CompilerFinishMakeHook, CompilerMakeHook, CompilerShouldEmitHook, CompilerThisCompilationHook,
+  ExecuteModuleId, MakeParam, ModuleIdentifier, NormalModuleFactoryBeforeResolveHook,
 };
 use rspack_hook::{
   AsyncParallel3, AsyncSeries, AsyncSeries2, AsyncSeries3, AsyncSeriesBail, Hook, Interceptor,
@@ -268,6 +268,14 @@ pub struct RegisterJsTaps {
   )]
   pub register_compiler_should_emit_taps: RegisterFunction<JsCompilation, Option<bool>>,
   #[napi(
+    ts_type = "(stages: Array<number>) => Array<{ function: (() => Promise<void>); stage: number; }>"
+  )]
+  pub register_compiler_emit_taps: RegisterFunction<(), Promise<()>>,
+  #[napi(
+    ts_type = "(stages: Array<number>) => Array<{ function: (() => Promise<void>); stage: number; }>"
+  )]
+  pub register_compiler_after_emit_taps: RegisterFunction<(), Promise<()>>,
+  #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsAssetEmittedArgs) => Promise<void>); stage: number; }>"
   )]
   pub register_compiler_asset_emitted_taps: RegisterFunction<JsAssetEmittedArgs, Promise<()>>,
@@ -343,6 +351,18 @@ define_register!(
 define_register!(
   RegisterCompilerShouldEmitTaps,
   tap = CompilerShouldEmitTap<JsCompilation, Option<bool>> @ CompilerShouldEmitHook,
+  cache = false,
+  sync = false,
+);
+define_register!(
+  RegisterCompilerEmitTaps,
+  tap = CompilerEmitTap<(), Promise<()>> @ CompilerEmitHook,
+  cache = false,
+  sync = false,
+);
+define_register!(
+  RegisterCompilerAfterEmitTaps,
+  tap = CompilerAfterEmitTap<(), Promise<()>> @ CompilerAfterEmitHook,
   cache = false,
   sync = false,
 );
@@ -505,6 +525,28 @@ impl AsyncSeriesBail<Compilation, bool> for CompilerShouldEmitTap {
     let compilation = unsafe { JsCompilation::from_compilation(compilation) };
 
     self.function.call_with_sync(compilation).await
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
+
+#[async_trait]
+impl AsyncSeries<Compilation> for CompilerEmitTap {
+  async fn run(&self, _compilation: &mut Compilation) -> rspack_error::Result<()> {
+    self.function.call_with_promise(()).await
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
+
+#[async_trait]
+impl AsyncSeries<Compilation> for CompilerAfterEmitTap {
+  async fn run(&self, _compilation: &mut Compilation) -> rspack_error::Result<()> {
+    self.function.call_with_promise(()).await
   }
 
   fn stage(&self) -> i32 {
