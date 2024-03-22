@@ -22,8 +22,8 @@ export class ShareRuntimePlugin extends RspackBuiltinPlugin {
 		super();
 	}
 
-	raw(compiler: Compiler): BuiltinPlugin | null {
-		if (isSingleton(compiler)) return null;
+	raw(compiler: Compiler): BuiltinPlugin | undefined {
+		if (isSingleton(compiler)) return;
 		setSingleton(compiler);
 		return createBuiltinPlugin(this.name, this.enhanced);
 	}
