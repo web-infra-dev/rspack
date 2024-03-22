@@ -19,12 +19,8 @@ use rspack_core::{
   ModuleNoParseTestFn, ModuleOptions, ModuleRule, ModuleRuleEnforce, ModuleRuleUse,
   ModuleRuleUseLoader, ModuleType, ParserOptions, ParserOptionsByModuleType,
 };
-<<<<<<< HEAD
 use rspack_error::error;
-=======
-use rspack_error::{error, miette::IntoDiagnostic};
 use rspack_loader_preact_refresh::PREACT_REFRESH_LOADER_IDENTIFIER;
->>>>>>> ce32314f9 (feat: support preact refresh)
 use rspack_loader_react_refresh::REACT_REFRESH_LOADER_IDENTIFIER;
 use rspack_loader_swc::SWC_LOADER_IDENTIFIER;
 use rspack_napi::regexp::{JsRegExp, JsRegExpExt};
