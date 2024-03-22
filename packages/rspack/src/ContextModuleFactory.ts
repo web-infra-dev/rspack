@@ -1,4 +1,4 @@
-import { AsyncSeriesBailHook } from "tapable";
+import * as liteTapable from "./lite-tapable";
 
 // type ResourceData = {
 // 	resource: string;
@@ -24,8 +24,8 @@ export class ContextModuleFactory {
 		// resolveForScheme: HookMap<
 		// 	AsyncSeriesBailHook<[ResourceDataWithData], true | void>
 		// >;
-		beforeResolve: AsyncSeriesBailHook<[ResolveData], boolean | void>;
-		afterResolve: AsyncSeriesBailHook<[ResolveData], boolean | void>;
+		beforeResolve: liteTapable.AsyncSeriesBailHook<[ResolveData], false | void>;
+		afterResolve: liteTapable.AsyncSeriesBailHook<[ResolveData], false | void>;
 	};
 	constructor() {
 		this.hooks = {
@@ -42,8 +42,8 @@ export class ContextModuleFactory {
 			// /** @type {AsyncSeriesBailHook<[ResolveData], Module>} */
 			// factorize: new AsyncSeriesBailHook(["resolveData"]),
 			// /** @type {AsyncSeriesBailHook<[ResolveData], false | void>} */
-			beforeResolve: new AsyncSeriesBailHook(["resolveData"]),
-			afterResolve: new AsyncSeriesBailHook(["resolveData"])
+			beforeResolve: new liteTapable.AsyncSeriesBailHook(["resolveData"]),
+			afterResolve: new liteTapable.AsyncSeriesBailHook(["resolveData"])
 			// /** @type {AsyncSeriesBailHook<[ResolveData["createData"], ResolveData], Module | void>} */
 			// createModule: new AsyncSeriesBailHook(["createData", "resolveData"]),
 			// /** @type {SyncWaterfallHook<[Module, ResolveData["createData"], ResolveData], Module>} */

@@ -1,15 +1,26 @@
 use std::sync::Arc;
 
 use rspack_error::{error, Result};
+use rspack_hook::{AsyncSeriesBail3Hook, AsyncSeriesBailHook};
 use tracing::instrument;
 
 use crate::{
   cache::Cache, resolve, BeforeResolveArgs, BoxModule, ContextModule, ContextModuleOptions,
-  DependencyCategory, ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult,
-  ModuleIdentifier, NormalModuleAfterResolveArgs, PluginNormalModuleFactoryAfterResolveOutput,
-  RawModule, ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult, Resolver,
-  ResolverFactory, SharedPluginDriver,
+  DependencyCategory, FactoryMeta, ModuleExt, ModuleFactory, ModuleFactoryCreateData,
+  ModuleFactoryResult, ModuleIdentifier, PluginNormalModuleFactoryAfterResolveOutput, RawModule,
+  ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory,
+  SharedPluginDriver,
 };
+
+pub type ContextModuleFactoryBeforeResolveHook = AsyncSeriesBailHook<BeforeResolveArgs, bool>;
+pub type ContextModuleFactoryAfterResolveHook =
+  AsyncSeriesBail3Hook<String, ModuleFactoryCreateData, FactoryMeta, bool>;
+
+#[derive(Debug, Default)]
+pub struct ContextModuleFactoryHooks {
+  pub before_resolve: ContextModuleFactoryBeforeResolveHook,
+  pub after_resolve: ContextModuleFactoryAfterResolveHook,
+}
 
 #[derive(Debug)]
 pub struct ContextModuleFactory {
@@ -26,9 +37,9 @@ impl ModuleFactory for ContextModuleFactory {
       return Ok(before_resolve_result);
     }
 
-    let factorize_result = self.resolve(data).await?;
+    let mut factorize_result = self.resolve(data).await?;
 
-    if let Some(false) = self.after_resolve(data, &factorize_result).await? {
+    if let Some(false) = self.after_resolve(data, &mut factorize_result).await? {
       return Ok(ModuleFactoryResult::default());
     }
 
@@ -63,7 +74,9 @@ impl ContextModuleFactory {
     };
     if let Ok(Some(false)) = self
       .plugin_driver
-      .context_module_before_resolve(&mut before_resolve_args)
+      .context_module_factory_hooks
+      .before_resolve
+      .call(&mut before_resolve_args)
       .await
     {
       // ignored
@@ -217,7 +230,7 @@ impl ContextModuleFactory {
   async fn after_resolve(
     &self,
     data: &mut ModuleFactoryCreateData,
-    factory_result: &ModuleFactoryResult,
+    factory_result: &mut ModuleFactoryResult,
   ) -> PluginNormalModuleFactoryAfterResolveOutput {
     let dependency = data
       .dependency
@@ -226,16 +239,13 @@ impl ContextModuleFactory {
 
     self
       .plugin_driver
-      .context_module_after_resolve(&mut NormalModuleAfterResolveArgs {
-        request: dependency.request(),
-        context: data.context.as_ref(),
-        file_dependencies: &data.file_dependencies,
-        context_dependencies: &data.context_dependencies,
-        missing_dependencies: &data.missing_dependencies,
-        diagnostics: &mut data.diagnostics,
-        factory_meta: &factory_result.factory_meta,
-        create_data: None,
-      })
+      .context_module_factory_hooks
+      .after_resolve
+      .call(
+        &mut dependency.request().to_owned(),
+        data,
+        &mut factory_result.factory_meta,
+      )
       .await
   }
 }

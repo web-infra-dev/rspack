@@ -1,5 +1,3 @@
-#![feature(slice_group_by)]
-
 mod async_parallel;
 mod async_series;
 mod async_series_bail;
@@ -10,7 +8,10 @@ pub use async_parallel::{AsyncParallel, AsyncParallel3, AsyncParallel3Hook, Asyn
 pub use async_series::{
   AsyncSeries, AsyncSeries2, AsyncSeries2Hook, AsyncSeries3, AsyncSeries3Hook, AsyncSeriesHook,
 };
-pub use async_series_bail::{AsyncSeriesBail, AsyncSeriesBailHook};
+pub use async_series_bail::{
+  AsyncSeriesBail, AsyncSeriesBail3, AsyncSeriesBail3Hook, AsyncSeriesBail4, AsyncSeriesBail4Hook,
+  AsyncSeriesBailHook,
+};
 pub use interceptor::{Hook, Interceptor};
 pub use rspack_macros::{plugin, plugin_hook};
 pub use sync_series::{SyncSeries4, SyncSeries4Hook};

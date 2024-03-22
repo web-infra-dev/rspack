@@ -35,7 +35,6 @@ import { NormalModuleFactory } from "./NormalModuleFactory";
 import { WatchFileSystem } from "./util/fs";
 import { checkVersion } from "./util/bindingVersionCheck";
 import { Watching } from "./Watching";
-import { NormalModule } from "./NormalModule";
 import { deprecated_resolveBuiltins } from "./builtin-plugin";
 import { applyEntryOptions } from "./rspackOptionsApply";
 import { applyRspackOptionsDefaults } from "./config/defaults";
@@ -43,7 +42,7 @@ import { assertNotNill } from "./util/assertNotNil";
 import { FileSystemInfoEntry } from "./FileSystemInfo";
 import { RuntimeGlobals } from "./RuntimeGlobals";
 import { tryRunOrWebpackError } from "./lib/HookWebpackError";
-import { CodeGenerationResult, Module } from "./Module";
+import { CodeGenerationResult, Module, ResolveData } from "./Module";
 import { canInherentFromParent } from "./builtin-plugin/base";
 import ExecuteModulePlugin from "./ExecuteModulePlugin";
 import { Chunk } from "./Chunk";
@@ -239,12 +238,7 @@ class Compiler {
 				normalModuleFactoryCreateModule:
 					this.#normalModuleFactoryCreateModule.bind(this),
 				normalModuleFactoryResolveForScheme:
-					this.#normalModuleFactoryResolveForScheme.bind(this),
-				afterResolve: this.#afterResolve.bind(this),
-				contextModuleFactoryBeforeResolve:
-					this.#contextModuleFactoryBeforeResolve.bind(this),
-				contextModuleFactoryAfterResolve:
-					this.#contextModuleFactoryAfterResolve.bind(this)
+					this.#normalModuleFactoryResolveForScheme.bind(this)
 			},
 			{
 				registerCompilerThisCompilationTaps: this.#createRegisterTaps(
@@ -454,7 +448,7 @@ class Compiler {
 				registerNormalModuleFactoryBeforeResolveTaps: this.#createRegisterTaps(
 					() => this.compilationParams!.normalModuleFactory.hooks.beforeResolve,
 					queried => async (resolveData: binding.JsBeforeResolveArgs) => {
-						const normalizedResolveData = {
+						const normalizedResolveData: ResolveData = {
 							request: resolveData.request,
 							context: resolveData.context,
 							fileDependencies: [],
@@ -465,6 +459,51 @@ class Compiler {
 						resolveData.request = normalizedResolveData.request;
 						resolveData.context = normalizedResolveData.context;
 						return [ret, resolveData];
+					}
+				),
+				registerNormalModuleFactoryAfterResolveTaps: this.#createRegisterTaps(
+					() => this.compilationParams!.normalModuleFactory.hooks.afterResolve,
+					queried => async (arg: binding.JsAfterResolveData) => {
+						const data: ResolveData = {
+							request: arg.request,
+							context: arg.context,
+							fileDependencies: arg.fileDependencies,
+							missingDependencies: arg.missingDependencies,
+							contextDependencies: arg.contextDependencies,
+							factoryMeta: arg.factoryMeta,
+							createData: arg.createData
+						};
+						const ret = await queried.promise(data);
+						return [ret, data.createData];
+					}
+				),
+				registerContextModuleFactoryBeforeResolveTaps: this.#createRegisterTaps(
+					() =>
+						this.compilationParams!.contextModuleFactory.hooks.beforeResolve,
+					queried => async (arg: binding.JsBeforeResolveArgs) => {
+						const data: ResolveData = {
+							request: arg.request,
+							context: arg.context,
+							fileDependencies: [],
+							missingDependencies: [],
+							contextDependencies: []
+						};
+						return await queried.promise(data);
+					}
+				),
+				registerContextModuleFactoryAfterResolveTaps: this.#createRegisterTaps(
+					() => this.compilationParams!.contextModuleFactory.hooks.afterResolve,
+					queried => async (arg: binding.JsAfterResolveData) => {
+						const data: ResolveData = {
+							request: arg.request,
+							context: arg.context,
+							fileDependencies: arg.fileDependencies,
+							missingDependencies: arg.missingDependencies,
+							contextDependencies: arg.contextDependencies,
+							factoryMeta: arg.factoryMeta,
+							createData: arg.createData
+						};
+						return await queried.promise(data);
 					}
 				)
 			},
@@ -690,12 +729,6 @@ class Compiler {
 		const disabledHooks: string[] = [];
 		type HookMap = Record<keyof binding.JsHooks, any>;
 		const hookMap: HookMap = {
-			afterResolve:
-				this.compilationParams?.normalModuleFactory.hooks.afterResolve,
-			contextModuleFactoryBeforeResolve:
-				this.compilationParams?.contextModuleFactory.hooks.beforeResolve,
-			contextModuleFactoryAfterResolve:
-				this.compilationParams?.contextModuleFactory.hooks.afterResolve,
 			normalModuleFactoryCreateModule:
 				this.compilationParams?.normalModuleFactory.hooks.createModule,
 			normalModuleFactoryResolveForScheme:
@@ -726,57 +759,6 @@ class Compiler {
 		}
 	}
 
-	async #afterProcessAssets() {
-		await this.compilation!.hooks.afterProcessAssets.promise(
-			this.compilation!.assets
-		);
-		this.#updateDisabledHooks();
-	}
-
-	async #afterResolve(resolveData: binding.AfterResolveData) {
-		let res =
-			await this.compilationParams!.normalModuleFactory.hooks.afterResolve.promise(
-				resolveData
-			);
-
-		NormalModule.getCompilationHooks(this.compilation!).loader.tap(
-			"sideEffectFreePropPlugin",
-			(loaderContext: any) => {
-				loaderContext._module = {
-					factoryMeta: {
-						sideEffectFree: !!resolveData.factoryMeta.sideEffectFree
-					}
-				};
-			}
-		);
-		this.#updateDisabledHooks();
-		return [res, resolveData.createData];
-	}
-
-	async #contextModuleFactoryBeforeResolve(
-		resourceData: binding.JsBeforeResolveArgs
-	) {
-		let res =
-			await this.compilationParams!.contextModuleFactory.hooks.beforeResolve.promise(
-				resourceData
-			);
-
-		this.#updateDisabledHooks();
-		return res;
-	}
-
-	async #contextModuleFactoryAfterResolve(
-		resourceData: binding.AfterResolveData
-	) {
-		let res =
-			await this.compilationParams!.contextModuleFactory.hooks.afterResolve.promise(
-				resourceData
-			);
-
-		this.#updateDisabledHooks();
-		return res;
-	}
-
 	async #normalModuleFactoryCreateModule(createData: binding.CreateModuleData) {
 		const data = Object.assign({}, createData, {
 			settings: {},
@@ -799,22 +781,6 @@ class Compiler {
 			resourceData: input.resourceData,
 			stop: stop === true
 		};
-	}
-
-	async #optimizeChunkModules() {
-		await this.compilation!.hooks.optimizeChunkModules.promise(
-			this.compilation!.chunks,
-			this.compilation!.modules
-		);
-		this.#updateDisabledHooks();
-	}
-
-	async #optimizeTree() {
-		await this.compilation!.hooks.optimizeTree.promise(
-			this.compilation!.chunks,
-			this.compilation!.modules
-		);
-		this.#updateDisabledHooks();
 	}
 
 	#decorateUpdateDisabledHooks(jsTaps: binding.JsTap[]) {
