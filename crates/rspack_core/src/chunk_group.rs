@@ -6,8 +6,10 @@ use rspack_error::{error, Result};
 use rspack_identifier::IdentifierMap;
 use rustc_hash::FxHashSet as HashSet;
 
-use crate::{get_chunk_from_ukey, Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey};
-use crate::{ChunkLoading, ChunkUkey, Compilation, Filename};
+use crate::{
+  get_chunk_from_ukey, Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, FilenameTemplate,
+};
+use crate::{ChunkLoading, ChunkUkey, Compilation};
 use crate::{LibraryOptions, ModuleIdentifier, PublicPath};
 
 impl DatabaseItem for ChunkGroup {
@@ -319,7 +321,7 @@ pub struct EntryOptions {
   pub async_chunks: Option<bool>,
   pub public_path: Option<PublicPath>,
   pub base_uri: Option<String>,
-  pub filename: Option<Filename>,
+  pub filename: Option<FilenameTemplate>,
   pub library: Option<LibraryOptions>,
 }
 

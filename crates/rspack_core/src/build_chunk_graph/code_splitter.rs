@@ -216,7 +216,7 @@ impl<'me> CodeSplitter<'me> {
       );
       let chunk = self.compilation.chunk_by_ukey.expect_get_mut(&chunk_ukey);
       if let Some(filename) = &entry_data.options.filename {
-        chunk.filename_template = Some(filename.clone());
+        chunk.filename_template = Some(filename.clone().into());
       }
       chunk.chunk_reasons.push(format!("Entrypoint({name})",));
 
@@ -871,7 +871,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             let entry_options = entry_options.clone();
             let chunk = self.compilation.chunk_by_ukey.expect_get_mut(&chunk_ukey);
             if let Some(filename) = &entry_options.filename {
-              chunk.filename_template = Some(filename.clone());
+              chunk.filename_template = Some(filename.clone().into());
             }
             chunk
               .chunk_reasons

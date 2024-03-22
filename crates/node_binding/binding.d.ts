@@ -38,10 +38,10 @@ export class JsCompilation {
   pushDiagnostic(severity: "error" | "warning", title: string, message: string): void
   pushNativeDiagnostics(diagnostics: ExternalObject<'Diagnostic[]'>): void
   getStats(): JsStats
-  getAssetPath(filename: string, data: PathData): string
-  getAssetPathWithInfo(filename: string, data: PathData): PathWithInfo
-  getPath(filename: string, data: PathData): string
-  getPathWithInfo(filename: string, data: PathData): PathWithInfo
+  getAssetPath(filename: string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string), data: PathData): string
+  getAssetPathWithInfo(filename: string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string), data: PathData): PathWithInfo
+  getPath(filename: string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string), data: PathData): string
+  getPathWithInfo(filename: string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string), data: PathData): PathWithInfo
   addFileDependencies(deps: Array<string>): void
   addContextDependencies(deps: Array<string>): void
   addMissingDependencies(deps: Array<string>): void
@@ -274,6 +274,13 @@ export interface JsChunkGroup {
   chunks: Array<JsChunk>
   index?: number
   name?: string
+}
+
+export interface JsChunkPathData {
+  id?: string
+  name?: string
+  hash?: string
+  contentHash?: Record<string, string>
 }
 
 export interface JsCodegenerationResult {
@@ -574,6 +581,7 @@ export interface PathData {
   runtime?: string
   url?: string
   id?: string
+  chunk?: JsChunkPathData
 }
 
 export interface PathWithInfo {
@@ -1053,11 +1061,11 @@ export interface RawOutputOptions {
   wasmLoading: string
   enabledWasmLoadingTypes: Array<string>
   webassemblyModuleFilename: string
-  filename: string
-  chunkFilename: string
+  filename: string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string)
+  chunkFilename: string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string)
   crossOriginLoading: RawCrossOriginLoading
-  cssFilename: string
-  cssChunkFilename: string
+  cssFilename: string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string)
+  cssChunkFilename: string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string)
   hotUpdateMainFilename: string
   hotUpdateChunkFilename: string
   hotUpdateGlobal: string

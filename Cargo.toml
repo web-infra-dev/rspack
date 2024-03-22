@@ -32,7 +32,7 @@ pathdiff           = { version = "0.2.1" }
 quote              = { version = "1.0.35" }
 rayon              = { version = "1.9.0" }
 regex              = { version = "1.10.3" }
-rspack_sources     = { version = "=0.2.12" }
+rspack_sources     = { version = "=0.2.13" }
 rustc-hash         = { version = "1.1.0" }
 schemars           = { version = "0.8.16" }
 serde              = { version = "1.0.197" }

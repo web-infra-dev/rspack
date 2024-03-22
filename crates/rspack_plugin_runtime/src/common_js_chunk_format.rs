@@ -83,7 +83,7 @@ impl Plugin for CommonJsChunkFormatPlugin {
     args: &RenderChunkArgs,
   ) -> PluginRenderChunkHookOutput {
     let chunk = args.chunk();
-    let base_chunk_output_name = get_chunk_output_name(chunk, args.compilation);
+    let base_chunk_output_name = get_chunk_output_name(chunk, args.compilation)?;
     let mut sources = ConcatSource::default();
     sources.add(RawSource::from(format!(
       "exports.ids = ['{}'];\n",

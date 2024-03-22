@@ -18,7 +18,10 @@ fn macro_should_compile() {
       String::new().into()
     }
     fn as_str(&self) {}
-    fn generate_with_custom(&self, _compilation: &rspack_core::Compilation) -> Arc<dyn Source> {
+    fn generate_with_custom(
+      &self,
+      _compilation: &rspack_core::Compilation,
+    ) -> rspack_error::Result<Arc<dyn Source>> {
       todo!()
     }
   }

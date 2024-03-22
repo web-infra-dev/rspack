@@ -248,7 +248,7 @@ impl Plugin for CssPlugin {
             .map(|i| i.rendered(compilation.options.output.hash_digest_length)),
         )
         .runtime(&chunk.runtime),
-    );
+    )?;
 
     let content = source.source();
     let auto_public_path_matches: Vec<_> = AUTO_PUBLIC_PATH_PLACEHOLDER_REGEX

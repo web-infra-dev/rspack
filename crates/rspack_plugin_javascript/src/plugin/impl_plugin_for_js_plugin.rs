@@ -271,7 +271,7 @@ impl Plugin for JsPlugin {
             .map(|i| i.rendered(compilation.options.output.hash_digest_length)),
         )
         .runtime(&chunk.runtime),
-    );
+    )?;
     asset_info.set_javascript_module(compilation.options.output.module);
     Ok(
       vec![RenderManifestEntry::new(

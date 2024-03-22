@@ -66,12 +66,12 @@ impl RuntimeModule for ExposeRuntimeModule {
     RuntimeModuleStage::Attach
   }
 
-  fn generate(&self, compilation: &Compilation) -> BoxSource {
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let chunk_ukey = self
       .chunk
       .expect("should have chunk in <ExposeRuntimeModule as RuntimeModule>::generate");
     let Some(data) = self.find_expose_data(&chunk_ukey, compilation) else {
-      return RawSource::from("").boxed();
+      return Ok(RawSource::from("").boxed());
     };
     let module_map = data
       .module_map
@@ -127,7 +127,7 @@ __webpack_require__.initContainer = function(shareScope, initScope) {{
         initialize_sharing = RuntimeGlobals::INITIALIZE_SHARING,
       );
     }
-    RawSource::from(source).boxed()
+    Ok(RawSource::from(source).boxed())
   }
 
   fn attach(&mut self, chunk: ChunkUkey) {

@@ -104,7 +104,9 @@ export const getNormalizedRspackOptions = (
 		entry:
 			config.entry === undefined
 				? { main: {} }
-				: getNormalizedEntryStatic(config.entry),
+				: getNormalizedEntryStatic(
+						typeof config.entry === "function" ? config.entry() : config.entry
+					),
 		output: nestedConfig(config.output, output => {
 			const { library } = output;
 			const libraryAsName = library;

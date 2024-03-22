@@ -1336,6 +1336,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "generator"
+version = "0.7.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5cc16584ff22b460a382b7feec54b23d2908d858152e5739a120b949293bd74e"
+dependencies = [
+ "cc",
+ "libc",
+ "log",
+ "rustversion",
+ "windows",
+]
+
+[[package]]
 name = "generic-array"
 version = "0.14.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1907,6 +1920,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b06a4cde4c0f271a446782e3eff8de789548ce57dbc8eca9292c27f4a42004b4"
 
 [[package]]
+name = "loom"
+version = "0.5.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ff50ecb28bb86013e935fb6683ab1f6d3a20016f123c76fd4c27470076ac30f5"
+dependencies = [
+ "cfg-if",
+ "generator",
+ "pin-utils",
+ "scoped-tls",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "lru"
 version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2296,6 +2323,15 @@ name = "once_cell"
 version = "1.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3fdb12b2476b595f9358c5161aa467c2438859caa136dec86c26fdd2efe17b92"
+
+[[package]]
+name = "oneshot"
+version = "0.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6f6640c6bda7731b1fdbab747981a0f896dd1fedaf9f4a53fa237a04a84431f4"
+dependencies = [
+ "loom",
+]
 
 [[package]]
 name = "oorandom"
@@ -3085,6 +3121,7 @@ dependencies = [
  "rspack_identifier",
  "rspack_napi",
  "rustc-hash",
+ "serde",
 ]
 
 [[package]]
@@ -3310,6 +3347,7 @@ name = "rspack_napi"
 version = "0.1.0"
 dependencies = [
  "napi-h",
+ "oneshot",
  "rspack_error",
  "rspack_regex",
  "tokio",
@@ -3386,6 +3424,7 @@ dependencies = [
  "rspack_futures",
  "rspack_hash",
  "rspack_hook",
+ "rspack_util",
  "rustc-hash",
  "sugar_path",
  "tokio",
@@ -3501,6 +3540,7 @@ dependencies = [
  "rspack_error",
  "rspack_hook",
  "rspack_testing",
+ "rspack_util",
  "schemars",
  "serde",
  "serde_json",
@@ -3569,6 +3609,7 @@ dependencies = [
  "rspack_error",
  "rspack_hook",
  "rspack_identifier",
+ "rspack_util",
  "serde_json",
 ]
 
@@ -3799,9 +3840,9 @@ dependencies = [
 
 [[package]]
 name = "rspack_sources"
-version = "0.2.12"
+version = "0.2.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "81f2ba1487539680b821bc58b7ef432441ae09dfa4d9e6478720efd1a46180ab"
+checksum = "3d27bc1e3327407c1fe3f1e3f1cd353cb974e6f8072837402f8355e65bccb7cc"
 dependencies = [
  "dashmap",
  "dyn-clone",
@@ -3857,6 +3898,7 @@ dependencies = [
  "rspack_plugin_wasm",
  "rspack_regex",
  "rspack_tracing",
+ "rspack_util",
  "schemars",
  "serde",
  "serde_json",
