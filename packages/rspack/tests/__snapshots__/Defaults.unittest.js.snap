@@ -274,6 +274,7 @@ Object {
     "library": undefined,
     "module": false,
     "path": "<cwd>/dist",
+    "pathinfo": false,
     "publicPath": "auto",
     "scriptType": false,
     "sourceMapFilename": "[file].map",

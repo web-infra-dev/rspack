@@ -77,9 +77,8 @@ const describeCases = config => {
 									options.output.filename = "bundle.js";
 								if (!options.output.chunkFilename)
 									options.output.chunkFilename = "[name].chunk.[fullhash].js";
-								// CHANGE: the pathinfo is currently not supported in Rspack
-								// if (options.output.pathinfo === undefined)
-								// 	options.output.pathinfo = true;
+								if (options.output.pathinfo === undefined)
+									options.output.pathinfo = true;
 								if (options.output.publicPath === undefined)
 									options.output.publicPath = "https://test.cases/path/";
 								if (options.output.library === undefined)

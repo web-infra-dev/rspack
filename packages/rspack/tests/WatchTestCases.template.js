@@ -144,9 +144,8 @@ const describeCases = config => {
 									if (!options.output) options.output = {};
 									if (!options.output.path)
 										options.output.path = outputDirectory;
-									// CHANGE: The pathinfo is currently not supported in rspack
-									// if (typeof options.output.pathinfo === "undefined")
-									// 	options.output.pathinfo = true;
+									if (typeof options.output.pathinfo === "undefined")
+										options.output.pathinfo = true;
 									if (!options.output.filename)
 										options.output.filename = "bundle.js";
 									if (options.cache && options.cache.type === "filesystem") {
@@ -349,10 +348,9 @@ const describeCases = config => {
 											let testConfig = {};
 											try {
 												// try to load a test file
-												testConfig = require(path.join(
-													testDirectory,
-													"test.config.js"
-												));
+												testConfig = require(
+													path.join(testDirectory, "test.config.js")
+												);
 											} catch (e) {
 												// empty
 											}

@@ -120,9 +120,8 @@ const describeCases = config => {
 								if (!options.devtool) options.devtool = false;
 								if (options.cache === undefined) options.cache = false;
 								if (!options.output.path) options.output.path = outputDirectory;
-								// CHANGE: rspack does not support `pathinfo` yet.
-								// if (typeof options.output.pathinfo === "undefined")
-								// 	options.output.pathinfo = true;
+								if (typeof options.output.pathinfo === "undefined")
+									options.output.pathinfo = true;
 								if (!options.output.filename)
 									options.output.filename =
 										"bundle" +
@@ -282,7 +281,7 @@ const describeCases = config => {
 												? children.reduce(
 														(all, { modules }) => all.concat(modules),
 														modules || []
-												  )
+													)
 												: modules;
 											if (
 												allModules.some(
@@ -582,7 +581,7 @@ const describeCases = config => {
 																				referencingModule.identifier
 																					? referencingModule.identifier.slice(
 																							esmIdentifier.length + 1
-																					  )
+																						)
 																					: fileURLToPath(referencingModule.url)
 																			),
 																			options,
@@ -668,9 +667,11 @@ const describeCases = config => {
 												) {
 													return testConfig.modules[module];
 												} else {
-													return require(module.startsWith("node:")
-														? module.slice(5)
-														: module);
+													return require(
+														module.startsWith("node:")
+															? module.slice(5)
+															: module
+													);
 												}
 											};
 

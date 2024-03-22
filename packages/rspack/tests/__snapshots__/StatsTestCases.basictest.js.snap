@@ -229,8 +229,8 @@ Rspack compiled with 1 error"
 `;
 
 exports[`StatsTestCases should print correct stats for optimization-runtime-chunk 1`] = `
-"Entrypoint e1 3.81 KiB = e1~runtime.js 3.48 KiB e1.js 336 bytes
-Entrypoint e2 3.81 KiB = e2~runtime.js 3.48 KiB e2.js 336 bytes
+"Entrypoint e1 3.87 KiB = e1~runtime.js 3.48 KiB e1.js 398 bytes
+Entrypoint e2 3.87 KiB = e2~runtime.js 3.48 KiB e2.js 398 bytes
 chunk e1.js (e1) [entry]
 chunk e1~runtime.js (e1~runtime) [initial]
 chunk e2.js (e2) [entry]
@@ -238,8 +238,8 @@ chunk e2~runtime.js (e2~runtime) [initial]"
 `;
 
 exports[`StatsTestCases should print correct stats for optimization-runtime-chunk-multiple 1`] = `
-"Entrypoint e1 3.81 KiB = runtime~e1.js 3.48 KiB e1.js 336 bytes
-Entrypoint e2 3.81 KiB = runtime~e2.js 3.48 KiB e2.js 336 bytes
+"Entrypoint e1 3.87 KiB = runtime~e1.js 3.48 KiB e1.js 398 bytes
+Entrypoint e2 3.87 KiB = runtime~e2.js 3.48 KiB e2.js 398 bytes
 chunk e1.js (e1) [entry]
 chunk e2.js (e2) [entry]
 chunk runtime~e1.js (runtime~e1) [initial]
@@ -247,16 +247,16 @@ chunk runtime~e2.js (runtime~e2) [initial]"
 `;
 
 exports[`StatsTestCases should print correct stats for optimization-runtime-chunk-single 1`] = `
-"Entrypoint e1 3.81 KiB = runtime.js 3.48 KiB e1.js 336 bytes
-Entrypoint e2 3.81 KiB = runtime.js 3.48 KiB e2.js 336 bytes
+"Entrypoint e1 3.87 KiB = runtime.js 3.48 KiB e1.js 398 bytes
+Entrypoint e2 3.87 KiB = runtime.js 3.48 KiB e2.js 398 bytes
 chunk e1.js (e1) [entry]
 chunk e2.js (e2) [entry]
 chunk runtime.js (runtime) [initial]"
 `;
 
 exports[`StatsTestCases should print correct stats for optimization-runtime-chunk-true 1`] = `
-"Entrypoint e1 3.81 KiB = runtime~e1.js 3.48 KiB e1.js 336 bytes
-Entrypoint e2 3.81 KiB = runtime~e2.js 3.48 KiB e2.js 336 bytes
+"Entrypoint e1 3.87 KiB = runtime~e1.js 3.48 KiB e1.js 398 bytes
+Entrypoint e2 3.87 KiB = runtime~e2.js 3.48 KiB e2.js 398 bytes
 chunk e1.js (e1) [entry]
 chunk e2.js (e2) [entry]
 chunk runtime~e1.js (runtime~e1) [initial]
@@ -310,15 +310,15 @@ Rspack x.x.x compiled with 1 error in X s (b83610ec401765d7f9ef)"
 
 exports[`StatsTestCases should print correct stats for resolve-unexpected-exports-in-pkg-error 1`] = `
 "PublicPath: auto
-asset bundle.js 1.46 KiB [emitted] (name: main)
-Entrypoint main 1.46 KiB = bundle.js
+asset bundle.js 1.53 KiB [emitted] (name: main)
+Entrypoint main 1.53 KiB = bundle.js
 runtime modules 1 module
 ./index.js
 
 ERROR in ./index.js
   × Invalid \\"exports\\" target \\"../../index.js\\" defined for '.' in the package config Xdir/resolve-unexpected-exports-in-pkg-error/node_modules/pkg-a/package.json
 
-Rspack x.x.x compiled with 1 error in X s (c1888f6bacf659a49dc3)"
+Rspack x.x.x compiled with 1 error in X s (bdd0eba23c35e6eebaa7)"
 `;
 
 exports[`StatsTestCases should print correct stats for runtime-modules 1`] = `
@@ -381,11 +381,11 @@ webpack/runtime/define_property_getters {909}
 
 exports[`StatsTestCases should print correct stats for simple-export 1`] = `
 "PublicPath: auto
-asset bundle.js 1.79 KiB [emitted] (name: main)
-Entrypoint main 1.79 KiB = bundle.js
+asset bundle.js 1.86 KiB [emitted] (name: main)
+Entrypoint main 1.86 KiB = bundle.js
 runtime modules 3 modules
 ./index.js
-Rspack x.x.x compiled successfully in X s (28af2d7a47e4039ec00e)"
+Rspack x.x.x compiled successfully in X s (66ac9f7cc4e65d2008bf)"
 `;
 
 exports[`StatsTestCases should print correct stats for simple-module-source 1`] = `
