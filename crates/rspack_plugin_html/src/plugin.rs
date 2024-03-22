@@ -128,7 +128,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         );
         let mut tag: Option<HTMLPluginTag> = None;
         if extension.eq_ignore_ascii_case("css") {
-          tag = Some(HTMLPluginTag::create_style(&asset_uri, config.inject));
+          tag = Some(HTMLPluginTag::create_style(&asset_uri, HtmlInject::Head));
         } else if extension.eq_ignore_ascii_case("js") || extension.eq_ignore_ascii_case("mjs") {
           tag = Some(HTMLPluginTag::create_script(
             &asset_uri,
