@@ -12,11 +12,12 @@ use glob::{MatchOptions, Pattern as GlobPattern};
 use regex::Regex;
 use rspack_core::{
   rspack_sources::RawSource, AssetInfo, AssetInfoRelated, Compilation, CompilationAsset,
-  CompilationLogger, Filename, Logger, PathData, Plugin,
+  CompilationLogger, FilenameTemplate, Logger, PathData, Plugin,
 };
 use rspack_error::{Diagnostic, DiagnosticError, Error, ErrorExt, Result};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHashDigest};
 use rspack_hook::{plugin, plugin_hook, AsyncSeries};
+use rspack_util::infallible::ResultInfallibleExt as _;
 use sugar_path::{AsPath, SugarPath};
 
 #[derive(Debug, Clone)]
@@ -257,13 +258,15 @@ impl CopyRspackPlugin {
         &compilation.options.output.hash_salt,
       );
       let content_hash = content_hash.rendered(compilation.options.output.hash_digest_length);
-      let template_str = compilation.get_asset_path(
-        &Filename::from(filename.to_string_lossy().to_string()),
-        PathData::default()
-          .filename(&source_filename.to_string_lossy())
-          .content_hash(content_hash)
-          .hash_optional(compilation.get_hash()),
-      );
+      let template_str = compilation
+        .get_asset_path(
+          &FilenameTemplate::from(filename.to_string_lossy().to_string()),
+          PathData::default()
+            .filename(&source_filename.to_string_lossy())
+            .content_hash(content_hash)
+            .hash_optional(compilation.get_hash()),
+        )
+        .always_ok();
 
       logger.log(format!(
         "interpolated template '{template_str}' for '{}'",

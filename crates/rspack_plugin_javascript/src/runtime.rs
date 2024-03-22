@@ -196,9 +196,9 @@ pub fn render_runtime_modules(
         runtime_module,
       )
     })
-    .for_each(|((_, source), module)| {
+    .try_for_each(|((_, source), module)| -> Result<()> {
       if source.size() == 0 {
-        return;
+        return Ok(());
       }
       if is_diff_mode() {
         sources.add(RawSource::from(format!(
@@ -214,7 +214,7 @@ pub fn render_runtime_modules(
       if module.cacheable() {
         sources.add(source.clone());
       } else {
-        sources.add(module.generate_with_custom(compilation));
+        sources.add(module.generate_with_custom(compilation)?);
       }
       if !module.should_isolate() {
         sources.add(RawSource::from("\n}();\n"));
@@ -225,7 +225,8 @@ pub fn render_runtime_modules(
           module.identifier()
         )));
       }
-    });
+      Ok(())
+    })?;
   Ok(sources.boxed())
 }
 

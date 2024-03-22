@@ -38,10 +38,10 @@ export class JsCompilation {
   pushDiagnostic(severity: "error" | "warning", title: string, message: string): void
   pushNativeDiagnostics(diagnostics: ExternalObject<'Diagnostic[]'>): void
   getStats(): JsStats
-  getAssetPath(filename: string, data: PathData): string
-  getAssetPathWithInfo(filename: string, data: PathData): PathWithInfo
-  getPath(filename: string, data: PathData): string
-  getPathWithInfo(filename: string, data: PathData): PathWithInfo
+  getAssetPath(filename: string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string), data: PathData): string
+  getAssetPathWithInfo(filename: string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string), data: PathData): PathWithInfo
+  getPath(filename: string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string), data: PathData): string
+  getPathWithInfo(filename: string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string), data: PathData): PathWithInfo
   addFileDependencies(deps: Array<string>): void
   addContextDependencies(deps: Array<string>): void
   addMissingDependencies(deps: Array<string>): void
@@ -275,6 +275,13 @@ export interface JsChunkGroup {
   name?: string
 }
 
+export interface JsChunkPathData {
+  id?: string
+  name?: string
+  hash?: string
+  contentHash?: Record<string, string>
+}
+
 export interface JsCodegenerationResult {
   sources: Record<string, string>
 }
@@ -317,8 +324,6 @@ export interface JsHooks {
   afterOptimizeModules: (compilation: JsCompilation) => void
   optimizeTree: () => void
   optimizeChunkModules: (compilation: JsCompilation) => void
-  finishModules: (compilation: JsCompilation) => void
-  finishMake: (compilation: JsCompilation) => void
   afterResolve: (data: AfterResolveData) => Promise<(boolean | void | AfterResolveCreateData)[]>
   contextModuleFactoryBeforeResolve: (data: JsBeforeResolveArgs) => Promise<boolean | void>
   contextModuleFactoryAfterResolve: (data: AfterResolveData) => Promise<boolean | void>
@@ -575,6 +580,7 @@ export interface PathData {
   runtime?: string
   url?: string
   id?: string
+  chunk?: JsChunkPathData
 }
 
 export interface PathWithInfo {
@@ -1053,11 +1059,11 @@ export interface RawOutputOptions {
   wasmLoading: string
   enabledWasmLoadingTypes: Array<string>
   webassemblyModuleFilename: string
-  filename: string
-  chunkFilename: string
+  filename: string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string)
+  chunkFilename: string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string)
   crossOriginLoading: RawCrossOriginLoading
-  cssFilename: string
-  cssChunkFilename: string
+  cssFilename: string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string)
+  cssChunkFilename: string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string)
   hotUpdateMainFilename: string
   hotUpdateChunkFilename: string
   hotUpdateGlobal: string
@@ -1283,12 +1289,14 @@ export interface RegisterJsTaps {
   registerCompilerThisCompilationTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>
   registerCompilerCompilationTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>
   registerCompilerMakeTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => Promise<void>); stage: number; }>
+  registerCompilerFinishMakeTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>
   registerCompilerShouldEmitTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => boolean | undefined); stage: number; }>
   registerCompilationBuildModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsModule) => void); stage: number; }>
   registerCompilationStillValidModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsModule) => void); stage: number; }>
   registerCompilationSucceedModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsModule) => void); stage: number; }>
   registerCompilationExecuteModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsExecuteModuleArg) => void); stage: number; }>
   registerCompilationRuntimeModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRuntimeModuleArg) => JsRuntimeModule | undefined); stage: number; }>
+  registerCompilationFinishModulesTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => Promise<void>); stage: number; }>
   registerCompilationChunkAssetTaps: (stages: Array<number>) => Array<{ function: ((arg: JsChunkAssetArgs) => void); stage: number; }>
   registerCompilationProcessAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => Promise<void>); stage: number; }>
   registerNormalModuleFactoryBeforeResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsBeforeResolveArgs) => Promise<[boolean | undefined, JsBeforeResolveArgs]>); stage: number; }>

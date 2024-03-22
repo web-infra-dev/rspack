@@ -4,7 +4,7 @@ use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use rspack_error::Result;
 use rspack_fs::AsyncWritableFileSystem;
 use rspack_hash::RspackHashDigest;
-use rspack_identifier::IdentifierMap;
+use rspack_identifier::{Identifier, IdentifierMap};
 use rspack_sources::Source;
 use rustc_hash::FxHashSet as HashSet;
 
@@ -25,7 +25,7 @@ where
     let old = self.compilation.get_stats();
     let old_hash = self.compilation.hash.clone();
 
-    let (old_all_modules, old_runtime_modules) = collect_changed_modules(old.compilation);
+    let (old_all_modules, old_runtime_modules) = collect_changed_modules(old.compilation)?;
     // TODO: should use `records`
 
     let mut all_old_runtime: RuntimeSpec = Default::default();
@@ -158,12 +158,11 @@ pub struct CompilationRecords {
   pub old_hash: Option<RspackHashDigest>,
 }
 
-pub fn collect_changed_modules(
-  compilation: &Compilation,
-) -> (
+pub type ChangedModules = (
   IdentifierMap<(RspackHashDigest, String)>,
   IdentifierMap<String>,
-) {
+);
+pub fn collect_changed_modules(compilation: &Compilation) -> Result<ChangedModules> {
   let modules_map = compilation
     .chunk_graph
     .chunk_graph_module_by_module_identifier
@@ -186,16 +185,16 @@ pub fn collect_changed_modules(
   let old_runtime_modules = compilation
     .runtime_modules
     .iter()
-    .map(|(identifier, module)| {
-      (
+    .map(|(identifier, module)| -> Result<(Identifier, String)> {
+      Ok((
         *identifier,
         module
-          .generate_with_custom(compilation)
+          .generate_with_custom(compilation)?
           .source()
           .to_string(),
-      )
+      ))
     })
-    .collect();
+    .collect::<Result<IdentifierMap<String>>>()?;
 
-  (modules_map, old_runtime_modules)
+  Ok((modules_map, old_runtime_modules))
 }

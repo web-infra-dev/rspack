@@ -17,6 +17,7 @@ use rspack_error::Result;
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook, AsyncSeries, AsyncSeries2};
 use rspack_identifier::IdentifierSet;
+use rspack_util::infallible::ResultInfallibleExt as _;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 #[plugin]
@@ -76,7 +77,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     return Ok(());
   }
 
-  let (now_all_modules, now_runtime_modules) = collect_changed_modules(compilation);
+  let (now_all_modules, now_runtime_modules) = collect_changed_modules(compilation)?;
 
   let mut updated_modules: IdentifierSet = Default::default();
   let mut updated_runtime_modules: IdentifierSet = Default::default();
@@ -242,14 +243,16 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           entry.filename().to_string()
         } else {
           let chunk = compilation.chunk_by_ukey.expect_get(&ukey);
-          compilation.get_path(
-            &compilation.options.output.hot_update_chunk_filename,
-            PathData::default().chunk(chunk).hash_optional(
-              old_hash
-                .as_ref()
-                .map(|hash| hash.rendered(compilation.options.output.hash_digest_length)),
-            ),
-          )
+          compilation
+            .get_path(
+              &compilation.options.output.hot_update_chunk_filename,
+              PathData::default().chunk(chunk).hash_optional(
+                old_hash
+                  .as_ref()
+                  .map(|hash| hash.rendered(compilation.options.output.hash_digest_length)),
+              ),
+            )
+            .always_ok()
         };
         let asset = CompilationAsset::new(
           Some(entry.source),
@@ -295,14 +298,16 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       .iter()
       .map(|x| x.to_owned())
       .collect();
-    let filename = compilation.get_path(
-      &compilation.options.output.hot_update_main_filename,
-      PathData::default().runtime(&content.runtime).hash_optional(
-        old_hash
-          .as_ref()
-          .map(|hash| hash.rendered(compilation.options.output.hash_digest_length)),
-      ),
-    );
+    let filename = compilation
+      .get_path(
+        &compilation.options.output.hot_update_main_filename,
+        PathData::default().runtime(&content.runtime).hash_optional(
+          old_hash
+            .as_ref()
+            .map(|hash| hash.rendered(compilation.options.output.hash_digest_length)),
+        ),
+      )
+      .always_ok();
     compilation.emit_asset(
       filename,
       CompilationAsset::new(

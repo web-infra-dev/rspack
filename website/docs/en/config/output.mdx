@@ -28,7 +28,7 @@ The name of the file to be output by the Asset module. This value can be overrid
 
 ## output.filename
 
-- **Type:** `string`
+- **Type:** `string | (pathData: PathData, assetInfo?: JsAssetInfo) => string`
 - **Default:** `'[name].js'`
 
 This option determines the name of the JavaScript bundle file to be output. These bundles will be written to the directory specified by `output.path`.
@@ -96,11 +96,23 @@ module.exports = {
 };
 ```
 
+Using the function to return the filename.
+
+```ts title="rspack.config.js"
+module.exports = {
+  output: {
+    filename: (pathData) => {
+      return pathData.chunk.name === 'main' ? '[name].js' : '[name]/[name].js';
+    },
+  },
+};
+```
+
 More can be found in [Template String](/config/output.html#template-string).
 
 ## output.chunkFilename
 
-- **Type:** `string`
+- **Type:** `string | (pathData: PathData, assetInfo?: JsAssetInfo) => string`
 - **Default:** inferred from [`output.filename`](/config/output.html#outputfilename)
 - **Supported Template String:**
   - [Compilation Context](/config/output.html#compilation-context)
@@ -229,14 +241,14 @@ module.exports = {
 
 ## output.cssFilename
 
-- **Type:** `string`
+- **Type:** `string | (pathData: PathData, assetInfo?: JsAssetInfo) => string`
 - **Default:** inferred from [`output.filename`](/config/output.html#outputfilename)
 
 This option determines the name of the CSS file.
 
 ## output.cssChunkFilename
 
-- **Type:** `string`
+- **Type:** `string | (pathData: PathData, assetInfo?: JsAssetInfo) => string`
 - **Default:** inferred from [`output.chunkFilename`](/config/output.html#outputchunkfilename)
 - **Supported Template String:**
   - [Compilation Context](/config/output.html#compilation-context)
@@ -1163,7 +1175,7 @@ The AMD module will be:
 define('MyLibrary', [], factory);
 ```
 
-## output.libraryExport
+## output.libraryExport \{#outputlibraryexport-1}
 
 We might drop support for this, so prefer to use [output.library.export](#outputlibraryexport) which works the same as `libraryExport`.
 

@@ -27,11 +27,13 @@ impl RuntimeModule for SystemContextRuntimeModule {
     self.id
   }
 
-  fn generate(&self, _compilation: &Compilation) -> BoxSource {
-    RawSource::from(format!(
-      "{} = __system_context__",
-      RuntimeGlobals::SYSTEM_CONTEXT
-    ))
-    .boxed()
+  fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+    Ok(
+      RawSource::from(format!(
+        "{} = __system_context__",
+        RuntimeGlobals::SYSTEM_CONTEXT
+      ))
+      .boxed(),
+    )
   }
 }

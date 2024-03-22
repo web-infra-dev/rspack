@@ -18,6 +18,7 @@ use super::module::ToJsModule;
 use super::PathWithInfo;
 use crate::utils::callbackify;
 use crate::JsStatsOptimizationBailout;
+use crate::LocalJsFilename;
 use crate::{
   chunk::JsChunk, module::JsModule, CompatSource, JsAsset, JsAssetInfo, JsChunkGroup,
   JsCompatSource, JsStats, PathData, ToJsCompatSource,
@@ -356,41 +357,51 @@ impl JsCompilation {
   }
 
   #[napi]
-  pub fn get_asset_path(&self, filename: String, data: PathData) -> String {
-    self.0.get_asset_path(
-      &rspack_core::Filename::from(filename),
-      data.as_core_path_data(),
-    )
-  }
-
-  #[napi]
-  pub fn get_asset_path_with_info(&self, filename: String, data: PathData) -> PathWithInfo {
+  pub fn get_asset_path(
+    &self,
+    #[napi(ts_arg_type = "string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string)")]
+    filename: LocalJsFilename,
+    data: PathData,
+  ) -> napi::Result<String> {
     self
       .0
-      .get_asset_path_with_info(
-        &rspack_core::Filename::from(filename),
-        data.as_core_path_data(),
-      )
-      .into()
+      .get_asset_path(&filename.into(), data.as_core_path_data())
   }
 
   #[napi]
-  pub fn get_path(&self, filename: String, data: PathData) -> String {
-    self.0.get_path(
-      &rspack_core::Filename::from(filename),
-      data.as_core_path_data(),
-    )
-  }
-
-  #[napi]
-  pub fn get_path_with_info(&self, filename: String, data: PathData) -> PathWithInfo {
-    self
+  pub fn get_asset_path_with_info(
+    &self,
+    #[napi(ts_arg_type = "string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string)")]
+    filename: LocalJsFilename,
+    data: PathData,
+  ) -> napi::Result<PathWithInfo> {
+    let path_and_asset_info = self
       .0
-      .get_path_with_info(
-        &rspack_core::Filename::from(filename),
-        data.as_core_path_data(),
-      )
-      .into()
+      .get_asset_path_with_info(&filename.into(), data.as_core_path_data())?;
+    Ok(path_and_asset_info.into())
+  }
+
+  #[napi]
+  pub fn get_path(
+    &self,
+    #[napi(ts_arg_type = "string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string)")]
+    filename: LocalJsFilename,
+    data: PathData,
+  ) -> napi::Result<String> {
+    self.0.get_path(&filename.into(), data.as_core_path_data())
+  }
+
+  #[napi]
+  pub fn get_path_with_info(
+    &self,
+    #[napi(ts_arg_type = "string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string)")]
+    filename: LocalJsFilename,
+    data: PathData,
+  ) -> napi::Result<PathWithInfo> {
+    let path_and_asset_info = self
+      .0
+      .get_path_with_info(&filename.into(), data.as_core_path_data())?;
+    Ok(path_and_asset_info.into())
   }
 
   #[napi]

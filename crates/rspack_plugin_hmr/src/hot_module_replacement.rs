@@ -27,7 +27,7 @@ impl RuntimeModule for HotModuleReplacementRuntimeModule {
     self.id
   }
 
-  fn generate(&self, _compilation: &Compilation) -> BoxSource {
-    RawSource::from(include_str!("runtime/hot_module_replacement.js")).boxed()
+  fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+    Ok(RawSource::from(include_str!("runtime/hot_module_replacement.js")).boxed())
   }
 }

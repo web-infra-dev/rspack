@@ -38,12 +38,14 @@ impl RuntimeModule for ChunkPrefetchPreloadFunctionRuntimeModule {
     self.id
   }
 
-  fn generate(&self, _: &Compilation) -> BoxSource {
-    RawSource::from(
-      include_str!("runtime/chunk_prefetch_preload_function.js")
-        .replace("$RUNTIME_FUNCTION$", &self.runtime_function.to_string())
-        .replace("$RUNTIME_HANDLERS$", &self.runtime_handlers.to_string()),
+  fn generate(&self, _: &Compilation) -> rspack_error::Result<BoxSource> {
+    Ok(
+      RawSource::from(
+        include_str!("runtime/chunk_prefetch_preload_function.js")
+          .replace("$RUNTIME_FUNCTION$", &self.runtime_function.to_string())
+          .replace("$RUNTIME_HANDLERS$", &self.runtime_handlers.to_string()),
+      )
+      .boxed(),
     )
-    .boxed()
   }
 }

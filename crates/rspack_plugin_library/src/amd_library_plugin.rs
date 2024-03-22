@@ -2,12 +2,13 @@ use std::hash::Hash;
 
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceExt},
-  AdditionalChunkRuntimeRequirementsArgs, ChunkUkey, Compilation, ExternalModule, Filename,
+  AdditionalChunkRuntimeRequirementsArgs, ChunkUkey, Compilation, ExternalModule, FilenameTemplate,
   JsChunkHashArgs, LibraryName, LibraryNonUmdObject, LibraryOptions, LibraryType, PathData, Plugin,
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, PluginJsChunkHashHookOutput,
   PluginRenderHookOutput, RenderArgs, RuntimeGlobals, SourceType,
 };
 use rspack_error::{error_bail, Result};
+use rspack_util::infallible::ResultInfallibleExt as _;
 
 use crate::utils::{
   external_arguments, externals_dep_array, get_options_for_chunk, COMMON_LIBRARY_NAME_MESSAGE,
@@ -129,15 +130,17 @@ impl Plugin for AmdLibraryPlugin {
         "{amd_container_prefix}require({externals_deps_array}, {fn_start}"
       )));
     } else if let Some(name) = options.name {
-      let normalize_name = compilation.get_path(
-        &Filename::from(name.to_string()),
-        PathData::default().chunk(chunk).content_hash_optional(
-          chunk
-            .content_hash
-            .get(&SourceType::JavaScript)
-            .map(|i| i.rendered(compilation.options.output.hash_digest_length)),
-        ),
-      );
+      let normalize_name = compilation
+        .get_path(
+          &FilenameTemplate::from(name.to_string()),
+          PathData::default().chunk(chunk).content_hash_optional(
+            chunk
+              .content_hash
+              .get(&SourceType::JavaScript)
+              .map(|i| i.rendered(compilation.options.output.hash_digest_length)),
+          ),
+        )
+        .always_ok();
       source.add(RawSource::from(format!(
         "{amd_container_prefix}define('{normalize_name}', {externals_deps_array}, {fn_start}"
       )));
