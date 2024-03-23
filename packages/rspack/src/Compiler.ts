@@ -236,8 +236,6 @@ class Compiler {
 			rawOptions,
 			this.builtinPlugins,
 			{
-				optimizeModules: this.#optimizeModules.bind(this),
-				afterOptimizeModules: this.#afterOptimizeModules.bind(this),
 				optimizeTree: this.#optimizeTree.bind(this),
 				optimizeChunkModules: this.#optimizeChunkModules.bind(this),
 				normalModuleFactoryCreateModule:
@@ -413,6 +411,14 @@ class Compiler {
 					() => this.compilation!.hooks.finishModules,
 					queried => async () =>
 						await queried.promise(this.compilation!.modules)
+				),
+				registerCompilationOptimizeModulesTaps: this.#createRegisterTaps(
+					() => this.compilation!.hooks.optimizeModules,
+					queried => () => queried.call(this.compilation!.modules)
+				),
+				registerCompilationAfterOptimizeModulesTaps: this.#createRegisterTaps(
+					() => this.compilation!.hooks.afterOptimizeModules,
+					queried => () => queried.call(this.compilation!.modules)
 				),
 				registerCompilationChunkAssetTaps: this.#createRegisterTaps(
 					() => this.compilation!.hooks.chunkAsset,
@@ -671,8 +677,6 @@ class Compiler {
 		type HookMap = Record<keyof binding.JsHooks, any>;
 		const hookMap: HookMap = {
 			optimizeTree: this.compilation!.hooks.optimizeTree,
-			optimizeModules: this.compilation!.hooks.optimizeModules,
-			afterOptimizeModules: this.compilation!.hooks.afterOptimizeModules,
 			afterResolve:
 				this.compilationParams?.normalModuleFactory.hooks.afterResolve,
 			optimizeChunkModules: this.compilation!.hooks.optimizeChunkModules,
@@ -798,30 +802,6 @@ class Compiler {
 			this.compilation!.chunks,
 			this.compilation!.modules
 		);
-		this.#updateDisabledHooks();
-	}
-
-	async #optimizeModules() {
-		await this.compilation!.hooks.optimizeModules.promise(
-			this.compilation!.modules
-		);
-		this.#updateDisabledHooks();
-	}
-
-	async #afterOptimizeModules() {
-		await this.compilation!.hooks.afterOptimizeModules.promise(
-			this.compilation!.modules
-		);
-		this.#updateDisabledHooks();
-	}
-
-	async #emit() {
-		await this.hooks.emit.promise(this.compilation!);
-		this.#updateDisabledHooks();
-	}
-
-	async #afterEmit() {
-		await this.hooks.afterEmit.promise(this.compilation!);
 		this.#updateDisabledHooks();
 	}
 

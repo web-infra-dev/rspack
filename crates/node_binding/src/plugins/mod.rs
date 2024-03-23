@@ -19,11 +19,14 @@ use rspack_core::{
 };
 use rspack_hook::Hook as _;
 
-use self::interceptor::RegisterCompilationChunkAssetTaps;
 use self::interceptor::RegisterCompilationFinishModulesTaps;
 use self::interceptor::RegisterCompilationStillValidModuleTaps;
 use self::interceptor::RegisterCompilationSucceedModuleTaps;
 use self::interceptor::RegisterCompilerFinishMakeTaps;
+use self::interceptor::{
+  RegisterCompilationAfterOptimizeModulesTaps, RegisterCompilationChunkAssetTaps,
+  RegisterCompilationOptimizeModulesTaps,
+};
 use self::interceptor::{
   RegisterCompilationAfterProcessAssetsTaps, RegisterCompilerAssetEmittedTaps,
 };
@@ -59,6 +62,8 @@ pub struct JsHooksAdapterPlugin {
   register_compilation_succeed_module_taps: RegisterCompilationSucceedModuleTaps,
   register_compilation_execute_module_taps: RegisterCompilationExecuteModuleTaps,
   register_compilation_finish_modules_taps: RegisterCompilationFinishModulesTaps,
+  register_compilation_optimize_modules_taps: RegisterCompilationOptimizeModulesTaps,
+  register_compilation_after_optimize_modules_taps: RegisterCompilationAfterOptimizeModulesTaps,
   register_compilation_runtime_module_taps: RegisterCompilationRuntimeModuleTaps,
   register_compilation_chunk_asset_taps: RegisterCompilationChunkAssetTaps,
   register_compilation_process_assets_taps: RegisterCompilationProcessAssetsTaps,
@@ -158,6 +163,20 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
       .compilation_hooks
       .finish_modules
       .intercept(self.register_compilation_finish_modules_taps.clone());
+    ctx
+      .context
+      .compilation_hooks
+      .optimize_modules
+      .intercept(self.register_compilation_optimize_modules_taps.clone());
+    ctx
+      .context
+      .compilation_hooks
+      .after_optimize_modules
+      .intercept(
+        self
+          .register_compilation_after_optimize_modules_taps
+          .clone(),
+      );
     ctx
       .context
       .compilation_hooks
@@ -304,36 +323,6 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
     })
   }
 
-  async fn optimize_modules(
-    &self,
-    compilation: &mut rspack_core::Compilation,
-  ) -> rspack_error::Result<()> {
-    if self.is_hook_disabled(&Hook::OptimizeModules) {
-      return Ok(());
-    }
-    // SAFETY:
-    // 1. `Compiler` is stored on the heap and pinned in binding crate.
-    // 2. `Compilation` outlives `JsCompilation` and `Compiler` outlives `Compilation`.
-    // 3. `JsCompilation` was replaced everytime a new `Compilation` was created before getting accessed.
-    let compilation = unsafe { JsCompilation::from_compilation(compilation) };
-    self.hooks.optimize_modules.call(compilation).await
-  }
-
-  async fn after_optimize_modules(
-    &self,
-    compilation: &mut rspack_core::Compilation,
-  ) -> rspack_error::Result<()> {
-    if self.is_hook_disabled(&Hook::AfterOptimizeModules) {
-      return Ok(());
-    }
-    // SAFETY:
-    // 1. `Compiler` is stored on the heap and pinned in binding crate.
-    // 2. `Compilation` outlives `JsCompilation` and `Compiler` outlives `Compilation`.
-    // 3. `JsCompilation` was replaced everytime a new `Compilation` was created before getting accessed.
-    let compilation = unsafe { JsCompilation::from_compilation(compilation) };
-    self.hooks.after_optimize_modules.call(compilation).await
-  }
-
   async fn optimize_tree(
     &self,
     _compilation: &mut rspack_core::Compilation,
@@ -409,6 +398,13 @@ impl JsHooksAdapterPlugin {
       register_compilation_finish_modules_taps: RegisterCompilationFinishModulesTaps::new(
         register_js_taps.register_compilation_finish_modules_taps,
       ),
+      register_compilation_optimize_modules_taps: RegisterCompilationOptimizeModulesTaps::new(
+        register_js_taps.register_compilation_optimize_modules_taps,
+      ),
+      register_compilation_after_optimize_modules_taps:
+        RegisterCompilationAfterOptimizeModulesTaps::new(
+          register_js_taps.register_compilation_after_optimize_modules_taps,
+        ),
       register_compilation_runtime_module_taps: RegisterCompilationRuntimeModuleTaps::new(
         register_js_taps.register_compilation_runtime_module_taps,
       ),

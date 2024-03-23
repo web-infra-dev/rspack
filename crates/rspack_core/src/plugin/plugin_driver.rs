@@ -408,23 +408,6 @@ impl PluginDriver {
     Ok(())
   }
 
-  #[instrument(name = "plugin:optimize_modules", skip_all)]
-  pub async fn optimize_modules(&self, compilation: &mut Compilation) -> Result<()> {
-    for plugin in &self.plugins {
-      plugin.optimize_modules(compilation).await?;
-    }
-    Ok(())
-  }
-
-  #[instrument(name = "plugin:after_optimize_modules", skip_all)]
-  pub async fn after_optimize_modules(&self, compilation: &mut Compilation) -> Result<()> {
-    for plugin in &self.plugins {
-      // `SyncHook`
-      plugin.after_optimize_modules(compilation).await?;
-    }
-    Ok(())
-  }
-
   #[instrument(name = "plugin:optimize_dependencies", skip_all)]
   pub async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<()>> {
     for plugin in &self.plugins {

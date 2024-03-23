@@ -13,7 +13,9 @@ use rayon::prelude::*;
 use rspack_error::{error, Diagnostic, Result, Severity, TWithDiagnosticArray};
 use rspack_futures::FuturesResults;
 use rspack_hash::{RspackHash, RspackHashDigest};
-use rspack_hook::{AsyncSeries2Hook, AsyncSeries3Hook, AsyncSeriesHook, SyncSeries4Hook};
+use rspack_hook::{
+  AsyncSeries2Hook, AsyncSeries3Hook, AsyncSeriesBailHook, AsyncSeriesHook, SyncSeries4Hook,
+};
 use rspack_identifier::{Identifiable, Identifier, IdentifierMap, IdentifierSet};
 use rspack_sources::{BoxSource, CachedSource, SourceExt};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
@@ -52,6 +54,8 @@ pub type CompilationSucceedModuleHook = AsyncSeriesHook<BoxModule>;
 pub type CompilationExecuteModuleHook =
   SyncSeries4Hook<ModuleIdentifier, IdentifierSet, CodeGenerationResults, ExecuteModuleId>;
 pub type CompilationFinishModulesHook = AsyncSeriesHook<Compilation>;
+pub type CompilationOptimizeModulesHook = AsyncSeriesBailHook<Compilation, bool>;
+pub type CompilationAfterOptimizeModulesHook = AsyncSeriesHook<Compilation>;
 pub type CompilationRuntimeModuleHook = AsyncSeries3Hook<Compilation, ModuleIdentifier, ChunkUkey>;
 pub type CompilationChunkAssetHook = AsyncSeries2Hook<Chunk, String>;
 pub type CompilationProcessAssetsHook = AsyncSeriesHook<Compilation>;
@@ -64,6 +68,8 @@ pub struct CompilationHooks {
   pub succeed_module: CompilationSucceedModuleHook,
   pub execute_module: CompilationExecuteModuleHook,
   pub finish_modules: CompilationFinishModulesHook,
+  pub optimize_modules: CompilationOptimizeModulesHook,
+  pub after_optimize_modules: CompilationAfterOptimizeModulesHook,
   pub runtime_module: CompilationRuntimeModuleHook,
   pub chunk_asset: CompilationChunkAssetHook,
   pub process_assets: CompilationProcessAssetsHook,
@@ -844,8 +850,19 @@ impl Compilation {
     let start = logger.time("create chunks");
     use_code_splitting_cache(self, |compilation| async {
       build_chunk_graph(compilation)?;
-      plugin_driver.optimize_modules(compilation).await?;
-      plugin_driver.after_optimize_modules(compilation).await?;
+      while matches!(
+        plugin_driver
+          .compilation_hooks
+          .optimize_modules
+          .call(compilation)
+          .await?,
+        Some(true)
+      ) {}
+      plugin_driver
+        .compilation_hooks
+        .after_optimize_modules
+        .call(compilation)
+        .await?;
       plugin_driver.optimize_chunks(compilation).await?;
       Ok(compilation)
     })

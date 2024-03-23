@@ -8,10 +8,6 @@ use crate::{
 
 #[napi(object, object_to_js = false)]
 pub struct JsHooks {
-  #[napi(ts_type = "(compilation: JsCompilation) => void")]
-  pub optimize_modules: ThreadsafeFunction<JsCompilation, ()>,
-  #[napi(ts_type = "(compilation: JsCompilation) => void")]
-  pub after_optimize_modules: ThreadsafeFunction<JsCompilation, ()>,
   #[napi(ts_type = "() => void")]
   pub optimize_tree: ThreadsafeFunction<(), ()>,
   #[napi(ts_type = "(compilation: JsCompilation) => void")]
