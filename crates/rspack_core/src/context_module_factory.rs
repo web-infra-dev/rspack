@@ -72,6 +72,7 @@ impl ContextModuleFactory {
       request: dependency.request().to_string(),
       context: data.context.to_string(),
     };
+    let s = std::time::Instant::now();
     if let Some(false) = self
       .plugin_driver
       .context_module_factory_hooks
@@ -83,6 +84,7 @@ impl ContextModuleFactory {
       // See https://github.com/webpack/webpack/blob/6be4065ade1e252c1d8dcba4af0f43e32af1bdc1/lib/ContextModuleFactory.js#L115
       return Ok(Some(ModuleFactoryResult::default()));
     }
+    dbg!(s.elapsed());
     data.context = before_resolve_args.context.into();
     dependency.set_request(before_resolve_args.request);
     Ok(None)
@@ -237,7 +239,8 @@ impl ContextModuleFactory {
       .as_context_dependency()
       .expect("should be module dependency");
 
-    self
+    let s = std::time::Instant::now();
+    let r = self
       .plugin_driver
       .context_module_factory_hooks
       .after_resolve
@@ -246,6 +249,8 @@ impl ContextModuleFactory {
         data,
         &mut factory_result.factory_meta,
       )
-      .await
+      .await;
+    dbg!(s.elapsed());
+    r
   }
 }

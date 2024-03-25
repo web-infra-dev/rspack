@@ -556,6 +556,7 @@ impl NormalModuleFactory {
         user_request,
         resource: resource_data,
       };
+      // let s = std::time::Instant::now();
       if let Some(plugin_result) = self
         .plugin_driver
         .normal_module_factory_hooks
@@ -569,6 +570,7 @@ impl NormalModuleFactory {
           return Ok(Some(ModuleFactoryResult::default()));
         }
       }
+      // dbg!(s.elapsed());
 
       create_data
     };

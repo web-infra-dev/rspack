@@ -2,8 +2,8 @@ use std::{borrow::Cow, sync::Arc};
 
 use async_trait::async_trait;
 use napi::{
-  bindgen_prelude::{FromNapiValue, Promise, ToNapiValue},
-  Env, JsFunction, NapiRaw,
+  bindgen_prelude::{FromNapiValue, Promise, ToNapiValue, Undefined},
+  Either, Env, JsFunction, NapiRaw,
 };
 use rspack_binding_values::{
   CompatSource, JsAfterResolveData, JsAfterResolveOutput, JsAssetEmittedArgs, JsBeforeResolveArgs,
@@ -131,14 +131,15 @@ impl<T: 'static + ToNapiValue, R: 'static> RegisterJsTapsInner<T, R> {
   pub async fn call_register(
     &self,
     hook: &impl Hook,
+    ins: bool,
   ) -> rspack_error::Result<Cow<RegisterFunctionOutput<T, R>>> {
     if let RegisterJsTapsCache::Cache(cache) = &self.cache {
       let js_taps = cache
-        .get_or_try_init(|| self.call_register_impl(hook))
+        .get_or_try_init(|| self.call_register_impl(hook, ins))
         .await?;
       Ok(Cow::Borrowed(js_taps))
     } else {
-      let js_taps = self.call_register_impl(hook).await?;
+      let js_taps = self.call_register_impl(hook, ins).await?;
       Ok(Cow::Owned(js_taps))
     }
   }
@@ -146,10 +147,25 @@ impl<T: 'static + ToNapiValue, R: 'static> RegisterJsTapsInner<T, R> {
   async fn call_register_impl(
     &self,
     hook: &impl Hook,
+    ins: bool,
   ) -> rspack_error::Result<RegisterFunctionOutput<T, R>> {
     let mut used_stages = Vec::from_iter(hook.used_stages());
     used_stages.sort();
-    self.register.call_with_sync(used_stages).await
+    let s = if ins {
+      Some(std::time::Instant::now())
+    } else {
+      None
+    };
+    let r = if ins {
+      self.register.call_with_sync_ins(used_stages).await
+    } else {
+      self.register.call_with_sync(used_stages).await
+    };
+
+    if let Some(s) = s {
+      dbg!(s.elapsed());
+    }
+    r
   }
 
   pub fn call_register_blocking(
@@ -183,9 +199,9 @@ impl<T: 'static + ToNapiValue, R: 'static> RegisterJsTapsInner<T, R> {
 ///       be sync since calling a ThreadsafeFunction is async, for now it's only used by
 ///       execute_module, which strongly required sync call.
 macro_rules! define_register {
-  ($name:ident, tap = $tap_name:ident<$arg:ty, $ret:ty> @ $tap_hook:ty, cache = $cache:literal, sync = $sync:tt,) => {
+  ($name:ident, tap = $tap_name:ident<$arg:ty, $ret:ty> @ $tap_hook:ty, cache = $cache:literal, sync = $sync:tt,$ins:tt) => {
     define_register!(@BASE $name, $tap_name<$arg, $ret> @ $tap_hook, $cache, $sync);
-    define_register!(@INTERCEPTOR $name, $tap_name<$arg, $ret> @ $tap_hook, $cache, $sync);
+    define_register!(@INTERCEPTOR $name, $tap_name<$arg, $ret> @ $tap_hook, $cache, $sync, $ins);
   };
   (@BASE $name:ident, $tap_name:ident<$arg:ty, $ret:ty> @ $tap_hook:ty, $cache:literal, $sync:literal) => {
     #[derive(Clone)]
@@ -216,14 +232,14 @@ macro_rules! define_register {
       }
     }
   };
-  (@INTERCEPTOR $name:ident, $tap_name:ident<$arg:ty, $ret:ty> @ $tap_hook:ty, $cache:literal, false) => {
+  (@INTERCEPTOR $name:ident, $tap_name:ident<$arg:ty, $ret:ty> @ $tap_hook:ty, $cache:literal, false, $ins:literal) => {
     #[async_trait]
     impl Interceptor<$tap_hook> for $name {
       async fn call(
         &self,
         hook: &$tap_hook,
       ) -> rspack_error::Result<Vec<<$tap_hook as Hook>::Tap>> {
-        let js_taps = self.inner.call_register(hook).await?;
+        let js_taps = self.inner.call_register(hook, $ins).await?;
         let js_taps = js_taps
           .iter()
           .map(|t| Box::new($tap_name::new(t.clone())) as <$tap_hook as Hook>::Tap)
@@ -232,7 +248,7 @@ macro_rules! define_register {
       }
     }
   };
-  (@INTERCEPTOR $name:ident, $tap_name:ident<$arg:ty, $ret:ty> @ $tap_hook:ty, $cache:literal, true) => {
+  (@INTERCEPTOR $name:ident, $tap_name:ident<$arg:ty, $ret:ty> @ $tap_hook:ty, $cache:literal, true, $ins:literal) => {
     impl Interceptor<$tap_hook> for $name {
       fn call_blocking(
         &self,
@@ -349,7 +365,7 @@ pub struct RegisterJsTaps {
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsBeforeResolveArgs) => Promise<[boolean | undefined, JsBeforeResolveArgs]>); stage: number; }>"
   )]
   pub register_context_module_factory_before_resolve_taps:
-    RegisterFunction<JsBeforeResolveArgs, Promise<JsBeforeResolveOutput>>,
+    RegisterFunction<JsBeforeResolveArgs, Promise<Option<bool>>>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsAfterResolveData) => Promise<boolean | undefined>); stage: number; }>"
   )]
@@ -362,49 +378,49 @@ define_register!(
   RegisterCompilerThisCompilationTaps,
   tap = CompilerThisCompilationTap<JsCompilation, ()> @ CompilerThisCompilationHook,
   cache = false,
-  sync = false,
+  sync = false,false
 );
 define_register!(
   RegisterCompilerCompilationTaps,
   tap = CompilerCompilationTap<JsCompilation, ()> @ CompilerCompilationHook,
   cache = false,
-  sync = false,
+  sync = false,false
 );
 define_register!(
   RegisterCompilerMakeTaps,
   tap = CompilerMakeTap<JsCompilation, Promise<()>> @ CompilerMakeHook,
   cache = false,
-  sync = false,
+  sync = false,false
 );
 define_register!(
   RegisterCompilerFinishMakeTaps,
   tap = CompilerFinishMakeTap<JsCompilation, Promise<()>> @ CompilerFinishMakeHook,
   cache = false,
-  sync = false,
+  sync = false,false
 );
 define_register!(
   RegisterCompilerShouldEmitTaps,
   tap = CompilerShouldEmitTap<JsCompilation, Option<bool>> @ CompilerShouldEmitHook,
   cache = false,
-  sync = false,
+  sync = false,false
 );
 define_register!(
   RegisterCompilerEmitTaps,
   tap = CompilerEmitTap<(), Promise<()>> @ CompilerEmitHook,
   cache = false,
-  sync = false,
+  sync = false,false
 );
 define_register!(
   RegisterCompilerAfterEmitTaps,
   tap = CompilerAfterEmitTap<(), Promise<()>> @ CompilerAfterEmitHook,
   cache = false,
-  sync = false,
+  sync = false,false
 );
 define_register!(
   RegisterCompilerAssetEmittedTaps,
   tap = CompilerAssetEmittedTap<JsAssetEmittedArgs, Promise<()>> @ CompilerAssetEmittedHook,
   cache = true,
-  sync = false,
+  sync = false,false
 );
 
 /* Compilation Hooks */
@@ -412,79 +428,79 @@ define_register!(
   RegisterCompilationBuildModuleTaps,
   tap = CompilationBuildModuleTap<JsModule, ()> @ CompilationBuildModuleHook,
   cache = true,
-  sync = false,
+  sync = false,false
 );
 define_register!(
   RegisterCompilationStillValidModuleTaps,
   tap = CompilationStillValidModuleTap<JsModule, ()> @ CompilationStillValidModuleHook,
   cache = true,
-  sync = false,
+  sync = false,false
 );
 define_register!(
   RegisterCompilationSucceedModuleTaps,
   tap = CompilationSucceedModuleTap<JsModule, ()> @ CompilationSucceedModuleHook,
   cache = true,
-  sync = false,
+  sync = false,false
 );
 define_register!(
   RegisterCompilationExecuteModuleTaps,
   tap = CompilationExecuteModuleTap<JsExecuteModuleArg, ()> @ CompilationExecuteModuleHook,
   cache = false,
-  sync = true,
+  sync = true,false
 );
 define_register!(
   RegisterCompilationFinishModulesTaps,
   tap = CompilationFinishModulesTap<JsCompilation, Promise<()>> @ CompilationFinishModulesHook,
   cache = false,
-  sync = false,
+  sync = false,false
 );
 define_register!(
   RegisterCompilationOptimizeModulesTaps,
   tap = CompilationOptimizeModulesTap<(), Option<bool>> @ CompilationOptimizeModulesHook,
   cache = true,
-  sync = false,
+  sync = false,false
 );
 define_register!(
   RegisterCompilationAfterOptimizeModulesTaps,
   tap = CompilationAfterOptimizeModulesTap<(), ()> @ CompilationAfterOptimizeModulesHook,
   cache = false,
-  sync = false,
+  sync = false,false
 );
 define_register!(
   RegisterCompilationOptimizeTreeTaps,
   tap = CompilationOptimizeTreeTap<(), Promise<()>> @ CompilationOptimizeTreeHook,
   cache = false,
-  sync = false,
+  sync = false,false
 );
 define_register!(
   RegisterCompilationOptimizeChunkModulesTaps,
   tap = CompilationOptimizeChunkModulesTap<(), Promise<Option<bool>>> @ CompilationOptimizeChunkModulesHook,
   cache = false,
-  sync = false,
+  sync = false,false
 );
 define_register!(
   RegisterCompilationRuntimeModuleTaps,
   tap = CompilationRuntimeModuleTap<JsRuntimeModuleArg, Option<JsRuntimeModule>> @ CompilationRuntimeModuleHook,
   cache = true,
-  sync = false,
+  sync = false,false
 );
 define_register!(
   RegisterCompilationChunkAssetTaps,
   tap = CompilationChunkAssetTap<JsChunkAssetArgs, ()> @ CompilationChunkAssetHook,
   cache = true,
-  sync = false,
+  sync = false,false
 );
 define_register!(
   RegisterCompilationProcessAssetsTaps,
   tap = CompilationProcessAssetsTap<JsCompilation, Promise<()>> @ CompilationProcessAssetsHook,
   cache = false,
-  sync = false,
+  sync = false,false
 );
 define_register!(
   RegisterCompilationAfterProcessAssetsTaps,
   tap = CompilationAfterProcessAssetsTap<JsCompilation, ()> @ CompilationAfterProcessAssetsHook,
   cache = false,
-  sync = false,
+  sync = false,false
 );
 
 /* NormalModuleFactory Hooks */
@@ -492,27 +508,27 @@ define_register!(
   RegisterNormalModuleFactoryBeforeResolveTaps,
   tap = NormalModuleFactoryBeforeResolveTap<JsBeforeResolveArgs, Promise<JsBeforeResolveOutput>> @ NormalModuleFactoryBeforeResolveHook,
   cache = true,
-  sync = false,
+  sync = false,false
 );
 define_register!(
   RegisterNormalModuleFactoryAfterResolveTaps,
   tap = NormalModuleFactoryAfterResolveTap<JsAfterResolveData, Promise<JsAfterResolveOutput>> @ NormalModuleFactoryAfterResolveHook,
   cache = true,
-  sync = false,
+  sync = false,false
 );
 
 /* ContextModuleFactory Hooks */
 define_register!(
   RegisterContextModuleFactoryBeforeResolveTaps,
-  tap = ContextModuleFactoryBeforeResolveTap<JsBeforeResolveArgs, Promise<JsBeforeResolveOutput>> @ ContextModuleFactoryBeforeResolveHook,
+  tap = ContextModuleFactoryBeforeResolveTap<JsBeforeResolveArgs, Promise<Option<bool>>> @ ContextModuleFactoryBeforeResolveHook,
   cache = true,
-  sync = false,
+  sync = false,true
 );
 define_register!(
   RegisterContextModuleFactoryAfterResolveTaps,
   tap = ContextModuleFactoryAfterResolveTap<JsAfterResolveData, Promise<Option<bool>>> @ ContextModuleFactoryAfterResolveHook,
   cache = true,
-  sync = false,
+  sync = false,false
 );
 
 #[async_trait]
@@ -979,14 +995,10 @@ impl AsyncSeriesBail4<String, ModuleFactoryCreateData, FactoryMeta, CreateData, 
 #[async_trait]
 impl AsyncSeriesBail<BeforeResolveArgs, bool> for ContextModuleFactoryBeforeResolveTap {
   async fn run(&self, args: &mut BeforeResolveArgs) -> rspack_error::Result<Option<bool>> {
-    match self.function.call_with_promise(args.clone().into()).await {
-      Ok((ret, resolve_data)) => {
-        args.request = resolve_data.request;
-        args.context = resolve_data.context;
-        Ok(ret)
-      }
-      Err(err) => Err(err),
-    }
+    let s = std::time::Instant::now();
+    let r = self.function.call_with_promise(args.clone().into()).await;
+    dbg!(s.elapsed());
+    r
   }
 
   fn stage(&self) -> i32 {

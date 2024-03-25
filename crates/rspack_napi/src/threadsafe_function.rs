@@ -7,7 +7,8 @@ use napi::{
   },
   sys::{self, napi_env},
   threadsafe_function::{
-    ErrorStrategy, ThreadsafeFunction as RawThreadsafeFunction, ThreadsafeFunctionCallMode,
+    ErrorStrategy, ThreadsafeFunction as RawThreadsafeFunction, ThreadsafeFunctionCallJsBackData,
+    ThreadsafeFunctionCallMode, ThreadsafeFunctionCallVariant, ThreadsafeFunctionHandle,
   },
   Either, Env, JsUnknown, NapiRaw, Status, ValueType,
 };
@@ -100,6 +101,68 @@ impl<T: 'static, R> ThreadsafeFunction<T, R> {
     let rx = self.call_with_return(value);
     rx.recv().expect("failed to receive tsfn value")
   }
+
+  fn inner_call_with_return_value_raw_ins<
+    D: FromNapiValue,
+    F: 'static + FnOnce(napi::Result<D>) -> napi::Result<()>,
+  >(
+    &self,
+    value: T,
+    mode: ThreadsafeFunctionCallMode,
+    cb: F,
+  ) -> Status {
+    let s = std::time::Instant::now();
+    self.inner.handle.with_read_aborted(|aborted| {
+      dbg!(s.elapsed());
+      if aborted {
+        return Status::Closing;
+      }
+
+      let s = std::time::Instant::now();
+      unsafe {
+        let r = sys::napi_call_threadsafe_function(
+          self.inner.handle.get_raw(),
+          Box::into_raw(Box::new(ThreadsafeFunctionCallJsBackData {
+            data: value,
+            call_variant: ThreadsafeFunctionCallVariant::WithCallback,
+            callback: Box::new(move |d: napi::Result<JsUnknown>| {
+              dbg!(s.elapsed());
+              cb(d.and_then(|d| D::from_napi_value(d.0.env, d.0.value)))
+            }),
+          }))
+          .cast(),
+          mode.into(),
+        );
+        dbg!(s.elapsed());
+        r
+      }
+      .into()
+    })
+  }
+
+  fn call_with_return_ins<D: 'static + FromNapiValue>(&self, value: T) -> Receiver<Result<D>> {
+    let (tx, rx) = oneshot::channel::<Result<D>>();
+    let env = self.env;
+    let s = std::time::Instant::now();
+    self.inner_call_with_return_value_raw_ins(value, ThreadsafeFunctionCallMode::NonBlocking, {
+      move |r: napi::Result<JsUnknown>| {
+        dbg!(s.elapsed());
+        let r = match r {
+          Err(err) => Err(err.into_rspack_error_with_detail(&unsafe { Env::from_raw(env) })),
+          Ok(o) => unsafe { D::from_napi_value(env, o.raw()) }.into_diagnostic(),
+        };
+        tx.send(r)
+          .unwrap_or_else(|_| panic!("failed to send tsfn value"));
+        Ok(())
+      }
+    });
+    rx
+  }
+
+  async fn call_async_ins<D: 'static + FromNapiValue>(&self, value: T) -> Result<D> {
+    let rx = self.call_with_return_ins(value);
+    rx.await.expect("failed to receive tsfn value")
+  }
 }
 
 impl<T: 'static, R> ThreadsafeFunction<T, R> {
@@ -117,6 +180,9 @@ impl<T: 'static, R: 'static + FromNapiValue> ThreadsafeFunction<T, R> {
   /// Call the JS function.
   pub async fn call_with_sync(&self, value: T) -> Result<R> {
     self.call_async::<R>(value).await
+  }
+  pub async fn call_with_sync_ins(&self, value: T) -> Result<R> {
+    self.call_async_ins::<R>(value).await
   }
 
   /// Call the JS function with blocking.
