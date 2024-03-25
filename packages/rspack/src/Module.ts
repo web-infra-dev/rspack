@@ -1,10 +1,32 @@
 import {
 	JsCodegenerationResult,
 	JsCodegenerationResults,
+	JsCreateData,
+	JsFactoryMeta,
 	JsModule
 } from "@rspack/binding";
 import { Source } from "webpack-sources";
 import { createSourceFromRaw } from "./util/createSource";
+
+export type ResourceData = {
+	resource: string;
+	path: string;
+	query?: string;
+	fragment?: string;
+};
+export type ResourceDataWithData = ResourceData & {
+	data?: Record<string, any>;
+};
+export type CreateData = Partial<JsCreateData>;
+export type ResolveData = {
+	context: string;
+	request: string;
+	fileDependencies: string[];
+	missingDependencies: string[];
+	contextDependencies: string[];
+	factoryMeta?: JsFactoryMeta;
+	createData?: CreateData;
+};
 
 export class Module {
 	#inner: JsModule;

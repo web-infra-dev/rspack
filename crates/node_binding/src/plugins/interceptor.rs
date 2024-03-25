@@ -6,9 +6,10 @@ use napi::{
   Env, JsFunction, NapiRaw,
 };
 use rspack_binding_values::{
-  CompatSource, JsAssetEmittedArgs, JsBeforeResolveArgs, JsBeforeResolveOutput, JsChunk,
-  JsChunkAssetArgs, JsCompilation, JsExecuteModuleArg, JsModule, JsRuntimeModule,
-  JsRuntimeModuleArg, ToJsCompatSource, ToJsModule,
+  CompatSource, JsAfterResolveData, JsAfterResolveOutput, JsAssetEmittedArgs, JsBeforeResolveArgs,
+  JsBeforeResolveOutput, JsChunk, JsChunkAssetArgs, JsCompilation, JsCreateData,
+  JsExecuteModuleArg, JsFactoryMeta, JsModule, JsRuntimeModule, JsRuntimeModuleArg,
+  ToJsCompatSource, ToJsModule,
 };
 use rspack_core::{
   rspack_sources::SourceExt, AssetEmittedInfo, BeforeResolveArgs, BoxModule, Chunk, ChunkUkey,
@@ -19,12 +20,13 @@ use rspack_core::{
   CompilationProcessAssetsHook, CompilationRuntimeModuleHook, CompilationStillValidModuleHook,
   CompilationSucceedModuleHook, CompilerAfterEmitHook, CompilerAssetEmittedHook,
   CompilerCompilationHook, CompilerEmitHook, CompilerFinishMakeHook, CompilerMakeHook,
-  CompilerShouldEmitHook, CompilerThisCompilationHook, ExecuteModuleId, MakeParam,
-  ModuleIdentifier, NormalModuleFactoryBeforeResolveHook,
+  CompilerShouldEmitHook, CompilerThisCompilationHook, CreateData, ExecuteModuleId, FactoryMeta,
+  MakeParam, ModuleFactoryCreateData, ModuleIdentifier, NormalModuleFactoryAfterResolveHook,
+  NormalModuleFactoryBeforeResolveHook, ResourceData,
 };
 use rspack_hook::{
-  AsyncParallel3, AsyncSeries, AsyncSeries2, AsyncSeries3, AsyncSeriesBail, Hook, Interceptor,
-  SyncSeries4,
+  AsyncParallel3, AsyncSeries, AsyncSeries2, AsyncSeries3, AsyncSeriesBail, AsyncSeriesBail4, Hook,
+  Interceptor, SyncSeries4,
 };
 use rspack_identifier::IdentifierSet;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
@@ -337,6 +339,11 @@ pub struct RegisterJsTaps {
   )]
   pub register_normal_module_factory_before_resolve_taps:
     RegisterFunction<JsBeforeResolveArgs, Promise<JsBeforeResolveOutput>>,
+  #[napi(
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsAfterResolveData) => Promise<[boolean | undefined, JsCreateData | undefined]>); stage: number; }>"
+  )]
+  pub register_normal_module_factory_after_resolve_taps:
+    RegisterFunction<JsAfterResolveData, Promise<JsAfterResolveOutput>>,
 }
 
 /* Compiler Hooks */
@@ -473,6 +480,12 @@ define_register!(
 define_register!(
   RegisterNormalModuleFactoryBeforeResolveTaps,
   tap = NormalModuleFactoryBeforeResolveTap<JsBeforeResolveArgs, Promise<JsBeforeResolveOutput>> @ NormalModuleFactoryBeforeResolveHook,
+  cache = true,
+  sync = false,
+);
+define_register!(
+  RegisterNormalModuleFactoryAfterResolveTaps,
+  tap = NormalModuleFactoryAfterResolveTap<JsAfterResolveData, Promise<JsAfterResolveOutput>> @ NormalModuleFactoryAfterResolveHook,
   cache = true,
   sync = false,
 );
@@ -845,6 +858,88 @@ impl AsyncSeriesBail<BeforeResolveArgs, bool> for NormalModuleFactoryBeforeResol
       Ok((ret, resolve_data)) => {
         args.request = resolve_data.request;
         args.context = resolve_data.context;
+        Ok(ret)
+      }
+      Err(err) => Err(err),
+    }
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
+
+#[async_trait]
+impl AsyncSeriesBail4<String, ModuleFactoryCreateData, FactoryMeta, CreateData, bool>
+  for NormalModuleFactoryAfterResolveTap
+{
+  async fn run(
+    &self,
+    request: &mut String,
+    data: &mut ModuleFactoryCreateData,
+    meta: &mut FactoryMeta,
+    create_data: &mut CreateData,
+  ) -> rspack_error::Result<Option<bool>> {
+    match self
+      .function
+      .call_with_promise(JsAfterResolveData {
+        request: request.to_string(),
+        context: data.context.to_string(),
+        file_dependencies: data
+          .file_dependencies
+          .clone()
+          .into_iter()
+          .map(|item| item.to_string_lossy().to_string())
+          .collect::<Vec<_>>(),
+        context_dependencies: data
+          .context_dependencies
+          .clone()
+          .into_iter()
+          .map(|item| item.to_string_lossy().to_string())
+          .collect::<Vec<_>>(),
+        missing_dependencies: data
+          .missing_dependencies
+          .clone()
+          .into_iter()
+          .map(|item| item.to_string_lossy().to_string())
+          .collect::<Vec<_>>(),
+        factory_meta: JsFactoryMeta {
+          side_effect_free: meta.side_effect_free,
+        },
+        create_data: Some(JsCreateData {
+          request: create_data.request.to_owned(),
+          user_request: create_data.user_request.to_owned(),
+          resource: create_data
+            .resource
+            .resource_path
+            .to_string_lossy()
+            .to_string(),
+        }),
+      })
+      .await
+    {
+      Ok((ret, resolve_data)) => {
+        if let Some(resolve_data) = resolve_data {
+          fn override_resource(origin_data: &ResourceData, new_resource: String) -> ResourceData {
+            let mut resource_data = origin_data.clone();
+            let origin_resource_path = origin_data.resource_path.to_string_lossy().to_string();
+            resource_data.resource_path = new_resource.clone().into();
+            resource_data.resource = resource_data
+              .resource
+              .replace(&origin_resource_path, &new_resource);
+
+            resource_data
+          }
+
+          let request = resolve_data.request;
+          let user_request = resolve_data.user_request;
+          let resource = override_resource(&create_data.resource, resolve_data.resource);
+
+          create_data.request = request;
+          create_data.user_request = user_request;
+          create_data.resource = resource;
+        }
+
         Ok(ret)
       }
       Err(err) => Err(err),
