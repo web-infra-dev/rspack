@@ -39,6 +39,7 @@
     "nano-staged": "^0.8.0",
     "prettier": "^2.8.3",
     "rspress": "1.11.0",
+    "rspress-plugin-font-open-sans": "1.0.0",
     "typescript": "^5.0.4"
   }
 }

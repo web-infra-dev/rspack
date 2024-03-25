@@ -93,13 +93,3 @@ pub struct JsAssetEmittedArgs {
   pub output_path: String,
   pub target_path: String,
 }
-
-impl From<&rspack_core::AssetEmittedArgs<'_>> for JsAssetEmittedArgs {
-  fn from(args: &rspack_core::AssetEmittedArgs) -> Self {
-    Self {
-      filename: args.filename.to_string(),
-      output_path: args.output_path.to_string_lossy().to_string(),
-      target_path: args.target_path.to_string_lossy().to_string(),
-    }
-  }
-}

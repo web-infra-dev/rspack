@@ -10,10 +10,10 @@ use tracing::instrument;
 
 use crate::{
   AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, ApplyContext,
-  AssetEmittedArgs, BeforeResolveArgs, BoxLoader, BoxModule, BoxedParserAndGeneratorBuilder,
-  ChunkContentHash, ChunkHashArgs, Compilation, CompilationHooks, CompilerHooks, CompilerOptions,
-  Content, ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs, LoaderRunnerContext,
-  ModuleIdentifier, ModuleType, NormalModule, NormalModuleAfterResolveArgs, NormalModuleCreateData,
+  BeforeResolveArgs, BoxLoader, BoxModule, BoxedParserAndGeneratorBuilder, ChunkContentHash,
+  ChunkHashArgs, Compilation, CompilationHooks, CompilerHooks, CompilerOptions, Content,
+  ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs, LoaderRunnerContext, ModuleIdentifier,
+  ModuleType, NormalModule, NormalModuleAfterResolveArgs, NormalModuleCreateData,
   NormalModuleFactoryHooks, OptimizeChunksArgs, Plugin,
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginAdditionalModuleRequirementsOutput,
   PluginBuildEndHookOutput, PluginChunkHashHookOutput, PluginContext, PluginFactorizeHookOutput,
@@ -21,8 +21,8 @@ use crate::{
   PluginNormalModuleFactoryBeforeResolveOutput, PluginNormalModuleFactoryCreateModuleHookOutput,
   PluginNormalModuleFactoryModuleHookOutput, PluginRenderChunkHookOutput, PluginRenderHookOutput,
   PluginRenderManifestHookOutput, PluginRenderModuleContentOutput, PluginRenderStartupHookOutput,
-  PluginRuntimeRequirementsInTreeOutput, ProcessAssetsArgs, RenderArgs, RenderChunkArgs,
-  RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, Resolver, ResolverFactory,
+  PluginRuntimeRequirementsInTreeOutput, RenderArgs, RenderChunkArgs, RenderManifestArgs,
+  RenderModuleContentArgs, RenderStartupArgs, Resolver, ResolverFactory,
   RuntimeRequirementsInTreeArgs, Stats,
 };
 
@@ -389,21 +389,6 @@ impl PluginDriver {
     Ok(())
   }
 
-  #[instrument(name = "plugin:after_process_assets", skip_all)]
-  pub async fn after_process_assets(&self, args: ProcessAssetsArgs<'_>) -> Result<()> {
-    for plugin in &self.plugins {
-      plugin
-        .after_process_assets(
-          PluginContext::new(),
-          ProcessAssetsArgs {
-            compilation: args.compilation,
-          },
-        )
-        .await?
-    }
-    Ok(())
-  }
-
   #[instrument(name = "plugin:done", skip_all)]
   pub async fn done<'s, 'c>(&self, stats: &'s mut Stats<'c>) -> PluginBuildEndHookOutput {
     for plugin in &self.plugins {
@@ -419,23 +404,6 @@ impl PluginDriver {
       plugin
         .optimize_chunks(PluginContext::new(), OptimizeChunksArgs { compilation })
         .await?;
-    }
-    Ok(())
-  }
-
-  #[instrument(name = "plugin:optimize_modules", skip_all)]
-  pub async fn optimize_modules(&self, compilation: &mut Compilation) -> Result<()> {
-    for plugin in &self.plugins {
-      plugin.optimize_modules(compilation).await?;
-    }
-    Ok(())
-  }
-
-  #[instrument(name = "plugin:after_optimize_modules", skip_all)]
-  pub async fn after_optimize_modules(&self, compilation: &mut Compilation) -> Result<()> {
-    for plugin in &self.plugins {
-      // `SyncHook`
-      plugin.after_optimize_modules(compilation).await?;
     }
     Ok(())
   }
@@ -461,24 +429,6 @@ impl PluginDriver {
       };
     }
     Ok(None)
-  }
-
-  #[instrument(name = "plugin:optimize_tree", skip_all)]
-  pub async fn optimize_tree(&self, compilation: &mut Compilation) -> Result<()> {
-    for plugin in &self.plugins {
-      plugin.optimize_tree(compilation).await?;
-    }
-    Ok(())
-  }
-
-  #[instrument(name = "plugin:optimize_chunk_modules", skip_all)]
-  pub async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<()> {
-    for plugin in &self.plugins {
-      plugin
-        .optimize_chunk_modules(OptimizeChunksArgs { compilation })
-        .await?;
-    }
-    Ok(())
   }
 
   pub async fn resolve_loader(
@@ -526,30 +476,6 @@ impl PluginDriver {
   pub fn chunk_ids(&self, compilation: &mut Compilation) -> Result<()> {
     for plugin in &self.plugins {
       plugin.chunk_ids(compilation)?;
-    }
-    Ok(())
-  }
-
-  #[instrument(name = "plugin:emit", skip_all)]
-  pub async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
-    for plugin in &self.plugins {
-      plugin.emit(compilation).await?;
-    }
-    Ok(())
-  }
-
-  #[instrument(name = "plugin:asset_emitted", skip_all)]
-  pub async fn asset_emitted(&self, args: &AssetEmittedArgs<'_>) -> Result<()> {
-    for plugin in &self.plugins {
-      plugin.asset_emitted(args).await?;
-    }
-    Ok(())
-  }
-
-  #[instrument(name = "plugin:after_emit", skip_all)]
-  pub async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
-    for plugin in &self.plugins {
-      plugin.after_emit(compilation).await?;
     }
     Ok(())
   }
