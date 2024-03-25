@@ -33,15 +33,17 @@ impl RuntimeModule for ChunkNameRuntimeModule {
     self.id
   }
 
-  fn generate(&self, compilation: &Compilation) -> BoxSource {
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     if let Some(chunk_ukey) = self.chunk {
       let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
-      RawSource::from(format!(
-        "{} = {};",
-        RuntimeGlobals::CHUNK_NAME,
-        serde_json::to_string(&chunk.name).expect("Invalid json string")
-      ))
-      .boxed()
+      Ok(
+        RawSource::from(format!(
+          "{} = {};",
+          RuntimeGlobals::CHUNK_NAME,
+          serde_json::to_string(&chunk.name).expect("Invalid json string")
+        ))
+        .boxed(),
+      )
     } else {
       unreachable!("should attach chunk for css_loading")
     }

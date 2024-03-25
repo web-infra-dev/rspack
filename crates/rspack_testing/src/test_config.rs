@@ -11,6 +11,7 @@ use rspack_plugin_devtool::{
 };
 use rspack_plugin_html::config::HtmlRspackPluginOptions;
 use rspack_regex::RspackRegex;
+use rspack_util::infallible::ResultInfallibleExt as _;
 use schemars::JsonSchema;
 use serde::Deserialize;
 
@@ -202,6 +203,7 @@ pub struct Builtins {
 pub struct Css {
   #[serde(default)]
   pub modules: ModulesConfig,
+  pub named_exports: Option<bool>,
 }
 
 #[derive(Debug, JsonSchema, Deserialize)]
@@ -358,21 +360,17 @@ impl TestConfig {
       context: root.clone(),
       output: c::OutputOptions {
         clean: self.output.clean,
-        filename: c::Filename::from_str(&self.output.filename).expect("Should exist"),
-        chunk_filename: c::Filename::from_str(&self.output.chunk_filename).expect("Should exist"),
+        filename: self.output.filename.into(),
+        chunk_filename: self.output.chunk_filename.into(),
         cross_origin_loading: rspack_core::CrossOriginLoading::Disable,
-        css_filename: c::Filename::from_str(&self.output.css_filename).expect("Should exist"),
-        css_chunk_filename: c::Filename::from_str(&self.output.css_chunk_filename)
-          .expect("Should exist"),
-        hot_update_chunk_filename: c::Filename::from_str("[id].[fullhash].hot-update.js")
-          .expect("Should exist"),
-        hot_update_main_filename: c::Filename::from_str("[runtime].[fullhash].hot-update.json")
-          .expect("Should exist"),
+        css_filename: self.output.css_filename.into(),
+        css_chunk_filename: self.output.css_chunk_filename.into(),
+        hot_update_chunk_filename: "[id].[fullhash].hot-update.js".parse().always_ok(),
+        hot_update_main_filename: "[runtime].[fullhash].hot-update.json".parse().always_ok(),
         hot_update_global: "rspack_testing".to_string(),
-        asset_module_filename: c::Filename::from_str("[hash][ext][query]").expect("Should exist"),
+        asset_module_filename: "[hash][ext][query]".parse().always_ok(),
         wasm_loading: c::WasmLoading::Enable(c::WasmLoadingType::from("fetch")),
-        webassembly_module_filename: c::Filename::from_str("[hash].module.wasm")
-          .expect("Should exist"),
+        webassembly_module_filename: "[hash].module.wasm".parse().always_ok(),
         public_path: c::PublicPath::String("/".to_string()),
         unique_name: "__rspack_test__".to_string(),
         chunk_loading: c::ChunkLoading::Enable(c::ChunkLoadingType::Jsonp),
@@ -393,8 +391,7 @@ impl TestConfig {
         iife: true,
         module: false,
         trusted_types: None,
-        source_map_filename: c::Filename::from_str(&self.output.source_map_filename)
-          .expect("Should exist"),
+        source_map_filename: self.output.source_map_filename.parse().always_ok(),
         hash_function: c::HashFunction::Xxhash64,
         hash_digest: c::HashDigest::Hex,
         hash_digest_length: 16,
@@ -491,6 +488,7 @@ impl TestConfig {
           ),
           exports_only: self.builtins.css.modules.exports_only,
         },
+        named_exports: self.builtins.css.named_exports,
       })
       .boxed(),
     );
@@ -500,10 +498,10 @@ impl TestConfig {
     plugins.push(rspack_plugin_runtime::JsonpChunkLoadingPlugin {}.boxed());
     plugins.push(rspack_plugin_runtime::RuntimePlugin {}.boxed());
     if options.dev_server.hot {
-      plugins.push(rspack_plugin_hmr::HotModuleReplacementPlugin.boxed());
+      plugins.push(rspack_plugin_hmr::HotModuleReplacementPlugin::default().boxed());
     }
     // plugins.push(rspack_plugin_externals::ExternalPlugin::default().boxed());
-    plugins.push(rspack_plugin_javascript::JsPlugin::new().boxed());
+    plugins.push(rspack_plugin_javascript::JsPlugin::default().boxed());
 
     if self.devtool.contains("source-map") {
       let hidden = self.devtool.contains("hidden");
@@ -555,10 +553,10 @@ impl TestConfig {
 
     plugins.push(rspack_plugin_warn_sensitive_module::WarnCaseSensitiveModulesPlugin.boxed());
 
-    plugins.push(rspack_plugin_javascript::InferAsyncModulesPlugin {}.boxed());
+    plugins.push(rspack_plugin_javascript::InferAsyncModulesPlugin::default().boxed());
     if self.experiments.async_web_assembly {
       plugins.push(rspack_plugin_wasm::FetchCompileAsyncWasmPlugin {}.boxed());
-      plugins.push(rspack_plugin_wasm::AsyncWasmPlugin::new().boxed());
+      plugins.push(rspack_plugin_wasm::AsyncWasmPlugin::default().boxed());
     }
     plugins.push(rspack_plugin_externals::http_externals_rspack_plugin(
       true, false,

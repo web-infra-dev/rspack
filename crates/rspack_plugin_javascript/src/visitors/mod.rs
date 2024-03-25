@@ -1,5 +1,5 @@
 mod dependency;
-mod scope_info;
+pub mod scope_info;
 pub mod swc_visitor;
 
 use rspack_ast::javascript::Ast;
@@ -15,7 +15,6 @@ pub use self::JavascriptParser;
 
 /// Webpack builtin plugins
 /// - `define`: a port of `DefinePlugin`
-/// - `provide`: a port of `ProvidePlugin`
 fn builtins_webpack_plugin(options: &CompilerOptions, unresolved_mark: Mark) -> impl Fold + '_ {
   chain!(
     Optional::new(
@@ -26,10 +25,6 @@ fn builtins_webpack_plugin(options: &CompilerOptions, unresolved_mark: Mark) -> 
       builtins_webpack_plugin_define_optimizer(unresolved_mark),
       !options.builtins.define.is_empty()
     ),
-    Optional::new(
-      rspack_swc_visitors::provide(&options.builtins.provide, unresolved_mark),
-      !options.builtins.provide.is_empty()
-    )
   )
 }
 
@@ -63,16 +58,17 @@ pub fn run_before_pass(ast: &mut Ast, options: &CompilerOptions) -> Result<()> {
     .transform_with_handler(cm.clone(), |_handler, program, context| {
       let top_level_mark = context.top_level_mark;
       let unresolved_mark = context.unresolved_mark;
-      let comments: Option<&dyn Comments> = None;
-
-      let mut pass = chain!(
-        swc_visitor::resolver(unresolved_mark, top_level_mark, false),
-        builtins_webpack_plugin(options, unresolved_mark),
-        swc_visitor::hygiene(false, top_level_mark),
-        swc_visitor::fixer(comments.map(|v| v as &dyn Comments)),
-      );
-      program.fold_with(&mut pass);
-
+      let comments = program.comments.take();
+      {
+        let mut pass = chain!(
+          swc_visitor::resolver(unresolved_mark, top_level_mark, false),
+          builtins_webpack_plugin(options, unresolved_mark),
+          swc_visitor::hygiene(false, top_level_mark),
+          swc_visitor::fixer(Some(&comments as &dyn Comments))
+        );
+        program.fold_with(&mut pass);
+      }
+      program.comments = comments;
       Ok(())
     })
     .map_err(AnyhowError::from)?;

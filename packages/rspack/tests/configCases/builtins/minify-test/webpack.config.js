@@ -7,6 +7,9 @@ module.exports = {
 		b: "./b",
 		main: "./index"
 	},
+	output: {
+		filename: "[name].js"
+	},
 	optimization: {
 		minimize: true,
 		minimizer: [

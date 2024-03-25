@@ -1,9 +1,5 @@
-import { BuiltinPlugin } from "@rspack/binding";
-import {
-	BuiltinPluginName,
-	RspackBuiltinPlugin,
-	createBuiltinPlugin
-} from "./base";
+import { BuiltinPlugin, BuiltinPluginName } from "@rspack/binding";
+import { RspackBuiltinPlugin, createBuiltinPlugin } from "./base";
 import {
 	ChunkLoading,
 	OutputModule,

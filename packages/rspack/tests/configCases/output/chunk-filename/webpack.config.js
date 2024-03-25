@@ -1,8 +1,6 @@
-/** @type {import("../../../../src/index").RspackOptions} */
+/** @type {import("../../../../").Configuration} */
 module.exports = {
-	entry: {
-		main: "./index"
-	},
+	entry: "./index.js",
 	target: "node",
 	output: {
 		filename: "[name].js",

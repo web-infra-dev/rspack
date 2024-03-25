@@ -1,0 +1,335 @@
+import WebpackLicense from '../../../components/webpack-license';
+
+<WebpackLicense from="https://webpack.js.org/api/loaders/" />
+
+# Loader API
+
+Rspack loader is designed to reuse the webpack loader, it is compatible with most of the webpack loader API, the rest of the API is still being implemented, so most of the webpack loader can already run in Rspack.
+
+::: info Webpack Loader API conformance
+Check out [this](https://github.com/orgs/web-infra-dev/projects/10) page to see the status of Webpack Loader API conformance.
+:::
+
+## Synchronous Loaders
+
+Either `return` or `this.callback` can be used to return the transformed content synchronously:
+
+```js title="sync-loader.js"
+module.exports = function (content, map, meta) {
+  return someSyncOperation(content);
+};
+```
+
+The `this.callback` method is more flexible as it allows multiple arguments to be passed as opposed to only the `content`.
+
+```js title="sync-loader-with-multiple-results.js"
+module.exports = function (content, map, meta) {
+  this.callback(null, someSyncOperation(content), map, meta);
+  return; // always return undefined when calling callback()
+};
+```
+
+::: info
+Rspack, internally, will convert loaders into asynchronous regardless of it's a synchronous loader for technical and performance reason.
+:::
+
+## Asynchronous Loaders
+
+For asynchronous loaders, `this.async` is used to retrieve the callback function:
+
+```js title="async-loader.js"
+module.exports = function (content, map, meta) {
+  var callback = this.async();
+  someAsyncOperation(content, function (err, result) {
+    if (err) return callback(err);
+    callback(null, result, map, meta);
+  });
+};
+```
+
+```js title="async-loader-with-multiple-results.js"
+module.exports = function (content, map, meta) {
+  var callback = this.async();
+  someAsyncOperation(content, function (err, result, sourceMaps, meta) {
+    if (err) return callback(err);
+    callback(null, result, sourceMaps, meta);
+  });
+};
+```
+
+## Inline loaders
+
+It's possible to specify loaders in an import statement, or any equivalent "importing" method. Separate loaders from the resource with `!`. Each part is resolved relative to the current directory.
+
+```js
+import Styles from 'style-loader!css-loader?modules!./styles.css';
+```
+
+It's possible to override any loaders, preLoaders and postLoaders from the configuration by prefixing the inline import statement:
+
+Prefixing with `!` will disable all configured normal loaders
+
+```js
+import Styles from '!style-loader!css-loader?modules!./styles.css';
+```
+
+Prefixing with `!!` will disable all configured loaders (preLoaders, loaders, postLoaders)
+
+```js
+import Styles from '!!style-loader!css-loader?modules!./styles.css';
+```
+
+Prefixing with `-!` will disable all configured preLoaders and loaders but not postLoaders
+
+```js
+import Styles from '-!style-loader!css-loader?modules!./styles.css';
+```
+
+Options can be passed with a query parameter, e.g. `?key=value&foo=bar`, or a JSON object, e.g. `?{"key":"value","foo":"bar"}`.
+
+## Pitching loader
+
+Every loader has two stages: `Normal` and `Pitching`.
+There are some instances where the loader only cares about the **metadata**
+behind a request and can ignore the results of the previous loader.
+The pitch method on loaders is called from **left to right** before the loaders are actually executed (from right to left).
+
+For the following configuration of use:
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  module: {
+    rules: [
+      {
+        //...
+        use: ['a-loader', 'b-loader', 'c-loader'],
+      },
+    ],
+  },
+};
+```
+
+These steps would occur:
+
+```
+|- a-loader `pitch`
+  |- b-loader `pitch`
+    |- c-loader `pitch`
+      |- requested module is picked up as a dependency
+    |- c-loader normal execution
+  |- b-loader normal execution
+|- a-loader normal execution
+```
+
+Normally, if it the loader is simple enough which only exports the normal stage hook:
+
+```js
+module.exports = function (source) {};
+```
+
+Then, the pitching stage will be skipped.
+
+So why might a loader take advantage of the "pitching" phase?
+
+First, the data passed to the pitch method is exposed in the execution phase as well under this.data and could be useful for capturing and sharing information from earlier in the cycle.
+
+```js
+module.exports = function (content) {
+  return someSyncOperation(content, this.data.value);
+};
+
+module.exports.pitch = function (remainingRequest, precedingRequest, data) {
+  data.value = 42;
+};
+```
+
+Second, if a loader delivers a result in the pitch method, the process turns around and skips the remaining loaders.
+In our example above, if the b-loaders pitch method returned something:
+
+```js
+module.exports = function (content) {
+  return someSyncOperation(content);
+};
+
+module.exports.pitch = function (remainingRequest, precedingRequest, data) {
+  if (someCondition()) {
+    return (
+      'module.exports = require(' +
+      JSON.stringify('-!' + remainingRequest) +
+      ');'
+    );
+  }
+};
+```
+
+The steps above would be shortened to:
+
+```
+|- a-loader `pitch`
+  |- b-loader `pitch` returns a module
+|- a-loader normal execution
+```
+
+For a real world example, `style-loader` leverages the second advantage to dispatch requests.
+Please visit [style-loader](https://github.com/webpack-contrib/style-loader/blob/eb06baeb3ac4e3107732a21170b0a7f358c5423f/src/index.js#L39) for details.
+
+## Inline match resource
+
+A new inline request syntax was introduced in webpack v4. Prefixing `<match-resource>!=!` to a request will set the matchResource for this request.
+When a `matchResource` is set, it will be used to match with the module.rules instead of the original resource. This can be useful if further loaders should be applied to the resource, or if the module type needs to be changed.
+
+Example:
+
+```js title="file.js"
+/* STYLE: body { background: red; } */
+console.log('yep');
+```
+
+A loader could transform the file into the following file and use the matchResource to apply the user-specified CSS processing rules:
+
+```js title="file.js (transformed by loader)"
+import './file.js.css!=!extract-style-loader/getStyles!./file.js';
+console.log('yep');
+```
+
+This will add a dependency to `extract-style-loader/getStyles!./file.js` and treat the result as file.js.css.
+Because `module.rules` has a rule matching /\.css$/ and it will apply to this dependency.
+
+The loader could look like this:
+
+```js title="extract-style-loader/index.js"
+const getStylesLoader = require.resolve('./getStyles');
+
+module.exports = function (source) {
+  if (STYLES_REGEXP.test(source)) {
+    source = source.replace(STYLES_REGEXP, '');
+    return `import ${JSON.stringify(
+      this.utils.contextify(
+        this.context || this.rootContext,
+        `${this.resource}.css!=!${getStylesLoader}!${this.remainingRequest}`
+      )
+    )};${source}`;
+  }
+  return source;
+};
+```
+
+```js title="extract-style-loader/getStyles.js"
+module.exports = function (source) {
+  const match = source.match(STYLES_REGEXP);
+  return match[0];
+};
+```
+
+## 'Raw' Loader
+
+By default, resource files are converted to UTF-8 strings and passed to the loader. loaders can receive raw `Buffer` by setting `raw` to `true`. Each loader can pass its processing results as `String` or `Buffer`, and the Rspack compiler will convert them to and from the loader.
+
+```js
+module.exports = function (content) {
+  assert(content instanceof Buffer);
+  // ...
+};
+module.exports.raw = true;
+```
+
+## `this.addContextDependency(directory: string)`
+
+Add the directory as a dependency for the loader results so that any changes to the files in the directory can be listened to.
+
+## `this.addDependency(file: string)`
+
+Add a file as a dependency on the loader results so that any changes to them can be listened to. For example, `sass-loader`, `less-loader` use this trick to recompile when the imported style files change.
+
+## `this.dependency(file: string)`
+
+Alias of `this.addDependency(file: string)`.
+
+## `this.addMissingDependency(file: string)`
+
+Add a non-existent file as a dependency on the loader results to make them listenable.
+
+## `this.clearDependencies()`
+
+Removes all dependencies of the loader result.
+
+## `this.async()`
+
+Tells Rspack that this loader will be called asynchronously. Returns `this.callback`.
+
+## `this.callback(err: Error | null, content: string | Buffer, sourceMap?: SourceMap, meta?: any)`
+
+Tell Rspack the result of the Loader processing.
+
+The first parameter must be `Error` or `null`, which marks the current module as a compilation failure, the second parameter is a `string` or `Buffer`, which indicates the contents of the file after the module has been processed by the loader, the third parameter is a source map that can be processed by the loader, and the fourth parameter is ignored by Rspack and can be anything (e.g. some metadata).
+
+## `this.cacheable(flag: boolean = true)`
+
+By default, the processing results of the loader are marked as cacheable. Calling this method and passing `false` turns off the loader's ability to cache processing results.
+
+## `this.context`
+
+The directory where the current module is located.
+
+## `this.rootContext`
+
+The directory where the project is configured in config
+
+## `this.emitError(err: Error)`
+
+Emit an error. Unlike `throw` and `this.callback(err)` in the loader, it does not mark the current module as a compilation failure, it just adds an error to Rspack's Compilation and displays it on the command line at the end of this compilation.
+
+## `this.emitWarning(warning: Error)`
+
+Emit a warning.
+
+## `this.emitFile(name: string, content: Buffer | string, sourceMap: SourceMap)`
+
+Emit a file
+
+## `this.getOptions(schema)`
+
+Extracts the given loader option, accepting an optional JSON schema as an argument.
+
+## `this.getResolve(options: ResolveOptions): resolve`
+
+Create a resolver like `this.resolve`.
+
+## `this.resolve(context: string, request: string, callback: (err: Error | null, result: string) => void)`
+
+Resolve a request.
+
+- `context` must be the absolute path to a directory. This directory is used as the starting location for resolving.
+- `request` is the request to be resolved.
+- `callback` is a callback function that gives the resolved path.
+
+## `this.mode`
+
+The value of [`mode`](/config/mode) is read when webpack is run.
+
+The possible values are: `'production'`, `'development'`, `'none'`
+
+## `this.resource`
+
+The path string of the current module. For example `'/abc/resource.js?query#hash'`.
+
+## `this.resourcePath`
+
+The path string of the current module, excluding the query and fragment parameters. For example `'/abc/resource.js?query#hash'` in `'/abc/resource.js'`.
+
+## `this.resourceQuery`
+
+The query parameter for the path string of the current module. For example `'?query'` in `'/abc/resource.js?query#hash'`.
+
+## `this.resourceFragment`
+
+The fragment parameter of the current module's path string. For example `'#hash'` in `'/abc/resource.js?query#hash'`.
+
+## `this.sourceMap`
+
+Whether a source map should be generated.
+
+## `this.getLogger(name?: string)`
+
+Get the logger of this compilation, through which messages can be logged.

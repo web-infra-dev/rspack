@@ -1,6 +1,10 @@
 import { z } from "zod";
-import { JsChunk, RawBannerPluginOptions } from "@rspack/binding";
-import { BuiltinPluginName, create } from "./base";
+import {
+	BuiltinPluginName,
+	JsChunk,
+	RawBannerPluginOptions
+} from "@rspack/binding";
+import { create } from "./base";
 
 const rule = z.string().or(z.instanceof(RegExp));
 export type Rule = z.infer<typeof rule>;

@@ -10,10 +10,10 @@ use std::{
 use itertools::Itertools;
 use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
-use rspack_core_macros::impl_source_map_config;
 use rspack_error::{impl_empty_diagnosable_trait, miette::IntoDiagnostic, Diagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
+use rspack_macros::impl_source_map_config;
 use rspack_regex::RspackRegex;
 use rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
 use rspack_util::source_map::SourceMapKind;
@@ -22,12 +22,13 @@ use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
   block_promise, contextify, get_exports_type_with_strict, impl_build_info_meta,
-  returning_function, stringify_map, to_path, AsyncDependenciesBlock, AsyncDependenciesBlockId,
-  BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult, ChunkGraph, ChunkGroupOptions,
-  CodeGenerationResult, Compilation, ConcatenationScope, ContextElementDependency,
-  DependenciesBlock, DependencyCategory, DependencyId, ExportsType, FakeNamespaceObjectMode,
-  GroupOptions, LibIdentOptions, Module, ModuleType, Resolve, ResolveInnerOptions,
-  ResolveOptionsWithDependencyType, ResolverFactory, RuntimeGlobals, RuntimeSpec, SourceType,
+  returning_function, stringify_map, to_path, AsyncDependenciesBlock,
+  AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
+  ChunkGraph, ChunkGroupOptions, CodeGenerationResult, Compilation, ConcatenationScope,
+  ContextElementDependency, DependenciesBlock, Dependency, DependencyCategory, DependencyId,
+  ExportsType, FakeNamespaceObjectMode, GroupOptions, LibIdentOptions, Module, ModuleType, Resolve,
+  ResolveInnerOptions, ResolveOptionsWithDependencyType, ResolverFactory, RuntimeGlobals,
+  RuntimeSpec, SourceType,
 };
 
 #[derive(Debug, Clone)]
@@ -132,6 +133,27 @@ pub struct ContextOptions {
   pub request: String,
   pub namespace_object: ContextNameSpaceObject,
   pub chunk_name: Option<String>,
+  pub start: u32,
+  pub end: u32,
+}
+
+impl Display for ContextOptions {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(
+      f,
+      "ContextOptions|{:?}|{:?}|{:?}|{:?}|{:?}|{:?}|{:?}|{:?}|{:?}|{:?}",
+      self.mode,
+      self.recursive,
+      self.reg_exp,
+      self.reg_str,
+      self.include,
+      self.exclude,
+      self.category,
+      self.request,
+      self.namespace_object,
+      self.chunk_name
+    )
+  }
 }
 
 impl PartialEq for ContextOptions {
@@ -164,6 +186,7 @@ impl Hash for ContextOptions {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct ContextModuleOptions {
+  pub addon: String,
   pub resource: String,
   pub resource_query: Option<String>,
   pub resource_fragment: Option<String>,
@@ -175,7 +198,7 @@ impl Display for ContextModuleOptions {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(
       f,
-      "{}|{:?}|{:?}|{:?}",
+      "{}|{:?}|{:?}|{}",
       self.resource, self.resource_query, self.resource_fragment, self.context_options
     )
   }
@@ -190,7 +213,7 @@ pub enum FakeMapValue {
 #[derive(Debug)]
 pub struct ContextModule {
   dependencies: Vec<DependencyId>,
-  blocks: Vec<AsyncDependenciesBlockId>,
+  blocks: Vec<AsyncDependenciesBlockIdentifier>,
   identifier: Identifier,
   options: ContextModuleOptions,
   resolve_factory: Arc<ResolverFactory>,
@@ -242,7 +265,7 @@ impl ContextModule {
     let sorted_modules = dependencies
       .filter_map(|dep_id| {
         compilation
-          .module_graph
+          .get_module_graph()
           .module_identifier_by_dependency_id(dep_id)
           .map(|m| (m, dep_id))
       })
@@ -256,7 +279,7 @@ impl ContextModule {
       .sorted_unstable_by_key(|(module_id, _)| module_id.to_string());
     for (module_id, dep) in sorted_modules {
       let exports_type = get_exports_type_with_strict(
-        &compilation.module_graph,
+        compilation.get_module_graph(),
         dep,
         matches!(
           self.options.context_options.namespace_object,
@@ -324,10 +347,10 @@ impl ContextModule {
     let mut map = HashMap::default();
     for dependency in dependencies {
       if let Some(module_identifier) = compilation
-        .module_graph
+        .get_module_graph()
         .module_identifier_by_dependency_id(dependency)
       {
-        if let Some(dependency) = compilation.module_graph.dependency_by_id(dependency) {
+        if let Some(dependency) = compilation.get_module_graph().dependency_by_id(dependency) {
           let request = if let Some(d) = dependency.as_module_dependency() {
             Some(d.user_request().to_string())
           } else {
@@ -363,12 +386,12 @@ impl ContextModule {
     let mut map = HashMap::default();
     for (block, dep_id) in blocks {
       if let Some(dependency) = compilation
-        .module_graph
+        .get_module_graph()
         .dependency_by_id(dep_id)
         .and_then(|d| d.as_module_dependency())
       {
         let getter = returning_function(
-          &block_promise(Some(&block.id()), runtime_requirements, compilation),
+          &block_promise(Some(&block.identifier()), runtime_requirements, compilation),
           "",
         );
         map.insert(dependency.user_request().to_string(), getter);
@@ -391,7 +414,7 @@ impl ContextModule {
           .first()
           .expect("LazyOnce ContextModule should have first block");
         let block = compilation
-          .module_graph
+          .get_module_graph()
           .block_by_id(block)
           .expect("should have block");
         self.generate_source(block.get_dependencies(), compilation)
@@ -408,7 +431,7 @@ impl ContextModule {
     let blocks = self
       .get_blocks()
       .iter()
-      .filter_map(|b| compilation.module_graph.block_by_id(b));
+      .filter_map(|b| compilation.get_module_graph().block_by_id(b));
     let block_map = self.get_block_promise_map(blocks.clone(), compilation, runtime_requirements);
     let dependencies = blocks.filter_map(|b| b.get_dependencies().first());
     let fake_map = self.get_fake_map(dependencies.clone(), compilation);
@@ -560,11 +583,11 @@ impl ContextModule {
 }
 
 impl DependenciesBlock for ContextModule {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockId) {
+  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
     self.blocks.push(block)
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockId] {
+  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
     &self.blocks
   }
 
@@ -663,7 +686,7 @@ impl Module for ContextModule {
     let mut all_deps = self.get_dependencies().to_vec();
     for block in self.get_blocks() {
       let block = compilation
-        .module_graph
+        .get_module_graph()
         .block_by_id(block)
         .expect("should have block in ContextModule code_generation");
       all_deps.extend(block.get_dependencies());
@@ -764,7 +787,8 @@ impl ContextModule {
           dependencies.push(ContextElementDependency {
             id: DependencyId::new(),
             request: format!(
-              "{}{}{}",
+              "{}{}{}{}",
+              options.addon,
               r.request,
               options.resource_query.clone().unwrap_or_default(),
               options.resource_fragment.clone().unwrap_or_default()
@@ -812,13 +836,24 @@ impl ContextModule {
       && !context_element_dependencies.is_empty()
     {
       let name = self.options.context_options.chunk_name.clone();
-      let mut block = AsyncDependenciesBlock::new(self.identifier, None);
+      let mut block = AsyncDependenciesBlock::new(
+        self.identifier,
+        Some(
+          (
+            self.options.context_options.start,
+            self.options.context_options.end,
+          )
+            .into(),
+        ),
+        None,
+        context_element_dependencies
+          .into_iter()
+          .map(|dep| Box::new(dep) as Box<dyn Dependency>)
+          .collect(),
+      );
       block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions::new(
         name, None, None,
       )));
-      for context_element_dependency in context_element_dependencies {
-        block.add_dependency(Box::new(context_element_dependency));
-      }
       blocks.push(block);
     } else if matches!(self.options.context_options.mode, ContextMode::Lazy) {
       let mut index = 0;
@@ -842,11 +877,21 @@ impl ContextModule {
             });
             name.into_owned()
           });
-        let mut block = AsyncDependenciesBlock::new(self.identifier, None);
+        let mut block = AsyncDependenciesBlock::new(
+          self.identifier,
+          Some(
+            (
+              self.options.context_options.start,
+              self.options.context_options.end,
+            )
+              .into(),
+          ),
+          Some(&context_element_dependency.user_request.clone()),
+          vec![Box::new(context_element_dependency)],
+        );
         block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions::new(
           name, None, None,
         )));
-        block.add_dependency(Box::new(context_element_dependency));
         blocks.push(block);
       }
     } else {
@@ -874,6 +919,7 @@ impl ContextModule {
       dependencies,
       blocks,
       analyze_result: Default::default(),
+      optimization_bailouts: vec![],
     })
   }
 }
@@ -897,7 +943,7 @@ fn alternative_requests(
   mut items: Vec<AlternativeRequest>,
 ) -> Vec<AlternativeRequest> {
   // TODO: should respect fullySpecified resolve options
-  for mut item in std::mem::take(&mut items) {
+  for item in std::mem::take(&mut items) {
     if !resolve_options.is_enforce_extension_enabled() {
       items.push(item.clone());
     }
@@ -905,52 +951,38 @@ fn alternative_requests(
       if item.request.ends_with(ext) {
         items.push(AlternativeRequest::new(
           item.context.clone(),
-          item
-            .request
-            .drain(..(item.request.len() - ext.len()))
-            .collect(),
+          item.request[..(item.request.len() - ext.len())].to_string(),
         ));
       }
     }
   }
 
-  for mut item in std::mem::take(&mut items) {
+  for item in std::mem::take(&mut items) {
     items.push(item.clone());
     for main_file in resolve_options.main_files() {
       if item.request.ends_with(&format!("/{main_file}")) {
         items.push(AlternativeRequest::new(
           item.context.clone(),
-          item
-            .request
-            .clone()
-            .drain(..(item.request.len() - main_file.len()))
-            .collect(),
+          item.request[..(item.request.len() - main_file.len())].to_string(),
         ));
         items.push(AlternativeRequest::new(
           item.context.clone(),
-          item
-            .request
-            .drain(..(item.request.len() - main_file.len() - 1))
-            .collect(),
+          item.request[..(item.request.len() - main_file.len() - 1)].to_string(),
         ));
       }
     }
   }
 
-  for mut item in std::mem::take(&mut items) {
+  for item in std::mem::take(&mut items) {
     items.push(item.clone());
     // TODO resolveOptions.modules can be array
     for module in resolve_options.modules() {
       let dir = module.replace('\\', "/");
-      let mut full_path: String = format!(
-        "{}{}",
-        item.context.replace('\\', "/"),
-        item.request.drain(1..).collect::<String>(),
-      );
+      let full_path: String = format!("{}{}", item.context.replace('\\', "/"), &item.request[1..]);
       if full_path.starts_with(&dir) {
         items.push(AlternativeRequest::new(
           item.context.clone(),
-          full_path.drain((dir.len() + 1)..).collect(),
+          full_path[(dir.len() + 1)..].to_string(),
         ));
       }
     }

@@ -1,103 +1,10 @@
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
-use once_cell::sync::Lazy;
-use regex::{Captures, Regex};
 use rspack_core::{
   get_chunk_from_ukey, get_js_chunk_filename_template, stringify_map, Chunk, ChunkKind,
   ChunkLoading, ChunkUkey, Compilation, PathData, SourceType,
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
-
-pub enum BooleanMatcher {
-  Condition(bool),
-  Matcher(String),
-}
-
-impl std::fmt::Display for BooleanMatcher {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    match self {
-      Self::Condition(c) => write!(f, "{}", c),
-      Self::Matcher(m) => write!(f, "{}", m),
-    }
-  }
-}
-
-static QUOTE_META_REG: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"[-\[\]\\/{}()*+?.^$|]").expect("regexp init failed"));
-
-fn quote_meta(str: &str) -> String {
-  QUOTE_META_REG
-    .replace_all(str, |caps: &Captures| format!("\\{}", &caps[0]))
-    .to_string()
-}
-
-fn render_condition_items_to_regex(items: Vec<&String>) -> String {
-  // TODO: align regex optimization with webpack
-  let conditional = items.iter().map(|i| quote_meta(i)).collect_vec();
-  if conditional.len() == 1 {
-    conditional
-      .first()
-      .expect("Should have one conditional")
-      .to_string()
-  } else {
-    format!(r#"({})"#, conditional.join("|"))
-  }
-}
-
-pub fn render_condition_map(map: &HashMap<String, bool>, value: &str) -> BooleanMatcher {
-  let mut positive_items = map
-    .iter()
-    .filter(|(_, v)| **v)
-    .map(|(k, _)| k)
-    .collect::<Vec<_>>();
-  if positive_items.is_empty() {
-    return BooleanMatcher::Condition(false);
-  }
-  let negative_items = map
-    .iter()
-    .filter(|(_, v)| !**v)
-    .map(|(k, _)| k)
-    .collect::<Vec<_>>();
-  if negative_items.is_empty() {
-    return BooleanMatcher::Condition(true);
-  }
-
-  positive_items.sort_unstable();
-
-  if positive_items.len() == 1 {
-    if let Some(first_item) = positive_items.first() {
-      return BooleanMatcher::Matcher(format!(
-        "{} == {}",
-        serde_json::to_string(first_item).expect("Invalid json to_string"),
-        value
-      ));
-    }
-  }
-
-  if negative_items.len() == 1 {
-    if let Some(first_item) = negative_items.first() {
-      return BooleanMatcher::Matcher(format!(
-        "{} != {}",
-        serde_json::to_string(first_item).expect("Invalid json to_string"),
-        value
-      ));
-    }
-  }
-
-  if positive_items.len() <= negative_items.len() {
-    BooleanMatcher::Matcher(format!(
-      r#"/^{}$/.test({})"#,
-      render_condition_items_to_regex(positive_items),
-      value
-    ))
-  } else {
-    BooleanMatcher::Matcher(format!(
-      r#"!/^{}$/.test({})"#,
-      render_condition_items_to_regex(negative_items),
-      value
-    ))
-  }
-}
 
 pub fn get_initial_chunk_ids(
   chunk: Option<ChunkUkey>,
@@ -156,7 +63,7 @@ pub fn chunk_has_js(chunk_ukey: &ChunkUkey, compilation: &Compilation) -> bool {
     .get_chunk_modules_by_source_type(
       chunk_ukey,
       SourceType::JavaScript,
-      &compilation.module_graph,
+      compilation.get_module_graph(),
     )
     .is_empty()
 }
@@ -164,7 +71,7 @@ pub fn chunk_has_js(chunk_ukey: &ChunkUkey, compilation: &Compilation) -> bool {
 pub fn chunk_has_css(chunk: &ChunkUkey, compilation: &Compilation) -> bool {
   !compilation
     .chunk_graph
-    .get_chunk_modules_by_source_type(chunk, SourceType::Css, &compilation.module_graph)
+    .get_chunk_modules_by_source_type(chunk, SourceType::Css, compilation.get_module_graph())
     .is_empty()
 }
 
@@ -206,7 +113,11 @@ pub fn get_undo_path(filename: &str, p: String, enforce_relative: bool) -> Strin
   }
 }
 
-pub fn get_output_dir(chunk: &Chunk, compilation: &Compilation, enforce_relative: bool) -> String {
+pub fn get_output_dir(
+  chunk: &Chunk,
+  compilation: &Compilation,
+  enforce_relative: bool,
+) -> rspack_error::Result<String> {
   let filename = get_js_chunk_filename_template(
     chunk,
     &compilation.options.output,
@@ -220,12 +131,12 @@ pub fn get_output_dir(chunk: &Chunk, compilation: &Compilation, enforce_relative
         .get(&SourceType::JavaScript)
         .map(|i| i.rendered(compilation.options.output.hash_digest_length)),
     ),
-  );
-  get_undo_path(
+  )?;
+  Ok(get_undo_path(
     output_dir.as_str(),
     compilation.options.output.path.display().to_string(),
     enforce_relative,
-  )
+  ))
 }
 
 pub fn is_enabled_for_chunk(

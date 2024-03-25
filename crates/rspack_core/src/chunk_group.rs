@@ -6,9 +6,11 @@ use rspack_error::{error, Result};
 use rspack_identifier::IdentifierMap;
 use rustc_hash::FxHashSet as HashSet;
 
-use crate::{get_chunk_from_ukey, Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey};
-use crate::{ChunkLoading, ChunkUkey, Compilation, Filename};
-use crate::{LibraryOptions, ModuleIdentifier, PublicPath, RuntimeSpec};
+use crate::{
+  get_chunk_from_ukey, Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, FilenameTemplate,
+};
+use crate::{ChunkLoading, ChunkUkey, Compilation};
+use crate::{LibraryOptions, ModuleIdentifier, PublicPath};
 
 impl DatabaseItem for ChunkGroup {
   fn ukey(&self) -> rspack_database::Ukey<Self> {
@@ -21,7 +23,6 @@ pub struct ChunkGroup {
   pub ukey: ChunkGroupUkey,
   pub kind: ChunkGroupKind,
   pub chunks: Vec<ChunkUkey>,
-  pub info: ChunkGroupInfo,
   pub index: Option<u32>,
   pub parents: HashSet<ChunkGroupUkey>,
   pub(crate) module_pre_order_indices: IdentifierMap<usize>,
@@ -37,11 +38,10 @@ pub struct ChunkGroup {
 }
 
 impl ChunkGroup {
-  pub fn new(kind: ChunkGroupKind, info: ChunkGroupInfo) -> Self {
+  pub fn new(kind: ChunkGroupKind) -> Self {
     Self {
       ukey: ChunkGroupUkey::new(),
       chunks: vec![],
-      info,
       module_post_order_indices: Default::default(),
       module_pre_order_indices: Default::default(),
       parents: Default::default(),
@@ -108,11 +108,17 @@ impl ChunkGroup {
     self.runtime_chunk = Some(chunk_ukey);
   }
 
-  pub fn get_runtime_chunk(&self) -> ChunkUkey {
+  pub fn get_runtime_chunk(&self, chunk_group_by_ukey: &ChunkGroupByUkey) -> ChunkUkey {
     match self.kind {
-      ChunkGroupKind::Entrypoint { .. } => self
-        .runtime_chunk
-        .expect("EntryPoint runtime chunk not set"),
+      ChunkGroupKind::Entrypoint { .. } => self.runtime_chunk.unwrap_or_else(|| {
+        for parent in self.parents_iterable() {
+          let parent = chunk_group_by_ukey.expect_get(parent);
+          if matches!(parent.kind, ChunkGroupKind::Entrypoint { .. }) {
+            return parent.get_runtime_chunk(chunk_group_by_ukey);
+          }
+        }
+        panic!("Entrypoint should set_runtime_chunk at build_chunk_graph before get_runtime_chunk")
+      }),
       ChunkGroupKind::Normal { .. } => {
         unreachable!("Normal chunk group doesn't have runtime chunk")
       }
@@ -315,7 +321,7 @@ pub struct EntryOptions {
   pub async_chunks: Option<bool>,
   pub public_path: Option<PublicPath>,
   pub base_uri: Option<String>,
-  pub filename: Option<Filename>,
+  pub filename: Option<FilenameTemplate>,
   pub library: Option<LibraryOptions>,
 }
 
@@ -416,11 +422,4 @@ impl GroupOptions {
       GroupOptions::ChunkGroup(e) => Some(e),
     }
   }
-}
-
-#[derive(Debug, Default, Clone)]
-pub struct ChunkGroupInfo {
-  pub chunk_loading: bool,
-  pub async_chunks: bool,
-  pub runtime: RuntimeSpec,
 }

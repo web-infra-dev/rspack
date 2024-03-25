@@ -18,11 +18,11 @@ impl Plugin for NamedModuleIdsPlugin {
     // Align with https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/ids/NamedModuleIdsPlugin.js
     let context: &str = compilation.options.context.as_ref();
     let (mut used_ids, modules) = get_used_module_ids_and_modules(compilation, None);
+    let mut chunk_graph = std::mem::take(&mut compilation.chunk_graph);
     let modules = modules
       .into_iter()
-      .filter_map(|i| compilation.module_graph.module_by_identifier(&i))
+      .filter_map(|i| compilation.get_module_graph().module_by_identifier(&i))
       .collect::<Vec<_>>();
-    let chunk_graph = &mut compilation.chunk_graph;
 
     let unnamed_modules = assign_names_par(
       modules,
@@ -34,8 +34,9 @@ impl Plugin for NamedModuleIdsPlugin {
     );
 
     if !unnamed_modules.is_empty() {
-      assign_ascending_module_ids(&used_ids, unnamed_modules, chunk_graph)
+      assign_ascending_module_ids(&used_ids, unnamed_modules, &mut chunk_graph)
     }
+    compilation.chunk_graph = chunk_graph;
     Ok(())
   }
 }

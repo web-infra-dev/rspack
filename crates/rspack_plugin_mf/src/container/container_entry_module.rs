@@ -4,11 +4,12 @@ use async_trait::async_trait;
 use rspack_core::{
   block_promise, impl_build_info_meta, impl_source_map_config, module_raw, returning_function,
   rspack_sources::{RawSource, Source, SourceExt},
-  throw_missing_module_error_block, AsyncDependenciesBlock, AsyncDependenciesBlockId,
+  throw_missing_module_error_block, AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier,
   BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildMetaExportsType, BuildResult,
   ChunkGroupOptions, CodeGenerationResult, Compilation, ConcatenationScope, Context,
-  DependenciesBlock, DependencyId, GroupOptions, LibIdentOptions, Module, ModuleDependency,
-  ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency,
+  DependenciesBlock, Dependency, DependencyId, GroupOptions, LibIdentOptions, Module,
+  ModuleDependency, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
+  StaticExportsDependency, StaticExportsSpec,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
 use rspack_hash::RspackHash;
@@ -24,7 +25,7 @@ use crate::utils::json_stringify;
 #[impl_source_map_config]
 #[derive(Debug)]
 pub struct ContainerEntryModule {
-  blocks: Vec<AsyncDependenciesBlockId>,
+  blocks: Vec<AsyncDependenciesBlockIdentifier>,
   dependencies: Vec<DependencyId>,
   identifier: ModuleIdentifier,
   lib_ident: String,
@@ -62,11 +63,11 @@ impl Identifiable for ContainerEntryModule {
 }
 
 impl DependenciesBlock for ContainerEntryModule {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockId) {
+  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
     self.blocks.push(block)
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockId] {
+  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
     &self.blocks
   }
 
@@ -121,18 +122,28 @@ impl Module for ContainerEntryModule {
     let mut blocks = vec![];
     let mut dependencies: Vec<BoxDependency> = vec![];
     for (name, options) in &self.exposes {
-      let mut block = AsyncDependenciesBlock::new(self.identifier, None);
+      let mut block = AsyncDependenciesBlock::new(
+        self.identifier,
+        None,
+        Some(name),
+        options
+          .import
+          .iter()
+          .map(|request| {
+            Box::new(ContainerExposedDependency::new(
+              name.clone(),
+              request.clone(),
+            )) as Box<dyn Dependency>
+          })
+          .collect(),
+      );
       block.set_group_options(GroupOptions::ChunkGroup(
         ChunkGroupOptions::default().name_optional(options.name.clone()),
       ));
-      for request in options.import.iter() {
-        let dep = ContainerExposedDependency::new(name.clone(), request.clone());
-        block.add_dependency(Box::new(dep));
-      }
       blocks.push(block);
     }
     dependencies.push(Box::new(StaticExportsDependency::new(
-      vec!["get".into(), "init".into()],
+      StaticExportsSpec::Array(vec!["get".into(), "init".into()]),
       false,
     )));
 
@@ -177,14 +188,16 @@ impl Module for ContainerEntryModule {
       let block = block_id.expect_get(compilation);
       let modules_iter = block.get_dependencies().iter().map(|dependency_id| {
         let dep = compilation
-          .module_graph
+          .get_module_graph()
           .dependency_by_id(dependency_id)
           .expect("should have dependency");
         let dep = dep
           .downcast_ref::<ContainerExposedDependency>()
           .expect("dependencies of ContainerEntryModule should be ContainerExposedDependency");
         let name = dep.exposed_name.as_str();
-        let module = compilation.module_graph.get_module(dependency_id);
+        let module = compilation
+          .get_module_graph()
+          .get_module_by_dependency_id(dependency_id);
         let user_request = dep.user_request();
         (name, module, user_request, dependency_id)
       });

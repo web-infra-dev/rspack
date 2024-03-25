@@ -33,11 +33,13 @@ class StatsPrinterTestPlugin {
 	}
 }
 
+/** @type {import('@rspack/core').Configuration} */
 module.exports = {
+	entry: "./index",
 	stats: {
 		builtAt: false,
 		timings: false,
-    version: false
+		version: false
 	},
 	plugins: [new StatsPrinterTestPlugin()],
 };

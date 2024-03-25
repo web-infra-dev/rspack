@@ -1,15 +1,23 @@
 ERROR in ./a.json
-  × Json parsing error: Unexpected character }
-   ╭─[1:1]
- 1 │ {
- 2 │   "a"
- 3 │ }
-   · ─
-   ╰────
+  × Module parse failed:
+  ╰─▶   × Json parsing error: Unexpected character }
+         ╭─[1:1]
+       1 │ {
+       2 │   "a"
+       3 │ }
+         · ─
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
 
 ERROR in ./b.json
-  × Json parsing error: Unexpected end of JSON
-   ╭────
- 1 │ "测试utf8/"
-   ·           ▲
-   ╰────
+  × Module parse failed:
+  ╰─▶   × Json parsing error: Unexpected end of JSON
+         ╭────
+       1 │ "测试utf8/"
+         ·           ▲
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.

@@ -1,0 +1,333 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`single version flag outputs version with b: stderr 1`] = `""`;
+
+exports[`single version flag outputs version with b: stdout 1`] = `
+"webpack: x.x.x
+webpack-cli: x.x.x
+webpack-dev-server x.x.x"
+`;
+
+exports[`single version flag outputs version with build: stderr 1`] = `""`;
+
+exports[`single version flag outputs version with build: stdout 1`] = `
+"webpack: x.x.x
+webpack-cli: x.x.x
+webpack-dev-server x.x.x"
+`;
+
+exports[`single version flag outputs version with bundle: stderr 1`] = `""`;
+
+exports[`single version flag outputs version with bundle: stdout 1`] = `
+"webpack: x.x.x
+webpack-cli: x.x.x
+webpack-dev-server x.x.x"
+`;
+
+exports[`single version flag outputs version with info using command alias: stderr 1`] = `""`;
+
+exports[`single version flag outputs version with info using command alias: stdout 1`] = `
+"@webpack-cli/info x.x.x
+webpack: x.x.x
+webpack-cli: x.x.x
+webpack-dev-server x.x.x"
+`;
+
+exports[`single version flag outputs version with info using command syntax: stderr 1`] = `""`;
+
+exports[`single version flag outputs version with info using command syntax: stdout 1`] = `
+"@webpack-cli/info x.x.x
+webpack: x.x.x
+webpack-cli: x.x.x
+webpack-dev-server x.x.x"
+`;
+
+exports[`single version flag outputs version with info using option alias: stderr 1`] = `""`;
+
+exports[`single version flag outputs version with info using option alias: stdout 1`] = `
+"@webpack-cli/info x.x.x
+webpack: x.x.x
+webpack-cli: x.x.x
+webpack-dev-server x.x.x"
+`;
+
+exports[`single version flag outputs version with info: stderr 1`] = `""`;
+
+exports[`single version flag outputs version with info: stdout 1`] = `
+"@webpack-cli/info x.x.x
+webpack: x.x.x
+webpack-cli: x.x.x
+webpack-dev-server x.x.x"
+`;
+
+exports[`single version flag outputs version with init: stderr 1`] = `""`;
+
+exports[`single version flag outputs version with init: stdout 1`] = `
+"@webpack-cli/generators x.x.x
+webpack: x.x.x
+webpack-cli: x.x.x
+webpack-dev-server x.x.x"
+`;
+
+exports[`single version flag outputs version with loader: stderr 1`] = `""`;
+
+exports[`single version flag outputs version with loader: stdout 1`] = `
+"@webpack-cli/generators x.x.x
+webpack: x.x.x
+webpack-cli: x.x.x
+webpack-dev-server x.x.x"
+`;
+
+exports[`single version flag outputs version with plugin: stderr 1`] = `""`;
+
+exports[`single version flag outputs version with plugin: stdout 1`] = `
+"@webpack-cli/generators x.x.x
+webpack: x.x.x
+webpack-cli: x.x.x
+webpack-dev-server x.x.x"
+`;
+
+exports[`single version flag outputs version with serve: stderr 1`] = `""`;
+
+exports[`single version flag outputs version with serve: stdout 1`] = `
+"@webpack-cli/serve x.x.x
+webpack: x.x.x
+webpack-cli: x.x.x
+webpack-dev-server x.x.x"
+`;
+
+exports[`single version flag outputs version with the alias c for init: stderr 1`] = `""`;
+
+exports[`single version flag outputs version with the alias c for init: stdout 1`] = `
+"@webpack-cli/generators x.x.x
+webpack: x.x.x
+webpack-cli: x.x.x
+webpack-dev-server x.x.x"
+`;
+
+exports[`single version flag outputs version with w: stderr 1`] = `""`;
+
+exports[`single version flag outputs version with w: stdout 1`] = `
+"webpack: x.x.x
+webpack-cli: x.x.x
+webpack-dev-server x.x.x"
+`;
+
+exports[`single version flag outputs version with watch: stderr 1`] = `""`;
+
+exports[`single version flag outputs version with watch: stdout 1`] = `
+"webpack: x.x.x
+webpack-cli: x.x.x
+webpack-dev-server x.x.x"
+`;
+
+exports[`single version flag outputs versions with --color using command syntax: stderr 1`] = `""`;
+
+exports[`single version flag outputs versions with --color using command syntax: stdout 1`] = `
+"webpack: x.x.x
+webpack-cli: x.x.x
+webpack-dev-server x.x.x"
+`;
+
+exports[`single version flag outputs versions with --color using option syntax: stderr 1`] = `""`;
+
+exports[`single version flag outputs versions with --color using option syntax: stdout 1`] = `
+"webpack: x.x.x
+webpack-cli: x.x.x
+webpack-dev-server x.x.x"
+`;
+
+exports[`single version flag outputs versions with --no-color using command syntax: stderr 1`] = `""`;
+
+exports[`single version flag outputs versions with --no-color using command syntax: stdout 1`] = `
+"webpack: x.x.x
+webpack-cli: x.x.x
+webpack-dev-server x.x.x"
+`;
+
+exports[`single version flag outputs versions with --no-color using option syntax: stderr 1`] = `""`;
+
+exports[`single version flag outputs versions with --no-color using option syntax: stdout 1`] = `
+"webpack: x.x.x
+webpack-cli: x.x.x
+webpack-dev-server x.x.x"
+`;
+
+exports[`single version flag outputs versions with alias syntax: stderr 1`] = `""`;
+
+exports[`single version flag outputs versions with alias syntax: stdout 1`] = `
+"webpack: x.x.x
+webpack-cli: x.x.x
+webpack-dev-server x.x.x"
+`;
+
+exports[`single version flag outputs versions with command syntax: stderr 1`] = `""`;
+
+exports[`single version flag outputs versions with command syntax: stdout 1`] = `
+"webpack: x.x.x
+webpack-cli: x.x.x
+webpack-dev-server x.x.x"
+`;
+
+exports[`single version flag outputs versions with dashed syntax: stderr 1`] = `""`;
+
+exports[`single version flag outputs versions with dashed syntax: stdout 1`] = `
+"webpack: x.x.x
+webpack-cli: x.x.x
+webpack-dev-server x.x.x"
+`;
+
+exports[`single version flag should log an error using command syntax with multiple commands with unknown argument: stderr 1`] = `
+"[webpack-cli] Unknown option '--unknown'
+[webpack-cli] Run 'webpack --help' to see available commands and options"
+`;
+
+exports[`single version flag should log an error using command syntax with multiple commands with unknown argument: stdout 1`] = `""`;
+
+exports[`single version flag should log an error using command syntax with unknown argument #2: stderr 1`] = `
+"[webpack-cli] Unknown option '--unknown'
+[webpack-cli] Run 'webpack --help' to see available commands and options"
+`;
+
+exports[`single version flag should log an error using command syntax with unknown argument #2: stdout 1`] = `""`;
+
+exports[`single version flag should log an error using command syntax with unknown argument: stderr 1`] = `
+"[webpack-cli] Unknown option '--unknown'
+[webpack-cli] Run 'webpack --help' to see available commands and options"
+`;
+
+exports[`single version flag should log an error using command syntax with unknown argument: stdout 1`] = `""`;
+
+exports[`single version flag should log error when unknown command used with --version flag: stderr 1`] = `
+"[webpack-cli] Unknown command 'abc'
+[webpack-cli] Run 'webpack --help' to see available commands and options"
+`;
+
+exports[`single version flag should log error when unknown command used with --version flag: stdout 1`] = `""`;
+
+exports[`single version flag should log error when unknown command used with -v alias: stderr 1`] = `
+"[webpack-cli] Unknown command 'abc'
+[webpack-cli] Run 'webpack --help' to see available commands and options"
+`;
+
+exports[`single version flag should log error when unknown command used with -v alias: stdout 1`] = `""`;
+
+exports[`single version flag should log error when unknown command used: stderr 1`] = `
+"[webpack-cli] Unknown command 'abc'
+[webpack-cli] Run 'webpack --help' to see available commands and options"
+`;
+
+exports[`single version flag should log error when unknown command used: stdout 1`] = `""`;
+
+exports[`single version flag should log error when unknown command using command syntax: stderr 1`] = `
+"[webpack-cli] Unknown command 'unknown'
+[webpack-cli] Run 'webpack --help' to see available commands and options"
+`;
+
+exports[`single version flag should log error when unknown command using command syntax: stdout 1`] = `""`;
+
+exports[`single version flag should log version for known command and log error for unknown command using command syntax with multi commands: stderr 1`] = `
+"[webpack-cli] Unknown command 'unknown'
+[webpack-cli] Run 'webpack --help' to see available commands and options"
+`;
+
+exports[`single version flag should log version for known command and log error for unknown command using command syntax with multi commands: stdout 1`] = `"@webpack-cli/info x.x.x"`;
+
+exports[`single version flag should log version for known command and log error for unknown command using the "--version" option: stderr 1`] = `
+"[webpack-cli] Unknown command 'abc'
+[webpack-cli] Run 'webpack --help' to see available commands and options"
+`;
+
+exports[`single version flag should log version for known command and log error for unknown command using the "--version" option: stdout 1`] = `"@webpack-cli/serve x.x.x"`;
+
+exports[`single version flag should log version for known command and log error for unknown command using the "-v" option: stderr 1`] = `
+"[webpack-cli] Unknown command 'abc'
+[webpack-cli] Run 'webpack --help' to see available commands and options"
+`;
+
+exports[`single version flag should log version for known command and log error for unknown command using the "-v" option: stdout 1`] = `"@webpack-cli/serve x.x.x"`;
+
+exports[`single version flag should not output version with help dashed: stderr 1`] = `""`;
+
+exports[`single version flag should not output version with help dashed: stdout 1`] = `
+"Usage: webpack version|v [commands...]
+
+Output the version number of 'webpack', 'webpack-cli' and 'webpack-dev-server' and commands.
+
+Global options:
+  --color               Enable colors on console.
+  --no-color            Disable colors on console.
+  -v, --version         Output the version number of 'webpack', 'webpack-cli' and 'webpack-dev-server' and commands.
+  -h, --help [verbose]  Display help for commands and options.
+
+To see list of all supported commands and options run 'webpack --help=verbose'.
+
+Webpack documentation: https://webpack.js.org/.
+CLI documentation: https://webpack.js.org/api/cli/.
+Made with ♥ by the webpack team."
+`;
+
+exports[`single version flag should output versions for multiple commands using command syntax: stderr 1`] = `""`;
+
+exports[`single version flag should output versions for multiple commands using command syntax: stdout 1`] = `
+"@webpack-cli/info x.x.x
+@webpack-cli/serve x.x.x
+webpack: x.x.x
+webpack-cli: x.x.x
+webpack-dev-server x.x.x"
+`;
+
+exports[`single version flag should output versions with help command using command syntax: stderr 1`] = `""`;
+
+exports[`single version flag should output versions with help command using command syntax: stdout 1`] = `
+"webpack: x.x.x
+webpack-cli: x.x.x
+webpack-dev-server x.x.x"
+`;
+
+exports[`single version flag should work for multiple commands: stderr 1`] = `""`;
+
+exports[`single version flag should work for multiple commands: stdout 1`] = `
+"@webpack-cli/info x.x.x
+@webpack-cli/serve x.x.x
+webpack: x.x.x
+webpack-cli: x.x.x
+webpack-dev-server x.x.x"
+`;
+
+exports[`single version flag should work using command syntax and the "--version" argument: stderr 1`] = `""`;
+
+exports[`single version flag should work using command syntax and the "--version" argument: stdout 1`] = `
+"webpack: x.x.x
+webpack-cli: x.x.x
+webpack-dev-server x.x.x"
+`;
+
+exports[`single version flag should work using command syntax with the "version" value: stderr 1`] = `""`;
+
+exports[`single version flag should work using command syntax with the "version" value: stdout 1`] = `
+"webpack: x.x.x
+webpack-cli: x.x.x
+webpack-dev-server x.x.x"
+`;
+
+exports[`single version flag throws error if invalid option is passed with --version flag: stderr 1`] = `
+"[webpack-cli] Unknown option '--abc'
+[webpack-cli] Run 'webpack --help' to see available commands and options"
+`;
+
+exports[`single version flag throws error if invalid option is passed with --version flag: stdout 1`] = `""`;
+
+exports[`single version flag throws error if invalid option is passed with -v alias: stderr 1`] = `
+"[webpack-cli] Unknown option '--abc'
+[webpack-cli] Run 'webpack --help' to see available commands and options"
+`;
+
+exports[`single version flag throws error if invalid option is passed with -v alias: stdout 1`] = `""`;
+
+exports[`single version flag throws error if invalid option is passed with version command: stderr 1`] = `
+"[webpack-cli] Unknown option '--abc'
+[webpack-cli] Run 'webpack --help' to see available commands and options"
+`;
+
+exports[`single version flag throws error if invalid option is passed with version command: stdout 1`] = `""`;

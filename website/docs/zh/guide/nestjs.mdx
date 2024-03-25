@@ -1,0 +1,27 @@
+# NestJS
+
+Rspack 不仅能用于构建前端应用，也可以用于构建 Node.js 应用，你可以使用 Rspack 来构建 NestJS，Rspack 提供了一个 [NestJS Example](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/nestjs) 的例子供参考。
+
+## Native node modules
+
+当使用 Rspack 构建 Node.js 应用时，可能会碰到一些依赖包含 Node.js native addon 依赖(.node 模块)，因为 .node 无法打包进 js 产物里，因此一般需要特殊处理，通过 [node-loader](https://www.npmjs.com/package/node-loader) 可以很好的处理 addon 的打包。
+
+```js title="rspack.config.js"
+module.exports = {
+  module: {
+    rule: [
+      {
+        test: /\.node$/,
+        use: [
+          {
+            loader: 'node-loader',
+            options: {
+              name: '[path][name].[ext]',
+            },
+          },
+        ],
+      },
+    ],
+  },
+};
+```

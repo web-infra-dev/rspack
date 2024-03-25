@@ -63,8 +63,20 @@ impl ExpressionInfoCallExpression {
 }
 
 #[derive(Debug)]
+pub struct ExpressionInfoMemberExpression {
+  object: MemberExpr,
+}
+
+impl ExpressionInfoMemberExpression {
+  pub fn obj(&self) -> &MemberExpr {
+    &self.object
+  }
+}
+
+#[derive(Debug)]
 pub enum ExpressionInfoKind {
   CallExpression(Box<ExpressionInfoCallExpression>),
+  MemberExpression(Box<ExpressionInfoMemberExpression>),
   Expression,
 }
 
@@ -210,6 +222,9 @@ pub fn extract_member_expression_chain<'e, T: Into<MaybeExpr<'e>>>(
       members.push_front((ident.sym.clone(), ident.span.ctxt));
       members_spans.push_front(ident.span);
     } else {
+      *kind = ExpressionInfoKind::MemberExpression(Box::new(ExpressionInfoMemberExpression {
+        object: expr.to_owned(),
+      }));
       return;
     }
 

@@ -1,0 +1,181 @@
+import WebpackLicense from '../../../components/webpack-license';
+
+<WebpackLicense from="https://webpack.js.org/configuration/dev-server/" />
+
+# devServer
+
+Used to configure the behavior of `@rspack/dev-server`.
+
+- **Type:** `Object`
+
+:::tip
+If the current application does not depend on `@rspack/dev-server`, then the devServer config will have no effect.
+
+For example, Rspack CLI depends on `@rspack/dev-server` by default, so the devServer config can be used in Rspack CLI projects. Rsbuild has implemented its own dev server and provides a separate "server" config, so the devServer config cannot be used in Rsbuild projects.
+:::
+
+## devServer.allowedHosts
+
+- **Type:** `string | string[] | 'all' | 'auto'`
+- **Default:** `'auto'`
+
+Allow access to devServer's whitelist.
+
+## devServer.client
+
+- **Type:** `Object`
+
+### logging
+
+- **Type:** `'log' | 'info' | 'warn' | 'error' | 'none' | 'verbose'`
+- **Default:** `'info'`
+
+The client's log level.
+
+### overlay
+
+- **Type:** `boolean | Object`
+- **Default:** `true`
+
+Whether to report errors on the client's screen when a compilation error occurs.
+
+### progress
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+Whether or not to show the progress of compilation on the client.
+
+### reconnect
+
+- **Type:** `boolean | number`
+- **Default:** `true`
+
+The number of times the development server will reconnect to the client. `true` means unlimited number of times.
+
+### webSocketTransport
+
+- **Type:** `'ws' | 'sockjs'`
+- **Default:** `ws`
+
+The transfer method between the client and the development server.
+
+### webSocketURL
+
+- **Type:** `string | object`
+- **Default:** `{}`
+
+URL of the ws server.
+
+## devServer.compress
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+Whether to enable gzip compression.
+
+## devServer.devMiddleware
+
+- **Type:** `object`
+- **Default:** `{}`
+
+Control the behavior of the rspack-dev-middleware.
+
+## devServer.headers
+
+- **Type:** `array | function | object`
+- **Default:** `undefined`
+
+Add response headers.
+
+## devServer.historyApiFallback
+
+- **Type:** `boolean | object`
+- **Default:** `false`
+
+Underhanded logic when a 404 page is requested.
+
+## devServer.host
+
+- **Type:** `'local-ip' | 'local-ipv4' | 'local-ipv6' | string`
+- **Default:** `'local-ip'`
+
+The address of the development server.
+
+## devServer.hot
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+Whether to enable hot updates.
+
+## devServer.liveReload
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+Whether or not to reload the page. This configuration item is turned off when hot is turned on.
+
+## devSever.magicHtml
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+Whether the path corresponds to the product one by one.
+
+## devServer.onListening
+
+- **Type:** `function`
+
+Callback when devServer establishes a connection to the port.
+
+## devServer.open
+
+- **Type:** `boolean | string | object | [string, object]`
+- **Default:** `true`
+
+Whether to open the browser when devServer starts.
+
+## devServer.port
+
+- **Type:** `'auto' | string | number`
+- **Default:** `[]`
+
+Used to configure the port number.
+
+## devServer.proxy
+
+- **Type:** `object | [object, function]`
+
+Configure proxy, can be used to solve cross-domain issues, etc.
+
+## devServer.server
+
+- **Type:** `'http' | 'https' | 'spdy' | string | object`
+- **Default:** `'http'`
+
+Configuration items for the server.
+
+## devServer.setupMiddlewares
+
+- **Type:** `function (middlewares, devServer)`
+
+Custom middleware.
+
+## devServer.static
+
+- **Type:** `boolean | string | object | [string, object]`
+
+Used to configure whether to enable static servers from some directories (default is 'public').
+
+## devServer.watchFiles
+
+- **Type:** `string | object | [string, object]`
+
+Listens for changes to a series of files.
+
+## devServer.webSocketServer
+
+- **Type:** `false | 'sockjs' | 'ws'`
+
+Used to configure the type of web socket server.

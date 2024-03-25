@@ -1,3 +1,3 @@
-import { Cls, Test } from "./app";
+import { Cls, test } from "./app";
 
-Test
+test

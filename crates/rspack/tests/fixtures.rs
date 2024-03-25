@@ -1,6 +1,5 @@
 use std::path::PathBuf;
 
-use cargo_rst::git_diff;
 use rspack_core::{
   BoxPlugin, CompilerOptions, MangleExportsOption, PluginExt, TreeShaking, UsedExportsOption,
 };
@@ -44,7 +43,7 @@ fn samples(fixture_path: PathBuf) {
           );
         }
         if options.optimization.concatenate_modules {
-          plugins.push(Box::new(ModuleConcatenationPlugin));
+          plugins.push(Box::<ModuleConcatenationPlugin>::default());
         }
       },
     ),
@@ -86,20 +85,4 @@ fn tree_shaking(fixture_path: PathBuf) {
     ),
     Some("new_treeshaking".to_string()),
   );
-
-  // then we generate a diff file, the less diff generated the more we are closed to our
-  // target
-  let old_snapshot_path = fixture_path.join("snapshot/output.snap");
-  let old_snapshot = std::fs::read_to_string(old_snapshot_path).expect("should have snapshot");
-  let new_treeshaking_snapshot_path = fixture_path.join("snapshot/new_treeshaking.snap");
-  let new_treeshaking_snapshot =
-    std::fs::read_to_string(new_treeshaking_snapshot_path).expect("should have snapshot");
-  let diff = git_diff(&old_snapshot, &new_treeshaking_snapshot);
-  let diff_path = fixture_path.join("snapshot/snap.diff");
-  if diff_path.exists() {
-    std::fs::remove_file(diff_path.clone()).expect("remove file failed");
-  }
-  if !diff.is_empty() {
-    std::fs::write(diff_path, diff).expect("should write successfully");
-  }
 }

@@ -1,11 +1,11 @@
 // Ideally we pass in patterns and confirm the resulting assets
-import fs from "fs";
-import { rspack } from "@rspack/core";
+const fs = require("fs");
+const { rspack } = require("@rspack/core");
 
-import removeIllegalCharacterForWindows from "./removeIllegalCharacterForWindows";
+const removeIllegalCharacterForWindows = require("./removeIllegalCharacterForWindows");
 
-import { compile, getCompiler, readAssets } from ".";
-import { transformWindowPath } from "./readAssets";
+const { compile, getCompiler, readAssets } = require("./index");
+const { transformWindowPath } = require("./readAssets");
 
 function resolveCopy(copy) {
 	if (!copy) {
@@ -221,4 +221,4 @@ async function runChange(opts) {
 	});
 }
 
-export { run, runChange, runEmit, runForce };
+module.exports = { run, runChange, runEmit, runForce };

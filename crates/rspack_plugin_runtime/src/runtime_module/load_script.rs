@@ -31,7 +31,7 @@ impl RuntimeModule for LoadScriptRuntimeModule {
     self.id
   }
 
-  fn generate(&self, compilation: &Compilation) -> BoxSource {
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let url = if self.with_create_script_url {
       format!("{}(url)", RuntimeGlobals::CREATE_SCRIPT_URL)
     } else {
@@ -66,7 +66,7 @@ impl RuntimeModule for LoadScriptRuntimeModule {
       ))
     };
 
-    RawSource::from(
+    Ok(RawSource::from(
       include_str!("runtime/load_script.js")
         .replace(
           "__CROSS_ORIGIN_LOADING_PLACEHOLDER__",
@@ -93,6 +93,6 @@ impl RuntimeModule for LoadScriptRuntimeModule {
           unique_prefix.unwrap_or_default().as_str(),
         ),
     )
-    .boxed()
+    .boxed())
   }
 }

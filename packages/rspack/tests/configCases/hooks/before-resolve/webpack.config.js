@@ -2,7 +2,7 @@ const pluginName = "plugin";
 const path = require("path");
 const fs = require("fs");
 
-export class Plugin {
+class Plugin {
 	constructor(options) {
 		this.sourcePath = options.sourcePath;
 		this.outputPath = options.outputPath;

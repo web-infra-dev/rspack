@@ -2,7 +2,7 @@ use rspack_error::Result;
 use rspack_identifier::Identifier;
 
 use crate::{cache::storage, BoxModule, CodeGenerationResult, Compilation, NormalModuleSource};
-use crate::{RuntimeSpec, RuntimeSpecSet};
+use crate::{get_runtime_key, RuntimeSpec, RuntimeSpecSet};
 
 type Storage = dyn storage::Storage<Vec<(CodeGenerationResult, RuntimeSpec)>>;
 
@@ -45,6 +45,7 @@ impl CodeGenerateOccasion {
           Some(runtime),
           true,
         ));
+        id.push_str(&get_runtime_key(runtime.clone()));
       }
       let id = Identifier::from(id);
 

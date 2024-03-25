@@ -4,15 +4,15 @@ mod visit;
 use std::fmt::Debug;
 
 use handlebars::{Context, Helper, HelperResult, Output, RenderContext, Template};
-use inflector::Inflector;
+use heck::{ToKebabCase, ToLowerCamelCase, ToSnakeCase};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde::Deserialize;
 use swc_core::{
   common::{errors::HANDLER, util::take::Take, BytePos, Span, SyntaxContext, DUMMY_SP},
   ecma::{
     ast::{
-      Ident, ImportDecl, ImportDefaultSpecifier, ImportNamedSpecifier, ImportSpecifier, Module,
-      ModuleDecl, ModuleExportName, ModuleItem, Str,
+      Ident, ImportDecl, ImportDefaultSpecifier, ImportNamedSpecifier, ImportPhase,
+      ImportSpecifier, Module, ModuleDecl, ModuleExportName, ModuleItem, Str,
     },
     atoms::Atom,
     visit::{as_folder, Fold, VisitMut, VisitWith},
@@ -86,7 +86,7 @@ pub fn plugin_import(config: &Vec<PluginImportConfig>) -> impl Fold + '_ {
   renderer.register_helper(
     "kebabCase",
     Box::new(
-      |helper: &Helper<'_, '_>,
+      |helper: &Helper<'_>,
        _: &'_ handlebars::Handlebars<'_>,
        _: &'_ Context,
        _: &mut RenderContext<'_, '_>,
@@ -105,7 +105,7 @@ pub fn plugin_import(config: &Vec<PluginImportConfig>) -> impl Fold + '_ {
   renderer.register_helper(
     "camelCase",
     Box::new(
-      |helper: &Helper<'_, '_>,
+      |helper: &Helper<'_>,
        _: &'_ handlebars::Handlebars<'_>,
        _: &'_ Context,
        _: &mut RenderContext<'_, '_>,
@@ -115,7 +115,7 @@ pub fn plugin_import(config: &Vec<PluginImportConfig>) -> impl Fold + '_ {
           .param(0)
           .and_then(|v| v.value().as_str())
           .unwrap_or("");
-        out.write(param.to_camel_case().as_ref())?;
+        out.write(param.to_lower_camel_case().as_ref())?;
         Ok(())
       },
     ),
@@ -124,7 +124,7 @@ pub fn plugin_import(config: &Vec<PluginImportConfig>) -> impl Fold + '_ {
   renderer.register_helper(
     "snakeCase",
     Box::new(
-      |helper: &Helper<'_, '_>,
+      |helper: &Helper<'_>,
        _: &'_ handlebars::Handlebars<'_>,
        _: &'_ Context,
        _: &mut RenderContext<'_, '_>,
@@ -143,7 +143,7 @@ pub fn plugin_import(config: &Vec<PluginImportConfig>) -> impl Fold + '_ {
   renderer.register_helper(
     "upperCase",
     Box::new(
-      |helper: &Helper<'_, '_>,
+      |helper: &Helper<'_>,
        _: &'_ handlebars::Handlebars<'_>,
        _: &'_ Context,
        _: &mut RenderContext<'_, '_>,
@@ -162,7 +162,7 @@ pub fn plugin_import(config: &Vec<PluginImportConfig>) -> impl Fold + '_ {
   renderer.register_helper(
     "lowerCase",
     Box::new(
-      |helper: &Helper<'_, '_>,
+      |helper: &Helper<'_>,
        _: &'_ handlebars::Handlebars<'_>,
        _: &'_ Context,
        _: &mut RenderContext<'_, '_>,
@@ -484,6 +484,7 @@ impl<'a> VisitMut for ImportPlugin<'a> {
         }),
         type_only: false,
         with: Default::default(),
+        phase: ImportPhase::default(),
       }));
       body.insert(0, dec);
     }
@@ -499,6 +500,7 @@ impl<'a> VisitMut for ImportPlugin<'a> {
         }),
         type_only: false,
         with: Default::default(),
+        phase: ImportPhase::default(),
       }));
       body.insert(0, dec);
     }

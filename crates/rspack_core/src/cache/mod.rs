@@ -53,16 +53,12 @@ impl Cache {
   }
 
   pub fn begin_idle(&self) {
-    if self
-      .is_idle
-      .compare_exchange(false, true, Ordering::AcqRel, Ordering::Relaxed)
-      .is_ok()
-    {
+    if self.is_idle.load(Ordering::Relaxed) {
       self.snapshot_manager.clear();
     }
   }
 
   pub fn end_idle(&self) {
-    self.is_idle.store(false, Ordering::Release);
+    self.is_idle.store(false, Ordering::Relaxed);
   }
 }

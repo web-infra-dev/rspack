@@ -7,11 +7,11 @@ use rspack_core::{
 pub struct CssComposeDependency {
   id: DependencyId,
   request: String,
-  span: Option<ErrorSpan>,
+  span: ErrorSpan,
 }
 
 impl CssComposeDependency {
-  pub fn new(request: String, span: Option<ErrorSpan>) -> Self {
+  pub fn new(request: String, span: ErrorSpan) -> Self {
     Self {
       id: DependencyId::new(),
       request,
@@ -34,7 +34,7 @@ impl Dependency for CssComposeDependency {
   }
 
   fn span(&self) -> Option<ErrorSpan> {
-    self.span
+    Some(self.span)
   }
 
   fn dependency_debug_name(&self) -> &'static str {

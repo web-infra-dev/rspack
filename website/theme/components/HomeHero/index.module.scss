@@ -1,0 +1,74 @@
+.clip {
+  background: -webkit-linear-gradient(
+    120deg,
+    var(--rp-c-brand) 30%,
+    #f4f468
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: var(--rp-home-hero-name-color);
+}
+
+.mask {
+  position: absolute;
+  background-image: conic-gradient(
+    from 180deg at 50% 50%,
+    #f37c58 0deg,
+    180deg,
+    #eeea8c 1turn
+  );
+  width: 600px;
+  height: 600px;
+  border-radius: 100%;
+  mixblendmode: normal;
+  opacity: 0.05;
+  filter: blur(60px);
+  top: -200px;
+  transform: translateX(-50%);
+  z-index: 0;
+}
+
+:global(.dark) .mask {
+  opacity: 0.25;
+}
+
+:global(.modern-doc-home-hero-image) {
+  width: 25vw;
+  height: 25vw;
+  max-width: 400px;
+  position: relative;
+  img {
+    position: absolute;
+    width: 100%;
+    object-fit: cover;
+  }
+}
+
+@media (max-width: 768px) {
+  :global(.modern-doc-home-hero-image) {
+    width: 50vw;
+    height: 50vw;
+  }
+}
+
+.imgMask {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 75%;
+  height: 75%;
+  background-image: conic-gradient(
+    from 180deg at 50% 50%,
+    #f37c58 0deg,
+    180deg,
+    #eeea8c 1turn
+  );
+  border-radius: 50%;
+  filter: blur(72px);
+  opacity: 0.5;
+}
+
+:global(.dark) .imgMask {
+  opacity: 1;
+}

@@ -29,12 +29,12 @@ impl RuntimeModule for StartupEntrypointRuntimeModule {
     self.id
   }
 
-  fn generate(&self, _compilation: &Compilation) -> BoxSource {
+  fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let source = if self.async_chunk_loading {
       include_str!("runtime/startup_entrypoint_with_async.js")
     } else {
       include_str!("runtime/startup_entrypoint.js")
     };
-    RawSource::from(source).boxed()
+    Ok(RawSource::from(source).boxed())
   }
 }

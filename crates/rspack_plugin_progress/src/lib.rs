@@ -1,18 +1,19 @@
 use std::cmp::Ordering;
-use std::sync::atomic::Ordering::SeqCst;
+use std::sync::atomic::Ordering::Relaxed;
 use std::sync::RwLock;
 use std::time::Duration;
 use std::{cmp, sync::atomic::AtomicU32, time::Instant};
 
+use async_trait::async_trait;
 use indicatif::{ProgressBar, ProgressDrawTarget, ProgressStyle};
 use linked_hash_map::LinkedHashMap as HashMap;
 use rspack_core::{
-  Compilation, CompilationArgs, CompilationParams, DoneArgs, MakeParam, Module, ModuleIdentifier,
-  OptimizeChunksArgs, Plugin, PluginBuildEndHookOutput, PluginCompilationHookOutput, PluginContext,
-  PluginMakeHookOutput, PluginOptimizeChunksOutput, PluginProcessAssetsOutput,
-  PluginThisCompilationHookOutput, ProcessAssetsArgs, ThisCompilationArgs,
+  ApplyContext, BoxModule, Compilation, CompilationParams, CompilerOptions, DoneArgs, MakeParam,
+  ModuleIdentifier, OptimizeChunksArgs, Plugin, PluginBuildEndHookOutput, PluginContext,
+  PluginOptimizeChunksOutput,
 };
 use rspack_error::Result;
+use rspack_hook::{plugin, plugin_hook, AsyncSeries, AsyncSeries2, AsyncSeriesBail};
 
 #[derive(Debug, Clone, Default)]
 pub struct ProgressPluginOptions {
@@ -21,6 +22,14 @@ pub struct ProgressPluginOptions {
   pub profile: bool,
 }
 
+#[derive(Debug)]
+pub struct ProgressPluginStateInfo {
+  pub value: String,
+  pub time: Instant,
+  pub duration: Option<Duration>,
+}
+
+#[plugin]
 #[derive(Debug)]
 pub struct ProgressPlugin {
   pub options: ProgressPluginOptions,
@@ -31,13 +40,6 @@ pub struct ProgressPlugin {
   pub last_modules_count: RwLock<Option<u32>>,
   pub last_active_module: RwLock<Option<ModuleIdentifier>>,
   pub last_state_info: RwLock<Vec<ProgressPluginStateInfo>>,
-  pub last_update_time: RwLock<Instant>,
-}
-#[derive(Debug)]
-pub struct ProgressPluginStateInfo {
-  pub value: String,
-  pub time: Instant,
-  pub duration: Option<Duration>,
 }
 
 impl ProgressPlugin {
@@ -51,24 +53,24 @@ impl ProgressPlugin {
       .progress_chars("━━"),
     );
 
-    Self {
+    Self::new_inner(
       options,
       progress_bar,
-      modules_count: AtomicU32::new(0),
-      modules_done: AtomicU32::new(0),
-      active_modules: RwLock::new(HashMap::default()),
-      last_modules_count: RwLock::new(None),
-      last_active_module: RwLock::new(None),
-      last_state_info: RwLock::new(vec![]),
-      last_update_time: RwLock::new(Instant::now()),
-    }
+      AtomicU32::new(0),
+      AtomicU32::new(0),
+      Default::default(),
+      Default::default(),
+      Default::default(),
+      Default::default(),
+    )
   }
+
   fn update(&self) {
-    let modules_done = self.modules_done.load(SeqCst);
+    let modules_done = self.modules_done.load(Relaxed);
     let percent_by_module = (modules_done as f32)
       / (cmp::max(
         self.last_modules_count.read().expect("TODO:").unwrap_or(1),
-        self.modules_count.load(SeqCst),
+        self.modules_count.load(Relaxed),
       ) as f32);
 
     let mut items = vec![];
@@ -90,6 +92,7 @@ impl ProgressPlugin {
       );
     }
   }
+
   pub fn handler(
     &self,
     percent: f32,
@@ -103,6 +106,7 @@ impl ProgressPlugin {
       self.progress_bar_handler(percent, msg, state_items);
     }
   }
+
   fn default_handler(&self, _: f32, msg: String, items: Vec<String>, duration: Option<Duration>) {
     let full_state = [vec![msg.clone()], items.clone()].concat();
     let now = Instant::now();
@@ -169,6 +173,7 @@ impl ProgressPlugin {
       }
     }
   }
+
   fn progress_bar_handler(&self, percent: f32, msg: String, state_items: Vec<String>) {
     self
       .progress_bar
@@ -186,133 +191,254 @@ impl ProgressPlugin {
     );
   }
 }
-#[async_trait::async_trait]
+
+#[plugin_hook(AsyncSeries2<Compilation, CompilationParams> for ProgressPlugin)]
+async fn this_compilation(
+  &self,
+  _compilation: &mut Compilation,
+  _params: &mut CompilationParams,
+) -> Result<()> {
+  self.handler(
+    0.08,
+    "setup".to_string(),
+    vec!["compilation".to_string()],
+    None,
+  );
+  Ok(())
+}
+
+#[plugin_hook(AsyncSeries2<Compilation, CompilationParams> for ProgressPlugin)]
+async fn compilation(
+  &self,
+  _compilation: &mut Compilation,
+  _params: &mut CompilationParams,
+) -> Result<()> {
+  self.handler(
+    0.09,
+    "setup".to_string(),
+    vec!["compilation".to_string()],
+    None,
+  );
+  Ok(())
+}
+
+#[plugin_hook(AsyncSeries2<Compilation, Vec<MakeParam>> for ProgressPlugin)]
+async fn make(&self, _compilation: &mut Compilation, _params: &mut Vec<MakeParam>) -> Result<()> {
+  if !self.options.profile {
+    self.progress_bar.reset();
+    self.progress_bar.set_prefix(self.options.prefix.clone());
+  }
+  self.handler(0.01, String::from("make"), vec![], None);
+  self.modules_count.store(0, Relaxed);
+  self.modules_done.store(0, Relaxed);
+  Ok(())
+}
+
+#[plugin_hook(AsyncSeries<BoxModule> for ProgressPlugin)]
+async fn build_module(&self, module: &mut BoxModule) -> Result<()> {
+  self
+    .active_modules
+    .write()
+    .expect("TODO:")
+    .insert(module.identifier(), Instant::now());
+  self.modules_count.fetch_add(1, Relaxed);
+  self
+    .last_active_module
+    .write()
+    .expect("TODO:")
+    .replace(module.identifier());
+  if !self.options.profile {
+    self.update();
+  }
+  Ok(())
+}
+
+#[plugin_hook(AsyncSeries<BoxModule> for ProgressPlugin)]
+async fn succeed_module(&self, module: &mut BoxModule) -> Result<()> {
+  self.modules_done.fetch_add(1, Relaxed);
+  self
+    .last_active_module
+    .write()
+    .expect("TODO:")
+    .replace(module.identifier());
+
+  // only profile mode should update at succeed module
+  if self.options.profile {
+    self.update();
+  }
+  let mut last_active_module = Default::default();
+  {
+    let mut active_modules = self.active_modules.write().expect("TODO:");
+    active_modules.remove(&module.identifier());
+
+    // get the last active module
+    if !self.options.profile {
+      active_modules.iter().for_each(|(module, _)| {
+        last_active_module = *module;
+      });
+    }
+  }
+  if !self.options.profile {
+    self
+      .last_active_module
+      .write()
+      .expect("TODO:")
+      .replace(last_active_module);
+    if !last_active_module.is_empty() {
+      self.update();
+    }
+  }
+  Ok(())
+}
+
+#[plugin_hook(AsyncSeries<Compilation> for ProgressPlugin)]
+async fn finish_make(&self, _compilation: &mut Compilation) -> Result<()> {
+  self.handler(
+    0.69,
+    "building".to_string(),
+    vec!["finish make".to_string()],
+    None,
+  );
+  Ok(())
+}
+
+#[plugin_hook(AsyncSeries<Compilation> for ProgressPlugin)]
+async fn finish_modules(&self, _compilation: &mut Compilation) -> Result<()> {
+  self.sealing_hooks_report("finish modules", 0);
+  Ok(())
+}
+
+#[plugin_hook(AsyncSeriesBail<Compilation, bool> for ProgressPlugin)]
+async fn optimize_modules(&self, _compilation: &mut Compilation) -> Result<Option<bool>> {
+  self.sealing_hooks_report("module optimization", 7);
+  Ok(None)
+}
+
+#[plugin_hook(AsyncSeries<Compilation> for ProgressPlugin)]
+async fn after_optimize_modules(&self, _compilation: &mut Compilation) -> Result<()> {
+  self.sealing_hooks_report("after module optimization", 8);
+  Ok(())
+}
+
+#[plugin_hook(AsyncSeries<Compilation> for ProgressPlugin)]
+async fn optimize_tree(&self, _compilation: &mut Compilation) -> Result<()> {
+  self.sealing_hooks_report("module and chunk tree optimization", 11);
+  Ok(())
+}
+
+#[plugin_hook(AsyncSeriesBail<Compilation, bool> for ProgressPlugin)]
+async fn optimize_chunk_modules(&self, _compilation: &mut Compilation) -> Result<Option<bool>> {
+  self.sealing_hooks_report("chunk modules optimization", 13);
+  Ok(None)
+}
+
+#[plugin_hook(AsyncSeries<Compilation> for ProgressPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONAL)]
+async fn process_assets(&self, _compilation: &mut Compilation) -> Result<()> {
+  self.sealing_hooks_report("asset processing", 35);
+  Ok(())
+}
+
+#[plugin_hook(AsyncSeries<Compilation> for ProgressPlugin)]
+async fn after_process_assets(&self, _compilation: &mut Compilation) -> Result<()> {
+  self.sealing_hooks_report("after asset optimization", 36);
+  Ok(())
+}
+
+#[plugin_hook(AsyncSeries<Compilation> for ProgressPlugin)]
+async fn emit(&self, _compilation: &mut Compilation) -> Result<()> {
+  self.handler(0.98, "emitting".to_string(), vec!["emit".to_string()], None);
+  Ok(())
+}
+
+#[plugin_hook(AsyncSeries<Compilation> for ProgressPlugin)]
+async fn after_emit(&self, _compilation: &mut Compilation) -> Result<()> {
+  self.handler(
+    0.98,
+    "emitting".to_string(),
+    vec!["after emit".to_string()],
+    None,
+  );
+  Ok(())
+}
+
+#[async_trait]
 impl Plugin for ProgressPlugin {
   fn name(&self) -> &'static str {
     "progress"
   }
 
-  async fn make(
+  fn apply(
     &self,
-    _ctx: PluginContext,
-    _compilation: &mut Compilation,
-    _params: &mut Vec<MakeParam>,
-  ) -> PluginMakeHookOutput {
-    if !self.options.profile {
-      self.progress_bar.reset();
-      self.progress_bar.set_prefix(self.options.prefix.clone());
-    }
-    self.handler(0.01, String::from("make"), vec![], None);
-    self.modules_count.store(0, SeqCst);
-    self.modules_done.store(0, SeqCst);
-    Ok(())
-  }
-
-  async fn before_compile(&self, _params: &CompilationParams) -> Result<()> {
-    self.handler(
-      0.06,
-      "setup".to_string(),
-      vec!["before compile".to_string()],
-      None,
-    );
-    Ok(())
-  }
-
-  async fn this_compilation(
-    &self,
-    _args: ThisCompilationArgs<'_>,
-    _params: &CompilationParams,
-  ) -> PluginThisCompilationHookOutput {
-    self.handler(
-      0.08,
-      "setup".to_string(),
-      vec!["compilation".to_string()],
-      None,
-    );
-    Ok(())
-  }
-
-  async fn compilation(
-    &self,
-    _args: CompilationArgs<'_>,
-    _params: &CompilationParams,
-  ) -> PluginCompilationHookOutput {
-    self.handler(
-      0.09,
-      "setup".to_string(),
-      vec!["compilation".to_string()],
-      None,
-    );
-    Ok(())
-  }
-
-  async fn build_module(&self, module: &mut dyn Module) -> Result<()> {
-    self
-      .active_modules
-      .write()
-      .expect("TODO:")
-      .insert(module.identifier(), Instant::now());
-    self.modules_count.fetch_add(1, SeqCst);
-    self
-      .last_active_module
-      .write()
-      .expect("TODO:")
-      .replace(module.identifier());
-    if !self.options.profile {
-      self.update();
-    }
-    Ok(())
-  }
-
-  async fn succeed_module(&self, module: &dyn Module) -> Result<()> {
-    self.modules_done.fetch_add(1, SeqCst);
-    self
-      .last_active_module
-      .write()
-      .expect("TODO:")
-      .replace(module.identifier());
-
-    // only profile mode should update at succeed module
-    if self.options.profile {
-      self.update();
-    }
-    let mut last_active_module = Default::default();
-    {
-      let mut active_modules = self.active_modules.write().expect("TODO:");
-      active_modules.remove(&module.identifier());
-
-      // get the last active module
-      if !self.options.profile {
-        active_modules.iter().for_each(|(module, _)| {
-          last_active_module = *module;
-        });
-      }
-    }
-    if !self.options.profile {
-      self
-        .last_active_module
-        .write()
-        .expect("TODO:")
-        .replace(last_active_module);
-      if !last_active_module.is_empty() {
-        self.update();
-      }
-    }
-    Ok(())
-  }
-
-  async fn finish_make(&self, _compilation: &mut Compilation) -> Result<()> {
-    self.handler(
-      0.69,
-      "building".to_string(),
-      vec!["finish make".to_string()],
-      None,
-    );
-    Ok(())
-  }
-
-  async fn finish_modules(&self, _modules: &mut Compilation) -> Result<()> {
-    self.sealing_hooks_report("finish modules", 0);
+    ctx: PluginContext<&mut ApplyContext>,
+    _options: &mut CompilerOptions,
+  ) -> Result<()> {
+    ctx
+      .context
+      .compiler_hooks
+      .this_compilation
+      .tap(this_compilation::new(self));
+    ctx
+      .context
+      .compiler_hooks
+      .compilation
+      .tap(compilation::new(self));
+    ctx.context.compiler_hooks.make.tap(make::new(self));
+    ctx
+      .context
+      .compilation_hooks
+      .build_module
+      .tap(build_module::new(self));
+    ctx
+      .context
+      .compilation_hooks
+      .succeed_module
+      .tap(succeed_module::new(self));
+    ctx
+      .context
+      .compiler_hooks
+      .finish_make
+      .tap(finish_make::new(self));
+    ctx
+      .context
+      .compilation_hooks
+      .finish_modules
+      .tap(finish_modules::new(self));
+    ctx
+      .context
+      .compilation_hooks
+      .optimize_modules
+      .tap(optimize_modules::new(self));
+    ctx
+      .context
+      .compilation_hooks
+      .after_optimize_modules
+      .tap(after_optimize_modules::new(self));
+    ctx
+      .context
+      .compilation_hooks
+      .optimize_tree
+      .tap(optimize_tree::new(self));
+    ctx
+      .context
+      .compilation_hooks
+      .optimize_chunk_modules
+      .tap(optimize_chunk_modules::new(self));
+    ctx
+      .context
+      .compilation_hooks
+      .process_assets
+      .tap(process_assets::new(self));
+    ctx
+      .context
+      .compilation_hooks
+      .after_process_assets
+      .tap(after_process_assets::new(self));
+    ctx.context.compiler_hooks.emit.tap(emit::new(self));
+    ctx
+      .context
+      .compiler_hooks
+      .after_emit
+      .tap(after_emit::new(self));
     Ok(())
   }
 
@@ -326,32 +452,12 @@ impl Plugin for ProgressPlugin {
     Ok(None)
   }
 
-  async fn optimize_modules(&self, _compilation: &mut Compilation) -> Result<()> {
-    self.sealing_hooks_report("module optimization", 7);
-    Ok(())
-  }
-
-  async fn after_optimize_modules(&self, _compilation: &mut Compilation) -> Result<()> {
-    self.sealing_hooks_report("after module optimization", 8);
-    Ok(())
-  }
-
   async fn optimize_chunks(
     &self,
     _ctx: PluginContext,
     _args: OptimizeChunksArgs<'_>,
   ) -> PluginOptimizeChunksOutput {
     self.sealing_hooks_report("chunk optimization", 9);
-    Ok(())
-  }
-
-  async fn optimize_tree(&self, _compilation: &mut Compilation) -> Result<()> {
-    self.sealing_hooks_report("module and chunk tree optimization", 11);
-    Ok(())
-  }
-
-  async fn optimize_chunk_modules(&self, _args: OptimizeChunksArgs<'_>) -> Result<()> {
-    self.sealing_hooks_report("chunk modules optimization", 13);
     Ok(())
   }
 
@@ -365,39 +471,6 @@ impl Plugin for ProgressPlugin {
     Ok(())
   }
 
-  async fn process_assets_stage_additional(
-    &self,
-    _ctx: PluginContext,
-    _args: ProcessAssetsArgs<'_>,
-  ) -> PluginProcessAssetsOutput {
-    self.sealing_hooks_report("asset processing", 35);
-    Ok(())
-  }
-
-  async fn after_process_assets(
-    &self,
-    _ctx: PluginContext,
-    _args: ProcessAssetsArgs<'_>,
-  ) -> PluginProcessAssetsOutput {
-    self.sealing_hooks_report("after asset optimization", 36);
-    Ok(())
-  }
-
-  async fn emit(&self, _compilation: &mut Compilation) -> Result<()> {
-    self.handler(0.98, "emitting".to_string(), vec!["emit".to_string()], None);
-    Ok(())
-  }
-
-  async fn after_emit(&self, _compilation: &mut Compilation) -> Result<()> {
-    self.handler(
-      0.98,
-      "emitting".to_string(),
-      vec!["after emit".to_string()],
-      None,
-    );
-    Ok(())
-  }
-
   async fn done<'s, 'c>(
     &self,
     _ctx: PluginContext,
@@ -407,7 +480,7 @@ impl Plugin for ProgressPlugin {
     if !self.options.profile {
       self.progress_bar.finish();
     }
-    *self.last_modules_count.write().expect("TODO:") = Some(self.modules_count.load(SeqCst));
+    *self.last_modules_count.write().expect("TODO:") = Some(self.modules_count.load(Relaxed));
     Ok(())
   }
 }

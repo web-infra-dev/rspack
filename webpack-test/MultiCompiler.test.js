@@ -1,9 +1,10 @@
 "use strict";
 
-// require("./helpers/warmup-webpack");
+require("./helpers/warmup-webpack");
 const path = require("path");
 const { createFsFromVolume, Volume } = require("memfs");
-const webpack = require("@rspack/core").rspack;
+const webpack = require("..");
+const { normalizeFilteredTestName } = require("./lib/util/filterUtil");
 
 const createMultiCompiler = options => {
 	const compiler = webpack(
@@ -30,7 +31,7 @@ const createMultiCompiler = options => {
 	return compiler;
 };
 
-describe.skip("MultiCompiler", function () {
+describe("MultiCompiler", function () {
 	jest.setTimeout(20000);
 
 	it("should trigger 'run' for each child compiler", done => {
@@ -52,7 +53,9 @@ describe.skip("MultiCompiler", function () {
 		let called = 0;
 
 		compiler.hooks.watchRun.tap("MultiCompiler test", () => called++);
-		compiler.watch(1000, err => {
+		// CHANGE: Rspack use `aggregateTimeout` for debouncing changes
+		// compiler.watch(1000, err => {
+		compiler.watch({ aggregateTimeout: 1000 }, err => {
 			if (err) {
 				throw err;
 			}
@@ -207,70 +210,77 @@ describe.skip("MultiCompiler", function () {
 			compiler.close(done);
 		});
 	});
-	it("should respect parallelism and dependencies for watching", done => {
-		const compiler = webpack(
-			Object.assign(
-				[
-					{
-						name: "a",
-						mode: "development",
-						context: path.join(__dirname, "fixtures"),
-						entry: "./a.js",
-						dependencies: ["b", "c"]
-					},
-					{
-						name: "b",
-						mode: "development",
-						context: path.join(__dirname, "fixtures"),
-						entry: "./b.js"
-					},
-					{
-						name: "c",
-						mode: "development",
-						context: path.join(__dirname, "fixtures"),
-						entry: "./a.js"
-					}
-				],
-				{ parallelism: 1 }
-			)
-		);
-		compiler.outputFileSystem = createFsFromVolume(new Volume());
-		const watchCallbacks = [];
-		const watchCallbacksUndelayed = [];
-		compiler.watchFileSystem = {
-			watch(
-				files,
-				directories,
-				missing,
-				startTime,
-				options,
-				callback,
-				callbackUndelayed
-			) {
-				watchCallbacks.push(callback);
-				watchCallbacksUndelayed.push(callbackUndelayed);
-			}
-		};
-		const events = [];
-		compiler.compilers.forEach(c => {
-			c.hooks.invalid.tap("test", () => {
-				events.push(`${c.name} invalid`);
+	// CHANGE: skip due to parse error: CJS Top level return
+	it.skip(
+		normalizeFilteredTestName(
+			"TODO",
+			"should respect parallelism and dependencies for watching"
+		),
+		done => {
+			const compiler = webpack(
+				Object.assign(
+					[
+						{
+							name: "a",
+							mode: "development",
+							context: path.join(__dirname, "fixtures"),
+							entry: "./a.js",
+							dependencies: ["b", "c"]
+						},
+						{
+							name: "b",
+							mode: "development",
+							context: path.join(__dirname, "fixtures"),
+							entry: "./b.js"
+						},
+						{
+							name: "c",
+							mode: "development",
+							context: path.join(__dirname, "fixtures"),
+							entry: "./a.js"
+						}
+					],
+					{ parallelism: 1 }
+				)
+			);
+			compiler.outputFileSystem = createFsFromVolume(new Volume());
+			const watchCallbacks = [];
+			const watchCallbacksUndelayed = [];
+			compiler.watchFileSystem = {
+				watch(
+					files,
+					directories,
+					missing,
+					startTime,
+					options,
+					callback,
+					callbackUndelayed
+				) {
+					watchCallbacks.push(callback);
+					watchCallbacksUndelayed.push(callbackUndelayed);
+				}
+			};
+			const events = [];
+			compiler.compilers.forEach(c => {
+				c.hooks.invalid.tap("test", () => {
+					events.push(`${c.name} invalid`);
+				});
+				c.hooks.watchRun.tap("test", () => {
+					events.push(`${c.name} run`);
+				});
+				c.hooks.done.tap("test", () => {
+					events.push(`${c.name} done`);
+				});
 			});
-			c.hooks.watchRun.tap("test", () => {
-				events.push(`${c.name} run`);
-			});
-			c.hooks.done.tap("test", () => {
-				events.push(`${c.name} done`);
-			});
-		});
 
-		let update = 0;
-		compiler.watch({}, (err, stats) => {
-			if (err) return done(err);
-			const info = () => stats.toString({ preset: "summary", version: false });
-			switch (update++) {
-				case 0:
-					expect(info()).toMatchInlineSnapshot(`
+			let update = 0;
+			compiler.watch({}, (err, stats) => {
+				if (err) return done(err);
+				const info = () =>
+					stats.toString({ preset: "summary", version: false });
+				switch (update++) {
+					case 0:
+						expect(info()).toMatchInlineSnapshot(`
 							"a:
 							  a compiled successfully
 
@@ -280,10 +290,11 @@ describe.skip("MultiCompiler", function () {
 							c:
 							  c compiled successfully"
 					`);
-					expect(compiler.compilers[0].modifiedFiles).toBe(undefined);
-					expect(compiler.compilers[0].removedFiles).toBe(undefined);
-					expect(events).toMatchInlineSnapshot(`
-				Array [
+						expect(compiler.compilers[0].modifiedFiles).toBe(undefined);
+						expect(compiler.compilers[0].removedFiles).toBe(undefined);
+						// CHANGE: Rspack generates a distinct snapshot
+						expect(events).toMatchInlineSnapshot(`
+				[
 				  "b run",
 				  "b done",
 				  "c run",
@@ -292,25 +303,32 @@ describe.skip("MultiCompiler", function () {
 				  "a done",
 				]
 			`);
-					events.length = 0;
-					// wait until watching begins
-					setTimeout(() => {
-						watchCallbacksUndelayed[0]();
-						watchCallbacks[0](null, new Map(), new Map(), new Set(), new Set());
-					}, 100);
-					break;
-				case 1:
-					expect(info()).toMatchInlineSnapshot(`
+						events.length = 0;
+						// wait until watching begins
+						setTimeout(() => {
+							watchCallbacksUndelayed[0]();
+							watchCallbacks[0](
+								null,
+								new Map(),
+								new Map(),
+								new Set(),
+								new Set()
+							);
+						}, 100);
+						break;
+					case 1:
+						expect(info()).toMatchInlineSnapshot(`
 				"a:
 				  a compiled successfully
 
 				b:
 				  b compiled successfully"
 			`);
-					expect(compiler.compilers[1].modifiedFiles).toEqual(new Set());
-					expect(compiler.compilers[1].removedFiles).toEqual(new Set());
-					expect(events).toMatchInlineSnapshot(`
-				Array [
+						expect(compiler.compilers[1].modifiedFiles).toEqual(new Set());
+						expect(compiler.compilers[1].removedFiles).toEqual(new Set());
+						// CHANGE: Rspack generates a distinct snapshot
+						expect(events).toMatchInlineSnapshot(`
+				[
 				  "b invalid",
 				  "b run",
 				  "b done",
@@ -319,16 +337,17 @@ describe.skip("MultiCompiler", function () {
 				  "a done",
 				]
 			`);
-					watchCallbacksUndelayed[2]();
-					watchCallbacks[2](null, new Map(), new Map(), new Set(), new Set());
-					break;
-				case 2:
-					expect(info()).toMatchInlineSnapshot(`
+						watchCallbacksUndelayed[2]();
+						watchCallbacks[2](null, new Map(), new Map(), new Set(), new Set());
+						break;
+					case 2:
+						expect(info()).toMatchInlineSnapshot(`
 				"a:
 				  a compiled successfully"
 			`);
-					expect(events).toMatchInlineSnapshot(`
-				Array [
+						// CHANGE: Rspack generates a distinct snapshot
+						expect(events).toMatchInlineSnapshot(`
+				[
 				  "b invalid",
 				  "b run",
 				  "b done",
@@ -340,14 +359,14 @@ describe.skip("MultiCompiler", function () {
 				  "a done",
 				]
 			`);
-					events.length = 0;
-					watchCallbacksUndelayed[0]();
-					watchCallbacksUndelayed[1]();
-					watchCallbacks[0](null, new Map(), new Map(), new Set(), new Set());
-					watchCallbacks[1](null, new Map(), new Map(), new Set(), new Set());
-					break;
-				case 3:
-					expect(info()).toMatchInlineSnapshot(`
+						events.length = 0;
+						watchCallbacksUndelayed[0]();
+						watchCallbacksUndelayed[1]();
+						watchCallbacks[0](null, new Map(), new Map(), new Set(), new Set());
+						watchCallbacks[1](null, new Map(), new Map(), new Set(), new Set());
+						break;
+					case 3:
+						expect(info()).toMatchInlineSnapshot(`
 				"a:
 				  a compiled successfully
 
@@ -357,8 +376,9 @@ describe.skip("MultiCompiler", function () {
 				c:
 				  c compiled successfully"
 			`);
-					expect(events).toMatchInlineSnapshot(`
-				Array [
+						// CHANGE: Rspack generates a distinct snapshot
+						expect(events).toMatchInlineSnapshot(`
+				[
 				  "b invalid",
 				  "c invalid",
 				  "b run",
@@ -370,14 +390,15 @@ describe.skip("MultiCompiler", function () {
 				  "a done",
 				]
 			`);
-					events.length = 0;
-					compiler.close(done);
-					break;
-				default:
-					done(new Error("unexpected"));
-			}
-		});
-	});
+						events.length = 0;
+						compiler.close(done);
+						break;
+					default:
+						done(new Error("unexpected"));
+				}
+			});
+		}
+	);
 
 	it("should respect parallelism when using invalidate", done => {
 		const configs = [
@@ -422,6 +443,7 @@ describe.skip("MultiCompiler", function () {
 			if (state !== 0) return;
 			state++;
 
+			// CHANGE: Rspack generates a distinct snapshot
 			expect(events).toMatchInlineSnapshot(`
 			Array [
 			  "a run",
@@ -436,6 +458,7 @@ describe.skip("MultiCompiler", function () {
 				try {
 					if (err) return done(err);
 
+					// CHANGE: Rspack generates a distinct snapshot
 					expect(events).toMatchInlineSnapshot(`
 				Array [
 				  "a invalid",
@@ -501,6 +524,7 @@ describe.skip("MultiCompiler", function () {
 			if (state !== 0) return;
 			state++;
 
+			// CHANGE: Rspack generates a distinct snapshot
 			expect(events).toMatchInlineSnapshot(`
 			Array [
 			  "b run",
@@ -515,6 +539,7 @@ describe.skip("MultiCompiler", function () {
 				try {
 					if (err) return done(err);
 
+					// CHANGE: Rspack generates a distinct snapshot
 					expect(events).toMatchInlineSnapshot(`
 				Array [
 				  "a invalid",
@@ -545,13 +570,17 @@ describe.skip("MultiCompiler", function () {
 			{
 				name: "a",
 				mode: "development",
-				entry: () => entriesA,
+				// CHANGE:Rspack does not support function-based entry
+				// entry: () => entriesA,
+				entry: entriesA,
 				context: path.join(__dirname, "fixtures")
 			},
 			{
 				name: "b",
 				mode: "development",
-				entry: () => entriesB,
+				// CHANGE: Rspack does not support function-based entry
+				// entry: () => entriesB,
+				entry: entriesB,
 				context: path.join(__dirname, "fixtures")
 			}
 		]);

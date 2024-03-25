@@ -1,0 +1,8 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`output flag named bundles should output file in bin directory using default webpack config with warning for empty output value: stderr 1`] = `
+"[webpack-cli] Error: Option '-o, --output-path <value>' argument missing
+[webpack-cli] Run 'webpack --help' to see available commands and options"
+`;
+
+exports[`output flag named bundles should output file in bin directory using default webpack config with warning for empty output value: stdout 1`] = `""`;

@@ -89,7 +89,7 @@ impl DependencyTemplate for WorkerDependency {
       ..
     } = code_generatable_context;
     let chunk_id = compilation
-      .module_graph
+      .get_module_graph()
       .get_parent_block(&self.id)
       .and_then(|block| {
         compilation
@@ -124,6 +124,10 @@ impl DependencyTemplate for WorkerDependency {
       .as_str(),
       None,
     );
+  }
+
+  fn dependency_id(&self) -> Option<DependencyId> {
+    Some(self.id)
   }
 }
 

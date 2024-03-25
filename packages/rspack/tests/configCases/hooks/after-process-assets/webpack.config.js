@@ -9,7 +9,7 @@ class Plugin {
 				"should-emit-should-works",
 				assets => {
 					assert(typeof assets !== "undefined");
-					assert(typeof assets["main.js"] !== "undefined");
+					assert(typeof assets["bundle0.js"] !== "undefined");
 					count += 1;
 				}
 			);

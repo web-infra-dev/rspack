@@ -80,7 +80,6 @@ export class RspackDevServer extends WebpackDevServer {
 				} else {
 					try {
 						clientImplementation = require.resolve(clientTransport);
-						throw Error("Do not support custom ws client now");
 					} catch (e) {
 						clientImplementationFound = false;
 					}
@@ -414,17 +413,17 @@ export class RspackDevServer extends WebpackDevServer {
 
 			additionalEntries.push(
 				`${require.resolve(
-					"@rspack/dev-server/client/index.js"
+					"@rspack/dev-server/client/index"
 				)}?${webSocketURLStr}`
 			);
 		}
 
 		if (this.options.hot === "only") {
 			additionalEntries.push(
-				require.resolve("@rspack/core/hot/only-dev-server.js")
+				require.resolve("@rspack/core/hot/only-dev-server")
 			);
 		} else if (this.options.hot) {
-			additionalEntries.push(require.resolve("@rspack/core/hot/dev-server.js"));
+			additionalEntries.push(require.resolve("@rspack/core/hot/dev-server"));
 		}
 
 		const webpack = compiler.webpack;

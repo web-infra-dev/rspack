@@ -1,0 +1,33 @@
+.component-card {
+  padding: 20px;
+  margin: 28px auto;
+  border-radius: 10px;
+  box-shadow: rgba(149, 157, 165, 0.2) 0px 4px 12px;
+  position: relative;
+
+  &-title-line {
+    display: flex;
+    flex-direction: row;
+  }
+
+  &-link {
+    color: var(--rp-c-brand);
+    margin-bottom: 5px;
+  }
+
+  &-space {
+    flex-grow: 1;
+  }
+
+  &-status {
+    color: #ff8900bd;
+    background-color: #ff89003d;
+    padding: 2px 8px;
+    border-radius: 5px;
+  }
+
+  &-desc {
+    color: var(--rp-c-text-1);
+    margin: 8px 0 0 0;
+  }
+}

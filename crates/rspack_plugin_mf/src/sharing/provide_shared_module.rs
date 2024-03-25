@@ -3,7 +3,7 @@ use std::{borrow::Cow, hash::Hash};
 use async_trait::async_trait;
 use rspack_core::{
   async_module_factory, impl_build_info_meta, impl_source_map_config, rspack_sources::Source,
-  sync_module_factory, AsyncDependenciesBlock, AsyncDependenciesBlockId, BoxDependency,
+  sync_module_factory, AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency,
   BuildContext, BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation,
   ConcatenationScope, Context, DependenciesBlock, DependencyId, LibIdentOptions, Module,
   ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
@@ -24,7 +24,7 @@ use super::{
 #[impl_source_map_config]
 #[derive(Debug)]
 pub struct ProvideSharedModule {
-  blocks: Vec<AsyncDependenciesBlockId>,
+  blocks: Vec<AsyncDependenciesBlockIdentifier>,
   dependencies: Vec<DependencyId>,
   identifier: ModuleIdentifier,
   lib_ident: String,
@@ -75,11 +75,11 @@ impl Identifiable for ProvideSharedModule {
 }
 
 impl DependenciesBlock for ProvideSharedModule {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockId) {
+  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
     self.blocks.push(block)
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockId] {
+  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
     &self.blocks
   }
 
@@ -139,8 +139,7 @@ impl Module for ProvideSharedModule {
     if self.eager {
       dependencies.push(dep as BoxDependency);
     } else {
-      let mut block = AsyncDependenciesBlock::new(self.identifier, None);
-      block.add_dependency(dep);
+      let block = AsyncDependenciesBlock::new(self.identifier, None, None, vec![dep]);
       blocks.push(block);
     }
 

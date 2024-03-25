@@ -22,6 +22,13 @@ module.exports = {
 					}
 				],
 				type: "javascript/auto"
+			},
+			{
+				resourceQuery: /resource/,
+				type: "asset/resource",
+				generator: {
+					filename: "source.txt"
+				}
 			}
 		]
 	}

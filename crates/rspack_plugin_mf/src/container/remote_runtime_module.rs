@@ -40,7 +40,7 @@ impl RuntimeModule for RemoteRuntimeModule {
     RuntimeModuleStage::Attach
   }
 
-  fn generate(&self, compilation: &Compilation) -> BoxSource {
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let chunk_ukey = self
       .chunk
       .expect("should have chunk in <RemoteRuntimeModule as RuntimeModule>::generate");
@@ -53,7 +53,7 @@ impl RuntimeModule for RemoteRuntimeModule {
         .get_chunk_modules_iterable_by_source_type(
           &chunk,
           SourceType::Remote,
-          &compilation.module_graph,
+          compilation.get_module_graph(),
         );
       let mut remotes = Vec::new();
       for m in modules {
@@ -69,8 +69,8 @@ impl RuntimeModule for RemoteRuntimeModule {
         let share_scope = m.share_scope.as_str();
         let dep = m.get_dependencies()[0];
         let external_module = compilation
-          .module_graph
-          .get_module(&dep)
+          .get_module_graph()
+          .get_module_by_dependency_id(&dep)
           .expect("should have module");
         let external_module_id = compilation
           .chunk_graph
@@ -102,7 +102,7 @@ impl RuntimeModule for RemoteRuntimeModule {
     } else {
       include_str!("./remotesLoading.js")
     };
-    RawSource::from(format!(
+    Ok(RawSource::from(format!(
       r#"
 __webpack_require__.remotesLoadingData = {{ chunkMapping: {chunk_mapping}, moduleIdToRemoteDataMapping: {id_to_remote_data_mapping} }};
 {remotes_loading_impl}
@@ -111,7 +111,7 @@ __webpack_require__.remotesLoadingData = {{ chunkMapping: {chunk_mapping}, modul
       id_to_remote_data_mapping = json_stringify(&id_to_remote_data_mapping),
       remotes_loading_impl = remotes_loading_impl,
     ))
-    .boxed()
+    .boxed())
   }
 
   fn attach(&mut self, chunk: ChunkUkey) {

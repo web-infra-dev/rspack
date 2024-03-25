@@ -1,0 +1,4 @@
+{
+  mode: "development",
+  entry: "./main.js",
+}

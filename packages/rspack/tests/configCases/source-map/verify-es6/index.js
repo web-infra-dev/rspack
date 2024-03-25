@@ -1,4 +1,4 @@
-const checkMap = require("../checkSourceMap").default;
+const checkMap = require("../../../lib/util/checkSourceMap").default;
 
 try {
 	require("./a.js");
@@ -11,13 +11,13 @@ it("verify es6 (esmodule) bundle source map", async () => {
 	const source = fs.readFileSync(__filename + ".map", "utf-8");
 	const map = JSON.parse(source);
 	expect(map.sources).toEqual([
-		"webpack:///../checkSourceMap.js",
 		"webpack:///./a.js",
 		"webpack:///./b-dir/b.js",
 		"webpack:///./b-dir/c-dir/c.js",
-		"webpack:///./index.js"
+		"webpack:///./index.js",
+		"webpack:///../../../lib/util/checkSourceMap.js"
 	]);
-	expect(map.file).toEqual("main.js");
+	expect(map.file).toEqual("bundle0.js");
 	const out = fs.readFileSync(__filename, "utf-8");
 	expect(
 		await checkMap(out, source, {

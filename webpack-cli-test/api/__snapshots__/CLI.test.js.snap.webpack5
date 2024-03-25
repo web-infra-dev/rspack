@@ -1,0 +1,31 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`CLI API custom help output should display help information 1`] = `
+[
+  [
+    "[1mUsage[22m: webpack --color [value]",
+  ],
+  [
+    "[1mDescription:[22m any color",
+  ],
+  [
+    "[1mDefault value:[22m "blue"",
+  ],
+  [
+    "",
+  ],
+  [
+    "To see list of all supported commands and options run 'webpack --help=verbose'.
+",
+  ],
+  [
+    "[1mWebpack documentation:[22m https://webpack.js.org/.",
+  ],
+  [
+    "[1mCLI documentation:[22m https://webpack.js.org/api/cli/.",
+  ],
+  [
+    "[1mMade with ♥ by the webpack team[22m.",
+  ],
+]
+`;

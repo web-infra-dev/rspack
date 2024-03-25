@@ -10,7 +10,7 @@ use rustc_hash::FxHashSet as HashSet;
 use crate::update_hash::{UpdateHashContext, UpdateRspackHash};
 use crate::ChunkGraph;
 use crate::{
-  get_chunk_group_from_ukey, AsyncDependenciesBlockId, BoxModule, ChunkByUkey, ChunkGroup,
+  get_chunk_group_from_ukey, AsyncDependenciesBlockIdentifier, BoxModule, ChunkByUkey, ChunkGroup,
   ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, ExportsHash, ModuleIdentifier,
   RuntimeGlobals, RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet,
 };
@@ -149,7 +149,7 @@ impl ChunkGraph {
 
   pub fn get_block_chunk_group<'a>(
     &self,
-    block: &AsyncDependenciesBlockId,
+    block: &AsyncDependenciesBlockIdentifier,
     chunk_group_by_ukey: &'a ChunkGroupByUkey,
   ) -> Option<&'a ChunkGroup> {
     self
@@ -160,7 +160,7 @@ impl ChunkGraph {
 
   pub fn connect_block_and_chunk_group(
     &mut self,
-    block: AsyncDependenciesBlockId,
+    block: AsyncDependenciesBlockIdentifier,
     chunk_group: ChunkGroupUkey,
   ) {
     self.block_to_chunk_group_ukey.insert(block, chunk_group);
@@ -175,9 +175,9 @@ impl ChunkGraph {
   ) -> String {
     let mut hasher = DefaultHasher::new();
     let mut connection_hash_cache: HashMap<Identifier, u64> = HashMap::new();
-    let module_graph = &compilation.module_graph;
+    let module_graph = &compilation.get_module_graph();
 
-    let process_module_graph_module = |module: &BoxModule, strict: bool| -> u64 {
+    let process_module_graph_module = |module: &BoxModule, strict: Option<bool>| -> u64 {
       let mut hasher = DefaultHasher::new();
       module.identifier().dyn_hash(&mut hasher);
       module.source_types().dyn_hash(&mut hasher);
@@ -187,7 +187,7 @@ impl ChunkGraph {
 
       module_graph
         .get_exports_info(&module.identifier())
-        .export_info_hash(&mut hasher, module_graph);
+        .export_info_hash(&mut hasher, module_graph, &mut HashSet::default());
 
       module
         .get_blocks()
@@ -203,9 +203,17 @@ impl ChunkGraph {
           )
         });
 
-      if let Some(module) = module_graph.module_by_identifier(&module.identifier()) {
-        let export_type = module.get_exports_type(strict);
-        export_type.dyn_hash(&mut hasher);
+      // NOTE:
+      // Webpack use module.getExportsType() to generate hash
+      // but the module graph may be modified in it
+      // and exports type is calculated from build meta and exports info
+      // so use them to generate hash directly to avoid mutable access to module graph
+      if let Some(strict) = strict {
+        if let Some(build_meta) = module.build_meta() {
+          strict.dyn_hash(&mut hasher);
+          build_meta.default_object.dyn_hash(&mut hasher);
+          build_meta.exports_type.dyn_hash(&mut hasher);
+        }
       }
 
       hasher.finish()
@@ -216,7 +224,7 @@ impl ChunkGraph {
       .get_module_hash(&module.identifier())
       .dyn_hash(&mut hasher);
     // hash module graph module
-    process_module_graph_module(module, false).dyn_hash(&mut hasher);
+    process_module_graph_module(module, None).dyn_hash(&mut hasher);
 
     let strict: bool = module_graph
       .module_by_identifier(&module.identifier())
@@ -230,30 +238,30 @@ impl ChunkGraph {
 
     if with_connections {
       let mut connections = module_graph
-        .get_outgoing_connections(module)
+        .get_outgoing_connections(&module.identifier())
         .into_iter()
         .collect::<Vec<_>>();
 
-      connections.sort_by(|a, b| a.module_identifier.cmp(&b.module_identifier));
+      connections.sort_by(|a, b| a.module_identifier().cmp(b.module_identifier()));
 
       // hash connection module graph modules
       for connection in connections {
-        if let Some(connection_hash) = connection_hash_cache.get(&connection.module_identifier) {
+        if let Some(connection_hash) = connection_hash_cache.get(connection.module_identifier()) {
           connection_hash.dyn_hash(&mut hasher)
         } else {
           let connection_hash = process_module_graph_module(
             module_graph
-              .module_by_identifier(&connection.module_identifier)
+              .module_by_identifier(connection.module_identifier())
               .unwrap_or_else(|| {
                 panic!(
                   "Module({}) should be added before using",
-                  connection.module_identifier
+                  connection.module_identifier()
                 )
               }),
-            strict,
+            Some(strict),
           );
           connection_hash.dyn_hash(&mut hasher);
-          connection_hash_cache.insert(connection.module_identifier, connection_hash);
+          connection_hash_cache.insert(*connection.module_identifier(), connection_hash);
         }
       }
     }

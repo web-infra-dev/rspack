@@ -1,8 +1,9 @@
 import {
+	BuiltinPluginName,
 	RawExtractComments,
 	RawSwcJsMinimizerRspackPluginOptions
 } from "@rspack/binding";
-import { BuiltinPluginName, create } from "./base";
+import { create } from "./base";
 
 type MinifyCondition = string | RegExp;
 type MinifyConditions = MinifyCondition | MinifyCondition[];

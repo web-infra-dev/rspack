@@ -1,11 +1,11 @@
-import readAsset from "./readAsset";
-export function transformWindowPath(path) {
+const readAsset = require("./readAsset");
+function transformWindowPath(path) {
 	if (process.platform === "win32") {
 		return path.replace(/\\/g, "/");
 	}
 	return path;
 }
-export default function readAssets(compiler, stats) {
+function readAssets(compiler, stats) {
 	const assets = {};
 
 	Reflect.ownKeys(stats.compilation.assets)
@@ -16,3 +16,6 @@ export default function readAssets(compiler, stats) {
 
 	return assets;
 }
+
+readAssets.transformWindowPath = transformWindowPath;
+module.exports = readAssets;

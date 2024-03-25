@@ -112,13 +112,13 @@ const ASSETS_GROUPERS: Record<
 								[name]: !!key,
 								filteredChildren: assets.length,
 								...assetGroup(children)
-						  }
+							}
 						: {
 								type: "assets by status",
 								[name]: !!key,
 								children,
 								...assetGroup(children)
-						  };
+							};
 				}
 			});
 		};
@@ -600,7 +600,9 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 					options.reasons!,
 					options.moduleAssets!,
 					options.nestedModules!,
-					options.source!
+					options.source!,
+					options.usedExports!,
+					options.providedExports!
 				);
 			object.chunks = factory.create(`${type}.chunks`, chunks, context);
 		},
@@ -618,7 +620,9 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 					options.reasons!,
 					options.moduleAssets!,
 					options.nestedModules!,
-					options.source!
+					options.source!,
+					options.usedExports!,
+					options.providedExports!
 				);
 			const groupedModules = factory.create(`${type}.modules`, array, context);
 			const limited = spaceLimited(groupedModules, options.modulesSpace!);
@@ -656,7 +660,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			_options,
 			factory
 		) => {
-			const { type } = context;
+			// const { type } = context;
 			const namedChunkGroups = context
 				.getInner(compilation)
 				.getNamedChunkGroups();
@@ -789,6 +793,29 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 		},
 		source: (object, module) => {
 			object.source = module.source;
+		},
+		usedExports: (object, module) => {
+			if (typeof module.usedExports === "string") {
+				if (module.usedExports === "null") {
+					object.usedExports = null;
+				} else {
+					object.usedExports = module.usedExports === "true";
+				}
+			} else if (Array.isArray(module.usedExports)) {
+				object.usedExports = module.usedExports;
+			} else {
+				object.usedExports = null;
+			}
+		},
+		providedExports: (object, module) => {
+			if (Array.isArray(module.providedExports)) {
+				object.providedExports = module.providedExports;
+			} else {
+				object.providedExports = null;
+			}
+		},
+		optimizationBailout: (object, module) => {
+			object.optimizationBailout = module.optimizationBailout || null;
 		}
 	},
 	profile: {

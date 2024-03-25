@@ -15,12 +15,12 @@ module.exports = {
 			name: "main",
 			library: { type: "commonjs-module" },
 			remotes: {
-				containerB: "../../1-container-full/dist/container.js",
+				containerB: "../1-container-full/container.js",
 				self: [
 					"var undefined",
 					"var (() => { throw new Error(); })()",
 					"var { then: (a, b) => b(new Error()) }",
-					"./main.js"
+					"./bundle0.js"
 				]
 			},
 			exposes: ["./Self"],

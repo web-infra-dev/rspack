@@ -2,7 +2,7 @@ use std::time::{Duration, Instant};
 
 use once_cell::sync::OnceCell;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct TimeRange {
   start: OnceCell<Instant>,
   end: OnceCell<Instant>,
@@ -27,7 +27,7 @@ impl TimeRange {
   }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct ModulePhaseProfile {
   range: TimeRange,
   parallelism_factor: OnceCell<u16>,
@@ -46,7 +46,7 @@ impl ModulePhaseProfile {
   }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct ModuleProfile {
   pub factory: ModulePhaseProfile,
   // pub restoring: ModulePhaseProfile,

@@ -4,6 +4,7 @@ module.exports = {
 		main: "./index"
 	},
 	devtool: "source-map",
+	target: "node",
 	output: {
 		filename: "[name].js",
 		sourceMapFilename: "[name].js.map"

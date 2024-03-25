@@ -1,12 +1,12 @@
 "use strict";
 
-// require("./helpers/warmup-webpack");
+require("./helpers/warmup-webpack");
 
 const path = require("path");
-const webpack = require("@rspack/core").rspack;
+const webpack = require("..");
 const { createFsFromVolume, Volume } = require("memfs");
 
-describe.skip("Watch", () => {
+describe("Watch", () => {
 	jest.setTimeout(10000);
 
 	it("should only compile a single time", done => {

@@ -4,5 +4,8 @@ module.exports = {
 			import: "./index.js",
 			runtime: false
 		}
+	},
+	output: {
+		filename: "[name].js"
 	}
 };

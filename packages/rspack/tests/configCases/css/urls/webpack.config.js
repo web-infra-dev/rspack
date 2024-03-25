@@ -1,1 +1,5 @@
-module.exports = {};
+module.exports = {
+	output: {
+		cssChunkFilename: "bundle.css"
+	}
+};

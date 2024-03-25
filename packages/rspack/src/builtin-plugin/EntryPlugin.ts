@@ -1,9 +1,13 @@
-import { RawEntryOptions, RawEntryPluginOptions } from "@rspack/binding";
-import { BuiltinPluginName, create } from "./base";
+import {
+	BuiltinPluginName,
+	RawEntryOptions,
+	RawEntryPluginOptions
+} from "@rspack/binding";
+import { create } from "./base";
 import {
 	ChunkLoading,
 	EntryRuntime,
-	Filename,
+	FilenameTemplate,
 	LibraryOptions,
 	PublicPath,
 	getRawChunkLoading,
@@ -19,7 +23,7 @@ export type EntryOptions = {
 	asyncChunks?: boolean;
 	publicPath?: PublicPath;
 	baseUri?: string;
-	filename?: Filename;
+	filename?: FilenameTemplate;
 	library?: LibraryOptions;
 };
 export const EntryPlugin = create(

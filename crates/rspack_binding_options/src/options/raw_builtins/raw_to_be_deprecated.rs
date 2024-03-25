@@ -150,6 +150,7 @@ impl From<RawRelayConfig> for RelayOptions {
 #[napi(object)]
 pub struct RawCssPluginConfig {
   pub modules: RawCssModulesConfig,
+  pub named_exports: Option<bool>,
 }
 
 #[derive(Deserialize, Debug, Serialize, Clone)]
@@ -187,6 +188,7 @@ impl RawBuiltins {
     if let Some(css) = self.css {
       let options = CssConfig {
         modules: css.modules.try_into()?,
+        named_exports: css.named_exports,
       };
       plugins.push(CssPlugin::new(options).boxed());
     }

@@ -85,7 +85,7 @@ impl Plugin for ModuleChunkFormatPlugin {
   ) -> PluginRenderChunkHookOutput {
     let compilation = args.compilation;
     let chunk = args.chunk();
-    let base_chunk_output_name = get_chunk_output_name(chunk, compilation);
+    let base_chunk_output_name = get_chunk_output_name(chunk, compilation)?;
     if matches!(chunk.kind, ChunkKind::HotUpdate) {
       unreachable!("HMR is not implemented for module chunk format yet");
     }
@@ -99,10 +99,9 @@ impl Plugin for ModuleChunkFormatPlugin {
     sources.add(args.module_source.clone());
     sources.add(RawSource::from(";\n"));
 
-    if !compilation
+    if compilation
       .chunk_graph
-      .get_chunk_runtime_modules_in_order(args.chunk_ukey)
-      .is_empty()
+      .has_chunk_runtime_modules(args.chunk_ukey)
     {
       sources.add(RawSource::from("export const runtime = "));
       sources.add(render_chunk_runtime_modules(compilation, args.chunk_ukey)?);
@@ -130,14 +129,14 @@ impl Plugin for ModuleChunkFormatPlugin {
       let mut loaded_chunks = HashSet::default();
       for (i, (module, entry)) in entries.iter().enumerate() {
         let module_id = compilation
-          .module_graph
+          .get_module_graph()
           .module_graph_module_by_identifier(module)
           .map(|module| module.id(&compilation.chunk_graph))
           .expect("should have module id");
         let runtime_chunk = compilation
           .chunk_group_by_ukey
           .expect_get(entry)
-          .get_runtime_chunk();
+          .get_runtime_chunk(&compilation.chunk_group_by_ukey);
         let chunks = get_all_chunks(
           entry,
           &runtime_chunk,
@@ -152,7 +151,7 @@ impl Plugin for ModuleChunkFormatPlugin {
           loaded_chunks.insert(*chunk_ukey);
           let index = loaded_chunks.len();
           let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-          let other_chunk_output_name = get_chunk_output_name(chunk, compilation);
+          let other_chunk_output_name = get_chunk_output_name(chunk, compilation)?;
           startup_source.push(format!(
             "import * as __webpack_chunk_${index}__ from '{}';",
             get_relative_path(&base_chunk_output_name, &other_chunk_output_name)

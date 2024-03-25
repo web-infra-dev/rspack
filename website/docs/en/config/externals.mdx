@@ -1,0 +1,380 @@
+import WebpackLicense from '../../../components/webpack-license';
+import { ApiMeta, Stability } from '../../../components/ApiMeta';
+
+<WebpackLicense from="https://webpack.js.org/configuration/externals/" />
+
+# Externals
+
+The `externals` configuration option provides a way of excluding dependencies from the output bundles. Instead, the created bundle relies on that dependency to be present in the consumer's (any end-user application) environment. This feature is typically most useful to **library developers**, however there are a variety of applications for it.
+
+## externals
+
+- **Type:** `string | object | function | RegExp | Array<string | object | function | RegExp>`
+
+**Prevent bundling** of certain `import`ed packages and instead retrieve these _external dependencies_ at runtime.
+
+For example, to include [jQuery](https://jquery.com/) from a CDN instead of bundling it:
+
+**index.html**
+
+```html
+<script
+  src="https://code.jquery.com/jquery-3.1.0.js"
+  integrity="sha256-slogkvB1K3VOkzAI8QITxV3VzpOnkeNVsKvtkYLMjfk="
+  crossorigin="anonymous"
+></script>
+```
+
+**rspack.config.js**
+
+```javascript
+module.exports = {
+  //...
+  externals: {
+    jquery: 'jQuery',
+  },
+};
+```
+
+This leaves any dependent modules unchanged, i.e. the code shown below will still work:
+
+```javascript
+import $ from 'jquery';
+
+$('.my-element').animate(/* ... */);
+```
+
+The property name `jquery` specified under `externals` in the above `rspack.config.js` indicates that the module `jquery` in `import $ from 'jquery'` should be excluded from bundling. In order to replace this module, the value `jQuery` will be used to retrieve a global `jQuery` variable, as the default external library type is `var`, see [externalsType](#externalstype).
+
+While we showed an example consuming external global variable above, the external can actually be available in any of these forms: global variable, CommonJS, AMD, ES2015 Module, see more in [externalsType](#externalstype).
+
+### string
+
+Depending on the [externalsType](#externalstype), this could be the name of the global variable (see [`'global'`](#externalstypeglobal), [`'this'`](#externalstypethis), [`'var'`](#externalstypevar), [`'window'`](#externalstypewindow)) or the name of the module (see `amd`, [`commonjs`](#externalstypecommonjs), [`module`](#externalstypemodule), `umd`).
+
+You can also use the shortcut syntax if you're defining only 1 external:
+
+```javascript
+module.exports = {
+  //...
+  externals: 'jquery',
+};
+```
+
+equals to
+
+```javascript
+module.exports = {
+  //...
+  externals: {
+    jquery: 'jquery',
+  },
+};
+```
+
+You can specify the [external library type](#externalstype) to the external with the `${externalsType} ${libraryName}` syntax. It will override the default external library type specified in the [externalsType](#externalstype) option.
+
+For example, if the external library is a [CommonJS module](#externalstypecommonjs), you can specify
+
+```javascript
+module.exports = {
+  //...
+  externals: {
+    jquery: 'commonjs jquery',
+  },
+};
+```
+
+### object
+
+<ApiMeta addedVersion={'0.3.5'} />
+
+An object with `{ root, amd, commonjs, ... }` is only allowed for [`libraryTarget: 'umd'`](/config/output.html#outputlibrarytarget) and [`externalsType: 'umd'`](#externalstype). It's not allowed for other library targets.
+
+```javascript
+module.exports = {
+  //...
+  externals: {
+    react: 'react',
+  },
+
+  // or
+
+  externals: {
+    lodash: {
+      commonjs: 'lodash',
+      amd: 'lodash',
+      root: '_', // indicates global variable
+    },
+  },
+};
+```
+
+## externalsType
+
+- **Type:** `string`
+- **Default:** `var`
+
+Specify the default type of externals. `amd`, `umd`, `system` and `jsonp` externals **depend on the [`output.libraryTarget`](/config/output.html#outputlibrarytarget)** being set to the same value e.g. you can only consume `amd` externals within an `amd` library.
+
+Supported types:
+
+- `'amd'`
+- `'amd-require'`
+- `'assign'` - same as `'var'`
+- [`'commonjs'`](#externalstypecommonjs)
+- `'commonjs-module'`
+- [`'global'`](#externalstypeglobal)
+- `'import'` - uses `import()` to load a native EcmaScript module (async module)
+- `'jsonp'`
+- [`'module'`](#externalstypemodule)
+- [`'node-commonjs'`](#externalstypenode-commonjs)
+- [`'self'`](#externalstypeself)
+- `'system'`
+- [`'this'`](#externalstypethis)
+- `'umd'`
+- `'umd2'`
+- [`'var'`](#externalstypevar)
+- [`'window'`](#externalstypewindow)
+
+### externalsType.commonjs
+
+Specify the default type of externals as `'commonjs'`. Webpack will generate code like `const X = require('...')` for externals used in a module.
+
+```javascript
+import fs from 'fs-extra';
+```
+
+**rspack.config.js**
+
+```javascript
+module.exports = {
+  // ...
+  externalsType: 'commonjs',
+  externals: {
+    'fs-extra': 'fs-extra',
+  },
+};
+```
+
+Will generate into something like:
+
+```javascript
+const fs = require('fs-extra');
+```
+
+Note that there will be a `require()` in the output bundle.
+
+### externalsType.global
+
+Specify the default type of externals as `'global'`. Webpack will read the external as a global variable on the [`globalObject`](/config/output.html#outputglobalobject).
+
+```javascript
+import jq from 'jquery';
+jq('.my-element').animate(/* ... */);
+```
+
+**rspack.config.js**
+
+```javascript
+module.exports = {
+  // ...
+  externalsType: 'global',
+  externals: {
+    jquery: '$',
+  },
+  output: {
+    globalObject: 'global',
+  },
+};
+```
+
+Will generate into something like
+
+```javascript
+const jq = global['$'];
+jq('.my-element').animate(/* ... */);
+```
+
+### externalsType.module
+
+Specify the default type of externals as `'module'`. Webpack will generate code like `import * as X from '...'` for externals used in a module.
+
+Note that there will be an `import` statement in the output bundle.
+
+### externalsType.node-commonjs
+
+Specify the default type of externals as `'node-commonjs'`. Webpack will import [`createRequire`](https://nodejs.org/api/module.html#module_module_createrequire_filename) from `'module'` to construct a require function for loading externals used in a module.
+
+```javascript
+import jq from 'jquery';
+jq('.my-element').animate(/* ... */);
+```
+
+**rspack.config.js**
+
+```js
+module.export = {
+  externalsType: 'node-commonjs',
+  externals: {
+    jquery: 'jquery',
+  },
+};
+```
+
+Will generate into something like
+
+```javascript
+import { createRequire } from 'module';
+
+const jq = createRequire(import.meta.url)('jquery');
+jq('.my-element').animate(/* ... */);
+```
+
+Note that there will be an `import` statement in the output bundle.
+
+### externalsType.self
+
+Specify the default type of externals as `'self'`. Webpack will read the external as a global variable on the `self` object.
+
+```javascript
+import jq from 'jquery';
+jq('.my-element').animate(/* ... */);
+```
+
+**rspack.config.js**
+
+```javascript
+module.exports = {
+  // ...
+  externalsType: 'self',
+  externals: {
+    jquery: '$',
+  },
+};
+```
+
+Will generate into something like
+
+```javascript
+const jq = self['$'];
+jq('.my-element').animate(/* ... */);
+```
+
+### externalsType.this
+
+Specify the default type of externals as `'this'`. Webpack will read the external as a global variable on the `this` object.
+
+```javascript
+import jq from 'jquery';
+jq('.my-element').animate(/* ... */);
+```
+
+**rspack.config.js**
+
+```javascript
+module.exports = {
+  // ...
+  externalsType: 'this',
+  externals: {
+    jquery: '$',
+  },
+};
+```
+
+Will generate into something like
+
+```javascript
+const jq = this['$'];
+jq('.my-element').animate(/* ... */);
+```
+
+### externalsType.var
+
+Specify the default type of externals as `'var'`. Webpack will read the external as a global variable.
+
+```javascript
+import jq from 'jquery';
+jq('.my-element').animate(/* ... */);
+```
+
+**rspack.config.js**
+
+```javascript
+module.exports = {
+  // ...
+  externalsType: 'var',
+  externals: {
+    jquery: '$',
+  },
+};
+```
+
+Will generate into something like
+
+```javascript
+const jq = $;
+jq('.my-element').animate(/* ... */);
+```
+
+### externalsType.window
+
+Specify the default type of externals as `'window'`. Webpack will read the external as a global variable on the `window` object.
+
+```javascript
+import jq from 'jquery';
+jq('.my-element').animate(/* ... */);
+```
+
+**rspack.config.js**
+
+```javascript
+module.exports = {
+  // ...
+  externalsType: 'window',
+  externals: {
+    jquery: '$',
+  },
+};
+```
+
+Will generate into something like
+
+```javascript
+const jq = window['$'];
+jq('.my-element').animate(/* ... */);
+```
+
+## externalsPresets
+
+Enable presets of externals for specific targets.
+
+### node
+
+Treat node.js built-in modules like `fs`, `path` or `vm` as external and load them via `require()` when used.
+
+### web
+
+Treat references to `http(s)://...` and `std:...` as external and load them via `import` (`externalType: "module"`) when used. (Note that this changes execution order as externals are executed before any other code in the chunk).
+
+### webAsync
+
+<ApiMeta addedVersion="0.3.5" />
+
+Treat references to `http(s)://...` and `std:...` as external and load them via `import()` (`externalType: "import"`) when used. (Note that this external type is an async module, which has various effects on the execution).
+
+### electron
+
+Treat common electron built-in modules in main and preload context like `electron`, `ipc` or `shell` as external and load them via `require()` when used.
+
+### electronMain
+
+Treat electron built-in modules in the main context like `app`, `ipc-main` or `shell` as external and load them via `require()` when used.
+
+### electronRenderer
+
+Treat electron built-in modules in the renderer context like `web-frame`, `ipc-renderer` or `shell` as external and load them via `require()` when used.
+
+### electronPreload
+
+Treat electron built-in modules in the preload context like `web-frame`, `ipc-renderer` or `shell` as external and load them via `require()` when used.

@@ -1,0 +1,58 @@
+# Plugins
+
+If [loaders](/guide/loader) are the workhorse for file transformations (preprocessing), then plugins are the workhorse for the overall Rspack build process. Most of Rspack's native implementations rely on the Rust side of the plugin system. For Node users, you don't need to worry about interoperation issues with Rust, because Rspack takes care of those details for you automatically. You can just focus on how to use the plugins.
+
+## Example
+
+### Authoring plugins
+
+The structure of a plugin is very simple: just implement an `apply` method that accepts a `Compiler` instance. It will be called when the Rspack plugin is initialized. The detailed API can be found in the [Plugin API](/api/plugin-api).
+
+```js
+const PLUGIN_NAME = 'MyPlugin';
+
+class MyPlugin {
+  apply(compiler) {
+    compiler.hooks.compilation.tap(PLUGIN_NAME, (compilation) => {
+      console.log('The Rspack build process is starting!');
+    });
+  }
+}
+
+module.exports = MyPlugin;
+```
+
+We use CommonJS style module exports so that plugins can be imported directly using `require` in `rspack.config.js`.
+
+### Consuming plugins
+
+Here's an example of how to use the already compatible [webpack-bundle-analyzer](https://github.com/webpack-contrib/webpack-bundle-analyzer) in `rspack.config.js`:
+
+```js title="rspack.config.js"
+const BundleAnalyzerPlugin =
+  require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
+
+module.exports = {
+  plugins: [new BundleAnalyzerPlugin()],
+};
+```
+
+Please refer to [Plugin compat](/guide/plugin-compat) for the list of plugins that have passed Rspack compatibility tests.
+
+### Type definitions
+
+If you use TypeScript to write Rspack plugins, you can import `Compiler` and `RspackPluginInstance` to declare the types of your plugins:
+
+```ts
+import type { Compiler, RspackPluginInstance } from '@rspack/core';
+
+const PLUGIN_NAME = 'MyPlugin';
+
+class MyPlugin implements RspackPluginInstance {
+  apply(compiler: Compiler) {
+    compiler.hooks.compilation.tap(PLUGIN_NAME, (compilation) => {
+      console.log('The Rspack build process is starting!');
+    });
+  }
+}
+```

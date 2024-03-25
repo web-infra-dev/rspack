@@ -11,13 +11,15 @@ use json::{
   JsonValue,
 };
 use rspack_core::{
+  diagnostics::ModuleParseError,
   rspack_sources::{BoxSource, RawSource, Source, SourceExt},
   BuildMetaDefaultObject, BuildMetaExportsType, CompilerOptions, ExportsInfo, GenerateContext,
   Module, ModuleGraph, ParserAndGenerator, Plugin, RuntimeGlobals, RuntimeSpec, SourceType,
-  UsageState,
+  UsageState, NAMESPACE_OBJECT_EXPORT,
 };
 use rspack_error::{
-  error, DiagnosticKind, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray, TraceableError,
+  miette::diagnostic, DiagnosticExt, DiagnosticKind, IntoTWithDiagnosticArray, Result,
+  TWithDiagnosticArray, TraceableError,
 };
 
 use crate::json_exports_dependency::JsonExportsDependency;
@@ -45,6 +47,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
       source: box_source,
       build_info,
       build_meta,
+      loaders,
       ..
     } = parse_context;
     build_info.strict = true;
@@ -78,11 +81,9 @@ impl ParserAndGenerator for JsonParserAndGenerator {
             format!("Unexpected character {ch}"),
           )
           .with_kind(DiagnosticKind::Json)
-          .into()
+          .boxed()
         }
-        ExceededDepthLimit | WrongType(_) | FailedUtf8Parsing => {
-          error!(format!("{e}"))
-        }
+        ExceededDepthLimit | WrongType(_) | FailedUtf8Parsing => diagnostic!("{e}").boxed(),
         UnexpectedEndOfJson => {
           // End offset of json file
           let offset = source.len() - 1;
@@ -94,14 +95,17 @@ impl ParserAndGenerator for JsonParserAndGenerator {
             format!("{e}"),
           )
           .with_kind(DiagnosticKind::Json)
-          .into()
+          .boxed()
         }
       }
     });
 
     let (diagnostics, data) = match parse_result {
       Ok(data) => (vec![], Some(data)),
-      Err(err) => (vec![err.into()], None),
+      Err(err) => (
+        vec![ModuleParseError::new(err, loaders).boxed().into()],
+        None,
+      ),
     };
     build_info.json_data = data.clone();
 
@@ -116,6 +120,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
         blocks: vec![],
         source: box_source,
         analyze_result: Default::default(),
+        side_effects_bailout: None,
       }
       .with_diagnostic(diagnostics),
     )
@@ -132,6 +137,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
     let GenerateContext {
       compilation,
       runtime,
+      concatenation_scope,
       ..
     } = generate_context;
     match generate_context.requested_source_type {
@@ -140,7 +146,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
           .runtime_requirements
           .insert(RuntimeGlobals::MODULE);
         let module = compilation
-          .module_graph
+          .get_module_graph()
           .module_by_identifier(&module.identifier())
           .expect("should have module identifier");
         let json_data = module
@@ -149,14 +155,14 @@ impl ParserAndGenerator for JsonParserAndGenerator {
           .and_then(|info| info.json_data.as_ref())
           .expect("should have json data");
         let exports_info = compilation
-          .module_graph
+          .get_module_graph()
           .get_exports_info(&module.identifier());
 
         let final_json = match json_data {
           json::JsonValue::Object(_) | json::JsonValue::Array(_)
             if exports_info
               .other_exports_info
-              .get_export_info(&compilation.module_graph)
+              .get_export_info(compilation.get_module_graph())
               .get_used(*runtime)
               == UsageState::Unused =>
           {
@@ -164,7 +170,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
               json_data.clone(),
               exports_info,
               *runtime,
-              &compilation.module_graph,
+              compilation.get_module_graph(),
             )
           }
           _ => json_data.clone(),
@@ -180,7 +186,13 @@ impl ParserAndGenerator for JsonParserAndGenerator {
         } else {
           json_str
         };
-        Ok(RawSource::from(format!(r#"module.exports = {}"#, json_expr)).boxed())
+        let content = if let Some(ref mut scope) = concatenation_scope {
+          scope.register_namespace_export(NAMESPACE_OBJECT_EXPORT);
+          format!("var {NAMESPACE_OBJECT_EXPORT} = {json_expr}")
+        } else {
+          format!(r#"module.exports = {}"#, json_expr)
+        };
+        Ok(RawSource::from(content).boxed())
       }
       _ => panic!(
         "Unsupported source type: {:?}",

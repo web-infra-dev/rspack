@@ -25,7 +25,7 @@ impl Plugin for EnsureChunkConditionsPlugin {
 
     let mut source_module_chunks = HashMap::new();
     compilation
-      .module_graph
+      .get_module_graph()
       .modules()
       .iter()
       .for_each(|(module_id, module)| {
@@ -41,7 +41,7 @@ impl Plugin for EnsureChunkConditionsPlugin {
           })
           .collect::<Vec<_>>();
         if !source_chunks.is_empty() {
-          source_module_chunks.insert(module_id, source_chunks);
+          source_module_chunks.insert(*module_id, source_chunks);
         }
       });
 
@@ -62,9 +62,12 @@ impl Plugin for EnsureChunkConditionsPlugin {
               get_chunk_group_from_ukey(chunk_group_key, &compilation.chunk_group_by_ukey)
             {
               for chunk in &chunk_group.chunks {
-                if let Some(module) = compilation.module_graph.module_by_identifier(module_id) {
+                if let Some(module) = compilation
+                  .get_module_graph()
+                  .module_by_identifier(module_id)
+                {
                   if matches!(module.chunk_condition(chunk, compilation), Some(true)) {
-                    target_chunks.insert(chunk);
+                    target_chunks.insert(*chunk);
                     continue 'out;
                   }
                 }
@@ -87,21 +90,21 @@ impl Plugin for EnsureChunkConditionsPlugin {
       }
       target_module_chunks.insert(*module_id, target_chunks);
     }
+
+    let mut chunk_graph = std::mem::take(&mut compilation.chunk_graph);
     for (module_id, chunks) in source_module_chunks {
       for chunk in chunks {
-        compilation
-          .chunk_graph
-          .disconnect_chunk_and_module(&chunk, module_id.to_owned());
+        chunk_graph.disconnect_chunk_and_module(&chunk, module_id.to_owned());
       }
     }
 
     for (module_id, chunks) in target_module_chunks {
       for chunk in chunks {
-        compilation
-          .chunk_graph
-          .connect_chunk_and_module(chunk.to_owned(), module_id.to_owned());
+        chunk_graph.connect_chunk_and_module(chunk, module_id);
       }
     }
+    compilation.chunk_graph = chunk_graph;
+
     logger.time_end(start);
 
     Ok(())

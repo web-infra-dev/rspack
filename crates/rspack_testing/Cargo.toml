@@ -36,6 +36,7 @@ rspack_plugin_warn_sensitive_module  = { path = "../rspack_plugin_warn_sensitive
 rspack_plugin_wasm                   = { path = "../rspack_plugin_wasm" }
 rspack_regex                         = { path = "../rspack_regex" }
 rspack_tracing                       = { path = "../rspack_tracing" }
+rspack_util                          = { path = "../rspack_util" }
 
 async-trait    = { workspace = true }
 cargo-rst      = { path = "../cargo-rst" }

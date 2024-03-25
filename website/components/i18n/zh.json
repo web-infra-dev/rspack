@@ -1,0 +1,17 @@
+{
+  "compatible": "兼容",
+  "alternative": "有替代",
+  "included": "已内置",
+  "babel-loader-description": "内部使用 SWC 实现了 babel-loader 的大部分转换功能",
+  "style-loader-description": "样式的 HMR 暂时仅在配置为 `esModule: false` 时支持",
+  "babel-loader-remark": "babel-loader 对性能影响较大，请谨慎使用",
+  "html-webpack-plugin-desc": "在 v0.3.3 已实现对该插件的支持，v0.3.3 之前可使用 @rspack/plugin-html 或 builtins.html 代替",
+  "sentry_webpack-plugin-desc": "在 v0.3.3 已实现对该插件 v1.20.1 以上版本的支持",
+  "define-plugin-desc": "在 v0.3.3 已实现对该插件的支持，v0.3.3 之前可使用 builtins.define 替代",
+  "copy-plugin-desc": "使用 builtins.copy 或 rspack.CopyRspackPlugin 替代",
+  "banner-plugin-desc": "在 v0.3.3 已实现对该插件的支持，v0.3.3 之前可使用 builtins.banner 替代",
+  "mini-css-extract-plugin-desc": "使用 experiments.css 替代",
+  "terser-webpack-plugin-desc": "使用 rspack.SwcJsMinimizerRspackPlugin 或 builtins.minifyOptions 替代",
+  "progress-plugin-desc": "使用 builtins.progress 替代",
+  "tsconfig-paths-webpack-plugin-desc": "使用 resolve.tsconfigPath 替代"
+}

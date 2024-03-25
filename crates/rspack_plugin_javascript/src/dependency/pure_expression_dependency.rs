@@ -47,6 +47,7 @@ impl Dependency for PureExpressionDependency {
 }
 
 impl AsModuleDependency for PureExpressionDependency {}
+
 impl DependencyTemplate for PureExpressionDependency {
   fn apply(&self, source: &mut TemplateReplaceSource, ctx: &mut TemplateContext) {
     match self.used_by_exports {
@@ -57,7 +58,7 @@ impl DependencyTemplate for PureExpressionDependency {
       Some(UsedByExports::Set(ref set)) => {
         let exports_info = ctx
           .compilation
-          .module_graph
+          .get_module_graph()
           .get_exports_info(&self.module_identifier);
         let runtime = ctx.runtime;
         let runtime_condition = filter_runtime(runtime, |cur_runtime| {
@@ -65,7 +66,7 @@ impl DependencyTemplate for PureExpressionDependency {
             exports_info.get_used(
               UsedName::Str(id.clone()),
               cur_runtime,
-              &ctx.compilation.module_graph,
+              ctx.compilation.get_module_graph(),
             ) != UsageState::Unused
           })
         });
@@ -92,6 +93,10 @@ impl DependencyTemplate for PureExpressionDependency {
       None,
     );
     source.insert(self.end, "))", None);
+  }
+
+  fn dependency_id(&self) -> Option<DependencyId> {
+    Some(self.id)
   }
 }
 

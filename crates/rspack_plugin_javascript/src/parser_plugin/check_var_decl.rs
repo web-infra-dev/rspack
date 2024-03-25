@@ -1,8 +1,32 @@
+use once_cell::sync::Lazy;
+use rustc_hash::FxHashSet;
 use swc_core::common::Spanned;
 use swc_core::ecma::ast::{Ident, ObjectPatProp, Pat, VarDeclKind};
 
 use super::JavascriptParserPlugin;
-use crate::visitors::{create_traceable_error, is_reserved_word_in_strict, JavascriptParser};
+use crate::visitors::{create_traceable_error, JavascriptParser};
+
+static STRICT_MODE_RESERVED_WORDS: Lazy<FxHashSet<String>> = Lazy::new(|| {
+  [
+    "implements",
+    "interface",
+    "let",
+    "package",
+    "private",
+    "protected",
+    "public",
+    "static",
+    "yield",
+    "await",
+  ]
+  .iter()
+  .map(|i| i.to_string())
+  .collect::<FxHashSet<String>>()
+});
+
+fn is_reserved_word_in_strict(word: &str) -> bool {
+  STRICT_MODE_RESERVED_WORDS.contains(word)
+}
 
 pub struct CheckVarDeclaratorIdent;
 
@@ -13,14 +37,14 @@ impl CheckVarDeclaratorIdent {
         parser.errors.push(Box::new(create_traceable_error(
           "JavaScript parsing error".into(),
           format!("The keyword '{}' is reserved in strict mode", ident.sym),
-          &parser.source_file,
+          parser.source_file,
           ident.span().into(),
         )));
       } else {
         parser.errors.push(Box::new(create_traceable_error(
           "JavaScript parsing error".into(),
           format!("{} is disallowed as a lexically bound name", ident.sym),
-          &parser.source_file,
+          parser.source_file,
           ident.span().into(),
         )));
       }

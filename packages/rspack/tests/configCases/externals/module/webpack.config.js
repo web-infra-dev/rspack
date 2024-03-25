@@ -4,7 +4,7 @@ module.exports = {
 	output: {
 		module: true,
 		chunkFormat: "module",
-		filename: "[name].js"
+		filename: "[name].mjs"
 	},
 	experiments: {
 		outputModule: true

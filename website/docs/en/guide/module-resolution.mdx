@@ -1,0 +1,31 @@
+# Module resolution
+
+Module resolution is the process of converting a module identifier to a module's file path. The [nodejs_resolver](https://github.com/web-infra-dev/nodejs_resolver) is used in Rspack for module path resolution, which is an extension to the [node module resolution algorithm](https://nodejs.org/api/modules.html#modules_all_together) with the same interface as [enhanced-resolve](https://github.com/webpack/enhanced-resolve), see [resolution configuration](/config/resolve) for detailed resolve configuration.
+
+## Rspack
+
+Rspack supports the following three kinds of file paths:
+
+### Absolute paths
+
+```js
+import '/home/me/file';
+```
+
+Since this path is already an absolute path, there is usually no need to do further parsing, just return the path directly.
+
+### Relative paths
+
+```js
+import './src/answer';
+```
+
+In this case, the directory where the resource files using import and require are located is considered the context directory. The relative path given in import/require is spelled out with that context directory path to generate the absolute path to the module.
+
+### Module paths
+
+```js
+import 'lodash';
+```
+
+Module paths are those that do not start with `'./'`, `'../'`, `'/'`. In this case, Rspack will resolve the absolute path of the module according to the module resolution rules. The [node module resolution algorithm](https://nodejs.org/api/modules.html#modules_all_together) has a detailed description of the rules for resolve modules.

@@ -24,7 +24,6 @@ import type {
 	InfrastructureLogging,
 	JavascriptParserOptions,
 	Library,
-	LibraryOptions,
 	Mode,
 	ModuleOptions,
 	Node,
@@ -61,8 +60,8 @@ export const applyRspackOptionsDefaults = (
 		target === false
 			? false
 			: typeof target === "string"
-			? getTargetProperties(target, options.context!)
-			: getTargetsProperties(target, options.context!);
+				? getTargetProperties(target, options.context!)
+				: getTargetsProperties(target, options.context!);
 
 	const development = mode === "development";
 	const production = mode === "production" || !mode;
@@ -115,8 +114,8 @@ export const applyRspackOptionsDefaults = (
 		return options.output.library
 			? options.output.library.type
 			: options.output.module
-			? "module"
-			: "var";
+				? "module"
+				: "var";
 	});
 
 	applyNodeDefaults(options.node, { targetProperties });
@@ -784,6 +783,8 @@ const getResolveLoaderDefaults = () => {
 	return resolveOptions;
 };
 
+// The values are aligned with webpack
+// https://github.com/webpack/webpack/blob/b9fb99c63ca433b24233e0bbc9ce336b47872c08/lib/config/defaults.js#L1431
 const getResolveDefaults = ({
 	targetProperties,
 	mode
@@ -805,19 +806,24 @@ const getResolveDefaults = ({
 	const jsExtensions = [".js", ".json", ".wasm"];
 
 	const tp = targetProperties;
+
 	const browserField =
 		tp && tp.web && (!tp.node || (tp.electron && tp.electronRenderer));
 	const aliasFields = browserField ? ["browser"] : [];
+	const mainFields = browserField
+		? ["browser", "module", "..."]
+		: ["module", "..."];
 
 	const cjsDeps = () => ({
 		aliasFields,
-		mainFields: browserField ? ["browser", "module", "..."] : ["module", "..."],
+		mainFields,
 		conditionNames: ["require", "module", "..."],
 		extensions: [...jsExtensions]
 	});
+
 	const esmDeps = () => ({
 		aliasFields,
-		mainFields: browserField ? ["browser", "module", "..."] : ["module", "..."],
+		mainFields,
 		conditionNames: ["import", "module", "..."],
 		extensions: [...jsExtensions]
 	});
@@ -827,9 +833,9 @@ const getResolveDefaults = ({
 		conditionNames: conditions,
 		mainFiles: ["index"],
 		extensions: [],
-		aliasFields,
-		mainFields: ["main"].filter(Boolean),
+		aliasFields: [],
 		exportsFields: ["exports"],
+		mainFields: ["main"],
 		byDependency: {
 			wasm: esmDeps(),
 			esm: esmDeps(),

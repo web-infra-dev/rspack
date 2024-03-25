@@ -79,8 +79,8 @@ function createRequire(require, moduleId) {
 		}
 	}
 
-	fn.e = function (chunkId) {
-		return trackBlockingPromise(require.e(chunkId));
+	fn.e = function (chunkId, fetchPriority) {
+		return trackBlockingPromise(require.e(chunkId, fetchPriority));
 	};
 
 	return fn;

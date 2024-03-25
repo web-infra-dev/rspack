@@ -1,0 +1,190 @@
+import { Tabs, Tab } from '@theme';
+import { ApiMeta, Stability } from '../../../components/ApiMeta.tsx';
+
+# React
+
+## How to Use
+
+Rspack provides two solutions to support React:
+
+- **Use Rsbuild**: Rsbuild provides out-of-the-box support for React, allowing you to quickly create a React project. See ["Rsbuild - React"](https://rsbuild.dev/guide/framework/react) for details.
+- **Manual configuration**: You can refer to the current document to manually add configurations for React.
+
+## Configure JSX
+
+Rspack has built-in support for JSX, which allows you to use JSX syntax directly in .jsx and .tsx files in your project. If you need to use JSX in .js or .ts files, you will need to configure it as follows:
+
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        type: 'jsx',
+      },
+      {
+        test: /\.ts$/,
+        type: 'tsx',
+      },
+    ],
+  },
+};
+```
+
+## Emotion
+
+Rspack has built-in support for emotion, which allows you to use emotion syntax directly in .jsx and .tsx files in your project. You can use emotion functionality through the following configuration:
+
+```js title=rspack.config.js
+module.exports = {
+  builtins: {
+    emotion: true,
+    react: {
+      importSource: '@emotion/react',
+    },
+  },
+};
+```
+
+```js title=src/index.tsx
+import { css } from '@emotion/react';
+
+export function Button({ children }) {
+  return (
+    <button
+      css={css`
+        background: hotpink;
+        &:hover {
+          background: purple;
+        }
+      `}
+    >
+      {children}
+    </button>
+  );
+}
+```
+
+Other CSS-in-JS solutions can be used by configuring the babel-loader.
+
+## Fast Refresh
+
+There are currently two ways to enable React Fast Refresh in Rspack:
+
+### builtins.react.refresh
+
+<ApiMeta stability={Stability.Deprecated} />
+
+In the early stage of Rspack, React Fast Refresh functionality was built into @rspack/dev-server and @rspack/core to provide an out-of-the-box experience for some projects. This means that if you are using @rspack/cli or @rspack/dev-server, React Fast Refresh is automatically enabled in development mode, ready for you to use directly in your projects. This enhanced the usability of Rspack for React projects but also led to various issues.
+
+This approach made Rspack not entirely framework-agnostic. If you were using other frameworks like Vue, you had to manually disable React Fast Refresh functionality using [builtins.react.refresh](config/builtins#builtinsreact) to avoid injecting React Fast Refresh-related code into some Vue modules.
+
+Recognizing this issue, we aim to gradually transition users to a more correct approach through [experiments.rspackFuture.disableTransformByDefault](/config/experiments.html#disabletransformbydefault) and [@rspack/plugin-react-refresh](/guide/react.html#rspackplugin-react-refresh), which represents the second method mentioned.
+
+### @rspack/plugin-react-refresh
+
+<ApiMeta addedVersion={'0.3.5'} />
+
+:::warning
+`@rspack/plugin-react-refresh` depends on [experiments.rspackFuture.disableTransformByDefault](/config/experiments.html#disabletransformbydefault)
+:::
+
+First you need to install the dependencies:
+
+<Tabs values={[{ label: 'npm' }, { label: 'yarn' }, { label: 'pnpm' }]}>
+   <Tab>
+
+```sh
+npm install -D @rspack/plugin-react-refresh react-refresh
+```
+
+   </Tab>
+
+   <Tab>
+
+```sh
+yarn add -D @rspack/plugin-react-refresh react-refresh
+```
+
+   </Tab>
+
+   <Tab>
+
+```sh
+pnpm install -D @rspack/plugin-react-refresh react-refresh
+```
+
+   </Tab>
+</Tabs>
+
+Enabling [React Fast Refresh](https://reactnative.dev/docs/fast-refresh) functionality primarily involves two aspects: code injection and code transformation.
+
+- Code injection will inject some code from the `react-refresh` package, as well as some custom runtime code, all of which are integrated in the [@rspack/plugin-react-refresh](https://github.com/web-infra-dev/rspack/tree/main/packages/rspack-plugin-react-refresh) plugin and can be injected through this plugin.
+- Code transformation can be added through loaders, such as [jsc.transform.react.refresh](https://swc.rs/docs/configuration/compilation#jsctransformreactrefresh) for swc-loader or the [react-refresh/babel](https://github.com/facebook/react/tree/main/packages/react-refresh) for babel-loader.
+
+```js title=rspack.config.js
+const ReactRefreshPlugin = require('@rspack/plugin-react-refresh');
+const isDev = process.env.NODE_ENV === 'development';
+
+module.exports = {
+  experiments: {
+    rspackFuture: {
+      disableTransformByDefault: true,
+    },
+  },
+  // ...
+  mode: isDev ? 'development' : 'production',
+  module: {
+    rules: [
+      {
+        test: /\.jsx$/,
+        use: {
+          loader: 'builtin:swc-loader',
+          options: {
+            jsc: {
+              parser: {
+                syntax: 'ecmascript',
+                jsx: true,
+              },
+              transform: {
+                react: {
+                  development: isDev,
+                  refresh: isDev,
+                },
+              },
+            },
+          },
+        },
+      },
+    ],
+  },
+  plugins: [isDev && new ReactRefreshPlugin()].filter(Boolean),
+};
+```
+
+Compared to the previous approach, this method decouples the React Fast Refresh code injection logic from the transformation logic. The code injection logic is handled uniformly by the @rspack/plugin-react-refresh plugin, while the code transformation is handled by loaders. This means that this plugin can be used in conjunction with `builtin:swc-loader`, `swc-loader`, or `babel-loader`:
+
+- For usage with `builtin:swc-loader`, you can refer to the example at [examples/react-refresh](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/react-refresh/rspack.config.js), When using with `swc-loader`, simply replace `builtin:swc-loader` with `swc-loader`.
+- For usage with `babel-loader`, you can refer to the example at [examples/react-refresh-babel-loader](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/react-refresh-babel-loader/rspack.config.js)
+
+## Integrating SVGR
+
+[SVGR](https://react-svgr.com/) is an universal tool for transforming [Scalable Vector Graphics (SVG)](https://en.wikipedia.org/wiki/SVG) files into React components.
+
+The usage of SVGR with Rspack is exactly the same as with Webpack.
+
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.svg$/i,
+        issuer: /\.[jt]sx?$/,
+        use: ['@svgr/webpack'],
+      },
+    ],
+  },
+};
+```
+
+For detailed usage of SVGR, please refer to [SVGR Documentation - Webpack](https://react-svgr.com/docs/webpack/).

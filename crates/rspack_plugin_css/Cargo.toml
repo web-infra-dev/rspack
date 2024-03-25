@@ -8,8 +8,8 @@ version    = "0.1.0"
 [dependencies]
 async-trait = { workspace = true }
 bitflags = { workspace = true }
-heck = "0.4.1"
-indexmap = { workspace = true }
+heck = { workspace = true }
+indexmap = { version = "=1.9.3", features = ["serde-1"] } # pinned by rkyv
 once_cell = { workspace = true }
 rayon = { workspace = true }
 regex = { workspace = true }
@@ -17,6 +17,7 @@ rkyv = { workspace = true, features = ["indexmap", "validation"] }
 rspack_core = { path = "../rspack_core" }
 rspack_error = { path = "../rspack_error" }
 rspack_hash = { path = "../rspack_hash" }
+rspack_hook = { path = "../rspack_hook" }
 rspack_identifier = { path = "../rspack_identifier" }
 rspack_plugin_runtime = { path = "../rspack_plugin_runtime" }
 rspack_util = { path = "../rspack_util" }
@@ -39,6 +40,4 @@ tracing = { workspace = true }
 urlencoding = { workspace = true }
 
 [dev-dependencies]
-hrx-parser     = "0.1.1"
-insta          = { workspace = true }
 rspack_testing = { path = "../rspack_testing" }

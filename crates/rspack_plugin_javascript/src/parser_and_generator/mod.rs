@@ -1,5 +1,6 @@
 use rspack_ast::RspackAst;
 use rspack_core::diagnostics::map_box_diagnostics_to_module_parse_diagnostics;
+use rspack_core::needs_refactor::WorkerSyntaxList;
 use rspack_core::rspack_sources::{
   BoxSource, MapOptions, OriginalSource, RawSource, ReplaceSource, Source, SourceExt, SourceMap,
   SourceMapSource, SourceMapSourceOptions,
@@ -8,14 +9,14 @@ use rspack_core::tree_shaking::analyzer::OptimizeAnalyzer;
 use rspack_core::tree_shaking::js_module::JsModule;
 use rspack_core::tree_shaking::visitor::OptimizeAnalyzeResult;
 use rspack_core::{
-  render_init_fragments, AsyncDependenciesBlockId, Compilation, DependenciesBlock, DependencyId,
-  GenerateContext, Module, ParseContext, ParseResult, ParserAndGenerator, SourceType,
-  TemplateContext, TemplateReplaceSource,
+  render_init_fragments, AsyncDependenciesBlockIdentifier, Compilation, DependenciesBlock,
+  DependencyId, GenerateContext, Module, ParseContext, ParseResult, ParserAndGenerator,
+  SideEffectsBailoutItem, SourceType, SpanExt, TemplateContext, TemplateReplaceSource,
 };
 use rspack_error::miette::Diagnostic;
 use rspack_error::{DiagnosticExt, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_util::source_map::SourceMapKind;
-use swc_core::common::SyntaxContext;
+use swc_core::common::{Span, SyntaxContext};
 use swc_core::ecma::parser::{EsConfig, Syntax};
 
 use crate::ast::CodegenOptions;
@@ -29,14 +30,10 @@ pub struct JavaScriptParserAndGenerator;
 
 #[allow(unused)]
 impl JavaScriptParserAndGenerator {
-  pub(crate) fn new() -> Self {
-    Self {}
-  }
-
   fn source_block(
     &self,
     compilation: &Compilation,
-    block_id: &AsyncDependenciesBlockId,
+    block_id: &AsyncDependenciesBlockIdentifier,
     source: &mut TemplateReplaceSource,
     context: &mut TemplateContext,
   ) {
@@ -58,7 +55,7 @@ impl JavaScriptParserAndGenerator {
     context: &mut TemplateContext,
   ) {
     if let Some(dependency) = compilation
-      .module_graph
+      .get_module_graph()
       .dependency_by_id(dependency_id)
       .expect("should have dependency")
       .as_dependency_template()
@@ -102,7 +99,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       allow_super_outside_method: true,
       ..Default::default()
     });
-
     let use_source_map = matches!(module_source_map_kind, SourceMapKind::SourceMap);
     let enable_source_map = !matches!(module_source_map_kind, SourceMapKind::None);
     let original_map = source.map(&MapOptions::new(use_source_map));
@@ -120,6 +116,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
           blocks: vec![],
           presentational_dependencies: vec![],
           analyze_result: Default::default(),
+          side_effects_bailout: None,
         }
         .with_diagnostic(map_box_diagnostics_to_module_parse_diagnostics(
           diagnostics,
@@ -179,18 +176,20 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       ));
     });
 
+    let mut worker_syntax_list = WorkerSyntaxList::default();
+
     let ScanDependenciesResult {
       mut dependencies,
       blocks,
       presentational_dependencies,
-      mut rewrite_usage_span,
+      mut usage_span_record,
       import_map,
       mut warning_diagnostics,
-    } = match ast.visit(|program, context| {
+    } = match ast.visit(|program, _| {
       scan_dependencies(
-        parse_result.1,
+        &parse_result.1,
         program,
-        context.unresolved_mark,
+        &mut worker_syntax_list,
         resource_data,
         compiler_options,
         module_type,
@@ -206,13 +205,20 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       }
     };
     diagnostics.append(&mut warning_diagnostics);
-
+    let mut side_effects_bailout = None;
     let analyze_result = if compiler_options.builtins.tree_shaking.enable() {
       let mut all_dependencies = dependencies.clone();
       for mut block in blocks.clone() {
         all_dependencies.extend(block.take_dependencies());
       }
-      JsModule::new(&ast, &all_dependencies, module_identifier, compiler_options).analyze()
+      JsModule::new(
+        &ast,
+        &worker_syntax_list,
+        &all_dependencies,
+        module_identifier,
+        compiler_options,
+      )
+      .analyze()
     } else {
       OptimizeAnalyzeResult::default()
     };
@@ -227,7 +233,15 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
           program.comments.as_ref(),
         );
         program.visit_with(&mut visitor);
-        build_meta.side_effect_free = Some(visitor.side_effects_span.is_none());
+        build_meta.side_effect_free = Some(visitor.side_effects_item.is_none());
+        // Take the item from visitor is safe, because the field is only used in this place
+        side_effects_bailout = visitor
+          .side_effects_item
+          .take()
+          .and_then(|item| -> Option<_> {
+            let msg = span_to_location(item.span, &output.code)?;
+            Some(SideEffectsBailoutItem { msg, ty: item.ty })
+          })
       });
     }
 
@@ -240,7 +254,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
             &mut dependencies,
             unresolved_ctxt,
             top_level_ctxt,
-            &mut rewrite_usage_span,
+            &mut usage_span_record,
             &import_map,
             module_identifier,
             program.comments.take(),
@@ -287,6 +301,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         blocks,
         presentational_dependencies,
         analyze_result,
+        side_effects_bailout,
       }
       .with_diagnostic(map_box_diagnostics_to_module_parse_diagnostics(
         diagnostics,
@@ -340,5 +355,27 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         generate_context.requested_source_type
       )
     }
+  }
+}
+
+fn span_to_location(span: Span, source: &str) -> Option<String> {
+  let r = ropey::Rope::from_str(source);
+  let start = span.real_lo();
+  let end = span.real_hi();
+  let start_char_offset = r.try_byte_to_char(start as usize).ok()?;
+  let start_line = r.char_to_line(start_char_offset);
+  let start_column = start_char_offset - r.line_to_char(start_line);
+
+  let end_char_offset = r.try_byte_to_char(end as usize).ok()?;
+  let end_line = r.char_to_line(end_char_offset);
+  let end_column = end_char_offset - r.line_to_char(end_line);
+  if start_line == end_line {
+    Some(format!("{}:{start_column}-{end_column}", start_line + 1))
+  } else {
+    Some(format!(
+      "{}:{start_column}-{}:{end_column}",
+      start_line + 1,
+      end_line + 1
+    ))
   }
 }

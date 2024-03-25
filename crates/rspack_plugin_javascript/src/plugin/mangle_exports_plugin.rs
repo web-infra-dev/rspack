@@ -49,12 +49,8 @@ impl Plugin for MangleExportsPlugin {
   async fn optimize_code_generation(&self, compilation: &mut Compilation) -> Result<Option<()>> {
     // TODO: should bailout if compilation.moduleMemCache is enable, https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/MangleExportsPlugin.js#L160-L164
     // We don't do that cause we don't have this option
-    let mg = &mut compilation.module_graph;
-    let module_id_list = mg
-      .module_identifier_to_module
-      .keys()
-      .cloned()
-      .collect::<Vec<_>>();
+    let mg = compilation.get_module_graph_mut();
+    let module_id_list = mg.modules().keys().cloned().collect::<Vec<_>>();
     for identifier in module_id_list {
       let (Some(mgm), Some(module)) = (
         mg.module_graph_module_by_identifier(&identifier),
@@ -123,7 +119,7 @@ fn mangle_exports_info(
         .as_ref()
         .expect("the name of export_info inserted in exports_info can not be `None`")
         .clone();
-      let can_not_mangle = export_info.can_mangle_use != Some(true)
+      let can_not_mangle = export_info.can_mangle() != Some(true)
         || (name.len() == 1 && MANGLE_NAME_NORMAL_REG.is_match(name.as_str()))
         || (deterministic
           && name.len() == 2

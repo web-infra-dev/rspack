@@ -7,14 +7,17 @@ use std::str::FromStr;
 use bitflags::bitflags;
 use once_cell::sync::Lazy;
 use regex::Regex;
-use rspack_core::Filename;
+use rspack_core::FilenameTemplate;
 use rspack_core::{Chunk, ChunkGraph, Compilation, Module, ModuleGraph, PathData, SourceType};
 use rspack_error::error_bail;
+use rspack_hook::plugin;
 use rspack_identifier::IdentifierSet;
+use rspack_util::infallible::ResultInfallibleExt as _;
 
 static ESCAPE_LOCAL_IDENT_REGEX: Lazy<Regex> =
   Lazy::new(|| Regex::new(r#"[<>:"/\\|?*\.]"#).expect("Invalid regex"));
 
+#[plugin]
 #[derive(Debug)]
 pub struct CssPlugin {
   config: CssConfig,
@@ -28,11 +31,11 @@ pub struct ModulesConfig {
 }
 
 #[derive(Debug, Clone)]
-pub struct LocalIdentName(Filename);
+pub struct LocalIdentName(FilenameTemplate);
 
 impl LocalIdentName {
   pub fn render(&self, options: LocalIdentNameRenderOptions) -> String {
-    let mut s = self.0.render(options.path_data, None);
+    let mut s = self.0.render(options.path_data, None).always_ok();
     if let Some(local) = options.local {
       s = s.replace("[local]", local);
     }
@@ -43,7 +46,7 @@ impl LocalIdentName {
 
 impl From<String> for LocalIdentName {
   fn from(value: String) -> Self {
-    Self(Filename::from(value))
+    Self(value.into())
   }
 }
 
@@ -53,6 +56,7 @@ pub struct LocalIdentNameRenderOptions<'a> {
 }
 
 bitflags! {
+  #[derive(Debug, Clone, Copy)]
   struct LocalsConventionFlags: u8 {
     const ASIS = 1 << 0;
     const CAMELCASE = 1 << 1;
@@ -60,7 +64,7 @@ bitflags! {
   }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct LocalsConvention(LocalsConventionFlags);
 
 impl LocalsConvention {
@@ -101,11 +105,13 @@ impl Default for LocalsConvention {
 #[derive(Debug, Clone)]
 pub struct CssConfig {
   pub modules: ModulesConfig,
+  /// FIXME: Temp workaround, this option should be placed in `module.rules.*.parser`
+  pub named_exports: Option<bool>,
 }
 
 impl CssPlugin {
   pub fn new(config: CssConfig) -> Self {
-    Self { config }
+    Self::new_inner(config)
   }
 
   pub(crate) fn get_ordered_chunk_css_modules<'chunk_graph>(

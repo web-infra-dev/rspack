@@ -1,6 +1,7 @@
 use rspack_core::{clean_regexp_in_context_module, try_convert_str_to_context_mode};
 use rspack_core::{ContextMode, ContextOptions, DependencyCategory, SpanExt};
 use rspack_regex::{regexp_as_str, RspackRegex};
+use swc_core::common::Spanned;
 use swc_core::ecma::ast::CallExpr;
 
 use super::JavascriptParserPlugin;
@@ -13,7 +14,7 @@ pub struct RequireContextDependencyParserPlugin;
 const DEFAULT_REGEXP_STR: &str = r"^\.\/.*$";
 
 impl JavascriptParserPlugin for RequireContextDependencyParserPlugin {
-  fn call(&self, parser: &mut JavascriptParser, expr: &CallExpr) -> Option<bool> {
+  fn call(&self, parser: &mut JavascriptParser, expr: &CallExpr, _name: &str) -> Option<bool> {
     if expr
       .callee
       .as_expr()
@@ -90,6 +91,8 @@ impl JavascriptParserPlugin for RequireContextDependencyParserPlugin {
             request: request_expr.string().to_string(),
             namespace_object: rspack_core::ContextNameSpaceObject::Unset,
             chunk_name: None,
+            start: expr.span().real_lo(),
+            end: expr.span().real_hi(),
           },
           Some(expr.span.into()),
         )));

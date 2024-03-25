@@ -1,0 +1,608 @@
+import { ApiMeta } from '../../../components/ApiMeta';
+
+# Module
+
+Used to decide how to handle different types of modules in a project.
+
+- **Type:** `Object`
+- **Default:** `{}`
+
+## module.noParse
+
+- **Type:** `string | string[] | RegExp | RegExp[] | ((request: string) => boolean)`
+- **Default:** `undefined`
+
+Keep module mechanism of the matched modules as-is, such as `module.exports`, `require`, `import`.
+
+It's useful and can boost build performance when used to ignore libraries without external dependencies.
+
+Note: these modules will still be processed by configured loaders.
+
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    noParse: /typescript|watermark-dom/,
+  },
+};
+```
+
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    noParse: [require.resolve('typescript'), /watermark-dom/],
+  },
+};
+```
+
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    noParse: (request) => /typescript|watermark-dom/.test(request),
+  },
+};
+```
+
+## module.rules
+
+- **Type:** `Rule[]`
+- **Default:** `[]`
+
+An array of rules that match the module's requests when it is created. These rules can modify the creation behavior of the module. They can apply Loader, etc. to the module.
+
+### Rule
+
+- **Type:** `Rule`
+- **Default:** `{}`
+
+Rule defines the conditions for matching a module and the behavior of handling those modules.
+
+**Rule behavior**
+
+Defines the processing behavior of the corresponding matching module, e.g. :
+
+- Apply the list of Loader to these modules (`Rule.use`)
+- Apply the module's type (`Rule.type`)
+- Apply the module's resolve configuration (`Rule.resolve`)
+
+#### Condition
+
+- **Type:** `string | RegExp | Condition[] | LogicalConditions`
+
+Defines a module's match conditions, common matches are `resource`, `resourceQuery`, `include`, and `exclude`.
+
+Example: app.js imports `./image.png?inline#foo`
+
+- `resource` is `/path/to/image.png`, and will match against with `Rule.resource` Condition
+- `resourceQuery` is `?inline`, and will match against with `Rule.resourceQuery` Condition
+- `resourceFragment` is `#foo`, and will match against with `Rule.resourceFragment` Condition
+
+Condition represents the form of matching a given input, and it supports the following types:
+
+- `String`: Given an input, the match is successful when the input string satisfies startsWith. Note: You can think of it as `input.startsWith(condition)`.
+- `RegExp`: Given an input, the match is successful when the input string satisfies the regular expression. Note: You can think of it as `condition.test(input)`.
+- `Condition[]`: A list of conditions. At least one of the Conditions must match.
+- `LogicalConditions`: All Conditions must match.
+  - `{ and: Condition[] }`: All Conditions must match.
+  - `{ or: Condition[] }`: At least one of the Conditions must match.
+  - `{ not: Condition }`: All Conditions must NOT match.
+- `(value: string) => boolean`: If it's called with the input and return a truthy value, the match is succeeds.
+
+#### Nested Rule
+
+Nested Rule can be specified under the properties [`Rule.rules`](#rulerules) and [`Rule.oneOf`](#ruleoneof), These rules are evaluated only when the parent Rule condition matches. Each nested rule can contain its own conditions.
+
+The order of evaluation is as follows:
+
+1. The parent Rule
+2. [`Rule.rules`](#rulerules)
+3. [`Rule.oneOf`](#ruleoneof)
+
+### Rule.exclude
+
+- **Type:** [`Condition`](/config/module.html#condition)
+- **Default:** `undefined`
+
+Excludes all modules that match this condition and will match against the absolute path of the resource (without query and fragment). This option cannot be present together with `Rule.resource`.
+
+### Rule.include
+
+- **Type:** [`Condition`](/config/module.html#condition)
+- **Default:** `undefined`
+
+Matches all modules that match this condition against the absolute path of the resource (without query and fragment). This option cannot be present together with `Rule.resource`.
+
+### Rule.resource
+
+- **Type:** [`Condition`](/config/module.html#condition)
+- **Default:** `undefined`
+
+Matches all modules that match this resource, and will match against Resource (the absolute path without query and fragment). This option cannot be present together with `Rule.test`.
+
+### Rule.resourceQuery
+
+- **Type:** [`Condition`](/config/module.html#condition)
+- **Default:** `undefined`
+
+Matches all modules that match this resource against the Resource's query. Note: Containing `?`, when `Rule.resourceQuery` is `?raw`, it will match the resource request of `xxx?raw`
+
+### Rule.resourceFragment
+
+- **Type:** [`Condition`](/config/module.html#condition)
+- **Default:** `undefined`
+
+Matches all modules that match this resource against the Resource's fragment. Note: Containing `#`, when `Rule.resourceFragment` is `#abc`, it will match the resource request of `xxx#abc`
+
+### Rule.test
+
+- **Type:** [`Condition`](/config/module.html#condition)
+- **Default:** `undefined`
+
+Matches all modules that match this resource, and will match against Resource (the absolute path without query and fragment). This option cannot be present together with `Rule.resource`.
+
+### Rule.issuer
+
+- **Type:** [`Condition`](/config/module.html#condition)
+- **Default:** `undefined`
+
+Matches all modules that match this resource, and will match against Resource (the absolute path without query and fragment) of the module that issued the current module.
+
+### Rule.dependency
+
+- **Type:** [`Condition`](/config/module.html#condition)
+- **Default:** `undefined`
+
+Matches all modules that match this resource, and will match against the category of the dependency that introduced the current module, for example `esm` for `import` and `import()`, `cjs` for `require()`, `url` for `new URL()` and `url()`.
+
+### Rule.scheme
+
+- **Type:** [`Condition`](/config/module.html#condition)
+- **Default:** `undefined`
+
+Matches all modules that match this resource, and will match against the Resource's scheme.
+
+For example, you can treat the inline data uri resource as a separate resource with the following configuration:
+
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    rules: [
+      {
+        scheme: 'data',
+        type: 'asset/resource',
+      },
+    ],
+  },
+};
+```
+
+### Rule.mimetype
+
+- **Type:** [`Condition`](/config/module.html#condition)
+- **Default:** `undefined`
+
+Matches all modules that match this resource, and will match against the Resource's mimetype.
+
+### Rule.descriptionData
+
+- **Type:** `{ [k: string]: Condition }`
+- **Default:** `undefined`
+
+Matches all modules that match this resource, and will match against the data in the Resource's package.json.
+
+### Rule.loaders
+
+:::warning
+
+This option is deprecated, please use `Rule.use` instead
+
+:::
+
+### Rule.loader
+
+`Rule.loader` is a shortcut to `Rule.use: [ { loader } ]`. See [Rule.use](/config/module.html#ruleuse) for details.
+
+### Rule.options
+
+`Rule.options` is a shortcut to `Rule.use: [ { options } ]`. See [Rule.use](/config/module.html#ruleuse) for details.
+
+### Rule.parser
+
+- **Type:** `Object`
+- **Default:** `{}`
+
+Module's parser configuration
+
+#### Rule.parser.dataUrlCondition
+
+- **Type:** `object = { maxSize: number = 8096 }`
+- **Default:** `{}`
+
+If the current module size is less than or equal to `maxSize`, then the module will be Base64 encoded, otherwise a file will be created. This option can be used only for Asset Module scenarios.
+
+```ts title=rspack.config.js
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.png$/,
+        parser: {
+          dataUrlCondition: {
+            // Modules less than or equal to 4kb and ending in `.png` will be Base64 encoded
+            maxSize: 4 * 1024,
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+### Rule.generator
+
+- **Type:** `Object`
+- **Default:** `{}`
+
+Generator options for the module, e.g. for Asset Module you can specify the output filename.
+
+#### Rule.generator.filename
+
+- **Type:** `string`
+- **Default:** `undefined`
+
+Same as `output.assetModuleFilename`, but for specific rules. Overrides `output.assetModuleFilename` and only works for asset and asset/resource module types.
+
+```ts title=rspack.config.js
+module.exports = {
+  //...
+  output: {
+    assetModuleFilename: 'images/[hash][ext]',
+  },
+  module: {
+    rules: [
+      {
+        test: /\.png/,
+        type: 'asset/resource',
+      },
+      {
+        test: /\.html/,
+        type: 'asset/resource',
+        generator: {
+          filename: 'static/[hash][ext]',
+        },
+      },
+    ],
+  },
+};
+```
+
+#### Rule.generator.publicPath
+
+- **Type:** `string`
+- **Default:** `undefined`
+
+Override [`output.publicPath`](/en/config/output.html#outputpublicpath), only for modules with module type `'asset'` or `'asset/resource'`.
+
+```ts title=rspack.config.js
+module.exports = {
+  //...
+  output: {
+    publicPath: 'https://example.com/',
+  },
+  module: {
+    rules: [
+      {
+        test: /\.png/,
+        type: 'asset/resource',
+        generator: {
+          publicPath: 'https://cdn.example.com/',
+        },
+      },
+    ],
+  },
+};
+```
+
+#### Rule.generator.dataUrl
+
+- **Type:** `Object | (options: { content: string, filename: string }) => string`
+- **Default:** `{}`
+
+Only for modules with module type `'asset'` or `'asset/inline'`.
+
+```ts title=rspack.config.js
+module.exports = {
+  //...
+  module: {
+    rules: [
+      {
+        test: /\.png/,
+        type: 'asset/inline',
+        generator: {
+          dataUrl: {
+            encoding: 'base64',
+            mimetype: 'mimetype/png',
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+When used a a function, it executes for every module and must return a data URI string.
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  module: {
+    rules: [
+      {
+        test: /\.svg$/,
+        type: 'asset/inline',
+        generator: {
+          dataUrl: ({ content }) => {
+            const svgToMiniDataURI = require('mini-svg-data-uri');
+            return svgToMiniDataURI(content);
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+#### Rule.generator.dataUrl.encoding
+
+- **Type:** `false | 'base64'`
+- **Default:** `'base64'`
+
+When set to 'base64', module source will be encoded using Base64 algorithm. Setting encoding to false will disable encoding. Only for modules with module type `'asset'` or `'asset/inline'`.
+
+#### Rule.generator.dataUrl.mimetype
+
+- **Type:** `string`
+- **Default:** `require('mime-types').lookup(ext)`
+
+A mimetype for data URI. Resolves from module resource extension by default. Only for modules with module type `'asset'` or `'asset/inline'`.
+
+### Rule.sideEffects
+
+- **Type:** `boolean`
+
+Flag the module for side effects
+
+### Rule.type
+
+- **Type:** `'javascript/auto' | 'typescript' | 'css' | 'css/module' | 'css/auto' | 'json' | 'asset' | 'asset/source' | 'asset/resource' | 'asset/inline'`
+
+Used to mark the type of the matching module, which affects how the module is handled by Rspack's built-in processing. For example, when a module is marked as `'typescript'` then the module is processed using the TS parser/generator.
+
+- `'javascript/auto'`: JavaScript modules, supported module systems: CommonJS, ESM, no plans for AMD module support at this time.
+- `'javascript/esm'`：JavaScript modules, treated as ES Module.
+- `'javascript/dynamic'`：JavaScript modules, treated as Script.
+- `'typescript'`: TypeScript module (🚧 deprecated, checkout [experiments.rspackFuture.disableTransformByDefault](/config/experiments.html#experimentsrspackfuturedisabletransformbydefault) for more details)
+- `'css'`: CSS module
+- `'css/module'`: CSS modules module
+- `'css/auto'`: CSS modules module if filename matches `/\.module(s)?\.[^.]+$/`, otherwise CSS module
+- `'json'`: JSON data module
+- `'asset' | 'asset/source' | 'asset/resource' | 'asset/inline'`: See [Asset Module](/guide/asset-module)
+
+### Rule.use
+
+- **Type:**
+
+```ts
+export type RuleSetUse =
+  | RuleSetUseItem[]
+  | RuleSetUseItem
+  | ((ctx: RawFuncUseCtx) => RuleSetUseItem[]);
+export type RuleSetUseItem =
+  | { loader: string; options: Record<string, any> }
+  | string;
+export interface RawFuncUseCtx {
+  resource?: string;
+  realResource?: string;
+  resourceQuery?: string;
+  issuer?: string;
+}
+```
+
+An array to pass the Loader package name and its options. `string[]` e.g.: `use: ['svgr-loader']` is shorthand for `use: [ { loader: 'svgr-loader' } ]`.
+Loaders will be executed in right-to-left order.
+
+```ts title=rspack.config.js
+module.exports = {
+  //...
+  module: {
+    rules: [
+      {
+        //...
+        use: [
+          'svgr-loader',
+          {
+            loader: 'svgo-loader',
+            options: {
+              configFile: false,
+            },
+          },
+        ],
+      },
+    ],
+  },
+};
+```
+
+A function can also be used:
+
+```ts title=rspack.config.js
+module.exports = {
+  //...
+  module: {
+    rules: [
+      {
+        test: /\.svg$/,
+        type: 'asset',
+        use: (info) => ({
+          loader: 'svgo-loader',
+          options: {
+            plugins: [
+              {
+                cleanupIDs: { prefix: basename(info.resource) },
+              },
+            ],
+          },
+        }),
+      },
+    ],
+  },
+};
+```
+
+### Rule.resolve
+
+Set specific module resolve options based on the matching modules
+{
+// TODO: Add link to resolve
+}
+
+```ts title=rspack.config.js
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.css$/,
+        resolve: {
+          preferRelative: true,
+        },
+      },
+    ],
+  },
+};
+```
+
+### Rule.rules
+
+- **Type:** <code>[Rule](#rule)[]</code>
+- **Default:** `undefined`
+
+A kind of [Nested Rule](#nested-rule), an array of Rules that is also used when the parent Rule matches.
+
+### Rule.oneOf
+
+- **Type:** <code>[Rule](#rule)[]</code>
+- **Default:** `undefined`
+
+A kind of [Nested Rule](#nested-rule), an array of Rules from which only the first matching Rule is used when the parent Rule matches.
+
+## module.parser
+
+- **Type:** `Object`
+- **Default:** `{}`
+
+Configure all parsers' options in one place with `module.parser`.
+
+```ts title=rspack.config.js
+module.exports = {
+  module: {
+    parser: {
+      asset: {
+        // Parser options for asset modules
+        dataUrlCondition: {
+          maxSize: 8000,
+        },
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript
+
+Configure options for JavaScript parser.
+
+```ts title=rspack.config.js
+module.exports = {
+  module: {
+    parser: {
+      javascript: {
+        dynamicImportMode: 'lazy',
+        url: true,
+      },
+    },
+  },
+};
+```
+
+#### module.parser.javascript.dynamicImportMode
+
+Specifies global mode for dynamic import.
+
+- **Type:** `'lazy' | 'eager'`
+- **Default:** `'lazy'`
+
+#### module.parser.javascript.dynamicImportPrefetch
+
+<ApiMeta addedVersion="0.4.5" />
+
+Specifies global prefetch for dynamic import.
+
+- **Type:** `boolean | number`
+- **Default:** `false`
+
+#### module.parser.javascript.dynamicImportPreload
+
+<ApiMeta addedVersion="0.4.5" />
+
+Specifies global preload for dynamic import.
+
+- **Type:** `boolean | number`
+- **Default:** `false`
+
+#### module.parser.javascript.url
+
+<ApiMeta addedVersion="0.4.4" />
+
+Enable parsing of `new URL()` syntax.
+
+- **Type:** `true | false | 'relative'`
+- **Default:** `true`
+
+When use 'relative', rspack would generate relative URLs for `new URL()` syntax, i.e., there's no base URL included in the result URL:
+
+```html
+<!-- with 'relative' -->
+<img src="icon.svg" />
+
+<!-- without 'relative' -->
+<img src="file:///path/to/project/dist/icon.svg" />
+```
+
+## module.generator
+
+- **Type:** `Object`
+- **Default:** `{}`
+
+Configure all generators' options in one place with `module.generator`.
+
+```ts title=rspack.config.js
+module.exports = {
+  module: {
+    generator: {
+      asset: {
+        // Generator options for asset modules
+        publicPath: 'https://cdn.example.com/',
+      },
+      'asset/inline': {
+        // Generator options for asset/inline modules
+        dataUrl: {
+          encoding: false,
+        },
+      },
+      'asset/resource': {
+        // Generator options for asset/resource modules
+        filename: '[name]-[contenthash][ext]',
+      },
+    },
+  },
+};
+```

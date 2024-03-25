@@ -1,5 +1,5 @@
 use itertools::Itertools;
-use rspack_core::{ConstDependency, DependencyLocation, SpanExt};
+use rspack_core::{ConstDependency, SpanExt};
 use rustc_hash::FxHashSet;
 use swc_core::common::Spanned;
 use swc_core::ecma::ast::{BlockStmt, DoWhileStmt, ForHead, ForInStmt, ForOfStmt, Ident, IfStmt};
@@ -169,10 +169,6 @@ pub fn statement_if(scanner: &mut JavascriptParser, stmt: &IfStmt) -> Option<boo
       )
     };
 
-    scanner.ignored.insert(DependencyLocation::new(
-      branch_to_remove.span().real_lo(),
-      branch_to_remove.span().real_hi(),
-    ));
     scanner
       .presentational_dependencies
       .push(Box::new(ConstDependency::new(

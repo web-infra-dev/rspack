@@ -46,6 +46,10 @@ impl DependencyTemplate for JsonExportsDependency {
     _code_generatable_context: &mut TemplateContext,
   ) {
   }
+
+  fn dependency_id(&self) -> Option<DependencyId> {
+    Some(self.id)
+  }
 }
 
 fn get_exports_from_data(data: &JsonValue) -> Option<ExportsOfExportsSpec> {

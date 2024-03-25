@@ -33,9 +33,9 @@ export function getRspackMemoryAssets(
 		// @ts-expect-error
 		const filename = path.startsWith(publicPath)
 			? // @ts-expect-error
-			  path.slice(publicPath.length)
+				path.slice(publicPath.length)
 			: // @ts-expect-error
-			  path.slice(1);
+				path.slice(1);
 		const buffer =
 			compiler.getAsset(filename) ??
 			(() => {

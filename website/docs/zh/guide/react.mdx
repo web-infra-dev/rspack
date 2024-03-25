@@ -1,0 +1,192 @@
+import { Tabs, Tab } from '@theme';
+import { ApiMeta, Stability } from '../../../components/ApiMeta.tsx';
+
+# React
+
+## 如何使用
+
+Rspack 提供两种方案来支持 React：
+
+- **使用 Rsbuild**：Rsbuild 提供对 React 开箱即用的支持，能够快速创建一个 React 项目，详见 ["Rsbuild - React"](https://rsbuild.dev/zh/guide/framework/react)。
+- **手动配置**：你可以参考当前文档，手动添加 React 相关的配置。
+
+## JSX
+
+Rspack 内置了对 JSX 的支持，你可以直接在项目中的 .jsx 和 .tsx 文件中使用 JSX 语法。
+
+如果你需要在 .js 或者 .ts 文件中使用 JSX，则需要如下配置：
+
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        type: 'jsx',
+      },
+      {
+        test: /\.ts$/,
+        type: 'tsx',
+      },
+    ],
+  },
+};
+```
+
+## emotion
+
+Rspack 内置了对 emotion 的支持，你可以直接在项目中的 .jsx 和 .tsx 文件中使用 emotion 语法。通过如下配置使用 emotion 功能。
+
+```js title=rspack.config.js
+module.exports = {
+  builtins: {
+    emotion: true,
+    react: {
+      importSource: '@emotion/react',
+    },
+  },
+};
+```
+
+```js title=src/index.tsx
+import { css } from '@emotion/react';
+
+export function Button({ children }) {
+  return (
+    <button
+      css={css`
+        background: hotpink;
+        &:hover {
+          background: purple;
+        }
+      `}
+    >
+      {children}
+    </button>
+  );
+}
+```
+
+其他的 CSS-in-JS 方案，则可以通过配置 babel-loader 进行使用。
+
+## Fast Refresh
+
+目前 Rspack 中有两种开启 React Fast Refresh 的方式：
+
+### builtins.react.refresh
+
+<ApiMeta stability={Stability.Deprecated} />
+
+早期 Rspack 为了部分项目的开箱即用，在 `@rspack/dev-server` 和 `@rspack/core` 中内置了 React Fast Refresh 功能，这意味着如果你使用了 `@rspack/cli` 或 `@rspack/dev-server`，在 dev 模式下会默认开启 React Fast Refresh 功能，你可以直接在项目中使用。这提升了 React 项目使用 Rspack 时的易用性，但也导致了很多其他问题。
+
+这样做导致 Rspack 并不是真正意义上的框架无关，如果你在使用 Vue 等其他框架时，就需要手动通过 [builtins.react.refresh](config/builtins#builtinsreact) 来禁用 React Fast Refresh 功能，以防止为一些 Vue 模块注入 React Fast Refresh 相关的代码。
+
+我们意识到这一问题，希望通过 [experiments.rspackFuture.disableTransformByDefault](/config/experiments.html#disabletransformbydefault) 和 [@rspack/plugin-react-refresh](/guide/react.html#rspackplugin-react-refresh) 来帮助用户逐渐地迁移到更为正确的方式上来，即第二种方式。
+
+### @rspack/plugin-react-refresh
+
+<ApiMeta addedVersion={'0.3.5'} />
+
+:::warning
+`@rspack/plugin-react-refresh` 依赖于 [experiments.rspackFuture.disableTransformByDefault](/config/experiments.html#disabletransformbydefault)
+:::
+
+首先需要安装相关依赖：
+
+<Tabs values={[{ label: 'npm' }, { label: 'yarn' }, { label: 'pnpm' }]}>
+   <Tab>
+
+```sh
+npm install -D @rspack/plugin-react-refresh react-refresh
+```
+
+   </Tab>
+
+   <Tab>
+
+```sh
+yarn add -D @rspack/plugin-react-refresh react-refresh
+```
+
+   </Tab>
+
+   <Tab>
+
+```sh
+pnpm install -D @rspack/plugin-react-refresh react-refresh
+```
+
+   </Tab>
+</Tabs>
+
+[React Fast Refresh](https://reactnative.dev/docs/fast-refresh) 功能的开启主要分为两部分：代码注入和代码转换
+
+- 代码注入会注入 `react-refresh` 包中的一些代码，以及一些自定义的运行时代码，都已集成在 [@rspack/plugin-react-refresh](https://github.com/web-infra-dev/rspack/tree/main/packages/rspack-plugin-react-refresh) 插件中，可通过该插件注入
+- 代码转换可通过 loader 来完成，比如 `swc-loader` 的 [jsc.transform.react.refresh](https://swc.rs/docs/configuration/compilation#jsctransformreactrefresh) 或 `babel-loader` 的 [react-refresh/babel 插件](https://github.com/facebook/react/tree/main/packages/react-refresh)。
+
+```js title=rspack.config.js
+const ReactRefreshPlugin = require('@rspack/plugin-react-refresh');
+const isDev = process.env.NODE_ENV === 'development';
+
+module.exports = {
+  experiments: {
+    rspackFuture: {
+      disableTransformByDefault: true,
+    },
+  },
+  // ...
+  mode: isDev ? 'development' : 'production',
+  module: {
+    rules: [
+      {
+        test: /\.jsx$/,
+        use: {
+          loader: 'builtin:swc-loader',
+          options: {
+            jsc: {
+              parser: {
+                syntax: 'ecmascript',
+                jsx: true,
+              },
+              transform: {
+                react: {
+                  development: isDev,
+                  refresh: isDev,
+                },
+              },
+            },
+          },
+        },
+      },
+    ],
+  },
+  plugins: [isDev && new ReactRefreshPlugin()].filter(Boolean),
+};
+```
+
+相较于上一种方式，该方式将 React Fast Refresh 代码注入逻辑和转换逻辑解耦，代码注入逻辑统一通过 `@rspack/plugin-react-refresh` 插件完成，代码转换通过 loader 完成。这意味着该插件可以配合 `builtin:swc-loader`、`swc-loader` 或 `babel-loader` 使用：
+
+- 配合 `builtin:swc-loader` 使用方式可参考：[examples/react-refresh](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/react-refresh/rspack.config.js)，使用 `swc-loader` 只需将 `builtin:swc-loader` 换为 `swc-loader` 即可。
+- 配合 `babel-loader` 的使用方式可参考：[examples/react-refresh-babel-loader](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/react-refresh-babel-loader/rspack.config.js)
+
+## 集成 SVGR
+
+[SVGR](https://react-svgr.com/) 是一个用于将 SVG 转换为 React 组件的工具，
+
+在 Rspack 中使用 SVGR 的方式与 webpack 中完全一致：
+
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.svg$/i,
+        issuer: /\.[jt]sx?$/,
+        use: ['@svgr/webpack'],
+      },
+    ],
+  },
+};
+```
+
+对于 SVGR 的详细用法，请参考 [SVGR 文档 - Webpack](https://react-svgr.com/docs/webpack/)。

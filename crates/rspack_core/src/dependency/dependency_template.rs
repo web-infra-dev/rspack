@@ -4,7 +4,8 @@ use dyn_clone::{clone_trait_object, DynClone};
 use rspack_sources::{BoxSource, ReplaceSource};
 
 use crate::{
-  Compilation, ConcatenationScope, Module, ModuleInitFragments, RuntimeGlobals, RuntimeSpec,
+  AsDependency, Compilation, ConcatenationScope, DependencyId, Module, ModuleInitFragments,
+  RuntimeGlobals, RuntimeSpec,
 };
 
 pub struct TemplateContext<'a, 'b, 'c> {
@@ -21,12 +22,14 @@ pub type TemplateReplaceSource = ReplaceSource<BoxSource>;
 clone_trait_object!(DependencyTemplate);
 
 // Align with https://github.com/webpack/webpack/blob/671ac29d462e75a10c3fdfc785a4c153e41e749e/lib/DependencyTemplate.js
-pub trait DependencyTemplate: Debug + DynClone + Sync + Send {
+pub trait DependencyTemplate: Debug + DynClone + Sync + Send + AsDependency {
   fn apply(
     &self,
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   );
+
+  fn dependency_id(&self) -> Option<DependencyId>;
 }
 
 pub type BoxDependencyTemplate = Box<dyn DependencyTemplate>;

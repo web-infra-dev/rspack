@@ -15,7 +15,10 @@ it("should run", function () {});
 it("should export module library", function () {
 	const __filename = url.fileURLToPath(import.meta.url);
 	const source = fs.readFileSync(
-		path.join(path.dirname(__filename), "dist/main.js"),
+		path.join(
+			__filename,
+			"../../../../js/ConfigTestCases/library/esm-external/bundle0.mjs"
+		),
 		"utf-8"
 	);
 	const createRequire = "__WEBPACK_EXTERNAL_createRequire";

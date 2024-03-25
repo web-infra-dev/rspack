@@ -29,7 +29,7 @@ impl RuntimeModule for NormalRuntimeModule {
     self.identifier
   }
 
-  fn generate(&self, _compilation: &Compilation) -> BoxSource {
-    RawSource::from(self.sources).boxed()
+  fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+    Ok(RawSource::from(self.sources).boxed())
   }
 }

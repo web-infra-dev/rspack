@@ -40,23 +40,28 @@ export * from "./AsyncWebAssemblyModulesPlugin";
 export * from "./AssetModulesPlugin";
 export * from "./SourceMapDevToolPlugin";
 export * from "./EvalSourceMapDevToolPlugin";
+export * from "./EvalDevToolModulePlugin";
 export * from "./SideEffectsFlagPlugin";
 export * from "./FlagDependencyExportsPlugin";
 export * from "./FlagDependencyUsagePlugin";
 export * from "./MangleExportsPlugin";
-export * from "./BundlerInfoPlugin";
+export * from "./BundlerInfoRspackPlugin";
+export * from "./ModuleConcatenationPlugin";
 
 export * from "./HtmlRspackPlugin";
 export * from "./CopyRspackPlugin";
 export * from "./SwcJsMinimizerPlugin";
 export * from "./SwcCssMinimizerPlugin";
 
+export * from "./JsLoaderRspackPlugin";
+
 ///// DEPRECATED /////
 import { RawBuiltins, RawCssModulesConfig } from "@rspack/binding";
-import { Compiler, RspackOptionsNormalized } from "..";
+import { RspackOptionsNormalized } from "..";
 
 type BuiltinsCssConfig = {
 	modules?: Partial<RawCssModulesConfig>;
+	namedExports?: boolean;
 };
 
 function resolveTreeShaking(
@@ -66,8 +71,8 @@ function resolveTreeShaking(
 	return treeShaking !== undefined
 		? treeShaking.toString()
 		: production
-		? "true"
-		: "false";
+			? "true"
+			: "false";
 }
 
 export interface Builtins {
@@ -77,12 +82,9 @@ export interface Builtins {
 
 export function deprecated_resolveBuiltins(
 	builtins: Builtins,
-	options: RspackOptionsNormalized,
-	compiler: Compiler
+	options: RspackOptionsNormalized
 ): RawBuiltins {
-	const contextPath = options.context!;
 	const production = options.mode === "production" || !options.mode;
-	const isRoot = !compiler.isChild();
 
 	return {
 		// TODO: discuss with webpack, this should move to css generator options
@@ -95,8 +97,9 @@ export function deprecated_resolveBuiltins(
 							: "[path][name][ext]__[local]",
 						exportsOnly: false,
 						...builtins.css?.modules
-					}
-			  }
+					},
+					namedExports: builtins.css?.namedExports
+				}
 			: undefined,
 		treeShaking: resolveTreeShaking(builtins.treeShaking, production)
 	};

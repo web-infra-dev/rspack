@@ -9,14 +9,13 @@ mod pure_expression_dependency;
 mod url;
 mod worker;
 
-pub use commonjs::*;
-pub use context::*;
-pub use esm::*;
-pub use export_info_api_dep::*;
-pub use hmr::*;
-pub use is_included_dependency::*;
-pub use module_argument_dependency::*;
-pub use pure_expression_dependency::*;
-pub use worker::*;
-
+pub use self::commonjs::*;
+pub use self::context::*;
+pub use self::esm::*;
+pub use self::export_info_api_dep::*;
+pub use self::hmr::*;
+pub use self::is_included_dependency::*;
+pub use self::module_argument_dependency::*;
+pub use self::pure_expression_dependency::*;
 pub use self::url::*;
+pub use self::worker::*;

@@ -13,14 +13,9 @@ impl JavascriptParserPlugin for URLPlugin {
     parser: &mut crate::visitors::JavascriptParser,
     expr: &swc_core::ecma::ast::NewExpr,
   ) -> Option<bool> {
-    if let Some(args) = &expr.args
-      && parser.worker_syntax_list.match_new_worker(expr)
-    {
-      for arg in args.iter().skip(1) {
-        parser.walk_expression(&arg.expr);
-      }
+    if parser.worker_syntax_list.match_new_worker(expr) {
       // skip `new Worker(new Url,)`
-      Some(true)
+      None
     } else if let Some((start, end, request)) = rspack_core::needs_refactor::match_new_url(expr) {
       parser.dependencies.push(Box::new(URLDependency::new(
         start,

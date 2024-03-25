@@ -1,7 +1,5 @@
 use napi_derive::napi;
 
-use super::JsCompatSource;
-
 #[napi(object)]
 pub struct JsAssetInfoRelated {
   pub source_map: Option<String>,
@@ -62,7 +60,6 @@ impl From<JsAssetInfo> for rspack_core::AssetInfo {
 #[napi(object)]
 pub struct JsAsset {
   pub name: String,
-  pub source: Option<JsCompatSource>,
   pub info: JsAssetInfo,
 }
 
@@ -95,14 +92,4 @@ pub struct JsAssetEmittedArgs {
   pub filename: String,
   pub output_path: String,
   pub target_path: String,
-}
-
-impl From<&rspack_core::AssetEmittedArgs<'_>> for JsAssetEmittedArgs {
-  fn from(args: &rspack_core::AssetEmittedArgs) -> Self {
-    Self {
-      filename: args.filename.to_string(),
-      output_path: args.output_path.to_string_lossy().to_string(),
-      target_path: args.target_path.to_string_lossy().to_string(),
-    }
-  }
 }

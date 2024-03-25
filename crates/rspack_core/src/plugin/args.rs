@@ -1,5 +1,5 @@
 use std::fmt::Debug;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use rspack_error::Diagnostic;
@@ -20,12 +20,10 @@ pub struct ProcessAssetsArgs<'me> {
 }
 
 #[derive(Debug)]
-pub struct AssetEmittedArgs<'me> {
-  pub filename: &'me str,
+pub struct AssetEmittedInfo {
   pub source: BoxSource,
-  pub output_path: &'me Path,
-  pub compilation: &'me Compilation,
-  pub target_path: &'me Path,
+  pub output_path: PathBuf,
+  pub target_path: PathBuf,
 }
 
 #[derive(Debug)]
@@ -82,6 +80,13 @@ pub struct NormalModuleCreateData<'a> {
   pub diagnostics: &'a mut Vec<Diagnostic>,
 }
 
+#[derive(Debug)]
+pub struct NormalModuleAfterResolveCreateData {
+  pub request: String,
+  pub user_request: String,
+  pub resource: ResourceData,
+}
+
 #[derive(Debug, Clone)]
 pub struct NormalModuleBeforeResolveArgs {
   pub request: String,
@@ -96,6 +101,7 @@ pub struct NormalModuleAfterResolveArgs<'a> {
   pub missing_dependencies: &'a HashSet<PathBuf>,
   pub factory_meta: &'a FactoryMeta,
   pub diagnostics: &'a mut Vec<Diagnostic>,
+  pub create_data: Option<NormalModuleAfterResolveCreateData>,
 }
 
 #[derive(Debug)]
@@ -127,16 +133,6 @@ pub struct OptimizeChunksArgs<'me> {
 #[derive(Debug)]
 pub struct DoneArgs<'s, 'c: 's> {
   pub stats: &'s mut Stats<'c>,
-}
-
-#[derive(Debug)]
-pub struct CompilationArgs<'c> {
-  pub compilation: &'c mut Compilation,
-}
-
-#[derive(Debug)]
-pub struct ThisCompilationArgs<'c> {
-  pub this_compilation: &'c mut Compilation,
 }
 
 #[derive(Debug)]
@@ -173,12 +169,6 @@ pub struct RenderChunkArgs<'a> {
   pub compilation: &'a Compilation,
   pub chunk_ukey: &'a ChunkUkey,
   pub module_source: BoxSource,
-}
-
-#[derive(Debug)]
-pub struct ChunkAssetArgs<'a> {
-  pub chunk: &'a Chunk,
-  pub filename: &'a str,
 }
 
 impl<'me> RenderChunkArgs<'me> {
@@ -235,6 +225,7 @@ impl<'me> JsChunkHashArgs<'me> {
   }
 }
 
+#[derive(Debug)]
 pub struct CompilationParams {
   pub normal_module_factory: Arc<NormalModuleFactory>,
   pub context_module_factory: Arc<ContextModuleFactory>,

@@ -1,0 +1,119 @@
+import compare from '../../public/compare.png';
+import rspackAudio from '../../public/rspack.mp3';
+
+<audio id="rspack-audio">
+  <source src={rspackAudio} type="audio/mpeg"></source>
+</audio>
+
+# Introduction
+
+<div>
+  <span>Rspack (pronounced as `/'ɑrespæk/`, </span>
+  <button
+    style={{
+      border: 'none',
+      padding: '3px',
+      verticalAlign: 'middle',
+      display: 'inline',
+    }}
+    id="play-rspack-audio"
+    onClick={() => {
+      document.getElementById('rspack-audio').play();
+    }}
+  >
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="16"
+      height="16"
+      viewBox="0 0 32 32"
+    >
+      <path
+        fill="currentColor"
+        d="m27.16 8.08l-1.53 1.29a10 10 0 0 1-.29 13.23l1.47 1.4a12 12 0 0 0 .35-15.88Z"
+      />
+      <path
+        fill="currentColor"
+        d="M21.58 12a6 6 0 0 1-.18 7.94l1.47 1.36a8 8 0 0 0 .23-10.59zM18 30a1 1 0 0 1-.71-.3L9.67 22H3a1 1 0 0 1-1-1V11a1 1 0 0 1 1-1h6.67l7.62-7.7a1 1 0 0 1 1.41 0a1 1 0 0 1 .3.7v26a1 1 0 0 1-1 1zM4 20h6.08a1 1 0 0 1 .71.3L17 26.57V5.43l-6.21 6.27a1 1 0 0 1-.71.3H4z"
+      />
+    </svg>
+  </button>
+  <p style={{ display: 'inline', lineHeight: '1.75rem' }}>
+    <span>) is a high performance Rust-based</span>
+    <span>JavaScript bundler that offers strong</span>
+    <span>interoperability with the webpack ecosystem,</span>
+    <span>enabling faster development cycles</span>
+    <span>and efficient collaboration between the two tools.</span>
+  </p>
+</div>
+
+## Why Rspack?
+
+Rspack was initially created to solve performance problems encountered at ByteDance, a tech company that maintains many large monolithic app projects with complex bundling requirements. Production build times had grown to ten minutes or even half an hour in some cases, and cold start times could exceed several minutes. After experimenting with many bundlers and optimization ideas, a common set of requirements emerged:
+
+- **Dev mode startup performance.** `npm run dev` is a command that developers may invoke many times per hour. Engineering productivity suffers if startup time exceeds 10-15 seconds.
+- **Fast builds.** `npm run build` is used in CI/CD pipelines and directly impacts merging productivity and application delivery time. Large applications may spend 20-30 minutes running these pipelines, and bundling time is often a major contributor.
+- **Flexible configuration.** From experimenting with various popular bundlers, we found that one-size-fits-all configurations encountered many problems when trying to accommodate real world projects. A major advantage of webpack is its flexibility and ease of accommodating customized requirements for each project. This in turn may pose steep migration costs for legacy projects that try to migrate away from Webpack.
+- **Production optimization capabilities.** All of the existing bundling solutions also had various limitations when optimizing for a production environment, such as insufficiently fine-grained package splitting, etc. Rspack was an opportunity to rethink these optimizations from the ground up, leveraging Rust-specific features such as multithreading.
+
+## Current status of Rspack
+
+Rspack has been under continuous development since April 2022, and was launched as open source in March 2023. Rspack has finished implementing most important features of webpack and these features can meet the needs of most projects. Some ByteDance internal projects have already achieved a 5-10 times improvement moving from Webpack to Rspack, and there's still room for future optimizations.
+
+Rspack is compatible with webpack's configuration schema and loader architecture. You can seamlessly use familiar loaders such as `babel-loader`, `less-loader`, `sass-loader`, `vue-loader`, etc.
+
+Currently, Rspack's cache support is relatively simple, only supporting memory-level caching. In the future, we will build stronger cache capabilities, including migratable persistent caching, which will bring greater imagination space, such as reusing Rspack's cloud cache on different machines in monorepos, to improve the cache hit rate of large projects.
+
+## The future of Rspack
+
+Although Rspack already meets the needs of many projects, there is still a big gap to reach the full capabilities of webpack. Prioritization will be based on community feedback, so please tell us about your requirements!
+
+### Collaboration with community partners
+
+We are very willing to provide support to framework teams and toolchains within the community to unleash the true performance advantages of Rspack. If your framework or toolchain has a demand for high-performance build engines, let us know!
+
+### Enhancing plugin capabilities
+
+Rspack already implements the basic `Loader` interface and a small number of webpack plugin APIs. Although our goal is not to achieve 100% compatibility for plugin APIs, we will try our best to implement the mainstream requirements based on community feedback. At the same time, we are also exploring higher-performance plugin communication solutions to reduce the cost of plugin communication, thereby ensuring more plugin APIs can be implemented.
+
+### Continuously improving performance
+
+Performance is the core selling point and focus of Rspack development. In the future we'll explore higher-performance concurrent/multi-core-friendly algorithms, higher-performance caching solutions, higher-performance plugin communication solutions, etc.
+
+### Expanding the test suite
+
+Today Rspack is primarily tested using a subset of webpack's test cases. In the future, we'll cover more of these tests, while also expanding the test suite and including community projects to ensure compatibility across Rspack releases.
+
+## Compared with webpack
+
+[Webpack](https://webpack.js.org/) is perhaps the most mature modern bundler, with an active ecosystem, flexible configuration, and rich features.
+
+- **Rust language efficiency:** Webpack's competitors frequently challenge it based on performance, especially for larger inputs. Rspack approaches this using the Rust platform, which was specifically designed to prioritize performance, topping benchmarks for both speed and memory management. Rust also provides many compiler safeguards to avoid common pitfalls of other native languages such as C++.
+
+- **Highly parallelized architecture:** Webpack is limited by JavaScript's weak support for multithreading. By contrast, Rspack's native code takes full advantage of modern multi-core CPUs.
+
+- **Built-in implementations of essential bundling features:** webpack's hook system famously enables a vast landscape of loaders and plugins contributed by the community. Unfortunately these third-party packages can frequently lead to performance bottlenecks, perhaps because the authors did not have deep knowledge of webpack internals, or simply because the hook system by nature limits interaction of algorithms. Rspack provides built-in implementations of key bundling features to improve performance.
+
+- **Optimized Hot Module Replacement (HMR):** No matter how large your project is, ensuring a great experience for HMR places even steeper demands for build times than ordinary bundling. Rspack incorporates a specialized incremental compilation strategy to address this requirement.
+
+## Compared with Vite
+
+[Vite](https://vitejs.dev/) offers a great developer experience, but its reliance on [Rollup](https://rollupjs.org/) for production builds faces similar performance costs as other JavaScript-based algorithms. The same tradeoffs of webpack versus Rollup also apply, for example flexibility of the [optimization.splitChunks](/config/optimization#optimizationsplitchunks) feature.
+
+## Compared with esbuild
+
+[esbuild](https://esbuild.github.io/) achieves very good performance by implementing nearly all operations in Golang except for some JavaScript plugins. However, esbuild's feature set is not as complete as webpack, for example with respect to JavaScript Hot Module Replacement (HMR) and incremental compilation, and also the [optimization.splitChunks](/config/optimization#optimizationsplitchunks) feature.
+
+## Compared with Turbopack
+
+[Turbopack](https://turbo.build/) is implemented in Rust like Rspack, but Turbopack started over with a redesigned architecture and configuration. This brings some benefits, but presents a steeper migration cost for projects that rely on webpack and its extensive ecosystem.
+
+## Compared with rollup
+
+Rspack and rollup are both bundling tools, but they focus on different areas. Rollup is more suitable for bundling libraries, while Rspack is more suitable for bundling applications. Therefore, Rspack has optimized many features for bundling applications, such as HMR and Bundle splitting. Rollup produces ESM outputs that are more friendly to libraries than Rspack. There are also many tools in the community that encapsulate rollup to some extent and provide more friendly support for bundling applications, such as vite and wmr. Currently, Rspack has better production build performance than rollup.
+
+## Try it
+
+We've prepared two online demos to see how fast the Rspack is:
+
+- [Rspack with React](https://codesandbox.io/p/github/modern-js-dev/rspack-demo/main?workspace=%257B%2522activeFileId%2522%253Anull%252C%2522openFiles%2522%253A%255B%255D%252C%2522sidebarPanel%2522%253A%2522EXPLORER%2522%252C%2522gitSidebarPanel%2522%253A%2522COMMIT%2522%252C%2522spaces%2522%253A%257B%2522clehvnfj8000x3b6ifm9yoyfi%2522%253A%257B%2522key%2522%253A%2522clehvnfj8000x3b6ifm9yoyfi%2522%252C%2522name%2522%253A%2522Terminal%2522%252C%2522devtools%2522%253A%255B%257B%2522type%2522%253A%2522PREVIEW%2522%252C%2522taskId%2522%253A%2522dev-app%2522%252C%2522port%2522%253A8080%252C%2522key%2522%253A%2522clehw4thl005l3b6iwrbsllbd%2522%252C%2522isMinimized%2522%253Afalse%257D%252C%257B%2522type%2522%253A%2522TASK_LOG%2522%252C%2522taskId%2522%253A%2522dev-app%2522%252C%2522key%2522%253A%2522clehw4rpt002h3b6imd77t1vz%2522%252C%2522isMinimized%2522%253Afalse%257D%255D%257D%257D%252C%2522currentSpace%2522%253A%2522clehvnfj8000x3b6ifm9yoyfi%2522%252C%2522spacesOrder%2522%253A%255B%2522clehvnfj8000x3b6ifm9yoyfi%2522%255D%252C%2522hideCodeEditor%2522%253Afalse%257D)
+- [Rspack with Modern.js](https://codesandbox.io/p/github/modern-js-dev/with-rspack-demo/main?file=%2FREADME.md&workspace=%257B%2522activeFileId%2522%253A%2522cle400sfy0006fuhi4yla8e6j%2522%252C%2522openFiles%2522%253A%255B%2522%252FREADME.md%2522%252C%2522%252Fmodern.config.ts%2522%252C%2522%252Fpackage.json%2522%252C%2522%252Ftsconfig.json%2522%255D%252C%2522sidebarPanel%2522%253A%2522EXPLORER%2522%252C%2522gitSidebarPanel%2522%253A%2522COMMIT%2522%252C%2522spaces%2522%253A%257B%2522cle6q3z3400eh3b6iky90u8cb%2522%253A%257B%2522key%2522%253A%2522cle6q3z3400eh3b6iky90u8cb%2522%252C%2522devtools%2522%253A%255B%257B%2522key%2522%253A%2522cleqwkxth00113b6jwyaht93y%2522%252C%2522type%2522%253A%2522PROJECT_SETUP%2522%252C%2522isMinimized%2522%253Afalse%257D%252C%257B%2522type%2522%253A%2522PREVIEW%2522%252C%2522taskId%2522%253A%2522dev-app%2522%252C%2522port%2522%253A8080%252C%2522key%2522%253A%2522cleqwtp2i01o43b6jwfwowr5h%2522%252C%2522isMinimized%2522%253Afalse%257D%252C%257B%2522type%2522%253A%2522TASK_LOG%2522%252C%2522taskId%2522%253A%2522dev-app%2522%252C%2522key%2522%253A%2522cleqwl8xm00bt3b6jt9kd581g%2522%252C%2522isMinimized%2522%253Afalse%257D%255D%252C%2522name%2522%253A%2522Terminal%2522%257D%252C%2522cle85ou7c00da3b6ibg8wefu4%2522%253A%257B%2522key%2522%253A%2522cle85ou7c00da3b6ibg8wefu4%2522%252C%2522devtools%2522%253A%255B%255D%252C%2522name%2522%253A%2522install-dependencies%2522%257D%252C%2522cle86g1sr013h3b6jw0fkvn1p%2522%253A%257B%2522key%2522%253A%2522cle86g1sr013h3b6jw0fkvn1p%2522%252C%2522devtools%2522%253A%255B%257B%2522type%2522%253A%2522TERMINAL%2522%252C%2522shellId%2522%253A%2522cleqwrvj80008g2hih7uvhv6e%2522%252C%2522key%2522%253A%2522cleqwrv3g01c93b6jaofylxz6%2522%252C%2522isMinimized%2522%253Afalse%257D%255D%252C%2522name%2522%253A%2522Terminal%2522%257D%257D%252C%2522currentSpace%2522%253A%2522cle6q3z3400eh3b6iky90u8cb%2522%252C%2522spacesOrder%2522%253A%255B%2522cle6q3z3400eh3b6iky90u8cb%2522%252C%2522cle85ou7c00da3b6ibg8wefu4%2522%252C%2522cle86g1sr013h3b6jw0fkvn1p%2522%255D%252C%2522hideCodeEditor%2522%253Afalse%257D)

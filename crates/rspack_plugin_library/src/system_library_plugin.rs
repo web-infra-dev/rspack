@@ -94,7 +94,7 @@ impl Plugin for SystemLibraryPlugin {
       .iter()
       .filter_map(|identifier| {
         compilation
-          .module_graph
+          .get_module_graph()
           .module_by_identifier(identifier)
           .and_then(|module| module.as_external_module())
           .and_then(|m| (m.get_external_type() == "system").then_some(m))

@@ -1,0 +1,247 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`basic serve usage should log an error on unknown flag: stderr 1`] = `
+"[webpack-cli] Error: Unknown option '--unknown-flag'
+[webpack-cli] Run 'webpack --help' to see available commands and options"
+`;
+
+exports[`basic serve usage should log an error on unknown flag: stdout 1`] = `""`;
+
+exports[`basic serve usage should log error on using '--watch' flag with serve: stderr 1`] = `
+"[webpack-cli] No need to use the 'serve' command together with '{ watch: true | false }' or '--watch'/'--no-watch' configuration, it does not make sense.
+<i> [webpack-dev-server] Project is running at:
+<i> [webpack-dev-server] Loopback: http://localhost:<port>/
+<i> [webpack-dev-server] On Your Network (IPv4): http://<network-ip-v4>:<port>/
+<i> [webpack-dev-server] On Your Network (IPv6): http://[<network-ip-v6>]:<port>/
+<i> [webpack-dev-server] Content not from webpack is served from '<cwd>/test/serve/basic/public' directory"
+`;
+
+exports[`basic serve usage should log warning on using '-w' alias with serve: stderr 1`] = `
+"[webpack-cli] No need to use the 'serve' command together with '{ watch: true | false }' or '--watch'/'--no-watch' configuration, it does not make sense.
+<i> [webpack-dev-server] Project is running at:
+<i> [webpack-dev-server] Loopback: http://localhost:<port>/
+<i> [webpack-dev-server] On Your Network (IPv4): http://<network-ip-v4>:<port>/
+<i> [webpack-dev-server] On Your Network (IPv6): http://[<network-ip-v6>]:<port>/
+<i> [webpack-dev-server] Content not from webpack is served from '<cwd>/test/serve/basic/public' directory"
+`;
+
+exports[`basic serve usage should respect the "publicPath" option from configuration (from the "devServer" options): stderr 1`] = `
+"<i> [webpack-dev-server] Project is running at:
+<i> [webpack-dev-server] Loopback: http://localhost:<port>/
+<i> [webpack-dev-server] On Your Network (IPv4): http://<network-ip-v4>:<port>/
+<i> [webpack-dev-server] On Your Network (IPv6): http://[<network-ip-v6>]:<port>/
+<i> [webpack-dev-server] Content not from webpack is served from '<cwd>/test/serve/basic/public' directory"
+`;
+
+exports[`basic serve usage should respect the "publicPath" option from configuration using multi compiler mode (from the "devServer" options): stderr 1`] = `
+"<i> [webpack-dev-server] Project is running at:
+<i> [webpack-dev-server] Loopback: http://localhost:<port>/
+<i> [webpack-dev-server] On Your Network (IPv4): http://<network-ip-v4>:<port>/
+<i> [webpack-dev-server] On Your Network (IPv6): http://[<network-ip-v6>]:<port>/
+<i> [webpack-dev-server] Content not from webpack is served from '<cwd>/test/serve/basic/public' directory"
+`;
+
+exports[`basic serve usage should respect the "publicPath" option from configuration using multi compiler mode: stderr 1`] = `
+"<i> [webpack-dev-server] Project is running at:
+<i> [webpack-dev-server] Loopback: http://localhost:<port>/
+<i> [webpack-dev-server] On Your Network (IPv4): http://<network-ip-v4>:<port>/
+<i> [webpack-dev-server] On Your Network (IPv6): http://[<network-ip-v6>]:<port>/
+<i> [webpack-dev-server] Content not from webpack is served from '<cwd>/test/serve/basic/public' directory"
+`;
+
+exports[`basic serve usage should respect the "publicPath" option from configuration: stderr 1`] = `
+"<i> [webpack-dev-server] Project is running at:
+<i> [webpack-dev-server] Loopback: http://localhost:<port>/
+<i> [webpack-dev-server] On Your Network (IPv4): http://<network-ip-v4>:<port>/
+<i> [webpack-dev-server] On Your Network (IPv6): http://[<network-ip-v6>]:<port>/
+<i> [webpack-dev-server] Content not from webpack is served from '<cwd>/test/serve/basic/public' directory"
+`;
+
+exports[`basic serve usage should throw error when same ports in multicompiler: stderr 1`] = `
+"<i> [webpack-dev-server] Project is running at:
+<i> [webpack-dev-server] Loopback: http://localhost:<port>/
+<i> [webpack-dev-server] On Your Network (IPv4): http://<network-ip-v4>:<port>/
+<i> [webpack-dev-server] On Your Network (IPv6): http://[<network-ip-v6>]:<port>/
+<i> [webpack-dev-server] Content not from webpack is served from '<cwd>/test/serve/basic/public' directory
+[webpack-cli] Error: Unique ports must be specified for each devServer option in your webpack configuration. Alternatively, run only 1 devServer config using the --config-name flag to specify your desired config.
+    at stack"
+`;
+
+exports[`basic serve usage should throw error when same ports in multicompiler: stdout 1`] = `""`;
+
+exports[`basic serve usage should work and log warning on the 'watch' option in a configuration: stderr 1`] = `
+"[webpack-cli] No need to use the 'serve' command together with '{ watch: true | false }' or '--watch'/'--no-watch' configuration, it does not make sense.
+<i> [webpack-dev-server] Project is running at:
+<i> [webpack-dev-server] Loopback: http://localhost:<port>/
+<i> [webpack-dev-server] On Your Network (IPv4): http://<network-ip-v4>:<port>/
+<i> [webpack-dev-server] On Your Network (IPv6): http://[<network-ip-v6>]:<port>/
+<i> [webpack-dev-server] Content not from webpack is served from '<cwd>/test/serve/basic/public' directory"
+`;
+
+exports[`basic serve usage should work in multi compiler mode: stderr 1`] = `
+"<i> [webpack-dev-server] Project is running at:
+<i> [webpack-dev-server] Loopback: http://localhost:<port>/
+<i> [webpack-dev-server] On Your Network (IPv4): http://<network-ip-v4>:<port>/
+<i> [webpack-dev-server] On Your Network (IPv6): http://[<network-ip-v6>]:<port>/
+<i> [webpack-dev-server] Content not from webpack is served from '<cwd>/test/serve/basic/public' directory"
+`;
+
+exports[`basic serve usage should work with "--hot" and "--port" options: stderr 1`] = `
+"<i> [webpack-dev-server] Project is running at:
+<i> [webpack-dev-server] Loopback: http://localhost:<port>/
+<i> [webpack-dev-server] On Your Network (IPv4): http://<network-ip-v4>:<port>/
+<i> [webpack-dev-server] On Your Network (IPv6): http://[<network-ip-v6>]:<port>/
+<i> [webpack-dev-server] Content not from webpack is served from '<cwd>/test/serve/basic/public' directory"
+`;
+
+exports[`basic serve usage should work with entries syntax: stderr 1`] = `
+"<i> [webpack-dev-server] Project is running at:
+<i> [webpack-dev-server] Loopback: http://localhost:<port>/
+<i> [webpack-dev-server] On Your Network (IPv4): http://<network-ip-v4>:<port>/
+<i> [webpack-dev-server] On Your Network (IPv6): http://[<network-ip-v6>]:<port>/
+<i> [webpack-dev-server] Content not from webpack is served from '<cwd>/test/serve/basic/public' directory"
+`;
+
+exports[`basic serve usage should work with the "--client-log-level" option: stderr 1`] = `
+"<i> [webpack-dev-server] Project is running at:
+<i> [webpack-dev-server] Loopback: http://localhost:<port>/
+<i> [webpack-dev-server] On Your Network (IPv4): http://<network-ip-v4>:<port>/
+<i> [webpack-dev-server] On Your Network (IPv6): http://[<network-ip-v6>]:<port>/
+<i> [webpack-dev-server] Content not from webpack is served from '<cwd>/test/serve/basic/public' directory"
+`;
+
+exports[`basic serve usage should work with the "--config" and "--env" options and expose dev server options: stderr 1`] = `
+"<i> [webpack-dev-server] Project is running at:
+<i> [webpack-dev-server] Loopback: http://localhost:<port>/
+<i> [webpack-dev-server] On Your Network (IPv4): http://<network-ip-v4>:<port>/
+<i> [webpack-dev-server] On Your Network (IPv6): http://[<network-ip-v6>]:<port>/
+<i> [webpack-dev-server] Content not from webpack is served from '<cwd>/test/serve/basic/public' directory"
+`;
+
+exports[`basic serve usage should work with the "--config" and "--env" options: stderr 1`] = `
+"<i> [webpack-dev-server] Project is running at:
+<i> [webpack-dev-server] Loopback: http://localhost:<port>/
+<i> [webpack-dev-server] On Your Network (IPv4): http://<network-ip-v4>:<port>/
+<i> [webpack-dev-server] On Your Network (IPv6): http://[<network-ip-v6>]:<port>/
+<i> [webpack-dev-server] Content not from webpack is served from '<cwd>/test/serve/basic/public' directory"
+`;
+
+exports[`basic serve usage should work with the "--config" option: stderr 1`] = `
+"<i> [webpack-dev-server] Project is running at:
+<i> [webpack-dev-server] Loopback: http://localhost:<port>/
+<i> [webpack-dev-server] On Your Network (IPv4): http://<network-ip-v4>:<port>/
+<i> [webpack-dev-server] On Your Network (IPv6): http://[<network-ip-v6>]:<port>/
+<i> [webpack-dev-server] Content not from webpack is served from '<cwd>/test/serve/basic/public' directory"
+`;
+
+exports[`basic serve usage should work with the "--hot" option using the "only" value: stderr 1`] = `
+"<i> [webpack-dev-server] Project is running at:
+<i> [webpack-dev-server] Loopback: http://localhost:<port>/
+<i> [webpack-dev-server] On Your Network (IPv4): http://<network-ip-v4>:<port>/
+<i> [webpack-dev-server] On Your Network (IPv6): http://[<network-ip-v6>]:<port>/
+<i> [webpack-dev-server] Content not from webpack is served from '<cwd>/test/serve/basic/public' directory"
+`;
+
+exports[`basic serve usage should work with the "--hot" option: stderr 1`] = `
+"<i> [webpack-dev-server] Project is running at:
+<i> [webpack-dev-server] Loopback: http://localhost:<port>/
+<i> [webpack-dev-server] On Your Network (IPv4): http://<network-ip-v4>:<port>/
+<i> [webpack-dev-server] On Your Network (IPv6): http://[<network-ip-v6>]:<port>/
+<i> [webpack-dev-server] Content not from webpack is served from '<cwd>/test/serve/basic/public' directory"
+`;
+
+exports[`basic serve usage should work with the "--mode" option #2: stderr 1`] = `
+"<i> [webpack-dev-server] Project is running at:
+<i> [webpack-dev-server] Loopback: http://localhost:<port>/
+<i> [webpack-dev-server] On Your Network (IPv4): http://<network-ip-v4>:<port>/
+<i> [webpack-dev-server] On Your Network (IPv6): http://[<network-ip-v6>]:<port>/
+<i> [webpack-dev-server] Content not from webpack is served from '<cwd>/test/serve/basic/public' directory"
+`;
+
+exports[`basic serve usage should work with the "--mode" option #3: stderr 1`] = `
+"<i> [webpack-dev-server] Project is running at:
+<i> [webpack-dev-server] Loopback: http://localhost:<port>/
+<i> [webpack-dev-server] On Your Network (IPv4): http://<network-ip-v4>:<port>/
+<i> [webpack-dev-server] On Your Network (IPv6): http://[<network-ip-v6>]:<port>/
+<i> [webpack-dev-server] Content not from webpack is served from '<cwd>/test/serve/basic/public' directory"
+`;
+
+exports[`basic serve usage should work with the "--mode" option: stderr 1`] = `
+"<i> [webpack-dev-server] Project is running at:
+<i> [webpack-dev-server] Loopback: http://localhost:<port>/
+<i> [webpack-dev-server] On Your Network (IPv4): http://<network-ip-v4>:<port>/
+<i> [webpack-dev-server] On Your Network (IPv6): http://[<network-ip-v6>]:<port>/
+<i> [webpack-dev-server] Content not from webpack is served from '<cwd>/test/serve/basic/public' directory"
+`;
+
+exports[`basic serve usage should work with the "--no-hot" option: stderr 1`] = `
+"<i> [webpack-dev-server] Project is running at:
+<i> [webpack-dev-server] Loopback: http://localhost:<port>/
+<i> [webpack-dev-server] On Your Network (IPv4): http://<network-ip-v4>:<port>/
+<i> [webpack-dev-server] On Your Network (IPv6): http://[<network-ip-v6>]:<port>/
+<i> [webpack-dev-server] Content not from webpack is served from '<cwd>/test/serve/basic/public' directory"
+`;
+
+exports[`basic serve usage should work with the "--open" option: stderr 1`] = `
+"<i> [webpack-dev-server] Project is running at:
+<i> [webpack-dev-server] Loopback: http://localhost:<port>/
+<i> [webpack-dev-server] On Your Network (IPv4): http://<network-ip-v4>:<port>/
+<i> [webpack-dev-server] On Your Network (IPv6): http://[<network-ip-v6>]:<port>/
+<i> [webpack-dev-server] Content not from webpack is served from '<cwd>/test/serve/basic/public' directory"
+`;
+
+exports[`basic serve usage should work with the "--output-public-path" option: stderr 1`] = `
+"<i> [webpack-dev-server] Project is running at:
+<i> [webpack-dev-server] Loopback: http://localhost:<port>/
+<i> [webpack-dev-server] On Your Network (IPv4): http://<network-ip-v4>:<port>/
+<i> [webpack-dev-server] On Your Network (IPv6): http://[<network-ip-v6>]:<port>/
+<i> [webpack-dev-server] Content not from webpack is served from '<cwd>/test/serve/basic/public' directory"
+`;
+
+exports[`basic serve usage should work with the "--port" option: stderr 1`] = `
+"<i> [webpack-dev-server] Project is running at:
+<i> [webpack-dev-server] Loopback: http://localhost:<port>/
+<i> [webpack-dev-server] On Your Network (IPv4): http://<network-ip-v4>:<port>/
+<i> [webpack-dev-server] On Your Network (IPv6): http://[<network-ip-v6>]:<port>/
+<i> [webpack-dev-server] Content not from webpack is served from '<cwd>/test/serve/basic/public' directory"
+`;
+
+exports[`basic serve usage should work with the "--stats verbose" option: stderr 1`] = `
+"<i> [webpack-dev-server] Project is running at:
+<i> [webpack-dev-server] Loopback: http://localhost:<port>/
+<i> [webpack-dev-server] On Your Network (IPv4): http://<network-ip-v4>:<port>/
+<i> [webpack-dev-server] On Your Network (IPv6): http://[<network-ip-v6>]:<port>/
+<i> [webpack-dev-server] Content not from webpack is served from '<cwd>/test/serve/basic/public' directory"
+`;
+
+exports[`basic serve usage should work with the "--stats" option: stderr 1`] = `
+"<i> [webpack-dev-server] Project is running at:
+<i> [webpack-dev-server] Loopback: http://localhost:<port>/
+<i> [webpack-dev-server] On Your Network (IPv4): http://<network-ip-v4>:<port>/
+<i> [webpack-dev-server] On Your Network (IPv6): http://[<network-ip-v6>]:<port>/
+<i> [webpack-dev-server] Content not from webpack is served from '<cwd>/test/serve/basic/public' directory"
+`;
+
+exports[`basic serve usage should work with the "stats" option in config: stderr 1`] = `
+"<i> [webpack-dev-server] Project is running at:
+<i> [webpack-dev-server] Loopback: http://localhost:<port>/
+<i> [webpack-dev-server] On Your Network (IPv4): http://<network-ip-v4>:<port>/
+<i> [webpack-dev-server] On Your Network (IPv6): http://[<network-ip-v6>]:<port>/
+<i> [webpack-dev-server] Content not from webpack is served from '<cwd>/test/serve/basic/public' directory"
+`;
+
+exports[`basic serve usage should work with the default "publicPath" option: stderr 1`] = `
+"<i> [webpack-dev-server] Project is running at:
+<i> [webpack-dev-server] Loopback: http://localhost:<port>/
+<i> [webpack-dev-server] On Your Network (IPv4): http://<network-ip-v4>:<port>/
+<i> [webpack-dev-server] On Your Network (IPv6): http://[<network-ip-v6>]:<port>/
+<i> [webpack-dev-server] Content not from webpack is served from '<cwd>/test/serve/basic/public' directory"
+`;
+
+exports[`basic serve usage should work: stderr 1`] = `
+"<i> [webpack-dev-server] Project is running at:
+<i> [webpack-dev-server] Loopback: http://localhost:<port>/
+<i> [webpack-dev-server] On Your Network (IPv4): http://<network-ip-v4>:<port>/
+<i> [webpack-dev-server] On Your Network (IPv6): http://[<network-ip-v6>]:<port>/
+<i> [webpack-dev-server] Content not from webpack is served from '<cwd>/test/serve/basic/public' directory"
+`;

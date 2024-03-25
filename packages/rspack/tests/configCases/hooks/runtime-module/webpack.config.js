@@ -20,6 +20,9 @@ module.exports = {
 		main: "./index.js",
 		chunk: "./chunk.js"
 	},
+	output: {
+		filename: "[name].js"
+	},
 	context: __dirname,
 	plugins: [new Plugin()]
 };

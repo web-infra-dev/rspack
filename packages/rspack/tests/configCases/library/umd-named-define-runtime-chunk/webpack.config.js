@@ -7,6 +7,7 @@ module.exports = {
 		}
 	},
 	output: {
+		filename: "[name].js",
 		libraryTarget: "umd",
 		library: {
 			root: "testLibrary[name]",

@@ -6,14 +6,20 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
+pub enum StaticExportsSpec {
+  True,
+  Array(Vec<Atom>),
+}
+
+#[derive(Debug, Clone)]
 pub struct StaticExportsDependency {
   id: DependencyId,
-  exports: Vec<Atom>,
+  exports: StaticExportsSpec,
   can_mangle: bool,
 }
 
 impl StaticExportsDependency {
-  pub fn new(exports: Vec<Atom>, can_mangle: bool) -> Self {
+  pub fn new(exports: StaticExportsSpec, can_mangle: bool) -> Self {
     Self {
       id: DependencyId::new(),
       exports,
@@ -37,13 +43,15 @@ impl Dependency for StaticExportsDependency {
 
   fn get_exports(&self, _mg: &ModuleGraph) -> Option<ExportsSpec> {
     Some(ExportsSpec {
-      exports: ExportsOfExportsSpec::Array(
-        self
-          .exports
-          .iter()
-          .map(|item| ExportNameOrSpec::String(item.clone()))
-          .collect::<Vec<_>>(),
-      ),
+      exports: match &self.exports {
+        StaticExportsSpec::Array(exports) => ExportsOfExportsSpec::Array(
+          exports
+            .iter()
+            .map(|item| ExportNameOrSpec::String(item.clone()))
+            .collect::<Vec<_>>(),
+        ),
+        StaticExportsSpec::True => ExportsOfExportsSpec::True,
+      },
       can_mangle: Some(self.can_mangle),
       ..Default::default()
     })

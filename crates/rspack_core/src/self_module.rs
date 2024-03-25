@@ -2,17 +2,18 @@ use std::borrow::Cow;
 use std::hash::Hash;
 
 use async_trait::async_trait;
-use rspack_core_macros::impl_source_map_config;
 use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
+use rspack_macros::impl_source_map_config;
 use rspack_sources::Source;
 use rspack_util::source_map::SourceMapKind;
 
 use crate::{
-  impl_build_info_meta, AsyncDependenciesBlockId, BuildContext, BuildInfo, BuildMeta, BuildResult,
-  ChunkUkey, CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock,
-  DependencyId, LibIdentOptions, Module, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
+  impl_build_info_meta, AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildMeta,
+  BuildResult, ChunkUkey, CodeGenerationResult, Compilation, ConcatenationScope, Context,
+  DependenciesBlock, DependencyId, LibIdentOptions, Module, ModuleIdentifier, ModuleType,
+  RuntimeSpec, SourceType,
 };
 
 #[impl_source_map_config]
@@ -20,7 +21,7 @@ use crate::{
 pub struct SelfModule {
   identifier: ModuleIdentifier,
   readable_identifier: String,
-  blocks: Vec<AsyncDependenciesBlockId>,
+  blocks: Vec<AsyncDependenciesBlockIdentifier>,
   dependencies: Vec<DependencyId>,
   build_info: Option<BuildInfo>,
   build_meta: Option<BuildMeta>,
@@ -48,11 +49,11 @@ impl Identifiable for SelfModule {
 }
 
 impl DependenciesBlock for SelfModule {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockId) {
+  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
     self.blocks.push(block)
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockId] {
+  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
     &self.blocks
   }
 
@@ -121,6 +122,7 @@ impl Module for SelfModule {
       dependencies: Vec::new(),
       blocks: Vec::new(),
       analyze_result: Default::default(),
+      optimization_bailouts: vec![],
     })
   }
 

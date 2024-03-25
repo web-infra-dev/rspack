@@ -11,11 +11,11 @@ use std::{
 use bitflags::bitflags;
 use dashmap::DashMap;
 use derivative::Derivative;
-use rspack_core_macros::impl_source_map_config;
 use rspack_error::{error, Diagnosable, Diagnostic, DiagnosticExt, MietteExt, Result, Severity};
 use rspack_hash::RspackHash;
 use rspack_identifier::Identifiable;
-use rspack_loader_runner::{run_loaders, Content, ResourceData};
+use rspack_loader_runner::{run_loaders, AdditionalData, Content, ResourceData};
+use rspack_macros::impl_source_map_config;
 use rspack_sources::{
   BoxSource, CachedSource, OriginalSource, RawSource, Source, SourceExt, SourceMap,
   SourceMapSource, WithoutOriginalOptions,
@@ -27,16 +27,16 @@ use serde_json::json;
 
 use crate::{
   add_connection_states, contextify, diagnostics::ModuleBuildError, get_context,
-  impl_build_info_meta, AsyncDependenciesBlockId, BoxLoader, BoxModule, BuildContext, BuildInfo,
-  BuildMeta, BuildResult, CodeGenerationResult, Compilation, ConcatenationScope, ConnectionState,
-  Context, DependenciesBlock, DependencyId, DependencyTemplate, GenerateContext, GeneratorOptions,
-  LibIdentOptions, Module, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType,
-  ParseContext, ParseResult, ParserAndGenerator, ParserOptions, Resolve, RspackLoaderRunnerPlugin,
-  RuntimeSpec, SourceType,
+  impl_build_info_meta, AsyncDependenciesBlockIdentifier, BoxLoader, BoxModule, BuildContext,
+  BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation, ConcatenationScope,
+  ConnectionState, Context, DependenciesBlock, DependencyId, DependencyTemplate, GenerateContext,
+  GeneratorOptions, LibIdentOptions, Module, ModuleDependency, ModuleGraph, ModuleIdentifier,
+  ModuleType, ParseContext, ParseResult, ParserAndGenerator, ParserOptions, Resolve,
+  RspackLoaderRunnerPlugin, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
 bitflags! {
-  #[derive(Default)]
+  #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
   pub struct ModuleSyntax: u8 {
     const COMMONJS = 1 << 0;
     const ESM = 1 << 1;
@@ -80,7 +80,7 @@ impl ModuleIssuer {
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct NormalModule {
-  blocks: Vec<AsyncDependenciesBlockId>,
+  blocks: Vec<AsyncDependenciesBlockIdentifier>,
   dependencies: Vec<DependencyId>,
 
   id: ModuleIdentifier,
@@ -128,6 +128,7 @@ pub struct NormalModule {
 
   build_info: Option<BuildInfo>,
   build_meta: Option<BuildMeta>,
+  parsed: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -205,6 +206,7 @@ impl NormalModule {
       presentational_dependencies: None,
       build_info: None,
       build_meta: None,
+      parsed: false,
 
       source_map_kind: SourceMapKind::None,
     }
@@ -291,11 +293,11 @@ impl Identifiable for NormalModule {
 }
 
 impl DependenciesBlock for NormalModule {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockId) {
+  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
     self.blocks.push(block)
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockId] {
+  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
     &self.blocks
   }
 
@@ -306,7 +308,14 @@ impl DependenciesBlock for NormalModule {
   fn get_dependencies(&self) -> &[DependencyId] {
     &self.dependencies
   }
+
+  fn get_presentational_dependencies_for_block(&self) -> Option<&[Box<dyn DependencyTemplate>]> {
+    self.get_presentational_dependencies()
+  }
 }
+
+// to tell builtin:swc-loader to give content instead of ast only even if its index is 0
+pub struct LoadersShouldAlwaysGiveContent;
 
 #[async_trait::async_trait]
 impl Module for NormalModule {
@@ -353,6 +362,15 @@ impl Module for NormalModule {
     let mut build_info = BuildInfo::default();
     let mut build_meta = BuildMeta::default();
 
+    // so does webpack
+    self.parsed = true;
+
+    let no_parse = if let Some(no_parse) = build_context.compiler_options.module.no_parse.as_ref() {
+      no_parse.try_match(self.request.as_str()).await?
+    } else {
+      false
+    };
+
     build_context.plugin_driver.before_loaders(self).await?;
 
     let plugin = RspackLoaderRunnerPlugin {
@@ -361,11 +379,18 @@ impl Module for NormalModule {
       current_loader: Default::default(),
     };
 
+    let mut additional_data = AdditionalData::default();
+
+    if no_parse {
+      additional_data.insert(&LoadersShouldAlwaysGiveContent {});
+    }
+
     let loader_result = run_loaders(
       &self.loaders,
       &self.resource_data,
       &[&plugin],
       build_context.compiler_context,
+      additional_data,
     )
     .await;
     let (loader_result, ds) = match loader_result {
@@ -394,6 +419,7 @@ impl Module for NormalModule {
           dependencies: Vec::new(),
           blocks: Vec::new(),
           analyze_result: Default::default(),
+          optimization_bailouts: vec![],
         });
       }
     };
@@ -405,6 +431,36 @@ impl Module for NormalModule {
       Content::String(loader_result.content.into_string_lossy())
     };
     let original_source = self.create_source(content, loader_result.source_map)?;
+
+    if no_parse {
+      self.parsed = false;
+      self.original_source = Some(original_source.clone());
+      self.source = NormalModuleSource::new_built(original_source, self.clone_diagnostics());
+      self.code_generation_dependencies = Some(Vec::new());
+      self.presentational_dependencies = Some(Vec::new());
+
+      let mut hasher = RspackHash::from(&build_context.compiler_options.output);
+      self.update_hash(&mut hasher);
+      build_meta.hash(&mut hasher);
+
+      build_info.hash = Some(hasher.digest(&build_context.compiler_options.output.hash_digest));
+      build_info.cacheable = loader_result.cacheable;
+      build_info.file_dependencies = loader_result.file_dependencies;
+      build_info.context_dependencies = loader_result.context_dependencies;
+      build_info.missing_dependencies = loader_result.missing_dependencies;
+      build_info.build_dependencies = loader_result.build_dependencies;
+      build_info.asset_filenames = loader_result.asset_filenames;
+
+      return Ok(BuildResult {
+        build_info,
+        build_meta,
+        dependencies: Vec::new(),
+        blocks: Vec::new(),
+        analyze_result: Default::default(),
+        optimization_bailouts: Vec::new(),
+      });
+    }
+
     let mut code_generation_dependencies: Vec<Box<dyn ModuleDependency>> = Vec::new();
 
     let (
@@ -414,6 +470,7 @@ impl Module for NormalModule {
         blocks,
         presentational_dependencies,
         analyze_result,
+        side_effects_bailout,
       },
       ds,
     ) = self
@@ -435,6 +492,15 @@ impl Module for NormalModule {
       })?
       .split_into_parts();
     self.add_diagnostics(ds);
+    let optimization_bailouts = if let Some(side_effects_bailout) = side_effects_bailout {
+      let short_id = self.readable_identifier(&build_context.compiler_options.context);
+      vec![format!(
+        "{} with side_effects in source code at {short_id}:{}",
+        side_effects_bailout.ty, side_effects_bailout.msg
+      )]
+    } else {
+      vec![]
+    };
     // Only side effects used in code_generate can stay here
     // Other side effects should be set outside use_cache
     self.original_source = Some(source.clone());
@@ -460,6 +526,7 @@ impl Module for NormalModule {
       dependencies,
       blocks,
       analyze_result,
+      optimization_bailouts,
     })
   }
 
@@ -471,6 +538,17 @@ impl Module for NormalModule {
   ) -> Result<CodeGenerationResult> {
     if let NormalModuleSource::BuiltSucceed(source) = &self.source {
       let mut code_generation_result = CodeGenerationResult::default();
+      if !self.parsed {
+        code_generation_result
+          .runtime_requirements
+          .insert(RuntimeGlobals::MODULE);
+        code_generation_result
+          .runtime_requirements
+          .insert(RuntimeGlobals::EXPORTS);
+        code_generation_result
+          .runtime_requirements
+          .insert(RuntimeGlobals::THIS_AS_EXPORTS);
+      }
       for source_type in self.source_types() {
         let generation_result = self.parser_and_generator.generate(
           source,

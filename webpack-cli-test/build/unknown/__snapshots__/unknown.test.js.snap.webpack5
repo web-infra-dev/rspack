@@ -1,0 +1,171 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`unknown behaviour should log an error if an unknown flag is passed #2: stderr 1`] = `
+"[webpack-cli] Error: Unknown option '-u'
+[webpack-cli] Run 'webpack --help' to see available commands and options"
+`;
+
+exports[`unknown behaviour should log an error if an unknown flag is passed #2: stdout 1`] = `""`;
+
+exports[`unknown behaviour should log an error if an unknown flag is passed #3: stderr 1`] = `
+"[webpack-cli] Error: Unknown option '-u'
+[webpack-cli] Run 'webpack --help' to see available commands and options"
+`;
+
+exports[`unknown behaviour should log an error if an unknown flag is passed #3: stdout 1`] = `""`;
+
+exports[`unknown behaviour should log an error if an unknown flag is passed #4: stderr 1`] = `
+"[webpack-cli] Error: Unknown option '-u'
+[webpack-cli] Run 'webpack --help' to see available commands and options"
+`;
+
+exports[`unknown behaviour should log an error if an unknown flag is passed #4: stdout 1`] = `""`;
+
+exports[`unknown behaviour should log an error if an unknown flag is passed #5: stderr 1`] = `
+"[webpack-cli] Error: Unknown option '-u'
+[webpack-cli] Run 'webpack --help' to see available commands and options"
+`;
+
+exports[`unknown behaviour should log an error if an unknown flag is passed #5: stdout 1`] = `""`;
+
+exports[`unknown behaviour should log an error if an unknown flag is passed and includes =: stderr 1`] = `
+"[webpack-cli] Error: Unknown option '--unknown=foo'
+[webpack-cli] Run 'webpack --help' to see available commands and options"
+`;
+
+exports[`unknown behaviour should log an error if an unknown flag is passed and includes =: stdout 1`] = `""`;
+
+exports[`unknown behaviour should log an error if an unknown flag is passed and suggests the closest match to an unknown flag #2: stderr 1`] = `
+"[webpack-cli] Error: Unknown option '--output-fileneme'
+[webpack-cli] Did you mean '--output-filename'?
+[webpack-cli] Run 'webpack --help' to see available commands and options"
+`;
+
+exports[`unknown behaviour should log an error if an unknown flag is passed and suggests the closest match to an unknown flag #2: stdout 1`] = `""`;
+
+exports[`unknown behaviour should log an error if an unknown flag is passed and suggests the closest match to an unknown flag #3: stderr 1`] = `
+"[webpack-cli] Error: Unknown option '--output-library-auxiliary-comment-commnjs'
+[webpack-cli] Did you mean '--output-library-auxiliary-comment-commonjs'?
+[webpack-cli] Did you mean '--output-library-auxiliary-comment-commonjs2'?
+[webpack-cli] Run 'webpack --help' to see available commands and options"
+`;
+
+exports[`unknown behaviour should log an error if an unknown flag is passed and suggests the closest match to an unknown flag #3: stdout 1`] = `""`;
+
+exports[`unknown behaviour should log an error if an unknown flag is passed and suggests the closest match to an unknown flag using "b" command: stderr 1`] = `
+"[webpack-cli] Error: Unknown option '--entyr'
+[webpack-cli] Did you mean '--entry'?
+[webpack-cli] Run 'webpack --help' to see available commands and options"
+`;
+
+exports[`unknown behaviour should log an error if an unknown flag is passed and suggests the closest match to an unknown flag using "b" command: stdout 1`] = `""`;
+
+exports[`unknown behaviour should log an error if an unknown flag is passed and suggests the closest match to an unknown flag using "bundle" command: stderr 1`] = `
+"[webpack-cli] Error: Unknown option '--entyr'
+[webpack-cli] Did you mean '--entry'?
+[webpack-cli] Run 'webpack --help' to see available commands and options"
+`;
+
+exports[`unknown behaviour should log an error if an unknown flag is passed and suggests the closest match to an unknown flag using "bundle" command: stdout 1`] = `""`;
+
+exports[`unknown behaviour should log an error if an unknown flag is passed and suggests the closest match to an unknown flag using "i" command: stderr 1`] = `
+"[webpack-cli] Error: Unknown option '--outpyt'
+[webpack-cli] Did you mean '--output'?
+[webpack-cli] Run 'webpack --help' to see available commands and options"
+`;
+
+exports[`unknown behaviour should log an error if an unknown flag is passed and suggests the closest match to an unknown flag using "i" command: stdout 1`] = `""`;
+
+exports[`unknown behaviour should log an error if an unknown flag is passed and suggests the closest match to an unknown flag using "info" command: stderr 1`] = `
+"[webpack-cli] Error: Unknown option '--outpyt'
+[webpack-cli] Did you mean '--output'?
+[webpack-cli] Run 'webpack --help' to see available commands and options"
+`;
+
+exports[`unknown behaviour should log an error if an unknown flag is passed and suggests the closest match to an unknown flag using "info" command: stdout 1`] = `""`;
+
+exports[`unknown behaviour should log an error if an unknown flag is passed and suggests the closest match to an unknown flag: stderr 1`] = `
+"[webpack-cli] Error: Unknown option '--entyr'
+[webpack-cli] Did you mean '--entry'?
+[webpack-cli] Run 'webpack --help' to see available commands and options"
+`;
+
+exports[`unknown behaviour should log an error if an unknown flag is passed and suggests the closest match to an unknown flag: stdout 1`] = `""`;
+
+exports[`unknown behaviour should log an error if an unknown flag is passed using "b" command: stderr 1`] = `
+"[webpack-cli] Error: Unknown option '--unknown'
+[webpack-cli] Run 'webpack --help' to see available commands and options"
+`;
+
+exports[`unknown behaviour should log an error if an unknown flag is passed using "b" command: stdout 1`] = `""`;
+
+exports[`unknown behaviour should log an error if an unknown flag is passed using "bundle" command #2: stderr 1`] = `
+"[webpack-cli] Error: Unknown option '--unknown'
+[webpack-cli] Run 'webpack --help' to see available commands and options"
+`;
+
+exports[`unknown behaviour should log an error if an unknown flag is passed using "bundle" command #2: stdout 1`] = `""`;
+
+exports[`unknown behaviour should log an error if an unknown flag is passed using "bundle" command: stderr 1`] = `
+"[webpack-cli] Error: Unknown option '--unknown'
+[webpack-cli] Run 'webpack --help' to see available commands and options"
+`;
+
+exports[`unknown behaviour should log an error if an unknown flag is passed using "bundle" command: stdout 1`] = `""`;
+
+exports[`unknown behaviour should log an error if an unknown flag is passed using "i" command: stderr 1`] = `
+"[webpack-cli] Error: Unknown option '--unknown'
+[webpack-cli] Run 'webpack --help' to see available commands and options"
+`;
+
+exports[`unknown behaviour should log an error if an unknown flag is passed using "i" command: stderr 2`] = `
+"[webpack-cli] Error: Unknown option '--unknown'
+[webpack-cli] Run 'webpack --help' to see available commands and options"
+`;
+
+exports[`unknown behaviour should log an error if an unknown flag is passed using "i" command: stdout 1`] = `""`;
+
+exports[`unknown behaviour should log an error if an unknown flag is passed using "i" command: stdout 2`] = `""`;
+
+exports[`unknown behaviour should log an error if an unknown flag is passed using "info" command: stderr 1`] = `
+"[webpack-cli] Error: Unknown option '--unknown'
+[webpack-cli] Run 'webpack --help' to see available commands and options"
+`;
+
+exports[`unknown behaviour should log an error if an unknown flag is passed using "info" command: stdout 1`] = `""`;
+
+exports[`unknown behaviour should log an error if an unknown flag is passed: stderr 1`] = `
+"[webpack-cli] Error: Unknown option '--unknown'
+[webpack-cli] Run 'webpack --help' to see available commands and options"
+`;
+
+exports[`unknown behaviour should log an error if an unknown flag is passed: stdout 1`] = `""`;
+
+exports[`unknown behaviour should log error and provide suggestion if an unknown command passed: stderr 1`] = `
+"[webpack-cli] Unknown command or entry 'serverr'
+[webpack-cli] Did you mean 'serve' (alias 'server, s')?
+[webpack-cli] Run 'webpack --help' to see available commands and options"
+`;
+
+exports[`unknown behaviour should log error and provide suggestion if an unknown command passed: stdout 1`] = `""`;
+
+exports[`unknown behaviour should log error and respect --color flag: stderr 1`] = `
+"[webpack-cli] [31mError: Unknown option '--unknown'[39m
+[webpack-cli] [31mRun 'webpack --help' to see available commands and options[39m"
+`;
+
+exports[`unknown behaviour should log error and respect --color flag: stdout 1`] = `""`;
+
+exports[`unknown behaviour should log error for unknown flag and respect --no-color: stderr 1`] = `
+"[webpack-cli] Error: Unknown option '--unknown'
+[webpack-cli] Run 'webpack --help' to see available commands and options"
+`;
+
+exports[`unknown behaviour should log error for unknown flag and respect --no-color: stdout 1`] = `""`;
+
+exports[`unknown behaviour should log error if an unknown command passed: stderr 1`] = `
+"[webpack-cli] Unknown command or entry 'qqq'
+[webpack-cli] Run 'webpack --help' to see available commands and options"
+`;
+
+exports[`unknown behaviour should log error if an unknown command passed: stdout 1`] = `""`;

@@ -4,7 +4,7 @@ use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use rspack_error::Result;
 use rspack_fs::AsyncWritableFileSystem;
 use rspack_hash::RspackHashDigest;
-use rspack_identifier::IdentifierMap;
+use rspack_identifier::{Identifier, IdentifierMap};
 use rspack_sources::Source;
 use rustc_hash::FxHashSet as HashSet;
 
@@ -22,11 +22,10 @@ where
     changed_files: std::collections::HashSet<String>,
     removed_files: std::collections::HashSet<String>,
   ) -> Result<()> {
-    assert!(!changed_files.is_empty() || !removed_files.is_empty());
     let old = self.compilation.get_stats();
     let old_hash = self.compilation.hash.clone();
 
-    let (old_all_modules, old_runtime_modules) = collect_changed_modules(old.compilation);
+    let (old_all_modules, old_runtime_modules) = collect_changed_modules(old.compilation)?;
     // TODO: should use `records`
 
     let mut all_old_runtime: RuntimeSpec = Default::default();
@@ -71,7 +70,7 @@ where
 
       let mut new_compilation = Compilation::new(
         self.options.clone(),
-        ModuleGraph::default().with_treeshaking(self.options.is_new_tree_shaking()),
+        ModuleGraph::default(),
         self.plugin_driver.clone(),
         self.resolver_factory.clone(),
         self.loader_resolver_factory.clone(),
@@ -89,7 +88,10 @@ where
       if is_incremental_rebuild_make {
         // copy field from old compilation
         // make stage used
-        new_compilation.module_graph = std::mem::take(&mut self.compilation.module_graph);
+        std::mem::swap(
+          self.compilation.get_module_graph_mut(),
+          new_compilation.get_module_graph_mut(),
+        );
         new_compilation.make_failed_dependencies =
           std::mem::take(&mut self.compilation.make_failed_dependencies);
         new_compilation.make_failed_module =
@@ -121,10 +123,6 @@ where
         new_compilation.has_module_import_export_change = false;
       }
 
-      fast_set(&mut self.compilation, new_compilation);
-
-      self.compilation.lazy_visit_modules = changed_files.clone();
-
       let setup_make_params = if is_incremental_rebuild_make {
         vec![
           MakeParam::ModifiedFiles(modified_files),
@@ -133,7 +131,15 @@ where
       } else {
         vec![MakeParam::ForceBuildDeps(Default::default())]
       };
+
+      new_compilation.lazy_visit_modules = changed_files.clone();
+
+      // FOR BINDING SAFETY:
+      // Update `compilation` for each rebuild.
+      // Make sure `thisCompilation` hook was called before any other hooks that leverage `JsCompilation`.
+      fast_set(&mut self.compilation, new_compilation);
       self.compile(setup_make_params).await?;
+
       self.cache.begin_idle();
     }
 
@@ -152,12 +158,11 @@ pub struct CompilationRecords {
   pub old_hash: Option<RspackHashDigest>,
 }
 
-pub fn collect_changed_modules(
-  compilation: &Compilation,
-) -> (
+pub type ChangedModules = (
   IdentifierMap<(RspackHashDigest, String)>,
   IdentifierMap<String>,
-) {
+);
+pub fn collect_changed_modules(compilation: &Compilation) -> Result<ChangedModules> {
   let modules_map = compilation
     .chunk_graph
     .chunk_graph_module_by_module_identifier
@@ -180,16 +185,16 @@ pub fn collect_changed_modules(
   let old_runtime_modules = compilation
     .runtime_modules
     .iter()
-    .map(|(identifier, module)| {
-      (
+    .map(|(identifier, module)| -> Result<(Identifier, String)> {
+      Ok((
         *identifier,
         module
-          .generate_with_custom(compilation)
+          .generate_with_custom(compilation)?
           .source()
           .to_string(),
-      )
+      ))
     })
-    .collect();
+    .collect::<Result<IdentifierMap<String>>>()?;
 
-  (modules_map, old_runtime_modules)
+  Ok((modules_map, old_runtime_modules))
 }

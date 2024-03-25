@@ -33,12 +33,14 @@ impl RuntimeModule for ChunkPrefetchTriggerRuntimeModule {
     self.id
   }
 
-  fn generate(&self, _: &Compilation) -> BoxSource {
-    RawSource::from(include_str!("runtime/chunk_prefetch_trigger.js").replace(
-      "$CHUNK_MAP$",
-      &serde_json::to_string(&self.chunk_map).expect("invalid json tostring"),
-    ))
-    .boxed()
+  fn generate(&self, _: &Compilation) -> rspack_error::Result<BoxSource> {
+    Ok(
+      RawSource::from(include_str!("runtime/chunk_prefetch_trigger.js").replace(
+        "$CHUNK_MAP$",
+        &serde_json::to_string(&self.chunk_map).expect("invalid json tostring"),
+      ))
+      .boxed(),
+    )
   }
 
   fn stage(&self) -> RuntimeModuleStage {

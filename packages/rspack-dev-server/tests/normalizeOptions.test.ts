@@ -1,8 +1,10 @@
 import { RspackOptions, rspack } from "@rspack/core";
 import { RspackDevServer, Configuration } from "@rspack/dev-server";
 import ReactRefreshPlugin from "@rspack/plugin-react-refresh";
+import customConfig from "./fixtures/provide-plugin-custom/webpack.config";
 // @ts-expect-error
 import serializer from "jest-serializer-path";
+
 expect.addSnapshotSerializer(serializer);
 
 // The aims of use a cutstom value rather than
@@ -97,6 +99,21 @@ describe("normalize options snapshot", () => {
 			}
 		]);
 		const server = new RspackDevServer({}, compiler);
+		await server.start();
+		await server.stop();
+	});
+
+	it("should support custom client transport", async () => {
+		const compiler = rspack(customConfig);
+		const devServerOptions = {
+			client: {
+				webSocketTransport: require.resolve(
+					"./fixtures/custom-client/CustomSockJSClient"
+				)
+			},
+			webSocketServer: "sockjs"
+		};
+		const server = new RspackDevServer(devServerOptions, compiler);
 		await server.start();
 		await server.stop();
 	});

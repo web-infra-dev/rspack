@@ -1,9 +1,8 @@
-import path from "path";
+const path = require("path");
 
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { rspack } from "../../../src";
+const rspack = require("../../../");
 
-export default (config = {}) => {
+module.exports = (config = {}) => {
 	const fullConfig = {
 		mode: "development",
 		context: path.resolve(__dirname, "../fixtures"),

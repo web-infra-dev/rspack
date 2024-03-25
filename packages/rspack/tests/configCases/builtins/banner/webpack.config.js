@@ -5,10 +5,16 @@ module.exports = {
 		main: "./index",
 		a: "./a"
 	},
+	target: "node",
 	output: {
+		filename: "[name].js",
+		chunkFilename: "[name].js",
 		assetModuleFilename: "[name][ext]"
 	},
 	devtool: "source-map",
+	optimization: {
+		chunkIds: "named"
+	},
 	module: {
 		rules: [
 			{

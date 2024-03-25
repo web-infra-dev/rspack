@@ -1,0 +1,13 @@
+# Bundle analysis
+
+Rspack's Command Line Interface (CLI) supports bundle analysis out-of-box via the `--analyze` option. It uses [webpack-bundle-analyzer](https://www.npmjs.com/package/webpack-bundle-analyzer) behind the scenes.
+
+```sh
+$ rspack build --analyze
+```
+
+You can also generate a `stats.json` file for further analysis with other bundle analysis tools like [bundle-stats](https://github.com/relative-ci/bundle-stats) or [statoscope](https://statoscope.tech/):
+
+```sh
+$ rspack build --json stats.json
+```

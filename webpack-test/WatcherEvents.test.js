@@ -2,7 +2,7 @@
 
 const path = require("path");
 const { createFsFromVolume, Volume } = require("memfs");
-const webpack = require("@rspack/core").rspack;
+const webpack = require("..");
 
 const createCompiler = config => {
 	const compiler = webpack(config);
@@ -28,7 +28,7 @@ const createMultiCompiler = () => {
 
 describe("WatcherEvents", () => {
 	if (process.env.NO_WATCH_TESTS) {
-		it.skip("long running tests excluded", () => {});
+		it.skip("long running tests excluded", () => { });
 		return;
 	}
 

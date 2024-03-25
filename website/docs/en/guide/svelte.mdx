@@ -1,0 +1,59 @@
+# Svelte
+
+## How to Use
+
+Rspack provides two solutions to support Svelte:
+
+- **Use Rsbuild**: Rsbuild provides out-of-the-box support for Svelte, allowing you to quickly create a Svelte project. See ["Rsbuild - Svelte"](https://rsbuild.dev/guide/framework/svelte) for details.
+- **Manual configuration**: You can refer to the current document to manually add configurations for Svelte.
+
+## Configure svelte-loader
+
+Thanks to the good compatibility of Rspack with the [svelte-loader](https://github.com/sveltejs/svelte-loader), it is very easy to use Svelte in Rspack. All you need is to configure svelte-loader. Rspack provides Svelte [example](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/svelte) for reference.
+
+```js title="rspack.config.js"
+const path = require('path');
+/** @type {import('@rspack/cli').Configuration} */
+const config = {
+  context: __dirname,
+  entry: {
+    main: './src/main.ts',
+  },
+  resolve: {
+    alias: {
+      svelte: path.dirname(require.resolve('svelte/package.json')),
+    },
+    extensions: ['.mjs', '.js', '.ts', '.svelte'],
+    mainFields: ['svelte', 'browser', 'module', 'main'],
+  },
+  module: {
+    rules: [
+      {
+        test: /\.svelte$/,
+        use: [
+          {
+            loader: 'svelte-loader',
+            options: {
+              compilerOptions: {
+                dev: !prod,
+              },
+
+              emitCss: prod,
+              hotReload: !prod,
+              preprocess: sveltePreprocess({ sourceMap: !prod, postcss: true }),
+            },
+          },
+        ],
+      },
+    ],
+  },
+  builtins: {
+    html: [
+      {
+        template: './index.html',
+      },
+    ],
+  },
+};
+module.exports = config;
+```

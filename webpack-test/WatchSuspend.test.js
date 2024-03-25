@@ -5,9 +5,9 @@ require("./helpers/warmup-webpack");
 const path = require("path");
 const fs = require("fs");
 
-describe.skip("WatchSuspend", () => {
+describe("WatchSuspend", () => {
 	if (process.env.NO_WATCH_TESTS) {
-		it.skip("long running tests excluded", () => {});
+		it.skip("long running tests excluded", () => { });
 		return;
 	}
 
@@ -50,7 +50,7 @@ describe.skip("WatchSuspend", () => {
 					filename: "bundle.js"
 				}
 			});
-			watching = compiler.watch({ aggregateTimeout: 50 }, () => {});
+			watching = compiler.watch({ aggregateTimeout: 50 }, () => { });
 
 			compiler.hooks.done.tap("WatchSuspendTest", () => {
 				if (onChange) onChange();
@@ -127,7 +127,7 @@ describe.skip("WatchSuspend", () => {
 									);
 									expect(
 										compiler.modifiedFiles &&
-											Array.from(compiler.modifiedFiles).sort()
+										Array.from(compiler.modifiedFiles).sort()
 									).toEqual([filePath]);
 									expect(
 										compiler.removedFiles && Array.from(compiler.removedFiles)

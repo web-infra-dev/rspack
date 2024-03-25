@@ -98,13 +98,17 @@ impl DependencyTemplate for CssUrlDependency {
   ) {
     let TemplateContext { compilation, .. } = code_generatable_context;
     if let Some(mgm) = compilation
-      .module_graph
+      .get_module_graph()
       .module_graph_module_by_dependency_id(self.id())
       && let Some(target_url) = self.get_target_url(&mgm.module_identifier, compilation)
     {
       let content = format!("url({})", css_escape_string(&target_url));
       source.replace(self.start, self.end, &content, None);
     }
+  }
+
+  fn dependency_id(&self) -> Option<DependencyId> {
+    Some(self.id)
   }
 }
 

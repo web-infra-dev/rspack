@@ -1,5 +1,6 @@
 /** @type {import('@rspack/core').Configuration}*/
 module.exports = {
+	entry: "./index.jsx",
 	resolve: {
 		alias: {
 			"@xstyled/styled-components": "styled-components"

@@ -6,7 +6,6 @@ use tracing::instrument;
 use crate::Compilation;
 
 mod code_splitter;
-mod remove_parent_modules;
 
 #[instrument(skip_all)]
 pub(crate) fn build_chunk_graph(compilation: &mut Compilation) -> rspack_error::Result<()> {

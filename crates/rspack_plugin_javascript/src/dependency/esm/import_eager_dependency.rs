@@ -97,7 +97,7 @@ impl DependencyTemplate for ImportEagerDependency {
   ) {
     let block = code_generatable_context
       .compilation
-      .module_graph
+      .get_module_graph()
       .get_parent_block(&self.id);
     source.replace(
       self.start,
@@ -113,6 +113,10 @@ impl DependencyTemplate for ImportEagerDependency {
       .as_str(),
       None,
     );
+  }
+
+  fn dependency_id(&self) -> Option<DependencyId> {
+    Some(self.id)
   }
 }
 

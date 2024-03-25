@@ -4,11 +4,12 @@ use async_trait::async_trait;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
-  BoxModule, Compilation, CompilationArgs, CompilationParams, DependencyType, EntryOptions,
-  NormalModuleCreateData, Plugin, PluginCompilationHookOutput, PluginContext,
+  ApplyContext, BoxModule, Compilation, CompilationParams, CompilerOptions, DependencyType,
+  EntryOptions, NormalModuleCreateData, Plugin, PluginContext,
   PluginNormalModuleFactoryModuleHookOutput,
 };
 use rspack_error::{Diagnostic, Result};
+use rspack_hook::{plugin, plugin_hook, AsyncSeries, AsyncSeries2};
 use rspack_loader_runner::ResourceData;
 use rustc_hash::FxHashMap;
 use tokio::sync::RwLock;
@@ -66,6 +67,7 @@ impl fmt::Display for ProvideVersion {
   }
 }
 
+#[plugin]
 #[derive(Debug)]
 pub struct ProvideSharedPlugin {
   provides: Vec<(String, ProvideOptions)>,
@@ -76,12 +78,12 @@ pub struct ProvideSharedPlugin {
 
 impl ProvideSharedPlugin {
   pub fn new(provides: Vec<(String, ProvideOptions)>) -> Self {
-    Self {
+    Self::new_inner(
       provides,
-      resolved_provide_map: Default::default(),
-      match_provides: Default::default(),
-      prefix_match_provides: Default::default(),
-    }
+      Default::default(),
+      Default::default(),
+      Default::default(),
+    )
   }
 
   #[allow(clippy::too_many_arguments)]
@@ -96,6 +98,7 @@ impl ProvideSharedPlugin {
     resource_data: &ResourceData,
     mut add_diagnostic: impl FnMut(Diagnostic),
   ) {
+    let title = "rspack.ProvideSharedPlugin";
     let error_header = "No version specified and unable to automatically determine one.";
     if let Some(version) = version {
       self.resolved_provide_map.write().await.insert(
@@ -122,12 +125,67 @@ impl ProvideSharedPlugin {
           },
         );
       } else {
-        add_diagnostic(Diagnostic::warn(self.name().to_string(), format!("{error_header} No version in description file (usually package.json). Add version to description file {}, or manually specify version in shared config. shared module {key} -> {resource}", description.path().display())));
+        add_diagnostic(Diagnostic::warn(title.to_string(), format!("{error_header} No version in description file (usually package.json). Add version to description file {}, or manually specify version in shared config. shared module {key} -> {resource}", description.path().display())));
       }
     } else {
-      add_diagnostic(Diagnostic::warn(self.name().to_string(), format!("{error_header} No description file (usually package.json) found. Add description file with name and version, or manually specify version in shared config. shared module {key} -> {resource}")));
+      add_diagnostic(Diagnostic::warn(title.to_string(), format!("{error_header} No description file (usually package.json) found. Add description file with name and version, or manually specify version in shared config. shared module {key} -> {resource}")));
     }
   }
+}
+
+#[plugin_hook(AsyncSeries2<Compilation, CompilationParams> for ProvideSharedPlugin)]
+async fn compilation(
+  &self,
+  compilation: &mut Compilation,
+  params: &mut CompilationParams,
+) -> Result<()> {
+  compilation.set_dependency_factory(
+    DependencyType::ProvideModuleForShared,
+    params.normal_module_factory.clone(),
+  );
+  compilation.set_dependency_factory(
+    DependencyType::ProvideSharedModule,
+    Arc::new(ProvideSharedModuleFactory::default()),
+  );
+
+  let mut resolved_provide_map = self.resolved_provide_map.write().await;
+  let mut match_provides = self.match_provides.write().await;
+  let mut prefix_match_provides = self.prefix_match_provides.write().await;
+  for (request, config) in &self.provides {
+    if RELATIVE_REQUEST.is_match(request) || ABSOLUTE_REQUEST.is_match(request) {
+      resolved_provide_map.insert(request.to_string(), config.to_versioned());
+    } else if request.ends_with('/') {
+      prefix_match_provides.insert(request.to_string(), config.clone());
+    } else {
+      match_provides.insert(request.to_string(), config.clone());
+    }
+  }
+  Ok(())
+}
+
+#[plugin_hook(AsyncSeries<Compilation> for ProvideSharedPlugin)]
+async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
+  for (resource, config) in self.resolved_provide_map.read().await.iter() {
+    compilation
+      .add_include(
+        Box::new(ProvideSharedDependency::new(
+          config.share_scope.to_string(),
+          config.share_key.to_string(),
+          config.version.clone(),
+          resource.to_string(),
+          config.eager,
+        )),
+        EntryOptions {
+          name: None,
+          ..Default::default()
+        },
+      )
+      .await?;
+  }
+  self.resolved_provide_map.write().await.clear();
+  self.match_provides.write().await.clear();
+  self.prefix_match_provides.write().await.clear();
+  Ok(())
 }
 
 #[async_trait]
@@ -136,32 +194,21 @@ impl Plugin for ProvideSharedPlugin {
     "rspack.ProvideSharedPlugin"
   }
 
-  async fn compilation(
+  fn apply(
     &self,
-    args: CompilationArgs<'_>,
-    params: &CompilationParams,
-  ) -> PluginCompilationHookOutput {
-    args.compilation.set_dependency_factory(
-      DependencyType::ProvideModuleForShared,
-      params.normal_module_factory.clone(),
-    );
-    args.compilation.set_dependency_factory(
-      DependencyType::ProvideSharedModule,
-      Arc::new(ProvideSharedModuleFactory::default()),
-    );
-
-    let mut resolved_provide_map = self.resolved_provide_map.write().await;
-    let mut match_provides = self.match_provides.write().await;
-    let mut prefix_match_provides = self.prefix_match_provides.write().await;
-    for (request, config) in &self.provides {
-      if RELATIVE_REQUEST.is_match(request) || ABSOLUTE_REQUEST.is_match(request) {
-        resolved_provide_map.insert(request.to_string(), config.to_versioned());
-      } else if request.ends_with('/') {
-        prefix_match_provides.insert(request.to_string(), config.clone());
-      } else {
-        match_provides.insert(request.to_string(), config.clone());
-      }
-    }
+    ctx: PluginContext<&mut ApplyContext>,
+    _options: &mut CompilerOptions,
+  ) -> Result<()> {
+    ctx
+      .context
+      .compiler_hooks
+      .compilation
+      .tap(compilation::new(self));
+    ctx
+      .context
+      .compiler_hooks
+      .finish_make
+      .tap(finish_make::new(self));
     Ok(())
   }
 
@@ -217,29 +264,5 @@ impl Plugin for ProvideSharedPlugin {
       }
     }
     Ok(module)
-  }
-
-  async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
-    for (resource, config) in self.resolved_provide_map.read().await.iter() {
-      compilation
-        .add_include(
-          Box::new(ProvideSharedDependency::new(
-            config.share_scope.to_string(),
-            config.share_key.to_string(),
-            config.version.clone(),
-            resource.to_string(),
-            config.eager,
-          )),
-          EntryOptions {
-            name: None,
-            ..Default::default()
-          },
-        )
-        .await?;
-    }
-    self.resolved_provide_map.write().await.clear();
-    self.match_provides.write().await.clear();
-    self.prefix_match_provides.write().await.clear();
-    Ok(())
   }
 }

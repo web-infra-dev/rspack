@@ -1,5 +1,6 @@
 mod eval_array_expr;
 mod eval_binary_expr;
+mod eval_call_expr;
 mod eval_cond_expr;
 mod eval_lit_expr;
 mod eval_new_expr;
@@ -11,11 +12,13 @@ use rspack_core::DependencyLocation;
 
 pub use self::eval_array_expr::eval_array_expression;
 pub use self::eval_binary_expr::eval_binary_expression;
+pub use self::eval_call_expr::eval_call_expression;
 pub use self::eval_cond_expr::eval_cond_expression;
 pub use self::eval_lit_expr::{eval_lit_expr, eval_prop_name};
 pub use self::eval_new_expr::eval_new_expression;
 pub use self::eval_tpl_expr::{eval_tpl_expression, TemplateStringKind};
 pub use self::eval_unary_expr::eval_unary_expression;
+use crate::visitors::ExportedVariableInfo;
 
 #[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -29,10 +32,10 @@ enum Ty {
   RegExp,
   Conditional,
   Array,
+  Wrapped,
   ConstArray,
   BigInt,
   Identifier,
-  // TypeWrapped,
   TemplateString,
 }
 
@@ -59,9 +62,13 @@ pub struct BasicEvaluatedExpression {
   bigint: Option<Bigint>,
   regexp: Option<Regexp>,
   identifier: Option<String>,
+  root_info: Option<ExportedVariableInfo>,
   items: Option<Vec<BasicEvaluatedExpression>>,
   quasis: Option<Vec<BasicEvaluatedExpression>>,
   parts: Option<Vec<BasicEvaluatedExpression>>,
+  prefix: Option<Box<BasicEvaluatedExpression>>,
+  postfix: Option<Box<BasicEvaluatedExpression>>,
+  wrapped_inner_expressions: Option<Vec<BasicEvaluatedExpression>>,
   // array: Option<Array>
   template_string_kind: Option<TemplateStringKind>,
 
@@ -89,11 +96,15 @@ impl BasicEvaluatedExpression {
       quasis: None,
       parts: None,
       identifier: None,
+      root_info: None,
       template_string_kind: None,
       options: None,
       string: None,
       items: None,
       regexp: None,
+      postfix: None,
+      prefix: None,
+      wrapped_inner_expressions: None,
     }
   }
 
@@ -115,6 +126,10 @@ impl BasicEvaluatedExpression {
     matches!(self.ty, Ty::Null)
   }
 
+  pub fn is_unknown(&self) -> bool {
+    matches!(self.ty, Ty::Unknown)
+  }
+
   pub fn is_undefined(&self) -> bool {
     matches!(self.ty, Ty::Undefined)
   }
@@ -133,6 +148,18 @@ impl BasicEvaluatedExpression {
 
   pub fn is_array(&self) -> bool {
     matches!(self.ty, Ty::Array)
+  }
+
+  pub fn is_wrapped(&self) -> bool {
+    matches!(self.ty, Ty::Wrapped)
+  }
+
+  pub fn is_number(&self) -> bool {
+    matches!(self.ty, Ty::Number)
+  }
+
+  pub fn is_bigint(&self) -> bool {
+    matches!(self.ty, Ty::BigInt)
   }
 
   pub fn is_template_string(&self) -> bool {
@@ -169,6 +196,7 @@ impl BasicEvaluatedExpression {
       | Ty::Number
       | Ty::Boolean
       | Ty::BigInt
+      | Ty::Wrapped
       | Ty::TemplateString => Some(true),
       Ty::RegExp | Ty::Array | Ty::ConstArray => Some(false),
       _ => None,
@@ -190,10 +218,16 @@ impl BasicEvaluatedExpression {
   pub fn as_bool(&self) -> Option<Boolean> {
     if self.truthy {
       Some(true)
-    } else if self.falsy || self.nullish == Some(true) {
+    } else if self.falsy || self.nullish == Some(true) || self.is_null() || self.is_undefined() {
       Some(false)
-    } else {
+    } else if self.is_bool() {
       self.boolean
+    } else if self.is_string() {
+      Some(!self.string().is_empty())
+    } else if self.is_number() {
+      Some(self.number() != 0.0)
+    } else {
+      None
     }
   }
 
@@ -256,6 +290,35 @@ impl BasicEvaluatedExpression {
     self.side_effects = false
   }
 
+  pub fn set_undefined(&mut self) {
+    self.ty = Ty::Undefined;
+    self.side_effects = false;
+  }
+
+  pub fn set_number(&mut self, number: Number) {
+    self.ty = Ty::Number;
+    self.number = Some(number);
+    self.side_effects = false;
+  }
+
+  pub fn set_truthy(&mut self) {
+    self.falsy = false;
+    self.truthy = true;
+    self.nullish = Some(false);
+  }
+
+  pub fn set_falsy(&mut self) {
+    self.falsy = true;
+    self.truthy = false;
+  }
+
+  pub fn set_nullish(&mut self, nullish: bool) {
+    self.nullish = Some(nullish);
+    if nullish {
+      self.set_falsy()
+    }
+  }
+
   pub fn set_items(&mut self, items: Vec<BasicEvaluatedExpression>) {
     self.ty = Ty::Array;
     self.side_effects = items.iter().any(|item| item.could_have_side_effects());
@@ -280,6 +343,13 @@ impl BasicEvaluatedExpression {
       self.options = Some(options);
       self.side_effects = true;
     }
+  }
+
+  pub fn set_identifier(&mut self, name: String, root_info: ExportedVariableInfo) {
+    self.ty = Ty::Identifier;
+    self.identifier = Some(name);
+    self.root_info = Some(root_info);
+    self.side_effects = true;
   }
 
   pub fn set_bool(&mut self, boolean: Boolean) {
@@ -317,15 +387,34 @@ impl BasicEvaluatedExpression {
     self.side_effects = false;
   }
 
+  pub fn set_wrapped(
+    &mut self,
+    prefix: Option<BasicEvaluatedExpression>,
+    postfix: Option<BasicEvaluatedExpression>,
+    inner_expressions: Vec<BasicEvaluatedExpression>,
+  ) {
+    self.ty = Ty::Wrapped;
+    self.prefix = prefix.map(Box::new);
+    self.postfix = postfix.map(Box::new);
+    self.wrapped_inner_expressions = Some(inner_expressions);
+    self.side_effects = true;
+  }
+
   pub fn string(&self) -> &String {
     self.string.as_ref().expect("make sure string exist")
   }
 
   pub fn identifier(&self) -> &String {
+    assert!(self.is_identifier());
     self
       .identifier
       .as_ref()
       .expect("make sure identifier exist")
+  }
+
+  pub fn root_info(&self) -> &ExportedVariableInfo {
+    assert!(self.is_identifier());
+    self.root_info.as_ref().expect("make sure identifier exist")
   }
 
   pub fn regexp(&self) -> &Regexp {
@@ -336,22 +425,76 @@ impl BasicEvaluatedExpression {
     self.boolean.expect("make sure bool exist")
   }
 
+  pub fn range(&self) -> (u32, u32) {
+    let range = self.range.expect("range should not empty");
+    (range.start(), range.end())
+  }
+
+  pub fn prefix(&self) -> Option<&BasicEvaluatedExpression> {
+    assert!(self.is_wrapped(), "prefix is only used in wrapped");
+    self.prefix.as_deref()
+  }
+
+  pub fn postfix(&self) -> Option<&BasicEvaluatedExpression> {
+    assert!(self.is_wrapped(), "postfix is only used in wrapped");
+    self.postfix.as_deref()
+  }
+
+  pub fn template_string_kind(&self) -> TemplateStringKind {
+    assert!(self.is_template_string());
+    self
+      .template_string_kind
+      .expect("make sure template string exist")
+  }
+
   pub fn parts(&self) -> &Vec<BasicEvaluatedExpression> {
+    assert!(self.is_template_string());
     self
       .parts
       .as_ref()
       .expect("make sure template string exist")
   }
 
-  pub fn range(&self) -> (u32, u32) {
-    let range = self.range.expect("range should not empty");
-    (range.start(), range.end())
+  pub fn quasis(&self) -> &Vec<BasicEvaluatedExpression> {
+    assert!(self.is_template_string(),);
+    self
+      .quasis
+      .as_ref()
+      .expect("quasis must exists for template string")
+  }
+
+  pub fn number(&self) -> Number {
+    assert!(self.is_number());
+    self.number.expect("number must exists in ty::number")
   }
 }
 
 pub fn evaluate_to_string(value: String, start: u32, end: u32) -> BasicEvaluatedExpression {
   let mut eval = BasicEvaluatedExpression::with_range(start, end);
   eval.set_string(value);
+  eval
+}
+
+pub fn evaluate_to_identifier(
+  identifier: String,
+  root_info: String,
+  truthy: Option<bool>,
+  start: u32,
+  end: u32,
+) -> BasicEvaluatedExpression {
+  let mut eval = BasicEvaluatedExpression::with_range(start, end);
+  eval.set_identifier(identifier, ExportedVariableInfo::Name(root_info));
+  eval.set_side_effects(false);
+  match truthy {
+    Some(v) => {
+      if v {
+        eval.set_truthy();
+      } else {
+        eval.set_falsy();
+      }
+    }
+    None => eval.set_nullish(true),
+  };
   eval
 }
 

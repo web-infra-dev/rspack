@@ -2,10 +2,10 @@ use std::borrow::Cow;
 use std::hash::Hash;
 use std::iter;
 
-use rspack_core_macros::impl_source_map_config;
 use rspack_error::{error, impl_empty_diagnosable_trait, Diagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
+use rspack_macros::impl_source_map_config;
 use rspack_util::source_map::SourceMapKind;
 use rustc_hash::FxHashMap as HashMap;
 use serde::Serialize;
@@ -13,11 +13,12 @@ use serde::Serialize;
 use crate::{
   extract_url_and_global, impl_build_info_meta, property_access,
   rspack_sources::{BoxSource, RawSource, Source, SourceExt},
-  to_identifier, AsyncDependenciesBlockId, BuildContext, BuildInfo, BuildMeta,
+  to_identifier, AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildMeta,
   BuildMetaExportsType, BuildResult, ChunkInitFragments, ChunkUkey, CodeGenerationDataUrl,
   CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId,
   ExternalType, InitFragmentExt, InitFragmentKey, InitFragmentStage, LibIdentOptions, Module,
-  ModuleType, NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType,
+  ModuleType, NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency,
+  StaticExportsSpec,
 };
 
 static EXTERNAL_MODULE_JS_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
@@ -85,7 +86,7 @@ fn get_source_for_default_case(_optional: bool, request: &ExternalRequestValue) 
 #[derive(Debug)]
 pub struct ExternalModule {
   dependencies: Vec<DependencyId>,
-  blocks: Vec<AsyncDependenciesBlockId>,
+  blocks: Vec<AsyncDependenciesBlockIdentifier>,
   id: Identifier,
   pub request: ExternalRequest,
   external_type: ExternalType,
@@ -223,7 +224,7 @@ module.exports = new Promise(function(resolve, reject) {{
       }
       "amd" | "amd-require" | "umd" | "umd2" | "system" | "jsonp" => {
         let id = compilation
-          .module_graph
+          .get_module_graph()
           .module_graph_module_by_identifier(&self.identifier())
           .map(|m| m.id(&compilation.chunk_graph))
           .unwrap_or_default();
@@ -242,7 +243,7 @@ module.exports = new Promise(function(resolve, reject) {{
       "module" if let Some(request) = request => {
         if compilation.options.output.module {
           let id = compilation
-            .module_graph
+            .get_module_graph()
             .module_graph_module_by_identifier(&self.identifier())
             .map(|m| m.id(&compilation.chunk_graph))
             .unwrap_or_default();
@@ -292,11 +293,11 @@ impl Identifiable for ExternalModule {
 }
 
 impl DependenciesBlock for ExternalModule {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockId) {
+  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
     self.blocks.push(block)
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockId] {
+  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
     &self.blocks
   }
 
@@ -377,6 +378,7 @@ impl Module for ExternalModule {
       dependencies: Vec::new(),
       blocks: Vec::new(),
       analyze_result: Default::default(),
+      optimization_bailouts: vec![],
     };
     // TODO add exports_type for request
     match self.external_type.as_str() {
@@ -390,6 +392,12 @@ impl Module for ExternalModule {
       }
       _ => build_result.build_meta.exports_type = BuildMetaExportsType::Dynamic,
     }
+    build_result
+      .dependencies
+      .push(Box::new(StaticExportsDependency::new(
+        StaticExportsSpec::True,
+        false,
+      )));
     Ok(build_result)
   }
 
@@ -399,6 +407,7 @@ impl Module for ExternalModule {
     _runtime: Option<&RuntimeSpec>,
     _: Option<ConcatenationScope>,
   ) -> Result<CodeGenerationResult> {
+    // TODO: ConcatenationScope
     let mut cgr = CodeGenerationResult::default();
     let (request, external_type) = self.get_request_and_external_type();
     match self.external_type.as_str() {

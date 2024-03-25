@@ -5,10 +5,11 @@ use swc_core::ecma::ast::Tpl;
 use super::BasicEvaluatedExpression;
 use crate::visitors::JavascriptParser;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum TemplateStringKind {
   Cooked,
-  // Raw,
+  // String.raw`./${a}.js`
+  Raw,
 }
 
 fn get_simplified_template_result(

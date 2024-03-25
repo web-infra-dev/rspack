@@ -19,7 +19,7 @@ module.exports = {
 			remoteType: "commonjs-module",
 			remotes: {
 				"container-no-shared":
-					"../../1-transitive-overriding/dist/container-no-shared.js"
+					"../1-transitive-overriding/container-no-shared.js"
 			},
 			shared: {
 				"./shared": {

@@ -27,7 +27,7 @@ impl RuntimeModule for NonceRuntimeModule {
     self.id
   }
 
-  fn generate(&self, _: &Compilation) -> BoxSource {
-    RawSource::from(format!("{} = undefined;", RuntimeGlobals::SCRIPT_NONCE)).boxed()
+  fn generate(&self, _: &Compilation) -> rspack_error::Result<BoxSource> {
+    Ok(RawSource::from(format!("{} = undefined;", RuntimeGlobals::SCRIPT_NONCE)).boxed())
   }
 }

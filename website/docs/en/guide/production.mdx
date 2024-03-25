@@ -1,0 +1,9 @@
+# Production
+
+## Source Mapping
+
+It is recommended to enable SourceMap for production environments to facilitate debugging in production environments. If you have a large project, it is recommended that you choose a configuration with better performance (see [devtool](config/devtool) for more options), such as the `source-map` configuration option.
+
+## Minification
+
+Rspack uses the built-in minimizer to compress JavaScript and CSS code by default, which can be configured by [builtins.minifyOptions](config/builtins#builtinsminifyoptions). If the built-in minimizer cannot meet your needs, you can use [optimization.minimizer](config/optimization#optimizationminimizer) to set a custom minimizer.

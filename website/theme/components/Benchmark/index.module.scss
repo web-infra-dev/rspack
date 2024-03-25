@@ -1,0 +1,44 @@
+.title {
+  background: linear-gradient(to right, #d3c357, #f1a76a, #cc6d2e);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.progress-bar-container {
+  width: 50vw;
+  height: 50px;
+  border-radius: 10px;
+  padding: 4px;
+  border: 1px solid var(--rp-c-gray-light-4);
+  box-sizing: content-box;
+}
+
+.progress-bar-inner-container {
+  height: 50px;
+  background: var(--rp-c-gray-light-4);
+  border-radius: 5px;
+}
+
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(to right, #d3c357, #f1a76a, #cc6d2e);
+  border-radius: 5px;
+}
+
+.font-mono {
+  font-family: Menlo, Monaco, Lucida Console, Liberation Mono, DejaVu Sans Mono,
+    Bitstream Vera Sans Mono, Courier New, monospace;
+}
+
+:global(.dark) {
+  .progress-bar-inner-container {
+    background: var(--rp-c-gray-dark-2);
+  }
+}
+
+@media (max-width: 768px) {
+  .progress-bar-container,
+  .progress-bar-inner-container {
+    height: 30px;
+  }
+}

@@ -23,9 +23,14 @@ static HASH_REPLACERS: Lazy<Vec<(&Lazy<Regex>, &str)>> = Lazy::new(|| {
   ]
 });
 
-pub fn get_filename_without_hash_length(filename: &Filename) -> (Filename, HashMap<String, usize>) {
+pub fn get_filename_without_hash_length<F: Clone>(
+  filename: &Filename<F>,
+) -> (Filename<F>, HashMap<String, usize>) {
   let mut hash_len_map = HashMap::new();
-  let mut template = filename.template().to_string();
+  let Some(template) = filename.template() else {
+    return (filename.clone(), hash_len_map);
+  };
+  let mut template = template.to_string();
   for (reg, key) in HASH_REPLACERS.iter() {
     template = reg
       .replace_all(&template, |caps: &Captures| {

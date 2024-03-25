@@ -66,7 +66,7 @@ mod node_test {
     #[napi(constructor)]
     pub fn new(env: Env, fs: ThreadsafeNodeFS) -> Self {
       Self {
-        writable_fs: AsyncNodeWritableFileSystem::new(env, fs).unwrap(),
+        writable_fs: AsyncNodeWritableFileSystem::new(fs).unwrap(),
       }
     }
 

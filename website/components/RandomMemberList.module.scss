@@ -1,0 +1,35 @@
+.wrapper {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  width: 20%;
+  max-width: 20%;
+  margin: 24px 0;
+
+  &:hover {
+    .avatar {
+      transform: scale(1.15);
+    }
+  }
+}
+
+.avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  transition: all 0.2s ease-in-out;
+  background-color: #f8f8f8;
+}
+
+.name {
+  margin-top: 12px;
+  font-size: 13px;
+  color: rgb(0, 53, 67);
+}

@@ -1,0 +1,134 @@
+# 配置 Rspack
+
+Rspack 提供了与 webpack 相似的配置项，通过本章节，你可以了解 Rspack 配置的使用方式。
+
+## 配置文件
+
+当你运行 Rspack 的命令行工具时，Rspack 会自动读取当前路径下的 `rspack.config.js` 文件。
+
+一个基础的 Rspack 配置文件如下所示：
+
+```ts title="rspack.config.js"
+module.exports = {
+  entry: {
+    main: './src/index.js',
+  },
+};
+```
+
+### 支持的配置文件格式
+
+Rspack 支持四种配置文件，支持`.js`，`.ts`，`.cjs` 和 `.mjs` 格式:
+
+- `rspack.config.js`: 默认为 `CommonJS` 格式，如果所在 package.json 的 type 为 module 则变成 `ES Module` 格式。
+- `rspack.config.ts`: `TypeScript`格式，内部会使用 `ts-node` 将其编译为 `.js` 格式。
+- `rspack.config.cjs`: 强制为 `CommonJS` 格式。
+- `rspack.config.mjs`: 强制为 `ES module` 格式。
+
+`CommonJS` 和 `ES Module`的区别请参考 [ES Module](https://nodejs.org/api/esm.html#modules-ecmascript-modules) 和 [CommonJS](https://nodejs.org/api/modules.html)
+
+### 配置类型检查
+
+`rspack.config.js` 是一个 JavaScript 文件，你可以通过 JSDoc 来启用 IDE 的智能补全和 TypeScript 类型检查。
+
+```js title="rspack.config.js"
+// @ts-check
+
+/** @type {import('@rspack/cli').Configuration} */
+const config = {
+  entry: {
+    main: './src/index.js',
+  },
+};
+module.exports = config;
+```
+
+你也可以使用 `defineConfig` 工具函数，它提供了针对配置的自动补全：
+
+```js title="rspack.config.js"
+// @ts-check
+
+const { defineConfig } = require('@rspack/cli');
+
+const config = defineConfig({
+  entry: {
+    main: './src/index.js',
+  },
+});
+module.exports = config;
+```
+
+另外，你也可以使用 TypeScript 作为配置文件。默认的 TypeScript 配置文件名称是 `rspack.config.ts`。
+
+```ts title="rspack.config.ts"
+import { Configuration } from '@rspack/cli';
+const config: Configuration = {
+  entry: {
+    main: './src/index.js',
+  },
+};
+export = config;
+```
+
+你需要把 `ts-node` 安装为 `devDependencies`，这样 Rspack 才能解析 `ts` 扩展。
+
+```json title="package.json"
+{
+  "devDependencies": {
+    "ts-node": "^10.9.1"
+  }
+}
+```
+
+注意，如果 JS 文件不存在，Rspack 将首先搜索 JavaScript，然后才是 TypeScript。
+
+## 指定配置文件
+
+Rspack 命令行支持通过 `--config` 选项来指定配置文件的名称。
+
+例如，你需要在执行 build 时使用 `rspack.prod.config.js` 文件，可以在 `package.json` 中添加如下配置：
+
+```json title="package.json"
+{
+  "scripts": {
+    "dev": "rspack serve",
+    "build": "rspack build --config rspack.prod.config.js"
+  }
+}
+```
+
+你也可以将 `--config` 选项缩写为 `-c`：
+
+```bash
+$ rspack build -c rspack.prod.config.js
+```
+
+## 导出配置函数
+
+Rspack 支持在 `rspack.config.js` 中导出一个函数，你可以在函数中动态计算配置，并返回给 Rspack。
+
+```js title="rspack.config.js"
+module.exports = function (env, argv) {
+  return {
+    devtool: env.production ? 'source-map' : 'eval',
+  };
+};
+```
+
+从上述示例中可以看到，该函数接受两个入参：
+
+- 第一个参数为 `env`，对应运行 CLI 命令时 `--env` 选项的值。
+- 第二个参数为 `argv`，包含传递给 CLI 的所有选项。
+
+### 判断当前环境
+
+除了通过 `env` 参数，通过 `process.env.NODE_ENV` 来判断当前环境是更常见的方式：
+
+```js title="rspack.config.js"
+module.exports = function (env, argv) {
+  const isProduction = process.env.NODE_ENV === 'production';
+  return {
+    devtool: isProduction ? 'source-map' : 'eval',
+  };
+};
+```

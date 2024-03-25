@@ -3,6 +3,7 @@ use std::io;
 use std::path::Path;
 use std::str::FromStr;
 use std::sync::atomic::AtomicBool;
+use std::sync::atomic::Ordering;
 
 use tracing::Level;
 use tracing_chrome::FlushGuard;
@@ -30,7 +31,7 @@ impl<S> Filter<S> for FilterEvent {
 }
 
 pub fn enable_tracing_by_env(filter: &str, output: &str) {
-  if !IS_TRACING_ENABLED.swap(true, std::sync::atomic::Ordering::SeqCst) {
+  if !IS_TRACING_ENABLED.swap(true, Ordering::Relaxed) {
     use tracing_subscriber::{fmt, prelude::*};
     let layers = generate_common_layers(filter);
     let trace_writer = TraceWriter::from(output);
@@ -85,7 +86,7 @@ fn generate_common_layers(
 }
 
 pub fn enable_tracing_by_env_with_chrome_layer(filter: &str, output: &str) -> Option<FlushGuard> {
-  if !IS_TRACING_ENABLED.swap(true, std::sync::atomic::Ordering::SeqCst) {
+  if !IS_TRACING_ENABLED.swap(true, Ordering::Relaxed) {
     use tracing_chrome::ChromeLayerBuilder;
     use tracing_subscriber::prelude::*;
 

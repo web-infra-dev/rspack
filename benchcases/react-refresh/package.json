@@ -11,10 +11,10 @@
   "keywords": [],
   "author": "",
   "license": "MIT",
-  "dependencies": {
+  "devDependencies": {
     "@rspack/cli": "workspace:*",
     "react": "18.0.0",
     "react-dom": "18.0.0",
-    "react-refresh": "0.13.0"
+    "react-refresh": "0.14.0"
   }
 }

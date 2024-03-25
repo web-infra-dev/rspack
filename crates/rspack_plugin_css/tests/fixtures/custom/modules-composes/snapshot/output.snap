@@ -2,14 +2,14 @@
 source: crates/rspack_testing/src/run_fixture.rs
 ---
 ```css title=main.css
-._d-module__d-1---__c54e45bb853e1f4b-c54 {
-  color: green;
-}
-._d-module__d---__a50f36a1833ad924-a50 {}
 ._f-module__f-1---___85bca5b4a297a364-_85 {
   color: black;
 }
 ._f-module__f---___141af47168767e48-_14 {}
+._d-module__d-1---__c54e45bb853e1f4b-c54 {
+  color: green;
+}
+._d-module__d---__a50f36a1833ad924-a50 {}
 ._b-module__b-1---___1d9724eea6aa131c-_1d {
   color: red;
 }

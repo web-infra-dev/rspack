@@ -21,8 +21,14 @@ export type StatsAsset = KnownStatsAsset & Record<string, any>;
 
 export type StatsChunk = KnownStatsChunk & Record<string, any>;
 
-export type KnownStatsModule = binding.JsStatsModule & {
+export type KnownStatsModule = Omit<
+	binding.JsStatsModule,
+	"usedExports" | "providedExports" | "optimizationBailout"
+> & {
 	profile?: StatsProfile;
+	usedExports?: null | string[] | boolean;
+	providedExports?: null | string[];
+	optimizationBailout?: null | string[];
 };
 
 export type StatsProfile = KnownStatsProfile & Record<string, any>;
@@ -303,8 +309,8 @@ const getItemSize = (item: Child) => {
 	return !item.children
 		? 1
 		: item.filteredChildren
-		? 2 + getTotalSize(item.children)
-		: 1 + getTotalSize(item.children);
+			? 2 + getTotalSize(item.children)
+			: 1 + getTotalSize(item.children);
 };
 
 export const spaceLimited = (

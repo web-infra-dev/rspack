@@ -23,9 +23,8 @@ it("should download the missing update chunk on import", () => {
 				expect(chunk.default).toBe(10);
 				expect(unaffectedChunk.default).toBe(10);
 				return module.hot.apply().then(() => {
-					// TODO
-					// expect(value).toBe(2);
-					// expect(chunk.default).toBe(20);
+					expect(value).toBe(2);
+					expect(chunk.default).toBe(20);
 					expect(unaffectedChunk.default).toBe(10);
 				});
 			});

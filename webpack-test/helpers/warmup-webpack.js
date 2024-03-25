@@ -15,7 +15,8 @@ describe("warmup", () => {
 			err => {
 				webpack = undefined;
 				try {
-					expect(err).toBe(END);
+					// CHANGE: rspack will format error into diagnostic.
+					expect(err.message).toContain("end warmup");
 					done();
 				} catch (e) {
 					done(e);

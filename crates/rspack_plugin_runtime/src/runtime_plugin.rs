@@ -3,12 +3,11 @@ use std::hash::Hash;
 use async_trait::async_trait;
 use once_cell::sync::Lazy;
 use rspack_core::{
-  get_css_chunk_filename_template, get_js_chunk_filename_template,
-  AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, ChunkLoading,
-  JsChunkHashArgs, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput,
+  get_css_chunk_filename_template, get_js_chunk_filename_template, has_hash_placeholder,
+  AdditionalModuleRequirementsArgs, ChunkLoading, JsChunkHashArgs, Plugin,
   PluginAdditionalModuleRequirementsOutput, PluginContext, PluginJsChunkHashHookOutput,
   PluginRuntimeRequirementsInTreeOutput, PublicPath, RuntimeGlobals, RuntimeModuleExt,
-  RuntimeRequirementsInTreeArgs, SourceType, FULL_HASH_PLACEHOLDER, HASH_PLACEHOLDER,
+  RuntimeRequirementsInTreeArgs, SourceType,
 };
 
 use crate::runtime_module::{
@@ -144,31 +143,6 @@ impl Plugin for RuntimePlugin {
     "rspack.RuntimePlugin"
   }
 
-  async fn additional_tree_runtime_requirements(
-    &self,
-    _ctx: PluginContext,
-    args: &mut AdditionalChunkRuntimeRequirementsArgs,
-  ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
-    let compilation = &args.compilation;
-    let chunk = args.chunk();
-    if args
-      .runtime_requirements
-      .contains(RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES)
-      || (args
-        .runtime_requirements
-        .contains(RuntimeGlobals::ENSURE_CHUNK)
-        && !chunk
-          .get_all_async_chunks(&compilation.chunk_group_by_ukey)
-          .is_empty())
-    {
-      args
-        .runtime_requirements
-        .insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
-    }
-
-    Ok(())
-  }
-
   #[allow(clippy::unwrap_in_result)]
   fn runtime_requirements_in_module(
     &self,
@@ -224,17 +198,15 @@ impl Plugin for RuntimePlugin {
     }
 
     if (runtime_requirements.contains(RuntimeGlobals::GET_CHUNK_UPDATE_SCRIPT_FILENAME)
-      && compilation
-        .options
-        .output
-        .hot_update_chunk_filename
-        .has_hash_placeholder())
-      || (runtime_requirements.contains(RuntimeGlobals::GET_UPDATE_MANIFEST_FILENAME)
-        && compilation
+      && has_hash_placeholder(
+        compilation
           .options
           .output
-          .hot_update_main_filename
-          .has_hash_placeholder())
+          .hot_update_chunk_filename
+          .as_str(),
+      ))
+      || (runtime_requirements.contains(RuntimeGlobals::GET_UPDATE_MANIFEST_FILENAME)
+        && has_hash_placeholder(compilation.options.output.hot_update_main_filename.as_str()))
     {
       runtime_requirements_mut.insert(RuntimeGlobals::GET_FULL_HASH);
     }
@@ -260,20 +232,16 @@ impl Plugin for RuntimePlugin {
       runtime_requirements_mut.insert(RuntimeGlobals::GLOBAL);
     }
 
-    if runtime_requirements.contains(RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME) {
-      let chunk_filename = compilation.options.output.chunk_filename.template();
-      if FULL_HASH_PLACEHOLDER.is_match(chunk_filename) || HASH_PLACEHOLDER.is_match(chunk_filename)
-      {
-        runtime_requirements_mut.insert(RuntimeGlobals::GET_FULL_HASH);
-      }
+    if runtime_requirements.contains(RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME)
+      && matches!(compilation.options.output.chunk_filename.template(), Some(template) if has_hash_placeholder(template))
+    {
+      runtime_requirements_mut.insert(RuntimeGlobals::GET_FULL_HASH);
     }
 
-    if runtime_requirements.contains(RuntimeGlobals::GET_CHUNK_CSS_FILENAME) {
-      let chunk_filename = compilation.options.output.css_chunk_filename.template();
-      if FULL_HASH_PLACEHOLDER.is_match(chunk_filename) || HASH_PLACEHOLDER.is_match(chunk_filename)
-      {
-        runtime_requirements_mut.insert(RuntimeGlobals::GET_FULL_HASH);
-      }
+    if runtime_requirements.contains(RuntimeGlobals::GET_CHUNK_CSS_FILENAME)
+      && matches!(compilation.options.output.css_chunk_filename.template(), Some(template) if has_hash_placeholder(template))
+    {
+      runtime_requirements_mut.insert(RuntimeGlobals::GET_FULL_HASH);
     }
 
     if runtime_requirements.contains(RuntimeGlobals::PREFETCH_CHUNK) {
@@ -407,8 +375,8 @@ impl Plugin for RuntimePlugin {
                   .options
                   .output
                   .hot_update_main_filename
-                  .template()
-                  .to_string(),
+                  .clone()
+                  .into(),
               )
               .boxed(),
             )

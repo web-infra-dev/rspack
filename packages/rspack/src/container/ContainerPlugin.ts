@@ -1,12 +1,15 @@
-import { RawContainerPluginOptions, BuiltinPlugin } from "@rspack/binding";
 import {
-	BuiltinPluginName,
+	RawContainerPluginOptions,
+	BuiltinPlugin,
+	BuiltinPluginName
+} from "@rspack/binding";
+import {
 	RspackBuiltinPlugin,
 	createBuiltinPlugin
 } from "../builtin-plugin/base";
 import {
 	EntryRuntime,
-	Filename,
+	FilenameTemplate,
 	LibraryOptions,
 	getRawEntryRuntime,
 	getRawLibrary
@@ -18,7 +21,7 @@ import { ShareRuntimePlugin } from "../sharing/ShareRuntimePlugin";
 
 export type ContainerPluginOptions = {
 	exposes: Exposes;
-	filename?: Filename;
+	filename?: FilenameTemplate;
 	library?: LibraryOptions;
 	name: string;
 	runtime?: EntryRuntime;

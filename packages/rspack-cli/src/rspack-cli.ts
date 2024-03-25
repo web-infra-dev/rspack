@@ -43,6 +43,8 @@ export class RspackCLI {
 		callback?: (e: Error | null, res?: Stats | MultiStats) => void
 	) {
 		process.env.RSPACK_CONFIG_VALIDATE = "loose";
+		process.env.WATCHPACK_WATCHER_LIMIT =
+			process.env.WATCHPACK_WATCHER_LIMIT || "20";
 		let nodeEnv = process?.env?.NODE_ENV;
 		let rspackCommandDefaultEnv =
 			rspackCommand === "build" ? "production" : "development";

@@ -2,6 +2,7 @@
 
 use std::hash::Hash;
 
+use async_trait::async_trait;
 use rayon::prelude::*;
 use rspack_core::rspack_sources::ReplaceSource;
 use rspack_core::{
@@ -11,18 +12,19 @@ use rspack_core::{
   SourceType,
 };
 use rspack_core::{
-  ChunkLoading, ChunkLoadingType, Compilation, CompilationArgs, CompilationParams, CompilerOptions,
-  DependencyType, LibIdentOptions, PluginCompilationHookOutput, PluginContext,
-  PluginRuntimeRequirementsInTreeOutput, PublicPath, RuntimeGlobals, RuntimeRequirementsInTreeArgs,
+  ChunkLoading, ChunkLoadingType, Compilation, CompilationParams, CompilerOptions, DependencyType,
+  LibIdentOptions, PluginContext, PluginRuntimeRequirementsInTreeOutput, PublicPath,
+  RuntimeGlobals, RuntimeRequirementsInTreeArgs,
 };
 use rspack_error::{IntoTWithDiagnosticArray, Result};
 use rspack_hash::RspackHash;
+use rspack_hook::{plugin_hook, AsyncSeries2};
 use rspack_plugin_runtime::is_enabled_for_chunk;
 
 use crate::parser_and_generator::CssParserAndGenerator;
 use crate::runtime::CssLoadingRuntimeModule;
 use crate::utils::AUTO_PUBLIC_PATH_PLACEHOLDER_REGEX;
-use crate::CssPlugin;
+use crate::{plugin::CssPluginInner, CssPlugin};
 
 struct CssModuleDebugInfo<'a> {
   pub module: &'a dyn Module,
@@ -111,7 +113,25 @@ impl CssPlugin {
   }
 }
 
-#[async_trait::async_trait]
+#[plugin_hook(AsyncSeries2<Compilation, CompilationParams> for CssPlugin)]
+async fn compilation(
+  &self,
+  compilation: &mut Compilation,
+  params: &mut CompilationParams,
+) -> Result<()> {
+  compilation.set_dependency_factory(DependencyType::CssUrl, params.normal_module_factory.clone());
+  compilation.set_dependency_factory(
+    DependencyType::CssImport,
+    params.normal_module_factory.clone(),
+  );
+  compilation.set_dependency_factory(
+    DependencyType::CssCompose,
+    params.normal_module_factory.clone(),
+  );
+  Ok(())
+}
+
+#[async_trait]
 impl Plugin for CssPlugin {
   fn name(&self) -> &'static str {
     "css"
@@ -122,6 +142,12 @@ impl Plugin for CssPlugin {
     ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
     _options: &mut CompilerOptions,
   ) -> Result<()> {
+    ctx
+      .context
+      .compiler_hooks
+      .compilation
+      .tap(compilation::new(self));
+
     let config = self.config.clone();
     let builder = move || {
       Box::new(CssParserAndGenerator {
@@ -143,25 +169,6 @@ impl Plugin for CssPlugin {
     Ok(())
   }
 
-  async fn compilation(
-    &self,
-    args: CompilationArgs<'_>,
-    params: &CompilationParams,
-  ) -> PluginCompilationHookOutput {
-    args
-      .compilation
-      .set_dependency_factory(DependencyType::CssUrl, params.normal_module_factory.clone());
-    args.compilation.set_dependency_factory(
-      DependencyType::CssImport,
-      params.normal_module_factory.clone(),
-    );
-    args.compilation.set_dependency_factory(
-      DependencyType::CssCompose,
-      params.normal_module_factory.clone(),
-    );
-    Ok(())
-  }
-
   async fn content_hash(
     &self,
     _ctx: rspack_core::PluginContext,
@@ -172,7 +179,7 @@ impl Plugin for CssPlugin {
     let ordered_modules = Self::get_ordered_chunk_css_modules(
       chunk,
       &compilation.chunk_graph,
-      &compilation.module_graph,
+      compilation.get_module_graph(),
       compilation,
     );
     let mut hasher = RspackHash::from(&compilation.options.output);
@@ -214,7 +221,7 @@ impl Plugin for CssPlugin {
     let ordered_css_modules = Self::get_ordered_chunk_css_modules(
       chunk,
       &compilation.chunk_graph,
-      &compilation.module_graph,
+      compilation.get_module_graph(),
       compilation,
     );
 
@@ -241,7 +248,7 @@ impl Plugin for CssPlugin {
             .map(|i| i.rendered(compilation.options.output.hash_digest_length)),
         )
         .runtime(&chunk.runtime),
-    );
+    )?;
 
     let content = source.source();
     let auto_public_path_matches: Vec<_> = AUTO_PUBLIC_PATH_PLACEHOLDER_REGEX
@@ -282,7 +289,8 @@ impl Plugin for CssPlugin {
     let runtime_requirements = args.runtime_requirements;
     let runtime_requirements_mut = &mut args.runtime_requirements_mut;
 
-    if (runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
+    if (runtime_requirements.contains(RuntimeGlobals::HAS_CSS_MODULES)
+      || runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
       || runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS))
       && is_enabled_for_chunk
     {

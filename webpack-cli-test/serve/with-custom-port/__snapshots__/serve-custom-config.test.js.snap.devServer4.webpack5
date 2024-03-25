@@ -1,0 +1,33 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`serve with devServer in config Passing hot flag works alongside other server config: stderr 1`] = `
+"<i> [webpack-dev-server] Project is running at:
+<i> [webpack-dev-server] Loopback: http://localhost:<port>/
+<i> [webpack-dev-server] On Your Network (IPv4): http://<network-ip-v4>:<port>/
+<i> [webpack-dev-server] On Your Network (IPv6): http://[<network-ip-v6>]:<port>/
+<i> [webpack-dev-server] Content not from webpack is served from '<cwd>/test/serve/with-custom-port/public' directory"
+`;
+
+exports[`serve with devServer in config Port flag should override the config port: stderr 1`] = `
+"<i> [webpack-dev-server] Project is running at:
+<i> [webpack-dev-server] Loopback: http://localhost:<port>/
+<i> [webpack-dev-server] On Your Network (IPv4): http://<network-ip-v4>:<port>/
+<i> [webpack-dev-server] On Your Network (IPv6): http://[<network-ip-v6>]:<port>/
+<i> [webpack-dev-server] Content not from webpack is served from '<cwd>/test/serve/with-custom-port/public' directory"
+`;
+
+exports[`serve with devServer in config Should pick up the host and port from config: stderr 1`] = `
+"<i> [webpack-dev-server] Project is running at:
+<i> [webpack-dev-server] Loopback: http://localhost:<port>/
+<i> [webpack-dev-server] On Your Network (IPv4): http://<network-ip-v4>:<port>/
+<i> [webpack-dev-server] On Your Network (IPv6): http://[<network-ip-v6>]:<port>/
+<i> [webpack-dev-server] Content not from webpack is served from '<cwd>/test/serve/with-custom-port/public' directory"
+`;
+
+exports[`serve with devServer in config works fine when no-hot flag is passed alongside other server config: stderr 1`] = `
+"<i> [webpack-dev-server] Project is running at:
+<i> [webpack-dev-server] Loopback: http://localhost:<port>/
+<i> [webpack-dev-server] On Your Network (IPv4): http://<network-ip-v4>:<port>/
+<i> [webpack-dev-server] On Your Network (IPv6): http://[<network-ip-v6>]:<port>/
+<i> [webpack-dev-server] Content not from webpack is served from '<cwd>/test/serve/with-custom-port/public' directory"
+`;

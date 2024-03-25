@@ -7,6 +7,6 @@ it("entrypoints should works", () => {
 		"utf-8"
 	);
 	expect(content).toBe(`entry name: main
-  file: main.js
+  file: bundle0.js
 `);
 });

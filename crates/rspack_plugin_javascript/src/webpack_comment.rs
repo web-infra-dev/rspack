@@ -13,6 +13,7 @@ pub enum WebpackComment {
   Prefetch,
   Preload,
   Ignore,
+  Mode,
 }
 
 pub struct WebpackCommentMap(FxHashMap<WebpackComment, String>);
@@ -24,6 +25,10 @@ impl WebpackCommentMap {
 
   fn insert(&mut self, key: WebpackComment, value: String) {
     self.0.insert(key, value);
+  }
+
+  pub fn get_webpack_mode(&self) -> Option<&String> {
+    self.0.get(&WebpackComment::Mode)
   }
 
   pub fn get_webpack_chunk_name(&self) -> Option<&String> {
@@ -170,6 +175,24 @@ pub fn try_extract_webpack_magic_comment(
                   source_file,
                   item_name,
                   "true or false",
+                  &captures,
+                  warning_diagnostics,
+                  import_span,
+                );
+              }
+            }
+            "webpackMode" => {
+              if let Some(item_value_match) = captures
+                .name("_1")
+                .or(captures.name("_2"))
+                .or(captures.name("_3"))
+              {
+                result.insert(WebpackComment::Mode, item_value_match.as_str().to_string());
+              } else {
+                add_magic_comment_warning(
+                  source_file,
+                  item_name,
+                  "a string",
                   &captures,
                   warning_diagnostics,
                   import_span,

@@ -1,0 +1,23 @@
+# 简介
+
+Rspack 提供了多种接口来自定义编译过程，包括：
+
+## CLI
+
+命令行界面（CLI），用于配置构建过程并于之交互，支持了日常开发常用的 dev、build 等功能。详情可参考 [CLI](/api/cli)。
+
+## Modules
+
+Modules 接口用于定义支持的模语法和方法，详情可参考 [Modules 接口](/api/modules)。
+
+## Hot Module Replacement 接口
+
+Hot Module Replacement(HMR) 接口用于实现模块热替换，详情可参考 [Hot Module Replacement 接口](/api/hmr)。
+
+## Loader 接口
+
+Loader 用于对模块的源码进行转换，详情可参考 [Loader 接口](/api/loader-api)。
+
+## Plugin 接口
+
+Plugin 允许用户介入编译流程。插件可以在不同的生命周期上注册回调函数，从而修改用户的编译过程，详情可参考 [Plugin 接口](/api/plugin-api)。

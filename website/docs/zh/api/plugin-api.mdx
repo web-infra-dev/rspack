@@ -1,0 +1,235 @@
+import { ApiMeta, Stability } from '@components/ApiMeta';
+import WebpackLicense from '../../../components/webpack-license';
+
+<WebpackLicense
+  from={[
+    'https://webpack.js.org/api/compiler-hooks/',
+    'https://webpack.js.org/api/compilation-hooks/',
+  ]}
+/>
+
+# Plugin 接口
+
+<ApiMeta stability={Stability.Experimental} />
+
+::: info Webpack Plugin 接口支持情况
+你可以查看 [这个](https://github.com/orgs/web-infra-dev/projects/9) 页面来了解目前 Webpack Plugin 接口的支持情况。
+:::
+
+## Compiler 钩子
+
+### `environment`
+
+`SyncHook<[]>`
+
+在编译器准备环境时，初始化插件之后调用。
+
+### `afterEnvironment`
+
+`SyncHook<[]>`
+
+当编译器环境准备完成后，在 `environment` 钩子后直接调用。
+
+### `afterPlugins`
+
+`SyncHook<[Compiler]>`
+
+在初始化内部插件完成之后调用。
+
+### `afterResolvers`
+
+`SyncHook<[Compiler]>`
+
+resolver 设置完成之后触发。
+
+### `entryOption`
+
+`SyncBailHook<[string, EntryNormalized]>`
+
+在处理完入口配置后调用。
+
+### `initialize`
+
+`SyncHook<[]>`
+
+当编译器被初始化时调用。
+
+### `beforeRun`
+
+`AsyncSeriesHook<[Compiler]>`
+
+在开始执行一次构建之前调用。
+
+### `run`
+
+`AsyncSeriesHook<[Compiler]>`
+
+在开始执行一次构建时调用。
+
+### `childCompiler`
+
+`SyncHook[Compiler, string, number]`
+
+> 最低版本要求为 `>=0.4.1`.
+
+当创建好一个 childCompiler 后执行。
+
+### `watchRun`
+
+`AsyncSeriesHook<[Compiler]>`
+
+在监听模式下，开始执行一次构建时调用。
+
+### `compile`
+
+`SyncHook<[]>`
+
+在一个新的 compilation 创建之前调用。
+
+### `beforeCompile`
+
+`AsyncSeriesHook<[]>`
+
+在编译参数创建后执行插件。
+
+### `afterCompile`
+
+`AsyncSeriesHook<[Compilation]>`
+
+在完成并封闭(seal)编译后调用。
+
+### `thisCompilation`
+
+`SyncHook<[Compilation]>`
+
+创建 compilation 时调用，在触发 compilation 钩子之前调用。
+
+### `compilation`
+
+`SyncHook<[Compilation]>`
+
+compilation 创建之后执行。
+
+### `make`
+
+`AsyncParallelHook<[Compilation]>`
+
+make 阶段之前调用。
+
+### `shouldEmit`
+
+`SyncBailHook<[Compilation]>`
+
+> 最低版本要求为 `>=0.4.1`.
+
+返回值为一个布尔值，用于决定是否将资源写入到磁盘中。
+
+### `emit`
+
+`AsyncSeriesHook<[Compilation]>`
+
+输出产物之前执行。
+
+### `afterEmit`
+
+`AsyncSeriesHook<[Compilation]>`
+
+输出产物之后执行。
+
+### `done`
+
+`AsyncSeriesHook<Stats>`
+
+在构建完成时执行。
+
+### `afterDone`
+
+`AsyncSeriesHook<Stats>`
+
+在构建完成后，`done` 钩子调用之后执行。
+
+### `watchClose`
+
+`SyncHook<[]>`
+
+在监听模式下，compilation 停止时调用。
+
+### `failed`
+
+`SyncHook<[Error]>`
+
+在构建失败时调用。
+
+## Compilation 钩子
+
+### `buildModule`
+
+`SyncHook<[JsModule]>`
+
+在模块被构建之前调用，可以用来修改模块（Rspack 目前仅支持读）
+
+### `processAssets`
+
+`AsyncSeriesHook<[CompilationAssets]>`
+
+在产物输出之前进行修改产物。
+
+### `optimizeModules`
+
+`SyncBailHook<[JsModule[]]>`
+
+在模块优化阶段开始时调用。插件可以使用此钩子来对模块执行优化。
+
+### `optimizeChunkModule`
+
+`AsyncSeriesBailHook<[JsModule[]]>`
+
+在 `afterOptimizeTree` 之后，在块模块优化的开始时调用。插件可以使用此钩子来对块模块执行优化。
+
+### `succeedModule`
+
+`SyncHook<[JsModule]>`
+
+在模块成功构建后调用
+
+### `finishModules`
+
+`AsyncSeriesHook<[JsModule[]]>`
+
+当所有模块都没有错误地构建完成时调用。
+
+### `chunkAsset`
+
+`SyncHook<[JsChunk[], string /** filename*/ ]>`
+
+Triggered when an asset from a chunk was added to the compilation.
+
+当`chunk`的产物被添加到编译时触发。
+
+## NormalModuleFactory
+
+### `beforeResolve`
+
+`AsyncSeriesBailHook<[ResolveData]>`
+
+当遇到新的依赖请求时调用。可以通过返回 `false` 来忽略依赖项。否则，应该返回 `undefined` 以继续。
+
+### `afterResolve`
+
+`AsyncSeriesBailHook<[ResolveData]>`
+
+在请求被解析后调用。
+
+### `ResolveForScheme`
+
+`AsyncSeriesBailHook<[ResourceDataWithData]>`
+
+在带有 scheme 的解析（URI）请求之前调用。
+
+## ContextModuleFactory
+
+### `afterResolve`
+
+`AsyncSeriesBailHook<[ResolveData]>`
+
+在请求的目录解析后调用。

@@ -30,7 +30,7 @@ use swc_core::{
     atoms::Atom,
     parser::{EsConfig, Syntax},
     transforms::base::{
-      fixer::fixer,
+      fixer::{fixer, paren_remover},
       helpers::{self, Helpers},
       hygiene::hygiene,
       resolver,
@@ -212,8 +212,9 @@ pub fn minify(
 
           let program = helpers::HELPERS.set(&Helpers::new(false), || {
             HANDLER.set(handler, || {
-              let program =
-                program.fold_with(&mut resolver(unresolved_mark, top_level_mark, false));
+              let program = program
+                .fold_with(&mut resolver(unresolved_mark, top_level_mark, false))
+                .fold_with(&mut paren_remover(Some(&comments as &dyn Comments)));
 
               let mut program = swc_ecma_minifier::optimize(
                 program,

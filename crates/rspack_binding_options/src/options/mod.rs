@@ -1,7 +1,7 @@
 use napi_derive::napi;
 use rspack_core::{
-  CompilerOptions, Context, Experiments, IncrementalRebuild, IncrementalRebuildMakeState,
-  ModuleOptions, Optimization, OutputOptions, Target, TreeShaking,
+  CacheOptions, CompilerOptions, Context, Experiments, IncrementalRebuild,
+  IncrementalRebuildMakeState, ModuleOptions, Optimization, OutputOptions, Target, TreeShaking,
 };
 use serde::Deserialize;
 
@@ -44,7 +44,7 @@ pub trait RawOptionsApply {
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawOptions {
   #[napi(ts_type = "undefined | 'production' | 'development' | 'none'")]
   pub mode: Option<RawMode>,
@@ -81,7 +81,13 @@ impl RawOptions {
     let cache = self.cache.into();
     let experiments = Experiments {
       incremental_rebuild: IncrementalRebuild {
-        make: Some(IncrementalRebuildMakeState::default()),
+        make: if matches!(cache, CacheOptions::Disabled)
+          || self.experiments.rspack_future.new_treeshaking
+        {
+          None
+        } else {
+          Some(IncrementalRebuildMakeState::default())
+        },
         emit_asset: true,
       },
       new_split_chunks: self.experiments.new_split_chunks,

@@ -1,4 +1,5 @@
 import { AsyncSeriesBailHook, HookMap } from "tapable";
+import * as liteTapable from "./lite-tapable";
 import type * as binding from "@rspack/binding";
 
 type ResourceData = {
@@ -35,7 +36,7 @@ export class NormalModuleFactory {
 		resolveForScheme: HookMap<
 			AsyncSeriesBailHook<[ResourceDataWithData], true | void>
 		>;
-		beforeResolve: AsyncSeriesBailHook<[ResolveData], boolean | void>;
+		beforeResolve: liteTapable.AsyncSeriesBailHook<[ResolveData], false | void>;
 		afterResolve: AsyncSeriesBailHook<[ResolveData], boolean | void>;
 		createModule: AsyncSeriesBailHook<[CreateModuleData, {}], void>;
 	};
@@ -54,7 +55,7 @@ export class NormalModuleFactory {
 			// /** @type {AsyncSeriesBailHook<[ResolveData], Module>} */
 			// factorize: new AsyncSeriesBailHook(["resolveData"]),
 			// /** @type {AsyncSeriesBailHook<[ResolveData], false | void>} */
-			beforeResolve: new AsyncSeriesBailHook(["resolveData"]),
+			beforeResolve: new liteTapable.AsyncSeriesBailHook(["resolveData"]),
 			// /** @type {AsyncSeriesBailHook<[ResolveData], false | void>} */
 			afterResolve: new AsyncSeriesBailHook(["resolveData"]),
 			// /** @type {AsyncSeriesBailHook<[ResolveData["createData"], ResolveData], Module | void>} */

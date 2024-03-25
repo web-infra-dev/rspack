@@ -1,11 +1,11 @@
 "use strict";
 
-// require("./helpers/warmup-webpack");
+require("./helpers/warmup-webpack");
 const path = require("path");
 const fs = require("graceful-fs");
 const rimraf = require("rimraf");
 const captureStdio = require("./helpers/captureStdio");
-const webpack = require("@rspack/core").rspack;
+const webpack = require("..");
 const { normalizeFilteredTestName } = require('./lib/util/filterUtil')
 
 /**
@@ -28,13 +28,13 @@ const tests = fs
 	)
 	.filter(testName => {
 		const testDirectory = path.join(base, testName);
-
 		const filterPath = path.join(testDirectory, "test.filter.js");
 		if (fs.existsSync(filterPath)) {
+			// CHANGE: added custom filter for tracking alignment status
 			let flag = require(filterPath)()
 			if (flag !== true) {
 				let filteredName = normalizeFilteredTestName(flag, testName);
-				describe.skip(testName, () => it(filteredName, () => {}));
+				describe.skip(testName, () => it(filteredName, () => { }));
 				return false;
 			}
 		}
@@ -44,11 +44,13 @@ const tests = fs
 describe("StatsTestCases", () => {
 	jest.setTimeout(30000);
 	let stderr;
+	// CHANGE: prevent beforeEach() be used in a describe block containing no tests
 	if (tests.length) {
 		beforeEach(() => {
 			stderr = captureStdio(process.stderr, true);
 		});
 	}
+	// CHANGE: prevent afterEach() be used in a describe block containing no tests
 	if (tests.length) {
 		afterEach(() => {
 			stderr.restore();
@@ -109,20 +111,22 @@ describe("StatsTestCases", () => {
 						])
 					);
 				};
-				c.hooks.compilation.tap("StatsTestCasesTest", compilation => {
-					[
-						"optimize",
-						"optimizeModules",
-						"optimizeChunks",
-						"afterOptimizeTree",
-						"afterOptimizeAssets",
-						"beforeHash"
-					].forEach(hook => {
-						compilation.hooks[hook].tap("TestCasesTest", () =>
-							compilation.checkConstraints()
-						);
-					});
-				});
+
+				// CHANGE: The checkConstraints() function is currently not implemented in rspack
+				// c.hooks.compilation.tap("StatsTestCasesTest", compilation => {
+				// 	[
+				// 		"optimize",
+				// 		"optimizeModules",
+				// 		"optimizeChunks",
+				// 		"afterOptimizeTree",
+				// 		"afterOptimizeAssets",
+				// 		"beforeHash"
+				// 	].forEach(hook => {
+				// 		compilation.hooks[hook].tap("TestCasesTest", () =>
+				// 			compilation.checkConstraints()
+				// 		);
+				// 	});
+				// });
 			});
 			c.run((err, stats) => {
 				if (err) return done(err);
@@ -184,7 +188,8 @@ describe("StatsTestCases", () => {
 					actual = stderr.toString() + actual;
 					actual = actual
 						.replace(/\u001b\[[0-9;]*m/g, "")
-						.replace(/[.0-9]+(\s?ms)/g, "X$1");
+						// CHANGE: The time unit display in Rspack is second
+						.replace(/[.0-9]+(\s?s)/g, "X$1");
 				} else {
 					actual = stderr.toStringRaw() + actual;
 					actual = actual
@@ -192,16 +197,21 @@ describe("StatsTestCases", () => {
 						.replace(/\u001b\[1m/g, "<CLR=BOLD>")
 						.replace(/\u001b\[39m\u001b\[22m/g, "</CLR>")
 						.replace(/\u001b\[([0-9;]*)m/g, "<CLR=$1>")
-						.replace(/[.0-9]+(<\/CLR>)?(\s?ms)/g, "X$1$2");
+						// CHANGE: The time unit display in Rspack is second
+						.replace(/[.0-9]+(<\/CLR>)?(\s?s)/g, "X$1$2");
 				}
 				// cspell:ignore Xdir
 				const testPath = path.join(base, testName);
 				actual = actual
 					.replace(/\r\n?/g, "\n")
-					.replace(/webpack [^ )]+(\)?) compiled/g, "webpack x.x.x$1 compiled")
+					// CHANGE: Remove potential line break and "|" caused by long text
+					.replace(/((ERROR|WARNING)([\s\S](?!╭|├))*?)(\n  │ )/g, "$1")
+					// CHANGE: Update the regular expression to replace the 'Rspack' version string
+					.replace(/Rspack [^ )]+(\)?) compiled/g, "Rspack x.x.x$1 compiled")
 					.replace(new RegExp(quoteMeta(testPath), "g"), "Xdir/" + testName)
 					.replace(/(\w)\\(\w)/g, "$1/$2")
-					.replace(/, additional resolving: X ms/g, "");
+					.replace(/, additional resolving: X ms/g, "")
+					.replace(/Unexpected identifier '.+?'/g, "Unexpected identifier");
 				expect(actual).toMatchSnapshot();
 				if (testConfig.validate) testConfig.validate(stats, stderr.toString());
 				done();

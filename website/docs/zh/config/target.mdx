@@ -1,0 +1,51 @@
+# Target
+
+目标环境与兼容性：该选项用于配置 Rspack 输出产物的目标环境和 Rspack runtime 代码的 ECMAScript 版本。
+
+- **类型：** `string | string[]`
+
+## string
+
+现在支持的字符串格式有：
+
+| 选项                         | 描述                                                                                                                                                                          |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `'node[[X].Y]'`              | 编译为 Node.js 环境可用                                                                                                                                                       |
+| `'async-node[[X].Y]'`        | 编译为类 Node.js 环境可用（使用 fs 和 vm 异步加载分块）                                                                                                                       |
+| `'web'`                      | 编译为浏览器环境可用（默认值）                                                                                                                                                |
+| `'es[X]'`                    | 编译 Rspack runtime 为对应的 ECMAScript 版本，当前支持 `es3`、`es5`、`es2015`、`es2016`、`es2017`、`es2018`、`es2019`、`es2020`、`es2021`、`es2022`（默认使用 es5 ）          |
+| `'browserslist'`             | 根据配置的 browserslist 完成 ECMAScript 版本的推断                                                                                                                            |
+| `'electron[[X].Y]-main'`     | 编译 Electron 的主进程                                                                                                                                                        |
+| `'electron[[X].Y]-renderer'` | 编译 Electron 的渲染器进程，该 target 下会使用 array-push 作为 chunkFormat，jsonp 作为 chunkLoading，为 CommonJS 和 Electron 内置模块提供 NodeTargetPlugin 和 ExternalsPlugin |
+| `'electron[[X].Y]-preload'`  | 编译 Electron 的预加载脚本                                                                                                                                                    |
+
+{/* | `'webworker'`    | 编译为 Web Worker                                                                                                                                                     | */}
+
+:::warning 指定用户代码的 ECMAScript 版本
+
+`target` 配置中的 esX 只能指定 Rspack runtime 中的代码使用 ECMAScript 版本的语法，如果要指定用户代码的 ECMAScript 版本请使用 [builtin:swc-loader](/guide/builtin-swc-loader.html) 或 [babel-loader](https://www.npmjs.com/package/babel-loader) 或 [swc-loader](https://www.npmjs.com/package/swc-loader) 进行代码降级。
+
+:::
+
+## 示例
+
+指定 Compiler 需要编译为 Node.js 环境下的代码：
+
+```ts title="rspack.config.js"
+module.exports = {
+  target: 'node',
+};
+```
+
+当指定 Compiler 需要编译为多个平台时，则会报错：
+
+```ts title="rspack.config.js"
+module.exports = {
+  target: ['web', 'node'],
+};
+```
+
+{
+// TODO: add link to MultiCompiler
+// 遇到上述的这种情况，你可以用 MultiCompiler 分成多个配置进行打包。
+}

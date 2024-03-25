@@ -1,0 +1,46 @@
+# SolidJS
+
+## 如何使用
+
+Rspack 提供两种方案来支持 Solid：
+
+- **使用 Rsbuild**：Rsbuild 提供对 Solid 开箱即用的支持，能够快速创建一个 Solid 项目，详见 ["Rsbuild - Solid"](https://rsbuild.dev/zh/guide/framework/solid)。
+- **手动配置**：你可以参考当前文档，手动添加 Solid 相关的配置。
+
+## 配置 Solid
+
+得益于 Rspack 对 babel-loader 的良好兼容，在 Rspack 里使用 SolidJS 是非常简单的。只需要 babel-loader 配合 solidjs 的 solid-preset 即可。Rspack 提供了一个 SolidJS 的[示例](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/solid)可供参考。
+
+```js title="rspack.config.js"
+/** @type {import('@rspack/cli').Configuration} */
+const config = {
+  context: __dirname,
+  entry: {
+    main: './src/index.jsx',
+  },
+  module: {
+    rules: [
+      {
+        test: /\.jsx$/,
+        use: [
+          {
+            loader: 'babel-loader',
+            options: {
+              presets: [['solid']],
+              plugins: ['solid-refresh/babel'],
+            },
+          },
+        ],
+      },
+    ],
+  },
+  builtins: {
+    html: [
+      {
+        template: './index.html',
+      },
+    ],
+  },
+};
+module.exports = config;
+```
