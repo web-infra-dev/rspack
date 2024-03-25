@@ -209,6 +209,29 @@ exports[`ConfigTestCases chunk-index available-modules-order-index exported test
 "
 `;
 
+exports[`ConfigTestCases css at-import-in-the-top exported tests at-import-in-the-top 1`] = `
+"@import url(\\"https://fonts.googleapis.com/css2?family=Roboto\\");
+@import url(\\"https://fonts.googleapis.com/css2?family=Inter\\");
+.c {
+	color: pink;
+}
+
+
+
+
+.a {
+	color: blue;
+}
+
+
+
+.b {
+	color: red;
+}
+
+"
+`;
+
 exports[`ConfigTestCases css rewrite-url exported tests should rewrite the css url() 1`] = `"eb587e4780c414fe3a22.png"`;
 
 exports[`ConfigTestCases css rewrite-url exported tests should rewrite the css url() 2`] = `"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAOCAYAAAAbvf3sAAAACXBIWXMAABYlAAAWJQFJUiTwAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAEWSURBVHgBjZFRSsNAEIb/3fQAOUK9gfpe6YIovjU3UE+gJ2g8gTcw3sC+itUFrW+BeAN7ATFSKAjbHWcSC+mSlszLDrvfzvzzj0LHmNpZBtBQd4Gf7fuYgHPPueoCe1DK1UsHd7Dzw+P0daQj/SC5h09OzdGktw221vZXUBlVMN0ILPd6O9yzBBXX8CBdv6kWOGa4YLivQJNjM0ia73oTLsBwJjCB5gu4i7CgbsIey5ThEcOfKziTGFOGHypJeZ7jZ/Gbst4x2/fN9h2eGTNvgk92VrDEWLNmfJXLpIYrRy5b4Fs+9v2/pL0oUncI7FuHLI6PK5lJZGoe8qXNvrry27DesoRLpLPmNkTw9yEcxPWJMR+S/AFbfpAZqxwUNQAAAABJRU5ErkJggg=="`;
