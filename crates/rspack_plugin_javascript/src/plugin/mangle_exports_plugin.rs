@@ -119,7 +119,7 @@ fn mangle_exports_info(
         .as_ref()
         .expect("the name of export_info inserted in exports_info can not be `None`")
         .clone();
-      let can_not_mangle = export_info.can_mangle_use != Some(true)
+      let can_not_mangle = export_info.can_mangle() != Some(true)
         || (name.len() == 1 && MANGLE_NAME_NORMAL_REG.is_match(name.as_str()))
         || (deterministic
           && name.len() == 2

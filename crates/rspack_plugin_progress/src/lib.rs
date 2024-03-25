@@ -320,6 +320,18 @@ async fn after_optimize_modules(&self, _compilation: &mut Compilation) -> Result
   Ok(())
 }
 
+#[plugin_hook(AsyncSeries<Compilation> for ProgressPlugin)]
+async fn optimize_tree(&self, _compilation: &mut Compilation) -> Result<()> {
+  self.sealing_hooks_report("module and chunk tree optimization", 11);
+  Ok(())
+}
+
+#[plugin_hook(AsyncSeriesBail<Compilation, bool> for ProgressPlugin)]
+async fn optimize_chunk_modules(&self, _compilation: &mut Compilation) -> Result<Option<bool>> {
+  self.sealing_hooks_report("chunk modules optimization", 13);
+  Ok(None)
+}
+
 #[plugin_hook(AsyncSeries<Compilation> for ProgressPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONAL)]
 async fn process_assets(&self, _compilation: &mut Compilation) -> Result<()> {
   self.sealing_hooks_report("asset processing", 35);
@@ -404,6 +416,16 @@ impl Plugin for ProgressPlugin {
     ctx
       .context
       .compilation_hooks
+      .optimize_tree
+      .tap(optimize_tree::new(self));
+    ctx
+      .context
+      .compilation_hooks
+      .optimize_chunk_modules
+      .tap(optimize_chunk_modules::new(self));
+    ctx
+      .context
+      .compilation_hooks
       .process_assets
       .tap(process_assets::new(self));
     ctx
@@ -436,16 +458,6 @@ impl Plugin for ProgressPlugin {
     _args: OptimizeChunksArgs<'_>,
   ) -> PluginOptimizeChunksOutput {
     self.sealing_hooks_report("chunk optimization", 9);
-    Ok(())
-  }
-
-  async fn optimize_tree(&self, _compilation: &mut Compilation) -> Result<()> {
-    self.sealing_hooks_report("module and chunk tree optimization", 11);
-    Ok(())
-  }
-
-  async fn optimize_chunk_modules(&self, _args: OptimizeChunksArgs<'_>) -> Result<()> {
-    self.sealing_hooks_report("chunk modules optimization", 13);
     Ok(())
   }
 

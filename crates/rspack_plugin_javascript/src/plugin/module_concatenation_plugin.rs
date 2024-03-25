@@ -9,12 +9,13 @@ use rspack_core::concatenated_module::{
   is_harmony_dep_like, ConcatenatedInnerModule, ConcatenatedModule, RootModuleContext,
 };
 use rspack_core::{
-  filter_runtime, merge_runtime, runtime_to_string, Compilation, CompilerContext,
-  ExportInfoProvided, ExtendedReferencedExport, LibIdentOptions, Logger, Module, ModuleExt,
-  ModuleGraph, ModuleGraphModule, ModuleIdentifier, MutableModuleGraph, OptimizeChunksArgs, Plugin,
-  ProvidedExports, RuntimeCondition, RuntimeSpec, SourceType,
+  filter_runtime, merge_runtime, runtime_to_string, ApplyContext, Compilation, CompilerContext,
+  CompilerOptions, ExportInfoProvided, ExtendedReferencedExport, LibIdentOptions, Logger, Module,
+  ModuleExt, ModuleGraph, ModuleGraphModule, ModuleIdentifier, MutableModuleGraph, Plugin,
+  PluginContext, ProvidedExports, RuntimeCondition, RuntimeSpec, SourceType,
 };
 use rspack_error::Result;
+use rspack_hook::{plugin, plugin_hook, AsyncSeriesBail};
 use rspack_util::fx_dashmap::FxDashMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
@@ -93,6 +94,7 @@ impl ConcatConfiguration {
   }
 }
 
+#[plugin]
 #[derive(Debug, Default)]
 pub struct ModuleConcatenationPlugin {
   bailout_reason_map: FxDashMap<ModuleIdentifier, String>,
@@ -540,12 +542,8 @@ impl ModuleConcatenationPlugin {
     statistics.added += 1;
     None
   }
-}
 
-#[async_trait::async_trait]
-impl Plugin for ModuleConcatenationPlugin {
-  async fn optimize_chunk_modules(&self, args: OptimizeChunksArgs<'_>) -> Result<()> {
-    let OptimizeChunksArgs { compilation } = args;
+  async fn optimize_chunk_modules_impl(&self, compilation: &mut Compilation) -> Result<()> {
     let logger = compilation.get_logger("rspack.ModuleConcatenationPlugin");
     let mut relevant_modules = vec![];
     let mut possible_inners = HashSet::default();
@@ -1033,6 +1031,27 @@ impl Plugin for ModuleConcatenationPlugin {
         .get_module_graph_mut()
         .add_module(new_module.boxed());
     }
+    Ok(())
+  }
+}
+
+#[plugin_hook(AsyncSeriesBail<Compilation, bool> for ModuleConcatenationPlugin)]
+async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+  self.optimize_chunk_modules_impl(compilation).await?;
+  Ok(None)
+}
+
+impl Plugin for ModuleConcatenationPlugin {
+  fn apply(
+    &self,
+    ctx: PluginContext<&mut ApplyContext>,
+    _options: &mut CompilerOptions,
+  ) -> Result<()> {
+    ctx
+      .context
+      .compilation_hooks
+      .optimize_chunk_modules
+      .tap(optimize_chunk_modules::new(self));
     Ok(())
   }
 }
