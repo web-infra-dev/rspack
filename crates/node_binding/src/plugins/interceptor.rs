@@ -392,7 +392,7 @@ define_register!(
 define_register!(
   RegisterCompilerAssetEmittedTaps,
   tap = CompilerAssetEmittedTap<JsAssetEmittedArgs, Promise<()>> @ CompilerAssetEmittedHook,
-  cache = false,
+  cache = true,
   sync = false,
 );
 
