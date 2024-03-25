@@ -13,8 +13,8 @@ use rspack_core::{
 };
 use rspack_core::{
   ChunkLoading, ChunkLoadingType, Compilation, CompilationParams, CompilerOptions, DependencyType,
-  ExternalModule, LibIdentOptions, PluginContext, PluginRuntimeRequirementsInTreeOutput,
-  PublicPath, RuntimeGlobals, RuntimeRequirementsInTreeArgs,
+  LibIdentOptions, PluginContext, PluginRuntimeRequirementsInTreeOutput, PublicPath,
+  RuntimeGlobals, RuntimeRequirementsInTreeArgs,
 };
 use rspack_error::{IntoTWithDiagnosticArray, Result};
 use rspack_hash::RspackHash;
@@ -36,53 +36,39 @@ impl CssPlugin {
     chunk: &Chunk,
     ordered_css_modules: &[&dyn Module],
   ) -> rspack_error::Result<ConcatSource> {
-    // Prepare data for parallel processing, instead of collecting them immediately
-    let mut sources_to_process = Vec::new();
+    let module_sources = ordered_css_modules
+      .iter()
+      .map(|module| {
+        let module_id = &module.identifier();
+        let code_gen_result = compilation
+          .code_generation_results
+          .get(module_id, Some(&chunk.runtime));
 
-    for &module in ordered_css_modules {
-      let module_id = module.identifier();
-      let code_gen_result = compilation
-        .code_generation_results
-        .get(&module_id, Some(&chunk.runtime));
-
-      if let Some(code) = code_gen_result.get(&SourceType::Css) {
-        // Determine the order of the modules by whether it is 'css-import'
-        let priority =
-          if let Some(external_module) = module.as_any().downcast_ref::<ExternalModule>() {
-            // If the module is an external module and its type is 'css-import', give it a higher priority (0)
-            if external_module.get_external_type() == "css-import" {
-              0
-            } else {
-              1
-            }
-          } else {
-            // If the module is not an external module, give it a lower priority (1)
-            1
-          };
-
-        // Push the module into the list for processing, along with its priority and code
-        sources_to_process.push((priority, CssModuleDebugInfo { module }, code.clone()));
-      }
-    }
-
-    // Sort all modules in order according to their priority attribute
-    sources_to_process.sort_by_key(|&(priority, _, _)| priority);
-
-    // Use a parallel iterator to process the sorted list of source codes
-    let source = sources_to_process
-      .into_par_iter()
-      .map(|(_, debug_info, cur_source)| {
-        let mut acc = ConcatSource::default();
-        // Render the debug info for the module
-        let (start, end) = Self::render_module_debug_info(compilation, &debug_info);
-        // Add the start marker, the source code, a newline, and the end marker to the accumulator
-        acc.add(start);
-        acc.add(cur_source);
-        acc.add(RawSource::from("\n"));
-        acc.add(end);
-        acc
+        Ok(
+          code_gen_result
+            .get(&SourceType::Css)
+            .map(|source| (CssModuleDebugInfo { module: *module }, source)),
+        )
       })
-      // Reduce the list of sources into a single ConcatSource
+      .collect::<Result<Vec<_>>>()?;
+
+    let source = module_sources
+      .into_par_iter()
+      // TODO(hyf0): I couldn't think of a situation where a module doesn't have `Source`.
+      // Should we return a Error if there is a `None` in `module_sources`?
+      // Webpack doesn't throw. It just do a best-effort checking https://github.com/webpack/webpack/blob/5e3c4d0ddf8ae6a6e45fea42be4e8950fe49c0bb/lib/css/CssModulesPlugin.js#L565-L568
+      .flatten()
+      .fold(
+        ConcatSource::default,
+        |mut acc, (debug_info, cur_source)| {
+          let (start, end) = Self::render_module_debug_info(compilation, &debug_info);
+          acc.add(start);
+          acc.add(cur_source.clone());
+          acc.add(RawSource::from("\n"));
+          acc.add(end);
+          acc
+        },
+      )
       .reduce(ConcatSource::default, |mut acc, cur| {
         acc.add(cur);
         acc
