@@ -47,6 +47,15 @@ import { CodeGenerationResult, Module } from "./Module";
 import { canInherentFromParent } from "./builtin-plugin/base";
 import ExecuteModulePlugin from "./ExecuteModulePlugin";
 import { Chunk } from "./Chunk";
+import { Source } from "webpack-sources";
+
+export interface AssetEmittedInfo {
+	content: Buffer;
+	source: Source;
+	outputPath: string;
+	targetPath: string;
+	compilation: Compilation;
+}
 
 class Compiler {
 	#instance?: binding.Rspack;
@@ -97,9 +106,9 @@ class Compiler {
 		infrastructureLog: tapable.SyncBailHook<[string, string, any[]], true>;
 		beforeRun: tapable.AsyncSeriesHook<[Compiler]>;
 		run: tapable.AsyncSeriesHook<[Compiler]>;
-		emit: tapable.AsyncSeriesHook<[Compilation]>;
-		assetEmitted: tapable.AsyncSeriesHook<[string, any]>;
-		afterEmit: tapable.AsyncSeriesHook<[Compilation]>;
+		emit: liteTapable.AsyncSeriesHook<[Compilation]>;
+		assetEmitted: liteTapable.AsyncSeriesHook<[string, AssetEmittedInfo]>;
+		afterEmit: liteTapable.AsyncSeriesHook<[Compilation]>;
 		failed: tapable.SyncHook<[Error]>;
 		shutdown: tapable.AsyncSeriesHook<[]>;
 		watchRun: tapable.AsyncSeriesHook<[Compiler]>;
@@ -141,9 +150,9 @@ class Compiler {
 			afterDone: new tapable.SyncHook<Stats>(["stats"]),
 			beforeRun: new tapable.AsyncSeriesHook(["compiler"]),
 			run: new tapable.AsyncSeriesHook(["compiler"]),
-			emit: new tapable.AsyncSeriesHook(["compilation"]),
-			assetEmitted: new tapable.AsyncSeriesHook(["file", "info"]),
-			afterEmit: new tapable.AsyncSeriesHook(["compilation"]),
+			emit: new liteTapable.AsyncSeriesHook(["compilation"]),
+			assetEmitted: new liteTapable.AsyncSeriesHook(["file", "info"]),
+			afterEmit: new liteTapable.AsyncSeriesHook(["compilation"]),
 			thisCompilation: new liteTapable.SyncHook<
 				[Compilation, CompilationParams]
 			>(["compilation", "params"]),
@@ -227,12 +236,6 @@ class Compiler {
 			rawOptions,
 			this.builtinPlugins,
 			{
-				emit: this.#emit.bind(this),
-				assetEmitted: this.#assetEmitted.bind(this),
-				afterEmit: this.#afterEmit.bind(this),
-				afterProcessAssets: this.#afterProcessAssets.bind(this),
-				optimizeModules: this.#optimizeModules.bind(this),
-				afterOptimizeModules: this.#afterOptimizeModules.bind(this),
 				optimizeTree: this.#optimizeTree.bind(this),
 				optimizeChunkModules: this.#optimizeChunkModules.bind(this),
 				normalModuleFactoryCreateModule:
@@ -271,6 +274,34 @@ class Compiler {
 				registerCompilerShouldEmitTaps: this.#createRegisterTaps(
 					() => this.hooks.shouldEmit,
 					queried => () => queried.call(this.compilation!)
+				),
+				registerCompilerEmitTaps: this.#createRegisterTaps(
+					() => this.hooks.emit,
+					queried => async () => await queried.promise(this.compilation!)
+				),
+				registerCompilerAfterEmitTaps: this.#createRegisterTaps(
+					() => this.hooks.afterEmit,
+					queried => async () => await queried.promise(this.compilation!)
+				),
+				registerCompilerAssetEmittedTaps: this.#createRegisterTaps(
+					() => this.hooks.assetEmitted,
+					queried =>
+						async ({
+							filename,
+							targetPath,
+							outputPath
+						}: binding.JsAssetEmittedArgs) =>
+							await queried.promise(filename, {
+								compilation: this.compilation!,
+								targetPath,
+								outputPath,
+								get source() {
+									return this.compilation!.getAsset(filename)?.source;
+								},
+								get content() {
+									return this.source?.buffer();
+								}
+							})
 				),
 				registerCompilationRuntimeModuleTaps: this.#createRegisterTaps(
 					() => this.compilation!.hooks.runtimeModule,
@@ -381,6 +412,14 @@ class Compiler {
 					queried => async () =>
 						await queried.promise(this.compilation!.modules)
 				),
+				registerCompilationOptimizeModulesTaps: this.#createRegisterTaps(
+					() => this.compilation!.hooks.optimizeModules,
+					queried => () => queried.call(this.compilation!.modules)
+				),
+				registerCompilationAfterOptimizeModulesTaps: this.#createRegisterTaps(
+					() => this.compilation!.hooks.afterOptimizeModules,
+					queried => () => queried.call(this.compilation!.modules)
+				),
 				registerCompilationChunkAssetTaps: this.#createRegisterTaps(
 					() => this.compilation!.hooks.chunkAsset,
 					queried =>
@@ -393,6 +432,10 @@ class Compiler {
 				registerCompilationProcessAssetsTaps: this.#createRegisterTaps(
 					() => this.compilation!.hooks.processAssets,
 					queried => async () => await queried.promise(this.compilation!.assets)
+				),
+				registerCompilationAfterProcessAssetsTaps: this.#createRegisterTaps(
+					() => this.compilation!.hooks.afterProcessAssets,
+					queried => () => queried.call(this.compilation!.assets)
 				),
 				registerNormalModuleFactoryBeforeResolveTaps: this.#createRegisterTaps(
 					() => this.compilationParams!.normalModuleFactory.hooks.beforeResolve,
@@ -633,13 +676,7 @@ class Compiler {
 		const disabledHooks: string[] = [];
 		type HookMap = Record<keyof binding.JsHooks, any>;
 		const hookMap: HookMap = {
-			emit: this.hooks.emit,
-			assetEmitted: this.hooks.assetEmitted,
-			afterEmit: this.hooks.afterEmit,
-			afterProcessAssets: this.compilation!.hooks.afterProcessAssets,
 			optimizeTree: this.compilation!.hooks.optimizeTree,
-			optimizeModules: this.compilation!.hooks.optimizeModules,
-			afterOptimizeModules: this.compilation!.hooks.afterOptimizeModules,
 			afterResolve:
 				this.compilationParams?.normalModuleFactory.hooks.afterResolve,
 			optimizeChunkModules: this.compilation!.hooks.optimizeChunkModules,
@@ -765,46 +802,6 @@ class Compiler {
 			this.compilation!.chunks,
 			this.compilation!.modules
 		);
-		this.#updateDisabledHooks();
-	}
-
-	async #optimizeModules() {
-		await this.compilation!.hooks.optimizeModules.promise(
-			this.compilation!.modules
-		);
-		this.#updateDisabledHooks();
-	}
-
-	async #afterOptimizeModules() {
-		await this.compilation!.hooks.afterOptimizeModules.promise(
-			this.compilation!.modules
-		);
-		this.#updateDisabledHooks();
-	}
-
-	async #emit() {
-		await this.hooks.emit.promise(this.compilation!);
-		this.#updateDisabledHooks();
-	}
-	async #assetEmitted(args: binding.JsAssetEmittedArgs) {
-		const filename = args.filename;
-		const info = {
-			compilation: this.compilation,
-			outputPath: args.outputPath,
-			targetPath: args.targetPath,
-			get source() {
-				return this.compilation!.getAsset(args.filename)?.source;
-			},
-			get content() {
-				return this.source?.buffer();
-			}
-		};
-		await this.hooks.assetEmitted.promise(filename, info);
-		this.#updateDisabledHooks();
-	}
-
-	async #afterEmit() {
-		await this.hooks.afterEmit.promise(this.compilation!);
 		this.#updateDisabledHooks();
 	}
 

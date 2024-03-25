@@ -13,7 +13,9 @@ use rayon::prelude::*;
 use rspack_error::{error, Diagnostic, Result, Severity, TWithDiagnosticArray};
 use rspack_futures::FuturesResults;
 use rspack_hash::{RspackHash, RspackHashDigest};
-use rspack_hook::{AsyncSeries2Hook, AsyncSeries3Hook, AsyncSeriesHook, SyncSeries4Hook};
+use rspack_hook::{
+  AsyncSeries2Hook, AsyncSeries3Hook, AsyncSeriesBailHook, AsyncSeriesHook, SyncSeries4Hook,
+};
 use rspack_identifier::{Identifiable, Identifier, IdentifierMap, IdentifierSet};
 use rspack_sources::{BoxSource, CachedSource, SourceExt};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
@@ -35,7 +37,7 @@ use crate::{
   ChunkHashArgs, ChunkKind, ChunkUkey, CodeGenerationResults, CompilationLogger,
   CompilationLogging, CompilerOptions, ContentHashArgs, DependencyId, DependencyType, Entry,
   EntryData, EntryOptions, Entrypoint, ErrorSpan, FactorizeQueueHandler, Filename, LocalFilenameFn,
-  Logger, Module, ModuleFactory, ModuleGraph, ModuleIdentifier, PathData, ProcessAssetsArgs,
+  Logger, Module, ModuleFactory, ModuleGraph, ModuleIdentifier, PathData,
   ProcessDependenciesQueueHandler, RenderManifestArgs, ResolverFactory, RuntimeGlobals,
   RuntimeModule, RuntimeRequirementsInTreeArgs, RuntimeSpec, SharedPluginDriver, SourceType, Stats,
 };
@@ -52,9 +54,12 @@ pub type CompilationSucceedModuleHook = AsyncSeriesHook<BoxModule>;
 pub type CompilationExecuteModuleHook =
   SyncSeries4Hook<ModuleIdentifier, IdentifierSet, CodeGenerationResults, ExecuteModuleId>;
 pub type CompilationFinishModulesHook = AsyncSeriesHook<Compilation>;
+pub type CompilationOptimizeModulesHook = AsyncSeriesBailHook<Compilation, bool>;
+pub type CompilationAfterOptimizeModulesHook = AsyncSeriesHook<Compilation>;
 pub type CompilationRuntimeModuleHook = AsyncSeries3Hook<Compilation, ModuleIdentifier, ChunkUkey>;
 pub type CompilationChunkAssetHook = AsyncSeries2Hook<Chunk, String>;
 pub type CompilationProcessAssetsHook = AsyncSeriesHook<Compilation>;
+pub type CompilationAfterProcessAssetsHook = AsyncSeriesHook<Compilation>;
 
 #[derive(Debug, Default)]
 pub struct CompilationHooks {
@@ -63,9 +68,12 @@ pub struct CompilationHooks {
   pub succeed_module: CompilationSucceedModuleHook,
   pub execute_module: CompilationExecuteModuleHook,
   pub finish_modules: CompilationFinishModulesHook,
+  pub optimize_modules: CompilationOptimizeModulesHook,
+  pub after_optimize_modules: CompilationAfterOptimizeModulesHook,
   pub runtime_module: CompilationRuntimeModuleHook,
   pub chunk_asset: CompilationChunkAssetHook,
   pub process_assets: CompilationProcessAssetsHook,
+  pub after_process_assets: CompilationAfterProcessAssetsHook,
 }
 
 #[derive(Debug)]
@@ -759,7 +767,9 @@ impl Compilation {
   #[instrument(name = "compilation:after_process_asssets", skip_all)]
   async fn after_process_assets(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     plugin_driver
-      .after_process_assets(ProcessAssetsArgs { compilation: self })
+      .compilation_hooks
+      .after_process_assets
+      .call(self)
       .await
   }
 
@@ -840,8 +850,19 @@ impl Compilation {
     let start = logger.time("create chunks");
     use_code_splitting_cache(self, |compilation| async {
       build_chunk_graph(compilation)?;
-      plugin_driver.optimize_modules(compilation).await?;
-      plugin_driver.after_optimize_modules(compilation).await?;
+      while matches!(
+        plugin_driver
+          .compilation_hooks
+          .optimize_modules
+          .call(compilation)
+          .await?,
+        Some(true)
+      ) {}
+      plugin_driver
+        .compilation_hooks
+        .after_optimize_modules
+        .call(compilation)
+        .await?;
       plugin_driver.optimize_chunks(compilation).await?;
       Ok(compilation)
     })

@@ -103,12 +103,12 @@ export class Compilation {
 
 	hooks: {
 		processAssets: liteTapable.AsyncSeriesHook<Assets>;
-		afterProcessAssets: tapable.SyncHook<Assets>;
+		afterProcessAssets: liteTapable.SyncHook<Assets>;
 		childCompiler: tapable.SyncHook<[Compiler, string, number]>;
 		log: tapable.SyncBailHook<[string, LogEntry], true>;
 		additionalAssets: any;
-		optimizeModules: tapable.SyncBailHook<Iterable<Module>, void>;
-		afterOptimizeModules: tapable.SyncHook<Iterable<Module>, void>;
+		optimizeModules: liteTapable.SyncBailHook<Iterable<Module>, void>;
+		afterOptimizeModules: liteTapable.SyncHook<Iterable<Module>, void>;
 		optimizeTree: tapable.AsyncSeriesBailHook<
 			[Iterable<Chunk>, Iterable<Module>],
 			void
@@ -204,7 +204,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		};
 		this.hooks = {
 			processAssets: processAssetsHook,
-			afterProcessAssets: new tapable.SyncHook(["assets"]),
+			afterProcessAssets: new liteTapable.SyncHook(["assets"]),
 			/** @deprecated */
 			additionalAssets: createProcessAssetsHook(
 				"additionalAssets",
@@ -217,8 +217,8 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 				"compilerIndex"
 			]),
 			log: new tapable.SyncBailHook(["origin", "logEntry"]),
-			optimizeModules: new tapable.SyncBailHook(["modules"]),
-			afterOptimizeModules: new tapable.SyncBailHook(["modules"]),
+			optimizeModules: new liteTapable.SyncBailHook(["modules"]),
+			afterOptimizeModules: new liteTapable.SyncBailHook(["modules"]),
 			optimizeTree: new tapable.AsyncSeriesBailHook(["chunks", "modules"]),
 			optimizeChunkModules: new tapable.AsyncSeriesBailHook([
 				"chunks",

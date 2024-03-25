@@ -233,12 +233,12 @@ impl UpdateModuleGraph {
           let is_expected_shutdown = self.is_expected_shutdown.clone();
 
           async move {
-            if is_expected_shutdown.load(Ordering::SeqCst) {
+            if is_expected_shutdown.load(Ordering::Relaxed) {
               return;
             }
 
             let result = task.run().await;
-            if !is_expected_shutdown.load(Ordering::SeqCst) {
+            if !is_expected_shutdown.load(Ordering::Relaxed) {
               result_tx
                 .send(result)
                 .expect("Failed to send factorize result");
@@ -256,12 +256,12 @@ impl UpdateModuleGraph {
           let is_expected_shutdown = self.is_expected_shutdown.clone();
 
           async move {
-            if is_expected_shutdown.load(Ordering::SeqCst) {
+            if is_expected_shutdown.load(Ordering::Relaxed) {
               return;
             }
 
             let result = task.run().await;
-            if !is_expected_shutdown.load(Ordering::SeqCst) {
+            if !is_expected_shutdown.load(Ordering::Relaxed) {
               result_tx.send(result).expect("Failed to send build result");
             }
           }
@@ -364,7 +364,7 @@ impl UpdateModuleGraph {
               remaining -= 1;
             }
 
-            if is_expected_shutdown.load(Ordering::SeqCst) {
+            if is_expected_shutdown.load(Ordering::Relaxed) {
               return;
             }
 
@@ -688,7 +688,7 @@ impl UpdateModuleGraph {
             Err(err) => {
               // Severe internal error encountered, we should end the compiling here.
               errored = Some(err);
-              self.is_expected_shutdown.store(true, Ordering::SeqCst);
+              self.is_expected_shutdown.store(true, Ordering::Relaxed);
               break;
             }
           }
@@ -696,12 +696,12 @@ impl UpdateModuleGraph {
           self.active_task_count -= 1;
         }
         Err(TryRecvError::Disconnected) => {
-          self.is_expected_shutdown.store(true, Ordering::SeqCst);
+          self.is_expected_shutdown.store(true, Ordering::Relaxed);
           break;
         }
         Err(TryRecvError::Empty) => {
           if self.active_task_count == 0 {
-            self.is_expected_shutdown.store(true, Ordering::SeqCst);
+            self.is_expected_shutdown.store(true, Ordering::Relaxed);
             break;
           }
         }

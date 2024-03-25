@@ -7,13 +7,13 @@ use rspack_sources::BoxSource;
 use rustc_hash::FxHashMap;
 
 use crate::{
-  AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, AssetEmittedArgs,
-  AssetInfo, BoxLoader, BoxModule, ChunkHashArgs, Compilation, CompilationHooks, CompilerHooks,
-  CompilerOptions, ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs, LoaderRunnerContext,
+  AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, AssetInfo, BoxLoader,
+  BoxModule, ChunkHashArgs, Compilation, CompilationHooks, CompilerHooks, CompilerOptions,
+  ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs, LoaderRunnerContext,
   ModuleFactoryResult, ModuleIdentifier, ModuleType, NormalModule, NormalModuleAfterResolveArgs,
   NormalModuleCreateData, NormalModuleFactoryHooks, OptimizeChunksArgs, ParserAndGenerator,
-  PluginContext, ProcessAssetsArgs, RenderArgs, RenderChunkArgs, RenderManifestArgs,
-  RenderModuleContentArgs, RenderStartupArgs, Resolver, RuntimeRequirementsInTreeArgs, SourceType,
+  PluginContext, RenderArgs, RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs,
+  RenderStartupArgs, Resolver, RuntimeRequirementsInTreeArgs, SourceType,
 };
 
 #[derive(Debug, Clone)]
@@ -244,27 +244,11 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
-  async fn after_process_assets(
-    &self,
-    _ctx: PluginContext,
-    _args: ProcessAssetsArgs<'_>,
-  ) -> PluginProcessAssetsOutput {
-    Ok(())
-  }
-
   async fn optimize_chunks(
     &self,
     _ctx: PluginContext,
     _args: OptimizeChunksArgs<'_>,
   ) -> PluginOptimizeChunksOutput {
-    Ok(())
-  }
-
-  async fn optimize_modules(&self, _compilation: &mut Compilation) -> Result<()> {
-    Ok(())
-  }
-
-  async fn after_optimize_modules(&self, _compilation: &mut Compilation) -> Result<()> {
     Ok(())
   }
 
@@ -307,18 +291,6 @@ pub trait Plugin: Debug + Send + Sync {
   }
 
   fn chunk_ids(&self, _compilation: &mut Compilation) -> Result<()> {
-    Ok(())
-  }
-
-  async fn emit(&self, _compilation: &mut Compilation) -> Result<()> {
-    Ok(())
-  }
-
-  async fn asset_emitted(&self, _args: &AssetEmittedArgs) -> Result<()> {
-    Ok(())
-  }
-
-  async fn after_emit(&self, _compilation: &mut Compilation) -> Result<()> {
     Ok(())
   }
 
