@@ -248,6 +248,12 @@ importers:
         specifier: ^5.90.1
         version: 5.90.1(@swc/core@1.3.23)(webpack-cli@4.10.0)
 
+  examples/basic:
+    devDependencies:
+      '@rspack/cli':
+        specifier: workspace:^
+        version: link:../../packages/rspack-cli
+
   npm/darwin-arm64: {}
 
   npm/darwin-x64: {}
