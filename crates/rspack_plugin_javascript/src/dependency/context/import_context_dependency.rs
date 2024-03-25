@@ -112,7 +112,7 @@ impl DependencyTemplate for ImportContextDependency {
 
     source.replace(self.callee_start, self.callee_end, &expr, None);
 
-    let context = normalize_context(&self.options.request);
+    let context = normalize_context(&self.options.context);
     let query = parse_resource(&self.options.request).and_then(|data| data.query);
     if !context.is_empty() {
       source.insert(self.callee_end, "(", None);

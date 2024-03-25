@@ -131,6 +131,7 @@ pub struct ContextOptions {
   pub exclude: Option<String>,
   pub category: DependencyCategory,
   pub request: String,
+  pub context: String,
   pub namespace_object: ContextNameSpaceObject,
   pub chunk_name: Option<String>,
   pub start: u32,
@@ -141,7 +142,7 @@ impl Display for ContextOptions {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(
       f,
-      "ContextOptions|{:?}|{:?}|{:?}|{:?}|{:?}|{:?}|{:?}|{:?}|{:?}|{:?}",
+      "ContextOptions|{:?}|{:?}|{:?}|{:?}|{:?}|{:?}|{:?}|{:?}|{:?}|{:?}|{:?}",
       self.mode,
       self.recursive,
       self.reg_exp,
@@ -150,6 +151,7 @@ impl Display for ContextOptions {
       self.exclude,
       self.category,
       self.request,
+      self.context,
       self.namespace_object,
       self.chunk_name
     )
@@ -165,6 +167,7 @@ impl PartialEq for ContextOptions {
       && self.exclude == other.exclude
       && self.category == other.category
       && self.request == other.request
+      && self.context == other.context
       && self.namespace_object == other.namespace_object
   }
 }
@@ -180,6 +183,7 @@ impl Hash for ContextOptions {
     self.exclude.hash(state);
     self.category.hash(state);
     self.request.hash(state);
+    self.context.hash(state);
     self.namespace_object.hash(state);
   }
 }
