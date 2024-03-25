@@ -1,4 +1,4 @@
-use swc_core::ecma::ast::{ClassDecl, ImportDecl, ImportSpecifier, ModuleExportName};
+use swc_core::ecma::ast::{ClassDecl, ExportDecl, ImportDecl, ImportSpecifier, ModuleExportName};
 use swc_core::ecma::ast::{Decl, DefaultDecl, ExportAll, ExportDefaultDecl, ExprStmt};
 use swc_core::ecma::ast::{ModuleDecl, ModuleItem, NamedExport, Stmt, VarDecl, VarDeclKind};
 
@@ -30,7 +30,7 @@ impl<'parser> JavascriptParser<'parser> {
           }
           ModuleDecl::ExportNamed(decl) => self.block_pre_walk_export_name_declaration(decl),
           ModuleDecl::ExportDefaultExpr(_) => (),
-          ModuleDecl::ExportDecl(_) => (),
+          ModuleDecl::ExportDecl(exp) => self.block_pre_walk_export_declaration(exp),
           ModuleDecl::TsImportEquals(_)
           | ModuleDecl::TsExportAssignment(_)
           | ModuleDecl::TsNamespaceExport(_) => unreachable!(),
@@ -77,6 +77,13 @@ impl<'parser> JavascriptParser<'parser> {
     } else {
       // TODO: `hooks.export.call`
     }
+  }
+
+  fn block_pre_walk_export_declaration(&mut self, exp: &ExportDecl) {
+    // todo: move `hooks.export_decl.call` here
+    let decl = Stmt::Decl(exp.decl.clone());
+    self.pre_walk_statement(&decl);
+    self.block_pre_walk_statement(&decl);
   }
 
   fn block_pre_walk_class_declaration(&mut self, decl: &ClassDecl) {
