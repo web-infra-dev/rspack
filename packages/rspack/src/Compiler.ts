@@ -488,7 +488,8 @@ class Compiler {
 							missingDependencies: [],
 							contextDependencies: []
 						};
-						return await queried.promise(data);
+						const ret = await queried.promise(data);
+						return [ret, data];
 					}
 				),
 				registerContextModuleFactoryAfterResolveTaps: this.#createRegisterTaps(
