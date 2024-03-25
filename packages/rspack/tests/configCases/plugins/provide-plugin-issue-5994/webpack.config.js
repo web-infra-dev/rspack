@@ -3,7 +3,8 @@ const { ProvidePlugin } = require("@rspack/core");
 module.exports = {
 	plugins: [
 		new ProvidePlugin({
-			Mod: ["./harmony", "default"]
+			Mod: ["./harmony", "default"],
+			Def: ["./harmony", "default"]
 		})
 	]
 };
