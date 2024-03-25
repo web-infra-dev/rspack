@@ -37,7 +37,7 @@ impl<T: Hash + PartialEq + Eq> DatabaseItem for Cycle<T> {
 struct Node<T> {
   pub ukey: Ukey<Node<T>>,
   pub item: T,
-  pub dependencies: FxHashSet<Ukey<Node<T>>>,
+  pub dependencies: Vec<Ukey<Node<T>>>,
   pub marker: Marker,
   pub cycle: Option<Ukey<Cycle<Ukey<Node<T>>>>>,
   pub incoming: usize,
@@ -67,7 +67,9 @@ struct StackEntry<T> {
   open_edges: Vec<T>,
 }
 
-pub fn find_graph_roots<Item: Clone + PartialEq + Eq + Hash + Send + Sync + Ord + 'static>(
+pub fn find_graph_roots<
+  Item: Clone + std::fmt::Debug + PartialEq + Eq + Hash + Send + Sync + Ord + 'static,
+>(
   items: Vec<Item>,
   get_dependencies: impl Sync + Fn(Item) -> Vec<Item>,
 ) -> Vec<Item> {
@@ -98,7 +100,7 @@ pub fn find_graph_roots<Item: Clone + PartialEq + Eq + Hash + Send + Sync + Ord 
       .into_iter()
       .filter_map(|item| item_to_node_ukey.get(&item))
       .cloned()
-      .collect();
+      .collect::<Vec<_>>();
   });
 
   // Set of current root modules
@@ -110,8 +112,11 @@ pub fn find_graph_roots<Item: Clone + PartialEq + Eq + Hash + Send + Sync + Ord 
   // that is not part of the cycle
   let mut root_cycles: FxHashSet<Ukey<Cycle<Ukey<Node<Item>>>>> = FxHashSet::default();
 
+  let mut keys = db.keys().cloned().collect::<Vec<_>>();
+  keys.sort_by(|a, b| a.as_ref(&db).item.cmp(&b.as_ref(&db).item));
+
   // For all non-marked nodes
-  for select_node in db.keys().cloned().collect::<Vec<_>>() {
+  for select_node in keys {
     if matches!(select_node.as_ref(&db).marker, Marker::NoMarker) {
       // deep-walk all referenced modules
       // in a non-recursive way
@@ -122,12 +127,11 @@ pub fn find_graph_roots<Item: Clone + PartialEq + Eq + Hash + Send + Sync + Ord 
       // keep a stack to avoid recursive walk
       let mut stack = vec![StackEntry {
         node: select_node,
-        open_edges: select_node
-          .as_ref(&db)
-          .dependencies
-          .iter()
-          .cloned()
-          .collect(),
+        open_edges: {
+          let mut v: Vec<_> = select_node.as_ref(&db).dependencies.to_vec();
+          v.sort_by(|a, b| a.as_ref(&db).item.cmp(&b.as_ref(&db).item));
+          v
+        },
       }];
 
       // process the top item until stack is empty
@@ -136,6 +140,14 @@ pub fn find_graph_roots<Item: Clone + PartialEq + Eq + Hash + Send + Sync + Ord 
 
         // Are there still edges unprocessed in the current node?
         if !stack[top_of_stack_idx].open_edges.is_empty() {
+          let mut edges = stack[top_of_stack_idx]
+            .open_edges
+            .iter()
+            .map(|edge| edge.as_ref(&db))
+            .collect::<Vec<_>>();
+
+          edges.sort_by(|a, b| a.item.cmp(&b.item));
+
           // Process one dependency
           let dependency = stack[top_of_stack_idx]
             .open_edges
@@ -147,12 +159,11 @@ pub fn find_graph_roots<Item: Clone + PartialEq + Eq + Hash + Send + Sync + Ord 
               // mark it as in-progress and recurse
               stack.push(StackEntry {
                 node: dependency,
-                open_edges: dependency
-                  .as_ref(&db)
-                  .dependencies
-                  .iter()
-                  .cloned()
-                  .collect(),
+                open_edges: {
+                  let mut v: Vec<_> = dependency.as_ref(&db).dependencies.to_vec();
+                  v.sort_unstable();
+                  v
+                },
               });
               dependency.as_mut(&mut db).marker = Marker::InProgressMarker;
             }
@@ -171,7 +182,7 @@ pub fn find_graph_roots<Item: Clone + PartialEq + Eq + Hash + Send + Sync + Ord 
               // we merge the cycles to a shared cycle
               {
                 let mut i = stack.len() - 1;
-                while stack[i].node != dependency {
+                while stack[i].node.as_ref(&db).item != dependency.as_ref(&db).item {
                   let node = stack[i].node;
                   if let Some(node_cycle) = node.as_ref(&db).cycle {
                     if node_cycle != cycle {
@@ -180,13 +191,6 @@ pub fn find_graph_roots<Item: Clone + PartialEq + Eq + Hash + Send + Sync + Ord 
                         cycle.as_mut(&mut cycle_db).nodes.insert(cycle_node);
                       }
                     }
-                    node_cycle
-                      .as_ref(&cycle_db)
-                      .nodes
-                      .iter()
-                      .for_each(|cycle_node| {
-                        cycle_node.as_mut(&mut db).cycle = Some(cycle);
-                      });
                   } else {
                     node.as_mut(&mut db).cycle = Some(cycle);
                     cycle.as_mut(&mut cycle_db).nodes.insert(node);
@@ -244,15 +248,15 @@ pub fn find_graph_roots<Item: Clone + PartialEq + Eq + Hash + Send + Sync + Ord 
       for dep in node.as_ref(&db).dependencies.clone().into_iter() {
         if nodes.contains(&dep) {
           dep.as_mut(&mut db).incoming += 1;
+          if dep.as_ref(&db).incoming < max {
+            continue;
+          }
+          if dep.as_ref(&db).incoming > max {
+            cycle_roots.clear();
+            max = dep.as_ref(&db).incoming;
+          }
+          cycle_roots.insert(dep);
         }
-        if dep.as_ref(&db).incoming < max {
-          continue;
-        }
-        if dep.as_ref(&db).incoming > max {
-          cycle_roots.clear();
-          max = dep.as_ref(&db).incoming;
-        }
-        cycle_roots.insert(dep);
       }
     }
     for cycle_root in cycle_roots {
