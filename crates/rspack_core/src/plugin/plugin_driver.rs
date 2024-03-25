@@ -431,24 +431,6 @@ impl PluginDriver {
     Ok(None)
   }
 
-  #[instrument(name = "plugin:optimize_tree", skip_all)]
-  pub async fn optimize_tree(&self, compilation: &mut Compilation) -> Result<()> {
-    for plugin in &self.plugins {
-      plugin.optimize_tree(compilation).await?;
-    }
-    Ok(())
-  }
-
-  #[instrument(name = "plugin:optimize_chunk_modules", skip_all)]
-  pub async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<()> {
-    for plugin in &self.plugins {
-      plugin
-        .optimize_chunk_modules(OptimizeChunksArgs { compilation })
-        .await?;
-    }
-    Ok(())
-  }
-
   pub async fn resolve_loader(
     &self,
     compiler_options: &CompilerOptions,
