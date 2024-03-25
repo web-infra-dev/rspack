@@ -16,6 +16,7 @@ pub enum WebpackComment {
   Mode,
 }
 
+#[derive(Debug)]
 pub struct WebpackCommentMap(FxHashMap<WebpackComment, String>);
 
 impl WebpackCommentMap {
