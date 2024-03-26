@@ -405,7 +405,12 @@ impl SourceMapDevToolPlugin {
       let mut asset = compilation
         .assets()
         .get(&filename)
-        .expect("should have filename in compilation.assets")
+        .unwrap_or_else(|| {
+          panic!(
+            "expected to find filename '{}' in compilation.assets, but it was not present",
+            &filename
+          )
+        })
         .clone();
       // convert to RawSource to reduce one time source map calculation when convert to JsCompatSource
       let raw_source = RawSource::from(code_buffer).boxed();
@@ -432,9 +437,12 @@ impl SourceMapDevToolPlugin {
       };
 
       if let Some(source_map_filename_config) = &self.source_map_filename {
-        let chunk = file_to_chunk
-          .get(&filename)
-          .expect("the filename should always have an associated chunk");
+        let chunk = file_to_chunk.get(&filename).unwrap_or_else(|| {
+          panic!(
+            "the filename '{}' should always have an associated chunk",
+            &filename
+          )
+        });
         let source_type = if css_extension_detected {
           &SourceType::Css
         } else {
@@ -639,7 +647,12 @@ impl ModuleFilenameHelpers {
         let module = compilation
           .get_module_graph()
           .module_by_identifier(module_identifier)
-          .expect("failed to find a module for the given identifier");
+          .unwrap_or_else(|| {
+            panic!(
+              "failed to find a module for the given identifier '{}'",
+              module_identifier
+            )
+          });
 
         let short_identifier = module.readable_identifier(context).to_string();
         let identifier = contextify(context, module_identifier);
