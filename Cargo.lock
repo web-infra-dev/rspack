@@ -3118,7 +3118,6 @@ dependencies = [
  "napi-h",
  "rspack_core",
  "rspack_error",
- "rspack_identifier",
  "rspack_napi",
  "rustc-hash",
  "serde",
