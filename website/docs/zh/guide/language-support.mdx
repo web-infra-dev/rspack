@@ -29,7 +29,7 @@
 
 根据你的实际需求，你应该决定是否启用该插件。如果类型检查过程成为构建过程的瓶颈，我们建议使用 TypeScript 的增量构建功能。该功能可以通过仅分析自上次构建以来修改的文件来大大加快类型检查的速度。
 
-要启用 TypeScript 的增量构建，你可以在独立使用 `tsc --incremental` 或者在插件里[使用 incremental mode](https://github.com/TypeStrong/fork-ts-checker-webpack-plugin#enabling-incremental-mode).
+要启用 TypeScript 的增量构建，你可以在独立使用 `tsc --incremental` 或者在插件里[使用 incremental mode](https://github.com/TypeStrong/fork-ts-checker-webpack-plugin#enabling-incremental-mode)。
 
 启用增量构建可以帮助减少类型检查的时间，特别是当只有少数文件被修改时。这样，你可以在优化构建过程的同时，不会损失类型检查的好处。
 

@@ -155,7 +155,6 @@ export const LoaderCompatibleCardList = ({ lang }: { lang: 'zh' | 'en' }) => {
       name: 'style-loader',
       status: i18n[lang]['compatible'],
       url: 'https://github.com/webpack-contrib/style-loader',
-      description: i18n[lang]['style-loader-description'],
     },
     {
       name: 'file-loader',
