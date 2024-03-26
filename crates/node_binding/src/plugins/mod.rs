@@ -7,19 +7,15 @@ use async_trait::async_trait;
 pub use interceptor::RegisterJsTaps;
 use napi::{Env, Result};
 use rspack_binding_values::JsResolveForSchemeResult;
+use rspack_core::BeforeResolveArgs;
 use rspack_core::PluginNormalModuleFactoryResolveForSchemeOutput;
-use rspack_core::{
-  ApplyContext, CompilerOptions, NormalModuleAfterResolveArgs, NormalModuleAfterResolveCreateData,
-  PluginContext,
-};
-use rspack_core::{BeforeResolveArgs, PluginNormalModuleFactoryAfterResolveOutput};
+use rspack_core::{AfterResolveArgs, ApplyContext, CompilerOptions, PluginContext};
 use rspack_core::{
   NormalModuleCreateData, PluginNormalModuleFactoryBeforeResolveOutput,
   PluginNormalModuleFactoryCreateModuleHookOutput, ResourceData,
 };
 use rspack_hook::Hook as _;
 
-use self::interceptor::RegisterCompilationStillValidModuleTaps;
 use self::interceptor::RegisterCompilationSucceedModuleTaps;
 use self::interceptor::RegisterCompilerFinishMakeTaps;
 use self::interceptor::{
@@ -41,6 +37,9 @@ use self::interceptor::{
 use self::interceptor::{
   RegisterCompilationFinishModulesTaps, RegisterCompilationOptimizeChunkModulesTaps,
   RegisterCompilationOptimizeTreeTaps,
+};
+use self::interceptor::{
+  RegisterCompilationStillValidModuleTaps, RegisterNormalModuleFactoryAfterResolveTaps,
 };
 use crate::{DisabledHooks, Hook, JsHooks};
 
@@ -74,6 +73,7 @@ pub struct JsHooksAdapterPlugin {
   register_compilation_process_assets_taps: RegisterCompilationProcessAssetsTaps,
   register_compilation_after_process_assets_taps: RegisterCompilationAfterProcessAssetsTaps,
   register_normal_module_factory_before_resolve_taps: RegisterNormalModuleFactoryBeforeResolveTaps,
+  register_normal_module_factory_after_resolve_taps: RegisterNormalModuleFactoryAfterResolveTaps,
 }
 
 impl fmt::Debug for JsHooksAdapterPlugin {
@@ -225,47 +225,16 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
           .register_normal_module_factory_before_resolve_taps
           .clone(),
       );
+    ctx
+      .context
+      .normal_module_factory_hooks
+      .after_resolve
+      .intercept(
+        self
+          .register_normal_module_factory_after_resolve_taps
+          .clone(),
+      );
     Ok(())
-  }
-
-  async fn after_resolve(
-    &self,
-    _ctx: rspack_core::PluginContext,
-    args: &mut NormalModuleAfterResolveArgs<'_>,
-  ) -> PluginNormalModuleFactoryAfterResolveOutput {
-    if self.is_hook_disabled(&Hook::AfterResolve) {
-      return Ok(None);
-    }
-
-    match self.hooks.after_resolve.call((&*args).into()).await {
-      Ok((ret, resolve_data)) => {
-        if let (Some(resolve_data), Some(create_data)) = (resolve_data, &args.create_data) {
-          fn override_resource(origin_data: &ResourceData, new_resource: String) -> ResourceData {
-            let mut resource_data = origin_data.clone();
-            let origin_resource_path = origin_data.resource_path.to_string_lossy().to_string();
-            resource_data.resource_path = new_resource.clone().into();
-            resource_data.resource = resource_data
-              .resource
-              .replace(&origin_resource_path, &new_resource);
-
-            resource_data
-          }
-
-          let request = resolve_data.request;
-          let user_request = resolve_data.user_request;
-          let resource = override_resource(&create_data.resource, resolve_data.resource);
-
-          args.create_data = Some(NormalModuleAfterResolveCreateData {
-            request,
-            user_request,
-            resource,
-          });
-        }
-
-        Ok(ret)
-      }
-      Err(err) => Err(err),
-    }
   }
 
   async fn context_module_before_resolve(
@@ -286,7 +255,7 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
   async fn context_module_after_resolve(
     &self,
     _ctx: rspack_core::PluginContext,
-    args: &mut NormalModuleAfterResolveArgs<'_>,
+    args: &mut AfterResolveArgs<'_>,
   ) -> PluginNormalModuleFactoryBeforeResolveOutput {
     if self.is_hook_disabled(&Hook::ContextModuleFactoryAfterResolve) {
       return Ok(None);
@@ -420,6 +389,10 @@ impl JsHooksAdapterPlugin {
       register_normal_module_factory_before_resolve_taps:
         RegisterNormalModuleFactoryBeforeResolveTaps::new(
           register_js_taps.register_normal_module_factory_before_resolve_taps,
+        ),
+      register_normal_module_factory_after_resolve_taps:
+        RegisterNormalModuleFactoryAfterResolveTaps::new(
+          register_js_taps.register_normal_module_factory_after_resolve_taps,
         ),
       inner: Arc::new(JsHooksAdapterInner {
         disabled_hooks,

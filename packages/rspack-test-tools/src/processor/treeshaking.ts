@@ -39,17 +39,23 @@ export class RspackTreeShakingProcessor extends BasicTaskProcessor<ECompilerType
 
 		if (stats.hasErrors()) {
 			throw new Error(
-				`Failed to compile in fixture ${this._options.name}, Errors: ${stats.toJson({ errors: true, all: false }).errors}`
+				`Failed to compile in fixture ${this._options.name}, Errors: ${
+					stats.toJson({ errors: true, all: false }).errors
+				}`
 			);
 		}
 		const fileContents = Object.entries(c.compilation!.assets)
 			.filter(([file]) => file.endsWith(".js") && !file.includes("runtime.js"))
 			.map(([file, source]) => {
 				const tag = path.extname(file).slice(1) || "txt";
-				return `\`\`\`${tag} title=${file}\n${source.source().toString()}\n\`\`\``;
+				return `\`\`\`${tag} title=${file}\n${source
+					.source()
+					.toString()}\n\`\`\``;
 			});
 		fileContents.sort();
-		const content = `---\nsource: crates/rspack_testing/src/run_fixture.rs\n---\n${fileContents.join("\n\n")}\n`;
+		const content = `---\nsource: crates/rspack_testing/src/run_fixture.rs\n---\n${fileContents.join(
+			"\n\n"
+		)}\n`;
 		const updateSnapshot =
 			process.argv.includes("-u") || process.argv.includes("--updateSnapshot");
 

@@ -4,11 +4,11 @@ use rspack_error::{error, Result};
 use tracing::instrument;
 
 use crate::{
-  cache::Cache, resolve, BeforeResolveArgs, BoxModule, ContextModule, ContextModuleOptions,
-  DependencyCategory, ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult,
-  ModuleIdentifier, NormalModuleAfterResolveArgs, PluginNormalModuleFactoryAfterResolveOutput,
-  RawModule, ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult, Resolver,
-  ResolverFactory, SharedPluginDriver,
+  cache::Cache, resolve, AfterResolveArgs, BeforeResolveArgs, BoxModule, ContextModule,
+  ContextModuleOptions, DependencyCategory, ModuleExt, ModuleFactory, ModuleFactoryCreateData,
+  ModuleFactoryResult, ModuleIdentifier, PluginNormalModuleFactoryAfterResolveOutput, RawModule,
+  ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory,
+  SharedPluginDriver,
 };
 
 #[derive(Debug)]
@@ -226,7 +226,7 @@ impl ContextModuleFactory {
 
     self
       .plugin_driver
-      .context_module_after_resolve(&mut NormalModuleAfterResolveArgs {
+      .context_module_after_resolve(&mut AfterResolveArgs {
         request: dependency.request(),
         context: data.context.as_ref(),
         file_dependencies: &data.file_dependencies,

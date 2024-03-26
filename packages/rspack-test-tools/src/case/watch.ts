@@ -32,13 +32,13 @@ const creator = new BasicCaseCreator({
 						stepName: run.name,
 						tempDir: temp!,
 						runable: true
-					})
+				  })
 				: new RspackWatchStepProcessor({
 						name,
 						stepName: run.name,
 						tempDir: temp!,
 						runable: true
-					})
+				  })
 		);
 	}
 });

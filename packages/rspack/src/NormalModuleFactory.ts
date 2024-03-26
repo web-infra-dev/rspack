@@ -1,29 +1,7 @@
 import { AsyncSeriesBailHook, HookMap } from "tapable";
 import * as liteTapable from "./lite-tapable";
 import type * as binding from "@rspack/binding";
-
-type ResourceData = {
-	resource: string;
-	path: string;
-	query?: string;
-	fragment?: string;
-};
-// resource: uri,
-// resource_path: info.path,
-// resource_query: (!info.query.is_empty()).then_some(info.query),
-// resource_fragment: (!info.fragment.is_empty()).then_some(info.fragment),
-type ResourceDataWithData = ResourceData & { data?: Record<string, any> };
-// type CreateData = Partial<NormalModuleCreateData & {settings: ModuleSettings}>;
-type ResolveData = {
-	context?: string;
-	request: string;
-	fileDependencies: string[];
-	missingDependencies: string[];
-	contextDependencies: string[];
-	// createData: CreateData;
-	// assertions: Record<string, any> | undefined;
-	// dependencies: ModuleDependency[];
-};
+import { ResolveData, ResourceDataWithData } from "./Module";
 
 type CreateModuleData = binding.CreateModuleData & {
 	settings: {};
@@ -37,7 +15,7 @@ export class NormalModuleFactory {
 			AsyncSeriesBailHook<[ResourceDataWithData], true | void>
 		>;
 		beforeResolve: liteTapable.AsyncSeriesBailHook<[ResolveData], false | void>;
-		afterResolve: AsyncSeriesBailHook<[ResolveData], boolean | void>;
+		afterResolve: liteTapable.AsyncSeriesBailHook<[ResolveData], false | void>;
 		createModule: AsyncSeriesBailHook<[CreateModuleData, {}], void>;
 	};
 	constructor() {
@@ -57,7 +35,7 @@ export class NormalModuleFactory {
 			// /** @type {AsyncSeriesBailHook<[ResolveData], false | void>} */
 			beforeResolve: new liteTapable.AsyncSeriesBailHook(["resolveData"]),
 			// /** @type {AsyncSeriesBailHook<[ResolveData], false | void>} */
-			afterResolve: new AsyncSeriesBailHook(["resolveData"]),
+			afterResolve: new liteTapable.AsyncSeriesBailHook(["resolveData"]),
 			// /** @type {AsyncSeriesBailHook<[ResolveData["createData"], ResolveData], Module | void>} */
 			createModule: new AsyncSeriesBailHook(["createData", "resolveData"])
 			// /** @type {SyncWaterfallHook<[Module, ResolveData["createData"], ResolveData], Module>} */

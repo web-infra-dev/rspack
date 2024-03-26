@@ -9,18 +9,18 @@ use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
 
 use crate::{
-  AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, ApplyContext,
-  BeforeResolveArgs, BoxLoader, BoxModule, BoxedParserAndGeneratorBuilder, ChunkContentHash,
-  ChunkHashArgs, Compilation, CompilationHooks, CompilerHooks, CompilerOptions, Content,
-  ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs, LoaderRunnerContext, ModuleIdentifier,
-  ModuleType, NormalModule, NormalModuleAfterResolveArgs, NormalModuleCreateData,
-  NormalModuleFactoryHooks, OptimizeChunksArgs, Plugin,
-  PluginAdditionalChunkRuntimeRequirementsOutput, PluginAdditionalModuleRequirementsOutput,
-  PluginBuildEndHookOutput, PluginChunkHashHookOutput, PluginContext, PluginFactorizeHookOutput,
-  PluginJsChunkHashHookOutput, PluginNormalModuleFactoryAfterResolveOutput,
-  PluginNormalModuleFactoryBeforeResolveOutput, PluginNormalModuleFactoryCreateModuleHookOutput,
-  PluginNormalModuleFactoryModuleHookOutput, PluginRenderChunkHookOutput, PluginRenderHookOutput,
-  PluginRenderManifestHookOutput, PluginRenderModuleContentOutput, PluginRenderStartupHookOutput,
+  AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, AfterResolveArgs,
+  ApplyContext, BeforeResolveArgs, BoxLoader, BoxModule, BoxedParserAndGeneratorBuilder,
+  ChunkContentHash, ChunkHashArgs, Compilation, CompilationHooks, CompilerHooks, CompilerOptions,
+  Content, ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs, LoaderRunnerContext,
+  ModuleIdentifier, ModuleType, NormalModule, NormalModuleCreateData, NormalModuleFactoryHooks,
+  OptimizeChunksArgs, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput,
+  PluginAdditionalModuleRequirementsOutput, PluginBuildEndHookOutput, PluginChunkHashHookOutput,
+  PluginContext, PluginFactorizeHookOutput, PluginJsChunkHashHookOutput,
+  PluginNormalModuleFactoryAfterResolveOutput, PluginNormalModuleFactoryBeforeResolveOutput,
+  PluginNormalModuleFactoryCreateModuleHookOutput, PluginNormalModuleFactoryModuleHookOutput,
+  PluginRenderChunkHookOutput, PluginRenderHookOutput, PluginRenderManifestHookOutput,
+  PluginRenderModuleContentOutput, PluginRenderStartupHookOutput,
   PluginRuntimeRequirementsInTreeOutput, RenderArgs, RenderChunkArgs, RenderManifestArgs,
   RenderModuleContentArgs, RenderStartupArgs, Resolver, ResolverFactory,
   RuntimeRequirementsInTreeArgs, Stats,
@@ -277,18 +277,6 @@ impl PluginDriver {
     Ok(())
   }
 
-  pub async fn after_resolve(
-    &self,
-    args: &mut NormalModuleAfterResolveArgs<'_>,
-  ) -> PluginNormalModuleFactoryAfterResolveOutput {
-    for plugin in &self.plugins {
-      tracing::trace!("running resolve for scheme:{}", plugin.name());
-      if let Some(data) = plugin.after_resolve(PluginContext::new(), args).await? {
-        return Ok(Some(data));
-      }
-    }
-    Ok(None)
-  }
   pub async fn context_module_before_resolve(
     &self,
     args: &mut BeforeResolveArgs,
@@ -307,7 +295,7 @@ impl PluginDriver {
 
   pub async fn context_module_after_resolve(
     &self,
-    args: &mut NormalModuleAfterResolveArgs<'_>,
+    args: &mut AfterResolveArgs<'_>,
   ) -> PluginNormalModuleFactoryAfterResolveOutput {
     for plugin in &self.plugins {
       tracing::trace!("running resolve for scheme:{}", plugin.name());

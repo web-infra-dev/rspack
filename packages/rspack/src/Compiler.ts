@@ -43,7 +43,7 @@ import { assertNotNill } from "./util/assertNotNil";
 import { FileSystemInfoEntry } from "./FileSystemInfo";
 import { RuntimeGlobals } from "./RuntimeGlobals";
 import { tryRunOrWebpackError } from "./lib/HookWebpackError";
-import { CodeGenerationResult, Module } from "./Module";
+import { CodeGenerationResult, Module, ResolveData } from "./Module";
 import { canInherentFromParent } from "./builtin-plugin/base";
 import ExecuteModulePlugin from "./ExecuteModulePlugin";
 import { Chunk } from "./Chunk";
@@ -240,7 +240,6 @@ class Compiler {
 					this.#normalModuleFactoryCreateModule.bind(this),
 				normalModuleFactoryResolveForScheme:
 					this.#normalModuleFactoryResolveForScheme.bind(this),
-				afterResolve: this.#afterResolve.bind(this),
 				contextModuleFactoryBeforeResolve:
 					this.#contextModuleFactoryBeforeResolve.bind(this),
 				contextModuleFactoryAfterResolve:
@@ -454,7 +453,7 @@ class Compiler {
 				registerNormalModuleFactoryBeforeResolveTaps: this.#createRegisterTaps(
 					() => this.compilationParams!.normalModuleFactory.hooks.beforeResolve,
 					queried => async (resolveData: binding.JsBeforeResolveArgs) => {
-						const normalizedResolveData = {
+						const normalizedResolveData: ResolveData = {
 							request: resolveData.request,
 							context: resolveData.context,
 							fileDependencies: [],
@@ -465,6 +464,22 @@ class Compiler {
 						resolveData.request = normalizedResolveData.request;
 						resolveData.context = normalizedResolveData.context;
 						return [ret, resolveData];
+					}
+				),
+				registerNormalModuleFactoryAfterResolveTaps: this.#createRegisterTaps(
+					() => this.compilationParams!.normalModuleFactory.hooks.afterResolve,
+					queried => async (arg: binding.JsAfterResolveData) => {
+						const data: ResolveData = {
+							request: arg.request,
+							context: arg.context,
+							fileDependencies: arg.fileDependencies,
+							missingDependencies: arg.missingDependencies,
+							contextDependencies: arg.contextDependencies,
+							factoryMeta: arg.factoryMeta,
+							createData: arg.createData
+						};
+						const ret = await queried.promise(data);
+						return [ret, data.createData];
 					}
 				)
 			},
@@ -690,8 +705,6 @@ class Compiler {
 		const disabledHooks: string[] = [];
 		type HookMap = Record<keyof binding.JsHooks, any>;
 		const hookMap: HookMap = {
-			afterResolve:
-				this.compilationParams?.normalModuleFactory.hooks.afterResolve,
 			contextModuleFactoryBeforeResolve:
 				this.compilationParams?.contextModuleFactory.hooks.beforeResolve,
 			contextModuleFactoryAfterResolve:
@@ -707,8 +720,8 @@ class Compiler {
 				(hook.taps
 					? !hook.isUsed()
 					: hook._map
-						? /* hook map */ hook._map.size === 0
-						: false)
+					? /* hook map */ hook._map.size === 0
+					: false)
 			) {
 				disabledHooks.push(name);
 			}
@@ -733,26 +746,6 @@ class Compiler {
 		this.#updateDisabledHooks();
 	}
 
-	async #afterResolve(resolveData: binding.AfterResolveData) {
-		let res =
-			await this.compilationParams!.normalModuleFactory.hooks.afterResolve.promise(
-				resolveData
-			);
-
-		NormalModule.getCompilationHooks(this.compilation!).loader.tap(
-			"sideEffectFreePropPlugin",
-			(loaderContext: any) => {
-				loaderContext._module = {
-					factoryMeta: {
-						sideEffectFree: !!resolveData.factoryMeta.sideEffectFree
-					}
-				};
-			}
-		);
-		this.#updateDisabledHooks();
-		return [res, resolveData.createData];
-	}
-
 	async #contextModuleFactoryBeforeResolve(
 		resourceData: binding.JsBeforeResolveArgs
 	) {
@@ -766,7 +759,7 @@ class Compiler {
 	}
 
 	async #contextModuleFactoryAfterResolve(
-		resourceData: binding.AfterResolveData
+		resourceData: binding.JsAfterResolveData
 	) {
 		let res =
 			await this.compilationParams!.contextModuleFactory.hooks.afterResolve.promise(

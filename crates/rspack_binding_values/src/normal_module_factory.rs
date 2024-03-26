@@ -1,7 +1,6 @@
 use napi_derive::napi;
 use rspack_core::{
-  BeforeResolveArgs, NormalModuleAfterResolveArgs, NormalModuleAfterResolveCreateData,
-  NormalModuleCreateData, ResourceData,
+  AfterResolveArgs, BeforeResolveArgs, CreateData, NormalModuleCreateData, ResourceData,
 };
 
 #[napi(object)]
@@ -25,22 +24,24 @@ pub struct JsBeforeResolveArgs {
 pub type JsBeforeResolveOutput = (Option<bool>, JsBeforeResolveArgs);
 
 #[napi(object)]
-pub struct AfterResolveCreateData {
+pub struct JsCreateData {
   pub request: String,
   pub user_request: String,
   pub resource: String,
 }
 
 #[napi(object)]
-pub struct AfterResolveData {
+pub struct JsAfterResolveData {
   pub request: String,
   pub context: String,
   pub file_dependencies: Vec<String>,
   pub context_dependencies: Vec<String>,
   pub missing_dependencies: Vec<String>,
-  pub factory_meta: FactoryMeta,
-  pub create_data: Option<AfterResolveCreateData>,
+  pub factory_meta: JsFactoryMeta,
+  pub create_data: Option<JsCreateData>,
 }
+
+pub type JsAfterResolveOutput = (Option<bool>, Option<JsCreateData>);
 
 #[napi(object)]
 pub struct CreateModuleData {
@@ -51,7 +52,7 @@ pub struct CreateModuleData {
 }
 
 #[napi(object)]
-pub struct FactoryMeta {
+pub struct JsFactoryMeta {
   pub side_effect_free: Option<bool>,
 }
 
@@ -107,8 +108,8 @@ impl From<BeforeResolveArgs> for JsBeforeResolveArgs {
   }
 }
 
-impl From<&NormalModuleAfterResolveArgs<'_>> for AfterResolveData {
-  fn from(value: &NormalModuleAfterResolveArgs) -> Self {
+impl From<&AfterResolveArgs<'_>> for JsAfterResolveData {
+  fn from(value: &AfterResolveArgs) -> Self {
     Self {
       context: value.context.to_owned(),
       request: value.request.to_string(),
@@ -130,16 +131,16 @@ impl From<&NormalModuleAfterResolveArgs<'_>> for AfterResolveData {
         .into_iter()
         .map(|item| item.to_string_lossy().to_string())
         .collect::<Vec<_>>(),
-      factory_meta: FactoryMeta {
+      factory_meta: JsFactoryMeta {
         side_effect_free: value.factory_meta.side_effect_free,
       },
-      create_data: value.create_data.as_ref().map(AfterResolveCreateData::from),
+      create_data: value.create_data.as_ref().map(JsCreateData::from),
     }
   }
 }
 
-impl From<&NormalModuleAfterResolveCreateData> for AfterResolveCreateData {
-  fn from(value: &NormalModuleAfterResolveCreateData) -> Self {
+impl From<&CreateData> for JsCreateData {
+  fn from(value: &CreateData) -> Self {
     Self {
       request: value.request.to_owned(),
       user_request: value.user_request.to_owned(),
