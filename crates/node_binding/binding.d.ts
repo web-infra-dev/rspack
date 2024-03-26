@@ -17,11 +17,6 @@ export class JsCompilation {
   getOptimizationBailout(): Array<JsStatsOptimizationBailout>
   getChunks(): Array<JsChunk>
   getNamedChunk(name: string): JsChunk | null
-  /**
-   * Only available for those none Js and Css source,
-   * return true if set module source successfully, false if failed.
-   */
-  setNoneAstModuleSource(moduleIdentifier: string, source: JsCompatSource): boolean
   setAssetSource(name: string, source: JsCompatSource): void
   deleteAssetSource(name: string): void
   getAssetFilenames(): Array<string>

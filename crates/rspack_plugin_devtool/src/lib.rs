@@ -636,8 +636,8 @@ impl ModuleFilenameHelpers {
 
     match module_or_source {
       ModuleOrSource::Module(module_identifier) => {
-        let module = compilation
-          .get_module_graph()
+        let module_graph = compilation.get_module_graph();
+        let module = module_graph
           .module_by_identifier(module_identifier)
           .unwrap_or_else(|| {
             panic!(

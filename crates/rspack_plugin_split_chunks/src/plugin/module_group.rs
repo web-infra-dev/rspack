@@ -44,6 +44,7 @@ impl SplitChunksPlugin {
   ) -> ModuleGroupMap {
     let chunk_db = &compilation.chunk_by_ukey;
     let chunk_group_db = &compilation.chunk_group_by_ukey;
+    let module_graph = compilation.get_module_graph();
 
     /// If a module meets requirements of a `ModuleGroup`. We consider the `Module` and the `CacheGroup`
     /// to be a `MatchedItem`, which are consumed later to calculate `ModuleGroup`.
@@ -62,7 +63,7 @@ impl SplitChunksPlugin {
     // single_chunk_sets: chunkset of module that belongs to only one chunk
     // chunk_sets_by_count: use chunkset len as key
     let (chunk_sets_in_graph, chunk_sets_by_count) =
-      { Self::prepare_combination_maps(compilation.get_module_graph(), &compilation.chunk_graph) };
+      { Self::prepare_combination_maps(&module_graph, &compilation.chunk_graph) };
 
     let combinations_cache = DashMap::<ChunksKey, Vec<FxHashSet<ChunkUkey>>>::default();
 
@@ -89,8 +90,8 @@ impl SplitChunksPlugin {
       result
     };
 
-    compilation.get_module_graph().modules().values().par_bridge().for_each(|module| {
-      let module = &**module;
+    module_graph.modules().values().par_bridge().for_each(|module| {
+      let module = &***module;
 
       let belong_to_chunks = compilation
           .chunk_graph
@@ -266,6 +267,7 @@ impl SplitChunksPlugin {
     compilation: &mut Compilation,
   ) {
     // remove all modules from other entries and update size
+    let module_graph = compilation.get_module_graph();
     let keys_of_invalid_group = module_group_map
       .iter_mut()
       .par_bridge()
@@ -281,8 +283,7 @@ impl SplitChunksPlugin {
         current_module_group.modules.iter().for_each(|module| {
           if other_module_group.modules.contains(module) {
             tracing::trace!("remove module({module}) from {key}");
-            let module = compilation
-              .get_module_graph()
+            let module = module_graph
               .module_by_identifier(module)
               .unwrap_or_else(|| panic!("Module({module}) not found"));
             other_module_group.remove_module(&**module);

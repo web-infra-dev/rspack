@@ -475,18 +475,6 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	}
 
 	/**
-	 *
-	 * @param moduleIdentifier moduleIdentifier of the module you want to modify
-	 * @param source
-	 * @returns true if the setting is success, false if failed.
-	 */
-	setNoneAstModuleSource(
-		moduleIdentifier: string,
-		source: JsCompatSource
-	): boolean {
-		return this.#inner.setNoneAstModuleSource(moduleIdentifier, source);
-	}
-	/**
 	 * Emit an not existing asset. Trying to emit an asset that already exists will throw an error.
 	 *
 	 * See: [Compilation.emitAsset](https://webpack.js.org/api/compilation-object/#emitasset)

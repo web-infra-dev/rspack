@@ -518,23 +518,32 @@ impl Plugin for SideEffectsFlagPlugin {
 
   async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<()>> {
     let entries = compilation.entry_modules().collect::<Vec<_>>();
-    let mg = compilation.get_module_graph_mut();
-    let level_order_module_identifier = get_level_order_module_ids(mg, entries);
+    let level_order_module_identifier =
+      get_level_order_module_ids(&compilation.get_module_graph(), entries);
     for module_identifier in level_order_module_identifier {
+      let module_graph = compilation.get_module_graph();
       let mut module_chain = HashSet::default();
       // dbg!(&module_identifier);
-      let Some(module) = mg.module_by_identifier(&module_identifier) else {
+      let Some(module) = module_graph.module_by_identifier(&module_identifier) else {
         continue;
       };
-      let side_effects_state = module.get_side_effects_connection_state(mg, &mut module_chain);
+      let side_effects_state =
+        module.get_side_effects_connection_state(&module_graph, &mut module_chain);
       if side_effects_state != rspack_core::ConnectionState::Bool(false) {
         continue;
       }
-      let cur_exports_info_id = mg.get_exports_info(&module_identifier).id;
+      let cur_exports_info_id = module_graph.get_exports_info(&module_identifier).id;
 
-      let incoming_connections = mg.get_incoming_connections_cloned(&module_identifier);
-      for con in incoming_connections {
-        let Some(dep) = mg.dependency_by_id(&con.dependency_id) else {
+      let incoming_connections = module_graph
+        .module_graph_module_by_identifier(&module_identifier)
+        .map(|mgm| mgm.incoming_connections().clone())
+        .unwrap_or_default();
+      for con_id in incoming_connections {
+        let mut module_graph = compilation.get_module_graph_mut();
+        let con = module_graph
+          .connection_by_connection_id(&con_id)
+          .expect("should have connection");
+        let Some(dep) = module_graph.dependency_by_id(&con.dependency_id) else {
           continue;
         };
         let dep_id = *dep.id();
@@ -552,14 +561,14 @@ impl Plugin for SideEffectsFlagPlugin {
           .downcast_ref::<HarmonyExportImportedSpecifierDependency>()
           .and_then(|dep| dep.name.clone())
         {
-          let export_info_id = mg.get_export_info(
+          let export_info_id = module_graph.get_export_info(
             con
               .original_module_identifier
               .expect("should have original_module_identifier"),
             &name,
           );
           export_info_id.move_target(
-            mg,
+            &mut module_graph,
             Arc::new(|target: &ResolvedExportInfoTarget, mg: &ModuleGraph| {
               mg.module_by_identifier(&target.module)
                 .expect("should have module")
@@ -588,13 +597,12 @@ impl Plugin for SideEffectsFlagPlugin {
           continue;
         }
 
-        let ids = dep_id.get_ids(mg);
-        // dbg!(&ids);
+        let ids = dep_id.get_ids(&module_graph);
 
         if !ids.is_empty() {
-          let export_info_id = cur_exports_info_id.get_export_info(&ids[0], mg);
+          let export_info_id = cur_exports_info_id.get_export_info(&ids[0], &mut module_graph);
 
-          let mut mga = MutableModuleGraph::new(mg);
+          let mut mga = MutableModuleGraph::new(&mut module_graph);
           let target = export_info_id.get_target(
             &mut mga,
             Some(Arc::new(
@@ -611,7 +619,7 @@ impl Plugin for SideEffectsFlagPlugin {
           };
 
           // dbg!(&mg.connection_by_dependency(&dep_id));
-          mg.update_module(&dep_id, &target.module);
+          module_graph.update_module(&dep_id, &target.module);
           // TODO: Explain https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/SideEffectsFlagPlugin.js#L303-L306
           let processed_ids = target
             .export
@@ -622,7 +630,7 @@ impl Plugin for SideEffectsFlagPlugin {
             .unwrap_or_else(|| ids[1..].to_vec());
 
           // dbg!(&mg.connection_by_dependency(&dep_id));
-          dep_id.set_ids(processed_ids, mg);
+          dep_id.set_ids(processed_ids, &mut module_graph);
         }
       }
     }

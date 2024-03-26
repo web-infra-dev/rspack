@@ -29,7 +29,7 @@ use crate::cache::Cache;
 use crate::tree_shaking::symbol::{IndirectType, StarSymbolKind, DEFAULT_JS_WORD};
 use crate::tree_shaking::visitor::SymbolRef;
 use crate::{
-  fast_set, AssetEmittedInfo, CompilerOptions, Logger, ModuleGraph, PluginDriver, ResolverFactory,
+  fast_set, AssetEmittedInfo, CompilerOptions, Logger, PluginDriver, ResolverFactory,
   SharedPluginDriver,
 };
 use crate::{BoxPlugin, ExportInfo, UsageState};
@@ -100,7 +100,6 @@ where
       options: options.clone(),
       compilation: Compilation::new(
         options,
-        ModuleGraph::default(),
         plugin_driver.clone(),
         resolver_factory.clone(),
         loader_resolver_factory.clone(),
@@ -132,7 +131,6 @@ where
       &mut self.compilation,
       Compilation::new(
         self.options.clone(),
-        ModuleGraph::default(),
         self.plugin_driver.clone(),
         self.resolver_factory.clone(),
         self.loader_resolver_factory.clone(),
@@ -262,7 +260,7 @@ where
         }
       });
       {
-        let module_graph = self.compilation.get_module_graph_mut();
+        let mut module_graph = self.compilation.get_module_graph_mut();
         for (module_identifier, exports_map) in exports_info_map.into_iter() {
           let exports_id = module_graph
             .module_graph_module_by_identifier(&module_identifier)

@@ -42,6 +42,7 @@ impl RuntimeModule for ShareRuntimeModule {
       .chunk
       .expect("should have chunk in <ShareRuntimeModule as RuntimeModule>::generate");
     let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
+    let module_graph = compilation.get_module_graph();
     let mut init_per_scope: FxHashMap<
       String,
       LinkedHashMap<DataInitStage, LinkedHashSet<DataInitInfo>>,
@@ -50,11 +51,7 @@ impl RuntimeModule for ShareRuntimeModule {
       let chunk = compilation.chunk_by_ukey.expect_get(&c);
       let modules = compilation
         .chunk_graph
-        .get_chunk_modules_iterable_by_source_type(
-          &c,
-          SourceType::ShareInit,
-          compilation.get_module_graph(),
-        )
+        .get_chunk_modules_iterable_by_source_type(&c, SourceType::ShareInit, &module_graph)
         .sorted_unstable_by_key(|m| m.identifier());
       for m in modules {
         let code_gen = compilation

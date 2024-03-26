@@ -502,11 +502,9 @@ impl JsStats {
         source,
         used_exports,
         provided_exports,
+        |res| res.into_iter().map(TryInto::try_into).collect(),
       )
       .map_err(|e| napi::Error::from_reason(e.to_string()))?
-      .into_iter()
-      .map(TryInto::try_into)
-      .collect()
   }
 
   #[allow(clippy::too_many_arguments)]
@@ -533,11 +531,9 @@ impl JsStats {
         source,
         used_exports,
         provided_exports,
+        |res| res.into_iter().map(TryInto::try_into).collect(),
       )
       .map_err(|e| napi::Error::from_reason(e.to_string()))?
-      .into_iter()
-      .map(TryInto::try_into)
-      .collect()
   }
 
   #[napi]

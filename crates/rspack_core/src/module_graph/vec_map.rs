@@ -23,23 +23,11 @@ impl<T: Debug> VecMap<T> {
     }
   }
 
-  /// # Panic
-  /// the function would panic if bounds check failed or value does not exists
-  pub fn get(&self, index: usize) -> &T {
-    self.inner[index].as_ref().expect("should have value")
-  }
-
-  /// # Panic
-  /// the function would panic if bounds check failed or value does not exists
-  pub fn get_mut(&mut self, index: usize) -> &mut T {
-    self.inner[index].as_mut().expect("should have value")
-  }
-
   pub fn try_get(&self, index: usize) -> Option<&T> {
     self.inner.get(index).and_then(|item| item.as_ref())
   }
 
-  //  pub fn try_get_mut(&mut self, index: usize) -> Option<&mut T> {
-  //    self.inner.get_mut(index).and_then(|item| item.as_mut())
-  //  }
+  pub fn try_get_mut(&mut self, index: usize) -> Option<&mut T> {
+    self.inner.get_mut(index).and_then(|item| item.as_mut())
+  }
 }
