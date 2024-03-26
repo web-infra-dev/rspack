@@ -39,19 +39,16 @@ impl DependencyTemplate for HarmonyAcceptDependency {
     } = code_generatable_context;
 
     let mut content = String::default();
-
+    let module_graph = compilation.get_module_graph();
     self.dependency_ids.iter().for_each(|id| {
-      let dependency = compilation.get_module_graph().dependency_by_id(id);
-      let runtime_condition = match dependency.and_then(|dep| {
-        compilation
-          .get_module_graph()
-          .get_module_by_dependency_id(dep.id())
-      }) {
-        Some(ref_module) => {
-          get_import_emitted_runtime(&module.identifier(), &ref_module.identifier())
-        }
-        None => RuntimeCondition::Boolean(false),
-      };
+      let dependency = module_graph.dependency_by_id(id);
+      let runtime_condition =
+        match dependency.and_then(|dep| module_graph.get_module_by_dependency_id(dep.id())) {
+          Some(ref_module) => {
+            get_import_emitted_runtime(&module.identifier(), &ref_module.identifier())
+          }
+          None => RuntimeCondition::Boolean(false),
+        };
 
       if matches!(runtime_condition, RuntimeCondition::Boolean(false)) {
         return;

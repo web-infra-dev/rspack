@@ -62,7 +62,7 @@ pub fn render_chunk_modules(
               .as_ref()
               .expect("should have module id"),
             &compilation.options.context,
-            compilation.get_module_graph(),
+            &compilation.get_module_graph(),
             &compilation.chunk_graph,
             &compilation.plugin_driver,
           ),

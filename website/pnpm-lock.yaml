@@ -72,6 +72,9 @@ importers:
       rspress:
         specifier: 1.11.0
         version: 1.11.0(typescript@5.4.3)(webpack@5.91.0)
+      rspress-plugin-font-open-sans:
+        specifier: 1.0.0
+        version: 1.0.0
       typescript:
         specifier: ^5.0.4
         version: 5.4.3
@@ -4137,6 +4140,10 @@ packages:
     resolution: {integrity: sha512-qyBM9XsP7oxBQSms2cr715XOeoDi6p5hUYXtlNDfst0jha8vfWVPNeC7j5+j5dG+yt//1OCmLaOY2rWqPSVXDg==}
     dependencies:
       fs-extra: 11.2.0
+    dev: true
+
+  /rspress-plugin-font-open-sans@1.0.0:
+    resolution: {integrity: sha512-4GP0pd7h3W8EWdqE0VkA62nzUJZNy4ZnYK7be8+lOKHQKsQ5nZ+22A/VurNssi1eZFx3kjwbmIuoAkgb5W8S9Q==}
     dev: true
 
   /rspress@1.11.0(typescript@5.4.3)(webpack@5.91.0):

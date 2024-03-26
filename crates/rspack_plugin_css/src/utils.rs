@@ -125,6 +125,7 @@ pub fn css_modules_exports_to_string(
 ) -> Result<String> {
   runtime_requirements.insert(RuntimeGlobals::MODULE);
   let mut code = String::from("module.exports = {\n");
+  let module_graph = compilation.get_module_graph();
   for (key, elements) in exports {
     let content = elements
       .iter()
@@ -135,7 +136,7 @@ pub fn css_modules_exports_to_string(
             .get_dependencies()
             .iter()
             .find_map(|id| {
-              let dependency = compilation.get_module_graph().dependency_by_id(id);
+              let dependency = module_graph.dependency_by_id(id);
               let request = if let Some(d) = dependency.and_then(|d| d.as_module_dependency()) {
                 Some(d.request())
               } else {
@@ -146,9 +147,7 @@ pub fn css_modules_exports_to_string(
               if let Some(request) = request
                 && request == from_name
               {
-                return compilation
-                  .get_module_graph()
-                  .module_graph_module_by_dependency_id(id);
+                return module_graph.module_graph_module_by_dependency_id(id);
               }
               None
             })
@@ -183,6 +182,7 @@ pub fn css_modules_exports_to_concatenate_module_string(
   let Some(ref mut scope) = concatenation_scope else {
     return Ok(());
   };
+  let module_graph = compilation.get_module_graph();
   let mut used_identifiers = HashSet::default();
   for (key, elements) in exports {
     let content = elements
@@ -194,7 +194,7 @@ pub fn css_modules_exports_to_concatenate_module_string(
             .get_dependencies()
             .iter()
             .find_map(|id| {
-              let dependency = compilation.get_module_graph().dependency_by_id(id);
+              let dependency = module_graph.dependency_by_id(id);
               let request = if let Some(d) = dependency.and_then(|d| d.as_module_dependency()) {
                 Some(d.request())
               } else {
@@ -205,9 +205,7 @@ pub fn css_modules_exports_to_concatenate_module_string(
               if let Some(request) = request
                 && request == from_name
               {
-                return compilation
-                  .get_module_graph()
-                  .module_graph_module_by_dependency_id(id);
+                return module_graph.module_graph_module_by_dependency_id(id);
               }
               None
             })

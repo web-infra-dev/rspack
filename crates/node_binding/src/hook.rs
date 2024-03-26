@@ -3,37 +3,19 @@ use std::sync::RwLock;
 /// rust support hooks
 #[derive(PartialEq)]
 pub enum Hook {
-  AfterProcessAssets,
-  Emit,
-  AssetEmitted,
-  AfterEmit,
-  OptimizeChunkModules,
-  OptimizeModules,
-  AfterOptimizeModules,
-  OptimizeTree,
   ContextModuleFactoryBeforeResolve,
   ContextModuleFactoryAfterResolve,
   NormalModuleFactoryResolveForScheme,
   NormalModuleFactoryCreateModule,
-  AfterResolve,
 }
 
 impl From<String> for Hook {
   fn from(s: String) -> Self {
     match s.as_str() {
-      "afterProcessAssets" => Hook::AfterProcessAssets,
-      "emit" => Hook::Emit,
-      "assetEmitted" => Hook::AssetEmitted,
-      "afterEmit" => Hook::AfterEmit,
-      "optimizeChunkModules" => Hook::OptimizeChunkModules,
-      "optimizeModules" => Hook::OptimizeModules,
-      "afterOptimizeModules" => Hook::AfterOptimizeModules,
-      "optimizeTree" => Hook::OptimizeTree,
       "contextModuleFactoryBeforeResolve" => Hook::ContextModuleFactoryBeforeResolve,
       "contextModuleFactoryAfterResolve" => Hook::ContextModuleFactoryAfterResolve,
       "normalModuleFactoryCreateModule" => Hook::NormalModuleFactoryCreateModule,
       "normalModuleFactoryResolveForScheme" => Hook::NormalModuleFactoryResolveForScheme,
-      "afterResolve" => Hook::AfterResolve,
       hook_name => panic!("{hook_name} is an invalid hook name"),
     }
   }

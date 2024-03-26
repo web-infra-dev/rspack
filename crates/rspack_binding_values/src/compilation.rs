@@ -6,11 +6,10 @@ use std::path::PathBuf;
 use napi_derive::napi;
 use rspack_core::get_chunk_from_ukey;
 use rspack_core::rspack_sources::BoxSource;
+use rspack_core::rspack_sources::SourceExt;
 use rspack_core::AssetInfo;
 use rspack_core::ModuleIdentifier;
-use rspack_core::{rspack_sources::SourceExt, NormalModuleSource};
 use rspack_error::Diagnostic;
-use rspack_identifier::Identifier;
 use rspack_napi::napi::bindgen_prelude::*;
 use rspack_napi::NapiResultExt;
 
@@ -182,31 +181,6 @@ impl JsCompilation {
       .named_chunks
       .get(&name)
       .and_then(|c| get_chunk_from_ukey(c, &self.0.chunk_by_ukey).map(JsChunk::from))
-  }
-
-  #[napi]
-  /// Only available for those none Js and Css source,
-  /// return true if set module source successfully, false if failed.
-  pub fn set_none_ast_module_source(
-    &mut self,
-    module_identifier: String,
-    source: JsCompatSource,
-  ) -> bool {
-    match self
-      .0
-      .get_module_graph_mut()
-      .module_by_identifier_mut(&Identifier::from(module_identifier.as_str()))
-    {
-      Some(module) => match module.as_normal_module_mut() {
-        Some(module) => {
-          let compat_source = CompatSource::from(source).boxed();
-          *module.source_mut() = NormalModuleSource::new_built(compat_source, vec![]);
-          true
-        }
-        None => false,
-      },
-      None => false,
-    }
   }
 
   #[napi]
@@ -446,17 +420,20 @@ impl JsCompilation {
     callbackify(env, f, async {
       let modules = self
         .0
-        .rebuild_module(rustc_hash::FxHashSet::from_iter(
-          module_identifiers.into_iter().map(ModuleIdentifier::from),
-        ))
+        .rebuild_module(
+          rustc_hash::FxHashSet::from_iter(
+            module_identifiers.into_iter().map(ModuleIdentifier::from),
+          ),
+          |modules| {
+            modules
+              .into_iter()
+              .filter_map(|item| item.to_js_module().ok())
+              .collect::<Vec<_>>()
+          },
+        )
         .await
         .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))?;
-      Ok(
-        modules
-          .into_iter()
-          .filter_map(|item| item.to_js_module().ok())
-          .collect::<Vec<_>>(),
-      )
+      Ok(modules)
     })
   }
 

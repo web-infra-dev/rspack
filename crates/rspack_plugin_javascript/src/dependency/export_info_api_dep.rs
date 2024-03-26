@@ -53,27 +53,22 @@ impl ExportInfoApiDependency {
     } = context;
     let export_name = &self.export_name;
     let prop = &self.property;
+    let module_graph = compilation.get_module_graph();
     // TODO: nested export_name, one level is enough for test
     if export_name.len() == 1 {
       let export_name = &export_name[0];
       match prop.to_string().as_str() {
         "used" => {
           let id = module.identifier();
-          let mgm = compilation
-            .get_module_graph()
-            .module_graph_module_by_identifier(&id)?;
-          let exports_info = compilation
-            .get_module_graph()
-            .get_exports_info_by_id(&mgm.exports);
+          let mgm = module_graph.module_graph_module_by_identifier(&id)?;
+          let exports_info = module_graph.get_exports_info_by_id(&mgm.exports);
           let info_id = exports_info.exports.get(export_name)?;
-          let export_info = compilation
-            .get_module_graph()
-            .try_get_export_info_by_id(info_id)?;
+          let export_info = module_graph.try_get_export_info_by_id(info_id)?;
           if compilation.options.is_new_tree_shaking() {
             Some(exports_info.get_used(
               rspack_core::UsedName::Str(export_name.clone()),
               *runtime,
-              compilation.get_module_graph(),
+              &module_graph,
             ))
           } else {
             Some(export_info.usage_state)

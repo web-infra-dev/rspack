@@ -47,14 +47,11 @@ impl RuntimeModule for RemoteRuntimeModule {
     let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
     let mut chunk_to_remotes_mapping = FxHashMap::default();
     let mut id_to_remote_data_mapping = FxHashMap::default();
+    let module_graph = compilation.get_module_graph();
     for chunk in chunk.get_all_async_chunks(&compilation.chunk_group_by_ukey) {
       let modules = compilation
         .chunk_graph
-        .get_chunk_modules_iterable_by_source_type(
-          &chunk,
-          SourceType::Remote,
-          compilation.get_module_graph(),
-        );
+        .get_chunk_modules_iterable_by_source_type(&chunk, SourceType::Remote, &module_graph);
       let mut remotes = Vec::new();
       for m in modules {
         let Some(m) = m.downcast_ref::<RemoteModule>() else {
@@ -68,8 +65,7 @@ impl RuntimeModule for RemoteRuntimeModule {
           .expect("should have module_id at <RemoteRuntimeModule as RuntimeModule>::generate");
         let share_scope = m.share_scope.as_str();
         let dep = m.get_dependencies()[0];
-        let external_module = compilation
-          .get_module_graph()
+        let external_module = module_graph
           .get_module_by_dependency_id(&dep)
           .expect("should have module");
         let external_module_id = compilation

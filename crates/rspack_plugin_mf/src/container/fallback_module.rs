@@ -152,16 +152,13 @@ impl Module for FallbackModule {
     _: Option<ConcatenationScope>,
   ) -> Result<CodeGenerationResult> {
     let mut codegen = CodeGenerationResult::default();
+    let module_graph = compilation.get_module_graph();
     codegen.runtime_requirements.insert(RuntimeGlobals::MODULE);
     codegen.runtime_requirements.insert(RuntimeGlobals::REQUIRE);
     let ids: Vec<_> = self
       .get_dependencies()
       .iter()
-      .filter_map(|dep| {
-        compilation
-          .get_module_graph()
-          .get_module_by_dependency_id(dep)
-      })
+      .filter_map(|dep| module_graph.get_module_by_dependency_id(dep))
       .filter_map(|module| {
         compilation
           .chunk_graph

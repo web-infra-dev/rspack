@@ -189,10 +189,11 @@ impl Plugin for JsPlugin {
       .get_chunk_hash(&args.chunk_ukey, args.compilation, &mut hasher)
       .await?;
 
+    let module_graph = compilation.get_module_graph();
     let mut ordered_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
       &args.chunk_ukey,
       SourceType::JavaScript,
-      compilation.get_module_graph(),
+      &module_graph,
     );
     // SAFETY: module identifier is unique
     ordered_modules.sort_unstable_by_key(|m| m.identifier().as_str());
@@ -247,7 +248,7 @@ impl Plugin for JsPlugin {
       if !chunk_has_js(
         &args.chunk_ukey,
         &compilation.chunk_graph,
-        compilation.get_module_graph(),
+        &compilation.get_module_graph(),
       ) {
         return Ok(vec![].with_empty_diagnostic());
       }

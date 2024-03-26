@@ -2,7 +2,7 @@ use std::hash::Hash;
 use std::sync::atomic::AtomicU32;
 use std::sync::atomic::Ordering::Relaxed;
 
-use crate::{DependencyCondition, DependencyId, ModuleGraph, ModuleIdentifier, RuntimeSpec};
+use crate::{DependencyId, ModuleGraph, ModuleIdentifier, RuntimeSpec};
 
 pub static CONNECTION_ID: AtomicU32 = AtomicU32::new(0);
 
@@ -89,8 +89,8 @@ impl ModuleGraphConnection {
     if !self.conditional {
       return self.active;
     }
-    self
-      .get_condition_state(module_graph, runtime)
+    module_graph
+      .get_condition_state(self, runtime)
       .is_not_false()
   }
 
@@ -102,7 +102,7 @@ impl ModuleGraphConnection {
     if !self.conditional {
       return self.active;
     }
-    self.get_condition_state(module_graph, runtime).is_true()
+    module_graph.get_condition_state(self, runtime).is_true()
   }
 
   pub fn get_active_state(
@@ -114,26 +114,7 @@ impl ModuleGraphConnection {
       return ConnectionState::Bool(self.active);
     }
 
-    self.get_condition_state(module_graph, runtime)
-  }
-
-  /// ## Panic
-  /// This function will panic if we don't have condition, make sure you checked if `condition`
-  /// exists before you invoke this function
-  /// Here avoid move condition, so use dependency id to search
-  pub fn get_condition_state(
-    &self,
-    module_graph: &ModuleGraph,
-    runtime: Option<&RuntimeSpec>,
-  ) -> ConnectionState {
-    match module_graph
-      .connection_to_condition
-      .get(&self.id)
-      .unwrap_or_else(|| panic!("{:#?}", self))
-    {
-      DependencyCondition::False => ConnectionState::Bool(false),
-      DependencyCondition::Fn(f) => f(self, runtime, module_graph),
-    }
+    module_graph.get_condition_state(self, runtime)
   }
 
   pub fn module_identifier(&self) -> &ModuleIdentifier {
@@ -141,15 +122,7 @@ impl ModuleGraphConnection {
   }
 
   /// used for set module identifier after clone the [ModuleGraphConnection]
-  pub fn set_module_identifier(&mut self, mi: ModuleIdentifier, mg: &mut ModuleGraph) {
-    self.module_identifier = mi;
-    mg.dependency_id_to_module_identifier
-      .insert(self.dependency_id, mi);
-  }
-
-  /// used for mutate module identifier, don't forget also set the module identifier of the
-  /// related dependency_id
-  pub fn set_module_identifier_only(&mut self, mi: ModuleIdentifier) {
+  pub fn set_module_identifier(&mut self, mi: ModuleIdentifier) {
     self.module_identifier = mi;
   }
 }

@@ -114,6 +114,7 @@ pub enum SourceType {
   ConsumeShared,
   #[default]
   Unknown,
+  CssImport,
 }
 
 impl std::fmt::Display for SourceType {
@@ -128,6 +129,7 @@ impl std::fmt::Display for SourceType {
       SourceType::ShareInit => write!(f, "share-init"),
       SourceType::ConsumeShared => write!(f, "consume-shared"),
       SourceType::Unknown => write!(f, "unknown"),
+      SourceType::CssImport => write!(f, "css-import"),
     }
   }
 }
@@ -146,6 +148,7 @@ impl TryFrom<&str> for SourceType {
       "share-init" => Ok(Self::ShareInit),
       "consume-shared" => Ok(Self::ConsumeShared),
       "unknown" => Ok(Self::Unknown),
+      "css-import" => Ok(Self::CssImport),
 
       _ => {
         use rspack_error::error;

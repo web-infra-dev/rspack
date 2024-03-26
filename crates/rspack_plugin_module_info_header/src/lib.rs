@@ -37,7 +37,7 @@ pub fn print_exports_info_to_source(
 
   let mut show_other_exports = false;
   if !already_printed.contains(other_exports_info) {
-    already_printed.insert(other_exports_info.clone());
+    already_printed.insert(*other_exports_info);
     show_other_exports = true;
   } else {
     already_printed_exports += 1;
@@ -89,31 +89,31 @@ pub fn print_exports_info_to_source(
     ))));
   }
 
-  if show_other_exports {
-    if !matches!(
+  if show_other_exports
+    && !matches!(
       other_exports_info.get_used(module_graph, None),
       UsageState::Unused
-    ) {
-      let mut other_exports_details = String::new();
-      other_exports_details.push_str(indent);
-      let title = if printed_exports.len() > 0 || already_printed_exports > 0 {
-        "other exports".to_string()
-      } else {
-        "exports".to_string()
-      };
-      other_exports_details.push_str(&title);
+    )
+  {
+    let mut other_exports_details = String::new();
+    other_exports_details.push_str(indent);
+    let title = if !printed_exports.is_empty() || already_printed_exports > 0 {
+      "other exports".to_string()
+    } else {
+      "exports".to_string()
+    };
+    other_exports_details.push_str(&title);
 
-      other_exports_details.push_str(" [");
-      other_exports_details.push_str(&other_exports_info.get_provided_info(module_graph));
-      other_exports_details.push(']');
+    other_exports_details.push_str(" [");
+    other_exports_details.push_str(&other_exports_info.get_provided_info(module_graph));
+    other_exports_details.push(']');
 
-      other_exports_details.push_str(" [");
-      other_exports_details.push_str(&other_exports_info.get_used_info(module_graph));
-      other_exports_details.push(']');
+    other_exports_details.push_str(" [");
+    other_exports_details.push_str(&other_exports_info.get_used_info(module_graph));
+    other_exports_details.push(']');
 
-      other_exports_details.push('\n');
-      source.add(RawSource::from(to_comment(&other_exports_details)));
-    }
+    other_exports_details.push('\n');
+    source.add(RawSource::from(to_comment(&other_exports_details)));
   }
 }
 
@@ -164,10 +164,9 @@ impl Plugin for ModuleInfoHeaderPlugin {
     source.add(header);
 
     if self.verbose {
-      let exports_type = match module.build_meta() {
-        Some(build_meta) => Some(build_meta.exports_type),
-        None => None,
-      };
+      let exports_type = module
+        .build_meta()
+        .map(|build_meta| build_meta.exports_type);
       let exports_type_string = if let Some(exports_type) = exports_type {
         format!("{} exports\n", exports_type)
       } else {
@@ -218,7 +217,7 @@ impl Plugin for ModuleInfoHeaderPlugin {
     args: &mut ChunkHashArgs<'_>,
   ) -> PluginChunkHashHookOutput {
     let hasher = &mut args.hasher;
-    hasher.write(&"ModuleInfoHeaderPlugin".as_bytes());
+    hasher.write("ModuleInfoHeaderPlugin".as_bytes());
     hasher.write("1".as_bytes());
     Ok(())
   }

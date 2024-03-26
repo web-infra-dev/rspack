@@ -11,7 +11,7 @@ use std::sync::Arc;
 use rspack_error::Result;
 use rspack_fs::AsyncWritableFileSystem;
 use rspack_futures::FuturesResults;
-use rspack_hook::{AsyncSeries2Hook, AsyncSeriesBailHook, AsyncSeriesHook};
+use rspack_hook::{AsyncParallel3Hook, AsyncSeries2Hook, AsyncSeriesBailHook, AsyncSeriesHook};
 use rspack_identifier::{IdentifierMap, IdentifierSet};
 use rustc_hash::FxHashMap as HashMap;
 use swc_core::ecma::atoms::Atom;
@@ -29,7 +29,7 @@ use crate::cache::Cache;
 use crate::tree_shaking::symbol::{IndirectType, StarSymbolKind, DEFAULT_JS_WORD};
 use crate::tree_shaking::visitor::SymbolRef;
 use crate::{
-  fast_set, AssetEmittedArgs, CompilerOptions, Logger, ModuleGraph, PluginDriver, ResolverFactory,
+  fast_set, AssetEmittedInfo, CompilerOptions, Logger, PluginDriver, ResolverFactory,
   SharedPluginDriver,
 };
 use crate::{BoxPlugin, ExportInfo, UsageState};
@@ -44,6 +44,11 @@ pub type CompilerMakeHook = AsyncSeries2Hook<Compilation, Vec<MakeParam>>;
 pub type CompilerFinishMakeHook = AsyncSeriesHook<Compilation>;
 // should be SyncBailHook, but rspack need call js hook
 pub type CompilerShouldEmitHook = AsyncSeriesBailHook<Compilation, bool>;
+pub type CompilerEmitHook = AsyncSeriesHook<Compilation>;
+pub type CompilerAfterEmitHook = AsyncSeriesHook<Compilation>;
+// should be AsyncSeriesHook, but rspack parallel emit asset, only accept immutable params,
+// and it has no effect about mutate the params in webpack
+pub type CompilerAssetEmittedHook = AsyncParallel3Hook<Compilation, String, AssetEmittedInfo>;
 
 #[derive(Debug, Default)]
 pub struct CompilerHooks {
@@ -52,6 +57,9 @@ pub struct CompilerHooks {
   pub make: CompilerMakeHook,
   pub finish_make: CompilerFinishMakeHook,
   pub should_emit: CompilerShouldEmitHook,
+  pub emit: CompilerEmitHook,
+  pub after_emit: CompilerAfterEmitHook,
+  pub asset_emitted: CompilerAssetEmittedHook,
 }
 
 #[derive(Debug)]
@@ -92,7 +100,6 @@ where
       options: options.clone(),
       compilation: Compilation::new(
         options,
-        ModuleGraph::default(),
         plugin_driver.clone(),
         resolver_factory.clone(),
         loader_resolver_factory.clone(),
@@ -124,7 +131,6 @@ where
       &mut self.compilation,
       Compilation::new(
         self.options.clone(),
-        ModuleGraph::default(),
         self.plugin_driver.clone(),
         self.resolver_factory.clone(),
         self.loader_resolver_factory.clone(),
@@ -254,7 +260,7 @@ where
         }
       });
       {
-        let module_graph = self.compilation.get_module_graph_mut();
+        let mut module_graph = self.compilation.get_module_graph_mut();
         for (module_identifier, exports_map) in exports_info_map.into_iter() {
           let exports_id = module_graph
             .module_graph_module_by_identifier(&module_identifier)
@@ -345,7 +351,12 @@ where
       }
     }
 
-    self.plugin_driver.emit(&mut self.compilation).await?;
+    self
+      .plugin_driver
+      .compiler_hooks
+      .emit
+      .call(&mut self.compilation)
+      .await?;
 
     let mut new_emitted_asset_versions = HashMap::default();
     let results = self
@@ -374,7 +385,12 @@ where
       item?;
     }
 
-    self.plugin_driver.after_emit(&mut self.compilation).await
+    self
+      .plugin_driver
+      .compiler_hooks
+      .after_emit
+      .call(&mut self.compilation)
+      .await
   }
 
   async fn emit_asset(
@@ -404,16 +420,16 @@ where
 
       self.compilation.emitted_assets.insert(filename.to_string());
 
-      let asset_emitted_args = AssetEmittedArgs {
-        filename,
-        output_path,
+      let info = AssetEmittedInfo {
+        output_path: output_path.to_owned(),
         source: source.clone(),
-        target_path: file_path.as_path(),
-        compilation: &self.compilation,
+        target_path: file_path,
       };
       self
         .plugin_driver
-        .asset_emitted(&asset_emitted_args)
+        .compiler_hooks
+        .asset_emitted
+        .call(&self.compilation, &filename.to_owned(), &info)
         .await?;
     }
     Ok(())
