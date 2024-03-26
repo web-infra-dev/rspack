@@ -81,9 +81,7 @@ impl RawOptions {
     let cache = self.cache.into();
     let experiments = Experiments {
       incremental_rebuild: IncrementalRebuild {
-        make: if matches!(cache, CacheOptions::Disabled)
-          || self.experiments.rspack_future.new_treeshaking
-        {
+        make: if matches!(cache, CacheOptions::Disabled) {
           None
         } else {
           Some(IncrementalRebuildMakeState::default())
