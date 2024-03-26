@@ -408,8 +408,7 @@ impl BuiltinPlugin {
         );
       }
       BuiltinPluginName::ModuleInfoHeaderPlugin => {
-        let plugin =
-          ModuleInfoHeaderPlugin::new(downcast_into::<bool>(self.options)?.into()).boxed();
+        let plugin = ModuleInfoHeaderPlugin::new(downcast_into::<bool>(self.options)?).boxed();
         plugins.push(plugin);
       }
     }
