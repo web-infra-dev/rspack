@@ -62,7 +62,8 @@ import {
 	BundlerInfoRspackPlugin,
 	ModuleConcatenationPlugin,
 	EvalDevToolModulePlugin,
-	JsLoaderRspackPlugin
+	JsLoaderRspackPlugin,
+	ModuleInfoHeaderPlugin
 } from "./builtin-plugin";
 import { deprecatedWarn } from "./util";
 
@@ -189,6 +190,12 @@ export class RspackOptionsApply {
 					value.runtime = runtimeChunk.name({ name: entryName });
 				}
 			});
+		}
+
+		if (options.output.pathinfo) {
+			new ModuleInfoHeaderPlugin(options.output.pathinfo !== true).apply(
+				compiler
+			);
 		}
 
 		if (options.devtool) {

@@ -82,6 +82,18 @@ pub enum BuildMetaExportsType {
   Dynamic,
 }
 
+impl Display for BuildMetaExportsType {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    match self {
+      BuildMetaExportsType::Unset => write!(f, "unset"),
+      BuildMetaExportsType::Default => write!(f, "default"),
+      BuildMetaExportsType::Namespace => write!(f, "namespace"),
+      BuildMetaExportsType::Flagged => write!(f, "flagged"),
+      BuildMetaExportsType::Dynamic => write!(f, "dynamic"),
+    }
+  }
+}
+
 #[derive(Debug, Clone, Copy, Hash)]
 pub enum ExportsType {
   DefaultOnly,

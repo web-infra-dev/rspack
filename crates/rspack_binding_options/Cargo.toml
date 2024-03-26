@@ -41,6 +41,7 @@ rspack_plugin_library                 = { path = "../rspack_plugin_library" }
 rspack_plugin_limit_chunk_count       = { path = "../rspack_plugin_limit_chunk_count" }
 rspack_plugin_merge_duplicate_chunks  = { path = "../rspack_plugin_merge_duplicate_chunks" }
 rspack_plugin_mf                      = { path = "../rspack_plugin_mf" }
+rspack_plugin_module_info_header      = { path = "../rspack_plugin_module_info_header" }
 rspack_plugin_progress                = { path = "../rspack_plugin_progress" }
 rspack_plugin_real_content_hash       = { path = "../rspack_plugin_real_content_hash" }
 rspack_plugin_remove_empty_chunks     = { path = "../rspack_plugin_remove_empty_chunks" }

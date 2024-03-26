@@ -20,8 +20,7 @@ describe("Compiler", () => {
 		options.entry = entry;
 		options.context = path.join(__dirname, "fixtures");
 		if (noOutputPath) options.output.path = "/";
-		// CHANGE: The pathinfo is currently not supported in rspack
-		// options.output.pathinfo = true;
+		options.output.pathinfo = true;
 		options.optimization = {
 			minimize: false
 		};
@@ -236,9 +235,8 @@ describe("Compiler", () => {
 				entry: "./c",
 				context: path.join(__dirname, "fixtures"),
 				output: {
-					path: "/directory"
-					// CHANGE: The pathinfo is currently not supported in rspack
-					// pathinfo: true
+					path: "/directory",
+					pathinfo: true
 				}
 			});
 		});

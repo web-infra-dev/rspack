@@ -39,14 +39,14 @@ const createLogger = appendTarget => {
 		info: l => appendTarget.push(l),
 		warn: console.warn.bind(console),
 		error: console.error.bind(console),
-		logTime: () => {},
-		group: () => {},
-		groupCollapsed: () => {},
-		groupEnd: () => {},
-		profile: () => {},
-		profileEnd: () => {},
-		clear: () => {},
-		status: () => {}
+		logTime: () => { },
+		group: () => { },
+		groupCollapsed: () => { },
+		groupEnd: () => { },
+		profile: () => { },
+		profileEnd: () => { },
+		clear: () => { },
+		status: () => { }
 	};
 };
 
@@ -79,7 +79,7 @@ const describeCases = config => {
 								// CHANGE: added custom filter for tracking alignment status
 								let filteredName = normalizeFilteredTestName(flag, testName);
 								describe.skip(testName, () => {
-									it(filteredName, () => {});
+									it(filteredName, () => { });
 								});
 								return;
 							}
@@ -126,9 +126,8 @@ const describeCases = config => {
 								if (!options.devtool) options.devtool = false;
 								if (options.cache === undefined) options.cache = false;
 								if (!options.output.path) options.output.path = outputDirectory;
-								// CHANGE: rspack does not support `pathinfo` yet.
-								// if (typeof options.output.pathinfo === "undefined")
-								// 	options.output.pathinfo = true;
+								if (typeof options.output.pathinfo === "undefined")
+									options.output.pathinfo = true;
 								if (!options.output.filename)
 									options.output.filename =
 										"bundle" +
@@ -229,7 +228,7 @@ const describeCases = config => {
 											return done(
 												new Error(
 													"Errors/Warnings during build:\n" +
-														infrastructureLogging
+													infrastructureLogging
 												)
 											);
 										}
@@ -280,15 +279,15 @@ const describeCases = config => {
 												return done(
 													new Error(
 														"Errors/Warnings during build:\n" +
-															infrastructureLogging
+														infrastructureLogging
 													)
 												);
 											}
 											const allModules = children
 												? children.reduce(
-														(all, { modules }) => all.concat(modules),
-														modules || []
-												  )
+													(all, { modules }) => all.concat(modules),
+													modules || []
+												)
 												: modules;
 											if (
 												allModules.some(
@@ -387,7 +386,7 @@ const describeCases = config => {
 										return done(
 											new Error(
 												"Errors/Warnings during build:\n" +
-													infrastructureLogging
+												infrastructureLogging
 											)
 										);
 									}
@@ -587,8 +586,8 @@ const describeCases = config => {
 																			path.dirname(
 																				referencingModule.identifier
 																					? referencingModule.identifier.slice(
-																							esmIdentifier.length + 1
-																					  )
+																						esmIdentifier.length + 1
+																					)
 																					: fileURLToPath(referencingModule.url)
 																			),
 																			options,
@@ -723,9 +722,9 @@ const describeCases = config => {
 												return done(
 													new Error(
 														"No tests exported by test case" +
-															getNumberOfTests() +
-															" " +
-															filesCount
+														getNumberOfTests() +
+														" " +
+														filesCount
 													)
 												);
 											}

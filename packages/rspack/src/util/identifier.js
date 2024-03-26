@@ -389,6 +389,6 @@ exports.getUndoPath = (filename, outputPath, enforceRelative) => {
 	return depth > 0
 		? `${"../".repeat(depth)}${append}`
 		: enforceRelative
-		? `./${append}`
-		: append;
+			? `./${append}`
+			: append;
 };

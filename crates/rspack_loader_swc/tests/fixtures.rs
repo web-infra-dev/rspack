@@ -35,6 +35,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
     output: rspack_core::OutputOptions {
       clean: false,
       path: Default::default(),
+      pathinfo: rspack_core::PathInfo::Bool(false),
       public_path: Default::default(),
       filename: "".parse().always_ok(),
       asset_module_filename: "".parse().always_ok(),
@@ -109,6 +110,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
         output: rspack_core::OutputOptions {
           clean: false,
           path: Default::default(),
+          pathinfo: rspack_core::PathInfo::Bool(false),
           public_path: Default::default(),
           filename: "".parse().always_ok(),
           asset_module_filename: "".parse().always_ok(),

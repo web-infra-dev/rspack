@@ -47,8 +47,8 @@ export const HtmlRspackPlugin = create(
 					? "body"
 					: "head"
 				: configInject === false
-				? "false"
-				: configInject;
+					? "false"
+					: configInject;
 		return {
 			...c,
 			meta,

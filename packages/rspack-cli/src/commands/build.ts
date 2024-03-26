@@ -58,10 +58,10 @@ export class BuildCommand implements RspackCommand {
 								children: compiler.compilers.map(compiler =>
 									compiler.options ? compiler.options.stats : undefined
 								)
-						  }
+							}
 						: compiler.options
-						? compiler.options.stats
-						: undefined;
+							? compiler.options.stats
+							: undefined;
 					if (options.json && createJsonStringifyStream) {
 						const handleWriteError = (error: Error) => {
 							logger.error(error);

@@ -47,6 +47,7 @@ export * from "./FlagDependencyUsagePlugin";
 export * from "./MangleExportsPlugin";
 export * from "./BundlerInfoRspackPlugin";
 export * from "./ModuleConcatenationPlugin";
+export * from "./ModuleInfoHeaderPlugin";
 
 export * from "./HtmlRspackPlugin";
 export * from "./CopyRspackPlugin";
@@ -71,8 +72,8 @@ function resolveTreeShaking(
 	return treeShaking !== undefined
 		? treeShaking.toString()
 		: production
-		? "true"
-		: "false";
+			? "true"
+			: "false";
 }
 
 export interface Builtins {
@@ -99,7 +100,7 @@ export function deprecated_resolveBuiltins(
 						...builtins.css?.modules
 					},
 					namedExports: builtins.css?.namedExports
-			  }
+				}
 			: undefined,
 		treeShaking: resolveTreeShaking(builtins.treeShaking, production)
 	};

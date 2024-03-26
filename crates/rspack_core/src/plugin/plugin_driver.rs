@@ -5,6 +5,7 @@ use std::{
 
 use rspack_error::{Diagnostic, Result, TWithDiagnosticArray};
 use rspack_loader_runner::{LoaderContext, ResourceData};
+use rspack_sources::BoxSource;
 use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
 
@@ -12,7 +13,7 @@ use crate::{
   AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, AfterResolveArgs,
   ApplyContext, BeforeResolveArgs, BoxLoader, BoxModule, BoxedParserAndGeneratorBuilder,
   ChunkContentHash, ChunkHashArgs, Compilation, CompilationHooks, CompilerHooks, CompilerOptions,
-  Content, ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs, LoaderRunnerContext,
+  Content, ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs, LoaderRunnerContext, Module,
   ModuleIdentifier, ModuleType, NormalModule, NormalModuleCreateData, NormalModuleFactoryHooks,
   OptimizeChunksArgs, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput,
   PluginAdditionalModuleRequirementsOutput, PluginBuildEndHookOutput, PluginChunkHashHookOutput,
@@ -22,8 +23,8 @@ use crate::{
   PluginRenderChunkHookOutput, PluginRenderHookOutput, PluginRenderManifestHookOutput,
   PluginRenderModuleContentOutput, PluginRenderStartupHookOutput,
   PluginRuntimeRequirementsInTreeOutput, RenderArgs, RenderChunkArgs, RenderManifestArgs,
-  RenderModuleContentArgs, RenderStartupArgs, Resolver, ResolverFactory,
-  RuntimeRequirementsInTreeArgs, Stats,
+  RenderModuleContentArgs, RenderModulePackageContext, RenderStartupArgs, Resolver,
+  ResolverFactory, RuntimeRequirementsInTreeArgs, Stats,
 };
 
 pub struct PluginDriver {
@@ -474,5 +475,19 @@ impl PluginDriver {
       plugin.seal(compilation)?;
     }
     Ok(())
+  }
+
+  #[instrument(name = "plugin:render_module_package", skip_all)]
+  pub fn render_module_package(
+    &self,
+    module_source: BoxSource,
+    module: &dyn Module,
+    args: &RenderModulePackageContext,
+  ) -> Result<BoxSource> {
+    let mut module_source = module_source;
+    for plugin in &self.plugins {
+      module_source = plugin.render_module_package(module_source, module, args)?;
+    }
+    Ok(module_source)
   }
 }

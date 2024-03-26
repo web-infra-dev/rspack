@@ -10,10 +10,10 @@ use crate::{
   AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, AfterResolveArgs,
   AssetInfo, BoxLoader, BoxModule, ChunkHashArgs, Compilation, CompilationHooks, CompilerHooks,
   CompilerOptions, ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs, LoaderRunnerContext,
-  ModuleFactoryResult, ModuleIdentifier, ModuleType, NormalModule, NormalModuleCreateData,
+  Module, ModuleFactoryResult, ModuleIdentifier, ModuleType, NormalModule, NormalModuleCreateData,
   NormalModuleFactoryHooks, OptimizeChunksArgs, ParserAndGenerator, PluginContext, RenderArgs,
-  RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, Resolver,
-  RuntimeRequirementsInTreeArgs, SourceType,
+  RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs, RenderModulePackageContext,
+  RenderStartupArgs, Resolver, RuntimeRequirementsInTreeArgs, SourceType,
 };
 
 #[derive(Debug, Clone)]
@@ -280,6 +280,15 @@ pub trait Plugin: Debug + Send + Sync {
 
   fn seal(&self, _compilation: &mut Compilation) -> Result<()> {
     Ok(())
+  }
+
+  fn render_module_package(
+    &self,
+    module_source: BoxSource,
+    _module: &dyn Module,
+    _args: &RenderModulePackageContext,
+  ) -> Result<BoxSource> {
+    Ok(module_source)
   }
 }
 

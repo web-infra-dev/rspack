@@ -148,8 +148,7 @@ const describeCases = config => {
 									...config.cache
 								},
 								output: {
-									// CHANGE: rspack does not support `pathinfo` yet.
-									// pathinfo: "verbose",
+									pathinfo: "verbose",
 									path: outputDirectory,
 									filename: config.module ? "bundle.mjs" : "bundle.js"
 								},

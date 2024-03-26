@@ -17,6 +17,7 @@ module.exports = {
 		sideEffects: true
 	},
 	output: {
+		pathinfo: false,
 		chunkFilename: "[name].js"
 	},
 	externalsPresets: {

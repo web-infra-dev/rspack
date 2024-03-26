@@ -1,8 +1,8 @@
 use rayon::prelude::*;
-use rspack_core::rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
+use rspack_core::rspack_sources::{BoxSource, ConcatSource, RawSource, Source, SourceExt};
 use rspack_core::{
-  BoxModule, ChunkInitFragments, ChunkUkey, Compilation, RenderModuleContentArgs, RuntimeGlobals,
-  SourceType,
+  BoxModule, ChunkInitFragments, ChunkUkey, Compilation, PluginDriver, RenderModuleContentArgs,
+  RenderModulePackageContext, RuntimeGlobals, SourceType,
 };
 use rspack_error::{error, Result};
 use rustc_hash::FxHashSet as HashSet;
@@ -28,8 +28,7 @@ pub fn render_chunk_modules(
   let mut module_code_array = ordered_modules
     .par_iter()
     .filter(|module| {
-      compilation.get_module_graph().is_new_treeshaking()
-        || include_module_ids.contains(&module.identifier())
+      module_graph.is_new_treeshaking() || include_module_ids.contains(&module.identifier())
     })
     .filter_map(|module| {
       let code_gen_result = compilation
@@ -49,6 +48,13 @@ pub fn render_chunk_modules(
           .chunk_graph
           .get_module_runtime_requirements(module.identifier(), &chunk.runtime);
 
+        let render_context = RenderModulePackageContext {
+          chunk,
+          context: &compilation.options.context,
+          module_graph,
+          chunk_graph: &compilation.chunk_graph,
+        };
+
         Some((
           module.identifier(),
           render_module(
@@ -60,6 +66,8 @@ pub fn render_chunk_modules(
               .get_module_id(module.identifier())
               .as_ref()
               .expect("should have module id"),
+            &render_context,
+            plugin_driver,
           ),
           &code_gen_result.chunk_init_fragments,
           render_module_result.chunk_init_fragments,
@@ -106,6 +114,8 @@ fn render_module(
   module: &BoxModule,
   runtime_requirements: Option<&RuntimeGlobals>,
   module_id: &str,
+  render_context: &RenderModulePackageContext<'_>,
+  plugin_driver: &PluginDriver,
 ) -> Result<BoxSource> {
   let need_module = runtime_requirements.is_some_and(|r| r.contains(RuntimeGlobals::MODULE));
   let need_exports = runtime_requirements.is_some_and(|r| r.contains(RuntimeGlobals::EXPORTS));
@@ -157,7 +167,9 @@ fn render_module(
   }
   sources.add(RawSource::from(",\n"));
 
-  Ok(sources.boxed())
+  plugin_driver
+    .render_module_package(sources.boxed(), module.as_ref(), render_context)
+    .map(|source| source.boxed())
 }
 
 pub fn render_chunk_runtime_modules(

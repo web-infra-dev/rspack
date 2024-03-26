@@ -147,6 +147,7 @@ export enum BuiltinPluginName {
   FlagDependencyUsagePlugin = 'FlagDependencyUsagePlugin',
   MangleExportsPlugin = 'MangleExportsPlugin',
   ModuleConcatenationPlugin = 'ModuleConcatenationPlugin',
+  ModuleInfoHeaderPlugin = 'ModuleInfoHeaderPlugin',
   HttpExternalsRspackPlugin = 'HttpExternalsRspackPlugin',
   CopyRspackPlugin = 'CopyRspackPlugin',
   HtmlRspackPlugin = 'HtmlRspackPlugin',
@@ -1039,6 +1040,7 @@ export interface RawOptions {
 
 export interface RawOutputOptions {
   path: string
+  pathinfo: boolean | "verbose"
   clean: boolean
   publicPath: string
   assetModuleFilename: string

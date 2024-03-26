@@ -67,7 +67,7 @@ export class RspackNormalProcessor extends BasicTaskProcessor<ECompilerType.Rspa
 							// emitOnErrors: true,
 							minimizer: [terserForTesting],
 							...testConfig.optimization
-					  }
+						}
 					: {
 							removeAvailableModules: true,
 							removeEmptyChunks: true,
@@ -90,7 +90,7 @@ export class RspackNormalProcessor extends BasicTaskProcessor<ECompilerType.Rspa
 							chunkIds: "named",
 							minimizer: [terserForTesting],
 							...compilerOptions?.optimization
-					  },
+						},
 				// CHANGE: rspack does not support `performance` yet.
 				// performance: {
 				// 	hints: false
@@ -104,8 +104,7 @@ export class RspackNormalProcessor extends BasicTaskProcessor<ECompilerType.Rspa
 					...(compilerOptions.cache as any)
 				},
 				output: {
-					// CHANGE: rspack does not support `pathinfo` yet.
-					// pathinfo: "verbose",
+					pathinfo: "verbose",
 					path: context.getDist(),
 					filename: compilerOptions?.module ? "bundle.mjs" : "bundle.js"
 				},

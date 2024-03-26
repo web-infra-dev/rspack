@@ -33,14 +33,14 @@ const createLogger = appendTarget => {
 		info: l => appendTarget.push(l),
 		warn: console.warn.bind(console),
 		error: console.error.bind(console),
-		logTime: () => {},
-		group: () => {},
-		groupCollapsed: () => {},
-		groupEnd: () => {},
-		profile: () => {},
-		profileEnd: () => {},
-		clear: () => {},
-		status: () => {}
+		logTime: () => { },
+		group: () => { },
+		groupCollapsed: () => { },
+		groupEnd: () => { },
+		profile: () => { },
+		profileEnd: () => { },
+		clear: () => { },
+		status: () => { }
 	};
 };
 
@@ -67,7 +67,7 @@ const describeCases = config => {
 								// CHANGE: added custom filter for tracking alignment status
 								let filteredName = normalizeFilteredTestName(flag, test);
 								describe.skip(test, () => {
-									it(filteredName, () => {});
+									it(filteredName, () => { });
 								});
 								return false;
 							}
@@ -115,36 +115,36 @@ const describeCases = config => {
 								mode: config.mode || "none",
 								optimization: config.mode
 									? {
-											emitOnErrors: true,
-											minimizer: [terserForTesting],
-											...testConfig.optimization
-									  }
+										emitOnErrors: true,
+										minimizer: [terserForTesting],
+										...testConfig.optimization
+									}
 									: {
-											removeAvailableModules: true,
-											removeEmptyChunks: true,
-											mergeDuplicateChunks: true,
-											// CHANGE: rspack does not support `flagIncludedChunks` yet.
-											// flagIncludedChunks: true,
-											sideEffects: true,
-											providedExports: true,
-											usedExports: true,
-											mangleExports: true,
-											// CHANGE: rspack does not support `emitOnErrors` yet.
-											// emitOnErrors: true,
-											concatenateModules:
-												!!testConfig?.optimization?.concatenateModules,
-											innerGraph: true,
-											// CHANGE: size is not supported yet
-											// moduleIds: "size",
-											// chunkIds: "size",
-											moduleIds: "named",
-											chunkIds: "named",
-											minimizer: [terserForTesting],
-											...config.optimization
-									  },
+										removeAvailableModules: true,
+										removeEmptyChunks: true,
+										mergeDuplicateChunks: true,
+										// CHANGE: rspack does not support `flagIncludedChunks` yet.
+										// flagIncludedChunks: true,
+										sideEffects: true,
+										providedExports: true,
+										usedExports: true,
+										mangleExports: true,
+										// CHANGE: rspack does not support `emitOnErrors` yet.
+										// emitOnErrors: true,
+										concatenateModules:
+											!!testConfig?.optimization?.concatenateModules,
+										innerGraph: true,
+										// CHANGE: size is not supported yet
+										// moduleIds: "size",
+										// chunkIds: "size",
+										moduleIds: "named",
+										chunkIds: "named",
+										minimizer: [terserForTesting],
+										...config.optimization
+									},
 								// CHANGE: rspack does not support `performance` yet.
 								// performance: {
-									// hints: false
+								// hints: false
 								// },
 								node: {
 									__dirname: "mock",
@@ -155,8 +155,7 @@ const describeCases = config => {
 									...config.cache
 								},
 								output: {
-									// CHANGE: rspack does not support `pathinfo` yet.
-									// pathinfo: "verbose",
+									pathinfo: "verbose",
 									path: outputDirectory,
 									filename: config.module ? "bundle.mjs" : "bundle.js"
 								},
@@ -404,7 +403,7 @@ const describeCases = config => {
 													done(
 														new Error(
 															"Errors/Warnings during build:\n" +
-																infrastructureLogging
+															infrastructureLogging
 														)
 													);
 												}
@@ -428,8 +427,8 @@ const describeCases = config => {
 									}
 								},
 								testConfig.cachedTimeout ||
-									testConfig.timeout ||
-									(config.cache ? 20000 : 60000)
+								testConfig.timeout ||
+								(config.cache ? 20000 : 60000)
 							);
 
 							it(
@@ -503,10 +502,10 @@ const describeCases = config => {
 											} else {
 												const fn = vm.runInThisContext(
 													"(function(require, module, exports, __dirname, __filename, it, expect) {" +
-														"global.expect = expect;" +
-														'function nsObj(m) { Object.defineProperty(m, Symbol.toStringTag, { value: "Module" }); return m; }' +
-														content +
-														"\n})",
+													"global.expect = expect;" +
+													'function nsObj(m) { Object.defineProperty(m, Symbol.toStringTag, { value: "Module" }); return m; }' +
+													content +
+													"\n})",
 													p
 												);
 												const m = {
