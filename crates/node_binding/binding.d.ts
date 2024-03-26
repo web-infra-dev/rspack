@@ -60,6 +60,7 @@ export class JsStats {
 export class Rspack {
   constructor(options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, jsHooks: JsHooks, registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS)
   setDisabledHooks(hooks: Array<string>): void
+  setNonSkippableRegisters(kinds: Array<RegisterJsTapKind>): void
   /** Build with the given option passed to the constructor */
   build(callback: (err: null | Error) => void): void
   /** Rebuild with the given option passed to the constructor */
@@ -1269,6 +1270,33 @@ export interface RawTrustedTypes {
  * Copyright (c)
  */
 export function registerGlobalTrace(filter: string, layer: "chrome" | "logger", output: string): void
+
+export enum RegisterJsTapKind {
+  CompilerThisCompilation = 0,
+  CompilerCompilation = 1,
+  CompilerMake = 2,
+  CompilerFinishMake = 3,
+  CompilerShouldEmit = 4,
+  CompilerEmit = 5,
+  CompilerAfterEmit = 6,
+  CompilerAssetEmitted = 7,
+  CompilationBuildModule = 8,
+  CompilationStillValidModule = 9,
+  CompilationSucceedModule = 10,
+  CompilationExecuteModule = 11,
+  CompilationFinishModules = 12,
+  CompilationOptimizeModules = 13,
+  CompilationAfterOptimizeModules = 14,
+  CompilationOptimizeTree = 15,
+  CompilationOptimizeChunkModules = 16,
+  CompilationRuntimeModule = 17,
+  CompilationChunkAsset = 18,
+  CompilationProcessAssets = 19,
+  CompilationAfterProcessAssets = 20,
+  NormalModuleFactoryBeforeResolve = 21,
+  NormalModuleFactoryAfterResolve = 22,
+  ContextModuleFactoryBeforeResolve = 23
+}
 
 export interface RegisterJsTaps {
   registerCompilerThisCompilationTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>

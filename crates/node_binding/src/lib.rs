@@ -48,10 +48,8 @@ impl Rspack {
   ) -> Result<Self> {
     tracing::info!("raw_options: {:#?}", &options);
 
-    let disabled_hooks: DisabledHooks = Default::default();
     let mut plugins = Vec::new();
-    let js_plugin =
-      JsHooksAdapterPlugin::from_js_hooks(env, js_hooks, disabled_hooks, register_js_taps)?;
+    let js_plugin = JsHooksAdapterPlugin::from_js_hooks(env, js_hooks, register_js_taps)?;
     plugins.push(js_plugin.clone().boxed());
     for bp in builtin_plugins {
       bp.append_to(&mut plugins)
@@ -81,6 +79,11 @@ impl Rspack {
   #[napi]
   pub fn set_disabled_hooks(&self, hooks: Vec<String>) {
     self.js_plugin.set_disabled_hooks(hooks)
+  }
+
+  #[napi]
+  pub fn set_non_skippable_registers(&self, kinds: Vec<RegisterJsTapKind>) {
+    self.js_plugin.set_non_skippable_registers(kinds)
   }
 
   /// Build with the given option passed to the constructor
