@@ -438,12 +438,7 @@ impl SourceMapDevToolPlugin {
       };
 
       if let Some(source_map_filename_config) = &self.source_map_filename {
-        let chunk = file_to_chunk.get(&filename).unwrap_or_else(|| {
-          panic!(
-            "the filename '{}' should always have an associated chunk",
-            &filename
-          )
-        });
+        let chunk = file_to_chunk.get(&filename);
         let source_type = if css_extension_detected {
           &SourceType::Css
         } else {
@@ -455,14 +450,15 @@ impl SourceMapDevToolPlugin {
             .to_string(),
           None => filename.clone(),
         };
+        let data = PathData::default().filename(&filename);
+        let data = match chunk {
+          Some(chunk) => data
+            .chunk(chunk)
+            .content_hash_optional(chunk.content_hash.get(source_type).map(|i| i.encoded())),
+          None => data,
+        };
         let source_map_filename = compilation
-          .get_asset_path(
-            source_map_filename_config,
-            PathData::default()
-              .chunk(chunk)
-              .filename(&filename)
-              .content_hash_optional(chunk.content_hash.get(source_type).map(|i| i.encoded())),
-          )
+          .get_asset_path(source_map_filename_config, data)
           .always_ok();
 
         if let Some(current_source_mapping_url_comment) = current_source_mapping_url_comment {
@@ -475,23 +471,12 @@ impl SourceMapDevToolPlugin {
           } else {
             source_map_filename.clone()
           };
+          let data = data.url(&source_map_url);
           let current_source_mapping_url_comment = match &current_source_mapping_url_comment {
             SourceMappingUrlCommentRef::String(s) => compilation
-              .get_asset_path(
-                &FilenameTemplate::from(s.to_string()),
-                PathData::default()
-                  .chunk(chunk)
-                  .filename(&filename)
-                  .content_hash_optional(chunk.content_hash.get(source_type).map(|i| i.encoded()))
-                  .url(&source_map_url),
-              )
+              .get_asset_path(&FilenameTemplate::from(s.to_string()), data)
               .always_ok(),
             SourceMappingUrlCommentRef::Fn(f) => {
-              let data = PathData::default()
-                .chunk(chunk)
-                .filename(&filename)
-                .content_hash_optional(chunk.content_hash.get(source_type).map(|i| i.encoded()))
-                .url(&source_map_url);
               let comment = f(data).await?;
               FilenameTemplate::from(comment)
                 .render(data, None)
