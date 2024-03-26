@@ -60,8 +60,8 @@ export const applyRspackOptionsDefaults = (
 		target === false
 			? false
 			: typeof target === "string"
-			? getTargetProperties(target, options.context!)
-			: getTargetsProperties(target, options.context!);
+				? getTargetProperties(target, options.context!)
+				: getTargetsProperties(target, options.context!);
 
 	const development = mode === "development";
 	const production = mode === "production" || !mode;
@@ -115,8 +115,8 @@ export const applyRspackOptionsDefaults = (
 		return options.output.library
 			? options.output.library.type
 			: options.output.module
-			? "module"
-			: "var";
+				? "module"
+				: "var";
 	});
 
 	applyNodeDefaults(options.node, { targetProperties });
@@ -471,7 +471,7 @@ const applyOutputDefaults = (
 	D(output, "assetModuleFilename", "[hash][ext][query]");
 	D(output, "webassemblyModuleFilename", "[hash].module.wasm");
 	F(output, "path", () => path.join(process.cwd(), "dist"));
-	F(output, "pathinfo", () => development);
+	F(output, "pathinfo", () => false);
 	D(
 		output,
 		"publicPath",
