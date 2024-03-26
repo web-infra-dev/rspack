@@ -220,9 +220,6 @@ describe("snapshots", () => {
 		-     "nodeEnv": false,
 		+     "nodeEnv": "development",
 		@@ ... @@
-		-     "pathinfo": false,
-		+     "pathinfo": true,
-		@@ ... @@
 		-       "production",
 		+       "development",
 	`)
@@ -1000,9 +997,6 @@ describe("snapshots", () => {
 			@@ ... @@
 			-     "nodeEnv": false,
 			+     "nodeEnv": "development",
-			@@ ... @@
-			-     "pathinfo": false,
-			+     "pathinfo": true,
 			@@ ... @@
 			-       "production",
 			+       "development",
