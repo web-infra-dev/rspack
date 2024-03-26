@@ -10,6 +10,7 @@ __webpack_require__.d(__webpack_exports__, {
   b: function() { return _b_js__WEBPACK_IMPORTED_MODULE_0__["default"]; }
 });
 /* harmony import */var _b_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./b.js */"./b.js");
+/* harmony import */var _c_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./c.js */"./c.js");
 
 
 }),

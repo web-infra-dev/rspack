@@ -136,6 +136,19 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
           return true;
         }
 
+        // match &self.specifier {
+        //   Specifier::Namespace(_) => true,
+        //   Specifier::Default(_) => compilation
+        //     .get_module_graph()
+        //     .get_exports_info(&reference_mgm.module_identifier)
+        //     .old_get_used_exports()
+        //     .contains(&DEFAULT_JS_WORD),
+        //   Specifier::Named(local, imported) => compilation
+        //     .get_module_graph()
+        //     .get_exports_info(&reference_mgm.module_identifier)
+        //     .old_get_used_exports()
+        //     .contains(imported.as_ref().unwrap_or(local)),
+        // }
         match specifier {
           Specifier::Namespace(_) => true,
           Specifier::Default(local) => {
@@ -178,13 +191,21 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
       })
       .collect::<Vec<_>>();
 
-    if specifiers.is_empty()
-      && compilation
-        .side_effects_free_modules
-        .contains(&ref_mgm.module_identifier)
-    {
-      return;
-    }
+    let parent_id = compilation
+      .get_module_graph()
+      .get_parent_module(module_dependency.id())
+      .expect("should have parent module id");
+    // let is_target = parent_id.contains("builtin:swc-loader??ruleSet[1].rules[0].use[0]!/Users/bytedance/Documents/bytedance/aeolus_fe/apps/abi/src/pages/askData/common/components/LarkEditor/configurator/index.ts");
+    // if specifiers.is_empty()
+    //   && compilation
+    //     .side_effects_free_modules
+    //     .contains(&ref_mgm.module_identifier)
+    // {
+    //   if is_target {
+    //     dbg!(ref_mgm.module_identifier);
+    //   }
+    //   return;
+    // }
   }
 
   let runtime_condition =
@@ -275,7 +296,8 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
       source_order,
       InitFragmentKey::HarmonyImport(key.to_string()),
       None,
-      runtime_condition,
+      // runtime_condition,
+      RuntimeCondition::Boolean(true),
     )));
   }
 
