@@ -29,6 +29,7 @@ module.exports = [
 		context: __dirname,
 		entry: "./request.js",
 		output: {
+			pathinfo: false,
 			filename: "request.js"
 		},
 		optimization: {
@@ -52,6 +53,7 @@ module.exports = [
 		context: __dirname,
 		entry: "./duplicate.js",
 		output: {
+			pathinfo: false,
 			filename: "duplicate.js"
 		},
 		optimization: {

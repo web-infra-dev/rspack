@@ -8,6 +8,7 @@ module.exports = {
 		"no-extract": ["./no-extract.js"]
 	},
 	output: {
+		pathinfo: false,
 		filename: "[name].js"
 	},
 	plugins: [
