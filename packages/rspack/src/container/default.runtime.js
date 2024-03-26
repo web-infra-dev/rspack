@@ -92,9 +92,14 @@ module.exports = function () {
 					if (typeof stage === "object" && stage !== null) {
 						const { name, version, factory, eager } = stage;
 						if (shared[name]) {
+							shared[name].version.push(version);
 							shared[name].scope.push(scope);
 						} else {
-							shared[name] = { version, get: factory, scope: [scope] };
+							shared[name] = {
+								version: [version],
+								get: factory,
+								scope: [scope]
+							};
 						}
 					}
 				}
