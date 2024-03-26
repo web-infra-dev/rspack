@@ -311,7 +311,6 @@ export interface JsFactoryMeta {
 }
 
 export interface JsHooks {
-  contextModuleFactoryBeforeResolve: (data: JsBeforeResolveArgs) => Promise<boolean | void>
   contextModuleFactoryAfterResolve: (data: JsAfterResolveData) => Promise<boolean | void>
   normalModuleFactoryCreateModule: (data: CreateModuleData) => void
   normalModuleFactoryResolveForScheme: (data: JsResolveForSchemeInput) => Promise<JsResolveForSchemeResult>
@@ -1295,6 +1294,7 @@ export interface RegisterJsTaps {
   registerCompilationAfterProcessAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>
   registerNormalModuleFactoryBeforeResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsBeforeResolveArgs) => Promise<[boolean | undefined, JsBeforeResolveArgs]>); stage: number; }>
   registerNormalModuleFactoryAfterResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsAfterResolveData) => Promise<[boolean | undefined, JsCreateData | undefined]>); stage: number; }>
+  registerContextModuleFactoryBeforeResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsBeforeResolveArgs) => Promise<[boolean | undefined, JsBeforeResolveArgs]>); stage: number; }>
 }
 
 /** Builtin loader runner */

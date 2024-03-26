@@ -3,7 +3,6 @@ use std::sync::RwLock;
 /// rust support hooks
 #[derive(PartialEq)]
 pub enum Hook {
-  ContextModuleFactoryBeforeResolve,
   ContextModuleFactoryAfterResolve,
   NormalModuleFactoryResolveForScheme,
   NormalModuleFactoryCreateModule,
@@ -12,7 +11,6 @@ pub enum Hook {
 impl From<String> for Hook {
   fn from(s: String) -> Self {
     match s.as_str() {
-      "contextModuleFactoryBeforeResolve" => Hook::ContextModuleFactoryBeforeResolve,
       "contextModuleFactoryAfterResolve" => Hook::ContextModuleFactoryAfterResolve,
       "normalModuleFactoryCreateModule" => Hook::NormalModuleFactoryCreateModule,
       "normalModuleFactoryResolveForScheme" => Hook::NormalModuleFactoryResolveForScheme,

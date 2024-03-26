@@ -240,8 +240,6 @@ class Compiler {
 					this.#normalModuleFactoryCreateModule.bind(this),
 				normalModuleFactoryResolveForScheme:
 					this.#normalModuleFactoryResolveForScheme.bind(this),
-				contextModuleFactoryBeforeResolve:
-					this.#contextModuleFactoryBeforeResolve.bind(this),
 				contextModuleFactoryAfterResolve:
 					this.#contextModuleFactoryAfterResolve.bind(this)
 			},
@@ -481,6 +479,21 @@ class Compiler {
 						const ret = await queried.promise(data);
 						return [ret, data.createData];
 					}
+				),
+				registerContextModuleFactoryBeforeResolveTaps: this.#createRegisterTaps(
+					() =>
+						this.compilationParams!.contextModuleFactory.hooks.beforeResolve,
+					queried => async (arg: binding.JsBeforeResolveArgs) => {
+						const data: ResolveData = {
+							request: arg.request,
+							context: arg.context,
+							fileDependencies: [],
+							missingDependencies: [],
+							contextDependencies: []
+						};
+						const ret = await queried.promise(data);
+						return [ret, data];
+					}
 				)
 			},
 			createThreadsafeNodeFSFromRaw(this.outputFileSystem)
@@ -705,8 +718,6 @@ class Compiler {
 		const disabledHooks: string[] = [];
 		type HookMap = Record<keyof binding.JsHooks, any>;
 		const hookMap: HookMap = {
-			contextModuleFactoryBeforeResolve:
-				this.compilationParams?.contextModuleFactory.hooks.beforeResolve,
 			contextModuleFactoryAfterResolve:
 				this.compilationParams?.contextModuleFactory.hooks.afterResolve,
 			normalModuleFactoryCreateModule:
@@ -737,25 +748,6 @@ class Compiler {
 				this.#disabledHooks = disabledHooks;
 			});
 		}
-	}
-
-	async #afterProcessAssets() {
-		await this.compilation!.hooks.afterProcessAssets.promise(
-			this.compilation!.assets
-		);
-		this.#updateDisabledHooks();
-	}
-
-	async #contextModuleFactoryBeforeResolve(
-		resourceData: binding.JsBeforeResolveArgs
-	) {
-		let res =
-			await this.compilationParams!.contextModuleFactory.hooks.beforeResolve.promise(
-				resourceData
-			);
-
-		this.#updateDisabledHooks();
-		return res;
 	}
 
 	async #contextModuleFactoryAfterResolve(

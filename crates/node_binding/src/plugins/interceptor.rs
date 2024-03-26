@@ -20,9 +20,9 @@ use rspack_core::{
   CompilationProcessAssetsHook, CompilationRuntimeModuleHook, CompilationStillValidModuleHook,
   CompilationSucceedModuleHook, CompilerAfterEmitHook, CompilerAssetEmittedHook,
   CompilerCompilationHook, CompilerEmitHook, CompilerFinishMakeHook, CompilerMakeHook,
-  CompilerShouldEmitHook, CompilerThisCompilationHook, CreateData, ExecuteModuleId, FactoryMeta,
-  MakeParam, ModuleFactoryCreateData, ModuleIdentifier, NormalModuleFactoryAfterResolveHook,
-  NormalModuleFactoryBeforeResolveHook, ResourceData,
+  CompilerShouldEmitHook, CompilerThisCompilationHook, ContextModuleFactoryBeforeResolveHook,
+  CreateData, ExecuteModuleId, FactoryMeta, MakeParam, ModuleFactoryCreateData, ModuleIdentifier,
+  NormalModuleFactoryAfterResolveHook, NormalModuleFactoryBeforeResolveHook, ResourceData,
 };
 use rspack_hook::{
   AsyncParallel3, AsyncSeries, AsyncSeries2, AsyncSeries3, AsyncSeriesBail, AsyncSeriesBail4, Hook,
@@ -344,6 +344,11 @@ pub struct RegisterJsTaps {
   )]
   pub register_normal_module_factory_after_resolve_taps:
     RegisterFunction<JsAfterResolveData, Promise<JsAfterResolveOutput>>,
+  #[napi(
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsBeforeResolveArgs) => Promise<[boolean | undefined, JsBeforeResolveArgs]>); stage: number; }>"
+  )]
+  pub register_context_module_factory_before_resolve_taps:
+    RegisterFunction<JsBeforeResolveArgs, Promise<JsBeforeResolveOutput>>,
 }
 
 /* Compiler Hooks */
@@ -486,6 +491,14 @@ define_register!(
 define_register!(
   RegisterNormalModuleFactoryAfterResolveTaps,
   tap = NormalModuleFactoryAfterResolveTap<JsAfterResolveData, Promise<JsAfterResolveOutput>> @ NormalModuleFactoryAfterResolveHook,
+  cache = true,
+  sync = false,
+);
+
+/* ContextModuleFactory Hooks */
+define_register!(
+  RegisterContextModuleFactoryBeforeResolveTaps,
+  tap = ContextModuleFactoryBeforeResolveTap<JsBeforeResolveArgs, Promise<JsBeforeResolveOutput>> @ ContextModuleFactoryBeforeResolveHook,
   cache = true,
   sync = false,
 );
@@ -940,6 +953,24 @@ impl AsyncSeriesBail4<String, ModuleFactoryCreateData, FactoryMeta, CreateData, 
           create_data.resource = resource;
         }
 
+        Ok(ret)
+      }
+      Err(err) => Err(err),
+    }
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
+
+#[async_trait]
+impl AsyncSeriesBail<BeforeResolveArgs, bool> for ContextModuleFactoryBeforeResolveTap {
+  async fn run(&self, args: &mut BeforeResolveArgs) -> rspack_error::Result<Option<bool>> {
+    match self.function.call_with_promise(args.clone().into()).await {
+      Ok((ret, resolve_data)) => {
+        args.request = resolve_data.request;
+        args.context = resolve_data.context;
         Ok(ret)
       }
       Err(err) => Err(err),
