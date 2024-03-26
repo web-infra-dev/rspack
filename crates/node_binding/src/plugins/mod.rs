@@ -437,7 +437,7 @@ impl JsHooksAdapterPlugin {
   }
 
   fn is_hook_disabled(&self, hook: &Hook) -> bool {
-    self.disabled_hooks.clone().is_hook_disabled(hook)
+    self.disabled_hooks.is_hook_disabled(hook)
   }
 
   pub fn set_disabled_hooks(&self, hooks: Vec<String>) {
