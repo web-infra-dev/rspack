@@ -212,7 +212,8 @@ impl JavascriptParserPlugin for ImportParserPlugin {
               include: None,
               exclude: None,
               category: DependencyCategory::Esm,
-              request: format!("{}{}{}", context, query, fragment),
+              request: format!("{}{}{}", context.clone(), query, fragment),
+              context,
               namespace_object: if parser.build_meta.strict_harmony_module {
                 ContextNameSpaceObject::Strict
               } else {

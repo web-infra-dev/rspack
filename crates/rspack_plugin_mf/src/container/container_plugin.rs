@@ -3,9 +3,9 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use rspack_core::{ApplyContext, CompilerOptions};
 use rspack_core::{
-  Compilation, CompilationParams, Dependency, DependencyType, EntryOptions, EntryRuntime, Filename,
-  LibraryOptions, MakeParam, Plugin, PluginContext, PluginRuntimeRequirementsInTreeOutput,
-  RuntimeGlobals, RuntimeRequirementsInTreeArgs,
+  Compilation, CompilationParams, Dependency, DependencyType, EntryOptions, EntryRuntime,
+  FilenameTemplate, LibraryOptions, MakeParam, Plugin, PluginContext,
+  PluginRuntimeRequirementsInTreeOutput, RuntimeGlobals, RuntimeRequirementsInTreeArgs,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook, AsyncSeries2};
@@ -23,7 +23,7 @@ pub struct ContainerPluginOptions {
   pub share_scope: String,
   pub library: LibraryOptions,
   pub runtime: Option<EntryRuntime>,
-  pub filename: Option<Filename>,
+  pub filename: Option<FilenameTemplate>,
   pub exposes: Vec<(String, ExposeOptions)>,
   pub enhanced: bool,
 }

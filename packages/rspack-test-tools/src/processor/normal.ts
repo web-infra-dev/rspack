@@ -23,7 +23,10 @@ export class RspackNormalProcessor extends BasicTaskProcessor<ECompilerType.Rspa
 	constructor(protected _normalOptions: IRspackNormalProcessorOptions) {
 		super({
 			compilerType: ECompilerType.Rspack,
-			findBundle: (context, options) => options.output?.filename,
+			findBundle: (context, options) => {
+				const filename = options.output?.filename;
+				return typeof filename === "string" ? filename : undefined;
+			},
 			defaultOptions: RspackNormalProcessor.defaultOptions(_normalOptions),
 			name: _normalOptions.name,
 			runable: _normalOptions.runable
@@ -64,7 +67,7 @@ export class RspackNormalProcessor extends BasicTaskProcessor<ECompilerType.Rspa
 							// emitOnErrors: true,
 							minimizer: [terserForTesting],
 							...testConfig.optimization
-						}
+					  }
 					: {
 							removeAvailableModules: true,
 							removeEmptyChunks: true,
@@ -87,7 +90,7 @@ export class RspackNormalProcessor extends BasicTaskProcessor<ECompilerType.Rspa
 							chunkIds: "named",
 							minimizer: [terserForTesting],
 							...compilerOptions?.optimization
-						},
+					  },
 				// CHANGE: rspack does not support `performance` yet.
 				// performance: {
 				// 	hints: false

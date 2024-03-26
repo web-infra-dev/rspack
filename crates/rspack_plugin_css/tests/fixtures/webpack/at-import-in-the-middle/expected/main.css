@@ -1,8 +1,9 @@
+@import url("https://some/other/external/css");
+@import url("https://some/external/css");
 body {
   background: red;
 }
 
-@import url("https://some/other/external/css");
 .c {
   background: red;
 }
@@ -13,7 +14,6 @@ body {
   color: yellow;
 }
 
-@import url("https://some/external/css");
 .b {
   background: red;
 }

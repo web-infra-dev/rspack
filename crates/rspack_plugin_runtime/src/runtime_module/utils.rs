@@ -113,7 +113,11 @@ pub fn get_undo_path(filename: &str, p: String, enforce_relative: bool) -> Strin
   }
 }
 
-pub fn get_output_dir(chunk: &Chunk, compilation: &Compilation, enforce_relative: bool) -> String {
+pub fn get_output_dir(
+  chunk: &Chunk,
+  compilation: &Compilation,
+  enforce_relative: bool,
+) -> rspack_error::Result<String> {
   let filename = get_js_chunk_filename_template(
     chunk,
     &compilation.options.output,
@@ -127,12 +131,12 @@ pub fn get_output_dir(chunk: &Chunk, compilation: &Compilation, enforce_relative
         .get(&SourceType::JavaScript)
         .map(|i| i.rendered(compilation.options.output.hash_digest_length)),
     ),
-  );
-  get_undo_path(
+  )?;
+  Ok(get_undo_path(
     output_dir.as_str(),
     compilation.options.output.path.display().to_string(),
     enforce_relative,
-  )
+  ))
 }
 
 pub fn is_enabled_for_chunk(

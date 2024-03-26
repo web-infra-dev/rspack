@@ -7,11 +7,12 @@ use std::str::FromStr;
 use bitflags::bitflags;
 use once_cell::sync::Lazy;
 use regex::Regex;
-use rspack_core::Filename;
+use rspack_core::FilenameTemplate;
 use rspack_core::{Chunk, ChunkGraph, Compilation, Module, ModuleGraph, PathData, SourceType};
 use rspack_error::error_bail;
 use rspack_hook::plugin;
 use rspack_identifier::IdentifierSet;
+use rspack_util::infallible::ResultInfallibleExt as _;
 
 static ESCAPE_LOCAL_IDENT_REGEX: Lazy<Regex> =
   Lazy::new(|| Regex::new(r#"[<>:"/\\|?*\.]"#).expect("Invalid regex"));
@@ -30,11 +31,11 @@ pub struct ModulesConfig {
 }
 
 #[derive(Debug, Clone)]
-pub struct LocalIdentName(Filename);
+pub struct LocalIdentName(FilenameTemplate);
 
 impl LocalIdentName {
   pub fn render(&self, options: LocalIdentNameRenderOptions) -> String {
-    let mut s = self.0.render(options.path_data, None);
+    let mut s = self.0.render(options.path_data, None).always_ok();
     if let Some(local) = options.local {
       s = s.replace("[local]", local);
     }
@@ -45,7 +46,7 @@ impl LocalIdentName {
 
 impl From<String> for LocalIdentName {
   fn from(value: String) -> Self {
-    Self(Filename::from(value))
+    Self(value.into())
   }
 }
 
@@ -119,9 +120,37 @@ impl CssPlugin {
     module_graph: &'chunk_graph ModuleGraph,
     compilation: &Compilation,
   ) -> Vec<&'chunk_graph dyn Module> {
+    let mut external_css_modules = Self::get_ordered_chunk_css_modules_by_type(
+      chunk,
+      chunk_graph,
+      module_graph,
+      compilation,
+      SourceType::CssImport,
+    );
+
+    let mut css_modules = Self::get_ordered_chunk_css_modules_by_type(
+      chunk,
+      chunk_graph,
+      module_graph,
+      compilation,
+      SourceType::Css,
+    );
+
+    external_css_modules.append(&mut css_modules);
+
+    external_css_modules
+  }
+
+  fn get_ordered_chunk_css_modules_by_type<'chunk_graph>(
+    chunk: &Chunk,
+    chunk_graph: &'chunk_graph ChunkGraph,
+    module_graph: &'chunk_graph ModuleGraph,
+    compilation: &Compilation,
+    source_type: SourceType,
+  ) -> Vec<&'chunk_graph dyn Module> {
     // Align with https://github.com/webpack/webpack/blob/8241da7f1e75c5581ba535d127fa66aeb9eb2ac8/lib/css/CssModulesPlugin.js#L368
     let mut css_modules = chunk_graph
-      .get_chunk_modules_iterable_by_source_type(&chunk.ukey, SourceType::Css, module_graph)
+      .get_chunk_modules_iterable_by_source_type(&chunk.ukey, source_type, module_graph)
       .collect::<Vec<_>>();
     css_modules.sort_unstable_by_key(|module| module.identifier());
 

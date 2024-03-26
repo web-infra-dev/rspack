@@ -38,10 +38,10 @@ export class JsCompilation {
   pushDiagnostic(severity: "error" | "warning", title: string, message: string): void
   pushNativeDiagnostics(diagnostics: ExternalObject<'Diagnostic[]'>): void
   getStats(): JsStats
-  getAssetPath(filename: string, data: PathData): string
-  getAssetPathWithInfo(filename: string, data: PathData): PathWithInfo
-  getPath(filename: string, data: PathData): string
-  getPathWithInfo(filename: string, data: PathData): PathWithInfo
+  getAssetPath(filename: string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string), data: PathData): string
+  getAssetPathWithInfo(filename: string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string), data: PathData): PathWithInfo
+  getPath(filename: string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string), data: PathData): string
+  getPathWithInfo(filename: string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string), data: PathData): PathWithInfo
   addFileDependencies(deps: Array<string>): void
   addContextDependencies(deps: Array<string>): void
   addMissingDependencies(deps: Array<string>): void
@@ -94,22 +94,6 @@ export function __chunk_inner_has_runtime(jsChunkUkey: number, compilation: JsCo
 export function __chunk_inner_is_only_initial(jsChunkUkey: number, compilation: JsCompilation): boolean
 
 export function __entrypoint_inner_get_runtime_chunk(ukey: number, compilation: JsCompilation): JsChunk
-
-export interface AfterResolveCreateData {
-  request: string
-  userRequest: string
-  resource: string
-}
-
-export interface AfterResolveData {
-  request: string
-  context: string
-  fileDependencies: Array<string>
-  contextDependencies: Array<string>
-  missingDependencies: Array<string>
-  factoryMeta: FactoryMeta
-  createData?: AfterResolveCreateData
-}
 
 export interface BuiltinPlugin {
   name: BuiltinPluginName
@@ -186,8 +170,14 @@ export interface CreateModuleData {
   context: string
 }
 
-export interface FactoryMeta {
-  sideEffectFree?: boolean
+export interface JsAfterResolveData {
+  request: string
+  context: string
+  fileDependencies: Array<string>
+  contextDependencies: Array<string>
+  missingDependencies: Array<string>
+  factoryMeta: JsFactoryMeta
+  createData?: JsCreateData
 }
 
 export interface JsAsset {
@@ -275,6 +265,13 @@ export interface JsChunkGroup {
   name?: string
 }
 
+export interface JsChunkPathData {
+  id?: string
+  name?: string
+  hash?: string
+  contentHash?: Record<string, string>
+}
+
 export interface JsCodegenerationResult {
   sources: Record<string, string>
 }
@@ -290,6 +287,12 @@ export interface JsCompatSource {
   isBuffer: boolean
   source: Buffer
   map?: Buffer
+}
+
+export interface JsCreateData {
+  request: string
+  userRequest: string
+  resource: string
 }
 
 export interface JsExecuteModuleArg {
@@ -308,18 +311,13 @@ export interface JsExecuteModuleResult {
   id: number
 }
 
+export interface JsFactoryMeta {
+  sideEffectFree?: boolean
+}
+
 export interface JsHooks {
-  afterProcessAssets: () => void
-  emit: () => void
-  assetEmitted: (asset: JsAssetEmittedArgs) => void
-  afterEmit: () => void
-  optimizeModules: (compilation: JsCompilation) => void
-  afterOptimizeModules: (compilation: JsCompilation) => void
-  optimizeTree: () => void
-  optimizeChunkModules: (compilation: JsCompilation) => void
-  afterResolve: (data: AfterResolveData) => Promise<(boolean | void | AfterResolveCreateData)[]>
   contextModuleFactoryBeforeResolve: (data: JsBeforeResolveArgs) => Promise<boolean | void>
-  contextModuleFactoryAfterResolve: (data: AfterResolveData) => Promise<boolean | void>
+  contextModuleFactoryAfterResolve: (data: JsAfterResolveData) => Promise<boolean | void>
   normalModuleFactoryCreateModule: (data: CreateModuleData) => void
   normalModuleFactoryResolveForScheme: (data: JsResolveForSchemeInput) => Promise<JsResolveForSchemeResult>
 }
@@ -573,6 +571,7 @@ export interface PathData {
   runtime?: string
   url?: string
   id?: string
+  chunk?: JsChunkPathData
 }
 
 export interface PathWithInfo {
@@ -1051,11 +1050,11 @@ export interface RawOutputOptions {
   wasmLoading: string
   enabledWasmLoadingTypes: Array<string>
   webassemblyModuleFilename: string
-  filename: string
-  chunkFilename: string
+  filename: string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string)
+  chunkFilename: string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string)
   crossOriginLoading: RawCrossOriginLoading
-  cssFilename: string
-  cssChunkFilename: string
+  cssFilename: string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string)
+  cssChunkFilename: string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string)
   hotUpdateMainFilename: string
   hotUpdateChunkFilename: string
   hotUpdateGlobal: string
@@ -1283,15 +1282,24 @@ export interface RegisterJsTaps {
   registerCompilerMakeTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => Promise<void>); stage: number; }>
   registerCompilerFinishMakeTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>
   registerCompilerShouldEmitTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => boolean | undefined); stage: number; }>
+  registerCompilerEmitTaps: (stages: Array<number>) => Array<{ function: (() => Promise<void>); stage: number; }>
+  registerCompilerAfterEmitTaps: (stages: Array<number>) => Array<{ function: (() => Promise<void>); stage: number; }>
+  registerCompilerAssetEmittedTaps: (stages: Array<number>) => Array<{ function: ((arg: JsAssetEmittedArgs) => Promise<void>); stage: number; }>
   registerCompilationBuildModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsModule) => void); stage: number; }>
   registerCompilationStillValidModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsModule) => void); stage: number; }>
   registerCompilationSucceedModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsModule) => void); stage: number; }>
   registerCompilationExecuteModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsExecuteModuleArg) => void); stage: number; }>
   registerCompilationRuntimeModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRuntimeModuleArg) => JsRuntimeModule | undefined); stage: number; }>
   registerCompilationFinishModulesTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => Promise<void>); stage: number; }>
+  registerCompilationOptimizeModulesTaps: (stages: Array<number>) => Array<{ function: (() => boolean | undefined); stage: number; }>
+  registerCompilationAfterOptimizeModulesTaps: (stages: Array<number>) => Array<{ function: (() => void); stage: number; }>
+  registerCompilationOptimizeTreeTaps: (stages: Array<number>) => Array<{ function: (() => Promise<void>); stage: number; }>
+  registerCompilationOptimizeChunkModulesTaps: (stages: Array<number>) => Array<{ function: (() => Promise<boolean | undefined>); stage: number; }>
   registerCompilationChunkAssetTaps: (stages: Array<number>) => Array<{ function: ((arg: JsChunkAssetArgs) => void); stage: number; }>
   registerCompilationProcessAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => Promise<void>); stage: number; }>
+  registerCompilationAfterProcessAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>
   registerNormalModuleFactoryBeforeResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsBeforeResolveArgs) => Promise<[boolean | undefined, JsBeforeResolveArgs]>); stage: number; }>
+  registerNormalModuleFactoryAfterResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsAfterResolveData) => Promise<[boolean | undefined, JsCreateData | undefined]>); stage: number; }>
 }
 
 /** Builtin loader runner */

@@ -75,6 +75,48 @@ Additionally, you can directly refer to [`example-builtin-swc-loader`](https://g
 
 See [SWC configuration](https://swc.rs/docs/configuration/swcrc).
 
+### options.jsc.experimental.plugins
+
+<ApiMeta addedVersion="0.5.8" stability={Stability.Experimental} />
+
+:::warning
+The `wasm` plugin is deeply coupled with the version of `SWC`, you need to choose a wasm plugin that is compatible with the corresponding version of `SWC` in order to function normally.
+you can see more compatible info about how to choose right wasm plugin version in [selecting-swc-core](https://swc.rs/docs/plugin/selecting-swc-core#088x--089x).
+:::
+
+Rspack supports load `wasm` plugin in `builtin:swc-loader`, you can specify the plugin name like
+
+```js
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        use: {
+          loader: 'builtin:swc-loader',
+          options: {
+            jsc: {
+              experimental: {
+                plugins: [
+                  [
+                    '@swc/plugin-remove-console',
+                    {
+                      exclude: ['error'],
+                    },
+                  ],
+                ],
+              },
+            },
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+this is an [example](https://github.com/rspack-contrib/rspack-examples/blob/d4b8aaef9915ed0f540edbe504217c3d1afe8989/rspack/builtin-swc-loader/rspack.config.js#L45) of wasm plugin usage.
+
 ### options.rspackExperiments
 
 <ApiMeta stability={Stability.Experimental} addedVersion="0.4.0" />

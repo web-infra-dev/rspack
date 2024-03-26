@@ -7,13 +7,13 @@ use rspack_sources::BoxSource;
 use rustc_hash::FxHashMap;
 
 use crate::{
-  AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, AssetEmittedArgs,
+  AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, AfterResolveArgs,
   AssetInfo, BoxLoader, BoxModule, ChunkHashArgs, Compilation, CompilationHooks, CompilerHooks,
   CompilerOptions, ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs, LoaderRunnerContext,
-  ModuleFactoryResult, ModuleIdentifier, ModuleType, NormalModule, NormalModuleAfterResolveArgs,
-  NormalModuleCreateData, NormalModuleFactoryHooks, OptimizeChunksArgs, ParserAndGenerator,
-  PluginContext, ProcessAssetsArgs, RenderArgs, RenderChunkArgs, RenderManifestArgs,
-  RenderModuleContentArgs, RenderStartupArgs, Resolver, RuntimeRequirementsInTreeArgs, SourceType,
+  ModuleFactoryResult, ModuleIdentifier, ModuleType, NormalModule, NormalModuleCreateData,
+  NormalModuleFactoryHooks, OptimizeChunksArgs, ParserAndGenerator, PluginContext, RenderArgs,
+  RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, Resolver,
+  RuntimeRequirementsInTreeArgs, SourceType,
 };
 
 #[derive(Debug, Clone)]
@@ -85,14 +85,6 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(None)
   }
 
-  async fn after_resolve(
-    &self,
-    _ctx: PluginContext,
-    _args: &mut NormalModuleAfterResolveArgs<'_>,
-  ) -> PluginNormalModuleFactoryAfterResolveOutput {
-    Ok(None)
-  }
-
   async fn context_module_before_resolve(
     &self,
     _ctx: PluginContext,
@@ -104,7 +96,7 @@ pub trait Plugin: Debug + Send + Sync {
   async fn context_module_after_resolve(
     &self,
     _ctx: PluginContext,
-    _args: &mut NormalModuleAfterResolveArgs<'_>,
+    _args: &mut AfterResolveArgs<'_>,
   ) -> PluginNormalModuleFactoryAfterResolveOutput {
     Ok(None)
   }
@@ -244,27 +236,11 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
-  async fn after_process_assets(
-    &self,
-    _ctx: PluginContext,
-    _args: ProcessAssetsArgs<'_>,
-  ) -> PluginProcessAssetsOutput {
-    Ok(())
-  }
-
   async fn optimize_chunks(
     &self,
     _ctx: PluginContext,
     _args: OptimizeChunksArgs<'_>,
   ) -> PluginOptimizeChunksOutput {
-    Ok(())
-  }
-
-  async fn optimize_modules(&self, _compilation: &mut Compilation) -> Result<()> {
-    Ok(())
-  }
-
-  async fn after_optimize_modules(&self, _compilation: &mut Compilation) -> Result<()> {
     Ok(())
   }
 
@@ -274,14 +250,6 @@ pub trait Plugin: Debug + Send + Sync {
 
   async fn optimize_code_generation(&self, _compilation: &mut Compilation) -> Result<Option<()>> {
     Ok(None)
-  }
-
-  async fn optimize_tree(&self, _compilation: &mut Compilation) -> Result<()> {
-    Ok(())
-  }
-
-  async fn optimize_chunk_modules(&self, _args: OptimizeChunksArgs<'_>) -> Result<()> {
-    Ok(())
   }
 
   /// Webpack resolves loaders in `NormalModuleFactory`,
@@ -307,18 +275,6 @@ pub trait Plugin: Debug + Send + Sync {
   }
 
   fn chunk_ids(&self, _compilation: &mut Compilation) -> Result<()> {
-    Ok(())
-  }
-
-  async fn emit(&self, _compilation: &mut Compilation) -> Result<()> {
-    Ok(())
-  }
-
-  async fn asset_emitted(&self, _args: &AssetEmittedArgs) -> Result<()> {
-    Ok(())
-  }
-
-  async fn after_emit(&self, _compilation: &mut Compilation) -> Result<()> {
     Ok(())
   }
 

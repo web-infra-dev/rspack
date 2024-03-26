@@ -1,4 +1,4 @@
-import { RawFuncUseCtx } from "@rspack/binding";
+import { RawFuncUseCtx, PathData, JsAssetInfo } from "@rspack/binding";
 import { z } from "zod";
 import { Compilation, Compiler } from "..";
 import type * as oldBuiltins from "../builtin-plugin";
@@ -146,7 +146,12 @@ export type Library = z.infer<typeof library>;
 const filenameTemplate = z.string();
 export type FilenameTemplate = z.infer<typeof filenameTemplate>;
 
-const filename = filenameTemplate;
+const filename = filenameTemplate.or(
+	z
+		.function()
+		.args(z.custom<PathData>(), z.custom<JsAssetInfo>().optional())
+		.returns(z.string())
+);
 export type Filename = z.infer<typeof filename>;
 
 const entryFilename = filenameTemplate;
@@ -180,7 +185,7 @@ export type EntryObject = z.infer<typeof entryObject>;
 const entryStatic = entryObject.or(entryUnnamed);
 export type EntryStatic = z.infer<typeof entryStatic>;
 
-const entry = entryStatic;
+const entry = entryStatic.or(z.function().returns(entryStatic));
 export type Entry = z.infer<typeof entry>;
 //#endregion
 
@@ -196,7 +201,7 @@ export type WebassemblyModuleFilename = z.infer<
 	typeof webassemblyModuleFilename
 >;
 
-const chunkFilename = filenameTemplate;
+const chunkFilename = filename;
 export type ChunkFilename = z.infer<typeof chunkFilename>;
 
 const crossOriginLoading = z
@@ -204,10 +209,10 @@ const crossOriginLoading = z
 	.or(z.enum(["anonymous", "use-credentials"]));
 export type CrossOriginLoading = z.infer<typeof crossOriginLoading>;
 
-const cssFilename = filenameTemplate;
+const cssFilename = filename;
 export type CssFilename = z.infer<typeof cssFilename>;
 
-const cssChunkFilename = filenameTemplate;
+const cssChunkFilename = filename;
 export type CssChunkFilename = z.infer<typeof cssChunkFilename>;
 
 const hotUpdateChunkFilename = filenameTemplate;
