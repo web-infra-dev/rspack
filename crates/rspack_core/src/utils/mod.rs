@@ -135,7 +135,7 @@ pub fn compare_chunk_group(
     Ordering::Greater => Ordering::Less,
     Ordering::Equal => compare_chunks_iterables(
       &compilation.chunk_graph,
-      compilation.get_module_graph(),
+      &compilation.get_module_graph(),
       chunks_a,
       chunks_b,
     ),

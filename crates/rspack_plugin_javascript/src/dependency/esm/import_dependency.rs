@@ -81,10 +81,8 @@ impl DependencyTemplate for ImportDependency {
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
-    let block = code_generatable_context
-      .compilation
-      .get_module_graph()
-      .get_parent_block(&self.id);
+    let module_graph = code_generatable_context.compilation.get_module_graph();
+    let block = module_graph.get_parent_block(&self.id);
     source.replace(
       self.start,
       self.end,

@@ -71,8 +71,8 @@ function resolveTreeShaking(
 	return treeShaking !== undefined
 		? treeShaking.toString()
 		: production
-			? "true"
-			: "false";
+		? "true"
+		: "false";
 }
 
 export interface Builtins {
@@ -99,7 +99,7 @@ export function deprecated_resolveBuiltins(
 						...builtins.css?.modules
 					},
 					namedExports: builtins.css?.namedExports
-				}
+			  }
 			: undefined,
 		treeShaking: resolveTreeShaking(builtins.treeShaking, production)
 	};

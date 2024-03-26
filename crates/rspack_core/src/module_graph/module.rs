@@ -6,7 +6,7 @@ use crate::{
   ModuleIssuer, ModuleProfile, ModuleSyntax, ModuleType,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ModuleGraphModule {
   // edges from module to module
   outgoing_connections: HashSet<ConnectionId>,

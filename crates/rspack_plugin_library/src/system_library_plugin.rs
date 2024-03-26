@@ -88,13 +88,13 @@ impl Plugin for SystemLibraryPlugin {
       .map(|s| format!("{s}, "))
       .unwrap_or_else(|| "".to_string());
 
+    let module_graph = compilation.get_module_graph();
     let modules = compilation
       .chunk_graph
       .get_chunk_module_identifiers(args.chunk)
       .iter()
       .filter_map(|identifier| {
-        compilation
-          .get_module_graph()
+        module_graph
           .module_by_identifier(identifier)
           .and_then(|module| module.as_external_module())
           .and_then(|m| (m.get_external_type() == "system").then_some(m))

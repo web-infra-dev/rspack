@@ -37,7 +37,11 @@ impl JavaScriptParserAndGenerator {
     source: &mut TemplateReplaceSource,
     context: &mut TemplateContext,
   ) {
-    let block = block_id.expect_get(compilation);
+    let module_graph = compilation.get_module_graph();
+    let block = module_graph
+      .block_by_id(block_id)
+      .expect("should have block");
+    //    let block = block_id.expect_get(compilation);
     block.get_dependencies().iter().for_each(|dependency_id| {
       self.source_dependency(compilation, dependency_id, source, context)
     });

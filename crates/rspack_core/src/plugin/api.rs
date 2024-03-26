@@ -7,13 +7,13 @@ use rspack_sources::BoxSource;
 use rustc_hash::FxHashMap;
 
 use crate::{
-  AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, AssetInfo, BoxLoader,
-  BoxModule, ChunkHashArgs, Compilation, CompilationHooks, CompilerHooks, CompilerOptions,
-  ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs, LoaderRunnerContext,
-  ModuleFactoryResult, ModuleIdentifier, ModuleType, NormalModule, NormalModuleAfterResolveArgs,
-  NormalModuleCreateData, NormalModuleFactoryHooks, OptimizeChunksArgs, ParserAndGenerator,
-  PluginContext, RenderArgs, RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs,
-  RenderStartupArgs, Resolver, RuntimeRequirementsInTreeArgs, SourceType,
+  AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, AfterResolveArgs,
+  AssetInfo, BoxLoader, BoxModule, ChunkHashArgs, Compilation, CompilationHooks, CompilerHooks,
+  CompilerOptions, ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs, LoaderRunnerContext,
+  ModuleFactoryResult, ModuleIdentifier, ModuleType, NormalModule, NormalModuleCreateData,
+  NormalModuleFactoryHooks, OptimizeChunksArgs, ParserAndGenerator, PluginContext, RenderArgs,
+  RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, Resolver,
+  RuntimeRequirementsInTreeArgs, SourceType,
 };
 
 #[derive(Debug, Clone)]
@@ -85,14 +85,6 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(None)
   }
 
-  async fn after_resolve(
-    &self,
-    _ctx: PluginContext,
-    _args: &mut NormalModuleAfterResolveArgs<'_>,
-  ) -> PluginNormalModuleFactoryAfterResolveOutput {
-    Ok(None)
-  }
-
   async fn context_module_before_resolve(
     &self,
     _ctx: PluginContext,
@@ -104,7 +96,7 @@ pub trait Plugin: Debug + Send + Sync {
   async fn context_module_after_resolve(
     &self,
     _ctx: PluginContext,
-    _args: &mut NormalModuleAfterResolveArgs<'_>,
+    _args: &mut AfterResolveArgs<'_>,
   ) -> PluginNormalModuleFactoryAfterResolveOutput {
     Ok(None)
   }

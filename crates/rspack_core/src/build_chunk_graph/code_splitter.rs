@@ -284,39 +284,30 @@ impl<'me> CodeSplitter<'me> {
       }
       assign_depths(
         &mut assign_depths_map,
-        self.compilation.get_module_graph(),
+        &self.compilation.get_module_graph(),
         module_identifiers.iter().collect_vec(),
       );
 
+      let module_graph = self.compilation.get_module_graph();
       let global_included_modules = self
         .compilation
         .global_entry
         .include_dependencies
         .iter()
-        .filter_map(|dep| {
-          self
-            .compilation
-            .get_module_graph()
-            .module_identifier_by_dependency_id(dep)
-        })
+        .filter_map(|dep| module_graph.module_identifier_by_dependency_id(dep))
         .copied()
         .sorted_unstable();
       let included_modules = entry_data
         .include_dependencies
         .iter()
-        .filter_map(|dep| {
-          self
-            .compilation
-            .get_module_graph()
-            .module_identifier_by_dependency_id(dep)
-        })
+        .filter_map(|dep| module_graph.module_identifier_by_dependency_id(dep))
         .copied()
         .sorted_unstable();
       let included_modules = global_included_modules.chain(included_modules);
       for included_module in included_modules.clone() {
         assign_depth(
           &mut assign_depths_map,
-          self.compilation.get_module_graph(),
+          &self.compilation.get_module_graph(),
           included_module,
         );
       }
@@ -480,21 +471,17 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       chunk_group.next_pre_order_index = 0;
       chunk_group.next_post_order_index = 0;
 
+      let module_graph = self.compilation.get_module_graph();
       let Some(block) = self.block_by_cgi.get(&cgi.ukey).copied() else {
         continue;
       };
-      let Some(block) = block.get(self.compilation) else {
+      let Some(block) = module_graph.block_by_id(&block) else {
         continue;
       };
       let blocks = block
         .get_dependencies()
         .iter()
-        .filter_map(|dep| {
-          self
-            .compilation
-            .get_module_graph()
-            .module_identifier_by_dependency_id(dep)
-        })
+        .filter_map(|dep| module_graph.module_identifier_by_dependency_id(dep))
         .copied()
         .collect::<Vec<_>>();
 
@@ -668,9 +655,8 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     }
 
     {
-      let module = self
-        .compilation
-        .get_module_graph_mut()
+      let mut module_graph = self.compilation.get_module_graph_mut();
+      let module = module_graph
         .module_graph_module_by_identifier_mut(&item.module)
         .unwrap_or_else(|| panic!("No module found {:?}", &item.module));
 
@@ -711,9 +697,8 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       chunk_group.next_post_order_index += 1;
     }
 
-    let module = self
-      .compilation
-      .get_module_graph_mut()
+    let mut module_graph = self.compilation.get_module_graph_mut();
+    let module = module_graph
       .module_graph_module_by_identifier_mut(&item.module)
       .unwrap_or_else(|| panic!("no module found: {:?}", &item.module));
 
@@ -748,13 +733,15 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         }));
       }
     }
-    let blocks = &item
-      .block
-      .expect_get(self.compilation)
+    let blocks = self
+      .compilation
+      .get_module_graph()
+      .block_by_id(&item.block)
+      .expect("should have block")
       .get_blocks()
       .to_vec();
     for block in blocks {
-      self.iterator_block(*block, item.chunk_group_info, item.chunk);
+      self.iterator_block(block, item.chunk_group_info, item.chunk);
     }
   }
 
@@ -841,9 +828,8 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     };
     self.compilation.chunk_graph.add_chunk(chunk_ukey);
 
-    let block = self
-      .compilation
-      .get_module_graph()
+    let module_graph = self.compilation.get_module_graph();
+    let block = module_graph
       .block_by_id(&block_id)
       .expect("should have block");
     let entry_options = block.get_group_options().and_then(|o| o.entry_options());
@@ -1059,7 +1045,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     {
       return modules.clone();
     }
-    self.extract_block_modules(*module.get_root_block(self.compilation), runtime);
+    self.extract_block_modules(module.get_root_block(self.compilation), runtime);
     self
       .block_modules_runtime_map
       .get(&runtime.cloned().into())
@@ -1115,11 +1101,8 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       let dep_id = dep.id();
       // Dependency created but no module is available.
       // This could happen when module factorization is failed, but `options.bail` set to `false`
-      let Some(module_identifier) = self
-        .compilation
-        .get_module_graph()
-        .module_identifier_by_dependency_id(dep_id)
-      else {
+      let module_graph = self.compilation.get_module_graph();
+      let Some(module_identifier) = module_graph.module_identifier_by_dependency_id(dep_id) else {
         continue;
       };
       let block_id =
@@ -1139,7 +1122,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         .get_mut(&block_id)
         .expect("should have modules in block_modules_runtime_map");
       let active_state = if self.compilation.options.is_new_tree_shaking() {
-        get_active_state_of_connections(&connections, runtime, self.compilation.get_module_graph())
+        get_active_state_of_connections(&connections, runtime, &self.compilation.get_module_graph())
       } else {
         ConnectionState::Bool(true)
       };
@@ -1167,7 +1150,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         for m in self
           .compilation
           .chunk_graph
-          .get_chunk_modules(chunk, self.compilation.get_module_graph())
+          .get_chunk_modules(chunk, &self.compilation.get_module_graph())
         {
           let m_id = self
             .module_ids
@@ -1279,7 +1262,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             let active_state = get_active_state_of_connections(
               connections,
               Some(&cgi.runtime),
-              self.compilation.get_module_graph(),
+              &self.compilation.get_module_graph(),
             );
             if active_state.is_false() {
               continue;
@@ -1381,12 +1364,14 @@ enum DependenciesBlockIdentifier {
 }
 
 impl DependenciesBlockIdentifier {
-  pub fn get_root_block<'a>(&'a self, compilation: &'a Compilation) -> &'a ModuleIdentifier {
+  pub fn get_root_block<'a>(&'a self, compilation: &'a Compilation) -> ModuleIdentifier {
     match self {
-      DependenciesBlockIdentifier::Module(m) => m,
-      DependenciesBlockIdentifier::AsyncDependenciesBlock(id) => {
-        id.expect_get(compilation).parent()
-      }
+      DependenciesBlockIdentifier::Module(m) => *m,
+      DependenciesBlockIdentifier::AsyncDependenciesBlock(id) => *compilation
+        .get_module_graph()
+        .block_by_id(id)
+        .expect("should have block")
+        .parent(),
     }
   }
 

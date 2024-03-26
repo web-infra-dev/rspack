@@ -53,15 +53,11 @@ impl Plugin for WarnCaseSensitiveModulesPlugin {
     let logger = compilation.get_logger(self.name());
     let start = logger.time("check case sensitive modules");
     let mut diagnostics: Vec<Diagnostic> = vec![];
-    let modules = compilation
-      .get_module_graph()
-      .modules()
-      .values()
-      .collect::<Vec<_>>();
+    let module_graph = compilation.get_module_graph();
     let mut module_without_case_map: HashMap<String, HashMap<String, &Box<dyn Module>>> =
       HashMap::new();
 
-    for module in modules {
+    for module in module_graph.modules().values() {
       // Ignore `data:` URLs, because it's not a real path
       if let Some(normal_module) = module.as_normal_module() {
         if normal_module
@@ -89,7 +85,7 @@ impl Plugin for WarnCaseSensitiveModulesPlugin {
         case_modules.sort_by_key(|m| m.identifier());
         diagnostics.push(Diagnostic::warn(
           "Sensitive Modules Warn".to_string(),
-          self.create_sensitive_modules_warning(&case_modules, compilation.get_module_graph()),
+          self.create_sensitive_modules_warning(&case_modules, &compilation.get_module_graph()),
         ));
       }
     }

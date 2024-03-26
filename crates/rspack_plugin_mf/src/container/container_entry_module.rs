@@ -184,20 +184,20 @@ impl Module for ContainerEntryModule {
       .runtime_requirements
       .insert(RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE);
     let mut module_map = vec![];
+    let module_graph = compilation.get_module_graph();
     for block_id in self.get_blocks() {
-      let block = block_id.expect_get(compilation);
+      let block = module_graph
+        .block_by_id(block_id)
+        .expect("should have block");
       let modules_iter = block.get_dependencies().iter().map(|dependency_id| {
-        let dep = compilation
-          .get_module_graph()
+        let dep = module_graph
           .dependency_by_id(dependency_id)
           .expect("should have dependency");
         let dep = dep
           .downcast_ref::<ContainerExposedDependency>()
           .expect("dependencies of ContainerEntryModule should be ContainerExposedDependency");
         let name = dep.exposed_name.as_str();
-        let module = compilation
-          .get_module_graph()
-          .get_module_by_dependency_id(dependency_id);
+        let module = module_graph.get_module_by_dependency_id(dependency_id);
         let user_request = dep.user_request();
         (name, module, user_request, dependency_id)
       });

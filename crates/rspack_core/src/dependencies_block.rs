@@ -8,7 +8,7 @@ use rspack_identifier::Identifier;
 
 use crate::{
   update_hash::{UpdateHashContext, UpdateRspackHash},
-  BoxDependency, Compilation, DependencyId, DependencyTemplate, GroupOptions, ModuleIdentifier,
+  BoxDependency, DependencyId, DependencyTemplate, GroupOptions, ModuleIdentifier,
 };
 
 pub trait DependenciesBlock {
@@ -62,19 +62,6 @@ pub struct AsyncDependenciesBlockIdentifier(Identifier);
 impl From<String> for AsyncDependenciesBlockIdentifier {
   fn from(value: String) -> Self {
     Self(value.into())
-  }
-}
-
-impl AsyncDependenciesBlockIdentifier {
-  pub fn get<'c>(&self, compilation: &'c Compilation) -> Option<&'c AsyncDependenciesBlock> {
-    compilation.get_module_graph().block_by_id(self)
-  }
-
-  pub fn expect_get<'c>(&self, compilation: &'c Compilation) -> &'c AsyncDependenciesBlock {
-    compilation
-      .get_module_graph()
-      .block_by_id(self)
-      .expect("should have block")
   }
 }
 

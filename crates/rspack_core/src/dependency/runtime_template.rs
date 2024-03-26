@@ -121,7 +121,7 @@ pub fn export_from_import(
   };
   let is_new_treeshaking = compilation.options.is_new_tree_shaking();
 
-  let exports_type = get_exports_type(compilation.get_module_graph(), id, &module.identifier());
+  let exports_type = get_exports_type(&compilation.get_module_graph(), id, &module.identifier());
 
   if default_interop {
     if !export_name.is_empty()
@@ -184,7 +184,7 @@ pub fn export_from_import(
         .get_exports_info(&module_identifier)
         .id;
       let used = exports_info_id.get_used_name(
-        compilation.get_module_graph(),
+        &compilation.get_module_graph(),
         *runtime,
         crate::UsedName::Vec(export_name.clone()),
       );
@@ -298,7 +298,7 @@ pub fn import_statement(
 
   runtime_requirements.insert(RuntimeGlobals::REQUIRE);
 
-  let import_var = compilation.get_module_graph().get_import_var(id);
+  let import_var = compilation.get_import_var(id);
 
   let opt_declaration = if update { "" } else { "var " };
 
@@ -307,7 +307,7 @@ pub fn import_statement(
     RuntimeGlobals::REQUIRE
   );
 
-  let exports_type = get_exports_type(compilation.get_module_graph(), id, &module.identifier());
+  let exports_type = get_exports_type(&compilation.get_module_graph(), id, &module.identifier());
   if matches!(exports_type, ExportsType::Dynamic) {
     runtime_requirements.insert(RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT);
     return (
@@ -344,7 +344,11 @@ pub fn module_namespace_promise(
   };
 
   let promise = block_promise(block, runtime_requirements, compilation);
-  let exports_type = get_exports_type(compilation.get_module_graph(), dep_id, &module.identifier());
+  let exports_type = get_exports_type(
+    &compilation.get_module_graph(),
+    dep_id,
+    &module.identifier(),
+  );
   let module_id_expr = module_id(compilation, dep_id, request, weak);
 
   let header = if weak {
@@ -573,7 +577,10 @@ pub fn async_module_factory(
   compilation: &Compilation,
   runtime_requirements: &mut RuntimeGlobals,
 ) -> String {
-  let block = block_id.expect_get(compilation);
+  let module_graph = compilation.get_module_graph();
+  let block = module_graph
+    .block_by_id(block_id)
+    .expect("should have block");
   let dep = block.get_dependencies()[0];
   let ensure_chunk = block_promise(Some(block_id), runtime_requirements, compilation);
   let factory = returning_function(

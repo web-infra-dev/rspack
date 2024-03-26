@@ -117,7 +117,7 @@ impl UpdateModuleGraph {
     compilation: &mut Compilation,
     params: Vec<MakeParam>,
   ) -> Result<HashSet<BuildDependency>> {
-    let deps_builder = RebuildDepsBuilder::new(params, compilation.get_module_graph());
+    let deps_builder = RebuildDepsBuilder::new(params, &compilation.get_module_graph());
 
     self.origin_module_deps = HashMap::from_iter(
       deps_builder
@@ -131,14 +131,14 @@ impl UpdateModuleGraph {
         }),
     );
 
+    let module_graph = compilation.get_module_graph();
     // calc need_check_isolated_module_ids & regen_module_issues
     for id in deps_builder.get_force_build_modules() {
       if let Some(mgm) = compilation
         .get_module_graph()
         .module_graph_module_by_identifier(id)
       {
-        let depended_modules = compilation
-          .get_module_graph()
+        let depended_modules = module_graph
           .get_module_all_depended_modules(id)
           .expect("module graph module not exist")
           .into_iter()
@@ -156,7 +156,7 @@ impl UpdateModuleGraph {
     compilation.process_dependencies_queue = Some(self.process_dependencies_queue.queue_handler());
     compilation.build_time_execution_queue = Some(self.buildtime_execution_queue.queue_handler());
 
-    Ok(deps_builder.revoke_modules(compilation.get_module_graph_mut()))
+    Ok(deps_builder.revoke_modules(&mut compilation.get_module_graph_mut()))
   }
 
   fn repair(
@@ -168,11 +168,11 @@ impl UpdateModuleGraph {
 
     let mut errored = None;
 
+    let module_graph = compilation.get_module_graph();
     build_dependencies
       .into_iter()
       .for_each(|(id, parent_module_identifier)| {
-        let dependency = compilation
-          .get_module_graph()
+        let dependency = module_graph
           .dependency_by_id(&id)
           .expect("dependency not found");
         if dependency.as_module_dependency().is_none()
@@ -181,8 +181,8 @@ impl UpdateModuleGraph {
           return;
         }
 
-        let parent_module = parent_module_identifier
-          .and_then(|id| compilation.get_module_graph().module_by_identifier(&id));
+        let parent_module =
+          parent_module_identifier.and_then(|id| module_graph.module_by_identifier(&id));
         if parent_module_identifier.is_some() && parent_module.is_none() {
           return;
         }
@@ -285,10 +285,10 @@ impl UpdateModuleGraph {
         self.active_task_count += 1;
 
         let mut sorted_dependencies = HashMap::default();
+        let module_graph = compilation.get_module_graph();
 
         task.dependencies.into_iter().for_each(|dependency_id| {
-          let dependency = compilation
-            .get_module_graph()
+          let dependency = module_graph
             .dependency_by_id(&dependency_id)
             .expect("should have dependency");
           // FIXME: now only module/context dependency can put into resolve queue.
@@ -322,8 +322,7 @@ impl UpdateModuleGraph {
         });
 
         let original_module_identifier = &task.original_module_identifier;
-        let module = compilation
-          .get_module_graph()
+        let module = module_graph
           .module_by_identifier(original_module_identifier)
           .expect("Module expected");
 
@@ -497,7 +496,7 @@ impl UpdateModuleGraph {
                   mgm.set_issuer_if_unset(original_module_identifier);
                   mgm.factory_meta = Some(factory_result.factory_meta);
 
-                  let module_graph = compilation.get_module_graph_mut();
+                  let mut module_graph = compilation.get_module_graph_mut();
                   module_graph.set_exports_info(
                     exports_info_related.exports_info.id,
                     exports_info_related.exports_info,
@@ -523,15 +522,15 @@ impl UpdateModuleGraph {
                   });
                   tracing::trace!("Module created: {}", &module_identifier);
                 } else {
-                  let dep = compilation
-                    .get_module_graph()
+                  let module_graph = compilation.get_module_graph();
+                  let dep = module_graph
                     .dependency_by_id(&dependencies[0])
                     .expect("dep should available");
                   tracing::trace!("Module ignored: {dep:?}")
                 }
               } else {
-                let dep = compilation
-                  .get_module_graph()
+                let module_graph = compilation.get_module_graph();
+                let dep = module_graph
                   .dependency_by_id(&dependencies[0])
                   .expect("dep should available");
                 tracing::trace!("Module created with failure, but without bailout: {dep:?}");
@@ -642,7 +641,7 @@ impl UpdateModuleGraph {
                 build_result.dependencies,
                 build_result.blocks,
                 &mut queue,
-                compilation.get_module_graph_mut(),
+                &mut compilation.get_module_graph_mut(),
                 None,
               );
               while let Some(mut block) = queue.pop_front() {
@@ -652,14 +651,14 @@ impl UpdateModuleGraph {
                   dependencies,
                   blocks,
                   &mut queue,
-                  compilation.get_module_graph_mut(),
+                  &mut compilation.get_module_graph_mut(),
                   Some(block),
                 );
               }
 
               {
-                let mgm = compilation
-                  .get_module_graph_mut()
+                let mut module_graph = compilation.get_module_graph_mut();
+                let mgm = module_graph
                   .module_graph_module_by_identifier_mut(&module.identifier())
                   .expect("Failed to get mgm");
                 mgm.__deprecated_all_dependencies = all_dependencies.clone();
@@ -886,8 +885,9 @@ impl UpdateModuleGraph {
       .dependency_by_id(&dependencies[0])
       .expect("should have dependency")
       .clone();
+    let module_graph = compilation.get_module_graph();
     let original_module_source = original_module_identifier
-      .and_then(|i| compilation.get_module_graph().module_by_identifier(&i))
+      .and_then(|i| module_graph.module_by_identifier(&i))
       .and_then(|m| m.as_normal_module())
       .and_then(|m| {
         if let NormalModuleSource::BuiltSucceed(s) = m.source() {
@@ -918,18 +918,18 @@ impl UpdateModuleGraph {
     });
   }
 
-  fn module_deps(compalition: &Compilation, module_identifier: &ModuleIdentifier) -> ModuleDeps {
-    let (deps, blocks) = compalition
-      .get_module_graph()
-      .get_module_dependencies_modules_and_blocks(module_identifier);
+  fn module_deps(compilation: &Compilation, module_identifier: &ModuleIdentifier) -> ModuleDeps {
+    let module_graph = compilation.get_module_graph();
+    let (deps, blocks) = module_graph.get_module_dependencies_modules_and_blocks(module_identifier);
 
     let blocks_with_option: Vec<_> = blocks
       .iter()
       .map(|block| {
         (
           *block,
-          block
-            .get(compalition)
+          compilation
+            .get_module_graph()
+            .block_by_id(block)
             .expect("block muse be exist")
             .get_group_options()
             .cloned(),

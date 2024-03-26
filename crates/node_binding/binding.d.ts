@@ -17,11 +17,6 @@ export class JsCompilation {
   getOptimizationBailout(): Array<JsStatsOptimizationBailout>
   getChunks(): Array<JsChunk>
   getNamedChunk(name: string): JsChunk | null
-  /**
-   * Only available for those none Js and Css source,
-   * return true if set module source successfully, false if failed.
-   */
-  setNoneAstModuleSource(moduleIdentifier: string, source: JsCompatSource): boolean
   setAssetSource(name: string, source: JsCompatSource): void
   deleteAssetSource(name: string): void
   getAssetFilenames(): Array<string>
@@ -94,22 +89,6 @@ export function __chunk_inner_has_runtime(jsChunkUkey: number, compilation: JsCo
 export function __chunk_inner_is_only_initial(jsChunkUkey: number, compilation: JsCompilation): boolean
 
 export function __entrypoint_inner_get_runtime_chunk(ukey: number, compilation: JsCompilation): JsChunk
-
-export interface AfterResolveCreateData {
-  request: string
-  userRequest: string
-  resource: string
-}
-
-export interface AfterResolveData {
-  request: string
-  context: string
-  fileDependencies: Array<string>
-  contextDependencies: Array<string>
-  missingDependencies: Array<string>
-  factoryMeta: FactoryMeta
-  createData?: AfterResolveCreateData
-}
 
 export interface BuiltinPlugin {
   name: BuiltinPluginName
@@ -186,8 +165,14 @@ export interface CreateModuleData {
   context: string
 }
 
-export interface FactoryMeta {
-  sideEffectFree?: boolean
+export interface JsAfterResolveData {
+  request: string
+  context: string
+  fileDependencies: Array<string>
+  contextDependencies: Array<string>
+  missingDependencies: Array<string>
+  factoryMeta: JsFactoryMeta
+  createData?: JsCreateData
 }
 
 export interface JsAsset {
@@ -299,6 +284,12 @@ export interface JsCompatSource {
   map?: Buffer
 }
 
+export interface JsCreateData {
+  request: string
+  userRequest: string
+  resource: string
+}
+
 export interface JsExecuteModuleArg {
   entry: string
   runtimeModules: Array<string>
@@ -315,10 +306,13 @@ export interface JsExecuteModuleResult {
   id: number
 }
 
+export interface JsFactoryMeta {
+  sideEffectFree?: boolean
+}
+
 export interface JsHooks {
-  afterResolve: (data: AfterResolveData) => Promise<(boolean | void | AfterResolveCreateData)[]>
   contextModuleFactoryBeforeResolve: (data: JsBeforeResolveArgs) => Promise<boolean | void>
-  contextModuleFactoryAfterResolve: (data: AfterResolveData) => Promise<boolean | void>
+  contextModuleFactoryAfterResolve: (data: JsAfterResolveData) => Promise<boolean | void>
   normalModuleFactoryCreateModule: (data: CreateModuleData) => void
   normalModuleFactoryResolveForScheme: (data: JsResolveForSchemeInput) => Promise<JsResolveForSchemeResult>
 }
@@ -1300,6 +1294,7 @@ export interface RegisterJsTaps {
   registerCompilationProcessAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => Promise<void>); stage: number; }>
   registerCompilationAfterProcessAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>
   registerNormalModuleFactoryBeforeResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsBeforeResolveArgs) => Promise<[boolean | undefined, JsBeforeResolveArgs]>); stage: number; }>
+  registerNormalModuleFactoryAfterResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsAfterResolveData) => Promise<[boolean | undefined, JsCreateData | undefined]>); stage: number; }>
 }
 
 /** Builtin loader runner */

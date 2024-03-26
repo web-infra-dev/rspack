@@ -56,18 +56,13 @@ impl DependencyTemplate for PureExpressionDependency {
       }
       Some(UsedByExports::Bool(false)) => {}
       Some(UsedByExports::Set(ref set)) => {
-        let exports_info = ctx
-          .compilation
-          .get_module_graph()
-          .get_exports_info(&self.module_identifier);
+        let module_graph = ctx.compilation.get_module_graph();
+        let exports_info = module_graph.get_exports_info(&self.module_identifier);
         let runtime = ctx.runtime;
         let runtime_condition = filter_runtime(runtime, |cur_runtime| {
           set.iter().any(|id| {
-            exports_info.get_used(
-              UsedName::Str(id.clone()),
-              cur_runtime,
-              ctx.compilation.get_module_graph(),
-            ) != UsageState::Unused
+            exports_info.get_used(UsedName::Str(id.clone()), cur_runtime, &module_graph)
+              != UsageState::Unused
           })
         });
         match runtime_condition {
