@@ -1,6 +1,6 @@
 use std::{
   borrow::Cow,
-  sync::{atomic::AtomicBool, Arc, RwLock},
+  sync::{Arc, RwLock},
 };
 
 use async_trait::async_trait;
