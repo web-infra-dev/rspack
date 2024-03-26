@@ -36,7 +36,10 @@ import { WatchFileSystem } from "./util/fs";
 import { checkVersion } from "./util/bindingVersionCheck";
 import { Watching } from "./Watching";
 import { NormalModule } from "./NormalModule";
-import { deprecated_resolveBuiltins } from "./builtin-plugin";
+import {
+	JsLoaderRspackPlugin,
+	deprecated_resolveBuiltins
+} from "./builtin-plugin";
 import { applyEntryOptions } from "./rspackOptionsApply";
 import { applyRspackOptionsDefaults } from "./config/defaults";
 import { assertNotNill } from "./util/assertNotNil";
@@ -191,6 +194,7 @@ class Compiler {
 		this.#nonSkippableRegisters = [];
 		this.#moduleExecutionResultsMap = new Map();
 
+		new JsLoaderRspackPlugin(this).apply(this);
 		new ExecuteModulePlugin().apply(this);
 	}
 
