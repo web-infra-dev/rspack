@@ -43,7 +43,7 @@ pub struct NormalModuleFactory {
 #[async_trait::async_trait]
 impl ModuleFactory for NormalModuleFactory {
   async fn create(&self, data: &mut ModuleFactoryCreateData) -> Result<ModuleFactoryResult> {
-    if let Ok(Some(before_resolve_data)) = self.before_resolve(data).await {
+    if let Some(before_resolve_data) = self.before_resolve(data).await? {
       return Ok(before_resolve_data);
     }
     let factory_result = self.factorize(data).await?;

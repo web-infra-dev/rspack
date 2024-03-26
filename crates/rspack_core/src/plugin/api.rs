@@ -9,11 +9,11 @@ use rustc_hash::FxHashMap;
 use crate::{
   AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, AfterResolveArgs,
   AssetInfo, BoxLoader, BoxModule, ChunkHashArgs, Compilation, CompilationHooks, CompilerHooks,
-  CompilerOptions, ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs, LoaderRunnerContext,
-  ModuleFactoryResult, ModuleIdentifier, ModuleType, NormalModule, NormalModuleCreateData,
-  NormalModuleFactoryHooks, OptimizeChunksArgs, ParserAndGenerator, PluginContext, RenderArgs,
-  RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, Resolver,
-  RuntimeRequirementsInTreeArgs, SourceType,
+  CompilerOptions, ContentHashArgs, ContextModuleFactoryHooks, DoneArgs, FactorizeArgs,
+  JsChunkHashArgs, LoaderRunnerContext, ModuleFactoryResult, ModuleIdentifier, ModuleType,
+  NormalModule, NormalModuleCreateData, NormalModuleFactoryHooks, OptimizeChunksArgs,
+  ParserAndGenerator, PluginContext, RenderArgs, RenderChunkArgs, RenderManifestArgs,
+  RenderModuleContentArgs, RenderStartupArgs, Resolver, RuntimeRequirementsInTreeArgs, SourceType,
 };
 
 #[derive(Debug, Clone)]
@@ -82,14 +82,6 @@ pub trait Plugin: Debug + Send + Sync {
     _ctx: PluginContext,
     _args: &mut FactorizeArgs<'_>,
   ) -> PluginFactorizeHookOutput {
-    Ok(None)
-  }
-
-  async fn context_module_before_resolve(
-    &self,
-    _ctx: PluginContext,
-    _args: &mut BeforeResolveArgs,
-  ) -> PluginNormalModuleFactoryBeforeResolveOutput {
     Ok(None)
   }
 
@@ -362,6 +354,7 @@ pub struct ApplyContext<'c> {
   pub compiler_hooks: &'c mut CompilerHooks,
   pub compilation_hooks: &'c mut CompilationHooks,
   pub normal_module_factory_hooks: &'c mut NormalModuleFactoryHooks,
+  pub context_module_factory_hooks: &'c mut ContextModuleFactoryHooks,
 }
 
 impl<'c> ApplyContext<'c> {

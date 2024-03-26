@@ -2,14 +2,11 @@ use napi_derive::napi;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 
 use crate::{
-  CreateModuleData, JsAfterResolveData, JsBeforeResolveArgs, JsResolveForSchemeInput,
-  JsResolveForSchemeResult,
+  CreateModuleData, JsAfterResolveData, JsResolveForSchemeInput, JsResolveForSchemeResult,
 };
 
 #[napi(object, object_to_js = false)]
 pub struct JsHooks {
-  #[napi(ts_type = "(data: JsBeforeResolveArgs) => Promise<boolean | void>")]
-  pub context_module_factory_before_resolve: ThreadsafeFunction<JsBeforeResolveArgs, Option<bool>>,
   #[napi(ts_type = "(data: JsAfterResolveData) => Promise<boolean | void>")]
   pub context_module_factory_after_resolve: ThreadsafeFunction<JsAfterResolveData, Option<bool>>,
   #[napi(ts_type = "(data: CreateModuleData) => void")]

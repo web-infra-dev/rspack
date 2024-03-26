@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use rspack_error::{error, Result};
+use rspack_hook::AsyncSeriesBailHook;
 use tracing::instrument;
 
 use crate::{
@@ -10,6 +11,13 @@ use crate::{
   ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory,
   SharedPluginDriver,
 };
+
+pub type ContextModuleFactoryBeforeResolveHook = AsyncSeriesBailHook<BeforeResolveArgs, bool>;
+
+#[derive(Debug, Default)]
+pub struct ContextModuleFactoryHooks {
+  pub before_resolve: ContextModuleFactoryBeforeResolveHook,
+}
 
 #[derive(Debug)]
 pub struct ContextModuleFactory {
@@ -22,7 +30,7 @@ pub struct ContextModuleFactory {
 impl ModuleFactory for ContextModuleFactory {
   #[instrument(name = "context_module_factory:create", skip_all)]
   async fn create(&self, data: &mut ModuleFactoryCreateData) -> Result<ModuleFactoryResult> {
-    if let Ok(Some(before_resolve_result)) = self.before_resolve(data).await {
+    if let Some(before_resolve_result) = self.before_resolve(data).await? {
       return Ok(before_resolve_result);
     }
 
@@ -61,10 +69,12 @@ impl ContextModuleFactory {
       request: dependency.request().to_string(),
       context: data.context.to_string(),
     };
-    if let Ok(Some(false)) = self
+    if let Some(false) = self
       .plugin_driver
-      .context_module_before_resolve(&mut before_resolve_args)
-      .await
+      .context_module_factory_hooks
+      .before_resolve
+      .call(&mut before_resolve_args)
+      .await?
     {
       // ignored
       // See https://github.com/webpack/webpack/blob/6be4065ade1e252c1d8dcba4af0f43e32af1bdc1/lib/ContextModuleFactory.js#L115

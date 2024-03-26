@@ -1,9 +1,8 @@
-use std::sync::RwLock;
+use std::sync::{Arc, RwLock};
 
 /// rust support hooks
 #[derive(PartialEq)]
 pub enum Hook {
-  ContextModuleFactoryBeforeResolve,
   ContextModuleFactoryAfterResolve,
   NormalModuleFactoryResolveForScheme,
   NormalModuleFactoryCreateModule,
@@ -12,7 +11,6 @@ pub enum Hook {
 impl From<String> for Hook {
   fn from(s: String) -> Self {
     match s.as_str() {
-      "contextModuleFactoryBeforeResolve" => Hook::ContextModuleFactoryBeforeResolve,
       "contextModuleFactoryAfterResolve" => Hook::ContextModuleFactoryAfterResolve,
       "normalModuleFactoryCreateModule" => Hook::NormalModuleFactoryCreateModule,
       "normalModuleFactoryResolveForScheme" => Hook::NormalModuleFactoryResolveForScheme,
@@ -21,8 +19,8 @@ impl From<String> for Hook {
   }
 }
 
-#[derive(Default)]
-pub struct DisabledHooks(RwLock<Vec<Hook>>);
+#[derive(Default, Clone)]
+pub struct DisabledHooks(Arc<RwLock<Vec<Hook>>>);
 
 impl DisabledHooks {
   pub fn set_disabled_hooks(&self, hooks: Vec<String>) {
