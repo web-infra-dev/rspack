@@ -3370,7 +3370,6 @@ dependencies = [
  "rspack_identifier",
  "rspack_napi",
  "rspack_tracing",
- "rspack_util",
  "tokio",
  "tracing",
 ]
