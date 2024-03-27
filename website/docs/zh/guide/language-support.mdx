@@ -45,13 +45,13 @@
 
 ### Node Polyfill
 
-Rspack 不会自动引入 Node Polyfill，如果你需要使用相应功能，你可以选择使用 `@rspack/plugin-node-polyfill` 插件，并在 `rspack.config.js` 完成配置：
+Rspack 不会自动引入 Node Polyfill，如果你需要使用相应功能，你可以选择使用 [node-polyfill-webpack-plugin](https://www.npmjs.com/package/node-polyfill-webpack-plugin) 插件，并在 `rspack.config.js` 完成配置：
 
 ```ts title="rspack.config.js"
-const NodePolyfill = require('@rspack/plugin-node-polyfill');
+const NodePolyfillPlugin = require('node-polyfill-webpack-plugin');
 
 module.exports = {
-  plugins: [new NodePolyfill()],
+  plugins: [new NodePolyfillPlugin()],
 };
 ```
 
