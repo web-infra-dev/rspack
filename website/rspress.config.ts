@@ -325,23 +325,23 @@ function getSidebarConfig(lang: 'zh' | 'en'): Sidebar {
 				link: getLink('/api/cli'),
 			},
 			{
-				text: getText('Node.js 接口', 'Node.js API'),
-				link: getLink('/api/node-api'),
-			},
-			{
 				text: getText('Modules', 'Modules'),
 				link: getLink('/api/modules'),
+			},
+			{
+				text: getText('Node API', 'Node API'),
+				link: getLink('/api/node-api'),
 			},
 			{
 				text: getText('Hot Module Replacement', 'Hot Module Replacement'),
 				link: getLink('/api/hmr'),
 			},
 			{
-				text: getText('Loader 接口', 'Loader API'),
+				text: getText('Loader API', 'Loader API'),
 				link: getLink('/api/loader-api'),
 			},
 			{
-				text: getText('Plugin 接口', 'Plugin API'),
+				text: getText('Plugin API', 'Plugin API'),
 				link: getLink('/api/plugin-api'),
 			},
 		],
