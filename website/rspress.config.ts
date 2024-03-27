@@ -317,11 +317,11 @@ function getSidebarConfig(lang: 'zh' | 'en'): Sidebar {
 		],
 		[getLink('/api/')]: [
 			{
-				text: getText('API 接口', 'API'),
+				text: getText('API', 'API'),
 				link: getLink('/api'),
 			},
 			{
-				text: getText('Command-line 命令行接口', 'Command-line interface'),
+				text: getText('CLI', 'CLI'),
 				link: getLink('/api/cli'),
 			},
 			{
