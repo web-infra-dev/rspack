@@ -4,7 +4,7 @@
   "included": "已内置",
   "babel-loader-description": "内部使用 SWC 实现了 babel-loader 的大部分转换功能",
   "babel-loader-remark": "babel-loader 对性能影响较大，请谨慎使用",
-  "html-webpack-plugin-desc": "在 v0.3.3 已实现对该插件的支持，请升级版本来使用",
+  "html-webpack-plugin-desc": "在 v0.3.3 已实现对该插件的支持，请升级 Rspack 版本来使用",
   "sentry_webpack-plugin-desc": "在 v0.3.3 已实现对该插件 v1.20.1 以上版本的支持",
   "define-plugin-desc": "在 v0.3.3 已实现对该插件的支持，v0.3.3 之前可使用 builtins.define 替代",
   "copy-plugin-desc": "使用 builtins.copy 或 rspack.CopyRspackPlugin 替代",
