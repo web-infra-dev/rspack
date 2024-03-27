@@ -123,6 +123,9 @@ impl JsPlugin {
         r#"var execOptions = { id: moduleId, module: module, factory: __webpack_modules__[moduleId], require: __webpack_require__ };
             __webpack_require__.i.forEach(function(handler) { handler(execOptions); });
             module = execOptions.module;
+            if (!execOptions.factory) {
+              console.error("undefined factory", moduleId)
+            }
             execOptions.factory.call(module.exports, module, module.exports, execOptions.require);
             "#,
       ),
