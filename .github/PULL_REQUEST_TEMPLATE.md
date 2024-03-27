@@ -14,9 +14,9 @@
 
 <!-- It would be helpful if you could provide any relevant context, such as GitHub issues or related discussions. -->
 
-## Require Documentation?
+## Checklist
 
-<!-- Does this PR require documentation? -->
+<!--- Check and mark with an "x" -->
 
-- [ ] No
-- [ ] Yes, the corresponding rspack-website PR is \_\_
+- [ ] Tests updated (or not required).
+- [ ] Documentation updated (or not required).
