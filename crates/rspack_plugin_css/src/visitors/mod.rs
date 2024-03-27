@@ -1,9 +1,11 @@
+use std::sync::Arc;
+
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{BoxDependency, ModuleDependency, SpanExt};
-use rspack_error::miette::{diagnostic, Diagnostic, Severity};
-use rspack_error::DiagnosticExt;
-use swc_core::common::Span;
+use rspack_error::miette::{diagnostic, miette, Diagnostic, LabeledSpan, Severity};
+use rspack_error::{DiagnosticExt, TraceableError};
+use swc_core::common::{FileName, SourceFile, Span};
 use swc_core::css::ast::{
   AtRule, AtRuleName, Function, ImportHref, ImportPrelude, Stylesheet, Token, TokenAndSpan, Url,
   UrlValue,
@@ -21,6 +23,8 @@ pub fn analyze_dependencies(
   ss: &Stylesheet,
   code_generation_dependencies: &mut Vec<Box<dyn ModuleDependency>>,
   diagnostics: &mut Vec<Box<dyn Diagnostic + Send + Sync>>,
+  source_code: &str,
+  filename: &str,
 ) -> Vec<BoxDependency> {
   let mut v = Analyzer {
     deps: Vec::new(),
@@ -28,6 +32,8 @@ pub fn analyze_dependencies(
     diagnostics,
     nearest_at_import_span: None,
     url_function_span: None,
+    source_code,
+    filename,
     // in_support_contdition: false,
   };
   ss.visit_with(&mut v);
@@ -42,19 +48,36 @@ struct Analyzer<'a> {
   diagnostics: &'a mut Vec<Box<dyn Diagnostic + Send + Sync>>,
   nearest_at_import_span: Option<Span>,
   url_function_span: Option<Span>,
+  source_code: &'a str,
+  filename: &'a str,
   // in_support_contdition: bool,
 }
 
 fn replace_module_request_prefix(
   specifier: String,
   diagnostics: &mut Vec<Box<dyn Diagnostic + Send + Sync>>,
+  span: Span,
+  source_code: &str,
+  filename: &str,
 ) -> String {
   if IS_MODULE_REQUEST.is_match(&specifier) {
+    let start = span.real_lo();
+    let end = span.real_lo();
+    let cm: Arc<swc_core::common::SourceMap> = Default::default();
+    let fm = cm.new_source_file(
+      FileName::Custom(filename.to_string()),
+      source_code.to_string(),
+    );
     diagnostics.push(
-      diagnostic!(
-        severity = Severity::Warning,
-        "css: Deprecated '~'\n'@import' or 'url()' with a request starts with '~' is deprecated.",
+      TraceableError::from_source_file(
+        &fm.clone(),
+        start as usize,
+        end as usize,
+        "css: Deprecated '~'".to_string(),
+        "'@import' or 'url()' with a request starts with '~' is deprecated.".to_string(),
       )
+      .with_help(Some("Remove '~' from the request."))
+      .with_severity(Severity::Warning)
       .boxed(),
     );
     IS_MODULE_REQUEST.replace(&specifier, "").to_string()
@@ -68,7 +91,13 @@ static IMPORT_KEYWORD: &str = "import";
 
 impl Analyzer<'_> {
   fn analyze_url(&mut self, value: impl Into<String>, span: Span) {
-    let mut specifier = replace_module_request_prefix(value.into(), self.diagnostics);
+    let mut specifier = replace_module_request_prefix(
+      value.into(),
+      self.diagnostics,
+      span,
+      self.source_code,
+      self.filename,
+    );
     specifier = normalize_url(&specifier);
     let dep = Box::new(CssUrlDependency::new(
       specifier,
@@ -104,7 +133,13 @@ impl Visit for Analyzer<'_> {
       ImportHref::Str(s) => Some(s.value.to_string()),
     };
     if let Some(specifier) = specifier {
-      let specifier = replace_module_request_prefix(specifier, self.diagnostics);
+      let specifier = replace_module_request_prefix(
+        specifier,
+        self.diagnostics,
+        span,
+        self.source_code,
+        self.filename,
+      );
       self.deps.push(Box::new(CssImportDependency::new(
         specifier,
         Some(span.into()),
