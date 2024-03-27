@@ -312,7 +312,6 @@ export interface JsFactoryMeta {
 }
 
 export interface JsHooks {
-  contextModuleFactoryAfterResolve: (data: JsAfterResolveData) => Promise<boolean | void>
   normalModuleFactoryCreateModule: (data: CreateModuleData) => void
   normalModuleFactoryResolveForScheme: (data: JsResolveForSchemeInput) => Promise<JsResolveForSchemeResult>
 }
@@ -1295,7 +1294,8 @@ export enum RegisterJsTapKind {
   CompilationAfterProcessAssets = 20,
   NormalModuleFactoryBeforeResolve = 21,
   NormalModuleFactoryAfterResolve = 22,
-  ContextModuleFactoryBeforeResolve = 23
+  ContextModuleFactoryBeforeResolve = 23,
+  ContextModuleFactoryAfterResolve = 24
 }
 
 export interface RegisterJsTaps {
@@ -1323,6 +1323,7 @@ export interface RegisterJsTaps {
   registerNormalModuleFactoryBeforeResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsBeforeResolveArgs) => Promise<[boolean | undefined, JsBeforeResolveArgs]>); stage: number; }>
   registerNormalModuleFactoryAfterResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsAfterResolveData) => Promise<[boolean | undefined, JsCreateData | undefined]>); stage: number; }>
   registerContextModuleFactoryBeforeResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsBeforeResolveArgs) => Promise<[boolean | undefined, JsBeforeResolveArgs]>); stage: number; }>
+  registerContextModuleFactoryAfterResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsAfterResolveData) => Promise<boolean | undefined>); stage: number; }>
 }
 
 /** Builtin loader runner */

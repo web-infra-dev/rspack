@@ -23,13 +23,14 @@ use rspack_core::{
   CompilationProcessAssetsHook, CompilationRuntimeModuleHook, CompilationStillValidModuleHook,
   CompilationSucceedModuleHook, CompilerAfterEmitHook, CompilerAssetEmittedHook,
   CompilerCompilationHook, CompilerEmitHook, CompilerFinishMakeHook, CompilerMakeHook,
-  CompilerShouldEmitHook, CompilerThisCompilationHook, ContextModuleFactoryBeforeResolveHook,
-  CreateData, ExecuteModuleId, FactoryMeta, MakeParam, ModuleFactoryCreateData, ModuleIdentifier,
-  NormalModuleFactoryAfterResolveHook, NormalModuleFactoryBeforeResolveHook, ResourceData,
+  CompilerShouldEmitHook, CompilerThisCompilationHook, ContextModuleFactoryAfterResolveHook,
+  ContextModuleFactoryBeforeResolveHook, CreateData, ExecuteModuleId, FactoryMeta, MakeParam,
+  ModuleFactoryCreateData, ModuleIdentifier, NormalModuleFactoryAfterResolveHook,
+  NormalModuleFactoryBeforeResolveHook, ResourceData,
 };
 use rspack_hook::{
-  AsyncParallel3, AsyncSeries, AsyncSeries2, AsyncSeries3, AsyncSeriesBail, AsyncSeriesBail4, Hook,
-  Interceptor, SyncSeries4,
+  AsyncParallel3, AsyncSeries, AsyncSeries2, AsyncSeries3, AsyncSeriesBail, AsyncSeriesBail3,
+  AsyncSeriesBail4, Hook, Interceptor, SyncSeries4,
 };
 use rspack_identifier::IdentifierSet;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
@@ -294,6 +295,7 @@ pub enum RegisterJsTapKind {
   NormalModuleFactoryBeforeResolve,
   NormalModuleFactoryAfterResolve,
   ContextModuleFactoryBeforeResolve,
+  ContextModuleFactoryAfterResolve,
 }
 
 #[derive(Default, Clone)]
@@ -411,6 +413,11 @@ pub struct RegisterJsTaps {
   )]
   pub register_context_module_factory_before_resolve_taps:
     RegisterFunction<JsBeforeResolveArgs, Promise<JsBeforeResolveOutput>>,
+  #[napi(
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsAfterResolveData) => Promise<boolean | undefined>); stage: number; }>"
+  )]
+  pub register_context_module_factory_after_resolve_taps:
+    RegisterFunction<JsAfterResolveData, Promise<Option<bool>>>,
 }
 
 /* Compiler Hooks */
@@ -610,6 +617,14 @@ define_register!(
   cache = true,
   sync = false,
   kind = RegisterJsTapKind::ContextModuleFactoryBeforeResolve,
+  skip = true,
+);
+define_register!(
+  RegisterContextModuleFactoryAfterResolveTaps,
+  tap = ContextModuleFactoryAfterResolveTap<JsAfterResolveData, Promise<Option<bool>>> @ ContextModuleFactoryAfterResolveHook,
+  cache = true,
+  sync = false,
+  kind = RegisterJsTapKind::ContextModuleFactoryAfterResolve,
   skip = true,
 );
 
@@ -1085,6 +1100,52 @@ impl AsyncSeriesBail<BeforeResolveArgs, bool> for ContextModuleFactoryBeforeReso
       }
       Err(err) => Err(err),
     }
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
+
+#[async_trait]
+impl AsyncSeriesBail3<String, ModuleFactoryCreateData, FactoryMeta, bool>
+  for ContextModuleFactoryAfterResolveTap
+{
+  async fn run(
+    &self,
+    request: &mut String,
+    data: &mut ModuleFactoryCreateData,
+    meta: &mut FactoryMeta,
+  ) -> rspack_error::Result<Option<bool>> {
+    self
+      .function
+      .call_with_promise(JsAfterResolveData {
+        request: request.to_string(),
+        context: data.context.to_string(),
+        file_dependencies: data
+          .file_dependencies
+          .clone()
+          .into_iter()
+          .map(|item| item.to_string_lossy().to_string())
+          .collect::<Vec<_>>(),
+        context_dependencies: data
+          .context_dependencies
+          .clone()
+          .into_iter()
+          .map(|item| item.to_string_lossy().to_string())
+          .collect::<Vec<_>>(),
+        missing_dependencies: data
+          .missing_dependencies
+          .clone()
+          .into_iter()
+          .map(|item| item.to_string_lossy().to_string())
+          .collect::<Vec<_>>(),
+        factory_meta: JsFactoryMeta {
+          side_effect_free: meta.side_effect_free,
+        },
+        create_data: None,
+      })
+      .await
   }
 
   fn stage(&self) -> i32 {
