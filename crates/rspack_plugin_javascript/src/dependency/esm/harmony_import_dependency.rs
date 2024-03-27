@@ -122,91 +122,6 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
   if is_target_active.is_some_and(|x| !x) {
     return;
   }
-  if let Some(ref_mgm) = ref_mgm
-    && module_dependency.is_export_all() == Some(false)
-  {
-    let specifiers = specifiers
-      .iter()
-      .filter(|specifier| {
-        let is_import = matches!(
-          module_dependency.dependency_type(),
-          DependencyType::EsmImport(_)
-        );
-        if is_import && !ref_mgm.module_type.is_js_like() {
-          return true;
-        }
-
-        // match &self.specifier {
-        //   Specifier::Namespace(_) => true,
-        //   Specifier::Default(_) => compilation
-        //     .get_module_graph()
-        //     .get_exports_info(&reference_mgm.module_identifier)
-        //     .old_get_used_exports()
-        //     .contains(&DEFAULT_JS_WORD),
-        //   Specifier::Named(local, imported) => compilation
-        //     .get_module_graph()
-        //     .get_exports_info(&reference_mgm.module_identifier)
-        //     .old_get_used_exports()
-        //     .contains(imported.as_ref().unwrap_or(local)),
-        // }
-        match specifier {
-          Specifier::Namespace(_) => true,
-          Specifier::Default(local) => {
-            if is_import {
-              compilation
-                .used_symbol_ref
-                .contains(&SymbolRef::Indirect(IndirectTopLevelSymbol {
-                  src: ref_mgm.module_identifier,
-                  ty: symbol::IndirectType::ImportDefault(local.clone()),
-                  importer: module.identifier(),
-                  dep_id: *module_dependency.id(),
-                }))
-            } else {
-              unreachable!("`export v from ''` is a unrecoverable syntax error")
-            }
-          }
-          Specifier::Named(local, imported) => {
-            let symbol = if matches!(
-              module_dependency.dependency_type(),
-              DependencyType::EsmImport(_)
-            ) {
-              SymbolRef::Indirect(IndirectTopLevelSymbol {
-                src: ref_mgm.module_identifier,
-                ty: symbol::IndirectType::Import(local.clone(), imported.clone()),
-                importer: module.identifier(),
-                dep_id: *module_dependency.id(),
-              })
-            } else {
-              SymbolRef::Indirect(IndirectTopLevelSymbol {
-                src: module.identifier(),
-                ty: symbol::IndirectType::ReExport(local.clone(), imported.clone()),
-                importer: module.identifier(),
-                dep_id: *module_dependency.id(),
-              })
-            };
-
-            compilation.used_symbol_ref.contains(&symbol)
-          }
-        }
-      })
-      .collect::<Vec<_>>();
-
-    let parent_id = compilation
-      .get_module_graph()
-      .get_parent_module(module_dependency.id())
-      .expect("should have parent module id");
-    // let is_target = parent_id.contains("builtin:swc-loader??ruleSet[1].rules[0].use[0]!/Users/bytedance/Documents/bytedance/aeolus_fe/apps/abi/src/pages/askData/common/components/LarkEditor/configurator/index.ts");
-    // if specifiers.is_empty()
-    //   && compilation
-    //     .side_effects_free_modules
-    //     .contains(&ref_mgm.module_identifier)
-    // {
-    //   if is_target {
-    //     dbg!(ref_mgm.module_identifier);
-    //   }
-    //   return;
-    // }
-  }
 
   let runtime_condition =
     if let Some(connection) = module_graph.connection_by_dependency(module_dependency.id()) {
@@ -296,8 +211,7 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
       source_order,
       InitFragmentKey::HarmonyImport(key.to_string()),
       None,
-      // runtime_condition,
-      RuntimeCondition::Boolean(true),
+      runtime_condition,
     )));
   }
 
