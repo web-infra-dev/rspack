@@ -78,7 +78,7 @@ fn replace_module_request_prefix(
         &fm.clone(),
         start + mat.start(),
         start + mat.end(),
-        "css: Deprecated '~'".to_string(),
+        "CSS parsing warning".to_string(),
         "'@import' or 'url()' with a request starts with '~' is deprecated.".to_string(),
       )
       .with_help(Some("Remove '~' from the request."))
