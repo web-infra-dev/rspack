@@ -9,16 +9,16 @@ pub use interceptor::RegisterJsTaps;
 use napi::{Env, Result};
 use rspack_binding_values::JsResolveForSchemeResult;
 use rspack_core::PluginNormalModuleFactoryResolveForSchemeOutput;
-use rspack_core::{AfterResolveArgs, ApplyContext, CompilerOptions, PluginContext};
+use rspack_core::{ApplyContext, CompilerOptions, PluginContext};
 use rspack_core::{
-  NormalModuleCreateData, PluginNormalModuleFactoryBeforeResolveOutput,
-  PluginNormalModuleFactoryCreateModuleHookOutput, ResourceData,
+  NormalModuleCreateData, PluginNormalModuleFactoryCreateModuleHookOutput, ResourceData,
 };
 use rspack_hook::Hook as _;
 
 use self::interceptor::NonSkippableRegisters;
 use self::interceptor::RegisterCompilationSucceedModuleTaps;
 use self::interceptor::RegisterCompilerFinishMakeTaps;
+use self::interceptor::RegisterContextModuleFactoryAfterResolveTaps;
 use self::interceptor::RegisterContextModuleFactoryBeforeResolveTaps;
 use self::interceptor::{
   RegisterCompilationAfterOptimizeModulesTaps, RegisterCompilationChunkAssetTaps,
@@ -79,6 +79,7 @@ pub struct JsHooksAdapterPlugin {
   register_normal_module_factory_after_resolve_taps: RegisterNormalModuleFactoryAfterResolveTaps,
   register_context_module_factory_before_resolve_taps:
     RegisterContextModuleFactoryBeforeResolveTaps,
+  register_context_module_factory_after_resolve_taps: RegisterContextModuleFactoryAfterResolveTaps,
 }
 
 impl fmt::Debug for JsHooksAdapterPlugin {
@@ -248,22 +249,16 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
           .register_context_module_factory_before_resolve_taps
           .clone(),
       );
+    ctx
+      .context
+      .context_module_factory_hooks
+      .after_resolve
+      .intercept(
+        self
+          .register_context_module_factory_after_resolve_taps
+          .clone(),
+      );
     Ok(())
-  }
-
-  async fn context_module_after_resolve(
-    &self,
-    _ctx: rspack_core::PluginContext,
-    args: &mut AfterResolveArgs<'_>,
-  ) -> PluginNormalModuleFactoryBeforeResolveOutput {
-    if self.is_hook_disabled(&Hook::ContextModuleFactoryAfterResolve) {
-      return Ok(None);
-    }
-    self
-      .hooks
-      .context_module_factory_after_resolve
-      .call((&*args).into())
-      .await
   }
 
   async fn normal_module_factory_create_module(
@@ -420,6 +415,11 @@ impl JsHooksAdapterPlugin {
       register_context_module_factory_before_resolve_taps:
         RegisterContextModuleFactoryBeforeResolveTaps::new(
           register_js_taps.register_context_module_factory_before_resolve_taps,
+          non_skippable_registers.clone(),
+        ),
+      register_context_module_factory_after_resolve_taps:
+        RegisterContextModuleFactoryAfterResolveTaps::new(
+          register_js_taps.register_context_module_factory_after_resolve_taps,
           non_skippable_registers.clone(),
         ),
       non_skippable_registers,

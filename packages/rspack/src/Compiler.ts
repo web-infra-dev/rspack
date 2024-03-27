@@ -512,6 +512,22 @@ class Compiler {
 					const ret = await queried.promise(data);
 					return [ret, data];
 				}
+			),
+			registerContextModuleFactoryAfterResolveTaps: this.#createRegisterTaps(
+				binding.RegisterJsTapKind.ContextModuleFactoryAfterResolve,
+				() => this.compilationParams!.contextModuleFactory.hooks.afterResolve,
+				queried => async (arg: binding.JsAfterResolveData) => {
+					const data: ResolveData = {
+						request: arg.request,
+						context: arg.context,
+						fileDependencies: arg.fileDependencies,
+						missingDependencies: arg.missingDependencies,
+						contextDependencies: arg.contextDependencies,
+						factoryMeta: arg.factoryMeta,
+						createData: arg.createData
+					};
+					return await queried.promise(data);
+				}
 			)
 		};
 
@@ -522,9 +538,7 @@ class Compiler {
 				normalModuleFactoryCreateModule:
 					this.#normalModuleFactoryCreateModule.bind(this),
 				normalModuleFactoryResolveForScheme:
-					this.#normalModuleFactoryResolveForScheme.bind(this),
-				contextModuleFactoryAfterResolve:
-					this.#contextModuleFactoryAfterResolve.bind(this)
+					this.#normalModuleFactoryResolveForScheme.bind(this)
 			},
 			this.#registers,
 			createThreadsafeNodeFSFromRaw(this.outputFileSystem)
@@ -765,8 +779,6 @@ class Compiler {
 		const disabledHooks: string[] = [];
 		type HookMap = Record<keyof binding.JsHooks, any>;
 		const hookMap: HookMap = {
-			contextModuleFactoryAfterResolve:
-				this.compilationParams?.contextModuleFactory.hooks.afterResolve,
 			normalModuleFactoryCreateModule:
 				this.compilationParams?.normalModuleFactory.hooks.createModule,
 			normalModuleFactoryResolveForScheme:

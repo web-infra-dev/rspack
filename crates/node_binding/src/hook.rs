@@ -3,7 +3,6 @@ use std::sync::{Arc, RwLock};
 /// rust support hooks
 #[derive(PartialEq)]
 pub enum Hook {
-  ContextModuleFactoryAfterResolve,
   NormalModuleFactoryResolveForScheme,
   NormalModuleFactoryCreateModule,
 }
@@ -11,7 +10,6 @@ pub enum Hook {
 impl From<String> for Hook {
   fn from(s: String) -> Self {
     match s.as_str() {
-      "contextModuleFactoryAfterResolve" => Hook::ContextModuleFactoryAfterResolve,
       "normalModuleFactoryCreateModule" => Hook::NormalModuleFactoryCreateModule,
       "normalModuleFactoryResolveForScheme" => Hook::NormalModuleFactoryResolveForScheme,
       hook_name => panic!("{hook_name} is an invalid hook name"),
