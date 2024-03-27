@@ -2,8 +2,6 @@ use std::sync::Arc;
 
 use dashmap::DashMap;
 use once_cell::sync::Lazy;
-use rspack_core::tree_shaking::symbol::{self, IndirectTopLevelSymbol};
-use rspack_core::tree_shaking::visitor::SymbolRef;
 use rspack_core::{
   filter_runtime, import_statement, merge_runtime, AsContextDependency,
   AwaitDependenciesInitFragment, ConditionalInitFragment, ConnectionState, Dependency,
@@ -89,7 +87,6 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
   module_dependency: &T,
   source_order: i32,
   code_generatable_context: &mut TemplateContext,
-  specifiers: &[Specifier],
 ) {
   let TemplateContext {
     compilation,
@@ -352,12 +349,7 @@ impl DependencyTemplate for HarmonyImportSideEffectDependency {
         return;
       }
     }
-    harmony_import_dependency_apply(
-      self,
-      self.source_order,
-      code_generatable_context,
-      &self.specifiers,
-    );
+    harmony_import_dependency_apply(self, self.source_order, code_generatable_context);
   }
 
   fn dependency_id(&self) -> Option<DependencyId> {
