@@ -228,8 +228,6 @@ export class RspackOptionsApply {
 			new AsyncWebAssemblyModulesPlugin().apply(compiler);
 		}
 
-		new JsLoaderRspackPlugin(compiler).apply(compiler);
-
 		if (options.experiments.rspackFuture!.disableApplyEntryLazily) {
 			applyEntryOptions(compiler, options);
 		}

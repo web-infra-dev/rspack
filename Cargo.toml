@@ -6,7 +6,7 @@ resolver = "2"          # See https://doc.rust-lang.org/cargo/reference/resolver
 anyhow             = { version = "1.0.81", features = ["backtrace"] }
 async-recursion    = { version = "1.1.0" }
 async-scoped       = { version = "0.9.0" }
-async-trait        = { version = "0.1.78" }
+async-trait        = { version = "0.1.79" }
 better_scoped_tls  = { version = "0.1.1" }
 bitflags           = { version = "2.5.0" }
 colored            = { version = "2.1.0" }
@@ -18,8 +18,8 @@ futures            = { version = "0.3.30" }
 glob               = { version = "0.3.1" }
 hashlink           = { version = "0.9.0" }
 heck               = { version = "0.5.0" }
-indexmap           = { version = "2.2.5" }
-insta              = { version = "1.36.1" }
+indexmap           = { version = "2.2.6" }
+insta              = { version = "1.37.0" }
 itertools          = { version = "0.12.1" }
 json               = { version = "0.12.4" }
 linked_hash_set    = { version = "0.1.4" }
@@ -30,16 +30,16 @@ paste              = { version = "1.0" }
 path-clean         = { version = "1.0.1" }
 pathdiff           = { version = "0.2.1" }
 quote              = { version = "1.0.35" }
-rayon              = { version = "1.9.0" }
-regex              = { version = "1.10.3" }
+rayon              = { version = "1.10.0" }
+regex              = { version = "1.10.4" }
 rspack_sources     = { version = "=0.2.13" }
 rustc-hash         = { version = "1.1.0" }
 schemars           = { version = "0.8.16" }
 serde              = { version = "1.0.197" }
-serde_json         = { version = "1.0.114" }
+serde_json         = { version = "1.0.115" }
 similar            = { version = "2.4.0" }
 sugar_path         = { version = "0.0.12" }
-syn                = { version = "2.0.53" }
+syn                = { version = "2.0.55" }
 testing_macros     = { version = "0.2.12" }
 tokio              = { version = "1.36.0" }
 tracing            = { version = "0.1.40" }

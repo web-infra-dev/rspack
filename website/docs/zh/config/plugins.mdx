@@ -645,7 +645,7 @@ new rspack.electron.ElectronTargetPlugin();
 
 <ApiMeta addedVersion={'0.3.3'} />
 
-此插件可以创建与 Rspack 产物关联的 html 文件。
+此插件可以创建与 Rspack 产物关联的 HTML 文件。
 
 ```js
 new rspack.HtmlRspackPlugin(options);
@@ -700,7 +700,7 @@ new rspack.HtmlRspackPlugin(options);
         name: '`title`',
         type: '`string|undefined`',
         default: 'undefined',
-        description: '构建 html 的标题',
+        description: '构建 HTML 的标题',
       },
       {
         name: '`filename`',
@@ -773,19 +773,19 @@ new rspack.HtmlRspackPlugin(options);
         name: '`favicon`',
         type: '`string|undefined`',
         default: 'undefined',
-        description: '配置 html 图标',
+        description: '配置 HTML 图标',
       },
       {
         name: '`meta`',
         type: '`Record<string, string|Record<string, string>>` ',
         default: '{}',
-        description: '配置需要注入 html 的 meta',
+        description: '配置需要注入 HTML 的 meta',
       },
     ]}
   />
 
-:::info
-对于复杂的 HTML 配置需求，可使用 [html-webpack-plugin](https://www.npmjs.com/package/html-webpack-plugin) 或 [@rspack/plugin-html](https://www.npmjs.com/package/@rspack/plugin-html)。
+:::tip
+如果 `rspack.HtmlRspackPlugin` 提供的配置项无法满足需求，你也可以直接使用社区的 [html-webpack-plugin](https://www.npmjs.com/package/html-webpack-plugin) 插件。
 :::
 
 #### SwcJsMinimizerRspackPlugin

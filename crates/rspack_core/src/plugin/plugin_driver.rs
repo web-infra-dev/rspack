@@ -10,14 +10,14 @@ use tracing::instrument;
 
 use crate::{
   AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, AfterResolveArgs,
-  ApplyContext, BeforeResolveArgs, BoxLoader, BoxModule, BoxedParserAndGeneratorBuilder,
-  ChunkContentHash, ChunkHashArgs, Compilation, CompilationHooks, CompilerHooks, CompilerOptions,
-  Content, ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs, LoaderRunnerContext,
-  ModuleIdentifier, ModuleType, NormalModule, NormalModuleCreateData, NormalModuleFactoryHooks,
-  OptimizeChunksArgs, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput,
-  PluginAdditionalModuleRequirementsOutput, PluginBuildEndHookOutput, PluginChunkHashHookOutput,
-  PluginContext, PluginFactorizeHookOutput, PluginJsChunkHashHookOutput,
-  PluginNormalModuleFactoryAfterResolveOutput, PluginNormalModuleFactoryBeforeResolveOutput,
+  ApplyContext, BoxLoader, BoxModule, BoxedParserAndGeneratorBuilder, ChunkContentHash,
+  ChunkHashArgs, Compilation, CompilationHooks, CompilerHooks, CompilerOptions, Content,
+  ContentHashArgs, ContextModuleFactoryHooks, DoneArgs, FactorizeArgs, JsChunkHashArgs,
+  LoaderRunnerContext, ModuleIdentifier, ModuleType, NormalModule, NormalModuleCreateData,
+  NormalModuleFactoryHooks, OptimizeChunksArgs, Plugin,
+  PluginAdditionalChunkRuntimeRequirementsOutput, PluginAdditionalModuleRequirementsOutput,
+  PluginBuildEndHookOutput, PluginChunkHashHookOutput, PluginContext, PluginFactorizeHookOutput,
+  PluginJsChunkHashHookOutput, PluginNormalModuleFactoryAfterResolveOutput,
   PluginNormalModuleFactoryCreateModuleHookOutput, PluginNormalModuleFactoryModuleHookOutput,
   PluginRenderChunkHookOutput, PluginRenderHookOutput, PluginRenderManifestHookOutput,
   PluginRenderModuleContentOutput, PluginRenderStartupHookOutput,
@@ -37,6 +37,7 @@ pub struct PluginDriver {
   pub compiler_hooks: CompilerHooks,
   pub compilation_hooks: CompilationHooks,
   pub normal_module_factory_hooks: NormalModuleFactoryHooks,
+  pub context_module_factory_hooks: ContextModuleFactoryHooks,
 }
 
 impl std::fmt::Debug for PluginDriver {
@@ -60,12 +61,14 @@ impl PluginDriver {
     let mut compiler_hooks = Default::default();
     let mut compilation_hooks = Default::default();
     let mut normal_module_factory_hooks = Default::default();
+    let mut context_module_factory_hooks = Default::default();
     let mut registered_parser_and_generator_builder = HashMap::default();
     let mut apply_context = ApplyContext {
       registered_parser_and_generator_builder: &mut registered_parser_and_generator_builder,
       compiler_hooks: &mut compiler_hooks,
       compilation_hooks: &mut compilation_hooks,
       normal_module_factory_hooks: &mut normal_module_factory_hooks,
+      context_module_factory_hooks: &mut context_module_factory_hooks,
     };
     for plugin in &plugins {
       plugin
@@ -88,6 +91,7 @@ impl PluginDriver {
         compiler_hooks,
         compilation_hooks,
         normal_module_factory_hooks,
+        context_module_factory_hooks,
       }),
       options,
     )
@@ -275,22 +279,6 @@ impl PluginDriver {
       plugin.normal_module_loader(PluginContext::new(), loader_context, module)?;
     }
     Ok(())
-  }
-
-  pub async fn context_module_before_resolve(
-    &self,
-    args: &mut BeforeResolveArgs,
-  ) -> PluginNormalModuleFactoryBeforeResolveOutput {
-    for plugin in &self.plugins {
-      tracing::trace!("running resolve for scheme:{}", plugin.name());
-      if let Some(data) = plugin
-        .context_module_before_resolve(PluginContext::new(), args)
-        .await?
-      {
-        return Ok(Some(data));
-      }
-    }
-    Ok(None)
   }
 
   pub async fn context_module_after_resolve(

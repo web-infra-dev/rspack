@@ -3,19 +3,12 @@ import { defineConfig } from 'rspress/config';
 import type { NavItem, Sidebar } from '@rspress/shared';
 import { pluginRss, type PluginRssOption } from './rspress/plugin-rss';
 import { pluginFontOpenSans } from 'rspress-plugin-font-open-sans';
+import { pluginOpenGraph } from 'rsbuild-plugin-open-graph';
+import { pluginGoogleAnalytics } from 'rsbuild-plugin-google-analytics';
 import { toArray } from './rspress/plugin-rss/utils';
 
 const PUBLISH_URL = 'https://rspack.dev';
 const COPYRIGHT = '© 2022-present ByteDance Inc. All Rights Reserved.';
-
-function getMeta(name: string, value: string) {
-	return {
-		[name]: {
-			property: name,
-			content: value,
-		},
-	};
-}
 
 function getI18nHelper(lang: 'zh' | 'en') {
 	const isZh = lang === 'zh';
@@ -103,7 +96,7 @@ function getNavConfig(lang: 'zh' | 'en'): NavItem[] {
 				{
 					text: getText(
 						'未来默认行为与功能废弃',
-						'Future behavior & Deprecation'
+						'Future behavior & Deprecation',
 					),
 					link: getLink('/misc/future'),
 				},
@@ -353,7 +346,7 @@ function getSidebarConfig(lang: 'zh' | 'en'): Sidebar {
 			{
 				text: getText(
 					'Rspack 支持模块联邦',
-					'Module Federation added to Rspack'
+					'Module Federation added to Rspack',
 				),
 				link: getLink('/blog/module-federation-added-to-rspack'),
 			},
@@ -476,6 +469,21 @@ export default defineConfig({
 		],
 	},
 	builderConfig: {
+		plugins: [
+			pluginGoogleAnalytics({ id: 'G-XKKCNZZNJD' }),
+			pluginOpenGraph({
+				title: 'Rspack',
+				type: 'website',
+				url: PUBLISH_URL,
+				image:
+					'https://sf16-sg.tiktokcdn.com/obj/eden-sg/geh7plsnuhog/rspack/rspack-banner.png',
+				description: 'Fast Rust-based Web Bundler',
+				twitter: {
+					site: '@rspack_dev',
+					card: 'summary_large_image',
+				},
+			}),
+		],
 		source: {
 			alias: {
 				'@builtIns': path.join(__dirname, 'components', 'builtIns'),
@@ -485,39 +493,6 @@ export default defineConfig({
 		},
 		dev: {
 			startUrl: true,
-		},
-		html: {
-			meta: {
-				...getMeta('og:title', 'Rspack'),
-				...getMeta('og:type', 'website'),
-				...getMeta('og:url', PUBLISH_URL),
-				...getMeta(
-					'og:image',
-					'https://sf16-sg.tiktokcdn.com/obj/eden-sg/geh7plsnuhog/rspack/rspack-banner.png'
-				),
-				...getMeta('og:description', 'Fast Rust-based Web Bundler'),
-				...getMeta('twitter:site', '@rspack_dev'),
-				...getMeta('twitter:card', 'summary_large_image'),
-			},
-			tags: [
-				// Configure Google Analytics
-				{
-					tag: 'script',
-					attrs: {
-						async: true,
-						src: 'https://www.googletagmanager.com/gtag/js?id=G-XKKCNZZNJD',
-					},
-				},
-				{
-					tag: 'script',
-					children: `
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-XKKCNZZNJD');`,
-				},
-			],
 		},
 		output: {
 			copy: {
