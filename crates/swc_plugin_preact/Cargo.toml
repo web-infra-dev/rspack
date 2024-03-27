@@ -16,7 +16,6 @@ swc_core = { workspace = true, features = [
   "ecma_quote",
   "testing",
 ] }
-swc_error_reporters = { workspace = true }
 
 [package.metadata.cargo-machete]
 ignored = ["Inflector"]
