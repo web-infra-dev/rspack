@@ -317,7 +317,7 @@ function getSidebarConfig(lang: 'zh' | 'en'): Sidebar {
 		],
 		[getLink('/api/')]: [
 			{
-				text: getText('API', 'API'),
+				text: getText('简介', 'Introduction'),
 				link: getLink('/api'),
 			},
 			{
