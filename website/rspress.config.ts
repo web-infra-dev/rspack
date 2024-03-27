@@ -103,7 +103,7 @@ function getNavConfig(lang: 'zh' | 'en'): NavItem[] {
 				{
 					text: getText(
 						'未来默认行为与功能废弃',
-						'Future behavior & Deprecation',
+						'Future behavior & Deprecation'
 					),
 					link: getLink('/misc/future'),
 				},
@@ -325,7 +325,7 @@ function getSidebarConfig(lang: 'zh' | 'en'): Sidebar {
 				link: getLink('/api/cli'),
 			},
 			{
-				text: getText('Modules', 'Modules'),
+				text: getText('模块', 'Modules'),
 				link: getLink('/api/modules'),
 			},
 			{
@@ -341,7 +341,7 @@ function getSidebarConfig(lang: 'zh' | 'en'): Sidebar {
 				link: getLink('/api/loader-api'),
 			},
 			{
-				text: getText('Plugin API', 'Plugin API'),
+				text: getText('插件 API', 'Plugin API'),
 				link: getLink('/api/plugin-api'),
 			},
 		],
@@ -353,7 +353,7 @@ function getSidebarConfig(lang: 'zh' | 'en'): Sidebar {
 			{
 				text: getText(
 					'Rspack 支持模块联邦',
-					'Module Federation added to Rspack',
+					'Module Federation added to Rspack'
 				),
 				link: getLink('/blog/module-federation-added-to-rspack'),
 			},
@@ -493,7 +493,7 @@ export default defineConfig({
 				...getMeta('og:url', PUBLISH_URL),
 				...getMeta(
 					'og:image',
-					'https://sf16-sg.tiktokcdn.com/obj/eden-sg/geh7plsnuhog/rspack/rspack-banner.png',
+					'https://sf16-sg.tiktokcdn.com/obj/eden-sg/geh7plsnuhog/rspack/rspack-banner.png'
 				),
 				...getMeta('og:description', 'Fast Rust-based Web Bundler'),
 				...getMeta('twitter:site', '@rspack_dev'),
