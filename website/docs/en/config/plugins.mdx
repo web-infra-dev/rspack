@@ -646,7 +646,7 @@ These plugins are Rspack's unique internal plugin and follow the XxxRspackPlugin
 
 <ApiMeta addedVersion={'0.3.3'} />
 
-This plugin can be used to create html files that are associated with Rspack assets.
+This plugin can be used to create HTML files that are associated with Rspack assets.
 
 ```js
 new rspack.HtmlRspackPlugin(options);
@@ -787,8 +787,8 @@ new rspack.HtmlRspackPlugin(options);
     ]}
   />
 
-:::info
-For complex HTML configuration requirements, you can use [html-webpack-plugin](https://www.npmjs.com/package/html-webpack-plugin) (after v0.3.3) or [@rspack/plugin-html](https://www.npmjs.com/package/@rspack/plugin-html) (before v0.3.3).
+:::tip
+If the configuration options provided by `rspack.HtmlRspackPlugin` cannot meet your needs, you can also directly use the community's [html-webpack-plugin](https://www.npmjs.com/package/html-webpack-plugin) plugin.
 :::
 
 #### SwcJsMinimizerRspackPlugin

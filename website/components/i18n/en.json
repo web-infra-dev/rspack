@@ -4,7 +4,7 @@
   "included": "included",
   "babel-loader-description": "SWC has been used internally to implement babel-loader with most of its conversion capabilities",
   "babel-loader-remark": "Be cautious of the performance impact of babel-loader",
-  "html-webpack-plugin-desc": "Support for this plugin was implemented in v0.3.3, before v0.3.3 you could use @rspack/plugin-html or builtins.html instead.",
+  "html-webpack-plugin-desc": "Support for this plugin was implemented in v0.3.3, please upgrade the version to use.",
   "sentry_webpack-plugin-desc": "Support for the plugin version v1.20.1 and above has been implemented in v0.3.3",
   "define-plugin-desc": "Support for this plugin was implemented in v0.3.3, before v0.3.3 you could use builtins.define instead.",
   "copy-plugin-desc": "Use builtins.copy or rspack.CopyRspackPlugin instead.",
