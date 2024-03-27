@@ -571,7 +571,7 @@ impl ModuleConcatenationPlugin {
         self.set_bailout_reason(
           &module_id,
           "The module is a css module".to_string(),
-          compilation.get_module_graph_mut(),
+          &mut compilation.get_module_graph_mut(),
         );
         continue;
       }
