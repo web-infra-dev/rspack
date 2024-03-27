@@ -4,7 +4,7 @@ use std::sync::Arc;
 use either::Either;
 use once_cell::sync::Lazy;
 use rspack_core::CompilerOptions;
-use rspack_swc_visitors::{styled_components, StyledComponentsOptions};
+use rspack_swc_visitors::{styled_components, PreactOptions, StyledComponentsOptions};
 use swc_core::atoms::Atom;
 use swc_core::common::collections::AHashMap;
 use swc_core::common::{
@@ -83,6 +83,9 @@ pub(crate) fn transform<'a>(
     }),
     either!(rspack_experiments.import, |options| {
       rspack_swc_visitors::import(options)
+    }),
+    either!(rspack_experiments.preact, |options: &PreactOptions| {
+      rspack_swc_visitors::preact(options.clone(), (*content_hash).to_string())
     }),
   )
 }

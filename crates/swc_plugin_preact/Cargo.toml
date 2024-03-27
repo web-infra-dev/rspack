@@ -1,0 +1,22 @@
+[package]
+description = "preact swc plugin in rust"
+edition     = "2021"
+license     = "MIT"
+name        = "swc_plugin_preact"
+version     = "0.0.1"
+
+[dependencies]
+serde = { workspace = true }
+swc_core = { workspace = true, features = [
+  "common",
+  "ecma_ast",
+  "ecma_visit",
+  "__ecma",
+  "__testing_transform",
+  "ecma_quote",
+  "testing",
+] }
+swc_error_reporters = { workspace = true }
+
+[package.metadata.cargo-machete]
+ignored = ["Inflector"]

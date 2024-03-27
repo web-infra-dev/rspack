@@ -15,6 +15,7 @@ import {
 	resolveEmotion,
 	resolvePluginImport,
 	resolveReact,
+	resolvePreact,
 	resolveRelay
 } from "../builtin-loader";
 import { parsePathQueryFragment } from "../loader-runner";
@@ -260,6 +261,9 @@ const getSwcLoaderOptions: GetLoaderOptions = (o, options) => {
 		}
 		if (expr.react) {
 			expr.react = resolveReact(expr.react);
+		}
+		if (expr.preact) {
+			expr.preact = resolvePreact(expr.preact);
 		}
 	}
 	return o;
