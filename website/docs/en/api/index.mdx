@@ -1,23 +1,39 @@
 # Introduction
 
-Rspack provides a variety of interfaces to customize the compilation process, including
+A variety of interfaces are available to customize the compilation process. Some features overlap between interfaces, e.g. a configuration option may be available via a CLI flag, while others exist only through a single interface. The following high-level information should get you started.
 
 ## CLI
 
-Command Line Interface (CLI), which is used to configure and interact with the build process, supports dev, build and other functions commonly used in daily development. See [CLI](/api/cli) for details.
+The Command Line Interface (CLI) to configure and interact with your build. It is especially useful in the case of early prototyping and profiling. For the most part, the CLI is used to kick off the process using a configuration file and a few flags (e.g. `--env`).
+
+[Learn more about the CLI!](/api/cli)
 
 ## Modules
 
-The Modules interface is used to define the supported module syntax and methods, see [Modules interface](/api/modules) for details.
+When processing modules with rspack, it is important to understand the different module syntaxes – specifically the methods and variables – that are supported.
 
-## Hot Module Replacement API
+[Learn more about the modules!](/api/modules)
 
-The Hot Module Replacement (HMR) interface is used to implement hot module replacement, see [Hot Module Replacement Interface](/api/hmr) for details.
+## Node
 
-## Loader API
+While most users can get away with using the CLI along with a configuration file, more fine-grained control of the compilation can be achieved via the Node interface. This includes passing multiple configurations, programmatically running or watching, and collecting stats.
 
-Loader is used to convert the source code of the module, please refer to [Loader API](/api/loader-api) for more details.
+[Learn more about the Node API!](/api/node-api)
 
-## Plugin API
+## Hot Module Replacement
 
-Plugin allows users to intervene in the compilation process. Plugins can register callback functions on different lifecycles to modify the user's compilation process, see [Plugin API](/api/plugin-api) for more details.
+The Hot Module Replacement (HMR) improves the development experience by updating modules in the browser at runtime without needing a whole page refresh. This means that application state can be retained as you change small things in your code.
+
+[Learn more about the hot module replacement!](/api/hmr)
+
+## Loaders
+
+Loaders are transformations that are applied to the source code of a module. They are written as functions that accept source code as a parameter and return a new version of that code with transformations applied.
+
+[Learn more about the loaders!](/api/loader-api)
+
+## Plugins
+
+The plugin interface allows users to tap directly into the compilation process. Plugins can register handlers on lifecycle hooks that run at different points throughout a compilation. When each hook is executed, the plugin will have full access to the current state of the compilation.
+
+[Learn more about the plugins!](/api/plugin-api)
