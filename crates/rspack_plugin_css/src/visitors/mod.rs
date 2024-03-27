@@ -3,9 +3,9 @@ use std::sync::Arc;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{BoxDependency, ModuleDependency, SpanExt};
-use rspack_error::miette::{diagnostic, miette, Diagnostic, LabeledSpan, Severity};
+use rspack_error::miette::{Diagnostic, Severity};
 use rspack_error::{DiagnosticExt, TraceableError};
-use swc_core::common::{FileName, SourceFile, Span};
+use swc_core::common::{FileName, Span};
 use swc_core::css::ast::{
   AtRule, AtRuleName, Function, ImportHref, ImportPrelude, Stylesheet, Token, TokenAndSpan, Url,
   UrlValue,
@@ -56,23 +56,28 @@ struct Analyzer<'a> {
 fn replace_module_request_prefix(
   specifier: String,
   diagnostics: &mut Vec<Box<dyn Diagnostic + Send + Sync>>,
-  span: Span,
   source_code: &str,
   filename: &str,
+  span: Span,
 ) -> String {
   if IS_MODULE_REQUEST.is_match(&specifier) {
-    let start = span.real_lo();
-    let end = span.real_lo();
     let cm: Arc<swc_core::common::SourceMap> = Default::default();
     let fm = cm.new_source_file(
       FileName::Custom(filename.to_string()),
       source_code.to_string(),
     );
+    let start = span.real_lo() as usize;
+    let end = span.real_hi() as usize;
+    let import_statement = &source_code[start..end];
+    let mat = Regex::new(r"~")
+      .expect("Failed to compile the regex.")
+      .find(import_statement)
+      .expect("Failed to find the '~'.");
     diagnostics.push(
       TraceableError::from_source_file(
         &fm.clone(),
-        start as usize,
-        end as usize,
+        start + mat.start(),
+        start + mat.end(),
         "css: Deprecated '~'".to_string(),
         "'@import' or 'url()' with a request starts with '~' is deprecated.".to_string(),
       )
@@ -94,9 +99,9 @@ impl Analyzer<'_> {
     let mut specifier = replace_module_request_prefix(
       value.into(),
       self.diagnostics,
-      span,
       self.source_code,
       self.filename,
+      span,
     );
     specifier = normalize_url(&specifier);
     let dep = Box::new(CssUrlDependency::new(
@@ -136,9 +141,9 @@ impl Visit for Analyzer<'_> {
       let specifier = replace_module_request_prefix(
         specifier,
         self.diagnostics,
-        span,
         self.source_code,
         self.filename,
+        span,
       );
       self.deps.push(Box::new(CssImportDependency::new(
         specifier,
