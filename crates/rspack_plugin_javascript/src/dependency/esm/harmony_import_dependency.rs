@@ -2,8 +2,6 @@ use std::sync::Arc;
 
 use dashmap::DashMap;
 use once_cell::sync::Lazy;
-use rspack_core::tree_shaking::symbol::{self, IndirectTopLevelSymbol};
-use rspack_core::tree_shaking::visitor::SymbolRef;
 use rspack_core::{
   filter_runtime, import_statement, merge_runtime, AsContextDependency,
   AwaitDependenciesInitFragment, ConditionalInitFragment, ConnectionState, Dependency,
@@ -89,7 +87,6 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
   module_dependency: &T,
   source_order: i32,
   code_generatable_context: &mut TemplateContext,
-  specifiers: &[Specifier],
 ) {
   let TemplateContext {
     compilation,
@@ -121,70 +118,6 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
   // Bailout only if the module does exist and not active.
   if is_target_active.is_some_and(|x| !x) {
     return;
-  }
-  if let Some(ref_mgm) = ref_mgm
-    && module_dependency.is_export_all() == Some(false)
-  {
-    let specifiers = specifiers
-      .iter()
-      .filter(|specifier| {
-        let is_import = matches!(
-          module_dependency.dependency_type(),
-          DependencyType::EsmImport(_)
-        );
-        if is_import && !ref_mgm.module_type.is_js_like() {
-          return true;
-        }
-
-        match specifier {
-          Specifier::Namespace(_) => true,
-          Specifier::Default(local) => {
-            if is_import {
-              compilation
-                .used_symbol_ref
-                .contains(&SymbolRef::Indirect(IndirectTopLevelSymbol {
-                  src: ref_mgm.module_identifier,
-                  ty: symbol::IndirectType::ImportDefault(local.clone()),
-                  importer: module.identifier(),
-                  dep_id: *module_dependency.id(),
-                }))
-            } else {
-              unreachable!("`export v from ''` is a unrecoverable syntax error")
-            }
-          }
-          Specifier::Named(local, imported) => {
-            let symbol = if matches!(
-              module_dependency.dependency_type(),
-              DependencyType::EsmImport(_)
-            ) {
-              SymbolRef::Indirect(IndirectTopLevelSymbol {
-                src: ref_mgm.module_identifier,
-                ty: symbol::IndirectType::Import(local.clone(), imported.clone()),
-                importer: module.identifier(),
-                dep_id: *module_dependency.id(),
-              })
-            } else {
-              SymbolRef::Indirect(IndirectTopLevelSymbol {
-                src: module.identifier(),
-                ty: symbol::IndirectType::ReExport(local.clone(), imported.clone()),
-                importer: module.identifier(),
-                dep_id: *module_dependency.id(),
-              })
-            };
-
-            compilation.used_symbol_ref.contains(&symbol)
-          }
-        }
-      })
-      .collect::<Vec<_>>();
-
-    if specifiers.is_empty()
-      && compilation
-        .side_effects_free_modules
-        .contains(&ref_mgm.module_identifier)
-    {
-      return;
-    }
   }
 
   let runtime_condition =
@@ -416,12 +349,7 @@ impl DependencyTemplate for HarmonyImportSideEffectDependency {
         return;
       }
     }
-    harmony_import_dependency_apply(
-      self,
-      self.source_order,
-      code_generatable_context,
-      &self.specifiers,
-    );
+    harmony_import_dependency_apply(self, self.source_order, code_generatable_context);
   }
 
   fn dependency_id(&self) -> Option<DependencyId> {

@@ -224,12 +224,7 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
       }
     } else {
       if is_new_treeshaking {
-        harmony_import_dependency_apply(
-          self,
-          self.source_order,
-          code_generatable_context,
-          &[self.specifier.clone()],
-        );
+        harmony_import_dependency_apply(self, self.source_order, code_generatable_context);
       }
       export_from_import(
         code_generatable_context,

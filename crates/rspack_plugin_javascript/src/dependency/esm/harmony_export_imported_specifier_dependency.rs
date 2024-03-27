@@ -900,7 +900,7 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
     if is_new_treeshaking {
       // dbg!(&mode, self.request());
       if !matches!(mode.ty, ExportModeType::Unused | ExportModeType::EmptyStar) {
-        harmony_import_dependency_apply(self, self.source_order, code_generatable_context, &[]);
+        harmony_import_dependency_apply(self, self.source_order, code_generatable_context);
         self.add_export_fragments(code_generatable_context, mode);
       }
       return;
