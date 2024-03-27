@@ -2,7 +2,6 @@ import {
 	JsCodegenerationResult,
 	JsCodegenerationResults,
 	JsCreateData,
-	JsFactoryMeta,
 	JsModule
 } from "@rspack/binding";
 import { Source } from "webpack-sources";
@@ -24,7 +23,6 @@ export type ResolveData = {
 	fileDependencies: string[];
 	missingDependencies: string[];
 	contextDependencies: string[];
-	factoryMeta?: JsFactoryMeta;
 	createData?: CreateData;
 };
 

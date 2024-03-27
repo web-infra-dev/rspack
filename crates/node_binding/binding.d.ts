@@ -159,20 +159,12 @@ export enum BuiltinPluginName {
 
 export function cleanupGlobalTrace(): void
 
-export interface CreateModuleData {
-  dependencyType: string
-  resolveDataRequest: string
-  resourceResolveData: JsResourceData
-  context: string
-}
-
 export interface JsAfterResolveData {
   request: string
   context: string
   fileDependencies: Array<string>
   contextDependencies: Array<string>
   missingDependencies: Array<string>
-  factoryMeta: JsFactoryMeta
   createData?: JsCreateData
 }
 
@@ -307,12 +299,7 @@ export interface JsExecuteModuleResult {
   id: number
 }
 
-export interface JsFactoryMeta {
-  sideEffectFree?: boolean
-}
-
 export interface JsHooks {
-  normalModuleFactoryCreateModule: (data: CreateModuleData) => void
   normalModuleFactoryResolveForScheme: (data: JsResolveForSchemeInput) => Promise<JsResolveForSchemeResult>
 }
 
@@ -383,6 +370,14 @@ export interface JsModule {
   resource?: string
   moduleIdentifier: string
   nameForCondition?: string
+}
+
+export interface JsNormalModuleFactoryCreateModuleArgs {
+  dependencyType: string
+  rawRequest: string
+  resourceResolveData: JsResourceData
+  context: string
+  matchResource?: string
 }
 
 export interface JsResolveForSchemeInput {
@@ -1294,8 +1289,9 @@ export enum RegisterJsTapKind {
   CompilationAfterProcessAssets = 20,
   NormalModuleFactoryBeforeResolve = 21,
   NormalModuleFactoryAfterResolve = 22,
-  ContextModuleFactoryBeforeResolve = 23,
-  ContextModuleFactoryAfterResolve = 24
+  NormalModuleFactoryCreateModule = 23,
+  ContextModuleFactoryBeforeResolve = 24,
+  ContextModuleFactoryAfterResolve = 25
 }
 
 export interface RegisterJsTaps {
@@ -1322,6 +1318,7 @@ export interface RegisterJsTaps {
   registerCompilationAfterProcessAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>
   registerNormalModuleFactoryBeforeResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsBeforeResolveArgs) => Promise<[boolean | undefined, JsBeforeResolveArgs]>); stage: number; }>
   registerNormalModuleFactoryAfterResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsAfterResolveData) => Promise<[boolean | undefined, JsCreateData | undefined]>); stage: number; }>
+  registerNormalModuleFactoryCreateModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsNormalModuleFactoryCreateModuleArgs) => Promise<void>); stage: number; }>
   registerContextModuleFactoryBeforeResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsBeforeResolveArgs) => Promise<[boolean | undefined, JsBeforeResolveArgs]>); stage: number; }>
   registerContextModuleFactoryAfterResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsAfterResolveData) => Promise<boolean | undefined>); stage: number; }>
 }

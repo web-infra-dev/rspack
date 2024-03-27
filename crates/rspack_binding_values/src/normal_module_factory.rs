@@ -1,7 +1,5 @@
 use napi_derive::napi;
-use rspack_core::{
-  AfterResolveArgs, BeforeResolveArgs, CreateData, NormalModuleCreateData, ResourceData,
-};
+use rspack_core::{AfterResolveArgs, BeforeResolveArgs, NormalModuleCreateData, ResourceData};
 
 #[napi(object)]
 pub struct JsResolveForSchemeInput {
@@ -37,23 +35,18 @@ pub struct JsAfterResolveData {
   pub file_dependencies: Vec<String>,
   pub context_dependencies: Vec<String>,
   pub missing_dependencies: Vec<String>,
-  pub factory_meta: JsFactoryMeta,
   pub create_data: Option<JsCreateData>,
 }
 
 pub type JsAfterResolveOutput = (Option<bool>, Option<JsCreateData>);
 
 #[napi(object)]
-pub struct CreateModuleData {
+pub struct JsNormalModuleFactoryCreateModuleArgs {
   pub dependency_type: String,
-  pub resolve_data_request: String,
+  pub raw_request: String,
   pub resource_resolve_data: JsResourceData,
   pub context: String,
-}
-
-#[napi(object)]
-pub struct JsFactoryMeta {
-  pub side_effect_free: Option<bool>,
+  pub match_resource: Option<String>,
 }
 
 #[napi(object)]
@@ -84,17 +77,6 @@ impl From<ResourceData> for JsResolveForSchemeInput {
     Self {
       scheme: value.get_scheme().to_string(),
       resource_data: value.into(),
-    }
-  }
-}
-
-impl From<&mut NormalModuleCreateData<'_>> for CreateModuleData {
-  fn from(value: &mut NormalModuleCreateData) -> Self {
-    Self {
-      context: value.context.to_string(),
-      dependency_type: value.dependency_type.to_string(),
-      resolve_data_request: value.resolve_data_request.into(),
-      resource_resolve_data: value.resource_resolve_data.clone().into(),
     }
   }
 }
@@ -131,20 +113,21 @@ impl From<&AfterResolveArgs<'_>> for JsAfterResolveData {
         .into_iter()
         .map(|item| item.to_string_lossy().to_string())
         .collect::<Vec<_>>(),
-      factory_meta: JsFactoryMeta {
-        side_effect_free: value.factory_meta.side_effect_free,
-      },
       create_data: value.create_data.as_ref().map(JsCreateData::from),
     }
   }
 }
 
-impl From<&CreateData> for JsCreateData {
-  fn from(value: &CreateData) -> Self {
+impl From<&NormalModuleCreateData> for JsCreateData {
+  fn from(value: &NormalModuleCreateData) -> Self {
     Self {
       request: value.request.to_owned(),
       user_request: value.user_request.to_owned(),
-      resource: value.resource.resource_path.to_string_lossy().to_string(),
+      resource: value
+        .resource_resolve_data
+        .resource_path
+        .to_string_lossy()
+        .to_string(),
     }
   }
 }

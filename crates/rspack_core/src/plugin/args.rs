@@ -72,19 +72,12 @@ pub struct FactorizeArgs<'me> {
 }
 
 #[derive(Debug)]
-pub struct NormalModuleCreateData<'a> {
-  pub dependency_type: DependencyType,
-  pub resolve_data_request: &'a str,
-  pub resource_resolve_data: ResourceData,
-  pub context: Context,
-  pub diagnostics: &'a mut Vec<Diagnostic>,
-}
-
-#[derive(Debug)]
-pub struct CreateData {
+pub struct NormalModuleCreateData {
+  pub raw_request: String,
   pub request: String,
   pub user_request: String,
-  pub resource: ResourceData,
+  pub resource_resolve_data: ResourceData,
+  pub match_resource: Option<String>,
 }
 
 #[derive(Debug)]
@@ -96,7 +89,7 @@ pub struct AfterResolveArgs<'a> {
   pub missing_dependencies: &'a HashSet<PathBuf>,
   pub factory_meta: &'a FactoryMeta,
   pub diagnostics: &'a mut Vec<Diagnostic>,
-  pub create_data: Option<CreateData>,
+  pub create_data: Option<NormalModuleCreateData>,
 }
 
 #[derive(Debug)]
