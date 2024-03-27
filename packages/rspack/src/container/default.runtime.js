@@ -91,15 +91,11 @@ module.exports = function () {
 				for (let stage of stages) {
 					if (typeof stage === "object" && stage !== null) {
 						const { name, version, factory, eager } = stage;
+						const options = { version, scope, get: factory };
 						if (shared[name]) {
-							shared[name].version.push(version);
-							shared[name].scope.push(scope);
+							shared[name].push(options);
 						} else {
-							shared[name] = {
-								version: [version],
-								get: factory,
-								scope: [scope]
-							};
+							shared[name] = [options];
 						}
 					}
 				}
