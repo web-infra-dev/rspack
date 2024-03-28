@@ -17,7 +17,7 @@ const res = await fetch(DISCORD_WEBHOOK_URL, {
 	body: JSON.stringify({
 		username: "rspack-bot",
 		avatar_url:
-			"https://raw.githubusercontent.com/web-infra-dev/rspack-website/main/docs/public/logo.png",
+			"https://raw.githubusercontent.com/web-infra-dev/rspack/main/website/docs/public/logo.png",
 		embeds: [
 			{
 				title: TITLE,
