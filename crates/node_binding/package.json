@@ -30,7 +30,7 @@
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
   "repository": "web-infra-dev/rspack",
   "devDependencies": {
-    "@napi-rs/cli": "3.0.0-alpha.41"
+    "@napi-rs/cli": "3.0.0-alpha.45"
   },
   "napi": {
     "binaryName": "rspack"
