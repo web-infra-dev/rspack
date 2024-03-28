@@ -2,6 +2,8 @@
 
 Thank you for your interest in contributing to Rspack! There are many ways to contribute, and we appreciate all of them.
 
+## Documentation Contribution
+see [documentation](./website/README.md)
 ## About the [rspack-dev-guide]
 
 Before starting your contribution, please take a moment and read the [rspack-dev-guide].
