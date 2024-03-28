@@ -49,7 +49,7 @@ export function createBuiltinPlugin<R>(
 export function create<T extends any[], R>(
 	name: binding.BuiltinPluginName,
 	resolve: (...args: T) => R,
-	// `affectedHooks` is used to inform `createChildCompile` about which builtin plugin can be reversed.
+	// `affectedHooks` is used to inform `createChildCompile` about which builtin plugin can be reserved.
 	// However, this has a drawback as it doesn't represent the actual condition but merely serves as an indicator.
 	affectedHooks?: AffectedHooks
 ) {

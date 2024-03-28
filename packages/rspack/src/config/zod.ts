@@ -6,6 +6,7 @@ import type * as webpackDevServer from "webpack-dev-server";
 import { deprecatedWarn } from "../util";
 import { Module } from "../Module";
 import { Chunk } from "../Chunk";
+import { LazyCompilationDefaultBackendOptions } from "../builtin-plugin/lazy-compilation/backend";
 
 //#region Name
 const name = z.string();
@@ -1109,8 +1110,18 @@ const rspackFutureOptions = z.strictObject({
 });
 export type RspackFutureOptions = z.infer<typeof rspackFutureOptions>;
 
+const lazyCompilationOptions = z.object({
+	cacheable: z.boolean().optional(),
+	imports: z.boolean().optional(),
+	entries: z.boolean().optional(),
+	test: z.instanceof(RegExp).optional(),
+	backend: z.custom<LazyCompilationDefaultBackendOptions>().optional()
+});
+
+export type LazyCompilationOptions = z.infer<typeof lazyCompilationOptions>;
+
 const experiments = z.strictObject({
-	lazyCompilation: z.boolean().optional(),
+	lazyCompilation: z.boolean().optional().or(lazyCompilationOptions),
 	asyncWebAssembly: z.boolean().optional(),
 	outputModule: z.boolean().optional(),
 	topLevelAwait: z.boolean().optional(),

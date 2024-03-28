@@ -195,6 +195,10 @@ export class Watching {
 		this.#invalidate();
 	}
 
+	lazyCompilationInvalidate(files: Set<string>) {
+		this.#invalidate(new Map(), new Map(), files, new Set());
+	}
+
 	#invalidate(
 		fileTimeInfoEntries?: Map<string, FileSystemInfoEntry | "ignore">,
 		contextTimeInfoEntries?: Map<string, FileSystemInfoEntry | "ignore">,

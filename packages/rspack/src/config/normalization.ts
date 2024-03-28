@@ -78,7 +78,8 @@ import type {
 	NoParseOption,
 	DevtoolNamespace,
 	DevtoolModuleFilenameTemplate,
-	DevtoolFallbackModuleFilenameTemplate
+	DevtoolFallbackModuleFilenameTemplate,
+	LazyCompilationOptions
 } from "./zod";
 
 export const getNormalizedRspackOptions = (
@@ -287,7 +288,11 @@ export const getNormalizedRspackOptions = (
 		}),
 		plugins: nestedArray(config.plugins, p => [...p]),
 		experiments: nestedConfig(config.experiments, experiments => ({
-			...experiments
+			...experiments,
+			lazyCompilation: optionalNestedConfig(
+				experiments.lazyCompilation,
+				options => (options === true ? {} : options)
+			)
 		})),
 		watch: config.watch,
 		watchOptions: cloneObject(config.watchOptions),
@@ -477,7 +482,7 @@ export interface ModuleOptionsNormalized {
 }
 
 export interface ExperimentsNormalized {
-	lazyCompilation?: boolean;
+	lazyCompilation?: false | LazyCompilationOptions;
 	asyncWebAssembly?: boolean;
 	outputModule?: boolean;
 	newSplitChunks?: boolean;

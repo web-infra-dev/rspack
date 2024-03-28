@@ -217,34 +217,6 @@ export class RspackDevServer extends WebpackDevServer {
 
 	private override setupMiddlewares() {
 		const middlewares: WebpackDevServer.Middleware[] = [];
-		const compilers =
-			this.compiler instanceof MultiCompiler
-				? this.compiler.compilers
-				: [this.compiler];
-
-		compilers.forEach(compiler => {
-			if (compiler.options.experiments.lazyCompilation) {
-				middlewares.push({
-					// @ts-expect-error
-					middleware: (req, res) => {
-						if (req.url.indexOf("/lazy-compilation-web/") > -1) {
-							const path = req.url.replace("/lazy-compilation-web/", "");
-							if (fs.existsSync(path)) {
-								compiler.rebuild(new Set([path]), new Set(), error => {
-									if (error) {
-										throw error;
-									}
-									res.write("");
-									res.end();
-									console.log("lazy compiler success");
-								});
-							}
-						}
-					}
-				});
-			}
-		});
-
 		middlewares.forEach(middleware => {
 			if (typeof middleware === "function") {
 				// @ts-expect-error

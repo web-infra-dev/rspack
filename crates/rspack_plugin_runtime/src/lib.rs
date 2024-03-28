@@ -1,8 +1,6 @@
 #![feature(get_mut_unchecked)]
 mod helpers;
 pub use helpers::*;
-mod lazy_compilation;
-pub use lazy_compilation::LazyCompilationPlugin;
 mod common_js_chunk_format;
 pub use common_js_chunk_format::CommonJsChunkFormatPlugin;
 mod runtime_plugin;

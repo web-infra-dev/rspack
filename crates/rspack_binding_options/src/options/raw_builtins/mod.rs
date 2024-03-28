@@ -2,6 +2,7 @@ mod raw_banner;
 mod raw_bundle_info;
 mod raw_copy;
 mod raw_html;
+mod raw_lazy_compilation;
 mod raw_limit_chunk_count;
 mod raw_mf;
 mod raw_progress;
@@ -10,7 +11,7 @@ mod raw_to_be_deprecated;
 
 use napi::{bindgen_prelude::FromNapiValue, JsUnknown};
 use napi_derive::napi;
-use rspack_core::{BoxPlugin, Define, DefinePlugin, PluginExt, Provide, ProvidePlugin};
+use rspack_core::{BoxPlugin, Define, DefinePlugin, Plugin, PluginExt, Provide, ProvidePlugin};
 use rspack_error::Result;
 use rspack_ids::{
   DeterministicChunkIdsPlugin, DeterministicModuleIdsPlugin, NamedChunkIdsPlugin,
@@ -58,6 +59,7 @@ use rspack_plugin_warn_sensitive_module::WarnCaseSensitiveModulesPlugin;
 use rspack_plugin_wasm::{enable_wasm_loading_plugin, AsyncWasmPlugin};
 use rspack_plugin_web_worker_template::web_worker_template_plugin;
 use rspack_plugin_worker::WorkerPlugin;
+use rspack_regex::RspackRegex;
 
 pub use self::{
   raw_banner::RawBannerPluginOptions, raw_copy::RawCopyRspackPluginOptions,
@@ -67,6 +69,7 @@ pub use self::{
 };
 use self::{
   raw_bundle_info::{RawBundlerInfoModeWrapper, RawBundlerInfoPluginOptions},
+  raw_lazy_compilation::{JsBackend, RawLazyCompilationOption},
   raw_mf::{RawConsumeSharedPluginOptions, RawContainerReferencePluginOptions, RawProvideOptions},
 };
 use crate::{
@@ -142,6 +145,7 @@ pub enum BuiltinPluginName {
   // rspack js adapter plugins
   // naming format follow XxxRspackPlugin
   JsLoaderRspackPlugin,
+  LazyCompilationPlugin,
 }
 
 #[napi(object)]
@@ -404,6 +408,24 @@ impl BuiltinPlugin {
         plugins.push(
           JsLoaderResolverPlugin::new(downcast_into::<JsLoaderRunner>(self.options)?).boxed(),
         );
+      }
+      BuiltinPluginName::LazyCompilationPlugin => {
+        let options = downcast_into::<RawLazyCompilationOption>(self.options)?;
+        let js_backend = JsBackend::from(&options);
+        plugins.push(Box::new(
+          rspack_plugin_lazy_compilation::plugin::LazyCompilationPlugin::new(
+            options.cacheable,
+            js_backend,
+            options.test.map(|s| {
+              RspackRegex::with_flags(&s.source, &s.flags).unwrap_or_else(|_| {
+                let msg = format!("[lazyCompilation]incorrect regex {:?}", s);
+                panic!("{msg}");
+              })
+            }),
+            options.entries,
+            options.imports,
+          ),
+        ) as Box<dyn Plugin>)
       }
     }
     Ok(())

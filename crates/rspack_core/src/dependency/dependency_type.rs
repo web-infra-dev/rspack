@@ -93,6 +93,7 @@ pub enum DependencyType {
   /// Webpack is included
   WebpackIsIncluded,
   LoaderImport,
+  LazyImport,
   Custom(Box<str>), // TODO it will increase large layout size
 }
 
@@ -149,6 +150,7 @@ impl DependencyType {
       DependencyType::ProvideModuleForShared => Cow::Borrowed("provide module for shared"),
       DependencyType::ConsumeSharedFallback => Cow::Borrowed("consume shared fallback"),
       DependencyType::WebpackIsIncluded => Cow::Borrowed("__webpack_is_included__"),
+      DependencyType::LazyImport => Cow::Borrowed("lazy import()"),
     }
   }
 }

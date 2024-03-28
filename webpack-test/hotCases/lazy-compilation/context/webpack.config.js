@@ -4,6 +4,7 @@
 module.exports = {
 	experiments: {
 		lazyCompilation: {
+			cacheable: false,
 			entries: false,
 			imports: true,
 			backend: {

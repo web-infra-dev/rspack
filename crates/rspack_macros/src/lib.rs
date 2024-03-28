@@ -33,6 +33,6 @@ pub fn plugin_hook(
   tokens: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
   let args = syn::parse_macro_input!(args as hook::HookArgs);
-  let input = syn::parse_macro_input!(tokens as syn::ItemFn);
+  let input: syn::ItemFn = syn::parse_macro_input!(tokens as syn::ItemFn);
   hook::expand_fn(args, input)
 }

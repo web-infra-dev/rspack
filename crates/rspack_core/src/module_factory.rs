@@ -6,7 +6,7 @@ use sugar_path::SugarPathBuf;
 
 use crate::{BoxDependency, BoxModule, Context, FactoryMeta, ModuleIdentifier, Resolve};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ModuleFactoryCreateData {
   pub resolve_options: Option<Box<Resolve>>,
   pub context: Context,

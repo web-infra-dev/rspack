@@ -54,6 +54,7 @@ export * from "./SwcJsMinimizerPlugin";
 export * from "./SwcCssMinimizerPlugin";
 
 export * from "./JsLoaderRspackPlugin";
+export * from "./lazy-compilation/plugin";
 
 ///// DEPRECATED /////
 import { RawBuiltins, RawCssModulesConfig } from "@rspack/binding";

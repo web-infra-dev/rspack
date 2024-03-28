@@ -62,7 +62,8 @@ import {
 	BundlerInfoRspackPlugin,
 	ModuleConcatenationPlugin,
 	EvalDevToolModulePlugin,
-	JsLoaderRspackPlugin
+	JsLoaderRspackPlugin,
+	LazyCompilationPlugin
 } from "./builtin-plugin";
 import { deprecatedWarn } from "./util";
 
@@ -277,6 +278,24 @@ export class RspackOptionsApply {
 					options.optimization.mangleExports !== "size"
 				).apply(compiler);
 			}
+		}
+
+		if (options.experiments.lazyCompilation) {
+			const lazyOptions = options.experiments.lazyCompilation;
+
+			new LazyCompilationPlugin(
+				// this is only for test
+				lazyOptions.cacheable ?? true,
+				lazyOptions.entries ?? true,
+				lazyOptions.imports ?? true,
+				lazyOptions.test
+					? {
+							source: lazyOptions.test.source,
+							flags: lazyOptions.test.flags
+						}
+					: undefined,
+				lazyOptions.backend
+			).apply(compiler);
 		}
 
 		if (
