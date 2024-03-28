@@ -9,6 +9,10 @@ Rspack 提供了 Node.js API，可以在 Node.js 运行时下直接使用。
 
 当你需要自定义构建或开发流程时，Node.js API 非常有用，因为此时所有的报告和错误处理都必须自行实现，Rspack 仅仅负责编译的部分。所以 `stats` 配置选项不会在 `rspack()` 调用中生效。
 
+:::warning 和 Webpack Node.js API 的兼容性
+`@rspack/core` 在设计上基于 Webpack Node.js API，但受限于不同的内部实现，其部分 API 在使用上会和 Webpack 略有不同。我们已在文档的相关部分对这些差异进行了明确的说明，请务必仔细阅读。
+:::
+
 ## 安装
 
 开始使用 Rspack 的 Node.js API 之前，首先你需要安装 Rspack：
