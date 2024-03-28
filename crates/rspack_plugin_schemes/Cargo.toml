@@ -14,5 +14,6 @@ regex         = { workspace = true }
 rspack_base64 = { path = "../rspack_base64" }
 rspack_core   = { path = "../rspack_core" }
 rspack_error  = { path = "../rspack_error" }
+rspack_hook   = { path = "../rspack_hook" }
 url           = { workspace = true }
 urlencoding   = { workspace = true }

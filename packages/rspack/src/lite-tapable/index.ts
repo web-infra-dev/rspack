@@ -771,3 +771,103 @@ export class AsyncSeriesBailHook<
 		this._tap("promise", options, fn);
 	}
 }
+
+const defaultFactory = (key: HookMapKey, hook: unknown) => hook;
+
+export type HookMapKey = any;
+export type HookFactory<H> = (key: HookMapKey, hook?: H) => H;
+export interface HookMapInterceptor<H> {
+	factory?: HookFactory<H>;
+}
+
+export class HookMap<H extends Hook<any, any, any>> {
+	_map: Map<HookMapKey, H> = new Map();
+	_factory: HookFactory<H>;
+	name?: string;
+	_interceptors: HookMapInterceptor<H>[];
+
+	constructor(factory: HookFactory<H>, name?: string) {
+		this.name = name;
+		this._factory = factory;
+		this._interceptors = [];
+	}
+
+	get(key: HookMapKey) {
+		return this._map.get(key);
+	}
+
+	for(key: HookMapKey) {
+		const hook = this.get(key);
+		if (hook !== undefined) {
+			return hook;
+		}
+		let newHook = this._factory(key);
+		const interceptors = this._interceptors;
+		for (let i = 0; i < interceptors.length; i++) {
+			const factory = interceptors[i].factory;
+			if (factory) {
+				newHook = factory(key, newHook);
+			}
+		}
+		this._map.set(key, newHook);
+		return newHook;
+	}
+
+	intercept(interceptor: HookMapInterceptor<H>) {
+		this._interceptors.push(
+			Object.assign(
+				{
+					factory: defaultFactory
+				},
+				interceptor
+			)
+		);
+	}
+
+	isUsed(): boolean {
+		for (const key of this._map.keys()) {
+			const hook = this.get(key);
+			if (hook?.isUsed()) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	queryStageRange(stageRange: StageRange): QueriedHookMap<H> {
+		return new QueriedHookMap(stageRange, this);
+	}
+}
+
+export class QueriedHookMap<H extends Hook<any, any, any>> {
+	stageRange: StageRange;
+	hookMap: HookMap<H>;
+
+	constructor(stageRange: StageRange, hookMap: HookMap<H>) {
+		this.stageRange = stageRange;
+		this.hookMap = hookMap;
+	}
+
+	get(key: HookMapKey) {
+		return this.hookMap.get(key)?.queryStageRange(this.stageRange);
+	}
+
+	for(key: HookMapKey) {
+		return this.hookMap.for(key).queryStageRange(this.stageRange);
+	}
+
+	isUsed(): boolean {
+		for (const key in this.hookMap._map.keys()) {
+			if (this.get(key)?.isUsed()) {
+				return true;
+			}
+		}
+		return false;
+	}
+}
+
+export function isQueriedHookMap<T, R, A>(
+	v: QueriedHookMap<Hook<T, R, A>> | QueriedHook<T, R, A>
+): v is QueriedHookMap<Hook<T, R, A>> {
+	return Object.prototype.hasOwnProperty.call(v, "for");
+}

@@ -22,6 +22,8 @@ use crate::{
 };
 
 pub type NormalModuleFactoryBeforeResolveHook = AsyncSeriesBailHook<BeforeResolveArgs, bool>;
+pub type NormalModuleFactoryResolveForSchemeHook =
+  AsyncSeriesBail2Hook<ModuleFactoryCreateData, ResourceData, bool>;
 pub type NormalModuleFactoryAfterResolveHook =
   AsyncSeriesBail2Hook<ModuleFactoryCreateData, NormalModuleCreateData, bool>;
 pub type NormalModuleFactoryCreateModuleHook =
@@ -32,6 +34,7 @@ pub type NormalModuleFactoryModuleHook =
 #[derive(Debug, Default)]
 pub struct NormalModuleFactoryHooks {
   pub before_resolve: NormalModuleFactoryBeforeResolveHook,
+  pub resolve_for_scheme: NormalModuleFactoryResolveForSchemeHook,
   pub after_resolve: NormalModuleFactoryAfterResolveHook,
   pub create_module: NormalModuleFactoryCreateModuleHook,
   pub module: NormalModuleFactoryModuleHook,
@@ -42,7 +45,6 @@ pub struct NormalModuleFactory {
   options: Arc<CompilerOptions>,
   loader_resolver_factory: Arc<ResolverFactory>,
   plugin_driver: SharedPluginDriver,
-  pub hooks: NormalModuleFactoryHooks,
   cache: Arc<Cache>,
 }
 
@@ -79,7 +81,6 @@ impl NormalModuleFactory {
       options,
       loader_resolver_factory,
       plugin_driver,
-      hooks: NormalModuleFactoryHooks::default(),
       cache,
     }
   }
@@ -141,7 +142,6 @@ impl NormalModuleFactory {
 
     let scheme = get_scheme(request_without_match_resource);
     let context_scheme = get_scheme(data.context.as_ref());
-    let context = data.context.as_path();
     let plugin_driver = &self.plugin_driver;
     let loader_resolver = self.get_loader_resolver();
 
@@ -156,16 +156,15 @@ impl NormalModuleFactory {
     let (resource_data, from_cache) = if scheme != Scheme::None
       && !Path::is_absolute(Path::new(request_without_match_resource))
     {
+      let mut resource_data =
+        ResourceData::new(request_without_match_resource.to_string(), "".into());
       // resource with scheme
-      (
-        plugin_driver
-          .normal_module_factory_resolve_for_scheme(ResourceData::new(
-            request_without_match_resource.to_string(),
-            "".into(),
-          ))
-          .await?,
-        false,
-      )
+      plugin_driver
+        .normal_module_factory_hooks
+        .resolve_for_scheme
+        .call(data, &mut resource_data)
+        .await?;
+      (resource_data, false)
     }
     // TODO: resource within scheme, call resolveInScheme hook
     else {
@@ -187,7 +186,9 @@ impl NormalModuleFactory {
                 || (matches!(second_char, Some('.')) && matches!(chars.next(), Some('/'))))
             {
               // if matchResources startsWith ../ or ./
-              match_resource = context
+              match_resource = data
+                .context
+                .as_path()
                 .join(match_resource)
                 .absolutize()
                 .to_string_lossy()
@@ -452,7 +453,7 @@ impl NormalModuleFactory {
           resolve_each(
             plugin_driver,
             &self.options,
-            context,
+            data.context.as_path(),
             &loader_resolver,
             &l.loader,
             l.options.as_deref(),

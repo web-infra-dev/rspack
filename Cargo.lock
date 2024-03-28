@@ -3713,6 +3713,7 @@ dependencies = [
  "rspack_base64",
  "rspack_core",
  "rspack_error",
+ "rspack_hook",
  "url",
  "urlencoding",
 ]

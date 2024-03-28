@@ -1,5 +1,6 @@
 use std::{
   borrow::Cow,
+  path::PathBuf,
   sync::{Arc, RwLock},
 };
 
@@ -11,8 +12,8 @@ use napi::{
 use rspack_binding_values::{
   CompatSource, JsAfterResolveData, JsAfterResolveOutput, JsAssetEmittedArgs, JsBeforeResolveArgs,
   JsBeforeResolveOutput, JsChunk, JsChunkAssetArgs, JsCompilation, JsCreateData,
-  JsExecuteModuleArg, JsModule, JsNormalModuleFactoryCreateModuleArgs, JsRuntimeModule,
-  JsRuntimeModuleArg, ToJsCompatSource, ToJsModule,
+  JsExecuteModuleArg, JsModule, JsNormalModuleFactoryCreateModuleArgs, JsResolveForSchemeArgs,
+  JsResolveForSchemeOutput, JsRuntimeModule, JsRuntimeModuleArg, ToJsCompatSource, ToJsModule,
 };
 use rspack_core::{
   rspack_sources::SourceExt, AssetEmittedInfo, BeforeResolveArgs, BoxModule, Chunk, ChunkUkey,
@@ -26,7 +27,8 @@ use rspack_core::{
   CompilerShouldEmitHook, CompilerThisCompilationHook, ContextModuleFactoryAfterResolveHook,
   ContextModuleFactoryBeforeResolveHook, ExecuteModuleId, MakeParam, ModuleFactoryCreateData,
   ModuleIdentifier, NormalModuleCreateData, NormalModuleFactoryAfterResolveHook,
-  NormalModuleFactoryBeforeResolveHook, NormalModuleFactoryCreateModuleHook, ResourceData,
+  NormalModuleFactoryBeforeResolveHook, NormalModuleFactoryCreateModuleHook,
+  NormalModuleFactoryResolveForSchemeHook, ResourceData,
 };
 use rspack_hook::{
   AsyncParallel3, AsyncSeries, AsyncSeries2, AsyncSeries3, AsyncSeriesBail, AsyncSeriesBail2, Hook,
@@ -295,6 +297,7 @@ pub enum RegisterJsTapKind {
   NormalModuleFactoryBeforeResolve,
   NormalModuleFactoryAfterResolve,
   NormalModuleFactoryCreateModule,
+  NormalModuleFactoryResolveForScheme,
   ContextModuleFactoryBeforeResolve,
   ContextModuleFactoryAfterResolve,
 }
@@ -404,6 +407,11 @@ pub struct RegisterJsTaps {
   )]
   pub register_normal_module_factory_before_resolve_taps:
     RegisterFunction<JsBeforeResolveArgs, Promise<JsBeforeResolveOutput>>,
+  #[napi(
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsResolveForSchemeArgs) => Promise<[boolean | undefined, JsResolveForSchemeArgs]>); stage: number; }>"
+  )]
+  pub register_normal_module_factory_resolve_for_scheme_taps:
+    RegisterFunction<JsResolveForSchemeArgs, Promise<JsResolveForSchemeOutput>>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsAfterResolveData) => Promise<[boolean | undefined, JsCreateData | undefined]>); stage: number; }>"
   )]
@@ -605,6 +613,14 @@ define_register!(
   cache = true,
   sync = false,
   kind = RegisterJsTapKind::NormalModuleFactoryBeforeResolve,
+  skip = true,
+);
+define_register!(
+  RegisterNormalModuleFactoryResolveForSchemeTaps,
+  tap = NormalModuleFactoryResolveForSchemeTap<JsResolveForSchemeArgs, Promise<JsResolveForSchemeOutput>> @ NormalModuleFactoryResolveForSchemeHook,
+  cache = true,
+  sync = false,
+  kind = RegisterJsTapKind::NormalModuleFactoryResolveForScheme,
   skip = true,
 );
 define_register!(
@@ -1014,6 +1030,31 @@ impl AsyncSeriesBail<BeforeResolveArgs, bool> for NormalModuleFactoryBeforeResol
       }
       Err(err) => Err(err),
     }
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
+
+#[async_trait]
+impl AsyncSeriesBail2<ModuleFactoryCreateData, ResourceData, bool>
+  for NormalModuleFactoryResolveForSchemeTap
+{
+  async fn run(
+    &self,
+    _data: &mut ModuleFactoryCreateData,
+    resource_data: &mut ResourceData,
+  ) -> rspack_error::Result<Option<bool>> {
+    let (bail, new_resource_data) = self
+      .function
+      .call_with_promise(resource_data.clone().into())
+      .await?;
+    resource_data.set_resource(new_resource_data.resource);
+    resource_data.set_path(PathBuf::from(new_resource_data.path));
+    resource_data.set_query_optional(new_resource_data.query);
+    resource_data.set_fragment_optional(new_resource_data.fragment);
+    Ok(bail)
   }
 
   fn stage(&self) -> i32 {

@@ -11,8 +11,8 @@ export type NormalModuleCreateData =
 export class NormalModuleFactory {
 	hooks: {
 		// TODO: second param resolveData
-		resolveForScheme: HookMap<
-			AsyncSeriesBailHook<[ResourceDataWithData], true | void>
+		resolveForScheme: liteTapable.HookMap<
+			liteTapable.AsyncSeriesBailHook<[ResourceDataWithData], true | void>
 		>;
 		beforeResolve: liteTapable.AsyncSeriesBailHook<[ResolveData], false | void>;
 		afterResolve: liteTapable.AsyncSeriesBailHook<[ResolveData], false | void>;
@@ -26,8 +26,8 @@ export class NormalModuleFactory {
 			// /** @type {AsyncSeriesBailHook<[ResolveData], Module | false | void>} */
 			// resolve: new AsyncSeriesBailHook(["resolveData"]),
 			// /** @type {HookMap<AsyncSeriesBailHook<[ResourceDataWithData, ResolveData], true | void>>} */
-			resolveForScheme: new HookMap(
-				() => new AsyncSeriesBailHook(["resourceData"])
+			resolveForScheme: new liteTapable.HookMap(
+				() => new liteTapable.AsyncSeriesBailHook(["resourceData"])
 			),
 			// /** @type {HookMap<AsyncSeriesBailHook<[ResourceDataWithData, ResolveData], true | void>>} */
 			// resolveInScheme: new HookMap(
