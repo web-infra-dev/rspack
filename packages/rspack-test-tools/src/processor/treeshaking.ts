@@ -1,14 +1,9 @@
-import { BasicTaskProcessor } from "./basic";
-import {
-	ECompilerType,
-	ITestContext,
-	ITestEnv,
-	TCompilerOptions
-} from "../type";
+import { ECompilerType, ITestContext, TCompilerOptions } from "../type";
 import path from "path";
 import fs from "fs-extra";
 import { merge } from "webpack-merge";
-import { RuleSetRules, rspack } from "@rspack/core";
+import { rspack } from "@rspack/core";
+import { SnapshotProcessor } from "./snapshot";
 
 export interface IRspackTreeShakingProcessorOptions {
 	name: string;
@@ -16,11 +11,12 @@ export interface IRspackTreeShakingProcessorOptions {
 	type: "new" | "builtin";
 }
 
-export class RspackTreeShakingProcessor extends BasicTaskProcessor<ECompilerType.Rspack> {
+export class RspackTreeShakingProcessor extends SnapshotProcessor<ECompilerType.Rspack> {
 	constructor(
 		protected _treeShakingOptions: IRspackTreeShakingProcessorOptions
 	) {
 		super({
+			snapshot: _treeShakingOptions.snapshot,
 			compilerType: ECompilerType.Rspack,
 			defaultOptions: RspackTreeShakingProcessor.defaultOptions,
 			overrideOptions: RspackTreeShakingProcessor.overrideOptions(
@@ -29,46 +25,6 @@ export class RspackTreeShakingProcessor extends BasicTaskProcessor<ECompilerType
 			name: _treeShakingOptions.name,
 			runable: false
 		});
-	}
-
-	async check(env: ITestEnv, context: ITestContext) {
-		const compiler = this.getCompiler(context);
-		const stats = compiler.getStats();
-		const c = compiler.getCompiler();
-		if (!stats || !c) return;
-
-		if (stats.hasErrors()) {
-			throw new Error(
-				`Failed to compile in fixture ${this._options.name}, Errors: ${
-					stats.toJson({ errors: true, all: false }).errors
-				}`
-			);
-		}
-		const fileContents = Object.entries(c.compilation!.assets)
-			.filter(([file]) => file.endsWith(".js") && !file.includes("runtime.js"))
-			.map(([file, source]) => {
-				const tag = path.extname(file).slice(1) || "txt";
-				return `\`\`\`${tag} title=${file}\n${source
-					.source()
-					.toString()}\n\`\`\``;
-			});
-		fileContents.sort();
-		const content = `---\nsource: crates/rspack_testing/src/run_fixture.rs\n---\n${fileContents.join(
-			"\n\n"
-		)}\n`;
-		const updateSnapshot =
-			process.argv.includes("-u") || process.argv.includes("--updateSnapshot");
-
-		const snapshotPath = path.resolve(
-			context.getSource(),
-			`./snapshot/${this._treeShakingOptions.snapshot}`
-		);
-		if (!fs.existsSync(snapshotPath) || updateSnapshot) {
-			fs.writeFileSync(snapshotPath, content, "utf-8");
-			return;
-		}
-		const snapshotContent = fs.readFileSync(snapshotPath, "utf-8");
-		expect(content).toBe(snapshotContent);
 	}
 
 	static defaultOptions(
@@ -152,41 +108,12 @@ export class RspackTreeShakingProcessor extends BasicTaskProcessor<ECompilerType
 		const testConfigFile = context.getSource("test.config.js");
 		if (fs.existsSync(testConfigFile)) {
 			defaultOptions = merge(defaultOptions, require(testConfigFile));
-		} else {
-			const testConfigJson = context.getSource("test.config.json");
-			if (fs.existsSync(testConfigJson)) {
-				const content = fs
-					.readFileSync(testConfigJson, "utf-8")
-					.split(`"true"`)
-					.join("true")
-					.split(`"false"`)
-					.join("false");
-				const json = JSON.parse(content);
-				defaultOptions = merge(defaultOptions, json);
-			}
 		}
 
-		// TODO: remove these after modify all test.config.json
 		const defineOptions = (defaultOptions.builtins as any)?.define;
 		if (defineOptions) {
 			defaultOptions.plugins!.push(new rspack.DefinePlugin(defineOptions));
 			delete (defaultOptions.builtins as any)?.define;
-		}
-
-		const rules = defaultOptions.module?.rules;
-		if (rules) {
-			defaultOptions.module!.rules = rules.map<typeof rules>((rule: any) => {
-				if (typeof rule.test?.type === "string") {
-					if (rule.test.type === "regexp") {
-						rule.test = new RegExp(rule.test.matcher);
-					}
-				}
-				if (typeof rule.sideEffect === "boolean") {
-					rule.sideEffects = rule.sideEffect;
-					delete rule.sideEffect;
-				}
-				return rule;
-			}) as RuleSetRules;
 		}
 
 		return defaultOptions;

@@ -14,12 +14,12 @@ const creator = new BasicCaseCreator({
 	steps: ({ name }) => [
 		new RspackTreeShakingProcessor({
 			name,
-			snapshot: "output.snap",
+			snapshot: "output.txt",
 			type: "builtin"
 		}),
 		new RspackTreeShakingProcessor({
 			name,
-			snapshot: "new_treeshaking.snap",
+			snapshot: "new_treeshaking.txt",
 			type: "new"
 		})
 	]
