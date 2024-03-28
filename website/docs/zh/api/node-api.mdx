@@ -7,7 +7,7 @@ import { ApiMeta, Stability } from '../../../components/ApiMeta.tsx';
 
 Rspack 提供了 Node.js API，可以在 Node.js 运行时下直接使用。
 
-当你需要自定义构建或开发流程时，Node.js API 非常有用，因为此时所有的报告和错误处理都必须自行实现，Rspack 仅仅负责编译的部分。所以 `stats` 配置选项不会在 `rspack()` 调用中生效。
+当你需要自定义构建或开发流程时，Node.js API 非常有用，因为此时所有的报告和错误处理都必须自行实现，Rspack 仅仅负责编译的部分。所以 [`stats`](/config/stats) 配置选项不会在 `rspack()` 调用中生效。
 
 :::warning 和 Webpack Node.js API 的兼容性
 `@rspack/core` 是根据 Webpack Node.js API 设计的，旨在实现与 Webpack 相同的功能表现和行为。
@@ -43,25 +43,25 @@ rspack({}, (err, stats) => {
 ```
 
 :::tip 提示
-`err` 对象**不包含**编译错误，必须使用 `stats.hasErrors()` 单独处理，文档的错误处理将对这部分进行详细介绍。`err` 对象只包含 Rspack 相关的问题，例如配置错误等。
+`err` 对象**不包含**编译错误，必须使用 `stats.hasErrors()` 单独处理，文档的[错误处理](/api/node-api#错误处理)将对这部分进行详细介绍。`err` 对象只包含 Rspack 相关的问题，例如配置错误等。
 :::
 
 :::tip 提示
-你也可以为 rspack 函数提供一个配置数组。更多详细信息，请查看 MultiCompiler 章节。
+你也可以为 rspack 函数提供一个配置数组。更多详细信息，请查看 [MultiCompiler](/api/node-api#multicompiler) 章节。
 :::
 
 ## Compiler 实例
 
-如果你不向 `rspack` 传入可执行的回调函数，它会返回一个 Rspack `Compiler` 实例。你可以通过手动执行它或者为它的构建时添加一个监听器，就像 CLI 类似。Compiler 实例提供了以下方法：
+如果你不向 `rspack` 传入可执行的回调函数，它会返回一个 Rspack `Compiler` 实例。你可以通过手动执行它或者为它的构建时添加一个监听器，就像 [CLI](/api/cli) 类似。Compiler 实例提供了以下方法：
 
 - `.run(callback)`
 - `.watch(watchOptions, handler)`
 
 通常情况下，仅会创建一个主要 `Compiler` 实例，虽然可以创建一些子 compiler 来代理到特定任务。`Compiler` 基本上只是执行最低限度的功能，以维持生命周期运行的功能。它将所有的加载、打包和写入工作，都委托到注册过的插件上。
 
-`Compiler` 实例上的 `hooks` 属性，用于将一个插件注册到 `Compiler` 的生命周期中的所有钩子事件上。Rspack 使用 `RspackOptionsApply` 来配置 `Compiler` 实例以及所有内置插件。
+`Compiler` 实例上的 `hooks` 属性，用于将一个插件注册到 `Compiler` 的生命周期中的所有钩子事件上。Rspack 使用 [`RspackOptionsApply`](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack/src/rspackOptionsApply.ts) 来配置 `Compiler` 实例以及所有内置插件。
 
-使用 `run` 方法启动所有编译工作。完成之后，执行传入的的 callback 函数。最终记录下来的概括信息（stats）和错误（errors），都应在这个 callback 函数中获取。
+使用 `run` 方法启动所有编译工作。完成之后，执行传入的的 `callback` 函数。最终记录下来的概括信息（stats）和错误（errors），都应在这个 callback 函数中获取。
 
 :::warning 警告
 这个 API 一次仅支持一个编译。当使用 `run` 或者 `watch` 时，调用 `close`，并等待它完成后再次执行 `run` 或者 `watch`。并发编译将破坏输出文件。
@@ -88,7 +88,7 @@ compiler.run((err, stats) => {
 ```
 
 :::warning 警告
-不要忘记关闭编译器，这样低优先级的工作（比如持久缓存）就有机会完成。
+不要忘记关闭 compiler，这样低优先级的工作（比如持久缓存）就有机会完成。
 :::
 
 ## 监听
@@ -119,7 +119,7 @@ const watching = compiler.watch(
 );
 ```
 
-`Watching` 配置选项的细节可以在这里查询。
+`Watching` 配置选项的细节可以在[这里](/config/watch#watchoptions)查询。
 
 :::warning 警告
 文件系统不正确的问题，可能会对单次修改触发多次构建。因此，在上面的示例中，一次修改可能会多次触发 `console.log` 语句。用户应该预知此行为，并且可能需要检查 `stats.hash` 来查看文件哈希是否确实变更。
@@ -136,7 +136,7 @@ watching.close((closeErr) => {
 ```
 
 :::warning 警告
-不允许在监听器关闭或者失效前 再次监听或执行。
+不允许在监听器关闭或者失效前再次监听或执行。
 :::
 
 ## 无效化 `Watching`
@@ -149,13 +149,13 @@ watching.invalidate();
 
 ## Stats 对象
 
-`stats` 对象会被作为 `rspack()` 回调函数的第二个参数传递，可以通过它获取到代码编译过程中的有用信息，包括：
+`stats` 对象会被作为 [`rspack()`](/api/node-api#rspack) 回调函数的第二个参数传递，可以通过它获取到代码编译过程中的有用信息，包括：
 
 - 错误和警告（如果有的话）
 - 计时信息
 - 模块和 chunk 信息
 
-Rspack CLI 正是基于这些信息在控制台 展示友好的格式输出。
+[Rspack CLI](/api/cli) 正是基于这些信息在控制台展示友好的格式输出。
 
 :::tip 提示
 当使用 `MultiCompiler` 时，会返回一个 `MultiStats` 实例，它实现与 `stats` 相同的接口，也就是下面描述的方法。
@@ -165,11 +165,11 @@ Rspack CLI 正是基于这些信息在控制台 展示友好的格式输出。
 
 ### stats.hasErrors()
 
-可以用来检查编译期是否有错误， 返回值为 `true` 或 `false`。
+可以用来检查编译期是否有错误，返回值为 `true` 或 `false`。
 
 ### stats.hasWarnings()
 
-可以用来检查编译期是否有警告， 返回值为 `true` 或 `false`。
+可以用来检查编译期是否有警告，返回值为 `true` 或 `false`。
 
 ### stats.toJson(options)
 
@@ -186,9 +186,11 @@ stats.toJson({
 });
 ```
 
+所有可用的配置选项和预设值都可查询 stats [文档](/config/stats)。
+
 ### stats.toString(options)
 
-以格式化的字符串形式返回描述编译信息（类似 CLI 的输出）。
+以格式化的字符串形式返回描述编译信息（类似 [CLI](/api/cli) 的输出）。
 
 配置对象与 `stats.toJson(options)` 一致，除了额外增加的一个选项：
 
@@ -242,6 +244,10 @@ rspack(
 );
 ```
 
+:::warning 警告
+多个配置对象在执行时，不会并行执行。每个配置都只会在前一个处理结束后，才进行处理。
+:::
+
 ## 错误处理
 
 完备的错误处理中需要考虑以下三种类型的错误:
@@ -285,7 +291,7 @@ rspack(
 
 ## 自定义文件系统
 
-默认情况下，Rspack 使用普通文件系统来读取文件并将文件写入磁盘。但是，还可以使用不同类型的文件系统（内存, webDAV 等）来更改输入或输出行为。为了实现这一点，可以改变 `inputFileSystem` 或 `outputFileSystem。` 例如，可以使用 [`memfs`](https://github.com/streamich/memfs) 替换默认的 `outputFileSystem`，以将文件写入到内存中，而不是写入到磁盘：
+默认情况下，Rspack 使用普通文件系统来读取文件并将文件写入磁盘。但是，还可以使用不同类型的文件系统（内存, webDAV 等）来更改输入或输出行为。为了实现这一点，可以改变 `inputFileSystem` 或 `outputFileSystem`。例如，可以使用 [`memfs`](https://github.com/streamich/memfs) 替换默认的 `outputFileSystem`，以将文件写入到内存中，而不是写入到磁盘：
 
 ```js
 import { createFsFromVolume, Volume } from 'memfs';
@@ -307,5 +313,5 @@ compiler.run((err, stats) => {
 ```
 
 :::tip 提示
-你指定的输出文件系统需要 兼容 Node 自身的 `fs` 模块接口， 接口需要提供 `mkdirp` 和 `join` 工具方法。
+你指定的输出文件系统需要 兼容 Node 自身的 `fs` 模块接口，接口需要提供 `mkdirp` 和 `join` 工具方法。
 :::

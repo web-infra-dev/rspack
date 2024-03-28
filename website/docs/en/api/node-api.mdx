@@ -7,7 +7,7 @@ import { ApiMeta, Stability } from '../../../components/ApiMeta.tsx';
 
 Rspack provides a Node.js API which can be used directly in Node.js runtime.
 
-The Node.js API is useful in scenarios in which you need to customize the build or development process since all the reporting and error handling must be done manually and webpack only does the compiling part. For this reason the stats configuration options will not have any effect in the webpack() call.
+The Node.js API is useful in scenarios in which you need to customize the build or development process since all the reporting and error handling must be done manually and webpack only does the compiling part. For this reason the [`stats`](/config/stats) configuration options will not have any effect in the `rspack()` call.
 
 :::warning Compatible with Webpack Node.js API
 `@rspack/core` is designed based on the Webpack Node.js API, with the goal of achieving the same functional behavior as Webpack.
@@ -43,23 +43,23 @@ rspack({}, (err, stats) => {
 ```
 
 :::tip
-The `err` object will not include compilation errors. Those must be handled separately using `stats.hasErrors()`, which will be covered in detail in the Error Handling section of this guide. The err object will only contain rspack-related issues, such as misconfiguration, etc.
+The `err` object will not include compilation errors. Those must be handled separately using `stats.hasErrors()`, which will be covered in detail in the [Error Handling](/api/node-api#error-handling) section of this guide. The err object will only contain rspack-related issues, such as misconfiguration, etc.
 :::
 
 :::tip
-You can provide the `rspack` function with an array of configurations. See the MultiCompiler section below for more information.
+You can provide the `rspack` function with an array of configurations. See the [MultiCompiler](/api/node-api#multicompiler) section below for more information.
 :::
 
 ## Compiler Instance
 
-If you don’t pass the `rspack` runner function a callback, it will return a Rspack `Compiler` instance. This instance can be used to manually trigger the Rspack runner or have it build and watch for changes, much like the CLI. The `Compiler` instance provides the following methods:
+If you don’t pass the `rspack` runner function a callback, it will return a Rspack `Compiler` instance. This instance can be used to manually trigger the Rspack runner or have it build and watch for changes, much like the [CLI](/api/cli). The `Compiler` instance provides the following methods:
 
 - `.run(callback)`
 - `.watch(watchOptions, handler)`
 
 Typically, only one master `Compiler` instance is created, although child compilers can be created in order to delegate specific tasks. The `Compiler` is ultimately a function which performs bare minimum functionality to keep a lifecycle running. It delegates all the loading, bundling, and writing work to registered plugins.
 
-The `hooks` property on a `Compiler` instance is used to register a plugin to any hook event in the `Compiler`'s lifecycle. The `RspackOptionsApply` utilities are used by Rspack to configure its `Compiler` instance with all the built-in plugins.
+The `hooks` property on a `Compiler` instance is used to register a plugin to any hook event in the `Compiler`'s lifecycle. The [`RspackOptionsApply`](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack/src/rspackOptionsApply.ts) utilities are used by Rspack to configure its `Compiler` instance with all the built-in plugins.
 
 The `run` method is then used to kickstart all compilation work. Upon completion, the given `callback` function is executed. The final logging of stats and errors should be done in this `callback` function.
 
@@ -93,7 +93,7 @@ Don't forget to close the compiler, so that low-priority work (like persistent c
 
 ## Watching
 
-Calling the watch method triggers the rspack runner, but then watches for changes (much like CLI: rspack --watch), as soon as Rspack detects a change, runs again. Returns an instance of Watching.
+Calling the watch method triggers the rspack runner, but then watches for changes (much like CLI: `rspack --watch`), as soon as Rspack detects a change, runs again. Returns an instance of Watching.
 
 ```js
 watch(watchOptions, callback);
@@ -119,7 +119,7 @@ const watching = compiler.watch(
 );
 ```
 
-Watching options are covered in detail here.
+`Watching` options are covered in detail [here](/config/watch#watchoptions).
 
 :::warning
 Filesystem inaccuracies may trigger multiple builds for a single change. In the example above, the `console.log` statement may fire multiple times for a single modification. Users should expect this behavior and may check `stats.hash` to see if the file hash has actually changed.
@@ -149,13 +149,13 @@ watching.invalidate();
 
 ## Stats Object
 
-The `stats` object that is passed as a second argument of the `rspack()` callback, is a good source of information about the code compilation process. It includes:
+The `stats` object that is passed as a second argument of the [`rspack()`](/api/node-api#rspack) callback, is a good source of information about the code compilation process. It includes:
 
 - Errors and Warnings (if any)
 - Timings
 - Module and Chunk information
 
-The Rspack CLI uses this information to display nicely formatted output in your console.
+The [Rspack CLI](/api/cli) uses this information to display nicely formatted output in your console.
 
 :::tip
 When using the `MultiCompiler`, a `MultiStats` instance is returned that fulfills the same interface as `stats`, i.e. the methods described below.
@@ -186,11 +186,11 @@ stats.toJson({
 });
 ```
 
-All available options and presets are described in the stats documentation.
+All available options and presets are described in the stats [documentation](/config/stats).
 
 ### stats.toString(options)
 
-Returns a formatted string of the compilation information (similar to CLI output).
+Returns a formatted string of the compilation information (similar to [CLI](/api/cli) output).
 
 Options are the same as `stats.toJson(options)` with one addition:
 
@@ -291,7 +291,7 @@ rspack(
 
 ## Custom File Systems
 
-By default, Rspack reads files and writes files to disk using a normal file system. However, it is possible to change the input or output behavior using a different kind of file system (memory, webDAV, etc). To accomplish this, one can change the `inputFileSystem` or `outputFileSystem`. For example, you can replace the default `outputFileSystem` with `memfs` to write files to memory instead of to disk:
+By default, Rspack reads files and writes files to disk using a normal file system. However, it is possible to change the input or output behavior using a different kind of file system (memory, webDAV, etc). To accomplish this, one can change the `inputFileSystem` or `outputFileSystem`. For example, you can replace the default `outputFileSystem` with [`memfs`](https://github.com/streamich/memfs) to write files to memory instead of to disk:
 
 ```js
 import { createFsFromVolume, Volume } from 'memfs';
