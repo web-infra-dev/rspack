@@ -69,12 +69,16 @@ function getNavConfig(lang: 'zh' | 'en'): NavItem[] {
 					link: 'https://github.com/web-infra-dev/awesome-rspack',
 				},
 				{
+					text: 'Rspack Compat',
+					link: 'https://github.com/web-infra-dev/rspack-compat',
+				},
+				{
 					text: 'Rspack Examples',
 					link: 'https://github.com/rspack-contrib/rspack-examples',
 				},
 				{
-					text: 'Rspack Compat',
-					link: 'https://github.com/web-infra-dev/rspack-compat',
+					text: 'Rsfamily Design Resources',
+					link: 'https://github.com/rspack-contrib/rsfamily-design-resources',
 				},
 				{
 					text: 'Rspack Community Packages',
@@ -100,7 +104,7 @@ function getNavConfig(lang: 'zh' | 'en'): NavItem[] {
 				{
 					text: getText(
 						'未来默认行为与功能废弃',
-						'Future behavior & Deprecation',
+						'Future behavior & Deprecation'
 					),
 					link: getLink('/misc/future'),
 				},
@@ -350,7 +354,7 @@ function getSidebarConfig(lang: 'zh' | 'en'): Sidebar {
 			{
 				text: getText(
 					'Rspack 支持模块联邦',
-					'Module Federation added to Rspack',
+					'Module Federation added to Rspack'
 				),
 				link: getLink('/blog/module-federation-added-to-rspack'),
 			},
