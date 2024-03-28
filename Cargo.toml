@@ -57,15 +57,15 @@ tikv-jemallocator = { version = "=0.5.4", features = ["disable_initial_exec_tls"
 
 # Must be pinned with the same swc versions
 rkyv                = { version = "=0.7.42" }                            # synced with swc wasm plugin
-styled_components   = { version = "=0.96.3" }
-swc_config          = { version = "=0.1.10" }
-swc_core            = { version = "=0.89.6", default-features = false }
-swc_ecma_minifier   = { version = "=0.191.7", default-features = false }
-swc_emotion         = { version = "=0.72.2" }
-swc_error_reporters = { version = "=0.17.14" }
-swc_html            = { version = "=0.136.7" }
-swc_html_minifier   = { version = "=0.133.7" }
-swc_node_comments   = { version = "=0.20.14" }
+styled_components   = { version = "=0.96.8" }
+swc_config          = { version = "=0.1.12" }
+swc_core            = { version = "=0.90.26", default-features = false }
+swc_ecma_minifier   = { version = "=0.192.19", default-features = false }
+swc_emotion         = { version = "=0.72.8" }
+swc_error_reporters = { version = "=0.17.19" }
+swc_html            = { version = "=0.137.18" }
+swc_html_minifier   = { version = "=0.134.17" }
+swc_node_comments   = { version = "=0.20.19" }
 
 [profile.dev]
 codegen-units = 16      # debug build will cause runtime panic if codegen-unints is default
