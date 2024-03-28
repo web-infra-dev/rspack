@@ -30,7 +30,7 @@ export type {
 	StatsWarnings
 } from "./Stats";
 
-export type { MultiStats } from "./MultiStats";
+export { MultiStats } from "./MultiStats";
 
 export type { ChunkGroup } from "./ChunkGroup";
 
