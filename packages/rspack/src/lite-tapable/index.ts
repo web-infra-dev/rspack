@@ -865,9 +865,3 @@ export class QueriedHookMap<H extends Hook<any, any, any>> {
 		return false;
 	}
 }
-
-export function isQueriedHookMap<T, R, A>(
-	v: QueriedHookMap<Hook<T, R, A>> | QueriedHook<T, R, A>
-): v is QueriedHookMap<Hook<T, R, A>> {
-	return Object.prototype.hasOwnProperty.call(v, "for");
-}
