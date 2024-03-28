@@ -661,6 +661,25 @@ importers:
         specifier: 3.2.3
         version: 3.2.3
 
+  packages/rspack-plugin-preact-refresh:
+    dependencies:
+      '@prefresh/core':
+        specifier: ^1.5.0
+        version: 1.5.2(preact@10.19.3)
+      '@prefresh/utils':
+        specifier: ^1.2.0
+        version: 1.2.0
+    devDependencies:
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../rspack
+      '@rspack/plugin-preact-refresh':
+        specifier: workspace:*
+        version: 'link:'
+      preact:
+        specifier: ^10.15.1
+        version: 10.19.3
+
   packages/rspack-plugin-react-refresh:
     devDependencies:
       '@rspack/core':
@@ -4278,6 +4297,18 @@ packages:
 
   /@polka/url@1.0.0-next.21:
     resolution: {integrity: sha512-a5Sab1C4/icpTZVzZc5Ghpz88yQtGOyNqYXcZgOssB2uuAr+wF/MvN6bgtW32q7HHrvBki+BsZ0OuNv6EV3K9g==}
+
+  /@prefresh/core@1.5.2(preact@10.19.3):
+    resolution: {integrity: sha512-A/08vkaM1FogrCII5PZKCrygxSsc11obExBScm3JF1CryK2uDS3ZXeni7FeKCx1nYdUkj4UcJxzPzc1WliMzZA==}
+    peerDependencies:
+      preact: ^10.0.0
+    dependencies:
+      preact: 10.19.3
+    dev: false
+
+  /@prefresh/utils@1.2.0:
+    resolution: {integrity: sha512-KtC/fZw+oqtwOLUFM9UtiitB0JsVX0zLKNyRTA332sqREqSALIIQQxdUCS1P3xR/jT1e2e8/5rwH6gdcMLEmsQ==}
+    dev: false
 
   /@rspack/binding-darwin-arm64@0.5.4:
     resolution: {integrity: sha512-MWTLMzrgWk5enKGfctVIhbU5WlpJbXpvUnHKzxSr4dclf+IeBIaXBEs1fwogrS87VdfWTOh+lndyzrozBnxMmQ==}
@@ -13119,6 +13150,9 @@ packages:
       nanoid: 3.3.7
       picocolors: 1.0.0
       source-map-js: 1.0.2
+
+  /preact@10.19.3:
+    resolution: {integrity: sha512-nHHTeFVBTHRGxJXKkKu5hT8C/YWBkPso4/Gad6xuj5dbptt9iF9NZr9pHbPhBrnT2klheu7mHTxTZ/LjwJiEiQ==}
 
   /prepend-http@2.0.0:
     resolution: {integrity: sha512-ravE6m9Atw9Z/jjttRUZ+clIXogdghyZAuWJ3qEzjT+jI/dL1ifAqhZeC5VHzQp1MSt1+jxKkFNemj/iO7tVUA==}
