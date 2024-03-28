@@ -36,7 +36,7 @@
   "devDependencies": {
     "@rspack/core": "workspace:*",
     "@rspack/plugin-minify": "workspace:^",
-    "@swc/plugin-remove-console": "^1.5.114",
+    "@swc/plugin-remove-console": "1.5.121",
     "@types/watchpack": "^2.4.0",
     "@types/webpack-sources": "3.2.3",
     "@types/ws": "8.5.10",
