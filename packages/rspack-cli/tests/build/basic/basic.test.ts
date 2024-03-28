@@ -1,5 +1,5 @@
-import { readFile, run, runWatch } from "../../utils/test-utils";
 import { resolve } from "path";
+import { readFile, run, runWatch } from "../../utils/test-utils";
 
 describe("build command", () => {
 	it("it should work ", async () => {
@@ -80,10 +80,27 @@ describe("build command", () => {
 		expect(mainJs).toContain("other");
 		expect(mainJs).not.toContain("CONFIG");
 	});
-	it("output-path option should have higher priority than config", async () => {
+	it.each(["-o", "--output-path"])("output-path option %p should have higher priority than config", async (command) => {
 		const { exitCode, stderr, stdout } = await run(__dirname, [
-			"--output-path",
+			command,
 			"public",
+			"--config",
+			"./entry.config.js"
+		]);
+		const mainJs = await readFile(
+			resolve(__dirname, "public/main.js"),
+			"utf-8"
+		);
+
+		expect(exitCode).toBe(0);
+		expect(stderr).toBeFalsy();
+		expect(stdout).toBeTruthy();
+		expect(mainJs).toContain("CONFIG");
+	});
+
+	it.each(["-d", "--devtool"])("devtool option %p should have higher priority than config", async (command) => {
+		const { exitCode, stderr, stdout } = await run(__dirname, [
+			command,
 			"--config",
 			"./entry.config.js"
 		]);
