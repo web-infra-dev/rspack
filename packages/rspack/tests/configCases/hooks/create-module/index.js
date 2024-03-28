@@ -1,4 +1,4 @@
-import "./b!=!foo-loader!./a?answer=42#bar";
+import "./b.vanilla.css!=!foo-loader!./a?answer=42#bar";
 import fs from "fs";
 import path from "path";
 
@@ -9,6 +9,6 @@ it("should have basic create module data", () => {
 	);
 	const createData = JSON.parse(content);
 	expect(createData).toBeDefined();
-	expect(createData.matchResource.endsWith("a.js?answer=42#bar")).toBeTruthy();
+	expect(createData.matchResource.endsWith("b.vanilla.css")).toBeTruthy();
 	expect(typeof createData.settings).toBe("object");
 });

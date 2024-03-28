@@ -4,13 +4,11 @@ use std::sync::{Arc, RwLock};
 #[derive(PartialEq)]
 pub enum Hook {
   NormalModuleFactoryResolveForScheme,
-  NormalModuleFactoryCreateModule,
 }
 
 impl From<String> for Hook {
   fn from(s: String) -> Self {
     match s.as_str() {
-      "normalModuleFactoryCreateModule" => Hook::NormalModuleFactoryCreateModule,
       "normalModuleFactoryResolveForScheme" => Hook::NormalModuleFactoryResolveForScheme,
       hook_name => panic!("{hook_name} is an invalid hook name"),
     }

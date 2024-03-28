@@ -31,7 +31,10 @@ import { createThreadsafeNodeFSFromRaw } from "./fileSystem";
 import Cache from "./lib/Cache";
 import CacheFacade from "./lib/CacheFacade";
 import { Logger } from "./logging/Logger";
-import { NormalModuleFactory } from "./NormalModuleFactory";
+import {
+	NormalModuleCreateData,
+	NormalModuleFactory
+} from "./NormalModuleFactory";
 import { WatchFileSystem } from "./util/fs";
 import { checkVersion } from "./util/bindingVersionCheck";
 import { Watching } from "./Watching";
@@ -491,12 +494,23 @@ class Compiler {
 						fileDependencies: arg.fileDependencies,
 						missingDependencies: arg.missingDependencies,
 						contextDependencies: arg.contextDependencies,
-						factoryMeta: arg.factoryMeta,
 						createData: arg.createData
 					};
 					const ret = await queried.promise(data);
 					return [ret, data.createData];
 				}
+			),
+			registerNormalModuleFactoryCreateModuleTaps: this.#createRegisterTaps(
+				binding.RegisterJsTapKind.NormalModuleFactoryCreateModule,
+				() => this.compilationParams!.normalModuleFactory.hooks.createModule,
+				queried =>
+					async (args: binding.JsNormalModuleFactoryCreateModuleArgs) => {
+						const data: NormalModuleCreateData = {
+							...args,
+							settings: {}
+						};
+						await queried.promise(data, {});
+					}
 			),
 			registerContextModuleFactoryBeforeResolveTaps: this.#createRegisterTaps(
 				binding.RegisterJsTapKind.ContextModuleFactoryBeforeResolve,
@@ -523,7 +537,6 @@ class Compiler {
 						fileDependencies: arg.fileDependencies,
 						missingDependencies: arg.missingDependencies,
 						contextDependencies: arg.contextDependencies,
-						factoryMeta: arg.factoryMeta,
 						createData: arg.createData
 					};
 					return await queried.promise(data);
@@ -535,8 +548,6 @@ class Compiler {
 			rawOptions,
 			this.builtinPlugins,
 			{
-				normalModuleFactoryCreateModule:
-					this.#normalModuleFactoryCreateModule.bind(this),
 				normalModuleFactoryResolveForScheme:
 					this.#normalModuleFactoryResolveForScheme.bind(this)
 			},
@@ -779,8 +790,6 @@ class Compiler {
 		const disabledHooks: string[] = [];
 		type HookMap = Record<keyof binding.JsHooks, any>;
 		const hookMap: HookMap = {
-			normalModuleFactoryCreateModule:
-				this.compilationParams?.normalModuleFactory.hooks.createModule,
 			normalModuleFactoryResolveForScheme:
 				this.compilationParams?.normalModuleFactory.hooks.resolveForScheme
 		};
@@ -819,16 +828,6 @@ class Compiler {
 
 		this.#updateDisabledHooks();
 		return res;
-	}
-
-	async #normalModuleFactoryCreateModule(createData: binding.CreateModuleData) {
-		const data = Object.assign({}, createData, {
-			settings: {},
-			matchResource: createData.resourceResolveData.resource
-		});
-		const nmfHooks = this.compilationParams!.normalModuleFactory.hooks;
-		await nmfHooks?.createModule.promise(data, {});
-		this.#updateDisabledHooks();
 	}
 
 	async #normalModuleFactoryResolveForScheme(
