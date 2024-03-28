@@ -125,7 +125,7 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
       inline_script: Some(false),
       keep_comments: Some(true),
     };
-    let program = c.transform(built).map_err(AnyhowError::from)?;
+    let program = tokio::task::block_in_place(|| c.transform(built).map_err(AnyhowError::from))?;
     let ast = c.into_js_ast(program);
 
     // If swc-loader is the latest loader available,

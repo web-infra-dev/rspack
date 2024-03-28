@@ -33,6 +33,7 @@ serde                    = { workspace = true, features = ["derive"] }
 serde_json               = { workspace = true }
 swc_config               = { workspace = true }
 swc_core                 = { workspace = true, features = ["base", "ecma_ast", "common"] }
+tokio                    = { workspace = true }
 xxhash-rust              = { workspace = true, features = ["xxh32"] }
 
 [dev-dependencies]
