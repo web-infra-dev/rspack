@@ -57,9 +57,21 @@ impl ResourceData {
     self.scheme.get_or_init(|| get_scheme(&self.resource))
   }
 
+  pub fn set_resource(&mut self, v: String) {
+    self.resource = v;
+  }
+
+  pub fn set_path(&mut self, v: PathBuf) {
+    self.resource_path = v;
+  }
+
   pub fn query(mut self, v: String) -> Self {
     self.resource_query = Some(v);
     self
+  }
+
+  pub fn set_query(&mut self, v: String) {
+    self.resource_query = Some(v);
   }
 
   pub fn query_optional(mut self, v: Option<String>) -> Self {
@@ -67,14 +79,26 @@ impl ResourceData {
     self
   }
 
+  pub fn set_query_optional(&mut self, v: Option<String>) {
+    self.resource_query = v;
+  }
+
   pub fn fragment(mut self, v: String) -> Self {
     self.resource_fragment = Some(v);
     self
   }
 
+  pub fn set_fragment(&mut self, v: String) {
+    self.resource_fragment = Some(v);
+  }
+
   pub fn fragment_optional(mut self, v: Option<String>) -> Self {
     self.resource_fragment = v;
     self
+  }
+
+  pub fn set_fragment_optional(&mut self, v: Option<String>) {
+    self.resource_fragment = v;
   }
 
   pub fn description(mut self, v: DescriptionData) -> Self {
@@ -92,9 +116,17 @@ impl ResourceData {
     self
   }
 
+  pub fn set_mimetype(&mut self, v: String) {
+    self.mimetype = Some(v);
+  }
+
   pub fn parameters(mut self, v: String) -> Self {
     self.parameters = Some(v);
     self
+  }
+
+  pub fn set_parameters(&mut self, v: String) {
+    self.parameters = Some(v);
   }
 
   pub fn encoding(mut self, v: String) -> Self {
@@ -102,9 +134,17 @@ impl ResourceData {
     self
   }
 
+  pub fn set_encoding(&mut self, v: String) {
+    self.encoding = Some(v);
+  }
+
   pub fn encoded_content(mut self, v: String) -> Self {
     self.encoded_content = Some(v);
     self
+  }
+
+  pub fn set_encoded_content(&mut self, v: String) {
+    self.encoded_content = Some(v);
   }
 }
 

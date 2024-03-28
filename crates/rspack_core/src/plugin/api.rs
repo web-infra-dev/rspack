@@ -83,14 +83,6 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(None)
   }
 
-  async fn normal_module_factory_resolve_for_scheme(
-    &self,
-    _ctx: PluginContext,
-    args: ResourceData,
-  ) -> PluginNormalModuleFactoryResolveForSchemeOutput {
-    Ok((args, false))
-  }
-
   fn normal_module_loader(
     &self,
     _ctx: PluginContext,

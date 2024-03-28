@@ -1,16 +1,57 @@
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
-  Content, Plugin, PluginContext, PluginNormalModuleFactoryResolveForSchemeOutput,
+  ApplyContext, CompilerOptions, Content, ModuleFactoryCreateData, Plugin, PluginContext,
   PluginReadResourceOutput, ResourceData,
 };
+use rspack_error::Result;
+use rspack_hook::{plugin, plugin_hook, AsyncSeriesBail2};
 
 static URI_REGEX: Lazy<Regex> = Lazy::new(|| {
   Regex::new(r"(?is)^data:([^;,]+)?((?:;[^;,]+)*?)(?:;(base64))?,(.*)$").expect("Invalid Regex")
 });
 
-#[derive(Debug)]
+#[plugin]
+#[derive(Debug, Default)]
 pub struct DataUriPlugin;
+
+#[plugin_hook(AsyncSeriesBail2<ModuleFactoryCreateData, ResourceData, bool> for DataUriPlugin)]
+async fn normal_module_factory_resolve_for_scheme(
+  &self,
+  _data: &mut ModuleFactoryCreateData,
+  resource_data: &mut ResourceData,
+) -> Result<Option<bool>> {
+  if resource_data.get_scheme().is_data()
+    && let Some(captures) = URI_REGEX.captures(&resource_data.resource)
+  {
+    let mimetype = captures
+      .get(1)
+      .map(|i| i.as_str())
+      .unwrap_or_default()
+      .to_owned();
+    let parameters = captures
+      .get(2)
+      .map(|i| i.as_str())
+      .unwrap_or_default()
+      .to_owned();
+    let encoding = captures
+      .get(3)
+      .map(|i| i.as_str())
+      .unwrap_or_default()
+      .to_owned();
+    let encoded_content = captures
+      .get(4)
+      .map(|i| i.as_str())
+      .unwrap_or_default()
+      .to_owned();
+    resource_data.set_mimetype(mimetype);
+    resource_data.set_parameters(parameters);
+    resource_data.set_encoding(encoding);
+    resource_data.set_encoded_content(encoded_content);
+    return Ok(None);
+  }
+  Ok(None)
+}
 
 #[async_trait::async_trait]
 impl Plugin for DataUriPlugin {
@@ -18,44 +59,17 @@ impl Plugin for DataUriPlugin {
     "rspack.DataUriPlugin"
   }
 
-  async fn normal_module_factory_resolve_for_scheme(
+  fn apply(
     &self,
-    _ctx: PluginContext,
-    resource_data: ResourceData,
-  ) -> PluginNormalModuleFactoryResolveForSchemeOutput {
-    if resource_data.get_scheme().is_data()
-      && let Some(captures) = URI_REGEX.captures(&resource_data.resource)
-    {
-      let mimetype = captures
-        .get(1)
-        .map(|i| i.as_str())
-        .unwrap_or_default()
-        .to_owned();
-      let parameters = captures
-        .get(2)
-        .map(|i| i.as_str())
-        .unwrap_or_default()
-        .to_owned();
-      let encoding = captures
-        .get(3)
-        .map(|i| i.as_str())
-        .unwrap_or_default()
-        .to_owned();
-      let encoded_content = captures
-        .get(4)
-        .map(|i| i.as_str())
-        .unwrap_or_default()
-        .to_owned();
-      return Ok((
-        resource_data
-          .mimetype(mimetype)
-          .parameters(parameters)
-          .encoding(encoding)
-          .encoded_content(encoded_content),
-        false,
-      ));
-    }
-    Ok((resource_data, false))
+    ctx: PluginContext<&mut ApplyContext>,
+    _options: &mut CompilerOptions,
+  ) -> Result<()> {
+    ctx
+      .context
+      .normal_module_factory_hooks
+      .resolve_for_scheme
+      .tap(normal_module_factory_resolve_for_scheme::new(self));
+    Ok(())
   }
 
   async fn read_resource(&self, resource_data: &ResourceData) -> PluginReadResourceOutput {

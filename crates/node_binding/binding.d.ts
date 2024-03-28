@@ -58,8 +58,7 @@ export class JsStats {
 }
 
 export class Rspack {
-  constructor(options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, jsHooks: JsHooks, registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS)
-  setDisabledHooks(hooks: Array<string>): void
+  constructor(options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS)
   setNonSkippableRegisters(kinds: Array<RegisterJsTapKind>): void
   /** Build with the given option passed to the constructor */
   build(callback: (err: null | Error) => void): void
@@ -299,10 +298,6 @@ export interface JsExecuteModuleResult {
   id: number
 }
 
-export interface JsHooks {
-  normalModuleFactoryResolveForScheme: (data: JsResolveForSchemeInput) => Promise<JsResolveForSchemeResult>
-}
-
 export interface JsLoaderContext {
   /** Content maybe empty in pitching stage */
   content: null | Buffer
@@ -380,14 +375,9 @@ export interface JsNormalModuleFactoryCreateModuleArgs {
   matchResource?: string
 }
 
-export interface JsResolveForSchemeInput {
+export interface JsResolveForSchemeArgs {
   resourceData: JsResourceData
   scheme: string
-}
-
-export interface JsResolveForSchemeResult {
-  resourceData: JsResourceData
-  stop: boolean
 }
 
 export interface JsResourceData {
@@ -1290,8 +1280,9 @@ export enum RegisterJsTapKind {
   NormalModuleFactoryBeforeResolve = 21,
   NormalModuleFactoryAfterResolve = 22,
   NormalModuleFactoryCreateModule = 23,
-  ContextModuleFactoryBeforeResolve = 24,
-  ContextModuleFactoryAfterResolve = 25
+  NormalModuleFactoryResolveForScheme = 24,
+  ContextModuleFactoryBeforeResolve = 25,
+  ContextModuleFactoryAfterResolve = 26
 }
 
 export interface RegisterJsTaps {
@@ -1317,6 +1308,7 @@ export interface RegisterJsTaps {
   registerCompilationProcessAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => Promise<void>); stage: number; }>
   registerCompilationAfterProcessAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>
   registerNormalModuleFactoryBeforeResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsBeforeResolveArgs) => Promise<[boolean | undefined, JsBeforeResolveArgs]>); stage: number; }>
+  registerNormalModuleFactoryResolveForSchemeTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveForSchemeArgs) => Promise<[boolean | undefined, JsResolveForSchemeArgs]>); stage: number; }>
   registerNormalModuleFactoryAfterResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsAfterResolveData) => Promise<[boolean | undefined, JsCreateData | undefined]>); stage: number; }>
   registerNormalModuleFactoryCreateModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsNormalModuleFactoryCreateModuleArgs) => Promise<void>); stage: number; }>
   registerContextModuleFactoryBeforeResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsBeforeResolveArgs) => Promise<[boolean | undefined, JsBeforeResolveArgs]>); stage: number; }>
