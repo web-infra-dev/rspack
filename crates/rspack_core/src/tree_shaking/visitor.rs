@@ -1752,7 +1752,7 @@ fn is_pure_expression(expr: &Expr, unresolved_ctxt: SyntaxContext) -> bool {
   match expr {
     // Mark `module.exports = require('xxx')` as pure
     Expr::Assign(AssignExpr {
-      left: PatOrExpr::Expr(box left_expr),
+      left: AssignTarget::Simple(SimpleAssignTarget::Member(left_expr)),
       right: box Expr::Call(call_expr_right),
       op: op!("="),
       ..
@@ -1769,8 +1769,8 @@ fn is_pure_expression(expr: &Expr, unresolved_ctxt: SyntaxContext) -> bool {
 }
 
 /// Check if the expression is `module.exports`
-fn is_module_exports_member_expr(expr: &Expr, unresolved_ctxt: SyntaxContext) -> bool {
-  matches!(expr, Expr::Member(MemberExpr {
+fn is_module_exports_member_expr(expr: &MemberExpr, unresolved_ctxt: SyntaxContext) -> bool {
+  matches!(expr, MemberExpr {
     obj:
       box Expr::Ident(Ident {
         sym: obj_sym,
@@ -1779,7 +1779,7 @@ fn is_module_exports_member_expr(expr: &Expr, unresolved_ctxt: SyntaxContext) ->
       }),
     prop: MemberProp::Ident(Ident { sym: prop_sym, .. }),
     ..
-  }) if obj_sym == "module" && obj_span.ctxt == unresolved_ctxt && prop_sym == "exports")
+  } if obj_sym == "module" && obj_span.ctxt == unresolved_ctxt && prop_sym == "exports")
 }
 
 fn is_pure_decl(stmt: &Decl, unresolved_ctxt: SyntaxContext) -> bool {

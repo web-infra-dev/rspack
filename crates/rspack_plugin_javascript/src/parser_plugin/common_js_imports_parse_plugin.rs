@@ -168,7 +168,7 @@ impl CommonJsImportsParserPlugin {
       || call_expr
         .callee
         .as_expr()
-        .is_some_and(|expr| expr_matcher::is_module_require(expr)); // FIXME: remove `module.require`
+        .is_some_and(|expr| expr_matcher::is_module_require(&**expr)); // FIXME: remove `module.require`
 
     if !is_require_expr || call_expr.args.len() != 1 {
       return None;

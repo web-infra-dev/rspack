@@ -4,20 +4,21 @@ use rspack_core::{
 };
 use swc_core::atoms::Atom;
 use swc_core::common::Spanned;
-use swc_core::ecma::ast::{AssignExpr, CallExpr, PropOrSpread};
+use swc_core::ecma::ast::{AssignExpr, AssignTarget, CallExpr, PropOrSpread, SimpleAssignTarget};
 use swc_core::ecma::ast::{Callee, ExprOrSpread, Ident, MemberExpr, ObjectLit};
-use swc_core::ecma::ast::{Expr, Lit, Pat, PatOrExpr, Prop, PropName, ThisExpr, UnaryOp};
+use swc_core::ecma::ast::{Expr, Lit, Prop, PropName, ThisExpr, UnaryOp};
 
 use super::JavascriptParserPlugin;
 use crate::dependency::{CommonJsExportRequireDependency, CommonJsExportsDependency};
 use crate::dependency::{CommonJsSelfReferenceDependency, ExportsBase, ModuleDecoratorDependency};
+use crate::visitors::expr_like::ExprLike;
 use crate::visitors::{expr_matcher, JavascriptParser, TopLevelScope};
 
 const MODULE_NAME: &str = "module";
 const EXPORTS_NAME: &str = "exports";
 
-fn get_member_expression_info(
-  expr: &Expr,
+fn get_member_expression_info<E: ExprLike>(
+  expr: &E,
   is_module_exports_start: Option<bool>,
 ) -> Option<Vec<Atom>> {
   let is_module_exports_start = match is_module_exports_start {
@@ -43,20 +44,23 @@ fn get_member_expression_info(
       box Expr::Ident(_) => Some(members),
       box Expr::MetaProp(_) => Some(members),
       box Expr::This(_) => Some(members),
-      _ if expr_matcher::is_module_exports(&expr.obj) => Some(members),
+      _ if expr_matcher::is_module_exports(&*expr.obj) => Some(members),
       _ => None,
     }
   })
 }
 
-fn is_module_exports_member_expr_start(mut expr: &Expr) -> bool {
-  loop {
-    match expr {
-      _ if expr_matcher::is_module_exports(expr) => return true,
-      Expr::Member(MemberExpr { obj, .. }) => expr = obj.as_ref(),
-      _ => return false,
+fn is_module_exports_member_expr_start<E: ExprLike>(expr: &E) -> bool {
+  fn walk_each<E: ExprLike>(expr: &E) -> bool {
+    if expr_matcher::is_module_exports(expr) {
+      true
+    } else if let Some(MemberExpr { obj, .. }) = expr.as_member() {
+      walk_each(&**obj)
+    } else {
+      false
     }
   }
+  walk_each(expr)
 }
 
 fn get_value_of_property_description(expr_or_spread: &ExprOrSpread) -> Option<&Expr> {
@@ -115,34 +119,41 @@ fn is_lit_truthy_literal(lit: &Lit) -> bool {
 }
 
 impl<'parser> JavascriptParser<'parser> {
-  fn is_exports_member_expr_start(&mut self, mut expr: &Expr) -> bool {
-    loop {
-      match expr {
-        _ if self.is_exports_expr(expr) => return true,
-        Expr::Member(MemberExpr { obj, .. }) => expr = obj.as_ref(),
-        _ => return false,
+  fn is_exports_member_expr_start<E: ExprLike>(&mut self, expr: &E) -> bool {
+    fn walk_each<E: ExprLike>(parser: &mut JavascriptParser, expr: &E) -> bool {
+      if parser.is_exports_expr(expr) {
+        true
+      } else if let Some(MemberExpr { obj, .. }) = expr.as_member() {
+        walk_each(parser, &**obj)
+      } else {
+        false
       }
     }
+    walk_each(self, expr)
   }
 
   fn is_module_ident(&mut self, ident: &Ident) -> bool {
     ident.sym == MODULE_NAME && self.is_unresolved_ident(MODULE_NAME)
   }
 
-  fn is_exports_ident(&mut self, ident: &Ident) -> bool {
-    ident.sym == EXPORTS_NAME && self.is_unresolved_ident(EXPORTS_NAME)
+  fn is_exports_ident<E: ExprLike>(&mut self, expr: &E) -> bool {
+    expr.as_ident().map_or(false, |ident| {
+      ident.sym == EXPORTS_NAME && self.is_unresolved_ident(EXPORTS_NAME)
+    })
   }
 
-  fn is_exports_expr(&mut self, expr: &Expr) -> bool {
-    matches!(expr,  Expr::Ident(ident) if self.is_exports_ident(ident))
+  fn is_exports_expr<E: ExprLike>(&mut self, expr: &E) -> bool {
+    expr
+      .as_ident()
+      .map_or(false, |ident| self.is_exports_ident(ident))
   }
 
   fn is_top_level_this(&self, _expr: &ThisExpr) -> bool {
     !matches!(self.top_level_scope, TopLevelScope::False)
   }
 
-  fn is_top_level_this_expr(&self, expr: &Expr) -> bool {
-    matches!(expr,  Expr::This(e) if self.is_top_level_this(e))
+  fn is_top_level_this_expr<E: ExprLike>(&self, expr: &E) -> bool {
+    expr.as_this().map_or(false, |e| self.is_top_level_this(e))
   }
 
   fn is_exports_or_module_exports_or_this_expr(&mut self, expr: &Expr) -> bool {
@@ -205,17 +216,20 @@ impl<'parser> JavascriptParser<'parser> {
     }
   }
 
-  fn is_this_member_expr_start(&self, mut expr: &Expr) -> bool {
+  fn is_this_member_expr_start<E: ExprLike>(&self, expr: &E) -> bool {
     if self.enter_call != 0 {
       return false;
     }
-    loop {
-      match expr {
-        _ if self.is_top_level_this_expr(expr) => return true,
-        Expr::Member(MemberExpr { obj, .. }) => expr = obj.as_ref(),
-        _ => return false,
+    fn walk_each<E: ExprLike>(parser: &JavascriptParser, expr: &E) -> bool {
+      if parser.is_top_level_this_expr(expr) {
+        true
+      } else if let Some(MemberExpr { obj, .. }) = expr.as_member() {
+        walk_each(parser, &**obj)
+      } else {
+        false
       }
     }
+    walk_each(self, expr)
   }
 
   fn is_require_call(&mut self, node: &CallExpr) -> bool {
@@ -301,20 +315,14 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
     }
   }
 
-  fn member(
-    &self,
-    parser: &mut JavascriptParser,
-    mem_expr: &MemberExpr,
-    _name: &str,
-  ) -> Option<bool> {
+  fn member(&self, parser: &mut JavascriptParser, expr: &MemberExpr, _name: &str) -> Option<bool> {
     if parser.is_esm {
       return None;
     }
 
-    let expr = Expr::Member(mem_expr.to_owned());
     let handle_remaining = |parser: &mut JavascriptParser, base: ExportsBase| {
       let is_module_exports_start = matches!(base, ExportsBase::ModuleExports);
-      if let Some(remaining) = get_member_expression_info(&expr, Some(is_module_exports_start)) {
+      if let Some(remaining) = get_member_expression_info(expr, Some(is_module_exports_start)) {
         if remaining.is_empty() {
           parser.bailout();
         }
@@ -331,14 +339,14 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
         None
       }
     };
-    if parser.is_exports_member_expr_start(&expr) {
+    if parser.is_exports_member_expr_start(expr) {
       // `exports.x.y`
       handle_remaining(parser, ExportsBase::Exports)
-    } else if is_module_exports_member_expr_start(&expr) {
+    } else if is_module_exports_member_expr_start(expr) {
       // `module.exports.x.y`
       parser.append_module_runtime();
       handle_remaining(parser, ExportsBase::ModuleExports)
-    } else if parser.is_this_member_expr_start(&expr) {
+    } else if parser.is_this_member_expr_start(expr) {
       // `this.x.y`
       handle_remaining(parser, ExportsBase::This)
     } else {
@@ -350,7 +358,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
     if parser.is_esm {
       return None;
     }
-    let PatOrExpr::Pat(box Pat::Expr(box left_expr)) = &assign_expr.left else {
+    let AssignTarget::Simple(SimpleAssignTarget::Member(left_expr)) = &assign_expr.left else {
       return None;
     };
 
@@ -454,7 +462,8 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
     } else if let Callee::Expr(expr) = &call_expr.callee {
       let handle_remaining = |parser: &mut JavascriptParser, base: ExportsBase| {
         let is_module_exports_start = matches!(base, ExportsBase::ModuleExports);
-        if let Some(remaining) = get_member_expression_info(expr, Some(is_module_exports_start)) {
+        if let Some(remaining) = get_member_expression_info(&**expr, Some(is_module_exports_start))
+        {
           // exports()
           // module.exports()
           // this()
@@ -482,7 +491,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
       // Object.defineProperty(exports, "xxx", { value: 1 });
       // Object.defineProperty(module.exports, "xxx", { value: 1 });
       // Object.defineProperty(this, "xxx", { value: 1 });
-      if expr_matcher::is_object_define_property(expr)
+      if expr_matcher::is_object_define_property(&**expr)
         && let Some(ExprOrSpread { expr, .. }) = call_expr.args.first()
         && parser.is_exports_or_module_exports_or_this_expr(expr)
         && let Some(arg2) = call_expr.args.get(2)
@@ -504,11 +513,11 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
             );
           }
 
-          let base = if parser.is_exports_expr(expr) {
+          let base = if parser.is_exports_expr(&**expr) {
             ExportsBase::DefinePropertyExports
-          } else if expr_matcher::is_module_exports(expr) {
+          } else if expr_matcher::is_module_exports(&**expr) {
             ExportsBase::DefinePropertyModuleExports
-          } else if parser.is_top_level_this_expr(expr) {
+          } else if parser.is_top_level_this_expr(&**expr) {
             ExportsBase::DefinePropertyThis
           } else {
             panic!("Unexpected expr type");
@@ -525,14 +534,14 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
 
         parser.walk_expression(&arg2.expr);
         Some(true)
-      } else if parser.is_exports_member_expr_start(expr) {
+      } else if parser.is_exports_member_expr_start(&**expr) {
         // exports.x()
         handle_remaining(parser, ExportsBase::Exports)
-      } else if is_module_exports_member_expr_start(expr) {
+      } else if is_module_exports_member_expr_start(&**expr) {
         // module.exports.x()
         parser.append_module_runtime();
         handle_remaining(parser, ExportsBase::ModuleExports)
-      } else if parser.is_this_member_expr_start(expr) {
+      } else if parser.is_this_member_expr_start(&**expr) {
         // this.x()
         handle_remaining(parser, ExportsBase::This)
       } else {
