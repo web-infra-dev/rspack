@@ -8,7 +8,7 @@ __webpack_require__.r(__webpack_exports__);
 const { PlatformProvider } = _containers__WEBPACK_IMPORTED_MODULE_0__.containers;
 const Index = ()=>{
     console.log("PlatformProvider", PlatformProvider);
-    return 'something';
+    return "something";
 };
 /* harmony default export */ __webpack_exports__["default"] = (Index);
 }),

@@ -8,6 +8,10 @@ import {
 	type Compiler as WebpackCompiler
 } from "webpack";
 
+declare var global: {
+	updateSnapshot: boolean;
+};
+
 export interface ISnapshotProcessorOptions<T extends ECompilerType>
 	extends IBasicProcessorOptions<T> {
 	snapshot: string;
@@ -55,15 +59,12 @@ export class SnapshotProcessor<
 			});
 		fileContents.sort();
 		const content = fileContents.join("\n\n");
-		const updateSnapshot =
-			process.argv.includes("-u") || process.argv.includes("--updateSnapshot");
-
 		const snapshotPath = path.resolve(
 			context.getSource(),
 			`./snapshot/${this._snapshotOptions.snapshot}`
 		);
 
-		if (!fs.existsSync(snapshotPath) || updateSnapshot) {
+		if (!fs.existsSync(snapshotPath) || global.updateSnapshot) {
 			fs.writeFileSync(snapshotPath, content, "utf-8");
 			return;
 		}

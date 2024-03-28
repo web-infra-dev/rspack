@@ -2,13 +2,13 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./index.js": (function (__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
 __webpack_require__(/*! ./source */"./source/index.js");
-console.log('something');
+console.log("something");
 }),
 "./source/index.js": (function (module) {
 class Response {
     /**
-   * @param {CompiledMode} mode
-   */ constructor(mode){
+	 * @param {CompiledMode} mode
+	 */ constructor(mode){
         // eslint-disable-next-line no-undefined
         if (mode.data === undefined) mode.data = {};
         this.data = mode.data;

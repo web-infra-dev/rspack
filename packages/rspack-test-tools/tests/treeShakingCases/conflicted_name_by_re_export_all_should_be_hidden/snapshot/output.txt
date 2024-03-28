@@ -3,13 +3,13 @@
 "./bar.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-const a = 'bar';
+const a = "bar";
 }),
 "./foo.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-const a = 'foo';
-const b = 'foo';
+const a = "foo";
+const b = "foo";
 }),
 "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";

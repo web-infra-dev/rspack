@@ -4,7 +4,7 @@
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 
-console.log('something');
+console.log("something");
 }),
 
 },function(__webpack_require__) {

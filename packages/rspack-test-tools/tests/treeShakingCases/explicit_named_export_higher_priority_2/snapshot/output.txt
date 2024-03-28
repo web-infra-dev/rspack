@@ -3,7 +3,7 @@
 "./bar.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-const a = 'bar';
+const a = "bar";
 }),
 "./baz.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
@@ -11,7 +11,7 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   a: function() { return a; }
 });
-const a = 'baz';
+const a = "baz";
 }),
 "./foo.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";

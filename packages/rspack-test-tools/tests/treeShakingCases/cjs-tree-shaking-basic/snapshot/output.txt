@@ -32,7 +32,7 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   myanswer: function() { return myanswer; }
 });
-const myanswer = 'anyser';
+const myanswer = "anyser";
 }),
 
 },function(__webpack_require__) {

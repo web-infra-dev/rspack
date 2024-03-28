@@ -13,8 +13,8 @@ var app = function() {
 var app2 = ()=>{
     secret;
 };
-var app4 = (0, _lib__WEBPACK_IMPORTED_MODULE_0__.something)('app4'), app5 = 10000;
-var app3 = (0, _lib__WEBPACK_IMPORTED_MODULE_0__.something)('app3');
+var app4 = (0, _lib__WEBPACK_IMPORTED_MODULE_0__.something)("app4"), app5 = 10000;
+var app3 = (0, _lib__WEBPACK_IMPORTED_MODULE_0__.something)("app3");
 }),
 "./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
 "use strict";

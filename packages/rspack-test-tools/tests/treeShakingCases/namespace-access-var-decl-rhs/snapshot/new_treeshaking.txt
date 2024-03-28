@@ -6,7 +6,7 @@ __webpack_require__.d(__webpack_exports__, {
   a: function() { return a; }
 });
 const a = {
-    a: ''
+    a: ""
 };
 }),
 "./b.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
