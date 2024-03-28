@@ -54,6 +54,8 @@
 | [Rspack examples repo](https://github.com/rspack-contrib/rspack-examples)               | Rspack 配置示例                                                              |
 | [rspack-sources](https://github.com/web-infra-dev/rspack-sources)                       | Rust 版本的 [webpack-sources](https://www.npmjs.com/package/webpack-sources) |
 | [rspack-migration-showcase](https://github.com/web-infra-dev/rspack-migration-showcase) | 迁移到 Rspack 的示例项目                                                     |
+| [rspack-compat](https://github.com/web-infra-dev/rspack-compat) | 兼容 Rspack 的 Webpack 插件 和 Loader 示例
+
 
 ## 致谢
 
