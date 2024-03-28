@@ -1,0 +1,69 @@
+```js title=main.js
+(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
+"../../../../../node_modules/@swc/helpers/esm/_create_class.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  _: function() { return _create_class; }
+});
+function _defineProperties(target, props) {
+    for(var i = 0; i < props.length; i++){
+        var descriptor = props[i];
+        descriptor.enumerable = descriptor.enumerable || false;
+        descriptor.configurable = true;
+        if ("value" in descriptor) descriptor.writable = true;
+        Object.defineProperty(target, descriptor.key, descriptor);
+    }
+}
+function _create_class(Constructor, protoProps, staticProps) {
+    if (protoProps) _defineProperties(Constructor.prototype, protoProps);
+    if (staticProps) _defineProperties(Constructor, staticProps);
+    return Constructor;
+}
+
+}),
+"./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */var _util_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./util.js */"./util.js");
+
+}),
+"./util.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */var _swc_helpers_create_class__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @swc/helpers/_/_create_class */"../../../../../node_modules/@swc/helpers/esm/_create_class.js");
+
+var ConsoleExporterWeb;
+ConsoleExporterWeb = function() {
+    "use strict";
+    function ConsoleExporterWeb() {
+        this.stoped = false;
+    }
+    (0, _swc_helpers_create_class__WEBPACK_IMPORTED_MODULE_0__._)(ConsoleExporterWeb, [
+        {
+            key: "export",
+            value: function _export(evts, cb) {
+                if (this.stoped) return;
+                evts.forEach(adaptToBrowserConsole);
+                if (cb) cb(ExportResult.SUCCESS);
+            }
+        },
+        {
+            key: "shutdown",
+            value: function shutdown() {
+                this.stoped = true;
+            }
+        }
+    ]);
+    return ConsoleExporterWeb;
+}();
+/* unused harmony default export */ var __WEBPACK_DEFAULT_EXPORT__ = (ConsoleExporterWeb);
+}),
+
+},function(__webpack_require__) {
+var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
+var __webpack_exports__ = (__webpack_exec__("./index.js"));
+
+}
+]);
+```
