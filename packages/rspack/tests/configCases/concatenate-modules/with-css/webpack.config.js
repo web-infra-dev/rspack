@@ -8,11 +8,6 @@ module.exports = {
 		concatenateModules: true,
 		minimize: false
 	},
-	builtins: {
-		css: {
-			namedExports: true
-		}
-	},
 	module: {
 		rules: [
 			{

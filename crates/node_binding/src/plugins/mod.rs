@@ -9,10 +9,8 @@ pub use interceptor::RegisterJsTaps;
 use napi::{Env, Result};
 use rspack_binding_values::JsResolveForSchemeResult;
 use rspack_core::PluginNormalModuleFactoryResolveForSchemeOutput;
+use rspack_core::ResourceData;
 use rspack_core::{ApplyContext, CompilerOptions, PluginContext};
-use rspack_core::{
-  NormalModuleCreateData, PluginNormalModuleFactoryCreateModuleHookOutput, ResourceData,
-};
 use rspack_hook::Hook as _;
 
 use self::interceptor::NonSkippableRegisters;
@@ -20,6 +18,7 @@ use self::interceptor::RegisterCompilationSucceedModuleTaps;
 use self::interceptor::RegisterCompilerFinishMakeTaps;
 use self::interceptor::RegisterContextModuleFactoryAfterResolveTaps;
 use self::interceptor::RegisterContextModuleFactoryBeforeResolveTaps;
+use self::interceptor::RegisterNormalModuleFactoryCreateModuleTaps;
 use self::interceptor::{
   RegisterCompilationAfterOptimizeModulesTaps, RegisterCompilationChunkAssetTaps,
   RegisterCompilationOptimizeModulesTaps,
@@ -77,6 +76,7 @@ pub struct JsHooksAdapterPlugin {
   register_compilation_after_process_assets_taps: RegisterCompilationAfterProcessAssetsTaps,
   register_normal_module_factory_before_resolve_taps: RegisterNormalModuleFactoryBeforeResolveTaps,
   register_normal_module_factory_after_resolve_taps: RegisterNormalModuleFactoryAfterResolveTaps,
+  register_normal_module_factory_create_module_taps: RegisterNormalModuleFactoryCreateModuleTaps,
   register_context_module_factory_before_resolve_taps:
     RegisterContextModuleFactoryBeforeResolveTaps,
   register_context_module_factory_after_resolve_taps: RegisterContextModuleFactoryAfterResolveTaps,
@@ -242,6 +242,15 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
       );
     ctx
       .context
+      .normal_module_factory_hooks
+      .create_module
+      .intercept(
+        self
+          .register_normal_module_factory_create_module_taps
+          .clone(),
+      );
+    ctx
+      .context
       .context_module_factory_hooks
       .before_resolve
       .intercept(
@@ -259,23 +268,6 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
           .clone(),
       );
     Ok(())
-  }
-
-  async fn normal_module_factory_create_module(
-    &self,
-    _ctx: rspack_core::PluginContext,
-    args: &mut NormalModuleCreateData<'_>,
-  ) -> PluginNormalModuleFactoryCreateModuleHookOutput {
-    if self.is_hook_disabled(&Hook::NormalModuleFactoryCreateModule) {
-      return Ok(None);
-    }
-    self
-      .hooks
-      .normal_module_factory_create_module
-      .call(args.into())
-      .await
-      .map(|_| None)
-      .map_err(|err| panic!("Failed to call this_compilation: {err}"))
   }
 
   async fn normal_module_factory_resolve_for_scheme(
@@ -410,6 +402,11 @@ impl JsHooksAdapterPlugin {
       register_normal_module_factory_after_resolve_taps:
         RegisterNormalModuleFactoryAfterResolveTaps::new(
           register_js_taps.register_normal_module_factory_after_resolve_taps,
+          non_skippable_registers.clone(),
+        ),
+      register_normal_module_factory_create_module_taps:
+        RegisterNormalModuleFactoryCreateModuleTaps::new(
+          register_js_taps.register_normal_module_factory_create_module_taps,
           non_skippable_registers.clone(),
         ),
       register_context_module_factory_before_resolve_taps:

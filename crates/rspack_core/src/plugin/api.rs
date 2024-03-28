@@ -7,13 +7,13 @@ use rspack_sources::BoxSource;
 use rustc_hash::FxHashMap;
 
 use crate::{
-  AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, AfterResolveArgs,
-  AssetInfo, BoxLoader, BoxModule, ChunkHashArgs, Compilation, CompilationHooks, CompilerHooks,
-  CompilerOptions, ContentHashArgs, ContextModuleFactoryHooks, DoneArgs, FactorizeArgs,
-  JsChunkHashArgs, LoaderRunnerContext, ModuleFactoryResult, ModuleIdentifier, ModuleType,
-  NormalModule, NormalModuleCreateData, NormalModuleFactoryHooks, OptimizeChunksArgs,
-  ParserAndGenerator, PluginContext, RenderArgs, RenderChunkArgs, RenderManifestArgs,
-  RenderModuleContentArgs, RenderStartupArgs, Resolver, RuntimeRequirementsInTreeArgs, SourceType,
+  AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, AssetInfo, BoxLoader,
+  BoxModule, ChunkHashArgs, Compilation, CompilationHooks, CompilerHooks, CompilerOptions,
+  ContentHashArgs, ContextModuleFactoryHooks, DoneArgs, FactorizeArgs, JsChunkHashArgs,
+  LoaderRunnerContext, ModuleFactoryResult, ModuleIdentifier, ModuleType, NormalModule,
+  NormalModuleFactoryHooks, OptimizeChunksArgs, ParserAndGenerator, PluginContext, RenderArgs,
+  RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, Resolver,
+  RuntimeRequirementsInTreeArgs, SourceType,
 };
 
 #[derive(Debug, Clone)]
@@ -22,9 +22,7 @@ pub struct BeforeResolveArgs {
   pub context: String,
 }
 
-pub type PluginCompilationHookOutput = Result<()>;
 pub type PluginBuildEndHookOutput = Result<()>;
-pub type PluginProcessAssetsHookOutput = Result<()>;
 pub type PluginReadResourceOutput = Result<Option<Content>>;
 pub type PluginFactorizeHookOutput = Result<Option<ModuleFactoryResult>>;
 pub type PluginNormalModuleFactoryCreateModuleHookOutput = Result<Option<BoxModule>>;
@@ -83,31 +81,6 @@ pub trait Plugin: Debug + Send + Sync {
     _args: &mut FactorizeArgs<'_>,
   ) -> PluginFactorizeHookOutput {
     Ok(None)
-  }
-
-  async fn context_module_after_resolve(
-    &self,
-    _ctx: PluginContext,
-    _args: &mut AfterResolveArgs<'_>,
-  ) -> PluginNormalModuleFactoryAfterResolveOutput {
-    Ok(None)
-  }
-
-  async fn normal_module_factory_create_module(
-    &self,
-    _ctx: PluginContext,
-    _args: &mut NormalModuleCreateData<'_>,
-  ) -> PluginNormalModuleFactoryCreateModuleHookOutput {
-    Ok(None)
-  }
-
-  async fn normal_module_factory_module(
-    &self,
-    _ctx: PluginContext,
-    module: BoxModule,
-    _args: &mut NormalModuleCreateData<'_>,
-  ) -> PluginNormalModuleFactoryModuleHookOutput {
-    Ok(module)
   }
 
   async fn normal_module_factory_resolve_for_scheme(

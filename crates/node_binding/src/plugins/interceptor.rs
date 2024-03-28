@@ -11,8 +11,8 @@ use napi::{
 use rspack_binding_values::{
   CompatSource, JsAfterResolveData, JsAfterResolveOutput, JsAssetEmittedArgs, JsBeforeResolveArgs,
   JsBeforeResolveOutput, JsChunk, JsChunkAssetArgs, JsCompilation, JsCreateData,
-  JsExecuteModuleArg, JsFactoryMeta, JsModule, JsRuntimeModule, JsRuntimeModuleArg,
-  ToJsCompatSource, ToJsModule,
+  JsExecuteModuleArg, JsModule, JsNormalModuleFactoryCreateModuleArgs, JsRuntimeModule,
+  JsRuntimeModuleArg, ToJsCompatSource, ToJsModule,
 };
 use rspack_core::{
   rspack_sources::SourceExt, AssetEmittedInfo, BeforeResolveArgs, BoxModule, Chunk, ChunkUkey,
@@ -24,13 +24,13 @@ use rspack_core::{
   CompilationSucceedModuleHook, CompilerAfterEmitHook, CompilerAssetEmittedHook,
   CompilerCompilationHook, CompilerEmitHook, CompilerFinishMakeHook, CompilerMakeHook,
   CompilerShouldEmitHook, CompilerThisCompilationHook, ContextModuleFactoryAfterResolveHook,
-  ContextModuleFactoryBeforeResolveHook, CreateData, ExecuteModuleId, FactoryMeta, MakeParam,
-  ModuleFactoryCreateData, ModuleIdentifier, NormalModuleFactoryAfterResolveHook,
-  NormalModuleFactoryBeforeResolveHook, ResourceData,
+  ContextModuleFactoryBeforeResolveHook, ExecuteModuleId, MakeParam, ModuleFactoryCreateData,
+  ModuleIdentifier, NormalModuleCreateData, NormalModuleFactoryAfterResolveHook,
+  NormalModuleFactoryBeforeResolveHook, NormalModuleFactoryCreateModuleHook, ResourceData,
 };
 use rspack_hook::{
-  AsyncParallel3, AsyncSeries, AsyncSeries2, AsyncSeries3, AsyncSeriesBail, AsyncSeriesBail3,
-  AsyncSeriesBail4, Hook, Interceptor, SyncSeries4,
+  AsyncParallel3, AsyncSeries, AsyncSeries2, AsyncSeries3, AsyncSeriesBail, AsyncSeriesBail2, Hook,
+  Interceptor, SyncSeries4,
 };
 use rspack_identifier::IdentifierSet;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
@@ -294,6 +294,7 @@ pub enum RegisterJsTapKind {
   CompilationAfterProcessAssets,
   NormalModuleFactoryBeforeResolve,
   NormalModuleFactoryAfterResolve,
+  NormalModuleFactoryCreateModule,
   ContextModuleFactoryBeforeResolve,
   ContextModuleFactoryAfterResolve,
 }
@@ -408,6 +409,11 @@ pub struct RegisterJsTaps {
   )]
   pub register_normal_module_factory_after_resolve_taps:
     RegisterFunction<JsAfterResolveData, Promise<JsAfterResolveOutput>>,
+  #[napi(
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsNormalModuleFactoryCreateModuleArgs) => Promise<void>); stage: number; }>"
+  )]
+  pub register_normal_module_factory_create_module_taps:
+    RegisterFunction<JsNormalModuleFactoryCreateModuleArgs, Promise<()>>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsBeforeResolveArgs) => Promise<[boolean | undefined, JsBeforeResolveArgs]>); stage: number; }>"
   )]
@@ -607,6 +613,14 @@ define_register!(
   cache = true,
   sync = false,
   kind = RegisterJsTapKind::NormalModuleFactoryAfterResolve,
+  skip = true,
+);
+define_register!(
+  RegisterNormalModuleFactoryCreateModuleTaps,
+  tap = NormalModuleFactoryCreateModuleTap<JsNormalModuleFactoryCreateModuleArgs, Promise<()>> @ NormalModuleFactoryCreateModuleHook,
+  cache = true,
+  sync = false,
+  kind = RegisterJsTapKind::NormalModuleFactoryCreateModule,
   skip = true,
 );
 
@@ -1008,20 +1022,18 @@ impl AsyncSeriesBail<BeforeResolveArgs, bool> for NormalModuleFactoryBeforeResol
 }
 
 #[async_trait]
-impl AsyncSeriesBail4<String, ModuleFactoryCreateData, FactoryMeta, CreateData, bool>
+impl AsyncSeriesBail2<ModuleFactoryCreateData, NormalModuleCreateData, bool>
   for NormalModuleFactoryAfterResolveTap
 {
   async fn run(
     &self,
-    request: &mut String,
     data: &mut ModuleFactoryCreateData,
-    meta: &mut FactoryMeta,
-    create_data: &mut CreateData,
+    create_data: &mut NormalModuleCreateData,
   ) -> rspack_error::Result<Option<bool>> {
     match self
       .function
       .call_with_promise(JsAfterResolveData {
-        request: request.to_string(),
+        request: create_data.raw_request.to_string(),
         context: data.context.to_string(),
         file_dependencies: data
           .file_dependencies
@@ -1041,14 +1053,11 @@ impl AsyncSeriesBail4<String, ModuleFactoryCreateData, FactoryMeta, CreateData, 
           .into_iter()
           .map(|item| item.to_string_lossy().to_string())
           .collect::<Vec<_>>(),
-        factory_meta: JsFactoryMeta {
-          side_effect_free: meta.side_effect_free,
-        },
         create_data: Some(JsCreateData {
           request: create_data.request.to_owned(),
           user_request: create_data.user_request.to_owned(),
           resource: create_data
-            .resource
+            .resource_resolve_data
             .resource_path
             .to_string_lossy()
             .to_string(),
@@ -1071,17 +1080,45 @@ impl AsyncSeriesBail4<String, ModuleFactoryCreateData, FactoryMeta, CreateData, 
 
           let request = resolve_data.request;
           let user_request = resolve_data.user_request;
-          let resource = override_resource(&create_data.resource, resolve_data.resource);
+          let resource =
+            override_resource(&create_data.resource_resolve_data, resolve_data.resource);
 
           create_data.request = request;
           create_data.user_request = user_request;
-          create_data.resource = resource;
+          create_data.resource_resolve_data = resource;
         }
 
         Ok(ret)
       }
       Err(err) => Err(err),
     }
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
+
+#[async_trait]
+impl AsyncSeriesBail2<ModuleFactoryCreateData, NormalModuleCreateData, BoxModule>
+  for NormalModuleFactoryCreateModuleTap
+{
+  async fn run(
+    &self,
+    data: &mut ModuleFactoryCreateData,
+    create_data: &mut NormalModuleCreateData,
+  ) -> rspack_error::Result<Option<BoxModule>> {
+    self
+      .function
+      .call_with_promise(JsNormalModuleFactoryCreateModuleArgs {
+        dependency_type: data.dependency.dependency_type().to_string(),
+        raw_request: create_data.raw_request.clone(),
+        resource_resolve_data: create_data.resource_resolve_data.clone().into(),
+        context: data.context.to_string(),
+        match_resource: create_data.match_resource.clone(),
+      })
+      .await?;
+    Ok(None)
   }
 
   fn stage(&self) -> i32 {
@@ -1108,14 +1145,13 @@ impl AsyncSeriesBail<BeforeResolveArgs, bool> for ContextModuleFactoryBeforeReso
 }
 
 #[async_trait]
-impl AsyncSeriesBail3<String, ModuleFactoryCreateData, FactoryMeta, bool>
+impl AsyncSeriesBail2<String, ModuleFactoryCreateData, bool>
   for ContextModuleFactoryAfterResolveTap
 {
   async fn run(
     &self,
     request: &mut String,
     data: &mut ModuleFactoryCreateData,
-    meta: &mut FactoryMeta,
   ) -> rspack_error::Result<Option<bool>> {
     self
       .function
@@ -1140,9 +1176,6 @@ impl AsyncSeriesBail3<String, ModuleFactoryCreateData, FactoryMeta, bool>
           .into_iter()
           .map(|item| item.to_string_lossy().to_string())
           .collect::<Vec<_>>(),
-        factory_meta: JsFactoryMeta {
-          side_effect_free: meta.side_effect_free,
-        },
         create_data: None,
       })
       .await

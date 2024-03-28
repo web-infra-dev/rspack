@@ -3,7 +3,7 @@ use std::{path::Path, sync::Arc};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_error::{error, Result};
-use rspack_hook::{AsyncSeriesBail4Hook, AsyncSeriesBailHook};
+use rspack_hook::{AsyncSeries3Hook, AsyncSeriesBail2Hook, AsyncSeriesBailHook};
 use rspack_loader_runner::{get_scheme, Loader, Scheme};
 use sugar_path::{AsPath, SugarPath};
 use swc_core::common::Span;
@@ -13,7 +13,7 @@ use crate::{
   diagnostics::EmptyDependency,
   module_rules_matcher, parse_resource, resolve, stringify_loaders_and_resource,
   tree_shaking::visitor::{get_side_effects_from_package_json, SideEffects},
-  BeforeResolveArgs, BoxLoader, CompilerContext, CompilerOptions, CreateData, DependencyCategory,
+  BeforeResolveArgs, BoxLoader, BoxModule, CompilerContext, CompilerOptions, DependencyCategory,
   FactorizeArgs, FactoryMeta, FuncUseCtx, GeneratorOptions, ModuleExt, ModuleFactory,
   ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleRule, ModuleRuleEnforce,
   ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule, NormalModuleCreateData,
@@ -23,12 +23,18 @@ use crate::{
 
 pub type NormalModuleFactoryBeforeResolveHook = AsyncSeriesBailHook<BeforeResolveArgs, bool>;
 pub type NormalModuleFactoryAfterResolveHook =
-  AsyncSeriesBail4Hook<String, ModuleFactoryCreateData, FactoryMeta, CreateData, bool>;
+  AsyncSeriesBail2Hook<ModuleFactoryCreateData, NormalModuleCreateData, bool>;
+pub type NormalModuleFactoryCreateModuleHook =
+  AsyncSeriesBail2Hook<ModuleFactoryCreateData, NormalModuleCreateData, BoxModule>;
+pub type NormalModuleFactoryModuleHook =
+  AsyncSeries3Hook<ModuleFactoryCreateData, NormalModuleCreateData, BoxModule>;
 
 #[derive(Debug, Default)]
 pub struct NormalModuleFactoryHooks {
   pub before_resolve: NormalModuleFactoryBeforeResolveHook,
   pub after_resolve: NormalModuleFactoryAfterResolveHook,
+  pub create_module: NormalModuleFactoryCreateModuleHook,
+  pub module: NormalModuleFactoryModuleHook,
 }
 
 #[derive(Debug)]
@@ -127,7 +133,7 @@ impl NormalModuleFactory {
       .as_module_dependency()
       .expect("should be module dependency");
     let importer = data.issuer_identifier.as_ref();
-    let mut raw_request = dependency.request().to_owned();
+    let raw_request = dependency.request().to_owned();
     let mut request_without_match_resource = dependency.request();
 
     let mut file_dependencies = Default::default();
@@ -533,7 +539,7 @@ impl NormalModuleFactory {
     let resolved_resolve_options = self.calculate_resolve_options(&resolved_module_rules);
     let (resolved_parser_options, resolved_generator_options) =
       self.calculate_parser_and_generator_options(&resolved_module_rules);
-    let mut factory_meta = FactoryMeta {
+    let factory_meta = FactoryMeta {
       side_effect_free: self
         .calculate_side_effects(&resolved_module_rules, &resource_data)
         .map(|side_effects| !side_effects),
@@ -550,17 +556,19 @@ impl NormalModuleFactory {
         )
       })?();
 
-    let after_resolve_create_data = {
-      let mut create_data = CreateData {
+    let mut create_data = {
+      let mut create_data = NormalModuleCreateData {
+        raw_request,
         request,
         user_request,
-        resource: resource_data,
+        resource_resolve_data: resource_data,
+        match_resource: match_resource_data.as_ref().map(|d| d.resource.clone()),
       };
       if let Some(plugin_result) = self
         .plugin_driver
         .normal_module_factory_hooks
         .after_resolve
-        .call(&mut raw_request, data, &mut factory_meta, &mut create_data)
+        .call(data, &mut create_data)
         .await?
       {
         if !plugin_result {
@@ -573,40 +581,37 @@ impl NormalModuleFactory {
       create_data
     };
 
-    let mut create_data = NormalModuleCreateData {
-      dependency_type: data.dependency.dependency_type().clone(),
-      resolve_data_request: &raw_request.clone(),
-      resource_resolve_data: after_resolve_create_data.resource.clone(),
-      context: data.context.clone(),
-      diagnostics: &mut data.diagnostics,
-    };
-    let module = if let Some(module) = self
+    let mut module = if let Some(module) = self
       .plugin_driver
-      .normal_module_factory_create_module(&mut create_data)
+      .normal_module_factory_hooks
+      .create_module
+      .call(data, &mut create_data)
       .await?
     {
       module
     } else {
-      let normal_module = NormalModule::new(
-        after_resolve_create_data.request,
-        after_resolve_create_data.user_request,
-        raw_request,
+      NormalModule::new(
+        create_data.request.clone(),
+        create_data.user_request.clone(),
+        create_data.raw_request.clone(),
         resolved_module_type,
         resolved_parser_and_generator,
         resolved_parser_options,
         resolved_generator_options,
         match_resource_data,
-        after_resolve_create_data.resource,
+        create_data.resource_resolve_data.clone(),
         resolved_resolve_options,
         loaders,
         contains_inline,
-      );
-      Box::new(normal_module)
+      )
+      .boxed()
     };
 
-    let module = self
+    self
       .plugin_driver
-      .normal_module_factory_module(module, &mut create_data)
+      .normal_module_factory_hooks
+      .module
+      .call(data, &mut create_data, &mut module)
       .await?;
 
     data.add_file_dependencies(file_dependencies);

@@ -26,7 +26,10 @@ const config = {
 		escapeString: true,
 		printBasicPrototype: true
 	},
-	snapshotResolver: path.join(__dirname, "./snapshot-resolver.js")
+	snapshotResolver:
+		process.env.SNAPSHOT === "legacy"
+			? path.join(__dirname, "./snapshot-resolver.js")
+			: undefined
 };
 
 module.exports = config;

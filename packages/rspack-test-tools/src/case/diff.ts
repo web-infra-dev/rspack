@@ -1,14 +1,10 @@
 import path from "path";
 import fs from "fs-extra";
-import {
-	Tester,
-	DiffProcessor,
-	IDiffProcessorOptions,
-	ECompareResultType,
-	TModuleCompareResult
-} from "../";
 import rimraf from "rimraf";
 import createLazyTestEnv from "../helper/legacy/createLazyTestEnv";
+import { DiffProcessor, IDiffProcessorOptions } from "../processor";
+import { ECompareResultType, TModuleCompareResult } from "../type";
+import { Tester } from "../test/tester";
 
 const DEFAULT_CASE_CONFIG: Partial<IDiffProcessorOptions> = {
 	webpackPath: require.resolve("webpack"),

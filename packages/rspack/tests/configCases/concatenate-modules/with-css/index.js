@@ -1,5 +1,5 @@
 import { test } from "./lib.js";
-import * as styles from "./foo.css";
+import styles from "./foo.css";
 test;
 
 it("should concatenate css", () => {
