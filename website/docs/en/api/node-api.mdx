@@ -43,7 +43,7 @@ rspack({}, (err, stats) => {
 ```
 
 :::tip
-The `err` object will not include compilation errors. Those must be handled separately using `stats.hasErrors()`, which will be covered in detail in the [Error Handling](/api/node-api#error-handling) section of this guide. The err object will only contain rspack-related issues, such as misconfiguration, etc.
+The `err` object will not include compilation errors. Those must be handled separately using `stats.hasErrors()`, which will be covered in detail in the [Error Handling](/api/node-api#error-handling) section of this guide. The `err` object will only contain rspack-related issues, such as misconfiguration, etc.
 :::
 
 :::tip
@@ -93,7 +93,7 @@ Don't forget to close the compiler, so that low-priority work (like persistent c
 
 ## Watching
 
-Calling the watch method triggers the rspack runner, but then watches for changes (much like CLI: `rspack --watch`), as soon as Rspack detects a change, runs again. Returns an instance of Watching.
+Calling the `watch` method triggers the rspack runner, but then watches for changes (much like CLI: `rspack --watch`), as soon as Rspack detects a change, runs again. Returns an instance of `Watching`.
 
 ```js
 watch(watchOptions, callback);
@@ -228,7 +228,7 @@ rspack(
 
 ## MultiCompiler
 
-The `MultiCompiler` module allows Rspack to run multiple configurations in separate compilers. If the options parameter in the Rspack's NodeJS api is an array of options, Rspack applies separate compilers and calls the callback after all compilers have been executed.
+The `MultiCompiler` module allows Rspack to run multiple configurations in separate compilers. If the `options` parameter in the Rspack's NodeJS api is an array of options, Rspack applies separate compilers and calls the callback after all compilers have been executed.
 
 ```js
 import rspack from '@rspack/core';
