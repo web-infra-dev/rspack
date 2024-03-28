@@ -73,6 +73,10 @@ function getNavConfig(lang: 'zh' | 'en'): NavItem[] {
 					link: 'https://github.com/rspack-contrib/rspack-examples',
 				},
 				{
+					text: 'Rspack Compat',
+					link: 'https://github.com/web-infra-dev/rspack-compat',
+				},
+				{
 					text: 'Rspack Community Packages',
 					link: 'https://github.com/rspack-contrib',
 				},
