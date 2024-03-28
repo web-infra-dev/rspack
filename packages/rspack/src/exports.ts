@@ -99,6 +99,8 @@ export { LoaderTargetPlugin } from "./lib/LoaderTargetPlugin";
 
 export { EnvironmentPlugin } from "./lib/EnvironmentPlugin";
 
+export { NormalModuleReplacementPlugin } from "./lib/NormalModuleReplacementPlugin";
+
 import NodeTemplatePlugin from "./node/NodeTemplatePlugin";
 import { NodeTargetPlugin } from "./builtin-plugin";
 export const node = { NodeTargetPlugin, NodeTemplatePlugin };
