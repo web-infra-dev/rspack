@@ -6,3 +6,4 @@ import "./style-css";
 import "./style-library";
 import "./style-tpl";
 import "./style-true";
+import "./legacy-babel-plugin-import";
