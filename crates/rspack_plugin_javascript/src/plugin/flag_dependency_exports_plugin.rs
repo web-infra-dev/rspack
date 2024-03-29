@@ -13,6 +13,8 @@ use rspack_hook::{plugin, plugin_hook, AsyncSeries};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::ecma::atoms::Atom;
 
+use crate::dependency::GET_MODE_MAP;
+
 struct FlagDependencyExportsProxy<'a> {
   mg: &'a mut ModuleGraph<'a>,
   changed: bool,
@@ -83,6 +85,8 @@ impl<'a> FlagDependencyExportsProxy<'a> {
       let mut exports_specs_from_dependencies: HashMap<DependencyId, ExportsSpec> =
         HashMap::default();
       self.process_dependencies_block(&module_id, &mut exports_specs_from_dependencies);
+
+      GET_MODE_MAP.clear();
       let exports_info_id = self.mg.get_exports_info(&module_id).id;
       for (dep_id, exports_spec) in exports_specs_from_dependencies.into_iter() {
         self.process_exports_spec(dep_id, exports_spec, exports_info_id);

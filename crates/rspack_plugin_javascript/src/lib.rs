@@ -13,6 +13,9 @@ pub mod runtime;
 pub mod utils;
 pub mod visitors;
 mod webpack_comment;
+use dashmap::DashMap;
+use once_cell::sync::Lazy;
+
 pub use crate::plugin::infer_async_modules_plugin::InferAsyncModulesPlugin;
 pub use crate::plugin::*;
 

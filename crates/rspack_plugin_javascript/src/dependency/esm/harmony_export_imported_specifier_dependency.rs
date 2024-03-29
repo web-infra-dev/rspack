@@ -1,7 +1,12 @@
 use std::hash::BuildHasherDefault;
+use std::hash::Hash;
+use std::panic::Location;
 use std::{collections::HashMap, sync::Arc};
 
+use dashmap::DashMap;
 use indexmap::IndexSet;
+use once_cell::sync::Lazy;
+use rspack_core::ModuleGraphConnection;
 use rspack_core::{
   create_exports_object_referenced, create_no_exports_referenced, export_from_import,
   get_exports_type, process_export_info, property_access, property_name, string_of_used_name,
@@ -18,6 +23,21 @@ use swc_core::ecma::atoms::Atom;
 
 use super::{create_resource_identifier_for_esm_dependency, harmony_import_dependency_apply};
 
+#[derive(Debug, Eq, PartialEq, Clone)]
+pub struct GetModeCacheKey {
+  name: Option<Atom>,
+  dep_id: DependencyId,
+  runtime: Option<RuntimeSpec>,
+}
+
+impl Hash for GetModeCacheKey {
+  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    self.name.hash(state);
+    self.dep_id.hash(state);
+  }
+}
+
+pub static GET_MODE_MAP: Lazy<DashMap<GetModeCacheKey, ExportMode>> = Lazy::new(Default::default);
 // Create _webpack_require__.d(__webpack_exports__, {}).
 // case1: `import { a } from 'a'; export { a }`
 // case2: `export { a } from 'a';`
@@ -83,9 +103,35 @@ impl HarmonyExportImportedSpecifierDependency {
     &build_info.all_star_exports
   }
 
-  // TODO cache get_mode result
-  #[allow(unused)]
   pub fn get_mode(
+    &self,
+    name: Option<Atom>,
+    module_graph: &ModuleGraph,
+    id: &DependencyId,
+    runtime: Option<&RuntimeSpec>,
+  ) -> ExportMode {
+    let key = GetModeCacheKey {
+      name: name.clone(),
+      dep_id: *id,
+      runtime: runtime.cloned(),
+    };
+
+    // let value = self._get_mode(name, module_graph, id, runtime);
+    // dbg!(&key, &value,);
+
+    // GET_MODE_MAP.insert(key, value.clone());
+    // return value;
+    let value = if let Some(value) = GET_MODE_MAP.get(&key) {
+      value.value().clone()
+    } else {
+      let value = self._get_mode(name, module_graph, id, runtime);
+      GET_MODE_MAP.insert(key.clone(), value.clone());
+      value
+    };
+    return value;
+  }
+
+  fn _get_mode(
     &self,
     name: Option<Atom>,
     module_graph: &ModuleGraph,
@@ -1306,7 +1352,7 @@ pub enum ExportModeType {
   DynamicReexport,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NormalReexportItem {
   pub name: Atom,
   pub ids: Vec<Atom>,
@@ -1315,7 +1361,7 @@ pub struct NormalReexportItem {
   pub export_info: ExportInfoId,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct ExportMode {
   /// corresponding to `type` field in webpack's `EpxortMode`
   pub ty: ExportModeType,
