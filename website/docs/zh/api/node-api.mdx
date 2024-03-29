@@ -5,13 +5,11 @@ import { ApiMeta, Stability } from '../../../components/ApiMeta.tsx';
 
 # Node.js API
 
+> `@rspack/core`是基于 Webpack Node.js API 设计的，旨在提供一致的功能和相似的使用体验。
+
 Rspack 提供了 Node.js API，可以在 Node.js 运行时下直接使用。
 
 当你需要自定义构建或开发流程时，Node.js API 非常有用，因为此时所有的报告和错误处理都必须自行实现，Rspack 仅仅负责编译的部分。所以 [`stats`](/config/stats) 配置选项不会在 `rspack()` 调用中生效。
-
-:::warning 与 Webpack Node.js API 的差异
-`@rspack/core`是完全基于 Webpack Node.js API 设计的，以提供一致功能和使用体验。尽管如此，仍会存在一些细微的差异，包括少数类型名称的不同和某些配置选项的缺失或差异性。
-:::
 
 ## 安装
 
@@ -290,6 +288,10 @@ rspack(
 ```
 
 ## 自定义文件系统
+
+:::danger 与 webpack 的差异
+当前 Rspack 对于 `inputFileSystem` 的支持存在限制，尚未实现与 webpack 一致的自定义文件系统读取能力。请参考：[Issue #5091](https://github.com/web-infra-dev/rspack/issues/5091)。
+:::
 
 默认情况下，Rspack 使用普通文件系统来读取文件并将文件写入磁盘。但是，还可以使用不同类型的文件系统（内存, webDAV 等）来更改输入或输出行为。为了实现这一点，可以改变 `inputFileSystem` 或 `outputFileSystem`。例如，可以使用 [`memfs`](https://github.com/streamich/memfs) 替换默认的 `outputFileSystem`，以将文件写入到内存中，而不是写入到磁盘：
 

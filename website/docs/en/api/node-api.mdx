@@ -5,13 +5,11 @@ import { ApiMeta, Stability } from '../../../components/ApiMeta.tsx';
 
 # Node.js API
 
+> `@rspack/core` is designed based on Webpack's Node.js API to ensure functional consistency and a similar user experience.
+
 Rspack provides a Node.js API which can be used directly in Node.js runtime.
 
 The Node.js API is useful in scenarios in which you need to customize the build or development process since all the reporting and error handling must be done manually and webpack only does the compiling part. For this reason the [`stats`](/config/stats) configuration options will not have any effect in the `rspack()` call.
-
-:::warning Comparison with Webpack Node.js API
-`@rspack/core` is meticulously designed to mirror the Webpack Node.js API, aiming to provide an equivalent set of features and a similar user experience. Despite these intentions, minor differences may still be present, such as slight discrepancies in the naming of certain types and the absence or variations in specific configuration options.
-:::
 
 ## Installation
 
@@ -290,6 +288,10 @@ rspack(
 ```
 
 ## Custom File Systems
+
+:::danger Differences with webpack
+The current support for `inputFileSystem` in Rspack is limited, and the ability to customize the filesystem read capability consistent with webpack has not yet been implemented. Please refer to: [Issue #5091](https://github.com/web-infra-dev/rspack/issues/5091).
+:::
 
 By default, Rspack reads files and writes files to disk using a normal file system. However, it is possible to change the input or output behavior using a different kind of file system (memory, webDAV, etc). To accomplish this, one can change the `inputFileSystem` or `outputFileSystem`. For example, you can replace the default `outputFileSystem` with [`memfs`](https://github.com/streamich/memfs) to write files to memory instead of to disk:
 
