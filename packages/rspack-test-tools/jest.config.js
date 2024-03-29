@@ -26,6 +26,10 @@ const config = {
 		escapeString: true,
 		printBasicPrototype: true
 	},
+	globals: {
+		updateSnapshot:
+			process.argv.includes("-u") || process.argv.includes("--updateSnapshot")
+	},
 	snapshotResolver:
 		process.env.SNAPSHOT === "legacy"
 			? path.join(__dirname, "./snapshot-resolver.js")

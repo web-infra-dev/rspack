@@ -1,0 +1,26 @@
+```js title=main.js
+(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
+"./b.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"use strict";
+/* harmony import */var _c_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./c.js */"./c.js");
+
+/* harmony default export */ __webpack_exports__["default"] = (2000 + _c_js__WEBPACK_IMPORTED_MODULE_0__["default"]);
+}),
+"./c.js": (function (__unused_webpack_module, __webpack_exports__) {
+"use strict";
+/* harmony default export */ __webpack_exports__["default"] = (10);
+}),
+"./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
+"use strict";
+/* harmony import */var _a_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./a.js */"./b.js");
+
+_a_js__WEBPACK_IMPORTED_MODULE_0__["default"];
+}),
+
+},function(__webpack_require__) {
+var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
+var __webpack_exports__ = (__webpack_exec__("./index.js"));
+
+}
+]);
+```

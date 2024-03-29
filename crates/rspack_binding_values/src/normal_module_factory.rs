@@ -2,16 +2,12 @@ use napi_derive::napi;
 use rspack_core::{AfterResolveArgs, BeforeResolveArgs, NormalModuleCreateData, ResourceData};
 
 #[napi(object)]
-pub struct JsResolveForSchemeInput {
+pub struct JsResolveForSchemeArgs {
   pub resource_data: JsResourceData,
   pub scheme: String,
 }
 
-#[napi(object)]
-pub struct JsResolveForSchemeResult {
-  pub resource_data: JsResourceData,
-  pub stop: bool,
-}
+pub type JsResolveForSchemeOutput = (Option<bool>, JsResourceData);
 
 #[napi(object)]
 pub struct JsBeforeResolveArgs {
@@ -72,7 +68,7 @@ impl From<ResourceData> for JsResourceData {
   }
 }
 
-impl From<ResourceData> for JsResolveForSchemeInput {
+impl From<ResourceData> for JsResolveForSchemeArgs {
   fn from(value: ResourceData) -> Self {
     Self {
       scheme: value.get_scheme().to_string(),

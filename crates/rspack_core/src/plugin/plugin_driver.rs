@@ -245,25 +245,6 @@ impl PluginDriver {
     Ok(())
   }
 
-  pub async fn normal_module_factory_resolve_for_scheme(
-    &self,
-    args: ResourceData,
-  ) -> Result<ResourceData> {
-    let mut args = args;
-    for plugin in &self.plugins {
-      tracing::trace!("running resolve for scheme:{}", plugin.name());
-      let (ret, stop) = plugin
-        .normal_module_factory_resolve_for_scheme(PluginContext::new(), args)
-        .await?;
-      if stop {
-        return Ok(ret);
-      } else {
-        args = ret;
-      }
-    }
-    Ok(args)
-  }
-
   #[instrument(name = "plugin:additional_chunk_runtime_requirements", skip_all)]
   pub async fn additional_chunk_runtime_requirements(
     &self,

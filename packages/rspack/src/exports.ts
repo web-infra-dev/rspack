@@ -30,7 +30,7 @@ export type {
 	StatsWarnings
 } from "./Stats";
 
-export type { MultiStats } from "./MultiStats";
+export { MultiStats } from "./MultiStats";
 
 export type { ChunkGroup } from "./ChunkGroup";
 
@@ -98,6 +98,8 @@ export { LoaderOptionsPlugin } from "./lib/LoaderOptionsPlugin";
 export { LoaderTargetPlugin } from "./lib/LoaderTargetPlugin";
 
 export { EnvironmentPlugin } from "./lib/EnvironmentPlugin";
+
+export { NormalModuleReplacementPlugin } from "./lib/NormalModuleReplacementPlugin";
 
 import NodeTemplatePlugin from "./node/NodeTemplatePlugin";
 import { NodeTargetPlugin } from "./builtin-plugin";
