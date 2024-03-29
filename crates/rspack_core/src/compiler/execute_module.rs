@@ -87,6 +87,7 @@ impl Compilation {
         base_uri: options.base_uri.clone(),
         filename: None,
         library: None,
+        depend_on: None,
       }),
     });
 

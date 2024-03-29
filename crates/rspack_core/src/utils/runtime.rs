@@ -4,14 +4,49 @@ use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
 
 use crate::{
-  EntryOptions, Filename, RuntimeSpec, CHUNK_HASH_PLACEHOLDER, CONTENT_HASH_PLACEHOLDER,
-  FULL_HASH_PLACEHOLDER, HASH_PLACEHOLDER,
+  merge_runtime, Compilation, EntryOptions, Filename, RuntimeSpec, CHUNK_HASH_PLACEHOLDER,
+  CONTENT_HASH_PLACEHOLDER, FULL_HASH_PLACEHOLDER, HASH_PLACEHOLDER,
 };
 
-pub fn get_entry_runtime(name: &str, options: &EntryOptions) -> RuntimeSpec {
-  RuntimeSpec::from_iter([Arc::from(
-    options.runtime.clone().unwrap_or_else(|| name.to_string()),
-  )])
+pub fn get_entry_runtime(
+  name: &str,
+  options: &EntryOptions,
+  compilation: &Compilation,
+) -> RuntimeSpec {
+  if let Some(depend_on) = &options.depend_on {
+    let mut result: RuntimeSpec = Default::default();
+    let mut queue = vec![];
+    queue.extend(depend_on.clone());
+
+    while let Some(name) = queue.pop() {
+      let Some(entry_point_ukey) = compilation.entrypoints.get(&name) else {
+        continue;
+      };
+      let entry_point = compilation.chunk_group_by_ukey.expect_get(entry_point_ukey);
+      let Some(entry_options) = entry_point.kind.get_entry_options() else {
+        continue;
+      };
+
+      if let Some(depend_on) = &entry_options.depend_on {
+        for depend in depend_on {
+          queue.push(depend.clone());
+        }
+      } else {
+        result = merge_runtime(
+          &result,
+          &compilation.get_entry_runtime(
+            &entry_options.runtime.clone().unwrap_or(name),
+            Some(entry_options),
+          ),
+        );
+      }
+    }
+    result
+  } else {
+    RuntimeSpec::from_iter([Arc::from(
+      options.runtime.clone().unwrap_or_else(|| name.to_string()),
+    )])
+  }
 }
 
 static HASH_REPLACERS: Lazy<Vec<(&Lazy<Regex>, &str)>> = Lazy::new(|| {

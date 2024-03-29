@@ -750,6 +750,7 @@ export interface RawEntryOptions {
   baseUri?: string
   filename?: string
   library?: RawLibraryOptions
+  dependOn?: Array<string>
 }
 
 export interface RawEntryPluginOptions {

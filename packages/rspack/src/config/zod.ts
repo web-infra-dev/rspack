@@ -163,6 +163,9 @@ export type EntryRuntime = z.infer<typeof entryRuntime>;
 const entryItem = z.string().or(z.array(z.string()));
 export type EntryItem = z.infer<typeof entryItem>;
 
+const entryDependOn = z.string().or(z.array(z.string()));
+export type EntryDependOn = z.infer<typeof entryDependOn>;
+
 const entryDescription = z.strictObject({
 	import: entryItem,
 	runtime: entryRuntime.optional(),
@@ -172,7 +175,8 @@ const entryDescription = z.strictObject({
 	asyncChunks: asyncChunks.optional(),
 	wasmLoading: wasmLoading.optional(),
 	filename: entryFilename.optional(),
-	library: libraryOptions.optional()
+	library: libraryOptions.optional(),
+	dependOn: entryDependOn.optional()
 });
 export type EntryDescription = z.infer<typeof entryDescription>;
 

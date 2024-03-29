@@ -58,7 +58,7 @@ export default class EntryOptionPlugin {
 			filename: desc.filename,
 			runtime: desc.runtime,
 			// layer: desc.layer,
-			// dependOn: desc.dependOn,
+			dependOn: desc.dependOn,
 			baseUri: desc.baseUri,
 			publicPath: desc.publicPath,
 			chunkLoading: desc.chunkLoading,

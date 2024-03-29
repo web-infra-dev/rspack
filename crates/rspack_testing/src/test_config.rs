@@ -465,6 +465,7 @@ impl TestConfig {
               base_uri: None,
               filename: None,
               library: None,
+              depend_on: None,
             },
           )
           .boxed(),
