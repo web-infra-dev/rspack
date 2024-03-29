@@ -32,6 +32,11 @@ function getNavConfig(lang: 'zh' | 'en'): NavItem[] {
 			activeMatch: '/config',
 		},
 		{
+			text: getText('插件', 'Plugin'),
+			link: getLink('/plugins'),
+			activeMatch: '/plugins',
+		},
+		{
 			text: getText('API', 'API'),
 			link: getLink('/api'),
 			activeMatch: '/api',
@@ -96,7 +101,7 @@ function getNavConfig(lang: 'zh' | 'en'): NavItem[] {
 				{
 					text: getText(
 						'未来默认行为与功能废弃',
-						'Future behavior & Deprecation'
+						'Future behavior & Deprecation',
 					),
 					link: getLink('/misc/future'),
 				},
@@ -308,6 +313,24 @@ function getSidebarConfig(lang: 'zh' | 'en'): Sidebar {
 				link: getLink('/config/other-options'),
 			},
 		],
+		[getLink('/plugins/')]: [
+			{
+				text: getText('简介', 'Introduction'),
+				link: getLink('/plugins'),
+			},
+			{
+				text: getText('同步自 webpack 的内置插件', 'Plugin'),
+				link: getLink('/plugins/webpack'),
+			},
+			{
+				text: getText('Rspack 独有的内置插件', 'Plugin'),
+				link: getLink('/plugins/rspack'),
+			},
+			{
+				text: getText('兼容的 webpack 生态插件', 'Plugin'),
+				link: getLink('/plugins/eco'),
+			},
+		],
 		[getLink('/api/')]: [
 			{
 				text: getText('API 接口', 'API'),
@@ -346,7 +369,7 @@ function getSidebarConfig(lang: 'zh' | 'en'): Sidebar {
 			{
 				text: getText(
 					'Rspack 支持模块联邦',
-					'Module Federation added to Rspack'
+					'Module Federation added to Rspack',
 				),
 				link: getLink('/blog/module-federation-added-to-rspack'),
 			},
