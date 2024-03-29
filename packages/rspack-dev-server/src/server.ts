@@ -230,14 +230,18 @@ export class RspackDevServer extends WebpackDevServer {
 						if (req.url.indexOf("/lazy-compilation-web/") > -1) {
 							const path = req.url.replace("/lazy-compilation-web/", "");
 							if (fs.existsSync(path)) {
-								compiler.rebuild(new Set([path]), new Set(), error => {
-									if (error) {
-										throw error;
+								compiler.__internal__rebuild(
+									new Set([path]),
+									new Set(),
+									error => {
+										if (error) {
+											throw error;
+										}
+										res.write("");
+										res.end();
+										console.log("lazy compiler success");
 									}
-									res.write("");
-									res.end();
-									console.log("lazy compiler success");
-								});
+								);
 							}
 						}
 					}
