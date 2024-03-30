@@ -81,7 +81,7 @@ impl RSCClientReferenceManifest {
         })
         .collect::<Vec<_>>();
       for chunk in &chunk_group.chunks {
-        let chunk_modules = compilation.chunk_graph.get_chunk_modules(chunk, mg);
+        let chunk_modules = compilation.chunk_graph.get_chunk_modules(chunk, &mg);
         for module in chunk_modules {
           let module_id = compilation.chunk_graph.get_module_id(module.identifier());
           let resolved_data = module
@@ -101,7 +101,7 @@ impl RSCClientReferenceManifest {
           if let Some(module_id) = module_id {
             let exports_info = mg.get_exports_info(&module.identifier());
             let module_exported_keys = exports_info.get_ordered_exports().filter_map(|id| {
-              let info = id.get_export_info(mg);
+              let info = id.get_export_info(&mg);
               if let Some(provided) = info.provided {
                 match provided {
                   ExportInfoProvided::True => Some(info.name.clone()),

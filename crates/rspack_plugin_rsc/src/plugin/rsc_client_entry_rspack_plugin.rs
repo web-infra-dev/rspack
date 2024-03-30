@@ -3,16 +3,20 @@ use std::time::Instant;
 
 use async_trait::async_trait;
 use rspack_core::rspack_sources::{RawSource, SourceExt};
-use rspack_core::{AssetInfo, Compilation, CompilationAsset, Module, ModuleType, Plugin};
+use rspack_core::{
+  ApplyContext, AssetInfo, Compilation, CompilationAsset, CompilerOptions, Module, ModuleType,
+  Plugin, PluginContext,
+};
 use rspack_error::Result;
+use rspack_hook::{plugin, plugin_hook, AsyncSeries};
 use serde_json::to_string;
-
+#[plugin]
 #[derive(Debug, Default, Clone)]
 pub struct RSCClientEntryRspackPlugin {}
 
 impl RSCClientEntryRspackPlugin {
   pub fn new() -> Self {
-    Self {}
+    Self::new_inner()
   }
   fn filter_client_components(
     &self,
@@ -59,57 +63,71 @@ impl RSCClientEntryRspackPlugin {
   }
 }
 
+#[plugin_hook(AsyncSeries<Compilation> for RSCClientEntryRspackPlugin)]
+async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
+  let now = Instant::now();
+  let mut client_imports: HashMap<String, HashSet<String>> = HashMap::new();
+  for (name, entry) in &compilation.entries {
+    let mut collected_client_imports: HashSet<String> = HashSet::new();
+    let mut visited_modules: HashSet<String> = HashSet::new();
+    let mg = compilation.get_module_graph();
+    let entry_module = mg
+      .get_module_by_dependency_id(&entry.dependencies[0])
+      .expect("should exist");
+    self.filter_client_components(
+      compilation,
+      entry_module,
+      &mut visited_modules,
+      &mut collected_client_imports,
+    );
+    client_imports.insert(String::from(name), collected_client_imports);
+  }
+  // all other entries depend on this entry
+  let main_name = "server-entry";
+  let cc = client_imports.clone();
+  let main = cc.get(main_name).unwrap();
+  for (name, value) in client_imports.iter_mut() {
+    if name != main_name {
+      for import in main {
+        value.remove(import.as_str());
+      }
+    }
+    let content = to_string(&value);
+    match content {
+      Ok(content) => {
+        compilation.assets_mut().insert(
+          format!("[{}]_client_imports.json", name),
+          CompilationAsset {
+            source: Some(RawSource::from(content).boxed()),
+            info: AssetInfo {
+              immutable: false,
+              ..AssetInfo::default()
+            },
+          },
+        );
+      }
+      Err(_) => (),
+    }
+  }
+  tracing::debug!(
+    "collect all client imports took {} ms.",
+    now.elapsed().as_millis()
+  );
+  Ok(())
+}
+
 #[async_trait]
 impl Plugin for RSCClientEntryRspackPlugin {
-  async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
-    let now = Instant::now();
-    let mut client_imports: HashMap<String, HashSet<String>> = HashMap::new();
-    for (name, entry) in &compilation.entries {
-      let mut collected_client_imports: HashSet<String> = HashSet::new();
-      let mut visited_modules: HashSet<String> = HashSet::new();
-      let mg = compilation.get_module_graph();
-      let entry_module = mg
-        .get_module_by_dependency_id(&entry.dependencies[0])
-        .expect("should exist");
-      self.filter_client_components(
-        compilation,
-        entry_module,
-        &mut visited_modules,
-        &mut collected_client_imports,
-      );
-      client_imports.insert(String::from(name), collected_client_imports);
-    }
-    // all other entries depend on this entry
-    let main_name = "server-entry";
-    let cc = client_imports.clone();
-    let main = cc.get(main_name).unwrap();
-    for (name, value) in client_imports.iter_mut() {
-      if name != main_name {
-        for import in main {
-          value.remove(import.as_str());
-        }
-      }
-      let content = to_string(&value);
-      match content {
-        Ok(content) => {
-          compilation.assets_mut().insert(
-            format!("[{}]_client_imports.json", name),
-            CompilationAsset {
-              source: Some(RawSource::from(content).boxed()),
-              info: AssetInfo {
-                immutable: false,
-                ..AssetInfo::default()
-              },
-            },
-          );
-        }
-        Err(_) => (),
-      }
-    }
-    tracing::debug!(
-      "collect all client imports took {} ms.",
-      now.elapsed().as_millis()
-    );
+  fn apply(
+    &self,
+    ctx: PluginContext<&mut ApplyContext>,
+    _options: &mut CompilerOptions,
+  ) -> Result<()> {
+    ctx
+      .context
+      .compiler_hooks
+      .finish_make
+      .tap(finish_make::new(self));
     Ok(())
   }
 }
