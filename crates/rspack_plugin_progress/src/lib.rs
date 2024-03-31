@@ -107,6 +107,14 @@ impl ProgressPlugin {
     }
   }
 
+  fn get_color(diff: u128) -> &'static str {
+    match diff {
+      d if d > 10000 => "\x1b[31m", // red
+      d if d > 1000 => "\x1b[33m",  // yellow
+      _ => "\x1b[32m",              // green
+    }
+  }
+
   fn default_handler(&self, _: f32, msg: String, items: Vec<String>, duration: Option<Duration>) {
     let full_state = [vec![msg.clone()], items.clone()].concat();
     let now = Instant::now();
@@ -137,13 +145,7 @@ impl ProgressPlugin {
           };
 
           if diff > 5 {
-            // TODO: color map
-            let mut color = "\x1b[32m";
-            if diff > 10000 {
-              color = "\x1b[31m"
-            } else if diff > 1000 {
-              color = "\x1b[33m"
-            }
+            let color = Self::get_color(diff);
             println!(
               "{}{} {} ms {}\x1B[0m",
               color,
@@ -152,6 +154,7 @@ impl ProgressPlugin {
               report_state
             );
           }
+
           match (i + 1).cmp(&full_state.len()) {
             Ordering::Greater => last_state_info.truncate(i),
             Ordering::Equal => {
