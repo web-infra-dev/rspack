@@ -215,7 +215,9 @@ pub mod expr_name {
   pub const REQUIRE_RESOLVE: &str = "require.resolve";
   pub const REQUIRE_RESOLVE_WEAK: &str = "require.resolveWeak";
   pub const IMPORT_META: &str = "import.meta";
+  pub const IMPORT_META_ENV: &str = "import.meta.env";
   pub const IMPORT_META_URL: &str = "import.meta.url";
+  pub const IMPORT_META_WEBPACK: &str = "import.meta.webpack";
   pub const IMPORT_META_WEBPACK_HOT: &str = "import.meta.webpackHot";
   pub const IMPORT_META_WEBPACK_HOT_ACCEPT: &str = "import.meta.webpackHot.accept";
   pub const IMPORT_META_WEBPACK_HOT_DECLINE: &str = "import.meta.webpackHot.decline";
