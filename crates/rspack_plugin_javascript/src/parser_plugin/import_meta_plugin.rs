@@ -9,12 +9,9 @@ use crate::visitors::expr_name;
 use crate::visitors::ExportedVariableInfo;
 
 // Port from https://github.com/webpack/webpack/blob/main/lib/dependencies/ImportMetaPlugin.js
-// TODO:
-// - scan `import.meta.webpack`
-// - scan `import.meta.url.indexOf("index.js")`
-// - evaluate expression. eg `import.meta.env && import.meta.env.xx` should be `false`
-// - add warning for `import.meta`
 pub struct ImportMetaPlugin;
+
+const WEBPACK_VERSION: i32 = 5;
 
 impl JavascriptParserPlugin for ImportMetaPlugin {
   fn r#typeof(
@@ -83,21 +80,30 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
     member_expr: &swc_core::ecma::ast::MemberExpr,
     for_name: &str,
   ) -> Option<bool> {
-    if for_name == expr_name::IMPORT_META_URL {
-      // import.meta.url
+    let content;
+    if for_name.starts_with(expr_name::IMPORT_META_ENV) {
+      // import.meta.env
+      content = "false".to_string();
+    } else if for_name == expr_name::IMPORT_META_WEBPACK {
+      // import.meta.webpack
+      content = format!("{WEBPACK_VERSION}");
+    } else if for_name == expr_name::IMPORT_META_URL {
       let url = Url::from_file_path(&parser.resource_data.resource).expect("should be a path");
-      parser
-        .presentational_dependencies
-        .push(Box::new(ConstDependency::new(
-          member_expr.span().real_lo(),
-          member_expr.span().real_hi(),
-          format!("'{url}'").into(),
-          None,
-        )));
-      Some(true)
+      content = format!("'{url}'");
     } else {
-      None
+      return None;
     }
+
+    parser
+      .presentational_dependencies
+      .push(Box::new(ConstDependency::new(
+        member_expr.span().real_lo(),
+        member_expr.span().real_hi(),
+        content.into(),
+        None,
+      )));
+
+    Some(true)
   }
 
   fn unhandled_expression_member_chain(
