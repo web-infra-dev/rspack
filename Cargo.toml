@@ -45,6 +45,7 @@ testing_macros     = { version = "0.2.12" }
 tokio              = { version = "1.36.0" }
 tracing            = { version = "0.1.40" }
 tracing-subscriber = { version = "0.3.18" }
+unicase            = { version = "2.7.0" }
 url                = { version = "2.5.0" }
 urlencoding        = { version = "2.1.3" }
 ustr               = { package = "ustr-fxhash", version = "1.0.0" }
