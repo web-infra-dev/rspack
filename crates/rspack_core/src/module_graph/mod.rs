@@ -114,6 +114,10 @@ impl<'a> ModuleGraph<'a> {
     None
   }
 
+  pub fn active(&self) -> &Option<&'a mut ModuleGraphPartial> {
+    &self.active
+  }
+
   fn loop_partials_mut<REF, MUT>(
     &mut self,
     f_exist: impl Fn(&ModuleGraphPartial) -> bool,

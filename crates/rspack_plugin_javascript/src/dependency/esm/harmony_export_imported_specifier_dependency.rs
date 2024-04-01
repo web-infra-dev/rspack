@@ -105,6 +105,10 @@ impl HarmonyExportImportedSpecifierDependency {
       runtime: runtime.cloned(),
     };
 
+    if module_graph.active().is_none() {
+      return self._get_mode(name, module_graph, id, runtime);
+    }
+
     // let value = self._get_mode(name, module_graph, id, runtime);
     // dbg!(&key, &value,);
 
