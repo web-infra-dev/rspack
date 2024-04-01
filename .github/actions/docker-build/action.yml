@@ -45,11 +45,17 @@ runs:
           RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
           ${{ inputs.post }}
         '
+        if [[ ! -n "$CARGO_HOME" ]]; then
+          CARGO_HOME="$(dirname $(dirname $(which cargo)))"
+        fi
 
         docker run \
           --rm \
           --privileged \
           --user 0:0 \
+          -v $CARGO_HOME/registry/index:/usr/local/cargo/registry/index \
+          -v $CARGO_HOME/registry/cache:/usr/local/cargo/registry/cache \
+          -v $CARGO_HOME/git/db:/usr/local/cargo/git/db \
           ${{ inputs.options }} \
           -e CI=1 \
           -e HOME=$HOME \
