@@ -12,6 +12,13 @@ module.exports = {
 		splitChunks: false,
 		chunkIds: "named"
 	},
+	module: {
+		generator: {
+			"css/auto": {
+				exportsOnly: false,
+			}
+		}
+	},
 	experiments: {
 		css: true
 	}

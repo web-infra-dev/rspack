@@ -1,11 +1,7 @@
-use std::{path::PathBuf, str::FromStr};
+use std::path::PathBuf;
 
 use napi_derive::napi;
-use rspack_core::{Builtins, PluginExt};
-use rspack_plugin_css::{
-  plugin::{CssConfig, LocalIdentName, LocalsConvention, ModulesConfig},
-  CssPlugin,
-};
+use rspack_core::Builtins;
 use rspack_swc_visitors::{
   CustomTransform, ImportOptions, ReactOptions, RelayLanguageConfig, RelayOptions, StyleConfig,
 };
@@ -145,54 +141,15 @@ impl From<RawRelayConfig> for RelayOptions {
   }
 }
 
-#[derive(Deserialize, Debug, Serialize, Clone)]
-#[serde(rename_all = "camelCase")]
-#[napi(object)]
-pub struct RawCssPluginConfig {
-  pub modules: RawCssModulesConfig,
-  pub named_exports: Option<bool>,
-}
-
-#[derive(Deserialize, Debug, Serialize, Clone)]
-#[serde(rename_all = "camelCase")]
-#[napi(object)]
-pub struct RawCssModulesConfig {
-  #[napi(ts_type = "\"asIs\" | \"camelCase\" | \"camelCaseOnly\" | \"dashes\" | \"dashesOnly\"")]
-  pub locals_convention: String,
-  pub local_ident_name: String,
-  pub exports_only: bool,
-}
-
-impl TryFrom<RawCssModulesConfig> for ModulesConfig {
-  type Error = rspack_error::Error;
-
-  fn try_from(value: RawCssModulesConfig) -> Result<Self, Self::Error> {
-    Ok(Self {
-      locals_convention: LocalsConvention::from_str(&value.locals_convention)?,
-      local_ident_name: LocalIdentName::from(value.local_ident_name),
-      exports_only: value.exports_only,
-    })
-  }
-}
-
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawBuiltins {
-  pub css: Option<RawCssPluginConfig>,
   pub tree_shaking: String,
 }
 
 impl RawBuiltins {
-  pub fn apply(self, plugins: &mut Vec<rspack_core::BoxPlugin>) -> rspack_error::Result<Builtins> {
-    if let Some(css) = self.css {
-      let options = CssConfig {
-        modules: css.modules.try_into()?,
-        named_exports: css.named_exports,
-      };
-      plugins.push(CssPlugin::new(options).boxed());
-    }
-
+  pub fn apply(self, _plugins: &mut Vec<rspack_core::BoxPlugin>) -> rspack_error::Result<Builtins> {
     Ok(Builtins {
       define: Default::default(),
       provide: Default::default(),

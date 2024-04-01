@@ -1,5 +1,16 @@
 module.exports = {
 	module: {
+		generator: {
+			"css/auto": {
+				exportsOnly: false
+			},
+			"css": {
+				exportsOnly: false,
+			},
+			"css/module": {
+				exportsOnly: false,
+			}
+		},
 		rules: [
 			{
 				test: /\.s[ac]ss$/i,

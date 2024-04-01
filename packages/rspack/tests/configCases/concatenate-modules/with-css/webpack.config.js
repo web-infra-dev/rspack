@@ -12,7 +12,10 @@ module.exports = {
 		rules: [
 			{
 				test: /\.css$/,
-				type: "css/module"
+				type: "css/module",
+				parser: {
+					namedExports: false,
+				}
 			}
 		]
 	},

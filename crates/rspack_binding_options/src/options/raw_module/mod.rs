@@ -11,10 +11,12 @@ use rspack_core::{
   AssetGeneratorDataUrl, AssetGeneratorDataUrlFnArgs, AssetGeneratorDataUrlOptions,
   AssetGeneratorOptions, AssetInlineGeneratorOptions, AssetParserDataUrl,
   AssetParserDataUrlOptions, AssetParserOptions, AssetResourceGeneratorOptions, BoxLoader,
-  DescriptionData, DynamicImportMode, FuncUseCtx, GeneratorOptions, GeneratorOptionsByModuleType,
-  JavascriptParserOptions, JavascriptParserOrder, JavascriptParserUrl, ModuleNoParseRule,
-  ModuleNoParseRules, ModuleNoParseTestFn, ModuleOptions, ModuleRule, ModuleRuleEnforce,
-  ModuleRuleUse, ModuleRuleUseLoader, ModuleType, ParserOptions, ParserOptionsByModuleType,
+  CssAutoGeneratorOptions, CssAutoParserOptions, CssGeneratorOptions, CssModuleGeneratorOptions,
+  CssModuleParserOptions, CssParserOptions, DescriptionData, DynamicImportMode, FuncUseCtx,
+  GeneratorOptions, GeneratorOptionsByModuleType, JavascriptParserOptions, JavascriptParserOrder,
+  JavascriptParserUrl, ModuleNoParseRule, ModuleNoParseRules, ModuleNoParseTestFn, ModuleOptions,
+  ModuleRule, ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, ModuleType, ParserOptions,
+  ParserOptionsByModuleType,
 };
 use rspack_error::error;
 use rspack_loader_react_refresh::REACT_REFRESH_LOADER_IDENTIFIER;
@@ -273,9 +275,12 @@ pub struct RawModuleRule {
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawParserOptions {
-  #[napi(ts_type = r#""asset" | "javascript" | "unknown""#)]
+  #[napi(ts_type = r#""asset" | "css" | "css/auto" | "css/module" | "javascript""#)]
   pub r#type: String,
   pub asset: Option<RawAssetParserOptions>,
+  pub css: Option<RawCssParserOptions>,
+  pub css_auto: Option<RawCssAutoParserOptions>,
+  pub css_module: Option<RawCssModuleParserOptions>,
   pub javascript: Option<RawJavascriptParserOptions>,
 }
 
@@ -289,11 +294,31 @@ impl From<RawParserOptions> for ParserOptions {
           .into(),
       ),
       "javascript" => Self::Javascript(
-        value.javascript.expect("should have an \"javascript\" when RawParserOptions.type is \"javascript\"").into()
+        value
+          .javascript
+          .expect("should have an \"javascript\" when RawParserOptions.type is \"javascript\"")
+          .into(),
       ),
-      "unknown" => Self::Unknown,
+      "css" => Self::Css(
+        value
+          .css
+          .expect("should have an \"css\" when RawParserOptions.type is \"css\"")
+          .into(),
+      ),
+      "css/auto" => Self::CssAuto(
+        value
+          .css_auto
+          .expect("should have an \"css_auto\" when RawParserOptions.type is \"css/auto\"")
+          .into(),
+      ),
+      "css/module" => Self::CssModule(
+        value
+          .css_module
+          .expect("should have an \"css_module\" when RawParserOptions.type is \"css/module\"")
+          .into(),
+      ),
       _ => panic!(
-        "Failed to resolve the RawParserOptions.type {}. Expected type is \"asset\", \"javascript\",  \"unknown\".",
+        "Failed to resolve the RawParserOptions.type {}.",
         value.r#type
       ),
     }
@@ -379,14 +404,64 @@ impl From<RawAssetParserDataUrlOptions> for AssetParserDataUrlOptions {
 }
 
 #[derive(Debug, Deserialize, Default)]
+#[napi(object)]
+#[serde(rename_all = "camelCase")]
+pub struct RawCssParserOptions {
+  pub named_exports: Option<bool>,
+}
+
+impl From<RawCssParserOptions> for CssParserOptions {
+  fn from(value: RawCssParserOptions) -> Self {
+    Self {
+      named_exports: value.named_exports,
+    }
+  }
+}
+
+#[derive(Debug, Deserialize, Default)]
+#[napi(object)]
+#[serde(rename_all = "camelCase")]
+pub struct RawCssAutoParserOptions {
+  pub named_exports: Option<bool>,
+}
+
+impl From<RawCssAutoParserOptions> for CssAutoParserOptions {
+  fn from(value: RawCssAutoParserOptions) -> Self {
+    Self {
+      named_exports: value.named_exports,
+    }
+  }
+}
+
+#[derive(Debug, Deserialize, Default)]
+#[napi(object)]
+#[serde(rename_all = "camelCase")]
+pub struct RawCssModuleParserOptions {
+  pub named_exports: Option<bool>,
+}
+
+impl From<RawCssModuleParserOptions> for CssModuleParserOptions {
+  fn from(value: RawCssModuleParserOptions) -> Self {
+    Self {
+      named_exports: value.named_exports,
+    }
+  }
+}
+
+#[derive(Debug, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 #[napi(object, object_to_js = false)]
 pub struct RawGeneratorOptions {
-  #[napi(ts_type = r#""asset" | "asset/inline" | "asset/resource" | "unknown""#)]
+  #[napi(
+    ts_type = r#""asset" | "asset/inline" | "asset/resource" | "css" | "css/auto" | "css/module""#
+  )]
   pub r#type: String,
   pub asset: Option<RawAssetGeneratorOptions>,
   pub asset_inline: Option<RawAssetInlineGeneratorOptions>,
   pub asset_resource: Option<RawAssetResourceGeneratorOptions>,
+  pub css: Option<RawCssGeneratorOptions>,
+  pub css_auto: Option<RawCssAutoGeneratorOptions>,
+  pub css_module: Option<RawCssModuleGeneratorOptions>,
 }
 
 impl From<RawGeneratorOptions> for GeneratorOptions {
@@ -414,9 +489,26 @@ impl From<RawGeneratorOptions> for GeneratorOptions {
           )
           .into(),
       ),
-      "unknown" => Self::Unknown,
+      "css" => Self::Css(
+        value
+          .css
+          .expect("should have an \"css\" when RawGeneratorOptions.type is \"css\"")
+          .into(),
+      ),
+      "css/auto" => Self::CssAuto(
+        value
+          .css_auto
+          .expect("should have an \"css_auto\" when RawGeneratorOptions.type is \"css/auto\"")
+          .into(),
+      ),
+      "css/module" => Self::CssModule(
+        value
+          .css_module
+          .expect("should have an \"css_module\" when RawGeneratorOptions.type is \"css/module\"")
+          .into(),
+      ),
       _ => panic!(
-        r#"Failed to resolve the RawGeneratorOptions.type {}. Expected type is "asset", "asset/inline", "asset/resource", "unknown"."#,
+        r#"Failed to resolve the RawGeneratorOptions.type {}."#,
         value.r#type
       ),
     }
@@ -537,6 +629,64 @@ impl From<RawAssetGeneratorDataUrlOptions> for AssetGeneratorDataUrlOptions {
     Self {
       encoding: value.encoding.map(|i| i.into()),
       mimetype: value.mimetype,
+    }
+  }
+}
+
+#[derive(Debug, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+#[napi(object)]
+pub struct RawCssGeneratorOptions {
+  #[napi(ts_type = r#""as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only""#)]
+  pub exports_convention: Option<String>,
+  pub exports_only: Option<bool>,
+}
+
+impl From<RawCssGeneratorOptions> for CssGeneratorOptions {
+  fn from(value: RawCssGeneratorOptions) -> Self {
+    Self {
+      exports_convention: value.exports_convention.map(|n| n.into()),
+      exports_only: value.exports_only,
+    }
+  }
+}
+
+#[derive(Debug, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+#[napi(object)]
+pub struct RawCssAutoGeneratorOptions {
+  #[napi(ts_type = r#""as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only""#)]
+  pub exports_convention: Option<String>,
+  pub exports_only: Option<bool>,
+  pub local_ident_name: Option<String>,
+}
+
+impl From<RawCssAutoGeneratorOptions> for CssAutoGeneratorOptions {
+  fn from(value: RawCssAutoGeneratorOptions) -> Self {
+    Self {
+      exports_convention: value.exports_convention.map(|n| n.into()),
+      exports_only: value.exports_only,
+      local_ident_name: value.local_ident_name.map(|n| n.into()),
+    }
+  }
+}
+
+#[derive(Debug, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+#[napi(object)]
+pub struct RawCssModuleGeneratorOptions {
+  #[napi(ts_type = r#""as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only""#)]
+  pub exports_convention: Option<String>,
+  pub exports_only: Option<bool>,
+  pub local_ident_name: Option<String>,
+}
+
+impl From<RawCssModuleGeneratorOptions> for CssModuleGeneratorOptions {
+  fn from(value: RawCssModuleGeneratorOptions) -> Self {
+    Self {
+      exports_convention: value.exports_convention.map(|n| n.into()),
+      exports_only: value.exports_only,
+      local_ident_name: value.local_ident_name.map(|n| n.into()),
     }
   }
 }

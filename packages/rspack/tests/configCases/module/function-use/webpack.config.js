@@ -14,7 +14,10 @@ module.exports = {
 						return ["less-loader", require.resolve("./loader.js")];
 					else return ["less-loader"];
 				},
-				type: "css"
+				type: "css",
+				generator: {
+					exportsOnly: false
+				}
 			}
 		]
 	}

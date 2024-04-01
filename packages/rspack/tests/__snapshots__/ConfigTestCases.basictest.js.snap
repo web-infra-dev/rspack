@@ -2,43 +2,43 @@
 
 exports[`ConfigTestCases builtins css-auto exported tests css/auto can handle css module correctly 1`] = `
 Object {
-  "style": "_5c2d5551d80e7ce1ba5f",
+  "style": "-_921b05f8c9c16ca9ea84-style",
 }
 `;
 
 exports[`ConfigTestCases builtins css-modules-composes exported tests css modules composes 1`] = `
 Object {
-  "simple-bar": "_0e180c50fc723d21893f e45545294690ac1f111b",
-  "simple-foo": "_64c341554d21f0338d15 e45545294690ac1f111b",
+  "simple-bar": "-_273d87445e861b3031dc-simple-bar -_9d368fc847854456bea3-imported-simple",
+  "simple-foo": "-_273d87445e861b3031dc-simple-foo -_9d368fc847854456bea3-imported-simple",
 }
 `;
 
 exports[`ConfigTestCases builtins css-modules-composes-preprocessers exported tests css modules with css preprocessers 1`] = `
 Object {
-  "class": "df80f3b0f4e4a348c22a _4658e34db45b67e69001",
-  "ghi": "b40af806355ae2a77e71",
-  "other": "_5c221b4c6b52ae1c3f04 _64a6a8c8c9df5bc70d58",
-  "otherClassName": "e8f69e8c0cf8a7addae3 globalClassName",
+  "class": "-_273d87445e861b3031dc-class -_11a6d6ffb863bd538fe5-lessClass",
+  "ghi": "-_273d87445e861b3031dc-ghi",
+  "other": "-_273d87445e861b3031dc-other -_1f71e04288dddc43d27d-scssClass",
+  "otherClassName": "-_273d87445e861b3031dc-otherClassName globalClassName",
 }
 `;
 
 exports[`ConfigTestCases builtins css-modules-composes-sass exported tests css modules in scss 1`] = `
 Object {
-  "bar": "ced11c340af4be27ae9a df69808451aa79e0bb0e",
+  "bar": "-_735885c5e37059075f0c-bar -_3dd446eb32b4cceede74-foo",
 }
 `;
 
 exports[`ConfigTestCases builtins css-modules-dedupe exported tests css modules dedupe 1`] = `
 Object {
-  "backButton": "e584739154dc3b504aac _7b415a244cf0005470b1 _4370a95c3b5bb2e782b3",
-  "nextButton": "ef4e163a567c697d018d _2188a2bc321e703ef769 _4370a95c3b5bb2e782b3",
+  "backButton": "-d4f5f65e6ec5e3abc2cc-backButton -_0f182db74b24b91ce53c-secondaryButton -ed3ce9538ce4b9c8f8ab-button",
+  "nextButton": "-d4f5f65e6ec5e3abc2cc-nextButton -_73af08fa9da07d8b8412-primaryButton -ed3ce9538ce4b9c8f8ab-button",
 }
 `;
 
 exports[`ConfigTestCases builtins css-modules-exports-only exported tests css modules exportsOnly 1`] = `
 Object {
-  "simple-bar": "_0e180c50fc723d21893f e45545294690ac1f111b",
-  "simple-foo": "_64c341554d21f0338d15 e45545294690ac1f111b",
+  "simple-bar": "-_273d87445e861b3031dc-simple-bar -_9d368fc847854456bea3-imported-simple",
+  "simple-foo": "-_273d87445e861b3031dc-simple-foo -_9d368fc847854456bea3-imported-simple",
 }
 `;
 
@@ -97,105 +97,105 @@ Object {
 
 exports[`ConfigTestCases builtins css-modules-local-ident-name-path exported tests css modules localIdentName with path 1`] = `
 Object {
-  "#": "src-index__#",
-  "##": "src-index__##",
-  "#.#.#": "src-index__#-#-#",
-  "#fake-id": "src-index__#fake-id",
-  "++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>.": "src-index__++++++++++[-+++++++-++++++++++-+++-+-----]-++--+-+++++++--+++--++---+++++++++++++++---+++------------------+---",
-  "-a-b-c-": "src-index__-a-b-c-",
-  "-a0-34a___f": "src-index__-a0-34a___f",
-  ".": "src-index__-",
-  "123": "src-index__123",
-  "1a2b3c": "src-index__1a2b3c",
-  ":)": "src-index__-)",
-  ":\`(": "src-index__-\`(",
-  ":hover": "src-index__-hover",
-  ":hover:focus:active": "src-index__-hover-focus-active",
-  "<><<<>><>": "src-index__---------",
-  "<p>": "src-index__-p-",
-  "?": "src-index__-",
-  "@": "src-index__@",
-  "B&W?": "src-index__B&W-",
-  "[attr=value]": "src-index__[attr=value]",
-  "_": "src-index___",
-  "_test": "src-index___test",
-  "className": "src-index__className",
-  "f!o!o": "src-index__f!o!o",
-  "f'o'o": "src-index__f'o'o",
-  "f*o*o": "src-index__f-o-o",
-  "f+o+o": "src-index__f+o+o",
-  "f/o/o": "src-index__f-o-o",
-  "f\\\\o\\\\o": "src-index__f-o-o",
-  "foo.bar": "src-index__foo-bar",
-  "foo/bar": "src-index__foo-bar",
-  "foo/bar/baz": "src-index__foo-bar-baz",
-  "foo\\\\bar": "src-index__foo-bar",
-  "foo\\\\bar\\\\baz": "src-index__foo-bar-baz",
-  "f~o~o": "src-index__f~o~o",
-  "m_x_@": "src-index__m_x_@",
-  "someId": "src-index__someId",
-  "subClass": "src-index__subClass",
-  "test": "src-index__test",
-  "{}": "src-index__{}",
-  "©": "src-index__©",
-  "“‘’”": "src-index__“‘’”",
-  "⌘⌥": "src-index__⌘⌥",
-  "☺☃": "src-index__☺☃",
-  "♥": "src-index__♥",
-  "𝄞♪♩♫♬": "src-index__𝄞♪♩♫♬",
-  "💩": "src-index__💩",
-  "😍": "src-index__😍",
+  "#": "src_index__#",
+  "##": "src_index__##",
+  "#.#.#": "src_index__#_#_#",
+  "#fake-id": "src_index__#fake-id",
+  "++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>.": "src_index__++++++++++[_+++++++_++++++++++_+++_+____-]_++__+_+++++++__+++__++___+++++++++++++++___+++_------_--------__+___",
+  "-a-b-c-": "src_index__-a-b-c-",
+  "-a0-34a___f": "src_index__-a0-34a___f",
+  ".": "src_index___",
+  "123": "src_index__123",
+  "1a2b3c": "src_index__1a2b3c",
+  ":)": "src_index___)",
+  ":\`(": "src_index___\`(",
+  ":hover": "src_index___hover",
+  ":hover:focus:active": "src_index___hover_focus_active",
+  "<><<<>><>": "src_index___________",
+  "<p>": "src_index___p_",
+  "?": "src_index___",
+  "@": "src_index__@",
+  "B&W?": "src_index__B&W_",
+  "[attr=value]": "src_index__[attr=value]",
+  "_": "src_index___",
+  "_test": "src_index___test",
+  "className": "src_index__className",
+  "f!o!o": "src_index__f!o!o",
+  "f'o'o": "src_index__f'o'o",
+  "f*o*o": "src_index__f_o_o",
+  "f+o+o": "src_index__f+o+o",
+  "f/o/o": "src_index__f_o_o",
+  "f\\\\o\\\\o": "src_index__f_o_o",
+  "foo.bar": "src_index__foo_bar",
+  "foo/bar": "src_index__foo_bar",
+  "foo/bar/baz": "src_index__foo_bar_baz",
+  "foo\\\\bar": "src_index__foo_bar",
+  "foo\\\\bar\\\\baz": "src_index__foo_bar_baz",
+  "f~o~o": "src_index__f~o~o",
+  "m_x_@": "src_index__m_x_@",
+  "someId": "src_index__someId",
+  "subClass": "src_index__subClass",
+  "test": "src_index__test",
+  "{}": "src_index__{}",
+  "©": "src_index__©",
+  "“‘’”": "src_index__“‘’”",
+  "⌘⌥": "src_index__⌘⌥",
+  "☺☃": "src_index__☺☃",
+  "♥": "src_index__♥",
+  "𝄞♪♩♫♬": "src_index__𝄞♪♩♫♬",
+  "💩": "src_index__💩",
+  "😍": "src_index__😍",
 }
 `;
 
 exports[`ConfigTestCases builtins css-modules-locals-convention-camelCase exported tests css modules localsConvention with camelCase 1`] = `
 Object {
-  "btn--info_is-disabled_1": "be5d658eb22137a006e0",
-  "btn-info_is-disabled": "_779fe26757a96701fe9b",
-  "btnInfoIsDisabled": "_779fe26757a96701fe9b",
-  "btnInfoIsDisabled1": "be5d658eb22137a006e0",
-  "fooBar": "f6ab18360b31088c39ba",
-  "foo_bar": "f6ab18360b31088c39ba",
-  "simple": "a883f99892916cc2d8fd",
+  "btn--info_is-disabled_1": "-_273d87445e861b3031dc-btn--info_is-disabled_1",
+  "btn-info_is-disabled": "-_273d87445e861b3031dc-btn-info_is-disabled",
+  "btnInfoIsDisabled": "-_273d87445e861b3031dc-btn-info_is-disabled",
+  "btnInfoIsDisabled1": "-_273d87445e861b3031dc-btn--info_is-disabled_1",
+  "fooBar": "-_273d87445e861b3031dc-foo_bar",
+  "foo_bar": "-_273d87445e861b3031dc-foo_bar",
+  "simple": "-_273d87445e861b3031dc-simple",
 }
 `;
 
 exports[`ConfigTestCases builtins css-modules-locals-convention-camelCaseOnly exported tests css modules localsConvention with camelCaseOnly 1`] = `
 Object {
-  "btnInfoIsDisabled": "_779fe26757a96701fe9b",
-  "btnInfoIsDisabled1": "be5d658eb22137a006e0",
-  "fooBar": "f6ab18360b31088c39ba",
-  "simple": "a883f99892916cc2d8fd",
+  "btnInfoIsDisabled": "-_273d87445e861b3031dc-btn-info_is-disabled",
+  "btnInfoIsDisabled1": "-_273d87445e861b3031dc-btn--info_is-disabled_1",
+  "fooBar": "-_273d87445e861b3031dc-foo_bar",
+  "simple": "-_273d87445e861b3031dc-simple",
 }
 `;
 
 exports[`ConfigTestCases builtins css-modules-locals-convention-dashes exported tests css modules localsConvention with dashes 1`] = `
 Object {
-  "btn--info_is-disabled_1": "be5d658eb22137a006e0",
-  "btn-info-is-disabled": "_779fe26757a96701fe9b",
-  "btn-info-is-disabled-1": "be5d658eb22137a006e0",
-  "btn-info_is-disabled": "_779fe26757a96701fe9b",
-  "foo-bar": "f6ab18360b31088c39ba",
-  "foo_bar": "f6ab18360b31088c39ba",
-  "simple": "a883f99892916cc2d8fd",
+  "btn--info_is-disabled_1": "-_273d87445e861b3031dc-btn--info_is-disabled_1",
+  "btn-info-is-disabled": "-_273d87445e861b3031dc-btn-info_is-disabled",
+  "btn-info-is-disabled-1": "-_273d87445e861b3031dc-btn--info_is-disabled_1",
+  "btn-info_is-disabled": "-_273d87445e861b3031dc-btn-info_is-disabled",
+  "foo-bar": "-_273d87445e861b3031dc-foo_bar",
+  "foo_bar": "-_273d87445e861b3031dc-foo_bar",
+  "simple": "-_273d87445e861b3031dc-simple",
 }
 `;
 
 exports[`ConfigTestCases builtins css-modules-pseudo exported tests css modules pseudo syntax 1`] = `
 Object {
-  "bar": "cacc1496e2b72da608be",
-  "bav": "db3f1cc506f178423160",
-  "foo": "e19c45648c68713ed25f",
-  "four": "f182e3b95198a17baa9e",
-  "one": "_6f07ddfd0780cc1659ae",
-  "three": "_3f1fe9cfd1b2534d3f7f",
-  "two": "eea2bec7b16040ba9d36",
+  "bar": "-_273d87445e861b3031dc-bar",
+  "bav": "-_273d87445e861b3031dc-bav",
+  "foo": "-_273d87445e861b3031dc-foo",
+  "four": "-_273d87445e861b3031dc-four",
+  "one": "-_273d87445e861b3031dc-one",
+  "three": "-_273d87445e861b3031dc-three",
+  "two": "-_273d87445e861b3031dc-two",
 }
 `;
 
 exports[`ConfigTestCases builtins css-modules-simple exported tests css modules simple test 1`] = `
 Object {
-  "style": "_5c2d5551d80e7ce1ba5f",
+  "style": "-_921b05f8c9c16ca9ea84-style",
 }
 `;
 

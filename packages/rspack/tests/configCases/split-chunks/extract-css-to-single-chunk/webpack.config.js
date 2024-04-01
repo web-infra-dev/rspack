@@ -9,6 +9,19 @@ module.exports = {
 	output: {
 		filename: "[name].js"
 	},
+	module: {
+		generator: {
+			"css/auto": {
+				exportsOnly: false
+			},
+			"css": {
+				exportsOnly: false,
+			},
+			"css/module": {
+				exportsOnly: false,
+			}
+		},
+	},
 	optimization: {
 		splitChunks: {
 			minSize: 1,

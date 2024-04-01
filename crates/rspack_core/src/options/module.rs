@@ -4,11 +4,13 @@ use std::{
 };
 
 use async_recursion::async_recursion;
+use bitflags::bitflags;
 use derivative::Derivative;
 use futures::future::BoxFuture;
 use rspack_error::Result;
+use rspack_macros::MergeFrom;
 use rspack_regex::RspackRegex;
-use rspack_util::{try_all, try_any};
+use rspack_util::{try_all, try_any, MergeFrom};
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{Filename, ModuleType, PublicPath, Resolve};
@@ -28,14 +30,18 @@ impl ParserOptionsByModuleType {
   }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, MergeFrom)]
+#[merge_from(enum_base)]
 pub enum ParserOptions {
   Asset(AssetParserOptions),
+  Css(CssParserOptions),
+  CssAuto(CssAutoParserOptions),
+  CssModule(CssModuleParserOptions),
   Javascript(JavascriptParserOptions),
   Unknown,
 }
 
-macro_rules! get_parser_option {
+macro_rules! get_variant {
   ($fn_name:ident, $variant:ident, $module_variant:ident, $ret_ty:ident) => {
     pub fn $fn_name(&self, module_type: &ModuleType) -> Option<&$ret_ty> {
       match self {
@@ -47,11 +53,14 @@ macro_rules! get_parser_option {
 }
 
 impl ParserOptions {
-  get_parser_option!(get_asset, Asset, Asset, AssetParserOptions);
-  get_parser_option!(get_javascript, Javascript, Js, JavascriptParserOptions);
+  get_variant!(get_asset, Asset, Asset, AssetParserOptions);
+  get_variant!(get_css, Css, Css, CssParserOptions);
+  get_variant!(get_css_auto, CssAuto, CssAuto, CssAutoParserOptions);
+  get_variant!(get_css_module, CssModule, CssModule, CssModuleParserOptions);
+  get_variant!(get_javascript, Javascript, Js, JavascriptParserOptions);
 }
 
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default, MergeFrom)]
 pub enum DynamicImportMode {
   #[default]
   Lazy,
@@ -75,7 +84,7 @@ impl From<&str> for DynamicImportMode {
   }
 }
 
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default, MergeFrom)]
 pub enum JavascriptParserUrl {
   #[default]
   Enable,
@@ -93,7 +102,7 @@ impl From<&str> for JavascriptParserUrl {
   }
 }
 
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default, MergeFrom)]
 pub enum JavascriptParserOrder {
   #[default]
   Disable,
@@ -125,7 +134,7 @@ impl From<&str> for JavascriptParserOrder {
   }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, MergeFrom)]
 pub struct JavascriptParserOptions {
   pub dynamic_import_mode: DynamicImportMode,
   pub dynamic_import_preload: JavascriptParserOrder,
@@ -133,20 +142,35 @@ pub struct JavascriptParserOptions {
   pub url: JavascriptParserUrl,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, MergeFrom)]
 pub struct AssetParserOptions {
   pub data_url_condition: Option<AssetParserDataUrl>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, MergeFrom)]
 pub enum AssetParserDataUrl {
   Options(AssetParserDataUrlOptions),
   // TODO: Function
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, MergeFrom)]
 pub struct AssetParserDataUrlOptions {
   pub max_size: Option<u32>,
+}
+
+#[derive(Debug, Clone, MergeFrom)]
+pub struct CssParserOptions {
+  pub named_exports: Option<bool>,
+}
+
+#[derive(Debug, Clone, MergeFrom)]
+pub struct CssAutoParserOptions {
+  pub named_exports: Option<bool>,
+}
+
+#[derive(Debug, Clone, MergeFrom)]
+pub struct CssModuleParserOptions {
+  pub named_exports: Option<bool>,
 }
 
 #[derive(Debug)]
@@ -164,38 +188,40 @@ impl GeneratorOptionsByModuleType {
   }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, MergeFrom)]
+#[merge_from(enum_base)]
 pub enum GeneratorOptions {
   Asset(AssetGeneratorOptions),
   AssetInline(AssetInlineGeneratorOptions),
   AssetResource(AssetResourceGeneratorOptions),
+  Css(CssGeneratorOptions),
+  CssAuto(CssAutoGeneratorOptions),
+  CssModule(CssModuleGeneratorOptions),
   Unknown,
 }
 
 impl GeneratorOptions {
-  pub fn get_asset(&self, module_type: &ModuleType) -> Option<&AssetGeneratorOptions> {
-    let maybe = match self {
-      Self::Asset(i) => Some(i),
-      _ => None,
-    };
-    maybe.filter(|_| matches!(module_type, ModuleType::Asset))
-  }
-
-  fn get_asset_inline(&self, module_type: &ModuleType) -> Option<&AssetInlineGeneratorOptions> {
-    let maybe = match self {
-      Self::AssetInline(i) => Some(i),
-      _ => None,
-    };
-    maybe.filter(|_| matches!(module_type, ModuleType::AssetInline))
-  }
-
-  fn get_asset_resource(&self, module_type: &ModuleType) -> Option<&AssetResourceGeneratorOptions> {
-    let maybe = match self {
-      Self::AssetResource(i) => Some(i),
-      _ => None,
-    };
-    maybe.filter(|_| matches!(module_type, ModuleType::AssetResource))
-  }
+  get_variant!(get_asset, Asset, Asset, AssetGeneratorOptions);
+  get_variant!(
+    get_asset_inline,
+    AssetInline,
+    AssetInline,
+    AssetInlineGeneratorOptions
+  );
+  get_variant!(
+    get_asset_resource,
+    AssetResource,
+    AssetResource,
+    AssetResourceGeneratorOptions
+  );
+  get_variant!(get_css, Css, Css, CssGeneratorOptions);
+  get_variant!(get_css_auto, CssAuto, CssAuto, CssAutoGeneratorOptions);
+  get_variant!(
+    get_css_module,
+    CssModule,
+    CssModule,
+    CssModuleGeneratorOptions
+  );
 
   pub fn asset_filename(&self, module_type: &ModuleType) -> Option<&Filename> {
     self
@@ -231,18 +257,18 @@ impl GeneratorOptions {
   }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, MergeFrom)]
 pub struct AssetInlineGeneratorOptions {
   pub data_url: Option<AssetGeneratorDataUrl>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, MergeFrom)]
 pub struct AssetResourceGeneratorOptions {
   pub filename: Option<Filename>,
   pub public_path: Option<PublicPath>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, MergeFrom)]
 pub struct AssetGeneratorOptions {
   pub filename: Option<Filename>,
   pub public_path: Option<PublicPath>,
@@ -280,13 +306,19 @@ impl Clone for AssetGeneratorDataUrl {
   }
 }
 
-#[derive(Debug, Clone)]
+impl MergeFrom for AssetGeneratorDataUrl {
+  fn merge_from(self, other: &Self) -> Self {
+    other.clone()
+  }
+}
+
+#[derive(Debug, Clone, MergeFrom)]
 pub struct AssetGeneratorDataUrlOptions {
   pub encoding: Option<DataUrlEncoding>,
   pub mimetype: Option<String>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, MergeFrom)]
 pub enum DataUrlEncoding {
   None,
   Base64,
@@ -308,6 +340,90 @@ impl From<String> for DataUrlEncoding {
       "false" => Self::None,
       _ => unreachable!("DataUrlEncoding should be base64 or false"),
     }
+  }
+}
+
+#[derive(Debug, Clone, MergeFrom)]
+pub struct CssGeneratorOptions {
+  pub exports_convention: Option<CssExportsConvention>,
+  pub exports_only: Option<bool>,
+}
+
+#[derive(Debug, Clone, MergeFrom)]
+pub struct CssAutoGeneratorOptions {
+  pub exports_convention: Option<CssExportsConvention>,
+  pub exports_only: Option<bool>,
+  pub local_ident_name: Option<LocalIdentName>,
+}
+
+#[derive(Debug, Clone, MergeFrom)]
+pub struct CssModuleGeneratorOptions {
+  pub exports_convention: Option<CssExportsConvention>,
+  pub exports_only: Option<bool>,
+  pub local_ident_name: Option<LocalIdentName>,
+}
+
+#[derive(Debug, Clone, MergeFrom)]
+pub struct LocalIdentName {
+  pub template: crate::FilenameTemplate,
+}
+
+impl From<String> for LocalIdentName {
+  fn from(value: String) -> Self {
+    Self {
+      template: value.into(),
+    }
+  }
+}
+
+bitflags! {
+  #[derive(Debug, Clone, Copy)]
+  struct ExportsConventionFlags: u8 {
+    const ASIS = 1 << 0;
+    const CAMELCASE = 1 << 1;
+    const DASHES = 1 << 2;
+  }
+}
+
+impl MergeFrom for ExportsConventionFlags {
+  fn merge_from(self, other: &Self) -> Self {
+    *other
+  }
+}
+
+#[derive(Debug, Clone, Copy, MergeFrom)]
+pub struct CssExportsConvention(ExportsConventionFlags);
+
+impl CssExportsConvention {
+  pub fn as_is(&self) -> bool {
+    self.0.contains(ExportsConventionFlags::ASIS)
+  }
+
+  pub fn camel_case(&self) -> bool {
+    self.0.contains(ExportsConventionFlags::CAMELCASE)
+  }
+
+  pub fn dashes(&self) -> bool {
+    self.0.contains(ExportsConventionFlags::DASHES)
+  }
+}
+
+impl From<String> for CssExportsConvention {
+  fn from(s: String) -> Self {
+    match s.as_str() {
+      "as-is" => Self(ExportsConventionFlags::ASIS),
+      "camel-case" => Self(ExportsConventionFlags::ASIS | ExportsConventionFlags::CAMELCASE),
+      "camel-case-only" => Self(ExportsConventionFlags::CAMELCASE),
+      "dashes" => Self(ExportsConventionFlags::ASIS | ExportsConventionFlags::DASHES),
+      "dashes-only" => Self(ExportsConventionFlags::DASHES),
+      _ => unreachable!("css exportsConventions error"),
+    }
+  }
+}
+
+impl Default for CssExportsConvention {
+  fn default() -> Self {
+    Self(ExportsConventionFlags::ASIS)
   }
 }
 

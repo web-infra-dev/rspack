@@ -62,7 +62,8 @@ import {
 	BundlerInfoRspackPlugin,
 	ModuleConcatenationPlugin,
 	EvalDevToolModulePlugin,
-	JsLoaderRspackPlugin
+	JsLoaderRspackPlugin,
+	CssModulesPlugin
 } from "./builtin-plugin";
 import { deprecatedWarn } from "./util";
 
@@ -226,6 +227,9 @@ export class RspackOptionsApply {
 		new AssetModulesPlugin().apply(compiler);
 		if (options.experiments.asyncWebAssembly) {
 			new AsyncWebAssemblyModulesPlugin().apply(compiler);
+		}
+		if (options.experiments.css) {
+			new CssModulesPlugin().apply(compiler);
 		}
 
 		if (options.experiments.rspackFuture!.disableApplyEntryLazily) {

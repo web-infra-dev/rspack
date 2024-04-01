@@ -484,19 +484,14 @@ impl Plugin for AssetPlugin {
   fn apply(
     &self,
     ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
-    options: &mut CompilerOptions,
+    _options: &mut CompilerOptions,
   ) -> Result<()> {
-    let data_url_condition = options
-      .module
-      .parser
-      .as_ref()
-      .and_then(|x| x.get(&ModuleType::Asset))
-      .and_then(|x| x.get_asset(&ModuleType::Asset))
-      .and_then(|x| x.data_url_condition.clone());
-
     ctx.context.register_parser_and_generator_builder(
       rspack_core::ModuleType::Asset,
-      Box::new(move || {
+      Box::new(move |p, _| {
+        let data_url_condition = p
+          .and_then(|x| x.get_asset(&ModuleType::Asset))
+          .and_then(|x| x.data_url_condition.clone());
         Box::new(AssetParserAndGenerator::with_auto(
           data_url_condition.clone(),
         ))
@@ -504,15 +499,15 @@ impl Plugin for AssetPlugin {
     );
     ctx.context.register_parser_and_generator_builder(
       rspack_core::ModuleType::AssetInline,
-      Box::new(|| Box::new(AssetParserAndGenerator::with_inline())),
+      Box::new(|_, _| Box::new(AssetParserAndGenerator::with_inline())),
     );
     ctx.context.register_parser_and_generator_builder(
       rspack_core::ModuleType::AssetResource,
-      Box::new(move || Box::new(AssetParserAndGenerator::with_resource())),
+      Box::new(move |_, _| Box::new(AssetParserAndGenerator::with_resource())),
     );
     ctx.context.register_parser_and_generator_builder(
       rspack_core::ModuleType::AssetSource,
-      Box::new(move || Box::new(AssetParserAndGenerator::with_source())),
+      Box::new(move |_, _| Box::new(AssetParserAndGenerator::with_source())),
     );
 
     Ok(())

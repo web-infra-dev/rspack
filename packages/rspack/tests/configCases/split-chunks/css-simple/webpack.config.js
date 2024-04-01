@@ -9,5 +9,18 @@ module.exports = {
 	optimization: {
 		chunkIds: "named"
 	},
-	target: "node"
+	target: "node",
+	module: {
+		generator: {
+			"css/auto": {
+				exportsOnly: false
+			},
+			"css": {
+				exportsOnly: false,
+			},
+			"css/module": {
+				exportsOnly: false,
+			}
+		},
+	}
 };

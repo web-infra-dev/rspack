@@ -210,7 +210,7 @@ impl Plugin for JsonPlugin {
   ) -> Result<()> {
     ctx.context.register_parser_and_generator_builder(
       rspack_core::ModuleType::Json,
-      Box::new(|| Box::new(JsonParserAndGenerator {})),
+      Box::new(|_, _| Box::new(JsonParserAndGenerator {})),
     );
 
     Ok(())
