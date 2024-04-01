@@ -103,12 +103,6 @@ impl HarmonyExportImportedSpecifierDependency {
     if module_graph.active().is_none() {
       return self._get_mode(name, module_graph, id, runtime);
     }
-    //
-    // let value = self._get_mode(name, module_graph, id, runtime);
-    // dbg!(&key, &value,);
-
-    // GET_MODE_MAP.insert(key, value.clone());
-    // return value;
     let value = if let Some(value) = module_graph
       .get_export_mode_cache()
       .expect("should have cache")
@@ -123,7 +117,7 @@ impl HarmonyExportImportedSpecifierDependency {
         .insert(key.clone(), value.clone());
       value
     };
-    return value;
+    value
   }
 
   fn _get_mode(
