@@ -319,15 +319,108 @@ function getSidebarConfig(lang: 'zh' | 'en'): Sidebar {
 				link: getLink('/plugins'),
 			},
 			{
-				text: getText('同步自 webpack 的内置插件', 'Plugin'),
+				text: getText(
+					'同步自 webpack 的内置插件',
+					'Webpack-synchronized built-in plugins',
+				),
 				link: getLink('/plugins/webpack'),
+				items: [
+					{
+						text: 'EntryPlugin',
+						link: getLink('/plugins/webpack/entry-plugin'),
+					},
+					{
+						text: 'DefinePlugin',
+						link: getLink('/plugins/webpack/define-plugin'),
+					},
+					{
+						text: 'ProvidePlugin',
+						link: getLink('/plugins/webpack/provide-plugin'),
+					},
+					{
+						text: 'BannerPlugin',
+						link: getLink('/plugins/webpack/banner-plugin'),
+					},
+					{
+						text: 'HotModuleReplacementPlugin',
+						link: getLink('/plugins/webpack/hot-module-replacement-plugin'),
+					},
+					{
+						text: 'ProgressPlugin',
+						link: getLink('/plugins/webpack/progress-plugin'),
+					},
+					{
+						text: 'ExternalsPlugin',
+						link: getLink('/plugins/webpack/externals-plugin'),
+					},
+					{
+						text: 'SourceMapDevToolPlugin',
+						link: getLink('/plugins/webpack/source-map-dev-tool-plugin'),
+					},
+					{
+						text: 'NodeTargetPlugin',
+						link: getLink('/plugins/webpack/node-target-plugin'),
+					},
+					{
+						text: 'NodeTemplatePlugin',
+						link: getLink('/plugins/webpack/node-template-plugin'),
+					},
+					{
+						text: 'EnableChunkLoadingPlugin',
+						link: getLink('/plugins/webpack/enable-chunk-loading-plugin'),
+					},
+					{
+						text: 'EnableLibraryPlugin',
+						link: getLink('/plugins/webpack/enable-library-plugin'),
+					},
+					{
+						text: 'EnableWasmLoadingPlugin',
+						link: getLink('/plugins/webpack/enable-wasm-loading-plugin'),
+					},
+					{
+						text: 'ElectronTargetPlugin',
+						link: getLink('/plugins/webpack/electron-target-plugin'),
+					},
+					{
+						text: 'ModuleFederationPlugin',
+						link: getLink('/plugins/webpack/module-federation-plugin'),
+					},
+					{
+						text: 'ModuleFederationPluginV1',
+						link: getLink('/plugins/webpack/module-federation-plugin-v1'),
+					},
+				],
 			},
 			{
-				text: getText('Rspack 独有的内置插件', 'Plugin'),
+				text: getText(
+					'Rspack 独有的内置插件',
+					'Rspack-exclusive built-in plugins',
+				),
 				link: getLink('/plugins/rspack'),
+				items: [
+					{
+						text: 'HtmlRspackPlugin',
+						link: getLink('/plugins/rspack/html-rspack-plugin'),
+					},
+					{
+						text: 'SwcJsMinimizerRspackPlugin',
+						link: getLink('/plugins/rspack/swc-js-minimizer-rspack-plugin'),
+					},
+					{
+						text: 'SwcCssMinimizerRspackPlugin',
+						link: getLink('/plugins/rspack/swc-css-minimizer-rspack-plugin'),
+					},
+					{
+						text: 'CopyRspackPlugin',
+						link: getLink('/plugins/rspack/copy-rspack-plugin'),
+					},
+				],
 			},
 			{
-				text: getText('兼容的 webpack 生态插件', 'Plugin'),
+				text: getText(
+					'兼容的 webpack 生态插件',
+					'Compatible plugins from the webpack ecosystem',
+				),
 				link: getLink('/plugins/eco'),
 			},
 		],

@@ -1,0 +1,11 @@
+import { ApiMeta } from '../../../../components/ApiMeta.tsx';
+
+# wasm.EnableWasmLoadingPlugin
+
+<ApiMeta addedVersion={'0.3.3'} />
+
+开启该 wasmLoadingType 的运行时模块打包，[output.enabledWasmLoadingTypes](/zh/config/output.html#outputenabledwasmloadingtypes) 底层使用了该插件。
+
+```js
+new rspack.library.EnableWasmLoadingPlugin('fetch');
+```

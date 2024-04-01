@@ -1,0 +1,149 @@
+import { Table } from '@builtIns';
+import { ApiMeta } from '../../../../components/ApiMeta.tsx';
+
+# HtmlRspackPlugin
+
+<ApiMeta addedVersion={'0.3.3'} />
+
+此插件可以创建与 Rspack 产物关联的 HTML 文件。
+
+```js
+new rspack.HtmlRspackPlugin(options);
+```
+
+- options
+
+  - **类型：**
+
+  ```ts
+  type HtmlRspackPluginOptions = {
+    title?: string;
+    filename?: string;
+    template?: string;
+    templateContent?: string;
+    templateParameters?: Record<string, string>;
+    inject?: 'head' | 'body';
+    publicPath?: string;
+    scriptLoading?: 'blocking' | 'defer' | 'module';
+    chunks?: string[];
+    excludedChunks?: string[];
+    sri?: 'sha256' | 'sha384' | 'sha512';
+    minify?: boolean;
+    favicon?: string;
+    meta?: Record<string, string | Record<string, string>>;
+  };
+  ```
+
+  - **默认值：** `{}`
+
+  <Table
+    header={[
+      {
+        name: '名称',
+        key: 'name',
+      },
+      {
+        name: '类型',
+        key: 'type',
+      },
+      {
+        name: '默认值',
+        key: 'default',
+      },
+      {
+        name: '描述',
+        key: 'description',
+      },
+    ]}
+    body={[
+      {
+        name: '`title`',
+        type: '`string|undefined`',
+        default: 'undefined',
+        description: '构建 HTML 的标题',
+      },
+      {
+        name: '`filename`',
+        type: '`string`',
+        default: "'index.html'",
+        description: '输出的文件名，可以指定子目录，例如 `pages/index.html`',
+      },
+      {
+        name: '`template`',
+        type: '`string|undefined`',
+        default: 'undefined',
+        description: '模版文件路径，支持 ejs',
+      },
+      {
+        name: '`templateContent`',
+        type: '`string|undefined`',
+        default: 'undefined',
+        description: '模版文件内容，优先级大于 template',
+      },
+      {
+        name: '`templateParameters`',
+        type: '`Record<string, string>`',
+        default: '{}',
+        description: '传递给模版的参数',
+      },
+      {
+        name: '`inject`',
+        type: "`'head'|'body'|undefined`",
+        default: 'undefined',
+        description: '产物注入位置',
+      },
+      {
+        name: '`publicPath`',
+        type: '`string`',
+        default: "''",
+        description: 'script 和 link 标签的 publicPath',
+      },
+      {
+        name: '`scriptLoading`',
+        type: "`'blocking'|'defer'|'module'`",
+        default: "'defer'",
+        description:
+          '现代浏览器支持使用 defer 来异步加载 js，设置为 module 则会添加 `type="module"` 同时使用 defer',
+      },
+      {
+        name: '`chunks`',
+        type: '`string[]|undefined`',
+        default: 'undefined',
+        description: '配置需要注入的 chunk，默认注入所有 chunk',
+      },
+      {
+        name: '`excludedChunks`',
+        type: '`string[]|undefined`',
+        default: 'undefined',
+        description: '配置需要跳过注入的 chunk',
+      },
+      {
+        name: '`sri`',
+        type: "`'sha256'|'sha384'|'sha512'|undefined`",
+        default: 'undefined',
+        description: 'sri hash 算法，默认不开启 sri',
+      },
+      {
+        name: '`minify`',
+        type: '`boolean`',
+        default: 'false',
+        description: '是否启用压缩',
+      },
+      {
+        name: '`favicon`',
+        type: '`string|undefined`',
+        default: 'undefined',
+        description: '配置 HTML 图标',
+      },
+      {
+        name: '`meta`',
+        type: '`Record<string, string|Record<string, string>>` ',
+        default: '{}',
+        description: '配置需要注入 HTML 的 meta',
+      },
+    ]}
+  />
+
+:::tip
+如果 `rspack.HtmlRspackPlugin` 提供的配置项无法满足需求，你也可以直接使用社区的 [html-webpack-plugin](https://www.npmjs.com/package/html-webpack-plugin) 插件。
+:::
