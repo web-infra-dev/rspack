@@ -1,22 +1,17 @@
 use std::hash::BuildHasherDefault;
-use std::hash::Hash;
-use std::panic::Location;
 use std::{collections::HashMap, sync::Arc};
 
-use dashmap::DashMap;
 use indexmap::IndexSet;
-use once_cell::sync::Lazy;
 use rspack_core::ExportMode;
 use rspack_core::ExportModeType;
 use rspack_core::GetModeCacheKey;
-use rspack_core::ModuleGraphConnection;
 use rspack_core::NormalReexportItem;
 use rspack_core::{
   create_exports_object_referenced, create_no_exports_referenced, export_from_import,
   get_exports_type, process_export_info, property_access, property_name, string_of_used_name,
   AsContextDependency, ConnectionState, Dependency, DependencyCategory, DependencyCondition,
-  DependencyId, DependencyTemplate, DependencyType, ExportInfoId, ExportInfoProvided,
-  ExportNameOrSpec, ExportSpec, ExportsInfoId, ExportsOfExportsSpec, ExportsSpec, ExportsType,
+  DependencyId, DependencyTemplate, DependencyType, ExportInfoProvided, ExportNameOrSpec,
+  ExportSpec, ExportsInfoId, ExportsOfExportsSpec, ExportsSpec, ExportsType,
   ExtendedReferencedExport, HarmonyExportInitFragment, InitFragmentExt, InitFragmentKey,
   InitFragmentStage, ModuleDependency, ModuleGraph, ModuleIdentifier, NormalInitFragment,
   RuntimeGlobals, RuntimeSpec, Template, TemplateContext, TemplateReplaceSource, UsageState,
@@ -108,7 +103,7 @@ impl HarmonyExportImportedSpecifierDependency {
     if module_graph.active().is_none() {
       return self._get_mode(name, module_graph, id, runtime);
     }
-
+    //
     // let value = self._get_mode(name, module_graph, id, runtime);
     // dbg!(&key, &value,);
 
