@@ -214,7 +214,7 @@ impl<'me> CodeSplitter<'me> {
         &mut self.compilation.chunk_by_ukey,
         &mut self.compilation.named_chunks,
       );
-      let runtime = get_entry_runtime(&name, options, self.compilation);
+      let runtime = get_entry_runtime(&name, options, &self.compilation.entries);
       let chunk = self.compilation.chunk_by_ukey.expect_get_mut(&chunk_ukey);
       if let Some(filename) = &entry_data.options.filename {
         chunk.filename_template = Some(filename.clone().into());

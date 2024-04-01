@@ -4,8 +4,8 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::tree_shaking::webpack_ext::ExportInfoExt;
 use rspack_core::{
-  property_access, ApplyContext, ChunkUkey, CompilerOptions, EntryData, FilenameTemplate,
-  LibraryExport, LibraryName, LibraryNonUmdObject, UsageState,
+  get_entry_runtime, property_access, ApplyContext, ChunkUkey, CompilerOptions, EntryData,
+  FilenameTemplate, LibraryExport, LibraryName, LibraryNonUmdObject, UsageState,
 };
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceExt},
@@ -178,7 +178,7 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
       options,
       ..
     } = entry;
-    let runtime = compilation.get_entry_runtime(entry_name, Some(options));
+    let runtime = get_entry_runtime(entry_name, options, &compilation.entries);
     let library_options = options
       .library
       .as_ref()
