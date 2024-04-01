@@ -70,7 +70,7 @@ class Compiler {
 	compilation?: Compilation;
 	compilationParams?: CompilationParams;
 	// TODO: remove this after remove rebuild on the rust side.
-	first: boolean = true;
+	#initial: boolean = true;
 	builtinPlugins: binding.BuiltinPlugin[];
 	root: Compiler;
 	running: boolean;
@@ -945,15 +945,12 @@ class Compiler {
 			doRun();
 		}
 	}
-	/**
-	 * Safety: This method is only valid to call if the previous rebuild task is finished, or there will be data races.
-	 */
-	build(callback?: (error: Error | null) => void) {
+	#build(callback?: (error: Error | null) => void) {
 		this.#getInstance((error, instance) => {
 			if (error) {
 				return callback?.(error);
 			}
-			if (!this.first) {
+			if (!this.#initial) {
 				instance!.rebuild(
 					Array.from(this.modifiedFiles || []),
 					Array.from(this.removedFiles || []),
@@ -966,7 +963,7 @@ class Compiler {
 				);
 				return;
 			}
-			this.first = false;
+			this.#initial = false;
 			instance!.build(error => {
 				if (error) {
 					return callback?.(error);
@@ -977,10 +974,10 @@ class Compiler {
 	}
 
 	/**
-	 * Safety: This method is only valid to call if the previous rebuild task is finished, or there will be data races.
-	 * @deprecated This is a low-level incremental rebuild API, which shouldn't be used intentionally. Use `compiler.build` instead.
+	 * * Note: This is not a webpack public API, maybe removed in future.
+	 * @internal
 	 */
-	rebuild(
+	__internal__rebuild(
 		modifiedFiles?: ReadonlySet<string>,
 		removedFiles?: ReadonlySet<string>,
 		callback?: (error: Error | null) => void
@@ -1041,7 +1038,7 @@ class Compiler {
 			this.hooks.compile.call(params);
 			this.#resetThisCompilation();
 
-			this.build(err => {
+			this.#build(err => {
 				if (err) {
 					return callback(err);
 				}
@@ -1077,7 +1074,7 @@ class Compiler {
 
 	close(callback: (error?: Error | null) => void) {
 		if (this.watching) {
-			// When there is still an active watching, close this first
+			// When there is still an active watching, close this #initial
 			this.watching.close(() => {
 				this.close(callback);
 			});
