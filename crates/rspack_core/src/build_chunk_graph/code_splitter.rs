@@ -214,6 +214,7 @@ impl<'me> CodeSplitter<'me> {
         &mut self.compilation.chunk_by_ukey,
         &mut self.compilation.named_chunks,
       );
+      let runtime = get_entry_runtime(&name, options, &self.compilation.entries);
       let chunk = self.compilation.chunk_by_ukey.expect_get_mut(&chunk_ukey);
       if let Some(filename) = &entry_data.options.filename {
         chunk.filename_template = Some(filename.clone().into());
@@ -230,7 +231,7 @@ impl<'me> CodeSplitter<'me> {
       let chunk_group_info = {
         let mut cgi = ChunkGroupInfo::new(
           entrypoint.ukey,
-          get_entry_runtime(&name, options),
+          runtime,
           !matches!(
             options
               .chunk_loading
@@ -246,7 +247,7 @@ impl<'me> CodeSplitter<'me> {
         cgi
       };
 
-      if options.runtime.is_none() {
+      if options.depend_on.is_none() && options.runtime.is_none() {
         entrypoint.set_runtime_chunk(chunk.ukey);
       }
       entrypoint.set_entry_point_chunk(chunk.ukey);
@@ -334,11 +335,83 @@ impl<'me> CodeSplitter<'me> {
     }
 
     let mut runtime_chunks = HashSet::default();
-    let mut runtime_error = None;
+    let mut runtime_errors = vec![];
     for (name, entry_data) in &self.compilation.entries {
       let options = &entry_data.options;
+      let runtime = &options.runtime;
+      let depend_on = &options.depend_on;
 
-      if let Some(runtime) = &options.runtime {
+      if depend_on.is_some() && runtime.is_some() {
+        runtime_errors.push(Some(error!(
+          "Entrypoint '{name}' has 'dependOn' and 'runtime' specified. This is not valid.
+Entrypoints that depend on other entrypoints do not have their own runtime.
+They will use the runtime(s) from referenced entrypoints instead.
+Remove the 'runtime' option from the entrypoint."
+        )));
+      }
+
+      if let Some(depend_on) = &options.depend_on {
+        let ukey = self
+          .compilation
+          .entrypoints
+          .get(name)
+          .ok_or_else(|| error!("no entrypoints found"))?;
+
+        let mut entry_point_runtime = None;
+        let mut depend_on_entries = vec![];
+        let mut entry_point_parents = vec![];
+        let mut has_error = false;
+
+        {
+          let entry_point = self.compilation.chunk_group_by_ukey.expect_get(ukey);
+          let entry_point_chunk = self
+            .compilation
+            .chunk_by_ukey
+            .expect_get(&entry_point.get_entry_point_chunk());
+          let referenced_chunks =
+            entry_point_chunk.get_all_referenced_chunks(&self.compilation.chunk_group_by_ukey);
+
+          for dep in depend_on {
+            if let Some(dependency_ukey) = self.compilation.entrypoints.get(dep) {
+              let dependency_chunk_ukey = self
+                .compilation
+                .chunk_group_by_ukey
+                .expect_get(dependency_ukey)
+                .get_entry_point_chunk();
+              if referenced_chunks.contains(&dependency_chunk_ukey) {
+                runtime_errors.push(Some(error!(
+                "Entrypoints '{name}' and '{dep}' use 'dependOn' to depend on each other in a circular way."
+              )));
+                entry_point_runtime = Some(entry_point_chunk.ukey);
+                has_error = true;
+                break;
+              }
+              depend_on_entries.push(dependency_ukey);
+            } else {
+              panic!("Entry {name} depends on {dep}, but this entry was not found");
+            }
+          }
+        }
+
+        if has_error {
+          let entry_point = self.compilation.chunk_group_by_ukey.expect_get_mut(ukey);
+          entry_point.set_runtime_chunk(entry_point_runtime.expect("Should set runtime chunk"));
+          continue;
+        } else {
+          {
+            for depend in depend_on_entries {
+              let depend_chunk_group = self.compilation.chunk_group_by_ukey.expect_get_mut(depend);
+              if depend_chunk_group.add_child(*ukey) {
+                entry_point_parents.push(*depend);
+              }
+            }
+          }
+          let entry_point = self.compilation.chunk_group_by_ukey.expect_get_mut(ukey);
+          for parent in entry_point_parents {
+            entry_point.add_parent(parent);
+          }
+        }
+      } else if let Some(runtime) = &options.runtime {
         let ukey = self
           .compilation
           .entrypoints
@@ -350,13 +423,12 @@ impl<'me> CodeSplitter<'me> {
         let chunk = match self.compilation.named_chunks.get(runtime) {
           Some(ukey) => {
             if !runtime_chunks.contains(ukey) {
-              // TODO: add dependOn error message once we implement dependeOn
-              // Did you mean to use 'dependOn: {}' instead to allow using entrypoint '{name}' within the runtime of entrypoint '{runtime}'? For this '{runtime}' must always be loaded when '{name}' is used.
-              runtime_error = Some(error!(
+              runtime_errors.push(Some(error!(
 "Entrypoint '{name}' has a 'runtime' option which points to another entrypoint named '{runtime}'.
 It's not valid to use other entrypoints as runtime chunk.
+Did you mean to use 'dependOn: \"{runtime}\"' instead to allow using entrypoint '{name}' within the runtime of entrypoint '{runtime}'? For this '{runtime}' must always be loaded when '{name}' is used.
 Or do you want to use the entrypoints '{name}' and '{runtime}' independently on the same page with a shared runtime? In this case give them both the same value for the 'runtime' option. It must be a name not already used by an entrypoint."
-              ));
+              )));
               let entry_chunk = entry_point.get_entry_point_chunk();
               entry_point.set_runtime_chunk(entry_chunk);
               continue;
@@ -384,9 +456,10 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       }
     }
 
-    if let Some(err) = runtime_error {
+    for err in runtime_errors.into_iter().flatten() {
       self.compilation.push_diagnostic(err.into());
     }
+
     Ok(input_entrypoints_and_modules)
   }
 
@@ -1190,7 +1263,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           .compilation
           .chunk_group_by_ukey
           .expect_get_mut(&target_cgi.chunk_group);
-        target.parents.insert(chunk_group_ukey);
+        target.add_parent(chunk_group_ukey);
         let mut updated = false;
         for r in runtime.iter() {
           updated = target_cgi.runtime.insert(r.clone());

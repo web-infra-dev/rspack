@@ -185,7 +185,7 @@ export class RspackOptionsApply {
 			.runtimeChunk as OptimizationRuntimeChunkNormalized;
 		if (runtimeChunk) {
 			Object.entries(options.entry).forEach(([entryName, value]) => {
-				if (value.runtime === undefined) {
+				if (value.runtime === undefined && !value.dependOn) {
 					value.runtime = runtimeChunk.name({ name: entryName });
 				}
 			});

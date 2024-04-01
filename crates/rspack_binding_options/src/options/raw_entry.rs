@@ -25,6 +25,7 @@ pub struct RawEntryOptions {
   pub base_uri: Option<String>,
   pub filename: Option<String>,
   pub library: Option<RawLibraryOptions>,
+  pub depend_on: Option<Vec<String>>,
 }
 
 impl From<RawEntryOptions> for EntryOptions {
@@ -38,6 +39,7 @@ impl From<RawEntryOptions> for EntryOptions {
       base_uri: value.base_uri,
       filename: value.filename.map(Into::into),
       library: value.library.map(Into::into),
+      depend_on: value.depend_on.map(Into::into),
     }
   }
 }
