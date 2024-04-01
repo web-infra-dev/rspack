@@ -290,7 +290,11 @@ rspack(
 ## Custom File Systems
 
 :::danger Differences with webpack
-The current support for `inputFileSystem` in Rspack is limited, and the ability to customize the filesystem read capability consistent with webpack has not yet been implemented. Please refer to: [Issue #5091](https://github.com/web-infra-dev/rspack/issues/5091).
+
+1. The current support for `inputFileSystem` in Rspack is limited, and the ability to customize the filesystem read capability consistent with webpack has not yet been implemented. Please refer to: [Issue #5091](https://github.com/web-infra-dev/rspack/issues/5091).
+
+2. With Rspack, when using a specified output file system, there's no longer a requirement to supply `mkdirp` and `join` utility methods.
+
 :::
 
 By default, Rspack reads files and writes files to disk using a normal file system. However, it is possible to change the input or output behavior using a different kind of file system (memory, webDAV, etc). To accomplish this, one can change the `inputFileSystem` or `outputFileSystem`. For example, you can replace the default `outputFileSystem` with [`memfs`](https://github.com/streamich/memfs) to write files to memory instead of to disk:
@@ -313,7 +317,3 @@ compiler.run((err, stats) => {
   });
 });
 ```
-
-:::tip
-The output file system you provide needs to be compatible with Node’s own `fs` interface, which requires the `mkdirp` and `join` helper methods.
-:::

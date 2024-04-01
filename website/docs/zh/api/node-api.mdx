@@ -290,7 +290,11 @@ rspack(
 ## 自定义文件系统
 
 :::danger 与 webpack 的差异
-当前 Rspack 对于 `inputFileSystem` 的支持存在限制，尚未实现与 webpack 一致的自定义文件系统读取能力。请参考：[Issue #5091](https://github.com/web-infra-dev/rspack/issues/5091)。
+
+1. 当前 Rspack 对于 `inputFileSystem` 的支持存在限制，尚未实现与 webpack 一致的自定义文件系统读取能力。请参考：[Issue #5091](https://github.com/web-infra-dev/rspack/issues/5091)。
+
+2. Rspack 在指定的输出文件系统，不再需要提供 `mkdirp` 和 `join` 工具方法。
+
 :::
 
 默认情况下，Rspack 使用普通文件系统来读取文件并将文件写入磁盘。但是，还可以使用不同类型的文件系统（内存, webDAV 等）来更改输入或输出行为。为了实现这一点，可以改变 `inputFileSystem` 或 `outputFileSystem`。例如，可以使用 [`memfs`](https://github.com/streamich/memfs) 替换默认的 `outputFileSystem`，以将文件写入到内存中，而不是写入到磁盘：
@@ -313,7 +317,3 @@ compiler.run((err, stats) => {
   });
 });
 ```
-
-:::tip 提示
-你指定的输出文件系统需要 兼容 Node 自身的 `fs` 模块接口，接口需要提供 `mkdirp` 和 `join` 工具方法。
-:::
