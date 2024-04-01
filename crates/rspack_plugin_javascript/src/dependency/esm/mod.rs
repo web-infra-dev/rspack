@@ -15,7 +15,6 @@ pub use self::harmony_compatibility_dependency::HarmonyCompatibilityDependency;
 pub use self::harmony_export_expression_dependency::*;
 pub use self::harmony_export_header_dependency::HarmonyExportHeaderDependency;
 pub use self::harmony_export_imported_specifier_dependency::HarmonyExportImportedSpecifierDependency;
-pub use self::harmony_export_imported_specifier_dependency::GET_MODE_MAP;
 pub use self::harmony_export_specifier_dependency::HarmonyExportSpecifierDependency;
 pub use self::harmony_import_dependency::get_import_emitted_runtime;
 pub use self::harmony_import_dependency::harmony_import_dependency_apply;

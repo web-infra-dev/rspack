@@ -1,16 +1,18 @@
-use std::borrow::Cow;
 use std::collections::hash_map::Entry;
+use std::{borrow::Cow, hash::BuildHasherDefault};
 
+use dashmap::DashMap;
 use itertools::Itertools;
 use rspack_error::Result;
 use rspack_hash::RspackHashDigest;
 use rspack_identifier::IdentifierMap;
+use rspack_util::fx_dashmap::FxDashMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, Dependency, ProvidedExports,
-  RuntimeSpec, UsedExports,
+  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, Dependency, ExportMode,
+  GetModeCacheKey, ProvidedExports, RuntimeSpec, UsedExports,
 };
 mod module;
 pub use module::*;
@@ -69,6 +71,8 @@ pub struct ModuleGraphPartial {
   export_info_map: vec_map::VecMap<ExportInfo>,
   connection_to_condition: HashMap<ConnectionId, DependencyCondition>,
   dep_meta_map: HashMap<DependencyId, DependencyExtraMeta>,
+  // HACK: temp workaround, remove when rspack has stable cache
+  get_mode_cache: FxDashMap<GetModeCacheKey, ExportMode>,
 }
 
 impl ModuleGraphPartial {
@@ -221,6 +225,52 @@ impl<'a> ModuleGraph<'a> {
       }
     }
     map
+  }
+
+  pub fn get_export_mode_cache(&self) -> Option<&FxDashMap<GetModeCacheKey, ExportMode>> {
+    if let Some(p) = self.partials.first() {
+      return Some(&p.get_mode_cache);
+    }
+
+    if let Some(active) = &self.active.as_ref() {
+      return Some(&active.get_mode_cache);
+    }
+    panic!("should have partial")
+  }
+
+  pub fn get_export_mode(&self, key: &GetModeCacheKey) -> Option<ExportMode> {
+    if let Some(active) = &self
+      .active
+      .as_ref()
+      .and_then(|active| active.get_mode_cache.get(&key))
+    {
+      dbg!(&active);
+      return Some(active.value().clone());
+    }
+
+    if let Some(p) = self.partials.last() {
+      p.get_mode_cache.get(key).map(|item| item.value().clone())
+    } else {
+      None
+      // panic!("can not get any partial module graph")
+    }
+  }
+
+  pub fn insert_export_mode(&self, key: GetModeCacheKey, export_mode: ExportMode) {
+    if let Some(active_partial) = &self.active {
+      active_partial.get_mode_cache.insert(key, export_mode);
+      return;
+    }
+    if let Some(partial) = self.partials.last() {
+      partial.get_mode_cache.insert(key, export_mode);
+    }
+  }
+
+  pub fn unfreeze_export_mode_cache(&mut self) {
+    let Some(active_partial) = &mut self.active else {
+      panic!("should have active partial");
+    };
+    active_partial.get_mode_cache.clear();
   }
 
   /// Remove a connection and return connection origin module identifier and dependency

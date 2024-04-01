@@ -12,6 +12,7 @@ mod comment;
 mod compile_boolean_matcher;
 mod concatenated_module_visitor;
 mod concatenation_scope;
+mod export_mode;
 mod extract_url_and_global;
 mod fast_actions;
 mod find_graph_roots;
@@ -29,6 +30,7 @@ mod visitor;
 pub use compile_boolean_matcher::*;
 pub use concatenated_module_visitor::*;
 pub use concatenation_scope::*;
+pub use export_mode::*;
 
 pub use self::comment::*;
 pub use self::extract_url_and_global::*;

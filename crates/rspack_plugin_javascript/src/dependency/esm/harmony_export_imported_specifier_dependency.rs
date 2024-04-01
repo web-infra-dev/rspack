@@ -6,7 +6,11 @@ use std::{collections::HashMap, sync::Arc};
 use dashmap::DashMap;
 use indexmap::IndexSet;
 use once_cell::sync::Lazy;
+use rspack_core::ExportMode;
+use rspack_core::ExportModeType;
+use rspack_core::GetModeCacheKey;
 use rspack_core::ModuleGraphConnection;
+use rspack_core::NormalReexportItem;
 use rspack_core::{
   create_exports_object_referenced, create_no_exports_referenced, export_from_import,
   get_exports_type, process_export_info, property_access, property_name, string_of_used_name,
@@ -23,21 +27,6 @@ use swc_core::ecma::atoms::Atom;
 
 use super::{create_resource_identifier_for_esm_dependency, harmony_import_dependency_apply};
 
-#[derive(Debug, Eq, PartialEq, Clone)]
-pub struct GetModeCacheKey {
-  name: Option<Atom>,
-  dep_id: DependencyId,
-  runtime: Option<RuntimeSpec>,
-}
-
-impl Hash for GetModeCacheKey {
-  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-    self.name.hash(state);
-    self.dep_id.hash(state);
-  }
-}
-
-pub static GET_MODE_MAP: Lazy<DashMap<GetModeCacheKey, ExportMode>> = Lazy::new(Default::default);
 // Create _webpack_require__.d(__webpack_exports__, {}).
 // case1: `import { a } from 'a'; export { a }`
 // case2: `export { a } from 'a';`
@@ -121,11 +110,18 @@ impl HarmonyExportImportedSpecifierDependency {
 
     // GET_MODE_MAP.insert(key, value.clone());
     // return value;
-    let value = if let Some(value) = GET_MODE_MAP.get(&key) {
-      value.value().clone()
+    let value = if let Some(value) = module_graph
+      .get_export_mode_cache()
+      .expect("should have cache")
+      .get(&key)
+    {
+      value.clone()
     } else {
       let value = self._get_mode(name, module_graph, id, runtime);
-      GET_MODE_MAP.insert(key.clone(), value.clone());
+      module_graph
+        .get_export_mode_cache()
+        .expect("should have cache")
+        .insert(key.clone(), value.clone());
       value
     };
     return value;
@@ -1337,55 +1333,6 @@ impl From<Option<UsedName>> for ValueKey {
 }
 
 impl AsContextDependency for HarmonyExportImportedSpecifierDependency {}
-
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub enum ExportModeType {
-  Missing,
-  Unused,
-  EmptyStar,
-  ReexportDynamicDefault,
-  ReexportNamedDefault,
-  ReexportNamespaceObject,
-  ReexportFakeNamespaceObject,
-  ReexportUndefined,
-  NormalReexport,
-  DynamicReexport,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct NormalReexportItem {
-  pub name: Atom,
-  pub ids: Vec<Atom>,
-  pub hidden: bool,
-  pub checked: bool,
-  pub export_info: ExportInfoId,
-}
-
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub struct ExportMode {
-  /// corresponding to `type` field in webpack's `EpxortMode`
-  pub ty: ExportModeType,
-  pub items: Option<Vec<NormalReexportItem>>,
-  pub name: Option<Atom>,
-  pub fake_type: u8,
-  pub partial_namespace_export_info: Option<ExportInfoId>,
-  pub ignored: Option<HashSet<Atom>>,
-  pub hidden: Option<HashSet<Atom>>,
-}
-
-impl ExportMode {
-  pub fn new(ty: ExportModeType) -> Self {
-    Self {
-      ty,
-      items: None,
-      name: None,
-      fake_type: 0,
-      partial_namespace_export_info: None,
-      ignored: None,
-      hidden: None,
-    }
-  }
-}
 
 #[derive(Debug, Default)]
 pub struct StarReexportsInfo {
