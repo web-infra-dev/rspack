@@ -1871,15 +1871,15 @@ impl SideEffects {
       } else if let Some(s) = value.as_str() {
         Some(SideEffects::String(s.to_owned()))
       } else if let Some(vec) = value.as_array() {
-        let mut ans = vec![];
+        let mut side_effects = vec![];
         for value in vec {
           if let Some(str) = value.as_str() {
-            ans.push(str.to_string());
+            side_effects.push(str.to_string());
           } else {
             return None;
           }
         }
-        Some(SideEffects::Array(ans))
+        Some(SideEffects::Array(side_effects))
       } else {
         None
       }

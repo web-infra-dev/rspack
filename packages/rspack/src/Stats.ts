@@ -127,8 +127,8 @@ export function normalizeStatsPreset(options?: StatsValue): StatsOptions {
 }
 
 function presetToOptions(name?: boolean | string): StatsOptions {
-	const pn = (typeof name === "string" && name.toLowerCase()) || name;
-	switch (pn) {
+	const preset = (typeof name === "string" && name.toLowerCase()) || name;
+	switch (preset) {
 		case "none":
 			return {
 				all: false
