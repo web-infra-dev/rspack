@@ -467,6 +467,11 @@ class Compiler {
 				() => this.compilation!.hooks.afterProcessAssets,
 				queried => () => queried.call(this.compilation!.assets)
 			),
+			registerCompilationAfterSealTaps: this.#createHookRegisterTaps(
+				binding.RegisterJsTapKind.CompilationAfterSeal,
+				() => this.compilation!.hooks.afterSeal,
+				queried => async () => await queried.promise()
+			),
 			registerNormalModuleFactoryBeforeResolveTaps:
 				this.#createHookRegisterTaps(
 					binding.RegisterJsTapKind.NormalModuleFactoryBeforeResolve,
