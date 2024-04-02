@@ -66,16 +66,16 @@ const rspack = require('@rspack/core');
 
 module.exports = {
   // ...
-  plugins: [new rspack.XxxPlugin()],
+  plugins: [new rspack.SomePlugin()],
 };
 ```
 
-Plugins can be written to be used via `compiler.webpack.XxxPlugin`:
+Plugins can be written to be used via `compiler.webpack.SomePlugin`:
 
 ```js title=CustomPlugin.js
 export class CustomPlugin {
   apply(compiler) {
-    new compiler.webpack.XxxPlugin().apply(compiler);
+    new compiler.webpack.SomePlugin().apply(compiler);
     // ...
   }
 }
@@ -640,7 +640,7 @@ The configuration is consistent with the ModuleFederationPlugin above, except fo
 
 ### Rspack's unique internal plugin.
 
-These plugins are Rspack's unique internal plugin and follow the XxxRspackPlugin naming scheme.
+These plugins are Rspack's unique internal plugin and follow the MyRspackPlugin naming scheme.
 
 #### HtmlRspackPlugin
 
