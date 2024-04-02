@@ -26,3 +26,5 @@ extend-exclude = [
 Nd       = "Nd"
 fo       = "fo"
 splitted = "splitted"
+ws       = "ws"
+PnP      = "PnP"
