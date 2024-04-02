@@ -2993,18 +2993,12 @@ dependencies = [
 name = "rspack"
 version = "0.1.0"
 dependencies = [
- "cargo-rst",
  "criterion",
- "insta",
  "rspack_allocator",
- "rspack_binding_options",
  "rspack_core",
  "rspack_fs",
  "rspack_plugin_javascript",
  "rspack_testing",
- "rspack_tracing",
- "serde",
- "serde_json",
  "testing_macros",
  "tokio",
  "ustr-fxhash",
