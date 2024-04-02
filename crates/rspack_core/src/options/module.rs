@@ -31,7 +31,6 @@ impl ParserOptionsByModuleType {
 }
 
 #[derive(Debug, Clone, MergeFrom)]
-#[merge_from(enum_base)]
 pub enum ParserOptions {
   Asset(AssetParserOptions),
   Css(CssParserOptions),
@@ -189,7 +188,6 @@ impl GeneratorOptionsByModuleType {
 }
 
 #[derive(Debug, Clone, MergeFrom)]
-#[merge_from(enum_base)]
 pub enum GeneratorOptions {
   Asset(AssetGeneratorOptions),
   AssetInline(AssetInlineGeneratorOptions),

@@ -15,6 +15,10 @@ module.exports = {
 				type: "css/module",
 				parser: {
 					namedExports: false,
+				},
+				generator: {
+					exportsOnly: false,
+					localIdentName: "[path][name][ext]__[local]"
 				}
 			}
 		]

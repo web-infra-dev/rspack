@@ -18,7 +18,13 @@ class Plugin {
 module.exports = {
 	module: {
 		generator: {
+			"css": {
+				exportsOnly: false
+			},
 			"css/auto": {
+				exportsOnly: false
+			},
+			"css/module": {
 				exportsOnly: false
 			},
 		},
