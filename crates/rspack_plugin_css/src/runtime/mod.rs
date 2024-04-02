@@ -87,7 +87,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
       {
         if cross_origin == "use-credentials" {
           r#"
-          link.crossOrigin = "use-credentials";\n
+          link.crossOrigin = "use-credentials";
           "#
           .to_string()
         } else {
