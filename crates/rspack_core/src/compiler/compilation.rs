@@ -64,6 +64,7 @@ pub type CompilationRuntimeModuleHook = AsyncSeries3Hook<Compilation, ModuleIden
 pub type CompilationChunkAssetHook = AsyncSeries2Hook<Chunk, String>;
 pub type CompilationProcessAssetsHook = AsyncSeriesHook<Compilation>;
 pub type CompilationAfterProcessAssetsHook = AsyncSeriesHook<Compilation>;
+pub type CompilationAfterSealHook = AsyncSeriesHook<Compilation>;
 
 #[derive(Debug, Default)]
 pub struct CompilationHooks {
@@ -80,6 +81,7 @@ pub struct CompilationHooks {
   pub chunk_asset: CompilationChunkAssetHook,
   pub process_assets: CompilationProcessAssetsHook,
   pub after_process_assets: CompilationAfterProcessAssetsHook,
+  pub after_seal: CompilationAfterSealHook,
 }
 
 #[derive(Debug)]
@@ -803,6 +805,11 @@ impl Compilation {
       .await
   }
 
+  #[instrument(name = "compilation:after_seal", skip_all)]
+  async fn after_seal(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
+    plugin_driver.compilation_hooks.after_seal.call(self).await
+  }
+
   #[instrument(
     name = "compilation:chunk_asset",
     skip(self, plugin_driver, chunk_ukey)
@@ -975,7 +982,11 @@ impl Compilation {
     logger.time_end(start);
 
     let start = logger.time("after process assets");
-    self.after_process_assets(plugin_driver).await?;
+    self.after_process_assets(plugin_driver.clone()).await?;
+    logger.time_end(start);
+
+    let start = logger.time("after seal");
+    self.after_seal(plugin_driver).await?;
     logger.time_end(start);
 
     Ok(())

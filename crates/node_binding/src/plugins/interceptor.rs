@@ -18,17 +18,17 @@ use rspack_binding_values::{
 use rspack_core::{
   rspack_sources::SourceExt, AssetEmittedInfo, BeforeResolveArgs, BoxModule, Chunk, ChunkUkey,
   CodeGenerationResults, Compilation, CompilationAfterOptimizeModulesHook,
-  CompilationAfterProcessAssetsHook, CompilationBuildModuleHook, CompilationChunkAssetHook,
-  CompilationExecuteModuleHook, CompilationFinishModulesHook, CompilationOptimizeChunkModulesHook,
-  CompilationOptimizeModulesHook, CompilationOptimizeTreeHook, CompilationParams,
-  CompilationProcessAssetsHook, CompilationRuntimeModuleHook, CompilationStillValidModuleHook,
-  CompilationSucceedModuleHook, CompilerAfterEmitHook, CompilerAssetEmittedHook,
-  CompilerCompilationHook, CompilerEmitHook, CompilerFinishMakeHook, CompilerMakeHook,
-  CompilerShouldEmitHook, CompilerThisCompilationHook, ContextModuleFactoryAfterResolveHook,
-  ContextModuleFactoryBeforeResolveHook, ExecuteModuleId, MakeParam, ModuleFactoryCreateData,
-  ModuleIdentifier, NormalModuleCreateData, NormalModuleFactoryAfterResolveHook,
-  NormalModuleFactoryBeforeResolveHook, NormalModuleFactoryCreateModuleHook,
-  NormalModuleFactoryResolveForSchemeHook, ResourceData,
+  CompilationAfterProcessAssetsHook, CompilationAfterSealHook, CompilationBuildModuleHook,
+  CompilationChunkAssetHook, CompilationExecuteModuleHook, CompilationFinishModulesHook,
+  CompilationOptimizeChunkModulesHook, CompilationOptimizeModulesHook, CompilationOptimizeTreeHook,
+  CompilationParams, CompilationProcessAssetsHook, CompilationRuntimeModuleHook,
+  CompilationStillValidModuleHook, CompilationSucceedModuleHook, CompilerAfterEmitHook,
+  CompilerAssetEmittedHook, CompilerCompilationHook, CompilerEmitHook, CompilerFinishMakeHook,
+  CompilerMakeHook, CompilerShouldEmitHook, CompilerThisCompilationHook,
+  ContextModuleFactoryAfterResolveHook, ContextModuleFactoryBeforeResolveHook, ExecuteModuleId,
+  MakeParam, ModuleFactoryCreateData, ModuleIdentifier, NormalModuleCreateData,
+  NormalModuleFactoryAfterResolveHook, NormalModuleFactoryBeforeResolveHook,
+  NormalModuleFactoryCreateModuleHook, NormalModuleFactoryResolveForSchemeHook, ResourceData,
 };
 use rspack_hook::{
   AsyncParallel3, AsyncSeries, AsyncSeries2, AsyncSeries3, AsyncSeriesBail, AsyncSeriesBail2, Hook,
@@ -294,6 +294,7 @@ pub enum RegisterJsTapKind {
   CompilationChunkAsset,
   CompilationProcessAssets,
   CompilationAfterProcessAssets,
+  CompilationAfterSeal,
   NormalModuleFactoryBeforeResolve,
   NormalModuleFactoryAfterResolve,
   NormalModuleFactoryCreateModule,
@@ -402,6 +403,10 @@ pub struct RegisterJsTaps {
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>"
   )]
   pub register_compilation_after_process_assets_taps: RegisterFunction<JsCompilation, ()>,
+  #[napi(
+    ts_type = "(stages: Array<number>) => Array<{ function: (() => Promise<void>); stage: number; }>"
+  )]
+  pub register_compilation_after_seal_taps: RegisterFunction<(), Promise<()>>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsBeforeResolveArgs) => Promise<[boolean | undefined, JsBeforeResolveArgs]>); stage: number; }>"
   )]
@@ -603,6 +608,14 @@ define_register!(
   cache = false,
   sync = false,
   kind = RegisterJsTapKind::CompilationAfterProcessAssets,
+  skip = true,
+);
+define_register!(
+  RegisterCompilationAfterSealTaps,
+  tap = CompilationAfterSealTap<(), Promise<()>> @ CompilationAfterSealHook,
+  cache = false,
+  sync = false,
+  kind = RegisterJsTapKind::CompilationAfterSeal,
   skip = true,
 );
 
@@ -1012,6 +1025,17 @@ impl AsyncSeries<Compilation> for CompilationAfterProcessAssetsTap {
     let compilation = unsafe { JsCompilation::from_compilation(compilation) };
 
     self.function.call_with_sync(compilation).await
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
+
+#[async_trait]
+impl AsyncSeries<Compilation> for CompilationAfterSealTap {
+  async fn run(&self, _compilation: &mut Compilation) -> rspack_error::Result<()> {
+    self.function.call_with_promise(()).await
   }
 
   fn stage(&self) -> i32 {
