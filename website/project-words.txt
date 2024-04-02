@@ -112,3 +112,10 @@ xstyled
 Zack
 Zack Jackson
 zackarychapple
+moduleparsercssautonamedexports
+modulegeneratorassetdataurl
+modulegeneratorassetdataurlencoding
+modulegeneratorassetdataurlmimetype
+modulegeneratorcssautoexportsconvention
+modulegeneratorcssautoexportsonly
+modulegeneratorcssautolocalidentname

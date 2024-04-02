@@ -1,4 +1,4 @@
 it("basic", () => {
 	const css = require("./index.scss");
-	expect(css).toEqual({});
+	expect(css).toEqual(nsObj({}));
 });

@@ -16,6 +16,9 @@ module.exports = {
 		-     "nodeEnv": false,
 		+     "nodeEnv": "development",
 		@@ ... @@
+		-           "production",
+		+           "development",
+		@@ ... @@
 		-       "production",
 		+       "development",
 	`)

@@ -7,6 +7,15 @@ module.exports = {
 		+ Received
 
 		@@ ... @@
+		-         "exportsOnly": false,
+		+         "exportsOnly": true,
+		@@ ... @@
+		-         "exportsOnly": false,
+		+         "exportsOnly": true,
+		@@ ... @@
+		-         "exportsOnly": false,
+		+         "exportsOnly": true,
+		@@ ... @@
 		-     "chunkLoading": "jsonp",
 		+     "chunkLoading": "import-scripts",
 		@@ ... @@

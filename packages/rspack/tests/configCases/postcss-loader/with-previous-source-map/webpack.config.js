@@ -18,7 +18,10 @@ module.exports = {
 						loader: "sass-loader"
 					}
 				],
-				type: "css"
+				type: "css",
+				generator: {
+					exportsOnly: false,
+				}
 			}
 		]
 	},

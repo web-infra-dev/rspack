@@ -1,6 +1,11 @@
 module.exports = {
 	target: "node",
 	module: {
+		generator: {
+			"css/auto": {
+				exportsOnly: false
+			},
+		},
 		rules: [
 			{
 				test: /\.svg$/i,

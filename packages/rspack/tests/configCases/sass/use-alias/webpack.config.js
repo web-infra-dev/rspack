@@ -6,7 +6,10 @@ module.exports = {
 			{
 				test: /\.s[ac]ss$/i,
 				use: [{ loader: "sass-loader" }],
-				type: "css"
+				type: "css",
+				generator: {
+					exportsOnly: false,
+				}
 			}
 		]
 	},

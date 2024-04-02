@@ -20,6 +20,7 @@ use rspack_napi::NapiResultExt;
 use rspack_plugin_asset::AssetPlugin;
 use rspack_plugin_banner::BannerPlugin;
 use rspack_plugin_copy::{CopyRspackPlugin, CopyRspackPluginOptions};
+use rspack_plugin_css::CssPlugin;
 use rspack_plugin_devtool::{
   EvalDevToolModulePlugin, EvalSourceMapDevToolPlugin, SourceMapDevToolModuleOptionsPlugin,
   SourceMapDevToolModuleOptionsPluginOptions, SourceMapDevToolPlugin,
@@ -129,6 +130,7 @@ pub enum BuiltinPluginName {
   FlagDependencyUsagePlugin,
   MangleExportsPlugin,
   ModuleConcatenationPlugin,
+  CssModulesPlugin,
 
   // rspack specific plugins
   // naming format follow XxxRspackPlugin
@@ -358,6 +360,7 @@ impl BuiltinPlugin {
       BuiltinPluginName::ModuleConcatenationPlugin => {
         plugins.push(ModuleConcatenationPlugin::default().boxed())
       }
+      BuiltinPluginName::CssModulesPlugin => plugins.push(CssPlugin::default().boxed()),
 
       // rspack specific plugins
       BuiltinPluginName::HttpExternalsRspackPlugin => {

@@ -18,9 +18,8 @@ pub fn apply_from_fixture(fixture_path: &Path) -> (CompilerOptions, Vec<BoxPlugi
   if js_config.exists() {
     let raw = evaluate_to_json(&js_config);
     let raw: RawOptions = serde_json::from_slice(&raw).expect("ok");
-    let mut plugins = Vec::new();
-    let compiler_options = raw.apply(&mut plugins).expect("should be ok");
-    return (compiler_options, plugins);
+    let compiler_options = raw.try_into().expect("should be ok");
+    return (compiler_options, Vec::new());
   }
   let json_config = fixture_path.join("test.config.json");
   let test_config = TestConfig::from_config_path(&json_config);

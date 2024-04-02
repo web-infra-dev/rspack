@@ -95,7 +95,7 @@ export const getNormalizedRspackOptions = (
 								return ignore.test(warning.message);
 							};
 						}
-				  })
+					})
 				: undefined,
 		name: config.name,
 		dependencies: config.dependencies,
@@ -106,7 +106,7 @@ export const getNormalizedRspackOptions = (
 				? { main: {} }
 				: getNormalizedEntryStatic(
 						typeof config.entry === "function" ? config.entry() : config.entry
-				  ),
+					),
 		output: nestedConfig(config.output, output => {
 			const { library } = output;
 			const libraryAsName = library;
@@ -117,10 +117,10 @@ export const getNormalizedRspackOptions = (
 				"type" in library
 					? library
 					: libraryAsName || output.libraryTarget
-					? ({
-							name: libraryAsName
-					  } as LibraryOptions)
-					: undefined;
+						? ({
+								name: libraryAsName
+							} as LibraryOptions)
+						: undefined;
 			return {
 				path: output.path,
 				publicPath: output.publicPath,
@@ -403,7 +403,7 @@ const keyedNestedConfig = <T, R>(
 						obj
 					),
 					{} as Record<string, R>
-			  );
+				);
 	if (customKeys) {
 		for (const key of Object.keys(customKeys)) {
 			if (!(key in result)) {

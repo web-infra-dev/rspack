@@ -7,6 +7,8 @@ use std::{borrow::Cow, convert::Infallible};
 
 use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
+use rspack_macros::MergeFrom;
+use rspack_util::MergeFrom;
 
 use crate::{parse_resource, AssetInfo, PathData, ResourceParsedData};
 
@@ -32,7 +34,7 @@ pub static FULL_HASH_PLACEHOLDER: Lazy<Regex> =
 static DATA_URI_REGEX: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"^data:([^;,]+)").expect("Invalid regex"));
 
-#[derive(PartialEq, Debug, Hash, Eq, Clone, PartialOrd, Ord)]
+#[derive(PartialEq, Debug, Hash, Eq, Clone, PartialOrd, Ord, MergeFrom)]
 enum FilenameKind<F> {
   Template(String),
   Fn(F),
@@ -50,6 +52,12 @@ pub struct Filename<F = Arc<dyn FilenameFn>>(FilenameKind<F>);
 impl<F> Filename<F> {
   pub fn from_fn(f: F) -> Self {
     Self(FilenameKind::Fn(f))
+  }
+}
+
+impl<F: Clone> MergeFrom for Filename<F> {
+  fn merge_from(self, other: &Self) -> Self {
+    other.clone()
   }
 }
 

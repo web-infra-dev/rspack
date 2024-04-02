@@ -202,6 +202,7 @@ impl<'parser> JavascriptParser<'parser> {
   pub fn new(
     source_file: &'parser SourceFile,
     compiler_options: &'parser CompilerOptions,
+    javascript_options: Option<&'parser JavascriptParserOptions>,
     comments: Option<&'parser dyn Comments>,
     module_identifier: &'parser ModuleIdentifier,
     module_type: &'parser ModuleType,
@@ -302,12 +303,7 @@ impl<'parser> JavascriptParser<'parser> {
 
     let plugin_drive = Rc::new(JavaScriptParserPluginDrive::new(plugins));
     let mut db = ScopeInfoDB::new();
-    let javascript_options = compiler_options
-      .module
-      .parser
-      .as_ref()
-      .and_then(|p| p.get(module_type))
-      .and_then(|p| p.get_javascript(module_type));
+
     Self {
       last_harmony_import_order: 0,
       comments,

@@ -10,7 +10,10 @@ module.exports = {
 						loader: "less-loader"
 					}
 				],
-				type: "css"
+				type: "css",
+				generator: {
+					exportsOnly: false
+				}
 			}
 		]
 	}

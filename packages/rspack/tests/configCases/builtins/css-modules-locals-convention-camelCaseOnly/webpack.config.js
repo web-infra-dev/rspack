@@ -1,16 +1,12 @@
 module.exports = {
-	builtins: {
-		css: {
-			modules: {
-				localsConvention: "camelCaseOnly"
-			}
-		}
-	},
 	module: {
 		rules: [
 			{
 				test: /\.css$/,
-				type: "css/module"
+				type: "css/module",
+				generator: {
+					exportsConvention: "camel-case-only",
+				}
 			}
 		]
 	}

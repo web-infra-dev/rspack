@@ -3,6 +3,11 @@ module.exports = {
 		cssFilename: "css/[name].css"
 	},
 	module: {
+		generator: {
+			"css/auto": {
+				exportsOnly: false,
+			}
+		},
 		rules: [
 			{
 				test: /\.png$/i,

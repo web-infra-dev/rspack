@@ -15,7 +15,13 @@ import type {
 	RawRspackFuture,
 	RawLibraryName,
 	RawLibraryOptions,
-	RawModuleRuleUse
+	RawModuleRuleUse,
+	RawCssParserOptions,
+	RawCssAutoParserOptions,
+	RawCssModuleParserOptions,
+	RawCssGeneratorOptions,
+	RawCssAutoGeneratorOptions,
+	RawCssModuleGeneratorOptions
 } from "@rspack/binding";
 import assert from "assert";
 import { Compiler } from "../Compiler";
@@ -53,7 +59,13 @@ import {
 	JavascriptParserOptions,
 	LibraryName,
 	EntryRuntime,
-	ChunkLoading
+	ChunkLoading,
+	CssParserOptions,
+	CssAutoParserOptions,
+	CssModuleParserOptions,
+	CssGeneratorOptions,
+	CssAutoGeneratorOptions,
+	CssModuleGeneratorOptions
 } from "./zod";
 import {
 	ExperimentsNormalized,
@@ -174,7 +186,7 @@ function getRawResolve(resolve: Resolve): RawOptions["resolve"] {
 					referencesType:
 						references == "auto" ? "auto" : references ? "manual" : "disabled",
 					references: references == "auto" ? undefined : references
-			  }
+				}
 			: undefined,
 		byDependency: getRawResolveByDependency(resolve.byDependency)
 	};
@@ -255,7 +267,7 @@ export function getRawLibrary(library: LibraryOptions): RawLibraryOptions {
 						commonjs2: auxiliaryComment,
 						amd: auxiliaryComment,
 						root: auxiliaryComment
-				  }
+					}
 				: auxiliaryComment,
 		libraryType: type,
 		name: isNil(name) ? name : getRawLibraryName(name),
@@ -398,7 +410,7 @@ const getRawModuleRule = (
 						k,
 						getRawRuleSetCondition(v)
 					])
-			  )
+				)
 			: undefined,
 		resource: rule.resource ? getRawRuleSetCondition(rule.resource) : undefined,
 		resourceQuery: rule.resourceQuery
@@ -420,7 +432,7 @@ const getRawModuleRule = (
 							`${path}.use`,
 							options
 						)
-				  },
+					},
 		type: rule.type,
 		parser: rule.parser
 			? getRawParserOptions(rule.parser, rule.type ?? "javascript/auto")
@@ -432,12 +444,12 @@ const getRawModuleRule = (
 		oneOf: rule.oneOf
 			? rule.oneOf.map((rule, index) =>
 					getRawModuleRule(rule, `${path}.oneOf[${index}]`, options)
-			  )
+				)
 			: undefined,
 		rules: rule.rules
 			? rule.rules.map((rule, index) =>
 					getRawModuleRule(rule, `${path}.rules[${index}]`, options)
-			  )
+				)
 			: undefined,
 		enforce: rule.enforce
 	};
@@ -456,27 +468,30 @@ const getRawModuleRule = (
 		delete rawModuleRule.resourceQuery;
 		delete rawModuleRule.resourceFragment;
 
-		rawModuleRule.rspackResource = getRawRuleSetCondition(function (
-			resourceQueryFragment
-		) {
-			const { path, query, fragment } = parseResource(resourceQueryFragment);
+		rawModuleRule.rspackResource = getRawRuleSetCondition(
+			function (resourceQueryFragment) {
+				const { path, query, fragment } = parseResource(resourceQueryFragment);
 
-			if (rule.test && !tryMatch(path, rule.test)) {
-				return false;
-			} else if (rule.resource && !tryMatch(path, rule.resource)) {
-				return false;
+				if (rule.test && !tryMatch(path, rule.test)) {
+					return false;
+				} else if (rule.resource && !tryMatch(path, rule.resource)) {
+					return false;
+				}
+
+				if (rule.resourceQuery && !tryMatch(query, rule.resourceQuery)) {
+					return false;
+				}
+
+				if (
+					rule.resourceFragment &&
+					!tryMatch(fragment, rule.resourceFragment)
+				) {
+					return false;
+				}
+
+				return true;
 			}
-
-			if (rule.resourceQuery && !tryMatch(query, rule.resourceQuery)) {
-				return false;
-			}
-
-			if (rule.resourceFragment && !tryMatch(fragment, rule.resourceFragment)) {
-				return false;
-			}
-
-			return true;
-		});
+		);
 	}
 	return rawModuleRule;
 };
@@ -564,10 +579,24 @@ function getRawParserOptions(
 			type: "javascript",
 			javascript: getRawJavascriptParserOptions(parser)
 		};
+	} else if (type === "css") {
+		return {
+			type: "css",
+			css: getRawCssParserOptions(parser)
+		};
+	} else if (type === "css/auto") {
+		return {
+			type: "css/auto",
+			cssAuto: getRawCssParserOptions(parser)
+		};
+	} else if (type === "css/module") {
+		return {
+			type: "css/module",
+			cssModule: getRawCssParserOptions(parser)
+		};
 	}
-	return {
-		type: "unknown"
-	};
+	// FIXME: shouldn't depend on module type, for example: `rules: [{ test: /\.css/, generator: {..} }]` will error
+	throw new Error(`unreachable: unknow module type: ${type}`);
 }
 
 function getRawJavascriptParserOptions(parser: JavascriptParserOptions) {
@@ -579,8 +608,8 @@ function getRawJavascriptParserOptions(parser: JavascriptParserOptions) {
 			parser.url === false
 				? "false"
 				: parser.url === "relative"
-				? parser.url
-				: "true"
+					? parser.url
+					: "true"
 	};
 }
 
@@ -610,6 +639,14 @@ function getRawAssetParserDataUrl(
 	);
 }
 
+function getRawCssParserOptions(
+	parser: CssParserOptions
+): RawCssParserOptions | RawCssAutoParserOptions | RawCssModuleParserOptions {
+	return {
+		namedExports: parser.namedExports
+	};
+}
+
 function getRawGeneratorOptions(
 	generator: { [k: string]: any },
 	type: string
@@ -636,9 +673,25 @@ function getRawGeneratorOptions(
 				: undefined
 		};
 	}
-	return {
-		type: "unknown"
-	};
+	if (type === "css") {
+		return {
+			type: "css",
+			css: getRawCssGeneratorOptions(generator)
+		};
+	}
+	if (type === "css/auto") {
+		return {
+			type: "css/auto",
+			cssAuto: getRawCssAutoOrModuleGeneratorOptions(generator)
+		};
+	}
+	if (type === "css/module") {
+		return {
+			type: "css/module",
+			cssModule: getRawCssAutoOrModuleGeneratorOptions(generator)
+		};
+	}
+	throw new Error(`unreachable: unknow module type: ${type}`);
 }
 
 function getRawAssetGeneratorOptions(
@@ -683,6 +736,25 @@ function getRawAssetGeneratorDataUrl(dataUrl: AssetGeneratorDataUrl) {
 	throw new Error(
 		`unreachable: AssetGeneratorDataUrl type should be one of "options", "function", but got ${dataUrl}`
 	);
+}
+
+function getRawCssGeneratorOptions(
+	options: CssGeneratorOptions
+): RawCssGeneratorOptions {
+	return {
+		exportsConvention: options.exportsConvention,
+		exportsOnly: options.exportsOnly
+	};
+}
+
+function getRawCssAutoOrModuleGeneratorOptions(
+	options: CssAutoGeneratorOptions
+): RawCssAutoGeneratorOptions | RawCssModuleGeneratorOptions {
+	return {
+		localIdentName: options.localIdentName,
+		exportsConvention: options.exportsConvention,
+		exportsOnly: options.exportsOnly
+	};
 }
 
 function getRawOptimization(

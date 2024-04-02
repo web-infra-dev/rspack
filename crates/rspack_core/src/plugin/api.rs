@@ -9,11 +9,11 @@ use rustc_hash::FxHashMap;
 use crate::{
   AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, AssetInfo, BoxLoader,
   BoxModule, ChunkHashArgs, Compilation, CompilationHooks, CompilerHooks, CompilerOptions,
-  ContentHashArgs, ContextModuleFactoryHooks, DoneArgs, FactorizeArgs, JsChunkHashArgs,
-  LoaderRunnerContext, ModuleFactoryResult, ModuleIdentifier, ModuleType, NormalModule,
-  NormalModuleFactoryHooks, OptimizeChunksArgs, ParserAndGenerator, PluginContext, RenderArgs,
-  RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, Resolver,
-  RuntimeRequirementsInTreeArgs, SourceType,
+  ContentHashArgs, ContextModuleFactoryHooks, DoneArgs, FactorizeArgs, GeneratorOptions,
+  JsChunkHashArgs, LoaderRunnerContext, ModuleFactoryResult, ModuleIdentifier, ModuleType,
+  NormalModule, NormalModuleFactoryHooks, OptimizeChunksArgs, ParserAndGenerator, ParserOptions,
+  PluginContext, RenderArgs, RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs,
+  RenderStartupArgs, Resolver, RuntimeRequirementsInTreeArgs, SourceType,
 };
 
 #[derive(Debug, Clone)]
@@ -310,8 +310,12 @@ impl RenderManifestEntry {
 
 // pub type BoxedParser = Box<dyn Parser>;
 pub type BoxedParserAndGenerator = Box<dyn ParserAndGenerator>;
-pub type BoxedParserAndGeneratorBuilder =
-  Box<dyn 'static + Send + Sync + Fn() -> BoxedParserAndGenerator>;
+pub type BoxedParserAndGeneratorBuilder = Box<
+  dyn 'static
+    + Send
+    + Sync
+    + Fn(Option<&ParserOptions>, Option<&GeneratorOptions>) -> BoxedParserAndGenerator,
+>;
 
 pub struct ApplyContext<'c> {
   pub(crate) registered_parser_and_generator_builder:

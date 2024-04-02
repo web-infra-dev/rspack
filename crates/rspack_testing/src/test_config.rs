@@ -2,7 +2,6 @@ use std::{
   collections::HashMap,
   convert::TryFrom,
   path::{Path, PathBuf},
-  str::FromStr,
 };
 
 use rspack_core::{BoxPlugin, CompilerOptions, ModuleType, PluginExt};
@@ -217,7 +216,7 @@ pub struct ModulesConfig {
 impl Default for ModulesConfig {
   fn default() -> Self {
     Self {
-      locals_convention: "asIs".to_string(),
+      locals_convention: "as-is".to_string(),
       local_ident_name: "[path][name][ext]__[local]".to_string(),
       exports_only: false,
     }
@@ -426,6 +425,61 @@ impl TestConfig {
       },
       module: c::ModuleOptions {
         rules,
+        generator: Some(c::GeneratorOptionsByModuleType::from_iter([
+          (
+            c::ModuleType::Css,
+            c::GeneratorOptions::Css(c::CssGeneratorOptions {
+              exports_convention: Some(c::CssExportsConvention::from(
+                self.builtins.css.modules.locals_convention.clone(),
+              )),
+              exports_only: Some(self.builtins.css.modules.exports_only),
+            }),
+          ),
+          (
+            c::ModuleType::CssAuto,
+            c::GeneratorOptions::CssAuto(c::CssAutoGeneratorOptions {
+              exports_convention: Some(c::CssExportsConvention::from(
+                self.builtins.css.modules.locals_convention.clone(),
+              )),
+              exports_only: Some(self.builtins.css.modules.exports_only),
+              local_ident_name: Some(c::LocalIdentName::from(
+                self.builtins.css.modules.local_ident_name.clone(),
+              )),
+            }),
+          ),
+          (
+            c::ModuleType::CssModule,
+            c::GeneratorOptions::CssModule(c::CssModuleGeneratorOptions {
+              exports_convention: Some(c::CssExportsConvention::from(
+                self.builtins.css.modules.locals_convention,
+              )),
+              exports_only: Some(self.builtins.css.modules.exports_only),
+              local_ident_name: Some(c::LocalIdentName::from(
+                self.builtins.css.modules.local_ident_name,
+              )),
+            }),
+          ),
+        ])),
+        parser: Some(c::ParserOptionsByModuleType::from_iter([
+          (
+            c::ModuleType::Css,
+            c::ParserOptions::Css(c::CssParserOptions {
+              named_exports: Some(self.builtins.css.named_exports.unwrap_or_default()),
+            }),
+          ),
+          (
+            c::ModuleType::CssAuto,
+            c::ParserOptions::CssAuto(c::CssAutoParserOptions {
+              named_exports: Some(self.builtins.css.named_exports.unwrap_or_default()),
+            }),
+          ),
+          (
+            c::ModuleType::CssModule,
+            c::ParserOptions::CssModule(c::CssModuleParserOptions {
+              named_exports: Some(self.builtins.css.named_exports.unwrap_or_default()),
+            }),
+          ),
+        ])),
         ..Default::default()
       },
       stats: Default::default(),
@@ -477,22 +531,7 @@ impl TestConfig {
     for html in self.builtins.html {
       plugins.push(rspack_plugin_html::HtmlRspackPlugin::new(html).boxed());
     }
-    plugins.push(
-      rspack_plugin_css::CssPlugin::new(rspack_plugin_css::plugin::CssConfig {
-        modules: rspack_plugin_css::plugin::ModulesConfig {
-          locals_convention: rspack_plugin_css::plugin::LocalsConvention::from_str(
-            &self.builtins.css.modules.locals_convention,
-          )
-          .expect("Invalid css.modules.locals_convention"),
-          local_ident_name: rspack_plugin_css::plugin::LocalIdentName::from(
-            self.builtins.css.modules.local_ident_name,
-          ),
-          exports_only: self.builtins.css.modules.exports_only,
-        },
-        named_exports: self.builtins.css.named_exports,
-      })
-      .boxed(),
-    );
+    plugins.push(rspack_plugin_css::CssPlugin::default().boxed());
     plugins.push(rspack_plugin_asset::AssetPlugin.boxed());
     plugins.push(rspack_plugin_json::JsonPlugin {}.boxed());
     plugins.push(rspack_plugin_runtime::ArrayPushCallbackChunkFormatPlugin {}.boxed());

@@ -16,8 +16,18 @@ class Plugin {
 }
 /** @type {import('@rspack/cli').Configuration} */
 module.exports = {
-	target: "node",
 	module: {
+		generator: {
+			"css": {
+				exportsOnly: false
+			},
+			"css/auto": {
+				exportsOnly: false
+			},
+			"css/module": {
+				exportsOnly: false
+			},
+		},
 		rules: [
 			{
 				dependency: "url",
