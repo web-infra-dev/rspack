@@ -94,15 +94,14 @@ impl HarmonyExportImportedSpecifierDependency {
     id: &DependencyId,
     runtime: Option<&RuntimeSpec>,
   ) -> ExportMode {
+    return self._get_mode(name, module_graph, id, runtime);
+
     let key = GetModeCacheKey {
       name: name.clone(),
       dep_id: *id,
       runtime: runtime.cloned(),
     };
 
-    if module_graph.active().is_none() {
-      return self._get_mode(name, module_graph, id, runtime);
-    }
     let value = if let Some(value) = module_graph
       .get_export_mode_cache()
       .expect("should have cache")

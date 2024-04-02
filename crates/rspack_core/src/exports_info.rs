@@ -459,7 +459,7 @@ impl ExportsInfoId {
 
 #[derive(Debug, Clone)]
 pub struct ExportsInfo {
-  pub exports: BTreeMap<Atom, ExportInfoId>,
+  pub exports: HashMap<Atom, ExportInfoId>,
   pub other_exports_info: ExportInfoId,
   pub _side_effects_only_info: ExportInfoId,
   pub _exports_are_ordered: bool,
@@ -514,7 +514,7 @@ pub enum UsedExports {
 impl ExportsInfo {
   pub fn new(other_exports_info: ExportInfoId, _side_effects_only_info: ExportInfoId) -> Self {
     Self {
-      exports: BTreeMap::default(),
+      exports: HashMap::default(),
       other_exports_info,
       _side_effects_only_info,
       _exports_are_ordered: false,

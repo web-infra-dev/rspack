@@ -231,12 +231,12 @@ impl<'a> ModuleGraph<'a> {
   }
 
   pub fn get_export_mode_cache(&self) -> Option<&FxDashMap<GetModeCacheKey, ExportMode>> {
-    if let Some(p) = self.partials.first() {
-      return Some(&p.get_mode_cache);
-    }
-
     if let Some(active) = &self.active.as_ref() {
       return Some(&active.get_mode_cache);
+    }
+
+    if let Some(p) = self.partials.first() {
+      return Some(&p.get_mode_cache);
     }
     panic!("should have partial")
   }

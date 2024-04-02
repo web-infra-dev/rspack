@@ -1,7 +1,9 @@
 use std::collections::hash_map::Entry;
 use std::collections::VecDeque;
+use std::time::Instant;
 
 use itertools::Itertools;
+use rayon::prelude::*;
 use rspack_core::{
   ApplyContext, BuildMetaExportsType, Compilation, CompilerOptions, DependenciesBlock,
   DependencyId, ExportInfoProvided, ExportNameOrSpec, ExportsInfoId, ExportsOfExportsSpec,
@@ -10,6 +12,7 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook, AsyncSeries};
+use rspack_util::fx_dashmap::FxDashMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::ecma::atoms::Atom;
 
@@ -77,18 +80,21 @@ impl<'a> FlagDependencyExportsProxy<'a> {
       // TODO: mem cache
     }
 
+    let start = Instant::now();
+    let mut i = 0;
     while let Some(module_id) = q.pop_front() {
       self.changed = false;
+      i += 1;
       self.current_module_id = module_id;
-      let mut exports_specs_from_dependencies: HashMap<DependencyId, ExportsSpec> =
-        HashMap::default();
+      let mut exports_specs_from_dependencies: FxDashMap<DependencyId, ExportsSpec> =
+        FxDashMap::default();
       self.process_dependencies_block(&module_id, &mut exports_specs_from_dependencies);
 
-      self
-        .mg
-        .get_export_mode_cache()
-        .expect("should have cache")
-        .clear();
+      // self
+      //   .mg
+      //   .get_export_mode_cache()
+      //   .expect("should have cache")
+      //   .clear();
       let exports_info_id = self.mg.get_exports_info(&module_id).id;
       for (dep_id, exports_spec) in exports_specs_from_dependencies.into_iter() {
         self.process_exports_spec(dep_id, exports_spec, exports_info_id);
@@ -97,6 +103,8 @@ impl<'a> FlagDependencyExportsProxy<'a> {
         self.notify_dependencies(&mut q);
       }
     }
+    dbg!(&start.elapsed());
+    dbg!(&i);
   }
 
   pub fn notify_dependencies(&mut self, q: &mut VecDeque<ModuleIdentifier>) {
@@ -110,7 +118,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
   pub fn process_dependencies_block(
     &self,
     module_identifier: &ModuleIdentifier,
-    exports_specs_from_dependencies: &mut HashMap<DependencyId, ExportsSpec>,
+    exports_specs_from_dependencies: &mut FxDashMap<DependencyId, ExportsSpec>,
   ) -> Option<()> {
     let block = &**self.mg.module_by_identifier(module_identifier)?;
     self.process_dependencies_block_inner(block, exports_specs_from_dependencies)
@@ -119,9 +127,15 @@ impl<'a> FlagDependencyExportsProxy<'a> {
   fn process_dependencies_block_inner<B: DependenciesBlock + ?Sized>(
     &self,
     block: &B,
-    exports_specs_from_dependencies: &mut HashMap<DependencyId, ExportsSpec>,
+    exports_specs_from_dependencies: &mut FxDashMap<DependencyId, ExportsSpec>,
   ) -> Option<()> {
-    for dep_id in block.get_dependencies().iter() {
+    let dep_list = block
+      .get_dependencies()
+      .iter()
+      .map(|item| *item)
+      .collect::<Vec<_>>();
+
+    dep_list.par_iter().for_each(|dep_id| {
       let dep = self
         .mg
         .dependency_by_id(dep_id)
@@ -131,19 +145,19 @@ impl<'a> FlagDependencyExportsProxy<'a> {
         dep.get_exports(self.mg),
         exports_specs_from_dependencies,
       );
-    }
-    if let Some(deps) = block.get_presentational_dependencies_for_block() {
-      for dep in deps {
-        let Some(dep) = dep.as_dependency() else {
-          continue;
-        };
-        self.process_dependency(
-          *dep.id(),
-          dep.get_exports(self.mg),
-          exports_specs_from_dependencies,
-        );
-      }
-    }
+    });
+    // if let Some(deps) = block.get_presentational_dependencies_for_block() {
+    //   for dep in deps {
+    //     let Some(dep) = dep.as_dependency() else {
+    //       continue;
+    //     };
+    //     self.process_dependency(
+    //       *dep.id(),
+    //       dep.get_exports(self.mg),
+    //       exports_specs_from_dependencies,
+    //     );
+    //   }
+    // }
     for block_id in block.get_blocks() {
       let block = self.mg.block_by_id(block_id)?;
       self.process_dependencies_block_inner(block, exports_specs_from_dependencies);
@@ -155,7 +169,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
     &self,
     dep_id: DependencyId,
     exports_specs: Option<ExportsSpec>,
-    exports_specs_from_dependencies: &mut HashMap<DependencyId, ExportsSpec>,
+    exports_specs_from_dependencies: &FxDashMap<DependencyId, ExportsSpec>,
   ) -> Option<()> {
     // this is why we can bubble here. https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/FlagDependencyExportsPlugin.js#L140
     let exports_specs = exports_specs?;
