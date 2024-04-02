@@ -1,0 +1,11 @@
+import { ApiMeta } from '../../../../components/ApiMeta.tsx';
+
+# wasm.EnableWasmLoadingPlugin
+
+<ApiMeta addedVersion={'0.3.3'} />
+
+Enable runtime module bundling for this wasmLoadingType, and is used by [output.enabledWasmLoadingTypes](/en/config/output.html#outputenabledwasmloadingtypes) under the hood.
+
+```js
+new rspack.library.EnableWasmLoadingPlugin('fetch');
+```

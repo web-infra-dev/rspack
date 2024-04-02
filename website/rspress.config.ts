@@ -321,7 +321,7 @@ function getSidebarConfig(lang: 'zh' | 'en'): Sidebar {
 			{
 				text: getText(
 					'同步自 webpack 的内置插件',
-					'Webpack-synchronized built-in plugins',
+					'Synchronized Built-in Plugins from webpack',
 				),
 				link: getLink('/plugins/webpack'),
 				items: [
@@ -394,7 +394,7 @@ function getSidebarConfig(lang: 'zh' | 'en'): Sidebar {
 			{
 				text: getText(
 					'Rspack 独有的内置插件',
-					'Rspack-exclusive built-in plugins',
+					'Rspack-exclusive Built-in Plugins',
 				),
 				link: getLink('/plugins/rspack'),
 				items: [
@@ -419,7 +419,7 @@ function getSidebarConfig(lang: 'zh' | 'en'): Sidebar {
 			{
 				text: getText(
 					'兼容的 webpack 生态插件',
-					'Compatible plugins from the webpack ecosystem',
+					'Compatible Plugins from the webpack ecosystem',
 				),
 				link: getLink('/plugins/eco'),
 			},

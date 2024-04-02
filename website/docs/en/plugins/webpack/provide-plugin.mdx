@@ -1,0 +1,40 @@
+import { ApiMeta } from '../../../../components/ApiMeta.tsx';
+
+# ProvidePlugin
+
+<ApiMeta addedVersion={'0.3.3'} />
+
+This plugin will automatically load modules instead of having to import or require them everywhere.
+
+```js
+new rspack.ProvidePlugin(options);
+```
+
+- options
+  - **Type:** `Record<string, string | string[]>`
+
+When using the following configuration:
+
+```js
+const rspack = require('@rspack/core');
+module.exports = {
+  plugins: [
+    new rspack.ProvidePlugin({
+      process: [require.resolve('process/browser')],
+    }),
+  ],
+};
+```
+
+Which will convert the following code:
+
+```js
+console.log(process.version);
+```
+
+To:
+
+```js
+import process from 'process/browser';
+console.log(process.version);
+```
