@@ -12,7 +12,10 @@ import { EsmRunner } from "./runner/esm";
 export class BasicRunnerFactory<T extends ECompilerType>
 	implements TRunnerFactory<T>
 {
-	constructor(protected name: string, protected context: ITestContext) {}
+	constructor(
+		protected name: string,
+		protected context: ITestContext
+	) {}
 
 	create(
 		file: string,
