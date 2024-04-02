@@ -12,6 +12,15 @@ module.exports = {
 		+     "node": true,
 		+     "web": false,
 		@@ ... @@
+		-         "exportsOnly": false,
+		+         "exportsOnly": true,
+		@@ ... @@
+		-         "exportsOnly": false,
+		+         "exportsOnly": true,
+		@@ ... @@
+		-         "exportsOnly": false,
+		+         "exportsOnly": true,
+		@@ ... @@
 		-     "__dirname": "warn-mock",
 		-     "__filename": "warn-mock",
 		-     "global": "warn",
