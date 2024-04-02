@@ -7,7 +7,7 @@
     "dev": "rspress dev",
     "build": "rspress build",
     "format": "prettier docs/**/*.{md,mdx} --write",
-    "spell": "npx cspell docs/**/*.{ts,tsx,js,jsx,md,mdx}",
+    "spell": "npx cspell",
     "caseCheck": "npx case-police docs/**/*.{md,mdx}",
     "preview": "rspress preview"
   },
@@ -35,6 +35,7 @@
     "@types/react": "^18.0.27",
     "@types/semver": "^7.5.2",
     "case-police": "0.5.10",
+    "cspell-ban-words": "0.0.3",
     "husky": "^8.0.3",
     "nano-staged": "^0.8.0",
     "prettier": "^2.8.3",
