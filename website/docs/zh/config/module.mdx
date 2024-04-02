@@ -56,7 +56,7 @@ module.exports = {
       // asset 模块的解析器选项
       asset: {
         dataUrlCondition: {
-          maxSize: 16192
+          maxSize: 16192,
         },
       },
       // javascript 模块的解析器选项
@@ -71,11 +71,11 @@ module.exports = {
         namedExports: true,
       },
       // css/auto 模块的解析器选项
-      "css/auto": {
+      'css/auto': {
         namedExports: true,
       },
       // css/module 模块的解析器选项
-      "css/module": {
+      'css/module': {
         namedExports: true,
       },
     },
@@ -161,13 +161,14 @@ module.exports = {
 当使用 `namedExports: true` 时，你可以使用命名空间或命名导入：
 
 ```js
-import * as classes from "./index.module.css"
-import { class1 } from "./index.module.css"
+import * as classes from './index.module.css';
+import { class1 } from './index.module.css';
 ```
+
 当使用 `namedExports: false` 时，你可以使用默认导入：
 
 ```js
-import classes from "./index.module.css"
+import classes from './index.module.css';
 ```
 
 ### module.parser.css.namedExports
@@ -197,7 +198,7 @@ module.exports = {
       asset: {
         dataUrl: {
           encoding: false,
-          mimetype: "base64",
+          mimetype: 'base64',
         },
         filename: '[name]-[contenthash][ext]',
         publicPath: 'https://cdn.example.com/',
@@ -206,7 +207,7 @@ module.exports = {
       'asset/inline': {
         dataUrl: {
           encoding: false,
-          mimetype: "base64",
+          mimetype: 'base64',
         },
       },
       // asset/resource 模块的生成器选项
@@ -215,21 +216,21 @@ module.exports = {
         publicPath: 'https://cdn.example.com/',
       },
       // css/auto 模块的生成器选项
-      "css/auto": {
-        exportsConvention: "as-is",
+      'css/auto': {
+        exportsConvention: 'as-is',
         exportsOnly: false,
-        localIdentName: "[uniqueName]-[id]-[local]",
+        localIdentName: '[uniqueName]-[id]-[local]',
       },
       // css 模块的生成器选项
       css: {
-        exportsConvention: "as-is",
+        exportsConvention: 'as-is',
         exportsOnly: false,
       },
       // css/module 模块的生成器选项
-      "css/module": {
-        exportsConvention: "as-is",
+      'css/module': {
+        exportsConvention: 'as-is',
         exportsOnly: false,
-        localIdentName: "[uniqueName]-[id]-[local]",
+        localIdentName: '[uniqueName]-[id]-[local]',
       },
     },
   },
@@ -304,7 +305,7 @@ module.exports = {
     generator: {
       asset: {
         filename: 'static/[hash][ext]',
-      }
+      },
     },
   },
 };
@@ -323,7 +324,7 @@ module.exports = {
     generator: {
       asset: {
         publicPath: 'https://cdn.example.com/',
-      }
+      },
     },
   },
 };
@@ -585,11 +586,11 @@ module.exports = {
         parser: {
           namedExports: false,
         },
-        type: "css/module",
-      }
-    ]
-  }
-}
+        type: 'css/module',
+      },
+    ],
+  },
+};
 ```
 
 对于特定的解析器选项及其对应的模块类型，你可以参考 [`module.parser`](#moduleparser)。
@@ -608,13 +609,13 @@ module.exports = {
       {
         test: /\.png/,
         generator: {
-          filename: "[contenthash][ext]",
+          filename: '[contenthash][ext]',
         },
-        type: "asset",
-      }
-    ]
-  }
-}
+        type: 'asset',
+      },
+    ],
+  },
+};
 ```
 
 对于特定的生成器选项及其对应的模块类型，你可以参考 [`module.generator`](#modulegenerator)。

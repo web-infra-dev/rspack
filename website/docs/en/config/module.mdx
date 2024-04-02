@@ -56,7 +56,7 @@ module.exports = {
       // Parser options for asset modules
       asset: {
         dataUrlCondition: {
-          maxSize: 16192
+          maxSize: 16192,
         },
       },
       // Parser options for javascript modules
@@ -71,11 +71,11 @@ module.exports = {
         namedExports: true,
       },
       // Parser options for css/auto modules
-      "css/auto": {
+      'css/auto': {
         namedExports: true,
       },
       // Parser options for css/module modules
-      "css/module": {
+      'css/module': {
         namedExports: true,
       },
     },
@@ -161,14 +161,14 @@ Use ES modules named export for css exports
 When using `namedExports: true`, you can use namespace or named import:
 
 ```js
-import * as classes from "./index.module.css"
-import { class1 } from "./index.module.css"
+import * as classes from './index.module.css';
+import { class1 } from './index.module.css';
 ```
 
 When using `namedExports: false`, you can use default import:
 
 ```js
-import classes from "./index.module.css"
+import classes from './index.module.css';
 ```
 
 ### module.parser.css.namedExports
@@ -198,7 +198,7 @@ module.exports = {
       asset: {
         dataUrl: {
           encoding: false,
-          mimetype: "base64",
+          mimetype: 'base64',
         },
         filename: '[name]-[contenthash][ext]',
         publicPath: 'https://cdn.example.com/',
@@ -207,7 +207,7 @@ module.exports = {
       'asset/inline': {
         dataUrl: {
           encoding: false,
-          mimetype: "base64",
+          mimetype: 'base64',
         },
       },
       // Generator options for asset/resource modules
@@ -216,21 +216,21 @@ module.exports = {
         publicPath: 'https://cdn.example.com/',
       },
       // Generator options for css/auto modules
-      "css/auto": {
-        exportsConvention: "as-is",
+      'css/auto': {
+        exportsConvention: 'as-is',
         exportsOnly: false,
-        localIdentName: "[uniqueName]-[id]-[local]",
+        localIdentName: '[uniqueName]-[id]-[local]',
       },
       // Generator options for css modules
       css: {
-        exportsConvention: "as-is",
+        exportsConvention: 'as-is',
         exportsOnly: false,
       },
       // Generator options for css/module modules
-      "css/module": {
-        exportsConvention: "as-is",
+      'css/module': {
+        exportsConvention: 'as-is',
         exportsOnly: false,
-        localIdentName: "[uniqueName]-[id]-[local]",
+        localIdentName: '[uniqueName]-[id]-[local]',
       },
     },
   },
@@ -305,7 +305,7 @@ module.exports = {
     generator: {
       asset: {
         filename: 'static/[hash][ext]',
-      }
+      },
     },
   },
 };
@@ -324,7 +324,7 @@ module.exports = {
     generator: {
       asset: {
         publicPath: 'https://cdn.example.com/',
-      }
+      },
     },
   },
 };
@@ -586,11 +586,11 @@ module.exports = {
         parser: {
           namedExports: false,
         },
-        type: "css/module",
-      }
-    ]
-  }
-}
+        type: 'css/module',
+      },
+    ],
+  },
+};
 ```
 
 For specific parser options and the corresponding module type, you can refer to [`module.parser`](#moduleparser).
@@ -609,13 +609,13 @@ module.exports = {
       {
         test: /\.png/,
         generator: {
-          filename: "[contenthash][ext]",
+          filename: '[contenthash][ext]',
         },
-        type: "asset",
-      }
-    ]
-  }
-}
+        type: 'asset',
+      },
+    ],
+  },
+};
 ```
 
 For specific generator options and the corresponding module type, you can refer to [`module.generator`](#modulegenerator).
