@@ -83,20 +83,16 @@ impl RuntimeModule for CssLoadingRuntimeModule {
 
       let cross_origin_content = if let CrossOriginLoading::Enable(cross_origin) =
         &compilation.options.output.cross_origin_loading
-        && cross_origin != "false"
       {
         if cross_origin == "use-credentials" {
-          r#"
-          link.crossOrigin = "use-credentials";
-          "#
-          .to_string()
+          "link.crossOrigin = \"use-credentials\";".to_string()
         } else {
           format!(
             r#"
             if (link.href.indexOf(window.location.origin + '/') !== 0) {{
               link.crossOrigin = "{cross_origin}";
             }}
-          "#
+            "#
           )
         }
       } else {
