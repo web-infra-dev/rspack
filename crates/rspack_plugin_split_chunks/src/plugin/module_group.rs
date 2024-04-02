@@ -1,6 +1,7 @@
 use dashmap::DashMap;
 use rayon::prelude::*;
 use rspack_core::{Chunk, ChunkGraph, ChunkUkey, Compilation, Module, ModuleGraph};
+use rspack_error::Result;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use super::ModuleGroupMap;
@@ -41,7 +42,7 @@ impl SplitChunksPlugin {
   pub(crate) async fn prepare_module_group_map(
     &self,
     compilation: &mut Compilation,
-  ) -> ModuleGroupMap {
+  ) -> Result<ModuleGroupMap> {
     let chunk_db = &compilation.chunk_by_ukey;
     let chunk_group_db = &compilation.chunk_group_by_ukey;
     let module_graph = compilation.get_module_graph();
@@ -90,7 +91,7 @@ impl SplitChunksPlugin {
       result
     };
 
-    module_graph.modules().values().par_bridge().for_each(|module| {
+    module_graph.modules().values().par_bridge().map(|module| {
       let module = &***module;
 
       let belong_to_chunks = compilation
@@ -192,13 +193,13 @@ impl SplitChunksPlugin {
             },
             module_group_map,
             &mut chunk_key_to_string
-          );
+          )?;
 
           fn merge_matched_item_into_module_group_map(
             matched_item: MatchedItem<'_>,
             module_group_map: &DashMap<String, ModuleGroup>,
             chunk_key_to_string: &mut FxHashMap<ChunksKey, String>
-          ) {
+          ) -> Result<()> {
             let MatchedItem {
               idx,
               module,
@@ -215,7 +216,7 @@ impl SplitChunksPlugin {
               ChunkNameGetter::Disabled => None,
               ChunkNameGetter::Fn(f) => {
                 let ctx = ChunkNameGetterFnCtx { module };
-                f(ctx)
+                f(ctx)?
               }
             };
             let key: String = if let Some(cache_group_name) = &chunk_name {
@@ -250,12 +251,14 @@ impl SplitChunksPlugin {
             module_group.add_module(module);
             module_group
               .chunks
-              .extend(selected_chunks.iter().map(|c| c.ukey))
+              .extend(selected_chunks.iter().map(|c| c.ukey));
+            Ok(())
           }
         }
       }
-    });
-    module_group_map.into_iter().collect()
+      Ok(())
+    }).collect::<Result<()>>()?;
+    Ok(module_group_map.into_iter().collect())
   }
 
   #[tracing::instrument(skip_all)]

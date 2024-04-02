@@ -74,8 +74,16 @@ function getNavConfig(lang: 'zh' | 'en'): NavItem[] {
 					link: 'https://github.com/web-infra-dev/awesome-rspack',
 				},
 				{
+					text: 'Rspack Compat',
+					link: 'https://github.com/web-infra-dev/rspack-compat',
+				},
+				{
 					text: 'Rspack Examples',
 					link: 'https://github.com/rspack-contrib/rspack-examples',
+				},
+				{
+					text: 'Rsfamily Design Resources',
+					link: 'https://github.com/rspack-contrib/rsfamily-design-resources',
 				},
 				{
 					text: 'Rspack Community Packages',
@@ -426,31 +434,31 @@ function getSidebarConfig(lang: 'zh' | 'en'): Sidebar {
 		],
 		[getLink('/api/')]: [
 			{
-				text: getText('API 接口', 'API'),
+				text: getText('简介', 'Introduction'),
 				link: getLink('/api'),
 			},
 			{
-				text: getText('Command-line 命令行接口', 'Command-line interface'),
+				text: getText('CLI', 'CLI'),
 				link: getLink('/api/cli'),
 			},
 			{
-				text: getText('Node.js 接口', 'Node.js API'),
-				link: getLink('/api/node-api'),
+				text: getText('模块', 'Modules'),
+				link: getLink('/api/modules'),
 			},
 			{
-				text: getText('Modules', 'Modules'),
-				link: getLink('/api/modules'),
+				text: getText('Node API', 'Node API'),
+				link: getLink('/api/node-api'),
 			},
 			{
 				text: getText('Hot Module Replacement', 'Hot Module Replacement'),
 				link: getLink('/api/hmr'),
 			},
 			{
-				text: getText('Loader 接口', 'Loader API'),
+				text: getText('Loader API', 'Loader API'),
 				link: getLink('/api/loader-api'),
 			},
 			{
-				text: getText('Plugin 接口', 'Plugin API'),
+				text: getText('插件 API', 'Plugin API'),
 				link: getLink('/api/plugin-api'),
 			},
 		],

@@ -1,58 +1,17 @@
 mod interceptor;
 use std::fmt;
-use std::path::PathBuf;
-use std::sync::Arc;
 
 use async_trait::async_trait;
 pub use interceptor::RegisterJsTapKind;
 pub use interceptor::RegisterJsTaps;
 use napi::{Env, Result};
-use rspack_binding_values::JsResolveForSchemeResult;
-use rspack_core::PluginNormalModuleFactoryResolveForSchemeOutput;
 use rspack_core::{ApplyContext, CompilerOptions, PluginContext};
-use rspack_core::{
-  NormalModuleCreateData, PluginNormalModuleFactoryCreateModuleHookOutput, ResourceData,
-};
 use rspack_hook::Hook as _;
 
-use self::interceptor::NonSkippableRegisters;
-use self::interceptor::RegisterCompilationSucceedModuleTaps;
-use self::interceptor::RegisterCompilerFinishMakeTaps;
-use self::interceptor::RegisterContextModuleFactoryAfterResolveTaps;
-use self::interceptor::RegisterContextModuleFactoryBeforeResolveTaps;
-use self::interceptor::{
-  RegisterCompilationAfterOptimizeModulesTaps, RegisterCompilationChunkAssetTaps,
-  RegisterCompilationOptimizeModulesTaps,
-};
-use self::interceptor::{
-  RegisterCompilationAfterProcessAssetsTaps, RegisterCompilerAssetEmittedTaps,
-};
-use self::interceptor::{
-  RegisterCompilationBuildModuleTaps, RegisterCompilerAfterEmitTaps, RegisterCompilerEmitTaps,
-};
-use self::interceptor::{
-  RegisterCompilationExecuteModuleTaps, RegisterCompilationProcessAssetsTaps,
-  RegisterCompilationRuntimeModuleTaps, RegisterCompilerCompilationTaps, RegisterCompilerMakeTaps,
-  RegisterCompilerShouldEmitTaps, RegisterCompilerThisCompilationTaps,
-  RegisterNormalModuleFactoryBeforeResolveTaps,
-};
-use self::interceptor::{
-  RegisterCompilationFinishModulesTaps, RegisterCompilationOptimizeChunkModulesTaps,
-  RegisterCompilationOptimizeTreeTaps,
-};
-use self::interceptor::{
-  RegisterCompilationStillValidModuleTaps, RegisterNormalModuleFactoryAfterResolveTaps,
-};
-use crate::{DisabledHooks, Hook, JsHooks};
-
-pub struct JsHooksAdapterInner {
-  pub disabled_hooks: DisabledHooks,
-  pub hooks: JsHooks,
-}
+use self::interceptor::*;
 
 #[derive(Clone)]
 pub struct JsHooksAdapterPlugin {
-  inner: Arc<JsHooksAdapterInner>,
   non_skippable_registers: NonSkippableRegisters,
   register_compiler_this_compilation_taps: RegisterCompilerThisCompilationTaps,
   register_compiler_compilation_taps: RegisterCompilerCompilationTaps,
@@ -76,7 +35,10 @@ pub struct JsHooksAdapterPlugin {
   register_compilation_process_assets_taps: RegisterCompilationProcessAssetsTaps,
   register_compilation_after_process_assets_taps: RegisterCompilationAfterProcessAssetsTaps,
   register_normal_module_factory_before_resolve_taps: RegisterNormalModuleFactoryBeforeResolveTaps,
+  register_normal_module_factory_resolve_for_scheme_taps:
+    RegisterNormalModuleFactoryResolveForSchemeTaps,
   register_normal_module_factory_after_resolve_taps: RegisterNormalModuleFactoryAfterResolveTaps,
+  register_normal_module_factory_create_module_taps: RegisterNormalModuleFactoryCreateModuleTaps,
   register_context_module_factory_before_resolve_taps:
     RegisterContextModuleFactoryBeforeResolveTaps,
   register_context_module_factory_after_resolve_taps: RegisterContextModuleFactoryAfterResolveTaps,
@@ -85,15 +47,6 @@ pub struct JsHooksAdapterPlugin {
 impl fmt::Debug for JsHooksAdapterPlugin {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "rspack_plugin_js_hooks_adapter")
-  }
-}
-
-// TODO: remove deref
-impl std::ops::Deref for JsHooksAdapterPlugin {
-  type Target = JsHooksAdapterInner;
-
-  fn deref(&self) -> &Self::Target {
-    &self.inner
   }
 }
 
@@ -234,10 +187,28 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
     ctx
       .context
       .normal_module_factory_hooks
+      .resolve_for_scheme
+      .intercept(
+        self
+          .register_normal_module_factory_resolve_for_scheme_taps
+          .clone(),
+      );
+    ctx
+      .context
+      .normal_module_factory_hooks
       .after_resolve
       .intercept(
         self
           .register_normal_module_factory_after_resolve_taps
+          .clone(),
+      );
+    ctx
+      .context
+      .normal_module_factory_hooks
+      .create_module
+      .intercept(
+        self
+          .register_normal_module_factory_create_module_taps
           .clone(),
       );
     ctx
@@ -260,59 +231,10 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
       );
     Ok(())
   }
-
-  async fn normal_module_factory_create_module(
-    &self,
-    _ctx: rspack_core::PluginContext,
-    args: &mut NormalModuleCreateData<'_>,
-  ) -> PluginNormalModuleFactoryCreateModuleHookOutput {
-    if self.is_hook_disabled(&Hook::NormalModuleFactoryCreateModule) {
-      return Ok(None);
-    }
-    self
-      .hooks
-      .normal_module_factory_create_module
-      .call(args.into())
-      .await
-      .map(|_| None)
-      .map_err(|err| panic!("Failed to call this_compilation: {err}"))
-  }
-
-  async fn normal_module_factory_resolve_for_scheme(
-    &self,
-    _ctx: rspack_core::PluginContext,
-    args: ResourceData,
-  ) -> PluginNormalModuleFactoryResolveForSchemeOutput {
-    if self.is_hook_disabled(&Hook::NormalModuleFactoryResolveForScheme) {
-      return Ok((args, false));
-    }
-    let res = self
-      .hooks
-      .normal_module_factory_resolve_for_scheme
-      .call(args.into())
-      .await;
-    res.map(|res| {
-      let JsResolveForSchemeResult {
-        resource_data,
-        stop,
-      } = res;
-      (
-        ResourceData::new(resource_data.resource, PathBuf::from(resource_data.path))
-          .query_optional(resource_data.query)
-          .fragment_optional(resource_data.fragment),
-        stop,
-      )
-    })
-  }
 }
 
 impl JsHooksAdapterPlugin {
-  pub fn from_js_hooks(
-    _env: Env,
-    js_hooks: JsHooks,
-    register_js_taps: RegisterJsTaps,
-  ) -> Result<Self> {
-    let disabled_hooks = DisabledHooks::default();
+  pub fn from_js_hooks(_env: Env, register_js_taps: RegisterJsTaps) -> Result<Self> {
     let non_skippable_registers = NonSkippableRegisters::default();
     Ok(JsHooksAdapterPlugin {
       register_compiler_this_compilation_taps: RegisterCompilerThisCompilationTaps::new(
@@ -407,9 +329,19 @@ impl JsHooksAdapterPlugin {
           register_js_taps.register_normal_module_factory_before_resolve_taps,
           non_skippable_registers.clone(),
         ),
+      register_normal_module_factory_resolve_for_scheme_taps:
+        RegisterNormalModuleFactoryResolveForSchemeTaps::new(
+          register_js_taps.register_normal_module_factory_resolve_for_scheme_taps,
+          non_skippable_registers.clone(),
+        ),
       register_normal_module_factory_after_resolve_taps:
         RegisterNormalModuleFactoryAfterResolveTaps::new(
           register_js_taps.register_normal_module_factory_after_resolve_taps,
+          non_skippable_registers.clone(),
+        ),
+      register_normal_module_factory_create_module_taps:
+        RegisterNormalModuleFactoryCreateModuleTaps::new(
+          register_js_taps.register_normal_module_factory_create_module_taps,
           non_skippable_registers.clone(),
         ),
       register_context_module_factory_before_resolve_taps:
@@ -423,10 +355,6 @@ impl JsHooksAdapterPlugin {
           non_skippable_registers.clone(),
         ),
       non_skippable_registers,
-      inner: Arc::new(JsHooksAdapterInner {
-        disabled_hooks: disabled_hooks.clone(),
-        hooks: js_hooks,
-      }),
     })
   }
 
@@ -434,13 +362,5 @@ impl JsHooksAdapterPlugin {
     self
       .non_skippable_registers
       .set_non_skippable_registers(kinds);
-  }
-
-  fn is_hook_disabled(&self, hook: &Hook) -> bool {
-    self.disabled_hooks.is_hook_disabled(hook)
-  }
-
-  pub fn set_disabled_hooks(&self, hooks: Vec<String>) {
-    self.disabled_hooks.set_disabled_hooks(hooks)
   }
 }

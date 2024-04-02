@@ -301,8 +301,8 @@ impl BuiltinPlugin {
       BuiltinPluginName::WarnCaseSensitiveModulesPlugin => {
         plugins.push(WarnCaseSensitiveModulesPlugin.boxed())
       }
-      BuiltinPluginName::DataUriPlugin => plugins.push(DataUriPlugin.boxed()),
-      BuiltinPluginName::FileUriPlugin => plugins.push(FileUriPlugin.boxed()),
+      BuiltinPluginName::DataUriPlugin => plugins.push(DataUriPlugin::default().boxed()),
+      BuiltinPluginName::FileUriPlugin => plugins.push(FileUriPlugin::default().boxed()),
       BuiltinPluginName::RuntimePlugin => plugins.push(RuntimePlugin.boxed()),
       BuiltinPluginName::JsonModulesPlugin => plugins.push(JsonPlugin.boxed()),
       BuiltinPluginName::InferAsyncModulesPlugin => {

@@ -180,6 +180,8 @@ impl ParserAndGenerator for CssParserAndGenerator {
       &new_stylesheet_ast,
       code_generation_dependencies,
       &mut diagnostic_vec,
+      &source_code,
+      module_user_request,
     );
     for (k, v) in exports_pairs {
       dependencies.push(Box::new(CssModuleExportDependency::new(

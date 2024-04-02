@@ -1,20 +1,19 @@
 use std::sync::Arc;
 
 use rspack_error::{error, Result};
-use rspack_hook::{AsyncSeriesBail3Hook, AsyncSeriesBailHook};
+use rspack_hook::{AsyncSeriesBail2Hook, AsyncSeriesBailHook};
 use tracing::instrument;
 
 use crate::{
   cache::Cache, resolve, BeforeResolveArgs, BoxModule, ContextModule, ContextModuleOptions,
-  DependencyCategory, FactoryMeta, ModuleExt, ModuleFactory, ModuleFactoryCreateData,
-  ModuleFactoryResult, ModuleIdentifier, PluginNormalModuleFactoryAfterResolveOutput, RawModule,
-  ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory,
-  SharedPluginDriver,
+  DependencyCategory, ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult,
+  ModuleIdentifier, PluginNormalModuleFactoryAfterResolveOutput, RawModule, ResolveArgs,
+  ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory, SharedPluginDriver,
 };
 
 pub type ContextModuleFactoryBeforeResolveHook = AsyncSeriesBailHook<BeforeResolveArgs, bool>;
 pub type ContextModuleFactoryAfterResolveHook =
-  AsyncSeriesBail3Hook<String, ModuleFactoryCreateData, FactoryMeta, bool>;
+  AsyncSeriesBail2Hook<String, ModuleFactoryCreateData, bool>;
 
 #[derive(Debug, Default)]
 pub struct ContextModuleFactoryHooks {
@@ -37,9 +36,9 @@ impl ModuleFactory for ContextModuleFactory {
       return Ok(before_resolve_result);
     }
 
-    let mut factorize_result = self.resolve(data).await?;
+    let factorize_result = self.resolve(data).await?;
 
-    if let Some(false) = self.after_resolve(data, &mut factorize_result).await? {
+    if let Some(false) = self.after_resolve(data).await? {
       return Ok(ModuleFactoryResult::default());
     }
 
@@ -230,7 +229,6 @@ impl ContextModuleFactory {
   async fn after_resolve(
     &self,
     data: &mut ModuleFactoryCreateData,
-    factory_result: &mut ModuleFactoryResult,
   ) -> PluginNormalModuleFactoryAfterResolveOutput {
     let dependency = data
       .dependency
@@ -241,11 +239,7 @@ impl ContextModuleFactory {
       .plugin_driver
       .context_module_factory_hooks
       .after_resolve
-      .call(
-        &mut dependency.request().to_owned(),
-        data,
-        &mut factory_result.factory_meta,
-      )
+      .call(&mut dependency.request().to_owned(), data)
       .await
   }
 }

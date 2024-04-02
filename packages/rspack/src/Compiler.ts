@@ -31,7 +31,10 @@ import { createThreadsafeNodeFSFromRaw } from "./fileSystem";
 import Cache from "./lib/Cache";
 import CacheFacade from "./lib/CacheFacade";
 import { Logger } from "./logging/Logger";
-import { NormalModuleFactory } from "./NormalModuleFactory";
+import {
+	NormalModuleCreateData,
+	NormalModuleFactory
+} from "./NormalModuleFactory";
 import { WatchFileSystem } from "./util/fs";
 import { checkVersion } from "./util/bindingVersionCheck";
 import { Watching } from "./Watching";
@@ -67,7 +70,7 @@ class Compiler {
 	compilation?: Compilation;
 	compilationParams?: CompilationParams;
 	// TODO: remove this after remove rebuild on the rust side.
-	first: boolean = true;
+	#initial: boolean = true;
 	builtinPlugins: binding.BuiltinPlugin[];
 	root: Compiler;
 	running: boolean;
@@ -240,7 +243,7 @@ class Compiler {
 		const instanceBinding: typeof binding = require("@rspack/binding");
 
 		this.#registers = {
-			registerCompilerThisCompilationTaps: this.#createRegisterTaps(
+			registerCompilerThisCompilationTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilerThisCompilation,
 				() => this.hooks.thisCompilation,
 				queried => (native: binding.JsCompilation) => {
@@ -250,38 +253,38 @@ class Compiler {
 					queried.call(this.compilation!, this.compilationParams!);
 				}
 			),
-			registerCompilerCompilationTaps: this.#createRegisterTaps(
+			registerCompilerCompilationTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilerCompilation,
 				() => this.hooks.compilation,
 				queried => () =>
 					queried.call(this.compilation!, this.compilationParams!)
 			),
-			registerCompilerMakeTaps: this.#createRegisterTaps(
+			registerCompilerMakeTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilerMake,
 				() => this.hooks.make,
 				queried => async () => await queried.promise(this.compilation!)
 			),
-			registerCompilerFinishMakeTaps: this.#createRegisterTaps(
+			registerCompilerFinishMakeTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilerFinishMake,
 				() => this.hooks.finishMake,
 				queried => async () => await queried.promise(this.compilation!)
 			),
-			registerCompilerShouldEmitTaps: this.#createRegisterTaps(
+			registerCompilerShouldEmitTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilerShouldEmit,
 				() => this.hooks.shouldEmit,
 				queried => () => queried.call(this.compilation!)
 			),
-			registerCompilerEmitTaps: this.#createRegisterTaps(
+			registerCompilerEmitTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilerEmit,
 				() => this.hooks.emit,
 				queried => async () => await queried.promise(this.compilation!)
 			),
-			registerCompilerAfterEmitTaps: this.#createRegisterTaps(
+			registerCompilerAfterEmitTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilerAfterEmit,
 				() => this.hooks.afterEmit,
 				queried => async () => await queried.promise(this.compilation!)
 			),
-			registerCompilerAssetEmittedTaps: this.#createRegisterTaps(
+			registerCompilerAssetEmittedTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilerAssetEmitted,
 				() => this.hooks.assetEmitted,
 				queried =>
@@ -302,7 +305,7 @@ class Compiler {
 							}
 						})
 			),
-			registerCompilationRuntimeModuleTaps: this.#createRegisterTaps(
+			registerCompilationRuntimeModuleTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationRuntimeModule,
 				() => this.compilation!.hooks.runtimeModule,
 				queried =>
@@ -319,25 +322,25 @@ class Compiler {
 						return;
 					}
 			),
-			registerCompilationBuildModuleTaps: this.#createRegisterTaps(
+			registerCompilationBuildModuleTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationBuildModule,
 				() => this.compilation!.hooks.buildModule,
 				queired => (m: binding.JsModule) =>
 					queired.call(Module.__from_binding(m))
 			),
-			registerCompilationStillValidModuleTaps: this.#createRegisterTaps(
+			registerCompilationStillValidModuleTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationStillValidModule,
 				() => this.compilation!.hooks.stillValidModule,
 				queired => (m: binding.JsModule) =>
 					queired.call(Module.__from_binding(m))
 			),
-			registerCompilationSucceedModuleTaps: this.#createRegisterTaps(
+			registerCompilationSucceedModuleTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationSucceedModule,
 				() => this.compilation!.hooks.succeedModule,
 				queired => (m: binding.JsModule) =>
 					queired.call(Module.__from_binding(m))
 			),
-			registerCompilationExecuteModuleTaps: this.#createRegisterTaps(
+			registerCompilationExecuteModuleTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationExecuteModule,
 				() => this.compilation!.hooks.executeModule,
 				queried =>
@@ -411,22 +414,22 @@ class Compiler {
 						this.#moduleExecutionResultsMap.set(id, executeResult);
 					}
 			),
-			registerCompilationFinishModulesTaps: this.#createRegisterTaps(
+			registerCompilationFinishModulesTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationFinishModules,
 				() => this.compilation!.hooks.finishModules,
 				queried => async () => await queried.promise(this.compilation!.modules)
 			),
-			registerCompilationOptimizeModulesTaps: this.#createRegisterTaps(
+			registerCompilationOptimizeModulesTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationOptimizeModules,
 				() => this.compilation!.hooks.optimizeModules,
 				queried => () => queried.call(this.compilation!.modules)
 			),
-			registerCompilationAfterOptimizeModulesTaps: this.#createRegisterTaps(
+			registerCompilationAfterOptimizeModulesTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationAfterOptimizeModules,
 				() => this.compilation!.hooks.afterOptimizeModules,
 				queried => () => queried.call(this.compilation!.modules)
 			),
-			registerCompilationOptimizeTreeTaps: this.#createRegisterTaps(
+			registerCompilationOptimizeTreeTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationOptimizeTree,
 				() => this.compilation!.hooks.optimizeTree,
 				queried => async () =>
@@ -435,7 +438,7 @@ class Compiler {
 						this.compilation!.modules
 					)
 			),
-			registerCompilationOptimizeChunkModulesTaps: this.#createRegisterTaps(
+			registerCompilationOptimizeChunkModulesTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationOptimizeChunkModules,
 				() => this.compilation!.hooks.optimizeChunkModules,
 				queried => async () =>
@@ -444,7 +447,7 @@ class Compiler {
 						this.compilation!.modules
 					)
 			),
-			registerCompilationChunkAssetTaps: this.#createRegisterTaps(
+			registerCompilationChunkAssetTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationChunkAsset,
 				() => this.compilation!.hooks.chunkAsset,
 				queried =>
@@ -454,34 +457,47 @@ class Compiler {
 							filename
 						)
 			),
-			registerCompilationProcessAssetsTaps: this.#createRegisterTaps(
+			registerCompilationProcessAssetsTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationProcessAssets,
 				() => this.compilation!.hooks.processAssets,
 				queried => async () => await queried.promise(this.compilation!.assets)
 			),
-			registerCompilationAfterProcessAssetsTaps: this.#createRegisterTaps(
+			registerCompilationAfterProcessAssetsTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationAfterProcessAssets,
 				() => this.compilation!.hooks.afterProcessAssets,
 				queried => () => queried.call(this.compilation!.assets)
 			),
-			registerNormalModuleFactoryBeforeResolveTaps: this.#createRegisterTaps(
-				binding.RegisterJsTapKind.NormalModuleFactoryBeforeResolve,
-				() => this.compilationParams!.normalModuleFactory.hooks.beforeResolve,
-				queried => async (resolveData: binding.JsBeforeResolveArgs) => {
-					const normalizedResolveData: ResolveData = {
-						request: resolveData.request,
-						context: resolveData.context,
-						fileDependencies: [],
-						missingDependencies: [],
-						contextDependencies: []
-					};
-					const ret = await queried.promise(normalizedResolveData);
-					resolveData.request = normalizedResolveData.request;
-					resolveData.context = normalizedResolveData.context;
-					return [ret, resolveData];
-				}
-			),
-			registerNormalModuleFactoryAfterResolveTaps: this.#createRegisterTaps(
+			registerNormalModuleFactoryBeforeResolveTaps:
+				this.#createHookRegisterTaps(
+					binding.RegisterJsTapKind.NormalModuleFactoryBeforeResolve,
+					() => this.compilationParams!.normalModuleFactory.hooks.beforeResolve,
+					queried => async (resolveData: binding.JsBeforeResolveArgs) => {
+						const normalizedResolveData: ResolveData = {
+							request: resolveData.request,
+							context: resolveData.context,
+							fileDependencies: [],
+							missingDependencies: [],
+							contextDependencies: []
+						};
+						const ret = await queried.promise(normalizedResolveData);
+						resolveData.request = normalizedResolveData.request;
+						resolveData.context = normalizedResolveData.context;
+						return [ret, resolveData];
+					}
+				),
+			registerNormalModuleFactoryResolveForSchemeTaps:
+				this.#createHookMapRegisterTaps(
+					binding.RegisterJsTapKind.NormalModuleFactoryResolveForScheme,
+					() =>
+						this.compilationParams!.normalModuleFactory.hooks.resolveForScheme,
+					queried => async (args: binding.JsResolveForSchemeArgs) => {
+						const ret = await queried
+							.for(args.scheme)
+							.promise(args.resourceData);
+						return [ret, args.resourceData];
+					}
+				),
+			registerNormalModuleFactoryAfterResolveTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.NormalModuleFactoryAfterResolve,
 				() => this.compilationParams!.normalModuleFactory.hooks.afterResolve,
 				queried => async (arg: binding.JsAfterResolveData) => {
@@ -491,55 +507,62 @@ class Compiler {
 						fileDependencies: arg.fileDependencies,
 						missingDependencies: arg.missingDependencies,
 						contextDependencies: arg.contextDependencies,
-						factoryMeta: arg.factoryMeta,
 						createData: arg.createData
 					};
 					const ret = await queried.promise(data);
 					return [ret, data.createData];
 				}
 			),
-			registerContextModuleFactoryBeforeResolveTaps: this.#createRegisterTaps(
-				binding.RegisterJsTapKind.ContextModuleFactoryBeforeResolve,
-				() => this.compilationParams!.contextModuleFactory.hooks.beforeResolve,
-				queried => async (arg: binding.JsBeforeResolveArgs) => {
-					const data: ResolveData = {
-						request: arg.request,
-						context: arg.context,
-						fileDependencies: [],
-						missingDependencies: [],
-						contextDependencies: []
-					};
-					const ret = await queried.promise(data);
-					return [ret, data];
-				}
+			registerNormalModuleFactoryCreateModuleTaps: this.#createHookRegisterTaps(
+				binding.RegisterJsTapKind.NormalModuleFactoryCreateModule,
+				() => this.compilationParams!.normalModuleFactory.hooks.createModule,
+				queried =>
+					async (args: binding.JsNormalModuleFactoryCreateModuleArgs) => {
+						const data: NormalModuleCreateData = {
+							...args,
+							settings: {}
+						};
+						await queried.promise(data, {});
+					}
 			),
-			registerContextModuleFactoryAfterResolveTaps: this.#createRegisterTaps(
-				binding.RegisterJsTapKind.ContextModuleFactoryAfterResolve,
-				() => this.compilationParams!.contextModuleFactory.hooks.afterResolve,
-				queried => async (arg: binding.JsAfterResolveData) => {
-					const data: ResolveData = {
-						request: arg.request,
-						context: arg.context,
-						fileDependencies: arg.fileDependencies,
-						missingDependencies: arg.missingDependencies,
-						contextDependencies: arg.contextDependencies,
-						factoryMeta: arg.factoryMeta,
-						createData: arg.createData
-					};
-					return await queried.promise(data);
-				}
-			)
+			registerContextModuleFactoryBeforeResolveTaps:
+				this.#createHookRegisterTaps(
+					binding.RegisterJsTapKind.ContextModuleFactoryBeforeResolve,
+					() =>
+						this.compilationParams!.contextModuleFactory.hooks.beforeResolve,
+					queried => async (arg: binding.JsBeforeResolveArgs) => {
+						const data: ResolveData = {
+							request: arg.request,
+							context: arg.context,
+							fileDependencies: [],
+							missingDependencies: [],
+							contextDependencies: []
+						};
+						const ret = await queried.promise(data);
+						return [ret, data];
+					}
+				),
+			registerContextModuleFactoryAfterResolveTaps:
+				this.#createHookRegisterTaps(
+					binding.RegisterJsTapKind.ContextModuleFactoryAfterResolve,
+					() => this.compilationParams!.contextModuleFactory.hooks.afterResolve,
+					queried => async (arg: binding.JsAfterResolveData) => {
+						const data: ResolveData = {
+							request: arg.request,
+							context: arg.context,
+							fileDependencies: arg.fileDependencies,
+							missingDependencies: arg.missingDependencies,
+							contextDependencies: arg.contextDependencies,
+							createData: arg.createData
+						};
+						return await queried.promise(data);
+					}
+				)
 		};
 
 		this.#instance = new instanceBinding.Rspack(
 			rawOptions,
 			this.builtinPlugins,
-			{
-				normalModuleFactoryCreateModule:
-					this.#normalModuleFactoryCreateModule.bind(this),
-				normalModuleFactoryResolveForScheme:
-					this.#normalModuleFactoryResolveForScheme.bind(this)
-			},
 			this.#registers,
 			createThreadsafeNodeFSFromRaw(this.outputFileSystem)
 		);
@@ -761,9 +784,12 @@ class Compiler {
 
 	#updateNonSkippableRegisters() {
 		const kinds: binding.RegisterJsTapKind[] = [];
-		for (const { getHook, registerKind } of Object.values(this.#registers!)) {
-			const hook = getHook();
-			if (hook.isUsed()) {
+		for (const { getHook, getHookMap, registerKind } of Object.values(
+			this.#registers!
+		)) {
+			const get = getHook ?? getHookMap;
+			const hookOrMap = get();
+			if (hookOrMap.isUsed()) {
 				kinds.push(registerKind);
 			}
 		}
@@ -775,77 +801,7 @@ class Compiler {
 		}
 	}
 
-	#updateDisabledHooks(callback?: (error?: Error) => void) {
-		const disabledHooks: string[] = [];
-		type HookMap = Record<keyof binding.JsHooks, any>;
-		const hookMap: HookMap = {
-			normalModuleFactoryCreateModule:
-				this.compilationParams?.normalModuleFactory.hooks.createModule,
-			normalModuleFactoryResolveForScheme:
-				this.compilationParams?.normalModuleFactory.hooks.resolveForScheme
-		};
-		for (const [name, hook] of Object.entries(hookMap)) {
-			if (
-				typeof hook !== "undefined" &&
-				(hook.taps
-					? !hook.isUsed()
-					: hook._map
-					? /* hook map */ hook._map.size === 0
-					: false)
-			) {
-				disabledHooks.push(name);
-			}
-		}
-
-		// disabledHooks is in order
-		if (this.#disabledHooks.join() !== disabledHooks.join()) {
-			this.#getInstance((error, instance) => {
-				if (error) {
-					return callback?.(error);
-				}
-				instance!.setDisabledHooks(disabledHooks);
-				this.#disabledHooks = disabledHooks;
-			});
-		}
-	}
-
-	async #contextModuleFactoryAfterResolve(
-		resourceData: binding.JsAfterResolveData
-	) {
-		let res =
-			await this.compilationParams!.contextModuleFactory.hooks.afterResolve.promise(
-				resourceData
-			);
-
-		this.#updateDisabledHooks();
-		return res;
-	}
-
-	async #normalModuleFactoryCreateModule(createData: binding.CreateModuleData) {
-		const data = Object.assign({}, createData, {
-			settings: {},
-			matchResource: createData.resourceResolveData.resource
-		});
-		const nmfHooks = this.compilationParams!.normalModuleFactory.hooks;
-		await nmfHooks?.createModule.promise(data, {});
-		this.#updateDisabledHooks();
-	}
-
-	async #normalModuleFactoryResolveForScheme(
-		input: binding.JsResolveForSchemeInput
-	): Promise<binding.JsResolveForSchemeResult> {
-		let stop =
-			await this.compilationParams!.normalModuleFactory.hooks.resolveForScheme.for(
-				input.scheme
-			).promise(input.resourceData);
-		this.#updateDisabledHooks();
-		return {
-			resourceData: input.resourceData,
-			stop: stop === true
-		};
-	}
-
-	#decorateUpdateDisabledHooks(jsTaps: binding.JsTap[]) {
+	#decorateJsTaps(jsTaps: binding.JsTap[]) {
 		if (jsTaps.length > 0) {
 			const last = jsTaps[jsTaps.length - 1];
 			const old = last.function;
@@ -853,19 +809,17 @@ class Compiler {
 				const result = old(...args);
 				if (result && typeof result.then === "function") {
 					return result.then((r: any) => {
-						this.#updateDisabledHooks();
 						this.#updateNonSkippableRegisters();
 						return r;
 					});
 				}
-				this.#updateDisabledHooks();
 				this.#updateNonSkippableRegisters();
 				return result;
 			};
 		}
 	}
 
-	#createRegisterTaps<T, R, A>(
+	#createHookRegisterTaps<T, R, A>(
 		registerKind: binding.RegisterJsTapKind,
 		getHook: () => liteTapable.Hook<T, R, A>,
 		createTap: (queried: liteTapable.QueriedHook<T, R, A>) => any
@@ -890,11 +844,44 @@ class Compiler {
 					stage: liteTapable.safeStage(from + 1)
 				});
 			}
-			this.#decorateUpdateDisabledHooks(jsTaps);
+			this.#decorateJsTaps(jsTaps);
 			return jsTaps;
 		};
 		getTaps.registerKind = registerKind;
 		getTaps.getHook = getHook;
+		return getTaps;
+	}
+
+	#createHookMapRegisterTaps<H extends liteTapable.Hook<any, any, any>>(
+		registerKind: binding.RegisterJsTapKind,
+		getHookMap: () => liteTapable.HookMap<H>,
+		createTap: (queried: liteTapable.QueriedHookMap<H>) => any
+	): (stages: number[]) => binding.JsTap[] {
+		const getTaps = (stages: number[]) => {
+			const map = getHookMap();
+			if (!map.isUsed()) return [];
+			const breakpoints = [
+				liteTapable.minStage,
+				...stages,
+				liteTapable.maxStage
+			];
+			const jsTaps: binding.JsTap[] = [];
+			for (let i = 0; i < breakpoints.length - 1; i++) {
+				const from = breakpoints[i];
+				const to = breakpoints[i + 1];
+				const stageRange = [from, to] as const;
+				const queried = map.queryStageRange(stageRange);
+				if (!queried.isUsed()) continue;
+				jsTaps.push({
+					function: createTap(queried),
+					stage: liteTapable.safeStage(from + 1)
+				});
+			}
+			this.#decorateJsTaps(jsTaps);
+			return jsTaps;
+		};
+		getTaps.registerKind = registerKind;
+		getTaps.getHookMap = getHookMap;
 		return getTaps;
 	}
 
@@ -958,15 +945,12 @@ class Compiler {
 			doRun();
 		}
 	}
-	/**
-	 * Safety: This method is only valid to call if the previous rebuild task is finished, or there will be data races.
-	 */
-	build(callback?: (error: Error | null) => void) {
+	#build(callback?: (error: Error | null) => void) {
 		this.#getInstance((error, instance) => {
 			if (error) {
 				return callback?.(error);
 			}
-			if (!this.first) {
+			if (!this.#initial) {
 				instance!.rebuild(
 					Array.from(this.modifiedFiles || []),
 					Array.from(this.removedFiles || []),
@@ -979,7 +963,7 @@ class Compiler {
 				);
 				return;
 			}
-			this.first = false;
+			this.#initial = false;
 			instance!.build(error => {
 				if (error) {
 					return callback?.(error);
@@ -990,10 +974,10 @@ class Compiler {
 	}
 
 	/**
-	 * Safety: This method is only valid to call if the previous rebuild task is finished, or there will be data races.
-	 * @deprecated This is a low-level incremental rebuild API, which shouldn't be used intentionally. Use `compiler.build` instead.
+	 * * Note: This is not a webpack public API, maybe removed in future.
+	 * @internal
 	 */
-	rebuild(
+	__internal__rebuild(
 		modifiedFiles?: ReadonlySet<string>,
 		removedFiles?: ReadonlySet<string>,
 		callback?: (error: Error | null) => void
@@ -1054,7 +1038,7 @@ class Compiler {
 			this.hooks.compile.call(params);
 			this.#resetThisCompilation();
 
-			this.build(err => {
+			this.#build(err => {
 				if (err) {
 					return callback(err);
 				}
@@ -1090,7 +1074,7 @@ class Compiler {
 
 	close(callback: (error?: Error | null) => void) {
 		if (this.watching) {
-			// When there is still an active watching, close this first
+			// When there is still an active watching, close this #initial
 			this.watching.close(() => {
 				this.close(callback);
 			});

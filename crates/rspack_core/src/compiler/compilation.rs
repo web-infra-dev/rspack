@@ -283,22 +283,6 @@ impl Compilation {
     import_var
   }
 
-  pub fn get_entry_runtime(&self, name: &String, options: Option<&EntryOptions>) -> RuntimeSpec {
-    let (_, runtime) = if let Some(options) = options {
-      ((), options.runtime.as_ref())
-    } else {
-      match self.entries.get(name) {
-        Some(entry) => ((), entry.options.runtime.as_ref()),
-        None => return RuntimeSpec::from_iter([Arc::from(name.as_str())]),
-      }
-    };
-    // TODO: depend on https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/util/runtime.js#L33, we don't have that field now
-    runtime
-      .or(Some(name))
-      .map(|runtime| RuntimeSpec::from_iter([Arc::from(runtime.as_ref())]))
-      .unwrap_or_default()
-  }
-
   pub fn add_entry(&mut self, entry: BoxDependency, options: EntryOptions) -> Result<()> {
     let entry_id = *entry.id();
     self.get_module_graph_mut().add_dependency(entry);

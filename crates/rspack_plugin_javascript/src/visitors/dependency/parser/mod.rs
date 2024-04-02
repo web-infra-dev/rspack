@@ -21,8 +21,8 @@ use swc_core::common::comments::Comments;
 use swc_core::common::util::take::Take;
 use swc_core::common::{SourceFile, Span, Spanned};
 use swc_core::ecma::ast::{
-  ArrayPat, AssignPat, CallExpr, Callee, MetaPropExpr, MetaPropKind, ObjectPat, ObjectPatProp, Pat,
-  Program, Stmt, ThisExpr,
+  ArrayPat, AssignPat, AssignTargetPat, CallExpr, Callee, MetaPropExpr, MetaPropKind, ObjectPat,
+  ObjectPatProp, Pat, Program, Stmt, ThisExpr,
 };
 use swc_core::ecma::ast::{Expr, Ident, Lit, MemberExpr, RestPat};
 
@@ -613,6 +613,17 @@ impl<'parser> JavascriptParser<'parser> {
       Pat::Rest(rest) => self.enter_rest_pattern(rest, on_ident),
       Pat::Invalid(_) => (),
       Pat::Expr(_) => (),
+    }
+  }
+
+  fn enter_assign_target_pattern<F>(&mut self, pattern: Cow<AssignTargetPat>, on_ident: F)
+  where
+    F: FnOnce(&mut Self, &Ident) + Copy,
+  {
+    match &*pattern {
+      AssignTargetPat::Array(array) => self.enter_array_pattern(array, on_ident),
+      AssignTargetPat::Object(obj) => self.enter_object_pattern(obj, on_ident),
+      AssignTargetPat::Invalid(_) => (),
     }
   }
 

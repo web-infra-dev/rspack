@@ -3,28 +3,31 @@ import * as liteTapable from "./lite-tapable";
 import type * as binding from "@rspack/binding";
 import { ResolveData, ResourceDataWithData } from "./Module";
 
-type CreateModuleData = binding.CreateModuleData & {
-	settings: {};
-	matchResource: string;
-};
+export type NormalModuleCreateData =
+	binding.JsNormalModuleFactoryCreateModuleArgs & {
+		settings: {};
+	};
 
 export class NormalModuleFactory {
 	hooks: {
 		// TODO: second param resolveData
-		resolveForScheme: HookMap<
-			AsyncSeriesBailHook<[ResourceDataWithData], true | void>
+		resolveForScheme: liteTapable.HookMap<
+			liteTapable.AsyncSeriesBailHook<[ResourceDataWithData], true | void>
 		>;
 		beforeResolve: liteTapable.AsyncSeriesBailHook<[ResolveData], false | void>;
 		afterResolve: liteTapable.AsyncSeriesBailHook<[ResolveData], false | void>;
-		createModule: AsyncSeriesBailHook<[CreateModuleData, {}], void>;
+		createModule: liteTapable.AsyncSeriesBailHook<
+			[NormalModuleCreateData, {}],
+			void
+		>;
 	};
 	constructor() {
 		this.hooks = {
 			// /** @type {AsyncSeriesBailHook<[ResolveData], Module | false | void>} */
 			// resolve: new AsyncSeriesBailHook(["resolveData"]),
 			// /** @type {HookMap<AsyncSeriesBailHook<[ResourceDataWithData, ResolveData], true | void>>} */
-			resolveForScheme: new HookMap(
-				() => new AsyncSeriesBailHook(["resourceData"])
+			resolveForScheme: new liteTapable.HookMap(
+				() => new liteTapable.AsyncSeriesBailHook(["resourceData"])
 			),
 			// /** @type {HookMap<AsyncSeriesBailHook<[ResourceDataWithData, ResolveData], true | void>>} */
 			// resolveInScheme: new HookMap(
@@ -37,7 +40,10 @@ export class NormalModuleFactory {
 			// /** @type {AsyncSeriesBailHook<[ResolveData], false | void>} */
 			afterResolve: new liteTapable.AsyncSeriesBailHook(["resolveData"]),
 			// /** @type {AsyncSeriesBailHook<[ResolveData["createData"], ResolveData], Module | void>} */
-			createModule: new AsyncSeriesBailHook(["createData", "resolveData"])
+			createModule: new liteTapable.AsyncSeriesBailHook([
+				"createData",
+				"resolveData"
+			])
 			// /** @type {SyncWaterfallHook<[Module, ResolveData["createData"], ResolveData], Module>} */
 			// module: new SyncWaterfallHook(["module", "createData", "resolveData"]),
 			// createParser: new HookMap(() => new SyncBailHook(["parserOptions"])),

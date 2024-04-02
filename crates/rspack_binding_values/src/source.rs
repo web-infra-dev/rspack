@@ -193,6 +193,13 @@ impl ToJsCompatSource for dyn Source + '_ {
       source.to_js_compat_source()
     } else if let Some(source) = self.as_any().downcast_ref::<Arc<dyn Source>>() {
       source.to_js_compat_source()
+    } else if let Some(source) = self.as_any().downcast_ref::<CompatSource>() {
+      Ok(JsCompatSource {
+        is_raw: source.is_raw,
+        is_buffer: source.is_buffer,
+        source: self.buffer().to_vec().into(),
+        map: to_webpack_map(self)?,
+      })
     } else {
       // If it's not a `RawSource` related type, then we regards it as a `Source` type.
       Ok(JsCompatSource {

@@ -267,6 +267,21 @@ impl ChunkGroup {
       ChunkGroupKind::Normal { options } => options.name.as_deref(),
     }
   }
+
+  pub fn add_child(&mut self, child_group: ChunkGroupUkey) -> bool {
+    let size = self.children.len();
+    self.children.insert(child_group);
+    size != self.children.len()
+  }
+
+  pub fn add_parent(&mut self, parent_group: ChunkGroupUkey) -> bool {
+    if self.parents.contains(&parent_group) {
+      false
+    } else {
+      self.parents.insert(parent_group);
+      true
+    }
+  }
 }
 
 #[derive(Debug, Clone)]
@@ -323,6 +338,7 @@ pub struct EntryOptions {
   pub base_uri: Option<String>,
   pub filename: Option<FilenameTemplate>,
   pub library: Option<LibraryOptions>,
+  pub depend_on: Option<Vec<String>>,
 }
 
 impl EntryOptions {
@@ -346,6 +362,7 @@ impl EntryOptions {
     merge_field!(base_uri);
     merge_field!(filename);
     merge_field!(library);
+    merge_field!(depend_on);
     Ok(())
   }
 

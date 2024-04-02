@@ -335,7 +335,12 @@ const getNormalizedEntryStatic = (entry: EntryStatic) => {
 				chunkLoading: value.chunkLoading,
 				asyncChunks: value.asyncChunks,
 				filename: value.filename,
-				library: value.library
+				library: value.library,
+				dependOn: Array.isArray(value.dependOn)
+					? value.dependOn
+					: value.dependOn
+					? [value.dependOn]
+					: undefined
 			};
 		}
 	}
@@ -422,6 +427,7 @@ export interface EntryDescriptionNormalized {
 	baseUri?: string;
 	filename?: EntryFilename;
 	library?: LibraryOptions;
+	dependOn?: string[];
 }
 
 export interface OutputNormalized {

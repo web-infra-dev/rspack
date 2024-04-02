@@ -464,8 +464,8 @@ importers:
         specifier: workspace:^
         version: link:../rspack-plugin-minify
       '@swc/plugin-remove-console':
-        specifier: ^1.5.114
-        version: 1.5.117
+        specifier: 1.5.121
+        version: 1.5.121
       '@types/watchpack':
         specifier: ^2.4.0
         version: 2.4.0
@@ -4860,8 +4860,8 @@ packages:
       jsonc-parser: 3.2.0
     dev: true
 
-  /@swc/plugin-remove-console@1.5.117:
-    resolution: {integrity: sha512-uLFwF8VvwTX6in6zDTuu5T2dnD/jPxEKpJMS/fKrTG/ThyOQoIwnwrdNP1Wgi88UvpkYWe9VCL0IVTlwsxqOcQ==}
+  /@swc/plugin-remove-console@1.5.121:
+    resolution: {integrity: sha512-oPmTosjPEPTkLQamFjeg/B/uT3VEbwo0dor4iUZUEjgu5Bv6JL8vafv1ma1GLdJ3lkOtN9t1xKirtFcM6aP0ug==}
     dependencies:
       '@swc/counter': 0.1.3
     dev: true

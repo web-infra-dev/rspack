@@ -13,7 +13,7 @@ impl JavascriptParserPlugin for CommonJsPlugin {
     expr: &swc_core::ecma::ast::UnaryExpr,
     _for_name: &str,
   ) -> Option<bool> {
-    if expr_matcher::is_module(&expr.arg) && parser.is_unresolved_ident("module") {
+    if expr_matcher::is_module(&*expr.arg) && parser.is_unresolved_ident("module") {
       parser
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(

@@ -62,6 +62,7 @@ node_modules/
 !webpack-test/*/**/node_modules
 !packages/rspack-cli/tests/**/node_modules
 !packages/rspack/tests/**/node_modules
+!packages/rspack/tests/configCases/less/resolve/node_modules
 jspm_packages/
 
 # Snowpack dependency directory (https://snowpack.dev/)
@@ -189,8 +190,8 @@ esbuild.cpuprofile
 
 
 # this node_modules is used for tree-shaking snapshot
-!crates/rspack/tests/tree-shaking/node_modules
-!packages/rspack/tests/configCases/less/resolve/node_modules
+!packages/rspack-test-tools/tests/treeShakingCases/node_modules
+
 
 # Binding artifacts
 artifacts

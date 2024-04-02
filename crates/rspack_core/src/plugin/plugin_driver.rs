@@ -9,18 +9,15 @@ use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
 
 use crate::{
-  AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, AfterResolveArgs,
-  ApplyContext, BoxLoader, BoxModule, BoxedParserAndGeneratorBuilder, ChunkContentHash,
-  ChunkHashArgs, Compilation, CompilationHooks, CompilerHooks, CompilerOptions, Content,
-  ContentHashArgs, ContextModuleFactoryHooks, DoneArgs, FactorizeArgs, JsChunkHashArgs,
-  LoaderRunnerContext, ModuleIdentifier, ModuleType, NormalModule, NormalModuleCreateData,
-  NormalModuleFactoryHooks, OptimizeChunksArgs, Plugin,
+  AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, ApplyContext,
+  BoxLoader, BoxedParserAndGeneratorBuilder, ChunkContentHash, ChunkHashArgs, Compilation,
+  CompilationHooks, CompilerHooks, CompilerOptions, Content, ContentHashArgs,
+  ContextModuleFactoryHooks, DoneArgs, FactorizeArgs, JsChunkHashArgs, LoaderRunnerContext,
+  ModuleIdentifier, ModuleType, NormalModule, NormalModuleFactoryHooks, OptimizeChunksArgs, Plugin,
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginAdditionalModuleRequirementsOutput,
   PluginBuildEndHookOutput, PluginChunkHashHookOutput, PluginContext, PluginFactorizeHookOutput,
-  PluginJsChunkHashHookOutput, PluginNormalModuleFactoryAfterResolveOutput,
-  PluginNormalModuleFactoryCreateModuleHookOutput, PluginNormalModuleFactoryModuleHookOutput,
-  PluginRenderChunkHookOutput, PluginRenderHookOutput, PluginRenderManifestHookOutput,
-  PluginRenderModuleContentOutput, PluginRenderStartupHookOutput,
+  PluginJsChunkHashHookOutput, PluginRenderChunkHookOutput, PluginRenderHookOutput,
+  PluginRenderManifestHookOutput, PluginRenderModuleContentOutput, PluginRenderStartupHookOutput,
   PluginRuntimeRequirementsInTreeOutput, RenderArgs, RenderChunkArgs, RenderManifestArgs,
   RenderModuleContentArgs, RenderStartupArgs, Resolver, ResolverFactory,
   RuntimeRequirementsInTreeArgs, Stats,
@@ -236,39 +233,6 @@ impl PluginDriver {
     Ok(None)
   }
 
-  pub async fn normal_module_factory_create_module(
-    &self,
-    args: &mut NormalModuleCreateData<'_>,
-  ) -> PluginNormalModuleFactoryCreateModuleHookOutput {
-    for plugin in &self.plugins {
-      tracing::trace!(
-        "running normal_module_factory_create_module:{}",
-        plugin.name()
-      );
-      if let Some(module) = plugin
-        .normal_module_factory_create_module(PluginContext::new(), args)
-        .await?
-      {
-        return Ok(Some(module));
-      }
-    }
-    Ok(None)
-  }
-
-  pub async fn normal_module_factory_module(
-    &self,
-    mut module: BoxModule,
-    args: &mut NormalModuleCreateData<'_>,
-  ) -> PluginNormalModuleFactoryModuleHookOutput {
-    for plugin in &self.plugins {
-      tracing::trace!("running normal_module_factory_module:{}", plugin.name());
-      module = plugin
-        .normal_module_factory_module(PluginContext::new(), module, args)
-        .await?;
-    }
-    Ok(module)
-  }
-
   pub fn normal_module_loader(
     &self,
     loader_context: &mut LoaderContext<'_, LoaderRunnerContext>,
@@ -279,41 +243,6 @@ impl PluginDriver {
       plugin.normal_module_loader(PluginContext::new(), loader_context, module)?;
     }
     Ok(())
-  }
-
-  pub async fn context_module_after_resolve(
-    &self,
-    args: &mut AfterResolveArgs<'_>,
-  ) -> PluginNormalModuleFactoryAfterResolveOutput {
-    for plugin in &self.plugins {
-      tracing::trace!("running resolve for scheme:{}", plugin.name());
-      if let Some(data) = plugin
-        .context_module_after_resolve(PluginContext::new(), args)
-        .await?
-      {
-        return Ok(Some(data));
-      }
-    }
-    Ok(None)
-  }
-
-  pub async fn normal_module_factory_resolve_for_scheme(
-    &self,
-    args: ResourceData,
-  ) -> Result<ResourceData> {
-    let mut args = args;
-    for plugin in &self.plugins {
-      tracing::trace!("running resolve for scheme:{}", plugin.name());
-      let (ret, stop) = plugin
-        .normal_module_factory_resolve_for_scheme(PluginContext::new(), args)
-        .await?;
-      if stop {
-        return Ok(ret);
-      } else {
-        args = ret;
-      }
-    }
-    Ok(args)
   }
 
   #[instrument(name = "plugin:additional_chunk_runtime_requirements", skip_all)]

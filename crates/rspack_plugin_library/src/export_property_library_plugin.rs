@@ -1,7 +1,7 @@
 use std::hash::Hash;
 
 use rspack_core::{
-  property_access,
+  get_entry_runtime, property_access,
   rspack_sources::{ConcatSource, RawSource, SourceExt},
   ApplyContext, ChunkUkey, Compilation, CompilerOptions, EntryData, JsChunkHashArgs, LibraryExport,
   LibraryOptions, LibraryType, Plugin, PluginContext, PluginJsChunkHashHookOutput,
@@ -58,7 +58,7 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
       options,
       ..
     } = entry;
-    let runtime = compilation.get_entry_runtime(entry_name, Some(options));
+    let runtime = get_entry_runtime(entry_name, options, &compilation.entries);
     let library_options = options
       .library
       .as_ref()
