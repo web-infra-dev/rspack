@@ -1,7 +1,8 @@
 use rspack_core::{
   compile_boolean_matcher, impl_runtime_module,
   rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
-  BooleanMatcher, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
+  BooleanMatcher, ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule,
+  RuntimeModuleStage,
 };
 use rspack_identifier::Identifier;
 use rspack_plugin_runtime::{chunk_has_css, get_chunk_runtime_requirements, stringify_chunks};
@@ -80,11 +81,33 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         &stringify_chunks(&initial_chunk_ids_without_css, 0)
       )));
 
+      let cross_origin_content = if let CrossOriginLoading::Enable(cross_origin) =
+        &compilation.options.output.cross_origin_loading
+        && cross_origin != "false"
+      {
+        if cross_origin == "use-credentials" {
+          r#"
+          link.crossOrigin = "use-credentials";\n
+          "#
+          .to_string()
+        } else {
+          format!(
+            r#"
+            if (link.href.indexOf(window.location.origin + '/') !== 0) {{
+              link.crossOrigin = "{cross_origin}";
+            }}
+          "#
+          )
+        }
+      } else {
+        "".to_string()
+      };
+
       source.add(RawSource::from(
         include_str!("./css_loading.js")
           .replace(
             "__CROSS_ORIGIN_LOADING_PLACEHOLDER__",
-            &compilation.options.output.cross_origin_loading.to_string(),
+            &cross_origin_content,
           )
           .replace("__UNIQUE_NAME__", unique_name),
       ));
