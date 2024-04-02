@@ -2,7 +2,7 @@
 source: crates/rspack_testing/src/run_fixture.rs
 ---
 ```css title=main.css
-._style-module__foo---___6655ebe837449348-_66 {
+._style_module__foo--____7dc7309cdb55212a__7d {
   color: hotpink;
 }
 
@@ -17,11 +17,11 @@ __webpack_require__.r(__webpack_exports__);
 
 console.log(_style_module_css__WEBPACK_IMPORTED_MODULE_0__);
 }),
-"./style.module.css": (function (module) {
+"./style.module.css": (function (module, __unused_webpack_exports, __webpack_require__) {
 "use strict";
-module.exports = {
-  "foo": "_style-module__foo---___6655ebe837449348-_66",
-};
+__webpack_require__.r(module.exports = {
+  "foo": "_style_module__foo--____7dc7309cdb55212a__7d",
+});
 }),
 
 },function(__webpack_require__) {

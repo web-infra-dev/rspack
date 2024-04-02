@@ -5,12 +5,6 @@ module.exports = {
 			"css/auto": {
 				exportsOnly: false
 			},
-			"css": {
-				exportsOnly: false,
-			},
-			"css/module": {
-				exportsOnly: false,
-			}
 		},
 		rules: [
 			{

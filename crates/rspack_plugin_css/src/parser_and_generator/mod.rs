@@ -20,7 +20,6 @@ use rspack_core::{ModuleInitFragments, RuntimeGlobals};
 use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_util::source_map::SourceMapKind;
 use rustc_hash::FxHashSet;
-use sugar_path::SugarPath;
 use swc_core::{css::parser::parser::ParserConfig, ecma::atoms::Atom};
 
 use crate::utils::{css_modules_exports_to_string, ModulesTransformConfig};
@@ -132,7 +131,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
       let result = swc_core::css::modules::compile(
         &mut stylesheet,
         ModulesTransformConfig::new(
-          &resource_data,
+          resource_data,
           self
             .local_ident_name
             .as_ref()

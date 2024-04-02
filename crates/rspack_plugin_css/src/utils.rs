@@ -60,7 +60,7 @@ impl<'a> ModulesTransformConfig<'a> {
 
 impl swc_core::css::modules::TransformConfig for ModulesTransformConfig<'_> {
   fn new_name_for(&self, local: &Atom) -> Atom {
-    let relative_path = self.resource_data.resource_path.relative(&self.context);
+    let relative_path = self.resource_data.resource_path.relative(self.context);
     let hash = {
       let mut hasher = RspackHash::with_salt(self.hash_function, self.hash_salt);
       relative_path.hash(&mut hasher);
