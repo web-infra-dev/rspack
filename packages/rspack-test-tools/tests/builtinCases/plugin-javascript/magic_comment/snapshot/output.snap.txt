@@ -1,0 +1,92 @@
+```js title=./sub/fold.js
+(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["./sub/fold"], {
+"./sub_fold.js": (function () {
+console.log('123');
+}),
+
+}]);
+```
+
+```js title=./sub/other.js
+(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["./sub/other"], {
+"./other.js": (function () {
+console.log('123');
+}),
+
+}]);
+```
+
+```js title=./sub/single.js
+(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["./sub/single"], {
+"./single_quote.js": (function () {
+console.log('123');
+}),
+
+}]);
+```
+
+```js title=./user/[id].js
+(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["./user/[id]"], {
+"./user/1.js": (function () {
+console.log('user [id]');
+}),
+
+}]);
+```
+
+```js title=bug_only_single_quote_js.js
+(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["bug_only_single_quote_js"], {
+"./bug_only_single_quote.js": (function () {
+console.log('123');
+}),
+
+}]);
+```
+
+```js title=main.js
+(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
+"./index.js": (function (__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+__webpack_require__.e("normal").then(__webpack_require__.t.bind(__webpack_require__, /*! ./normal */"./normal.js", 23));
+__webpack_require__.e("./sub/fold").then(__webpack_require__.t.bind(__webpack_require__, /*! ./sub_fold */"./sub_fold.js", 23));
+__webpack_require__.e("./sub/single").then(__webpack_require__.t.bind(__webpack_require__, /*! ./single_quote */"./single_quote.js", 23));
+__webpack_require__.e("./sub/other").then(__webpack_require__.t.bind(__webpack_require__, /*! ./other */"./other.js", 23));
+__webpack_require__.e("./user/[id]").then(__webpack_require__.t.bind(__webpack_require__, /*! ./user/1 */"./user/1.js", 23));
+__webpack_require__.e("user/[id]/page").then(__webpack_require__.t.bind(__webpack_require__, /*! ./user/page/2 */"./user/page/2.js", 23));
+__webpack_require__.e("user/(id)/page").then(__webpack_require__.t.bind(__webpack_require__, /*! ./user/page/3 */"./user/page/3.js", 23));
+__webpack_require__.e("bug_only_single_quote_js").then(__webpack_require__.t.bind(__webpack_require__, /*! ./bug_only_single_quote.js */"./bug_only_single_quote.js", 23));
+}),
+
+},function(__webpack_require__) {
+var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
+var __webpack_exports__ = (__webpack_exec__("./index.js"));
+
+}
+]);
+```
+
+```js title=normal.js
+(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["normal"], {
+"./normal.js": (function () {
+console.log('123');
+}),
+
+}]);
+```
+
+```js title=user/(id)/page.js
+(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["user/(id)/page"], {
+"./user/page/3.js": (function () {
+console.log('user (id)/page3');
+}),
+
+}]);
+```
+
+```js title=user/[id]/page.js
+(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["user/[id]/page"], {
+"./user/page/2.js": (function () {
+console.log('user [id]/page2');
+}),
+
+}]);
+```
