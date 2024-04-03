@@ -51,7 +51,11 @@ export class RspackBuiltinProcessor extends SnapshotProcessor<ECompilerType.Rspa
 				asyncChunks: true,
 				scriptType: false,
 				globalObject: "self",
-				importFunctionName: "import"
+				importFunctionName: "import",
+				wasmLoading: "fetch",
+				webassemblyModuleFilename: "[hash].module.wasm",
+				workerChunkLoading: "import-scripts",
+				workerWasmLoading: "fetch"
 			},
 			module: {
 				rules: [
@@ -121,7 +125,10 @@ export class RspackBuiltinProcessor extends SnapshotProcessor<ECompilerType.Rspa
 			},
 			devtool: false,
 			context: context.getSource(),
-			plugins: []
+			plugins: [],
+			builtins: {
+				treeShaking: false
+			}
 		};
 
 		const testConfigFile = context.getSource("test.config.js");
