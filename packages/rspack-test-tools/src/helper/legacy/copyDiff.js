@@ -4,7 +4,7 @@ const path = require("path");
 const rimraf = require("rimraf");
 
 module.exports = function copyDiff(src, dest, initial) {
-	if (!fs.existsSync(dest)) fs.mkdirSync(dest);
+	fs.mkdirSync(dest, { recursive: true });
 	const files = fs.readdirSync(src);
 	files.forEach(filename => {
 		const srcFile = path.join(src, filename);
