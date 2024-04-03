@@ -68,6 +68,11 @@ module.exports = {
 							{
 								libraryName: "./src/style-true",
 								style: true
+							},
+							{
+								libraryName: './src/legacy-babel-plugin-import',
+								customName: './src/legacy-babel-plugin-import/lib/{{ legacyKebabCase member }}/{{ legacySnakeCase member }}',
+								style: false
 							}
 						]
 					}
