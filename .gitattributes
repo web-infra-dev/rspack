@@ -2,8 +2,8 @@ benchcases/**/*.js linguist-detectable=false
 webpack-examples/**/*.js linguist-detectable=false
 webpack-test/**/*.js linguist-detectable=false
 **/tests/**/*.js linguist-detectable=false
-*.snap.txt text diff=markdown
 **/tests/** eol=lf
+*.snap.txt text -eol=lf diff=markdown linguist-language=Markdown -linguist-documentation=false -linguist-detectable=false
 *.css eol=lf
 *.js eol=lf
 *.ts eol=lf
