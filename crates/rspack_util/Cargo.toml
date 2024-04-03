@@ -14,5 +14,6 @@ once_cell     = { workspace = true }
 regex         = { workspace = true }
 rustc-hash    = { workspace = true }
 sugar_path    = { workspace = true }
+unicase       = { workspace = true }
 
 swc_core = { workspace = true, features = ["ecma_ast"] }
