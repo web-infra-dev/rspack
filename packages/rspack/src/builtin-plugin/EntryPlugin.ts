@@ -41,7 +41,8 @@ export const EntryPlugin = create(
 			entry,
 			options: getRawEntryOptions(entryOptions)
 		};
-	}
+	},
+	"make"
 );
 
 function getRawEntryOptions(entry: EntryOptions): RawEntryOptions {

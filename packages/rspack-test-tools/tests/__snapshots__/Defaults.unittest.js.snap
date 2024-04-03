@@ -26,7 +26,6 @@ Object {
         "force": false,
         "version": "$version$",
       },
-      "disableApplyEntryLazily": true,
       "newTreeshaking": false,
     },
     "topLevelAwait": true,

@@ -1165,7 +1165,6 @@ export type Optimization = z.infer<typeof optimization>;
 //#region Experiments
 const rspackFutureOptions = z.strictObject({
 	newTreeshaking: z.boolean().optional(),
-	disableApplyEntryLazily: z.boolean().optional(),
 	bundlerInfo: z
 		.strictObject({
 			version: z.string().optional(),
