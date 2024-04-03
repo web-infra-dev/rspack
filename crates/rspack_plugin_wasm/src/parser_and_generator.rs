@@ -282,6 +282,17 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
       _ => Ok(source.clone()),
     }
   }
+
+  fn get_concatenation_bailout_reason(
+    &self,
+    _module: &dyn Module,
+    _mg: &rspack_core::ModuleGraph,
+    _cg: &rspack_core::ChunkGraph,
+  ) -> Option<String> {
+    Some(String::from(
+      "Module Concatenation is not implemented for AsyncWasmParserAndGenerator",
+    ))
+  }
 }
 
 fn render_wasm_name(

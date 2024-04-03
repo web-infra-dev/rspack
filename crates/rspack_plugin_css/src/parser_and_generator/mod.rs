@@ -369,4 +369,15 @@ impl ParserAndGenerator for CssParserAndGenerator {
       self.exports = data;
     }
   }
+
+  fn get_concatenation_bailout_reason(
+    &self,
+    _module: &dyn rspack_core::Module,
+    _mg: &ModuleGraph,
+    _cg: &ChunkGraph,
+  ) -> Option<String> {
+    Some(String::from(
+      "Module Concatenation is not implemented for CssParserAndGenerator",
+    ))
+  }
 }

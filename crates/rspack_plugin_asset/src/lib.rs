@@ -11,10 +11,10 @@ use rspack_core::{
     analyzer::OptimizeAnalyzer, asset_module::AssetModule, visitor::OptimizeAnalyzeResult,
   },
   AssetGeneratorDataUrl, AssetGeneratorDataUrlFnArgs, AssetParserDataUrl, BuildExtraDataType,
-  BuildMetaDefaultObject, BuildMetaExportsType, CodeGenerationDataAssetInfo,
+  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, CodeGenerationDataAssetInfo,
   CodeGenerationDataFilename, CodeGenerationDataUrl, Compilation, CompilerOptions, GenerateContext,
-  Module, ModuleType, NormalModule, ParseContext, ParserAndGenerator, PathData, Plugin,
-  PluginContext, PluginRenderManifestHookOutput, RenderManifestArgs, RenderManifestEntry,
+  Module, ModuleGraph, ModuleType, NormalModule, ParseContext, ParserAndGenerator, PathData,
+  Plugin, PluginContext, PluginRenderManifestHookOutput, RenderManifestArgs, RenderManifestEntry,
   ResourceData, RuntimeGlobals, SourceType, NAMESPACE_OBJECT_EXPORT,
 };
 use rspack_error::{error, IntoTWithDiagnosticArray, Result};
@@ -472,6 +472,15 @@ impl ParserAndGenerator for AssetParserAndGenerator {
       self.parsed_asset_config = from_bytes::<Option<CanonicalizedDataUrlOption>>(data)
         .expect("Failed to resume extra data");
     }
+  }
+
+  fn get_concatenation_bailout_reason(
+    &self,
+    _module: &dyn rspack_core::Module,
+    _mg: &ModuleGraph,
+    _cg: &ChunkGraph,
+  ) -> Option<String> {
+    None
   }
 }
 
