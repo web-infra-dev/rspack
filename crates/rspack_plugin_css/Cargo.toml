@@ -37,6 +37,3 @@ swc_core = { workspace = true, features = [
 ] }
 tracing = { workspace = true }
 urlencoding = { workspace = true }
-
-[dev-dependencies]
-rspack_testing = { path = "../rspack_testing" }

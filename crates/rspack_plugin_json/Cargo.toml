@@ -7,9 +7,6 @@ version    = "0.1.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[dev-dependencies]
-rspack_testing = { path = "../rspack_testing" }
-
 [dependencies]
 json         = { workspace = true }
 ropey        = "1.6.1"

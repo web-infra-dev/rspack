@@ -35,6 +35,3 @@ swc_config               = { workspace = true }
 swc_core                 = { workspace = true, features = ["base", "ecma_ast", "common"] }
 tokio                    = { workspace = true }
 xxhash-rust              = { workspace = true, features = ["xxh32"] }
-
-[dev-dependencies]
-rspack_testing = { path = "../rspack_testing" }
