@@ -12,9 +12,9 @@ use rspack_core::{
     BoxSource, ConcatSource, MapOptions, RawSource, ReplaceSource, Source, SourceExt, SourceMap,
     SourceMapSource, SourceMapSourceOptions,
   },
-  BoxDependency, BuildExtraDataType, BuildMetaExportsType, CssExportsConvention, ErrorSpan,
-  GenerateContext, LocalIdentName, Module, ModuleType, ParseContext, ParseResult,
-  ParserAndGenerator, SourceType, TemplateContext,
+  BoxDependency, BuildExtraDataType, BuildMetaDefaultObject, BuildMetaExportsType,
+  CssExportsConvention, ErrorSpan, GenerateContext, LocalIdentName, Module, ModuleType,
+  ParseContext, ParseResult, ParserAndGenerator, SourceType, TemplateContext,
 };
 use rspack_core::{ModuleInitFragments, RuntimeGlobals};
 use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
@@ -95,8 +95,11 @@ impl ParserAndGenerator for CssParserAndGenerator {
     } else {
       BuildMetaExportsType::Default
     };
-
-    // build_meta.exports_type = BuildMetaExportsType::Namespace;
+    build_meta.default_object = if self.named_exports {
+      BuildMetaDefaultObject::False
+    } else {
+      BuildMetaDefaultObject::Redirect
+    };
 
     let swc_compiler = SwcCssCompiler::default();
 

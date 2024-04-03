@@ -339,8 +339,8 @@ const getNormalizedEntryStatic = (entry: EntryStatic) => {
 				dependOn: Array.isArray(value.dependOn)
 					? value.dependOn
 					: value.dependOn
-					? [value.dependOn]
-					: undefined
+						? [value.dependOn]
+						: undefined
 			};
 		}
 	}
