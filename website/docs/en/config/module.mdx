@@ -83,7 +83,11 @@ module.exports = {
 };
 ```
 
-### module.parser.asset.dataUrlCondition
+### module.parser.asset
+
+Parser options for `asset` modules.
+
+#### module.parser.asset.dataUrlCondition
 
 - **Type:** `{ maxSize: number }`
 - **Default:** `{ maxSize: 8096 }`
@@ -105,14 +109,18 @@ module.exports = {
 };
 ```
 
-### module.parser.javascript.dynamicImportMode
+### module.parser.javascript
+
+Parser options for `javascript` modules.
+
+#### module.parser.javascript.dynamicImportMode
 
 - **Type:** `'lazy' | 'eager'`
 - **Default:** `'lazy'`
 
 Specifies global mode for dynamic import.
 
-### module.parser.javascript.dynamicImportPrefetch
+#### module.parser.javascript.dynamicImportPrefetch
 
 <ApiMeta addedVersion="0.4.5" />
 
@@ -121,7 +129,7 @@ Specifies global mode for dynamic import.
 
 Specifies global prefetch for dynamic import.
 
-### module.parser.javascript.dynamicImportPreload
+#### module.parser.javascript.dynamicImportPreload
 
 <ApiMeta addedVersion="0.4.5" />
 
@@ -149,7 +157,15 @@ When use 'relative', rspack would generate relative URLs for `new URL()` syntax,
 <img src="file:///path/to/project/dist/icon.svg" />
 ```
 
-### module.parser["css/auto"].namedExports
+### module.parser["css/auto"]
+
+Parser options for `css/auto` modules.
+
+:::warning
+This configuration will only take effect when `experiments.css = true`.
+:::
+
+#### module.parser["css/auto"].namedExports
 
 <ApiMeta addedVersion="0.6.0" />
 
@@ -158,26 +174,51 @@ When use 'relative', rspack would generate relative URLs for `new URL()` syntax,
 
 Use ES modules named export for css exports
 
-When using `namedExports: true`, you can use namespace or named import:
+When using `namedExports: true`, you can use namespace export or named export:
 
 ```js
+// namespace export
 import * as classes from './index.module.css';
-import { class1 } from './index.module.css';
+// named export
+import { class1, class2 } from './index.module.css';
 ```
 
-When using `namedExports: false`, you can use default import:
+When using `namedExports: false`, in addition to namespace export and named export, default export can also be used:
 
 ```js
+// namespace export
+import * as classes from './index.module.css';
+// named export
+import { class1, class2 } from './index.module.css';
+// default export
 import classes from './index.module.css';
+// default export and named export
+import classes, { class1, class2 } from './index.module.css';
 ```
 
-### module.parser.css.namedExports
+### module.parser.css
+
+Parser options for `css` modules.
+
+:::warning
+This configuration will only take effect when `experiments.css = true`.
+:::
+
+#### module.parser.css.namedExports
 
 <ApiMeta addedVersion="0.6.0" />
 
 Same as [`module.parser["css/auto"].namedExports`](#moduleparsercssautonamedexports).
 
-### module.parser["css/module"].namedExports
+### module.parser["css/module"]
+
+Parser options for `css/module` modules.
+
+:::warning
+This configuration will only take effect when `experiments.css = true`.
+:::
+
+#### module.parser["css/module"].namedExports
 
 <ApiMeta addedVersion="0.6.0" />
 
@@ -237,7 +278,11 @@ module.exports = {
 };
 ```
 
-### module.generator.asset.dataUrl
+### module.generator.asset
+
+Generator options for `asset` modules.
+
+#### module.generator.asset.dataUrl
 
 - **Type:** `Object | (options: { content: string, filename: string }) => string`
 - **Default:** `{}`
@@ -277,21 +322,21 @@ module.exports = {
 };
 ```
 
-#### module.generator.asset.dataUrl.encoding
+##### module.generator.asset.dataUrl.encoding
 
 - **Type:** `false | 'base64'`
 - **Default:** `'base64'`
 
 When set to 'base64', module source will be encoded using Base64 algorithm. Setting encoding to false will disable encoding. Only for modules with module type `'asset'` or `'asset/inline'`.
 
-#### module.generator.asset.dataUrl.mimetype
+##### module.generator.asset.dataUrl.mimetype
 
 - **Type:** `string`
 - **Default:** `require('mime-types').lookup(ext)`
 
 A mimetype for data URI. Resolves from module resource extension by default. Only for modules with module type `'asset'` or `'asset/inline'`.
 
-### module.generator.asset.filename
+#### module.generator.asset.filename
 
 - **Type:** `string`
 - **Default:** `undefined`
@@ -311,7 +356,7 @@ module.exports = {
 };
 ```
 
-### module.generator.asset.publicPath
+#### module.generator.asset.publicPath
 
 - **Type:** `string`
 - **Default:** `undefined`
@@ -330,27 +375,43 @@ module.exports = {
 };
 ```
 
-### module.generator["asset/inline"].dataUrl
+### module.generator["asset/inline"]
+
+Generator options for `asset/inline` modules.
+
+#### module.generator["asset/inline"].dataUrl
 
 Same as [`module.generator["asset"].dataUrl`](#modulegeneratorassetdataurl).
 
-#### module.generator["asset/inline"].dataUrl.encoding
+##### module.generator["asset/inline"].dataUrl.encoding
 
 Same as [`module.generator["asset"].dataUrl.encoding`](#modulegeneratorassetdataurlencoding).
 
-#### module.generator["asset/inline"].dataUrl.mimetype
+##### module.generator["asset/inline"].dataUrl.mimetype
 
 Same as [`module.generator["asset"].dataUrl.mimetype`](#modulegeneratorassetdataurlmimetype).
 
-### module.generator["asset/resource"].filename
+### module.generator["asset/resource"]
+
+Generator options for `asset/resource` modules.
+
+#### module.generator["asset/resource"].filename
 
 Same as [`module.generator["asset"].filename`](#modulegeneratorassetfilename).
 
-### module.generator["asset/resource"].publicPath
+#### module.generator["asset/resource"].publicPath
 
 Same as [`module.generator["asset"].publicPath`](#modulegeneratorassetpublicpath).
 
-### module.generator["css/auto"].exportsConvention
+### module.generator["css/auto"]
+
+Generator options for `css/auto` modules.
+
+:::warning
+This configuration will only take effect when `experiments.css = true`.
+:::
+
+#### module.generator["css/auto"].exportsConvention
 
 <ApiMeta addedVersion="0.6.0" />
 
@@ -359,7 +420,7 @@ Same as [`module.generator["asset"].publicPath`](#modulegeneratorassetpublicpath
 
 Customize how css export names are exported to javascript modules, such as keeping them as is, transforming them to camel case, etc.
 
-### module.generator["css/auto"].exportsOnly
+#### module.generator["css/auto"].exportsOnly
 
 <ApiMeta addedVersion="0.6.0" />
 
@@ -368,7 +429,7 @@ Customize how css export names are exported to javascript modules, such as keepi
 
 Avoid generating and loading a stylesheet and only embed exports from css into output javascript files.
 
-### module.generator["css/auto"].localIdentName
+#### module.generator["css/auto"].localIdentName
 
 <ApiMeta addedVersion="0.6.0" />
 
@@ -377,31 +438,47 @@ Avoid generating and loading a stylesheet and only embed exports from css into o
 
 Customize the format of the local class names generated for css modules, besides the substitutions at [File-level](/config/output.html#file-context) and [Module-level](/config/output.html#module-context), also include `[uniqueName]` and `[local]`.
 
-### module.generator.css.exportsConvention
+### module.generator.css
+
+Generator options for `css` modules.
+
+:::warning
+This configuration will only take effect when `experiments.css = true`.
+:::
+
+#### module.generator.css.exportsConvention
 
 <ApiMeta addedVersion="0.6.0" />
 
 Same as [`module.generator["css/auto"].exportsConvention`](#modulegeneratorcssautoexportsconvention).
 
-### module.generator.css.exportsOnly
+#### module.generator.css.exportsOnly
 
 <ApiMeta addedVersion="0.6.0" />
 
 Same as [`module.generator["css/auto"].exportsOnly`](#modulegeneratorcssautoexportsonly).
 
-### module.generator["css/module"].exportsConvention
+### module.generator["css/module"]
+
+Generator options for `css/module` modules.
+
+:::warning
+This configuration will only take effect when `experiments.css = true`.
+:::
+
+#### module.generator["css/module"].exportsConvention
 
 <ApiMeta addedVersion="0.6.0" />
 
 Same as [`module.generator["css/auto"].exportsConvention`](#modulegeneratorcssautoexportsconvention).
 
-### module.generator["css/module"].exportsOnly
+#### module.generator["css/module"].exportsOnly
 
 <ApiMeta addedVersion="0.6.0" />
 
 Same as [`module.generator["css/auto"].exportsOnly`](#modulegeneratorcssautoexportsonly).
 
-### module.generator["css/module"].localIdentName
+#### module.generator["css/module"].localIdentName
 
 <ApiMeta addedVersion="0.6.0" />
 

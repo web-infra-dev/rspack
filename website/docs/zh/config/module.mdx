@@ -83,7 +83,11 @@ module.exports = {
 };
 ```
 
-### module.parser.asset.dataUrlCondition
+### module.parser.asset
+
+`asset` 模块的解析器选项。
+
+#### module.parser.asset.dataUrlCondition
 
 - **类型：** `{ maxSize: number }`
 - **默认值：** `{ maxSize: 8096 }`
@@ -105,14 +109,18 @@ module.exports = {
 };
 ```
 
-### module.parser.javascript.dynamicImportMode
+### module.parser.javascript
+
+`javascript` 模块的解析器选项。
+
+#### module.parser.javascript.dynamicImportMode
 
 - **类型：** `'lazy' | 'eager'`
 - **默认值：** `'lazy'`
 
 指定动态导入的全局模式。
 
-### module.parser.javascript.dynamicImportPrefetch
+#### module.parser.javascript.dynamicImportPrefetch
 
 <ApiMeta addedVersion="0.4.5" />
 
@@ -121,7 +129,7 @@ module.exports = {
 
 指定动态导入的全局 prefetch。
 
-### module.parser.javascript.dynamicImportPreload
+#### module.parser.javascript.dynamicImportPreload
 
 <ApiMeta addedVersion="0.4.5" />
 
@@ -130,7 +138,7 @@ module.exports = {
 - **类型：** `boolean | number`
 - **默认值：** `false`
 
-### module.parser.javascript.url
+#### module.parser.javascript.url
 
 <ApiMeta addedVersion="0.4.4" />
 
@@ -149,7 +157,15 @@ module.exports = {
 <img src="file:///path/to/project/dist/icon.svg" />
 ```
 
-### module.parser["css/auto"].namedExports
+### module.parser["css/auto"]
+
+`css/auto` 模块的解析器选项。
+
+:::warning
+只有在 `experiments.css = true` 时该配置才会生效
+:::
+
+#### module.parser["css/auto"].namedExports
 
 <ApiMeta addedVersion="0.6.0" />
 
@@ -158,26 +174,51 @@ module.exports = {
 
 使用 ES 模块命名导出来导出 CSS。
 
-当使用 `namedExports: true` 时，你可以使用命名空间或命名导入：
+当使用 `namedExports: true` 时，你可以使用命名空间导出或命名导出：
 
 ```js
+// 命名空间导出
 import * as classes from './index.module.css';
-import { class1 } from './index.module.css';
+// 命名导出
+import { class1, class2 } from './index.module.css';
 ```
 
-当使用 `namedExports: false` 时，你可以使用默认导入：
+当使用 `namedExports: false` 时，除了命名空间导出和命名导出之外，还可以用默认导出：
 
 ```js
+// 命名空间导出
+import * as classes from './index.module.css';
+// 命名导出
+import { class1, class2 } from './index.module.css';
+// 默认导出
 import classes from './index.module.css';
+// 默认导出和命名导出
+import classes, { class1, class2 } from './index.module.css';
 ```
 
-### module.parser.css.namedExports
+### module.parser.css
+
+`css` 模块的解析器选项。
+
+:::warning
+只有在 `experiments.css = true` 时该配置才会生效
+:::
+
+#### module.parser.css.namedExports
 
 <ApiMeta addedVersion="0.6.0" />
 
 和 [`module.parser["css/auto"].namedExports`](#moduleparsercssautonamedexports) 一样。
 
-### module.parser["css/module"].namedExports
+### module.parser["css/module"]
+
+`css/module` 模块的解析器选项。
+
+:::warning
+只有在 `experiments.css = true` 时该配置才会生效
+:::
+
+#### module.parser["css/module"].namedExports
 
 <ApiMeta addedVersion="0.6.0" />
 
@@ -237,7 +278,11 @@ module.exports = {
 };
 ```
 
-### module.generator.asset.dataUrl
+### module.generator.asset
+
+`asset` 模块的生成器选项。
+
+#### module.generator.asset.dataUrl
 
 - **类型：** `Object | (options: { content: string, filename: string }) => string`
 - **默认值：** `{}`
@@ -277,21 +322,21 @@ module.exports = {
 };
 ```
 
-#### module.generator.asset.dataUrl.encoding
+##### module.generator.asset.dataUrl.encoding
 
 - **类型：** `false | 'base64'`
 - **默认值：** `'base64'`
 
 设置为 base64 时，模块将使用 base64 算法进行编码。将编码设置为 false 将禁用编码。仅对模块类型为 `'asset/inline'` 的模块生效。
 
-#### module.generator.asset.dataUrl.mimetype
+##### module.generator.asset.dataUrl.mimetype
 
 - **类型：** `string`
 - **默认值：** `require('mime-types').lookup(ext)`
 
 dataUrl 的 MIME 类型，默认从模块资源扩展名解析。仅对模块类型为 `'asset/inline'` 的模块生效。
 
-### module.generator.asset.filename
+#### module.generator.asset.filename
 
 - **类型：** `string`
 - **默认值：** `undefined`
@@ -311,7 +356,7 @@ module.exports = {
 };
 ```
 
-### module.generator.asset.publicPath
+#### module.generator.asset.publicPath
 
 - **类型：** `string`
 - **默认值：** `undefined`
@@ -330,27 +375,43 @@ module.exports = {
 };
 ```
 
-### module.generator["asset/inline"].dataUrl
+### module.generator["asset/inline"]
+
+`asset/inline` 模块的生成器选项。
+
+#### module.generator["asset/inline"].dataUrl
 
 和 [`module.generator["asset"].dataUrl`](#modulegeneratorassetdataurl) 一样。
 
-#### module.generator["asset/inline"].dataUrl.encoding
+##### module.generator["asset/inline"].dataUrl.encoding
 
 和 [`module.generator["asset"].dataUrl.encoding`](#modulegeneratorassetdataurlencoding) 一样。
 
-#### module.generator["asset/inline"].dataUrl.mimetype
+##### module.generator["asset/inline"].dataUrl.mimetype
 
 和 [`module.generator["asset"].dataUrl.mimetype`](#modulegeneratorassetdataurlmimetype) 一样。
 
-### module.generator["asset/resource"].filename
+### module.generator["asset/resource"]
+
+`asset/resource` 模块的生成器选项。
+
+#### module.generator["asset/resource"].filename
 
 和 [`module.generator["asset"].filename`](#modulegeneratorassetfilename) 一样。
 
-### module.generator["asset/resource"].publicPath
+#### module.generator["asset/resource"].publicPath
 
 和 [`module.generator["asset"].publicPath`](#modulegeneratorassetpublicpath) 一样。
 
-### module.generator["css/auto"].exportsConvention
+### module.generator["css/auto"]
+
+`css/auto` 模块的生成器选项。
+
+:::warning
+只有在 `experiments.css = true` 时该配置才会生效
+:::
+
+#### module.generator["css/auto"].exportsConvention
 
 <ApiMeta addedVersion="0.6.0" />
 
@@ -359,7 +420,7 @@ module.exports = {
 
 自定义 CSS 导出名称如何导出到 JavaScript 模块，例如保留原样、转换为驼峰命名等等。
 
-### module.generator["css/auto"].exportsOnly
+#### module.generator["css/auto"].exportsOnly
 
 <ApiMeta addedVersion="0.6.0" />
 
@@ -368,7 +429,7 @@ module.exports = {
 
 避免生成和加载样式表，只将来自 CSS 的导出嵌入到输出的 JavaScript 文件中。
 
-### module.generator["css/auto"].localIdentName
+#### module.generator["css/auto"].localIdentName
 
 <ApiMeta addedVersion="0.6.0" />
 
@@ -377,31 +438,47 @@ module.exports = {
 
 自定义生成的 CSS modules 的局部类名格式，除了在[文件级别](/config/output.html#file-context)和[模块级别](/config/output.html#module-context)的替换之外，还包括 `[uniqueName]` 和 `[local]`。
 
-### module.generator.css.exportsConvention
+### module.generator.css
+
+`css` 模块的生成器选项。
+
+:::warning
+只有在 `experiments.css = true` 时该配置才会生效
+:::
+
+#### module.generator.css.exportsConvention
 
 <ApiMeta addedVersion="0.6.0" />
 
 和 [`module.generator["css/auto"].exportsConvention`](#modulegeneratorcssautoexportsconvention) 一样。
 
-### module.generator.css.exportsOnly
+#### module.generator.css.exportsOnly
 
 <ApiMeta addedVersion="0.6.0" />
 
 和 [`module.generator["css/auto"].exportsOnly`](#modulegeneratorcssautoexportsonly) 一样。
 
-### module.generator["css/module"].exportsConvention
+### module.generator["css/module"]
+
+`css/module` 模块的生成器选项。
+
+:::warning
+只有在 `experiments.css = true` 时该配置才会生效
+:::
+
+#### module.generator["css/module"].exportsConvention
 
 <ApiMeta addedVersion="0.6.0" />
 
 和 [`module.generator["css/auto"].exportsConvention`](#modulegeneratorcssautoexportsconvention) 一样。
 
-### module.generator["css/module"].exportsOnly
+#### module.generator["css/module"].exportsOnly
 
 <ApiMeta addedVersion="0.6.0" />
 
 和 [`module.generator["css/auto"].exportsOnly`](#modulegeneratorcssautoexportsonly) 一样。
 
-### module.generator["css/module"].localIdentName
+#### module.generator["css/module"].localIdentName
 
 <ApiMeta addedVersion="0.6.0" />
 
