@@ -7,6 +7,7 @@ import {
 	type Compilation as WebpackCompilation,
 	type Compiler as WebpackCompiler
 } from "webpack";
+import os from "os";
 
 declare var global: {
 	updateSnapshot: boolean;
@@ -58,7 +59,7 @@ export class SnapshotProcessor<
 					.toString()}\n\`\`\``;
 			});
 		fileContents.sort();
-		const content = fileContents.join("\n\n");
+		const content = fileContents.join("\n\n").trim().replace(/\r\n/g, "\n");
 		const snapshotPath = path.resolve(
 			context.getSource(),
 			`./snapshot/${this._snapshotOptions.snapshot}`
@@ -69,7 +70,9 @@ export class SnapshotProcessor<
 			fs.writeFileSync(snapshotPath, content, "utf-8");
 			return;
 		}
-		const snapshotContent = fs.readFileSync(snapshotPath, "utf-8");
-		expect(content.trim()).toBe(snapshotContent.trim());
+		const snapshotContent = fs
+			.readFileSync(snapshotPath, "utf-8")
+			.replace(/\r\n/g, "\n");
+		expect(content).toBe(snapshotContent);
 	}
 }
