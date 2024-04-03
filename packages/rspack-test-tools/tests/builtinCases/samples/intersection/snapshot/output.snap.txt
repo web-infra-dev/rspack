@@ -12,10 +12,10 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
-console.log('a');
+console.log("a");
 }),
 "./i-1.js": (function () {
-console.log('i-1');
+console.log("i-1");
 }),
 
 }]);
@@ -35,10 +35,10 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
-console.log('a');
+console.log("a");
 }),
 "./i-2.js": (function () {
-console.log('i-2');
+console.log("i-2");
 }),
 
 }]);
@@ -47,7 +47,7 @@ console.log('i-2');
 ```js title=index.js
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["index"], {
 "./i-1.js": (function () {
-console.log('i-1');
+console.log("i-1");
 }),
 "./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
 "use strict";
@@ -58,10 +58,10 @@ console.log('i-1');
 
 
 __webpack_require__.e("a_js-_9b1b1").then(__webpack_require__.bind(__webpack_require__, /*! ./a */"./a.js"));
-console.log('index');
+console.log("index");
 }),
 "./shared.js": (function () {
-console.log('shared');
+console.log("shared");
 }),
 
 },function(__webpack_require__) {
@@ -75,7 +75,7 @@ var __webpack_exports__ = (__webpack_exec__("./index.js"));
 ```js title=index2.js
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["index2"], {
 "./i-2.js": (function () {
-console.log('i-2');
+console.log("i-2");
 }),
 "./index2.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
 "use strict";
@@ -86,10 +86,10 @@ console.log('i-2');
 
 
 __webpack_require__.e("a_js-_9b1b0").then(__webpack_require__.bind(__webpack_require__, /*! ./a */"./a.js"));
-console.log('index');
+console.log("index");
 }),
 "./shared.js": (function () {
-console.log('shared');
+console.log("shared");
 }),
 
 },function(__webpack_require__) {

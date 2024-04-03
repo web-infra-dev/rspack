@@ -6,7 +6,7 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   a: function() { return a; }
 });
-const a = 'a';
+const a = "a";
 }),
 
 }]);
@@ -53,11 +53,11 @@ var map = {"./a.js": "./child/a.js","./b.js": "./child/b.js",};
       module.exports = webpackAsyncContext;
       }),
 "./index.js": (function (__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
-const request = 'a';
+const request = "a";
 __webpack_require__.e("child_a_js").then(__webpack_require__.bind(__webpack_require__, /*! ./child/a.js */"./child/a.js")).then(({ a })=>console.log("Literal", a));
 __webpack_require__.e("child_b_js").then(__webpack_require__.bind(__webpack_require__, /*! ./child/b.js */"./child/b.js")).then(({ b })=>console.log("Template Literal", b));
 __webpack_require__(/*! ./child */"./child Lazy  recursive ^\\.\\/.*\\.js$")((`./child/${request}.js`).replace('./child/', './')).then(({ a })=>console.log("context_module_tpl", a));
-__webpack_require__(/*! ./child */"./child Lazy  recursive ^\\.\\/.*\\.js$")(('./child/' + request + '.js').replace('./child/', './')).then(({ a })=>console.log("context_module_bin", a));
+__webpack_require__(/*! ./child */"./child Lazy  recursive ^\\.\\/.*\\.js$")(("./child/" + request + ".js").replace('./child/', './')).then(({ a })=>console.log("context_module_bin", a));
 __webpack_require__(/*! ./child */"./child Lazy  recursive ^\\.\\/.*\\.js$")(("./child/".concat(request, ".js")).replace('./child/', './')).then(({ a })=>console.log("context_module_concat", a));
 }),
 

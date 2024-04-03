@@ -7,10 +7,10 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _shared__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_shared__WEBPACK_IMPORTED_MODULE_0__);
 Promise.resolve().then(__webpack_require__.bind(__webpack_require__, /*! ./index */"./index.js"));
 
-console.log('index1');
+console.log("index1");
 }),
 "./shared.js": (function () {
-console.log('shared');
+console.log("shared");
 }),
 
 },function(__webpack_require__) {
@@ -29,10 +29,10 @@ var __webpack_exports__ = (__webpack_exec__("./index.js"));
 /* harmony import */var _shared__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_shared__WEBPACK_IMPORTED_MODULE_0__);
 __webpack_require__.e("index_js").then(__webpack_require__.bind(__webpack_require__, /*! ./index */"./index.js"));
 
-console.log('index2');
+console.log("index2");
 }),
 "./shared.js": (function () {
-console.log('shared');
+console.log("shared");
 }),
 
 },function(__webpack_require__) {
@@ -52,7 +52,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _shared__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_shared__WEBPACK_IMPORTED_MODULE_0__);
 Promise.resolve().then(__webpack_require__.bind(__webpack_require__, /*! ./index */"./index.js"));
 
-console.log('index1');
+console.log("index1");
 }),
 
 }]);

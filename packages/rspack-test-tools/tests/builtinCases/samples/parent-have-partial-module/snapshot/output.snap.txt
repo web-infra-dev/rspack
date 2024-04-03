@@ -16,7 +16,7 @@ var __webpack_exports__ = (__webpack_exec__("./index.js"));
 ```js title=parent-1_js.js
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["parent-1_js"], {
 "./exist.js": (function () {
-console.log('exist');
+console.log("exist");
 }),
 "./parent-1.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
@@ -42,7 +42,7 @@ __webpack_require__.e("shared_js-_ac580").then(__webpack_require__.bind(__webpac
 ```js title=shared_js-_ac580.js
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["shared_js-_ac580"], {
 "./exist.js": (function () {
-console.log('exist');
+console.log("exist");
 }),
 "./shared.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
@@ -50,7 +50,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _exist__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./exist */"./exist.js");
 /* harmony import */var _exist__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_exist__WEBPACK_IMPORTED_MODULE_0__);
 
-console.log('shared');
+console.log("shared");
 }),
 
 }]);
@@ -64,7 +64,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _exist__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./exist */"./exist.js");
 /* harmony import */var _exist__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_exist__WEBPACK_IMPORTED_MODULE_0__);
 
-console.log('shared');
+console.log("shared");
 }),
 
 }]);
