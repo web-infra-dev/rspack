@@ -2,6 +2,7 @@ benchcases/**/*.js linguist-detectable=false
 webpack-examples/**/*.js linguist-detectable=false
 webpack-test/**/*.js linguist-detectable=false
 **/tests/**/*.js linguist-detectable=false
+**/snapshot/*.snap.txt text diff=markdown
 **/tests/** eol=lf
 *.css eol=lf
 *.js eol=lf
