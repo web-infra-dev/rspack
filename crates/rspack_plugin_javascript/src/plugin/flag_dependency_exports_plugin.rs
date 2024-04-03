@@ -146,18 +146,18 @@ impl<'a> FlagDependencyExportsProxy<'a> {
         exports_specs_from_dependencies,
       );
     });
-    // if let Some(deps) = block.get_presentational_dependencies_for_block() {
-    //   for dep in deps {
-    //     let Some(dep) = dep.as_dependency() else {
-    //       continue;
-    //     };
-    //     self.process_dependency(
-    //       *dep.id(),
-    //       dep.get_exports(self.mg),
-    //       exports_specs_from_dependencies,
-    //     );
-    //   }
-    // }
+    if let Some(deps) = block.get_presentational_dependencies_for_block() {
+      for dep in deps {
+        let Some(dep) = dep.as_dependency() else {
+          continue;
+        };
+        self.process_dependency(
+          *dep.id(),
+          dep.get_exports(self.mg),
+          exports_specs_from_dependencies,
+        );
+      }
+    }
     for block_id in block.get_blocks() {
       let block = self.mg.block_by_id(block_id)?;
       self.process_dependencies_block_inner(block, exports_specs_from_dependencies);

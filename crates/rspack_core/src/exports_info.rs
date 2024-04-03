@@ -18,6 +18,7 @@ use swc_core::ecma::atoms::Atom;
 
 use crate::property_access;
 use crate::BuildMetaExportsType;
+use crate::ModuleGraphModule;
 use crate::Nullable;
 use crate::{
   ConnectionState, DependencyCondition, DependencyId, ModuleGraph, ModuleGraphConnection,
@@ -969,14 +970,41 @@ impl ExportInfoId {
     }
     already_visited.insert(*self);
 
-    let values = mga
-      .get_max_target(self)
-      .values()
-      .map(|item| UnResolvedExportInfoTarget {
-        connection: item.connection,
-        export: item.export.clone(),
-      })
-      .collect::<Vec<_>>();
+    let values = match mga.ty() {
+      ModuleGraphAccessorMutability::Mutable => mga
+        .get_max_target(self)
+        .values()
+        .map(|item| UnResolvedExportInfoTarget {
+          connection: item.connection,
+          export: item.export.clone(),
+        })
+        .collect::<Vec<_>>(),
+      ModuleGraphAccessorMutability::Immutable => {
+        let export_info = mga.inner().get_export_info_by_id(self);
+
+        let map = if export_info.max_target_is_set {
+          export_info
+            .get_max_target_readonly()
+            .values()
+            .map(|item| UnResolvedExportInfoTarget {
+              connection: item.connection,
+              export: item.export.clone(),
+            })
+            .collect::<Vec<_>>()
+        } else {
+          export_info
+            ._get_max_target()
+            .values()
+            .map(|item| UnResolvedExportInfoTarget {
+              connection: item.connection,
+              export: item.export.clone(),
+            })
+            .collect::<Vec<_>>()
+        };
+        map
+      }
+    };
+
     let target = ExportInfo::resolve_target(
       values.first().cloned(),
       already_visited,
@@ -1980,7 +2008,15 @@ macro_rules! debug_exports_info {
   };
 }
 
+pub enum ModuleGraphAccessorMutability {
+  Mutable,
+  Immutable,
+}
+
 pub trait ModuleGraphAccessor<'a> {
+  fn ty(&self) -> ModuleGraphAccessorMutability;
+  fn inner(&self) -> &ModuleGraph;
+
   fn connection_by_dependency(&self, dependency_id: DependencyId)
     -> Option<&ModuleGraphConnection>;
   fn run_resolve_filter(
@@ -1988,7 +2024,7 @@ pub trait ModuleGraphAccessor<'a> {
     target: &ResolvedExportInfoTarget,
     resolve_filter: &ResolveFilterFnTy,
   ) -> bool;
-  fn get_export_info(&mut self, export_info_id: &ExportInfoId) -> Arc<ExportInfo>;
+  fn get_export_info(&mut self, export_info_id: &ExportInfoId) -> &ExportInfo;
   fn get_export_info_id(
     &mut self,
     name: &Atom,
@@ -1997,7 +2033,7 @@ pub trait ModuleGraphAccessor<'a> {
   fn get_max_target(
     &mut self,
     export_info_id: &ExportInfoId,
-  ) -> Arc<HashMap<Option<DependencyId>, ExportInfoTargetValue>>;
+  ) -> &HashMap<Option<DependencyId>, ExportInfoTargetValue>;
   fn get_module_meta_exports_type(
     &mut self,
     module_identifier: &ModuleIdentifier,
@@ -2006,7 +2042,7 @@ pub trait ModuleGraphAccessor<'a> {
     &mut self,
     name: &Atom,
     module_identifier: &ModuleIdentifier,
-  ) -> Option<Arc<ExportInfo>>;
+  ) -> Option<&ExportInfo>;
 }
 
 pub struct MutableModuleGraph<'a, 'b> {
@@ -2036,14 +2072,11 @@ impl<'a, 'b> ModuleGraphAccessor<'a> for MutableModuleGraph<'a, 'b> {
   fn get_max_target(
     &mut self,
     export_info_id: &ExportInfoId,
-  ) -> Arc<HashMap<Option<DependencyId>, ExportInfoTargetValue>> {
-    Arc::new(
-      self
-        .inner
-        .get_export_info_mut_by_id(export_info_id)
-        .get_max_target()
-        .to_owned(),
-    )
+  ) -> &HashMap<Option<DependencyId>, ExportInfoTargetValue> {
+    self
+      .inner
+      .get_export_info_mut_by_id(export_info_id)
+      .get_max_target()
   }
 
   fn run_resolve_filter(
@@ -2054,19 +2087,18 @@ impl<'a, 'b> ModuleGraphAccessor<'a> for MutableModuleGraph<'a, 'b> {
     resolve_filter(target, self.inner)
   }
 
-  fn get_export_info(&mut self, export_info_id: &ExportInfoId) -> Arc<ExportInfo> {
-    Arc::new(self.inner.get_export_info_by_id(export_info_id).to_owned())
+  fn get_export_info(&mut self, export_info_id: &ExportInfoId) -> &ExportInfo {
+    self.inner.get_export_info_by_id(export_info_id)
   }
 
   fn get_read_only_export_info(
     &mut self,
     name: &Atom,
     module_identifier: &ModuleIdentifier,
-  ) -> Option<Arc<ExportInfo>> {
+  ) -> Option<&ExportInfo> {
     self
       .inner
       .get_read_only_export_info(module_identifier, name.to_owned())
-      .map(|i| Arc::new(i.to_owned()))
   }
 
   fn get_module_meta_exports_type(
@@ -2085,6 +2117,14 @@ impl<'a, 'b> ModuleGraphAccessor<'a> for MutableModuleGraph<'a, 'b> {
     dependency_id: DependencyId,
   ) -> Option<&ModuleGraphConnection> {
     self.inner.connection_by_dependency(&dependency_id)
+  }
+
+  fn ty(&self) -> ModuleGraphAccessorMutability {
+    ModuleGraphAccessorMutability::Mutable
+  }
+
+  fn inner(&self) -> &ModuleGraph {
+    &*self.inner
   }
 }
 
@@ -2116,22 +2156,21 @@ impl<'a> ModuleGraphAccessor<'a> for ImmutableModuleGraph<'a> {
   fn get_max_target(
     &mut self,
     export_info_id: &ExportInfoId,
-  ) -> Arc<HashMap<Option<DependencyId>, ExportInfoTargetValue>> {
-    Arc::new({
-      let export_info_id = self.inner.get_export_info_by_id(export_info_id);
-
-      if export_info_id.max_target_is_set {
-        export_info_id.get_max_target_readonly().to_owned()
-      } else {
-        // FIXME:
-        // max target should be cached
-        // but when moduleGraph is immutable and no cached max target
-        // generate a new one, this should be removed
-        // when module graph in get_exports and get_referenced_exports
-        // is refactored to mutable
-        export_info_id._get_max_target().clone()
-      }
-    })
+  ) -> &HashMap<Option<DependencyId>, ExportInfoTargetValue> {
+    unreachable!()
+    // let export_info_id = self.inner.get_export_info_by_id(export_info_id);
+    //
+    // if export_info_id.max_target_is_set {
+    //   export_info_id.get_max_target_readonly()
+    // } else {
+    //   // FIXME:
+    //   // max target should be cached
+    //   // but when moduleGraph is immutable and no cached max target
+    //   // generate a new one, this should be removed
+    //   // when module graph in get_exports and get_referenced_exports
+    //   // is refactored to mutable
+    //   &export_info_id._get_max_target()
+    // }
   }
 
   fn run_resolve_filter(
@@ -2142,19 +2181,18 @@ impl<'a> ModuleGraphAccessor<'a> for ImmutableModuleGraph<'a> {
     resolve_filter(target, self.inner)
   }
 
-  fn get_export_info(&mut self, export_info_id: &ExportInfoId) -> Arc<ExportInfo> {
-    Arc::new(self.inner.get_export_info_by_id(export_info_id).to_owned())
+  fn get_export_info(&mut self, export_info_id: &ExportInfoId) -> &ExportInfo {
+    self.inner.get_export_info_by_id(export_info_id)
   }
 
   fn get_read_only_export_info(
     &mut self,
     name: &Atom,
     module_identifier: &ModuleIdentifier,
-  ) -> Option<Arc<ExportInfo>> {
+  ) -> Option<&ExportInfo> {
     self
       .inner
       .get_read_only_export_info(module_identifier, name.to_owned())
-      .map(|i| Arc::new(i.to_owned()))
   }
 
   fn get_module_meta_exports_type(
@@ -2173,6 +2211,14 @@ impl<'a> ModuleGraphAccessor<'a> for ImmutableModuleGraph<'a> {
     dependency_id: DependencyId,
   ) -> Option<&ModuleGraphConnection> {
     self.inner.connection_by_dependency(&dependency_id)
+  }
+
+  fn ty(&self) -> ModuleGraphAccessorMutability {
+    ModuleGraphAccessorMutability::Immutable
+  }
+
+  fn inner(&self) -> &ModuleGraph {
+    self.inner
   }
 }
 
