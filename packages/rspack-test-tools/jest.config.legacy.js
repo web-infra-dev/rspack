@@ -3,12 +3,13 @@ const config = require("./jest.config");
 /** @type {import('jest').Config} */
 module.exports = {
 	...config,
+	// can only use filename otherwise will fail by snapshot obsolete
 	testPathIgnorePatterns: [
-		"<rootDir>/tests/Compiler.test.js",
-		"<rootDir>/tests/Builtin.test.js",
-		"<rootDir>/tests/Defaults.unittest.js",
-		"<rootDir>/tests/Stats.test.js",
-		"<rootDir>/tests/TreeShaking.test.js",
-		"<rootDir>/tests/RuntimeDiff.difftest.js"
+		"Compiler.test.js",
+		"Defaults.unittest.js",
+		"Stats.test.js",
+		"TreeShaking.test.js",
+		"Builtin.test.js",
+		".difftest.js"
 	]
 };
