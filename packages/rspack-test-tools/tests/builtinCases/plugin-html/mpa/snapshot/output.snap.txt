@@ -1,0 +1,44 @@
+```html title=chunk1.html
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Rspack App</title>
+<script src="/runtime.js" defer></script><script src="/chunk1.js" defer></script></head>
+
+<body>
+
+
+
+</body></html>
+```
+
+```html title=chunk2.html
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Rspack App</title>
+<script src="/runtime.js" defer></script><script src="/chunk2.js" defer></script></head>
+
+<body>
+
+
+
+</body></html>
+```
+
+```html title=chunk3.html
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Rspack App</title>
+<script src="/runtime.js" defer></script><script src="/chunk3.js" defer></script></head>
+
+<body>
+
+
+
+</body></html>
+```
