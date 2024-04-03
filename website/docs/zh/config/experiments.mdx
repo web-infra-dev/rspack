@@ -36,7 +36,18 @@ module.exports = {
 
 ## experiments.css
 
-启用原生 CSS 支持，请注意如果你在使用 `style-loader` 和 `css-loader` 请关闭该配置，因为 `style-loader` 和 `css-loader` 和原生 CSS 功能冲突。
+启用原生 CSS 支持和 CSS 相关的 parser 和 generator options：
+
+- [`module.parser["css/auto"]`](/config/module.html#moduleparsercssauto)
+- [`module.parser.css`](/config/module.html#moduleparsercss)
+- [`module.parser["css/module"]`](/config/module.html#moduleparsercssmodule)
+- [`module.generator["css/auto"]`](/config/module.html#modulegeneratorcssauto)
+- [`module.generator.css`](/config/module.html#modulegeneratorcss)
+- [`module.generator["css/module"]`](/config/module.html#modulegeneratorcssmodule) 
+
+:::warning
+如果你在使用 `style-loader` 和 `css-loader` 请关闭该配置，因为 `style-loader` 和 `css-loader` 和原生 CSS 功能冲突。
+:::
 
 ## experiments.topLevelAwait
 
