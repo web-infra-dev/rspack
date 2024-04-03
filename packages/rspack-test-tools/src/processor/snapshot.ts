@@ -24,7 +24,7 @@ export class SnapshotProcessor<
 		super(_snapshotOptions);
 		if (path.extname(_snapshotOptions.snapshot) === ".snap") {
 			throw new Error(
-				"Snapshot with `.snap` will be managed by jest, please use `.txt` instead in SnapshotProcessor"
+				"Snapshot with `.snap` will be managed by jest, please use `.snap.txt` instead in SnapshotProcessor"
 			);
 		}
 	}
@@ -65,6 +65,7 @@ export class SnapshotProcessor<
 		);
 
 		if (!fs.existsSync(snapshotPath) || global.updateSnapshot) {
+			fs.ensureDirSync(path.dirname(snapshotPath));
 			fs.writeFileSync(snapshotPath, content, "utf-8");
 			return;
 		}
