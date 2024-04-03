@@ -4,13 +4,13 @@
 __webpack_require__(/*! ./resources */"./resources Sync  recursive ^\\.\\/pre_.*\\.js$")((`./resources/pre_${i + 1}.js`).replace('./resources/', './'));
 }),
 "./resources/pre_a.js": (function () {
-console.log('a');
+console.log("a");
 }),
 "./resources/pre_b.js": (function () {
-console.log('a');
+console.log("a");
 }),
 "./resources/pre_c.js": (function () {
-console.log('a');
+console.log("a");
 }),
 "./resources Sync  recursive ^\\.\\/pre_.*\\.js$": (function (module, __unused_webpack_exports, __webpack_require__) {
 var map = {"./pre_a.js": "./resources/pre_a.js","./pre_b.js": "./resources/pre_b.js","./pre_c.js": "./resources/pre_c.js",};
