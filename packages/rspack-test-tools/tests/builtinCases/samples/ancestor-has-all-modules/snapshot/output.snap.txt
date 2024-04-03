@@ -1,0 +1,54 @@
+```js title=index.js
+(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["index"], {
+"./foo.js": (function (module) {
+module.exports = 'foo';
+}),
+"./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
+"use strict";
+/* harmony import */var _foo_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./foo.js */"./foo.js");
+/* harmony import */var _foo_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_foo_js__WEBPACK_IMPORTED_MODULE_0__);
+
+__webpack_require__.e("parent-1_js").then(__webpack_require__.t.bind(__webpack_require__, /*! ./parent-1.js */"./parent-1.js", 23));
+__webpack_require__.e("parent-2_js").then(__webpack_require__.t.bind(__webpack_require__, /*! ./parent-2.js */"./parent-2.js", 23));
+}),
+
+},function(__webpack_require__) {
+var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
+var __webpack_exports__ = (__webpack_exec__("./index.js"));
+
+}
+]);
+```
+
+```js title=parent-1_js.js
+(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["parent-1_js"], {
+"./parent-1.js": (function (__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+__webpack_require__.e("shared_js").then(__webpack_require__.bind(__webpack_require__, /*! ./shared */"./shared.js"));
+}),
+
+}]);
+```
+
+```js title=parent-2_js.js
+(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["parent-2_js"], {
+"./parent-2.js": (function (__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+__webpack_require__.e("shared_js").then(__webpack_require__.bind(__webpack_require__, /*! ./shared */"./shared.js"));
+}),
+
+}]);
+```
+
+```js title=shared_js.js
+(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["shared_js"], {
+"./shared.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */var _foo__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./foo */"./foo.js");
+/* harmony import */var _foo__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_foo__WEBPACK_IMPORTED_MODULE_0__);
+// should not contain foo as ancestor already has
+
+console.log('shared');
+}),
+
+}]);
+```
