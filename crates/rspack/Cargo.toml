@@ -21,7 +21,7 @@ rspack_plugin_javascript = { path = "../rspack_plugin_javascript" }
 rspack_testing           = { path = "../rspack_testing" }
 testing_macros           = { workspace = true }
 ustr                     = { workspace = true }
-xshell                   = "0.2.5"
+xshell                   = "0.2.6"
 
 
 [[bench]]
