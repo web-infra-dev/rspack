@@ -1,6 +1,3 @@
----
-source: crates/rspack_testing/src/run_fixture.rs
----
 ```js title=main.js
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
