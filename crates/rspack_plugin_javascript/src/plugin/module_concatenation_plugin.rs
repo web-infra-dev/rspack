@@ -560,11 +560,6 @@ impl ModuleConcatenationPlugin {
       let module_graph = compilation.get_module_graph();
       let m = module_graph.module_by_identifier(&module_id);
 
-      // const bailoutReason = module.getConcatenationBailoutReason(context);
-      // 						if (bailoutReason) {
-      // 							setBailoutReason(module, bailoutReason);
-      // 							continue;
-      // 						}
       if let Some(reason) = m
         .expect("should have module")
         .get_concatenation_bailout_reason(&module_graph, &compilation.chunk_graph)

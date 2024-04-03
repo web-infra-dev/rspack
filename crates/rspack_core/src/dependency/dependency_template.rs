@@ -31,11 +31,6 @@ pub trait DependencyTemplate: Debug + DynClone + Sync + Send + AsDependency + As
   );
 
   fn dependency_id(&self) -> Option<DependencyId>;
-
-  // Workaround for `instanceOf` of Javascript, you could implement this on demand
-  // fn debug_name() -> String {
-  //   "".to_string()
-  // }
 }
 
 pub type BoxDependencyTemplate = Box<dyn DependencyTemplate>;
