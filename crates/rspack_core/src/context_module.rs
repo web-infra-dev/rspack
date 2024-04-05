@@ -614,6 +614,7 @@ impl Module for ContextModule {
   fn source_types(&self) -> &[SourceType] {
     &[SourceType::JavaScript]
   }
+
   fn get_diagnostics(&self) -> Vec<Diagnostic> {
     vec![]
   }

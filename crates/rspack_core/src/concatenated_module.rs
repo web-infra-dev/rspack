@@ -536,6 +536,7 @@ impl Module for ConcatenatedModule {
       all_star_exports: Default::default(),
       need_create_require: Default::default(),
       json_data: Default::default(),
+      module_concatenation_bailout: Default::default(),
     };
     self.clear_diagnostics();
 
