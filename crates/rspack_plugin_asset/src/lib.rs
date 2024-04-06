@@ -11,10 +11,10 @@ use rspack_core::{
     analyzer::OptimizeAnalyzer, asset_module::AssetModule, visitor::OptimizeAnalyzeResult,
   },
   AssetGeneratorDataUrl, AssetGeneratorDataUrlFnArgs, AssetParserDataUrl, BuildExtraDataType,
-  BuildMetaDefaultObject, BuildMetaExportsType, CodeGenerationDataAssetInfo,
+  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, CodeGenerationDataAssetInfo,
   CodeGenerationDataFilename, CodeGenerationDataUrl, Compilation, CompilerOptions, GenerateContext,
-  Module, ModuleType, NormalModule, ParseContext, ParserAndGenerator, PathData, Plugin,
-  PluginContext, PluginRenderManifestHookOutput, RenderManifestArgs, RenderManifestEntry,
+  Module, ModuleGraph, ModuleType, NormalModule, ParseContext, ParserAndGenerator, PathData,
+  Plugin, PluginContext, PluginRenderManifestHookOutput, RenderManifestArgs, RenderManifestEntry,
   ResourceData, RuntimeGlobals, SourceType, NAMESPACE_OBJECT_EXPORT,
 };
 use rspack_error::{error, IntoTWithDiagnosticArray, Result};
@@ -473,6 +473,15 @@ impl ParserAndGenerator for AssetParserAndGenerator {
         .expect("Failed to resume extra data");
     }
   }
+
+  fn get_concatenation_bailout_reason(
+    &self,
+    _module: &dyn rspack_core::Module,
+    _mg: &ModuleGraph,
+    _cg: &ChunkGraph,
+  ) -> Option<String> {
+    None
+  }
 }
 
 #[async_trait]
@@ -484,19 +493,14 @@ impl Plugin for AssetPlugin {
   fn apply(
     &self,
     ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
-    options: &mut CompilerOptions,
+    _options: &mut CompilerOptions,
   ) -> Result<()> {
-    let data_url_condition = options
-      .module
-      .parser
-      .as_ref()
-      .and_then(|x| x.get(&ModuleType::Asset))
-      .and_then(|x| x.get_asset(&ModuleType::Asset))
-      .and_then(|x| x.data_url_condition.clone());
-
     ctx.context.register_parser_and_generator_builder(
       rspack_core::ModuleType::Asset,
-      Box::new(move || {
+      Box::new(move |p, _| {
+        let data_url_condition = p
+          .and_then(|x| x.get_asset(&ModuleType::Asset))
+          .and_then(|x| x.data_url_condition.clone());
         Box::new(AssetParserAndGenerator::with_auto(
           data_url_condition.clone(),
         ))
@@ -504,15 +508,15 @@ impl Plugin for AssetPlugin {
     );
     ctx.context.register_parser_and_generator_builder(
       rspack_core::ModuleType::AssetInline,
-      Box::new(|| Box::new(AssetParserAndGenerator::with_inline())),
+      Box::new(|_, _| Box::new(AssetParserAndGenerator::with_inline())),
     );
     ctx.context.register_parser_and_generator_builder(
       rspack_core::ModuleType::AssetResource,
-      Box::new(move || Box::new(AssetParserAndGenerator::with_resource())),
+      Box::new(move |_, _| Box::new(AssetParserAndGenerator::with_resource())),
     );
     ctx.context.register_parser_and_generator_builder(
       rspack_core::ModuleType::AssetSource,
-      Box::new(move || Box::new(AssetParserAndGenerator::with_source())),
+      Box::new(move |_, _| Box::new(AssetParserAndGenerator::with_source())),
     );
 
     Ok(())
@@ -525,17 +529,16 @@ impl Plugin for AssetPlugin {
   ) -> PluginRenderManifestHookOutput {
     let compilation = args.compilation;
     let chunk = args.chunk();
-    let module_graph = &compilation.get_module_graph();
+    let module_graph = compilation.get_module_graph();
 
     let ordered_modules = compilation
       .chunk_graph
-      .get_chunk_modules(&args.chunk_ukey, module_graph);
+      .get_chunk_modules(&args.chunk_ukey, &module_graph);
 
     let assets = ordered_modules
       .par_iter()
       .filter(|m| {
-        let module = compilation
-          .get_module_graph()
+        let module = module_graph
           .module_by_identifier(&m.identifier())
           // FIXME: use result
           .expect("Failed to get module");

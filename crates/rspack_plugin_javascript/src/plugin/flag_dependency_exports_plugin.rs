@@ -14,14 +14,14 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::ecma::atoms::Atom;
 
 struct FlagDependencyExportsProxy<'a> {
-  mg: &'a mut ModuleGraph,
+  mg: &'a mut ModuleGraph<'a>,
   changed: bool,
   current_module_id: ModuleIdentifier,
   dependencies: HashMap<ModuleIdentifier, HashSet<ModuleIdentifier>>,
 }
 
 impl<'a> FlagDependencyExportsProxy<'a> {
-  pub fn new(mg: &'a mut ModuleGraph) -> Self {
+  pub fn new(mg: &'a mut ModuleGraph<'a>) -> Self {
     Self {
       mg,
       changed: false,
@@ -371,8 +371,7 @@ pub struct FlagDependencyExportsPlugin;
 
 #[plugin_hook(AsyncSeries<Compilation> for FlagDependencyExportsPlugin)]
 async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
-  let mut proxy = FlagDependencyExportsProxy::new(compilation.get_module_graph_mut());
-  proxy.apply();
+  FlagDependencyExportsProxy::new(&mut compilation.get_module_graph_mut()).apply();
   Ok(())
 }
 

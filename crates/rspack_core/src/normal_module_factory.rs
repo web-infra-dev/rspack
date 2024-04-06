@@ -3,8 +3,9 @@ use std::{path::Path, sync::Arc};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_error::{error, Result};
-use rspack_hook::AsyncSeriesBailHook;
+use rspack_hook::{AsyncSeries3Hook, AsyncSeriesBail2Hook, AsyncSeriesBailHook};
 use rspack_loader_runner::{get_scheme, Loader, Scheme};
+use rspack_util::MergeFrom;
 use sugar_path::{AsPath, SugarPath};
 use swc_core::common::Span;
 
@@ -13,20 +14,31 @@ use crate::{
   diagnostics::EmptyDependency,
   module_rules_matcher, parse_resource, resolve, stringify_loaders_and_resource,
   tree_shaking::visitor::{get_side_effects_from_package_json, SideEffects},
-  BeforeResolveArgs, BoxLoader, CompilerContext, CompilerOptions, DependencyCategory,
+  BeforeResolveArgs, BoxLoader, BoxModule, CompilerContext, CompilerOptions, DependencyCategory,
   FactorizeArgs, FactoryMeta, FuncUseCtx, GeneratorOptions, ModuleExt, ModuleFactory,
   ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleRule, ModuleRuleEnforce,
-  ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule, NormalModuleAfterResolveArgs,
-  NormalModuleAfterResolveCreateData, NormalModuleCreateData, ParserOptions, RawModule, Resolve,
-  ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory,
-  ResourceData, ResourceParsedData, SharedPluginDriver,
+  ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule, NormalModuleCreateData,
+  ParserOptions, RawModule, Resolve, ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult,
+  Resolver, ResolverFactory, ResourceData, ResourceParsedData, SharedPluginDriver,
 };
 
 pub type NormalModuleFactoryBeforeResolveHook = AsyncSeriesBailHook<BeforeResolveArgs, bool>;
+pub type NormalModuleFactoryResolveForSchemeHook =
+  AsyncSeriesBail2Hook<ModuleFactoryCreateData, ResourceData, bool>;
+pub type NormalModuleFactoryAfterResolveHook =
+  AsyncSeriesBail2Hook<ModuleFactoryCreateData, NormalModuleCreateData, bool>;
+pub type NormalModuleFactoryCreateModuleHook =
+  AsyncSeriesBail2Hook<ModuleFactoryCreateData, NormalModuleCreateData, BoxModule>;
+pub type NormalModuleFactoryModuleHook =
+  AsyncSeries3Hook<ModuleFactoryCreateData, NormalModuleCreateData, BoxModule>;
 
 #[derive(Debug, Default)]
 pub struct NormalModuleFactoryHooks {
   pub before_resolve: NormalModuleFactoryBeforeResolveHook,
+  pub resolve_for_scheme: NormalModuleFactoryResolveForSchemeHook,
+  pub after_resolve: NormalModuleFactoryAfterResolveHook,
+  pub create_module: NormalModuleFactoryCreateModuleHook,
+  pub module: NormalModuleFactoryModuleHook,
 }
 
 #[derive(Debug)]
@@ -34,14 +46,13 @@ pub struct NormalModuleFactory {
   options: Arc<CompilerOptions>,
   loader_resolver_factory: Arc<ResolverFactory>,
   plugin_driver: SharedPluginDriver,
-  pub hooks: NormalModuleFactoryHooks,
   cache: Arc<Cache>,
 }
 
 #[async_trait::async_trait]
 impl ModuleFactory for NormalModuleFactory {
   async fn create(&self, data: &mut ModuleFactoryCreateData) -> Result<ModuleFactoryResult> {
-    if let Ok(Some(before_resolve_data)) = self.before_resolve(data).await {
+    if let Some(before_resolve_data) = self.before_resolve(data).await? {
       return Ok(before_resolve_data);
     }
     let factory_result = self.factorize(data).await?;
@@ -71,7 +82,6 @@ impl NormalModuleFactory {
       options,
       loader_resolver_factory,
       plugin_driver,
-      hooks: NormalModuleFactoryHooks::default(),
       cache,
     }
   }
@@ -125,6 +135,7 @@ impl NormalModuleFactory {
       .as_module_dependency()
       .expect("should be module dependency");
     let importer = data.issuer_identifier.as_ref();
+    let raw_request = dependency.request().to_owned();
     let mut request_without_match_resource = dependency.request();
 
     let mut file_dependencies = Default::default();
@@ -132,7 +143,6 @@ impl NormalModuleFactory {
 
     let scheme = get_scheme(request_without_match_resource);
     let context_scheme = get_scheme(data.context.as_ref());
-    let context = data.context.as_path();
     let plugin_driver = &self.plugin_driver;
     let loader_resolver = self.get_loader_resolver();
 
@@ -147,16 +157,15 @@ impl NormalModuleFactory {
     let (resource_data, from_cache) = if scheme != Scheme::None
       && !Path::is_absolute(Path::new(request_without_match_resource))
     {
+      let mut resource_data =
+        ResourceData::new(request_without_match_resource.to_string(), "".into());
       // resource with scheme
-      (
-        plugin_driver
-          .normal_module_factory_resolve_for_scheme(ResourceData::new(
-            request_without_match_resource.to_string(),
-            "".into(),
-          ))
-          .await?,
-        false,
-      )
+      plugin_driver
+        .normal_module_factory_hooks
+        .resolve_for_scheme
+        .call(data, &mut resource_data)
+        .await?;
+      (resource_data, false)
     }
     // TODO: resource within scheme, call resolveInScheme hook
     else {
@@ -178,7 +187,9 @@ impl NormalModuleFactory {
                 || (matches!(second_char, Some('.')) && matches!(chars.next(), Some('/'))))
             {
               // if matchResources startsWith ../ or ./
-              match_resource = context
+              match_resource = data
+                .context
+                .as_path()
                 .join(match_resource)
                 .absolutize()
                 .to_string_lossy()
@@ -443,7 +454,7 @@ impl NormalModuleFactory {
           resolve_each(
             plugin_driver,
             &self.options,
-            context,
+            data.context.as_path(),
             &loader_resolver,
             &l.loader,
             l.options.as_deref(),
@@ -529,7 +540,7 @@ impl NormalModuleFactory {
       self.calculate_module_type(match_module_type, &resolved_module_rules);
     let resolved_resolve_options = self.calculate_resolve_options(&resolved_module_rules);
     let (resolved_parser_options, resolved_generator_options) =
-      self.calculate_parser_and_generator_options(&resolved_module_rules);
+      self.calculate_parser_and_generator_options(&resolved_module_type, &resolved_module_rules);
     let factory_meta = FactoryMeta {
       side_effect_free: self
         .calculate_side_effects(&resolved_module_rules, &resource_data)
@@ -545,27 +556,24 @@ impl NormalModuleFactory {
           "No parser registered for '{}'",
           resolved_module_type.as_str()
         )
-      })?();
+      })?(
+      resolved_parser_options.as_ref(),
+      resolved_generator_options.as_ref(),
+    );
 
-    let after_resolve_create_data = {
-      let mut after_resolve_args = NormalModuleAfterResolveArgs {
-        request: dependency.request(),
-        context: data.context.as_ref(),
-        file_dependencies: &data.file_dependencies,
-        context_dependencies: &data.context_dependencies,
-        missing_dependencies: &data.missing_dependencies,
-        factory_meta: &factory_meta,
-        diagnostics: &mut data.diagnostics,
-        create_data: Some(NormalModuleAfterResolveCreateData {
-          request,
-          user_request,
-          resource: resource_data,
-        }),
+    let mut create_data = {
+      let mut create_data = NormalModuleCreateData {
+        raw_request,
+        request,
+        user_request,
+        resource_resolve_data: resource_data,
+        match_resource: match_resource_data.as_ref().map(|d| d.resource.clone()),
       };
-
       if let Some(plugin_result) = self
         .plugin_driver
-        .after_resolve(&mut after_resolve_args)
+        .normal_module_factory_hooks
+        .after_resolve
+        .call(data, &mut create_data)
         .await?
       {
         if !plugin_result {
@@ -575,45 +583,40 @@ impl NormalModuleFactory {
         }
       }
 
-      after_resolve_args
-        .create_data
-        .unwrap_or_else(|| unreachable!())
+      create_data
     };
 
-    let mut create_data = NormalModuleCreateData {
-      dependency_type: data.dependency.dependency_type().clone(),
-      resolve_data_request: dependency.request(),
-      resource_resolve_data: after_resolve_create_data.resource.clone(),
-      context: data.context.clone(),
-      diagnostics: &mut data.diagnostics,
-    };
-    let module = if let Some(module) = self
+    let mut module = if let Some(module) = self
       .plugin_driver
-      .normal_module_factory_create_module(&mut create_data)
+      .normal_module_factory_hooks
+      .create_module
+      .call(data, &mut create_data)
       .await?
     {
       module
     } else {
-      let normal_module = NormalModule::new(
-        after_resolve_create_data.request,
-        after_resolve_create_data.user_request,
-        dependency.request().to_owned(),
+      NormalModule::new(
+        create_data.request.clone(),
+        create_data.user_request.clone(),
+        create_data.raw_request.clone(),
         resolved_module_type,
         resolved_parser_and_generator,
         resolved_parser_options,
         resolved_generator_options,
         match_resource_data,
-        after_resolve_create_data.resource,
+        create_data.resource_resolve_data.clone(),
         resolved_resolve_options,
         loaders,
         contains_inline,
-      );
-      Box::new(normal_module)
+      )
+      .boxed()
     };
 
-    let module = self
+    self
       .plugin_driver
-      .normal_module_factory_module(module, &mut create_data)
+      .normal_module_factory_hooks
+      .module
+      .call(data, &mut create_data, &mut module)
       .await?;
 
     data.add_file_dependencies(file_dependencies);
@@ -686,20 +689,28 @@ impl NormalModuleFactory {
 
   fn calculate_parser_and_generator_options(
     &self,
+    module_type: &ModuleType,
     module_rules: &[&ModuleRule],
   ) -> (Option<ParserOptions>, Option<GeneratorOptions>) {
-    let mut resolved_parser = None;
-    let mut resolved_generator = None;
+    let mut resolved_parser = self
+      .options
+      .module
+      .parser
+      .as_ref()
+      .and_then(|p| p.get(module_type))
+      .cloned();
+    let mut resolved_generator = self
+      .options
+      .module
+      .generator
+      .as_ref()
+      .and_then(|g| g.get(module_type))
+      .cloned();
 
-    module_rules.iter().for_each(|rule| {
-      // TODO: should deep merge
-      if let Some(parser) = rule.parser.as_ref() {
-        resolved_parser = Some(parser.to_owned());
-      }
-      if let Some(generator) = rule.generator.as_ref() {
-        resolved_generator = Some(generator.to_owned());
-      }
-    });
+    for rule in module_rules {
+      resolved_parser = resolved_parser.merge_from(&rule.parser);
+      resolved_generator = resolved_generator.merge_from(&rule.generator);
+    }
 
     (resolved_parser, resolved_generator)
   }

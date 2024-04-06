@@ -266,7 +266,7 @@ impl Dependency for CommonJsExportRequireDependency {
   }
 
   fn get_ids(&self, mg: &ModuleGraph) -> Vec<Atom> {
-    mg.get_dep_meta_if_existing(self.id)
+    mg.get_dep_meta_if_existing(&self.id)
       .map(|meta| meta.ids.clone())
       .unwrap_or_else(|| self.ids.clone())
   }
@@ -288,8 +288,7 @@ impl DependencyTemplate for CommonJsExportRequireDependency {
 
     let mg = &compilation.get_module_graph();
 
-    let module = compilation
-      .get_module_graph()
+    let module = mg
       .module_by_identifier(&module.identifier())
       .expect("should have mgm");
 

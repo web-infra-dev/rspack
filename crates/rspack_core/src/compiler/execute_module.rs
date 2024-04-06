@@ -43,16 +43,13 @@ impl Compilation {
     > = HashSet::default();
     let mut queue = vec![module];
 
+    let module_graph = self.get_module_graph();
     while let Some(m) = queue.pop() {
       modules.insert(m);
-      let m = self
-        .get_module_graph()
+      let m = module_graph
         .module_by_identifier(&m)
         .expect("should have module");
-      for m in self
-        .get_module_graph()
-        .get_outgoing_connections(&m.identifier())
-      {
+      for m in module_graph.get_outgoing_connections(&m.identifier()) {
         // TODO: handle circle
         if !modules.contains(m.module_identifier()) {
           queue.push(*m.module_identifier());
@@ -90,6 +87,7 @@ impl Compilation {
         base_uri: options.base_uri.clone(),
         filename: None,
         library: None,
+        depend_on: None,
       }),
     });
 
@@ -109,9 +107,9 @@ impl Compilation {
     self.chunk_group_by_ukey.add(entrypoint);
 
     // Assign ids to modules and modules to the chunk
+    let module_graph = self.get_module_graph();
     for m in &modules {
-      let module = self
-        .get_module_graph()
+      let module = module_graph
         .module_by_identifier(m)
         .expect("should have module");
 
@@ -184,15 +182,13 @@ impl Compilation {
       &mut id,
     );
 
+    let module_graph = self.get_module_graph();
     let execute_result = match exports {
       Ok(_) => {
         let mut result = modules
           .iter()
           .fold(ExecuteModuleResult::default(), |mut res, m| {
-            let module = self
-              .get_module_graph()
-              .module_by_identifier(m)
-              .expect("unreachable");
+            let module = module_graph.module_by_identifier(m).expect("unreachable");
 
             let build_info = &module.build_info();
             if let Some(info) = build_info {

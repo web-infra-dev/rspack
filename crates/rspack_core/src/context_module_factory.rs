@@ -1,15 +1,25 @@
 use std::sync::Arc;
 
 use rspack_error::{error, Result};
+use rspack_hook::{AsyncSeriesBail2Hook, AsyncSeriesBailHook};
 use tracing::instrument;
 
 use crate::{
   cache::Cache, resolve, BeforeResolveArgs, BoxModule, ContextModule, ContextModuleOptions,
   DependencyCategory, ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult,
-  ModuleIdentifier, NormalModuleAfterResolveArgs, PluginNormalModuleFactoryAfterResolveOutput,
-  RawModule, ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult, Resolver,
-  ResolverFactory, SharedPluginDriver,
+  ModuleIdentifier, PluginNormalModuleFactoryAfterResolveOutput, RawModule, ResolveArgs,
+  ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory, SharedPluginDriver,
 };
+
+pub type ContextModuleFactoryBeforeResolveHook = AsyncSeriesBailHook<BeforeResolveArgs, bool>;
+pub type ContextModuleFactoryAfterResolveHook =
+  AsyncSeriesBail2Hook<String, ModuleFactoryCreateData, bool>;
+
+#[derive(Debug, Default)]
+pub struct ContextModuleFactoryHooks {
+  pub before_resolve: ContextModuleFactoryBeforeResolveHook,
+  pub after_resolve: ContextModuleFactoryAfterResolveHook,
+}
 
 #[derive(Debug)]
 pub struct ContextModuleFactory {
@@ -22,13 +32,13 @@ pub struct ContextModuleFactory {
 impl ModuleFactory for ContextModuleFactory {
   #[instrument(name = "context_module_factory:create", skip_all)]
   async fn create(&self, data: &mut ModuleFactoryCreateData) -> Result<ModuleFactoryResult> {
-    if let Ok(Some(before_resolve_result)) = self.before_resolve(data).await {
+    if let Some(before_resolve_result) = self.before_resolve(data).await? {
       return Ok(before_resolve_result);
     }
 
     let factorize_result = self.resolve(data).await?;
 
-    if let Some(false) = self.after_resolve(data, &factorize_result).await? {
+    if let Some(false) = self.after_resolve(data).await? {
       return Ok(ModuleFactoryResult::default());
     }
 
@@ -61,10 +71,12 @@ impl ContextModuleFactory {
       request: dependency.request().to_string(),
       context: data.context.to_string(),
     };
-    if let Ok(Some(false)) = self
+    if let Some(false) = self
       .plugin_driver
-      .context_module_before_resolve(&mut before_resolve_args)
-      .await
+      .context_module_factory_hooks
+      .before_resolve
+      .call(&mut before_resolve_args)
+      .await?
     {
       // ignored
       // See https://github.com/webpack/webpack/blob/6be4065ade1e252c1d8dcba4af0f43e32af1bdc1/lib/ContextModuleFactory.js#L115
@@ -217,7 +229,6 @@ impl ContextModuleFactory {
   async fn after_resolve(
     &self,
     data: &mut ModuleFactoryCreateData,
-    factory_result: &ModuleFactoryResult,
   ) -> PluginNormalModuleFactoryAfterResolveOutput {
     let dependency = data
       .dependency
@@ -226,16 +237,9 @@ impl ContextModuleFactory {
 
     self
       .plugin_driver
-      .context_module_after_resolve(&mut NormalModuleAfterResolveArgs {
-        request: dependency.request(),
-        context: data.context.as_ref(),
-        file_dependencies: &data.file_dependencies,
-        context_dependencies: &data.context_dependencies,
-        missing_dependencies: &data.missing_dependencies,
-        diagnostics: &mut data.diagnostics,
-        factory_meta: &factory_result.factory_meta,
-        create_data: None,
-      })
+      .context_module_factory_hooks
+      .after_resolve
+      .call(&mut dependency.request().to_owned(), data)
       .await
   }
 }

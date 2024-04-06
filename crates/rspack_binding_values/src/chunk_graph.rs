@@ -7,10 +7,10 @@ use crate::{JsChunk, JsCompilation, JsModule, ToJsModule};
 #[napi(js_name = "__chunk_graph_inner_get_chunk_modules")]
 pub fn get_chunk_modules(js_chunk_ukey: u32, compilation: &JsCompilation) -> Vec<JsModule> {
   let compilation = &compilation.0;
-  let modules = compilation.chunk_graph.get_chunk_modules(
-    &ChunkUkey::from(js_chunk_ukey as usize),
-    compilation.get_module_graph(),
-  );
+  let module_graph = compilation.get_module_graph();
+  let modules = compilation
+    .chunk_graph
+    .get_chunk_modules(&ChunkUkey::from(js_chunk_ukey as usize), &module_graph);
 
   return modules
     .iter()
@@ -24,10 +24,10 @@ pub fn get_chunk_entry_modules(js_chunk_ukey: u32, compilation: &JsCompilation) 
   let modules = compilation
     .chunk_graph
     .get_chunk_entry_modules(&ChunkUkey::from(js_chunk_ukey as usize));
-
+  let module_graph = compilation.get_module_graph();
   return modules
     .iter()
-    .filter_map(|module| compilation.get_module_graph().module_by_identifier(module))
+    .filter_map(|module| module_graph.module_by_identifier(module))
     .filter_map(|module| module.to_js_module().ok())
     .collect::<Vec<_>>();
 }
@@ -66,7 +66,7 @@ pub fn get_chunk_modules_iterable_by_source_type(
         &ChunkUkey::from(js_chunk_ukey as usize),
         SourceType::try_from(source_type.as_str())
           .map_err(|e| napi::Error::from_reason(e.to_string()))?,
-        compilation.get_module_graph(),
+        &compilation.get_module_graph(),
       )
       .filter_map(|module| module.to_js_module().ok())
       .collect(),

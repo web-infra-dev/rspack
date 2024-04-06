@@ -15,21 +15,13 @@ rspack_fs   = { path = "../rspack_fs", features = ["async", "rspack-error"] }
 tokio = { workspace = true, features = ["rt", "rt-multi-thread", "macros"] }
 
 [dev-dependencies]
+criterion                = { version = "0.5.1", features = ["async_tokio", "async_futures"] }
 rspack_allocator         = { path = "../rspack_allocator" }
-rspack_binding_options   = { path = "../rspack_binding_options" }
 rspack_plugin_javascript = { path = "../rspack_plugin_javascript" }
 rspack_testing           = { path = "../rspack_testing" }
-rspack_tracing           = { path = "../rspack_tracing" }
-
-
-cargo-rst      = { path = "../cargo-rst" }
-criterion      = { version = "0.5.1", features = ["async_tokio", "async_futures"] }
-insta          = { workspace = true }
-serde          = { workspace = true, features = ["derive"] }
-serde_json     = { workspace = true }
-testing_macros = { workspace = true }
-ustr           = { workspace = true }
-xshell         = "0.2.5"
+testing_macros           = { workspace = true }
+ustr                     = { workspace = true }
+xshell                   = "0.2.6"
 
 
 [[bench]]

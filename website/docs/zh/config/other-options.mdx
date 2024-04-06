@@ -20,3 +20,17 @@ module.exports = {
 ```
 
 这会强制 rspack 终止编译流程。
+
+## ignoreWarnings
+
+- **类型：** `(RegExp | ((warning: Error, Compilation: Compilation) => boolean))[]`
+- **默认值：** `undefined`
+
+告知 Rspack 忽略特定的警告。
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  ignoreWarnings: [/warning from compiler/, (warning) => true],
+};
+```

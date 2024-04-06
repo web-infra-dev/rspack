@@ -5,13 +5,14 @@ use rspack_core::{
   GroupOptions, SpanExt,
 };
 use rspack_hash::RspackHash;
-use swc_core::common::Spanned;
+use swc_core::common::{Span, Spanned};
 use swc_core::ecma::ast::{Expr, ExprOrSpread, NewExpr};
 
 use super::JavascriptParserPlugin;
 use crate::dependency::WorkerDependency;
 use crate::utils::get_literal_str_by_obj_prop;
 use crate::visitors::JavascriptParser;
+use crate::webpack_comment::try_extract_webpack_magic_comment;
 
 #[derive(Debug)]
 struct ParsedNewWorkerPath {
@@ -21,7 +22,7 @@ struct ParsedNewWorkerPath {
 
 #[derive(Debug)]
 struct ParsedNewWorkerOptions {
-  pub range: (u32, u32),
+  pub range: Option<(u32, u32)>,
   pub name: Option<String>,
 }
 
@@ -32,9 +33,29 @@ fn parse_new_worker_options(arg: &ExprOrSpread) -> ParsedNewWorkerOptions {
     .map(|str| str.value.to_string());
   let span = arg.span();
   ParsedNewWorkerOptions {
-    range: (span.real_lo(), span.real_hi()),
+    range: Some((span.real_lo(), span.real_hi())),
     name,
   }
+}
+
+fn parse_new_worker_options_from_comments(
+  parser: &mut JavascriptParser,
+  span: Span,
+  diagnostic_span: Span,
+) -> Option<ParsedNewWorkerOptions> {
+  let comments = try_extract_webpack_magic_comment(
+    parser.source_file,
+    &parser.comments,
+    diagnostic_span,
+    span,
+    &mut parser.warning_diagnostics,
+  );
+  comments
+    .get_webpack_chunk_name()
+    .map(|name| ParsedNewWorkerOptions {
+      range: None,
+      name: Some(name.to_string()),
+    })
 }
 
 impl JavascriptParser<'_> {
@@ -53,7 +74,7 @@ impl JavascriptParser<'_> {
     let runtime = digest
       .rendered(output_options.hash_digest_length)
       .to_owned();
-    let range = parsed_options.as_ref().map(|options| options.range);
+    let range = parsed_options.as_ref().and_then(|options| options.range);
     let name = parsed_options.and_then(|options| options.name);
     let output_module = output_options.module;
     let span = ErrorSpan::from(new_expr.span);
@@ -79,6 +100,7 @@ impl JavascriptParser<'_> {
       base_uri: None,
       filename: None,
       library: None,
+      depend_on: None,
     })));
 
     self.blocks.push(block);
@@ -111,7 +133,7 @@ impl JavascriptParser<'_> {
   }
 
   fn parse_new_worker(
-    &self,
+    &mut self,
     new_expr: &NewExpr,
   ) -> Option<(ParsedNewWorkerPath, Option<ParsedNewWorkerOptions>)> {
     if self.worker_syntax_list.match_new_worker(new_expr)
@@ -127,7 +149,24 @@ impl JavascriptParser<'_> {
         range: (start, end),
         value: request,
       };
-      let options = args.get(1).map(parse_new_worker_options);
+      let options = args
+        .get(1)
+        // new Worker(new URL("worker.js"), options)
+        .map(parse_new_worker_options)
+        .or_else(|| {
+          // new Worker(new URL(/* options */ "worker.js"))
+          new_url_expr
+            .args
+            .as_ref()
+            .and_then(|args| args.first())
+            .and_then(|n| {
+              parse_new_worker_options_from_comments(self, n.span(), new_url_expr.span())
+            })
+        })
+        .or_else(|| {
+          // new Worker(/* options */ new URL("worker.js"))
+          parse_new_worker_options_from_comments(self, expr_or_spread.span(), new_expr.span())
+        });
       Some((path, options))
     } else {
       None

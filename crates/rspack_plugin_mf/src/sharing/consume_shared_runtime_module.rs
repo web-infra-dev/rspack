@@ -45,6 +45,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
       .chunk
       .expect("should have chunk in <ConsumeSharedRuntimeModule as RuntimeModule>::generate");
     let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
+    let module_graph = compilation.get_module_graph();
     let mut chunk_to_module_mapping = FxHashMap::default();
     let mut module_id_to_consume_data_mapping = FxHashMap::default();
     let mut initial_consumes = Vec::new();
@@ -78,7 +79,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
         .get_chunk_modules_iterable_by_source_type(
           &chunk,
           SourceType::ConsumeShared,
-          compilation.get_module_graph(),
+          &module_graph,
         );
       let chunk = compilation.chunk_by_ukey.expect_get(&chunk);
       let mut ids = vec![];
@@ -99,7 +100,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
         .get_chunk_modules_iterable_by_source_type(
           &chunk,
           SourceType::ConsumeShared,
-          compilation.get_module_graph(),
+          &module_graph,
         );
       let chunk = compilation.chunk_by_ukey.expect_get(&chunk);
       for module in modules {

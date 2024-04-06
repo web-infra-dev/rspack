@@ -1,10 +1,10 @@
 import { test } from "./lib.js";
-import * as styles from "./foo.css";
+import styles from "./foo.css";
 test;
 
 it("should concatenate css", () => {
 	expect(styles).toMatchObject({
-		foo: "foo-css__foo",
-		test: "foo-css__test"
+		foo: "foo_css__foo",
+		test: "foo_css__test"
 	});
 });

@@ -20,6 +20,7 @@ use rspack_napi::NapiResultExt;
 use rspack_plugin_asset::AssetPlugin;
 use rspack_plugin_banner::BannerPlugin;
 use rspack_plugin_copy::{CopyRspackPlugin, CopyRspackPluginOptions};
+use rspack_plugin_css::CssPlugin;
 use rspack_plugin_devtool::{
   EvalDevToolModulePlugin, EvalSourceMapDevToolPlugin, SourceMapDevToolModuleOptionsPlugin,
   SourceMapDevToolModuleOptionsPluginOptions, SourceMapDevToolPlugin,
@@ -129,6 +130,7 @@ pub enum BuiltinPluginName {
   FlagDependencyUsagePlugin,
   MangleExportsPlugin,
   ModuleConcatenationPlugin,
+  CssModulesPlugin,
 
   // rspack specific plugins
   // naming format follow XxxRspackPlugin
@@ -301,8 +303,8 @@ impl BuiltinPlugin {
       BuiltinPluginName::WarnCaseSensitiveModulesPlugin => {
         plugins.push(WarnCaseSensitiveModulesPlugin.boxed())
       }
-      BuiltinPluginName::DataUriPlugin => plugins.push(DataUriPlugin.boxed()),
-      BuiltinPluginName::FileUriPlugin => plugins.push(FileUriPlugin.boxed()),
+      BuiltinPluginName::DataUriPlugin => plugins.push(DataUriPlugin::default().boxed()),
+      BuiltinPluginName::FileUriPlugin => plugins.push(FileUriPlugin::default().boxed()),
       BuiltinPluginName::RuntimePlugin => plugins.push(RuntimePlugin.boxed()),
       BuiltinPluginName::JsonModulesPlugin => plugins.push(JsonPlugin.boxed()),
       BuiltinPluginName::InferAsyncModulesPlugin => {
@@ -358,6 +360,7 @@ impl BuiltinPlugin {
       BuiltinPluginName::ModuleConcatenationPlugin => {
         plugins.push(ModuleConcatenationPlugin::default().boxed())
       }
+      BuiltinPluginName::CssModulesPlugin => plugins.push(CssPlugin::default().boxed()),
 
       // rspack specific plugins
       BuiltinPluginName::HttpExternalsRspackPlugin => {

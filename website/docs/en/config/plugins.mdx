@@ -66,16 +66,16 @@ const rspack = require('@rspack/core');
 
 module.exports = {
   // ...
-  plugins: [new rspack.XxxPlugin()],
+  plugins: [new rspack.SomePlugin()],
 };
 ```
 
-Plugins can be written to be used via `compiler.webpack.XxxPlugin`:
+Plugins can be written to be used via `compiler.webpack.SomePlugin`:
 
 ```js title=CustomPlugin.js
 export class CustomPlugin {
   apply(compiler) {
-    new compiler.webpack.XxxPlugin().apply(compiler);
+    new compiler.webpack.SomePlugin().apply(compiler);
     // ...
   }
 }
@@ -640,13 +640,13 @@ The configuration is consistent with the ModuleFederationPlugin above, except fo
 
 ### Rspack's unique internal plugin.
 
-These plugins are Rspack's unique internal plugin and follow the XxxRspackPlugin naming scheme.
+These plugins are Rspack's unique internal plugin and follow the MyRspackPlugin naming scheme.
 
 #### HtmlRspackPlugin
 
 <ApiMeta addedVersion={'0.3.3'} />
 
-This plugin can be used to create html files that are associated with Rspack assets.
+This plugin can be used to create HTML files that are associated with Rspack assets.
 
 ```js
 new rspack.HtmlRspackPlugin(options);
@@ -787,8 +787,8 @@ new rspack.HtmlRspackPlugin(options);
     ]}
   />
 
-:::info
-For complex HTML configuration requirements, you can use [html-webpack-plugin](https://www.npmjs.com/package/html-webpack-plugin) (after v0.3.3) or [@rspack/plugin-html](https://www.npmjs.com/package/@rspack/plugin-html) (before v0.3.3).
+:::tip
+If the configuration options provided by `rspack.HtmlRspackPlugin` cannot meet your needs, you can also directly use the community's [html-webpack-plugin](https://www.npmjs.com/package/html-webpack-plugin) plugin.
 :::
 
 #### SwcJsMinimizerRspackPlugin

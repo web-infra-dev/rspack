@@ -18,7 +18,7 @@ module.exports = {
 			});
 		});
 		await new Promise((resolve, reject) => {
-			compiler.rebuild(
+			compiler.__internal__rebuild(
 				new Set([context.getSource("./fixtures/a")]),
 				new Set(),
 				err => {

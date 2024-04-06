@@ -33,8 +33,8 @@ importers:
         specifier: ^9.4.3
         version: 9.8.1(react-dom@18.2.0)(react@18.2.0)
       rsfamily-nav-icon:
-        specifier: ^1.0.1
-        version: 1.0.1
+        specifier: ^1.0.2
+        version: 1.0.2
       semver:
         specifier: ^7.5.4
         version: 7.6.0
@@ -60,6 +60,9 @@ importers:
       case-police:
         specifier: 0.5.10
         version: 0.5.10
+      cspell-ban-words:
+        specifier: 0.0.3
+        version: 0.0.3
       husky:
         specifier: ^8.0.3
         version: 8.0.3
@@ -69,9 +72,18 @@ importers:
       prettier:
         specifier: ^2.8.3
         version: 2.8.8
+      rsbuild-plugin-google-analytics:
+        specifier: 1.0.0
+        version: 1.0.0
+      rsbuild-plugin-open-graph:
+        specifier: 1.0.0
+        version: 1.0.0
       rspress:
         specifier: 1.11.0
         version: 1.11.0(typescript@5.4.3)(webpack@5.91.0)
+      rspress-plugin-font-open-sans:
+        specifier: 1.0.0
+        version: 1.0.0
       typescript:
         specifier: ^5.0.4
         version: 5.4.3
@@ -1833,6 +1845,10 @@ packages:
       path-key: 3.1.1
       shebang-command: 2.0.0
       which: 2.0.2
+
+  /cspell-ban-words@0.0.3:
+    resolution: {integrity: sha512-Q7ZO16DFWEP8Vv5CJ63LG95/FomTuxB6WvKhvGUDE3L2hiYl7n2fH+0qoSXL5C3zH6NRPQT4rDS66t1Pi/fILA==}
+    dev: true
 
   /css-select@5.1.0:
     resolution: {integrity: sha512-nwoRF1rvRRnnCqqY7updORDsuqKzqYJ28+oSMaJMMgOauh3fvwHqMS7EZpIPqK8GL+g9mKxF1vP/ZjSeNjEVHg==}
@@ -4124,8 +4140,26 @@ packages:
     resolution: {integrity: sha512-U9nH88a3fc/ekCF1l0/UP1IosiuIjyTh7hBvXVMHYgVcfGvt897Xguj2UOLDeI5BG2m7/uwyaLVT6fbtCwTyzw==}
     engines: {iojs: '>=1.0.0', node: '>=0.10.0'}
 
-  /rsfamily-nav-icon@1.0.1:
-    resolution: {integrity: sha512-TJdyzLpFfmEGfJiPAwZqn1TdXwoR7j/Y0j9ejovNk3zABzJ1FRQ6WZl7DVQQTHoJnABlRgXphMuxnAZ2UMePdQ==}
+  /rsbuild-plugin-google-analytics@1.0.0:
+    resolution: {integrity: sha512-Z2hVetWq48QT+X/HMmtp+YTxzPw+ujt/KUrbQXn98LmUDYqJyGSCBAjit8atAoRiThUSKlkG+NU3+zkFvKoLdA==}
+    peerDependencies:
+      '@rsbuild/core': 0.x
+    peerDependenciesMeta:
+      '@rsbuild/core':
+        optional: true
+    dev: true
+
+  /rsbuild-plugin-open-graph@1.0.0:
+    resolution: {integrity: sha512-SuN9w2FH2v9Mp9/jBowH/RvR74i5A1KzM8+3JrCwCpsuny2HQ3iZqVETgDJ0VIcXqLHUxPnI0aGMgbAcqmlzcg==}
+    peerDependencies:
+      '@rsbuild/core': 0.x
+    peerDependenciesMeta:
+      '@rsbuild/core':
+        optional: true
+    dev: true
+
+  /rsfamily-nav-icon@1.0.2:
+    resolution: {integrity: sha512-gbvJ3wxy1iV6g6T1m/+UIM09t1Sr1ISEBMLUVwPITW+Ckhjuca1xyDh2gbMpYnYX+jXhOSSqA9qtlXpchUOH9Q==}
     dev: false
 
   /rslog@1.2.1:
@@ -4137,6 +4171,10 @@ packages:
     resolution: {integrity: sha512-qyBM9XsP7oxBQSms2cr715XOeoDi6p5hUYXtlNDfst0jha8vfWVPNeC7j5+j5dG+yt//1OCmLaOY2rWqPSVXDg==}
     dependencies:
       fs-extra: 11.2.0
+    dev: true
+
+  /rspress-plugin-font-open-sans@1.0.0:
+    resolution: {integrity: sha512-4GP0pd7h3W8EWdqE0VkA62nzUJZNy4ZnYK7be8+lOKHQKsQ5nZ+22A/VurNssi1eZFx3kjwbmIuoAkgb5W8S9Q==}
     dev: true
 
   /rspress@1.11.0(typescript@5.4.3)(webpack@5.91.0):

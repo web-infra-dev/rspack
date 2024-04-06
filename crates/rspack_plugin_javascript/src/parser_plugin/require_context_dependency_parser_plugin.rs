@@ -18,7 +18,7 @@ impl JavascriptParserPlugin for RequireContextDependencyParserPlugin {
     if expr
       .callee
       .as_expr()
-      .map_or(true, |expr| !is_require_context(expr))
+      .map_or(true, |expr| !is_require_context(&**expr))
     {
       return None;
     }
@@ -89,6 +89,7 @@ impl JavascriptParserPlugin for RequireContextDependencyParserPlugin {
             exclude: None,
             category: DependencyCategory::CommonJS,
             request: request_expr.string().to_string(),
+            context: request_expr.string().to_string(),
             namespace_object: rspack_core::ContextNameSpaceObject::Unset,
             chunk_name: None,
             start: expr.span().real_lo(),

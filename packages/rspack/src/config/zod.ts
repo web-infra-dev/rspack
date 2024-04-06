@@ -163,6 +163,9 @@ export type EntryRuntime = z.infer<typeof entryRuntime>;
 const entryItem = z.string().or(z.array(z.string()));
 export type EntryItem = z.infer<typeof entryItem>;
 
+const entryDependOn = z.string().or(z.array(z.string()));
+export type EntryDependOn = z.infer<typeof entryDependOn>;
+
 const entryDescription = z.strictObject({
 	import: entryItem,
 	runtime: entryRuntime.optional(),
@@ -172,7 +175,8 @@ const entryDescription = z.strictObject({
 	asyncChunks: asyncChunks.optional(),
 	wasmLoading: wasmLoading.optional(),
 	filename: entryFilename.optional(),
-	library: libraryOptions.optional()
+	library: libraryOptions.optional(),
+	dependOn: entryDependOn.optional()
 });
 export type EntryDescription = z.infer<typeof entryDescription>;
 
@@ -530,6 +534,24 @@ const assetParserOptions = z.strictObject({
 });
 export type AssetParserOptions = z.infer<typeof assetParserOptions>;
 
+const cssParserNamedExports = z.boolean();
+export type CssParserNamedExports = z.infer<typeof cssParserNamedExports>;
+
+const cssParserOptions = z.strictObject({
+	namedExports: cssParserNamedExports.optional()
+});
+export type CssParserOptions = z.infer<typeof cssParserOptions>;
+
+const cssAutoParserOptions = z.strictObject({
+	namedExports: cssParserNamedExports.optional()
+});
+export type CssAutoParserOptions = z.infer<typeof cssAutoParserOptions>;
+
+const cssModuleParserOptions = z.strictObject({
+	namedExports: cssParserNamedExports.optional()
+});
+export type CssModuleParserOptions = z.infer<typeof cssModuleParserOptions>;
+
 //TODO: "weak", "lazy-once"
 const dynamicImportMode = z.enum(["eager", "lazy"]);
 const dynamicImportPreload = z.union([z.boolean(), z.number()]);
@@ -546,6 +568,9 @@ export type JavascriptParserOptions = z.infer<typeof javascriptParserOptions>;
 
 const parserOptionsByModuleTypeKnown = z.strictObject({
 	asset: assetParserOptions.optional(),
+	css: cssParserOptions.optional(),
+	"css/auto": cssAutoParserOptions.optional(),
+	"css/module": cssModuleParserOptions.optional(),
 	javascript: javascriptParserOptions.optional()
 });
 
@@ -611,10 +636,54 @@ const assetGeneratorOptions = assetInlineGeneratorOptions.merge(
 );
 export type AssetGeneratorOptions = z.infer<typeof assetGeneratorOptions>;
 
+const cssGeneratorExportsConvention = z.enum([
+	"as-is",
+	"camel-case",
+	"camel-case-only",
+	"dashes",
+	"dashes-only"
+]);
+export type CssGeneratorExportsConvention = z.infer<
+	typeof cssGeneratorExportsConvention
+>;
+
+const cssGeneratorExportsOnly = z.boolean();
+export type CssGeneratorExportsOnly = z.infer<typeof cssGeneratorExportsOnly>;
+
+const cssGeneratorLocalIdentName = z.string();
+export type CssGeneratorLocalIdentName = z.infer<
+	typeof cssGeneratorLocalIdentName
+>;
+
+const cssGeneratorOptions = z.strictObject({
+	exportsConvention: cssGeneratorExportsConvention.optional(),
+	exportsOnly: cssGeneratorExportsOnly.optional()
+});
+export type CssGeneratorOptions = z.infer<typeof cssGeneratorOptions>;
+
+const cssAutoGeneratorOptions = z.strictObject({
+	exportsConvention: cssGeneratorExportsConvention.optional(),
+	exportsOnly: cssGeneratorExportsOnly.optional(),
+	localIdentName: cssGeneratorLocalIdentName.optional()
+});
+export type CssAutoGeneratorOptions = z.infer<typeof cssAutoGeneratorOptions>;
+
+const cssModuleGeneratorOptions = z.strictObject({
+	exportsConvention: cssGeneratorExportsConvention.optional(),
+	exportsOnly: cssGeneratorExportsOnly.optional(),
+	localIdentName: cssGeneratorLocalIdentName.optional()
+});
+export type CssModuleGeneratorOptions = z.infer<
+	typeof cssModuleGeneratorOptions
+>;
+
 const generatorOptionsByModuleTypeKnown = z.strictObject({
 	asset: assetGeneratorOptions.optional(),
 	"asset/inline": assetInlineGeneratorOptions.optional(),
-	"asset/resource": assetResourceGeneratorOptions.optional()
+	"asset/resource": assetResourceGeneratorOptions.optional(),
+	css: cssGeneratorOptions.optional(),
+	"css/auto": cssAutoGeneratorOptions.optional(),
+	"css/module": cssModuleGeneratorOptions.optional()
 });
 export type GeneratorOptionsByModuleTypeKnown = z.infer<
 	typeof generatorOptionsByModuleTypeKnown
@@ -1096,7 +1165,6 @@ export type Optimization = z.infer<typeof optimization>;
 //#region Experiments
 const rspackFutureOptions = z.strictObject({
 	newTreeshaking: z.boolean().optional(),
-	disableApplyEntryLazily: z.boolean().optional(),
 	bundlerInfo: z
 		.strictObject({
 			version: z.string().optional(),

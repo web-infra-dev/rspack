@@ -88,7 +88,7 @@ impl Plugin for LimitChunkCountPlugin {
     let mut remaining_chunks_to_merge = (chunks_ukeys.len() - max_chunks) as i64;
 
     // order chunks in a deterministic way
-    chunks_ukeys.sort_by(|a, b| compare_chunks_with_graph(chunk_graph, module_graph, a, b));
+    chunks_ukeys.sort_by(|a, b| compare_chunks_with_graph(chunk_graph, &module_graph, a, b));
 
     // create a lazy sorted data structure to keep all combinations
     // this is large. Size = chunks * (chunks - 1) / 2
@@ -119,21 +119,21 @@ impl Plugin for LimitChunkCountPlugin {
           &chunk_size_option,
           chunk_by_ukey,
           chunk_group_by_ukey,
-          module_graph,
+          &module_graph,
         );
         let a_size = chunk_graph.get_chunk_size(
           a,
           &chunk_size_option,
           chunk_by_ukey,
           chunk_group_by_ukey,
-          module_graph,
+          &module_graph,
         );
         let b_size = chunk_graph.get_chunk_size(
           b,
           &chunk_size_option,
           chunk_by_ukey,
           chunk_group_by_ukey,
-          module_graph,
+          &module_graph,
         );
 
         let c = ChunkCombination {
@@ -207,7 +207,7 @@ impl Plugin for LimitChunkCountPlugin {
           &b,
           &mut new_chunk_by_ukey,
           &mut new_chunk_group_by_ukey,
-          module_graph,
+          &module_graph,
         );
         new_chunk_by_ukey.remove(&b);
 
@@ -255,7 +255,7 @@ impl Plugin for LimitChunkCountPlugin {
                 &chunk_size_option,
                 chunk_by_ukey,
                 chunk_group_by_ukey,
-                module_graph,
+                &module_graph,
               );
               combination.a = a;
               combination.integrated_size = new_integrated_size;
@@ -275,7 +275,7 @@ impl Plugin for LimitChunkCountPlugin {
                 &chunk_size_option,
                 chunk_by_ukey,
                 chunk_group_by_ukey,
-                module_graph,
+                &module_graph,
               );
               combination.b = a;
               combination.integrated_size = new_integrated_size;

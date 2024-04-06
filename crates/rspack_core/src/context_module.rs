@@ -131,6 +131,7 @@ pub struct ContextOptions {
   pub exclude: Option<String>,
   pub category: DependencyCategory,
   pub request: String,
+  pub context: String,
   pub namespace_object: ContextNameSpaceObject,
   pub chunk_name: Option<String>,
   pub start: u32,
@@ -141,7 +142,7 @@ impl Display for ContextOptions {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(
       f,
-      "ContextOptions|{:?}|{:?}|{:?}|{:?}|{:?}|{:?}|{:?}|{:?}|{:?}|{:?}",
+      "ContextOptions|{:?}|{:?}|{:?}|{:?}|{:?}|{:?}|{:?}|{:?}|{:?}|{:?}|{:?}",
       self.mode,
       self.recursive,
       self.reg_exp,
@@ -150,6 +151,7 @@ impl Display for ContextOptions {
       self.exclude,
       self.category,
       self.request,
+      self.context,
       self.namespace_object,
       self.chunk_name
     )
@@ -165,6 +167,7 @@ impl PartialEq for ContextOptions {
       && self.exclude == other.exclude
       && self.category == other.category
       && self.request == other.request
+      && self.context == other.context
       && self.namespace_object == other.namespace_object
   }
 }
@@ -180,6 +183,7 @@ impl Hash for ContextOptions {
     self.exclude.hash(state);
     self.category.hash(state);
     self.request.hash(state);
+    self.context.hash(state);
     self.namespace_object.hash(state);
   }
 }
@@ -262,10 +266,10 @@ impl ContextModule {
     }
     let mut has_type = 0;
     let mut fake_map = HashMap::default();
+    let module_graph = compilation.get_module_graph();
     let sorted_modules = dependencies
       .filter_map(|dep_id| {
-        compilation
-          .get_module_graph()
+        module_graph
           .module_identifier_by_dependency_id(dep_id)
           .map(|m| (m, dep_id))
       })
@@ -279,7 +283,7 @@ impl ContextModule {
       .sorted_unstable_by_key(|(module_id, _)| module_id.to_string());
     for (module_id, dep) in sorted_modules {
       let exports_type = get_exports_type_with_strict(
-        compilation.get_module_graph(),
+        &compilation.get_module_graph(),
         dep,
         matches!(
           self.options.context_options.namespace_object,
@@ -409,14 +413,12 @@ impl ContextModule {
     match self.options.context_options.mode {
       ContextMode::Lazy => self.get_lazy_source(compilation, runtime_requirements),
       ContextMode::LazyOnce => {
+        let module_graph = compilation.get_module_graph();
         let block = self
           .get_blocks()
           .first()
           .expect("LazyOnce ContextModule should have first block");
-        let block = compilation
-          .get_module_graph()
-          .block_by_id(block)
-          .expect("should have block");
+        let block = module_graph.block_by_id(block).expect("should have block");
         self.generate_source(block.get_dependencies(), compilation)
       }
       _ => self.generate_source(self.get_dependencies(), compilation),
@@ -428,10 +430,11 @@ impl ContextModule {
     compilation: &Compilation,
     runtime_requirements: &mut RuntimeGlobals,
   ) -> BoxSource {
+    let module_graph = compilation.get_module_graph();
     let blocks = self
       .get_blocks()
       .iter()
-      .filter_map(|b| compilation.get_module_graph().block_by_id(b));
+      .filter_map(|b| module_graph.block_by_id(b));
     let block_map = self.get_block_promise_map(blocks.clone(), compilation, runtime_requirements);
     let dependencies = blocks.filter_map(|b| b.get_dependencies().first());
     let fake_map = self.get_fake_map(dependencies.clone(), compilation);
@@ -611,6 +614,7 @@ impl Module for ContextModule {
   fn source_types(&self) -> &[SourceType] {
     &[SourceType::JavaScript]
   }
+
   fn get_diagnostics(&self) -> Vec<Diagnostic> {
     vec![]
   }
@@ -684,9 +688,9 @@ impl Module for ContextModule {
       _ => {}
     }
     let mut all_deps = self.get_dependencies().to_vec();
+    let module_graph = compilation.get_module_graph();
     for block in self.get_blocks() {
-      let block = compilation
-        .get_module_graph()
+      let block = module_graph
         .block_by_id(block)
         .expect("should have block in ContextModule code_generation");
       all_deps.extend(block.get_dependencies());

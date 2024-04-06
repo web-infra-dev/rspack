@@ -5,11 +5,10 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
   ApplyContext, BoxModule, Compilation, CompilationParams, CompilerOptions, DependencyType,
-  EntryOptions, NormalModuleCreateData, Plugin, PluginContext,
-  PluginNormalModuleFactoryModuleHookOutput,
+  EntryOptions, ModuleFactoryCreateData, NormalModuleCreateData, Plugin, PluginContext,
 };
 use rspack_error::{Diagnostic, Result};
-use rspack_hook::{plugin, plugin_hook, AsyncSeries, AsyncSeries2};
+use rspack_hook::{plugin, plugin_hook, AsyncSeries, AsyncSeries2, AsyncSeries3};
 use rspack_loader_runner::ResourceData;
 use rustc_hash::FxHashMap;
 use tokio::sync::RwLock;
@@ -188,6 +187,61 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
   Ok(())
 }
 
+#[plugin_hook(AsyncSeries3<ModuleFactoryCreateData, NormalModuleCreateData, BoxModule> for ProvideSharedPlugin)]
+async fn normal_module_factory_module(
+  &self,
+  data: &mut ModuleFactoryCreateData,
+  create_data: &mut NormalModuleCreateData,
+  _module: &mut BoxModule,
+) -> Result<()> {
+  let resource = &create_data.resource_resolve_data.resource;
+  let resource_data = &create_data.resource_resolve_data;
+  if self
+    .resolved_provide_map
+    .read()
+    .await
+    .contains_key(resource)
+  {
+    return Ok(());
+  }
+  let request = &create_data.raw_request;
+  {
+    let match_provides = self.match_provides.read().await;
+    if let Some(config) = match_provides.get(request) {
+      self
+        .provide_shared_module(
+          request,
+          &config.share_key,
+          &config.share_scope,
+          config.version.as_ref(),
+          config.eager,
+          resource,
+          resource_data,
+          |d| data.diagnostics.push(d),
+        )
+        .await;
+    }
+  }
+  for (prefix, config) in self.prefix_match_provides.read().await.iter() {
+    if request.starts_with(prefix) {
+      let remainder = &request[prefix.len()..];
+      self
+        .provide_shared_module(
+          request,
+          &(config.share_key.to_string() + remainder),
+          &config.share_scope,
+          config.version.as_ref(),
+          config.eager,
+          resource,
+          resource_data,
+          |d| data.diagnostics.push(d),
+        )
+        .await;
+    }
+  }
+  Ok(())
+}
+
 #[async_trait]
 impl Plugin for ProvideSharedPlugin {
   fn name(&self) -> &'static str {
@@ -209,60 +263,11 @@ impl Plugin for ProvideSharedPlugin {
       .compiler_hooks
       .finish_make
       .tap(finish_make::new(self));
+    ctx
+      .context
+      .normal_module_factory_hooks
+      .module
+      .tap(normal_module_factory_module::new(self));
     Ok(())
-  }
-
-  async fn normal_module_factory_module(
-    &self,
-    _ctx: PluginContext,
-    module: BoxModule,
-    args: &mut NormalModuleCreateData<'_>,
-  ) -> PluginNormalModuleFactoryModuleHookOutput {
-    let resource = &args.resource_resolve_data.resource;
-    let resource_data = &args.resource_resolve_data;
-    if self
-      .resolved_provide_map
-      .read()
-      .await
-      .contains_key(resource)
-    {
-      return Ok(module);
-    }
-    let request = args.resolve_data_request;
-    {
-      let match_provides = self.match_provides.read().await;
-      if let Some(config) = match_provides.get(request) {
-        self
-          .provide_shared_module(
-            request,
-            &config.share_key,
-            &config.share_scope,
-            config.version.as_ref(),
-            config.eager,
-            resource,
-            resource_data,
-            |d| args.diagnostics.push(d),
-          )
-          .await;
-      }
-    }
-    for (prefix, config) in self.prefix_match_provides.read().await.iter() {
-      if request.starts_with(prefix) {
-        let remainder = &request[prefix.len()..];
-        self
-          .provide_shared_module(
-            request,
-            &(config.share_key.to_string() + remainder),
-            &config.share_scope,
-            config.version.as_ref(),
-            config.eager,
-            resource,
-            resource_data,
-            |d| args.diagnostics.push(d),
-          )
-          .await;
-      }
-    }
-    Ok(module)
   }
 }

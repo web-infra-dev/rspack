@@ -7,7 +7,9 @@ use std::sync::atomic::AtomicU32;
 use std::sync::atomic::Ordering::Relaxed;
 use std::sync::Arc;
 
+use dashmap::DashMap;
 use itertools::Itertools;
+use once_cell::sync::Lazy;
 use rspack_util::ext::DynHash;
 use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
@@ -30,6 +32,8 @@ pub trait ExportsHash {
     already_visited: &mut HashSet<ExportInfoId>,
   );
 }
+
+static EXPORTS_INFO_HASH: Lazy<DashMap<ExportsInfoId, u64>> = Lazy::new(DashMap::new);
 
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize)]
 pub struct ExportsInfoId(u32);
@@ -453,7 +457,7 @@ impl ExportsInfoId {
   }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ExportsInfo {
   pub exports: BTreeMap<Atom, ExportInfoId>,
   pub other_exports_info: ExportInfoId,
@@ -470,7 +474,7 @@ impl ExportsHash for ExportsInfo {
     module_graph: &ModuleGraph,
     already_visited: &mut HashSet<ExportInfoId>,
   ) {
-    if let Some(hash) = module_graph.get_exports_info_hash(&self.id) {
+    if let Some(hash) = EXPORTS_INFO_HASH.get(&self.id) {
       hash.dyn_hash(hasher);
       return;
     };
@@ -491,7 +495,7 @@ impl ExportsHash for ExportsInfo {
       redirect_to.export_info_hash(&mut default_hash, module_graph, already_visited);
     }
     let hash = default_hash.finish();
-    module_graph.set_exports_info_hash(self.id, hash);
+    EXPORTS_INFO_HASH.insert(self.id, hash);
     hash.dyn_hash(hasher);
   }
 }
@@ -1070,14 +1074,16 @@ impl ExportInfoId {
   }
 
   #[allow(clippy::unwrap_in_result)]
-  pub fn move_target(
-    &self,
-    mg: &mut ModuleGraph,
+  pub fn move_target<'a>(
+    &'a self,
+    mg: &'a mut ModuleGraph<'a>,
     resolve_filter: ResolveFilterFnTy,
     update_original_connection: UpdateOriginalFunctionTy,
   ) -> Option<ResolvedExportInfoTarget> {
-    let mut mga = MutableModuleGraph::new(mg);
-    let target = self._get_target(&mut mga, resolve_filter, &mut HashSet::default());
+    let target = {
+      let mut mga = MutableModuleGraph::new(mg);
+      self._get_target(&mut mga, resolve_filter, &mut HashSet::default())
+    };
 
     let target = match target {
       Some(ResolvedExportInfoTargetWithCircular::Circular) => return None,
@@ -2003,17 +2009,17 @@ pub trait ModuleGraphAccessor<'a> {
   ) -> Option<Arc<ExportInfo>>;
 }
 
-pub struct MutableModuleGraph<'a> {
-  inner: &'a mut ModuleGraph,
+pub struct MutableModuleGraph<'a, 'b> {
+  inner: &'a mut ModuleGraph<'b>,
 }
 
-impl<'a> MutableModuleGraph<'a> {
-  pub fn new(mg: &'a mut ModuleGraph) -> Self {
+impl<'a, 'b> MutableModuleGraph<'a, 'b> {
+  pub fn new(mg: &'a mut ModuleGraph<'b>) -> Self {
     Self { inner: mg }
   }
 }
 
-impl<'a> ModuleGraphAccessor<'a> for MutableModuleGraph<'a> {
+impl<'a, 'b> ModuleGraphAccessor<'a> for MutableModuleGraph<'a, 'b> {
   fn get_export_info_id(
     &mut self,
     name: &Atom,
@@ -2083,7 +2089,7 @@ impl<'a> ModuleGraphAccessor<'a> for MutableModuleGraph<'a> {
 }
 
 pub struct ImmutableModuleGraph<'a> {
-  inner: &'a ModuleGraph,
+  inner: &'a ModuleGraph<'a>,
 }
 
 impl<'a> ImmutableModuleGraph<'a> {
@@ -2170,7 +2176,7 @@ impl<'a> ModuleGraphAccessor<'a> for ImmutableModuleGraph<'a> {
   }
 }
 
-pub fn prepare_get_exports_type(mg: &mut ModuleGraph) {
+pub fn prepare_get_exports_type<'a>(mg: &'a mut ModuleGraph<'a>) {
   let export_info_ids = mg
     .modules()
     .values()

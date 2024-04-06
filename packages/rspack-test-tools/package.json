@@ -1,6 +1,6 @@
 {
   "name": "@rspack/test-tools",
-  "version": "0.5.8",
+  "version": "0.5.9",
   "license": "MIT",
   "description": "Test tools for rspack",
   "main": "dist/index.js",
@@ -16,8 +16,9 @@
     "build:viewer": "rspack build",
     "dev:viewer": "rspack serve",
     "dev": "tsc -b -w",
-    "test:ng": "cross-env NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --testPathIgnorePatterns \".diff.test.js\" --logHeapUsage",
-    "test:diff": "cross-env RSPACK_DIFF=true NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --runInBand --logHeapUsage --testPathPattern \".diff.test.js\""
+    "test": "cross-env NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --logHeapUsage --config ./jest.config.compat.js",
+    "test:ng": "cross-env SNAPSHOT=legacy NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --logHeapUsage --config ./jest.config.legacy.js",
+    "test:diff": "cross-env RSPACK_DIFF=true NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --logHeapUsage --config ./jest.config.diff.js"
   },
   "files": [
     "client",

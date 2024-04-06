@@ -6,15 +6,14 @@ use async_trait::async_trait;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
-  AdditionalChunkRuntimeRequirementsArgs, ApplyContext, Compilation, CompilationParams,
+  AdditionalChunkRuntimeRequirementsArgs, ApplyContext, BoxModule, Compilation, CompilationParams,
   CompilerOptions, Context, DependencyCategory, DependencyType, FactorizeArgs, ModuleExt,
-  ModuleFactoryResult, NormalModuleCreateData, Plugin,
+  ModuleFactoryCreateData, ModuleFactoryResult, NormalModuleCreateData, Plugin,
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, PluginFactorizeHookOutput,
-  PluginNormalModuleFactoryCreateModuleHookOutput, ResolveOptionsWithDependencyType, ResolveResult,
-  Resolver, RuntimeGlobals,
+  ResolveOptionsWithDependencyType, ResolveResult, Resolver, RuntimeGlobals,
 };
 use rspack_error::{error, Diagnostic, Result};
-use rspack_hook::{plugin, plugin_hook, AsyncSeries2};
+use rspack_hook::{plugin, plugin_hook, AsyncSeries2, AsyncSeriesBail2};
 use rustc_hash::FxHashMap;
 
 use super::{
@@ -331,6 +330,31 @@ async fn this_compilation(
   Ok(())
 }
 
+#[plugin_hook(AsyncSeriesBail2<ModuleFactoryCreateData, NormalModuleCreateData, BoxModule> for ConsumeSharedPlugin)]
+async fn normal_module_factory_create_module(
+  &self,
+  data: &mut ModuleFactoryCreateData,
+  create_data: &mut NormalModuleCreateData,
+) -> Result<Option<BoxModule>> {
+  if matches!(
+    data.dependency.dependency_type(),
+    DependencyType::ConsumeSharedFallback | DependencyType::ProvideModuleForShared
+  ) {
+    return Ok(None);
+  }
+  let resource = &create_data.resource_resolve_data.resource;
+  let consumes = self.get_matched_consumes();
+  if let Some(options) = consumes.resolved.get(resource) {
+    let module = self
+      .create_consume_shared_module(&data.context, resource, options.clone(), |d| {
+        data.diagnostics.push(d)
+      })
+      .await;
+    return Ok(Some(module.boxed()));
+  }
+  Ok(None)
+}
+
 #[async_trait]
 impl Plugin for ConsumeSharedPlugin {
   fn name(&self) -> &'static str {
@@ -347,6 +371,11 @@ impl Plugin for ConsumeSharedPlugin {
       .compiler_hooks
       .this_compilation
       .tap(this_compilation::new(self));
+    ctx
+      .context
+      .normal_module_factory_hooks
+      .create_module
+      .tap(normal_module_factory_create_module::new(self));
     Ok(())
   }
 
@@ -395,30 +424,6 @@ impl Plugin for ConsumeSharedPlugin {
           .await;
         return Ok(Some(ModuleFactoryResult::new_with_module(module.boxed())));
       }
-    }
-    Ok(None)
-  }
-
-  async fn normal_module_factory_create_module(
-    &self,
-    _ctx: PluginContext,
-    args: &mut NormalModuleCreateData<'_>,
-  ) -> PluginNormalModuleFactoryCreateModuleHookOutput {
-    if matches!(
-      args.dependency_type,
-      DependencyType::ConsumeSharedFallback | DependencyType::ProvideModuleForShared
-    ) {
-      return Ok(None);
-    }
-    let resource = &args.resource_resolve_data.resource;
-    let consumes = self.get_matched_consumes();
-    if let Some(options) = consumes.resolved.get(resource) {
-      let module = self
-        .create_consume_shared_module(&args.context, resource, options.clone(), |d| {
-          args.diagnostics.push(d)
-        })
-        .await;
-      return Ok(Some(module.boxed()));
     }
     Ok(None)
   }

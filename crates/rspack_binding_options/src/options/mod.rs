@@ -37,11 +37,6 @@ pub use raw_snapshot::*;
 pub use raw_split_chunks::*;
 pub use raw_stats::*;
 
-pub trait RawOptionsApply {
-  type Options;
-  fn apply(self) -> Result<Self::Options, rspack_error::Error>;
-}
-
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 #[napi(object, object_to_js = false)]
@@ -66,43 +61,40 @@ pub struct RawOptions {
   pub builtins: RawBuiltins,
 }
 
-impl RawOptions {
-  pub fn apply(
-    self,
-    plugins: &mut Vec<rspack_core::BoxPlugin>,
-  ) -> rspack_error::Result<CompilerOptions> {
-    let context: Context = self.context.into();
-    let output: OutputOptions = self.output.try_into()?;
-    let resolve = self.resolve.try_into()?;
-    let resolve_loader = self.resolve_loader.try_into()?;
-    let mode = self.mode.unwrap_or_default().into();
-    let module: ModuleOptions = self.module.try_into()?;
-    let target = Target::new(&self.target)?;
-    let cache = self.cache.into();
+impl TryFrom<RawOptions> for CompilerOptions {
+  type Error = rspack_error::Error;
+
+  fn try_from(value: RawOptions) -> Result<Self, rspack_error::Error> {
+    let context: Context = value.context.into();
+    let output: OutputOptions = value.output.try_into()?;
+    let resolve = value.resolve.try_into()?;
+    let resolve_loader = value.resolve_loader.try_into()?;
+    let mode = value.mode.unwrap_or_default().into();
+    let module: ModuleOptions = value.module.try_into()?;
+    let target = Target::new(&value.target)?;
+    let cache = value.cache.into();
     let experiments = Experiments {
       incremental_rebuild: IncrementalRebuild {
-        make: if matches!(cache, CacheOptions::Disabled)
-          || self.experiments.rspack_future.new_treeshaking
-        {
+        make: if matches!(cache, CacheOptions::Disabled) {
           None
         } else {
           Some(IncrementalRebuildMakeState::default())
         },
         emit_asset: true,
       },
-      new_split_chunks: self.experiments.new_split_chunks,
-      top_level_await: self.experiments.top_level_await,
-      rspack_future: self.experiments.rspack_future.into(),
+      new_split_chunks: value.experiments.new_split_chunks,
+      top_level_await: value.experiments.top_level_await,
+      rspack_future: value.experiments.rspack_future.into(),
     };
     let optimization: Optimization = IS_ENABLE_NEW_SPLIT_CHUNKS
       .set(&experiments.new_split_chunks, || {
-        self.optimization.try_into()
+        value.optimization.try_into()
       })?;
-    let stats = self.stats.into();
-    let snapshot = self.snapshot.into();
-    let node = self.node.map(|n| n.into());
+    let stats = value.stats.into();
+    let snapshot = value.snapshot.into();
+    let node = value.node.map(|n| n.into());
 
-    let mut builtins = self.builtins.apply(plugins)?;
+    let mut builtins = value.builtins.apply()?;
     if experiments.rspack_future.new_treeshaking {
       builtins.tree_shaking = TreeShaking::False;
     }
@@ -122,8 +114,8 @@ impl RawOptions {
       optimization,
       node,
       dev_server: Default::default(),
-      profile: self.profile,
-      bail: self.bail,
+      profile: value.profile,
+      bail: value.bail,
       builtins,
     })
   }

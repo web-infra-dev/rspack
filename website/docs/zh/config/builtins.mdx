@@ -336,7 +336,7 @@ module.exports = {
 请迁移至 [`HtmlRspackPlugin`](/config/plugins.html#htmlrspackplugin)。
 :::
 
-该配置可以快速创建与 Rspack 产物关联的 html 文件。
+该配置可以快速创建与 Rspack 产物关联的 HTML 文件。
 
 - **类型：**
 
@@ -385,7 +385,7 @@ type BuiltinsHtml = Array<{
       name: '`title`',
       type: '`string|undefined`',
       default: 'undefined',
-      description: '构建 html 的标题',
+      description: '构建 HTML 的标题',
     },
     {
       name: '`filename`',
@@ -458,21 +458,19 @@ type BuiltinsHtml = Array<{
       name: '`favicon`',
       type: '`string|undefined`',
       default: 'undefined',
-      description: '配置 html 图标',
+      description: '配置 HTML 图标',
     },
     {
       name: '`meta`',
       type: '`Record<string, string|Record<string, string>>` ',
       default: '{}',
-      description: '配置需要注入 html 的 meta',
+      description: '配置需要注入 HTML 的 meta',
     },
   ]}
 />
 
-:::info
-
-对于复杂的 HTML 配置需求，可使用 [html-webpack-plugin](https://www.npmjs.com/package/html-webpack-plugin) 或 [@rspack/plugin-html](https://www.npmjs.com/package/@rspack/plugin-html)。
-
+:::tip
+如果 `rspack.HtmlRspackPlugin` 提供的配置项无法满足需求，你也可以直接使用社区的 [html-webpack-plugin](https://www.npmjs.com/package/html-webpack-plugin) 插件。
 :::
 
 ## builtins.minifyOptions
@@ -803,6 +801,8 @@ type BuiltinsDecorator =
 
 ## builtins.css
 
+<ApiMeta removedVersion="0.6.0" stability={Stability.Removed} />
+
 此选项可以用来配置默认 css 打包策略。
 
 - **类型：**
@@ -814,6 +814,8 @@ type BuiltinsCss = {
 ```
 
 ### builtins.css.modules
+
+<ApiMeta removedVersion="0.6.0" stability={Stability.Removed} />
 
 css modules 配置
 

@@ -47,13 +47,14 @@
 
 ## 链接
 
-| 名称                                                                                    | 描述                                                                         |
-| --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| [Rspack 文档](https://rspack.dev)                                                       | Rspack 官方文档                                                              |
-| [Rspack 文档仓库](https://github.com/web-infra-dev/rspack-website)                      | Rspack 官方文档的代码仓库                                                    |
-| [Rspack examples repo](https://github.com/rspack-contrib/rspack-examples)               | Rspack 配置示例                                                              |
-| [rspack-sources](https://github.com/web-infra-dev/rspack-sources)                       | Rust 版本的 [webpack-sources](https://www.npmjs.com/package/webpack-sources) |
-| [rspack-migration-showcase](https://github.com/web-infra-dev/rspack-migration-showcase) | 迁移到 Rspack 的示例项目                                                     |
+| 名称                                                                                     | 描述                                                                         |
+| ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| [Rspack 文档](https://rspack.dev)                                                        | Rspack 官方文档                                                              |
+| [rspack-examples](https://github.com/rspack-contrib/rspack-examples)                     | Rspack 配置示例                                                              |
+| [rspack-sources](https://github.com/web-infra-dev/rspack-sources)                        | Rust 版本的 [webpack-sources](https://www.npmjs.com/package/webpack-sources) |
+| [rspack-migration-showcase](https://github.com/web-infra-dev/rspack-migration-showcase)  | 迁移到 Rspack 的示例项目                                                     |
+| [rspack-compat](https://github.com/web-infra-dev/rspack-compat)                          | 兼容 Rspack 的 Webpack 插件 和 Loader 示例                                   |
+| [rsfamily-design-resources](https://github.com/rspack-contrib/rsfamily-design-resources) | Rspack、Rsbuild、Rspress 和 Rsdoctor 的设计资源                              |
 
 ## 致谢
 
@@ -67,7 +68,7 @@
 - [NAPI-RS](https://github.com/napi-rs/napi-rs) 项目（由 [@Brooooooklyn](https://github.com/Brooooooklyn) 创建），为 Rspack 的 node-binding 实现提供了支持。
 - [Parcel](https://github.com/parcel-bundler/parcel) 项目（由 [@devongovett](https://github.com/devongovett)创建），它是 Rust Bundler 的先行探索者并启发了 Rspack 的增量构建架构。
 - [Vite](https://github.com/vitejs/vite) 由[尤雨溪](https://github.com/yyx990803)创建，它和 rollup 社区的兼容性设计启发了 Rspack 和 Webpack 社区的兼容设计。
-- [Rolldown](https://github.com/rolldown-rs/rolldown) 项目（由 [Rolldown 团队](https://github.com/rolldown-rs)创建），它探索了使用 Rust 构建高性能 Bundler + 兼容 Rollup API 的可能性，启发了 Rspack 的设计方向。
+- [rolldown-legacy](https://github.com/rolldown-rs/rolldown-legacy) 项目，它是 [rolldown](https://github.com/rolldown) 项目的前身，它探索了使用 Rust 构建高性能 Bundler + 兼容 Rollup API 的可能性，启发了 Rspack 的设计方向。
 - [html-webpack-plugin](https://github.com/jantimon/html-webpack-plugin) 项目（由 [@jantimon](https://github.com/jantimon) 创建），Rspack 的 `@rspack/html-plugin` 是 [html-webpack-plugin](https://github.com/jantimon/html-webpack-plugin) 的一个 fork 来避免使用在 Rspack 中尚未支持的 webpack API。
 - [Turbopack](https://github.com/vercel/turbo) 项目，它启发了 Rspack 里基于 AST 的路径重写逻辑。
 

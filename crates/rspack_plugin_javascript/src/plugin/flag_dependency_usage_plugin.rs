@@ -2,7 +2,7 @@ use std::collections::hash_map::Entry;
 use std::collections::VecDeque;
 
 use rspack_core::{
-  is_exports_object_referenced, is_no_exports_referenced, merge_runtime,
+  get_entry_runtime, is_exports_object_referenced, is_no_exports_referenced, merge_runtime,
   AsyncDependenciesBlockIdentifier, BuildMetaExportsType, Compilation, ConnectionState,
   DependenciesBlock, DependencyId, ExportsInfoId, ExtendedReferencedExport, GroupOptions,
   ModuleIdentifier, Plugin, ReferencedExport, RuntimeSpec, UsageState,
@@ -35,18 +35,14 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
   }
 
   fn apply(&mut self) {
-    for mgm in self
-      .compilation
-      .get_module_graph()
-      .module_graph_modules()
-      .values()
-    {
+    let mut module_graph = self.compilation.get_module_graph_mut();
+    for mgm in module_graph.module_graph_modules().values() {
       self
         .exports_info_module_map
         .insert(mgm.exports, mgm.module_identifier);
     }
     let mut q = VecDeque::new();
-    let mg = self.compilation.get_module_graph_mut();
+    let mg = &mut module_graph;
     // debug_exports_info!(mg);
     for exports_info_id in self.exports_info_module_map.keys() {
       exports_info_id.set_has_use_info(mg);
@@ -59,11 +55,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       let runtime = if self.global {
         None
       } else {
-        Some(
-          self
-            .compilation
-            .get_entry_runtime(entry_name, Some(&entry.options)),
-        )
+        Some(get_entry_runtime(entry_name, &entry.options, &entries))
       };
       if let Some(runtime) = runtime.as_ref() {
         let tem_global_runtime = global_runtime.get_or_insert_default();
@@ -111,20 +103,17 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     let mut queue = VecDeque::new();
     queue.push_back(block_id);
     while let Some(module_id) = queue.pop_front() {
+      let module_graph = self.compilation.get_module_graph();
       // dbg!(&module_id);
       let (blocks, dependencies) = match module_id {
         ModuleOrAsyncDependenciesBlock::Module(module) => {
-          let block = self
-            .compilation
-            .get_module_graph()
+          let block = module_graph
             .module_by_identifier(&module)
             .expect("should have module");
           (block.get_blocks(), block.get_dependencies())
         }
         ModuleOrAsyncDependenciesBlock::AsyncDependenciesBlock(async_dependencies_block_id) => {
-          let block = self
-            .compilation
-            .get_module_graph()
+          let block = module_graph
             .block_by_id(&async_dependencies_block_id)
             .expect("should have module");
           (block.get_blocks(), block.get_dependencies())
@@ -132,9 +121,8 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       };
       let (block_id_list, dep_id_list) = (blocks.to_vec(), dependencies.to_vec());
       for block_id in block_id_list {
-        let block = self
-          .compilation
-          .get_module_graph()
+        let module_graph = self.compilation.get_module_graph();
+        let block = module_graph
           .block_by_id(&block_id)
           .expect("should have block");
         if !self.global
@@ -157,18 +145,15 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         }
       }
       for dep_id in dep_id_list.into_iter() {
-        let connection = self
-          .compilation
-          .get_module_graph()
-          .connection_by_dependency(&dep_id);
+        let module_graph = self.compilation.get_module_graph();
+        let connection = module_graph.connection_by_dependency(&dep_id);
 
         let connection = if let Some(connection) = connection {
           connection
         } else {
           continue;
         };
-        let active_state =
-          connection.get_active_state(self.compilation.get_module_graph(), runtime.as_ref());
+        let active_state = connection.get_active_state(&module_graph, runtime.as_ref());
 
         // dbg!(
         //   &connection,
@@ -196,14 +181,12 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
           _ => {}
         }
         let old_referenced_exports = map.remove(connection.module_identifier());
-        let dep = self
-          .compilation
-          .get_module_graph()
+        let dep = module_graph
           .dependency_by_id(&dep_id)
           .expect("should have dep");
 
         let referenced_exports = if let Some(md) = dep.as_module_dependency() {
-          md.get_referenced_exports(self.compilation.get_module_graph(), runtime.as_ref())
+          md.get_referenced_exports(&module_graph, runtime.as_ref())
         } else if dep.as_context_dependency().is_some() {
           vec![ExtendedReferencedExport::Array(vec![])]
         } else {
@@ -329,14 +312,11 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     force_side_effects: bool,
     queue: &mut VecDeque<(ModuleIdentifier, Option<RuntimeSpec>)>,
   ) {
-    let mgm = self
-      .compilation
-      .get_module_graph()
+    let mut module_graph = self.compilation.get_module_graph_mut();
+    let mgm = module_graph
       .module_graph_module_by_identifier(&module_id)
       .expect("should have mgm");
-    let module = self
-      .compilation
-      .get_module_graph()
+    let module = module_graph
       .module_by_identifier(&module_id)
       .expect("should have module");
     let mgm_exports_info_id = mgm.exports;
@@ -346,8 +326,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         None => true,
       };
       if need_insert {
-        let flag = mgm_exports_info_id
-          .set_used_without_info(self.compilation.get_module_graph_mut(), runtime.as_ref());
+        let flag = mgm_exports_info_id.set_used_without_info(&mut module_graph, runtime.as_ref());
         if flag {
           queue.push_back((module_id, None));
         }
@@ -360,8 +339,8 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
           ExtendedReferencedExport::Export(export) => (export.can_mangle, export.name),
         };
         if used_exports.is_empty() {
-          let flag = mgm_exports_info_id
-            .set_used_in_unknown_way(self.compilation.get_module_graph_mut(), runtime.as_ref());
+          let flag =
+            mgm_exports_info_id.set_used_in_unknown_way(&mut module_graph, runtime.as_ref());
 
           if flag {
             queue.push_back((module_id, runtime.clone()));
@@ -371,24 +350,20 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
           // dbg!(&current_exports_info_id.get_exports_info(&self.compilation.get_module_graph()));
           let len = used_exports.len();
           for (i, used_export) in used_exports.into_iter().enumerate() {
-            let export_info_id = current_exports_info_id
-              .get_export_info(&used_export, self.compilation.get_module_graph_mut());
+            let export_info_id =
+              current_exports_info_id.get_export_info(&used_export, &mut module_graph);
             // dbg!(&export_info_id.get_export_info(&self.compilation.get_module_graph()));
-            let export_info = self
-              .compilation
-              .get_module_graph_mut()
-              .get_export_info_mut_by_id(&export_info_id);
+            let export_info = module_graph.get_export_info_mut_by_id(&export_info_id);
             if !can_mangle {
               export_info.can_mangle_use = Some(false);
             }
             let last_one = i == len - 1;
             if !last_one {
-              let nested_info =
-                export_info_id.get_nested_exports_info(self.compilation.get_module_graph());
+              let nested_info = export_info_id.get_nested_exports_info(&module_graph);
               // dbg!(&nested_info);
               if let Some(nested_info) = nested_info {
                 let changed_flag = export_info_id.set_used_conditionally(
-                  self.compilation.get_module_graph_mut(),
+                  &mut module_graph,
                   Box::new(|used| used == &UsageState::Unused),
                   UsageState::OnlyPropertiesUsed,
                   runtime.as_ref(),
@@ -412,7 +387,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
             }
 
             let changed_flag = export_info_id.set_used_conditionally(
-              self.compilation.get_module_graph_mut(),
+              &mut module_graph,
               Box::new(|v| v != &UsageState::Used),
               UsageState::Used,
               runtime.as_ref(),
@@ -447,8 +422,8 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       {
         return;
       }
-      let changed_flag = mgm_exports_info_id
-        .set_used_for_side_effects_only(self.compilation.get_module_graph_mut(), runtime.as_ref());
+      let changed_flag =
+        mgm_exports_info_id.set_used_for_side_effects_only(&mut module_graph, runtime.as_ref());
       if changed_flag {
         queue.push_back((module_id, runtime));
       }

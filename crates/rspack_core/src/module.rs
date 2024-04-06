@@ -51,6 +51,7 @@ pub struct BuildInfo {
   pub all_star_exports: Vec<DependencyId>,
   pub need_create_require: bool,
   pub json_data: Option<JsonValue>,
+  pub module_concatenation_bailout: Option<String>,
 }
 
 impl Default for BuildInfo {
@@ -68,6 +69,7 @@ impl Default for BuildInfo {
       all_star_exports: Vec::default(),
       need_create_require: false,
       json_data: None,
+      module_concatenation_bailout: None,
     }
   }
 }
@@ -241,7 +243,11 @@ pub trait Module:
     get_exports_type_impl(self.identifier(), self.build_meta(), &mut mga, strict)
   }
 
-  fn get_exports_type(&self, module_graph: &mut ModuleGraph, strict: bool) -> ExportsType {
+  fn get_exports_type<'a>(
+    &self,
+    module_graph: &'a mut ModuleGraph<'a>,
+    strict: bool,
+  ) -> ExportsType {
     let mut mga = MutableModuleGraph::new(module_graph);
     get_exports_type_impl(self.identifier(), self.build_meta(), &mut mga, strict)
   }

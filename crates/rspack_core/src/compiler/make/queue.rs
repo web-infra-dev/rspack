@@ -265,7 +265,7 @@ impl AddTask {
         .expect("self module should have issuer");
 
       set_resolved_module(
-        compilation.get_module_graph_mut(),
+        &mut compilation.get_module_graph_mut(),
         self.original_module_identifier,
         self.dependencies,
         *issuer,
@@ -285,7 +285,7 @@ impl AddTask {
         .is_some()
     {
       set_resolved_module(
-        compilation.get_module_graph_mut(),
+        &mut compilation.get_module_graph_mut(),
         self.original_module_identifier,
         self.dependencies,
         module_identifier,
@@ -306,7 +306,7 @@ impl AddTask {
 
     if self.connect_origin {
       set_resolved_module(
-        compilation.get_module_graph_mut(),
+        &mut compilation.get_module_graph_mut(),
         self.original_module_identifier,
         self.dependencies,
         module_identifier,
@@ -511,10 +511,8 @@ pub enum CleanTaskResult {
 impl CleanTask {
   pub fn run(self, compilation: &mut Compilation) -> CleanTaskResult {
     let module_identifier = self.module_identifier;
-    let mgm = match compilation
-      .get_module_graph()
-      .module_graph_module_by_identifier(&module_identifier)
-    {
+    let module_graph = compilation.get_module_graph();
+    let mgm = match module_graph.module_graph_module_by_identifier(&module_identifier) {
       Some(mgm) => mgm,
       None => {
         return CleanTaskResult::ModuleIsCleaned {
@@ -528,8 +526,7 @@ impl CleanTask {
       return CleanTaskResult::ModuleIsUsed { module_identifier };
     }
 
-    let dependent_module_identifiers: Vec<ModuleIdentifier> = compilation
-      .get_module_graph()
+    let dependent_module_identifiers: Vec<ModuleIdentifier> = module_graph
       .get_module_all_depended_modules(&module_identifier)
       .expect("should have module")
       .into_iter()

@@ -35,9 +35,8 @@ async fn main() {
     return;
   }
   let raw: RawOptions = serde_json::from_slice(&raw).expect("ok");
-  let mut plugins = Vec::new();
-  let options = raw.apply(&mut plugins).expect("should be ok");
-  let mut compiler = Compiler::new(options, plugins, AsyncNativeFileSystem);
+  let options = raw.try_into().expect("should be ok");
+  let mut compiler = Compiler::new(options, Vec::new(), AsyncNativeFileSystem);
   compiler
     .build()
     .await

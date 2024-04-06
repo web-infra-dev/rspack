@@ -87,8 +87,8 @@ impl HarmonyImportSpecifierDependency {
     if !reference_mgm.module_type.is_js_like() {
       return true;
     }
-    let related_symbol = compilation
-      .get_module_graph()
+    let module_graph = compilation.get_module_graph();
+    let related_symbol = module_graph
       .get_parent_module(&self.id)
       .and_then(|parent_module| compilation.optimize_analyze_result_map.get(parent_module))
       .and_then(|analyze_res| {
@@ -104,13 +104,11 @@ impl HarmonyImportSpecifierDependency {
 
     match &self.specifier {
       Specifier::Namespace(_) => true,
-      Specifier::Default(_) => compilation
-        .get_module_graph()
+      Specifier::Default(_) => module_graph
         .get_exports_info(&reference_mgm.module_identifier)
         .old_get_used_exports()
         .contains(&DEFAULT_JS_WORD),
-      Specifier::Named(local, imported) => compilation
-        .get_module_graph()
+      Specifier::Named(local, imported) => module_graph
         .get_exports_info(&reference_mgm.module_identifier)
         .old_get_used_exports()
         .contains(imported.as_ref().unwrap_or(local)),
@@ -155,18 +153,14 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
       concatenation_scope,
       ..
     } = code_generatable_context;
-
+    let module_graph = compilation.get_module_graph();
     // Only available when module factorization is successful.
-    let reference_mgm = compilation
-      .get_module_graph()
-      .module_graph_module_by_dependency_id(&self.id);
+    let reference_mgm = module_graph.module_graph_module_by_dependency_id(&self.id);
     let is_new_treeshaking = compilation.options.is_new_tree_shaking();
     if is_new_treeshaking {
-      let connection = compilation
-        .get_module_graph()
-        .connection_by_dependency(&self.id);
+      let connection = module_graph.connection_by_dependency(&self.id);
       let is_target_active = if let Some(con) = connection {
-        con.is_target_active(compilation.get_module_graph(), *runtime)
+        con.is_target_active(&module_graph, *runtime)
       } else {
         true
       };
@@ -189,13 +183,11 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
       return;
     }
 
-    let ids = self.get_ids(compilation.get_module_graph());
-    let import_var = compilation.get_module_graph().get_import_var(&self.id);
+    let ids = self.get_ids(&module_graph);
+    let import_var = compilation.get_import_var(&self.id);
 
     let export_expr = if let Some(scope) = concatenation_scope
-      && let Some(con) = compilation
-        .get_module_graph()
-        .connection_by_dependency(&self.id)
+      && let Some(con) = module_graph.connection_by_dependency(&self.id)
       && scope.is_module_in_scope(con.module_identifier())
     {
       if ids.is_empty() {
@@ -232,12 +224,7 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
       }
     } else {
       if is_new_treeshaking {
-        harmony_import_dependency_apply(
-          self,
-          self.source_order,
-          code_generatable_context,
-          &[self.specifier.clone()],
-        );
+        harmony_import_dependency_apply(self, self.source_order, code_generatable_context);
       }
       export_from_import(
         code_generatable_context,
@@ -301,7 +288,7 @@ impl Dependency for HarmonyImportSpecifierDependency {
   }
 
   fn get_ids(&self, mg: &ModuleGraph) -> Vec<Atom> {
-    mg.get_dep_meta_if_existing(self.id)
+    mg.get_dep_meta_if_existing(&self.id)
       .map(|meta| meta.ids.clone())
       .unwrap_or_else(|| self.ids.clone())
   }

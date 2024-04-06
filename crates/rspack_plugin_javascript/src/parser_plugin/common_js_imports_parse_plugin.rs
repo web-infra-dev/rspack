@@ -52,6 +52,7 @@ fn create_commonjs_require_context_dependency(
       exclude: None,
       category: DependencyCategory::CommonJS,
       request: format!("{}{}{}", result.context, result.query, result.fragment),
+      context: result.context,
       namespace_object: ContextNameSpaceObject::Unset,
       start: callee_start,
       end: callee_end,
@@ -167,7 +168,7 @@ impl CommonJsImportsParserPlugin {
       || call_expr
         .callee
         .as_expr()
-        .is_some_and(|expr| expr_matcher::is_module_require(expr)); // FIXME: remove `module.require`
+        .is_some_and(|expr| expr_matcher::is_module_require(&**expr)); // FIXME: remove `module.require`
 
     if !is_require_expr || call_expr.args.len() != 1 {
       return None;
@@ -232,6 +233,7 @@ impl CommonJsImportsParserPlugin {
         exclude: None,
         category: DependencyCategory::Unknown,
         request: ".".to_string(),
+        context: ".".to_string(),
         namespace_object: ContextNameSpaceObject::Unset,
         start: ident.span().real_lo(),
         end: ident.span().real_hi(),

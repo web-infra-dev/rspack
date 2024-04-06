@@ -148,23 +148,74 @@ impl Plugin for CssPlugin {
       .compilation
       .tap(compilation::new(self));
 
-    let config = self.config.clone();
-    let builder = move || {
-      Box::new(CssParserAndGenerator {
-        config: config.clone(),
-        exports: None,
-      }) as Box<dyn ParserAndGenerator>
-    };
-
-    ctx
-      .context
-      .register_parser_and_generator_builder(ModuleType::Css, Box::new(builder.clone()));
-    ctx
-      .context
-      .register_parser_and_generator_builder(ModuleType::CssModule, Box::new(builder.clone()));
-    ctx
-      .context
-      .register_parser_and_generator_builder(ModuleType::CssAuto, Box::new(builder));
+    ctx.context.register_parser_and_generator_builder(
+      ModuleType::Css,
+      Box::new(|p, g| {
+        let p = p
+          .and_then(|p| p.get_css(&ModuleType::Css))
+          .expect("should have CssParserOptions");
+        let g = g
+          .and_then(|g| g.get_css(&ModuleType::Css))
+          .expect("should have CssParserOptions");
+        Box::new(CssParserAndGenerator {
+          exports: None,
+          convention: g
+            .exports_convention
+            .expect("should have exports_convention"),
+          local_ident_name: None,
+          exports_only: g.exports_only.expect("should have exports_only"),
+          named_exports: p.named_exports.expect("should have named_exports"),
+        }) as Box<dyn ParserAndGenerator>
+      }),
+    );
+    ctx.context.register_parser_and_generator_builder(
+      ModuleType::CssModule,
+      Box::new(|p, g| {
+        let p = p
+          .and_then(|p| p.get_css_module(&ModuleType::CssModule))
+          .expect("should have CssModuleParserOptions");
+        let g = g
+          .and_then(|g| g.get_css_module(&ModuleType::CssModule))
+          .expect("should have CssModuleParserOptions");
+        Box::new(CssParserAndGenerator {
+          exports: None,
+          convention: g
+            .exports_convention
+            .expect("should have exports_convention"),
+          local_ident_name: Some(
+            g.local_ident_name
+              .clone()
+              .expect("should have local_ident_name"),
+          ),
+          exports_only: g.exports_only.expect("should have exports_only"),
+          named_exports: p.named_exports.expect("should have named_exports"),
+        }) as Box<dyn ParserAndGenerator>
+      }),
+    );
+    ctx.context.register_parser_and_generator_builder(
+      ModuleType::CssAuto,
+      Box::new(|p, g| {
+        let p = p
+          .and_then(|p| p.get_css_auto(&ModuleType::CssAuto))
+          .expect("should have CssModuleParserOptions");
+        let g = g
+          .and_then(|g| g.get_css_auto(&ModuleType::CssAuto))
+          .expect("should have CssModuleParserOptions");
+        Box::new(CssParserAndGenerator {
+          exports: None,
+          convention: g
+            .exports_convention
+            .expect("should have exports_convention"),
+          local_ident_name: Some(
+            g.local_ident_name
+              .clone()
+              .expect("should have local_ident_name"),
+          ),
+          exports_only: g.exports_only.expect("should have exports_only"),
+          named_exports: p.named_exports.expect("should have named_exports"),
+        }) as Box<dyn ParserAndGenerator>
+      }),
+    );
 
     Ok(())
   }
@@ -176,10 +227,11 @@ impl Plugin for CssPlugin {
   ) -> rspack_core::PluginContentHashHookOutput {
     let compilation = &args.compilation;
     let chunk = compilation.chunk_by_ukey.expect_get(&args.chunk_ukey);
+    let module_graph = compilation.get_module_graph();
     let ordered_modules = Self::get_ordered_chunk_css_modules(
       chunk,
       &compilation.chunk_graph,
-      compilation.get_module_graph(),
+      &module_graph,
       compilation,
     );
     let mut hasher = RspackHash::from(&compilation.options.output);
@@ -217,11 +269,11 @@ impl Plugin for CssPlugin {
     if matches!(chunk.kind, ChunkKind::HotUpdate) {
       return Ok(vec![].with_empty_diagnostic());
     }
-
+    let module_graph = compilation.get_module_graph();
     let ordered_css_modules = Self::get_ordered_chunk_css_modules(
       chunk,
       &compilation.chunk_graph,
-      compilation.get_module_graph(),
+      &module_graph,
       compilation,
     );
 

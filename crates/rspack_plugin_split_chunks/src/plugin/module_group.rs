@@ -1,6 +1,7 @@
 use dashmap::DashMap;
 use rayon::prelude::*;
 use rspack_core::{Chunk, ChunkGraph, ChunkUkey, Compilation, Module, ModuleGraph};
+use rspack_error::Result;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use super::ModuleGroupMap;
@@ -41,9 +42,10 @@ impl SplitChunksPlugin {
   pub(crate) async fn prepare_module_group_map(
     &self,
     compilation: &mut Compilation,
-  ) -> ModuleGroupMap {
+  ) -> Result<ModuleGroupMap> {
     let chunk_db = &compilation.chunk_by_ukey;
     let chunk_group_db = &compilation.chunk_group_by_ukey;
+    let module_graph = compilation.get_module_graph();
 
     /// If a module meets requirements of a `ModuleGroup`. We consider the `Module` and the `CacheGroup`
     /// to be a `MatchedItem`, which are consumed later to calculate `ModuleGroup`.
@@ -62,7 +64,7 @@ impl SplitChunksPlugin {
     // single_chunk_sets: chunkset of module that belongs to only one chunk
     // chunk_sets_by_count: use chunkset len as key
     let (chunk_sets_in_graph, chunk_sets_by_count) =
-      { Self::prepare_combination_maps(compilation.get_module_graph(), &compilation.chunk_graph) };
+      { Self::prepare_combination_maps(&module_graph, &compilation.chunk_graph) };
 
     let combinations_cache = DashMap::<ChunksKey, Vec<FxHashSet<ChunkUkey>>>::default();
 
@@ -89,8 +91,8 @@ impl SplitChunksPlugin {
       result
     };
 
-    compilation.get_module_graph().modules().values().par_bridge().for_each(|module| {
-      let module = &**module;
+    module_graph.modules().values().par_bridge().map(|module| {
+      let module = &***module;
 
       let belong_to_chunks = compilation
           .chunk_graph
@@ -191,13 +193,13 @@ impl SplitChunksPlugin {
             },
             module_group_map,
             &mut chunk_key_to_string
-          );
+          )?;
 
           fn merge_matched_item_into_module_group_map(
             matched_item: MatchedItem<'_>,
             module_group_map: &DashMap<String, ModuleGroup>,
             chunk_key_to_string: &mut FxHashMap<ChunksKey, String>
-          ) {
+          ) -> Result<()> {
             let MatchedItem {
               idx,
               module,
@@ -214,7 +216,7 @@ impl SplitChunksPlugin {
               ChunkNameGetter::Disabled => None,
               ChunkNameGetter::Fn(f) => {
                 let ctx = ChunkNameGetterFnCtx { module };
-                f(ctx)
+                f(ctx)?
               }
             };
             let key: String = if let Some(cache_group_name) = &chunk_name {
@@ -249,12 +251,14 @@ impl SplitChunksPlugin {
             module_group.add_module(module);
             module_group
               .chunks
-              .extend(selected_chunks.iter().map(|c| c.ukey))
+              .extend(selected_chunks.iter().map(|c| c.ukey));
+            Ok(())
           }
         }
       }
-    });
-    module_group_map.into_iter().collect()
+      Ok(())
+    }).collect::<Result<()>>()?;
+    Ok(module_group_map.into_iter().collect())
   }
 
   #[tracing::instrument(skip_all)]
@@ -266,6 +270,7 @@ impl SplitChunksPlugin {
     compilation: &mut Compilation,
   ) {
     // remove all modules from other entries and update size
+    let module_graph = compilation.get_module_graph();
     let keys_of_invalid_group = module_group_map
       .iter_mut()
       .par_bridge()
@@ -281,8 +286,7 @@ impl SplitChunksPlugin {
         current_module_group.modules.iter().for_each(|module| {
           if other_module_group.modules.contains(module) {
             tracing::trace!("remove module({module}) from {key}");
-            let module = compilation
-              .get_module_graph()
+            let module = module_graph
               .module_by_identifier(module)
               .unwrap_or_else(|| panic!("Module({module}) not found"));
             other_module_group.remove_module(&**module);

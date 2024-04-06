@@ -85,22 +85,16 @@ impl DependencyTemplate for CommonJsSelfReferenceDependency {
       runtime_requirements,
       ..
     } = code_generatable_context;
-
-    let module = compilation
-      .get_module_graph()
+    let module_graph = compilation.get_module_graph();
+    let module = module_graph
       .module_by_identifier(&module.identifier())
       .expect("should have mgm");
 
     let used = if self.names.is_empty() {
-      compilation
-        .get_module_graph()
+      module_graph
         .get_exports_info(&module.identifier())
         .id
-        .get_used_name(
-          compilation.get_module_graph(),
-          *runtime,
-          UsedName::Vec(self.names.clone()),
-        )
+        .get_used_name(&module_graph, *runtime, UsedName::Vec(self.names.clone()))
         .unwrap_or_else(|| UsedName::Vec(self.names.clone()))
     } else {
       UsedName::Vec(self.names.clone())

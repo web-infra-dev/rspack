@@ -87,9 +87,9 @@ export const applyRspackOptionsDefaults = (
 	applySnapshotDefaults(options.snapshot, { production });
 
 	applyModuleDefaults(options.module, {
-		// syncWebAssembly: options.experiments.syncWebAssembly,
 		asyncWebAssembly: options.experiments.asyncWebAssembly!,
-		css: options.experiments.css!
+		css: options.experiments.css!,
+		targetProperties
 	});
 
 	applyOutputDefaults(options.output, {
@@ -125,7 +125,8 @@ export const applyRspackOptionsDefaults = (
 	options.resolve = cleverMerge(
 		getResolveDefaults({
 			targetProperties,
-			mode: options.mode
+			mode: options.mode,
+			css: options.experiments.css!
 		}),
 		options.resolve
 	);
@@ -168,7 +169,6 @@ const applyExperimentsDefaults = (
 	D(experiments, "rspackFuture", {});
 	if (typeof experiments.rspackFuture === "object") {
 		D(experiments.rspackFuture, "newTreeshaking", false);
-		D(experiments.rspackFuture, "disableApplyEntryLazily", true);
 		D(experiments.rspackFuture, "bundlerInfo", {});
 		if (typeof experiments.rspackFuture.bundlerInfo === "object") {
 			D(
@@ -207,17 +207,19 @@ const applyModuleDefaults = (
 	module: ModuleOptions,
 	{
 		asyncWebAssembly,
-		css
+		css,
+		targetProperties
 	}: {
 		asyncWebAssembly: boolean;
 		css: boolean;
+		targetProperties: any;
 	}
 ) => {
 	assertNotNill(module.parser);
+	assertNotNill(module.generator);
 
 	F(module.parser, ASSET_MODULE_TYPE, () => ({}));
 	assertNotNill(module.parser.asset);
-
 	F(module.parser.asset, "dataUrlCondition", () => ({}));
 	if (typeof module.parser.asset.dataUrlCondition === "object") {
 		D(module.parser.asset.dataUrlCondition, "maxSize", 8096);
@@ -226,6 +228,57 @@ const applyModuleDefaults = (
 	F(module.parser, "javascript", () => ({}));
 	assertNotNill(module.parser.javascript);
 	applyJavascriptParserOptionsDefaults(module.parser.javascript);
+
+	if (css) {
+		F(module.parser, "css", () => ({}));
+		assertNotNill(module.parser.css);
+		D(module.parser.css, "namedExports", true);
+
+		F(module.parser, "css/auto", () => ({}));
+		assertNotNill(module.parser["css/auto"]);
+		D(module.parser["css/auto"], "namedExports", true);
+
+		F(module.parser, "css/module", () => ({}));
+		assertNotNill(module.parser["css/module"]);
+		D(module.parser["css/module"], "namedExports", true);
+
+		F(module.generator, "css", () => ({}));
+		assertNotNill(module.generator.css);
+		D(
+			module.generator["css"],
+			"exportsOnly",
+			!targetProperties || !targetProperties.document
+		);
+		D(module.generator["css"], "exportsConvention", "as-is");
+
+		F(module.generator, "css/auto", () => ({}));
+		assertNotNill(module.generator["css/auto"]);
+		D(
+			module.generator["css/auto"],
+			"exportsOnly",
+			!targetProperties || !targetProperties.document
+		);
+		D(module.generator["css/auto"], "exportsConvention", "as-is");
+		D(
+			module.generator["css/auto"],
+			"localIdentName",
+			"[uniqueName]-[id]-[local]"
+		);
+
+		F(module.generator, "css/module", () => ({}));
+		assertNotNill(module.generator["css/module"]);
+		D(
+			module.generator["css/module"],
+			"exportsOnly",
+			!targetProperties || !targetProperties.document
+		);
+		D(module.generator["css/module"], "exportsConvention", "as-is");
+		D(
+			module.generator["css/module"],
+			"localIdentName",
+			"[uniqueName]-[id]-[local]"
+		);
+	}
 
 	A(module, "defaultRules", () => {
 		const esm = {
@@ -309,38 +362,24 @@ const applyModuleDefaults = (
 		}
 
 		if (css) {
-			const cssRule = {
-				type: "css",
-				resolve: {
-					fullySpecified: true,
-					preferRelative: true
-				}
-			};
-			const cssModulesRule = {
-				type: "css/module",
-				resolve: {
-					fullySpecified: true
-				}
+			const resolve = {
+				fullySpecified: true,
+				preferRelative: true
 			};
 			rules.push({
 				test: /\.css$/i,
-				oneOf: [
-					{
-						test: /\.module\.css$/i,
-						...cssModulesRule
-					},
-					{
-						...cssRule
-					}
-				]
+				type: "css/auto",
+				resolve
 			});
 			rules.push({
 				mimetype: "text/css+module",
-				...cssModulesRule
+				type: "css/module",
+				resolve
 			});
 			rules.push({
 				mimetype: "text/css",
-				...cssRule
+				type: "css",
+				resolve
 			});
 		}
 
@@ -787,10 +826,12 @@ const getResolveLoaderDefaults = () => {
 // https://github.com/webpack/webpack/blob/b9fb99c63ca433b24233e0bbc9ce336b47872c08/lib/config/defaults.js#L1431
 const getResolveDefaults = ({
 	targetProperties,
-	mode
+	mode,
+	css
 }: {
 	targetProperties: any;
 	mode?: Mode;
+	css: boolean;
 }) => {
 	const conditions = ["webpack"];
 
@@ -854,6 +895,25 @@ const getResolveDefaults = ({
 			unknown: cjsDeps()
 		}
 	};
+
+	if (css) {
+		const styleConditions = [];
+
+		styleConditions.push("webpack");
+		styleConditions.push(mode === "development" ? "development" : "production");
+		styleConditions.push("style");
+
+		resolveOptions.byDependency!["css-import"] = {
+			// We avoid using any main files because we have to be consistent with CSS `@import`
+			// and CSS `@import` does not handle `main` files in directories,
+			// you should always specify the full URL for styles
+			mainFiles: [],
+			mainFields: ["style", "..."],
+			conditionNames: styleConditions,
+			extensions: [".css"],
+			preferRelative: true
+		};
+	}
 
 	return resolveOptions;
 };

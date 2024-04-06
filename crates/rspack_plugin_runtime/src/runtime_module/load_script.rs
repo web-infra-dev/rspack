@@ -39,13 +39,19 @@ impl RuntimeModule for LoadScriptRuntimeModule {
     };
     let cross_origin_loading = match &compilation.options.output.cross_origin_loading {
       CrossOriginLoading::Disable => "".to_string(),
-      CrossOriginLoading::Enable(value) => format!(
-        r#"
-        if (script.src.indexOf(window.location.origin + '/') !== 0) {{
-          script.crossOrigin = "{value}";
-        }}
-        "#
-      ),
+      CrossOriginLoading::Enable(cross_origin) => {
+        if cross_origin == "use-credentials" {
+          "script.crossOrigin = \"use-credentials\";".to_string()
+        } else {
+          format!(
+            r#"
+            if (script.src.indexOf(window.location.origin + '/') !== 0) {{
+              script.crossOrigin = "{cross_origin}";
+            }}
+            "#
+          )
+        }
+      }
     };
 
     let script_type = if compilation.options.output.script_type.eq("false") {

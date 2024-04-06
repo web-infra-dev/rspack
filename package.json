@@ -1,6 +1,6 @@
 {
   "name": "monorepo",
-  "version": "0.5.8",
+  "version": "0.5.9",
   "license": "MIT",
   "description": "A Fast Rust-based web bundler",
   "private": true,
@@ -20,7 +20,7 @@
     "build:viewer": "pnpm --filter \"@rspack/*\" build:viewer",
     "test:js": "pnpm -r run test",
     "format:rs": "pnpm --filter @rspack/core... build",
-    "format:js": "./node_modules/prettier/bin/prettier.cjs 'packages/**/src/**/*.{ts,js}' 'crates/rspack_plugin_runtime/**/*.{ts,js}' 'x.mjs' --check --write",
+    "format:js": "prettier \"packages/**/src/**/*.{ts,js}\" \"crates/rspack_plugin_runtime/**/*.{ts,js}\" \"x.mjs\" --check --write",
     "format-ci:toml": "npx @taplo/cli format --check '.cargo/*.toml' './crates/**/Cargo.toml' './Cargo.toml'",
     "format:toml": "npx @taplo/cli format '.cargo/*.toml' './crates/**/Cargo.toml' './Cargo.toml'",
     "lint:js": "oxlint --deny-warnings -c .eslintrc.json",

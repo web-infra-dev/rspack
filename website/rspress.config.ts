@@ -2,19 +2,13 @@ import path from 'node:path';
 import { defineConfig } from 'rspress/config';
 import type { NavItem, Sidebar } from '@rspress/shared';
 import { pluginRss, type PluginRssOption } from './rspress/plugin-rss';
+import { pluginFontOpenSans } from 'rspress-plugin-font-open-sans';
+import { pluginOpenGraph } from 'rsbuild-plugin-open-graph';
+import { pluginGoogleAnalytics } from 'rsbuild-plugin-google-analytics';
 import { toArray } from './rspress/plugin-rss/utils';
 
 const PUBLISH_URL = 'https://rspack.dev';
 const COPYRIGHT = '© 2022-present ByteDance Inc. All Rights Reserved.';
-
-function getMeta(name: string, value: string) {
-	return {
-		[name]: {
-			property: name,
-			content: value,
-		},
-	};
-}
 
 function getI18nHelper(lang: 'zh' | 'en') {
 	const isZh = lang === 'zh';
@@ -75,8 +69,16 @@ function getNavConfig(lang: 'zh' | 'en'): NavItem[] {
 					link: 'https://github.com/web-infra-dev/awesome-rspack',
 				},
 				{
+					text: 'Rspack Compat',
+					link: 'https://github.com/web-infra-dev/rspack-compat',
+				},
+				{
 					text: 'Rspack Examples',
 					link: 'https://github.com/rspack-contrib/rspack-examples',
+				},
+				{
+					text: 'Rsfamily Design Resources',
+					link: 'https://github.com/rspack-contrib/rsfamily-design-resources',
 				},
 				{
 					text: 'Rspack Community Packages',
@@ -102,7 +104,7 @@ function getNavConfig(lang: 'zh' | 'en'): NavItem[] {
 				{
 					text: getText(
 						'未来默认行为与功能废弃',
-						'Future behavior & Deprecation',
+						'Future behavior & Deprecation'
 					),
 					link: getLink('/misc/future'),
 				},
@@ -316,31 +318,31 @@ function getSidebarConfig(lang: 'zh' | 'en'): Sidebar {
 		],
 		[getLink('/api/')]: [
 			{
-				text: getText('API 接口', 'API'),
+				text: getText('简介', 'Introduction'),
 				link: getLink('/api'),
 			},
 			{
-				text: getText('Command-line 命令行接口', 'Command-line interface'),
+				text: getText('CLI', 'CLI'),
 				link: getLink('/api/cli'),
 			},
 			{
-				text: getText('Node.js 接口', 'Node.js API'),
-				link: getLink('/api/node-api'),
+				text: getText('模块', 'Modules'),
+				link: getLink('/api/modules'),
 			},
 			{
-				text: getText('Modules', 'Modules'),
-				link: getLink('/api/modules'),
+				text: getText('Node API', 'Node API'),
+				link: getLink('/api/node-api'),
 			},
 			{
 				text: getText('Hot Module Replacement', 'Hot Module Replacement'),
 				link: getLink('/api/hmr'),
 			},
 			{
-				text: getText('Loader 接口', 'Loader API'),
+				text: getText('Loader API', 'Loader API'),
 				link: getLink('/api/loader-api'),
 			},
 			{
-				text: getText('Plugin 接口', 'Plugin API'),
+				text: getText('插件 API', 'Plugin API'),
 				link: getLink('/api/plugin-api'),
 			},
 		],
@@ -352,7 +354,7 @@ function getSidebarConfig(lang: 'zh' | 'en'): Sidebar {
 			{
 				text: getText(
 					'Rspack 支持模块联邦',
-					'Module Federation added to Rspack',
+					'Module Federation added to Rspack'
 				),
 				link: getLink('/blog/module-federation-added-to-rspack'),
 			},
@@ -426,6 +428,7 @@ export default defineConfig({
 			},
 			toFeedItem,
 		}),
+		pluginFontOpenSans(),
 	],
 	themeConfig: {
 		footer: {
@@ -474,6 +477,21 @@ export default defineConfig({
 		],
 	},
 	builderConfig: {
+		plugins: [
+			pluginGoogleAnalytics({ id: 'G-XKKCNZZNJD' }),
+			pluginOpenGraph({
+				title: 'Rspack',
+				type: 'website',
+				url: PUBLISH_URL,
+				image:
+					'https://sf16-sg.tiktokcdn.com/obj/eden-sg/geh7plsnuhog/rspack/rspack-banner.png',
+				description: 'Fast Rust-based Web Bundler',
+				twitter: {
+					site: '@rspack_dev',
+					card: 'summary_large_image',
+				},
+			}),
+		],
 		source: {
 			alias: {
 				'@builtIns': path.join(__dirname, 'components', 'builtIns'),
@@ -483,39 +501,6 @@ export default defineConfig({
 		},
 		dev: {
 			startUrl: true,
-		},
-		html: {
-			meta: {
-				...getMeta('og:title', 'Rspack'),
-				...getMeta('og:type', 'website'),
-				...getMeta('og:url', PUBLISH_URL),
-				...getMeta(
-					'og:image',
-					'https://sf16-sg.tiktokcdn.com/obj/eden-sg/geh7plsnuhog/rspack/rspack-banner.png',
-				),
-				...getMeta('og:description', 'Fast Rust-based Web Bundler'),
-				...getMeta('twitter:site', '@rspack_dev'),
-				...getMeta('twitter:card', 'summary_large_image'),
-			},
-			tags: [
-				// Configure Google Analytics
-				{
-					tag: 'script',
-					attrs: {
-						async: true,
-						src: 'https://www.googletagmanager.com/gtag/js?id=G-XKKCNZZNJD',
-					},
-				},
-				{
-					tag: 'script',
-					children: `
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-XKKCNZZNJD');`,
-				},
-			],
 		},
 		output: {
 			copy: {

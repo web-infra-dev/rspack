@@ -173,9 +173,8 @@ impl Module for RemoteModule {
     _: Option<ConcatenationScope>,
   ) -> Result<CodeGenerationResult> {
     let mut codegen = CodeGenerationResult::default();
-    let module = compilation
-      .get_module_graph()
-      .get_module_by_dependency_id(&self.dependencies[0]);
+    let module_graph = compilation.get_module_graph();
+    let module = module_graph.get_module_by_dependency_id(&self.dependencies[0]);
     let id = module.and_then(|m| {
       compilation
         .chunk_graph

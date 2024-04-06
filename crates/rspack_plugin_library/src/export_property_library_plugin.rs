@@ -1,7 +1,7 @@
 use std::hash::Hash;
 
 use rspack_core::{
-  property_access,
+  get_entry_runtime, property_access,
   rspack_sources::{ConcatSource, RawSource, SourceExt},
   ApplyContext, ChunkUkey, Compilation, CompilerOptions, EntryData, JsChunkHashArgs, LibraryExport,
   LibraryOptions, LibraryType, Plugin, PluginContext, PluginJsChunkHashHookOutput,
@@ -58,16 +58,15 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
       options,
       ..
     } = entry;
-    let runtime = compilation.get_entry_runtime(entry_name, Some(options));
+    let runtime = get_entry_runtime(entry_name, options, &compilation.entries);
     let library_options = options
       .library
       .as_ref()
       .or_else(|| compilation.options.output.library.as_ref());
-    let module_of_last_dep = dependencies.last().and_then(|dep| {
-      compilation
-        .get_module_graph()
-        .get_module_by_dependency_id(dep)
-    });
+    let module_graph = compilation.get_module_graph();
+    let module_of_last_dep = dependencies
+      .last()
+      .and_then(|dep| module_graph.get_module_by_dependency_id(dep));
     let Some(module_of_last_dep) = module_of_last_dep else {
       continue;
     };
@@ -90,28 +89,20 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
   }
 
   for (runtime, export, module_identifier) in runtime_info {
+    let mut module_graph = compilation.get_module_graph_mut();
     if let Some(export) = export {
-      let export_info_id = compilation
-        .get_module_graph_mut()
-        .get_export_info(module_identifier, &(export.as_str()).into());
-      export_info_id.set_used(
-        compilation.get_module_graph_mut(),
-        UsageState::Used,
-        Some(&runtime),
-      );
+      let export_info_id =
+        module_graph.get_export_info(module_identifier, &(export.as_str()).into());
+      export_info_id.set_used(&mut module_graph, UsageState::Used, Some(&runtime));
       export_info_id
-        .get_export_info_mut(compilation.get_module_graph_mut())
+        .get_export_info_mut(&mut module_graph)
         .can_mangle_use = Some(false);
     } else {
-      let exports_info_id = compilation
-        .get_module_graph()
-        .get_exports_info(&module_identifier)
-        .id;
+      let exports_info_id = module_graph.get_exports_info(&module_identifier).id;
       if self.ns_object_used {
-        exports_info_id.set_used_in_unknown_way(compilation.get_module_graph_mut(), Some(&runtime));
+        exports_info_id.set_used_in_unknown_way(&mut module_graph, Some(&runtime));
       } else {
-        exports_info_id
-          .set_all_known_exports_used(compilation.get_module_graph_mut(), Some(&runtime));
+        exports_info_id.set_all_known_exports_used(&mut module_graph, Some(&runtime));
       }
     }
   }

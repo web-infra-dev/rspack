@@ -34,7 +34,7 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
 
   modules.retain(|m| queue.insert(*m));
 
-  let module_graph = compilation.get_module_graph_mut();
+  let mut module_graph = compilation.get_module_graph_mut();
 
   while let Some(module) = queue.pop_front() {
     module_graph.set_async(&module);
