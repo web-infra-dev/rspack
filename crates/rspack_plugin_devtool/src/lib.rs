@@ -577,6 +577,11 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     compilation.emit_asset(source_filename.to_owned(), source_asset.clone());
     if let Some((source_map_filename, source_map_asset)) = source_map {
       compilation.emit_asset(source_map_filename.to_owned(), source_map_asset.clone());
+      compilation.chunk_by_ukey.values_mut().for_each(|v| {
+        if v.files.contains(&source_filename) {
+          v.auxiliary_files.insert(source_map_filename.to_owned());
+        }
+      });
     }
   }
 
