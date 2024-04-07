@@ -142,6 +142,7 @@ pub(super) struct CodeSplitter<'me> {
   queue_connect: HashMap<CgiUkey, HashSet<CgiUkey>>,
   chunk_groups_for_combining: HashSet<CgiUkey>,
   outdated_chunk_group_info: HashSet<CgiUkey>,
+  chunk_groups_for_merging: HashSet<CgiUkey>,
   block_chunk_groups: HashMap<AsyncDependenciesBlockIdentifier, CgiUkey>,
   named_chunk_groups: HashMap<String, CgiUkey>,
   named_async_entrypoints: HashMap<String, CgiUkey>,
@@ -225,6 +226,7 @@ impl<'me> CodeSplitter<'me> {
       queue_connect: Default::default(),
       chunk_groups_for_combining: Default::default(),
       outdated_chunk_group_info: Default::default(),
+      chunk_groups_for_merging: Default::default(),
       block_chunk_groups: Default::default(),
       named_chunk_groups: Default::default(),
       named_async_entrypoints: Default::default(),
@@ -593,14 +595,25 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     let start = logger.time("process queue");
     // Iterative traversal of the Module graph
     // Recursive would be simpler to write but could result in Stack Overflows
-    while !self.queue.is_empty() {
+    while !self.queue.is_empty() || !self.queue_connect.is_empty() {
       self.process_queue();
-      while !self.queue_connect.is_empty() {
+
+      if !self.chunk_groups_for_combining.is_empty() {
+        self.process_chunk_groups_for_combining();
+      }
+
+      if !self.queue_connect.is_empty() {
         self.process_connect_queue();
-        if !self.outdated_chunk_group_info.is_empty() {
-          self.process_outdated_chunk_group_info();
+
+        if !self.chunk_groups_for_merging.is_empty() {
+          self.process_chunk_groups_for_merging();
         }
       }
+
+      if !self.outdated_chunk_group_info.is_empty() {
+        self.process_outdated_chunk_group_info();
+      }
+
       if self.queue.is_empty() {
         self.queue = std::mem::replace(&mut self.queue_delayed, self.queue);
         self.queue.reverse();
@@ -1337,7 +1350,6 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         target_cgi
           .available_modules_to_be_merged
           .push(resulting_available_modules.clone());
-        self.outdated_chunk_group_info.insert(*target);
       }
 
       let target_groups = targets.iter().map(|chunk_group_info_ukey| {
@@ -1360,6 +1372,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           .chunk_group_by_ukey
           .expect_get_mut(&target_cgi.chunk_group);
         target.add_parent(chunk_group_ukey);
+        self.chunk_groups_for_merging.insert(target_ukey);
         let mut updated = false;
         for r in runtime.iter() {
           updated = target_cgi.runtime.insert(r.clone());
@@ -1372,6 +1385,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
   }
 
   fn process_outdated_chunk_group_info(&mut self) {
+    // Revisit skipped elements
     for chunk_group_info_ukey in self.outdated_chunk_group_info.drain() {
       let cgi = self
         .chunk_group_infos
@@ -1381,107 +1395,84 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         .chunk_group_by_ukey
         .expect_get(&cgi.chunk_group);
 
-      let mut changed = false;
-
-      if !cgi.available_modules_to_be_merged.is_empty() {
-        let available_modules_to_be_merged =
-          std::mem::take(&mut cgi.available_modules_to_be_merged);
-
-        for modules_to_be_merged in available_modules_to_be_merged {
-          if !cgi.min_available_modules_init {
-            cgi.min_available_modules_init = true;
-            cgi.min_available_modules = modules_to_be_merged;
-            changed = true;
-            continue;
-          }
-
-          let orig = cgi.min_available_modules.clone();
-          cgi.min_available_modules &= modules_to_be_merged;
-          cgi.invalidate_resulting_available_modules();
-          changed = orig != cgi.min_available_modules;
+      let origin_queue_len = self.queue.len();
+      let mut enter_modules = vec![];
+      // 1. Reconsider skipped items
+      for skipped in &cgi.skipped_items {
+        let skipped_id = self.module_ids.get(skipped).expect("should have module id");
+        if !contains(&cgi.min_available_modules, skipped_id) {
+          enter_modules.push(*skipped);
         }
       }
 
-      if changed {
-        let origin_queue_len = self.queue.len();
-        // reconsider skipped items
-        let mut enter_modules = vec![];
-        for skipped in &cgi.skipped_items {
-          let skipped_id = self.module_ids.get(skipped).expect("should have module id");
-          if !contains(&cgi.min_available_modules, skipped_id) {
-            enter_modules.push(*skipped);
+      for m in &enter_modules {
+        cgi.skipped_items.remove(m);
+
+        self
+          .queue
+          .push(QueueAction::AddAndEnterModule(AddAndEnterModule {
+            module: *m,
+            chunk_group_info: cgi.ukey,
+            chunk: chunk_group.chunks[0],
+          }))
+      }
+
+      // 2. Reconsider skipped connections
+      if !cgi.skipped_module_connections.is_empty() {
+        let mut active_connections = Vec::new();
+        for (i, (module, connections)) in cgi.skipped_module_connections.iter().enumerate() {
+          let active_state = get_active_state_of_connections(
+            connections,
+            Some(&cgi.runtime),
+            &self.compilation.get_module_graph(),
+          );
+          if active_state.is_false() {
+            continue;
           }
-        }
-
-        for m in &enter_modules {
-          cgi.skipped_items.remove(m);
-
-          self
-            .queue
-            .push(QueueAction::AddAndEnterModule(AddAndEnterModule {
-              module: *m,
-              chunk_group_info: cgi.ukey,
-              chunk: chunk_group.chunks[0],
-            }))
-        }
-
-        // 2. Reconsider skipped connections
-        if !cgi.skipped_module_connections.is_empty() {
-          let mut active_connections = Vec::new();
-          for (i, (module, connections)) in cgi.skipped_module_connections.iter().enumerate() {
-            let active_state = get_active_state_of_connections(
-              connections,
-              Some(&cgi.runtime),
-              &self.compilation.get_module_graph(),
-            );
-            if active_state.is_false() {
+          if active_state.is_true() {
+            active_connections.push(i);
+            if contains(
+              &cgi.min_available_modules,
+              self.module_ids.get(module).expect("should have module id"),
+            ) {
+              cgi.skipped_items.insert(*module);
               continue;
             }
-            if active_state.is_true() {
-              active_connections.push(i);
-              if contains(
-                &cgi.min_available_modules,
-                self.module_ids.get(module).expect("should have module id"),
-              ) {
-                cgi.skipped_items.insert(*module);
-                continue;
-              }
-            }
-            self.queue.push(if active_state.is_true() {
-              QueueAction::AddAndEnterModule(AddAndEnterModule {
-                module: *module,
-                chunk_group_info: chunk_group_info_ukey,
-                chunk: chunk_group.chunks[0],
-              })
-            } else {
-              QueueAction::ProcessBlock(ProcessBlock {
-                block: (*module).into(),
-                chunk_group_info: chunk_group_info_ukey,
-                chunk: chunk_group.chunks[0],
-              })
+          }
+          self.queue.push(if active_state.is_true() {
+            QueueAction::AddAndEnterModule(AddAndEnterModule {
+              module: *module,
+              chunk_group_info: chunk_group_info_ukey,
+              chunk: chunk_group.chunks[0],
             })
-          }
-          for i in active_connections {
-            cgi.skipped_module_connections.shift_remove_index(i);
-          }
+          } else {
+            QueueAction::ProcessBlock(ProcessBlock {
+              block: (*module).into(),
+              chunk_group_info: chunk_group_info_ukey,
+              chunk: chunk_group.chunks[0],
+            })
+          })
         }
+        for i in active_connections {
+          cgi.skipped_module_connections.shift_remove_index(i);
+        }
+      }
 
-        // 2. Reconsider children chunk groups
-        if !cgi.children.is_empty() {
-          for child in cgi.children.iter() {
-            let connect_list = self.queue_connect.entry(chunk_group_info_ukey).or_default();
-            connect_list.insert(*child);
-          }
+      // 3. Reconsider children chunk groups
+      if !cgi.children.is_empty() {
+        for child in cgi.children.iter() {
+          let connect_list = self.queue_connect.entry(chunk_group_info_ukey).or_default();
+          connect_list.insert(*child);
         }
+      }
 
-        // 3. Reconsider chunk groups for combining
-        for cgi in &cgi.available_children {
-          self.chunk_groups_for_combining.insert(*cgi);
-        }
+      // 4. Reconsider chunk groups for combining
+      for cgi in &cgi.available_children {
+        self.chunk_groups_for_combining.insert(*cgi);
+      }
 
-        if origin_queue_len != self.queue.len() {
-          self.outdated_order_index_chunk_groups.insert(cgi.ukey);
-        }
+      if origin_queue_len != self.queue.len() {
+        self.outdated_order_index_chunk_groups.insert(cgi.ukey);
       }
     }
   }
@@ -1516,6 +1507,37 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     }
 
     self.chunk_groups_for_combining.clear();
+  }
+
+  fn process_chunk_groups_for_merging(&mut self) {
+    for info_ukey in self.chunk_groups_for_merging.drain() {
+      let cgi = self.chunk_group_infos.expect_get_mut(&info_ukey);
+
+      let mut changed = false;
+
+      if !cgi.available_modules_to_be_merged.is_empty() {
+        let available_modules_to_be_merged =
+          std::mem::take(&mut cgi.available_modules_to_be_merged);
+
+        for modules_to_be_merged in available_modules_to_be_merged {
+          if !cgi.min_available_modules_init {
+            cgi.min_available_modules_init = true;
+            cgi.min_available_modules = modules_to_be_merged;
+            changed = true;
+            continue;
+          }
+
+          let orig = cgi.min_available_modules.clone();
+          cgi.min_available_modules &= modules_to_be_merged;
+          cgi.invalidate_resulting_available_modules();
+          changed = orig != cgi.min_available_modules;
+        }
+      }
+
+      if changed {
+        self.outdated_chunk_group_info.insert(info_ukey);
+      }
+    }
   }
 }
 
