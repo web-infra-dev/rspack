@@ -34,7 +34,7 @@ function getNavConfig(lang: 'zh' | 'en'): NavItem[] {
 		{
 			text: getText('插件', 'Plugin'),
 			link: getLink('/plugins'),
-			activeMatch: '/plugins',
+			activeMatch: '^/(zh|en)/plugins',
 		},
 		{
 			text: getText('API', 'API'),
