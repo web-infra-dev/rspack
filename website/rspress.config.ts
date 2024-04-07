@@ -109,7 +109,7 @@ function getNavConfig(lang: 'zh' | 'en'): NavItem[] {
 				{
 					text: getText(
 						'未来默认行为与功能废弃',
-						'Future behavior & Deprecation',
+						'Future behavior & Deprecation'
 					),
 					link: getLink('/misc/future'),
 				},
@@ -269,10 +269,6 @@ function getSidebarConfig(lang: 'zh' | 'en'): Sidebar {
 				link: getLink('/config/optimization'),
 			},
 			{
-				text: getText('SplitChunksPlugin', 'SplitChunksPlugin'),
-				link: getLink('/config/optimization-split-chunks'),
-			},
-			{
 				text: getText('Plugins 插件', 'Plugins'),
 				link: getLink('/config/plugins'),
 			},
@@ -329,9 +325,8 @@ function getSidebarConfig(lang: 'zh' | 'en'): Sidebar {
 			{
 				text: getText(
 					'同步自 webpack 的内置插件',
-					'Synchronized Built-in Plugins from webpack',
+					'Synchronized Built-in Plugins from webpack'
 				),
-				link: getLink('/plugins/webpack'),
 				items: [
 					{
 						text: 'EntryPlugin',
@@ -364,6 +359,10 @@ function getSidebarConfig(lang: 'zh' | 'en'): Sidebar {
 					{
 						text: 'SourceMapDevToolPlugin',
 						link: getLink('/plugins/webpack/source-map-dev-tool-plugin'),
+					},
+					{
+						text: 'SplitChunksPlugin',
+						link: getLink('/plugins/webpack/split-chunks-plugin'),
 					},
 					{
 						text: 'NodeTargetPlugin',
@@ -402,9 +401,8 @@ function getSidebarConfig(lang: 'zh' | 'en'): Sidebar {
 			{
 				text: getText(
 					'Rspack 独有的内置插件',
-					'Rspack-exclusive Built-in Plugins',
+					'Rspack-exclusive Built-in Plugins'
 				),
-				link: getLink('/plugins/rspack'),
 				items: [
 					{
 						text: 'HtmlRspackPlugin',
@@ -427,7 +425,7 @@ function getSidebarConfig(lang: 'zh' | 'en'): Sidebar {
 			{
 				text: getText(
 					'兼容的 webpack 生态插件',
-					'Compatible Plugins from the webpack ecosystem',
+					'Compatible Plugins from the webpack ecosystem'
 				),
 				link: getLink('/plugins/eco'),
 			},
@@ -470,7 +468,7 @@ function getSidebarConfig(lang: 'zh' | 'en'): Sidebar {
 			{
 				text: getText(
 					'Rspack 支持模块联邦',
-					'Module Federation added to Rspack',
+					'Module Federation added to Rspack'
 				),
 				link: getLink('/blog/module-federation-added-to-rspack'),
 			},
