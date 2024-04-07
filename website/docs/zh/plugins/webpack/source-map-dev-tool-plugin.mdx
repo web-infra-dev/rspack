@@ -10,7 +10,9 @@ import { ApiMeta } from '../../../../components/ApiMeta.tsx';
 new rspack.SourceMapDevToolPlugin(options);
 ```
 
-##### Options
+## 配置项
+
+支持以下配置项：
 
 - `test` (`string` `RegExp` `[string, RegExp]`)：包含基于扩展名的模块的 source map（默认是 .js, .mjs 和 .css）。
 - `include` (`string` `RegExp` `[string, RegExp]`)：使路径与该值匹配的模块生成 source map。
@@ -27,11 +29,11 @@ new rspack.SourceMapDevToolPlugin(options);
 - `fileContext` (`string`)：使得 [file] 参数作为本目录的相对路径。
 - `sourceRoot` (`string`)：给 SourceMap 中的 sourceRoot 属性提供一个自定义值。
 
-##### 示例
+## 示例
 
 下面的示例展示了本插件的一些常见用例。
 
-###### 基本使用
+### 基本使用
 
 你可以使用以下代码将配置项 devtool: inline-source-map 替换为等效的自定义插件配置：
 
@@ -43,7 +45,7 @@ module.exports = {
 };
 ```
 
-###### 排除 Vendor Maps
+### 排除 Vendor Maps
 
 以下代码会排除 vendor.js bundle 内模块的 source map。
 
@@ -54,7 +56,7 @@ new rspack.SourceMapDevToolPlugin({
 });
 ```
 
-###### 在宿主环境外部化 source map
+### 在宿主环境外部化 source map
 
 设置 source map 的 URL。在宿主环境需要授权的情况下很有用。
 

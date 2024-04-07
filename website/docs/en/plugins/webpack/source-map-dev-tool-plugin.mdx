@@ -10,7 +10,7 @@ This plugin enables more fine grained control of source map generation. It is al
 new rspack.SourceMapDevToolPlugin(options);
 ```
 
-##### Options
+## Options
 
 - `test` (`string` `RegExp` `[string, RegExp]`): Include source maps for modules based on their extension (defaults to .js, .mjs, and .css).
 - `include` (`string` `RegExp` `[string, RegExp]`): Include source maps for module paths that match the given value.
@@ -27,11 +27,11 @@ new rspack.SourceMapDevToolPlugin(options);
 - `fileContext` (`string`): Makes the [file] argument relative to this directory.
 - `sourceRoot` (`string`): Provide a custom value for the sourceRoot property in the SourceMap.
 
-##### Examples
+## Examples
 
 The following examples demonstrate some common use cases for this plugin.
 
-###### Basic Use Case
+### Basic Use Case
 
 You can use the following code to replace the configuration option devtool: inline-source-map with an equivalent custom plugin configuration:
 
@@ -43,7 +43,7 @@ module.exports = {
 };
 ```
 
-###### Exclude Vendor Maps
+### Exclude Vendor Maps
 
 The following code would exclude source maps for any modules in the vendor.js bundle:
 
@@ -54,7 +54,7 @@ new rspack.SourceMapDevToolPlugin({
 });
 ```
 
-###### Host Source Maps Externally
+### Host Source Maps Externally
 
 Set a URL for source maps. Useful for hosting them on a host that requires authorization.
 
