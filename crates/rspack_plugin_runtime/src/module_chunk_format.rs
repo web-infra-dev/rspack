@@ -1,13 +1,20 @@
 use std::hash::Hash;
+use std::sync::Arc;
 
 use async_trait::async_trait;
 use rspack_core::rspack_sources::{ConcatSource, RawSource, SourceExt};
 use rspack_core::{
-  AdditionalChunkRuntimeRequirementsArgs, ChunkKind, JsChunkHashArgs, Plugin,
-  PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, PluginJsChunkHashHookOutput,
-  PluginRenderChunkHookOutput, RenderChunkArgs, RenderStartupArgs, RuntimeGlobals,
+  AdditionalChunkRuntimeRequirementsArgs, ApplyContext, ChunkKind, Compilation, CompilationParams,
+  CompilerOptions, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext,
+  RuntimeGlobals,
 };
+use rspack_error::Result;
+use rspack_hook::{plugin, plugin_hook, AsyncSeries2};
 use rspack_plugin_javascript::runtime::render_chunk_runtime_modules;
+use rspack_plugin_javascript::{
+  JavascriptModulesPluginPlugin, JsChunkHashArgs, JsPlugin, PluginJsChunkHashHookOutput,
+  PluginRenderJsChunkHookOutput, RenderJsChunkArgs, RenderJsStartupArgs,
+};
 use rustc_hash::FxHashSet as HashSet;
 
 use super::update_hash_for_entry_startup;
@@ -15,47 +22,14 @@ use crate::{
   get_all_chunks, get_chunk_output_name, get_relative_path, get_runtime_chunk_output_name,
 };
 
-#[derive(Debug)]
-pub struct ModuleChunkFormatPlugin;
+const PLUGIN_NAME: &str = "rspack.ModuleChunkFormatPlugin";
+
+#[derive(Debug, Default)]
+struct ModuleChunkFormatJavascriptModulesPluginPlugin;
 
 #[async_trait]
-impl Plugin for ModuleChunkFormatPlugin {
-  fn name(&self) -> &'static str {
-    "ModuleChunkFormatPlugin"
-  }
-
-  async fn additional_chunk_runtime_requirements(
-    &self,
-    _ctx: PluginContext,
-    args: &mut AdditionalChunkRuntimeRequirementsArgs,
-  ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
-    let compilation = &mut args.compilation;
-    let chunk_ukey = args.chunk;
-    let runtime_requirements = &mut args.runtime_requirements;
-    let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-
-    if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
-      return Ok(());
-    }
-
-    if compilation
-      .chunk_graph
-      .get_number_of_entry_modules(chunk_ukey)
-      > 0
-    {
-      runtime_requirements.insert(RuntimeGlobals::REQUIRE);
-      runtime_requirements.insert(RuntimeGlobals::STARTUP_ENTRYPOINT);
-      runtime_requirements.insert(RuntimeGlobals::EXTERNAL_INSTALL_CHUNK);
-    }
-
-    Ok(())
-  }
-
-  fn js_chunk_hash(
-    &self,
-    _ctx: PluginContext,
-    args: &mut JsChunkHashArgs,
-  ) -> PluginJsChunkHashHookOutput {
+impl JavascriptModulesPluginPlugin for ModuleChunkFormatJavascriptModulesPluginPlugin {
+  fn js_chunk_hash(&self, args: &mut JsChunkHashArgs) -> PluginJsChunkHashHookOutput {
     if args
       .chunk()
       .has_runtime(&args.compilation.chunk_group_by_ukey)
@@ -63,7 +37,7 @@ impl Plugin for ModuleChunkFormatPlugin {
       return Ok(());
     }
 
-    self.name().hash(&mut args.hasher);
+    PLUGIN_NAME.hash(&mut args.hasher);
 
     update_hash_for_entry_startup(
       args.hasher,
@@ -78,12 +52,9 @@ impl Plugin for ModuleChunkFormatPlugin {
     Ok(())
   }
 
-  async fn render_chunk(
-    &self,
-    _ctx: PluginContext,
-    args: &RenderChunkArgs,
-  ) -> PluginRenderChunkHookOutput {
+  async fn render_chunk(&self, args: &RenderJsChunkArgs) -> PluginRenderJsChunkHookOutput {
     let compilation = args.compilation;
+    let drive = JsPlugin::get_compilation_drives(compilation);
     let chunk = args.chunk();
     let base_chunk_output_name = get_chunk_output_name(chunk, compilation)?;
     if matches!(chunk.kind, ChunkKind::HotUpdate) {
@@ -178,19 +149,80 @@ impl Plugin for ModuleChunkFormatPlugin {
         .keys()
         .last()
         .expect("should have last entry module");
-      if let Some(s) = compilation
-        .plugin_driver
-        .render_startup(RenderStartupArgs {
-          compilation,
-          chunk: &chunk.ukey,
-          module: *last_entry_module,
-          source: RawSource::from(startup_source.join("\n")).boxed(),
-        })?
-      {
+      if let Some(s) = drive.render_startup(RenderJsStartupArgs {
+        compilation,
+        chunk: &chunk.ukey,
+        module: *last_entry_module,
+        source: RawSource::from(startup_source.join("\n")).boxed(),
+      })? {
         sources.add(s);
       }
     }
 
     Ok(Some(sources.boxed()))
+  }
+}
+
+#[plugin]
+#[derive(Debug, Default)]
+pub struct ModuleChunkFormatPlugin {
+  js_plugin: Arc<ModuleChunkFormatJavascriptModulesPluginPlugin>,
+}
+
+#[plugin_hook(AsyncSeries2<Compilation, CompilationParams> for ModuleChunkFormatPlugin)]
+async fn compilation(
+  &self,
+  compilation: &mut Compilation,
+  _params: &mut CompilationParams,
+) -> Result<()> {
+  let mut drive = JsPlugin::get_compilation_drives_mut(compilation);
+  drive.add_plugin(self.js_plugin.clone());
+  Ok(())
+}
+
+#[async_trait]
+impl Plugin for ModuleChunkFormatPlugin {
+  fn name(&self) -> &'static str {
+    PLUGIN_NAME
+  }
+
+  fn apply(
+    &self,
+    ctx: PluginContext<&mut ApplyContext>,
+    _options: &mut CompilerOptions,
+  ) -> Result<()> {
+    ctx
+      .context
+      .compiler_hooks
+      .compilation
+      .tap(compilation::new(self));
+    Ok(())
+  }
+
+  async fn additional_chunk_runtime_requirements(
+    &self,
+    _ctx: PluginContext,
+    args: &mut AdditionalChunkRuntimeRequirementsArgs,
+  ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
+    let compilation = &mut args.compilation;
+    let chunk_ukey = args.chunk;
+    let runtime_requirements = &mut args.runtime_requirements;
+    let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+
+    if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
+      return Ok(());
+    }
+
+    if compilation
+      .chunk_graph
+      .get_number_of_entry_modules(chunk_ukey)
+      > 0
+    {
+      runtime_requirements.insert(RuntimeGlobals::REQUIRE);
+      runtime_requirements.insert(RuntimeGlobals::STARTUP_ENTRYPOINT);
+      runtime_requirements.insert(RuntimeGlobals::EXTERNAL_INSTALL_CHUNK);
+    }
+
+    Ok(())
   }
 }

@@ -1,18 +1,19 @@
 use rayon::prelude::*;
 use rspack_core::rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
 use rspack_core::{
-  BoxModule, ChunkInitFragments, ChunkUkey, Compilation, RenderModuleContentArgs, RuntimeGlobals,
-  SourceType,
+  BoxModule, ChunkInitFragments, ChunkUkey, Compilation, RuntimeGlobals, SourceType,
 };
 use rspack_error::{error, Result};
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::utils::is_diff_mode;
+use crate::{JsPlugin, RenderJsModuleContentArgs};
 
 pub fn render_chunk_modules(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
 ) -> Result<(BoxSource, ChunkInitFragments)> {
+  let drive = JsPlugin::get_compilation_drives(compilation);
   let module_graph = &compilation.get_module_graph();
   let ordered_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
     chunk_ukey,
@@ -20,8 +21,6 @@ pub fn render_chunk_modules(
     module_graph,
   );
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-
-  let plugin_driver = &compilation.plugin_driver;
 
   let include_module_ids = &compilation.include_module_ids;
 
@@ -36,8 +35,8 @@ pub fn render_chunk_modules(
         .code_generation_results
         .get(&module.identifier(), Some(&chunk.runtime));
       if let Some(origin_source) = code_gen_result.get(&SourceType::JavaScript) {
-        let render_module_result = plugin_driver
-          .render_module_content(RenderModuleContentArgs {
+        let render_module_result = drive
+          .render_module_content(RenderJsModuleContentArgs {
             compilation,
             module,
             module_source: origin_source.clone(),

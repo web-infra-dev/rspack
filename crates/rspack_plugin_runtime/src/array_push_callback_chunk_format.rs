@@ -1,58 +1,31 @@
 use std::hash::Hash;
+use std::sync::Arc;
 
 use async_trait::async_trait;
 use rspack_core::rspack_sources::{ConcatSource, RawSource, SourceExt};
 use rspack_core::{
-  AdditionalChunkRuntimeRequirementsArgs, ChunkKind, JsChunkHashArgs, Plugin,
-  PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, PluginJsChunkHashHookOutput,
-  PluginRenderChunkHookOutput, RenderChunkArgs, RenderStartupArgs, RuntimeGlobals,
+  AdditionalChunkRuntimeRequirementsArgs, ApplyContext, ChunkKind, Compilation, CompilationParams,
+  CompilerOptions, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext,
+  RuntimeGlobals,
 };
-use rspack_error::error;
+use rspack_error::{error, Result};
+use rspack_hook::{plugin, plugin_hook, AsyncSeries2};
 use rspack_plugin_javascript::runtime::{render_chunk_runtime_modules, render_runtime_modules};
+use rspack_plugin_javascript::{
+  JavascriptModulesPluginPlugin, JsChunkHashArgs, JsPlugin, PluginJsChunkHashHookOutput,
+  PluginRenderJsChunkHookOutput, RenderJsChunkArgs, RenderJsStartupArgs,
+};
 
 use super::{generate_entry_startup, update_hash_for_entry_startup};
 
-#[derive(Debug)]
-pub struct ArrayPushCallbackChunkFormatPlugin;
+const PLUGIN_NAME: &str = "rspack.ArrayPushCallbackChunkFormatPlugin";
+
+#[derive(Debug, Default)]
+struct ArrayPushCallbackChunkFormatJavascriptModulesPluginPlugin;
 
 #[async_trait]
-impl Plugin for ArrayPushCallbackChunkFormatPlugin {
-  fn name(&self) -> &'static str {
-    "ArrayPushCallbackChunkFormatPlugin"
-  }
-
-  async fn additional_chunk_runtime_requirements(
-    &self,
-    _ctx: PluginContext,
-    args: &mut AdditionalChunkRuntimeRequirementsArgs,
-  ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
-    let compilation = &mut args.compilation;
-    let chunk_ukey = args.chunk;
-    let runtime_requirements = &mut args.runtime_requirements;
-    let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-
-    if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
-      return Ok(());
-    }
-
-    if compilation
-      .chunk_graph
-      .get_number_of_entry_modules(chunk_ukey)
-      > 0
-    {
-      runtime_requirements.insert(RuntimeGlobals::ON_CHUNKS_LOADED);
-      runtime_requirements.insert(RuntimeGlobals::REQUIRE);
-    }
-    runtime_requirements.insert(RuntimeGlobals::CHUNK_CALLBACK);
-
-    Ok(())
-  }
-
-  fn js_chunk_hash(
-    &self,
-    _ctx: PluginContext,
-    args: &mut JsChunkHashArgs,
-  ) -> PluginJsChunkHashHookOutput {
+impl JavascriptModulesPluginPlugin for ArrayPushCallbackChunkFormatJavascriptModulesPluginPlugin {
+  fn js_chunk_hash(&self, args: &mut JsChunkHashArgs) -> PluginJsChunkHashHookOutput {
     if args
       .chunk()
       .has_runtime(&args.compilation.chunk_group_by_ukey)
@@ -60,7 +33,7 @@ impl Plugin for ArrayPushCallbackChunkFormatPlugin {
       return Ok(());
     }
 
-    self.name().hash(&mut args.hasher);
+    PLUGIN_NAME.hash(&mut args.hasher);
     let output = &args.compilation.options.output;
     output.global_object.hash(&mut args.hasher);
     output.chunk_loading_global.hash(&mut args.hasher);
@@ -79,11 +52,8 @@ impl Plugin for ArrayPushCallbackChunkFormatPlugin {
     Ok(())
   }
 
-  async fn render_chunk(
-    &self,
-    _ctx: PluginContext,
-    args: &RenderChunkArgs,
-  ) -> PluginRenderChunkHookOutput {
+  async fn render_chunk(&self, args: &RenderJsChunkArgs) -> PluginRenderJsChunkHookOutput {
+    let drive = JsPlugin::get_compilation_drives(args.compilation);
     let chunk = args.chunk();
     let has_runtime_modules = args
       .compilation
@@ -142,16 +112,12 @@ impl Plugin for ArrayPushCallbackChunkFormatPlugin {
             .keys()
             .last()
             .expect("should have last entry module");
-          if let Some(s) = args
-            .compilation
-            .plugin_driver
-            .render_startup(RenderStartupArgs {
-              compilation: args.compilation,
-              chunk: &chunk.ukey,
-              module: *last_entry_module,
-              source: start_up_source,
-            })?
-          {
+          if let Some(s) = drive.render_startup(RenderJsStartupArgs {
+            compilation: args.compilation,
+            chunk: &chunk.ukey,
+            module: *last_entry_module,
+            source: start_up_source,
+          })? {
             source.add(s);
           }
           let runtime_requirements = args
@@ -168,5 +134,69 @@ impl Plugin for ArrayPushCallbackChunkFormatPlugin {
     }
 
     Ok(Some(source.boxed()))
+  }
+}
+
+#[plugin]
+#[derive(Debug, Default)]
+pub struct ArrayPushCallbackChunkFormatPlugin {
+  js_plugin: Arc<ArrayPushCallbackChunkFormatJavascriptModulesPluginPlugin>,
+}
+
+#[plugin_hook(AsyncSeries2<Compilation, CompilationParams> for ArrayPushCallbackChunkFormatPlugin)]
+async fn compilation(
+  &self,
+  compilation: &mut Compilation,
+  _params: &mut CompilationParams,
+) -> Result<()> {
+  let mut drive = JsPlugin::get_compilation_drives_mut(compilation);
+  drive.add_plugin(self.js_plugin.clone());
+  Ok(())
+}
+
+#[async_trait]
+impl Plugin for ArrayPushCallbackChunkFormatPlugin {
+  fn name(&self) -> &'static str {
+    PLUGIN_NAME
+  }
+
+  fn apply(
+    &self,
+    ctx: PluginContext<&mut ApplyContext>,
+    _options: &mut CompilerOptions,
+  ) -> Result<()> {
+    ctx
+      .context
+      .compiler_hooks
+      .compilation
+      .tap(compilation::new(self));
+    Ok(())
+  }
+
+  async fn additional_chunk_runtime_requirements(
+    &self,
+    _ctx: PluginContext,
+    args: &mut AdditionalChunkRuntimeRequirementsArgs,
+  ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
+    let compilation = &mut args.compilation;
+    let chunk_ukey = args.chunk;
+    let runtime_requirements = &mut args.runtime_requirements;
+    let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+
+    if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
+      return Ok(());
+    }
+
+    if compilation
+      .chunk_graph
+      .get_number_of_entry_modules(chunk_ukey)
+      > 0
+    {
+      runtime_requirements.insert(RuntimeGlobals::ON_CHUNKS_LOADED);
+      runtime_requirements.insert(RuntimeGlobals::REQUIRE);
+    }
+    runtime_requirements.insert(RuntimeGlobals::CHUNK_CALLBACK);
+
+    Ok(())
   }
 }

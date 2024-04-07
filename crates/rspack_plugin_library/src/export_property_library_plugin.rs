@@ -1,14 +1,17 @@
-use std::hash::Hash;
+use std::{hash::Hash, sync::Arc};
 
 use rspack_core::{
   get_entry_runtime, property_access,
   rspack_sources::{ConcatSource, RawSource, SourceExt},
-  ApplyContext, ChunkUkey, Compilation, CompilerOptions, EntryData, JsChunkHashArgs, LibraryExport,
-  LibraryOptions, LibraryType, Plugin, PluginContext, PluginJsChunkHashHookOutput,
-  PluginRenderStartupHookOutput, RenderStartupArgs, UsageState,
+  ApplyContext, ChunkUkey, Compilation, CompilationParams, CompilerOptions, EntryData,
+  LibraryExport, LibraryOptions, LibraryType, Plugin, PluginContext, UsageState,
 };
 use rspack_error::Result;
-use rspack_hook::{plugin, plugin_hook, AsyncSeries};
+use rspack_hook::{plugin, plugin_hook, AsyncSeries, AsyncSeries2};
+use rspack_plugin_javascript::{
+  JavascriptModulesPluginPlugin, JsChunkHashArgs, JsPlugin, PluginJsChunkHashHookOutput,
+  PluginRenderJsStartupHookOutput, RenderJsStartupArgs,
+};
 
 use crate::utils::get_options_for_chunk;
 
@@ -18,17 +21,29 @@ struct ExportPropertyLibraryPluginParsed<'a> {
 }
 
 #[plugin]
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct ExportPropertyLibraryPlugin {
-  library_type: LibraryType,
-  ns_object_used: bool,
+  js_plugin: Arc<ExportPropertyLibraryJavascriptModulesPluginPlugin>,
 }
 
 impl ExportPropertyLibraryPlugin {
   pub fn new(library_type: LibraryType, ns_object_used: bool) -> Self {
-    Self::new_inner(library_type, ns_object_used)
+    Self::new_inner(Arc::new(
+      ExportPropertyLibraryJavascriptModulesPluginPlugin {
+        library_type,
+        ns_object_used,
+      },
+    ))
   }
+}
 
+#[derive(Debug)]
+struct ExportPropertyLibraryJavascriptModulesPluginPlugin {
+  library_type: LibraryType,
+  ns_object_used: bool,
+}
+
+impl ExportPropertyLibraryJavascriptModulesPluginPlugin {
   fn parse_options<'a>(
     &self,
     library: &'a LibraryOptions,
@@ -47,6 +62,45 @@ impl ExportPropertyLibraryPlugin {
       .filter(|library| library.library_type == self.library_type)
       .map(|library| self.parse_options(library))
   }
+}
+
+impl JavascriptModulesPluginPlugin for ExportPropertyLibraryJavascriptModulesPluginPlugin {
+  fn render_startup(&self, args: &RenderJsStartupArgs) -> PluginRenderJsStartupHookOutput {
+    let Some(options) = self.get_options_for_chunk(args.compilation, args.chunk) else {
+      return Ok(None);
+    };
+    if let Some(export) = options.export {
+      let mut s = ConcatSource::default();
+      s.add(args.source.clone());
+      s.add(RawSource::from(format!(
+        "__webpack_exports__ = __webpack_exports__{};",
+        property_access(export, 0)
+      )));
+      return Ok(Some(s.boxed()));
+    }
+    Ok(Some(args.source.clone()))
+  }
+
+  fn js_chunk_hash(&self, args: &mut JsChunkHashArgs) -> PluginJsChunkHashHookOutput {
+    let Some(options) = self.get_options_for_chunk(args.compilation, args.chunk_ukey) else {
+      return Ok(());
+    };
+    if let Some(export) = &options.export {
+      export.hash(&mut args.hasher);
+    }
+    Ok(())
+  }
+}
+
+#[plugin_hook(AsyncSeries2<Compilation, CompilationParams> for ExportPropertyLibraryPlugin)]
+async fn compilation(
+  &self,
+  compilation: &mut Compilation,
+  _params: &mut CompilationParams,
+) -> Result<()> {
+  let mut drive = JsPlugin::get_compilation_drives_mut(compilation);
+  drive.add_plugin(self.js_plugin.clone());
+  Ok(())
 }
 
 #[plugin_hook(AsyncSeries<Compilation> for ExportPropertyLibraryPlugin)]
@@ -99,7 +153,7 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
         .can_mangle_use = Some(false);
     } else {
       let exports_info_id = module_graph.get_exports_info(&module_identifier).id;
-      if self.ns_object_used {
+      if self.js_plugin.ns_object_used {
         exports_info_id.set_used_in_unknown_way(&mut module_graph, Some(&runtime));
       } else {
         exports_info_id.set_all_known_exports_used(&mut module_graph, Some(&runtime));
@@ -123,43 +177,14 @@ impl Plugin for ExportPropertyLibraryPlugin {
   ) -> Result<()> {
     ctx
       .context
+      .compiler_hooks
+      .compilation
+      .tap(compilation::new(self));
+    ctx
+      .context
       .compilation_hooks
       .finish_modules
       .tap(finish_modules::new(self));
-    Ok(())
-  }
-
-  fn render_startup(
-    &self,
-    _ctx: PluginContext,
-    args: &RenderStartupArgs,
-  ) -> PluginRenderStartupHookOutput {
-    let Some(options) = self.get_options_for_chunk(args.compilation, args.chunk) else {
-      return Ok(None);
-    };
-    if let Some(export) = options.export {
-      let mut s = ConcatSource::default();
-      s.add(args.source.clone());
-      s.add(RawSource::from(format!(
-        "__webpack_exports__ = __webpack_exports__{};",
-        property_access(export, 0)
-      )));
-      return Ok(Some(s.boxed()));
-    }
-    Ok(Some(args.source.clone()))
-  }
-
-  fn js_chunk_hash(
-    &self,
-    _ctx: PluginContext,
-    args: &mut JsChunkHashArgs,
-  ) -> PluginJsChunkHashHookOutput {
-    let Some(options) = self.get_options_for_chunk(args.compilation, args.chunk_ukey) else {
-      return Ok(());
-    };
-    if let Some(export) = &options.export {
-      export.hash(&mut args.hasher);
-    }
     Ok(())
   }
 }

@@ -1,18 +1,25 @@
-use std::hash::Hash;
+use std::{hash::Hash, sync::Arc};
 
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceExt},
-  AdditionalChunkRuntimeRequirementsArgs, ChunkUkey, Compilation, ExternalModule, FilenameTemplate,
-  JsChunkHashArgs, LibraryName, LibraryNonUmdObject, LibraryOptions, LibraryType, PathData, Plugin,
-  PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, PluginJsChunkHashHookOutput,
-  PluginRenderHookOutput, RenderArgs, RuntimeGlobals, SourceType,
+  AdditionalChunkRuntimeRequirementsArgs, ApplyContext, ChunkUkey, Compilation, CompilationParams,
+  CompilerOptions, ExternalModule, FilenameTemplate, LibraryName, LibraryNonUmdObject,
+  LibraryOptions, LibraryType, PathData, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput,
+  PluginContext, RuntimeGlobals, SourceType,
 };
 use rspack_error::{error_bail, Result};
+use rspack_hook::{plugin, plugin_hook, AsyncSeries2};
+use rspack_plugin_javascript::{
+  JavascriptModulesPluginPlugin, JsChunkHashArgs, JsPlugin, PluginJsChunkHashHookOutput,
+  PluginRenderJsHookOutput, RenderJsArgs,
+};
 use rspack_util::infallible::ResultInfallibleExt as _;
 
 use crate::utils::{
   external_arguments, externals_dep_array, get_options_for_chunk, COMMON_LIBRARY_NAME_MESSAGE,
 };
+
+const PLUGIN_NAME: &str = "rspack.AmdLibraryPlugin";
 
 #[derive(Debug)]
 struct AmdLibraryPluginParsed<'a> {
@@ -21,19 +28,12 @@ struct AmdLibraryPluginParsed<'a> {
 }
 
 #[derive(Debug)]
-pub struct AmdLibraryPlugin {
+struct AmdLibraryJavascriptModulesPluginPlugin {
   library_type: LibraryType,
   require_as_wrapper: bool,
 }
 
-impl AmdLibraryPlugin {
-  pub fn new(require_as_wrapper: bool, library_type: LibraryType) -> Self {
-    Self {
-      require_as_wrapper,
-      library_type,
-    }
-  }
-
+impl AmdLibraryJavascriptModulesPluginPlugin {
   fn parse_options<'a>(&self, library: &'a LibraryOptions) -> Result<AmdLibraryPluginParsed<'a>> {
     if self.require_as_wrapper {
       if library.name.is_some() {
@@ -70,30 +70,8 @@ impl AmdLibraryPlugin {
   }
 }
 
-#[async_trait::async_trait]
-impl Plugin for AmdLibraryPlugin {
-  fn name(&self) -> &'static str {
-    "rspack.AmdLibraryPlugin"
-  }
-
-  async fn additional_chunk_runtime_requirements(
-    &self,
-    _ctx: PluginContext,
-    args: &mut AdditionalChunkRuntimeRequirementsArgs,
-  ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
-    if self
-      .get_options_for_chunk(args.compilation, args.chunk)?
-      .is_none()
-    {
-      return Ok(());
-    }
-    args
-      .runtime_requirements
-      .insert(RuntimeGlobals::RETURN_EXPORTS_FROM_RUNTIME);
-    Ok(())
-  }
-
-  fn render(&self, _ctx: PluginContext, args: &RenderArgs) -> PluginRenderHookOutput {
+impl JavascriptModulesPluginPlugin for AmdLibraryJavascriptModulesPluginPlugin {
+  fn render(&self, args: &RenderJsArgs) -> PluginRenderJsHookOutput {
     let compilation = args.compilation;
     let Some(options) = self.get_options_for_chunk(compilation, args.chunk)? else {
       return Ok(None);
@@ -158,16 +136,12 @@ impl Plugin for AmdLibraryPlugin {
     Ok(Some(source.boxed()))
   }
 
-  fn js_chunk_hash(
-    &self,
-    _ctx: PluginContext,
-    args: &mut JsChunkHashArgs,
-  ) -> PluginJsChunkHashHookOutput {
+  fn js_chunk_hash(&self, args: &mut JsChunkHashArgs) -> PluginJsChunkHashHookOutput {
     let compilation = args.compilation;
     let Some(options) = self.get_options_for_chunk(compilation, args.chunk_ukey)? else {
       return Ok(());
     };
-    self.name().hash(&mut args.hasher);
+    PLUGIN_NAME.hash(&mut args.hasher);
     if self.require_as_wrapper {
       self.require_as_wrapper.hash(&mut args.hasher);
     } else if let Some(name) = options.name {
@@ -177,6 +151,70 @@ impl Plugin for AmdLibraryPlugin {
       "amdContainer".hash(&mut args.hasher);
       amd_container.hash(&mut args.hasher);
     }
+    Ok(())
+  }
+}
+
+#[plugin]
+#[derive(Debug)]
+pub struct AmdLibraryPlugin {
+  js_plugin: Arc<AmdLibraryJavascriptModulesPluginPlugin>,
+}
+
+impl AmdLibraryPlugin {
+  pub fn new(require_as_wrapper: bool, library_type: LibraryType) -> Self {
+    Self::new_inner(Arc::new(AmdLibraryJavascriptModulesPluginPlugin {
+      require_as_wrapper,
+      library_type,
+    }))
+  }
+}
+
+#[plugin_hook(AsyncSeries2<Compilation, CompilationParams> for AmdLibraryPlugin)]
+async fn compilation(
+  &self,
+  compilation: &mut Compilation,
+  _params: &mut CompilationParams,
+) -> Result<()> {
+  let mut drive = JsPlugin::get_compilation_drives_mut(compilation);
+  drive.add_plugin(self.js_plugin.clone());
+  Ok(())
+}
+
+#[async_trait::async_trait]
+impl Plugin for AmdLibraryPlugin {
+  fn name(&self) -> &'static str {
+    PLUGIN_NAME
+  }
+
+  fn apply(
+    &self,
+    ctx: PluginContext<&mut ApplyContext>,
+    _options: &mut CompilerOptions,
+  ) -> Result<()> {
+    ctx
+      .context
+      .compiler_hooks
+      .compilation
+      .tap(compilation::new(self));
+    Ok(())
+  }
+
+  async fn additional_chunk_runtime_requirements(
+    &self,
+    _ctx: PluginContext,
+    args: &mut AdditionalChunkRuntimeRequirementsArgs,
+  ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
+    if self
+      .js_plugin
+      .get_options_for_chunk(args.compilation, args.chunk)?
+      .is_none()
+    {
+      return Ok(());
+    }
+    args
+      .runtime_requirements
+      .insert(RuntimeGlobals::RETURN_EXPORTS_FROM_RUNTIME);
     Ok(())
   }
 }

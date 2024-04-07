@@ -3,13 +3,12 @@ use std::hash::Hash;
 use rspack_core::{
   get_chunk_from_ukey, get_chunk_group_from_ukey, get_js_chunk_filename_template,
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  Chunk, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, PathData, RenderChunkArgs,
-  RuntimeGlobals,
+  Chunk, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, PathData, RuntimeGlobals,
 };
 use rspack_error::{error, Result};
 use rspack_hash::RspackHash;
 use rspack_identifier::IdentifierLinkedMap;
-use rspack_plugin_javascript::runtime::stringify_chunks_to_array;
+use rspack_plugin_javascript::{runtime::stringify_chunks_to_array, RenderJsChunkArgs};
 use rustc_hash::FxHashSet as HashSet;
 
 pub fn update_hash_for_entry_startup(
@@ -115,7 +114,7 @@ pub fn get_all_chunks(
   chunks
 }
 
-pub fn get_runtime_chunk_output_name(args: &RenderChunkArgs) -> Result<String> {
+pub fn get_runtime_chunk_output_name(args: &RenderJsChunkArgs) -> Result<String> {
   let entry_point = {
     let entry_points = args
       .compilation
