@@ -133,10 +133,17 @@ export class RspackBuiltinProcessor extends SnapshotProcessor<ECompilerType.Rspa
 			defaultOptions = merge(defaultOptions, caseOptions);
 		}
 
+		// TODO: remove builtin compatible code
 		const defineOptions = (defaultOptions.builtins as any)?.define;
 		if (defineOptions) {
 			defaultOptions.plugins!.push(new rspack.DefinePlugin(defineOptions));
 			delete (defaultOptions.builtins as any)?.define;
+		}
+
+		const provideOptions = (defaultOptions.builtins as any)?.provide;
+		if (provideOptions) {
+			defaultOptions.plugins!.push(new rspack.ProvidePlugin(provideOptions));
+			delete (defaultOptions.builtins as any)?.provide;
 		}
 
 		const htmlOptions = (defaultOptions.builtins as any)?.html;
