@@ -2,6 +2,11 @@ const path = require("path");
 
 const config = {
 	module: {
+		generator: {
+			"css/auto": {
+				exportsOnly: false
+			},
+		},
 		rules: [
 			{
 				test: /\.(js|mjs|cjs|jsx)$/,

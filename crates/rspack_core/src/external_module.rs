@@ -20,6 +20,7 @@ use crate::{
   ModuleType, NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency,
   StaticExportsSpec,
 };
+use crate::{ChunkGraph, ModuleGraph};
 
 static EXTERNAL_MODULE_JS_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
 static EXTERNAL_MODULE_CSS_SOURCE_TYPES: &[SourceType] = &[SourceType::CssImport];
@@ -313,6 +314,23 @@ impl DependenciesBlock for ExternalModule {
 #[async_trait::async_trait]
 impl Module for ExternalModule {
   impl_build_info_meta!();
+
+  fn get_concatenation_bailout_reason(
+    &self,
+    _mg: &ModuleGraph,
+    _cg: &ChunkGraph,
+  ) -> Option<String> {
+    match self.external_type.as_ref() {
+      "amd" | "umd" | "amd-require" | "umd2" | "system" | "jsonp" => {
+        // return `${this.externalType} externals can't be concatenated`;
+        Some(format!(
+          "{} externals can't be concatenated",
+          self.external_type
+        ))
+      }
+      _ => None,
+    }
+  }
 
   fn module_type(&self) -> &ModuleType {
     &ModuleType::Js

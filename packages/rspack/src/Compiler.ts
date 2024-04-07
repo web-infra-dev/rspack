@@ -38,12 +38,10 @@ import {
 import { WatchFileSystem } from "./util/fs";
 import { checkVersion } from "./util/bindingVersionCheck";
 import { Watching } from "./Watching";
-import { NormalModule } from "./NormalModule";
 import {
 	JsLoaderRspackPlugin,
 	deprecated_resolveBuiltins
 } from "./builtin-plugin";
-import { applyEntryOptions } from "./rspackOptionsApply";
 import { applyRspackOptionsDefaults } from "./config/defaults";
 import { assertNotNill } from "./util/assertNotNil";
 import { FileSystemInfoEntry } from "./FileSystemInfo";
@@ -229,10 +227,6 @@ class Compiler {
 		}
 
 		const options = this.options;
-		// TODO: remove this in v0.6
-		if (!options.experiments.rspackFuture!.disableApplyEntryLazily) {
-			applyEntryOptions(this, options);
-		}
 		// TODO: remove this when drop support for builtins options
 		options.builtins = deprecated_resolveBuiltins(
 			options.builtins,

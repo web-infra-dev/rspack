@@ -1,119 +1,16 @@
 #![allow(clippy::comparison_chain)]
 mod impl_plugin_for_css_plugin;
 use std::cmp::{self, Reverse};
-use std::hash::Hash;
-use std::str::FromStr;
 
-use bitflags::bitflags;
-use once_cell::sync::Lazy;
-use regex::Regex;
-use rspack_core::FilenameTemplate;
-use rspack_core::{Chunk, ChunkGraph, Compilation, Module, ModuleGraph, PathData, SourceType};
-use rspack_error::error_bail;
+use rspack_core::{Chunk, ChunkGraph, Compilation, Module, ModuleGraph, SourceType};
 use rspack_hook::plugin;
 use rspack_identifier::IdentifierSet;
-use rspack_util::infallible::ResultInfallibleExt as _;
-
-static ESCAPE_LOCAL_IDENT_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r#"[<>:"/\\|?*\.]"#).expect("Invalid regex"));
 
 #[plugin]
-#[derive(Debug)]
-pub struct CssPlugin {
-  config: CssConfig,
-}
-
-#[derive(Debug, Clone)]
-pub struct ModulesConfig {
-  pub locals_convention: LocalsConvention,
-  pub local_ident_name: LocalIdentName,
-  pub exports_only: bool,
-}
-
-#[derive(Debug, Clone)]
-pub struct LocalIdentName(FilenameTemplate);
-
-impl LocalIdentName {
-  pub fn render(&self, options: LocalIdentNameRenderOptions) -> String {
-    let mut s = self.0.render(options.path_data, None).always_ok();
-    if let Some(local) = options.local {
-      s = s.replace("[local]", local);
-    }
-    s = ESCAPE_LOCAL_IDENT_REGEX.replace_all(&s, "-").into_owned();
-    s
-  }
-}
-
-impl From<String> for LocalIdentName {
-  fn from(value: String) -> Self {
-    Self(value.into())
-  }
-}
-
-pub struct LocalIdentNameRenderOptions<'a> {
-  pub path_data: PathData<'a>,
-  pub local: Option<&'a str>,
-}
-
-bitflags! {
-  #[derive(Debug, Clone, Copy)]
-  struct LocalsConventionFlags: u8 {
-    const ASIS = 1 << 0;
-    const CAMELCASE = 1 << 1;
-    const DASHES = 1 << 2;
-  }
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct LocalsConvention(LocalsConventionFlags);
-
-impl LocalsConvention {
-  pub fn as_is(&self) -> bool {
-    self.0.contains(LocalsConventionFlags::ASIS)
-  }
-
-  pub fn camel_case(&self) -> bool {
-    self.0.contains(LocalsConventionFlags::CAMELCASE)
-  }
-
-  pub fn dashes(&self) -> bool {
-    self.0.contains(LocalsConventionFlags::DASHES)
-  }
-}
-
-impl FromStr for LocalsConvention {
-  type Err = rspack_error::Error;
-
-  fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
-    Ok(match s {
-      "asIs" => Self(LocalsConventionFlags::ASIS),
-      "camelCase" => Self(LocalsConventionFlags::ASIS | LocalsConventionFlags::CAMELCASE),
-      "camelCaseOnly" => Self(LocalsConventionFlags::CAMELCASE),
-      "dashes" => Self(LocalsConventionFlags::ASIS | LocalsConventionFlags::DASHES),
-      "dashesOnly" => Self(LocalsConventionFlags::DASHES),
-      _ => error_bail!("css modules exportsLocalsConvention error"),
-    })
-  }
-}
-
-impl Default for LocalsConvention {
-  fn default() -> Self {
-    Self(LocalsConventionFlags::ASIS)
-  }
-}
-
-#[derive(Debug, Clone)]
-pub struct CssConfig {
-  pub modules: ModulesConfig,
-  /// FIXME: Temp workaround, this option should be placed in `module.rules.*.parser`
-  pub named_exports: Option<bool>,
-}
+#[derive(Debug, Default)]
+pub struct CssPlugin;
 
 impl CssPlugin {
-  pub fn new(config: CssConfig) -> Self {
-    Self::new_inner(config)
-  }
-
   pub(crate) fn get_ordered_chunk_css_modules<'chunk_graph>(
     chunk: &Chunk,
     chunk_graph: &'chunk_graph ChunkGraph,

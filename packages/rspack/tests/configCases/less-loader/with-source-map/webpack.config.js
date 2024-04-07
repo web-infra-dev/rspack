@@ -5,7 +5,10 @@ module.exports = {
 			{
 				test: /\.less$/,
 				use: [{ loader: "less-loader" }],
-				type: "css"
+				type: "css",
+				generator: {
+					exportsOnly: false,
+				}
 			},
 			{
 				resourceQuery: /resource/,

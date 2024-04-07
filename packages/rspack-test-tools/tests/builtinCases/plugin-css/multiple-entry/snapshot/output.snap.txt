@@ -1,0 +1,47 @@
+```css title=async-one.css
+body {
+  background: blue;
+}
+
+body {
+  background: yellow;
+}
+
+
+```
+
+```css title=async-two.css
+body {
+  background: yellow;
+}
+
+body {
+  background: blue;
+}
+
+
+```
+
+```css title=main-one.css
+body {
+  background: red;
+}
+
+body {
+  background: green;
+}
+
+
+```
+
+```css title=main-two.css
+body {
+  background: green;
+}
+
+body {
+  background: red;
+}
+
+
+```

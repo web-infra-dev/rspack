@@ -47,6 +47,7 @@ export * from "./FlagDependencyUsagePlugin";
 export * from "./MangleExportsPlugin";
 export * from "./BundlerInfoRspackPlugin";
 export * from "./ModuleConcatenationPlugin";
+export * from "./CssModulesPlugin";
 
 export * from "./HtmlRspackPlugin";
 export * from "./CopyRspackPlugin";
@@ -56,13 +57,8 @@ export * from "./SwcCssMinimizerPlugin";
 export * from "./JsLoaderRspackPlugin";
 
 ///// DEPRECATED /////
-import { RawBuiltins, RawCssModulesConfig } from "@rspack/binding";
+import { RawBuiltins } from "@rspack/binding";
 import { RspackOptionsNormalized } from "..";
-
-type BuiltinsCssConfig = {
-	modules?: Partial<RawCssModulesConfig>;
-	namedExports?: boolean;
-};
 
 function resolveTreeShaking(
 	treeShaking: Builtins["treeShaking"],
@@ -71,12 +67,11 @@ function resolveTreeShaking(
 	return treeShaking !== undefined
 		? treeShaking.toString()
 		: production
-		? "true"
-		: "false";
+			? "true"
+			: "false";
 }
 
 export interface Builtins {
-	css?: BuiltinsCssConfig;
 	treeShaking?: boolean | "module";
 }
 
@@ -87,20 +82,6 @@ export function deprecated_resolveBuiltins(
 	const production = options.mode === "production" || !options.mode;
 
 	return {
-		// TODO: discuss with webpack, this should move to css generator options
-		css: options.experiments.css
-			? {
-					modules: {
-						localsConvention: "asIs",
-						localIdentName: production
-							? "[hash]"
-							: "[path][name][ext]__[local]",
-						exportsOnly: false,
-						...builtins.css?.modules
-					},
-					namedExports: builtins.css?.namedExports
-			  }
-			: undefined,
 		treeShaking: resolveTreeShaking(builtins.treeShaking, production)
 	};
 }

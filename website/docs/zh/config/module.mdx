@@ -42,6 +42,448 @@ module.exports = {
 };
 ```
 
+## module.parser
+
+- **类型：** `Object`
+- **默认值：** `{}`
+
+使用 `module.parser` 在一个地方配置所有解析器选项。
+
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    parser: {
+      // asset 模块的解析器选项
+      asset: {
+        dataUrlCondition: {
+          maxSize: 16192,
+        },
+      },
+      // javascript 模块的解析器选项
+      javascript: {
+        dynamicImportMode: 'lazy',
+        dynamicImportPrefetch: false,
+        dynamicImportPreload: false,
+        url: true,
+      },
+      // css 模块的解析器选项
+      css: {
+        namedExports: true,
+      },
+      // css/auto 模块的解析器选项
+      'css/auto': {
+        namedExports: true,
+      },
+      // css/module 模块的解析器选项
+      'css/module': {
+        namedExports: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser.asset
+
+`asset` 模块的解析器选项。
+
+#### module.parser.asset.dataUrlCondition
+
+- **类型：** `{ maxSize: number }`
+- **默认值：** `{ maxSize: 8096 }`
+
+如果当前模块的小于等于 `maxSize`，那么模块将被 Base64 编码，否则模块将会以文件形式被输出。该选项仅能做用于 Asset Module 的场景。
+
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    parser: {
+      asset: {
+        dataUrlCondition: {
+          // 小于等于 4kb，且以 `.png` 结尾的模块将被 Base64 编码
+          maxSize: 4 * 1024,
+        },
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript
+
+`javascript` 模块的解析器选项。
+
+#### module.parser.javascript.dynamicImportMode
+
+- **类型：** `'lazy' | 'eager'`
+- **默认值：** `'lazy'`
+
+指定动态导入的全局模式。
+
+#### module.parser.javascript.dynamicImportPrefetch
+
+<ApiMeta addedVersion="0.4.5" />
+
+- **类型：** `boolean | number`
+- **默认值：** `false`
+
+指定动态导入的全局 prefetch。
+
+#### module.parser.javascript.dynamicImportPreload
+
+<ApiMeta addedVersion="0.4.5" />
+
+指定动态导入的全局 preload。
+
+- **类型：** `boolean | number`
+- **默认值：** `false`
+
+#### module.parser.javascript.url
+
+<ApiMeta addedVersion="0.4.4" />
+
+- **类型：** `true | false | 'relative'`
+- **默认值：** `true`
+
+启用 `new URL()` 语法解析。
+
+当使用 'relative' 时，webpack 将为 `new URL()` 语法生成相对的 URL，即结果 URL 中不包含根 URL
+
+```html
+<!-- 使用 'relative' -->
+<img src="icon.svg" />
+
+<!-- 不使用 'relative' -->
+<img src="file:///path/to/project/dist/icon.svg" />
+```
+
+### module.parser["css/auto"]
+
+`css/auto` 模块的解析器选项。
+
+:::warning
+只有在 `experiments.css = true` 时该配置才会生效
+:::
+
+#### module.parser["css/auto"].namedExports
+
+<ApiMeta addedVersion="0.6.0" />
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+使用 ES 模块命名导出来导出 CSS。
+
+当使用 `namedExports: true` 时，你可以使用命名空间导出或命名导出：
+
+```js
+// 命名空间导出
+import * as classes from './index.module.css';
+// 命名导出
+import { class1, class2 } from './index.module.css';
+```
+
+当使用 `namedExports: false` 时，除了命名空间导出和命名导出之外，还可以用默认导出：
+
+```js
+// 命名空间导出
+import * as classes from './index.module.css';
+// 命名导出
+import { class1, class2 } from './index.module.css';
+// 默认导出
+import classes from './index.module.css';
+// 默认导出和命名导出
+import classes, { class1, class2 } from './index.module.css';
+```
+
+### module.parser.css
+
+`css` 模块的解析器选项。
+
+:::warning
+只有在 `experiments.css = true` 时该配置才会生效
+:::
+
+#### module.parser.css.namedExports
+
+<ApiMeta addedVersion="0.6.0" />
+
+和 [`module.parser["css/auto"].namedExports`](#moduleparsercssautonamedexports) 一样。
+
+### module.parser["css/module"]
+
+`css/module` 模块的解析器选项。
+
+:::warning
+只有在 `experiments.css = true` 时该配置才会生效
+:::
+
+#### module.parser["css/module"].namedExports
+
+<ApiMeta addedVersion="0.6.0" />
+
+和 [`module.parser["css/auto"].namedExports`](#moduleparsercssautonamedexports) 一样。
+
+## module.generator
+
+- **类型：** `Object`
+- **默认值：** `{}`
+
+使用 `module.generator` 在一个地方配置所有生成器选项。
+
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    generator: {
+      // asset 模块的生成器选项
+      asset: {
+        dataUrl: {
+          encoding: false,
+          mimetype: 'base64',
+        },
+        filename: '[name]-[contenthash][ext]',
+        publicPath: 'https://cdn.example.com/',
+      },
+      // asset/inline 模块的生成器选项
+      'asset/inline': {
+        dataUrl: {
+          encoding: false,
+          mimetype: 'base64',
+        },
+      },
+      // asset/resource 模块的生成器选项
+      'asset/resource': {
+        filename: '[name]-[contenthash][ext]',
+        publicPath: 'https://cdn.example.com/',
+      },
+      // css/auto 模块的生成器选项
+      'css/auto': {
+        exportsConvention: 'as-is',
+        exportsOnly: false,
+        localIdentName: '[uniqueName]-[id]-[local]',
+      },
+      // css 模块的生成器选项
+      css: {
+        exportsConvention: 'as-is',
+        exportsOnly: false,
+      },
+      // css/module 模块的生成器选项
+      'css/module': {
+        exportsConvention: 'as-is',
+        exportsOnly: false,
+        localIdentName: '[uniqueName]-[id]-[local]',
+      },
+    },
+  },
+};
+```
+
+### module.generator.asset
+
+`asset` 模块的生成器选项。
+
+#### module.generator.asset.dataUrl
+
+- **类型：** `Object | (options: { content: string, filename: string }) => string`
+- **默认值：** `{}`
+
+仅对模块类型为 `asset` 或 `'asset/inline'` 的模块生效。
+
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    generator: {
+      asset: {
+        dataUrl: {
+          encoding: 'base64',
+          mimetype: 'mimetype/png',
+        },
+      },
+    },
+  },
+};
+```
+
+当被作为一个函数使用，它必须为每个模块执行且并须返回一个 data URI 字符串。
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  module: {
+    generator: {
+      asset: {
+        dataUrl: ({ content }) => {
+          const svgToMiniDataURI = require('mini-svg-data-uri');
+          return svgToMiniDataURI(content);
+        },
+      },
+    },
+  },
+};
+```
+
+##### module.generator.asset.dataUrl.encoding
+
+- **类型：** `false | 'base64'`
+- **默认值：** `'base64'`
+
+设置为 base64 时，模块将使用 base64 算法进行编码。将编码设置为 false 将禁用编码。仅对模块类型为 `'asset/inline'` 的模块生效。
+
+##### module.generator.asset.dataUrl.mimetype
+
+- **类型：** `string`
+- **默认值：** `require('mime-types').lookup(ext)`
+
+dataUrl 的 MIME 类型，默认从模块资源扩展名解析。仅对模块类型为 `'asset/inline'` 的模块生效。
+
+#### module.generator.asset.filename
+
+- **类型：** `string`
+- **默认值：** `undefined`
+- **支持的 Template string：** 参考 [`output.assetModuleFilename`](/config/output.html#outputassetmodulefilename)
+
+覆盖 [`output.assetModuleFilename`](/config/output.html#outputassetmodulefilename)，仅对模块类型为 `'asset'` 和 `'asset/resource'` 的模块生效。
+
+```ts title=rspack.config.js
+module.exports = {
+  module: {
+    generator: {
+      asset: {
+        filename: 'static/[hash][ext]',
+      },
+    },
+  },
+};
+```
+
+#### module.generator.asset.publicPath
+
+- **类型：** `string`
+- **默认值：** `undefined`
+
+覆盖 [`output.publicPath`](/zh/config/output.html#outputpublicpath)，仅对模块类型为 `'asset'` 和 `'asset/resource'` 的模块生效。
+
+```ts title=rspack.config.js
+module.exports = {
+  module: {
+    generator: {
+      asset: {
+        publicPath: 'https://cdn.example.com/',
+      },
+    },
+  },
+};
+```
+
+### module.generator["asset/inline"]
+
+`asset/inline` 模块的生成器选项。
+
+#### module.generator["asset/inline"].dataUrl
+
+和 [`module.generator["asset"].dataUrl`](#modulegeneratorassetdataurl) 一样。
+
+##### module.generator["asset/inline"].dataUrl.encoding
+
+和 [`module.generator["asset"].dataUrl.encoding`](#modulegeneratorassetdataurlencoding) 一样。
+
+##### module.generator["asset/inline"].dataUrl.mimetype
+
+和 [`module.generator["asset"].dataUrl.mimetype`](#modulegeneratorassetdataurlmimetype) 一样。
+
+### module.generator["asset/resource"]
+
+`asset/resource` 模块的生成器选项。
+
+#### module.generator["asset/resource"].filename
+
+和 [`module.generator["asset"].filename`](#modulegeneratorassetfilename) 一样。
+
+#### module.generator["asset/resource"].publicPath
+
+和 [`module.generator["asset"].publicPath`](#modulegeneratorassetpublicpath) 一样。
+
+### module.generator["css/auto"]
+
+`css/auto` 模块的生成器选项。
+
+:::warning
+只有在 `experiments.css = true` 时该配置才会生效
+:::
+
+#### module.generator["css/auto"].exportsConvention
+
+<ApiMeta addedVersion="0.6.0" />
+
+- **类型：** `'as-is' | 'camel-case' | 'camel-case-only' | 'dashes' | 'dashes-only'`
+- **默认值：** `'as-is'`
+
+自定义 CSS 导出名称如何导出到 JavaScript 模块，例如保留原样、转换为驼峰命名等等。
+
+#### module.generator["css/auto"].exportsOnly
+
+<ApiMeta addedVersion="0.6.0" />
+
+- **类型：** `boolean`
+- **默认值：** `true` for node environments, `false` for web environments.
+
+避免生成和加载样式表，只将来自 CSS 的导出嵌入到输出的 JavaScript 文件中。
+
+#### module.generator["css/auto"].localIdentName
+
+<ApiMeta addedVersion="0.6.0" />
+
+- **类型：** `string`
+- **默认值：** `[uniqueName]-[id]-[local]`
+
+自定义生成的 CSS modules 的局部类名格式，除了在[文件级别](/config/output.html#file-context)和[模块级别](/config/output.html#module-context)的替换之外，还包括 `[uniqueName]` 和 `[local]`。
+
+### module.generator.css
+
+`css` 模块的生成器选项。
+
+:::warning
+只有在 `experiments.css = true` 时该配置才会生效
+:::
+
+#### module.generator.css.exportsConvention
+
+<ApiMeta addedVersion="0.6.0" />
+
+和 [`module.generator["css/auto"].exportsConvention`](#modulegeneratorcssautoexportsconvention) 一样。
+
+#### module.generator.css.exportsOnly
+
+<ApiMeta addedVersion="0.6.0" />
+
+和 [`module.generator["css/auto"].exportsOnly`](#modulegeneratorcssautoexportsonly) 一样。
+
+### module.generator["css/module"]
+
+`css/module` 模块的生成器选项。
+
+:::warning
+只有在 `experiments.css = true` 时该配置才会生效
+:::
+
+#### module.generator["css/module"].exportsConvention
+
+<ApiMeta addedVersion="0.6.0" />
+
+和 [`module.generator["css/auto"].exportsConvention`](#modulegeneratorcssautoexportsconvention) 一样。
+
+#### module.generator["css/module"].exportsOnly
+
+<ApiMeta addedVersion="0.6.0" />
+
+和 [`module.generator["css/auto"].exportsOnly`](#modulegeneratorcssautoexportsonly) 一样。
+
+#### module.generator["css/module"].localIdentName
+
+<ApiMeta addedVersion="0.6.0" />
+
+和 [`module.generator["css/auto"].localIdentName`](#modulegeneratorcssautolocalidentname) 一样。
+
 ## module.rules
 
 - **类型：** `Rule[]`
@@ -210,161 +652,50 @@ module.exports = {
 - **类型：** `Object`
 - **默认值：** `{}`
 
-模块的 parser 配置。
+对于通过规则条件匹配的特定模块的解析器选项，这将覆盖 `module.parser` 中的解析器选项。
 
-#### Rule.parser.dataUrlCondition
-
-- **类型：** `object = { maxSize: number = 8096 }`
-- **默认值：** `{}`
-
-如果当前模块的小于等于 `maxSize`，那么模块将被 Base64 编码，否则模块将会以文件形式被输出。该选项仅能做用于 Asset Module 的场景。
-
-```ts title=rspack.config.js
+```js title=rspack.config.js
 module.exports = {
   module: {
     rules: [
       {
-        test: /\.png$/,
+        test: /\.css/,
         parser: {
-          dataUrlCondition: {
-            // 小于等于 4kb，且以 `.png` 结尾的模块将被 Base64 编码
-            maxSize: 4 * 1024,
-          },
+          namedExports: false,
         },
+        type: 'css/module',
       },
     ],
   },
 };
 ```
+
+对于特定的解析器选项及其对应的模块类型，你可以参考 [`module.parser`](#moduleparser)。
 
 ### Rule.generator
 
 - **类型：** `Object`
 - **默认值：** `{}`
 
-模块的生成器选项，例如：对于 Asset Module 可以指定输出文件名。
-
-#### Rule.generator.filename
-
-- **类型：** `string`
-- **默认值：** `undefined`
-- **支持的 Template string：** 参考 [`output.assetModuleFilename`](/config/output.html#outputassetmodulefilename)
-
-覆盖 [`output.assetModuleFilename`](/config/output.html#outputassetmodulefilename)，仅对模块类型为 `'asset'` 和 `'asset/resource'` 的模块生效。
-
-```ts title=rspack.config.js
-module.exports = {
-  //...
-  output: {
-    assetModuleFilename: 'images/[hash][ext]',
-  },
-  module: {
-    rules: [
-      {
-        test: /\.png/,
-        type: 'asset/resource',
-      },
-      {
-        test: /\.html/,
-        type: 'asset/resource',
-        generator: {
-          filename: 'static/[hash][ext]',
-        },
-      },
-    ],
-  },
-};
-```
-
-#### Rule.generator.publicPath
-
-- **类型：** `string`
-- **默认值：** `undefined`
-
-覆盖 [`output.publicPath`](/zh/config/output.html#outputpublicpath)，仅对模块类型为 `'asset'` 和 `'asset/resource'` 的模块生效。
-
-```ts title=rspack.config.js
-module.exports = {
-  //...
-  output: {
-    publicPath: 'https://example.com/',
-  },
-  module: {
-    rules: [
-      {
-        test: /\.png/,
-        type: 'asset/resource',
-        generator: {
-          publicPath: 'https://cdn.example.com/',
-        },
-      },
-    ],
-  },
-};
-```
-
-#### Rule.generator.dataUrl
-
-- **类型：** `Object | (options: { content: string, filename: string }) => string`
-- **默认值：** `{}`
-
-仅对模块类型为 `'asset/inline'` 的模块生效。
-
-```ts title=rspack.config.js
-module.exports = {
-  //...
-  module: {
-    rules: [
-      {
-        test: /\.png/,
-        type: 'asset/inline',
-        generator: {
-          dataUrl: {
-            encoding: 'base64',
-            mimetype: 'mimetype/png',
-          },
-        },
-      },
-    ],
-  },
-};
-```
-
-当被作为一个函数使用，它必须为每个模块执行且并须返回一个 data URI 字符串。
+对于通过规则条件匹配的特定模块的生成器选项，这将覆盖 `module.generator` 中的生成器选项。
 
 ```js title=rspack.config.js
 module.exports = {
-  //...
   module: {
     rules: [
       {
-        test: /\.svg$/,
-        type: 'asset/inline',
+        test: /\.png/,
         generator: {
-          dataUrl: ({ content }) => {
-            const svgToMiniDataURI = require('mini-svg-data-uri');
-            return svgToMiniDataURI(content);
-          },
+          filename: '[contenthash][ext]',
         },
+        type: 'asset',
       },
     ],
   },
 };
 ```
 
-#### Rule.generator.dataUrl.encoding
-
-- **类型：** `false | 'base64'`
-- **默认值：** `'base64'`
-
-设置为 base64 时，模块将使用 base64 算法进行编码。将编码设置为 false 将禁用编码。仅对模块类型为 `'asset/inline'` 的模块生效。
-
-#### Rule.generator.dataUrl.mimetype
-
-- **类型：** `string`
-- **默认值：** `require('mime-types').lookup(ext)`
-
-dataUrl 的 MIME 类型，默认从模块资源扩展名解析。仅对模块类型为 `'asset/inline'` 的模块生效。
+对于特定的生成器选项及其对应的模块类型，你可以参考 [`module.generator`](#modulegenerator)。
 
 ### Rule.sideEffects
 
@@ -495,116 +826,3 @@ module.exports = {
 - **默认值：** `undefined`
 
 [嵌套 Rule](#nested-rule) 的一种，当其上层 Rule 匹配成功后会使用这些 Rule 进行匹配，并且只使用匹配成功的第一个 Rule
-
-## module.parser
-
-- **类型：** `Object`
-- **默认值：** `{}`
-
-使用 `module.parser` 在一个地方配置所有解析器选项。
-
-```ts title=rspack.config.js
-module.exports = {
-  module: {
-    parser: {
-      asset: {
-        // asset 模块的解析器选项
-        dataUrlCondition: {
-          maxSize: 8000,
-        },
-      },
-    },
-  },
-};
-```
-
-### module.parser.javascript
-
-JavaScript parser 的配置项。
-
-```ts title=rspack.config.js
-module.exports = {
-  module: {
-    parser: {
-      javascript: {
-        dynamicImportMode: 'lazy',
-        url: true,
-      },
-    },
-  },
-};
-```
-
-#### module.parser.javascript.dynamicImportMode
-
-指定动态导入的全局模式。
-
-- **类型：** `'lazy' | 'eager'`
-- **默认值：** `'lazy'`
-
-#### module.parser.javascript.dynamicImportPrefetch
-
-<ApiMeta addedVersion="0.4.5" />
-
-指定动态导入的全局 prefetch。
-
-- **Type:** `boolean | number`
-- **Default:** `false`
-
-#### module.parser.javascript.dynamicImportPreload
-
-<ApiMeta addedVersion="0.4.5" />
-
-指定动态导入的全局 preload。
-
-- **Type:** `boolean | number`
-- **Default:** `false`
-
-#### module.parser.javascript.url
-
-<ApiMeta addedVersion="0.4.4" />
-
-启用 `new URL()` 语法解析。
-
-- **类型：** `true | false | 'relative'`
-- **默认值：** `true`
-
-当使用 'relative' 时，webpack 将为 `new URL()` 语法生成相对的 URL，即结果 URL 中不包含根 URL
-
-```html
-<!-- 使用 'relative' -->
-<img src="icon.svg" />
-
-<!-- 不使用 'relative' -->
-<img src="file:///path/to/project/dist/icon.svg" />
-```
-
-## module.generator
-
-- **类型：** `Object`
-- **默认值：** `{}`
-
-使用 `module.generator` 在一个地方配置所有生成器选项。
-
-```ts title=rspack.config.js
-module.exports = {
-  module: {
-    generator: {
-      asset: {
-        // asset 模块的生成器选项
-        publicPath: 'https://cdn.example.com/',
-      },
-      'asset/inline': {
-        // asset/inline 模块的生成器选项
-        dataUrl: {
-          encoding: false,
-        },
-      },
-      'asset/resource': {
-        // asset/resource 模块的生成器选项
-        filename: '[name]-[contenthash][ext]',
-      },
-    },
-  },
-};
-```

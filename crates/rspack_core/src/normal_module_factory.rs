@@ -5,6 +5,7 @@ use regex::Regex;
 use rspack_error::{error, Result};
 use rspack_hook::{AsyncSeries3Hook, AsyncSeriesBail2Hook, AsyncSeriesBailHook};
 use rspack_loader_runner::{get_scheme, Loader, Scheme};
+use rspack_util::MergeFrom;
 use sugar_path::{AsPath, SugarPath};
 use swc_core::common::Span;
 
@@ -539,7 +540,7 @@ impl NormalModuleFactory {
       self.calculate_module_type(match_module_type, &resolved_module_rules);
     let resolved_resolve_options = self.calculate_resolve_options(&resolved_module_rules);
     let (resolved_parser_options, resolved_generator_options) =
-      self.calculate_parser_and_generator_options(&resolved_module_rules);
+      self.calculate_parser_and_generator_options(&resolved_module_type, &resolved_module_rules);
     let factory_meta = FactoryMeta {
       side_effect_free: self
         .calculate_side_effects(&resolved_module_rules, &resource_data)
@@ -555,7 +556,10 @@ impl NormalModuleFactory {
           "No parser registered for '{}'",
           resolved_module_type.as_str()
         )
-      })?();
+      })?(
+      resolved_parser_options.as_ref(),
+      resolved_generator_options.as_ref(),
+    );
 
     let mut create_data = {
       let mut create_data = NormalModuleCreateData {
@@ -685,20 +689,28 @@ impl NormalModuleFactory {
 
   fn calculate_parser_and_generator_options(
     &self,
+    module_type: &ModuleType,
     module_rules: &[&ModuleRule],
   ) -> (Option<ParserOptions>, Option<GeneratorOptions>) {
-    let mut resolved_parser = None;
-    let mut resolved_generator = None;
+    let mut resolved_parser = self
+      .options
+      .module
+      .parser
+      .as_ref()
+      .and_then(|p| p.get(module_type))
+      .cloned();
+    let mut resolved_generator = self
+      .options
+      .module
+      .generator
+      .as_ref()
+      .and_then(|g| g.get(module_type))
+      .cloned();
 
-    module_rules.iter().for_each(|rule| {
-      // TODO: should deep merge
-      if let Some(parser) = rule.parser.as_ref() {
-        resolved_parser = Some(parser.to_owned());
-      }
-      if let Some(generator) = rule.generator.as_ref() {
-        resolved_generator = Some(generator.to_owned());
-      }
-    });
+    for rule in module_rules {
+      resolved_parser = resolved_parser.merge_from(&rule.parser);
+      resolved_generator = resolved_generator.merge_from(&rule.generator);
+    }
 
     (resolved_parser, resolved_generator)
   }

@@ -11,7 +11,10 @@ module.exports = {
 						}
 					}
 				],
-				type: "css"
+				type: "css",
+				generator: {
+					exportsOnly: false,
+				}
 			}
 		]
 	}

@@ -9,5 +9,12 @@ module.exports = {
 			}
 			return callback();
 		}
-	]
+	],
+	module: {
+		generator: {
+			"css/auto": {
+				exportsOnly: false,
+			}
+		}
+	}
 };

@@ -190,7 +190,9 @@ module.exports = {
 import Btn from 'foo/es/my-button';
 ```
 
-除了 `kebabCase` 以外还有 `camelCase`、`snakeCase`、`upperCase` 和 `lowerCase` 可以使用。
+除了 `kebabCase` 以外还有 `camelCase`、`snakeCase`、`upperCase`、 `lowerCase` 和 `legacyKebabCase`、`legacySnakeCase` 可以使用。
+
+其中 `legacyKebabCase`/`legacySnakeCase` 使用跟 babel-plugin-import@1.13.7 之前的版本相同的转换逻辑。
 
 其他配置可以直接查看 [babel-plugin-import](https://www.npmjs.com/package/babel-plugin-import)。
 

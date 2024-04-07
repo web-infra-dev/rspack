@@ -13,12 +13,21 @@ const config = {
 			{
 				test: /\.less$/,
 				use: "less-loader",
-				type: "css"
+				type: "css",
+				generator: {
+					exportsOnly: true,
+					exportsConvention: "as-is"
+				}
 			},
 			{
 				test: /\.module\.less$/,
 				use: "less-loader",
-				type: "css/module"
+				type: "css/module",
+				generator: {
+					exportsOnly: true,
+					exportsConvention: "as-is",
+					localIdentName: "[uniqueName]---[path][name][ext]-[local]"
+				}
 			},
 			{
 				test: /\.svg$/,
@@ -123,14 +132,6 @@ const config = {
 		css: true,
 		rspackFuture: {
 			newTreeshaking: true
-		}
-	},
-	builtins: {
-		css: {
-			modules: {
-				exportsOnly: true,
-				localIdentName: "example-arco-design-pro---[path][name][ext]-[local]"
-			}
 		}
 	}
 };

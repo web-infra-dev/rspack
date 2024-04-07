@@ -54,6 +54,7 @@ fn extract_deps(call_expr: &CallExpr, create_dependency: CreateDependency) -> Ve
 
 impl JavascriptParser<'_> {
   fn create_hmr_expression_handler(&mut self, span: Span) {
+    self.build_info.module_concatenation_bailout = Some(String::from("Hot Module Replacement"));
     self
       .presentational_dependencies
       .push(Box::new(ModuleArgumentDependency::new(
@@ -68,6 +69,7 @@ impl JavascriptParser<'_> {
     call_expr: &CallExpr,
     create_dependency: CreateDependency,
   ) -> Option<bool> {
+    self.build_info.module_concatenation_bailout = Some(String::from("Hot Module Replacement"));
     self
       .presentational_dependencies
       .push(Box::new(ModuleArgumentDependency::new(
@@ -108,6 +110,7 @@ impl JavascriptParser<'_> {
     call_expr: &CallExpr,
     create_dependency: CreateDependency,
   ) -> Option<bool> {
+    self.build_info.module_concatenation_bailout = Some(String::from("Hot Module Replacement"));
     self
       .presentational_dependencies
       .push(Box::new(ModuleArgumentDependency::new(

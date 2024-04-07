@@ -8,13 +8,13 @@ use rspack_sources::BoxSource;
 use rspack_util::source_map::SourceMapKind;
 use swc_core::common::Span;
 
-use crate::ConcatenationScope;
 use crate::{
   tree_shaking::visitor::OptimizeAnalyzeResult, AsyncDependenciesBlock, BoxDependency, BoxLoader,
   BuildExtraDataType, BuildInfo, BuildMeta, CodeGenerationData, Compilation, CompilerOptions,
   DependencyTemplate, GeneratorOptions, Module, ModuleDependency, ModuleIdentifier, ModuleType,
   ParserOptions, RuntimeGlobals, RuntimeSpec, SourceType,
 };
+use crate::{ChunkGraph, ConcatenationScope, ModuleGraph};
 
 #[derive(Derivative)]
 #[derivative(Debug)]
@@ -100,4 +100,11 @@ pub trait ParserAndGenerator: Send + Sync + Debug {
   fn store(&self, _extra_data: &mut HashMap<BuildExtraDataType, AlignedVec>) {}
   /// Resume parser&generator data from cache
   fn resume(&mut self, _extra_data: &HashMap<BuildExtraDataType, AlignedVec>) {}
+
+  fn get_concatenation_bailout_reason(
+    &self,
+    _module: &dyn Module,
+    _mg: &ModuleGraph,
+    _cg: &ChunkGraph,
+  ) -> Option<String>;
 }

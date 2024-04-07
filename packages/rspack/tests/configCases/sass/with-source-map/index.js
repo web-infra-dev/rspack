@@ -3,7 +3,7 @@ const path = require("path");
 
 it("basic", () => {
 	const css = require("./index.scss");
-	expect(css).toEqual({});
+	expect(css).toEqual(nsObj({}));
 	const source = fs.readFileSync(
 		path.resolve(__dirname, "bundle0.css.map"),
 		"utf-8"
