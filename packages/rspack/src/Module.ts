@@ -30,12 +30,15 @@ export class Module {
 	#inner: JsModule;
 	_originalSource?: Source;
 
+	rawRequest?: string;
+
 	static __from_binding(module: JsModule) {
 		return new Module(module);
 	}
 
 	constructor(module: JsModule) {
 		this.#inner = module;
+		this.rawRequest = module.rawRequest;
 	}
 
 	get context(): string | undefined {

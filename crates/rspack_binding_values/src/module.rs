@@ -13,6 +13,7 @@ pub struct JsModule {
   pub resource: Option<String>,
   pub module_identifier: String,
   pub name_for_condition: Option<String>,
+  pub raw_request: Option<String>,
 }
 
 pub trait ToJsModule {
@@ -44,6 +45,7 @@ impl ToJsModule for dyn Module + '_ {
         ),
         module_identifier: module_identifier(),
         name_for_condition: name_for_condition(),
+        raw_request: Some(normal_module.raw_request().to_string()),
       })
       .or_else(|_| {
         self.try_as_raw_module().map(|_| JsModule {
@@ -52,6 +54,7 @@ impl ToJsModule for dyn Module + '_ {
           resource: None,
           module_identifier: module_identifier(),
           name_for_condition: name_for_condition(),
+          raw_request: None,
         })
       })
       .or_else(|_| {
@@ -61,6 +64,7 @@ impl ToJsModule for dyn Module + '_ {
           resource: None,
           module_identifier: module_identifier(),
           name_for_condition: name_for_condition(),
+          raw_request: None,
         })
       })
       .or_else(|_| {
@@ -70,6 +74,7 @@ impl ToJsModule for dyn Module + '_ {
           resource: None,
           module_identifier: module_identifier(),
           name_for_condition: name_for_condition(),
+          raw_request: None,
         })
       })
       .or_else(|_| {

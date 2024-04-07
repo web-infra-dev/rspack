@@ -22,7 +22,15 @@ pub fn update_hash_for_entry_startup(
     if let Some(module_id) = compilation
       .get_module_graph()
       .module_graph_module_by_identifier(module)
-      .map(|module| module.id(&compilation.chunk_graph))
+      .map(|module| {
+        match compilation
+          .chunk_graph
+          .get_module_id(module.module_identifier)
+        {
+          Some(id) => id.as_str(),
+          None => "null",
+        }
+      })
     {
       module_id.hash(hasher);
     }
@@ -146,7 +154,15 @@ pub fn generate_entry_startup(
     if let Some(module_id) = compilation
       .get_module_graph()
       .module_graph_module_by_identifier(module)
-      .map(|module| module.id(&compilation.chunk_graph))
+      .map(|module| {
+        match compilation
+          .chunk_graph
+          .get_module_id(module.module_identifier)
+        {
+          Some(id) => id.as_str(),
+          None => "null",
+        }
+      })
     {
       let module_id_expr = serde_json::to_string(module_id).expect("invalid module_id");
       module_id_exprs.push(module_id_expr);
