@@ -196,7 +196,7 @@ v0.5.0 移除了许多已经弃用的功能，除此之外，v0.5.0 引入了四
 
 这是一个很可能会影响到您的破坏性更新。
 
-在将 `@rspack/core` 升级到 v0.5.0 后，如果构建失败并出现错误：`Can't resolve './src/xxx.tsx'`，或者 `Can't resolve './src/xxx.ts'`，或者 `Can't resolve './src/xxx.jsx'`，则需要在配置中添加 `resolve.extensions = ['...', '.tsx', '.ts', '.jsx']`。
+在将 `@rspack/core` 升级到 v0.5.0 后，如果构建失败并出现错误：`Can't resolve './src/foo.tsx'`，或者 `Can't resolve './src/foo.ts'`，或者 `Can't resolve './src/foo.jsx'`，则需要在配置中添加 `resolve.extensions = ['...', '.tsx', '.ts', '.jsx']`。
 
 ```diff
 const configuration = {
@@ -213,7 +213,7 @@ const configuration = {
 
 这是一个很可能会影响到您的破坏性更新。
 
-在将 `@rspack/core` 升级到 v0.5.0 后，如果构建失败并出现错误：`Failed to resolve @swc/helpers/xxx` 或 `Failed to resolve react-refresh/xxx`，则需要在您的项目中安装 `@swc/helpers` 或 `react-refresh`。
+在将 `@rspack/core` 升级到 v0.5.0 后，如果构建失败并出现错误：`Failed to resolve @swc/helpers/some-helper` 或 `Failed to resolve react-refresh/some-module`，则需要在您的项目中安装 `@swc/helpers` 或 `react-refresh`。
 
 如果您正在使用 `builtin:swc-loader` 或 `swc-loader` 的 `externalHelpers: true` 功能，现在您需要将 `@swc/helpers` 安装为项目的 dependencies。
 

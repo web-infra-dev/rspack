@@ -1,6 +1,8 @@
 ahabhgk
 alexander-akait
 analysable
+antd
+ɑrespæk
 behaviour
 behaviours
 Boshen
@@ -23,9 +25,11 @@ esbuild
 evanw
 experimentsrspackfuture
 experimentsrspackfuturedisableapplyentrylazily
+experimentsrspackfuturenewresolver
 externalstypecommonjs
 faga295
 fargs
+feishu
 fnames
 funs
 Hana
@@ -38,19 +42,25 @@ jantimon
 JavaScript
 jerrykingxyz
 jscpuprofile
+lingyucoder
 lippzhang
 magic-akari
+memfs
 moduleid
 monaco
 myorg
 myrspackapp
 NAPI
 NAPI-RS
+nativizing
 nestjs
 NestJS
 nosources
 nwjs
 optionsrspackexperiments
+outputdevtoolfallbackmodulefilenametemplate
+outputdevtoolmodulefilenametemplate
+outputdevtoolnamespace
 outputenabledwasmloadingtypes
 outputlibraryumdnameddefine
 perfetto
@@ -59,6 +69,7 @@ pxtorem
 recognise
 Rollup
 rome
+rsbuild
 Rsdoctor
 rsfamily
 rspack
@@ -70,6 +81,7 @@ ruleoneof
 ruleparserdataurlcondition
 Rust
 sanyuan
+Shenzhen
 sockjs
 sokra
 solidjs
@@ -88,8 +100,11 @@ Terser
 tuchg
 typeofs
 TypeScript
+ulivz
 valorkin
+vant
 viktoriialurie
+weapp
 Webpack
 Xeon
 XKKCNZZNJD
@@ -97,7 +112,3 @@ xstyled
 Zack
 Zack Jackson
 zackarychapple
-outputdevtoolfallbackmodulefilenametemplate
-outputdevtoolmodulefilenametemplate
-outputdevtoolmodulefilenametemplate
-outputdevtoolnamespace

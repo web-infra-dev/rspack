@@ -196,7 +196,7 @@ v0.5.0 removed lots of deprecated features, except that, v0.5.0 introduced four 
 
 This is a breaking change that is most likely to affect you.
 
-After you upgrade `@rspack/core` to v0.5.0, if you build failed with error: `Can't resolve './src/xxx.tsx'`, or `Can't resolve './src/xxx.ts'`, or `Can't resolve './src/xxx.jsx'`, you need to add `resolve.extensions = ['...', '.tsx', '.ts', '.jsx']` in your configuration.
+After you upgrade `@rspack/core` to v0.5.0, if you build failed with error: `Can't resolve './src/foo.tsx'`, or `Can't resolve './src/foo.ts'`, or `Can't resolve './src/foo.jsx'`, you need to add `resolve.extensions = ['...', '.tsx', '.ts', '.jsx']` in your configuration.
 
 ```diff
 const configuration = {
@@ -213,7 +213,7 @@ You only need to add the needed extensions to `resolve.extensions`. For example,
 
 This is a breaking change that is most likely to affect you.
 
-After you upgrade `@rspack/core` to v0.5.0, if you build failed with error: `Failed to resolve @swc/helpers/xxx` or `Failed to resolve react-refresh/xxx`, you need to install `@swc/helpers` or `react-refresh` in your project.
+After you upgrade `@rspack/core` to v0.5.0, if you build failed with error: `Failed to resolve @swc/helpers/some-helper` or `Failed to resolve react-refresh/some-module`, you need to install `@swc/helpers` or `react-refresh` in your project.
 
 If you are using `externalHelpers: true` with `builtin:swc-loader` or `swc-loader`, now you need to install `@swc/helpers` as dependencies of your project.
 

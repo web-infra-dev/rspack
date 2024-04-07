@@ -123,14 +123,14 @@ Condition 代表了匹配一个给定输入的形式，它支持的类型为：
 - **类型：** [`Condition`](/zh/config/module.html#condition)
 - **默认值：** `undefined`
 
-匹配所有符合这个资源的模块，会和 Resource 的 query 进行匹配。注：包含 `?`，当 `Rule.resourceQuery` 为 `?raw` 时，会和 `xxx?raw` 的资源请求进行匹配。
+匹配所有符合这个资源的模块，会和 Resource 的 query 进行匹配。注：包含 `?`，当 `Rule.resourceQuery` 为 `?raw` 时，会和 `foo?raw` 的资源请求进行匹配。
 
 ### Rule.resourceFragment
 
 - **类型：** [`Condition`](/zh/config/module.html#condition)
 - **默认值：** `undefined`
 
-匹配所有符合这个资源的模块，会和 Resource 的 fragment 进行匹配。注：包含 `#`，当 `Rule.resourceFragment` 为 `#abc` 时，会和 `xxx#abc` 的资源请求进行匹配。
+匹配所有符合这个资源的模块，会和 Resource 的 fragment 进行匹配。注：包含 `#`，当 `Rule.resourceFragment` 为 `#abc` 时，会和 `foo#abc` 的资源请求进行匹配。
 
 ### Rule.test
 

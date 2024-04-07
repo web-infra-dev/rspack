@@ -5,6 +5,9 @@
 
 # @rspack/test-tools
 
+> Rspack's internal test tools, don't use it directly in your project, it may contain breaking change in minor & patch release right now.
+
+
 Test tools for rspack.
 
 ## Documentation

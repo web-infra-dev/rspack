@@ -72,17 +72,16 @@ module.exports = {
 参考 [SWC 配置](https://swc.rs/docs/configuration/swcrc)。
 
 ### options.jsc.experimental.plugins
+
 <ApiMeta addedVersion="0.5.8" stability={Stability.Experimental} />
 
 :::warning
 wasm 插件和 swc 的版本存在一定的绑定关系，需要选择和对应 swc 版本兼容的 wasm 插件才能正常执行, [selecting-swc-core](https://swc.rs/docs/plugin/selecting-swc-core#088x--089x) 里有更多关于如何选择兼容的 wasm 插件的信息。
 :::
 
-Rspack 支持在 `buitin:swc-loader` 里加载 `swc` 的 `wasm` 插件, 你可以通过如下配置启用 `wasm` 插件
+Rspack 支持在 `builtin:swc-loader` 里加载 `swc` 的 `wasm` 插件, 你可以通过如下配置启用 `wasm` 插件
 
-
-
-```js 
+```js
 {
   module: {
     rules: [
@@ -96,19 +95,21 @@ Rspack 支持在 `buitin:swc-loader` 里加载 `swc` 的 `wasm` 插件, 你可�
                 [
                   '@swc/plugin-remove-console',
                   {
-                    exclude: ['error']
-                  }
-                ]
-              ]
-            }
-          }
-        }
-      }
-    ]
+                    exclude: ['error'],
+                  },
+                ],
+              ],
+            },
+          },
+        },
+      },
+    ];
   }
 }
 ```
+
 这是 wasm 插件的一个[示例](https://github.com/rspack-contrib/rspack-examples/blob/d4b8aaef9915ed0f540edbe504217c3d1afe8989/rspack/builtin-swc-loader/rspack.config.js#L45)。
+
 ### options.rspackExperiments
 
 Rspack 内置的实验性功能。

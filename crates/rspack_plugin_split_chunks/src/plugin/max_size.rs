@@ -57,15 +57,15 @@ fn hash_filename(filename: &str, options: &CompilerOptions) -> String {
   hash_digest.rendered(8).to_string()
 }
 
-static REPALCE_MODULE_IDENTIFIER_REG: Lazy<Regex> =
+static REPLACE_MODULE_IDENTIFIER_REG: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"^.*!|\?[^?!]*$").expect("regexp init failed"));
-static REPALCE_RELATIVE_PREFIX_REG: Lazy<Regex> =
+static REPLACE_RELATIVE_PREFIX_REG: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"^(\.\.?\/)+").expect("regexp init failed"));
 static REPLACE_ILLEGEL_LETTER_REG: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"(^[.-]|[^a-zA-Z0-9_-])+").expect("regexp init failed"));
 
 fn request_to_id(req: &str) -> String {
-  let mut res = REPALCE_RELATIVE_PREFIX_REG.replace_all(req, "").to_string();
+  let mut res = REPLACE_RELATIVE_PREFIX_REG.replace_all(req, "").to_string();
   res = REPLACE_ILLEGEL_LETTER_REG
     .replace_all(&res, "_")
     .to_string();
@@ -94,7 +94,7 @@ fn deterministic_grouping_for_modules(
       let name: String = if module.name_for_condition().is_some() {
         make_paths_relative(context, module.identifier().as_str())
       } else {
-        REPALCE_MODULE_IDENTIFIER_REG
+        REPLACE_MODULE_IDENTIFIER_REG
           .replace_all(&module.identifier(), "")
           .to_string()
       };

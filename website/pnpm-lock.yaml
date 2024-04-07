@@ -60,6 +60,9 @@ importers:
       case-police:
         specifier: 0.5.10
         version: 0.5.10
+      cspell-ban-words:
+        specifier: 0.0.3
+        version: 0.0.3
       husky:
         specifier: ^8.0.3
         version: 8.0.3
@@ -1842,6 +1845,10 @@ packages:
       path-key: 3.1.1
       shebang-command: 2.0.0
       which: 2.0.2
+
+  /cspell-ban-words@0.0.3:
+    resolution: {integrity: sha512-Q7ZO16DFWEP8Vv5CJ63LG95/FomTuxB6WvKhvGUDE3L2hiYl7n2fH+0qoSXL5C3zH6NRPQT4rDS66t1Pi/fILA==}
+    dev: true
 
   /css-select@5.1.0:
     resolution: {integrity: sha512-nwoRF1rvRRnnCqqY7updORDsuqKzqYJ28+oSMaJMMgOauh3fvwHqMS7EZpIPqK8GL+g9mKxF1vP/ZjSeNjEVHg==}

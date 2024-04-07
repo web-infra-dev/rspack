@@ -75,7 +75,7 @@ Rspack 不允许将 entry 名称传递给 `{cacheGroup}.test` 或者为 `{cacheG
 
 ### splitChunks.cacheGroups
 
-缓存组可以继承和/或覆盖来自 `splitChunks.{cacheGroup}.xxx` 的任何选项。但是 `test`、`priority` 和 `reuseExistingChunk` 只能在缓存组级别上进行配置。将它们设置为 `false` 以禁用任何默认缓存组。
+缓存组可以继承和/或覆盖来自 `splitChunks.{cacheGroup}.*` 的任何选项。但是 `test`、`priority` 和 `reuseExistingChunk` 只能在缓存组级别上进行配置。将它们设置为 `false` 以禁用任何默认缓存组。
 
 ```js title=rspack.config.js
 module.exports = {

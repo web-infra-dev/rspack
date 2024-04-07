@@ -1278,12 +1278,13 @@ export enum RegisterJsTapKind {
   CompilationChunkAsset = 18,
   CompilationProcessAssets = 19,
   CompilationAfterProcessAssets = 20,
-  NormalModuleFactoryBeforeResolve = 21,
-  NormalModuleFactoryAfterResolve = 22,
-  NormalModuleFactoryCreateModule = 23,
-  NormalModuleFactoryResolveForScheme = 24,
-  ContextModuleFactoryBeforeResolve = 25,
-  ContextModuleFactoryAfterResolve = 26
+  CompilationAfterSeal = 21,
+  NormalModuleFactoryBeforeResolve = 22,
+  NormalModuleFactoryAfterResolve = 23,
+  NormalModuleFactoryCreateModule = 24,
+  NormalModuleFactoryResolveForScheme = 25,
+  ContextModuleFactoryBeforeResolve = 26,
+  ContextModuleFactoryAfterResolve = 27
 }
 
 export interface RegisterJsTaps {
@@ -1308,6 +1309,7 @@ export interface RegisterJsTaps {
   registerCompilationChunkAssetTaps: (stages: Array<number>) => Array<{ function: ((arg: JsChunkAssetArgs) => void); stage: number; }>
   registerCompilationProcessAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => Promise<void>); stage: number; }>
   registerCompilationAfterProcessAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>
+  registerCompilationAfterSealTaps: (stages: Array<number>) => Array<{ function: (() => Promise<void>); stage: number; }>
   registerNormalModuleFactoryBeforeResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsBeforeResolveArgs) => Promise<[boolean | undefined, JsBeforeResolveArgs]>); stage: number; }>
   registerNormalModuleFactoryResolveForSchemeTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveForSchemeArgs) => Promise<[boolean | undefined, JsResolveForSchemeArgs]>); stage: number; }>
   registerNormalModuleFactoryAfterResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsAfterResolveData) => Promise<[boolean | undefined, JsCreateData | undefined]>); stage: number; }>
