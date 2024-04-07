@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use std::hash::BuildHasherDefault;
 use std::sync::Arc;
 
@@ -26,12 +27,20 @@ pub struct ChunkGroupInfo {
   pub min_available_modules: BigUint,
   pub min_available_modules_init: bool,
   pub available_modules_to_be_merged: Vec<BigUint>,
-  pub resulting_available_modules: BigUint,
 
   pub skipped_items: HashSet<ModuleIdentifier>,
   pub skipped_module_connections:
     IndexSet<(ModuleIdentifier, Vec<ConnectionId>), BuildHasherDefault<FxHasher>>,
+  // set of children chunk groups, that will be revisited when available_modules shrink
   pub children: HashSet<CgiUkey>,
+  // set of chunk groups that are the source for min_available_modules
+  pub available_sources: HashSet<CgiUkey>,
+  // set of chunk groups which depend on the this chunk group as available_source
+  pub available_children: HashSet<CgiUkey>,
+
+  // set of modules available including modules from this chunk group
+  // A derived attribute, therefore utilizing interior mutability to manage updates
+  resulting_available_modules: RefCell<Option<BigUint>>,
 }
 
 impl ChunkGroupInfo {
@@ -50,11 +59,54 @@ impl ChunkGroupInfo {
       min_available_modules: Default::default(),
       min_available_modules_init: false,
       available_modules_to_be_merged: Default::default(),
-      resulting_available_modules: Default::default(),
       skipped_items: Default::default(),
       skipped_module_connections: Default::default(),
       children: Default::default(),
+      available_sources: Default::default(),
+      available_children: Default::default(),
+      resulting_available_modules: Default::default(),
     }
+  }
+
+  fn calculate_resulting_available_modules(
+    &self,
+    compilation: &Compilation,
+    module_ids: &HashMap<ModuleIdentifier, BigUint>,
+  ) -> BigUint {
+    let mut resulting_available_modules = self.resulting_available_modules.borrow_mut();
+    if let Some(resulting_available_modules) = resulting_available_modules.clone() {
+      return resulting_available_modules;
+    }
+
+    let mut new_resulting_available_modules = self.min_available_modules.clone();
+    let chunk_group = compilation
+      .chunk_group_by_ukey
+      .expect_get(&self.chunk_group);
+
+    // add the modules from the chunk group to the set
+    for chunk in &chunk_group.chunks {
+      for m in compilation
+        .chunk_graph
+        .get_chunk_modules(chunk, &compilation.get_module_graph())
+      {
+        let identifier = m.identifier();
+        let m_id = module_ids.get(&identifier).unwrap_or_else(|| {
+          panic!(
+            "expected a module id for identifier '{}', but none was found.",
+            &identifier
+          )
+        });
+        new_resulting_available_modules |= m_id;
+      }
+    }
+
+    *resulting_available_modules = Some(new_resulting_available_modules.clone());
+    new_resulting_available_modules
+  }
+
+  fn invalidate_resulting_available_modules(&self) {
+    let mut resulting_available_modules = self.resulting_available_modules.borrow_mut();
+    *resulting_available_modules = None;
   }
 }
 
@@ -88,6 +140,7 @@ pub(super) struct CodeSplitter<'me> {
   queue: Vec<QueueAction>,
   queue_delayed: Vec<QueueAction>,
   queue_connect: HashMap<CgiUkey, HashSet<CgiUkey>>,
+  chunk_groups_for_combining: HashSet<CgiUkey>,
   outdated_chunk_group_info: HashSet<CgiUkey>,
   block_chunk_groups: HashMap<AsyncDependenciesBlockIdentifier, CgiUkey>,
   named_chunk_groups: HashMap<String, CgiUkey>,
@@ -170,6 +223,7 @@ impl<'me> CodeSplitter<'me> {
       queue: Default::default(),
       queue_delayed: Default::default(),
       queue_connect: Default::default(),
+      chunk_groups_for_combining: Default::default(),
       outdated_chunk_group_info: Default::default(),
       block_chunk_groups: Default::default(),
       named_chunk_groups: Default::default(),
@@ -484,20 +538,61 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       self.next_chunk_group_index += 1;
       chunk_group.index = Some(self.next_chunk_group_index);
 
-      let chunk = chunk_group.get_entry_point_chunk();
-      for module in modules {
-        self
-          .queue
-          .push(QueueAction::AddAndEnterModule(AddAndEnterModule {
-            chunk,
-            chunk_group_info: *cgi,
-            module,
-          }));
+      if !chunk_group.parents.is_empty() {
+        // min_available_modules for child entrypoints are unknown yet, set to undefined.
+        // This means no module is added until other sets are merged into
+        // this min_available_modules (by the parent entrypoints)
+        let chunk_group_info = self.chunk_group_infos.expect_get_mut(cgi);
+        chunk_group_info.skipped_items = HashSet::from_iter(modules);
+        self.chunk_groups_for_combining.insert(*cgi);
+      } else {
+        // The application may start here: We start with an empty list of available modules
+        let chunk = chunk_group.get_entry_point_chunk();
+        for module in modules {
+          self
+            .queue
+            .push(QueueAction::AddAndEnterModule(AddAndEnterModule {
+              chunk,
+              chunk_group_info: *cgi,
+              module,
+            }));
+        }
       }
     }
+
+    // Fill available_sources with parent-child dependencies between entrypoints
+    for cgi in &self.chunk_groups_for_combining {
+      let chunk_group_info = self.chunk_group_infos.expect_get_mut(cgi);
+      let chunk_group = self
+        .compilation
+        .chunk_group_by_ukey
+        .expect_get(&chunk_group_info.chunk_group);
+      chunk_group_info.available_sources.clear();
+      for parent in chunk_group.parents_iterable() {
+        if let Some(parent_chunk_group_info_ukey) = self.chunk_group_info_map.get(parent) {
+          chunk_group_info
+            .available_sources
+            .insert(*parent_chunk_group_info_ukey);
+        }
+      }
+      for parent in chunk_group.parents_iterable() {
+        if let Some(parent_chunk_group_info_ukey) = self.chunk_group_info_map.get(parent) {
+          let parent_chunk_group_info = self
+            .chunk_group_infos
+            .expect_get_mut(parent_chunk_group_info_ukey);
+          parent_chunk_group_info.available_children.insert(*cgi);
+        }
+      }
+    }
+
+    // pop() is used to read from the queue
+    // so it need to be reversed to be iterated in
+    // correct order
     self.queue.reverse();
 
     let start = logger.time("process queue");
+    // Iterative traversal of the Module graph
+    // Recursive would be simpler to write but could result in Stack Overflows
     while !self.queue.is_empty() {
       self.process_queue();
       while !self.queue_connect.is_empty() {
@@ -1233,7 +1328,8 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         }
       }
 
-      chunk_group_info.resulting_available_modules = resulting_available_modules.clone();
+      let resulting_available_modules =
+        chunk_group_info.calculate_resulting_available_modules(self.compilation, &self.module_ids);
       chunk_group_info.children.extend(targets.iter().cloned());
 
       for target in &targets {
@@ -1301,6 +1397,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
           let orig = cgi.min_available_modules.clone();
           cgi.min_available_modules &= modules_to_be_merged;
+          cgi.invalidate_resulting_available_modules();
           changed = orig != cgi.min_available_modules;
         }
       }
@@ -1328,7 +1425,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             }))
         }
 
-        // reconsider skipped connections
+        // 2. Reconsider skipped connections
         if !cgi.skipped_module_connections.is_empty() {
           let mut active_connections = Vec::new();
           for (i, (module, connections)) in cgi.skipped_module_connections.iter().enumerate() {
@@ -1369,7 +1466,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           }
         }
 
-        // reconsider children chunk groups
+        // 2. Reconsider children chunk groups
         if !cgi.children.is_empty() {
           for child in cgi.children.iter() {
             let connect_list = self.queue_connect.entry(chunk_group_info_ukey).or_default();
@@ -1377,11 +1474,48 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           }
         }
 
+        // 3. Reconsider chunk groups for combining
+        for cgi in &cgi.available_children {
+          self.chunk_groups_for_combining.insert(*cgi);
+        }
+
         if origin_queue_len != self.queue.len() {
           self.outdated_order_index_chunk_groups.insert(cgi.ukey);
         }
       }
     }
+  }
+
+  fn process_chunk_groups_for_combining(&mut self) {
+    self.chunk_groups_for_combining.retain(|info_ukey| {
+      let info = self.chunk_group_infos.expect_get(info_ukey);
+      info.available_sources.iter().all(|source_ukey| {
+        let source = self.chunk_group_infos.expect_get(source_ukey);
+        source.min_available_modules_init
+      })
+    });
+
+    let mut min_available_modules_mappings = HashMap::default();
+    for info_ukey in &self.chunk_groups_for_combining {
+      let info = self.chunk_group_infos.expect_get(info_ukey);
+      let mut available_modules = BigUint::from(0u32);
+      // combine min_available_modules from all resulting_available_modules
+      for source_ukey in &info.available_sources {
+        let source = self.chunk_group_infos.expect_get(source_ukey);
+        let resulting_available_modules =
+          source.calculate_resulting_available_modules(self.compilation, &self.module_ids);
+        available_modules |= resulting_available_modules;
+      }
+      min_available_modules_mappings.insert(*info_ukey, available_modules);
+      info.invalidate_resulting_available_modules();
+      self.outdated_chunk_group_info.insert(*info_ukey);
+    }
+    for (info_ukey, min_available_modules) in min_available_modules_mappings {
+      let info = self.chunk_group_infos.expect_get_mut(&info_ukey);
+      info.min_available_modules = min_available_modules;
+    }
+
+    self.chunk_groups_for_combining.clear();
   }
 }
 
