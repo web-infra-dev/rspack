@@ -243,6 +243,11 @@ Object {
         },
       },
       "chunks": "async",
+      "defaultSizeTypes": Array [
+        "javascript",
+        "css",
+        "unknown",
+      ],
       "hidePathInfo": false,
       "maxAsyncRequests": Infinity,
       "maxInitialRequests": Infinity,

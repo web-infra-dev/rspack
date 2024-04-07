@@ -55,6 +55,7 @@ export * from "./SwcJsMinimizerPlugin";
 export * from "./SwcCssMinimizerPlugin";
 
 export * from "./JsLoaderRspackPlugin";
+export * from "./css-extract";
 
 ///// DEPRECATED /////
 import { RawBuiltins } from "@rspack/binding";
@@ -67,8 +68,8 @@ function resolveTreeShaking(
 	return treeShaking !== undefined
 		? treeShaking.toString()
 		: production
-			? "true"
-			: "false";
+		? "true"
+		: "false";
 }
 
 export interface Builtins {

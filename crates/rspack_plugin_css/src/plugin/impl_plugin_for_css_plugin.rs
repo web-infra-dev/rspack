@@ -16,7 +16,7 @@ use rspack_core::{
   LibIdentOptions, PluginContext, PluginRuntimeRequirementsInTreeOutput, PublicPath,
   RuntimeGlobals, RuntimeRequirementsInTreeArgs,
 };
-use rspack_error::{IntoTWithDiagnosticArray, Result};
+use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin_hook, AsyncSeries2};
 use rspack_plugin_runtime::is_enabled_for_chunk;
@@ -228,7 +228,7 @@ impl Plugin for CssPlugin {
     let compilation = &args.compilation;
     let chunk = compilation.chunk_by_ukey.expect_get(&args.chunk_ukey);
     let module_graph = compilation.get_module_graph();
-    let ordered_modules = Self::get_ordered_chunk_css_modules(
+    let (ordered_modules, _) = Self::get_ordered_chunk_css_modules(
       chunk,
       &compilation.chunk_graph,
       &module_graph,
@@ -270,7 +270,7 @@ impl Plugin for CssPlugin {
       return Ok(vec![].with_empty_diagnostic());
     }
     let module_graph = compilation.get_module_graph();
-    let ordered_css_modules = Self::get_ordered_chunk_css_modules(
+    let (ordered_css_modules, conflicts) = Self::get_ordered_chunk_css_modules(
       chunk,
       &compilation.chunk_graph,
       &module_graph,
@@ -317,16 +317,55 @@ impl Plugin for CssPlugin {
     } else {
       source.boxed()
     };
-    Ok(
-      vec![RenderManifestEntry::new(
-        source.boxed(),
-        output_path,
-        asset_info,
-        false,
-        false,
-      )]
-      .with_empty_diagnostic(),
-    )
+    Ok({
+      if let Some(conflicts) = conflicts {
+        vec![RenderManifestEntry::new(
+          source.boxed(),
+          output_path,
+          asset_info,
+          false,
+          false,
+        )]
+        .with_diagnostic(
+          conflicts
+            .into_iter()
+            .map(|conflict| {
+              let chunk = conflict.chunk.as_ref(&compilation.chunk_by_ukey);
+              let mg = compilation.get_module_graph();
+
+              let failed_module = mg
+                .module_by_identifier(&conflict.failed_module)
+                .expect("should have module");
+              let selected_module = mg
+                .module_by_identifier(&conflict.selected_module)
+                .expect("should have module");
+
+              Diagnostic::warn(
+                "Conflicting order".into(),
+                format!(
+                  "chunk {}\nConflicting order between {} and {}",
+                  chunk
+                    .name
+                    .as_ref()
+                    .unwrap_or(chunk.id.as_ref().expect("should have chunk id")),
+                  failed_module.readable_identifier(&compilation.options.context),
+                  selected_module.readable_identifier(&compilation.options.context)
+                ),
+              )
+            })
+            .collect(),
+        )
+      } else {
+        vec![RenderManifestEntry::new(
+          source.boxed(),
+          output_path,
+          asset_info,
+          false,
+          false,
+        )]
+        .with_empty_diagnostic()
+      }
+    })
   }
 
   async fn runtime_requirements_in_tree(

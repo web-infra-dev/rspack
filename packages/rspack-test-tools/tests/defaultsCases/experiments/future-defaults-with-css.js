@@ -24,15 +24,15 @@ module.exports = {
 		-         },
 		-         "test": /\\.css$/i,
 		-         "type": "css/auto",
-		-       },
-		-       Object {
+		@@ ... @@
 		-         "mimetype": "text/css+module",
 		-         "resolve": Object {
 		-           "fullySpecified": true,
 		-           "preferRelative": true,
 		-         },
 		-         "type": "css/module",
-		@@ ... @@
+		-       },
+		-       Object {
 		-         "mimetype": "text/css",
 		-         "resolve": Object {
 		-           "fullySpecified": true,
@@ -64,12 +64,14 @@ module.exports = {
 		-       },
 		-       "css": Object {
 		-         "namedExports": true,
-		-       },
+		@@ ... @@
 		-       "css/auto": Object {
 		-         "namedExports": true,
-		@@ ... @@
+		-       },
 		-       "css/module": Object {
 		-         "namedExports": true,
+		@@ ... @@
+		-         "css",
 		@@ ... @@
 		-     "hashDigestLength": 20,
 		-     "hashFunction": "md4",

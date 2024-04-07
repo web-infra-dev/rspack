@@ -280,6 +280,9 @@ export const getNormalizedRspackOptions = (
 					splitChunks =>
 						splitChunks && {
 							...splitChunks,
+							defaultSizeTypes: splitChunks.defaultSizeTypes
+								? [...splitChunks.defaultSizeTypes]
+								: ["..."],
 							cacheGroups: cloneObject(splitChunks.cacheGroups)
 						}
 				)
