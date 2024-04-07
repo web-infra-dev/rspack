@@ -2,7 +2,6 @@ use std::sync::{Arc, Mutex};
 
 use derivative::Derivative;
 use rspack_error::{Diagnostic, Result, TWithDiagnosticArray};
-use rspack_loader_runner::{LoaderContext, ResourceData};
 use rspack_util::fx_dashmap::FxDashMap;
 use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
