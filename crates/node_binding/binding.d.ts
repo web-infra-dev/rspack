@@ -365,6 +365,7 @@ export interface JsModule {
   resource?: string
   moduleIdentifier: string
   nameForCondition?: string
+  rawRequest?: string
 }
 
 export interface JsNormalModuleFactoryCreateModuleArgs {
