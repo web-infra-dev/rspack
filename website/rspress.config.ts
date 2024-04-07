@@ -422,13 +422,6 @@ function getSidebarConfig(lang: 'zh' | 'en'): Sidebar {
 					},
 				],
 			},
-			{
-				text: getText(
-					'兼容的 webpack 生态插件',
-					'Compatible Plugins from the webpack ecosystem'
-				),
-				link: getLink('/plugins/eco'),
-			},
 		],
 		[getLink('/api/')]: [
 			{
