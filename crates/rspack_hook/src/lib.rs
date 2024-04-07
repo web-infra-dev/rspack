@@ -16,7 +16,7 @@ pub use async_series_bail::{
 };
 pub use interceptor::{Hook, Interceptor};
 pub use rspack_macros::{plugin, plugin_hook};
-pub use sync_series::{SyncSeries4, SyncSeries4Hook};
+pub use sync_series::{SyncSeries, SyncSeries4, SyncSeries4Hook, SyncSeriesHook};
 
 // pub trait Plugin<HookContainer> {
 //   fn apply(&self, hook_container: &mut HookContainer);

@@ -3,7 +3,9 @@ use std::{path::Path, sync::Arc};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_error::{error, Result};
-use rspack_hook::{AsyncSeries3Hook, AsyncSeriesBail2Hook, AsyncSeriesBailHook};
+use rspack_hook::{
+  AsyncSeries3Hook, AsyncSeriesBail2Hook, AsyncSeriesBail3Hook, AsyncSeriesBailHook,
+};
 use rspack_loader_runner::{get_scheme, Loader, Scheme};
 use rspack_util::MergeFrom;
 use sugar_path::{AsPath, SugarPath};
@@ -14,8 +16,8 @@ use crate::{
   diagnostics::EmptyDependency,
   module_rules_matcher, parse_resource, resolve, stringify_loaders_and_resource,
   tree_shaking::visitor::{get_side_effects_from_package_json, SideEffects},
-  BeforeResolveArgs, BoxLoader, BoxModule, CompilerContext, CompilerOptions, DependencyCategory,
-  FactorizeArgs, FactoryMeta, FuncUseCtx, GeneratorOptions, ModuleExt, ModuleFactory,
+  BeforeResolveArgs, BoxLoader, BoxModule, CompilerContext, CompilerOptions, Context,
+  DependencyCategory, FactoryMeta, FuncUseCtx, GeneratorOptions, ModuleExt, ModuleFactory,
   ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleRule, ModuleRuleEnforce,
   ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule, NormalModuleCreateData,
   ParserOptions, RawModule, Resolve, ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult,
@@ -23,6 +25,7 @@ use crate::{
 };
 
 pub type NormalModuleFactoryBeforeResolveHook = AsyncSeriesBailHook<BeforeResolveArgs, bool>;
+pub type NormalModuleFactoryFactorizeHook = AsyncSeriesBailHook<ModuleFactoryCreateData, BoxModule>;
 pub type NormalModuleFactoryResolveForSchemeHook =
   AsyncSeriesBail2Hook<ModuleFactoryCreateData, ResourceData, bool>;
 pub type NormalModuleFactoryAfterResolveHook =
@@ -31,14 +34,22 @@ pub type NormalModuleFactoryCreateModuleHook =
   AsyncSeriesBail2Hook<ModuleFactoryCreateData, NormalModuleCreateData, BoxModule>;
 pub type NormalModuleFactoryModuleHook =
   AsyncSeries3Hook<ModuleFactoryCreateData, NormalModuleCreateData, BoxModule>;
+pub type NormalModuleFactoryResolveLoader =
+  AsyncSeriesBail3Hook<Context, Arc<Resolver>, ModuleRuleUseLoader, BoxLoader>;
 
 #[derive(Debug, Default)]
 pub struct NormalModuleFactoryHooks {
   pub before_resolve: NormalModuleFactoryBeforeResolveHook,
+  pub factorize: NormalModuleFactoryFactorizeHook,
   pub resolve_for_scheme: NormalModuleFactoryResolveForSchemeHook,
   pub after_resolve: NormalModuleFactoryAfterResolveHook,
   pub create_module: NormalModuleFactoryCreateModuleHook,
   pub module: NormalModuleFactoryModuleHook,
+  /// Webpack resolves loaders in `NormalModuleFactory`,
+  /// Rspack resolves it when normalizing configuration.
+  /// So this hook is used to resolve inline loader (inline loader requests).
+  // should move to ResolverFactory?
+  pub resolve_loader: NormalModuleFactoryResolveLoader,
 }
 
 #[derive(Debug)]
@@ -144,7 +155,7 @@ impl NormalModuleFactory {
     let scheme = get_scheme(request_without_match_resource);
     let context_scheme = get_scheme(data.context.as_ref());
     let plugin_driver = &self.plugin_driver;
-    let loader_resolver = self.get_loader_resolver();
+    let mut loader_resolver = self.get_loader_resolver();
 
     let mut match_resource_data: Option<ResourceData> = None;
     let mut match_module_type = None;
@@ -428,19 +439,18 @@ impl NormalModuleFactory {
         }
       }
 
+      let mut compiler_options_context = self.options.context.clone();
       let mut all_loaders = Vec::with_capacity(
         pre_loaders.len() + post_loaders.len() + normal_loaders.len() + inline_loaders.len(),
       );
 
-      for l in post_loaders {
+      for mut l in post_loaders {
         all_loaders.push(
           resolve_each(
             plugin_driver,
-            &self.options,
-            self.options.context.as_ref(),
-            &loader_resolver,
-            &l.loader,
-            l.options.as_deref(),
+            &mut compiler_options_context,
+            &mut loader_resolver,
+            &mut l,
           )
           .await?,
         )
@@ -449,29 +459,25 @@ impl NormalModuleFactory {
       let mut resolved_inline_loaders = vec![];
       let mut resolved_normal_loaders = vec![];
 
-      for l in inline_loaders {
+      for mut l in inline_loaders {
         resolved_inline_loaders.push(
           resolve_each(
             plugin_driver,
-            &self.options,
-            data.context.as_path(),
-            &loader_resolver,
-            &l.loader,
-            l.options.as_deref(),
+            &mut data.context,
+            &mut loader_resolver,
+            &mut l,
           )
           .await?,
         )
       }
 
-      for l in normal_loaders {
+      for mut l in normal_loaders {
         resolved_normal_loaders.push(
           resolve_each(
             plugin_driver,
-            &self.options,
-            self.options.context.as_ref(),
-            &loader_resolver,
-            &l.loader,
-            l.options.as_deref(),
+            &mut compiler_options_context,
+            &mut loader_resolver,
+            &mut l,
           )
           .await?,
         )
@@ -485,15 +491,13 @@ impl NormalModuleFactory {
         all_loaders.extend(resolved_normal_loaders);
       }
 
-      for l in pre_loaders {
+      for mut l in pre_loaders {
         all_loaders.push(
           resolve_each(
             plugin_driver,
-            &self.options,
-            self.options.context.as_ref(),
-            &loader_resolver,
-            &l.loader,
-            l.options.as_deref(),
+            &mut compiler_options_context,
+            &mut loader_resolver,
+            &mut l,
           )
           .await?,
         )
@@ -501,22 +505,16 @@ impl NormalModuleFactory {
 
       async fn resolve_each(
         plugin_driver: &SharedPluginDriver,
-        compiler_options: &CompilerOptions,
-        context: &Path,
-        loader_resolver: &Resolver,
-        loader_request: &str,
-        loader_options: Option<&str>,
+        context: &mut Context,
+        loader_resolver: &mut Arc<Resolver>,
+        l: &mut ModuleRuleUseLoader,
       ) -> Result<Arc<dyn Loader<CompilerContext>>> {
         plugin_driver
-          .resolve_loader(
-            compiler_options,
-            context,
-            loader_resolver,
-            loader_request,
-            loader_options,
-          )
+          .normal_module_factory_hooks
+          .resolve_loader
+          .call(context, loader_resolver, l)
           .await?
-          .ok_or_else(|| error!("Unable to resolve loader {}", loader_request))
+          .ok_or_else(|| error!("Unable to resolve loader {}", l.loader))
       }
 
       all_loaders
@@ -732,22 +730,15 @@ impl NormalModuleFactory {
   }
 
   async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<ModuleFactoryResult> {
-    let dependency = data
-      .dependency
-      .as_module_dependency()
-      .expect("should be module dependency");
     let result = self
       .plugin_driver
-      .factorize(&mut FactorizeArgs {
-        context: &data.context,
-        dependency,
-        plugin_driver: &self.plugin_driver,
-        diagnostics: &mut data.diagnostics,
-      })
+      .normal_module_factory_hooks
+      .factorize
+      .call(data)
       .await?;
 
     if let Some(result) = result {
-      return Ok(result);
+      return Ok(ModuleFactoryResult::new_with_module(result));
     }
 
     if let Some(result) = self.factorize_normal_module(data).await? {

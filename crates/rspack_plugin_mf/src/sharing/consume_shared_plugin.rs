@@ -7,13 +7,12 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
   AdditionalChunkRuntimeRequirementsArgs, ApplyContext, BoxModule, Compilation, CompilationParams,
-  CompilerOptions, Context, DependencyCategory, DependencyType, FactorizeArgs, ModuleExt,
-  ModuleFactoryCreateData, ModuleFactoryResult, NormalModuleCreateData, Plugin,
-  PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, PluginFactorizeHookOutput,
+  CompilerOptions, Context, DependencyCategory, DependencyType, ModuleExt, ModuleFactoryCreateData,
+  NormalModuleCreateData, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext,
   ResolveOptionsWithDependencyType, ResolveResult, Resolver, RuntimeGlobals,
 };
 use rspack_error::{error, Diagnostic, Result};
-use rspack_hook::{plugin, plugin_hook, AsyncSeries2, AsyncSeriesBail2};
+use rspack_hook::{plugin, plugin_hook, AsyncSeries2, AsyncSeriesBail, AsyncSeriesBail2};
 use rustc_hash::FxHashMap;
 
 use super::{
@@ -330,8 +329,57 @@ async fn this_compilation(
   Ok(())
 }
 
+#[plugin_hook(AsyncSeriesBail<ModuleFactoryCreateData, BoxModule> for ConsumeSharedPlugin)]
+async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<BoxModule>> {
+  let dep = data
+    .dependency
+    .as_module_dependency()
+    .expect("should be module dependency");
+  if matches!(
+    dep.dependency_type(),
+    DependencyType::ConsumeSharedFallback | DependencyType::ProvideModuleForShared
+  ) {
+    return Ok(None);
+  }
+  let request = dep.request();
+  let consumes = self.get_matched_consumes();
+  if let Some(matched) = consumes.unresolved.get(request) {
+    let module = self
+      .create_consume_shared_module(&data.context, request, matched.clone(), |d| {
+        data.diagnostics.push(d)
+      })
+      .await;
+    return Ok(Some(module.boxed()));
+  }
+  for (prefix, options) in &consumes.prefixed {
+    if request.starts_with(prefix) {
+      let remainder = &request[prefix.len()..];
+      let module = self
+        .create_consume_shared_module(
+          &data.context,
+          request,
+          Arc::new(ConsumeOptions {
+            import: options.import.as_ref().map(|i| i.to_owned() + remainder),
+            import_resolved: options.import_resolved.clone(),
+            share_key: options.share_key.clone() + remainder,
+            share_scope: options.share_scope.clone(),
+            required_version: options.required_version.clone(),
+            package_name: options.package_name.clone(),
+            strict_version: options.strict_version,
+            singleton: options.singleton,
+            eager: options.eager,
+          }),
+          |d| data.diagnostics.push(d),
+        )
+        .await;
+      return Ok(Some(module.boxed()));
+    }
+  }
+  Ok(None)
+}
+
 #[plugin_hook(AsyncSeriesBail2<ModuleFactoryCreateData, NormalModuleCreateData, BoxModule> for ConsumeSharedPlugin)]
-async fn normal_module_factory_create_module(
+async fn create_module(
   &self,
   data: &mut ModuleFactoryCreateData,
   create_data: &mut NormalModuleCreateData,
@@ -374,58 +422,14 @@ impl Plugin for ConsumeSharedPlugin {
     ctx
       .context
       .normal_module_factory_hooks
+      .factorize
+      .tap(factorize::new(self));
+    ctx
+      .context
+      .normal_module_factory_hooks
       .create_module
-      .tap(normal_module_factory_create_module::new(self));
+      .tap(create_module::new(self));
     Ok(())
-  }
-
-  async fn factorize(
-    &self,
-    _ctx: PluginContext,
-    args: &mut FactorizeArgs<'_>,
-  ) -> PluginFactorizeHookOutput {
-    let dep = args.dependency;
-    if matches!(
-      dep.dependency_type(),
-      DependencyType::ConsumeSharedFallback | DependencyType::ProvideModuleForShared
-    ) {
-      return Ok(None);
-    }
-    let request = dep.request();
-    let consumes = self.get_matched_consumes();
-    if let Some(matched) = consumes.unresolved.get(request) {
-      let module = self
-        .create_consume_shared_module(args.context, request, matched.clone(), |d| {
-          args.diagnostics.push(d)
-        })
-        .await;
-      return Ok(Some(ModuleFactoryResult::new_with_module(module.boxed())));
-    }
-    for (prefix, options) in &consumes.prefixed {
-      if request.starts_with(prefix) {
-        let remainder = &request[prefix.len()..];
-        let module = self
-          .create_consume_shared_module(
-            args.context,
-            request,
-            Arc::new(ConsumeOptions {
-              import: options.import.as_ref().map(|i| i.to_owned() + remainder),
-              import_resolved: options.import_resolved.clone(),
-              share_key: options.share_key.clone() + remainder,
-              share_scope: options.share_scope.clone(),
-              required_version: options.required_version.clone(),
-              package_name: options.package_name.clone(),
-              strict_version: options.strict_version,
-              singleton: options.singleton,
-              eager: options.eager,
-            }),
-            |d| args.diagnostics.push(d),
-          )
-          .await;
-        return Ok(Some(ModuleFactoryResult::new_with_module(module.boxed())));
-      }
-    }
-    Ok(None)
   }
 
   async fn additional_tree_runtime_requirements(

@@ -839,12 +839,6 @@ impl Compilation {
     result
   }
 
-  pub async fn done(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
-    let stats = &mut Stats::new(self);
-    plugin_driver.done(stats).await?;
-    Ok(())
-  }
-
   pub fn entry_modules(&self) -> impl Iterator<Item = ModuleIdentifier> {
     self.entry_module_identifiers.clone().into_iter()
   }

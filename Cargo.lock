@@ -3041,6 +3041,7 @@ dependencies = [
  "rspack_binding_values",
  "rspack_core",
  "rspack_error",
+ "rspack_hook",
  "rspack_identifier",
  "rspack_ids",
  "rspack_loader_react_refresh",
@@ -3482,6 +3483,8 @@ dependencies = [
  "once_cell",
  "regex",
  "rspack_core",
+ "rspack_error",
+ "rspack_hook",
  "rspack_regex",
 ]
 
