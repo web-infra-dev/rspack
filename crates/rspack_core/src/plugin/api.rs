@@ -1,19 +1,18 @@
-use std::{fmt::Debug, path::Path};
+use std::fmt::Debug;
 
 use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_hash::RspackHashDigest;
-use rspack_loader_runner::{Content, LoaderContext, ResourceData};
+use rspack_loader_runner::ResourceData;
 use rspack_sources::BoxSource;
 use rspack_util::fx_dashmap::FxDashMap;
 
 use crate::{
-  AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, AssetInfo, BoxLoader,
-  BoxModule, ChunkHashArgs, Compilation, CompilationHooks, CompilerHooks, CompilerOptions,
-  ContentHashArgs, ContextModuleFactoryHooks, DoneArgs, FactorizeArgs, GeneratorOptions,
-  JsChunkHashArgs, LoaderRunnerContext, ModuleFactoryResult, ModuleIdentifier, ModuleType,
-  NormalModule, NormalModuleFactoryHooks, OptimizeChunksArgs, ParserAndGenerator, ParserOptions,
-  PluginContext, RenderArgs, RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs,
-  RenderStartupArgs, Resolver, RuntimeRequirementsInTreeArgs, SourceType,
+  AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, AssetInfo, BoxModule,
+  ChunkHashArgs, Compilation, CompilationHooks, CompilerHooks, CompilerOptions, ContentHashArgs,
+  ContextModuleFactoryHooks, GeneratorOptions, JsChunkHashArgs, ModuleIdentifier, ModuleType,
+  NormalModuleFactoryHooks, NormalModuleHooks, OptimizeChunksArgs, ParserAndGenerator,
+  ParserOptions, PluginContext, RenderArgs, RenderChunkArgs, RenderManifestArgs,
+  RenderModuleContentArgs, RenderStartupArgs, RuntimeRequirementsInTreeArgs, SourceType,
 };
 
 #[derive(Debug, Clone)]
@@ -22,9 +21,6 @@ pub struct BeforeResolveArgs {
   pub context: String,
 }
 
-pub type PluginBuildEndHookOutput = Result<()>;
-pub type PluginReadResourceOutput = Result<Option<Content>>;
-pub type PluginFactorizeHookOutput = Result<Option<ModuleFactoryResult>>;
 pub type PluginNormalModuleFactoryCreateModuleHookOutput = Result<Option<BoxModule>>;
 pub type PluginNormalModuleFactoryModuleHookOutput = Result<BoxModule>;
 pub type PluginNormalModuleFactoryResolveForSchemeOutput = Result<(ResourceData, bool)>;
@@ -54,40 +50,6 @@ pub trait Plugin: Debug + Send + Sync {
     &self,
     _ctx: PluginContext<&mut ApplyContext>,
     _options: &mut CompilerOptions,
-  ) -> Result<()> {
-    Ok(())
-  }
-
-  async fn done<'s, 'c>(
-    &self,
-    _ctx: PluginContext,
-    _args: DoneArgs<'s, 'c>,
-  ) -> PluginBuildEndHookOutput {
-    Ok(())
-  }
-
-  async fn read_resource(&self, _resource_data: &ResourceData) -> PluginReadResourceOutput {
-    Ok(None)
-  }
-  /**
-   * factorize hook will generate BoxModule which will be used to generate ModuleGraphModule.
-   * It is used to handle the generation of those modules which are not normal, such as External Module
-   * It behaves like a BailHook hook.
-   * NOTICE: The factorize hook is a temporary solution and will be replaced with the real factorize hook later
-   */
-  async fn factorize(
-    &self,
-    _ctx: PluginContext,
-    _args: &mut FactorizeArgs<'_>,
-  ) -> PluginFactorizeHookOutput {
-    Ok(None)
-  }
-
-  fn normal_module_loader(
-    &self,
-    _ctx: PluginContext,
-    _loader_context: &mut LoaderContext<LoaderRunnerContext>,
-    _module: &NormalModule,
   ) -> Result<()> {
     Ok(())
   }
@@ -209,24 +171,6 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(None)
   }
 
-  /// Webpack resolves loaders in `NormalModuleFactory`,
-  /// Rspack resolves it when normalizing configuration.
-  /// So this hook is used to resolve inline loader (inline loader requests).
-  async fn resolve_loader(
-    &self,
-    _compiler_options: &CompilerOptions,
-    _context: &Path,
-    _resolver: &Resolver,
-    _loader_request: &str,
-    _loader_options: Option<&str>,
-  ) -> Result<Option<BoxLoader>> {
-    Ok(None)
-  }
-
-  async fn before_loaders(&self, _module: &mut NormalModule) -> Result<()> {
-    Ok(())
-  }
-
   fn module_ids(&self, _modules: &mut Compilation) -> Result<()> {
     Ok(())
   }
@@ -324,6 +268,7 @@ pub struct ApplyContext<'c> {
   pub compilation_hooks: &'c mut CompilationHooks,
   pub normal_module_factory_hooks: &'c mut NormalModuleFactoryHooks,
   pub context_module_factory_hooks: &'c mut ContextModuleFactoryHooks,
+  pub normal_module_hooks: &'c mut NormalModuleHooks,
 }
 
 impl<'c> ApplyContext<'c> {

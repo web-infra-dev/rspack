@@ -10,8 +10,8 @@ use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
   BoxModule, Chunk, ChunkInitFragments, ChunkUkey, Compilation, Context, ContextModuleFactory,
-  DependencyCategory, DependencyType, ErrorSpan, FactoryMeta, ModuleDependency, ModuleIdentifier,
-  NormalModuleFactory, Resolve, RuntimeGlobals, SharedPluginDriver, Stats,
+  DependencyCategory, DependencyType, ErrorSpan, FactoryMeta, ModuleIdentifier,
+  NormalModuleFactory, Resolve, RuntimeGlobals,
 };
 
 #[derive(Debug)]
@@ -64,14 +64,6 @@ impl<'me> RenderManifestArgs<'me> {
 }
 
 #[derive(Debug)]
-pub struct FactorizeArgs<'me> {
-  pub context: &'me Context,
-  pub dependency: &'me dyn ModuleDependency,
-  pub plugin_driver: &'me SharedPluginDriver,
-  pub diagnostics: &'me mut Vec<Diagnostic>,
-}
-
-#[derive(Debug)]
 pub struct NormalModuleCreateData {
   pub raw_request: String,
   pub request: String,
@@ -116,11 +108,6 @@ pub struct LoadArgs<'a> {
 #[derive(Debug)]
 pub struct OptimizeChunksArgs<'me> {
   pub compilation: &'me mut Compilation,
-}
-
-#[derive(Debug)]
-pub struct DoneArgs<'s, 'c: 's> {
-  pub stats: &'s mut Stats<'c>,
 }
 
 #[derive(Debug)]

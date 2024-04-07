@@ -1,8 +1,4 @@
-use std::{
-  ops::Deref,
-  path::{Path, PathBuf},
-  str::FromStr,
-};
+use std::{ops::Deref, path::PathBuf, str::FromStr};
 
 use napi_derive::napi;
 use rspack_core::{rspack_sources::SourceMap, Content, ResourceData};
@@ -221,10 +217,10 @@ impl TryFrom<&mut rspack_core::LoaderContext<'_, rspack_core::LoaderRunnerContex
         .transpose()
         .map_err(|e| error!(e.to_string()))?
         .map(|v| v.into_bytes().into()),
-      resource: cx.resource.to_owned(),
-      resource_path: cx.resource_path.to_string_lossy().to_string(),
-      resource_fragment: cx.resource_fragment.map(|r| r.to_owned()),
-      resource_query: cx.resource_query.map(|r| r.to_owned()),
+      resource: cx.resource().to_owned(),
+      resource_path: cx.resource_path().to_string_lossy().to_string(),
+      resource_fragment: cx.resource_fragment().map(|r| r.to_owned()),
+      resource_query: cx.resource_query().map(|r| r.to_owned()),
       cacheable: cx.cacheable,
       file_dependencies: cx
         .file_dependencies
@@ -282,16 +278,19 @@ pub async fn run_builtin_loader(
     additional_data
   };
 
+  let mut resource_data = ResourceData::new(
+    loader_context.resource,
+    PathBuf::from(loader_context.resource_path),
+  )
+  .query_optional(loader_context.resource_query)
+  .fragment_optional(loader_context.resource_fragment);
+
   let mut cx = LoaderContext {
     hot: loader_context.hot,
     content: match loader_context.content {
       Either::A(_) => None,
       Either::B(c) => Some(Content::from(c.as_ref().to_owned())),
     },
-    resource: &loader_context.resource,
-    resource_path: Path::new(&loader_context.resource_path),
-    resource_query: loader_context.resource_query.as_deref(),
-    resource_fragment: loader_context.resource_fragment.as_deref(),
     context: loader_context.context_external.clone(),
     source_map: loader_context
       .source_map
@@ -327,7 +326,7 @@ pub async fn run_builtin_loader(
     asset_filenames: HashSet::from_iter(loader_context.asset_filenames.into_iter()),
     // Initialize with no diagnostic
     __diagnostics: vec![],
-    __resource_data: &ResourceData::new(Default::default(), Default::default()),
+    __resource_data: &mut resource_data,
     __loader_items: LoaderItemList(list),
     // This is used an hack to `builtin:swc-loader` in order to determine whether to return AST or source.
     __loader_index: loader_context.loader_index_from_js.unwrap_or(0) as usize,

@@ -3041,6 +3041,7 @@ dependencies = [
  "rspack_binding_values",
  "rspack_core",
  "rspack_error",
+ "rspack_hook",
  "rspack_identifier",
  "rspack_ids",
  "rspack_loader_react_refresh",
@@ -3478,10 +3479,11 @@ dependencies = [
 name = "rspack_plugin_externals"
 version = "0.1.0"
 dependencies = [
- "async-trait",
  "once_cell",
  "regex",
  "rspack_core",
+ "rspack_error",
+ "rspack_hook",
  "rspack_regex",
 ]
 

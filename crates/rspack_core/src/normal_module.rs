@@ -13,6 +13,7 @@ use dashmap::DashMap;
 use derivative::Derivative;
 use rspack_error::{error, Diagnosable, Diagnostic, DiagnosticExt, MietteExt, Result, Severity};
 use rspack_hash::RspackHash;
+use rspack_hook::{AsyncSeriesBailHook, SyncSeriesHook};
 use rspack_identifier::Identifiable;
 use rspack_loader_runner::{run_loaders, AdditionalData, Content, ResourceData};
 use rspack_macros::impl_source_map_config;
@@ -74,6 +75,13 @@ impl ModuleIssuer {
       None
     }
   }
+}
+
+#[derive(Debug, Default)]
+pub struct NormalModuleHooks {
+  pub read_resource: AsyncSeriesBailHook<ResourceData, Content>,
+  pub loader: SyncSeriesHook<bool /* hot */>,
+  pub before_loaders: SyncSeriesHook<NormalModule>,
 }
 
 #[impl_source_map_config]
@@ -151,7 +159,7 @@ impl NormalModuleSource {
   }
 }
 
-pub static DEBUG_ID: AtomicUsize = AtomicUsize::new(1);
+static DEBUG_ID: AtomicUsize = AtomicUsize::new(1);
 
 impl NormalModule {
   fn create_id(module_type: &ModuleType, request: &str) -> String {
@@ -371,11 +379,14 @@ impl Module for NormalModule {
       false
     };
 
-    build_context.plugin_driver.before_loaders(self).await?;
+    build_context
+      .plugin_driver
+      .normal_module_hooks
+      .before_loaders
+      .call(self)?;
 
     let plugin = RspackLoaderRunnerPlugin {
       plugin_driver: build_context.plugin_driver.clone(),
-      normal_module: self,
       current_loader: Default::default(),
     };
 
@@ -387,7 +398,7 @@ impl Module for NormalModule {
 
     let loader_result = run_loaders(
       &self.loaders,
-      &self.resource_data,
+      &mut self.resource_data,
       &[&plugin],
       build_context.compiler_context,
       additional_data,

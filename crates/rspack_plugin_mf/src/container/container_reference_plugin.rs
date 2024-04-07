@@ -2,12 +2,12 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use rspack_core::{
-  ApplyContext, Compilation, CompilationParams, CompilerOptions, DependencyType, ExternalType,
-  FactorizeArgs, ModuleExt, ModuleFactoryResult, Plugin, PluginContext, PluginFactorizeHookOutput,
+  ApplyContext, BoxModule, Compilation, CompilationParams, CompilerOptions, DependencyType,
+  ExternalType, ModuleExt, ModuleFactoryCreateData, Plugin, PluginContext,
   PluginRuntimeRequirementsInTreeOutput, RuntimeGlobals, RuntimeRequirementsInTreeArgs,
 };
 use rspack_error::Result;
-use rspack_hook::{plugin, plugin_hook, AsyncSeries2};
+use rspack_hook::{plugin, plugin_hook, AsyncSeries2, AsyncSeriesBail};
 
 use super::{
   fallback_module_factory::FallbackModuleFactory, remote_module::RemoteModule,
@@ -61,6 +61,52 @@ async fn compilation(
   Ok(())
 }
 
+#[plugin_hook(AsyncSeriesBail<ModuleFactoryCreateData, BoxModule> for ContainerReferencePlugin)]
+async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<BoxModule>> {
+  let dependency = data
+    .dependency
+    .as_module_dependency()
+    .expect("should be module dependency");
+  let request = dependency.request();
+  if !request.contains('!') {
+    for (key, config) in &self.options.remotes {
+      let key_len = key.len();
+      if request.starts_with(key)
+        && (request.len() == key_len || request[key_len..].starts_with('/'))
+      {
+        let internal_request = &request[key_len..];
+        let remote = RemoteModule::new(
+          request.to_owned(),
+          config
+            .external
+            .iter()
+            .enumerate()
+            .map(|(i, e)| {
+              if let Some(stripped) = e.strip_prefix("internal ") {
+                stripped.to_string()
+              } else {
+                format!(
+                  "webpack/container/reference/{}{}",
+                  key,
+                  (i > 0)
+                    .then(|| format!("/fallback-{}", i))
+                    .unwrap_or_default()
+                )
+              }
+            })
+            .collect(),
+          format!(".{}", internal_request),
+          config.share_scope.clone(),
+          key.to_string(),
+        )
+        .boxed();
+        return Ok(Some(remote));
+      }
+    }
+  }
+  Ok(None)
+}
+
 #[async_trait]
 impl Plugin for ContainerReferencePlugin {
   fn name(&self) -> &'static str {
@@ -77,52 +123,12 @@ impl Plugin for ContainerReferencePlugin {
       .compiler_hooks
       .compilation
       .tap(compilation::new(self));
+    ctx
+      .context
+      .normal_module_factory_hooks
+      .factorize
+      .tap(factorize::new(self));
     Ok(())
-  }
-
-  async fn factorize(
-    &self,
-    _ctx: PluginContext,
-    args: &mut FactorizeArgs<'_>,
-  ) -> PluginFactorizeHookOutput {
-    let request = args.dependency.request();
-    if !request.contains('!') {
-      for (key, config) in &self.options.remotes {
-        let key_len = key.len();
-        if request.starts_with(key)
-          && (request.len() == key_len || request[key_len..].starts_with('/'))
-        {
-          let internal_request = &request[key_len..];
-          let remote = RemoteModule::new(
-            request.to_owned(),
-            config
-              .external
-              .iter()
-              .enumerate()
-              .map(|(i, e)| {
-                if let Some(stripped) = e.strip_prefix("internal ") {
-                  stripped.to_string()
-                } else {
-                  format!(
-                    "webpack/container/reference/{}{}",
-                    key,
-                    (i > 0)
-                      .then(|| format!("/fallback-{}", i))
-                      .unwrap_or_default()
-                  )
-                }
-              })
-              .collect(),
-            format!(".{}", internal_request),
-            config.share_scope.clone(),
-            key.to_string(),
-          )
-          .boxed();
-          return Ok(Some(ModuleFactoryResult::new_with_module(remote)));
-        }
-      }
-    }
-    Ok(None)
   }
 
   async fn runtime_requirements_in_tree(
