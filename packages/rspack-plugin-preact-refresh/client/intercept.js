@@ -19,7 +19,7 @@ __webpack_require__.i.push(function (options) {
 
 			return function (type, key, forceReset, getCustomHooks) {
 				if (!savedType) savedType = type;
-				status = self.__PREFERSH__.sign(
+				status = self.__PREFRESH__.sign(
 					type || savedType,
 					key,
 					forceReset,
@@ -31,7 +31,7 @@ __webpack_require__.i.push(function (options) {
 		};
 		var reg = function (currentModuleId) {
 			self.$RefreshReg$ = function (type, id) {
-				self.__PREFERSH__.register(type, currentModuleId + " " + id);
+				self.__PREFRESH__.register(type, currentModuleId + " " + id);
 			};
 		};
 		reg();
