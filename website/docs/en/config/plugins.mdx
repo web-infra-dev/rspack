@@ -1,128 +1,35 @@
-import { Table } from '@builtIns';
-import WebpackLicense from '../../../components/webpack-license';
-import { ApiMeta, Stability } from '../../../components/ApiMeta.tsx';
-
 # Plugins
 
-Customize the build process.
+The `plugins` option is used to customize the Rspack build process in a variety of ways. Rspack comes with a variety built-in plugins available under `rspack.[plugin-name]`. See [Plugins page](/plugins/index) for a list of plugins and documentation but note that there are a lot more out in the community.
 
 - **Type:** `Array<RspackPluginInstance | RspackPluginFunction | RspackBuiltinPlugin>`
 - **Default:** `[]`
 
-## External plugin
+An array of webpack plugins. For example, [`DefinePlugin`](/plugins/webpack/define-plugin) allows you to create global constants which can be configured at compile time. This can be useful for allowing different behavior between development builds and release builds.
 
-Written in JavaScript and compatible with some of the plugins in the webpack community.
+**rspack.config.js**
 
-### RspackPluginInstance
-
-```ts
-interface RspackPluginInstance {
-  apply: (compiler: Compiler) => void;
-}
-```
-
-Among them, the interface provided on Compiler can refer to [Plugin API](/api/plugin-api).
-
-usage:
-
-```js title=rspack.config.js
-class CustomPlugin {
-  apply(compiler) {
-    // some operations
-  }
-}
-
+```js
 module.exports = {
-  plugins: [new CustomPlugin()],
+  //...
+  plugins: [
+    new rspack.DefinePlugin({
+      // Definitions...
+    }),
+  ],
 };
 ```
 
-### RspackPluginFunction
+Rspack strives to maintain compatibility with the webpack plugin ecosystem to leverage the excellent features that have been accumulated and validated by the community. Please refer to the [Plugin Compatibility List](/guide/plugin-compat) to access a list of webpack plugins that have passed our compatibility tests:
 
-```ts
-type RspackPluginFunction = (this: Compiler, compiler: Compiler) => void;
-```
+**rspack.config.js**
 
-usage:
-
-```js title=rspack.config.js
-function customPlugin(compiler) {
-  // some operations
-}
-
-module.exports = {
-  plugins: [customPlugin],
-};
-```
-
-## Internal plugins
-
-Integrated within Rspack.
-
-Configuration can be written to be used via `import`/`require`:
-
-```js title=rspack.config.js
+```js
 const rspack = require('@rspack/core');
+const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 
 module.exports = {
-  // ...
-  plugins: [new rspack.XxxPlugin()],
+  //...
+  plugins: [new ForkTsCheckerWebpackPlugin()],
 };
 ```
-
-Plugins can be written to be used via `compiler.webpack.XxxPlugin`:
-
-```js title=CustomPlugin.js
-export class CustomPlugin {
-  apply(compiler) {
-    new compiler.webpack.XxxPlugin().apply(compiler);
-    // ...
-  }
-}
-```
-
-### Internal plugins compatible with webpack
-
-In webpack, these plugins are also exported as internal plugins
-
-###
-
-###
-
-###
-
-###
-
-###
-
-###
-
-###
-
-###
-
-###
-
-###
-
-###
-
-###
-
-###
-
-###
-
-###
-
-### Rspack's unique internal plugin.
-
-These plugins are Rspack's unique internal plugin and follow the XxxRspackPlugin naming scheme.
-
-###
-
-###
-
-###
-
-###

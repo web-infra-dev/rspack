@@ -1,98 +1,35 @@
-import { Table } from '@builtIns';
-import WebpackLicense from '../../../components/webpack-license';
-import { ApiMeta, Stability } from '../../../components/ApiMeta.tsx';
-
 # Plugins
 
-`plugins` 选项用于以各种方式自定义 Rspack 构建过程。webpack 附带了各种内置插件，可以通过 webpack.[plugin-name] 访问这些插件。请查看 插件页面 获取插件列表和对应文档，但请注意这只是其中一部分，社区中还有许多插件。
-
-插件：该选项自定义构建流程。
+`plugins` 选项用于以各种方式自定义 Rspack 构建过程。Rspack 附带了各种内置插件，可以通过 `rspack.[plugin-name]` 访问这些插件。请查看[插件页面](/plugins/index)获取插件列表和对应文档，但请注意这只是其中一部分，社区中还有许多插件。
 
 - **类型：** `Array<RspackPluginInstance | RspackPluginFunction | RspackBuiltinPlugin>`
 - **默认值：** `[]`
 
-## 外部插件
+一组 Rspack 插件。例如，[`DefinePlugin`](/plugins/webpack/define-plugin) 允许你创建可在编译时配置的全局常量。这对需要再开发环境构建和生产环境构建之间产生不同行为来说非常有用。
 
-使用 JavaScript 编写，兼容部分 webpack 社区中的插件。
+**rspack.config.js**
 
-### RspackPluginInstance
-
-```ts
-interface RspackPluginInstance {
-  apply(compiler: Compiler): void;
-}
-```
-
-其中，Compiler 上提供的接口可以参考 [Plugin API](/api/plugin-api)。
-
-用法：
-
-```js title=rspack.config.js
-class CustomPlugin {
-  apply(compiler) {
-    // some operations
-  }
-}
-
+```js
 module.exports = {
-  plugins: [new CustomPlugin()],
+  //...
+  plugins: [
+    new rspack.DefinePlugin({
+      // 定义的全局常量...
+    }),
+  ],
 };
 ```
 
-### RspackPluginFunction
+Rspack 致力于兼容 webpack 生态下的插件，以使用社区中已经积累和验证的优秀功能。请查看[插件兼容列表](/guide/plugin-compat)获取经过我们兼容性测试的 webpack 插件清单：
 
-```ts
-type RspackPluginFunction = (compiler: Compiler) => void;
-```
+**rspack.config.js**
 
-用法：
-
-```js title=rspack.config.js
-function customPlugin(compiler) {
-  // some operations
-}
-
-module.exports = {
-  plugins: [customPlugin],
-};
-```
-
-## 内部插件
-
-集成在 Rspack 内部。
-
-编写配置时可以引入使用：
-
-```js title=rspack.config.js
+```js
 const rspack = require('@rspack/core');
+const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 
 module.exports = {
-  // ...
-  plugins: [new rspack.XxxPlugin()],
+  //...
+  plugins: [new ForkTsCheckerWebpackPlugin()],
 };
 ```
-
-编写插件时可以通过 `compiler.webpack.XxxPlugin` 使用：
-
-```js title=CustomPlugin.js
-export class CustomPlugin {
-  apply(compiler) {
-    new compiler.webpack.XxxPlugin().apply(compiler);
-    // ...
-  }
-}
-```
-
-### 与 webpack 兼容的内部插件
-
-在 webpack 中，这些插件也以内部插件的形式导出
-
-### Rspack 独有的内部插件
-
-这些插件是 Rspack 独有的内部插件，遵循 XxxRspackPlugin 的命名方式。
-
-###
-
-###
-
-###
