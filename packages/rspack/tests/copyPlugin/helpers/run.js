@@ -1,6 +1,7 @@
 // Ideally we pass in patterns and confirm the resulting assets
 const fs = require("fs");
 const { rspack } = require("@rspack/core");
+const AsyncEventIterator = require("../../helpers/AsyncEventIterator");
 
 const removeIllegalCharacterForWindows = require("./removeIllegalCharacterForWindows");
 
@@ -166,35 +167,32 @@ async function runChange(opts) {
 		})
 	).apply(compiler);
 
+	const waitChanges = new AsyncEventIterator();
+
 	// Create two test files
 	fs.writeFileSync(opts.newFileLoc1, "file1contents");
 	fs.writeFileSync(opts.newFileLoc2, "file2contents");
 
-	const arrayOfStats = [];
-
 	const watching = compiler.watch({}, (error, stats) => {
 		if (error || stats.hasErrors()) {
-			throw error;
+			return waitChanges.reject(error || stats.compilation.errors);
 		}
-
-		arrayOfStats.push(stats);
+		return waitChanges.resolve(readAssets(compiler, stats));
 	});
 
-	await delay(500);
-
+	const assetsBefore = (await waitChanges.next()).value;
 	fs.appendFileSync(opts.newFileLoc1, "extra");
+	const assetsAfter = (await waitChanges.next()).value;
 
-	await delay(500);
+	await waitChanges.return(); // dispose
 
 	return new Promise(resolve => {
 		watching.close(() => {
-			const assetsBefore = readAssets(compiler, arrayOfStats[0]);
-			const assetsAfter = readAssets(compiler, arrayOfStats.pop());
 			const filesForCompare = Object.keys(assetsBefore);
 			const changedFiles = [];
 
 			filesForCompare.forEach(file => {
-				if (assetsBefore[file] === assetsAfter[file]) {
+				if (assetsBefore[file] !== assetsAfter[file]) {
 					changedFiles.push(file);
 				}
 			});

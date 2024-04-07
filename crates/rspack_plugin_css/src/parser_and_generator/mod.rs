@@ -12,9 +12,9 @@ use rspack_core::{
     BoxSource, ConcatSource, MapOptions, RawSource, ReplaceSource, Source, SourceExt, SourceMap,
     SourceMapSource, SourceMapSourceOptions,
   },
-  BoxDependency, BuildExtraDataType, BuildMetaDefaultObject, BuildMetaExportsType,
-  CssExportsConvention, ErrorSpan, GenerateContext, LocalIdentName, Module, ModuleType,
-  ParseContext, ParseResult, ParserAndGenerator, SourceType, TemplateContext,
+  BoxDependency, BuildExtraDataType, BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph,
+  CssExportsConvention, ErrorSpan, GenerateContext, LocalIdentName, Module, ModuleGraph,
+  ModuleType, ParseContext, ParseResult, ParserAndGenerator, SourceType, TemplateContext,
 };
 use rspack_core::{ModuleInitFragments, RuntimeGlobals};
 use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
@@ -368,5 +368,16 @@ impl ParserAndGenerator for CssParserAndGenerator {
       let data = from_bytes::<Option<CssExportsType>>(data).expect("Failed to resume extra data");
       self.exports = data;
     }
+  }
+
+  fn get_concatenation_bailout_reason(
+    &self,
+    _module: &dyn rspack_core::Module,
+    _mg: &ModuleGraph,
+    _cg: &ChunkGraph,
+  ) -> Option<String> {
+    Some(String::from(
+      "Module Concatenation is not implemented for CssParserAndGenerator",
+    ))
   }
 }

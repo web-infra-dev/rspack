@@ -557,24 +557,20 @@ impl ModuleConcatenationPlugin {
         .chunk_graph
         .get_number_of_module_chunks(module_id);
       let is_entry_module = compilation.chunk_graph.is_entry_module(&module_id);
-      let mut module_graph = compilation.get_module_graph_mut();
+      let module_graph = compilation.get_module_graph();
       let m = module_graph.module_by_identifier(&module_id);
 
-      let is_css_module = m
-        .map(|m| {
-          let source_types = m.source_types();
-          source_types.contains(&SourceType::Css) && source_types.contains(&SourceType::JavaScript)
-        })
-        .unwrap_or_default();
-      // FIXME: Adding this extra condition due to different css module implementation
-      if is_css_module {
-        self.set_bailout_reason(
-          &module_id,
-          "The module is a css module".to_string(),
-          &mut compilation.get_module_graph_mut(),
-        );
+      if let Some(reason) = m
+        .expect("should have module")
+        .get_concatenation_bailout_reason(&module_graph, &compilation.chunk_graph)
+      {
+        self.set_bailout_reason(&module_id, reason, &mut compilation.get_module_graph_mut());
         continue;
       }
+
+      // shadowing previous immutable binding, reduce borrow lifetime
+      let mut module_graph = compilation.get_module_graph_mut();
+      let m = module_graph.module_by_identifier(&module_id);
 
       // If the result is `None`, that means we have some differences with webpack,
       // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ModuleConcatenationPlugin.js#L168-L171
@@ -606,6 +602,7 @@ impl ModuleConcatenationPlugin {
         );
         continue;
       }
+
       let exports_info = module_graph.get_exports_info(&module_id);
       let relevnat_epxorts = exports_info.get_relevant_exports(None, &module_graph);
       let unknown_exports = relevnat_epxorts
