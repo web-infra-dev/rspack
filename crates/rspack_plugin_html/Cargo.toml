@@ -9,9 +9,6 @@ version    = "0.1.0"
 default = []
 testing = ["dep:schemars"]
 
-[dev-dependencies]
-rspack_testing = { path = "../rspack_testing" }
-
 [dependencies]
 anyhow            = { workspace = true }
 dojang            = "0.1.6"

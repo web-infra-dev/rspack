@@ -1644,19 +1644,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "insta"
-version = "1.38.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3eab73f58e59ca6526037208f0e98851159ec1633cf17b6cd2e1f2c3fd5d53cc"
-dependencies = [
- "console",
- "lazy_static",
- "linked-hash-map",
- "serde",
- "similar",
-]
-
-[[package]]
 name = "instant"
 version = "0.1.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2998,9 +2985,7 @@ dependencies = [
  "rspack_core",
  "rspack_fs",
  "rspack_plugin_javascript",
- "rspack_testing",
  "testing_macros",
- "tokio",
  "ustr-fxhash",
  "xshell",
 ]
@@ -3316,7 +3301,6 @@ dependencies = [
  "rspack_loader_runner",
  "rspack_plugin_javascript",
  "rspack_swc_visitors",
- "rspack_testing",
  "rspack_util",
  "serde",
  "serde_json",
@@ -3383,7 +3367,6 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_hash",
- "rspack_testing",
  "rspack_util",
  "serde_json",
  "urlencoding",
@@ -3441,7 +3424,6 @@ dependencies = [
  "rspack_hook",
  "rspack_identifier",
  "rspack_plugin_runtime",
- "rspack_testing",
  "rspack_util",
  "rustc-hash",
  "serde_json",
@@ -3554,7 +3536,6 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_hook",
- "rspack_testing",
  "rspack_util",
  "schemars",
  "serde",
@@ -3590,7 +3571,6 @@ dependencies = [
  "rspack_ids",
  "rspack_regex",
  "rspack_swc_visitors",
- "rspack_testing",
  "rspack_util",
  "rustc-hash",
  "serde",
@@ -3609,7 +3589,6 @@ dependencies = [
  "ropey",
  "rspack_core",
  "rspack_error",
- "rspack_testing",
 ]
 
 [[package]]
@@ -3807,7 +3786,6 @@ dependencies = [
  "rspack_error",
  "rspack_hook",
  "rspack_identifier",
- "rspack_testing",
  "rspack_util",
  "serde_json",
  "swc_core",
@@ -3869,45 +3847,6 @@ dependencies = [
  "swc_core",
  "swc_emotion",
  "swc_plugin_import",
-]
-
-[[package]]
-name = "rspack_testing"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "cargo-rst",
- "insta",
- "itertools 0.12.1",
- "rspack_binding_options",
- "rspack_core",
- "rspack_error",
- "rspack_fs",
- "rspack_ids",
- "rspack_loader_swc",
- "rspack_plugin_asset",
- "rspack_plugin_css",
- "rspack_plugin_devtool",
- "rspack_plugin_entry",
- "rspack_plugin_externals",
- "rspack_plugin_hmr",
- "rspack_plugin_html",
- "rspack_plugin_javascript",
- "rspack_plugin_json",
- "rspack_plugin_merge_duplicate_chunks",
- "rspack_plugin_remove_empty_chunks",
- "rspack_plugin_runtime",
- "rspack_plugin_warn_sensitive_module",
- "rspack_plugin_wasm",
- "rspack_regex",
- "rspack_tracing",
- "rspack_util",
- "schemars",
- "serde",
- "serde_json",
- "swc_core",
- "testing_macros",
- "tokio",
 ]
 
 [[package]]
