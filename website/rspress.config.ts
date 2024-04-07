@@ -325,7 +325,7 @@ function getSidebarConfig(lang: 'zh' | 'en'): Sidebar {
 			{
 				text: getText(
 					'同步自 webpack 的内置插件',
-					'Synchronized Built-in Plugins from webpack'
+					'Webpack-aligned Built-in Plugins'
 				),
 				items: [
 					{
@@ -399,10 +399,7 @@ function getSidebarConfig(lang: 'zh' | 'en'): Sidebar {
 				],
 			},
 			{
-				text: getText(
-					'Rspack 独有的内置插件',
-					'Rspack-exclusive Built-in Plugins'
-				),
+				text: getText('Rspack 独有的内置插件', 'Rspack-only Built-in Plugins'),
 				items: [
 					{
 						text: 'HtmlRspackPlugin',
