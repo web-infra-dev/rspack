@@ -2986,7 +2986,6 @@ dependencies = [
  "rspack_fs",
  "rspack_plugin_javascript",
  "testing_macros",
- "tokio",
  "ustr-fxhash",
  "xshell",
 ]
