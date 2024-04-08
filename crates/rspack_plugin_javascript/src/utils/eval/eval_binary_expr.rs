@@ -150,16 +150,16 @@ fn handle_logical_or(
 
   match left.as_bool() {
     Some(true) => {
-      // true || unknown = true
+      // truthy || unknown = true
       res.set_bool(true);
       res.set_side_effects(left.could_have_side_effects());
       Some(res)
     }
     Some(false) => {
       let right = scanner.evaluate_expression(&expr.right);
-      // false || unknown = unknown
+      // falsy || unknown = unknown
       right.as_bool().map(|b| {
-        // false || right = right
+        // falsy || right = right
         res.set_bool(b);
         res.set_side_effects(left.could_have_side_effects() || right.could_have_side_effects());
         res
@@ -168,12 +168,12 @@ fn handle_logical_or(
     None => {
       let right = scanner.evaluate_expression(&expr.right);
       match right.as_bool() {
-        // unknown || true = unknown truthy
+        // unknown || truthy = unknown truthy
         Some(true) => {
           res.set_truthy();
           Some(res)
         }
-        // unknown || false/unknown = undetermined
+        // unknown || falsy/unknown = undetermined
         _ => None,
       }
     }
