@@ -53,9 +53,9 @@ function hotLoader(
 				context.loaderContext,
 				path.join(__dirname, "./hmr/hotModuleReplacement.js")
 			)})(module.id, ${JSON.stringify({
-		...context.options,
-		locals: !!context.locals
-	})});
+				...context.options,
+				locals: !!context.locals
+			})});
       module.hot.dispose(cssReload);
       ${accept}
     }
@@ -120,7 +120,7 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 			: `${ABSOLUTE_PUBLIC_PATH}${publicPath.replace(
 					/\./g,
 					SINGLE_DOT_PATH_SEGMENT
-			  )}`;
+				)}`;
 	} else {
 		publicPathForExtract = publicPath;
 	}
@@ -188,7 +188,7 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 							sourceMap: sourceMap
 								? JSON.stringify(sourceMap)
 								: // eslint-disable-next-line no-undefined
-								  undefined,
+									undefined,
 							filepath
 						};
 					}
@@ -212,10 +212,10 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 						.join("")
 				: `\n${
 						esModule ? "export default" : "module.exports ="
-				  } ${JSON.stringify(locals)};`
+					} ${JSON.stringify(locals)};`
 			: esModule
-			? `\nexport {};`
-			: "";
+				? `\nexport {};`
+				: "";
 
 		let resultSource = `// extracted by ${CssExtractRspackPlugin.pluginName}`;
 
