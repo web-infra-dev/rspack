@@ -168,13 +168,12 @@ fn handle_logical_or(
     None => {
       let right = scanner.evaluate_expression(&expr.right);
       match right.as_bool() {
-        // unknown || true = true
+        // unknown || true = unknown truthy
         Some(true) => {
-          res.set_bool(true);
-          res.set_side_effects(left.could_have_side_effects() || right.could_have_side_effects());
+          res.set_truthy();
           Some(res)
         }
-        // unknown || false/unknown = unknown
+        // unknown || false/unknown = undetermined
         _ => None,
       }
     }
