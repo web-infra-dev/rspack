@@ -48,7 +48,7 @@ pub struct ExportSpec {
   pub exports: Option<Vec<ExportNameOrSpec>>,
   pub can_mangle: Option<bool>,
   pub terminal_binding: Option<bool>,
-  pub priority: Option<u8>,
+  pub priority: Option<i8>,
   pub hidden: Option<bool>,
   pub from: Option<ModuleGraphConnection>,
   pub from_export: Option<ModuleGraphConnection>,
@@ -93,7 +93,7 @@ pub enum ExportsOfExportsSpec {
 #[allow(unused)]
 pub struct ExportsSpec {
   pub exports: ExportsOfExportsSpec,
-  pub priority: Option<u8>,
+  pub priority: Option<i8>,
   pub can_mangle: Option<bool>,
   pub terminal_binding: Option<bool>,
   pub from: Option<ModuleGraphConnection>,

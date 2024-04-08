@@ -141,7 +141,7 @@ impl ExportsInfoId {
     exclude_exports: Option<Vec<Atom>>,
     target_key: Option<DependencyId>,
     target_module: Option<DependencyId>,
-    priority: Option<u8>,
+    priority: Option<i8>,
   ) -> bool {
     let mut changed = false;
 
@@ -185,7 +185,7 @@ impl ExportsInfoId {
             .clone()
             .map(|name| Nullable::Value(vec![name]))
             .as_ref(),
-          priority,
+          Some(-1),
         );
       }
     }
@@ -793,7 +793,7 @@ pub fn string_of_used_name(used: Option<&UsedName>) -> String {
 pub struct ExportInfoTargetValue {
   connection: Option<DependencyId>,
   export: Option<Vec<Atom>>,
-  priority: u8,
+  priority: i8,
 }
 
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize)]
@@ -1628,8 +1628,8 @@ impl ExportInfo {
     if self.target.len() <= 1 {
       return self.target.clone();
     }
-    let mut max_priority = u8::MIN;
-    let mut min_priority = u8::MAX;
+    let mut max_priority = i8::MIN;
+    let mut min_priority = i8::MAX;
     for value in self.target.values() {
       max_priority = max_priority.max(value.priority);
       min_priority = min_priority.min(value.priority);
@@ -1741,7 +1741,7 @@ impl ExportInfo {
     key: Option<DependencyId>,
     connection_inner_dep_id: Option<DependencyId>,
     export_name: Option<&Nullable<Vec<Atom>>>,
-    priority: Option<u8>,
+    priority: Option<i8>,
   ) -> bool {
     let export_name = match export_name {
       Some(Nullable::Null) => None,

@@ -69,5 +69,10 @@
     "webpack-cli": "4.10.0",
     "why-is-node-running": "2.2.2"
   },
-  "packageManager": "pnpm@8.14.3"
+  "packageManager": "pnpm@8.14.3",
+  "pnpm": {
+    "overrides": {
+      "webpack": "/home/victor/Documents/webpack/webpack"
+    }
+  }
 }

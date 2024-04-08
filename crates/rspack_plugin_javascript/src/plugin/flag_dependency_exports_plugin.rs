@@ -21,6 +21,37 @@ struct FlagDependencyExportsProxy<'a> {
   changed: bool,
   current_module_id: ModuleIdentifier,
   dependencies: HashMap<ModuleIdentifier, HashSet<ModuleIdentifier>>,
+  c: usize,
+}
+
+struct Queue {
+  q: VecDeque<ModuleIdentifier>,
+  set: HashSet<ModuleIdentifier>,
+}
+
+impl Queue {
+  fn new() -> Self {
+    Self {
+      q: VecDeque::default(),
+      set: HashSet::default(),
+    }
+  }
+  fn len(&self) -> usize {
+    self.q.len()
+  }
+  fn enqueue(&mut self, id: ModuleIdentifier) {
+    if !self.set.contains(&id) {
+      self.q.push_back(id);
+      self.set.insert(id);
+    }
+  }
+  fn dequeue(&mut self) -> Option<ModuleIdentifier> {
+    if let Some(module_id) = self.q.pop_front() {
+      self.set.remove(&module_id);
+      return Some(module_id);
+    }
+    None
+  }
 }
 
 impl<'a> FlagDependencyExportsProxy<'a> {
@@ -30,13 +61,21 @@ impl<'a> FlagDependencyExportsProxy<'a> {
       changed: false,
       current_module_id: ModuleIdentifier::default(),
       dependencies: HashMap::default(),
+      c: 0,
+      // c: 0,
     }
   }
 
   pub fn apply(&mut self) {
-    let mut q = VecDeque::new();
+    let mut q = Queue::new();
 
-    let module_ids = self.mg.modules().keys().cloned().collect_vec();
+    let mut module_ids = self.mg.modules().keys().cloned().collect_vec();
+
+    module_ids.sort_by(|a, b| {
+      let ad = self.mg.get_depth(a);
+      let bd = self.mg.get_depth(b);
+      ad.cmp(&bd)
+    });
     for module_id in module_ids {
       let mgm = self
         .mg
@@ -71,18 +110,19 @@ impl<'a> FlagDependencyExportsProxy<'a> {
         .unwrap_or_default()
       {
         exports_id.set_has_provide_info(self.mg);
-        q.push_back(module_id);
+        q.enqueue(module_id);
         continue;
       }
 
       exports_id.set_has_provide_info(self.mg);
-      q.push_back(module_id);
+      q.enqueue(module_id);
       // TODO: mem cache
     }
 
     let start = Instant::now();
     let mut i = 0;
-    while let Some(module_id) = q.pop_front() {
+    dbg!(&q.len());
+    while let Some(module_id) = q.dequeue() {
       self.changed = false;
       i += 1;
       self.current_module_id = module_id;
@@ -105,12 +145,13 @@ impl<'a> FlagDependencyExportsProxy<'a> {
     }
     dbg!(&start.elapsed());
     dbg!(&i);
+    dbg!(&self.c);
   }
 
-  pub fn notify_dependencies(&mut self, q: &mut VecDeque<ModuleIdentifier>) {
+  pub fn notify_dependencies(&mut self, q: &mut Queue) {
     if let Some(set) = self.dependencies.get(&self.current_module_id) {
       for mi in set.iter() {
-        q.push_back(*mi);
+        q.enqueue(*mi);
       }
     }
   }
@@ -204,7 +245,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
           global_can_mangle.unwrap_or_default(),
           export_desc.exclude_exports,
           global_from.map(|_| dep_id),
-          global_from.map(|_| dep_id),
+          global_from.map(|item| item.dependency_id),
           *global_priority,
         ) {
           self.changed = true;
@@ -247,6 +288,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
     global_export_info: DefaultExportInfo,
     dep_id: DependencyId,
   ) {
+    self.c += 1;
     for export_name_or_spec in exports {
       let (name, can_mangle, terminal_binding, exports, from, from_export, priority, hidden) =
         match export_name_or_spec {
@@ -336,7 +378,9 @@ impl<'a> FlagDependencyExportsProxy<'a> {
             priority,
           )
         };
-        self.changed |= changed;
+        if changed {
+          self.changed = true;
+        }
       }
 
       // Recalculate target exportsInfo
@@ -382,7 +426,7 @@ pub struct DefaultExportInfo<'a> {
   can_mangle: Option<bool>,
   terminal_binding: bool,
   from: Option<&'a ModuleGraphConnection>,
-  priority: Option<u8>,
+  priority: Option<i8>,
 }
 
 #[plugin]

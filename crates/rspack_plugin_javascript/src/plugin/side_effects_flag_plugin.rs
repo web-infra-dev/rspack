@@ -638,7 +638,7 @@ impl Plugin for SideEffectsFlagPlugin {
   }
 }
 
-fn get_level_order_module_ids(
+pub fn get_level_order_module_ids(
   mg: &ModuleGraph,
   entries: Vec<ModuleIdentifier>,
 ) -> Vec<ModuleIdentifier> {
