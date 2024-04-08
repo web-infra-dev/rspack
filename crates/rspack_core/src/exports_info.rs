@@ -18,7 +18,6 @@ use swc_core::ecma::atoms::Atom;
 
 use crate::property_access;
 use crate::BuildMetaExportsType;
-use crate::ModuleGraphModule;
 use crate::Nullable;
 use crate::{
   ConnectionState, DependencyCondition, DependencyId, ModuleGraph, ModuleGraphConnection,
@@ -2153,24 +2152,14 @@ impl<'a> ModuleGraphAccessor<'a> for ImmutableModuleGraph<'a> {
       .id
   }
 
+  // Due rustc limitation, we can't reference a hashmap generate in function, the impl is just a
+  // dummy place holder, call site should determine the type of `ModuleGraphAccessor`, and inline
+  // the function in the call site
   fn get_max_target(
     &mut self,
-    export_info_id: &ExportInfoId,
+    _export_info_id: &ExportInfoId,
   ) -> &HashMap<Option<DependencyId>, ExportInfoTargetValue> {
     unreachable!()
-    // let export_info_id = self.inner.get_export_info_by_id(export_info_id);
-    //
-    // if export_info_id.max_target_is_set {
-    //   export_info_id.get_max_target_readonly()
-    // } else {
-    //   // FIXME:
-    //   // max target should be cached
-    //   // but when moduleGraph is immutable and no cached max target
-    //   // generate a new one, this should be removed
-    //   // when module graph in get_exports and get_referenced_exports
-    //   // is refactored to mutable
-    //   &export_info_id._get_max_target()
-    // }
   }
 
   fn run_resolve_filter(

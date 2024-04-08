@@ -16,11 +16,11 @@ use swc_core::ecma::atoms::Atom;
 
 use crate::tree_shaking::visitor::OptimizeAnalyzeResult;
 use crate::{
-  exports_info, AsyncDependenciesBlock, BoxDependency, ChunkGraph, ChunkUkey, CodeGenerationResult,
-  Compilation, CompilerContext, CompilerOptions, ConcatenationScope, ConnectionState, Context,
-  ContextModule, DependenciesBlock, DependencyId, DependencyTemplate, ExportInfoProvided,
-  ExternalModule, ImmutableModuleGraph, ModuleDependency, ModuleGraph, ModuleGraphAccessor,
-  ModuleType, MutableModuleGraph, NormalModule, RawModule, Resolve, RuntimeSpec, SelfModule,
+  AsyncDependenciesBlock, BoxDependency, ChunkGraph, ChunkUkey, CodeGenerationResult, Compilation,
+  CompilerContext, CompilerOptions, ConcatenationScope, ConnectionState, Context, ContextModule,
+  DependenciesBlock, DependencyId, DependencyTemplate, ExportInfoProvided, ExternalModule,
+  ImmutableModuleGraph, ModuleDependency, ModuleGraph, ModuleGraphAccessor, ModuleType,
+  MutableModuleGraph, NormalModule, RawModule, Resolve, RuntimeSpec, SelfModule,
   SharedPluginDriver, SourceType,
 };
 pub struct BuildContext<'a> {
