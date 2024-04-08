@@ -538,7 +538,13 @@ impl NormalModuleFactory {
       self.calculate_module_type(match_module_type, &resolved_module_rules);
     let resolved_resolve_options = self.calculate_resolve_options(&resolved_module_rules);
     let (resolved_parser_options, resolved_generator_options) =
-      self.calculate_parser_and_generator_options(&resolved_module_type, &resolved_module_rules);
+      self.calculate_parser_and_generator_options(&resolved_module_rules);
+    let (resolved_parser_options, resolved_generator_options) = self
+      .merge_global_parser_and_generator_options(
+        &resolved_module_type,
+        resolved_parser_options,
+        resolved_generator_options,
+      );
     let factory_meta = FactoryMeta {
       side_effect_free: self
         .calculate_side_effects(&resolved_module_rules, &resource_data)
@@ -687,23 +693,10 @@ impl NormalModuleFactory {
 
   fn calculate_parser_and_generator_options(
     &self,
-    module_type: &ModuleType,
     module_rules: &[&ModuleRule],
   ) -> (Option<ParserOptions>, Option<GeneratorOptions>) {
-    let mut resolved_parser = self
-      .options
-      .module
-      .parser
-      .as_ref()
-      .and_then(|p| p.get(module_type))
-      .cloned();
-    let mut resolved_generator = self
-      .options
-      .module
-      .generator
-      .as_ref()
-      .and_then(|g| g.get(module_type))
-      .cloned();
+    let mut resolved_parser = None;
+    let mut resolved_generator = None;
 
     for rule in module_rules {
       resolved_parser = resolved_parser.merge_from(&rule.parser);
@@ -711,6 +704,56 @@ impl NormalModuleFactory {
     }
 
     (resolved_parser, resolved_generator)
+  }
+
+  fn merge_global_parser_and_generator_options(
+    &self,
+    module_type: &ModuleType,
+    parser: Option<ParserOptions>,
+    generator: Option<GeneratorOptions>,
+  ) -> (Option<ParserOptions>, Option<GeneratorOptions>) {
+    let global_parser = self
+      .options
+      .module
+      .parser
+      .as_ref()
+      .and_then(|p| p.get(module_type))
+      .cloned();
+    let global_generator = self
+      .options
+      .module
+      .generator
+      .as_ref()
+      .and_then(|g| g.get(module_type))
+      .cloned();
+    let parser = rspack_util::merge_from_optional_with(
+      global_parser,
+      parser.as_ref(),
+      |global, local| match (&global, local) {
+        (ParserOptions::Asset(_), ParserOptions::Asset(_))
+        | (ParserOptions::Css(_), ParserOptions::Css(_))
+        | (ParserOptions::CssAuto(_), ParserOptions::CssAuto(_))
+        | (ParserOptions::CssModule(_), ParserOptions::CssModule(_))
+        | (ParserOptions::Javascript(_), ParserOptions::Javascript(_)) => global.merge_from(local),
+        _ => global,
+      },
+    );
+    let generator = rspack_util::merge_from_optional_with(
+      global_generator,
+      generator.as_ref(),
+      |global, local| match (&global, local) {
+        (GeneratorOptions::Asset(_), GeneratorOptions::Asset(_))
+        | (GeneratorOptions::AssetInline(_), GeneratorOptions::AssetInline(_))
+        | (GeneratorOptions::AssetResource(_), GeneratorOptions::AssetResource(_))
+        | (GeneratorOptions::Css(_), GeneratorOptions::Css(_))
+        | (GeneratorOptions::CssAuto(_), GeneratorOptions::CssAuto(_))
+        | (GeneratorOptions::CssModule(_), GeneratorOptions::CssModule(_)) => {
+          global.merge_from(local)
+        }
+        _ => global,
+      },
+    );
+    (parser, generator)
   }
 
   fn calculate_module_type(
