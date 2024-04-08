@@ -148,14 +148,15 @@ export enum BuiltinPluginName {
   MangleExportsPlugin = 'MangleExportsPlugin',
   ModuleConcatenationPlugin = 'ModuleConcatenationPlugin',
   CssModulesPlugin = 'CssModulesPlugin',
+  APIPlugin = 'APIPlugin',
   HttpExternalsRspackPlugin = 'HttpExternalsRspackPlugin',
   CopyRspackPlugin = 'CopyRspackPlugin',
   HtmlRspackPlugin = 'HtmlRspackPlugin',
   SwcJsMinimizerRspackPlugin = 'SwcJsMinimizerRspackPlugin',
   SwcCssMinimizerRspackPlugin = 'SwcCssMinimizerRspackPlugin',
   BundlerInfoRspackPlugin = 'BundlerInfoRspackPlugin',
-  JsLoaderRspackPlugin = 'JsLoaderRspackPlugin',
-  CssExtractRspackPlugin = 'CssExtractRspackPlugin'
+  CssExtractRspackPlugin = 'CssExtractRspackPlugin',
+  JsLoaderRspackPlugin = 'JsLoaderRspackPlugin'
 }
 
 export function cleanupGlobalTrace(): void

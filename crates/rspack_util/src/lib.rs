@@ -4,7 +4,7 @@ mod merge;
 
 pub mod comparators;
 pub mod ext;
-pub mod fx_dashmap;
+pub mod fx_hash;
 pub mod identifier;
 pub mod infallible;
 pub mod number_hash;

@@ -2,21 +2,19 @@ use std::sync::{Arc, Mutex};
 
 use derivative::Derivative;
 use rspack_error::{Diagnostic, Result, TWithDiagnosticArray};
-use rspack_util::fx_dashmap::FxDashMap;
+use rspack_util::fx_hash::FxDashMap;
 use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
 
 use crate::{
   AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, ApplyContext,
   BoxedParserAndGeneratorBuilder, ChunkContentHash, ChunkHashArgs, Compilation, CompilationHooks,
-  CompilerHooks, CompilerOptions, ContentHashArgs, ContextModuleFactoryHooks, JsChunkHashArgs,
-  ModuleIdentifier, ModuleType, NormalModuleFactoryHooks, NormalModuleHooks, OptimizeChunksArgs,
-  Plugin, PluginAdditionalChunkRuntimeRequirementsOutput, PluginAdditionalModuleRequirementsOutput,
-  PluginChunkHashHookOutput, PluginContext, PluginJsChunkHashHookOutput,
-  PluginRenderChunkHookOutput, PluginRenderHookOutput, PluginRenderManifestHookOutput,
-  PluginRenderModuleContentOutput, PluginRenderStartupHookOutput,
-  PluginRuntimeRequirementsInTreeOutput, RenderArgs, RenderChunkArgs, RenderManifestArgs,
-  RenderModuleContentArgs, RenderStartupArgs, ResolverFactory, RuntimeRequirementsInTreeArgs,
+  CompilerHooks, CompilerOptions, ContentHashArgs, ContextModuleFactoryHooks, ModuleIdentifier,
+  ModuleType, NormalModuleFactoryHooks, NormalModuleHooks, OptimizeChunksArgs, Plugin,
+  PluginAdditionalChunkRuntimeRequirementsOutput, PluginAdditionalModuleRequirementsOutput,
+  PluginChunkHashHookOutput, PluginContext, PluginRenderManifestHookOutput,
+  PluginRuntimeRequirementsInTreeOutput, RenderManifestArgs, ResolverFactory,
+  RuntimeRequirementsInTreeArgs,
 };
 
 #[derive(Derivative)]
@@ -146,57 +144,6 @@ impl PluginDriver {
       diagnostics.extend(diags);
     }
     Ok(TWithDiagnosticArray::new(assets, diagnostics))
-  }
-
-  pub async fn render_chunk(&self, args: RenderChunkArgs<'_>) -> PluginRenderChunkHookOutput {
-    for plugin in &self.plugins {
-      if let Some(source) = plugin.render_chunk(PluginContext::new(), &args).await? {
-        return Ok(Some(source));
-      }
-    }
-    Ok(None)
-  }
-
-  pub fn render(&self, args: RenderArgs) -> PluginRenderHookOutput {
-    for plugin in &self.plugins {
-      if let Some(source) = plugin.render(PluginContext::new(), &args)? {
-        return Ok(Some(source));
-      }
-    }
-    Ok(None)
-  }
-
-  pub fn render_startup(&self, args: RenderStartupArgs) -> PluginRenderStartupHookOutput {
-    let mut source = args.source;
-    for plugin in &self.plugins {
-      if let Some(s) = plugin.render_startup(
-        PluginContext::new(),
-        &RenderStartupArgs {
-          source: source.clone(),
-          ..args
-        },
-      )? {
-        source = s;
-      }
-    }
-    Ok(Some(source))
-  }
-
-  pub fn js_chunk_hash(&self, mut args: JsChunkHashArgs) -> PluginJsChunkHashHookOutput {
-    for plugin in &self.plugins {
-      plugin.js_chunk_hash(PluginContext::new(), &mut args)?
-    }
-    Ok(())
-  }
-
-  pub fn render_module_content<'a>(
-    &'a self,
-    mut args: RenderModuleContentArgs<'a>,
-  ) -> PluginRenderModuleContentOutput<'a> {
-    for plugin in &self.plugins {
-      args = plugin.render_module_content(PluginContext::new(), args)?;
-    }
-    Ok(args)
   }
 
   #[instrument(name = "plugin:additional_chunk_runtime_requirements", skip_all)]
