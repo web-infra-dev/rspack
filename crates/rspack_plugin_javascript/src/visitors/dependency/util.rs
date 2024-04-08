@@ -218,6 +218,7 @@ pub mod expr_name {
   pub const IMPORT_META_ENV: &str = "import.meta.env";
   pub const IMPORT_META_URL: &str = "import.meta.url";
   pub const IMPORT_META_WEBPACK: &str = "import.meta.webpack";
+  pub const IMPORT_META_RSPACK: &str = "import.meta.rspack";
   pub const IMPORT_META_WEBPACK_HOT: &str = "import.meta.webpackHot";
   pub const IMPORT_META_WEBPACK_HOT_ACCEPT: &str = "import.meta.webpackHot.accept";
   pub const IMPORT_META_WEBPACK_HOT_DECLINE: &str = "import.meta.webpackHot.decline";

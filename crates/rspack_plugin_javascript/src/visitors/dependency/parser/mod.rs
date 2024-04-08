@@ -21,8 +21,8 @@ use swc_core::common::comments::Comments;
 use swc_core::common::util::take::Take;
 use swc_core::common::{SourceFile, Span, Spanned};
 use swc_core::ecma::ast::{
-  ArrayPat, AssignPat, AssignTargetPat, CallExpr, Callee, MetaPropExpr, MetaPropKind, ObjectPat,
-  ObjectPatProp, Pat, Program, Stmt, ThisExpr,
+  ArrayPat, AssignExpr, AssignPat, AssignTargetPat, CallExpr, Callee, MetaPropExpr, MetaPropKind,
+  ObjectPat, ObjectPatProp, Pat, Program, Stmt, ThisExpr,
 };
 use swc_core::ecma::ast::{Expr, Ident, Lit, MemberExpr, RestPat};
 
@@ -158,6 +158,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) dependencies: Vec<BoxDependency>,
   pub(crate) presentational_dependencies: Vec<Box<dyn DependencyTemplate>>,
   pub(crate) blocks: Vec<AsyncDependenciesBlock>,
+  pub(crate) destructuring_assignment_properties: Option<FxHashMap<AssignExpr, FxHashSet<String>>>,
   // TODO: remove `import_map`
   pub(crate) import_map: ImportMap,
   // TODO: remove `rewrite_usage_span`
@@ -309,6 +310,7 @@ impl<'parser> JavascriptParser<'parser> {
       .and_then(|p| p.get(module_type))
       .and_then(|p| p.get_javascript(module_type));
     Self {
+      destructuring_assignment_properties: Some(FxHashMap::default()),
       last_harmony_import_order: 0,
       comments,
       javascript_options,

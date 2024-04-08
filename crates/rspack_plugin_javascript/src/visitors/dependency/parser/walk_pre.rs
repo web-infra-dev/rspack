@@ -1,8 +1,8 @@
 use std::borrow::Cow;
 
 use rustc_hash::FxHashSet;
-use swc_core::ecma::ast::FnDecl;
 use swc_core::ecma::ast::{AssignExpr, BlockStmt, CatchClause, Decl, DoWhileStmt};
+use swc_core::ecma::ast::{Expr, FnDecl};
 use swc_core::ecma::ast::{ForInStmt, ForOfStmt, ForStmt, IfStmt, LabeledStmt, WithStmt};
 use swc_core::ecma::ast::{ModuleDecl, ModuleItem, ObjectPat, ObjectPatProp, Stmt, WhileStmt};
 use swc_core::ecma::ast::{SwitchCase, SwitchStmt, TryStmt, VarDecl, VarDeclKind, VarDeclarator};
@@ -184,6 +184,22 @@ impl<'parser> JavascriptParser<'parser> {
     }
   }
 
+  fn pre_walk_variable_declarator(&mut self, declarator: &VarDeclarator) {
+    let Some(init) = declarator.init.as_ref() else {
+      return;
+    };
+    let Some(obj_pat) = declarator.name.as_object() else {
+      return;
+    };
+    let keys = self._pre_walk_object_pattern(obj_pat);
+    if keys.is_none() {
+      return;
+    }
+    if let Some(assign) = init.as_assign() {
+      self.pre_walk_assignment_expression(assign);
+    }
+  }
+
   fn _pre_walk_object_pattern(&mut self, obj_pat: &ObjectPat) -> Option<FxHashSet<String>> {
     let mut keys = FxHashSet::default();
     for prop in &obj_pat.props {
@@ -203,32 +219,49 @@ impl<'parser> JavascriptParser<'parser> {
     Some(keys)
   }
 
-  fn pre_walk_variable_declarator(&mut self, declarator: &VarDeclarator) {
-    let Some(init) = declarator.init.as_ref() else {
-      return;
-    };
-    let Some(obj_pat) = declarator.name.as_object() else {
-      return;
-    };
-    let keys = self._pre_walk_object_pattern(obj_pat);
-    if keys.is_none() {
-      return;
-    }
-    if let Some(assign) = init.as_assign() {
-      self.pre_walk_assignment_expression(assign);
+  pub(super) fn pre_walk_assignment_expression(&mut self, assign: &AssignExpr) {
+    // Check if the assignment left-hand side is an object pattern
+    if let Some(obj_pat) = assign.left.as_pat().and_then(|pat| pat.as_object()) {
+      // Extract keys from the object pattern
+      if let Some(keys) = self._pre_walk_object_pattern(obj_pat) {
+        // Handle nested assignments
+        self.handle_destructuring_assignment(&assign, keys);
+
+        // Map right-hand side expressions to assignments when nested
+        if let Some(expr) = assign.right.as_assign() {
+          self.pre_walk_assignment_expression(expr);
+        }
+      }
     }
   }
 
-  pub(super) fn pre_walk_assignment_expression(&mut self, assign: &AssignExpr) {
-    let Some(left) = assign.left.as_pat().and_then(|pat| pat.as_object()) else {
-      return;
-    };
-    let keys = self._pre_walk_object_pattern(left);
-    if keys.is_none() {
-      return;
+  fn handle_destructuring_assignment(&mut self, assign: &AssignExpr, keys: FxHashSet<String>) {
+    let mut keys = keys;
+    // Check multiple assignments
+    if let Some(destructuring_assignment_properties) = &mut self.destructuring_assignment_properties
+    {
+      if let Some(set) = destructuring_assignment_properties.remove(&assign) {
+        for id in set.iter() {
+          keys.insert(id.clone());
+        }
+      }
     }
-    if let Some(right) = assign.right.as_assign() {
-      self.pre_walk_assignment_expression(right)
+
+    // Associate the keys with the right-hand side expression
+    let right_expr = match &*assign.right {
+      Expr::Assign(assign_expr) => Some(assign_expr.clone()),
+      Expr::Await(await_expr) => match &*await_expr.arg {
+        Expr::Assign(assign_expr) => Some(assign_expr.clone()),
+        _ => None,
+      },
+      _ => None,
+    };
+    dbg!(&right_expr);
+    if let Some(destructuring_assignment_properties) = &mut self.destructuring_assignment_properties
+    {
+      if let Some(right_expr) = right_expr {
+        destructuring_assignment_properties.insert(right_expr, keys.clone());
+      }
     }
   }
 }

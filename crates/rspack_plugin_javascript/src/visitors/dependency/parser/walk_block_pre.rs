@@ -1,6 +1,7 @@
 use swc_core::ecma::ast::{ClassDecl, ExportDecl, ImportDecl, ImportSpecifier, ModuleExportName};
 use swc_core::ecma::ast::{Decl, DefaultDecl, ExportAll, ExportDefaultDecl, ExprStmt};
 use swc_core::ecma::ast::{ModuleDecl, ModuleItem, NamedExport, Stmt, VarDecl, VarDeclKind};
+use swc_core::ecma::visit::swc_ecma_ast;
 
 use super::JavascriptParser;
 use crate::parser_plugin::JavascriptParserPlugin;
@@ -59,6 +60,11 @@ impl<'parser> JavascriptParser<'parser> {
   fn block_pre_walk_expression_statement(&mut self, stmt: &ExprStmt) {
     if let Some(assign) = stmt.expr.as_assign() {
       self.pre_walk_assignment_expression(assign)
+    } else if let swc_ecma_ast::Expr::Paren(paren_expr) = &*stmt.expr {
+      if let Some(assign) = paren_expr.expr.as_assign() {
+        dbg!(&assign);
+        self.pre_walk_assignment_expression(assign)
+      }
     }
   }
 

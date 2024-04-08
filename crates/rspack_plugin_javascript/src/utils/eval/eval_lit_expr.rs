@@ -16,6 +16,12 @@ fn eval_number(num: &swc_core::ecma::ast::Number) -> BasicEvaluatedExpression {
   res
 }
 
+fn eval_str_literal(s: &str) -> BasicEvaluatedExpression {
+  let mut res = BasicEvaluatedExpression::with_range(0, 0); // Use a default range
+  res.set_string(s.to_string());
+  res
+}
+
 pub fn eval_lit_expr(expr: &Lit) -> Option<BasicEvaluatedExpression> {
   match expr {
     Lit::Str(str) => Some(eval_str(str)),
@@ -40,8 +46,7 @@ pub fn eval_prop_name(prop_name: &PropName) -> Option<BasicEvaluatedExpression> 
   match prop_name {
     PropName::Str(str) => Some(eval_str(str)),
     PropName::Num(num) => Some(eval_number(num)),
-    // TODO:
-    PropName::Ident(_) => None,
+    PropName::Ident(ident) => Some(eval_str_literal(ident.sym.as_str())),
     PropName::Computed(_) => None,
     PropName::BigInt(_) => None,
   }
