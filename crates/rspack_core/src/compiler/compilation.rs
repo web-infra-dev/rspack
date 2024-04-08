@@ -189,7 +189,6 @@ impl Compilation {
 
   #[allow(clippy::too_many_arguments)]
   pub fn new(
-    compilation_id: CompilationId,
     options: Arc<CompilerOptions>,
     plugin_driver: SharedPluginDriver,
     resolver_factory: Arc<ResolverFactory>,
@@ -199,7 +198,7 @@ impl Compilation {
   ) -> Self {
     let make_module_graph = ModuleGraphPartial::new(options.is_new_tree_shaking());
     Self {
-      id: compilation_id,
+      id: CompilationId::new(),
       hot_index: 0,
       records,
       options,

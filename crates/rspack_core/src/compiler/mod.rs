@@ -99,7 +99,6 @@ where
     Self {
       options: options.clone(),
       compilation: Compilation::new(
-        CompilationId::new(),
         options,
         plugin_driver.clone(),
         resolver_factory.clone(),
@@ -128,13 +127,9 @@ where
     // TODO: maybe it's better to use external entries.
     self.plugin_driver.resolver_factory.clear_cache();
 
-    let compilation_id = self.compilation.id();
     fast_set(
       &mut self.compilation,
       Compilation::new(
-        // reuse old compilation id, since for now we tap all compilation related hooks at apply,
-        // instead of in compiler.hooks.compilation, and re-tap those hooks again when rebuild.
-        compilation_id,
         self.options.clone(),
         self.plugin_driver.clone(),
         self.resolver_factory.clone(),

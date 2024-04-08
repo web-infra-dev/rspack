@@ -67,7 +67,6 @@ where
       self.plugin_driver.resolver_factory.clear_cache();
 
       let mut new_compilation = Compilation::new(
-        self.compilation.id(),
         self.options.clone(),
         self.plugin_driver.clone(),
         self.resolver_factory.clone(),
