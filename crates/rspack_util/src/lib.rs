@@ -14,7 +14,7 @@ pub mod swc;
 
 use std::future::Future;
 
-pub use merge::MergeFrom;
+pub use merge::{merge_from_optional_with, MergeFrom};
 
 pub async fn try_any<T, Fut, F, E>(it: impl IntoIterator<Item = T>, f: F) -> Result<bool, E>
 where
