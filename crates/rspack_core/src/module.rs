@@ -401,10 +401,11 @@ fn get_exports_type_impl(
           if let Some(export_info) =
             mga.get_read_only_export_info(&Atom::from("__esModule"), &identifier)
           {
+            let export_info_id = export_info.id;
             if matches!(export_info.provided, Some(ExportInfoProvided::False)) {
               handle_default(default_object)
             } else {
-              let Some(target) = export_info.id.get_target(mga, None) else {
+              let Some(target) = export_info_id.get_target(mga, None) else {
                 return ExportsType::Dynamic;
               };
               if target
