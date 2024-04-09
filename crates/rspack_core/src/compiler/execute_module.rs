@@ -46,10 +46,7 @@ impl Compilation {
     let module_graph = self.get_module_graph();
     while let Some(m) = queue.pop() {
       modules.insert(m);
-      let m = module_graph
-        .module_by_identifier(&m)
-        .expect("should have module");
-      for m in module_graph.get_outgoing_connections(&m.identifier()) {
+      for m in module_graph.get_outgoing_connections(&m) {
         // TODO: handle circle
         if !modules.contains(m.module_identifier()) {
           queue.push(*m.module_identifier());

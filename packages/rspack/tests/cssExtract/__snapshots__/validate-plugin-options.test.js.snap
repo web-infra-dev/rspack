@@ -1,0 +1,183 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`validate options should throw an error on the "attributes" option with "true" value 1`] = `
+"Invalid options object. Mini CSS Extract Plugin has been initialized using an options object that does not match the API schema.
+ - options.attributes should be an object:
+   object { … }
+   -> Adds custom attributes to the \`link\` tag for non-initial (async) (https://webpack.js.org/concepts/under-the-hood/#chunks) CSS chunks.
+   -> Read more at https://github.com/webpack-contrib/mini-css-extract-plugin#attributes"
+`;
+
+exports[`validate options should throw an error on the "chunkFilename" option with "" value 1`] = `
+"Invalid options object. Mini CSS Extract Plugin has been initialized using an options object that does not match the API schema.
+ - options.chunkFilename should be a non-empty string."
+`;
+
+exports[`validate options should throw an error on the "chunkFilename" option with "/styles/[id].css" value 1`] = `
+"Invalid options object. Mini CSS Extract Plugin has been initialized using an options object that does not match the API schema.
+ - options.chunkFilename: A relative path is expected. However, the provided value \\"/styles/[id].css\\" is an absolute path!"
+`;
+
+exports[`validate options should throw an error on the "chunkFilename" option with "true" value 1`] = `
+"Invalid options object. Mini CSS Extract Plugin has been initialized using an options object that does not match the API schema.
+ - options.chunkFilename should be one of these:
+   non-empty string | function
+   -> This option determines the name of non-entry chunk files.
+   -> Read more at https://github.com/webpack-contrib/mini-css-extract-plugin#chunkfilename
+   Details:
+    * options.chunkFilename should be a non-empty string.
+    * options.chunkFilename should be an instance of function."
+`;
+
+exports[`validate options should throw an error on the "filename" option with "" value 1`] = `
+"Invalid options object. Mini CSS Extract Plugin has been initialized using an options object that does not match the API schema.
+ - options.filename should be a non-empty string."
+`;
+
+exports[`validate options should throw an error on the "filename" option with "/styles/[name].css" value 1`] = `
+"Invalid options object. Mini CSS Extract Plugin has been initialized using an options object that does not match the API schema.
+ - options.filename: A relative path is expected. However, the provided value \\"/styles/[name].css\\" is an absolute path!"
+`;
+
+exports[`validate options should throw an error on the "filename" option with "true" value 1`] = `
+"Invalid options object. Mini CSS Extract Plugin has been initialized using an options object that does not match the API schema.
+ - options.filename should be one of these:
+   non-empty string | function
+   -> This option determines the name of each output CSS file.
+   -> Read more at https://github.com/webpack-contrib/mini-css-extract-plugin#filename
+   Details:
+    * options.filename should be a non-empty string.
+    * options.filename should be an instance of function."
+`;
+
+exports[`validate options should throw an error on the "ignoreOrder" option with "1" value 1`] = `
+"Invalid options object. Mini CSS Extract Plugin has been initialized using an options object that does not match the API schema.
+ - options.ignoreOrder should be a boolean.
+   -> Remove Order Warnings.
+   -> Read more at https://github.com/webpack-contrib/mini-css-extract-plugin#ignoreorder"
+`;
+
+exports[`validate options should throw an error on the "insert" option with "{}" value 1`] = `
+"Invalid options object. Mini CSS Extract Plugin has been initialized using an options object that does not match the API schema.
+ - options.insert should be one of these:
+   string | function
+   -> Inserts the \`link\` tag at the given position for non-initial (async) (https://webpack.js.org/concepts/under-the-hood/#chunks) CSS chunks.
+   -> Read more at https://github.com/webpack-contrib/mini-css-extract-plugin#insert
+   Details:
+    * options.insert should be a string.
+    * options.insert should be an instance of function."
+`;
+
+exports[`validate options should throw an error on the "insert" option with "1" value 1`] = `
+"Invalid options object. Mini CSS Extract Plugin has been initialized using an options object that does not match the API schema.
+ - options.insert should be one of these:
+   string | function
+   -> Inserts the \`link\` tag at the given position for non-initial (async) (https://webpack.js.org/concepts/under-the-hood/#chunks) CSS chunks.
+   -> Read more at https://github.com/webpack-contrib/mini-css-extract-plugin#insert
+   Details:
+    * options.insert should be a string.
+    * options.insert should be an instance of function."
+`;
+
+exports[`validate options should throw an error on the "insert" option with "true" value 1`] = `
+"Invalid options object. Mini CSS Extract Plugin has been initialized using an options object that does not match the API schema.
+ - options.insert should be one of these:
+   string | function
+   -> Inserts the \`link\` tag at the given position for non-initial (async) (https://webpack.js.org/concepts/under-the-hood/#chunks) CSS chunks.
+   -> Read more at https://github.com/webpack-contrib/mini-css-extract-plugin#insert
+   Details:
+    * options.insert should be a string.
+    * options.insert should be an instance of function."
+`;
+
+exports[`validate options should throw an error on the "linkType" option with "[]" value 1`] = `
+"Invalid options object. Mini CSS Extract Plugin has been initialized using an options object that does not match the API schema.
+ - options.linkType should be one of these:
+   \\"text/css\\" | boolean
+   -> This option allows loading asynchronous chunks with a custom link type
+   -> Read more at https://github.com/webpack-contrib/mini-css-extract-plugin#linktype
+   Details:
+    * options.linkType should be \\"text/css\\".
+    * options.linkType should be a boolean."
+`;
+
+exports[`validate options should throw an error on the "linkType" option with "{}" value 1`] = `
+"Invalid options object. Mini CSS Extract Plugin has been initialized using an options object that does not match the API schema.
+ - options.linkType should be one of these:
+   \\"text/css\\" | boolean
+   -> This option allows loading asynchronous chunks with a custom link type
+   -> Read more at https://github.com/webpack-contrib/mini-css-extract-plugin#linktype
+   Details:
+    * options.linkType should be \\"text/css\\".
+    * options.linkType should be a boolean."
+`;
+
+exports[`validate options should throw an error on the "linkType" option with "1" value 1`] = `
+"Invalid options object. Mini CSS Extract Plugin has been initialized using an options object that does not match the API schema.
+ - options.linkType should be one of these:
+   \\"text/css\\" | boolean
+   -> This option allows loading asynchronous chunks with a custom link type
+   -> Read more at https://github.com/webpack-contrib/mini-css-extract-plugin#linktype
+   Details:
+    * options.linkType should be \\"text/css\\".
+    * options.linkType should be a boolean."
+`;
+
+exports[`validate options should throw an error on the "linkType" option with "invalid/type" value 1`] = `
+"Invalid options object. Mini CSS Extract Plugin has been initialized using an options object that does not match the API schema.
+ - options.linkType should be one of these:
+   \\"text/css\\" | boolean
+   -> This option allows loading asynchronous chunks with a custom link type
+   -> Read more at https://github.com/webpack-contrib/mini-css-extract-plugin#linktype
+   Details:
+    * options.linkType should be \\"text/css\\".
+    * options.linkType should be a boolean."
+`;
+
+exports[`validate options should throw an error on the "unknown" option with "/test/" value 1`] = `
+"Invalid options object. Mini CSS Extract Plugin has been initialized using an options object that does not match the API schema.
+ - options has an unknown property 'unknown'. These properties are valid:
+   object { filename?, chunkFilename?, experimentalUseImportModule?, ignoreOrder?, insert?, attributes?, linkType?, runtime? }"
+`;
+
+exports[`validate options should throw an error on the "unknown" option with "[]" value 1`] = `
+"Invalid options object. Mini CSS Extract Plugin has been initialized using an options object that does not match the API schema.
+ - options has an unknown property 'unknown'. These properties are valid:
+   object { filename?, chunkFilename?, experimentalUseImportModule?, ignoreOrder?, insert?, attributes?, linkType?, runtime? }"
+`;
+
+exports[`validate options should throw an error on the "unknown" option with "{"foo":"bar"}" value 1`] = `
+"Invalid options object. Mini CSS Extract Plugin has been initialized using an options object that does not match the API schema.
+ - options has an unknown property 'unknown'. These properties are valid:
+   object { filename?, chunkFilename?, experimentalUseImportModule?, ignoreOrder?, insert?, attributes?, linkType?, runtime? }"
+`;
+
+exports[`validate options should throw an error on the "unknown" option with "{}" value 1`] = `
+"Invalid options object. Mini CSS Extract Plugin has been initialized using an options object that does not match the API schema.
+ - options has an unknown property 'unknown'. These properties are valid:
+   object { filename?, chunkFilename?, experimentalUseImportModule?, ignoreOrder?, insert?, attributes?, linkType?, runtime? }"
+`;
+
+exports[`validate options should throw an error on the "unknown" option with "1" value 1`] = `
+"Invalid options object. Mini CSS Extract Plugin has been initialized using an options object that does not match the API schema.
+ - options has an unknown property 'unknown'. These properties are valid:
+   object { filename?, chunkFilename?, experimentalUseImportModule?, ignoreOrder?, insert?, attributes?, linkType?, runtime? }"
+`;
+
+exports[`validate options should throw an error on the "unknown" option with "false" value 1`] = `
+"Invalid options object. Mini CSS Extract Plugin has been initialized using an options object that does not match the API schema.
+ - options has an unknown property 'unknown'. These properties are valid:
+   object { filename?, chunkFilename?, experimentalUseImportModule?, ignoreOrder?, insert?, attributes?, linkType?, runtime? }"
+`;
+
+exports[`validate options should throw an error on the "unknown" option with "test" value 1`] = `
+"Invalid options object. Mini CSS Extract Plugin has been initialized using an options object that does not match the API schema.
+ - options has an unknown property 'unknown'. These properties are valid:
+   object { filename?, chunkFilename?, experimentalUseImportModule?, ignoreOrder?, insert?, attributes?, linkType?, runtime? }"
+`;
+
+exports[`validate options should throw an error on the "unknown" option with "true" value 1`] = `
+"Invalid options object. Mini CSS Extract Plugin has been initialized using an options object that does not match the API schema.
+ - options has an unknown property 'unknown'. These properties are valid:
+   object { filename?, chunkFilename?, experimentalUseImportModule?, ignoreOrder?, insert?, attributes?, linkType?, runtime? }"
+`;

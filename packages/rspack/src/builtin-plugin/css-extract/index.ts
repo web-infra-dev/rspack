@@ -51,8 +51,8 @@ export class CssExtractRspackPlugin {
 		}
 
 		compiler.__internal__registerBuiltinPlugin({
-			// @ts-expect-error CssExtractPlugin is a constant value of BuiltinPlugin
-			name: "CssExtractPlugin",
+			// @ts-expect-error CssExtractRspackPlugin is a constant value of BuiltinPlugin
+			name: "CssExtractRspackPlugin",
 			options: this.normalizeOptions(this.options)
 		});
 	}

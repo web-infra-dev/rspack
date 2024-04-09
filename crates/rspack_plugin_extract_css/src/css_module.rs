@@ -26,7 +26,7 @@ pub(crate) static DEPENDENCY_TYPE: Lazy<DependencyType> =
 pub(crate) struct CssModule {
   pub(crate) identifier: String,
   pub(crate) content: String,
-  pub(crate) context: String,
+  pub(crate) _context: String,
   pub(crate) media: String,
   pub(crate) supports: String,
   pub(crate) source_map: String,
@@ -67,7 +67,7 @@ impl CssModule {
     Self {
       identifier: dep.identifier,
       content: dep.content,
-      context: dep.context,
+      _context: dep.context,
       media: dep.media,
       supports: dep.supports,
       source_map: dep.source_map,
@@ -88,7 +88,6 @@ impl CssModule {
     self.content.hash(&mut hasher);
     self.supports.hash(&mut hasher);
     self.media.hash(&mut hasher);
-    self.context.hash(&mut hasher);
 
     hasher.digest(&options.output.hash_digest)
   }

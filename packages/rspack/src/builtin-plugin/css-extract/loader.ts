@@ -62,7 +62,6 @@ function hotLoader(
   `;
 }
 
-// mini-css-extract-plugin
 const loader: LoaderDefinition = function loader(content) {
 	if (
 		this._compiler &&
@@ -81,12 +80,25 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 		this._compiler.options.experiments &&
 		this._compiler.options.experiments.css
 	) {
-		this.emitWarning(
-			new Error(
-				"You can't use `experiments.css` and `mini-css-extract-plugin` together, please set `experiments.css` to `false`"
-			)
+		let e = new Error(
+			"You can't use `experiments.css` and `css-extract-rspack-plugin` together, please set `experiments.css` to `false`"
 		);
+		e.stack = undefined;
+		this.emitWarning(e);
 
+		return;
+	}
+
+	if (
+		this._compiler &&
+		this._compiler.options &&
+		this._compiler.options.experiments &&
+		this._compiler.options.experiments.rspackFuture &&
+		this._compiler.options.experiments.rspackFuture.newTreeshaking === false
+	) {
+		this.emitError(
+			new Error("Cannot use CssExtractRspackPlugin without newTreeshaking")
+		);
 		return;
 	}
 
@@ -168,8 +180,8 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 			if (Array.isArray(exports) && emit) {
 				const identifierCountMap = new Map();
 
-				dependencies = exports.map(
-					([id, content, media, sourceMap, supports, layer]) => {
+				dependencies = exports
+					.map(([id, content, media, sourceMap, supports, layer]) => {
 						let identifier = id;
 						let context = this.rootContext;
 
@@ -191,8 +203,8 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 									undefined,
 							filepath
 						};
-					}
-				);
+					})
+					.filter(item => item !== null) as DependencyDescription[];
 			}
 		} catch (e) {
 			callback(e as Error);
@@ -242,6 +254,7 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 				})
 				.join(SERIALIZE_SEP);
 		}
+
 		callback(null, resultSource, undefined, additionalData);
 	};
 

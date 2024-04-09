@@ -22,6 +22,7 @@ Object {
 
 exports[`CopyPlugin basic should work with multi compiler mode: errors 1`] = `
 Object {
+  "length": 0,
   "push": [Function],
   Symbol(Symbol.iterator): [Function],
 }
@@ -29,6 +30,7 @@ Object {
 
 exports[`CopyPlugin basic should work with multi compiler mode: errors 2`] = `
 Object {
+  "length": 0,
   "push": [Function],
   Symbol(Symbol.iterator): [Function],
 }

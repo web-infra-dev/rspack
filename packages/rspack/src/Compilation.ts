@@ -418,6 +418,10 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			options.children,
 			!context.forToString
 		);
+		options.orphanModules = optionOrLocalFallback(
+			options.orphanModules,
+			context.forToString ? false : true
+		);
 
 		return options;
 	}
@@ -564,6 +568,9 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 						);
 					}
 				}
+			},
+			get length() {
+				return inner.getStats().getErrors().length;
 			},
 			[Symbol.iterator]() {
 				// TODO: this is obviously a bad design, optimize this after finishing angular prototype
