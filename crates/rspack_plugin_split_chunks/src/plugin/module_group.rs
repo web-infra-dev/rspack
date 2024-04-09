@@ -122,7 +122,6 @@ impl SplitChunksPlugin {
           .get_module_chunks(module.identifier());
 
       let chunks_key = Self::get_key(belong_to_chunks.iter());
-      let module_group_map = &module_group_map;
 
       let mut temp = vec![];
 
@@ -156,7 +155,7 @@ impl SplitChunksPlugin {
 
         temp.push((idx, is_match));
       }
-      let mut chunk_key_to_string = HashMap::<u64, String, ChunksKeyHashBuilder>::default();
+      let mut chunk_key_to_string = HashMap::<ChunksKey, String, ChunksKeyHashBuilder>::default();
       temp.sort_by(|a, b| a.0.cmp(&b.0));
 
       let filtered = self
@@ -214,14 +213,14 @@ impl SplitChunksPlugin {
               selected_chunks,
               selected_chunks_key,
             },
-            module_group_map,
+            &module_group_map,
             &mut chunk_key_to_string
           )?;
 
           fn merge_matched_item_into_module_group_map(
             matched_item: MatchedItem<'_>,
             module_group_map: &DashMap<String, ModuleGroup>,
-            chunk_key_to_string: &mut HashMap::<u64, String, ChunksKeyHashBuilder>
+            chunk_key_to_string: &mut HashMap::<ChunksKey, String, ChunksKeyHashBuilder>
           ) -> Result<()> {
             let MatchedItem {
               idx,
