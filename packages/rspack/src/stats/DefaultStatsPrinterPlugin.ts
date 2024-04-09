@@ -12,6 +12,7 @@ import type { Compiler } from "../Compiler";
 import type { StatsPrinter, StatsPrinterContext } from "./StatsPrinter";
 import { formatSize } from "../util/SizeFormatHelpers";
 import { StatsChunkGroup, StatsCompilation } from "./statsFactoryUtils";
+import { compareIds } from "../util/comparators";
 
 const DATA_URI_CONTENT_LENGTH = 16;
 
@@ -556,7 +557,7 @@ const SIMPLE_PRINTERS: Record<
 			type: key,
 			children: childrenByOrder[key]
 		}));
-		items.sort((a, b) => (a.type > b.type ? 1 : a.type === b.type ? 0 : -1));
+		items.sort((a, b) => compareIds(a.type, b.type));
 
 		return Array.isArray(childrenByOrder)
 			? undefined
