@@ -3135,6 +3135,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_macros_test"
+version = "0.1.0"
+dependencies = [
+ "rspack_core",
+ "rspack_error",
+ "rspack_hook",
+ "rspack_macros",
+ "rspack_util",
+ "tokio",
+ "trybuild",
+]
+
+[[package]]
 name = "rspack_napi"
 version = "0.1.0"
 dependencies = [
@@ -3181,6 +3194,7 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_hash",
+ "rspack_hook",
  "rspack_util",
  "serde_json",
  "urlencoding",

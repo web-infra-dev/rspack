@@ -1,17 +1,16 @@
 use std::fmt::Debug;
 
-use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
-use rspack_hash::RspackHashDigest;
+use rspack_error::Result;
 use rspack_loader_runner::ResourceData;
 use rspack_sources::BoxSource;
 use rspack_util::fx_hash::FxDashMap;
 
 use crate::{
   AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, AssetInfo, BoxModule,
-  ChunkHashArgs, Compilation, CompilationHooks, CompilerHooks, CompilerOptions, ContentHashArgs,
-  ContextModuleFactoryHooks, GeneratorOptions, ModuleIdentifier, ModuleType,
-  NormalModuleFactoryHooks, NormalModuleHooks, OptimizeChunksArgs, ParserAndGenerator,
-  ParserOptions, PluginContext, RenderManifestArgs, RuntimeRequirementsInTreeArgs, SourceType,
+  Compilation, CompilationHooks, CompilerHooks, CompilerOptions, ContextModuleFactoryHooks,
+  GeneratorOptions, ModuleIdentifier, ModuleType, NormalModuleFactoryHooks, NormalModuleHooks,
+  OptimizeChunksArgs, ParserAndGenerator, ParserOptions, PluginContext,
+  RuntimeRequirementsInTreeArgs,
 };
 
 #[derive(Debug, Clone)]
@@ -25,9 +24,6 @@ pub type PluginNormalModuleFactoryModuleHookOutput = Result<BoxModule>;
 pub type PluginNormalModuleFactoryResolveForSchemeOutput = Result<(ResourceData, bool)>;
 pub type PluginNormalModuleFactoryBeforeResolveOutput = Result<Option<bool>>;
 pub type PluginNormalModuleFactoryAfterResolveOutput = Result<Option<bool>>;
-pub type PluginContentHashHookOutput = Result<Option<(SourceType, RspackHashDigest)>>;
-pub type PluginChunkHashHookOutput = Result<()>;
-pub type PluginRenderManifestHookOutput = Result<TWithDiagnosticArray<Vec<RenderManifestEntry>>>;
 pub type PluginProcessAssetsOutput = Result<()>;
 pub type PluginOptimizeChunksOutput = Result<()>;
 pub type PluginAdditionalChunkRuntimeRequirementsOutput = Result<()>;
@@ -46,30 +42,6 @@ pub trait Plugin: Debug + Send + Sync {
     _options: &mut CompilerOptions,
   ) -> Result<()> {
     Ok(())
-  }
-
-  async fn content_hash(
-    &self,
-    _ctx: PluginContext,
-    _args: &ContentHashArgs<'_>,
-  ) -> PluginContentHashHookOutput {
-    Ok(None)
-  }
-
-  async fn chunk_hash(
-    &self,
-    _ctx: PluginContext,
-    _args: &mut ChunkHashArgs<'_>,
-  ) -> PluginChunkHashHookOutput {
-    Ok(())
-  }
-
-  async fn render_manifest(
-    &self,
-    _ctx: PluginContext,
-    _args: RenderManifestArgs<'_>,
-  ) -> PluginRenderManifestHookOutput {
-    Ok(vec![].with_empty_diagnostic())
   }
 
   async fn module_asset(&self, _module: ModuleIdentifier, _asset_name: String) -> Result<()> {

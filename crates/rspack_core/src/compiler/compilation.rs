@@ -14,7 +14,8 @@ use rspack_error::{error, Diagnostic, Result, Severity, TWithDiagnosticArray};
 use rspack_futures::FuturesResults;
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_hook::{
-  AsyncSeries2Hook, AsyncSeries3Hook, AsyncSeriesBailHook, AsyncSeriesHook, SyncSeries4Hook,
+  define_hook, AsyncSeries2Hook, AsyncSeries3Hook, AsyncSeriesBailHook, AsyncSeriesHook,
+  SyncSeries4Hook,
 };
 use rspack_identifier::{Identifiable, Identifier, IdentifierMap, IdentifierSet};
 use rspack_sources::{BoxSource, CachedSource, SourceExt};
@@ -35,13 +36,12 @@ use crate::{
   AddQueueHandler, AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs,
   BoxDependency, BoxModule, BuildQueueHandler, BuildTimeExecutionQueueHandler, CacheCount,
   CacheOptions, Chunk, ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey,
-  ChunkHashArgs, ChunkKind, ChunkUkey, CodeGenerationResults, CompilationLogger,
-  CompilationLogging, CompilerOptions, ContentHashArgs, DependencyId, DependencyType, Entry,
-  EntryData, EntryOptions, Entrypoint, ErrorSpan, FactorizeQueueHandler, Filename, ImportVarMap,
-  LocalFilenameFn, Logger, Module, ModuleFactory, ModuleGraph, ModuleGraphPartial,
-  ModuleIdentifier, PathData, ProcessDependenciesQueueHandler, RenderManifestArgs, ResolverFactory,
-  RuntimeGlobals, RuntimeModule, RuntimeRequirementsInTreeArgs, RuntimeSpec, SharedPluginDriver,
-  SourceType, Stats,
+  ChunkKind, ChunkUkey, CodeGenerationResults, CompilationLogger, CompilationLogging,
+  CompilerOptions, DependencyId, DependencyType, Entry, EntryData, EntryOptions, Entrypoint,
+  ErrorSpan, FactorizeQueueHandler, Filename, ImportVarMap, LocalFilenameFn, Logger, Module,
+  ModuleFactory, ModuleGraph, ModuleGraphPartial, ModuleIdentifier, PathData,
+  ProcessDependenciesQueueHandler, RenderManifestEntry, ResolverFactory, RuntimeGlobals,
+  RuntimeModule, RuntimeRequirementsInTreeArgs, RuntimeSpec, SharedPluginDriver, SourceType, Stats,
 };
 use crate::{tree_shaking::visitor::OptimizeAnalyzeResult, ExecuteModuleId};
 
@@ -61,6 +61,9 @@ pub type CompilationAfterOptimizeModulesHook = AsyncSeriesHook<Compilation>;
 pub type CompilationOptimizeTreeHook = AsyncSeriesHook<Compilation>;
 pub type CompilationOptimizeChunkModulesHook = AsyncSeriesBailHook<Compilation, bool>;
 pub type CompilationRuntimeModuleHook = AsyncSeries3Hook<Compilation, ModuleIdentifier, ChunkUkey>;
+define_hook!(CompilationChunkHash: SyncSeries(compilation: &Compilation, chunk_ukey: &ChunkUkey, hasher: &mut RspackHash));
+define_hook!(CompilationContentHash: SyncSeries(compilation: &Compilation, chunk_ukey: &ChunkUkey, hashes: &mut HashMap<SourceType, RspackHash>));
+define_hook!(CompilationRenderManifest: AsyncSeries(compilation: &Compilation, chunk_ukey: &ChunkUkey, manifest: &mut Vec<RenderManifestEntry>, diagnostics: &mut Vec<Diagnostic>));
 pub type CompilationChunkAssetHook = AsyncSeries2Hook<Chunk, String>;
 pub type CompilationProcessAssetsHook = AsyncSeriesHook<Compilation>;
 pub type CompilationAfterProcessAssetsHook = AsyncSeriesHook<Compilation>;
@@ -78,6 +81,9 @@ pub struct CompilationHooks {
   pub optimize_tree: CompilationOptimizeTreeHook,
   pub optimize_chunk_modules: CompilationOptimizeChunkModulesHook,
   pub runtime_module: CompilationRuntimeModuleHook,
+  pub chunk_hash: CompilationChunkHashHook,
+  pub content_hash: CompilationContentHashHook,
+  pub render_manifest: CompilationRenderManifestHook,
   pub chunk_asset: CompilationChunkAssetHook,
   pub process_assets: CompilationProcessAssetsHook,
   pub after_process_assets: CompilationAfterProcessAssetsHook,
@@ -751,44 +757,30 @@ impl Compilation {
   }
 
   #[instrument(skip_all)]
-  async fn create_chunk_assets(&mut self, plugin_driver: SharedPluginDriver) {
+  async fn create_chunk_assets(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     let results = self
       .chunk_by_ukey
       .values()
       .map(|chunk| async {
-        let manifest_result = plugin_driver
-          .render_manifest(RenderManifestArgs {
-            chunk_ukey: chunk.ukey,
-            compilation: self,
-          })
-          .await;
+        let mut manifest = Vec::new();
+        let mut diagnostics = Vec::new();
+        plugin_driver
+          .compilation_hooks
+          .render_manifest
+          .call(self, &chunk.ukey, &mut manifest, &mut diagnostics)
+          .await?;
 
-        if let Ok(manifest) = &manifest_result {
-          tracing::debug!(
-            "For Chunk({:?}), collected assets: {:?}",
-            chunk.id,
-            manifest
-              .inner
-              .iter()
-              .map(|m| m.filename())
-              .collect::<Vec<_>>()
-          );
-        };
-
-        (chunk.ukey, manifest_result)
+        Ok((chunk.ukey, manifest, diagnostics))
       })
-      .collect::<FuturesResults<_>>();
+      .collect::<FuturesResults<Result<_>>>();
 
     let chunk_ukey_and_manifest = results.into_inner();
 
-    for (chunk_ukey, manifest_result) in chunk_ukey_and_manifest.into_iter() {
-      let (manifests, diagnostics) = manifest_result
-        .expect("We should return this error rathen expect")
-        .split_into_parts();
-
+    for result in chunk_ukey_and_manifest.into_iter() {
+      let (chunk_ukey, manifest, diagnostics) = result?;
       self.push_batch_diagnostic(diagnostics);
 
-      for file_manifest in manifests {
+      for file_manifest in manifest {
         let filename = file_manifest.filename().to_string();
 
         let current_chunk = self.chunk_by_ukey.expect_get_mut(&chunk_ukey);
@@ -811,13 +803,8 @@ impl Compilation {
           .chunk_asset(chunk_ukey, filename, plugin_driver.clone())
           .await;
       }
-      //
-      // .into_iter()
-      // .for_each(|file_manifest| {
-      // });
     }
-    // .for_each(|(chunk_ukey, manifest)| {
-    // })
+    Ok(())
   }
 
   #[instrument(name = "compilation:after_process_asssets", skip_all)]
@@ -988,7 +975,7 @@ impl Compilation {
     logger.time_end(start);
 
     let start = logger.time("create chunk assets");
-    self.create_chunk_assets(plugin_driver.clone()).await;
+    self.create_chunk_assets(plugin_driver.clone()).await?;
     logger.time_end(start);
 
     let start = logger.time("process assets");
@@ -1331,22 +1318,22 @@ impl Compilation {
       chunk.update_hash(&mut hasher, self);
     }
     plugin_driver
-      .chunk_hash(&mut ChunkHashArgs {
-        chunk_ukey,
-        compilation: self,
-        hasher: &mut hasher,
-      })
-      .await?;
+      .compilation_hooks
+      .chunk_hash
+      .call(self, &chunk_ukey, &mut hasher)?;
     let chunk_hash = hasher.digest(&self.options.output.hash_digest);
 
-    let content_hash = plugin_driver
-      .content_hash(&ContentHashArgs {
-        chunk_ukey,
-        compilation: self,
-      })
-      .await?;
+    let mut content_hashes = HashMap::default();
+    plugin_driver
+      .compilation_hooks
+      .content_hash
+      .call(self, &chunk_ukey, &mut content_hashes)?;
+    let content_hashes = content_hashes
+      .into_iter()
+      .map(|(t, hasher)| (t, hasher.digest(&self.options.output.hash_digest)))
+      .collect();
 
-    Ok((chunk_hash, content_hash))
+    Ok((chunk_hash, content_hashes))
   }
 
   // #[instrument(name = "compilation:create_module_hash", skip_all)]

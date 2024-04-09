@@ -11,17 +11,19 @@ use rspack_core::{
     analyzer::OptimizeAnalyzer, asset_module::AssetModule, visitor::OptimizeAnalyzeResult,
   },
   AssetGeneratorDataUrl, AssetGeneratorDataUrlFnArgs, AssetParserDataUrl, BuildExtraDataType,
-  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, CodeGenerationDataAssetInfo,
-  CodeGenerationDataFilename, CodeGenerationDataUrl, Compilation, CompilerOptions, GenerateContext,
-  Module, ModuleGraph, ModuleType, NormalModule, ParseContext, ParserAndGenerator, PathData,
-  Plugin, PluginContext, PluginRenderManifestHookOutput, RenderManifestArgs, RenderManifestEntry,
-  ResourceData, RuntimeGlobals, SourceType, NAMESPACE_OBJECT_EXPORT,
+  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ChunkUkey, CodeGenerationDataAssetInfo,
+  CodeGenerationDataFilename, CodeGenerationDataUrl, Compilation, CompilationRenderManifest,
+  CompilerOptions, GenerateContext, Module, ModuleGraph, ModuleType, NormalModule, ParseContext,
+  ParserAndGenerator, PathData, Plugin, RenderManifestEntry, ResourceData, RuntimeGlobals,
+  SourceType, NAMESPACE_OBJECT_EXPORT,
 };
-use rspack_error::{error, IntoTWithDiagnosticArray, Result};
+use rspack_error::{error, Diagnostic, IntoTWithDiagnosticArray, Result};
 use rspack_hash::{RspackHash, RspackHashDigest};
+use rspack_hook::{plugin, plugin_hook};
 use rspack_util::identifier::make_paths_relative;
 
-#[derive(Debug)]
+#[plugin]
+#[derive(Debug, Default)]
 pub struct AssetPlugin;
 
 static ASSET_MODULE_SOURCE_TYPE_LIST: &[SourceType; 2] =
@@ -484,6 +486,90 @@ impl ParserAndGenerator for AssetParserAndGenerator {
   }
 }
 
+#[plugin_hook(CompilationRenderManifest for AssetPlugin)]
+async fn render_manifest(
+  &self,
+  compilation: &Compilation,
+  chunk_ukey: &ChunkUkey,
+  manifest: &mut Vec<RenderManifestEntry>,
+  _diagnostics: &mut Vec<Diagnostic>,
+) -> Result<()> {
+  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let module_graph = compilation.get_module_graph();
+
+  let ordered_modules = compilation
+    .chunk_graph
+    .get_chunk_modules(chunk_ukey, &module_graph);
+
+  let assets = ordered_modules
+    .par_iter()
+    .filter(|m| {
+      let module = module_graph
+        .module_by_identifier(&m.identifier())
+        // FIXME: use result
+        .expect("Failed to get module");
+
+      let all_incoming_analyzed = module_graph
+        .get_incoming_connections(&module.identifier())
+        .iter()
+        .all(|c| {
+          if let Some(original_module_identifier) = c.original_module_identifier {
+            module_graph
+              .module_graph_module_by_identifier(&original_module_identifier)
+              .map(|original_module| {
+                !compilation
+                  .bailout_module_identifiers
+                  .contains_key(&original_module.module_identifier)
+                  && original_module.module_type.is_js_like()
+              })
+              .unwrap_or(false)
+          } else {
+            false
+          }
+        });
+
+      module.source_types().contains(&SourceType::Asset)
+        && (!all_incoming_analyzed
+          || compilation
+            .include_module_ids
+            .contains(&module.identifier()))
+    })
+    .map(|m| {
+      let code_gen_result = compilation
+        .code_generation_results
+        .get(&m.identifier(), Some(&chunk.runtime));
+
+      let result = code_gen_result.get(&SourceType::Asset).map(|source| {
+        let asset_filename = code_gen_result
+          .data
+          .get::<CodeGenerationDataFilename>()
+          .expect("should have filename for asset module")
+          .filename();
+        let asset_info = code_gen_result
+          .data
+          .get::<CodeGenerationDataAssetInfo>()
+          .expect("should have asset_info")
+          .inner();
+        RenderManifestEntry::new(
+          source.clone(),
+          asset_filename.to_owned(),
+          asset_info.to_owned(),
+          true,
+          true,
+        )
+      });
+
+      Ok(result)
+    })
+    .collect::<Result<Vec<Option<RenderManifestEntry>>>>()?
+    .into_par_iter()
+    .flatten()
+    .collect::<Vec<RenderManifestEntry>>();
+
+  manifest.extend(assets);
+  Ok(())
+}
+
 #[async_trait]
 impl Plugin for AssetPlugin {
   fn name(&self) -> &'static str {
@@ -495,6 +581,12 @@ impl Plugin for AssetPlugin {
     ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
     _options: &mut CompilerOptions,
   ) -> Result<()> {
+    ctx
+      .context
+      .compilation_hooks
+      .render_manifest
+      .tap(render_manifest::new(self));
+
     ctx.context.register_parser_and_generator_builder(
       rspack_core::ModuleType::Asset,
       Box::new(move |p, _| {
@@ -520,86 +612,5 @@ impl Plugin for AssetPlugin {
     );
 
     Ok(())
-  }
-
-  async fn render_manifest(
-    &self,
-    _ctx: PluginContext,
-    args: RenderManifestArgs<'_>,
-  ) -> PluginRenderManifestHookOutput {
-    let compilation = args.compilation;
-    let chunk = args.chunk();
-    let module_graph = compilation.get_module_graph();
-
-    let ordered_modules = compilation
-      .chunk_graph
-      .get_chunk_modules(&args.chunk_ukey, &module_graph);
-
-    let assets = ordered_modules
-      .par_iter()
-      .filter(|m| {
-        let module = module_graph
-          .module_by_identifier(&m.identifier())
-          // FIXME: use result
-          .expect("Failed to get module");
-
-        let all_incoming_analyzed = module_graph
-          .get_incoming_connections(&module.identifier())
-          .iter()
-          .all(|c| {
-            if let Some(original_module_identifier) = c.original_module_identifier {
-              module_graph
-                .module_graph_module_by_identifier(&original_module_identifier)
-                .map(|original_module| {
-                  !compilation
-                    .bailout_module_identifiers
-                    .contains_key(&original_module.module_identifier)
-                    && original_module.module_type.is_js_like()
-                })
-                .unwrap_or(false)
-            } else {
-              false
-            }
-          });
-
-        module.source_types().contains(&SourceType::Asset)
-          && (!all_incoming_analyzed
-            || compilation
-              .include_module_ids
-              .contains(&module.identifier()))
-      })
-      .map(|m| {
-        let code_gen_result = compilation
-          .code_generation_results
-          .get(&m.identifier(), Some(&chunk.runtime));
-
-        let result = code_gen_result.get(&SourceType::Asset).map(|source| {
-          let asset_filename = code_gen_result
-            .data
-            .get::<CodeGenerationDataFilename>()
-            .expect("should have filename for asset module")
-            .filename();
-          let asset_info = code_gen_result
-            .data
-            .get::<CodeGenerationDataAssetInfo>()
-            .expect("should have asset_info")
-            .inner();
-          RenderManifestEntry::new(
-            source.clone(),
-            asset_filename.to_owned(),
-            asset_info.to_owned(),
-            true,
-            true,
-          )
-        });
-
-        Ok(result)
-      })
-      .collect::<Result<Vec<Option<RenderManifestEntry>>>>()?
-      .into_par_iter()
-      .flatten()
-      .collect::<Vec<RenderManifestEntry>>();
-
-    Ok(assets.with_empty_diagnostic())
   }
 }

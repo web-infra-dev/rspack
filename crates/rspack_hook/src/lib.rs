@@ -15,8 +15,10 @@ pub use async_series_bail::{
   AsyncSeriesBail4, AsyncSeriesBail4Hook, AsyncSeriesBailHook,
 };
 pub use interceptor::{Hook, Interceptor};
-pub use rspack_macros::{plugin, plugin_hook};
-pub use sync_series::{SyncSeries, SyncSeries4, SyncSeries4Hook, SyncSeriesHook};
+pub use rspack_macros::{define_hook, plugin, plugin_hook};
+pub use sync_series::{
+  SyncSeries, SyncSeries3, SyncSeries3Hook, SyncSeries4, SyncSeries4Hook, SyncSeriesHook,
+};
 
 // pub trait Plugin<HookContainer> {
 //   fn apply(&self, hook_container: &mut HookContainer);
@@ -25,4 +27,7 @@ pub use sync_series::{SyncSeries, SyncSeries4, SyncSeries4Hook, SyncSeriesHook};
 #[doc(hidden)]
 pub mod __macro_helper {
   pub use async_trait::async_trait;
+  pub use futures_concurrency;
+  pub use rspack_error::Result;
+  pub use rustc_hash::FxHashSet;
 }

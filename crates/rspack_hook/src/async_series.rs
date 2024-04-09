@@ -62,8 +62,8 @@ impl<I1> AsyncSeriesHook<I1> {
     Ok(())
   }
 
-  pub fn tap(&mut self, tap: Box<dyn AsyncSeries<I1> + Send + Sync>) {
-    self.taps.push(tap);
+  pub fn tap(&mut self, tap: impl AsyncSeries<I1> + Send + Sync + 'static) {
+    self.taps.push(Box::new(tap));
   }
 }
 
@@ -123,8 +123,8 @@ impl<I1, I2> AsyncSeries2Hook<I1, I2> {
     Ok(())
   }
 
-  pub fn tap(&mut self, tap: Box<dyn AsyncSeries2<I1, I2> + Send + Sync>) {
-    self.taps.push(tap);
+  pub fn tap(&mut self, tap: impl AsyncSeries2<I1, I2> + Send + Sync + 'static) {
+    self.taps.push(Box::new(tap));
   }
 }
 
@@ -184,7 +184,7 @@ impl<I1, I2, I3> AsyncSeries3Hook<I1, I2, I3> {
     Ok(())
   }
 
-  pub fn tap(&mut self, tap: Box<dyn AsyncSeries3<I1, I2, I3> + Send + Sync>) {
-    self.taps.push(tap);
+  pub fn tap(&mut self, tap: impl AsyncSeries3<I1, I2, I3> + Send + Sync + 'static) {
+    self.taps.push(Box::new(tap));
   }
 }
