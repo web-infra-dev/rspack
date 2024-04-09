@@ -108,7 +108,7 @@ function getNavConfig(lang: 'zh' | 'en'): NavItem[] {
 				{
 					text: getText(
 						'未来默认行为与功能废弃',
-						'Future behavior & Deprecation',
+						'Future behavior & Deprecation'
 					),
 					link: getLink('/misc/future'),
 				},
@@ -416,6 +416,10 @@ function getSidebarConfig(lang: 'zh' | 'en'): Sidebar {
 						text: 'CopyRspackPlugin',
 						link: getLink('/plugins/rspack/copy-rspack-plugin'),
 					},
+					{
+						text: 'CssExtractRspackPlugin',
+						link: getLink('/plugins/rspack/css-extract-rspack-plugin'),
+					},
 				],
 			},
 		],
@@ -457,7 +461,7 @@ function getSidebarConfig(lang: 'zh' | 'en'): Sidebar {
 			{
 				text: getText(
 					'Rspack 支持模块联邦',
-					'Module Federation added to Rspack',
+					'Module Federation added to Rspack'
 				),
 				link: getLink('/blog/module-federation-added-to-rspack'),
 			},
