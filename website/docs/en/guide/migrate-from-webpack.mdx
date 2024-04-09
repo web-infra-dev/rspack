@@ -134,6 +134,37 @@ Rspack's [css-modules](https://github.com/css-modules/css-modules) functionality
  };
 ```
 
+
+### CssExtractPlugin
+
+If you need some specific configurations from css-loader, you can still use style-loader + css-loader, if you want to extract css files for production, you can use Rspack builtin plugin: CssExtractRspackPlugin.
+
+CssExtractRspackPlugin is similar to mini-css-extract-plugin, be sure that you've already enabled `experiments.rspackFuture.newTreeshaking`, it's enabled by default after v0.6.
+
+```diff
++ const { CssExtractRspackPlugin } = require("@rspack/core");
+- const CssExtractPlugin = require("mini-css-extract-plugin");
+
+module.exports = {
+  plugins: [
++    new CssExtractRspackPlugin(),
+-    new CssExtractPlugin(),
+  ]
+  module: {
+    rules: [
+      {
+        test: /\.css$/i,
+        use: [
++          CssExtractRspackPlugin.loader,
+-          CssExtractPlugin.loader,
+          "css-loader"
+        ]
+      }
+    ]
+  }
+}
+```
+
 ### Using asset modules instead of file-loader and url-loader
 
 Rspack is aligned with Webpack 5's "asset modules," which should be used instead of `file-loader` and `url-loader`.
