@@ -14,7 +14,6 @@ chunk {909} bundle.js (main) [entry]
     [no exports]
     [no exports used]
     entry ./index
-orphan modules [orphan] 1 module
 ./raw.png [193] {909}
   [no exports]
   [no exports used]
@@ -23,6 +22,10 @@ orphan modules [orphan] 1 module
   [no exports]
   [no exports used]
   entry ./index
+./stringModule.js [orphan]
+  [no exports]
+  [module unused]
+  esm import ./stringModule [10]
 webpack/runtime/global {909}
   [no exports]
   [used exports unknown]
