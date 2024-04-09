@@ -6,7 +6,9 @@ use rspack_error::Result;
 use rspack_sources::Source;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
-use crate::{get_chunk_from_ukey, get_chunk_group_from_ukey, ProvidedExports, UsedExports};
+use crate::{
+  get_chunk_from_ukey, get_chunk_group_from_ukey, ChunkGroupOrderKey, ProvidedExports, UsedExports,
+};
 use crate::{BoxModule, BoxRuntimeModule, Chunk};
 use crate::{ChunkGroupUkey, Compilation, LogType, ModuleIdentifier, ModuleType, SourceType};
 
@@ -222,6 +224,16 @@ impl Stats<'_> {
         } else {
           (None, None, None)
         };
+
+        let orders = vec![ChunkGroupOrderKey::Prefetch, ChunkGroupOrderKey::Preload];
+        let mut children_by_order = HashMap::<ChunkGroupOrderKey, Vec<String>>::default();
+
+        for order in orders {
+          if let Some(order_chlidren) = c.get_child_ids_by_order(&order, self.compilation) {
+            children_by_order.insert(order, order_chlidren);
+          }
+        }
+
         Ok(StatsChunk {
           r#type: "chunk",
           files,
@@ -238,6 +250,7 @@ impl Stats<'_> {
           parents,
           children,
           siblings,
+          children_by_order,
         })
       })
       .collect::<Result<_>>()?;
@@ -782,6 +795,7 @@ pub struct StatsChunk<'a> {
   pub parents: Option<Vec<String>>,
   pub children: Option<Vec<String>>,
   pub siblings: Option<Vec<String>>,
+  pub children_by_order: HashMap<ChunkGroupOrderKey, Vec<String>>,
 }
 
 #[derive(Debug)]

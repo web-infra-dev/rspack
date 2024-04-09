@@ -547,17 +547,21 @@ const SIMPLE_PRINTERS: Record<
 		context.formatChunkId(siblings, "sibling"),
 	"chunk.children[]": (children, context) =>
 		context.formatChunkId(children, "child"),
-	"chunk.childrenByOrder": (childrenByOrder, context, printer) =>
-		Array.isArray(childrenByOrder)
+	"chunk.childrenByOrder": (childrenByOrder, context, printer) => {
+		if (Array.isArray(childrenByOrder)) {
+			return undefined;
+		}
+		// need to sort to make it stable for ci
+		const items = Object.keys(childrenByOrder).map(key => ({
+			type: key,
+			children: childrenByOrder[key]
+		}));
+		items.sort((a, b) => (a.type > b.type ? 1 : a.type === b.type ? 0 : -1));
+
+		return Array.isArray(childrenByOrder)
 			? undefined
-			: printer.print(
-					context.type,
-					Object.keys(childrenByOrder).map(key => ({
-						type: key,
-						children: childrenByOrder[key]
-					})),
-					context
-			  ),
+			: printer.print(context.type, items, context);
+	},
 	"chunk.childrenByOrder[].type": type => `${type}:`,
 	"chunk.childrenByOrder[].children[]": (id, { formatChunkId }) =>
 		isValidId(id) ? formatChunkId(id) : undefined,
