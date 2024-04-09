@@ -14,6 +14,7 @@ const defaults = {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
+  Sider: function() { return Sider; },
   Something: function() { return Something; }
 });
 /* harmony import */var _Layout__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./Layout */"./Layout.js");

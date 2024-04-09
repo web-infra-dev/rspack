@@ -2,13 +2,9 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./package/autogen/a.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
-__webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  a: function() { return a; },
-  aa: function() { return /* reexport module object */ _aa__WEBPACK_IMPORTED_MODULE_0__; },
-  dddd: function() { return dddd; }
+  a: function() { return a; }
 });
-/* harmony import */var _aa__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./aa */"./package/autogen/aa.js");
 
 function a() {}
 function dddd() {}
@@ -16,17 +12,14 @@ function dddd() {}
 }),
 "./package/autogen/aa.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
-__webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  aa: function() { return aa; },
-  cc: function() { return cc; }
+  aa: function() { return aa; }
 });
 const aa = 3;
 const cc = 3;
 }),
-"./src/index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./src/index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
 "use strict";
-__webpack_require__.r(__webpack_exports__);
 /* harmony import */var _package_src_index_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../package/src/index.js */"./package/autogen/a.js");
 /* harmony import */var _package_src_index_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../package/src/index.js */"./package/autogen/aa.js");
 

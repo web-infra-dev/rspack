@@ -9,9 +9,8 @@ __webpack_require__.d(__webpack_exports__, {
 
 const answer = 42;
 }),
-"./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
 "use strict";
-__webpack_require__.r(__webpack_exports__);
 /* harmony import */var _app__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./app */"./lib.js");
 
 __webpack_require__(/*! ./answer */"./answer.js");
@@ -19,7 +18,6 @@ __webpack_require__(/*! ./answer */"./answer.js");
 }),
 "./lib.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
-__webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   myanswer: function() { return myanswer; }
 });

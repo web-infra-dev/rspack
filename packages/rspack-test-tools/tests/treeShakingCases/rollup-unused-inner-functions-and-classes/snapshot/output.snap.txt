@@ -24,7 +24,10 @@ console.log(getClass().name);
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   bar: function() { return bar; },
-  baz: function() { return Baz; }
+  baz: function() { return Baz; },
+  bog: function() { return bog; },
+  boo: function() { return boo; },
+  foo: function() { return foo; }
 });
 function foo() {
     console.log("outer foo");

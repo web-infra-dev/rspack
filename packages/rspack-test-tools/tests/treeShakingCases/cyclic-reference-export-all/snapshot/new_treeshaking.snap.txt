@@ -2,7 +2,6 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./src/App.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
-__webpack_require__.r(__webpack_exports__);
 /* harmony import */var _containers__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./containers */"./src/containers/containers.js");
 
 const { PlatformProvider } = _containers__WEBPACK_IMPORTED_MODULE_0__;
@@ -25,7 +24,6 @@ __webpack_require__.d(__webpack_exports__, {
 }),
 "./src/containers/platform-container/index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
-__webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   PlatformProvider: function() { return PlatformProvider; },
   usePlatform: function() { return usePlatform; }
@@ -33,9 +31,8 @@ __webpack_require__.d(__webpack_exports__, {
 const usePlatform = 3;
 const PlatformProvider = 1000;
 }),
-"./src/index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./src/index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
 "use strict";
-__webpack_require__.r(__webpack_exports__);
 /* harmony import */var _App__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./App */"./src/App.js");
 
 (0, _App__WEBPACK_IMPORTED_MODULE_0__["default"])();

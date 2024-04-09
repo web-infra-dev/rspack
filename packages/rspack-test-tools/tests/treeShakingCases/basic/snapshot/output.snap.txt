@@ -11,18 +11,9 @@ const answer = 103330;
 "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./lib */"./lib.js");
+/* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./lib */"./answer.js");
 
 _lib__WEBPACK_IMPORTED_MODULE_0__.answer;
-}),
-"./lib.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  answer: function() { return _answer__WEBPACK_IMPORTED_MODULE_0__.answer; }
-});
-/* harmony import */var _answer__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./answer */"./answer.js");
-
 }),
 
 },function(__webpack_require__) {

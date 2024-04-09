@@ -3,6 +3,9 @@
 "./dead.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  "default": function() { return /* export default binding */ __WEBPACK_DEFAULT_EXPORT__; }
+});
 /* harmony default export */ function __WEBPACK_DEFAULT_EXPORT__() {
     return "dead";
 }
@@ -11,7 +14,8 @@ __webpack_require__.r(__webpack_exports__);
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  "default": function() { return /* export default binding */ __WEBPACK_DEFAULT_EXPORT__; }
+  "default": function() { return /* export default binding */ __WEBPACK_DEFAULT_EXPORT__; },
+  foodead: function() { return foodead; }
 });
 /* harmony import */var _dead__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./dead */"./dead.js");
 
@@ -19,7 +23,7 @@ __webpack_require__.d(__webpack_exports__, {
     return "foo";
 }
 function foodead() {
-    return "foo" + /* "./dead" unused */null();
+    return "foo" + (0, _dead__WEBPACK_IMPORTED_MODULE_0__["default"])();
 }
 }),
 "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {

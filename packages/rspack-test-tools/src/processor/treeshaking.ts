@@ -36,10 +36,6 @@ export class RspackTreeShakingProcessor extends SnapshotProcessor<ECompilerType.
 				options.optimization.innerGraph = true;
 				options.optimization.usedExports = true;
 
-				options.experiments ??= {};
-				options.experiments.rspackFuture ??= {};
-				options.experiments.rspackFuture.newTreeshaking = true;
-
 				options.builtins ??= {};
 				options.builtins.treeShaking = false;
 			}

@@ -10,16 +10,14 @@ __webpack_require__.d(__webpack_exports__, {
 
 
 }),
-"./src/index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./src/index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
 "use strict";
-__webpack_require__.r(__webpack_exports__);
 /* harmony import */var _answer__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./answer */"./src/answer.js");
 
 console.log(_answer__WEBPACK_IMPORTED_MODULE_0__);
 }),
 "./src/plugin/formatNumber.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
-__webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": function() { return formatNumber_default; }
 });

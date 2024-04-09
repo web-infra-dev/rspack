@@ -1,29 +1,11 @@
 ```js title=main.js
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./answer.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./lib */"./lib.js");
-__webpack_require__.es(_lib__WEBPACK_IMPORTED_MODULE_0__, __webpack_exports__);
-
-}),
 "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var _answer__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./answer */"./answer.js");
+/* harmony import */var _answer__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./answer */"./test.js");
 
-_answer__WEBPACK_IMPORTED_MODULE_0__.filter;
-}),
-"./lib.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  filter: function() { return _test_js__WEBPACK_IMPORTED_MODULE_0__; }
-});
-/* harmony import */var _test_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./test.js */"./test.js");
-const a = 3;
-
-
+_answer__WEBPACK_IMPORTED_MODULE_0__;
 }),
 "./test.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";

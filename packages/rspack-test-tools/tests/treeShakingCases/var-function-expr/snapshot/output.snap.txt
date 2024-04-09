@@ -4,7 +4,11 @@
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  app: function() { return app; }
+  app: function() { return app; },
+  app2: function() { return app2; },
+  app3: function() { return app3; },
+  app4: function() { return app4; },
+  app5: function() { return app5; }
 });
 /* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./lib */"./lib.js");
 
@@ -12,7 +16,7 @@ var app = function() {
     _lib__WEBPACK_IMPORTED_MODULE_0__.result;
 };
 var app2 = ()=>{
-    /* "./lib" unused */null;
+    _lib__WEBPACK_IMPORTED_MODULE_0__.secret;
 };
 var app4 = (0, _lib__WEBPACK_IMPORTED_MODULE_0__.something)("app4"), app5 = 10000;
 var app3 = (0, _lib__WEBPACK_IMPORTED_MODULE_0__.something)("app3");
@@ -29,6 +33,7 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   result: function() { return result; },
+  secret: function() { return secret; },
   something: function() { return something; }
 });
 const secret = "888";
