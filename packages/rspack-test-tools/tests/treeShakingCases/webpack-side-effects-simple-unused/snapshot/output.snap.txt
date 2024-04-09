@@ -1,28 +1,11 @@
 ```js title=main.js
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"../node_modules/pmodule/a.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  a: function() { return a; },
-  b: function() { return b; },
-  c: function() { return c; }
-});
-/* harmony import */var _tracker__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./tracker */"../node_modules/pmodule/tracker.js");
-var a = "a";
-var b = "b";
-var c = "c";
-
-
-(0, _tracker__WEBPACK_IMPORTED_MODULE_0__.track)("a.js");
-}),
 "../node_modules/pmodule/b.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   x: function() { return x; },
-  y: function() { return y; },
-  z: function() { return /* reexport safe */ _c__WEBPACK_IMPORTED_MODULE_0__.z; }
+  z: function() { return _c__WEBPACK_IMPORTED_MODULE_0__.z; }
 });
 /* harmony import */var _c__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./c */"../node_modules/pmodule/c.js");
 /* harmony import */var _tracker__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./tracker */"../node_modules/pmodule/tracker.js");
@@ -49,14 +32,9 @@ var z = "z";
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  a: function() { return /* reexport safe */ _a__WEBPACK_IMPORTED_MODULE_0__.a; },
-  b: function() { return /* reexport safe */ _a__WEBPACK_IMPORTED_MODULE_0__.b; },
-  c: function() { return /* reexport safe */ _a__WEBPACK_IMPORTED_MODULE_0__.c; },
-  x: function() { return /* reexport safe */ _b__WEBPACK_IMPORTED_MODULE_1__.x; },
-  y: function() { return /* reexport safe */ _b__WEBPACK_IMPORTED_MODULE_1__.y; },
-  z: function() { return /* reexport safe */ _b__WEBPACK_IMPORTED_MODULE_1__.z; }
+  x: function() { return _b__WEBPACK_IMPORTED_MODULE_1__.x; },
+  z: function() { return _b__WEBPACK_IMPORTED_MODULE_1__.z; }
 });
-/* harmony import */var _a__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./a */"../node_modules/pmodule/a.js");
 /* harmony import */var _b__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./b */"../node_modules/pmodule/b.js");
 /* harmony import */var _tracker__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./tracker */"../node_modules/pmodule/tracker.js");
 
@@ -70,7 +48,6 @@ __webpack_require__.d(__webpack_exports__, {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   log: function() { return log; },
-  reset: function() { return reset; },
   track: function() { return track; }
 });
 function track(file) {
@@ -85,17 +62,15 @@ function reset() {
 "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var pmodule_tracker__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! pmodule/tracker */"../node_modules/pmodule/tracker.js");
-/* harmony import */var pmodule__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! pmodule */"../node_modules/pmodule/b.js");
-/* harmony import */var pmodule__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! pmodule */"../node_modules/pmodule/c.js");
-/* harmony import */var pmodule__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! pmodule */"../node_modules/pmodule/index.js");
+/* harmony import */var pmodule_tracker__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! pmodule/tracker */"../node_modules/pmodule/tracker.js");
+/* harmony import */var pmodule__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! pmodule */"../node_modules/pmodule/index.js");
 
 
 
-pmodule__WEBPACK_IMPORTED_MODULE_0__["default"].should.be.eql("def");
+pmodule__WEBPACK_IMPORTED_MODULE_1__["default"].should.be.eql("def");
 pmodule__WEBPACK_IMPORTED_MODULE_1__.x.should.be.eql("x");
-pmodule__WEBPACK_IMPORTED_MODULE_2__.z.should.be.eql("z");
-pmodule_tracker__WEBPACK_IMPORTED_MODULE_3__.log.should.be.eql([
+pmodule__WEBPACK_IMPORTED_MODULE_1__.z.should.be.eql("z");
+pmodule_tracker__WEBPACK_IMPORTED_MODULE_0__.log.should.be.eql([
     "b.js",
     "c.js",
     "index.js"

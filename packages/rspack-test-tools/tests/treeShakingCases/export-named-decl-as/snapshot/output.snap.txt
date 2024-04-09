@@ -4,7 +4,7 @@
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  formatNumber: function() { return /* reexport safe */ _plugin_formatNumber__WEBPACK_IMPORTED_MODULE_0__["default"]; }
+  formatNumber: function() { return _plugin_formatNumber__WEBPACK_IMPORTED_MODULE_0__["default"]; }
 });
 /* harmony import */var _plugin_formatNumber__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./plugin/formatNumber */"./src/plugin/formatNumber.js");
 

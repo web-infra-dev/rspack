@@ -8,7 +8,7 @@ __webpack_require__.d(__webpack_exports__, {
 });
 var foo = "lol";
 var bar = "wut";
-var baz = (/* unused pure expression or super */ null && (bar || foo));
+var baz = bar || foo;
 
 }),
 "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {

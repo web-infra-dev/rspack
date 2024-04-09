@@ -37,7 +37,6 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   myanswer: function() { return myanswer; },
-  result: function() { return result; },
   secret: function() { return secret; }
 });
 /* harmony import */var _answer__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./answer */"./answer.js");

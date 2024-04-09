@@ -4,16 +4,15 @@
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  Lib: function() { return Lib; },
   v: function() { return v; }
 });
 /* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./lib */"./lib.js");
 
-class Lib extends _lib__WEBPACK_IMPORTED_MODULE_0__.Lib {
+class Lib extends /* "./lib" unused */null {
 }
 function foo() {
     return {
-        OriginLib
+        OriginLib: /* "./lib" unused */null
     };
 }
 const v = _lib__WEBPACK_IMPORTED_MODULE_0__.value;
@@ -29,7 +28,6 @@ _app__WEBPACK_IMPORTED_MODULE_0__.v;
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  Lib: function() { return Lib; },
   value: function() { return value; }
 });
 class Lib {

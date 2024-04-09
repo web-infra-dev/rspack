@@ -4,9 +4,7 @@
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  Test: function() { return Test; },
-  a: function() { return a; },
-  "default": function() { return Result; }
+  a: function() { return a; }
 });
 /* harmony import */var _b_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./b.js */"./b.js");
 
@@ -18,7 +16,7 @@ class Test {
 }
 class Result {
     static test() {
-        _b_js__WEBPACK_IMPORTED_MODULE_0__.cc;
+        /* "./b.js" unused */null;
     }
 }
 const a = 3;
@@ -27,8 +25,7 @@ const a = 3;
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  bb: function() { return bb; },
-  cc: function() { return cc; }
+  bb: function() { return bb; }
 });
 const bb = 2;
 const cc = 3;

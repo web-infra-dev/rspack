@@ -4,8 +4,7 @@
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  _: function() { return _create_class; },
-  _create_class: function() { return _create_class; }
+  _: function() { return _create_class; }
 });
 function _defineProperties(target, props) {
     for(var i = 0; i < props.length; i++){
@@ -58,7 +57,7 @@ ConsoleExporterWeb = function() {
     ]);
     return ConsoleExporterWeb;
 }();
-/* harmony default export */ __webpack_exports__["default"] = (ConsoleExporterWeb);
+/* unused harmony default export */ var __WEBPACK_DEFAULT_EXPORT__ = (ConsoleExporterWeb);
 }),
 
 },function(__webpack_require__) {

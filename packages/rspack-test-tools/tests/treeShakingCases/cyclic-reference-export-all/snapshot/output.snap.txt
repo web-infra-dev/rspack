@@ -3,9 +3,9 @@
 "./src/App.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var _containers__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./containers */"./src/containers/containers.js");
+/* harmony import */var _containers__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./containers */"./src/containers/index.js");
 
-const { PlatformProvider } = _containers__WEBPACK_IMPORTED_MODULE_0__;
+const { PlatformProvider } = _containers__WEBPACK_IMPORTED_MODULE_0__.containers;
 const Index = ()=>{
     console.log("PlatformProvider", PlatformProvider);
     return "something";
@@ -15,11 +15,18 @@ const Index = ()=>{
 "./src/containers/containers.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  PlatformProvider: function() { return /* reexport safe */ _platform_container__WEBPACK_IMPORTED_MODULE_0__.PlatformProvider; },
-  usePlatform: function() { return /* reexport safe */ _platform_container__WEBPACK_IMPORTED_MODULE_0__.usePlatform; }
-});
 /* harmony import */var _platform_container__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./platform-container */"./src/containers/platform-container/index.js");
+__webpack_require__.es(_platform_container__WEBPACK_IMPORTED_MODULE_0__, __webpack_exports__);
+
+
+}),
+"./src/containers/index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  containers: function() { return _containers__WEBPACK_IMPORTED_MODULE_0__; }
+});
+/* harmony import */var _containers__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./containers */"./src/containers/containers.js");
 
 
 }),

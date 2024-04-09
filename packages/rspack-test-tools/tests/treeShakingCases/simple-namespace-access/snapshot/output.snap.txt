@@ -12,9 +12,8 @@ console.log(_maths_js__WEBPACK_IMPORTED_MODULE_0__.square);
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  cube: function() { return cube; },
   square: function() { return square; },
-  xxx: function() { return /* reexport module object */ _test_js__WEBPACK_IMPORTED_MODULE_0__; }
+  xxx: function() { return _test_js__WEBPACK_IMPORTED_MODULE_0__; }
 });
 /* harmony import */var _test_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./test.js */"./test.js");
 // maths.js
@@ -35,7 +34,6 @@ function cube(x) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  ccc: function() { return ccc; },
   test: function() { return test; }
 });
 function test() {}

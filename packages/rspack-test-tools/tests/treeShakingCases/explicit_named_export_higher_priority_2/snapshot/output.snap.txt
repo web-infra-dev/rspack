@@ -3,9 +3,6 @@
 "./bar.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  a: function() { return a; }
-});
 const a = "bar";
 }),
 "./baz.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
@@ -20,10 +17,11 @@ const a = "baz";
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  a: function() { return /* reexport safe */ _baz__WEBPACK_IMPORTED_MODULE_0__.a; }
+  a: function() { return _baz__WEBPACK_IMPORTED_MODULE_0__.a; }
 });
 /* harmony import */var _baz__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./baz */"./baz.js");
 /* harmony import */var _bar__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./bar */"./bar.js");
+__webpack_require__.es(_bar__WEBPACK_IMPORTED_MODULE_1__, __webpack_exports__);
 
 
 }),

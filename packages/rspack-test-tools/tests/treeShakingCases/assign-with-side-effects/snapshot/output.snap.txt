@@ -22,9 +22,7 @@ __webpack_require__.r(__webpack_exports__);
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  result: function() { return result; },
-  secret: function() { return secret; },
-  something: function() { return something; }
+  result: function() { return result; }
 });
 const secret = "888";
 const result = 20000;
