@@ -9,6 +9,7 @@ use std::{
 use derivative::Derivative;
 use rspack_hash::RspackHash;
 pub use rspack_hash::{HashDigest, HashFunction, HashSalt};
+use rspack_macros::MergeFrom;
 use sugar_path::SugarPath;
 
 use crate::{
@@ -230,7 +231,7 @@ impl<'a> PathData<'a> {
   }
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, MergeFrom)]
 pub enum PublicPath {
   // TODO: should be RawPublicPath(Filename)
   String(String),

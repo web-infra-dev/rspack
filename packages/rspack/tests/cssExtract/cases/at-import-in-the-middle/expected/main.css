@@ -1,0 +1,24 @@
+@import url(https://some/other/external/css);
+@import url(https://some/external/css);
+body {
+  background: red;
+}
+
+.c {
+  background: red;
+}
+
+.c {
+  color: yellow;
+}
+
+.b {
+  background: red;
+}
+
+.b {
+  color: yellow;
+}
+
+
+

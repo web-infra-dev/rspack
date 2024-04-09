@@ -62,31 +62,11 @@ import {
 	BundlerInfoRspackPlugin,
 	ModuleConcatenationPlugin,
 	EvalDevToolModulePlugin,
-	JsLoaderRspackPlugin
+	JsLoaderRspackPlugin,
+	CssModulesPlugin,
+	APIPlugin
 } from "./builtin-plugin";
-import { deprecatedWarn } from "./util";
-
-export function applyEntryOptions(
-	compiler: Compiler,
-	options: RspackOptionsNormalized
-) {
-	if (!options.experiments.rspackFuture!.disableApplyEntryLazily) {
-		deprecatedWarn(
-			`You are depending on apply entry lazily (https://rspack.dev/config/experiments.html#experimentsrspackfuturedisableapplyentrylazily), this behavior has been deprecated, you can setup 'experiments.rspackFuture.disableApplyEntryLazily = true' to disable this behavior, and this will be enabled by default in v0.5`
-		);
-	}
-	if (compiler.parentCompilation === undefined) {
-		if (options.experiments.rspackFuture!.disableApplyEntryLazily) {
-			new EntryOptionPlugin().apply(compiler);
-		} else {
-			EntryOptionPlugin.applyEntryOption(
-				compiler,
-				compiler.context,
-				options.entry
-			);
-		}
-	}
-}
+import { assertNotNill } from "./util/assertNotNil";
 
 export class RspackOptionsApply {
 	constructor() {}
@@ -227,14 +207,12 @@ export class RspackOptionsApply {
 		if (options.experiments.asyncWebAssembly) {
 			new AsyncWebAssemblyModulesPlugin().apply(compiler);
 		}
-
-		if (options.experiments.rspackFuture!.disableApplyEntryLazily) {
-			applyEntryOptions(compiler, options);
+		if (options.experiments.css) {
+			new CssModulesPlugin().apply(compiler);
 		}
-		assert(
-			options.context,
-			"options.context should have value after `applyRspackOptionsDefaults`"
-		);
+
+		new EntryOptionPlugin().apply(compiler);
+		assertNotNill(options.context);
 		compiler.hooks.entryOption.call(options.context, options.entry);
 
 		new RuntimePlugin().apply(compiler);
@@ -246,6 +224,7 @@ export class RspackOptionsApply {
 		}
 
 		new InferAsyncModulesPlugin().apply(compiler);
+		new APIPlugin().apply(compiler);
 
 		new DataUriPlugin().apply(compiler);
 		new FileUriPlugin().apply(compiler);

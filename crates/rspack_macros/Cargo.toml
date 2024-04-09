@@ -10,8 +10,9 @@ version    = "0.1.0"
 proc-macro = true
 
 [dependencies]
-quote = { workspace = true }
-syn   = { workspace = true, features = ["full"] }
+proc-macro2 = { workspace = true }
+quote       = { workspace = true }
+syn         = { workspace = true, features = ["full"] }
 
 [dev-dependencies]
-trybuild = { version = "1.0.90", features = ["diff"] }
+trybuild = { version = "1.0.91", features = ["diff"] }

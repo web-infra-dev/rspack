@@ -534,6 +534,24 @@ const assetParserOptions = z.strictObject({
 });
 export type AssetParserOptions = z.infer<typeof assetParserOptions>;
 
+const cssParserNamedExports = z.boolean();
+export type CssParserNamedExports = z.infer<typeof cssParserNamedExports>;
+
+const cssParserOptions = z.strictObject({
+	namedExports: cssParserNamedExports.optional()
+});
+export type CssParserOptions = z.infer<typeof cssParserOptions>;
+
+const cssAutoParserOptions = z.strictObject({
+	namedExports: cssParserNamedExports.optional()
+});
+export type CssAutoParserOptions = z.infer<typeof cssAutoParserOptions>;
+
+const cssModuleParserOptions = z.strictObject({
+	namedExports: cssParserNamedExports.optional()
+});
+export type CssModuleParserOptions = z.infer<typeof cssModuleParserOptions>;
+
 //TODO: "weak", "lazy-once"
 const dynamicImportMode = z.enum(["eager", "lazy"]);
 const dynamicImportPreload = z.union([z.boolean(), z.number()]);
@@ -550,6 +568,9 @@ export type JavascriptParserOptions = z.infer<typeof javascriptParserOptions>;
 
 const parserOptionsByModuleTypeKnown = z.strictObject({
 	asset: assetParserOptions.optional(),
+	css: cssParserOptions.optional(),
+	"css/auto": cssAutoParserOptions.optional(),
+	"css/module": cssModuleParserOptions.optional(),
 	javascript: javascriptParserOptions.optional()
 });
 
@@ -615,10 +636,54 @@ const assetGeneratorOptions = assetInlineGeneratorOptions.merge(
 );
 export type AssetGeneratorOptions = z.infer<typeof assetGeneratorOptions>;
 
+const cssGeneratorExportsConvention = z.enum([
+	"as-is",
+	"camel-case",
+	"camel-case-only",
+	"dashes",
+	"dashes-only"
+]);
+export type CssGeneratorExportsConvention = z.infer<
+	typeof cssGeneratorExportsConvention
+>;
+
+const cssGeneratorExportsOnly = z.boolean();
+export type CssGeneratorExportsOnly = z.infer<typeof cssGeneratorExportsOnly>;
+
+const cssGeneratorLocalIdentName = z.string();
+export type CssGeneratorLocalIdentName = z.infer<
+	typeof cssGeneratorLocalIdentName
+>;
+
+const cssGeneratorOptions = z.strictObject({
+	exportsConvention: cssGeneratorExportsConvention.optional(),
+	exportsOnly: cssGeneratorExportsOnly.optional()
+});
+export type CssGeneratorOptions = z.infer<typeof cssGeneratorOptions>;
+
+const cssAutoGeneratorOptions = z.strictObject({
+	exportsConvention: cssGeneratorExportsConvention.optional(),
+	exportsOnly: cssGeneratorExportsOnly.optional(),
+	localIdentName: cssGeneratorLocalIdentName.optional()
+});
+export type CssAutoGeneratorOptions = z.infer<typeof cssAutoGeneratorOptions>;
+
+const cssModuleGeneratorOptions = z.strictObject({
+	exportsConvention: cssGeneratorExportsConvention.optional(),
+	exportsOnly: cssGeneratorExportsOnly.optional(),
+	localIdentName: cssGeneratorLocalIdentName.optional()
+});
+export type CssModuleGeneratorOptions = z.infer<
+	typeof cssModuleGeneratorOptions
+>;
+
 const generatorOptionsByModuleTypeKnown = z.strictObject({
 	asset: assetGeneratorOptions.optional(),
 	"asset/inline": assetInlineGeneratorOptions.optional(),
-	"asset/resource": assetResourceGeneratorOptions.optional()
+	"asset/resource": assetResourceGeneratorOptions.optional(),
+	css: cssGeneratorOptions.optional(),
+	"css/auto": cssAutoGeneratorOptions.optional(),
+	"css/module": cssModuleGeneratorOptions.optional()
 });
 export type GeneratorOptionsByModuleTypeKnown = z.infer<
 	typeof generatorOptionsByModuleTypeKnown
@@ -960,7 +1025,8 @@ const statsOptions = z.strictObject({
 	children: z.boolean().optional(),
 	usedExports: z.boolean().optional(),
 	providedExports: z.boolean().optional(),
-	optimizationBailout: z.boolean().optional()
+	optimizationBailout: z.boolean().optional(),
+	orphanModules: z.boolean().optional()
 });
 export type StatsOptions = z.infer<typeof statsOptions>;
 
@@ -1020,8 +1086,10 @@ const optimizationSplitChunksChunks = z
 	.or(z.instanceof(RegExp))
 	.or(z.function().args(z.instanceof(Chunk)).returns(z.boolean()));
 const optimizationSplitChunksSizes = z.number();
+const optimizationSplitChunksDefaultSizeTypes = z.array(z.string());
 const sharedOptimizationSplitChunksCacheGroup = {
 	chunks: optimizationSplitChunksChunks.optional(),
+	defaultSizeTypes: optimizationSplitChunksDefaultSizeTypes.optional(),
 	minChunks: z.number().min(1).optional(),
 	name: optimizationSplitChunksName.optional(),
 	minSize: optimizationSplitChunksSizes.optional(),
@@ -1100,7 +1168,6 @@ export type Optimization = z.infer<typeof optimization>;
 //#region Experiments
 const rspackFutureOptions = z.strictObject({
 	newTreeshaking: z.boolean().optional(),
-	disableApplyEntryLazily: z.boolean().optional(),
 	bundlerInfo: z
 		.strictObject({
 			version: z.string().optional(),

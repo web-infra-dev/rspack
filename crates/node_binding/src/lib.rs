@@ -54,7 +54,7 @@ impl Rspack {
     }
 
     let compiler_options = options
-      .apply(&mut plugins)
+      .try_into()
       .map_err(|e| Error::from_reason(format!("{e}")))?;
 
     tracing::info!("normalized_options: {:#?}", &compiler_options);

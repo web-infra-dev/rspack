@@ -134,19 +134,17 @@ impl Plugin for JsPlugin {
       .compilation
       .tap(compilation::new(self));
 
-    let create_parser_and_generator =
-      move || Box::new(JavaScriptParserAndGenerator) as Box<dyn ParserAndGenerator>;
-
-    ctx
-      .context
-      .register_parser_and_generator_builder(ModuleType::Js, Box::new(create_parser_and_generator));
+    ctx.context.register_parser_and_generator_builder(
+      ModuleType::Js,
+      Box::new(|_, _| Box::new(JavaScriptParserAndGenerator) as Box<dyn ParserAndGenerator>),
+    );
     ctx.context.register_parser_and_generator_builder(
       ModuleType::JsEsm,
-      Box::new(create_parser_and_generator),
+      Box::new(|_, _| Box::new(JavaScriptParserAndGenerator) as Box<dyn ParserAndGenerator>),
     );
     ctx.context.register_parser_and_generator_builder(
       ModuleType::JsDynamic,
-      Box::new(create_parser_and_generator),
+      Box::new(|_, _| Box::new(JavaScriptParserAndGenerator) as Box<dyn ParserAndGenerator>),
     );
 
     Ok(())

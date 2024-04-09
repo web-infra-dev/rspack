@@ -1,0 +1,10 @@
+```css title=main.css
+@import url("http://example.com/test.css");
+
+
+body {
+  background: red;
+}
+
+
+```

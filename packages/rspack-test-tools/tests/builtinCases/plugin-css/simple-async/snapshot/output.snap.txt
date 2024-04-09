@@ -1,0 +1,23 @@
+```css title=async_css.css
+.async {
+  background: blue;
+}
+
+
+```
+
+```css title=async_js.css
+.in-async {
+  background: green;
+}
+
+
+```
+
+```css title=main.css
+body {
+  background: red;
+}
+
+
+```

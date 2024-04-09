@@ -20,6 +20,3 @@ rspack_util       = { path = "../rspack_util" }
 serde_json        = { workspace = true }
 swc_core          = { workspace = true, features = ["__ecma"] }
 wasmparser        = "0.202.0"
-
-[dev-dependencies]
-rspack_testing = { path = "../rspack_testing" }

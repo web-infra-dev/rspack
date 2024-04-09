@@ -2,10 +2,12 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "dist",
-    "rootDir": "src"
+    "rootDir": "src",
+    "resolveJsonModule": true
   },
   "include": [
-    "src"
+    "src",
+    "src/**/*.json"
   ],
   "exclude": [
     "src/config/schema.check.js"

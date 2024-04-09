@@ -13,9 +13,9 @@ use json::{
 use rspack_core::{
   diagnostics::ModuleParseError,
   rspack_sources::{BoxSource, RawSource, Source, SourceExt},
-  BuildMetaDefaultObject, BuildMetaExportsType, CompilerOptions, ExportsInfo, GenerateContext,
-  Module, ModuleGraph, ParserAndGenerator, Plugin, RuntimeGlobals, RuntimeSpec, SourceType,
-  UsageState, NAMESPACE_OBJECT_EXPORT,
+  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, CompilerOptions, ExportsInfo,
+  GenerateContext, Module, ModuleGraph, ParserAndGenerator, Plugin, RuntimeGlobals, RuntimeSpec,
+  SourceType, UsageState, NAMESPACE_OBJECT_EXPORT,
 };
 use rspack_error::{
   miette::diagnostic, DiagnosticExt, DiagnosticKind, IntoTWithDiagnosticArray, Result,
@@ -193,6 +193,15 @@ impl ParserAndGenerator for JsonParserAndGenerator {
       ),
     }
   }
+
+  fn get_concatenation_bailout_reason(
+    &self,
+    _module: &dyn Module,
+    _mg: &ModuleGraph,
+    _cg: &ChunkGraph,
+  ) -> Option<String> {
+    None
+  }
 }
 
 #[derive(Debug)]
@@ -210,7 +219,7 @@ impl Plugin for JsonPlugin {
   ) -> Result<()> {
     ctx.context.register_parser_and_generator_builder(
       rspack_core::ModuleType::Json,
-      Box::new(|| Box::new(JsonParserAndGenerator {})),
+      Box::new(|_, _| Box::new(JsonParserAndGenerator {})),
     );
 
     Ok(())

@@ -8,9 +8,8 @@ use async_trait::async_trait;
 use indicatif::{ProgressBar, ProgressDrawTarget, ProgressStyle};
 use linked_hash_map::LinkedHashMap as HashMap;
 use rspack_core::{
-  ApplyContext, BoxModule, Compilation, CompilationParams, CompilerOptions, DoneArgs, MakeParam,
-  ModuleIdentifier, OptimizeChunksArgs, Plugin, PluginBuildEndHookOutput, PluginContext,
-  PluginOptimizeChunksOutput,
+  ApplyContext, BoxModule, Compilation, CompilationParams, CompilerOptions, MakeParam,
+  ModuleIdentifier, OptimizeChunksArgs, Plugin, PluginContext, PluginOptimizeChunksOutput,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook, AsyncSeries, AsyncSeries2, AsyncSeriesBail};
@@ -353,7 +352,7 @@ async fn emit(&self, _compilation: &mut Compilation) -> Result<()> {
 #[plugin_hook(AsyncSeries<Compilation> for ProgressPlugin)]
 async fn after_emit(&self, _compilation: &mut Compilation) -> Result<()> {
   self.handler(
-    0.98,
+    1.0,
     "emitting".to_string(),
     vec!["after emit".to_string()],
     None,
@@ -468,19 +467,6 @@ impl Plugin for ProgressPlugin {
 
   fn chunk_ids(&self, _compilation: &mut Compilation) -> Result<()> {
     self.sealing_hooks_report("chunk ids", 21);
-    Ok(())
-  }
-
-  async fn done<'s, 'c>(
-    &self,
-    _ctx: PluginContext,
-    _args: DoneArgs<'s, 'c>,
-  ) -> PluginBuildEndHookOutput {
-    self.handler(1.0, String::from("done"), vec![], None);
-    if !self.options.profile {
-      self.progress_bar.finish();
-    }
-    *self.last_modules_count.write().expect("TODO:") = Some(self.modules_count.load(Relaxed));
     Ok(())
   }
 }

@@ -67,7 +67,6 @@ pnpm-lock.yaml
 /crates/rspack_plugin_wasm
 /crates/rspack_regex @IWANABETHATGUY
 /crates/rspack_symbol @IWANABETHATGUY
-/crates/rspack_testing @ahabhgk
 /crates/rspack_tracing @hyf0
 /crates/rspack_util @hyf0
 

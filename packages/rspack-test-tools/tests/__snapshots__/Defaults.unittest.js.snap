@@ -26,7 +26,6 @@ Object {
         "force": false,
         "version": "$version$",
       },
-      "disableApplyEntryLazily": true,
       "newTreeshaking": false,
     },
     "topLevelAwait": true,
@@ -111,28 +110,18 @@ Object {
         "type": "javascript/esm",
       },
       Object {
-        "oneOf": Array [
-          Object {
-            "resolve": Object {
-              "fullySpecified": true,
-            },
-            "test": /\\\\\\.module\\\\\\.css\\$/i,
-            "type": "css/module",
-          },
-          Object {
-            "resolve": Object {
-              "fullySpecified": true,
-              "preferRelative": true,
-            },
-            "type": "css",
-          },
-        ],
+        "resolve": Object {
+          "fullySpecified": true,
+          "preferRelative": true,
+        },
         "test": /\\\\\\.css\\$/i,
+        "type": "css/auto",
       },
       Object {
         "mimetype": "text/css+module",
         "resolve": Object {
           "fullySpecified": true,
+          "preferRelative": true,
         },
         "type": "css/module",
       },
@@ -157,13 +146,37 @@ Object {
         ],
       },
     ],
-    "generator": Object {},
+    "generator": Object {
+      "css": Object {
+        "exportsConvention": "as-is",
+        "exportsOnly": false,
+      },
+      "css/auto": Object {
+        "exportsConvention": "as-is",
+        "exportsOnly": false,
+        "localIdentName": "[uniqueName]-[id]-[local]",
+      },
+      "css/module": Object {
+        "exportsConvention": "as-is",
+        "exportsOnly": false,
+        "localIdentName": "[uniqueName]-[id]-[local]",
+      },
+    },
     "noParse": undefined,
     "parser": Object {
       "asset": Object {
         "dataUrlCondition": Object {
           "maxSize": 8096,
         },
+      },
+      "css": Object {
+        "namedExports": true,
+      },
+      "css/auto": Object {
+        "namedExports": true,
+      },
+      "css/module": Object {
+        "namedExports": true,
       },
       "javascript": Object {
         "dynamicImportMode": "lazy",
@@ -230,6 +243,11 @@ Object {
         },
       },
       "chunks": "async",
+      "defaultSizeTypes": Array [
+        "javascript",
+        "css",
+        "unknown",
+      ],
       "hidePathInfo": false,
       "maxAsyncRequests": Infinity,
       "maxInitialRequests": Infinity,
@@ -310,6 +328,22 @@ Object {
           "module",
           "...",
         ],
+      },
+      "css-import": Object {
+        "conditionNames": Array [
+          "webpack",
+          "production",
+          "style",
+        ],
+        "extensions": Array [
+          ".css",
+        ],
+        "mainFields": Array [
+          "style",
+          "...",
+        ],
+        "mainFiles": Array [],
+        "preferRelative": true,
       },
       "esm": Object {
         "aliasFields": Array [

@@ -15,6 +15,7 @@ declare var global: {
 export interface ISnapshotProcessorOptions<T extends ECompilerType>
 	extends IBasicProcessorOptions<T> {
 	snapshot: string;
+	snapshotFileFilter?: (file: string) => boolean;
 }
 
 export class SnapshotProcessor<
@@ -24,7 +25,7 @@ export class SnapshotProcessor<
 		super(_snapshotOptions);
 		if (path.extname(_snapshotOptions.snapshot) === ".snap") {
 			throw new Error(
-				"Snapshot with `.snap` will be managed by jest, please use `.txt` instead in SnapshotProcessor"
+				"Snapshot with `.snap` will be managed by jest, please use `.snap.txt` instead in SnapshotProcessor"
 			);
 		}
 	}
@@ -37,9 +38,10 @@ export class SnapshotProcessor<
 
 		if (stats.hasErrors()) {
 			throw new Error(
-				`Failed to compile in fixture ${this._options.name}, Errors: ${
-					stats.toJson({ errors: true, all: false }).errors
-				}`
+				`Failed to compile in fixture ${this._options.name}, Errors: ${stats
+					.toJson({ errors: true, all: false })
+					.errors?.map(i => `${i.message}\n${i.stack}`)
+					.join("\n\n")}`
 			);
 		}
 		const compilation =
@@ -49,8 +51,12 @@ export class SnapshotProcessor<
 					_lastCompilation: WebpackCompilation;
 				}
 			)._lastCompilation;
+
+		const snapshotFileFilter =
+			this._snapshotOptions.snapshotFileFilter ||
+			((file: string) => file.endsWith(".js") && !file.includes("runtime.js"));
 		const fileContents = Object.entries(compilation.assets)
-			.filter(([file]) => file.endsWith(".js") && !file.includes("runtime.js"))
+			.filter(([file]) => snapshotFileFilter(file))
 			.map(([file, source]) => {
 				const tag = path.extname(file).slice(1) || "txt";
 				return `\`\`\`${tag} title=${file}\n${source
@@ -58,17 +64,21 @@ export class SnapshotProcessor<
 					.toString()}\n\`\`\``;
 			});
 		fileContents.sort();
-		const content = fileContents.join("\n\n");
+		const content = fileContents.join("\n\n").replace(/\r\n/g, "\n").trim();
 		const snapshotPath = path.resolve(
 			context.getSource(),
 			`./snapshot/${this._snapshotOptions.snapshot}`
 		);
 
 		if (!fs.existsSync(snapshotPath) || global.updateSnapshot) {
+			fs.ensureDirSync(path.dirname(snapshotPath));
 			fs.writeFileSync(snapshotPath, content, "utf-8");
 			return;
 		}
-		const snapshotContent = fs.readFileSync(snapshotPath, "utf-8");
-		expect(content.trim()).toBe(snapshotContent.trim());
+		const snapshotContent = fs
+			.readFileSync(snapshotPath, "utf-8")
+			.replace(/\r\n/g, "\n")
+			.trim();
+		expect(content).toBe(snapshotContent);
 	}
 }

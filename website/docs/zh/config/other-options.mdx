@@ -31,9 +31,6 @@ module.exports = {
 ```js title="rspack.config.js"
 module.exports = {
   //...
-  ignoreWarnings: [
-    /warning from compiler/,
-    (warning) => true,
-  ],
+  ignoreWarnings: [/warning from compiler/, (warning) => true],
 };
 ```

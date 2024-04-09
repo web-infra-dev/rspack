@@ -39,7 +39,18 @@ module.exports = {
 - **Type:** `boolean`
 - **Default:** `true`
 
-Once enabled, Rspack will enable native CSS support, Note that if you're using `style-loader` and `css-loader`, you should disable this option because `style-loader` and `css-loader` will conflict with native CSS.
+Once enabled, Rspack will enable native CSS support, and CSS related parser and generator options.
+
+- [`module.parser["css/auto"]`](/config/module.html#moduleparsercssauto)
+- [`module.parser.css`](/config/module.html#moduleparsercss)
+- [`module.parser["css/module"]`](/config/module.html#moduleparsercssmodule)
+- [`module.generator["css/auto"]`](/config/module.html#modulegeneratorcssauto)
+- [`module.generator.css`](/config/module.html#modulegeneratorcss)
+- [`module.generator["css/module"]`](/config/module.html#modulegeneratorcssmodule)
+
+:::warning
+Note that if you're using `style-loader` and `css-loader`, you should disable this option because `style-loader` and `css-loader` will conflict with native CSS.
+:::
 
 ## experiments.topLevelAwait
 
@@ -62,6 +73,8 @@ Used to control whether to enable Rspack future default options, check out the d
 ### experiments.rspackFuture.disableTransformByDefault
 
 <ApiMeta addedVersion="0.3.5" />
+
+<ApiMeta removedVersion="0.5.0" stability={Stability.Removed} />
 
 - **Type:** `boolean`
 - **Introduced in Version:** v0.3.5
@@ -235,6 +248,8 @@ Used to control whether to enable Rspack future default options, check out the d
 
 <ApiMeta addedVersion="0.3.7" />
 
+<ApiMeta removedVersion="0.5.0" stability={Stability.Removed} />
+
 - **Type:** `boolean`
 - **Introduced in Version:** v0.3.7
 - **Enabled by Default in Version:** v0.4.0
@@ -293,6 +308,8 @@ module.exports = {
 ### experiments.rspackFuture.disableApplyEntryLazily
 
 <ApiMeta addedVersion="0.4.5" />
+
+<ApiMeta removedVersion="0.6.0" stability={Stability.Removed} />
 
 - **Type:** `boolean`
 - **Introduced in Version:** v0.4.5

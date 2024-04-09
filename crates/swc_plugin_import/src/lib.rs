@@ -1,6 +1,8 @@
 #![allow(clippy::unwrap_used)]
 
+mod legacy_case;
 mod visit;
+
 use std::fmt::Debug;
 
 use handlebars::{Context, Helper, HelperResult, Output, RenderContext, Template};
@@ -19,6 +21,7 @@ use swc_core::{
   },
 };
 
+use crate::legacy_case::{identifier_to_legacy_kebab_case, identifier_to_legacy_snake_case};
 use crate::visit::IdentComponent;
 
 #[derive(Debug, Deserialize, Clone)]
@@ -103,6 +106,25 @@ pub fn plugin_import(config: &Vec<PluginImportConfig>) -> impl Fold + '_ {
   );
 
   renderer.register_helper(
+    "legacyKebabCase",
+    Box::new(
+      |helper: &Helper<'_>,
+       _: &'_ handlebars::Handlebars<'_>,
+       _: &'_ Context,
+       _: &mut RenderContext<'_, '_>,
+       out: &mut dyn Output|
+       -> HelperResult {
+        let param = helper
+          .param(0)
+          .and_then(|v| v.value().as_str())
+          .unwrap_or("");
+        out.write(identifier_to_legacy_kebab_case(param).as_ref())?;
+        Ok(())
+      },
+    ),
+  );
+
+  renderer.register_helper(
     "camelCase",
     Box::new(
       |helper: &Helper<'_>,
@@ -135,6 +157,25 @@ pub fn plugin_import(config: &Vec<PluginImportConfig>) -> impl Fold + '_ {
           .and_then(|v| v.value().as_str())
           .unwrap_or("");
         out.write(param.to_snake_case().as_ref())?;
+        Ok(())
+      },
+    ),
+  );
+
+  renderer.register_helper(
+    "legacySnakeCase",
+    Box::new(
+      |helper: &Helper<'_>,
+       _: &'_ handlebars::Handlebars<'_>,
+       _: &'_ Context,
+       _: &mut RenderContext<'_, '_>,
+       out: &mut dyn Output|
+       -> HelperResult {
+        let param = helper
+          .param(0)
+          .and_then(|v| v.value().as_str())
+          .unwrap_or("");
+        out.write(identifier_to_legacy_snake_case(param).as_ref())?;
         Ok(())
       },
     ),

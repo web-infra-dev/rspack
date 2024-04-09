@@ -147,12 +147,15 @@ export enum BuiltinPluginName {
   FlagDependencyUsagePlugin = 'FlagDependencyUsagePlugin',
   MangleExportsPlugin = 'MangleExportsPlugin',
   ModuleConcatenationPlugin = 'ModuleConcatenationPlugin',
+  CssModulesPlugin = 'CssModulesPlugin',
+  APIPlugin = 'APIPlugin',
   HttpExternalsRspackPlugin = 'HttpExternalsRspackPlugin',
   CopyRspackPlugin = 'CopyRspackPlugin',
   HtmlRspackPlugin = 'HtmlRspackPlugin',
   SwcJsMinimizerRspackPlugin = 'SwcJsMinimizerRspackPlugin',
   SwcCssMinimizerRspackPlugin = 'SwcCssMinimizerRspackPlugin',
   BundlerInfoRspackPlugin = 'BundlerInfoRspackPlugin',
+  CssExtractRspackPlugin = 'CssExtractRspackPlugin',
   JsLoaderRspackPlugin = 'JsLoaderRspackPlugin'
 }
 
@@ -365,6 +368,7 @@ export interface JsModule {
   resource?: string
   moduleIdentifier: string
   nameForCondition?: string
+  rawRequest?: string
 }
 
 export interface JsNormalModuleFactoryCreateModuleArgs {
@@ -618,7 +622,6 @@ export interface RawBannerPluginOptions {
 }
 
 export interface RawBuiltins {
-  css?: RawCssPluginConfig
   treeShaking: string
 }
 
@@ -730,14 +733,43 @@ export interface RawCrossOriginLoading {
   boolPayload?: boolean
 }
 
-export interface RawCssModulesConfig {
-  localsConvention: "asIs" | "camelCase" | "camelCaseOnly" | "dashes" | "dashesOnly"
-  localIdentName: string
-  exportsOnly: boolean
+export interface RawCssAutoGeneratorOptions {
+  exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only"
+  exportsOnly?: boolean
+  localIdentName?: string
 }
 
-export interface RawCssPluginConfig {
-  modules: RawCssModulesConfig
+export interface RawCssAutoParserOptions {
+  namedExports?: boolean
+}
+
+export interface RawCssExtractPluginOption {
+  filename: string
+  chunkFilename: string
+  ignoreOrder: boolean
+  insert?: string
+  attributes: Record<string, string>
+  linkType?: string
+  runtime: boolean
+  pathinfo: boolean
+}
+
+export interface RawCssGeneratorOptions {
+  exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only"
+  exportsOnly?: boolean
+}
+
+export interface RawCssModuleGeneratorOptions {
+  exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only"
+  exportsOnly?: boolean
+  localIdentName?: string
+}
+
+export interface RawCssModuleParserOptions {
+  namedExports?: boolean
+}
+
+export interface RawCssParserOptions {
   namedExports?: boolean
 }
 
@@ -824,10 +856,13 @@ export interface RawFuncUseCtx {
 }
 
 export interface RawGeneratorOptions {
-  type: "asset" | "asset/inline" | "asset/resource" | "unknown"
+  type: "asset" | "asset/inline" | "asset/resource" | "css" | "css/auto" | "css/module"
   asset?: RawAssetGeneratorOptions
   assetInline?: RawAssetInlineGeneratorOptions
   assetResource?: RawAssetResourceGeneratorOptions
+  css?: RawCssGeneratorOptions
+  cssAuto?: RawCssAutoGeneratorOptions
+  cssModule?: RawCssModuleGeneratorOptions
 }
 
 export interface RawHtmlRspackPluginOptions {
@@ -1063,8 +1098,11 @@ export interface RawOutputOptions {
 }
 
 export interface RawParserOptions {
-  type: "asset" | "javascript" | "unknown"
+  type: "asset" | "css" | "css/auto" | "css/module" | "javascript"
   asset?: RawAssetParserOptions
+  css?: RawCssParserOptions
+  cssAuto?: RawCssAutoParserOptions
+  cssModule?: RawCssModuleParserOptions
   javascript?: RawJavascriptParserOptions
 }
 
@@ -1211,6 +1249,7 @@ export interface RawSplitChunksOptions {
   automaticNameDelimiter?: string
   maxAsyncRequests?: number
   maxInitialRequests?: number
+  defaultSizeTypes: Array<string>
   minChunks?: number
   hidePathInfo?: boolean
   minSize?: number

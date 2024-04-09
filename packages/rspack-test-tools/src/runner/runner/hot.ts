@@ -2,7 +2,7 @@ import createHotDocument from "../../helper/legacy/createHotDocument";
 import urlToRelativePath from "../../helper/legacy/urlToRelativePath";
 import createFakeWorker from "../../helper/legacy/createFakeWorker";
 import EventSource from "../../helper/legacy/EventSourceForNode";
-import { ECompilerType, ITestCompilerManager } from "../../type";
+import { ECompilerType } from "../../type";
 import { BasicRunner } from "./basic";
 import {
 	IBasicModuleScope,
@@ -13,14 +13,12 @@ import {
 import fs from "fs";
 import path from "path";
 import { StatsCompilation } from "@rspack/core";
-import checkArrayExpectation from "../../helper/legacy/checkArrayExpectation";
 
 interface IHotRunnerOptionsr<T extends ECompilerType = ECompilerType.Rspack>
 	extends IBasicRunnerOptions<T> {
-	hotUpdateContext: {
-		updateIndex: number;
-	};
-	compiler: ITestCompilerManager<T>;
+	next: (
+		callback: (error: Error | null, stats?: StatsCompilation) => void
+	) => void;
 }
 
 export class HotRunner<
@@ -109,46 +107,7 @@ export class HotRunner<
 		moduleScope["Worker"] = this.globalContext!["Worker"];
 		moduleScope["EventSource"] = this.globalContext!["EventSource"];
 		moduleScope["STATS"] = moduleScope.__STATS__;
-		moduleScope["NEXT"] = (
-			callback: (error: Error | null, stats?: StatsCompilation) => void
-		) => {
-			this._options.hotUpdateContext.updateIndex++;
-			this._options.compiler
-				.build()
-				.then(stats => {
-					if (!stats)
-						return callback(new Error("Should generate stats during build"));
-					const jsonStats = stats.toJson({
-						// errorDetails: true
-					});
-					if (
-						checkArrayExpectation(
-							this._options.source,
-							jsonStats,
-							"error",
-							"errors" + this._options.hotUpdateContext.updateIndex,
-							"Error",
-							callback
-						)
-					) {
-						return;
-					}
-					if (
-						checkArrayExpectation(
-							this._options.source,
-							jsonStats,
-							"warning",
-							"warnings" + this._options.hotUpdateContext.updateIndex,
-							"Warning",
-							callback
-						)
-					) {
-						return;
-					}
-					callback(null, jsonStats as StatsCompilation);
-				})
-				.catch(callback);
-		};
+		moduleScope["NEXT"] = this._options.next;
 		return moduleScope;
 	}
 

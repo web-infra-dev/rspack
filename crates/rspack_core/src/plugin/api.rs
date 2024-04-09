@@ -1,19 +1,17 @@
-use std::{fmt::Debug, path::Path};
+use std::fmt::Debug;
 
 use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_hash::RspackHashDigest;
-use rspack_loader_runner::{Content, LoaderContext, ResourceData};
+use rspack_loader_runner::ResourceData;
 use rspack_sources::BoxSource;
-use rustc_hash::FxHashMap;
+use rspack_util::fx_hash::FxDashMap;
 
 use crate::{
-  AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, AssetInfo, BoxLoader,
-  BoxModule, ChunkHashArgs, Compilation, CompilationHooks, CompilerHooks, CompilerOptions,
-  ContentHashArgs, ContextModuleFactoryHooks, DoneArgs, FactorizeArgs, JsChunkHashArgs,
-  LoaderRunnerContext, ModuleFactoryResult, ModuleIdentifier, ModuleType, NormalModule,
-  NormalModuleFactoryHooks, OptimizeChunksArgs, ParserAndGenerator, PluginContext, RenderArgs,
-  RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, Resolver,
-  RuntimeRequirementsInTreeArgs, SourceType,
+  AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, AssetInfo, BoxModule,
+  ChunkHashArgs, Compilation, CompilationHooks, CompilerHooks, CompilerOptions, ContentHashArgs,
+  ContextModuleFactoryHooks, GeneratorOptions, ModuleIdentifier, ModuleType,
+  NormalModuleFactoryHooks, NormalModuleHooks, OptimizeChunksArgs, ParserAndGenerator,
+  ParserOptions, PluginContext, RenderManifestArgs, RuntimeRequirementsInTreeArgs, SourceType,
 };
 
 #[derive(Debug, Clone)]
@@ -22,9 +20,6 @@ pub struct BeforeResolveArgs {
   pub context: String,
 }
 
-pub type PluginBuildEndHookOutput = Result<()>;
-pub type PluginReadResourceOutput = Result<Option<Content>>;
-pub type PluginFactorizeHookOutput = Result<Option<ModuleFactoryResult>>;
 pub type PluginNormalModuleFactoryCreateModuleHookOutput = Result<Option<BoxModule>>;
 pub type PluginNormalModuleFactoryModuleHookOutput = Result<BoxModule>;
 pub type PluginNormalModuleFactoryResolveForSchemeOutput = Result<(ResourceData, bool)>;
@@ -33,16 +28,11 @@ pub type PluginNormalModuleFactoryAfterResolveOutput = Result<Option<bool>>;
 pub type PluginContentHashHookOutput = Result<Option<(SourceType, RspackHashDigest)>>;
 pub type PluginChunkHashHookOutput = Result<()>;
 pub type PluginRenderManifestHookOutput = Result<TWithDiagnosticArray<Vec<RenderManifestEntry>>>;
-pub type PluginRenderChunkHookOutput = Result<Option<BoxSource>>;
 pub type PluginProcessAssetsOutput = Result<()>;
 pub type PluginOptimizeChunksOutput = Result<()>;
 pub type PluginAdditionalChunkRuntimeRequirementsOutput = Result<()>;
 pub type PluginRuntimeRequirementsInTreeOutput = Result<()>;
 pub type PluginAdditionalModuleRequirementsOutput = Result<()>;
-pub type PluginRenderModuleContentOutput<'a> = Result<RenderModuleContentArgs<'a>>;
-pub type PluginRenderStartupHookOutput = Result<Option<BoxSource>>;
-pub type PluginRenderHookOutput = Result<Option<BoxSource>>;
-pub type PluginJsChunkHashHookOutput = Result<()>;
 
 #[async_trait::async_trait]
 pub trait Plugin: Debug + Send + Sync {
@@ -54,40 +44,6 @@ pub trait Plugin: Debug + Send + Sync {
     &self,
     _ctx: PluginContext<&mut ApplyContext>,
     _options: &mut CompilerOptions,
-  ) -> Result<()> {
-    Ok(())
-  }
-
-  async fn done<'s, 'c>(
-    &self,
-    _ctx: PluginContext,
-    _args: DoneArgs<'s, 'c>,
-  ) -> PluginBuildEndHookOutput {
-    Ok(())
-  }
-
-  async fn read_resource(&self, _resource_data: &ResourceData) -> PluginReadResourceOutput {
-    Ok(None)
-  }
-  /**
-   * factorize hook will generate BoxModule which will be used to generate ModuleGraphModule.
-   * It is used to handle the generation of those modules which are not normal, such as External Module
-   * It behaves like a BailHook hook.
-   * NOTICE: The factorize hook is a temporary solution and will be replaced with the real factorize hook later
-   */
-  async fn factorize(
-    &self,
-    _ctx: PluginContext,
-    _args: &mut FactorizeArgs<'_>,
-  ) -> PluginFactorizeHookOutput {
-    Ok(None)
-  }
-
-  fn normal_module_loader(
-    &self,
-    _ctx: PluginContext,
-    _loader_context: &mut LoaderContext<LoaderRunnerContext>,
-    _module: &NormalModule,
   ) -> Result<()> {
     Ok(())
   }
@@ -116,48 +72,7 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(vec![].with_empty_diagnostic())
   }
 
-  // JavascriptModulesPlugin hook
-  async fn render_chunk(
-    &self,
-    _ctx: PluginContext,
-    _args: &RenderChunkArgs,
-  ) -> PluginRenderChunkHookOutput {
-    Ok(None)
-  }
-
   async fn module_asset(&self, _module: ModuleIdentifier, _asset_name: String) -> Result<()> {
-    Ok(())
-  }
-
-  // JavascriptModulesPlugin hook
-  fn render(&self, _ctx: PluginContext, _args: &RenderArgs) -> PluginRenderStartupHookOutput {
-    Ok(None)
-  }
-
-  // JavascriptModulesPlugin hook
-  fn render_startup(
-    &self,
-    _ctx: PluginContext,
-    _args: &RenderStartupArgs,
-  ) -> PluginRenderStartupHookOutput {
-    Ok(None)
-  }
-
-  // JavascriptModulesPlugin hook
-  fn render_module_content<'a>(
-    &'a self,
-    _ctx: PluginContext,
-    args: RenderModuleContentArgs<'a>,
-  ) -> PluginRenderModuleContentOutput<'a> {
-    Ok(args)
-  }
-
-  // JavascriptModulesPlugin hook
-  fn js_chunk_hash(
-    &self,
-    _ctx: PluginContext,
-    _args: &mut JsChunkHashArgs,
-  ) -> PluginJsChunkHashHookOutput {
     Ok(())
   }
 
@@ -207,24 +122,6 @@ pub trait Plugin: Debug + Send + Sync {
 
   async fn optimize_code_generation(&self, _compilation: &mut Compilation) -> Result<Option<()>> {
     Ok(None)
-  }
-
-  /// Webpack resolves loaders in `NormalModuleFactory`,
-  /// Rspack resolves it when normalizing configuration.
-  /// So this hook is used to resolve inline loader (inline loader requests).
-  async fn resolve_loader(
-    &self,
-    _compiler_options: &CompilerOptions,
-    _context: &Path,
-    _resolver: &Resolver,
-    _loader_request: &str,
-    _loader_options: Option<&str>,
-  ) -> Result<Option<BoxLoader>> {
-    Ok(None)
-  }
-
-  async fn before_loaders(&self, _module: &mut NormalModule) -> Result<()> {
-    Ok(())
   }
 
   fn module_ids(&self, _modules: &mut Compilation) -> Result<()> {
@@ -310,16 +207,21 @@ impl RenderManifestEntry {
 
 // pub type BoxedParser = Box<dyn Parser>;
 pub type BoxedParserAndGenerator = Box<dyn ParserAndGenerator>;
-pub type BoxedParserAndGeneratorBuilder =
-  Box<dyn 'static + Send + Sync + Fn() -> BoxedParserAndGenerator>;
+pub type BoxedParserAndGeneratorBuilder = Box<
+  dyn 'static
+    + Send
+    + Sync
+    + Fn(Option<&ParserOptions>, Option<&GeneratorOptions>) -> BoxedParserAndGenerator,
+>;
 
 pub struct ApplyContext<'c> {
   pub(crate) registered_parser_and_generator_builder:
-    &'c mut FxHashMap<ModuleType, BoxedParserAndGeneratorBuilder>,
+    &'c mut FxDashMap<ModuleType, BoxedParserAndGeneratorBuilder>,
   pub compiler_hooks: &'c mut CompilerHooks,
   pub compilation_hooks: &'c mut CompilationHooks,
   pub normal_module_factory_hooks: &'c mut NormalModuleFactoryHooks,
   pub context_module_factory_hooks: &'c mut ContextModuleFactoryHooks,
+  pub normal_module_hooks: &'c mut NormalModuleHooks,
 }
 
 impl<'c> ApplyContext<'c> {

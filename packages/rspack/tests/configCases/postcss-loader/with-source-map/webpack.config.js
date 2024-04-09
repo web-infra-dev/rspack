@@ -14,7 +14,11 @@ module.exports = {
 							}
 						}
 					}
-				]
+				],
+				type: "css/auto",
+				generator: {
+					exportsOnly: false,
+				}
 			}
 		]
 	},

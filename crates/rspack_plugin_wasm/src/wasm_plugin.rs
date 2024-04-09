@@ -56,17 +56,16 @@ impl Plugin for AsyncWasmPlugin {
 
     let module_id_to_filename_without_ext = self.module_id_to_filename_without_ext.clone();
 
-    let builder = move || {
-      Box::new({
-        AsyncWasmParserAndGenerator {
-          module_id_to_filename: module_id_to_filename_without_ext.clone(),
-        }
-      }) as Box<dyn ParserAndGenerator>
-    };
-
-    ctx
-      .context
-      .register_parser_and_generator_builder(ModuleType::WasmAsync, Box::new(builder));
+    ctx.context.register_parser_and_generator_builder(
+      ModuleType::WasmAsync,
+      Box::new(move |_, _| {
+        Box::new({
+          AsyncWasmParserAndGenerator {
+            module_id_to_filename: module_id_to_filename_without_ext.clone(),
+          }
+        }) as Box<dyn ParserAndGenerator>
+      }),
+    );
 
     Ok(())
   }

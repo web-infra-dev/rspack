@@ -200,3 +200,5 @@ export type { SourceMapDevToolPluginOptions } from "./builtin-plugin";
 
 export { EvalDevToolModulePlugin } from "./builtin-plugin";
 export type { EvalDevToolModulePluginOptions } from "./builtin-plugin";
+
+export { CssExtractRspackPlugin } from "./builtin-plugin";

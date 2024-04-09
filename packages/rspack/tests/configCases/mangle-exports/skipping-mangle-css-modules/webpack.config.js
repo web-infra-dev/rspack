@@ -14,7 +14,13 @@ module.exports = {
 		rules: [
 			{
 				test: /\.module\.css$/,
-				type: "css/module"
+				type: "css/module",
+				generator: {
+					exportsOnly: false,
+				},
+				parser: {
+					namedExports: false,
+				}
 			}
 		]
 	},

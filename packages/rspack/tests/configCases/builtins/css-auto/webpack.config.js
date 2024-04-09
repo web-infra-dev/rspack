@@ -3,7 +3,10 @@ module.exports = {
 		rules: [
 			{
 				test: /\.css$/,
-				type: "css/auto"
+				type: "css/auto",
+				generator: {
+					exportsOnly: false,
+				}
 			}
 		]
 	}
