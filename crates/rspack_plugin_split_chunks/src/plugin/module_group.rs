@@ -1,8 +1,11 @@
+use std::collections::{hash_map::Entry, HashMap};
+use std::hash::{BuildHasherDefault, Hash, Hasher};
+
 use dashmap::DashMap;
 use rayon::prelude::*;
 use rspack_core::{Chunk, ChunkGraph, ChunkUkey, Compilation, Module, ModuleGraph};
 use rspack_error::Result;
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::{FxHashMap, FxHashSet, FxHasher};
 
 use super::ModuleGroupMap;
 use crate::module_group::{compare_entries, CacheGroupIdx, ModuleGroup};
@@ -11,7 +14,31 @@ use crate::options::cache_group_test::{CacheGroupTest, CacheGroupTestFnCtx};
 use crate::options::chunk_name::{ChunkNameGetter, ChunkNameGetterFnCtx};
 use crate::SplitChunksPlugin;
 
-type ChunksKey = num_bigint::BigUint;
+type ChunksKey = u64;
+
+struct IdentityHasher(u64);
+
+impl Hasher for IdentityHasher {
+  fn finish(&self) -> u64 {
+    self.0
+  }
+
+  fn write(&mut self, _: &[u8]) {
+    panic!("Invalid use of IdentityHasher");
+  }
+
+  fn write_u64(&mut self, i: u64) {
+    self.0 = i;
+  }
+}
+
+impl Default for IdentityHasher {
+  fn default() -> Self {
+    Self(0)
+  }
+}
+
+type ChunksKeyHashBuilder = BuildHasherDefault<IdentityHasher>;
 
 impl SplitChunksPlugin {
   #[tracing::instrument(skip_all)]
@@ -66,7 +93,8 @@ impl SplitChunksPlugin {
     let (chunk_sets_in_graph, chunk_sets_by_count) =
       { Self::prepare_combination_maps(&module_graph, &compilation.chunk_graph) };
 
-    let combinations_cache = DashMap::<ChunksKey, Vec<FxHashSet<ChunkUkey>>>::default();
+    let combinations_cache =
+      DashMap::<ChunksKey, Vec<FxHashSet<ChunkUkey>>, ChunksKeyHashBuilder>::default();
 
     let get_combination = |chunks_key: ChunksKey| {
       if let Some(combs) = combinations_cache.get(&chunks_key) {
@@ -133,7 +161,7 @@ impl SplitChunksPlugin {
 
         temp.push((idx, is_match));
       }
-      let mut chunk_key_to_string = FxHashMap::default();
+      let mut chunk_key_to_string = HashMap::<u64, String, ChunksKeyHashBuilder>::default();
       temp.sort_by(|a, b| a.0.cmp(&b.0));
 
       let filtered = self
@@ -198,7 +226,7 @@ impl SplitChunksPlugin {
           fn merge_matched_item_into_module_group_map(
             matched_item: MatchedItem<'_>,
             module_group_map: &DashMap<String, ModuleGroup>,
-            chunk_key_to_string: &mut FxHashMap<ChunksKey, String>
+            chunk_key_to_string: &mut HashMap::<u64, String, ChunksKeyHashBuilder>
           ) -> Result<()> {
             let MatchedItem {
               idx,
@@ -227,13 +255,16 @@ impl SplitChunksPlugin {
               key.push_str(cache_group_name);
               key
             } else {
-                let selected_chunks_key = if let Some(item) = chunk_key_to_string.get(&selected_chunks_key) {
-                  item.to_string()
-                } else {
-                  let key = selected_chunks_key.to_str_radix(16);
-                  chunk_key_to_string.insert(selected_chunks_key, key.clone());
+              let selected_chunks_key = match chunk_key_to_string.entry(selected_chunks_key) {
+                Entry::Occupied(entry) => {
+                  entry.get().to_string()
+                },
+                Entry::Vacant(entry) => {
+                  let key = format!("{:x}", selected_chunks_key);
+                  entry.insert(key.clone());
                   key
-                };
+                },
+              };
               let mut key =
                 String::with_capacity(cache_group.key.len() + " chunks:".len() + selected_chunks_key.len());
               key.push_str(&cache_group.key);
@@ -346,12 +377,13 @@ impl SplitChunksPlugin {
   }
 
   fn get_key<'a, I: Iterator<Item = &'a ChunkUkey>>(chunks: I) -> ChunksKey {
-    let mut bitset = num_bigint::BigUint::default();
-    for c in chunks {
-      let usize = c.as_usize();
-      bitset.set_bit(usize as u64, true);
+    let mut sorted_chunk_ukeys = chunks.map(|chunk| chunk.as_usize()).collect::<Vec<_>>();
+    sorted_chunk_ukeys.sort_unstable();
+    let mut hasher = FxHasher::default();
+    for chunk_ukey in sorted_chunk_ukeys {
+      chunk_ukey.hash(&mut hasher);
     }
-    bitset
+    hasher.finish()
   }
 
   #[allow(clippy::type_complexity)]
@@ -359,15 +391,15 @@ impl SplitChunksPlugin {
     module_graph: &ModuleGraph,
     chunk_graph: &ChunkGraph,
   ) -> (
-    FxHashMap<ChunksKey, FxHashSet<ChunkUkey>>,
+    HashMap<ChunksKey, FxHashSet<ChunkUkey>, ChunksKeyHashBuilder>,
     FxHashMap<usize, Vec<FxHashSet<ChunkUkey>>>,
   ) {
-    let mut chunk_sets_in_graph = FxHashMap::default();
+    let mut chunk_sets_in_graph =
+      HashMap::<ChunksKey, FxHashSet<ChunkUkey>, ChunksKeyHashBuilder>::default();
 
     for module in module_graph.modules().keys() {
       let chunks = chunk_graph.get_module_chunks(*module);
       let chunk_key = Self::get_key(chunks.iter());
-
       chunk_sets_in_graph.insert(chunk_key, chunks.clone());
     }
 
