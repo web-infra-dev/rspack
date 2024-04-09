@@ -100,8 +100,8 @@ export class CssExtractRspackPlugin {
 				typeof options.linkType === "undefined"
 					? JSON.stringify("text/css")
 					: options.linkType === false
-						? undefined
-						: JSON.stringify(options.linkType),
+					? undefined
+					: JSON.stringify(options.linkType),
 			attributes: options.attributes
 				? (Reflect.ownKeys(options.attributes)
 						.map(k => [

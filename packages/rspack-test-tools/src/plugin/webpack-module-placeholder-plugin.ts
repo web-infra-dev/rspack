@@ -62,9 +62,10 @@ export class WebpackModulePlaceholderPlugin {
 		const webpackLibPath = which(compiler.constructor).path;
 		const Template = require(path.join(webpackLibPath, "Template.js"));
 		Template.renderRuntimeModules = createRenderRuntimeModulesFn(Template);
-		const JavascriptModulesPlugin = require(
-			path.join(webpackLibPath, "javascript/JavascriptModulesPlugin.js")
-		);
+		const JavascriptModulesPlugin = require(path.join(
+			webpackLibPath,
+			"javascript/JavascriptModulesPlugin.js"
+		));
 		compiler.hooks.compilation.tap("RuntimeDiffPlugin", compilation => {
 			const hooks = JavascriptModulesPlugin.getCompilationHooks(compilation);
 			hooks.inlineInRuntimeBailout.tap(
