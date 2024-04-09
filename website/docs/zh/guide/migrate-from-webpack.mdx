@@ -134,6 +134,36 @@ Rspack 内置支持了 css 模块类型 ，原生 css 模块类型内置了对 c
  };
 ```
 
+### CssExtractPlugin
+
+如果依赖 css-loader，例如 css-loader 提供的一些更加定制化的配置项，仍然可以使用 style-loader + css-loader 方案，如果你想要在生产环境将 css 提取成单独的文件，可以使用 Rspack 内置的 CssExtractRspackPlugin 插件。
+
+CssExtractRspackPlugin 插件功能和配置与 mini-css-extract-plugin 类似，使用前请确保开启了 `experiments.rspackFuture.newTreeshaking`，v0.6 之后的版本默认开启。
+
+```diff
++ const { CssExtractRspackPlugin } = require("@rspack/core");
+- const CssExtractPlugin = require("mini-css-extract-plugin");
+
+module.exports = {
+  plugins: [
++    new CssExtractRspackPlugin(),
+-    new CssExtractPlugin(),
+  ]
+  module: {
+    rules: [
+      {
+        test: /\.css$/i,
+        use: [
++          CssExtractRspackPlugin.loader,
+-          CssExtractPlugin.loader,
+          "css-loader"
+        ]
+      }
+    ]
+  }
+}
+```
+
 ### 使用 Asset Modules 来代替 file-loader、url-loader 和 raw-loader
 
 Rspack 对齐 webpack 5 的 Asset Modules，这意味着你可以使用 Asset Modules 来代替 file-loader 和 url-loader。
