@@ -16,6 +16,7 @@ use crate::SplitChunksPlugin;
 
 type ChunksKey = u64;
 
+#[derive(Default)]
 struct IdentityHasher(u64);
 
 impl Hasher for IdentityHasher {
@@ -29,12 +30,6 @@ impl Hasher for IdentityHasher {
 
   fn write_u64(&mut self, i: u64) {
     self.0 = i;
-  }
-}
-
-impl Default for IdentityHasher {
-  fn default() -> Self {
-    Self(0)
   }
 }
 
@@ -171,7 +166,7 @@ impl SplitChunksPlugin {
         .filter(|(index, _)| temp[*index].1);
 
       for (cache_group_index, (idx, cache_group)) in filtered.enumerate() {
-        let combs = get_combination(chunks_key.clone());
+        let combs = get_combination(chunks_key);
 
         for chunk_combination in combs {
           // Filter by `splitChunks.cacheGroups.{cacheGroup}.minChunks`
