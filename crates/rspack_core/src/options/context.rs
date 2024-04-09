@@ -1,5 +1,6 @@
 use std::{
   fmt,
+  ops::Deref,
   path::{Path, PathBuf},
 };
 
@@ -30,6 +31,14 @@ impl AsRef<Path> for Context {
 
 impl AsRef<str> for Context {
   fn as_ref(&self) -> &str {
+    &self.inner
+  }
+}
+
+impl Deref for Context {
+  type Target = str;
+
+  fn deref(&self) -> &Self::Target {
     &self.inner
   }
 }

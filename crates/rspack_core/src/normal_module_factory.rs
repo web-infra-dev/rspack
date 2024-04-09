@@ -8,7 +8,7 @@ use rspack_hook::{
 };
 use rspack_loader_runner::{get_scheme, Loader, Scheme};
 use rspack_util::MergeFrom;
-use sugar_path::{AsPath, SugarPath};
+use sugar_path::SugarPath;
 use swc_core::common::Span;
 
 use crate::{
