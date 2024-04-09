@@ -1,4 +1,4 @@
-use std::{path::Path, sync::Arc};
+use std::{borrow::Cow, path::Path, sync::Arc};
 
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -81,6 +81,9 @@ static MATCH_WEBPACK_EXT_REGEX: Lazy<Regex> = Lazy::new(|| {
 
 static ELEMENT_SPLIT_REGEX: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"!+").expect("Failed to initialize `ELEMENT_SPLIT_REGEX`"));
+
+const HYPHEN: char = '-';
+const EXCLAMATION: char = '!';
 
 impl NormalModuleFactory {
   pub fn new(
@@ -247,10 +250,11 @@ impl NormalModuleFactory {
         }
 
         // See: https://webpack.js.org/concepts/loaders/#inline
-        no_pre_auto_loaders = matches!(first_char, Some('-')) && matches!(second_char, Some('!'));
-        no_auto_loaders = no_pre_auto_loaders || matches!(first_char, Some('!'));
+        no_pre_auto_loaders =
+          matches!(first_char, Some(HYPHEN)) && matches!(second_char, Some(EXCLAMATION));
+        no_auto_loaders = no_pre_auto_loaders || matches!(first_char, Some(EXCLAMATION));
         no_pre_post_auto_loaders =
-          matches!(first_char, Some('!')) && matches!(second_char, Some('!'));
+          matches!(first_char, Some(EXCLAMATION)) && matches!(second_char, Some(EXCLAMATION));
 
         let mut raw_elements = {
           let s = match request_without_match_resource.char_indices().nth({
@@ -407,24 +411,8 @@ impl NormalModuleFactory {
       let mut normal_loaders: Vec<ModuleRuleUseLoader> = vec![];
 
       for rule in &resolved_module_rules {
-        match &rule.r#use {
-          ModuleRuleUse::Array(array_use) => match rule.enforce {
-            ModuleRuleEnforce::Pre => {
-              if !no_pre_auto_loaders && !no_pre_post_auto_loaders {
-                pre_loaders.extend_from_slice(array_use);
-              }
-            }
-            ModuleRuleEnforce::Normal => {
-              if !no_auto_loaders && !no_pre_auto_loaders {
-                normal_loaders.extend_from_slice(array_use);
-              }
-            }
-            ModuleRuleEnforce::Post => {
-              if !no_pre_post_auto_loaders {
-                post_loaders.extend_from_slice(array_use);
-              }
-            }
-          },
+        let rule_use = match &rule.r#use {
+          ModuleRuleUse::Array(array_use) => Cow::Borrowed(array_use),
           ModuleRuleUse::Func(func_use) => {
             let context = FuncUseCtx {
               resource: Some(resource_data.resource.clone()),
@@ -432,9 +420,25 @@ impl NormalModuleFactory {
               issuer: data.issuer.clone(),
               resource_query: resource_data.resource_query.clone(),
             };
-            let loaders = func_use(context).await?;
+            Cow::Owned(func_use(context).await?)
+          }
+        };
 
-            normal_loaders.extend(loaders);
+        match rule.enforce {
+          ModuleRuleEnforce::Pre => {
+            if !no_pre_auto_loaders && !no_pre_post_auto_loaders {
+              pre_loaders.extend_from_slice(&rule_use);
+            }
+          }
+          ModuleRuleEnforce::Normal => {
+            if !no_auto_loaders && !no_pre_auto_loaders {
+              normal_loaders.extend_from_slice(&rule_use);
+            }
+          }
+          ModuleRuleEnforce::Post => {
+            if !no_pre_post_auto_loaders {
+              post_loaders.extend_from_slice(&rule_use);
+            }
           }
         }
       }
