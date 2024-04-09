@@ -3,7 +3,7 @@ use std::{
   fmt::Debug,
   hash::{BuildHasherDefault, Hash},
   path::PathBuf,
-  sync::Arc,
+  sync::{atomic::AtomicU32, Arc},
 };
 
 use dashmap::{DashMap, DashSet};
@@ -84,8 +84,27 @@ pub struct CompilationHooks {
   pub after_seal: CompilationAfterSealHook,
 }
 
+#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]
+pub struct CompilationId(u32);
+
+impl CompilationId {
+  pub fn new() -> Self {
+    Self(COMPILATION_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed))
+  }
+}
+
+impl Default for CompilationId {
+  fn default() -> Self {
+    Self::new()
+  }
+}
+
+static COMPILATION_ID: AtomicU32 = AtomicU32::new(0);
+
 #[derive(Debug)]
 pub struct Compilation {
+  /// get_compilation_hooks(compilation.id)
+  id: CompilationId,
   // Mark compilation status, because the hash of `[hash].hot-update.js/json` is previous compilation hash.
   // Status A(hash: A) -> Status B(hash: B) will generate `A.hot-update.js`
   // Status A(hash: A) -> Status C(hash: C) will generate `A.hot-update.js`
@@ -179,6 +198,7 @@ impl Compilation {
   ) -> Self {
     let make_module_graph = ModuleGraphPartial::new(options.is_new_tree_shaking());
     Self {
+      id: CompilationId::new(),
       hot_index: 0,
       records,
       options,
@@ -235,6 +255,10 @@ impl Compilation {
 
       import_var_map: DashMap::new(),
     }
+  }
+
+  pub fn id(&self) -> CompilationId {
+    self.id
   }
 
   pub fn swap_make_module_graph(&mut self, other: &mut Compilation) {

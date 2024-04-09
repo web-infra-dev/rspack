@@ -15,8 +15,7 @@ const config = {
 				use: "less-loader",
 				type: "css",
 				generator: {
-					exportsOnly: true,
-					exportsConvention: "as-is"
+					exportsOnly: true
 				}
 			},
 			{
@@ -25,7 +24,6 @@ const config = {
 				type: "css/module",
 				generator: {
 					exportsOnly: true,
-					exportsConvention: "as-is",
 					localIdentName: "[uniqueName]---[path][name][ext]-[local]"
 				}
 			},

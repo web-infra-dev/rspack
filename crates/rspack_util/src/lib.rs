@@ -4,7 +4,7 @@ mod merge;
 
 pub mod comparators;
 pub mod ext;
-pub mod fx_dashmap;
+pub mod fx_hash;
 pub mod identifier;
 pub mod infallible;
 pub mod number_hash;
@@ -14,7 +14,7 @@ pub mod swc;
 
 use std::future::Future;
 
-pub use merge::MergeFrom;
+pub use merge::{merge_from_optional_with, MergeFrom};
 
 pub async fn try_any<T, Fut, F, E>(it: impl IntoIterator<Item = T>, f: F) -> Result<bool, E>
 where

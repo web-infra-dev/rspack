@@ -1,23 +1,28 @@
 use std::hash::Hash;
+use std::sync::Arc;
 
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::tree_shaking::webpack_ext::ExportInfoExt;
 use rspack_core::{
-  get_entry_runtime, property_access, ApplyContext, ChunkUkey, CompilerOptions, EntryData,
-  FilenameTemplate, LibraryExport, LibraryName, LibraryNonUmdObject, UsageState,
+  get_entry_runtime, property_access, ApplyContext, ChunkUkey, CompilationParams, CompilerOptions,
+  EntryData, FilenameTemplate, LibraryExport, LibraryName, LibraryNonUmdObject, UsageState,
 };
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceExt},
-  to_identifier, Chunk, Compilation, JsChunkHashArgs, LibraryOptions, PathData, Plugin,
-  PluginContext, PluginJsChunkHashHookOutput, PluginRenderHookOutput,
-  PluginRenderStartupHookOutput, RenderArgs, RenderStartupArgs, SourceType,
+  to_identifier, Chunk, Compilation, LibraryOptions, PathData, Plugin, PluginContext, SourceType,
 };
 use rspack_error::{error, error_bail, Result};
-use rspack_hook::{plugin, plugin_hook, AsyncSeries};
+use rspack_hook::{plugin, plugin_hook, AsyncSeries, AsyncSeries2};
+use rspack_plugin_javascript::{
+  JavascriptModulesPluginPlugin, JsChunkHashArgs, JsPlugin, PluginJsChunkHashHookOutput,
+  PluginRenderJsHookOutput, PluginRenderJsStartupHookOutput, RenderJsArgs, RenderJsStartupArgs,
+};
 use rspack_util::infallible::ResultInfallibleExt as _;
 
 use crate::utils::{get_options_for_chunk, COMMON_LIBRARY_NAME_MESSAGE};
+
+const PLUGIN_NAME: &str = "rspack.AssignLibraryPlugin";
 
 #[derive(Debug)]
 pub enum Unnamed {
@@ -74,17 +79,12 @@ struct AssignLibraryPluginParsed<'a> {
   export: Option<&'a LibraryExport>,
 }
 
-#[plugin]
 #[derive(Debug)]
-pub struct AssignLibraryPlugin {
+struct AssignLibraryJavascriptModulesPluginPlugin {
   options: AssignLibraryPluginOptions,
 }
 
-impl AssignLibraryPlugin {
-  pub fn new(options: AssignLibraryPluginOptions) -> Self {
-    Self::new_inner(options)
-  }
-
+impl AssignLibraryJavascriptModulesPluginPlugin {
   fn parse_options<'a>(
     &self,
     library: &'a LibraryOptions,
@@ -169,6 +169,128 @@ impl AssignLibraryPlugin {
   }
 }
 
+impl JavascriptModulesPluginPlugin for AssignLibraryJavascriptModulesPluginPlugin {
+  fn render(&self, args: &RenderJsArgs) -> PluginRenderJsHookOutput {
+    let Some(options) = self.get_options_for_chunk(args.compilation, args.chunk)? else {
+      return Ok(None);
+    };
+    if self.options.declare {
+      let base = &self.get_resolved_full_name(&options, args.compilation, args.chunk())[0];
+      if !is_name_valid(base) {
+        let base_identifier = to_identifier(base);
+        return Err(
+          error!("Library name base ({base}) must be a valid identifier when using a var declaring library type. Either use a valid identifier (e. g. {base_identifier}) or use a different library type (e. g. `type: 'global'`, which assign a property on the global scope instead of declaring a variable). {COMMON_LIBRARY_NAME_MESSAGE}"),
+        );
+      }
+      let mut source = ConcatSource::default();
+      source.add(RawSource::from(format!("var {base};\n")));
+      source.add(args.source.clone());
+      return Ok(Some(source.boxed()));
+    }
+    Ok(Some(args.source.clone()))
+  }
+
+  fn render_startup(&self, args: &RenderJsStartupArgs) -> PluginRenderJsStartupHookOutput {
+    let Some(options) = self.get_options_for_chunk(args.compilation, args.chunk)? else {
+      return Ok(None);
+    };
+    let mut source = ConcatSource::default();
+    source.add(args.source.clone());
+    let full_name_resolved = self.get_resolved_full_name(&options, args.compilation, args.chunk());
+    let export_access = options
+      .export
+      .map(|e| property_access(e, 0))
+      .unwrap_or_default();
+    if matches!(self.options.unnamed, Unnamed::Static) {
+      let export_target = access_with_init(&full_name_resolved, self.options.prefix.len(), true);
+      if let Some(analyze_results) = args
+        .compilation
+        .optimize_analyze_result_map
+        .get(&args.module)
+      {
+        for info in analyze_results.ordered_exports() {
+          let name_access = property_access(&vec![info.name], 0);
+          source.add(RawSource::from(format!(
+            "{export_target}{name_access} = __webpack_exports__{export_access}{name_access};\n",
+          )));
+        }
+      }
+      source.add(RawSource::from(format!(
+        "Object.defineProperty({export_target}, '__esModule', {{ value: true }});\n",
+      )));
+    } else if self.is_copy(&options) {
+      source.add(RawSource::from(format!(
+        "var __webpack_export_target__ = {};\n",
+        access_with_init(&full_name_resolved, self.options.prefix.len(), true)
+      )));
+      let mut exports = "__webpack_exports__";
+      if !export_access.is_empty() {
+        source.add(RawSource::from(format!(
+          "var __webpack_exports_export__ = __webpack_exports__{export_access};\n"
+        )));
+        exports = "__webpack_exports_export__";
+      }
+      source.add(RawSource::from(format!(
+        "for(var i in {exports}) __webpack_export_target__[i] = {exports}[i];\n"
+      )));
+      source.add(RawSource::from(format!(
+        "if({exports}.__esModule) Object.defineProperty(__webpack_export_target__, '__esModule', {{ value: true }});\n"
+      )));
+    } else {
+      source.add(RawSource::from(format!(
+        "{} = __webpack_exports__{export_access};\n",
+        access_with_init(&full_name_resolved, self.options.prefix.len(), false)
+      )));
+    }
+
+    Ok(Some(source.boxed()))
+  }
+
+  fn js_chunk_hash(&self, args: &mut JsChunkHashArgs) -> PluginJsChunkHashHookOutput {
+    let Some(options) = self.get_options_for_chunk(args.compilation, args.chunk_ukey)? else {
+      return Ok(());
+    };
+    PLUGIN_NAME.hash(&mut args.hasher);
+    let full_resolved_name = self.get_resolved_full_name(&options, args.compilation, args.chunk());
+    if self.is_copy(&options) {
+      "copy".hash(&mut args.hasher);
+    }
+    if self.options.declare {
+      self.options.declare.hash(&mut args.hasher);
+    }
+    full_resolved_name.join(".").hash(&mut args.hasher);
+    if let Some(export) = options.export {
+      export.hash(&mut args.hasher);
+    }
+    Ok(())
+  }
+}
+
+#[plugin]
+#[derive(Debug)]
+pub struct AssignLibraryPlugin {
+  js_plugin: Arc<AssignLibraryJavascriptModulesPluginPlugin>,
+}
+
+impl AssignLibraryPlugin {
+  pub fn new(options: AssignLibraryPluginOptions) -> Self {
+    Self::new_inner(Arc::new(AssignLibraryJavascriptModulesPluginPlugin {
+      options,
+    }))
+  }
+}
+
+#[plugin_hook(AsyncSeries2<Compilation, CompilationParams> for AssignLibraryPlugin)]
+async fn compilation(
+  &self,
+  compilation: &mut Compilation,
+  _params: &mut CompilationParams,
+) -> Result<()> {
+  let mut drive = JsPlugin::get_compilation_drives_mut(compilation);
+  drive.add_plugin(self.js_plugin.clone());
+  Ok(())
+}
+
 #[plugin_hook(AsyncSeries<Compilation> for AssignLibraryPlugin)]
 async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
   let mut runtime_info = Vec::with_capacity(compilation.entries.len());
@@ -233,7 +355,7 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
 #[async_trait::async_trait]
 impl Plugin for AssignLibraryPlugin {
   fn name(&self) -> &'static str {
-    "rspack.AssignLibraryPlugin"
+    PLUGIN_NAME
   }
 
   fn apply(
@@ -243,112 +365,14 @@ impl Plugin for AssignLibraryPlugin {
   ) -> Result<()> {
     ctx
       .context
+      .compiler_hooks
+      .compilation
+      .tap(compilation::new(self));
+    ctx
+      .context
       .compilation_hooks
       .finish_modules
       .tap(finish_modules::new(self));
-    Ok(())
-  }
-
-  fn render(&self, _ctx: PluginContext, args: &RenderArgs) -> PluginRenderHookOutput {
-    let Some(options) = self.get_options_for_chunk(args.compilation, args.chunk)? else {
-      return Ok(None);
-    };
-    if self.options.declare {
-      let base = &self.get_resolved_full_name(&options, args.compilation, args.chunk())[0];
-      if !is_name_valid(base) {
-        let base_identifier = to_identifier(base);
-        return Err(
-          error!("Library name base ({base}) must be a valid identifier when using a var declaring library type. Either use a valid identifier (e. g. {base_identifier}) or use a different library type (e. g. `type: 'global'`, which assign a property on the global scope instead of declaring a variable). {COMMON_LIBRARY_NAME_MESSAGE}"),
-        );
-      }
-      let mut source = ConcatSource::default();
-      source.add(RawSource::from(format!("var {base};\n")));
-      source.add(args.source.clone());
-      return Ok(Some(source.boxed()));
-    }
-    Ok(Some(args.source.clone()))
-  }
-
-  fn render_startup(
-    &self,
-    _ctx: PluginContext,
-    args: &RenderStartupArgs,
-  ) -> PluginRenderStartupHookOutput {
-    let Some(options) = self.get_options_for_chunk(args.compilation, args.chunk)? else {
-      return Ok(None);
-    };
-    let mut source = ConcatSource::default();
-    source.add(args.source.clone());
-    let full_name_resolved = self.get_resolved_full_name(&options, args.compilation, args.chunk());
-    let export_access = options
-      .export
-      .map(|e| property_access(e, 0))
-      .unwrap_or_default();
-    if matches!(self.options.unnamed, Unnamed::Static) {
-      let export_target = access_with_init(&full_name_resolved, self.options.prefix.len(), true);
-      if let Some(analyze_results) = args
-        .compilation
-        .optimize_analyze_result_map
-        .get(&args.module)
-      {
-        for info in analyze_results.ordered_exports() {
-          let name_access = property_access(&vec![info.name], 0);
-          source.add(RawSource::from(format!(
-            "{export_target}{name_access} = __webpack_exports__{export_access}{name_access};\n",
-          )));
-        }
-      }
-      source.add(RawSource::from(format!(
-        "Object.defineProperty({export_target}, '__esModule', {{ value: true }});\n",
-      )));
-    } else if self.is_copy(&options) {
-      source.add(RawSource::from(format!(
-        "var __webpack_export_target__ = {};\n",
-        access_with_init(&full_name_resolved, self.options.prefix.len(), true)
-      )));
-      let mut exports = "__webpack_exports__";
-      if !export_access.is_empty() {
-        source.add(RawSource::from(format!(
-          "var __webpack_exports_export__ = __webpack_exports__{export_access};\n"
-        )));
-        exports = "__webpack_exports_export__";
-      }
-      source.add(RawSource::from(format!(
-        "for(var i in {exports}) __webpack_export_target__[i] = {exports}[i];\n"
-      )));
-      source.add(RawSource::from(format!(
-        "if({exports}.__esModule) Object.defineProperty(__webpack_export_target__, '__esModule', {{ value: true }});\n"
-      )));
-    } else {
-      source.add(RawSource::from(format!(
-        "{} = __webpack_exports__{export_access};\n",
-        access_with_init(&full_name_resolved, self.options.prefix.len(), false)
-      )));
-    }
-
-    Ok(Some(source.boxed()))
-  }
-
-  fn js_chunk_hash(
-    &self,
-    _ctx: PluginContext,
-    args: &mut JsChunkHashArgs,
-  ) -> PluginJsChunkHashHookOutput {
-    let Some(options) = self.get_options_for_chunk(args.compilation, args.chunk_ukey)? else {
-      return Ok(());
-    };
-    self.name().hash(&mut args.hasher);
-    let full_resolved_name = self.get_resolved_full_name(&options, args.compilation, args.chunk());
-    if self.is_copy(&options) {
-      "copy".hash(&mut args.hasher);
-    }
-    if self.options.declare {
-      self.options.declare.hash(&mut args.hasher);
-    }
-    full_resolved_name.join(".").hash(&mut args.hasher);
-    if let Some(export) = options.export {
-      export.hash(&mut args.hasher);
-    }
     Ok(())
   }
 }

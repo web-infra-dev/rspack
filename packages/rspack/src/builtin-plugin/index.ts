@@ -48,6 +48,7 @@ export * from "./MangleExportsPlugin";
 export * from "./BundlerInfoRspackPlugin";
 export * from "./ModuleConcatenationPlugin";
 export * from "./CssModulesPlugin";
+export * from "./APIPlugin";
 
 export * from "./HtmlRspackPlugin";
 export * from "./CopyRspackPlugin";
@@ -68,8 +69,8 @@ function resolveTreeShaking(
 	return treeShaking !== undefined
 		? treeShaking.toString()
 		: production
-		? "true"
-		: "false";
+			? "true"
+			: "false";
 }
 
 export interface Builtins {

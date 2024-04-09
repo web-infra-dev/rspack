@@ -13,6 +13,35 @@ use rspack_hook::{plugin, plugin_hook, AsyncSeries};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::ecma::atoms::Atom;
 
+struct Queue {
+  q: VecDeque<ModuleIdentifier>,
+  set: HashSet<ModuleIdentifier>,
+}
+
+impl Queue {
+  fn new() -> Self {
+    Self {
+      q: VecDeque::default(),
+      set: HashSet::default(),
+    }
+  }
+
+  fn enqueue(&mut self, id: ModuleIdentifier) {
+    if !self.set.contains(&id) {
+      self.q.push_back(id);
+      self.set.insert(id);
+    }
+  }
+
+  fn dequeue(&mut self) -> Option<ModuleIdentifier> {
+    if let Some(module_id) = self.q.pop_front() {
+      self.set.remove(&module_id);
+      return Some(module_id);
+    }
+    None
+  }
+}
+
 struct FlagDependencyExportsProxy<'a> {
   mg: &'a mut ModuleGraph<'a>,
   changed: bool,
@@ -31,7 +60,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
   }
 
   pub fn apply(&mut self) {
-    let mut q = VecDeque::new();
+    let mut q = Queue::new();
 
     let module_ids = self.mg.modules().keys().cloned().collect_vec();
     for module_id in module_ids {
@@ -68,16 +97,16 @@ impl<'a> FlagDependencyExportsProxy<'a> {
         .unwrap_or_default()
       {
         exports_id.set_has_provide_info(self.mg);
-        q.push_back(module_id);
+        q.enqueue(module_id);
         continue;
       }
 
       exports_id.set_has_provide_info(self.mg);
-      q.push_back(module_id);
+      q.enqueue(module_id);
       // TODO: mem cache
     }
 
-    while let Some(module_id) = q.pop_front() {
+    while let Some(module_id) = q.dequeue() {
       self.changed = false;
       self.current_module_id = module_id;
       let mut exports_specs_from_dependencies: HashMap<DependencyId, ExportsSpec> =
@@ -93,10 +122,10 @@ impl<'a> FlagDependencyExportsProxy<'a> {
     }
   }
 
-  pub fn notify_dependencies(&mut self, q: &mut VecDeque<ModuleIdentifier>) {
+  pub fn notify_dependencies(&mut self, q: &mut Queue) {
     if let Some(set) = self.dependencies.get(&self.current_module_id) {
       for mi in set.iter() {
-        q.push_back(*mi);
+        q.enqueue(*mi);
       }
     }
   }

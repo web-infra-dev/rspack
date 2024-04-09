@@ -14,7 +14,7 @@ const deprecationTracking = require("./helpers/deprecationTracking");
 const FakeDocument = require("./helpers/FakeDocument");
 
 function copyDiff(src, dest, initial) {
-	if (!fs.existsSync(dest)) fs.mkdirSync(dest);
+	fs.mkdirSync(dest, { recursive: true });
 	const files = fs.readdirSync(src);
 	files.forEach(filename => {
 		const srcFile = path.join(src, filename);
@@ -73,9 +73,9 @@ const describeCases = config => {
 		});
 		beforeAll(() => {
 			let dest = path.join(__dirname, "js");
-			if (!fs.existsSync(dest)) fs.mkdirSync(dest);
+			fs.mkdirSync(dest, { recursive: true });
 			dest = path.join(__dirname, "js", config.name + "-src");
-			if (!fs.existsSync(dest)) fs.mkdirSync(dest);
+			fs.mkdirSync(dest, { recursive: true });
 		});
 		categories.forEach(category => {
 			beforeAll(() => {
@@ -85,7 +85,7 @@ const describeCases = config => {
 					config.name + "-src",
 					category.name
 				);
-				if (!fs.existsSync(dest)) fs.mkdirSync(dest);
+				fs.mkdirSync(dest, { recursive: true });
 			});
 			describe(category.name, () => {
 				category.tests.forEach(testName => {

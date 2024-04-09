@@ -63,7 +63,8 @@ import {
 	ModuleConcatenationPlugin,
 	EvalDevToolModulePlugin,
 	JsLoaderRspackPlugin,
-	CssModulesPlugin
+	CssModulesPlugin,
+	APIPlugin
 } from "./builtin-plugin";
 import { assertNotNill } from "./util/assertNotNil";
 
@@ -223,6 +224,7 @@ export class RspackOptionsApply {
 		}
 
 		new InferAsyncModulesPlugin().apply(compiler);
+		new APIPlugin().apply(compiler);
 
 		new DataUriPlugin().apply(compiler);
 		new FileUriPlugin().apply(compiler);
