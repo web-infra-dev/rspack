@@ -65,11 +65,11 @@ const load = (input, context) => {
 	const config = query
 		? query
 		: configPath
-			? browserslist.loadConfig({
-					config: configPath,
-					env
-				})
-			: browserslist.loadConfig({ path: context, env });
+		? browserslist.loadConfig({
+				config: configPath,
+				env
+		  })
+		: browserslist.loadConfig({ path: context, env });
 
 	if (!config) return null;
 	return browserslist(config);
