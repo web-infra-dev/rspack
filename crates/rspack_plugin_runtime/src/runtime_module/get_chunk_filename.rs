@@ -18,8 +18,7 @@ use super::stringify_static_chunk_map;
 use crate::{get_chunk_runtime_requirements, runtime_module::unquoted_stringify};
 
 type GetChunkFilenameAllChunks = Box<dyn Fn(&RuntimeGlobals) -> bool + Sync + Send>;
-type GetFilenameForChunk =
-  Box<dyn for<'me> Fn(&'me Chunk, &'me Compilation) -> Option<&'me Filename> + Sync + Send>;
+type GetFilenameForChunk = Box<dyn Fn(&Chunk, &Compilation) -> Option<Filename> + Sync + Send>;
 
 #[impl_runtime_module]
 pub struct GetChunkFilenameRuntimeModule {
@@ -52,7 +51,7 @@ impl Eq for GetChunkFilenameRuntimeModule {}
 impl GetChunkFilenameRuntimeModule {
   pub fn new<
     F: Fn(&RuntimeGlobals) -> bool + Sync + Send + 'static,
-    T: for<'me> Fn(&'me Chunk, &'me Compilation) -> Option<&'me Filename> + Sync + Send + 'static,
+    T: Fn(&Chunk, &Compilation) -> Option<Filename> + Sync + Send + 'static,
   >(
     content_type: &'static str,
     name: &'static str,
@@ -119,10 +118,10 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
         }
       });
 
-    let mut dynamic_filename: Option<&str> = None;
+    let mut dynamic_filename: Option<String> = None;
     let mut max_chunk_set_size = 0;
-    let mut chunk_filenames = Vec::<(&Filename, &ChunkUkey)>::new();
-    let mut chunk_set_sizes_by_filenames = HashMap::<&str, usize>::default();
+    let mut chunk_filenames = Vec::<(Filename, &ChunkUkey)>::new();
+    let mut chunk_set_sizes_by_filenames = HashMap::<String, usize>::default();
     let mut chunk_map = IndexMap::new();
 
     if let Some(chunks) = chunks {
@@ -135,42 +134,43 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
           if let Some(filename) = filename {
             chunk_map.insert(&chunk.ukey, chunk);
 
-            chunk_filenames.push((filename, &chunk.ukey));
+            chunk_filenames.push((filename.clone(), &chunk.ukey));
 
             if let Some(filename_template) = filename.template() {
               let chunk_set_size = chunk_set_sizes_by_filenames
-                .entry(filename_template)
+                .entry(filename_template.to_owned())
                 .or_insert(0);
               *chunk_set_size += 1;
               let chunk_set_size = *chunk_set_size;
               let should_update = match dynamic_filename {
-                Some(dynamic_filename) => match chunk_set_size.cmp(&max_chunk_set_size) {
+                Some(ref dynamic_filename) => match chunk_set_size.cmp(&max_chunk_set_size) {
                   Ordering::Less => false,
                   Ordering::Greater => true,
                   Ordering::Equal => match filename_template.len().cmp(&dynamic_filename.len()) {
                     Ordering::Less => false,
                     Ordering::Greater => true,
-                    Ordering::Equal => {
-                      !matches!(filename_template.cmp(dynamic_filename), Ordering::Less)
-                    }
+                    Ordering::Equal => !matches!(
+                      filename_template.cmp(dynamic_filename.as_str()),
+                      Ordering::Less
+                    ),
                   },
                 },
                 None => true,
               };
               if should_update {
                 max_chunk_set_size = chunk_set_size;
-                dynamic_filename = Some(filename_template);
+                dynamic_filename = Some(filename_template.to_owned());
               }
             };
           }
         });
     }
 
-    let dynamic_url = dynamic_filename.map(|dynamic_filename| {
+    let dynamic_url = dynamic_filename.as_ref().map(|dynamic_filename| {
       let chunks = chunk_filenames
         .iter()
         .filter_map(|(filename, chunk)| {
-          if filename.template() == Some(dynamic_filename) {
+          if filename.template() == Some(dynamic_filename.as_str()) {
             Some(*chunk)
           } else {
             None
@@ -248,9 +248,9 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
     for (filename_template, chunk_ukey) in
       chunk_filenames
         .iter()
-        .filter(|(filename, _)| match dynamic_filename {
+        .filter(|(filename, _)| match &dynamic_filename {
           None => true,
-          Some(dynamic_filename) => filename.template() != Some(dynamic_filename),
+          Some(dynamic_filename) => filename.template() != Some(dynamic_filename.as_str()),
         })
     {
       if let Some(chunk) = chunk_map.get(chunk_ukey) {

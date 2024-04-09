@@ -128,6 +128,7 @@ export class Compilation {
 			[ExecuteModuleArgument, ExecuteModuleContext]
 		>;
 		runtimeModule: liteTapable.SyncHook<[JsRuntimeModule, Chunk], void>;
+		afterSeal: liteTapable.AsyncSeriesHook<[], void>;
 	};
 	options: RspackOptionsNormalized;
 	outputOptions: OutputNormalized;
@@ -232,7 +233,8 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			statsPrinter: new tapable.SyncHook(["statsPrinter", "options"]),
 			buildModule: new liteTapable.SyncHook(["module"]),
 			executeModule: new liteTapable.SyncHook(["options", "context"]),
-			runtimeModule: new liteTapable.SyncHook(["module", "chunk"])
+			runtimeModule: new liteTapable.SyncHook(["module", "chunk"]),
+			afterSeal: new liteTapable.AsyncSeriesHook([])
 		};
 		this.compiler = compiler;
 		this.resolverFactory = compiler.resolverFactory;
@@ -416,6 +418,10 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			options.children,
 			!context.forToString
 		);
+		options.orphanModules = optionOrLocalFallback(
+			options.orphanModules,
+			context.forToString ? false : true
+		);
 
 		return options;
 	}
@@ -562,6 +568,9 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 						);
 					}
 				}
+			},
+			get length() {
+				return inner.getStats().getErrors().length;
 			},
 			[Symbol.iterator]() {
 				// TODO: this is obviously a bad design, optimize this after finishing angular prototype

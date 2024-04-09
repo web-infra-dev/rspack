@@ -16,7 +16,7 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook, AsyncSeriesBail};
-use rspack_util::fx_dashmap::FxDashMap;
+use rspack_util::fx_hash::FxDashMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 fn format_bailout_reason(msg: &str) -> String {
@@ -37,7 +37,6 @@ struct ConcatConfiguration {
   warnings: HashMap<ModuleIdentifier, Warning>,
 }
 
-#[allow(unused)]
 impl ConcatConfiguration {
   fn new(root_module: ModuleIdentifier, runtime: Option<RuntimeSpec>) -> Self {
     let mut modules = LinkedHashSet::default();
@@ -81,12 +80,12 @@ impl ConcatConfiguration {
     self.modules.len()
   }
 
-  fn rollback(&mut self, mut snapshot: usize) {
+  fn rollback(&mut self, snapshot: usize) {
     let modules = &mut self.modules;
     let len = modules.len();
     let mut i = 0;
     while i < len {
-      if (i >= snapshot) {
+      if i >= snapshot {
         modules.pop_back();
       }
       i += 1;
@@ -558,8 +557,21 @@ impl ModuleConcatenationPlugin {
         .chunk_graph
         .get_number_of_module_chunks(module_id);
       let is_entry_module = compilation.chunk_graph.is_entry_module(&module_id);
+      let module_graph = compilation.get_module_graph();
+      let m = module_graph.module_by_identifier(&module_id);
+
+      if let Some(reason) = m
+        .expect("should have module")
+        .get_concatenation_bailout_reason(&module_graph, &compilation.chunk_graph)
+      {
+        self.set_bailout_reason(&module_id, reason, &mut compilation.get_module_graph_mut());
+        continue;
+      }
+
+      // shadowing previous immutable binding, reduce borrow lifetime
       let mut module_graph = compilation.get_module_graph_mut();
       let m = module_graph.module_by_identifier(&module_id);
+
       // If the result is `None`, that means we have some differences with webpack,
       // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ModuleConcatenationPlugin.js#L168-L171
       if module_graph
@@ -590,6 +602,7 @@ impl ModuleConcatenationPlugin {
         );
         continue;
       }
+
       let exports_info = module_graph.get_exports_info(&module_id);
       let relevnat_epxorts = exports_info.get_relevant_exports(None, &module_graph);
       let unknown_exports = relevnat_epxorts

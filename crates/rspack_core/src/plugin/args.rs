@@ -9,9 +9,8 @@ use rspack_sources::BoxSource;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  BoxModule, Chunk, ChunkInitFragments, ChunkUkey, Compilation, Context, ContextModuleFactory,
-  DependencyCategory, DependencyType, ErrorSpan, FactoryMeta, ModuleDependency, ModuleIdentifier,
-  NormalModuleFactory, Resolve, RuntimeGlobals, SharedPluginDriver, Stats,
+  Chunk, ChunkUkey, Compilation, Context, ContextModuleFactory, DependencyCategory, DependencyType,
+  ErrorSpan, FactoryMeta, ModuleIdentifier, NormalModuleFactory, Resolve, RuntimeGlobals,
 };
 
 #[derive(Debug)]
@@ -64,27 +63,12 @@ impl<'me> RenderManifestArgs<'me> {
 }
 
 #[derive(Debug)]
-pub struct FactorizeArgs<'me> {
-  pub context: &'me Context,
-  pub dependency: &'me dyn ModuleDependency,
-  pub plugin_driver: &'me SharedPluginDriver,
-  pub diagnostics: &'me mut Vec<Diagnostic>,
-}
-
-#[derive(Debug)]
-pub struct NormalModuleCreateData<'a> {
-  pub dependency_type: DependencyType,
-  pub resolve_data_request: &'a str,
-  pub resource_resolve_data: ResourceData,
-  pub context: Context,
-  pub diagnostics: &'a mut Vec<Diagnostic>,
-}
-
-#[derive(Debug)]
-pub struct CreateData {
+pub struct NormalModuleCreateData {
+  pub raw_request: String,
   pub request: String,
   pub user_request: String,
-  pub resource: ResourceData,
+  pub resource_resolve_data: ResourceData,
+  pub match_resource: Option<String>,
 }
 
 #[derive(Debug)]
@@ -96,7 +80,7 @@ pub struct AfterResolveArgs<'a> {
   pub missing_dependencies: &'a HashSet<PathBuf>,
   pub factory_meta: &'a FactoryMeta,
   pub diagnostics: &'a mut Vec<Diagnostic>,
-  pub create_data: Option<CreateData>,
+  pub create_data: Option<NormalModuleCreateData>,
 }
 
 #[derive(Debug)]
@@ -126,11 +110,6 @@ pub struct OptimizeChunksArgs<'me> {
 }
 
 #[derive(Debug)]
-pub struct DoneArgs<'s, 'c: 's> {
-  pub stats: &'s mut Stats<'c>,
-}
-
-#[derive(Debug)]
 pub struct AdditionalChunkRuntimeRequirementsArgs<'a> {
   pub compilation: &'a mut Compilation,
   pub chunk: &'a ChunkUkey,
@@ -156,67 +135,6 @@ pub struct AdditionalModuleRequirementsArgs<'a> {
 impl<'me> AdditionalChunkRuntimeRequirementsArgs<'me> {
   pub fn chunk(&self) -> &Chunk {
     self.compilation.chunk_by_ukey.expect_get(self.chunk)
-  }
-}
-
-#[derive(Debug)]
-pub struct RenderChunkArgs<'a> {
-  pub compilation: &'a Compilation,
-  pub chunk_ukey: &'a ChunkUkey,
-  pub module_source: BoxSource,
-}
-
-impl<'me> RenderChunkArgs<'me> {
-  pub fn chunk(&self) -> &Chunk {
-    self.compilation.chunk_by_ukey.expect_get(self.chunk_ukey)
-  }
-}
-
-#[derive(Debug)]
-pub struct RenderModuleContentArgs<'a> {
-  pub module_source: BoxSource,
-  pub chunk_init_fragments: ChunkInitFragments,
-  pub compilation: &'a Compilation,
-  pub module: &'a BoxModule,
-}
-
-#[derive(Debug)]
-pub struct RenderStartupArgs<'a> {
-  // pub module_source: &'a BoxSource,
-  pub compilation: &'a Compilation,
-  pub chunk: &'a ChunkUkey,
-  pub module: ModuleIdentifier,
-  pub source: BoxSource,
-}
-
-impl<'me> RenderStartupArgs<'me> {
-  pub fn chunk(&self) -> &Chunk {
-    self.compilation.chunk_by_ukey.expect_get(self.chunk)
-  }
-}
-
-#[derive(Debug)]
-pub struct RenderArgs<'a> {
-  pub source: &'a BoxSource,
-  pub chunk: &'a ChunkUkey,
-  pub compilation: &'a Compilation,
-}
-
-impl<'me> RenderArgs<'me> {
-  pub fn chunk(&self) -> &Chunk {
-    self.compilation.chunk_by_ukey.expect_get(self.chunk)
-  }
-}
-
-pub struct JsChunkHashArgs<'a> {
-  pub chunk_ukey: &'a ChunkUkey,
-  pub compilation: &'a Compilation,
-  pub hasher: &'a mut RspackHash,
-}
-
-impl<'me> JsChunkHashArgs<'me> {
-  pub fn chunk(&self) -> &Chunk {
-    self.compilation.chunk_by_ukey.expect_get(self.chunk_ukey)
   }
 }
 

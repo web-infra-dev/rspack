@@ -36,10 +36,6 @@ pub(super) fn normalize_raw_chunk_name(raw: RawChunkOptionName) -> ChunkNameGett
   match raw {
     Either3::A(str) => ChunkNameGetter::String(str),
     Either3::B(_) => ChunkNameGetter::Disabled, // FIXME: when set bool is true?
-    Either3::C(v) => ChunkNameGetter::Fn(Arc::new(move |ctx| {
-      handle
-        .block_on(v.call(ctx.into()))
-        .expect("failed to retrieve chunk name")
-    })),
+    Either3::C(v) => ChunkNameGetter::Fn(Arc::new(move |ctx| handle.block_on(v.call(ctx.into())))),
   }
 }

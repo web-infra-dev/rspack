@@ -1,7 +1,11 @@
+use std::collections::{hash_map::Entry, HashMap};
+use std::hash::{BuildHasherDefault, Hash, Hasher};
+
 use dashmap::DashMap;
 use rayon::prelude::*;
 use rspack_core::{Chunk, ChunkGraph, ChunkUkey, Compilation, Module, ModuleGraph};
-use rustc_hash::{FxHashMap, FxHashSet};
+use rspack_error::Result;
+use rustc_hash::{FxHashMap, FxHashSet, FxHasher};
 
 use super::ModuleGroupMap;
 use crate::module_group::{compare_entries, CacheGroupIdx, ModuleGroup};
@@ -10,7 +14,26 @@ use crate::options::cache_group_test::{CacheGroupTest, CacheGroupTestFnCtx};
 use crate::options::chunk_name::{ChunkNameGetter, ChunkNameGetterFnCtx};
 use crate::SplitChunksPlugin;
 
-type ChunksKey = num_bigint::BigUint;
+type ChunksKey = u64;
+
+#[derive(Default)]
+struct IdentityHasher(u64);
+
+impl Hasher for IdentityHasher {
+  fn finish(&self) -> u64 {
+    self.0
+  }
+
+  fn write(&mut self, _: &[u8]) {
+    panic!("Invalid use of IdentityHasher");
+  }
+
+  fn write_u64(&mut self, i: u64) {
+    self.0 = i;
+  }
+}
+
+type ChunksKeyHashBuilder = BuildHasherDefault<IdentityHasher>;
 
 impl SplitChunksPlugin {
   #[tracing::instrument(skip_all)]
@@ -41,7 +64,7 @@ impl SplitChunksPlugin {
   pub(crate) async fn prepare_module_group_map(
     &self,
     compilation: &mut Compilation,
-  ) -> ModuleGroupMap {
+  ) -> Result<ModuleGroupMap> {
     let chunk_db = &compilation.chunk_by_ukey;
     let chunk_group_db = &compilation.chunk_group_by_ukey;
     let module_graph = compilation.get_module_graph();
@@ -65,7 +88,8 @@ impl SplitChunksPlugin {
     let (chunk_sets_in_graph, chunk_sets_by_count) =
       { Self::prepare_combination_maps(&module_graph, &compilation.chunk_graph) };
 
-    let combinations_cache = DashMap::<ChunksKey, Vec<FxHashSet<ChunkUkey>>>::default();
+    let combinations_cache =
+      DashMap::<ChunksKey, Vec<FxHashSet<ChunkUkey>>, ChunksKeyHashBuilder>::default();
 
     let get_combination = |chunks_key: ChunksKey| {
       if let Some(combs) = combinations_cache.get(&chunks_key) {
@@ -90,7 +114,7 @@ impl SplitChunksPlugin {
       result
     };
 
-    module_graph.modules().values().par_bridge().for_each(|module| {
+    module_graph.modules().values().par_bridge().map(|module| {
       let module = &***module;
 
       let belong_to_chunks = compilation
@@ -98,7 +122,6 @@ impl SplitChunksPlugin {
           .get_module_chunks(module.identifier());
 
       let chunks_key = Self::get_key(belong_to_chunks.iter());
-      let module_group_map = &module_group_map;
 
       let mut temp = vec![];
 
@@ -122,17 +145,17 @@ impl SplitChunksPlugin {
         let is_match = is_match_the_test && is_match_the_type;
         if !is_match {
           tracing::trace!(
-                  "Module({:?}) is ignored by CacheGroup({:?}). Reason: !(is_match_the_test({:?}) && is_match_the_type({:?}))",
-                  module.identifier(),
-                  cache_group.key,
-                  is_match_the_test,
-                  is_match_the_type
-                );
+            "Module({:?}) is ignored by CacheGroup({:?}). Reason: !(is_match_the_test({:?}) && is_match_the_type({:?}))",
+            module.identifier(),
+            cache_group.key,
+            is_match_the_test,
+            is_match_the_type
+          );
         }
 
         temp.push((idx, is_match));
       }
-      let mut chunk_key_to_string = FxHashMap::default();
+      let mut chunk_key_to_string = HashMap::<ChunksKey, String, ChunksKeyHashBuilder>::default();
       temp.sort_by(|a, b| a.0.cmp(&b.0));
 
       let filtered = self
@@ -142,18 +165,18 @@ impl SplitChunksPlugin {
         .filter(|(index, _)| temp[*index].1);
 
       for (cache_group_index, (idx, cache_group)) in filtered.enumerate() {
-        let combs = get_combination(chunks_key.clone());
+        let combs = get_combination(chunks_key);
 
         for chunk_combination in combs {
           // Filter by `splitChunks.cacheGroups.{cacheGroup}.minChunks`
           if chunk_combination.len() < cache_group.min_chunks as usize {
             tracing::trace!(
-                      "Module({:?}) is ignored by CacheGroup({:?}). Reason: chunk_combination.len({:?}) < cache_group.min_chunks({:?})",
-                      module.identifier(),
-                      cache_group.key,
-                      chunk_combination.len(),
-                      cache_group.min_chunks,
-                    );
+              "Module({:?}) is ignored by CacheGroup({:?}). Reason: chunk_combination.len({:?}) < cache_group.min_chunks({:?})",
+              module.identifier(),
+              cache_group.key,
+              chunk_combination.len(),
+              cache_group.min_chunks,
+            );
             continue;
           }
 
@@ -169,12 +192,12 @@ impl SplitChunksPlugin {
           // Filter by `splitChunks.cacheGroups.{cacheGroup}.minChunks`
           if selected_chunks.len() < cache_group.min_chunks as usize {
             tracing::trace!(
-                      "Module({:?}) is ignored by CacheGroup({:?}). Reason: selected_chunks.len({:?}) < cache_group.min_chunks({:?})",
-                      module.identifier(),
-                      cache_group.key,
-                      selected_chunks.len(),
-                      cache_group.min_chunks,
-                    );
+              "Module({:?}) is ignored by CacheGroup({:?}). Reason: selected_chunks.len({:?}) < cache_group.min_chunks({:?})",
+              module.identifier(),
+              cache_group.key,
+              selected_chunks.len(),
+              cache_group.min_chunks,
+            );
             continue;
           }
 
@@ -190,15 +213,15 @@ impl SplitChunksPlugin {
               selected_chunks,
               selected_chunks_key,
             },
-            module_group_map,
+            &module_group_map,
             &mut chunk_key_to_string
-          );
+          )?;
 
           fn merge_matched_item_into_module_group_map(
             matched_item: MatchedItem<'_>,
             module_group_map: &DashMap<String, ModuleGroup>,
-            chunk_key_to_string: &mut FxHashMap<ChunksKey, String>
-          ) {
+            chunk_key_to_string: &mut HashMap::<ChunksKey, String, ChunksKeyHashBuilder>
+          ) -> Result<()> {
             let MatchedItem {
               idx,
               module,
@@ -215,7 +238,7 @@ impl SplitChunksPlugin {
               ChunkNameGetter::Disabled => None,
               ChunkNameGetter::Fn(f) => {
                 let ctx = ChunkNameGetterFnCtx { module };
-                f(ctx)
+                f(ctx)?
               }
             };
             let key: String = if let Some(cache_group_name) = &chunk_name {
@@ -226,13 +249,16 @@ impl SplitChunksPlugin {
               key.push_str(cache_group_name);
               key
             } else {
-                let selected_chunks_key = if let Some(item) = chunk_key_to_string.get(&selected_chunks_key) {
-                  item.to_string()
-                } else {
-                  let key = selected_chunks_key.to_str_radix(16);
-                  chunk_key_to_string.insert(selected_chunks_key, key.clone());
+              let selected_chunks_key = match chunk_key_to_string.entry(selected_chunks_key) {
+                Entry::Occupied(entry) => {
+                  entry.get().to_string()
+                },
+                Entry::Vacant(entry) => {
+                  let key = format!("{:x}", selected_chunks_key);
+                  entry.insert(key.clone());
                   key
-                };
+                },
+              };
               let mut key =
                 String::with_capacity(cache_group.key.len() + " chunks:".len() + selected_chunks_key.len());
               key.push_str(&cache_group.key);
@@ -250,12 +276,14 @@ impl SplitChunksPlugin {
             module_group.add_module(module);
             module_group
               .chunks
-              .extend(selected_chunks.iter().map(|c| c.ukey))
+              .extend(selected_chunks.iter().map(|c| c.ukey));
+            Ok(())
           }
         }
       }
-    });
-    module_group_map.into_iter().collect()
+      Ok(())
+    }).collect::<Result<()>>()?;
+    Ok(module_group_map.into_iter().collect())
   }
 
   #[tracing::instrument(skip_all)]
@@ -343,12 +371,18 @@ impl SplitChunksPlugin {
   }
 
   fn get_key<'a, I: Iterator<Item = &'a ChunkUkey>>(chunks: I) -> ChunksKey {
-    let mut bitset = num_bigint::BigUint::default();
-    for c in chunks {
-      let usize = c.as_usize();
-      bitset.set_bit(usize as u64, true);
+    let mut sorted_chunk_ukeys = chunks
+      .map(|chunk| {
+        // Increment each usize by 1 to avoid hashing the value 0 with FxHasher, which would always return a hash of 0
+        chunk.as_usize() + 1
+      })
+      .collect::<Vec<_>>();
+    sorted_chunk_ukeys.sort_unstable();
+    let mut hasher = FxHasher::default();
+    for chunk_ukey in sorted_chunk_ukeys {
+      chunk_ukey.hash(&mut hasher);
     }
-    bitset
+    hasher.finish()
   }
 
   #[allow(clippy::type_complexity)]
@@ -356,15 +390,15 @@ impl SplitChunksPlugin {
     module_graph: &ModuleGraph,
     chunk_graph: &ChunkGraph,
   ) -> (
-    FxHashMap<ChunksKey, FxHashSet<ChunkUkey>>,
+    HashMap<ChunksKey, FxHashSet<ChunkUkey>, ChunksKeyHashBuilder>,
     FxHashMap<usize, Vec<FxHashSet<ChunkUkey>>>,
   ) {
-    let mut chunk_sets_in_graph = FxHashMap::default();
+    let mut chunk_sets_in_graph =
+      HashMap::<ChunksKey, FxHashSet<ChunkUkey>, ChunksKeyHashBuilder>::default();
 
     for module in module_graph.modules().keys() {
       let chunks = chunk_graph.get_module_chunks(*module);
       let chunk_key = Self::get_key(chunks.iter());
-
       chunk_sets_in_graph.insert(chunk_key, chunks.clone());
     }
 

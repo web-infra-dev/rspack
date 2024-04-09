@@ -18,7 +18,7 @@ use rspack_error::{Diagnostic, DiagnosticError, Error, ErrorExt, Result};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHashDigest};
 use rspack_hook::{plugin, plugin_hook, AsyncSeries};
 use rspack_util::infallible::ResultInfallibleExt as _;
-use sugar_path::{AsPath, SugarPath};
+use sugar_path::SugarPath;
 
 #[derive(Debug, Clone)]
 pub struct CopyRspackPluginOptions {

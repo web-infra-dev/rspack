@@ -66,16 +66,16 @@ const rspack = require('@rspack/core');
 
 module.exports = {
   // ...
-  plugins: [new rspack.XxxPlugin()],
+  plugins: [new rspack.SomePlugin()],
 };
 ```
 
-编写插件时可以通过 `compiler.webpack.XxxPlugin` 使用：
+编写插件时可以通过 `compiler.webpack.SomePlugin` 使用：
 
 ```js title=CustomPlugin.js
 export class CustomPlugin {
   apply(compiler) {
-    new compiler.webpack.XxxPlugin().apply(compiler);
+    new compiler.webpack.SomePlugin().apply(compiler);
     // ...
   }
 }
@@ -639,7 +639,7 @@ new rspack.electron.ElectronTargetPlugin();
 
 ### Rspack 独有的内部插件
 
-这些插件是 Rspack 独有的内部插件，遵循 XxxRspackPlugin 的命名方式。
+这些插件是 Rspack 独有的内部插件，遵循 MyRspackPlugin 的命名方式。
 
 #### HtmlRspackPlugin
 

@@ -2,7 +2,6 @@ import {
 	JsCodegenerationResult,
 	JsCodegenerationResults,
 	JsCreateData,
-	JsFactoryMeta,
 	JsModule
 } from "@rspack/binding";
 import { Source } from "webpack-sources";
@@ -24,7 +23,6 @@ export type ResolveData = {
 	fileDependencies: string[];
 	missingDependencies: string[];
 	contextDependencies: string[];
-	factoryMeta?: JsFactoryMeta;
 	createData?: CreateData;
 };
 
@@ -32,12 +30,15 @@ export class Module {
 	#inner: JsModule;
 	_originalSource?: Source;
 
+	rawRequest?: string;
+
 	static __from_binding(module: JsModule) {
 		return new Module(module);
 	}
 
 	constructor(module: JsModule) {
 		this.#inner = module;
+		this.rawRequest = module.rawRequest;
 	}
 
 	get context(): string | undefined {

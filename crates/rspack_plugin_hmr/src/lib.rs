@@ -9,13 +9,12 @@ use rspack_core::{
   rspack_sources::{RawSource, SourceExt},
   AdditionalChunkRuntimeRequirementsArgs, ApplyContext, AssetInfo, Chunk, ChunkKind, ChunkUkey,
   Compilation, CompilationAsset, CompilationParams, CompilationRecords, CompilerOptions,
-  DependencyType, LoaderContext, LoaderRunnerContext, NormalModule, PathData, Plugin,
-  PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, RenderManifestArgs,
-  RuntimeGlobals, RuntimeModuleExt, RuntimeSpec, SourceType,
+  DependencyType, PathData, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext,
+  RenderManifestArgs, RuntimeGlobals, RuntimeModuleExt, RuntimeSpec, SourceType,
 };
 use rspack_error::Result;
 use rspack_hash::RspackHash;
-use rspack_hook::{plugin, plugin_hook, AsyncSeries, AsyncSeries2};
+use rspack_hook::{plugin, plugin_hook, AsyncSeries, AsyncSeries2, SyncSeries};
 use rspack_identifier::IdentifierSet;
 use rspack_util::infallible::ResultInfallibleExt as _;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
@@ -330,6 +329,12 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   Ok(())
 }
 
+#[plugin_hook(SyncSeries<bool> for HotModuleReplacementPlugin)]
+fn normal_module_loader(&self, hot: &mut bool) -> Result<()> {
+  *hot = true;
+  Ok(())
+}
+
 #[async_trait]
 impl Plugin for HotModuleReplacementPlugin {
   fn name(&self) -> &'static str {
@@ -352,16 +357,11 @@ impl Plugin for HotModuleReplacementPlugin {
       .compilation_hooks
       .process_assets
       .tap(process_assets::new(self));
-    Ok(())
-  }
-
-  fn normal_module_loader(
-    &self,
-    _ctx: PluginContext,
-    loader_context: &mut LoaderContext<LoaderRunnerContext>,
-    _module: &NormalModule,
-  ) -> Result<()> {
-    loader_context.hot = true;
+    ctx
+      .context
+      .normal_module_hooks
+      .loader
+      .tap(normal_module_loader::new(self));
     Ok(())
   }
 

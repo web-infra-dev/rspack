@@ -8,16 +8,18 @@ module.exports = {
 		concatenateModules: true,
 		minimize: false
 	},
-	builtins: {
-		css: {
-			namedExports: true
-		}
-	},
 	module: {
 		rules: [
 			{
 				test: /\.css$/,
-				type: "css/module"
+				type: "css/module",
+				parser: {
+					namedExports: false,
+				},
+				generator: {
+					exportsOnly: false,
+					localIdentName: "[path][name][ext]__[local]"
+				}
 			}
 		]
 	},

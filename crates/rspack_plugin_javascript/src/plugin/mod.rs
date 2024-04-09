@@ -1,4 +1,5 @@
 pub mod api_plugin;
+mod drive;
 mod flag_dependency_exports_plugin;
 mod flag_dependency_usage_plugin;
 pub mod impl_plugin_for_js_plugin;
@@ -7,30 +8,60 @@ pub mod inner_graph_plugin;
 mod mangle_exports_plugin;
 pub mod module_concatenation_plugin;
 mod side_effects_flag_plugin;
+
 use std::hash::Hash;
 
+pub use drive::*;
 pub use flag_dependency_exports_plugin::*;
 pub use flag_dependency_usage_plugin::*;
 pub use mangle_exports_plugin::*;
 pub use module_concatenation_plugin::*;
+use once_cell::sync::Lazy;
 use rspack_core::rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
 use rspack_core::{
-  render_init_fragments, ChunkRenderContext, ChunkUkey, Compilation, JsChunkHashArgs,
-  PluginJsChunkHashHookOutput, RenderArgs, RenderChunkArgs, RenderStartupArgs, RuntimeGlobals,
+  render_init_fragments, ChunkRenderContext, ChunkUkey, Compilation, CompilationId, RuntimeGlobals,
 };
 use rspack_error::Result;
 use rspack_hash::RspackHash;
 use rspack_hook::plugin;
+use rspack_util::fx_hash::{BuildFxHasher, FxDashMap};
 pub use side_effects_flag_plugin::*;
 
 use crate::runtime::{render_chunk_modules, render_iife, render_runtime_modules, stringify_array};
 use crate::utils::is_diff_mode;
+
+static COMPILATION_DRIVES_MAP: Lazy<FxDashMap<CompilationId, JavascriptModulesPluginPluginDrive>> =
+  Lazy::new(Default::default);
 
 #[plugin]
 #[derive(Debug, Default)]
 pub struct JsPlugin;
 
 impl JsPlugin {
+  pub fn get_compilation_drives(
+    compilation: &Compilation,
+  ) -> dashmap::mapref::one::Ref<'_, CompilationId, JavascriptModulesPluginPluginDrive, BuildFxHasher>
+  {
+    let id = compilation.id();
+    if !COMPILATION_DRIVES_MAP.contains_key(&id) {
+      COMPILATION_DRIVES_MAP.insert(id, Default::default());
+    }
+    COMPILATION_DRIVES_MAP
+      .get(&id)
+      .expect("should have js plugin drive")
+  }
+
+  pub fn get_compilation_drives_mut(
+    compilation: &Compilation,
+  ) -> dashmap::mapref::one::RefMut<
+    '_,
+    CompilationId,
+    JavascriptModulesPluginPluginDrive,
+    BuildFxHasher,
+  > {
+    COMPILATION_DRIVES_MAP.entry(compilation.id()).or_default()
+  }
+
   pub fn render_require(&self, chunk_ukey: &ChunkUkey, compilation: &Compilation) -> BoxSource {
     let runtime_requirements = compilation
       .chunk_graph
@@ -293,6 +324,7 @@ impl JsPlugin {
 
   pub async fn render_main(&self, args: &rspack_core::RenderManifestArgs<'_>) -> Result<BoxSource> {
     let compilation = args.compilation;
+    let drive = Self::get_compilation_drives(compilation);
     let chunk = args.chunk();
     let runtime_requirements = compilation
       .chunk_graph
@@ -313,15 +345,12 @@ impl JsPlugin {
         .keys()
         .last()
         .expect("should have last entry module");
-      if let Some(source) = compilation
-        .plugin_driver
-        .render_startup(RenderStartupArgs {
-          compilation,
-          chunk: &chunk.ukey,
-          module: *last_entry_module,
-          source: startup,
-        })?
-      {
+      if let Some(source) = drive.render_startup(RenderJsStartupArgs {
+        compilation,
+        chunk: &chunk.ukey,
+        module: *last_entry_module,
+        source: startup,
+      })? {
         sources.add(source);
       }
       if runtime_requirements.contains(RuntimeGlobals::RETURN_EXPORTS_FROM_RUNTIME) {
@@ -338,7 +367,7 @@ impl JsPlugin {
       chunk_init_fragments,
       &mut ChunkRenderContext {},
     )?;
-    if let Some(source) = compilation.plugin_driver.render(RenderArgs {
+    if let Some(source) = drive.render(RenderJsArgs {
       compilation,
       chunk: &args.chunk_ukey,
       source: &final_source,
@@ -354,12 +383,11 @@ impl JsPlugin {
     args: &rspack_core::RenderManifestArgs<'_>,
   ) -> Result<BoxSource> {
     let compilation = args.compilation;
+    let drive = Self::get_compilation_drives(compilation);
     let (module_source, chunk_init_fragments) =
       render_chunk_modules(compilation, &args.chunk_ukey)?;
-    let source = args
-      .compilation
-      .plugin_driver
-      .render_chunk(RenderChunkArgs {
+    let source = drive
+      .render_chunk(RenderJsChunkArgs {
         compilation: args.compilation,
         chunk_ukey: &args.chunk_ukey,
         module_source,
@@ -368,7 +396,7 @@ impl JsPlugin {
       .expect("should run render_chunk hook");
     let final_source =
       render_init_fragments(source, chunk_init_fragments, &mut ChunkRenderContext {})?;
-    if let Some(source) = compilation.plugin_driver.render(RenderArgs {
+    if let Some(source) = drive.render(RenderJsArgs {
       compilation,
       chunk: &args.chunk_ukey,
       source: &final_source,
@@ -385,14 +413,12 @@ impl JsPlugin {
     compilation: &Compilation,
     hasher: &mut RspackHash,
   ) -> PluginJsChunkHashHookOutput {
-    compilation
-      .plugin_driver
-      .clone()
-      .js_chunk_hash(JsChunkHashArgs {
-        compilation,
-        chunk_ukey,
-        hasher,
-      })
+    let drive = Self::get_compilation_drives(compilation);
+    drive.js_chunk_hash(JsChunkHashArgs {
+      compilation,
+      chunk_ukey,
+      hasher,
+    })
   }
 
   #[inline]

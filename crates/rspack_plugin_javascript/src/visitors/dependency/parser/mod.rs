@@ -21,8 +21,8 @@ use swc_core::common::comments::Comments;
 use swc_core::common::util::take::Take;
 use swc_core::common::{SourceFile, Span, Spanned};
 use swc_core::ecma::ast::{
-  ArrayPat, AssignPat, CallExpr, Callee, MetaPropExpr, MetaPropKind, ObjectPat, ObjectPatProp, Pat,
-  Program, Stmt, ThisExpr,
+  ArrayPat, AssignPat, AssignTargetPat, CallExpr, Callee, MetaPropExpr, MetaPropKind, ObjectPat,
+  ObjectPatProp, Pat, Program, Stmt, ThisExpr,
 };
 use swc_core::ecma::ast::{Expr, Ident, Lit, MemberExpr, RestPat};
 
@@ -202,6 +202,7 @@ impl<'parser> JavascriptParser<'parser> {
   pub fn new(
     source_file: &'parser SourceFile,
     compiler_options: &'parser CompilerOptions,
+    javascript_options: Option<&'parser JavascriptParserOptions>,
     comments: Option<&'parser dyn Comments>,
     module_identifier: &'parser ModuleIdentifier,
     module_type: &'parser ModuleType,
@@ -302,12 +303,7 @@ impl<'parser> JavascriptParser<'parser> {
 
     let plugin_drive = Rc::new(JavaScriptParserPluginDrive::new(plugins));
     let mut db = ScopeInfoDB::new();
-    let javascript_options = compiler_options
-      .module
-      .parser
-      .as_ref()
-      .and_then(|p| p.get(module_type))
-      .and_then(|p| p.get_javascript(module_type));
+
     Self {
       last_harmony_import_order: 0,
       comments,
@@ -613,6 +609,17 @@ impl<'parser> JavascriptParser<'parser> {
       Pat::Rest(rest) => self.enter_rest_pattern(rest, on_ident),
       Pat::Invalid(_) => (),
       Pat::Expr(_) => (),
+    }
+  }
+
+  fn enter_assign_target_pattern<F>(&mut self, pattern: Cow<AssignTargetPat>, on_ident: F)
+  where
+    F: FnOnce(&mut Self, &Ident) + Copy,
+  {
+    match &*pattern {
+      AssignTargetPat::Array(array) => self.enter_array_pattern(array, on_ident),
+      AssignTargetPat::Object(obj) => self.enter_object_pattern(obj, on_ident),
+      AssignTargetPat::Invalid(_) => (),
     }
   }
 

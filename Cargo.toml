@@ -19,7 +19,6 @@ glob               = { version = "0.3.1" }
 hashlink           = { version = "0.9.0" }
 heck               = { version = "0.5.0" }
 indexmap           = { version = "2.2.6" }
-insta              = { version = "1.37.0" }
 itertools          = { version = "0.12.1" }
 json               = { version = "0.12.4" }
 linked_hash_set    = { version = "0.1.4" }
@@ -29,6 +28,7 @@ once_cell          = { version = "1.19.0" }
 paste              = { version = "1.0" }
 path-clean         = { version = "1.0.1" }
 pathdiff           = { version = "0.2.1" }
+proc-macro2        = { version = "1.0.79" }
 quote              = { version = "1.0.35" }
 rayon              = { version = "1.10.0" }
 regex              = { version = "1.10.4" }
@@ -37,13 +37,13 @@ rustc-hash         = { version = "1.1.0" }
 schemars           = { version = "0.8.16" }
 serde              = { version = "1.0.197" }
 serde_json         = { version = "1.0.115" }
-similar            = { version = "2.4.0" }
-sugar_path         = { version = "0.0.12" }
-syn                = { version = "2.0.55" }
-testing_macros     = { version = "0.2.12" }
-tokio              = { version = "1.36.0" }
+similar            = { version = "2.5.0" }
+sugar_path         = { version = "1.2.0", features = ["cached_current_dir"] }
+syn                = { version = "2.0.58" }
+tokio              = { version = "1.37.0" }
 tracing            = { version = "0.1.40" }
 tracing-subscriber = { version = "0.3.18" }
+unicase            = { version = "2.7.0" }
 url                = { version = "2.5.0" }
 urlencoding        = { version = "2.1.3" }
 ustr               = { package = "ustr-fxhash", version = "1.0.0" }
@@ -56,16 +56,16 @@ napi-derive       = { version = "2" }
 tikv-jemallocator = { version = "=0.5.4", features = ["disable_initial_exec_tls"] }
 
 # Must be pinned with the same swc versions
-rkyv                = { version = "=0.7.42" }                            # synced with swc wasm plugin
-styled_components   = { version = "=0.96.3" }
-swc_config          = { version = "=0.1.10" }
-swc_core            = { version = "=0.89.6", default-features = false }
-swc_ecma_minifier   = { version = "=0.191.7", default-features = false }
-swc_emotion         = { version = "=0.72.2" }
-swc_error_reporters = { version = "=0.17.14" }
-swc_html            = { version = "=0.136.7" }
-swc_html_minifier   = { version = "=0.133.7" }
-swc_node_comments   = { version = "=0.20.14" }
+rkyv                = { version = "=0.7.42" }                             # synced with swc wasm plugin
+styled_components   = { version = "=0.96.8" }
+swc_config          = { version = "=0.1.12" }
+swc_core            = { version = "=0.90.26", default-features = false }
+swc_ecma_minifier   = { version = "=0.192.19", default-features = false }
+swc_emotion         = { version = "=0.72.8" }
+swc_error_reporters = { version = "=0.17.19" }
+swc_html            = { version = "=0.137.18" }
+swc_html_minifier   = { version = "=0.134.17" }
+swc_node_comments   = { version = "=0.20.19" }
 
 [profile.dev]
 codegen-units = 16      # debug build will cause runtime panic if codegen-unints is default

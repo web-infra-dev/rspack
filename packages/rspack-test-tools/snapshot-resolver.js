@@ -4,6 +4,7 @@ const snapshotBasePath = path.resolve(
 	__dirname,
 	"../rspack/tests/__snapshots__"
 );
+
 module.exports = {
 	resolveSnapshotPath: (testPath, snapshotExtension) => {
 		const relative = testPath.replace(testBasePath, "");

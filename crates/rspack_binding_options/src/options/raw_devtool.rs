@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use napi::bindgen_prelude::{Either3, Null};
 use napi::Either;
 use napi_derive::napi;
@@ -86,7 +88,7 @@ fn normalize_raw_module_filename_template(
 ) -> ModuleFilenameTemplate {
   match raw {
     Either::A(str) => ModuleFilenameTemplate::String(str),
-    Either::B(v) => ModuleFilenameTemplate::Fn(Box::new(move |ctx| {
+    Either::B(v) => ModuleFilenameTemplate::Fn(Arc::new(move |ctx| {
       let v = v.clone();
       Box::pin(async move { v.call(ctx.into()).await })
     })),

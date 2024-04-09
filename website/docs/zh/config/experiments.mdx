@@ -36,7 +36,18 @@ module.exports = {
 
 ## experiments.css
 
-启用原生 CSS 支持，请注意如果你在使用 `style-loader` 和 `css-loader` 请关闭该配置，因为 `style-loader` 和 `css-loader` 和原生 CSS 功能冲突。
+启用原生 CSS 支持和 CSS 相关的 parser 和 generator options：
+
+- [`module.parser["css/auto"]`](/config/module.html#moduleparsercssauto)
+- [`module.parser.css`](/config/module.html#moduleparsercss)
+- [`module.parser["css/module"]`](/config/module.html#moduleparsercssmodule)
+- [`module.generator["css/auto"]`](/config/module.html#modulegeneratorcssauto)
+- [`module.generator.css`](/config/module.html#modulegeneratorcss)
+- [`module.generator["css/module"]`](/config/module.html#modulegeneratorcssmodule)
+
+:::warning
+如果你在使用 `style-loader` 和 `css-loader` 请关闭该配置，因为 `style-loader` 和 `css-loader` 和原生 CSS 功能冲突。
+:::
 
 ## experiments.topLevelAwait
 
@@ -57,6 +68,10 @@ module.exports = {
 用于控制是否开启 Rspack 未来的默认行为，详情请参考[这里](https://github.com/web-infra-dev/rspack/pull/4107)。
 
 ### experiments.rspackFuture.disableTransformByDefault
+
+<ApiMeta addedVersion="0.3.5" />
+
+<ApiMeta removedVersion="0.5.0" stability={Stability.Removed} />
 
 - **类型：** `boolean`
 
@@ -236,6 +251,10 @@ module.exports = {
 
 ### experiments.rspackFuture.newResolver
 
+<ApiMeta addedVersion="0.3.7" />
+
+<ApiMeta removedVersion="0.5.0" stability={Stability.Removed} />
+
 - **类型：** `boolean`
 
 - **引入版本：** v0.3.5
@@ -297,6 +316,8 @@ module.exports = {
 ### experiments.rspackFuture.disableApplyEntryLazily
 
 <ApiMeta addedVersion="0.4.5" />
+
+<ApiMeta removedVersion="0.6.0" stability={Stability.Removed} />
 
 - **类型：** `boolean`
 - **引入版本：** v0.4.5

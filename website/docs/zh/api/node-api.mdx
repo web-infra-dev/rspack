@@ -1,13 +1,319 @@
 import WebpackLicense from '../../../components/webpack-license';
 import { ApiMeta, Stability } from '../../../components/ApiMeta.tsx';
 
-<WebpackLicense from="https://webpack.js.org/api/node/" />
+<WebpackLicense from="https://webpack.docschina.org/api/node/" />
 
 # Node.js API
 
-<ApiMeta stability={Stability.Experimental} />
+> `@rspack/core`是基于 Webpack Node.js API 设计的，旨在提供一致的功能和相似的使用体验。
 
-:::warning Stability Warning
+Rspack 提供了 Node.js API，可以在 Node.js 运行时下直接使用。
 
-Node.js API 目前处于实验阶段，可能会在未来发生变化。因此，请不要依赖与 webpack 不一致的任何 API，因为它们可能在未来发生重大变化。
+当你需要自定义构建或开发流程时，Node.js API 非常有用，因为此时所有的报告和错误处理都必须自行实现，Rspack 仅仅负责编译的部分。所以 [`stats`](/config/stats) 配置选项不会在 `rspack()` 调用中生效。
+
+## 安装
+
+开始使用 Rspack 的 Node.js API 之前，首先你需要安装 `@rspack/core`：
+
+```bash
+npm install --save-dev @rspack/core
+```
+
+在 Node.js 文件中，引入 `@rspack/core` 模块：
+
+```bash
+import rspack from '@rspack/core';
+```
+
+## rspack()
+
+导入的 `rspack` 函数会将`配置对象`传给 Rspack，如果同时传入回调函数会在 Rspack compiler 运行时被执行：
+
+```js
+import rspack from '@rspack/core';
+
+rspack({}, (err, stats) => {
+  if (err || stats.hasErrors()) {
+    // ...
+  }
+  // 处理完成
+});
+```
+
+:::tip 提示
+`err` 对象**不包含**编译错误，必须使用 `stats.hasErrors()` 单独处理，文档的[错误处理](/api/node-api#错误处理)将对这部分进行详细介绍。`err` 对象只包含 Rspack 相关的问题，例如配置错误等。
 :::
+
+:::tip 提示
+你也可以为 rspack 函数提供一个配置数组。更多详细信息，请查看 [MultiCompiler](/api/node-api#multicompiler) 章节。
+:::
+
+## Compiler 实例
+
+如果你不向 `rspack` 传入可执行的回调函数，它会返回一个 Rspack `Compiler` 实例。你可以通过手动执行它或者为它的构建时添加一个监听器，就像 [CLI](/api/cli) 类似。Compiler 实例提供了以下方法：
+
+- `.run(callback)`
+- `.watch(watchOptions, handler)`
+
+通常情况下，仅会创建一个主要 `Compiler` 实例，虽然可以创建一些子 compiler 来代理到特定任务。`Compiler` 基本上只是执行最低限度的功能，以维持生命周期运行的功能。它将所有的加载、打包和写入工作，都委托到注册过的插件上。
+
+`Compiler` 实例上的 `hooks` 属性，用于将一个插件注册到 `Compiler` 的生命周期中的所有钩子事件上。Rspack 使用 [`RspackOptionsApply`](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack/src/rspackOptionsApply.ts) 来配置 `Compiler` 实例以及所有内置插件。
+
+使用 `run` 方法启动所有编译工作。完成之后，执行传入的的 `callback` 函数。最终记录下来的概括信息（stats）和错误（errors），都应在这个 callback 函数中获取。
+
+:::warning 警告
+这个 API 一次仅支持一个编译。当使用 `run` 或者 `watch` 时，调用 `close`，并等待它完成后再次执行 `run` 或者 `watch`。并发编译将破坏输出文件。
+:::
+
+## 执行
+
+调用 `Compiler` 实例的 `run` 方法跟上文提到的快速执行方法很类似：
+
+```js
+import rspack from '@rspack/core';
+
+const compiler = rspack({
+  // ...
+});
+
+compiler.run((err, stats) => {
+  // ...
+
+  compiler.close((closeErr) => {
+    // ...
+  });
+});
+```
+
+:::warning 警告
+不要忘记关闭 compiler，这样低优先级的工作（比如持久缓存）就有机会完成。
+:::
+
+## 监听
+
+调用 `watch` 方法会触发 Rspack 执行，但之后会监听变更（很像 CLI 命令： `rspack --watch`），一旦 Rspack 检测到文件变更，就会重新执行编译。该方法返回一个 `Watching` 实例。
+
+```js
+watch(watchOptions, callback);
+```
+
+```js
+import rspack from '@rspack/core';
+
+const compiler = rspack({
+  // ...
+});
+
+const watching = compiler.watch(
+  {
+    // 示例
+    aggregateTimeout： 300,
+    poll： undefined,
+  },
+  (err, stats) => {
+    // 这里打印 watch/build 结果...
+    console.log(stats);
+  }
+);
+```
+
+`Watching` 配置选项的细节可以在[这里](/config/watch#watchoptions)查询。
+
+:::warning 警告
+文件系统不正确的问题，可能会对单次修改触发多次构建。因此，在上面的示例中，一次修改可能会多次触发 `console.log` 语句。用户应该预知此行为，并且可能需要检查 `stats.hash` 来查看文件哈希是否确实变更。
+:::
+
+## 关闭 `Watching`
+
+`watch` 方法返回一个 `Watching` 实例，该实例会暴露一个 `.close(callback)` 方法。调用该方法将会结束监听：
+
+```js
+watching.close((closeErr) => {
+  console.log('Watching Ended.');
+});
+```
+
+:::warning 警告
+不允许在监听器关闭或者失效前再次监听或执行。
+:::
+
+## 无效化 `Watching`
+
+使用 `watching.invalidate`，你可以手动使当前编译轮次无效，而无需停止监控过程：
+
+```js
+watching.invalidate();
+```
+
+## Stats 对象
+
+`stats` 对象会被作为 [`rspack()`](/api/node-api#rspack) 回调函数的第二个参数传递，可以通过它获取到代码编译过程中的有用信息，包括：
+
+- 错误和警告（如果有的话）
+- 计时信息
+- 模块和 chunk 信息
+
+[Rspack CLI](/api/cli) 正是基于这些信息在控制台展示友好的格式输出。
+
+:::tip 提示
+当使用 `MultiCompiler` 时，会返回一个 `MultiStats` 实例，它实现与 `stats` 相同的接口，也就是下面描述的方法。
+:::
+
+`stats` 对象暴露了以下方法：
+
+### stats.hasErrors()
+
+可以用来检查编译期是否有错误，返回值为 `true` 或 `false`。
+
+### stats.hasWarnings()
+
+可以用来检查编译期是否有警告，返回值为 `true` 或 `false`。
+
+### stats.toJson(options)
+
+以 JSON 对象形式返回编译信息。`options` 可以是一个字符串（预设值）或是颗粒化控制的对象：
+
+```js
+stats.toJson('minimal');
+```
+
+```js
+stats.toJson({
+  assets: false,
+  hash: true,
+});
+```
+
+所有可用的配置选项和预设值都可查询 stats [文档](/config/stats)。
+
+### stats.toString(options)
+
+以格式化的字符串形式返回描述编译信息（类似 [CLI](/api/cli) 的输出）。
+
+配置对象与 `stats.toJson(options)` 一致，除了额外增加的一个选项：
+
+```js
+stats.toString({
+  // 增加控制台颜色开关
+  colors: true,
+});
+```
+
+下面是 `stats.toString()` 用法的示例：
+
+```js
+import rspack from '@rspack/core';
+
+rspack(
+  {
+    // ...
+  },
+  (err, stats) => {
+    if (err) {
+      console.error(err);
+      return;
+    }
+
+    console.log(
+      stats.toString({
+        chunks: false, // 使构建过程更静默无输出
+        colors: true, // 在控制台展示颜色
+      })
+    );
+  }
+);
+```
+
+## MultiCompiler
+
+`MultiCompiler` 模块可以让 Rspack 同时执行多个配置。如果传给 Rspack 的 Node.js API 的 `options` 参数，该参数由是由多个配置对象构成的数组，Rspack 会相应地创建多个 compiler 实例，并且在所有 compiler 执行完毕后调用 `callback` 方法。
+
+```js
+import rspack from '@rspack/core';
+
+rspack(
+  [
+    { entry: './index1.js', output: { filename: 'bundle1.js' } },
+    { entry: './index2.js', output: { filename: 'bundle2.js' } },
+  ],
+  (err, stats) => {
+    process.stdout.write(stats.toString() + '\n');
+  }
+);
+```
+
+:::warning 警告
+多个配置对象在执行时，不会并行执行。每个配置都只会在前一个处理结束后，才进行处理。
+:::
+
+## 错误处理
+
+完备的错误处理中需要考虑以下三种类型的错误:
+
+- 致命的 Rspack 错误（配置出错等）
+- 编译错误（缺失的模块，语法错误等）
+- 编译警告
+
+下面是一个覆盖这些场景的示例:
+
+```js
+import rspack from '@rspack/core';
+
+rspack(
+  {
+    // ...
+  },
+  (err, stats) => {
+    if (err) {
+      console.error(err.stack || err);
+      if (err.details) {
+        console.error(err.details);
+      }
+      return;
+    }
+
+    const info = stats.toJson();
+
+    if (stats.hasErrors()) {
+      console.error(info.errors);
+    }
+
+    if (stats.hasWarnings()) {
+      console.warn(info.warnings);
+    }
+
+    // Log result...
+  }
+);
+```
+
+## 自定义文件系统
+
+:::danger 与 webpack 的差异
+
+1. 当前 Rspack 对于 `inputFileSystem` 的支持存在限制，尚未实现与 webpack 一致的自定义文件系统读取能力。请参考：[Issue #5091](https://github.com/web-infra-dev/rspack/issues/5091)。
+
+2. Rspack 在指定的输出文件系统，不再需要提供 `mkdirp` 和 `join` 工具方法。
+
+:::
+
+默认情况下，Rspack 使用普通文件系统来读取文件并将文件写入磁盘。但是，还可以使用不同类型的文件系统（内存, webDAV 等）来更改输入或输出行为。为了实现这一点，可以改变 `inputFileSystem` 或 `outputFileSystem`。例如，可以使用 [`memfs`](https://github.com/streamich/memfs) 替换默认的 `outputFileSystem`，以将文件写入到内存中，而不是写入到磁盘：
+
+```js
+import { createFsFromVolume, Volume } from 'memfs';
+import rspack from '@rspack/core';
+
+const fs = createFsFromVolume(new Volume());
+const compiler = rspack({
+  /* 配置选项 */
+});
+
+compiler.outputFileSystem = fs;
+compiler.run((err, stats) => {
+  // 之后读取输出：
+  const content = fs.readFileSync('...');
+  compiler.close((closeErr) => {
+    // ...
+  });
+});
+```

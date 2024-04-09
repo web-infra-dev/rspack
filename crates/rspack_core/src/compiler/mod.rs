@@ -312,16 +312,13 @@ where
         .await?,
       Some(false)
     ) {
-      return self.compilation.done(self.plugin_driver.clone()).await;
+      return Ok(());
     }
 
     let start = logger.time("emitAssets");
     self.emit_assets().await?;
     logger.time_end(start);
 
-    let start = logger.time("done hook");
-    self.compilation.done(self.plugin_driver.clone()).await?;
-    logger.time_end(start);
     Ok(())
   }
 

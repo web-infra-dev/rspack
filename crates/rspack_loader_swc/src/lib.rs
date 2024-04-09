@@ -49,7 +49,7 @@ pub const SWC_LOADER_IDENTIFIER: &str = "builtin:swc-loader";
 #[async_trait::async_trait]
 impl Loader<LoaderRunnerContext> for SwcLoader {
   async fn run(&self, loader_context: &mut LoaderContext<'_, LoaderRunnerContext>) -> Result<()> {
-    let resource_path = loader_context.resource_path.to_path_buf();
+    let resource_path = loader_context.resource_path().to_path_buf();
     let content = std::mem::take(&mut loader_context.content).expect("content should be available");
 
     let swc_options = {
@@ -125,7 +125,7 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
       inline_script: Some(false),
       keep_comments: Some(true),
     };
-    let program = c.transform(built).map_err(AnyhowError::from)?;
+    let program = tokio::task::block_in_place(|| c.transform(built).map_err(AnyhowError::from))?;
     let ast = c.into_js_ast(program);
 
     // If swc-loader is the latest loader available,

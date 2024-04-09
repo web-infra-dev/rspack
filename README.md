@@ -51,13 +51,14 @@ Come chat with us on [Discord](https://discord.gg/79ZZ66GH9E)! Rspack team and R
 
 ## Links
 
-| Name                                                                                    | Description                                                                   |
-| --------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| [Rspack website](https://rspack.dev)                                                    | Official documentation for Rspack                                             |
-| [Rspack website repo](https://github.com/web-infra-dev/rspack-website)                  | Repository of official documentation                                          |
-| [Rspack examples repo](https://github.com/rspack-contrib/rspack-examples)               | Rspack configuration examples                                                 |
-| [rspack-sources](https://github.com/web-infra-dev/rspack-sources)                       | Rust port of [webpack-sources](https://www.npmjs.com/package/webpack-sources) |
-| [rspack-migration-showcase](https://github.com/web-infra-dev/rspack-migration-showcase) | Migration showcases for Rspack                                                |
+| Name                                                                                     | Description                                                                   |
+| ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| [Rspack website](https://rspack.dev)                                                     | Official documentation for Rspack                                             |
+| [rspack-examples](https://github.com/rspack-contrib/rspack-examples)                     | Rspack configuration examples                                                 |
+| [rspack-sources](https://github.com/web-infra-dev/rspack-sources)                        | Rust port of [webpack-sources](https://www.npmjs.com/package/webpack-sources) |
+| [rspack-migration-showcase](https://github.com/web-infra-dev/rspack-migration-showcase)  | Migration showcases for Rspack                                                |
+| [rspack-compat](https://github.com/web-infra-dev/rspack-compat)                          | Rspack compatible loaders and plugins examples                                |
+| [rsfamily-design-resources](https://github.com/rspack-contrib/rsfamily-design-resources) | Design resources for Rspack, Rsbuild, Rspress and Rsdoctor                    |
 
 ## Contributors
 

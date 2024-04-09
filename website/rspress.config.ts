@@ -1,11 +1,10 @@
 import path from 'node:path';
 import { defineConfig } from 'rspress/config';
 import type { NavItem, Sidebar } from '@rspress/shared';
-import { pluginRss, type PluginRssOption } from './rspress/plugin-rss';
+import { pluginRss } from '@rspress/plugin-rss';
 import { pluginFontOpenSans } from 'rspress-plugin-font-open-sans';
 import { pluginOpenGraph } from 'rsbuild-plugin-open-graph';
 import { pluginGoogleAnalytics } from 'rsbuild-plugin-google-analytics';
-import { toArray } from './rspress/plugin-rss/utils';
 
 const PUBLISH_URL = 'https://rspack.dev';
 const COPYRIGHT = '© 2022-present ByteDance Inc. All Rights Reserved.';
@@ -69,8 +68,16 @@ function getNavConfig(lang: 'zh' | 'en'): NavItem[] {
 					link: 'https://github.com/web-infra-dev/awesome-rspack',
 				},
 				{
+					text: 'Rspack Compat',
+					link: 'https://github.com/web-infra-dev/rspack-compat',
+				},
+				{
 					text: 'Rspack Examples',
 					link: 'https://github.com/rspack-contrib/rspack-examples',
+				},
+				{
+					text: 'Rsfamily Design Resources',
+					link: 'https://github.com/rspack-contrib/rsfamily-design-resources',
 				},
 				{
 					text: 'Rspack Community Packages',
@@ -96,7 +103,7 @@ function getNavConfig(lang: 'zh' | 'en'): NavItem[] {
 				{
 					text: getText(
 						'未来默认行为与功能废弃',
-						'Future behavior & Deprecation'
+						'Future behavior & Deprecation',
 					),
 					link: getLink('/misc/future'),
 				},
@@ -310,31 +317,31 @@ function getSidebarConfig(lang: 'zh' | 'en'): Sidebar {
 		],
 		[getLink('/api/')]: [
 			{
-				text: getText('API 接口', 'API'),
+				text: getText('简介', 'Introduction'),
 				link: getLink('/api'),
 			},
 			{
-				text: getText('Command-line 命令行接口', 'Command-line interface'),
+				text: getText('CLI', 'CLI'),
 				link: getLink('/api/cli'),
 			},
 			{
-				text: getText('Node.js 接口', 'Node.js API'),
-				link: getLink('/api/node-api'),
+				text: getText('模块', 'Modules'),
+				link: getLink('/api/modules'),
 			},
 			{
-				text: getText('Modules', 'Modules'),
-				link: getLink('/api/modules'),
+				text: getText('Node API', 'Node API'),
+				link: getLink('/api/node-api'),
 			},
 			{
 				text: getText('Hot Module Replacement', 'Hot Module Replacement'),
 				link: getLink('/api/hmr'),
 			},
 			{
-				text: getText('Loader 接口', 'Loader API'),
+				text: getText('Loader API', 'Loader API'),
 				link: getLink('/api/loader-api'),
 			},
 			{
-				text: getText('Plugin 接口', 'Plugin API'),
+				text: getText('插件 API', 'Plugin API'),
 				link: getLink('/api/plugin-api'),
 			},
 		],
@@ -346,7 +353,7 @@ function getSidebarConfig(lang: 'zh' | 'en'): Sidebar {
 			{
 				text: getText(
 					'Rspack 支持模块联邦',
-					'Module Federation added to Rspack'
+					'Module Federation added to Rspack',
 				),
 				link: getLink('/blog/module-federation-added-to-rspack'),
 			},
@@ -370,31 +377,6 @@ function getSidebarConfig(lang: 'zh' | 'en'): Sidebar {
 	};
 }
 
-const toFeedItem: PluginRssOption['toFeedItem'] = (page) => {
-	const fm = page.frontmatter as Record<string, any>;
-	const { date } = fm;
-	if (!date) return false;
-
-	const categories = toArray(fm.categories, fm.category);
-
-	const isBlog = /blog/.test(page.routePath) || categories.includes('blog');
-	// we only include the blogs at the moment
-	if (!isBlog) return false;
-
-	const feed = `blog-${page.lang}`;
-
-	return {
-		title: fm.title || page.title || '',
-		id: fm.rssId || page.id || '',
-		link: fm.permalink || page.routePath || '',
-		description: fm.rssDescription || fm.description || '',
-		content: fm.rssContent || fm.summary || page.content || '',
-		date,
-		category: categories,
-		feed,
-	};
-};
-
 export default defineConfig({
 	root: path.join(__dirname, 'docs'),
 	title: 'Rspack',
@@ -411,16 +393,32 @@ export default defineConfig({
 		checkDeadLinks: true,
 	},
 	plugins: [
-		pluginRss({
-			routePublicPath: PUBLISH_URL,
-			feedOptions: { copyright: COPYRIGHT, link: PUBLISH_URL },
-			feedOptionsByName: {
-				'blog-en': { title: 'Rspack Blog', link: `${PUBLISH_URL}/blog` },
-				'blog-zh': { title: 'Rspack 博客', link: `${PUBLISH_URL}/zh/blog` },
-			},
-			toFeedItem,
-		}),
 		pluginFontOpenSans(),
+		pluginRss({
+			siteUrl: PUBLISH_URL,
+			feed: [
+				{
+					id: 'blog-rss',
+					test: '/blog',
+					title: 'Rspack Blog',
+					language: 'en',
+					output: {
+						type: 'rss',
+						filename: 'blog-rss.xml',
+					},
+				},
+				{
+					id: 'blog-rss-zh',
+					test: '/zh/blog',
+					title: 'Rspack 博客',
+					language: 'zh-CN',
+					output: {
+						type: 'rss',
+						filename: 'blog-rss-zh.xml',
+					},
+				},
+			],
+		}),
 	],
 	themeConfig: {
 		footer: {

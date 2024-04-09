@@ -3,7 +3,7 @@ use std::{
   fmt::Debug,
   hash::{BuildHasherDefault, Hash},
   path::PathBuf,
-  sync::Arc,
+  sync::{atomic::AtomicU32, Arc},
 };
 
 use dashmap::{DashMap, DashSet};
@@ -64,6 +64,7 @@ pub type CompilationRuntimeModuleHook = AsyncSeries3Hook<Compilation, ModuleIden
 pub type CompilationChunkAssetHook = AsyncSeries2Hook<Chunk, String>;
 pub type CompilationProcessAssetsHook = AsyncSeriesHook<Compilation>;
 pub type CompilationAfterProcessAssetsHook = AsyncSeriesHook<Compilation>;
+pub type CompilationAfterSealHook = AsyncSeriesHook<Compilation>;
 
 #[derive(Debug, Default)]
 pub struct CompilationHooks {
@@ -80,10 +81,30 @@ pub struct CompilationHooks {
   pub chunk_asset: CompilationChunkAssetHook,
   pub process_assets: CompilationProcessAssetsHook,
   pub after_process_assets: CompilationAfterProcessAssetsHook,
+  pub after_seal: CompilationAfterSealHook,
 }
+
+#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]
+pub struct CompilationId(u32);
+
+impl CompilationId {
+  pub fn new() -> Self {
+    Self(COMPILATION_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed))
+  }
+}
+
+impl Default for CompilationId {
+  fn default() -> Self {
+    Self::new()
+  }
+}
+
+static COMPILATION_ID: AtomicU32 = AtomicU32::new(0);
 
 #[derive(Debug)]
 pub struct Compilation {
+  /// get_compilation_hooks(compilation.id)
+  id: CompilationId,
   // Mark compilation status, because the hash of `[hash].hot-update.js/json` is previous compilation hash.
   // Status A(hash: A) -> Status B(hash: B) will generate `A.hot-update.js`
   // Status A(hash: A) -> Status C(hash: C) will generate `A.hot-update.js`
@@ -177,6 +198,7 @@ impl Compilation {
   ) -> Self {
     let make_module_graph = ModuleGraphPartial::new(options.is_new_tree_shaking());
     Self {
+      id: CompilationId::new(),
       hot_index: 0,
       records,
       options,
@@ -235,6 +257,10 @@ impl Compilation {
     }
   }
 
+  pub fn id(&self) -> CompilationId {
+    self.id
+  }
+
   pub fn swap_make_module_graph(&mut self, other: &mut Compilation) {
     std::mem::swap(&mut self.make_module_graph, &mut other.make_module_graph);
   }
@@ -281,22 +307,6 @@ impl Compilation {
       }
     };
     import_var
-  }
-
-  pub fn get_entry_runtime(&self, name: &String, options: Option<&EntryOptions>) -> RuntimeSpec {
-    let (_, runtime) = if let Some(options) = options {
-      ((), options.runtime.as_ref())
-    } else {
-      match self.entries.get(name) {
-        Some(entry) => ((), entry.options.runtime.as_ref()),
-        None => return RuntimeSpec::from_iter([Arc::from(name.as_str())]),
-      }
-    };
-    // TODO: depend on https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/util/runtime.js#L33, we don't have that field now
-    runtime
-      .or(Some(name))
-      .map(|runtime| RuntimeSpec::from_iter([Arc::from(runtime.as_ref())]))
-      .unwrap_or_default()
   }
 
   pub fn add_entry(&mut self, entry: BoxDependency, options: EntryOptions) -> Result<()> {
@@ -819,6 +829,11 @@ impl Compilation {
       .await
   }
 
+  #[instrument(name = "compilation:after_seal", skip_all)]
+  async fn after_seal(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
+    plugin_driver.compilation_hooks.after_seal.call(self).await
+  }
+
   #[instrument(
     name = "compilation:chunk_asset",
     skip(self, plugin_driver, chunk_ukey)
@@ -846,12 +861,6 @@ impl Compilation {
     let result = optimizer::CodeSizeOptimizer::new(self).run().await;
     logger.time_end(start);
     result
-  }
-
-  pub async fn done(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
-    let stats = &mut Stats::new(self);
-    plugin_driver.done(stats).await?;
-    Ok(())
   }
 
   pub fn entry_modules(&self) -> impl Iterator<Item = ModuleIdentifier> {
@@ -991,7 +1000,11 @@ impl Compilation {
     logger.time_end(start);
 
     let start = logger.time("after process assets");
-    self.after_process_assets(plugin_driver).await?;
+    self.after_process_assets(plugin_driver.clone()).await?;
+    logger.time_end(start);
+
+    let start = logger.time("after seal");
+    self.after_seal(plugin_driver).await?;
     logger.time_end(start);
 
     Ok(())
@@ -1051,7 +1064,8 @@ impl Compilation {
   }
 
   #[allow(clippy::unwrap_in_result)]
-  pub(crate) async fn process_runtime_requirements(
+  #[instrument(name = "compilation:process_runtime_requirements", skip_all)]
+  pub async fn process_runtime_requirements(
     &mut self,
     modules: impl IntoParallelIterator<Item = ModuleIdentifier>,
     chunks: impl Iterator<Item = ChunkUkey>,

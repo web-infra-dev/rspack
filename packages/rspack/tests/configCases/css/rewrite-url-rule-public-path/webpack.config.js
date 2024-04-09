@@ -3,6 +3,11 @@ module.exports = {
 		publicPath: "auto"
 	},
 	module: {
+		generator: {
+			"css/auto": {
+				exportsOnly: false,
+			}
+		},
 		rules: [
 			{
 				test: /\.png$/i,

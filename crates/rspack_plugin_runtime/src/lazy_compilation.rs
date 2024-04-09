@@ -6,8 +6,7 @@ use rspack_core::{
   impl_build_info_meta, impl_source_map_config,
   rspack_sources::{RawSource, Source, SourceExt},
   AsyncDependenciesBlockIdentifier, BuildInfo, BuildMeta, Compilation, ConcatenationScope,
-  DependenciesBlock, DependencyId, Module, ModuleType, NormalModuleCreateData, Plugin,
-  PluginContext, PluginNormalModuleFactoryCreateModuleHookOutput, RuntimeGlobals, RuntimeSpec,
+  DependenciesBlock, DependencyId, Module, ModuleType, Plugin, RuntimeGlobals, RuntimeSpec,
   SourceType,
 };
 use rspack_core::{CodeGenerationResult, Context, ModuleIdentifier};
@@ -125,29 +124,5 @@ pub struct LazyCompilationPlugin;
 impl Plugin for LazyCompilationPlugin {
   fn name(&self) -> &'static str {
     "LazyCompilationPlugin"
-  }
-
-  async fn normal_module_factory_create_module(
-    &self,
-    _ctx: PluginContext,
-    _args: &mut NormalModuleCreateData<'_>,
-  ) -> PluginNormalModuleFactoryCreateModuleHookOutput {
-    // if args.indentfiler.contains("rspack-dev-client")
-    //   || args.lazy_visit_modules.contains(args.indentfiler.as_str())
-    // {
-    //   return Ok(None);
-    // }
-    // if matches!(
-    //   args.dependency_type,
-    //   DependencyType::DynamicImport | DependencyType::Entry
-    // ) {
-    //   return Ok(Some(Box::new(LazyCompilationProxyModule {
-    //     module_identifier: args.indentfiler,
-    //     dependencies: Vec::new(),
-    //     blocks: Vec::new(),
-    //   })));
-    // }
-
-    Ok(None)
   }
 }

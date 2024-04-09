@@ -11,12 +11,12 @@ pub use async_series::{
   AsyncSeries, AsyncSeries2, AsyncSeries2Hook, AsyncSeries3, AsyncSeries3Hook, AsyncSeriesHook,
 };
 pub use async_series_bail::{
-  AsyncSeriesBail, AsyncSeriesBail3, AsyncSeriesBail3Hook, AsyncSeriesBail4, AsyncSeriesBail4Hook,
-  AsyncSeriesBailHook,
+  AsyncSeriesBail, AsyncSeriesBail2, AsyncSeriesBail2Hook, AsyncSeriesBail3, AsyncSeriesBail3Hook,
+  AsyncSeriesBail4, AsyncSeriesBail4Hook, AsyncSeriesBailHook,
 };
 pub use interceptor::{Hook, Interceptor};
 pub use rspack_macros::{plugin, plugin_hook};
-pub use sync_series::{SyncSeries4, SyncSeries4Hook};
+pub use sync_series::{SyncSeries, SyncSeries4, SyncSeries4Hook, SyncSeriesHook};
 
 // pub trait Plugin<HookContainer> {
 //   fn apply(&self, hook_container: &mut HookContainer);

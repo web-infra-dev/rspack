@@ -25,6 +25,7 @@ export type EntryOptions = {
 	baseUri?: string;
 	filename?: FilenameTemplate;
 	library?: LibraryOptions;
+	dependOn?: string[];
 };
 export const EntryPlugin = create(
 	BuiltinPluginName.EntryPlugin,
@@ -40,7 +41,8 @@ export const EntryPlugin = create(
 			entry,
 			options: getRawEntryOptions(entryOptions)
 		};
-	}
+	},
+	"make"
 );
 
 function getRawEntryOptions(entry: EntryOptions): RawEntryOptions {
@@ -56,6 +58,7 @@ function getRawEntryOptions(entry: EntryOptions): RawEntryOptions {
 			: undefined,
 		asyncChunks: entry.asyncChunks,
 		filename: entry.filename,
-		library: entry.library && getRawLibrary(entry.library)
+		library: entry.library && getRawLibrary(entry.library),
+		dependOn: entry.dependOn
 	};
 }

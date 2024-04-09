@@ -9,9 +9,10 @@ use rspack_core::tree_shaking::analyzer::OptimizeAnalyzer;
 use rspack_core::tree_shaking::js_module::JsModule;
 use rspack_core::tree_shaking::visitor::OptimizeAnalyzeResult;
 use rspack_core::{
-  render_init_fragments, AsyncDependenciesBlockIdentifier, Compilation, DependenciesBlock,
-  DependencyId, GenerateContext, Module, ParseContext, ParseResult, ParserAndGenerator,
-  SideEffectsBailoutItem, SourceType, SpanExt, TemplateContext, TemplateReplaceSource,
+  render_init_fragments, AsyncDependenciesBlockIdentifier, BuildMetaExportsType, ChunkGraph,
+  Compilation, DependenciesBlock, DependencyId, GenerateContext, Module, ModuleGraph, ParseContext,
+  ParseResult, ParserAndGenerator, SideEffectsBailoutItem, SourceType, SpanExt, TemplateContext,
+  TemplateReplaceSource,
 };
 use rspack_error::miette::Diagnostic;
 use rspack_error::{DiagnosticExt, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
@@ -20,6 +21,7 @@ use swc_core::common::{Span, SyntaxContext};
 use swc_core::ecma::parser::{EsConfig, Syntax};
 
 use crate::ast::CodegenOptions;
+use crate::dependency::HarmonyCompatibilityDependency;
 use crate::inner_graph_plugin::InnerGraphPlugin;
 use crate::visitors::ScanDependenciesResult;
 use crate::visitors::{run_before_pass, scan_dependencies, swc_visitor::resolver};
@@ -92,6 +94,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       module_identifier,
       loaders,
       mut additional_data,
+      module_parser_options,
       ..
     } = parse_context;
     let mut diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>> = vec![];
@@ -200,6 +203,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         build_info,
         build_meta,
         module_identifier,
+        module_parser_options,
       )
     }) {
       Ok(result) => result,
@@ -359,6 +363,44 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         generate_context.requested_source_type
       )
     }
+  }
+
+  fn get_concatenation_bailout_reason(
+    &self,
+    module: &dyn rspack_core::Module,
+    _mg: &ModuleGraph,
+    _cg: &ChunkGraph,
+  ) -> Option<String> {
+    // Only harmony modules are valid for optimization
+    if module.build_meta().is_none()
+      || module
+        .build_meta()
+        .map(|meta| meta.exports_type != BuildMetaExportsType::Namespace)
+        .unwrap_or_default()
+    {
+      return Some(String::from("Module is not an ECMAScript module"));
+    }
+
+    if let Some(deps) = module.get_presentational_dependencies() {
+      if !deps.iter().any(|dep| {
+        // https://github.com/webpack/webpack/blob/b9fb99c63ca433b24233e0bbc9ce336b47872c08/lib/javascript/JavascriptGenerator.js#L65-L74
+        dep
+          .as_any()
+          .downcast_ref::<HarmonyCompatibilityDependency>()
+          .is_some()
+      }) {
+        return Some(String::from("Module is not an ECMAScript module"));
+      }
+    } else {
+      return Some(String::from("Module is not an ECMAScript module"));
+    }
+
+    if let Some(info) = module.build_info()
+      && let Some(bailout) = info.module_concatenation_bailout.as_deref()
+    {
+      return Some(format!("Module uses {bailout}",));
+    }
+    None
   }
 }
 

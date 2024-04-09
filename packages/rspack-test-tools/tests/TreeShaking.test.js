@@ -3,11 +3,8 @@ const fs = require("fs");
 const { createTreeShakingCase } = require("..");
 
 const NAME = "TreeShakingCases";
-const caseDir = path.resolve(
-	__dirname,
-	"../../../crates/rspack/tests/tree-shaking"
-);
-const distDir = path.resolve(__dirname, `../../rspack/tests/js/${NAME}`);
+const caseDir = path.resolve(__dirname, "./treeShakingCases");
+const distDir = path.resolve(__dirname, `./js/${NAME}`);
 
 const tests = fs
 	.readdirSync(caseDir)

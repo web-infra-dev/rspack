@@ -2,7 +2,7 @@ use std::collections::hash_map::Entry;
 use std::collections::VecDeque;
 
 use rspack_core::{
-  is_exports_object_referenced, is_no_exports_referenced, merge_runtime,
+  get_entry_runtime, is_exports_object_referenced, is_no_exports_referenced, merge_runtime,
   AsyncDependenciesBlockIdentifier, BuildMetaExportsType, Compilation, ConnectionState,
   DependenciesBlock, DependencyId, ExportsInfoId, ExtendedReferencedExport, GroupOptions,
   ModuleIdentifier, Plugin, ReferencedExport, RuntimeSpec, UsageState,
@@ -55,11 +55,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       let runtime = if self.global {
         None
       } else {
-        Some(
-          self
-            .compilation
-            .get_entry_runtime(entry_name, Some(&entry.options)),
-        )
+        Some(get_entry_runtime(entry_name, &entry.options, &entries))
       };
       if let Some(runtime) = runtime.as_ref() {
         let tem_global_runtime = global_runtime.get_or_insert_default();

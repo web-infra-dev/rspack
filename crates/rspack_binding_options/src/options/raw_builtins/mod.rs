@@ -1,6 +1,7 @@
 mod raw_banner;
 mod raw_bundle_info;
 mod raw_copy;
+mod raw_css_extract;
 mod raw_html;
 mod raw_limit_chunk_count;
 mod raw_mf;
@@ -20,6 +21,7 @@ use rspack_napi::NapiResultExt;
 use rspack_plugin_asset::AssetPlugin;
 use rspack_plugin_banner::BannerPlugin;
 use rspack_plugin_copy::{CopyRspackPlugin, CopyRspackPluginOptions};
+use rspack_plugin_css::CssPlugin;
 use rspack_plugin_devtool::{
   EvalDevToolModulePlugin, EvalSourceMapDevToolPlugin, SourceMapDevToolModuleOptionsPlugin,
   SourceMapDevToolModuleOptionsPluginOptions, SourceMapDevToolPlugin,
@@ -33,8 +35,9 @@ use rspack_plugin_externals::{
 use rspack_plugin_hmr::HotModuleReplacementPlugin;
 use rspack_plugin_html::HtmlRspackPlugin;
 use rspack_plugin_javascript::{
-  FlagDependencyExportsPlugin, FlagDependencyUsagePlugin, InferAsyncModulesPlugin, JsPlugin,
-  MangleExportsPlugin, ModuleConcatenationPlugin, SideEffectsFlagPlugin,
+  api_plugin::APIPlugin, FlagDependencyExportsPlugin, FlagDependencyUsagePlugin,
+  InferAsyncModulesPlugin, JsPlugin, MangleExportsPlugin, ModuleConcatenationPlugin,
+  SideEffectsFlagPlugin,
 };
 use rspack_plugin_json::JsonPlugin;
 use rspack_plugin_library::enable_library_plugin;
@@ -67,6 +70,7 @@ pub use self::{
 };
 use self::{
   raw_bundle_info::{RawBundlerInfoModeWrapper, RawBundlerInfoPluginOptions},
+  raw_css_extract::RawCssExtractPluginOption,
   raw_mf::{RawConsumeSharedPluginOptions, RawContainerReferencePluginOptions, RawProvideOptions},
 };
 use crate::{
@@ -129,6 +133,8 @@ pub enum BuiltinPluginName {
   FlagDependencyUsagePlugin,
   MangleExportsPlugin,
   ModuleConcatenationPlugin,
+  CssModulesPlugin,
+  APIPlugin,
 
   // rspack specific plugins
   // naming format follow XxxRspackPlugin
@@ -138,6 +144,7 @@ pub enum BuiltinPluginName {
   SwcJsMinimizerRspackPlugin,
   SwcCssMinimizerRspackPlugin,
   BundlerInfoRspackPlugin,
+  CssExtractRspackPlugin,
 
   // rspack js adapter plugins
   // naming format follow XxxRspackPlugin
@@ -216,13 +223,13 @@ impl BuiltinPlugin {
         plugins.push(ChunkPrefetchPreloadPlugin.boxed());
       }
       BuiltinPluginName::CommonJsChunkFormatPlugin => {
-        plugins.push(CommonJsChunkFormatPlugin.boxed());
+        plugins.push(CommonJsChunkFormatPlugin::default().boxed());
       }
       BuiltinPluginName::ArrayPushCallbackChunkFormatPlugin => {
-        plugins.push(ArrayPushCallbackChunkFormatPlugin.boxed());
+        plugins.push(ArrayPushCallbackChunkFormatPlugin::default().boxed());
       }
       BuiltinPluginName::ModuleChunkFormatPlugin => {
-        plugins.push(ModuleChunkFormatPlugin.boxed());
+        plugins.push(ModuleChunkFormatPlugin::default().boxed());
       }
       BuiltinPluginName::HotModuleReplacementPlugin => {
         plugins.push(HotModuleReplacementPlugin::default().boxed());
@@ -301,9 +308,9 @@ impl BuiltinPlugin {
       BuiltinPluginName::WarnCaseSensitiveModulesPlugin => {
         plugins.push(WarnCaseSensitiveModulesPlugin.boxed())
       }
-      BuiltinPluginName::DataUriPlugin => plugins.push(DataUriPlugin.boxed()),
-      BuiltinPluginName::FileUriPlugin => plugins.push(FileUriPlugin.boxed()),
-      BuiltinPluginName::RuntimePlugin => plugins.push(RuntimePlugin.boxed()),
+      BuiltinPluginName::DataUriPlugin => plugins.push(DataUriPlugin::default().boxed()),
+      BuiltinPluginName::FileUriPlugin => plugins.push(FileUriPlugin::default().boxed()),
+      BuiltinPluginName::RuntimePlugin => plugins.push(RuntimePlugin::default().boxed()),
       BuiltinPluginName::JsonModulesPlugin => plugins.push(JsonPlugin.boxed()),
       BuiltinPluginName::InferAsyncModulesPlugin => {
         plugins.push(InferAsyncModulesPlugin::default().boxed())
@@ -358,6 +365,8 @@ impl BuiltinPlugin {
       BuiltinPluginName::ModuleConcatenationPlugin => {
         plugins.push(ModuleConcatenationPlugin::default().boxed())
       }
+      BuiltinPluginName::CssModulesPlugin => plugins.push(CssPlugin::default().boxed()),
+      BuiltinPluginName::APIPlugin => plugins.push(APIPlugin::default().boxed()),
 
       // rspack specific plugins
       BuiltinPluginName::HttpExternalsRspackPlugin => {
@@ -398,6 +407,13 @@ impl BuiltinPlugin {
           )
           .boxed(),
         )
+      }
+      BuiltinPluginName::CssExtractRspackPlugin => {
+        let plugin = rspack_plugin_extract_css::plugin::PluginCssExtract::new(
+          downcast_into::<RawCssExtractPluginOption>(self.options)?.into(),
+        )
+        .boxed();
+        plugins.push(plugin);
       }
       // rspack js adapter plugins
       BuiltinPluginName::JsLoaderRspackPlugin => {
