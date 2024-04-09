@@ -3131,14 +3131,12 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.58",
- "trybuild",
 ]
 
 [[package]]
 name = "rspack_macros_test"
 version = "0.1.0"
 dependencies = [
- "rspack_core",
  "rspack_error",
  "rspack_hook",
  "rspack_macros",

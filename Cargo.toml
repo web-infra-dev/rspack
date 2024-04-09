@@ -19,7 +19,6 @@ glob               = { version = "0.3.1" }
 hashlink           = { version = "0.9.0" }
 heck               = { version = "0.5.0" }
 indexmap           = { version = "2.2.6" }
-insta              = { version = "1.38.0" }
 itertools          = { version = "0.12.1" }
 json               = { version = "0.12.4" }
 linked_hash_set    = { version = "0.1.4" }
@@ -41,7 +40,6 @@ serde_json         = { version = "1.0.115" }
 similar            = { version = "2.5.0" }
 sugar_path         = { version = "0.0.12" }
 syn                = { version = "2.0.58" }
-testing_macros     = { version = "0.2.12" }
 tokio              = { version = "1.37.0" }
 tracing            = { version = "0.1.40" }
 tracing-subscriber = { version = "0.3.18" }
