@@ -1,7 +1,8 @@
 ```js title=main.js
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
+"./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
+__webpack_require__.r(__webpack_exports__);
 /* harmony import */var _maths_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./maths.js */"./maths.js");
 /* TREE-SHAKING */ 
 console.log(_maths_js__WEBPACK_IMPORTED_MODULE_0__.xxx.test);
@@ -9,7 +10,9 @@ console.log(_maths_js__WEBPACK_IMPORTED_MODULE_0__.square);
 }),
 "./maths.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
+__webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
+  cube: function() { return cube; },
   square: function() { return square; },
   xxx: function() { return /* reexport module object */ _test_js__WEBPACK_IMPORTED_MODULE_0__; }
 });
@@ -30,7 +33,9 @@ function cube(x) {
 }),
 "./test.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
+__webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
+  ccc: function() { return ccc; },
   test: function() { return test; }
 });
 function test() {}

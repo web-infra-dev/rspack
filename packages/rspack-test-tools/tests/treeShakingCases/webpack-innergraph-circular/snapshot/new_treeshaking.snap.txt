@@ -12,8 +12,9 @@ __webpack_require__.r(__webpack_exports__);
 
 ```js title=main.js
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
+"./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
+__webpack_require__.r(__webpack_exports__);
 /* harmony import */var _inner__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./inner */"./inner.js");
 /* harmony import */var _module__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./module */"./module.js");
 
@@ -28,9 +29,11 @@ it("export should be unused when only unused functions use it", ()=>{
 }),
 "./inner.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
+__webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   A: function() { return A; },
   B: function() { return B; },
+  C: function() { return C; },
   exportAUsed: function() { return exportAUsed; },
   exportBUsed: function() { return exportBUsed; },
   exportCUsed: function() { return exportCUsed; }
@@ -44,13 +47,15 @@ function B(s) {
 function C(s) {
     return s + "C";
 }
-const exportAUsed = true;
-const exportBUsed = true;
+const exportAUsed = false;
+const exportBUsed = false;
 const exportCUsed = false;
 }),
 "./module.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
+__webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
+  x: function() { return x; },
   y: function() { return y; }
 });
 /* harmony import */var _inner__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./inner */"./inner.js");

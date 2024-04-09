@@ -15,9 +15,13 @@ it("should not threat globals as pure", ()=>{
 }),
 "./module.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
+__webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
+  c: function() { return c; },
   ok: function() { return ok; },
-  ok2: function() { return ok2; }
+  ok2: function() { return ok2; },
+  x: function() { return x; },
+  y: function() { return y; }
 });
 try {
     var x = NOT_DEFINED;
