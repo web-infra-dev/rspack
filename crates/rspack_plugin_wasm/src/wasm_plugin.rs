@@ -96,6 +96,11 @@ impl Plugin for AsyncWasmPlugin {
       .compiler_hooks
       .compilation
       .tap(compilation::new(self));
+    ctx
+      .context
+      .compilation_hooks
+      .render_manifest
+      .tap(render_manifest::new(self));
 
     let module_id_to_filename_without_ext = self.module_id_to_filename_without_ext.clone();
 
