@@ -151,12 +151,12 @@ impl SplitChunksPlugin {
         let is_match = is_match_the_test && is_match_the_type;
         if !is_match {
           tracing::trace!(
-                  "Module({:?}) is ignored by CacheGroup({:?}). Reason: !(is_match_the_test({:?}) && is_match_the_type({:?}))",
-                  module.identifier(),
-                  cache_group.key,
-                  is_match_the_test,
-                  is_match_the_type
-                );
+            "Module({:?}) is ignored by CacheGroup({:?}). Reason: !(is_match_the_test({:?}) && is_match_the_type({:?}))",
+            module.identifier(),
+            cache_group.key,
+            is_match_the_test,
+            is_match_the_type
+          );
         }
 
         temp.push((idx, is_match));
@@ -177,12 +177,12 @@ impl SplitChunksPlugin {
           // Filter by `splitChunks.cacheGroups.{cacheGroup}.minChunks`
           if chunk_combination.len() < cache_group.min_chunks as usize {
             tracing::trace!(
-                      "Module({:?}) is ignored by CacheGroup({:?}). Reason: chunk_combination.len({:?}) < cache_group.min_chunks({:?})",
-                      module.identifier(),
-                      cache_group.key,
-                      chunk_combination.len(),
-                      cache_group.min_chunks,
-                    );
+              "Module({:?}) is ignored by CacheGroup({:?}). Reason: chunk_combination.len({:?}) < cache_group.min_chunks({:?})",
+              module.identifier(),
+              cache_group.key,
+              chunk_combination.len(),
+              cache_group.min_chunks,
+            );
             continue;
           }
 
@@ -198,12 +198,12 @@ impl SplitChunksPlugin {
           // Filter by `splitChunks.cacheGroups.{cacheGroup}.minChunks`
           if selected_chunks.len() < cache_group.min_chunks as usize {
             tracing::trace!(
-                      "Module({:?}) is ignored by CacheGroup({:?}). Reason: selected_chunks.len({:?}) < cache_group.min_chunks({:?})",
-                      module.identifier(),
-                      cache_group.key,
-                      selected_chunks.len(),
-                      cache_group.min_chunks,
-                    );
+              "Module({:?}) is ignored by CacheGroup({:?}). Reason: selected_chunks.len({:?}) < cache_group.min_chunks({:?})",
+              module.identifier(),
+              cache_group.key,
+              selected_chunks.len(),
+              cache_group.min_chunks,
+            );
             continue;
           }
 
