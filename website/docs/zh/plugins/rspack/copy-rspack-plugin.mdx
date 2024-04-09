@@ -1,0 +1,174 @@
+import { Table } from '@builtIns';
+import WebpackLicense from '../../../../components/webpack-license';
+import { ApiMeta } from '../../../../components/ApiMeta.tsx';
+
+<WebpackLicense from="https://webpack.js.org/plugins/copy-webpack-plugin/#root" />
+
+# CopyRspackPlugin
+
+<ApiMeta addedVersion={'0.3.3'} />
+
+将已存在的单个文件或整个目录复制到产物目录。
+
+```js
+new rspack.CopyRspackPlugin(options);
+```
+
+- options
+
+  - **类型：**
+
+  ```ts
+  export type CopyRspackPluginOptions = {
+    patterns: (
+      | string // 如果传入字符串，会被视作 { from: `你传入的字符串` }
+      | {
+          from: string;
+          to?: string; // 默认根据 from 推断
+          context?: string; // 默认 Rspack 配置中的 context
+          toType?: 'dir' | 'file' | 'template'; // 默认根据 from 推断
+          noErrorOnMissing?: boolean; // 默认 false
+          force?: boolean; // 默认 false
+          priority?: number; // 默认 0
+          globOptions?: {
+            caseSensitiveMatch?: boolean; // 默认 true
+            dot?: boolean; // 默认 true
+            ignore?: string[]; // 忽略特定路径
+          };
+        }
+    )[];
+  };
+  ```
+
+  - **默认值：** `undefined`
+
+  <Table
+    header={[
+      {
+        name: '名称',
+        key: 'name',
+      },
+      {
+        name: '类型',
+        key: 'type',
+      },
+      {
+        name: '默认值',
+        key: 'default',
+      },
+      {
+        name: '描述',
+        key: 'description',
+      },
+    ]}
+    body={[
+      {
+        name: '`from`',
+        type: '`string`',
+        default: 'undefined',
+        description:
+          '复制的源路径，可以是绝对路径、相对路径、glob 查询字符串，可以是文件或目录。若传入相对路径，则是相对于 `context` 配置。',
+      },
+      {
+        name: '`to`',
+        type: '`string`',
+        default: 'undefined',
+        description:
+          "复制的目的地，可以是绝对路径、相对路径或者是 Rspack 的模版字符串，例如 `'[name].[hash][ext]'`。当不指定 `to` 时，则相当于是产物目录。",
+      },
+      {
+        name: '`context`',
+        type: '`string`',
+        default: 'undefined',
+        description: '该配置决定怎样匹配 `from` 路径，以及复制后的结构。',
+      },
+      {
+        name: '`toType`',
+        type: "`'dir'|'file'|'template'`",
+        default: 'undefined',
+        description:
+          '指定 `to` 的类型，可以是目录，文件或 Rspack 的模版名，若不指定则会自动推断。',
+      },
+      {
+        name: '`noErrorOnMissing`',
+        type: '`boolean`',
+        default: 'false',
+        description: '当没有找到对应的文件或目录时，忽略错误。',
+      },
+      {
+        name: '`force`',
+        type: '`boolean`',
+        default: 'false',
+        description: '当产物中已经有相应的文件时，是否覆写。',
+      },
+      {
+        name: '`priority`',
+        type: '`number`',
+        default: '0',
+        description:
+          '当设置 `force` 为 `true` 时，如果匹配到同样的文件，优先级高的会覆写优先级的。',
+      },
+      {
+        name: '`globOptions`',
+        type: '`object`',
+        default: 'undefined',
+        description:
+          'glob 查询选项，`caseSensitiveMatch` 决定是否大小写敏感，`dot` 决定是否匹配以 `.` 开头的文件，`ignore` 是 glob 形式的字符串数组，可以使用该配置忽略部分特定路径。',
+      },
+    ]}
+  />
+
+示例：
+
+```ts title="rspack.config.js"
+const rspack = require('@rspack/core');
+module.exports = {
+  entry: './src/index.js',
+  plugins: [
+    new rspack.CopyRspackPlugin({
+      patterns: [
+        {
+          from: 'file.txt',
+        },
+      ],
+    }),
+  ],
+};
+```
+
+以上面的配置运行结果会是：`"dist/file.txt"`。
+
+```ts title="rspack.config.js"
+module.exports = {
+  entry: './src/index.js',
+  plugins: [
+    new rspack.CopyRspackPlugin({
+      patterns: [
+        {
+          from: 'directory',
+        },
+      ],
+    }),
+  ],
+};
+```
+
+以上面的配置运行结果会是 `directory` 目录下的所有文件平铺在产物目录中。
+
+```ts title="rspack.config.js"
+module.exports = {
+  entry: './src/index.js',
+  plugins: [
+    new rspack.CopyRspackPlugin({
+      patterns: [
+        {
+          from: 'directory/**/*',
+          to: 'newdirectory',
+        },
+      ],
+    }),
+  ],
+};
+```
+
+以上面的配置运行结果会是 `directory` 目录被移动到产物目录中的 `newdirectory` 目录，例如 `dist/newdirectory/directory/foo`。
