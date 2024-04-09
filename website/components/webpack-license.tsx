@@ -17,8 +17,8 @@ const WebpackLicense: FC<{ from: string | string[] }> = ({ from }) => {
             </p>
             <ul>
               {links.map((link) => (
-                <li>
-                  <a key={link} href={link}>
+                <li key={link}>
+                  <a href={link}>
                     {link}
                   </a>
                 </li>
@@ -45,7 +45,7 @@ const WebpackLicense: FC<{ from: string | string[] }> = ({ from }) => {
             </p>
             <ul>
               {links.map((link) => (
-                <li>
+                <li key={link}>
                   <a key={link} href={link}>
                     {link}
                   </a>
