@@ -1,0 +1,40 @@
+import { ApiMeta } from '../../../../components/ApiMeta.tsx';
+
+# ProvidePlugin
+
+<ApiMeta addedVersion={'0.3.3'} />
+
+此插件会自动的将全局变量转换为模块导入。
+
+```js
+new rspack.ProvidePlugin(options);
+```
+
+- options
+  - **类型：** `Record<string, string | string[]>`
+
+如下配置：
+
+```js
+const rspack = require('@rspack/core');
+module.exports = {
+  plugins: [
+    new rspack.ProvidePlugin({
+      process: [require.resolve('process/browser')],
+    }),
+  ],
+};
+```
+
+将如下代码：
+
+```js
+console.log(process.version);
+```
+
+转换为：
+
+```js
+import process from 'process/browser';
+console.log(process.version);
+```

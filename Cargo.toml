@@ -59,12 +59,12 @@ tikv-jemallocator = { version = "=0.5.4", features = ["disable_initial_exec_tls"
 rkyv                = { version = "=0.7.42" }                             # synced with swc wasm plugin
 styled_components   = { version = "=0.96.8" }
 swc_config          = { version = "=0.1.12" }
-swc_core            = { version = "=0.90.26", default-features = false }
-swc_ecma_minifier   = { version = "=0.192.19", default-features = false }
+swc_core            = { version = "=0.90.30", default-features = false }
+swc_ecma_minifier   = { version = "=0.192.22", default-features = false }
 swc_emotion         = { version = "=0.72.8" }
 swc_error_reporters = { version = "=0.17.19" }
 swc_html            = { version = "=0.137.18" }
-swc_html_minifier   = { version = "=0.134.17" }
+swc_html_minifier   = { version = "=0.134.18" }
 swc_node_comments   = { version = "=0.20.19" }
 
 [profile.dev]

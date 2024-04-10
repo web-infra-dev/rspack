@@ -1,0 +1,31 @@
+import { ApiMeta } from '../../../../components/ApiMeta.tsx';
+
+# EntryPlugin
+
+<ApiMeta addedVersion={'0.3.3'} />
+
+在编译时添加一个入口 chunk。
+
+```js
+new rspack.EntryPlugin(context, entry, options);
+```
+
+- context
+  - **类型：** `string`
+  - **描述：** 入口模块请求的路径会从该 context 路径下进行 resolve
+- entry
+  - **类型：** `string`
+  - **描述：** 入口模块请求的路径
+- options
+  - **类型：**
+  ```ts
+  type EntryOptions = {
+    name?: string;
+    runtime?: EntryRuntime;
+    chunkLoading?: ChunkLoading;
+    asyncChunks?: boolean;
+    publicPath?: PublicPath;
+    baseUri?: string;
+    filename?: Filename;
+  };
+  ```

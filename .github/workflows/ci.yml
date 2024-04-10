@@ -161,6 +161,10 @@ jobs:
         if: steps.changes.outputs.src == 'true'
         run: pnpm run lint:js
 
+      - name: prettier
+        if: steps.changes.outputs.src == 'true'
+        run: pnpm run format-ci:js
+
   rust_changes:
     name: Rust Changes
     runs-on: ubuntu-latest
@@ -206,6 +210,9 @@ jobs:
           fmt: true
           shared-key: check
 
+      - name: Pnpm Cache # Required by some tests
+        uses: ./.github/actions/pnpm-cache
+
       - name: Run Cargo Check
         run: cargo check --workspace --all-targets --locked # Not using --release because it uses too much cache, and is also slow.
 
@@ -220,6 +227,9 @@ jobs:
         with:
           command: fmt
           args: --all -- --check
+
+      - name: Run toml format check
+        run: pnpm run format-ci:toml
 
   rust_unused_dependencies:
     name: Check Rust Unused Dependencies

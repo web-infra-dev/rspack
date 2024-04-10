@@ -15,21 +15,6 @@
   position: relative;
   margin-right: 28px;
 }
-// Add a new tag in .api-meta-version
-.api-meta-version-added::before {
-  position: absolute;
-  right: -15px;
-  top: -10px;
-  content: 'new';
-  color: white;
-  padding: 0 4px;
-  height: 20px;
-  min-width: 20px;
-  font-weight: 500;
-  font-size: 12px;
-  background-color: rgb(245, 63, 63);
-  border-radius: 5px;
-}
 
 .api-meta-version-deprecated::before {
   position: absolute;

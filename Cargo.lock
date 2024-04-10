@@ -4436,9 +4436,9 @@ dependencies = [
 
 [[package]]
 name = "swc_core"
-version = "0.90.26"
+version = "0.90.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1e18fa3e847ec83b97c27226233f683b62c03a10e24f44d139465fa876a5774a"
+checksum = "fe7651ba172f4a82cd6f27b73e51d363e9b32aa97b9f6aab2e63e58f4df9ea62"
 dependencies = [
  "swc",
  "swc_atoms",
@@ -4920,9 +4920,9 @@ dependencies = [
 
 [[package]]
 name = "swc_ecma_minifier"
-version = "0.192.19"
+version = "0.192.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e3acd953ba8fd935428003d015cc119ddb31a510537bf2ef06294c52bacffa67"
+checksum = "c1b038d6effbed5103d38460e6b9f5006fd6ffa91e827efdf78953b0e97d3895"
 dependencies = [
  "arrayvec",
  "indexmap 2.2.6",
@@ -5399,9 +5399,9 @@ dependencies = [
 
 [[package]]
 name = "swc_html_minifier"
-version = "0.134.17"
+version = "0.134.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2af264b9990bf7b60084cace3b2a05d9879fd0cdf78d65260f9e8e228021df1c"
+checksum = "fa632e00494f55e39bd499fadccda9afdd49c25ee80c2c96afb7182c19daf88d"
 dependencies = [
  "once_cell",
  "serde",

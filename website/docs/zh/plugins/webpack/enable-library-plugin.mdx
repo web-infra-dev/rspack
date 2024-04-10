@@ -1,0 +1,11 @@
+import { ApiMeta } from '../../../../components/ApiMeta.tsx';
+
+# library.EnableLibraryPlugin
+
+<ApiMeta addedVersion={'0.3.3'} />
+
+开启该 libraryType 的产物格式打包，[output.enabledLibraryTypes](/zh/config/output.html#outputenabledlibrarytypes) 底层使用了该插件。
+
+```js
+new rspack.library.EnableLibraryPlugin('var');
+```
