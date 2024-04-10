@@ -26,7 +26,12 @@ concurrency:
   cancel-in-progress: ${{ github.ref_name != 'main' }}
 
 jobs:
+  get-runner-labels:
+    name: Get Runner Labels
+    uses: ./.github/workflows/get-runner-labels.yml
+
   check-changed:
+    runs-on: ubuntu-latest
     name: Check CI Changed
     outputs:
       changed: ${{ steps.filter.outputs.changed == 'true' }}
@@ -40,10 +45,6 @@ jobs:
             changed:
               - "!**/*.md"
               - "!website/**"
-
-  get-runner-labels:
-    name: Get Runner Labels
-    uses: ./.github/workflows/get-runner-labels.yml
 
   test-linux:
     name: Test Linux
