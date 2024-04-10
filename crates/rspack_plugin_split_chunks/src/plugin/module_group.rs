@@ -1,4 +1,4 @@
-use std::collections::{hash_map::Entry, HashMap};
+use std::collections::{hash_map, HashMap};
 use std::hash::{BuildHasherDefault, Hash, Hasher};
 
 use dashmap::DashMap;
@@ -91,27 +91,27 @@ impl SplitChunksPlugin {
     let combinations_cache =
       DashMap::<ChunksKey, Vec<FxHashSet<ChunkUkey>>, ChunksKeyHashBuilder>::default();
 
-    let get_combination = |chunks_key: ChunksKey| {
-      if let Some(combs) = combinations_cache.get(&chunks_key) {
-        return combs.clone();
-      }
-      let chunks_set = chunk_sets_in_graph
-        .get(&chunks_key)
-        .expect("This should never happen, please file an issue");
-      let mut result = vec![chunks_set.clone()];
+    let get_combination = |chunks_key: ChunksKey| match combinations_cache.entry(chunks_key) {
+      dashmap::mapref::entry::Entry::Occupied(entry) => entry.get().clone(),
+      dashmap::mapref::entry::Entry::Vacant(entry) => {
+        let chunks_set = chunk_sets_in_graph
+          .get(&chunks_key)
+          .expect("This should never happen, please file an issue");
+        let mut result = vec![chunks_set.clone()];
 
-      for (count, array_of_set) in &chunk_sets_by_count {
-        if *count < chunks_set.len() {
-          for set in array_of_set {
-            if set.is_subset(chunks_set) {
-              result.push(set.clone());
+        for (count, array_of_set) in &chunk_sets_by_count {
+          if *count < chunks_set.len() {
+            for set in array_of_set {
+              if set.is_subset(chunks_set) {
+                result.push(set.clone());
+              }
             }
           }
         }
-      }
 
-      combinations_cache.insert(chunks_key, result.clone());
-      result
+        entry.insert(result.clone());
+        result
+      }
     };
 
     module_graph.modules().values().par_bridge().map(|module| {
@@ -123,7 +123,7 @@ impl SplitChunksPlugin {
 
       let chunks_key = Self::get_key(belong_to_chunks.iter());
 
-      let mut temp = vec![];
+      let mut temp = Vec::with_capacity(self.cache_groups.len());
 
       for idx in 0..self.cache_groups.len() {
         let cache_group = &self.cache_groups[idx];
@@ -250,10 +250,10 @@ impl SplitChunksPlugin {
               key
             } else {
               let selected_chunks_key = match chunk_key_to_string.entry(selected_chunks_key) {
-                Entry::Occupied(entry) => {
+                hash_map::Entry::Occupied(entry) => {
                   entry.get().to_string()
                 },
-                Entry::Vacant(entry) => {
+                hash_map::Entry::Vacant(entry) => {
                   let key = format!("{:x}", selected_chunks_key);
                   entry.insert(key.clone());
                   key
