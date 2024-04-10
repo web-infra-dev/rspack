@@ -1,0 +1,39 @@
+---
+date: 2024-04-10 12:00:00
+---
+
+import { PackageManagerTabs } from '@theme';
+
+# Rspack 0.6 发布公告
+
+> 2024 年 4 月 10 日
+
+## 主要功能更新
+
+### 内置支持 mini-css-extract-plugin
+
+## 破坏性更新
+
+### 默认启用新版本 tree shaking
+
+新版本 tree shaking 采用了与 webpack 相同的算法，可以生成更高效和更小的代码。
+
+该功能在 `0.4.2` 版本引入并可通过 `experiments.rspackFuture.newTreeshaking` 开启，在 `0.6.0` 版本中已默认启用。
+
+### 移除 experiments.rspackFuture.disableApplyEntryLazily
+
+### 移除 compiler.build 和 compiler.rebuild
+
+### 移除 builtins.css
+
+### 升级 swc 到 0.90.x
+
+## 迁移指南
+
+### 使用 rspack.CssExtractRspackPlugin
+
+### 迁移 builtins.css 配置
+
+### 调用 compiler.run 执行构建
+
+### 升级 swc 插件

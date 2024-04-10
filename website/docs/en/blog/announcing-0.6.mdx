@@ -1,0 +1,40 @@
+---
+date: 2024-04-10 16:00:00
+---
+
+import { PackageManagerTabs } from '@theme';
+
+# Rspack 0.6 Release Announcement
+
+> April 10, 2024
+
+## Major Feature Updates
+
+### Built-in support for mini-css-extract-plugin
+
+## Breaking Changes
+
+### Enable new tree shaking by default
+
+The new tree shaking uses the same algorithm as webpack, which can generate more efficient and smaller code.
+
+This feature was introduced in `0.4.2` and can be enabled through `experiments.rspackFuture.newTreeshaking`, and has been enabled by default in `0.6.0`.
+
+### Remove experiments.rspackFuture.disableApplyEntryLazily
+
+### Remove compiler.build and compiler.rebuild
+
+### Remove builtins.css
+
+### Upgrade swc to 0.90.x
+
+## Migration Guide
+
+### Apply rspack.CssExtractRspackPlugin
+
+### Migrate builtins.css
+
+### Migrate to compiler.run
+
+### Upgrade the swc plugins
+
