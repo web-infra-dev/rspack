@@ -63,6 +63,15 @@ import { PackageManagerTabs } from '@theme';
 
 升级 Rust crate `swc_core` 到 `0.90.x`，这会对使用 swc wasm 插件的用户产生影响。
 
+
+### 默认开启 `experiments.rspackFuture.newTreeshaking`
+rspack 在0.1.0 支持了基本的 treeShaking 功能，由于最初的架构还未稳定, 我们使用了相对简单的方法实现了基础版的 treeShaking（仅支持未使用导出删除), 但是随着 rspack 功能的完善，架构逐渐稳定
+基础的 treeShaking 无法满足用户的需求, 比如： 
+1. 无法处理循环引用，无法给其他构建阶段足够的优化信息，实现进一步的优化 (mangleExports, concatenateModules, barrel exports optimization)。
+2. 经常出现一些 interop 相关的badcase，例如: worker-thread 模块，Common Js 模块，module federation 等
+为了解决以上问题，我们决定使用类似 webpack 的方法，自底向上重新实现整个优化流程，并在 0.4.2 引入 `experiments.rspackFuture.newTreeshaking` 配置，来实验性的开启新的优化算法, 经过4个月bug修复和优化，
+新的 treeShaking 算法已经相对稳定, 因此我们决定在 0.6.0 默认开启新的 treeShaking 算法。
+
 ## 迁移指南
 
 ### 使用 rspack.CssExtractRspackPlugin
@@ -122,3 +131,4 @@ module.exports = {
 ### 升级 swc 插件
 
 在 `0.6.0` 中，Rust crate `swc_core` 的版本升级到 `0.90.x`，使用到的 swc wasm 插件需要确保其使用的 `swc_core` 的版本一致性，否则可能产生无法预知的问题。
+
