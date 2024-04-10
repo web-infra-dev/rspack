@@ -82,39 +82,6 @@ __webpack_require__.initializeExposesData = {{
     );
     source += "__webpack_require__.getContainer = function() { throw new Error(\"should have __webpack_require__.getContainer\") };";
     source += "__webpack_require__.initContainer = function() { throw new Error(\"should have __webpack_require__.initContainer\") };";
-    //     } else {
-    //       source += &format!(
-    //         r#"
-    // __webpack_require__.getContainer = function(module, getScope) {{
-    //   var moduleMap = __webpack_require__.initializeExposesData.moduleMap;
-    //   {current_remote_get_scope} = getScope;
-    //   getScope = (
-    //     {has_own_property}(moduleMap, module)
-    //       ? moduleMap[module]()
-    //       : Promise.resolve().then(() => {{
-    //         throw new Error('Module "' + module + '" does not exist in container.');
-    //       }})
-    //   );
-    //   {current_remote_get_scope} = undefined;
-    //   return getScope;
-    // }}"#,
-    //         current_remote_get_scope = RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE,
-    //         has_own_property = RuntimeGlobals::HAS_OWN_PROPERTY
-    //       );
-    //       source += &format!(
-    //         r#"
-    // __webpack_require__.initContainer = function(shareScope, initScope) {{
-    //   if (!{share_scope_map}) return;
-    //   var name = __webpack_require__.initializeExposesData.shareScope;
-    //   var oldScope = {share_scope_map}[name];
-    //   if(oldScope && oldScope !== shareScope) throw new Error("Container initialization failed as it has already been initialized with a different share scope");
-    //   {share_scope_map}[name] = shareScope;
-    //   return {initialize_sharing}(name, initScope);
-    // }}"#,
-    //         share_scope_map = RuntimeGlobals::SHARE_SCOPE_MAP,
-    //         initialize_sharing = RuntimeGlobals::INITIALIZE_SHARING,
-    //       );
-    //     }
     Ok(RawSource::from(source).boxed())
   }
 

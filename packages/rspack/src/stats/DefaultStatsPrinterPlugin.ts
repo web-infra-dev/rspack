@@ -564,8 +564,14 @@ const SIMPLE_PRINTERS: Record<
 
 		return Array.isArray(childrenByOrder)
 			? undefined
-			: printer.print(context.type, items, context);
-	},
+			: printer.print(
+					context.type,
+					Object.keys(childrenByOrder).map(key => ({
+						type: key,
+						children: childrenByOrder[key]
+					})),
+					context
+				),
 	"chunk.childrenByOrder[].type": type => `${type}:`,
 	"chunk.childrenByOrder[].children[]": (id, { formatChunkId }) =>
 		isValidId(id) ? formatChunkId(id) : undefined,
