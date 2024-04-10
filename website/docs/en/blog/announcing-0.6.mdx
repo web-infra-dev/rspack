@@ -12,6 +12,29 @@ import { PackageManagerTabs } from '@theme';
 
 ### Built-in support for mini-css-extract-plugin
 
+Now you can use `rspack.CssExtractRspackPlugin` as a replacement for `mini-css-extract-plugin`.
+
+This is very useful in some scenarios, for example when the built-in CSS parser cannot meet your needs, there are more customized CSS module names, or you want to use some loaders that depend on the output of css-loader, but still want to extract the CSS into a separate file.
+
+For more details, please see [CssExtractRspackPlugin](plugins/rspack/css-extract-rspack-plugin.html#cssextractrspackplugin)
+
+```js
+const rspack = require('@rspack/core');
+module.exports = {
+  plugins: [new rspack.CssExtractRspackPlugin()],
+  module: {
+    rules: [
+      {
+        test: /\.css$/i,
+        use: [rspack.CssExtractRspackPlugin.loader, 'css-loader'],
+      },
+    ],
+  },
+};
+```
+
+### Enable new tree shaking by default
+
 ## Breaking Changes
 
 ### Remove experiments.rspackFuture.disableApplyEntryLazily
@@ -66,12 +89,12 @@ Upgraded the Rust crate `swc_core` to `0.90.x`. This will affect users of the sw
 In rspack 0.1.0, basic tree shaking functionality was introduced. Due to the initial architecture being unstable, we employed a relatively simplistic approach to implement the basic version of tree shaking (only support unused export variables elimination). However, as rspack's capabilities improved, the architecture gradually stabilized.
 
 The basic tree shaking functionality was insufficient to meet user needs, for example:
+
 1. It couldn't handle circular references and couldn't provide enough optimization information for other build stages to achieve further optimization (such as mangleExports, concatenateModules, barrel exports optimization).
 2. Some interoperability-related issues often occurred, such as worker-thread modules, Common Js modules, module federation, etc.
 
-To address these issues, we decided to adopt a webpack-like approach, re-implementing the entire optimization process from the bottom up. In version 0.4.2, we introduced the `experiments.rspackFuture.newTreeshaking` configuration to experimentally enable the new optimization algorithm. 
+To address these issues, we decided to adopt a webpack-like approach, re-implementing the entire optimization process from the bottom up. In version 0.4.2, we introduced the `experiments.rspackFuture.newTreeshaking` configuration to experimentally enable the new optimization algorithm.
 After four months of bug fixing and optimization, the new tree shaking algorithm has become relatively stable. Therefore, we've decided to default-enable the new tree shaking algorithm in version 0.6.0.
-
 
 ## Migration Guide
 
@@ -132,4 +155,3 @@ If it is necessary to configure some modules separately, you can use the [`rule.
 ### Upgrade the swc plugins
 
 In version `0.6.0`, the Rust crate `swc_core` has been upgraded to `0.90.x`. Users of the swc wasm plugin need to ensure version consistency with `swc_core` being used, otherwise, it may lead to unforeseen issues.
-

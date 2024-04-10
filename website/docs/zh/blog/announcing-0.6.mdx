@@ -12,6 +12,27 @@ import { PackageManagerTabs } from '@theme';
 
 ### 内置支持 mini-css-extract-plugin
 
+现在可以使用 rspack.CssExtractRspackPlugin 作为 mini-css-extract-plugin 的替代。
+
+这在一些场景很实用，例如当内置的 css 处理不能满足你的需求，有更定制化的 css module name 等，或者你想要使用一些依赖 css-loader 的 loader，但仍然想要将 css 提取成单独文件。
+
+详细配置见[CssExtractRspackPlugin](plugins/rspack/css-extract-rspack-plugin.html#cssextractrspackplugin)
+
+```js
+const rspack = require('@rspack/core');
+module.exports = {
+  plugins: [new rspack.CssExtractRspackPlugin()],
+  module: {
+    rules: [
+      {
+        test: /\.css$/i,
+        use: [rspack.CssExtractRspackPlugin.loader, 'css-loader'],
+      },
+    ],
+  },
+};
+```
+
 ### 默认启用新版本 tree shaking
 
 ## 破坏性更新
@@ -41,18 +62,18 @@ import { PackageManagerTabs } from '@theme';
 1. `exportsConvention` 的值从 `'asIs'`, `'camelCaseOnly'` 等变更为 `'as-is'`, `'camel-case-only'` 等，以保持与 webpack experiments css 的一致。
 2. `namedExports: false` 支持同时使用默认导出（default export）、命名导出（named export）和命名空间导出（namespace export），在此之前它只支持使用默认导出：
 
-    ```js
-    // v0.6.0 之前只支持使用默认导出
-    import classes from './index.module.css';
+   ```js
+   // v0.6.0 之前只支持使用默认导出
+   import classes from './index.module.css';
 
-    // 现在除默认导出之外，也支持：
-    // 命名空间导出
-    import * as classes from './index.module.css';
-    // 命名导出
-    import { class1, class2 } from './index.module.css';
-    // 默认导出和命名导出同时使用
-    import classes, { class1, class2 } from './index.module.css';    
-    ```
+   // 现在除默认导出之外，也支持：
+   // 命名空间导出
+   import * as classes from './index.module.css';
+   // 命名导出
+   import { class1, class2 } from './index.module.css';
+   // 默认导出和命名导出同时使用
+   import classes, { class1, class2 } from './index.module.css';
+   ```
 
 3. `namedExports` 的默认值从 `false` 变更为 `true`，这意味着你需要默认使用命名空间导入（例如 `import * as classes from './style.css'`）或命名导入（例如 `import { class1 } from './style.css'`），这将提高与未来[原生 CSS 模块](https://web.dev/articles/css-module-scripts)的兼容性。而这并不意味着你需要一次性迁移所有的导入，你可以通过设置 `namedExports: false` 来禁用此行为，并且由于现在 `namedExports: false` 也支持命名导出和命名空间导出，因此你可以逐步迁移这些导入。
 4. `localIdentName` 的默认值在从在开发模式下 `'[path][name][ext]__[local]'` 和在生产模式下 `'[hash]'` 变更为在开发和生产模式下都是 `'[uniqueName]-[id]-[local]'`，这将略微改善 CSS 产物的 gzip 压缩大小。
@@ -80,8 +101,8 @@ rspack 在0.1.0 支持了基本的 treeShaking 功能，由于最初的架构还
 
 1. 使用 `module.parser["css/auto"].namedExports` 替代 `builtins.css.namedExports`。
 2. 使用 `module.generator["css/auto"].exportsOnly` 替代 `builtins.css.modules.exportsOnly`。
-2. 使用 `module.generator["css/auto"].exportsConvention` 替代 `builtins.css.modules.localsConvention`。
-2. 使用 `module.generator["css/auto"].localIdentName` 替代 `builtins.css.modules.localIdentName`。
+3. 使用 `module.generator["css/auto"].exportsConvention` 替代 `builtins.css.modules.localsConvention`。
+4. 使用 `module.generator["css/auto"].localIdentName` 替代 `builtins.css.modules.localIdentName`。
 
 以上出现的 `"css/auto"` 为 CSS 默认的模块类型，可根据需要修改为 `"css"` 或 `"css/module"`。
 
