@@ -134,6 +134,7 @@ impl UpdateModuleGraph {
     let module_graph = compilation.get_module_graph();
     // calc need_check_isolated_module_ids & regen_module_issues
     for id in deps_builder.get_force_build_modules() {
+      compilation.cache.build_module_occasion.remove_cache(id);
       if let Some(mgm) = compilation
         .get_module_graph()
         .module_graph_module_by_identifier(id)

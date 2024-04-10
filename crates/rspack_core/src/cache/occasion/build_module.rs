@@ -72,7 +72,7 @@ impl BuildModuleOccasion {
     let mut need_cache = false;
     let mut last_build_result = None;
     let id = module.identifier().to_owned();
-    if module.as_normal_module().is_some() {
+    if let Some(module) = module.as_normal_module_mut() {
       // normal module
       // TODO cache all module type
       if let Some((snapshot, data, module_data, extra_data)) = storage.get(&id) {
@@ -86,20 +86,18 @@ impl BuildModuleOccasion {
           false
         };
         if valid {
-          if let Some(module) = module.as_normal_module_mut() {
-            if let Some(module_data) = module_data {
-              *module.source_mut() = module_data.source;
-              *module.code_generation_dependencies_mut() = module_data.code_generation_dependencies;
-              *module.presentational_dependencies_mut() = module_data.presentational_dependencies;
-              if let (Some(build_info), Some(build_meta)) =
-                (module_data.build_info, module_data.build_meta)
-              {
-                module.set_module_build_info_and_meta(build_info, build_meta);
-              }
+          if let Some(module_data) = module_data {
+            *module.source_mut() = module_data.source;
+            *module.code_generation_dependencies_mut() = module_data.code_generation_dependencies;
+            *module.presentational_dependencies_mut() = module_data.presentational_dependencies;
+            if let (Some(build_info), Some(build_meta)) =
+              (module_data.build_info, module_data.build_meta)
+            {
+              module.set_module_build_info_and_meta(build_info, build_meta);
             }
-            if let Some(extra_data) = extra_data {
-              module.parser_and_generator_mut().resume(&extra_data);
-            }
+          }
+          if let Some(extra_data) = extra_data {
+            module.parser_and_generator_mut().resume(&extra_data);
           }
           return Ok((Ok(data), true));
         } else {
