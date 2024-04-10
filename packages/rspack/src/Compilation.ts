@@ -409,7 +409,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			!context.forToString
 		);
 		options.loggingDebug = []
-			.concat(optionsOrFallback(options.loggingDebug, []))
+			.concat(optionsOrFallback(options.loggingDebug, []) || [])
 			.map(normalizeFilter);
 		options.modulesSpace =
 			options.modulesSpace || (context.forToString ? 15 : Infinity);
@@ -475,8 +475,8 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			assetInfoUpdateOrFunction === undefined
 				? assetInfoUpdateOrFunction
 				: typeof assetInfoUpdateOrFunction === "function"
-					? jsAssetInfo => toJsAssetInfo(assetInfoUpdateOrFunction(jsAssetInfo))
-					: toJsAssetInfo(assetInfoUpdateOrFunction)
+				? jsAssetInfo => toJsAssetInfo(assetInfoUpdateOrFunction(jsAssetInfo))
+				: toJsAssetInfo(assetInfoUpdateOrFunction)
 		);
 	}
 
