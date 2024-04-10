@@ -1318,28 +1318,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         .expect_get_mut(&chunk_group_info_ukey);
       let chunk_group_ukey = chunk_group_info.chunk_group;
 
-      let chunk_group = self
-        .compilation
-        .chunk_group_by_ukey
-        .expect_get(&chunk_group_ukey);
       let runtime = chunk_group_info.runtime.clone();
-
-      // calculate minAvailableModules
-      let mut resulting_available_modules = chunk_group_info.min_available_modules.clone();
-
-      for chunk in &chunk_group.chunks {
-        for m in self
-          .compilation
-          .chunk_graph
-          .get_chunk_modules(chunk, &self.compilation.get_module_graph())
-        {
-          let m_id = self
-            .module_ids
-            .get(&m.identifier())
-            .expect("should have module id");
-          resulting_available_modules |= m_id;
-        }
-      }
 
       let resulting_available_modules =
         chunk_group_info.calculate_resulting_available_modules(self.compilation, &self.module_ids);
@@ -1529,12 +1508,12 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
           let orig = cgi.min_available_modules.clone();
           cgi.min_available_modules &= modules_to_be_merged;
-          cgi.invalidate_resulting_available_modules();
           changed = orig != cgi.min_available_modules;
         }
       }
 
       if changed {
+        cgi.invalidate_resulting_available_modules();
         self.outdated_chunk_group_info.insert(info_ukey);
       }
     }
