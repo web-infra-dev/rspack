@@ -107,7 +107,7 @@ jobs:
   test-mac:
     name: Test Mac
     needs: [get-runner-labels, check-changed]
-    if: (github.ref_name == 'main' || contains(github.event.pull_request.title, '!macos')) && ${{ needs.check-changed.outputs.changed == 'true' }}
+    if: (github.ref_name == 'main' || contains(github.event.pull_request.title, '!macos')) && (needs.check-changed.outputs.changed == 'true')
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-apple-darwin
