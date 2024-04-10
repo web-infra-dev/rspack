@@ -39,10 +39,10 @@ impl SplitChunksPlugin {
     }
   }
 
-  async fn inner_impl(&self, compilation: &mut Compilation) -> Result<()> {
+  fn inner_impl(&self, compilation: &mut Compilation) -> Result<()> {
     let logger = compilation.get_logger(self.name());
     let start = logger.time("prepare module group map");
-    let mut module_group_map = self.prepare_module_group_map(compilation).await?;
+    let mut module_group_map = self.prepare_module_group_map(compilation)?;
     tracing::trace!("prepared module_group_map {:#?}", module_group_map);
     logger.time_end(start);
 
@@ -171,7 +171,7 @@ impl Plugin for SplitChunksPlugin {
     _ctx: rspack_core::PluginContext,
     args: rspack_core::OptimizeChunksArgs<'_>,
   ) -> rspack_core::PluginOptimizeChunksOutput {
-    self.inner_impl(args.compilation).await?;
+    self.inner_impl(args.compilation)?;
     Ok(())
   }
 }

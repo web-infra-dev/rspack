@@ -61,7 +61,7 @@ impl SplitChunksPlugin {
   }
 
   #[tracing::instrument(skip_all)]
-  pub(crate) async fn prepare_module_group_map(
+  pub(crate) fn prepare_module_group_map(
     &self,
     compilation: &mut Compilation,
   ) -> Result<ModuleGroupMap> {

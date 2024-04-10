@@ -8,8 +8,9 @@ use async_trait::async_trait;
 use indicatif::{ProgressBar, ProgressDrawTarget, ProgressStyle};
 use linked_hash_map::LinkedHashMap as HashMap;
 use rspack_core::{
-  ApplyContext, BoxModule, Compilation, CompilationParams, CompilationSeal, CompilerOptions,
-  MakeParam, ModuleIdentifier, OptimizeChunksArgs, Plugin, PluginContext,
+  ApplyContext, BoxModule, Compilation, CompilationChunkIds, CompilationModuleIds,
+  CompilationOptimizeChunks, CompilationOptimizeDependencies, CompilationParams, CompilationSeal,
+  CompilerOptions, MakeParam, ModuleIdentifier, OptimizeChunksArgs, Plugin, PluginContext,
   PluginOptimizeChunksOutput,
 };
 use rspack_error::Result;
@@ -308,6 +309,12 @@ fn seal(&self, _compilation: &mut Compilation) -> Result<()> {
   Ok(())
 }
 
+#[plugin_hook(CompilationOptimizeDependencies for ProgressPlugin)]
+fn optimize_dependencies(&self, _compilation: &mut Compilation) -> Result<Option<bool>> {
+  self.sealing_hooks_report("dependencies", 2);
+  Ok(None)
+}
+
 #[plugin_hook(AsyncSeries<Compilation> for ProgressPlugin)]
 async fn finish_modules(&self, _compilation: &mut Compilation) -> Result<()> {
   self.sealing_hooks_report("finish modules", 0);
@@ -326,6 +333,12 @@ async fn after_optimize_modules(&self, _compilation: &mut Compilation) -> Result
   Ok(())
 }
 
+#[plugin_hook(CompilationOptimizeChunks for ProgressPlugin)]
+fn optimize_chunks(&self, _compilation: &mut Compilation) -> Result<Option<bool>> {
+  self.sealing_hooks_report("chunk optimization", 9);
+  Ok(None)
+}
+
 #[plugin_hook(AsyncSeries<Compilation> for ProgressPlugin)]
 async fn optimize_tree(&self, _compilation: &mut Compilation) -> Result<()> {
   self.sealing_hooks_report("module and chunk tree optimization", 11);
@@ -336,6 +349,18 @@ async fn optimize_tree(&self, _compilation: &mut Compilation) -> Result<()> {
 async fn optimize_chunk_modules(&self, _compilation: &mut Compilation) -> Result<Option<bool>> {
   self.sealing_hooks_report("chunk modules optimization", 13);
   Ok(None)
+}
+
+#[plugin_hook(CompilationModuleIds for ProgressPlugin)]
+fn module_ids(&self, _modules: &mut Compilation) -> Result<()> {
+  self.sealing_hooks_report("module ids", 16);
+  Ok(())
+}
+
+#[plugin_hook(CompilationChunkIds for ProgressPlugin)]
+fn chunk_ids(&self, _compilation: &mut Compilation) -> Result<()> {
+  self.sealing_hooks_report("chunk ids", 21);
+  Ok(())
 }
 
 #[plugin_hook(AsyncSeries<Compilation> for ProgressPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONAL)]
@@ -413,6 +438,11 @@ impl Plugin for ProgressPlugin {
     ctx
       .context
       .compilation_hooks
+      .optimize_dependencies
+      .tap(optimize_dependencies::new(self));
+    ctx
+      .context
+      .compilation_hooks
       .optimize_modules
       .tap(optimize_modules::new(self));
     ctx
@@ -423,6 +453,11 @@ impl Plugin for ProgressPlugin {
     ctx
       .context
       .compilation_hooks
+      .optimize_chunks
+      .tap(optimize_chunks::new(self));
+    ctx
+      .context
+      .compilation_hooks
       .optimize_tree
       .tap(optimize_tree::new(self));
     ctx
@@ -430,6 +465,16 @@ impl Plugin for ProgressPlugin {
       .compilation_hooks
       .optimize_chunk_modules
       .tap(optimize_chunk_modules::new(self));
+    ctx
+      .context
+      .compilation_hooks
+      .module_ids
+      .tap(module_ids::new(self));
+    ctx
+      .context
+      .compilation_hooks
+      .chunk_ids
+      .tap(chunk_ids::new(self));
     ctx
       .context
       .compilation_hooks
@@ -446,30 +491,6 @@ impl Plugin for ProgressPlugin {
       .compiler_hooks
       .after_emit
       .tap(after_emit::new(self));
-    Ok(())
-  }
-
-  async fn optimize_dependencies(&self, _compilation: &mut Compilation) -> Result<Option<()>> {
-    self.sealing_hooks_report("dependencies", 2);
-    Ok(None)
-  }
-
-  async fn optimize_chunks(
-    &self,
-    _ctx: PluginContext,
-    _args: OptimizeChunksArgs<'_>,
-  ) -> PluginOptimizeChunksOutput {
-    self.sealing_hooks_report("chunk optimization", 9);
-    Ok(())
-  }
-
-  fn module_ids(&self, _modules: &mut Compilation) -> Result<()> {
-    self.sealing_hooks_report("module ids", 16);
-    Ok(())
-  }
-
-  fn chunk_ids(&self, _compilation: &mut Compilation) -> Result<()> {
-    self.sealing_hooks_report("chunk ids", 21);
     Ok(())
   }
 }

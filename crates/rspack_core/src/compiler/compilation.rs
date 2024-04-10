@@ -57,11 +57,16 @@ pub type CompilationExecuteModuleHook =
   SyncSeries4Hook<ModuleIdentifier, IdentifierSet, CodeGenerationResults, ExecuteModuleId>;
 pub type CompilationFinishModulesHook = AsyncSeriesHook<Compilation>;
 define_hook!(CompilationSeal: SyncSeries(compilation: &mut Compilation));
+define_hook!(CompilationOptimizeDependencies: SyncSeriesBail(compilation: &mut Compilation) -> bool);
 pub type CompilationOptimizeModulesHook = AsyncSeriesBailHook<Compilation, bool>;
 pub type CompilationAfterOptimizeModulesHook = AsyncSeriesHook<Compilation>;
+define_hook!(CompilationOptimizeChunks: SyncSeriesBail(compilation: &mut Compilation) -> bool);
 pub type CompilationOptimizeTreeHook = AsyncSeriesHook<Compilation>;
 pub type CompilationOptimizeChunkModulesHook = AsyncSeriesBailHook<Compilation, bool>;
+define_hook!(CompilationModuleIds: SyncSeries(compilation: &mut Compilation));
+define_hook!(CompilationChunkIds: SyncSeries(compilation: &mut Compilation));
 pub type CompilationRuntimeModuleHook = AsyncSeries3Hook<Compilation, ModuleIdentifier, ChunkUkey>;
+define_hook!(CompilationOptimizeCodeGeneration: SyncSeries(compilation: &mut Compilation));
 define_hook!(CompilationChunkHash: SyncSeries(compilation: &Compilation, chunk_ukey: &ChunkUkey, hasher: &mut RspackHash));
 define_hook!(CompilationContentHash: SyncSeries(compilation: &Compilation, chunk_ukey: &ChunkUkey, hashes: &mut HashMap<SourceType, RspackHash>));
 define_hook!(CompilationRenderManifest: AsyncSeries(compilation: &Compilation, chunk_ukey: &ChunkUkey, manifest: &mut Vec<RenderManifestEntry>, diagnostics: &mut Vec<Diagnostic>));
@@ -78,11 +83,16 @@ pub struct CompilationHooks {
   pub execute_module: CompilationExecuteModuleHook,
   pub finish_modules: CompilationFinishModulesHook,
   pub seal: CompilationSealHook,
+  pub optimize_dependencies: CompilationOptimizeDependenciesHook,
   pub optimize_modules: CompilationOptimizeModulesHook,
   pub after_optimize_modules: CompilationAfterOptimizeModulesHook,
+  pub optimize_chunks: CompilationOptimizeChunksHook,
   pub optimize_tree: CompilationOptimizeTreeHook,
   pub optimize_chunk_modules: CompilationOptimizeChunkModulesHook,
+  pub module_ids: CompilationModuleIdsHook,
+  pub chunk_ids: CompilationChunkIdsHook,
   pub runtime_module: CompilationRuntimeModuleHook,
+  pub optimize_code_generation: CompilationOptimizeCodeGenerationHook,
   pub chunk_hash: CompilationChunkHashHook,
   pub content_hash: CompilationContentHashHook,
   pub render_manifest: CompilationRenderManifestHook,
@@ -179,6 +189,10 @@ pub struct Compilation {
 }
 
 impl Compilation {
+  pub const OPTIMIZE_CHUNKS_STAGE_BASIC: i32 = -10;
+  pub const OPTIMIZE_CHUNKS_STAGE_DEFAULT: i32 = 0;
+  pub const OPTIMIZE_CHUNKS_STAGE_ADVANCED: i32 = 10;
+
   pub const PROCESS_ASSETS_STAGE_ADDITIONAL: i32 = -2000;
   pub const PROCESS_ASSETS_STAGE_PRE_PROCESS: i32 = -1000;
   pub const PROCESS_ASSETS_STAGE_DERIVED: i32 = -200;
@@ -885,7 +899,13 @@ impl Compilation {
 
     let start = logger.time("optimize dependencies");
     // https://github.com/webpack/webpack/blob/d15c73469fd71cf98734685225250148b68ddc79/lib/Compilation.js#L2812-L2814
-    while plugin_driver.optimize_dependencies(self).await?.is_some() {}
+    while matches!(
+      plugin_driver
+        .compilation_hooks
+        .optimize_dependencies
+        .call(self)?,
+      Some(true)
+    ) {}
     logger.time_end(start);
 
     // if self.options.is_new_tree_shaking() {
@@ -908,7 +928,13 @@ impl Compilation {
         .after_optimize_modules
         .call(compilation)
         .await?;
-      plugin_driver.optimize_chunks(compilation).await?;
+      while matches!(
+        plugin_driver
+          .compilation_hooks
+          .optimize_chunks
+          .call(compilation)?,
+        Some(true)
+      ) {}
       Ok(compilation)
     })
     .await?;
@@ -930,17 +956,20 @@ impl Compilation {
     logger.time_end(start);
 
     let start = logger.time("module ids");
-    plugin_driver.module_ids(self)?;
+    plugin_driver.compilation_hooks.module_ids.call(self)?;
     logger.time_end(start);
 
     let start = logger.time("chunk ids");
-    plugin_driver.chunk_ids(self)?;
+    plugin_driver.compilation_hooks.chunk_ids.call(self)?;
     logger.time_end(start);
 
     self.assign_runtime_ids();
 
     let start = logger.time("optimize code generation");
-    plugin_driver.optimize_code_generation(self).await?;
+    plugin_driver
+      .compilation_hooks
+      .optimize_code_generation
+      .call(self)?;
     logger.time_end(start);
 
     let start = logger.time("code generation");

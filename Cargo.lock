@@ -3066,6 +3066,7 @@ dependencies = [
  "regex",
  "rspack_core",
  "rspack_error",
+ "rspack_hook",
  "rspack_util",
  "rustc-hash",
 ]
@@ -3289,6 +3290,7 @@ dependencies = [
  "async-trait",
  "rspack_core",
  "rspack_error",
+ "rspack_hook",
 ]
 
 [[package]]
@@ -3442,6 +3444,8 @@ dependencies = [
  "async-trait",
  "rspack_core",
  "rspack_database",
+ "rspack_error",
+ "rspack_hook",
 ]
 
 [[package]]
@@ -3450,6 +3454,8 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "rspack_core",
+ "rspack_error",
+ "rspack_hook",
  "rustc-hash",
 ]
 

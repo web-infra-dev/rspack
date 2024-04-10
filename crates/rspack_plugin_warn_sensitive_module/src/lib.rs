@@ -2,7 +2,10 @@
 
 use std::collections::HashMap;
 
-use rspack_core::{Compilation, CompilationSeal, Logger, Module, ModuleGraph, Plugin};
+use rspack_core::{
+  ApplyContext, Compilation, CompilationSeal, CompilerOptions, Logger, Module, ModuleGraph, Plugin,
+  PluginContext,
+};
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 
@@ -92,5 +95,14 @@ fn seal(&self, compilation: &mut Compilation) -> Result<()> {
 impl Plugin for WarnCaseSensitiveModulesPlugin {
   fn name(&self) -> &'static str {
     "rspack.WarnCaseSensitiveModulesPlugin"
+  }
+
+  fn apply(
+    &self,
+    ctx: PluginContext<&mut ApplyContext>,
+    _options: &mut CompilerOptions,
+  ) -> Result<()> {
+    ctx.context.compilation_hooks.seal.tap(seal::new(self));
+    Ok(())
   }
 }

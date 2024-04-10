@@ -15,5 +15,6 @@ rayon        = { workspace = true }
 regex        = { workspace = true }
 rspack_core  = { path = "../rspack_core" }
 rspack_error = { path = "../rspack_error" }
+rspack_hook  = { path = "../rspack_hook" }
 rspack_util  = { path = "../rspack_util" }
 rustc-hash   = { workspace = true }

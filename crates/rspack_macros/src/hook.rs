@@ -28,6 +28,11 @@ impl Parse for DefineHookInput {
         let ret = TypePath::parse(input)?;
         ExecKind::AsyncSeriesBail { ret }
       }
+      "SyncSeriesBail" => {
+        <Token![->]>::parse(input)?;
+        let ret = TypePath::parse(input)?;
+        ExecKind::SyncSeriesBail { ret }
+      }
       "AsyncSeries" => ExecKind::AsyncSeries,
       "AsyncParallel" => ExecKind::AsyncParallel,
       "SyncSeries" => ExecKind::SyncSeries,
@@ -143,37 +148,50 @@ enum ExecKind {
   AsyncSeriesBail { ret: TypePath },
   AsyncParallel,
   SyncSeries,
+  SyncSeriesBail { ret: TypePath },
 }
 
 impl ExecKind {
   pub fn is_async(&self) -> bool {
     match self {
       Self::AsyncSeries | Self::AsyncSeriesBail { .. } | Self::AsyncParallel => true,
-      Self::SyncSeries => false,
+      Self::SyncSeries | Self::SyncSeriesBail { .. } => false,
     }
   }
 
   pub fn return_type(&self) -> TokenStream {
     match self {
-      Self::AsyncSeriesBail { ret } => {
+      Self::AsyncSeriesBail { ret } | Self::SyncSeriesBail { ret } => {
         quote! { rspack_hook::__macro_helper::Result<std::option::Option<#ret>> }
       }
       _ => quote! { rspack_hook::__macro_helper::Result<()> },
     }
   }
 
+  fn additional_taps(&self) -> TokenStream {
+    let call = if self.is_async() {
+      quote! { additional_taps.extend(interceptor.call(self).await?); }
+    } else {
+      quote! { additional_taps.extend(interceptor.call_blocking(self)?); }
+    };
+    quote! {
+      let mut additional_taps = std::vec::Vec::new();
+      for interceptor in self.interceptors.iter() {
+        #call
+      }
+      let mut all_taps = std::vec::Vec::new();
+      all_taps.extend(&additional_taps);
+      all_taps.extend(&self.taps);
+      all_taps.sort_by_key(|hook| hook.stage());
+    }
+  }
+
   pub fn body(&self, args: Punctuated<&Ident, Comma>) -> TokenStream {
+    let additional_taps = self.additional_taps();
     match self {
       Self::AsyncSeries => {
         quote! {
-          let mut additional_taps = std::vec::Vec::new();
-          for interceptor in self.interceptors.iter() {
-            additional_taps.extend(interceptor.call(self).await?);
-          }
-          let mut all_taps = std::vec::Vec::new();
-          all_taps.extend(&additional_taps);
-          all_taps.extend(&self.taps);
-          all_taps.sort_by_key(|hook| hook.stage());
+          #additional_taps
           for tap in all_taps {
             tap.run(#args).await?;
           }
@@ -182,16 +200,9 @@ impl ExecKind {
       }
       Self::AsyncSeriesBail { .. } => {
         quote! {
-          let mut additional_taps = std::vec::Vec::new();
-          for interceptor in self.interceptors.iter() {
-            additional_taps.extend(interceptor.call(self).await?);
-          }
-          let mut all_taps = std::vec::Vec::new();
-          all_taps.extend(&additional_taps);
-          all_taps.extend(&self.taps);
-          all_taps.sort_by_key(|hook| hook.stage());
-          for hook in all_taps {
-            if let Some(res) = hook.run(#args).await? {
+          #additional_taps
+          for tap in all_taps {
+            if let Some(res) = tap.run(#args).await? {
               return Ok(Some(res));
             }
           }
@@ -200,14 +211,7 @@ impl ExecKind {
       }
       Self::AsyncParallel => {
         quote! {
-          let mut additional_taps = std::vec::Vec::new();
-          for interceptor in self.interceptors.iter() {
-            additional_taps.extend(interceptor.call(self).await?);
-          }
-          let mut all_taps = std::vec::Vec::new();
-          all_taps.extend(&additional_taps);
-          all_taps.extend(&self.taps);
-          all_taps.sort_by_key(|hook| hook.stage());
+          #additional_taps
           let futs: std::vec::Vec<_> = all_taps.iter().map(|t| t.run(#args)).collect();
           futures_concurrency::vec::TryJoin(futs).await?;
           Ok(())
@@ -215,18 +219,22 @@ impl ExecKind {
       }
       Self::SyncSeries => {
         quote! {
-          let mut additional_taps = std::vec::Vec::new();
-          for interceptor in self.interceptors.iter() {
-            additional_taps.extend(interceptor.call_blocking(self)?);
-          }
-          let mut all_taps = std::vec::Vec::new();
-          all_taps.extend(&additional_taps);
-          all_taps.extend(&self.taps);
-          all_taps.sort_by_key(|hook| hook.stage());
+          #additional_taps
           for tap in all_taps {
             tap.run(#args)?;
           }
           Ok(())
+        }
+      }
+      Self::SyncSeriesBail { .. } => {
+        quote! {
+          #additional_taps
+          for tap in all_taps {
+            if let Some(res) = tap.run(#args)? {
+              return Ok(Some(res));
+            }
+          }
+          Ok(None)
         }
       }
     }

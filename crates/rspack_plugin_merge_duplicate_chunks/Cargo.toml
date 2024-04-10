@@ -11,4 +11,6 @@ version    = "0.1.0"
 async-trait = { workspace = true }
 rustc-hash  = { workspace = true }
 
-rspack_core = { path = "../rspack_core" }
+rspack_core  = { path = "../rspack_core" }
+rspack_error = { path = "../rspack_error" }
+rspack_hook  = { path = "../rspack_hook" }

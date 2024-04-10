@@ -79,30 +79,6 @@ pub trait Plugin: Debug + Send + Sync {
   ) -> PluginRuntimeRequirementsInTreeOutput {
     Ok(())
   }
-
-  async fn optimize_chunks(
-    &self,
-    _ctx: PluginContext,
-    _args: OptimizeChunksArgs<'_>,
-  ) -> PluginOptimizeChunksOutput {
-    Ok(())
-  }
-
-  async fn optimize_dependencies(&self, _compilation: &mut Compilation) -> Result<Option<()>> {
-    Ok(None)
-  }
-
-  async fn optimize_code_generation(&self, _compilation: &mut Compilation) -> Result<Option<()>> {
-    Ok(None)
-  }
-
-  fn module_ids(&self, _modules: &mut Compilation) -> Result<()> {
-    Ok(())
-  }
-
-  fn chunk_ids(&self, _compilation: &mut Compilation) -> Result<()> {
-    Ok(())
-  }
 }
 
 pub type BoxPlugin = Box<dyn Plugin>;

@@ -3,11 +3,13 @@ use std::collections::VecDeque;
 
 use rspack_core::{
   get_entry_runtime, is_exports_object_referenced, is_no_exports_referenced, merge_runtime,
-  AsyncDependenciesBlockIdentifier, BuildMetaExportsType, Compilation, ConnectionState,
-  DependenciesBlock, DependencyId, ExportsInfoId, ExtendedReferencedExport, GroupOptions,
-  ModuleIdentifier, Plugin, ReferencedExport, RuntimeSpec, UsageState,
+  AsyncDependenciesBlockIdentifier, BuildMetaExportsType, Compilation,
+  CompilationOptimizeDependencies, ConnectionState, DependenciesBlock, DependencyId, ExportsInfoId,
+  ExtendedReferencedExport, GroupOptions, ModuleIdentifier, Plugin, ReferencedExport, RuntimeSpec,
+  UsageState,
 };
 use rspack_error::Result;
+use rspack_hook::{plugin, plugin_hook};
 use rspack_identifier::IdentifierMap;
 use rspack_util::swc::join_atom;
 use rustc_hash::FxHashMap as HashMap;
@@ -431,6 +433,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
   }
 }
 
+#[plugin]
 #[derive(Debug)]
 pub struct FlagDependencyUsagePlugin {
   global: bool,
@@ -438,15 +441,28 @@ pub struct FlagDependencyUsagePlugin {
 
 impl FlagDependencyUsagePlugin {
   pub fn new(global: bool) -> Self {
-    Self { global }
+    Self::new_inner(global)
   }
 }
 
-#[async_trait::async_trait]
+#[plugin_hook(CompilationOptimizeDependencies for FlagDependencyUsagePlugin)]
+fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+  let mut proxy = FlagDependencyUsagePluginProxy::new(self.global, compilation);
+  proxy.apply();
+  Ok(None)
+}
+
 impl Plugin for FlagDependencyUsagePlugin {
-  async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<()>> {
-    let mut proxy = FlagDependencyUsagePluginProxy::new(self.global, compilation);
-    proxy.apply();
-    Ok(None)
+  fn apply(
+    &self,
+    ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
+    _options: &mut rspack_core::CompilerOptions,
+  ) -> Result<()> {
+    ctx
+      .context
+      .compilation_hooks
+      .optimize_dependencies
+      .tap(optimize_dependencies::new(self));
+    Ok(())
   }
 }
