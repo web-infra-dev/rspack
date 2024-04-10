@@ -92,9 +92,9 @@ In addition, there are some changes to the default values:
 5. The default value of `exportsOnly` in `target: 'node'` has changed from `false` to `true`.
 6. The default rule type for CSS has changed from `css` to `css/auto`. `css/auto` will automatically process CSS files with `.module.` or `.modules.` as infixes as [CSS Modules](https://github.com/css-modules/css-modules), consistent with [`css-loader`'s `modules.auto: true`](https://github.com/webpack-contrib/css-loader?tab=readme-ov-file#auto), which will [simplify the writing rules for using less or sass with CSS Modules](https://github.com/webpack/webpack/issues/16572).
 
-### Upgrade swc to 0.90.x
+### Upgrade SWC to 0.90.x
 
-Upgraded the Rust crate `swc_core` to `0.90.x`. This will affect users of the swc wasm plugin.
+Upgraded the Rust crate `swc_core` to `0.90.x`. This will affect users of the SWC Wasm plugin.
 
 ### Emit warnings when css order is inconsistent in multiple chunks
 
@@ -193,6 +193,6 @@ If it is necessary to configure some modules separately, you can use the [`rule.
 
 `compiler.build` or `compiler.rebuild` have been deprecated. Please switch to `compiler.run` for both building and rebuilding.
 
-### Upgrade the swc plugins
+### Upgrade the SWC plugins
 
-In version `0.6.0`, the Rust crate `swc_core` has been upgraded to `0.90.x`. Users of the swc wasm plugin need to ensure version consistency with `swc_core` being used, otherwise, it may lead to unforeseen issues.
+In version `0.6.0`, the Rust crate `swc_core` has been upgraded to `0.90.x`. Users of the SWC Wasm plugin need to ensure version consistency with `swc_core` being used, otherwise, it may lead to unforeseen issues.
