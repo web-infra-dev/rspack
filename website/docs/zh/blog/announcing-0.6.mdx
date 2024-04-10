@@ -24,9 +24,13 @@ import { PackageManagerTabs } from '@theme';
 
 ### 移除 compiler.build 和 compiler.rebuild
 
+`compiler.build` 与 `compiler.rebuild` 不属于 Webpack 公开 API，目前已经被移除。
+
 ### 移除 builtins.css
 
 ### 升级 swc 到 0.90.x
+
+升级 Rust crate `swc_core` 到 `0.90.x`，这会对使用 swc wasm 插件的用户产生影响。
 
 ## 迁移指南
 
@@ -36,4 +40,8 @@ import { PackageManagerTabs } from '@theme';
 
 ### 调用 compiler.run 执行构建
 
+`compiler.build` 或 `compiler.rebuild` 已经被废弃，请切换到 `compiler.run` 进行构建，与重新构建。
+
 ### 升级 swc 插件
+
+在 `0.6.0` 中，Rust crate `swc_core` 的版本升级到 `0.90.x`，使用到的 swc wasm 插件需要确保其使用的 `swc_core` 的版本一致性，否则可能产生无法预知的问题。
