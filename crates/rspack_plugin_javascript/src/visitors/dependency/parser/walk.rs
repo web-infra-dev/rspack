@@ -1073,6 +1073,7 @@ impl<'parser> JavascriptParser<'parser> {
       Pat::Expr(expr) => self.walk_expression(expr),
       Pat::Ident(ident) => self.walk_identifier(ident),
       Pat::Invalid(_) => (),
+      _ => (),
     }
   }
 
