@@ -861,6 +861,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			object.names = chunk.names;
 			object.files = chunk.files;
 			object.auxiliaryFiles = chunk.auxiliaryFiles;
+			object.childrenByOrder = chunk.childrenByOrder;
 		},
 		ids: (object, chunk) => {
 			object.id = chunk.id;

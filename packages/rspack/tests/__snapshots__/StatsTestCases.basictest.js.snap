@@ -275,6 +275,20 @@ exports[`StatsTestCases should print correct stats for parse-error 1`] = `
 Rspack compiled with 1 error"
 `;
 
+exports[`StatsTestCases should print correct stats for prefetch-preload-mixed 1`] = `
+"chunk a1.js (a1) <{74}>
+chunk c2.js (c2) <{76}>
+chunk c1.js (c1) <{76}>
+chunk b3.js (b3) <{751}>
+chunk b2.js (b2) <{751}>
+chunk a.js (a) <{909}> >{330}< >{740}< (prefetch: {330} {740})
+chunk a2.js (a2) <{74}>
+chunk b.js (b) <{909}> >{438}< >{439}< >{826}< (prefetch: {826} {438}) (preload: {439})
+chunk c.js (c) <{909}> >{380}< >{433}< (preload: {433} {380})
+chunk b1.js (b1) <{751}>
+chunk main.js (main) >{74}< >{751}< >{76}< (prefetch: {74} {751} {76}) [entry]"
+`;
+
 exports[`StatsTestCases should print correct stats for reasons 1`] = `
 "./a.js
   cjs require ./a
