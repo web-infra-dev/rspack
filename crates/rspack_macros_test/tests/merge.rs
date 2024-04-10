@@ -1,20 +1,8 @@
 use rspack_macros::MergeFrom;
-
-mod rspack_util {
-  pub trait MergeFrom: Clone {
-    fn merge_from(self, other: &Self) -> Self;
-  }
-
-  impl MergeFrom for String {
-    fn merge_from(self, other: &Self) -> Self {
-      other.clone()
-    }
-  }
-}
+use rspack_util::MergeFrom;
 
 mod enum_fields {
   use super::*;
-  use crate::rspack_util::MergeFrom;
 
   #[derive(Debug, Clone, PartialEq, Eq, MergeFrom)]
   enum Test {
@@ -48,8 +36,8 @@ mod enum_fields {
 }
 
 mod enum_base {
+
   use super::*;
-  use crate::rspack_util::MergeFrom;
 
   #[derive(Debug, Clone, PartialEq, Eq, MergeFrom)]
   #[merge_from(enum_base)]

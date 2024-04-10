@@ -322,32 +322,34 @@ impl JsPlugin {
     (header.boxed(), RawSource::from(startup.join("\n")).boxed())
   }
 
-  pub async fn render_main(&self, args: &rspack_core::RenderManifestArgs<'_>) -> Result<BoxSource> {
-    let compilation = args.compilation;
+  pub async fn render_main(
+    &self,
+    compilation: &Compilation,
+    chunk_ukey: &ChunkUkey,
+  ) -> Result<BoxSource> {
     let drive = Self::get_compilation_drives(compilation);
-    let chunk = args.chunk();
+    let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
     let runtime_requirements = compilation
       .chunk_graph
-      .get_tree_runtime_requirements(&args.chunk_ukey);
-    let (module_source, chunk_init_fragments) =
-      render_chunk_modules(compilation, &args.chunk_ukey)?;
-    let (header, startup) = self.render_bootstrap(&args.chunk_ukey, args.compilation);
+      .get_tree_runtime_requirements(chunk_ukey);
+    let (module_source, chunk_init_fragments) = render_chunk_modules(compilation, chunk_ukey)?;
+    let (header, startup) = self.render_bootstrap(chunk_ukey, compilation);
     let mut sources = ConcatSource::default();
     sources.add(RawSource::from("var __webpack_modules__ = "));
     sources.add(module_source);
     sources.add(RawSource::from("\n"));
     sources.add(header);
-    sources.add(render_runtime_modules(compilation, &args.chunk_ukey)?);
+    sources.add(render_runtime_modules(compilation, chunk_ukey)?);
     if chunk.has_entry_module(&compilation.chunk_graph) {
       let last_entry_module = compilation
         .chunk_graph
-        .get_chunk_entry_modules_with_chunk_group_iterable(&chunk.ukey)
+        .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey)
         .keys()
         .last()
         .expect("should have last entry module");
       if let Some(source) = drive.render_startup(RenderJsStartupArgs {
         compilation,
-        chunk: &chunk.ukey,
+        chunk: chunk_ukey,
         module: *last_entry_module,
         source: startup,
       })? {
@@ -369,7 +371,7 @@ impl JsPlugin {
     )?;
     if let Some(source) = drive.render(RenderJsArgs {
       compilation,
-      chunk: &args.chunk_ukey,
+      chunk: chunk_ukey,
       source: &final_source,
     })? {
       return Ok(source);
@@ -380,16 +382,15 @@ impl JsPlugin {
   #[inline]
   pub async fn render_chunk_impl(
     &self,
-    args: &rspack_core::RenderManifestArgs<'_>,
+    compilation: &Compilation,
+    chunk_ukey: &ChunkUkey,
   ) -> Result<BoxSource> {
-    let compilation = args.compilation;
     let drive = Self::get_compilation_drives(compilation);
-    let (module_source, chunk_init_fragments) =
-      render_chunk_modules(compilation, &args.chunk_ukey)?;
+    let (module_source, chunk_init_fragments) = render_chunk_modules(compilation, chunk_ukey)?;
     let source = drive
       .render_chunk(RenderJsChunkArgs {
-        compilation: args.compilation,
-        chunk_ukey: &args.chunk_ukey,
+        compilation,
+        chunk_ukey,
         module_source,
       })
       .await?
@@ -398,7 +399,7 @@ impl JsPlugin {
       render_init_fragments(source, chunk_init_fragments, &mut ChunkRenderContext {})?;
     if let Some(source) = drive.render(RenderJsArgs {
       compilation,
-      chunk: &args.chunk_ukey,
+      chunk: chunk_ukey,
       source: &final_source,
     })? {
       return Ok(source);
@@ -407,7 +408,7 @@ impl JsPlugin {
   }
 
   #[inline]
-  pub async fn get_chunk_hash(
+  pub fn get_chunk_hash(
     &self,
     chunk_ukey: &ChunkUkey,
     compilation: &Compilation,

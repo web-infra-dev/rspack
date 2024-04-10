@@ -12,14 +12,16 @@ use rspack_core::{
   SourceType,
 };
 use rspack_core::{
-  ChunkLoading, ChunkLoadingType, Compilation, CompilationParams, CompilerOptions, DependencyType,
-  LibIdentOptions, PluginContext, PluginRuntimeRequirementsInTreeOutput, PublicPath,
-  RuntimeGlobals, RuntimeRequirementsInTreeArgs,
+  ChunkLoading, ChunkLoadingType, ChunkUkey, Compilation, CompilationContentHash,
+  CompilationParams, CompilationRenderManifest, CompilerOptions, DependencyType, LibIdentOptions,
+  PluginContext, PluginRuntimeRequirementsInTreeOutput, PublicPath, RuntimeGlobals,
+  RuntimeRequirementsInTreeArgs,
 };
-use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result};
+use rspack_error::{Diagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin_hook, AsyncSeries2};
 use rspack_plugin_runtime::is_enabled_for_chunk;
+use rustc_hash::FxHashMap;
 
 use crate::parser_and_generator::CssParserAndGenerator;
 use crate::runtime::CssLoadingRuntimeModule;
@@ -131,6 +133,141 @@ async fn compilation(
   Ok(())
 }
 
+#[plugin_hook(CompilationContentHash for CssPlugin)]
+fn content_hash(
+  &self,
+  compilation: &Compilation,
+  chunk_ukey: &ChunkUkey,
+  hashes: &mut FxHashMap<SourceType, RspackHash>,
+) -> Result<()> {
+  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let module_graph = compilation.get_module_graph();
+  let (ordered_modules, _) = Self::get_ordered_chunk_css_modules(
+    chunk,
+    &compilation.chunk_graph,
+    &module_graph,
+    compilation,
+  );
+  let mut hasher = hashes
+    .entry(SourceType::Css)
+    .or_insert_with(|| RspackHash::from(&compilation.options.output));
+
+  ordered_modules
+    .iter()
+    .map(|m| {
+      (
+        compilation
+          .code_generation_results
+          .get_hash(&m.identifier(), Some(&chunk.runtime)),
+        compilation.chunk_graph.get_module_id(m.identifier()),
+      )
+    })
+    .for_each(|(current, id)| {
+      if let Some(current) = current {
+        current.hash(&mut hasher);
+        id.hash(&mut hasher);
+      }
+    });
+
+  Ok(())
+}
+
+#[plugin_hook(CompilationRenderManifest for CssPlugin)]
+async fn render_manifest(
+  &self,
+  compilation: &Compilation,
+  chunk_ukey: &ChunkUkey,
+  manifest: &mut Vec<RenderManifestEntry>,
+  diagnostics: &mut Vec<Diagnostic>,
+) -> Result<()> {
+  let chunk = chunk_ukey.as_ref(&compilation.chunk_by_ukey);
+  if matches!(chunk.kind, ChunkKind::HotUpdate) {
+    return Ok(());
+  }
+  let module_graph = compilation.get_module_graph();
+  let (ordered_css_modules, conflicts) = Self::get_ordered_chunk_css_modules(
+    chunk,
+    &compilation.chunk_graph,
+    &module_graph,
+    compilation,
+  );
+
+  // Prevent generating css files for chunks which don't contain css modules.
+  if ordered_css_modules.is_empty() {
+    return Ok(());
+  }
+
+  let source = Self::render_chunk_to_source(compilation, chunk, &ordered_css_modules)?;
+
+  let filename_template = get_css_chunk_filename_template(
+    chunk,
+    &compilation.options.output,
+    &compilation.chunk_group_by_ukey,
+  );
+  let (output_path, asset_info) = compilation.get_path_with_info(
+    filename_template,
+    PathData::default()
+      .chunk(chunk)
+      .content_hash_optional(
+        chunk
+          .content_hash
+          .get(&SourceType::Css)
+          .map(|i| i.rendered(compilation.options.output.hash_digest_length)),
+      )
+      .runtime(&chunk.runtime),
+  )?;
+
+  let content = source.source();
+  let auto_public_path_matches: Vec<_> = AUTO_PUBLIC_PATH_PLACEHOLDER_REGEX
+    .find_iter(&content)
+    .map(|mat| (mat.start(), mat.end()))
+    .collect();
+  let source = if !auto_public_path_matches.is_empty() {
+    let mut replace = ReplaceSource::new(source);
+    for (start, end) in auto_public_path_matches {
+      let relative = PublicPath::render_auto_public_path(compilation, &output_path);
+      replace.replace(start as u32, end as u32, &relative, None);
+    }
+    replace.boxed()
+  } else {
+    source.boxed()
+  };
+  if let Some(conflicts) = conflicts {
+    diagnostics.extend(conflicts.into_iter().map(|conflict| {
+      let chunk = conflict.chunk.as_ref(&compilation.chunk_by_ukey);
+      let mg = compilation.get_module_graph();
+
+      let failed_module = mg
+        .module_by_identifier(&conflict.failed_module)
+        .expect("should have module");
+      let selected_module = mg
+        .module_by_identifier(&conflict.selected_module)
+        .expect("should have module");
+
+      Diagnostic::warn(
+        "Conflicting order".into(),
+        format!(
+          "chunk {}\nConflicting order between {} and {}",
+          chunk
+            .name
+            .as_ref()
+            .unwrap_or(chunk.id.as_ref().expect("should have chunk id")),
+          failed_module.readable_identifier(&compilation.options.context),
+          selected_module.readable_identifier(&compilation.options.context)
+        ),
+      )
+    }));
+  }
+  manifest.push(RenderManifestEntry::new(
+    source.boxed(),
+    output_path,
+    asset_info,
+    false,
+    false,
+  ));
+  Ok(())
+}
+
 #[async_trait]
 impl Plugin for CssPlugin {
   fn name(&self) -> &'static str {
@@ -147,6 +284,16 @@ impl Plugin for CssPlugin {
       .compiler_hooks
       .compilation
       .tap(compilation::new(self));
+    ctx
+      .context
+      .compilation_hooks
+      .content_hash
+      .tap(content_hash::new(self));
+    ctx
+      .context
+      .compilation_hooks
+      .render_manifest
+      .tap(render_manifest::new(self));
 
     ctx.context.register_parser_and_generator_builder(
       ModuleType::Css,
@@ -218,154 +365,6 @@ impl Plugin for CssPlugin {
     );
 
     Ok(())
-  }
-
-  async fn content_hash(
-    &self,
-    _ctx: rspack_core::PluginContext,
-    args: &rspack_core::ContentHashArgs<'_>,
-  ) -> rspack_core::PluginContentHashHookOutput {
-    let compilation = &args.compilation;
-    let chunk = compilation.chunk_by_ukey.expect_get(&args.chunk_ukey);
-    let module_graph = compilation.get_module_graph();
-    let (ordered_modules, _) = Self::get_ordered_chunk_css_modules(
-      chunk,
-      &compilation.chunk_graph,
-      &module_graph,
-      compilation,
-    );
-    let mut hasher = RspackHash::from(&compilation.options.output);
-
-    ordered_modules
-      .iter()
-      .map(|m| {
-        (
-          compilation
-            .code_generation_results
-            .get_hash(&m.identifier(), Some(&chunk.runtime)),
-          compilation.chunk_graph.get_module_id(m.identifier()),
-        )
-      })
-      .for_each(|(current, id)| {
-        if let Some(current) = current {
-          current.hash(&mut hasher);
-          id.hash(&mut hasher);
-        }
-      });
-
-    Ok(Some((
-      SourceType::Css,
-      hasher.digest(&compilation.options.output.hash_digest),
-    )))
-  }
-
-  async fn render_manifest(
-    &self,
-    _ctx: rspack_core::PluginContext,
-    args: rspack_core::RenderManifestArgs<'_>,
-  ) -> rspack_core::PluginRenderManifestHookOutput {
-    let compilation = args.compilation;
-    let chunk = args.chunk_ukey.as_ref(&compilation.chunk_by_ukey);
-    if matches!(chunk.kind, ChunkKind::HotUpdate) {
-      return Ok(vec![].with_empty_diagnostic());
-    }
-    let module_graph = compilation.get_module_graph();
-    let (ordered_css_modules, conflicts) = Self::get_ordered_chunk_css_modules(
-      chunk,
-      &compilation.chunk_graph,
-      &module_graph,
-      compilation,
-    );
-
-    // Prevent generating css files for chunks which don't contain css modules.
-    if ordered_css_modules.is_empty() {
-      return Ok(vec![].with_empty_diagnostic());
-    }
-
-    let source = Self::render_chunk_to_source(compilation, chunk, &ordered_css_modules)?;
-
-    let filename_template = get_css_chunk_filename_template(
-      chunk,
-      &args.compilation.options.output,
-      &args.compilation.chunk_group_by_ukey,
-    );
-    let (output_path, asset_info) = compilation.get_path_with_info(
-      filename_template,
-      PathData::default()
-        .chunk(chunk)
-        .content_hash_optional(
-          chunk
-            .content_hash
-            .get(&SourceType::Css)
-            .map(|i| i.rendered(compilation.options.output.hash_digest_length)),
-        )
-        .runtime(&chunk.runtime),
-    )?;
-
-    let content = source.source();
-    let auto_public_path_matches: Vec<_> = AUTO_PUBLIC_PATH_PLACEHOLDER_REGEX
-      .find_iter(&content)
-      .map(|mat| (mat.start(), mat.end()))
-      .collect();
-    let source = if !auto_public_path_matches.is_empty() {
-      let mut replace = ReplaceSource::new(source);
-      for (start, end) in auto_public_path_matches {
-        let relative = PublicPath::render_auto_public_path(args.compilation, &output_path);
-        replace.replace(start as u32, end as u32, &relative, None);
-      }
-      replace.boxed()
-    } else {
-      source.boxed()
-    };
-    Ok({
-      if let Some(conflicts) = conflicts {
-        vec![RenderManifestEntry::new(
-          source.boxed(),
-          output_path,
-          asset_info,
-          false,
-          false,
-        )]
-        .with_diagnostic(
-          conflicts
-            .into_iter()
-            .map(|conflict| {
-              let chunk = conflict.chunk.as_ref(&compilation.chunk_by_ukey);
-              let mg = compilation.get_module_graph();
-
-              let failed_module = mg
-                .module_by_identifier(&conflict.failed_module)
-                .expect("should have module");
-              let selected_module = mg
-                .module_by_identifier(&conflict.selected_module)
-                .expect("should have module");
-
-              Diagnostic::warn(
-                "Conflicting order".into(),
-                format!(
-                  "chunk {}\nConflicting order between {} and {}",
-                  chunk
-                    .name
-                    .as_ref()
-                    .unwrap_or(chunk.id.as_ref().expect("should have chunk id")),
-                  failed_module.readable_identifier(&compilation.options.context),
-                  selected_module.readable_identifier(&compilation.options.context)
-                ),
-              )
-            })
-            .collect(),
-        )
-      } else {
-        vec![RenderManifestEntry::new(
-          source.boxed(),
-          output_path,
-          asset_info,
-          false,
-          false,
-        )]
-        .with_empty_diagnostic()
-      }
-    })
   }
 
   async fn runtime_requirements_in_tree(
