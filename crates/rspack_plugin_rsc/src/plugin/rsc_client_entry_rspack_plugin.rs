@@ -2,6 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::time::Instant;
 
 use async_trait::async_trait;
+use indexmap::set::IndexSet;
 use rspack_core::rspack_sources::{RawSource, SourceExt};
 use rspack_core::{
   ApplyContext, AssetInfo, Compilation, CompilationAsset, CompilerOptions, Module, ModuleType,
@@ -23,7 +24,7 @@ impl RSCClientEntryRspackPlugin {
     compilation: &Compilation,
     module: &Box<dyn Module>,
     visited_modules: &mut HashSet<String>,
-    collect_client_imports: &mut HashSet<String>,
+    collect_client_imports: &mut IndexSet<String>,
   ) {
     let data = module
       .as_normal_module()
@@ -66,9 +67,9 @@ impl RSCClientEntryRspackPlugin {
 #[plugin_hook(AsyncSeries<Compilation> for RSCClientEntryRspackPlugin)]
 async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
   let now = Instant::now();
-  let mut client_imports: HashMap<String, HashSet<String>> = HashMap::new();
+  let mut client_imports: HashMap<String, IndexSet<String>> = HashMap::new();
   for (name, entry) in &compilation.entries {
-    let mut collected_client_imports: HashSet<String> = HashSet::new();
+    let mut collected_client_imports: IndexSet<String> = IndexSet::new();
     let mut visited_modules: HashSet<String> = HashSet::new();
     let mg = compilation.get_module_graph();
     let entry_module = mg
@@ -80,16 +81,17 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
       &mut visited_modules,
       &mut collected_client_imports,
     );
+    collected_client_imports.sort();
     client_imports.insert(String::from(name), collected_client_imports);
   }
-  // all other entries depend on this entry
+  // TODO: custom main entry name, all other entries depend on this entry
   let main_name = "server-entry";
   let cc = client_imports.clone();
   let main = cc.get(main_name).unwrap();
   for (name, value) in client_imports.iter_mut() {
     if name != main_name {
       for import in main {
-        value.remove(import.as_str());
+        value.shift_remove(import.as_str());
       }
     }
     let content = to_string(&value);
