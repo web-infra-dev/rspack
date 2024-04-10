@@ -42,7 +42,7 @@ function getNavConfig(lang: 'zh' | 'en'): NavItem[] {
 		},
 		{
 			text: getText('博客', 'Blog'),
-			link: getLink('/blog/announcing-0.5'),
+			link: getLink('/blog/announcing-0.6'),
 			activeMatch: '/blog',
 		},
 		{
@@ -108,7 +108,7 @@ function getNavConfig(lang: 'zh' | 'en'): NavItem[] {
 				{
 					text: getText(
 						'未来默认行为与功能废弃',
-						'Future behavior & Deprecation'
+						'Future behavior & Deprecation',
 					),
 					link: getLink('/misc/future'),
 				},
@@ -324,7 +324,7 @@ function getSidebarConfig(lang: 'zh' | 'en'): Sidebar {
 			{
 				text: getText(
 					'同步自 webpack 的内置插件',
-					'Webpack-aligned Built-in Plugins'
+					'Webpack-aligned Built-in Plugins',
 				),
 				items: [
 					{
@@ -455,13 +455,17 @@ function getSidebarConfig(lang: 'zh' | 'en'): Sidebar {
 		],
 		[getLink('/blog/')]: [
 			{
+				text: getText('0.6 发布公告', 'Announcing Rspack 0.6'),
+				link: getLink('/blog/announcing-0.6'),
+			},
+			{
 				text: getText('0.5 发布公告', 'Announcing Rspack 0.5'),
 				link: getLink('/blog/announcing-0.5'),
 			},
 			{
 				text: getText(
 					'Rspack 支持模块联邦',
-					'Module Federation added to Rspack'
+					'Module Federation added to Rspack',
 				),
 				link: getLink('/blog/module-federation-added-to-rspack'),
 			},

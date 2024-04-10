@@ -10,10 +10,6 @@ There is still room for performance optimization and we will continue to work on
 
 As webpack contains a large number of APIs, we will be working to support the most frequently used loaders and plugins based on feedback from the community first.
 
-### Module Federation support
-
-Module Federation is a widely used webpack feature with a rich ecosystem and we plan to support module federation in the future.
-
 ### Lazy Compilation support
 
 Although Rspack currently has good performance, there is still a lot of room to improve performance for projects with a large number of pages, and Lazy Compilation is a good way to improve performance.
