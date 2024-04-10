@@ -70,11 +70,13 @@ makeButton(".lazy-module-button", () =>
 	})
 );
 
-makeButton(".preloaded-button1", () =>
-	import(/* webpackChunkName: "preloaded1" */ "./preloaded1")
+makeButton(
+	".preloaded-button1",
+	() => import(/* webpackChunkName: "preloaded1" */ "./preloaded1")
 );
-makeButton(".preloaded-button2", () =>
-	import(/* webpackChunkName: "preloaded2" */ "./preloaded2")
+makeButton(
+	".preloaded-button2",
+	() => import(/* webpackChunkName: "preloaded2" */ "./preloaded2")
 );
 
 makeButton(".lazy-failure-button", () => import("./lazy-failure"), false);
