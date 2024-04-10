@@ -9,3 +9,4 @@ export * from "./watch";
 export * from "./treeshaking";
 export * from "./defaults";
 export * from "./builtin";
+export * from "./hot-step";
