@@ -43,7 +43,9 @@ jobs:
         with:
           filters: |
             changed:
+              - "!**/*.yml"
               - "!**/*.md"
+              - "!**/*.mdx"
               - "!website/**"
 
   test-linux:
