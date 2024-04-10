@@ -3059,6 +3059,7 @@ dependencies = [
  "rspack_plugin_extract_css",
  "rspack_plugin_hmr",
  "rspack_plugin_html",
+ "rspack_plugin_ignore",
  "rspack_plugin_javascript",
  "rspack_plugin_json",
  "rspack_plugin_library",
@@ -3547,6 +3548,16 @@ dependencies = [
  "swc_core",
  "swc_html",
  "swc_html_minifier",
+]
+
+[[package]]
+name = "rspack_plugin_ignore"
+version = "0.1.0"
+dependencies = [
+ "rspack_core",
+ "rspack_error",
+ "rspack_hook",
+ "rspack_regex",
 ]
 
 [[package]]

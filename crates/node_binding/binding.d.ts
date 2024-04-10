@@ -100,6 +100,7 @@ export enum BuiltinPluginName {
   DefinePlugin = 'DefinePlugin',
   ProvidePlugin = 'ProvidePlugin',
   BannerPlugin = 'BannerPlugin',
+  IgnorePlugin = 'IgnorePlugin',
   ProgressPlugin = 'ProgressPlugin',
   EntryPlugin = 'EntryPlugin',
   ExternalsPlugin = 'ExternalsPlugin',
@@ -890,6 +891,11 @@ export interface RawHtmlRspackPluginOptions {
 export interface RawHttpExternalsRspackPluginOptions {
   css: boolean
   webAsync: boolean
+}
+
+export interface RawIgnorePluginOptions {
+  resourceRegExp: RegExp
+  contextRegExp?: RegExp
 }
 
 export interface RawInfo {
