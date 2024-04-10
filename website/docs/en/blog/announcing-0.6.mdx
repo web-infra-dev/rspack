@@ -16,7 +16,7 @@ Now you can use `rspack.CssExtractRspackPlugin` as a replacement for `mini-css-e
 
 This is very useful in some scenarios, for example when the built-in CSS parser cannot meet your needs, there are more customized CSS module names, or you want to use some loaders that depend on the output of css-loader, but still want to extract the CSS into a separate file.
 
-For more details, please see [CssExtractRspackPlugin](plugins/rspack/css-extract-rspack-plugin.html#cssextractrspackplugin)
+For more details, please see [CssExtractRspackPlugin](plugins/rspack/css-extract-rspack-plugin.html#cssextractrspackplugin).
 
 ```js
 const rspack = require('@rspack/core');
@@ -32,6 +32,8 @@ module.exports = {
   },
 };
 ```
+
+There is an basic [project example](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/react-with-extract-css).
 
 ### Enable `experiments.rspackFuture.newTreeshaking` by default
 

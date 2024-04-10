@@ -16,7 +16,7 @@ import { PackageManagerTabs } from '@theme';
 
 这在一些场景很实用，例如当内置的 css 处理不能满足你的需求，有更定制化的 css module name 等，或者你想要使用一些依赖 css-loader 的 loader，但仍然想要将 css 提取成单独文件。
 
-详细配置见[CssExtractRspackPlugin](plugins/rspack/css-extract-rspack-plugin.html#cssextractrspackplugin)
+详细配置见[CssExtractRspackPlugin](plugins/rspack/css-extract-rspack-plugin.html#cssextractrspackplugin)。
 
 ```js
 const rspack = require('@rspack/core');
@@ -32,6 +32,8 @@ module.exports = {
   },
 };
 ```
+
+你可以在[这里](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/react-with-extract-css)找到一个基础的项目例子。
 
 ### 默认开启 `experiments.rspackFuture.newTreeshaking`
 
@@ -92,8 +94,6 @@ rspack 在 0.1.0 支持了基本的 treeShaking 功能，由于最初的架构�
 ### 升级 swc 到 0.90.x
 
 升级 Rust crate `swc_core` 到 `0.90.x`，这会对使用 swc wasm 插件的用户产生影响。
-
-
 
 ### 当 css 的顺序在多个 chunk 中不一致时发出警告
 
