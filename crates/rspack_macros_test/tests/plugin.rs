@@ -44,9 +44,9 @@ mod named_struct {
   #[test]
   fn test() {
     let plugin = Plugin::new_inner("aa".to_string(), 0);
-    let hook1 = &*compilation::new(&plugin);
-    let hook2 = &*make::new(&plugin);
-    let hook3 = &*process_assets::new(&plugin);
+    let hook1 = &compilation::new(&plugin);
+    let hook2 = &make::new(&plugin);
+    let hook3 = &process_assets::new(&plugin);
     let r = mock_hook::AsyncSeries::run(hook1, mock_core::Compilation);
     assert_eq!(r, "compilation aa 0");
     let s = mock_hook::AsyncSeries::stage(hook1);
@@ -87,9 +87,9 @@ mod unit_struct {
   #[test]
   fn test() {
     let plugin = Plugin::default();
-    let hook1 = &*compilation::new(&plugin);
-    let hook2 = &*make::new(&plugin);
-    let hook3 = &*process_assets::new(&plugin);
+    let hook1 = &compilation::new(&plugin);
+    let hook2 = &make::new(&plugin);
+    let hook3 = &process_assets::new(&plugin);
     let r = mock_hook::AsyncSeries::run(hook1, mock_core::Compilation);
     assert_eq!(r, "compilation");
     let s = mock_hook::AsyncSeries::stage(hook1);

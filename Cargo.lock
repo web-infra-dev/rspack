@@ -3132,6 +3132,17 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.58",
+]
+
+[[package]]
+name = "rspack_macros_test"
+version = "0.1.0"
+dependencies = [
+ "rspack_error",
+ "rspack_hook",
+ "rspack_macros",
+ "rspack_util",
+ "tokio",
  "trybuild",
 ]
 
@@ -3182,6 +3193,7 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_hash",
+ "rspack_hook",
  "rspack_util",
  "serde_json",
  "urlencoding",

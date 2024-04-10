@@ -328,7 +328,7 @@ impl BuiltinPlugin {
       BuiltinPluginName::AsyncWebAssemblyModulesPlugin => {
         plugins.push(AsyncWasmPlugin::default().boxed())
       }
-      BuiltinPluginName::AssetModulesPlugin => plugins.push(AssetPlugin.boxed()),
+      BuiltinPluginName::AssetModulesPlugin => plugins.push(AssetPlugin::default().boxed()),
       BuiltinPluginName::SourceMapDevToolPlugin => {
         let options: SourceMapDevToolPluginOptions =
           downcast_into::<RawSourceMapDevToolPluginOptions>(self.options)?.into();

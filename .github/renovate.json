@@ -57,7 +57,7 @@
       "groupName": "npm dev dependencies",
       "matchManagers": ["npm"],
       "matchDepTypes": ["devDependencies"],
-      "excludePackagePrefixes": ["webpack"],
+      "excludePackagePrefixes": ["webpack", "sass"],
       "excludePackageNames": ["@playwright/test", "react", "react-dom", "typescript", "pnpm"]
     },
     {
@@ -68,7 +68,7 @@
     },
     {
       "groupName": "npm ignored dependencies",
-      "matchManagers": ["npm"],
+      "matchManagers": ["npm", "sass"],
       "matchPackageNames": ["@playwright/test", "react", "react-dom", "typescript", "pnpm"],
       "enabled": false
     },

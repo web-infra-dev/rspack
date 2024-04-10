@@ -64,8 +64,8 @@ impl<I, O> AsyncSeriesBailHook<I, O> {
     Ok(None)
   }
 
-  pub fn tap(&mut self, tap: Box<dyn AsyncSeriesBail<I, O> + Send + Sync>) {
-    self.taps.push(tap);
+  pub fn tap(&mut self, tap: impl AsyncSeriesBail<I, O> + Send + Sync + 'static) {
+    self.taps.push(Box::new(tap));
   }
 }
 
@@ -127,8 +127,8 @@ impl<I1, I2, O> AsyncSeriesBail2Hook<I1, I2, O> {
     Ok(None)
   }
 
-  pub fn tap(&mut self, tap: Box<dyn AsyncSeriesBail2<I1, I2, O> + Send + Sync>) {
-    self.taps.push(tap);
+  pub fn tap(&mut self, tap: impl AsyncSeriesBail2<I1, I2, O> + Send + Sync + 'static) {
+    self.taps.push(Box::new(tap));
   }
 }
 
@@ -190,8 +190,8 @@ impl<I1, I2, I3, O> AsyncSeriesBail3Hook<I1, I2, I3, O> {
     Ok(None)
   }
 
-  pub fn tap(&mut self, tap: Box<dyn AsyncSeriesBail3<I1, I2, I3, O> + Send + Sync>) {
-    self.taps.push(tap);
+  pub fn tap(&mut self, tap: impl AsyncSeriesBail3<I1, I2, I3, O> + Send + Sync + 'static) {
+    self.taps.push(Box::new(tap));
   }
 }
 
@@ -265,7 +265,7 @@ impl<I1, I2, I3, I4, O> AsyncSeriesBail4Hook<I1, I2, I3, I4, O> {
     Ok(None)
   }
 
-  pub fn tap(&mut self, tap: Box<dyn AsyncSeriesBail4<I1, I2, I3, I4, O> + Send + Sync>) {
-    self.taps.push(tap);
+  pub fn tap(&mut self, tap: impl AsyncSeriesBail4<I1, I2, I3, I4, O> + Send + Sync + 'static) {
+    self.taps.push(Box::new(tap));
   }
 }

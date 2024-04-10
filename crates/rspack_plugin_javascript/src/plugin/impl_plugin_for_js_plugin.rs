@@ -4,16 +4,17 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use rspack_core::rspack_sources::BoxSource;
 use rspack_core::{
-  get_js_chunk_filename_template, AdditionalChunkRuntimeRequirementsArgs, ChunkGraph,
-  ChunkHashArgs, ChunkKind, ChunkUkey, Compilation, CompilationParams, CompilerOptions,
-  DependencyType, ErrorSpan, IgnoreErrorModuleFactory, ModuleGraph, ModuleType, ParserAndGenerator,
-  PathData, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput, PluginChunkHashHookOutput,
-  PluginContext, PluginRenderManifestHookOutput, RenderManifestEntry, RuntimeGlobals,
-  SelfModuleFactory, SourceType,
+  get_js_chunk_filename_template, AdditionalChunkRuntimeRequirementsArgs, ChunkGraph, ChunkKind,
+  ChunkUkey, Compilation, CompilationChunkHash, CompilationContentHash, CompilationParams,
+  CompilationRenderManifest, CompilerOptions, DependencyType, ErrorSpan, IgnoreErrorModuleFactory,
+  ModuleGraph, ModuleType, ParserAndGenerator, PathData, Plugin,
+  PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, RenderManifestEntry,
+  RuntimeGlobals, SelfModuleFactory, SourceType,
 };
-use rspack_error::{IntoTWithDiagnosticArray, Result};
+use rspack_error::{Diagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin_hook, AsyncSeries2};
+use rustc_hash::FxHashMap;
 
 use crate::parser_and_generator::JavaScriptParserAndGenerator;
 use crate::{JsPlugin, JsPluginInner};
@@ -118,6 +119,139 @@ async fn compilation(
   Ok(())
 }
 
+#[plugin_hook(CompilationChunkHash for JsPlugin)]
+fn chunk_hash(
+  &self,
+  compilation: &Compilation,
+  chunk_ukey: &ChunkUkey,
+  hasher: &mut RspackHash,
+) -> Result<()> {
+  self.get_chunk_hash(chunk_ukey, compilation, hasher)?;
+  if compilation
+    .chunk_by_ukey
+    .expect_get(chunk_ukey)
+    .has_runtime(&compilation.chunk_group_by_ukey)
+  {
+    self.update_hash_with_bootstrap(chunk_ukey, compilation, hasher)
+  }
+  Ok(())
+}
+
+#[plugin_hook(CompilationContentHash for JsPlugin)]
+fn content_hash(
+  &self,
+  compilation: &Compilation,
+  chunk_ukey: &ChunkUkey,
+  hashes: &mut FxHashMap<SourceType, RspackHash>,
+) -> Result<()> {
+  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let mut hasher = hashes
+    .entry(SourceType::JavaScript)
+    .or_insert_with(|| RspackHash::from(&compilation.options.output));
+
+  if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
+    self.update_hash_with_bootstrap(chunk_ukey, compilation, hasher)
+  } else {
+    chunk.id.hash(&mut hasher);
+    chunk.ids.hash(&mut hasher);
+  }
+
+  self.get_chunk_hash(chunk_ukey, compilation, hasher)?;
+
+  let module_graph = compilation.get_module_graph();
+  let mut ordered_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
+    chunk_ukey,
+    SourceType::JavaScript,
+    &module_graph,
+  );
+  // SAFETY: module identifier is unique
+  ordered_modules.sort_unstable_by_key(|m| m.identifier().as_str());
+
+  ordered_modules
+    .iter()
+    .map(|mgm| {
+      (
+        compilation
+          .code_generation_results
+          .get_hash(&mgm.identifier(), Some(&chunk.runtime)),
+        compilation.chunk_graph.get_module_id(mgm.identifier()),
+      )
+    })
+    .for_each(|(current, id)| {
+      if let Some(current) = current {
+        current.hash(&mut hasher);
+        id.hash(&mut hasher);
+      }
+    });
+
+  for (runtime_module_idenfitier, _) in compilation
+    .chunk_graph
+    .get_chunk_runtime_modules_in_order(chunk_ukey, compilation)
+  {
+    if let Some((hash, _)) = compilation
+      .runtime_module_code_generation_results
+      .get(runtime_module_idenfitier)
+    {
+      hash.hash(&mut hasher);
+    }
+  }
+
+  Ok(())
+}
+
+#[plugin_hook(CompilationRenderManifest for JsPlugin)]
+async fn render_manifest(
+  &self,
+  compilation: &Compilation,
+  chunk_ukey: &ChunkUkey,
+  manifest: &mut Vec<RenderManifestEntry>,
+  _diagnostics: &mut Vec<Diagnostic>,
+) -> Result<()> {
+  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let source = if matches!(chunk.kind, ChunkKind::HotUpdate) {
+    self.render_chunk_impl(compilation, chunk_ukey).await?
+  } else if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
+    self.render_main(compilation, chunk_ukey).await?
+  } else {
+    if !chunk_has_js(
+      chunk_ukey,
+      &compilation.chunk_graph,
+      &compilation.get_module_graph(),
+    ) {
+      return Ok(());
+    }
+
+    self.render_chunk_impl(compilation, chunk_ukey).await?
+  };
+
+  let filename_template = get_js_chunk_filename_template(
+    chunk,
+    &compilation.options.output,
+    &compilation.chunk_group_by_ukey,
+  );
+  let (output_path, mut asset_info) = compilation.get_path_with_info(
+    filename_template,
+    PathData::default()
+      .chunk(chunk)
+      .content_hash_optional(
+        chunk
+          .content_hash
+          .get(&SourceType::JavaScript)
+          .map(|i| i.rendered(compilation.options.output.hash_digest_length)),
+      )
+      .runtime(&chunk.runtime),
+  )?;
+  asset_info.set_javascript_module(compilation.options.output.module);
+  manifest.push(RenderManifestEntry::new(
+    source,
+    output_path,
+    asset_info,
+    false,
+    false,
+  ));
+  Ok(())
+}
+
 #[async_trait]
 impl Plugin for JsPlugin {
   fn name(&self) -> &'static str {
@@ -133,6 +267,21 @@ impl Plugin for JsPlugin {
       .compiler_hooks
       .compilation
       .tap(compilation::new(self));
+    ctx
+      .context
+      .compilation_hooks
+      .chunk_hash
+      .tap(chunk_hash::new(self));
+    ctx
+      .context
+      .compilation_hooks
+      .content_hash
+      .tap(content_hash::new(self));
+    ctx
+      .context
+      .compilation_hooks
+      .render_manifest
+      .tap(render_manifest::new(self));
 
     ctx.context.register_parser_and_generator_builder(
       ModuleType::Js,
@@ -148,140 +297,6 @@ impl Plugin for JsPlugin {
     );
 
     Ok(())
-  }
-
-  async fn chunk_hash(
-    &self,
-    _ctx: PluginContext,
-    args: &mut ChunkHashArgs<'_>,
-  ) -> PluginChunkHashHookOutput {
-    self
-      .get_chunk_hash(&args.chunk_ukey, args.compilation, args.hasher)
-      .await?;
-    if args
-      .chunk()
-      .has_runtime(&args.compilation.chunk_group_by_ukey)
-    {
-      self.update_hash_with_bootstrap(&args.chunk_ukey, args.compilation, args.hasher)
-    }
-    Ok(())
-  }
-
-  async fn content_hash(
-    &self,
-    _ctx: rspack_core::PluginContext,
-    args: &rspack_core::ContentHashArgs<'_>,
-  ) -> rspack_core::PluginContentHashHookOutput {
-    let compilation = &args.compilation;
-    let chunk = args.chunk();
-    let mut hasher = RspackHash::from(&compilation.options.output);
-
-    if chunk.has_runtime(&args.compilation.chunk_group_by_ukey) {
-      self.update_hash_with_bootstrap(&args.chunk_ukey, args.compilation, &mut hasher)
-    } else {
-      chunk.id.hash(&mut hasher);
-      chunk.ids.hash(&mut hasher);
-    }
-
-    self
-      .get_chunk_hash(&args.chunk_ukey, args.compilation, &mut hasher)
-      .await?;
-
-    let module_graph = compilation.get_module_graph();
-    let mut ordered_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
-      &args.chunk_ukey,
-      SourceType::JavaScript,
-      &module_graph,
-    );
-    // SAFETY: module identifier is unique
-    ordered_modules.sort_unstable_by_key(|m| m.identifier().as_str());
-
-    ordered_modules
-      .iter()
-      .map(|mgm| {
-        (
-          compilation
-            .code_generation_results
-            .get_hash(&mgm.identifier(), Some(&chunk.runtime)),
-          compilation.chunk_graph.get_module_id(mgm.identifier()),
-        )
-      })
-      .for_each(|(current, id)| {
-        if let Some(current) = current {
-          current.hash(&mut hasher);
-          id.hash(&mut hasher);
-        }
-      });
-
-    for (runtime_module_idenfitier, _) in compilation
-      .chunk_graph
-      .get_chunk_runtime_modules_in_order(&args.chunk_ukey, compilation)
-    {
-      if let Some((hash, _)) = compilation
-        .runtime_module_code_generation_results
-        .get(runtime_module_idenfitier)
-      {
-        hash.hash(&mut hasher);
-      }
-    }
-
-    Ok(Some((
-      SourceType::JavaScript,
-      hasher.digest(&compilation.options.output.hash_digest),
-    )))
-  }
-
-  async fn render_manifest(
-    &self,
-    _ctx: PluginContext,
-    args: rspack_core::RenderManifestArgs<'_>,
-  ) -> PluginRenderManifestHookOutput {
-    let compilation = args.compilation;
-    let chunk = args.chunk();
-    let source = if matches!(chunk.kind, ChunkKind::HotUpdate) {
-      self.render_chunk_impl(&args).await?
-    } else if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
-      self.render_main(&args).await?
-    } else {
-      if !chunk_has_js(
-        &args.chunk_ukey,
-        &compilation.chunk_graph,
-        &compilation.get_module_graph(),
-      ) {
-        return Ok(vec![].with_empty_diagnostic());
-      }
-
-      self.render_chunk_impl(&args).await?
-    };
-
-    let filename_template = get_js_chunk_filename_template(
-      chunk,
-      &compilation.options.output,
-      &compilation.chunk_group_by_ukey,
-    );
-    let (output_path, mut asset_info) = compilation.get_path_with_info(
-      filename_template,
-      PathData::default()
-        .chunk(chunk)
-        .content_hash_optional(
-          chunk
-            .content_hash
-            .get(&SourceType::JavaScript)
-            .map(|i| i.rendered(compilation.options.output.hash_digest_length)),
-        )
-        .runtime(&chunk.runtime),
-    )?;
-    asset_info.set_javascript_module(compilation.options.output.module);
-    Ok(
-      vec![RenderManifestEntry::new(
-        source,
-        output_path,
-        asset_info,
-        false,
-        false,
-      )]
-      .with_empty_diagnostic(),
-    )
   }
 
   async fn additional_tree_runtime_requirements(

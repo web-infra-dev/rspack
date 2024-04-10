@@ -3,7 +3,6 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use rspack_error::Diagnostic;
-use rspack_hash::RspackHash;
 use rspack_loader_runner::ResourceData;
 use rspack_sources::BoxSource;
 use rustc_hash::FxHashSet as HashSet;
@@ -23,43 +22,6 @@ pub struct AssetEmittedInfo {
   pub source: BoxSource,
   pub output_path: PathBuf,
   pub target_path: PathBuf,
-}
-
-#[derive(Debug)]
-pub struct ContentHashArgs<'c> {
-  pub chunk_ukey: ChunkUkey,
-  pub compilation: &'c Compilation,
-}
-
-impl<'me> ContentHashArgs<'me> {
-  pub fn chunk(&self) -> &Chunk {
-    self.compilation.chunk_by_ukey.expect_get(&self.chunk_ukey)
-  }
-}
-
-#[derive(Debug)]
-pub struct ChunkHashArgs<'c> {
-  pub chunk_ukey: ChunkUkey,
-  pub compilation: &'c Compilation,
-  pub hasher: &'c mut RspackHash,
-}
-
-impl<'me> ChunkHashArgs<'me> {
-  pub fn chunk(&self) -> &Chunk {
-    self.compilation.chunk_by_ukey.expect_get(&self.chunk_ukey)
-  }
-}
-
-#[derive(Debug, Clone)]
-pub struct RenderManifestArgs<'me> {
-  pub chunk_ukey: ChunkUkey,
-  pub compilation: &'me Compilation,
-}
-
-impl<'me> RenderManifestArgs<'me> {
-  pub fn chunk(&self) -> &Chunk {
-    self.compilation.chunk_by_ukey.expect_get(&self.chunk_ukey)
-  }
 }
 
 #[derive(Debug)]

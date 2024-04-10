@@ -1,20 +1,17 @@
 use std::sync::{Arc, Mutex};
 
 use derivative::Derivative;
-use rspack_error::{Diagnostic, Result, TWithDiagnosticArray};
+use rspack_error::{Diagnostic, Result};
 use rspack_util::fx_hash::FxDashMap;
-use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
 
 use crate::{
   AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, ApplyContext,
-  BoxedParserAndGeneratorBuilder, ChunkContentHash, ChunkHashArgs, Compilation, CompilationHooks,
-  CompilerHooks, CompilerOptions, ContentHashArgs, ContextModuleFactoryHooks, ModuleIdentifier,
-  ModuleType, NormalModuleFactoryHooks, NormalModuleHooks, OptimizeChunksArgs, Plugin,
-  PluginAdditionalChunkRuntimeRequirementsOutput, PluginAdditionalModuleRequirementsOutput,
-  PluginChunkHashHookOutput, PluginContext, PluginRenderManifestHookOutput,
-  PluginRuntimeRequirementsInTreeOutput, RenderManifestArgs, ResolverFactory,
-  RuntimeRequirementsInTreeArgs,
+  BoxedParserAndGeneratorBuilder, Compilation, CompilationHooks, CompilerHooks, CompilerOptions,
+  ContextModuleFactoryHooks, ModuleIdentifier, ModuleType, NormalModuleFactoryHooks,
+  NormalModuleHooks, OptimizeChunksArgs, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput,
+  PluginAdditionalModuleRequirementsOutput, PluginContext, PluginRuntimeRequirementsInTreeOutput,
+  ResolverFactory, RuntimeRequirementsInTreeArgs,
 };
 
 #[derive(Derivative)]
@@ -95,55 +92,6 @@ impl PluginDriver {
     }
 
     Ok(())
-  }
-
-  pub async fn content_hash(&self, args: &ContentHashArgs<'_>) -> Result<ChunkContentHash> {
-    let mut result = HashMap::default();
-    for plugin in &self.plugins {
-      if let Some((source_type, hash_digest)) =
-        plugin.content_hash(PluginContext::new(), args).await?
-      {
-        result.insert(source_type, hash_digest);
-      }
-    }
-    Ok(result)
-  }
-
-  pub async fn chunk_hash(&self, args: &mut ChunkHashArgs<'_>) -> PluginChunkHashHookOutput {
-    for plugin in &self.plugins {
-      plugin.chunk_hash(PluginContext::new(), args).await?
-    }
-    Ok(())
-  }
-
-  pub async fn render_manifest(
-    &self,
-    args: RenderManifestArgs<'_>,
-  ) -> PluginRenderManifestHookOutput {
-    let mut assets = vec![];
-    let mut diagnostics = vec![];
-
-    for plugin in &self.plugins {
-      let res = plugin
-        .render_manifest(PluginContext::new(), args.clone())
-        .await?;
-
-      let (res, diags) = res.split_into_parts();
-
-      tracing::trace!(
-        "For Chunk({:?}), Plugin({}) generate files {:?}",
-        args.chunk().id,
-        plugin.name(),
-        res
-          .iter()
-          .map(|manifest| manifest.filename())
-          .collect::<Vec<_>>()
-      );
-
-      assets.extend(res);
-      diagnostics.extend(diags);
-    }
-    Ok(TWithDiagnosticArray::new(assets, diagnostics))
   }
 
   #[instrument(name = "plugin:additional_chunk_runtime_requirements", skip_all)]

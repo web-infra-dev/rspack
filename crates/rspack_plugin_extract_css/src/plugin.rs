@@ -6,13 +6,12 @@ use regex::Regex;
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceMap, SourceMapSource, WithoutOriginalOptions},
   ApplyContext, AssetInfo, Chunk, ChunkGroupUkey, ChunkKind, ChunkUkey, Compilation,
-  CompilationParams, CompilerOptions, Filename, Module, ModuleGraph, ModuleIdentifier, ModuleType,
-  PathData, Plugin, PluginContext, PluginRenderManifestHookOutput,
-  PluginRuntimeRequirementsInTreeOutput, RenderManifestArgs, RenderManifestEntry, RuntimeGlobals,
+  CompilationContentHash, CompilationParams, CompilationRenderManifest, CompilerOptions, Filename,
+  Module, ModuleGraph, ModuleIdentifier, ModuleType, PathData, Plugin, PluginContext,
+  PluginRuntimeRequirementsInTreeOutput, RenderManifestEntry, RuntimeGlobals,
   RuntimeRequirementsInTreeArgs, SourceType,
 };
 use rspack_error::{Diagnostic, Result};
-use rspack_error::{IntoTWithDiagnosticArray, TWithDiagnosticArray};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook, AsyncSeries2};
 use rspack_plugin_runtime::GetChunkFilenameRuntimeModule;
@@ -440,6 +439,147 @@ async fn compilation(
   Ok(())
 }
 
+#[plugin_hook(CompilationContentHash for PluginCssExtract)]
+fn content_hash(
+  &self,
+  compilation: &Compilation,
+  chunk_ukey: &ChunkUkey,
+  hashes: &mut FxHashMap<SourceType, RspackHash>,
+) -> Result<()> {
+  let module_graph = compilation.get_module_graph();
+
+  let rendered_modules = compilation
+    .chunk_graph
+    .get_chunk_modules_iterable_by_source_type(chunk_ukey, SOURCE_TYPE[0], &module_graph)
+    .collect::<Vec<_>>();
+
+  if rendered_modules.is_empty() {
+    return Ok(());
+  }
+  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+
+  let used_modules =
+    rspack_plugin_css::CssPlugin::get_modules_in_order(chunk, rendered_modules, compilation)
+      .0
+      .into_iter()
+      .filter_map(|module| module.downcast_ref::<CssModule>());
+
+  let mut hasher = hashes
+    .entry(SOURCE_TYPE[0])
+    .or_insert_with(|| RspackHash::from(&compilation.options.output));
+
+  used_modules
+    .map(|m| {
+      m.build_info()
+        .expect("css module built")
+        .hash
+        .as_ref()
+        .expect("css module should have hash")
+    })
+    .for_each(|current| {
+      current.hash(&mut hasher);
+    });
+
+  Ok(())
+}
+
+#[plugin_hook(CompilationRenderManifest for PluginCssExtract)]
+async fn render_manifest(
+  &self,
+  compilation: &Compilation,
+  chunk_ukey: &ChunkUkey,
+  manifest: &mut Vec<RenderManifestEntry>,
+  diagnostics: &mut Vec<Diagnostic>,
+) -> Result<()> {
+  let module_graph = compilation.get_module_graph();
+  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+
+  if matches!(chunk.kind, ChunkKind::HotUpdate) {
+    return Ok(());
+  }
+
+  let rendered_modules = compilation
+    .chunk_graph
+    .get_chunk_modules_iterable_by_source_type(chunk_ukey, SOURCE_TYPE[0], &module_graph)
+    .collect::<Vec<_>>();
+
+  if rendered_modules.is_empty() {
+    return Ok(());
+  }
+
+  let filename_template = if chunk.can_be_initial(&compilation.chunk_group_by_ukey) {
+    Filename::from(self.options.filename.clone())
+  } else {
+    Filename::from(self.options.chunk_filename.clone())
+  };
+
+  let (render_result, conflicts) = self
+    .render_content_asset(
+      chunk,
+      rendered_modules,
+      &filename_template,
+      compilation,
+      PathData::default().chunk(chunk).content_hash_optional(
+        chunk
+          .content_hash
+          .get(&SOURCE_TYPE[0])
+          .map(|hash| hash.encoded()),
+      ),
+    )
+    .await?;
+
+  if let Some(conflicts) = conflicts {
+    diagnostics.extend(conflicts.into_iter().map(|conflict| {
+      let chunk = compilation.chunk_by_ukey.expect_get(&conflict.chunk);
+      let fallback_module = module_graph
+        .module_by_identifier(&conflict.fallback_module)
+        .expect("should have module");
+
+      Diagnostic::warn(
+        "".into(),
+        format!(
+          "chunk {} [{PLUGIN_NAME}]\nConflicting order. Following module has been added:\n * {}
+despite it was not able to fulfill desired ordering with these modules:\n{}",
+          chunk
+            .name
+            .as_deref()
+            .unwrap_or(chunk.id.as_deref().unwrap_or_default()),
+          fallback_module.readable_identifier(&compilation.options.context),
+          conflict
+            .reasons
+            .iter()
+            .map(|(m, failed_reasons, good_reasons)| {
+              let m = module_graph
+                .module_by_identifier(m)
+                .expect("should have module");
+
+              format!(
+                " * {}\n  - couldn't fulfill desired order of chunk group(s) {}{}",
+                m.readable_identifier(&compilation.options.context),
+                failed_reasons
+                  .as_ref()
+                  .map(|s| s.as_str())
+                  .unwrap_or_default(),
+                good_reasons
+                  .as_ref()
+                  .map(|s| format!(
+                    "\n  - while fulfilling desired order of chunk group(s) {}",
+                    s.as_str()
+                  ))
+                  .unwrap_or_default(),
+              )
+            })
+            .collect::<Vec<_>>()
+            .join("\n")
+        ),
+      )
+    }));
+  }
+  manifest.push(render_result);
+
+  Ok(())
+}
+
 #[async_trait::async_trait]
 impl Plugin for PluginCssExtract {
   fn apply(
@@ -452,153 +592,18 @@ impl Plugin for PluginCssExtract {
       .compiler_hooks
       .compilation
       .tap(compilation::new(self));
+    ctx
+      .context
+      .compilation_hooks
+      .content_hash
+      .tap(content_hash::new(self));
+    ctx
+      .context
+      .compilation_hooks
+      .render_manifest
+      .tap(render_manifest::new(self));
 
     Ok(())
-  }
-
-  async fn content_hash(
-    &self,
-    _ctx: rspack_core::PluginContext,
-    args: &rspack_core::ContentHashArgs<'_>,
-  ) -> rspack_core::PluginContentHashHookOutput {
-    let compilation = args.compilation;
-    let chunk_ukey = args.chunk_ukey;
-    let module_graph = compilation.get_module_graph();
-
-    let rendered_modules = compilation
-      .chunk_graph
-      .get_chunk_modules_iterable_by_source_type(&chunk_ukey, SOURCE_TYPE[0], &module_graph)
-      .collect::<Vec<_>>();
-
-    if rendered_modules.is_empty() {
-      return Ok(None);
-    }
-    let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
-
-    let used_modules =
-      rspack_plugin_css::CssPlugin::get_modules_in_order(chunk, rendered_modules, compilation)
-        .0
-        .into_iter()
-        .filter_map(|module| module.downcast_ref::<CssModule>());
-
-    let mut hasher = RspackHash::from(&compilation.options.output);
-
-    used_modules
-      .map(|m| {
-        m.build_info()
-          .expect("css module built")
-          .hash
-          .as_ref()
-          .expect("css module should have hash")
-      })
-      .for_each(|current| {
-        current.hash(&mut hasher);
-      });
-
-    return Ok(Some((
-      SOURCE_TYPE[0],
-      hasher.digest(&compilation.options.output.hash_digest),
-    )));
-  }
-
-  async fn render_manifest(
-    &self,
-    _ctx: PluginContext,
-    args: RenderManifestArgs<'_>,
-  ) -> PluginRenderManifestHookOutput {
-    let compilation = args.compilation;
-    let module_graph = compilation.get_module_graph();
-    let chunk_ukey = args.chunk_ukey;
-    let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
-
-    if matches!(chunk.kind, ChunkKind::HotUpdate) {
-      return Ok(vec![].with_empty_diagnostic());
-    }
-
-    let rendered_modules = compilation
-      .chunk_graph
-      .get_chunk_modules_iterable_by_source_type(&chunk_ukey, SOURCE_TYPE[0], &module_graph)
-      .collect::<Vec<_>>();
-
-    if rendered_modules.is_empty() {
-      return Ok(vec![].with_empty_diagnostic());
-    }
-
-    let filename_template = if chunk.can_be_initial(&compilation.chunk_group_by_ukey) {
-      Filename::from(self.options.filename.clone())
-    } else {
-      Filename::from(self.options.chunk_filename.clone())
-    };
-
-    let (render_result, conflicts) = self
-      .render_content_asset(
-        chunk,
-        rendered_modules,
-        &filename_template,
-        compilation,
-        PathData::default().chunk(chunk).content_hash_optional(
-          chunk
-            .content_hash
-            .get(&SOURCE_TYPE[0])
-            .map(|hash| hash.encoded()),
-        ),
-      )
-      .await?;
-
-    let diagnostics = if let Some(conflicts) = conflicts {
-      conflicts
-        .into_iter()
-        .map(|conflict| {
-          let chunk = compilation.chunk_by_ukey.expect_get(&conflict.chunk);
-          let fallback_module = module_graph
-            .module_by_identifier(&conflict.fallback_module)
-            .expect("should have module");
-
-          Diagnostic::warn(
-            "".into(),
-            format!(
-              "chunk {} [{PLUGIN_NAME}]\nConflicting order. Following module has been added:\n * {}
-despite it was not able to fulfill desired ordering with these modules:\n{}",
-              chunk
-                .name
-                .as_deref()
-                .unwrap_or(chunk.id.as_deref().unwrap_or_default()),
-              fallback_module.readable_identifier(&compilation.options.context),
-              conflict
-                .reasons
-                .iter()
-                .map(|(m, failed_reasons, good_reasons)| {
-                  let m = module_graph
-                    .module_by_identifier(m)
-                    .expect("should have module");
-
-                  format!(
-                    " * {}\n  - couldn't fulfill desired order of chunk group(s) {}{}",
-                    m.readable_identifier(&compilation.options.context),
-                    failed_reasons
-                      .as_ref()
-                      .map(|s| s.as_str())
-                      .unwrap_or_default(),
-                    good_reasons
-                      .as_ref()
-                      .map(|s| format!(
-                        "\n  - while fulfilling desired order of chunk group(s) {}",
-                        s.as_str()
-                      ))
-                      .unwrap_or_default(),
-                  )
-                })
-                .collect::<Vec<_>>()
-                .join("\n")
-            ),
-          )
-        })
-        .collect()
-    } else {
-      vec![]
-    };
-
-    Ok(TWithDiagnosticArray::new(vec![render_result], diagnostics))
   }
 
   async fn runtime_requirements_in_tree(

@@ -62,8 +62,8 @@ impl<I> AsyncParallelHook<I> {
     Ok(())
   }
 
-  pub fn tap(&mut self, hook: Box<dyn AsyncParallel<I> + Send + Sync>) {
-    self.taps.push(hook);
+  pub fn tap(&mut self, hook: impl AsyncParallel<I> + Send + Sync + 'static) {
+    self.taps.push(Box::new(hook));
   }
 }
 
@@ -125,7 +125,7 @@ impl<I1, I2, I3> AsyncParallel3Hook<I1, I2, I3> {
     Ok(())
   }
 
-  pub fn tap(&mut self, hook: Box<dyn AsyncParallel3<I1, I2, I3> + Send + Sync>) {
-    self.taps.push(hook);
+  pub fn tap(&mut self, hook: impl AsyncParallel3<I1, I2, I3> + Send + Sync + 'static) {
+    self.taps.push(Box::new(hook));
   }
 }

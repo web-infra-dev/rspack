@@ -10,7 +10,7 @@ use rspack_core::{
   AdditionalChunkRuntimeRequirementsArgs, ApplyContext, AssetInfo, Chunk, ChunkKind, ChunkUkey,
   Compilation, CompilationAsset, CompilationParams, CompilationRecords, CompilerOptions,
   DependencyType, PathData, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext,
-  RenderManifestArgs, RuntimeGlobals, RuntimeModuleExt, RuntimeSpec, SourceType,
+  RuntimeGlobals, RuntimeModuleExt, RuntimeSpec, SourceType,
 };
 use rspack_error::Result;
 use rspack_hash::RspackHash;
@@ -225,19 +225,18 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           .connect_chunk_and_runtime_module(ukey, runtime_module);
       }
 
-      let render_manifest_result = compilation
+      let mut manifest = Vec::new();
+      let mut diagnostics = Vec::new();
+      compilation
         .plugin_driver
-        .render_manifest(RenderManifestArgs {
-          compilation,
-          chunk_ukey: ukey,
-        })
-        .await
-        .expect("render_manifest failed in rebuild");
+        .compilation_hooks
+        .render_manifest
+        .call(compilation, &ukey, &mut manifest, &mut diagnostics)
+        .await?;
 
-      let (render_manifest, diagnostics) = render_manifest_result.split_into_parts();
       compilation.push_batch_diagnostic(diagnostics);
 
-      for entry in render_manifest {
+      for entry in manifest {
         let filename = if entry.has_filename() {
           entry.filename().to_string()
         } else {
