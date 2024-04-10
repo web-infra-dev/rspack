@@ -558,6 +558,23 @@ impl UpdateModuleGraph {
               }
               AddTaskResult::ModuleReused { module, .. } => {
                 tracing::trace!("Module reused: {}, skipping build", module.identifier());
+
+                let module_identifier = module.identifier();
+                if compilation
+                  .get_module_graph()
+                  .module_by_identifier(&module_identifier)
+                  .is_some()
+                {
+                  self.active_task_count += 1;
+                  self
+                    .result_tx
+                    .send(Ok(TaskResult::ProcessDependencies(Box::new(
+                      ProcessDependenciesResult {
+                        module_identifier: module.identifier(),
+                      },
+                    ))))
+                    .expect("Failed to send factorize result");
+                }
               }
             },
             Ok(TaskResult::Build(box task_result)) => {
@@ -666,17 +683,23 @@ impl UpdateModuleGraph {
                   mgm.set_profile(current_profile);
                 }
               }
+
+              let module_identifier = module.identifier();
+
+              module
+                .set_module_build_info_and_meta(build_result.build_info, build_result.build_meta);
+              let mut mg = compilation.get_module_graph_mut();
+
+              let resolve_options = module.get_resolve_options();
+              mg.add_module(module);
+
               self
                 .process_dependencies_queue
                 .add_task(ProcessDependenciesTask {
                   dependencies: all_dependencies,
-                  original_module_identifier: module.identifier(),
-                  resolve_options: module.get_resolve_options(),
+                  original_module_identifier: module_identifier,
+                  resolve_options,
                 });
-
-              module
-                .set_module_build_info_and_meta(build_result.build_info, build_result.build_meta);
-              compilation.get_module_graph_mut().add_module(module);
             }
             Ok(TaskResult::ProcessDependencies(task_result)) => {
               tracing::trace!(

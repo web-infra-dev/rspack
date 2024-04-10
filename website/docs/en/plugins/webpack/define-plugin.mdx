@@ -1,0 +1,55 @@
+import { ApiMeta } from '../../../../components/ApiMeta.tsx';
+
+# DefinePlugin
+
+<ApiMeta addedVersion={'0.3.3'} />
+
+This plugin will replace variables in the code with other values or expressions at compile time.
+
+```js
+new rspack.DefinePlugin(options);
+```
+
+- options
+  - **Type:** `Record<string, string | boolean | undefined>`
+
+When using the following configuration:
+
+```ts title="rspack.config.js"
+const rspack = require('@rspack/core');
+module.exports = {
+  plugins: [
+    new rspack.DefinePlugin({
+      'process.env.NODE_ENV': "'development'",
+      TRUE: true,
+      TRUE_STRING: 'true',
+      UNDEFINED: undefined,
+      UNDEFINED_STRING: 'undefined',
+    }),
+  ],
+};
+```
+
+Input:
+
+```ts
+if (process.env.NODE_ENV === 'development') {
+  console.log('run in development mode');
+}
+
+console.log(TRUE === TRUE_STRING);
+console.log(UNDEFINED === UNDEFINED_STRING);
+```
+
+Output:
+
+```ts
+if ('development' === 'development') {
+  console.log('run in development mode');
+}
+
+fetch('/api/test');
+
+console.log(true === true);
+console.log(undefined === undefined);
+```

@@ -2,33 +2,29 @@
 
 exports[`StatsTestCases should print correct stats for auxiliary-files-test 1`] = `
 "PublicPath: auto
-asset bundle.js 2.78 KiB {909} [emitted] (name: main)
+asset bundle.js 2.42 KiB {909} [emitted] (name: main)
 asset f7f4f00355f310234f70.png 7 bytes {909} [emitted] [from: raw.png] (name: main)
-Entrypoint main 2.78 KiB = bundle.js
+Entrypoint main 2.42 KiB = bundle.js
 chunk {909} bundle.js (main) [entry]
   ./raw.png [193] {909}
     [no exports]
-    [used exports unknown]
+    [no exports used]
     esm import ./raw.png [10]
   ./index.js [10] {909}
     [no exports]
-    [used exports unknown]
+    [no exports used]
     entry ./index
-  ./stringModule.js [151] {909}
-    [no exports]
-    [used exports unknown]
-    esm import ./stringModule [10]
 ./raw.png [193] {909}
   [no exports]
-  [used exports unknown]
+  [no exports used]
   esm import ./raw.png [10]
 ./index.js [10] {909}
   [no exports]
-  [used exports unknown]
+  [no exports used]
   entry ./index
-./stringModule.js [151] {909}
+./stringModule.js [orphan]
   [no exports]
-  [used exports unknown]
+  [module unused]
   esm import ./stringModule [10]
 webpack/runtime/global {909}
   [no exports]
@@ -36,11 +32,8 @@ webpack/runtime/global {909}
 webpack/runtime/auto_public_path {909}
   [no exports]
   [used exports unknown]
-webpack/runtime/make_namespace_object {909}
-  [no exports]
-  [used exports unknown]
   
-Rspack compiled successfully (57eb596eb6f40acaf334)"
+Rspack compiled successfully (9d8cd7acf1ce48762ad3)"
 `;
 
 exports[`StatsTestCases should print correct stats for builtin-swc-loader-parse-error 1`] = `
@@ -78,7 +71,7 @@ Entrypoint main 8.74 KiB = 909.xxxx.js
 runtime modules 11 modules
 ./index.js
 ./dynamic.js
-Rspack x.x.x compiled successfully in X s (c6a5a394e9db42ffa496)"
+Rspack x.x.x compiled successfully in X s (caf82b4e1767b4699a6c)"
 `;
 
 exports[`StatsTestCases should print correct stats for hot+production 1`] = `
@@ -154,7 +147,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   chunk bundle2.js (main) >{76}< [entry]
     ./b.js
     ./index.js
-  2 chunks (Rspack x.x.x) compiled successfully in X s (44f3925f5fcb180ef6fc)
+  2 chunks (Rspack x.x.x) compiled successfully in X s (538b6f593daca0566997)
 
 3 chunks:
   PublicPath: auto
@@ -170,7 +163,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   chunk bundle3.js (main) >{76}< [entry]
     ./b.js
     ./index.js
-  3 chunks (Rspack x.x.x) compiled successfully in X s (78d76aec40cd395ce9eb)
+  3 chunks (Rspack x.x.x) compiled successfully in X s (c7fa9ebae988af806f63)
 
 4 chunks:
   PublicPath: auto
@@ -188,7 +181,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   chunk bundle4.js (main) >{76}< [entry]
     ./b.js
     ./index.js
-  4 chunks (Rspack x.x.x) compiled successfully in X s (42c11d8fb497be7a5369)"
+  4 chunks (Rspack x.x.x) compiled successfully in X s (414de655061e8a9859a0)"
 `;
 
 exports[`StatsTestCases should print correct stats for logging-loader 1`] = `
@@ -291,9 +284,8 @@ exports[`StatsTestCases should print correct stats for reasons 1`] = `
 
 exports[`StatsTestCases should print correct stats for resolve-overflow-error 1`] = `
 "PublicPath: auto
-asset main.js 1.46 KiB [emitted] (name: main)
-Entrypoint main 1.46 KiB = main.js
-runtime modules 1 module
+asset main.js 1.02 KiB [emitted] (name: main)
+Entrypoint main 1.02 KiB = main.js
 ./index.js
 
 ERROR in ./index.js
@@ -305,7 +297,7 @@ ERROR in ./index.js
    ╰────
   help: maybe it had cyclic aliases
 
-Rspack x.x.x compiled with 1 error in X s (b83610ec401765d7f9ef)"
+Rspack x.x.x compiled with 1 error in X s (59974c3941ac297dceb3)"
 `;
 
 exports[`StatsTestCases should print correct stats for resolve-unexpected-exports-in-pkg-error 1`] = `
@@ -390,22 +382,21 @@ Rspack x.x.x compiled successfully in X s (28af2d7a47e4039ec00e)"
 
 exports[`StatsTestCases should print correct stats for simple-module-source 1`] = `
 "PublicPath: auto
-asset bundle.js 2.32 KiB [emitted] (name: main)
-Entrypoint main 2.32 KiB = bundle.js
-runtime modules 4 modules
+asset bundle.js 1.96 KiB [emitted] (name: main)
+Entrypoint main 1.96 KiB = bundle.js
+runtime modules 3 modules
+orphan modules [orphan] 1 module
 ./raw.png
 ./index.js
-./stringModule.js
-Rspack compiled successfully (4e8727ef8ec09b0633f9)"
+Rspack compiled successfully (e4754228f3ed6f29f8aa)"
 `;
 
 exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
 "PublicPath: auto
-asset main.js 1.78 KiB [emitted111] (name: main) [testA: aaaaaa]
-Entrypoint main 1.78 KiB = main.js
-runtime modules 3 modules
+asset main.js 764 bytes [emitted111] (name: main) [testA: aaaaaa]
+Entrypoint main 764 bytes = main.js
 ./index.js
-Rspack compiled successfully (1767e12820b733a752da)"
+Rspack compiled successfully (baea1f1033101ca9fde6)"
 `;
 
 exports[`StatsTestCases should print correct stats for try-require-module 1`] = `

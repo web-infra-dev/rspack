@@ -4,15 +4,14 @@ use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_hash::RspackHashDigest;
 use rspack_loader_runner::ResourceData;
 use rspack_sources::BoxSource;
-use rspack_util::fx_dashmap::FxDashMap;
+use rspack_util::fx_hash::FxDashMap;
 
 use crate::{
   AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, AssetInfo, BoxModule,
   ChunkHashArgs, Compilation, CompilationHooks, CompilerHooks, CompilerOptions, ContentHashArgs,
-  ContextModuleFactoryHooks, GeneratorOptions, JsChunkHashArgs, ModuleIdentifier, ModuleType,
+  ContextModuleFactoryHooks, GeneratorOptions, ModuleIdentifier, ModuleType,
   NormalModuleFactoryHooks, NormalModuleHooks, OptimizeChunksArgs, ParserAndGenerator,
-  ParserOptions, PluginContext, RenderArgs, RenderChunkArgs, RenderManifestArgs,
-  RenderModuleContentArgs, RenderStartupArgs, RuntimeRequirementsInTreeArgs, SourceType,
+  ParserOptions, PluginContext, RenderManifestArgs, RuntimeRequirementsInTreeArgs, SourceType,
 };
 
 #[derive(Debug, Clone)]
@@ -29,16 +28,11 @@ pub type PluginNormalModuleFactoryAfterResolveOutput = Result<Option<bool>>;
 pub type PluginContentHashHookOutput = Result<Option<(SourceType, RspackHashDigest)>>;
 pub type PluginChunkHashHookOutput = Result<()>;
 pub type PluginRenderManifestHookOutput = Result<TWithDiagnosticArray<Vec<RenderManifestEntry>>>;
-pub type PluginRenderChunkHookOutput = Result<Option<BoxSource>>;
 pub type PluginProcessAssetsOutput = Result<()>;
 pub type PluginOptimizeChunksOutput = Result<()>;
 pub type PluginAdditionalChunkRuntimeRequirementsOutput = Result<()>;
 pub type PluginRuntimeRequirementsInTreeOutput = Result<()>;
 pub type PluginAdditionalModuleRequirementsOutput = Result<()>;
-pub type PluginRenderModuleContentOutput<'a> = Result<RenderModuleContentArgs<'a>>;
-pub type PluginRenderStartupHookOutput = Result<Option<BoxSource>>;
-pub type PluginRenderHookOutput = Result<Option<BoxSource>>;
-pub type PluginJsChunkHashHookOutput = Result<()>;
 
 #[async_trait::async_trait]
 pub trait Plugin: Debug + Send + Sync {
@@ -78,48 +72,7 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(vec![].with_empty_diagnostic())
   }
 
-  // JavascriptModulesPlugin hook
-  async fn render_chunk(
-    &self,
-    _ctx: PluginContext,
-    _args: &RenderChunkArgs,
-  ) -> PluginRenderChunkHookOutput {
-    Ok(None)
-  }
-
   async fn module_asset(&self, _module: ModuleIdentifier, _asset_name: String) -> Result<()> {
-    Ok(())
-  }
-
-  // JavascriptModulesPlugin hook
-  fn render(&self, _ctx: PluginContext, _args: &RenderArgs) -> PluginRenderStartupHookOutput {
-    Ok(None)
-  }
-
-  // JavascriptModulesPlugin hook
-  fn render_startup(
-    &self,
-    _ctx: PluginContext,
-    _args: &RenderStartupArgs,
-  ) -> PluginRenderStartupHookOutput {
-    Ok(None)
-  }
-
-  // JavascriptModulesPlugin hook
-  fn render_module_content<'a>(
-    &'a self,
-    _ctx: PluginContext,
-    args: RenderModuleContentArgs<'a>,
-  ) -> PluginRenderModuleContentOutput<'a> {
-    Ok(args)
-  }
-
-  // JavascriptModulesPlugin hook
-  fn js_chunk_hash(
-    &self,
-    _ctx: PluginContext,
-    _args: &mut JsChunkHashArgs,
-  ) -> PluginJsChunkHashHookOutput {
     Ok(())
   }
 

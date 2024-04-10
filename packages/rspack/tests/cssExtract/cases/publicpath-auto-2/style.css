@@ -1,0 +1,19 @@
+.a {
+  background-image: url(./same_root.svg);
+}
+
+.b {
+  background-image: url(./same_dir.svg);
+}
+
+.c {
+  background-image: url(./nested_dir.svg);
+}
+
+.d {
+  background-image: url(./outer.svg);
+}
+
+.e {
+  background-image: url(./images/react.svg);
+}

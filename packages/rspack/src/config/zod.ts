@@ -1025,7 +1025,8 @@ const statsOptions = z.strictObject({
 	children: z.boolean().optional(),
 	usedExports: z.boolean().optional(),
 	providedExports: z.boolean().optional(),
-	optimizationBailout: z.boolean().optional()
+	optimizationBailout: z.boolean().optional(),
+	orphanModules: z.boolean().optional()
 });
 export type StatsOptions = z.infer<typeof statsOptions>;
 

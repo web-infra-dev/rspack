@@ -161,6 +161,10 @@ jobs:
         if: steps.changes.outputs.src == 'true'
         run: pnpm run lint:js
 
+      - name: prettier
+        if: steps.changes.outputs.src == 'true'
+        run: pnpm run format-ci:js
+
   rust_changes:
     name: Rust Changes
     runs-on: ubuntu-latest
@@ -206,6 +210,9 @@ jobs:
           fmt: true
           shared-key: check
 
+      - name: Pnpm Cache # Required by some tests
+        uses: ./.github/actions/pnpm-cache
+
       - name: Run Cargo Check
         run: cargo check --workspace --all-targets --locked # Not using --release because it uses too much cache, and is also slow.
 
@@ -221,6 +228,9 @@ jobs:
           command: fmt
           args: --all -- --check
 
+      - name: Run toml format check
+        run: pnpm run format-ci:toml
+
   rust_unused_dependencies:
     name: Check Rust Unused Dependencies
     needs: [get-runner-labels, rust_changes]
@@ -228,26 +238,12 @@ jobs:
     runs-on: ${{ fromJSON(needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS) }}
     steps:
       - uses: actions/checkout@v4
-
-      - uses: dorny/paths-filter@v3
-        id: filter
-        with:
-          filters: |
-            src:
-              - 'Cargo.toml'
-              - '**/Cargo.toml'
-
-      - name: Install cargo-machete
-        if: steps.filter.outputs.src == 'true'
-        uses: taiki-e/install-action@cargo-machete
-
-      - name: Install Rust Toolchain
-        uses: ./.github/actions/rustup
+      - uses: ./.github/actions/rustup
         with:
           shared-key: check
-
-      - if: steps.filter.outputs.src == 'true'
-        run: cargo machete
+      - uses: cargo-bins/cargo-binstall@main
+      - run: cargo binstall --no-confirm cargo-shear
+      - run: cargo shear
 
   rust_test:
     name: Rust test

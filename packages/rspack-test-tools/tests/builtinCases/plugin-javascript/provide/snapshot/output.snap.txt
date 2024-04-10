@@ -22,7 +22,7 @@ const lib = {
         return "my-name";
     }
 };
-/* unused harmony default export */ var __WEBPACK_DEFAULT_EXPORT__ = (lib);
+/* harmony default export */ __webpack_exports__["default"] = (lib);
 }),
 "./process.js": (function (module) {
 // shim for using process in browser

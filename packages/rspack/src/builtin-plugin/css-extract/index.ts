@@ -51,8 +51,8 @@ export class CssExtractRspackPlugin {
 		}
 
 		compiler.__internal__registerBuiltinPlugin({
-			// @ts-expect-error CssExtractPlugin is a constant value of BuiltinPlugin
-			name: "CssExtractPlugin",
+			// @ts-expect-error CssExtractRspackPlugin is a constant value of BuiltinPlugin
+			name: "CssExtractRspackPlugin",
 			options: this.normalizeOptions(this.options)
 		});
 	}
@@ -100,8 +100,8 @@ export class CssExtractRspackPlugin {
 				typeof options.linkType === "undefined"
 					? JSON.stringify("text/css")
 					: options.linkType === false
-						? undefined
-						: JSON.stringify(options.linkType),
+					? undefined
+					: JSON.stringify(options.linkType),
 			attributes: options.attributes
 				? (Reflect.ownKeys(options.attributes)
 						.map(k => [

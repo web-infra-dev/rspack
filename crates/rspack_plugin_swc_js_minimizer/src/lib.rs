@@ -5,7 +5,7 @@ mod minify;
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::path::Path;
-use std::sync::{mpsc, Mutex};
+use std::sync::{mpsc, Arc, Mutex};
 
 use once_cell::sync::OnceCell;
 use rayon::prelude::*;
@@ -13,12 +13,14 @@ use regex::Regex;
 use rspack_core::rspack_sources::{ConcatSource, MapOptions, RawSource, SourceExt, SourceMap};
 use rspack_core::rspack_sources::{Source, SourceMapSource, SourceMapSourceOptions};
 use rspack_core::{
-  AssetInfo, Compilation, CompilationAsset, JsChunkHashArgs, Plugin, PluginContext,
-  PluginJsChunkHashHookOutput,
+  AssetInfo, Compilation, CompilationAsset, CompilationParams, Plugin, PluginContext,
 };
 use rspack_error::miette::IntoDiagnostic;
 use rspack_error::{Diagnostic, Result};
-use rspack_hook::{plugin, plugin_hook, AsyncSeries};
+use rspack_hook::{plugin, plugin_hook, AsyncSeries, AsyncSeries2};
+use rspack_plugin_javascript::{
+  JavascriptModulesPluginPlugin, JsChunkHashArgs, JsPlugin, PluginJsChunkHashHookOutput,
+};
 use rspack_regex::RspackRegex;
 use rspack_util::try_any_sync;
 use swc_config::config_types::BoolOrDataConfig;
@@ -27,6 +29,8 @@ pub use swc_ecma_minifier::option::terser::{TerserCompressorOptions, TerserEcmaV
 pub use swc_ecma_minifier::option::MangleOptions;
 
 use self::minify::{match_object, minify};
+
+const PLUGIN_NAME: &str = "rspack.SwcJsMinimizerRspackPlugin";
 
 #[derive(Debug, Default)]
 pub struct SwcJsMinimizerRspackPluginOptions {
@@ -137,16 +141,45 @@ struct NormalizedExtractComments<'a> {
   banner: Option<String>,
 }
 
+#[derive(Debug)]
+struct SwcJsMinimizerJavascriptModulesPluginPlugin {
+  options: Arc<SwcJsMinimizerRspackPluginOptions>,
+}
+
+impl JavascriptModulesPluginPlugin for SwcJsMinimizerJavascriptModulesPluginPlugin {
+  fn js_chunk_hash(&self, args: &mut JsChunkHashArgs) -> PluginJsChunkHashHookOutput {
+    PLUGIN_NAME.hash(&mut args.hasher);
+    self.options.hash(&mut args.hasher);
+    Ok(())
+  }
+}
+
 #[plugin]
 #[derive(Debug)]
 pub struct SwcJsMinimizerRspackPlugin {
-  options: SwcJsMinimizerRspackPluginOptions,
+  options: Arc<SwcJsMinimizerRspackPluginOptions>,
+  js_plugin: Arc<SwcJsMinimizerJavascriptModulesPluginPlugin>,
 }
 
 impl SwcJsMinimizerRspackPlugin {
   pub fn new(options: SwcJsMinimizerRspackPluginOptions) -> Self {
-    Self::new_inner(options)
+    let options = Arc::new(options);
+    Self::new_inner(
+      options.clone(),
+      Arc::new(SwcJsMinimizerJavascriptModulesPluginPlugin { options }),
+    )
   }
+}
+
+#[plugin_hook(AsyncSeries2<Compilation, CompilationParams> for SwcJsMinimizerRspackPlugin)]
+async fn compilation(
+  &self,
+  compilation: &mut Compilation,
+  _params: &mut CompilationParams,
+) -> Result<()> {
+  let mut drive = JsPlugin::get_compilation_drives_mut(compilation);
+  drive.add_plugin(self.js_plugin.clone());
+  Ok(())
 }
 
 #[plugin_hook(AsyncSeries<Compilation> for SwcJsMinimizerRspackPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE)]
@@ -294,7 +327,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
 impl Plugin for SwcJsMinimizerRspackPlugin {
   fn name(&self) -> &'static str {
-    "rspack.SwcJsMinimizerRspackPlugin"
+    PLUGIN_NAME
   }
 
   fn apply(
@@ -304,19 +337,14 @@ impl Plugin for SwcJsMinimizerRspackPlugin {
   ) -> Result<()> {
     ctx
       .context
+      .compiler_hooks
+      .compilation
+      .tap(compilation::new(self));
+    ctx
+      .context
       .compilation_hooks
       .process_assets
       .tap(process_assets::new(self));
-    Ok(())
-  }
-
-  fn js_chunk_hash(
-    &self,
-    _ctx: PluginContext,
-    args: &mut JsChunkHashArgs,
-  ) -> PluginJsChunkHashHookOutput {
-    self.name().hash(&mut args.hasher);
-    self.options.hash(&mut args.hasher);
     Ok(())
   }
 }

@@ -1,13 +1,18 @@
-use std::hash::Hash;
+use std::{hash::Hash, sync::Arc};
 
 use async_trait::async_trait;
 use once_cell::sync::Lazy;
 use rspack_core::{
   get_css_chunk_filename_template, get_js_chunk_filename_template, has_hash_placeholder,
-  AdditionalModuleRequirementsArgs, ChunkLoading, JsChunkHashArgs, Plugin,
-  PluginAdditionalModuleRequirementsOutput, PluginContext, PluginJsChunkHashHookOutput,
+  AdditionalModuleRequirementsArgs, ApplyContext, ChunkLoading, Compilation, CompilationParams,
+  CompilerOptions, Plugin, PluginAdditionalModuleRequirementsOutput, PluginContext,
   PluginRuntimeRequirementsInTreeOutput, PublicPath, RuntimeGlobals, RuntimeModuleExt,
   RuntimeRequirementsInTreeArgs, SourceType,
+};
+use rspack_error::Result;
+use rspack_hook::{plugin, plugin_hook, AsyncSeries2};
+use rspack_plugin_javascript::{
+  JavascriptModulesPluginPlugin, JsChunkHashArgs, JsPlugin, PluginJsChunkHashHookOutput,
 };
 
 use crate::runtime_module::{
@@ -134,13 +139,62 @@ fn handle_dependency_globals(
   }
 }
 
-#[derive(Debug)]
-pub struct RuntimePlugin;
+#[derive(Debug, Default)]
+struct RuntimeJavascriptModulesPluginPlugin;
+
+impl JavascriptModulesPluginPlugin for RuntimeJavascriptModulesPluginPlugin {
+  fn js_chunk_hash(&self, args: &mut JsChunkHashArgs) -> PluginJsChunkHashHookOutput {
+    for identifier in args
+      .compilation
+      .chunk_graph
+      .get_chunk_runtime_modules_iterable(args.chunk_ukey)
+    {
+      if let Some((hash, _)) = args
+        .compilation
+        .runtime_module_code_generation_results
+        .get(identifier)
+      {
+        hash.hash(&mut args.hasher);
+      }
+    }
+    Ok(())
+  }
+}
+
+#[plugin]
+#[derive(Debug, Default)]
+pub struct RuntimePlugin {
+  js_plugin: Arc<RuntimeJavascriptModulesPluginPlugin>,
+}
+
+#[plugin_hook(AsyncSeries2<Compilation, CompilationParams> for RuntimePlugin)]
+async fn compilation(
+  &self,
+  compilation: &mut Compilation,
+  _params: &mut CompilationParams,
+) -> Result<()> {
+  let mut drive = JsPlugin::get_compilation_drives_mut(compilation);
+  drive.add_plugin(self.js_plugin.clone());
+  Ok(())
+}
 
 #[async_trait]
 impl Plugin for RuntimePlugin {
   fn name(&self) -> &'static str {
     "rspack.RuntimePlugin"
+  }
+
+  fn apply(
+    &self,
+    ctx: PluginContext<&mut ApplyContext>,
+    _options: &mut CompilerOptions,
+  ) -> Result<()> {
+    ctx
+      .context
+      .compiler_hooks
+      .compilation
+      .tap(compilation::new(self));
+    Ok(())
   }
 
   #[allow(clippy::unwrap_in_result)]
@@ -522,27 +576,6 @@ impl Plugin for RuntimePlugin {
       }
     }
 
-    Ok(())
-  }
-
-  fn js_chunk_hash(
-    &self,
-    _ctx: PluginContext,
-    args: &mut JsChunkHashArgs,
-  ) -> PluginJsChunkHashHookOutput {
-    for identifier in args
-      .compilation
-      .chunk_graph
-      .get_chunk_runtime_modules_iterable(args.chunk_ukey)
-    {
-      if let Some((hash, _)) = args
-        .compilation
-        .runtime_module_code_generation_results
-        .get(identifier)
-      {
-        hash.hash(&mut args.hasher);
-      }
-    }
     Ok(())
   }
 }

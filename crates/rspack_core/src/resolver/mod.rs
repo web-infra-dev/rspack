@@ -8,7 +8,7 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_error::{Error, MietteExt};
 use rspack_loader_runner::DescriptionData;
-use sugar_path::{AsPath, SugarPath};
+use sugar_path::SugarPath;
 
 pub use self::factory::{ResolveOptionsWithDependencyType, ResolverFactory};
 pub use self::resolver_impl::{ResolveInnerOptions, Resolver};
@@ -99,7 +99,7 @@ pub fn resolve_for_error_hints(
     let resolver = plugin_driver.resolver_factory.get(dep);
     match resolver.resolve(base_dir, args.specifier) {
       Ok(ResolveResult::Resource(resource)) => {
-        let relative_path = resource.path.relative(args.context.as_path());
+        let relative_path = resource.path.relative(args.context);
         let suggestion = if let Some((_, [prefix])) = CURRENT_DIR_REGEX
           .captures_iter(args.specifier)
           .next()
@@ -219,7 +219,7 @@ which tries to resolve these kind of requests in the current directory too.",
               file.ok().and_then(|file| {
                 file.path().file_stem().and_then(|file_stem| {
                   if requested_names.contains(&file_stem.to_string_lossy().to_string()) {
-                    let mut suggestion = file.path().relative(args.context.as_path());
+                    let mut suggestion = file.path().relative(&args.context);
 
                     if !suggestion.to_string_lossy().starts_with('.') {
                       suggestion = PathBuf::from(format!("./{}", suggestion.to_string_lossy()));

@@ -11,7 +11,8 @@ const config = {
 		"<rootDir>/tests/*.basictest.js",
 		"<rootDir>/tests/*.longtest.js",
 		"<rootDir>/tests/*.unittest.js",
-		"<rootDir>/tests/copyPlugin/*.test.js"
+		"<rootDir>/tests/copyPlugin/*.test.js",
+		"<rootDir>/tests/cssExtract/*.test.js",
 	],
 	testTimeout: process.env.CI ? 60000 : 30000,
 	prettierPath: require.resolve("prettier-2"),
