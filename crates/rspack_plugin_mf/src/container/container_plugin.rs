@@ -71,6 +71,7 @@ async fn make(&self, compilation: &mut Compilation, params: &mut Vec<MakeParam>)
     self.options.name.clone(),
     self.options.exposes.clone(),
     self.options.share_scope.clone(),
+    self.options.enhanced,
   );
   let dependency_id = *dep.id();
   compilation.add_entry(
