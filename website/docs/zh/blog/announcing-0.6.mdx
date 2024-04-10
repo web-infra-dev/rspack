@@ -22,11 +22,46 @@ import { PackageManagerTabs } from '@theme';
 
 ### 移除 experiments.rspackFuture.disableApplyEntryLazily
 
+`experiments.rspackFuture.disableApplyEntryLazily` 选项自 v0.5.0 已被默认开启，并在 v0.6.0 中被删除。
+
 ### 移除 compiler.build 和 compiler.rebuild
 
 `compiler.build` 与 `compiler.rebuild` 不属于 Webpack 公开 API，目前已经被移除。
 
-### 移除 builtins.css
+### 移除 builtins.css 并引入 CSS 相关 module.parser 和 module.generator 选项
+
+移除 `builtins.css`，请使用引入的 CSS 相关的 [`module.parser`](/config/module.html#moduleparsercssauto) 和 [`module.generator`](/config/module.html#modulegeneratorcssauto) 选项进行替代。
+
+同时，从 v0.6.0 版本开始，Rspack 的 experiments css 将会以 webpack 的 experiments css 为目标进行对齐，这意味着和 webpack experiments css 一样在未来将不再支持[不支持 CSS 变量的浏览器](https://caniuse.com/css-variables)。因此，对于那些需要使用尚未得到 experiments css 支持的配置，或者需要兼容老版本浏览器的项目，我们推荐迁移至 [`rspack.CssExtractRspackPlugin`](/plugins/rspack/css-extract-rspack-plugin.html)。
+
+在 v0.6.0 中，我们引入了三种新的模块类型的 `module.generator` 和 `module.parser` 选项：`css/auto`、`css` 和 `css/module`，这些选项只有在启用 experiments.css 时才会生效。
+
+`css`、`css/auto`、`css/module` 模块类型的 `module.parser` 选项都具有 `namedExports` 属性，该属性用于控制是否使用 ES 模块命名导出（named export）来导出 css 的内容。这将替代 `builtins.css.namedExports`。
+
+`css/auto` 和 `css/module` 的 `module.generator` 选项包括 `exportsOnly`、`exportsConvention` 和 `localIdentName`；而 `css` 的生成器选项包括 `exportsOnly` 和 `exportsConvention`。`exportsOnly` 将替代 `builtins.css.modules.exportsOnly`，`exportsConvention` 将替代 `builtins.css.modules.localsConvention`，`localIdentName` 将替代 `builtins.css.modules.localIdentName`。
+
+除此之外，还包括一些关于默认值的修改：
+
+1. `exportsConvention` 的值从 `'asIs'`, `'camelCaseOnly'` 等变更为 `'as-is'`, `'camel-case-only'` 等，以保持与 webpack experiments css 的一致。
+2. `namedExports: false` 支持同时使用默认导出（default export）、命名导出（named export）和命名空间导出（namespace export），在此之前它只支持使用默认导出：
+
+    ```js
+    // v0.6.0 之前只支持使用默认导出
+    import classes from './index.module.css';
+
+    // 现在除默认导出之外，也支持：
+    // 命名空间导出
+    import * as classes from './index.module.css';
+    // 命名导出
+    import { class1, class2 } from './index.module.css';
+    // 默认导出和命名导出同时使用
+    import classes, { class1, class2 } from './index.module.css';    
+    ```
+
+3. `namedExports` 的默认值从 `false` 变更为 `true`，这意味着你需要默认使用命名空间导入（例如 `import * as classes from './style.css'`）或命名导入（例如 `import { class1 } from './style.css'`），这将提高与未来[原生 CSS 模块](https://web.dev/articles/css-module-scripts)的兼容性。而这并不意味着你需要一次性迁移所有的导入，你可以通过设置 `namedExports: false` 来禁用此行为，并且由于现在 `namedExports: false` 也支持命名导出和命名空间导出，因此你可以逐步迁移这些导入。
+4. `localIdentName` 的默认值在从在开发模式下 `'[path][name][ext]__[local]'` 和在生产模式下 `'[hash]'` 变更为在开发和生产模式下都是 `'[uniqueName]-[id]-[local]'`，这将略微改善 CSS 产物的 gzip 压缩大小。
+5. `exportsOnly` 的默认值在 `target: 'node'` 下由原来的 `false` 变更为 `true`。
+6. CSS 默认规则的模块类型从 `css` 变更为 `css/auto`，`css/auto` 将自动解析以 `.module.` 或 `.modules.` 为中缀的 CSS 文件作为 [CSS Modules](https://github.com/css-modules/css-modules) 处理，这与 [`css-loader` 的 `modules.auto: true`](https://github.com/webpack-contrib/css-loader?tab=readme-ov-file#auto) 行为一致，这将[简化使用 less 或 sass 与 CSS Modules 的规则书写](https://github.com/webpack/webpack/issues/16572)。
 
 ### 升级 swc 到 0.90.x
 
@@ -37,6 +72,52 @@ import { PackageManagerTabs } from '@theme';
 ### 使用 rspack.CssExtractRspackPlugin
 
 ### 迁移 builtins.css 配置
+
+1. 使用 `module.parser["css/auto"].namedExports` 替代 `builtins.css.namedExports`。
+2. 使用 `module.generator["css/auto"].exportsOnly` 替代 `builtins.css.modules.exportsOnly`。
+2. 使用 `module.generator["css/auto"].exportsConvention` 替代 `builtins.css.modules.localsConvention`。
+2. 使用 `module.generator["css/auto"].localIdentName` 替代 `builtins.css.modules.localIdentName`。
+
+以上出现的 `"css/auto"` 为 CSS 默认的模块类型，可根据需要修改为 `"css"` 或 `"css/module"`。
+
+添加以下配置将保持原有 `builtins.css` 默认行为，可根据以下配置根据需要进行修改：
+
+```diff
+module.exports = {
+   // ...
++  module: {
++    generator: {
++      "css/auto": {
++        exportsOnly: false,
++        exportsConvention: 'as-is',
++        localIdentName: isProduction ? '[hash]' : '[path][name][ext]__[local]',
++      },
++      "css": {
++        exportsOnly: false,
++        exportsConvention: 'as-is',
++      },
++      "css/module": {
++        exportsOnly: false,
++        exportsConvention: 'as-is',
++        localIdentName: isProduction ? '[hash]' : '[path][name][ext]__[local]',
++      },
++    },
++    parser: {
++      "css/auto": {
++        namedExport: false,
++      },
++      "css": {
++        namedExport: false,
++      },
++      "css/module": {
++        namedExport: false,
++      },
++    },
++  },
+}
+```
+
+如需要对部分模块进行配置，可使用 `module.rules` 中的 [`rule.parser`](/config/module.html#ruleparser) 和 [`rule.generator`](/config/module.html#rulegenerator) 选项进行配置。
 
 ### 调用 compiler.run 执行构建
 

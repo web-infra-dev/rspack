@@ -18,11 +18,46 @@ import { PackageManagerTabs } from '@theme';
 
 ### Remove experiments.rspackFuture.disableApplyEntryLazily
 
+The `experiments.rspackFuture.disableApplyEntryLazily` option has been enabled by default since v0.5.0 and was removed in v0.6.0.
+
 ### Remove compiler.build and compiler.rebuild
 
 `compiler.build` and `compiler.rebuild` are not part of the Webpack public API and have now been removed.
 
-### Remove builtins.css
+### Remove builtins.css and introduce CSS related module.parser and module.generator options
+
+Remove `builtins.css`, please replace it with the CSS-related [`module.parser`](/config/module.html#moduleparsercssauto) and [`module.generator`](/config/module.html#modulegeneratorcssauto) options that have been introduced.
+
+Also, starting from v0.6.0, Rspack's experiments CSS will align with webpack's experiments CSS as a target, which means that, like webpack experiments CSS, it will no longer support [browsers that do not support CSS variables](https://caniuse.com/css-variables) in the future. Therefore, for those projects that need to use configurations not yet supported by experiments CSS, or need to support older browsers, we recommend migrating to [`rspack.CssExtractRspackPlugin`](/plugins/rspack/css-extract-rspack-plugin.html).
+
+In v0.6.0, we introduced three new types of `module.generator` and `module.parser` options: `css/auto`, `css`, and `css/module`, which will only take effect when experiments.css is enabled.
+
+The `module.parser` options for the `css`, `css/auto`, and `css/module` module types all have a `namedExports` property that is used to control whether to use ES module named exports for exporting contents of CSS. This will replace `builtins.css.namedExports`.
+
+The `module.generator` options for `css/auto` and `css/module` include `exportsOnly`, `exportsConvention`, and `localIdentName`; while the generator options for `css` include `exportsOnly` and `exportsConvention`. `exportsOnly` will replace `builtins.css.modules.exportsOnly`, `exportsConvention` will replace `builtins.css.modules.localsConvention`, and `localIdentName` will replace `builtins.css.modules.localIdentName`.
+
+In addition, there are some changes to the default values:
+
+1. The value of `exportsConvention` has changed from `'asIs'`, `'camelCaseOnly'`, etc., to `'as-is'`, `'camel-case-only'`, etc., to maintain consistency with webpack experiments css.
+2. With `namedExports: false`, it is now possible to use default exports, named exports, and namespace exports at the same time; previously, only the default export was supported:
+
+    ```js
+    // Before v0.6.0, only default export was supported
+    import classes from './index.module.css';
+
+    // Now, in addition to default export, it also supports:
+    // Namespace exports
+    import * as classes from './index.module.css';
+    // Named exports
+    import { class1, class2 } from './index.module.css';
+    // Default and named exports used together
+    import classes, { class1, class2 } from './index.module.css';    
+    ```
+
+3. The default value of `namedExports` changed from `false` to `true`, meaning you'll have to use a namespace import (like `import * as classes from './style.css'`) or named import (like `import { class1 } from './style.css'`) by default, which will improve future compatibility with [native CSS modules](https://web.dev/articles/css-module-scripts). And this does not mean you have to migrate all imports at once; you can disable this behavior by setting `namedExports: false`, and since now `namedExports: false` also supports named export and namespace export, you can migrate these imports progressively.
+4. The default value of `localIdentName` has changed from `'[path][name][ext]__[local]'` in development mode and `'[hash]'` in production mode to `'[uniqueName]-[id]-[local]'` in both development and production modes, which will slightly improve the gzip compression size of the CSS output.
+5. The default value of `exportsOnly` in `target: 'node'` has changed from `false` to `true`.
+6. The default rule type for CSS has changed from `css` to `css/auto`. `css/auto` will automatically process CSS files with `.module.` or `.modules.` as infixes as [CSS Modules](https://github.com/css-modules/css-modules), consistent with [`css-loader`'s `modules.auto: true`](https://github.com/webpack-contrib/css-loader?tab=readme-ov-file#auto), which will [simplify the writing rules for using less or sass with CSS Modules](https://github.com/webpack/webpack/issues/16572).
 
 ### Upgrade swc to 0.90.x
 
@@ -33,6 +68,52 @@ Upgraded the Rust crate `swc_core` to `0.90.x`. This will affect users of the sw
 ### Apply rspack.CssExtractRspackPlugin
 
 ### Migrate builtins.css
+
+1. Use `module.parser["css/auto"].namedExports` to replace `builtins.css.namedExports`.
+2. Use `module.generator["css/auto"].exportsOnly` to replace `builtins.css.modules.exportsOnly`.
+3. Use `module.generator["css/auto"].exportsConvention` to replace `builtins.css.modules.localsConvention`.
+4. Use `module.generator["css/auto"].localIdentName` to replace `builtins.css.modules.localIdentName`.
+
+The above occurrences of `"css/auto"` are the default module type for CSS, which can be modified to `"css"` or `"css/module"` as needed.
+
+Add the following configuration to maintain the original default behavior of `builtins.css`, which can be modified as needed based on the following setup:
+
+```diff
+module.exports = {
+   // ...
++  module: {
++    generator: {
++      "css/auto": {
++        exportsOnly: false,
++        exportsConvention: 'as-is',
++        localIdentName: isProduction ? '[hash]' : '[path][name][ext]__[local]',
++      },
++      "css": {
++        exportsOnly: false,
++        exportsConvention: 'as-is',
++      },
++      "css/module": {
++        exportsOnly: false,
++        exportsConvention: 'as-is',
++        localIdentName: isProduction ? '[hash]' : '[path][name][ext]__[local]',
++      },
++    },
++    parser: {
++      "css/auto": {
++        namedExport: false,
++      },
++      "css": {
++        namedExport: false,
++      },
++      "css/module": {
++        namedExport: false,
++      },
++    },
++  },
+}
+```
+
+If it is necessary to configure some modules separately, you can use the [`rule.parser`](/config/module.html#ruleparser) and [`rule.generator`](/config/module.html#rulegenerator) options in `module.rules`.
 
 ### Migrate to compiler.run
 
