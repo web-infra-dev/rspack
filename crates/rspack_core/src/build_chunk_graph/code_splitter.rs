@@ -71,7 +71,7 @@ impl ChunkGroupInfo {
   fn calculate_resulting_available_modules(
     &self,
     compilation: &Compilation,
-    module_ids: &HashMap<ModuleIdentifier, BigUint>,
+    ordinal_by_module: &HashMap<ModuleIdentifier, u64>,
   ) -> BigUint {
     let mut resulting_available_modules = self.resulting_available_modules.borrow_mut();
     if let Some(resulting_available_modules) = resulting_available_modules.clone() {
@@ -90,13 +90,13 @@ impl ChunkGroupInfo {
         .get_chunk_modules(chunk, &compilation.get_module_graph())
       {
         let identifier = m.identifier();
-        let m_id = module_ids.get(&identifier).unwrap_or_else(|| {
+        let module_ordinal = ordinal_by_module.get(&identifier).unwrap_or_else(|| {
           panic!(
-            "expected a module id for identifier '{}', but none was found.",
+            "expected a module ordinal for identifier '{}', but none was found.",
             &identifier
           )
         });
-        new_resulting_available_modules |= m_id;
+        new_resulting_available_modules.set_bit(*module_ordinal, true);
       }
     }
 
@@ -147,9 +147,7 @@ pub(super) struct CodeSplitter<'me> {
   named_chunk_groups: HashMap<String, CgiUkey>,
   named_async_entrypoints: HashMap<String, CgiUkey>,
   block_modules_runtime_map: BlockModulesRuntimeMap,
-
-  // Store module unique int ID for intersection optimization
-  module_ids: HashMap<ModuleIdentifier, BigUint>,
+  ordinal_by_module: HashMap<ModuleIdentifier, u64>,
 }
 
 fn add_chunk_in_group(group_options: Option<&GroupOptions>) -> ChunkGroup {
@@ -194,22 +192,13 @@ fn get_active_state_of_connections(
   merged
 }
 
-fn contains(container: &BigUint, target: &BigUint) -> bool {
-  &(container & target) == target
-}
-
 impl<'me> CodeSplitter<'me> {
   pub fn new(compilation: &'me mut Compilation) -> Self {
-    let mut module_ids = HashMap::default();
-
-    let mut current = BigUint::from(1u32);
-
     // This optimization is inspired from  https://github.com/webpack/webpack/pull/18090 by https://github.com/dmichon-msft
     // Thanks!
-    for m in compilation.get_module_graph().modules().keys() {
-      module_ids.insert(*m, current.clone());
-
-      current <<= 1;
+    let mut ordinal_by_module = HashMap::default();
+    for (index, m) in compilation.get_module_graph().modules().keys().enumerate() {
+      ordinal_by_module.insert(*m, index as u64);
     }
 
     CodeSplitter {
@@ -231,12 +220,8 @@ impl<'me> CodeSplitter<'me> {
       named_chunk_groups: Default::default(),
       named_async_entrypoints: Default::default(),
       block_modules_runtime_map: Default::default(),
-      module_ids,
+      ordinal_by_module,
     }
-  }
-
-  fn get_module_id(&self, m: &ModuleIdentifier) -> &BigUint {
-    self.module_ids.get(m).expect("should have module id")
   }
 
   fn prepare_input_entrypoints_and_modules(
@@ -746,7 +731,12 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
   fn add_and_enter_entry_module(&mut self, item: &AddAndEnterEntryModule) {
     tracing::trace!("add_and_enter_entry_module {:?}", item);
-    let module_id = self.get_module_id(&item.module).clone();
+    let module_ordinal = self.ordinal_by_module.get(&item.module).unwrap_or_else(|| {
+      panic!(
+        "expected a module ordinal for identifier '{}', but none was found.",
+        &item.module
+      )
+    });
     let cgi = self
       .chunk_group_infos
       .expect_get_mut(&item.chunk_group_info);
@@ -759,8 +749,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       return;
     }
 
-    // if cgi.min_available_modules.contains(&item.module) {
-    if contains(&cgi.min_available_modules, &module_id) {
+    if cgi.min_available_modules.bit(*module_ordinal) {
       cgi.skipped_items.insert(item.module);
       return;
     }
@@ -792,12 +781,14 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     }
 
     // if this module in parent chunks
-    let module_id = self
-      .module_ids
-      .get(&item.module)
-      .expect("should have module id");
+    let module_ordinal = self.ordinal_by_module.get(&item.module).unwrap_or_else(|| {
+      panic!(
+        "expected a module ordinal for identifier '{}', but none was found.",
+        &item.module
+      )
+    });
 
-    if &(cgi.min_available_modules.clone() & module_id) == module_id {
+    if cgi.min_available_modules.bit(*module_ordinal) {
       cgi.skipped_items.insert(item.module);
       return;
     }
@@ -1320,8 +1311,8 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
       let runtime = chunk_group_info.runtime.clone();
 
-      let resulting_available_modules =
-        chunk_group_info.calculate_resulting_available_modules(self.compilation, &self.module_ids);
+      let resulting_available_modules = chunk_group_info
+        .calculate_resulting_available_modules(self.compilation, &self.ordinal_by_module);
       chunk_group_info.children.extend(targets.iter().cloned());
 
       for target in &targets {
@@ -1378,8 +1369,13 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       let mut enter_modules = vec![];
       // 1. Reconsider skipped items
       for skipped in &cgi.skipped_items {
-        let skipped_id = self.module_ids.get(skipped).expect("should have module id");
-        if !contains(&cgi.min_available_modules, skipped_id) {
+        let skipped_id = self.ordinal_by_module.get(skipped).unwrap_or_else(|| {
+          panic!(
+            "expected a module ordinal for identifier '{}', but none was found.",
+            skipped
+          )
+        });
+        if !cgi.min_available_modules.bit(*skipped_id) {
           enter_modules.push(*skipped);
         }
       }
@@ -1410,10 +1406,13 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           }
           if active_state.is_true() {
             active_connections.push(i);
-            if contains(
-              &cgi.min_available_modules,
-              self.module_ids.get(module).expect("should have module id"),
-            ) {
+            let module_ordinal = self.ordinal_by_module.get(module).unwrap_or_else(|| {
+              panic!(
+                "expected a module ordinal for identifier '{}', but none was found.",
+                module
+              )
+            });
+            if cgi.min_available_modules.bit(*module_ordinal) {
               cgi.skipped_items.insert(*module);
               continue;
             }
@@ -1473,7 +1472,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       for source_ukey in &info.available_sources {
         let source = self.chunk_group_infos.expect_get(source_ukey);
         let resulting_available_modules =
-          source.calculate_resulting_available_modules(self.compilation, &self.module_ids);
+          source.calculate_resulting_available_modules(self.compilation, &self.ordinal_by_module);
         available_modules |= resulting_available_modules;
       }
       min_available_modules_mappings.insert(*info_ukey, available_modules);
