@@ -100,6 +100,24 @@ After four months of bug fixing and optimization, the new tree shaking algorithm
 
 ### Apply rspack.CssExtractRspackPlugin
 
+If you have used `mini-css-extract-plugin` and webpack before, you can simply replace `mini-css-extract-plugin` by `rspack.CssExtractPlugin`.
+
+```diff
++ const CssExtract = require('@rspack/core').CssExtractRspackPlugin;
+- const CssExtract = require('mini-css-extract-plugin');
+module.exports = {
+  plugins: [new CssExtract()],
+  module: {
+    rules: [
+      {
+        test: /\.css$/i,
+        use: [CssExtract.loader, 'css-loader'],
+      },
+    ],
+  },
+};
+```
+
 ### Migrate builtins.css
 
 1. Use `module.parser["css/auto"].namedExports` to replace `builtins.css.namedExports`.
