@@ -12,11 +12,11 @@ import { PackageManagerTabs } from '@theme';
 
 ### 内置支持 mini-css-extract-plugin
 
-现在可以使用 `rspack.CssExtractRspackPlugin` 作为 `mini-css-extract-plugin` 的替代。
+你现在可以使用 `rspack.CssExtractRspackPlugin` 作为 `mini-css-extract-plugin` 的替代。
 
-这在一些场景很实用，例如当内置的 css 处理不能满足你的需求，有更定制化的 css module name 等，或者你想要使用一些依赖 css-loader 的 loader，但仍然想要将 css 提取成单独文件。
+这在一些场景很实用，例如当内置的 CSS 处理不能满足你的需求，有更定制化的 CSS module name 等，或者你想要使用一些依赖 css-loader 的 loader，但仍然想要将 CSS 提取成单独文件。
 
-详细配置见[CssExtractRspackPlugin](plugins/rspack/css-extract-rspack-plugin.html#cssextractrspackplugin)。
+详细配置见 [CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin.html#cssextractrspackplugin)。
 
 ```js
 const rspack = require('@rspack/core');
@@ -33,18 +33,18 @@ module.exports = {
 };
 ```
 
-你可以在[这里](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/react-with-extract-css)找到一个基础的项目例子。
+> 你可以在[这里](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/react-with-extract-css)找到一个基础的项目例子。
 
-### 默认开启 `experiments.rspackFuture.newTreeshaking`
+### 默认开启新版 tree shaking
 
-rspack 在 0.1.0 支持了基本的 treeShaking 功能，由于最初的架构还未稳定, 我们使用了相对简单的方法实现了基础版的 treeShaking（仅支持未使用导出删除), 但是随着 rspack 功能的完善，架构逐渐稳定
-基础的 treeShaking 无法满足用户的需求, 比如：
+Rspack 在 0.1.0 支持了基本的 tree shaking 功能，由于最初的架构还未稳定, 我们使用了相对简单的方法实现了基础版的 tree shaking（仅支持未使用导出删除），但是随着 rspack 功能的完善，架构逐渐稳定
+基础的 tree shaking 无法满足用户的需求，比如：
 
 1. 无法处理循环引用，无法给其他构建阶段足够的优化信息，实现进一步的优化 (mangleExports, concatenateModules, barrel exports optimization)。
 2. 经常出现一些 interop 相关的 badcase，例如: worker-thread 模块，Common Js 模块，module federation 等
 
-为了解决以上问题，我们决定使用类似 webpack 的方法，自底向上重新实现整个优化流程，并在 0.4.2 引入 `experiments.rspackFuture.newTreeshaking` 配置，来实验性的开启新的优化算法。
-经过 4 个月 bug 修复和优化，新的 treeShaking 算法已经相对稳定, 因此我们决定在 0.6.0 默认开启新的 treeShaking 算法。
+为了解决以上问题，我们决定使用类似 webpack 的方案，自底向上重新实现整个优化流程，并在 0.4.2 引入 `experiments.rspackFuture.newTreeshaking` 配置，来实验性的开启新的优化算法。
+经过 4 个月 bug 修复和优化，新的 tree shaking 算法已经相对稳定，因此我们决定在 0.6.0 默认开启新的 tree shaking 算法。
 
 ## 破坏性更新
 

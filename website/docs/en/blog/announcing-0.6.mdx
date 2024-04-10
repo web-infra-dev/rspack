@@ -16,7 +16,7 @@ Now you can use `rspack.CssExtractRspackPlugin` as a replacement for `mini-css-e
 
 This is very useful in some scenarios, for example when the built-in CSS parser cannot meet your needs, there are more customized CSS module names, or you want to use some loaders that depend on the output of css-loader, but still want to extract the CSS into a separate file.
 
-For more details, please see [CssExtractRspackPlugin](plugins/rspack/css-extract-rspack-plugin.html#cssextractrspackplugin).
+For more details, please see [CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin.html#cssextractrspackplugin).
 
 ```js
 const rspack = require('@rspack/core');
@@ -33,11 +33,11 @@ module.exports = {
 };
 ```
 
-There is an basic [project example](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/react-with-extract-css).
+> There is an basic [project example](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/react-with-extract-css).
 
-### Enable `experiments.rspackFuture.newTreeshaking` by default
+### Enable new tree shaking by default
 
-In rspack 0.1.0, basic tree shaking functionality was introduced. Due to the initial architecture being unstable, we employed a relatively simplistic approach to implement the basic version of tree shaking (only support unused export variables elimination). However, as rspack's capabilities improved, the architecture gradually stabilized.
+In Rspack 0.1.0, basic tree shaking functionality was introduced. Due to the initial architecture being unstable, we employed a relatively simplistic approach to implement the basic version of tree shaking (only support unused export variables elimination). However, as rspack's capabilities improved, the architecture gradually stabilized.
 
 The basic tree shaking functionality was insufficient to meet user needs, for example:
 
