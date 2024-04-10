@@ -94,6 +94,29 @@ rspack 在 0.1.0 支持了基本的 treeShaking 功能，由于最初的架构�
    为了解决以上问题，我们决定使用类似 webpack 的方法，自底向上重新实现整个优化流程，并在 0.4.2 引入 `experiments.rspackFuture.newTreeshaking` 配置，来实验性的开启新的优化算法, 经过 4 个月 bug 修复和优化，
    新的 treeShaking 算法已经相对稳定, 因此我们决定在 0.6.0 默认开启新的 treeShaking 算法。
 
+### 当 css 的顺序在多个 chunk 中不一致时发出警告
+
+当多个 chunk 中 css 顺序不一致时会发出警告，假如你有两个 entry，entryA 和 entryB，entryA 中引入 a.css 然后引入 b.css，而 entryB 中引入 b.css 然后引入 a.css。
+当满足 splitChunks 条件时，a.css 和 b.css 会成为单独 chunk，这个 chunk 中 a.css 和 b.css 的顺序无法保证，会产生如下的警告
+
+```bash
+WARNING in ⚠ chunk src_a_css-src_b_-5c8c53 [css-extract-rspack-plugin]
+  │ Conflicting order. Following module has been added:
+  │  * css ./css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./src/a.css
+  │ despite it was not able to fulfill desired ordering with these modules:
+  │  * css ./css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./src/b.css
+  │   - couldn't fulfill desired order of chunk group(s) parent2
+  │   - while fulfilling desired order of chunk group(s) parent1
+```
+
+如果你确定他们的顺序不一致没有关系，可以通过配置 `ignoreWarnings` 来忽略这种错误。
+
+```js
+module.exports = {
+  ignoreWarnings: [/Conflicting order/],
+};
+```
+
 ## 迁移指南
 
 ### 使用 rspack.CssExtractRspackPlugin

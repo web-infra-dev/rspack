@@ -96,6 +96,29 @@ The basic tree shaking functionality was insufficient to meet user needs, for ex
 To address these issues, we decided to adopt a webpack-like approach, re-implementing the entire optimization process from the bottom up. In version 0.4.2, we introduced the `experiments.rspackFuture.newTreeshaking` configuration to experimentally enable the new optimization algorithm.
 After four months of bug fixing and optimization, the new tree shaking algorithm has become relatively stable. Therefore, we've decided to default-enable the new tree shaking algorithm in version 0.6.0.
 
+### Emit warnings when css order is inconsistent in multiple chunks
+
+When the order of CSS in multiple chunks is inconsistent, a warning will be issued. For example, if you have two entries, `entryA` and `entryB`, where `entryA` imports `a.css` and then `b.css`, while `entryB` imports `b.css` and then `a.css`.
+When splitChunks conditions are met, `a.css` and `b.css` will become a separate chunk. The order of `a.css` and `b.css` in this chunk cannot be guaranteed, resulting in the following warning.
+
+```bash
+WARNING in ⚠ chunk src_a_css-src_b_-5c8c53 [css-extract-rspack-plugin]
+  │ Conflicting order. Following module has been added:
+  │  * css ./css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./src/a.css
+  │ despite it was not able to fulfill desired ordering with these modules:
+  │  * css ./css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./src/b.css
+  │   - couldn't fulfill desired order of chunk group(s) parent2
+  │   - while fulfilling desired order of chunk group(s) parent1
+```
+
+If you are sure that their order inconsistency does not matter, you can ignore this error by configuring `ignoreWarnings`.
+
+```js
+module.exports = {
+  ignoreWarnings: [/Conflicting order/],
+};
+```
+
 ## Migration Guide
 
 ### Apply rspack.CssExtractRspackPlugin
