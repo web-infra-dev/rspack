@@ -56,6 +56,7 @@ pub type CompilationSucceedModuleHook = AsyncSeriesHook<BoxModule>;
 pub type CompilationExecuteModuleHook =
   SyncSeries4Hook<ModuleIdentifier, IdentifierSet, CodeGenerationResults, ExecuteModuleId>;
 pub type CompilationFinishModulesHook = AsyncSeriesHook<Compilation>;
+define_hook!(CompilationSeal: SyncSeries(compilation: &mut Compilation));
 pub type CompilationOptimizeModulesHook = AsyncSeriesBailHook<Compilation, bool>;
 pub type CompilationAfterOptimizeModulesHook = AsyncSeriesHook<Compilation>;
 pub type CompilationOptimizeTreeHook = AsyncSeriesHook<Compilation>;
@@ -76,6 +77,7 @@ pub struct CompilationHooks {
   pub succeed_module: CompilationSucceedModuleHook,
   pub execute_module: CompilationExecuteModuleHook,
   pub finish_modules: CompilationFinishModulesHook,
+  pub seal: CompilationSealHook,
   pub optimize_modules: CompilationOptimizeModulesHook,
   pub after_optimize_modules: CompilationAfterOptimizeModulesHook,
   pub optimize_tree: CompilationOptimizeTreeHook,
@@ -879,7 +881,7 @@ impl Compilation {
     let logger = self.get_logger("rspack.Compilation");
 
     // https://github.com/webpack/webpack/blob/main/lib/Compilation.js#L2809
-    plugin_driver.seal(self)?;
+    plugin_driver.compilation_hooks.seal.call(self)?;
 
     let start = logger.time("optimize dependencies");
     // https://github.com/webpack/webpack/blob/d15c73469fd71cf98734685225250148b68ddc79/lib/Compilation.js#L2812-L2814

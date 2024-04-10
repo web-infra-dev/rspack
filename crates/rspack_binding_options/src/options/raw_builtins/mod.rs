@@ -306,7 +306,7 @@ impl BuiltinPlugin {
         plugins.push(EnsureChunkConditionsPlugin.boxed())
       }
       BuiltinPluginName::WarnCaseSensitiveModulesPlugin => {
-        plugins.push(WarnCaseSensitiveModulesPlugin.boxed())
+        plugins.push(WarnCaseSensitiveModulesPlugin::default().boxed())
       }
       BuiltinPluginName::DataUriPlugin => plugins.push(DataUriPlugin::default().boxed()),
       BuiltinPluginName::FileUriPlugin => plugins.push(FileUriPlugin::default().boxed()),

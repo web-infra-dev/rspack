@@ -103,10 +103,6 @@ pub trait Plugin: Debug + Send + Sync {
   fn chunk_ids(&self, _compilation: &mut Compilation) -> Result<()> {
     Ok(())
   }
-
-  fn seal(&self, _compilation: &mut Compilation) -> Result<()> {
-    Ok(())
-  }
 }
 
 pub type BoxPlugin = Box<dyn Plugin>;

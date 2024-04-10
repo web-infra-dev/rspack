@@ -8,8 +8,9 @@ use async_trait::async_trait;
 use indicatif::{ProgressBar, ProgressDrawTarget, ProgressStyle};
 use linked_hash_map::LinkedHashMap as HashMap;
 use rspack_core::{
-  ApplyContext, BoxModule, Compilation, CompilationParams, CompilerOptions, MakeParam,
-  ModuleIdentifier, OptimizeChunksArgs, Plugin, PluginContext, PluginOptimizeChunksOutput,
+  ApplyContext, BoxModule, Compilation, CompilationParams, CompilationSeal, CompilerOptions,
+  MakeParam, ModuleIdentifier, OptimizeChunksArgs, Plugin, PluginContext,
+  PluginOptimizeChunksOutput,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook, AsyncSeries, AsyncSeries2, AsyncSeriesBail};
@@ -301,6 +302,12 @@ async fn finish_make(&self, _compilation: &mut Compilation) -> Result<()> {
   Ok(())
 }
 
+#[plugin_hook(CompilationSeal for ProgressPlugin)]
+fn seal(&self, _compilation: &mut Compilation) -> Result<()> {
+  self.sealing_hooks_report("plugins", 1);
+  Ok(())
+}
+
 #[plugin_hook(AsyncSeries<Compilation> for ProgressPlugin)]
 async fn finish_modules(&self, _compilation: &mut Compilation) -> Result<()> {
   self.sealing_hooks_report("finish modules", 0);
@@ -402,6 +409,7 @@ impl Plugin for ProgressPlugin {
       .compilation_hooks
       .finish_modules
       .tap(finish_modules::new(self));
+    ctx.context.compilation_hooks.seal.tap(seal::new(self));
     ctx
       .context
       .compilation_hooks
@@ -438,11 +446,6 @@ impl Plugin for ProgressPlugin {
       .compiler_hooks
       .after_emit
       .tap(after_emit::new(self));
-    Ok(())
-  }
-
-  fn seal(&self, _compilation: &mut Compilation) -> Result<()> {
-    self.sealing_hooks_report("plugins", 1);
     Ok(())
   }
 
