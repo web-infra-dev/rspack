@@ -11,6 +11,9 @@ use rspack_core::{
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook, AsyncSeries};
 use serde_json::to_string;
+
+use crate::utils::has_client_directive;
+
 #[plugin]
 #[derive(Debug, Default, Clone)]
 pub struct RSCClientEntryRspackPlugin {}
@@ -43,9 +46,8 @@ impl RSCClientEntryRspackPlugin {
       };
       // TODO: check css file is in used
       // TODO: unique css files from other entry
-      let use_client = String::from("use client");
       let is_client_components = match module.build_info() {
-        Some(build_info) => build_info.directives.contains(&use_client),
+        Some(build_info) => has_client_directive(&build_info.directives),
         None => false,
       };
       // let og = module.original_source().unwrap();

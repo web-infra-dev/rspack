@@ -10,6 +10,8 @@ use rspack_hook::{plugin, plugin_hook, AsyncSeries};
 use serde::Serialize;
 use serde_json::to_string;
 
+use crate::utils::has_client_directive;
+
 #[plugin]
 #[derive(Debug, Default, Clone)]
 pub struct RSCClientReferenceManifestRspackPlugin;
@@ -66,7 +68,6 @@ impl RSCClientReferenceManifest {
     let mut client_manifest = ClientReferenceManifest {
       client_modules: HashMap::default(),
     };
-    let use_client = String::from("use client");
     let mg = compilation.get_module_graph();
 
     for chunk_group in compilation.chunk_group_by_ukey.values() {
@@ -93,7 +94,7 @@ impl RSCClientReferenceManifest {
           }
           // Skip non client modules
           if let Some(build_info) = module.build_info()
-            && !build_info.directives.contains(&use_client)
+            && !has_client_directive(&build_info.directives)
           {
             continue;
           }
