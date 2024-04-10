@@ -10,10 +10,6 @@
 
 由于 webpack 包含了大量的 API，需要逐步进行支持。我们将根据社区的反馈，优先支持一些高频使用的 loaders 和 plugins。
 
-### Module Federation 支持
-
-Module Federation 是一个广受使用的 webpack 特性，有着丰富的生态，我们未来计划实现该功能。
-
 ### Lazy Compilation 支持
 
 尽管 Rspack 目前有很好的性能，但是面对具有大量页面的项目，其性能仍然具有较大的提升空间，Lazy Compilation 是一个提升性能的良好手段，我们将在未来支持该功能。
