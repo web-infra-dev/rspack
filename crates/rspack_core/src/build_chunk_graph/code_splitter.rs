@@ -71,7 +71,7 @@ impl ChunkGroupInfo {
   fn calculate_resulting_available_modules(
     &self,
     compilation: &Compilation,
-    ordinal_by_module: &HashMap<ModuleIdentifier, u64>,
+    mask_by_chunk: &HashMap<ChunkUkey, BigUint>,
   ) -> BigUint {
     let mut resulting_available_modules = self.resulting_available_modules.borrow_mut();
     if let Some(resulting_available_modules) = resulting_available_modules.clone() {
@@ -85,19 +85,10 @@ impl ChunkGroupInfo {
 
     // add the modules from the chunk group to the set
     for chunk in &chunk_group.chunks {
-      for m in compilation
-        .chunk_graph
-        .get_chunk_modules(chunk, &compilation.get_module_graph())
-      {
-        let identifier = m.identifier();
-        let module_ordinal = ordinal_by_module.get(&identifier).unwrap_or_else(|| {
-          panic!(
-            "expected a module ordinal for identifier '{}', but none was found.",
-            &identifier
-          )
-        });
-        new_resulting_available_modules.set_bit(*module_ordinal, true);
-      }
+      let mask = mask_by_chunk
+        .get(chunk)
+        .expect("chunk must in mask_by_chunk");
+      new_resulting_available_modules |= mask
     }
 
     *resulting_available_modules = Some(new_resulting_available_modules.clone());
@@ -148,6 +139,7 @@ pub(super) struct CodeSplitter<'me> {
   named_async_entrypoints: HashMap<String, CgiUkey>,
   block_modules_runtime_map: BlockModulesRuntimeMap,
   ordinal_by_module: HashMap<ModuleIdentifier, u64>,
+  mask_by_chunk: HashMap<ChunkUkey, BigUint>,
 }
 
 fn add_chunk_in_group(group_options: Option<&GroupOptions>) -> ChunkGroup {
@@ -201,6 +193,26 @@ impl<'me> CodeSplitter<'me> {
       ordinal_by_module.insert(*m, index as u64);
     }
 
+    let module_graph = compilation.get_module_graph();
+    let mut mask_by_chunk = HashMap::default();
+    for chunk in compilation.chunk_by_ukey.keys() {
+      let mut mask = BigUint::from(0u32);
+      for module in compilation
+        .chunk_graph
+        .get_chunk_modules(chunk, &module_graph)
+      {
+        let module_id = module.identifier();
+        let module_ordinal = ordinal_by_module.get(&module_id).unwrap_or_else(|| {
+          panic!(
+            "expected a module ordinal for identifier '{}', but none was found.",
+            &module_id
+          )
+        });
+        mask.set_bit(*module_ordinal, true);
+      }
+      mask_by_chunk.insert(*chunk, mask);
+    }
+
     CodeSplitter {
       chunk_group_info_map: Default::default(),
       chunk_group_infos: Default::default(),
@@ -221,6 +233,7 @@ impl<'me> CodeSplitter<'me> {
       named_async_entrypoints: Default::default(),
       block_modules_runtime_map: Default::default(),
       ordinal_by_module,
+      mask_by_chunk,
     }
   }
 
@@ -255,6 +268,7 @@ impl<'me> CodeSplitter<'me> {
         &mut self.compilation.chunk_by_ukey,
         &mut self.compilation.named_chunks,
       );
+      self.mask_by_chunk.insert(chunk_ukey, BigUint::from(0u32));
       let runtime = get_entry_runtime(&name, options, &self.compilation.entries);
       let chunk = self.compilation.chunk_by_ukey.expect_get_mut(&chunk_ukey);
       if let Some(filename) = &entry_data.options.filename {
@@ -482,6 +496,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
               &mut self.compilation.chunk_by_ukey,
               &mut self.compilation.named_chunks,
             );
+            self.mask_by_chunk.insert(chunk_ukey, BigUint::from(0u32));
             let chunk = self.compilation.chunk_by_ukey.expect_get_mut(&chunk_ukey);
             chunk.prevent_integration = true;
             chunk.chunk_reasons.push(format!("RuntimeChunk({name})",));
@@ -799,6 +814,12 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       .chunk_graph
       .connect_chunk_and_module(item.chunk, item.module);
 
+    let chunk_mask = self
+      .mask_by_chunk
+      .get_mut(&item.chunk)
+      .expect("chunk must in mask_by_chunk");
+    chunk_mask.set_bit(*module_ordinal, true);
+
     self.enter_module(&EnterModule {
       module: item.module,
       chunk_group_info: item.chunk_group_info,
@@ -999,6 +1020,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       Compilation::add_chunk(&mut self.compilation.chunk_by_ukey)
     };
     self.compilation.chunk_graph.add_chunk(chunk_ukey);
+    self.mask_by_chunk.insert(chunk_ukey, BigUint::from(0u32));
 
     let module_graph = self.compilation.get_module_graph();
     let block = module_graph
@@ -1062,7 +1084,6 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             entrypoint.set_runtime_chunk(chunk.ukey);
             entrypoint.set_entry_point_chunk(chunk.ukey);
             self.compilation.async_entrypoints.push(entrypoint.ukey);
-
             self.next_chunk_group_index += 1;
             entrypoint.index = Some(self.next_chunk_group_index);
 
@@ -1312,7 +1333,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       let runtime = chunk_group_info.runtime.clone();
 
       let resulting_available_modules = chunk_group_info
-        .calculate_resulting_available_modules(self.compilation, &self.ordinal_by_module);
+        .calculate_resulting_available_modules(self.compilation, &self.mask_by_chunk);
       chunk_group_info.children.extend(targets.iter().cloned());
 
       for target in &targets {
@@ -1472,7 +1493,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       for source_ukey in &info.available_sources {
         let source = self.chunk_group_infos.expect_get(source_ukey);
         let resulting_available_modules =
-          source.calculate_resulting_available_modules(self.compilation, &self.ordinal_by_module);
+          source.calculate_resulting_available_modules(self.compilation, &self.mask_by_chunk);
         available_modules |= resulting_available_modules;
       }
       min_available_modules_mappings.insert(*info_ukey, available_modules);
