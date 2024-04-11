@@ -110,16 +110,16 @@ export function Benchmark() {
           <div className="flex flex-col items-center my-4 z-1">
             {/* <h2 className="font-bold text-2xl mb-5">超快的编译速度!</h2> */}
             <Tabs
-              values={SCENE.map((item) => ({
+              values={SCENE.map(item => ({
                 label: t(item as keyof typeof BENChMARK_DATA),
               }))}
-              onChange={(index) =>
+              onChange={index =>
                 setActiveScene(SCENE[index] as keyof typeof BENChMARK_DATA)
               }
             >
-              {SCENE.map((scene) => (
+              {SCENE.map(scene => (
                 <Tab key={scene}>
-                  {performanceInfoList.map((info) => (
+                  {performanceInfoList.map(info => (
                     <div
                       key={info.name}
                       className="flex flex-center justify-start m-4 flex-col sm:flex-row"
@@ -135,7 +135,7 @@ export function Benchmark() {
                           <ProgressBar
                             value={info.time}
                             max={Math.max(
-                              ...performanceInfoList.map((info) => info.time)
+                              ...performanceInfoList.map(info => info.time),
                             )}
                           />
                         </>

@@ -38,7 +38,7 @@ export function Table(props: TableProps) {
   const { body = [], tableStyle, header = [] } = props;
   // Support markdown syntax in table cell
   const compiledValue = body.map((item: any) => {
-    Object.keys(item).forEach((key) => {
+    Object.keys(item).forEach(key => {
       if (typeof item[key] === 'string') {
         item[key] = <Markdown>{item[key]}</Markdown>;
       }
@@ -57,7 +57,7 @@ export function Table(props: TableProps) {
   return (
     <ModernTable style={tableStyle}>
       <ModernTableRow>
-        {header.map((item) => (
+        {header.map(item => (
           <ModernTableHead key={item.key}>
             {renderHeaderItem(item.name)}
           </ModernTableHead>
@@ -66,7 +66,7 @@ export function Table(props: TableProps) {
       <tbody>
         {compiledValue.map((item: any, index: number) => (
           <ModernTableRow key={index}>
-            {header.map((headerItem) => (
+            {header.map(headerItem => (
               <ModernTableData key={headerItem.key}>
                 {item[headerItem.key]}
               </ModernTableData>

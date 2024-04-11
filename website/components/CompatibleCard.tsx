@@ -110,7 +110,7 @@ export const PluginCompatibleCardList = ({ lang }: { lang: 'zh' | 'en' }) => {
     .sort((item1, item2) => {
       return item1.status > item2.status ? 1 : -1;
     })
-    .map((item) => <CompatibleCardItem key={item.name} {...item} />);
+    .map(item => <CompatibleCardItem key={item.name} {...item} />);
 };
 
 export const LoaderCompatibleCardList = ({ lang }: { lang: 'zh' | 'en' }) => {
@@ -212,7 +212,7 @@ export const LoaderCompatibleCardList = ({ lang }: { lang: 'zh' | 'en' }) => {
       url: 'https://www.npmjs.com/package/node-loader',
     },
   ];
-  return loaderList.map((item) => (
+  return loaderList.map(item => (
     <CompatibleCardItem key={item.name} {...item} />
   ));
 };
