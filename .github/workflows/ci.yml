@@ -32,7 +32,7 @@ jobs:
 
   check-changed:
     runs-on: ubuntu-latest
-    name: Check CI Changed
+    name: Check Source Changed
     outputs:
       changed: ${{ steps.filter.outputs.changed == 'true' }}
     steps:
