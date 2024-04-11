@@ -19,7 +19,7 @@ module.exports = {
 			}
 		},
 		{
-			files: "*.(md|mdx)",
+			files: "website/**",
 			options: {
 				printWidth: 80,
 				singleQuote: true,

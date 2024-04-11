@@ -1,5 +1,6 @@
 {
-  "name": "@modern-js/rspack-doc",
+  "name": "@rspack/website",
+  "private": true,
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
