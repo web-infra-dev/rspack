@@ -23,6 +23,7 @@ use tracing::instrument;
 use super::{
   hmr::CompilationRecords,
   make::{update_module_graph, MakeParam},
+  module_executor::ModuleExecutor,
 };
 use crate::{
   build_chunk_graph::build_chunk_graph,
@@ -30,14 +31,13 @@ use crate::{
   get_chunk_from_ukey, get_mut_chunk_from_ukey, is_source_equal, prepare_get_exports_type,
   to_identifier,
   tree_shaking::{optimizer, visitor::SymbolRef, BailoutFlag, OptimizeDependencyResult},
-  AddQueueHandler, BoxDependency, BoxModule, BuildQueueHandler, BuildTimeExecutionQueueHandler,
-  CacheCount, CacheOptions, Chunk, ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey,
-  ChunkGroupUkey, ChunkKind, ChunkUkey, CodeGenerationResults, CompilationLogger,
-  CompilationLogging, CompilerOptions, DependencyId, DependencyType, Entry, EntryData,
-  EntryOptions, Entrypoint, ErrorSpan, FactorizeQueueHandler, Filename, ImportVarMap,
-  LocalFilenameFn, Logger, Module, ModuleFactory, ModuleGraph, ModuleGraphPartial,
-  ModuleIdentifier, PathData, ProcessDependenciesQueueHandler, ResolverFactory, RuntimeGlobals,
-  RuntimeModule, RuntimeSpec, SharedPluginDriver, SourceType, Stats,
+  BoxDependency, BoxModule, CacheCount, CacheOptions, Chunk, ChunkByUkey, ChunkContentHash,
+  ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkKind, ChunkUkey, CodeGenerationResults,
+  CompilationLogger, CompilationLogging, CompilerOptions, DependencyId, DependencyType, Entry,
+  EntryData, EntryOptions, Entrypoint, ErrorSpan, Filename, ImportVarMap, LocalFilenameFn, Logger,
+  Module, ModuleFactory, ModuleGraph, ModuleGraphPartial, ModuleIdentifier, PathData,
+  ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeSpec, SharedPluginDriver, SourceType,
+  Stats,
 };
 use crate::{tree_shaking::visitor::OptimizeAnalyzeResult, ExecuteModuleId};
 
@@ -139,7 +139,7 @@ pub struct Compilation {
   pub global_entry: EntryData,
   make_module_graph: ModuleGraphPartial,
   other_module_graph: Option<ModuleGraphPartial>,
-  dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
+  pub dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
   pub make_failed_dependencies: HashSet<BuildDependency>,
   pub make_failed_module: HashSet<ModuleIdentifier>,
   pub has_module_import_export_change: bool,
@@ -183,13 +183,9 @@ pub struct Compilation {
   pub side_effects_free_modules: IdentifierSet,
   pub module_item_map: IdentifierMap<Vec<ModuleItem>>,
 
-  pub factorize_queue: Option<FactorizeQueueHandler>,
-  pub build_queue: Option<BuildQueueHandler>,
-  pub add_queue: Option<AddQueueHandler>,
-  pub process_dependencies_queue: Option<ProcessDependenciesQueueHandler>,
-  pub build_time_execution_queue: Option<BuildTimeExecutionQueueHandler>,
-
   import_var_map: DashMap<ModuleIdentifier, ImportVarMap>,
+
+  pub module_executor: Option<ModuleExecutor>,
 }
 
 impl Compilation {
@@ -221,6 +217,7 @@ impl Compilation {
     loader_resolver_factory: Arc<ResolverFactory>,
     records: Option<CompilationRecords>,
     cache: Arc<Cache>,
+    module_executor: Option<ModuleExecutor>,
   ) -> Self {
     let make_module_graph = ModuleGraphPartial::new(options.is_new_tree_shaking());
     Self {
@@ -273,13 +270,9 @@ impl Compilation {
       module_item_map: IdentifierMap::default(),
       include_module_ids: IdentifierSet::default(),
 
-      factorize_queue: None,
-      build_queue: None,
-      add_queue: None,
-      process_dependencies_queue: None,
-      build_time_execution_queue: None,
-
       import_var_map: DashMap::new(),
+
+      module_executor,
     }
   }
 
@@ -289,6 +282,12 @@ impl Compilation {
 
   pub fn swap_make_module_graph(&mut self, other: &mut Compilation) {
     std::mem::swap(&mut self.make_module_graph, &mut other.make_module_graph);
+  }
+  pub fn swap_module_graph_with_module_executor(&mut self, module_executor: &mut ModuleExecutor) {
+    std::mem::swap(
+      &mut self.make_module_graph,
+      &mut module_executor.make_module_graph,
+    );
   }
 
   pub fn get_module_graph(&self) -> ModuleGraph {

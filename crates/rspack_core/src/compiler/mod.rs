@@ -1,7 +1,7 @@
 mod compilation;
-mod execute_module;
 mod hmr;
 mod make;
+mod module_executor;
 
 use std::collections::hash_map::Entry;
 use std::ops::Deref;
@@ -19,13 +19,9 @@ use swc_core::ecma::atoms::Atom;
 use tracing::instrument;
 
 pub use self::compilation::*;
-pub use self::execute_module::ExecuteModuleId;
 pub use self::hmr::{collect_changed_modules, CompilationRecords};
-pub use self::make::{
-  AddQueueHandler, BuildQueueHandler, BuildTimeExecutionOption, BuildTimeExecutionQueueHandler,
-  BuildTimeExecutionTask, FactorizeQueueHandler, FactorizeTask, MakeParam,
-  ProcessDependenciesQueueHandler,
-};
+pub use self::make::{FactorizeTask, MakeParam};
+pub use self::module_executor::{ExecuteModuleId, ModuleExecutor};
 use crate::cache::Cache;
 use crate::tree_shaking::symbol::{IndirectType, StarSymbolKind, DEFAULT_JS_WORD};
 use crate::tree_shaking::visitor::SymbolRef;
@@ -92,6 +88,7 @@ where
     let (plugin_driver, options) = PluginDriver::new(options, plugins, resolver_factory.clone());
     let cache = Arc::new(Cache::new(options.clone()));
     assert!(!(options.is_new_tree_shaking() && options.builtins.tree_shaking.enable()), "Can't enable builtins.tree_shaking and `experiments.rspack_future.new_treeshaking` at the same time");
+    let module_executor = ModuleExecutor::new(options.is_new_tree_shaking());
     Self {
       options: options.clone(),
       compilation: Compilation::new(
@@ -101,6 +98,7 @@ where
         loader_resolver_factory.clone(),
         None,
         cache.clone(),
+        Some(module_executor),
       ),
       output_filesystem,
       plugin_driver,
@@ -123,6 +121,7 @@ where
     // TODO: maybe it's better to use external entries.
     self.plugin_driver.resolver_factory.clear_cache();
 
+    let module_executor = ModuleExecutor::new(self.options.is_new_tree_shaking());
     fast_set(
       &mut self.compilation,
       Compilation::new(
@@ -132,6 +131,7 @@ where
         self.loader_resolver_factory.clone(),
         None,
         self.cache.clone(),
+        Some(module_executor),
       ),
     );
 

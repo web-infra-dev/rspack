@@ -73,6 +73,8 @@ where
         self.loader_resolver_factory.clone(),
         Some(records),
         self.cache.clone(),
+        // reuse module executor
+        std::mem::take(&mut self.compilation.module_executor),
       );
 
       if let Some(state) = self.options.get_incremental_rebuild_make_state() {
