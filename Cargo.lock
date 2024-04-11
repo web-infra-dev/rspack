@@ -3060,15 +3060,14 @@ dependencies = [
 name = "rspack_ids"
 version = "0.1.0"
 dependencies = [
- "dashmap",
  "itertools",
  "once_cell",
  "rayon",
  "regex",
  "rspack_core",
  "rspack_error",
+ "rspack_hook",
  "rspack_util",
- "rustc-hash",
 ]
 
 [[package]]
@@ -3287,9 +3286,9 @@ dependencies = [
 name = "rspack_plugin_ensure_chunk_conditions"
 version = "0.1.0"
 dependencies = [
- "async-trait",
  "rspack_core",
  "rspack_error",
+ "rspack_hook",
 ]
 
 [[package]]
@@ -3450,17 +3449,19 @@ dependencies = [
 name = "rspack_plugin_limit_chunk_count"
 version = "0.1.0"
 dependencies = [
- "async-trait",
  "rspack_core",
  "rspack_database",
+ "rspack_error",
+ "rspack_hook",
 ]
 
 [[package]]
 name = "rspack_plugin_merge_duplicate_chunks"
 version = "0.1.0"
 dependencies = [
- "async-trait",
  "rspack_core",
+ "rspack_error",
+ "rspack_hook",
  "rustc-hash",
 ]
 
@@ -3518,8 +3519,9 @@ dependencies = [
 name = "rspack_plugin_remove_empty_chunks"
 version = "0.1.0"
 dependencies = [
- "async-trait",
  "rspack_core",
+ "rspack_error",
+ "rspack_hook",
 ]
 
 [[package]]
@@ -3560,7 +3562,6 @@ dependencies = [
 name = "rspack_plugin_split_chunks"
 version = "0.1.0"
 dependencies = [
- "async-trait",
  "dashmap",
  "derivative",
  "once_cell",
@@ -3569,6 +3570,7 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_hash",
+ "rspack_hook",
  "rspack_identifier",
  "rspack_regex",
  "rspack_util",
@@ -3612,6 +3614,7 @@ version = "0.1.0"
 dependencies = [
  "rspack_core",
  "rspack_error",
+ "rspack_hook",
 ]
 
 [[package]]

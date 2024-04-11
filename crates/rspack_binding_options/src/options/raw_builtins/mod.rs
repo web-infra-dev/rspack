@@ -229,7 +229,7 @@ impl BuiltinPlugin {
         ));
       }
       BuiltinPluginName::ChunkPrefetchPreloadPlugin => {
-        plugins.push(ChunkPrefetchPreloadPlugin.boxed());
+        plugins.push(ChunkPrefetchPreloadPlugin::default().boxed());
       }
       BuiltinPluginName::CommonJsChunkFormatPlugin => {
         plugins.push(CommonJsChunkFormatPlugin::default().boxed());
@@ -257,7 +257,7 @@ impl BuiltinPlugin {
         web_worker_template_plugin(plugins);
       }
       BuiltinPluginName::MergeDuplicateChunksPlugin => {
-        plugins.push(MergeDuplicateChunksPlugin.boxed());
+        plugins.push(MergeDuplicateChunksPlugin::default().boxed());
       }
       BuiltinPluginName::SplitChunksPlugin => {
         use rspack_plugin_split_chunks::SplitChunksPlugin;
@@ -310,12 +310,14 @@ impl BuiltinPlugin {
       BuiltinPluginName::RealContentHashPlugin => {
         plugins.push(RealContentHashPlugin::default().boxed())
       }
-      BuiltinPluginName::RemoveEmptyChunksPlugin => plugins.push(RemoveEmptyChunksPlugin.boxed()),
+      BuiltinPluginName::RemoveEmptyChunksPlugin => {
+        plugins.push(RemoveEmptyChunksPlugin::default().boxed())
+      }
       BuiltinPluginName::EnsureChunkConditionsPlugin => {
-        plugins.push(EnsureChunkConditionsPlugin.boxed())
+        plugins.push(EnsureChunkConditionsPlugin::default().boxed())
       }
       BuiltinPluginName::WarnCaseSensitiveModulesPlugin => {
-        plugins.push(WarnCaseSensitiveModulesPlugin.boxed())
+        plugins.push(WarnCaseSensitiveModulesPlugin::default().boxed())
       }
       BuiltinPluginName::DataUriPlugin => plugins.push(DataUriPlugin::default().boxed()),
       BuiltinPluginName::FileUriPlugin => plugins.push(FileUriPlugin::default().boxed()),

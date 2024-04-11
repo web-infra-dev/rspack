@@ -7,8 +7,8 @@ use tracing::instrument;
 use crate::{
   cache::Cache, resolve, BeforeResolveArgs, BoxModule, ContextModule, ContextModuleOptions,
   DependencyCategory, ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult,
-  ModuleIdentifier, PluginNormalModuleFactoryAfterResolveOutput, RawModule, ResolveArgs,
-  ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory, SharedPluginDriver,
+  ModuleIdentifier, RawModule, ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult,
+  Resolver, ResolverFactory, SharedPluginDriver,
 };
 
 pub type ContextModuleFactoryBeforeResolveHook = AsyncSeriesBailHook<BeforeResolveArgs, bool>;
@@ -226,10 +226,7 @@ impl ContextModuleFactory {
     })
   }
 
-  async fn after_resolve(
-    &self,
-    data: &mut ModuleFactoryCreateData,
-  ) -> PluginNormalModuleFactoryAfterResolveOutput {
+  async fn after_resolve(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<bool>> {
     let dependency = data
       .dependency
       .as_context_dependency()

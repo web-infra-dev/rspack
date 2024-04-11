@@ -4,9 +4,8 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use rspack_core::rspack_sources::{ConcatSource, RawSource, SourceExt};
 use rspack_core::{
-  AdditionalChunkRuntimeRequirementsArgs, ApplyContext, Compilation, CompilationParams,
-  CompilerOptions, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext,
-  RuntimeGlobals,
+  ApplyContext, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
+  CompilationParams, CompilerOptions, Plugin, PluginContext, RuntimeGlobals,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook, AsyncSeries2};
@@ -129,7 +128,32 @@ async fn compilation(
   Ok(())
 }
 
-#[async_trait]
+#[plugin_hook(CompilationAdditionalChunkRuntimeRequirements for CommonJsChunkFormatPlugin)]
+fn additional_chunk_runtime_requirements(
+  &self,
+  compilation: &mut Compilation,
+  chunk_ukey: &ChunkUkey,
+  runtime_requirements: &mut RuntimeGlobals,
+) -> Result<()> {
+  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+
+  if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
+    return Ok(());
+  }
+
+  if compilation
+    .chunk_graph
+    .get_number_of_entry_modules(chunk_ukey)
+    > 0
+  {
+    runtime_requirements.insert(RuntimeGlobals::REQUIRE);
+    runtime_requirements.insert(RuntimeGlobals::STARTUP_ENTRYPOINT);
+    runtime_requirements.insert(RuntimeGlobals::EXTERNAL_INSTALL_CHUNK);
+  }
+
+  Ok(())
+}
+
 impl Plugin for CommonJsChunkFormatPlugin {
   fn name(&self) -> &'static str {
     PLUGIN_NAME
@@ -145,33 +169,11 @@ impl Plugin for CommonJsChunkFormatPlugin {
       .compiler_hooks
       .compilation
       .tap(compilation::new(self));
-    Ok(())
-  }
-
-  async fn additional_chunk_runtime_requirements(
-    &self,
-    _ctx: PluginContext,
-    args: &mut AdditionalChunkRuntimeRequirementsArgs,
-  ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
-    let compilation = &mut args.compilation;
-    let chunk_ukey = args.chunk;
-    let runtime_requirements = &mut args.runtime_requirements;
-    let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-
-    if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
-      return Ok(());
-    }
-
-    if compilation
-      .chunk_graph
-      .get_number_of_entry_modules(chunk_ukey)
-      > 0
-    {
-      runtime_requirements.insert(RuntimeGlobals::REQUIRE);
-      runtime_requirements.insert(RuntimeGlobals::STARTUP_ENTRYPOINT);
-      runtime_requirements.insert(RuntimeGlobals::EXTERNAL_INSTALL_CHUNK);
-    }
-
+    ctx
+      .context
+      .compilation_hooks
+      .additional_chunk_runtime_requirements
+      .tap(additional_chunk_runtime_requirements::new(self));
     Ok(())
   }
 }

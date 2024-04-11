@@ -1,34 +1,14 @@
 use std::fmt::Debug;
 
 use rspack_error::Result;
-use rspack_loader_runner::ResourceData;
 use rspack_sources::BoxSource;
 use rspack_util::fx_hash::FxDashMap;
 
 use crate::{
-  AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, AssetInfo, BoxModule,
-  Compilation, CompilationHooks, CompilerHooks, CompilerOptions, ContextModuleFactoryHooks,
-  GeneratorOptions, ModuleIdentifier, ModuleType, NormalModuleFactoryHooks, NormalModuleHooks,
-  OptimizeChunksArgs, ParserAndGenerator, ParserOptions, PluginContext,
-  RuntimeRequirementsInTreeArgs,
+  AssetInfo, CompilationHooks, CompilerHooks, CompilerOptions, ContextModuleFactoryHooks,
+  GeneratorOptions, ModuleType, NormalModuleFactoryHooks, NormalModuleHooks, ParserAndGenerator,
+  ParserOptions, PluginContext,
 };
-
-#[derive(Debug, Clone)]
-pub struct BeforeResolveArgs {
-  pub request: String,
-  pub context: String,
-}
-
-pub type PluginNormalModuleFactoryCreateModuleHookOutput = Result<Option<BoxModule>>;
-pub type PluginNormalModuleFactoryModuleHookOutput = Result<BoxModule>;
-pub type PluginNormalModuleFactoryResolveForSchemeOutput = Result<(ResourceData, bool)>;
-pub type PluginNormalModuleFactoryBeforeResolveOutput = Result<Option<bool>>;
-pub type PluginNormalModuleFactoryAfterResolveOutput = Result<Option<bool>>;
-pub type PluginProcessAssetsOutput = Result<()>;
-pub type PluginOptimizeChunksOutput = Result<()>;
-pub type PluginAdditionalChunkRuntimeRequirementsOutput = Result<()>;
-pub type PluginRuntimeRequirementsInTreeOutput = Result<()>;
-pub type PluginAdditionalModuleRequirementsOutput = Result<()>;
 
 #[async_trait::async_trait]
 pub trait Plugin: Debug + Send + Sync {
@@ -41,70 +21,6 @@ pub trait Plugin: Debug + Send + Sync {
     _ctx: PluginContext<&mut ApplyContext>,
     _options: &mut CompilerOptions,
   ) -> Result<()> {
-    Ok(())
-  }
-
-  async fn module_asset(&self, _module: ModuleIdentifier, _asset_name: String) -> Result<()> {
-    Ok(())
-  }
-
-  async fn additional_chunk_runtime_requirements(
-    &self,
-    _ctx: PluginContext,
-    _args: &mut AdditionalChunkRuntimeRequirementsArgs,
-  ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
-    Ok(())
-  }
-
-  async fn additional_tree_runtime_requirements(
-    &self,
-    _ctx: PluginContext,
-    _args: &mut AdditionalChunkRuntimeRequirementsArgs,
-  ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
-    Ok(())
-  }
-
-  fn runtime_requirements_in_module(
-    &self,
-    _ctx: PluginContext,
-    _args: &mut AdditionalModuleRequirementsArgs,
-  ) -> PluginAdditionalModuleRequirementsOutput {
-    Ok(())
-  }
-
-  async fn runtime_requirements_in_tree(
-    &self,
-    _ctx: PluginContext,
-    _args: &mut RuntimeRequirementsInTreeArgs,
-  ) -> PluginRuntimeRequirementsInTreeOutput {
-    Ok(())
-  }
-
-  async fn optimize_chunks(
-    &self,
-    _ctx: PluginContext,
-    _args: OptimizeChunksArgs<'_>,
-  ) -> PluginOptimizeChunksOutput {
-    Ok(())
-  }
-
-  async fn optimize_dependencies(&self, _compilation: &mut Compilation) -> Result<Option<()>> {
-    Ok(None)
-  }
-
-  async fn optimize_code_generation(&self, _compilation: &mut Compilation) -> Result<Option<()>> {
-    Ok(None)
-  }
-
-  fn module_ids(&self, _modules: &mut Compilation) -> Result<()> {
-    Ok(())
-  }
-
-  fn chunk_ids(&self, _compilation: &mut Compilation) -> Result<()> {
-    Ok(())
-  }
-
-  fn seal(&self, _compilation: &mut Compilation) -> Result<()> {
     Ok(())
   }
 }
