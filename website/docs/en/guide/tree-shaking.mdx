@@ -391,4 +391,8 @@ console.log(a);
 
 After the transformation, the circular dependency is gone. However, if you try to turn off `optimization.providedExports` or `optimization.sideEffects`, the build will be successful, but errors due to circular dependencies will occur at runtime.
 
-You can find above example [here](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/rspack/treeshaking-transform-imports).
+> You can find above example [here](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/rspack/treeshaking-transform-imports).
+
+This diagram demonstrates the process of re-exports optimization:
+
+![](https://rsfamily-design-resources.netlify.app/rspack/assets/rspack-reexports-optimization.png)
