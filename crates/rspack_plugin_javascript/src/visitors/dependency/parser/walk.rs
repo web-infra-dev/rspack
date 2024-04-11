@@ -1167,10 +1167,14 @@ impl<'parser> JavascriptParser<'parser> {
             this.top_level_scope = TopLevelScope::False;
 
             let params = ctor.params.iter().map(|p| {
-              let p = &p.as_param().expect("should only contain param").pat;
-              Cow::Borrowed(p)
+              let p = p.as_param().expect("should only contain param");
+              Cow::Borrowed(&p.pat)
             });
-            this.in_function_scope(true, params, |this| {
+            this.in_function_scope(true, params.clone(), |this| {
+              for param in params {
+                this.walk_pattern(&param)
+              }
+
               // TODO: `hooks.body_value`;
               if let Some(body) = &ctor.body {
                 this.walk_block_statement(body);
