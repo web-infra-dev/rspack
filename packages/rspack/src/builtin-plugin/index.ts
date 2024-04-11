@@ -3,6 +3,7 @@ export { RspackBuiltinPlugin } from "./base";
 export * from "./DefinePlugin";
 export * from "./ProvidePlugin";
 export * from "./BannerPlugin";
+export * from "./IgnorePlugin";
 export * from "./ProgressPlugin";
 export * from "./EntryPlugin";
 export * from "./ExternalsPlugin";

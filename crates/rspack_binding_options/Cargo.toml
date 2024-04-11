@@ -37,6 +37,7 @@ rspack_plugin_externals               = { path = "../rspack_plugin_externals" }
 rspack_plugin_extract_css             = { path = "../rspack_plugin_extract_css" }
 rspack_plugin_hmr                     = { path = "../rspack_plugin_hmr" }
 rspack_plugin_html                    = { path = "../rspack_plugin_html" }
+rspack_plugin_ignore                  = { path = "../rspack_plugin_ignore" }
 rspack_plugin_javascript              = { path = "../rspack_plugin_javascript" }
 rspack_plugin_json                    = { path = "../rspack_plugin_json" }
 rspack_plugin_library                 = { path = "../rspack_plugin_library" }

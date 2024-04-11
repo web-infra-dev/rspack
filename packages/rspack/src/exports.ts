@@ -77,6 +77,8 @@ export { default as EntryOptionPlugin } from "./lib/EntryOptionPlugin";
 export { BannerPlugin } from "./builtin-plugin";
 export type { BannerPluginArgument } from "./builtin-plugin";
 
+export { IgnorePlugin, type IgnorePluginOptions } from "./builtin-plugin";
+
 export { ProvidePlugin } from "./builtin-plugin";
 export type { ProvidePluginOptions } from "./builtin-plugin";
 

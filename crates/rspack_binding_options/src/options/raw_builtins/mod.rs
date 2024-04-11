@@ -3,6 +3,7 @@ mod raw_bundle_info;
 mod raw_copy;
 mod raw_css_extract;
 mod raw_html;
+mod raw_ignore;
 mod raw_limit_chunk_count;
 mod raw_mf;
 mod raw_progress;
@@ -34,6 +35,7 @@ use rspack_plugin_externals::{
 };
 use rspack_plugin_hmr::HotModuleReplacementPlugin;
 use rspack_plugin_html::HtmlRspackPlugin;
+use rspack_plugin_ignore::IgnorePlugin;
 use rspack_plugin_javascript::{
   api_plugin::APIPlugin, FlagDependencyExportsPlugin, FlagDependencyUsagePlugin,
   InferAsyncModulesPlugin, JsPlugin, MangleExportsPlugin, ModuleConcatenationPlugin,
@@ -64,8 +66,9 @@ use rspack_plugin_worker::WorkerPlugin;
 
 pub use self::{
   raw_banner::RawBannerPluginOptions, raw_copy::RawCopyRspackPluginOptions,
-  raw_html::RawHtmlRspackPluginOptions, raw_limit_chunk_count::RawLimitChunkCountPluginOptions,
-  raw_mf::RawContainerPluginOptions, raw_progress::RawProgressPluginOptions,
+  raw_html::RawHtmlRspackPluginOptions, raw_ignore::RawIgnorePluginOptions,
+  raw_limit_chunk_count::RawLimitChunkCountPluginOptions, raw_mf::RawContainerPluginOptions,
+  raw_progress::RawProgressPluginOptions,
   raw_swc_js_minimizer::RawSwcJsMinimizerRspackPluginOptions,
 };
 use self::{
@@ -86,6 +89,7 @@ pub enum BuiltinPluginName {
   DefinePlugin,
   ProvidePlugin,
   BannerPlugin,
+  IgnorePlugin,
   ProgressPlugin,
   EntryPlugin,
   ExternalsPlugin,
@@ -174,6 +178,11 @@ impl BuiltinPlugin {
         let plugin =
           BannerPlugin::new(downcast_into::<RawBannerPluginOptions>(self.options)?.try_into()?)
             .boxed();
+        plugins.push(plugin);
+      }
+      BuiltinPluginName::IgnorePlugin => {
+        let plugin =
+          IgnorePlugin::new(downcast_into::<RawIgnorePluginOptions>(self.options)?.into()).boxed();
         plugins.push(plugin);
       }
       BuiltinPluginName::ProgressPlugin => {
