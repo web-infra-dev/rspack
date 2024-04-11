@@ -12,9 +12,6 @@ on:
         default: false
   pull_request:
     types: [opened, synchronize]
-    paths-ignore:
-      - "**/*.md"
-      - "website/**"
   push:
     branches:
       - main
@@ -33,10 +30,28 @@ jobs:
     name: Get Runner Labels
     uses: ./.github/workflows/get-runner-labels.yml
 
+  check-changed:
+    runs-on: ubuntu-latest
+    name: Check CI Changed
+    outputs:
+      changed: ${{ steps.filter.outputs.changed == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          predicate-quantifier: 'every'
+          filters: |
+            changed:
+              - "!**/*.md"
+              - "!**/*.mdx"
+              - "!website/**"
+
   test-linux:
     name: Test Linux
-    needs: [get-runner-labels]
+    needs: [get-runner-labels, check-changed]
     uses: ./.github/workflows/reusable-build.yml
+    if: ${{ needs.check-changed.outputs.changed == 'true' }}
     with:
       target: x86_64-unknown-linux-gnu
       profile: "debug"
@@ -62,7 +77,8 @@ jobs:
 
   test-windows:
     name: Test Windows
-    needs: [get-runner-labels]
+    needs: [get-runner-labels, check-changed]
+    if: ${{ needs.check-changed.outputs.changed == 'true' }}
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-pc-windows-msvc
@@ -88,8 +104,8 @@ jobs:
 
   test-mac:
     name: Test Mac
-    needs: [get-runner-labels]
-    if: github.ref_name == 'main' || contains(github.event.pull_request.title, '!macos')
+    needs: [get-runner-labels, check-changed]
+    if: (github.ref_name == 'main' || contains(github.event.pull_request.title, '!macos')) && (needs.check-changed.outputs.changed == 'true')
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-apple-darwin
@@ -142,6 +158,8 @@ jobs:
   oxlint:
     name: Lint JS
     runs-on: ubuntu-latest
+    needs: [check-changed]
+    if: ${{ needs.check-changed.outputs.changed == 'true' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -168,6 +186,8 @@ jobs:
   rust_changes:
     name: Rust Changes
     runs-on: ubuntu-latest
+    needs: [check-changed]
+    if: ${{ needs.check-changed.outputs.changed == 'true' }}
     outputs:
       changed: ${{ steps.filter.outputs.changed }}
     steps:
