@@ -1,0 +1,17 @@
+
+# Case hot-index: Step 0
+
+## Changed Files
+- file.js
+
+## Asset Files
+- Bundle: bundle.js, size: 26895
+
+## Manifest
+
+		
+## Update
+
+
+
+		

@@ -1,0 +1,19 @@
+
+# Case multi-chunk: Step 0
+
+## Changed Files
+- file.js
+
+## Asset Files
+- Bundle: a.js, size: 26446
+- Bundle: b.js, size: 26446
+- Bundle: main.js, size: 25924
+
+## Manifest
+
+		
+## Update
+
+
+
+		

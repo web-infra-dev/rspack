@@ -1,0 +1,138 @@
+
+# Case multi-chunk: Step 1
+
+## Changed Files
+- file.js
+
+## Asset Files
+- Bundle: a.js, size: 33377
+- Bundle: b.js, size: 33377
+- Bundle: main.js, size: 32858
+- Manifest: a.LAST_HASH.hot-update.json, size: 35
+- Manifest: b.LAST_HASH.hot-update.json, size: 35
+- Manifest: main.LAST_HASH.hot-update.json, size: 35
+- Update: a.LAST_HASH.hot-update.js, size: 256
+- Update: b.LAST_HASH.hot-update.js, size: 256
+- Update: main.LAST_HASH.hot-update.js, size: 259
+
+## Manifest
+
+### a.LAST_HASH.hot-update.json
+
+```json
+{"c":["a"],"r":["main","b"],"m":[]}
+```
+
+
+
+### b.LAST_HASH.hot-update.json
+
+```json
+{"c":["b"],"r":["main","a"],"m":[]}
+```
+
+
+
+### main.LAST_HASH.hot-update.json
+
+```json
+{"c":["main"],"r":["b","a"],"m":[]}
+```
+
+		
+## Update
+
+
+### a.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./file.js
+
+#### Changed Runtime Modules
+- webpack/runtime/get_full_hash
+
+#### Changed Content
+```js
+self["webpackHotUpdate"]('a', {
+"./file.js": (function (module) {
+module.exports = 2;
+}),
+
+},function(__webpack_require__) {
+// webpack/runtime/get_full_hash
+!function() {
+__webpack_require__.h = function () {
+	return "CURRENT_HASH";
+};
+
+}();
+
+}
+);
+```
+
+
+
+
+### b.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./file.js
+
+#### Changed Runtime Modules
+- webpack/runtime/get_full_hash
+
+#### Changed Content
+```js
+self["webpackHotUpdate"]('b', {
+"./file.js": (function (module) {
+module.exports = 2;
+}),
+
+},function(__webpack_require__) {
+// webpack/runtime/get_full_hash
+!function() {
+__webpack_require__.h = function () {
+	return "CURRENT_HASH";
+};
+
+}();
+
+}
+);
+```
+
+
+
+
+### main.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./file.js
+
+#### Changed Runtime Modules
+- webpack/runtime/get_full_hash
+
+#### Changed Content
+```js
+self["webpackHotUpdate"]('main', {
+"./file.js": (function (module) {
+module.exports = 2;
+}),
+
+},function(__webpack_require__) {
+// webpack/runtime/get_full_hash
+!function() {
+__webpack_require__.h = function () {
+	return "CURRENT_HASH";
+};
+
+}();
+
+}
+);
+```
+
+
+
+		

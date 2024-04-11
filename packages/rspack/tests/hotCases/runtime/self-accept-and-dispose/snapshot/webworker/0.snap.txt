@@ -1,0 +1,17 @@
+
+# Case self-accept-and-dispose: Step 0
+
+## Changed Files
+- file.js
+
+## Asset Files
+- Bundle: bundle.js, size: 25698
+
+## Manifest
+
+		
+## Update
+
+
+
+		

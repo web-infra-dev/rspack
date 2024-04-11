@@ -1,0 +1,18 @@
+
+# Case replace-runtime-module: Step 0
+
+## Changed Files
+- module.js
+
+## Asset Files
+- Bundle: a.chunk.LAST_HASH.js, size: 293
+- Bundle: bundle.js, size: 37355
+
+## Manifest
+
+		
+## Update
+
+
+
+		

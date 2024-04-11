@@ -1,0 +1,18 @@
+
+# Case update-multiple-modules: Step 0
+
+## Changed Files
+- fileA.js
+- fileB.js
+
+## Asset Files
+- Bundle: bundle.js, size: 26066
+
+## Manifest
+
+		
+## Update
+
+
+
+		

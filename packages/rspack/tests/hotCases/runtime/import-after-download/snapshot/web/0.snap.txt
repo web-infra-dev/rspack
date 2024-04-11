@@ -1,0 +1,20 @@
+
+# Case import-after-download: Step 0
+
+## Changed Files
+- file.js
+- inner.js
+
+## Asset Files
+- Bundle: bundle.js, size: 37950
+- Bundle: chunk_js.LAST_HASH.js, size: 877
+- Bundle: unaffected-chunk_js.LAST_HASH.js, size: 1009
+
+## Manifest
+
+		
+## Update
+
+
+
+		

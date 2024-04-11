@@ -1,0 +1,82 @@
+
+# Case recover-after-self-error: Step 3
+
+## Changed Files
+- a.js
+
+## Asset Files
+- Bundle: bundle.js, size: 27921
+- Manifest: main.f6f5cfc92df4955246dc.hot-update.json, size: 28
+- Update: main.f6f5cfc92df4955246dc.hot-update.js, size: 1120
+
+## Manifest
+
+### main.f6f5cfc92df4955246dc.hot-update.json
+
+```json
+{"c":["main"],"r":[],"m":[]}
+```
+
+		
+## Update
+
+
+### main.f6f5cfc92df4955246dc.hot-update.js
+
+#### Changed Modules
+- ./a.js
+
+#### Changed Runtime Modules
+- webpack/runtime/define_property_getters
+- webpack/runtime/get_full_hash
+
+#### Changed Content
+```js
+exports.ids = ['main'];
+exports.modules = {
+"./a.js": (function (module, __webpack_exports__, __webpack_require__) {
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  getError: function() { return getError; },
+  id: function() { return id; }
+});
+module.hot.data.store.error = false;
+module.hot.data.store.value = 4;
+/* harmony default export */ __webpack_exports__["default"] = ((()=>{
+    throw new Error("should not happen");
+}));
+const getError = ()=>{
+    throw new Error("should not happen");
+};
+const id = module.id;
+}),
+
+};
+exports.runtime = function(__webpack_require__) {
+// webpack/runtime/define_property_getters
+!function() {
+__webpack_require__.d = function(exports, definition) {
+	for(var key in definition) {
+        if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+            Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+        }
+    }
+};
+}();
+// webpack/runtime/get_full_hash
+!function() {
+__webpack_require__.h = function () {
+	return "CURRENT_HASH";
+};
+
+}();
+
+}
+;
+
+```
+
+
+
+		

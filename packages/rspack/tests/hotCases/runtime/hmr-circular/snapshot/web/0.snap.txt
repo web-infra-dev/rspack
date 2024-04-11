@@ -1,0 +1,17 @@
+
+# Case hmr-circular: Step 0
+
+## Changed Files
+- entry.js
+
+## Asset Files
+- Bundle: bundle.js, size: 34332
+
+## Manifest
+
+		
+## Update
+
+
+
+		

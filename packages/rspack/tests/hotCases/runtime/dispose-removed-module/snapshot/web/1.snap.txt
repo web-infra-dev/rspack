@@ -1,0 +1,64 @@
+
+# Case dispose-removed-module: Step 1
+
+## Changed Files
+- module.js
+- a.js
+
+## Asset Files
+- Bundle: bundle.js, size: 33761
+- Manifest: main.LAST_HASH.hot-update.json, size: 36
+- Update: main.LAST_HASH.hot-update.js, size: 677
+
+## Manifest
+
+### main.LAST_HASH.hot-update.json
+
+```json
+{"c":["main"],"r":[],"m":["./a.js"]}
+```
+
+		
+## Update
+
+
+### main.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./b.js
+- ./module.js
+
+#### Changed Runtime Modules
+- webpack/runtime/get_full_hash
+
+#### Changed Content
+```js
+self["webpackHotUpdate"]('main', {
+"./b.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony default export */ __webpack_exports__["default"] = (1);
+}),
+"./module.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */var _b__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./b */"./b.js");
+
+}),
+
+},function(__webpack_require__) {
+// webpack/runtime/get_full_hash
+!function() {
+__webpack_require__.h = function () {
+	return "CURRENT_HASH";
+};
+
+}();
+
+}
+);
+```
+
+
+
+		

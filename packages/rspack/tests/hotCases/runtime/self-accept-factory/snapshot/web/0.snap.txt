@@ -1,0 +1,17 @@
+
+# Case self-accept-factory: Step 0
+
+## Changed Files
+- a.js
+
+## Asset Files
+- Bundle: bundle.js, size: 33139
+
+## Manifest
+
+		
+## Update
+
+
+
+		

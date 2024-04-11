@@ -1,0 +1,17 @@
+
+# Case module-hot: Step 0
+
+## Changed Files
+- node_modules/dep1/file.js
+
+## Asset Files
+- Bundle: bundle.js, size: 27945
+
+## Manifest
+
+		
+## Update
+
+
+
+		

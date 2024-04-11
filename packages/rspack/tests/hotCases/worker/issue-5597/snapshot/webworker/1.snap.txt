@@ -1,0 +1,173 @@
+
+# Case issue-5597: Step 1
+
+## Changed Files
+- moduleA.js
+- moduleAs.js
+- moduleB.js
+- moduleBs.js
+
+## Asset Files
+- Bundle: main.CURRENT_HASH.js, size: 26288
+- Bundle: shared.chunk.CURRENT_HASH.js, size: 529
+- Bundle: workerA_js.chunk.CURRENT_HASH.js, size: 28670
+- Bundle: workerB_js.chunk.CURRENT_HASH.js, size: 28670
+- Manifest: 8eb0ac7054459e35ccf2.LAST_HASH.hot-update.json, size: 62
+- Manifest: a31cecbba8d20ebbc5d6.LAST_HASH.hot-update.json, size: 62
+- Manifest: main.LAST_HASH.hot-update.json, size: 62
+- Update: main.LAST_HASH.hot-update.js, size: 201
+- Update: shared.LAST_HASH.hot-update.js, size: 493
+- Update: workerA_js.LAST_HASH.hot-update.js, size: 432
+- Update: workerB_js.LAST_HASH.hot-update.js, size: 432
+
+## Manifest
+
+### 8eb0ac7054459e35ccf2.LAST_HASH.hot-update.json
+
+```json
+{"c":["workerA_js","shared"],"r":["workerB_js","main"],"m":[]}
+```
+
+
+
+### a31cecbba8d20ebbc5d6.LAST_HASH.hot-update.json
+
+```json
+{"c":["workerB_js","shared"],"r":["workerA_js","main"],"m":[]}
+```
+
+
+
+### main.LAST_HASH.hot-update.json
+
+```json
+{"c":["main"],"r":["workerB_js","workerA_js","shared"],"m":[]}
+```
+
+		
+## Update
+
+
+### main.LAST_HASH.hot-update.js
+
+#### Changed Modules
+
+
+#### Changed Runtime Modules
+- webpack/runtime/get_full_hash
+
+#### Changed Content
+```js
+self["webpackHotUpdate"]('main', {
+
+},function(__webpack_require__) {
+// webpack/runtime/get_full_hash
+!function() {
+__webpack_require__.h = function () {
+	return "CURRENT_HASH";
+};
+
+}();
+
+}
+);
+```
+
+
+
+
+### shared.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./moduleAs.js
+- ./moduleBs.js
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+self["webpackHotUpdate"]('shared', {
+"./moduleAs.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony default export */ __webpack_exports__["default"] = (1);
+}),
+"./moduleBs.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony default export */ __webpack_exports__["default"] = (1);
+}),
+
+});
+```
+
+
+
+
+### workerA_js.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./moduleA.js
+
+#### Changed Runtime Modules
+- webpack/runtime/get_full_hash
+
+#### Changed Content
+```js
+self["webpackHotUpdate"]('workerA_js', {
+"./moduleA.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony default export */ __webpack_exports__["default"] = (1);
+}),
+
+},function(__webpack_require__) {
+// webpack/runtime/get_full_hash
+!function() {
+__webpack_require__.h = function () {
+	return "CURRENT_HASH";
+};
+
+}();
+
+}
+);
+```
+
+
+
+
+### workerB_js.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./moduleB.js
+
+#### Changed Runtime Modules
+- webpack/runtime/get_full_hash
+
+#### Changed Content
+```js
+self["webpackHotUpdate"]('workerB_js', {
+"./moduleB.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony default export */ __webpack_exports__["default"] = (1);
+}),
+
+},function(__webpack_require__) {
+// webpack/runtime/get_full_hash
+!function() {
+__webpack_require__.h = function () {
+	return "CURRENT_HASH";
+};
+
+}();
+
+}
+);
+```
+
+
+
+		

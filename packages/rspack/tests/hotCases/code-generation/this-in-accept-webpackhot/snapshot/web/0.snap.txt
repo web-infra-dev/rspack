@@ -1,0 +1,17 @@
+
+# Case this-in-accept-webpackhot: Step 0
+
+## Changed Files
+- module.js
+
+## Asset Files
+- Bundle: bundle.js, size: 33703
+
+## Manifest
+
+		
+## Update
+
+
+
+		

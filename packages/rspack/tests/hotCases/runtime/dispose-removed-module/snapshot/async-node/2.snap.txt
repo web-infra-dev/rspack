@@ -1,0 +1,81 @@
+
+# Case dispose-removed-module: Step 2
+
+## Changed Files
+- module.js
+- a.js
+
+## Asset Files
+- Bundle: bundle.js, size: 27319
+- Manifest: main.LAST_HASH.hot-update.json, size: 36
+- Update: main.LAST_HASH.hot-update.js, size: 1197
+
+## Manifest
+
+### main.LAST_HASH.hot-update.json
+
+```json
+{"c":["main"],"r":[],"m":["./b.js"]}
+```
+
+		
+## Update
+
+
+### main.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./a.js
+- ./module.js
+
+#### Changed Runtime Modules
+- webpack/runtime/define_property_getters
+- webpack/runtime/get_full_hash
+
+#### Changed Content
+```js
+exports.ids = ['main'];
+exports.modules = {
+"./a.js": (function (module, __webpack_exports__, __webpack_require__) {
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony default export */ __webpack_exports__["default"] = (module.id);
+}),
+"./module.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  "default": function() { return /* reexport safe */ _a__WEBPACK_IMPORTED_MODULE_0__["default"]; }
+});
+/* harmony import */var _a__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./a */"./a.js");
+
+}),
+
+};
+exports.runtime = function(__webpack_require__) {
+// webpack/runtime/define_property_getters
+!function() {
+__webpack_require__.d = function(exports, definition) {
+	for(var key in definition) {
+        if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+            Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+        }
+    }
+};
+}();
+// webpack/runtime/get_full_hash
+!function() {
+__webpack_require__.h = function () {
+	return "CURRENT_HASH";
+};
+
+}();
+
+}
+;
+
+```
+
+
+
+		

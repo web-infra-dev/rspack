@@ -65,20 +65,21 @@ export class HotStepRunnerFactory<
 						return;
 					}
 					if (jsonStats.errors?.length) {
-						return callback(new Error("Has Error"));
-					}
-					try {
-						const checker = this.context.getValue(
-							this.name,
-							"hotUpdateStepChecker"
-						) as (
-							context: { updateIndex: number },
-							stats: TCompilerStats<T>
-						) => void;
-						checker(hotUpdateContext, stats as TCompilerStats<T>);
 						callback(null, jsonStats as StatsCompilation);
-					} catch (e) {
-						callback(e as Error);
+					} else {
+						try {
+							const checker = this.context.getValue(
+								this.name,
+								"hotUpdateStepChecker"
+							) as (
+								context: { updateIndex: number },
+								stats: TCompilerStats<T>
+							) => void;
+							checker(hotUpdateContext, stats as TCompilerStats<T>);
+							callback(null, jsonStats as StatsCompilation);
+						} catch (e) {
+							callback(e as Error);
+						}
 					}
 				})
 				.catch(callback);

@@ -1,0 +1,18 @@
+
+# Case request-position: Step 0
+
+## Changed Files
+- file.js
+
+## Asset Files
+- Bundle: bundle.js, size: 30803
+- Bundle: lib_a_js.chunk.LAST_HASH.js, size: 300
+
+## Manifest
+
+		
+## Update
+
+
+
+		

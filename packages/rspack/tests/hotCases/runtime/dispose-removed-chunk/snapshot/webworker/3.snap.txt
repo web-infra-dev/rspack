@@ -1,0 +1,59 @@
+
+# Case dispose-removed-chunk: Step 3
+
+## Changed Files
+- module.js
+- a.js
+- b.js
+
+## Asset Files
+- Bundle: a_js.CURRENT_HASH.js, size: 305
+- Bundle: bundle.js, size: 29162
+- Manifest: main.LAST_HASH.hot-update.json, size: 42
+- Update: main.LAST_HASH.hot-update.js, size: 525
+
+## Manifest
+
+### main.LAST_HASH.hot-update.json
+
+```json
+{"c":["main"],"r":["b_js"],"m":["./b.js"]}
+```
+
+		
+## Update
+
+
+### main.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./module.js
+
+#### Changed Runtime Modules
+- webpack/runtime/get_full_hash
+
+#### Changed Content
+```js
+self["webpackHotUpdate"]('main', {
+"./module.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony default export */ __webpack_exports__["default"] = (__webpack_require__.e("a_js").then(__webpack_require__.bind(__webpack_require__, /*! ./a */"./a.js")));
+}),
+
+},function(__webpack_require__) {
+// webpack/runtime/get_full_hash
+!function() {
+__webpack_require__.h = function () {
+	return "CURRENT_HASH";
+};
+
+}();
+
+}
+);
+```
+
+
+
+		

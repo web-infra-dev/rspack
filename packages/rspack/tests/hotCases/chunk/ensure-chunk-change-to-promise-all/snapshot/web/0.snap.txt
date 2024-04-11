@@ -1,0 +1,19 @@
+
+# Case ensure-chunk-change-to-promise-all: Step 0
+
+## Changed Files
+- file.js
+
+## Asset Files
+- Bundle: bundle.js, size: 37956
+- Bundle: file_js.chunk.LAST_HASH.js, size: 497
+- Bundle: vendors-node_modules_react_js.chunk.LAST_HASH.js, size: 374
+
+## Manifest
+
+		
+## Update
+
+
+
+		

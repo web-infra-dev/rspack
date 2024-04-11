@@ -1,0 +1,18 @@
+
+# Case unaccepted-ignored: Step 0
+
+## Changed Files
+- a.js
+- c.js
+
+## Asset Files
+- Bundle: bundle.js, size: 28239
+
+## Manifest
+
+		
+## Update
+
+
+
+		

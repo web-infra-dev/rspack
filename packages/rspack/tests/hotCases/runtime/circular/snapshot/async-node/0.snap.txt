@@ -1,0 +1,18 @@
+
+# Case circular: Step 0
+
+## Changed Files
+- a.js
+- b.js
+
+## Asset Files
+- Bundle: bundle.js, size: 27210
+
+## Manifest
+
+		
+## Update
+
+
+
+		
