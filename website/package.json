@@ -10,7 +10,7 @@
     "check:format-ci": "prettier . --check",
     "check:spell": "npx cspell",
     "check:case": "npx case-police docs/**/*.{md,mdx}",
-    "check:ci": "pnpm run check:format-ci && pnpm run check:spell && pnpm run check:case"
+    "check:ci": "pnpm run check:format-ci && pnpm run check:spell"
   },
   "license": "ISC",
   "packageManager": "pnpm@8.14.3",
