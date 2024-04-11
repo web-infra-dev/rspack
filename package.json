@@ -34,7 +34,8 @@
     "test:ng": "pnpm --filter \"@rspack/test-tools\" test:ng",
     "test:e2e": "pnpm --filter \"@rspack-e2e/*\" test",
     "test:ci": "cross-env NODE_OPTIONS=--max_old_space_size=8192 pnpm run build:js && pnpm run test:unit && pnpm test:webpack",
-    "test:webpack": "pnpm --filter \"webpack-test\" test:metric"
+    "test:webpack": "pnpm --filter \"webpack-test\" test:metric",
+    "lint:website": "pnpm --filter \"website\" lint"
   },
   "homepage": "https://rspack.dev",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",

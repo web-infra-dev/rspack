@@ -7,9 +7,11 @@
     "dev": "rspress dev",
     "build": "rspress build",
     "format": "prettier docs/**/*.{md,mdx} --write",
+    "format-ci": "prettier docs/**/*.{md,mdx} --check",
     "spell": "npx cspell",
-    "caseCheck": "npx case-police docs/**/*.{md,mdx}",
-    "preview": "rspress preview"
+    "case-check": "npx case-police docs/**/*.{md,mdx}",
+    "preview": "rspress preview",
+    "lint": "pnpm run spell && pnpm run case-check && pnpm run format-ci"
   },
   "keywords": [],
   "author": "",

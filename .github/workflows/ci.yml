@@ -145,12 +145,12 @@ jobs:
       - name: Check licenses
         if: steps.filter.outputs.src == 'true'
         run: cargo deny check license
+
   spell:
     name: Spell check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: crate-ci/typos@master
         with:
           files: .
@@ -182,6 +182,9 @@ jobs:
       - name: prettier
         if: steps.changes.outputs.src == 'true'
         run: pnpm run format-ci:js
+
+      - name: lint website
+        run: pnpm run lint:website
 
   rust_changes:
     name: Rust Changes
