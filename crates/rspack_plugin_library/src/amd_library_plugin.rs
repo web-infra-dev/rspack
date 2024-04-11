@@ -2,10 +2,10 @@ use std::{hash::Hash, sync::Arc};
 
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceExt},
-  AdditionalChunkRuntimeRequirementsArgs, ApplyContext, ChunkUkey, Compilation, CompilationParams,
-  CompilerOptions, ExternalModule, FilenameTemplate, LibraryName, LibraryNonUmdObject,
-  LibraryOptions, LibraryType, PathData, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput,
-  PluginContext, RuntimeGlobals, SourceType,
+  ApplyContext, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
+  CompilationParams, CompilerOptions, ExternalModule, FilenameTemplate, LibraryName,
+  LibraryNonUmdObject, LibraryOptions, LibraryType, PathData, Plugin, PluginContext,
+  RuntimeGlobals, SourceType,
 };
 use rspack_error::{error_bail, Result};
 use rspack_hook::{plugin, plugin_hook, AsyncSeries2};
@@ -181,7 +181,24 @@ async fn compilation(
   Ok(())
 }
 
-#[async_trait::async_trait]
+#[plugin_hook(CompilationAdditionalChunkRuntimeRequirements for AmdLibraryPlugin)]
+fn additional_chunk_runtime_requirements(
+  &self,
+  compilation: &mut Compilation,
+  chunk_ukey: &ChunkUkey,
+  runtime_requirements: &mut RuntimeGlobals,
+) -> Result<()> {
+  if self
+    .js_plugin
+    .get_options_for_chunk(compilation, chunk_ukey)?
+    .is_none()
+  {
+    return Ok(());
+  }
+  runtime_requirements.insert(RuntimeGlobals::RETURN_EXPORTS_FROM_RUNTIME);
+  Ok(())
+}
+
 impl Plugin for AmdLibraryPlugin {
   fn name(&self) -> &'static str {
     PLUGIN_NAME
@@ -197,24 +214,11 @@ impl Plugin for AmdLibraryPlugin {
       .compiler_hooks
       .compilation
       .tap(compilation::new(self));
-    Ok(())
-  }
-
-  async fn additional_chunk_runtime_requirements(
-    &self,
-    _ctx: PluginContext,
-    args: &mut AdditionalChunkRuntimeRequirementsArgs,
-  ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
-    if self
-      .js_plugin
-      .get_options_for_chunk(args.compilation, args.chunk)?
-      .is_none()
-    {
-      return Ok(());
-    }
-    args
-      .runtime_requirements
-      .insert(RuntimeGlobals::RETURN_EXPORTS_FROM_RUNTIME);
+    ctx
+      .context
+      .compilation_hooks
+      .additional_chunk_runtime_requirements
+      .tap(additional_chunk_runtime_requirements::new(self));
     Ok(())
   }
 }

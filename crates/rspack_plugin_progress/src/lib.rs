@@ -10,8 +10,7 @@ use linked_hash_map::LinkedHashMap as HashMap;
 use rspack_core::{
   ApplyContext, BoxModule, Compilation, CompilationChunkIds, CompilationModuleIds,
   CompilationOptimizeChunks, CompilationOptimizeDependencies, CompilationParams, CompilationSeal,
-  CompilerOptions, MakeParam, ModuleIdentifier, OptimizeChunksArgs, Plugin, PluginContext,
-  PluginOptimizeChunksOutput,
+  CompilerOptions, MakeParam, ModuleIdentifier, Plugin, PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook, AsyncSeries, AsyncSeries2, AsyncSeriesBail};

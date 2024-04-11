@@ -34,7 +34,7 @@ pub use bundler_info::{BundlerInfoForceMode, BundlerInfoPlugin};
 pub fn enable_chunk_loading_plugin(loading_type: ChunkLoadingType, plugins: &mut Vec<BoxPlugin>) {
   match loading_type {
     ChunkLoadingType::Jsonp => {
-      plugins.push(JsonpChunkLoadingPlugin.boxed());
+      plugins.push(JsonpChunkLoadingPlugin::default().boxed());
     }
     ChunkLoadingType::Require => {
       plugins.push(
@@ -61,8 +61,8 @@ pub fn enable_chunk_loading_plugin(loading_type: ChunkLoadingType, plugins: &mut
         )
         .boxed(),
       );
-      plugins.push(ImportScriptsChunkLoadingPlugin.boxed());
+      plugins.push(ImportScriptsChunkLoadingPlugin::default().boxed());
     }
-    ChunkLoadingType::Import => plugins.push(ModuleChunkLoadingPlugin.boxed()),
+    ChunkLoadingType::Import => plugins.push(ModuleChunkLoadingPlugin::default().boxed()),
   }
 }

@@ -220,7 +220,7 @@ impl BuiltinPlugin {
         ));
       }
       BuiltinPluginName::ChunkPrefetchPreloadPlugin => {
-        plugins.push(ChunkPrefetchPreloadPlugin.boxed());
+        plugins.push(ChunkPrefetchPreloadPlugin::default().boxed());
       }
       BuiltinPluginName::CommonJsChunkFormatPlugin => {
         plugins.push(CommonJsChunkFormatPlugin::default().boxed());

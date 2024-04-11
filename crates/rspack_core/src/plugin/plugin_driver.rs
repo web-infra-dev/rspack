@@ -1,17 +1,13 @@
 use std::sync::{Arc, Mutex};
 
 use derivative::Derivative;
-use rspack_error::{Diagnostic, Result};
+use rspack_error::Diagnostic;
 use rspack_util::fx_hash::FxDashMap;
-use tracing::instrument;
 
 use crate::{
-  AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, ApplyContext,
-  BoxedParserAndGeneratorBuilder, Compilation, CompilationHooks, CompilerHooks, CompilerOptions,
-  ContextModuleFactoryHooks, ModuleIdentifier, ModuleType, NormalModuleFactoryHooks,
-  NormalModuleHooks, OptimizeChunksArgs, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput,
-  PluginAdditionalModuleRequirementsOutput, PluginContext, PluginRuntimeRequirementsInTreeOutput,
-  ResolverFactory, RuntimeRequirementsInTreeArgs,
+  ApplyContext, BoxedParserAndGeneratorBuilder, CompilationHooks, CompilerHooks, CompilerOptions,
+  ContextModuleFactoryHooks, ModuleType, NormalModuleFactoryHooks, NormalModuleHooks, Plugin,
+  PluginContext, ResolverFactory,
 };
 
 #[derive(Derivative)]
@@ -83,63 +79,5 @@ impl PluginDriver {
   pub fn take_diagnostic(&self) -> Vec<Diagnostic> {
     let mut diagnostic = self.diagnostics.lock().expect("TODO:");
     std::mem::take(&mut diagnostic)
-  }
-
-  #[instrument(name = "plugin:module_asset", skip_all)]
-  pub async fn module_asset(&self, module: ModuleIdentifier, asset_name: String) -> Result<()> {
-    for plugin in &self.plugins {
-      plugin.module_asset(module, asset_name.clone()).await?;
-    }
-
-    Ok(())
-  }
-
-  #[instrument(name = "plugin:additional_chunk_runtime_requirements", skip_all)]
-  pub async fn additional_chunk_runtime_requirements(
-    &self,
-    args: &mut AdditionalChunkRuntimeRequirementsArgs<'_>,
-  ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
-    for plugin in &self.plugins {
-      plugin
-        .additional_chunk_runtime_requirements(PluginContext::new(), args)
-        .await?;
-    }
-    Ok(())
-  }
-
-  #[instrument(name = "plugin:additional_tree_runtime_requirements", skip_all)]
-  pub async fn additional_tree_runtime_requirements(
-    &self,
-    args: &mut AdditionalChunkRuntimeRequirementsArgs<'_>,
-  ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
-    for plugin in &self.plugins {
-      plugin
-        .additional_tree_runtime_requirements(PluginContext::new(), args)
-        .await?;
-    }
-    Ok(())
-  }
-
-  pub fn runtime_requirement_in_module(
-    &self,
-    args: &mut AdditionalModuleRequirementsArgs,
-  ) -> PluginAdditionalModuleRequirementsOutput {
-    for plugin in &self.plugins {
-      plugin.runtime_requirements_in_module(PluginContext::new(), args)?;
-    }
-    Ok(())
-  }
-
-  #[instrument(name = "plugin:runtime_requirements_in_tree", skip_all)]
-  pub async fn runtime_requirements_in_tree(
-    &self,
-    args: &mut RuntimeRequirementsInTreeArgs<'_>,
-  ) -> PluginRuntimeRequirementsInTreeOutput {
-    for plugin in &self.plugins {
-      plugin
-        .runtime_requirements_in_tree(PluginContext::new(), args)
-        .await?;
-    }
-    Ok(())
   }
 }

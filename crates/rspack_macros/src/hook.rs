@@ -23,16 +23,12 @@ impl Parse for DefineHookInput {
     syn::parenthesized!(content in input);
     let args = content.parse_terminated(PatType::parse, Token![,])?;
     let exec_kind = match kind.as_str() {
-      "AsyncSeriesBail" => {
-        <Token![->]>::parse(input)?;
-        let ret = TypePath::parse(input)?;
-        ExecKind::AsyncSeriesBail { ret }
-      }
-      "SyncSeriesBail" => {
-        <Token![->]>::parse(input)?;
-        let ret = TypePath::parse(input)?;
-        ExecKind::SyncSeriesBail { ret }
-      }
+      "AsyncSeriesBail" => ExecKind::AsyncSeriesBail {
+        ret: ExecKind::parse_ret(input)?,
+      },
+      "SyncSeriesBail" => ExecKind::SyncSeriesBail {
+        ret: ExecKind::parse_ret(input)?,
+      },
       "AsyncSeries" => ExecKind::AsyncSeries,
       "AsyncParallel" => ExecKind::AsyncParallel,
       "SyncSeries" => ExecKind::SyncSeries,
@@ -145,13 +141,23 @@ impl DefineHookInput {
 
 enum ExecKind {
   AsyncSeries,
-  AsyncSeriesBail { ret: TypePath },
+  AsyncSeriesBail { ret: Option<TypePath> },
   AsyncParallel,
   SyncSeries,
-  SyncSeriesBail { ret: TypePath },
+  SyncSeriesBail { ret: Option<TypePath> },
 }
 
 impl ExecKind {
+  pub fn parse_ret(input: ParseStream) -> Result<Option<TypePath>> {
+    Ok(if input.peek(Token![->]) {
+      <Token![->]>::parse(input)?;
+      let ret = TypePath::parse(input)?;
+      Some(ret)
+    } else {
+      None
+    })
+  }
+
   pub fn is_async(&self) -> bool {
     match self {
       Self::AsyncSeries | Self::AsyncSeriesBail { .. } | Self::AsyncParallel => true,
@@ -162,7 +168,11 @@ impl ExecKind {
   pub fn return_type(&self) -> TokenStream {
     match self {
       Self::AsyncSeriesBail { ret } | Self::SyncSeriesBail { ret } => {
-        quote! { rspack_hook::__macro_helper::Result<std::option::Option<#ret>> }
+        if let Some(ret) = ret {
+          quote! { rspack_hook::__macro_helper::Result<std::option::Option<#ret>> }
+        } else {
+          quote! { rspack_hook::__macro_helper::Result<std::option::Option<()>> }
+        }
       }
       _ => quote! { rspack_hook::__macro_helper::Result<()> },
     }

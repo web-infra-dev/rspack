@@ -1,10 +1,8 @@
 #![feature(option_get_or_insert_default)]
 #![feature(let_chains)]
 
-use async_trait::async_trait;
 use rspack_core::{
-  is_runtime_equal, ChunkUkey, Compilation, CompilationOptimizeChunks, OptimizeChunksArgs, Plugin,
-  PluginContext, PluginOptimizeChunksOutput,
+  is_runtime_equal, ChunkUkey, Compilation, CompilationOptimizeChunks, Plugin, PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};

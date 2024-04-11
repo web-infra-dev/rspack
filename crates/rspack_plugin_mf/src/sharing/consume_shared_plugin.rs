@@ -6,9 +6,9 @@ use async_trait::async_trait;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
-  AdditionalChunkRuntimeRequirementsArgs, ApplyContext, BoxModule, Compilation, CompilationParams,
-  CompilerOptions, Context, DependencyCategory, DependencyType, ModuleExt, ModuleFactoryCreateData,
-  NormalModuleCreateData, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext,
+  ApplyContext, BoxModule, ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements,
+  CompilationParams, CompilerOptions, Context, DependencyCategory, DependencyType, ModuleExt,
+  ModuleFactoryCreateData, NormalModuleCreateData, Plugin, PluginContext,
   ResolveOptionsWithDependencyType, ResolveResult, Resolver, RuntimeGlobals,
 };
 use rspack_error::{error, Diagnostic, Result};
@@ -403,6 +403,26 @@ async fn create_module(
   Ok(None)
 }
 
+#[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for ConsumeSharedPlugin)]
+fn additional_tree_runtime_requirements(
+  &self,
+  compilation: &mut Compilation,
+  chunk_ukey: &ChunkUkey,
+  runtime_requirements: &mut RuntimeGlobals,
+) -> Result<()> {
+  runtime_requirements.insert(RuntimeGlobals::MODULE);
+  runtime_requirements.insert(RuntimeGlobals::MODULE_CACHE);
+  runtime_requirements.insert(RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY);
+  runtime_requirements.insert(RuntimeGlobals::SHARE_SCOPE_MAP);
+  runtime_requirements.insert(RuntimeGlobals::INITIALIZE_SHARING);
+  runtime_requirements.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
+  compilation.add_runtime_module(
+    chunk_ukey,
+    Box::new(ConsumeSharedRuntimeModule::new(self.options.enhanced)),
+  )?;
+  Ok(())
+}
+
 #[async_trait]
 impl Plugin for ConsumeSharedPlugin {
   fn name(&self) -> &'static str {
@@ -429,37 +449,11 @@ impl Plugin for ConsumeSharedPlugin {
       .normal_module_factory_hooks
       .create_module
       .tap(create_module::new(self));
-    Ok(())
-  }
-
-  async fn additional_tree_runtime_requirements(
-    &self,
-    _ctx: PluginContext,
-    args: &mut AdditionalChunkRuntimeRequirementsArgs,
-  ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
-    args.runtime_requirements.insert(RuntimeGlobals::MODULE);
-    args
-      .runtime_requirements
-      .insert(RuntimeGlobals::MODULE_CACHE);
-    args
-      .runtime_requirements
-      .insert(RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY);
-    args
-      .runtime_requirements
-      .insert(RuntimeGlobals::SHARE_SCOPE_MAP);
-    args
-      .runtime_requirements
-      .insert(RuntimeGlobals::INITIALIZE_SHARING);
-    args
-      .runtime_requirements
-      .insert(RuntimeGlobals::HAS_OWN_PROPERTY);
-    args
-      .compilation
-      .add_runtime_module(
-        args.chunk,
-        Box::new(ConsumeSharedRuntimeModule::new(self.options.enhanced)),
-      )
-      .await?;
+    ctx
+      .context
+      .compilation_hooks
+      .additional_tree_runtime_requirements
+      .tap(additional_tree_runtime_requirements::new(self));
     Ok(())
   }
 }

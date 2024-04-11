@@ -6,10 +6,10 @@ use regex::Regex;
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceMap, SourceMapSource, WithoutOriginalOptions},
   ApplyContext, AssetInfo, Chunk, ChunkGroupUkey, ChunkKind, ChunkUkey, Compilation,
-  CompilationContentHash, CompilationParams, CompilationRenderManifest, CompilerOptions, Filename,
-  Module, ModuleGraph, ModuleIdentifier, ModuleType, PathData, Plugin, PluginContext,
-  PluginRuntimeRequirementsInTreeOutput, RenderManifestEntry, RuntimeGlobals,
-  RuntimeRequirementsInTreeArgs, SourceType,
+  CompilationContentHash, CompilationParams, CompilationRenderManifest,
+  CompilationRuntimeRequirementInTree, CompilerOptions, Filename, Module, ModuleGraph,
+  ModuleIdentifier, ModuleType, PathData, Plugin, PluginContext, RenderManifestEntry,
+  RuntimeGlobals, SourceType,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hash::RspackHash;
@@ -439,6 +439,77 @@ async fn compilation(
   Ok(())
 }
 
+#[plugin_hook(CompilationRuntimeRequirementInTree for PluginCssExtract)]
+fn runtime_requirements_in_tree(
+  &self,
+  compilation: &mut Compilation,
+  chunk_ukey: &ChunkUkey,
+  runtime_requirements: &RuntimeGlobals,
+  runtime_requirements_mut: &mut RuntimeGlobals,
+) -> Result<Option<()>> {
+  if !self.options.runtime {
+    return Ok(None);
+  }
+
+  let with_loading = runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS) && {
+    let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+
+    chunk
+      .get_all_async_chunks(&compilation.chunk_group_by_ukey)
+      .iter()
+      .any(|chunk| {
+        !compilation
+          .chunk_graph
+          .get_chunk_modules_by_source_type(chunk, SOURCE_TYPE[0], &compilation.get_module_graph())
+          .is_empty()
+      })
+  };
+
+  let with_hmr = runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
+
+  if with_loading || with_hmr {
+    if self.options.chunk_filename.contains("hash") {
+      runtime_requirements_mut.insert(RuntimeGlobals::GET_FULL_HASH);
+    }
+    runtime_requirements_mut.insert(RuntimeGlobals::PUBLIC_PATH);
+
+    let filename = self.options.filename.clone();
+    let chunk_filename = self.options.chunk_filename.clone();
+
+    compilation.add_runtime_module(
+      chunk_ukey,
+      Box::new(GetChunkFilenameRuntimeModule::new(
+        "css",
+        "mini-css",
+        SOURCE_TYPE[0],
+        "__webpack_require__.miniCssF".into(),
+        |_| false,
+        move |chunk, compilation| {
+          chunk.content_hash.contains_key(&SOURCE_TYPE[0]).then(|| {
+            if chunk.can_be_initial(&compilation.chunk_group_by_ukey) {
+              Filename::from(filename.clone())
+            } else {
+              Filename::from(chunk_filename.clone())
+            }
+          })
+        },
+      )),
+    )?;
+
+    compilation.add_runtime_module(
+      chunk_ukey,
+      Box::new(CssLoadingRuntimeModule::new(
+        *chunk_ukey,
+        self.options.clone(),
+        with_loading,
+        with_hmr,
+      )),
+    )?;
+  }
+
+  Ok(None)
+}
+
 #[plugin_hook(CompilationContentHash for PluginCssExtract)]
 fn content_hash(
   &self,
@@ -595,6 +666,11 @@ impl Plugin for PluginCssExtract {
     ctx
       .context
       .compilation_hooks
+      .runtime_requirement_in_tree
+      .tap(runtime_requirements_in_tree::new(self));
+    ctx
+      .context
+      .compilation_hooks
       .content_hash
       .tap(content_hash::new(self));
     ctx
@@ -602,94 +678,6 @@ impl Plugin for PluginCssExtract {
       .compilation_hooks
       .render_manifest
       .tap(render_manifest::new(self));
-
-    Ok(())
-  }
-
-  async fn runtime_requirements_in_tree(
-    &self,
-    _ctx: PluginContext,
-    args: &mut RuntimeRequirementsInTreeArgs,
-  ) -> PluginRuntimeRequirementsInTreeOutput {
-    if !self.options.runtime {
-      return Ok(());
-    }
-
-    let with_loading = args
-      .runtime_requirements
-      .contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
-      && {
-        let chunk = args.compilation.chunk_by_ukey.expect_get(args.chunk);
-
-        chunk
-          .get_all_async_chunks(&args.compilation.chunk_group_by_ukey)
-          .iter()
-          .any(|chunk| {
-            !args
-              .compilation
-              .chunk_graph
-              .get_chunk_modules_by_source_type(
-                chunk,
-                SOURCE_TYPE[0],
-                &args.compilation.get_module_graph(),
-              )
-              .is_empty()
-          })
-      };
-
-    let with_hmr = args
-      .runtime_requirements
-      .contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
-
-    if with_loading || with_hmr {
-      if self.options.chunk_filename.contains("hash") {
-        args
-          .runtime_requirements_mut
-          .insert(RuntimeGlobals::GET_FULL_HASH);
-      }
-      args
-        .runtime_requirements_mut
-        .insert(RuntimeGlobals::PUBLIC_PATH);
-
-      let filename = self.options.filename.clone();
-      let chunk_filename = self.options.chunk_filename.clone();
-
-      args
-        .compilation
-        .add_runtime_module(
-          args.chunk,
-          Box::new(GetChunkFilenameRuntimeModule::new(
-            "css",
-            "mini-css",
-            SOURCE_TYPE[0],
-            "__webpack_require__.miniCssF".into(),
-            |_| false,
-            move |chunk, compilation| {
-              chunk.content_hash.contains_key(&SOURCE_TYPE[0]).then(|| {
-                if chunk.can_be_initial(&compilation.chunk_group_by_ukey) {
-                  Filename::from(filename.clone())
-                } else {
-                  Filename::from(chunk_filename.clone())
-                }
-              })
-            },
-          )),
-        )
-        .await?;
-
-      args
-        .compilation
-        .add_runtime_module(
-          args.chunk,
-          Box::new(CssLoadingRuntimeModule::new(
-            *args.chunk,
-            self.options.clone(),
-            with_loading,
-            with_hmr,
-          )),
-        )
-        .await?;
-    }
 
     Ok(())
   }

@@ -13,9 +13,8 @@ use rspack_core::{
 };
 use rspack_core::{
   ChunkLoading, ChunkLoadingType, ChunkUkey, Compilation, CompilationContentHash,
-  CompilationParams, CompilationRenderManifest, CompilerOptions, DependencyType, LibIdentOptions,
-  PluginContext, PluginRuntimeRequirementsInTreeOutput, PublicPath, RuntimeGlobals,
-  RuntimeRequirementsInTreeArgs,
+  CompilationParams, CompilationRenderManifest, CompilationRuntimeRequirementInTree,
+  CompilerOptions, DependencyType, LibIdentOptions, PublicPath, RuntimeGlobals,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hash::RspackHash;
@@ -131,6 +130,32 @@ async fn compilation(
     params.normal_module_factory.clone(),
   );
   Ok(())
+}
+
+#[plugin_hook(CompilationRuntimeRequirementInTree for CssPlugin)]
+fn runtime_requirements_in_tree(
+  &self,
+  compilation: &mut Compilation,
+  chunk_ukey: &ChunkUkey,
+  runtime_requirements: &RuntimeGlobals,
+  runtime_requirements_mut: &mut RuntimeGlobals,
+) -> Result<Option<()>> {
+  let chunk_loading_value = ChunkLoading::Enable(ChunkLoadingType::Jsonp);
+  let is_enabled_for_chunk = is_enabled_for_chunk(chunk_ukey, &chunk_loading_value, compilation);
+
+  if (runtime_requirements.contains(RuntimeGlobals::HAS_CSS_MODULES)
+    || runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
+    || runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS))
+    && is_enabled_for_chunk
+  {
+    runtime_requirements_mut.insert(RuntimeGlobals::PUBLIC_PATH);
+    runtime_requirements_mut.insert(RuntimeGlobals::GET_CHUNK_CSS_FILENAME);
+    runtime_requirements_mut.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
+    runtime_requirements_mut.insert(RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY);
+    compilation.add_runtime_module(chunk_ukey, Box::<CssLoadingRuntimeModule>::default())?;
+  }
+
+  Ok(None)
 }
 
 #[plugin_hook(CompilationContentHash for CssPlugin)]
@@ -287,6 +312,11 @@ impl Plugin for CssPlugin {
     ctx
       .context
       .compilation_hooks
+      .runtime_requirement_in_tree
+      .tap(runtime_requirements_in_tree::new(self));
+    ctx
+      .context
+      .compilation_hooks
       .content_hash
       .tap(content_hash::new(self));
     ctx
@@ -363,35 +393,6 @@ impl Plugin for CssPlugin {
         }) as Box<dyn ParserAndGenerator>
       }),
     );
-
-    Ok(())
-  }
-
-  async fn runtime_requirements_in_tree(
-    &self,
-    _ctx: PluginContext,
-    args: &mut RuntimeRequirementsInTreeArgs,
-  ) -> PluginRuntimeRequirementsInTreeOutput {
-    let compilation = &mut args.compilation;
-    let chunk = args.chunk;
-    let chunk_loading_value = ChunkLoading::Enable(ChunkLoadingType::Jsonp);
-    let is_enabled_for_chunk = is_enabled_for_chunk(chunk, &chunk_loading_value, compilation);
-    let runtime_requirements = args.runtime_requirements;
-    let runtime_requirements_mut = &mut args.runtime_requirements_mut;
-
-    if (runtime_requirements.contains(RuntimeGlobals::HAS_CSS_MODULES)
-      || runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
-      || runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS))
-      && is_enabled_for_chunk
-    {
-      runtime_requirements_mut.insert(RuntimeGlobals::PUBLIC_PATH);
-      runtime_requirements_mut.insert(RuntimeGlobals::GET_CHUNK_CSS_FILENAME);
-      runtime_requirements_mut.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
-      runtime_requirements_mut.insert(RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY);
-      compilation
-        .add_runtime_module(chunk, Box::<CssLoadingRuntimeModule>::default())
-        .await?;
-    }
 
     Ok(())
   }

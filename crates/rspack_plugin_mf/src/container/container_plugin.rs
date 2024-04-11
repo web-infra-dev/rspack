@@ -1,11 +1,10 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use rspack_core::{ApplyContext, CompilerOptions};
+use rspack_core::{ApplyContext, ChunkUkey, CompilationRuntimeRequirementInTree, CompilerOptions};
 use rspack_core::{
   Compilation, CompilationParams, Dependency, DependencyType, EntryOptions, EntryRuntime,
-  FilenameTemplate, LibraryOptions, MakeParam, Plugin, PluginContext,
-  PluginRuntimeRequirementsInTreeOutput, RuntimeGlobals, RuntimeRequirementsInTreeArgs,
+  FilenameTemplate, LibraryOptions, MakeParam, Plugin, PluginContext, RuntimeGlobals,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook, AsyncSeries2};
@@ -86,6 +85,24 @@ async fn make(&self, compilation: &mut Compilation, params: &mut Vec<MakeParam>)
   Ok(())
 }
 
+#[plugin_hook(CompilationRuntimeRequirementInTree for ContainerPlugin)]
+fn runtime_requirements_in_tree(
+  &self,
+  compilation: &mut Compilation,
+  chunk_ukey: &ChunkUkey,
+  runtime_requirements: &RuntimeGlobals,
+  runtime_requirements_mut: &mut RuntimeGlobals,
+) -> Result<Option<()>> {
+  if runtime_requirements.contains(RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE) {
+    runtime_requirements_mut.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
+    compilation.add_runtime_module(
+      chunk_ukey,
+      Box::new(ExposeRuntimeModule::new(self.options.enhanced)),
+    )?;
+  }
+  Ok(None)
+}
+
 #[async_trait]
 impl Plugin for ContainerPlugin {
   fn name(&self) -> &'static str {
@@ -103,29 +120,11 @@ impl Plugin for ContainerPlugin {
       .compilation
       .tap(compilation::new(self));
     ctx.context.compiler_hooks.make.tap(make::new(self));
-    Ok(())
-  }
-
-  async fn runtime_requirements_in_tree(
-    &self,
-    _ctx: PluginContext,
-    args: &mut RuntimeRequirementsInTreeArgs,
-  ) -> PluginRuntimeRequirementsInTreeOutput {
-    if args
-      .runtime_requirements
-      .contains(RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE)
-    {
-      args
-        .runtime_requirements_mut
-        .insert(RuntimeGlobals::HAS_OWN_PROPERTY);
-      args
-        .compilation
-        .add_runtime_module(
-          args.chunk,
-          Box::new(ExposeRuntimeModule::new(self.options.enhanced)),
-        )
-        .await?;
-    }
+    ctx
+      .context
+      .compilation_hooks
+      .runtime_requirement_in_tree
+      .tap(runtime_requirements_in_tree::new(self));
     Ok(())
   }
 }
