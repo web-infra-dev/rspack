@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
 use rspack_core::{
-  ApplyContext, Compilation, CompilationParams, CompilerOptions, InitFragmentExt, InitFragmentKey,
-  InitFragmentStage, NormalInitFragment, Plugin, PluginContext,
+  ApplyContext, Compilation, CompilationParams, CompilerCompilation, CompilerOptions,
+  InitFragmentExt, InitFragmentKey, InitFragmentStage, NormalInitFragment, Plugin, PluginContext,
 };
 use rspack_error::Result;
-use rspack_hook::{plugin, plugin_hook, AsyncSeries2};
+use rspack_hook::{plugin, plugin_hook};
 
 use crate::{
   JavascriptModulesPluginPlugin, JsPlugin, PluginRenderJsModuleContentOutput,
@@ -45,7 +45,7 @@ pub struct APIPlugin {
   js_plugin: Arc<APIJavascriptModulesPluginPlugin>,
 }
 
-#[plugin_hook(AsyncSeries2<Compilation, CompilationParams> for APIPlugin)]
+#[plugin_hook(CompilerCompilation for APIPlugin)]
 async fn compilation(
   &self,
   compilation: &mut Compilation,

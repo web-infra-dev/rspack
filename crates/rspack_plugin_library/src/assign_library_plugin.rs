@@ -5,15 +5,16 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::tree_shaking::webpack_ext::ExportInfoExt;
 use rspack_core::{
-  get_entry_runtime, property_access, ApplyContext, ChunkUkey, CompilationParams, CompilerOptions,
-  EntryData, FilenameTemplate, LibraryExport, LibraryName, LibraryNonUmdObject, UsageState,
+  get_entry_runtime, property_access, ApplyContext, ChunkUkey, CompilationFinishModules,
+  CompilationParams, CompilerCompilation, CompilerOptions, EntryData, FilenameTemplate,
+  LibraryExport, LibraryName, LibraryNonUmdObject, UsageState,
 };
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceExt},
   to_identifier, Chunk, Compilation, LibraryOptions, PathData, Plugin, PluginContext, SourceType,
 };
 use rspack_error::{error, error_bail, Result};
-use rspack_hook::{plugin, plugin_hook, AsyncSeries, AsyncSeries2};
+use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   JavascriptModulesPluginPlugin, JsChunkHashArgs, JsPlugin, PluginJsChunkHashHookOutput,
   PluginRenderJsHookOutput, PluginRenderJsStartupHookOutput, RenderJsArgs, RenderJsStartupArgs,
@@ -280,7 +281,7 @@ impl AssignLibraryPlugin {
   }
 }
 
-#[plugin_hook(AsyncSeries2<Compilation, CompilationParams> for AssignLibraryPlugin)]
+#[plugin_hook(CompilerCompilation for AssignLibraryPlugin)]
 async fn compilation(
   &self,
   compilation: &mut Compilation,
@@ -291,7 +292,7 @@ async fn compilation(
   Ok(())
 }
 
-#[plugin_hook(AsyncSeries<Compilation> for AssignLibraryPlugin)]
+#[plugin_hook(CompilationFinishModules for AssignLibraryPlugin)]
 async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
   let mut runtime_info = Vec::with_capacity(compilation.entries.len());
   for (entry_name, entry) in compilation.entries.iter() {

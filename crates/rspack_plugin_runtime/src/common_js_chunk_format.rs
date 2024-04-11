@@ -5,10 +5,10 @@ use async_trait::async_trait;
 use rspack_core::rspack_sources::{ConcatSource, RawSource, SourceExt};
 use rspack_core::{
   ApplyContext, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
-  CompilationParams, CompilerOptions, Plugin, PluginContext, RuntimeGlobals,
+  CompilationParams, CompilerCompilation, CompilerOptions, Plugin, PluginContext, RuntimeGlobals,
 };
 use rspack_error::Result;
-use rspack_hook::{plugin, plugin_hook, AsyncSeries2};
+use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::runtime::{render_chunk_runtime_modules, render_iife};
 use rspack_plugin_javascript::{
   JavascriptModulesPluginPlugin, JsChunkHashArgs, JsPlugin, PluginJsChunkHashHookOutput,
@@ -117,7 +117,7 @@ pub struct CommonJsChunkFormatPlugin {
   js_plugin: Arc<CommonJsChunkFormatJavascriptModulesPluginPlugin>,
 }
 
-#[plugin_hook(AsyncSeries2<Compilation, CompilationParams> for CommonJsChunkFormatPlugin)]
+#[plugin_hook(CompilerCompilation for CommonJsChunkFormatPlugin)]
 async fn compilation(
   &self,
   compilation: &mut Compilation,

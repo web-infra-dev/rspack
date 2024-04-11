@@ -3,11 +3,11 @@ use std::{hash::Hash, sync::Arc};
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceExt},
   ApplyContext, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
-  CompilationParams, CompilerOptions, ExternalModule, ExternalRequest, LibraryName,
-  LibraryNonUmdObject, LibraryOptions, Plugin, PluginContext, RuntimeGlobals,
+  CompilationParams, CompilerCompilation, CompilerOptions, ExternalModule, ExternalRequest,
+  LibraryName, LibraryNonUmdObject, LibraryOptions, Plugin, PluginContext, RuntimeGlobals,
 };
 use rspack_error::{error, error_bail, Result};
-use rspack_hook::{plugin, plugin_hook, AsyncSeries2};
+use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   JavascriptModulesPluginPlugin, JsChunkHashArgs, JsPlugin, PluginJsChunkHashHookOutput,
   PluginRenderJsHookOutput, RenderJsArgs,
@@ -161,7 +161,7 @@ impl JavascriptModulesPluginPlugin for SystemLibraryJavascriptModulesPluginPlugi
   }
 }
 
-#[plugin_hook(AsyncSeries2<Compilation, CompilationParams> for SystemLibraryPlugin)]
+#[plugin_hook(CompilerCompilation for SystemLibraryPlugin)]
 async fn compilation(
   &self,
   compilation: &mut Compilation,

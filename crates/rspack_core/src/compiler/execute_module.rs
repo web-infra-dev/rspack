@@ -30,12 +30,12 @@ impl Compilation {
   #[instrument(name = "compilation:execute_module")]
   pub fn execute_module(
     &mut self,
-    mut module: ModuleIdentifier,
+    module: ModuleIdentifier,
     request: &str,
     options: BuildTimeExecutionOption,
     result_tx: UnboundedSender<Result<ExecuteModuleResult>>,
   ) -> Result<()> {
-    let mut id = EXECUTE_MODULE_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let id = EXECUTE_MODULE_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
 
     let mut modules: std::collections::HashSet<
       rspack_identifier::Identifier,
@@ -139,7 +139,7 @@ impl Compilation {
         .await
     })?;
 
-    let mut runtime_modules = self
+    let runtime_modules = self
       .chunk_graph
       .get_chunk_runtime_modules_iterable(&chunk_ukey)
       .copied()
@@ -171,12 +171,12 @@ impl Compilation {
         .add(*runtime_id, runtime.clone(), result_id);
     }
 
-    let mut codegen_results = self.code_generation_results.clone();
+    let codegen_results = self.code_generation_results.clone();
     let exports = self.plugin_driver.compilation_hooks.execute_module.call(
-      &mut module,
-      &mut runtime_modules,
-      &mut codegen_results,
-      &mut id,
+      &module,
+      &runtime_modules,
+      &codegen_results,
+      &id,
     );
 
     let module_graph = self.get_module_graph();

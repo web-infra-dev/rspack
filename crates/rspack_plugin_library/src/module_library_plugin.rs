@@ -4,10 +4,10 @@ use std::sync::Arc;
 use rspack_core::rspack_sources::{ConcatSource, RawSource, SourceExt};
 use rspack_core::{
   property_access, to_identifier, ApplyContext, ChunkUkey, Compilation, CompilationParams,
-  CompilerOptions, LibraryOptions, Plugin, PluginContext,
+  CompilerCompilation, CompilerOptions, LibraryOptions, Plugin, PluginContext,
 };
 use rspack_error::{error_bail, Result};
-use rspack_hook::{plugin, plugin_hook, AsyncSeries2};
+use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   JavascriptModulesPluginPlugin, JsChunkHashArgs, JsPlugin, PluginJsChunkHashHookOutput,
   PluginRenderJsStartupHookOutput, RenderJsStartupArgs,
@@ -102,7 +102,7 @@ impl JavascriptModulesPluginPlugin for ModuleLibraryJavascriptModulesPluginPlugi
   }
 }
 
-#[plugin_hook(AsyncSeries2<Compilation, CompilationParams> for ModuleLibraryPlugin)]
+#[plugin_hook(CompilerCompilation for ModuleLibraryPlugin)]
 async fn compilation(
   &self,
   compilation: &mut Compilation,

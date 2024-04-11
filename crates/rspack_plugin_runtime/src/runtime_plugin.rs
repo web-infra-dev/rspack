@@ -5,12 +5,12 @@ use once_cell::sync::Lazy;
 use rspack_core::{
   get_css_chunk_filename_template, get_js_chunk_filename_template, has_hash_placeholder,
   ApplyContext, ChunkLoading, ChunkUkey, Compilation, CompilationParams,
-  CompilationRuntimeRequirementInModule, CompilationRuntimeRequirementInTree, CompilerOptions,
-  ModuleIdentifier, Plugin, PluginContext, PublicPath, RuntimeGlobals, RuntimeModuleExt,
-  SourceType,
+  CompilationRuntimeRequirementInModule, CompilationRuntimeRequirementInTree, CompilerCompilation,
+  CompilerOptions, ModuleIdentifier, Plugin, PluginContext, PublicPath, RuntimeGlobals,
+  RuntimeModuleExt, SourceType,
 };
 use rspack_error::Result;
-use rspack_hook::{plugin, plugin_hook, AsyncSeries2};
+use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   JavascriptModulesPluginPlugin, JsChunkHashArgs, JsPlugin, PluginJsChunkHashHookOutput,
 };
@@ -167,7 +167,7 @@ pub struct RuntimePlugin {
   js_plugin: Arc<RuntimeJavascriptModulesPluginPlugin>,
 }
 
-#[plugin_hook(AsyncSeries2<Compilation, CompilationParams> for RuntimePlugin)]
+#[plugin_hook(CompilerCompilation for RuntimePlugin)]
 async fn compilation(
   &self,
   compilation: &mut Compilation,

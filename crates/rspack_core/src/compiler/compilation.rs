@@ -13,10 +13,7 @@ use rayon::prelude::*;
 use rspack_error::{error, Diagnostic, Result, Severity, TWithDiagnosticArray};
 use rspack_futures::FuturesResults;
 use rspack_hash::{RspackHash, RspackHashDigest};
-use rspack_hook::{
-  define_hook, AsyncSeries2Hook, AsyncSeries3Hook, AsyncSeriesBailHook, AsyncSeriesHook,
-  SyncSeries4Hook,
-};
+use rspack_hook::define_hook;
 use rspack_identifier::{Identifiable, Identifier, IdentifierMap, IdentifierSet};
 use rspack_sources::{BoxSource, CachedSource, SourceExt};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
@@ -39,9 +36,8 @@ use crate::{
   CompilationLogging, CompilerOptions, DependencyId, DependencyType, Entry, EntryData,
   EntryOptions, Entrypoint, ErrorSpan, FactorizeQueueHandler, Filename, ImportVarMap,
   LocalFilenameFn, Logger, Module, ModuleFactory, ModuleGraph, ModuleGraphPartial,
-  ModuleIdentifier, PathData, ProcessDependenciesQueueHandler, RenderManifestEntry,
-  ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeSpec, SharedPluginDriver, SourceType,
-  Stats,
+  ModuleIdentifier, PathData, ProcessDependenciesQueueHandler, ResolverFactory, RuntimeGlobals,
+  RuntimeModule, RuntimeSpec, SharedPluginDriver, SourceType, Stats,
 };
 use crate::{tree_shaking::visitor::OptimizeAnalyzeResult, ExecuteModuleId};
 
@@ -50,22 +46,22 @@ pub type BuildDependency = (
   Option<ModuleIdentifier>, /* parent module */
 );
 
-pub type CompilationBuildModuleHook = AsyncSeriesHook<BoxModule>;
-pub type CompilationStillValidModuleHook = AsyncSeriesHook<BoxModule>;
-pub type CompilationSucceedModuleHook = AsyncSeriesHook<BoxModule>;
-pub type CompilationExecuteModuleHook =
-  SyncSeries4Hook<ModuleIdentifier, IdentifierSet, CodeGenerationResults, ExecuteModuleId>;
-pub type CompilationFinishModulesHook = AsyncSeriesHook<Compilation>;
+define_hook!(CompilationBuildModule: AsyncSeries(module: &mut BoxModule));
+define_hook!(CompilationStillValidModule: AsyncSeries(module: &mut BoxModule));
+define_hook!(CompilationSucceedModule: AsyncSeries(module: &mut BoxModule));
+define_hook!(CompilationExecuteModule:
+  SyncSeries(module: &ModuleIdentifier, runtime_modules: &IdentifierSet, codegen_results: &CodeGenerationResults, execute_module_id: &ExecuteModuleId));
+define_hook!(CompilationFinishModules: AsyncSeries(compilation: &mut Compilation));
 define_hook!(CompilationSeal: SyncSeries(compilation: &mut Compilation));
 define_hook!(CompilationOptimizeDependencies: SyncSeriesBail(compilation: &mut Compilation) -> bool);
-pub type CompilationOptimizeModulesHook = AsyncSeriesBailHook<Compilation, bool>;
-pub type CompilationAfterOptimizeModulesHook = AsyncSeriesHook<Compilation>;
+define_hook!(CompilationOptimizeModules: AsyncSeriesBail(compilation: &mut Compilation) -> bool);
+define_hook!(CompilationAfterOptimizeModules: AsyncSeries(compilation: &mut Compilation));
 define_hook!(CompilationOptimizeChunks: SyncSeriesBail(compilation: &mut Compilation) -> bool);
-pub type CompilationOptimizeTreeHook = AsyncSeriesHook<Compilation>;
-pub type CompilationOptimizeChunkModulesHook = AsyncSeriesBailHook<Compilation, bool>;
+define_hook!(CompilationOptimizeTree: AsyncSeries(compilation: &mut Compilation));
+define_hook!(CompilationOptimizeChunkModules: AsyncSeriesBail(compilation: &mut Compilation) -> bool);
 define_hook!(CompilationModuleIds: SyncSeries(compilation: &mut Compilation));
 define_hook!(CompilationChunkIds: SyncSeries(compilation: &mut Compilation));
-pub type CompilationRuntimeModuleHook = AsyncSeries3Hook<Compilation, ModuleIdentifier, ChunkUkey>;
+define_hook!(CompilationRuntimeModule: AsyncSeries(compilation: &mut Compilation, module: &ModuleIdentifier, chunk: &ChunkUkey));
 define_hook!(CompilationRuntimeRequirementInModule: SyncSeriesBail(compilation: &mut Compilation, module_identifier: &ModuleIdentifier, runtime_requirements: &RuntimeGlobals, runtime_requirements_mut: &mut RuntimeGlobals));
 define_hook!(CompilationAdditionalChunkRuntimeRequirements: SyncSeries(compilation: &mut Compilation, chunk_ukey: &ChunkUkey, runtime_requirements: &mut RuntimeGlobals));
 define_hook!(CompilationAdditionalTreeRuntimeRequirements: SyncSeries(compilation: &mut Compilation, chunk_ukey: &ChunkUkey, runtime_requirements: &mut RuntimeGlobals));
@@ -74,10 +70,10 @@ define_hook!(CompilationOptimizeCodeGeneration: SyncSeries(compilation: &mut Com
 define_hook!(CompilationChunkHash: SyncSeries(compilation: &Compilation, chunk_ukey: &ChunkUkey, hasher: &mut RspackHash));
 define_hook!(CompilationContentHash: SyncSeries(compilation: &Compilation, chunk_ukey: &ChunkUkey, hashes: &mut HashMap<SourceType, RspackHash>));
 define_hook!(CompilationRenderManifest: AsyncSeries(compilation: &Compilation, chunk_ukey: &ChunkUkey, manifest: &mut Vec<RenderManifestEntry>, diagnostics: &mut Vec<Diagnostic>));
-pub type CompilationChunkAssetHook = AsyncSeries2Hook<Chunk, String>;
-pub type CompilationProcessAssetsHook = AsyncSeriesHook<Compilation>;
-pub type CompilationAfterProcessAssetsHook = AsyncSeriesHook<Compilation>;
-pub type CompilationAfterSealHook = AsyncSeriesHook<Compilation>;
+define_hook!(CompilationChunkAsset: AsyncSeries(chunk: &mut Chunk, filename: &str));
+define_hook!(CompilationProcessAssets: AsyncSeries(compilation: &mut Compilation));
+define_hook!(CompilationAfterProcessAssets: AsyncSeries(compilation: &mut Compilation));
+define_hook!(CompilationAfterSeal: AsyncSeries(compilation: &mut Compilation));
 
 #[derive(Debug, Default)]
 pub struct CompilationHooks {
@@ -824,7 +820,7 @@ impl Compilation {
         );
 
         _ = self
-          .chunk_asset(chunk_ukey, filename, plugin_driver.clone())
+          .chunk_asset(chunk_ukey, &filename, plugin_driver.clone())
           .await;
       }
     }
@@ -852,14 +848,14 @@ impl Compilation {
   async fn chunk_asset(
     &mut self,
     chunk_ukey: ChunkUkey,
-    mut filename: String,
+    filename: &str,
     plugin_driver: SharedPluginDriver,
   ) -> Result<()> {
     let current_chunk = self.chunk_by_ukey.expect_get_mut(&chunk_ukey);
     plugin_driver
       .compilation_hooks
       .chunk_asset
-      .call(current_chunk, &mut filename)
+      .call(current_chunk, filename)
       .await?;
     Ok(())
   }
@@ -1237,19 +1233,19 @@ impl Compilation {
     // NOTE: webpack runs hooks.runtime_module in compilation.add_runtime_module
     // and overwrite the runtime_module.generate() to get new source in create_chunk_assets
     // this needs full runtime requirements, so run hooks.runtime_module after runtime_requirements_in_tree
-    for mut entry_ukey in self.get_chunk_graph_entries() {
+    for entry_ukey in self.get_chunk_graph_entries() {
       let runtime_module_ids: Vec<_> = self
         .chunk_graph
         .get_chunk_runtime_modules_iterable(&entry_ukey)
         .copied()
         .collect();
-      for mut runtime_module_id in runtime_module_ids {
+      for runtime_module_id in runtime_module_ids {
         self
           .plugin_driver
           .clone()
           .compilation_hooks
           .runtime_module
-          .call(self, &mut runtime_module_id, &mut entry_ukey)
+          .call(self, &runtime_module_id, &entry_ukey)
           .await?;
       }
     }
@@ -1740,4 +1736,45 @@ pub fn set_depth_if_lower(
     return true;
   }
   false
+}
+
+#[derive(Debug, Clone)]
+pub struct RenderManifestEntry {
+  pub source: BoxSource,
+  filename: String,
+  pub info: AssetInfo,
+  // pub identifier: String,
+  // hash?: string;
+  pub(crate) auxiliary: bool,
+  has_filename: bool, /* webpack only asset has filename, js/css/wasm has filename template */
+}
+
+impl RenderManifestEntry {
+  pub fn new(
+    source: BoxSource,
+    filename: String,
+    info: AssetInfo,
+    auxiliary: bool,
+    has_filename: bool,
+  ) -> Self {
+    Self {
+      source,
+      filename,
+      info,
+      auxiliary,
+      has_filename,
+    }
+  }
+
+  pub fn source(&self) -> &BoxSource {
+    &self.source
+  }
+
+  pub fn filename(&self) -> &str {
+    &self.filename
+  }
+
+  pub fn has_filename(&self) -> bool {
+    self.has_filename
+  }
 }

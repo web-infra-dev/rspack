@@ -13,9 +13,9 @@ use dashmap::DashMap;
 use derivative::Derivative;
 use rspack_error::{error, Diagnosable, Diagnostic, DiagnosticExt, MietteExt, Result, Severity};
 use rspack_hash::RspackHash;
-use rspack_hook::{AsyncSeriesBailHook, SyncSeriesHook};
+use rspack_hook::define_hook;
 use rspack_identifier::Identifiable;
-use rspack_loader_runner::{run_loaders, AdditionalData, Content, ResourceData};
+use rspack_loader_runner::{run_loaders, AdditionalData, Content, LoaderContext, ResourceData};
 use rspack_macros::impl_source_map_config;
 use rspack_sources::{
   BoxSource, CachedSource, OriginalSource, RawSource, Source, SourceExt, SourceMap,
@@ -30,7 +30,7 @@ use crate::{
   add_connection_states, contextify, diagnostics::ModuleBuildError, get_context,
   impl_build_info_meta, AsyncDependenciesBlockIdentifier, BoxLoader, BoxModule, BuildContext,
   BuildInfo, BuildMeta, BuildResult, ChunkGraph, CodeGenerationResult, Compilation,
-  ConcatenationScope, ConnectionState, Context, DependenciesBlock, DependencyId,
+  CompilerContext, ConcatenationScope, ConnectionState, Context, DependenciesBlock, DependencyId,
   DependencyTemplate, GenerateContext, GeneratorOptions, LibIdentOptions, Module, ModuleDependency,
   ModuleGraph, ModuleIdentifier, ModuleType, ParseContext, ParseResult, ParserAndGenerator,
   ParserOptions, Resolve, RspackLoaderRunnerPlugin, RuntimeGlobals, RuntimeSpec, SourceType,
@@ -77,11 +77,15 @@ impl ModuleIssuer {
   }
 }
 
+define_hook!(NormalModuleReadResource: AsyncSeriesBail(resource_data: &mut ResourceData) -> Content);
+define_hook!(NormalModuleLoader: SyncSeries(loader_context: &mut LoaderContext<CompilerContext>));
+define_hook!(NormalModuleBeforeLoaders: SyncSeries(module: &mut NormalModule));
+
 #[derive(Debug, Default)]
 pub struct NormalModuleHooks {
-  pub read_resource: AsyncSeriesBailHook<ResourceData, Content>,
-  pub loader: SyncSeriesHook<bool /* hot */>,
-  pub before_loaders: SyncSeriesHook<NormalModule>,
+  pub read_resource: NormalModuleReadResourceHook,
+  pub loader: NormalModuleLoaderHook,
+  pub before_loaders: NormalModuleBeforeLoadersHook,
 }
 
 #[impl_source_map_config]

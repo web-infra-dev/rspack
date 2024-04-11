@@ -1,8 +1,11 @@
 use std::fmt::Debug;
 
-use rspack_core::{ApplyContext, BeforeResolveArgs, CompilerOptions, Plugin, PluginContext};
+use rspack_core::{
+  ApplyContext, CompilerOptions, ContextModuleFactoryBeforeResolve, ModuleFactoryCreateData,
+  NormalModuleFactoryBeforeResolve, Plugin, PluginContext,
+};
 use rspack_error::Result;
-use rspack_hook::{plugin, plugin_hook, AsyncSeriesBail};
+use rspack_hook::{plugin, plugin_hook};
 use rspack_regex::RspackRegex;
 
 #[derive(Debug)]
@@ -22,12 +25,12 @@ impl IgnorePlugin {
     Self::new_inner(options)
   }
 
-  fn check_ignore(&self, resolve_data: &mut BeforeResolveArgs) -> Option<bool> {
+  fn check_ignore(&self, data: &mut ModuleFactoryCreateData) -> Option<bool> {
     let resource_reg_exp: &RspackRegex = &self.options.resource_reg_exp;
 
-    if resource_reg_exp.test(&resolve_data.request) {
+    if resource_reg_exp.test(data.request()?) {
       if let Some(context_reg_exp) = &self.options.context_reg_exp {
-        if context_reg_exp.test(&resolve_data.context) {
+        if context_reg_exp.test(&data.context) {
           return Some(false);
         }
       } else {
@@ -38,9 +41,14 @@ impl IgnorePlugin {
   }
 }
 
-#[plugin_hook(AsyncSeriesBail<BeforeResolveArgs, bool> for IgnorePlugin)]
-async fn before_resolve(&self, resolve_data: &mut BeforeResolveArgs) -> Result<Option<bool>> {
-  Ok(self.check_ignore(resolve_data))
+#[plugin_hook(NormalModuleFactoryBeforeResolve for IgnorePlugin)]
+async fn nmf_before_resolve(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<bool>> {
+  Ok(self.check_ignore(data))
+}
+
+#[plugin_hook(ContextModuleFactoryBeforeResolve for IgnorePlugin)]
+async fn cmf_before_resolve(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<bool>> {
+  Ok(self.check_ignore(data))
 }
 
 impl Plugin for IgnorePlugin {
@@ -57,13 +65,13 @@ impl Plugin for IgnorePlugin {
       .context
       .normal_module_factory_hooks
       .before_resolve
-      .tap(before_resolve::new(self));
+      .tap(nmf_before_resolve::new(self));
 
     ctx
       .context
       .context_module_factory_hooks
       .before_resolve
-      .tap(before_resolve::new(self));
+      .tap(cmf_before_resolve::new(self));
 
     Ok(())
   }

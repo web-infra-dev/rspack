@@ -1,14 +1,15 @@
 use rspack_core::{
-  ApplyContext, Compilation, CompilationParams, CompilerOptions, DependencyType, PluginContext,
+  ApplyContext, Compilation, CompilationParams, CompilerCompilation, CompilerOptions,
+  DependencyType, PluginContext,
 };
 use rspack_error::Result;
-use rspack_hook::{plugin, plugin_hook, AsyncSeries2};
+use rspack_hook::{plugin, plugin_hook};
 
 #[plugin]
 #[derive(Debug, Default)]
 pub struct WorkerPlugin;
 
-#[plugin_hook(AsyncSeries2<Compilation, CompilationParams> for WorkerPlugin)]
+#[plugin_hook(CompilerCompilation for WorkerPlugin)]
 async fn compilation(
   &self,
   compilation: &mut Compilation,

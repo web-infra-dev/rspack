@@ -7,12 +7,13 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
   ApplyContext, BoxModule, ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements,
-  CompilationParams, CompilerOptions, Context, DependencyCategory, DependencyType, ModuleExt,
-  ModuleFactoryCreateData, NormalModuleCreateData, Plugin, PluginContext,
+  CompilationParams, CompilerOptions, CompilerThisCompilation, Context, DependencyCategory,
+  DependencyType, ModuleExt, ModuleFactoryCreateData, NormalModuleCreateData,
+  NormalModuleFactoryCreateModule, NormalModuleFactoryFactorize, Plugin, PluginContext,
   ResolveOptionsWithDependencyType, ResolveResult, Resolver, RuntimeGlobals,
 };
 use rspack_error::{error, Diagnostic, Result};
-use rspack_hook::{plugin, plugin_hook, AsyncSeries2, AsyncSeriesBail, AsyncSeriesBail2};
+use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::FxHashMap;
 
 use super::{
@@ -313,7 +314,7 @@ impl ConsumeSharedPlugin {
   }
 }
 
-#[plugin_hook(AsyncSeries2<Compilation, CompilationParams> for ConsumeSharedPlugin)]
+#[plugin_hook(CompilerThisCompilation for ConsumeSharedPlugin)]
 async fn this_compilation(
   &self,
   compilation: &mut Compilation,
@@ -329,7 +330,7 @@ async fn this_compilation(
   Ok(())
 }
 
-#[plugin_hook(AsyncSeriesBail<ModuleFactoryCreateData, BoxModule> for ConsumeSharedPlugin)]
+#[plugin_hook(NormalModuleFactoryFactorize for ConsumeSharedPlugin)]
 async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<BoxModule>> {
   let dep = data
     .dependency
@@ -378,7 +379,7 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
   Ok(None)
 }
 
-#[plugin_hook(AsyncSeriesBail2<ModuleFactoryCreateData, NormalModuleCreateData, BoxModule> for ConsumeSharedPlugin)]
+#[plugin_hook(NormalModuleFactoryCreateModule for ConsumeSharedPlugin)]
 async fn create_module(
   &self,
   data: &mut ModuleFactoryCreateData,

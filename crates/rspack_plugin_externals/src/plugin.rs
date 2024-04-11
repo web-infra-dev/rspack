@@ -5,10 +5,10 @@ use regex::Regex;
 use rspack_core::{
   ApplyContext, BoxModule, CompilerOptions, ExternalItem, ExternalItemFnCtx, ExternalItemValue,
   ExternalModule, ExternalRequest, ExternalRequestValue, ExternalType, ModuleDependency, ModuleExt,
-  ModuleFactoryCreateData, Plugin, PluginContext,
+  ModuleFactoryCreateData, NormalModuleFactoryFactorize, Plugin, PluginContext,
 };
 use rspack_error::Result;
-use rspack_hook::{plugin, plugin_hook, AsyncSeriesBail};
+use rspack_hook::{plugin, plugin_hook};
 
 static UNSPECIFIED_EXTERNAL_TYPE_REGEXP: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"^[a-z0-9-]+ ").expect("Invalid regex"));
@@ -108,7 +108,7 @@ impl ExternalsPlugin {
   }
 }
 
-#[plugin_hook(AsyncSeriesBail<ModuleFactoryCreateData, BoxModule> for ExternalsPlugin)]
+#[plugin_hook(NormalModuleFactoryFactorize for ExternalsPlugin)]
 async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<BoxModule>> {
   let dependency = data
     .dependency

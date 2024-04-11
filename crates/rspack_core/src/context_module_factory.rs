@@ -1,19 +1,18 @@
 use std::sync::Arc;
 
 use rspack_error::{error, Result};
-use rspack_hook::{AsyncSeriesBail2Hook, AsyncSeriesBailHook};
+use rspack_hook::define_hook;
 use tracing::instrument;
 
 use crate::{
-  cache::Cache, resolve, BeforeResolveArgs, BoxModule, ContextModule, ContextModuleOptions,
-  DependencyCategory, ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult,
-  ModuleIdentifier, RawModule, ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult,
-  Resolver, ResolverFactory, SharedPluginDriver,
+  cache::Cache, resolve, BoxModule, ContextModule, ContextModuleOptions, DependencyCategory,
+  ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier,
+  RawModule, ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult, Resolver,
+  ResolverFactory, SharedPluginDriver,
 };
 
-pub type ContextModuleFactoryBeforeResolveHook = AsyncSeriesBailHook<BeforeResolveArgs, bool>;
-pub type ContextModuleFactoryAfterResolveHook =
-  AsyncSeriesBail2Hook<String, ModuleFactoryCreateData, bool>;
+define_hook!(ContextModuleFactoryBeforeResolve: AsyncSeriesBail(data: &mut ModuleFactoryCreateData) -> bool);
+define_hook!(ContextModuleFactoryAfterResolve: AsyncSeriesBail(data: &mut ModuleFactoryCreateData) -> bool);
 
 #[derive(Debug, Default)]
 pub struct ContextModuleFactoryHooks {
@@ -63,27 +62,18 @@ impl ContextModuleFactory {
     &self,
     data: &mut ModuleFactoryCreateData,
   ) -> Result<Option<ModuleFactoryResult>> {
-    let dependency = data
-      .dependency
-      .as_context_dependency_mut()
-      .expect("should be module dependency");
-    let mut before_resolve_args = BeforeResolveArgs {
-      request: dependency.request().to_string(),
-      context: data.context.to_string(),
-    };
     if let Some(false) = self
       .plugin_driver
       .context_module_factory_hooks
       .before_resolve
-      .call(&mut before_resolve_args)
+      .call(data)
       .await?
     {
       // ignored
       // See https://github.com/webpack/webpack/blob/6be4065ade1e252c1d8dcba4af0f43e32af1bdc1/lib/ContextModuleFactory.js#L115
       return Ok(Some(ModuleFactoryResult::default()));
     }
-    data.context = before_resolve_args.context.into();
-    dependency.set_request(before_resolve_args.request);
+
     Ok(None)
   }
 
@@ -227,16 +217,11 @@ impl ContextModuleFactory {
   }
 
   async fn after_resolve(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<bool>> {
-    let dependency = data
-      .dependency
-      .as_context_dependency()
-      .expect("should be module dependency");
-
     self
       .plugin_driver
       .context_module_factory_hooks
       .after_resolve
-      .call(&mut dependency.request().to_owned(), data)
+      .call(data)
       .await
   }
 }

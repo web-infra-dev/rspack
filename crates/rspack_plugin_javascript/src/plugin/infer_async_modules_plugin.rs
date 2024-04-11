@@ -2,17 +2,18 @@ use std::collections::HashSet;
 
 use linked_hash_set::LinkedHashSet;
 use rspack_core::{
-  ApplyContext, Compilation, CompilerOptions, DependencyType, Plugin, PluginContext,
+  ApplyContext, Compilation, CompilationFinishModules, CompilerOptions, DependencyType, Plugin,
+  PluginContext,
 };
 use rspack_error::Result;
-use rspack_hook::{plugin, plugin_hook, AsyncSeries};
+use rspack_hook::{plugin, plugin_hook};
 use rspack_identifier::Identifier;
 
 #[plugin]
 #[derive(Debug, Default)]
 pub struct InferAsyncModulesPlugin;
 
-#[plugin_hook(AsyncSeries<Compilation> for InferAsyncModulesPlugin)]
+#[plugin_hook(CompilationFinishModules for InferAsyncModulesPlugin)]
 async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
   // fix: mut for-in
   let mut queue = LinkedHashSet::new();
@@ -62,7 +63,6 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
   Ok(())
 }
 
-#[async_trait::async_trait]
 impl Plugin for InferAsyncModulesPlugin {
   fn name(&self) -> &'static str {
     "InferAsyncModulesPlugin"

@@ -1,13 +1,16 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use rspack_core::{ApplyContext, ChunkUkey, CompilationRuntimeRequirementInTree, CompilerOptions};
+use rspack_core::{
+  ApplyContext, ChunkUkey, CompilationRuntimeRequirementInTree, CompilerCompilation, CompilerMake,
+  CompilerOptions,
+};
 use rspack_core::{
   Compilation, CompilationParams, Dependency, DependencyType, EntryOptions, EntryRuntime,
   FilenameTemplate, LibraryOptions, MakeParam, Plugin, PluginContext, RuntimeGlobals,
 };
 use rspack_error::Result;
-use rspack_hook::{plugin, plugin_hook, AsyncSeries2};
+use rspack_hook::{plugin, plugin_hook};
 use serde::Serialize;
 
 use super::{
@@ -45,7 +48,7 @@ impl ContainerPlugin {
   }
 }
 
-#[plugin_hook(AsyncSeries2<Compilation, CompilationParams> for ContainerPlugin)]
+#[plugin_hook(CompilerCompilation for ContainerPlugin)]
 async fn compilation(
   &self,
   compilation: &mut Compilation,
@@ -62,7 +65,7 @@ async fn compilation(
   Ok(())
 }
 
-#[plugin_hook(AsyncSeries2<Compilation, Vec<MakeParam>> for ContainerPlugin)]
+#[plugin_hook(CompilerMake for ContainerPlugin)]
 async fn make(&self, compilation: &mut Compilation, params: &mut Vec<MakeParam>) -> Result<()> {
   let dep = ContainerEntryDependency::new(
     self.options.name.clone(),
