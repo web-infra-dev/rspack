@@ -2,7 +2,7 @@ import {
 	BuiltinPluginName,
 	RawSourceMapDevToolPluginOptions
 } from "@rspack/binding";
-import { matchObject } from "../ModuleFilenameHelpers";
+import { matchObject } from "../lib/ModuleFilenameHelpers";
 import { create } from "./base";
 
 /**
