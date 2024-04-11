@@ -155,8 +155,8 @@ jobs:
         with:
           files: .
 
-  oxlint:
-    name: Lint JS
+  lint:
+    name: Lint and format code
     runs-on: ubuntu-latest
     needs: [check-changed]
     if: ${{ needs.check-changed.outputs.changed == 'true' }}
@@ -175,15 +175,15 @@ jobs:
         if: steps.changes.outputs.src == 'true'
         uses: ./.github/actions/pnpm-cache
 
-      - name: oxlint
+      - name: Oxlint
         if: steps.changes.outputs.src == 'true'
         run: pnpm run lint:js
 
-      - name: prettier
+      - name: Prettier
         if: steps.changes.outputs.src == 'true'
         run: pnpm run format-ci:js
 
-      - name: lint website
+      - name: Lint website
         run: pnpm run lint:website
 
   rust_changes:
