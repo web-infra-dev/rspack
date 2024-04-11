@@ -43,6 +43,7 @@ jobs:
           predicate-quantifier: 'every'
           filters: |
             changed:
+              - "!**/*.yml"
               - "!**/*.md"
               - "!**/*.mdx"
               - "!website/**"
