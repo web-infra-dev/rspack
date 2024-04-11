@@ -603,6 +603,7 @@ export interface RawAssetParserOptions {
 }
 
 export interface RawAssetResourceGeneratorOptions {
+  emit?: boolean
   filename?: string
   publicPath?: string
 }

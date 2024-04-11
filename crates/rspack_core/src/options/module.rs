@@ -262,6 +262,7 @@ pub struct AssetInlineGeneratorOptions {
 
 #[derive(Debug, Clone, MergeFrom)]
 pub struct AssetResourceGeneratorOptions {
+  pub emit: Option<bool>,
   pub filename: Option<Filename>,
   pub public_path: Option<PublicPath>,
 }

@@ -624,6 +624,7 @@ export type AssetInlineGeneratorOptions = z.infer<
 >;
 
 const assetResourceGeneratorOptions = z.strictObject({
+	emit: z.boolean().optional(),
 	filename: filenameTemplate.optional(),
 	publicPath: publicPath.optional()
 });
