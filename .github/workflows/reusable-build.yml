@@ -32,6 +32,10 @@ name: Reusable Release
 on:
   workflow_call:
     inputs:
+      skipable:
+        required: false
+        type: boolean
+        default: false
       target:
         required: true
         type: string
@@ -58,6 +62,7 @@ jobs:
   build:
     name: Build
     runs-on: ${{ fromJSON(inputs.runner) }}
+    if: ${{ !inputs.skipable }}
     defaults:
       run:
         shell: bash
@@ -194,7 +199,7 @@ jobs:
   e2e:
     name: E2E Testing
     needs: build
-    if: inputs.target == 'x86_64-unknown-linux-gnu' && inputs.test
+    if: inputs.target == 'x86_64-unknown-linux-gnu' && inputs.test && !inputs.skipable
     runs-on: ${{ fromJSON(needs.build.outputs.runner-labels) }}
     steps:
       - uses: actions/checkout@v4
@@ -226,7 +231,7 @@ jobs:
 
   test:
     needs: build
-    if: inputs.test
+    if: inputs.test && !inputs.skipable
     runs-on: ${{ fromJSON(needs.build.outputs.runner-labels) }}
     timeout-minutes: 60
     strategy:
