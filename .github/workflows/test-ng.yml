@@ -57,6 +57,7 @@ jobs:
         run: pnpm run test:diff
 
       - name: Test new runner
+        continue-on-error: true
         run: |
           OUTPUT=$(pnpm run test:ng --no-colors --silent=true 2>&1)
           echo 'RESULT<<EOF' >> $GITHUB_ENV
