@@ -184,7 +184,11 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
   if let Some(favicon) = &self.config.favicon {
     let url = parse_to_url(favicon);
-    let favicon_file_path = PathBuf::from(config.get_relative_path(compilation, favicon));
+    let favicon_file_path = PathBuf::from(config.get_relative_path(compilation, favicon))
+      .file_name()
+      .expect("Should have favicon file name")
+      .to_string_lossy()
+      .to_string();
 
     let resolved_favicon = AsRef::<Path>::as_ref(&compilation.options.context).join(url.path());
     let content = fs::read(resolved_favicon)
@@ -195,7 +199,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       ))
       .map_err(AnyhowError::from)?;
     compilation.emit_asset(
-      favicon_file_path.to_string_lossy().to_string(),
+      favicon_file_path,
       CompilationAsset::from(RawSource::from(content).boxed()),
     );
   }
