@@ -250,7 +250,7 @@ var __webpack_modules__ = {
 // ...
 ```
 
-## module.rule.sideEffects
+### module.rule.sideEffects
 
 你可以使用 `module.rule.sideEffects` 覆盖某些模块的 sideEffects 选项。
 
@@ -338,3 +338,51 @@ module.exports = config;
 ```
 
 重新构建项目，我们得到和之前相同的结果，整个 **math/add.js** 模块都被删除了。
+
+### Reexports optimization
+
+开启 SideEffects 优化后，Rspack 还会尝试对重导出模块进行优化。
+
+```js title=sdk.js
+export { a } from './a.js';
+export { b } from './b.js';
+export { c } from './c.js';
+// ...
+```
+
+```js title=index.js
+import { a } from './sdk.js';
+console.log(a);
+```
+
+当 `sdk.js` 无副作用时，Rspack 会尝试直接从 `a.js` 中引入 `a`，而不引入 `sdk.js` 中重导出的其他模块。
+
+在某些不规范的库中可能存在循环依赖，例如 `a.js` 从 `sdk.js` 中引入 `b.js` 中的成员。
+
+```js title=a.js
+import { b } from './sdk.js';
+export const a = b;
+```
+
+```js title=index.js
+import { a } from './sdk.js';
+console.log(a);
+```
+
+此时 `a.js` 和 `sdk.js` 之间存在循环依赖，很不推荐有意这样利用循环依赖，但仍然可以构建成功，并且成功运行。这是因为 Rspack 会尝试将上述的引用转换成：
+
+```diff title=a.js
+- import { b } from './sdk.js';
++ import { b } from './a.js';
+export const a = b;
+```
+
+```diff title=index.js
+- import { a } from './sdk.js'
++ import { a } from './a.js'
+console.log(a);
+```
+
+转换后循环依赖没有了。但是如果你尝试关掉 `optimization.providedExports` 或 `optimization.sideEffects`，构建会成功，但运行时会因为循环依赖而遇到错误。
+
+上述循环依赖的例子可以在[这里](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/rspack/treeshaking-transform-imports)找到。
