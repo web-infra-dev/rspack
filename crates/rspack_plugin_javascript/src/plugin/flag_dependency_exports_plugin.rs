@@ -1,5 +1,4 @@
 use std::collections::hash_map::Entry;
-use std::collections::VecDeque;
 
 use itertools::Itertools;
 use rspack_core::{
@@ -13,34 +12,7 @@ use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::ecma::atoms::Atom;
 
-struct Queue {
-  q: VecDeque<ModuleIdentifier>,
-  set: HashSet<ModuleIdentifier>,
-}
-
-impl Queue {
-  fn new() -> Self {
-    Self {
-      q: VecDeque::default(),
-      set: HashSet::default(),
-    }
-  }
-
-  fn enqueue(&mut self, id: ModuleIdentifier) {
-    if !self.set.contains(&id) {
-      self.q.push_back(id);
-      self.set.insert(id);
-    }
-  }
-
-  fn dequeue(&mut self) -> Option<ModuleIdentifier> {
-    if let Some(module_id) = self.q.pop_front() {
-      self.set.remove(&module_id);
-      return Some(module_id);
-    }
-    None
-  }
-}
+use crate::utils::queue::Queue;
 
 struct FlagDependencyExportsProxy<'a> {
   mg: &'a mut ModuleGraph<'a>,
@@ -122,7 +94,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
     }
   }
 
-  pub fn notify_dependencies(&mut self, q: &mut Queue) {
+  pub fn notify_dependencies(&mut self, q: &mut Queue<ModuleIdentifier>) {
     if let Some(set) = self.dependencies.get(&self.current_module_id) {
       for mi in set.iter() {
         q.enqueue(*mi);
