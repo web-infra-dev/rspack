@@ -2,20 +2,16 @@
   "name": "@rspack/website",
   "private": true,
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
   "scripts": {
     "dev": "rspress dev",
     "build": "rspress build",
-    "format": "prettier docs/**/*.{md,mdx} --write",
-    "format-ci": "prettier docs/**/*.{md,mdx} --check",
-    "spell": "npx cspell",
-    "case-check": "npx case-police docs/**/*.{md,mdx}",
     "preview": "rspress preview",
-    "lint": "pnpm run spell && pnpm run case-check && pnpm run format-ci"
+    "check:format": "prettier docs/**/*.{md,mdx} --write",
+    "check:format-ci": "prettier docs/**/*.{md,mdx} --check",
+    "check:spell": "npx cspell",
+    "check:case": "npx case-police docs/**/*.{md,mdx}",
+    "check:ci": "pnpm run check:format-ci && pnpm run check:spell && pnpm run check:case"
   },
-  "keywords": [],
-  "author": "",
   "license": "ISC",
   "packageManager": "pnpm@8.14.3",
   "dependencies": {

@@ -184,7 +184,7 @@ jobs:
         run: pnpm run format-ci:js
 
       - name: Lint website
-        run: pnpm run lint:website
+        run: pnpm run check:website:ci
 
   rust_changes:
     name: Rust Changes
