@@ -62,7 +62,6 @@ jobs:
   build:
     name: Build
     runs-on: ${{ fromJSON(inputs.runner) }}
-    if: ${{ !inputs.skipable }}
     defaults:
       run:
         shell: bash
@@ -70,20 +69,23 @@ jobs:
       runner-labels: ${{ steps.upload-artifact.outputs.runner-labels || inputs.runner }}
     steps:
       - name: Checkout
+        if: ${{ !inputs.skipable }}
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref }}
 
       - name: Setup tmate session
         uses: mxschmitt/action-tmate@v3
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled && !inputs.skipable }}
 
       - name: Pnpm Cache
+        if: ${{ !inputs.skipable }}
         uses: ./.github/actions/pnpm-cache
         with:
           save-if: ${{ github.ref_name == 'main' }}
 
       - name: Install Rust Toolchain
+        if: ${{ !inputs.skipable }}
         uses: ./.github/actions/rustup
         with:
           save-cache: ${{ github.ref_name == 'main' }} # This should be safe because we have nightly building the cache every day
@@ -91,7 +93,7 @@ jobs:
 
       # Compile dependencies with optimization to make tests run faster
       - name: Add optimization to debug profile
-        if: inputs.profile == 'debug'
+        if: ${{ inputs.profile == 'debug' && !inputs.skipable }}
         shell: bash
         run: |
           echo '[profile.release.package."*"]' >> Cargo.toml
@@ -101,7 +103,7 @@ jobs:
 
       - name: Check local cache
         id: check_cache
-        if: ${{ inputs.profile == 'debug' && !startsWith(runner.name, 'GitHub Actions') }}
+        if: ${{ inputs.profile == 'debug' && !startsWith(runner.name, 'GitHub Actions') && !inputs.skipable }}
         shell: bash
         run: |
           set -e
@@ -114,7 +116,7 @@ jobs:
 
       # Linux
       - name: Build x86_64-unknown-linux-gnu in Docker
-        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && steps.check_cache.outputs.exists != 'true' }}
+        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && steps.check_cache.outputs.exists != 'true' && !inputs.skipable }}
         uses: ./.github/actions/docker-build
         with:
           image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
@@ -123,7 +125,7 @@ jobs:
           pre: unset CC_x86_64_unknown_linux_gnu && unset CC # for jemallocator to compile
 
       - name: Build aarch64-unknown-linux-gnu in Docker
-        if: ${{ inputs.target == 'aarch64-unknown-linux-gnu' && steps.check_cache.outputs.files_exists != 'true' }}
+        if: ${{ inputs.target == 'aarch64-unknown-linux-gnu' && steps.check_cache.outputs.files_exists != 'true' && !inputs.skipable }}
         uses: ./.github/actions/docker-build
         with:
           target: ${{ inputs.target }}
@@ -132,7 +134,7 @@ jobs:
           pre: export JEMALLOC_SYS_WITH_LG_PAGE=16 && export CC_aarch64_unknown_linux_gnu=/usr/aarch64-unknown-linux-gnu/bin/aarch64-unknown-linux-gnu-gcc # for jemallocator to compile
 
       - name: Build x86_64-unknown-linux-musl in Docker
-        if: ${{ inputs.target == 'x86_64-unknown-linux-musl' && steps.check_cache.outputs.files_exists != 'true' }}
+        if: ${{ inputs.target == 'x86_64-unknown-linux-musl' && steps.check_cache.outputs.files_exists != 'true' && !inputs.skipable }}
         uses: ./.github/actions/docker-build
         with:
           target: ${{ inputs.target }}
@@ -140,7 +142,7 @@ jobs:
           profile: ${{ inputs.profile }}
 
       - name: Build aarch64-unknown-linux-musl in Docker
-        if: ${{ inputs.target == 'aarch64-unknown-linux-musl' && steps.check_cache.outputs.files_exists != 'true' }}
+        if: ${{ inputs.target == 'aarch64-unknown-linux-musl' && steps.check_cache.outputs.files_exists != 'true' && !inputs.skipable }}
         uses: ./.github/actions/docker-build
         with:
           target: ${{ inputs.target }}
@@ -151,31 +153,31 @@ jobs:
 
       # setup rust target for windows and macos
       - name: Setup Rust Target
-        if: ${{ !contains(inputs.target, 'linux') }}
+        if: ${{ !contains(inputs.target, 'linux') && !inputs.skipable }}
         run: rustup target add ${{ inputs.target }}
 
       # Windows
 
       - name: Build i686-pc-windows-msvc
-        if: ${{ inputs.target == 'i686-pc-windows-msvc' && steps.check_cache.outputs.files_exists != 'true' }}
+        if: ${{ inputs.target == 'i686-pc-windows-msvc' && steps.check_cache.outputs.files_exists != 'true' && !inputs.skipable }}
         run: RUST_TARGET=${{ inputs.target }} DISABLE_PLUGIN=1 pnpm build:binding:${{ inputs.profile }}
 
       - name: Build x86_64-pc-windows-msvc
-        if: ${{ inputs.target == 'x86_64-pc-windows-msvc' && steps.check_cache.outputs.files_exists != 'true' }}
+        if: ${{ inputs.target == 'x86_64-pc-windows-msvc' && steps.check_cache.outputs.files_exists != 'true' && !inputs.skipable }}
         run: RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
 
       - name: Build aarch64-pc-windows-msvc
-        if: ${{ inputs.target == 'aarch64-pc-windows-msvc' && steps.check_cache.outputs.files_exists != 'true' }}
+        if: ${{ inputs.target == 'aarch64-pc-windows-msvc' && steps.check_cache.outputs.files_exists != 'true' && !inputs.skipable }}
         run: RUST_TARGET=${{ inputs.target }} DISABLE_PLUGIN=1 pnpm build:binding:${{ inputs.profile }}
 
       # Mac
       - name: Build x86_64-apple-darwin
-        if: ${{ inputs.target == 'x86_64-apple-darwin' && steps.check_cache.outputs.files_exists != 'true' }}
+        if: ${{ inputs.target == 'x86_64-apple-darwin' && steps.check_cache.outputs.files_exists != 'true' && !inputs.skipable }}
         run: |
           RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
 
       - name: Build aarch64-apple-darwin
-        if: ${{ inputs.target == 'aarch64-apple-darwin' && steps.check_cache.outputs.files_exists != 'true' }}
+        if: ${{ inputs.target == 'aarch64-apple-darwin' && steps.check_cache.outputs.files_exists != 'true' && !inputs.skipable }}
         run: |
           if [[ "${{ startsWith(runner.name, 'GitHub Actions') }}" == "true" ]]; then
             # Github runner
@@ -189,7 +191,7 @@ jobs:
       - name: Upload artifact
         id: upload-artifact
         uses: ./.github/actions/upload-artifact
-        if: ${{ steps.check_cache.outputs.exists != 'true' }}
+        if: ${{ steps.check_cache.outputs.exists != 'true' && !inputs.skipable }}
         with:
           name: bindings-${{ inputs.target }}
           path: crates/node_binding/*.node
