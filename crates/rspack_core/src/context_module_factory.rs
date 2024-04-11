@@ -93,7 +93,6 @@ impl ContextModuleFactory {
       .dependency
       .as_context_dependency()
       .expect("should be context dependency");
-    let factory_meta = Default::default();
     let mut file_dependencies = Default::default();
     let mut missing_dependencies = Default::default();
     // let context_dependencies = Default::default();
@@ -211,7 +210,6 @@ impl ContextModuleFactory {
 
     Ok(ModuleFactoryResult {
       module: Some(module),
-      factory_meta,
       from_cache,
     })
   }

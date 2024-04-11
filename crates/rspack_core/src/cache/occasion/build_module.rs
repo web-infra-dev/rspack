@@ -94,7 +94,8 @@ impl BuildModuleOccasion {
               if let (Some(build_info), Some(build_meta)) =
                 (module_data.build_info, module_data.build_meta)
               {
-                module.set_module_build_info_and_meta(build_info, build_meta);
+                module.set_build_info(build_info);
+                module.set_build_meta(build_meta);
               }
             }
             if let Some(extra_data) = extra_data {

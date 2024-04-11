@@ -21,14 +21,14 @@ use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  block_promise, contextify, get_exports_type_with_strict, impl_build_info_meta,
+  block_promise, contextify, get_exports_type_with_strict, impl_module_meta_info,
   returning_function, stringify_map, to_path, AsyncDependenciesBlock,
   AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
   ChunkGraph, ChunkGroupOptions, CodeGenerationResult, Compilation, ConcatenationScope,
   ContextElementDependency, DependenciesBlock, Dependency, DependencyCategory, DependencyId,
-  ExportsType, FakeNamespaceObjectMode, GroupOptions, LibIdentOptions, Module, ModuleType, Resolve,
-  ResolveInnerOptions, ResolveOptionsWithDependencyType, ResolverFactory, RuntimeGlobals,
-  RuntimeSpec, SourceType,
+  ExportsType, FactoryMeta, FakeNamespaceObjectMode, GroupOptions, LibIdentOptions, Module,
+  ModuleType, Resolve, ResolveInnerOptions, ResolveOptionsWithDependencyType, ResolverFactory,
+  RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
 #[derive(Debug, Clone)]
@@ -221,6 +221,7 @@ pub struct ContextModule {
   identifier: Identifier,
   options: ContextModuleOptions,
   resolve_factory: Arc<ResolverFactory>,
+  factory_meta: Option<FactoryMeta>,
   build_info: Option<BuildInfo>,
   build_meta: Option<BuildMeta>,
 }
@@ -241,6 +242,7 @@ impl ContextModule {
       identifier: create_identifier(&options),
       options,
       resolve_factory,
+      factory_meta: None,
       build_info: None,
       build_meta: None,
       source_map_kind: SourceMapKind::None,
@@ -605,7 +607,7 @@ impl DependenciesBlock for ContextModule {
 
 #[async_trait::async_trait]
 impl Module for ContextModule {
-  impl_build_info_meta!();
+  impl_module_meta_info!();
 
   fn module_type(&self) -> &ModuleType {
     &ModuleType::Js

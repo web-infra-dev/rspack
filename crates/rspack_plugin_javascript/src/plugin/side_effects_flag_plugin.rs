@@ -3,14 +3,18 @@ use std::fmt::Debug;
 use std::sync::Arc;
 
 use once_cell::sync::Lazy;
+use rspack_core::tree_shaking::visitor::{get_side_effects_from_package_json, SideEffects};
 use rspack_core::{
-  Compilation, CompilationOptimizeDependencies, ConnectionState, ModuleGraph, ModuleIdentifier,
-  MutableModuleGraph, Plugin, ResolvedExportInfoTarget, SideEffectsBailoutItemWithSpan,
+  BoxModule, Compilation, CompilationOptimizeDependencies, ConnectionState, FactoryMeta,
+  ModuleFactoryCreateData, ModuleGraph, ModuleIdentifier, MutableModuleGraph,
+  NormalModuleCreateData, NormalModuleFactoryModule, Plugin, ResolvedExportInfoTarget,
+  SideEffectsBailoutItemWithSpan,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_identifier::IdentifierSet;
 use rustc_hash::FxHashSet as HashSet;
+use sugar_path::SugarPath;
 // use rspack_core::Plugin;
 // use rspack_error::Result;
 use swc_core::common::{comments, Spanned, SyntaxContext, GLOBALS};
@@ -511,6 +515,38 @@ impl ClassExt for ClassMember {
 #[derive(Debug, Default)]
 pub struct SideEffectsFlagPlugin;
 
+#[plugin_hook(NormalModuleFactoryModule for SideEffectsFlagPlugin)]
+async fn nmf_module(
+  &self,
+  _data: &mut ModuleFactoryCreateData,
+  create_data: &mut NormalModuleCreateData,
+  module: &mut BoxModule,
+) -> Result<()> {
+  if let Some(has_side_effects) = create_data.side_effects {
+    module.set_factory_meta(FactoryMeta {
+      side_effect_free: Some(!has_side_effects),
+      side_effect_free_old: None,
+    });
+    return Ok(());
+  }
+  let resource_data = &create_data.resource_resolve_data;
+  let resource_path = &resource_data.resource_path;
+  let Some(description) = resource_data.resource_description.as_ref() else {
+    return Ok(());
+  };
+  let package_path = description.path();
+  let Some(side_effects) = SideEffects::from_description(description.json()) else {
+    return Ok(());
+  };
+  let relative_path = resource_path.relative(package_path);
+  let has_side_effects = get_side_effects_from_package_json(side_effects, relative_path);
+  module.set_factory_meta(FactoryMeta {
+    side_effect_free: Some(!has_side_effects),
+    side_effect_free_old: None,
+  });
+  Ok(())
+}
+
 #[plugin_hook(CompilationOptimizeDependencies for SideEffectsFlagPlugin)]
 fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
   let entries = compilation.entry_modules().collect::<Vec<_>>();
@@ -643,6 +679,11 @@ impl Plugin for SideEffectsFlagPlugin {
     ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
     _options: &mut rspack_core::CompilerOptions,
   ) -> Result<()> {
+    ctx
+      .context
+      .normal_module_factory_hooks
+      .module
+      .tap(nmf_module::new(self));
     ctx
       .context
       .compilation_hooks
