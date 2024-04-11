@@ -8,11 +8,15 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_error::{Error, MietteExt};
 use rspack_loader_runner::DescriptionData;
+use rustc_hash::FxHashSet;
 use sugar_path::SugarPath;
 
 pub use self::factory::{ResolveOptionsWithDependencyType, ResolverFactory};
 pub use self::resolver_impl::{ResolveInnerOptions, Resolver};
-use crate::{ResolveArgs, SharedPluginDriver};
+use crate::{
+  Context, DependencyCategory, DependencyType, ErrorSpan, ModuleIdentifier, Resolve,
+  SharedPluginDriver,
+};
 
 static RELATIVE_PATH_REGEX: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"^\.\.?\/").expect("should init regex"));
@@ -22,6 +26,22 @@ static PARENT_PATH_REGEX: Lazy<Regex> =
 
 static CURRENT_DIR_REGEX: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"^(\.[\/])").expect("should init regex"));
+
+#[derive(Debug)]
+pub struct ResolveArgs<'a> {
+  pub importer: Option<&'a ModuleIdentifier>,
+  pub issuer: Option<&'a str>,
+  pub context: Context,
+  pub specifier: &'a str,
+  pub dependency_type: &'a DependencyType,
+  pub dependency_category: &'a DependencyCategory,
+  pub span: Option<ErrorSpan>,
+  pub resolve_options: Option<Box<Resolve>>,
+  pub resolve_to_context: bool,
+  pub optional: bool,
+  pub file_dependencies: &'a mut FxHashSet<PathBuf>,
+  pub missing_dependencies: &'a mut FxHashSet<PathBuf>,
+}
 
 /// A successful path resolution or an ignored path.
 #[derive(Debug, Clone, Eq, PartialEq)]

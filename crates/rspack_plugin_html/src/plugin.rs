@@ -11,10 +11,10 @@ use rayon::prelude::*;
 use rspack_core::{
   parse_to_url,
   rspack_sources::{RawSource, SourceExt},
-  Compilation, CompilationAsset, FilenameTemplate, PathData, Plugin,
+  Compilation, CompilationAsset, CompilationProcessAssets, FilenameTemplate, PathData, Plugin,
 };
 use rspack_error::{AnyhowError, Result};
-use rspack_hook::{plugin, plugin_hook, AsyncSeries};
+use rspack_hook::{plugin, plugin_hook};
 use rspack_util::infallible::ResultInfallibleExt as _;
 use swc_html::visit::VisitMutWith;
 
@@ -37,7 +37,7 @@ impl HtmlRspackPlugin {
   }
 }
 
-#[plugin_hook(AsyncSeries<Compilation> for HtmlRspackPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE)]
+#[plugin_hook(CompilationProcessAssets for HtmlRspackPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let config = &self.config;
 

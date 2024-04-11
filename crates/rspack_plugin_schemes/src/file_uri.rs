@@ -1,15 +1,16 @@
 use rspack_core::{
-  ApplyContext, CompilerOptions, ModuleFactoryCreateData, Plugin, PluginContext, ResourceData,
+  ApplyContext, CompilerOptions, ModuleFactoryCreateData, NormalModuleFactoryResolveForScheme,
+  Plugin, PluginContext, ResourceData,
 };
 use rspack_error::{error, Result};
-use rspack_hook::{plugin, plugin_hook, AsyncSeriesBail2};
+use rspack_hook::{plugin, plugin_hook};
 use url::Url;
 
 #[plugin]
 #[derive(Debug, Default)]
 pub struct FileUriPlugin;
 
-#[plugin_hook(AsyncSeriesBail2<ModuleFactoryCreateData, ResourceData, bool> for FileUriPlugin)]
+#[plugin_hook(NormalModuleFactoryResolveForScheme for FileUriPlugin)]
 async fn normal_module_factory_resolve_for_scheme(
   &self,
   _data: &mut ModuleFactoryCreateData,

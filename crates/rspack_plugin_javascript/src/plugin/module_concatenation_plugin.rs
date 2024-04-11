@@ -9,13 +9,14 @@ use rspack_core::concatenated_module::{
   is_harmony_dep_like, ConcatenatedInnerModule, ConcatenatedModule, RootModuleContext,
 };
 use rspack_core::{
-  filter_runtime, merge_runtime, runtime_to_string, ApplyContext, Compilation, CompilerContext,
-  CompilerOptions, ExportInfoProvided, ExtendedReferencedExport, LibIdentOptions, Logger, Module,
-  ModuleExt, ModuleGraph, ModuleGraphModule, ModuleIdentifier, MutableModuleGraph, Plugin,
-  PluginContext, ProvidedExports, RuntimeCondition, RuntimeSpec, SourceType,
+  filter_runtime, merge_runtime, runtime_to_string, ApplyContext, Compilation,
+  CompilationOptimizeChunkModules, CompilerContext, CompilerOptions, ExportInfoProvided,
+  ExtendedReferencedExport, LibIdentOptions, Logger, Module, ModuleExt, ModuleGraph,
+  ModuleGraphModule, ModuleIdentifier, MutableModuleGraph, Plugin, PluginContext, ProvidedExports,
+  RuntimeCondition, RuntimeSpec, SourceType,
 };
 use rspack_error::Result;
-use rspack_hook::{plugin, plugin_hook, AsyncSeriesBail};
+use rspack_hook::{plugin, plugin_hook};
 use rspack_util::fx_hash::FxDashMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
@@ -997,7 +998,7 @@ impl ModuleConcatenationPlugin {
   }
 }
 
-#[plugin_hook(AsyncSeriesBail<Compilation, bool> for ModuleConcatenationPlugin)]
+#[plugin_hook(CompilationOptimizeChunkModules for ModuleConcatenationPlugin)]
 async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
   self.optimize_chunk_modules_impl(compilation).await?;
   Ok(None)

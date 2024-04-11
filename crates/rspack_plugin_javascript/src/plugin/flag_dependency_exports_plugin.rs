@@ -3,13 +3,13 @@ use std::collections::VecDeque;
 
 use itertools::Itertools;
 use rspack_core::{
-  ApplyContext, BuildMetaExportsType, Compilation, CompilerOptions, DependenciesBlock,
-  DependencyId, ExportInfoProvided, ExportNameOrSpec, ExportsInfoId, ExportsOfExportsSpec,
-  ExportsSpec, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, MutableModuleGraph, Plugin,
-  PluginContext,
+  ApplyContext, BuildMetaExportsType, Compilation, CompilationFinishModules, CompilerOptions,
+  DependenciesBlock, DependencyId, ExportInfoProvided, ExportNameOrSpec, ExportsInfoId,
+  ExportsOfExportsSpec, ExportsSpec, ModuleGraph, ModuleGraphConnection, ModuleIdentifier,
+  MutableModuleGraph, Plugin, PluginContext,
 };
 use rspack_error::Result;
-use rspack_hook::{plugin, plugin_hook, AsyncSeries};
+use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::ecma::atoms::Atom;
 
@@ -398,13 +398,12 @@ pub struct DefaultExportInfo<'a> {
 #[derive(Debug, Default)]
 pub struct FlagDependencyExportsPlugin;
 
-#[plugin_hook(AsyncSeries<Compilation> for FlagDependencyExportsPlugin)]
+#[plugin_hook(CompilationFinishModules for FlagDependencyExportsPlugin)]
 async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
   FlagDependencyExportsProxy::new(&mut compilation.get_module_graph_mut()).apply();
   Ok(())
 }
 
-#[async_trait::async_trait]
 impl Plugin for FlagDependencyExportsPlugin {
   fn name(&self) -> &'static str {
     "FlagDependencyExportsPlugin"

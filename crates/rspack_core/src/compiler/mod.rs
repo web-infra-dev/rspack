@@ -5,14 +5,15 @@ mod make;
 
 use std::collections::hash_map::Entry;
 use std::ops::Deref;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use rspack_error::Result;
 use rspack_fs::AsyncWritableFileSystem;
 use rspack_futures::FuturesResults;
-use rspack_hook::{AsyncParallel3Hook, AsyncSeries2Hook, AsyncSeriesBailHook, AsyncSeriesHook};
+use rspack_hook::define_hook;
 use rspack_identifier::{IdentifierMap, IdentifierSet};
+use rspack_sources::BoxSource;
 use rustc_hash::FxHashMap as HashMap;
 use swc_core::ecma::atoms::Atom;
 use tracing::instrument;
@@ -28,27 +29,22 @@ pub use self::make::{
 use crate::cache::Cache;
 use crate::tree_shaking::symbol::{IndirectType, StarSymbolKind, DEFAULT_JS_WORD};
 use crate::tree_shaking::visitor::SymbolRef;
-use crate::{
-  fast_set, AssetEmittedInfo, CompilerOptions, Logger, PluginDriver, ResolverFactory,
-  SharedPluginDriver,
-};
+use crate::{fast_set, CompilerOptions, Logger, PluginDriver, ResolverFactory, SharedPluginDriver};
 use crate::{BoxPlugin, ExportInfo, UsageState};
-use crate::{CompilationParams, ContextModuleFactory, NormalModuleFactory};
+use crate::{ContextModuleFactory, NormalModuleFactory};
 
 // should be SyncHook, but rspack need call js hook
-pub type CompilerThisCompilationHook = AsyncSeries2Hook<Compilation, CompilationParams>;
+define_hook!(CompilerThisCompilation: AsyncSeries(compilation: &mut Compilation, params: &mut CompilationParams));
 // should be SyncHook, but rspack need call js hook
-pub type CompilerCompilationHook = AsyncSeries2Hook<Compilation, CompilationParams>;
+define_hook!(CompilerCompilation: AsyncSeries(compilation: &mut Compilation, params: &mut CompilationParams));
 // should be AsyncParallelHook, but rspack need add MakeParam to incremental rebuild
-pub type CompilerMakeHook = AsyncSeries2Hook<Compilation, Vec<MakeParam>>;
-pub type CompilerFinishMakeHook = AsyncSeriesHook<Compilation>;
+define_hook!(CompilerMake: AsyncSeries(compilation: &mut Compilation, params: &mut Vec<MakeParam>));
+define_hook!(CompilerFinishMake: AsyncSeries(compilation: &mut Compilation));
 // should be SyncBailHook, but rspack need call js hook
-pub type CompilerShouldEmitHook = AsyncSeriesBailHook<Compilation, bool>;
-pub type CompilerEmitHook = AsyncSeriesHook<Compilation>;
-pub type CompilerAfterEmitHook = AsyncSeriesHook<Compilation>;
-// should be AsyncSeriesHook, but rspack parallel emit asset, only accept immutable params,
-// and it has no effect about mutate the params in webpack
-pub type CompilerAssetEmittedHook = AsyncParallel3Hook<Compilation, String, AssetEmittedInfo>;
+define_hook!(CompilerShouldEmit: AsyncSeriesBail(compilation: &mut Compilation) -> bool);
+define_hook!(CompilerEmit: AsyncSeries(compilation: &mut Compilation));
+define_hook!(CompilerAfterEmit: AsyncSeries(compilation: &mut Compilation));
+define_hook!(CompilerAssetEmitted: AsyncSeries(compilation: &Compilation, filename: &str, info: &AssetEmittedInfo));
 
 #[derive(Debug, Default)]
 pub struct CompilerHooks {
@@ -426,7 +422,7 @@ where
         .plugin_driver
         .compiler_hooks
         .asset_emitted
-        .call(&self.compilation, &filename.to_owned(), &info)
+        .call(&self.compilation, filename, &info)
         .await?;
     }
     Ok(())
@@ -447,4 +443,17 @@ where
       )),
     }
   }
+}
+
+#[derive(Debug)]
+pub struct CompilationParams {
+  pub normal_module_factory: Arc<NormalModuleFactory>,
+  pub context_module_factory: Arc<ContextModuleFactory>,
+}
+
+#[derive(Debug)]
+pub struct AssetEmittedInfo {
+  pub source: BoxSource,
+  pub output_path: PathBuf,
+  pub target_path: PathBuf,
 }

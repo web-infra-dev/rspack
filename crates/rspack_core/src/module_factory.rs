@@ -21,6 +21,14 @@ pub struct ModuleFactoryCreateData {
 }
 
 impl ModuleFactoryCreateData {
+  pub fn request(&self) -> Option<&str> {
+    self
+      .dependency
+      .as_module_dependency()
+      .map(|d| d.request())
+      .or_else(|| self.dependency.as_context_dependency().map(|d| d.request()))
+  }
+
   pub fn add_file_dependency(&mut self, file: PathBuf) {
     if file.is_absolute() {
       self.file_dependencies.insert(file.normalize());

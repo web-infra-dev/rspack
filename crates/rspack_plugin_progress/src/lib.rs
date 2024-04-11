@@ -8,12 +8,17 @@ use async_trait::async_trait;
 use indicatif::{ProgressBar, ProgressDrawTarget, ProgressStyle};
 use linked_hash_map::LinkedHashMap as HashMap;
 use rspack_core::{
-  ApplyContext, BoxModule, Compilation, CompilationChunkIds, CompilationModuleIds,
-  CompilationOptimizeChunks, CompilationOptimizeDependencies, CompilationParams, CompilationSeal,
-  CompilerOptions, MakeParam, ModuleIdentifier, Plugin, PluginContext,
+  ApplyContext, BoxModule, Compilation, CompilationAfterOptimizeModules,
+  CompilationAfterProcessAssets, CompilationBuildModule, CompilationChunkIds,
+  CompilationFinishModules, CompilationModuleIds, CompilationOptimizeChunkModules,
+  CompilationOptimizeChunks, CompilationOptimizeDependencies, CompilationOptimizeModules,
+  CompilationOptimizeTree, CompilationParams, CompilationProcessAssets, CompilationSeal,
+  CompilationSucceedModule, CompilerAfterEmit, CompilerCompilation, CompilerEmit,
+  CompilerFinishMake, CompilerMake, CompilerOptions, CompilerThisCompilation, MakeParam,
+  ModuleIdentifier, Plugin, PluginContext,
 };
 use rspack_error::Result;
-use rspack_hook::{plugin, plugin_hook, AsyncSeries, AsyncSeries2, AsyncSeriesBail};
+use rspack_hook::{plugin, plugin_hook};
 
 #[derive(Debug, Clone, Default)]
 pub struct ProgressPluginOptions {
@@ -192,7 +197,7 @@ impl ProgressPlugin {
   }
 }
 
-#[plugin_hook(AsyncSeries2<Compilation, CompilationParams> for ProgressPlugin)]
+#[plugin_hook(CompilerThisCompilation for ProgressPlugin)]
 async fn this_compilation(
   &self,
   _compilation: &mut Compilation,
@@ -207,7 +212,7 @@ async fn this_compilation(
   Ok(())
 }
 
-#[plugin_hook(AsyncSeries2<Compilation, CompilationParams> for ProgressPlugin)]
+#[plugin_hook(CompilerCompilation for ProgressPlugin)]
 async fn compilation(
   &self,
   _compilation: &mut Compilation,
@@ -222,7 +227,7 @@ async fn compilation(
   Ok(())
 }
 
-#[plugin_hook(AsyncSeries2<Compilation, Vec<MakeParam>> for ProgressPlugin)]
+#[plugin_hook(CompilerMake for ProgressPlugin)]
 async fn make(&self, _compilation: &mut Compilation, _params: &mut Vec<MakeParam>) -> Result<()> {
   if !self.options.profile {
     self.progress_bar.reset();
@@ -234,7 +239,7 @@ async fn make(&self, _compilation: &mut Compilation, _params: &mut Vec<MakeParam
   Ok(())
 }
 
-#[plugin_hook(AsyncSeries<BoxModule> for ProgressPlugin)]
+#[plugin_hook(CompilationBuildModule for ProgressPlugin)]
 async fn build_module(&self, module: &mut BoxModule) -> Result<()> {
   self
     .active_modules
@@ -253,7 +258,7 @@ async fn build_module(&self, module: &mut BoxModule) -> Result<()> {
   Ok(())
 }
 
-#[plugin_hook(AsyncSeries<BoxModule> for ProgressPlugin)]
+#[plugin_hook(CompilationSucceedModule for ProgressPlugin)]
 async fn succeed_module(&self, module: &mut BoxModule) -> Result<()> {
   self.modules_done.fetch_add(1, Relaxed);
   self
@@ -291,7 +296,7 @@ async fn succeed_module(&self, module: &mut BoxModule) -> Result<()> {
   Ok(())
 }
 
-#[plugin_hook(AsyncSeries<Compilation> for ProgressPlugin)]
+#[plugin_hook(CompilerFinishMake for ProgressPlugin)]
 async fn finish_make(&self, _compilation: &mut Compilation) -> Result<()> {
   self.handler(
     0.69,
@@ -314,19 +319,19 @@ fn optimize_dependencies(&self, _compilation: &mut Compilation) -> Result<Option
   Ok(None)
 }
 
-#[plugin_hook(AsyncSeries<Compilation> for ProgressPlugin)]
+#[plugin_hook(CompilationFinishModules for ProgressPlugin)]
 async fn finish_modules(&self, _compilation: &mut Compilation) -> Result<()> {
   self.sealing_hooks_report("finish modules", 0);
   Ok(())
 }
 
-#[plugin_hook(AsyncSeriesBail<Compilation, bool> for ProgressPlugin)]
+#[plugin_hook(CompilationOptimizeModules for ProgressPlugin)]
 async fn optimize_modules(&self, _compilation: &mut Compilation) -> Result<Option<bool>> {
   self.sealing_hooks_report("module optimization", 7);
   Ok(None)
 }
 
-#[plugin_hook(AsyncSeries<Compilation> for ProgressPlugin)]
+#[plugin_hook(CompilationAfterOptimizeModules for ProgressPlugin)]
 async fn after_optimize_modules(&self, _compilation: &mut Compilation) -> Result<()> {
   self.sealing_hooks_report("after module optimization", 8);
   Ok(())
@@ -338,13 +343,13 @@ fn optimize_chunks(&self, _compilation: &mut Compilation) -> Result<Option<bool>
   Ok(None)
 }
 
-#[plugin_hook(AsyncSeries<Compilation> for ProgressPlugin)]
+#[plugin_hook(CompilationOptimizeTree for ProgressPlugin)]
 async fn optimize_tree(&self, _compilation: &mut Compilation) -> Result<()> {
   self.sealing_hooks_report("module and chunk tree optimization", 11);
   Ok(())
 }
 
-#[plugin_hook(AsyncSeriesBail<Compilation, bool> for ProgressPlugin)]
+#[plugin_hook(CompilationOptimizeChunkModules for ProgressPlugin)]
 async fn optimize_chunk_modules(&self, _compilation: &mut Compilation) -> Result<Option<bool>> {
   self.sealing_hooks_report("chunk modules optimization", 13);
   Ok(None)
@@ -362,25 +367,25 @@ fn chunk_ids(&self, _compilation: &mut Compilation) -> Result<()> {
   Ok(())
 }
 
-#[plugin_hook(AsyncSeries<Compilation> for ProgressPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONAL)]
+#[plugin_hook(CompilationProcessAssets for ProgressPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONAL)]
 async fn process_assets(&self, _compilation: &mut Compilation) -> Result<()> {
   self.sealing_hooks_report("asset processing", 35);
   Ok(())
 }
 
-#[plugin_hook(AsyncSeries<Compilation> for ProgressPlugin)]
+#[plugin_hook(CompilationAfterProcessAssets for ProgressPlugin)]
 async fn after_process_assets(&self, _compilation: &mut Compilation) -> Result<()> {
   self.sealing_hooks_report("after asset optimization", 36);
   Ok(())
 }
 
-#[plugin_hook(AsyncSeries<Compilation> for ProgressPlugin)]
+#[plugin_hook(CompilerEmit for ProgressPlugin)]
 async fn emit(&self, _compilation: &mut Compilation) -> Result<()> {
   self.handler(0.98, "emitting".to_string(), vec!["emit".to_string()], None);
   Ok(())
 }
 
-#[plugin_hook(AsyncSeries<Compilation> for ProgressPlugin)]
+#[plugin_hook(CompilerAfterEmit for ProgressPlugin)]
 async fn after_emit(&self, _compilation: &mut Compilation) -> Result<()> {
   self.handler(
     1.0,

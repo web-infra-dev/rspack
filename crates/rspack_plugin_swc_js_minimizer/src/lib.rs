@@ -13,11 +13,12 @@ use regex::Regex;
 use rspack_core::rspack_sources::{ConcatSource, MapOptions, RawSource, SourceExt, SourceMap};
 use rspack_core::rspack_sources::{Source, SourceMapSource, SourceMapSourceOptions};
 use rspack_core::{
-  AssetInfo, Compilation, CompilationAsset, CompilationParams, Plugin, PluginContext,
+  AssetInfo, Compilation, CompilationAsset, CompilationParams, CompilationProcessAssets,
+  CompilerCompilation, Plugin, PluginContext,
 };
 use rspack_error::miette::IntoDiagnostic;
 use rspack_error::{Diagnostic, Result};
-use rspack_hook::{plugin, plugin_hook, AsyncSeries, AsyncSeries2};
+use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   JavascriptModulesPluginPlugin, JsChunkHashArgs, JsPlugin, PluginJsChunkHashHookOutput,
 };
@@ -171,7 +172,7 @@ impl SwcJsMinimizerRspackPlugin {
   }
 }
 
-#[plugin_hook(AsyncSeries2<Compilation, CompilationParams> for SwcJsMinimizerRspackPlugin)]
+#[plugin_hook(CompilerCompilation for SwcJsMinimizerRspackPlugin)]
 async fn compilation(
   &self,
   compilation: &mut Compilation,
@@ -182,7 +183,7 @@ async fn compilation(
   Ok(())
 }
 
-#[plugin_hook(AsyncSeries<Compilation> for SwcJsMinimizerRspackPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE)]
+#[plugin_hook(CompilationProcessAssets for SwcJsMinimizerRspackPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let minify_options = &self.options;
 

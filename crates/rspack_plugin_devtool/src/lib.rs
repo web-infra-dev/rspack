@@ -21,13 +21,14 @@ use rspack_core::{
   AssetInfo, Compilation, CompilationAsset, PathData, Plugin, PluginContext, SourceType,
 };
 use rspack_core::{
-  ApplyContext, BoxModule, Chunk, ChunkUkey, CompilationParams, CompilerOptions, FilenameTemplate,
-  Logger, ModuleIdentifier, OutputOptions,
+  ApplyContext, BoxModule, Chunk, ChunkUkey, CompilationBuildModule, CompilationParams,
+  CompilationProcessAssets, CompilationRuntimeModule, CompilerCompilation, CompilerOptions,
+  FilenameTemplate, Logger, ModuleIdentifier, OutputOptions,
 };
 use rspack_error::error;
 use rspack_error::{miette::IntoDiagnostic, Result};
 use rspack_hash::RspackHash;
-use rspack_hook::{plugin, plugin_hook, AsyncSeries, AsyncSeries2, AsyncSeries3};
+use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   JavascriptModulesPluginPlugin, JsChunkHashArgs, JsPlugin, PluginJsChunkHashHookOutput,
   PluginRenderJsModuleContentOutput, RenderJsModuleContentArgs,
@@ -547,7 +548,7 @@ impl SourceMapDevToolPlugin {
   }
 }
 
-#[plugin_hook(AsyncSeries<Compilation> for SourceMapDevToolPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_DEV_TOOLING)]
+#[plugin_hook(CompilationProcessAssets for SourceMapDevToolPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_DEV_TOOLING)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let logger = compilation.get_logger("rspack.SourceMapDevToolPlugin");
   let start = logger.time("collect source maps");
@@ -890,7 +891,7 @@ impl EvalSourceMapDevToolPlugin {
   }
 }
 
-#[plugin_hook(AsyncSeries2<Compilation, CompilationParams> for EvalSourceMapDevToolPlugin)]
+#[plugin_hook(CompilerCompilation for EvalSourceMapDevToolPlugin)]
 async fn eval_source_map_devtool_plugin_compilation(
   &self,
   compilation: &mut Compilation,
@@ -940,7 +941,7 @@ impl SourceMapDevToolModuleOptionsPlugin {
   }
 }
 
-#[plugin_hook(AsyncSeries<BoxModule> for SourceMapDevToolModuleOptionsPlugin)]
+#[plugin_hook(CompilationBuildModule for SourceMapDevToolModuleOptionsPlugin)]
 async fn build_module(&self, module: &mut BoxModule) -> Result<()> {
   if self.module {
     module.set_source_map_kind(SourceMapKind::SourceMap);
@@ -950,12 +951,12 @@ async fn build_module(&self, module: &mut BoxModule) -> Result<()> {
   Ok(())
 }
 
-#[plugin_hook(AsyncSeries3<Compilation, ModuleIdentifier, ChunkUkey> for SourceMapDevToolModuleOptionsPlugin)]
+#[plugin_hook(CompilationRuntimeModule for SourceMapDevToolModuleOptionsPlugin)]
 async fn runtime_module(
   &self,
   compilation: &mut Compilation,
-  module: &mut ModuleIdentifier,
-  _chunk: &mut ChunkUkey,
+  module: &ModuleIdentifier,
+  _chunk: &ChunkUkey,
 ) -> Result<()> {
   let Some(module) = compilation.runtime_modules.get_mut(module) else {
     return Ok(());
@@ -1099,7 +1100,7 @@ impl EvalDevToolModulePlugin {
   }
 }
 
-#[plugin_hook(AsyncSeries2<Compilation, CompilationParams> for EvalDevToolModulePlugin)]
+#[plugin_hook(CompilerCompilation for EvalDevToolModulePlugin)]
 async fn eval_devtool_plugin_compilation(
   &self,
   compilation: &mut Compilation,

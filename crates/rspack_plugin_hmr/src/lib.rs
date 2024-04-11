@@ -9,12 +9,13 @@ use rspack_core::{
   rspack_sources::{RawSource, SourceExt},
   ApplyContext, AssetInfo, Chunk, ChunkKind, ChunkUkey, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilationAsset, CompilationParams,
-  CompilationRecords, CompilerOptions, DependencyType, PathData, Plugin, PluginContext,
-  RuntimeGlobals, RuntimeModuleExt, RuntimeSpec, SourceType,
+  CompilationProcessAssets, CompilationRecords, CompilerCompilation, CompilerContext,
+  CompilerOptions, DependencyType, LoaderContext, NormalModuleLoader, PathData, Plugin,
+  PluginContext, RuntimeGlobals, RuntimeModuleExt, RuntimeSpec, SourceType,
 };
 use rspack_error::Result;
 use rspack_hash::RspackHash;
-use rspack_hook::{plugin, plugin_hook, AsyncSeries, AsyncSeries2, SyncSeries};
+use rspack_hook::{plugin, plugin_hook};
 use rspack_identifier::IdentifierSet;
 use rspack_util::infallible::ResultInfallibleExt as _;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
@@ -23,7 +24,7 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 #[derive(Debug, Default)]
 pub struct HotModuleReplacementPlugin;
 
-#[plugin_hook(AsyncSeries2<Compilation, CompilationParams> for HotModuleReplacementPlugin)]
+#[plugin_hook(CompilerCompilation for HotModuleReplacementPlugin)]
 async fn compilation(
   &self,
   compilation: &mut Compilation,
@@ -48,7 +49,7 @@ async fn compilation(
   Ok(())
 }
 
-#[plugin_hook(AsyncSeries<Compilation> for HotModuleReplacementPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONAL)]
+#[plugin_hook(CompilationProcessAssets for HotModuleReplacementPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONAL)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let Some(CompilationRecords {
     old_chunks,
@@ -328,9 +329,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   Ok(())
 }
 
-#[plugin_hook(SyncSeries<bool> for HotModuleReplacementPlugin)]
-fn normal_module_loader(&self, hot: &mut bool) -> Result<()> {
-  *hot = true;
+#[plugin_hook(NormalModuleLoader for HotModuleReplacementPlugin)]
+fn normal_module_loader(&self, context: &mut LoaderContext<CompilerContext>) -> Result<()> {
+  context.hot = true;
   Ok(())
 }
 

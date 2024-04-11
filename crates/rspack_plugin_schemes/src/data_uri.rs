@@ -1,11 +1,12 @@
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
-  ApplyContext, CompilerOptions, Content, ModuleFactoryCreateData, Plugin, PluginContext,
+  ApplyContext, CompilerOptions, Content, ModuleFactoryCreateData,
+  NormalModuleFactoryResolveForScheme, NormalModuleReadResource, Plugin, PluginContext,
   ResourceData,
 };
 use rspack_error::Result;
-use rspack_hook::{plugin, plugin_hook, AsyncSeriesBail, AsyncSeriesBail2};
+use rspack_hook::{plugin, plugin_hook};
 
 static URI_REGEX: Lazy<Regex> = Lazy::new(|| {
   Regex::new(r"(?is)^data:([^;,]+)?((?:;[^;,]+)*?)(?:;(base64))?,(.*)$").expect("Invalid Regex")
@@ -15,7 +16,7 @@ static URI_REGEX: Lazy<Regex> = Lazy::new(|| {
 #[derive(Debug, Default)]
 pub struct DataUriPlugin;
 
-#[plugin_hook(AsyncSeriesBail2<ModuleFactoryCreateData, ResourceData, bool> for DataUriPlugin)]
+#[plugin_hook(NormalModuleFactoryResolveForScheme for DataUriPlugin)]
 async fn resolve_for_scheme(
   &self,
   _data: &mut ModuleFactoryCreateData,
@@ -53,7 +54,7 @@ async fn resolve_for_scheme(
   Ok(None)
 }
 
-#[plugin_hook(AsyncSeriesBail<ResourceData, Content> for DataUriPlugin)]
+#[plugin_hook(NormalModuleReadResource for DataUriPlugin)]
 async fn read_resource(&self, resource_data: &mut ResourceData) -> Result<Option<Content>> {
   if resource_data.get_scheme().is_data()
     && let Some(captures) = URI_REGEX.captures(&resource_data.resource)

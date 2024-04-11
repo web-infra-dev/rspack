@@ -7,13 +7,13 @@ use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceMap, SourceMapSource, WithoutOriginalOptions},
   ApplyContext, AssetInfo, Chunk, ChunkGroupUkey, ChunkKind, ChunkUkey, Compilation,
   CompilationContentHash, CompilationParams, CompilationRenderManifest,
-  CompilationRuntimeRequirementInTree, CompilerOptions, Filename, Module, ModuleGraph,
-  ModuleIdentifier, ModuleType, PathData, Plugin, PluginContext, RenderManifestEntry,
+  CompilationRuntimeRequirementInTree, CompilerCompilation, CompilerOptions, Filename, Module,
+  ModuleGraph, ModuleIdentifier, ModuleType, PathData, Plugin, PluginContext, RenderManifestEntry,
   RuntimeGlobals, SourceType,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hash::RspackHash;
-use rspack_hook::{plugin, plugin_hook, AsyncSeries2};
+use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_runtime::GetChunkFilenameRuntimeModule;
 use rustc_hash::{FxHashMap, FxHashSet};
 use ustr::Ustr;
@@ -412,7 +412,7 @@ impl PluginCssExtract {
   }
 }
 
-#[plugin_hook(AsyncSeries2<Compilation, CompilationParams> for PluginCssExtract)]
+#[plugin_hook(CompilerCompilation for PluginCssExtract)]
 async fn compilation(
   &self,
   compilation: &mut Compilation,
