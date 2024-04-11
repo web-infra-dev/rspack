@@ -588,17 +588,16 @@ impl NormalModuleFactory {
       if resolved_side_effects.is_some() {
         module.set_factory_meta(FactoryMeta {
           side_effect_free: None,
-          side_effect_free_old: resolved_side_effects,
+          side_effect_free_old: resolved_side_effects.map(|has_side_effects| !has_side_effects),
         })
-      }
-      if let Some(description) = resource_description.as_ref()
+      } else if let Some(description) = resource_description.as_ref()
         && let Some(side_effects) = SideEffects::from_description(description.json())
       {
         let package_path = description.path();
         let relative_path = resource_path.relative(package_path);
         module.set_factory_meta(FactoryMeta {
           side_effect_free: None,
-          side_effect_free_old: Some(get_side_effects_from_package_json(
+          side_effect_free_old: Some(!get_side_effects_from_package_json(
             side_effects,
             relative_path,
           )),
