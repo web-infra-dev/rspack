@@ -215,12 +215,10 @@ ${i.content}
 
 		`;
 		if (lastHash) {
-			content = content
-				.split(lastHash)
-				.join("LAST_HASH")
-				.split(hash)
-				.join("CURRENT_HASH");
+			content = content.split(lastHash).join("LAST_HASH");
 		}
+
+		content = content.split(hash).join("CURRENT_HASH").trim();
 
 		if (!fs.existsSync(snapshotPath) || global.updateSnapshot) {
 			fs.ensureDirSync(path.dirname(snapshotPath));
