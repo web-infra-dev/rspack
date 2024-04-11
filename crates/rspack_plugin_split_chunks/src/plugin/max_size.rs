@@ -88,7 +88,7 @@ fn deterministic_grouping_for_modules(
   let context = compilation.options.context.as_ref();
 
   let nodes: Vec<GroupItem> = items
-    .into_par_iter()
+    .into_iter()
     .map(|module| {
       let module: &dyn Module = &**module;
       let name: String = if module.name_for_condition().is_some() {

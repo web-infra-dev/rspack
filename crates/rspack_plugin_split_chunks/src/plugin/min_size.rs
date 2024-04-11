@@ -1,6 +1,5 @@
 use std::ops::Deref;
 
-use rayon::prelude::*;
 use rspack_core::{Compilation, SourceType};
 
 use super::ModuleGroupMap;
@@ -45,7 +44,7 @@ impl SplitChunksPlugin {
     // Remove modules having violating SourceType
     let violating_modules = module_group
       .modules
-      .par_iter()
+      .iter()
       .filter_map(|module_id| {
         let module = module_graph
           .module_by_identifier(module_id)
@@ -78,7 +77,7 @@ impl SplitChunksPlugin {
     module_group_map: &mut ModuleGroupMap,
   ) {
     let invalidated_module_groups = module_group_map
-      .par_iter_mut()
+      .iter_mut()
       .filter_map(|(module_group_key, module_group)| {
         let cache_group = module_group.get_cache_group(&self.cache_groups);
         // Fast path
