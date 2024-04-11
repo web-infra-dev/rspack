@@ -62,12 +62,12 @@ import.meta.webpackHot.accept(
 
 ```js
 module.hot.accept(
-  errorHandler // 在计算新版本时处理错误的函数
+  errorHandler, // 在计算新版本时处理错误的函数
 );
 
 // or
 import.meta.webpackHot.accept(
-  errorHandler // Function to handle errors when evaluating the new version
+  errorHandler, // Function to handle errors when evaluating the new version
 );
 ```
 
@@ -91,12 +91,12 @@ import.meta.webpackHot.accept(
 
 ```js
 module.hot.decline(
-  dependencies // 可以是一个字符串或字符串数组
+  dependencies, // 可以是一个字符串或字符串数组
 );
 
 // or
 import.meta.webpackHot.decline(
-  dependencies // Either a string or an array of strings
+  dependencies, // Either a string or an array of strings
 );
 ```
 
@@ -120,12 +120,12 @@ import.meta.webpackHot.decline();
 添加一个处理函数，在当前模块代码被替换时执行。此函数应该用于移除你声明或创建的任何持久资源。如果要将状态传入到更新过的模块，请添加给定 `data` 参数。更新后，此对象在更新之后可通过 `module.hot.data` 调用。
 
 ```js
-module.hot.dispose((data) => {
+module.hot.dispose(data => {
   // 清理并将 data 传递到更新后的模块...
 });
 
 // or
-import.meta.webpackHot.dispose((data) => {
+import.meta.webpackHot.dispose(data => {
   // 清理并将 data 传递到更新后的模块...
 });
 ```
@@ -184,7 +184,7 @@ if (
 ) {
   module.hot.invalidate();
 } else {
-  module.hot.dispose((data) => {
+  module.hot.dispose(data => {
     data.value = VALUE;
   });
   module.hot.accept();
@@ -249,20 +249,20 @@ import.meta.webpackHot.status();
 ```js
 module.hot
   .check(autoApply)
-  .then((outdatedModules) => {
+  .then(outdatedModules => {
     // 超时的模块...
   })
-  .catch((error) => {
+  .catch(error => {
     // 捕获错误
   });
 
 // or
 import.meta.webpackHot
   .check(autoApply)
-  .then((outdatedModules) => {
+  .then(outdatedModules => {
     // outdated modules...
   })
-  .catch((error) => {
+  .catch(error => {
     // catch errors
   });
 ```
@@ -276,20 +276,20 @@ import.meta.webpackHot
 ```js
 module.hot
   .apply(options)
-  .then((outdatedModules) => {
+  .then(outdatedModules => {
     // 超时的模块...
   })
-  .catch((error) => {
+  .catch(error => {
     // 捕获错误
   });
 
 // or
 import.meta.webpackHot
   .apply(options)
-  .then((outdatedModules) => {
+  .then(outdatedModules => {
     // outdated modules...
   })
-  .catch((error) => {
+  .catch(error => {
     // catch errors
   });
 ```
@@ -332,12 +332,12 @@ import.meta.webpackHot
 注册一个函数来监听 `status` 的变化。
 
 ```js
-module.hot.addStatusHandler((status) => {
+module.hot.addStatusHandler(status => {
   // 响应当前状态...
 });
 
 // 或者
-import.meta.webpackHot.addStatusHandler((status) => {
+import.meta.webpackHot.addStatusHandler(status => {
   // 响应当前状态...
 });
 ```
