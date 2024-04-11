@@ -248,7 +248,7 @@ impl BuiltinPlugin {
         web_worker_template_plugin(plugins);
       }
       BuiltinPluginName::MergeDuplicateChunksPlugin => {
-        plugins.push(MergeDuplicateChunksPlugin.boxed());
+        plugins.push(MergeDuplicateChunksPlugin::default().boxed());
       }
       BuiltinPluginName::SplitChunksPlugin => {
         use rspack_plugin_split_chunks::SplitChunksPlugin;
@@ -301,9 +301,11 @@ impl BuiltinPlugin {
       BuiltinPluginName::RealContentHashPlugin => {
         plugins.push(RealContentHashPlugin::default().boxed())
       }
-      BuiltinPluginName::RemoveEmptyChunksPlugin => plugins.push(RemoveEmptyChunksPlugin.boxed()),
+      BuiltinPluginName::RemoveEmptyChunksPlugin => {
+        plugins.push(RemoveEmptyChunksPlugin::default().boxed())
+      }
       BuiltinPluginName::EnsureChunkConditionsPlugin => {
-        plugins.push(EnsureChunkConditionsPlugin.boxed())
+        plugins.push(EnsureChunkConditionsPlugin::default().boxed())
       }
       BuiltinPluginName::WarnCaseSensitiveModulesPlugin => {
         plugins.push(WarnCaseSensitiveModulesPlugin::default().boxed())

@@ -17,6 +17,7 @@ regex             = { workspace = true }
 rspack_core       = { path = "../rspack_core" }
 rspack_error      = { path = "../rspack_error" }
 rspack_hash       = { path = "../rspack_hash" }
+rspack_hook       = { path = "../rspack_hook" }
 rspack_identifier = { path = "../rspack_identifier" }
 rspack_regex      = { path = "../rspack_regex" }
 rspack_util       = { path = "../rspack_util" }
