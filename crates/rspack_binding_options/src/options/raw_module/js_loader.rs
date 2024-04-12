@@ -1,4 +1,10 @@
-use std::{ops::Deref, path::PathBuf, str::FromStr};
+use std::{
+  ops::Deref,
+  path::{Path, PathBuf},
+  ptr,
+  str::FromStr,
+  sync::Arc,
+};
 
 use napi_derive::napi;
 use rspack_core::{rspack_sources::SourceMap, Content, ResourceData};
@@ -138,11 +144,9 @@ fn sync_loader_context(
     .map_err(|e| error!(e.to_string()))?;
   loader_context.additional_data = loader_result.additional_data_external.clone();
   if let Some(data) = loader_result.additional_data {
-    loader_context
-      .additional_data
-      .insert(String::from_utf8_lossy(&data).to_string());
+    loader_context.additional_data.insert(data);
   } else {
-    loader_context.additional_data.remove::<String>();
+    loader_context.additional_data.remove::<AdditionalDataRef>();
   }
   loader_context.asset_filenames = loader_result.asset_filenames.into_iter().collect();
 
@@ -153,7 +157,8 @@ fn sync_loader_context(
 pub struct JsLoaderContext {
   /// Content maybe empty in pitching stage
   pub content: Either<Null, Buffer>,
-  pub additional_data: Option<Buffer>,
+  #[napi(ts_type = "any")]
+  pub additional_data: Option<AdditionalDataRef>,
   pub source_map: Option<Buffer>,
   pub resource: String,
   pub resource_path: String,
@@ -206,10 +211,7 @@ impl TryFrom<&mut rspack_core::LoaderContext<'_, rspack_core::LoaderRunnerContex
         Some(c) => Either::B(c.to_owned().into_bytes().into()),
         None => Either::A(Null),
       },
-      additional_data: cx
-        .additional_data
-        .get::<String>()
-        .map(|v| v.clone().into_bytes().into()),
+      additional_data: cx.additional_data.get::<AdditionalDataRef>().cloned(),
       source_map: cx
         .source_map
         .clone()
@@ -269,10 +271,7 @@ pub async fn run_builtin_loader(
   let list = &[loader_item];
   let additional_data = {
     let mut additional_data = loader_context.additional_data_external.clone();
-    if let Some(data) = loader_context
-      .additional_data
-      .map(|b| String::from_utf8_lossy(b.as_ref()).to_string())
-    {
+    if let Some(data) = loader_context.additional_data {
       additional_data.insert(data);
     }
     additional_data
@@ -348,6 +347,80 @@ pub async fn run_builtin_loader(
   JsLoaderContext::try_from(&mut cx).map_err(|e| Error::from_reason(e.to_string()))
 }
 
+pub struct AdditionalDataRef {
+  ref_: sys::napi_ref,
+  env: sys::napi_env,
+  ref_count: Arc<()>,
+}
+
+unsafe impl Send for AdditionalDataRef {}
+unsafe impl Sync for AdditionalDataRef {}
+
+impl FromNapiValue for AdditionalDataRef {
+  unsafe fn from_napi_value(env: sys::napi_env, napi_val: sys::napi_value) -> Result<Self> {
+    let mut result = ptr::null_mut();
+    check_status! { sys::napi_create_reference(env, napi_val, 1, &mut result) }?;
+
+    Ok(AdditionalDataRef {
+      env,
+      ref_: result,
+      ref_count: Arc::new(()),
+    })
+  }
+}
+
+impl ToNapiValue for AdditionalDataRef {
+  unsafe fn to_napi_value(env: sys::napi_env, mut n: Self) -> Result<sys::napi_value> {
+    let mut result = ptr::null_mut();
+    check_status! { sys::napi_get_reference_value(env, n.ref_, &mut result) }?;
+
+    if Arc::strong_count(&n.ref_count) == 1 {
+      check_status! { sys::napi_delete_reference(env, n.ref_) }?;
+
+      n.ref_ = ptr::null_mut();
+      n.env = ptr::null_mut();
+    }
+
+    Ok(result)
+  }
+}
+
+impl Clone for AdditionalDataRef {
+  fn clone(&self) -> Self {
+    Self {
+      env: self.env,
+      ref_: self.ref_,
+      ref_count: self.ref_count.clone(),
+    }
+  }
+}
+
+impl Drop for AdditionalDataRef {
+  fn drop(&mut self) {
+    if Arc::strong_count(&self.ref_count) == 1 {
+      if self.ref_ == ptr::null_mut() {
+        return;
+      }
+
+      let mut ref_count = 0;
+      check_status_or_throw!(
+        self.env,
+        unsafe { sys::napi_reference_unref(self.env, self.ref_, &mut ref_count) },
+        "Failed to unref AddditionalDataRef reference in drop"
+      );
+      debug_assert!(
+        ref_count == 0,
+        "AdditionalDataRef reference count in AdditionalDataRef::drop is not zero"
+      );
+      check_status_or_throw!(
+        self.env,
+        unsafe { sys::napi_delete_reference(self.env, self.ref_) },
+        "Failed to delete AdditionalDataRef reference in drop"
+      );
+    }
+  }
+}
+
 // #[napi(object)]
 pub struct JsLoaderResult {
   /// Content in pitching stage can be empty
@@ -358,7 +431,7 @@ pub struct JsLoaderResult {
   pub build_dependencies: Vec<String>,
   pub asset_filenames: Vec<String>,
   pub source_map: Option<Buffer>,
-  pub additional_data: Option<Buffer>,
+  pub additional_data: Option<AdditionalDataRef>,
   pub additional_data_external: External<AdditionalData>,
   pub cacheable: bool,
   /// Used to instruct how rust loaders should execute
@@ -432,7 +505,11 @@ impl napi::bindgen_prelude::FromNapiValue for JsLoaderResult {
       )
     })?;
     let source_map_: Option<Buffer> = obj.get("sourceMap")?;
-    let additional_data_: Option<Buffer> = obj.get("additionalData")?;
+    let additional_data_: Option<AdditionalDataRef> = obj
+      .get::<_, Unknown>("additionalData")?
+      .and_then(|v| Some(AdditionalDataRef::from_napi_value(env, unsafe { v.raw() })))
+      .transpose()?;
+
     // change: eagerly clone this field since `External<T>` might be dropped.
     let additional_data_external_: External<AdditionalData> = obj
       .get("additionalDataExternal")?
