@@ -3318,7 +3318,6 @@ name = "rspack_plugin_extract_css"
 version = "0.1.0"
 dependencies = [
  "async-trait",
- "dashmap",
  "once_cell",
  "regex",
  "rspack_core",
