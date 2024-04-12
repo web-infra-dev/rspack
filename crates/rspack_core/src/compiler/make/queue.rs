@@ -5,7 +5,6 @@ use derivative::Derivative;
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result};
 use rspack_sources::BoxSource;
 use rustc_hash::FxHashSet as HashSet;
-use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
   cache::Cache, BoxDependency, BuildContext, BuildResult, Compilation, CompilerContext,
@@ -13,19 +12,9 @@ use crate::{
   ModuleGraph, ModuleGraphModule, ModuleIdentifier, ModuleProfile, Resolve, ResolverFactory,
   SharedPluginDriver, WorkerQueue,
 };
-use crate::{
-  BoxModule, DependencyId, ExecuteModuleResult, ExportInfo, ExportsInfo, QueueHandler, UsageState,
-};
+use crate::{DependencyId, ExportInfo, ExportsInfo, UsageState};
 
 pub type CleanQueue = WorkerQueue<CleanTask, ModuleIdentifier>;
-
-pub type ModuleCreationCallback = Box<dyn FnOnce(&BoxModule) + Send>;
-
-pub type FactorizeQueueHandler = QueueHandler<FactorizeTask, DependencyId>;
-pub type AddQueueHandler = QueueHandler<AddTask, ModuleIdentifier>;
-pub type BuildQueueHandler = QueueHandler<BuildTask, ModuleIdentifier>;
-pub type ProcessDependenciesQueueHandler = QueueHandler<ProcessDependenciesTask, ModuleIdentifier>;
-pub type BuildTimeExecutionQueueHandler = QueueHandler<BuildTimeExecutionTask, ModuleIdentifier>;
 
 #[derive(Debug)]
 pub enum TaskResult {
@@ -60,8 +49,6 @@ pub struct FactorizeTask {
   pub cache: Arc<Cache>,
   pub current_profile: Option<Box<ModuleProfile>>,
   pub connect_origin: bool,
-  #[derivative(Debug = "ignore")]
-  pub callback: Option<ModuleCreationCallback>,
 }
 
 /// a struct temporarily used creating ExportsInfo
@@ -88,8 +75,6 @@ pub struct FactorizeTaskResult {
   pub context_dependencies: HashSet<PathBuf>,
   pub missing_dependencies: HashSet<PathBuf>,
   pub diagnostics: Vec<Diagnostic>,
-  #[derivative(Debug = "ignore")]
-  pub callback: Option<ModuleCreationCallback>,
   pub connect_origin: bool,
 }
 
@@ -162,7 +147,7 @@ impl WorkerTask for FactorizeTask {
       missing_dependencies: Default::default(),
       diagnostics: Default::default(),
       connect_origin: self.connect_origin,
-      callback: self.callback,
+      //      callback: self.callback,
     };
 
     // Error and result are not mutually exclusive in webpack module factorization.
@@ -236,8 +221,6 @@ pub struct AddTask {
   pub is_entry: bool,
   pub current_profile: Option<Box<ModuleProfile>>,
   pub connect_origin: bool,
-  #[derivative(Debug = "ignore")]
-  pub callback: Option<ModuleCreationCallback>,
 }
 
 #[derive(Debug)]
@@ -291,9 +274,9 @@ impl AddTask {
         module_identifier,
       )?;
 
-      if let Some(callback) = self.callback {
-        callback(&self.module);
-      }
+      //      if let Some(callback) = self.callback {
+      //        callback(&self.module);
+      //      }
 
       return Ok(TaskResult::Add(Box::new(AddTaskResult::ModuleReused {
         module: self.module,
@@ -323,9 +306,9 @@ impl AddTask {
       current_profile.mark_integration_end();
     }
 
-    if let Some(callback) = self.callback {
-      callback(&self.module);
-    }
+    //    if let Some(callback) = self.callback {
+    //      callback(&self.module);
+    //    }
 
     Ok(TaskResult::Add(Box::new(AddTaskResult::ModuleAdded {
       module: self.module,
@@ -356,11 +339,6 @@ pub struct BuildTask {
   pub plugin_driver: SharedPluginDriver,
   pub cache: Arc<Cache>,
   pub current_profile: Option<Box<ModuleProfile>>,
-  pub factorize_queue: Option<FactorizeQueueHandler>,
-  pub add_queue: Option<AddQueueHandler>,
-  pub build_queue: Option<BuildQueueHandler>,
-  pub process_dependencies_queue: Option<ProcessDependenciesQueueHandler>,
-  pub build_time_execution_queue: Option<BuildTimeExecutionQueueHandler>,
 }
 
 #[derive(Debug)]
@@ -403,11 +381,6 @@ impl WorkerTask for BuildTask {
                 module: module.identifier(),
                 module_context: module.as_normal_module().and_then(|m| m.get_context()),
                 module_source_map_kind: module.get_source_map_kind().clone(),
-                factorize_queue: self.factorize_queue.clone(),
-                add_queue: self.add_queue.clone(),
-                build_queue: self.build_queue.clone(),
-                process_dependencies_queue: self.process_dependencies_queue.clone(),
-                build_time_execution_queue: self.build_time_execution_queue.clone(),
                 plugin_driver: plugin_driver.clone(),
                 cache: cache.clone(),
               },
@@ -476,22 +449,6 @@ pub struct ProcessDependenciesResult {
 }
 
 pub type ProcessDependenciesQueue = WorkerQueue<ProcessDependenciesTask, ModuleIdentifier>;
-
-#[derive(Clone, Debug)]
-pub struct BuildTimeExecutionOption {
-  pub public_path: Option<String>,
-  pub base_uri: Option<String>,
-}
-
-#[derive(Debug, Clone)]
-pub struct BuildTimeExecutionTask {
-  pub module: ModuleIdentifier,
-  pub request: String,
-  pub options: BuildTimeExecutionOption,
-  pub sender: UnboundedSender<Result<ExecuteModuleResult>>,
-}
-
-pub type BuildTimeExecutionQueue = WorkerQueue<BuildTimeExecutionTask, ModuleIdentifier>;
 
 pub struct CleanTask {
   pub module_identifier: ModuleIdentifier,
