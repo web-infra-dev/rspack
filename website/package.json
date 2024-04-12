@@ -1,5 +1,5 @@
 {
-  "name": "@rspack/website",
+  "name": "rspack-website",
   "private": true,
   "version": "1.0.0",
   "scripts": {
