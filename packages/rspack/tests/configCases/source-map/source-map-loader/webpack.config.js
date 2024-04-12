@@ -11,9 +11,11 @@ module.exports = {
 				test: /\.[tj]sx?$/,
 				loader: "builtin:swc-loader",
 				options: {
-					parser: {
-						syntax: "typescript",
-						tsx: true
+					jsc: {
+						parser: {
+							syntax: "typescript",
+							tsx: true
+						}
 					}
 				}
 			},
