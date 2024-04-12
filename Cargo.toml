@@ -32,7 +32,7 @@ proc-macro2        = { version = "1.0.79" }
 quote              = { version = "1.0.35" }
 rayon              = { version = "1.10.0" }
 regex              = { version = "1.10.4" }
-rspack_sources     = { path = "https://github.com/SyMind/rspack-sources", rev = "1bebb3cbf2e7ccd20ef5e5ac17974674eb3b2338" }
+rspack_sources     = { git = "https://github.com/SyMind/rspack-sources", rev = "703a26cdac1690f991d6e900e91cdba621f549f5" }
 rustc-hash         = { version = "1.1.0" }
 schemars           = { version = "0.8.16" }
 serde              = { version = "1.0.197" }

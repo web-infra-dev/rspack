@@ -3664,6 +3664,7 @@ dependencies = [
 [[package]]
 name = "rspack_sources"
 version = "0.2.14"
+source = "git+https://github.com/SyMind/rspack-sources?rev=703a26cdac1690f991d6e900e91cdba621f549f5#703a26cdac1690f991d6e900e91cdba621f549f5"
 dependencies = [
  "dashmap",
  "dyn-clone",
