@@ -379,7 +379,7 @@ At this time, there is a circular dependency between `a.js` and `sdk.js`, which 
 
 ```diff title=a.js
 - import { b } from './sdk.js';
-+ import { b } from './a.js';
++ import { b } from './b.js';
 export const a = b;
 ```
 
