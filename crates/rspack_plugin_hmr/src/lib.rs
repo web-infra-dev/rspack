@@ -7,14 +7,15 @@ use hot_module_replacement::HotModuleReplacementRuntimeModule;
 use rspack_core::{
   collect_changed_modules,
   rspack_sources::{RawSource, SourceExt},
-  AdditionalChunkRuntimeRequirementsArgs, ApplyContext, AssetInfo, Chunk, ChunkKind, ChunkUkey,
-  Compilation, CompilationAsset, CompilationParams, CompilationRecords, CompilerOptions,
-  DependencyType, PathData, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext,
-  RuntimeGlobals, RuntimeModuleExt, RuntimeSpec, SourceType,
+  ApplyContext, AssetInfo, Chunk, ChunkKind, ChunkUkey, Compilation,
+  CompilationAdditionalTreeRuntimeRequirements, CompilationAsset, CompilationParams,
+  CompilationProcessAssets, CompilationRecords, CompilerCompilation, CompilerContext,
+  CompilerOptions, DependencyType, LoaderContext, NormalModuleLoader, PathData, Plugin,
+  PluginContext, RuntimeGlobals, RuntimeModuleExt, RuntimeSpec, SourceType,
 };
 use rspack_error::Result;
 use rspack_hash::RspackHash;
-use rspack_hook::{plugin, plugin_hook, AsyncSeries, AsyncSeries2, SyncSeries};
+use rspack_hook::{plugin, plugin_hook};
 use rspack_identifier::IdentifierSet;
 use rspack_util::infallible::ResultInfallibleExt as _;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
@@ -23,7 +24,7 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 #[derive(Debug, Default)]
 pub struct HotModuleReplacementPlugin;
 
-#[plugin_hook(AsyncSeries2<Compilation, CompilationParams> for HotModuleReplacementPlugin)]
+#[plugin_hook(CompilerCompilation for HotModuleReplacementPlugin)]
 async fn compilation(
   &self,
   compilation: &mut Compilation,
@@ -48,7 +49,7 @@ async fn compilation(
   Ok(())
 }
 
-#[plugin_hook(AsyncSeries<Compilation> for HotModuleReplacementPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONAL)]
+#[plugin_hook(CompilationProcessAssets for HotModuleReplacementPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONAL)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let Some(CompilationRecords {
     old_chunks,
@@ -328,9 +329,30 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   Ok(())
 }
 
-#[plugin_hook(SyncSeries<bool> for HotModuleReplacementPlugin)]
-fn normal_module_loader(&self, hot: &mut bool) -> Result<()> {
-  *hot = true;
+#[plugin_hook(NormalModuleLoader for HotModuleReplacementPlugin)]
+fn normal_module_loader(&self, context: &mut LoaderContext<CompilerContext>) -> Result<()> {
+  context.hot = true;
+  Ok(())
+}
+
+#[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for HotModuleReplacementPlugin)]
+fn additional_tree_runtime_requirements(
+  &self,
+  compilation: &mut Compilation,
+  chunk_ukey: &ChunkUkey,
+  runtime_requirements: &mut RuntimeGlobals,
+) -> Result<()> {
+  // TODO: the hmr runtime is depend on module.id, but webpack not add it.
+  runtime_requirements.insert(RuntimeGlobals::MODULE_ID);
+  runtime_requirements.insert(RuntimeGlobals::HMR_DOWNLOAD_MANIFEST);
+  runtime_requirements.insert(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
+  runtime_requirements.insert(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION);
+  runtime_requirements.insert(RuntimeGlobals::MODULE_CACHE);
+  compilation.add_runtime_module(
+    chunk_ukey,
+    HotModuleReplacementRuntimeModule::default().boxed(),
+  )?;
+
   Ok(())
 }
 
@@ -361,28 +383,11 @@ impl Plugin for HotModuleReplacementPlugin {
       .normal_module_hooks
       .loader
       .tap(normal_module_loader::new(self));
-    Ok(())
-  }
-
-  async fn additional_tree_runtime_requirements(
-    &self,
-    _ctx: PluginContext,
-    args: &mut AdditionalChunkRuntimeRequirementsArgs,
-  ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
-    let compilation = &mut args.compilation;
-    let chunk = args.chunk;
-    let runtime_requirements = &mut args.runtime_requirements;
-
-    // TODO: the hmr runtime is depend on module.id, but webpack not add it.
-    runtime_requirements.insert(RuntimeGlobals::MODULE_ID);
-    runtime_requirements.insert(RuntimeGlobals::HMR_DOWNLOAD_MANIFEST);
-    runtime_requirements.insert(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
-    runtime_requirements.insert(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION);
-    runtime_requirements.insert(RuntimeGlobals::MODULE_CACHE);
-    compilation
-      .add_runtime_module(chunk, HotModuleReplacementRuntimeModule::default().boxed())
-      .await?;
-
+    ctx
+      .context
+      .compilation_hooks
+      .additional_tree_runtime_requirements
+      .tap(additional_tree_runtime_requirements::new(self));
     Ok(())
   }
 }

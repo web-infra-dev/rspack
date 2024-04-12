@@ -11,10 +11,10 @@ use rayon::prelude::*;
 use rspack_core::{
   parse_to_url,
   rspack_sources::{RawSource, SourceExt},
-  Compilation, CompilationAsset, FilenameTemplate, PathData, Plugin,
+  Compilation, CompilationAsset, CompilationProcessAssets, FilenameTemplate, PathData, Plugin,
 };
 use rspack_error::{AnyhowError, Result};
-use rspack_hook::{plugin, plugin_hook, AsyncSeries};
+use rspack_hook::{plugin, plugin_hook};
 use rspack_util::infallible::ResultInfallibleExt as _;
 use swc_html::visit::VisitMutWith;
 
@@ -37,7 +37,7 @@ impl HtmlRspackPlugin {
   }
 }
 
-#[plugin_hook(AsyncSeries<Compilation> for HtmlRspackPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE)]
+#[plugin_hook(CompilationProcessAssets for HtmlRspackPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let config = &self.config;
 
@@ -184,7 +184,11 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
   if let Some(favicon) = &self.config.favicon {
     let url = parse_to_url(favicon);
-    let favicon_file_path = PathBuf::from(config.get_relative_path(compilation, favicon));
+    let favicon_file_path = PathBuf::from(config.get_relative_path(compilation, favicon))
+      .file_name()
+      .expect("Should have favicon file name")
+      .to_string_lossy()
+      .to_string();
 
     let resolved_favicon = AsRef::<Path>::as_ref(&compilation.options.context).join(url.path());
     let content = fs::read(resolved_favicon)
@@ -195,7 +199,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       ))
       .map_err(AnyhowError::from)?;
     compilation.emit_asset(
-      favicon_file_path.to_string_lossy().to_string(),
+      favicon_file_path,
       CompilationAsset::from(RawSource::from(content).boxed()),
     );
   }

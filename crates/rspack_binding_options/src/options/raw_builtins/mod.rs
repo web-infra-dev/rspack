@@ -3,6 +3,7 @@ mod raw_bundle_info;
 mod raw_copy;
 mod raw_css_extract;
 mod raw_html;
+mod raw_ignore;
 mod raw_limit_chunk_count;
 mod raw_mf;
 mod raw_progress;
@@ -34,6 +35,7 @@ use rspack_plugin_externals::{
 };
 use rspack_plugin_hmr::HotModuleReplacementPlugin;
 use rspack_plugin_html::HtmlRspackPlugin;
+use rspack_plugin_ignore::IgnorePlugin;
 use rspack_plugin_javascript::{
   api_plugin::APIPlugin, FlagDependencyExportsPlugin, FlagDependencyUsagePlugin,
   InferAsyncModulesPlugin, JsPlugin, MangleExportsPlugin, ModuleConcatenationPlugin,
@@ -64,8 +66,9 @@ use rspack_plugin_worker::WorkerPlugin;
 
 pub use self::{
   raw_banner::RawBannerPluginOptions, raw_copy::RawCopyRspackPluginOptions,
-  raw_html::RawHtmlRspackPluginOptions, raw_limit_chunk_count::RawLimitChunkCountPluginOptions,
-  raw_mf::RawContainerPluginOptions, raw_progress::RawProgressPluginOptions,
+  raw_html::RawHtmlRspackPluginOptions, raw_ignore::RawIgnorePluginOptions,
+  raw_limit_chunk_count::RawLimitChunkCountPluginOptions, raw_mf::RawContainerPluginOptions,
+  raw_progress::RawProgressPluginOptions,
   raw_swc_js_minimizer::RawSwcJsMinimizerRspackPluginOptions,
 };
 use self::{
@@ -86,6 +89,7 @@ pub enum BuiltinPluginName {
   DefinePlugin,
   ProvidePlugin,
   BannerPlugin,
+  IgnorePlugin,
   ProgressPlugin,
   EntryPlugin,
   ExternalsPlugin,
@@ -176,6 +180,11 @@ impl BuiltinPlugin {
             .boxed();
         plugins.push(plugin);
       }
+      BuiltinPluginName::IgnorePlugin => {
+        let plugin =
+          IgnorePlugin::new(downcast_into::<RawIgnorePluginOptions>(self.options)?.into()).boxed();
+        plugins.push(plugin);
+      }
       BuiltinPluginName::ProgressPlugin => {
         let plugin =
           ProgressPlugin::new(downcast_into::<RawProgressPluginOptions>(self.options)?.into())
@@ -220,7 +229,7 @@ impl BuiltinPlugin {
         ));
       }
       BuiltinPluginName::ChunkPrefetchPreloadPlugin => {
-        plugins.push(ChunkPrefetchPreloadPlugin.boxed());
+        plugins.push(ChunkPrefetchPreloadPlugin::default().boxed());
       }
       BuiltinPluginName::CommonJsChunkFormatPlugin => {
         plugins.push(CommonJsChunkFormatPlugin::default().boxed());
@@ -248,7 +257,7 @@ impl BuiltinPlugin {
         web_worker_template_plugin(plugins);
       }
       BuiltinPluginName::MergeDuplicateChunksPlugin => {
-        plugins.push(MergeDuplicateChunksPlugin.boxed());
+        plugins.push(MergeDuplicateChunksPlugin::default().boxed());
       }
       BuiltinPluginName::SplitChunksPlugin => {
         use rspack_plugin_split_chunks::SplitChunksPlugin;
@@ -301,12 +310,14 @@ impl BuiltinPlugin {
       BuiltinPluginName::RealContentHashPlugin => {
         plugins.push(RealContentHashPlugin::default().boxed())
       }
-      BuiltinPluginName::RemoveEmptyChunksPlugin => plugins.push(RemoveEmptyChunksPlugin.boxed()),
+      BuiltinPluginName::RemoveEmptyChunksPlugin => {
+        plugins.push(RemoveEmptyChunksPlugin::default().boxed())
+      }
       BuiltinPluginName::EnsureChunkConditionsPlugin => {
-        plugins.push(EnsureChunkConditionsPlugin.boxed())
+        plugins.push(EnsureChunkConditionsPlugin::default().boxed())
       }
       BuiltinPluginName::WarnCaseSensitiveModulesPlugin => {
-        plugins.push(WarnCaseSensitiveModulesPlugin.boxed())
+        plugins.push(WarnCaseSensitiveModulesPlugin::default().boxed())
       }
       BuiltinPluginName::DataUriPlugin => plugins.push(DataUriPlugin::default().boxed()),
       BuiltinPluginName::FileUriPlugin => plugins.push(FileUriPlugin::default().boxed()),

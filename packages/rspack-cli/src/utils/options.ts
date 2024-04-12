@@ -15,7 +15,8 @@ export const commonOptions = (yargs: yargs.Argv) => {
 			},
 			"output-path": {
 				type: "string",
-				describe: "output path dir"
+				describe: "output path dir",
+				alias: "o"
 			},
 			mode: { type: "string", describe: "mode", alias: "m" },
 			watch: {
@@ -36,7 +37,8 @@ export const commonOptions = (yargs: yargs.Argv) => {
 			devtool: {
 				type: "boolean",
 				default: false,
-				describe: "devtool"
+				describe: "devtool",
+				alias: "d"
 			},
 			configName: {
 				type: "array",

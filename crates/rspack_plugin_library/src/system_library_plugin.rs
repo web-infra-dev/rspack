@@ -2,13 +2,12 @@ use std::{hash::Hash, sync::Arc};
 
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceExt},
-  AdditionalChunkRuntimeRequirementsArgs, ApplyContext, ChunkUkey, Compilation, CompilationParams,
-  CompilerOptions, ExternalModule, ExternalRequest, LibraryName, LibraryNonUmdObject,
-  LibraryOptions, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext,
-  RuntimeGlobals,
+  ApplyContext, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
+  CompilationParams, CompilerCompilation, CompilerOptions, ExternalModule, ExternalRequest,
+  LibraryName, LibraryNonUmdObject, LibraryOptions, Plugin, PluginContext, RuntimeGlobals,
 };
 use rspack_error::{error, error_bail, Result};
-use rspack_hook::{plugin, plugin_hook, AsyncSeries2};
+use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   JavascriptModulesPluginPlugin, JsChunkHashArgs, JsPlugin, PluginJsChunkHashHookOutput,
   PluginRenderJsHookOutput, RenderJsArgs,
@@ -162,7 +161,7 @@ impl JavascriptModulesPluginPlugin for SystemLibraryJavascriptModulesPluginPlugi
   }
 }
 
-#[plugin_hook(AsyncSeries2<Compilation, CompilationParams> for SystemLibraryPlugin)]
+#[plugin_hook(CompilerCompilation for SystemLibraryPlugin)]
 async fn compilation(
   &self,
   compilation: &mut Compilation,
@@ -173,7 +172,23 @@ async fn compilation(
   Ok(())
 }
 
-#[async_trait::async_trait]
+#[plugin_hook(CompilationAdditionalChunkRuntimeRequirements for SystemLibraryPlugin)]
+fn additional_chunk_runtime_requirements(
+  &self,
+  compilation: &mut Compilation,
+  chunk_ukey: &ChunkUkey,
+  runtime_requirements: &mut RuntimeGlobals,
+) -> Result<()> {
+  let Some(_) = self
+    .js_plugin
+    .get_options_for_chunk(compilation, chunk_ukey)?
+  else {
+    return Ok(());
+  };
+  runtime_requirements.insert(RuntimeGlobals::RETURN_EXPORTS_FROM_RUNTIME);
+  Ok(())
+}
+
 impl Plugin for SystemLibraryPlugin {
   fn name(&self) -> &'static str {
     PLUGIN_NAME
@@ -189,23 +204,11 @@ impl Plugin for SystemLibraryPlugin {
       .compiler_hooks
       .compilation
       .tap(compilation::new(self));
-    Ok(())
-  }
-
-  async fn additional_chunk_runtime_requirements(
-    &self,
-    _ctx: PluginContext,
-    args: &mut AdditionalChunkRuntimeRequirementsArgs,
-  ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
-    let Some(_) = self
-      .js_plugin
-      .get_options_for_chunk(args.compilation, args.chunk)?
-    else {
-      return Ok(());
-    };
-    args
-      .runtime_requirements
-      .insert(RuntimeGlobals::RETURN_EXPORTS_FROM_RUNTIME);
+    ctx
+      .context
+      .compilation_hooks
+      .additional_chunk_runtime_requirements
+      .tap(additional_chunk_runtime_requirements::new(self));
     Ok(())
   }
 }

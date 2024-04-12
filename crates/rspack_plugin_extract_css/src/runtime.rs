@@ -5,9 +5,9 @@ use rspack_core::{
   RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
 };
 use rspack_error::Result;
-use rustc_hash::FxHashSet;
+use rustc_hash::{FxHashMap, FxHashSet};
 
-use crate::plugin::{CssExtractOptions, InsertType, SOURCE_TYPE};
+use crate::plugin::{InsertType, SOURCE_TYPE};
 
 static RUNTIME_CODE: &str = include_str!("./runtime/css_load.js");
 static WITH_LOADING: &str = include_str!("./runtime/with_loading.js");
@@ -17,7 +17,10 @@ static WITH_HMR: &str = include_str!("./runtime/with_hmr.js");
 #[derive(Debug, Eq)]
 pub(crate) struct CssLoadingRuntimeModule {
   chunk: ChunkUkey,
-  options: Arc<CssExtractOptions>,
+  attributes: FxHashMap<String, String>,
+  link_type: Option<String>,
+  insert: InsertType,
+
   loading: bool,
   hmr: bool,
 }
@@ -25,13 +28,17 @@ pub(crate) struct CssLoadingRuntimeModule {
 impl CssLoadingRuntimeModule {
   pub(crate) fn new(
     chunk: ChunkUkey,
-    options: Arc<CssExtractOptions>,
+    attributes: FxHashMap<String, String>,
+    link_type: Option<String>,
+    insert: InsertType,
     loading: bool,
     hmr: bool,
   ) -> Self {
     Self {
       chunk,
-      options,
+      attributes,
+      link_type,
+      insert,
       loading,
       hmr,
       source_map_kind: rspack_util::source_map::SourceMapKind::None,
@@ -75,7 +82,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
     let runtime = RUNTIME_CODE;
 
     let mut attr = String::default();
-    let mut attributes = self.options.attributes.iter().collect::<Vec<_>>();
+    let mut attributes = self.attributes.iter().collect::<Vec<_>>();
     attributes.sort_unstable_by(|(k1, _), (k2, _)| k1.cmp(k2));
 
     for (attr_key, attr_value) in attributes {
@@ -83,7 +90,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
     }
     let runtime = runtime.replace("__SET_ATTRIBUTES__", &attr);
 
-    let runtime = if let Some(link_type) = &self.options.link_type {
+    let runtime = if let Some(link_type) = &self.link_type {
       runtime.replace("__SET_LINKTYPE__", &format!("linkTag.type={};", link_type))
     } else {
       runtime.replace("__SET_LINKTYPE__", "")
@@ -105,7 +112,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
       runtime.replace("__CROSS_ORIGIN_LOADING__", "")
     };
 
-    let runtime = match &self.options.insert {
+    let runtime = match &self.insert {
       InsertType::Fn(f) => runtime.replace("__INSERT__", &format!("({f})(linkTag);")),
       InsertType::Selector(sel) => runtime.replace(
         "__INSERT__",

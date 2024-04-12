@@ -9,13 +9,14 @@ use rspack_core::concatenated_module::{
   is_harmony_dep_like, ConcatenatedInnerModule, ConcatenatedModule, RootModuleContext,
 };
 use rspack_core::{
-  filter_runtime, merge_runtime, runtime_to_string, ApplyContext, Compilation, CompilerContext,
-  CompilerOptions, ExportInfoProvided, ExtendedReferencedExport, LibIdentOptions, Logger, Module,
-  ModuleExt, ModuleGraph, ModuleGraphModule, ModuleIdentifier, MutableModuleGraph, Plugin,
-  PluginContext, ProvidedExports, RuntimeCondition, RuntimeSpec, SourceType,
+  filter_runtime, merge_runtime, runtime_to_string, ApplyContext, Compilation,
+  CompilationOptimizeChunkModules, CompilerContext, CompilerOptions, ExportInfoProvided,
+  ExtendedReferencedExport, LibIdentOptions, Logger, Module, ModuleExt, ModuleGraph,
+  ModuleGraphModule, ModuleIdentifier, MutableModuleGraph, Plugin, PluginContext, ProvidedExports,
+  RuntimeCondition, RuntimeSpec, SourceType,
 };
 use rspack_error::Result;
-use rspack_hook::{plugin, plugin_hook, AsyncSeriesBail};
+use rspack_hook::{plugin, plugin_hook};
 use rspack_util::fx_hash::FxDashMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
@@ -912,11 +913,6 @@ impl ModuleConcatenationPlugin {
               module_context: None,
               module_source_map_kind: rspack_util::source_map::SourceMapKind::None,
               cache: compilation.cache.clone(),
-              factorize_queue: compilation.factorize_queue.clone(),
-              build_queue: compilation.build_queue.clone(),
-              add_queue: compilation.add_queue.clone(),
-              process_dependencies_queue: compilation.process_dependencies_queue.clone(),
-              build_time_execution_queue: compilation.build_time_execution_queue.clone(),
               plugin_driver: compilation.plugin_driver.clone(),
             },
             plugin_driver: compilation.plugin_driver.clone(),
@@ -997,7 +993,7 @@ impl ModuleConcatenationPlugin {
   }
 }
 
-#[plugin_hook(AsyncSeriesBail<Compilation, bool> for ModuleConcatenationPlugin)]
+#[plugin_hook(CompilationOptimizeChunkModules for ModuleConcatenationPlugin)]
 async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
   self.optimize_chunk_modules_impl(compilation).await?;
   Ok(None)

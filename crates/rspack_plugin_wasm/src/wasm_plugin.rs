@@ -4,11 +4,11 @@ use async_trait::async_trait;
 use rayon::prelude::*;
 use rspack_core::{
   ApplyContext, ChunkUkey, Compilation, CompilationParams, CompilationRenderManifest,
-  CompilerOptions, DependencyType, ModuleType, ParserAndGenerator, Plugin, PluginContext,
-  RenderManifestEntry, SourceType,
+  CompilerCompilation, CompilerOptions, DependencyType, ModuleType, ParserAndGenerator, Plugin,
+  PluginContext, RenderManifestEntry, SourceType,
 };
 use rspack_error::{Diagnostic, Result};
-use rspack_hook::{plugin, plugin_hook, AsyncSeries2};
+use rspack_hook::{plugin, plugin_hook};
 
 use crate::{AsyncWasmParserAndGenerator, ModuleIdToFileName};
 
@@ -20,7 +20,7 @@ pub struct AsyncWasmPlugin {
   pub module_id_to_filename_without_ext: ModuleIdToFileName,
 }
 
-#[plugin_hook(AsyncSeries2<Compilation, CompilationParams> for AsyncWasmPlugin)]
+#[plugin_hook(CompilerCompilation for AsyncWasmPlugin)]
 async fn compilation(
   &self,
   compilation: &mut Compilation,

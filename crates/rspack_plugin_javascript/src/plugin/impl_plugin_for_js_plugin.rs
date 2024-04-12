@@ -4,22 +4,22 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use rspack_core::rspack_sources::BoxSource;
 use rspack_core::{
-  get_js_chunk_filename_template, AdditionalChunkRuntimeRequirementsArgs, ChunkGraph, ChunkKind,
-  ChunkUkey, Compilation, CompilationChunkHash, CompilationContentHash, CompilationParams,
-  CompilationRenderManifest, CompilerOptions, DependencyType, ErrorSpan, IgnoreErrorModuleFactory,
-  ModuleGraph, ModuleType, ParserAndGenerator, PathData, Plugin,
-  PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, RenderManifestEntry,
-  RuntimeGlobals, SelfModuleFactory, SourceType,
+  get_js_chunk_filename_template, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
+  CompilationAdditionalTreeRuntimeRequirements, CompilationChunkHash, CompilationContentHash,
+  CompilationParams, CompilationRenderManifest, CompilerCompilation, CompilerOptions,
+  DependencyType, ErrorSpan, IgnoreErrorModuleFactory, ModuleGraph, ModuleType, ParserAndGenerator,
+  PathData, Plugin, PluginContext, RenderManifestEntry, RuntimeGlobals, SelfModuleFactory,
+  SourceType,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hash::RspackHash;
-use rspack_hook::{plugin_hook, AsyncSeries2};
+use rspack_hook::plugin_hook;
 use rustc_hash::FxHashMap;
 
 use crate::parser_and_generator::JavaScriptParserAndGenerator;
 use crate::{JsPlugin, JsPluginInner};
 
-#[plugin_hook(AsyncSeries2<Compilation, CompilationParams> for JsPlugin)]
+#[plugin_hook(CompilerCompilation for JsPlugin)]
 async fn compilation(
   &self,
   compilation: &mut Compilation,
@@ -116,6 +116,24 @@ async fn compilation(
     DependencyType::CjsSelfReference,
     Arc::new(SelfModuleFactory {}),
   );
+  Ok(())
+}
+
+#[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for JsPlugin)]
+fn additional_tree_runtime_requirements(
+  &self,
+  compilation: &mut Compilation,
+  chunk_ukey: &ChunkUkey,
+  runtime_requirements: &mut RuntimeGlobals,
+) -> Result<()> {
+  if !runtime_requirements.contains(RuntimeGlobals::STARTUP_NO_DEFAULT)
+    && compilation
+      .chunk_graph
+      .has_chunk_entry_dependent_chunks(chunk_ukey, &compilation.chunk_group_by_ukey)
+  {
+    runtime_requirements.insert(RuntimeGlobals::ON_CHUNKS_LOADED);
+    runtime_requirements.insert(RuntimeGlobals::REQUIRE);
+  }
   Ok(())
 }
 
@@ -270,6 +288,11 @@ impl Plugin for JsPlugin {
     ctx
       .context
       .compilation_hooks
+      .additional_tree_runtime_requirements
+      .tap(additional_tree_runtime_requirements::new(self));
+    ctx
+      .context
+      .compilation_hooks
       .chunk_hash
       .tap(chunk_hash::new(self));
     ctx
@@ -296,24 +319,6 @@ impl Plugin for JsPlugin {
       Box::new(|_, _| Box::new(JavaScriptParserAndGenerator) as Box<dyn ParserAndGenerator>),
     );
 
-    Ok(())
-  }
-
-  async fn additional_tree_runtime_requirements(
-    &self,
-    _ctx: PluginContext,
-    args: &mut AdditionalChunkRuntimeRequirementsArgs,
-  ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
-    let compilation = &mut args.compilation;
-    let runtime_requirements = &mut args.runtime_requirements;
-    if !runtime_requirements.contains(RuntimeGlobals::STARTUP_NO_DEFAULT)
-      && compilation
-        .chunk_graph
-        .has_chunk_entry_dependent_chunks(args.chunk, &compilation.chunk_group_by_ukey)
-    {
-      runtime_requirements.insert(RuntimeGlobals::ON_CHUNKS_LOADED);
-      runtime_requirements.insert(RuntimeGlobals::REQUIRE);
-    }
     Ok(())
   }
 }

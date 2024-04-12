@@ -16,24 +16,30 @@ use rspack_binding_values::{
   JsResolveForSchemeOutput, JsRuntimeModule, JsRuntimeModuleArg, ToJsCompatSource, ToJsModule,
 };
 use rspack_core::{
-  rspack_sources::SourceExt, AssetEmittedInfo, BeforeResolveArgs, BoxModule, Chunk, ChunkUkey,
-  CodeGenerationResults, Compilation, CompilationAfterOptimizeModulesHook,
-  CompilationAfterProcessAssetsHook, CompilationAfterSealHook, CompilationBuildModuleHook,
-  CompilationChunkAssetHook, CompilationExecuteModuleHook, CompilationFinishModulesHook,
-  CompilationOptimizeChunkModulesHook, CompilationOptimizeModulesHook, CompilationOptimizeTreeHook,
-  CompilationParams, CompilationProcessAssetsHook, CompilationRuntimeModuleHook,
-  CompilationStillValidModuleHook, CompilationSucceedModuleHook, CompilerAfterEmitHook,
-  CompilerAssetEmittedHook, CompilerCompilationHook, CompilerEmitHook, CompilerFinishMakeHook,
-  CompilerMakeHook, CompilerShouldEmitHook, CompilerThisCompilationHook,
-  ContextModuleFactoryAfterResolveHook, ContextModuleFactoryBeforeResolveHook, ExecuteModuleId,
+  rspack_sources::SourceExt, AssetEmittedInfo, BoxModule, Chunk, ChunkUkey, CodeGenerationResults,
+  Compilation, CompilationAfterOptimizeModules, CompilationAfterOptimizeModulesHook,
+  CompilationAfterProcessAssets, CompilationAfterProcessAssetsHook, CompilationAfterSeal,
+  CompilationAfterSealHook, CompilationBuildModule, CompilationBuildModuleHook,
+  CompilationChunkAsset, CompilationChunkAssetHook, CompilationExecuteModule,
+  CompilationExecuteModuleHook, CompilationFinishModules, CompilationFinishModulesHook,
+  CompilationOptimizeChunkModules, CompilationOptimizeChunkModulesHook, CompilationOptimizeModules,
+  CompilationOptimizeModulesHook, CompilationOptimizeTree, CompilationOptimizeTreeHook,
+  CompilationParams, CompilationProcessAssets, CompilationProcessAssetsHook,
+  CompilationRuntimeModule, CompilationRuntimeModuleHook, CompilationStillValidModule,
+  CompilationStillValidModuleHook, CompilationSucceedModule, CompilationSucceedModuleHook,
+  CompilerAfterEmit, CompilerAfterEmitHook, CompilerAssetEmitted, CompilerAssetEmittedHook,
+  CompilerCompilation, CompilerCompilationHook, CompilerEmit, CompilerEmitHook, CompilerFinishMake,
+  CompilerFinishMakeHook, CompilerMake, CompilerMakeHook, CompilerShouldEmit,
+  CompilerShouldEmitHook, CompilerThisCompilation, CompilerThisCompilationHook,
+  ContextModuleFactoryAfterResolve, ContextModuleFactoryAfterResolveHook,
+  ContextModuleFactoryBeforeResolve, ContextModuleFactoryBeforeResolveHook, ExecuteModuleId,
   MakeParam, ModuleFactoryCreateData, ModuleIdentifier, NormalModuleCreateData,
-  NormalModuleFactoryAfterResolveHook, NormalModuleFactoryBeforeResolveHook,
-  NormalModuleFactoryCreateModuleHook, NormalModuleFactoryResolveForSchemeHook, ResourceData,
+  NormalModuleFactoryAfterResolve, NormalModuleFactoryAfterResolveHook,
+  NormalModuleFactoryBeforeResolve, NormalModuleFactoryBeforeResolveHook,
+  NormalModuleFactoryCreateModule, NormalModuleFactoryCreateModuleHook,
+  NormalModuleFactoryResolveForScheme, NormalModuleFactoryResolveForSchemeHook, ResourceData,
 };
-use rspack_hook::{
-  AsyncParallel3, AsyncSeries, AsyncSeries2, AsyncSeries3, AsyncSeriesBail, AsyncSeriesBail2, Hook,
-  Interceptor, SyncSeries4,
-};
+use rspack_hook::{Hook, Interceptor};
 use rspack_identifier::IdentifierSet;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 
@@ -672,7 +678,7 @@ define_register!(
 );
 
 #[async_trait]
-impl AsyncSeries2<Compilation, CompilationParams> for CompilerThisCompilationTap {
+impl CompilerThisCompilation for CompilerThisCompilationTap {
   async fn run(
     &self,
     compilation: &mut Compilation,
@@ -692,7 +698,7 @@ impl AsyncSeries2<Compilation, CompilationParams> for CompilerThisCompilationTap
 }
 
 #[async_trait]
-impl AsyncSeries2<Compilation, CompilationParams> for CompilerCompilationTap {
+impl CompilerCompilation for CompilerCompilationTap {
   async fn run(
     &self,
     compilation: &mut Compilation,
@@ -712,7 +718,7 @@ impl AsyncSeries2<Compilation, CompilationParams> for CompilerCompilationTap {
 }
 
 #[async_trait]
-impl AsyncSeries2<Compilation, Vec<MakeParam>> for CompilerMakeTap {
+impl CompilerMake for CompilerMakeTap {
   async fn run(
     &self,
     compilation: &mut Compilation,
@@ -733,7 +739,7 @@ impl AsyncSeries2<Compilation, Vec<MakeParam>> for CompilerMakeTap {
 }
 
 #[async_trait]
-impl AsyncSeries<Compilation> for CompilerFinishMakeTap {
+impl CompilerFinishMake for CompilerFinishMakeTap {
   async fn run(&self, compilation: &mut Compilation) -> rspack_error::Result<()> {
     // SAFETY:
     // 1. `Compiler` is stored on the heap and pinned in binding crate.
@@ -750,7 +756,7 @@ impl AsyncSeries<Compilation> for CompilerFinishMakeTap {
 }
 
 #[async_trait]
-impl AsyncSeriesBail<Compilation, bool> for CompilerShouldEmitTap {
+impl CompilerShouldEmit for CompilerShouldEmitTap {
   async fn run(&self, compilation: &mut Compilation) -> rspack_error::Result<Option<bool>> {
     // SAFETY:
     // 1. `Compiler` is stored on the heap and pinned in binding crate.
@@ -767,7 +773,7 @@ impl AsyncSeriesBail<Compilation, bool> for CompilerShouldEmitTap {
 }
 
 #[async_trait]
-impl AsyncSeries<Compilation> for CompilerEmitTap {
+impl CompilerEmit for CompilerEmitTap {
   async fn run(&self, _compilation: &mut Compilation) -> rspack_error::Result<()> {
     self.function.call_with_promise(()).await
   }
@@ -778,7 +784,7 @@ impl AsyncSeries<Compilation> for CompilerEmitTap {
 }
 
 #[async_trait]
-impl AsyncSeries<Compilation> for CompilerAfterEmitTap {
+impl CompilerAfterEmit for CompilerAfterEmitTap {
   async fn run(&self, _compilation: &mut Compilation) -> rspack_error::Result<()> {
     self.function.call_with_promise(()).await
   }
@@ -789,11 +795,11 @@ impl AsyncSeries<Compilation> for CompilerAfterEmitTap {
 }
 
 #[async_trait]
-impl AsyncParallel3<Compilation, String, AssetEmittedInfo> for CompilerAssetEmittedTap {
+impl CompilerAssetEmitted for CompilerAssetEmittedTap {
   async fn run(
     &self,
     _compilation: &Compilation,
-    filename: &String,
+    filename: &str,
     info: &AssetEmittedInfo,
   ) -> rspack_error::Result<()> {
     self
@@ -812,7 +818,7 @@ impl AsyncParallel3<Compilation, String, AssetEmittedInfo> for CompilerAssetEmit
 }
 
 #[async_trait]
-impl AsyncSeries<BoxModule> for CompilationBuildModuleTap {
+impl CompilationBuildModule for CompilationBuildModuleTap {
   async fn run(&self, module: &mut BoxModule) -> rspack_error::Result<()> {
     self
       .function
@@ -826,7 +832,7 @@ impl AsyncSeries<BoxModule> for CompilationBuildModuleTap {
 }
 
 #[async_trait]
-impl AsyncSeries<BoxModule> for CompilationStillValidModuleTap {
+impl CompilationStillValidModule for CompilationStillValidModuleTap {
   async fn run(&self, module: &mut BoxModule) -> rspack_error::Result<()> {
     self
       .function
@@ -840,7 +846,7 @@ impl AsyncSeries<BoxModule> for CompilationStillValidModuleTap {
 }
 
 #[async_trait]
-impl AsyncSeries<BoxModule> for CompilationSucceedModuleTap {
+impl CompilationSucceedModule for CompilationSucceedModuleTap {
   async fn run(&self, module: &mut BoxModule) -> rspack_error::Result<()> {
     self
       .function
@@ -854,15 +860,13 @@ impl AsyncSeries<BoxModule> for CompilationSucceedModuleTap {
 }
 
 #[async_trait]
-impl SyncSeries4<ModuleIdentifier, IdentifierSet, CodeGenerationResults, ExecuteModuleId>
-  for CompilationExecuteModuleTap
-{
+impl CompilationExecuteModule for CompilationExecuteModuleTap {
   fn run(
     &self,
-    entry: &mut ModuleIdentifier,
-    runtime_modules: &mut IdentifierSet,
-    codegen_results: &mut CodeGenerationResults,
-    id: &mut ExecuteModuleId,
+    entry: &ModuleIdentifier,
+    runtime_modules: &IdentifierSet,
+    codegen_results: &CodeGenerationResults,
+    id: &ExecuteModuleId,
   ) -> rspack_error::Result<()> {
     self.function.blocking_call_with_sync(JsExecuteModuleArg {
       entry: entry.to_string(),
@@ -878,7 +882,7 @@ impl SyncSeries4<ModuleIdentifier, IdentifierSet, CodeGenerationResults, Execute
 }
 
 #[async_trait]
-impl AsyncSeries<Compilation> for CompilationFinishModulesTap {
+impl CompilationFinishModules for CompilationFinishModulesTap {
   async fn run(&self, compilation: &mut Compilation) -> rspack_error::Result<()> {
     // SAFETY:
     // 1. `Compiler` is stored on the heap and pinned in binding crate.
@@ -895,7 +899,7 @@ impl AsyncSeries<Compilation> for CompilationFinishModulesTap {
 }
 
 #[async_trait]
-impl AsyncSeriesBail<Compilation, bool> for CompilationOptimizeModulesTap {
+impl CompilationOptimizeModules for CompilationOptimizeModulesTap {
   async fn run(&self, _compilation: &mut Compilation) -> rspack_error::Result<Option<bool>> {
     self.function.call_with_sync(()).await
   }
@@ -906,7 +910,7 @@ impl AsyncSeriesBail<Compilation, bool> for CompilationOptimizeModulesTap {
 }
 
 #[async_trait]
-impl AsyncSeries<Compilation> for CompilationAfterOptimizeModulesTap {
+impl CompilationAfterOptimizeModules for CompilationAfterOptimizeModulesTap {
   async fn run(&self, _compilation: &mut Compilation) -> rspack_error::Result<()> {
     self.function.call_with_sync(()).await
   }
@@ -917,7 +921,7 @@ impl AsyncSeries<Compilation> for CompilationAfterOptimizeModulesTap {
 }
 
 #[async_trait]
-impl AsyncSeries<Compilation> for CompilationOptimizeTreeTap {
+impl CompilationOptimizeTree for CompilationOptimizeTreeTap {
   async fn run(&self, _compilation: &mut Compilation) -> rspack_error::Result<()> {
     self.function.call_with_promise(()).await
   }
@@ -928,7 +932,7 @@ impl AsyncSeries<Compilation> for CompilationOptimizeTreeTap {
 }
 
 #[async_trait]
-impl AsyncSeriesBail<Compilation, bool> for CompilationOptimizeChunkModulesTap {
+impl CompilationOptimizeChunkModules for CompilationOptimizeChunkModulesTap {
   async fn run(&self, _compilation: &mut Compilation) -> rspack_error::Result<Option<bool>> {
     self.function.call_with_promise(()).await
   }
@@ -939,12 +943,12 @@ impl AsyncSeriesBail<Compilation, bool> for CompilationOptimizeChunkModulesTap {
 }
 
 #[async_trait]
-impl AsyncSeries3<Compilation, ModuleIdentifier, ChunkUkey> for CompilationRuntimeModuleTap {
+impl CompilationRuntimeModule for CompilationRuntimeModuleTap {
   async fn run(
     &self,
     compilation: &mut Compilation,
-    m: &mut ModuleIdentifier,
-    c: &mut ChunkUkey,
+    m: &ModuleIdentifier,
+    c: &ChunkUkey,
   ) -> rspack_error::Result<()> {
     let Some(module) = compilation.runtime_modules.get(m) else {
       return Ok(());
@@ -982,8 +986,8 @@ impl AsyncSeries3<Compilation, ModuleIdentifier, ChunkUkey> for CompilationRunti
 }
 
 #[async_trait]
-impl AsyncSeries2<Chunk, String> for CompilationChunkAssetTap {
-  async fn run(&self, chunk: &mut Chunk, file: &mut String) -> rspack_error::Result<()> {
+impl CompilationChunkAsset for CompilationChunkAssetTap {
+  async fn run(&self, chunk: &mut Chunk, file: &str) -> rspack_error::Result<()> {
     self
       .function
       .call_with_sync(JsChunkAssetArgs {
@@ -999,7 +1003,7 @@ impl AsyncSeries2<Chunk, String> for CompilationChunkAssetTap {
 }
 
 #[async_trait]
-impl AsyncSeries<Compilation> for CompilationProcessAssetsTap {
+impl CompilationProcessAssets for CompilationProcessAssetsTap {
   async fn run(&self, compilation: &mut Compilation) -> rspack_error::Result<()> {
     // SAFETY:
     // 1. `Compiler` is stored on the heap and pinned in binding crate.
@@ -1016,7 +1020,7 @@ impl AsyncSeries<Compilation> for CompilationProcessAssetsTap {
 }
 
 #[async_trait]
-impl AsyncSeries<Compilation> for CompilationAfterProcessAssetsTap {
+impl CompilationAfterProcessAssets for CompilationAfterProcessAssetsTap {
   async fn run(&self, compilation: &mut Compilation) -> rspack_error::Result<()> {
     // SAFETY:
     // 1. `Compiler` is stored on the heap and pinned in binding crate.
@@ -1033,7 +1037,7 @@ impl AsyncSeries<Compilation> for CompilationAfterProcessAssetsTap {
 }
 
 #[async_trait]
-impl AsyncSeries<Compilation> for CompilationAfterSealTap {
+impl CompilationAfterSeal for CompilationAfterSealTap {
   async fn run(&self, _compilation: &mut Compilation) -> rspack_error::Result<()> {
     self.function.call_with_promise(()).await
   }
@@ -1044,12 +1048,23 @@ impl AsyncSeries<Compilation> for CompilationAfterSealTap {
 }
 
 #[async_trait]
-impl AsyncSeriesBail<BeforeResolveArgs, bool> for NormalModuleFactoryBeforeResolveTap {
-  async fn run(&self, args: &mut BeforeResolveArgs) -> rspack_error::Result<Option<bool>> {
-    match self.function.call_with_promise(args.clone().into()).await {
+impl NormalModuleFactoryBeforeResolve for NormalModuleFactoryBeforeResolveTap {
+  async fn run(&self, data: &mut ModuleFactoryCreateData) -> rspack_error::Result<Option<bool>> {
+    let dependency = data
+      .dependency
+      .as_module_dependency_mut()
+      .expect("should be module dependency");
+    match self
+      .function
+      .call_with_promise(JsBeforeResolveArgs {
+        request: dependency.request().to_string(),
+        context: data.context.to_string(),
+      })
+      .await
+    {
       Ok((ret, resolve_data)) => {
-        args.request = resolve_data.request;
-        args.context = resolve_data.context;
+        dependency.set_request(resolve_data.request);
+        data.context = resolve_data.context.into();
         Ok(ret)
       }
       Err(err) => Err(err),
@@ -1062,9 +1077,7 @@ impl AsyncSeriesBail<BeforeResolveArgs, bool> for NormalModuleFactoryBeforeResol
 }
 
 #[async_trait]
-impl AsyncSeriesBail2<ModuleFactoryCreateData, ResourceData, bool>
-  for NormalModuleFactoryResolveForSchemeTap
-{
+impl NormalModuleFactoryResolveForScheme for NormalModuleFactoryResolveForSchemeTap {
   async fn run(
     &self,
     _data: &mut ModuleFactoryCreateData,
@@ -1087,9 +1100,7 @@ impl AsyncSeriesBail2<ModuleFactoryCreateData, ResourceData, bool>
 }
 
 #[async_trait]
-impl AsyncSeriesBail2<ModuleFactoryCreateData, NormalModuleCreateData, bool>
-  for NormalModuleFactoryAfterResolveTap
-{
+impl NormalModuleFactoryAfterResolve for NormalModuleFactoryAfterResolveTap {
   async fn run(
     &self,
     data: &mut ModuleFactoryCreateData,
@@ -1165,9 +1176,7 @@ impl AsyncSeriesBail2<ModuleFactoryCreateData, NormalModuleCreateData, bool>
 }
 
 #[async_trait]
-impl AsyncSeriesBail2<ModuleFactoryCreateData, NormalModuleCreateData, BoxModule>
-  for NormalModuleFactoryCreateModuleTap
-{
+impl NormalModuleFactoryCreateModule for NormalModuleFactoryCreateModuleTap {
   async fn run(
     &self,
     data: &mut ModuleFactoryCreateData,
@@ -1192,12 +1201,23 @@ impl AsyncSeriesBail2<ModuleFactoryCreateData, NormalModuleCreateData, BoxModule
 }
 
 #[async_trait]
-impl AsyncSeriesBail<BeforeResolveArgs, bool> for ContextModuleFactoryBeforeResolveTap {
-  async fn run(&self, args: &mut BeforeResolveArgs) -> rspack_error::Result<Option<bool>> {
-    match self.function.call_with_promise(args.clone().into()).await {
+impl ContextModuleFactoryBeforeResolve for ContextModuleFactoryBeforeResolveTap {
+  async fn run(&self, data: &mut ModuleFactoryCreateData) -> rspack_error::Result<Option<bool>> {
+    let dependency = data
+      .dependency
+      .as_context_dependency_mut()
+      .expect("should be context dependency");
+    match self
+      .function
+      .call_with_promise(JsBeforeResolveArgs {
+        request: dependency.request().to_string(),
+        context: data.context.to_string(),
+      })
+      .await
+    {
       Ok((ret, resolve_data)) => {
-        args.request = resolve_data.request;
-        args.context = resolve_data.context;
+        dependency.set_request(resolve_data.request);
+        data.context = resolve_data.context.into();
         Ok(ret)
       }
       Err(err) => Err(err),
@@ -1210,18 +1230,16 @@ impl AsyncSeriesBail<BeforeResolveArgs, bool> for ContextModuleFactoryBeforeReso
 }
 
 #[async_trait]
-impl AsyncSeriesBail2<String, ModuleFactoryCreateData, bool>
-  for ContextModuleFactoryAfterResolveTap
-{
-  async fn run(
-    &self,
-    request: &mut String,
-    data: &mut ModuleFactoryCreateData,
-  ) -> rspack_error::Result<Option<bool>> {
+impl ContextModuleFactoryAfterResolve for ContextModuleFactoryAfterResolveTap {
+  async fn run(&self, data: &mut ModuleFactoryCreateData) -> rspack_error::Result<Option<bool>> {
+    let dependency = data
+      .dependency
+      .as_context_dependency_mut()
+      .expect("should be context dependency");
     self
       .function
       .call_with_promise(JsAfterResolveData {
-        request: request.to_string(),
+        request: dependency.request().to_string(),
         context: data.context.to_string(),
         file_dependencies: data
           .file_dependencies

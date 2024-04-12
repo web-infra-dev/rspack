@@ -2,13 +2,13 @@ use std::collections::VecDeque;
 use std::fmt::Debug;
 use std::sync::Arc;
 
-use async_trait::async_trait;
 use once_cell::sync::Lazy;
 use rspack_core::{
-  Compilation, ConnectionState, ModuleGraph, ModuleIdentifier, MutableModuleGraph, Plugin,
-  ResolvedExportInfoTarget, SideEffectsBailoutItemWithSpan,
+  Compilation, CompilationOptimizeDependencies, ConnectionState, ModuleGraph, ModuleIdentifier,
+  MutableModuleGraph, Plugin, ResolvedExportInfoTarget, SideEffectsBailoutItemWithSpan,
 };
 use rspack_error::Result;
+use rspack_hook::{plugin, plugin_hook};
 use rspack_identifier::IdentifierSet;
 use rustc_hash::FxHashSet as HashSet;
 // use rspack_core::Plugin;
@@ -507,134 +507,148 @@ impl ClassExt for ClassMember {
   }
 }
 
+#[plugin]
 #[derive(Debug, Default)]
 pub struct SideEffectsFlagPlugin;
 
-#[async_trait]
+#[plugin_hook(CompilationOptimizeDependencies for SideEffectsFlagPlugin)]
+fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+  let entries = compilation.entry_modules().collect::<Vec<_>>();
+  let level_order_module_identifier =
+    get_level_order_module_ids(&compilation.get_module_graph(), entries);
+  for module_identifier in level_order_module_identifier {
+    let module_graph = compilation.get_module_graph();
+    let mut module_chain = HashSet::default();
+    // dbg!(&module_identifier);
+    let Some(module) = module_graph.module_by_identifier(&module_identifier) else {
+      continue;
+    };
+    let side_effects_state =
+      module.get_side_effects_connection_state(&module_graph, &mut module_chain);
+    if side_effects_state != rspack_core::ConnectionState::Bool(false) {
+      continue;
+    }
+    let cur_exports_info_id = module_graph.get_exports_info(&module_identifier).id;
+
+    let incoming_connections = module_graph
+      .module_graph_module_by_identifier(&module_identifier)
+      .map(|mgm| mgm.incoming_connections().clone())
+      .unwrap_or_default();
+    for con_id in incoming_connections {
+      let mut module_graph = compilation.get_module_graph_mut();
+      let con = module_graph
+        .connection_by_connection_id(&con_id)
+        .expect("should have connection");
+      let Some(dep) = module_graph.dependency_by_id(&con.dependency_id) else {
+        continue;
+      };
+      let dep_id = *dep.id();
+      let is_reexport = dep
+        .downcast_ref::<HarmonyExportImportedSpecifierDependency>()
+        .is_some();
+      let is_valid_import_specifier_dep = dep
+        .downcast_ref::<HarmonyImportSpecifierDependency>()
+        .map(|import_specifier_dep| !import_specifier_dep.namespace_object_as_context)
+        .unwrap_or_default();
+      if !is_reexport && !is_valid_import_specifier_dep {
+        continue;
+      }
+      if let Some(name) = dep
+        .downcast_ref::<HarmonyExportImportedSpecifierDependency>()
+        .and_then(|dep| dep.name.clone())
+      {
+        let export_info_id = module_graph.get_export_info(
+          con
+            .original_module_identifier
+            .expect("should have original_module_identifier"),
+          &name,
+        );
+        export_info_id.move_target(
+          &mut module_graph,
+          Arc::new(|target: &ResolvedExportInfoTarget, mg: &ModuleGraph| {
+            mg.module_by_identifier(&target.module)
+              .expect("should have module")
+              .get_side_effects_connection_state(mg, &mut HashSet::default())
+              == ConnectionState::Bool(false)
+          }),
+          Arc::new(
+            move |target: &ResolvedExportInfoTarget, mg: &mut ModuleGraph| {
+              mg.update_module(&dep_id, &target.module);
+              // TODO: Explain https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/SideEffectsFlagPlugin.js#L303-L306
+              let ids = dep_id.get_ids(mg);
+              let processed_ids = target
+                .export
+                .as_ref()
+                .map(|item| {
+                  let mut ret = Vec::from_iter(item.iter().cloned());
+                  ret.extend_from_slice(ids.get(1..).unwrap_or_default());
+                  ret
+                })
+                .unwrap_or_else(|| ids.get(1..).unwrap_or_default().to_vec());
+              dep_id.set_ids(processed_ids, mg);
+              mg.connection_by_dependency(&dep_id).map(|_| dep_id)
+            },
+          ),
+        );
+        continue;
+      }
+
+      let ids = dep_id.get_ids(&module_graph);
+
+      if !ids.is_empty() {
+        let export_info_id = cur_exports_info_id.get_export_info(&ids[0], &mut module_graph);
+
+        let mut mga = MutableModuleGraph::new(&mut module_graph);
+        let target = export_info_id.get_target(
+          &mut mga,
+          Some(Arc::new(
+            |target: &ResolvedExportInfoTarget, mg: &ModuleGraph| {
+              mg.module_by_identifier(&target.module)
+                .expect("should have module graph")
+                .get_side_effects_connection_state(mg, &mut HashSet::default())
+                == ConnectionState::Bool(false)
+            },
+          )),
+        );
+        let Some(target) = target else {
+          continue;
+        };
+
+        // dbg!(&mg.connection_by_dependency(&dep_id));
+        module_graph.update_module(&dep_id, &target.module);
+        // TODO: Explain https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/SideEffectsFlagPlugin.js#L303-L306
+        let processed_ids = target
+          .export
+          .map(|mut item| {
+            item.extend_from_slice(&ids[1..]);
+            item
+          })
+          .unwrap_or_else(|| ids[1..].to_vec());
+
+        // dbg!(&mg.connection_by_dependency(&dep_id));
+        dep_id.set_ids(processed_ids, &mut module_graph);
+      }
+    }
+  }
+  Ok(None)
+}
+
 impl Plugin for SideEffectsFlagPlugin {
   fn name(&self) -> &'static str {
     "SideEffectsFlagPlugin"
   }
 
-  async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<()>> {
-    let entries = compilation.entry_modules().collect::<Vec<_>>();
-    let level_order_module_identifier =
-      get_level_order_module_ids(&compilation.get_module_graph(), entries);
-    for module_identifier in level_order_module_identifier {
-      let module_graph = compilation.get_module_graph();
-      let mut module_chain = HashSet::default();
-      // dbg!(&module_identifier);
-      let Some(module) = module_graph.module_by_identifier(&module_identifier) else {
-        continue;
-      };
-      let side_effects_state =
-        module.get_side_effects_connection_state(&module_graph, &mut module_chain);
-      if side_effects_state != rspack_core::ConnectionState::Bool(false) {
-        continue;
-      }
-      let cur_exports_info_id = module_graph.get_exports_info(&module_identifier).id;
-
-      let incoming_connections = module_graph
-        .module_graph_module_by_identifier(&module_identifier)
-        .map(|mgm| mgm.incoming_connections().clone())
-        .unwrap_or_default();
-      for con_id in incoming_connections {
-        let mut module_graph = compilation.get_module_graph_mut();
-        let con = module_graph
-          .connection_by_connection_id(&con_id)
-          .expect("should have connection");
-        let Some(dep) = module_graph.dependency_by_id(&con.dependency_id) else {
-          continue;
-        };
-        let dep_id = *dep.id();
-        let is_reexport = dep
-          .downcast_ref::<HarmonyExportImportedSpecifierDependency>()
-          .is_some();
-        let is_valid_import_specifier_dep = dep
-          .downcast_ref::<HarmonyImportSpecifierDependency>()
-          .map(|import_specifier_dep| !import_specifier_dep.namespace_object_as_context)
-          .unwrap_or_default();
-        if !is_reexport && !is_valid_import_specifier_dep {
-          continue;
-        }
-        if let Some(name) = dep
-          .downcast_ref::<HarmonyExportImportedSpecifierDependency>()
-          .and_then(|dep| dep.name.clone())
-        {
-          let export_info_id = module_graph.get_export_info(
-            con
-              .original_module_identifier
-              .expect("should have original_module_identifier"),
-            &name,
-          );
-          export_info_id.move_target(
-            &mut module_graph,
-            Arc::new(|target: &ResolvedExportInfoTarget, mg: &ModuleGraph| {
-              mg.module_by_identifier(&target.module)
-                .expect("should have module")
-                .get_side_effects_connection_state(mg, &mut HashSet::default())
-                == ConnectionState::Bool(false)
-            }),
-            Arc::new(
-              move |target: &ResolvedExportInfoTarget, mg: &mut ModuleGraph| {
-                mg.update_module(&dep_id, &target.module);
-                // TODO: Explain https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/SideEffectsFlagPlugin.js#L303-L306
-                let ids = dep_id.get_ids(mg);
-                let processed_ids = target
-                  .export
-                  .as_ref()
-                  .map(|item| {
-                    let mut ret = Vec::from_iter(item.iter().cloned());
-                    ret.extend_from_slice(ids.get(1..).unwrap_or_default());
-                    ret
-                  })
-                  .unwrap_or_else(|| ids.get(1..).unwrap_or_default().to_vec());
-                dep_id.set_ids(processed_ids, mg);
-                mg.connection_by_dependency(&dep_id).map(|_| dep_id)
-              },
-            ),
-          );
-          continue;
-        }
-
-        let ids = dep_id.get_ids(&module_graph);
-
-        if !ids.is_empty() {
-          let export_info_id = cur_exports_info_id.get_export_info(&ids[0], &mut module_graph);
-
-          let mut mga = MutableModuleGraph::new(&mut module_graph);
-          let target = export_info_id.get_target(
-            &mut mga,
-            Some(Arc::new(
-              |target: &ResolvedExportInfoTarget, mg: &ModuleGraph| {
-                mg.module_by_identifier(&target.module)
-                  .expect("should have module graph")
-                  .get_side_effects_connection_state(mg, &mut HashSet::default())
-                  == ConnectionState::Bool(false)
-              },
-            )),
-          );
-          let Some(target) = target else {
-            continue;
-          };
-
-          // dbg!(&mg.connection_by_dependency(&dep_id));
-          module_graph.update_module(&dep_id, &target.module);
-          // TODO: Explain https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/SideEffectsFlagPlugin.js#L303-L306
-          let processed_ids = target
-            .export
-            .map(|mut item| {
-              item.extend_from_slice(&ids[1..]);
-              item
-            })
-            .unwrap_or_else(|| ids[1..].to_vec());
-
-          // dbg!(&mg.connection_by_dependency(&dep_id));
-          dep_id.set_ids(processed_ids, &mut module_graph);
-        }
-      }
-    }
-    Ok(None)
+  fn apply(
+    &self,
+    ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
+    _options: &mut rspack_core::CompilerOptions,
+  ) -> Result<()> {
+    ctx
+      .context
+      .compilation_hooks
+      .optimize_dependencies
+      .tap(optimize_dependencies::new(self));
+    Ok(())
   }
 }
 

@@ -6,13 +6,14 @@ use async_trait::async_trait;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
-  AdditionalChunkRuntimeRequirementsArgs, ApplyContext, BoxModule, Compilation, CompilationParams,
-  CompilerOptions, Context, DependencyCategory, DependencyType, ModuleExt, ModuleFactoryCreateData,
-  NormalModuleCreateData, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext,
+  ApplyContext, BoxModule, ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements,
+  CompilationParams, CompilerOptions, CompilerThisCompilation, Context, DependencyCategory,
+  DependencyType, ModuleExt, ModuleFactoryCreateData, NormalModuleCreateData,
+  NormalModuleFactoryCreateModule, NormalModuleFactoryFactorize, Plugin, PluginContext,
   ResolveOptionsWithDependencyType, ResolveResult, Resolver, RuntimeGlobals,
 };
 use rspack_error::{error, Diagnostic, Result};
-use rspack_hook::{plugin, plugin_hook, AsyncSeries2, AsyncSeriesBail, AsyncSeriesBail2};
+use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::FxHashMap;
 
 use super::{
@@ -313,7 +314,7 @@ impl ConsumeSharedPlugin {
   }
 }
 
-#[plugin_hook(AsyncSeries2<Compilation, CompilationParams> for ConsumeSharedPlugin)]
+#[plugin_hook(CompilerThisCompilation for ConsumeSharedPlugin)]
 async fn this_compilation(
   &self,
   compilation: &mut Compilation,
@@ -329,7 +330,7 @@ async fn this_compilation(
   Ok(())
 }
 
-#[plugin_hook(AsyncSeriesBail<ModuleFactoryCreateData, BoxModule> for ConsumeSharedPlugin)]
+#[plugin_hook(NormalModuleFactoryFactorize for ConsumeSharedPlugin)]
 async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<BoxModule>> {
   let dep = data
     .dependency
@@ -378,7 +379,7 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
   Ok(None)
 }
 
-#[plugin_hook(AsyncSeriesBail2<ModuleFactoryCreateData, NormalModuleCreateData, BoxModule> for ConsumeSharedPlugin)]
+#[plugin_hook(NormalModuleFactoryCreateModule for ConsumeSharedPlugin)]
 async fn create_module(
   &self,
   data: &mut ModuleFactoryCreateData,
@@ -401,6 +402,26 @@ async fn create_module(
     return Ok(Some(module.boxed()));
   }
   Ok(None)
+}
+
+#[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for ConsumeSharedPlugin)]
+fn additional_tree_runtime_requirements(
+  &self,
+  compilation: &mut Compilation,
+  chunk_ukey: &ChunkUkey,
+  runtime_requirements: &mut RuntimeGlobals,
+) -> Result<()> {
+  runtime_requirements.insert(RuntimeGlobals::MODULE);
+  runtime_requirements.insert(RuntimeGlobals::MODULE_CACHE);
+  runtime_requirements.insert(RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY);
+  runtime_requirements.insert(RuntimeGlobals::SHARE_SCOPE_MAP);
+  runtime_requirements.insert(RuntimeGlobals::INITIALIZE_SHARING);
+  runtime_requirements.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
+  compilation.add_runtime_module(
+    chunk_ukey,
+    Box::new(ConsumeSharedRuntimeModule::new(self.options.enhanced)),
+  )?;
+  Ok(())
 }
 
 #[async_trait]
@@ -429,37 +450,11 @@ impl Plugin for ConsumeSharedPlugin {
       .normal_module_factory_hooks
       .create_module
       .tap(create_module::new(self));
-    Ok(())
-  }
-
-  async fn additional_tree_runtime_requirements(
-    &self,
-    _ctx: PluginContext,
-    args: &mut AdditionalChunkRuntimeRequirementsArgs,
-  ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
-    args.runtime_requirements.insert(RuntimeGlobals::MODULE);
-    args
-      .runtime_requirements
-      .insert(RuntimeGlobals::MODULE_CACHE);
-    args
-      .runtime_requirements
-      .insert(RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY);
-    args
-      .runtime_requirements
-      .insert(RuntimeGlobals::SHARE_SCOPE_MAP);
-    args
-      .runtime_requirements
-      .insert(RuntimeGlobals::INITIALIZE_SHARING);
-    args
-      .runtime_requirements
-      .insert(RuntimeGlobals::HAS_OWN_PROPERTY);
-    args
-      .compilation
-      .add_runtime_module(
-        args.chunk,
-        Box::new(ConsumeSharedRuntimeModule::new(self.options.enhanced)),
-      )
-      .await?;
+    ctx
+      .context
+      .compilation_hooks
+      .additional_tree_runtime_requirements
+      .tap(additional_tree_runtime_requirements::new(self));
     Ok(())
   }
 }
