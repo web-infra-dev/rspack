@@ -1,12 +1,13 @@
 use std::collections::HashMap;
 
 use napi_derive::napi;
+use rspack_binding_values::JsFilename;
 use rspack_plugin_extract_css::plugin::{CssExtractOptions, InsertType};
 
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawCssExtractPluginOption {
-  pub filename: String,
-  pub chunk_filename: String,
+  pub filename: JsFilename,
+  pub chunk_filename: JsFilename,
   pub ignore_order: bool,
   pub insert: Option<String>,
   pub attributes: HashMap<String, String>,
@@ -18,8 +19,8 @@ pub struct RawCssExtractPluginOption {
 impl From<RawCssExtractPluginOption> for CssExtractOptions {
   fn from(value: RawCssExtractPluginOption) -> Self {
     Self {
-      filename: value.filename,
-      chunk_filename: value.chunk_filename,
+      filename: value.filename.into(),
+      chunk_filename: value.chunk_filename.into(),
       ignore_order: value.ignore_order,
       insert: value
         .insert

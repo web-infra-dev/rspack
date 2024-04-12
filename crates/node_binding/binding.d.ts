@@ -746,8 +746,8 @@ export interface RawCssAutoParserOptions {
 }
 
 export interface RawCssExtractPluginOption {
-  filename: string
-  chunkFilename: string
+  filename: JsFilename
+  chunkFilename: JsFilename
   ignoreOrder: boolean
   insert?: string
   attributes: Record<string, string>
