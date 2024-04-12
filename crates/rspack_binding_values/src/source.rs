@@ -99,6 +99,10 @@ impl Source for CompatSource {
   fn to_writer(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
     writer.write_all(&self.source)
   }
+
+  fn r#type(&self) -> &'static str {
+    "CompatSource"
+  }
 }
 
 pub trait ToJsCompatSource {
