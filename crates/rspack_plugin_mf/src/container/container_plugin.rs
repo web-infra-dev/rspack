@@ -71,6 +71,7 @@ async fn make(&self, compilation: &mut Compilation, params: &mut Vec<MakeParam>)
     self.options.name.clone(),
     self.options.exposes.clone(),
     self.options.share_scope.clone(),
+    self.options.enhanced,
   );
   let dependency_id = *dep.id();
   compilation.add_entry(
@@ -98,10 +99,9 @@ fn runtime_requirements_in_tree(
 ) -> Result<Option<()>> {
   if runtime_requirements.contains(RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE) {
     runtime_requirements_mut.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
-    compilation.add_runtime_module(
-      chunk_ukey,
-      Box::new(ExposeRuntimeModule::new(self.options.enhanced)),
-    )?;
+    if self.options.enhanced {
+      compilation.add_runtime_module(chunk_ukey, Box::new(ExposeRuntimeModule::new()))?;
+    }
   }
   Ok(None)
 }
