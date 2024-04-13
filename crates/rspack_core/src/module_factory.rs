@@ -4,7 +4,7 @@ use rspack_error::{Diagnostic, Result};
 use rustc_hash::FxHashSet as HashSet;
 use sugar_path::SugarPath;
 
-use crate::{BoxDependency, BoxModule, Context, FactoryMeta, ModuleIdentifier, Resolve};
+use crate::{BoxDependency, BoxModule, Context, ModuleIdentifier, Resolve};
 
 #[derive(Debug)]
 pub struct ModuleFactoryCreateData {
@@ -65,7 +65,6 @@ impl ModuleFactoryCreateData {
 #[derive(Debug, Default)]
 pub struct ModuleFactoryResult {
   pub module: Option<BoxModule>,
-  pub factory_meta: FactoryMeta,
   pub from_cache: bool,
 }
 
@@ -73,18 +72,12 @@ impl ModuleFactoryResult {
   pub fn new_with_module(module: BoxModule) -> Self {
     Self {
       module: Some(module),
-      factory_meta: Default::default(),
       from_cache: false,
     }
   }
 
   pub fn module(mut self, module: Option<BoxModule>) -> Self {
     self.module = module;
-    self
-  }
-
-  pub fn factory_meta(mut self, factory_meta: FactoryMeta) -> Self {
-    self.factory_meta = factory_meta;
     self
   }
 
