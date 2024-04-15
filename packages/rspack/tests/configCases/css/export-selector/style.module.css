@@ -1,0 +1,11 @@
+:export {
+	foo: foo;
+	bar: b a r;
+}
+
+.local {}
+
+:export {
+	dash-name: dashName;
+}
+
