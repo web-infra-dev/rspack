@@ -146,7 +146,7 @@ init({
 // 通过远程模块的名称加载
 loadRemote <
   { add: (...args: Array<number>) => number } >
-  'app2/util'.then((md) => {
+  'app2/util'.then(md => {
     md.add(1, 2, 3);
   });
 ```

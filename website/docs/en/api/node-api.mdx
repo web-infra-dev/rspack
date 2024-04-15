@@ -79,7 +79,7 @@ const compiler = rspack({
 compiler.run((err, stats) => {
   // ...
 
-  compiler.close((closeErr) => {
+  compiler.close(closeErr => {
     // ...
   });
 });
@@ -113,7 +113,7 @@ const watching = compiler.watch(
   (err, stats) => {
     // Print watch/build result here...
     console.log(stats);
-  }
+  },
 );
 ```
 
@@ -128,7 +128,7 @@ Filesystem inaccuracies may trigger multiple builds for a single change. In the 
 The `watch` method returns a `Watching` instance that exposes `.close(callback)` method. Calling this method will end watching:
 
 ```js
-watching.close((closeErr) => {
+watching.close(closeErr => {
   console.log('Watching Ended.');
 });
 ```
@@ -218,9 +218,9 @@ rspack(
       stats.toString({
         chunks: false, // Makes the build much quieter
         colors: true, // Shows colors in the console
-      })
+      }),
     );
-  }
+  },
 );
 ```
 
@@ -238,7 +238,7 @@ rspack(
   ],
   (err, stats) => {
     process.stdout.write(stats.toString() + '\n');
-  }
+  },
 );
 ```
 
@@ -283,7 +283,7 @@ rspack(
     }
 
     // Log result...
-  }
+  },
 );
 ```
 
@@ -312,7 +312,7 @@ compiler.outputFileSystem = fs;
 compiler.run((err, stats) => {
   // Read the output later:
   const content = fs.readFileSync('...');
-  compiler.close((closeErr) => {
+  compiler.close(closeErr => {
     // ...
   });
 });

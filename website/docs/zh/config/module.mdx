@@ -37,7 +37,7 @@ module.exports = {
 ```js title=rspack.config.js
 module.exports = {
   module: {
-    noParse: (request) => /typescript|watermark-dom/.test(request),
+    noParse: request => /typescript|watermark-dom/.test(request),
   },
 };
 ```
@@ -775,7 +775,7 @@ module.exports = {
       {
         test: /\.svg$/,
         type: 'asset',
-        use: (info) => ({
+        use: info => ({
           loader: 'svgo-loader',
           options: {
             plugins: [

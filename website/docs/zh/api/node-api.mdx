@@ -79,7 +79,7 @@ const compiler = rspack({
 compiler.run((err, stats) => {
   // ...
 
-  compiler.close((closeErr) => {
+  compiler.close(closeErr => {
     // ...
   });
 });
@@ -128,7 +128,7 @@ const watching = compiler.watch(
 `watch` 方法返回一个 `Watching` 实例，该实例会暴露一个 `.close(callback)` 方法。调用该方法将会结束监听：
 
 ```js
-watching.close((closeErr) => {
+watching.close(closeErr => {
   console.log('Watching Ended.');
 });
 ```
@@ -218,9 +218,9 @@ rspack(
       stats.toString({
         chunks: false, // 使构建过程更静默无输出
         colors: true, // 在控制台展示颜色
-      })
+      }),
     );
-  }
+  },
 );
 ```
 
@@ -238,7 +238,7 @@ rspack(
   ],
   (err, stats) => {
     process.stdout.write(stats.toString() + '\n');
-  }
+  },
 );
 ```
 
@@ -283,7 +283,7 @@ rspack(
     }
 
     // Log result...
-  }
+  },
 );
 ```
 
@@ -312,7 +312,7 @@ compiler.outputFileSystem = fs;
 compiler.run((err, stats) => {
   // 之后读取输出：
   const content = fs.readFileSync('...');
-  compiler.close((closeErr) => {
+  compiler.close(closeErr => {
     // ...
   });
 });
