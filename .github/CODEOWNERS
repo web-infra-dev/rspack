@@ -4,9 +4,9 @@
 
 # Rspack Project Owner is @hardfist
 
-# Default to project manager
+# Default to no one
 
-* @hardfist
+# *
 
 # Ignore lock files
 
@@ -25,13 +25,13 @@ pnpm-lock.yaml
 
 # Crates in alphabetical order
 
-/crates/cargo-rst @IWANABETHATGUY
 /crates/rspack
 /crates/node_binding
 /crates/rspack_ast_viewer
 /crates/rspack_base64
 /crates/rspack_binding_options
 /crates/rspack_core
+/crates/rspack_core/src/compiler/make @jerrykingxyz
 /crates/rspack_database
 /crates/rspack_error
 /crates/rspack_fs
@@ -67,8 +67,8 @@ pnpm-lock.yaml
 /crates/rspack_plugin_wasm
 /crates/rspack_regex @IWANABETHATGUY
 /crates/rspack_symbol @IWANABETHATGUY
-/crates/rspack_tracing @hyf0
-/crates/rspack_util @hyf0
+/crates/rspack_tracing
+/crates/rspack_util
 
 # Packages in alphabetical order
 
