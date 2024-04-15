@@ -6,7 +6,7 @@ import {
 	TCompilerStats
 } from "../type";
 import path from "path";
-import { StatsAsset } from "@rspack/core";
+import { StatsCompilation } from "@rspack/core";
 import {
 	IRspackHotProcessorOptions,
 	RspackHotProcessor,
@@ -61,6 +61,7 @@ export interface IRspackHotStepProcessorOptions
 
 export class RspackHotStepProcessor extends RspackHotProcessor {
 	private hashes: string[] = [];
+	private entries: Record<string, string[]> = {};
 
 	constructor(protected _hotOptions: IRspackHotProcessorOptions) {
 		super(_hotOptions);
@@ -74,13 +75,26 @@ export class RspackHotStepProcessor extends RspackHotProcessor {
 				hotUpdateContext: TUpdateOptions,
 				stats: TCompilerStats<ECompilerType.Rspack>
 			) => {
-				const statsJson = stats.toJson({ assets: true });
+				const statsJson = stats.toJson({ assets: true, chunks: true });
+				for (let entry of (stats?.compilation.chunks || []).filter(i =>
+					i.hasRuntime()
+				)) {
+					if (!this.entries[entry.id!]) {
+						this.entries[entry.id!] = entry.runtime!;
+					}
+				}
 				this.matchStepSnapshot(
 					context,
 					hotUpdateContext.updateIndex,
-					statsJson.assets,
-					statsJson.hash!
+					statsJson
 				);
+				this.hashes.push(stats.hash!);
+			}
+		);
+		context.setValue(
+			this._options.name,
+			"hotUpdateStepErrorChecker",
+			(_: TUpdateOptions, stats: TCompilerStats<ECompilerType.Rspack>) => {
 				this.hashes.push(stats.hash!);
 			}
 		);
@@ -94,19 +108,21 @@ export class RspackHotStepProcessor extends RspackHotProcessor {
 			expect(false);
 			return;
 		}
+		const statsJson = stats.toJson({ assets: true, chunks: true });
+		for (let entry of (stats?.compilation.chunks || []).filter(i =>
+			i.hasRuntime()
+		)) {
+			this.entries[entry.id!] = entry.runtime!;
+		}
+		this.matchStepSnapshot(context, 0, statsJson);
 		this.hashes.push(stats.hash!);
-
-		const assets = stats.toJson({ assets: true }).assets;
-		this.matchStepSnapshot(context, 0, assets, stats.hash);
-
 		await super.check(env, context);
 	}
 
 	protected matchStepSnapshot(
 		context: ITestContext,
 		step: number,
-		assets: StatsAsset[] = [],
-		hash: string
+		stats: StatsCompilation
 	) {
 		const compiler = this.getCompiler(context);
 		const compilerOptions = compiler.getOptions();
@@ -130,14 +146,51 @@ export class RspackHotStepProcessor extends RspackHotProcessor {
 			"changed-file.js"
 		)).map((i: string) => path.relative(context.getSource(), i));
 
-		const fileList = assets
-			.map(i => {
-				if (i.name.endsWith("hot-update.js")) {
+		const hashes: Record<string, string> = {
+			[lastHash || "LAST_HASH"]: "LAST_HASH",
+			[stats.hash!]: "CURRENT_HASH"
+		};
+
+		// TODO: find a better way
+		// replace [runtime] to [runtime of id] to prevent worker hash
+		const runtimes: Record<string, string> = {};
+		for (let [id, runtime] of Object.entries(this.entries)) {
+			for (let r of runtime) {
+				if (r !== id) {
+					runtimes[r] = `[runtime of ${id}]`;
+				}
+			}
+		}
+
+		const replaceContent = (str: string) => {
+			for (let [raw, replacement] of Object.entries(hashes)) {
+				str = str.split(raw).join(replacement);
+			}
+			return str;
+		};
+
+		const replaceFileName = (str: string) => {
+			for (let [raw, replacement] of Object.entries({
+				...hashes,
+				...runtimes
+			})) {
+				str = str.split(raw).join(replacement);
+			}
+			return str;
+		};
+
+		const fileList = stats
+			.assets!.map(i => {
+				const fileName = i.name;
+				const renderName = replaceFileName(fileName);
+				const content = replaceContent(
+					fs.readFileSync(context.getDist(fileName), "utf-8")
+				);
+				if (fileName.endsWith("hot-update.js")) {
 					const modules = getModuleHandler(
-						context.getDist(i.name),
+						context.getDist(fileName),
 						compilerOptions
 					);
-					const content = fs.readFileSync(context.getDist(i.name), "utf-8");
 					const runtime: string[] = [];
 					for (let i of content.matchAll(
 						/\/\/ (webpack\/runtime\/[\w_-]+)\s*\n/g
@@ -147,20 +200,20 @@ export class RspackHotStepProcessor extends RspackHotProcessor {
 					modules.sort();
 					runtime.sort();
 					hotUpdateFile.push({
-						name: i.name,
+						name: renderName,
 						content,
 						modules,
 						runtime
 					});
-					return `- Update: ${i.name}, size: ${i.size}`;
-				} else if (i.name.endsWith("hot-update.json")) {
+					return `- Update: ${renderName}, size: ${i.size}`;
+				} else if (fileName.endsWith("hot-update.json")) {
 					hotUpdateManifest.push({
-						name: i.name,
-						content: fs.readFileSync(context.getDist(i.name), "utf-8")
+						name: renderName,
+						content
 					});
-					return `- Manifest: ${i.name}, size: ${i.size}`;
-				} else if (i.name.endsWith(".js")) {
-					return `- Bundle: ${i.name}, size: ${i.size}`;
+					return `- Manifest: ${renderName}, size: ${i.size}`;
+				} else if (fileName.endsWith(".js")) {
+					return `- Bundle: ${renderName}, size: ${i.size}`;
 				}
 			})
 			.filter(Boolean);
@@ -214,11 +267,6 @@ ${i.content}
 	.join("\n\n")}
 
 		`;
-		if (lastHash) {
-			content = content.split(lastHash).join("LAST_HASH");
-		}
-
-		content = content.split(hash).join("CURRENT_HASH").trim();
 
 		if (!fs.existsSync(snapshotPath) || global.updateSnapshot) {
 			fs.ensureDirSync(path.dirname(snapshotPath));

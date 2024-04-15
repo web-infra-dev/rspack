@@ -11,7 +11,7 @@
 - l.js
 
 ## Asset Files
-- Bundle: bundle.js, size: 41858
+- Bundle: bundle.js, size: 41906
 
 ## Manifest
 

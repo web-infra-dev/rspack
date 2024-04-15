@@ -6,7 +6,7 @@
 - c.js
 
 ## Asset Files
-- Bundle: bundle.js, size: 35173
+- Bundle: bundle.js, size: 35181
 
 ## Manifest
 

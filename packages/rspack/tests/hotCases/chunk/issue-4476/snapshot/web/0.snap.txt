@@ -6,7 +6,7 @@
 
 ## Asset Files
 - Bundle: bundle.js, size: 37846
-- Bundle: file_js.chunk.LAST_HASH.js, size: 146
+- Bundle: file_js.chunk.CURRENT_HASH.js, size: 146
 
 ## Manifest
 

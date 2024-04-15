@@ -11,7 +11,7 @@
 - l.js
 
 ## Asset Files
-- Bundle: bundle.js, size: 41890
+- Bundle: bundle.js, size: 41938
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
 - Update: main.LAST_HASH.hot-update.js, size: 1881
 

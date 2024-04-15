@@ -8,7 +8,7 @@
 - Bundle: a.js, size: 900
 - Bundle: b.js, size: 900
 - Bundle: main.js, size: 1637
-- Bundle: main_async_js.chunk.LAST_HASH.js, size: 122
+- Bundle: main_async_js.chunk.CURRENT_HASH.js, size: 122
 - Bundle: runtime.js, size: 38850
 
 ## Manifest

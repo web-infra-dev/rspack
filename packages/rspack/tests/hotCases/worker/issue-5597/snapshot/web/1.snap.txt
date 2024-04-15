@@ -12,8 +12,8 @@
 - Bundle: shared.chunk.CURRENT_HASH.js, size: 529
 - Bundle: workerA_js.chunk.CURRENT_HASH.js, size: 28670
 - Bundle: workerB_js.chunk.CURRENT_HASH.js, size: 28670
-- Manifest: 8eb0ac7054459e35ccf2.LAST_HASH.hot-update.json, size: 62
-- Manifest: a31cecbba8d20ebbc5d6.LAST_HASH.hot-update.json, size: 62
+- Manifest: [runtime of workerA_js].LAST_HASH.hot-update.json, size: 62
+- Manifest: [runtime of workerB_js].LAST_HASH.hot-update.json, size: 62
 - Manifest: main.LAST_HASH.hot-update.json, size: 62
 - Update: main.LAST_HASH.hot-update.js, size: 201
 - Update: shared.LAST_HASH.hot-update.js, size: 493
@@ -22,7 +22,7 @@
 
 ## Manifest
 
-### 8eb0ac7054459e35ccf2.LAST_HASH.hot-update.json
+### [runtime of workerA_js].LAST_HASH.hot-update.json
 
 ```json
 {"c":["workerA_js","shared"],"r":["workerB_js","main"],"m":[]}
@@ -30,7 +30,7 @@
 
 
 
-### a31cecbba8d20ebbc5d6.LAST_HASH.hot-update.json
+### [runtime of workerB_js].LAST_HASH.hot-update.json
 
 ```json
 {"c":["workerB_js","shared"],"r":["workerA_js","main"],"m":[]}

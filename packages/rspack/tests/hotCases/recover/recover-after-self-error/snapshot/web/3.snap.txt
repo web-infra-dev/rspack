@@ -5,13 +5,13 @@
 - a.js
 
 ## Asset Files
-- Bundle: bundle.js, size: 34855
-- Manifest: main.81a470b9932a810b2018.hot-update.json, size: 28
-- Update: main.81a470b9932a810b2018.hot-update.js, size: 1092
+- Bundle: bundle.js, size: 34863
+- Manifest: main.LAST_HASH.hot-update.json, size: 28
+- Update: main.LAST_HASH.hot-update.js, size: 1092
 
 ## Manifest
 
-### main.81a470b9932a810b2018.hot-update.json
+### main.LAST_HASH.hot-update.json
 
 ```json
 {"c":["main"],"r":[],"m":[]}
@@ -21,7 +21,7 @@
 ## Update
 
 
-### main.81a470b9932a810b2018.hot-update.js
+### main.LAST_HASH.hot-update.js
 
 #### Changed Modules
 - ./a.js
