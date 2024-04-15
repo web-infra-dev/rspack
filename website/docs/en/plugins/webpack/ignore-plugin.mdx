@@ -10,16 +10,22 @@ This plugin will prevent the generation of modules for import or require calls m
 new rspack.IgnorePlugin(options);
 ```
 
-- Options
-  - **Type:**
-  ```ts
-  {
-    /** A RegExp to test the resource against. */
-    resourceRegExp: RegExp;
-    /** A RegExp to test the context (directory) against. */
-    contextRegExp?: RegExp;
-  }
-  ```
+## Options
+
+- **Type:**
+
+```ts
+{
+  /** A RegExp to test the resource against. */
+  resourceRegExp: RegExp;
+  /** A RegExp to test the context (directory) against. */
+  contextRegExp?: RegExp;
+}
+```
+
+- **Default:** `undefined`
+
+## Example
 
 When using the following configuration:
 

@@ -10,16 +10,22 @@ import { ApiMeta } from '../../../../components/ApiMeta.tsx';
 new rspack.IgnorePlugin(options);
 ```
 
-- Options
-  - **类型：**
-  ```ts
-  {
-    /** 用于匹配资源文件 */
-    resourceRegExp: RegExp;
-    /** 用于匹配请求的目录 */
-    contextRegExp?: RegExp;
-  }
-  ```
+## 选项
+
+- **类型：**
+
+```ts
+{
+  /** 用于匹配资源文件 */
+  resourceRegExp: RegExp;
+  /** 用于匹配请求的目录 */
+  contextRegExp?: RegExp;
+}
+```
+
+- **默认值：** `undefined`
+
+## 示例
 
 当使用以下配置时：
 
