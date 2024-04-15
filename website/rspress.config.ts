@@ -583,8 +583,7 @@ export default defineConfig({
         title: 'Rspack',
         type: 'website',
         url: PUBLISH_URL,
-        image:
-          'https://sf16-sg.tiktokcdn.com/obj/eden-sg/geh7plsnuhog/rspack/rspack-banner.png',
+        image: 'https://assets.rspack.dev/rspack/rspack-banner.png',
         description: 'Fast Rust-based Web Bundler',
         twitter: {
           site: '@rspack_dev',

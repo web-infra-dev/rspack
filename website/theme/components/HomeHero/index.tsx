@@ -1,7 +1,6 @@
 import { Button } from 'rspress/theme';
 import { normalizeHrefInRuntime } from 'rspress/runtime';
 import styles from './index.module.scss';
-import logoImg from '../../../docs/public/logo.png';
 
 export interface Hero {
   name: string;
@@ -61,7 +60,10 @@ export function HomeHero({ hero }: { hero: Hero }) {
         {hasImage ? (
           <div className="modern-doc-home-hero-image m-auto flex-center md:none lg:flex order-1 md:order-2">
             <div className={styles.imgMask}></div>
-            <img src={logoImg} alt={hero.image?.alt} />
+            <img
+              src="https://assets.rspack.dev/rspack/rspack-logo.svg"
+              alt={hero.image?.alt}
+            />
           </div>
         ) : null}
       </div>

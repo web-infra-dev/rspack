@@ -21,6 +21,12 @@ The source code of Rspress can be found in [this folder](https://github.com/web-
 
 If you have any problems using the Rspress, please create a new issue at [Rspress Issues](https://github.com/web-infra-dev/rspress/issues).
 
+## Image Assets
+
+For images you use in the document, it's better to upload them to the [rspack-contrib/rsfamily-design-resources](https://github.com/rspack-contrib/rsfamily-design-resources) repository, so the size of the current repository doesn't get too big.
+
+After you upload the images there, they will be automatically deployed under the <https://assets.rspack.dev/>.
+
 ### Install dependencies
 
 Enable [pnpm](https://pnpm.io/) with corepack:

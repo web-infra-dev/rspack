@@ -6,8 +6,8 @@
     "dev": "rspress dev",
     "build": "rspress build",
     "preview": "rspress preview",
-    "check:format": "prettier --version && prettier . --write",
-    "check:format-ci": "prettier --version && prettier . --check",
+    "check:format": "prettier . --write",
+    "check:format-ci": "prettier . --check",
     "check:spell": "npx cspell",
     "check:case": "npx case-police docs/**/*.{md,mdx}",
     "check:ci": "pnpm run check:format-ci && pnpm run check:spell"
