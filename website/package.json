@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "rspress dev",
     "build": "rspress build",
-    "format": "prettier docs/**/*.{md,mdx} --write",
+    "format": "prettier . --write",
     "spell": "npx cspell",
     "caseCheck": "npx case-police docs/**/*.{md,mdx}",
     "preview": "rspress preview"

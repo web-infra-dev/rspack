@@ -78,7 +78,8 @@ Rspack 目前不兼容 mini-css-extract-plugin，但可以使用该插件替代�
         name: '`insert`',
         type: '`string | ((linkTag: HTMLLinkElement) => void)`',
         default: 'undefined',
-        description: '决定 link 标签怎样插入到页面，如果传入 string 类型，则会视为 dom 选择器，link 标签会插入到该选择器对应的元素后。如果传入 function 类型，则会将 function 转成字符串，在运行时进行调用，参数是 link 标签',
+        description:
+          '决定 link 标签怎样插入到页面，如果传入 string 类型，则会视为 dom 选择器，link 标签会插入到该选择器对应的元素后。如果传入 function 类型，则会将 function 转成字符串，在运行时进行调用，参数是 link 标签',
       },
       {
         name: '`attributes`',
@@ -96,22 +97,21 @@ Rspack 目前不兼容 mini-css-extract-plugin，但可以使用该插件替代�
         name: '`runtime`',
         type: '`boolean`',
         default: 'true',
-        description:
-          '是否注入 css 加载相关的 runtime 代码',
+        description: '是否注入 css 加载相关的 runtime 代码',
       },
       {
         name: '`pathinfo`',
         type: '`boolean`',
         default: 'false',
-        description:
-          '产物中是否保留更详细的 css 路径信息',
+        description: '产物中是否保留更详细的 css 路径信息',
       },
     ]}
   />
 
   loader 配置
 
-   <Table
+  {' '}
+  <Table
     header={[
       {
         name: '名称',

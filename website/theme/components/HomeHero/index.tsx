@@ -45,7 +45,7 @@ export function HomeHero({ hero }: { hero: Hero }) {
             {hero.tagline}
           </p>
           <div className="justify-center gap-3 flex flex-wrap m--1.5 pt-4 z-10">
-            {hero.actions.map((action) => (
+            {hero.actions.map(action => (
               <div key={action.link} className="p-1 flex-shrink-0">
                 <Button
                   type="a"

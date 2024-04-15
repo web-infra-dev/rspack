@@ -7,7 +7,7 @@ import IconCloseCircle from './close';
 export function Announcement() {
   const t = useI18n();
   const [disable, setDisable] = useState(
-    window.localStorage.getItem('disabled-hire') ?? false
+    window.localStorage.getItem('disabled-hire') ?? false,
   );
   const { page } = usePageData();
   const lang = useLang();
