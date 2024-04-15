@@ -5,7 +5,7 @@
 - index.module.css
 
 ## Asset Files
-- Bundle: bundle.js, size: 33797
+- Bundle: bundle.js, size: 33757
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
 - Update: main.LAST_HASH.hot-update.js, size: 386
 

@@ -5,7 +5,7 @@
 - data.json
 
 ## Asset Files
-- Bundle: bundle.js, size: 38730
+- Bundle: bundle.js, size: 38722
 
 ## Manifest
 
