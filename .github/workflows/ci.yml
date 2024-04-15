@@ -173,7 +173,6 @@ jobs:
               - '**/*.{ts,js,mjs,tsx,jsx}'
 
       - name: Pnpm Cache
-        if: steps.changes.outputs.src == 'true'
         uses: ./.github/actions/pnpm-cache
 
       - name: Oxlint
