@@ -2,11 +2,12 @@
 
 use async_trait::async_trait;
 use rspack_core::{
-  ApplyContext, BoxDependency, Compilation, CompilationParams, CompilerOptions, Context,
-  DependencyType, EntryDependency, EntryOptions, MakeParam, Plugin, PluginContext,
+  ApplyContext, BoxDependency, Compilation, CompilationParams, CompilerCompilation, CompilerMake,
+  CompilerOptions, Context, DependencyType, EntryDependency, EntryOptions, MakeParam, Plugin,
+  PluginContext,
 };
 use rspack_error::Result;
-use rspack_hook::{plugin, plugin_hook, AsyncSeries2};
+use rspack_hook::{plugin, plugin_hook};
 
 #[plugin]
 #[derive(Debug)]
@@ -22,7 +23,7 @@ impl EntryPlugin {
   }
 }
 
-#[plugin_hook(AsyncSeries2<Compilation, CompilationParams> for EntryPlugin)]
+#[plugin_hook(CompilerCompilation for EntryPlugin)]
 async fn compilation(
   &self,
   compilation: &mut Compilation,
@@ -32,7 +33,7 @@ async fn compilation(
   Ok(())
 }
 
-#[plugin_hook(AsyncSeries2<Compilation, Vec<MakeParam>> for EntryPlugin)]
+#[plugin_hook(CompilerMake for EntryPlugin)]
 async fn make(&self, compilation: &mut Compilation, params: &mut Vec<MakeParam>) -> Result<()> {
   if let Some(state) = compilation.options.get_incremental_rebuild_make_state()
     && !state.is_first()

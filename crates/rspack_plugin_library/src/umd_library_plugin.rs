@@ -2,14 +2,14 @@ use std::{borrow::Cow, hash::Hash, sync::Arc};
 
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceExt},
-  AdditionalChunkRuntimeRequirementsArgs, ApplyContext, Chunk, ChunkUkey, Compilation,
-  CompilationParams, CompilerOptions, ExternalModule, ExternalRequest, FilenameTemplate,
-  LibraryAuxiliaryComment, LibraryCustomUmdObject, LibraryName, LibraryNonUmdObject,
-  LibraryOptions, LibraryType, PathData, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput,
-  PluginContext, RuntimeGlobals, SourceType,
+  ApplyContext, Chunk, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
+  CompilationParams, CompilerCompilation, CompilerOptions, ExternalModule, ExternalRequest,
+  FilenameTemplate, LibraryAuxiliaryComment, LibraryCustomUmdObject, LibraryName,
+  LibraryNonUmdObject, LibraryOptions, LibraryType, PathData, Plugin, PluginContext,
+  RuntimeGlobals, SourceType,
 };
 use rspack_error::{error, Result};
-use rspack_hook::{plugin, plugin_hook, AsyncSeries2};
+use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   JavascriptModulesPluginPlugin, JsChunkHashArgs, JsPlugin, PluginJsChunkHashHookOutput,
   PluginRenderJsHookOutput, RenderJsArgs,
@@ -251,7 +251,7 @@ impl JavascriptModulesPluginPlugin for UmdLibraryJavascriptModulesPluginPlugin {
   }
 }
 
-#[plugin_hook(AsyncSeries2<Compilation, CompilationParams> for UmdLibraryPlugin)]
+#[plugin_hook(CompilerCompilation for UmdLibraryPlugin)]
 async fn compilation(
   &self,
   compilation: &mut Compilation,
@@ -259,6 +259,23 @@ async fn compilation(
 ) -> Result<()> {
   let mut drive = JsPlugin::get_compilation_drives_mut(compilation);
   drive.add_plugin(self.js_plugin.clone());
+  Ok(())
+}
+
+#[plugin_hook(CompilationAdditionalChunkRuntimeRequirements for UmdLibraryPlugin)]
+fn additional_chunk_runtime_requirements(
+  &self,
+  compilation: &mut Compilation,
+  chunk_ukey: &ChunkUkey,
+  runtime_requirements: &mut RuntimeGlobals,
+) -> Result<()> {
+  let Some(_) = self
+    .js_plugin
+    .get_options_for_chunk(compilation, chunk_ukey)
+  else {
+    return Ok(());
+  };
+  runtime_requirements.insert(RuntimeGlobals::RETURN_EXPORTS_FROM_RUNTIME);
   Ok(())
 }
 
@@ -278,23 +295,11 @@ impl Plugin for UmdLibraryPlugin {
       .compiler_hooks
       .compilation
       .tap(compilation::new(self));
-    Ok(())
-  }
-
-  async fn additional_chunk_runtime_requirements(
-    &self,
-    _ctx: PluginContext,
-    args: &mut AdditionalChunkRuntimeRequirementsArgs,
-  ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
-    let Some(_) = self
-      .js_plugin
-      .get_options_for_chunk(args.compilation, args.chunk)
-    else {
-      return Ok(());
-    };
-    args
-      .runtime_requirements
-      .insert(RuntimeGlobals::RETURN_EXPORTS_FROM_RUNTIME);
+    ctx
+      .context
+      .compilation_hooks
+      .additional_chunk_runtime_requirements
+      .tap(additional_chunk_runtime_requirements::new(self));
     Ok(())
   }
 }

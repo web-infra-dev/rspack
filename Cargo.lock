@@ -2872,6 +2872,7 @@ dependencies = [
  "rspack_plugin_extract_css",
  "rspack_plugin_hmr",
  "rspack_plugin_html",
+ "rspack_plugin_ignore",
  "rspack_plugin_javascript",
  "rspack_plugin_json",
  "rspack_plugin_library",
@@ -3059,15 +3060,14 @@ dependencies = [
 name = "rspack_ids"
 version = "0.1.0"
 dependencies = [
- "dashmap",
  "itertools",
  "once_cell",
  "rayon",
  "regex",
  "rspack_core",
  "rspack_error",
+ "rspack_hook",
  "rspack_util",
- "rustc-hash",
 ]
 
 [[package]]
@@ -3286,9 +3286,9 @@ dependencies = [
 name = "rspack_plugin_ensure_chunk_conditions"
 version = "0.1.0"
 dependencies = [
- "async-trait",
  "rspack_core",
  "rspack_error",
+ "rspack_hook",
 ]
 
 [[package]]
@@ -3318,7 +3318,6 @@ name = "rspack_plugin_extract_css"
 version = "0.1.0"
 dependencies = [
  "async-trait",
- "dashmap",
  "once_cell",
  "regex",
  "rspack_core",
@@ -3373,6 +3372,16 @@ dependencies = [
  "swc_core",
  "swc_html",
  "swc_html_minifier",
+]
+
+[[package]]
+name = "rspack_plugin_ignore"
+version = "0.1.0"
+dependencies = [
+ "rspack_core",
+ "rspack_error",
+ "rspack_hook",
+ "rspack_regex",
 ]
 
 [[package]]
@@ -3439,17 +3448,19 @@ dependencies = [
 name = "rspack_plugin_limit_chunk_count"
 version = "0.1.0"
 dependencies = [
- "async-trait",
  "rspack_core",
  "rspack_database",
+ "rspack_error",
+ "rspack_hook",
 ]
 
 [[package]]
 name = "rspack_plugin_merge_duplicate_chunks"
 version = "0.1.0"
 dependencies = [
- "async-trait",
  "rspack_core",
+ "rspack_error",
+ "rspack_hook",
  "rustc-hash",
 ]
 
@@ -3507,8 +3518,9 @@ dependencies = [
 name = "rspack_plugin_remove_empty_chunks"
 version = "0.1.0"
 dependencies = [
- "async-trait",
  "rspack_core",
+ "rspack_error",
+ "rspack_hook",
 ]
 
 [[package]]
@@ -3549,7 +3561,6 @@ dependencies = [
 name = "rspack_plugin_split_chunks"
 version = "0.1.0"
 dependencies = [
- "async-trait",
  "dashmap",
  "derivative",
  "once_cell",
@@ -3558,6 +3569,7 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_hash",
+ "rspack_hook",
  "rspack_identifier",
  "rspack_regex",
  "rspack_util",
@@ -3601,6 +3613,7 @@ version = "0.1.0"
 dependencies = [
  "rspack_core",
  "rspack_error",
+ "rspack_hook",
 ]
 
 [[package]]

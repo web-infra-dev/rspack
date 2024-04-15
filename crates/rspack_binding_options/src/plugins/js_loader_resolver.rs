@@ -1,11 +1,12 @@
 use std::{fmt::Debug, path::Path, sync::Arc};
 
 use rspack_core::{
-  ApplyContext, BoxLoader, CompilerOptions, Context, ModuleRuleUseLoader, NormalModule, Plugin,
-  PluginContext, ResolveResult, Resolver, BUILTIN_LOADER_PREFIX,
+  ApplyContext, BoxLoader, CompilerOptions, Context, ModuleRuleUseLoader, NormalModule,
+  NormalModuleBeforeLoaders, NormalModuleFactoryResolveLoader, Plugin, PluginContext,
+  ResolveResult, Resolver, BUILTIN_LOADER_PREFIX,
 };
 use rspack_error::{error, Result};
-use rspack_hook::{plugin, plugin_hook, AsyncSeriesBail3, SyncSeries};
+use rspack_hook::{plugin, plugin_hook};
 
 use crate::{get_builtin_loader, JsLoaderAdapter, JsLoaderRunner};
 
@@ -26,7 +27,7 @@ impl Debug for JsLoaderResolverPlugin {
   }
 }
 
-#[plugin_hook(SyncSeries<NormalModule> for JsLoaderResolverPlugin)]
+#[plugin_hook(NormalModuleBeforeLoaders for JsLoaderResolverPlugin)]
 fn before_loaders(&self, module: &mut NormalModule) -> Result<()> {
   let contains_inline = module.contains_inline_loader();
   let contains_js_loader = module
@@ -54,12 +55,12 @@ fn before_loaders(&self, module: &mut NormalModule) -> Result<()> {
   Ok(())
 }
 
-#[plugin_hook(AsyncSeriesBail3<Context, Arc<Resolver>, ModuleRuleUseLoader, BoxLoader> for JsLoaderResolverPlugin)]
+#[plugin_hook(NormalModuleFactoryResolveLoader for JsLoaderResolverPlugin)]
 async fn resolve_loader(
   &self,
-  context: &mut Context,
-  resolver: &mut Arc<Resolver>,
-  l: &mut ModuleRuleUseLoader,
+  context: &Context,
+  resolver: &Resolver,
+  l: &ModuleRuleUseLoader,
 ) -> Result<Option<BoxLoader>> {
   let context = context.as_ref();
   let loader_request = &l.loader;

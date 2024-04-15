@@ -1,14 +1,14 @@
 use rayon::prelude::*;
-use rspack_core::{rspack_sources::MapOptions, Compilation, Plugin};
+use rspack_core::{rspack_sources::MapOptions, Compilation, CompilationProcessAssets, Plugin};
 use rspack_error::Result;
-use rspack_hook::{plugin, plugin_hook, AsyncSeries};
+use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_css::swc_css_compiler::{SwcCssCompiler, SwcCssSourceMapGenConfig};
 
 #[plugin]
 #[derive(Debug, Default)]
 pub struct SwcCssMinimizerRspackPlugin;
 
-#[plugin_hook(AsyncSeries<Compilation> for SwcCssMinimizerRspackPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE)]
+#[plugin_hook(CompilationProcessAssets for SwcCssMinimizerRspackPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   compilation
     .assets_mut()

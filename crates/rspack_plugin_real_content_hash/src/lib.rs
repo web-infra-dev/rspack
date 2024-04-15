@@ -11,11 +11,11 @@ use rayon::prelude::*;
 use regex::{Captures, Regex};
 use rspack_core::{
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  AssetInfo, Compilation, Logger, Plugin, PluginContext,
+  AssetInfo, Compilation, CompilationProcessAssets, Logger, Plugin, PluginContext,
 };
 use rspack_error::Result;
 use rspack_hash::RspackHash;
-use rspack_hook::{plugin, plugin_hook, AsyncSeries};
+use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 
 type IndexSet<T> = indexmap::IndexSet<T, BuildHasherDefault<FxHasher>>;
@@ -27,7 +27,7 @@ pub static QUOTE_META: Lazy<Regex> =
 #[derive(Debug, Default)]
 pub struct RealContentHashPlugin;
 
-#[plugin_hook(AsyncSeries<Compilation> for RealContentHashPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_HASH)]
+#[plugin_hook(CompilationProcessAssets for RealContentHashPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_HASH)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   inner_impl(compilation)
 }

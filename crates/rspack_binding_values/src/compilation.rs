@@ -440,51 +440,75 @@ impl JsCompilation {
   #[allow(clippy::too_many_arguments)]
   #[napi]
   pub fn import_module(
-    &'static self,
+    &'static mut self,
     env: Env,
     request: String,
     public_path: Option<String>,
     base_uri: Option<String>,
-    original_module: Option<String>,
+    _original_module: Option<String>,
     original_module_context: Option<String>,
     callback: JsFunction,
   ) -> Result<()> {
+    let options = self.0.options.clone();
+    let plugin_driver = self.0.plugin_driver.clone();
+    let resolver_factory = self.0.resolver_factory.clone();
+    let loader_resolver_factory = self.0.loader_resolver_factory.clone();
+    let cache = self.0.cache.clone();
+    let dependency_factories = self.0.dependency_factories.clone();
+
     callbackify(env, callback, async {
-      self
+      let module_executor = self
         .0
+        .module_executor
+        .as_mut()
+        .expect("should have module executor");
+      let result = module_executor
         .import_module(
+          options,
+          plugin_driver,
+          resolver_factory,
+          loader_resolver_factory,
+          cache,
+          dependency_factories,
           request,
           public_path,
           base_uri,
-          original_module.map(|s| s.into()),
-          original_module_context.map(|ctx| Box::new(rspack_core::Context::new(ctx))),
+          original_module_context.map(rspack_core::Context::new),
         )
-        .await
-        .map(|res| JsExecuteModuleResult {
-          file_dependencies: res
-            .file_dependencies
-            .into_iter()
-            .map(|d| d.to_string_lossy().to_string())
-            .collect(),
-          context_dependencies: res
-            .context_dependencies
-            .into_iter()
-            .map(|d| d.to_string_lossy().to_string())
-            .collect(),
-          build_dependencies: res
-            .build_dependencies
-            .into_iter()
-            .map(|d| d.to_string_lossy().to_string())
-            .collect(),
-          missing_dependencies: res
-            .missing_dependencies
-            .into_iter()
-            .map(|d| d.to_string_lossy().to_string())
-            .collect(),
-          assets: res.assets.into_iter().collect(),
-          id: res.id,
-        })
-        .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))
+        .await;
+      match result {
+        Ok(res) => {
+          let js_result = JsExecuteModuleResult {
+            file_dependencies: res
+              .file_dependencies
+              .into_iter()
+              .map(|d| d.to_string_lossy().to_string())
+              .collect(),
+            context_dependencies: res
+              .context_dependencies
+              .into_iter()
+              .map(|d| d.to_string_lossy().to_string())
+              .collect(),
+            build_dependencies: res
+              .build_dependencies
+              .into_iter()
+              .map(|d| d.to_string_lossy().to_string())
+              .collect(),
+            missing_dependencies: res
+              .missing_dependencies
+              .into_iter()
+              .map(|d| d.to_string_lossy().to_string())
+              .collect(),
+            assets: res.assets.keys().cloned().collect(),
+            id: res.id,
+          };
+          for (filename, asset) in res.assets {
+            self.0.emit_asset(filename, asset)
+          }
+          Ok(js_result)
+        }
+        Err(e) => Err(Error::new(napi::Status::GenericFailure, format!("{e}"))),
+      }
     })
   }
 }

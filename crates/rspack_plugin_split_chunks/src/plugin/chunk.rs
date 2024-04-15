@@ -1,4 +1,3 @@
-use rayon::prelude::*;
 use rspack_core::{Chunk, ChunkUkey, Compilation};
 use rustc_hash::FxHashSet;
 
@@ -16,7 +15,7 @@ impl SplitChunksPlugin {
     compilation: &mut Compilation,
     module_group: &mut ModuleGroup,
   ) -> Option<ChunkUkey> {
-    let candidates = module_group.chunks.par_iter().filter_map(|chunk| {
+    let candidates = module_group.chunks.iter().filter_map(|chunk| {
       let chunk = chunk.as_ref(&compilation.chunk_by_ukey);
 
       if compilation
@@ -45,7 +44,7 @@ impl SplitChunksPlugin {
         return None;
       }
 
-      let is_all_module_in_chunk = module_group.modules.par_iter().all(|each_module| {
+      let is_all_module_in_chunk = module_group.modules.iter().all(|each_module| {
         compilation
           .chunk_graph
           .is_module_in_chunk(each_module, chunk.ukey)
@@ -77,7 +76,7 @@ impl SplitChunksPlugin {
       }
     }
 
-    let best_reusable_chunk = candidates.reduce_with(|best, each| best_reusable_chunk(best, each));
+    let best_reusable_chunk = candidates.reduce(|best, each| best_reusable_chunk(best, each));
 
     best_reusable_chunk.map(|c| c.ukey)
   }

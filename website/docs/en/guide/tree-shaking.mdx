@@ -255,7 +255,7 @@ var __webpack_modules__ = {
 // ...
 ```
 
-## module.rule.sideEffects
+### module.rule.sideEffects
 
 You could override some modules sideEffects by using `module.rule.sideEffects`.
 Why do we need such feature?
@@ -344,3 +344,55 @@ module.exports = config;
 ```
 
 Rebuilding the project, we could got the same result as before, the whole **math/add.js** module got dropped.
+
+### Reexports optimization
+
+After enabling SideEffects optimization, Rspack tries to optimize re-exports modules.
+
+```js title=sdk.js
+export { a } from './a.js';
+export { b } from './b.js';
+export { c } from './c.js';
+// ...
+```
+
+```js title=index.js
+import { a } from './sdk.js';
+console.log(a);
+```
+
+If Rspack knows that module `sdk.js` has no side effects, Rspack will try to import `a` directly from `a.js` rather than imports the whole `sdk.js`.
+
+In some non-standard libraries, there may be circular dependencies, for example, `a.js` imports members from `b.js` via `sdk.js`.
+
+```js title=a.js
+import { b } from './sdk.js';
+export const a = b;
+```
+
+```js title=index.js
+import { a } from './sdk.js';
+console.log(a);
+```
+
+At this time, there is a circular dependency between `a.js` and `sdk.js`, which is not recommended to intentionally use circular dependencies like this. However, it can still be built successfully and run successfully. This is because Rspack will attempt to transform the above imports into:
+
+```diff title=a.js
+- import { b } from './sdk.js';
++ import { b } from './b.js';
+export const a = b;
+```
+
+```diff title=index.js
+- import { a } from './sdk.js'
++ import { a } from './a.js'
+console.log(a);
+```
+
+After the transformation, the circular dependency is gone. However, if you try to turn off `optimization.providedExports` or `optimization.sideEffects`, the build will be successful, but errors due to circular dependencies will occur at runtime.
+
+> You can find above example [here](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/rspack/treeshaking-transform-imports).
+
+This diagram demonstrates the process of re-exports optimization:
+
+![](https://rsfamily-design-resources.netlify.app/rspack/assets/rspack-reexports-optimization.png)

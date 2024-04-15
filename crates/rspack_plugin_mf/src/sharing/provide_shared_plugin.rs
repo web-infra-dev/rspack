@@ -4,11 +4,12 @@ use async_trait::async_trait;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
-  ApplyContext, BoxModule, Compilation, CompilationParams, CompilerOptions, DependencyType,
-  EntryOptions, ModuleFactoryCreateData, NormalModuleCreateData, Plugin, PluginContext,
+  ApplyContext, BoxModule, Compilation, CompilationParams, CompilerCompilation, CompilerFinishMake,
+  CompilerOptions, DependencyType, EntryOptions, ModuleFactoryCreateData, NormalModuleCreateData,
+  NormalModuleFactoryModule, Plugin, PluginContext,
 };
 use rspack_error::{Diagnostic, Result};
-use rspack_hook::{plugin, plugin_hook, AsyncSeries, AsyncSeries2, AsyncSeries3};
+use rspack_hook::{plugin, plugin_hook};
 use rspack_loader_runner::ResourceData;
 use rustc_hash::FxHashMap;
 use tokio::sync::RwLock;
@@ -132,7 +133,7 @@ impl ProvideSharedPlugin {
   }
 }
 
-#[plugin_hook(AsyncSeries2<Compilation, CompilationParams> for ProvideSharedPlugin)]
+#[plugin_hook(CompilerCompilation for ProvideSharedPlugin)]
 async fn compilation(
   &self,
   compilation: &mut Compilation,
@@ -162,7 +163,7 @@ async fn compilation(
   Ok(())
 }
 
-#[plugin_hook(AsyncSeries<Compilation> for ProvideSharedPlugin)]
+#[plugin_hook(CompilerFinishMake for ProvideSharedPlugin)]
 async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
   for (resource, config) in self.resolved_provide_map.read().await.iter() {
     compilation
@@ -187,7 +188,7 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
   Ok(())
 }
 
-#[plugin_hook(AsyncSeries3<ModuleFactoryCreateData, NormalModuleCreateData, BoxModule> for ProvideSharedPlugin)]
+#[plugin_hook(NormalModuleFactoryModule for ProvideSharedPlugin)]
 async fn normal_module_factory_module(
   &self,
   data: &mut ModuleFactoryCreateData,

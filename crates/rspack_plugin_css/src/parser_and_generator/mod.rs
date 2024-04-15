@@ -20,13 +20,19 @@ use rspack_core::{ModuleInitFragments, RuntimeGlobals};
 use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_util::source_map::SourceMapKind;
 use rustc_hash::FxHashSet;
-use swc_core::{css::parser::parser::ParserConfig, ecma::atoms::Atom};
+use swc_core::{
+  css::{parser::parser::ParserConfig, visit::VisitWith},
+  ecma::atoms::Atom,
+};
 
-use crate::utils::{css_modules_exports_to_string, ModulesTransformConfig};
 use crate::{
   dependency::{CssComposeDependency, CssModuleExportDependency},
   swc_css_compiler::{SwcCssCompiler, SwcCssSourceMapGenConfig},
   utils::css_modules_exports_to_concatenate_module_string,
+};
+use crate::{
+  utils::{css_modules_exports_to_string, ModulesTransformConfig},
+  visitors::ExportsAnalyzer,
 };
 use crate::{
   utils::{export_locals_convention, stringify_css_modules_exports_elements},
@@ -120,16 +126,22 @@ impl ParserAndGenerator for CssParserAndGenerator {
     let mut diagnostic_vec = vec![];
 
     let mut exports_pairs = vec![];
+    let mut presentational_dependencies = None;
     if is_enable_css_modules {
       let mut stylesheet = swc_compiler.parse_file(
         &resource_path.to_string_lossy(),
-        source_code,
+        source_code.clone(),
         ParserConfig {
           css_modules: is_enable_css_modules,
           legacy_ie: true,
           ..Default::default()
         },
       )?;
+
+      let mut exports_analyzer = ExportsAnalyzer::new(&source_code);
+      stylesheet.visit_with(&mut exports_analyzer);
+
+      presentational_dependencies = Some(exports_analyzer.presentation_deps);
 
       let result = swc_core::css::modules::compile(
         &mut stylesheet,
@@ -143,6 +155,11 @@ impl ParserAndGenerator for CssParserAndGenerator {
         ),
       );
       let mut exports: IndexMap<Atom, _> = result.renamed.into_iter().collect();
+
+      for (key, value) in exports_analyzer.exports {
+        exports.insert(key, vec![value]);
+      }
+
       exports.sort_keys();
       let normalized_exports = IndexMap::from_iter(
         exports
@@ -155,11 +172,13 @@ impl ParserAndGenerator for CssParserAndGenerator {
           })
           .collect::<Vec<_>>(),
       );
+
       for (k, v) in normalized_exports.iter() {
         for kk in k {
           exports_pairs.push((kk.to_string(), v[0].0.to_owned()));
         }
       }
+
       self.exports = Some(normalized_exports);
 
       let (code, map) = swc_compiler.codegen(
@@ -251,7 +270,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
       ParseResult {
         dependencies,
         blocks: vec![],
-        presentational_dependencies: vec![],
+        presentational_dependencies: presentational_dependencies.unwrap_or_default(),
         source: new_source,
         analyze_result: Default::default(),
         side_effects_bailout: None,

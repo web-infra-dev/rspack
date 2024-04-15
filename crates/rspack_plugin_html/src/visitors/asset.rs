@@ -160,8 +160,14 @@ impl VisitMut for AssetWriter<'_, '_> {
 
         // add favicon
         if let Some(favicon) = &self.config.favicon {
+          let favicon = PathBuf::from(favicon)
+            .file_name()
+            .expect("favicon should have file name")
+            .to_string_lossy()
+            .to_string();
+
           let favicon_relative_path =
-            PathBuf::from(self.config.get_relative_path(self.compilation, favicon));
+            PathBuf::from(self.config.get_relative_path(self.compilation, &favicon));
 
           let mut favicon_path = PathBuf::from(self.config.get_public_path(
             self.compilation,

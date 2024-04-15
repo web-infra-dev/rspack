@@ -1,5 +1,5 @@
 use napi_derive::napi;
-use rspack_core::{AfterResolveArgs, BeforeResolveArgs, NormalModuleCreateData, ResourceData};
+use rspack_core::{NormalModuleCreateData, ResourceData};
 
 #[napi(object)]
 pub struct JsResolveForSchemeArgs {
@@ -73,43 +73,6 @@ impl From<ResourceData> for JsResolveForSchemeArgs {
     Self {
       scheme: value.get_scheme().to_string(),
       resource_data: value.into(),
-    }
-  }
-}
-
-impl From<BeforeResolveArgs> for JsBeforeResolveArgs {
-  fn from(value: BeforeResolveArgs) -> Self {
-    Self {
-      context: value.context,
-      request: value.request,
-    }
-  }
-}
-
-impl From<&AfterResolveArgs<'_>> for JsAfterResolveData {
-  fn from(value: &AfterResolveArgs) -> Self {
-    Self {
-      context: value.context.to_owned(),
-      request: value.request.to_string(),
-      file_dependencies: value
-        .file_dependencies
-        .clone()
-        .into_iter()
-        .map(|item| item.to_string_lossy().to_string())
-        .collect::<Vec<_>>(),
-      context_dependencies: value
-        .context_dependencies
-        .clone()
-        .into_iter()
-        .map(|item| item.to_string_lossy().to_string())
-        .collect::<Vec<_>>(),
-      missing_dependencies: value
-        .context_dependencies
-        .clone()
-        .into_iter()
-        .map(|item| item.to_string_lossy().to_string())
-        .collect::<Vec<_>>(),
-      create_data: value.create_data.as_ref().map(JsCreateData::from),
     }
   }
 }

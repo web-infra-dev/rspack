@@ -11,14 +11,14 @@ use rustc_hash::FxHashMap as HashMap;
 use serde::Serialize;
 
 use crate::{
-  extract_url_and_global, impl_build_info_meta, property_access,
+  extract_url_and_global, impl_module_meta_info, property_access,
   rspack_sources::{BoxSource, RawSource, Source, SourceExt},
   to_identifier, AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildMeta,
   BuildMetaExportsType, BuildResult, ChunkInitFragments, ChunkUkey, CodeGenerationDataUrl,
   CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId,
-  ExternalType, InitFragmentExt, InitFragmentKey, InitFragmentStage, LibIdentOptions, Module,
-  ModuleType, NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency,
-  StaticExportsSpec,
+  ExternalType, FactoryMeta, InitFragmentExt, InitFragmentKey, InitFragmentStage, LibIdentOptions,
+  Module, ModuleType, NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType,
+  StaticExportsDependency, StaticExportsSpec,
 };
 use crate::{ChunkGraph, ModuleGraph};
 
@@ -93,6 +93,7 @@ pub struct ExternalModule {
   external_type: ExternalType,
   /// Request intended by user (without loaders from config)
   user_request: String,
+  factory_meta: Option<FactoryMeta>,
   build_info: Option<BuildInfo>,
   build_meta: Option<BuildMeta>,
 }
@@ -106,6 +107,7 @@ impl ExternalModule {
       request,
       external_type,
       user_request,
+      factory_meta: None,
       build_info: None,
       build_meta: None,
       source_map_kind: SourceMapKind::None,
@@ -313,7 +315,7 @@ impl DependenciesBlock for ExternalModule {
 
 #[async_trait::async_trait]
 impl Module for ExternalModule {
-  impl_build_info_meta!();
+  impl_module_meta_info!();
 
   fn get_concatenation_bailout_reason(
     &self,
