@@ -9,11 +9,9 @@ async-scoped       = { version = "0.9.0" }
 async-trait        = { version = "0.1.79" }
 better_scoped_tls  = { version = "0.1.1" }
 bitflags           = { version = "2.5.0" }
-colored            = { version = "2.1.0" }
 concat-string      = "1.0.1"
 dashmap            = { version = "5.5.3" }
 derivative         = { version = "2.2.0" }
-derive_builder     = { version = "0.20.0" }
 futures            = { version = "0.3.30" }
 glob               = { version = "0.3.1" }
 hashlink           = { version = "0.9.0" }
@@ -37,7 +35,6 @@ rustc-hash         = { version = "1.1.0" }
 schemars           = { version = "0.8.16" }
 serde              = { version = "1.0.197" }
 serde_json         = { version = "1.0.115" }
-similar            = { version = "2.5.0" }
 sugar_path         = { version = "1.2.0", features = ["cached_current_dir"] }
 syn                = { version = "2.0.58" }
 tokio              = { version = "1.37.0" }
