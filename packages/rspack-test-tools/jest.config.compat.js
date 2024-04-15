@@ -8,7 +8,8 @@ module.exports = {
 		"<rootDir>/tests/Builtin.test.js",
 		"<rootDir>/tests/Defaults.unittest.js",
 		"<rootDir>/tests/Stats.unittest.js",
-		"<rootDir>/tests/TreeShaking.test.js"
+		"<rootDir>/tests/TreeShaking.test.js",
+		"<rootDir>/tests/HotTestStepWeb.test.js"
 	],
 	testPathIgnorePatterns: ["<rootDir>/tests/*.difftest.js"]
 };
