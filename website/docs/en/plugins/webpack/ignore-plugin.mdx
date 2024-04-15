@@ -1,0 +1,44 @@
+import { ApiMeta } from '../../../../components/ApiMeta.tsx';
+
+# IgnorePlugin
+
+<ApiMeta addedVersion={'0.6.2'} />
+
+This plugin will prevent the generation of modules for import or require calls matching the regular expressions.
+
+```js
+new rspack.IgnorePlugin(options);
+```
+
+## Options
+
+- **Type:**
+
+```ts
+{
+  /** A RegExp to test the resource against. */
+  resourceRegExp: RegExp;
+  /** A RegExp to test the context (directory) against. */
+  contextRegExp?: RegExp;
+}
+```
+
+- **Default:** `undefined`
+
+## Example
+
+When using the following configuration:
+
+```ts title="rspack.config.js"
+const rspack = require('@rspack/core');
+module.exports = {
+  plugins: [
+    new rspack.IgnorePlugin({
+      resourceRegExp: /^\.\/locale$/,
+      contextRegExp: /moment$/,
+    });
+  ],
+};
+```
+
+which means any require statement matching './locale' from any directories ending with 'moment' will be ignored.

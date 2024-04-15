@@ -348,6 +348,10 @@ function getSidebarConfig(lang: 'zh' | 'en'): Sidebar {
 						link: getLink('/plugins/webpack/hot-module-replacement-plugin'),
 					},
 					{
+						text: 'IgnorePlugin',
+						link: getLink('/plugins/webpack/ignore-plugin'),
+					},
+					{
 						text: 'ProgressPlugin',
 						link: getLink('/plugins/webpack/progress-plugin'),
 					},
