@@ -1,0 +1,13 @@
+# Case bubble-async: Step 0
+
+## Changed Files
+- file.js
+
+## Asset Files
+- Bundle: bundle.js, size: 39875
+- Bundle: file_js.chunk.CURRENT_HASH.js, size: 136
+
+## Manifest
+
+		
+## Update

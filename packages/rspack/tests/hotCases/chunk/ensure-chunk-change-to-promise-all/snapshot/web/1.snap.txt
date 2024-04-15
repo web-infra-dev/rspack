@@ -1,0 +1,86 @@
+# Case ensure-chunk-change-to-promise-all: Step 1
+
+## Changed Files
+- file.js
+
+## Asset Files
+- Bundle: bundle.js, size: 37937
+- Bundle: file_js.chunk.CURRENT_HASH.js, size: 485
+- Bundle: vendors-node_modules_vue_js.chunk.CURRENT_HASH.js, size: 364
+- Manifest: main.LAST_HASH.hot-update.json, size: 94
+- Update: file_js.LAST_HASH.hot-update.js, size: 449
+- Update: main.LAST_HASH.hot-update.js, size: 692
+
+## Manifest
+
+### main.LAST_HASH.hot-update.json
+
+```json
+{"c":["main","file_js"],"r":["vendors-node_modules_react_js"],"m":["./node_modules/react.js"]}
+```
+
+		
+## Update
+
+
+### file_js.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./file.js
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+self["webpackHotUpdate"]('file_js', {
+"./file.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  Vue: function() { return /* reexport safe */ vue__WEBPACK_IMPORTED_MODULE_0__.Vue; }
+});
+/* harmony import */var vue__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! vue */"./node_modules/vue.js");
+
+}),
+
+});
+```
+
+
+
+
+### main.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./chunk.js
+
+#### Changed Runtime Modules
+- webpack/runtime/get_full_hash
+
+#### Changed Content
+```js
+self["webpackHotUpdate"]('main', {
+"./chunk.js": (function (module, __webpack_exports__, __webpack_require__) {
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  test: function() { return test; }
+});
+function test(count) {
+    return Promise.all([__webpack_require__.e("vendors-node_modules_vue_js"), __webpack_require__.e("file_js")]).then(__webpack_require__.bind(__webpack_require__, /*! ./file */"./file.js")).then(({ React, Vue })=>count === 0 ? React : Vue);
+}
+}),
+
+},function(__webpack_require__) {
+// webpack/runtime/get_full_hash
+!function() {
+__webpack_require__.h = function () {
+	return "CURRENT_HASH";
+};
+
+}();
+
+}
+);
+```
