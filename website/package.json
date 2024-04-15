@@ -34,6 +34,7 @@
     "@types/react": "^18.0.27",
     "@types/semver": "^7.5.2",
     "case-police": "0.6.1",
+    "cspell": "^8.7.0",
     "cspell-ban-words": "0.0.3",
     "nano-staged": "^0.8.0",
     "prettier": "^2.8.3",
