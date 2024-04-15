@@ -1,8 +1,6 @@
 import { Tabs, Tab } from 'rspress/theme';
-import { NoSSR } from 'rspress/runtime';
 import { ProgressBar } from './ProgressBar';
-import { MenuGroup } from '../MenuGroup/index';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import { useI18n } from '../../i18n';
@@ -10,7 +8,7 @@ import styles from './index.module.scss';
 
 // 场景条件
 // 冷启动/热更新
-const BENChMARK_DATA = {
+const BENCHMARK_DATA = {
   coldStart: [
     {
       name: 'Rspack',
@@ -71,23 +69,23 @@ const BENChMARK_DATA = {
 };
 
 const MODULE_COUNT_MAP = {
-  coldStart: '50000',
-  hmrRoot: '10000',
-  hmrLeaf: '10000',
-  coldBuild: '50000',
+  coldStart: '50,000',
+  hmrRoot: '10,000',
+  hmrLeaf: '10,000',
+  coldBuild: '50,000',
 };
 
 export function Benchmark() {
   const t = useI18n();
   const SCENE = ['coldStart', 'hmrRoot', 'hmrLeaf', 'coldBuild'];
   const [activeScene, setActiveScene] =
-    useState<keyof typeof BENChMARK_DATA>('coldStart');
+    useState<keyof typeof BENCHMARK_DATA>('coldStart');
   const { ref, inView } = useInView();
   const variants = {
     initial: { y: 50, opacity: 0 },
     animate: { y: 0, opacity: 1, transition: { duration: 0.5 } },
   };
-  const performanceInfoList = BENChMARK_DATA[activeScene];
+  const performanceInfoList = BENCHMARK_DATA[activeScene];
   return (
     <motion.div
       ref={ref}
@@ -103,18 +101,17 @@ export function Benchmark() {
             <h2 className={`${styles.title} font-bold text-2xl sm:text-4xl`}>
               {t('benchmarkTitle')}
             </h2>
-            <p className="mt-6 mx-6 text-center sm:text-lg text-gray-600 max-w-3xl">
+            <p className="mt-6 mx-6 text-center sm:text-lg text-gray-500 max-w-3xl">
               {t('benchmarkDesc')}
             </p>
           </div>
           <div className="flex flex-col items-center my-4 z-1">
-            {/* <h2 className="font-bold text-2xl mb-5">超快的编译速度!</h2> */}
             <Tabs
               values={SCENE.map((item) => ({
-                label: t(item as keyof typeof BENChMARK_DATA),
+                label: t(item as keyof typeof BENCHMARK_DATA),
               }))}
               onChange={(index) =>
-                setActiveScene(SCENE[index] as keyof typeof BENChMARK_DATA)
+                setActiveScene(SCENE[index] as keyof typeof BENCHMARK_DATA)
               }
             >
               {SCENE.map((scene) => (
@@ -127,7 +124,7 @@ export function Benchmark() {
                       {inView && (
                         <>
                           <p
-                            className="mr-2 mb-2 w-20 text-center text-gray-500 dark:text-light-500"
+                            className="mr-2 mb-2 w-20 text-center text-gray-400"
                             style={{ minWidth: '180px' }}
                           >
                             {info.name}
