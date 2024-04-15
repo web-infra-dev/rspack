@@ -30,14 +30,17 @@
     "@modern-js/tsconfig": "^2.46.1",
     "@rspress/plugin-rss": "^1.17.1",
     "@rspress/shared": "^1.17.1",
+    "@types/node": "^18.11.18",
     "@types/react": "^18.0.27",
     "@types/semver": "^7.5.2",
     "case-police": "0.6.1",
     "cspell-ban-words": "0.0.3",
     "nano-staged": "^0.8.0",
+    "prettier": "^2.8.3",
     "rsbuild-plugin-google-analytics": "1.0.0",
     "rsbuild-plugin-open-graph": "1.0.0",
     "rspress": "^1.17.1",
-    "rspress-plugin-font-open-sans": "1.0.0"
+    "rspress-plugin-font-open-sans": "1.0.0",
+    "typescript": "^5.0.4"
   }
 }

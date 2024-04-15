@@ -13,4 +13,3 @@ packages:
   - "webpack-test"
   - "webpack-cli-test"
   - "diffcases/*"
-  - "website"
