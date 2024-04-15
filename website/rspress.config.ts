@@ -144,7 +144,9 @@ function getSidebarConfig(lang: 'zh' | 'en'): Sidebar {
         items: [
           getLink('/guide/introduction'),
           getLink('/guide/quick-start'),
-          getLink('/guide/glossary'),
+          getLink('/guide/migrate-from-webpack'),
+          getLink('/guide/migrate-from-cra'),
+          getLink('/guide/migrate-storybook'),
         ],
       },
       {
@@ -200,22 +202,14 @@ function getSidebarConfig(lang: 'zh' | 'en'): Sidebar {
           getLink('/guide/loader-compat'),
           getLink('/guide/plugin-compat'),
           getLink('/guide/compat-others'),
-        ],
-      },
-      {
-        collapsible: false,
-        text: getText('迁移', 'Migration'),
-        items: [
-          getLink('/guide/migrate-from-webpack'),
           getLink('/guide/config-diff'),
-          getLink('/guide/migrate-from-cra'),
-          getLink('/guide/migrate-storybook'),
         ],
       },
       {
         collapsible: false,
         text: getText('其他', 'Misc'),
         items: [
+          getLink('/misc/glossary'),
           getLink('/misc/faq'),
           getLink('/misc/roadmap'),
           getLink('/misc/join-us'),
