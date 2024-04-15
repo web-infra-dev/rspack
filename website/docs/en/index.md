@@ -12,11 +12,11 @@ hero:
     alt: logo
   actions:
     - theme: brand
-      text: Introduction
-      link: /guide/introduction
-    - theme: alt
-      text: Quick Start
+      text: Get Started
       link: /guide/quick-start
+    - theme: alt
+      text: Learn More
+      link: /guide/introduction
 
 features:
   - title: Fast Startup
