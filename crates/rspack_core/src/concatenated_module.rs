@@ -38,9 +38,10 @@ use crate::{
   ChunkInitFragments, CodeGenerationResult, Compilation, ConcatenatedModuleIdent,
   ConcatenationScope, ConnectionId, ConnectionState, Context, DependenciesBlock, DependencyId,
   DependencyTemplate, ErrorSpan, ExportInfoId, ExportInfoProvided, ExportsArgument, ExportsType,
-  IdentCollector, LibIdentOptions, Module, ModuleDependency, ModuleGraph, ModuleGraphConnection,
-  ModuleIdentifier, ModuleType, Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType,
-  SpanExt, Template, UsageState, UsedName, DEFAULT_EXPORT, NAMESPACE_OBJECT_EXPORT,
+  FactoryMeta, IdentCollector, LibIdentOptions, Module, ModuleDependency, ModuleGraph,
+  ModuleGraphConnection, ModuleIdentifier, ModuleType, Resolve, RuntimeCondition, RuntimeGlobals,
+  RuntimeSpec, SourceType, SpanExt, Template, UsageState, UsedName, DEFAULT_EXPORT,
+  NAMESPACE_OBJECT_EXPORT,
 };
 
 #[derive(Debug)]
@@ -54,6 +55,7 @@ pub struct RootModuleContext {
   pub presentational_dependencies: Option<Vec<Box<dyn DependencyTemplate>>>,
   pub context: Option<Context>,
   pub side_effect_connection_state: ConnectionState,
+  pub factory_meta: Option<FactoryMeta>,
   pub build_meta: Option<BuildMeta>,
 }
 
@@ -476,16 +478,28 @@ impl Module for ConcatenatedModule {
     guard.clone()
   }
 
+  fn factory_meta(&self) -> Option<&FactoryMeta> {
+    self.root_module_ctxt.factory_meta.as_ref()
+  }
+
+  fn set_factory_meta(&mut self, v: FactoryMeta) {
+    self.root_module_ctxt.factory_meta = Some(v);
+  }
+
   fn build_info(&self) -> Option<&BuildInfo> {
     self.build_info.as_ref()
+  }
+
+  fn set_build_meta(&mut self, v: BuildMeta) {
+    self.root_module_ctxt.build_meta = Some(v);
   }
 
   fn build_meta(&self) -> Option<&BuildMeta> {
     self.root_module_ctxt.build_meta.as_ref()
   }
 
-  fn set_module_build_info_and_meta(&mut self, build_info: BuildInfo, _: BuildMeta) {
-    self.build_info = Some(build_info);
+  fn set_build_info(&mut self, v: BuildInfo) {
+    self.build_info = Some(v);
   }
 
   fn source_types(&self) -> &[SourceType] {
@@ -586,6 +600,7 @@ impl Module for ConcatenatedModule {
       // release guard ASAP
       drop(diagnostics_guard);
     }
+    self.set_build_info(build_info);
     // return a dummy result is enough, since we don't build the ConcatenatedModule in make phase
     Ok(BuildResult::default())
   }

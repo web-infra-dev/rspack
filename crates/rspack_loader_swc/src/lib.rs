@@ -49,7 +49,7 @@ pub const SWC_LOADER_IDENTIFIER: &str = "builtin:swc-loader";
 #[async_trait::async_trait]
 impl Loader<LoaderRunnerContext> for SwcLoader {
   async fn run(&self, loader_context: &mut LoaderContext<'_, LoaderRunnerContext>) -> Result<()> {
-    let resource_path = loader_context.resource_path.to_path_buf();
+    let resource_path = loader_context.resource_path().to_path_buf();
     let content = std::mem::take(&mut loader_context.content).expect("content should be available");
 
     let swc_options = {
@@ -64,7 +64,7 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
           .transform
           .merge(MergingOption::from(Some(transform)));
       }
-      if let Some(pre_source_map) = std::mem::take(&mut loader_context.source_map) {
+      if let Some(pre_source_map) = loader_context.source_map.clone() {
         if let Ok(source_map) = pre_source_map.to_json() {
           swc_options.config.input_source_map = Some(InputSourceMap::Str(source_map))
         }

@@ -8,6 +8,7 @@ version    = "0.1.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-async-trait     = { workspace = true }
 rspack_core     = { path = "../rspack_core" }
 rspack_database = { path = "../rspack_database" }
+rspack_error    = { path = "../rspack_error" }
+rspack_hook     = { path = "../rspack_hook" }

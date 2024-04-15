@@ -77,6 +77,8 @@ export { default as EntryOptionPlugin } from "./lib/EntryOptionPlugin";
 export { BannerPlugin } from "./builtin-plugin";
 export type { BannerPluginArgument } from "./builtin-plugin";
 
+export { IgnorePlugin, type IgnorePluginOptions } from "./builtin-plugin";
+
 export { ProvidePlugin } from "./builtin-plugin";
 export type { ProvidePluginOptions } from "./builtin-plugin";
 
@@ -200,3 +202,5 @@ export type { SourceMapDevToolPluginOptions } from "./builtin-plugin";
 
 export { EvalDevToolModulePlugin } from "./builtin-plugin";
 export type { EvalDevToolModulePluginOptions } from "./builtin-plugin";
+
+export { CssExtractRspackPlugin } from "./builtin-plugin";

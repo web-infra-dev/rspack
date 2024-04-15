@@ -120,7 +120,11 @@ export const applyRspackOptionsDefaults = (
 
 	applyNodeDefaults(options.node, { targetProperties });
 
-	applyOptimizationDefaults(options.optimization, { production, development });
+	applyOptimizationDefaults(options.optimization, {
+		production,
+		development,
+		css: options.experiments.css!
+	});
 
 	options.resolve = cleverMerge(
 		getResolveDefaults({
@@ -168,7 +172,7 @@ const applyExperimentsDefaults = (
 
 	D(experiments, "rspackFuture", {});
 	if (typeof experiments.rspackFuture === "object") {
-		D(experiments.rspackFuture, "newTreeshaking", false);
+		D(experiments.rspackFuture, "newTreeshaking", true);
 		D(experiments.rspackFuture, "bundlerInfo", {});
 		if (typeof experiments.rspackFuture.bundlerInfo === "object") {
 			D(
@@ -745,7 +749,11 @@ const applyNodeDefaults = (
 
 const applyOptimizationDefaults = (
 	optimization: Optimization,
-	{ production, development }: { production: boolean; development: boolean }
+	{
+		production,
+		development,
+		css
+	}: { production: boolean; development: boolean; css: boolean }
 ) => {
 	D(optimization, "removeAvailableModules", true);
 	D(optimization, "removeEmptyChunks", true);
@@ -779,9 +787,9 @@ const applyOptimizationDefaults = (
 	});
 	const { splitChunks } = optimization;
 	if (splitChunks) {
-		// A(splitChunks, "defaultSizeTypes", () =>
-		// 	css ? ["javascript", "css", "unknown"] : ["javascript", "unknown"]
-		// );
+		A(splitChunks, "defaultSizeTypes", () =>
+			css ? ["javascript", "css", "unknown"] : ["javascript", "unknown"]
+		);
 		D(splitChunks, "hidePathInfo", production);
 		D(splitChunks, "chunks", "async");
 		// D(splitChunks, "usedExports", optimization.usedExports === true);

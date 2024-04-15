@@ -1,4 +1,4 @@
-use std::fmt;
+use std::fmt::{self, Display};
 
 use itertools::Itertools;
 use rspack_database::DatabaseItem;
@@ -385,6 +385,15 @@ impl EntryOptions {
 pub enum ChunkGroupOrderKey {
   Preload,
   Prefetch,
+}
+
+impl Display for ChunkGroupOrderKey {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.write_str(match self {
+      ChunkGroupOrderKey::Preload => "preload",
+      ChunkGroupOrderKey::Prefetch => "prefetch",
+    })
+  }
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]

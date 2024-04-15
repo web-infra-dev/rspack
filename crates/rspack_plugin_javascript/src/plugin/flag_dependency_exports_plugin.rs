@@ -1,17 +1,18 @@
 use std::collections::hash_map::Entry;
-use std::collections::VecDeque;
 
 use itertools::Itertools;
 use rspack_core::{
-  ApplyContext, BuildMetaExportsType, Compilation, CompilerOptions, DependenciesBlock,
-  DependencyId, ExportInfoProvided, ExportNameOrSpec, ExportsInfoId, ExportsOfExportsSpec,
-  ExportsSpec, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, MutableModuleGraph, Plugin,
-  PluginContext,
+  ApplyContext, BuildMetaExportsType, Compilation, CompilationFinishModules, CompilerOptions,
+  DependenciesBlock, DependencyId, ExportInfoProvided, ExportNameOrSpec, ExportsInfoId,
+  ExportsOfExportsSpec, ExportsSpec, ModuleGraph, ModuleGraphConnection, ModuleIdentifier,
+  MutableModuleGraph, Plugin, PluginContext,
 };
 use rspack_error::Result;
-use rspack_hook::{plugin, plugin_hook, AsyncSeries};
+use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::ecma::atoms::Atom;
+
+use crate::utils::queue::Queue;
 
 struct FlagDependencyExportsProxy<'a> {
   mg: &'a mut ModuleGraph<'a>,
@@ -31,7 +32,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
   }
 
   pub fn apply(&mut self) {
-    let mut q = VecDeque::new();
+    let mut q = Queue::new();
 
     let module_ids = self.mg.modules().keys().cloned().collect_vec();
     for module_id in module_ids {
@@ -68,16 +69,16 @@ impl<'a> FlagDependencyExportsProxy<'a> {
         .unwrap_or_default()
       {
         exports_id.set_has_provide_info(self.mg);
-        q.push_back(module_id);
+        q.enqueue(module_id);
         continue;
       }
 
       exports_id.set_has_provide_info(self.mg);
-      q.push_back(module_id);
+      q.enqueue(module_id);
       // TODO: mem cache
     }
 
-    while let Some(module_id) = q.pop_front() {
+    while let Some(module_id) = q.dequeue() {
       self.changed = false;
       self.current_module_id = module_id;
       let mut exports_specs_from_dependencies: HashMap<DependencyId, ExportsSpec> =
@@ -93,10 +94,10 @@ impl<'a> FlagDependencyExportsProxy<'a> {
     }
   }
 
-  pub fn notify_dependencies(&mut self, q: &mut VecDeque<ModuleIdentifier>) {
+  pub fn notify_dependencies(&mut self, q: &mut Queue<ModuleIdentifier>) {
     if let Some(set) = self.dependencies.get(&self.current_module_id) {
       for mi in set.iter() {
-        q.push_back(*mi);
+        q.enqueue(*mi);
       }
     }
   }
@@ -369,13 +370,12 @@ pub struct DefaultExportInfo<'a> {
 #[derive(Debug, Default)]
 pub struct FlagDependencyExportsPlugin;
 
-#[plugin_hook(AsyncSeries<Compilation> for FlagDependencyExportsPlugin)]
+#[plugin_hook(CompilationFinishModules for FlagDependencyExportsPlugin)]
 async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
   FlagDependencyExportsProxy::new(&mut compilation.get_module_graph_mut()).apply();
   Ok(())
 }
 
-#[async_trait::async_trait]
 impl Plugin for FlagDependencyExportsPlugin {
   fn name(&self) -> &'static str {
     "FlagDependencyExportsPlugin"

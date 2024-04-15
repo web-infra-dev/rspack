@@ -12,7 +12,7 @@ use swc_core::ecma::ast::{FnExpr, ForHead, Function, Ident, KeyValueProp};
 use swc_core::ecma::ast::{ForInStmt, ForOfStmt, ForStmt, IfStmt, LabeledStmt, WithStmt};
 use swc_core::ecma::ast::{MetaPropExpr, NamedExport, NewExpr, ObjectLit, OptCall, OptChainBase};
 use swc_core::ecma::ast::{ModuleDecl, ModuleItem, ObjectPat, ObjectPatProp, Stmt, WhileStmt};
-use swc_core::ecma::ast::{OptChainExpr, ParamOrTsParamProp, Pat, ThisExpr, UnaryOp};
+use swc_core::ecma::ast::{OptChainExpr, Pat, ThisExpr, UnaryOp};
 use swc_core::ecma::ast::{Prop, PropName, PropOrSpread, RestPat, ReturnStmt, SeqExpr, TaggedTpl};
 use swc_core::ecma::ast::{SwitchCase, SwitchStmt, Tpl, TryStmt, VarDecl, YieldExpr};
 use swc_core::ecma::ast::{ThrowStmt, UnaryExpr, UpdateExpr};
@@ -1071,7 +1071,7 @@ impl<'parser> JavascriptParser<'parser> {
       Pat::Object(obj) => self.walk_object_pattern(obj),
       Pat::Rest(rest) => self.walk_rest_element(rest),
       Pat::Expr(expr) => self.walk_expression(expr),
-      Pat::Ident(ident) => self.walk_identifier(ident),
+      Pat::Ident(_) => (),
       Pat::Invalid(_) => (),
     }
   }
@@ -1166,16 +1166,20 @@ impl<'parser> JavascriptParser<'parser> {
             let was_top_level = this.top_level_scope;
             this.top_level_scope = TopLevelScope::False;
 
-            for prop in &ctor.params {
-              match prop {
-                ParamOrTsParamProp::Param(param) => this.walk_pattern(&param.pat),
-                ParamOrTsParamProp::TsParamProp(_) => unreachable!(),
+            let params = ctor.params.iter().map(|p| {
+              let p = p.as_param().expect("should only contain param");
+              Cow::Borrowed(&p.pat)
+            });
+            this.in_function_scope(true, params.clone(), |this| {
+              for param in params {
+                this.walk_pattern(&param)
               }
-            }
-            // TODO: `hooks.body_value`;
-            if let Some(body) = &ctor.body {
-              this.walk_block_statement(body);
-            }
+
+              // TODO: `hooks.body_value`;
+              if let Some(body) = &ctor.body {
+                this.walk_block_statement(body);
+              }
+            });
 
             this.top_level_scope = was_top_level;
           }

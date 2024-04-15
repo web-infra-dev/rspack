@@ -12,6 +12,7 @@ import type { Compiler } from "../Compiler";
 import type { StatsPrinter, StatsPrinterContext } from "./StatsPrinter";
 import { formatSize } from "../util/SizeFormatHelpers";
 import { StatsChunkGroup, StatsCompilation } from "./statsFactoryUtils";
+import { compareIds } from "../util/comparators";
 
 const DATA_URI_CONTENT_LENGTH = 16;
 
@@ -550,17 +551,21 @@ const SIMPLE_PRINTERS: Record<
 		context.formatChunkId(siblings, "sibling"),
 	"chunk.children[]": (children, context) =>
 		context.formatChunkId(children, "child"),
-	"chunk.childrenByOrder": (childrenByOrder, context, printer) =>
-		Array.isArray(childrenByOrder)
+	"chunk.childrenByOrder": (childrenByOrder, context, printer) => {
+		if (Array.isArray(childrenByOrder)) {
+			return undefined;
+		}
+		// need to sort to make it stable for ci
+		const items = Object.keys(childrenByOrder).map(key => ({
+			type: key,
+			children: childrenByOrder[key]
+		}));
+		items.sort((a, b) => compareIds(a.type, b.type));
+
+		return Array.isArray(childrenByOrder)
 			? undefined
-			: printer.print(
-					context.type,
-					Object.keys(childrenByOrder).map(key => ({
-						type: key,
-						children: childrenByOrder[key]
-					})),
-					context
-				),
+			: printer.print(context.type, items, context);
+	},
 	"chunk.childrenByOrder[].type": type => `${type}:`,
 	"chunk.childrenByOrder[].children[]": (id, { formatChunkId }) =>
 		isValidId(id) ? formatChunkId(id) : undefined,

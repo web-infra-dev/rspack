@@ -3,6 +3,7 @@ mod impl_plugin_for_css_plugin;
 use std::cmp::{self, Reverse};
 
 use rspack_core::{Chunk, ChunkGraph, Compilation, Module, ModuleGraph, SourceType};
+use rspack_core::{ChunkUkey, ModuleIdentifier};
 use rspack_hook::plugin;
 use rspack_identifier::IdentifierSet;
 
@@ -10,22 +11,33 @@ use rspack_identifier::IdentifierSet;
 #[derive(Debug, Default)]
 pub struct CssPlugin;
 
+#[derive(Debug)]
+pub struct CssOrderConflicts {
+  pub chunk: ChunkUkey,
+  pub failed_module: ModuleIdentifier,
+  pub selected_module: ModuleIdentifier,
+}
+
 impl CssPlugin {
   pub(crate) fn get_ordered_chunk_css_modules<'chunk_graph>(
     chunk: &Chunk,
     chunk_graph: &'chunk_graph ChunkGraph,
     module_graph: &'chunk_graph ModuleGraph,
     compilation: &Compilation,
-  ) -> Vec<&'chunk_graph dyn Module> {
-    let mut external_css_modules = Self::get_ordered_chunk_css_modules_by_type(
-      chunk,
-      chunk_graph,
-      module_graph,
-      compilation,
-      SourceType::CssImport,
-    );
+  ) -> (
+    Vec<&'chunk_graph dyn Module>,
+    Option<Vec<CssOrderConflicts>>,
+  ) {
+    let (mut external_css_modules, conflicts_external) =
+      Self::get_ordered_chunk_css_modules_by_type(
+        chunk,
+        chunk_graph,
+        module_graph,
+        compilation,
+        SourceType::CssImport,
+      );
 
-    let mut css_modules = Self::get_ordered_chunk_css_modules_by_type(
+    let (mut css_modules, conflicts) = Self::get_ordered_chunk_css_modules_by_type(
       chunk,
       chunk_graph,
       module_graph,
@@ -35,7 +47,17 @@ impl CssPlugin {
 
     external_css_modules.append(&mut css_modules);
 
-    external_css_modules
+    let conflicts = match (conflicts_external, conflicts) {
+      (Some(a), None) => Some(a),
+      (None, Some(b)) => Some(b),
+      (Some(mut a), Some(mut b)) => {
+        a.append(&mut b);
+        Some(a)
+      }
+      (None, None) => None,
+    };
+
+    (external_css_modules, conflicts)
   }
 
   fn get_ordered_chunk_css_modules_by_type<'chunk_graph>(
@@ -44,26 +66,29 @@ impl CssPlugin {
     module_graph: &'chunk_graph ModuleGraph,
     compilation: &Compilation,
     source_type: SourceType,
-  ) -> Vec<&'chunk_graph dyn Module> {
+  ) -> (
+    Vec<&'chunk_graph dyn Module>,
+    Option<Vec<CssOrderConflicts>>,
+  ) {
     // Align with https://github.com/webpack/webpack/blob/8241da7f1e75c5581ba535d127fa66aeb9eb2ac8/lib/css/CssModulesPlugin.js#L368
     let mut css_modules = chunk_graph
       .get_chunk_modules_iterable_by_source_type(&chunk.ukey, source_type, module_graph)
       .collect::<Vec<_>>();
     css_modules.sort_unstable_by_key(|module| module.identifier());
 
-    let css_modules = Self::get_modules_in_order(chunk, css_modules, compilation);
+    let (css_modules, conflicts) = Self::get_modules_in_order(chunk, css_modules, compilation);
 
-    css_modules
+    (css_modules, conflicts)
   }
 
-  pub(crate) fn get_modules_in_order<'module>(
+  pub fn get_modules_in_order<'module>(
     chunk: &Chunk,
     modules: Vec<&'module dyn Module>,
     compilation: &Compilation,
-  ) -> Vec<&'module dyn Module> {
+  ) -> (Vec<&'module dyn Module>, Option<Vec<CssOrderConflicts>>) {
     // Align with https://github.com/webpack/webpack/blob/8241da7f1e75c5581ba535d127fa66aeb9eb2ac8/lib/css/CssModulesPlugin.js#L269
     if modules.is_empty() {
-      return vec![];
+      return (vec![], None);
     };
 
     let modules_list = modules.clone();
@@ -112,12 +137,13 @@ impl CssPlugin {
         .expect("must have one")
         .list;
       ret.reverse();
-      return ret;
+      return (ret, None);
     };
 
     modules_by_chunk_group.sort_unstable_by(compare_module_lists);
 
     let mut final_modules: Vec<&'module dyn Module> = vec![];
+    let mut conflicts: Option<Vec<CssOrderConflicts>> = None;
 
     loop {
       let mut failed_modules: IdentifierSet = Default::default();
@@ -156,6 +182,16 @@ impl CssPlugin {
         // There is a not resolve-able conflict with the selectedModule
         // TODO(hyf0): we should emit a warning here
         tracing::warn!("Conflicting order between");
+        let conflict = CssOrderConflicts {
+          chunk: chunk.ukey,
+          failed_module: has_failed.identifier(),
+          selected_module: selected_module.identifier(),
+        };
+        if let Some(conflicts) = &mut conflicts {
+          conflicts.push(conflict);
+        } else {
+          conflicts = Some(vec![conflict])
+        }
         // 		if (compilation) {
         // 			// TODO print better warning
         // 			compilation.warnings.push(
@@ -191,7 +227,7 @@ impl CssPlugin {
 
       modules_by_chunk_group.sort_unstable_by(compare_module_lists);
     }
-    final_modules
+    (final_modules, conflicts)
   }
 }
 

@@ -1,6 +1,7 @@
 ---
 pageType: home
-linkFeed: blog-en
+
+link-rss: blog-rss
 
 hero:
   name: Rspack

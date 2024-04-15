@@ -1,12 +1,12 @@
-use std::{path::Path, sync::Arc};
+use std::{borrow::Cow, path::Path, sync::Arc};
 
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_error::{error, Result};
-use rspack_hook::{AsyncSeries3Hook, AsyncSeriesBail2Hook, AsyncSeriesBailHook};
+use rspack_hook::define_hook;
 use rspack_loader_runner::{get_scheme, Loader, Scheme};
 use rspack_util::MergeFrom;
-use sugar_path::{AsPath, SugarPath};
+use sugar_path::SugarPath;
 use swc_core::common::Span;
 
 use crate::{
@@ -14,31 +14,35 @@ use crate::{
   diagnostics::EmptyDependency,
   module_rules_matcher, parse_resource, resolve, stringify_loaders_and_resource,
   tree_shaking::visitor::{get_side_effects_from_package_json, SideEffects},
-  BeforeResolveArgs, BoxLoader, BoxModule, CompilerContext, CompilerOptions, DependencyCategory,
-  FactorizeArgs, FactoryMeta, FuncUseCtx, GeneratorOptions, ModuleExt, ModuleFactory,
-  ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleRule, ModuleRuleEnforce,
-  ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule, NormalModuleCreateData,
-  ParserOptions, RawModule, Resolve, ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult,
-  Resolver, ResolverFactory, ResourceData, ResourceParsedData, SharedPluginDriver,
+  BoxLoader, BoxModule, CompilerContext, CompilerOptions, Context, DependencyCategory, FactoryMeta,
+  FuncUseCtx, GeneratorOptions, ModuleExt, ModuleFactory, ModuleFactoryCreateData,
+  ModuleFactoryResult, ModuleIdentifier, ModuleRule, ModuleRuleEnforce, ModuleRuleUse,
+  ModuleRuleUseLoader, ModuleType, NormalModule, ParserOptions, RawModule, Resolve, ResolveArgs,
+  ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory, ResourceData,
+  ResourceParsedData, SharedPluginDriver,
 };
 
-pub type NormalModuleFactoryBeforeResolveHook = AsyncSeriesBailHook<BeforeResolveArgs, bool>;
-pub type NormalModuleFactoryResolveForSchemeHook =
-  AsyncSeriesBail2Hook<ModuleFactoryCreateData, ResourceData, bool>;
-pub type NormalModuleFactoryAfterResolveHook =
-  AsyncSeriesBail2Hook<ModuleFactoryCreateData, NormalModuleCreateData, bool>;
-pub type NormalModuleFactoryCreateModuleHook =
-  AsyncSeriesBail2Hook<ModuleFactoryCreateData, NormalModuleCreateData, BoxModule>;
-pub type NormalModuleFactoryModuleHook =
-  AsyncSeries3Hook<ModuleFactoryCreateData, NormalModuleCreateData, BoxModule>;
+define_hook!(NormalModuleFactoryBeforeResolve: AsyncSeriesBail(data: &mut ModuleFactoryCreateData) -> bool);
+define_hook!(NormalModuleFactoryFactorize: AsyncSeriesBail(data: &mut ModuleFactoryCreateData) -> BoxModule);
+define_hook!(NormalModuleFactoryResolveForScheme: AsyncSeriesBail(data: &mut ModuleFactoryCreateData, resource_data: &mut ResourceData) -> bool);
+define_hook!(NormalModuleFactoryAfterResolve: AsyncSeriesBail(data: &mut ModuleFactoryCreateData, create_data: &mut NormalModuleCreateData) -> bool);
+define_hook!(NormalModuleFactoryCreateModule: AsyncSeriesBail(data: &mut ModuleFactoryCreateData, create_data: &mut NormalModuleCreateData) -> BoxModule);
+define_hook!(NormalModuleFactoryModule: AsyncSeries(data: &mut ModuleFactoryCreateData, create_data: &mut NormalModuleCreateData, module: &mut BoxModule));
+define_hook!(NormalModuleFactoryResolveLoader: AsyncSeriesBail(context: &Context, resolver: &Resolver, l: &ModuleRuleUseLoader) -> BoxLoader);
 
 #[derive(Debug, Default)]
 pub struct NormalModuleFactoryHooks {
   pub before_resolve: NormalModuleFactoryBeforeResolveHook,
+  pub factorize: NormalModuleFactoryFactorizeHook,
   pub resolve_for_scheme: NormalModuleFactoryResolveForSchemeHook,
   pub after_resolve: NormalModuleFactoryAfterResolveHook,
   pub create_module: NormalModuleFactoryCreateModuleHook,
   pub module: NormalModuleFactoryModuleHook,
+  /// Webpack resolves loaders in `NormalModuleFactory`,
+  /// Rspack resolves it when normalizing configuration.
+  /// So this hook is used to resolve inline loader (inline loader requests).
+  // should move to ResolverFactory?
+  pub resolve_loader: NormalModuleFactoryResolveLoaderHook,
 }
 
 #[derive(Debug)]
@@ -71,6 +75,9 @@ static MATCH_WEBPACK_EXT_REGEX: Lazy<Regex> = Lazy::new(|| {
 static ELEMENT_SPLIT_REGEX: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"!+").expect("Failed to initialize `ELEMENT_SPLIT_REGEX`"));
 
+const HYPHEN: char = '-';
+const EXCLAMATION: char = '!';
+
 impl NormalModuleFactory {
   pub fn new(
     options: Arc<CompilerOptions>,
@@ -90,20 +97,11 @@ impl NormalModuleFactory {
     &self,
     data: &mut ModuleFactoryCreateData,
   ) -> Result<Option<ModuleFactoryResult>> {
-    let dependency = data
-      .dependency
-      .as_module_dependency_mut()
-      .expect("should be module dependency");
-    // allow javascript plugin to modify args
-    let mut before_resolve_args = BeforeResolveArgs {
-      request: dependency.request().to_string(),
-      context: data.context.to_string(),
-    };
     if let Some(false) = self
       .plugin_driver
       .normal_module_factory_hooks
       .before_resolve
-      .call(&mut before_resolve_args)
+      .call(data)
       .await?
     {
       // ignored
@@ -111,8 +109,6 @@ impl NormalModuleFactory {
       return Ok(Some(ModuleFactoryResult::default()));
     }
 
-    data.context = before_resolve_args.context.into();
-    dependency.set_request(before_resolve_args.request);
     Ok(None)
   }
 
@@ -236,10 +232,11 @@ impl NormalModuleFactory {
         }
 
         // See: https://webpack.js.org/concepts/loaders/#inline
-        no_pre_auto_loaders = matches!(first_char, Some('-')) && matches!(second_char, Some('!'));
-        no_auto_loaders = no_pre_auto_loaders || matches!(first_char, Some('!'));
+        no_pre_auto_loaders =
+          matches!(first_char, Some(HYPHEN)) && matches!(second_char, Some(EXCLAMATION));
+        no_auto_loaders = no_pre_auto_loaders || matches!(first_char, Some(EXCLAMATION));
         no_pre_post_auto_loaders =
-          matches!(first_char, Some('!')) && matches!(second_char, Some('!'));
+          matches!(first_char, Some(EXCLAMATION)) && matches!(second_char, Some(EXCLAMATION));
 
         let mut raw_elements = {
           let s = match request_without_match_resource.char_indices().nth({
@@ -396,24 +393,8 @@ impl NormalModuleFactory {
       let mut normal_loaders: Vec<ModuleRuleUseLoader> = vec![];
 
       for rule in &resolved_module_rules {
-        match &rule.r#use {
-          ModuleRuleUse::Array(array_use) => match rule.enforce {
-            ModuleRuleEnforce::Pre => {
-              if !no_pre_auto_loaders && !no_pre_post_auto_loaders {
-                pre_loaders.extend_from_slice(array_use);
-              }
-            }
-            ModuleRuleEnforce::Normal => {
-              if !no_auto_loaders && !no_pre_auto_loaders {
-                normal_loaders.extend_from_slice(array_use);
-              }
-            }
-            ModuleRuleEnforce::Post => {
-              if !no_pre_post_auto_loaders {
-                post_loaders.extend_from_slice(array_use);
-              }
-            }
-          },
+        let rule_use = match &rule.r#use {
+          ModuleRuleUse::Array(array_use) => Cow::Borrowed(array_use),
           ModuleRuleUse::Func(func_use) => {
             let context = FuncUseCtx {
               resource: Some(resource_data.resource.clone()),
@@ -421,9 +402,25 @@ impl NormalModuleFactory {
               issuer: data.issuer.clone(),
               resource_query: resource_data.resource_query.clone(),
             };
-            let loaders = func_use(context).await?;
+            Cow::Owned(func_use(context).await?)
+          }
+        };
 
-            normal_loaders.extend(loaders);
+        match rule.enforce {
+          ModuleRuleEnforce::Pre => {
+            if !no_pre_auto_loaders && !no_pre_post_auto_loaders {
+              pre_loaders.extend_from_slice(&rule_use);
+            }
+          }
+          ModuleRuleEnforce::Normal => {
+            if !no_auto_loaders && !no_pre_auto_loaders {
+              normal_loaders.extend_from_slice(&rule_use);
+            }
+          }
+          ModuleRuleEnforce::Post => {
+            if !no_pre_post_auto_loaders {
+              post_loaders.extend_from_slice(&rule_use);
+            }
           }
         }
       }
@@ -433,48 +430,21 @@ impl NormalModuleFactory {
       );
 
       for l in post_loaders {
-        all_loaders.push(
-          resolve_each(
-            plugin_driver,
-            &self.options,
-            self.options.context.as_ref(),
-            &loader_resolver,
-            &l.loader,
-            l.options.as_deref(),
-          )
-          .await?,
-        )
+        all_loaders
+          .push(resolve_each(plugin_driver, &self.options.context, &loader_resolver, &l).await?)
       }
 
       let mut resolved_inline_loaders = vec![];
       let mut resolved_normal_loaders = vec![];
 
       for l in inline_loaders {
-        resolved_inline_loaders.push(
-          resolve_each(
-            plugin_driver,
-            &self.options,
-            data.context.as_path(),
-            &loader_resolver,
-            &l.loader,
-            l.options.as_deref(),
-          )
-          .await?,
-        )
+        resolved_inline_loaders
+          .push(resolve_each(plugin_driver, &data.context, &loader_resolver, &l).await?)
       }
 
       for l in normal_loaders {
-        resolved_normal_loaders.push(
-          resolve_each(
-            plugin_driver,
-            &self.options,
-            self.options.context.as_ref(),
-            &loader_resolver,
-            &l.loader,
-            l.options.as_deref(),
-          )
-          .await?,
-        )
+        resolved_normal_loaders
+          .push(resolve_each(plugin_driver, &self.options.context, &loader_resolver, &l).await?)
       }
 
       if match_resource_data.is_some() {
@@ -486,37 +456,22 @@ impl NormalModuleFactory {
       }
 
       for l in pre_loaders {
-        all_loaders.push(
-          resolve_each(
-            plugin_driver,
-            &self.options,
-            self.options.context.as_ref(),
-            &loader_resolver,
-            &l.loader,
-            l.options.as_deref(),
-          )
-          .await?,
-        )
+        all_loaders
+          .push(resolve_each(plugin_driver, &self.options.context, &loader_resolver, &l).await?)
       }
 
       async fn resolve_each(
         plugin_driver: &SharedPluginDriver,
-        compiler_options: &CompilerOptions,
-        context: &Path,
+        context: &Context,
         loader_resolver: &Resolver,
-        loader_request: &str,
-        loader_options: Option<&str>,
+        l: &ModuleRuleUseLoader,
       ) -> Result<Arc<dyn Loader<CompilerContext>>> {
         plugin_driver
-          .resolve_loader(
-            compiler_options,
-            context,
-            loader_resolver,
-            loader_request,
-            loader_options,
-          )
+          .normal_module_factory_hooks
+          .resolve_loader
+          .call(context, loader_resolver, l)
           .await?
-          .ok_or_else(|| error!("Unable to resolve loader {}", loader_request))
+          .ok_or_else(|| error!("Unable to resolve loader {}", l.loader))
       }
 
       all_loaders
@@ -540,13 +495,14 @@ impl NormalModuleFactory {
       self.calculate_module_type(match_module_type, &resolved_module_rules);
     let resolved_resolve_options = self.calculate_resolve_options(&resolved_module_rules);
     let (resolved_parser_options, resolved_generator_options) =
-      self.calculate_parser_and_generator_options(&resolved_module_type, &resolved_module_rules);
-    let factory_meta = FactoryMeta {
-      side_effect_free: self
-        .calculate_side_effects(&resolved_module_rules, &resource_data)
-        .map(|side_effects| !side_effects),
-    };
-
+      self.calculate_parser_and_generator_options(&resolved_module_rules);
+    let (resolved_parser_options, resolved_generator_options) = self
+      .merge_global_parser_and_generator_options(
+        &resolved_module_type,
+        resolved_parser_options,
+        resolved_generator_options,
+      );
+    let resolved_side_effects = self.calculate_side_effects(&resolved_module_rules);
     let resolved_parser_and_generator = self
       .plugin_driver
       .registered_parser_and_generator_builder
@@ -561,6 +517,9 @@ impl NormalModuleFactory {
       resolved_generator_options.as_ref(),
     );
 
+    let resource_path = resource_data.resource_path.clone();
+    let resource_description = resource_data.resource_description.clone();
+
     let mut create_data = {
       let mut create_data = NormalModuleCreateData {
         raw_request,
@@ -568,6 +527,7 @@ impl NormalModuleFactory {
         user_request,
         resource_resolve_data: resource_data,
         match_resource: match_resource_data.as_ref().map(|d| d.resource.clone()),
+        side_effects: resolved_side_effects,
       };
       if let Some(plugin_result) = self
         .plugin_driver
@@ -623,10 +583,30 @@ impl NormalModuleFactory {
     data.add_file_dependency(file_dependency);
     data.add_missing_dependencies(missing_dependencies);
 
+    // Compat for old tree shaking
+    if !self.options.is_new_tree_shaking() {
+      if resolved_side_effects.is_some() {
+        module.set_factory_meta(FactoryMeta {
+          side_effect_free: None,
+          side_effect_free_old: resolved_side_effects.map(|has_side_effects| !has_side_effects),
+        })
+      } else if let Some(description) = resource_description.as_ref()
+        && let Some(side_effects) = SideEffects::from_description(description.json())
+      {
+        let package_path = description.path();
+        let relative_path = resource_path.relative(package_path);
+        module.set_factory_meta(FactoryMeta {
+          side_effect_free: None,
+          side_effect_free_old: Some(!get_side_effects_from_package_json(
+            side_effects,
+            relative_path,
+          )),
+        })
+      }
+    }
+
     Ok(Some(
-      ModuleFactoryResult::new_with_module(module)
-        .factory_meta(factory_meta)
-        .from_cache(from_cache),
+      ModuleFactoryResult::new_with_module(module).from_cache(from_cache),
     ))
   }
 
@@ -658,11 +638,7 @@ impl NormalModuleFactory {
     resolved
   }
 
-  fn calculate_side_effects(
-    &self,
-    module_rules: &[&ModuleRule],
-    resource_data: &ResourceData,
-  ) -> Option<bool> {
+  fn calculate_side_effects(&self, module_rules: &[&ModuleRule]) -> Option<bool> {
     let mut side_effect_res = None;
     // side_effects from module rule has higher priority
     module_rules.iter().for_each(|rule| {
@@ -670,42 +646,15 @@ impl NormalModuleFactory {
         side_effect_res = rule.side_effects;
       }
     });
-    if side_effect_res.is_some() {
-      return side_effect_res;
-    }
-    let resource_path = &resource_data.resource_path;
-    let description = resource_data.resource_description.as_ref()?;
-    let package_path = description.path();
-    let side_effects = SideEffects::from_description(description.json())?;
-
-    let relative_path = resource_path.relative(package_path);
-    side_effect_res = Some(get_side_effects_from_package_json(
-      side_effects,
-      relative_path,
-    ));
-
     side_effect_res
   }
 
   fn calculate_parser_and_generator_options(
     &self,
-    module_type: &ModuleType,
     module_rules: &[&ModuleRule],
   ) -> (Option<ParserOptions>, Option<GeneratorOptions>) {
-    let mut resolved_parser = self
-      .options
-      .module
-      .parser
-      .as_ref()
-      .and_then(|p| p.get(module_type))
-      .cloned();
-    let mut resolved_generator = self
-      .options
-      .module
-      .generator
-      .as_ref()
-      .and_then(|g| g.get(module_type))
-      .cloned();
+    let mut resolved_parser = None;
+    let mut resolved_generator = None;
 
     for rule in module_rules {
       resolved_parser = resolved_parser.merge_from(&rule.parser);
@@ -713,6 +662,56 @@ impl NormalModuleFactory {
     }
 
     (resolved_parser, resolved_generator)
+  }
+
+  fn merge_global_parser_and_generator_options(
+    &self,
+    module_type: &ModuleType,
+    parser: Option<ParserOptions>,
+    generator: Option<GeneratorOptions>,
+  ) -> (Option<ParserOptions>, Option<GeneratorOptions>) {
+    let global_parser = self
+      .options
+      .module
+      .parser
+      .as_ref()
+      .and_then(|p| p.get(module_type))
+      .cloned();
+    let global_generator = self
+      .options
+      .module
+      .generator
+      .as_ref()
+      .and_then(|g| g.get(module_type))
+      .cloned();
+    let parser = rspack_util::merge_from_optional_with(
+      global_parser,
+      parser.as_ref(),
+      |global, local| match (&global, local) {
+        (ParserOptions::Asset(_), ParserOptions::Asset(_))
+        | (ParserOptions::Css(_), ParserOptions::Css(_))
+        | (ParserOptions::CssAuto(_), ParserOptions::CssAuto(_))
+        | (ParserOptions::CssModule(_), ParserOptions::CssModule(_))
+        | (ParserOptions::Javascript(_), ParserOptions::Javascript(_)) => global.merge_from(local),
+        _ => global,
+      },
+    );
+    let generator = rspack_util::merge_from_optional_with(
+      global_generator,
+      generator.as_ref(),
+      |global, local| match (&global, local) {
+        (GeneratorOptions::Asset(_), GeneratorOptions::Asset(_))
+        | (GeneratorOptions::AssetInline(_), GeneratorOptions::AssetInline(_))
+        | (GeneratorOptions::AssetResource(_), GeneratorOptions::AssetResource(_))
+        | (GeneratorOptions::Css(_), GeneratorOptions::Css(_))
+        | (GeneratorOptions::CssAuto(_), GeneratorOptions::CssAuto(_))
+        | (GeneratorOptions::CssModule(_), GeneratorOptions::CssModule(_)) => {
+          global.merge_from(local)
+        }
+        _ => global,
+      },
+    );
+    (parser, generator)
   }
 
   fn calculate_module_type(
@@ -732,22 +731,15 @@ impl NormalModuleFactory {
   }
 
   async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<ModuleFactoryResult> {
-    let dependency = data
-      .dependency
-      .as_module_dependency()
-      .expect("should be module dependency");
     let result = self
       .plugin_driver
-      .factorize(&mut FactorizeArgs {
-        context: &data.context,
-        dependency,
-        plugin_driver: &self.plugin_driver,
-        diagnostics: &mut data.diagnostics,
-      })
+      .normal_module_factory_hooks
+      .factorize
+      .call(data)
       .await?;
 
     if let Some(result) = result {
-      return Ok(result);
+      return Ok(ModuleFactoryResult::new_with_module(result));
     }
 
     if let Some(result) = self.factorize_normal_module(data).await? {
@@ -797,6 +789,16 @@ impl From<Span> for ErrorSpan {
       end: span.hi.0.saturating_sub(1),
     }
   }
+}
+
+#[derive(Debug)]
+pub struct NormalModuleCreateData {
+  pub raw_request: String,
+  pub request: String,
+  pub user_request: String,
+  pub resource_resolve_data: ResourceData,
+  pub match_resource: Option<String>,
+  pub side_effects: Option<bool>,
 }
 
 #[test]

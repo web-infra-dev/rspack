@@ -1,11 +1,10 @@
 import path from 'node:path';
 import { defineConfig } from 'rspress/config';
 import type { NavItem, Sidebar } from '@rspress/shared';
-import { pluginRss, type PluginRssOption } from './rspress/plugin-rss';
+import { pluginRss } from '@rspress/plugin-rss';
 import { pluginFontOpenSans } from 'rspress-plugin-font-open-sans';
 import { pluginOpenGraph } from 'rsbuild-plugin-open-graph';
 import { pluginGoogleAnalytics } from 'rsbuild-plugin-google-analytics';
-import { toArray } from './rspress/plugin-rss/utils';
 
 const PUBLISH_URL = 'https://rspack.dev';
 const COPYRIGHT = '© 2022-present ByteDance Inc. All Rights Reserved.';
@@ -32,13 +31,18 @@ function getNavConfig(lang: 'zh' | 'en'): NavItem[] {
 			activeMatch: '/config',
 		},
 		{
+			text: getText('插件', 'Plugin'),
+			link: getLink('/plugins'),
+			activeMatch: '^(/zh|/en)?/plugins',
+		},
+		{
 			text: getText('API', 'API'),
 			link: getLink('/api'),
 			activeMatch: '/api',
 		},
 		{
 			text: getText('博客', 'Blog'),
-			link: getLink('/blog/announcing-0.5'),
+			link: getLink('/blog/announcing-0.6'),
 			activeMatch: '/blog',
 		},
 		{
@@ -104,7 +108,7 @@ function getNavConfig(lang: 'zh' | 'en'): NavItem[] {
 				{
 					text: getText(
 						'未来默认行为与功能废弃',
-						'Future behavior & Deprecation'
+						'Future behavior & Deprecation',
 					),
 					link: getLink('/misc/future'),
 				},
@@ -264,10 +268,6 @@ function getSidebarConfig(lang: 'zh' | 'en'): Sidebar {
 				link: getLink('/config/optimization'),
 			},
 			{
-				text: getText('SplitChunksPlugin', 'SplitChunksPlugin'),
-				link: getLink('/config/optimization-split-chunks'),
-			},
-			{
 				text: getText('Plugins 插件', 'Plugins'),
 				link: getLink('/config/plugins'),
 			},
@@ -316,6 +316,117 @@ function getSidebarConfig(lang: 'zh' | 'en'): Sidebar {
 				link: getLink('/config/other-options'),
 			},
 		],
+		[getLink('/plugins/')]: [
+			{
+				text: getText('简介', 'Introduction'),
+				link: getLink('/plugins'),
+			},
+			{
+				text: getText(
+					'同步自 webpack 的内置插件',
+					'Webpack-aligned Built-in Plugins',
+				),
+				items: [
+					{
+						text: 'EntryPlugin',
+						link: getLink('/plugins/webpack/entry-plugin'),
+					},
+					{
+						text: 'DefinePlugin',
+						link: getLink('/plugins/webpack/define-plugin'),
+					},
+					{
+						text: 'ProvidePlugin',
+						link: getLink('/plugins/webpack/provide-plugin'),
+					},
+					{
+						text: 'BannerPlugin',
+						link: getLink('/plugins/webpack/banner-plugin'),
+					},
+					{
+						text: 'HotModuleReplacementPlugin',
+						link: getLink('/plugins/webpack/hot-module-replacement-plugin'),
+					},
+					{
+						text: 'IgnorePlugin',
+						link: getLink('/plugins/webpack/ignore-plugin'),
+					},
+					{
+						text: 'ProgressPlugin',
+						link: getLink('/plugins/webpack/progress-plugin'),
+					},
+					{
+						text: 'ExternalsPlugin',
+						link: getLink('/plugins/webpack/externals-plugin'),
+					},
+					{
+						text: 'SourceMapDevToolPlugin',
+						link: getLink('/plugins/webpack/source-map-dev-tool-plugin'),
+					},
+					{
+						text: 'SplitChunksPlugin',
+						link: getLink('/plugins/webpack/split-chunks-plugin'),
+					},
+					{
+						text: 'NodeTargetPlugin',
+						link: getLink('/plugins/webpack/node-target-plugin'),
+					},
+					{
+						text: 'NodeTemplatePlugin',
+						link: getLink('/plugins/webpack/node-template-plugin'),
+					},
+					{
+						text: 'EnableChunkLoadingPlugin',
+						link: getLink('/plugins/webpack/enable-chunk-loading-plugin'),
+					},
+					{
+						text: 'EnableLibraryPlugin',
+						link: getLink('/plugins/webpack/enable-library-plugin'),
+					},
+					{
+						text: 'EnableWasmLoadingPlugin',
+						link: getLink('/plugins/webpack/enable-wasm-loading-plugin'),
+					},
+					{
+						text: 'ElectronTargetPlugin',
+						link: getLink('/plugins/webpack/electron-target-plugin'),
+					},
+					{
+						text: 'ModuleFederationPlugin',
+						link: getLink('/plugins/webpack/module-federation-plugin'),
+					},
+					{
+						text: 'ModuleFederationPluginV1',
+						link: getLink('/plugins/webpack/module-federation-plugin-v1'),
+					},
+				],
+			},
+			{
+				text: getText('Rspack 独有的内置插件', 'Rspack-only Built-in Plugins'),
+				items: [
+					{
+						text: 'HtmlRspackPlugin',
+						link: getLink('/plugins/rspack/html-rspack-plugin'),
+					},
+					{
+						text: 'SwcJsMinimizerRspackPlugin',
+						link: getLink('/plugins/rspack/swc-js-minimizer-rspack-plugin'),
+					},
+					{
+						text: 'SwcCssMinimizerRspackPlugin',
+						link: getLink('/plugins/rspack/swc-css-minimizer-rspack-plugin'),
+					},
+					{
+						text: 'CopyRspackPlugin',
+						link: getLink('/plugins/rspack/copy-rspack-plugin'),
+					},
+					{
+						text: 'CssExtractRspackPlugin',
+						link: getLink('/plugins/rspack/css-extract-rspack-plugin'),
+					},
+				],
+			},
+		],
 		[getLink('/api/')]: [
 			{
 				text: getText('简介', 'Introduction'),
@@ -348,13 +459,17 @@ function getSidebarConfig(lang: 'zh' | 'en'): Sidebar {
 		],
 		[getLink('/blog/')]: [
 			{
+				text: getText('0.6 发布公告', 'Announcing Rspack 0.6'),
+				link: getLink('/blog/announcing-0.6'),
+			},
+			{
 				text: getText('0.5 发布公告', 'Announcing Rspack 0.5'),
 				link: getLink('/blog/announcing-0.5'),
 			},
 			{
 				text: getText(
 					'Rspack 支持模块联邦',
-					'Module Federation added to Rspack'
+					'Module Federation added to Rspack',
 				),
 				link: getLink('/blog/module-federation-added-to-rspack'),
 			},
@@ -378,31 +493,6 @@ function getSidebarConfig(lang: 'zh' | 'en'): Sidebar {
 	};
 }
 
-const toFeedItem: PluginRssOption['toFeedItem'] = (page) => {
-	const fm = page.frontmatter as Record<string, any>;
-	const { date } = fm;
-	if (!date) return false;
-
-	const categories = toArray(fm.categories, fm.category);
-
-	const isBlog = /blog/.test(page.routePath) || categories.includes('blog');
-	// we only include the blogs at the moment
-	if (!isBlog) return false;
-
-	const feed = `blog-${page.lang}`;
-
-	return {
-		title: fm.title || page.title || '',
-		id: fm.rssId || page.id || '',
-		link: fm.permalink || page.routePath || '',
-		description: fm.rssDescription || fm.description || '',
-		content: fm.rssContent || fm.summary || page.content || '',
-		date,
-		category: categories,
-		feed,
-	};
-};
-
 export default defineConfig({
 	root: path.join(__dirname, 'docs'),
 	title: 'Rspack',
@@ -419,16 +509,32 @@ export default defineConfig({
 		checkDeadLinks: true,
 	},
 	plugins: [
-		pluginRss({
-			routePublicPath: PUBLISH_URL,
-			feedOptions: { copyright: COPYRIGHT, link: PUBLISH_URL },
-			feedOptionsByName: {
-				'blog-en': { title: 'Rspack Blog', link: `${PUBLISH_URL}/blog` },
-				'blog-zh': { title: 'Rspack 博客', link: `${PUBLISH_URL}/zh/blog` },
-			},
-			toFeedItem,
-		}),
 		pluginFontOpenSans(),
+		pluginRss({
+			siteUrl: PUBLISH_URL,
+			feed: [
+				{
+					id: 'blog-rss',
+					test: '/blog',
+					title: 'Rspack Blog',
+					language: 'en',
+					output: {
+						type: 'rss',
+						filename: 'blog-rss.xml',
+					},
+				},
+				{
+					id: 'blog-rss-zh',
+					test: '/zh/blog',
+					title: 'Rspack 博客',
+					language: 'zh-CN',
+					output: {
+						type: 'rss',
+						filename: 'blog-rss-zh.xml',
+					},
+				},
+			],
+		}),
 	],
 	themeConfig: {
 		footer: {

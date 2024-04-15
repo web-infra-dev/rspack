@@ -1366,12 +1366,13 @@ impl<'a> ModuleRefAnalyze<'a> {
     }
   }
   pub fn get_side_effects_from_config(
-    factory_meta: &Option<FactoryMeta>,
+    factory_meta: Option<&FactoryMeta>,
   ) -> Option<SideEffectType> {
     // sideEffects in module.rule has higher priority,
     // we could early return if we match a rule.
     if let Some(FactoryMeta {
-      side_effect_free: Some(side_effect_free),
+      side_effect_free_old: Some(side_effect_free),
+      ..
     }) = factory_meta
     {
       return Some(SideEffectType::Configuration(!*side_effect_free));

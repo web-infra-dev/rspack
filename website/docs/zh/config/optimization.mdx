@@ -8,28 +8,6 @@ import WebpackLicense from '../../../components/webpack-license';
 
 优化：该选项用于自定义优化配置。你可以通过 [optimization](/config/optimization) 来自定义优化配置。默认情况下，Rspack 会根据 [mode](/config/mode) 来选择合适的优化配置。
 
-## optimization.removeAvailableModules
-
-<PropertyType.CN type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
-
-如果一个 Chunk 的模块都已经被包含在其所有的父 Chunk 中，那么这个模块就可以被移除。
-
-```
-EntryChunk(index.js, a.js, b.js)
-                                  \
-                                  ChunkFoo(b.js, c.js)
-                                  /
-EntryChunk2(index.js, a.js, b.js)
-```
-
-在上面的例子中，`b.js` 都已经被包含在 `EntryChunk` 和 `EntryChunk2`，所以 `b.js` 可以从 `ChunkFoo` 中移除。
-
-:::info Webpack 的差异点
-
-- [Webpack](https://webpack.js.org/configuration/optimization/#optimizationremoveavailablemodules) 只在 `production` 模式下开启这个优化。
-
-:::
-
 ## optimization.moduleIds
 
 <PropertyType.CN type="'named' | 'deterministic'" />
@@ -202,7 +180,7 @@ Rspack 支持通过 `optimization.splitChunks` 配置项来对 Chunk 进行拆�
 
 该优化选项默认情况下是开启的，你可以将其设为 `false` 来关闭它。
 
-点击 [SplitChunksPlugin](/config/optimization-split-chunks) 查看可用配置项
+点击 [SplitChunksPlugin](/plugins/webpack/split-chunks-plugin) 查看可用配置项
 
 ## optimization.usedExports
 
@@ -259,13 +237,10 @@ module.exports = {
 
 ## optimization.providedExports
 
-<PropertyType
-  type="boolean"
-  defaultValueList={[
-    { defaultValue: 'true'},
-  ]}
-/>
-告诉 rspack 弄清楚模块提供哪些导出，以为 `export * from ....` 生成更有效的代码。默认情况下，`optimization.providedExports` 已启用。
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+开启后 Rspack 将会分析模块提供哪些导出，包括重导出模块，引用模块不存在的导出时会发出提示。默认情况下，`optimization.providedExports` 已启用，该分析会增加构建时间，你可以考虑在 development 模式中关闭该配置，关闭后有可能会遇到[SideEffects 章节](/guide/tree-shaking#reexports-optimization)运行时循环依赖的错误。
+
 ```js title=rspack.config.js
 module.exports = {
   //...

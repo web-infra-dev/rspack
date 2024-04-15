@@ -3,7 +3,7 @@ use std::{
   fmt::Debug,
   hash::{BuildHasherDefault, Hash},
   path::PathBuf,
-  sync::Arc,
+  sync::{atomic::AtomicU32, Arc},
 };
 
 use dashmap::{DashMap, DashSet};
@@ -13,9 +13,7 @@ use rayon::prelude::*;
 use rspack_error::{error, Diagnostic, Result, Severity, TWithDiagnosticArray};
 use rspack_futures::FuturesResults;
 use rspack_hash::{RspackHash, RspackHashDigest};
-use rspack_hook::{
-  AsyncSeries2Hook, AsyncSeries3Hook, AsyncSeriesBailHook, AsyncSeriesHook, SyncSeries4Hook,
-};
+use rspack_hook::define_hook;
 use rspack_identifier::{Identifiable, Identifier, IdentifierMap, IdentifierSet};
 use rspack_sources::{BoxSource, CachedSource, SourceExt};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
@@ -25,6 +23,7 @@ use tracing::instrument;
 use super::{
   hmr::CompilationRecords,
   make::{update_module_graph, MakeParam},
+  module_executor::ModuleExecutor,
 };
 use crate::{
   build_chunk_graph::build_chunk_graph,
@@ -32,16 +31,13 @@ use crate::{
   get_chunk_from_ukey, get_mut_chunk_from_ukey, is_source_equal, prepare_get_exports_type,
   to_identifier,
   tree_shaking::{optimizer, visitor::SymbolRef, BailoutFlag, OptimizeDependencyResult},
-  AddQueueHandler, AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs,
-  BoxDependency, BoxModule, BuildQueueHandler, BuildTimeExecutionQueueHandler, CacheCount,
-  CacheOptions, Chunk, ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey,
-  ChunkHashArgs, ChunkKind, ChunkUkey, CodeGenerationResults, CompilationLogger,
-  CompilationLogging, CompilerOptions, ContentHashArgs, DependencyId, DependencyType, Entry,
-  EntryData, EntryOptions, Entrypoint, ErrorSpan, FactorizeQueueHandler, Filename, ImportVarMap,
-  LocalFilenameFn, Logger, Module, ModuleFactory, ModuleGraph, ModuleGraphPartial,
-  ModuleIdentifier, PathData, ProcessDependenciesQueueHandler, RenderManifestArgs, ResolverFactory,
-  RuntimeGlobals, RuntimeModule, RuntimeRequirementsInTreeArgs, RuntimeSpec, SharedPluginDriver,
-  SourceType, Stats,
+  BoxDependency, BoxModule, CacheCount, CacheOptions, Chunk, ChunkByUkey, ChunkContentHash,
+  ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkKind, ChunkUkey, CodeGenerationResults,
+  CompilationLogger, CompilationLogging, CompilerOptions, DependencyId, DependencyType, Entry,
+  EntryData, EntryOptions, Entrypoint, ErrorSpan, Filename, ImportVarMap, LocalFilenameFn, Logger,
+  Module, ModuleFactory, ModuleGraph, ModuleGraphPartial, ModuleIdentifier, PathData,
+  ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeSpec, SharedPluginDriver, SourceType,
+  Stats,
 };
 use crate::{tree_shaking::visitor::OptimizeAnalyzeResult, ExecuteModuleId};
 
@@ -50,21 +46,34 @@ pub type BuildDependency = (
   Option<ModuleIdentifier>, /* parent module */
 );
 
-pub type CompilationBuildModuleHook = AsyncSeriesHook<BoxModule>;
-pub type CompilationStillValidModuleHook = AsyncSeriesHook<BoxModule>;
-pub type CompilationSucceedModuleHook = AsyncSeriesHook<BoxModule>;
-pub type CompilationExecuteModuleHook =
-  SyncSeries4Hook<ModuleIdentifier, IdentifierSet, CodeGenerationResults, ExecuteModuleId>;
-pub type CompilationFinishModulesHook = AsyncSeriesHook<Compilation>;
-pub type CompilationOptimizeModulesHook = AsyncSeriesBailHook<Compilation, bool>;
-pub type CompilationAfterOptimizeModulesHook = AsyncSeriesHook<Compilation>;
-pub type CompilationOptimizeTreeHook = AsyncSeriesHook<Compilation>;
-pub type CompilationOptimizeChunkModulesHook = AsyncSeriesBailHook<Compilation, bool>;
-pub type CompilationRuntimeModuleHook = AsyncSeries3Hook<Compilation, ModuleIdentifier, ChunkUkey>;
-pub type CompilationChunkAssetHook = AsyncSeries2Hook<Chunk, String>;
-pub type CompilationProcessAssetsHook = AsyncSeriesHook<Compilation>;
-pub type CompilationAfterProcessAssetsHook = AsyncSeriesHook<Compilation>;
-pub type CompilationAfterSealHook = AsyncSeriesHook<Compilation>;
+define_hook!(CompilationBuildModule: AsyncSeries(module: &mut BoxModule));
+define_hook!(CompilationStillValidModule: AsyncSeries(module: &mut BoxModule));
+define_hook!(CompilationSucceedModule: AsyncSeries(module: &mut BoxModule));
+define_hook!(CompilationExecuteModule:
+  SyncSeries(module: &ModuleIdentifier, runtime_modules: &IdentifierSet, codegen_results: &CodeGenerationResults, execute_module_id: &ExecuteModuleId));
+define_hook!(CompilationFinishModules: AsyncSeries(compilation: &mut Compilation));
+define_hook!(CompilationSeal: SyncSeries(compilation: &mut Compilation));
+define_hook!(CompilationOptimizeDependencies: SyncSeriesBail(compilation: &mut Compilation) -> bool);
+define_hook!(CompilationOptimizeModules: AsyncSeriesBail(compilation: &mut Compilation) -> bool);
+define_hook!(CompilationAfterOptimizeModules: AsyncSeries(compilation: &mut Compilation));
+define_hook!(CompilationOptimizeChunks: SyncSeriesBail(compilation: &mut Compilation) -> bool);
+define_hook!(CompilationOptimizeTree: AsyncSeries(compilation: &mut Compilation));
+define_hook!(CompilationOptimizeChunkModules: AsyncSeriesBail(compilation: &mut Compilation) -> bool);
+define_hook!(CompilationModuleIds: SyncSeries(compilation: &mut Compilation));
+define_hook!(CompilationChunkIds: SyncSeries(compilation: &mut Compilation));
+define_hook!(CompilationRuntimeModule: AsyncSeries(compilation: &mut Compilation, module: &ModuleIdentifier, chunk: &ChunkUkey));
+define_hook!(CompilationRuntimeRequirementInModule: SyncSeriesBail(compilation: &mut Compilation, module_identifier: &ModuleIdentifier, runtime_requirements: &RuntimeGlobals, runtime_requirements_mut: &mut RuntimeGlobals));
+define_hook!(CompilationAdditionalChunkRuntimeRequirements: SyncSeries(compilation: &mut Compilation, chunk_ukey: &ChunkUkey, runtime_requirements: &mut RuntimeGlobals));
+define_hook!(CompilationAdditionalTreeRuntimeRequirements: SyncSeries(compilation: &mut Compilation, chunk_ukey: &ChunkUkey, runtime_requirements: &mut RuntimeGlobals));
+define_hook!(CompilationRuntimeRequirementInTree: SyncSeriesBail(compilation: &mut Compilation, chunk_ukey: &ChunkUkey, runtime_requirements: &RuntimeGlobals, runtime_requirements_mut: &mut RuntimeGlobals));
+define_hook!(CompilationOptimizeCodeGeneration: SyncSeries(compilation: &mut Compilation));
+define_hook!(CompilationChunkHash: SyncSeries(compilation: &Compilation, chunk_ukey: &ChunkUkey, hasher: &mut RspackHash));
+define_hook!(CompilationContentHash: SyncSeries(compilation: &Compilation, chunk_ukey: &ChunkUkey, hashes: &mut HashMap<SourceType, RspackHash>));
+define_hook!(CompilationRenderManifest: AsyncSeries(compilation: &Compilation, chunk_ukey: &ChunkUkey, manifest: &mut Vec<RenderManifestEntry>, diagnostics: &mut Vec<Diagnostic>));
+define_hook!(CompilationChunkAsset: AsyncSeries(chunk: &mut Chunk, filename: &str));
+define_hook!(CompilationProcessAssets: AsyncSeries(compilation: &mut Compilation));
+define_hook!(CompilationAfterProcessAssets: AsyncSeries(compilation: &mut Compilation));
+define_hook!(CompilationAfterSeal: AsyncSeries(compilation: &mut Compilation));
 
 #[derive(Debug, Default)]
 pub struct CompilationHooks {
@@ -73,19 +82,51 @@ pub struct CompilationHooks {
   pub succeed_module: CompilationSucceedModuleHook,
   pub execute_module: CompilationExecuteModuleHook,
   pub finish_modules: CompilationFinishModulesHook,
+  pub seal: CompilationSealHook,
+  pub optimize_dependencies: CompilationOptimizeDependenciesHook,
   pub optimize_modules: CompilationOptimizeModulesHook,
   pub after_optimize_modules: CompilationAfterOptimizeModulesHook,
+  pub optimize_chunks: CompilationOptimizeChunksHook,
   pub optimize_tree: CompilationOptimizeTreeHook,
   pub optimize_chunk_modules: CompilationOptimizeChunkModulesHook,
+  pub module_ids: CompilationModuleIdsHook,
+  pub chunk_ids: CompilationChunkIdsHook,
   pub runtime_module: CompilationRuntimeModuleHook,
+  pub runtime_requirement_in_module: CompilationRuntimeRequirementInModuleHook,
+  pub additional_chunk_runtime_requirements: CompilationAdditionalChunkRuntimeRequirementsHook,
+  pub additional_tree_runtime_requirements: CompilationAdditionalTreeRuntimeRequirementsHook,
+  pub runtime_requirement_in_tree: CompilationRuntimeRequirementInTreeHook,
+  pub optimize_code_generation: CompilationOptimizeCodeGenerationHook,
+  pub chunk_hash: CompilationChunkHashHook,
+  pub content_hash: CompilationContentHashHook,
+  pub render_manifest: CompilationRenderManifestHook,
   pub chunk_asset: CompilationChunkAssetHook,
   pub process_assets: CompilationProcessAssetsHook,
   pub after_process_assets: CompilationAfterProcessAssetsHook,
   pub after_seal: CompilationAfterSealHook,
 }
 
+#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]
+pub struct CompilationId(u32);
+
+impl CompilationId {
+  pub fn new() -> Self {
+    Self(COMPILATION_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed))
+  }
+}
+
+impl Default for CompilationId {
+  fn default() -> Self {
+    Self::new()
+  }
+}
+
+static COMPILATION_ID: AtomicU32 = AtomicU32::new(0);
+
 #[derive(Debug)]
 pub struct Compilation {
+  /// get_compilation_hooks(compilation.id)
+  id: CompilationId,
   // Mark compilation status, because the hash of `[hash].hot-update.js/json` is previous compilation hash.
   // Status A(hash: A) -> Status B(hash: B) will generate `A.hot-update.js`
   // Status A(hash: A) -> Status C(hash: C) will generate `A.hot-update.js`
@@ -98,7 +139,7 @@ pub struct Compilation {
   pub global_entry: EntryData,
   make_module_graph: ModuleGraphPartial,
   other_module_graph: Option<ModuleGraphPartial>,
-  dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
+  pub dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
   pub make_failed_dependencies: HashSet<BuildDependency>,
   pub make_failed_module: HashSet<ModuleIdentifier>,
   pub has_module_import_export_change: bool,
@@ -142,16 +183,16 @@ pub struct Compilation {
   pub side_effects_free_modules: IdentifierSet,
   pub module_item_map: IdentifierMap<Vec<ModuleItem>>,
 
-  pub factorize_queue: Option<FactorizeQueueHandler>,
-  pub build_queue: Option<BuildQueueHandler>,
-  pub add_queue: Option<AddQueueHandler>,
-  pub process_dependencies_queue: Option<ProcessDependenciesQueueHandler>,
-  pub build_time_execution_queue: Option<BuildTimeExecutionQueueHandler>,
-
   import_var_map: DashMap<ModuleIdentifier, ImportVarMap>,
+
+  pub module_executor: Option<ModuleExecutor>,
 }
 
 impl Compilation {
+  pub const OPTIMIZE_CHUNKS_STAGE_BASIC: i32 = -10;
+  pub const OPTIMIZE_CHUNKS_STAGE_DEFAULT: i32 = 0;
+  pub const OPTIMIZE_CHUNKS_STAGE_ADVANCED: i32 = 10;
+
   pub const PROCESS_ASSETS_STAGE_ADDITIONAL: i32 = -2000;
   pub const PROCESS_ASSETS_STAGE_PRE_PROCESS: i32 = -1000;
   pub const PROCESS_ASSETS_STAGE_DERIVED: i32 = -200;
@@ -176,9 +217,11 @@ impl Compilation {
     loader_resolver_factory: Arc<ResolverFactory>,
     records: Option<CompilationRecords>,
     cache: Arc<Cache>,
+    module_executor: Option<ModuleExecutor>,
   ) -> Self {
     let make_module_graph = ModuleGraphPartial::new(options.is_new_tree_shaking());
     Self {
+      id: CompilationId::new(),
       hot_index: 0,
       records,
       options,
@@ -227,18 +270,24 @@ impl Compilation {
       module_item_map: IdentifierMap::default(),
       include_module_ids: IdentifierSet::default(),
 
-      factorize_queue: None,
-      build_queue: None,
-      add_queue: None,
-      process_dependencies_queue: None,
-      build_time_execution_queue: None,
-
       import_var_map: DashMap::new(),
+
+      module_executor,
     }
+  }
+
+  pub fn id(&self) -> CompilationId {
+    self.id
   }
 
   pub fn swap_make_module_graph(&mut self, other: &mut Compilation) {
     std::mem::swap(&mut self.make_module_graph, &mut other.make_module_graph);
+  }
+  pub fn swap_module_graph_with_module_executor(&mut self, module_executor: &mut ModuleExecutor) {
+    std::mem::swap(
+      &mut self.make_module_graph,
+      &mut module_executor.make_module_graph,
+    );
   }
 
   pub fn get_module_graph(&self) -> ModuleGraph {
@@ -727,44 +776,30 @@ impl Compilation {
   }
 
   #[instrument(skip_all)]
-  async fn create_chunk_assets(&mut self, plugin_driver: SharedPluginDriver) {
+  async fn create_chunk_assets(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     let results = self
       .chunk_by_ukey
       .values()
       .map(|chunk| async {
-        let manifest_result = plugin_driver
-          .render_manifest(RenderManifestArgs {
-            chunk_ukey: chunk.ukey,
-            compilation: self,
-          })
-          .await;
+        let mut manifest = Vec::new();
+        let mut diagnostics = Vec::new();
+        plugin_driver
+          .compilation_hooks
+          .render_manifest
+          .call(self, &chunk.ukey, &mut manifest, &mut diagnostics)
+          .await?;
 
-        if let Ok(manifest) = &manifest_result {
-          tracing::debug!(
-            "For Chunk({:?}), collected assets: {:?}",
-            chunk.id,
-            manifest
-              .inner
-              .iter()
-              .map(|m| m.filename())
-              .collect::<Vec<_>>()
-          );
-        };
-
-        (chunk.ukey, manifest_result)
+        Ok((chunk.ukey, manifest, diagnostics))
       })
-      .collect::<FuturesResults<_>>();
+      .collect::<FuturesResults<Result<_>>>();
 
     let chunk_ukey_and_manifest = results.into_inner();
 
-    for (chunk_ukey, manifest_result) in chunk_ukey_and_manifest.into_iter() {
-      let (manifests, diagnostics) = manifest_result
-        .expect("We should return this error rathen expect")
-        .split_into_parts();
-
+    for result in chunk_ukey_and_manifest.into_iter() {
+      let (chunk_ukey, manifest, diagnostics) = result?;
       self.push_batch_diagnostic(diagnostics);
 
-      for file_manifest in manifests {
+      for file_manifest in manifest {
         let filename = file_manifest.filename().to_string();
 
         let current_chunk = self.chunk_by_ukey.expect_get_mut(&chunk_ukey);
@@ -784,16 +819,11 @@ impl Compilation {
         );
 
         _ = self
-          .chunk_asset(chunk_ukey, filename, plugin_driver.clone())
+          .chunk_asset(chunk_ukey, &filename, plugin_driver.clone())
           .await;
       }
-      //
-      // .into_iter()
-      // .for_each(|file_manifest| {
-      // });
     }
-    // .for_each(|(chunk_ukey, manifest)| {
-    // })
+    Ok(())
   }
 
   #[instrument(name = "compilation:after_process_asssets", skip_all)]
@@ -817,14 +847,14 @@ impl Compilation {
   async fn chunk_asset(
     &mut self,
     chunk_ukey: ChunkUkey,
-    mut filename: String,
+    filename: &str,
     plugin_driver: SharedPluginDriver,
   ) -> Result<()> {
     let current_chunk = self.chunk_by_ukey.expect_get_mut(&chunk_ukey);
     plugin_driver
       .compilation_hooks
       .chunk_asset
-      .call(current_chunk, &mut filename)
+      .call(current_chunk, filename)
       .await?;
     Ok(())
   }
@@ -837,12 +867,6 @@ impl Compilation {
     let result = optimizer::CodeSizeOptimizer::new(self).run().await;
     logger.time_end(start);
     result
-  }
-
-  pub async fn done(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
-    let stats = &mut Stats::new(self);
-    plugin_driver.done(stats).await?;
-    Ok(())
   }
 
   pub fn entry_modules(&self) -> impl Iterator<Item = ModuleIdentifier> {
@@ -874,11 +898,17 @@ impl Compilation {
     let logger = self.get_logger("rspack.Compilation");
 
     // https://github.com/webpack/webpack/blob/main/lib/Compilation.js#L2809
-    plugin_driver.seal(self)?;
+    plugin_driver.compilation_hooks.seal.call(self)?;
 
     let start = logger.time("optimize dependencies");
     // https://github.com/webpack/webpack/blob/d15c73469fd71cf98734685225250148b68ddc79/lib/Compilation.js#L2812-L2814
-    while plugin_driver.optimize_dependencies(self).await?.is_some() {}
+    while matches!(
+      plugin_driver
+        .compilation_hooks
+        .optimize_dependencies
+        .call(self)?,
+      Some(true)
+    ) {}
     logger.time_end(start);
 
     // if self.options.is_new_tree_shaking() {
@@ -901,7 +931,13 @@ impl Compilation {
         .after_optimize_modules
         .call(compilation)
         .await?;
-      plugin_driver.optimize_chunks(compilation).await?;
+      while matches!(
+        plugin_driver
+          .compilation_hooks
+          .optimize_chunks
+          .call(compilation)?,
+        Some(true)
+      ) {}
       Ok(compilation)
     })
     .await?;
@@ -923,17 +959,20 @@ impl Compilation {
     logger.time_end(start);
 
     let start = logger.time("module ids");
-    plugin_driver.module_ids(self)?;
+    plugin_driver.compilation_hooks.module_ids.call(self)?;
     logger.time_end(start);
 
     let start = logger.time("chunk ids");
-    plugin_driver.chunk_ids(self)?;
+    plugin_driver.compilation_hooks.chunk_ids.call(self)?;
     logger.time_end(start);
 
     self.assign_runtime_ids();
 
     let start = logger.time("optimize code generation");
-    plugin_driver.optimize_code_generation(self).await?;
+    plugin_driver
+      .compilation_hooks
+      .optimize_code_generation
+      .call(self)?;
     logger.time_end(start);
 
     let start = logger.time("code generation");
@@ -970,7 +1009,7 @@ impl Compilation {
     logger.time_end(start);
 
     let start = logger.time("create chunk assets");
-    self.create_chunk_assets(plugin_driver.clone()).await;
+    self.create_chunk_assets(plugin_driver.clone()).await?;
     logger.time_end(start);
 
     let start = logger.time("process assets");
@@ -1046,13 +1085,31 @@ impl Compilation {
   }
 
   #[allow(clippy::unwrap_in_result)]
-  pub(crate) async fn process_runtime_requirements(
+  #[instrument(name = "compilation:process_runtime_requirements", skip_all)]
+  pub async fn process_runtime_requirements(
     &mut self,
     modules: impl IntoParallelIterator<Item = ModuleIdentifier>,
     chunks: impl Iterator<Item = ChunkUkey>,
     chunk_graph_entries: impl Iterator<Item = ChunkUkey>,
     plugin_driver: SharedPluginDriver,
   ) -> Result<()> {
+    fn process_runtime_requirement_hook(
+      requirements: &mut RuntimeGlobals,
+      mut call_hook: impl FnMut(&RuntimeGlobals, &mut RuntimeGlobals) -> Result<()>,
+    ) -> Result<()> {
+      let mut runtime_requirements_mut = *requirements;
+      let mut runtime_requirements;
+      while !runtime_requirements_mut.is_empty() {
+        requirements.insert(runtime_requirements_mut);
+        runtime_requirements = runtime_requirements_mut;
+        runtime_requirements_mut = RuntimeGlobals::default();
+        call_hook(&runtime_requirements, &mut runtime_requirements_mut)?;
+        runtime_requirements_mut =
+          runtime_requirements_mut.difference(requirements.intersection(runtime_requirements_mut));
+      }
+      Ok(())
+    }
+
     let logger = self.get_logger("rspack.Compilation");
     let start = logger.time("runtime requirements.modules");
     let mut module_runtime_requirements = modules
@@ -1082,26 +1139,24 @@ impl Compilation {
 
     for (module_identifier, runtime_requirements) in module_runtime_requirements.iter_mut() {
       for (runtime, requirements) in runtime_requirements.iter_mut() {
-        let mut runtime_requirements_mut = *requirements;
-        let mut runtime_requirements;
-        while !runtime_requirements_mut.is_empty() {
-          requirements.insert(runtime_requirements_mut);
-          runtime_requirements = runtime_requirements_mut;
-          runtime_requirements_mut = RuntimeGlobals::default();
-          plugin_driver.runtime_requirement_in_module(&mut AdditionalModuleRequirementsArgs {
-            compilation: self,
-            module_identifier,
-            runtime_requirements: &runtime_requirements,
-            runtime_requirements_mut: &mut runtime_requirements_mut,
-          })?;
-          runtime_requirements_mut = runtime_requirements_mut
-            .difference(requirements.intersection(runtime_requirements_mut));
-        }
-        self.chunk_graph.add_module_runtime_requirements(
-          *module_identifier,
-          runtime,
-          std::mem::take(requirements),
-        )
+        process_runtime_requirement_hook(
+          requirements,
+          |runtime_requirements, runtime_requirements_mut| {
+            plugin_driver
+              .compilation_hooks
+              .runtime_requirement_in_module
+              .call(
+                self,
+                module_identifier,
+                runtime_requirements,
+                runtime_requirements_mut,
+              )?;
+            Ok(())
+          },
+        )?;
+        self
+          .chunk_graph
+          .add_module_runtime_requirements(*module_identifier, runtime, *requirements)
       }
     }
     logger.time_end(start);
@@ -1126,12 +1181,9 @@ impl Compilation {
     }
     for (chunk_ukey, set) in chunk_requirements.iter_mut() {
       plugin_driver
-        .additional_chunk_runtime_requirements(&mut AdditionalChunkRuntimeRequirementsArgs {
-          compilation: self,
-          chunk: chunk_ukey,
-          runtime_requirements: set,
-        })
-        .await?;
+        .compilation_hooks
+        .additional_chunk_runtime_requirements
+        .call(self, chunk_ukey, set)?;
 
       self
         .chunk_graph
@@ -1152,31 +1204,25 @@ impl Compilation {
       }
 
       plugin_driver
-        .additional_tree_runtime_requirements(&mut AdditionalChunkRuntimeRequirementsArgs {
-          compilation: self,
-          chunk: &entry_ukey,
-          runtime_requirements: &mut set,
-        })
-        .await?;
+        .compilation_hooks
+        .additional_tree_runtime_requirements
+        .call(self, &entry_ukey, &mut set)?;
 
-      let requirements = &mut set;
-      let mut runtime_requirements_mut = *requirements;
-      let mut runtime_requirements;
-      while !runtime_requirements_mut.is_empty() {
-        requirements.insert(runtime_requirements_mut);
-        runtime_requirements = runtime_requirements_mut;
-        runtime_requirements_mut = RuntimeGlobals::default();
-        plugin_driver
-          .runtime_requirements_in_tree(&mut RuntimeRequirementsInTreeArgs {
-            compilation: self,
-            chunk: &entry_ukey,
-            runtime_requirements: &runtime_requirements,
-            runtime_requirements_mut: &mut runtime_requirements_mut,
-          })
-          .await?;
-        runtime_requirements_mut =
-          runtime_requirements_mut.difference(requirements.intersection(runtime_requirements_mut));
-      }
+      process_runtime_requirement_hook(
+        &mut set,
+        |runtime_requirements, runtime_requirements_mut| {
+          plugin_driver
+            .compilation_hooks
+            .runtime_requirement_in_tree
+            .call(
+              self,
+              &entry_ukey,
+              runtime_requirements,
+              runtime_requirements_mut,
+            )?;
+          Ok(())
+        },
+      )?;
 
       self
         .chunk_graph
@@ -1186,19 +1232,19 @@ impl Compilation {
     // NOTE: webpack runs hooks.runtime_module in compilation.add_runtime_module
     // and overwrite the runtime_module.generate() to get new source in create_chunk_assets
     // this needs full runtime requirements, so run hooks.runtime_module after runtime_requirements_in_tree
-    for mut entry_ukey in self.get_chunk_graph_entries() {
+    for entry_ukey in self.get_chunk_graph_entries() {
       let runtime_module_ids: Vec<_> = self
         .chunk_graph
         .get_chunk_runtime_modules_iterable(&entry_ukey)
         .copied()
         .collect();
-      for mut runtime_module_id in runtime_module_ids {
+      for runtime_module_id in runtime_module_ids {
         self
           .plugin_driver
           .clone()
           .compilation_hooks
           .runtime_module
-          .call(self, &mut runtime_module_id, &mut entry_ukey)
+          .call(self, &runtime_module_id, &entry_ukey)
           .await?;
       }
     }
@@ -1313,22 +1359,22 @@ impl Compilation {
       chunk.update_hash(&mut hasher, self);
     }
     plugin_driver
-      .chunk_hash(&mut ChunkHashArgs {
-        chunk_ukey,
-        compilation: self,
-        hasher: &mut hasher,
-      })
-      .await?;
+      .compilation_hooks
+      .chunk_hash
+      .call(self, &chunk_ukey, &mut hasher)?;
     let chunk_hash = hasher.digest(&self.options.output.hash_digest);
 
-    let content_hash = plugin_driver
-      .content_hash(&ContentHashArgs {
-        chunk_ukey,
-        compilation: self,
-      })
-      .await?;
+    let mut content_hashes = HashMap::default();
+    plugin_driver
+      .compilation_hooks
+      .content_hash
+      .call(self, &chunk_ukey, &mut content_hashes)?;
+    let content_hashes = content_hashes
+      .into_iter()
+      .map(|(t, hasher)| (t, hasher.digest(&self.options.output.hash_digest)))
+      .collect();
 
-    Ok((chunk_hash, content_hash))
+    Ok((chunk_hash, content_hashes))
   }
 
   // #[instrument(name = "compilation:create_module_hash", skip_all)]
@@ -1378,7 +1424,7 @@ impl Compilation {
     Ok(())
   }
 
-  pub async fn add_runtime_module(
+  pub fn add_runtime_module(
     &mut self,
     chunk_ukey: &ChunkUkey,
     mut module: Box<dyn RuntimeModule>,
@@ -1689,4 +1735,45 @@ pub fn set_depth_if_lower(
     return true;
   }
   false
+}
+
+#[derive(Debug, Clone)]
+pub struct RenderManifestEntry {
+  pub source: BoxSource,
+  filename: String,
+  pub info: AssetInfo,
+  // pub identifier: String,
+  // hash?: string;
+  pub(crate) auxiliary: bool,
+  has_filename: bool, /* webpack only asset has filename, js/css/wasm has filename template */
+}
+
+impl RenderManifestEntry {
+  pub fn new(
+    source: BoxSource,
+    filename: String,
+    info: AssetInfo,
+    auxiliary: bool,
+    has_filename: bool,
+  ) -> Self {
+    Self {
+      source,
+      filename,
+      info,
+      auxiliary,
+      has_filename,
+    }
+  }
+
+  pub fn source(&self) -> &BoxSource {
+    &self.source
+  }
+
+  pub fn filename(&self) -> &str {
+    &self.filename
+  }
+
+  pub fn has_filename(&self) -> bool {
+    self.has_filename
+  }
 }

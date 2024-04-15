@@ -19,7 +19,7 @@ const CompatibleCardItem = ({
   return (
     <div className="component-card">
       <div className="component-card-title-line">
-        <a className="component-card-link" target="_blank" href={url}>
+        <a className="component-card-link" target="_blank" rel="noreferrer" href={url}>
           {name}
         </a>
         <div className="component-card-space"></div>

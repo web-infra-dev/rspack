@@ -2,8 +2,8 @@ use rustc_hash::FxHashSet as HashSet;
 
 use crate::ExportsInfoId;
 use crate::{
-  module_graph::ConnectionId, ChunkGraph, DependencyId, FactoryMeta, ModuleIdentifier,
-  ModuleIssuer, ModuleProfile, ModuleSyntax, ModuleType,
+  module_graph::ConnectionId, ChunkGraph, DependencyId, ModuleIdentifier, ModuleIssuer,
+  ModuleProfile, ModuleSyntax, ModuleType,
 };
 
 #[derive(Debug, Clone)]
@@ -23,7 +23,6 @@ pub struct ModuleGraphModule {
   pub(crate) pre_order_index: Option<u32>,
   pub post_order_index: Option<u32>,
   pub module_syntax: ModuleSyntax,
-  pub factory_meta: Option<FactoryMeta>,
   pub exports: ExportsInfoId,
   pub profile: Option<Box<ModuleProfile>>,
   pub is_async: bool,
@@ -48,7 +47,6 @@ impl ModuleGraphModule {
       pre_order_index: None,
       post_order_index: None,
       module_syntax: ModuleSyntax::empty(),
-      factory_meta: None,
       exports: exports_info_id,
       profile: None,
       is_async: false,

@@ -1,0 +1,13 @@
+```html title=index.html
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>bar</title>
+<script src="/runtime.js" defer></script><script src="/index.js" defer></script></head>
+
+<body>
+
+
+</body></html>
+```

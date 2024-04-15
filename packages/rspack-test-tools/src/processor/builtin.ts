@@ -1,17 +1,19 @@
 import { ECompilerType, ITestContext, TCompilerOptions } from "../type";
 import fs from "fs-extra";
 import { merge } from "webpack-merge";
-import { EntryDescription, rspack } from "@rspack/core";
-import { SnapshotProcessor } from "./snapshot";
+import { rspack } from "@rspack/core";
+import { ISnapshotProcessorOptions, SnapshotProcessor } from "./snapshot";
 
 export interface IRspackBuiltinProcessorOptions {
 	name: string;
 	snapshot: string;
+	snapshotFileFilter?: ISnapshotProcessorOptions<ECompilerType.Rspack>["snapshotFileFilter"];
 }
 
 export class RspackBuiltinProcessor extends SnapshotProcessor<ECompilerType.Rspack> {
 	constructor(protected _builtinOptions: IRspackBuiltinProcessorOptions) {
 		super({
+			snapshotFileFilter: _builtinOptions.snapshotFileFilter,
 			snapshot: _builtinOptions.snapshot,
 			compilerType: ECompilerType.Rspack,
 			defaultOptions: RspackBuiltinProcessor.defaultOptions,
@@ -30,12 +32,14 @@ export class RspackBuiltinProcessor extends SnapshotProcessor<ECompilerType.Rspa
 				}
 			},
 			output: {
+				publicPath: "/",
 				path: context.getDist(),
 				filename: "[name].js",
 				chunkFilename: "[name].js",
 				chunkFormat: "array-push",
 				cssFilename: "[name].css",
 				cssChunkFilename: "[name].css",
+				assetModuleFilename: "[hash][ext][query]",
 				sourceMapFilename: "[file].map",
 				chunkLoadingGlobal: "webpackChunkwebpack",
 				chunkLoading: "jsonp",
@@ -47,7 +51,11 @@ export class RspackBuiltinProcessor extends SnapshotProcessor<ECompilerType.Rspa
 				asyncChunks: true,
 				scriptType: false,
 				globalObject: "self",
-				importFunctionName: "import"
+				importFunctionName: "import",
+				wasmLoading: "fetch",
+				webassemblyModuleFilename: "[hash].module.wasm",
+				workerChunkLoading: "import-scripts",
+				workerWasmLoading: "fetch"
 			},
 			module: {
 				rules: [
@@ -97,9 +105,30 @@ export class RspackBuiltinProcessor extends SnapshotProcessor<ECompilerType.Rspa
 				concatenateModules: false,
 				nodeEnv: false
 			},
+			resolve: {
+				extensions: [
+					".js",
+					".jsx",
+					".ts",
+					".tsx",
+					".json",
+					".d.ts",
+					".css",
+					".wasm"
+				]
+			},
+			resolveLoader: {
+				extensions: [".js"]
+			},
+			experiments: {
+				futureDefaults: true
+			},
 			devtool: false,
 			context: context.getSource(),
-			plugins: []
+			plugins: [],
+			builtins: {
+				treeShaking: false
+			}
 		};
 
 		const testConfigFile = context.getSource("test.config.js");
@@ -111,10 +140,29 @@ export class RspackBuiltinProcessor extends SnapshotProcessor<ECompilerType.Rspa
 			defaultOptions = merge(defaultOptions, caseOptions);
 		}
 
+		// TODO: remove builtin compatible code
 		const defineOptions = (defaultOptions.builtins as any)?.define;
 		if (defineOptions) {
 			defaultOptions.plugins!.push(new rspack.DefinePlugin(defineOptions));
 			delete (defaultOptions.builtins as any)?.define;
+		}
+
+		const provideOptions = (defaultOptions.builtins as any)?.provide;
+		if (provideOptions) {
+			defaultOptions.plugins!.push(new rspack.ProvidePlugin(provideOptions));
+			delete (defaultOptions.builtins as any)?.provide;
+		}
+
+		const htmlOptions = (defaultOptions.builtins as any)?.html;
+		if (htmlOptions) {
+			if (Array.isArray(htmlOptions)) {
+				for (let item of htmlOptions) {
+					defaultOptions.plugins!.push(new rspack.HtmlRspackPlugin(item));
+				}
+			} else {
+				defaultOptions.plugins!.push(new rspack.HtmlRspackPlugin(htmlOptions));
+			}
+			delete (defaultOptions.builtins as any)?.html;
 		}
 
 		return defaultOptions;

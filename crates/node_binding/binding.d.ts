@@ -100,6 +100,7 @@ export enum BuiltinPluginName {
   DefinePlugin = 'DefinePlugin',
   ProvidePlugin = 'ProvidePlugin',
   BannerPlugin = 'BannerPlugin',
+  IgnorePlugin = 'IgnorePlugin',
   ProgressPlugin = 'ProgressPlugin',
   EntryPlugin = 'EntryPlugin',
   ExternalsPlugin = 'ExternalsPlugin',
@@ -148,12 +149,14 @@ export enum BuiltinPluginName {
   MangleExportsPlugin = 'MangleExportsPlugin',
   ModuleConcatenationPlugin = 'ModuleConcatenationPlugin',
   CssModulesPlugin = 'CssModulesPlugin',
+  APIPlugin = 'APIPlugin',
   HttpExternalsRspackPlugin = 'HttpExternalsRspackPlugin',
   CopyRspackPlugin = 'CopyRspackPlugin',
   HtmlRspackPlugin = 'HtmlRspackPlugin',
   SwcJsMinimizerRspackPlugin = 'SwcJsMinimizerRspackPlugin',
   SwcCssMinimizerRspackPlugin = 'SwcCssMinimizerRspackPlugin',
   BundlerInfoRspackPlugin = 'BundlerInfoRspackPlugin',
+  CssExtractRspackPlugin = 'CssExtractRspackPlugin',
   JsLoaderRspackPlugin = 'JsLoaderRspackPlugin'
 }
 
@@ -366,6 +369,7 @@ export interface JsModule {
   resource?: string
   moduleIdentifier: string
   nameForCondition?: string
+  rawRequest?: string
 }
 
 export interface JsNormalModuleFactoryCreateModuleArgs {
@@ -438,6 +442,7 @@ export interface JsStatsChunk {
   parents?: Array<string>
   children?: Array<string>
   siblings?: Array<string>
+  childrenByOrder: Record<string, Array<string>>
 }
 
 export interface JsStatsChunkGroup {
@@ -740,6 +745,17 @@ export interface RawCssAutoParserOptions {
   namedExports?: boolean
 }
 
+export interface RawCssExtractPluginOption {
+  filename: JsFilename
+  chunkFilename: JsFilename
+  ignoreOrder: boolean
+  insert?: string
+  attributes: Record<string, string>
+  linkType?: string
+  runtime: boolean
+  pathinfo: boolean
+}
+
 export interface RawCssGeneratorOptions {
   exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only"
   exportsOnly?: boolean
@@ -877,6 +893,11 @@ export interface RawHtmlRspackPluginOptions {
 export interface RawHttpExternalsRspackPluginOptions {
   css: boolean
   webAsync: boolean
+}
+
+export interface RawIgnorePluginOptions {
+  resourceRegExp: RegExp
+  contextRegExp?: RegExp
 }
 
 export interface RawInfo {
@@ -1235,6 +1256,7 @@ export interface RawSplitChunksOptions {
   automaticNameDelimiter?: string
   maxAsyncRequests?: number
   maxInitialRequests?: number
+  defaultSizeTypes: Array<string>
   minChunks?: number
   hidePathInfo?: boolean
   minSize?: number

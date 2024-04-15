@@ -9,14 +9,15 @@ use rspack_core::concatenated_module::{
   is_harmony_dep_like, ConcatenatedInnerModule, ConcatenatedModule, RootModuleContext,
 };
 use rspack_core::{
-  filter_runtime, merge_runtime, runtime_to_string, ApplyContext, Compilation, CompilerContext,
-  CompilerOptions, ExportInfoProvided, ExtendedReferencedExport, LibIdentOptions, Logger, Module,
-  ModuleExt, ModuleGraph, ModuleGraphModule, ModuleIdentifier, MutableModuleGraph, Plugin,
-  PluginContext, ProvidedExports, RuntimeCondition, RuntimeSpec, SourceType,
+  filter_runtime, merge_runtime, runtime_to_string, ApplyContext, Compilation,
+  CompilationOptimizeChunkModules, CompilerContext, CompilerOptions, ExportInfoProvided,
+  ExtendedReferencedExport, LibIdentOptions, Logger, Module, ModuleExt, ModuleGraph,
+  ModuleGraphModule, ModuleIdentifier, MutableModuleGraph, Plugin, PluginContext, ProvidedExports,
+  RuntimeCondition, RuntimeSpec, SourceType,
 };
 use rspack_error::Result;
-use rspack_hook::{plugin, plugin_hook, AsyncSeriesBail};
-use rspack_util::fx_dashmap::FxDashMap;
+use rspack_hook::{plugin, plugin_hook};
+use rspack_util::fx_hash::FxDashMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 fn format_bailout_reason(msg: &str) -> String {
@@ -873,6 +874,7 @@ impl ModuleConcatenationPlugin {
         context: Some(compilation.options.context.clone()),
         side_effect_connection_state: box_module
           .get_side_effects_connection_state(&module_graph, &mut HashSet::default()),
+        factory_meta: box_module.factory_meta().cloned(),
         build_meta: box_module.build_meta().cloned(),
       };
       let modules = modules_set
@@ -902,7 +904,7 @@ impl ModuleConcatenationPlugin {
         Some(rspack_hash::HashFunction::MD4),
         config.runtime.clone(),
       );
-      let build_result = new_module
+      new_module
         .build(
           rspack_core::BuildContext {
             compiler_context: CompilerContext {
@@ -912,11 +914,6 @@ impl ModuleConcatenationPlugin {
               module_context: None,
               module_source_map_kind: rspack_util::source_map::SourceMapKind::None,
               cache: compilation.cache.clone(),
-              factorize_queue: compilation.factorize_queue.clone(),
-              build_queue: compilation.build_queue.clone(),
-              add_queue: compilation.add_queue.clone(),
-              process_dependencies_queue: compilation.process_dependencies_queue.clone(),
-              build_time_execution_queue: compilation.build_time_execution_queue.clone(),
               plugin_driver: compilation.plugin_driver.clone(),
             },
             plugin_driver: compilation.plugin_driver.clone(),
@@ -925,7 +922,6 @@ impl ModuleConcatenationPlugin {
           Some(compilation),
         )
         .await?;
-      new_module.set_module_build_info_and_meta(build_result.build_info, build_result.build_meta);
       let mut chunk_graph = std::mem::take(&mut compilation.chunk_graph);
       let mut module_graph = compilation.get_module_graph_mut();
       let root_mgm_exports = module_graph
@@ -997,7 +993,7 @@ impl ModuleConcatenationPlugin {
   }
 }
 
-#[plugin_hook(AsyncSeriesBail<Compilation, bool> for ModuleConcatenationPlugin)]
+#[plugin_hook(CompilationOptimizeChunkModules for ModuleConcatenationPlugin)]
 async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
   self.optimize_chunk_modules_impl(compilation).await?;
   Ok(None)

@@ -1,0 +1,44 @@
+import { ApiMeta } from '../../../../components/ApiMeta.tsx';
+
+# DefinePlugin
+
+<ApiMeta addedVersion={'0.6.2'} />
+
+此插件将会忽略指定的导入文件，让这些 import 或 require 包含的文件不被打包。
+
+```js
+new rspack.IgnorePlugin(options);
+```
+
+## 选项
+
+- **类型：**
+
+```ts
+{
+  /** 用于匹配资源文件 */
+  resourceRegExp: RegExp;
+  /** 用于匹配请求的目录 */
+  contextRegExp?: RegExp;
+}
+```
+
+- **默认值：** `undefined`
+
+## 示例
+
+当使用以下配置时：
+
+```ts title="rspack.config.js"
+const rspack = require('@rspack/core');
+module.exports = {
+  plugins: [
+    new rspack.IgnorePlugin({
+      resourceRegExp: /^\.\/locale$/,
+      contextRegExp: /moment$/,
+    });
+  ],
+};
+```
+
+这意味着，在以 'moment' 结尾的目录下，如果导入语句匹配 './locale' ，那么这个 './locale' 资源不会被打包。

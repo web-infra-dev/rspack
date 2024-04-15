@@ -409,7 +409,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			!context.forToString
 		);
 		options.loggingDebug = []
-			.concat(optionsOrFallback(options.loggingDebug, []))
+			.concat(optionsOrFallback(options.loggingDebug, []) || [])
 			.map(normalizeFilter);
 		options.modulesSpace =
 			options.modulesSpace || (context.forToString ? 15 : Infinity);
@@ -417,6 +417,10 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		options.children = optionOrLocalFallback(
 			options.children,
 			!context.forToString
+		);
+		options.orphanModules = optionOrLocalFallback(
+			options.orphanModules,
+			context.forToString ? false : true
 		);
 
 		return options;
@@ -441,15 +445,13 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	 * Source: [updateAsset](https://github.com/webpack/webpack/blob/9fcaa243573005d6fdece9a3f8d89a0e8b399613/lib/Compilation.js#L4320)
 	 *
 	 * FIXME: *AssetInfo* may be undefined in update fn for webpack impl, but still not implemented in rspack
-	 *
-	 * @param {string} file file name
-	 * @param {Source | function(Source): Source} newSourceOrFunction new asset source or function converting old to new
-	 * @param {AssetInfo | function(AssetInfo): AssetInfo} assetInfoUpdateOrFunction new asset info or function converting old to new
 	 */
 	updateAsset(
 		filename: string,
 		newSourceOrFunction: Source | ((source: Source) => Source),
-		assetInfoUpdateOrFunction: AssetInfo | ((assetInfo: AssetInfo) => AssetInfo)
+		assetInfoUpdateOrFunction?:
+			| AssetInfo
+			| ((assetInfo: AssetInfo) => AssetInfo)
 	) {
 		let compatNewSourceOrFunction:
 			| JsCompatSource
@@ -470,9 +472,11 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		this.#inner.updateAsset(
 			filename,
 			compatNewSourceOrFunction,
-			typeof assetInfoUpdateOrFunction === "function"
-				? jsAssetInfo => toJsAssetInfo(assetInfoUpdateOrFunction(jsAssetInfo))
-				: toJsAssetInfo(assetInfoUpdateOrFunction)
+			assetInfoUpdateOrFunction === undefined
+				? assetInfoUpdateOrFunction
+				: typeof assetInfoUpdateOrFunction === "function"
+					? jsAssetInfo => toJsAssetInfo(assetInfoUpdateOrFunction(jsAssetInfo))
+					: toJsAssetInfo(assetInfoUpdateOrFunction)
 		);
 	}
 
@@ -564,6 +568,9 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 						);
 					}
 				}
+			},
+			get length() {
+				return inner.getStats().getErrors().length;
 			},
 			[Symbol.iterator]() {
 				// TODO: this is obviously a bad design, optimize this after finishing angular prototype

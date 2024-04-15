@@ -1,0 +1,13 @@
+/* This could be bootstrap.css */
+body {
+  background: green;
+}
+
+body {
+  background: red;
+}
+
+.async {
+  color: red;
+}
+

@@ -1025,7 +1025,8 @@ const statsOptions = z.strictObject({
 	children: z.boolean().optional(),
 	usedExports: z.boolean().optional(),
 	providedExports: z.boolean().optional(),
-	optimizationBailout: z.boolean().optional()
+	optimizationBailout: z.boolean().optional(),
+	orphanModules: z.boolean().optional()
 });
 export type StatsOptions = z.infer<typeof statsOptions>;
 
@@ -1085,8 +1086,10 @@ const optimizationSplitChunksChunks = z
 	.or(z.instanceof(RegExp))
 	.or(z.function().args(z.instanceof(Chunk)).returns(z.boolean()));
 const optimizationSplitChunksSizes = z.number();
+const optimizationSplitChunksDefaultSizeTypes = z.array(z.string());
 const sharedOptimizationSplitChunksCacheGroup = {
 	chunks: optimizationSplitChunksChunks.optional(),
+	defaultSizeTypes: optimizationSplitChunksDefaultSizeTypes.optional(),
 	minChunks: z.number().min(1).optional(),
 	name: optimizationSplitChunksName.optional(),
 	minSize: optimizationSplitChunksSizes.optional(),

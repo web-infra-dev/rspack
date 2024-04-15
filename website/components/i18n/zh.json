@@ -9,7 +9,8 @@
   "define-plugin-desc": "在 v0.3.3 已实现对该插件的支持，v0.3.3 之前可使用 builtins.define 替代",
   "copy-plugin-desc": "使用 builtins.copy 或 rspack.CopyRspackPlugin 替代",
   "banner-plugin-desc": "在 v0.3.3 已实现对该插件的支持，v0.3.3 之前可使用 builtins.banner 替代",
-  "mini-css-extract-plugin-desc": "使用 experiments.css 替代",
+  "ignore-plugin-desc": "推荐使用 rspack.IgnorePlugin 替代",
+  "mini-css-extract-plugin-desc": "使用 experiments.css 或 rspack.CssExtractRspackPlugin 替代",
   "terser-webpack-plugin-desc": "使用 rspack.SwcJsMinimizerRspackPlugin 或 builtins.minifyOptions 替代",
   "progress-plugin-desc": "使用 builtins.progress 替代",
   "tsconfig-paths-webpack-plugin-desc": "使用 resolve.tsconfigPath 替代"

@@ -1,0 +1,15 @@
+
+[package]
+edition    = "2021"
+license    = "MIT"
+name       = "rspack_macros_test"
+repository = "https://github.com/web-infra-dev/rspack"
+version    = "0.1.0"
+
+[dev-dependencies]
+rspack_error  = { path = "../rspack_error" }
+rspack_hook   = { path = "../rspack_hook" }
+rspack_macros = { path = "../rspack_macros" }
+rspack_util   = { path = "../rspack_util" }
+tokio         = { workspace = true, features = ["macros"] }
+trybuild      = { version = "1.0.91", features = ["diff"] }

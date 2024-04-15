@@ -12,13 +12,13 @@ use glob::{MatchOptions, Pattern as GlobPattern};
 use regex::Regex;
 use rspack_core::{
   rspack_sources::RawSource, AssetInfo, AssetInfoRelated, Compilation, CompilationAsset,
-  CompilationLogger, FilenameTemplate, Logger, PathData, Plugin,
+  CompilationLogger, CompilationProcessAssets, FilenameTemplate, Logger, PathData, Plugin,
 };
 use rspack_error::{Diagnostic, DiagnosticError, Error, ErrorExt, Result};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHashDigest};
-use rspack_hook::{plugin, plugin_hook, AsyncSeries};
+use rspack_hook::{plugin, plugin_hook};
 use rspack_util::infallible::ResultInfallibleExt as _;
-use sugar_path::{AsPath, SugarPath};
+use sugar_path::SugarPath;
 
 #[derive(Debug, Clone)]
 pub struct CopyRspackPluginOptions {
@@ -507,7 +507,7 @@ impl CopyRspackPlugin {
   }
 }
 
-#[plugin_hook(AsyncSeries<Compilation> for CopyRspackPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONAL)]
+#[plugin_hook(CompilationProcessAssets for CopyRspackPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONAL)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let logger = compilation.get_logger("rspack.CopyRspackPlugin");
   let start = logger.time("run pattern");

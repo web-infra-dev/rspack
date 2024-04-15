@@ -4,6 +4,7 @@ mod mapped_assets_cache;
 
 use std::borrow::Cow;
 use std::hash::Hasher;
+use std::sync::Arc;
 use std::{hash::Hash, path::Path};
 
 use dashmap::DashMap;
@@ -17,18 +18,21 @@ use regex::{Captures, Regex};
 use rspack_core::{
   contextify,
   rspack_sources::{BoxSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap},
-  AssetInfo, Compilation, CompilationAsset, JsChunkHashArgs, PathData, Plugin, PluginContext,
-  PluginJsChunkHashHookOutput, PluginRenderModuleContentOutput, RenderModuleContentArgs,
-  SourceType,
+  AssetInfo, Compilation, CompilationAsset, PathData, Plugin, PluginContext, SourceType,
 };
 use rspack_core::{
-  ApplyContext, BoxModule, Chunk, ChunkUkey, CompilerOptions, FilenameTemplate, Logger,
-  ModuleIdentifier, OutputOptions,
+  ApplyContext, BoxModule, Chunk, ChunkUkey, CompilationBuildModule, CompilationParams,
+  CompilationProcessAssets, CompilationRuntimeModule, CompilerCompilation, CompilerOptions,
+  FilenameTemplate, Logger, ModuleIdentifier, OutputOptions,
 };
 use rspack_error::error;
 use rspack_error::{miette::IntoDiagnostic, Result};
 use rspack_hash::RspackHash;
-use rspack_hook::{plugin, plugin_hook, AsyncSeries, AsyncSeries3};
+use rspack_hook::{plugin, plugin_hook};
+use rspack_plugin_javascript::{
+  JavascriptModulesPluginPlugin, JsChunkHashArgs, JsPlugin, PluginJsChunkHashHookOutput,
+  PluginRenderJsModuleContentOutput, RenderJsModuleContentArgs,
+};
 use rspack_util::identifier::make_paths_absolute;
 use rspack_util::infallible::ResultInfallibleExt as _;
 use rspack_util::source_map::SourceMapKind;
@@ -66,8 +70,9 @@ pub struct ModuleFilenameTemplateFnCtx {
 }
 
 type ModuleFilenameTemplateFn =
-  Box<dyn Fn(ModuleFilenameTemplateFnCtx) -> BoxFuture<'static, Result<String>> + Sync + Send>;
+  Arc<dyn Fn(ModuleFilenameTemplateFnCtx) -> BoxFuture<'static, Result<String>> + Sync + Send>;
 
+#[derive(Clone)]
 pub enum ModuleFilenameTemplate {
   String(String),
   Fn(ModuleFilenameTemplateFn),
@@ -543,7 +548,7 @@ impl SourceMapDevToolPlugin {
   }
 }
 
-#[plugin_hook(AsyncSeries<Compilation> for SourceMapDevToolPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_DEV_TOOLING)]
+#[plugin_hook(CompilationProcessAssets for SourceMapDevToolPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_DEV_TOOLING)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let logger = compilation.get_logger("rspack.SourceMapDevToolPlugin");
   let start = logger.time("collect source maps");
@@ -818,19 +823,12 @@ impl ModuleFilenameHelpers {
 static MODULE_RENDER_CACHE: Lazy<DashMap<BoxSource, BoxSource>> = Lazy::new(DashMap::default);
 
 #[derive(Debug)]
-pub struct EvalSourceMapDevToolPlugin {
+struct EvalSourceMapDevToolJavascriptModulesPluginPlugin {
   columns: bool,
   no_sources: bool,
 }
 
-impl EvalSourceMapDevToolPlugin {
-  pub fn new(options: SourceMapDevToolPluginOptions) -> Self {
-    Self {
-      columns: options.columns,
-      no_sources: options.no_sources,
-    }
-  }
-
+impl EvalSourceMapDevToolJavascriptModulesPluginPlugin {
   pub fn wrap_eval_source_map(
     &self,
     source: &str,
@@ -859,17 +857,11 @@ impl EvalSourceMapDevToolPlugin {
   }
 }
 
-#[async_trait::async_trait]
-impl Plugin for EvalSourceMapDevToolPlugin {
-  fn name(&self) -> &'static str {
-    "rspack.EvalSourceMapDevToolPlugin"
-  }
-
+impl JavascriptModulesPluginPlugin for EvalSourceMapDevToolJavascriptModulesPluginPlugin {
   fn render_module_content<'a>(
     &'a self,
-    _ctx: PluginContext,
-    mut args: RenderModuleContentArgs<'a>,
-  ) -> PluginRenderModuleContentOutput<'a> {
+    mut args: RenderJsModuleContentArgs<'a>,
+  ) -> PluginRenderJsModuleContentOutput<'a> {
     let origin_source = args.module_source.clone();
     if let Some(cached) = MODULE_RENDER_CACHE.get(&origin_source) {
       args.module_source = cached.value().clone();
@@ -883,12 +875,57 @@ impl Plugin for EvalSourceMapDevToolPlugin {
     Ok(args)
   }
 
-  fn js_chunk_hash(
+  fn js_chunk_hash(&self, args: &mut JsChunkHashArgs) -> PluginJsChunkHashHookOutput {
+    EVAL_SOURCE_MAP_DEV_TOOL_PLUGIN_NAME.hash(&mut args.hasher);
+    Ok(())
+  }
+}
+
+const EVAL_SOURCE_MAP_DEV_TOOL_PLUGIN_NAME: &str = "rspack.EvalSourceMapDevToolPlugin";
+
+#[plugin]
+#[derive(Debug)]
+pub struct EvalSourceMapDevToolPlugin {
+  columns: bool,
+  no_sources: bool,
+}
+
+impl EvalSourceMapDevToolPlugin {
+  pub fn new(options: SourceMapDevToolPluginOptions) -> Self {
+    Self::new_inner(options.columns, options.no_sources)
+  }
+}
+
+#[plugin_hook(CompilerCompilation for EvalSourceMapDevToolPlugin)]
+async fn eval_source_map_devtool_plugin_compilation(
+  &self,
+  compilation: &mut Compilation,
+  _params: &mut CompilationParams,
+) -> Result<()> {
+  let mut drive = JsPlugin::get_compilation_drives_mut(compilation);
+  drive.add_plugin(EvalSourceMapDevToolJavascriptModulesPluginPlugin {
+    columns: self.columns,
+    no_sources: self.no_sources,
+  });
+  Ok(())
+}
+
+#[async_trait::async_trait]
+impl Plugin for EvalSourceMapDevToolPlugin {
+  fn name(&self) -> &'static str {
+    EVAL_SOURCE_MAP_DEV_TOOL_PLUGIN_NAME
+  }
+
+  fn apply(
     &self,
-    _ctx: PluginContext,
-    args: &mut JsChunkHashArgs,
-  ) -> PluginJsChunkHashHookOutput {
-    self.name().hash(&mut args.hasher);
+    ctx: PluginContext<&mut ApplyContext>,
+    _options: &mut CompilerOptions,
+  ) -> Result<()> {
+    ctx
+      .context
+      .compiler_hooks
+      .compilation
+      .tap(eval_source_map_devtool_plugin_compilation::new(self));
     Ok(())
   }
 }
@@ -909,7 +946,7 @@ impl SourceMapDevToolModuleOptionsPlugin {
   }
 }
 
-#[plugin_hook(AsyncSeries<BoxModule> for SourceMapDevToolModuleOptionsPlugin)]
+#[plugin_hook(CompilationBuildModule for SourceMapDevToolModuleOptionsPlugin)]
 async fn build_module(&self, module: &mut BoxModule) -> Result<()> {
   if self.module {
     module.set_source_map_kind(SourceMapKind::SourceMap);
@@ -919,12 +956,12 @@ async fn build_module(&self, module: &mut BoxModule) -> Result<()> {
   Ok(())
 }
 
-#[plugin_hook(AsyncSeries3<Compilation, ModuleIdentifier, ChunkUkey> for SourceMapDevToolModuleOptionsPlugin)]
+#[plugin_hook(CompilationRuntimeModule for SourceMapDevToolModuleOptionsPlugin)]
 async fn runtime_module(
   &self,
   compilation: &mut Compilation,
-  module: &mut ModuleIdentifier,
-  _chunk: &mut ChunkUkey,
+  module: &ModuleIdentifier,
+  _chunk: &ChunkUkey,
 ) -> Result<()> {
   let Some(module) = compilation.runtime_modules.get_mut(module) else {
     return Ok(());
@@ -937,7 +974,6 @@ async fn runtime_module(
   Ok(())
 }
 
-#[async_trait::async_trait]
 impl Plugin for SourceMapDevToolModuleOptionsPlugin {
   fn name(&self) -> &'static str {
     "SourceMapDevToolModuleOptionsPlugin"
@@ -962,7 +998,7 @@ impl Plugin for SourceMapDevToolModuleOptionsPlugin {
   }
 }
 
-#[derive(Derivative)]
+#[derive(Derivative, Clone)]
 #[derivative(Debug)]
 pub struct EvalDevToolModulePluginOptions {
   pub namespace: Option<String>,
@@ -973,16 +1009,13 @@ pub struct EvalDevToolModulePluginOptions {
 
 static EVAL_MODULE_RENDER_CACHE: Lazy<DashMap<BoxSource, BoxSource>> = Lazy::new(DashMap::default);
 
-#[derive(Derivative)]
-#[derivative(Debug)]
-pub struct EvalDevToolModulePlugin {
+struct EvalDevToolModuleJavascriptModulesPluginPlugin {
   namespace: String,
-  #[derivative(Debug = "ignore")]
   module_filename_template: ModuleFilenameTemplate,
   source_url_comment: String,
 }
 
-impl EvalDevToolModulePlugin {
+impl EvalDevToolModuleJavascriptModulesPluginPlugin {
   pub fn new(options: EvalDevToolModulePluginOptions) -> Self {
     let source_url_comment = options
       .source_url_comment
@@ -996,8 +1029,8 @@ impl EvalDevToolModulePlugin {
         ));
 
     Self {
-      module_filename_template,
       namespace: options.namespace.unwrap_or("".to_string()),
+      module_filename_template,
       source_url_comment,
     }
   }
@@ -1010,16 +1043,11 @@ impl EvalDevToolModulePlugin {
 }
 
 #[async_trait::async_trait]
-impl Plugin for EvalDevToolModulePlugin {
-  fn name(&self) -> &'static str {
-    "rspack.EvalDevToolModulePlugin"
-  }
-
+impl JavascriptModulesPluginPlugin for EvalDevToolModuleJavascriptModulesPluginPlugin {
   fn render_module_content<'a>(
     &'a self,
-    _ctx: PluginContext,
-    mut args: RenderModuleContentArgs<'a>,
-  ) -> PluginRenderModuleContentOutput<'a> {
+    mut args: RenderJsModuleContentArgs<'a>,
+  ) -> PluginRenderJsModuleContentOutput<'a> {
     let origin_source = args.module_source.clone();
     if let Some(cached) = EVAL_MODULE_RENDER_CACHE.get(&origin_source) {
       args.module_source = cached.value().clone();
@@ -1057,12 +1085,54 @@ impl Plugin for EvalDevToolModulePlugin {
     Ok(args)
   }
 
-  fn js_chunk_hash(
+  fn js_chunk_hash(&self, args: &mut JsChunkHashArgs) -> PluginJsChunkHashHookOutput {
+    EVAL_DEV_TOOL_MODULE_PLUGIN_NAME.hash(&mut args.hasher);
+    Ok(())
+  }
+}
+
+const EVAL_DEV_TOOL_MODULE_PLUGIN_NAME: &str = "rspack.EvalDevToolModulePlugin";
+
+#[plugin]
+#[derive(Debug)]
+pub struct EvalDevToolModulePlugin {
+  options: EvalDevToolModulePluginOptions,
+}
+
+impl EvalDevToolModulePlugin {
+  pub fn new(options: EvalDevToolModulePluginOptions) -> Self {
+    Self::new_inner(options)
+  }
+}
+
+#[plugin_hook(CompilerCompilation for EvalDevToolModulePlugin)]
+async fn eval_devtool_plugin_compilation(
+  &self,
+  compilation: &mut Compilation,
+  _params: &mut CompilationParams,
+) -> Result<()> {
+  let mut drive = JsPlugin::get_compilation_drives_mut(compilation);
+  drive.add_plugin(EvalDevToolModuleJavascriptModulesPluginPlugin::new(
+    self.options.clone(),
+  ));
+  Ok(())
+}
+
+impl Plugin for EvalDevToolModulePlugin {
+  fn name(&self) -> &'static str {
+    EVAL_DEV_TOOL_MODULE_PLUGIN_NAME
+  }
+
+  fn apply(
     &self,
-    _ctx: PluginContext,
-    args: &mut JsChunkHashArgs,
-  ) -> PluginJsChunkHashHookOutput {
-    self.name().hash(&mut args.hasher);
+    ctx: PluginContext<&mut ApplyContext>,
+    _options: &mut CompilerOptions,
+  ) -> Result<()> {
+    ctx
+      .context
+      .compiler_hooks
+      .compilation
+      .tap(eval_devtool_plugin_compilation::new(self));
     Ok(())
   }
 }

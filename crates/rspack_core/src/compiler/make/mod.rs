@@ -17,15 +17,11 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use tokio::sync::mpsc;
 use tokio::sync::mpsc::error::TryRecvError;
 
+pub use self::queue::FactorizeTask;
 use self::queue::{
-  AddQueue, AddTask, AddTaskResult, BuildQueue, BuildTask, BuildTaskResult,
-  BuildTimeExecutionQueue, CleanQueue, CleanTask, CleanTaskResult, FactorizeQueue,
-  FactorizeTaskResult, ModuleCreationCallback, ProcessDependenciesQueue, ProcessDependenciesResult,
-  ProcessDependenciesTask, TaskResult, WorkerTask,
-};
-pub use self::queue::{
-  AddQueueHandler, BuildQueueHandler, BuildTimeExecutionOption, BuildTimeExecutionQueueHandler,
-  BuildTimeExecutionTask, FactorizeQueueHandler, FactorizeTask, ProcessDependenciesQueueHandler,
+  AddQueue, AddTask, AddTaskResult, BuildQueue, BuildTask, BuildTaskResult, CleanQueue, CleanTask,
+  CleanTaskResult, FactorizeQueue, FactorizeTaskResult, ProcessDependenciesQueue,
+  ProcessDependenciesResult, ProcessDependenciesTask, TaskResult, WorkerTask,
 };
 pub use self::rebuild_deps_builder::RebuildDepsBuilder;
 use crate::{
@@ -75,7 +71,6 @@ struct UpdateModuleGraph {
   add_queue: AddQueue,
   build_queue: BuildQueue,
   process_dependencies_queue: ProcessDependenciesQueue,
-  buildtime_execution_queue: BuildTimeExecutionQueue,
 
   make_failed_dependencies: HashSet<BuildDependency>,
   make_failed_module: HashSet<ModuleIdentifier>,
@@ -99,7 +94,6 @@ impl Default for UpdateModuleGraph {
       add_queue: AddQueue::new(),
       build_queue: BuildQueue::new(),
       process_dependencies_queue: ProcessDependenciesQueue::new(),
-      buildtime_execution_queue: BuildTimeExecutionQueue::new(),
       make_failed_dependencies: HashSet::default(),
       make_failed_module: HashSet::default(),
       need_check_isolated_module_ids: HashSet::default(),
@@ -150,12 +144,6 @@ impl UpdateModuleGraph {
       }
     }
 
-    compilation.factorize_queue = Some(self.factorize_queue.queue_handler());
-    compilation.build_queue = Some(self.build_queue.queue_handler());
-    compilation.add_queue = Some(self.add_queue.queue_handler());
-    compilation.process_dependencies_queue = Some(self.process_dependencies_queue.queue_handler());
-    compilation.build_time_execution_queue = Some(self.buildtime_execution_queue.queue_handler());
-
     Ok(deps_builder.revoke_modules(&mut compilation.get_module_graph_mut()))
   }
 
@@ -186,7 +174,6 @@ impl UpdateModuleGraph {
         if parent_module_identifier.is_some() && parent_module.is_none() {
           return;
         }
-
         self.handle_module_creation(
           compilation,
           parent_module_identifier,
@@ -199,7 +186,6 @@ impl UpdateModuleGraph {
             .and_then(|m| m.as_normal_module())
             .and_then(|module| module.name_for_condition()),
           true,
-          None,
         );
       });
 
@@ -207,7 +193,6 @@ impl UpdateModuleGraph {
     let mut process_deps_time = logger.time_aggregate("module process dependencies task");
     let mut factorize_time = logger.time_aggregate("module factorize task");
     let mut build_time = logger.time_aggregate("module build task");
-    let mut buildtime_execution_time = logger.time_aggregate("buildtime execution task");
 
     let mut build_cache_counter = None;
     let mut factorize_cache_counter = None;
@@ -326,10 +311,7 @@ impl UpdateModuleGraph {
           .module_by_identifier(original_module_identifier)
           .expect("Module expected");
 
-        let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
-        let mut remaining = sorted_dependencies.len();
         for dependencies in sorted_dependencies.into_values() {
-          let tx = tx.clone();
           self.handle_module_creation(
             compilation,
             Some(module.identifier()),
@@ -342,27 +324,13 @@ impl UpdateModuleGraph {
               .as_normal_module()
               .and_then(|module| module.name_for_condition()),
             true,
-            Some(Box::new(move |_| {
-              tx.send(())
-                .expect("Failed to send callback to process_dependencies");
-            })),
           );
         }
-        drop(tx);
 
         tokio::spawn({
           let tx = self.result_tx.clone();
           let is_expected_shutdown = self.is_expected_shutdown.clone();
           async move {
-            loop {
-              if remaining == 0 {
-                break;
-              }
-
-              rx.recv().await;
-              remaining -= 1;
-            }
-
             if is_expected_shutdown.load(Ordering::Relaxed) {
               return;
             }
@@ -377,24 +345,6 @@ impl UpdateModuleGraph {
         });
       }
       process_deps_time.end(start);
-
-      let start = buildtime_execution_time.start();
-      while let Some(task) = self.buildtime_execution_queue.get_task(compilation) {
-        let BuildTimeExecutionTask {
-          module,
-          request,
-          options,
-          sender,
-        } = task;
-
-        if let Err(e) = compilation.execute_module(module, &request, options, sender.clone()) {
-          self
-            .result_tx
-            .send(Err(e))
-            .expect("failed to send error message");
-        };
-      }
-      buildtime_execution_time.end(start);
 
       match self.result_rx.try_recv() {
         Ok(item) => {
@@ -448,7 +398,6 @@ impl UpdateModuleGraph {
                 context_dependencies,
                 missing_dependencies,
                 diagnostics,
-                callback,
                 connect_origin,
                 ..
               } = task_result;
@@ -494,7 +443,6 @@ impl UpdateModuleGraph {
                     exports_info_related.exports_info.id,
                   );
                   mgm.set_issuer_if_unset(original_module_identifier);
-                  mgm.factory_meta = Some(factory_result.factory_meta);
 
                   let mut module_graph = compilation.get_module_graph_mut();
                   module_graph.set_exports_info(
@@ -517,7 +465,6 @@ impl UpdateModuleGraph {
                     dependencies,
                     is_entry,
                     current_profile,
-                    callback,
                     connect_origin,
                   });
                   tracing::trace!("Module created: {}", &module_identifier);
@@ -549,15 +496,27 @@ impl UpdateModuleGraph {
                   plugin_driver: compilation.plugin_driver.clone(),
                   cache: compilation.cache.clone(),
                   current_profile,
-                  factorize_queue: compilation.factorize_queue.clone(),
-                  add_queue: compilation.add_queue.clone(),
-                  build_queue: compilation.build_queue.clone(),
-                  process_dependencies_queue: compilation.process_dependencies_queue.clone(),
-                  build_time_execution_queue: compilation.build_time_execution_queue.clone(),
                 });
               }
               AddTaskResult::ModuleReused { module, .. } => {
                 tracing::trace!("Module reused: {}, skipping build", module.identifier());
+
+                let module_identifier = module.identifier();
+                if compilation
+                  .get_module_graph()
+                  .module_by_identifier(&module_identifier)
+                  .is_some()
+                {
+                  self.active_task_count += 1;
+                  self
+                    .result_tx
+                    .send(Ok(TaskResult::ProcessDependencies(Box::new(
+                      ProcessDependenciesResult {
+                        module_identifier: module.identifier(),
+                      },
+                    ))))
+                    .expect("Failed to send factorize result");
+                }
               }
             },
             Ok(TaskResult::Build(box task_result)) => {
@@ -666,17 +625,24 @@ impl UpdateModuleGraph {
                   mgm.set_profile(current_profile);
                 }
               }
+
+              let module_identifier = module.identifier();
+
+              module.set_build_info(build_result.build_info);
+              module.set_build_meta(build_result.build_meta);
+
+              let mut mg = compilation.get_module_graph_mut();
+
+              let resolve_options = module.get_resolve_options();
+              mg.add_module(module);
+
               self
                 .process_dependencies_queue
                 .add_task(ProcessDependenciesTask {
                   dependencies: all_dependencies,
-                  original_module_identifier: module.identifier(),
-                  resolve_options: module.get_resolve_options(),
+                  original_module_identifier: module_identifier,
+                  resolve_options,
                 });
-
-              module
-                .set_module_build_info_and_meta(build_result.build_info, build_result.build_meta);
-              compilation.get_module_graph_mut().add_module(module);
             }
             Ok(TaskResult::ProcessDependencies(task_result)) => {
               tracing::trace!(
@@ -874,7 +840,6 @@ impl UpdateModuleGraph {
     lazy_visit_modules: std::collections::HashSet<String>,
     issuer: Option<Box<str>>,
     connect_origin: bool,
-    callback: Option<ModuleCreationCallback>,
   ) {
     let current_profile = compilation
       .options
@@ -914,7 +879,6 @@ impl UpdateModuleGraph {
       cache: compilation.cache.clone(),
       current_profile,
       connect_origin,
-      callback,
     });
   }
 

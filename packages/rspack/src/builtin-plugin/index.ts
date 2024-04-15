@@ -3,6 +3,7 @@ export { RspackBuiltinPlugin } from "./base";
 export * from "./DefinePlugin";
 export * from "./ProvidePlugin";
 export * from "./BannerPlugin";
+export * from "./IgnorePlugin";
 export * from "./ProgressPlugin";
 export * from "./EntryPlugin";
 export * from "./ExternalsPlugin";
@@ -48,6 +49,7 @@ export * from "./MangleExportsPlugin";
 export * from "./BundlerInfoRspackPlugin";
 export * from "./ModuleConcatenationPlugin";
 export * from "./CssModulesPlugin";
+export * from "./APIPlugin";
 
 export * from "./HtmlRspackPlugin";
 export * from "./CopyRspackPlugin";
@@ -55,6 +57,7 @@ export * from "./SwcJsMinimizerPlugin";
 export * from "./SwcCssMinimizerPlugin";
 
 export * from "./JsLoaderRspackPlugin";
+export * from "./css-extract";
 
 ///// DEPRECATED /////
 import { RawBuiltins } from "@rspack/binding";

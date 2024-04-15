@@ -1,0 +1,31 @@
+import { ApiMeta } from '../../../../components/ApiMeta.tsx';
+
+# EntryPlugin
+
+<ApiMeta addedVersion={'0.3.3'} />
+
+Add an entry chunk at compile time.
+
+```js
+new rspack.EntryPlugin(context, entry, options);
+```
+
+- context
+  - **Type:** `string`
+  - **Description:** The path requested by the entry module is resolved from the context path.
+- entry
+  - **Type:** `string`
+  - **Description:** The path requested by the entry module
+- options
+  - **Type:**
+  ```ts
+  type EntryOptions = {
+    name?: string;
+    runtime?: EntryRuntime;
+    chunkLoading?: ChunkLoading;
+    asyncChunks?: boolean;
+    publicPath?: PublicPath;
+    baseUri?: string;
+    filename?: Filename;
+  };
+  ```

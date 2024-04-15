@@ -161,7 +161,7 @@ module.exports = {
 
 ### node-loader
 
-当使用 Rspack 打包如 Nestjs 等 Node 应用时，一个常见的需求就是打包一些包含 addon 的库，这些库里的 native 依赖无法直接被打包进 js 里，因此需要特殊处理，Rspack 适配了 [node-loader](https://github.com/webpack-contrib/node-loader) 所以你可以使用 Rspack 去构建 node 应用了。
+当使用 Rspack 打包如 NestJS 等 Node 应用时，一个常见的需求就是打包一些包含 addon 的库，这些库里的 native 依赖无法直接被打包进 js 里，因此需要特殊处理，Rspack 适配了 [node-loader](https://github.com/webpack-contrib/node-loader) 所以你可以使用 Rspack 去构建 node 应用了。
 Rspack 适配的 webpack 的 plugin 和 loader 远不仅此，我们在 [loader-compat](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/loader-compat) 和 [plugin-compat](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/plugin-compat) 对已经适配的 plugin 和 loader 进行了追踪，如果你发现你使用的社区 plugin 和 loader 也已经兼容，欢迎提交给我们。
 
 ## 框架生态更新

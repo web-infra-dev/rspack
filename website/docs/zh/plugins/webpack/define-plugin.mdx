@@ -1,0 +1,55 @@
+import { ApiMeta } from '../../../../components/ApiMeta.tsx';
+
+# DefinePlugin
+
+<ApiMeta addedVersion={'0.3.3'} />
+
+此插件将会在编译时将代码中的变量替换为其他值或表达式。
+
+```js
+new rspack.DefinePlugin(options);
+```
+
+- options
+  - **类型：** `Record<string, string | boolean | undefined>`
+
+当使用以下配置时：
+
+```ts title="rspack.config.js"
+const rspack = require('@rspack/core');
+module.exports = {
+  plugins: [
+    new rspack.DefinePlugin({
+      'process.env.NODE_ENV': "'development'",
+      TRUE: true,
+      TRUE_STRING: 'true',
+      UNDEFINED: undefined,
+      UNDEFINED_STRING: 'undefined',
+    }),
+  ],
+};
+```
+
+输入代码：
+
+```ts
+if (process.env.NODE_ENV === 'development') {
+  console.log('run in development mode');
+}
+
+console.log(TRUE === TRUE_STRING);
+console.log(UNDEFINED === UNDEFINED_STRING);
+```
+
+输出代码：
+
+```ts
+if ('development' === 'development') {
+  console.log('run in development mode');
+}
+
+fetch('/api/test');
+
+console.log(true === true);
+console.log(undefined === undefined);
+```

@@ -111,8 +111,8 @@ impl<'a> CodeSizeOptimizer<'a> {
     optimize_analyze_result_map.iter_mut().for_each(
       |(module_identifier, optimize_analyze_result)| {
         if let Some(factory_meta_side_effects) = module_graph
-          .module_graph_module_by_identifier(module_identifier)
-          .and_then(|mgm| ModuleRefAnalyze::get_side_effects_from_config(&mgm.factory_meta))
+          .module_by_identifier(module_identifier)
+          .and_then(|m| ModuleRefAnalyze::get_side_effects_from_config(m.factory_meta()))
         {
           optimize_analyze_result.side_effects = factory_meta_side_effects;
         }
