@@ -1,4 +1,3 @@
-
 # Case this-in-accept: Step 0
 
 ## Changed Files
@@ -11,7 +10,3 @@
 
 		
 ## Update
-
-
-
-		

@@ -1,4 +1,3 @@
-
 # Case update-multiple-modules: Step 0
 
 ## Changed Files
@@ -12,7 +11,3 @@
 
 		
 ## Update
-
-
-
-		

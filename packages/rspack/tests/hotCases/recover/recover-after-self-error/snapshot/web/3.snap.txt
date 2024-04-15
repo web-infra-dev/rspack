@@ -1,4 +1,3 @@
-
 # Case recover-after-self-error: Step 3
 
 ## Changed Files
@@ -73,7 +72,3 @@ __webpack_require__.h = function () {
 }
 );
 ```
-
-
-
-		

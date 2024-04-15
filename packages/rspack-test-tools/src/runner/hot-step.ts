@@ -40,30 +40,6 @@ export class HotStepRunnerFactory<
 					const jsonStats = stats.toJson({
 						// errorDetails: true
 					});
-					if (
-						checkArrayExpectation(
-							source,
-							jsonStats,
-							"error",
-							"errors" + hotUpdateContext.updateIndex,
-							"Error",
-							callback
-						)
-					) {
-						return;
-					}
-					if (
-						checkArrayExpectation(
-							source,
-							jsonStats,
-							"warning",
-							"warnings" + hotUpdateContext.updateIndex,
-							"Warning",
-							callback
-						)
-					) {
-						return;
-					}
 					try {
 						const checker = this.context.getValue(
 							this.name,

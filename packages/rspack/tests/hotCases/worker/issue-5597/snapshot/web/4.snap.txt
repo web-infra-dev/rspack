@@ -1,4 +1,3 @@
-
 # Case issue-5597: Step 4
 
 ## Changed Files
@@ -167,7 +166,3 @@ __webpack_require__.h = function () {
 }
 );
 ```
-
-
-
-		

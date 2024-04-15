@@ -266,7 +266,7 @@ ${i.content}
 	)
 	.join("\n\n")}
 
-		`;
+		`.trim();
 
 		if (!fs.existsSync(snapshotPath) || global.updateSnapshot) {
 			fs.ensureDirSync(path.dirname(snapshotPath));

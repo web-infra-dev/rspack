@@ -1,4 +1,3 @@
-
 # Case multi-chunk: Step 2
 
 ## Changed Files
@@ -132,7 +131,3 @@ __webpack_require__.h = function () {
 }
 );
 ```
-
-
-
-		
