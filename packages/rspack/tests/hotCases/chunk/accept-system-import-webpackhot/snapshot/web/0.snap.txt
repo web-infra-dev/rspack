@@ -1,0 +1,14 @@
+# Case accept-system-import-webpackhot: Step 0
+
+## Changed Files
+- file.js
+
+## Asset Files
+- Bundle: bundle.js, size: 37757
+- Bundle: chunk2_js.chunk.CURRENT_HASH.js, size: 745
+- Bundle: chunk_js.chunk.CURRENT_HASH.js, size: 743
+
+## Manifest
+
+		
+## Update

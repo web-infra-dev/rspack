@@ -2,14 +2,17 @@ use std::sync::Arc;
 
 use once_cell::sync::Lazy;
 use regex::Regex;
-use rspack_core::{BoxDependency, ModuleDependency, SpanExt};
+use rspack_core::{BoxDependency, ConstDependency, DependencyTemplate, ModuleDependency, SpanExt};
 use rspack_error::miette::{Diagnostic, Severity};
 use rspack_error::{DiagnosticExt, TraceableError};
-use swc_core::common::{FileName, Span};
+use swc_core::atoms::Atom;
+use swc_core::common::{BytePos, FileName, Span, Spanned, SyntaxContext};
 use swc_core::css::ast::{
-  AtRule, AtRuleName, Function, ImportHref, ImportPrelude, Stylesheet, Token, TokenAndSpan, Url,
-  UrlValue,
+  AtRule, AtRuleName, ComplexSelectorChildren, ComponentValue, DeclarationName, Function, Ident,
+  ImportHref, ImportPrelude, PseudoClassSelector, QualifiedRulePrelude, Stylesheet,
+  SubclassSelector, Token, TokenAndSpan, Url, UrlValue,
 };
+use swc_core::css::modules::CssClassName;
 use swc_core::css::visit::{Visit, VisitWith};
 
 use crate::{
@@ -224,6 +227,80 @@ impl Visit for Analyzer<'_> {
       && !specifier.is_empty()
     {
       self.analyze_url(specifier, u.span);
+    }
+  }
+}
+
+pub(crate) struct ExportsAnalyzer<'source> {
+  source_code: &'source str,
+  pub exports: Vec<(Atom, CssClassName)>,
+  pub presentation_deps: Vec<Box<dyn DependencyTemplate>>,
+}
+
+impl<'source> ExportsAnalyzer<'source> {
+  pub fn new(source_code: &'source str) -> Self {
+    Self {
+      source_code,
+      exports: Default::default(),
+      presentation_deps: Default::default(),
+    }
+  }
+}
+
+impl<'source> Visit for ExportsAnalyzer<'source> {
+  fn visit_qualified_rule(&mut self, n: &swc_core::css::ast::QualifiedRule) {
+    // parse :export { foo: bar; }
+    // TODO: is this a fulfilled detection ?
+    if let QualifiedRulePrelude::SelectorList(selector_list) = &n.prelude
+      && selector_list.children.len() == 1
+      && selector_list.children[0].children.len() == 1
+      && let ComplexSelectorChildren::CompoundSelector(selector) =
+        &selector_list.children[0].children[0]
+      && selector.subclass_selectors.len() == 1
+      && let SubclassSelector::PseudoClass(PseudoClassSelector { name, .. }) =
+        &selector.subclass_selectors[0]
+      && &name.value == "export"
+    {
+      for decl in &n.block.value {
+        if let ComponentValue::Declaration(decl) = decl {
+          let key = match &decl.name {
+            DeclarationName::Ident(ident) => &ident.value,
+            DeclarationName::DashedIdent(dashed_ident) => &dashed_ident.value,
+          };
+
+          let start = decl
+            .value
+            .first()
+            .expect("export value should have value")
+            .span()
+            .real_lo();
+          let end = decl
+            .value
+            .last()
+            .expect("export value should have value")
+            .span()
+            .real_hi();
+
+          let value = &self.source_code[start as usize..end as usize];
+          self.exports.push((
+            key.clone(),
+            CssClassName::Global {
+              name: Ident {
+                value: value.into(),
+                span: Span::new(BytePos(start), BytePos(end), SyntaxContext::empty()),
+                raw: None,
+              },
+            },
+          ));
+        }
+      }
+
+      self.presentation_deps.push(Box::new(ConstDependency::new(
+        n.span.real_lo(),
+        n.span.real_hi(),
+        "".into(),
+        None,
+      )));
     }
   }
 }

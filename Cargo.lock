@@ -371,15 +371,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bstr"
-version = "0.2.17"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ba3569f383e8f1598449f1a423e72e99569137b47740b1da11ef19af3d5c3223"
-dependencies = [
- "memchr",
-]
-
-[[package]]
 name = "bumpalo"
 version = "3.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -423,19 +414,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cargo-rst"
-version = "0.1.0"
-dependencies = [
- "colored",
- "console",
- "derive_builder 0.20.0",
- "glob",
- "serde",
- "serde_json",
- "similar",
-]
-
-[[package]]
 name = "cc"
 version = "1.0.79"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -473,16 +451,6 @@ checksum = "150fd80a270c0671379f388c8204deb6a746bb4eac8a6c03fe2460b2c0127ea0"
 dependencies = [
  "backtrace",
  "termcolor",
-]
-
-[[package]]
-name = "colored"
-version = "2.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cbf2150cce219b664a8a70df7a1f933836724b503f8a413af9365b4dcc4d90b8"
-dependencies = [
- "lazy_static",
- "windows-sys 0.48.0",
 ]
 
 [[package]]
@@ -769,7 +737,6 @@ dependencies = [
  "ident_case",
  "proc-macro2",
  "quote",
- "strsim",
  "syn 2.0.58",
 ]
 
@@ -850,16 +817,7 @@ version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8d67778784b508018359cbc8696edb3db78160bab2c2a28ba7f56ef6932997f8"
 dependencies = [
- "derive_builder_macro 0.12.0",
-]
-
-[[package]]
-name = "derive_builder"
-version = "0.20.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0350b5cb0331628a5916d6c5c0b72e97393b8b6b03b47a9284f4e7f5a405ffd7"
-dependencies = [
- "derive_builder_macro 0.20.0",
+ "derive_builder_macro",
 ]
 
 [[package]]
@@ -875,35 +833,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "derive_builder_core"
-version = "0.20.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d48cda787f839151732d396ac69e3473923d54312c070ee21e9effcaa8ca0b1d"
-dependencies = [
- "darling 0.20.6",
- "proc-macro2",
- "quote",
- "syn 2.0.58",
-]
-
-[[package]]
 name = "derive_builder_macro"
 version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ebcda35c7a396850a55ffeac740804b40ffec779b98fffbb1738f4033f0ee79e"
 dependencies = [
- "derive_builder_core 0.12.0",
+ "derive_builder_core",
  "syn 1.0.109",
-]
-
-[[package]]
-name = "derive_builder_macro"
-version = "0.20.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "206868b8242f27cecce124c19fd88157fbd0dd334df2587f36417bafbc85097b"
-dependencies = [
- "derive_builder_core 0.20.0",
- "syn 2.0.58",
 ]
 
 [[package]]
@@ -4014,15 +3950,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f27f6278552951f1f2b8cf9da965d10969b2efdea95a6ec47987ab46edfe263a"
 
 [[package]]
-name = "similar"
-version = "2.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fa42c91313f1d05da9b26f267f931cf178d4aba455b4c4622dd7355eb80c6640"
-dependencies = [
- "bstr",
-]
-
-[[package]]
 name = "siphasher"
 version = "0.3.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4301,9 +4228,9 @@ dependencies = [
 
 [[package]]
 name = "swc"
-version = "0.273.23"
+version = "0.273.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1a3c87ffee4d9ed775e1c0f4f3865feee7c72f2b62ab58ae7a02c70dc5d7cd11"
+checksum = "28571cc2607038238dcfc8dc0fe43af34fa4464124b677fa752d44515bde65bd"
 dependencies = [
  "anyhow",
  "base64 0.21.7",
@@ -4463,9 +4390,9 @@ dependencies = [
 
 [[package]]
 name = "swc_core"
-version = "0.90.30"
+version = "0.90.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fe7651ba172f4a82cd6f27b73e51d363e9b32aa97b9f6aab2e63e58f4df9ea62"
+checksum = "06abbb96671d9fb89f051609242b6acb9ddde9e6ff6325f49fce453d96a4c533"
 dependencies = [
  "swc",
  "swc_atoms",
@@ -6555,7 +6482,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d21472954ee9443235ca32522b17fc8f0fe58e2174556266a0d9766db055cc52"
 dependencies = [
  "anyhow",
- "derive_builder 0.12.0",
+ "derive_builder",
  "indexmap 2.2.6",
  "semver 1.0.20",
  "serde",

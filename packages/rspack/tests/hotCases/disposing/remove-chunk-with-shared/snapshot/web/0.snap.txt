@@ -1,0 +1,14 @@
+# Case remove-chunk-with-shared: Step 0
+
+## Changed Files
+- module.js
+
+## Asset Files
+- Bundle: bundle.js, size: 37853
+- Bundle: chunk1_js.chunk.CURRENT_HASH.js, size: 953
+- Bundle: chunk2_js.chunk.CURRENT_HASH.js, size: 953
+
+## Manifest
+
+		
+## Update

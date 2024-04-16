@@ -14,7 +14,7 @@ export interface IRspackHotProcessorOptions {
 	target: TCompilerOptions<ECompilerType.Rspack>["target"];
 }
 
-type TUpdateOptions = {
+export type TUpdateOptions = {
 	updateIndex: number;
 };
 

@@ -1,0 +1,12 @@
+# Case check: Step 0
+
+## Changed Files
+- file.js
+
+## Asset Files
+- Bundle: bundle.js, size: 33605
+
+## Manifest
+
+		
+## Update

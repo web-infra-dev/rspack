@@ -34,37 +34,48 @@ If your project does not depend on css-loader, it is recommended to use the buil
 
   Plugin Configuration
 
-   <Table
-     header={[
-       {
-         name: 'Name',
-         key: 'name',
-       },
-       {
-         name: 'Type',
-         key: 'type',
-       },
-       {
-         name: 'Default Value',
-         key: 'default',
-       },
-       {
-         name: 'Description',
-         key: 'description',
-       },
-     ]}
-     body={[
+  {' '}
+
+  <Table
+    header={[
+      {
+        name: 'Name',
+        key: 'name',
+      },
+      {
+        name: 'Type',
+        key: 'type',
+      },
+      {
+        name: 'Default Value',
+        key: 'default',
+      },
+      {
+        name: 'Description',
+        key: 'description',
+      },
+    ]}
+    body={[
       {
         name: '`filename`',
         type: '`string`',
         default: '"[name].css"',
-        description:'The name of the CSS artifact, please refer to output.filename'
-      }, 
+        description:
+          'The name of the CSS artifact, please refer to output.filename',
+      },
       {
         name: '`chunkFilename`',
         type: '`string`',
         default: '"[name].css"',
-        description:"The name of the asynchronous loading CSS artifact. If not set, it will use filename; please see output.chunkFilename"}, {name:"'ignoreOrder'", type:"'boolean'", default:"false", description:"Whether to issue a warning if there are conflicts in the order of some CSS in different chunks. For example, entryA introduces a.css b.css, entryB introduces b.css a.css, and the order of a.css and b.css cannot be determined"
+        description:
+          'The name of the asynchronous loading CSS artifact. If not set, it will use filename; please see output.chunkFilename',
+      },
+      {
+        name: "'ignoreOrder'",
+        type: "'boolean'",
+        default: 'false',
+        description:
+          'Whether to issue a warning if there are conflicts in the order of some CSS in different chunks. For example, entryA introduces a.css b.css, entryB introduces b.css a.css, and the order of a.css and b.css cannot be determined',
       },
       {
         name: '`ignoreOrder`',
@@ -77,32 +88,34 @@ If your project does not depend on css-loader, it is recommended to use the buil
         name: '`insert`',
         type: '`string | ((linkTag: HTMLLinkElement) => void)`',
         default: 'undefined',
-        description: "Decide how the link tag is inserted into the page. If passed as a string type，it will be regarded as dom selector，and the link tag will be inserted after element corresponding to that selector。If passed as function type，the function will be converted into a String at runtime for invocation，with link tag as parameter"
+        description:
+          'Decide how the link tag is inserted into the page. If passed as a string type，it will be regarded as dom selector，and the link tag will be inserted after element corresponding to that selector。If passed as function type，the function will be converted into a String at runtime for invocation，with link tag as parameter',
       },
       {
         name: '`attributes`',
         type: '`Record<string, string>`',
         default: 'undefined',
-        description: "Add attributes to link tags"
+        description: 'Add attributes to link tags',
       },
       {
         name: '`linkType`',
         type: "`string | 'text/css' | false`",
         default: '"text/css"',
-        description: "Set the Type attribute value for Link Tag"
+        description: 'Set the Type attribute value for Link Tag',
       },
       {
         name: '`runtime`',
         type: '`boolean`',
         default: 'true',
-        description : `Injecting Runtime code related to Css Loading `
+        description: `Injecting Runtime code related to CSS Loading `,
       },
       {
         name: '`pathinfo`',
         type: '`boolean`',
         default: 'false',
-        description: 'Whether more detailed information about Css Path should remain in product'
-      }
+        description:
+          'Whether more detailed information about CSS Path should remain in product',
+      },
     ]}
   />
 
@@ -132,20 +145,22 @@ If your project does not depend on css-loader, it is recommended to use the buil
         name: '`publicPath`',
         type: '`string | ((resourcePath: string, context: string) => string)`',
         default: 'output.publicPath',
-        description: 'Public Path in Css Module'
+        description: 'Public Path in CSS Module',
       },
       {
         name: '`emit`',
         type: '`boolean`',
         default: 'true',
-        description: 'Whether Extracting Out Css Files Setting It To False Will Not Generate Css Files'
+        description:
+          'Whether Extracting Out CSS Files Setting It To False Will Not Generate CSS Files',
       },
       {
         name: '`esModule`',
         type: '`boolean`',
         default: 'true',
-        description: 'Whether To Use Es Module Syntax For Exporting Class Names Of Css Modules'
-      }
+        description:
+          'Whether To Use Es Module Syntax For Exporting Class Names Of CSS Modules',
+      },
     ]}
   />
 
@@ -157,12 +172,12 @@ const rspack = require('@rspack/core');
 module.exports = {
   plugins: [new rspack.CssExtractRspackPlugin({})],
   module: {
-    rules:[
+    rules: [
       {
         test: /\.css$/i,
-        use: [rspack.CssExtractRspackPlugin.loader,'css-loader']
-      }
-    ]
-  }
-}
+        use: [rspack.CssExtractRspackPlugin.loader, 'css-loader'],
+      },
+    ],
+  },
+};
 ```

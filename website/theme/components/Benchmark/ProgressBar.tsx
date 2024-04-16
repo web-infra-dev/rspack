@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import styles from './index.module.scss';
 
@@ -46,7 +46,9 @@ export function ProgressBar({ value, max }: { value: number; max: number }) {
           transition={{ duration: value / 2, ease: 'linear' }}
         />
       </div>
-      <div className={`${styles['font-mono']} text-sm sm:text-base`}>
+      <div
+        className={`${styles['font-mono']} text-sm sm:text-base text-gray-400`}
+      >
         {formattedTime}
       </div>
     </div>

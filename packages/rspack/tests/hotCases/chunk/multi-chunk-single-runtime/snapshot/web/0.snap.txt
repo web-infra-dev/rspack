@@ -1,0 +1,16 @@
+# Case multi-chunk-single-runtime: Step 0
+
+## Changed Files
+- file.js
+
+## Asset Files
+- Bundle: a.js, size: 900
+- Bundle: b.js, size: 900
+- Bundle: main.js, size: 1617
+- Bundle: main_async_js.chunk.CURRENT_HASH.js, size: 122
+- Bundle: runtime.js, size: 38850
+
+## Manifest
+
+		
+## Update

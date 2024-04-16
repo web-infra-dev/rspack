@@ -13,11 +13,11 @@ hero:
     alt: logo
   actions:
     - theme: brand
-      text: 介绍
-      link: /zh/guide/introduction
-    - theme: alt
       text: 快速开始
       link: /zh/guide/quick-start
+    - theme: alt
+      text: 深入了解
+      link: /zh/guide/introduction
 
 features:
   - title: 启动速度极快
