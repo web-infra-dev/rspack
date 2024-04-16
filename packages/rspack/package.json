@@ -19,7 +19,7 @@
     "dev": "tsc -w",
     "test": "cross-env NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --logHeapUsage",
     "api-extractor": "api-extractor run --verbose",
-    "api-extractor:ci": "api-extractor run --verbose || diff temp/core.api.md etc/core.api.md"
+    "api-extractor:ci": "api-extractor run --verbose || diff temp/api.md etc/api.md"
   },
   "files": [
     "dist",

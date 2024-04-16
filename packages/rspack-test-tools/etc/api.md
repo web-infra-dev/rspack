@@ -17,6 +17,7 @@ import { RspackOptionsNormalized } from '@rspack/core';
 import { RspackPluginInstance } from '@rspack/core';
 import { Stats } from '@rspack/core';
 import type { Stats as Stats_2 } from 'webpack';
+import { StatsCompilation } from '@rspack/core';
 import { WebpackOptionsNormalized } from 'webpack';
 
 // @public (undocumented)
@@ -90,6 +91,9 @@ export function createHashCase(name: string, src: string, dist: string): void;
 
 // @public (undocumented)
 export function createHotCase(name: string, src: string, dist: string, target: TCompilerOptions<ECompilerType.Rspack>["target"]): void;
+
+// @public (undocumented)
+export function createHotStepCase(name: string, src: string, dist: string, target: TCompilerOptions<ECompilerType.Rspack>["target"]): void;
 
 // @public (undocumented)
 export function createNormalCase(name: string, src: string, dist: string): void;
@@ -221,6 +225,12 @@ export function formatCode(name: string, raw: string, options: IFormatCodeOption
 
 // @public (undocumented)
 export class HotRunnerFactory<T extends ECompilerType> extends BasicRunnerFactory<T> {
+    // (undocumented)
+    protected createRunner(file: string, compilerOptions: TCompilerOptions<T>, env: ITestEnv): ITestRunner;
+}
+
+// @public (undocumented)
+export class HotStepRunnerFactory<T extends ECompilerType> extends HotRunnerFactory<T> {
     // (undocumented)
     protected createRunner(file: string, compilerOptions: TCompilerOptions<T>, env: ITestEnv): ITestRunner;
 }
@@ -459,6 +469,10 @@ export interface IRspackHotProcessorOptions {
     name: string;
     // (undocumented)
     target: TCompilerOptions<ECompilerType.Rspack>["target"];
+}
+
+// @public (undocumented)
+export interface IRspackHotStepProcessorOptions extends IRspackHotProcessorOptions {
 }
 
 // @public (undocumented)
@@ -816,10 +830,21 @@ export class RspackHotProcessor extends BasicTaskProcessor<ECompilerType.Rspack>
     run(env: ITestEnv, context: ITestContext): Promise<void>;
     // (undocumented)
     protected runner: ITestRunner | null;
-    // Warning: (ae-forgotten-export) The symbol "TUpdateOptions" needs to be exported by the entry point index.d.ts
-    //
     // (undocumented)
     protected updateOptions: TUpdateOptions;
+}
+
+// @public (undocumented)
+export class RspackHotStepProcessor extends RspackHotProcessor {
+    constructor(_hotOptions: IRspackHotProcessorOptions);
+    // (undocumented)
+    check(env: ITestEnv, context: ITestContext): Promise<void>;
+    // (undocumented)
+    protected _hotOptions: IRspackHotProcessorOptions;
+    // (undocumented)
+    protected matchStepSnapshot(context: ITestContext, step: number, stats: StatsCompilation): void;
+    // (undocumented)
+    run(env: ITestEnv, context: ITestContext): Promise<void>;
 }
 
 // @public (undocumented)
@@ -1102,6 +1127,11 @@ export type TTestFilter<T extends ECompilerType> = (creatorConfig: Record<string
 
 // @public (undocumented)
 export type TTestRunResult = Record<string, any>;
+
+// @public (undocumented)
+export type TUpdateOptions = {
+    updateIndex: number;
+};
 
 // @public (undocumented)
 export class WatchRunnerFactory<T extends ECompilerType> extends BasicRunnerFactory<T> {
