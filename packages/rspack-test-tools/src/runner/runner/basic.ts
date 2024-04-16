@@ -47,9 +47,6 @@ export class BasicRunner<T extends ECompilerType = ECompilerType.Rspack>
 	run(file: string): Promise<unknown> {
 		this.globalContext = this.createGlobalContext();
 		this.baseModuleScope = this.createBaseModuleScope();
-		if (typeof this._options.testConfig.moduleScope === "function") {
-			this._options.testConfig.moduleScope(this.baseModuleScope);
-		}
 		this.createRunner();
 		const res = this.getRequire()(
 			this._options.dist,
@@ -85,11 +82,13 @@ export class BasicRunner<T extends ECompilerType = ECompilerType.Rspack>
 
 	protected createBaseModuleScope(): IBasicModuleScope {
 		const baseModuleScope = {
-			console: console,
+			console: this.globalContext!.console,
+			expect: this.globalContext!.expect,
 			it: this._options.env.it,
 			beforeEach: this._options.env.beforeEach,
 			afterEach: this._options.env.afterEach,
-			expect,
+			setTimeout: this.globalContext!.setTimeout,
+			clearTimeout: this.globalContext!.clearTimeout,
 			jest,
 			__STATS__: this._options.stats,
 			nsObj: (m: Object) => {

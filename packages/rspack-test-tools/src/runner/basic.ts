@@ -7,6 +7,7 @@ import {
 	TRunnerFactory
 } from "../type";
 import { WebRunner } from "./runner/web";
+import { JSDOMRunner } from "./runner/jsdom";
 import { EsmRunner } from "./runner/esm";
 
 export class BasicRunnerFactory<T extends ECompilerType>
@@ -56,7 +57,8 @@ export class BasicRunnerFactory<T extends ECompilerType>
 			compilerOptions.target === "web" ||
 			compilerOptions.target === "webworker"
 		) {
-			return new WebRunner<T>(runnerOptions);
+			return new JSDOMRunner<T>(runnerOptions);
+			// return new WebRunner<T>(runnerOptions);
 		} else {
 			return new EsmRunner<T>(runnerOptions);
 		}
