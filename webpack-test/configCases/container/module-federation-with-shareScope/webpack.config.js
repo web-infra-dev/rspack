@@ -31,7 +31,7 @@ module.exports = [
 		},
 		plugins: [
 			new ModuleFederationPlugin({
-				name: "container",
+				name: "containerCjs",
 				library: { type: "commonjs-module" },
 				filename: "container.js",
 				remotes: {
@@ -53,7 +53,7 @@ module.exports = [
 		},
 		plugins: [
 			new ModuleFederationPlugin({
-				name: "container",
+				name: "containerEsm",
 				library: { type: "module" },
 				filename: "module/container.mjs",
 				remotes: {
