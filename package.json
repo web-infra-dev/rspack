@@ -34,7 +34,9 @@
     "test:ng": "pnpm --filter \"@rspack/test-tools\" test:ng",
     "test:e2e": "pnpm --filter \"@rspack-e2e/*\" test",
     "test:ci": "cross-env NODE_OPTIONS=--max_old_space_size=8192 pnpm run build:js && pnpm run test:unit && pnpm test:webpack",
-    "test:webpack": "pnpm --filter \"webpack-test\" test:metric"
+    "test:webpack": "pnpm --filter \"webpack-test\" test:metric",
+    "api-extractor:local": "pnpm --filter '@rspack/*' api-extractor --local",
+    "api-extractor:ci": "pnpm --filter '@rspack/*' api-extractor:ci"
   },
   "homepage": "https://rspack.dev",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
@@ -46,6 +48,7 @@
     "pnpm": "8.14.3"
   },
   "devDependencies": {
+    "@microsoft/api-extractor": "^7.43.1",
     "@rspack/cli": "workspace:*",
     "@taplo/cli": "^0.7.0",
     "@types/is-ci": "^3.0.4",
