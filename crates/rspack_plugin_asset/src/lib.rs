@@ -600,7 +600,7 @@ impl Plugin for AssetPlugin {
           .and_then(|x| x.data_url_condition.clone());
 
         let emit: Option<bool> = generator_options
-          .and_then(|x| x.get_asset(&ModuleType::AssetResource))
+          .and_then(|x| x.get_asset(&ModuleType::Asset))
           .and_then(|x| x.emit);
 
         Box::new(AssetParserAndGenerator::with_auto(
@@ -619,8 +619,9 @@ impl Plugin for AssetPlugin {
       rspack_core::ModuleType::AssetResource,
       Box::new(move |_, generator_options| {
         let emit = generator_options
-          .and_then(|x| x.get_asset(&ModuleType::AssetResource))
+          .and_then(|x| x.get_asset_resource(&ModuleType::AssetResource))
           .and_then(|x| x.emit);
+
         Box::new(AssetParserAndGenerator::with_resource(emit.unwrap_or(true)))
       }),
     );
