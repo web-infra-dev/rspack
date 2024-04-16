@@ -6,7 +6,7 @@ module.exports = {
 	},
 	module: {
 		generator: {
-			asset: {
+			'asset/resource': {
 				emit: false,
 			},
 		},
@@ -14,9 +14,6 @@ module.exports = {
 			{
 				test: /\.png$/,
 				type: "asset/resource",
-				generator: {
-					emit: false
-				}
 			},
 			{
 				test: /\.jpg$/,
