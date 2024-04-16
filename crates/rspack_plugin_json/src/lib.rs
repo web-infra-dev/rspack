@@ -156,12 +156,12 @@ impl ParserAndGenerator for JsonParserAndGenerator {
           .expect("should have json data");
         let exports_info = module_graph.get_exports_info(&module.identifier());
 
-        let final_json = match json_data {
+        let final_json = match dbg!(json_data) {
           json::JsonValue::Object(_) | json::JsonValue::Array(_)
-            if exports_info
+            if dbg!(exports_info
               .other_exports_info
               .get_export_info(&module_graph)
-              .get_used(*runtime)
+              .get_used(*runtime))
               == UsageState::Unused =>
           {
             create_object_for_exports_info(json_data.clone(), exports_info, *runtime, &module_graph)
@@ -232,7 +232,7 @@ fn create_object_for_exports_info(
   runtime: Option<&RuntimeSpec>,
   mg: &ModuleGraph,
 ) -> JsonValue {
-  if exports_info.other_exports_info.get_used(mg, runtime) != UsageState::Unused {
+  if dbg!(exports_info.other_exports_info.get_used(mg, runtime)) != UsageState::Unused {
     return data;
   }
 
@@ -312,7 +312,7 @@ fn create_object_for_exports_info(
       let used_length = if let Some(array_length_when_used) = array_length_when_used {
         array_length_when_used
       } else {
-        max_used_index + 1
+        (max_used_index + 1).min(ret.len())
       };
       ret.drain(used_length..);
       let normalized_ret = ret
