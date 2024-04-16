@@ -15,12 +15,16 @@ new rspack.IgnorePlugin(options);
 - **类型：**
 
 ```ts
-{
-  /** 用于匹配资源文件 */
-  resourceRegExp: RegExp;
-  /** 用于匹配请求的目录 */
-  contextRegExp?: RegExp;
-}
+| {
+    /** 用于匹配资源文件 */
+    resourceRegExp: RegExp;
+    /** 用于匹配请求的目录 */
+    contextRegExp?: RegExp;
+  }
+| {
+    /** 根据资源和请求的目录进行过滤 */
+    checkResource: (resource: string, context: string) => boolean;
+  }
 ```
 
 - **默认值：** `undefined`
