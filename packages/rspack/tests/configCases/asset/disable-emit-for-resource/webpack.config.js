@@ -1,6 +1,6 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	mode: "development",
+	context: __dirname,
 	output: {
 		assetModuleFilename: "images/file[ext]"
 	},
