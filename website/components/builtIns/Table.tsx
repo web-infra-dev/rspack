@@ -10,7 +10,7 @@ import {
 interface TableProps {
   children?: ReactNode[];
   body?: any[];
-  header?: { name: string | JSX.Element; key: string }[];
+  header?: { name: string | JSX.Element; key: string; style: React.CSSProperties }[];
   tableStyle?: Record<string, string>;
 }
 
@@ -58,7 +58,7 @@ export function Table(props: TableProps) {
     <ModernTable style={tableStyle}>
       <ModernTableRow>
         {header.map(item => (
-          <ModernTableHead key={item.key}>
+          <ModernTableHead key={item.key} style={item.style}>
             {renderHeaderItem(item.name)}
           </ModernTableHead>
         ))}

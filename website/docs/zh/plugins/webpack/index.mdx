@@ -1,0 +1,141 @@
+import { Table } from '@builtIns';
+
+# 同步自 webpack 的内置插件
+
+以下表格展示了 Rspack 相对于 Webpack 内置插件的支持情况。对于尚未实现的插件或功能，如果你有兴趣参与开发，我们非常欢迎你来参与。
+
+<Table
+  header={[
+    {
+      name: '插件',
+      key: 'name',
+    },
+    {
+      name: '支持情况',
+      key: 'status',
+      style: {
+        width: '130px'
+      }
+    },
+    {
+      name: '备注',
+      key: 'notes',
+    },
+  ]}
+  body={[
+    {
+      name: 'AutomaticPrefetchPlugin',
+      status: '🔴 不支持',
+      notes: '待实现',
+    },
+    {
+      name: 'BannerPlugin',
+      status: '🟡 部分支持',
+      notes: '不支持 `stage` 选项',
+    },
+    {
+      name: 'ContextExclusionPlugin',
+      status: '🔴 不支持',
+      notes: '待实现',
+    },
+    {
+      name: 'ContextReplacementPlugin',
+      status: '🔴 不支持',
+      notes: '待实现',
+    },
+    {
+      name: 'DefinePlugin',
+      status: '🟡 部分支持',
+      notes: '不支持 `rspack.DefinePlugin.runtimeValue` 函数',
+    },
+    {
+      name: 'DllPlugin',
+      status: '🔴 不支持',
+      notes: '待实现',
+    },
+    {
+      name: 'EnvironmentPlugin',
+      status: '🟢 完全支持',
+    },
+    {
+      name: 'EvalSourceMapDevToolPlugin',
+      status: '🟡 部分支持',
+      notes: '不支持 `test`、`include`、`exclude`、`moduleFilenameTemplate`、`protocol` 选项',
+    },
+    {
+      name: 'HashedModuleIdsPlugin',
+      status: '🔴 不支持',
+      notes: '待实现',
+    },
+    {
+      name: 'HotModuleReplacementPlugin',
+      status: '🟢 完全支持',
+    },
+
+    {
+      name: 'IgnorePlugin',
+      status: '🟡 部分支持',
+      notes: '不支持 `checkResource` 选项',
+    },
+    {
+      name: 'LimitChunkCountPlugin',
+      status: '🟢 完全支持',
+      notes: '待实现',
+    },
+    {
+      name: 'MinChunkSizePlugin',
+      status: '🔴 不支持',
+      notes: '待实现',
+    },
+    {
+      name: 'ModuleConcatenationPlugin',
+      status: '🟢 完全支持',
+    },
+    {
+      name: 'ModuleFederationPlugin',
+      status: '🟢 完全支持',
+    },
+    {
+      name: 'NoEmitOnErrorsPlugin',
+      status: '🔴 不支持',
+      notes: '待实现',
+    },
+    {
+      name: 'NormalModuleReplacementPlugin',
+      status: '🟢 完全支持',
+    },
+    {
+      name: 'PrefetchPlugin',
+      status: '🔴 不支持',
+      notes: '待实现',
+    },
+    {
+      name: 'ProfilingPlugin',
+      status: '🔴 不支持',
+      notes: '待实现',
+    },
+    {
+      name: 'ProgressPlugin',
+      status: '🟡 部分支持',
+      notes: '仅支持 `profile` 选项',
+    },
+    {
+      name: 'ProvidePlugin',
+      status: '🟢 完全支持',
+    },
+    {
+      name: 'SourceMapDevToolPlugin',
+      status: '🟢 完全支持',
+    },
+    {
+      name: 'SplitChunksPlugin',
+      status: '🟡 部分支持',
+      notes: '不支持 `minSizeReduction`、`usedExports` 选项',
+    },
+    {
+      name: 'WatchIgnorePlugin',
+      status: '🔴 不支持',
+      notes: '待实现',
+    },
+  ]}
+/>
