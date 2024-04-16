@@ -214,9 +214,15 @@ const DEFAULT_MAX_SIZE: u32 = 8096;
 
 impl ParserAndGenerator for AssetParserAndGenerator {
   fn source_types(&self) -> &[SourceType] {
-    if !self.emit {
-      ASSET_SOURCE_MODULE_SOURCE_TYPE_LIST
+    if let Some(config) = self.parsed_asset_config.as_ref() {
+      if config.is_source() || config.is_inline() || !self.emit {
+        ASSET_SOURCE_MODULE_SOURCE_TYPE_LIST
+      } else {
+        ASSET_MODULE_SOURCE_TYPE_LIST
+      }
     } else {
+      // If module is failed to build, then the `parsed_asset_config` is not set.
+      // Align with webpacks's asset module: https://github.com/webpack/webpack/blob/8241da7f1e75c5581ba535d127fa66aeb9eb2ac8/lib/asset/AssetGenerator.js#L386
       ASSET_MODULE_SOURCE_TYPE_LIST
     }
   }
