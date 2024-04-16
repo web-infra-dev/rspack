@@ -33,7 +33,7 @@ import {
 } from "./config";
 import * as liteTapable from "./lite-tapable";
 import { ContextModuleFactory } from "./ContextModuleFactory";
-import ResolverFactory from "./ResolverFactory";
+import ResolverFactory = require("./ResolverFactory");
 import { ChunkGroup } from "./ChunkGroup";
 import { Compiler } from "./Compiler";
 import ErrorHelpers from "./ErrorHelpers";
@@ -486,10 +486,9 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	 * See: [Compilation.emitAsset](https://webpack.js.org/api/compilation-object/#emitasset)
 	 * Source: [emitAsset](https://github.com/webpack/webpack/blob/9fcaa243573005d6fdece9a3f8d89a0e8b399613/lib/Compilation.js#L4239)
 	 *
-	 * @param {string} file file name
-	 * @param {Source} source asset source
-	 * @param {JsAssetInfo} assetInfo extra asset information
-	 * @returns {void}
+	 * @param file - file name
+	 * @param source - asset source
+	 * @param assetInfo - extra asset information
 	 */
 	emitAsset(filename: string, source: Source, assetInfo?: AssetInfo) {
 		this.#inner.emitAsset(
