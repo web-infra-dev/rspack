@@ -1,4 +1,7 @@
 import { ApiMeta } from '../../../../components/ApiMeta.tsx';
+import WebpackLicense from '../../../../components/webpack-license';
+
+<WebpackLicense from="https://webpack.js.org/plugins/provide-plugin/" />
 
 # ProvidePlugin
 
@@ -7,7 +10,7 @@ import { ApiMeta } from '../../../../components/ApiMeta.tsx';
 Automatically load modules instead of having to `import` or `require` them everywhere.
 
 ```js
-new webpack.ProvidePlugin({
+new rspack.ProvidePlugin({
   identifier: 'module1',
   // ...
 });
@@ -16,7 +19,7 @@ new webpack.ProvidePlugin({
 or
 
 ```js
-new webpack.ProvidePlugin({
+new rspack.ProvidePlugin({
   identifier: ['module1', 'property1'],
   // ...
 });
@@ -29,7 +32,7 @@ It is also possible to specify full path:
 ```js
 const path = require('path');
 
-new webpack.ProvidePlugin({
+new rspack.ProvidePlugin({
   identifier: path.resolve(path.join(__dirname, 'src/module1')),
   // ...
 });
@@ -73,7 +76,7 @@ console.log(process.version);
 To automatically load `jquery` we can point both variables it exposes to the corresponding node module:
 
 ```js
-new webpack.ProvidePlugin({
+new rspack.ProvidePlugin({
   $: 'jquery',
   jQuery: 'jquery',
 });
@@ -91,7 +94,7 @@ jQuery('#item'); // <= also works
 ### Lodash Map
 
 ```js
-new webpack.ProvidePlugin({
+new rspack.ProvidePlugin({
   _map: ['lodash', 'map'],
 });
 ```
@@ -99,7 +102,7 @@ new webpack.ProvidePlugin({
 ### Vue.js
 
 ```js
-new webpack.ProvidePlugin({
+new rspack.ProvidePlugin({
   Vue: ['vue/dist/vue.esm.js', 'default'],
 });
 ```

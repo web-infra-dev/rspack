@@ -1,4 +1,7 @@
 import { ApiMeta } from '../../../../components/ApiMeta.tsx';
+import WebpackLicense from '../../../../components/webpack-license';
+
+<WebpackLicense from="https://webpack.js.org/plugins/provide-plugin/" />
 
 # ProvidePlugin
 
@@ -7,7 +10,7 @@ import { ApiMeta } from '../../../../components/ApiMeta.tsx';
 自动加载模块，而不必在每处都 `import` 或 `require` 它们。
 
 ```js
-new webpack.ProvidePlugin({
+new rspack.ProvidePlugin({
   identifier: 'module1',
   // ...
 });
@@ -16,7 +19,7 @@ new webpack.ProvidePlugin({
 或
 
 ```js
-new webpack.ProvidePlugin({
+new rspack.ProvidePlugin({
   identifier: ['module1', 'property1'],
   // ...
 });
@@ -29,7 +32,7 @@ new webpack.ProvidePlugin({
 ```js
 const path = require('path');
 
-new webpack.ProvidePlugin({
+new rspack.ProvidePlugin({
   identifier: path.resolve(path.join(__dirname, 'src/module1')),
   // ...
 });
@@ -73,7 +76,7 @@ console.log(process.version);
 要自动加载 jquery，我们可以把它暴露的两个变量都对应到相应的模块：
 
 ```js
-new webpack.ProvidePlugin({
+new rspack.ProvidePlugin({
   $: 'jquery',
   jQuery: 'jquery',
 });
@@ -91,7 +94,7 @@ jQuery('#item'); // <= 也可以工作
 ### Lodash Map
 
 ```js
-new webpack.ProvidePlugin({
+new rspack.ProvidePlugin({
   _map: ['lodash', 'map'],
 });
 ```
@@ -99,7 +102,7 @@ new webpack.ProvidePlugin({
 ### Vue.js
 
 ```js
-new webpack.ProvidePlugin({
+new rspack.ProvidePlugin({
   Vue: ['vue/dist/vue.esm.js', 'default'],
 });
 ```
