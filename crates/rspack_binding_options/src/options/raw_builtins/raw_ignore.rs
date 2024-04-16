@@ -29,7 +29,7 @@ impl From<RawIgnorePluginOptions> for IgnorePluginOptions {
       context_reg_exp: value
         .context_reg_exp
         .map(|context_reg_exp| context_reg_exp.to_rspack_regex()),
-      // check_resource: value.check_resource,
+
       check_resource: if let Some(check_resource) = value.check_resource {
         Some(CheckResourceContent::Fn(Box::new(
           move |resource, context| {
