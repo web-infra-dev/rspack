@@ -1,6 +1,19 @@
 let warnings = [];
 let oldWarn;
 
+// clean federation globals from previous executions
+if (globalThis.__FEDERATION__) {
+	globalThis.__GLOBAL_LOADING_REMOTE_ENTRY__ = {};
+	//@ts-ignore
+	globalThis.__FEDERATION__.__INSTANCES__.map((i) => {
+		i.moduleCache.clear();
+		if (globalThis[i.name]) {
+			delete globalThis[i.name];
+		}
+	});
+	globalThis.__FEDERATION__.__INSTANCES__ = [];
+}
+
 beforeEach(done => {
 	oldWarn = console.warn;
 	console.warn = m => warnings.push(m);
