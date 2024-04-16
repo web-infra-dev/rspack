@@ -68,13 +68,15 @@ impl CanonicalizedDataUrlOption {
 
 #[derive(Debug)]
 pub struct AssetParserAndGenerator {
+  emit: bool,
   data_url: DataUrlOptions,
   parsed_asset_config: Option<CanonicalizedDataUrlOption>,
 }
 
 impl AssetParserAndGenerator {
-  pub fn with_auto(option: Option<AssetParserDataUrl>) -> Self {
+  pub fn with_auto(option: Option<AssetParserDataUrl>, emit: bool) -> Self {
     Self {
+      emit,
       data_url: DataUrlOptions::Auto(option),
       parsed_asset_config: None,
     }
@@ -82,13 +84,15 @@ impl AssetParserAndGenerator {
 
   pub fn with_inline() -> Self {
     Self {
+      emit: false,
       data_url: DataUrlOptions::Inline(true),
       parsed_asset_config: None,
     }
   }
 
-  pub fn with_resource() -> Self {
+  pub fn with_resource(emit: bool) -> Self {
     Self {
+      emit,
       data_url: DataUrlOptions::Inline(false),
       parsed_asset_config: None,
     }
@@ -96,6 +100,7 @@ impl AssetParserAndGenerator {
 
   pub fn with_source() -> Self {
     Self {
+      emit: false,
       data_url: DataUrlOptions::Source,
       parsed_asset_config: None,
     }
@@ -209,15 +214,9 @@ const DEFAULT_MAX_SIZE: u32 = 8096;
 
 impl ParserAndGenerator for AssetParserAndGenerator {
   fn source_types(&self) -> &[SourceType] {
-    if let Some(config) = self.parsed_asset_config.as_ref() {
-      if config.is_source() || config.is_inline() {
-        ASSET_SOURCE_MODULE_SOURCE_TYPE_LIST
-      } else {
-        ASSET_MODULE_SOURCE_TYPE_LIST
-      }
+    if !self.emit {
+      ASSET_SOURCE_MODULE_SOURCE_TYPE_LIST
     } else {
-      // If module is failed to build, then the `parsed_asset_config` is not set.
-      // Align with webpacks's asset module: https://github.com/webpack/webpack/blob/8241da7f1e75c5581ba535d127fa66aeb9eb2ac8/lib/asset/AssetGenerator.js#L386
       ASSET_MODULE_SOURCE_TYPE_LIST
     }
   }
@@ -589,23 +588,39 @@ impl Plugin for AssetPlugin {
 
     ctx.context.register_parser_and_generator_builder(
       rspack_core::ModuleType::Asset,
-      Box::new(move |p, _| {
-        let data_url_condition = p
+      Box::new(move |parser_options, generator_options| {
+        let data_url_condition = parser_options
           .and_then(|x| x.get_asset(&ModuleType::Asset))
           .and_then(|x| x.data_url_condition.clone());
+
+        let emit: Option<bool> = generator_options
+          .and_then(|x| x.get_asset(&ModuleType::AssetResource))
+          .and_then(|x| x.emit);
+
         Box::new(AssetParserAndGenerator::with_auto(
           data_url_condition.clone(),
+          emit.unwrap_or(false),
         ))
       }),
     );
+
     ctx.context.register_parser_and_generator_builder(
       rspack_core::ModuleType::AssetInline,
       Box::new(|_, _| Box::new(AssetParserAndGenerator::with_inline())),
     );
+
     ctx.context.register_parser_and_generator_builder(
       rspack_core::ModuleType::AssetResource,
-      Box::new(move |_, _| Box::new(AssetParserAndGenerator::with_resource())),
+      Box::new(move |_, generator_options| {
+        let emit = generator_options
+          .and_then(|x| x.get_asset(&ModuleType::AssetResource))
+          .and_then(|x| x.emit);
+        Box::new(AssetParserAndGenerator::with_resource(
+          emit.unwrap_or(false),
+        ))
+      }),
     );
+
     ctx.context.register_parser_and_generator_builder(
       rspack_core::ModuleType::AssetSource,
       Box::new(move |_, _| Box::new(AssetParserAndGenerator::with_source())),

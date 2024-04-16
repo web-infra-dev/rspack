@@ -253,6 +253,13 @@ impl GeneratorOptions {
           .and_then(|x| x.data_url.as_ref())
       })
   }
+
+  pub fn asset_emit(&self, module_type: &ModuleType) -> Option<bool> {
+    self
+      .get_asset(module_type)
+      .and_then(|x| x.emit)
+      .or_else(|| self.get_asset_resource(module_type).and_then(|x| x.emit))
+  }
 }
 
 #[derive(Debug, Clone, MergeFrom)]
@@ -269,6 +276,7 @@ pub struct AssetResourceGeneratorOptions {
 
 #[derive(Debug, Clone, MergeFrom)]
 pub struct AssetGeneratorOptions {
+  pub emit: Option<bool>,
   pub filename: Option<Filename>,
   pub public_path: Option<PublicPath>,
   pub data_url: Option<AssetGeneratorDataUrl>,
