@@ -599,7 +599,7 @@ impl Plugin for AssetPlugin {
 
         Box::new(AssetParserAndGenerator::with_auto(
           data_url_condition.clone(),
-          emit.unwrap_or(false),
+          emit.unwrap_or(true),
         ))
       }),
     );
@@ -615,9 +615,7 @@ impl Plugin for AssetPlugin {
         let emit = generator_options
           .and_then(|x| x.get_asset(&ModuleType::AssetResource))
           .and_then(|x| x.emit);
-        Box::new(AssetParserAndGenerator::with_resource(
-          emit.unwrap_or(false),
-        ))
+        Box::new(AssetParserAndGenerator::with_resource(emit.unwrap_or(true)))
       }),
     );
 
