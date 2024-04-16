@@ -1276,7 +1276,7 @@ export type HtmlRspackPluginOptions = z.infer<typeof htmlRspackPluginOptions>;
 
 // @public (undocumented)
 export const IgnorePlugin: {
-    new (options: RawIgnorePluginOptions): {
+    new (options: IgnorePluginOptions): {
         name: BuiltinPluginName;
         _options: RawIgnorePluginOptions;
         affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
@@ -1286,7 +1286,12 @@ export const IgnorePlugin: {
 };
 
 // @public (undocumented)
-export type IgnorePluginOptions = RawIgnorePluginOptions;
+export type IgnorePluginOptions = {
+    resourceRegExp: NonNullable<RawIgnorePluginOptions["resourceRegExp"]>;
+    contextRegExp?: RawIgnorePluginOptions["contextRegExp"];
+} | {
+    checkResource: NonNullable<RawIgnorePluginOptions["checkResource"]>;
+};
 
 // Warning: (ae-forgotten-export) The symbol "ignoreWarnings" needs to be exported by the entry point index.d.ts
 //
