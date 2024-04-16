@@ -8,7 +8,8 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import { Compilation } from "..";
+import assert from "assert";
+import type { Compilation } from "../Compilation";
 import type {
 	Context,
 	Dependencies,
@@ -24,7 +25,6 @@ import type {
 	Name,
 	OptimizationRuntimeChunk,
 	Resolve,
-	RspackOptions,
 	Target,
 	SnapshotOptions,
 	CacheOptions,
@@ -78,7 +78,8 @@ import type {
 	NoParseOption,
 	DevtoolNamespace,
 	DevtoolModuleFilenameTemplate,
-	DevtoolFallbackModuleFilenameTemplate
+	DevtoolFallbackModuleFilenameTemplate,
+	RspackOptions
 } from "./zod";
 
 export const getNormalizedRspackOptions = (

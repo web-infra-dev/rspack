@@ -25,7 +25,8 @@
     "./crates/rspack_plugin_ensure_chunk_conditions/Cargo.toml"
   ],
   "files.associations": {
-    "*.snap": "markdown"
+    "*.snap": "markdown",
+    "*.json": "jsonc"
   },
   "cSpell.words": [
     "contextify",
