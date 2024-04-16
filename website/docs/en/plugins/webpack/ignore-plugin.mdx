@@ -15,12 +15,16 @@ new rspack.IgnorePlugin(options);
 - **Type:**
 
 ```ts
-{
-  /** A RegExp to test the resource against. */
-  resourceRegExp: RegExp;
-  /** A RegExp to test the context (directory) against. */
-  contextRegExp?: RegExp;
-}
+| {
+    /** A RegExp to test the resource against. */
+    resourceRegExp: RegExp;
+    /** A RegExp to test the context (directory) against. */
+    contextRegExp?: RegExp;
+  }
+| {
+    /** A Filter function that receives `resource` and `context` as arguments, must return boolean. */
+    checkResource: (resource: string, context: string) => boolean;
+  }
 ```
 
 - **Default:** `undefined`

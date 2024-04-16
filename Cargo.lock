@@ -3378,6 +3378,8 @@ dependencies = [
 name = "rspack_plugin_ignore"
 version = "0.1.0"
 dependencies = [
+ "derivative",
+ "futures",
  "rspack_core",
  "rspack_error",
  "rspack_hook",

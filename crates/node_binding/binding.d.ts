@@ -896,8 +896,9 @@ export interface RawHttpExternalsRspackPluginOptions {
 }
 
 export interface RawIgnorePluginOptions {
-  resourceRegExp: RegExp
+  resourceRegExp?: RegExp
   contextRegExp?: RegExp
+  checkResource?: (resource: string, context: string) => boolean
 }
 
 export interface RawInfo {
