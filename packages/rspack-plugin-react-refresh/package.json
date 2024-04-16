@@ -1,6 +1,6 @@
 {
   "name": "@rspack/plugin-react-refresh",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "license": "MIT",
   "description": "React refresh plugin for rspack",
   "main": "dist/index.js",
