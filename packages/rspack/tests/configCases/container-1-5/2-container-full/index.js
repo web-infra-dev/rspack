@@ -1,6 +1,3 @@
-let warnings = [];
-let oldWarn;
-
 // clean federation globals from previous executions
 if (globalThis.__FEDERATION__) {
 	globalThis.__GLOBAL_LOADING_REMOTE_ENTRY__ = {};
@@ -13,6 +10,9 @@ if (globalThis.__FEDERATION__) {
 	});
 	globalThis.__FEDERATION__.__INSTANCES__ = [];
 }
+
+let warnings = [];
+let oldWarn;
 
 beforeEach(done => {
 	oldWarn = console.warn;
