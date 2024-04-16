@@ -1,0 +1,12 @@
+# Case self-decline: Step 0
+
+## Changed Files
+- c.js
+
+## Asset Files
+- Bundle: bundle.js, size: 34592
+
+## Manifest
+
+		
+## Update

@@ -19,11 +19,7 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
   }
 
   fn loader_context(&self, context: &mut LoaderContext<Self::Context>) -> Result<()> {
-    self
-      .plugin_driver
-      .normal_module_hooks
-      .loader
-      .call(&mut context.hot)
+    self.plugin_driver.normal_module_hooks.loader.call(context)
   }
 
   fn before_each(&self, context: &mut LoaderContext<Self::Context>) -> Result<()> {

@@ -14,7 +14,9 @@ use rspack_identifier::IdentifierMap;
 use rspack_util::swc::join_atom;
 use rustc_hash::FxHashMap as HashMap;
 
-#[derive(Debug)]
+use crate::utils::queue::Queue;
+
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 enum ModuleOrAsyncDependenciesBlock {
   Module(ModuleIdentifier),
   AsyncDependenciesBlock(AsyncDependenciesBlockIdentifier),
@@ -102,9 +104,9 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     }
 
     let mut map: IdentifierMap<ProcessModuleReferencedExports> = IdentifierMap::default();
-    let mut queue = VecDeque::new();
-    queue.push_back(block_id);
-    while let Some(module_id) = queue.pop_front() {
+    let mut queue = Queue::new();
+    queue.enqueue(block_id);
+    while let Some(module_id) = queue.dequeue() {
       let module_graph = self.compilation.get_module_graph();
       // dbg!(&module_id);
       let (blocks, dependencies) = match module_id {
@@ -141,7 +143,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
             q,
           )
         } else {
-          queue.push_back(ModuleOrAsyncDependenciesBlock::AsyncDependenciesBlock(
+          queue.enqueue(ModuleOrAsyncDependenciesBlock::AsyncDependenciesBlock(
             block_id,
           ));
         }
@@ -417,8 +419,8 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       }
     } else {
       if !force_side_effects
-        && match mgm.factory_meta {
-          Some(ref meta) => meta.side_effect_free.unwrap_or_default(),
+        && match module.factory_meta() {
+          Some(meta) => meta.side_effect_free.unwrap_or_default(),
           None => false,
         }
       {

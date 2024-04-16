@@ -101,7 +101,7 @@ module.exports = {
 ```ts title="rspack.config.js"
 module.exports = {
   output: {
-    filename: (pathData) => {
+    filename: pathData => {
       return pathData.chunk.name === 'main' ? '[name].js' : '[name]/[name].js';
     },
   },
@@ -209,7 +209,7 @@ module.exports = {
 module.exports = {
   //...
   output: {
-    devtoolModuleFilenameTemplate: (info) => {
+    devtoolModuleFilenameTemplate: info => {
       return `webpack:///${info.resourcePath}?${info.loaders}`;
     },
   },
@@ -1016,7 +1016,7 @@ System.register(
         // ...
       },
     };
-  }
+  },
 );
 ```
 

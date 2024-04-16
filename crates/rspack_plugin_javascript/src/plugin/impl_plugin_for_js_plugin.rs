@@ -6,19 +6,20 @@ use rspack_core::rspack_sources::BoxSource;
 use rspack_core::{
   get_js_chunk_filename_template, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilationChunkHash, CompilationContentHash,
-  CompilationParams, CompilationRenderManifest, CompilerOptions, DependencyType, ErrorSpan,
-  IgnoreErrorModuleFactory, ModuleGraph, ModuleType, ParserAndGenerator, PathData, Plugin,
-  PluginContext, RenderManifestEntry, RuntimeGlobals, SelfModuleFactory, SourceType,
+  CompilationParams, CompilationRenderManifest, CompilerCompilation, CompilerOptions,
+  DependencyType, ErrorSpan, IgnoreErrorModuleFactory, ModuleGraph, ModuleType, ParserAndGenerator,
+  PathData, Plugin, PluginContext, RenderManifestEntry, RuntimeGlobals, SelfModuleFactory,
+  SourceType,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hash::RspackHash;
-use rspack_hook::{plugin_hook, AsyncSeries2};
+use rspack_hook::plugin_hook;
 use rustc_hash::FxHashMap;
 
 use crate::parser_and_generator::JavaScriptParserAndGenerator;
 use crate::{JsPlugin, JsPluginInner};
 
-#[plugin_hook(AsyncSeries2<Compilation, CompilationParams> for JsPlugin)]
+#[plugin_hook(CompilerCompilation for JsPlugin)]
 async fn compilation(
   &self,
   compilation: &mut Compilation,

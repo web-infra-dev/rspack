@@ -33,14 +33,14 @@ Accept updates for the given `dependencies` and fire a `callback` to react to th
 module.hot.accept(
   dependencies, // Either a string or an array of strings
   callback, // Function to fire when the dependencies are updated
-  errorHandler // (err, {moduleId, dependencyId}) => {}
+  errorHandler, // (err, {moduleId, dependencyId}) => {}
 );
 
 // or
 import.meta.webpackHot.accept(
   dependencies, // Either a string or an array of strings
   callback, // Function to fire when the dependencies are updated
-  errorHandler // (err, {moduleId, dependencyId}) => {}
+  errorHandler, // (err, {moduleId, dependencyId}) => {}
 );
 ```
 
@@ -62,12 +62,12 @@ Accept updates for itself.
 
 ```js
 module.hot.accept(
-  errorHandler // Function to handle errors when evaluating the new version
+  errorHandler, // Function to handle errors when evaluating the new version
 );
 
 // or
 import.meta.webpackHot.accept(
-  errorHandler // Function to handle errors when evaluating the new version
+  errorHandler, // Function to handle errors when evaluating the new version
 );
 ```
 
@@ -91,12 +91,12 @@ Reject updates for the given `dependencies` forcing the update to fail with a `'
 
 ```js
 module.hot.decline(
-  dependencies // Either a string or an array of strings
+  dependencies, // Either a string or an array of strings
 );
 
 // or
 import.meta.webpackHot.decline(
-  dependencies // Either a string or an array of strings
+  dependencies, // Either a string or an array of strings
 );
 ```
 
@@ -120,12 +120,12 @@ Flag this module as not-update-able. This makes sense when this module has irrev
 Add a handler which is executed when the current module code is replaced. This should be used to remove any persistent resource you have claimed or created. If you want to transfer state to the updated module, add it to the given `data` parameter. This object will be available at `module.hot.data` after the update.
 
 ```js
-module.hot.dispose((data) => {
+module.hot.dispose(data => {
   // Clean up and pass data to the updated module...
 });
 
 // or
-import.meta.webpackHot.dispose((data) => {
+import.meta.webpackHot.dispose(data => {
   // Clean up and pass data to the updated module...
 });
 ```
@@ -184,7 +184,7 @@ if (
 ) {
   module.hot.invalidate();
 } else {
-  module.hot.dispose((data) => {
+  module.hot.dispose(data => {
     data.value = VALUE;
   });
   module.hot.accept();
@@ -249,20 +249,20 @@ Test all loaded modules for updates and, if updates exist, `apply` them.
 ```js
 module.hot
   .check(autoApply)
-  .then((outdatedModules) => {
+  .then(outdatedModules => {
     // outdated modules...
   })
-  .catch((error) => {
+  .catch(error => {
     // catch errors
   });
 
 // or
 import.meta.webpackHot
   .check(autoApply)
-  .then((outdatedModules) => {
+  .then(outdatedModules => {
     // outdated modules...
   })
-  .catch((error) => {
+  .catch(error => {
     // catch errors
   });
 ```
@@ -276,20 +276,20 @@ Continue the update process (as long as `module.hot.status() === 'ready'`).
 ```js
 module.hot
   .apply(options)
-  .then((outdatedModules) => {
+  .then(outdatedModules => {
     // outdated modules...
   })
-  .catch((error) => {
+  .catch(error => {
     // catch errors
   });
 
 // or
 import.meta.webpackHot
   .apply(options)
-  .then((outdatedModules) => {
+  .then(outdatedModules => {
     // outdated modules...
   })
-  .catch((error) => {
+  .catch(error => {
     // catch errors
   });
 ```
@@ -332,12 +332,12 @@ The `info` parameter will be an object containing some of the following values:
 Register a function to listen for changes in `status`.
 
 ```js
-module.hot.addStatusHandler((status) => {
+module.hot.addStatusHandler(status => {
   // React to the current status...
 });
 
 // or
-import.meta.webpackHot.addStatusHandler((status) => {
+import.meta.webpackHot.addStatusHandler(status => {
   // React to the current status...
 });
 ```

@@ -1,13 +1,16 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use rspack_core::{ApplyContext, ChunkUkey, CompilationRuntimeRequirementInTree, CompilerOptions};
+use rspack_core::{
+  ApplyContext, ChunkUkey, CompilationRuntimeRequirementInTree, CompilerCompilation, CompilerMake,
+  CompilerOptions,
+};
 use rspack_core::{
   Compilation, CompilationParams, Dependency, DependencyType, EntryOptions, EntryRuntime,
   FilenameTemplate, LibraryOptions, MakeParam, Plugin, PluginContext, RuntimeGlobals,
 };
 use rspack_error::Result;
-use rspack_hook::{plugin, plugin_hook, AsyncSeries2};
+use rspack_hook::{plugin, plugin_hook};
 use serde::Serialize;
 
 use super::{
@@ -45,7 +48,7 @@ impl ContainerPlugin {
   }
 }
 
-#[plugin_hook(AsyncSeries2<Compilation, CompilationParams> for ContainerPlugin)]
+#[plugin_hook(CompilerCompilation for ContainerPlugin)]
 async fn compilation(
   &self,
   compilation: &mut Compilation,
@@ -62,12 +65,13 @@ async fn compilation(
   Ok(())
 }
 
-#[plugin_hook(AsyncSeries2<Compilation, Vec<MakeParam>> for ContainerPlugin)]
+#[plugin_hook(CompilerMake for ContainerPlugin)]
 async fn make(&self, compilation: &mut Compilation, params: &mut Vec<MakeParam>) -> Result<()> {
   let dep = ContainerEntryDependency::new(
     self.options.name.clone(),
     self.options.exposes.clone(),
     self.options.share_scope.clone(),
+    self.options.enhanced,
   );
   let dependency_id = *dep.id();
   compilation.add_entry(
@@ -95,10 +99,9 @@ fn runtime_requirements_in_tree(
 ) -> Result<Option<()>> {
   if runtime_requirements.contains(RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE) {
     runtime_requirements_mut.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
-    compilation.add_runtime_module(
-      chunk_ukey,
-      Box::new(ExposeRuntimeModule::new(self.options.enhanced)),
-    )?;
+    if self.options.enhanced {
+      compilation.add_runtime_module(chunk_ukey, Box::new(ExposeRuntimeModule::new()))?;
+    }
   }
   Ok(None)
 }

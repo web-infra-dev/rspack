@@ -3,11 +3,12 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use rspack_core::{
   ApplyContext, BoxModule, ChunkUkey, Compilation, CompilationParams,
-  CompilationRuntimeRequirementInTree, CompilerOptions, DependencyType, ExternalType, ModuleExt,
-  ModuleFactoryCreateData, Plugin, PluginContext, RuntimeGlobals,
+  CompilationRuntimeRequirementInTree, CompilerCompilation, CompilerOptions, DependencyType,
+  ExternalType, ModuleExt, ModuleFactoryCreateData, NormalModuleFactoryFactorize, Plugin,
+  PluginContext, RuntimeGlobals,
 };
 use rspack_error::Result;
-use rspack_hook::{plugin, plugin_hook, AsyncSeries2, AsyncSeriesBail};
+use rspack_hook::{plugin, plugin_hook};
 
 use super::{
   fallback_module_factory::FallbackModuleFactory, remote_module::RemoteModule,
@@ -40,7 +41,7 @@ impl ContainerReferencePlugin {
   }
 }
 
-#[plugin_hook(AsyncSeries2<Compilation, CompilationParams> for ContainerReferencePlugin)]
+#[plugin_hook(CompilerCompilation for ContainerReferencePlugin)]
 async fn compilation(
   &self,
   compilation: &mut Compilation,
@@ -61,7 +62,7 @@ async fn compilation(
   Ok(())
 }
 
-#[plugin_hook(AsyncSeriesBail<ModuleFactoryCreateData, BoxModule> for ContainerReferencePlugin)]
+#[plugin_hook(NormalModuleFactoryFactorize for ContainerReferencePlugin)]
 async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<BoxModule>> {
   let dependency = data
     .dependency

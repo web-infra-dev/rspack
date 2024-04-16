@@ -3,11 +3,12 @@ use std::{hash::Hash, sync::Arc};
 use rspack_core::{
   get_entry_runtime, property_access,
   rspack_sources::{ConcatSource, RawSource, SourceExt},
-  ApplyContext, ChunkUkey, Compilation, CompilationParams, CompilerOptions, EntryData,
-  LibraryExport, LibraryOptions, LibraryType, Plugin, PluginContext, UsageState,
+  ApplyContext, ChunkUkey, Compilation, CompilationFinishModules, CompilationParams,
+  CompilerCompilation, CompilerOptions, EntryData, LibraryExport, LibraryOptions, LibraryType,
+  Plugin, PluginContext, UsageState,
 };
 use rspack_error::Result;
-use rspack_hook::{plugin, plugin_hook, AsyncSeries, AsyncSeries2};
+use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   JavascriptModulesPluginPlugin, JsChunkHashArgs, JsPlugin, PluginJsChunkHashHookOutput,
   PluginRenderJsStartupHookOutput, RenderJsStartupArgs,
@@ -92,7 +93,7 @@ impl JavascriptModulesPluginPlugin for ExportPropertyLibraryJavascriptModulesPlu
   }
 }
 
-#[plugin_hook(AsyncSeries2<Compilation, CompilationParams> for ExportPropertyLibraryPlugin)]
+#[plugin_hook(CompilerCompilation for ExportPropertyLibraryPlugin)]
 async fn compilation(
   &self,
   compilation: &mut Compilation,
@@ -103,7 +104,7 @@ async fn compilation(
   Ok(())
 }
 
-#[plugin_hook(AsyncSeries<Compilation> for ExportPropertyLibraryPlugin)]
+#[plugin_hook(CompilationFinishModules for ExportPropertyLibraryPlugin)]
 async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
   let mut runtime_info = Vec::with_capacity(compilation.entries.len());
   for (entry_name, entry) in compilation.entries.iter() {

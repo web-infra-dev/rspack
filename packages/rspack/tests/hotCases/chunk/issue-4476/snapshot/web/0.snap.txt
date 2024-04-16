@@ -1,0 +1,13 @@
+# Case issue-4476: Step 0
+
+## Changed Files
+- file.js
+
+## Asset Files
+- Bundle: bundle.js, size: 37846
+- Bundle: file_js.chunk.CURRENT_HASH.js, size: 146
+
+## Manifest
+
+		
+## Update

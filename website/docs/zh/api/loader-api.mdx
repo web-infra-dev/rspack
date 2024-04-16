@@ -206,8 +206,8 @@ module.exports = function (source) {
     return `import ${JSON.stringify(
       this.utils.contextify(
         this.context || this.rootContext,
-        `${this.resource}.css!=!${getStylesLoader}!${this.remainingRequest}`
-      )
+        `${this.resource}.css!=!${getStylesLoader}!${this.remainingRequest}`,
+      ),
     )};${source}`;
   }
   return source;

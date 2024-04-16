@@ -58,7 +58,8 @@ jobs:
 
       - name: Test new runner
         run: |
-          OUTPUT=$(pnpm run test:ng --no-colors --silent=true 2>&1)
+          set -e;
+          OUTPUT=$((pnpm run test:ng --no-colors --silent=true 2>&1 || true) | tail --bytes=50000)
           echo 'RESULT<<EOF' >> $GITHUB_ENV
           echo  "$OUTPUT"  >> $GITHUB_ENV
           echo 'EOF' >> $GITHUB_ENV

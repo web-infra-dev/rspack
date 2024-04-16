@@ -3,12 +3,13 @@ use std::{borrow::Cow, hash::Hash, sync::Arc};
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceExt},
   ApplyContext, Chunk, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
-  CompilationParams, CompilerOptions, ExternalModule, ExternalRequest, FilenameTemplate,
-  LibraryAuxiliaryComment, LibraryCustomUmdObject, LibraryName, LibraryNonUmdObject,
-  LibraryOptions, LibraryType, PathData, Plugin, PluginContext, RuntimeGlobals, SourceType,
+  CompilationParams, CompilerCompilation, CompilerOptions, ExternalModule, ExternalRequest,
+  FilenameTemplate, LibraryAuxiliaryComment, LibraryCustomUmdObject, LibraryName,
+  LibraryNonUmdObject, LibraryOptions, LibraryType, PathData, Plugin, PluginContext,
+  RuntimeGlobals, SourceType,
 };
 use rspack_error::{error, Result};
-use rspack_hook::{plugin, plugin_hook, AsyncSeries2};
+use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   JavascriptModulesPluginPlugin, JsChunkHashArgs, JsPlugin, PluginJsChunkHashHookOutput,
   PluginRenderJsHookOutput, RenderJsArgs,
@@ -250,7 +251,7 @@ impl JavascriptModulesPluginPlugin for UmdLibraryJavascriptModulesPluginPlugin {
   }
 }
 
-#[plugin_hook(AsyncSeries2<Compilation, CompilationParams> for UmdLibraryPlugin)]
+#[plugin_hook(CompilerCompilation for UmdLibraryPlugin)]
 async fn compilation(
   &self,
   compilation: &mut Compilation,

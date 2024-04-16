@@ -1,19 +1,18 @@
 use std::{borrow::Cow, cmp::max, hash::Hash, sync::Arc};
 
-use dashmap::DashMap;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceMap, SourceMapSource, WithoutOriginalOptions},
   ApplyContext, AssetInfo, Chunk, ChunkGroupUkey, ChunkKind, ChunkUkey, Compilation,
   CompilationContentHash, CompilationParams, CompilationRenderManifest,
-  CompilationRuntimeRequirementInTree, CompilerOptions, Filename, Module, ModuleGraph,
-  ModuleIdentifier, ModuleType, PathData, Plugin, PluginContext, RenderManifestEntry,
+  CompilationRuntimeRequirementInTree, CompilerCompilation, CompilerOptions, Filename, Module,
+  ModuleGraph, ModuleIdentifier, ModuleType, PathData, Plugin, PluginContext, RenderManifestEntry,
   RuntimeGlobals, SourceType,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hash::RspackHash;
-use rspack_hook::{plugin, plugin_hook, AsyncSeries2};
+use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_runtime::GetChunkFilenameRuntimeModule;
 use rustc_hash::{FxHashMap, FxHashSet};
 use ustr::Ustr;
@@ -60,13 +59,20 @@ struct CssOrderConflicts {
 #[derive(Debug)]
 pub struct PluginCssExtract {
   pub options: Arc<CssExtractOptions>,
-  sorted_module_cache: DashMap<ChunkUkey, Vec<ModuleIdentifier>>,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+impl Eq for PluginCssExtractInner {}
+
+impl PartialEq for PluginCssExtractInner {
+  fn eq(&self, other: &Self) -> bool {
+    Arc::ptr_eq(&self.options, &other.options)
+  }
+}
+
+#[derive(Debug)]
 pub struct CssExtractOptions {
-  pub filename: String,
-  pub chunk_filename: String,
+  pub filename: Filename,
+  pub chunk_filename: Filename,
   pub ignore_order: bool,
   pub insert: InsertType,
   pub attributes: FxHashMap<String, String>,
@@ -75,7 +81,30 @@ pub struct CssExtractOptions {
   pub pathinfo: bool,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+// impl PartialEq for CssExtractOptions {
+//   fn eq(&self, other: &Self) -> bool {
+//     let equal = self.ignore_order == other.ignore_order
+//       && self.insert == other.insert
+//       && self.attributes == other.attributes
+//       && self.link_type == other.link_type
+//       && self.runtime == other.runtime
+//       && self.pathinfo == other.pathinfo;
+
+//     if !equal {
+//       return false;
+//     }
+
+//     // TODO: function eq
+//     match (self.filename.template(), self.chunk_filename.template()) {
+//       (None, None) => return true,
+//       (None, Some(_)) => return false,
+//       (Some(_), None) => return false,
+//       (Some(a), Some(b)) => a == b,
+//     }
+//   }
+// }
+
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum InsertType {
   Fn(String),
   Selector(String),
@@ -84,7 +113,7 @@ pub enum InsertType {
 
 impl PluginCssExtract {
   pub fn new(options: CssExtractOptions) -> Self {
-    Self::new_inner(Arc::new(options), Default::default())
+    Self::new_inner(Arc::new(options))
   }
 
   // port from https://github.com/webpack-contrib/mini-css-extract-plugin/blob/d5e540baf8280442e523530ebbbe31c57a4c4336/src/index.js#L1127
@@ -95,21 +124,6 @@ impl PluginCssExtract {
     compilation: &'comp Compilation,
     module_graph: &'comp ModuleGraph<'comp>,
   ) -> (Vec<&'comp dyn Module>, Option<Vec<CssOrderConflicts>>) {
-    if let Some(used_modules) = self.sorted_module_cache.get(&chunk.ukey) {
-      return (
-        used_modules
-          .iter()
-          .map(|id| {
-            module_graph
-              .module_by_identifier(id)
-              .expect("should have module")
-              .as_ref()
-          })
-          .collect(),
-        None,
-      );
-    }
-
     let mut module_deps_reasons: FxHashMap<
       ModuleIdentifier,
       FxHashMap<ModuleIdentifier, FxHashSet<ChunkGroupUkey>>,
@@ -284,10 +298,6 @@ impl PluginCssExtract {
       }
     }
 
-    self
-      .sorted_module_cache
-      .insert(chunk.ukey, result.iter().map(|m| m.identifier()).collect());
-
     (result, conflicts)
   }
 
@@ -412,7 +422,7 @@ impl PluginCssExtract {
   }
 }
 
-#[plugin_hook(AsyncSeries2<Compilation, CompilationParams> for PluginCssExtract)]
+#[plugin_hook(CompilerCompilation for PluginCssExtract)]
 async fn compilation(
   &self,
   compilation: &mut Compilation,
@@ -468,9 +478,12 @@ fn runtime_requirements_in_tree(
   let with_hmr = runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
 
   if with_loading || with_hmr {
-    if self.options.chunk_filename.contains("hash") {
+    if let Some(chunk_filename) = self.options.chunk_filename.template()
+      && chunk_filename.contains("hash")
+    {
       runtime_requirements_mut.insert(RuntimeGlobals::GET_FULL_HASH);
     }
+
     runtime_requirements_mut.insert(RuntimeGlobals::PUBLIC_PATH);
 
     let filename = self.options.filename.clone();
@@ -487,9 +500,9 @@ fn runtime_requirements_in_tree(
         move |chunk, compilation| {
           chunk.content_hash.contains_key(&SOURCE_TYPE[0]).then(|| {
             if chunk.can_be_initial(&compilation.chunk_group_by_ukey) {
-              Filename::from(filename.clone())
+              filename.clone()
             } else {
-              Filename::from(chunk_filename.clone())
+              chunk_filename.clone()
             }
           })
         },
@@ -500,7 +513,9 @@ fn runtime_requirements_in_tree(
       chunk_ukey,
       Box::new(CssLoadingRuntimeModule::new(
         *chunk_ukey,
-        self.options.clone(),
+        self.options.attributes.clone(),
+        self.options.link_type.clone(),
+        self.options.insert.clone(),
         with_loading,
         with_hmr,
       )),
@@ -579,16 +594,16 @@ async fn render_manifest(
   }
 
   let filename_template = if chunk.can_be_initial(&compilation.chunk_group_by_ukey) {
-    Filename::from(self.options.filename.clone())
+    &self.options.filename
   } else {
-    Filename::from(self.options.chunk_filename.clone())
+    &self.options.chunk_filename
   };
 
   let (render_result, conflicts) = self
     .render_content_asset(
       chunk,
       rendered_modules,
-      &filename_template,
+      filename_template,
       compilation,
       PathData::default().chunk(chunk).content_hash_optional(
         chunk

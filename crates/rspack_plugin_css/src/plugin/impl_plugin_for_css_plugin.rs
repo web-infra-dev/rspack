@@ -14,11 +14,12 @@ use rspack_core::{
 use rspack_core::{
   ChunkLoading, ChunkLoadingType, ChunkUkey, Compilation, CompilationContentHash,
   CompilationParams, CompilationRenderManifest, CompilationRuntimeRequirementInTree,
-  CompilerOptions, DependencyType, LibIdentOptions, PublicPath, RuntimeGlobals,
+  CompilerCompilation, CompilerOptions, DependencyType, LibIdentOptions, PublicPath,
+  RuntimeGlobals,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hash::RspackHash;
-use rspack_hook::{plugin_hook, AsyncSeries2};
+use rspack_hook::plugin_hook;
 use rspack_plugin_runtime::is_enabled_for_chunk;
 use rustc_hash::FxHashMap;
 
@@ -114,7 +115,7 @@ impl CssPlugin {
   }
 }
 
-#[plugin_hook(AsyncSeries2<Compilation, CompilationParams> for CssPlugin)]
+#[plugin_hook(CompilerCompilation for CssPlugin)]
 async fn compilation(
   &self,
   compilation: &mut Compilation,

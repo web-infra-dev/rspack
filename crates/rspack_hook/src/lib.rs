@@ -1,24 +1,27 @@
-#![feature(slice_group_by)]
+use async_trait::async_trait;
+use rspack_error::Result;
+use rustc_hash::FxHashSet;
 
-mod async_parallel;
-mod async_series;
-mod async_series_bail;
-mod interceptor;
-mod sync_series;
+#[async_trait]
+pub trait Interceptor<H: Hook> {
+  async fn call(&self, _hook: &H) -> Result<Vec<<H as Hook>::Tap>> {
+    unreachable!("Interceptor::call should only used in async hook")
+  }
 
-pub use async_parallel::{AsyncParallel, AsyncParallel3, AsyncParallel3Hook, AsyncParallelHook};
-pub use async_series::{
-  AsyncSeries, AsyncSeries2, AsyncSeries2Hook, AsyncSeries3, AsyncSeries3Hook, AsyncSeriesHook,
-};
-pub use async_series_bail::{
-  AsyncSeriesBail, AsyncSeriesBail2, AsyncSeriesBail2Hook, AsyncSeriesBail3, AsyncSeriesBail3Hook,
-  AsyncSeriesBail4, AsyncSeriesBail4Hook, AsyncSeriesBailHook,
-};
-pub use interceptor::{Hook, Interceptor};
-pub use rspack_macros::{define_hook, plugin, plugin_hook};
-pub use sync_series::{
-  SyncSeries, SyncSeries3, SyncSeries3Hook, SyncSeries4, SyncSeries4Hook, SyncSeriesHook,
-};
+  fn call_blocking(&self, _hook: &H) -> Result<Vec<<H as Hook>::Tap>> {
+    unreachable!("Interceptor::call_blocking should only used in sync hook")
+  }
+}
+
+pub trait Hook {
+  type Tap;
+
+  fn used_stages(&self) -> FxHashSet<i32>;
+
+  fn intercept(&mut self, interceptor: impl Interceptor<Self> + Send + Sync + 'static)
+  where
+    Self: Sized;
+}
 
 // pub trait Plugin<HookContainer> {
 //   fn apply(&self, hook_container: &mut HookContainer);
@@ -31,3 +34,5 @@ pub mod __macro_helper {
   pub use rspack_error::Result;
   pub use rustc_hash::FxHashSet;
 }
+
+pub use rspack_macros::{define_hook, plugin, plugin_hook};

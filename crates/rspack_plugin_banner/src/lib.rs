@@ -8,10 +8,11 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
   rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
-  to_comment, Chunk, Compilation, FilenameTemplate, Logger, PathData, Plugin,
+  to_comment, Chunk, Compilation, CompilationProcessAssets, FilenameTemplate, Logger, PathData,
+  Plugin,
 };
 use rspack_error::Result;
-use rspack_hook::{plugin, plugin_hook, AsyncSeries};
+use rspack_hook::{plugin, plugin_hook};
 use rspack_regex::RspackRegex;
 use rspack_util::{infallible::ResultInfallibleExt as _, try_any_sync};
 
@@ -174,7 +175,7 @@ impl BannerPlugin {
   }
 }
 
-#[plugin_hook(AsyncSeries<Compilation> for BannerPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONS)]
+#[plugin_hook(CompilationProcessAssets for BannerPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONS)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let logger = compilation.get_logger("rspack.BannerPlugin");
   let start = logger.time("add banner");

@@ -96,20 +96,23 @@ pub fn impl_runtime_module(
         None
       }
 
+      fn factory_meta(&self) -> Option<&::rspack_core::FactoryMeta> {
+        None
+      }
+
+      fn set_factory_meta(&mut self, v: ::rspack_core::FactoryMeta) {}
+
       fn build_info(&self) -> Option<&::rspack_core::BuildInfo> {
         None
       }
+
+      fn set_build_info(&mut self, v: ::rspack_core::BuildInfo) {}
 
       fn build_meta(&self) -> Option<&::rspack_core::BuildMeta> {
         None
       }
 
-      fn set_module_build_info_and_meta(
-        &mut self,
-        build_info: ::rspack_core::BuildInfo,
-        build_meta: ::rspack_core::BuildMeta,
-      ) {
-      }
+      fn set_build_meta(&mut self, v: ::rspack_core::BuildMeta) {}
 
       fn get_diagnostics(&self) -> Vec<::rspack_error::Diagnostic> {
         vec![]

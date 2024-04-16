@@ -125,3 +125,4 @@ modulegeneratorassetdataurlmimetype
 modulegeneratorcssautoexportsconvention
 modulegeneratorcssautoexportsonly
 modulegeneratorcssautolocalidentname
+cssextractrspackplugin

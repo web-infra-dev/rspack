@@ -7,17 +7,16 @@ hero:
   name: Rspack
   text: A fast Rust-based web bundler
   tagline: Build a high-performance frontend toolchain
-  # TODO logo
   image:
-    src: /logo.png
+    src: https://assets.rspack.dev/rspack/rspack-logo.svg
     alt: logo
   actions:
     - theme: brand
-      text: Introduction
-      link: /guide/introduction
-    - theme: alt
-      text: Quick Start
+      text: Get Started
       link: /guide/quick-start
+    - theme: alt
+      text: Learn More
+      link: /guide/introduction
 
 features:
   - title: Fast Startup
