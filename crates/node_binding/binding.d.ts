@@ -580,6 +580,7 @@ export interface RawAssetGeneratorDataUrlOptions {
 }
 
 export interface RawAssetGeneratorOptions {
+  emit?: boolean
   filename?: string
   publicPath?: string
   dataUrl?: RawAssetGeneratorDataUrlOptions | ((arg: RawAssetGeneratorDataUrlFnArgs) => string)
@@ -603,6 +604,7 @@ export interface RawAssetParserOptions {
 }
 
 export interface RawAssetResourceGeneratorOptions {
+  emit?: boolean
   filename?: string
   publicPath?: string
 }

@@ -3363,6 +3363,7 @@ export const rspackOptions: z.ZodObject<{
                     filename: string;
                     content: string;
                 }>], z.ZodUnknown>, z.ZodString>]>>;
+                emit: z.ZodOptional<z.ZodBoolean>;
                 filename: z.ZodOptional<z.ZodString>;
                 publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodString]>>;
             }, "strict", z.ZodTypeAny, {
@@ -3373,6 +3374,7 @@ export const rspackOptions: z.ZodObject<{
                     filename: string;
                     content: string;
                 }, ...args_1: unknown[]) => string) | undefined;
+                emit?: boolean | undefined;
                 filename?: string | undefined;
                 publicPath?: string | undefined;
             }, {
@@ -3383,6 +3385,7 @@ export const rspackOptions: z.ZodObject<{
                     filename: string;
                     content: string;
                 }, ...args_1: unknown[]) => string) | undefined;
+                emit?: boolean | undefined;
                 filename?: string | undefined;
                 publicPath?: string | undefined;
             }>>;
@@ -3424,12 +3427,15 @@ export const rspackOptions: z.ZodObject<{
                 }, ...args_1: unknown[]) => string) | undefined;
             }>>;
             "asset/resource": z.ZodOptional<z.ZodObject<{
+                emit: z.ZodOptional<z.ZodBoolean>;
                 filename: z.ZodOptional<z.ZodString>;
                 publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodString]>>;
             }, "strict", z.ZodTypeAny, {
+                emit?: boolean | undefined;
                 filename?: string | undefined;
                 publicPath?: string | undefined;
             }, {
+                emit?: boolean | undefined;
                 filename?: string | undefined;
                 publicPath?: string | undefined;
             }>>;
@@ -3478,6 +3484,7 @@ export const rspackOptions: z.ZodObject<{
                     filename: string;
                     content: string;
                 }, ...args_1: unknown[]) => string) | undefined;
+                emit?: boolean | undefined;
                 filename?: string | undefined;
                 publicPath?: string | undefined;
             } | undefined;
@@ -3491,6 +3498,7 @@ export const rspackOptions: z.ZodObject<{
                 }, ...args_1: unknown[]) => string) | undefined;
             } | undefined;
             "asset/resource"?: {
+                emit?: boolean | undefined;
                 filename?: string | undefined;
                 publicPath?: string | undefined;
             } | undefined;
@@ -3517,6 +3525,7 @@ export const rspackOptions: z.ZodObject<{
                     filename: string;
                     content: string;
                 }, ...args_1: unknown[]) => string) | undefined;
+                emit?: boolean | undefined;
                 filename?: string | undefined;
                 publicPath?: string | undefined;
             } | undefined;
@@ -3530,6 +3539,7 @@ export const rspackOptions: z.ZodObject<{
                 }, ...args_1: unknown[]) => string) | undefined;
             } | undefined;
             "asset/resource"?: {
+                emit?: boolean | undefined;
                 filename?: string | undefined;
                 publicPath?: string | undefined;
             } | undefined;
@@ -3583,6 +3593,7 @@ export const rspackOptions: z.ZodObject<{
                     filename: string;
                     content: string;
                 }, ...args_1: unknown[]) => string) | undefined;
+                emit?: boolean | undefined;
                 filename?: string | undefined;
                 publicPath?: string | undefined;
             } | undefined;
@@ -3596,6 +3607,7 @@ export const rspackOptions: z.ZodObject<{
                 }, ...args_1: unknown[]) => string) | undefined;
             } | undefined;
             "asset/resource"?: {
+                emit?: boolean | undefined;
                 filename?: string | undefined;
                 publicPath?: string | undefined;
             } | undefined;
@@ -3649,6 +3661,7 @@ export const rspackOptions: z.ZodObject<{
                     filename: string;
                     content: string;
                 }, ...args_1: unknown[]) => string) | undefined;
+                emit?: boolean | undefined;
                 filename?: string | undefined;
                 publicPath?: string | undefined;
             } | undefined;
@@ -3662,6 +3675,7 @@ export const rspackOptions: z.ZodObject<{
                 }, ...args_1: unknown[]) => string) | undefined;
             } | undefined;
             "asset/resource"?: {
+                emit?: boolean | undefined;
                 filename?: string | undefined;
                 publicPath?: string | undefined;
             } | undefined;
@@ -4034,6 +4048,7 @@ export const rspackOptions: z.ZodObject<{
                     filename: string;
                     content: string;
                 }, ...args_1: unknown[]) => string) | undefined;
+                emit?: boolean | undefined;
                 filename?: string | undefined;
                 publicPath?: string | undefined;
             } | undefined;
@@ -4047,6 +4062,7 @@ export const rspackOptions: z.ZodObject<{
                 }, ...args_1: unknown[]) => string) | undefined;
             } | undefined;
             "asset/resource"?: {
+                emit?: boolean | undefined;
                 filename?: string | undefined;
                 publicPath?: string | undefined;
             } | undefined;
@@ -4419,6 +4435,7 @@ export const rspackOptions: z.ZodObject<{
                     filename: string;
                     content: string;
                 }, ...args_1: unknown[]) => string) | undefined;
+                emit?: boolean | undefined;
                 filename?: string | undefined;
                 publicPath?: string | undefined;
             } | undefined;
@@ -4432,6 +4449,7 @@ export const rspackOptions: z.ZodObject<{
                 }, ...args_1: unknown[]) => string) | undefined;
             } | undefined;
             "asset/resource"?: {
+                emit?: boolean | undefined;
                 filename?: string | undefined;
                 publicPath?: string | undefined;
             } | undefined;
@@ -4994,7 +5012,7 @@ export type WorkerPublicPath = z.infer<typeof workerPublicPath>;
 // dist/builtin-plugin/SwcJsMinimizerPlugin.d.ts:43:5 - (ae-forgotten-export) The symbol "ToSnakeCaseProperties" needs to be exported by the entry point index.d.ts
 // dist/builtin-plugin/SwcJsMinimizerPlugin.d.ts:45:5 - (ae-forgotten-export) The symbol "MinifyConditions" needs to be exported by the entry point index.d.ts
 // dist/config/adapterRuleUse.d.ts:145:5 - (ae-forgotten-export) The symbol "PitchLoaderDefinitionFunction" needs to be exported by the entry point index.d.ts
-// dist/config/zod.d.ts:5264:5 - (ae-forgotten-export) The symbol "oldBuiltins" needs to be exported by the entry point index.d.ts
+// dist/config/zod.d.ts:5304:5 - (ae-forgotten-export) The symbol "oldBuiltins" needs to be exported by the entry point index.d.ts
 // dist/exports.d.ts:103:5 - (ae-forgotten-export) The symbol "ContainerPlugin" needs to be exported by the entry point index.d.ts
 // dist/exports.d.ts:104:5 - (ae-forgotten-export) The symbol "ContainerReferencePlugin" needs to be exported by the entry point index.d.ts
 // dist/exports.d.ts:105:5 - (ae-forgotten-export) The symbol "ModuleFederationPlugin" needs to be exported by the entry point index.d.ts
