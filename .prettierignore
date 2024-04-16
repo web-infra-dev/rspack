@@ -9,6 +9,7 @@ packages/rspack/src/config/schema.check.js
 
 # Ignore test related
 
+packages/**/etc/**/*
 packages/rspack/tests/fixtures/**/*
 packages/rspack/tests/statsCases/**/*
 packages/rspack/tests/cases/**/*

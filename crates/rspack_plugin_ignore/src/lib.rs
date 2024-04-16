@@ -1,5 +1,7 @@
 use std::fmt::Debug;
 
+use derivative::Derivative;
+use futures::future::BoxFuture;
 use rspack_core::{
   ApplyContext, CompilerOptions, ContextModuleFactoryBeforeResolve, ModuleFactoryCreateData,
   NormalModuleFactoryBeforeResolve, Plugin, PluginContext,
@@ -8,10 +10,20 @@ use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_regex::RspackRegex;
 
-#[derive(Debug)]
+pub type CheckResourceFn =
+  Box<dyn for<'a> Fn(&'a str, &'a str) -> BoxFuture<'a, Result<bool>> + Sync + Send>;
+
+pub enum CheckResourceContent {
+  Fn(CheckResourceFn),
+}
+
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub struct IgnorePluginOptions {
-  pub resource_reg_exp: RspackRegex,
+  pub resource_reg_exp: Option<RspackRegex>,
   pub context_reg_exp: Option<RspackRegex>,
+  #[derivative(Debug = "ignore")]
+  pub check_resource: Option<CheckResourceContent>,
 }
 
 #[plugin]
@@ -25,30 +37,46 @@ impl IgnorePlugin {
     Self::new_inner(options)
   }
 
-  fn check_ignore(&self, data: &mut ModuleFactoryCreateData) -> Option<bool> {
-    let resource_reg_exp: &RspackRegex = &self.options.resource_reg_exp;
-
-    if resource_reg_exp.test(data.request()?) {
-      if let Some(context_reg_exp) = &self.options.context_reg_exp {
-        if context_reg_exp.test(&data.context) {
-          return Some(false);
+  async fn check_ignore(&self, data: &mut ModuleFactoryCreateData) -> Option<bool> {
+    if let Some(check_resource) = &self.options.check_resource {
+      if let Some(request) = data.request() {
+        match check_resource {
+          CheckResourceContent::Fn(check) => {
+            if check(request, data.context.as_ref())
+              .await
+              .expect("run IgnorePlugin check resource error")
+            {
+              return Some(false);
+            }
+          }
         }
-      } else {
-        return Some(false);
       }
     }
+
+    if let Some(resource_reg_exp) = &self.options.resource_reg_exp {
+      if resource_reg_exp.test(data.request()?) {
+        if let Some(context_reg_exp) = &self.options.context_reg_exp {
+          if context_reg_exp.test(&data.context) {
+            return Some(false);
+          }
+        } else {
+          return Some(false);
+        }
+      }
+    }
+
     None
   }
 }
 
 #[plugin_hook(NormalModuleFactoryBeforeResolve for IgnorePlugin)]
 async fn nmf_before_resolve(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<bool>> {
-  Ok(self.check_ignore(data))
+  Ok(self.check_ignore(data).await)
 }
 
 #[plugin_hook(ContextModuleFactoryBeforeResolve for IgnorePlugin)]
 async fn cmf_before_resolve(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<bool>> {
-  Ok(self.check_ignore(data))
+  Ok(self.check_ignore(data).await)
 }
 
 impl Plugin for IgnorePlugin {
