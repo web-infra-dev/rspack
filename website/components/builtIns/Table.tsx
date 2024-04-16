@@ -13,7 +13,7 @@ interface TableProps {
   header?: {
     name: string | JSX.Element;
     key: string;
-    style: React.CSSProperties;
+    style?: React.CSSProperties;
   }[];
   tableStyle?: Record<string, string>;
 }
