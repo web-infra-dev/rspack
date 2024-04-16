@@ -31,11 +31,11 @@ new rspack.SourceMapDevToolPlugin(options);
 
 `fileContext` 选项在你希望将 source map 存储在上级目录以避免绝对 `[url]` 中出现 `../../` 时非常有用。
 
-:::tip 提示 
+:::tip 提示
 将 `module` 或 `columns` 设置为 `false` 将生成不太准确的 source map，但同时也能显著提高编译性能。
 :::
 
-:::tip 提示 
+:::tip 提示
 如果你想要在[开发模式](/config/mode#development)中为这个插件使用自定义配置，请确保禁用默认配置。即设置 `devtool: false`。
 :::
 

@@ -10,7 +10,11 @@ import {
 interface TableProps {
   children?: ReactNode[];
   body?: any[];
-  header?: { name: string | JSX.Element; key: string; style: React.CSSProperties }[];
+  header?: {
+    name: string | JSX.Element;
+    key: string;
+    style: React.CSSProperties;
+  }[];
   tableStyle?: Record<string, string>;
 }
 

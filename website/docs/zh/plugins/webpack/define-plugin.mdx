@@ -53,7 +53,7 @@ if (!BROWSER_SUPPORTS_HTML5) require('html5shiv');
 :::
 
 :::tip 提示
-请注意，由于插件直接执行文本替换，因此提供给它的值必须包含字符串内部的实际引号。通常，这是通过使用交替引号，如 `'"production"'`，或使用 `JSON.stringify('production')` 来完成。 
+请注意，由于插件直接执行文本替换，因此提供给它的值必须包含字符串内部的实际引号。通常，这是通过使用交替引号，如 `'"production"'`，或使用 `JSON.stringify('production')` 来完成。
 :::
 
 ```js
@@ -103,4 +103,3 @@ new rspack.DefinePlugin({
   SERVICE_URL: JSON.stringify('https://dev.example.com'),
 });
 ```
-
