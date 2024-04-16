@@ -30,17 +30,13 @@ impl From<RawIgnorePluginOptions> for IgnorePluginOptions {
         .context_reg_exp
         .map(|context_reg_exp| context_reg_exp.to_rspack_regex()),
 
-      check_resource: if let Some(check_resource) = value.check_resource {
-        Some(CheckResourceContent::Fn(Box::new(
-          move |resource, context| {
-            let f = check_resource.clone();
+      check_resource: value.check_resource.map(|check_resource| {
+        CheckResourceContent::Fn(Box::new(move |resource, context| {
+          let f = check_resource.clone();
 
-            Box::pin(async move { f.call((resource.to_owned(), context.to_owned())).await })
-          },
-        )))
-      } else {
-        None
-      },
+          Box::pin(async move { f.call((resource.to_owned(), context.to_owned())).await })
+        }))
+      }),
     }
   }
 }

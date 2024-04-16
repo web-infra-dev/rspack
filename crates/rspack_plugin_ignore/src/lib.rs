@@ -42,7 +42,7 @@ impl IgnorePlugin {
       if let Some(request) = data.request() {
         match check_resource {
           CheckResourceContent::Fn(check) => {
-            if check(request, &data.context.to_string())
+            if check(request, data.context.as_ref())
               .await
               .expect("run IgnorePlugin check resource error")
             {
