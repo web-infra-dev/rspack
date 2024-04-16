@@ -375,6 +375,27 @@ module.exports = {
 };
 ```
 
+#### module.generator.asset.emit
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+Whether to output assets to disk. You can set this option to `false` to avoid outputting unnecessary files for some scenarios such as SSR.
+
+Only for modules with module type `'asset'` or `'asset/resource'`.
+
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    generator: {
+      asset: {
+        emit: false,
+      },
+    },
+  },
+};
+```
+
 ### module.generator["asset/inline"]
 
 Generator options for `asset/inline` modules.

@@ -375,6 +375,27 @@ module.exports = {
 };
 ```
 
+#### module.generator.asset.emit
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+是否将 asset 输出到磁盘。对于 SSR 等场景，你可以将该选项设置为 `false` 来避免输出无用的文件。
+
+仅对模块类型为 `asset` 或 `'asset/resource'` 的模块生效。
+
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    generator: {
+      asset: {
+        emit: false,
+      },
+    },
+  },
+};
+```
+
 ### module.generator["asset/inline"]
 
 `asset/inline` 模块的生成器选项。
