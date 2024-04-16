@@ -100,7 +100,7 @@ impl LocalFilenameFn for LocalJsFilenameFn {
     path_data: &PathData,
     asset_info: Option<&AssetInfo>,
   ) -> Result<String, Self::Error> {
-    let js_path_data = JsPathData::try_from(*path_data)?;
+    let js_path_data = JsPathData::from(*path_data);
     let js_asset_info = asset_info.cloned().map(JsAssetInfo::from);
     self.0.call2(js_path_data, js_asset_info)
   }
