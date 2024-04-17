@@ -5,7 +5,8 @@ import {
 	ITestEnv,
 	ITestRunner,
 	TCompilerOptions,
-	TCompilerStats
+	TCompilerStats,
+	TCompilerStatsCompilation
 } from "../type";
 import { HotRunner } from "./runner/hot";
 import { HotRunnerFactory } from "./hot";
@@ -15,12 +16,12 @@ export class HotStepRunnerFactory<
 > extends HotRunnerFactory<T> {
 	protected createRunner(
 		file: string,
+		stats: TCompilerStatsCompilation<T>,
 		compilerOptions: TCompilerOptions<T>,
 		env: ITestEnv
 	): ITestRunner {
 		const compiler = this.context.getCompiler(this.name);
 		const testConfig = this.context.getTestConfig();
-		const stats = compiler.getStats();
 		const source = this.context.getSource();
 		const dist = this.context.getDist();
 		const hotUpdateContext = this.context.getValue(
@@ -61,7 +62,7 @@ export class HotStepRunnerFactory<
 
 		return new HotRunner({
 			env,
-			stats: stats!,
+			stats,
 			name: this.name,
 			runInNewContext: false,
 			testConfig,

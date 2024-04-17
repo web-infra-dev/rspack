@@ -2,7 +2,8 @@ import {
 	ECompilerType,
 	ITestEnv,
 	ITestRunner,
-	TCompilerOptions
+	TCompilerOptions,
+	TCompilerStatsCompilation
 } from "../type";
 import { BasicRunnerFactory } from "./basic";
 
@@ -18,6 +19,7 @@ export class MultipleRunnerFactory<
 
 	protected createRunner(
 		file: string,
+		stats: TCompilerStatsCompilation<T>,
 		compilerOptions: TCompilerOptions<T>,
 		env: ITestEnv
 	): ITestRunner {
@@ -25,7 +27,12 @@ export class MultipleRunnerFactory<
 			this.context.getValue(this.name, "multiCompilerOptions") || [];
 		const { getIndex, flagIndex } = this.getFileIndexHandler(file);
 		const [index] = getIndex();
-		const runner = super.createRunner(file, multiCompilerOptions[index], env);
+		const runner = super.createRunner(
+			file,
+			stats.children![index],
+			multiCompilerOptions[index],
+			env
+		);
 		flagIndex();
 		return runner;
 	}
