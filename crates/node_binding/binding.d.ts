@@ -33,10 +33,10 @@ export class JsCompilation {
   pushDiagnostic(severity: "error" | "warning", title: string, message: string): void
   pushNativeDiagnostics(diagnostics: ExternalObject<'Diagnostic[]'>): void
   getStats(): JsStats
-  getAssetPath(filename: string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string), data: JsPathData): string
-  getAssetPathWithInfo(filename: string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string), data: JsPathData): PathWithInfo
-  getPath(filename: string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string), data: JsPathData): string
-  getPathWithInfo(filename: string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string), data: JsPathData): PathWithInfo
+  getAssetPath(filename: string | ((pathData: JsPathData, assetInfo?: JsAssetInfo) => string), data: JsPathData): string
+  getAssetPathWithInfo(filename: string | ((pathData: JsPathData, assetInfo?: JsAssetInfo) => string), data: JsPathData): PathWithInfo
+  getPath(filename: string | ((pathData: JsPathData, assetInfo?: JsAssetInfo) => string), data: JsPathData): string
+  getPathWithInfo(filename: string | ((pathData: JsPathData, assetInfo?: JsAssetInfo) => string), data: JsPathData): PathWithInfo
   addFileDependencies(deps: Array<string>): void
   addContextDependencies(deps: Array<string>): void
   addMissingDependencies(deps: Array<string>): void
