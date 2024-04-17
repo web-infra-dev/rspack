@@ -25,7 +25,7 @@ async function build() {
 			"--no-const-enum",
 			"--no-dts-header",
 			"--pipe",
-			`'node ./scripts/dts-header.js'`
+			`"node ./scripts/dts-header.js"`
 		];
 		if (release) {
 			args.push("--release");
