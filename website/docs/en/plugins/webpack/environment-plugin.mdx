@@ -1,0 +1,132 @@
+import { ApiMeta } from '../../../../components/ApiMeta.tsx';
+
+# EnvironmentPlugin
+
+<ApiMeta addedVersion={'0.2.5'} />
+
+The `EnvironmentPlugin` is shorthand for using the [`DefinePlugin`](/plugins/webpack/define-plugin) on [`process.env`](https://nodejs.org/api/process.html#process_process_env) keys.
+
+## Options
+
+- **Type:** `string[] | Record<string, string>`
+
+## Examples
+
+### Basic Use Case
+
+The `EnvironmentPlugin` accepts either an array of keys or an object mapping its keys to their default values.
+
+```js
+new rspack.EnvironmentPlugin(['NODE_ENV', 'DEBUG']);
+```
+
+This is equivalent to the following `DefinePlugin` application:
+
+```js
+new rspack.DefinePlugin({
+  'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
+  'process.env.DEBUG': JSON.stringify(process.env.DEBUG),
+});
+```
+
+:::tip
+Not specifying the environment variable raises an "`EnvironmentPlugin` - `${key}` environment variable is undefined" error.
+:::
+
+### Usage with default values
+
+Alternatively, the `EnvironmentPlugin` supports an object, which maps keys to their default values. The default value for a key is taken if the key is undefined in `process.env`.
+
+```js
+new rspack.EnvironmentPlugin({
+  NODE_ENV: 'development', // use 'development' unless process.env.NODE_ENV is defined
+  DEBUG: false,
+});
+```
+
+:::warning
+Variables coming from `process.env` are always strings.
+:::
+
+:::tip
+Unlike [`DefinePlugin`](/plugins/webpack/define-plugin), default values are applied to `JSON.stringify` by the `EnvironmentPlugin`.
+:::
+
+:::tip
+Default values of `null` and `undefined` behave differently. Use `undefined` for variables that must be provided during bundling, or `null` if they are optional.
+:::
+
+:::warning
+If an environment variable is not found during bundling and no default value was provided, Rspack will throw an error instead of a warning.
+:::
+
+Let's investigate the result when running the previous `EnvironmentPlugin` configuration on a test file `entry.js`:
+
+```js
+if (process.env.NODE_ENV === 'production') {
+  console.log('Welcome to production');
+}
+if (process.env.DEBUG) {
+  console.log('Debugging output');
+}
+```
+
+When executing `NODE_ENV=production` Rspack in the terminal to build, `entry.js` becomes this:
+
+```js
+if ('production' === 'production') {
+  // <-- 'production' from NODE_ENV is taken
+  console.log('Welcome to production');
+}
+if (false) {
+  // <-- default value is taken
+  console.log('Debugging output');
+}
+```
+
+Running `DEBUG=false` Rspack yields:
+
+```js
+if ('development' === 'production') {
+  // <-- default value is taken
+  console.log('Welcome to production');
+}
+if ('false') {
+  // <-- 'false' from DEBUG is taken
+  console.log('Debugging output');
+}
+```
+
+### Git Version
+
+The following `EnvironmentPlugin` configuration provides `process.env.GIT_VERSION` (such as "v5.4.0-2-g25139f57f") and `process.env.GIT_AUTHOR_DATE` (such as "2020-11-04T12:25:16+01:00") corresponding to the last Git commit of the repository:
+
+```js
+const child_process = require('child_process');
+function git(command) {
+  return child_process.execSync(`git ${command}`, { encoding: 'utf8' }).trim();
+}
+
+new rspack.EnvironmentPlugin({
+  GIT_VERSION: git('describe --always'),
+  GIT_AUTHOR_DATE: git('log -1 --format=%aI'),
+});
+```
+
+### DotenvPlugin
+
+The third-party [`DotenvPlugin`](https://github.com/mrsteele/dotenv-webpack) (`dotenv-webpack`) allows you to expose (a subset of) [dotenv variables](https://www.npmjs.com/package/dotenv):
+
+```js
+// .env
+DB_HOST=127.0.0.1
+DB_PASS=foobar
+S3_API=mysecretkey
+```
+
+```js
+new Dotenv({
+  path: './.env', // Path to .env file (this is the default)
+  safe: true, // load .env.example (defaults to "false" which does not use dotenv-safe)
+});
+```
