@@ -4,7 +4,8 @@ module.exports = {
 		generator: {
 			'css/auto': {
 				exportsConvention: 'camel-case-only',
-				localIdentName: '[local]'
+				localIdentName: '[local]',
+				exportsOnly: false
 			}
 		}
 	},

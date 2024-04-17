@@ -20,7 +20,7 @@ use crate::JsStatsOptimizationBailout;
 use crate::LocalJsFilename;
 use crate::{
   chunk::JsChunk, module::JsModule, CompatSource, JsAsset, JsAssetInfo, JsChunkGroup,
-  JsCompatSource, JsStats, PathData, ToJsCompatSource,
+  JsCompatSource, JsPathData, JsStats, ToJsCompatSource,
 };
 
 #[napi(object_from_js = false)]
@@ -335,7 +335,7 @@ impl JsCompilation {
     &self,
     #[napi(ts_arg_type = "string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string)")]
     filename: LocalJsFilename,
-    data: PathData,
+    data: JsPathData,
   ) -> napi::Result<String> {
     self
       .0
@@ -347,7 +347,7 @@ impl JsCompilation {
     &self,
     #[napi(ts_arg_type = "string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string)")]
     filename: LocalJsFilename,
-    data: PathData,
+    data: JsPathData,
   ) -> napi::Result<PathWithInfo> {
     let path_and_asset_info = self
       .0
@@ -360,7 +360,7 @@ impl JsCompilation {
     &self,
     #[napi(ts_arg_type = "string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string)")]
     filename: LocalJsFilename,
-    data: PathData,
+    data: JsPathData,
   ) -> napi::Result<String> {
     self.0.get_path(&filename.into(), data.as_core_path_data())
   }
@@ -370,7 +370,7 @@ impl JsCompilation {
     &self,
     #[napi(ts_arg_type = "string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string)")]
     filename: LocalJsFilename,
-    data: PathData,
+    data: JsPathData,
   ) -> napi::Result<PathWithInfo> {
     let path_and_asset_info = self
       .0

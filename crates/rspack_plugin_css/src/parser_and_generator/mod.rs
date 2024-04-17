@@ -127,7 +127,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
 
     let mut exports_pairs = vec![];
     let mut presentational_dependencies = None;
-    if is_enable_css_modules {
+    let mut exports = if is_enable_css_modules {
       let mut stylesheet = swc_compiler.parse_file(
         &resource_path.to_string_lossy(),
         source_code.clone(),
@@ -137,11 +137,6 @@ impl ParserAndGenerator for CssParserAndGenerator {
           ..Default::default()
         },
       )?;
-
-      let mut exports_analyzer = ExportsAnalyzer::new(&source_code);
-      stylesheet.visit_with(&mut exports_analyzer);
-
-      presentational_dependencies = Some(exports_analyzer.presentation_deps);
 
       let result = swc_core::css::modules::compile(
         &mut stylesheet,
@@ -154,7 +149,33 @@ impl ParserAndGenerator for CssParserAndGenerator {
           compiler_options,
         ),
       );
-      let mut exports: IndexMap<Atom, _> = result.renamed.into_iter().collect();
+      let exports: IndexMap<Atom, _> = result.renamed.into_iter().collect();
+
+      let (code, map) = swc_compiler.codegen(
+        &stylesheet,
+        SwcCssSourceMapGenConfig {
+          enable: !matches!(module_source_map_kind, SourceMapKind::None),
+          inline_sources_content: false,
+          emit_columns: matches!(module_source_map_kind, SourceMapKind::SourceMap),
+        },
+      )?;
+      source_code = code;
+      source_map = map;
+      Some(exports)
+    } else {
+      None
+    };
+
+    let new_stylesheet_ast = SwcCssCompiler::default().parse_file(
+      &parse_context.resource_data.resource_path.to_string_lossy(),
+      source_code.clone(),
+      Default::default(),
+    )?;
+
+    if let Some(exports) = &mut exports {
+      let mut exports_analyzer = ExportsAnalyzer::new(&source_code);
+      new_stylesheet_ast.visit_with(&mut exports_analyzer);
+      presentational_dependencies = Some(exports_analyzer.presentation_deps);
 
       for (key, value) in exports_analyzer.exports {
         exports.insert(key, vec![value]);
@@ -180,24 +201,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
       }
 
       self.exports = Some(normalized_exports);
-
-      let (code, map) = swc_compiler.codegen(
-        &stylesheet,
-        SwcCssSourceMapGenConfig {
-          enable: !matches!(module_source_map_kind, SourceMapKind::None),
-          inline_sources_content: false,
-          emit_columns: matches!(module_source_map_kind, SourceMapKind::SourceMap),
-        },
-      )?;
-      source_code = code;
-      source_map = map;
     }
-
-    let new_stylesheet_ast = SwcCssCompiler::default().parse_file(
-      &parse_context.resource_data.resource_path.to_string_lossy(),
-      source_code.clone(),
-      Default::default(),
-    )?;
 
     let mut dependencies = analyze_dependencies(
       &new_stylesheet_ast,

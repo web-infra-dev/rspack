@@ -1,3 +1,5 @@
+import { PackageManagerTabs } from '@theme';
+
 # 语言支持
 
 ## TypeScript
@@ -200,33 +202,7 @@ module.exports = {
 
 在你的项目中安装 [tailwindcss](https://tailwindcss.com/)、[autoprefixer](https://github.com/postcss/autoprefixer)、[postcss](https://postcss.org/) 和 [postcss-loader](https://www.npmjs.com/package/postcss-loader) 这些依赖：
 
-import { Tabs, Tab } from '@theme';
-
-<Tabs values={[{ label: 'npm' }, { label: 'yarn' }, { label: 'pnpm' }]}>
-  <Tab>
-
-```sh
-npm install -D tailwindcss autoprefixer postcss postcss-loader
-```
-
-  </Tab>
-
-  <Tab>
-
-```sh
-yarn add -D tailwindcss autoprefixer postcss postcss-loader
-```
-
-  </Tab>
-
-  <Tab>
-
-```sh
-pnpm install -D tailwindcss autoprefixer postcss postcss-loader
-```
-
-  </Tab>
-</Tabs>
+<PackageManagerTabs command="add tailwindcss autoprefixer postcss postcss-loader -D" />
 
 #### 配置 Tailwind CSS
 

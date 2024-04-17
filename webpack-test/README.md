@@ -32,17 +32,17 @@ But don't give up hope!!! Although our tests may appear complex and overwhelming
 ## tl;dr
 Run all tests (this automatically runs the setup):
 ```sh
-yarn test
+pnpm test
 ```
 
 Run an individual suite:
 ```sh
-yarn jest ConfigTestCases
+pnpm jest ConfigTestCases
 ```
 
 Watch mode:
 ```sh
-yarn jest --watch ConfigTestCases
+pnpm jest --watch ConfigTestCases
 ```
 
 See also: [Jest CLI docs](https://jestjs.io/docs/cli)

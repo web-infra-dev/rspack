@@ -39,7 +39,7 @@ import {
 	OutputNormalized,
 	RspackOptionsNormalized
 } from "./normalization";
-import Template from "../Template";
+import Template = require("../Template");
 import { assertNotNill } from "../util/assertNotNil";
 import { ASSET_MODULE_TYPE } from "../ModuleTypeConstants";
 import { SwcJsMinimizerRspackPlugin } from "../builtin-plugin/SwcJsMinimizerPlugin";

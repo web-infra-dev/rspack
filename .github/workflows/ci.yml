@@ -183,7 +183,17 @@ jobs:
         if: steps.changes.outputs.src == 'true'
         run: pnpm run format-ci:js
 
-      - name: Lint website
+  lint-website:
+    name: Lint and format website
+    runs-on: ubuntu-latest
+    needs: [check-changed]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Pnpm Cache
+        uses: ./.github/actions/pnpm-cache
+
+      - name: Run
         run: |
           cd website
           pnpm install
