@@ -1,0 +1,34 @@
+
+.wrapper {
+  margin-top: 1.5rem;
+}
+
+:global(h2) + .wrapper {
+  margin-top: 0px;
+}
+
+.tag {
+  display: inline-flex;
+  color: #1c1c1c;
+  margin: 0 8px 12px 0;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 6px;
+}
+
+.added {
+  background-color: hsl(162deg 60% 75%);
+}
+
+.deprecated {
+  background-color: hsl(36deg 100% 82%);
+}
+
+.removed {
+  background-color: hsl(0deg 100% 90%);
+}
+
+.experimental {
+  background-color: hsl(262deg 100% 90%);
+}
