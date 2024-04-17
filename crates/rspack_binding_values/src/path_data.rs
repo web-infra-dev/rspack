@@ -1,11 +1,12 @@
 use std::collections::HashMap;
 
+use napi::Either;
 use napi_derive::napi;
 
 use super::JsAssetInfo;
 
 #[napi(object)]
-pub struct PathData {
+pub struct JsPathData {
   pub filename: Option<String>,
   pub hash: Option<String>,
   pub content_hash: Option<String>,
@@ -15,10 +16,9 @@ pub struct PathData {
   pub chunk: Option<JsChunkPathData>,
 }
 
-impl TryFrom<rspack_core::PathData<'_>> for PathData {
-  type Error = napi::Error;
-  fn try_from(path_data: rspack_core::PathData<'_>) -> Result<Self, Self::Error> {
-    Ok(Self {
+impl From<rspack_core::PathData<'_>> for JsPathData {
+  fn from(path_data: rspack_core::PathData<'_>) -> Self {
+    Self {
       filename: path_data.filename.map(|s| s.to_string()),
       hash: path_data.hash.map(|s| s.to_string()),
       content_hash: path_data.content_hash.map(|s| s.to_string()),
@@ -26,7 +26,7 @@ impl TryFrom<rspack_core::PathData<'_>> for PathData {
       url: path_data.url.map(|s| s.to_string()),
       id: path_data.id.map(|s| s.to_string()),
       chunk: path_data.chunk.map(JsChunkPathData::from),
-    })
+    }
   }
 }
 
@@ -35,7 +35,7 @@ pub struct JsChunkPathData {
   pub id: Option<String>,
   pub name: Option<String>,
   pub hash: Option<String>,
-  pub content_hash: Option<HashMap<String, String>>,
+  pub content_hash: Option<Either<String, HashMap<String, String>>>,
 }
 
 impl<'a> From<&'a rspack_core::Chunk> for JsChunkPathData {
@@ -44,18 +44,18 @@ impl<'a> From<&'a rspack_core::Chunk> for JsChunkPathData {
       id: chunk.id.clone(),
       name: chunk.name.clone(),
       hash: chunk.hash.as_ref().map(|d| d.encoded().to_string()),
-      content_hash: Some(
+      content_hash: Some(Either::B(
         chunk
           .content_hash
           .iter()
           .map(|(key, v)| (key.to_string(), v.encoded().to_string()))
           .collect(),
-      ),
+      )),
     }
   }
 }
 
-impl PathData {
+impl JsPathData {
   pub fn as_core_path_data(&self) -> rspack_core::PathData {
     rspack_core::PathData {
       filename: self.filename.as_deref(),

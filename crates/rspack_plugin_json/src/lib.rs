@@ -312,7 +312,7 @@ fn create_object_for_exports_info(
       let used_length = if let Some(array_length_when_used) = array_length_when_used {
         array_length_when_used
       } else {
-        max_used_index + 1
+        (max_used_index + 1).min(ret.len())
       };
       ret.drain(used_length..);
       let normalized_ret = ret

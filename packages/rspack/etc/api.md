@@ -32,6 +32,7 @@ import { JsCreateData } from '@rspack/binding';
 import { JsLoaderContext } from '@rspack/binding';
 import { JsLoaderResult } from '@rspack/binding';
 import { JsModule } from '@rspack/binding';
+import { JsPathData } from '@rspack/binding';
 import type { JsRuntimeModule } from '@rspack/binding';
 import { JsStats } from '@rspack/binding';
 import type { JsStatsChunk } from '@rspack/binding';
@@ -41,7 +42,6 @@ import { libCacheFacade } from './lib/CacheFacade';
 import { LoaderContext as LoaderContext_2 } from './config';
 import { Logger as Logger_2 } from './logging/Logger';
 import { MultiHook } from 'tapable';
-import { PathData } from '@rspack/binding';
 import { PathWithInfo } from '@rspack/binding';
 import { RawBannerPluginOptions } from '@rspack/binding';
 import { RawBuiltins } from '@rspack/binding';
@@ -382,6 +382,8 @@ export class Compilation {
     //
     // (undocumented)
     getLogger(name: string | (() => string)): Logger;
+    // Warning: (ae-forgotten-export) The symbol "PathData" needs to be exported by the entry point index.d.ts
+    //
     // (undocumented)
     getPath(filename: Filename, data?: PathData): string;
     // (undocumented)
@@ -1274,7 +1276,7 @@ export type HtmlRspackPluginOptions = z.infer<typeof htmlRspackPluginOptions>;
 
 // @public (undocumented)
 export const IgnorePlugin: {
-    new (options: RawIgnorePluginOptions): {
+    new (options: IgnorePluginOptions): {
         name: BuiltinPluginName;
         _options: RawIgnorePluginOptions;
         affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
@@ -1284,7 +1286,12 @@ export const IgnorePlugin: {
 };
 
 // @public (undocumented)
-export type IgnorePluginOptions = RawIgnorePluginOptions;
+export type IgnorePluginOptions = {
+    resourceRegExp: NonNullable<RawIgnorePluginOptions["resourceRegExp"]>;
+    contextRegExp?: RawIgnorePluginOptions["contextRegExp"];
+} | {
+    checkResource: NonNullable<RawIgnorePluginOptions["checkResource"]>;
+};
 
 // Warning: (ae-forgotten-export) The symbol "ignoreWarnings" needs to be exported by the entry point index.d.ts
 //
@@ -2278,11 +2285,11 @@ export const rspackOptions: z.ZodObject<{
         path: z.ZodOptional<z.ZodString>;
         clean: z.ZodOptional<z.ZodBoolean>;
         publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodString]>>;
-        filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
-        chunkFilename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
+        filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
+        chunkFilename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
         crossOriginLoading: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodEnum<["anonymous", "use-credentials"]>]>>;
-        cssFilename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
-        cssChunkFilename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
+        cssFilename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
+        cssChunkFilename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
         hotUpdateMainFilename: z.ZodOptional<z.ZodString>;
         hotUpdateChunkFilename: z.ZodOptional<z.ZodString>;
         hotUpdateGlobal: z.ZodOptional<z.ZodString>;
@@ -2425,11 +2432,11 @@ export const rspackOptions: z.ZodObject<{
         path?: string | undefined;
         clean?: boolean | undefined;
         publicPath?: string | undefined;
-        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-        chunkFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        chunkFilename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         crossOriginLoading?: false | "anonymous" | "use-credentials" | undefined;
-        cssFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-        cssChunkFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        cssFilename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        cssChunkFilename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         hotUpdateMainFilename?: string | undefined;
         hotUpdateChunkFilename?: string | undefined;
         hotUpdateGlobal?: string | undefined;
@@ -2500,11 +2507,11 @@ export const rspackOptions: z.ZodObject<{
         path?: string | undefined;
         clean?: boolean | undefined;
         publicPath?: string | undefined;
-        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-        chunkFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        chunkFilename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         crossOriginLoading?: false | "anonymous" | "use-credentials" | undefined;
-        cssFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-        cssChunkFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        cssFilename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        cssChunkFilename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         hotUpdateMainFilename?: string | undefined;
         hotUpdateChunkFilename?: string | undefined;
         hotUpdateGlobal?: string | undefined;
@@ -3356,6 +3363,7 @@ export const rspackOptions: z.ZodObject<{
                     filename: string;
                     content: string;
                 }>], z.ZodUnknown>, z.ZodString>]>>;
+                emit: z.ZodOptional<z.ZodBoolean>;
                 filename: z.ZodOptional<z.ZodString>;
                 publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodString]>>;
             }, "strict", z.ZodTypeAny, {
@@ -3366,6 +3374,7 @@ export const rspackOptions: z.ZodObject<{
                     filename: string;
                     content: string;
                 }, ...args_1: unknown[]) => string) | undefined;
+                emit?: boolean | undefined;
                 filename?: string | undefined;
                 publicPath?: string | undefined;
             }, {
@@ -3376,6 +3385,7 @@ export const rspackOptions: z.ZodObject<{
                     filename: string;
                     content: string;
                 }, ...args_1: unknown[]) => string) | undefined;
+                emit?: boolean | undefined;
                 filename?: string | undefined;
                 publicPath?: string | undefined;
             }>>;
@@ -3417,12 +3427,15 @@ export const rspackOptions: z.ZodObject<{
                 }, ...args_1: unknown[]) => string) | undefined;
             }>>;
             "asset/resource": z.ZodOptional<z.ZodObject<{
+                emit: z.ZodOptional<z.ZodBoolean>;
                 filename: z.ZodOptional<z.ZodString>;
                 publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodString]>>;
             }, "strict", z.ZodTypeAny, {
+                emit?: boolean | undefined;
                 filename?: string | undefined;
                 publicPath?: string | undefined;
             }, {
+                emit?: boolean | undefined;
                 filename?: string | undefined;
                 publicPath?: string | undefined;
             }>>;
@@ -3471,6 +3484,7 @@ export const rspackOptions: z.ZodObject<{
                     filename: string;
                     content: string;
                 }, ...args_1: unknown[]) => string) | undefined;
+                emit?: boolean | undefined;
                 filename?: string | undefined;
                 publicPath?: string | undefined;
             } | undefined;
@@ -3484,6 +3498,7 @@ export const rspackOptions: z.ZodObject<{
                 }, ...args_1: unknown[]) => string) | undefined;
             } | undefined;
             "asset/resource"?: {
+                emit?: boolean | undefined;
                 filename?: string | undefined;
                 publicPath?: string | undefined;
             } | undefined;
@@ -3510,6 +3525,7 @@ export const rspackOptions: z.ZodObject<{
                     filename: string;
                     content: string;
                 }, ...args_1: unknown[]) => string) | undefined;
+                emit?: boolean | undefined;
                 filename?: string | undefined;
                 publicPath?: string | undefined;
             } | undefined;
@@ -3523,6 +3539,7 @@ export const rspackOptions: z.ZodObject<{
                 }, ...args_1: unknown[]) => string) | undefined;
             } | undefined;
             "asset/resource"?: {
+                emit?: boolean | undefined;
                 filename?: string | undefined;
                 publicPath?: string | undefined;
             } | undefined;
@@ -3576,6 +3593,7 @@ export const rspackOptions: z.ZodObject<{
                     filename: string;
                     content: string;
                 }, ...args_1: unknown[]) => string) | undefined;
+                emit?: boolean | undefined;
                 filename?: string | undefined;
                 publicPath?: string | undefined;
             } | undefined;
@@ -3589,6 +3607,7 @@ export const rspackOptions: z.ZodObject<{
                 }, ...args_1: unknown[]) => string) | undefined;
             } | undefined;
             "asset/resource"?: {
+                emit?: boolean | undefined;
                 filename?: string | undefined;
                 publicPath?: string | undefined;
             } | undefined;
@@ -3642,6 +3661,7 @@ export const rspackOptions: z.ZodObject<{
                     filename: string;
                     content: string;
                 }, ...args_1: unknown[]) => string) | undefined;
+                emit?: boolean | undefined;
                 filename?: string | undefined;
                 publicPath?: string | undefined;
             } | undefined;
@@ -3655,6 +3675,7 @@ export const rspackOptions: z.ZodObject<{
                 }, ...args_1: unknown[]) => string) | undefined;
             } | undefined;
             "asset/resource"?: {
+                emit?: boolean | undefined;
                 filename?: string | undefined;
                 publicPath?: string | undefined;
             } | undefined;
@@ -3739,11 +3760,11 @@ export const rspackOptions: z.ZodObject<{
         path?: string | undefined;
         clean?: boolean | undefined;
         publicPath?: string | undefined;
-        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-        chunkFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        chunkFilename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         crossOriginLoading?: false | "anonymous" | "use-credentials" | undefined;
-        cssFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-        cssChunkFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        cssFilename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        cssChunkFilename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         hotUpdateMainFilename?: string | undefined;
         hotUpdateChunkFilename?: string | undefined;
         hotUpdateGlobal?: string | undefined;
@@ -4027,6 +4048,7 @@ export const rspackOptions: z.ZodObject<{
                     filename: string;
                     content: string;
                 }, ...args_1: unknown[]) => string) | undefined;
+                emit?: boolean | undefined;
                 filename?: string | undefined;
                 publicPath?: string | undefined;
             } | undefined;
@@ -4040,6 +4062,7 @@ export const rspackOptions: z.ZodObject<{
                 }, ...args_1: unknown[]) => string) | undefined;
             } | undefined;
             "asset/resource"?: {
+                emit?: boolean | undefined;
                 filename?: string | undefined;
                 publicPath?: string | undefined;
             } | undefined;
@@ -4124,11 +4147,11 @@ export const rspackOptions: z.ZodObject<{
         path?: string | undefined;
         clean?: boolean | undefined;
         publicPath?: string | undefined;
-        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-        chunkFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        chunkFilename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         crossOriginLoading?: false | "anonymous" | "use-credentials" | undefined;
-        cssFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-        cssChunkFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        cssFilename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        cssChunkFilename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         hotUpdateMainFilename?: string | undefined;
         hotUpdateChunkFilename?: string | undefined;
         hotUpdateGlobal?: string | undefined;
@@ -4412,6 +4435,7 @@ export const rspackOptions: z.ZodObject<{
                     filename: string;
                     content: string;
                 }, ...args_1: unknown[]) => string) | undefined;
+                emit?: boolean | undefined;
                 filename?: string | undefined;
                 publicPath?: string | undefined;
             } | undefined;
@@ -4425,6 +4449,7 @@ export const rspackOptions: z.ZodObject<{
                 }, ...args_1: unknown[]) => string) | undefined;
             } | undefined;
             "asset/resource"?: {
+                emit?: boolean | undefined;
                 filename?: string | undefined;
                 publicPath?: string | undefined;
             } | undefined;
@@ -4968,13 +4993,13 @@ export type WorkerPublicPath = z.infer<typeof workerPublicPath>;
 
 // Warnings were encountered during analysis:
 //
-// dist/Compilation.d.ts:65:9 - (ae-forgotten-export) The symbol "liteTapable" needs to be exported by the entry point index.d.ts
-// dist/Compilation.d.ts:70:9 - (ae-forgotten-export) The symbol "Module" needs to be exported by the entry point index.d.ts
-// dist/Compilation.d.ts:72:9 - (ae-forgotten-export) The symbol "Chunk" needs to be exported by the entry point index.d.ts
-// dist/Compilation.d.ts:85:9 - (ae-forgotten-export) The symbol "StatsFactory" needs to be exported by the entry point index.d.ts
-// dist/Compilation.d.ts:86:9 - (ae-forgotten-export) The symbol "StatsPrinter" needs to be exported by the entry point index.d.ts
-// dist/Compilation.d.ts:88:9 - (ae-forgotten-export) The symbol "ExecuteModuleArgument" needs to be exported by the entry point index.d.ts
-// dist/Compilation.d.ts:88:9 - (ae-forgotten-export) The symbol "ExecuteModuleContext" needs to be exported by the entry point index.d.ts
+// dist/Compilation.d.ts:66:9 - (ae-forgotten-export) The symbol "liteTapable" needs to be exported by the entry point index.d.ts
+// dist/Compilation.d.ts:71:9 - (ae-forgotten-export) The symbol "Module" needs to be exported by the entry point index.d.ts
+// dist/Compilation.d.ts:73:9 - (ae-forgotten-export) The symbol "Chunk" needs to be exported by the entry point index.d.ts
+// dist/Compilation.d.ts:86:9 - (ae-forgotten-export) The symbol "StatsFactory" needs to be exported by the entry point index.d.ts
+// dist/Compilation.d.ts:87:9 - (ae-forgotten-export) The symbol "StatsPrinter" needs to be exported by the entry point index.d.ts
+// dist/Compilation.d.ts:89:9 - (ae-forgotten-export) The symbol "ExecuteModuleArgument" needs to be exported by the entry point index.d.ts
+// dist/Compilation.d.ts:89:9 - (ae-forgotten-export) The symbol "ExecuteModuleContext" needs to be exported by the entry point index.d.ts
 // dist/Compiler.d.ts:82:9 - (ae-forgotten-export) The symbol "AssetEmittedInfo" needs to be exported by the entry point index.d.ts
 // dist/MultiCompiler.d.ts:35:9 - (ae-forgotten-export) The symbol "Any" needs to be exported by the entry point index.d.ts
 // dist/NormalModuleFactory.d.ts:9:9 - (ae-forgotten-export) The symbol "ResourceDataWithData" needs to be exported by the entry point index.d.ts
@@ -4987,7 +5012,7 @@ export type WorkerPublicPath = z.infer<typeof workerPublicPath>;
 // dist/builtin-plugin/SwcJsMinimizerPlugin.d.ts:43:5 - (ae-forgotten-export) The symbol "ToSnakeCaseProperties" needs to be exported by the entry point index.d.ts
 // dist/builtin-plugin/SwcJsMinimizerPlugin.d.ts:45:5 - (ae-forgotten-export) The symbol "MinifyConditions" needs to be exported by the entry point index.d.ts
 // dist/config/adapterRuleUse.d.ts:145:5 - (ae-forgotten-export) The symbol "PitchLoaderDefinitionFunction" needs to be exported by the entry point index.d.ts
-// dist/config/zod.d.ts:5264:5 - (ae-forgotten-export) The symbol "oldBuiltins" needs to be exported by the entry point index.d.ts
+// dist/config/zod.d.ts:5304:5 - (ae-forgotten-export) The symbol "oldBuiltins" needs to be exported by the entry point index.d.ts
 // dist/exports.d.ts:103:5 - (ae-forgotten-export) The symbol "ContainerPlugin" needs to be exported by the entry point index.d.ts
 // dist/exports.d.ts:104:5 - (ae-forgotten-export) The symbol "ContainerReferencePlugin" needs to be exported by the entry point index.d.ts
 // dist/exports.d.ts:105:5 - (ae-forgotten-export) The symbol "ModuleFederationPlugin" needs to be exported by the entry point index.d.ts

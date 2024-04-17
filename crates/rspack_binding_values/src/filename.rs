@@ -7,10 +7,10 @@ use napi::{
 };
 use rspack_core::{AssetInfo, LocalFilenameFn, PathData};
 use rspack_core::{Filename, FilenameFn};
-use rspack_napi::{threadsafe_function::ThreadsafeFunction, NapiResultExt};
+use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use serde::Deserialize;
 
-use crate::{JsAssetInfo, PathData as JsPathData};
+use crate::{JsAssetInfo, JsPathData};
 
 /// A js filename value. Either a string or a function
 ///
@@ -82,7 +82,7 @@ impl LocalFilenameFn for ThreadSafeFilenameFn {
     asset_info: Option<&AssetInfo>,
   ) -> rspack_error::Result<String> {
     self.0.blocking_call_with_sync((
-      JsPathData::try_from(*path_data).into_rspack_result()?,
+      JsPathData::from(*path_data),
       asset_info.cloned().map(JsAssetInfo::from),
     ))
   }
@@ -100,7 +100,7 @@ impl LocalFilenameFn for LocalJsFilenameFn {
     path_data: &PathData,
     asset_info: Option<&AssetInfo>,
   ) -> Result<String, Self::Error> {
-    let js_path_data = JsPathData::try_from(*path_data)?;
+    let js_path_data = JsPathData::from(*path_data);
     let js_asset_info = asset_info.cloned().map(JsAssetInfo::from);
     self.0.call2(js_path_data, js_asset_info)
   }

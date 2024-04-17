@@ -20,7 +20,7 @@ import type {
 	JsRuntimeModule,
 	JsStatsChunk,
 	JsStatsError,
-	PathData
+	JsPathData
 } from "@rspack/binding";
 
 import {
@@ -65,6 +65,9 @@ export interface Asset {
 	source: Source;
 	info: JsAssetInfo;
 }
+
+export type PathData = JsPathData;
+
 export interface LogEntry {
 	type: string;
 	args: any[];
