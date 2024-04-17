@@ -333,7 +333,6 @@ impl JsCompilation {
   #[napi]
   pub fn get_asset_path(
     &self,
-    #[napi(ts_arg_type = "string | ((pathData: JsPathData, assetInfo?: JsAssetInfo) => string)")]
     filename: LocalJsFilename,
     data: JsPathData,
   ) -> napi::Result<String> {
@@ -345,7 +344,6 @@ impl JsCompilation {
   #[napi]
   pub fn get_asset_path_with_info(
     &self,
-    #[napi(ts_arg_type = "string | ((pathData: JsPathData, assetInfo?: JsAssetInfo) => string)")]
     filename: LocalJsFilename,
     data: JsPathData,
   ) -> napi::Result<PathWithInfo> {
@@ -356,19 +354,13 @@ impl JsCompilation {
   }
 
   #[napi]
-  pub fn get_path(
-    &self,
-    #[napi(ts_arg_type = "string | ((pathData: JsPathData, assetInfo?: JsAssetInfo) => string)")]
-    filename: LocalJsFilename,
-    data: JsPathData,
-  ) -> napi::Result<String> {
+  pub fn get_path(&self, filename: LocalJsFilename, data: JsPathData) -> napi::Result<String> {
     self.0.get_path(&filename.into(), data.as_core_path_data())
   }
 
   #[napi]
   pub fn get_path_with_info(
     &self,
-    #[napi(ts_arg_type = "string | ((pathData: JsPathData, assetInfo?: JsAssetInfo) => string)")]
     filename: LocalJsFilename,
     data: JsPathData,
   ) -> napi::Result<PathWithInfo> {
