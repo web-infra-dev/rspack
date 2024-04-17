@@ -1,4 +1,4 @@
-import { RawFuncUseCtx, PathData, JsAssetInfo } from "@rspack/binding";
+import { RawFuncUseCtx, JsAssetInfo } from "@rspack/binding";
 import { z } from "zod";
 import { Compilation, Compiler } from "..";
 import type * as oldBuiltins from "../builtin-plugin";
@@ -6,6 +6,7 @@ import type * as webpackDevServer from "webpack-dev-server";
 import { deprecatedWarn } from "../util";
 import { Module } from "../Module";
 import { Chunk } from "../Chunk";
+import { PathData } from "../Compilation";
 
 //#region Name
 const name = z.string();
@@ -624,6 +625,7 @@ export type AssetInlineGeneratorOptions = z.infer<
 >;
 
 const assetResourceGeneratorOptions = z.strictObject({
+	emit: z.boolean().optional(),
 	filename: filenameTemplate.optional(),
 	publicPath: publicPath.optional()
 });

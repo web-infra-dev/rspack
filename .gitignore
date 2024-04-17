@@ -231,3 +231,9 @@ diff_output
 
 # .swc plugins cache
 .swc/
+
+# api-extractor temp folder (https://api-extractor.com/pages/configs/api-extractor_json/#apireportreporttempfolder)
+/packages/rspack/temp
+/packages/rspack-dev-server/temp
+/packages/rspack-plugin-react-refresh/temp
+/packages/rspack-test-tools/temp

@@ -33,10 +33,10 @@ export class JsCompilation {
   pushDiagnostic(severity: "error" | "warning", title: string, message: string): void
   pushNativeDiagnostics(diagnostics: ExternalObject<'Diagnostic[]'>): void
   getStats(): JsStats
-  getAssetPath(filename: string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string), data: PathData): string
-  getAssetPathWithInfo(filename: string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string), data: PathData): PathWithInfo
-  getPath(filename: string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string), data: PathData): string
-  getPathWithInfo(filename: string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string), data: PathData): PathWithInfo
+  getAssetPath(filename: string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string), data: JsPathData): string
+  getAssetPathWithInfo(filename: string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string), data: JsPathData): PathWithInfo
+  getPath(filename: string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string), data: JsPathData): string
+  getPathWithInfo(filename: string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string), data: JsPathData): PathWithInfo
   addFileDependencies(deps: Array<string>): void
   addContextDependencies(deps: Array<string>): void
   addMissingDependencies(deps: Array<string>): void
@@ -260,7 +260,7 @@ export interface JsChunkPathData {
   id?: string
   name?: string
   hash?: string
-  contentHash?: Record<string, string>
+  contentHash?: string | Record<string, string>
 }
 
 export interface JsCodegenerationResult {
@@ -378,6 +378,16 @@ export interface JsNormalModuleFactoryCreateModuleArgs {
   resourceResolveData: JsResourceData
   context: string
   matchResource?: string
+}
+
+export interface JsPathData {
+  filename?: string
+  hash?: string
+  contentHash?: string
+  runtime?: string
+  url?: string
+  id?: string
+  chunk?: JsChunkPathData
 }
 
 export interface JsResolveForSchemeArgs {
@@ -549,16 +559,6 @@ export interface NodeFS {
   mkdirp: (...args: any[]) => any
 }
 
-export interface PathData {
-  filename?: string
-  hash?: string
-  contentHash?: string
-  runtime?: string
-  url?: string
-  id?: string
-  chunk?: JsChunkPathData
-}
-
 export interface PathWithInfo {
   path: string
   info: JsAssetInfo
@@ -580,6 +580,7 @@ export interface RawAssetGeneratorDataUrlOptions {
 }
 
 export interface RawAssetGeneratorOptions {
+  emit?: boolean
   filename?: string
   publicPath?: string
   dataUrl?: RawAssetGeneratorDataUrlOptions | ((arg: RawAssetGeneratorDataUrlFnArgs) => string)
@@ -603,6 +604,7 @@ export interface RawAssetParserOptions {
 }
 
 export interface RawAssetResourceGeneratorOptions {
+  emit?: boolean
   filename?: string
   publicPath?: string
 }
@@ -896,8 +898,9 @@ export interface RawHttpExternalsRspackPluginOptions {
 }
 
 export interface RawIgnorePluginOptions {
-  resourceRegExp: RegExp
+  resourceRegExp?: RegExp
   contextRegExp?: RegExp
+  checkResource?: (resource: string, context: string) => boolean
 }
 
 export interface RawInfo {

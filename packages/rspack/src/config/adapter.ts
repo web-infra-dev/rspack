@@ -717,6 +717,7 @@ function getRawAssetResourceGeneratorOptions(
 	options: AssetResourceGeneratorOptions
 ): RawAssetResourceGeneratorOptions {
 	return {
+		emit: options.emit,
 		filename: options.filename,
 		publicPath: options.publicPath
 	};

@@ -17,7 +17,9 @@
   "scripts": {
     "build": "tsc -b ./tsconfig.build.json",
     "dev": "tsc -w",
-    "test": "cross-env NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --logHeapUsage"
+    "test": "cross-env NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --logHeapUsage",
+    "api-extractor": "api-extractor run --verbose",
+    "api-extractor:ci": "api-extractor run --verbose || diff temp/api.md etc/api.md"
   },
   "files": [
     "dist",
@@ -69,7 +71,7 @@
     "wast-loader": "^1.11.4"
   },
   "dependencies": {
-    "@module-federation/runtime-tools": "0.0.8",
+    "@module-federation/runtime-tools": "0.1.6",
     "@rspack/binding": "workspace:*",
     "browserslist": "^4.21.3",
     "enhanced-resolve": "5.12.0",
