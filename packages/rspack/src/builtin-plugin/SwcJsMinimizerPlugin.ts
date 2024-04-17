@@ -65,7 +65,7 @@ type ToSnakeCase<T extends string> = T extends `${infer A}${infer B}`
 	? `${A extends Lowercase<A> ? A : `_${Lowercase<A>}`}${ToSnakeCase<B>}`
 	: T;
 /**
- * @example ToSnakeCaseProperties<{indentLevel: 3}> == {indent_level: 3}
+ * @example ToSnakeCaseProperties\<{indentLevel: 3\}\> == {indent_level: 3\}
  */
 type ToSnakeCaseProperties<T> = {
 	[K in keyof T as K extends string ? ToSnakeCase<K> : K]: T[K];

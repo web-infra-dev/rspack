@@ -320,6 +320,7 @@ function getSidebarConfig(lang: 'zh' | 'en'): Sidebar {
           '同步自 webpack 的内置插件',
           'Webpack-aligned Built-in Plugins',
         ),
+        link: getLink('/plugins/webpack/index'),
         items: [
           {
             text: 'EntryPlugin',

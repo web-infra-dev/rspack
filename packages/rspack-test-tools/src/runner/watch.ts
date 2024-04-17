@@ -2,7 +2,8 @@ import {
 	ECompilerType,
 	ITestEnv,
 	ITestRunner,
-	TCompilerOptions
+	TCompilerOptions,
+	TCompilerStatsCompilation
 } from "../type";
 import { WatchRunner } from "./runner/watch";
 import { BasicRunnerFactory } from "./basic";
@@ -19,6 +20,7 @@ export class WatchRunnerFactory<
 	}
 	protected createRunner(
 		file: string,
+		stats: TCompilerStatsCompilation<T>,
 		compilerOptions: TCompilerOptions<T>,
 		env: ITestEnv
 	): ITestRunner {
@@ -30,10 +32,9 @@ export class WatchRunnerFactory<
 		if (!stepName) {
 			throw new Error("Can not get watch step name from context");
 		}
-		const stats = compiler.getStats();
 		return new WatchRunner({
 			env,
-			stats: stats!,
+			stats,
 			name: this.name,
 			stepName,
 			runInNewContext:

@@ -1,55 +1,105 @@
 import { ApiMeta } from '../../../../components/ApiMeta.tsx';
+import WebpackLicense from '../../../../components/webpack-license';
+
+<WebpackLicense from="https://webpack.js.org/plugins/define-plugin/" />
 
 # DefinePlugin
 
 <ApiMeta addedVersion={'0.3.3'} />
 
-此插件将会在编译时将代码中的变量替换为其他值或表达式。
+`DefinePlugin` 在编译时将代码中的变量替换为其他值或表达式。这对于允许开发构建和生产构建之间的不同行为非常有用。如果你在开发构建中执行日志记录，但在生产构建中则不执行，你可能会使用一个全局常量来决定是否进行日志记录。这正是 `DefinePlugin` 的用武之地，为开发和生产构建设置一成不变的规则。
 
 ```js
-new rspack.DefinePlugin(options);
+new rspack.DefinePlugin({
+  // 定义...
+});
 ```
 
-- options
-  - **类型：** `Record<string, string | boolean | undefined>`
+## 选项
 
-当使用以下配置时：
+- **类型：** `Record<string, string | boolean | undefined>`
 
-```ts title="rspack.config.js"
-const rspack = require('@rspack/core');
-module.exports = {
-  plugins: [
-    new rspack.DefinePlugin({
-      'process.env.NODE_ENV': "'development'",
-      TRUE: true,
-      TRUE_STRING: 'true',
-      UNDEFINED: undefined,
-      UNDEFINED_STRING: 'undefined',
-    }),
-  ],
-};
+## 示例
+
+### 基本使用
+
+传入 `DefinePlugin` 的每个键都是一个标识符或多个标识符用 `.` 连接。
+
+- 如果值是一个字符串，它将被用作代码片段。
+- 如果值不是字符串，它会被转化为字符串（包括函数）。
+- 如果值是一个对象，所有键都以相同的方式定义。
+- 如果你在键前加上 `typeof`，它只在 typeof 调用中被定义。
+
+这些值将被内联到代码中，允许在压缩阶段删除掉那些冗余的条件判断。
+
+```js
+new rspack.DefinePlugin({
+  PRODUCTION: JSON.stringify(true),
+  VERSION: JSON.stringify('5fa3b9'),
+  BROWSER_SUPPORTS_HTML5: true,
+  TWO: '1+1',
+  'typeof window': JSON.stringify('object'),
+  'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
+});
 ```
 
-输入代码：
+```js
+console.log('Running App version ' + VERSION);
+if (!BROWSER_SUPPORTS_HTML5) require('html5shiv');
+```
 
-```ts
-if (process.env.NODE_ENV === 'development') {
-  console.log('run in development mode');
+:::warning 警告
+在为 `process` 定义值时，推荐使用 `'process.env.NODE_ENV': JSON.stringify('production')` 而不是 `process: { env: { NODE_ENV: JSON.stringify('production') } }`。使用后者会重写 `process` 对象，这可能会破坏对某些模块的兼容性，这些模块期望 process 对象上的其他值被定义。
+:::
+
+:::tip 提示
+请注意，由于插件直接执行文本替换，因此提供给它的值必须包含字符串内部的实际引号。通常，这是通过使用交替引号，如 `'"production"'`，或使用 `JSON.stringify('production')` 来完成。
+:::
+
+```js
+if (!PRODUCTION) {
+  console.log('Debug info');
 }
 
-console.log(TRUE === TRUE_STRING);
-console.log(UNDEFINED === UNDEFINED_STRING);
+if (PRODUCTION) {
+  console.log('Production log');
+}
 ```
 
-输出代码：
+通过 Rspack，但不进行压缩后的结果为：
 
-```ts
-if ('development' === 'development') {
-  console.log('run in development mode');
+```js
+if (!true) {
+  console.log('Debug info');
 }
+if (true) {
+  console.log('Production log');
+}
+```
 
-fetch('/api/test');
+在压缩后的结果为：
 
-console.log(true === true);
-console.log(undefined === undefined);
+```js
+console.log('Production log');
+```
+
+### 特性标志
+
+使用[特性标志](https://en.wikipedia.org/wiki/Feature_toggle)在生产/开发构建中启用/禁用功能。
+
+```js
+new rspack.DefinePlugin({
+  NICE_FEATURE: JSON.stringify(true),
+  EXPERIMENTAL_FEATURE: JSON.stringify(false),
+});
+```
+
+### 服务 URL
+
+在生产/开发构建中使用不同的服务 URL：
+
+```js
+new rspack.DefinePlugin({
+  SERVICE_URL: JSON.stringify('https://dev.example.com'),
+});
 ```

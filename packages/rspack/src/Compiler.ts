@@ -25,11 +25,11 @@ import { RuleSetCompiler } from "./RuleSetCompiler";
 import { Stats } from "./Stats";
 import { Compilation, CompilationParams } from "./Compilation";
 import { ContextModuleFactory } from "./ContextModuleFactory";
-import ResolverFactory from "./ResolverFactory";
+import ResolverFactory = require("./ResolverFactory");
 import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
 import { createThreadsafeNodeFSFromRaw } from "./fileSystem";
-import Cache from "./lib/Cache";
-import CacheFacade from "./lib/CacheFacade";
+import Cache = require("./lib/Cache");
+import CacheFacade = require("./lib/CacheFacade");
 import { Logger } from "./logging/Logger";
 import {
 	NormalModuleCreateData,
@@ -200,8 +200,8 @@ class Compiler {
 	}
 
 	/**
-	 * @param {string} name cache name
-	 * @returns {CacheFacade} the cache facade instance
+	 * @param name - cache name
+	 * @returns the cache facade instance
 	 */
 	getCache(name: string): CacheFacade {
 		return new CacheFacade(

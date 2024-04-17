@@ -10,24 +10,34 @@ import { ApiMeta } from '../../../../components/ApiMeta.tsx';
 new rspack.SourceMapDevToolPlugin(options);
 ```
 
-## 配置项
+## 选项
 
-支持以下配置项：
+支持以下选项：
 
-- `test` (`string` `RegExp` `[string, RegExp]`)：包含基于扩展名的模块的 source map（默认是 .js, .mjs 和 .css）。
+- `test` (`string` `RegExp` `[string, RegExp]`)：根据模块扩展名，匹配的生成 source map（默认是 `.js`, `.mjs` 和 `.css`）。
 - `include` (`string` `RegExp` `[string, RegExp]`)：使路径与该值匹配的模块生成 source map。
 - `exclude` (`string` `RegExp` `[string, RegExp]`)：使匹配该值的模块不生成 source map。
-- `filename` (`string`)：定义生成的 SourceMap 的名称（不设置将默认置为 inlined）。
-- `append` (`string` `function`)：在原始资源后追加给定值。通常是 #sourceMappingURL 注释。[url] 被替换成 source map 文件的 URL。支持 path 参数：[chunk]、[filename] 和 [contenthash]。设置 append 为 false 会禁止追加。
-- `moduleFilenameTemplate（string）`：详见 [`output.devtoolModuleFilenameTemplate`](/zh/config/output.html#outputdevtoolmodulefilenametemplate)。
+- `filename` (`string`)：定义生成的 source map 的名称（如果未提供值，则内联）。
+- `append` (`string` `function`)：原始资源后追加给定值。通常是 `#sourceMappingURL` 注释。`[url]` 被替换成 source map 文件的 URL。支持路径参数：`[chunk]`、`[filename]` 和 `[contenthash]`。将 `append` 设置为 `false` 可禁用附加操作。
+- `moduleFilenameTemplate`（`string`）：详见 [`output.devtoolModuleFilenameTemplate`](/zh/config/output.html#outputdevtoolmodulefilenametemplate)。
 - `fallbackModuleFilenameTemplate` (`string`)：详见上面的链接。
 - `namespace` (`string`)：详见 [`output.devtoolNamespace`](/zh/config/output.html#outputdevtoolnamespace).
-- `module = true` (`boolean`)：表示 loader 是否生成 source map。
-- `columns = true` (`boolean`)：表示是否应该使用 column mapping。
-- `noSources = false` (`boolean`)：防止源文件的内容被包含在 source map 中。
-- `publicPath` (`string`)：生成带 public path 前缀的绝对 URL，例如：https://example.com/project/。
-- `fileContext` (`string`)：使得 [file] 参数作为本目录的相对路径。
-- `sourceRoot` (`string`)：给 SourceMap 中的 sourceRoot 属性提供一个自定义值。
+- `module = true` (`boolean`)：指示 loader 是否应该生成 source map 文件。
+- `columns = true` (`boolean`)：指示是否使用 column mapping。
+- `noSources = false` (`boolean`)：阻止源文件内容被包含在 source map 中。
+- `publicPath` (`string`)：使用公共路径前缀生成绝对 URL，例如 `https://example.com/project/`。
+- `fileContext` (`string`)：使 `[file]` 参数相对于这个目录。
+- `sourceRoot` (`string`)：为 source map 中的 `sourceRoot` 属性提供自定义值。
+
+`fileContext` 选项在你希望将 source map 存储在上级目录以避免绝对 `[url]` 中出现 `../../` 时非常有用。
+
+:::tip 提示
+将 `module` 或 `columns` 设置为 `false` 将生成不太准确的 source map，但同时也能显著提高编译性能。
+:::
+
+:::tip 提示
+如果你想要在[开发模式](/config/mode#development)中为这个插件使用自定义配置，请确保禁用默认配置。即设置 `devtool: false`。
+:::
 
 ## 示例
 
