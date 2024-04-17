@@ -394,6 +394,10 @@ function getSidebarConfig(lang: 'zh' | 'en'): Sidebar {
             text: 'ModuleFederationPluginV1',
             link: getLink('/plugins/webpack/module-federation-plugin-v1'),
           },
+          {
+            text: 'EnvironmentPlugin',
+            link: getLink('/plugins/webpack/environment-plugin'),
+          },
         ],
       },
       {

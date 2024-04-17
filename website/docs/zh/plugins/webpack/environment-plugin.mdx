@@ -1,0 +1,135 @@
+import { ApiMeta } from '../../../../components/ApiMeta.tsx';
+import WebpackLicense from '../../../../components/webpack-license';
+
+<WebpackLicense from="https://webpack.js.org/plugins/environment-plugin/" />
+
+# EnvironmentPlugin
+
+<ApiMeta addedVersion={'0.2.5'} />
+
+`EnvironmentPlugin` 简化了使用 [`DefinePlugin`](/plugins/webpack/define-plugin) 设置 `process.env` 变量的过程。
+
+## 选项
+
+- **类型：** `string[] | Record<string, string>`
+
+## 示例
+
+### 基本使用
+
+`EnvironmentPlugin` 接受一个包含键的数组或者一个键到其默认值的对象映射。
+
+```js
+new rspack.EnvironmentPlugin(['NODE_ENV', 'DEBUG']);
+```
+
+这等同于以下 `DefinePlugin` 的使用方式：
+
+```js
+new rspack.DefinePlugin({
+  'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
+  'process.env.DEBUG': JSON.stringify(process.env.DEBUG),
+});
+```
+
+:::tip 提示
+如果没有指定环境变量，将会抛出“`EnvironmentPlugin` - `${key}` environment variable is undefined”错误。
+:::
+
+### 带有默认值的使用
+
+作为替代，`EnvironmentPlugin` 支持一个映射键到其默认值的对象。如果在 `process.env` 中某个键未定义，则采用该键的默认值。
+
+```js
+new rspack.EnvironmentPlugin({
+  NODE_ENV: 'development', // 除非定义了 process.env.NODE_ENV，否则使用 'development'
+  DEBUG: false,
+});
+```
+
+:::warning 警告
+从 `process.env` 来的变量总是字符串。
+:::
+
+:::tip 提示
+与 [`DefinePlugin`](/plugins/webpack/define-plugin) 不同，`EnvironmentPlugin` 会对默认值使用 `JSON.stringify`。
+:::
+
+:::tip 提示
+`null` 和 `undefined` 的默认值有不同的表现。如果变量在打包时必须提供，则使用 `undefined`；如果它们是可选的，则使用 `null`。
+:::
+
+:::warning 警告
+如果在打包过程中找不到环境变量，并且没有提供默认值，Rspack 将抛出错误而不是警告。
+:::
+
+让我们来看看在 test 文件 `entry.js` 上运行前述 `EnvironmentPlugin` 配置的结果：
+
+```js
+if (process.env.NODE_ENV === 'production') {
+  console.log('Welcome to production');
+}
+if (process.env.DEBUG) {
+  console.log('Debugging output');
+}
+```
+
+当在终端执行 `NODE_ENV=production` Rspack 构建时，`entry.js` 变成了这样：
+
+```js
+if ('production' === 'production') {
+  // <-- 取自 NODE_ENV 的 'production'
+  console.log('Welcome to production');
+}
+if (false) {
+  // <-- 取默认值
+  console.log('Debugging output');
+}
+```
+
+运行 `DEBUG=false` Rspack 产生：
+
+```js
+if ('development' === 'production') {
+  // <-- 取默认值
+  console.log('Welcome to production');
+}
+if ('false') {
+  // <-- 取自 DEBUG 的 'false'
+  console.log('Debugging output');
+}
+```
+
+### Git 版本
+
+下面的 `EnvironmentPlugin` 配置提供了对应于仓库最后一次 Git 提交的 `process.env.GIT_VERSION`（例如 "v5.4.0-2-g25139f57f"）和 `process.env.GIT_AUTHOR_DATE`（例如 "2020-11-04T12:25:16+01:00"）：
+
+```js
+const child_process = require('child_process');
+function git(command) {
+  return child_process.execSync(`git ${command}`, { encoding: 'utf8' }).trim();
+}
+
+new rspack.EnvironmentPlugin({
+  GIT_VERSION: git('describe --always'),
+  GIT_AUTHOR_DATE: git('log -1 --format=%aI'),
+});
+```
+
+### DotenvPlugin
+
+第三方 [`DotenvPlugin`](https://github.com/mrsteele/dotenv-webpack)（`dotenv-webpack`）允许你暴露一部分 [dotenv 变量](https://www.npmjs.com/package/dotenv)：
+
+```js
+// .env
+DB_HOST=127.0.0.1
+DB_PASS=foobar
+S3_API=mysecretkey
+```
+
+```js
+new Dotenv({
+  path: './.env', // Path to .env file (this is the default)
+  safe: true, // load .env.example (defaults to "false" which does not use dotenv-safe)
+});
+```
