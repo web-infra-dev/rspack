@@ -59,7 +59,7 @@ jobs:
       - name: Test new runner
         run: |
           set -e;
-          OUTPUT=$((pnpm run test:ng --no-colors --silent=true 2>&1 || true) | tail --bytes=50000)
+          OUTPUT=$((pnpm run test:ng --no-colors --silent=true --force-exit 2>&1 && echo "Test new runner successed" || echo "Test new runner failed") | tail --bytes=50000)
           echo 'RESULT<<EOF' >> $GITHUB_ENV
           echo  "$OUTPUT"  >> $GITHUB_ENV
           echo 'EOF' >> $GITHUB_ENV
@@ -77,7 +77,7 @@ jobs:
         with:
           issue-number: ${{ github.event.issue.number || github.event.pull_request.number }}
           body: |
-            **${{ contains(needs.test.outputs.testng, 'FAIL') && '🔴🔴🔴 Test new runner failed' || '🟢🟢🟢 Test new runner successed' }}**
+            **${{ contains(needs.test.outputs.testng, 'Test new runner failed') && '🔴🔴🔴 Test new runner failed' || '🟢🟢🟢 Test new runner successed' }}**
             
             > Task: ${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}}
 
@@ -89,7 +89,7 @@ jobs:
     name: Notify
     needs: [test, get-runner-labels]
     runs-on: ${{ fromJSON(needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS) }}
-    if: ${{ github.event_name == 'schedule' && github.repository_owner == 'web-infra-dev' && failure() && !cancelled() }}
+    if: ${{ github.event_name == 'schedule' && github.repository_owner == 'web-infra-dev' && contains(needs.test.outputs.testng, 'Test new runner failed') }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
