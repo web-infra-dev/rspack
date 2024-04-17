@@ -7,10 +7,10 @@
 - moduleBs.js
 
 ## Asset Files
-- Bundle: main.CURRENT_HASH.js, size: 33255
-- Bundle: shared.chunk.CURRENT_HASH.js, size: 529
-- Bundle: workerA_js.chunk.CURRENT_HASH.js, size: 28670
-- Bundle: workerB_js.chunk.CURRENT_HASH.js, size: 28670
+- Bundle: main.CURRENT_HASH.js
+- Bundle: shared.chunk.CURRENT_HASH.js
+- Bundle: workerA_js.chunk.CURRENT_HASH.js
+- Bundle: workerB_js.chunk.CURRENT_HASH.js
 
 ## Manifest
 

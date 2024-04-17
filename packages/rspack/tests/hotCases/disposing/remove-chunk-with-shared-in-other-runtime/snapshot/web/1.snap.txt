@@ -4,8 +4,8 @@
 - module.js
 
 ## Asset Files
-- Bundle: bundle.js, size: 37764
-- Bundle: chunk1_js.chunk.CURRENT_HASH.js, size: 953
+- Bundle: bundle.js
+- Bundle: chunk1_js.chunk.CURRENT_HASH.js
 - Manifest: [runtime of chunk2_js].LAST_HASH.hot-update.json, size: 65
 - Manifest: main.LAST_HASH.hot-update.json, size: 41
 - Update: main.LAST_HASH.hot-update.js, size: 17494
@@ -15,7 +15,7 @@
 ### [runtime of chunk2_js].LAST_HASH.hot-update.json
 
 ```json
-{"c":[],"r":["main","chunk2_js","chunk1_js"],"m":["./chunk2.js"]}
+{"c":[],"r":["chunk1_js","chunk2_js","main"],"m":["./chunk2.js"]}
 ```
 
 

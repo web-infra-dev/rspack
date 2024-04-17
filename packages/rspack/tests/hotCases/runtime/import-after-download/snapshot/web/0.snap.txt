@@ -5,9 +5,9 @@
 - inner.js
 
 ## Asset Files
-- Bundle: bundle.js, size: 37950
-- Bundle: chunk_js.CURRENT_HASH.js, size: 877
-- Bundle: unaffected-chunk_js.CURRENT_HASH.js, size: 1009
+- Bundle: bundle.js
+- Bundle: chunk_js.CURRENT_HASH.js
+- Bundle: unaffected-chunk_js.CURRENT_HASH.js
 
 ## Manifest
 

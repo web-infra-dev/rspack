@@ -4,9 +4,9 @@
 - module.js
 
 ## Asset Files
-- Bundle: bundle.js, size: 37853
-- Bundle: chunk1_js.chunk.CURRENT_HASH.js, size: 953
-- Bundle: chunk2_js.chunk.CURRENT_HASH.js, size: 953
+- Bundle: bundle.js
+- Bundle: chunk1_js.chunk.CURRENT_HASH.js
+- Bundle: chunk2_js.chunk.CURRENT_HASH.js
 
 ## Manifest
 

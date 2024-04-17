@@ -4,7 +4,7 @@
 - entry.js
 
 ## Asset Files
-- Bundle: bundle.js, size: 34332
+- Bundle: bundle.js
 
 ## Manifest
 

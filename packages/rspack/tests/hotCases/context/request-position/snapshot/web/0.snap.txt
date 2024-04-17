@@ -4,8 +4,8 @@
 - file.js
 
 ## Asset Files
-- Bundle: bundle.js, size: 38805
-- Bundle: lib_a_js.chunk.CURRENT_HASH.js, size: 327
+- Bundle: bundle.js
+- Bundle: lib_a_js.chunk.CURRENT_HASH.js
 
 ## Manifest
 

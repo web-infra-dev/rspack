@@ -5,7 +5,7 @@
 - commonjs.js
 
 ## Asset Files
-- Bundle: bundle.js, size: 35270
+- Bundle: bundle.js
 
 ## Manifest
 
