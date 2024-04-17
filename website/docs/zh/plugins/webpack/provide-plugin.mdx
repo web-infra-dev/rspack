@@ -1,40 +1,108 @@
 import { ApiMeta } from '../../../../components/ApiMeta.tsx';
+import WebpackLicense from '../../../../components/webpack-license';
+
+<WebpackLicense from="https://webpack.js.org/plugins/provide-plugin/" />
 
 # ProvidePlugin
 
 <ApiMeta addedVersion={'0.3.3'} />
 
-此插件会自动的将全局变量转换为模块导入。
+自动加载模块，而不必在每处都 `import` 或 `require` 它们。
 
 ```js
-new rspack.ProvidePlugin(options);
+new rspack.ProvidePlugin({
+  identifier: 'module1',
+  // ...
+});
 ```
 
-- options
-  - **类型：** `Record<string, string | string[]>`
-
-如下配置：
+或
 
 ```js
-const rspack = require('@rspack/core');
-module.exports = {
-  plugins: [
-    new rspack.ProvidePlugin({
-      process: [require.resolve('process/browser')],
-    }),
-  ],
-};
+new rspack.ProvidePlugin({
+  identifier: ['module1', 'property1'],
+  // ...
+});
 ```
 
-将如下代码：
+默认情况下，模块解析路径为当前文件夹（`./**`）和 `node_modules`。
+
+也可以指定完整路径：
+
+```js
+const path = require('path');
+
+new rspack.ProvidePlugin({
+  identifier: path.resolve(path.join(__dirname, 'src/module1')),
+  // ...
+});
+```
+
+每当在模块中遇到 `identifier` 作为自由变量时，相应的`模块`会自动加载，且 `identifier` 会被填充为已加载`模块`的输出（或者是`属性`，以支持具名导出）。
+
+为了导入一个 ES2015 模块的默认导出，你必须指定模块的 default 属性。
+
+## 选项
+
+- **类型：** `Record<string, string | string[]>`
+
+## 示例
+
+### 在浏览器中使用 process 对象
+
+在浏览器环境中启用 process 对象的支持。
+
+```js
+new rspack.ProvidePlugin({
+  process: [require.resolve('process/browser')],
+});
+```
+
+以下代码片段：
 
 ```js
 console.log(process.version);
 ```
 
-转换为：
+将被转换为：
 
 ```js
 import process from 'process/browser';
 console.log(process.version);
+```
+
+### jQuery
+
+要自动加载 jquery，我们可以把它暴露的两个变量都对应到相应的模块：
+
+```js
+new rspack.ProvidePlugin({
+  $: 'jquery',
+  jQuery: 'jquery',
+});
+```
+
+然后在我们的任何源代码中：
+
+```js
+// 在一个模块中
+$('#item'); // <= 可以工作
+jQuery('#item'); // <= 也可以工作
+// $ 被自动设置为模块 "jquery" 的导出
+```
+
+### Lodash Map
+
+```js
+new rspack.ProvidePlugin({
+  _map: ['lodash', 'map'],
+});
+```
+
+### Vue.js
+
+```js
+new rspack.ProvidePlugin({
+  Vue: ['vue/dist/vue.esm.js', 'default'],
+});
 ```
