@@ -16,7 +16,7 @@
 ### main.LAST_HASH.hot-update.json
 
 ```json
-{"c":["main","file_js"],"r":["vendors-node_modules_react_js"],"m":["./node_modules/react.js"]}
+{"c":["file_js","main"],"r":["vendors-node_modules_react_js"],"m":["./node_modules/react.js"]}
 ```
 
 		

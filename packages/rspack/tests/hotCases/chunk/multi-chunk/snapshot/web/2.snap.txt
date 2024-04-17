@@ -19,7 +19,7 @@
 ### a.LAST_HASH.hot-update.json
 
 ```json
-{"c":["a"],"r":["main","b"],"m":[]}
+{"c":["a"],"r":["b","main"],"m":[]}
 ```
 
 
@@ -27,7 +27,7 @@
 ### b.LAST_HASH.hot-update.json
 
 ```json
-{"c":["b"],"r":["main","a"],"m":[]}
+{"c":["b"],"r":["a","main"],"m":[]}
 ```
 
 
@@ -35,7 +35,7 @@
 ### main.LAST_HASH.hot-update.json
 
 ```json
-{"c":["main"],"r":["b","a"],"m":[]}
+{"c":["main"],"r":["a","b"],"m":[]}
 ```
 
 		

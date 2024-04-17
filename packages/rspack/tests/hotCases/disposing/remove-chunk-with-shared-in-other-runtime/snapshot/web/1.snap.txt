@@ -15,7 +15,7 @@
 ### [runtime of chunk2_js].LAST_HASH.hot-update.json
 
 ```json
-{"c":[],"r":["main","chunk2_js","chunk1_js"],"m":["./chunk2.js"]}
+{"c":[],"r":["chunk1_js","chunk2_js","main"],"m":["./chunk2.js"]}
 ```
 
 

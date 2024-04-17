@@ -207,9 +207,13 @@ export class RspackHotStepProcessor extends RspackHotProcessor {
 					});
 					return `- Update: ${renderName}, size: ${i.size}`;
 				} else if (fileName.endsWith("hot-update.json")) {
+					const manifest = JSON.parse(content);
+					manifest.c?.sort();
+					manifest.r?.sort();
+					manifest.m?.sort();
 					hotUpdateManifest.push({
 						name: renderName,
-						content
+						content: JSON.stringify(manifest)
 					});
 					return `- Manifest: ${renderName}, size: ${i.size}`;
 				} else if (fileName.endsWith(".js")) {

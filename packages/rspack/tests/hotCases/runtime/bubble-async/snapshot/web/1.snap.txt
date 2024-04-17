@@ -15,7 +15,7 @@
 ### main.LAST_HASH.hot-update.json
 
 ```json
-{"c":["main","file_js"],"r":[],"m":[]}
+{"c":["file_js","main"],"r":[],"m":[]}
 ```
 
 		

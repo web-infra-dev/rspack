@@ -24,7 +24,7 @@
 ### [runtime of workerA_js].LAST_HASH.hot-update.json
 
 ```json
-{"c":["workerA_js","shared"],"r":["workerB_js","main"],"m":[]}
+{"c":["shared","workerA_js"],"r":["main","workerB_js"],"m":[]}
 ```
 
 
@@ -32,7 +32,7 @@
 ### [runtime of workerB_js].LAST_HASH.hot-update.json
 
 ```json
-{"c":["workerB_js","shared"],"r":["workerA_js","main"],"m":[]}
+{"c":["shared","workerB_js"],"r":["main","workerA_js"],"m":[]}
 ```
 
 
@@ -40,7 +40,7 @@
 ### main.LAST_HASH.hot-update.json
 
 ```json
-{"c":["main"],"r":["workerB_js","workerA_js","shared"],"m":[]}
+{"c":["main"],"r":["shared","workerA_js","workerB_js"],"m":[]}
 ```
 
 		
