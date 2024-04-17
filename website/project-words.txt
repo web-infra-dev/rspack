@@ -126,3 +126,4 @@ modulegeneratorcssautoexportsconvention
 modulegeneratorcssautoexportsonly
 modulegeneratorcssautolocalidentname
 cssextractrspackplugin
+mysecretkey
