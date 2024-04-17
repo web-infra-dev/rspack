@@ -19,6 +19,7 @@ glob-match = "0.2.1"
 hashlink = { workspace = true }
 hex = "0.4.3"
 indexmap = { workspace = true }
+indoc = { workspace = true }
 itertools = { workspace = true }
 json = { workspace = true }
 mime_guess = { workspace = true }

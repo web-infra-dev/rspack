@@ -1,7 +1,8 @@
 use rayon::prelude::*;
 use rspack_core::rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
 use rspack_core::{
-  BoxModule, ChunkInitFragments, ChunkUkey, Compilation, RuntimeGlobals, SourceType,
+  to_normal_comment, BoxModule, ChunkInitFragments, ChunkUkey, Compilation, RuntimeGlobals,
+  SourceType,
 };
 use rspack_error::{error, Result};
 use rustc_hash::FxHashSet as HashSet;
@@ -138,7 +139,10 @@ fn render_module(
     RawSource::from(": "),
   ]);
   if is_diff_mode() {
-    sources.add(RawSource::from(format!("\n/* start::{} */\n", module_id)));
+    sources.add(RawSource::from(format!(
+      "\n{}\n",
+      to_normal_comment(&format!("start::{}", module.identifier()))
+    )));
   }
   sources.add(RawSource::from(format!(
     "(function ({}) {{\n",
@@ -152,7 +156,10 @@ fn render_module(
   sources.add(source);
   sources.add(RawSource::from("})"));
   if is_diff_mode() {
-    sources.add(RawSource::from(format!("\n/* end::{} */\n", module_id)));
+    sources.add(RawSource::from(format!(
+      "\n{}\n",
+      to_normal_comment(&format!("end::{}", module.identifier()))
+    )));
   }
   sources.add(RawSource::from(",\n"));
 
