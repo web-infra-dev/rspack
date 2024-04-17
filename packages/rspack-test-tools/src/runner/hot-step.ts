@@ -39,7 +39,7 @@ export class HotStepRunnerFactory<
 					if (!stats)
 						return callback(new Error("Should generate stats during build"));
 					const jsonStats = stats.toJson({
-						// errorDetails: true
+						errorDetails: true
 					});
 					try {
 						const checker = this.context.getValue(

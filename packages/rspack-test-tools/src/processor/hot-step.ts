@@ -114,9 +114,18 @@ export class RspackHotStepProcessor extends RspackHotProcessor {
 		)) {
 			this.entries[entry.id!] = entry.runtime!;
 		}
-		this.matchStepSnapshot(context, 0, statsJson);
+		let matchFailed: Error | null = null;
+		try {
+			this.matchStepSnapshot(context, 0, statsJson);
+		} catch (e) {
+			matchFailed = e as Error;
+		}
 		this.hashes.push(stats.hash!);
-		await super.check(env, context);
+		if (matchFailed) {
+			throw matchFailed;
+		} else {
+			await super.check(env, context);
+		}
 	}
 
 	protected matchStepSnapshot(
@@ -217,7 +226,7 @@ export class RspackHotStepProcessor extends RspackHotProcessor {
 					});
 					return `- Manifest: ${renderName}, size: ${i.size}`;
 				} else if (fileName.endsWith(".js")) {
-					return `- Bundle: ${renderName}, size: ${i.size}`;
+					return `- Bundle: ${renderName}`;
 				}
 			})
 			.filter(Boolean);

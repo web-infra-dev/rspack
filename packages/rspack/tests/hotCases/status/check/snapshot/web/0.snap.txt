@@ -4,7 +4,7 @@
 - file.js
 
 ## Asset Files
-- Bundle: bundle.js, size: 33605
+- Bundle: bundle.js
 
 ## Manifest
 

@@ -4,8 +4,8 @@
 - module.js
 
 ## Asset Files
-- Bundle: bundle.js, size: 37739
-- Bundle: chunk1_js.chunk.CURRENT_HASH.js, size: 953
+- Bundle: bundle.js
+- Bundle: chunk1_js.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 52
 - Update: main.LAST_HASH.hot-update.js, size: 426
 
