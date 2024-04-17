@@ -106,7 +106,6 @@ export class HotRunner<
 		moduleScope["importScripts"] = this.globalContext!["importScripts"];
 		moduleScope["Worker"] = this.globalContext!["Worker"];
 		moduleScope["EventSource"] = this.globalContext!["EventSource"];
-		moduleScope["STATS"] = moduleScope.__STATS__;
 		moduleScope["NEXT"] = this._options.next;
 		return moduleScope;
 	}
