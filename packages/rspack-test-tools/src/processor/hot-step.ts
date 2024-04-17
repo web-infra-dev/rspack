@@ -232,8 +232,8 @@ export class RspackHotStepProcessor extends RspackHotProcessor {
 			.filter(Boolean);
 
 		fileList.sort();
-		hotUpdateManifest.sort();
-		hotUpdateFile.sort();
+		hotUpdateManifest.sort((a, b) => (a.name > b.name ? 1 : -1));
+		hotUpdateFile.sort((a, b) => (a.name > b.name ? 1 : -1));
 
 		let content = `
 # ${title}
