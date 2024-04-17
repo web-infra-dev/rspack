@@ -42,7 +42,7 @@ module.exports = function () {
 		const initializeSharingInitPromises = [];
 		const initializeSharingInitTokens = [];
 		const containerShareScope =
-			__webpack_require__.initializeExposesData?.containerShareScope;
+			__webpack_require__.initializeExposesData?.shareScope;
 
 		early(
 			__webpack_require__,
@@ -91,10 +91,11 @@ module.exports = function () {
 				for (let stage of stages) {
 					if (typeof stage === "object" && stage !== null) {
 						const { name, version, factory, eager } = stage;
+						const options = { version, scope: [scope], get: factory };
 						if (shared[name]) {
-							shared[name].scope.push(scope);
+							shared[name].push(options);
 						} else {
-							shared[name] = { version, get: factory, scope: [scope] };
+							shared[name] = [options];
 						}
 					}
 				}
