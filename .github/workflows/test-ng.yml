@@ -63,6 +63,7 @@ jobs:
           echo 'RESULT<<EOF' >> $GITHUB_ENV
           echo  "$OUTPUT"  >> $GITHUB_ENV
           echo 'EOF' >> $GITHUB_ENV
+          echo ${OUTPUT}
 
   comment:
     name: Write a new comment
@@ -76,7 +77,7 @@ jobs:
         with:
           issue-number: ${{ github.event.issue.number || github.event.pull_request.number }}
           body: |
-            **${{ contains(needs.test.result, 'failure') && '🔴🔴🔴 Test new runner failed' || '🟢🟢🟢 Test new runner successed' }}**
+            **${{ contains(needs.test.outputs.testng, 'FAIL') && '🔴🔴🔴 Test new runner failed' || '🟢🟢🟢 Test new runner successed' }}**
             
             > Task: ${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}}
 
