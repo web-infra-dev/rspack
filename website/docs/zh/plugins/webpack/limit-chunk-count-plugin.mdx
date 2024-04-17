@@ -1,0 +1,30 @@
+import { ApiMeta } from '../../../../components/ApiMeta.tsx';
+import WebpackLicense from '../../../../components/webpack-license';
+
+<WebpackLicense from="https://webpack.js.org/plugins/limit-chunk-count-plugin/" />
+
+# LimitChunkCountPlugin
+
+<ApiMeta addedVersion={'0.3.10'} />
+
+在编写代码时，你可能已经添加了许多代码分割点以按需加载内容。在编译后，你可能会注意到有些 chunk 太小——造成了较大的 HTTP 开销。`LimitChunkCountPlugin` 可以在处理完毕后通过合并它们来优化你的 chunk。
+
+```js
+new rspack.optimize.LimitChunkCountPlugin({
+  // 选项...
+});
+```
+
+## 选项
+
+### maxChunks
+
+- **类型：** `number`
+
+通过使用大于或等于`1`的值来限制最大代码块数量。使用`1`将阻止添加任何额外的代码块，因为入口/主代码 chunk 也包含在计数中。
+
+```js
+new rspack.optimize.LimitChunkCountPlugin({
+  maxChunks: 5,
+});
+```

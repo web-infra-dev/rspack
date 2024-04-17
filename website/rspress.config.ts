@@ -398,6 +398,10 @@ function getSidebarConfig(lang: 'zh' | 'en'): Sidebar {
             text: 'EnvironmentPlugin',
             link: getLink('/plugins/webpack/environment-plugin'),
           },
+          {
+            text: 'LimitChunkCountPlugin',
+            link: getLink('/plugins/webpack/limit-chunk-count-plugin'),
+          },
         ],
       },
       {

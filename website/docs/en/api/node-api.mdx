@@ -5,11 +5,13 @@ import { ApiMeta, Stability } from '../../../components/ApiMeta.tsx';
 
 # Node.js API
 
-> `@rspack/core` is designed based on Webpack's Node.js API to ensure functional consistency and a similar user experience.
-
 Rspack provides a Node.js API which can be used directly in Node.js runtime.
 
 The Node.js API is useful in scenarios in which you need to customize the build or development process since all the reporting and error handling must be done manually and webpack only does the compiling part. For this reason the [`stats`](/config/stats) configuration options will not have any effect in the `rspack()` call.
+
+:::tip
+`@rspack/core` is designed based on Webpack's Node.js API to ensure functional consistency and a similar user experience.
+:::
 
 ## Installation
 
