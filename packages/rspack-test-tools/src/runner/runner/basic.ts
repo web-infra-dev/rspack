@@ -85,11 +85,13 @@ export class BasicRunner<T extends ECompilerType = ECompilerType.Rspack>
 
 	protected createBaseModuleScope(): IBasicModuleScope {
 		const baseModuleScope: IBasicModuleScope = {
-			console: console,
+			console: this.globalContext!.console,
+			expect: this.globalContext!.expect,
+			setTimeout: this.globalContext!.setTimeout,
+			clearTimeout: this.globalContext!.clearTimeout,
 			it: this._options.env.it,
 			beforeEach: this._options.env.beforeEach,
 			afterEach: this._options.env.afterEach,
-			expect,
 			jest,
 			nsObj: (m: Object) => {
 				Object.defineProperty(m, Symbol.toStringTag, {
