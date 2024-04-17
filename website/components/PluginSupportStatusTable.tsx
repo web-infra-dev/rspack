@@ -127,6 +127,10 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   {
     name: 'ProgressPlugin',
     status: SupportStatus.PartiallySupported,
+    notes: {
+      zh: '仅支持 `profile` 选项',
+      en: 'Only `profile` option supported',
+    },
   },
   {
     name: 'ProvidePlugin',
