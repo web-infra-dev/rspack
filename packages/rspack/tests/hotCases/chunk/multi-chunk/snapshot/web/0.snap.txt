@@ -4,9 +4,9 @@
 - file.js
 
 ## Asset Files
-- Bundle: a.js, size: 33377
-- Bundle: b.js, size: 33377
-- Bundle: main.js, size: 32858
+- Bundle: a.js
+- Bundle: b.js
+- Bundle: main.js
 
 ## Manifest
 

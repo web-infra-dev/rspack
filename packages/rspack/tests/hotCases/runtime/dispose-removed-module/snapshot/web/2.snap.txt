@@ -5,7 +5,7 @@
 - a.js
 
 ## Asset Files
-- Bundle: bundle.js, size: 34253
+- Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 36
 - Update: main.LAST_HASH.hot-update.js, size: 1169
 

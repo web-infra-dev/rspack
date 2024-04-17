@@ -4,6 +4,7 @@ import {
 	ITestEnv,
 	ITestRunner,
 	TCompilerOptions,
+	TCompilerStatsCompilation,
 	TRunnerFactory
 } from "../type";
 import { WebRunner } from "./runner/web";
@@ -27,7 +28,11 @@ export class BasicRunnerFactory<T extends ECompilerType>
 		if (exists) {
 			return exists;
 		}
-		const runner = this.createRunner(file, compilerOptions, env);
+		const compiler = this.context.getCompiler<T>(this.name);
+		const stats = compiler.getStats()!.toJson({
+			errorDetails: true
+		});
+		const runner = this.createRunner(file, stats, compilerOptions, env);
 		this.context.setRunner(key, runner);
 		return runner;
 	}
@@ -38,14 +43,13 @@ export class BasicRunnerFactory<T extends ECompilerType>
 
 	protected createRunner(
 		file: string,
+		stats: TCompilerStatsCompilation<T>,
 		compilerOptions: TCompilerOptions<T>,
 		env: ITestEnv
 	): ITestRunner {
-		const compiler = this.context.getCompiler<T>(this.name);
-		const stats = compiler.getStats();
 		const runnerOptions = {
 			env,
-			stats: stats!,
+			stats,
 			name: this.name,
 			testConfig: this.context.getTestConfig(),
 			source: this.context.getSource(),

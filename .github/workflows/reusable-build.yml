@@ -298,6 +298,15 @@ jobs:
         if: ${{ inputs.test-diff && !inputs.skipable }}
         run: pnpm run test:diff
 
+      - name: API change check
+        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && !inputs.skipable }}
+        run: |
+          echo "===================================="
+          echo "Note: force build npm packages with \`pnpm build:js\` and  \`pnpm api-extractor:local\` locally to generate API change if \`api-extractor\` check failed."
+          echo "$ pnpm build:js && pnpm api-extractor:local"
+          echo "===================================="
+          pnpm api-extractor:ci
+
       ### write the latest metric into branch gh-pages
       ### Note that, We can't merge this script, because this script only runs on main branch
       - name: Update main branch test compatibility metric

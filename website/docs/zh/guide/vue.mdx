@@ -1,3 +1,5 @@
+import { PackageManagerTabs } from '@theme';
+
 # Vue
 
 Vue 是一个非常流行的前端框架，现在你可以配合 Rspack 使用 Vue 的相关功能。
@@ -136,33 +138,7 @@ TypeScript 语法是通过 Rspack 内置的 `builtin:swc-loader` 进行支持的
 
 首先，你需要安装 [babel-loader](https://www.npmjs.com/package/babel-loader)、[@babel/core](https://www.npmjs.com/package/@babel/core) 和 [@vue/babel-plugin-jsx](https://www.npmjs.com/package/@vue/babel-plugin-jsx)：
 
-import { Tabs, Tab } from '@theme';
-
-<Tabs values={[{ label: 'npm' }, { label: 'yarn' }, { label: 'pnpm' }]}>
-  <Tab>
-
-```sh
-npm install -D babel-loader @babel/core @vue/babel-plugin-jsx
-```
-
-  </Tab>
-
-  <Tab>
-
-```sh
-yarn add -D babel-loader @babel/core @vue/babel-plugin-jsx
-```
-
-  </Tab>
-
-  <Tab>
-
-```sh
-pnpm install -D babel-loader @babel/core @vue/babel-plugin-jsx
-```
-
-  </Tab>
-</Tabs>
+<PackageManagerTabs command="add babel-loader @babel/core @vue/babel-plugin-jsx -D" />
 
 ### 添加配置
 

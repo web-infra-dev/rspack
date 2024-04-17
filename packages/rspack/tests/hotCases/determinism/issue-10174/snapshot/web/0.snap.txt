@@ -4,7 +4,7 @@
 - hot.js
 
 ## Asset Files
-- Bundle: bundle.js, size: 35373
+- Bundle: bundle.js
 
 ## Manifest
 

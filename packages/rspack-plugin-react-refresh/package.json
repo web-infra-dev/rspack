@@ -1,6 +1,6 @@
 {
   "name": "@rspack/plugin-react-refresh",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "license": "MIT",
   "description": "React refresh plugin for rspack",
   "main": "dist/index.js",
@@ -16,7 +16,9 @@
   "scripts": {
     "build": "tsc -b ./tsconfig.build.json",
     "dev": "tsc -b -w",
-    "test": "jest --runInBand"
+    "test": "jest --runInBand",
+    "api-extractor": "api-extractor run --verbose",
+    "api-extractor:ci": "api-extractor run --verbose || diff temp/api.md etc/api.md"
   },
   "files": [
     "client",

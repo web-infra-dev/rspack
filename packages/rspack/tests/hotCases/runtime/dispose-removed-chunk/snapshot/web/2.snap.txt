@@ -6,8 +6,8 @@
 - b.js
 
 ## Asset Files
-- Bundle: b_js.CURRENT_HASH.js, size: 305
-- Bundle: bundle.js, size: 37937
+- Bundle: b_js.CURRENT_HASH.js
+- Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 35
 - Update: b_js.LAST_HASH.hot-update.js, size: 269
 - Update: main.LAST_HASH.hot-update.js, size: 201
@@ -17,7 +17,7 @@
 ### main.LAST_HASH.hot-update.json
 
 ```json
-{"c":["main","b_js"],"r":[],"m":[]}
+{"c":["b_js","main"],"r":[],"m":[]}
 ```
 
 		

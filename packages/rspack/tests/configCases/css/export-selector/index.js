@@ -1,3 +1,11 @@
+const fs = require('fs')
+const path = require('path')
+
+it('should have correct css result', async () => {
+	const css = await fs.promises.readFile(path.resolve(__dirname, './imported_js.bundle0.css'))
+	expect(css.toString()).toMatchSnapshot()
+})
+
 it("should allow to dynamic import a css module", done => {
 	import("./style.module.css").then(x => {
 		try {

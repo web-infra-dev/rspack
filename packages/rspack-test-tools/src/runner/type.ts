@@ -2,7 +2,7 @@ import {
 	ECompilerType,
 	ITestEnv,
 	TCompilerOptions,
-	TCompilerStats,
+	TCompilerStatsCompilation,
 	TTestConfig
 } from "../type";
 
@@ -44,7 +44,7 @@ export interface IBasicGlobalContext {
 
 export interface IBasicRunnerOptions<T extends ECompilerType> {
 	env: ITestEnv;
-	stats?: TCompilerStats<T>;
+	stats?: TCompilerStatsCompilation<T>;
 	name: string;
 	runInNewContext?: boolean;
 	testConfig: TTestConfig<T>;

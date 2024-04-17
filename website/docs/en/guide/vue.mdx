@@ -1,3 +1,5 @@
+import { PackageManagerTabs } from '@theme';
+
 # Vue
 
 Vue is a very popular front-end framework, and you can start to use Vue with Rspack now.
@@ -136,33 +138,7 @@ Since Rspack supports using `babel-loader`, you can directly use the [@vue/babel
 
 First, you need to install [babel-loader](https://www.npmjs.com/package/babel-loader), [@babel/core](https://www.npmjs.com/package/@babel/core) and [@vue/babel-plugin-jsx](https://www.npmjs.com/package/@vue/babel-plugin-jsx):
 
-import { Tabs, Tab } from '@theme';
-
-<Tabs values={[{ label: 'npm' }, { label: 'yarn' }, { label: 'pnpm' }]}>
-   <Tab>
-
-```sh
-npm install -D babel-loader @babel/core @vue/babel-plugin-jsx
-```
-
-   </Tab>
-
-   <Tab>
-
-```sh
-yarn add -D babel-loader @babel/core @vue/babel-plugin-jsx
-```
-
-   </Tab>
-
-   <Tab>
-
-```sh
-pnpm install -D babel-loader @babel/core @vue/babel-plugin-jsx
-```
-
-   </Tab>
-</Tabs>
+<PackageManagerTabs command="add babel-loader @babel/core @vue/babel-plugin-jsx -D" />
 
 ### Configure
 
