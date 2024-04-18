@@ -1,23 +1,16 @@
 use rspack_core::{
   get_js_chunk_filename_template, impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  ChunkUkey, Compilation, LibraryOptions, OutputOptions, PathData, RuntimeGlobals, RuntimeModule,
+  ChunkUkey, Compilation, OutputOptions, PathData, RuntimeGlobals, RuntimeModule,
   RuntimeModuleStage, SourceType,
 };
 use rspack_identifier::Identifier;
-use rspack_util::source_map::SourceMapKind;
 use serde_json::json;
 
-use super::container_plugin::ExposeOptions;
 use super::container_reference_plugin::RemoteOptions;
 
 #[impl_runtime_module]
 #[derive(Debug, Eq)]
-pub struct AutoPublicPathRuntimeModule {
-  id: Identifier,
-  chunk: Option<ChunkUkey>,
-  options: FederationRuntimeModuleOptions, // Added options field to store FederationRuntimeModuleOptions
-}
 
 pub struct FederationRuntimeModuleOptions {
   pub name: String,
@@ -25,13 +18,17 @@ pub struct FederationRuntimeModuleOptions {
   pub enhanced: bool,
 }
 
-impl Default for AutoPublicPathRuntimeModule {
+pub struct FederationRuntimeModule {
+  id: Identifier,
+  chunk: Option<ChunkUkey>,
+  options: FederationRuntimeModuleOptions, // Added options field to store FederationRuntimeModuleOptions
+}
+
+impl Default for FederationRuntimeModule {
   fn default() -> Self {
     Self {
       id: Identifier::from("federation/runtime"),
       chunk: None,
-      source_map_kind: SourceMapKind::None,
-      custom_source: None,
       options: FederationRuntimeModuleOptions {
         name: String::new(),
         remotes: Vec::new(),
@@ -41,7 +38,7 @@ impl Default for AutoPublicPathRuntimeModule {
   }
 }
 
-impl RuntimeModule for AutoPublicPathRuntimeModule {
+impl RuntimeModule for FederationRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
   }
@@ -72,7 +69,7 @@ impl RuntimeModule for AutoPublicPathRuntimeModule {
       ),
     )?;
     Ok(
-      RawSource::from(auto_public_path_template(
+      RawSource::from(federation_runtime_template(
         &filename,
         &compilation.options.output,
         &self.options, // Pass self.options to the template function
@@ -82,7 +79,7 @@ impl RuntimeModule for AutoPublicPathRuntimeModule {
   }
 }
 
-fn auto_public_path_template(
+fn federation_runtime_template(
   filename: &str,
   output: &OutputOptions,
   options: &FederationRuntimeModuleOptions,
