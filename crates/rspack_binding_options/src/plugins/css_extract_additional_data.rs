@@ -19,7 +19,7 @@ pub(crate) struct CssExtractRspackAdditionalDataPlugin {
 impl CssExtractRspackAdditionalDataPlugin {
   pub fn new(env: Env) -> Result<Self> {
     Ok(Self::new_inner(
-      JsCallback::new(env.raw()).into_rspack_result()?,
+      unsafe { JsCallback::new(env.raw()) }.into_rspack_result()?,
     ))
   }
 }
@@ -46,7 +46,7 @@ async fn additional_data(&self, additional_data: &mut AdditionalData) -> Result<
       let mut list = data.split("__RSPACK_CSS_EXTRACT_SEP__");
       let mut data_list = vec![];
       while let Some(identifier) = list.next() {
-        #[allow(clippy::unwrap_in_result)]
+        #[allow(clippy::unwrap_used)]
         {
           // parse the css data from js loader
           // data:

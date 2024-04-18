@@ -15,7 +15,7 @@ impl<T: NapiValue> ThreadsafeJsValueRefHandle<T> {
   fn new(env: Env, js_ref: JsValueRef<T>) -> Result<Self> {
     Ok(Self {
       value_ref: Arc::new(Mutex::new(js_ref)),
-      drop_handle: JsCallback::new(env.raw())?,
+      drop_handle: unsafe { JsCallback::new(env.raw()) }?,
     })
   }
 }
