@@ -11,6 +11,7 @@ use {
   rspack_error::error,
   rspack_identifier::{Identifiable, Identifier},
   rspack_napi::threadsafe_function::ThreadsafeFunction,
+  rspack_napi::threadsafe_js_value_ref::ThreadsafeJsValueRef,
 };
 
 use crate::get_builtin_loader;
@@ -138,11 +139,11 @@ fn sync_loader_context(
     .map_err(|e| error!(e.to_string()))?;
   loader_context.additional_data = loader_result.additional_data_external.clone();
   if let Some(data) = loader_result.additional_data {
+    loader_context.additional_data.insert(data);
+  } else {
     loader_context
       .additional_data
-      .insert(String::from_utf8_lossy(&data).to_string());
-  } else {
-    loader_context.additional_data.remove::<String>();
+      .remove::<ThreadsafeJsValueRef<Unknown>>();
   }
   loader_context.asset_filenames = loader_result.asset_filenames.into_iter().collect();
 
@@ -153,7 +154,8 @@ fn sync_loader_context(
 pub struct JsLoaderContext {
   /// Content maybe empty in pitching stage
   pub content: Either<Null, Buffer>,
-  pub additional_data: Option<Buffer>,
+  #[napi(ts_type = "any")]
+  pub additional_data: Option<ThreadsafeJsValueRef<Unknown>>,
   pub source_map: Option<Buffer>,
   pub resource: String,
   pub resource_path: String,
@@ -208,8 +210,8 @@ impl TryFrom<&mut rspack_core::LoaderContext<'_, rspack_core::LoaderRunnerContex
       },
       additional_data: cx
         .additional_data
-        .get::<String>()
-        .map(|v| v.clone().into_bytes().into()),
+        .get::<ThreadsafeJsValueRef<Unknown>>()
+        .cloned(),
       source_map: cx
         .source_map
         .clone()
@@ -269,10 +271,7 @@ pub async fn run_builtin_loader(
   let list = &[loader_item];
   let additional_data = {
     let mut additional_data = loader_context.additional_data_external.clone();
-    if let Some(data) = loader_context
-      .additional_data
-      .map(|b| String::from_utf8_lossy(b.as_ref()).to_string())
-    {
+    if let Some(data) = loader_context.additional_data {
       additional_data.insert(data);
     }
     additional_data
@@ -358,7 +357,7 @@ pub struct JsLoaderResult {
   pub build_dependencies: Vec<String>,
   pub asset_filenames: Vec<String>,
   pub source_map: Option<Buffer>,
-  pub additional_data: Option<Buffer>,
+  pub additional_data: Option<ThreadsafeJsValueRef<Unknown>>,
   pub additional_data_external: External<AdditionalData>,
   pub cacheable: bool,
   /// Used to instruct how rust loaders should execute
@@ -432,7 +431,9 @@ impl napi::bindgen_prelude::FromNapiValue for JsLoaderResult {
       )
     })?;
     let source_map_: Option<Buffer> = obj.get("sourceMap")?;
-    let additional_data_: Option<Buffer> = obj.get("additionalData")?;
+    let additional_data_: Option<ThreadsafeJsValueRef<Unknown>> =
+      obj.get::<_, ThreadsafeJsValueRef<Unknown>>("additionalData")?;
+
     // change: eagerly clone this field since `External<T>` might be dropped.
     let additional_data_external_: External<AdditionalData> = obj
       .get("additionalDataExternal")?

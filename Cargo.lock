@@ -3265,8 +3265,6 @@ dependencies = [
  "rspack_plugin_runtime",
  "rspack_util",
  "rustc-hash",
- "serde",
- "serde_json",
  "ustr-fxhash",
 ]
 

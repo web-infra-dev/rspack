@@ -49,7 +49,7 @@ impl Rspack {
     let js_plugin = JsHooksAdapterPlugin::from_js_hooks(env, register_js_taps)?;
     plugins.push(js_plugin.clone().boxed());
     for bp in builtin_plugins {
-      bp.append_to(&mut plugins)
+      bp.append_to(env, &mut plugins)
         .map_err(|e| Error::from_reason(format!("{e}")))?;
     }
 

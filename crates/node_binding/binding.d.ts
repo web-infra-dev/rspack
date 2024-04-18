@@ -305,7 +305,7 @@ export interface JsExecuteModuleResult {
 export interface JsLoaderContext {
   /** Content maybe empty in pitching stage */
   content: null | Buffer
-  additionalData?: Buffer
+  additionalData?: any
   sourceMap?: Buffer
   resource: string
   resourcePath: string
