@@ -21,7 +21,7 @@ use rspack_core::{
   AssetInfo, Compilation, CompilationAsset, PathData, Plugin, PluginContext, SourceType,
 };
 use rspack_core::{
-  ApplyContext, BoxModule, ChunkUkey, CompilationBuildModule, CompilationParams,
+  ApplyContext, BoxModule, Chunk, ChunkUkey, CompilationBuildModule, CompilationParams,
   CompilationProcessAssets, CompilationRuntimeModule, CompilerCompilation, CompilerOptions,
   FilenameTemplate, Logger, ModuleIdentifier, OutputOptions,
 };
@@ -214,7 +214,7 @@ impl SourceMapDevToolPlugin {
   async fn map_assets(
     &self,
     compilation: &Compilation,
-    file_to_chunk: &HashMap<String, ChunkUkey>,
+    file_to_chunk: &HashMap<String, &Chunk>,
     raw_assets: Vec<(String, &CompilationAsset)>,
   ) -> Result<Vec<MappedAsset>> {
     let output_options = &compilation.options.output;
@@ -434,8 +434,7 @@ impl SourceMapDevToolPlugin {
       };
 
       if let Some(source_map_filename_config) = &self.source_map_filename {
-        let chunk_ukey = file_to_chunk.get(&filename);
-        let chunk = chunk_ukey.map(|ukey| compilation.chunk_by_ukey.expect_get(ukey));
+        let chunk = file_to_chunk.get(&filename);
         let source_type = if css_extension_detected {
           &SourceType::Css
         } else {
@@ -543,13 +542,18 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let logger = compilation.get_logger("rspack.SourceMapDevToolPlugin");
   let start = logger.time("collect source maps");
 
-  let mut file_to_chunk: HashMap<String, ChunkUkey> = HashMap::default();
+  // use to read
+  let mut file_to_chunk: HashMap<String, &Chunk> = HashMap::default();
+  // use to write
+  let mut file_to_chunk_ukey: HashMap<String, ChunkUkey> = HashMap::default();
   for chunk in compilation.chunk_by_ukey.values() {
     for file in &chunk.files {
-      file_to_chunk.insert(file.clone(), chunk.ukey);
+      file_to_chunk.insert(file.clone(), &chunk);
+      file_to_chunk_ukey.insert(file.clone(), chunk.ukey);
     }
     for file in &chunk.auxiliary_files {
-      file_to_chunk.insert(file.clone(), chunk.ukey);
+      file_to_chunk.insert(file.clone(), &chunk);
+      file_to_chunk_ukey.insert(file.clone(), chunk.ukey);
     }
   }
 
@@ -576,7 +580,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     if let Some((source_map_filename, source_map_asset)) = source_map {
       compilation.emit_asset(source_map_filename.to_owned(), source_map_asset.clone());
 
-      let chunk_ukey = file_to_chunk.get(&source_filename);
+      let chunk_ukey = file_to_chunk_ukey.get(&source_filename);
       let chunk = chunk_ukey.map(|ukey| compilation.chunk_by_ukey.expect_get_mut(ukey));
       if let Some(chunk) = chunk {
         chunk.auxiliary_files.insert(source_map_filename.to_owned());
