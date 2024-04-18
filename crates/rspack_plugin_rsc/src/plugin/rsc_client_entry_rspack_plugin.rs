@@ -5,11 +5,11 @@ use async_trait::async_trait;
 use indexmap::set::IndexSet;
 use rspack_core::rspack_sources::{RawSource, SourceExt};
 use rspack_core::{
-  ApplyContext, AssetInfo, Compilation, CompilationAsset, CompilerOptions, Module, ModuleType,
-  Plugin, PluginContext,
+  ApplyContext, AssetInfo, Compilation, CompilationAsset, CompilerFinishMake, CompilerOptions,
+  Module, ModuleType, Plugin, PluginContext,
 };
 use rspack_error::Result;
-use rspack_hook::{plugin, plugin_hook, AsyncSeries};
+use rspack_hook::{plugin, plugin_hook};
 use serde_json::to_string;
 
 use crate::utils::has_client_directive;
@@ -66,7 +66,7 @@ impl RSCClientEntryRspackPlugin {
   }
 }
 
-#[plugin_hook(AsyncSeries<Compilation> for RSCClientEntryRspackPlugin)]
+#[plugin_hook(CompilerFinishMake for RSCClientEntryRspackPlugin)]
 async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
   let now = Instant::now();
   let mut client_imports: HashMap<String, IndexSet<String>> = HashMap::new();
