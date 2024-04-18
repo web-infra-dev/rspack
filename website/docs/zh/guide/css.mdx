@@ -1,84 +1,6 @@
 import { PackageManagerTabs } from '@theme';
 
-# 语言支持
-
-## TypeScript
-
-通过 [`builtin:swc-loader`](/guide/builtin-swc-loader) 可以开启对 TypeScript 的支持。
-
-### 仅转译（Transpile-only）
-
-`builtin:swc-loader` 仅会对源码进行转译，因此你需要使用其他工具（如：tsc）完成对源码的类型检查
-
-### isolatedModules
-
-`builtin:swc-loader` 会为每一个模块分开转译，因此，这隐式地开启了 [`isolatedModules`](https://www.typescriptlang.org/tsconfig#isolatedModules)。
-而某一些功能，如 const enum 则是依赖了对整个项目的分析，因此，这些功能将无法使用。你可以显式地在 `tsconfig.json` 中开启这个选项，以使得 Rspack 的模块处理行为与 IDE 提示或类型检查中保持一致。
-
-```json title="tsconfig.json"
-{
-  "compilerOptions": {
-    "isolatedModules": true
-  }
-}
-```
-
-### 类型检查
-
-你可以使用 [fork-ts-checker-webpack-plugin](https://github.com/TypeStrong/fork-ts-checker-webpack-plugin) 在编译过程中执行 TypeScript 类型检查。然而，需要注意的是，特别是对于较大的项目，TypeScript 的类型检查可能非常耗时。这意味着类型检查所需的时间可能超过 Rspack 本身的构建时间。
-
-如果你在开发模式下使用该插件，它将不会阻塞构建过程，你可以继续进行构建。但是，在构建模式下，该插件将会阻塞构建，直到类型检查完成。
-
-根据你的实际需求，你应该决定是否启用该插件。如果类型检查过程成为构建过程的瓶颈，我们建议使用 TypeScript 的增量构建功能。该功能可以通过仅分析自上次构建以来修改的文件来大大加快类型检查的速度。
-
-要启用 TypeScript 的增量构建，你可以在独立使用 `tsc --incremental` 或者在插件里[使用 incremental mode](https://github.com/TypeStrong/fork-ts-checker-webpack-plugin#enabling-incremental-mode)。
-
-启用增量构建可以帮助减少类型检查的时间，特别是当只有少数文件被修改时。这样，你可以在优化构建过程的同时，不会损失类型检查的好处。
-
-请记住，在你的具体项目中，需要权衡构建速度和类型检查准确性之间的权衡，并据此选择最佳方法。
-
-## JSX/TSX
-
-通过 [`builtin:swc-loader`](/guide/builtin-swc-loader) 可以开启对 JSX 和 TSX 的支持。
-
-## Alias
-
-点击 [resolve.tsConfigPath](/config/resolve#resolvetsconfigpath) 查看详情。
-
-### Node Polyfill
-
-Rspack 不会自动引入 Node Polyfill，如果你需要使用相应功能，你可以选择使用 [node-polyfill-webpack-plugin](https://www.npmjs.com/package/node-polyfill-webpack-plugin) 插件，并在 `rspack.config.js` 完成配置：
-
-```ts title="rspack.config.js"
-const NodePolyfillPlugin = require('node-polyfill-webpack-plugin');
-
-module.exports = {
-  plugins: [new NodePolyfillPlugin()],
-};
-```
-
-## 静态资源处理
-
-Rspack 支持对静态资源的处理，包括图片、字体、视频等。
-
-你需要在 `rspack.config.js` 中完成相关配置：
-
-```ts title="rspack.config.js"
-module.exports = {
-  module: {
-    rules: [
-      {
-        test: /\.png$/,
-        type: 'asset',
-      },
-    ],
-  },
-};
-```
-
-上述选项会将所有的 `*.png` 文件视为资源模块，更多关于资源文件的处理可以参考[资源模块](/guide/asset-module)。
-
-## CSS
+# CSS
 
 CSS 是 Rspack 的一等公民，Rspack 内置了对 CSS 的处理能力，你无需额外的配置即可使用。
 
@@ -86,7 +8,7 @@ CSS 是 Rspack 的一等公民，Rspack 内置了对 CSS 的处理能力，你�
 
 如果你打算从 Webpack 进行迁移，那么你可以去除配置中的 `css-loader` 或 `style-loader` 以使用 Rspack 内置的 CSS 处理能力，详情可以参考[迁移指南](/guide/migrate-from-webpack#去除-css-loader-和-style-loader-和-mini-css-extract-plugin)。
 
-### CSS Modules
+## CSS Modules
 
 Rspack 中可以引用一个 CSS Modules 文件，如：
 
@@ -109,7 +31,7 @@ document.getElementById('element').className = red;
 
 更多关于 CSS Modules 的配置可以参考 [builtins.css.modules](config/builtins#builtinscssmodules)。
 
-### PostCSS
+## PostCSS
 
 Rspack 已经完成了对 [postcss-loader](https://github.com/webpack-contrib/postcss-loader) 的兼容，你可以这样配置：
 
@@ -138,7 +60,7 @@ module.exports = {
 
 上述配置会将所有 `*.css` 文件经过 [postcss-loader](https://github.com/webpack-contrib/postcss-loader) 处理，并将生成的结果交给 Rspack 完成 CSS 后续流程的处理。
 
-### Less
+## Less
 
 Rspack 已经完成了对 [less-loader](https://github.com/webpack-contrib/less-loader) 的兼容，你可以这样配置：
 
@@ -165,7 +87,7 @@ module.exports = {
 
 上述配置会将所有 `*.less` 文件经过 [less-loader](https://github.com/webpack-contrib/less-loader) 处理，并将生成的结果交给 Rspack 完成 CSS 后续流程的处理。
 
-### Sass
+## Sass
 
 Rspack 已经完成了对 [sass-loader](https://github.com/webpack-contrib/sass-loader) 的兼容，你可以这样配置：
 
@@ -192,19 +114,19 @@ module.exports = {
 
 上述配置会将所有 `*.sass` 文件经过 [sass-loader](https://github.com/webpack-contrib/sass-loader) 处理，并将生成的结果交给 Rspack 完成 CSS 后续流程的处理。
 
-### Tailwind CSS
+## Tailwind CSS
 
 [Tailwind CSS](https://tailwindcss.com/) 是一个功能类优先的 CSS 框架，它集成了一系列样式类，它们能直接在脚本标记语言中组合起来，构建出任何设计。
 
 将 Tailwind CSS 作为 PostCSS 插件安装，是将其与 Rspack 整合的最佳方式。
 
-#### 安装 Tailwind CSS
+### 安装 Tailwind CSS
 
 在你的项目中安装 [tailwindcss](https://tailwindcss.com/)、[autoprefixer](https://github.com/postcss/autoprefixer)、[postcss](https://postcss.org/) 和 [postcss-loader](https://www.npmjs.com/package/postcss-loader) 这些依赖：
 
 <PackageManagerTabs command="add tailwindcss autoprefixer postcss postcss-loader -D" />
 
-#### 配置 Tailwind CSS
+### 配置 Tailwind CSS
 
 安装完成后，你需要在 `rspack.config.js` 中配置 `postcss-loader` 来处理 CSS 文件，然后在 `postcssOptions.plugins` 中添加 `tailwindcss`。
 
@@ -239,18 +161,3 @@ module.exports = {
 到此为止，你已经完成了在 Rspack 中使用 Tailwind CSS 所需的构建配置。
 
 接下来你可以按照 [Tailwind CSS 官方文档](https://tailwindcss.com/docs/installation/using-postcss)中的步骤，添加 Tailwind CSS 所需的配置和代码，即可开始使用。
-
-## JSON
-
-JSON 是 Rspack 的一等公民，你可以直接导入，例如：
-
-```json title="example.json"
-{
-  "foo": "bar"
-}
-```
-
-```ts title="index.js"
-import json from './example.json';
-json.foo; // bar
-```

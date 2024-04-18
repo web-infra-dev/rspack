@@ -153,7 +153,6 @@ function getSidebarConfig(lang: 'zh' | 'en'): Sidebar {
         collapsible: false,
         text: getText('特性', 'Features'),
         items: [
-          getLink('/guide/language-support'),
           {
             link: getLink('/guide/asset-module'),
             text: getText('资源模块', 'Asset modules'),
@@ -186,11 +185,15 @@ function getSidebarConfig(lang: 'zh' | 'en'): Sidebar {
       },
       {
         collapsible: false,
-        text: getText('框架支持', 'Framework support'),
+        text: getText('语言和框架', 'Languages and Frameworks'),
         items: [
+          getLink('/guide/typescript'),
+          getLink('/guide/css'),
+          getLink('/guide/json'),
+          getLink('/guide/nodejs'),
           getLink('/guide/react'),
-          getLink('/guide/solid'),
           getLink('/guide/vue'),
+          getLink('/guide/solid'),
           getLink('/guide/svelte'),
           getLink('/guide/nestjs'),
         ],

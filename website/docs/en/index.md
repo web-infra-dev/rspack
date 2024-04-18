@@ -34,7 +34,7 @@ features:
   - title: Batteries Included
     details: Out-of-the-box support for TypeScript, JSX, CSS, CSS Modules, Sass, and more.
     icon: 🎨
-    link: /guide/language-support
+    link: /guide/typescript
   - title: Production Optimizations
     details: Core optimizations such as tree shaking and minification have integrated implementations rather than deferring to plugins.
     icon: 🛠️
