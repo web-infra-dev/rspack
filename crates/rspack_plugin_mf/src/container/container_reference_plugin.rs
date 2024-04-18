@@ -14,9 +14,6 @@ use super::{
   fallback_module_factory::FallbackModuleFactory, remote_module::RemoteModule,
   remote_runtime_module::RemoteRuntimeModule,
 };
-use crate::container::federation_runtime::{
-  FederationRuntimePlugin, FederationRuntimePluginOptions,
-};
 
 #[derive(Debug)]
 pub struct ContainerReferencePluginOptions {
@@ -26,7 +23,7 @@ pub struct ContainerReferencePluginOptions {
   pub enhanced: bool,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct RemoteOptions {
   pub external: Vec<String>,
   pub share_scope: String,
@@ -159,13 +156,6 @@ impl Plugin for ContainerReferencePlugin {
       .compilation_hooks
       .runtime_requirement_in_tree
       .tap(runtime_requirements_in_tree::new(self));
-
-    let federation_options = FederationRuntimePluginOptions {
-      remotes: self.options.remotes.clone(),
-      name: Some("test".to_string()),
-    };
-    FederationRuntimePlugin::new(federation_options).apply(ctx, _options)?;
-
     Ok(())
   }
 }
