@@ -2841,7 +2841,6 @@ dependencies = [
  "swc_config",
  "swc_core",
  "tokio",
- "tracing",
 ]
 
 [[package]]
