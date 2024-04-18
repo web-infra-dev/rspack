@@ -5,6 +5,7 @@ use rspack_core::{
   RuntimeModuleStage, SourceType,
 };
 use rspack_identifier::Identifier;
+use rspack_util::source_map::SourceMapKind;
 use serde_json::json;
 
 use super::container_reference_plugin::RemoteOptions;
@@ -17,7 +18,6 @@ pub struct FederationRuntimeModuleOptions {
   pub remotes: Vec<(String, RemoteOptions)>,
   pub enhanced: bool,
 }
-
 pub struct FederationRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,
@@ -33,6 +33,8 @@ impl Default for FederationRuntimeModule {
         name: String::new(),
         remotes: Vec::new(),
         enhanced: false,
+        source_map_kind: SourceMapKind::None,
+        custom_source: None,
       },
     }
   }
@@ -59,15 +61,7 @@ impl RuntimeModule for FederationRuntimeModule {
       &compilation.options.output,
       &compilation.chunk_group_by_ukey,
     );
-    let filename = compilation.get_path(
-      filename,
-      PathData::default().chunk(chunk).content_hash_optional(
-        chunk
-          .content_hash
-          .get(&SourceType::JavaScript)
-          .map(|i| i.rendered(compilation.options.output.hash_digest_length)),
-      ),
-    )?;
+
     Ok(
       RawSource::from(federation_runtime_template(
         &filename,
