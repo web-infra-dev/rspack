@@ -8,7 +8,7 @@ import {
 	TCompilerStatsCompilation
 } from "../type";
 import { BasicRunnerFactory } from "./basic";
-import { HotRunner } from "./runner/hot";
+import { WebRunner } from "./runner/web";
 
 export class HotRunnerFactory<
 	T extends ECompilerType
@@ -29,7 +29,10 @@ export class HotRunnerFactory<
 		) as { updateIndex: number };
 
 		const next = (
-			callback: (error: Error | null, stats?: StatsCompilation) => void
+			callback: (
+				error: Error | null,
+				stats?: TCompilerStatsCompilation<T>
+			) => void
 		) => {
 			hotUpdateContext.updateIndex++;
 			compiler
@@ -69,15 +72,24 @@ export class HotRunnerFactory<
 				.catch(callback);
 		};
 
-		return new HotRunner({
+		return new WebRunner({
+			dom: "fake",
 			env,
 			stats,
 			name: this.name,
 			runInNewContext: false,
-			testConfig,
+			testConfig: {
+				...testConfig,
+				moduleScope(ms) {
+					if (typeof testConfig.moduleScope === "function") {
+						ms = testConfig.moduleScope(ms);
+					}
+					ms["NEXT"] = next;
+					return ms;
+				}
+			},
 			source,
 			dist,
-			next,
 			compilerOptions
 		});
 	}

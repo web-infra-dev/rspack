@@ -1,5 +1,4 @@
 import { StatsCompilation } from "@rspack/core";
-import checkArrayExpectation from "../helper/legacy/checkArrayExpectation";
 import {
 	ECompilerType,
 	ITestEnv,
@@ -8,8 +7,8 @@ import {
 	TCompilerStats,
 	TCompilerStatsCompilation
 } from "../type";
-import { HotRunner } from "./runner/hot";
 import { HotRunnerFactory } from "./hot";
+import { WebRunner } from "./runner/web";
 
 export class HotStepRunnerFactory<
 	T extends ECompilerType
@@ -30,7 +29,10 @@ export class HotStepRunnerFactory<
 		) as { updateIndex: number };
 
 		const next = (
-			callback: (error: Error | null, stats?: StatsCompilation) => void
+			callback: (
+				error: Error | null,
+				stats?: TCompilerStatsCompilation<T>
+			) => void
 		) => {
 			hotUpdateContext.updateIndex++;
 			compiler
@@ -60,15 +62,24 @@ export class HotStepRunnerFactory<
 				.catch(callback);
 		};
 
-		return new HotRunner({
+		return new WebRunner({
+			dom: "jsdom",
 			env,
 			stats,
 			name: this.name,
 			runInNewContext: false,
-			testConfig,
+			testConfig: {
+				...testConfig,
+				moduleScope(ms) {
+					if (typeof testConfig.moduleScope === "function") {
+						ms = testConfig.moduleScope(ms);
+					}
+					ms["NEXT"] = next;
+					return ms;
+				}
+			},
 			source,
 			dist,
-			next,
 			compilerOptions
 		});
 	}

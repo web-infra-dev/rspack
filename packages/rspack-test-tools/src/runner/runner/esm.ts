@@ -4,11 +4,38 @@ import path from "path";
 import { fileURLToPath, pathToFileURL } from "url";
 import asModule from "../../helper/legacy/asModule";
 import { EEsmMode, TRunnerRequirer } from "../type";
-import { BasicRunner } from "./basic";
+import { CommonJsRunner } from "./cjs";
 
 export class EsmRunner<
 	T extends ECompilerType = ECompilerType.Rspack
-> extends BasicRunner<T> {
+> extends CommonJsRunner<T> {
+	createRunner() {
+		super.createRunner();
+		this.requirers.set("cjs", this.getRequire());
+		this.requirers.set("esm", this.createEsmRequirer());
+		this.requirers.set("entry", (currentDirectory, modulePath, context) => {
+			let file = this.getFile(modulePath, currentDirectory);
+			if (!file) {
+				return this.requirers.get("miss")!(currentDirectory, modulePath);
+			}
+
+			if (
+				file.path.endsWith(".mjs") &&
+				this._options.compilerOptions.experiments?.outputModule
+			) {
+				return this.requirers.get("esm")!(currentDirectory, modulePath, {
+					...context,
+					file
+				});
+			} else {
+				return this.requirers.get("cjs")!(currentDirectory, modulePath, {
+					...context,
+					file
+				});
+			}
+		});
+	}
+
 	protected createEsmRequirer(): TRunnerRequirer {
 		const esmContext = vm.createContext(this.baseModuleScope!, {
 			name: "context for esm"
@@ -80,32 +107,5 @@ export class EsmRunner<
 				}
 			})();
 		};
-	}
-
-	protected createRunner() {
-		super.createRunner();
-		this.requirers.set("cjs", this.getRequire());
-		this.requirers.set("esm", this.createEsmRequirer());
-		this.requirers.set("entry", (currentDirectory, modulePath, context) => {
-			let file = this.getFile(modulePath, currentDirectory);
-			if (!file) {
-				return this.requirers.get("miss")!(currentDirectory, modulePath);
-			}
-
-			if (
-				file.path.endsWith(".mjs") &&
-				this._options.compilerOptions.experiments?.outputModule
-			) {
-				return this.requirers.get("esm")!(currentDirectory, modulePath, {
-					...context,
-					file
-				});
-			} else {
-				return this.requirers.get("cjs")!(currentDirectory, modulePath, {
-					...context,
-					file
-				});
-			}
-		});
 	}
 }

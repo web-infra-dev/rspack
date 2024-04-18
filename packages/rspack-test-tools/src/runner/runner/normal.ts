@@ -6,7 +6,7 @@ import { URL } from "url";
 export class NormalRunner<
 	T extends ECompilerType = ECompilerType.Rspack
 > extends EsmRunner<T> {
-	protected createBaseModuleScope(): IBasicModuleScope {
+	createBaseModuleScope(): IBasicModuleScope {
 		const baseModuleScope = Object.assign(super.createBaseModuleScope(), {
 			process,
 			global,
@@ -17,7 +17,7 @@ export class NormalRunner<
 		return baseModuleScope;
 	}
 
-	protected createModuleScope(
+	createModuleScope(
 		requireFn: TRunnerRequirer,
 		m: { exports: unknown },
 		file: TBasicRunnerFile
