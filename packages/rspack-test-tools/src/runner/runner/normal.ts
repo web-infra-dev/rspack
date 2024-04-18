@@ -12,7 +12,6 @@ export class NormalRunner<
 			global,
 			URL,
 			Buffer,
-			setTimeout,
 			setImmediate
 		});
 		return baseModuleScope;

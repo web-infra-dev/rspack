@@ -159,6 +159,8 @@ pub struct BuildResult {
 #[derive(Debug, Default, Clone)]
 pub struct FactoryMeta {
   pub side_effect_free: Option<bool>,
+  /// For old tree shaking
+  pub side_effect_free_old: Option<bool>,
 }
 
 pub type ModuleIdentifier = Identifier;
@@ -216,11 +218,17 @@ pub trait Module:
     })
   }
 
+  fn factory_meta(&self) -> Option<&FactoryMeta>;
+
+  fn set_factory_meta(&mut self, factory_meta: FactoryMeta);
+
   fn build_info(&self) -> Option<&BuildInfo>;
+
+  fn set_build_info(&mut self, build_info: BuildInfo);
 
   fn build_meta(&self) -> Option<&BuildMeta>;
 
-  fn set_module_build_info_and_meta(&mut self, build_info: BuildInfo, build_meta: BuildMeta);
+  fn set_build_meta(&mut self, build_meta: BuildMeta);
 
   fn get_exports_argument(&self) -> ExportsArgument {
     self
@@ -499,23 +507,30 @@ impl dyn Module + '_ {
 }
 
 #[macro_export]
-macro_rules! impl_build_info_meta {
+macro_rules! impl_module_meta_info {
   () => {
+    fn factory_meta(&self) -> Option<&$crate::FactoryMeta> {
+      self.factory_meta.as_ref()
+    }
+
+    fn set_factory_meta(&mut self, v: $crate::FactoryMeta) {
+      self.factory_meta = Some(v);
+    }
+
     fn build_info(&self) -> Option<&$crate::BuildInfo> {
       self.build_info.as_ref()
+    }
+
+    fn set_build_info(&mut self, v: $crate::BuildInfo) {
+      self.build_info = Some(v);
     }
 
     fn build_meta(&self) -> Option<&$crate::BuildMeta> {
       self.build_meta.as_ref()
     }
 
-    fn set_module_build_info_and_meta(
-      &mut self,
-      build_info: $crate::BuildInfo,
-      build_meta: $crate::BuildMeta,
-    ) {
-      self.build_info = Some(build_info);
-      self.build_meta = Some(build_meta);
+    fn set_build_meta(&mut self, v: $crate::BuildMeta) {
+      self.build_meta = Some(v);
     }
   };
 }
@@ -682,6 +697,10 @@ mod test {
           unreachable!()
         }
 
+        fn factory_meta(&self) -> Option<&crate::FactoryMeta> {
+          unreachable!()
+        }
+
         fn build_info(&self) -> Option<&crate::BuildInfo> {
           unreachable!()
         }
@@ -690,11 +709,15 @@ mod test {
           unreachable!()
         }
 
-        fn set_module_build_info_and_meta(
-          &mut self,
-          _build_info: crate::BuildInfo,
-          _build_meta: crate::BuildMeta,
-        ) {
+        fn set_factory_meta(&mut self, _: crate::FactoryMeta) {
+          unreachable!()
+        }
+
+        fn set_build_info(&mut self, _: crate::BuildInfo) {
+          unreachable!()
+        }
+
+        fn set_build_meta(&mut self, _: crate::BuildMeta) {
           unreachable!()
         }
       }

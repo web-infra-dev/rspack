@@ -874,6 +874,7 @@ impl ModuleConcatenationPlugin {
         context: Some(compilation.options.context.clone()),
         side_effect_connection_state: box_module
           .get_side_effects_connection_state(&module_graph, &mut HashSet::default()),
+        factory_meta: box_module.factory_meta().cloned(),
         build_meta: box_module.build_meta().cloned(),
       };
       let modules = modules_set
@@ -903,7 +904,7 @@ impl ModuleConcatenationPlugin {
         Some(rspack_hash::HashFunction::MD4),
         config.runtime.clone(),
       );
-      let build_result = new_module
+      new_module
         .build(
           rspack_core::BuildContext {
             compiler_context: CompilerContext {
@@ -921,7 +922,6 @@ impl ModuleConcatenationPlugin {
           Some(compilation),
         )
         .await?;
-      new_module.set_module_build_info_and_meta(build_result.build_info, build_result.build_meta);
       let mut chunk_graph = std::mem::take(&mut compilation.chunk_graph);
       let mut module_graph = compilation.get_module_graph_mut();
       let root_mgm_exports = module_graph

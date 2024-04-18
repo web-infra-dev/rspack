@@ -38,9 +38,13 @@ export type { NormalModuleFactory } from "./NormalModuleFactory";
 
 export { NormalModule } from "./NormalModule";
 
-export { default as ModuleFilenameHelpers } from "./lib/ModuleFilenameHelpers";
+// API extractor not working with some re-exports, see: https://github.com/microsoft/fluentui/issues/20694
+import * as ModuleFilenameHelpers from "./lib/ModuleFilenameHelpers";
+export { ModuleFilenameHelpers };
 
-export { default as Template } from "./Template";
+// API extractor not working with some re-exports, see: https://github.com/microsoft/fluentui/issues/20694
+import Template = require("./Template");
+export { Template };
 
 export const WebpackError = Error;
 
@@ -53,7 +57,15 @@ import {
 	getNormalizedRspackOptions,
 	applyRspackOptionsDefaults
 } from "./config";
-export const config = {
+
+// Explicitly define this type to avoid type inference and type expansion.
+type Config = {
+	getNormalizedRspackOptions: typeof getNormalizedRspackOptions;
+	applyRspackOptionsDefaults: typeof applyRspackOptionsDefaults;
+	getNormalizedWebpackOptions: typeof getNormalizedRspackOptions;
+	applyWebpackOptionsDefaults: typeof applyRspackOptionsDefaults;
+};
+export const config: Config = {
 	getNormalizedRspackOptions,
 	applyRspackOptionsDefaults,
 	getNormalizedWebpackOptions: getNormalizedRspackOptions,
@@ -105,25 +117,47 @@ export { NormalModuleReplacementPlugin } from "./lib/NormalModuleReplacementPlug
 
 import NodeTemplatePlugin from "./node/NodeTemplatePlugin";
 import { NodeTargetPlugin } from "./builtin-plugin";
-export const node = { NodeTargetPlugin, NodeTemplatePlugin };
+interface Node {
+	NodeTargetPlugin: typeof NodeTargetPlugin;
+	NodeTemplatePlugin: typeof NodeTemplatePlugin;
+}
+export const node: Node = { NodeTargetPlugin, NodeTemplatePlugin };
 
 import { ElectronTargetPlugin } from "./builtin-plugin";
-export const electron = { ElectronTargetPlugin };
+interface Electron {
+	ElectronTargetPlugin: typeof ElectronTargetPlugin;
+}
+export const electron: Electron = { ElectronTargetPlugin };
 
 import { EnableLibraryPlugin } from "./builtin-plugin";
-export const library = { EnableLibraryPlugin };
+interface Library {
+	EnableLibraryPlugin: typeof EnableLibraryPlugin;
+}
+export const library: Library = { EnableLibraryPlugin };
 
 import { EnableWasmLoadingPlugin } from "./builtin-plugin";
-export const wasm = { EnableWasmLoadingPlugin };
+interface Wasm {
+	EnableWasmLoadingPlugin: typeof EnableWasmLoadingPlugin;
+}
+export const wasm: Wasm = { EnableWasmLoadingPlugin };
 
 import { EnableChunkLoadingPlugin } from "./builtin-plugin";
-export const javascript = { EnableChunkLoadingPlugin };
+interface JavaScript {
+	EnableChunkLoadingPlugin: typeof EnableChunkLoadingPlugin;
+}
+export const javascript: JavaScript = { EnableChunkLoadingPlugin };
 
 import { WebWorkerTemplatePlugin } from "./builtin-plugin";
-export const webworker = { WebWorkerTemplatePlugin };
+interface Webworker {
+	WebWorkerTemplatePlugin: typeof WebWorkerTemplatePlugin;
+}
+export const webworker: Webworker = { WebWorkerTemplatePlugin };
 
 import { LimitChunkCountPlugin } from "./builtin-plugin";
-export const optimize = { LimitChunkCountPlugin };
+interface Optimize {
+	LimitChunkCountPlugin: typeof LimitChunkCountPlugin;
+}
+export const optimize: Optimize = { LimitChunkCountPlugin };
 
 import { ModuleFederationPlugin } from "./container/ModuleFederationPlugin";
 export type { ModuleFederationPluginOptions } from "./container/ModuleFederationPlugin";

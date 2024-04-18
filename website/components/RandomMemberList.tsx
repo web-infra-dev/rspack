@@ -96,7 +96,7 @@ export const RandomMemberList = () => {
   return (
     <NoSSR>
       <div className={style.wrapper}>
-        {randomList.map((item) => (
+        {randomList.map(item => (
           <a
             className={style.link}
             href={`https://github.com/${item.id}`}
@@ -130,7 +130,7 @@ export const RandomContributorsList = () => {
   return (
     <NoSSR>
       <div className={style.wrapper}>
-        {randomList.map((item) => (
+        {randomList.map(item => (
           <a
             className={style.link}
             href={`https://github.com/${item.id}`}

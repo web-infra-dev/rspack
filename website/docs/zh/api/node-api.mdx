@@ -5,11 +5,13 @@ import { ApiMeta, Stability } from '../../../components/ApiMeta.tsx';
 
 # Node.js API
 
-> `@rspack/core`是基于 Webpack Node.js API 设计的，旨在提供一致的功能和相似的使用体验。
-
 Rspack 提供了 Node.js API，可以在 Node.js 运行时下直接使用。
 
 当你需要自定义构建或开发流程时，Node.js API 非常有用，因为此时所有的报告和错误处理都必须自行实现，Rspack 仅仅负责编译的部分。所以 [`stats`](/config/stats) 配置选项不会在 `rspack()` 调用中生效。
+
+:::tip 提示
+`@rspack/core` 是基于 Webpack Node.js API 设计的，旨在提供一致的功能和相似的使用体验。
+:::
 
 ## 安装
 
@@ -79,7 +81,7 @@ const compiler = rspack({
 compiler.run((err, stats) => {
   // ...
 
-  compiler.close((closeErr) => {
+  compiler.close(closeErr => {
     // ...
   });
 });
@@ -128,7 +130,7 @@ const watching = compiler.watch(
 `watch` 方法返回一个 `Watching` 实例，该实例会暴露一个 `.close(callback)` 方法。调用该方法将会结束监听：
 
 ```js
-watching.close((closeErr) => {
+watching.close(closeErr => {
   console.log('Watching Ended.');
 });
 ```
@@ -218,9 +220,9 @@ rspack(
       stats.toString({
         chunks: false, // 使构建过程更静默无输出
         colors: true, // 在控制台展示颜色
-      })
+      }),
     );
-  }
+  },
 );
 ```
 
@@ -238,7 +240,7 @@ rspack(
   ],
   (err, stats) => {
     process.stdout.write(stats.toString() + '\n');
-  }
+  },
 );
 ```
 
@@ -283,7 +285,7 @@ rspack(
     }
 
     // Log result...
-  }
+  },
 );
 ```
 
@@ -312,7 +314,7 @@ compiler.outputFileSystem = fs;
 compiler.run((err, stats) => {
   // 之后读取输出：
   const content = fs.readFileSync('...');
-  compiler.close((closeErr) => {
+  compiler.close(closeErr => {
     // ...
   });
 });

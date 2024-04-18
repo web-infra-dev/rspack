@@ -38,9 +38,6 @@ export class WatchRunner<
 		const moduleScope = super.createModuleScope(requireFn, m, file);
 		moduleScope["__dirname"] = path.dirname(file.path);
 		moduleScope["document"] = this.globalContext!["document"];
-		moduleScope["STATS_JSON"] = moduleScope.__STATS__.toJson({
-			errorDetails: true
-		} as any);
 		moduleScope["STATE"] = this.state;
 		moduleScope["WATCH_STEP"] = this._watchOptions.stepName;
 		return moduleScope;

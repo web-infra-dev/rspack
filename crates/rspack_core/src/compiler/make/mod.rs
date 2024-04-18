@@ -443,7 +443,6 @@ impl UpdateModuleGraph {
                     exports_info_related.exports_info.id,
                   );
                   mgm.set_issuer_if_unset(original_module_identifier);
-                  mgm.factory_meta = Some(factory_result.factory_meta);
 
                   let mut module_graph = compilation.get_module_graph_mut();
                   module_graph.set_exports_info(
@@ -629,8 +628,9 @@ impl UpdateModuleGraph {
 
               let module_identifier = module.identifier();
 
-              module
-                .set_module_build_info_and_meta(build_result.build_info, build_result.build_meta);
+              module.set_build_info(build_result.build_info);
+              module.set_build_meta(build_result.build_meta);
+
               let mut mg = compilation.get_module_graph_mut();
 
               let resolve_options = module.get_resolve_options();

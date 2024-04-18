@@ -92,11 +92,11 @@ export function HomeFooter() {
   return (
     <div className="flex flex-col border-t dark:border-dark-50 items-center mt-[80px]">
       <div className="pt-8 pb-4 w-full justify-around max-w-6xl hidden sm:flex">
-        {footerData.map((item) => (
+        {footerData.map(item => (
           <div key={item.title} className="flex flex-col items-start">
             <h2 className="font-bold my-4 text-lg">{item.title}</h2>
             <ul className="flex flex-col gap-3">
-              {item.items.map((subItem) => (
+              {item.items.map(subItem => (
                 <li key={subItem.title}>
                   <Link href={subItem.link}>
                     <span className="font-normal">{subItem.title}</span>

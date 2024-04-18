@@ -1,3 +1,5 @@
+import { PackageManagerTabs } from '@theme';
+
 # Language support
 
 ## TypeScript
@@ -199,33 +201,7 @@ Installing Tailwind CSS as a PostCSS plugin is the most seamless way to integrat
 
 Please install [tailwindcss](https://tailwindcss.com/),[autoprefixer](https://github.com/postcss/autoprefixer),[postcss](https://postcss.org/) and [postcss-loader](https://www.npmjs.com/package/) in your project.
 
-import { Tabs, Tab } from '@theme';
-
-<Tabs values={[{ label: 'npm' }, { label: 'yarn' }, { label: 'pnpm' }]}>
-  <Tab>
-
-```sh
-npm install -D tailwindcss autoprefixer postcss postcss-loader
-```
-
-  </Tab>
-
-  <Tab>
-
-```sh
-yarn add -D tailwindcss autoprefixer postcss postcss-loader
-```
-
-  </Tab>
-
-  <Tab>
-
-```sh
-pnpm install -D tailwindcss autoprefixer postcss postcss-loader
-```
-
-  </Tab>
-</Tabs>
+<PackageManagerTabs command="add tailwindcss autoprefixer postcss postcss-loader -D" />
 
 #### Configure Tailwind CSS
 

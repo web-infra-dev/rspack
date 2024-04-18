@@ -1,4 +1,4 @@
-import { Tabs, Tab } from '@theme';
+import { PackageManagerTabs } from '@theme';
 import { ApiMeta, Stability } from '../../../components/ApiMeta.tsx';
 
 # React
@@ -91,31 +91,7 @@ Recognizing this issue, we aim to gradually transition users to a more correct a
 
 First you need to install the dependencies:
 
-<Tabs values={[{ label: 'npm' }, { label: 'yarn' }, { label: 'pnpm' }]}>
-   <Tab>
-
-```sh
-npm install -D @rspack/plugin-react-refresh react-refresh
-```
-
-   </Tab>
-
-   <Tab>
-
-```sh
-yarn add -D @rspack/plugin-react-refresh react-refresh
-```
-
-   </Tab>
-
-   <Tab>
-
-```sh
-pnpm install -D @rspack/plugin-react-refresh react-refresh
-```
-
-   </Tab>
-</Tabs>
+<PackageManagerTabs command="add @rspack/plugin-react-refresh react-refresh -D" />
 
 Enabling [React Fast Refresh](https://reactnative.dev/docs/fast-refresh) functionality primarily involves two aspects: code injection and code transformation.
 

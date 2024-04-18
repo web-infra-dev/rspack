@@ -502,12 +502,7 @@ impl NormalModuleFactory {
         resolved_parser_options,
         resolved_generator_options,
       );
-    let factory_meta = FactoryMeta {
-      side_effect_free: self
-        .calculate_side_effects(&resolved_module_rules, &resource_data)
-        .map(|side_effects| !side_effects),
-    };
-
+    let resolved_side_effects = self.calculate_side_effects(&resolved_module_rules);
     let resolved_parser_and_generator = self
       .plugin_driver
       .registered_parser_and_generator_builder
@@ -522,6 +517,9 @@ impl NormalModuleFactory {
       resolved_generator_options.as_ref(),
     );
 
+    let resource_path = resource_data.resource_path.clone();
+    let resource_description = resource_data.resource_description.clone();
+
     let mut create_data = {
       let mut create_data = NormalModuleCreateData {
         raw_request,
@@ -529,6 +527,7 @@ impl NormalModuleFactory {
         user_request,
         resource_resolve_data: resource_data,
         match_resource: match_resource_data.as_ref().map(|d| d.resource.clone()),
+        side_effects: resolved_side_effects,
       };
       if let Some(plugin_result) = self
         .plugin_driver
@@ -584,10 +583,30 @@ impl NormalModuleFactory {
     data.add_file_dependency(file_dependency);
     data.add_missing_dependencies(missing_dependencies);
 
+    // Compat for old tree shaking
+    if !self.options.is_new_tree_shaking() {
+      if resolved_side_effects.is_some() {
+        module.set_factory_meta(FactoryMeta {
+          side_effect_free: None,
+          side_effect_free_old: resolved_side_effects.map(|has_side_effects| !has_side_effects),
+        })
+      } else if let Some(description) = resource_description.as_ref()
+        && let Some(side_effects) = SideEffects::from_description(description.json())
+      {
+        let package_path = description.path();
+        let relative_path = resource_path.relative(package_path);
+        module.set_factory_meta(FactoryMeta {
+          side_effect_free: None,
+          side_effect_free_old: Some(!get_side_effects_from_package_json(
+            side_effects,
+            relative_path,
+          )),
+        })
+      }
+    }
+
     Ok(Some(
-      ModuleFactoryResult::new_with_module(module)
-        .factory_meta(factory_meta)
-        .from_cache(from_cache),
+      ModuleFactoryResult::new_with_module(module).from_cache(from_cache),
     ))
   }
 
@@ -619,11 +638,7 @@ impl NormalModuleFactory {
     resolved
   }
 
-  fn calculate_side_effects(
-    &self,
-    module_rules: &[&ModuleRule],
-    resource_data: &ResourceData,
-  ) -> Option<bool> {
+  fn calculate_side_effects(&self, module_rules: &[&ModuleRule]) -> Option<bool> {
     let mut side_effect_res = None;
     // side_effects from module rule has higher priority
     module_rules.iter().for_each(|rule| {
@@ -631,20 +646,6 @@ impl NormalModuleFactory {
         side_effect_res = rule.side_effects;
       }
     });
-    if side_effect_res.is_some() {
-      return side_effect_res;
-    }
-    let resource_path = &resource_data.resource_path;
-    let description = resource_data.resource_description.as_ref()?;
-    let package_path = description.path();
-    let side_effects = SideEffects::from_description(description.json())?;
-
-    let relative_path = resource_path.relative(package_path);
-    side_effect_res = Some(get_side_effects_from_package_json(
-      side_effects,
-      relative_path,
-    ));
-
     side_effect_res
   }
 
@@ -797,6 +798,7 @@ pub struct NormalModuleCreateData {
   pub user_request: String,
   pub resource_resolve_data: ResourceData,
   pub match_resource: Option<String>,
+  pub side_effects: Option<bool>,
 }
 
 #[test]

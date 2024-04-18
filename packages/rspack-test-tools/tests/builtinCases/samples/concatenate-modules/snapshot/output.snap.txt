@@ -1,6 +1,7 @@
 ```js title=main.js
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./index.js": (function () {
+"use strict";
 
 ;// CONCATENATED MODULE: ./answer.js
 const answer = 103330;

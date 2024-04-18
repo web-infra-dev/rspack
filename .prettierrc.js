@@ -17,6 +17,15 @@ module.exports = {
 			options: {
 				parser: "typescript"
 			}
+		},
+		{
+			files: "website/**",
+			options: {
+				printWidth: 80,
+				singleQuote: true,
+				trailingComma: "all",
+				useTabs: false
+			}
 		}
 	]
 };

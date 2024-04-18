@@ -3,12 +3,12 @@ use std::hash::Hash;
 
 use async_trait::async_trait;
 use rspack_core::{
-  impl_build_info_meta, impl_source_map_config,
+  impl_module_meta_info, impl_source_map_config,
   rspack_sources::{RawSource, Source, SourceExt},
   AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
   ChunkUkey, CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock,
-  DependencyId, LibIdentOptions, Module, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec,
-  SourceType,
+  DependencyId, FactoryMeta, LibIdentOptions, Module, ModuleIdentifier, ModuleType, RuntimeGlobals,
+  RuntimeSpec, SourceType,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
 use rspack_hash::RspackHash;
@@ -27,6 +27,7 @@ pub struct FallbackModule {
   readable_identifier: String,
   lib_ident: String,
   requests: Vec<String>,
+  factory_meta: Option<FactoryMeta>,
   build_info: Option<BuildInfo>,
   build_meta: Option<BuildMeta>,
 }
@@ -48,6 +49,7 @@ impl FallbackModule {
       readable_identifier: identifier,
       lib_ident,
       requests,
+      factory_meta: None,
       build_info: None,
       build_meta: None,
       source_map_kind: SourceMapKind::None,
@@ -81,7 +83,7 @@ impl DependenciesBlock for FallbackModule {
 
 #[async_trait]
 impl Module for FallbackModule {
-  impl_build_info_meta!();
+  impl_module_meta_info!();
 
   fn size(&self, _source_type: &SourceType) -> f64 {
     self.requests.len() as f64 * 5.0 + 42.0
