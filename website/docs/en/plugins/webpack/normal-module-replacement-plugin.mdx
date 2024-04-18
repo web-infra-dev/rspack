@@ -1,0 +1,101 @@
+import { ApiMeta } from '../../../../components/ApiMeta.tsx';
+import WebpackLicense from '../../../../components/webpack-license';
+
+<WebpackLicense from="https://webpack.js.org/plugins/normal-module-replacement-plugin/" />
+
+# NormalModuleReplacementPlugin
+
+<ApiMeta addedVersion="0.6.0" />
+
+The `NormalModuleReplacementPlugin` allows you to replace resources that match `resourceRegExp` with `newResource`.
+
+```js
+new rspack.NormalModuleReplacementPlugin(resourceRegExp, newResource);
+```
+
+If `newResource` is relative, it is resolved relative to the previous resource.
+
+If `newResource` is a function, it is expected to overwrite the request attribute of the supplied resource.
+
+This can be useful for allowing different behaviour between builds.
+
+:::tip
+Note that the `resourceRegExp` is tested against the "request" on `beforeResolve` phase and the "resource" on `afterResolve` phase.
+
+Also, please note that when using Windows, you have to accommodate for the different folder separator symbol. E.g. `/src\/environments\/environment\.ts/` won't work on Windows, you have to use `/src[\\/]environments[\\/]environment\.ts/` instead.
+:::
+
+## Basic Example
+
+Replace a specific module when building for a production environment.
+
+Say you have a configuration file `some/path/config.development.js` and a special version for production in `some/path/config.production.js`
+
+Add the following plugin when building for production:
+
+```javascript
+new rspack.NormalModuleReplacementPlugin(
+  /some\/path\/config\.development\.js/,
+  './config.production.js',
+);
+```
+
+## Advanced Example
+
+Conditional build depending on a specified environment.
+
+Say you want a configuration with specific values for different build targets.
+
+```javascript
+module.exports = function getRspackConfig(env) {
+  const appTarget = env.APP_TARGET || 'VERSION_A';
+  return {
+    plugins: [
+      new rspack.NormalModuleReplacementPlugin(
+        /(.*)-APP_TARGET(\.*)/,
+        function (resource) {
+          resource.request = resource.request.replace(
+            /-APP_TARGET/,
+            `-${appTarget}`,
+          );
+        },
+      ),
+    ],
+  };
+};
+```
+
+Create the two configuration files:
+
+**app/config-VERSION_A.js**
+
+```js
+export const config = {
+  title: 'I am version A',
+};
+```
+
+**app/config-VERSION_B.js**
+
+```js
+export const config = {
+  title: 'I am version B',
+};
+```
+
+Then import that configuration using the keyword you're looking for in the regexp:
+
+```javascript
+import { config } from './app/config-APP_TARGET';
+console.log(config.title);
+```
+
+And now you get the right configuration imported depending on which target you're building for:
+
+```bash
+rspack --env APP_TARGET=VERSION_A
+=> 'I am version A'
+
+rspack --env APP_TARGET=VERSION_B
+=> 'I am version B'
+```
