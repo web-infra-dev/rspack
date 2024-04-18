@@ -548,11 +548,11 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let mut file_to_chunk_ukey: HashMap<String, ChunkUkey> = HashMap::default();
   for chunk in compilation.chunk_by_ukey.values() {
     for file in &chunk.files {
-      file_to_chunk.insert(file.clone(), &chunk);
+      file_to_chunk.insert(file.clone(), chunk);
       file_to_chunk_ukey.insert(file.clone(), chunk.ukey);
     }
     for file in &chunk.auxiliary_files {
-      file_to_chunk.insert(file.clone(), &chunk);
+      file_to_chunk.insert(file.clone(), chunk);
       file_to_chunk_ukey.insert(file.clone(), chunk.ukey);
     }
   }
