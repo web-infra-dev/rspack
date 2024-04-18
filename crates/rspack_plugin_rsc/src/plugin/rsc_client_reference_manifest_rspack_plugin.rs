@@ -145,8 +145,9 @@ impl RSCClientReferenceManifest {
     let content = to_string(&client_manifest);
     match content {
       Ok(content) => {
-        compilation.assets_mut().insert(
-          String::from("client-reference-manifest.json"),
+        // TODO: outputPath should be configable
+        compilation.emit_asset(
+          String::from("../server/client-reference-manifest.json"),
           CompilationAsset {
             source: Some(RawSource::from(content).boxed()),
             info: AssetInfo {
@@ -154,7 +155,7 @@ impl RSCClientReferenceManifest {
               ..AssetInfo::default()
             },
           },
-        );
+        )
       }
       Err(_) => (),
     }
