@@ -252,7 +252,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
     notes: {
       en: '`hashFunction` and `hashDigest` options are not supported',
       zh: '不支持 `hashFunction`、`hashDigest` 选项',
-    }
+    },
   },
 
   // not write in webpack docs
@@ -306,7 +306,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
     notes: {
       en: '`context` and `maxLength` options are not supported',
       zh: '不支持 `context`、`maxLength` 选项',
-    }
+    },
   },
   {
     name: 'DeterministicModuleIdsPlugin',
@@ -314,7 +314,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
     notes: {
       en: '`context`, `test`, `maxLength`, `salt`, `fixedLength`, `failOnConflict` options are not supported',
       zh: '不支持 `context`、`test`、`maxLength`、`salt`、`fixedLength`、`failOnConflict` 选项',
-    }
+    },
   },
   {
     name: 'DllReferencePlugin',
@@ -354,7 +354,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
     notes: {
       en: 'Temporarily not exported from the JavaScript side',
       zh: '暂时未从 JavaScript 侧导出',
-    }
+    },
   },
   {
     name: 'FetchCompileWasmPlugin',
@@ -382,7 +382,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
     notes: {
       en: '`delimiter` and `context` options are not supported',
       zh: '不支持 `delimiter`、`context` 选项',
-    }
+    },
   },
   {
     name: 'NamedModuleIdsPlugin',
@@ -390,7 +390,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
     notes: {
       en: '`context` options are not supported',
       zh: '不支持 `context` 选项',
-    }
+    },
   },
   {
     name: 'NaturalModuleIdsPlugin',
@@ -410,7 +410,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
     notes: {
       en: 'Temporarily not exported from the JavaScript side',
       zh: '暂时未从 JavaScript 侧导出',
-    }
+    },
   },
   {
     name: 'ReadFileCompileWasmPlugin',
