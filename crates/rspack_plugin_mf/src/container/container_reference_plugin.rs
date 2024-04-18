@@ -11,9 +11,11 @@ use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 
 use super::{
-  fallback_module_factory::FallbackModuleFactory, federation_runtime::FederationRuntimePlugin,
-  federation_runtime::FederationRuntimePluginOptions, remote_module::RemoteModule,
+  fallback_module_factory::FallbackModuleFactory, remote_module::RemoteModule,
   remote_runtime_module::RemoteRuntimeModule,
+};
+use crate::container::federation_runtime::{
+  FederationRuntimePlugin, FederationRuntimePluginOptions,
 };
 
 #[derive(Debug)]
@@ -158,14 +160,11 @@ impl Plugin for ContainerReferencePlugin {
       .runtime_requirement_in_tree
       .tap(runtime_requirements_in_tree::new(self));
 
-    let federation_options = federation_runtime::FederationRuntimePluginOptions {
-      remote_type: self.options.remote_type.clone(),
+    let federation_options = FederationRuntimePluginOptions {
       remotes: self.options.remotes.clone(),
-      share_scope: self.options.share_scope.clone(),
-      enhanced: self.options.enhanced,
+      name: Some("test".to_string()),
     };
-
-    federation_runtime::apply(ctx, federation_options)?;
+    FederationRuntimePlugin::new(federation_options).apply(ctx, _options)?;
 
     Ok(())
   }
