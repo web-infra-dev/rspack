@@ -42,7 +42,7 @@ pub struct JsCallback<Resolver: FnOnce(Env)> {
 unsafe impl<Resolver: FnOnce(Env)> Send for JsCallback<Resolver> {}
 
 impl<Resolver: FnOnce(Env)> JsCallback<Resolver> {
-  pub(crate) fn new(env: sys::napi_env) -> Result<Self> {
+  pub fn new(env: sys::napi_env) -> Result<Self> {
     let mut async_resource_name = ptr::null_mut();
     let s = unsafe { CStr::from_bytes_with_nul_unchecked(b"napi_js_callback\0") };
     check_status!(

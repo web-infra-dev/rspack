@@ -81,12 +81,14 @@ impl ModuleIssuer {
 define_hook!(NormalModuleReadResource: AsyncSeriesBail(resource_data: &mut ResourceData) -> Content);
 define_hook!(NormalModuleLoader: SyncSeries(loader_context: &mut LoaderContext<CompilerContext>));
 define_hook!(NormalModuleBeforeLoaders: SyncSeries(module: &mut NormalModule));
+define_hook!(NormalModuleAdditionalData: AsyncSeries(additional_data: &mut AdditionalData));
 
 #[derive(Debug, Default)]
 pub struct NormalModuleHooks {
   pub read_resource: NormalModuleReadResourceHook,
   pub loader: NormalModuleLoaderHook,
   pub before_loaders: NormalModuleBeforeLoadersHook,
+  pub additional_data: NormalModuleAdditionalDataHook,
 }
 
 #[impl_source_map_config]
@@ -411,7 +413,7 @@ impl Module for NormalModule {
       additional_data,
     )
     .await;
-    let (loader_result, ds) = match loader_result {
+    let (mut loader_result, ds) = match loader_result {
       Ok(r) => r.split_into_parts(),
       Err(e) => {
         let mut e = ModuleBuildError(e).boxed();
@@ -441,6 +443,12 @@ impl Module for NormalModule {
         });
       }
     };
+    build_context
+      .plugin_driver
+      .normal_module_hooks
+      .additional_data
+      .call(&mut loader_result.additional_data)
+      .await?;
     self.add_diagnostics(ds);
 
     let content = if self.module_type().is_binary() {
