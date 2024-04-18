@@ -18,7 +18,7 @@
   <a href="https://github.com/web-infra-dev/rspack/blob/main/LICENSE">
     <img src="https://img.shields.io/npm/l/@rspack/core?style=flat-square&colorA=564341&colorB=EDED91" alt="license" />
   </a>
-</p>
+</p> 
 
 English | [简体中文](./README.zh-CN.md)
 
