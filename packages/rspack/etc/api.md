@@ -70,6 +70,7 @@ import { SyncBailHook as SyncBailHook_2 } from 'tapable';
 import { SyncHook as SyncHook_2 } from 'tapable';
 import { SyncWaterfallHook } from 'tapable';
 import * as tapable from 'tapable';
+import Template = require('./Template');
 import { UnsetAdditionalOptions as UnsetAdditionalOptions_2 } from 'tapable';
 import type { WatchOptions as WatchOptions_2 } from 'watchpack';
 import type * as webpackDevServer from 'webpack-dev-server';
@@ -85,6 +86,9 @@ export const applyRspackOptionsBaseDefaults: (options: RspackOptionsNormalized) 
 
 // @public (undocumented)
 export const applyRspackOptionsDefaults: (options: RspackOptionsNormalized) => void;
+
+// @public
+const asRegExp: (test: string | RegExp) => RegExp;
 
 // @public (undocumented)
 export interface Asset {
@@ -1511,6 +1515,16 @@ export interface LogEntry {
     type: string;
 }
 
+// Warning: (ae-forgotten-export) The symbol "MatchObject" needs to be exported by the entry point index.d.ts
+//
+// @public
+const matchObject: (obj: MatchObject, str: string) => boolean;
+
+// Warning: (ae-forgotten-export) The symbol "Matcher" needs to be exported by the entry point index.d.ts
+//
+// @public (undocumented)
+const matchPart: (str: string, test: Matcher) => boolean;
+
 // Warning: (ae-forgotten-export) The symbol "mode" needs to be exported by the entry point index.d.ts
 //
 // @public (undocumented)
@@ -1550,8 +1564,14 @@ export interface ModuleFederationPluginV1Options {
     shareScope?: string;
 }
 
-// @public (undocumented)
-export const ModuleFilenameHelpers: any;
+declare namespace ModuleFilenameHelpers {
+    export {
+        asRegExp,
+        matchPart,
+        matchObject
+    }
+}
+export { ModuleFilenameHelpers }
 
 // Warning: (ae-forgotten-export) The symbol "moduleOptions" needs to be exported by the entry point index.d.ts
 //
@@ -4874,8 +4894,7 @@ export type SwcJsMinimizerRspackPluginOptions = {
 // @public (undocumented)
 export type Target = z.infer<typeof target>;
 
-// @public (undocumented)
-export const Template: any;
+export { Template }
 
 // Warning: (ae-forgotten-export) The symbol "trustedTypes" needs to be exported by the entry point index.d.ts
 //

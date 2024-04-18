@@ -39,11 +39,11 @@ export type { NormalModuleFactory } from "./NormalModuleFactory";
 export { NormalModule } from "./NormalModule";
 
 // API extractor not working with some re-exports, see: https://github.com/microsoft/fluentui/issues/20694
-const ModuleFilenameHelpers = require("./lib/ModuleFilenameHelpers");
+import * as ModuleFilenameHelpers from "./lib/ModuleFilenameHelpers";
 export { ModuleFilenameHelpers };
 
 // API extractor not working with some re-exports, see: https://github.com/microsoft/fluentui/issues/20694
-const Template = require("./Template");
+import Template = require("./Template");
 export { Template };
 
 export const WebpackError = Error;
