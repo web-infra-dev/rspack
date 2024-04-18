@@ -25,11 +25,11 @@ impl MappedAssetsCache {
     let mut mapped_asstes: Vec<MappedAsset> = Vec::with_capacity(assets.len());
     let mut vanilla_assets = Vec::with_capacity(assets.len());
     for (filename, vanilla_asset) in assets {
-      if let Some((_, MappedAsset { asset, source_map })) = self.0.remove(filename) {
+      if let Some((_, mapped_asset)) = self.0.remove(filename) {
         if !vanilla_asset.info.version.is_empty()
-          && vanilla_asset.info.version == asset.1.info.version
+          && vanilla_asset.info.version == mapped_asset.asset.1.info.version
         {
-          mapped_asstes.push(MappedAsset { asset, source_map });
+          mapped_asstes.push(mapped_asset);
           continue;
         }
       }

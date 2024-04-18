@@ -214,6 +214,7 @@ impl SourceMapDevToolPlugin {
   async fn map_assets(
     &self,
     compilation: &Compilation,
+    file_to_chunk: &HashMap<String, &Chunk>,
     raw_assets: Vec<(String, &CompilationAsset)>,
   ) -> Result<Vec<MappedAsset>> {
     let output_options = &compilation.options.output;
@@ -396,16 +397,6 @@ impl SourceMapDevToolPlugin {
       mapped_buffer.push((filename.to_owned(), code_buffer, source_map_buffer));
     }
 
-    let mut file_to_chunk: HashMap<String, &Chunk> = HashMap::default();
-    for chunk in compilation.chunk_by_ukey.values() {
-      for file in &chunk.files {
-        file_to_chunk.insert(file.clone(), chunk);
-      }
-      for file in &chunk.auxiliary_files {
-        file_to_chunk.insert(file.clone(), chunk);
-      }
-    }
-
     let mut mapped_asstes: Vec<MappedAsset> = Vec::with_capacity(raw_assets.len());
     for (filename, code_buffer, source_map_buffer) in mapped_buffer {
       let mut asset = compilation
@@ -551,10 +542,25 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let logger = compilation.get_logger("rspack.SourceMapDevToolPlugin");
   let start = logger.time("collect source maps");
 
+  // use to read
+  let mut file_to_chunk: HashMap<String, &Chunk> = HashMap::default();
+  // use to write
+  let mut file_to_chunk_ukey: HashMap<String, ChunkUkey> = HashMap::default();
+  for chunk in compilation.chunk_by_ukey.values() {
+    for file in &chunk.files {
+      file_to_chunk.insert(file.clone(), chunk);
+      file_to_chunk_ukey.insert(file.clone(), chunk.ukey);
+    }
+    for file in &chunk.auxiliary_files {
+      file_to_chunk.insert(file.clone(), chunk);
+      file_to_chunk_ukey.insert(file.clone(), chunk.ukey);
+    }
+  }
+
   let mapped_asstes = self
     .mapped_assets_cache
     .use_cache(compilation.assets(), |assets| {
-      self.map_assets(compilation, assets)
+      self.map_assets(compilation, &file_to_chunk, assets)
     })
     .await?;
 
@@ -566,18 +572,19 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     let MappedAsset {
       asset: (source_filename, mut source_asset),
       source_map,
-    } = mapped_asset.clone();
+    } = mapped_asset;
     if let Some(asset) = compilation.assets_mut().remove(&source_filename) {
       source_asset.info = asset.info;
     }
     compilation.emit_asset(source_filename.to_owned(), source_asset.clone());
     if let Some((source_map_filename, source_map_asset)) = source_map {
       compilation.emit_asset(source_map_filename.to_owned(), source_map_asset.clone());
-      compilation.chunk_by_ukey.values_mut().for_each(|v| {
-        if v.files.contains(&source_filename) {
-          v.auxiliary_files.insert(source_map_filename.to_owned());
-        }
-      });
+
+      let chunk_ukey = file_to_chunk_ukey.get(&source_filename);
+      let chunk = chunk_ukey.map(|ukey| compilation.chunk_by_ukey.expect_get_mut(ukey));
+      if let Some(chunk) = chunk {
+        chunk.auxiliary_files.insert(source_map_filename.to_owned());
+      }
     }
   }
 
