@@ -141,7 +141,7 @@ fn render_module(
   if is_diff_mode() {
     sources.add(RawSource::from(format!(
       "\n{}\n",
-      to_normal_comment(&format!("start::{}", module.identifier()))
+      to_normal_comment(&format!("start::{}::{}", module_id, module.identifier()))
     )));
   }
   sources.add(RawSource::from(format!(
@@ -158,7 +158,7 @@ fn render_module(
   if is_diff_mode() {
     sources.add(RawSource::from(format!(
       "\n{}\n",
-      to_normal_comment(&format!("end::{}", module.identifier()))
+      to_normal_comment(&format!("end::{}::{}", module_id, module.identifier()))
     )));
   }
   sources.add(RawSource::from(",\n"));

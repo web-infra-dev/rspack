@@ -2,7 +2,8 @@ use std::borrow::Cow;
 
 use once_cell::sync::Lazy;
 use regex::Regex;
-use rspack_core::parse_resource;
+use rspack_core::{parse_resource, rspack_sources::ReplaceSource, SpanExt};
+use rspack_util::json_stringify;
 use swc_core::ecma::ast::{
   BinExpr, BinaryOp, CallExpr, Callee, Expr, Lit, MemberProp, TaggedTpl, Tpl,
 };
@@ -14,6 +15,7 @@ pub struct ContextModuleScanResult {
   pub reg: String,
   pub query: String,
   pub fragment: String,
+  pub replaces: Vec<(String, u32, u32)>,
 }
 
 pub(super) fn split_context_from_prefix(prefix: String) -> (String, String) {
@@ -99,6 +101,7 @@ fn scan_context_module_tpl(tpl: &Tpl, kind: TemplateStringKind) -> ContextModule
     reg,
     query,
     fragment,
+    replaces: Vec::new(),
   }
 }
 
@@ -107,16 +110,18 @@ fn scan_context_module_bin(bin: &BinExpr) -> Option<ContextModuleScanResult> {
   if !is_add_op_bin_expr(bin) {
     return None;
   }
-  let prefix_raw = if let Some(prefix) = find_expr_prefix_string(&bin.left) {
-    prefix
-  } else {
-    "".to_string()
-  };
-  let postfix_raw = if let Some(postfix) = find_expr_prefix_string(&bin.right) {
-    postfix
-  } else {
-    "".to_string()
-  };
+  let (prefix_raw, prefix_range) =
+    if let Some((prefix, start, end)) = find_expr_prefix_string(&bin.left) {
+      (prefix, Some((start, end)))
+    } else {
+      ("".to_string(), None)
+    };
+  let (postfix_raw, postfix_range) =
+    if let Some((postfix, start, end)) = find_expr_prefix_string(&bin.right) {
+      (postfix, Some((start, end)))
+    } else {
+      ("".to_string(), None)
+    };
 
   if prefix_raw.is_empty() && postfix_raw.is_empty() {
     return None;
@@ -139,18 +144,35 @@ fn scan_context_module_bin(bin: &BinExpr) -> Option<ContextModuleScanResult> {
     postfix_raw = quote_meta(&postfix)
   );
 
+  let mut replaces = Vec::new();
+  if let Some((start, end)) = prefix_range {
+    replaces.push((json_stringify(&prefix), start, end));
+  }
+  if let Some((start, end)) = postfix_range {
+    replaces.push((json_stringify(&postfix), start, end));
+  }
+
   Some(ContextModuleScanResult {
     context,
     reg,
     query,
     fragment,
+    replaces,
   })
 }
 
-fn find_expr_prefix_string(expr: &Expr) -> Option<String> {
+fn find_expr_prefix_string(expr: &Expr) -> Option<(String, u32, u32)> {
   match &expr {
-    Expr::Lit(Lit::Str(str)) => Some(str.value.to_string()),
-    Expr::Lit(Lit::Num(num)) => Some(num.value.to_string()),
+    Expr::Lit(Lit::Str(str)) => Some((
+      str.value.to_string(),
+      str.span.real_lo(),
+      str.span.real_hi(),
+    )),
+    Expr::Lit(Lit::Num(num)) => Some((
+      num.value.to_string(),
+      num.span.real_lo(),
+      num.span.real_hi(),
+    )),
     Expr::Bin(bin) => find_expr_prefix_string(&bin.left),
     _ => None,
   }
@@ -208,6 +230,7 @@ fn scan_context_module_concat_call(expr: &CallExpr) -> Option<ContextModuleScanR
     reg,
     query,
     fragment,
+    replaces: Vec::new(),
   })
 }
 
@@ -233,6 +256,7 @@ fn scan_context_module_tagged_tpl(tpl: &TaggedTpl) -> ContextModuleScanResult {
       reg: String::new(),
       query: String::new(),
       fragment: String::new(),
+      replaces: Vec::new(),
     },
   }
 }

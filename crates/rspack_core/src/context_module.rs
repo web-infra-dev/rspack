@@ -128,15 +128,13 @@ pub struct ContextOptions {
   pub recursive: bool,
   #[derivative(Hash = "ignore", PartialEq = "ignore")]
   pub reg_exp: Option<RspackRegex>,
-  // TODO: remove `reg_str`
-  pub reg_str: String, // generate context module id
   pub include: Option<String>,
   pub exclude: Option<String>,
   pub category: DependencyCategory,
   pub request: String,
   pub context: String,
   pub namespace_object: ContextNameSpaceObject,
-  pub chunk_name: Option<String>,
+  pub group_options: Option<GroupOptions>,
   pub start: u32,
   pub end: u32,
 }
@@ -683,8 +681,10 @@ impl Module for ContextModule {
     if self.options.context_options.recursive {
       id.push_str(" recursive");
     }
-    id.push(' ');
-    id.push_str(&self.options.context_options.reg_str);
+    if let Some(regexp) = &self.options.context_options.reg_exp {
+      id.push(' ');
+      id.push_str(&regexp.to_pretty_string(true));
+    }
     Some(Cow::Owned(id))
   }
 
@@ -909,7 +909,6 @@ impl ContextModule {
     if matches!(self.options.context_options.mode, ContextMode::LazyOnce)
       && !context_element_dependencies.is_empty()
     {
-      let name = self.options.context_options.chunk_name.clone();
       let mut block = AsyncDependenciesBlock::new(
         self.identifier,
         Some(
@@ -925,18 +924,21 @@ impl ContextModule {
           .map(|dep| Box::new(dep) as Box<dyn Dependency>)
           .collect(),
       );
-      block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions::new(
-        name, None, None,
-      )));
+      if let Some(group_options) = &self.options.context_options.group_options {
+        block.set_group_options(group_options.clone());
+      }
       blocks.push(block);
     } else if matches!(self.options.context_options.mode, ContextMode::Lazy) {
       let mut index = 0;
       for context_element_dependency in context_element_dependencies {
-        let name = self
+        let group_options = self
           .options
           .context_options
-          .chunk_name
+          .group_options
           .as_ref()
+          .and_then(|g| g.normal_options());
+        let name = group_options
+          .and_then(|group_options| group_options.name.as_ref())
           .map(|name| {
             let name = if !WEBPACK_CHUNK_NAME_PLACEHOLDER.is_match(name) {
               Cow::Owned(format!("{name}[index]"))
@@ -951,6 +953,8 @@ impl ContextModule {
             });
             name.into_owned()
           });
+        let preload_order = group_options.and_then(|o| o.preload_order);
+        let prefetch_order = group_options.and_then(|o| o.prefetch_order);
         let mut block = AsyncDependenciesBlock::new(
           self.identifier,
           Some(
@@ -964,7 +968,9 @@ impl ContextModule {
           vec![Box::new(context_element_dependency)],
         );
         block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions::new(
-          name, None, None,
+          name,
+          preload_order,
+          prefetch_order,
         )));
         blocks.push(block);
       }
@@ -998,9 +1004,9 @@ fn create_identifier(options: &ContextModuleOptions) -> Identifier {
     id += "|";
     id += &options.addon;
   }
-  if !options.context_options.reg_str.is_empty() {
+  if let Some(regexp) = &options.context_options.reg_exp {
     id += "|";
-    id += &options.context_options.reg_str;
+    id += &regexp.to_pretty_string(false);
   }
   if let Some(include) = &options.context_options.include {
     id += "|include: ";
@@ -1010,9 +1016,21 @@ fn create_identifier(options: &ContextModuleOptions) -> Identifier {
     id += "|exclude: ";
     id += &exclude;
   }
-  if let Some(v) = &options.context_options.chunk_name {
-    id += "|chunkName: ";
-    id += &v;
+  if let Some(GroupOptions::ChunkGroup(group)) = &options.context_options.group_options {
+    if let Some(chunk_name) = &group.name {
+      id += "|chunkName: ";
+      id += chunk_name;
+    }
+    id += "|groupOptions: {";
+    if let Some(o) = group.prefetch_order {
+      id += "prefetchOrder: ";
+      id += &o.to_string();
+    }
+    if let Some(o) = group.preload_order {
+      id += "preloadOrder: ";
+      id += &o.to_string();
+    }
+    id += "}";
   }
   id += match options.context_options.namespace_object {
     ContextNameSpaceObject::Strict => "|strict namespace object",

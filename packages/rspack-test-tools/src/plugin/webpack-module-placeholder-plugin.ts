@@ -106,11 +106,12 @@ export class WebpackModulePlaceholderPlugin {
 					let footer = cacheEntry.footer;
 					if (header === undefined) {
 						const identifier = module.identifier();
+						const moduleId = compilation.chunkGraph.getModuleId(module);
 						header = new RawSource(
-							`\n${Template.toNormalComment(`start::${identifier}`)}\n`
+							`\n${Template.toNormalComment(`start::${moduleId}::${identifier}`)}\n`
 						);
 						footer = new RawSource(
-							`\n${Template.toNormalComment(`end::${identifier}`)}\n`
+							`\n${Template.toNormalComment(`end::${moduleId}::${identifier}`)}\n`
 						);
 						cacheEntry.header = header;
 						cacheEntry.footer = footer;

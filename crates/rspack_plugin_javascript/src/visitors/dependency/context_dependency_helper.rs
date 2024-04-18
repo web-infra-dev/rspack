@@ -53,6 +53,7 @@ pub fn create_context_dependency(
       reg,
       query,
       fragment,
+      replaces: Vec::new(),
     })
     // TODO: `replaces` in context module
     // TODO: `critical` in context module
@@ -109,6 +110,7 @@ pub fn create_context_dependency(
       reg,
       query,
       fragment,
+      replaces: Vec::new(),
     })
 
     // TODO: `replaces` in context module
