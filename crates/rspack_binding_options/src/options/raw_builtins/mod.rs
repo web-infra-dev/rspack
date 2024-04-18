@@ -113,6 +113,7 @@ pub enum BuiltinPluginName {
   ContainerReferencePlugin,
   ProvideSharedPlugin,
   ConsumeSharedPlugin,
+  FederationRuntimePlugin,
   NamedModuleIdsPlugin,
   DeterministicModuleIdsPlugin,
   NamedChunkIdsPlugin,
@@ -273,14 +274,6 @@ impl BuiltinPlugin {
             .boxed(),
         );
       }
-      BuiltinPluginName::ContainerPlugin => {
-        plugins.push(
-          FederationRuntimePlugin::new(
-            downcast_into::<RawContainerPluginOptions>(self.options)?.into(),
-          )
-          .boxed(),
-        );
-      }
       BuiltinPluginName::ContainerReferencePlugin => {
         plugins.push(
           ContainerReferencePlugin::new(
@@ -303,6 +296,9 @@ impl BuiltinPlugin {
         )
         .boxed(),
       ),
+      BuiltinPluginName::FederationRuntimePlugin => {
+        plugins.push(FederationRuntimePlugin::default().boxed())
+      }
       BuiltinPluginName::NamedModuleIdsPlugin => {
         plugins.push(NamedModuleIdsPlugin::default().boxed())
       }

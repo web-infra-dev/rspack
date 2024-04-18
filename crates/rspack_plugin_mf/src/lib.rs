@@ -8,6 +8,7 @@ pub use container::container_plugin::{ContainerPlugin, ContainerPluginOptions, E
 pub use container::container_reference_plugin::{
   ContainerReferencePlugin, ContainerReferencePluginOptions, RemoteOptions,
 };
+pub use container::federation_runtime::FederationRuntimePlugin;
 pub use sharing::consume_shared_plugin::{
   ConsumeOptions, ConsumeSharedPlugin, ConsumeSharedPluginOptions, ConsumeVersion,
 };
