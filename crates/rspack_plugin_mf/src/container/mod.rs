@@ -9,6 +9,8 @@ pub mod fallback_dependency;
 pub mod fallback_item_dependency;
 pub mod fallback_module;
 pub mod fallback_module_factory;
+pub mod federation_module;
+pub mod federation_runtime;
 pub mod remote_module;
 pub mod remote_runtime_module;
 pub mod remote_to_external_dependency;

@@ -11,8 +11,8 @@ use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 
 use super::{
-  fallback_module_factory::FallbackModuleFactory, remote_module::RemoteModule,
-  remote_runtime_module::RemoteRuntimeModule,
+  fallback_module_factory::FallbackModuleFactory, federation_runtime::FederationRuntimePlugin,
+  remote_module::RemoteModule, remote_runtime_module::RemoteRuntimeModule,
 };
 
 #[derive(Debug)]
@@ -23,7 +23,7 @@ pub struct ContainerReferencePluginOptions {
   pub enhanced: bool,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct RemoteOptions {
   pub external: Vec<String>,
   pub share_scope: String,
@@ -156,6 +156,16 @@ impl Plugin for ContainerReferencePlugin {
       .compilation_hooks
       .runtime_requirement_in_tree
       .tap(runtime_requirements_in_tree::new(self));
+
+    let federation_options = federation_runtime::Options {
+      remote_type: self.options.remote_type.clone(),
+      remotes: self.options.remotes.clone(),
+      share_scope: self.options.share_scope.clone(),
+      enhanced: self.options.enhanced,
+    };
+
+    federation_runtime::apply(ctx, federation_options)?;
+
     Ok(())
   }
 }

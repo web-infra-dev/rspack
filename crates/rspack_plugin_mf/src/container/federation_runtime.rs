@@ -1,63 +1,38 @@
 use std::sync::Arc;
 
+use async_trait::async_trait;
 use rspack_core::{
-  ApplyContext, ChunkUkey, Compilation, CompilationParams, CompilerCompilation, CompilerOptions,
-  Plugin, PluginContext, RuntimeGlobals,
+  ApplyContext, ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements,
+  CompilationParams, CompilerCompilation, CompilerOptions, Plugin, PluginContext, RuntimeGlobals,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use serde::Serialize;
 
-use crate::federation_runtime_module::FederationRuntimeModule;
-use crate::utils::{get_federation_global_scope, normalize_runtime_init_options_without_shared};
+use super::federation_module::FederationRuntimeModule;
+
+#[derive(Debug, Clone, Serialize)]
+pub struct RemoteOptions {
+  pub external: Vec<String>,
+  pub share_scope: String,
+}
+
+pub type Remotes = Vec<(String, RemoteOptions)>;
 
 #[derive(Debug, Serialize)]
 pub struct FederationRuntimePluginOptions {
-  pub namex: Option<String>,
-  // Other options can be added here as needed
+  pub name: Option<String>,
+  pub remotes: Option<Remotes>,
 }
 
 #[plugin]
 #[derive(Debug)]
 pub struct FederationRuntimePlugin {
   options: FederationRuntimePluginOptions,
-  entry_file_path: String,
-  bundler_runtime_path: String,
 }
-
 impl FederationRuntimePlugin {
   pub fn new(options: FederationRuntimePluginOptions) -> Self {
-    Self { options }
-  }
-
-  fn inject_runtime(&self, compilation: &mut Compilation) -> Result<()> {
-    if let Some(name) = &self.options.name {
-      let init_options_without_shared =
-        normalize_runtime_init_options_without_shared(&self.options);
-      let federation_global = get_federation_global_scope(RuntimeGlobals);
-
-      compilation.hooks.additional_tree_runtime_requirements.tap(
-        self.constructor_name(),
-        move |chunk, runtime_requirements| {
-          if !runtime_requirements.contains(&federation_global) {
-            runtime_requirements.insert(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION);
-            runtime_requirements.insert(RuntimeGlobals::MODULE_CACHE);
-            runtime_requirements.insert(RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT);
-            runtime_requirements.insert(federation_global);
-            compilation.add_runtime_module(
-              chunk,
-              Box::new(FederationRuntimeModule::new(
-                runtime_requirements.clone(),
-                name.clone(),
-                init_options_without_shared.clone(),
-              )),
-            )?;
-          }
-          Ok(())
-        },
-      );
-    }
-    Ok(())
+    Self::new_inner(options)
   }
 
   fn constructor_name(&self) -> &'static str {
@@ -65,13 +40,29 @@ impl FederationRuntimePlugin {
   }
 }
 
-#[plugin_hook(CompilerCompilation for FederationRuntimePlugin)]
-async fn compilation(
+#[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for FederationRuntimePlugin)]
+fn additional_tree_runtime_requirements(
   &self,
   compilation: &mut Compilation,
-  _params: &mut CompilationParams,
+  chunk_ukey: &ChunkUkey,
+  runtime_requirements: &mut RuntimeGlobals,
 ) -> Result<()> {
-  self.inject_runtime(compilation)
+  let federation_global = format!("{}.federation", RuntimeGlobals::REQUIRE);
+  if !runtime_requirements.contains(&federation_global) {
+    runtime_requirements_mut.insert(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION);
+    runtime_requirements_mut.insert(RuntimeGlobals::MODULE_CACHE);
+    runtime_requirements_mut.insert(RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT);
+    runtime_requirements_mut.insert(federation_global.clone());
+    compilation.add_runtime_module(
+      chunk_ukey,
+      Box::new(FederationRuntimeModule::new(
+        runtime_requirements.clone(),
+        self.options.name.clone(),
+        (&self.options).clone(),
+      )),
+    )?;
+  }
+  Ok(None)
 }
 
 #[async_trait]
@@ -87,9 +78,9 @@ impl Plugin for FederationRuntimePlugin {
   ) -> Result<()> {
     ctx
       .context
-      .compiler_hooks
-      .compilation
-      .tap(compilation::new(self));
+      .compilation_hooks
+      .additional_tree_runtime_requirements
+      .tap(additional_tree_runtime_requirements::new(self));
     Ok(())
   }
 }
