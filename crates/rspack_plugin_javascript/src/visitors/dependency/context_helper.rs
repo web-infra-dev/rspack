@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use once_cell::sync::Lazy;
 use regex::Regex;
-use rspack_core::{parse_resource, rspack_sources::ReplaceSource, SpanExt};
+use rspack_core::{parse_resource, SpanExt};
 use rspack_util::json_stringify;
 use swc_core::ecma::ast::{
   BinExpr, BinaryOp, CallExpr, Callee, Expr, Lit, MemberProp, TaggedTpl, Tpl,

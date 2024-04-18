@@ -1,4 +1,3 @@
-use rspack_core::rspack_sources::Source;
 use rspack_core::{module_raw, parse_resource, AsModuleDependency, ContextDependency};
 use rspack_core::{normalize_context, DependencyCategory, DependencyId, DependencyTemplate};
 use rspack_core::{ContextOptions, Dependency, TemplateReplaceSource};

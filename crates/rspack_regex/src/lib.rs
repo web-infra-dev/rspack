@@ -1,6 +1,6 @@
 #![feature(let_chains)]
 
-use std::fmt::Debug;
+use std::fmt::{Debug, Display};
 
 use rspack_error::Error;
 use swc_core::ecma::ast::Regex as SwcRegex;
@@ -12,7 +12,7 @@ mod algo;
 /// Using wrapper type required by [TryFrom] trait
 #[derive(Clone, Hash)]
 pub struct RspackRegex {
-  pub algo: Algo,
+  algo: Box<Algo>,
   source: String,
   flags: String,
 }
@@ -44,16 +44,12 @@ impl RspackRegex {
     Ok(Self {
       flags: chars.into_iter().collect::<String>(),
       source: expr.to_string(),
-      algo: Algo::new(expr, flags)?,
+      algo: Box::new(Algo::new(expr, flags)?),
     })
   }
 
   pub fn new(expr: &str) -> Result<Self, Error> {
     Self::with_flags(expr, "")
-  }
-
-  pub fn to_string(&self) -> String {
-    format!("/{}/{}", self.source, self.flags)
   }
 
   pub fn to_pretty_string(&self, strip_slash: bool) -> String {
@@ -64,6 +60,12 @@ impl RspackRegex {
     }
     .replace('!', "%21")
     .replace('|', "%7C")
+  }
+}
+
+impl Display for RspackRegex {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    write!(f, "/{}/{}", self.source, self.flags)
   }
 }
 

@@ -182,7 +182,6 @@ impl TryFrom<RawRuleSetCondition> for rspack_core::RuleSetCondition {
           )
         })?;
         let reg = rspack_regex::RspackRegex::with_flags(&reg_matcher.source, &reg_matcher.flags)?;
-        tracing::debug!(regex_matcher = ?x.regexp_matcher, algo_type = ?reg.algo);
         Self::Regexp(reg)
       },
       "logical" => {
