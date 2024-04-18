@@ -4,8 +4,25 @@ import { ApiMeta } from '../../../../components/ApiMeta.tsx';
 
 <ApiMeta addedVersion={'0.3.3'} />
 
-This plugin is used to add the Hot Module Replacement feature. When added, it will add the runtime modules required for the hot change to the runtime chunk.
+Enables Hot Module Replacement.
+
+```warning
+HMR should **never** be used in production.
+```
+
+Enabling HMR is straightforward and in most cases no options are necessary.
 
 ```js
-new rspack.HotModuleReplacementPlugin();
+new rspack.HotModuleReplacementPlugin({
+  // Options...
+});
 ```
+
+## Options
+
+### strictModuleErrorHandling
+
+Handle error in module loading as per EcmaScript Modules spec at a performance cost.
+
+- **Type:** `boolean`
+- **Default:** `false`
