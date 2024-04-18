@@ -67,7 +67,7 @@ impl ModuleExecutor {
       None,
     );
     compilation.dependency_factories = dependency_factories;
-    compilation.swap_module_graph_with_module_executor(self);
+    compilation.swap_make_module_graph(&mut self.make_module_graph);
 
     let mut mg = compilation.get_module_graph_mut();
     let dep_id = match self.request_dep_map.entry(request.clone()) {
@@ -288,7 +288,7 @@ impl ModuleExecutor {
     }
     if !has_error {
       // save make module_graph for next import_module
-      compilation.swap_module_graph_with_module_executor(self);
+      compilation.swap_make_module_graph(&mut self.make_module_graph);
     }
 
     execute_result
