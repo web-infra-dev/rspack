@@ -142,6 +142,7 @@ pub enum ModuleOrSource {
 struct MappedAsset {
   asset: (String, CompilationAsset),
   source_map: Option<(String, CompilationAsset)>,
+  associated_chunk_ukey: Option<ChunkUkey>,
 }
 
 #[plugin]
@@ -425,6 +426,7 @@ impl SourceMapDevToolPlugin {
         mapped_asstes.push(MappedAsset {
           asset: (filename, asset),
           source_map: None,
+          associated_chunk_ukey: None,
         });
         continue;
       };
@@ -512,6 +514,7 @@ impl SourceMapDevToolPlugin {
         mapped_asstes.push(MappedAsset {
           asset: (filename, asset.clone()),
           source_map: Some((source_map_filename, source_map_asset)),
+          associated_chunk_ukey: chunk.map(|c| c.ukey),
         });
       } else {
         let current_source_mapping_url_comment = current_source_mapping_url_comment
@@ -539,6 +542,7 @@ impl SourceMapDevToolPlugin {
         mapped_asstes.push(MappedAsset {
           asset: (filename, asset),
           source_map: None,
+          associated_chunk_ukey: None,
         });
       }
     }
@@ -566,18 +570,21 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     let MappedAsset {
       asset: (source_filename, mut source_asset),
       source_map,
-    } = mapped_asset.clone();
+      associated_chunk_ukey,
+    } = mapped_asset;
     if let Some(asset) = compilation.assets_mut().remove(&source_filename) {
       source_asset.info = asset.info;
     }
     compilation.emit_asset(source_filename.to_owned(), source_asset.clone());
     if let Some((source_map_filename, source_map_asset)) = source_map {
       compilation.emit_asset(source_map_filename.to_owned(), source_map_asset.clone());
-      compilation.chunk_by_ukey.values_mut().for_each(|v| {
-        if v.files.contains(&source_filename) {
-          v.auxiliary_files.insert(source_map_filename.to_owned());
-        }
-      });
+
+      if let Some(associated_chunk_ukey) = associated_chunk_ukey {
+        let chunk = compilation
+          .chunk_by_ukey
+          .expect_get_mut(&associated_chunk_ukey);
+        chunk.auxiliary_files.insert(source_map_filename.to_owned());
+      }
     }
   }
 
