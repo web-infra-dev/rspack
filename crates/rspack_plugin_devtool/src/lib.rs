@@ -540,8 +540,6 @@ impl SourceMapDevToolPlugin {
           asset: (filename, asset),
           source_map: None,
         });
-        // TODO
-        // chunk.auxiliary_files.add(filename);
       }
     }
     Ok(mapped_asstes)
