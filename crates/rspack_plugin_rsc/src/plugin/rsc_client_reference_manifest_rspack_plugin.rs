@@ -3,10 +3,11 @@ use std::time::Instant;
 
 use rspack_core::rspack_sources::{RawSource, SourceExt};
 use rspack_core::{
-  AssetInfo, Compilation, CompilationAsset, ExportInfoProvided, Plugin, PluginContext,
+  AssetInfo, Compilation, CompilationAsset, CompilationProcessAssets, ExportInfoProvided, Plugin,
+  PluginContext,
 };
 use rspack_error::Result;
-use rspack_hook::{plugin, plugin_hook, AsyncSeries};
+use rspack_hook::{plugin, plugin_hook};
 use serde::Serialize;
 use serde_json::to_string;
 
@@ -31,7 +32,7 @@ pub struct ClientRef {
   pub chunks: Vec<String>,
 }
 
-#[plugin_hook(AsyncSeries<Compilation> for RSCClientReferenceManifestRspackPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_HASH)]
+#[plugin_hook(CompilationProcessAssets for RSCClientReferenceManifestRspackPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_HASH)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let plugin = RSCClientReferenceManifest {};
   plugin.process_assets_stage_optimize_hash(compilation)
