@@ -21,9 +21,6 @@ pub struct AutoPublicPathRuntimeModule {
 
 pub struct FederationRuntimeModuleOptions {
   pub name: String,
-  pub share_scope: String,
-  pub library: LibraryOptions,
-  pub exposes: Vec<(String, ExposeOptions)>,
   pub remotes: Vec<(String, RemoteOptions)>,
   pub enhanced: bool,
 }
@@ -36,11 +33,7 @@ impl Default for AutoPublicPathRuntimeModule {
       source_map_kind: SourceMapKind::None,
       custom_source: None,
       options: FederationRuntimeModuleOptions {
-        // Initialize default FederationRuntimeModuleOptions
         name: String::new(),
-        share_scope: String::new(),
-        library: LibraryOptions::default(),
-        exposes: Vec::new(),
         remotes: Vec::new(),
         enhanced: false,
       },
