@@ -124,6 +124,7 @@ export enum BuiltinPluginName {
   ContainerReferencePlugin = 'ContainerReferencePlugin',
   ProvideSharedPlugin = 'ProvideSharedPlugin',
   ConsumeSharedPlugin = 'ConsumeSharedPlugin',
+  ModuleFederationRuntimePlugin = 'ModuleFederationRuntimePlugin',
   NamedModuleIdsPlugin = 'NamedModuleIdsPlugin',
   DeterministicModuleIdsPlugin = 'DeterministicModuleIdsPlugin',
   NamedChunkIdsPlugin = 'NamedChunkIdsPlugin',
