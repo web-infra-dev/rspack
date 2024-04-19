@@ -7,7 +7,7 @@ use std::hash::Hash;
 use std::path::Path;
 use std::sync::{mpsc, Arc, Mutex};
 
-use once_cell::sync::OnceCell;
+use once_cell::sync::{Lazy, OnceCell};
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::rspack_sources::{ConcatSource, MapOptions, RawSource, SourceExt, SourceMap};
@@ -32,6 +32,9 @@ pub use swc_ecma_minifier::option::MangleOptions;
 use self::minify::{match_object, minify};
 
 const PLUGIN_NAME: &str = "rspack.SwcJsMinimizerRspackPlugin";
+
+static JAVASCRIPT_ASSET_REGEXP: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"\.[cm]?js(\?.*)?$").expect("Invalid RegExp"));
 
 #[derive(Debug, Default)]
 pub struct SwcJsMinimizerRspackPluginOptions {
@@ -203,7 +206,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     .assets_mut()
     .par_iter_mut()
     .filter(|(filename, original)| {
-      if !(filename.ends_with(".js") || filename.ends_with(".cjs") || filename.ends_with(".mjs")) {
+      if !JAVASCRIPT_ASSET_REGEXP.is_match(filename) {
         return false
       }
 
