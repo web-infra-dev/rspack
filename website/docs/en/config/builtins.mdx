@@ -24,7 +24,7 @@ The built-in functionality provided by _builtins_ may change in the future or be
 />
 
 :::warning
-Please migrate to [`BannerPlugin`](/config/plugins.html#bannerplugin).
+Please migrate to [`BannerPlugin`](/plugins/webpack/banner-plugin).
 :::
 
 - **Type:**
@@ -244,7 +244,7 @@ module.exports = {
 />
 
 :::warning
-Please migrate to [`HtmlRspackPlugin`](/config/plugins.html#htmlrspackplugin).
+Please migrate to [`HtmlRspackPlugin`](/plugins/rspack/html-rspack-plugin).
 :::
 
 This configuration simplifies creation of HTML files to serve your Rspack bundles.
@@ -302,7 +302,7 @@ If the configuration options provided by `rspack.HtmlRspackPlugin` cannot meet y
 />
 
 :::warning
-Please migrate to [`SwcJsMinimizerRspackPlugin`](/config/plugins.html#swcjsminimizerrspackplugin).
+Please migrate to [`SwcJsMinimizerRspackPlugin`](/plugins/rspack/swc-js-minimizer-rspack-plugin).
 :::
 
 Set built-in minimizer options.
@@ -342,7 +342,7 @@ type BuiltinsMinifyOptions = {
 />
 
 :::warning
-Please migrate to [`DefinePlugin`](/config/plugins.html#defineplugin).
+Please migrate to [`DefinePlugin`](/plugins/webpack/define-plugin).
 :::
 
 Replaces variables in your code with other values or expressions at compile time.
@@ -520,7 +520,7 @@ type BuiltinsCssModules = {
 />
 
 :::warning
-Please migrate to [`ProgressPlugin`](/config/plugins.html#progressplugin).
+Please migrate to [`ProgressPlugin`](/plugins/webpack/progress-plugin).
 :::
 
 This configuration can be used to control progress, `false` means to turn off progress.
@@ -562,7 +562,7 @@ Whether to enable the development-friendly split chunks algorithm.
 />
 
 :::warning
-Please migrate to [`CopyRspackPlugin`](/config/plugins.html#copyrspackplugin).
+Please migrate to [`CopyRspackPlugin`](/plugins/rspack/copy-rspack-plugin).
 :::
 
 import WebpackLicense from '../../../components/webpack-license';
@@ -818,7 +818,7 @@ import 'antd/es/button/style';
 />
 
 :::warning
-Please migrate to [`ProvidePlugin`](/config/plugins.html#provideplugin).
+Please migrate to [`ProvidePlugin`](/plugins/webpack/provide-plugin).
 :::
 
 Automatically load modules instead of having to import or require them everywhere.
