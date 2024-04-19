@@ -69,7 +69,7 @@ fn additional_tree_runtime_requirements(
   chunk_ukey: &ChunkUkey,
   _runtime_requirements: &mut RuntimeGlobals,
 ) -> Result<()> {
-  compilation.add_runtime_module(chunk_ukey, Box::new(FederationRuntimeModule::default()))?;
+  compilation.add_runtime_module(chunk_ukey, Box::<FederationRuntimeModule>::default())?;
   Ok(())
 }
 

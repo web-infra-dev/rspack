@@ -4993,33 +4993,33 @@ export type WorkerPublicPath = z.infer<typeof workerPublicPath>;
 
 // Warnings were encountered during analysis:
 //
-// src/Compilation.ts:107:3 - (ae-forgotten-export) The symbol "liteTapable" needs to be exported by the entry point index.d.ts
-// src/Compilation.ts:112:3 - (ae-forgotten-export) The symbol "Module" needs to be exported by the entry point index.d.ts
-// src/Compilation.ts:114:4 - (ae-forgotten-export) The symbol "Chunk" needs to be exported by the entry point index.d.ts
-// src/Compilation.ts:127:3 - (ae-forgotten-export) The symbol "StatsFactory" needs to be exported by the entry point index.d.ts
-// src/Compilation.ts:128:3 - (ae-forgotten-export) The symbol "StatsPrinter" needs to be exported by the entry point index.d.ts
-// src/Compilation.ts:130:4 - (ae-forgotten-export) The symbol "ExecuteModuleArgument" needs to be exported by the entry point index.d.ts
-// src/Compilation.ts:130:4 - (ae-forgotten-export) The symbol "ExecuteModuleContext" needs to be exported by the entry point index.d.ts
-// src/Compiler.ts:114:3 - (ae-forgotten-export) The symbol "AssetEmittedInfo" needs to be exported by the entry point index.d.ts
-// src/MultiCompiler.ts:66:3 - (ae-forgotten-export) The symbol "Any" needs to be exported by the entry point index.d.ts
-// src/NormalModuleFactory.ts:14:9 - (ae-forgotten-export) The symbol "ResourceDataWithData" needs to be exported by the entry point index.d.ts
-// src/NormalModuleFactory.ts:14:50 - (ae-forgotten-export) The symbol "ResolveData" needs to be exported by the entry point index.d.ts
-// src/NormalModuleFactory.ts:16:6 - (ae-forgotten-export) The symbol "NormalModuleCreateData" needs to be exported by the entry point index.d.ts
-// src/builtin-plugin/SwcJsMinimizerPlugin.ts:48:2 - (ae-forgotten-export) The symbol "ExtractCommentsOptions" needs to be exported by the entry point index.d.ts
-// src/builtin-plugin/SwcJsMinimizerPlugin.ts:49:2 - (ae-forgotten-export) The symbol "TerserCompressOptions" needs to be exported by the entry point index.d.ts
-// src/builtin-plugin/SwcJsMinimizerPlugin.ts:50:2 - (ae-forgotten-export) The symbol "TerserMangleOptions" needs to be exported by the entry point index.d.ts
-// src/builtin-plugin/SwcJsMinimizerPlugin.ts:51:2 - (ae-forgotten-export) The symbol "JsFormatOptions" needs to be exported by the entry point index.d.ts
-// src/builtin-plugin/SwcJsMinimizerPlugin.ts:51:2 - (ae-forgotten-export) The symbol "ToSnakeCaseProperties" needs to be exported by the entry point index.d.ts
-// src/builtin-plugin/SwcJsMinimizerPlugin.ts:53:2 - (ae-forgotten-export) The symbol "MinifyConditions" needs to be exported by the entry point index.d.ts
-// src/config/adapterRuleUse.ts:214:2 - (ae-forgotten-export) The symbol "PitchLoaderDefinitionFunction" needs to be exported by the entry point index.d.ts
-// src/config/zod.ts:1196:43 - (ae-forgotten-export) The symbol "oldBuiltins" needs to be exported by the entry point index.d.ts
-// src/exports.ts:57:20 - (ae-forgotten-export) The symbol "ContainerPlugin" needs to be exported by the entry point index.d.ts
-// src/exports.ts:57:20 - (ae-forgotten-export) The symbol "ContainerReferencePlugin" needs to be exported by the entry point index.d.ts
-// src/exports.ts:57:20 - (ae-forgotten-export) The symbol "ModuleFederationPlugin" needs to be exported by the entry point index.d.ts
-// src/exports.ts:57:20 - (ae-forgotten-export) The symbol "ModuleFederationPluginV1" needs to be exported by the entry point index.d.ts
-// src/exports.ts:57:20 - (ae-forgotten-export) The symbol "ProvideSharedPlugin" needs to be exported by the entry point index.d.ts
-// src/exports.ts:57:20 - (ae-forgotten-export) The symbol "ConsumeSharedPlugin" needs to be exported by the entry point index.d.ts
-// src/exports.ts:57:20 - (ae-forgotten-export) The symbol "SharePlugin" needs to be exported by the entry point index.d.ts
+// dist/Compilation.d.ts:66:9 - (ae-forgotten-export) The symbol "liteTapable" needs to be exported by the entry point index.d.ts
+// dist/Compilation.d.ts:71:9 - (ae-forgotten-export) The symbol "Module" needs to be exported by the entry point index.d.ts
+// dist/Compilation.d.ts:73:9 - (ae-forgotten-export) The symbol "Chunk" needs to be exported by the entry point index.d.ts
+// dist/Compilation.d.ts:86:9 - (ae-forgotten-export) The symbol "StatsFactory" needs to be exported by the entry point index.d.ts
+// dist/Compilation.d.ts:87:9 - (ae-forgotten-export) The symbol "StatsPrinter" needs to be exported by the entry point index.d.ts
+// dist/Compilation.d.ts:89:9 - (ae-forgotten-export) The symbol "ExecuteModuleArgument" needs to be exported by the entry point index.d.ts
+// dist/Compilation.d.ts:89:9 - (ae-forgotten-export) The symbol "ExecuteModuleContext" needs to be exported by the entry point index.d.ts
+// dist/Compiler.d.ts:82:9 - (ae-forgotten-export) The symbol "AssetEmittedInfo" needs to be exported by the entry point index.d.ts
+// dist/MultiCompiler.d.ts:35:9 - (ae-forgotten-export) The symbol "Any" needs to be exported by the entry point index.d.ts
+// dist/NormalModuleFactory.d.ts:9:9 - (ae-forgotten-export) The symbol "ResourceDataWithData" needs to be exported by the entry point index.d.ts
+// dist/NormalModuleFactory.d.ts:10:9 - (ae-forgotten-export) The symbol "ResolveData" needs to be exported by the entry point index.d.ts
+// dist/NormalModuleFactory.d.ts:12:9 - (ae-forgotten-export) The symbol "NormalModuleCreateData" needs to be exported by the entry point index.d.ts
+// dist/builtin-plugin/SwcJsMinimizerPlugin.d.ts:40:5 - (ae-forgotten-export) The symbol "ExtractCommentsOptions" needs to be exported by the entry point index.d.ts
+// dist/builtin-plugin/SwcJsMinimizerPlugin.d.ts:41:5 - (ae-forgotten-export) The symbol "TerserCompressOptions" needs to be exported by the entry point index.d.ts
+// dist/builtin-plugin/SwcJsMinimizerPlugin.d.ts:42:5 - (ae-forgotten-export) The symbol "TerserMangleOptions" needs to be exported by the entry point index.d.ts
+// dist/builtin-plugin/SwcJsMinimizerPlugin.d.ts:43:5 - (ae-forgotten-export) The symbol "JsFormatOptions" needs to be exported by the entry point index.d.ts
+// dist/builtin-plugin/SwcJsMinimizerPlugin.d.ts:43:5 - (ae-forgotten-export) The symbol "ToSnakeCaseProperties" needs to be exported by the entry point index.d.ts
+// dist/builtin-plugin/SwcJsMinimizerPlugin.d.ts:45:5 - (ae-forgotten-export) The symbol "MinifyConditions" needs to be exported by the entry point index.d.ts
+// dist/config/adapterRuleUse.d.ts:145:5 - (ae-forgotten-export) The symbol "PitchLoaderDefinitionFunction" needs to be exported by the entry point index.d.ts
+// dist/config/zod.d.ts:5304:5 - (ae-forgotten-export) The symbol "oldBuiltins" needs to be exported by the entry point index.d.ts
+// dist/exports.d.ts:103:5 - (ae-forgotten-export) The symbol "ContainerPlugin" needs to be exported by the entry point index.d.ts
+// dist/exports.d.ts:104:5 - (ae-forgotten-export) The symbol "ContainerReferencePlugin" needs to be exported by the entry point index.d.ts
+// dist/exports.d.ts:105:5 - (ae-forgotten-export) The symbol "ModuleFederationPlugin" needs to be exported by the entry point index.d.ts
+// dist/exports.d.ts:106:5 - (ae-forgotten-export) The symbol "ModuleFederationPluginV1" needs to be exported by the entry point index.d.ts
+// dist/exports.d.ts:115:5 - (ae-forgotten-export) The symbol "ProvideSharedPlugin" needs to be exported by the entry point index.d.ts
+// dist/exports.d.ts:116:5 - (ae-forgotten-export) The symbol "ConsumeSharedPlugin" needs to be exported by the entry point index.d.ts
+// dist/exports.d.ts:117:5 - (ae-forgotten-export) The symbol "SharePlugin" needs to be exported by the entry point index.d.ts
 
 // (No @packageDocumentation comment for this package)
 
