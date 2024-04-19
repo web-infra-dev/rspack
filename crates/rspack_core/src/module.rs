@@ -169,6 +169,7 @@ pub trait Module:
   Debug
   + Send
   + Sync
+  + Any
   + AsAny
   + DynHash
   + DynEq
@@ -482,21 +483,21 @@ impl Identifiable for Box<dyn Module> {
   }
 }
 
-impl PartialEq for dyn Module + '_ {
+impl PartialEq for dyn Module {
   fn eq(&self, other: &Self) -> bool {
     self.dyn_eq(other.as_any())
   }
 }
 
-impl Eq for dyn Module + '_ {}
+impl Eq for dyn Module {}
 
-impl Hash for dyn Module + '_ {
+impl Hash for dyn Module {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
     self.dyn_hash(state)
   }
 }
 
-impl dyn Module + '_ {
+impl dyn Module {
   pub fn downcast_ref<T: Module + Any>(&self) -> Option<&T> {
     self.as_any().downcast_ref::<T>()
   }
@@ -537,9 +538,9 @@ macro_rules! impl_module_meta_info {
 
 macro_rules! impl_module_downcast_helpers {
   ($ty:ty, $ident:ident) => {
-    impl dyn Module + '_ {
+    impl dyn Module {
       ::paste::paste! {
-        pub fn [<as_ $ident>](&self) -> Option<& $ty> {
+        pub fn [<as_ $ident>](&self) -> Option<&$ty> {
           self.as_any().downcast_ref::<$ty>()
         }
 
@@ -547,7 +548,7 @@ macro_rules! impl_module_downcast_helpers {
           self.as_any_mut().downcast_mut::<$ty>()
         }
 
-        pub fn [<try_as_ $ident>](&self) -> Result<& $ty> {
+        pub fn [<try_as_ $ident>](&self) -> Result<&$ty> {
           self.[<as_ $ident>]().ok_or_else(|| {
             ::rspack_error::error!(
               "Failed to cast module to a {}",
