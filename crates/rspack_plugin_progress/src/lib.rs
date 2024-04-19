@@ -182,7 +182,6 @@ impl ProgressPlugin {
   }
 
   fn progress_bar_handler(&self, percent: f32, msg: String, state_items: Vec<String>) {
-    println!("percent: {percent:?}");
     self
       .progress_bar
       .set_message(msg + " " + state_items.join(" ").as_str());
@@ -384,7 +383,6 @@ async fn after_process_assets(&self, _compilation: &mut Compilation) -> Result<(
 
 #[plugin_hook(CompilerEmit for ProgressPlugin)]
 async fn emit(&self, _compilation: &mut Compilation) -> Result<()> {
-  println!("emitting");
   self.handler(0.98, "emitting".to_string(), vec!["emit".to_string()], None);
   Ok(())
 }
