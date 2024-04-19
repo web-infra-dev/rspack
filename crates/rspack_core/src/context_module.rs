@@ -1,12 +1,13 @@
 use std::{
   borrow::Cow,
-  fmt::{self, Display},
   fs,
   hash::Hash,
   path::{Path, PathBuf},
   sync::Arc,
 };
 
+use derivative::Derivative;
+use indoc::formatdoc;
 use itertools::Itertools;
 use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
@@ -16,14 +17,14 @@ use rspack_identifier::{Identifiable, Identifier};
 use rspack_macros::impl_source_map_config;
 use rspack_regex::RspackRegex;
 use rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
-use rspack_util::source_map::SourceMapKind;
+use rspack_util::{json_stringify, source_map::SourceMapKind};
 use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  block_promise, contextify, get_exports_type_with_strict, impl_module_meta_info,
-  returning_function, stringify_map, to_path, AsyncDependenciesBlock,
-  AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
+  contextify, get_exports_type_with_strict, impl_module_meta_info, returning_function,
+  stringify_map, to_path, AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency,
+  BuildContext, BuildInfo, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, BuildResult,
   ChunkGraph, ChunkGroupOptions, CodeGenerationResult, Compilation, ConcatenationScope,
   ContextElementDependency, DependenciesBlock, Dependency, DependencyCategory, DependencyId,
   ExportsType, FactoryMeta, FakeNamespaceObjectMode, GroupOptions, LibIdentOptions, Module,
@@ -120,92 +121,32 @@ pub fn clean_regexp_in_context_module(regexp: RspackRegex) -> Option<RspackRegex
   }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Derivative, Debug, Clone)]
+#[derivative(Hash, PartialEq)]
 pub struct ContextOptions {
   pub mode: ContextMode,
   pub recursive: bool,
+  #[derivative(Hash = "ignore", PartialEq = "ignore")]
   pub reg_exp: Option<RspackRegex>,
-  // TODO: remove `reg_str`
-  pub reg_str: String, // generate context module id
   pub include: Option<String>,
   pub exclude: Option<String>,
   pub category: DependencyCategory,
   pub request: String,
   pub context: String,
   pub namespace_object: ContextNameSpaceObject,
-  pub chunk_name: Option<String>,
+  pub group_options: Option<GroupOptions>,
   pub start: u32,
   pub end: u32,
 }
 
-impl Display for ContextOptions {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(
-      f,
-      "ContextOptions|{:?}|{:?}|{:?}|{:?}|{:?}|{:?}|{:?}|{:?}|{:?}|{:?}|{:?}",
-      self.mode,
-      self.recursive,
-      self.reg_exp,
-      self.reg_str,
-      self.include,
-      self.exclude,
-      self.category,
-      self.request,
-      self.context,
-      self.namespace_object,
-      self.chunk_name
-    )
-  }
-}
-
-impl PartialEq for ContextOptions {
-  fn eq(&self, other: &Self) -> bool {
-    self.mode == other.mode
-      && self.recursive == other.recursive
-      && self.reg_str == other.reg_str
-      && self.include == other.include
-      && self.exclude == other.exclude
-      && self.category == other.category
-      && self.request == other.request
-      && self.context == other.context
-      && self.namespace_object == other.namespace_object
-  }
-}
-
-impl Eq for ContextOptions {}
-
-impl Hash for ContextOptions {
-  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-    self.mode.hash(state);
-    self.recursive.hash(state);
-    self.reg_str.hash(state);
-    self.include.hash(state);
-    self.exclude.hash(state);
-    self.category.hash(state);
-    self.request.hash(state);
-    self.context.hash(state);
-    self.namespace_object.hash(state);
-  }
-}
-
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq)]
 pub struct ContextModuleOptions {
   pub addon: String,
   pub resource: String,
-  pub resource_query: Option<String>,
-  pub resource_fragment: Option<String>,
+  pub resource_query: String,
+  pub resource_fragment: String,
   pub context_options: ContextOptions,
   pub resolve_options: Option<Box<Resolve>>,
-}
-
-impl Display for ContextModuleOptions {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(
-      f,
-      "{}|{:?}|{:?}|{}",
-      self.resource, self.resource_query, self.resource_fragment, self.context_options
-    )
-  }
 }
 
 pub enum FakeMapValue {
@@ -321,14 +262,20 @@ impl ContextModule {
     }
   }
 
-  fn get_return_module_object_source(&self, fake_map: &FakeMapValue, async_module: bool) -> String {
+  fn get_return_module_object_source(
+    &self,
+    fake_map: &FakeMapValue,
+    async_module: bool,
+    fake_map_data_expr: &str,
+  ) -> String {
     if let FakeMapValue::Bit(bit) = fake_map {
       return self.get_return(bit, async_module);
     }
     format!(
-      "return {}(id, fakeMap[id]{});",
+      "return {}(id, {}{});",
       RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
-      if async_module { "| 16" } else { "" },
+      fake_map_data_expr,
+      if async_module { " | 16" } else { "" },
     )
   }
 
@@ -340,7 +287,7 @@ impl ContextModule {
       "return {}(id, {}{});",
       RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
       fake_map_bit,
-      if async_module { "| 16" } else { "" },
+      if async_module { " | 16" } else { "" },
     )
   }
 
@@ -380,40 +327,38 @@ impl ContextModule {
     map
   }
 
-  fn get_block_promise_map(
-    &self,
-    blocks: impl IntoIterator<Item = &AsyncDependenciesBlock>,
-    compilation: &Compilation,
-    runtime_requirements: &mut RuntimeGlobals,
-  ) -> HashMap<String, String> {
-    let blocks = blocks
-      .into_iter()
-      .filter_map(|b| b.get_dependencies().first().map(|first| (b, first)));
-    let mut map = HashMap::default();
-    for (block, dep_id) in blocks {
-      if let Some(dependency) = compilation
-        .get_module_graph()
-        .dependency_by_id(dep_id)
-        .and_then(|d| d.as_module_dependency())
-      {
-        let getter = returning_function(
-          &block_promise(Some(&block.identifier()), runtime_requirements, compilation),
-          "",
-        );
-        map.insert(dependency.user_request().to_string(), getter);
-      }
-    }
-    map
+  fn get_source_for_empty_async_context(&self, compilation: &Compilation) -> BoxSource {
+    RawSource::from(formatdoc! {r#"
+      function webpackEmptyAsyncContext(req) {{
+        // Here Promise.resolve().then() is used instead of new Promise() to prevent
+        // uncaught exception popping up in devtools
+        return Promise.resolve().then(function() {{
+          var e = new Error("Cannot find module '" + req + "'");
+          e.code = 'MODULE_NOT_FOUND';
+          throw e;
+        }});
+      }}
+      webpackEmptyAsyncContext.keys = {keys};
+      webpackEmptyAsyncContext.resolve = webpackEmptyAsyncContext;
+      webpackEmptyAsyncContext.id = {id};
+      module.exports = webpackEmptyAsyncContext;
+      "#,
+      keys = returning_function("[]", ""),
+      id = json_stringify(self.id(&compilation.chunk_graph))
+    })
+    .boxed()
   }
 
   #[inline]
-  fn get_source_string(
-    &self,
-    compilation: &Compilation,
-    runtime_requirements: &mut RuntimeGlobals,
-  ) -> BoxSource {
+  fn get_source_string(&self, compilation: &Compilation) -> BoxSource {
     match self.options.context_options.mode {
-      ContextMode::Lazy => self.get_lazy_source(compilation, runtime_requirements),
+      ContextMode::Lazy => {
+        if !self.get_blocks().is_empty() {
+          self.get_lazy_source(compilation)
+        } else {
+          self.get_source_for_empty_async_context(compilation)
+        }
+      }
       ContextMode::LazyOnce => {
         let module_graph = compilation.get_module_graph();
         let block = self
@@ -427,60 +372,157 @@ impl ContextModule {
     }
   }
 
-  fn get_lazy_source(
-    &self,
-    compilation: &Compilation,
-    runtime_requirements: &mut RuntimeGlobals,
-  ) -> BoxSource {
+  fn get_lazy_source(&self, compilation: &Compilation) -> BoxSource {
     let module_graph = compilation.get_module_graph();
     let blocks = self
       .get_blocks()
       .iter()
       .filter_map(|b| module_graph.block_by_id(b));
-    let block_map = self.get_block_promise_map(blocks.clone(), compilation, runtime_requirements);
-    let dependencies = blocks.filter_map(|b| b.get_dependencies().first());
-    let fake_map = self.get_fake_map(dependencies.clone(), compilation);
-    let map = self.get_user_request_map(dependencies, compilation);
-    let return_module_object = self.get_return_module_object_source(&fake_map, true);
+    let block_and_first_dependency_list = blocks
+      .clone()
+      .filter_map(|b| b.get_dependencies().first().map(|d| (b, d)));
+    let first_dependencies = block_and_first_dependency_list.clone().map(|(_, d)| d);
+    let mut has_multiple_or_no_chunks = false;
+    let mut has_no_chunk = true;
+    let fake_map = self.get_fake_map(first_dependencies, compilation);
+    let has_fake_map = matches!(fake_map, FakeMapValue::Map(_));
+    let mut items = block_and_first_dependency_list
+      .filter_map(|(b, d)| {
+        let chunks = compilation
+          .chunk_graph
+          .get_block_chunk_group(&b.identifier(), &compilation.chunk_group_by_ukey)
+          .map(|chunk_group| {
+            let chunks = &chunk_group.chunks;
+            if !chunks.is_empty() {
+              has_no_chunk = false;
+            }
+            if chunks.len() != 1 {
+              has_multiple_or_no_chunks = true;
+            }
+            chunks
+          });
+        let user_request = compilation
+          .get_module_graph()
+          .dependency_by_id(d)
+          .and_then(|dep| {
+            dep
+              .as_module_dependency()
+              .map(|d| d.user_request().to_string())
+              .or_else(|| dep.as_context_dependency().map(|d| d.request().to_string()))
+          })?;
+        let module_id = module_graph
+          .module_identifier_by_dependency_id(d)
+          .and_then(|m| compilation.chunk_graph.get_module_id(*m).as_ref())?;
+        Some((chunks, user_request, module_id.to_string()))
+      })
+      .collect::<Vec<_>>();
+    let short_mode = has_no_chunk && !has_fake_map;
+    items.sort_unstable_by(|a, b| a.1.cmp(&b.1));
+    let map = items
+      .into_iter()
+      .map(|(chunks, user_request, module_id)| {
+        let value = if short_mode {
+          serde_json::Value::String(module_id)
+        } else {
+          let second = if let FakeMapValue::Map(fake_map) = &fake_map {
+            Some(fake_map[&module_id])
+          } else {
+            None
+          };
+          let mut array_start = vec![serde_json::json!(module_id)];
+          if let Some(second) = second {
+            array_start.push(serde_json::json!(second.bits()));
+          }
+          if let Some(chunks) = chunks {
+            array_start.extend(chunks.iter().map(|c| {
+              let chunk_id = compilation
+                .chunk_by_ukey
+                .expect_get(c)
+                .id
+                .as_ref()
+                .expect("should have chunk id in code generation");
+              serde_json::json!(chunk_id)
+            }))
+          }
+          serde_json::json!(array_start)
+        };
+        (user_request, value)
+      })
+      .collect::<HashMap<_, _>>();
+    let chunks_start_position = if has_fake_map { 2 } else { 1 };
+    let request_prefix = if has_no_chunk {
+      "Promise.resolve()".to_string()
+    } else if has_multiple_or_no_chunks {
+      format!(
+        "Promise.all(ids.slice({chunks_start_position}).map({}))",
+        RuntimeGlobals::ENSURE_CHUNK
+      )
+    } else {
+      format!(
+        "{}(ids[{}])",
+        RuntimeGlobals::ENSURE_CHUNK,
+        chunks_start_position
+      )
+    };
+    let return_module_object = self.get_return_module_object_source(
+      &fake_map,
+      true,
+      if short_mode { "invalid" } else { "ids[1]" },
+    );
     let mut source = ConcatSource::default();
-    source.add(RawSource::from(format!(
-      "var blockMap = {};\n",
-      stringify_map(&block_map)
-    )));
-    source.add(RawSource::from(format!(
-      "var map = {};\n",
-      stringify_map(&map)
-    )));
-    if let FakeMapValue::Map(map) = &fake_map {
-      source.add(RawSource::from(format!(
-        "var fakeMap = {};\n",
-        stringify_map(map)
-      )));
-    }
-    source.add(RawSource::from(format!(
-      r#"
-      function webpackAsyncContext(req) {{
-        if(!__webpack_require__.o(map, req)) {{
+    let webpack_async_context = if has_no_chunk {
+      formatdoc! {r#"
+        function webpackAsyncContext(req) {{
           return Promise.resolve().then(function() {{
-            var e = new Error("Cannot find module '" + req + "'");
-            e.code = 'MODULE_NOT_FOUND';
-            throw e;
+            if(!{}(map, req)) {{
+              var e = new Error("Cannot find module '" + req + "'");
+              e.code = 'MODULE_NOT_FOUND';
+              throw e;
+            }}
+
+            {}
+            {return_module_object}
           }});
         }}
-        var blockGetter = blockMap[req];
-        var id = map[req];
-        return blockGetter().then(function() {{
-          {return_module_object}
-        }});
-      }}
-      webpackAsyncContext.keys = function() {{
-        return Object.keys(map);
-      }};
-      webpackAsyncContext.id = {:?};
+        "#,
+        RuntimeGlobals::HAS_OWN_PROPERTY,
+        if short_mode {
+          "var id = map[req];"
+        } else {
+          "var ids = map[req], id = ids[0];"
+        }
+      }
+    } else {
+      formatdoc! {r#"
+        function webpackAsyncContext(req) {{
+          if(!{}(map, req)) {{
+            return Promise.resolve().then(function() {{
+              var e = new Error("Cannot find module '" + req + "'");
+              e.code = 'MODULE_NOT_FOUND';
+              throw e;
+            }});
+          }}
+
+          var ids = map[req], id = ids[0];
+          return {request_prefix}.then(function() {{
+            {return_module_object}
+          }});
+        }}
+        "#,
+        RuntimeGlobals::HAS_OWN_PROPERTY,
+      }
+    };
+    source.add(RawSource::from(formatdoc! {r#"
+      var map = {map};
+      {webpack_async_context}
+      webpackAsyncContext.keys = {keys};
+      webpackAsyncContext.id = {id};
       module.exports = webpackAsyncContext;
       "#,
-      self.id(&compilation.chunk_graph)
-    )));
+      map = stringify_map(&map),
+      keys = returning_function("Object.keys(map)", ""),
+      id = json_stringify(self.id(&compilation.chunk_graph))
+    }));
     source.boxed()
   }
 
@@ -491,10 +533,10 @@ impl ContextModule {
     let return_module_object = {
       match *mode {
         ContextMode::Sync | ContextMode::Weak | ContextMode::Eager => {
-          self.get_return_module_object_source(&fake_map, false)
+          self.get_return_module_object_source(&fake_map, false, "fakeMap[id]")
         }
         ContextMode::AsyncWeak | ContextMode::LazyOnce => {
-          self.get_return_module_object_source(&fake_map, true)
+          self.get_return_module_object_source(&fake_map, true, "fakeMap[id]")
         }
         ContextMode::Lazy => {
           unreachable!("lazy mode shouldn't be handled by get_source_string")
@@ -634,11 +676,15 @@ impl Module for ContextModule {
 
   fn lib_ident(&self, options: LibIdentOptions) -> Option<Cow<str>> {
     let mut id = contextify(options.context, &self.options.resource);
-    id.push_str(format!(" {:?} ", self.options.context_options.mode).as_str());
+    id.push(' ');
+    id.push_str(self.options.context_options.mode.as_str());
     if self.options.context_options.recursive {
-      id.push_str(" recursive ");
+      id.push_str(" recursive");
     }
-    id.push_str(&self.options.context_options.reg_str);
+    if let Some(regexp) = &self.options.context_options.reg_exp {
+      id.push(' ');
+      id.push_str(&regexp.to_pretty_string(true));
+    }
     Some(Cow::Owned(id))
   }
 
@@ -647,7 +693,32 @@ impl Module for ContextModule {
     build_context: BuildContext<'_>,
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
-    self.resolve_dependencies(build_context)
+    let (dependencies, blocks) = self.resolve_dependencies()?;
+
+    let mut hasher = RspackHash::from(&build_context.compiler_options.output);
+    self.update_hash(&mut hasher);
+
+    let mut context_dependencies: HashSet<PathBuf> = Default::default();
+    context_dependencies.insert(PathBuf::from(&self.options.resource));
+
+    let build_info = BuildInfo {
+      hash: Some(hasher.digest(&build_context.compiler_options.output.hash_digest)),
+      context_dependencies,
+      ..Default::default()
+    };
+
+    Ok(BuildResult {
+      build_info,
+      build_meta: BuildMeta {
+        exports_type: BuildMetaExportsType::Default,
+        default_object: BuildMetaDefaultObject::RedirectWarn,
+        ..Default::default()
+      },
+      dependencies,
+      blocks,
+      analyze_result: Default::default(),
+      optimization_bailouts: vec![],
+    })
   }
 
   fn code_generation(
@@ -657,38 +728,8 @@ impl Module for ContextModule {
     _: Option<ConcatenationScope>,
   ) -> Result<CodeGenerationResult> {
     let mut code_generation_result = CodeGenerationResult::default();
-    code_generation_result
-      .runtime_requirements
-      .insert(RuntimeGlobals::MODULE);
-    code_generation_result
-      .runtime_requirements
-      .insert(RuntimeGlobals::HAS_OWN_PROPERTY);
-
-    // TODO inject runtime globals by dep size
-    code_generation_result
-      .runtime_requirements
-      .insert(RuntimeGlobals::REQUIRE);
-    match self.options.context_options.mode {
-      ContextMode::Weak => {
-        code_generation_result
-          .runtime_requirements
-          .insert(RuntimeGlobals::MODULE_FACTORIES);
-      }
-      ContextMode::AsyncWeak => {
-        code_generation_result
-          .runtime_requirements
-          .insert(RuntimeGlobals::MODULE_FACTORIES);
-        code_generation_result
-          .runtime_requirements
-          .insert(RuntimeGlobals::ENSURE_CHUNK);
-      }
-      ContextMode::Lazy | ContextMode::LazyOnce => {
-        code_generation_result
-          .runtime_requirements
-          .insert(RuntimeGlobals::ENSURE_CHUNK);
-      }
-      _ => {}
-    }
+    let source = self.get_source_string(compilation);
+    code_generation_result.add(SourceType::JavaScript, source);
     let mut all_deps = self.get_dependencies().to_vec();
     let module_graph = compilation.get_module_graph();
     for block in self.get_blocks() {
@@ -697,17 +738,44 @@ impl Module for ContextModule {
         .expect("should have block in ContextModule code_generation");
       all_deps.extend(block.get_dependencies());
     }
-    let fake_map = self.get_fake_map(all_deps.iter(), compilation);
-    if !matches!(fake_map, FakeMapValue::Bit(bit) if bit == FakeNamespaceObjectMode::NAMESPACE) {
+    code_generation_result
+      .runtime_requirements
+      .insert(RuntimeGlobals::MODULE);
+    code_generation_result
+      .runtime_requirements
+      .insert(RuntimeGlobals::HAS_OWN_PROPERTY);
+    if !all_deps.is_empty() {
       code_generation_result
         .runtime_requirements
-        .insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
+        .insert(RuntimeGlobals::REQUIRE);
+      match self.options.context_options.mode {
+        ContextMode::Weak => {
+          code_generation_result
+            .runtime_requirements
+            .insert(RuntimeGlobals::MODULE_FACTORIES);
+        }
+        ContextMode::AsyncWeak => {
+          code_generation_result
+            .runtime_requirements
+            .insert(RuntimeGlobals::MODULE_FACTORIES);
+          code_generation_result
+            .runtime_requirements
+            .insert(RuntimeGlobals::ENSURE_CHUNK);
+        }
+        ContextMode::Lazy | ContextMode::LazyOnce => {
+          code_generation_result
+            .runtime_requirements
+            .insert(RuntimeGlobals::ENSURE_CHUNK);
+        }
+        _ => {}
+      }
+      let fake_map = self.get_fake_map(all_deps.iter(), compilation);
+      if !matches!(fake_map, FakeMapValue::Bit(bit) if bit == FakeNamespaceObjectMode::NAMESPACE) {
+        code_generation_result
+          .runtime_requirements
+          .insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
+      }
     }
-    let source = self.get_source_string(
-      compilation,
-      &mut code_generation_result.runtime_requirements,
-    );
-    code_generation_result.add(SourceType::JavaScript, source);
     code_generation_result.set_hash(
       &compilation.options.output.hash_function,
       &compilation.options.output.hash_digest,
@@ -796,8 +864,8 @@ impl ContextModule {
               "{}{}{}{}",
               options.addon,
               r.request,
-              options.resource_query.clone().unwrap_or_default(),
-              options.resource_fragment.clone().unwrap_or_default()
+              options.resource_query.clone(),
+              options.resource_fragment.clone(),
             ),
             user_request: r.request.to_string(),
             category: options.context_options.category,
@@ -812,7 +880,7 @@ impl ContextModule {
     Ok(())
   }
 
-  fn resolve_dependencies(&self, build_context: BuildContext<'_>) -> Result<BuildResult> {
+  fn resolve_dependencies(&self) -> Result<(Vec<BoxDependency>, Vec<AsyncDependenciesBlock>)> {
     tracing::trace!("resolving context module path {}", self.options.resource);
 
     let resolver = &self.resolve_factory.get(ResolveOptionsWithDependencyType {
@@ -841,7 +909,6 @@ impl ContextModule {
     if matches!(self.options.context_options.mode, ContextMode::LazyOnce)
       && !context_element_dependencies.is_empty()
     {
-      let name = self.options.context_options.chunk_name.clone();
       let mut block = AsyncDependenciesBlock::new(
         self.identifier,
         Some(
@@ -857,18 +924,21 @@ impl ContextModule {
           .map(|dep| Box::new(dep) as Box<dyn Dependency>)
           .collect(),
       );
-      block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions::new(
-        name, None, None,
-      )));
+      if let Some(group_options) = &self.options.context_options.group_options {
+        block.set_group_options(group_options.clone());
+      }
       blocks.push(block);
     } else if matches!(self.options.context_options.mode, ContextMode::Lazy) {
       let mut index = 0;
       for context_element_dependency in context_element_dependencies {
-        let name = self
+        let group_options = self
           .options
           .context_options
-          .chunk_name
+          .group_options
           .as_ref()
+          .and_then(|g| g.normal_options());
+        let name = group_options
+          .and_then(|group_options| group_options.name.as_ref())
           .map(|name| {
             let name = if !WEBPACK_CHUNK_NAME_PLACEHOLDER.is_match(name) {
               Cow::Owned(format!("{name}[index]"))
@@ -883,6 +953,8 @@ impl ContextModule {
             });
             name.into_owned()
           });
+        let preload_order = group_options.and_then(|o| o.preload_order);
+        let prefetch_order = group_options.and_then(|o| o.prefetch_order);
         let mut block = AsyncDependenciesBlock::new(
           self.identifier,
           Some(
@@ -896,7 +968,9 @@ impl ContextModule {
           vec![Box::new(context_element_dependency)],
         );
         block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions::new(
-          name, None, None,
+          name,
+          preload_order,
+          prefetch_order,
         )));
         blocks.push(block);
       }
@@ -907,31 +981,63 @@ impl ContextModule {
         .collect();
     }
 
-    let mut hasher = RspackHash::from(&build_context.compiler_options.output);
-    self.update_hash(&mut hasher);
-
-    let mut context_dependencies: HashSet<PathBuf> = Default::default();
-    context_dependencies.insert(PathBuf::from(&self.options.resource));
-
-    let build_info = BuildInfo {
-      hash: Some(hasher.digest(&build_context.compiler_options.output.hash_digest)),
-      context_dependencies,
-      ..Default::default()
-    };
-
-    Ok(BuildResult {
-      build_info,
-      build_meta: BuildMeta::default(),
-      dependencies,
-      blocks,
-      analyze_result: Default::default(),
-      optimization_bailouts: vec![],
-    })
+    Ok((dependencies, blocks))
   }
 }
 
 fn create_identifier(options: &ContextModuleOptions) -> Identifier {
-  Identifier::from(format!("{options}"))
+  let mut id = String::from(&options.resource);
+  if !options.resource_query.is_empty() {
+    id += "|";
+    id += &options.resource_query;
+  }
+  if !options.resource_fragment.is_empty() {
+    id += "|";
+    id += &options.resource_fragment;
+  }
+  id += "|";
+  id += options.context_options.mode.as_str();
+  if !options.context_options.recursive {
+    id += "|nonrecursive";
+  }
+  if !options.addon.is_empty() {
+    id += "|";
+    id += &options.addon;
+  }
+  if let Some(regexp) = &options.context_options.reg_exp {
+    id += "|";
+    id += &regexp.to_pretty_string(false);
+  }
+  if let Some(include) = &options.context_options.include {
+    id += "|include: ";
+    id += &include;
+  }
+  if let Some(exclude) = &options.context_options.exclude {
+    id += "|exclude: ";
+    id += &exclude;
+  }
+  if let Some(GroupOptions::ChunkGroup(group)) = &options.context_options.group_options {
+    if let Some(chunk_name) = &group.name {
+      id += "|chunkName: ";
+      id += chunk_name;
+    }
+    id += "|groupOptions: {";
+    if let Some(o) = group.prefetch_order {
+      id += "prefetchOrder: ";
+      id += &o.to_string();
+    }
+    if let Some(o) = group.preload_order {
+      id += "preloadOrder: ";
+      id += &o.to_string();
+    }
+    id += "}";
+  }
+  id += match options.context_options.namespace_object {
+    ContextNameSpaceObject::Strict => "|strict namespace object",
+    ContextNameSpaceObject::Bool(true) => "|namespace object",
+    _ => "",
+  };
+  id.into()
 }
 
 pub fn normalize_context(str: &str) -> String {

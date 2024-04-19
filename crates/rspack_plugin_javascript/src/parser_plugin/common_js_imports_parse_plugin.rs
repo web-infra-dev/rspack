@@ -43,17 +43,16 @@ fn create_commonjs_require_context_dependency(
   // });
   scanner_context_module(expr).map(|result| {
     let options = ContextOptions {
-      chunk_name: None,
       mode: ContextMode::Sync,
       recursive: true,
       reg_exp: context_reg_exp(&result.reg, ""),
-      reg_str: result.reg,
       include: None,
       exclude: None,
       category: DependencyCategory::CommonJS,
       request: format!("{}{}{}", result.context, result.query, result.fragment),
       context: result.context,
       namespace_object: ContextNameSpaceObject::Unset,
+      group_options: None,
       start: callee_start,
       end: callee_end,
     };
@@ -224,17 +223,16 @@ impl CommonJsImportsParserPlugin {
       ident.span().real_hi(),
       ident.span().real_hi(),
       ContextOptions {
-        chunk_name: None,
         mode: ContextMode::Sync,
         recursive: true,
         reg_exp: None,
-        reg_str: "".to_string(),
         include: None,
         exclude: None,
         category: DependencyCategory::Unknown,
         request: ".".to_string(),
         context: ".".to_string(),
         namespace_object: ContextNameSpaceObject::Unset,
+        group_options: None,
         start: ident.span().real_lo(),
         end: ident.span().real_hi(),
       },

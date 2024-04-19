@@ -6,7 +6,7 @@ use crate::{DependencyCategory, DependencyId, DependencyType};
 use crate::{ExtendedReferencedExport, ModuleDependency};
 use crate::{ModuleGraph, ReferencedExport, RuntimeSpec};
 
-#[derive(Debug, Eq, PartialEq, Clone, Hash)]
+#[derive(Debug, PartialEq, Clone, Hash)]
 pub struct ContextElementDependency {
   pub id: DependencyId,
   // TODO remove this async dependency mark

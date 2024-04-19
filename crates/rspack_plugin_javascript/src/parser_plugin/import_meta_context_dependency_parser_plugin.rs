@@ -2,7 +2,7 @@ use rspack_core::{
   clean_regexp_in_context_module, context_reg_exp, ContextMode, ContextNameSpaceObject,
   ContextOptions, DependencyCategory, SpanExt,
 };
-use rspack_regex::{regexp_as_str, RspackRegex};
+use rspack_regex::RspackRegex;
 use swc_core::common::Spanned;
 use swc_core::ecma::ast::{CallExpr, Lit};
 
@@ -39,7 +39,6 @@ fn create_import_meta_context_dependency(node: &CallExpr) -> Option<ImportMetaCo
       None
     })?;
   let reg = r"^\.\/.*$";
-  let reg_str = reg.to_string();
   let context_options = if let Some(obj) = node.args.get(1).and_then(|arg| arg.expr.as_object()) {
     let regexp = get_regex_by_obj_prop(obj, "regExp")
       .map(|regexp| RspackRegex::try_from(regexp).expect("reg failed"))
@@ -54,11 +53,8 @@ fn create_import_meta_context_dependency(node: &CallExpr) -> Option<ImportMetaCo
     let recursive = get_bool_by_obj_prop(obj, "recursive")
       .map(|bool| bool.value)
       .unwrap_or(true);
-    let reg_str = regexp_as_str(&regexp).to_string();
     ContextOptions {
-      chunk_name: None,
       reg_exp: clean_regexp_in_context_module(regexp),
-      reg_str,
       include: None,
       exclude: None,
       recursive,
@@ -66,23 +62,23 @@ fn create_import_meta_context_dependency(node: &CallExpr) -> Option<ImportMetaCo
       request: context.clone(),
       context,
       namespace_object: ContextNameSpaceObject::Unset,
+      group_options: None,
       mode,
       start: node.span().real_lo(),
       end: node.span().real_hi(),
     }
   } else {
     ContextOptions {
-      chunk_name: None,
       recursive: true,
       mode: ContextMode::Sync,
       include: None,
       exclude: None,
       reg_exp: context_reg_exp(reg, ""),
-      reg_str,
       category: DependencyCategory::Esm,
       request: context.clone(),
       context,
       namespace_object: ContextNameSpaceObject::Unset,
+      group_options: None,
       start: node.span().real_lo(),
       end: node.span().real_hi(),
     }

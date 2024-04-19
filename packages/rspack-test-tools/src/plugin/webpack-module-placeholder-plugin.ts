@@ -6,7 +6,6 @@ const {
 	PrefixSource
 } = require("webpack-sources");
 const path = require("path");
-const which = require("which-module");
 
 function createRenderRuntimeModulesFn(Template) {
 	return function renderRuntimeModules(runtimeModules, renderContext) {
@@ -59,12 +58,12 @@ const caches = new WeakMap();
 export class WebpackModulePlaceholderPlugin {
 	constructor() {}
 	apply(compiler) {
-		const webpackLibPath = which(compiler.constructor).path;
-		const Template = require(path.join(webpackLibPath, "Template.js"));
+		const { webpack } = compiler;
+		const {
+			Template,
+			javascript: { JavascriptModulesPlugin }
+		} = webpack;
 		Template.renderRuntimeModules = createRenderRuntimeModulesFn(Template);
-		const JavascriptModulesPlugin = require(
-			path.join(webpackLibPath, "javascript/JavascriptModulesPlugin.js")
-		);
 		compiler.hooks.compilation.tap("RuntimeDiffPlugin", compilation => {
 			const hooks = JavascriptModulesPlugin.getCompilationHooks(compilation);
 			hooks.inlineInRuntimeBailout.tap(
@@ -73,16 +72,11 @@ export class WebpackModulePlaceholderPlugin {
 			);
 			hooks.renderModulePackage.tap(
 				"RuntimeDiffPlugin",
-				(
-					moduleSource,
-					module,
-					{ chunk, chunkGraph, moduleGraph, runtimeTemplate }
-				) => {
-					const { requestShortener } = runtimeTemplate;
+				(moduleSource, module) => {
 					let cacheEntry;
-					let cache = caches.get(requestShortener);
+					let cache = caches.get(compilation);
 					if (cache === undefined) {
-						caches.set(requestShortener, (cache = new WeakMap()));
+						caches.set(compilation, (cache = new WeakMap()));
 						cache.set(
 							module,
 							(cacheEntry = {
@@ -111,14 +105,14 @@ export class WebpackModulePlaceholderPlugin {
 					let header = cacheEntry.header;
 					let footer = cacheEntry.footer;
 					if (header === undefined) {
-						const req = module.readableIdentifier(requestShortener);
-						let reqStr = req.replace(/\*\//g, "*_/");
-						// handle css module identifier
-						if (reqStr.startsWith("css ")) {
-							reqStr = reqStr.replace(/^css[\s]+/, "").trim();
-						}
-						header = new RawSource(`\n/* start::${reqStr} */\n`);
-						footer = new RawSource(`\n/* end::${reqStr} */\n`);
+						const identifier = module.identifier();
+						const moduleId = compilation.chunkGraph.getModuleId(module);
+						header = new RawSource(
+							`\n${Template.toNormalComment(`start::${moduleId}::${identifier}`)}\n`
+						);
+						footer = new RawSource(
+							`\n${Template.toNormalComment(`end::${moduleId}::${identifier}`)}\n`
+						);
 						cacheEntry.header = header;
 						cacheEntry.footer = footer;
 					}

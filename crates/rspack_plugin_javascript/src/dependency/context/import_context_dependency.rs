@@ -14,6 +14,7 @@ pub struct ImportContextDependency {
   options: ContextOptions,
   span: Option<ErrorSpan>,
   resource_identifier: String,
+  replaces: Vec<(String, u32, u32)>,
 }
 
 impl ImportContextDependency {
@@ -22,6 +23,7 @@ impl ImportContextDependency {
     callee_end: u32,
     args_end: u32,
     options: ContextOptions,
+    replaces: Vec<(String, u32, u32)>,
     span: Option<ErrorSpan>,
   ) -> Self {
     let resource_identifier = create_resource_identifier_for_context_dependency(None, &options);
@@ -33,6 +35,7 @@ impl ImportContextDependency {
       span,
       id: DependencyId::new(),
       resource_identifier,
+      replaces,
     }
   }
 }
@@ -112,25 +115,31 @@ impl DependencyTemplate for ImportContextDependency {
 
     source.replace(self.callee_start, self.callee_end, &expr, None);
 
-    let context = normalize_context(&self.options.context);
-    let query = parse_resource(&self.options.request).and_then(|data| data.query);
-    if !context.is_empty() || query.is_some() {
-      source.insert(self.callee_end, "(", None);
-      if !context.is_empty() {
-        source.insert(
-          self.args_end,
-          format!(".replace('{context}', './')").as_str(),
-          None,
-        );
+    if !self.replaces.is_empty() {
+      for (content, start, end) in &self.replaces {
+        source.replace(*start, *end, content, None);
       }
-      if let Some(query) = query {
-        source.insert(
-          self.args_end,
-          format!(".replace('{query}', '')").as_str(),
-          None,
-        );
+    } else {
+      let context = normalize_context(&self.options.context);
+      let query = parse_resource(&self.options.request).and_then(|data| data.query);
+      if !context.is_empty() || query.is_some() {
+        source.insert(self.callee_end, "(", None);
+        if !context.is_empty() {
+          source.insert(
+            self.args_end,
+            format!(".replace('{context}', './')").as_str(),
+            None,
+          );
+        }
+        if let Some(query) = query {
+          source.insert(
+            self.args_end,
+            format!(".replace('{query}', '')").as_str(),
+            None,
+          );
+        }
+        source.insert(self.args_end, ")", None);
       }
-      source.insert(self.args_end, ")", None);
     }
   }
 

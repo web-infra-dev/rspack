@@ -1,6 +1,6 @@
 use rspack_core::{clean_regexp_in_context_module, try_convert_str_to_context_mode};
 use rspack_core::{ContextMode, ContextOptions, DependencyCategory, SpanExt};
-use rspack_regex::{regexp_as_str, RspackRegex};
+use rspack_regex::RspackRegex;
 use swc_core::common::Spanned;
 use swc_core::ecma::ast::CallExpr;
 
@@ -37,24 +37,17 @@ impl JavascriptParserPlugin for RequireContextDependencyParserPlugin {
       ContextMode::Sync
     };
 
-    let (reg_exp, reg_str) = if expr.args.len() >= 3 {
+    let reg_exp = if expr.args.len() >= 3 {
       let reg_exp_expr = parser.evaluate_expression(&expr.args[2].expr);
       if !reg_exp_expr.is_regexp() {
         // FIXME: return `None` in webpack
-        let regexp = RspackRegex::new(DEFAULT_REGEXP_STR).expect("reg should success");
-        let raw = regexp_as_str(&regexp).to_string();
-        (regexp, raw)
+        RspackRegex::new(DEFAULT_REGEXP_STR).expect("reg should success")
       } else {
         let (expr, flags) = reg_exp_expr.regexp();
-        let regexp =
-          RspackRegex::with_flags(expr.as_str(), flags.as_str()).expect("reg should success");
-        let raw = regexp_as_str(&regexp).to_string();
-        (regexp, raw)
+        RspackRegex::with_flags(expr.as_str(), flags.as_str()).expect("reg should success")
       }
     } else {
-      let regexp = RspackRegex::new(DEFAULT_REGEXP_STR).expect("reg should success");
-      let raw = regexp_as_str(&regexp).to_string();
-      (regexp, raw)
+      RspackRegex::new(DEFAULT_REGEXP_STR).expect("reg should success")
     };
 
     let recursive = if expr.args.len() >= 2 {
@@ -84,14 +77,13 @@ impl JavascriptParserPlugin for RequireContextDependencyParserPlugin {
             mode,
             recursive,
             reg_exp: clean_regexp_in_context_module(reg_exp),
-            reg_str,
             include: None,
             exclude: None,
             category: DependencyCategory::CommonJS,
             request: request_expr.string().to_string(),
             context: request_expr.string().to_string(),
             namespace_object: rspack_core::ContextNameSpaceObject::Unset,
-            chunk_name: None,
+            group_options: None,
             start: expr.span().real_lo(),
             end: expr.span().real_hi(),
           },

@@ -183,6 +183,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
           reg,
           query,
           fragment,
+          replaces,
         }) = scanner_context_module(dyn_imported.expr.as_ref())
         else {
           return None;
@@ -194,9 +195,18 @@ impl JavascriptParserPlugin for ImportParserPlugin {
           dyn_imported.span(),
           &mut parser.warning_diagnostics,
         );
+        let _mode = magic_comment_options
+          .get_webpack_mode()
+          .map(|x| DynamicImportMode::from(x.as_str()));
         let chunk_name = magic_comment_options
           .get_webpack_chunk_name()
           .map(|x| x.to_owned());
+        let chunk_prefetch = magic_comment_options
+          .get_webpack_prefetch()
+          .and_then(|x| parse_order_string(x.as_str()));
+        let chunk_preload = magic_comment_options
+          .get_webpack_preload()
+          .and_then(|x| parse_order_string(x.as_str()));
         parser
           .dependencies
           .push(Box::new(ImportContextDependency::new(
@@ -204,11 +214,9 @@ impl JavascriptParserPlugin for ImportParserPlugin {
             import_call.span.real_hi(),
             node.span.real_hi(),
             ContextOptions {
-              chunk_name,
               mode: ContextMode::Lazy,
               recursive: true,
               reg_exp: context_reg_exp(&reg, ""),
-              reg_str: reg,
               include: None,
               exclude: None,
               category: DependencyCategory::Esm,
@@ -219,9 +227,15 @@ impl JavascriptParserPlugin for ImportParserPlugin {
               } else {
                 ContextNameSpaceObject::Bool(true)
               },
+              group_options: Some(GroupOptions::ChunkGroup(ChunkGroupOptions::new(
+                chunk_name,
+                chunk_preload.or(dynamic_import_preload),
+                chunk_prefetch.or(dynamic_import_prefetch),
+              ))),
               start: node.span().real_lo(),
               end: node.span().real_hi(),
             },
+            replaces,
             Some(node.span.into()),
           )));
         // FIXME: align `parser.walk_expression` to webpack, which put into `context_dependency_helper`
