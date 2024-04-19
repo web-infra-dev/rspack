@@ -46,7 +46,7 @@ use rspack_plugin_library::enable_library_plugin;
 use rspack_plugin_limit_chunk_count::LimitChunkCountPlugin;
 use rspack_plugin_merge_duplicate_chunks::MergeDuplicateChunksPlugin;
 use rspack_plugin_mf::{
-  ConsumeSharedPlugin, ContainerPlugin, ContainerReferencePlugin, FederationRuntimePlugin,
+  ConsumeSharedPlugin, ContainerPlugin, ContainerReferencePlugin, ModuleFederationRuntimePlugin,
   ProvideSharedPlugin, ShareRuntimePlugin,
 };
 use rspack_plugin_progress::ProgressPlugin;
@@ -113,7 +113,7 @@ pub enum BuiltinPluginName {
   ContainerReferencePlugin,
   ProvideSharedPlugin,
   ConsumeSharedPlugin,
-  FederationRuntimePlugin,
+  ModuleFederationRuntimePlugin,
   NamedModuleIdsPlugin,
   DeterministicModuleIdsPlugin,
   NamedChunkIdsPlugin,
@@ -296,8 +296,8 @@ impl BuiltinPlugin {
         )
         .boxed(),
       ),
-      BuiltinPluginName::FederationRuntimePlugin => {
-        plugins.push(FederationRuntimePlugin::default().boxed())
+      BuiltinPluginName::ModuleFederationRuntimePlugin => {
+        plugins.push(ModuleFederationRuntimePlugin::default().boxed())
       }
       BuiltinPluginName::NamedModuleIdsPlugin => {
         plugins.push(NamedModuleIdsPlugin::default().boxed())
