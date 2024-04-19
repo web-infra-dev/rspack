@@ -49,7 +49,9 @@ pub struct ProgressPlugin {
 
 impl ProgressPlugin {
   pub fn new(options: ProgressPluginOptions) -> Self {
-    let progress_bar = ProgressBar::with_draw_target(Some(100), ProgressDrawTarget::stdout());
+    // default interval is 20, means draw every 1000/20 = 50ms, use 100 to draw every 1000/100 = 10ms
+    let progress_bar =
+      ProgressBar::with_draw_target(Some(100), ProgressDrawTarget::stdout_with_hz(100));
     progress_bar.set_style(
       ProgressStyle::with_template(
         "● {prefix:.bold} {bar:25.green/white.dim} ({percent}%) {wide_msg:.dim}",
@@ -180,6 +182,7 @@ impl ProgressPlugin {
   }
 
   fn progress_bar_handler(&self, percent: f32, msg: String, state_items: Vec<String>) {
+    println!("percent: {percent:?}");
     self
       .progress_bar
       .set_message(msg + " " + state_items.join(" ").as_str());
@@ -381,6 +384,7 @@ async fn after_process_assets(&self, _compilation: &mut Compilation) -> Result<(
 
 #[plugin_hook(CompilerEmit for ProgressPlugin)]
 async fn emit(&self, _compilation: &mut Compilation) -> Result<()> {
+  println!("emitting");
   self.handler(0.98, "emitting".to_string(), vec!["emit".to_string()], None);
   Ok(())
 }
