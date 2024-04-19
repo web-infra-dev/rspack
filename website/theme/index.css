@@ -41,3 +41,81 @@ button:focus-visible {
   max-width: 100vw;
   padding: 0 10px;
 }
+
+/* prettier-ignore */
+th:nth-child(1), td:nth-child(1) { grid-area: a; }
+
+/* prettier-ignore */
+th:nth-child(2), td:nth-child(2) { grid-area: b; }
+
+/* prettier-ignore */
+th:nth-child(3), td:nth-child(3) { grid-area: c; }
+
+/* prettier-ignore */
+th:nth-child(4), td:nth-child(4) { grid-area: d; }
+
+/* prettier-ignore */
+th:nth-child(5), td:nth-child(5) { grid-area: e; }
+
+/* prettier-ignore */
+th:nth-child(6), td:nth-child(6) { grid-area: f; }
+
+/* prettier-ignore */
+th:nth-child(7), td:nth-child(7) { grid-area: g; }
+
+/* prettier-ignore */
+th:nth-child(8), td:nth-child(8) { grid-area: h; }
+
+/* prettier-ignore */
+th:nth-child(9), td:nth-child(9) { grid-area: i; }
+
+/* prettier-ignore */
+th:nth-child(10), td:nth-child(10) { grid-area: j; }
+
+/* prettier-ignore */
+th:nth-child(11), td:nth-child(11) { grid-area: k; }
+
+/* prettier-ignore */
+th:nth-child(12), td:nth-child(12) { grid-area: l; }
+
+/* prettier-ignore */
+th:nth-child(13), td:nth-child(13) { grid-area: m; }
+
+/* prettier-ignore */
+th:nth-child(14), td:nth-child(14) { grid-area: n; }
+
+/* prettier-ignore */
+th:nth-child(15), td:nth-child(15) { grid-area: o; }
+
+/* prettier-ignore */
+th:nth-child(16), td:nth-child(16) { grid-area: p; }
+
+/* prettier-ignore */
+th:nth-child(17), td:nth-child(17) { grid-area: q; }
+
+/* prettier-ignore */
+th:nth-child(18), td:nth-child(18) { grid-area: r; }
+
+/* prettier-ignore */
+th:nth-child(19), td:nth-child(19) { grid-area: s; }
+
+/* prettier-ignore */
+th:nth-child(20), td:nth-child(20) { grid-area: t; }
+
+/* prettier-ignore */
+th:nth-child(21), td:nth-child(21) { grid-area: u; }
+
+/* prettier-ignore */
+th:nth-child(22), td:nth-child(22) { grid-area: v; }
+
+/* prettier-ignore */
+th:nth-child(23), td:nth-child(23) { grid-area: w; }
+
+/* prettier-ignore */
+th:nth-child(24), td:nth-child(24) { grid-area: x; }
+
+/* prettier-ignore */
+th:nth-child(25), td:nth-child(25) { grid-area: y; }
+
+/* prettier-ignore */
+th:nth-child(26), td:nth-child(26) { grid-area: z; }
